@@ -178,9 +178,20 @@ etapa_modo() {
 }
 
 # ---------------------------------------------------------------------------
-etapa_logo()      { passo "Logo do painel e do menu";  meow_pula "etapa própria, ainda não implementada"; return "$MEOW_SEM_DEPENDENCIA"; }
-etapa_icones()    { passo "Tema de ícones";            meow_pula "etapa própria, ainda não implementada"; return "$MEOW_SEM_DEPENDENCIA"; }
-etapa_wallpaper() { passo "Papéis de parede";          meow_pula "etapa própria, ainda não implementada"; return "$MEOW_SEM_DEPENDENCIA"; }
+# Os dois gatos e o tema de ícones saem juntos: a logo do painel é caminho de
+# arquivo e o botão do dock é tema de ícones, mas os dois vêm do mesmo SVG e
+# reiniciam o mesmo processo. Separá-los custaria dois piscar de painel.
+etapa_icones() {
+  passo "Ícones e logo"
+  FLAVOR="$FLAVOR" LOGO="$LOGO" ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/construir_icones.sh"
+  local rc=$?
+  [ "$rc" = "1" ] && meow_notificar "MeowSystem" "Ícones e logo atualizados."
+  return "$rc"
+}
+
+etapa_wallpaper() { passo "Papéis de parede"; meow_pula "etapa própria, ainda não implementada"; return "$MEOW_SEM_DEPENDENCIA"; }
 
 # ---------------------------------------------------------------------------
 main() {
@@ -190,7 +201,7 @@ main() {
   meow_travar || return 2
 
   local etapas=(etapa_conf etapa_dependencias etapa_gerar etapa_tema
-                etapa_modo etapa_logo etapa_icones etapa_wallpaper)
+                etapa_modo etapa_icones etapa_wallpaper)
   TOTAL=${#etapas[@]}
 
   for e in "${etapas[@]}"; do

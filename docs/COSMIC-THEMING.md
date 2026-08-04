@@ -38,44 +38,71 @@ mão gera um tema híbrido que *quase* funciona, e o "quase" só aparece semanas
 
 ---
 
-## 2. `/usr/share/icons` VENCE `~/.local/share/icons`
+## 2. O nome do tema é o laço externo — `hicolor` é o fim da fila
 
-**Medido em 2026-08-04.** Esta é a descoberta que muda o projeto, porque contradiz a
-regra "nada em `/usr/share`" da especificação.
+**Medido em 2026-08-04.** A regra de resolução de ícone do COSMIC não é "sistema vence
+usuário". É outra coisa, e confundir as duas custou uma conclusão errada aqui.
 
-O teste anterior era inconclusivo: os dois arquivos tinham o mesmo conteúdo
-(md5 `9b3d3ada...`), então era impossível saber qual vencia. Tornei-os diferentes.
+### A conclusão errada, e por que ela era errada
 
-1. Plantei um **triângulo vermelho puro** em
-   `~/.local/share/icons/hicolor/{scalable,48x48,256x256}/apps/com.system76.CosmicAppLibrary.svg`
-2. Rodei `gtk-update-icon-cache -f` (cache confirmado atualizado às 17:54:04)
-3. Reiniciei o `cosmic-panel`
+O primeiro teste plantou um triângulo vermelho em
+`~/.local/share/icons/**hicolor**/.../com.system76.CosmicAppLibrary.svg` enquanto o tema
+ativo era `breeze-dark`. O triângulo não apareceu, e disso se concluiu que
+`/usr/share` vencia `~/.local/share`.
 
-**Resultado: o botão continuou com o gato de `/usr/share`.** O triângulo nunca apareceu.
+**A causa era outra:** `hicolor` é o **último** elo da cadeia de herança. Ele só é
+consultado depois de o tema selecionado e todos os seus `Inherits` falharem — e nesse
+caso não falharam. O diretório do usuário nunca esteve em desvantagem; o *tema* é que
+estava no fim da fila.
 
-Um teste anterior, com um tema de ícones inteiro em `~/.local/share/icons/MeowTeste`
-(herdando `breeze-dark`, com `index.theme` declarando `scalable/apps` e os tamanhos
-fixos), também não teve efeito nenhum sobre painel ou dock.
+### A regra real
 
-**Consequência:** botões do painel e do dock só mudam escrevendo em `/usr/share/icons`.
-Como isso é território do Ritual da Aurora e do apt, o caminho é:
-o MeowSystem **gera** o ícone, e o self-heal do Andromeda **instala** — o mesmo padrão
-já usado para o gato do menu de aplicativos, e já aprovado pela Vitória.
+O laço **externo** da busca é o **nome do tema**; o diretório-base é o laço **interno**.
+Ordem observada por `strace` (num `Xvfb :99`, sem tocar na sessão dela), para o tema
+selecionado `MeowTesteIcones`:
 
-**Ainda não medido:** se a mesma preferência vale para os ícones dos aplicativos no
-lançador (os 193 `.desktop`). Painel e dock são a *chrome* do próprio COSMIC e podem
-resolver ícone por um caminho diferente do resto. Testar antes de decidir a estratégia
-dos 193.
+```
+1. /usr/share/icons/MeowTesteIcones          <- tema selecionado, base de sistema
+2. ~/.local/share/icons/MeowTesteIcones      <- tema selecionado, base do usuário
+3. /usr/share/icons/breeze-dark              <- Inherits
+4. /usr/share/icons/Cosmic
+5. ~/.local/share/flatpak/exports/share/icons/hicolor
+```
 
-### Armadilhas do `~/.local/share/icons/hicolor` nesta máquina
+Disso saem duas consequências:
 
-Mesmo onde ele é lido, há duas pedras:
+- **`~/.local/share/icons/<tema-selecionado>` vence `/usr/share/icons/hicolor`** com
+  folga. Provado com o `google-chrome`, que só existe no `hicolor` do sistema: um SVG
+  plantado apenas no tema do usuário venceu.
+- `/usr/share` só vence `~/.local/share` quando **o nome do tema é o mesmo**. Se um dia
+  o mesmo nome existir nos dois lugares, o de `/usr/share` ofusca o do usuário em
+  silêncio.
 
-- O `index.theme` declara apenas
-  `Directories=48x48/apps,128x128/apps,256x256/apps,512x512/apps` — **`scalable/apps`
-  não está declarado**. Um SVG solto em `scalable/` é ignorado pelo padrão freedesktop.
-- Existe um `icon-theme.cache`. Quando ele é mais novo que os diretórios, é ele que
-  manda: arquivo novo fica invisível até rodar `gtk-update-icon-cache -f`.
+### Confirmado na prática, no desktop dela
+
+Montado `~/.local/share/icons/MeowSystem-Icons` com `scalable/apps/` e
+`icon_theme = "MeowSystem-Icons"`: **o botão do dock virou o gato Catppuccin na hora**,
+sem `sudo`, sem `/usr/share`, sem envolver o Ritual da Aurora.
+
+**Consequência de arquitetura:** o MeowSystem entrega ícones em
+`~/.local/share/icons/MeowSystem-Icons` e pronto. A regra "nada em `/usr/share`" da
+especificação **está certa** — quem estava errado era o teste.
+
+### Detalhes que economizam tempo
+
+- **Dentro de um tema, a extensão é o laço externo:** todos os `.svg` (em todos os
+  tamanhos) são tentados antes de qualquer `.png`. Basta entregar `scalable/apps/*.svg`.
+- **`Directories=` é a única chave de tamanho que importa.** A crate do COSMIC
+  (`cosmic-freedesktop-icons`) parseia `[Icon Theme]`, `Inherits` e `Directories`, e
+  ignora `Type=`, `MinSize`, `MaxSize` e `Threshold`. Não perca tempo afinando-os.
+- **`gtk-update-icon-cache` é irrelevante:** a crate não lê `icon-theme.cache` (zero
+  ocorrências do literal no binário). Rodar não faz mal, mas não é o que destrava nada.
+- **Reiniciar é obrigatório:** `cosmic-panel` e `cosmic-app-list` leem a config no
+  início da sessão e não a vigiam. Um `pkill -x cosmic-panel` basta (o `cosmic-session`
+  respawna em ~4ms).
+- **O `hicolor` do usuário tem uma armadilha própria:** o `index.theme` dele declara
+  só `48x48/apps,128x128/apps,256x256/apps,512x512/apps` — **`scalable/apps` não está
+  lá**. SVG solto em `scalable/` daquele tema é ignorado. No nosso tema, declaramos.
 
 ---
 
