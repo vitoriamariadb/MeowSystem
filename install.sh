@@ -209,7 +209,16 @@ etapa_pastas() {
   return $?
 }
 
-etapa_wallpaper() { passo "Papéis de parede"; meow_pula "etapa própria, ainda não implementada"; return "$MEOW_SEM_DEPENDENCIA"; }
+etapa_wallpaper() {
+  passo "Papéis de parede"
+  WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+    WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+    "$MEOW_RAIZ/scripts/wallpaper.sh" aplicar
+  local rc=$?
+  [ "$rc" = "1" ] && [ "${WALLPAPER_NOTIFICAR:-sim}" = "sim" ] \
+    && meow_notificar "MeowSystem" "Carrossel de papéis de parede ligado."
+  return "$rc"
+}
 
 # ---------------------------------------------------------------------------
 main() {
