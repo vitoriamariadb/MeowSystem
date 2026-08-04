@@ -1,0 +1,25 @@
+# Upstreams baixados: Papirus, cosmic-icons, wallpapers da comunidade. São grandes
+# e reproduzíveis — o repo guarda o script que baixa, com commit pinado, não o conteúdo.
+src/icons/upstream/
+src/wallpapers/baixados/
+
+# Imagens nunca vão para o git (o Andromeda ficou 18h com o auto-sync mudo por um
+# arquivo >100MB; aqui a regra é preventiva).
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.mp4
+!docs/spec-visual/*.png
+
+# Estado local da máquina: capturas de tema, backups, log. É por-máquina, não por-repo.
+state/tema/
+state/cosmic-term/
+*.tmp
+*.bak
+*.orig
+
+# Python
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,75 @@
+{
+  "_comentario": "Cada slot do tema COSMIC aponta para um NOME de cor Catppuccin, nunca um hex. '<accent>' e substituido pelo ACCENT do meow.conf. null = None no .ron.",
+  "palette": {
+    "name": "catppuccin-<flavor>",
+    "neutral_0": "crust",
+    "neutral_1": "mantle",
+    "neutral_2": "base",
+    "neutral_3": "surface0",
+    "neutral_4": "surface1",
+    "neutral_5": "surface2",
+    "neutral_6": "overlay0",
+    "neutral_7": "overlay1",
+    "neutral_8": "overlay2",
+    "neutral_9": "subtext1",
+    "neutral_10": "text",
+    "gray_1": "mantle",
+    "gray_2": "base",
+    "bright_red": "maroon",
+    "bright_green": "teal",
+    "bright_orange": "peach",
+    "accent_blue": "blue",
+    "accent_indigo": "lavender",
+    "accent_purple": "mauve",
+    "accent_pink": "pink",
+    "accent_red": "red",
+    "accent_orange": "peach",
+    "accent_yellow": "yellow",
+    "accent_green": "green",
+    "accent_warm_grey": "flamingo",
+    "ext_warm_grey": "rosewater",
+    "ext_orange": "peach",
+    "ext_yellow": "yellow",
+    "ext_blue": "sapphire",
+    "ext_purple": "mauve",
+    "ext_pink": "pink",
+    "ext_indigo": "blue"
+  },
+  "topo": {
+    "neutral_tint": "overlay0",
+    "bg_color": "surface0",
+    "primary_container_bg": "base",
+    "secondary_container_bg": null,
+    "text_tint": "text",
+    "accent": "<accent>",
+    "success": "green",
+    "warning": "yellow",
+    "destructive": "red",
+    "window_hint": null
+  },
+  "alpha": {
+    "bg_color": "D9",
+    "_nota": "D9 = 85%. Vem de ALPHA_FUNDO no meow.conf; o resto e FF."
+  },
+  "estrutura_preservada": {
+    "_nota": "Herdado do 'Estilo escuro.ron' dela. So a paleta muda; isto nao se toca.",
+    "corner_radii": {
+      "radius_0": 0.0,
+      "radius_xs": 2.0,
+      "radius_s": 8.0,
+      "radius_m": 8.0,
+      "radius_l": 8.0,
+      "radius_xl": 8.0
+    },
+    "gaps": [
+      0,
+      5
+    ],
+    "active_hint": 4,
+    "frosted": "VeryLow2",
+    "frosted_windows": true,
+    "frosted_system_interface": true,
+    "frosted_panel": true,
+    "frosted_applets": true
+  }
+}

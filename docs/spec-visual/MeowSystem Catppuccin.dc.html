@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #11111b; color: #cdd6f4; -webkit-font-smoothing: antialiased; }
+  a { color: #89b4fa; text-decoration: none; }
+  a:hover { color: #b4befe; text-decoration: underline; }
+  ::selection { background: #cba6f7; color: #11111b; }
+</style>
+</helmet>
+
+<div style="font-family: 'Space Grotesk', system-ui, sans-serif; background: #11111b; padding: 56px 40px 96px; display: flex; flex-direction: column; align-items: center; gap: 56px;">
+
+  <header style="width: 100%; max-width: 1080px; display: flex; align-items: center; gap: 32px; flex-wrap: wrap;">
+    <img src="assets/meow-mocha.svg" alt="Logo MeowSystem" style="width: 116px; height: 116px; flex: none;" />
+    <div style="flex: 1 1 420px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #f5c2e7;">vitoriamaria@MeowSystem</div>
+      <h1 style="margin: 0; font-size: 46px; line-height: 1.05; font-weight: 700; letter-spacing: -0.02em; color: #cdd6f4; text-wrap: pretty;">Catppuccin para COSMIC</h1>
+      <p style="margin: 0; font-size: 18px; line-height: 1.5; color: #a6adc8; max-width: 60ch; text-wrap: pretty;">Logo, paleta, tema pronto pra importar e o plano de repositório — Pop!_OS 24.04, COSMIC 1.0, accent Mauve.</p>
+    </div>
+  </header>
+
+  <!-- ============ LOGO ============ -->
+  <section style="width: 100%; max-width: 1080px; display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #313244; padding-bottom: 12px;">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 500; color: #cdd6f4;">A logo</h2>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6c7086;">SVG · geométrica · escala de 16px a 1024px</span>
+    </div>
+
+    <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 24px; display: grid; grid-template-columns: repeat(2, auto); justify-content: center; gap: 24px 56px; align-items: center;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <img src="assets/meow-mocha.svg" alt="Gato cinza" style="width: 168px; height: 168px;" />
+        <span style="font-size: 15px; color: #cdd6f4;">Cinza, olhos amarelos</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6c7086;">surface2 #585B70 · yellow #F9E2AF</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <img src="assets/meow-mocha-preto.svg" alt="Gato preto" style="width: 168px; height: 168px;" />
+        <span style="font-size: 15px; color: #cdd6f4;">Preto, olhos amarelos</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6c7086;">crust #11111B · yellow #F9E2AF</span>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+        <img src="assets/meow-mocha.svg" alt="Mocha" style="width: 132px; height: 132px;" />
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <span style="font-size: 15px; color: #cdd6f4;">Mocha</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6c7086;">#11111B · #585B70</span>
+        </div>
+        <sc-if value="{{ ehMocha }}" hint-placeholder-val="{{ true }}">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #11111b; background: #a6e3a1; border-radius: 4px; padding: 3px 8px;">recomendado</span>
+        </sc-if>
+      </div>
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+        <img src="assets/meow-macchiato.svg" alt="Macchiato" style="width: 132px; height: 132px;" />
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <span style="font-size: 15px; color: #cdd6f4;">Macchiato</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6c7086;">#181926 · #5B6078</span>
+        </div>
+        <sc-if value="{{ ehMacchiato }}" hint-placeholder-val="{{ false }}">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #11111b; background: #a6e3a1; border-radius: 4px; padding: 3px 8px;">recomendado</span>
+        </sc-if>
+      </div>
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+        <img src="assets/meow-frappe.svg" alt="Frappé" style="width: 132px; height: 132px;" />
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <span style="font-size: 15px; color: #cdd6f4;">Frappé</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6c7086;">#232634 · #626880</span>
+        </div>
+        <sc-if value="{{ ehFrappe }}" hint-placeholder-val="{{ false }}">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #11111b; background: #a6e3a1; border-radius: 4px; padding: 3px 8px;">recomendado</span>
+        </sc-if>
+      </div>
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+        <img src="assets/meow-latte.svg" alt="Latte" style="width: 132px; height: 132px;" />
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <span style="font-size: 15px; color: #cdd6f4;">Latte</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6c7086;">#A6E3A1 · #8C8FA1</span>
+        </div>
+        <sc-if value="{{ ehLatte }}" hint-placeholder-val="{{ false }}">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #11111b; background: #a6e3a1; border-radius: 4px; padding: 3px 8px;">recomendado</span>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- painel simulado -->
+    <div style="display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: stretch;">
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #6c7086;">painel simulado · 1920px</span>
+        <div style="background: rgba(24,24,37,0.92); border: 1px solid #45475a; border-radius: 8px; height: 40px; display: flex; align-items: center; padding: 0 12px; gap: 16px;">
+          <img src="assets/meow-mocha.svg" alt="" style="width: 24px; height: 24px;" />
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #11111b; background: #cba6f7; border-radius: 4px; padding: 2px 7px;">1</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7f849c;">2</span>
+          </div>
+          <span style="flex: 1;"></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #a6adc8;">4 de ago., 12:09</span>
+          <span style="flex: 1;"></span>
+          <div style="display: flex; align-items: center; gap: 12px; color: #cdd6f4;">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="#cdd6f4" d="M8 12.6a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2Z"></path><path fill="none" stroke="#cdd6f4" stroke-width="1.4" stroke-linecap="round" d="M4.6 8.4a4.8 4.8 0 0 1 6.8 0M2.2 5.9a8.2 8.2 0 0 1 11.6 0"></path></svg>
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="5" width="10" height="6" rx="1.6" fill="none" stroke="#cdd6f4" stroke-width="1.4"></rect><rect x="3.4" y="6.4" width="5" height="3.2" rx="0.8" fill="#a6e3a1"></rect><rect x="13" y="6.8" width="1.4" height="2.4" rx="0.7" fill="#cdd6f4"></rect></svg>
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="#cdd6f4" d="M3 6.2h2.1L8 3.6v8.8L5.1 9.8H3z"></path><path fill="none" stroke="#cdd6f4" stroke-width="1.3" stroke-linecap="round" d="M10.4 6.1a2.7 2.7 0 0 1 0 3.8"></path></svg>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8; text-wrap: pretty;">Os ícones de status (wifi, bateria, volume) são <strong style="color: #cdd6f4; font-weight: 500;">symbolic</strong>: o toolkit pinta com a cor do tema. Trocar o <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #f5c2e7;">.ron</code> já recolore todos — o tema de ícones serve pra mudar forma, não cor.</p>
+      </div>
+
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #6c7086;">symbolic · tamanhos reais</span>
+        <div style="display: flex; align-items: flex-end; gap: 24px; padding: 8px 4px;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="#cdd6f4" fill-rule="evenodd" d="M3.55 2.4 L6.4 5.55 C7.4 5.25 8.6 5.25 9.6 5.55 L12.45 2.4 L12.8 7.45 C13.2 10.6 11 13 8 13 C5 13 2.8 10.6 3.2 7.45 Z M5.35 8.4 a1.05 1.05 0 1 0 2.1 0 a1.05 1.05 0 1 0 -2.1 0 Z M8.55 8.4 a1.05 1.05 0 1 0 2.1 0 a1.05 1.05 0 1 0 -2.1 0 Z"></path></svg>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #6c7086;">16</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <svg width="22" height="22" viewBox="0 0 16 16" aria-hidden="true"><path fill="#cdd6f4" fill-rule="evenodd" d="M3.55 2.4 L6.4 5.55 C7.4 5.25 8.6 5.25 9.6 5.55 L12.45 2.4 L12.8 7.45 C13.2 10.6 11 13 8 13 C5 13 2.8 10.6 3.2 7.45 Z M5.35 8.4 a1.05 1.05 0 1 0 2.1 0 a1.05 1.05 0 1 0 -2.1 0 Z M8.55 8.4 a1.05 1.05 0 1 0 2.1 0 a1.05 1.05 0 1 0 -2.1 0 Z"></path></svg>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #6c7086;">22</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <svg width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path fill="#cdd6f4" fill-rule="evenodd" d="M3.55 2.4 L6.4 5.55 C7.4 5.25 8.6 5.25 9.6 5.55 L12.45 2.4 L12.8 7.45 C13.2 10.6 11 13 8 13 C5 13 2.8 10.6 3.2 7.45 Z M5.35 8.4 a1.05 1.05 0 1 0 2.1 0 a1.05 1.05 0 1 0 -2.1 0 Z M8.55 8.4 a1.05 1.05 0 1 0 2.1 0 a1.05 1.05 0 1 0 -2.1 0 Z"></path></svg>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #6c7086;">32</span>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;">Versão monocromática com olhos vazados, em <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #f5c2e7;">currentColor</code> — legível a 16px.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TEMA ============ -->
+  <section style="width: 100%; max-width: 1080px; display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #313244; padding-bottom: 12px;">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 500; color: #cdd6f4;">O tema</h2>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6c7086;">sua estrutura preservada · paleta trocada</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px;">
+      <!-- janela simulada -->
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #6c7086;">janela simulada</span>
+        <div style="border: 4px solid #cba6f7; border-radius: 8px; overflow: hidden;">
+          <div style="background: rgba(49,50,68,0.85); backdrop-filter: blur(12px); padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #45475a;">
+            <span style="font-size: 14px; color: #cdd6f4; flex: 1;">Configurações</span>
+            <span style="width: 12px; height: 12px; border-radius: 8px; background: #585b70; display: inline-block;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 8px; background: #585b70; display: inline-block;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 8px; background: #f38ba8; display: inline-block;"></span>
+          </div>
+          <div style="background: rgba(30,30,46,0.92); padding: 18px 16px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="background: #313244; border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 14px; color: #cdd6f4;">Cor de destaque</span>
+              <span style="width: 22px; height: 22px; border-radius: 8px; background: #cba6f7; display: inline-block;"></span>
+            </div>
+            <div style="background: #313244; border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 14px; color: #cdd6f4;">Vidro (frosted)</span>
+              <span style="width: 40px; height: 22px; border-radius: 8px; background: #cba6f7; display: flex; align-items: center; justify-content: flex-end; padding: 0 3px;"><span style="width: 16px; height: 16px; border-radius: 8px; background: #11111b; display: inline-block;"></span></span>
+            </div>
+            <div style="display: flex; gap: 10px; padding-top: 4px;">
+              <span style="font-size: 14px; color: #11111b; background: #cba6f7; border-radius: 8px; padding: 9px 18px;">Aplicar</span>
+              <span style="font-size: 14px; color: #cdd6f4; background: #45475a; border-radius: 8px; padding: 9px 18px;">Cancelar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- decisões preservadas -->
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #6c7086;">o que veio do seu .ron</span>
+        <div style="display: flex; flex-direction: column; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><span style="color: #a6adc8;">corner_radii</span><span style="color: #a6e3a1;">8.0 — preservado</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><span style="color: #a6adc8;">gaps</span><span style="color: #a6e3a1;">(0, 5) — preservado</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><span style="color: #a6adc8;">active_hint</span><span style="color: #a6e3a1;">4 — preservado</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><span style="color: #a6adc8;">frosted</span><span style="color: #a6e3a1;">VeryLow2 — preservado</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><span style="color: #a6adc8;">bg_color</span><span style="color: #f5c2e7;">#313250 → #313244</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><span style="color: #a6adc8;">accent</span><span style="color: #f5c2e7;">#E272F8 → #CBA6F7</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><span style="color: #a6adc8;">text_tint</span><span style="color: #f5c2e7;">#FCFCFC → #CDD6F4</span></div>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8; text-wrap: pretty;">Seu fundo <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #f5c2e7;">#313250</code> já era quase o <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #f5c2e7;">surface0</code> do Mocha. A troca não muda a sensação do desktop — resolve a coerência com os apps.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PALETA ============ -->
+  <section style="width: 100%; max-width: 1080px; display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #313244; padding-bottom: 12px;">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 500; color: #cdd6f4;">A paleta</h2>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6c7086;">Catppuccin Mocha · mapeada nos 32 slots do COSMIC</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px;">
+      <sc-for list="{{ paletaVisivel }}" as="cor" hint-placeholder-count="26">
+        <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+          <div style="height: 56px; background: {{ cor.hex }};"></div>
+          <div style="padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 13px; color: #cdd6f4;">{{ cor.nome }}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6c7086;">{{ cor.hex }}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #7f849c;">{{ cor.slot }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- ============ PLANO ============ -->
+  <section style="width: 100%; max-width: 1080px; display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #313244; padding-bottom: 12px;">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 500; color: #cdd6f4;">O plano</h2>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6c7086;">MeowSystem-Theme · 9 sprints</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #cba6f7;">0 — 2</span>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 500; color: #cdd6f4;">Base, tema e logo</h3>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #a6adc8;">Paleta como fonte única de verdade, gerador de <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f5c2e7;">.ron</code>, aplicação por CLI, gato instalado como ícone do menu.</p>
+      </div>
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #f5c2e7;">3 — 6</span>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 500; color: #cdd6f4;">Ícones, wallpapers, apps</h3>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #a6adc8;">Tema de ícones com herança, rotação nativa de wallpaper, e os ports por app em duas ondas.</p>
+      </div>
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #a6e3a1;">7 — 8</span>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 500; color: #cdd6f4;">Auto-reparo</h3>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #a6adc8;">Diagnóstico + reaplicar + hook do APT + timer. Depois, os opcionais animados.</p>
+      </div>
+    </div>
+
+    <div style="background: #181825; border: 1px solid #45475a; border-radius: 8px; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #f9e2af;">limites honestos</span>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;"><strong style="color: #f38ba8; font-weight: 500;">Ícone animado no painel não existe.</strong> SVG de ícone é estático — nada de animação no renderizador. Animação real só dentro de um applet próprio.</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;"><strong style="color: #f38ba8; font-weight: 500;">Não há CSS no COSMIC.</strong> Nada de substituir <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">dark.css</code> como no Pop!_Shell: é Rust + RON tipado. Menos gambiarra, mais estabilidade.</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;"><strong style="color: #a6e3a1; font-weight: 500;">Wallpaper animado dá.</strong> Vídeo, GIF e shader via serviço da comunidade — opt-in, fora do <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">--all</code>, com rollback.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INVENTÁRIO ============ -->
+  <section style="width: 100%; max-width: 1080px; display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #313244; padding-bottom: 12px;">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 500; color: #cdd6f4;">O que o inventário revelou</h2>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6c7086;">6753 linhas · 183 apps · 04 ago, 12:52</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+      <div style="background: #181825; border: 1px solid #a6e3a1; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #a6e3a1;">a logo ficou fácil</span>
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;">O gato do painel é o applet <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f5c2e7;">LogoMenu</code>, que já tem <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f5c2e7;">custom_logo_path</code>. Trocar = copiar um SVG e apontar uma string. Não precisa de tema de ícones.</p>
+      </div>
+      <div style="background: #181825; border: 1px solid #f38ba8; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #f38ba8;">não existe CLI de tema</span>
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;">O <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f5c2e7;">cosmic-settings</code> só abre páginas. O plano virou <strong style="color: #cdd6f4; font-weight: 500;">importar uma vez → capturar → restaurar por cópia</strong>, que é mais robusto que escrever chave por chave.</p>
+      </div>
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #f9e2af;">o carrossel está ligado e parado</span>
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;"><code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f5c2e7;">rotation_frequency: 300</code> já está lá — mas a fonte é um arquivo só, então nunca troca. Basta apontar pra uma pasta.</p>
+      </div>
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #89b4fa;">metade da lista do Dracula não se aplica</span>
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;">Você não tem kitty, Spotify, Discord nem Telegram. Tem VS Code, Obsidian, Krita, OBS, VLC, qBittorrent, Steam — e dois apps seus que merecem ícone autoral.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CLI ============ -->
+  <section style="width: 100%; max-width: 1080px; display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #313244; padding-bottom: 12px;">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 500; color: #cdd6f4;">A CLI <code style="font-family: 'JetBrains Mono', monospace; font-size: 21px; color: #cba6f7;">meow</code></h2>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6c7086;">todo módulo implementa checar · aplicar · desfazer</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div style="background: #11111b; border: 1px solid #313244; border-radius: 8px; padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.85; overflow-x: auto;">
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">status</span><span style="color: #6c7086;">          o que está ativo e o que divergiu</span></div>
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">doctor --consertar</span></div>
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">tema</span> <span style="color: #f5c2e7;">mocha-pink</span></div>
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">logo</span> <span style="color: #f5c2e7;">mocha</span><span style="color: #6c7086;">      painel + dock de uma vez</span></div>
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">icones reconstruir</span></div>
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">desfazer</span><span style="color: #6c7086;">        rollback do último aplicar</span></div>
+      </div>
+      <div style="background: #11111b; border: 1px solid #313244; border-radius: 8px; padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.85; overflow-x: auto;">
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">wallpaper</span> <span style="color: #f5c2e7;">proximo</span></div>
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">wallpaper</span> <span style="color: #f5c2e7;">favoritar</span> <span style="color: #6c7086;">| banir</span></div>
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">wallpaper</span> <span style="color: #f5c2e7;">intervalo 10m</span></div>
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">wallpaper</span> <span style="color: #f5c2e7;">recolorir</span> <span style="color: #6c7086;">foto.jpg</span></div>
+        <div><span style="color: #a6e3a1;">meow</span> <span style="color: #cdd6f4;">wallpaper</span> <span style="color: #f5c2e7;">semear</span></div>
+        <div><span style="color: #a6e3a1;">meow</span><span style="color: #6c7086;">                    sem argumento = menu FZF</span></div>
+      </div>
+    </div>
+    <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+      <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;"><strong style="color: #cdd6f4; font-weight: 500;">Idempotente por construção.</strong> Escrita atômica, comparação por sha256, nada de append em lista, backup com manifesto antes de cada escrita.</p>
+      <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;"><strong style="color: #cdd6f4; font-weight: 500;">Um arquivo pra mexer em tudo.</strong> <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f5c2e7;">meow.conf</code> guarda flavor, accent, raio, intervalo do carrossel e a lista de apps. Editou, roda <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f5c2e7;">meow aplicar</code>.</p>
+      <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #a6adc8;"><strong style="color: #cdd6f4; font-weight: 500;">Conserta sozinho.</strong> Timer diário + hook do APT chamam <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f5c2e7;">doctor --consertar</code> e te notificam quando arrumam algo.</p>
+    </div>
+  </section>
+
+  <!-- ============ PRÓXIMO PASSO ============ -->
+  <sc-if value="{{ mostrarComandos }}" hint-placeholder-val="{{ true }}">
+    <section style="width: 100%; max-width: 1080px; display: flex; flex-direction: column; gap: 20px;">
+      <div style="display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #313244; padding-bottom: 12px;">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 500; color: #cdd6f4;">Agora</h2>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6c7086;">o inventário já foi — falta trocar o gato e soltar o a ferramenta</span>
+      </div>
+      <div style="background: #181825; border: 1px solid #313244; border-radius: 8px; padding: 22px; display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 15px; color: #cdd6f4;">1. Trocar o gato do painel (funciona agora, sem repo nenhum)</span>
+          <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #a6e3a1; background: #11111b; border: 1px solid #313244; border-radius: 8px; padding: 12px 14px; display: block; overflow-x: auto; line-height: 1.7;">cp assets/meow-mocha.svg ~/.config/cosmic/logos/<br />printf '"%s"' "$HOME/.config/cosmic/logos/meow-mocha.svg" &gt; ~/.config/cosmic/dev.cappsy.CosmicExtAppletLogoMenu/v1/custom_logo_path</code>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 15px; color: #cdd6f4;">2. Importar o tema</span>
+          <span style="font-size: 14px; line-height: 1.55; color: #a6adc8;">Configurações → Área de trabalho → Aparência → Importar → <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #f5c2e7;">themes/meowsystem-mocha-mauve.ron</code></span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 15px; color: #cdd6f4;">3. Soltar o a ferramenta no repo</span>
+          <span style="font-size: 14px; line-height: 1.55; color: #a6adc8;">Colar o <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #f5c2e7;">PROMPT-a ferramenta-CODE.md</code> inteiro, anexando o relatório e o inventário.</span>
+        </div>
+      </div>
+    </section>
+  </sc-if>
+
+  <footer style="width: 100%; max-width: 1080px; display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid #313244; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6c7086;">
+    <span>RELATORIO-MEOWSYSTEM.md · PROMPT-a ferramenta-CODE.md · assets/ · themes/ · scripts/</span>
+    <span>Catppuccin MIT · COSMIC GPL-3.0 · logo original</span>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1160},&quot;flavorRecomendado&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;mocha&quot;,&quot;macchiato&quot;,&quot;frappe&quot;,&quot;latte&quot;],&quot;default&quot;:&quot;mocha&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Conteúdo&quot;},&quot;mostrarPaletaCompleta&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Conteúdo&quot;},&quot;mostrarComandos&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Conteúdo&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const f = this.props.flavorRecomendado ?? 'mocha';
+    const paleta = [
+      { nome: 'crust',     hex: '#11111B', slot: 'neutral_0' },
+      { nome: 'mantle',    hex: '#181825', slot: 'neutral_1 / gray_1' },
+      { nome: 'base',      hex: '#1E1E2E', slot: 'neutral_2 / container' },
+      { nome: 'surface0',  hex: '#313244', slot: 'neutral_3 / bg_color' },
+      { nome: 'surface1',  hex: '#45475A', slot: 'neutral_4' },
+      { nome: 'surface2',  hex: '#585B70', slot: 'neutral_5' },
+      { nome: 'overlay0',  hex: '#6C7086', slot: 'neutral_6 / tint' },
+      { nome: 'overlay1',  hex: '#7F849C', slot: 'neutral_7' },
+      { nome: 'overlay2',  hex: '#9399B2', slot: 'neutral_8' },
+      { nome: 'subtext1',  hex: '#BAC2DE', slot: 'neutral_9' },
+      { nome: 'text',      hex: '#CDD6F4', slot: 'neutral_10 / text_tint' },
+      { nome: 'mauve',     hex: '#CBA6F7', slot: 'accent' },
+      { nome: 'pink',      hex: '#F5C2E7', slot: 'accent_pink' },
+      { nome: 'lavender',  hex: '#B4BEFE', slot: 'accent_indigo' },
+      { nome: 'blue',      hex: '#89B4FA', slot: 'accent_blue' },
+      { nome: 'sapphire',  hex: '#74C7EC', slot: 'ext_blue' },
+      { nome: 'sky',       hex: '#89DCEB', slot: 'olhos da logo' },
+      { nome: 'teal',      hex: '#94E2D5', slot: 'bright_green' },
+      { nome: 'green',     hex: '#A6E3A1', slot: 'success' },
+      { nome: 'yellow',    hex: '#F9E2AF', slot: 'warning' },
+      { nome: 'peach',     hex: '#FAB387', slot: 'accent_orange' },
+      { nome: 'maroon',    hex: '#EBA0AC', slot: 'bright_red' },
+      { nome: 'red',       hex: '#F38BA8', slot: 'destructive' },
+      { nome: 'flamingo',  hex: '#F2CDCD', slot: 'accent_warm_grey' },
+      { nome: 'rosewater', hex: '#F5E0DC', slot: 'ext_warm_grey' },
+    ];
+    const completa = this.props.mostrarPaletaCompleta ?? true;
+    const visivel = completa ? paleta : paleta.filter(c =>
+      ['crust', 'base', 'surface0', 'text', 'mauve', 'pink', 'green', 'red'].includes(c.nome));
+    return {
+      paletaVisivel: visivel,
+      mostrarComandos: this.props.mostrarComandos ?? true,
+      ehMocha: f === 'mocha',
+      ehMacchiato: f === 'macchiato',
+      ehFrappe: f === 'frappe',
+      ehLatte: f === 'latte',
+    };
+  }
+}
+</script>
+</body>
+</html>
