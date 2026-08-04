@@ -191,6 +191,24 @@ etapa_icones() {
   return "$rc"
 }
 
+# As pastas coloridas vêm de terceiros (Papirus + catppuccin/papirus-folders) e
+# pesam ~2 MB de SVG. Ficam numa etapa própria porque dependem de rede e do
+# pacote do apt: sem qualquer um dos dois, o resto do tema continua de pé.
+etapa_upstream() {
+  passo "Upstream de terceiros (commits pinados)"
+  "$MEOW_RAIZ/scripts/baixar_upstream.sh"
+  return $?
+}
+
+etapa_pastas() {
+  passo "Pastas na cor do flavor"
+  ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+    ICONES_PASTAS="${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/construir_pastas.sh"
+  return $?
+}
+
 etapa_wallpaper() { passo "Papéis de parede"; meow_pula "etapa própria, ainda não implementada"; return "$MEOW_SEM_DEPENDENCIA"; }
 
 # ---------------------------------------------------------------------------
@@ -201,7 +219,7 @@ main() {
   meow_travar || return 2
 
   local etapas=(etapa_conf etapa_dependencias etapa_gerar etapa_tema
-                etapa_modo etapa_icones etapa_wallpaper)
+                etapa_modo etapa_upstream etapa_icones etapa_pastas etapa_wallpaper)
   TOTAL=${#etapas[@]}
 
   for e in "${etapas[@]}"; do

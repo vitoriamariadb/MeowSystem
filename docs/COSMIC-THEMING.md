@@ -122,6 +122,25 @@ não passa por `icon_theme`, não precisa de cache, não precisa de `/usr/share`
 arquivo terminado em `-symbolic.svg` é achatado numa cor só. Portanto
 `assets/meow-symbolic.svg` **não serve** como logo do painel.
 
+### A logo TROCA AO VIVO — mas só pela chave, não pelo arquivo
+
+**Medido em 2026-08-04**, respondendo à pergunta "a logo pode girar junto com os
+papéis de parede?".
+
+| O que se muda | Efeito |
+|---|---|
+| o **conteúdo** do SVG apontado | **nada** — o applet cacheou a imagem no carregamento |
+| a **chave** `custom_logo_path`, para outro arquivo | **troca na hora**, sem reiniciar o painel |
+
+O applet vigia a configuração por inotify (o processo tem 6 fds de inotify), mas não
+vigia o arquivo de imagem. Então reescrever `meow-mocha.svg` no lugar não faz efeito
+até o próximo `pkill -x cosmic-panel`; já apontar a chave para um
+`meow-mocha-pink.svg` troca o gato instantaneamente, sem piscar nada.
+
+**Consequência:** dá para girar a logo — inclusive junto com o carrossel de papel de
+parede — mantendo **um arquivo por variante** e alternando só a chave. Nunca reescrevendo
+o mesmo arquivo.
+
 ---
 
 ## 4. Onde cada cor mora, e em que formato
