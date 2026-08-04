@@ -51,16 +51,60 @@ Ou seja: é Catppuccin Mocha legítimo, mas acentuado em **blue**. O MeowSystem-
 é Mocha **+ accent mauve `#CBA6F7`**. Quem instalar este arquivo como está ganha um
 qBittorrent Mocha de seleção azul — coerente com a paleta, divergente do acento.
 
-O `stylesheet.qss` reforça o mesmo azul na aba selecionada
-(`QTabBar::tab:selected { border-bottom: 1px solid #89b4fa; }`).
+O `stylesheet.qss` reforça o mesmo azul em **10 lugares**, não só na aba selecionada.
+
+#### Inventário completo do `#89b4fa` (contado, não estimado)
+
+Uma versão anterior desta página listava 4 chaves e 1 regra. Está errado — seguir
+aquela lista deixaria o tema **metade azul**: a barra de progresso, os sliders, o
+radio button, as bordas de foco e os dois estados de envio continuariam azuis.
+O que existe de fato:
+
+`config.json` — 6 chaves:
+
+| chave | |
+|---|---|
+| `Palette.Highlight` | a seleção, o acento mais visível |
+| `Palette.Link` | |
+| `RSS.UnreadArticle` | |
+| `Log.Info` | |
+| `TransferList.Uploading` | |
+| `TransferList.ForcedUploading` | |
+
+`stylesheet.qss` — 10 ocorrências, em 8 regras:
+
+| regra | |
+|---|---|
+| `QTabBar::tab:selected` | `border-bottom` |
+| `QLineEdit:hover, QTextEdit:hover, QPlainTextEdit:hover` | `border` |
+| `QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus` | `border` |
+| `QProgressBar::chunk` | gradiente `#89b4fa` -> `#b4befe` |
+| `QAbstractSpinBox:focus` | `border` |
+| `QSlider::handle:horizontal` / `::sub-page:horizontal` | `background-color` |
+| `QSlider::handle:vertical` / `::add-page:vertical` | `background-color` |
+| `QRadioButton::indicator::checked` | `background-color` |
+
+Para reconferir a qualquer momento (é assim que a lista acima foi levantada):
+
+```sh
+python3 -c '
+import zlib, re
+d = open("catppuccin-mocha.qbtheme","rb").read()
+for off in (32, 570):
+    t = zlib.decompressobj().decompress(d[off:]).decode("utf-8","replace")
+    print(off, t.lower().count("#89b4fa"), "ocorrencias")
+'
+```
 
 **Não corrigimos isso aqui de propósito.** Mexer nas cores exigiria reempacotar o
 `.rcc` (ferramenta `rcc` do Qt), e o resultado seria impossível de testar enquanto o
 tema estiver travado do lado do Andromeda (ver `manifesto.sh`). Fica registrado para
 a decisão ser dela, quando destravar. Há dois caminhos, ambos já mapeados:
 
-1. **Reempacotar o `.rcc`** trocando `#89b4fa` -> `#cba6f7` em `Palette.Highlight`,
-   `Palette.Link`, `RSS.UnreadArticle`, `Log.Info` e na regra `QTabBar::tab:selected`.
+1. **Reempacotar o `.rcc`** trocando `#89b4fa` -> `#cba6f7` nas 6 chaves e nas 10
+   ocorrências da tabela acima — todas elas, senão o resultado fica bicolor.
+   Atenção ao gradiente do `QProgressBar::chunk`, que combina o azul com o
+   lavender `#b4befe`: trocar só a primeira parada deixa a barra roxo-para-azul.
 2. **Servir como diretório**, sem ferramenta nenhuma: o qBittorrent aceita tanto um
    `.qbtheme` quanto um diretório com `config.json` + `stylesheet.qss` (é assim que o
    tema `andromeda` do Aurora já funciona — ele aponta para

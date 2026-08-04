@@ -14,3 +14,20 @@ Arquivos baixados de:
 Para atualizar: troque o SHA acima, rebaixe os dois arquivos e confira que
 a linha ".theme-dark, .theme-dark.ctp-mocha" continua existindo (e ela que
 faz o Mocha valer sem depender do plugin Style Settings).
+
+## Por que VENDORAR e nao baixar na hora
+
+O .gitignore do repo tem a convencao oposta para `src/icons/upstream/` e
+`src/wallpapers/baixados/`: "o repo guarda o script que baixa, com commit
+pinado, nao o conteudo". Aqui a decisao foi diferente, de proposito:
+
+- o `meow_app_aplicar` roda no ciclo do self-heal, que precisa funcionar
+  SEM REDE — baixar na hora transformaria "sem internet" em erro;
+- sao 2,3 MB, duas ordens de grandeza abaixo do Papirus (que e o caso que
+  motivou aquela regra) e bem longe do limite de 100 MB que ja emudeceu o
+  auto-sync do Andromeda por 18h;
+- o que entra no vault e sempre o mesmo byte que foi revisado.
+
+Se um dia isso incomodar, o caminho e trocar `vendor/` por um
+`scripts/baixar_tema_obsidian.sh` com o mesmo SHA pinado e chamar antes do
+aplicar — mas ai o modulo passa a depender de rede.
