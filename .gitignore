@@ -13,8 +13,9 @@ src/wallpapers/baixados/
 !docs/spec-visual/*.png
 
 # Estado local da máquina: capturas de tema, backups, log. É por-máquina, não por-repo.
-state/tema/
-state/cosmic-term/
+# state/tema/ E VERSIONADO: sao as capturas que fazem o "3 cliques uma vez na vida"
+# valerem em qualquer maquina. Sao arquivos de texto pequenos.
+
 *.tmp
 *.bak
 *.orig
