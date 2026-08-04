@@ -1,0 +1,48 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+
+  // Logo do gato. `type: "file"` processa os $1/$2/$3 do meow.txt como cores.
+  // Se o terminal imprimir "$1" literal, troque para "file-raw" e cole ANSI no .txt.
+  "logo": {
+    "type": "file",
+    "source": "~/.config/fastfetch/meow.txt",
+    "color": {
+      "1": "magenta",   // mauve  #CBA6F7
+      "2": "cyan",      // sky    #89DCEB  (olhos)
+      "3": "red"        // pink   #F5C2E7  (focinho)
+    },
+    "padding": { "top": 1, "left": 2, "right": 3 }
+  },
+
+  "display": {
+    "separator": "  ",
+    "color": { "keys": "magenta", "title": "cyan" }
+  },
+
+  "modules": [
+    { "type": "title", "color": { "user": "magenta", "host": "cyan" } },
+    "separator",
+    { "type": "os",        "key": "SO" },
+    { "type": "kernel",    "key": "Kernel" },
+    { "type": "uptime",    "key": "Tempo Ativo" },
+    { "type": "packages",  "key": "Pacotes" },
+    { "type": "shell",     "key": "Shell" },
+    { "type": "display",   "key": "Tela" },
+    { "type": "de",        "key": "Ambiente" },
+    { "type": "wm",        "key": "WM" },
+    { "type": "theme",     "key": "Tema" },
+    { "type": "icons",     "key": "Ícones" },
+    { "type": "cursor",    "key": "Cursor" },
+    { "type": "terminal",  "key": "Terminal" },
+    { "type": "terminalfont", "key": "Fonte" },
+    { "type": "cpu",       "key": "CPU",     "temp": true },
+    { "type": "gpu",       "key": "GPU",     "temp": true },
+    { "type": "memory",    "key": "Memória" },
+    { "type": "swap",      "key": "Swap" },
+    { "type": "disk",      "key": "Disco" },
+    { "type": "localip",   "key": "IP Local" },
+    { "type": "locale",    "key": "Idioma" },
+    "break",
+    { "type": "colors", "symbol": "circle" }
+  ]
+}

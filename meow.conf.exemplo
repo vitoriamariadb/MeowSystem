@@ -1,0 +1,56 @@
+# ---------------------------------------------------------------------------
+# meow.conf — tudo que o MeowSystem-Theme decide fica aqui.
+# Editou uma linha? Rode:  meow aplicar
+# Ver o que mudaria sem aplicar:  meow aplicar --dry-run
+# ---------------------------------------------------------------------------
+
+# --- Aparência -------------------------------------------------------------
+
+# mocha | macchiato | frappe | latte
+FLAVOR="mocha"
+
+# mauve | pink | lavender | blue | sapphire | sky | teal | green | yellow | peach | maroon | red
+ACCENT="mauve"
+
+# escuro | claro | auto   (auto alterna Mocha/Latte por horário)
+MODO="escuro"
+
+# Variante da logo do gato: <flavor> (cinza) ou <flavor>-preto
+# arquivo correspondente em assets/meow-<LOGO>.svg
+LOGO="mocha"
+
+# Estrutura — herdada do seu tema atual. Mexa com consciência.
+RAIO="8"                 # corner_radii (px)
+GAP_EXTERNO="0"
+GAP_INTERNO="5"
+DICA_ATIVA="4"           # active_hint: espessura do contorno da janela em foco
+VIDRO="VeryLow2"         # frosted: nível de translucidez
+ALPHA_FUNDO="D9"         # alpha do bg_color em hex (D9 = 85%)
+
+# --- Ícones ----------------------------------------------------------------
+
+NOME_TEMA_ICONES="MeowSystem-Icons"
+ICONES_BASE="Papirus-Dark"        # tema herdado como fallback
+ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
+
+# --- Wallpaper -------------------------------------------------------------
+
+WALLPAPER_DIR="$HOME/.local/share/backgrounds/meowsystem/ativos"
+WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
+WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
+WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
+WALLPAPER_SEMENTES="comunidade,cosmic,minhas"   # o que o `meow wallpaper semear` baixa
+
+# --- Apps ------------------------------------------------------------------
+# Vírgula-separado. `meow apps` lista o que está instalado e o que falta.
+APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,obs,gimp,krita,vlc,steam,qt5ct"
+
+# App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
+# aplica o tema sozinho quando ele aparecer. Nunca falha por app ausente.
+
+# --- Automação -------------------------------------------------------------
+
+AUTO_REPARO="sim"                 # timer diário + hook do APT + pós flatpak update
+AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
+BACKUPS_MANTIDOS="10"
+LOG_NIVEL="info"                  # silencioso | info | debug

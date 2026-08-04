@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="MeowSystem cat logo">
+  <title>MeowSystem — Catppuccin Mocha · cinza</title>
+  <circle cx="128" cy="128" r="128" fill="#11111B"></circle>
+  <circle cx="128" cy="128" r="119" fill="none" stroke="#CBA6F7" stroke-width="5" opacity="0.85"></circle>
+  <g fill="#585B70">
+    <path d="M70 108 C60 78 66 54 78 50 C90 46 106 62 116 84 Z"></path>
+    <path d="M186 108 C196 78 190 54 178 50 C166 46 150 62 140 84 Z"></path>
+    <ellipse cx="128" cy="142" rx="83" ry="69"></ellipse>
+  </g>
+  <path d="M82 98 C77 79 80 64 86 62 C92 60 100 71 106 86 Z" fill="#F5C2E7" opacity="0.95"></path>
+  <path d="M174 98 C179 79 176 64 170 62 C164 60 156 71 150 86 Z" fill="#F5C2E7" opacity="0.95"></path>
+  <ellipse cx="72" cy="166" rx="15" ry="9" fill="#F5C2E7" opacity="0.35"></ellipse>
+  <ellipse cx="184" cy="166" rx="15" ry="9" fill="#F5C2E7" opacity="0.35"></ellipse>
+  <g opacity="0.45" stroke="#11111B" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M96 152 C80 148 66 146 52 148"></path>
+    <path d="M96 164 C80 165 66 169 54 174"></path>
+    <path d="M160 152 C176 148 190 146 204 148"></path>
+    <path d="M160 164 C176 165 190 169 202 174"></path>
+  </g>
+  <circle cx="100" cy="138" r="20" fill="#F9E2AF"></circle>
+  <circle cx="156" cy="138" r="20" fill="#F9E2AF"></circle>
+  <circle cx="100" cy="139" r="10" fill="#11111B"></circle>
+  <circle cx="156" cy="139" r="10" fill="#11111B"></circle>
+  <circle cx="94" cy="132" r="5" fill="#F5E0DC"></circle>
+  <circle cx="150" cy="132" r="5" fill="#F5E0DC"></circle>
+  <path d="M121 169 C124 166 132 166 135 169 C135 175 131 179 128 179 C125 179 121 175 121 169 Z" fill="#F5C2E7"></path>
+  <g fill="none" stroke="#11111B" stroke-width="4" stroke-linecap="round" opacity="0.8">
+    <path d="M128 180 C128 188 120 190 114 186"></path>
+    <path d="M128 180 C128 188 136 190 142 186"></path>
+  </g>
+</svg>
