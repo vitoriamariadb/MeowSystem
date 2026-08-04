@@ -209,6 +209,12 @@ etapa_pastas() {
   return $?
 }
 
+etapa_apps() {
+  passo "Aplicativos"
+  APPS_ATIVOS="${APPS_ATIVOS:-}" "$MEOW_RAIZ/scripts/aplicar_apps.sh" aplicar
+  return $?
+}
+
 etapa_wallpaper() {
   passo "Papéis de parede"
   WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
@@ -228,7 +234,8 @@ main() {
   meow_travar || return 2
 
   local etapas=(etapa_conf etapa_dependencias etapa_gerar etapa_tema
-                etapa_modo etapa_upstream etapa_icones etapa_pastas etapa_wallpaper)
+                etapa_modo etapa_upstream etapa_icones etapa_pastas etapa_wallpaper
+                etapa_apps)
   TOTAL=${#etapas[@]}
 
   for e in "${etapas[@]}"; do

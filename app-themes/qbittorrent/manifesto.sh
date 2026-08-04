@@ -36,6 +36,15 @@
 # é o único escritor que ninguém reverte. Dois donos no mesmo arquivo é o começo
 # de toda guerra de idempotência.
 #
+# O PREÇO DESSA DELEGAÇÃO, dito na cara: `aurora-qbittorrent-config.sh` não é um
+# aplicador de tema, é a configuração INTEIRA do qBittorrent. Chamá-lo também
+# cria a árvore de `/mnt/Apate/Torrents`, aplica os overrides do flatpak, gera as
+# credenciais da WebUI, escreve o `categories.json` e — se houver algo a mudar e
+# nenhum download em andamento — FECHA e reabre o aplicativo. É o mesmo que o
+# self-heal já faz de hora em hora, então não há efeito novo no sistema; mas
+# significa que `meow_app_aplicar` pode reiniciar o cliente de torrent dela, e
+# isso não pode ser surpresa para quem lê este arquivo depois.
+#
 # ─────────────────────────────────────────────────────────────────────────────
 # ARMADILHA DO BINÁRIO: `meow_escrever` NÃO serve aqui.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -47,6 +56,21 @@
 # própria aqui embaixo, com o mesmo cuidado atômico da `meow_escrever`:
 # temporário criado DENTRO do diretório de destino (o repo mora em /mnt/Apate e
 # o destino em /home — `mv` entre eles não seria atômico) e `mv -f` no fim.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# TRÊS MANEIRAS DE ESTE MÓDULO MENTIR — todas reproduzidas em sandbox e fechadas
+# ─────────────────────────────────────────────────────────────────────────────
+#   1. Deduzir "apliquei" do exit code do Aurora. Com download em andamento ele
+#      ADIA a gravação do conf e sai 0; o módulo devolvia 1 ("apliquei") em toda
+#      rodada, para sempre, sem o conf jamais mudar. Agora o veredito sai de uma
+#      RECONFERÊNCIA do estado real (passo 4 do `meow_app_aplicar`).
+#   2. Tratar "script do Aurora ausente" como "liberado". O módulo instalava o
+#      tema, não escrevia o conf e, na segunda rodada, devolvia 0 ("nada a
+#      fazer") enquanto o `meow_app_conferir` devolvia 1 — dois códigos
+#      contraditórios para o mesmo estado. Agora é 3, com o motivo na tela.
+#   3. Prometer o qBittorrent NATIVO. O escritor do conf (o script do Aurora) é
+#      flatpak-only; o caminho nativo levava ao mesmo laço eterno do item 1.
+#      Agora é 3 declarado, não meia-boca silenciosa.
 #
 # Procedência do arquivo, commit pinado e sha256: veja `PROCEDENCIA.md`.
 # Lá também está registrado que o acento upstream é AZUL (#89b4fa), não o mauve
@@ -68,29 +92,49 @@ MEOW_QBT_ORIGEM="$MEOW_QBT_DIR_MODULO/$MEOW_QBT_ARQUIVO"
 MEOW_QBT_AURORA_FONTE="$HOME/.config/zsh/scripts/aurora-qbittorrent-config.sh"
 MEOW_QBT_AURORA_ESTADO="$HOME/.local/state/aurora/qbittorrent-tema"
 
-# Só imprimimos a receita de destravamento UMA vez por processo: o runner chama
+# Todo aviso estrutural sai UMA vez por processo: o runner chama
 # detectar+conferir+aplicar em sequência e três cópias do mesmo parágrafo viram
 # ruído que ninguém lê.
-MEOW_QBT_JA_AVISOU=0
+MEOW_QBT_JA_AVISOU=0          # a receita de destravamento
+MEOW_QBT_AVISOU_NATIVO=0      # "só o flatpak é coberto"
+MEOW_QBT_AVISOU_SEM_AURORA=0  # "o script do Aurora não está aqui"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # auxiliares
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Onde o qBittorrent guarda a config. Aqui a instalação é FLATPAK (5.2.3, via
-# flathub) — é a que o Aurora gerencia. O caminho nativo fica previsto porque
-# custa duas linhas, mas está marcado como NÃO TESTADO nesta máquina: não há
-# qBittorrent nativo instalado para conferir.
+# Onde o qBittorrent guarda a config. Só o FLATPAK conta aqui (5.2.3, via
+# flathub), e não é preguiça: este módulo delega a escrita do `qBittorrent.conf`
+# ao script do Aurora, e aquele script é flatpak-only por construção — ele abre
+# com `command -v flatpak || exit 0` e `flatpak info "$APP" || exit 0`.
+#
+# MEDIDO em sandbox, não suposto: com o caminho nativo previsto aqui e o Aurora
+# saindo 0 sem fazer nada, `meow_app_aplicar` devolvia 1 ("apliquei") em TODA
+# rodada, para sempre, e o conf nunca era escrito. Prometer uma instalação que a
+# única ferramenta de escrita não enxerga é a armadilha de idempotência da casa:
+# dizer OK sem consertar nada. Enquanto ninguém escrever o conf nativo, o nativo
+# é ausência DECLARADA (3, com aviso), não meia-boca silenciosa.
 _meow_qbt_conf_dir() {
-  if meow_tem flatpak && flatpak info "$MEOW_QBT_APP_ID" >/dev/null 2>&1; then
-    printf '%s' "$HOME/.var/app/$MEOW_QBT_APP_ID/config/qBittorrent"
-    return 0
-  fi
-  if meow_tem qbittorrent; then
-    printf '%s' "$HOME/.config/qBittorrent"   # NÃO TESTADO nesta máquina
-    return 0
-  fi
-  return 1
+  meow_tem flatpak || return 1
+  flatpak info "$MEOW_QBT_APP_ID" >/dev/null 2>&1 || return 1
+  printf '%s' "$HOME/.var/app/$MEOW_QBT_APP_ID/config/qBittorrent"
+}
+
+# Existe um qBittorrent nativo? Serve só para explicar o 3 em vez de sumir.
+_meow_qbt_avisar_nativo() {
+  [ "$MEOW_QBT_AVISOU_NATIVO" = "1" ] && return 0
+  MEOW_QBT_AVISOU_NATIVO=1
+  meow_aviso "há um qBittorrent NATIVO instalado, mas este módulo cobre só o flatpak"
+  meow_info  "(quem escreve o conf é o script do Aurora, que é flatpak-only)"
+  return 0
+}
+
+_meow_qbt_avisar_sem_aurora() {
+  [ "$MEOW_QBT_AVISOU_SEM_AURORA" = "1" ] && return 0
+  MEOW_QBT_AVISOU_SEM_AURORA=1
+  meow_aviso "sem $MEOW_QBT_AURORA_FONTE não há quem escreva o qBittorrent.conf"
+  meow_info  "(este módulo instala o tema e delega o conf ao Aurora — ver cabeçalho)"
+  return 0
 }
 
 # O Aurora conhece `catppuccin`? Lemos o script VIVO em vez de guardar um
@@ -98,9 +142,15 @@ _meow_qbt_conf_dir() {
 # este módulo passa a funcionar sozinho — e se ela desfizer, ele volta a travar
 # sozinho também. Marcador em arquivo de estado seria a armadilha clássica de
 # dizer "OK" sem que nada tenha sido consertado.
+#
+# Script ausente é NÃO-destravado, e não o contrário: quem não tem o Aurora não
+# tem escritor do conf, e a `_meow_qbt_pronto` já barra esse caso antes com um
+# 3 explicado. Tratar ausência como "liberado" fazia o módulo instalar o tema,
+# não escrever o conf e, na segunda rodada, devolver 0 ("nada a fazer") enquanto
+# a `meow_app_conferir` devolvia 1 — dois códigos contraditórios para o mesmo
+# estado (reproduzido em sandbox).
 _meow_qbt_aurora_destravado() {
-  # Sem o script do Aurora não há trava nenhuma (máquina que não é a dela).
-  [ -f "$MEOW_QBT_AURORA_FONTE" ] || return 0
+  [ -f "$MEOW_QBT_AURORA_FONTE" ] || return 1
   grep -qE "^[[:space:]]*${MEOW_QBT_NOME_AURORA}\)" "$MEOW_QBT_AURORA_FONTE"
 }
 
@@ -125,9 +175,12 @@ _meow_qbt_receita() {
   meow_info  ""
   meow_info  "  1) ACRESCENTAR um case, logo depois da linha ${linha_case:-<a do 'andromeda)'>}:"
   meow_info  ""
+  # shellcheck disable=SC2016  # o $TEMAS_DIR é LITERAL de propósito: esta linha é
+  # para ser copiada e colada dentro do script do Aurora, onde a variável existe.
   printf '       %scatppuccin) TEMA_PATH="$TEMAS_DIR/%s" ;;%s\n' \
          "$C_MAUVE" "$MEOW_QBT_ARQUIVO" "$C_ZERO"
   meow_info  ""
+  # shellcheck disable=SC2016  # idem: "uso: $0" é o texto que está no arquivo dela.
   meow_info  "  2) ATUALIZAR o texto de uso na linha ${linha_uso:-<a do 'uso: \$0'>}, de:"
   meow_info  "       [--tema dracula|andromeda|nenhum]"
   meow_info  "     para:"
@@ -135,6 +188,7 @@ _meow_qbt_receita() {
   meow_info  ""
   meow_info  "Edite a FONTE (o caminho acima), não /usr/local/bin: o self-heal roda a fonte"
   meow_info  "e reinstala a cópia. Este módulo não edita esse arquivo — ele está em"
+  # shellcheck disable=SC2088  # o til aqui é prosa para ela ler, não caminho a expandir.
   meow_info  "~/.config/zsh, o repo com auto-commit em 10 minutos, e a escrita é recusada."
   return 0
 }
@@ -144,7 +198,11 @@ _meow_qbt_backup() {
   local alvo="$1" dir base
   [ -e "$alvo" ] || return 0
   base="$(basename "$alvo")"
-  dir="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/backups/${_MEOW_QBT_ISO:-$(date -Iseconds)}"
+  # Carimbo ISO com `-` no lugar do `:` — é o formato que os outros módulos já
+  # usam em `backups/` (ex.: 2026-08-04T20-14-44). Todos escrevem no MESMO
+  # diretório, então o nome tem de ser uniforme para a pasta continuar legível;
+  # e dois-pontos em nome de pasta ainda incomoda rsync, tar e a ponte LAN.
+  dir="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/backups/${_MEOW_QBT_ISO:-$(date +%Y-%m-%dT%H-%M-%S)}"
   mkdir -p "$dir" || { meow_erro "não consegui criar $dir"; return 1; }
   cp -a -- "$alvo" "$dir/$base" || { meow_erro "backup de $alvo falhou"; return 1; }
   meow_info "backup: $dir/$base"
@@ -174,6 +232,39 @@ _meow_qbt_instalar_tema() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# núcleo comum das três funções: dá para trabalhar? (0 = sim, 3 = não)
+# ─────────────────────────────────────────────────────────────────────────────
+# As três funções públicas precisam desta mesma checagem, mas ela NÃO pode ser
+# feita chamando `meow_app_detectar` silenciado: o guarda de "imprime a receita
+# uma vez só" marcaria como já-avisado no chamado mudo, e a receita nunca
+# chegaria à tela. Por isso o núcleo é separado do relato.
+_meow_qbt_pronto() {
+  _meow_qbt_conf_dir >/dev/null || {
+    if meow_tem qbittorrent; then
+      _meow_qbt_avisar_nativo
+    else
+      meow_pula "qBittorrent não instalado"
+    fi
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+  if [ ! -s "$MEOW_QBT_ORIGEM" ]; then
+    meow_aviso "falta o tema em $MEOW_QBT_ORIGEM (veja PROCEDENCIA.md para rebaixar)"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  # Sem o script do Aurora não há escritor para o conf: dependência faltando (3),
+  # nunca um "apliquei" pela metade.
+  if [ ! -f "$MEOW_QBT_AURORA_FONTE" ]; then
+    _meow_qbt_avisar_sem_aurora
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if ! _meow_qbt_aurora_destravado; then
+    _meow_qbt_receita
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  return "$MEOW_OK"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # meow_app_detectar — 0 se dá para trabalhar, 3 se não dá. Nunca falha.
 # ─────────────────────────────────────────────────────────────────────────────
 # A trava do Aurora entra AQUI, e não como erro, de propósito: para o runner,
@@ -182,22 +273,7 @@ _meow_qbt_instalar_tema() {
 # eterna a cada ciclo treinaria a Vitória a ignorar o relatório. 3 é o código
 # que faz o auto-reparo ficar quieto; a receita impressa é o que dá o próximo passo.
 meow_app_detectar() {
-  local conf_dir
-  conf_dir="$(_meow_qbt_conf_dir)" || {
-    meow_pula "qBittorrent não instalado"
-    return "$MEOW_SEM_DEPENDENCIA"
-  }
-
-  if [ ! -s "$MEOW_QBT_ORIGEM" ]; then
-    meow_aviso "falta o tema em $MEOW_QBT_ORIGEM (veja PROCEDENCIA.md para rebaixar)"
-    return "$MEOW_SEM_DEPENDENCIA"
-  fi
-
-  if ! _meow_qbt_aurora_destravado; then
-    _meow_qbt_receita
-    return "$MEOW_SEM_DEPENDENCIA"
-  fi
-
+  _meow_qbt_pronto || return "$MEOW_SEM_DEPENDENCIA"
   meow_ok "qBittorrent presente e o Aurora conhece '$MEOW_QBT_NOME_AURORA'"
   return "$MEOW_OK"
 }
@@ -206,11 +282,7 @@ meow_app_detectar() {
 # meow_app_conferir — 0 aplicado, 1 divergente, 3 ausente/travado.
 # ─────────────────────────────────────────────────────────────────────────────
 meow_app_conferir() {
-  meow_app_detectar >/dev/null 2>&1 || {
-    # Repete a detecção sem silenciar, para a mensagem certa chegar à tela.
-    meow_app_detectar
-    return "$MEOW_SEM_DEPENDENCIA"
-  }
+  _meow_qbt_pronto || return "$MEOW_SEM_DEPENDENCIA"
 
   local conf_dir conf destino divergiu=0
   conf_dir="$(_meow_qbt_conf_dir)" || return "$MEOW_SEM_DEPENDENCIA"
@@ -226,12 +298,18 @@ meow_app_conferir() {
   # regex num grep comum — o teste daria sempre "não bate" e o módulo se
   # declararia divergente para sempre. Por isso: grep -F, literal. (É a mesma
   # pedra em que o próprio script do Aurora tropeçou e documentou.)
+  #
+  # E `-x` junto do `-F`: sem casar a LINHA INTEIRA, um valor que apenas CONTÉM
+  # o nosso caminho passaria por bom — `...=/outro/lugar/catppuccin-mocha.qbtheme.bak`
+  # ou um prefixo diferente que termine igual. O Aurora usa `grep -qxF` pela
+  # mesma razão. O conf real (linha 107 aqui) é exatamente `chave=valor`, sem
+  # espaço nem CR, então o `-x` é seguro.
   if [ -f "$conf" ]; then
-    grep -qF "General\\CustomUIThemePath=$destino" "$conf" || {
+    grep -qxF "General\\CustomUIThemePath=$destino" "$conf" || {
       meow_muda "CustomUIThemePath não aponta para o nosso tema"
       divergiu=1
     }
-    grep -qF 'General\UseCustomUITheme=true' "$conf" || {
+    grep -qxF 'General\UseCustomUITheme=true' "$conf" || {
       meow_muda "UseCustomUITheme não está em true"
       divergiu=1
     }
@@ -257,15 +335,20 @@ meow_app_conferir() {
 # meow_app_aplicar — 0 nada a fazer, 1 aplicou, 2 erro, 3 ausente/travado.
 # ─────────────────────────────────────────────────────────────────────────────
 meow_app_aplicar() {
-  meow_app_detectar >/dev/null 2>&1 || { meow_app_detectar; return "$MEOW_SEM_DEPENDENCIA"; }
+  _meow_qbt_pronto || return "$MEOW_SEM_DEPENDENCIA"
 
   meow_app_conferir >/dev/null 2>&1 && {
     meow_ok "qBittorrent já está com o Catppuccin Mocha — nada a fazer"
     return "$MEOW_OK"
   }
 
-  _MEOW_QBT_ISO="$(date -Iseconds)"
-  local conf_dir destino rc mudou=0
+  # Um carimbo só para toda a aplicação: os arquivos salvos nesta passada têm de
+  # cair na MESMA pasta de backup, senão desfazer vira caça ao tesouro.
+  _MEOW_QBT_ISO="$(date +%Y-%m-%dT%H-%M-%S)"
+  # Sem contador de "mudou" de propósito: quem decide o código de saída no fim é
+  # a RECONFERÊNCIA do estado real, não a soma dos passos que tentamos. Ver o
+  # comentário do passo 3.
+  local conf_dir destino rc
   conf_dir="$(_meow_qbt_conf_dir)" || return "$MEOW_SEM_DEPENDENCIA"
   destino="$conf_dir/themes/$MEOW_QBT_ARQUIVO"
 
@@ -286,7 +369,9 @@ meow_app_aplicar() {
   rc=$?
   case "$rc" in
     0) : ;;
-    1) mudou=1; meow_muda "tema instalado em $destino" ;;
+    # No seco a `_meow_qbt_instalar_tema` já disse "instalaria" — repetir aqui
+    # como "instalado" faria o dry-run mentir que escreveu.
+    1) meow_seco || meow_muda "tema instalado em $destino" ;;
     *) meow_erro "não consegui instalar o .qbtheme"; return "$MEOW_ERRO" ;;
   esac
 
@@ -296,12 +381,11 @@ meow_app_aplicar() {
   if [ "$(cat "$MEOW_QBT_AURORA_ESTADO" 2>/dev/null)" != "$MEOW_QBT_NOME_AURORA" ]; then
     if meow_seco; then
       meow_muda "gravaria '$MEOW_QBT_NOME_AURORA' em $MEOW_QBT_AURORA_ESTADO"
-      mudou=1
     else
       _meow_qbt_backup "$MEOW_QBT_AURORA_ESTADO" || return "$MEOW_ERRO"
       meow_escrever "$MEOW_QBT_AURORA_ESTADO" "$MEOW_QBT_NOME_AURORA" 644
       case $? in
-        1) mudou=1; meow_muda "estado do Aurora -> $MEOW_QBT_NOME_AURORA" ;;
+        1) meow_muda "estado do Aurora -> $MEOW_QBT_NOME_AURORA" ;;
         2) meow_erro "não consegui gravar $MEOW_QBT_AURORA_ESTADO"; return "$MEOW_ERRO" ;;
       esac
     fi
@@ -317,22 +401,33 @@ meow_app_aplicar() {
     return "$MEOW_DIVERGENTE"
   fi
 
-  if [ -x "$MEOW_QBT_AURORA_FONTE" ] || [ -f "$MEOW_QBT_AURORA_FONTE" ]; then
-    meow_info "delegando o conf ao Aurora (ele é o dono do qBittorrent.conf)"
-    if bash "$MEOW_QBT_AURORA_FONTE" --tema "$MEOW_QBT_NOME_AURORA"; then
-      mudou=1
-    else
-      meow_erro "o script do Aurora falhou ao aplicar o tema"
-      return "$MEOW_ERRO"
-    fi
-  else
-    meow_aviso "script do Aurora ausente — o tema está no disco, mas o conf não foi tocado"
-    meow_aviso "ative à mão: Ferramentas > Preferências > Comportamento > usar tema personalizado"
+  # Chegar aqui com o script ausente é impossível: a `_meow_qbt_pronto` já barrou
+  # esse caso com 3. Sem essa pré-condição o módulo instalaria o tema e nunca
+  # escreveria o conf, terminando em 0 com o app ainda em Dracula.
+  meow_info "delegando o conf ao Aurora (ele é o dono do qBittorrent.conf)"
+  if ! bash "$MEOW_QBT_AURORA_FONTE" --tema "$MEOW_QBT_NOME_AURORA"; then
+    meow_erro "o script do Aurora falhou ao aplicar o tema"
+    return "$MEOW_ERRO"
   fi
 
-  # Honestidade sobre o resultado visual (medido, ver PROCEDENCIA.md).
-  meow_aviso "atenção: o acento deste tema upstream é AZUL (#89b4fa), não o mauve #CBA6F7 da casa"
-
-  [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
-  return "$MEOW_OK"
+  # --- 4. o veredito sai do ESTADO REAL, não do exit code do Aurora ---------
+  # MEDIDO em sandbox: com download em andamento, o Aurora imprime "NÃO vou
+  # fechar", ADIA a gravação do conf e sai 0. Deduzir "apliquei" desse 0 fazia
+  # `meow_app_aplicar` devolver 1 em toda rodada, para sempre, sem nunca ter
+  # escrito o conf — enquanto a `meow_app_conferir` seguia dizendo 1 também.
+  # Reconferir custa um `flatpak info` e dois greps, e é o que impede o módulo
+  # de mentir. Só chegamos até aqui porque a conferência inicial acusou
+  # divergência, então nenhum caminho daqui para baixo pode devolver 0.
+  if meow_app_conferir >/dev/null 2>&1; then
+    meow_ok "qBittorrent com Catppuccin Mocha aplicado"
+    # O aviso do acento sai só quando o tema de fato ficou vivo — repeti-lo a
+    # cada ciclo em que o Aurora adiou seria ruído sobre algo que ela ainda nem
+    # viu na tela. Honestidade sobre o visual, medido em PROCEDENCIA.md.
+    meow_aviso "atenção: o acento deste tema upstream é AZUL (#89b4fa), não o mauve #CBA6F7 da casa"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_aviso "o Aurora rodou mas o conf ainda não reflete o tema — ele adia a gravação"
+  meow_aviso "quando há download em andamento (fechar o app perderia progresso)."
+  meow_aviso "nada se perdeu: o tema já está no disco e o próximo ciclo ocioso aplica."
+  return "$MEOW_DIVERGENTE"
 }
