@@ -1,0 +1,4 @@
+captura: original
+quando: 2026-08-04T17:33:15-03:00
+origem: /home/vitoriamaria/.config/cosmic
+arquivos: 121
