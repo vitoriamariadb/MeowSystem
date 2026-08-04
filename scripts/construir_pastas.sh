@@ -82,28 +82,47 @@ for tam in "${TAMANHOS[@]}"; do
     copiados=$((copiados+1))
   done < <(find "$origem" -maxdepth 1 -name "folder-$COR*.svg" -o -maxdepth 1 -name "user-$COR*.svg" 2>/dev/null)
 
-  # 2. o nome genérico: folder.svg, user-home.svg e companhia precisam existir
+  # 2. os APELIDOS. `folder.svg`, `user-home.svg` e companhia precisam existir
   #    apontando para a versão colorida, senão a busca cai no Papirus e vem azul.
-  while IFS= read -r link; do
-    nome="$(basename "$link")"
-    destino_orig="$(readlink "$link")"
-    case "$destino_orig" in
-      folder-blue*|user-blue*) ;;
-      *) continue ;;
-    esac
-    # folder-blue-documents.svg -> folder-cat-mocha-mauve-documents.svg
-    equivalente="${destino_orig/folder-blue/folder-$COR}"
-    equivalente="${equivalente/user-blue/user-$COR}"
-    if [ ! -e "$destino/$equivalente" ]; then
-      faltaram=$((faltaram+1))
-      continue
-    fi
-    if [ "$(readlink "$destino/$nome" 2>/dev/null)" != "$equivalente" ]; then
-      meow_seco || ln -sfn "$equivalente" "$destino/$nome"
-      mudou=1
-    fi
-    apelidos=$((apelidos+1))
-  done < <(find "$BASE_DIR/$tam/places" -maxdepth 1 -type l 2>/dev/null)
+  #
+  #    DOIS PASSES, porque o Papirus encadeia symlinks: `inode-directory.svg`
+  #    aponta para `folder.svg`, que aponta para `folder-blue.svg`. Tratar só o
+  #    primeiro nível deixaria de fora justamente o `inode-directory` — o nome
+  #    genérico de diretório que os aplicativos mais pedem. Descoberto ao conferir
+  #    o resultado arquivo a arquivo, não em teste superficial.
+  # (sem `local`: este laço roda no corpo do script, não dentro de função)
+  passe=""
+  for passe in 1 2; do
+    while IFS= read -r link; do
+      nome="$(basename "$link")"
+      destino_orig="$(readlink "$link")"
+      equivalente=""
+      if [ "$passe" = "1" ]; then
+        # Nível 1: aponta direto para uma cor. folder-blue-x -> folder-<COR>-x
+        case "$destino_orig" in
+          folder-blue*|user-blue*) ;;
+          *) continue ;;
+        esac
+        equivalente="${destino_orig/folder-blue/folder-$COR}"
+        equivalente="${equivalente/user-blue/user-$COR}"
+      else
+        # Nível 2: aponta para um nome que o passe 1 já criou aqui. Mantém o
+        # mesmo alvo — a cadeia se resolve dentro do nosso tema.
+        [ -e "$destino/$nome" ] && continue
+        [ -e "$destino/$destino_orig" ] || continue
+        equivalente="$destino_orig"
+      fi
+      if [ ! -e "$destino/$equivalente" ]; then
+        [ "$passe" = "1" ] && faltaram=$((faltaram+1))
+        continue
+      fi
+      if [ "$(readlink "$destino/$nome" 2>/dev/null)" != "$equivalente" ]; then
+        meow_seco || ln -sfn "$equivalente" "$destino/$nome"
+        mudou=1
+      fi
+      apelidos=$((apelidos+1))
+    done < <(find "$BASE_DIR/$tam/places" -maxdepth 1 -type l 2>/dev/null)
+  done
 done
 
 # `Directories=` é a única chave que a crate do COSMIC lê, e o que não estiver
