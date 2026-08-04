@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -89,6 +90,36 @@ def gato(c: dict, accent: str) -> str:
   </g>
 </svg>
 """
+
+
+def gato_painel(c: dict) -> str:
+    """A variante de LOGO: mesmo desenho, sem o disco de fundo, recortado no gato.
+
+    POR QUE ELA EXISTE (medido, não achismo)
+        O gato de 256px foi desenhado como ícone de aplicativo: disco de fundo,
+        anel de accent e detalhes finos. No painel ele é desenhado a ~24px, e
+        nesse tamanho o disco rouba metade da área útil — o gato fica menor que o
+        ícone anterior e os bigodes viram sujeira. Renderizado lado a lado a 24px
+        contra o gato geométrico que estava lá, ele perdia em presença.
+
+        Esta variante tira o disco e fecha o viewBox no desenho, então o gato
+        ocupa o quadro inteiro. É o mesmo arquivo-fonte: nada é redesenhado.
+
+    E POR QUE O CORPO É O ACCENT
+        Sem o disco, o corpo passa a ser desenhado direto sobre o painel — e
+        `surface2` é escuro demais contra um painel escuro. O accent (mauve)
+        resolve o contraste E faz a logo carregar a cor-assinatura do tema.
+        Escolha da Vitória entre três candidatos renderizados no tamanho real.
+    """
+    corpo = c["anel"]  # o accent
+    d = dict(c, corpo=corpo)
+    svg = gato(d, "")
+    # Fora o disco e o anel: no painel o fundo é o próprio painel.
+    svg = re.sub(r'\s*<circle cx="128" cy="128" r="128"[^>]*></circle>', "", svg)
+    svg = re.sub(r'\s*<circle cx="128" cy="128" r="119"[^>]*></circle>', "", svg)
+    # Fecha o quadro no desenho: orelhas começam em y=46, queixo termina em ~y=212.
+    svg = svg.replace('viewBox="0 0 256 256"', 'viewBox="38 38 180 180"')
+    return svg
 
 
 def simbolico() -> str:
