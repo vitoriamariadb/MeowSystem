@@ -292,6 +292,117 @@ etapa_apps() {
   return $?
 }
 
+# ---------------------------------------------------------------------------
+# O AUTO-REPARO — UM TIMER DIÁRIO, E NENHUM HOOK DE APT
+#
+#   O Ritual da Aurora já roda o self-heal completo depois de todo apt
+#   (/etc/apt/apt.conf.d/99-ritual-aurora-self-heal). Pendurar um segundo reparador
+#   no mesmo evento colocaria dois programas mexendo em tema e ícone ao mesmo tempo,
+#   com dois avisos capazes de se contradizer na tela dela. Decisão tomada: timer
+#   diário e mais nada. O porquê completo está no cabeçalho de
+#   systemd/meow-doctor.timer.
+#
+# AS UNIDADES VÃO POR CÓPIA, SEM SUBSTITUIÇÃO NENHUMA
+#   Elas usam o especificador `%h` do systemd em vez do caminho literal do `$HOME`.
+#   Assim o arquivo instalado é byte a byte igual ao do repositório, e o
+#   `meow_escrever` consegue comparar por conteúdo — que é o que impede este passo
+#   de reescrever e recarregar o systemd em toda execução.
+#
+# NÃO É UM LINK SIMBÓLICO PARA /mnt/Apate DE PROPÓSITO
+#   O disco Ápate é um NVMe separado. Uma unidade do systemd apontando para lá
+#   desapareceria da sessão no dia em que ele não montasse, e o erro apareceria como
+#   "unidade não encontrada", sem dizer por quê. Cópia resolve; a divergência com o
+#   repositório é reconciliada aqui, a cada `install.sh`.
+etapa_autoreparo() {
+  passo "Auto-reparo diário (systemd --user)"
+  local origem="$MEOW_RAIZ/systemd"
+  local destino="$HOME/.config/systemd/user"
+  local estado="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
+
+  # Desligar tem de DESLIGAR: só deixar de instalar manteria vivo o timer que uma
+  # execução anterior já tinha ligado, e ela veria o reparo continuar acontecendo
+  # depois de ter escrito "nao" no meow.conf.
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    if [ -f "$destino/meow-doctor.timer" ]; then
+      if meow_seco; then
+        meow_muda "removeria o timer (AUTO_REPARO=\"${AUTO_REPARO:-}\")"
+        return "$MEOW_DIVERGENTE"
+      fi
+      systemctl --user disable --now meow-doctor.timer >/dev/null 2>&1
+      rm -f "$destino/meow-doctor.timer" "$destino/meow-doctor.service"
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "AUTO_REPARO=\"$AUTO_REPARO\" — timer desligado e removido"
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_pula "AUTO_REPARO=\"${AUTO_REPARO:-}\" no meow.conf — sem reparo automático"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    meow_aviso "não há systemd --user nesta sessão — o auto-reparo fica de fora"
+    meow_info "  rode 'meow doctor --consertar' na mão quando quiser"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  # O diretório do log tem de existir ANTES de o systemd abrir o
+  # `StandardOutput=append:` — MEDIDO em 2026-08-04: o append: é montado antes de
+  # qualquer comando do serviço e antes até do `StateDirectory=`, e sem o diretório
+  # a unidade morre com "Failed to set up standard output". Este mkdir é o que
+  # garante o primeiro disparo numa máquina recém-instalada.
+  if ! meow_seco && ! mkdir -p "$estado"; then
+    meow_erro "não consegui criar $estado (é lá que fica o log do auto-reparo)"
+    return "$MEOW_ERRO"
+  fi
+
+  local mudou=0 u
+  for u in meow-doctor.service meow-doctor.timer; do
+    if [ ! -f "$origem/$u" ]; then
+      meow_erro "falta $origem/$u — repositório incompleto"
+      return "$MEOW_ERRO"
+    fi
+    meow_escrever "$destino/$u" "$(cat "$origem/$u")" 644
+    case $? in
+      1) mudou=1 ;;
+      2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;;
+    esac
+  done
+
+  if meow_seco; then
+    [ "$mudou" = "1" ] && meow_muda "instalaria as unidades e ligaria meow-doctor.timer"
+    [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
+    meow_ok "auto-reparo já instalado"
+    return 0
+  fi
+
+  [ "$mudou" = "1" ] && systemctl --user daemon-reload
+
+  # Ligar só quando precisa. Um `enable --now` incondicional reescreveria o link em
+  # timers.target.wants e reiniciaria o timer a cada execução — o que zera a conta
+  # do `Persistent=` e faz o reparo disparar de novo sem motivo.
+  if [ "$(systemctl --user is-enabled meow-doctor.timer 2>/dev/null)" != "enabled" ] ||
+     [ "$(systemctl --user is-active  meow-doctor.timer 2>/dev/null)" != "active" ]; then
+    if ! systemctl --user enable --now meow-doctor.timer >/dev/null 2>&1; then
+      meow_erro "não consegui ligar o meow-doctor.timer"
+      return "$MEOW_ERRO"
+    fi
+    mudou=1
+  fi
+
+  # Aviso honesto, não falha: as unidades ficam instaladas e o timer ligado, mas
+  # cada disparo será PULADO pelo `ConditionFileIsExecutable=` até o `meow` existir.
+  if [ ! -x "$HOME/.local/bin/meow" ]; then
+    meow_aviso "o timer está ligado, mas ~/.local/bin/meow ainda não existe"
+    meow_info "  até ele aparecer, cada disparo é pulado (o journal diz o caminho)"
+  fi
+
+  if [ "$mudou" = "0" ]; then
+    meow_ok "auto-reparo já ligado (todo dia às 5h, com até 20min de folga)"
+    return 0
+  fi
+  meow_ok "auto-reparo ligado: todo dia às 5h, log em $estado/doctor.log"
+  return "$MEOW_DIVERGENTE"
+}
+
 etapa_wallpaper() {
   passo "Papéis de parede"
   WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
@@ -310,9 +421,12 @@ main() {
 
   meow_travar || return 2
 
+  # O auto-reparo é o ÚLTIMO de propósito: ele só faz sentido depois que tudo já foi
+  # aplicado uma vez. Ligado antes, o primeiro disparo pegaria a máquina no meio da
+  # instalação e "consertaria" o que ainda estava sendo escrito.
   local etapas=(etapa_conf etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_upstream etapa_icones etapa_pastas etapa_wallpaper
-                etapa_apps)
+                etapa_apps etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
   for e in "${etapas[@]}"; do

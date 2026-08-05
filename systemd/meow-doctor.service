@@ -1,0 +1,92 @@
+# meow-doctor.service — o auto-reparo do MeowSystem, disparado pelo timer irmão.
+#
+# POR QUE SÓ UM TIMER DIÁRIO, E NENHUM HOOK DE APT
+#   O Ritual da Aurora já tem `/etc/apt/apt.conf.d/99-ritual-aurora-self-heal`, que
+#   roda o self-heal COMPLETO depois de todo apt. Pendurar um segundo reparador no
+#   mesmo evento colocaria dois programas mexendo em tema e ícone ao mesmo tempo,
+#   com dois avisos que podem se contradizer na tela dela. Decisão tomada: o
+#   MeowSystem repara uma vez por dia e mais nada.
+#
+# OS CÓDIGOS DE SAÍDA SÃO A INTERFACE (regra 7 do contrato)
+#   0 = estava tudo certo · 1 = divergia e foi consertado · 2 = erro de verdade ·
+#   3 = falta dependência (app não instalado). Só o 2 é falha para o systemd — por
+#   isso o `SuccessExitStatus=1 3`. E é o 1 que dispara a notificação, no
+#   ExecStopPost: sem esse detalhe o auto-reparo avisaria todo dia, mesmo sem ter
+#   feito nada, e ela aprenderia a ignorar o aviso.
+#
+# O QUE ESTE SERVIÇO NÃO PODE FAZER (medido, docs/COSMIC-THEMING.md)
+#   - Entrar em ping-pong com o `aurora-vidro-maximizado.py`. O Aurora reescreve os
+#     dois dígitos de alpha do `base:` de background/primary/secondary cerca de 1s
+#     depois de qualquer gravação de tema. Quem cede é o MeowSystem: o
+#     `aplicar_tema.sh --conferir` NORMALIZA esses dígitos, e é por esse caminho que
+#     o `meow doctor` tem de passar. Sem isso, o doctor acharia divergência eterna,
+#     consertaria todo dia e notificaria todo dia.
+#   - Reiniciar o `cosmic-panel` sem motivo. Reiniciar o painel PISCA a tela dela, e
+#     ela tem uma TV só. O `construir_icones.sh` só manda o SIGTERM quando algo
+#     mudou de verdade (`mudou=1`); o doctor herda essa disciplina ao chamá-lo.
+#
+# A ARMADILHA DO `append:` — MEDIDA EM 2026-08-04
+#   `StandardOutput=append:` é montado ANTES de qualquer comando do serviço, e
+#   ANTES de `StateDirectory=`. Testado: com `StateDirectory=meowsystem` e o
+#   diretório apagado, o systemd falhou com `Failed to set up standard output:
+#   No such file or directory` e o `StateDirectory` não chegou a ser criado.
+#   Ou seja: `~/.local/state/meowsystem` tem de existir ANTES — quem garante é o
+#   `install.sh` (etapa do auto-reparo) e o próprio `meow`, que cria o diretório no
+#   `meow_travar`. Se alguém apagar o diretório, o serviço falha ALTO, com essa
+#   mensagem no journal, e volta a funcionar no primeiro `meow` rodado na mão.
+#
+# SE O `meow` NÃO ESTIVER INSTALADO, ISTO AQUI NÃO É FALHA
+#   `ConditionFileIsExecutable=` faz o systemd PULAR a unidade e escrever no journal
+#   exatamente qual caminho faltou. Sem isso, uma máquina onde o MeowSystem foi
+#   desinstalado ganharia uma unidade vermelha por dia, para sempre. O mesmo teste
+#   cobre o caso do `~/.local/bin/meow` ser um link simbólico apontando para um
+#   /mnt/Apate desmontado: `stat` segue o link, link quebrado não é executável.
+#   (Cuidado: a chave NÃO é `ConditionPathIsExecutable` — esse nome não existe, e o
+#   systemd 255 apenas avisa `Unknown key name` e IGNORA a condição.)
+
+[Unit]
+Description=MeowSystem — auto-reparo do tema (meow doctor --consertar)
+Documentation=man:systemd.timer(5)
+# Sem sessão gráfica não há painel para reler nem notificação para entregar; e o
+# usuário desta máquina tem `Linger=yes`, então o gerenciador de sessão continua de
+# pé mesmo sem ninguém logado. Esta condição é o que impede o reparo de rodar no
+# vazio nessa situação.
+ConditionEnvironment=WAYLAND_DISPLAY
+ConditionFileIsExecutable=%h/.local/bin/meow
+
+[Service]
+Type=oneshot
+
+# Apara o log antes de escrever nele. Uma execução por dia cresce devagar, mas um
+# arquivo que só cresce é um problema que aparece daqui a anos. O temporário nasce
+# no MESMO diretório do destino, então o `mv` é atômico (é a mesma regra do resto do
+# projeto). O prefixo `-` garante que uma falha aqui não vire falha do serviço.
+ExecStartPre=-/bin/sh -c 'L=%h/.local/state/meowsystem/doctor.log; [ -f "$L" ] || exit 0; [ "$(wc -c < "$L")" -lt 262144 ] && exit 0; tail -n 400 "$L" > "$L.novo" && mv -f "$L.novo" "$L"'
+
+ExecStart=%h/.local/bin/meow doctor --consertar --yes
+
+# 1 (consertou) e 3 (faltou dependência) são informação, não falha.
+SuccessExitStatus=1 3
+
+# Um doctor travado seguraria o lock de `~/.local/state/meowsystem/lock` até o fim
+# dos tempos. Cinco minutos é folga de sobra para o pior caso, que é esperar o
+# cosmic-panel voltar (~4ms na prática, com 20 tentativas de 0,5s no script).
+TimeoutStartSec=5min
+
+# A NOTIFICAÇÃO
+#   Só quando `EXIT_STATUS` for exatamente 1 — ou seja, quando algo foi de fato
+#   consertado. Medido: o systemd entrega `SERVICE_RESULT`, `EXIT_CODE` e
+#   `EXIT_STATUS` ao ExecStopPost mesmo quando o código está no `SuccessExitStatus`,
+#   e não expande variáveis do shell dentro de aspas simples — o `sh` recebe o texto
+#   inteiro e lê `$EXIT_STATUS` do próprio ambiente.
+#   O `meow.conf` manda: `AUTO_REPARO_NOTIFICAR="nao"` cala o aviso sem desligar o
+#   reparo. O prefixo `-` existe porque uma máquina sem servidor de notificação faria
+#   o `notify-send` sair != 0 e marcaria o serviço como falho por causa do aviso.
+ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${AUTO_REPARO_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "O tema estava divergente e o auto-reparo corrigiu. Detalhes em ~/.local/state/meowsystem/doctor.log"'
+
+# O journal guarda o histórico; o arquivo é o que ela consegue abrir sem saber
+# `journalctl`. `inherit` no erro manda stderr pelo mesmo caminho, sem repetir o
+# caminho e sem risco de os dois divergirem.
+StandardOutput=append:%h/.local/state/meowsystem/doctor.log
+StandardError=inherit
+SyslogIdentifier=meow-doctor

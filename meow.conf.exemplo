@@ -50,7 +50,10 @@ APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,
 
 # --- Automação -------------------------------------------------------------
 
-AUTO_REPARO="sim"                 # timer diário + hook do APT + pós flatpak update
+# O auto-reparo é UM timer do systemd --user, diário, e mais nada. Não há hook de
+# APT nosso de propósito: o do Ritual da Aurora já roda o self-heal completo depois
+# de todo apt, e dois reparadores no mesmo evento dariam avisos contraditórios.
+AUTO_REPARO="sim"                 # timer diário: meow doctor --consertar às 5h
 AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
 BACKUPS_MANTIDOS="10"
 LOG_NIVEL="info"                  # silencioso | info | debug

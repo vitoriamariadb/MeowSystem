@@ -119,10 +119,36 @@ fi
 # "reiniciar" — é o mesmo caminho que o vigia do painel fantasma usa.
 if pgrep -x cosmic-panel >/dev/null 2>&1; then
   pkill -x cosmic-panel
+  voltou=0
   for _ in $(seq 1 20); do
     sleep 0.5
-    pgrep -x cosmic-panel >/dev/null 2>&1 && break
+    if pgrep -x cosmic-panel >/dev/null 2>&1; then voltou=1; break; fi
   done
+
+  # NUNCA CONFIAR NO RESPAWN — aprendido na tela dela, em 04/08/2026.
+  # O `cosmic-session` normalmente ressuscita o painel em ~4ms, e a versão
+  # anterior deste bloco apenas ESPERAVA por isso. Mas o respawn tem limite: com
+  # o painel morto e revivido muitas vezes na mesma sessão (388 registros no
+  # journal daquele boot), o session desistiu — e o script seguiu imprimindo
+  # "tema instalado e ativo" enquanto a Vitória ficava SEM painel e SEM dock,
+  # numa máquina de UMA tela só. Mentir sobre o sucesso é o pior modo de falha
+  # possível: ela só descobriu olhando.
+  #
+  # Agora, se o respawn não vier, subimos o painel nós mesmos. `setsid` para ele
+  # não morrer junto com este script.
+  if [ "$voltou" = "0" ]; then
+    meow_aviso "o cosmic-session não trouxe o painel de volta — subindo eu mesma"
+    setsid cosmic-panel >/dev/null 2>&1 &
+    for _ in $(seq 1 20); do
+      sleep 0.5
+      if pgrep -x cosmic-panel >/dev/null 2>&1; then voltou=1; break; fi
+    done
+  fi
+
+  if [ "$voltou" = "0" ]; then
+    meow_erro "o painel NÃO voltou. Rode 'setsid cosmic-panel &' ou relogue."
+    exit "$MEOW_ERRO"
+  fi
 fi
 
 meow_ok "tema '$TEMA_NOME' instalado e ativo"

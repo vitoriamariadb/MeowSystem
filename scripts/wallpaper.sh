@@ -209,10 +209,102 @@ cmd_adicionar() {
   return "$MEOW_DIVERGENTE"
 }
 
+# --- semear: a coleção Catppuccin da comunidade ----------------------------
+# POR QUE NÃO CLONAR O REPOSITÓRIO
+#   `zhichaoh/catppuccin-wallpapers` tem 371 MB e 242 imagens; o
+#   `orangci/walls-catppuccin-mocha` tem 795 MB. Baixar tudo para usar uma dúzia
+#   é desperdício de banda e de disco. Aqui se lê a árvore do commit PINADO pela
+#   API e se baixam só os arquivos escolhidos, por URL crua.
+#
+# COMMIT PINADO, NUNCA `main`
+#   Um upstream que muda sozinho transforma "rodei o instalador" em "rodei num
+#   dia em que o repositório estava de um jeito".
+#
+# AS IMAGENS NÃO ENTRAM NO GIT
+#   O repositório guarda esta receita. As fotos ficam só na máquina.
+SEMENTE_REPO="${WALLPAPER_SEMENTE_REPO:-zhichaoh/catppuccin-wallpapers}"
+SEMENTE_COMMIT="${WALLPAPER_SEMENTE_COMMIT:-1023077979591cdeca76aae94e0359da1707a60e}"
+# 0 = TODAS as imagens do repositorio. Um numero baixa so uma amostra, uma de
+# cada categoria por rodizio (util para testar sem gastar banda).
+SEMENTE_QUANTAS="${WALLPAPER_SEMENTE_QUANTAS:-0}"
+
+cmd_semear() {
+  meow_tem curl || { meow_erro "curl não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
+  meow_tem python3 || { meow_erro "python3 não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
+  criar_pastas
+
+  local api="https://api.github.com/repos/$SEMENTE_REPO/git/trees/$SEMENTE_COMMIT?recursive=1"
+  local lista; lista="$(curl -sS --max-time 30 "$api" 2>/dev/null)" || {
+    meow_aviso "não consegui falar com o GitHub — semeadura pulada"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+
+  # Escolhe espalhando pelas categorias, em vez de pegar as N primeiras (que
+  # seriam todas da mesma pasta e pareceriam a mesma imagem repetida).
+  local escolhidas
+  escolhidas="$(printf '%s' "$lista" | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(1)
+if 'tree' not in d:
+    sys.exit(1)
+imgs = [t['path'] for t in d['tree']
+        if t.get('type') == 'blob' and t['path'].lower().endswith(('.png', '.jpg', '.jpeg'))]
+por_pasta = {}
+for p in imgs:
+    por_pasta.setdefault(p.split('/')[0], []).append(p)
+# rodízio entre as pastas: uma de cada, depois a segunda de cada, e assim por diante
+limite = $SEMENTE_QUANTAS or len(imgs)
+saida, i = [], 0
+while len(saida) < limite:
+    houve = False
+    for pasta in sorted(por_pasta):
+        if i < len(por_pasta[pasta]):
+            saida.append(por_pasta[pasta][i]); houve = True
+            if len(saida) >= limite: break
+    if not houve: break
+    i += 1
+print('\n'.join(saida))
+")" || { meow_aviso "resposta do GitHub inesperada — semeadura pulada"; return "$MEOW_SEM_DEPENDENCIA"; }
+
+  [ -n "$escolhidas" ] || { meow_aviso "nenhuma imagem encontrada"; return "$MEOW_SEM_DEPENDENCIA"; }
+
+  local n=0 base="https://raw.githubusercontent.com/$SEMENTE_REPO/$SEMENTE_COMMIT"
+  while IFS= read -r caminho; do
+    [ -n "$caminho" ] || continue
+    # Prefixo com a categoria: o nome vira legível e a ordem alfanumérica agrupa.
+    local nome="cat-${caminho//\//-}"
+    local destino="$ATIVOS/$nome"
+    [ -e "$destino" ] && continue
+    if meow_seco; then
+      meow_muda "baixaria $nome"; n=$((n+1)); continue
+    fi
+    # Baixa para temporário no MESMO diretório e só então renomeia: uma imagem
+    # pela metade entraria na rotação e apareceria cortada na tela dela.
+    local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
+    if curl -sSL --max-time 60 -o "$tmp" "$base/$caminho" 2>/dev/null && [ -s "$tmp" ]; then
+      mv -f "$tmp" "$destino"; n=$((n+1))
+    else
+      rm -f "$tmp"
+    fi
+  done <<< "$escolhidas"
+
+  if [ "$n" -eq 0 ]; then
+    meow_ok "coleção Catppuccin já semeada"
+    return "$MEOW_OK"
+  fi
+  meow_ok "$n imagem(ns) da coleção Catppuccin baixadas (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
+  meow_seco || cmd_aplicar >/dev/null   # a lista é fotografada no load: precisa reescrever
+  return "$MEOW_DIVERGENTE"
+}
+
 case "${1:-aplicar}" in
   aplicar)   cmd_aplicar ;;
   estado)    cmd_estado ;;
+  semear)    cmd_semear ;;
   banir)     shift; cmd_banir "${1:-}" ;;
   adicionar) shift; cmd_adicionar "${1:-}" ;;
-  *) echo "uso: wallpaper.sh [aplicar|estado|adicionar <alvo>|banir <img>]" >&2; exit 2 ;;
+  *) echo "uso: wallpaper.sh [aplicar|estado|semear|adicionar <alvo>|banir <img>]" >&2; exit 2 ;;
 esac
