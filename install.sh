@@ -227,7 +227,22 @@ etapa_modo() {
   case "$MODO" in
     escuro) desejado=true ;;
     claro)  desejado=false ;;
-    auto)   meow_pula "modo automático ainda não implementado (etapa própria)"; return "$MEOW_SEM_DEPENDENCIA" ;;
+    # Claro e escuro NÃO são dois temas: as capturas mocha-mauve e latte-mauve
+    # diferem em exatamente UM arquivo, e é este `is_dark`. Então "auto" é só
+    # escolher o valor pelo horário — sem reaplicar árvore e sem piscar a
+    # interface. O que torna isso possível é cada captura já trazer as DUAS
+    # árvores em Catppuccin; sem isso, virar o dia devolveria o tema claro de
+    # fábrica.
+    auto)
+      local hora; hora="$(date +%-H)"
+      local ini="${MODO_AUTO_CLARO_DE:-7}" fim="${MODO_AUTO_CLARO_ATE:-18}"
+      if [ "$hora" -ge "$ini" ] && [ "$hora" -lt "$fim" ]; then
+        desejado=false
+      else
+        desejado=true
+      fi
+      meow_info "modo automático: ${hora}h → $([ "$desejado" = true ] && echo escuro || echo claro)"
+      ;;
     *)      meow_aviso "MODO='$MODO' desconhecido — esperado escuro|claro|auto"; return "$MEOW_ERRO" ;;
   esac
   meow_escrever "$arq" "$desejado" 644
