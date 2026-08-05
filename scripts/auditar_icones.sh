@@ -28,11 +28,17 @@
 #
 #   Auditoria que "quase" imita o buscador de ícone é pior que nenhuma: ela diz
 #   "tudo pareado" e o app aparece com ícone genérico. Por isso a resolução aqui é
-#   copiada do buscador REAL — a crate `cosmic-freedesktop-icons`, fixada pelo
-#   Cargo.lock do `cosmic-comp` 091583a no commit
-#   `ab4c57b8e416c6af9297cb04d101889896fd9a92` de github.com/pop-os/freedesktop-icons
-#   (o binário `/usr/bin/cosmic-comp` confirma a versão: a mensagem "unable to read
-#   icon theme directory" está em `src/theme/mod.rs` linha 175 nos dois).
+#   copiada do buscador REAL — a crate `cosmic-freedesktop-icons`, commit
+#   `ab4c57b8e416c6af9297cb04d101889896fd9a92` de github.com/pop-os/freedesktop-icons.
+#
+#   Esse commit não é chute: é o que os TRÊS programas que desenham ícone nesta
+#   máquina fixam no Cargo.lock, todos no mesmo hash (conferido em 04/08/2026):
+#     cosmic-applets     1.0.15~...~ec8ffdc   (o app-list do dock)
+#     cosmic-panel       0.1.0~...~d6699ff
+#     cosmic-app-library 1.0.12~...~172acda
+#   O `cosmic-comp` (091583a) fixa o mesmo, e o binário instalado confirma a versão:
+#   a mensagem "unable to read icon theme directory" está na linha 175 de
+#   `src/theme/mod.rs` tanto nas `strings` do binário quanto naquele commit.
 #
 #   Há DUAS buscas acontecendo aqui, e elas NÃO seguem a mesma regra:
 #
@@ -88,13 +94,13 @@
 #     chave `Directories=` nunca é lida. As duas leituras divergem em 3 dos 22
 #     index.theme instalados aqui (04/08/2026): o `Pop` tem `[scalable/web]` fora
 #     do `Directories=`, e o `ubuntu-mono-*`, `[animations/22]`. Um SVG numa seção
-#     que não existe é invisível para o COSMIC, e o sintoma é "baixei e não apareceu": o
-#     `~/.local/share/icons/hicolor` desta máquina não tem seção `[scalable/apps]`,
-#     e tem arquivo largado em `scalable/apps`. Quando um app cai em "sem ícone", o
-#     diagnóstico procura exatamente por isso e diz o nome do pecado.
+#     que não existe é invisível para o COSMIC, e o sintoma é "baixei e não
+#     apareceu": o `~/.local/share/icons/hicolor` desta máquina não tem seção
+#     `[scalable/apps]` e tem arquivo largado em `scalable/apps`. Quando um app cai
+#     em "sem ícone", o diagnóstico procura por isso e diz o nome do pecado.
 #
 #   - Depois de TODOS os temas ainda há o último recurso: `<base>/<nome>.<ext>`,
-#     arquivo solto na raiz de cada base (lib.rs 352-380). É assim que
+#     arquivo solto na raiz de cada base (lib.rs 351-374). É assim que
 #     `/usr/share/pixmaps/xterm.xpm` funciona — mas as bases são todas, e nesta
 #     máquina isso inclui `~/.local/share/pixmaps` e a raiz de `/usr/share/icons`
 #     (que tem dois .png soltos). Tratar só o `/usr/share/pixmaps` deixaria de fora
@@ -132,7 +138,7 @@ case "$_meow_dir" in */*) _meow_dir="${_meow_dir%/*}" ;; *) _meow_dir="." ;; esa
 RAIZ="$(cd "$_meow_dir/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 if ! . "$RAIZ/lib/comum.sh" 2>/dev/null; then
-  printf '  erro nao encontrei lib/comum.sh a partir de %s\n' "$RAIZ" >&2
+  printf '  erro não encontrei lib/comum.sh a partir de %s\n' "$RAIZ" >&2
   exit 3
 fi
 unset _meow_dir
@@ -461,7 +467,7 @@ _stream() {
     i=$((i + 1))
   done
   # O ÚLTIMO RECURSO: `<base>/<nome>.<ext>` solto na raiz da base, depois de TODO
-  # tema (lib.rs 352-380). São todas as bases, não só o `/usr/share/pixmaps`: nesta
+  # tema (lib.rs 351-374). São todas as bases, não só o `/usr/share/pixmaps`: nesta
   # máquina há `~/.local/share/pixmaps/hefesto-dualsense4unix.png` e dois .png na
   # raiz de `/usr/share/icons`, e o COSMIC acha os três.
   #

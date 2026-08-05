@@ -125,6 +125,7 @@ _meow() {
               'aplicar:liga ou reafirma a rotação nativa do COSMIC'
               'adicionar:copia imagem ou pasta para ativos/'
               'banir:move para banidos/ (nunca apaga)'
+              'semear:baixa a coleção Catppuccin do commit pinado (usa rede)'
             )
             _describe -t acoes 'ação' acoes
           else
