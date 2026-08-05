@@ -42,13 +42,29 @@ em `scripts/construir_icones.sh` §1.
 | Ir para o tema claro | `./scripts/aplicar_tema.sh latte-mauve` |
 | **Desfazer tudo** | `./scripts/aplicar_tema.sh original` |
 | Trocar a logo do gato | edite `LOGO=` no `meow.conf` e rode `./install.sh` |
-| Adicionar papel de parede | `./scripts/wallpaper.sh adicionar <arquivo\|pasta>` |
+| **Pôr um gato novo na rotação** | solte o `.svg` em `assets/gatos/` |
+| Ver o acervo de gatos e quem está no ar | `meow logo listar` |
+| Passar para o próximo gato agora | `meow logo girar` |
+| **Adicionar papel de parede** | arraste a imagem para `~/.local/share/backgrounds/meowsystem/ativos/` |
+| Idem, com verificações | `./scripts/wallpaper.sh adicionar <arquivo\|pasta>` |
 | Tirar um papel de parede da rotação | `./scripts/wallpaper.sh banir <arquivo>` |
 | Ver o estado do carrossel | `./scripts/wallpaper.sh estado` |
 | Mudar qualquer coisa | edite `~/.config/meow/meow.conf` e rode `./install.sh` |
 
-Tudo que o projeto decide vive em **um arquivo**: `~/.config/meow/meow.conf`.
+Tudo que o projeto **decide** vive em um arquivo: `~/.config/meow/meow.conf`.
 Flavor, accent, modo, logo, intervalo do carrossel, lista de aplicativos.
+
+Tudo que o projeto **desenha** vive numa pasta, e a pasta é a configuração:
+soltou o arquivo, entrou; apagou, saiu. Não há lista em script nenhum para
+editar.
+
+| o quê | onde | quando aparece |
+|---|---|---|
+| gatos da logo | `assets/gatos/` | na próxima volta do relógio (30 min), ou já com `meow logo girar` |
+| papéis de parede | `~/.local/share/backgrounds/meowsystem/ativos/` | na hora — o `cosmic-bg` lê a pasta |
+
+Os 136 MB de papel de parede ficam fora do repositório de propósito: ele vai ser
+público, e imagem grande em git é dívida que não se paga.
 
 ---
 
@@ -104,9 +120,41 @@ O contrato completo está em [`docs/COSMIC-THEMING.md`](docs/COSMIC-THEMING.md) 
 
 ---
 
+## Noutra máquina
+
+O projeto nasceu numa máquina só e está sendo aberto para qualquer COSMIC. O que
+já é verdade, e o que ainda não é:
+
+**Funciona sem o Ritual da Aurora.** Nenhum caminho de execução depende dele. As
+regras de convivência só entram em ação quando ele existe.
+
+**Cada módulo pula o que não encontra.** App ausente, `cosmic-greeter` ausente,
+applet de terceiro ausente, `systemd --user` ausente — tudo isso é "pulado", com
+a razão dita em voz alta, e nunca aborta o resto. Os códigos de saída separam
+"divergente" (1) de "erro" (2) de "falta dependência" (3) justamente para isso.
+
+**Nada é apagado sem backup.** O único ponto do projeto capaz de remover arquivo
+de tema alheio — `aplicar_tema.sh` — guarda as árvores inteiras em
+`~/.local/state/meowsystem/backups/<ISO>/` antes, com `manifesto.sha256` e um
+`COMO-RESTAURAR.txt` ao lado. Esse era o bloqueador real de publicação.
+
+**O que ainda supõe esta máquina**, e está no caminho de sair:
+
+- as capturas de `state/tema/` vieram de um COSMIC 1.0.12; numa versão com
+  schema diferente elas podem não casar chave a chave;
+- o `apt` é o único gerenciador de pacotes que o instalador conhece (o COSMIC
+  também roda em Fedora, Arch e NixOS);
+- há caminhos e nomes desta instalação em comentários de medição — são registro
+  histórico, não configuração, mas convém lê-los como tal.
+
+---
+
 ## Estrutura
 
 ```
+assets/gatos/     os gatos da rotação — solte um .svg e ele entra
+docs/pesquisas/   o material bruto das investigações multi-frente
+docs/historico/   de onde o projeto veio (não é lido por script nenhum)
 palette/          a fonte única de verdade de cor (4 flavors x 26 cores)
 themes/           os .ron gerados — o que se importa na GUI
 state/tema/       as capturas: é isto que o instalador aplica
