@@ -108,6 +108,77 @@ _zz_icone_desejado() {
   sed -E -e "s|#47ad5d|$verde|gI" -e "s|#ffffff|$base|gI" "$_ZZ_PAPIRUS"
 }
 
+# --- O ÍCONE DA BANDEJA É OUTRO CAMINHO, E O TEMA NÃO ALCANÇA ELE -----------
+# Sintoma dela, 05/08/2026: "wpp em baixo e lá em cima é zapzap ainda". No dock o
+# ícone é o nosso; na barra de cima continua o logo verde-limão do projeto.
+#
+# NÃO É BUG NOSSO NEM DO COSMIC — SÃO DOIS CAMINHOS DIFERENTES, MEDIDO:
+#   dock/lançador : o `.desktop` diz `Icon=<nome>`, e o nome passa pelo TEMA DE
+#                   ÍCONES. É por aí que o nosso ícone entra.
+#   bandeja       : o app publica o ícone pelo protocolo StatusNotifierItem, e
+#                   pode mandar um NOME (`IconName`, que passaria pelo tema) ou
+#                   PIXELS crus (`IconPixmap`). Medido com busctl:
+#
+#     ZapZap        IconName=""   IconPixmap=a(iiay) 2 22 22 ...
+#     qBittorrent   IconName=""   IconPixmap=a(iiay) 2 22 22 ...
+#
+#   Com `IconName` VAZIO não há nome a resolver: o app entrega pixels prontos, e
+#   nenhum tema de ícone do mundo muda aquilo. É um beco sem saída por desenho do
+#   protocolo, não por falta de esforço nosso.
+#
+# O QUE SALVA: O PRÓPRIO ZAPZAP TEM A OPÇÃO, E NINGUÉM TINHA OLHADO
+#   `zapzap/assets/icons/tray_icon.py` traz TRÊS variantes embutidas — `default`
+#   (o degradê verde-limão), `symbolic_light` e `symbolic_dark` — e a escolha vem
+#   de `core/config/settings/appearance.py:24`:
+#       _TRAY_THEME = ("system/tray_theme", TrayIcon.Type.Default.value)
+#   Ou seja, é uma linha no `ZapZap.conf` dela. O símbolico monocromático é o que
+#   combina com uma barra Catppuccin — é o mesmo princípio dos ícones do próprio
+#   COSMIC na bandeja.
+#
+# POR QUE NÃO PATCHAR O FLATPAK
+#   A árvore é gravável (instalação de usuário), então daria. Mas todo
+#   `flatpak update` desfaz, e reescrever código Python de terceiro para trocar
+#   um ícone é o tipo de conserto que quebra calado seis meses depois. A chave de
+#   configuração é a porta que o autor deixou aberta; usamos a porta.
+_ZZ_CONF="$HOME/.var/app/$_ZZ_APP/config/ZapZap/ZapZap.conf"
+_ZZ_TRAY_DESEJADO="${ZAPZAP_TRAY:-symbolic_light}"
+
+# Lê `tray_theme` da seção [system] do .conf (formato QSettings/ini).
+_zz_tray_atual() {
+  [ -f "$_ZZ_CONF" ] || { printf 'default'; return; }
+  local v
+  v="$(awk -F= '/^\[/{s=$0} s=="[system]" && /^tray_theme=/{print $2; exit}' "$_ZZ_CONF")"
+  printf '%s' "${v:-default}"
+}
+
+# Escreve a chave preservando o resto do arquivo. A seção [system] já existe no
+# conf dela; se não existisse, seria criada no fim — que é onde o QSettings
+# aceita, porque ele reserializa o arquivo inteiro ao salvar.
+_zz_conf_com_tray() {
+  local desejado="$1"
+  [ -f "$_ZZ_CONF" ] || return 1
+  python3 - "$_ZZ_CONF" "$desejado" <<'PY'
+import sys, re
+caminho, valor = sys.argv[1], sys.argv[2]
+linhas = open(caminho, encoding='utf-8').read().split('\n')
+saida, secao, escrito = [], None, False
+for l in linhas:
+    if l.startswith('['):
+        # ao SAIR da [system] sem ter achado a chave, acrescenta antes de sair
+        if secao == '[system]' and not escrito:
+            saida.append(f'tray_theme={valor}'); escrito = True
+        secao = l.strip()
+    if re.match(r'^tray_theme=', l) and secao == '[system]':
+        saida.append(f'tray_theme={valor}'); escrito = True; continue
+    saida.append(l)
+if not escrito:
+    if secao != '[system]':
+        saida.append('[system]')
+    saida.append(f'tray_theme={valor}')
+sys.stdout.write('\n'.join(saida))
+PY
+}
+
 meow_app_detectar() {
   meow_tem flatpak || return "$MEOW_SEM_DEPENDENCIA"
   flatpak info "$_ZZ_APP" >/dev/null 2>&1 || return "$MEOW_SEM_DEPENDENCIA"
@@ -126,6 +197,13 @@ meow_app_conferir() {
   [ -f "$icone" ] || return "$MEOW_DIVERGENTE"
   [ "$(_zz_desktop_desejado)" = "$(cat "$_ZZ_DESTINO")" ] || return "$MEOW_DIVERGENTE"
   [ "$(_zz_icone_desejado)" = "$(cat "$icone")" ] || return "$MEOW_DIVERGENTE"
+
+  # O ícone da bandeja só é conferido se o conf existir: num ZapZap recém
+  # instalado, que nunca abriu, não há arquivo — e cobrar uma chave de um arquivo
+  # que o app ainda não criou seria divergência eterna até ela abrir o programa.
+  if [ -f "$_ZZ_CONF" ] && [ "$(_zz_tray_atual)" != "$_ZZ_TRAY_DESEJADO" ]; then
+    return "$MEOW_DIVERGENTE"
+  fi
 
   meow_ok "ZapZap já aparece como '$_ZZ_NOME_NOVO' com o ícone Catppuccin"
   return "$MEOW_OK"
@@ -150,6 +228,22 @@ meow_app_aplicar() {
 
   meow_escrever "$_ZZ_DESTINO" "$(_zz_desktop_desejado)" 644
   case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao escrever o .desktop"; return "$MEOW_ERRO" ;; esac
+
+  # O ícone da bandeja, pela porta que o autor do ZapZap deixou aberta.
+  if [ -f "$_ZZ_CONF" ] && [ "$(_zz_tray_atual)" != "$_ZZ_TRAY_DESEJADO" ]; then
+    local novo
+    if novo="$(_zz_conf_com_tray "$_ZZ_TRAY_DESEJADO")" && [ -n "$novo" ]; then
+      meow_escrever "$_ZZ_CONF" "$novo" 644
+      case $? in
+        1) mudou=1
+           # O ZapZap lê o conf ao subir e ao salvar pelas Preferências. Com ele
+           # aberto agora, a mudança vale no próximo início — dizer isso evita
+           # que ela olhe a barra, não veja nada e ache que falhou.
+           meow_info "ícone da bandeja: $_ZZ_TRAY_DESEJADO (vale quando o ZapZap reabrir)" ;;
+        2) meow_aviso "não consegui escrever o ZapZap.conf — bandeja fica como está" ;;
+      esac
+    fi
+  fi
 
   [ "$mudou" = "0" ] && return "$MEOW_OK"
   meow_seco && return "$MEOW_DIVERGENTE"
