@@ -30,7 +30,21 @@ ALPHA_FUNDO="D9"         # alpha do bg_color em hex (D9 = 85%)
 # O painel e o dock mantêm o vidro fosco quando uma janela é maximizada?
 # "nao" devolve o comportamento de fábrica do COSMIC: eles ficam opacos.
 # São duas chaves (Panel e Dock) e valem na hora — o painel vigia as duas.
+# Esta não tem controle na GUI: se ninguém escrever, ela se perde em silêncio.
 VIDRO_AO_MAXIMIZAR="sim"
+
+# Quanto da cor da barra entra na mistura com o que está atrás (0 a 1).
+# 0 = só o fundo desfocado · 1 = chapado, sem vidro nenhum.
+#
+# ESTE NÚMERO DÁ (OU TIRA) AUTORIDADE AOS SLIDERES DE "VIDRO FOSCO" DA GUI.
+# O alpha desenhado é  opacity x alpha_map[frosted]  — e `alpha_map`/`frosted`
+# são os dois sliders de Aparência → Vidro fosco. Como o alpha_map vai de 0,62 a
+# 0,92, o slider inteiro é um fator de 1,5x: quem manda na escala é esta chave.
+#     0.05 -> o slider move 1,5 ponto (invisível)   0.24 -> move 7,2 pontos
+#     0.10 -> move 3,0 pontos                       0.50 -> move 15 pontos
+# Quer que os sliders da GUI tenham efeito bem visível? Suba estes números.
+VIDRO_OPACIDADE_PAINEL="0.1"
+VIDRO_OPACIDADE_DOCK="0.24"
 
 # --- Ícones ----------------------------------------------------------------
 

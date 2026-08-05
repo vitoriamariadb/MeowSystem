@@ -38,6 +38,33 @@ SECO="${MEOW_DRY_RUN:-0}"
 # Os três pares em que o alpha do `base:` é território da Aurora.
 declare -a CHAVES_ALPHA_AURORA=(background primary secondary)
 
+# --- OS DOIS SLIDERES DE "VIDRO FOSCO" SÃO DELA, NÃO NOSSOS ------------------
+# Em Aparência → Vidro fosco a GUI do COSMIC tem dois controles: "Espessura do
+# efeito fosco" (grava `frosted`) e "Opacidade do vidro" (grava `alpha_map`).
+#
+# ELES ESTAVAM DENTRO DA CAPTURA — e por isso não colavam. Ela movia o slider,
+# via mudar, e o `meow doctor` das 5h restaurava o valor fotografado. A queixa
+# "os sliders não funcionam" era literal, e a causa era esta: o projeto
+# fotografou uma preferência CONTÍNUA e passou a impor a foto todo dia.
+#
+# A regra que sai daqui vale para além destas duas chaves: o que a GUI expõe com
+# um controle contínuo é decisão de quem está na frente da tela. Medido em
+# 05/08/2026 — `alpha_map`/`frosted` aparecem 268 vezes no `cosmic-settings`,
+# enquanto `keep_style_on_maximize` não tem controle nenhum lá. Por isso essa
+# outra continua nossa: sem GUI, se ninguém a escrever ela simplesmente se perde.
+#
+# CONSEQUÊNCIA PARA QUEM CAPTURA: os arquivos continuam sendo fotografados (uma
+# captura tem de ser completa para servir de backup), mas deixam de ser
+# IMPOSTOS. Aplicar uma captura nova respeita o vidro que ela escolheu.
+declare -a CHAVES_DELA=(frosted alpha_map)
+
+e_chave_dela() {
+  local chave; chave="$(basename "$1")"
+  case "$1" in com.system76.CosmicTheme.*) ;; *) return 1 ;; esac
+  for k in "${CHAVES_DELA[@]}"; do [ "$chave" = "$k" ] && return 0; done
+  return 1
+}
+
 uso() {
   cat <<'FIM'
 uso: aplicar_tema.sh <nome> [--conferir]
@@ -103,6 +130,14 @@ while IFS= read -r -d '' arq; do
   rel="${arq#"$ORIGEM"/}"
   case "$rel" in manifesto.sha256|captura.txt) continue ;; esac
   destino="$COSMIC/$rel"
+
+  # O vidro que ela ajustou na GUI vence a captura, sempre — inclusive numa
+  # captura recém-aplicada. Só se escreve quando a chave ainda NÃO existe no
+  # destino (máquina nova), para que o valor da captura sirva de ponto de
+  # partida e nunca de correção diária.
+  if e_chave_dela "$rel" && [ -f "$destino" ]; then
+    iguais=$((iguais+1)); continue
+  fi
 
   if [ -f "$destino" ]; then
     if e_chave_da_aurora "$rel"; then

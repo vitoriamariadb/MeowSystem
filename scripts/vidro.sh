@@ -41,19 +41,37 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # "sim" -> o vidro fica ao maximizar. "nao" -> volta o comportamento de fábrica.
 VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}"
 
-# Quanto da COR do painel entra na mistura com o que está atrás. 0 = só o fundo
+# Quanto da COR da barra entra na mistura com o que está atrás. 0 = só o fundo
 # desfocado; 1 = chapado, sem vidro nenhum.
 #
-# O PAINEL E O DOCK ESTAVAM DIFERENTES, E DAVA PARA VER
-#   Medido nas capturas dela em 05/08/2026: `opacity` era 0.1 no painel e 0.24 no
-#   dock — o dock quase duas vezes e meia mais fechado. Amostrando os pixels sobre
-#   o mesmo papel de parede lilás, a mistura efetiva dava ~8% no painel e ~19% no
-#   dock. Não é sutileza de medição: as duas barras da mesma tela tinham
-#   materiais visivelmente diferentes, e foi isso que ela viu antes de eu ver.
+# ESTE NÚMERO MULTIPLICA OS SLIDERES DELA — E FOI ASSIM QUE EU OS ANULEI
+#   O alpha que a barra desenha não é esta chave sozinha. No `cosmic-panel`
+#   (`space/panel_space.rs`, `bg_color`) ele é:
 #
-#   `opacity` é do CosmicPanel, não do tema — mexer aqui não encosta no
-#   `frosted`/`alpha_map`, que é estrutura dela e território da Aurora.
-VIDRO_OPACIDADE="${VIDRO_OPACIDADE:-0.05}"
+#       alpha = opacity  x  alpha_map[frosted]
+#
+#   e `frosted`/`alpha_map` são exatamente os dois sliders de Aparência → Vidro
+#   fosco ("Espessura do efeito fosco" e "Opacidade do vidro"). O `alpha_map`
+#   desta máquina vai de 0,62 a 0,92 — ou seja, o slider inteiro é um fator de
+#   pouco mais de 1,5x. Quem manda na escala é ESTA chave:
+#
+#       opacity   alcance do slider, ponta a ponta
+#       0.05      3,1% -> 4,6%    = 1,5 ponto   (invisível)
+#       0.10      6,2% -> 9,2%    = 3,0 pontos
+#       0.24     14,9% -> 22,1%   = 7,2 pontos
+#       0.50     31,0% -> 46,0%   = 15 pontos
+#
+#   Em 05/08 eu unifiquei as duas barras em 0.05 para corrigir uma assimetria que
+#   ELA não tinha reclamado — e o efeito colateral foi tirar dos sliders dela
+#   qualquer autoridade visível. A queixa "os sliders não funcionam" nasceu daqui.
+#
+# POR QUE VOLTARAM A SER DUAS CHAVES
+#   O COSMIC trata painel e dock como configurações independentes, com páginas
+#   separadas na GUI. Impor um valor só é uma decisão nossa sobre a tela dela.
+#   Os padrões abaixo são o que ela tinha e escolheu; `VIDRO_OPACIDADE` continua
+#   valendo como atalho para igualar as duas de uma vez.
+VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-${VIDRO_OPACIDADE:-0.1}}"
+VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-${VIDRO_OPACIDADE:-0.24}}"
 
 case "$VIDRO_AO_MAXIMIZAR" in
   sim|true|1)  desejado="true" ;;
@@ -65,12 +83,18 @@ esac
 # O RON quer o float com ponto decimal. "0.05" e ".05" são a mesma coisa para o
 # shell e coisas diferentes para o parser: normalizar aqui evita um valor que o
 # COSMIC descarta calado, deixando a barra no padrão sem dizer por quê.
-case "$VIDRO_OPACIDADE" in
-  [0-9]*.[0-9]*|[0-9]) opacidade="$VIDRO_OPACIDADE" ;;
-  .[0-9]*)             opacidade="0$VIDRO_OPACIDADE" ;;
-  *) meow_erro "VIDRO_OPACIDADE='$VIDRO_OPACIDADE' — esperado um número entre 0 e 1"
-     exit "$MEOW_ERRO" ;;
-esac
+normalizar_opacidade() {
+  case "$2" in
+    [0-9]*.[0-9]*|[0-9]) printf '%s' "$2" ;;
+    .[0-9]*)             printf '0%s' "$2" ;;
+    *) meow_erro "$1='$2' — esperado um número entre 0 e 1"; return 1 ;;
+  esac
+}
+
+op_painel="$(normalizar_opacidade VIDRO_OPACIDADE_PAINEL "$VIDRO_OPACIDADE_PAINEL")" \
+  || exit "$MEOW_ERRO"
+op_dock="$(normalizar_opacidade VIDRO_OPACIDADE_DOCK "$VIDRO_OPACIDADE_DOCK")" \
+  || exit "$MEOW_ERRO"
 
 BASE="$HOME/.config/cosmic"
 BARRAS=(Panel Dock)
@@ -85,8 +109,11 @@ for barra in "${BARRAS[@]}"; do
   [ -d "$dir" ] || { meow_pula "com.system76.CosmicPanel.$barra não está configurado aqui"; continue; }
 
   escritos=$((escritos + 1))
-  # As duas chaves andam juntas: manter o vidro ao maximizar não adianta se as
-  # duas barras têm materiais diferentes — foi assim que ela percebeu.
+  case "$barra" in Panel) opacidade="$op_painel" ;; *) opacidade="$op_dock" ;; esac
+
+  # `keep_style_on_maximize` é a única das duas que é nossa de verdade: a GUI do
+  # COSMIC não tem controle para ela, então se ninguém a escrever ela se perde em
+  # silêncio — foi o que aconteceu e ninguém percebeu, porque nada a conferia.
   meow_escrever "$dir/keep_style_on_maximize" "$desejado" 644
   case $? in
     1) mudou=1 ;;
@@ -111,9 +138,9 @@ fi
 
 if [ "$mudou" = "0" ]; then
   if [ "$desejado" = "true" ]; then
-    meow_ok "vidro já conforme: opacidade $opacidade nas duas barras, mantido ao maximizar"
+    meow_ok "vidro já conforme: painel $op_painel, dock $op_dock, mantido ao maximizar"
   else
-    meow_ok "vidro já conforme: opacidade $opacidade, e sai ao maximizar (padrão do COSMIC)"
+    meow_ok "vidro já conforme: painel $op_painel, dock $op_dock; sai ao maximizar (padrão do COSMIC)"
   fi
   exit "$MEOW_OK"
 fi
@@ -121,8 +148,8 @@ fi
 meow_seco && exit "$MEOW_DIVERGENTE"
 
 if [ "$desejado" = "true" ]; then
-  meow_ok "painel e dock com opacidade $opacidade, vidro mantido ao maximizar — já valendo"
+  meow_ok "painel $op_painel e dock $op_dock, vidro mantido ao maximizar — já valendo"
 else
-  meow_ok "painel e dock com opacidade $opacidade; o vidro sai ao maximizar — já valendo"
+  meow_ok "painel $op_painel e dock $op_dock; o vidro sai ao maximizar — já valendo"
 fi
 exit "$MEOW_DIVERGENTE"
