@@ -120,6 +120,31 @@ for i in "${!POOL[@]}"; do
   esac
 done
 
+# --- 1b. e os que ela APAGOU do acervo saem do disco -------------------------
+# Regra 3 do contrato: reescrever o estado inteiro, nunca acrescentar. Sem isto,
+# um gato tirado de `assets/gatos/` continuaria instalado para sempre — e como a
+# rotação sorteia pelo acervo, não pelo disco, ele viraria um arquivo órfão que
+# ninguém usa e ninguém sabe de onde veio. Medido ao apagar um gato de teste.
+#
+# SÓ SE APAGA O QUE É NOSSO: o prefixo `meow-` protege o `gato-pop.svg` do
+# Ritual da Aurora, que mora no mesmo diretório e é dele.
+if [ -d "$LOGOS_DIR" ]; then
+  for velho in "$LOGOS_DIR"/meow-*.svg; do
+    [ -f "$velho" ] || continue
+    conhecido=0
+    for n in "${NOMES[@]}"; do
+      [ "$velho" = "$(destino_de "$n")" ] && { conhecido=1; break; }
+    done
+    [ "$conhecido" = "1" ] && continue
+    if meow_seco; then
+      meow_muda "removeria $(basename "$velho") (saiu do acervo)"
+      mudou=1
+    else
+      rm -f "$velho" && mudou=1
+    fi
+  done
+fi
+
 # --- 2. quem está no ar -----------------------------------------------------
 atual="$(cat "$APPLET/custom_logo_path" 2>/dev/null | tr -d '"')"
 indice=-1
