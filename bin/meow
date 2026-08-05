@@ -39,9 +39,15 @@
 # O MENU SEM ARGUMENTO SEGUE O `conjurar.zsh` DO ANDROMEDA
 # ─────────────────────────────────────────────────────────────────────────────
 # Mesmas medidas de janela, mesmo cabeçalho ("ENTER executar | ESC sair"), mesma
-# tabulação `comando<TAB>descrição` com `--with-nth=1` e preview à direita. O que
-# muda é a paleta: lá é Dracula, aqui é Catppuccin — seria estranho um menu do
-# MeowSystem pintado com as cores de outro tema.
+# tabulação `comando<TAB>descrição` com `--with-nth=1` e preview à direita.
+#
+# E A PALETA TAMBÉM É A MESMA — conferido, não suposto. Aqui houve um comentário
+# dizendo "lá é Dracula, aqui é Catppuccin"; era verdade quando o `conjurar.zsh`
+# nasceu e não é mais: `~/.config/zsh/functions/conjurar.zsh` já pinta o fzf com
+# `hl:#CBA6F7 pointer:#A6E3A1 header:#6C7086`, que são mauve, green e overlay0 do
+# Catppuccin, e os `D_*` do `_helpers.zsh` guardam hex Catppuccin apesar do nome
+# herdado do Dracula. A única divergência que sobra é o `bg+`: overlay-mais-claro
+# lá (surface1, #45475A), um degrau mais escuro aqui (surface0, #313244).
 #
 # Sem `fzf`, cai num menu numerado. Nunca quebra, e nunca pendura: sem terminal
 # interativo ele só imprime a lista e sai 0.
@@ -393,6 +399,32 @@ pior_rc() {
   printf '%s' "$pior"
 }
 
+# O pior veredito de uma lista de códigos SOLTOS, na ordem 2 > 1 > 3 > 0.
+#
+# POR QUE O 3 NÃO PODE VIRAR 1 NEM 2 NO MEIO DO CAMINHO
+#   `[ "$rc" -ge 2 ]` lê como "erro" e casa com o 3 também. Onde isso apareceu,
+#   "falta o papirus-icon-theme" era relatado como erro de execução — MEDIDO com
+#   um meow.conf apontando ICONES_BASE para um tema inexistente: o
+#   `meow icones reconstruir` saía 2 e o `meow icones` saía 1, quando o contrato
+#   manda 3 nos dois casos. A diferença importa: 3 é o código que faz o
+#   auto-reparo ficar quieto em vez de tentar consertar o que não é dele.
+#
+#   Qualquer código fora de {0,1,3} vira 2 de propósito: um script que morre com
+#   127 ("comando não encontrado") é erro, e cair no `else` como se fosse 0 seria
+#   a CLI dizendo "está tudo certo" sobre uma etapa que nem rodou.
+pior_de() {
+  local rc pior=0
+  for rc in "$@"; do
+    case "$rc" in
+      0) ;;
+      1) [ "$pior" = "2" ] || pior=1 ;;
+      3) [ "$pior" = "0" ] && pior=3 ;;
+      *) pior=2 ;;
+    esac
+  done
+  printf '%s' "$pior"
+}
+
 # --- 7. comandos ------------------------------------------------------------
 campo() { printf '    %s%s%s %s\n' "$C_DIM" "$(pad "$1" 12)" "$C_ZERO" "$2"; }
 
@@ -677,13 +709,15 @@ cmd_icones() {
   case "${1:-}" in
     reconstruir)
       meow_travar || return "$MEOW_ERRO"
-      local rc_i rc_p
+      local rc_i rc_p pior
       fix_icones; rc_i=$?
       fix_pastas; rc_p=$?
-      if [ "$rc_i" -ge 2 ] || [ "$rc_p" -ge 2 ]; then return "$MEOW_ERRO"; fi
-      registrar "icones reconstruir"
-      if [ "$rc_i" = "1" ] || [ "$rc_p" = "1" ]; then return "$MEOW_DIVERGENTE"; fi
-      return 0 ;;
+      pior="$(pior_de "$rc_i" "$rc_p")"
+      [ "$pior" = "2" ] && return "$MEOW_ERRO"
+      # O log só registra o que de fato mudou: um "icones reconstruir" gravado a
+      # cada rodada do timer encheria o `meow log` de linhas que não aconteceram.
+      [ "$pior" = "1" ] && registrar "icones reconstruir"
+      return "$pior" ;;
     ""|estado)
       local dir n_apps n_pastas
       dir="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
@@ -702,8 +736,7 @@ cmd_icones() {
       printf '  %s %s %s\n' "$(rotulo_rc "$rc")" "$(pad "ícones" 10)" "$(primeira_linha "$saida")"
       saida="$(chk_pastas)"; local rc2=$?
       printf '  %s %s %s\n\n' "$(rotulo_rc "$rc2")" "$(pad "pastas" 10)" "$(primeira_linha "$saida")"
-      [ "$rc" = "0" ] && [ "$rc2" = "0" ] && return 0
-      return "$MEOW_DIVERGENTE" ;;
+      return "$(pior_de "$rc" "$rc2")" ;;
     *) meow_erro "uso: meow icones [estado|reconstruir]"; return "$MEOW_ERRO" ;;
   esac
 }
@@ -712,25 +745,31 @@ cmd_wallpaper() {
   carregar_conf || return "$MEOW_ERRO"
   local acao="${1:-estado}"
   case "$acao" in
-    estado|aplicar|adicionar|banir)
+    estado|aplicar|adicionar|banir|semear)
       # Só passa adiante o que o scripts/wallpaper.sh tem de verdade. Os
-      # comandos `proximo`, `fixar`, `favoritar`, `recolorir` e `semear` do
-      # contrato NÃO existem ainda — e `proximo` em particular não é
-      # implementável na rotação nativa: o cosmic-bg não fala D-Bus, e
-      # reescrever a configuração REINICIA a rotação na primeira imagem em vez
-      # de avançar (medido; está no cabeçalho do wallpaper.sh).
-      case "$acao" in aplicar|adicionar|banir) meow_travar || return "$MEOW_ERRO" ;; esac
+      # comandos `proximo`, `fixar`, `favoritar` e `recolorir` do contrato NÃO
+      # existem ainda — e `proximo` em particular não é implementável na rotação
+      # nativa: o cosmic-bg não fala D-Bus, e reescrever a configuração REINICIA
+      # a rotação na primeira imagem em vez de avançar (medido; está no
+      # cabeçalho do wallpaper.sh).
+      #
+      # O `semear` ESTAVA nessa lista de inexistentes e não está mais: ele foi
+      # implementado no wallpaper.sh (baixa a coleção Catppuccin do commit
+      # pinado) DEPOIS que esta lista foi escrita, e a CLI seguia recusando um
+      # comando que funciona. Lista de coisas-que-não-existem envelhece sozinha;
+      # esta agora é conferida contra o `case` do fim do wallpaper.sh.
+      case "$acao" in aplicar|adicionar|banir|semear) meow_travar || return "$MEOW_ERRO" ;; esac
       shift || true
       WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
         WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
         "$RAIZ/scripts/wallpaper.sh" "$acao" ${1:+"$1"}
       return $? ;;
-    proximo|fixar|favoritar|recolorir|semear|intervalo|ordem)
+    proximo|fixar|favoritar|recolorir|intervalo|ordem)
       meow_erro "'$acao' ainda não existe"
-      meow_info "o que existe hoje: estado, aplicar, adicionar <img|pasta>, banir <img>"
+      meow_info "o que existe hoje: estado, aplicar, adicionar <img|pasta>, banir <img>, semear"
       meow_info "intervalo e ordem se mudam no $CONF (WALLPAPER_INTERVALO / WALLPAPER_ORDEM)"
       return "$MEOW_SEM_DEPENDENCIA" ;;
-    *) meow_erro "uso: meow wallpaper [estado|aplicar|adicionar <alvo>|banir <img>]"
+    *) meow_erro "uso: meow wallpaper [estado|aplicar|adicionar <alvo>|banir <img>|semear]"
        return "$MEOW_ERRO" ;;
   esac
 }
@@ -870,7 +909,7 @@ menu_itens() {
 
 menu_numerado() {
   local -a cmds=() descs=()
-  local linha
+  local linha desc
   while IFS=$'\t' read -r linha desc; do
     cmds+=("$linha"); descs+=("$desc")
   done < <(menu_itens)
@@ -972,6 +1011,7 @@ meow — Catppuccin para o COSMIC
   meow wallpaper aplicar       liga/reafirma a rotação nativa do COSMIC
   meow wallpaper adicionar <alvo>   copia imagem ou pasta para ativos/
   meow wallpaper banir <img>   move para banidos/ (nunca apaga)
+  meow wallpaper semear        baixa a coleção Catppuccin (commit pinado; usa rede)
 
   meow apps                    tabela: módulo, instalado, tema
   meow apps aplicar [slug]     tematiza um app, ou todos

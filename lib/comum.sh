@@ -99,7 +99,23 @@ meow_travar() {
   return 0
 }
 
+# --- log e notificação: as duas OUTRAS escritas, e o seco vale para elas -----
+# `MEOW_DRY_RUN=1` promete não escrever nada. A promessa costuma ser lida como
+# "não escreve CONFIGURAÇÃO", e é aí que ela vaza — o log é um arquivo, e a
+# notificação é uma frase na tela dela.
+#
+# MEDIDO em 2026-08-04, com md5 antes e depois: `MEOW_DRY_RUN=1 ./install.sh`
+# acrescentava `install.sh feitos=12 pulados=0 falhos=0` ao `meow.log`. E o
+# `etapa_icones`/`etapa_wallpaper` do install.sh disparam `meow_notificar`
+# quando o script chamado devolve 1 — que é EXATAMENTE o que ele devolve no
+# seco, sem ter escrito nada. Ou seja: numa máquina com o tema divergente, uma
+# auditoria em seco pendurava na TV dela um "Ícones e logo atualizados" falso.
+#
+# A guarda mora aqui, e não em cada chamador, porque o chamador que esquecer é
+# justamente o que ninguém vai reler. Quem quiser registrar apesar do seco
+# escreve no arquivo por conta própria — e aí a decisão está à vista.
 meow_registrar() {
+  meow_seco && return 0
   mkdir -p "$MEOW_ESTADO"
   printf '%s %s\n' "$(date -Iseconds)" "$*" >> "$MEOW_ESTADO/meow.log"
 }
@@ -108,6 +124,7 @@ meow_tem() { command -v "$1" >/dev/null 2>&1; }
 
 # Notificação: ela precisa saber quando algo mudou sozinho.
 meow_notificar() {
+  meow_seco && return 0
   meow_tem notify-send || return 0
   notify-send -a MeowSystem -i preferences-desktop-theme "$1" "${2:-}" 2>/dev/null || true
 }

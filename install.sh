@@ -199,10 +199,22 @@ etapa_cli() {
   [ "$rc" -ge 2 ] && { meow_erro "não consegui gravar $MEOW_ESTADO/raiz"; return "$MEOW_ERRO"; }
   [ "$rc" = "1" ] && mudou=1
 
+  # 3 AQUI É "NÃO HÁ ONDE PÔR", E ISSO NÃO É FALHA DESTA ETAPA
+  #   A `instalar_completion` devolve 3 quando o diretório de completions não
+  #   existe — numa máquina que não é esta, `~/.config/zsh/completions` pode
+  #   simplesmente não estar lá. O `-ge 2` que estava aqui engolia esse 3 junto
+  #   com o 2 e devolvia erro: MEDIDO num HOME de teste sem o diretório, o
+  #   `install.sh` terminava com "falhou: cli" tendo instalado o `meow` inteiro
+  #   e funcionando. O que se perde sem completion é o TAB, e o `meow_pula`
+  #   acima já disse isso na tela. É o mesmo veredito que MEOW_SEM_COMPLETIONS=1
+  #   já produzia — pular de um jeito não pode falhar e do outro não.
   instalar_completion
   rc=$?
-  [ "$rc" -ge 2 ] && return "$MEOW_ERRO"
-  [ "$rc" = "1" ] && mudou=1
+  case "$rc" in
+    1)   mudou=1 ;;
+    0|3) ;;
+    *)   return "$MEOW_ERRO" ;;
+  esac
 
   case ":$PATH:" in
     *":$HOME/.local/bin:"*) ;;
@@ -397,6 +409,24 @@ etapa_icones() {
 # As pastas coloridas vêm de terceiros (Papirus + catppuccin/papirus-folders) e
 # pesam ~2 MB de SVG. Ficam numa etapa própria porque dependem de rede e do
 # pacote do apt: sem qualquer um dos dois, o resto do tema continua de pé.
+# A Nerd Font e o completar de icones vem depois do upstream: os dois dependem de
+# rede e de terceiro pinado, e nenhum deles deixa outra etapa de pe ou não.
+etapa_fontes() {
+  passo "Fontes"
+  "$MEOW_RAIZ/scripts/instalar_fontes.sh"
+  return $?
+}
+
+# Os ícones que nenhum tema da cadeia cobre — incluindo os dois aplicativos dela,
+# que não existem em tema nenhum do mundo e precisam de desenho autoral.
+etapa_completar_icones() {
+  passo "Ícones que faltavam"
+  FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/completar_icones.sh"
+  return $?
+}
+
 etapa_upstream() {
   passo "Upstream de terceiros (commits pinados)"
   "$MEOW_RAIZ/scripts/baixar_upstream.sh"
@@ -553,7 +583,8 @@ main() {
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
-                etapa_modo etapa_upstream etapa_icones etapa_pastas etapa_wallpaper
+                etapa_modo etapa_upstream etapa_fontes etapa_icones etapa_pastas
+                etapa_completar_icones etapa_wallpaper
                 etapa_apps etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
