@@ -56,10 +56,113 @@ alvo_tema() {
 ALVO="$(alvo_tema)"
 CAPTURA="$RAIZ/state/tema/$ALVO"
 
+# ---------------------------------------------------------------------------
+# FASE 1 — O AVATAR, QUE NÃO PRECISA DE sudo E POR ISSO VEM ANTES DE TUDO
+#
+# O gato JÁ ESTAVA na tela de login desta máquina — `/var/lib/AccountsService/
+# icons/vitoriamaria` bate byte a byte com `assets/meow-mocha-preto.svg`. Mas
+# nenhum script deste repositório sabia disso: foi posto na mão em 04/08/2026, e
+# numa máquina recém-instalada simplesmente não existiria. Era um enfeite sem
+# dono, do tipo que some no primeiro reset e ninguém sabe repor.
+#
+# POR QUE ANTES DO PORTÃO DE sudo
+#   Trocar o próprio avatar NÃO precisa de root: o polkit
+#   `org.freedesktop.accounts.change-own-user-data` tem `implicit any: yes`
+#   (medido). O portão que existe mais abaixo — o `sudo -n test -d` — é
+#   necessário para o TEMA, que mora num diretório `drwxr-x---` do uid 987. Se o
+#   avatar ficasse depois dele, uma rodada sem sudo em cache abortaria o módulo
+#   inteiro e o avatar nunca chegaria. O `doctor.log` mostra isso acontecendo
+#   todo dia: "greeter: falta dependência", na rodada automática das 5h.
+#
+# O GREETER RENDERIZA SVG — CONFERIDO, NÃO SUPOSTO
+#   Havia a suspeita de que ele só lesse raster (a crate `image` não traz codec
+#   de SVG). Mas `strings /usr/bin/cosmic-greeter` acha `resvg` 18 vezes e
+#   `usvg` 35: o suporte entra por outra crate. O SVG serve, e é o que já está
+#   em produção aqui desde 04/08.
+#
+# A GUARDA QUE IMPEDE O PIOR PING-PONG DE TODOS
+#   Se o avatar atual não for reconhecidamente nosso, este script NÃO TOCA.
+#   Sem isso, o dia em que ela puser uma foto própria pelo Ajustes → Sistema e
+#   Contas, o timer diário a apagaria de madrugada — e brigar com a USUÁRIA é
+#   pior do que brigar com a Aurora, porque ela não tem log para consultar.
+avatar_nosso() {
+  local md5="$1" f
+  for f in "$RAIZ"/assets/meow-*-preto.svg "$RAIZ"/assets/meow-*-painel.svg \
+           "$RAIZ"/assets/gatos/*.svg; do
+    [ -f "$f" ] || continue
+    [ "$(md5sum < "$f" | cut -d' ' -f1)" = "$md5" ] && return 0
+  done
+  [ -f "$MEOW_ESTADO/greeter-avatar.md5" ] && \
+    [ "$(cat "$MEOW_ESTADO/greeter-avatar.md5")" = "$md5" ] && return 0
+  return 1
+}
+
+fase_avatar() {
+  meow_tem busctl || { meow_pula "sem busctl — avatar da tela de login fica como está"; return 0; }
+
+  local objeto desejado atual_arq md5_atual md5_novo
+  objeto="$(busctl call org.freedesktop.Accounts /org/freedesktop/Accounts \
+              org.freedesktop.Accounts FindUserByName s "$USER" 2>/dev/null \
+            | sed -n 's/^o "\(.*\)"$/\1/p')"
+  [ -n "$objeto" ] || { meow_pula "AccountsService não respondeu — avatar como está"; return 0; }
+
+  desejado="$RAIZ/assets/meow-${FLAVOR:-mocha}-preto.svg"
+  [ -f "$desejado" ] || desejado="$RAIZ/assets/meow-${FLAVOR:-mocha}-painel.svg"
+  [ -f "$desejado" ] || { meow_pula "não há gato para o avatar em assets/"; return 0; }
+  md5_novo="$(md5sum < "$desejado" | cut -d' ' -f1)"
+
+  atual_arq="$(busctl get-property org.freedesktop.Accounts "$objeto" \
+                 org.freedesktop.Accounts.User IconFile 2>/dev/null \
+               | sed -n 's/^s "\(.*\)"$/\1/p')"
+
+  # Ler o arquivo apontado pode exigir root (é 0644 mas o diretório é do root);
+  # `sudo -n` sem senha é opcional aqui — sem ele, cai no md5 guardado por nós.
+  md5_atual=""
+  if [ -n "$atual_arq" ]; then
+    md5_atual="$(md5sum < "$atual_arq" 2>/dev/null | cut -d' ' -f1)"
+    [ -z "$md5_atual" ] && md5_atual="$(sudo -n md5sum < "$atual_arq" 2>/dev/null | cut -d' ' -f1)"
+  fi
+
+  if [ "$md5_atual" = "$md5_novo" ]; then
+    meow_ok "avatar da tela de login já é o gato ${FLAVOR:-mocha}"
+    return 0
+  fi
+
+  if [ -n "$md5_atual" ] && ! avatar_nosso "$md5_atual"; then
+    meow_pula "há um avatar que não é nosso na tela de login — respeitado"
+    return 0
+  fi
+
+  if meow_seco; then
+    meow_muda "poria o gato ${FLAVOR:-mocha} como avatar da tela de login"
+    return 1
+  fi
+
+  # O daemon roda como root e COPIA o arquivo para /var/lib/AccountsService/
+  # icons/. O caminho de origem precisa ser legível por ele — o repo pode estar
+  # numa partição que só o usuário monta, então a origem é uma cópia em /tmp
+  # com modo 644, e não o caminho do repo.
+  local tmp; tmp="$(mktemp --suffix=.svg)" || return 2
+  cat "$desejado" > "$tmp"; chmod 644 "$tmp"
+  if busctl call org.freedesktop.Accounts "$objeto" org.freedesktop.Accounts.User \
+       SetIconFile s "$tmp" >/dev/null 2>&1; then
+    rm -f "$tmp"
+    printf '%s' "$md5_novo" > "$MEOW_ESTADO/greeter-avatar.md5" 2>/dev/null || true
+    meow_ok "avatar da tela de login: gato ${FLAVOR:-mocha}"
+    return 1
+  fi
+  rm -f "$tmp"
+  meow_aviso "não consegui trocar o avatar (o polkit pode ter recusado)"
+  return 0
+}
+
+mudou_avatar=0
+fase_avatar; [ $? = 1 ] && mudou_avatar=1
+
 [ -d "$CAPTURA" ] || {
   meow_aviso "não há captura para '$ALVO' — a tela de login fica como está"
   meow_info "capture antes: meow tema capturar $ALVO"
-  exit "$MEOW_SEM_DEPENDENCIA"
+  exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
 }
 
 # TUDO que olha para dentro do home do greeter passa por sudo, INCLUSIVE o teste
@@ -70,15 +173,15 @@ CAPTURA="$RAIZ/state/tema/$ALVO"
 if ! sudo -n test -d "$DESTINO" 2>/dev/null; then
   if sudo -n true 2>/dev/null; then
     meow_pula "não há cosmic-greeter nesta máquina ($DESTINO)"
-    exit "$MEOW_OK"
+    exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_OK")"
   fi
   meow_aviso "não consigo olhar $DESTINO sem sudo — tela de login não conferida"
-  exit "$MEOW_SEM_DEPENDENCIA"
+  exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
 fi
 
 id "$DONO" >/dev/null 2>&1 || {
   meow_aviso "o usuário '$DONO' não existe — a tela de login fica como está"
-  exit "$MEOW_SEM_DEPENDENCIA"
+  exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
 }
 
 # --- o que mudaria ----------------------------------------------------------
@@ -104,7 +207,7 @@ done
 
 if [ "${#pendentes[@]}" -eq 0 ]; then
   meow_ok "a tela de login já está no tema '$ALVO'"
-  exit "$MEOW_OK"
+  exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_OK")"
 fi
 
 if meow_seco; then
@@ -115,7 +218,7 @@ fi
 if ! sudo -n true 2>/dev/null; then
   meow_aviso "a tela de login precisa de sudo (${#pendentes[@]} arquivo(s) pendentes)"
   meow_info "rode o install.sh de novo com sudo disponível"
-  exit "$MEOW_SEM_DEPENDENCIA"
+  exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
 fi
 
 # --- escrever ---------------------------------------------------------------
