@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Configurações">
+  <title>cosmic-settings — Catppuccin Latte</title>
+  <g fill="#ACB0BE">
+    <rect x="6.5" y="11.8" width="35" height="4.4" rx="2.2"/>
+    <rect x="6.5" y="21.8" width="35" height="4.4" rx="2.2"/>
+    <rect x="6.5" y="31.8" width="35" height="4.4" rx="2.2"/>
+  </g>
+  <g fill="#7287FD">
+    <circle cx="16" cy="14" r="5.4"/>
+    <circle cx="32" cy="24" r="5.4"/>
+    <circle cx="21" cy="34" r="5.4"/>
+  </g>
+</svg>

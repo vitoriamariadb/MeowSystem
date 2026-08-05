@@ -130,6 +130,76 @@ semear_das_dela() {
 
 quantas() { find "$ATIVOS" -maxdepth 1 -type f 2>/dev/null | wc -l; }
 
+# --- o estado com caminho fantasma, que suja o journal a cada 5 minutos -------
+# `~/.local/state/cosmic/.../v1/wallpapers` é a memória do COSMIC de qual imagem
+# estava em cada saída. Não é configuração: é estado, escrito por ele.
+#
+# O PROBLEMA MEDIDO (2026-08-04, 23:40 em diante)
+#   O arquivo guardava três entradas, e DUAS apontavam para arquivo que não existe
+#   mais — uma imagem banida da pasta `ativos/` e uma pasta `meowsystem-teste/`
+#   apagada há tempo. O `cosmic-greeter` lê este estado e cospe no journal, a cada
+#   cinco minutos, para sempre:
+#       failed to read wallpaper ".../meowsystem-teste/c-rosa.png": NotFound
+#   Não é fatal — mas é a tela de bloqueio dela tentando desenhar um arquivo
+#   fantasma, e é ruído que esconde erro de verdade no journal.
+#
+# SÓ REMOVE O QUE NÃO EXISTE, E NADA MAIS
+#   Uma entrada com arquivo presente fica intocada, mesmo apontando para fora da
+#   pasta do carrossel: pode ser escolha dela para uma saída específica.
+#
+# E SÓ VALE NO PRÓXIMO LOGIN — medido, não suposto (2026-08-05)
+#   Limpamos a entrada morta, e dois segundos depois ela estava de volta no
+#   arquivo. O `cosmic-bg` não relê este estado: ele carrega a lista na MEMÓRIA
+#   no início da sessão e reescreve o arquivo INTEIRO a cada troca de imagem —
+#   a cada 5 minutos, aqui. Ou seja, enquanto a sessão viver, a entrada fantasma
+#   volta; no próximo login ele lê o arquivo já limpo e ela some de vez.
+#
+#   Por isso o chamador NÃO conta esta limpeza como divergência. Se contasse, o
+#   `meow doctor` acusaria diferença a cada rodada para sempre, e o auto-reparo
+#   "consertaria" de hora em hora algo que o COSMIC desfaz em cinco minutos —
+#   o mesmo ping-pong que o projeto já teve com a Aurora e resolveu cedendo.
+ESTADO_BG="$HOME/.local/state/cosmic/com.system76.CosmicBackground/v1/wallpapers"
+
+limpar_estado_morto() {
+  [ -f "$ESTADO_BG" ] || return 1
+  local novo mortas
+  novo="$(python3 - "$ESTADO_BG" <<'FIM' 2>/dev/null
+import os, re, sys
+texto = open(sys.argv[1], encoding="utf-8").read()
+# ("DP-1", Path("/caminho")),  — uma entrada por linha, é o formato que ele grava.
+padrao = re.compile(r'^\s*\(\s*"[^"]*"\s*,\s*Path\("([^"]*)"\)\s*\)\s*,?\s*$')
+guardar, mortas = [], 0
+for linha in texto.splitlines():
+    m = padrao.match(linha)
+    if m and not os.path.exists(m.group(1)):
+        mortas += 1
+        continue
+    guardar.append(linha)
+if not mortas:
+    sys.exit(1)          # nada a fazer: o chamador trata como "já limpo"
+print(mortas, file=sys.stderr)
+print("\n".join(guardar))
+FIM
+)" || return 1
+  mortas="$(python3 - "$ESTADO_BG" <<'FIM' 2>/dev/null
+import os, re, sys
+padrao = re.compile(r'^\s*\(\s*"[^"]*"\s*,\s*Path\("([^"]*)"\)\s*\)\s*,?\s*$')
+print(sum(1 for l in open(sys.argv[1], encoding="utf-8")
+          if (m := padrao.match(l)) and not os.path.exists(m.group(1))))
+FIM
+)"
+  if meow_seco; then
+    meow_muda "removeria $mortas caminho(s) fantasma do estado do papel de parede"
+    return 0
+  fi
+  meow_escrever "$ESTADO_BG" "$novo" 644
+  case $? in
+    1) meow_info "$mortas caminho(s) fantasma removidos do estado (o greeter reclamava deles)"
+       return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 cmd_aplicar() {
   criar_pastas || { meow_erro "não consegui criar as pastas"; return "$MEOW_ERRO"; }
   semear_das_dela
@@ -148,14 +218,58 @@ cmd_aplicar() {
   # o COSMIC lê a que casar. Escrever as três de forma consistente evita um estado
   # em que o monitor certo mostra a imagem errada — e tratar saída desconectada
   # sem erro é de graça, já que só escrevemos os arquivos que já existem.
+  #
+  # A LISTA DE SAÍDAS SAI DO DISCO, NÃO DE UMA LISTA CRAVADA — e isto custou a
+  # tela dela ficar PRETA. A versão anterior tratava `DP-1` e `HDMI-A-1` porque
+  # eram as duas saídas conhecidas em 04/08/2026. O problema não é a saída que
+  # desaparece (essa é ignorada de graça): é a que APARECE. Quando o COSMIC cria
+  # um `output.<nome>` novo — monitor novo, TV ligada na outra entrada, nome que
+  # mudou de `DP-1` para `DP-2` depois de um reboot — o arquivo não estava na
+  # lista, ninguém escrevia nele, e aquela tela caía no papel de parede de
+  # fábrica sem nenhum aviso.
+  #
+  # Agora vale o que existe: `all` sempre, mais TODO `output.*` já presente no
+  # diretório, mais toda saída nomeada em `backgrounds` (a lista viva do COSMIC),
+  # mesmo que o arquivo dela ainda não exista. É essa última que cobre o monitor
+  # recém-chegado.
+  local -a alvos=(all)
+  local f
+  for f in "$BG"/output.*; do
+    [ -f "$f" ] || continue
+    alvos+=("$(basename "$f")")
+  done
+  # `backgrounds` é um array RON de nomes de saída, um por linha:
+  #     [
+  #         "DP-1",
+  #     ]
+  # O padrão ancora no COMEÇO da linha de propósito. Sem a âncora, o `grep -o`
+  # trata a aspa de FECHAMENTO como abertura da próxima ocorrência e devolve a
+  # vírgula e o colchete como se fossem nomes de saída — o teste em seco chegou a
+  # anunciar que criaria um arquivo chamado `output.,`.
+  # Um nome só entra se ainda não estiver na lista: senão a mesma saída seria
+  # escrita duas vezes.
+  if [ -f "$BG/backgrounds" ]; then
+    while IFS= read -r saida; do
+      [ -n "$saida" ] || continue
+      case " ${alvos[*]} " in *" output.$saida "*) continue ;; esac
+      alvos+=("output.$saida")
+    done < <(grep -oP '^\s*"\K[^"]+' "$BG/backgrounds" 2>/dev/null)
+  fi
+
   local alvo
-  for alvo in all output.DP-1 output.HDMI-A-1; do
-    [ "$alvo" = "all" ] || [ -f "$BG/$alvo" ] || continue
+  for alvo in "${alvos[@]}"; do
     local conteudo="$desejada"
     [ "$alvo" = "all" ] || conteudo="${desejada/output: \"all\"/output: \"${alvo#output.}\"}"
     meow_escrever "$BG/$alvo" "$conteudo" 644
     case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao escrever $alvo"; return "$MEOW_ERRO" ;; esac
   done
+
+  # A limpeza do estado NÃO conta como divergência — ver o cabeçalho de
+  # `limpar_estado_morto`. Contá-la faria o `meow doctor` acusar diferença a cada
+  # rodada, para sempre, porque o cosmic-bg reescreve o arquivo a cada troca de
+  # imagem (5 min) a partir da lista que ele carregou na MEMÓRIA no início da
+  # sessão. É o mesmo ping-pong que o projeto já evitou com a Aurora.
+  limpar_estado_morto || true
 
   if [ "$mudou" = "0" ]; then
     meow_ok "carrossel já configurado ($n imagens, a cada $INTERVALO, $ORDEM)"

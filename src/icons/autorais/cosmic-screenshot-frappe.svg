@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Captura de Tela">
+  <title>cosmic-screenshot — Catppuccin Frappe</title>
+  <g fill="none" stroke="#81C8BE" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 17 V10 c0 -2.5 2 -4.5 4.5 -4.5 h7"/>
+    <path d="M31 5.5 h7 c2.5 0 4.5 2 4.5 4.5 v7"/>
+    <path d="M42.5 31 v7 c0 2.5 -2 4.5 -4.5 4.5 h-7"/>
+    <path d="M17 42.5 h-7 c-2.5 0 -4.5 -2 -4.5 -4.5 v-7"/>
+  </g>
+  <circle cx="24" cy="24" r="7.6" fill="#81C8BE"/>
+</svg>

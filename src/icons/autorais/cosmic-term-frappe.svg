@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Terminal">
+  <title>cosmic-term — Catppuccin Frappe</title>
+  <rect x="3.5" y="8.5" width="41" height="31" rx="4.5" fill="#232634" stroke="#51576D" stroke-width="1.6"/>
+  <path d="M11.5 18.5 L18.5 24 L11.5 29.5" fill="none" stroke="#A6D189"
+        stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="22" y="26.4" width="13" height="3.2" rx="1.6" fill="#A6D189"/>
+</svg>

@@ -137,6 +137,25 @@ declare -A AUTORAL=(
   # não pode depender de um caminho fora dele.
   [hefesto-dualsense4unix]="__LOGO_DELA__"
   [com.vitoriamaria.HefestoDualsense4Unix]="__LOGO_DELA__"
+
+  # --- os oito aplicativos do próprio sistema --------------------------------
+  # Estes NÃO estavam "sem ícone": a auditoria os dava por pareados, porque o
+  # `hicolor` de /usr/share entrega um SVG para cada um. O problema é outro e a
+  # auditoria não tem como ver — os SVGs do Pop!_OS são teal e azul-marinho
+  # (#00717C, #102A4C, #49BAC8), cores que não existem em Catppuccin nenhum. Oito
+  # aplicativos que ela abre todo dia continuavam vestidos de fábrica no meio de
+  # um lançador inteiro na paleta.
+  #
+  # Entram por AUTORAL e não por DO_HICOLOR de propósito: DO_HICOLOR copia o
+  # arquivo do sistema como está, que é justamente o que não se quer aqui.
+  [com.system76.CosmicFiles]="cosmic-files-$FLAVOR.svg"
+  [com.system76.CosmicTerm]="cosmic-term-$FLAVOR.svg"
+  [com.system76.CosmicStore]="cosmic-store-$FLAVOR.svg"
+  [com.system76.CosmicSettings]="cosmic-settings-$FLAVOR.svg"
+  [com.system76.CosmicEdit]="cosmic-edit-$FLAVOR.svg"
+  [com.system76.CosmicMonitor]="cosmic-monitor-$FLAVOR.svg"
+  [com.system76.CosmicPlayer]="cosmic-player-$FLAVOR.svg"
+  [com.system76.CosmicScreenshot]="cosmic-screenshot-$FLAVOR.svg"
 )
 
 # --- apelidos de utilitário: nome pedido -> arquivo equivalente no Papirus -----
