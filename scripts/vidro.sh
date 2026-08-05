@@ -41,6 +41,20 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # "sim" -> o vidro fica ao maximizar. "nao" -> volta o comportamento de fábrica.
 VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}"
 
+# Quanto da COR do painel entra na mistura com o que está atrás. 0 = só o fundo
+# desfocado; 1 = chapado, sem vidro nenhum.
+#
+# O PAINEL E O DOCK ESTAVAM DIFERENTES, E DAVA PARA VER
+#   Medido nas capturas dela em 05/08/2026: `opacity` era 0.1 no painel e 0.24 no
+#   dock — o dock quase duas vezes e meia mais fechado. Amostrando os pixels sobre
+#   o mesmo papel de parede lilás, a mistura efetiva dava ~8% no painel e ~19% no
+#   dock. Não é sutileza de medição: as duas barras da mesma tela tinham
+#   materiais visivelmente diferentes, e foi isso que ela viu antes de eu ver.
+#
+#   `opacity` é do CosmicPanel, não do tema — mexer aqui não encosta no
+#   `frosted`/`alpha_map`, que é estrutura dela e território da Aurora.
+VIDRO_OPACIDADE="${VIDRO_OPACIDADE:-0.05}"
+
 case "$VIDRO_AO_MAXIMIZAR" in
   sim|true|1)  desejado="true" ;;
   nao|não|false|0) desejado="false" ;;
@@ -48,26 +62,40 @@ case "$VIDRO_AO_MAXIMIZAR" in
      exit "$MEOW_ERRO" ;;
 esac
 
+# O RON quer o float com ponto decimal. "0.05" e ".05" são a mesma coisa para o
+# shell e coisas diferentes para o parser: normalizar aqui evita um valor que o
+# COSMIC descarta calado, deixando a barra no padrão sem dizer por quê.
+case "$VIDRO_OPACIDADE" in
+  [0-9]*.[0-9]*|[0-9]) opacidade="$VIDRO_OPACIDADE" ;;
+  .[0-9]*)             opacidade="0$VIDRO_OPACIDADE" ;;
+  *) meow_erro "VIDRO_OPACIDADE='$VIDRO_OPACIDADE' — esperado um número entre 0 e 1"
+     exit "$MEOW_ERRO" ;;
+esac
+
 BASE="$HOME/.config/cosmic"
-ALVOS=(
-  "$BASE/com.system76.CosmicPanel.Panel/v1/keep_style_on_maximize"
-  "$BASE/com.system76.CosmicPanel.Dock/v1/keep_style_on_maximize"
-)
+BARRAS=(Panel Dock)
 
 mudou=0
 escritos=0
-for alvo in "${ALVOS[@]}"; do
+for barra in "${BARRAS[@]}"; do
+  dir="$BASE/com.system76.CosmicPanel.$barra/v1"
   # O diretório tem de existir: criá-lo do nada faria o COSMIC ver uma
   # configuração de painel órfã, sem as outras chaves. Se ele não existe, o
   # painel correspondente não está configurado nesta máquina — não é erro.
-  dir="$(dirname "$alvo")"
-  [ -d "$dir" ] || { meow_pula "$(basename "$(dirname "$dir")") não está configurado aqui"; continue; }
+  [ -d "$dir" ] || { meow_pula "com.system76.CosmicPanel.$barra não está configurado aqui"; continue; }
 
   escritos=$((escritos + 1))
-  meow_escrever "$alvo" "$desejado" 644
+  # As duas chaves andam juntas: manter o vidro ao maximizar não adianta se as
+  # duas barras têm materiais diferentes — foi assim que ela percebeu.
+  meow_escrever "$dir/keep_style_on_maximize" "$desejado" 644
   case $? in
     1) mudou=1 ;;
-    2) meow_erro "não consegui escrever $alvo"; exit "$MEOW_ERRO" ;;
+    2) meow_erro "não consegui escrever $dir/keep_style_on_maximize"; exit "$MEOW_ERRO" ;;
+  esac
+  meow_escrever "$dir/opacity" "$opacidade" 644
+  case $? in
+    1) mudou=1 ;;
+    2) meow_erro "não consegui escrever $dir/opacity"; exit "$MEOW_ERRO" ;;
   esac
 done
 
@@ -83,9 +111,9 @@ fi
 
 if [ "$mudou" = "0" ]; then
   if [ "$desejado" = "true" ]; then
-    meow_ok "o vidro já continua ao maximizar (painel e dock)"
+    meow_ok "vidro já conforme: opacidade $opacidade nas duas barras, mantido ao maximizar"
   else
-    meow_ok "o vidro já sai ao maximizar (padrão do COSMIC)"
+    meow_ok "vidro já conforme: opacidade $opacidade, e sai ao maximizar (padrão do COSMIC)"
   fi
   exit "$MEOW_OK"
 fi
@@ -93,8 +121,8 @@ fi
 meow_seco && exit "$MEOW_DIVERGENTE"
 
 if [ "$desejado" = "true" ]; then
-  meow_ok "vidro fosco mantido ao maximizar — painel e dock, já valendo"
+  meow_ok "painel e dock com opacidade $opacidade, vidro mantido ao maximizar — já valendo"
 else
-  meow_ok "vidro ao maximizar desligado (padrão do COSMIC) — já valendo"
+  meow_ok "painel e dock com opacidade $opacidade; o vidro sai ao maximizar — já valendo"
 fi
 exit "$MEOW_DIVERGENTE"
