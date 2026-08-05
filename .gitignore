@@ -8,6 +8,13 @@ src/fonts/upstream/
 
 # Imagens nunca vão para o git (o Andromeda ficou 18h com o auto-sync mudo por um
 # arquivo >100MB; aqui a regra é preventiva).
+#
+# É esta regra que mantém `wallpapers/` fora do git — os 242 arquivos de
+# zhichaoh/catppuccin-wallpapers, 193 MB, baixados em 05/08/2026 a pedido dela.
+# Eles ficam no disco, dentro do repositório, e o git não os enxerga. O que
+# reproduz a pasta é o `scripts/wallpaper.sh semear`, com o commit pinado.
+# Os ÍCONES (`icons/catppuccin/`, 3.280 SVGs, 13 MB) VÃO para o git: são texto,
+# comprimem bem, e é o pack inteiro que ela escolheu usar.
 *.jpg
 *.jpeg
 *.png

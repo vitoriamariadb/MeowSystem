@@ -374,6 +374,7 @@ cmd_semear() {
   local escolhidas
   escolhidas="$(printf '%s' "$lista" | python3 -c "
 import json, sys
+from urllib.parse import quote
 try:
     d = json.load(sys.stdin)
 except Exception:
@@ -396,13 +397,22 @@ while len(saida) < limite:
             if len(saida) >= limite: break
     if not houve: break
     i += 1
-print('\n'.join(saida))
+print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
 ")" || { meow_aviso "resposta do GitHub inesperada — semeadura pulada"; return "$MEOW_SEM_DEPENDENCIA"; }
+
+  # DUAS COLUNAS: a URL vai escapada, o nome de arquivo vai cru.
+  #   Sem isso, toda imagem cujo nome tem espaço falhava calada — curl com espaço
+  #   na URL devolve 000, e o ramo de erro apagava o temporário sem dizer nada.
+  #   Medido em 05/08/2026: três imagens de waves/ ficaram de fora da máquina dela
+  #   desde a primeira semeadura, com o script relatando sucesso. 239 de 242.
+  #   (E o comentário mora AQUI, não dentro do bloco Python acima: aquilo é uma
+  #   string entre aspas duplas do bash, então um crase ali vira substituição de
+  #   comando. Foi o que aconteceu na primeira tentativa desta correção.)
 
   [ -n "$escolhidas" ] || { meow_aviso "nenhuma imagem encontrada"; return "$MEOW_SEM_DEPENDENCIA"; }
 
-  local n=0 base="https://raw.githubusercontent.com/$SEMENTE_REPO/$SEMENTE_COMMIT"
-  while IFS= read -r caminho; do
+  local n=0 falhas=0 base="https://raw.githubusercontent.com/$SEMENTE_REPO/$SEMENTE_COMMIT"
+  while IFS=$'\t' read -r caminho caminho_url; do
     [ -n "$caminho" ] || continue
     # Prefixo com a categoria: o nome vira legível e a ordem alfanumérica agrupa.
     local nome="cat-${caminho//\//-}"
@@ -414,12 +424,16 @@ print('\n'.join(saida))
     # Baixa para temporário no MESMO diretório e só então renomeia: uma imagem
     # pela metade entraria na rotação e apareceria cortada na tela dela.
     local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
-    if curl -sSL --max-time 60 -o "$tmp" "$base/$caminho" 2>/dev/null && [ -s "$tmp" ]; then
+    if curl -sSL --max-time 60 -o "$tmp" "$base/$caminho_url" 2>/dev/null && [ -s "$tmp" ]; then
       mv -f "$tmp" "$destino"; n=$((n+1))
     else
-      rm -f "$tmp"
+      rm -f "$tmp"; falhas=$((falhas + 1))
     fi
   done <<< "$escolhidas"
+
+  # Falha de download não pode continuar sendo invisível: era o que escondia as
+  # três imagens de nome com espaço.
+  [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) não baixaram — rode de novo para tentar outra vez"
 
   if [ "$n" -eq 0 ]; then
     meow_ok "coleção Catppuccin já semeada"

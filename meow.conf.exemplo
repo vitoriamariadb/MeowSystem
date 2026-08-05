@@ -62,6 +62,16 @@ NOME_TEMA_ICONES="MeowSystem-Icons"
 ICONES_BASE="Papirus-Dark"        # tema herdado como fallback
 ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 
+# O flavor dos ÍCONES DE TIPO DE ARQUIVO, do pack `catppuccin/vscode-icons` —
+# aquilo que o cosmic-files desenha quando você abre uma pasta. É uma chave
+# PRÓPRIA, e não `$FLAVOR`, porque ela pediu os ícones em frappe ou macchiato com
+# a interface em mocha. Reusar `$FLAVOR` aqui teria um efeito colateral feio: ele
+# também nomeia o arquivo da logo do painel (`construir_icones.sh` §), cujo dono é
+# o `logo.sh` — as duas etapas ficariam criando e apagando o mesmo arquivo a cada
+# rodada. Chave separada, dono separado.
+#   frappe | latte | macchiato | mocha
+ICONES_FLAVOR="macchiato"
+
 # --- Wallpaper -------------------------------------------------------------
 
 WALLPAPER_DIR="$HOME/.local/share/backgrounds/meowsystem/ativos"

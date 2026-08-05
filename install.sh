@@ -460,6 +460,20 @@ etapa_completar_icones() {
   return $?
 }
 
+# Os TIPOS DE ARQUIVO, vestidos pelo pack Catppuccin — o que o cosmic-files
+# desenha ao abrir uma pasta. Etapa separada da anterior porque o alvo é outro
+# (`mimetypes/`, não `apps/`) e a fonte é outra (o pack de terceiro, não desenho
+# nosso). Vem DEPOIS do `etapa_icones`, que é quem escreve o `index.theme`: sem a
+# declaração `scalable/mimetypes` lá, estes arquivos existiriam no disco e não
+# seriam encontrados por ninguém.
+etapa_mimetypes() {
+  passo "Ícones de tipo de arquivo"
+  ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
+    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_mimetypes.sh"
+  return $?
+}
+
 # O SOM. O alcance inteiro desta etapa e UM arquivo -- o som de mudanca de volume,
 # o unico que o COSMIC realmente toca (medido: `pw-play` aparece em 2 dos 41
 # binarios cosmic-*, e canberra em nenhum). Fica em etapa propria porque nao
@@ -738,7 +752,8 @@ main() {
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_upstream etapa_fontes
-                etapa_icones etapa_pastas etapa_hicolor etapa_completar_icones etapa_jogos
+                etapa_icones etapa_pastas etapa_hicolor etapa_completar_icones
+                etapa_mimetypes etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_som etapa_apps
                 etapa_autoreparo)
   TOTAL=${#etapas[@]}
