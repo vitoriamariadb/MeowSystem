@@ -85,6 +85,32 @@ OS OITO APLICATIVOS DO PRÓPRIO SISTEMA
     aparece como volume: aparece como sujeira de compressão. As formas aqui são
     chapadas, que é como o Papirus (a base de ícones desta máquina) desenha —
     o conjunto novo tinha de conviver com 27 ícones dele na mesma tela.
+
+    TODOS LEVAM CONTORNO, E ISSO FOI UM ERRO CORRIGIDO NA TELA DELA
+    A primeira versão confiou na cor sozinha. Funcionou enquanto o dock era
+    quase opaco; quando ele foi para `opacity 0.05`, o fundo dos ícones virou o
+    PAPEL DE PAREDE — que gira num carrossel e naquele dia era lilás claro. O
+    Gestor de Arquivos sumiu por completo: medido na captura dela, a pasta mauve
+    era `srgb(203,166,247)` e o dock atrás `srgb(196,159,215)`. Sete pontos de
+    diferença em dois canais.
+
+    Contraste WCAG contra aquele fundo, calculado da própria paleta (mínimo
+    legível para forma grande = 3,0):
+
+        mauve 1,11 · red 1,02 · sapphire 1,20 · lavender 1,26
+        player/pink 1,48 · green 1,52 · teal 1,52 · yellow 1,78
+
+    Os OITO reprovam, e não é coincidência: os accents do Mocha são claros por
+    construção, feitos para viver sobre fundo escuro. Sobre um papel de parede
+    claro não existe accent que se salve. Os dois que ainda liam — Terminal e
+    Monitor — liam pela MOLDURA escura, não pela cor.
+
+    Então a moldura virou regra: todo ícone carrega um contorno de `tinta`
+    (`crust` no escuro, `base` no claro), e é ele que faz a silhueta existir
+    contra qualquer fundo. Os números fecham nos dois flavors — mauve x crust
+    dá 9,23 no Mocha, e mauve x base dá 4,09 no Latte, onde o mauve é escuro e
+    quem clareia é o contorno. A lição já estava escrita aqui em cima, no
+    touchpad do Hefesto; ela só não tinha sido aplicada onde o fundo é variável.
 """
 from __future__ import annotations
 
@@ -111,6 +137,15 @@ PAPEIS = {
     "vazio":    ("crust", "base"),          # a tela do terminal e do monitor
     "borda":    ("surface1", "overlay0"),   # contorno que separa do fundo
     "trilho":   ("surface2", "surface2"),   # o sulco dos deslizadores
+    # O CONTORNO NÃO É O MESMO QUE `tinta`, e a diferença é o Latte.
+    # `tinta` inverte (crust/base) porque no Hefesto ela é a MARCA impressa no
+    # corpo do controle, e ali inverter é certo. Aqui ela é a SILHUETA, e uma
+    # silhueta quase branca (o `base` do Latte) desaparece contra papel de parede
+    # claro — o pior caso caía para 2,00. Com `text` no claro, o contorno é
+    # escuro nos DOIS flavors e o pior caso sobe para 3,53 no lilás dela, 7,99
+    # no branco e 3,87 no preto. Só o cinza-50%-exato fica em 2,02, e nesse
+    # fundo nenhum tema de ícone do mundo passa: é o ponto equidistante de tudo.
+    "contorno": ("crust", "text"),          # a silhueta, contra qualquer fundo
     # A FOLHA NÃO INVERTE, e essa foi a única coisa que o Latte reprovou.
     # A primeira versão usava ("text","text"), copiado do `corpo` do Hefesto —
     # e ali inverter é certo, porque um controle preto no claro e branco no
@@ -225,7 +260,7 @@ def _moldura(c: dict) -> str:
     desapareceria contra o fundo claro do lançador.
     """
     return (f'<rect x="3.5" y="8.5" width="41" height="31" rx="4.5" '
-            f'fill="{c["vazio"]}" stroke="{c["borda"]}" stroke-width="1.6"/>')
+            f'fill="{c["vazio"]}" stroke="{c["contorno"]}" stroke-width="2"/>')
 
 
 def cosmic_files(c: dict) -> str:
@@ -237,8 +272,8 @@ def cosmic_files(c: dict) -> str:
     """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Gestor de Arquivos">
   <title>{c['titulo']}</title>
-  <path d="M6.5 9.5 h10.2 c1.3 0 2.5 0.6 3.2 1.7 L21.8 14 H41.5 c2.5 0 4.5 2 4.5 4.5 v15.5 c0 2.5 -2 4.5 -4.5 4.5 H6.5 c-2.5 0 -4.5 -2 -4.5 -4.5 V14 c0 -2.5 2 -4.5 4.5 -4.5 z"
-        fill="{c['marca']}"/>
+  <path d="M7 10 h9.8 c1.3 0 2.5 0.6 3.2 1.7 L21.6 14.4 H41 c2.5 0 4.5 2 4.5 4.5 v14.8 c0 2.5 -2 4.5 -4.5 4.5 H7 c-2.5 0 -4.5 -2 -4.5 -4.5 V14.5 c0 -2.5 2 -4.5 4.5 -4.5 z"
+        fill="{c['marca']}" stroke="{c['contorno']}" stroke-width="2" stroke-linejoin="round"/>
 </svg>
 """
 
@@ -268,10 +303,12 @@ def cosmic_store(c: dict) -> str:
     """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Loja de Aplicativos">
   <title>{c['titulo']}</title>
-  <path d="M17.5 19.5 v-5 c0 -3.6 2.9 -6.5 6.5 -6.5 c3.6 0 6.5 2.9 6.5 6.5 v5"
-        fill="none" stroke="{c['marca']}" stroke-width="3.2" stroke-linecap="round"/>
-  <path d="M8.5 16.5 h31 l-2.4 21.6 c-0.2 1.9 -1.8 3.4 -3.7 3.4 H14.6 c-1.9 0 -3.5 -1.5 -3.7 -3.4 z"
-        fill="{c['marca']}"/>
+  <path d="M17.6 19.5 v-4.8 c0 -3.5 2.9 -6.4 6.4 -6.4 c3.5 0 6.4 2.9 6.4 6.4 v4.8"
+        fill="none" stroke="{c['contorno']}" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M17.6 19.5 v-4.8 c0 -3.5 2.9 -6.4 6.4 -6.4 c3.5 0 6.4 2.9 6.4 6.4 v4.8"
+        fill="none" stroke="{c['marca']}" stroke-width="3" stroke-linecap="round"/>
+  <path d="M9 17 h30 l-2.3 20.9 c-0.2 1.9 -1.8 3.3 -3.7 3.3 H15 c-1.9 0 -3.5 -1.4 -3.7 -3.3 z"
+        fill="{c['marca']}" stroke="{c['contorno']}" stroke-width="2" stroke-linejoin="round"/>
 </svg>
 """
 
@@ -286,15 +323,15 @@ def cosmic_settings(c: dict) -> str:
     """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Configurações">
   <title>{c['titulo']}</title>
-  <g fill="{c['trilho']}">
-    <rect x="6.5" y="11.8" width="35" height="4.4" rx="2.2"/>
-    <rect x="6.5" y="21.8" width="35" height="4.4" rx="2.2"/>
-    <rect x="6.5" y="31.8" width="35" height="4.4" rx="2.2"/>
+  <g fill="{c['trilho']}" stroke="{c['contorno']}" stroke-width="1.6">
+    <rect x="6.8" y="12" width="34.4" height="4" rx="2"/>
+    <rect x="6.8" y="22" width="34.4" height="4" rx="2"/>
+    <rect x="6.8" y="32" width="34.4" height="4" rx="2"/>
   </g>
-  <g fill="{c['marca']}">
-    <circle cx="16" cy="14" r="5.4"/>
-    <circle cx="32" cy="24" r="5.4"/>
-    <circle cx="21" cy="34" r="5.4"/>
+  <g fill="{c['marca']}" stroke="{c['contorno']}" stroke-width="2">
+    <circle cx="16" cy="14" r="5"/>
+    <circle cx="32" cy="24" r="5"/>
+    <circle cx="21" cy="34" r="5"/>
   </g>
 </svg>
 """
@@ -310,7 +347,7 @@ def cosmic_edit(c: dict) -> str:
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Editor de Texto">
   <title>{c['titulo']}</title>
   <path d="M11 5.3 h16.1 L39.2 17.4 V39.7 c0 2.2 -1.8 4 -4 4 H11 c-2.2 0 -4 -1.8 -4 -4 V9.3 c0 -2.2 1.8 -4 4 -4 z"
-        fill="{c['folha']}" stroke="{c['borda']}" stroke-width="1.6" stroke-linejoin="round"/>
+        fill="{c['folha']}" stroke="{c['contorno']}" stroke-width="2" stroke-linejoin="round"/>
   <path d="M27.1 5.3 L39.2 17.4 h-8.1 c-2.2 0 -4 -1.8 -4 -4 z" fill="{c['borda']}"/>
   <g fill="{c['marca']}">
     <rect x="13" y="22" width="21" height="3.2" rx="1.6"/>
@@ -345,7 +382,7 @@ def cosmic_player(c: dict) -> str:
     """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Reprodutor de Mídia">
   <title>{c['titulo']}</title>
-  <circle cx="24" cy="24" r="19.5" fill="{c['marca']}"/>
+  <circle cx="24" cy="24" r="19" fill="{c['marca']}" stroke="{c['contorno']}" stroke-width="2"/>
   <path d="M20 15.6 L33 24 L20 32.4 Z" fill="{c['vazio']}"/>
 </svg>
 """
@@ -359,13 +396,19 @@ def cosmic_screenshot(c: dict) -> str:
     """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Captura de Tela">
   <title>{c['titulo']}</title>
-  <g fill="none" stroke="{c['marca']}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+  <g fill="none" stroke="{c['contorno']}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
     <path d="M5.5 17 V10 c0 -2.5 2 -4.5 4.5 -4.5 h7"/>
     <path d="M31 5.5 h7 c2.5 0 4.5 2 4.5 4.5 v7"/>
     <path d="M42.5 31 v7 c0 2.5 -2 4.5 -4.5 4.5 h-7"/>
     <path d="M17 42.5 h-7 c-2.5 0 -4.5 -2 -4.5 -4.5 v-7"/>
   </g>
-  <circle cx="24" cy="24" r="7.6" fill="{c['marca']}"/>
+  <g fill="none" stroke="{c['marca']}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 17 V10 c0 -2.5 2 -4.5 4.5 -4.5 h7"/>
+    <path d="M31 5.5 h7 c2.5 0 4.5 2 4.5 4.5 v7"/>
+    <path d="M42.5 31 v7 c0 2.5 -2 4.5 -4.5 4.5 h-7"/>
+    <path d="M17 42.5 h-7 c-2.5 0 -4.5 -2 -4.5 -4.5 v-7"/>
+  </g>
+  <circle cx="24" cy="24" r="7.2" fill="{c['marca']}" stroke="{c['contorno']}" stroke-width="2"/>
 </svg>
 """
 

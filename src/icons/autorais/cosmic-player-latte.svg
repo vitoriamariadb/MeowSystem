@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Reprodutor de Mídia">
   <title>cosmic-player — Catppuccin Latte</title>
-  <circle cx="24" cy="24" r="19.5" fill="#EA76CB"/>
+  <circle cx="24" cy="24" r="19" fill="#EA76CB" stroke="#4C4F69" stroke-width="2"/>
   <path d="M20 15.6 L33 24 L20 32.4 Z" fill="#EFF1F5"/>
 </svg>

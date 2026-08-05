@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Gestor de Arquivos">
   <title>cosmic-files — Catppuccin Frappe</title>
-  <path d="M6.5 9.5 h10.2 c1.3 0 2.5 0.6 3.2 1.7 L21.8 14 H41.5 c2.5 0 4.5 2 4.5 4.5 v15.5 c0 2.5 -2 4.5 -4.5 4.5 H6.5 c-2.5 0 -4.5 -2 -4.5 -4.5 V14 c0 -2.5 2 -4.5 4.5 -4.5 z"
-        fill="#CA9EE6"/>
+  <path d="M7 10 h9.8 c1.3 0 2.5 0.6 3.2 1.7 L21.6 14.4 H41 c2.5 0 4.5 2 4.5 4.5 v14.8 c0 2.5 -2 4.5 -4.5 4.5 H7 c-2.5 0 -4.5 -2 -4.5 -4.5 V14.5 c0 -2.5 2 -4.5 4.5 -4.5 z"
+        fill="#CA9EE6" stroke="#232634" stroke-width="2" stroke-linejoin="round"/>
 </svg>
