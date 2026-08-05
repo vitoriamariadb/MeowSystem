@@ -100,10 +100,37 @@ if [ "$ACAO" = "listar" ]; then
   exit "$MEOW_OK"
 fi
 
-# --- o applet existe? -------------------------------------------------------
+# --- o applet existe, E ESTÁ MONTADO? ---------------------------------------
 if [ ! -d "$APPLET" ]; then
   meow_pula "o applet dev.cappsy (logo do painel) não está nesta máquina"
   exit "$MEOW_SEM_DEPENDENCIA"
+fi
+
+# TER A CONFIGURAÇÃO NÃO É ESTAR NA BARRA — e a diferença é invisível de outro jeito.
+#   Medido em 05/08/2026: o diretório `dev.cappsy.CosmicExtAppletLogoMenu/v1`
+#   existe e tem `custom_logo_path` preenchido, mas o applet NÃO aparece em
+#   `plugins_wings` nem em `plugins_center` de nenhuma das duas barras. Ou seja,
+#   girar a chave funcionava perfeitamente e não mudava um pixel na tela dela.
+#
+#   O gato que ela VÊ, no canto do dock, é outro caminho: o applet
+#   `com.system76.CosmicPanelAppButton`, cujo ícone vem do TEMA DE ÍCONES
+#   (`scalable/apps/com.system76.CosmicPanelAppButton.svg`) — e trocar ícone de
+#   tema exige reiniciar o painel, que pisca a tela. Por isso a rotação não o
+#   acompanha: um enfeite não vale um pisca-pisca a cada 30 minutos.
+#
+#   Avisar é obrigatório. Um recurso que roda, devolve sucesso e não faz nada é
+#   pior do que um recurso que falta: ela testaria, não veria efeito, e não teria
+#   como saber de quem é a culpa.
+applet_montado() {
+  local barras="$HOME/.config/cosmic/com.system76.CosmicPanel"
+  grep -qs 'LogoMenu' "$barras.Panel/v1/plugins_wings" "$barras.Panel/v1/plugins_center" \
+                      "$barras.Dock/v1/plugins_wings"  "$barras.Dock/v1/plugins_center"
+}
+
+if ! applet_montado; then
+  meow_aviso "o applet da logo não está em nenhuma das barras — girar não muda nada na tela"
+  meow_info "  para usá-lo: Ajustes → Área de trabalho → Painel → Applets, e acrescente"
+  meow_info "  \"Logo Menu\". A ordem dos applets é dela; este script não mexe nisso."
 fi
 
 mudou=0
