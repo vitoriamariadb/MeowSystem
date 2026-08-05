@@ -123,10 +123,20 @@ AUTORAIS="$RAIZ/src/icons/autorais"
 #
 # O terceiro nome, `com.vitoriamaria.HefestoDualsense4Unix-symbolic`, fica FORA:
 # simbólico é monocromático por contrato e seria achatado numa cor só.
+# O caminho da logo que a Vitória desenhou. Fora do repo de propósito: é obra
+# dela, mora no projeto dela, e copiar para cá seria congelar uma versão.
+LOGO_HEFESTO_DELA="$HOME/Desenvolvimento/hefesto-dualsense4unix/assets/hefesto-logo.svg"
+
 declare -A AUTORAL=(
   [fogstripper]="fogstripper-$FLAVOR.svg"
-  [hefesto-dualsense4unix]="hefesto-$FLAVOR.svg"
-  [com.vitoriamaria.HefestoDualsense4Unix]="hefesto-$FLAVOR.svg"
+  # EXCEÇÃO, a pedido dela: o Hefesto TEM logo própria, e foi ELA que desenhou
+  # (~/Desenvolvimento/hefesto-dualsense4unix/assets/hefesto-logo.svg — a bigorna
+  # com o martelo). O desenho autoral que eu tinha feito era um controle genérico,
+  # sem identidade nenhuma perto do dela. Autoria dela vence tema, sempre.
+  # Se o repositório não estiver no lugar, cai no desenho gerado — o instalador
+  # não pode depender de um caminho fora dele.
+  [hefesto-dualsense4unix]="__LOGO_DELA__"
+  [com.vitoriamaria.HefestoDualsense4Unix]="__LOGO_DELA__"
 )
 
 # --- apelidos de utilitário: nome pedido -> arquivo equivalente no Papirus -----
@@ -194,6 +204,18 @@ fi
 instalados=0
 for nome in "${!AUTORAL[@]}"; do
   fonte="$AUTORAIS/${AUTORAL[$nome]}"
+  # A EXCEÇÃO: onde o mapa diz `__LOGO_DELA__`, a fonte é a logo que a Vitória
+  # desenhou, no repositório do próprio app. Se ele não estiver no lugar (clone
+  # ausente, disco não montado), cai no desenho gerado — o instalador não pode
+  # ficar de pé ou não por causa de um caminho fora dele.
+  if [ "${AUTORAL[$nome]}" = "__LOGO_DELA__" ]; then
+    if [ -f "$LOGO_HEFESTO_DELA" ]; then
+      fonte="$LOGO_HEFESTO_DELA"
+    else
+      fonte="$AUTORAIS/hefesto-$FLAVOR.svg"
+      meow_info "a logo dela não está em $LOGO_HEFESTO_DELA — usando o desenho gerado"
+    fi
+  fi
   if [ ! -f "$fonte" ]; then
     # No seco o passo 1 não escreveu nada, então a fonte pode não existir ainda.
     if meow_seco; then
