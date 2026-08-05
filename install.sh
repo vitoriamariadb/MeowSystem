@@ -69,6 +69,27 @@ etapa_conf() {
   local fonte="$CONF"
   if [ -f "$CONF" ]; then
     meow_ok "meow.conf já existe em $CONF"
+    # "Já existe" NÃO É "está completo" — ver scripts/migrar_conf.py. Chave nova
+    # no exemplo jamais chegava a uma máquina que já tinha rodado o projeto, e o
+    # recurso funcionava do mesmo jeito (todo script tem padrão), então nada
+    # avisava. O sintoma era ela abrir o meow.conf para mexer numa coisa e não
+    # achar a linha.
+    if meow_tem python3; then
+      local migrar=("$MEOW_RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO")
+      if meow_seco; then
+        local pendente
+        if pendente="$(python3 "${migrar[@]}" --conferir 2>/dev/null)"; then :; else
+          meow_muda "$pendente"
+        fi
+      else
+        local saida
+        saida="$(python3 "${migrar[@]}" 2>&1)"
+        case $? in
+          0) [ -n "$saida" ] && meow_ok "$saida" ;;
+          *) meow_aviso "não consegui conferir as chaves novas do meow.conf" ;;
+        esac
+      fi
+    fi
   else
     local conteudo; conteudo="$(cat "$CONF_PADRAO")"
     meow_escrever "$CONF" "$conteudo" 644

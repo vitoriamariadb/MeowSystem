@@ -8,8 +8,9 @@ aplicativos, num instalador só, sem flag nenhuma.
 meow ativar           # todas as outras
 ```
 
-Roda quantas vezes quiser: a segunda execução não escreve um byte — e **diz
-isso**, em vez de listar as etapas como se as tivesse refeito:
+Roda quantas vezes quiser: numa máquina já instalada, a segunda execução não
+escreve um byte — e **diz isso**, em vez de listar as etapas como se as tivesse
+refeito:
 
 ```
   ok   confere: conf cli pacotes gerar tema modo greeter vidro ...
@@ -19,6 +20,14 @@ isso**, em vez de listar as etapas como se as tivesse refeito:
 
 Quando alguma coisa de fato mudou, ela aparece separada, em `mexeu:`.
 Para auditar antes: `MEOW_DRY_RUN=1 ./install.sh`.
+
+**Numa máquina recém-formatada são três rodadas até o silêncio, não duas**, e
+isso é deliberado. O `index.theme` do tema de ícones descreve os diretórios que
+EXISTEM — e na primeira rodada as pastas coloridas ainda não existem, porque quem
+as instala é a etapa seguinte. A alternativa seria gravar a lista fixa, que foi o
+que se fazia antes: dois scripts donos da mesma linha, cada um desfazendo o
+outro, os dois relatando "consertei" em toda rodada, para sempre. O detalhe está
+em `scripts/construir_icones.sh` §1.
 
 ---
 
