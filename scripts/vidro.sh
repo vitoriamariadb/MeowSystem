@@ -55,6 +55,7 @@ ALVOS=(
 )
 
 mudou=0
+escritos=0
 for alvo in "${ALVOS[@]}"; do
   # O diretório tem de existir: criá-lo do nada faria o COSMIC ver uma
   # configuração de painel órfã, sem as outras chaves. Se ele não existe, o
@@ -62,12 +63,23 @@ for alvo in "${ALVOS[@]}"; do
   dir="$(dirname "$alvo")"
   [ -d "$dir" ] || { meow_pula "$(basename "$(dirname "$dir")") não está configurado aqui"; continue; }
 
+  escritos=$((escritos + 1))
   meow_escrever "$alvo" "$desejado" 644
   case $? in
     1) mudou=1 ;;
     2) meow_erro "não consegui escrever $alvo"; exit "$MEOW_ERRO" ;;
   esac
 done
+
+# NENHUM alvo existe é diferente de "os dois já estão certos", e a primeira
+# versão dizia a mesma frase nos dois casos. Num HOME recém-criado ela pulava os
+# dois painéis, um por linha, e logo abaixo anunciava "o vidro já continua ao
+# maximizar (painel e dock)" — sobre dois painéis que não existem. Contradizer a
+# si mesmo duas linhas depois é pior do que não dizer nada.
+if [ "$escritos" -eq 0 ]; then
+  meow_pula "não há painel nem dock configurados — nada a ajustar"
+  exit "$MEOW_SEM_DEPENDENCIA"
+fi
 
 if [ "$mudou" = "0" ]; then
   if [ "$desejado" = "true" ]; then
