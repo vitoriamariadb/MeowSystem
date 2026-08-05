@@ -1,0 +1,39 @@
+# meow-logo.timer — o gato do painel troca sozinho, de tempos em tempos.
+#
+# POR QUE UM TIMER, E NÃO UM GANCHO NO CARROSSEL DE PAPEL DE PAREDE
+#   A vontade era girar o gato JUNTO com a imagem de fundo. Não dá: quem gira o
+#   papel de parede é o `cosmic-bg`, nativamente, a partir de
+#   `rotation_frequency` — e ele não anuncia a troca em lugar nenhum (nem D-Bus,
+#   nem arquivo de estado; o `meow status` já diz "o cosmic-bg não expõe qual
+#   imagem está em exibição"). Vigiar por inotify o diretório de papéis também
+#   não serve: ele não é reescrito quando a imagem muda, só quando ela ADICIONA
+#   uma. Ficar de olho no processo seria um daemon nosso para adivinhar o
+#   relógio de outro.
+#
+#   Então são dois relógios independentes, e é honesto que seja assim: o padrão
+#   deixa o gato mais lento que a parede (30 min contra 5), de modo que a troca
+#   do gato é um evento raro e notado, e não parte do piscar do fundo.
+#
+# `Persistent=false` DE PROPÓSITO — O OPOSTO DO meow-doctor.timer
+#   Lá o `true` é essencial: um reparo perdido enquanto a máquina estava
+#   desligada precisa acontecer no próximo boot. Aqui seria o contrário — depois
+#   de um fim de semana desligada, um `true` dispararia a troca imediatamente ao
+#   ligar, no meio do login, para nada. Trocar de gato não é dívida a pagar.
+#
+# NÃO ACORDA A MÁQUINA (WakeSystem não aparece = false, que é o padrão) e roda
+# com folga de um minuto: é um enfeite, não pode competir por CPU com nada.
+
+[Unit]
+Description=MeowSystem — troca o gato da logo do painel
+Documentation=man:systemd.timer(5)
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=30min
+Persistent=false
+AccuracySec=1min
+RandomizedDelaySec=2min
+Unit=meow-logo.service
+
+[Install]
+WantedBy=timers.target

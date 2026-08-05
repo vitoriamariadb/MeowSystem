@@ -38,7 +38,7 @@ TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 LOGOS_DIR="$HOME/.config/cosmic/logos"
 TK="$HOME/.config/cosmic/com.system76.CosmicTk/v1"
-APPLET="$HOME/.config/cosmic/dev.cappsy.CosmicExtAppletLogoMenu/v1"
+# (o diretório do applet LogoMenu não é mais tocado aqui — ver o bloco 3)
 
 # Os dois nomes que o COSMIC pede para o botão de aplicativos. São dois porque o
 # painel e o dock evoluíram separados e cada um pede o seu.
@@ -132,18 +132,24 @@ for nome in "${BOTOES[@]}"; do
 done
 
 # --- 3. a logo do painel (caminho de arquivo, não tema) ---------------------
+# O ARQUIVO É DAQUI; A CHAVE QUE APONTA PARA ELE É DO `scripts/logo.sh`.
+#
+# Até 05/08/2026 este script escrevia os dois, e aí nasceu a rotação de gatos —
+# que também precisa da chave. Ficaram DOIS DONOS DA MESMA LINHA, o modo de
+# falha que este projeto persegue desde o começo: girei para `mimir`, rodei o
+# `install.sh`, e a etapa de ícones (que roda ANTES da de logo) devolveu tudo
+# para `meow-mocha.svg`. Medido, e não deduzido — a rotação se desfazia sozinha
+# a cada instalação, sem erro nenhum na tela.
+#
+# A divisão que sobrou: aqui se garante que o gato do FLAVOR existe no disco
+# (é o piso — sem ele o acervo poderia ficar vazio numa máquina nova); quem
+# decide qual dos gatos está no ar é o `logo.sh`, dono único de
+# `custom_logo_path` e de `custom_logo_active`.
 LOGO_SVG="$RAIZ/assets/meow-${LOGO}-painel.svg"
 [ -f "$LOGO_SVG" ] || LOGO_SVG="$GATO_PAINEL"
 DESTINO_LOGO="$LOGOS_DIR/meow-${FLAVOR}.svg"
 meow_escrever "$DESTINO_LOGO" "$(cat "$LOGO_SVG")" 644
 case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao instalar a logo"; exit "$MEOW_ERRO" ;; esac
-
-# O RON quer a string entre aspas e SEM newline no fim — é assim que o COSMIC
-# grava, e um \n a mais faz o applet ignorar o valor calado.
-meow_escrever "$APPLET/custom_logo_path" "\"$DESTINO_LOGO\"" 644
-case $? in 1) mudou=1 ;; esac
-meow_escrever "$APPLET/custom_logo_active" "true" 644
-case $? in 1) mudou=1 ;; esac
 
 # --- 4. selecionar o tema ---------------------------------------------------
 # Sem isto nada acima aparece: o tema só entra na busca se for O SELECIONADO.

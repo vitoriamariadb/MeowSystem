@@ -687,6 +687,20 @@ cmd_tema() {
 cmd_logo() {
   carregar_conf || return "$MEOW_ERRO"
   local arg="${1:-}"
+
+  # `girar` e `listar` são do ACERVO (assets/gatos/ + o gato do flavor), não das
+  # variantes de `assets/meow-*-painel.svg` que o resto deste comando conhece.
+  # São coisas diferentes de propósito: a variante é o DESENHO do gato do
+  # projeto; o acervo é a coleção dela, e girar troca só a chave — o único
+  # caminho que vale na hora, sem reiniciar o painel (§3 do COSMIC-THEMING).
+  case "$arg" in
+    girar|listar)
+      meow_travar || return "$MEOW_ERRO"
+      FLAVOR="$FLAVOR" LOGO="$LOGO" "$RAIZ/scripts/logo.sh" "$arg"; local rc=$?
+      [ "$rc" = "1" ] && [ "$arg" = "girar" ] && registrar "logo girou"
+      return "$rc" ;;
+  esac
+
   if [ -z "$arg" ]; then
     meow_titulo "Logo do painel"
     campo "em uso" "$LOGO"
@@ -1029,6 +1043,8 @@ meow — Catppuccin para o COSMIC
 
   meow logo                    variantes de logo do painel
   meow logo <variante>         troca a logo do painel e o botão do dock
+  meow logo listar             o acervo de gatos e qual está no ar
+  meow logo girar              passa para o próximo gato (vale na hora)
 
   meow icones                  estado do tema de ícones
   meow icones reconstruir      remonta o tema e as pastas coloridas
