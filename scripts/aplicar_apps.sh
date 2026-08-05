@@ -22,7 +22,14 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ACAO="${1:-aplicar}"        # aplicar | conferir
+# aplicar | conferir | tabela
+#
+# `tabela` existe para o `meow apps` não precisar de uma SEGUNDA cópia do
+# `pasta_de` e do `rodar_modulo`. Ele imprime TSV cru — uma linha por módulo,
+# `pasta<TAB>slugs<TAB>rc_detectar<TAB>rc_conferir` — e quem pinta a tabela é a
+# CLI. Duas listas de slug-para-pasta em arquivos diferentes é como se ganha uma
+# tabela que mente sobre um app três meses depois.
+ACAO="${1:-aplicar}"
 APPS="${APPS_ATIVOS:-}"
 
 declare -a APLICADOS=() JA_OK=() PENDENTES=() FALHOS=()
@@ -46,11 +53,40 @@ rodar_modulo() {
     # shellcheck disable=SC1090
     . "$mod" || exit 2
     case "$acao" in
+      detectar) meow_app_detectar ;;
       conferir) meow_app_conferir ;;
       *)        meow_app_aplicar ;;
     esac
   )
 }
+
+# --- modo tabela ------------------------------------------------------------
+# Sai antes do laço normal porque a saída é para ser lida por outro programa:
+# uma linha de log misturada no TSV viraria uma coluna fantasma na tela dela.
+if [ "$ACAO" = "tabela" ]; then
+  vistos=""
+  declare -A SLUGS_DE=()
+  declare -a ORDEM=()
+  IFS=',' read -ra LISTA <<< "$APPS"
+  for slug in "${LISTA[@]}"; do
+    slug="$(printf '%s' "$slug" | tr -d ' ')"
+    [ -n "$slug" ] || continue
+    pasta="$(pasta_de "$slug")"
+    [ -f "$RAIZ/app-themes/$pasta/manifesto.sh" ] || continue
+    case " $vistos " in
+      *" $pasta "*) SLUGS_DE[$pasta]="${SLUGS_DE[$pasta]}, $slug"; continue ;;
+    esac
+    vistos="$vistos $pasta"
+    ORDEM+=("$pasta")
+    SLUGS_DE[$pasta]="$slug"
+  done
+  for pasta in "${ORDEM[@]}"; do
+    rodar_modulo "$pasta" detectar >/dev/null 2>&1; rc_det=$?
+    rodar_modulo "$pasta" conferir >/dev/null 2>&1; rc_conf=$?
+    printf '%s\t%s\t%s\t%s\n' "$pasta" "${SLUGS_DE[$pasta]}" "$rc_det" "$rc_conf"
+  done
+  exit "$MEOW_OK"
+fi
 
 vistos=""
 IFS=',' read -ra LISTA <<< "$APPS"

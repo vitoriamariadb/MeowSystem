@@ -99,9 +99,17 @@ criar_pastas() {
 
 # Semear a partir das imagens que ela JÁ tem. Não baixamos nada da internet sem
 # ela pedir: o carrossel tem de funcionar no primeiro `install.sh`, offline.
+#
+# SÓ NA PRIMEIRA VEZ, e isso não é detalhe. A versão anterior semeava a cada
+# `aplicar` — e como `banir` chama `aplicar` no fim (para forçar a releitura da
+# lista), banir uma imagem da pasta dela a copiava DE VOLTA no mesmo comando.
+# Ela bania, o script dizia "banida", e a imagem continuava lá. Agora a semeadura
+# só acontece quando `ativos/` está vazio, ou seja, na primeira instalação:
+# depois disso quem manda no conteúdo da pasta é ela.
 semear_das_dela() {
   local origem="$HOME/Imagens/Parede_papel"
   [ -d "$origem" ] || return 0
+  [ "$(quantas)" -eq 0 ] || return 0
   local n=0
   while IFS= read -r img; do
     local destino="$ATIVOS/$(basename "$img")"
@@ -182,8 +190,16 @@ cmd_banir() {
   local img="$1"
   [ -f "$img" ] || { meow_erro "não achei $img"; return "$MEOW_ERRO"; }
   criar_pastas
-  mv -n "$img" "$BASE/banidos/" || return "$MEOW_ERRO"
-  meow_ok "banida: $(basename "$img") — está em banidos/, não foi apagada"
+  local nome; nome="$(basename "$img")"
+  # `mv -n` recusa sobrescrever — e uma imagem JÁ banida antes deixaria o arquivo
+  # parado em ativos/, com o script dizendo "banida". Se a cópia em banidos/ já
+  # existe e é idêntica, o banimento anterior valeu: basta tirar daqui.
+  if [ -e "$BASE/banidos/$nome" ] && cmp -s "$img" "$BASE/banidos/$nome"; then
+    rm -f "$img"
+  else
+    mv -f "$img" "$BASE/banidos/" || return "$MEOW_ERRO"
+  fi
+  meow_ok "banida: $nome — está em banidos/, não foi apagada"
   cmd_aplicar >/dev/null   # força a releitura da lista
   return "$MEOW_DIVERGENTE"
 }

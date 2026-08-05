@@ -84,6 +84,22 @@ TimeoutStartSec=5min
 #   o `notify-send` sair != 0 e marcaria o serviço como falho por causa do aviso.
 ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${AUTO_REPARO_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "O tema estava divergente e o auto-reparo corrigiu. Detalhes em ~/.local/state/meowsystem/doctor.log"'
 
+# A REDE DE SEGURANÇA DO PAINEL — E POR QUE ELA EXISTE
+#   MEDIDO em 2026-08-04, do jeito ruim: o `aurora-painel-fantasma` matou um
+#   cosmic-panel fantasma às 22:06:30 e o `cosmic-session` NÃO o respawnou. O painel
+#   e o dock ficaram fora da tela dela por dez minutos, e o próprio vigia registrou
+#   no journal "cosmic-panel nao voltou em 10s — o cosmic-session deveria ter
+#   respawnado". O `construir_icones.sh` conta justamente com esse respawn, e o vigia
+#   da Aurora se declara "fora do escopo" quando o processo nem existe: painel morto,
+#   hoje, não é responsabilidade de ninguém.
+#   Como ESTE serviço é o único que pode matar o painel às 5 da manhã, é ele que
+#   precisa garantir que ele volte — senão ela acorda com um desktop sem barra e sem
+#   dock, e sem nada no journal explicando por quê.
+#   Os dois segundos de espera existem para não competir com o respawn quando ele
+#   funciona; e `setsid -f` foi TESTADO: o processo sobrevive ao fim do oneshot, não
+#   morre junto com o cgroup do serviço.
+ExecStopPost=-/bin/sh -c 'sleep 2; pgrep -x cosmic-panel >/dev/null && exit 0; [ -x /usr/bin/cosmic-panel ] || exit 0; echo "aviso: o cosmic-panel não voltou sozinho — subindo de novo"; setsid -f /usr/bin/cosmic-panel </dev/null >/dev/null 2>&1'
+
 # O journal guarda o histórico; o arquivo é o que ela consegue abrir sem saber
 # `journalctl`. `inherit` no erro manda stderr pelo mesmo caminho, sem repetir o
 # caminho e sem risco de os dois divergirem.
