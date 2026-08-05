@@ -368,6 +368,28 @@ de renderização, não como configuração. O `scripts/vidro.sh` escreve as dua
 `meow doctor` confere as duas: elas se perderam uma vez justamente porque **nada
 no projeto as conferia**.
 
+### A prova de que a chave faz o que dizemos — A/B por pixel
+
+"Parece translúcido" não é verificação: sobre uma janela escura, translúcido e
+opaco-escuro são quase idênticos ao olho. Medido em 05/08/2026 capturando a mesma
+tela com uma janela maximizada, trocando só esta chave entre as duas capturas:
+
+| ponto do painel | `false` | `true` |
+|---|---|---|
+| x=300 | `srgb(49,50,68)` | `srgb(29,29,45)` |
+| x=600 | `srgb(49,50,68)` | `srgb(34,34,50)` |
+| x=1300 | `srgb(49,50,68)` | `srgb(34,34,51)` |
+| x=1600 | `srgb(49,50,68)` | `srgb(29,29,46)` |
+
+O veredito não está na média, está na **variância**. Com `false` o painel devolve
+o mesmo valor nos quatro pontos — e `#313244` é exatamente o `surface0` do Mocha,
+ou seja, a cor chapada do tema, sem nada por baixo. Com `true` o valor **muda de
+ponto a ponto**, porque o que está sob o painel atravessa.
+
+O mesmo vale para o dock. Um ponto do dock deu `srgb(17,17,27)` (`crust`) nas
+duas capturas: é onde havia um ícone opaco por cima — coincidência esperada, e um
+lembrete de que amostrar um ponto só não decide nada.
+
 ---
 
 ## 4d. O `hicolor` do usuário pode esconder os próprios ícones
