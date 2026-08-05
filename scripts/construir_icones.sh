@@ -171,9 +171,18 @@ fi
 # "reiniciar" — é o mesmo caminho que o vigia do painel fantasma usa.
 # SÓ REINICIA O PAINEL SE O TEMA MUDOU DE NOME — e isto custou a tela dela duas vezes.
 #
-# O cosmic-panel não vigia arquivo nenhum (zero fds de inotify, medido): um ícone
-# reescrito só aparece no próximo início dele. A tentação é reiniciar sempre que
-# algo mudar. O problema é que reiniciar tem custo real e cumulativo:
+# O cosmic-panel não vigia NADA DISTO — mas vigia outras coisas, e a frase que
+# estava aqui ("zero fds de inotify, medido") era falsa. Medido de novo em
+# 05/08/2026 por `/proc/<pid>/fdinfo/*`: ele mantém SEIS watches, sobre
+# `CosmicPanel/v1`, `CosmicPanel.Panel/v1`, `CosmicPanel.Dock/v1`,
+# `CosmicTheme.Mode/v1`, `CosmicTheme.Light/v2` e `CosmicTheme.Dark/v2`.
+# O que ele NÃO vigia é o `CosmicTk/icon_theme` e os arquivos de ícone — que são
+# justamente o que este script mexe. Ou seja: a conclusão abaixo continua de pé,
+# só a justificativa estava errada. (É por isso que o `vidro.sh`, que escreve em
+# `CosmicPanel.*/v1`, aplica na hora sem reiniciar nada.)
+#
+# Um ícone reescrito só aparece no próximo início dele. A tentação é reiniciar
+# sempre que algo mudar. O problema é que reiniciar tem custo real e cumulativo:
 #   - a tela dela PISCA a cada vez;
 #   - o respawn do cosmic-session tem limite, e depois de muitas mortes na mesma
 #     sessão ele desiste — foi assim que ela ficou sem painel e sem dock duas

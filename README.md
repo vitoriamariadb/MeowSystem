@@ -4,10 +4,20 @@ Catppuccin Mocha para o COSMIC da MeowSystem — tema, ícones, papéis de pared
 aplicativos, num instalador só, sem flag nenhuma.
 
 ```bash
-./install.sh
+./install.sh          # a primeira vez
+meow ativar           # todas as outras
 ```
 
-Roda quantas vezes quiser: a segunda execução não escreve um byte.
+Roda quantas vezes quiser: a segunda execução não escreve um byte — e **diz
+isso**, em vez de listar as etapas como se as tivesse refeito:
+
+```
+  ok   confere: conf cli pacotes gerar tema modo greeter vidro ...
+
+  Pronto. Nenhuma etapa precisou escrever nada — já estava tudo no lugar.
+```
+
+Quando alguma coisa de fato mudou, ela aparece separada, em `mexeu:`.
 Para auditar antes: `MEOW_DRY_RUN=1 ./install.sh`.
 
 ---
@@ -16,6 +26,9 @@ Para auditar antes: `MEOW_DRY_RUN=1 ./install.sh`.
 
 | O que você quer | O comando |
 |---|---|
+| **Aplicar tudo** (o mesmo que `./install.sh`) | `meow ativar` |
+| Ver o que está fora do lugar | `meow doctor` |
+| Consertar só o que estiver fora | `meow doctor --consertar` |
 | Trocar o accent para rosa | `./scripts/aplicar_tema.sh mocha-pink` |
 | Ir para o tema claro | `./scripts/aplicar_tema.sh latte-mauve` |
 | **Desfazer tudo** | `./scripts/aplicar_tema.sh original` |
@@ -34,9 +47,16 @@ Flavor, accent, modo, logo, intervalo do carrossel, lista de aplicativos.
 
 - **O tema do COSMIC** — as quatro árvores (`Dark`, `Light` e os dois `.Builder`),
   aplicadas por cópia de arquivo.
+- **A tela de login** — o `cosmic-greeter` tem configuração própria, em
+  `/var/lib`, e vinha vazia: era a única superfície ainda de fábrica.
+- **O vidro ao maximizar** — painel e dock mantêm o fosco quando uma janela
+  maximiza (`keep_style_on_maximize`, duas chaves, valem na hora).
 - **Os dois gatos** — a logo do painel e o botão do dock, em mauve.
 - **Os ícones** — Papirus como base, com as pastas em `cat-mocha-mauve`, num tema
-  derivado que não toca no pacote do apt.
+  derivado que não toca no pacote do apt. Inclui desenho autoral para os oito
+  aplicativos do próprio COSMIC, que vinham em teal do Pop!_OS.
+- **O lançador** — sem as duplicatas ("(Local)"/"(Sistema)") e sem os aplicativos
+  que são dependência de pacote, não programa que se abre.
 - **Os papéis de parede** — carrossel na rotação nativa do COSMIC.
 - **Os aplicativos** — VS Code, Obsidian, qBittorrent, bat, btop. GTK e Qt vêm de
   graça: com `apply_theme_global` ligado, o COSMIC já os pinta a partir do tema.
@@ -65,7 +85,7 @@ custa três linhas e não pisca a interface.
 
 ### 3. Ele convive com o Ritual da Aurora
 
-O [Andromeda-OS](https://github.com/vitoriamariadb/Andromeda-OS) roda como root a
+O [Andromeda-OS](https://github.com/[REDACTED]/Andromeda-OS) roda como root a
 cada hora e é dono de vários dos mesmos arquivos. Onde os dois se cruzam, o
 MeowSystem cede — e a regra mais importante: para o vidro fosco, o `meow` grava em
 `transparent_*` e deixa a Aurora propagar, de modo que o self-heal converge sem

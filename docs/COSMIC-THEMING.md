@@ -339,6 +339,123 @@ durável é sair e entrar na sessão; religá-lo à mão vale até o próximo bo
 
 ---
 
+## 4c. O painel VIGIA seis diretórios — e o vidro ao maximizar mora em dois deles
+
+Medido em 04/08/2026 lendo `/proc/<pid do cosmic-panel>/fdinfo/*` e resolvendo os
+inodes: o `cosmic-panel` mantém **seis** watches de inotify, sobre
+
+```
+com.system76.CosmicPanel/v1         com.system76.CosmicTheme.Mode/v1
+com.system76.CosmicPanel.Panel/v1   com.system76.CosmicTheme.Light/v2
+com.system76.CosmicPanel.Dock/v1    com.system76.CosmicTheme.Dark/v2
+```
+
+Isto **corrige** o comentário antigo do `construir_icones.sh`, que dizia "o
+cosmic-panel não vigia arquivo nenhum (zero fds de inotify, medido)". Ele vigia
+estes seis. O que ele **não** vigia é o `CosmicTk/icon_theme` nem os arquivos de
+ícone — e é por isso que a conclusão de lá (reiniciar o painel só quando o tema de
+ícones troca de NOME) continua correta, mesmo com a justificativa errada.
+
+A consequência prática: **`keep_style_on_maximize` vale na hora**, sem reiniciar
+nada e sem gastar uma das vidas do respawn do `cosmic-session`.
+
+### `keep_style_on_maximize`: são DUAS chaves
+
+`CosmicPanel.Panel/v1` e `CosmicPanel.Dock/v1` são configurações independentes.
+Com `false` (o padrão de fábrica), painel e dock largam o vidro fosco quando uma
+janela é maximizada. Escrever só uma deixa metade da tela certa — que lê como bug
+de renderização, não como configuração. O `scripts/vidro.sh` escreve as duas, e o
+`meow doctor` confere as duas: elas se perderam uma vez justamente porque **nada
+no projeto as conferia**.
+
+---
+
+## 4d. O `hicolor` do usuário pode esconder os próprios ícones
+
+Sintoma relatado: *"as logos dos jogos da Steam sumiram"*. Medido em 05/08/2026.
+
+O `~/.local/share/icons/hicolor/index.theme` declarava **quatro** seções
+(`48x48/apps`, `128x128/apps`, `256x256/apps`, `512x512/apps`) enquanto a pasta
+tinha **treze** tamanhos no disco mais `scalable`. Como o resolvedor varre as
+seções declaradas e não o disco (§2), todo ícone que só existisse num tamanho de
+fora era invisível:
+
+| ícone | onde existia | quem usava |
+|---|---|---|
+| `steam_icon_2369580` | só `32x32` | `Mad King Redemption.desktop` |
+| `steam_icon_1657740` | só `32x32` | — |
+| `shadps4-cosmic` | só `scalable` | o emulador |
+
+O arquivo é de 12/05/2026, muito anterior a este projeto — foi escrito por um
+instalador de terceiro (a Steam grava ícone aqui a cada jogo). O `scripts/hicolor.sh`
+regenera o `index.theme` **a partir do que existe no disco**, nunca de uma lista
+fixa: uma lista cravada ficaria velha na próxima compra dela, e o sintoma voltaria
+idêntico meses depois sem ninguém ligar uma coisa à outra.
+
+Dois detalhes que o script precisa acertar, e ambos são silenciosos se errados:
+
+- **Toda seção precisa de `Size=`.** O parse aceita seções até a primeira que não
+  declare `Size=`, e descarta o resto dali para baixo — inclusive em `Scalable`.
+- **A ordem importa.** As seções são percorridas em ordem e a primeira que sirva
+  ganha. Com `512x512` na frente, um ícone de 16px pediria o arquivo de 512 e o
+  downscale ficaria borrado na barra. O script ordena por tamanho crescente, com
+  `scalable` por último.
+
+---
+
+## 4e. A tela de LOGIN é outra configuração — a de bloqueio não
+
+O mesmo binário `cosmic-greeter` faz as duas coisas, em sessões diferentes:
+
+| | onde lê | estava |
+|---|---|---|
+| **bloqueio** | `~/.config/cosmic` (roda dentro da sessão dela) | já correto, sempre |
+| **login** | `/var/lib/cosmic-greeter/.config/cosmic` (uid 987) | **vazio** → tema de fábrica |
+
+As pastas de tema existiam lá e estavam **todas vazias** — e pasta vazia não é
+meio-termo: o COSMIC cai no tema embutido. Era a única superfície da máquina que
+ainda não era Catppuccin. O `scripts/greeter.sh` copia as três árvores que ele lê
+(`Dark`, `Light`, `Mode`), com `install -o cosmic-greeter`.
+
+Duas armadilhas medidas:
+
+- **`/var/lib/cosmic-greeter` é `drwxr-x---` do uid 987.** Um `[ -d ]` comum
+  devolve falso por **permissão**, não por ausência — a primeira versão do script
+  anunciou "não há cosmic-greeter nesta máquina" numa máquina que tem. Todo teste
+  ali passa por `sudo -n`.
+- **Não aponte o tema de ícones dele para o nosso.** `MeowSystem-Icons` mora em
+  `~/.local/share/icons`, dentro de uma home `drwx------`: o uid 987 não consegue
+  nem listar o diretório. O resultado seria ícone **faltando** em vez de errado.
+
+---
+
+## 4f. As notificações do COSMIC podem falhar caladas — e é o painel
+
+Medido em 05/08/2026. O `notify-send` devolve `0`, o daemon recebe, e **nada
+aparece na tela**. No journal:
+
+```
+cosmic-notifications: Failed to notify applet of notification I/O error: Broken pipe
+iced_winit::...::state: Failed to create popup. ParentMissing
+```
+
+São dois problemas, e só um se conserta sozinho:
+
+1. **`Broken pipe`** — o daemon perdeu o canal com o applet do painel. Some ao
+   reiniciar o `cosmic-notifications`. **Atenção ao `pkill`:** o nome tem 20
+   caracteres e `comm` trunca em 15, então `pkill -x cosmic-notifications` **não
+   casa nada** e sai dizendo isso; o alvo certo é `cosmic-notifica`.
+2. **`ParentMissing`** — persiste depois disso. O popup é ancorado ao applet, e o
+   applet só refaz esse vínculo quando o **painel** reinicia.
+
+Isto importa para o MeowSystem porque o `meow_notificar` é como o auto-reparo
+avisa que consertou algo sozinho: com o painel nesse estado, o auto-reparo fica
+**mudo**. O projeto não reinicia o painel por causa disso — o custo está em §
+`construir_icones.sh` (a tela pisca, e o respawn tem limite). O reparo é dela,
+com um comando: `pkill -x cosmic-panel`.
+
+---
+
 ## 5. Fronteira com o Ritual da Aurora
 
 O Aurora roda como root a cada hora, no boot e após todo apt. Onde os dois querem

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Monitor do Sistema">
+  <title>cosmic-monitor — Catppuccin Macchiato</title>
+  <rect x="3.5" y="8.5" width="41" height="31" rx="4.5" fill="#181926" stroke="#494D64" stroke-width="1.6"/>
+  <path d="M9.5 30.5 L16.5 22.5 L22 27 L30 14.5 L38.5 23.5" fill="none"
+        stroke="#ED8796" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

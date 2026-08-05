@@ -34,17 +34,29 @@ MEOW_RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONF_PADRAO="$MEOW_RAIZ/meow.conf.exemplo"
 CONF="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
 
-declare -a FEITOS=() PULADOS=() FALHOS=()
+declare -a FEITOS=() CONFEREM=() PULADOS=() FALHOS=()
 PASSO=0
 TOTAL=8
 
 passo() { PASSO=$((PASSO+1)); meow_passo "[$PASSO/$TOTAL] $*"; }
 
 # Registra o resultado de uma etapa sem deixar o código dela derrubar o script.
+#
+# `0` E `1` SÃO COISAS DIFERENTES, E JUNTÁ-LOS ERA UMA MENTIRA DE RELATÓRIO
+#   A versão anterior punha os dois em FEITOS. O resultado: a SEGUNDA execução
+#   — que não escreve um único byte, e o README promete isso — terminava
+#   anunciando "feito: conf cli pacotes gerar tema modo ... " com as dezenove
+#   etapas, como se tivesse refeito a instalação inteira. Quem lesse o resumo
+#   não tinha como saber que nada mudou; a única prova era contar as linhas
+#   `~~` na tela.
+#
+#   É o mesmo pecado que o `wallpaper.sh` já tinha corrigido no tempo verbal do
+#   modo seco: dizer no passado uma coisa que não aconteceu. Aqui a separação é
+#   o que torna a idempotência VISÍVEL em vez de prometida.
 concluir() {
   local nome="$1" rc="$2"
   case "$rc" in
-    0) FEITOS+=("$nome") ;;
+    0) CONFEREM+=("$nome") ;;                     # já estava certo: nada escrito
     1) FEITOS+=("$nome") ;;                       # divergia e foi consertado
     3) PULADOS+=("$nome") ;;
     *) FALHOS+=("$nome") ;;
@@ -445,6 +457,31 @@ etapa_som() {
   return $?
 }
 
+# O vidro fosco que continuava ao maximizar e se perdeu. Duas chaves, e o painel
+# vigia os dois diretórios por inotify — então isto vale sem reiniciar nada.
+etapa_vidro() {
+  passo "Vidro ao maximizar"
+  VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" "$MEOW_RAIZ/scripts/vidro.sh"
+  return $?
+}
+
+# O `index.theme` do hicolor DELA, que escondia os próprios ícones — entre eles
+# as logos de dois jogos da Steam. Vem antes do `completar_icones` de propósito:
+# é a base da cadeia, e completar ícone com a base quebrada é remendar por cima.
+etapa_hicolor() {
+  passo "Fim da cadeia de ícones (hicolor do usuário)"
+  "$MEOW_RAIZ/scripts/hicolor.sh"
+  return $?
+}
+
+# A tela de LOGIN — a única superfície que continuava de fábrica. Depende de sudo
+# e do tema já capturado, por isso vem depois de `etapa_tema`.
+etapa_greeter() {
+  passo "Tela de login"
+  FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$MEOW_RAIZ/scripts/greeter.sh"
+  return $?
+}
+
 etapa_upstream() {
   passo "Upstream de terceiros (commits pinados)"
   "$MEOW_RAIZ/scripts/baixar_upstream.sh"
@@ -601,9 +638,10 @@ main() {
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
-                etapa_modo etapa_upstream etapa_fontes etapa_icones etapa_pastas
-                etapa_completar_icones etapa_wallpaper etapa_ocultar etapa_som
-                etapa_apps etapa_autoreparo)
+                etapa_modo etapa_greeter etapa_vidro etapa_upstream etapa_fontes
+                etapa_icones etapa_pastas etapa_hicolor etapa_completar_icones
+                etapa_wallpaper etapa_ocultar etapa_som etapa_apps
+                etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
   for e in "${etapas[@]}"; do
@@ -619,18 +657,28 @@ main() {
   done
 
   meow_passo "Resultado"
-  [ ${#FEITOS[@]}  -gt 0 ] && meow_ok    "feito:  ${FEITOS[*]}"
-  [ ${#PULADOS[@]} -gt 0 ] && meow_pula  "pulado: ${PULADOS[*]}"
-  [ ${#FALHOS[@]}  -gt 0 ] && meow_erro  "falhou: ${FALHOS[*]}"
+  [ ${#FEITOS[@]}   -gt 0 ] && meow_muda  "mexeu:  ${FEITOS[*]}"
+  [ ${#CONFEREM[@]} -gt 0 ] && meow_ok    "confere: ${CONFEREM[*]}"
+  [ ${#PULADOS[@]}  -gt 0 ] && meow_pula  "pulado: ${PULADOS[*]}"
+  [ ${#FALHOS[@]}   -gt 0 ] && meow_erro  "falhou: ${FALHOS[*]}"
 
-  meow_registrar "install.sh feitos=${#FEITOS[@]} pulados=${#PULADOS[@]} falhos=${#FALHOS[@]}"
+  meow_registrar "install.sh mexeu=${#FEITOS[@]} conferem=${#CONFEREM[@]} pulados=${#PULADOS[@]} falhos=${#FALHOS[@]}"
 
   if [ ${#FALHOS[@]} -gt 0 ]; then
     printf '\n  %sAlgumas etapas falharam. Nada foi deixado pela metade —%s\n' "$C_AMARELO" "$C_ZERO"
     printf '  %scada etapa é independente, e o resto foi aplicado.%s\n\n' "$C_AMARELO" "$C_ZERO"
     return 2
   fi
-  printf '\n  %sPronto.%s Rode de novo quando quiser: nada é escrito duas vezes.\n\n' "$C_VERDE$C_FORTE" "$C_ZERO"
+  # A frase muda conforme o que de fato aconteceu. "Nada é escrito duas vezes" é
+  # uma promessa; dizer que NENHUMA etapa mexeu em nada é a prova dela, na tela,
+  # sem ela precisar contar linha nenhuma.
+  if [ ${#FEITOS[@]} -eq 0 ]; then
+    printf '\n  %sPronto.%s Nenhuma etapa precisou escrever nada — já estava tudo no lugar.\n\n' \
+      "$C_VERDE$C_FORTE" "$C_ZERO"
+  else
+    printf '\n  %sPronto.%s Rode de novo quando quiser: nada é escrito duas vezes.\n\n' \
+      "$C_VERDE$C_FORTE" "$C_ZERO"
+  fi
   return 0
 }
 

@@ -35,6 +35,26 @@
 #   Nada de heurística do tipo "esconde tudo que for Categories=System". Cada
 #   linha aqui é uma decisão dela, e o dia em que ela quiser um de volta é uma
 #   linha a remover.
+#
+# AS DUPLICATAS SÃO OUTRO PROBLEMA, E SE RESOLVEM PELO MESMO LADO
+#   Três aplicativos apareciam DUAS vezes no lançador dela — "(Local)" e
+#   "(Sistema)", "(Flatpak)" e "(Sistema)". Não é sujeira: é o COSMIC achando
+#   dois `.desktop` de mesmo ID e desambiguando com o sufixo, porque ele não
+#   deduplica (a mesma descoberta que fez o ZapZap aparecer em dobro).
+#
+#   Em todos os três casos a cópia boa é a que NÃO está em `/usr/share`:
+#     google-chrome  o override dela liga aceleração de GPU e decode por
+#                    hardware (LIBVA_DRIVER_NAME=nvidia + VaapiVideoDecoder). O
+#                    do sistema abre o Chrome sem nada disso.
+#     steam          o override dela chama o `steam-resiliente.sh`, que cura o
+#                    cliente zumbi. O do sistema chama o binário cru.
+#     github-desktop o do sistema é de mai/2021 e não recebe update; o Flatpak
+#                    (io.github.shiftey.Desktop) é o que ela mantém atualizado.
+#
+#   Então ocultar a cópia do SISTEMA resolve os três — e é exatamente a mesma
+#   operação da lista de cima. `NoDisplay` esconde do lançador e NÃO mexe nos
+#   handlers de MIME e de esquema (`steam://`, `x-scheme-handler/https`): esses
+#   continuam resolvendo, inclusive pelo arquivo oculto.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -45,6 +65,7 @@ SISTEMA="/usr/share/applications"
 
 # Um por linha, com o porquê ao lado. Só entra o que ela pediu.
 OCULTAR=(
+  # --- dependência de outro pacote, não aplicativo que se abre ---------------
   vim                       # editor de terminal; dependência, não aplicativo
   debian-xterm              # dependência de xinit e das bibliotecas da Steam
   debian-uxterm             # idem
@@ -54,10 +75,48 @@ OCULTAR=(
   info                      # TeXInfo, leitor de manual do GNU
   im-config                 # configurador de método de entrada (ibus e cia)
   ibus-setup                # idem
+  org.freedesktop.IBus.Setup  # o mesmo ibus, com o ID novo — é este que aparecia
   org.gnome.font-viewer     # visualizador de fontes
   gnome-language-selector   # suporte a idiomas
   system-config-printer     # impressoras: o COSMIC tem a própria página
+
+  # --- GNOME que o COSMIC já cobre, ou que ela não usa -----------------------
+  org.gnome.eog             # Visualizador de Imagens: ela usa o do COSMIC
+  org.gnome.Evince          # Visualizador de Documentos: o PDF abre no navegador
+  org.gnome.baobab          # Analisador de Uso do Disco
+  org.gnome.PowerStats      # Estatísticas de Energia: máquina de mesa, sem bateria
+  org.gnome.seahorse.Application  # Senhas e Chaves
+  org.gnome.DiskUtility     # Discos: o GParted cobre, e ela usa o terminal
+  simple-scan               # Digitalizador: não há scanner nesta máquina
+  yelp                      # Ajuda do GNOME: documenta um desktop que ela não usa
+  gucharmap                 # Mapa de Caracteres
+
+  # --- sistema avançado: existe, funciona, mas não é do dia a dia ------------
+  # Nenhum destes foi desinstalado — todos continuam a um comando de distância
+  # no terminal. O que sai é a presença no lançador.
+  nm-connection-editor      # Configuração avançada de rede
+  repoman                   # gerenciador de repositórios do Pop!_OS
+  com.system76.Popsicle     # Gravador de USB
+  gparted                   # particionador: uso raro e deliberado
+  nvidia-settings           # painel da NVIDIA: sobe sozinho no autostart
+
+  # --- duas entradas para o mesmo serviço ------------------------------------
+  syncthing-start           # "Start Syncthing"
+  syncthing-ui              # "Syncthing Web UI" — o mesmo serviço, dois ícones
 )
+
+# As DUPLICATAS. Separadas da lista de cima porque o motivo é outro: aqui o
+# aplicativo FICA — o que sai é a segunda cópia dele. Ver o cabeçalho.
+# Todos são o arquivo de `/usr/share`; a cópia que ela usa está no home ou no
+# Flatpak e continua intocada.
+OCULTAR_DUPLICATA=(
+  google-chrome             # fica o do home: liga GPU e decode por hardware
+  steam                     # fica o do home: passa pelo steam-resiliente.sh
+  github-desktop            # fica o Flatpak; este .deb é de mai/2021
+)
+
+# Uma lista só para o laço — a divisão acima é para quem lê, não para o código.
+OCULTAR+=("${OCULTAR_DUPLICATA[@]}")
 
 mudou=0
 ausentes=0

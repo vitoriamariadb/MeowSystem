@@ -71,7 +71,8 @@ _meow() {
     'icones:estado do tema de ícones'
     'wallpaper:carrossel de papéis de parede'
     'apps:tabela de módulo, app instalado e tema'
-    'aplicar:roda o install.sh inteiro'
+    'ativar:roda o install.sh inteiro'
+    'aplicar:o mesmo que ativar'
     'desfazer:volta o tema para a captura original'
     'log:últimas 50 linhas do log'
     'ajuda:lista todos os comandos'
@@ -157,7 +158,7 @@ _meow() {
             fi
           fi
           ;;
-        aplicar)
+        aplicar|ativar)
           _arguments '--seco[mostra o que faria, sem escrever nada]'
           ;;
       esac

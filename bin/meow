@@ -290,6 +290,23 @@ chk_apps() {
   APPS_ATIVOS="${APPS_ATIVOS:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir 2>&1
 }
 
+# As três que existem PORQUE se perderam caladas. Nenhuma delas era conferida por
+# ninguém, e foi assim que o vidro ao maximizar voltou ao padrão de fábrica e a
+# tela de login ficou azul sem que nada acusasse. Conferir é o que transforma
+# "sumiu de novo" em "o doctor avisou".
+chk_vidro() {
+  MEOW_DRY_RUN=1 VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
+    "$RAIZ/scripts/vidro.sh" 2>&1
+}
+
+chk_hicolor() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/hicolor.sh" 2>&1
+}
+
+chk_greeter() {
+  MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1
+}
+
 # --- 5. os consertos --------------------------------------------------------
 # NENHUM deles força `MEOW_DRY_RUN=0`. Forçar seria transformar
 # `MEOW_DRY_RUN=1 meow doctor --consertar` — o jeito de auditar antes de deixar
@@ -315,11 +332,15 @@ fix_wallpaper() { WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
                     "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
 fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" \
                     "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1; }
+fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
+                    "$RAIZ/scripts/vidro.sh" 2>&1; }
+fix_hicolor()   { "$RAIZ/scripts/hicolor.sh" 2>&1; }
+fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1; }
 
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo icones pastas wallpaper apps)
+VERIFICAVEIS=(conf gerar tema modo vidro greeter icones hicolor pastas wallpaper apps)
 SEM_CONSERTO=" conf "
 
 # --- 6. o runner das conferências -------------------------------------------
@@ -1015,7 +1036,8 @@ meow — Catppuccin para o COSMIC
 
   meow apps                    tabela: módulo, instalado, tema
   meow apps aplicar [slug]     tematiza um app, ou todos
-  meow aplicar [--seco]        roda o install.sh inteiro
+  meow ativar [--seco]         roda o install.sh inteiro (o mesmo que 'aplicar')
+  meow aplicar [--seco]        idem — os dois nomes valem
   meow desfazer                volta o tema para a captura "original"
   meow log                     últimas 50 linhas do log
 
@@ -1041,7 +1063,11 @@ despachar() {
     icones|ícones)    shift; cmd_icones "$@" ;;
     wallpaper|parede) shift; cmd_wallpaper "$@" ;;
     apps)             shift; cmd_apps "$@" ;;
-    aplicar)          shift; cmd_aplicar "$@" ;;
+    # `ativar` é o nome que ela procurou quando quis "rodar o install sem flag".
+    # Não é comando novo: é o mesmo `aplicar`, com o nome que veio à cabeça
+    # primeiro. Um sinônimo custa uma linha; lembrar do verbo certo custa uma
+    # busca no --help toda vez.
+    aplicar|ativar)   shift; cmd_aplicar "$@" ;;
     desfazer)         shift; cmd_desfazer "$@" ;;
     log)              shift; cmd_log "$@" ;;
     ajuda|-h|--help|help) cmd_ajuda ;;

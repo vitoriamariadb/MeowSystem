@@ -27,6 +27,11 @@ DICA_ATIVA="4"           # active_hint: espessura do contorno da janela em foco
 VIDRO="VeryLow2"         # frosted: nível de translucidez
 ALPHA_FUNDO="D9"         # alpha do bg_color em hex (D9 = 85%)
 
+# O painel e o dock mantêm o vidro fosco quando uma janela é maximizada?
+# "nao" devolve o comportamento de fábrica do COSMIC: eles ficam opacos.
+# São duas chaves (Panel e Dock) e valem na hora — o painel vigia as duas.
+VIDRO_AO_MAXIMIZAR="sim"
+
 # --- Ícones ----------------------------------------------------------------
 
 NOME_TEMA_ICONES="MeowSystem-Icons"
