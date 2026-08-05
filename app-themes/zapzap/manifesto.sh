@@ -7,17 +7,25 @@
 #   combina com nada do resto. A Vitória pediu o mesmo que o Dracula_OS-Theme faz:
 #   chamar de "WhatsApp" e trocar a logo.
 #
-# COMO SE SOBREPÕE A UM APP FLATPAK SEM MEXER NELE
-#   O `.desktop` do flatpak vive em
-#   `~/.local/share/flatpak/exports/share/applications/`, que entra pelo
-#   XDG_DATA_DIRS. Um arquivo de MESMO NOME em `~/.local/share/applications/`
-#   vence, porque XDG_DATA_HOME tem precedência sobre XDG_DATA_DIRS. Então
-#   copiamos o `.desktop` original, trocamos duas linhas, e o flatpak segue
-#   intocado — um `flatpak update` não desfaz nada, e desinstalar o nosso
-#   arquivo devolve o original.
+# A PRIMEIRA TENTATIVA DUPLICOU O APP NO LANÇADOR — e é por isso que este
+# módulo faz o que faz.
+#   A ideia óbvia era pôr um `.desktop` de mesmo nome em
+#   `~/.local/share/applications/`, contando com a precedência do XDG_DATA_HOME
+#   sobre o XDG_DATA_DIRS. Pela especificação, deveria vencer.
+#   MEDIDO: o lançador do COSMIC **não deduplica por ID**. Ele lista os dois
+#   arquivos, e a Vitória viu "ZapZap" E "WhatsApp" lado a lado no lançador.
 #
-#   NÃO se edita o arquivo exportado pelo flatpak: ele é regravado a cada
-#   atualização do app, e a mudança sumiria sem aviso.
+# O QUE FUNCIONA: trocar o SYMLINK do próprio diretório de exports.
+#   `~/.local/share/flatpak/exports/share/applications/com.rtosta.zapzap.desktop`
+#   é um symlink para dentro da árvore do app, que é somente-leitura. Mas o LINK
+#   mora no home dela e pode ser substituído por um arquivo real. Assim existe um
+#   `.desktop` só, e não há duplicata possível.
+#
+# O CUSTO, E COMO ELE É PAGO
+#   Um `flatpak update` do ZapZap recria o symlink e a mudança some. Não é
+#   silencioso por acaso: o `conferir` detecta, o `meow doctor --consertar` e o
+#   timer diário reaplicam. O alvo original fica guardado ao lado, em
+#   `.meow-original`, para o `flatpak repair` não achar link quebrado.
 #
 # O ÍCONE
 #   O Papirus tem `whatsapp-desktop`, mas SÓ na variante clara (`Papirus/`, não
@@ -35,7 +43,12 @@ _ZZ_APP="com.rtosta.zapzap"
 _ZZ_NOME_NOVO="WhatsApp"
 _ZZ_ICONE="meow-whatsapp"
 _ZZ_ORIGEM="$HOME/.local/share/flatpak/exports/share/applications/$_ZZ_APP.desktop"
-_ZZ_DESTINO="$HOME/.local/share/applications/$_ZZ_APP.desktop"
+_ZZ_DESTINO="$_ZZ_ORIGEM"   # sim, o próprio: substituímos o symlink
+# O ORIGINAL PRECISA SER GUARDADO ANTES DA PRIMEIRA ESCRITA. Depois que o symlink
+# vira arquivo real, ler "a origem" devolveria o nosso próprio conteúdo — e o
+# `conferir` passaria sempre, comparando o arquivo com ele mesmo. Este é o tipo
+# de bug que não dá erro: só faz o módulo parar de verificar qualquer coisa.
+_ZZ_GUARDADO="$HOME/.local/share/flatpak/exports/share/applications/.$_ZZ_APP.desktop.meow-original"
 _ZZ_PAPIRUS="/usr/share/icons/Papirus/48x48/apps/whatsapp-desktop.svg"
 
 _zz_tema_dir() {
@@ -57,6 +70,20 @@ except Exception:
 " 2>/dev/null || printf '%s' "#A6E3A1"
 }
 
+# Guarda o original na primeira vez, e devolve o caminho de onde LER a receita.
+# Enquanto o link estiver intacto (nunca aplicamos, ou o flatpak atualizou e o
+# recriou), a fonte é ele; a partir da primeira aplicação, é a cópia guardada.
+_zz_fonte() {
+  if [ -L "$_ZZ_ORIGEM" ]; then
+    if [ ! -f "$_ZZ_GUARDADO" ] && ! meow_seco; then
+      cp -L "$_ZZ_ORIGEM" "$_ZZ_GUARDADO" 2>/dev/null || true
+    fi
+    printf '%s' "$_ZZ_ORIGEM"
+    return
+  fi
+  if [ -f "$_ZZ_GUARDADO" ]; then printf '%s' "$_ZZ_GUARDADO"; else printf '%s' "$_ZZ_ORIGEM"; fi
+}
+
 _zz_desktop_desejado() {
   # Troca só Name= e Icon=. As traduções de Name (Name[xx]=) também vão, senão o
   # lançador mostraria "ZapZap" para quem usa outro idioma — e o sistema dela é
@@ -65,7 +92,7 @@ _zz_desktop_desejado() {
     -e "s|^Name=.*|Name=$_ZZ_NOME_NOVO|" \
     -e "s|^Name\[[^]]+\]=.*|Name[pt_BR]=$_ZZ_NOME_NOVO|" \
     -e "s|^Icon=.*|Icon=$_ZZ_ICONE|" \
-    "$_ZZ_ORIGEM"
+    "$(_zz_fonte)"
 }
 
 _zz_icone_desejado() {
