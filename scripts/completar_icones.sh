@@ -149,6 +149,16 @@ declare -A APELIDO=(
   [repoman]="64x64/apps/cs-sources.svg"
 )
 
+# --- do hicolor do SISTEMA, quando o Papirus não tem -------------------------
+# O Thunderbird e alguns outros só existem no `hicolor` de /usr/share, que é o
+# FIM da cadeia de herança — e por isso perdem para qualquer coisa antes deles,
+# ou simplesmente não aparecem. Copiar para o nosso tema resolve, e é o mesmo
+# princípio da seção 2 do docs/COSMIC-THEMING.md: o que vale é estar no tema
+# SELECIONADO. Só entram aqui os que o Papirus de fato não cobre.
+declare -A DO_HICOLOR=(
+  [thunderbird]="/usr/share/icons/hicolor/48x48/apps/thunderbird.png"
+)
+
 mudou=0
 avisos=0
 
@@ -311,6 +321,25 @@ if [ -f "$TK" ] && ! grep -q "\"$TEMA_NOME\"" "$TK"; then
 fi
 
 faltando=()
+for nome in "${!DO_HICOLOR[@]}"; do
+  fonte="${DO_HICOLOR[$nome]}"
+  if [ ! -f "$fonte" ]; then
+    meow_info "$nome: $fonte não existe — pulado"
+    continue
+  fi
+  # PNG mesmo: o tema declara scalable/apps, mas a crate do COSMIC tenta todas as
+  # extensões, e um PNG no lugar certo vence um ícone ausente. Renomear para .svg
+  # seria mentira e o renderizador reclamaria.
+  alvo_png="$ALVO/$nome.png"
+  if [ ! -f "$alvo_png" ] || ! cmp -s "$fonte" "$alvo_png"; then
+    if meow_seco; then
+      meow_muda "copiaria $nome do hicolor do sistema"
+    else
+      cp -f "$fonte" "$alvo_png" && mudou=1
+    fi
+  fi
+done
+
 for nome in "${!AUTORAL[@]}" "${!APELIDO[@]}"; do
   [ -f "$ALVO/$nome.svg" ] || faltando+=("$nome")
 done

@@ -431,6 +431,14 @@ etapa_completar_icones() {
 # o unico que o COSMIC realmente toca (medido: `pw-play` aparece em 2 dos 41
 # binarios cosmic-*, e canberra em nenhum). Fica em etapa propria porque nao
 # depende de nada e nada depende dela.
+# Os aplicativos que ela nunca vai abrir. Depende de sudo porque a unica coisa
+# que funciona e marcar o arquivo do SISTEMA -- ver o cabecalho do script.
+etapa_ocultar() {
+  passo "Aplicativos ocultos do lançador"
+  "$MEOW_RAIZ/scripts/ocultar_apps.sh"
+  return $?
+}
+
 etapa_som() {
   passo "Som de evento"
   "$MEOW_RAIZ/scripts/som.sh" aplicar
@@ -594,7 +602,7 @@ main() {
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_upstream etapa_fontes etapa_icones etapa_pastas
-                etapa_completar_icones etapa_wallpaper etapa_som
+                etapa_completar_icones etapa_wallpaper etapa_ocultar etapa_som
                 etapa_apps etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
