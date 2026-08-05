@@ -90,44 +90,77 @@ for tam in "${TAMANHOS[@]}"; do
   #    primeiro nível deixaria de fora justamente o `inode-directory` — o nome
   #    genérico de diretório que os aplicativos mais pedem. Descoberto ao conferir
   #    o resultado arquivo a arquivo, não em teste superficial.
+  #
+  #    E O PAR DE PASSES REPETE ATÉ PARAR DE CRIAR LINK — MEDIDO EM 2026-08-04
+  #    Com exatamente dois passes, a SEGUNDA execução do script ainda escrevia:
+  #    seis apelidos (`folder-image` e `folder-public`, nos tamanhos 32, 48 e 64)
+  #    só apareciam na TERCEIRA. A culpa é da ordem do `find`, que é a ordem do
+  #    diretório e não a alfabética — no passe 2 um apelido pode depender de outro
+  #    apelido que o próprio passe 2 ainda vai criar mais adiante, e nesse caso ele
+  #    é pulado e fica para a próxima execução. Repetir enquanto nascer link novo
+  #    faz UMA execução bastar, que é o que o auto-reparo diário precisa para não
+  #    "consertar" a mesma coisa toda madrugada e avisar por nada.
+  #    O teto de cinco voltas é a rede de segurança: no seco nenhum link é criado
+  #    de verdade, e sem teto a pergunta "nasceu link novo?" nunca ficaria falsa.
   # (sem `local`: este laço roda no corpo do script, não dentro de função)
+  apelidos_antes=$apelidos
+  faltaram_antes=$faltaram
   passe=""
-  for passe in 1 2; do
-    while IFS= read -r link; do
-      nome="$(basename "$link")"
-      destino_orig="$(readlink "$link")"
-      equivalente=""
-      if [ "$passe" = "1" ]; then
-        # Nível 1: aponta direto para uma cor. folder-blue-x -> folder-<COR>-x
-        case "$destino_orig" in
-          folder-blue*|user-blue*) ;;
-          *) continue ;;
-        esac
-        equivalente="${destino_orig/folder-blue/folder-$COR}"
-        equivalente="${equivalente/user-blue/user-$COR}"
-      else
-        # Nível 2: aponta para um nome que o passe 1 já criou aqui. Mantém o
-        # mesmo alvo — a cadeia se resolve dentro do nosso tema.
-        [ -e "$destino/$nome" ] && continue
-        [ -e "$destino/$destino_orig" ] || continue
-        equivalente="$destino_orig"
-      fi
-      if [ ! -e "$destino/$equivalente" ]; then
-        [ "$passe" = "1" ] && faltaram=$((faltaram+1))
-        continue
-      fi
-      if [ "$(readlink "$destino/$nome" 2>/dev/null)" != "$equivalente" ]; then
-        meow_seco || ln -sfn "$equivalente" "$destino/$nome"
-        mudou=1
-      fi
-      apelidos=$((apelidos+1))
-    done < <(find "$BASE_DIR/$tam/places" -maxdepth 1 -type l 2>/dev/null)
+  for volta in 1 2 3 4 5; do
+    criou=0
+    # Recontar do zero a cada volta: sem isto o mesmo apelido entraria na conta
+    # uma vez por volta e o número impresso no fim seria ficção.
+    apelidos=$apelidos_antes
+    faltaram=$faltaram_antes
+    for passe in 1 2; do
+      while IFS= read -r link; do
+        nome="$(basename "$link")"
+        destino_orig="$(readlink "$link")"
+        equivalente=""
+        if [ "$passe" = "1" ]; then
+          # Nível 1: aponta direto para uma cor. folder-blue-x -> folder-<COR>-x
+          case "$destino_orig" in
+            folder-blue*|user-blue*) ;;
+            *) continue ;;
+          esac
+          equivalente="${destino_orig/folder-blue/folder-$COR}"
+          equivalente="${equivalente/user-blue/user-$COR}"
+        else
+          # Nível 2: aponta para um nome que o passe 1 já criou aqui. Mantém o
+          # mesmo alvo — a cadeia se resolve dentro do nosso tema.
+          [ -e "$destino/$nome" ] && continue
+          [ -e "$destino/$destino_orig" ] || continue
+          equivalente="$destino_orig"
+        fi
+        if [ ! -e "$destino/$equivalente" ]; then
+          [ "$passe" = "1" ] && faltaram=$((faltaram+1))
+          continue
+        fi
+        if [ "$(readlink "$destino/$nome" 2>/dev/null)" != "$equivalente" ]; then
+          meow_seco || ln -sfn "$equivalente" "$destino/$nome"
+          mudou=1
+          criou=1
+        fi
+        apelidos=$((apelidos+1))
+      done < <(find "$BASE_DIR/$tam/places" -maxdepth 1 -type l 2>/dev/null)
+    done
+    [ "$criou" = "0" ] && break
+    meow_seco && break
   done
 done
 
 # `Directories=` é a única chave que a crate do COSMIC lê, e o que não estiver
 # listado ali não é varrido. Sem acrescentar os `<tam>/places`, tudo acima seria
 # invisível — o erro clássico de quem monta tema de ícones à mão.
+#
+# ISTO AQUI É SÓ O ARRANQUE — O DONO DO ÍNDICE É O `construir_icones.sh`
+#   Até 2026-08-04 os dois escreviam esta linha, um com a lista fixa e outro com
+#   os places, e ficavam se desfazendo para sempre (a história está comentada no
+#   `construir_icones.sh`). Agora o índice é DERIVADO dos diretórios existentes,
+#   lá. Este bloco só corre na primeira instalação, quando o índice foi escrito
+#   antes de estes diretórios existirem: sem ele, as pastas coloridas ficariam
+#   instaladas mas invisíveis até a segunda rodada. Depois disso o `grep` abaixo
+#   sempre encontra os places e nada aqui volta a tocar no arquivo.
 IND="$TEMA_DIR/index.theme"
 if [ -f "$IND" ] && ! grep -q '48x48/places' "$IND"; then
   linha="scalable/apps"

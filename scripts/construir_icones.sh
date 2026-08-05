@@ -48,13 +48,31 @@ FLAVOR="${FLAVOR:-mocha}"
 LOGO="${LOGO:-$FLAVOR}"
 ICONES_BASE="${ICONES_BASE:-Papirus-Dark}"
 
+# Os `<tam>/places` que existem DE FATO dentro do tema, um por linha. O glob do
+# bash já devolve ordenado, então a lista é estável entre execuções — requisito
+# para o `meow_escrever` conseguir comparar por conteúdo. O filtro `NxN` existe
+# porque um diretório de nome inesperado viraria um `Size=` inválido no índice.
+places_no_disco() {
+  local d tam
+  for d in "$TEMA_DIR"/*/places; do
+    [ -d "$d" ] || continue
+    tam="$(basename "${d%/places}")"
+    case "$tam" in
+      [0-9]*x[0-9]*) printf '%s\n' "$tam" ;;
+    esac
+  done
+}
+
 indice() {
+  local dirs="scalable/apps" tam
+  while IFS= read -r tam; do dirs="$dirs,$tam/places"; done < <(places_no_disco)
+
   cat <<FIM
 [Icon Theme]
 Name=$TEMA_NOME
 Comment=Catppuccin $FLAVOR para o COSMIC — gerado pelo MeowSystem-Theme
 Inherits=$ICONES_BASE,breeze-dark,Cosmic,Adwaita,hicolor
-Directories=scalable/apps
+Directories=$dirs
 
 [scalable/apps]
 Size=128
@@ -63,6 +81,16 @@ Type=Scalable
 MinSize=8
 MaxSize=512
 FIM
+
+  while IFS= read -r tam; do
+    cat <<FIM
+
+[$tam/places]
+Size=${tam%%x*}
+Context=Places
+Type=Fixed
+FIM
+  done < <(places_no_disco)
 }
 
 mudou=0
@@ -71,6 +99,24 @@ mudou=0
 # `Directories=` é a ÚNICA chave de tamanho que a crate do COSMIC lê; Type,
 # MinSize e MaxSize são texto morto para ela (medido). Ficam por educação, para
 # outros toolkits que leiam o mesmo tema.
+#
+# O ÍNDICE DESCREVE O QUE ESTÁ NO DISCO — E É ISSO QUE IMPEDE UM LAÇO ETERNO
+#   MEDIDO em 2026-08-04, com o auto-reparo diário já ligado: este script gravava
+#   `Directories=scalable/apps` FIXO, e o `construir_pastas.sh` reescrevia a mesma
+#   linha acrescentando os `<tam>/places`. Cada um desfazia o outro, e os DOIS
+#   devolviam 1 ("estava divergente, consertei") em TODA rodada — seis rodadas
+#   seguidas em teste, sem nunca convergir.
+#   As consequências não eram cosméticas: o `meow doctor` acusava divergência para
+#   sempre, o timer das 5h consertaria e avisaria todo dia (exatamente o que o
+#   auto-reparo existe para não fazer), e no intervalo entre a gravação daqui e a
+#   do outro script as pastas dela ficavam FORA do índice — isto é, azuis,
+#   herdadas do Papirus, até a rodada seguinte.
+#   A correção é não ter dois donos da mesma linha: a lista sai dos diretórios que
+#   existem em `$TEMA_DIR`. O que o `construir_pastas.sh` instalar entra no índice
+#   na próxima passagem por aqui, e a condição `grep -q 48x48/places` dele nunca
+#   mais dispara. Numa máquina recém-instalada isso custa uma gravação a mais na
+#   segunda rodada (a primeira roda antes de os diretórios existirem); da terceira
+#   em diante não se escreve mais nada.
 meow_escrever "$TEMA_DIR/index.theme" "$(indice)" 644
 case $? in 1) mudou=1 ;; 2) meow_erro "não consegui escrever o index.theme"; exit "$MEOW_ERRO" ;; esac
 

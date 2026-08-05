@@ -63,7 +63,16 @@ Type=oneshot
 # projeto). O prefixo `-` garante que uma falha aqui não vire falha do serviço.
 ExecStartPre=-/bin/sh -c 'L=%h/.local/state/meowsystem/doctor.log; [ -f "$L" ] || exit 0; [ "$(wc -c < "$L")" -lt 262144 ] && exit 0; tail -n 400 "$L" > "$L.novo" && mv -f "$L.novo" "$L"'
 
-ExecStart=%h/.local/bin/meow doctor --consertar --yes
+# SÓ AS OPÇÕES QUE EXISTEM DE VERDADE
+#   Aqui havia um `--yes` que o `meow doctor` NUNCA leu: o parser olhava apenas o
+#   primeiro argumento, e o segundo ia para o lixo em silêncio. Ele nem era
+#   necessário — nenhum caminho do `--consertar` pergunta nada, e as duas perguntas
+#   que existem na CLI estão atrás de `[ -t 0 ]`, que é falso quando quem chama é o
+#   systemd (stdin vem de /dev/null). Uma opção inventada numa unidade é uma bomba
+#   de efeito retardado: no dia em que o parser passar a ler todos os argumentos —
+#   e ele passou, junto com esta correção —, `--yes` viraria "opção desconhecida",
+#   saída 2, e o auto-reparo falharia todo dia.
+ExecStart=%h/.local/bin/meow doctor --consertar
 
 # 1 (consertou) e 3 (faltou dependência) são informação, não falha.
 SuccessExitStatus=1 3
@@ -96,9 +105,18 @@ ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/me
 #   precisa garantir que ele volte — senão ela acorda com um desktop sem barra e sem
 #   dock, e sem nada no journal explicando por quê.
 #   Os dois segundos de espera existem para não competir com o respawn quando ele
-#   funciona; e `setsid -f` foi TESTADO: o processo sobrevive ao fim do oneshot, não
-#   morre junto com o cgroup do serviço.
-ExecStopPost=-/bin/sh -c 'sleep 2; pgrep -x cosmic-panel >/dev/null && exit 0; [ -x /usr/bin/cosmic-panel ] || exit 0; echo "aviso: o cosmic-panel não voltou sozinho — subindo de novo"; setsid -f /usr/bin/cosmic-panel </dev/null >/dev/null 2>&1'
+#   funciona: se o painel voltou sozinho, esta linha não faz absolutamente nada.
+#
+#   POR QUE `systemd-run`, E NÃO `setsid -f`
+#   Primeira tentativa foi `setsid -f /usr/bin/cosmic-panel`, e ela FALHOU EM
+#   TESTE: o comando devolve 0, mas o processo continua no cgroup deste serviço e
+#   morre quando a unidade termina — a tela ficou sem painel do mesmo jeito, e o
+#   único vestígio foi esta mensagem no log dizendo que tinha subido. Trocar de
+#   sessão (`setsid`) não é trocar de cgroup. O `systemd-run --user` pede ao próprio
+#   gerenciador que crie uma unidade transitória, com cgroup próprio, e aí sim o
+#   painel sobrevive. `--collect` faz a unidade transitória desaparecer sozinha
+#   quando o painel sair, para que a próxima madrugada possa reusar o nome.
+ExecStopPost=-/bin/sh -c 'sleep 2; pgrep -x cosmic-panel >/dev/null && exit 0; [ -x /usr/bin/cosmic-panel ] || exit 0; echo "aviso: o cosmic-panel não voltou sozinho — subindo de novo em meow-painel-revivido.service"; exec systemd-run --user --collect --quiet --unit=meow-painel-revivido /usr/bin/cosmic-panel'
 
 # O journal guarda o histórico; o arquivo é o que ela consegue abrir sem saber
 # `journalctl`. `inherit` no erro manda stderr pelo mesmo caminho, sem repetir o
