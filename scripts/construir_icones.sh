@@ -101,6 +101,12 @@ case $? in 1) mudou=1 ;; esac
 
 # --- 4. selecionar o tema ---------------------------------------------------
 # Sem isto nada acima aparece: o tema só entra na busca se for O SELECIONADO.
+#
+# A troca do NOME do tema é o único evento que obriga a reiniciar o painel (ver
+# o bloco 5). Marcamos aqui, antes de escrever: se a chave já apontava para o
+# nosso tema, não houve troca de nome.
+tema_mudou_de_nome=0
+[ "$(cat "$TK/icon_theme" 2>/dev/null)" = "\"$TEMA_NOME\"" ] || tema_mudou_de_nome=1
 meow_escrever "$TK/icon_theme" "\"$TEMA_NOME\"" 644
 case $? in 1) mudou=1 ;; esac
 
@@ -117,6 +123,30 @@ fi
 # O cosmic-panel e o cosmic-app-list leem a config no início da sessão e não a
 # vigiam. SIGTERM: o cosmic-session respawna em ~4ms e trata exit 15 como
 # "reiniciar" — é o mesmo caminho que o vigia do painel fantasma usa.
+# SÓ REINICIA O PAINEL SE O TEMA MUDOU DE NOME — e isto custou a tela dela duas vezes.
+#
+# O cosmic-panel não vigia arquivo nenhum (zero fds de inotify, medido): um ícone
+# reescrito só aparece no próximo início dele. A tentação é reiniciar sempre que
+# algo mudar. O problema é que reiniciar tem custo real e cumulativo:
+#   - a tela dela PISCA a cada vez;
+#   - o respawn do cosmic-session tem limite, e depois de muitas mortes na mesma
+#     sessão ele desiste — foi assim que ela ficou sem painel e sem dock duas
+#     vezes em 04/08/2026, numa máquina de uma tela só;
+#   - e se a gente sobe um painel enquanto o session acorda, ficam DOIS painéis
+#     empilhados (aconteceu, ela mandou a captura rindo).
+#
+# Trocar o NOME do tema de ícones é o único evento que realmente exige o
+# reinício, e acontece uma vez por instalação. Ícone reescrito dentro do mesmo
+# tema espera o próximo login — e o script diz isso em voz alta, em vez de
+# derrubar o painel dela para economizar uma espera.
+precisa_reiniciar=0
+[ "$tema_mudou_de_nome" = "1" ] && precisa_reiniciar=1
+
+if [ "$precisa_reiniciar" = "0" ]; then
+  meow_ok "tema '$TEMA_NOME' atualizado (os ícones novos aparecem no próximo login)"
+  exit "$MEOW_DIVERGENTE"
+fi
+
 if pgrep -x cosmic-panel >/dev/null 2>&1; then
   pkill -x cosmic-panel
   voltou=0

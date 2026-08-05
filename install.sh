@@ -88,6 +88,126 @@ etapa_conf() {
 }
 
 # ---------------------------------------------------------------------------
+# A CLI E AS COMPLETIONS
+#
+# POR QUE ESTA ETAPA VEM LOGO DEPOIS DA CONFIGURAÇÃO
+#   Se o apt falhar, se faltar o Papirus, se a captura do tema ainda não
+#   existir — ela continua ficando com o `meow` na mão para descobrir o que
+#   houve. Instalar a ferramenta de diagnóstico DEPOIS das etapas que podem
+#   falhar é deixar quem mais precisa dela sem ela.
+#
+# O PONTEIRO DA RAIZ NÃO É ENFEITE
+#   O `meow` instalado vive em `~/.local/bin/meow`, fora do repo, e não tem como
+#   deduzir onde está o clone a partir do próprio caminho. O ponteiro em
+#   `~/.local/state/meowsystem/raiz` é o que responde isso — para a CLI e para a
+#   completion do zsh, que lê o mesmo arquivo para listar as capturas de tema.
+#   Sem ele, `meow` só funcionaria com `MEOW_RAIZ=` na frente.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# A COMPLETION É A ÚNICA ESCRITA DESTE PROJETO DENTRO DO REPO ANDROMEDA
+# ─────────────────────────────────────────────────────────────────────────────
+#   A TRAVA 1 do `lib/comum.sh` recusa qualquer escrita em `~/.config/zsh`, e com
+#   razão: é o repo dela, com auto-commit a cada 10 minutos, e tema não tem nada
+#   que fazer lá. Só que o `$fpath` desta máquina foi lido, não adivinhado
+#   (`~/.config/zsh/.zcompdump`, linha `#omz fpath:`), e os ÚNICOS diretórios de
+#   completion graváveis pelo usuário estão todos dentro de `~/.config/zsh` —
+#   o que o `env.zsh` acrescenta na linha 20 e os do oh-my-zsh. Os de fora
+#   (`/usr/local/share/zsh/site-functions`) pedem root e são território do
+#   Ritual da Aurora.
+#
+#   Ou seja: ou a completion mora lá, ou ela não existe. Então esta função NÃO
+#   usa `meow_escrever` — a trava continua intacta para todo o resto do projeto,
+#   e a exceção fica visível em UM lugar só, com o mesmo cuidado atômico.
+#   A consequência é dita em voz alta na tela quando o arquivo é gravado: ele vai
+#   virar um commit no repositório privado dela. Quem não quiser, roda com
+#   MEOW_SEM_COMPLETIONS=1 e perde só o TAB.
+#
+#   O arquivo leva `# OVERRIDE` na segunda linha: é o contrato do próprio
+#   Andromeda (completions/CONVENCAO.md) para completion escrita à mão, e o
+#   gerador de lá preserva quem tem esse marcador nas 3 primeiras linhas.
+COMPLETIONS_DIR="${MEOW_COMPLETIONS_DIR:-$HOME/.config/zsh/completions}"
+
+# Escrita atômica igual à da meow_escrever, sem a trava de território: o
+# temporário nasce DENTRO do diretório de destino, porque o repo mora em
+# /mnt/Apate e o destino em /home, e `mv` entre sistemas de arquivos não é
+# atômico.
+instalar_completion() {
+  local origem="$MEOW_RAIZ/zsh/_meow" destino="$COMPLETIONS_DIR/_meow" tmp
+
+  if [ "${MEOW_SEM_COMPLETIONS:-0}" = "1" ]; then
+    meow_pula "completions do zsh puladas (MEOW_SEM_COMPLETIONS=1)"
+    return "$MEOW_OK"
+  fi
+  [ -f "$origem" ] || { meow_erro "falta $origem"; return "$MEOW_ERRO"; }
+  if [ ! -d "$COMPLETIONS_DIR" ]; then
+    meow_pula "não achei $COMPLETIONS_DIR — sem lugar no \$fpath para a completion"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if [ -f "$destino" ] && cmp -s "$origem" "$destino"; then
+    meow_ok "completion do zsh já instalada em $destino"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "instalaria a completion em $destino"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  tmp="$(mktemp -p "$COMPLETIONS_DIR" ".meow.XXXXXX")" || return "$MEOW_ERRO"
+  if ! cat "$origem" > "$tmp"; then rm -f "$tmp"; return "$MEOW_ERRO"; fi
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$destino" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+
+  meow_ok "completion do zsh instalada em $destino"
+  meow_aviso "esse arquivo está no repo Andromeda: o auto-commit dela vai versioná-lo"
+  meow_info "para não instalar: MEOW_SEM_COMPLETIONS=1 ./install.sh"
+  meow_info "o TAB só passa a funcionar no próximo terminal (o compinit lê o fpath no início)"
+  return "$MEOW_DIVERGENTE"
+}
+
+etapa_cli() {
+  passo "CLI meow e completions"
+  local mudou=0 rc
+
+  # O `meow` é copiado, não linkado: um symlink para /mnt/Apate deixaria a CLI
+  # inútil no dia em que o Ápate não montar — justamente o dia em que ela mais
+  # precisaria de um `meow doctor` para entender o que houve. A cópia roda e diz
+  # "não achei o repositório", que é uma resposta.
+  meow_escrever "$HOME/.local/bin/meow" "$(cat "$MEOW_RAIZ/bin/meow")" 755
+  rc=$?
+  case "$rc" in
+    0) meow_ok "~/.local/bin/meow já está atualizado" ;;
+    1) mudou=1; meow_seco || meow_ok "~/.local/bin/meow instalado" ;;
+    *) meow_erro "não consegui instalar ~/.local/bin/meow"; return "$MEOW_ERRO" ;;
+  esac
+  # A meow_escrever não corrige o modo de um arquivo cujo CONTEÚDO já confere —
+  # ela sai antes de chegar no chmod. Um `meow` sem bit de execução seria um
+  # "command not found" inexplicável, então o bit é reafirmado aqui.
+  if ! meow_seco && [ -f "$HOME/.local/bin/meow" ] && [ ! -x "$HOME/.local/bin/meow" ]; then
+    chmod 755 "$HOME/.local/bin/meow"
+    mudou=1
+  fi
+
+  # O ponteiro da raiz, para a CLI e para a completion acharem o clone.
+  meow_escrever "$MEOW_ESTADO/raiz" "$MEOW_RAIZ" 644
+  rc=$?
+  [ "$rc" -ge 2 ] && { meow_erro "não consegui gravar $MEOW_ESTADO/raiz"; return "$MEOW_ERRO"; }
+  [ "$rc" = "1" ] && mudou=1
+
+  instalar_completion
+  rc=$?
+  [ "$rc" -ge 2 ] && return "$MEOW_ERRO"
+  [ "$rc" = "1" ] && mudou=1
+
+  case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) meow_aviso "~/.local/bin não está no \$PATH — o comando 'meow' não vai ser achado" ;;
+  esac
+
+  [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
+  return 0
+}
+
+# ---------------------------------------------------------------------------
 # O ÚNICO BLOCO COM sudo DO INSTALADOR INTEIRO.
 #
 # POR QUE ELE VEM CEDO, E NÃO NO FIM
@@ -424,7 +544,9 @@ main() {
   # O auto-reparo é o ÚLTIMO de propósito: ele só faz sentido depois que tudo já foi
   # aplicado uma vez. Ligado antes, o primeiro disparo pegaria a máquina no meio da
   # instalação e "consertaria" o que ainda estava sendo escrito.
-  local etapas=(etapa_conf etapa_pacotes etapa_gerar etapa_tema
+  # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
+  # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
+  local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_upstream etapa_icones etapa_pastas etapa_wallpaper
                 etapa_apps etapa_autoreparo)
   TOTAL=${#etapas[@]}

@@ -252,25 +252,29 @@ chk_apps() {
 }
 
 # --- 5. os consertos --------------------------------------------------------
+# NENHUM deles força `MEOW_DRY_RUN=0`. Forçar seria transformar
+# `MEOW_DRY_RUN=1 meow doctor --consertar` — o jeito de auditar antes de deixar
+# rodar — num comando que escreve de verdade. Aqui a variável é herdada, e cada
+# script chamado já sabe respeitá-la.
 fix_gerar() {
   python3 "$RAIZ/scripts/gerar_temas.py" 2>&1 || return "$MEOW_ERRO"
   python3 "$RAIZ/scripts/gerar_gato.py" --accent "$ACCENT" 2>&1 || return "$MEOW_ERRO"
   return "$MEOW_DIVERGENTE"
 }
-fix_tema()      { MEOW_DRY_RUN=0 "$RAIZ/scripts/aplicar_tema.sh" "$(alvo_tema)" 2>&1; }
+fix_tema()      { "$RAIZ/scripts/aplicar_tema.sh" "$(alvo_tema)" 2>&1; }
 fix_modo()      { local d; d="$(modo_desejado)" || return "$MEOW_ERRO"; meow_escrever "$IS_DARK" "$d" 644; }
-fix_icones()    { MEOW_DRY_RUN=0 FLAVOR="$FLAVOR" LOGO="$LOGO" \
+fix_icones()    { FLAVOR="$FLAVOR" LOGO="$LOGO" \
                     ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/construir_icones.sh" 2>&1; }
-fix_pastas()    { MEOW_DRY_RUN=0 ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+fix_pastas()    { ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
                     ICONES_PASTAS="${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/construir_pastas.sh" 2>&1; }
-fix_wallpaper() { MEOW_DRY_RUN=0 WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+fix_wallpaper() { WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
                     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
                     "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
-fix_apps()      { MEOW_DRY_RUN=0 APPS_ATIVOS="${APPS_ATIVOS:-}" \
+fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" \
                     "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1; }
 
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
@@ -301,7 +305,26 @@ rotulo_rc() {
 }
 
 # Primeira linha da saída do verificador: é ela que cabe na tabela.
-primeira_linha() { printf '%s' "${1%%$'\n'*}"; }
+# O recuo vai embora porque os scripts chamados já formatam para a tela deles
+# (o meow_muda começa com dois espaços) e esse recuo dentro da nossa coluna
+# entortaria a tabela inteira.
+# O glifo de status também sai: cada script chamado imprime o seu (`ok`, `~~`,
+# `erro`...) e a tabela daqui já tem um. Dois glifos na mesma linha, um do
+# chamador e outro do chamado, é o tipo de ruído que faz parecer erro duplo.
+primeira_linha() {
+  local l="${1%%$'\n'*}"
+  l="${l#"${l%%[![:space:]]*}"}"
+  case "$l" in
+    'ok '*|'~~ '*|'-- '*|'!! '*|'>> '*|'erro '*)
+      l="${l#* }"; l="${l#"${l%%[![:space:]]*}"}" ;;
+  esac
+  printf '%s' "$l"
+}
+
+# Junta uma lista de uma-por-linha em "a, b, c". O `paste -sd', '` NÃO faz isso:
+# ele trata a string como uma LISTA CÍCLICA de delimitadores e alterna vírgula e
+# espaço, saindo "a,b c,d".
+em_linha() { paste -sd, - | sed 's/,/, /g'; }
 
 imprimir_check() {
   local i="$1" detalhar="${2:-0}" linha
@@ -351,7 +374,7 @@ cmd_status() {
   else
     campo "ativo"    "$(printf '%snenhuma captura confere%s' "$C_AMARELO" "$C_ZERO")"
   fi
-  campo "capturas"  "$(capturas | paste -sd', ' -)"
+  campo "capturas"  "$(capturas | em_linha)"
 
   meow_passo "Ícones e logo"
   local tema_icones logo_path n_icones
@@ -482,9 +505,16 @@ cmd_tema() {
       fix_modo; local rc=$?
       case "$rc" in
         0) meow_ok "modo $arg já estava ativo (is_dark=$(is_dark_atual))" ;;
-        1) meow_ok "modo $arg aplicado (is_dark=$(is_dark_atual))"
-           meow_registrar "tema modo=$arg"
-           meow_notificar "MeowSystem" "Modo $arg." ;;
+        # No seco a meow_escrever devolve 1 sem ter escrito nada, e já imprimiu
+        # o "mudaria". Dizer "aplicado" aqui seria a CLI mentindo sobre o próprio
+        # modo de auditoria — o mesmo erro que o --conferir do tema evita.
+        1) if meow_seco; then
+             meow_muda "modo $arg ficaria valendo (is_dark=$(is_dark_atual) hoje)"
+           else
+             meow_ok "modo $arg aplicado (is_dark=$(is_dark_atual))"
+             meow_registrar "tema modo=$arg"
+             meow_notificar "MeowSystem" "Modo $arg."
+           fi ;;
         *) meow_erro "não consegui escrever $IS_DARK"; return "$MEOW_ERRO" ;;
       esac
       return "$rc" ;;
@@ -492,6 +522,10 @@ cmd_tema() {
     capturar)
       shift
       [ -n "${1:-}" ] || { meow_erro "uso: meow tema capturar <nome>"; return "$MEOW_ERRO"; }
+      # O capturar_tema.sh não conhece MEOW_DRY_RUN — ele escreve em state/ do
+      # repo, não na configuração dela. Recusar no seco é o que mantém a promessa
+      # "MEOW_DRY_RUN=1 não escreve nada" verdadeira também aqui.
+      meow_seco && { meow_muda "capturaria state/tema/$1"; return "$MEOW_DIVERGENTE"; }
       meow_travar || return "$MEOW_ERRO"
       "$RAIZ/scripts/capturar_tema.sh" "$1"; local rc=$?
       [ "$rc" = "0" ] && meow_registrar "tema capturar $1"
@@ -505,12 +539,14 @@ cmd_tema() {
     *)
       if [ ! -d "$RAIZ/state/tema/$arg" ]; then
         meow_erro "não existe captura '$arg'"
-        meow_info "disponíveis: $(capturas | paste -sd', ' -)"
+        meow_info "disponíveis: $(capturas | em_linha)"
         return "$MEOW_SEM_DEPENDENCIA"
       fi
       meow_travar || return "$MEOW_ERRO"
       "$RAIZ/scripts/aplicar_tema.sh" "$arg"; local rc=$?
-      if [ "$rc" = "0" ]; then
+      # No seco o aplicar_tema.sh vira --conferir e devolve 0 quando o tema JÁ
+      # está aplicado. Notificar aí anunciaria uma troca que não houve.
+      if [ "$rc" = "0" ] && ! meow_seco; then
         meow_registrar "tema $arg"
         meow_notificar "MeowSystem" "Tema $arg aplicado."
       fi
@@ -538,7 +574,7 @@ cmd_logo() {
 
   if ! logos_disponiveis | grep -qx "$arg"; then
     meow_erro "não existe assets/meow-$arg-painel.svg"
-    meow_info "disponíveis: $(logos_disponiveis | paste -sd', ' -)"
+    meow_info "disponíveis: $(logos_disponiveis | em_linha)"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -564,9 +600,9 @@ cmd_icones() {
       local rc_i rc_p
       fix_icones; rc_i=$?
       fix_pastas; rc_p=$?
-      [ "$rc_i" -ge 2 ] || [ "$rc_p" -ge 2 ] && return "$MEOW_ERRO"
+      if [ "$rc_i" -ge 2 ] || [ "$rc_p" -ge 2 ]; then return "$MEOW_ERRO"; fi
       meow_registrar "icones reconstruir"
-      [ "$rc_i" = "1" ] || [ "$rc_p" = "1" ] && return "$MEOW_DIVERGENTE"
+      if [ "$rc_i" = "1" ] || [ "$rc_p" = "1" ]; then return "$MEOW_DIVERGENTE"; fi
       return 0 ;;
     ""|estado)
       local dir n_apps n_pastas
@@ -624,23 +660,25 @@ cmd_apps() {
   case "${1:-tabela}" in
     tabela)
       meow_titulo "Aplicativos"
-      printf '  %s%-18s %-12s %-12s %s%s\n' "$C_DIM" "módulo" "instalado" "tema" "apps do meow.conf" "$C_ZERO"
+      printf '  %s%-18s %-10s %-10s %s%s\n' "$C_DIM" "módulo" "instalado" "tema" "slugs do meow.conf" "$C_ZERO"
       local pasta slugs det conf rc_geral=0
+      local t_inst c_inst t_tema c_tema
       while IFS=$'\t' read -r pasta slugs det conf; do
         [ -n "$pasta" ] || continue
-        local c_inst c_tema
         case "$det" in
-          0) c_inst="$(printf '%ssim%s' "$C_VERDE" "$C_ZERO")" ;;
-          *) c_inst="$(printf '%snão%s' "$C_DIM" "$C_ZERO")" ;;
+          0) t_inst="sim"; c_inst="$C_VERDE" ;;
+          *) t_inst="não"; c_inst="$C_DIM" ;;
         esac
         case "$conf" in
-          0) c_tema="$(printf '%saplicado%s' "$C_VERDE" "$C_ZERO")" ;;
-          1) c_tema="$(printf '%spendente%s' "$C_AMARELO" "$C_ZERO")"; rc_geral=1 ;;
-          3) c_tema="$(printf '%s--%s' "$C_DIM" "$C_ZERO")" ;;
-          *) c_tema="$(printf '%serro%s' "$C_VERM" "$C_ZERO")"; rc_geral=2 ;;
+          0) t_tema="aplicado"; c_tema="$C_VERDE" ;;
+          1) t_tema="pendente"; c_tema="$C_AMARELO"; rc_geral=1 ;;
+          3) t_tema="--";       c_tema="$C_DIM" ;;
+          *) t_tema="erro";     c_tema="$C_VERM"; rc_geral=2 ;;
         esac
-        # As cores custam bytes invisíveis: o %-12s não alinha sozinho.
-        printf '  %-18s %-23s %-23s %s\n' "$pasta" "$c_inst" "$c_tema" "$slugs"
+        # A cor entra FORA do %-10s: os bytes de escape são invisíveis na tela
+        # mas contam no padding, e a tabela sairia torta com um campo colorido.
+        printf '  %-18s %s%-10s%s %s%-10s%s %s\n' \
+               "$pasta" "$c_inst" "$t_inst" "$C_ZERO" "$c_tema" "$t_tema" "$C_ZERO" "$slugs"
       done < <(APPS_ATIVOS="${APPS_ATIVOS:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
       printf '\n  %sslug sem módulo ainda não é falha: aparece só quando alguém escrever o manifesto.%s\n' \
              "$C_DIM" "$C_ZERO"
@@ -690,7 +728,7 @@ cmd_desfazer() {
   fi
   meow_travar || return "$MEOW_ERRO"
   "$RAIZ/scripts/aplicar_tema.sh" original; local rc=$?
-  if [ "$rc" = "0" ]; then
+  if [ "$rc" = "0" ] && ! meow_seco; then
     meow_registrar "desfazer -> original"
     meow_notificar "MeowSystem" "Tema devolvido para a captura original."
   fi
@@ -806,8 +844,8 @@ cmd_menu() {
       --preview='printf "%s\n" {2}')"
   rc=$?
   # 130 = ESC/Ctrl-C. Cancelar não é erro.
-  [ "$rc" = "130" ] && { printf '  %scancelado.%s\n' "$C_DIM" "$C_ZERO"; return 0; }
-  [ "$rc" != "0" ] || [ -z "$selecao" ] && return 0
+  if [ "$rc" = "130" ]; then printf '  %scancelado.%s\n' "$C_DIM" "$C_ZERO"; return 0; fi
+  if [ "$rc" != "0" ] || [ -z "$selecao" ]; then return 0; fi
 
   local cmd="${selecao%%$'\t'*}"
   local -a partes=()
