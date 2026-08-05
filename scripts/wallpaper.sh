@@ -311,6 +311,14 @@ print('\n'.join(saida))
     meow_ok "coleção Catppuccin já semeada"
     return "$MEOW_OK"
   fi
+  # No seco NADA foi baixado — dizer "baixadas", no passado, é a mesma mentira
+  # que o modo seco já cometeu duas vezes neste projeto (a semeadura das imagens
+  # dela e o log do install.sh). O tempo verbal aqui é a diferença entre um
+  # relatório e uma promessa.
+  if meow_seco; then
+    meow_muda "baixaria $n imagem(ns) da coleção Catppuccin (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
+    return "$MEOW_DIVERGENTE"
+  fi
   meow_ok "$n imagem(ns) da coleção Catppuccin baixadas (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
   meow_seco || cmd_aplicar >/dev/null   # a lista é fotografada no load: precisa reescrever
   return "$MEOW_DIVERGENTE"

@@ -43,7 +43,7 @@ WALLPAPER_SEMENTES="comunidade,cosmic,minhas"   # o que o `meow wallpaper semear
 
 # --- Apps ------------------------------------------------------------------
 # Vírgula-separado. `meow apps` lista o que está instalado e o que falta.
-APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,obs,gimp,krita,vlc,steam,qt5ct"
+APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,qt5ct"
 
 # App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
 # aplica o tema sozinho quando ele aparecer. Nunca falha por app ausente.
