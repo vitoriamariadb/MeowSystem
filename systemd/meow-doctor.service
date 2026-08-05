@@ -93,30 +93,36 @@ TimeoutStartSec=5min
 #   o `notify-send` sair != 0 e marcaria o serviço como falho por causa do aviso.
 ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${AUTO_REPARO_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "O tema estava divergente e o auto-reparo corrigiu. Detalhes em ~/.local/state/meowsystem/doctor.log"'
 
-# A REDE DE SEGURANÇA DO PAINEL — E POR QUE ELA EXISTE
-#   MEDIDO em 2026-08-04, do jeito ruim: o `aurora-painel-fantasma` matou um
-#   cosmic-panel fantasma às 22:06:30 e o `cosmic-session` NÃO o respawnou. O painel
-#   e o dock ficaram fora da tela dela por dez minutos, e o próprio vigia registrou
-#   no journal "cosmic-panel nao voltou em 10s — o cosmic-session deveria ter
-#   respawnado". O `construir_icones.sh` conta justamente com esse respawn, e o vigia
-#   da Aurora se declara "fora do escopo" quando o processo nem existe: painel morto,
-#   hoje, não é responsabilidade de ninguém.
-#   Como ESTE serviço é o único que pode matar o painel às 5 da manhã, é ele que
-#   precisa garantir que ele volte — senão ela acorda com um desktop sem barra e sem
-#   dock, e sem nada no journal explicando por quê.
-#   Os dois segundos de espera existem para não competir com o respawn quando ele
-#   funciona: se o painel voltou sozinho, esta linha não faz absolutamente nada.
+# A REDE DE SEGURANÇA DO PAINEL FOI REMOVIDA EM 2026-08-05 — ELA FABRICAVA O BUG
+#   Aqui existiu um `ExecStopPost` que, se o painel não estivesse de pé 2 s depois
+#   do doctor terminar, subia um `/usr/bin/cosmic-panel` por `systemd-run --user`
+#   numa unidade transitória. A intenção era boa e o motivo estava documentado: em
+#   04/08 às 22:06:30 o vigia da Aurora matou um painel fantasma, o `cosmic-session`
+#   NÃO respawnou, e ela ficou dez minutos sem barra e sem dock.
 #
-#   POR QUE `systemd-run`, E NÃO `setsid -f`
-#   Primeira tentativa foi `setsid -f /usr/bin/cosmic-panel`, e ela FALHOU EM
-#   TESTE: o comando devolve 0, mas o processo continua no cgroup deste serviço e
-#   morre quando a unidade termina — a tela ficou sem painel do mesmo jeito, e o
-#   único vestígio foi esta mensagem no log dizendo que tinha subido. Trocar de
-#   sessão (`setsid`) não é trocar de cgroup. O `systemd-run --user` pede ao próprio
-#   gerenciador que crie uma unidade transitória, com cgroup próprio, e aí sim o
-#   painel sobrevive. `--collect` faz a unidade transitória desaparecer sozinha
-#   quando o painel sair, para que a próxima madrugada possa reusar o nome.
-ExecStopPost=-/bin/sh -c 'sleep 2; pgrep -x cosmic-panel >/dev/null && exit 0; [ -x /usr/bin/cosmic-panel ] || exit 0; echo "aviso: o cosmic-panel não voltou sozinho — subindo de novo em meow-painel-revivido.service"; exec systemd-run --user --collect --quiet --unit=meow-painel-revivido /usr/bin/cosmic-panel'
+#   O QUE FOI MEDIDO DEPOIS, E QUE DERRUBA A IDEIA INTEIRA
+#   Um `cosmic-panel` iniciado assim NÃO herda o descritor de notificações que o
+#   `cosmic-session` passa aos filhos (`PANEL_NOTIFICATIONS_FD`). Ele nasce
+#   quebrado. No journal de 04/08 23:05: "Failed to connect to the notifications
+#   daemon / Can't start notifications applet without a connection", 11,8 s de CPU
+#   e 358,6 MB. Ou seja: nós PRODUZÍAMOS exatamente o painel fantasma que o vigia
+#   existe para curar. Em seguida, às 23:08:49, o vigia da Aurora desistiu — "ja
+#   tentei 3 vezes neste boot" — com a cota gasta no painel que nós criamos; e às
+#   23:10:34 o `cosmic-session` registrou "now at 21 restarts", perto do limite de
+#   respawn que, segundo `scripts/construir_icones.sh` §, já deixou esta máquina
+#   sem painel e sem dock DUAS vezes no mesmo dia.
+#
+#   E O GATILHO ERA UMA CORRIDA, NÃO UM DIAGNÓSTICO
+#   `pgrep` 2 s depois não distingue "painel morto" de "painel voltando": o respawn
+#   do `cosmic-session` leva ~518 ms (medido em 05/08, entre o SIGTERM às 15:36:44
+#   e o PID 34221), mas quando ele próprio está no meio de um ciclo, o pgrep falha
+#   e nós subíamos um SEGUNDO painel por cima do que já estava nascendo.
+#
+#   POR QUE NADA ENTRA NO LUGAR
+#   Quem religa o painel é o `cosmic-session`, e ele faz isso sozinho. A falha
+#   conhecida dele é o limite de respawn — que esta linha AGRAVAVA. Se um dia
+#   houver resgate, ele nasce no vigia (que julga o PID antes de matar), nunca
+#   pendurado no encerramento de outra unidade.
 
 # O journal guarda o histórico; o arquivo é o que ela consegue abrir sem saber
 # `journalctl`. `inherit` no erro manda stderr pelo mesmo caminho, sem repetir o
