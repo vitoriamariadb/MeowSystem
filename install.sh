@@ -495,6 +495,15 @@ etapa_hicolor() {
   return $?
 }
 
+# As capas dos jogos. Depende do `hicolor` acima: com o index.theme quebrado, os
+# atalhos apareceriam sem ícone — e "apareceu sem ícone" é um sintoma pior que
+# "não apareceu", porque parece que a arte do jogo se perdeu.
+etapa_jogos() {
+  passo "Jogos da Steam"
+  "$MEOW_RAIZ/scripts/jogos_steam.sh"
+  return $?
+}
+
 # A tela de LOGIN — a única superfície que continuava de fábrica. Depende de sudo
 # e do tema já capturado, por isso vem depois de `etapa_tema`.
 etapa_greeter() {
@@ -660,7 +669,7 @@ main() {
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_upstream etapa_fontes
-                etapa_icones etapa_pastas etapa_hicolor etapa_completar_icones
+                etapa_icones etapa_pastas etapa_hicolor etapa_completar_icones etapa_jogos
                 etapa_wallpaper etapa_ocultar etapa_som etapa_apps
                 etapa_autoreparo)
   TOTAL=${#etapas[@]}

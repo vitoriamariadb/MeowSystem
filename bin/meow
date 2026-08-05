@@ -303,6 +303,10 @@ chk_hicolor() {
   MEOW_DRY_RUN=1 "$RAIZ/scripts/hicolor.sh" 2>&1
 }
 
+chk_jogos() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/jogos_steam.sh" 2>&1
+}
+
 chk_greeter() {
   MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1
 }
@@ -335,12 +339,13 @@ fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" \
 fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
                     "$RAIZ/scripts/vidro.sh" 2>&1; }
 fix_hicolor()   { "$RAIZ/scripts/hicolor.sh" 2>&1; }
+fix_jogos()     { "$RAIZ/scripts/jogos_steam.sh" 2>&1; }
 fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1; }
 
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro greeter icones hicolor pastas wallpaper apps)
+VERIFICAVEIS=(conf gerar tema modo vidro greeter icones hicolor jogos pastas wallpaper apps)
 SEM_CONSERTO=" conf "
 
 # --- 6. o runner das conferências -------------------------------------------
