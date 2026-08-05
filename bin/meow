@@ -116,21 +116,54 @@ carregar_conf() {
 # Troca (ou acrescenta) uma chave do meow.conf preservando o comentário da linha.
 # É o que faz `meow tema claro` e `meow logo <x>` valerem também para o próximo
 # `meow aplicar` — sem isso a mudança duraria até o self-heal seguinte.
+#
+# É FEITO EM BASH, E NÃO COM UM `sed`, POR CAUSA DO COMENTÁRIO DA LINHA
+#   O meow.conf é comentado linha a linha, e o comentário é metade do valor dele
+#   como documentação. Um `sed -E 's|^(MODO=)[^#]*(#.*)?$|...|'` parece resolver
+#   e não resolve: o `[^#]*` é guloso, engole os espaços que separam o valor do
+#   comentário e devolve `MODO="claro"# escuro | claro | auto`, colado. ERE não
+#   tem quantificador preguiçoso para consertar isso. Aqui a linha é partida no
+#   primeiro `#` e os espaços de antes dele são preservados como estavam.
+#
+#   Limite conhecido: valor que CONTENHA `#` (um hex de cor, por exemplo) seria
+#   lido como comentário. Nenhuma chave deste conf é assim — as cores vêm da
+#   paleta, nunca do conf — e as duas chaves que esta função escreve (MODO e
+#   LOGO) são palavras.
 conf_definir() {
-  local chave="$1" valor="$2" texto novo
+  local chave="$1" valor="$2" texto novo="" linha resto antes espacos comentario achou=0
   if [ ! -f "$CONF" ]; then
     texto="$(cat "$CONF_PADRAO" 2>/dev/null)" || return "$MEOW_ERRO"
   else
     texto="$(cat "$CONF")"
   fi
-  if printf '%s\n' "$texto" | grep -qE "^${chave}="; then
-    novo="$(printf '%s\n' "$texto" \
-            | sed -E "s|^(${chave}=)[^#]*([[:space:]]*#.*)?\$|\1\"${valor}\"\2|")"
-  else
-    novo="$texto"$'\n'"${chave}=\"${valor}\""
-  fi
+  while IFS= read -r linha; do
+    if [ "$achou" = "0" ] && [ "${linha#"$chave"=}" != "$linha" ]; then
+      achou=1
+      resto="${linha#"$chave"=}"
+      if [ "${resto#*#}" != "$resto" ]; then
+        antes="${resto%%#*}"
+        comentario="#${resto#*#}"
+        # O sufixo que sobra depois do último caractere não-branco: exatamente
+        # os espaços que alinhavam o comentário.
+        espacos="${antes##*[![:space:]]}"
+        linha="$chave=\"$valor\"$espacos$comentario"
+      else
+        linha="$chave=\"$valor\""
+      fi
+    fi
+    novo="$novo$linha"$'\n'
+  done <<< "$texto"
+  novo="${novo%$'\n'}"
+  [ "$achou" = "1" ] || novo="$novo"$'\n'"$chave=\"$valor\""
   meow_escrever "$CONF" "$novo" 644
 }
+
+# Log e notificação TAMBÉM são escrita. `MEOW_DRY_RUN=1` promete não escrever
+# nada, e uma notificação na tela dela dizendo "o doctor consertou" no meio de
+# uma auditoria não é só ruído: é falsa. Todo `meow_registrar`/`meow_notificar`
+# desta CLI passa por aqui.
+registrar() { meow_seco || meow_registrar "$@"; }
+notificar() { meow_seco || meow_notificar "$@"; }
 
 # --- 3. leituras de estado --------------------------------------------------
 alvo_tema() { printf '%s-%s' "$FLAVOR" "$ACCENT"; }
@@ -295,6 +328,16 @@ rodar_checks() {
   done
 }
 
+# Preenche até <largura> CARACTERES. O `%-12s` do printf conta BYTES, e em UTF-8
+# "diretório" ocupa 10 bytes para 9 caracteres — toda coluna com acento saía uma
+# casa à esquerda das outras. O `${#var}` do bash conta caractere quando a locale
+# é UTF-8, e conta byte quando não é (caso em que empata com o printf, nunca pior).
+pad() {
+  local t="$1" n=$(( ${2:-0} - ${#1} ))
+  [ "$n" -lt 0 ] && n=0
+  printf '%s%*s' "$t" "$n" ""
+}
+
 rotulo_rc() {
   case "$1" in
     0) printf '%sok%s  ' "$C_VERDE" "$C_ZERO" ;;
@@ -305,14 +348,12 @@ rotulo_rc() {
 }
 
 # Primeira linha da saída do verificador: é ela que cabe na tabela.
-# O recuo vai embora porque os scripts chamados já formatam para a tela deles
-# (o meow_muda começa com dois espaços) e esse recuo dentro da nossa coluna
-# entortaria a tabela inteira.
-# O glifo de status também sai: cada script chamado imprime o seu (`ok`, `~~`,
-# `erro`...) e a tabela daqui já tem um. Dois glifos na mesma linha, um do
-# chamador e outro do chamado, é o tipo de ruído que faz parecer erro duplo.
-primeira_linha() {
-  local l="${1%%$'\n'*}"
+# Tira o recuo e o glifo de status que o script chamado já imprimiu. Os scripts
+# de `scripts/` formatam para a tela DELES — o `meow_muda` começa com dois
+# espaços e um `~~` — e esse par, dentro de uma coluna que já tem glifo próprio,
+# entorta a tabela e ainda faz parecer erro duplo.
+sem_glifo() {
+  local l="$1"
   l="${l#"${l%%[![:space:]]*}"}"
   case "$l" in
     'ok '*|'~~ '*|'-- '*|'!! '*|'>> '*|'erro '*)
@@ -320,6 +361,9 @@ primeira_linha() {
   esac
   printf '%s' "$l"
 }
+
+# Primeira linha da saída do verificador: é ela que cabe na tabela.
+primeira_linha() { sem_glifo "${1%%$'\n'*}"; }
 
 # Junta uma lista de uma-por-linha em "a, b, c". O `paste -sd', '` NÃO faz isso:
 # ele trata a string como uma LISTA CÍCLICA de delimitadores e alterna vírgula e
@@ -329,9 +373,10 @@ em_linha() { paste -sd, - | sed 's/,/, /g'; }
 imprimir_check() {
   local i="$1" detalhar="${2:-0}" linha
   linha="$(primeira_linha "${CHK_SAIDA[$i]}")"
-  printf '  %s %-10s %s\n' "$(rotulo_rc "${CHK_RC[$i]}")" "${CHK_NOME[$i]}" "$linha"
+  printf '  %s %s %s\n' "$(rotulo_rc "${CHK_RC[$i]}")" "$(pad "${CHK_NOME[$i]}" 10)" "$linha"
   if [ "$detalhar" = "1" ] && [ "${CHK_RC[$i]}" != "0" ]; then
     printf '%s\n' "${CHK_SAIDA[$i]}" | tail -n +2 | while IFS= read -r l; do
+      l="$(sem_glifo "$l")"
       [ -n "$l" ] || continue
       printf '       %s%s%s\n' "$C_DIM" "$l" "$C_ZERO"
     done
@@ -349,7 +394,7 @@ pior_rc() {
 }
 
 # --- 7. comandos ------------------------------------------------------------
-campo() { printf '    %s%-12s%s %s\n' "$C_DIM" "$1" "$C_ZERO" "$2"; }
+campo() { printf '    %s%s%s %s\n' "$C_DIM" "$(pad "$1" 12)" "$C_ZERO" "$2"; }
 
 cmd_status() {
   carregar_conf || return "$MEOW_ERRO"
@@ -413,11 +458,18 @@ cmd_status() {
 
 cmd_doctor() {
   local consertar=0
-  case "${1:-}" in
-    --consertar|-c) consertar=1 ;;
-    "") ;;
-    *) meow_erro "opção desconhecida: $1"; meow_info "use: meow doctor [--consertar]"; return "$MEOW_ERRO" ;;
-  esac
+  # TODOS os argumentos são lidos, não só o primeiro. A versão anterior olhava
+  # apenas `$1`, e por isso `meow doctor --consertar --qualquer-coisa` engolia o
+  # resto em silêncio — inclusive um erro de digitação numa unidade do systemd,
+  # que passaria despercebido até alguém reparar que a opção nunca fez nada.
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --consertar|-c) consertar=1 ;;
+      "") ;;
+      *) meow_erro "opção desconhecida: $1"; meow_info "use: meow doctor [--consertar]"; return "$MEOW_ERRO" ;;
+    esac
+    shift
+  done
   carregar_conf || return "$MEOW_ERRO"
 
   meow_titulo "MeowSystem — doctor"
@@ -464,18 +516,38 @@ cmd_doctor() {
     esac
   done
 
-  meow_registrar "doctor --consertar mexeu=$mexeu falhou=$falhou"
+  registrar "doctor --consertar mexeu=$mexeu falhou=$falhou"
   printf '\n'
   if [ "$falhou" = "1" ]; then
     meow_erro "alguma etapa falhou — nada ficou pela metade, cada uma é independente"
     printf '\n'; return "$MEOW_ERRO"
   fi
+  # O CÓDIGO DE SAÍDA É A INTERFACE — 1 SIGNIFICA "DIVERGIA E EU CONSERTEI"
+  #   É a mesma regra do `meow_escrever` (lib/comum.sh) e a que o
+  #   `meow-doctor.service` lê para decidir se avisa: `SuccessExitStatus=1 3` e a
+  #   notificação pendurada no `ExecStopPost` só quando `EXIT_STATUS` é 1. Enquanto
+  #   isto aqui devolvia 0 mesmo tendo consertado, aquele aviso NUNCA disparava, e
+  #   quem falava era o `meow_notificar` abaixo — que não conhece o
+  #   `AUTO_REPARO_NOTIFICAR="nao"` do meow.conf e portanto avisava mesmo quando ela
+  #   tinha pedido silêncio.
+  #
+  #   E POR ISSO O `meow_notificar` SAIU DAQUI
+  #   Com o código certo, quem avisa é a unidade — uma vez, e respeitando a
+  #   configuração. Mantê-lo aqui daria DUAS notificações para o mesmo conserto.
+  #   Rodando na mão não se perde nada: a mensagem já está na tela, logo abaixo.
   if [ "$mexeu" = "1" ]; then
-    meow_notificar "MeowSystem" "O doctor consertou o que estava divergente."
-    meow_ok "consertado. Confira com: meow doctor"
-  else
-    meow_ok "nada a consertar"
+    # No seco os `fix_*` devolvem 1 sem ter escrito nada. Dizer "consertado" aí
+    # seria a CLI mentindo justamente no modo que existe para auditar antes de
+    # deixar rodar. O código de saída continua 1 — "havia o que consertar".
+    if meow_seco; then
+      meow_muda "é isto que o conserto FARIA — com MEOW_DRY_RUN=1 nada foi escrito"
+    else
+      meow_ok "consertado. Confira com: meow doctor"
+    fi
+    printf '\n'
+    return "$MEOW_DIVERGENTE"
   fi
+  meow_ok "nada a consertar"
   printf '\n'
   return 0
 }
@@ -512,8 +584,8 @@ cmd_tema() {
              meow_muda "modo $arg ficaria valendo (is_dark=$(is_dark_atual) hoje)"
            else
              meow_ok "modo $arg aplicado (is_dark=$(is_dark_atual))"
-             meow_registrar "tema modo=$arg"
-             meow_notificar "MeowSystem" "Modo $arg."
+             registrar "tema modo=$arg"
+             notificar "MeowSystem" "Modo $arg."
            fi ;;
         *) meow_erro "não consegui escrever $IS_DARK"; return "$MEOW_ERRO" ;;
       esac
@@ -528,7 +600,7 @@ cmd_tema() {
       meow_seco && { meow_muda "capturaria state/tema/$1"; return "$MEOW_DIVERGENTE"; }
       meow_travar || return "$MEOW_ERRO"
       "$RAIZ/scripts/capturar_tema.sh" "$1"; local rc=$?
-      [ "$rc" = "0" ] && meow_registrar "tema capturar $1"
+      [ "$rc" = "0" ] && registrar "tema capturar $1"
       return "$rc" ;;
 
     desfazer) cmd_desfazer ;;
@@ -547,8 +619,8 @@ cmd_tema() {
       # No seco o aplicar_tema.sh vira --conferir e devolve 0 quando o tema JÁ
       # está aplicado. Notificar aí anunciaria uma troca que não houve.
       if [ "$rc" = "0" ] && ! meow_seco; then
-        meow_registrar "tema $arg"
-        meow_notificar "MeowSystem" "Tema $arg aplicado."
+        registrar "tema $arg"
+        notificar "MeowSystem" "Tema $arg aplicado."
       fi
       return "$rc" ;;
   esac
@@ -572,7 +644,11 @@ cmd_logo() {
     return 0
   fi
 
-  if ! logos_disponiveis | grep -qx "$arg"; then
+  # Mesma armadilha do conf_definir: `logos_disponiveis | grep -qx` devolveria
+  # 141 por SIGPIPE justamente quando ENCONTRASSE a variante, e o comando
+  # recusaria um nome que ele mesmo acabou de listar como disponível.
+  local disponiveis; disponiveis="$(logos_disponiveis)"
+  if ! grep -qx -- "$arg" <<< "$disponiveis"; then
     meow_erro "não existe assets/meow-$arg-painel.svg"
     meow_info "disponíveis: $(logos_disponiveis | em_linha)"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -582,13 +658,17 @@ cmd_logo() {
   conf_definir LOGO "$arg"; local rc_conf=$?
   [ "$rc_conf" -ge 2 ] && { meow_erro "não consegui gravar LOGO em $CONF"; return "$MEOW_ERRO"; }
   meow_travar || return "$MEOW_ERRO"
-  # O construir_icones.sh reinicia o cosmic-panel quando algo muda: a logo é
-  # cacheada no carregamento do applet e o arquivo de destino tem o nome do
-  # FLAVOR, não o da variante (docs/COSMIC-THEMING.md §3). Dizer isso antes é
-  # mais honesto do que o painel piscar sem explicação.
-  meow_info "se algo mudar, o painel reinicia (é como o applet relê a logo)"
+  # A LOGO NOVA SÓ APARECE NO PRÓXIMO LOGIN, E ISSO PRECISA SER DITO
+  #   O applet LogoMenu troca de gato NA HORA quando a CHAVE `custom_logo_path`
+  #   aponta para outro arquivo — mas não quando o CONTEÚDO do arquivo apontado
+  #   muda, porque ele cacheou a imagem no carregamento (docs/COSMIC-THEMING.md
+  #   §3). E o destino que o construir_icones.sh escreve tem o nome do FLAVOR,
+  #   não o da variante: trocar só a LOGO reescreve o MESMO caminho.
+  #   O construir_icones.sh, desde 04/08/2026, não derruba mais o painel por
+  #   isso — derrubar custou a tela dela duas vezes. Então o certo é avisar.
+  meow_info "a logo nova aparece no próximo login (o applet cacheia a imagem)"
   fix_icones; local rc=$?
-  [ "$rc" = "1" ] && { meow_registrar "logo $arg"; meow_notificar "MeowSystem" "Logo $arg."; }
+  [ "$rc" = "1" ] && { registrar "logo $arg"; notificar "MeowSystem" "Logo $arg."; }
   return "$rc"
 }
 
@@ -601,7 +681,7 @@ cmd_icones() {
       fix_icones; rc_i=$?
       fix_pastas; rc_p=$?
       if [ "$rc_i" -ge 2 ] || [ "$rc_p" -ge 2 ]; then return "$MEOW_ERRO"; fi
-      meow_registrar "icones reconstruir"
+      registrar "icones reconstruir"
       if [ "$rc_i" = "1" ] || [ "$rc_p" = "1" ]; then return "$MEOW_DIVERGENTE"; fi
       return 0 ;;
     ""|estado)
@@ -619,9 +699,9 @@ cmd_icones() {
       printf '\n'
       local saida rc
       saida="$(chk_icones)"; rc=$?
-      printf '  %s %-10s %s\n' "$(rotulo_rc "$rc")" "ícones" "$(primeira_linha "$saida")"
+      printf '  %s %s %s\n' "$(rotulo_rc "$rc")" "$(pad "ícones" 10)" "$(primeira_linha "$saida")"
       saida="$(chk_pastas)"; local rc2=$?
-      printf '  %s %-10s %s\n\n' "$(rotulo_rc "$rc2")" "pastas" "$(primeira_linha "$saida")"
+      printf '  %s %s %s\n\n' "$(rotulo_rc "$rc2")" "$(pad "pastas" 10)" "$(primeira_linha "$saida")"
       [ "$rc" = "0" ] && [ "$rc2" = "0" ] && return 0
       return "$MEOW_DIVERGENTE" ;;
     *) meow_erro "uso: meow icones [estado|reconstruir]"; return "$MEOW_ERRO" ;;
@@ -660,7 +740,7 @@ cmd_apps() {
   case "${1:-tabela}" in
     tabela)
       meow_titulo "Aplicativos"
-      printf '  %s%-18s %-10s %-10s %s%s\n' "$C_DIM" "módulo" "instalado" "tema" "slugs do meow.conf" "$C_ZERO"
+      printf '  %s%s %s %s %s%s\n' "$C_DIM" "$(pad "módulo" 18)" "$(pad "instalado" 10)" "$(pad "tema" 10)" "slugs do meow.conf" "$C_ZERO"
       local pasta slugs det conf rc_geral=0
       local t_inst c_inst t_tema c_tema
       while IFS=$'\t' read -r pasta slugs det conf; do
@@ -677,8 +757,9 @@ cmd_apps() {
         esac
         # A cor entra FORA do %-10s: os bytes de escape são invisíveis na tela
         # mas contam no padding, e a tabela sairia torta com um campo colorido.
-        printf '  %-18s %s%-10s%s %s%-10s%s %s\n' \
-               "$pasta" "$c_inst" "$t_inst" "$C_ZERO" "$c_tema" "$t_tema" "$C_ZERO" "$slugs"
+        printf '  %s %s%s%s %s%s%s %s\n' \
+               "$(pad "$pasta" 18)" "$c_inst" "$(pad "$t_inst" 10)" "$C_ZERO" \
+               "$c_tema" "$(pad "$t_tema" 10)" "$C_ZERO" "$slugs"
       done < <(APPS_ATIVOS="${APPS_ATIVOS:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
       printf '\n  %sslug sem módulo ainda não é falha: aparece só quando alguém escrever o manifesto.%s\n' \
              "$C_DIM" "$C_ZERO"
@@ -692,7 +773,7 @@ cmd_apps() {
       local lista="${APPS_ATIVOS:-}"
       [ -n "${1:-}" ] && lista="$1"
       APPS_ATIVOS="$lista" "$RAIZ/scripts/aplicar_apps.sh" aplicar; local rc=$?
-      [ "$rc" = "1" ] && meow_registrar "apps aplicar ${1:-todos}"
+      [ "$rc" = "1" ] && registrar "apps aplicar ${1:-todos}"
       return "$rc" ;;
     *) meow_erro "uso: meow apps [tabela|conferir|aplicar [slug]]"; return "$MEOW_ERRO" ;;
   esac
@@ -729,8 +810,8 @@ cmd_desfazer() {
   meow_travar || return "$MEOW_ERRO"
   "$RAIZ/scripts/aplicar_tema.sh" original; local rc=$?
   if [ "$rc" = "0" ] && ! meow_seco; then
-    meow_registrar "desfazer -> original"
-    meow_notificar "MeowSystem" "Tema devolvido para a captura original."
+    registrar "desfazer -> original"
+    notificar "MeowSystem" "Tema devolvido para a captura original."
   fi
   return "$rc"
 }
@@ -825,15 +906,25 @@ menu_numerado() {
 
 cmd_menu() {
   carregar_conf || return "$MEOW_ERRO"
-  if ! meow_tem fzf; then
+  # Sem terminal o fzf não roda — ele precisa de um tty para desenhar, e sem um
+  # morre com "inappropriate ioctl for device" antes de mostrar coisa alguma.
+  # Quem chama `meow` de um hook, de um timer ou dentro de um pipe cai no menu
+  # numerado, que nesse caso só imprime a lista e sai 0.
+  if ! meow_tem fzf || [ ! -t 0 ]; then
     menu_numerado
     return $?
   fi
 
-  local selecao rc
+  local selecao rc itens
+  # Here-string em vez de `menu_itens | fzf`: com `pipefail`, um fzf que saia
+  # antes de consumir a lista inteira (ENTER rápido) daria SIGPIPE no
+  # menu_itens, a pipeline devolveria 141 e a escolha VÁLIDA dela seria
+  # descartada como se fosse um ESC. É a mesma armadilha do conf_definir, e
+  # neste caminho ela falharia de vez em quando — o pior jeito de falhar.
+  itens="$(menu_itens)"
   # Mesmas medidas do conjurar.zsh (altura, borda, margem, cabeçalho, preview à
   # direita, --with-nth=1 sobre `comando<TAB>descrição`); a paleta é a nossa.
-  selecao="$(menu_itens | fzf \
+  selecao="$(fzf \
       --height=60% --layout=reverse --border=rounded \
       --margin=1 --padding=1 \
       --prompt="  Meow > " \
@@ -841,7 +932,7 @@ cmd_menu() {
       --color="bg+:#313244,fg+:#cdd6f4,hl:#cba6f7,hl+:#f5c2e7,pointer:#a6e3a1,marker:#a6e3a1,prompt:#cba6f7,header:#6c7086,border:#6c7086" \
       --preview-window="right:50%:wrap" \
       --delimiter=$'\t' --with-nth=1 \
-      --preview='printf "%s\n" {2}')"
+      --preview='printf "%s\n" {2}' <<< "$itens")"
   rc=$?
   # 130 = ESC/Ctrl-C. Cancelar não é erro.
   if [ "$rc" = "130" ]; then printf '  %scancelado.%s\n' "$C_DIM" "$C_ZERO"; return 0; fi

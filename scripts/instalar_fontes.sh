@@ -1,98 +1,135 @@
 #!/usr/bin/env bash
-# instalar_fontes.sh — a fonte do terminal e do codigo, baixada da release
-# oficial do Nerd Fonts em VERSAO PINADA, instalada so no diretorio do usuario.
+# instalar_fontes.sh — a fonte do terminal e do código, baixada da release
+# oficial do Nerd Fonts em VERSÃO PINADA, instalada só no diretório do usuário.
 #
 #   ./instalar_fontes.sh            instala e aplica
-#   ./instalar_fontes.sh --conferir so diz se esta divergente (nao escreve)
+#   ./instalar_fontes.sh --conferir só diz se está divergente (não escreve)
 #   MEOW_DRY_RUN=1 ./instalar_fontes.sh   mostra o que faria
 #
 # ---------------------------------------------------------------------------
-# POR QUE "JetBrainsMono Nerd Font MONO" E NAO "JetBrainsMono Nerd Font"
+# POR QUE "JetBrainsMono Nerd Font MONO" E NÃO "JetBrainsMono Nerd Font"
 #
-#   O tarball traz a MESMA fonte em tres larguras de icone: `NerdFont` (icones de
-#   duas celulas), `NerdFontMono` (icones espremidos em uma celula) e
-#   `NerdFontPropo` (proporcional). O nome parece detalhe e nao e — MEDIDO nos
-#   proprios TTF em 2026-08-04, lendo a tabela `post`:
+#   O tarball traz a MESMA fonte em três larguras de ícone: `NerdFont` (ícones de
+#   duas células), `NerdFontMono` (ícones espremidos em uma célula) e
+#   `NerdFontPropo` (proporcional). O nome parece detalhe e não é — MEDIDO nos
+#   próprios TTF em 2026-08-04, lendo a tabela `post`:
 #
 #     JetBrainsMonoNerdFontMono-Regular.ttf : post.isFixedPitch = 1
 #     JetBrainsMonoNerdFont-Regular.ttf     : post.isFixedPitch = 0
 #
-#   O `fontdb` (que o cosmic-text usa por baixo do cosmic-term e do libcosmic)
-#   marca a face como monoespacada a partir desse bit. Com ele em 0, a variante
-#   comum NAO aparece na lista de fontes monoespacadas do cosmic-settings nem do
-#   cosmic-term — a fonte fica instalada e invisivel, e o sintoma e "baixei e nao
-#   apareceu na lista".
+#   Esse bit é o que o `fontdb` — a biblioteca que o cosmic-text usa por baixo do
+#   cosmic-term e do libcosmic — lê para marcar a face como monoespaçada.
+#   CONFERIDO rodando o próprio fontdb (0.18) sobre os dois diretórios:
 #
-#   Repare que o `fc-scan` diz `spacing=100` (monoespacada) para AS DUAS: o
-#   fontconfig deduz isso do PANOSE, nao do `post`. Ou seja, conferir por
+#     JetBrainsMonoNFM-Regular  mono=true
+#     JetBrainsMonoNF-Regular   mono=false
+#     JetBrainsMonoNFP-Regular  mono=false
+#
+#   Com `mono=false` a variante comum NÃO entra na lista de fontes monoespaçadas
+#   do cosmic-settings nem do cosmic-term: a fonte fica instalada e invisível, e
+#   o sintoma é "baixei e não apareceu para escolher".
+#
+#   Repare que o `fc-scan` diz `spacing=100` (monoespaçada) para AS DUAS: o
+#   fontconfig deduz isso do PANOSE, não do `post`. Ou seja, conferir por
 #   `fc-list` daria "as duas servem" e esconderia o problema. Foi por isso que a
-#   escolha aqui saiu da tabela do arquivo, e nao do fontconfig.
+#   escolha saiu da tabela do arquivo, e não do fontconfig.
 #
-#   A segunda razao para a variante Mono: o cosmic-term monta a grade de celulas
-#   pelo avanco da fonte primaria. Icone de duas celulas numa grade de uma vira
-#   glifo cortado e coluna torta.
+#   A segunda razão para a variante Mono é a largura, MEDIDA com o ImageMagick
+#   renderizando 8 glifos por linha, 48pt (8 letras "A" = 233 px em todas):
 #
-# O NOME DA FAMILIA TAMBEM E UMA ARMADILHA
+#     glifo      Mono   NerdFont
+#     U+F09B     233      247       <- ícone do github
+#     U+F015     233      254       <- casinha
+#     U+EF12     233      259
 #
-#   A tabela `name` do arquivo tem DOIS nomes de familia:
+#   Na variante Mono todo ícone cabe na MESMA célula da letra. Na comum ele
+#   transborda, e o cosmic-term monta a grade pelo avanço da fonte primária:
+#   ícone maior que a célula vira glifo cortado e coluna torta.
+#
+# SOBRE O NOME DA FAMÍLIA — a armadilha que NÃO era uma
+#
+#   A tabela `name` do arquivo tem dois nomes de família:
 #
 #     nameID  1 (Family)             = "JetBrainsMono NFM"
 #     nameID 16 (Typographic Family) = "JetBrainsMono Nerd Font Mono"
 #
-#   O `fontdb` prefere o 16 e so cai no 1 quando o 16 nao existe; o fontconfig
-#   publica os dois. Como quem le a configuracao do COSMIC e o fontdb, o valor
-#   que vai para os arquivos e o LONGO. Escrever "JetBrainsMono NFM" resolveria
-#   no `fc-match` e falharia calado no cosmic-term.
+#   A suposição natural é que só um deles funcione. Testado com o fontdb de
+#   verdade: ele registra OS DOIS na mesma face, e a consulta acha a fonte por
+#   qualquer um dos nomes. Nenhum dos dois "falha calado", então a escolha aqui
+#   NÃO é de correção, é de coerência: usamos o nome LONGO porque é ele que o
+#   cosmic-settings mostra na lista e o `fc-match` devolve primeiro. Gravar
+#   "JetBrainsMono NFM" funcionaria e deixaria o arquivo de configuração
+#   discordando do que a interface exibe — que é como se perde meia hora
+#   procurando um problema que não existe.
 #
-# POR QUE AS 16 FACES, E NAO SO A Regular
+# POR QUE AS 16 FACES, E NÃO SÓ A Regular
 #
-#   O cosmic-term tem tres pesos configuraveis ao mesmo tempo (`font_weight`,
-#   `bold_font_weight` e `dim_font_weight`, este ultimo Light de fabrica). Sem a
+#   O cosmic-term tem três pesos configuráveis ao mesmo tempo (`font_weight`,
+#   `bold_font_weight` e `dim_font_weight`, este último Light de fábrica). Sem a
 #   face real, o renderizador SINTETIZA o peso — engorda o desenho por
-#   algoritmo — e o resultado e visivelmente pior numa TV de 52 polegadas. As 16
-#   faces (8 pesos x reto/italico) custam 39 MB e acabam com isso.
+#   algoritmo — e o resultado é visivelmente pior numa TV de 52 polegadas. As 16
+#   faces (8 pesos x reto/itálico) custam 39 MB e acabam com isso.
 #
-# INTEGRIDADE: PINAMOS A VERSAO **E** O CONTEUDO
+# INTEGRIDADE: PINAMOS A VERSÃO **E** O CONTEÚDO
 #
-#   `v3.5.0` diz de onde veio; os SHA-256 dizem que e aquilo mesmo. Os dois
-#   juntos fazem a idempotencia ser por CONTEUDO e nao por marcador: a conferencia
-#   de "ja esta instalado" e o sha256 de cada arquivo no destino, o que tambem
-#   pega arquivo corrompido pela metade — coisa que um carimbo de versao jura que
-#   esta certa. (A lista de somas e a oficial do proprio release, SHA-256.txt.)
+#   `v3.5.0` diz de onde veio; os SHA-256 dizem que é aquilo mesmo. Os dois
+#   juntos fazem a idempotência ser por CONTEÚDO e não por marcador: a conferência
+#   de "já está instalado" é o sha256 de cada arquivo no destino, o que também
+#   pega arquivo corrompido pela metade — coisa que um carimbo de versão jura que
+#   está certa. (A lista de somas é a oficial do próprio release, SHA-256.txt.)
 #
 # ONDE ESCREVE, E ONDE NUNCA ESCREVE
 #
-#   Fontes:  ~/.local/share/fonts/MeowSystem/   (nunca /usr/share — e do apt e do
-#            Ritual da Aurora, e um `apt` apaga o que largarmos la)
+#   Fontes:  ~/.local/share/fonts/MeowSystem/   (nunca /usr/share — é do apt e do
+#            Ritual da Aurora, e um `apt` apaga o que largarmos lá)
 #   Config:  ~/.config/cosmic/com.system76.CosmicTk/v1/monospace_font
 #            ~/.config/cosmic/com.system76.CosmicTerm/v1/font_name
 #
-#   NAO tocamos, no CosmicTerm: font_size, opacity, use_bright_bold,
+#   NÃO tocamos, no CosmicTerm: font_size, opacity, use_bright_bold,
 #   shortcuts_custom, focus_follow_mouse, tab_new_inherit_working_directory,
-#   font_size_zoom_step_mul_100. Sao dela, e parte e do Aurora.
+#   font_size_zoom_step_mul_100. São dela, e parte é do Aurora.
 #
-#   NAO tocamos no `interface_font`: ela usa "Fira Sans", que ja vem do pacote
-#   `pop-fonts`. A etapa 2 daqui so CONFERE que existe e diz o que achou.
+#   NÃO tocamos no `interface_font`: ela usa "Fira Sans", que já vem do pacote
+#   `pop-fonts`. A etapa 1 daqui só CONFERE que existe e diz o que achou.
 #
-# NAO MATAMOS NADA PARA "RECARREGAR"
+# NÃO MATAMOS NADA PARA "RECARREGAR"
 #
-#   O construir_icones.sh derruba o cosmic-panel de proposito. Aqui seria
+#   O construir_icones.sh derruba o cosmic-panel de propósito. Aqui seria
 #   desastre: `pkill cosmic-term` fecha os terminais ABERTOS dela, com o que
-#   estiver rodando dentro. O cosmic-term observa a propria configuracao (cosmic-
-#   config) e pega a fonte nova sozinho; o que nao pegar, pega na proxima aba.
+#   estiver rodando dentro. O cosmic-term observa a própria configuração (pelo
+#   cosmic-config) e pega a fonte nova sozinho; o que não pegar, pega na aba
+#   seguinte.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-[ "${1:-}" = "--conferir" ] && MEOW_SECO=1
+# MEOW_SECO é lido pelo meow_seco() do lib/comum.sh.
+#
+# Argumento desconhecido NÃO pode virar instalação silenciosa. A forma antiga
+# (`[ "$1" = --conferir ] && MEOW_SECO=1`) deixava `--dry-run` — que é o nome da
+# VARIÁVEL documentada aqui em cima, o erro mais natural do mundo — cair direto
+# no ramo que ESCREVE, com quem digitou jurando que só tinha conferido. MEDIDO
+# em 2026-08-04: `./instalar_fontes.sh --dry-run` regravou o monospace_font e
+# saiu 0. Erro de uso é erro de execução (2); dependência ausente é que é 3.
+case "${1:-}" in
+  "") : ;;
+  --conferir)
+    # shellcheck disable=SC2034
+    MEOW_SECO=1 ;;
+  *)
+    meow_erro "argumento desconhecido: $1"
+    meow_info "  uso: instalar_fontes.sh [--conferir]"
+    meow_info "  para simular sem escrever: MEOW_DRY_RUN=1 instalar_fontes.sh"
+    exit "$MEOW_ERRO" ;;
+esac
 
 # --- o upstream, pinado -----------------------------------------------------
 # Origem: https://github.com/ryanoasis/nerd-fonts/releases/tag/v3.5.0
-# Release estavel (prerelease=false), publicada em 2026-08-02T23:35:36Z.
-# Baixamos SO o tarball da JetBrainsMono (6,4 MB). O repositorio inteiro passa de
-# 5 GB e nao ha razao nenhuma para cloná-lo.
+# Release estável (prerelease=false), publicada em 2026-08-02T23:35:36Z.
+# Baixamos SÓ o tarball da JetBrainsMono (6,4 MB). O repositório inteiro passa de
+# 5 GB e não há razão nenhuma para cloná-lo.
 NERD_TAG="v3.5.0"
 NERD_ATIVO="JetBrainsMono.tar.xz"
 NERD_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/$NERD_TAG/$NERD_ATIVO"
@@ -124,8 +161,8 @@ SOMAS=(
 "2d0ebea8655d90546434441d09ed98843d98296aff76dcadb8936b7abc318e2c  JetBrainsMonoNerdFontMono-ThinItalic.ttf"
 )
 
-# O cache do tarball fica no repo e esta no .gitignore: e a mesma regra do
-# baixar_upstream.sh — o git guarda a RECEITA, nao os megabytes.
+# O cache do tarball fica no repo e está no .gitignore: é a mesma regra do
+# baixar_upstream.sh — o git guarda a RECEITA, não os megabytes.
 CACHE="$RAIZ/src/fonts/upstream"
 TAR="$CACHE/$NERD_ATIVO"
 
@@ -137,72 +174,103 @@ TERM_DIR="$HOME/.config/cosmic/com.system76.CosmicTerm/v1"
 
 mudou=0
 
-# --- dependencias -----------------------------------------------------------
+# --- dependências -----------------------------------------------------------
 faltam=()
-for c in curl tar sha256sum fc-cache fc-list fc-match; do
+# O `cmp` está nesta lista porque é do diffutils — pacote DIFERENTE dos outros, e
+# o único que pode faltar sem levar junto meia distribuição. Ele só é usado no
+# ramo que instala; sem ele o script morria lá dentro com código 2 ("erro"),
+# mentindo sobre a natureza do problema, que é dependência (3). MEDIDO tirando o
+# cmp do PATH em 2026-08-04.
+for c in curl tar sha256sum cmp fc-cache fc-list fc-match; do
   meow_tem "$c" || faltam+=("$c")
 done
-# O tarball e .xz: sem o descompressor, o `tar` falha no meio e deixa lixo.
+# O tarball é .xz: sem o descompressor, o `tar` falha no meio e deixa lixo.
 meow_tem xz || meow_tem unxz || faltam+=("xz-utils")
 if [ ${#faltam[@]} -gt 0 ]; then
   meow_erro "faltam ferramentas: ${faltam[*]}"
-  meow_info "  sudo apt-get install curl tar coreutils fontconfig xz-utils"
+  meow_info "  sudo apt-get install curl tar coreutils diffutils fontconfig xz-utils"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 
 meow_destino_permitido "$DESTINO" || exit "$MEOW_ERRO"
 
+# O `fc-list` devolve a família como LISTA separada por vírgula — o mesmo arquivo
+# aparece como "JetBrainsMono Nerd Font Mono,JetBrainsMono NFM". Procurar com
+# `grep` casaria "Fira Sans" dentro de "Fira Sans Compressed", que é outra fonte
+# (e está instalada aqui, ao lado). A comparação abaixo é exata, item a item.
+arquivos_da_familia() {
+  fc-list -f '%{file}\t%{family}\n' 2>/dev/null | awk -F'\t' -v alvo="$1" '
+    { n = split($2, fam, ","); for (i = 1; i <= n; i++) if (fam[i] == alvo) { print $1; next } }'
+}
+
 # ---------------------------------------------------------------------------
 # 1. A FONTE DA INTERFACE — conferir, nunca reinstalar
 #
-# "Fira Sans" ja vem do pacote `pop-fonts` do Pop!_OS, em
-# /usr/share/fonts/opentype/fira. Baixar uma copia para o diretorio do usuario
-# criaria DUAS familias com o mesmo nome e caminhos diferentes: o fontconfig
+# "Fira Sans" já vem do pacote `pop-fonts` do Pop!_OS, em
+# /usr/share/fonts/opentype/fira. Baixar uma cópia para o diretório do usuário
+# criaria DUAS famílias com o mesmo nome e caminhos diferentes: o fontconfig
 # escolhe uma, o fontdb escolhe outra, e a interface fica sutilmente diferente
-# do resto do sistema sem ninguem entender por que.
+# do resto do sistema sem ninguém entender por quê.
 meow_passo "Fonte da interface"
-ui_arquivo="$(fc-list -f '%{file}\t%{family}\n' 2>/dev/null \
-              | grep -F "	$FAMILIA_UI" | cut -f1 | sort | head -1)"
+ui_arquivo="$(arquivos_da_familia "$FAMILIA_UI" | sort | head -1)"
 if [ -n "$ui_arquivo" ]; then
-  meow_ok "'$FAMILIA_UI' ja instalada — $(dirname "$ui_arquivo")"
+  meow_ok "'$FAMILIA_UI' já instalada — $(dirname "$ui_arquivo")"
   meow_pula "nada a baixar (vem do pacote do sistema)"
 else
-  # Nao e erro nosso e nao ha o que consertar aqui: a fonte de interface e do
-  # sistema. Dizemos o comando e seguimos — a monoespacada nao depende dela.
-  meow_aviso "'$FAMILIA_UI' NAO esta instalada"
+  # Não é erro nosso e não há o que consertar aqui: a fonte de interface é do
+  # sistema. Dizemos o comando e seguimos — a monoespaçada não depende dela.
+  meow_aviso "'$FAMILIA_UI' NÃO está instalada"
   meow_info "  sudo apt-get install pop-fonts    # ou fonts-firacode/fonts-fira"
 fi
 
 # ---------------------------------------------------------------------------
 # 2. A NERD FONT
-meow_passo "Fonte monoespacada — $FAMILIA_MONO ($NERD_TAG)"
+meow_passo "Fonte monoespaçada — $FAMILIA_MONO ($NERD_TAG)"
 
-# Uma copia da MESMA familia fora do nosso diretorio (um pacote do apt, um dia)
-# duplicaria as faces. Nesse caso a nossa e a sobrando: nao instalamos.
-externo="$(fc-list -f '%{file}\t%{family}\n' 2>/dev/null \
-           | grep -F "	$FAMILIA_MONO" | cut -f1 | grep -v "^$DESTINO/" | head -1)"
+# Uma cópia da MESMA família fora do nosso diretório (um pacote do apt, um dia)
+# duplicaria as faces. Nesse caso a nossa é a sobrando: não instalamos.
+externo="$(arquivos_da_familia "$FAMILIA_MONO" | grep -v "^$DESTINO/" | head -1)"
 
 instalados_ok() {
   [ -d "$DESTINO" ] || return 1
   ( cd "$DESTINO" && printf '%s\n' "${SOMAS[@]}" | sha256sum --status -c - ) 2>/dev/null
 }
 
+# A família está utilizável nesta máquina? Vale tanto para a nossa cópia quanto
+# para uma de fora. É o que decide se a conferência final (etapa 4) tem o que
+# conferir — sem isto, o `--conferir` de uma máquina sem fonte nenhuma acusaria
+# "não resolveu" como se fosse defeito, quando é só o que ainda não foi feito.
+faces_ok=0
+refazer_cache=0
+
 if [ -n "$externo" ]; then
-  meow_ok "'$FAMILIA_MONO' ja vem de fora ($externo) — nao duplico"
+  # Não duplicar é a decisão certa (duas cópias da mesma família em caminhos
+  # diferentes = fontconfig escolhe uma e fontdb escolhe outra). Mas isto é
+  # AVISO, e não "ok" verde: as faces pinadas NÃO estão instaladas, o que ela vê
+  # é a cópia de fora, e nenhum sha256 daqui garante o que tem dentro dela.
+  # MEDIDO em 2026-08-04: com uma cópia sobrando em ~/.local/share/fonts, o
+  # script saía 0 sem instalar nada e sem que a linha verde chamasse atenção.
+  # Continua saindo 0 de propósito — divergência que nenhuma execução conserta
+  # viraria alarme eterno no auto-reparo —, mas agora aparece como aviso.
+  meow_aviso "'$FAMILIA_MONO' já vem de fora — não duplico"
+  meow_info "  $externo"
+  meow_info "  as ${#SOMAS[@]} faces pinadas ($NERD_TAG) não foram instaladas em $DESTINO"
+  faces_ok=1
 elif instalados_ok; then
-  meow_ok "as ${#SOMAS[@]} faces ja estao em $DESTINO e conferem no sha256"
+  meow_ok "as ${#SOMAS[@]} faces já estão em $DESTINO e conferem no sha256"
+  faces_ok=1
 elif meow_seco; then
   meow_muda "baixaria $NERD_ATIVO ($NERD_TAG) e instalaria ${#SOMAS[@]} faces em $DESTINO"
   mudou=1
 else
   # --- 2a. o tarball, no cache do repo -------------------------------------
   if [ -f "$TAR" ] && echo "$NERD_TAR_SHA256  $TAR" | sha256sum --status -c - 2>/dev/null; then
-    meow_ok "$NERD_ATIVO ja no cache e confere ($NERD_TAG)"
+    meow_ok "$NERD_ATIVO já no cache e confere ($NERD_TAG)"
   else
-    [ -f "$TAR" ] && meow_aviso "o $NERD_ATIVO do cache nao confere no sha256 — baixando de novo"
-    mkdir -p "$CACHE" || { meow_erro "nao consegui criar $CACHE"; exit "$MEOW_ERRO"; }
+    [ -f "$TAR" ] && meow_aviso "o $NERD_ATIVO do cache não confere no sha256 — baixando de novo"
+    mkdir -p "$CACHE" || { meow_erro "não consegui criar $CACHE"; exit "$MEOW_ERRO"; }
     meow_info "baixando $NERD_URL"
-    # Temporario DENTRO do cache: o mv final e no mesmo sistema de arquivos, e
+    # Temporário DENTRO do cache: o mv final é no mesmo sistema de arquivos, e
     # um Ctrl-C no meio nunca deixa um .tar.xz pela metade com o nome definitivo.
     tmp_tar="$(mktemp -p "$CACHE" ".baixando.XXXXXX")" || exit "$MEOW_ERRO"
     if ! curl -fL --retry 3 --retry-delay 2 -o "$tmp_tar" "$NERD_URL"; then
@@ -210,8 +278,18 @@ else
       meow_erro "falhou o download de $NERD_URL"
       exit "$MEOW_ERRO"
     fi
+    # Um portal de rede ou uma página de erro do GitHub também chegam com HTTP
+    # 200 e passam pelo `curl -f`. O tamanho separa "veio outra coisa" de "veio
+    # corrompido" e dá uma mensagem que se entende sem abrir o arquivo.
+    baixado="$(stat -c%s "$tmp_tar")"
+    if [ "$baixado" != "$NERD_TAR_BYTES" ]; then
+      meow_erro "o download tem $baixado bytes, esperava $NERD_TAR_BYTES ($NERD_TAG)"
+      meow_info "  quase sempre é portal de rede ou proxy respondendo no lugar do GitHub"
+      rm -f "$tmp_tar"
+      exit "$MEOW_ERRO"
+    fi
     if ! echo "$NERD_TAR_SHA256  $tmp_tar" | sha256sum --status -c - 2>/dev/null; then
-      meow_erro "sha256 do $NERD_ATIVO nao bate com o pinado ($NERD_TAG)"
+      meow_erro "sha256 do $NERD_ATIVO não bate com o pinado ($NERD_TAG)"
       meow_info "  esperado $NERD_TAR_SHA256"
       meow_info "  obtido   $(sha256sum "$tmp_tar" | cut -d' ' -f1)"
       rm -f "$tmp_tar"
@@ -223,14 +301,14 @@ else
   fi
 
   # --- 2b. extrair e instalar ----------------------------------------------
-  # O repo mora em /mnt/Apate e o destino em /home: `mv` entre eles NAO e
-  # atomico. Entao a area de montagem nasce dentro de ~/.local/share/fonts, e
-  # so depois os arquivos entram no lugar por `mv` dentro do mesmo disco.
+  # O repo mora em /mnt/Apate e o destino em /home: `mv` entre eles NÃO é
+  # atômico. Então a área de montagem nasce dentro de ~/.local/share/fonts, e
+  # só depois os arquivos entram no lugar por `mv` dentro do mesmo disco.
   #
-  # O ponto no comeco do nome nao e enfeite: o fontconfig ignora arquivo e
-  # diretorio comecados por '.', entao um scan que caia no meio da extracao nao
-  # ve fonte pela metade.
-  mkdir -p "$DESTINO" || { meow_erro "nao consegui criar $DESTINO"; exit "$MEOW_ERRO"; }
+  # O ponto no começo do nome não é enfeite: o fontconfig ignora arquivo e
+  # diretório começados por '.', então um scan que caia no meio da extração não
+  # vê fonte pela metade.
+  mkdir -p "$DESTINO" || { meow_erro "não consegui criar $DESTINO"; exit "$MEOW_ERRO"; }
   stage="$(mktemp -d -p "$FONTES_BASE" ".meow-fontes.XXXXXX")" || exit "$MEOW_ERRO"
   # shellcheck disable=SC2064
   trap "rm -rf '$stage'" EXIT
@@ -241,10 +319,13 @@ else
   fi
 
   if ! ( cd "$stage" && printf '%s\n' "${SOMAS[@]}" | sha256sum --status -c - ) 2>/dev/null; then
-    meow_erro "o conteudo extraido nao confere com os sha256 pinados"
+    meow_erro "o conteúdo extraído não confere com os sha256 pinados"
     exit "$MEOW_ERRO"
   fi
 
+  # Instalar face a face, e só a que difere. Assim um arquivo corrompido ou
+  # apagado volta sozinho sem reescrever os outros 15 — e o número que aparece
+  # na tela diz exatamente o que foi consertado.
   novos=0
   while read -r _soma nome; do
     if [ -f "$DESTINO/$nome" ] && cmp -s "$stage/$nome" "$DESTINO/$nome"; then
@@ -258,21 +339,54 @@ else
   rm -rf "$stage"; trap - EXIT
   meow_ok "instaladas $novos de ${#SOMAS[@]} faces em $DESTINO"
   mudou=1
+  faces_ok=1
+  refazer_cache=1
+fi
 
-  # --- 2c. avisar o fontconfig ---------------------------------------------
-  # So aqui, e so quando algo mudou: o `fc-cache -f` reconstroi todo o cache do
-  # usuario e leva segundos. Rodar em toda execucao transformaria um script
-  # idempotente numa espera diaria sem motivo.
-  if ! fc-cache -f >/dev/null 2>&1; then
-    meow_aviso "o fc-cache reclamou — as fontes estao no lugar, mas confira 'fc-list'"
+# --- 2c. faces de sobra ------------------------------------------------------
+# O $DESTINO é NOSSO: quem manda nele é a lista pinada aqui em cima. Num dia de
+# troca de versão (ou de fonte) as faces velhas ficariam para trás — 39 MB de
+# arquivo que ninguém escolheu, competindo no fc-match com as novas. A limpeza é
+# de propósito estreita: só mexe em `JetBrainsMono*.ttf`, a família que este
+# script administra. Se amanhã outra frente largar uma segunda fonte aqui, ela
+# não some por causa desta linha.
+if [ -d "$DESTINO" ]; then
+  esperadas=" $(printf '%s\n' "${SOMAS[@]}" | awk '{print $2}' | tr '\n' ' ')"
+  sobrando=()
+  for f in "$DESTINO"/JetBrainsMono*.ttf; do
+    [ -e "$f" ] || continue          # o glob sem casar volta literal
+    nome_f="$(basename "$f")"
+    case "$esperadas" in *" $nome_f "*) continue ;; esac
+    sobrando+=("$nome_f")
+  done
+  if [ ${#sobrando[@]} -gt 0 ]; then
+    if meow_seco; then
+      meow_muda "removeria ${#sobrando[@]} face(s) de outra versão: ${sobrando[*]}"
+      mudou=1
+    else
+      for nome_f in "${sobrando[@]}"; do rm -f "$DESTINO/$nome_f"; done
+      meow_muda "removidas ${#sobrando[@]} face(s) de outra versão: ${sobrando[*]}"
+      mudou=1
+      refazer_cache=1
+    fi
   fi
+fi
+
+# --- 2d. avisar o fontconfig -------------------------------------------------
+# Só quando algo mudou no disco: o `fc-cache -f` reconstrói todo o cache do
+# usuário e leva segundos. Rodar em toda execução transformaria um script
+# idempotente numa espera diária sem motivo. Vem depois da limpeza (e não dentro
+# do ramo que instala) porque REMOVER arquivo também deixa o cache mentindo — e
+# um cache que aponta para .ttf apagado faz o fc-match devolver caminho morto.
+if [ "$refazer_cache" = "1" ] && ! fc-cache -f >/dev/null 2>&1; then
+  meow_aviso "o fc-cache reclamou — as fontes estão no lugar, mas confira 'fc-list'"
 fi
 
 # ---------------------------------------------------------------------------
 # 3. APONTAR O COSMIC PARA ELA
-meow_passo "Configuracao do COSMIC"
+meow_passo "Configuração do COSMIC"
 
-# O `monospace_font` do CosmicTk e um struct RON, nao uma string:
+# O `monospace_font` do CosmicTk é um struct RON, não uma string:
 #
 #   (
 #       family: "Noto Sans Mono",
@@ -281,10 +395,10 @@ meow_passo "Configuracao do COSMIC"
 #       style: Normal,
 #   )
 #
-# ...com quatro espacos de indentacao e SEM quebra de linha no fim. Trocamos a
-# linha do `family:` e deixamos weight/stretch/style como estao, em vez de
+# ...com quatro espaços de indentação e SEM quebra de linha no fim. Trocamos a
+# linha do `family:` e deixamos weight/stretch/style como estão, em vez de
 # reescrever o arquivo com um modelo nosso: se ela um dia escolher "Light" na
-# GUI, este script nao desfaz a escolha na proxima execucao.
+# GUI, este script não desfaz a escolha na execução seguinte.
 ron_com_familia() {
   local familia="$1" atual="$2"
   if printf '%s' "$atual" | grep -qE '^[[:space:]]*family:'; then
@@ -298,63 +412,93 @@ atual_mono=""
 [ -f "$TK/monospace_font" ] && atual_mono="$(cat "$TK/monospace_font")"
 meow_escrever "$TK/monospace_font" "$(ron_com_familia "$FAMILIA_MONO" "$atual_mono")" 644
 case $? in
-  0) meow_ok "monospace_font ja aponta para '$FAMILIA_MONO'" ;;
+  0) meow_ok "monospace_font já aponta para '$FAMILIA_MONO'" ;;
   1) meow_muda "monospace_font -> '$FAMILIA_MONO'"; mudou=1 ;;
-  *) meow_erro "nao consegui escrever $TK/monospace_font"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "não consegui escrever $TK/monospace_font"; exit "$MEOW_ERRO" ;;
 esac
 
-# O cosmic-term guarda a fonte numa chave PROPRIA, separada do CosmicTk.
+# O cosmic-term guarda a fonte numa chave PRÓPRIA, separada do CosmicTk.
 #
-# A chave nao existe no disco dela — e existe no programa: o `Config` do
+# A chave não existe no disco dela — e existe no programa: o `Config` do
 # cosmic-term 1.5.0 traz `font_name`, `font_size`, `font_weight`, `font_stretch`,
 # `dim_font_weight` e `bold_font_weight` (lidos dos nomes de campo serializados
-# dentro do binario, 2026-08-04). O cosmic-config so grava a chave quando o valor
-# muda; por isso o diretorio dela so tem o que ela mexeu algum dia.
+# dentro do binário, 2026-08-04). O cosmic-config só grava a chave quando o valor
+# muda; por isso o diretório dela só tem o que ela mexeu algum dia.
 #
-# `font_name` e uma String pura: o RON e a familia entre aspas, sem quebra de
+# `font_name` é uma String pura: o RON é a família entre aspas, sem quebra de
 # linha no fim — o mesmo formato do `icon_theme` do CosmicTk.
 #
-# Se o diretorio nao existir, o cosmic-term nunca rodou nesta maquina: criar a
-# arvore inteira aqui inventaria configuracao para um app ausente.
+# Se o diretório não existir, o cosmic-term nunca rodou nesta máquina: criar a
+# árvore inteira aqui inventaria configuração para um app ausente.
 if [ -d "$TERM_DIR" ]; then
   meow_escrever "$TERM_DIR/font_name" "\"$FAMILIA_MONO\"" 644
   case $? in
-    0) meow_ok "CosmicTerm/font_name ja aponta para '$FAMILIA_MONO'" ;;
+    0) meow_ok "CosmicTerm/font_name já aponta para '$FAMILIA_MONO'" ;;
     1) meow_muda "CosmicTerm/font_name -> '$FAMILIA_MONO'"; mudou=1 ;;
-    *) meow_erro "nao consegui escrever $TERM_DIR/font_name"; exit "$MEOW_ERRO" ;;
+    *) meow_erro "não consegui escrever $TERM_DIR/font_name"; exit "$MEOW_ERRO" ;;
   esac
 else
-  meow_pula "$TERM_DIR nao existe — cosmic-term nunca rodou aqui"
+  meow_pula "$TERM_DIR não existe — cosmic-term nunca rodou aqui"
 fi
 
 # ---------------------------------------------------------------------------
 # 4. CONFERIR DE VERDADE
 #
-# Instalar arquivo nao e o mesmo que a fonte RESOLVER. O `fc-match` responde
-# pelo fontconfig e nao pelo fontdb, mas os dois leem o mesmo TTF: se o
-# fc-match cair em outra familia, o nome esta errado e o cosmic-term tambem vai
-# errar — so que calado, caindo na fonte padrao sem avisar ninguem.
-if ! meow_seco; then
-  meow_passo "Conferencia"
+# Instalar arquivo não é o mesmo que a fonte RESOLVER. O `fc-match` responde
+# pelo fontconfig e não pelo fontdb, mas os dois leem o mesmo TTF: se o
+# fc-match cair em outra família, o nome está errado e o cosmic-term também vai
+# errar — só que calado, caindo na fonte padrão sem avisar ninguém.
+#
+# ESTA ETAPA RODA TAMBÉM NO `--conferir`. Antes ela era pulada no modo seco, que
+# é o modo do `meow doctor`: a conferência mais forte do script justamente não
+# rodava no comando chamado "conferir". Ela é LEITURA pura — o fc-match não
+# escreve nada —, então o único cuidado é não rodar quando não há fonte alguma
+# para resolver (aí a resposta certa é "divergente, falta instalar", e não
+# "erro"). É para isso que serve o $faces_ok.
+resolve_familia() {
+  # FC_FAM e FC_ARQ ficam de propósito FORA do `local`: quem chama usa os dois
+  # para dizer onde a fonte foi parar.
+  local casou
   casou="$(fc-match -f '%{family}|%{file}' "$FAMILIA_MONO" 2>/dev/null)"
-  fam="${casou%%|*}"; arq="${casou#*|}"
-  case "$fam" in
-    *"$FAMILIA_MONO"*)
-      meow_ok "fc-match '$FAMILIA_MONO' -> $arq"
-      total="$(du -sh "$DESTINO" 2>/dev/null | cut -f1)"
-      meow_info "$(fc-list -f '.' "$FAMILIA_MONO" 2>/dev/null | wc -c) faces registradas, $total em disco"
-      ;;
-    *)
-      meow_erro "fc-match caiu em '$fam' ($arq) — a familia nao resolveu"
-      meow_info "  a fonte pode estar instalada mas o cache velho; tente 'fc-cache -f'"
-      exit "$MEOW_ERRO"
-      ;;
-  esac
+  FC_FAM="${casou%%|*}"; FC_ARQ="${casou#*|}"
+  case "$FC_FAM" in *"$FAMILIA_MONO"*) return 0 ;; esac
+  return 1
+}
+
+if [ "$faces_ok" = "1" ]; then
+  meow_passo "Conferência"
+  if ! resolve_familia && ! meow_seco; then
+    # Arquivo certo e cache velho é um estado que NENHUMA outra parte do script
+    # conserta: o fc-cache só roda quando algo mudou no disco, e aqui nada mudou.
+    # Uma tentativa antes de desistir transforma um erro insolúvel em conserto.
+    meow_aviso "a família não resolveu — refazendo o cache do fontconfig"
+    fc-cache -f >/dev/null 2>&1
+    mudou=1
+  fi
+  if resolve_familia; then
+    meow_ok "fc-match '$FAMILIA_MONO' -> $FC_ARQ"
+    registradas="$(arquivos_da_familia "$FAMILIA_MONO" | wc -l)"
+    if [ -d "$DESTINO" ]; then
+      # Sem o teste, a linha saía "16 faces registradas,  em disco" quando a
+      # fonte vinha de fora e o $DESTINO nem existia.
+      meow_info "$registradas faces registradas, $(du -sh "$DESTINO" 2>/dev/null | cut -f1) em $DESTINO"
+    else
+      meow_info "$registradas faces registradas (fora de $DESTINO)"
+    fi
+  elif meow_seco; then
+    meow_aviso "fc-match caiu em '$FC_FAM' ($FC_ARQ) — a família não resolveu"
+    meow_info "  uma execução de verdade refaz o cache do fontconfig"
+    mudou=1
+  else
+    meow_erro "fc-match caiu em '$FC_FAM' ($FC_ARQ) — a família não resolveu"
+    meow_info "  as faces estão em $DESTINO, mas o fontconfig não as enxerga"
+    exit "$MEOW_ERRO"
+  fi
 fi
 
 if [ "$mudou" = "1" ]; then
-  meow_seco || meow_info "terminais ja abertos podem precisar de uma aba nova"
+  meow_seco || meow_info "terminais já abertos podem precisar de uma aba nova"
   exit "$MEOW_DIVERGENTE"
 fi
-meow_ok "fontes ja no lugar"
+meow_ok "fontes já no lugar"
 exit "$MEOW_OK"

@@ -2,6 +2,9 @@
 # e reproduzíveis — o repo guarda o script que baixa, com commit pinado, não o conteúdo.
 src/icons/upstream/
 src/wallpapers/baixados/
+# O tarball da Nerd Font tem 6,4 MB; a receita (versão pinada + os SHA-256 de
+# cada face) está em scripts/instalar_fontes.sh, que é o que importa versionar.
+src/fonts/upstream/
 
 # Imagens nunca vão para o git (o Andromeda ficou 18h com o auto-sync mudo por um
 # arquivo >100MB; aqui a regra é preventiva).

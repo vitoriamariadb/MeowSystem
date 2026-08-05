@@ -194,6 +194,151 @@ criariam chaves que nunca existiram aqui.
 
 ---
 
+## 4b. Som — o COSMIC toca exatamente UM, e não é por tema
+
+**Medido em 2026-08-04.** A pergunta era "dá para vestir a MeowSystem com um tema de
+som Catppuccin?". A resposta honesta é **não, e o motivo não é a falta de sons**: é
+que quase não existe onde tocá-los. O alcance inteiro desta área é **um arquivo**.
+
+### O que o COSMIC toca, e quem toca
+
+Varrendo os 41 binários `/usr/bin/cosmic-*`:
+
+```
+strings -a /usr/bin/cosmic-<x> | grep -c canberra     -> 0 em TODOS
+strings -a /usr/bin/cosmic-<x> | grep -c pw-play      -> 1 em cosmic-osd
+                                                          1 em cosmic-settings-daemon
+                                                          0 nos outros 39
+```
+
+O COSMIC **não usa libcanberra**. Ele faz `fork` de `pw-play --media-role Notification`.
+(Os 3 acertos de "canberra" no `cosmic-initial-setup` são a **cidade** Canberra, da
+lista de fusos horários — é fácil contá-los como código de som e concluir errado.)
+
+Dos dois binários com `pw-play`, só um produz som audível nesta máquina:
+
+| binário | o que toca | vale aqui? |
+|---|---|---|
+| `cosmic-osd` | `freedesktop/stereo/audio-volume-change.oga` | **sim** — é o único |
+| `cosmic-settings-daemon` | `power-plug`, `power-unplug`, `power-unplug-battery-low` | **nunca** — é PC de mesa |
+
+**Não confunda o gatilho com o tocador.** O `cosmic-settings-daemon` **não** toca o
+som de volume: o binário dele tem **zero** ocorrências de `audio-volume-change`, de
+`stereo` e de `.oga`. Ele é o **gatilho** da tecla — o `system_actions` mapeia
+`XF86AudioLowerVolume` para `busctl --user call com.system76.CosmicSettingsDaemon
+... VolumeDown`. Com o daemon morto, a tecla não muda o volume, o osd não tem o que
+anunciar, e nenhum som nasce. Isso já foi lido aqui como "o daemon é o tocador";
+não é.
+
+Os sons de energia estão duplamente mortos: o `/sys/class/power_supply/` desta
+máquina só tem `ps-controller-battery-*` (a bateria do DualSense), e o daemon
+procura os arquivos em `/usr/share/sounds/Pop/` — **caminho de sistema cravado, sem
+XDG**, ou seja, nem sobrescrever daria.
+
+### A prova, sem inferência: o argv do `pw-play`
+
+Não é preciso deduzir pela duração do sink-input. Dá para **ler o comando**.
+Disparando o mesmo `busctl` da tecla e varrendo `/proc/*/cmdline` durante a janela:
+
+```
+pw-play --media-role Notification /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga
+```
+
+E depois de `scripts/som.sh aplicar`, o **mesmo** teste:
+
+```
+pw-play --media-role Notification /home/vitoriamaria/.local/share/sounds/freedesktop/stereo/audio-volume-change.oga
+```
+
+**O arquivo do usuário vence o do sistema.** O código do osd é
+`xdg::BaseDirectories::with_prefix("sounds").find_data_file("freedesktop/stereo/audio-volume-change.oga")`,
+e `find_data_file` consulta o `XDG_DATA_HOME` antes do `XDG_DATA_DIRS`.
+
+Para ver isto ao vivo, com a tecla de volume na mão dela:
+
+```
+while :; do pgrep -af '(^|/)pw-play '; done     # e aperte a tecla
+```
+
+### Isto é o INVERSO da regra dos ícones
+
+Duas consequências que custam tempo se forem invertidas:
+
+- **O nome do tema é cravado no binário.** Um tema `MeowSystem-Sounds` nunca seria
+  lido, por mais correto que fosse o `index.theme`. O jeito de trocar o som é
+  sombrear o nome `freedesktop` dentro do data home dela.
+- **Em som o usuário ganha; em ícone, não.** A seção 2 mostra que, com o mesmo nome
+  nos dois lugares, `/usr/share/icons` **ofusca** `~/.local/share/icons`. Em som é ao
+  contrário.
+
+Por isso o `som.sh` instala **um arquivo e nenhum `index.theme`**: sem `index.theme`
+no diretório do usuário, quem resolver o tema `freedesktop` pela especificação
+continua lendo o `index.theme` do sistema e só encontra sobrescrito o único arquivo
+que plantamos. Escrever um `index.theme` incompleto ali sequestraria o tema inteiro.
+
+### O `gsettings` de som é decorativo nesta máquina
+
+`org.gnome.desktop.sound theme-name` está em `freedesktop` e **ninguém o lê**: os
+apps do COSMIC são iced/libcosmic, não GTK. O caminho GTK/canberra está tecnicamente
+instalado e completamente dormente — nenhum processo da máquina tem `libcanberra`
+mapeada (varredura de `/proc/*/maps`), `GTK_MODULES` é só `gail:atk-bridge`,
+`canberra-gtk-play` não existe, e o `/etc/gtk-3.0/settings.ini` do Pop aponta
+`gtk-sound-theme-name = Yaru` para um tema que **não está instalado**. Apontar o
+`gsettings` para um tema nosso produziria zero som audível.
+
+### O debounce de 125 ms manda na duração do som
+
+No fonte do `cosmic-osd`:
+`if now.duration_since(self.sink_last_playback) > Duration::from_millis(125)`.
+
+Ou seja: segurando a tecla, nasce um `pw-play` a cada 125 ms. **Som maior que isso se
+sobrepõe a si mesmo** — provado plantando um arquivo de 2 s e disparando duas
+mudanças com 300 ms de intervalo: `pactl list short sink-inputs` mostrou **dois**
+sink-inputs coexistindo. É por isso que o nosso tem 85 ms e não pode crescer, e é
+por isso que o som do tema Pop (0,35 s) não serve, apesar da licença permitir.
+
+### A extensão `.oga` é mentira — e isso elimina dependências
+
+Quem lê o arquivo é a libsndfile, que detecta o formato pelo **conteúdo**. Um WAV PCM
+salvo com nome `.oga` toca normalmente (`file` responde "RIFF ... WAVE audio,
+Microsoft PCM, 16 bit, stereo 48000 Hz"; `pw-play` sai com 0 e o COSMIC o tocou pelo
+caminho real). Logo o som pode nascer da biblioteca padrão do Python: **sem ffmpeg,
+sem oggenc, sem sox** no caminho de instalação.
+
+### Licença: por que sintetizamos em vez de copiar
+
+O som de fábrica do `freedesktop` é **CC-BY-SA-3.0** (Lucas McCallister), e a 3.0
+**não** é compatível com a GPL-3.0 deste repositório — só a CC-BY-SA **4.0** ganhou
+essa compatibilidade, e de mão única. O do tema Pop é CC-BY-SA-4.0 (Mads Rosendahl),
+redistribuível, mas alto e longo demais. Sintetizar sai mais barato que discutir
+licença: o arquivo é obra do projeto, registrado como **CC0-1.0** em
+`src/sounds/CREDITOS.md` e no `LICENCAS.txt` que o script deixa na máquina.
+
+### O que fica INALCANÇÁVEL, e o custo de cada um
+
+| evento | veredito |
+|---|---|
+| volume mudando | **alcançável** — é o único; `scripts/som.sh` |
+| notificação chegando | **impossível sem daemon nosso**: `cosmic-notifications` tem **zero** linhas de áudio, embora anuncie a capacidade `sound` no `GetCapabilities`. `notify-send -h string:sound-name:message` gera zero sink-inputs. Dá para escutar o `Notify` por eavesdrop no D-Bus, mas custa um processo por sessão, quebra quando a System76 mudar o barramento e tocaria **por cima do "Não Perturbe"**, que está ligado na config dela |
+| bateria / tomada | **morto por hardware** — máquina de mesa |
+| plugar dispositivo, erro, alerta, captura de tela, bloqueio | **não há reprodutor** — `pw-play` e `canberra` zerados em todos os binários |
+
+**Conclusão de arquitetura:** não existe "tema de som" a montar. Existe **um arquivo
+a trocar**, e o `scripts/som.sh` faz exatamente isso — sem `sudo`, sem `/usr/share`,
+sem envolver o Ritual da Aurora, e valendo já na próxima mudança de volume (o osd
+faz `spawn` de um `pw-play` novo a cada reprodução: não há cache a invalidar, ao
+contrário da logo do painel da seção 3).
+
+### Achado colateral que não é sobre som
+
+Em 04/08/2026 o `cosmic-settings-daemon` foi encontrado **morto** no meio da sessão
+dela. Com ele morrem as teclas de **volume e de brilho** inteiras, não só o som:
+`busctl --user call ... VolumeDown` responde `The name is not activatable`. Por isso
+`som.sh estado` e `som.sh conferir` avisam quando ele não está de pé. O conserto
+durável é sair e entrar na sessão; religá-lo à mão vale até o próximo boot.
+
+---
+
 ## 5. Fronteira com o Ritual da Aurora
 
 O Aurora roda como root a cada hora, no boot e após todo apt. Onde os dois querem

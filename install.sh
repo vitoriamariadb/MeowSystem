@@ -158,7 +158,13 @@ instalar_completion() {
   mv -f "$tmp" "$destino" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
 
   meow_ok "completion do zsh instalada em $destino"
-  meow_aviso "esse arquivo está no repo Andromeda: o auto-commit dela vai versioná-lo"
+  # O aviso só sai quando o destino é MESMO o repo dela — com
+  # MEOW_COMPLETIONS_DIR apontando para outro lugar (é assim que isto foi
+  # testado) ele seria uma mentira.
+  case "$(readlink -m -- "$destino")" in
+    "$HOME/.config/zsh"/*)
+      meow_aviso "esse arquivo está no repo Andromeda: o auto-commit dela vai versioná-lo" ;;
+  esac
   meow_info "para não instalar: MEOW_SEM_COMPLETIONS=1 ./install.sh"
   meow_info "o TAB só passa a funcionar no próximo terminal (o compinit lê o fpath no início)"
   return "$MEOW_DIVERGENTE"
@@ -441,7 +447,7 @@ etapa_autoreparo() {
 
   # Desligar tem de DESLIGAR: só deixar de instalar manteria vivo o timer que uma
   # execução anterior já tinha ligado, e ela veria o reparo continuar acontecendo
-  # depois de ter escrito "nao" no meow.conf.
+  # depois de ter desligado a chave AUTO_REPARO no meow.conf.
   if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
     if [ -f "$destino/meow-doctor.timer" ]; then
       if meow_seco; then
