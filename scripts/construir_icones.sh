@@ -63,8 +63,15 @@ places_no_disco() {
   done
 }
 
+# `scalable/mimetypes` é o pack Catppuccin vestindo TIPO DE ARQUIVO, posto lá pelo
+# `icones_mimetypes.sh`. Vale a mesma regra do §1: declarar só o que EXISTE. Se a
+# lista viesse fixa, uma máquina sem o pack teria um `Directories=` apontando para
+# o vazio — e foi exatamente esse o defeito que custou as "três rodadas".
+tem_mimetypes() { [ -d "$TEMA_DIR/scalable/mimetypes" ]; }
+
 indice() {
   local dirs="scalable/apps" tam
+  tem_mimetypes && dirs="$dirs,scalable/mimetypes"
   while IFS= read -r tam; do dirs="$dirs,$tam/places"; done < <(places_no_disco)
 
   cat <<FIM
@@ -81,6 +88,18 @@ Type=Scalable
 MinSize=8
 MaxSize=512
 FIM
+
+  if tem_mimetypes; then
+    cat <<'FIM'
+
+[scalable/mimetypes]
+Size=64
+Context=MimeTypes
+Type=Scalable
+MinSize=8
+MaxSize=512
+FIM
+  fi
 
   while IFS= read -r tam; do
     cat <<FIM
