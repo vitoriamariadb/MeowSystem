@@ -88,19 +88,81 @@ etapa_conf() {
 }
 
 # ---------------------------------------------------------------------------
-etapa_dependencias() {
-  passo "Dependências"
+# O ÚNICO BLOCO COM sudo DO INSTALADOR INTEIRO.
+#
+# POR QUE ELE VEM CEDO, E NÃO NO FIM
+#   A recomendação instintiva seria deixar o apt por último, longe das escritas
+#   de configuração. Aqui é o contrário, por dois motivos concretos:
+#   1. O `papirus-icon-theme` é PRÉ-REQUISITO da etapa de pastas. Instalado
+#      depois, a etapa de pastas já teria se pulado e só funcionaria na
+#      execução seguinte — "rodei e não ficou pronto" é um péssimo primeiro uso.
+#   2. Todo `apt` desta máquina dispara o hook do Ritual da Aurora, que roda o
+#      self-heal COMPLETO e reconcilia configuração. Rodando o apt ANTES, esse
+#      self-heal acontece antes das nossas escritas. Rodando depois, ele poderia
+#      reverter o que acabamos de aplicar.
+#
+# O QUE ELE NUNCA FAZ
+#   `upgrade`, `dist-upgrade`, `full-upgrade`, nem tocar em pacote `cosmic-*`.
+#   O `/usr/bin/cosmic-comp` desta máquina está patchado duas vezes (workspace
+#   vazio e night light) e uma versão nova mata os dois de uma vez, derrubando
+#   junto os workspaces alfinetados. `install <pacote>` explícito e mais nada.
+#
+# FALTA DE sudo NÃO É ERRO
+#   Devolve 3 e diz o comando exato. O resto do tema continua sendo aplicado —
+#   ficam de fora só as pastas coloridas e os temas de `bat`/`btop`.
+etapa_pacotes() {
+  passo "Pacotes do sistema"
+
+  # binário que testa presença -> pacote que o instala
+  local -A NECESSARIOS=(
+    [rsvg-convert]=librsvg2-bin
+    [convert]=imagemagick
+    [gtk-update-icon-cache]=libgtk-3-bin
+    [python3]=python3
+    [git]=git
+    [btop]=btop
+    # No Debian/Ubuntu o `bat` instala como `batcat`: o nome `bat` já pertence ao
+    # bacula-console-qt. Testar por `bat` faria o instalador reinstalar o pacote
+    # a cada execução, para sempre, sem nunca ficar satisfeito.
+    [batcat]=bat
+  )
+  # O Papirus não tem binário — testa-se pelo diretório do tema.
   local faltam=()
-  for b in rsvg-convert convert gtk-update-icon-cache python3; do
-    meow_tem "$b" || faltam+=("$b")
+  local b
+  for b in "${!NECESSARIOS[@]}"; do
+    meow_tem "$b" || faltam+=("${NECESSARIOS[$b]}")
   done
+  [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
+
   if [ ${#faltam[@]} -eq 0 ]; then
-    meow_ok "todas as ferramentas de build presentes"
+    meow_ok "todos os pacotes necessários já estão instalados"
     return 0
   fi
-  meow_aviso "faltam: ${faltam[*]}"
-  meow_info "instale com: sudo apt install librsvg2-bin imagemagick libgtk-3-bin"
-  return "$MEOW_SEM_DEPENDENCIA"
+
+  meow_info "faltam: ${faltam[*]}"
+  if meow_seco; then
+    meow_muda "rodaria: sudo apt-get install -y --no-install-recommends ${faltam[*]}"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if ! meow_tem sudo; then
+    meow_aviso "sudo não encontrado — instale à mão:"
+    meow_info "  apt install ${faltam[*]}"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  # Dizer em voz alta o que vai rodar como root, ANTES de rodar. Um instalador
+  # que pede senha sem explicar o que vai fazer com ela não merece a senha.
+  meow_info "vou rodar como root, e só isto:"
+  printf '      sudo apt-get install -y --no-install-recommends %s\n' "${faltam[*]}"
+
+  if ! sudo apt-get install -y --no-install-recommends "${faltam[@]}" >/dev/null 2>&1; then
+    meow_aviso "a instalação falhou (sem sudo? sem rede?) — seguindo sem esses pacotes"
+    meow_info "  sudo apt-get install ${faltam[*]}"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  meow_ok "instalados: ${faltam[*]}"
+  return "$MEOW_DIVERGENTE"
 }
 
 # ---------------------------------------------------------------------------
@@ -233,7 +295,7 @@ main() {
 
   meow_travar || return 2
 
-  local etapas=(etapa_conf etapa_dependencias etapa_gerar etapa_tema
+  local etapas=(etapa_conf etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_upstream etapa_icones etapa_pastas etapa_wallpaper
                 etapa_apps)
   TOTAL=${#etapas[@]}
