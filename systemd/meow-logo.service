@@ -1,0 +1,39 @@
+# meow-logo.service — passa o gato do painel para o próximo do acervo.
+#
+# O QUE ELE ESCREVE: UMA CHAVE, E MAIS NADA
+#   `custom_logo_path` do applet. Isso é medido (docs/COSMIC-THEMING.md §3): o
+#   applet cacheia a IMAGEM mas vigia a CONFIGURAÇÃO por inotify — apontar a
+#   chave para outro arquivo troca o gato na hora, sem reiniciar o painel, sem
+#   piscar a tela dela e sem gastar uma vida do respawn do `cosmic-session`.
+#   Os arquivos do acervo já estão no disco desde o `install.sh`; girar não
+#   instala nada.
+#
+# POR QUE `ExecCondition` E NÃO UM `if` DENTRO DO SCRIPT
+#   Com a rotação desligada no `meow.conf`, a unidade termina como `condition
+#   failed` — que o systemd mostra em cinza no `list-timers` e NÃO conta como
+#   falha. Um `exit 0` de dentro do script diria "sucesso" e esconderia a
+#   diferença entre "girou" e "está desligado".
+#   Sem `[ -f ]` antes do `.`: a conf pode não existir numa máquina recém-clonada,
+#   e um `source` de arquivo ausente com `set -u` mataria a condição por engano.
+#
+# ConditionPathExists no repo: se `/mnt/Apate` estiver desmontado (o repo mora em
+# outra partição), a unidade é PULADA com o motivo no journal, em vez de falhar
+# de meia em meia hora para sempre.
+
+[Unit]
+Description=MeowSystem — troca o gato da logo do painel
+Documentation=file:%h/.local/state/meowsystem/raiz
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${LOGO_ROTACAO:-nao}" = "sim" ]'
+ExecStart=/bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; . %h/.config/meow/meow.conf; export FLAVOR LOGO; exec "$R/scripts/logo.sh" girar'
+
+# 1 é o código de "estava divergente e eu consertei" deste projeto — que é
+# exatamente o que uma troca bem-sucedida devolve. Sem isto, TODA rotação
+# apareceria como serviço falho no `systemctl --user status`.
+SuccessExitStatus=1 3
+
+StandardOutput=append:%h/.local/state/meowsystem/logo.log
+StandardError=inherit

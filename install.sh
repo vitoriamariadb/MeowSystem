@@ -644,6 +644,75 @@ etapa_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
+# ---------------------------------------------------------------------------
+# A LOGO E A ROTAÇÃO DE GATOS
+#
+# A INSTALAÇÃO DO ACERVO É INCONDICIONAL; SÓ O TIMER OBEDECE À CHAVE
+#   Os gatos vão para o disco mesmo com LOGO_ROTACAO="nao" — sem isso,
+#   `meow logo girar` na mão não teria para onde apontar, e ligar a rotação
+#   depois exigiria uma rodada extra do instalador antes de funcionar.
+#   O que a chave liga e desliga é o RELÓGIO, não o acervo.
+etapa_logo() {
+  passo "Gatos do painel"
+  local destino="$HOME/.config/systemd/user" mudou=0 rc
+
+  FLAVOR="$FLAVOR" LOGO="$LOGO" "$MEOW_RAIZ/scripts/logo.sh"
+  rc=$?
+  [ "$rc" = "1" ] && mudou=1
+  [ "$rc" -ge 2 ] && return "$rc"
+
+  # Desligar tem de DESLIGAR (mesma disciplina do auto-reparo): deixar de
+  # instalar manteria vivo o timer que uma execução anterior ligou, e ela veria
+  # o gato continuar trocando depois de ter desligado a chave.
+  if [ "${LOGO_ROTACAO:-nao}" != "sim" ]; then
+    if [ -f "$destino/meow-logo.timer" ]; then
+      meow_seco && { meow_muda "removeria o timer da rotação"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now meow-logo.timer >/dev/null 2>&1
+      rm -f "$destino/meow-logo.timer" "$destino/meow-logo.service"
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "LOGO_ROTACAO=\"${LOGO_ROTACAO:-nao}\" — rotação desligada"
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_info "rotação desligada (LOGO_ROTACAO=\"${LOGO_ROTACAO:-nao}\") — o acervo está no lugar"
+    return "$([ "$mudou" = "1" ] && echo "$MEOW_DIVERGENTE" || echo 0)"
+  fi
+
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    meow_aviso "não há systemd --user aqui — a rotação fica de fora"
+    meow_info "  troque na mão com 'meow logo girar'"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  local u conteudo
+  for u in meow-logo.service meow-logo.timer; do
+    [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+    conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    # O intervalo é do meow.conf, não do arquivo da unidade: mudar a cadência
+    # tem de ser editar UMA linha da conf, como tudo mais neste projeto.
+    [ "$u" = "meow-logo.timer" ] && conteudo="${conteudo//OnUnitActiveSec=30min/OnUnitActiveSec=${LOGO_INTERVALO:-30m}}"
+    meow_escrever "$destino/$u" "$conteudo" 644
+    case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+
+  if meow_seco; then
+    [ "$mudou" = "1" ] && { meow_muda "ligaria a rotação a cada ${LOGO_INTERVALO:-30m}"; return "$MEOW_DIVERGENTE"; }
+    meow_ok "rotação de gatos já ligada"
+    return 0
+  fi
+
+  [ "$mudou" = "1" ] && systemctl --user daemon-reload
+  if [ "$(systemctl --user is-enabled meow-logo.timer 2>/dev/null)" != "enabled" ] ||
+     [ "$(systemctl --user is-active  meow-logo.timer 2>/dev/null)" != "active" ]; then
+    systemctl --user enable --now meow-logo.timer >/dev/null 2>&1 \
+      || { meow_erro "não consegui ligar o meow-logo.timer"; return "$MEOW_ERRO"; }
+    mudou=1
+  fi
+
+  [ "$mudou" = "0" ] && { meow_ok "rotação de gatos já ligada (a cada ${LOGO_INTERVALO:-30m})"; return 0; }
+  meow_ok "os gatos giram a cada ${LOGO_INTERVALO:-30m} — 'meow logo listar' mostra o acervo"
+  return "$MEOW_DIVERGENTE"
+}
+
 etapa_wallpaper() {
   passo "Papéis de parede"
   WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
@@ -670,7 +739,7 @@ main() {
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_upstream etapa_fontes
                 etapa_icones etapa_pastas etapa_hicolor etapa_completar_icones etapa_jogos
-                etapa_wallpaper etapa_ocultar etapa_som etapa_apps
+                etapa_logo etapa_wallpaper etapa_ocultar etapa_som etapa_apps
                 etapa_autoreparo)
   TOTAL=${#etapas[@]}
 

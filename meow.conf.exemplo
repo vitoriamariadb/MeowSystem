@@ -19,6 +19,16 @@ MODO="escuro"
 # arquivo correspondente em assets/meow-<LOGO>.svg
 LOGO="mocha"
 
+# O gato do painel troca sozinho, girando pelo acervo?
+# O ACERVO É A PASTA: tudo que estiver em assets/gatos/*.svg entra na rotação,
+# junto com o gato gerado do flavor. Soltou um SVG lá, ele entra; apagou, sai.
+# Nada de lista dentro de script — ela envelheceria no dia em que você
+# desenhasse outro gato, e o sintoma seria "coloquei o arquivo e não aconteceu".
+# `meow logo listar` mostra o acervo e quem está no ar; `meow logo girar` passa
+# ao próximo na hora, sem reiniciar nada.
+LOGO_ROTACAO="nao"
+LOGO_INTERVALO="30m"      # de quanto em quanto tempo o timer troca
+
 # Estrutura — herdada do seu tema atual. Mexa com consciência.
 RAIO="8"                 # corner_radii (px)
 GAP_EXTERNO="0"
