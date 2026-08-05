@@ -130,14 +130,43 @@ while IFS= read -r -d '' arq; do
   escritos=$((escritos+1))
 done < <(find "$ORIGEM" -type f -print0)
 
+# --- os arquivos que SOBRAM ------------------------------------------------
+# Restaurar não é só copiar de volta: é preciso remover o que não pertence à
+# captura. Isto não é hipotético — o import do tema pela GUI CRIOU 33 arquivos
+# novos (o COSMIC migrou o tema para o schema v2, escrevendo Builder/v2/accent,
+# palette, bg_color...). Sem esta etapa, voltar para a captura "original"
+# deixaria os 33 para trás, e o tema resultante seria um híbrido: as chaves
+# antigas restauradas convivendo com as novas do tema que se queria desfazer.
+# É exatamente o "quase funciona" que este projeto evita desde o começo.
+#
+# Só se remove dentro das árvores que a captura conhece: um diretório de tema
+# que não foi fotografado não é da nossa conta.
+sobrando=0
+for arvore in "$ORIGEM"/com.system76.CosmicTheme.*; do
+  [ -d "$arvore" ] || continue
+  nome_arvore="$(basename "$arvore")"
+  [ -d "$COSMIC/$nome_arvore" ] || continue
+  while IFS= read -r -d '' vivo; do
+    rel="${vivo#"$COSMIC"/}"
+    [ -e "$ORIGEM/$rel" ] && continue
+    sobrando=$((sobrando+1))
+    if [ "$CONFERIR" = "1" ]; then
+      [ "$SECO" = "1" ] && echo "  removeria $rel"
+      continue
+    fi
+    rm -f "$vivo"
+  done < <(find "$COSMIC/$nome_arvore" -type f -print0)
+done
+
 if [ "$CONFERIR" = "1" ]; then
-  if [ "$divergentes" -eq 0 ]; then
+  if [ "$divergentes" -eq 0 ] && [ "$sobrando" -eq 0 ]; then
     echo "tema '$NOME' já aplicado ($iguais arquivos conferem)"
     exit 0
   fi
-  echo "tema '$NOME' divergente: $divergentes de $((divergentes+iguais)) arquivos"
+  echo "tema '$NOME' divergente: $divergentes de $((divergentes+iguais)) arquivos" \
+       "${sobrando:+e $sobrando sobrando}"
   exit 1
 fi
 
-echo "tema '$NOME' aplicado: $escritos escritos, $iguais já estavam certos"
+echo "tema '$NOME' aplicado: $escritos escritos, $iguais já estavam certos${sobrando:+, $sobrando removidos}"
 exit 0
