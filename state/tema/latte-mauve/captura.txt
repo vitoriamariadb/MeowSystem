@@ -1,0 +1,4 @@
+captura: latte-mauve
+quando: 2026-08-04T21:57:03-03:00
+origem: /home/vitoriamaria/.config/cosmic
+arquivos: 187

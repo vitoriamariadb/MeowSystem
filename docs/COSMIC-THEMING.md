@@ -106,6 +106,37 @@ especificação **está certa** — quem estava errado era o teste.
 
 ---
 
+## 2b. Claro e escuro não são dois temas — são um só, com um interruptor
+
+**Medido em 2026-08-04**, depois dos três imports.
+
+O COSMIC guarda duas árvores completas e independentes: `CosmicTheme.Dark` e
+`CosmicTheme.Light`. Importar um `.ron` de flavor claro escreve na `Light`;
+importar um escuro escreve na `Dark`. Quem decide qual está em uso é um único
+arquivo: `CosmicTheme.Mode/v1/is_dark`.
+
+A prova saiu sozinha das capturas. Depois de compor as três, `mocha-mauve` e
+`latte-mauve` diferem em **exatamente um arquivo**, e é o `is_dark`:
+
+```
+mocha-mauve    189 arquivos  |  Dark: #CBA6F7  Light: #8839EF  is_dark=true
+latte-mauve    189 arquivos  |  Dark: #CBA6F7  Light: #8839EF  is_dark=false
+```
+
+Consequências práticas:
+
+- **Toda captura precisa das DUAS árvores em Catppuccin.** As duas primeiras
+  saíram com a `Light` antiga (o teal `#00525A`), porque foram importadas antes
+  do latte. Alternar para elas teria devolvido o tema claro de fábrica na hora em
+  que o modo automático virasse o dia. Corrigido compondo a `Light` do latte nas
+  três — as árvores são independentes, então compor é legítimo e é exatamente o
+  estado que existiria se os dois imports tivessem sido feitos na outra ordem.
+- **`MODO=auto` não precisa de tema nenhum novo.** É escrever `is_dark` conforme
+  o horário. Nada de reaplicar árvore, nada de piscar interface.
+- O accent do Latte é `#8839EF` — mais escuro e saturado que o mauve do Mocha
+  (`#CBA6F7`), como manda um flavor claro. São a mesma cor da paleta com o mesmo
+  nome, e valores diferentes de propósito.
+
 ## 3. O gato do painel não passa por tema de ícones
 
 O applet `dev.cappsy.CosmicExtAppletLogoMenu` guarda o caminho do arquivo direto:
