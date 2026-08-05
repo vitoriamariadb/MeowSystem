@@ -122,6 +122,69 @@ e_chave_da_aurora() {
   return 1
 }
 
+# --- BACKUP: ESTE SCRIPT É O ÚNICO DO PROJETO QUE APAGA ARQUIVO ALHEIO -------
+# Ele sobrescreve arquivos de tema e REMOVE os que sobram em relação à captura
+# (ver o bloco "os arquivos que SOBRAM", mais abaixo, para saber por que remover
+# é necessário). Até 05/08/2026 ele fazia as duas coisas sem guardar nada — e o
+# README prometia, na cara, "todo passo faz backup antes de sobrescrever".
+#
+# NESTA MÁQUINA o risco era pequeno: as capturas nasceram aqui, então "sobrando"
+# dá zero. O risco real é o de PUBLICAR: na máquina de um estranho, com uma
+# versão do COSMIC que tenha chaves que a nossa captura não conhece, cada uma
+# dessas chaves é um `rm -f` sem volta no tema que ele montou. Era a única coisa
+# no projeto capaz de destruir dado de quem não é a Vitória.
+#
+# PREGUIÇOSO DE PROPÓSITO: o backup só nasce quando algo vai mesmo ser escrito
+# ou removido. Um `--conferir` não cria nada, e a rodada que já está conforme —
+# que é a esmagadora maioria — também não. Sem isso o auto-reparo diário criaria
+# um diretório novo por dia sem nunca ter mudado um byte.
+MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
+BACKUPS_MANTIDOS="${BACKUPS_MANTIDOS:-10}"
+BACKUP_DIR=""
+
+garantir_backup() {
+  [ -n "$BACKUP_DIR" ] && return 0            # já feito nesta execução
+  BACKUP_DIR="$MEOW_ESTADO/backups/$(date -Iseconds)-tema-$NOME"
+  mkdir -p "$BACKUP_DIR" || { echo "ERRO: não consegui criar $BACKUP_DIR" >&2; exit 2; }
+
+  # Guarda as árvores INTEIRAS que esta execução pode tocar, não só os arquivos
+  # que vão mudar: restaurar meia árvore devolveria o híbrido que este script
+  # existe para evitar.
+  for a in "$ORIGEM"/com.system76.CosmicTheme.*; do
+    [ -d "$a" ] || continue
+    n="$(basename "$a")"
+    [ -d "$COSMIC/$n" ] || continue
+    cp -a "$COSMIC/$n" "$BACKUP_DIR/" 2>/dev/null || true
+  done
+
+  ( cd "$BACKUP_DIR" && find . -type f ! -name manifesto.sha256 -exec sha256sum {} + \
+      > manifesto.sha256 2>/dev/null ) || true
+
+  # Como voltar, escrito AO LADO do backup. Um backup que só o autor sabe
+  # restaurar é meia rede de segurança: quem vai precisar dele é justamente
+  # alguém que não leu este script.
+  cat > "$BACKUP_DIR/COMO-RESTAURAR.txt" <<FIM
+Estado de ~/.config/cosmic (só as árvores de tema) antes de aplicar a captura
+'$NOME', em $(date '+%d/%m/%Y %H:%M:%S').
+
+Para voltar exatamente a este estado:
+
+    cp -a $BACKUP_DIR/com.system76.CosmicTheme.* ~/.config/cosmic/
+
+Para conferir que nada se corrompeu aqui dentro:
+
+    cd $BACKUP_DIR && sha256sum -c manifesto.sha256
+
+O COSMIC relê por inotify: a interface acompanha em segundos, sem relogar.
+FIM
+  echo "  backup em $BACKUP_DIR (veja COMO-RESTAURAR.txt)"
+
+  # Retenção: as N mais recentes DESTE script. Não toca em backup de outro
+  # módulo — cada um poda o que é seu.
+  ls -1d "$MEOW_ESTADO"/backups/*-tema-* 2>/dev/null | sort | head -n "-$BACKUPS_MANTIDOS" \
+    | while read -r velho; do rm -rf "$velho"; done
+}
+
 divergentes=0
 escritos=0
 iguais=0
@@ -155,6 +218,7 @@ while IFS= read -r -d '' arq; do
     continue
   fi
 
+  garantir_backup
   mkdir -p "$(dirname "$destino")"
   # Temporário no diretório de DESTINO: /mnt/Apate e /home são sistemas de
   # arquivos diferentes, e mv entre eles não é atômico.
@@ -189,6 +253,7 @@ for arvore in "$ORIGEM"/com.system76.CosmicTheme.*; do
       [ "$SECO" = "1" ] && echo "  removeria $rel"
       continue
     fi
+    garantir_backup
     rm -f "$vivo"
   done < <(find "$COSMIC/$nome_arvore" -type f -print0)
 done
