@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Editor de Texto">
   <title>cosmic-edit — Catppuccin Frappe</title>
   <path d="M11 5.3 h16.1 L39.2 17.4 V39.7 c0 2.2 -1.8 4 -4 4 H11 c-2.2 0 -4 -1.8 -4 -4 V9.3 c0 -2.2 1.8 -4 4 -4 z"
-        fill="#C6D0F5" stroke="#51576D" stroke-width="1.6" stroke-linejoin="round"/>
+        fill="#C6D0F5" stroke="#232634" stroke-width="2" stroke-linejoin="round"/>
   <path d="M27.1 5.3 L39.2 17.4 h-8.1 c-2.2 0 -4 -1.8 -4 -4 z" fill="#51576D"/>
   <g fill="#E5C890">
     <rect x="13" y="22" width="21" height="3.2" rx="1.6"/>

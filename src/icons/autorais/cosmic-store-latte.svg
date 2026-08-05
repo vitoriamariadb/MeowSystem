@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Loja de Aplicativos">
   <title>cosmic-store — Catppuccin Latte</title>
-  <path d="M17.5 19.5 v-5 c0 -3.6 2.9 -6.5 6.5 -6.5 c3.6 0 6.5 2.9 6.5 6.5 v5"
-        fill="none" stroke="#209FB5" stroke-width="3.2" stroke-linecap="round"/>
-  <path d="M8.5 16.5 h31 l-2.4 21.6 c-0.2 1.9 -1.8 3.4 -3.7 3.4 H14.6 c-1.9 0 -3.5 -1.5 -3.7 -3.4 z"
-        fill="#209FB5"/>
+  <path d="M17.6 19.5 v-4.8 c0 -3.5 2.9 -6.4 6.4 -6.4 c3.5 0 6.4 2.9 6.4 6.4 v4.8"
+        fill="none" stroke="#4C4F69" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M17.6 19.5 v-4.8 c0 -3.5 2.9 -6.4 6.4 -6.4 c3.5 0 6.4 2.9 6.4 6.4 v4.8"
+        fill="none" stroke="#209FB5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M9 17 h30 l-2.3 20.9 c-0.2 1.9 -1.8 3.3 -3.7 3.3 H15 c-1.9 0 -3.5 -1.4 -3.7 -3.3 z"
+        fill="#209FB5" stroke="#4C4F69" stroke-width="2" stroke-linejoin="round"/>
 </svg>

@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Configurações">
   <title>cosmic-settings — Catppuccin Macchiato</title>
-  <g fill="#5B6078">
-    <rect x="6.5" y="11.8" width="35" height="4.4" rx="2.2"/>
-    <rect x="6.5" y="21.8" width="35" height="4.4" rx="2.2"/>
-    <rect x="6.5" y="31.8" width="35" height="4.4" rx="2.2"/>
+  <g fill="#5B6078" stroke="#181926" stroke-width="1.6">
+    <rect x="6.8" y="12" width="34.4" height="4" rx="2"/>
+    <rect x="6.8" y="22" width="34.4" height="4" rx="2"/>
+    <rect x="6.8" y="32" width="34.4" height="4" rx="2"/>
   </g>
-  <g fill="#B7BDF8">
-    <circle cx="16" cy="14" r="5.4"/>
-    <circle cx="32" cy="24" r="5.4"/>
-    <circle cx="21" cy="34" r="5.4"/>
+  <g fill="#B7BDF8" stroke="#181926" stroke-width="2">
+    <circle cx="16" cy="14" r="5"/>
+    <circle cx="32" cy="24" r="5"/>
+    <circle cx="21" cy="34" r="5"/>
   </g>
 </svg>
