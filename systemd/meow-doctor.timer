@@ -1,0 +1,44 @@
+# meow-doctor.timer — chama o auto-reparo uma vez por dia, de madrugada.
+#
+# POR QUE 5H DA MANHÃ
+#   O reparo pode precisar reiniciar o `cosmic-panel`, e isso PISCA a tela. Ela tem
+#   uma TV só: o melhor horário para um piscar é aquele em que ninguém está olhando.
+#   Não é uma escolha estética — é a mesma regra que manda toda janela de teste
+#   nascer no workspace `OS`.
+#
+# POR QUE `Persistent=true`, APESAR DISSO
+#   Sem ele, um PC desligado às 5h simplesmente nunca repara. Com ele, a rodada
+#   perdida acontece logo depois do próximo login — aí sim com ela na frente da
+#   tela. O `RandomizedDelaySec` abaixo é o que torna isso suportável: a rodada
+#   atrasada cai em algum ponto dos 20 minutos seguintes, e não no meio do login,
+#   quando o painel ainda está montando os applets.
+#
+# POR QUE UM ATRASO ALEATÓRIO, E NÃO UM HORÁRIO FIXO NO SEGUNDO
+#   O Ritual da Aurora roda de hora em hora, como root. Os dois escrevem em regiões
+#   vizinhas do tema (o Aurora, o alpha; o MeowSystem, o resto). Cair exatamente no
+#   mesmo segundo, todo dia, é o jeito mais fácil de transformar uma corrida rara
+#   num bug diário. Vinte minutos de dispersão custam nada e tiram o encontro
+#   marcado.
+#
+# NÃO EXISTE UM SEGUNDO GATILHO
+#   Nem hook de apt, nem `.path` vigiando o tema. O hook do Aurora já roda depois de
+#   todo apt; um `.path` transformaria cada gravação do `cosmic-settings` numa
+#   rodada de reparo, brigando com a própria GUI enquanto ela mexe nos controles.
+#   Uma vez por dia é o suficiente para um reparador — o resto é `meow doctor` na
+#   mão, quando ela quiser.
+
+[Unit]
+Description=MeowSystem — dispara o auto-reparo diário do tema
+Documentation=man:systemd.timer(5)
+
+[Timer]
+OnCalendar=*-*-* 05:00:00
+Persistent=true
+RandomizedDelaySec=20min
+# Sem isto o systemd agrupa o disparo numa janela de 1 minuto por padrão; explícito
+# aqui só para deixar claro que precisão não importa nesta unidade.
+AccuracySec=1min
+Unit=meow-doctor.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,885 @@
+#!/usr/bin/env bash
+# bin/meow — a interface principal do MeowSystem.
+#
+# O `install.sh` é o bootstrap; ISTO é o que se usa todo dia. Um comando por
+# pergunta que dá para fazer sobre o tema, e nenhuma flag além das que existem
+# de verdade.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# ONDE ESTE ARQUIVO RODA, E POR QUE PROCURA A RAIZ EM QUATRO LUGARES
+# ─────────────────────────────────────────────────────────────────────────────
+# Depois de instalado, este script vive em `~/.local/bin/meow` — FORA do repo.
+# Ele não pode deduzir a raiz do próprio caminho como fazem os scripts de
+# `scripts/`, que estão sempre um nível abaixo dela. A ordem de busca é:
+#   1. `$MEOW_RAIZ`, se apontar para um repo de verdade (é o que os testes usam);
+#   2. o diretório acima do próprio arquivo, resolvendo symlink — vale quando se
+#      roda `./bin/meow` direto do clone, ou por um link simbólico;
+#   3. o ponteiro `~/.local/state/meowsystem/raiz`, gravado pelo `install.sh`;
+#   4. os lugares conhecidos, por último e sem promessa nenhuma.
+# "Repo de verdade" é ter `lib/comum.sh` E `install.sh`. Testar só a existência
+# do diretório aceitaria uma pasta vazia com o nome certo, e o erro apareceria
+# três funções adiante, disfarçado de outra coisa.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# O `doctor` NUNCA USA sudo, E NUNCA BAIXA NADA
+# ─────────────────────────────────────────────────────────────────────────────
+# Ele confere chamando os MESMOS scripts que o `install.sh` chama, só que com
+# `MEOW_DRY_RUN=1`. Três consequências deliberadas:
+#   - não existe aqui uma segunda lista de pacotes do apt. Pacote faltando
+#     aparece na mensagem do próprio verificador, que já imprime o
+#     `sudo apt install` exato. Uma lista duplicada é uma verdade que envelhece
+#     em dois lugares — e a que ninguém atualiza é sempre a segunda;
+#   - `--consertar` conserta o que é nosso: tema, modo, ícones, pastas, papel de
+#     parede e apps. Instalar pacote e baixar upstream continua sendo trabalho
+#     do `meow aplicar`, que anuncia o comando antes de pedir a senha;
+#   - conferir é leitura. Nenhum caminho de `doctor` sem `--consertar` escreve
+#     configuração.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# O MENU SEM ARGUMENTO SEGUE O `conjurar.zsh` DO ANDROMEDA
+# ─────────────────────────────────────────────────────────────────────────────
+# Mesmas medidas de janela, mesmo cabeçalho ("ENTER executar | ESC sair"), mesma
+# tabulação `comando<TAB>descrição` com `--with-nth=1` e preview à direita. O que
+# muda é a paleta: lá é Dracula, aqui é Catppuccin — seria estranho um menu do
+# MeowSystem pintado com as cores de outro tema.
+#
+# Sem `fzf`, cai num menu numerado. Nunca quebra, e nunca pendura: sem terminal
+# interativo ele só imprime a lista e sai 0.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# CÓDIGOS DE SAÍDA (os mesmos do resto do projeto)
+#   0 = certo · 1 = divergente · 2 = erro de execução · 3 = falta dependência.
+# ─────────────────────────────────────────────────────────────────────────────
+set -uo pipefail
+
+# --- 1. achar a raiz do repo -----------------------------------------------
+__raiz_valida() {
+  [ -n "${1:-}" ] && [ -f "$1/lib/comum.sh" ] && [ -f "$1/install.sh" ]
+}
+
+__resolver_raiz() {
+  local eu dir ponteiro cand
+  if __raiz_valida "${MEOW_RAIZ:-}"; then printf '%s' "$MEOW_RAIZ"; return 0; fi
+
+  eu="${BASH_SOURCE[0]}"
+  # readlink -f resolve a cadeia inteira de symlinks; sem ele, um link em
+  # ~/.local/bin apontando para o clone devolveria ~/.local/bin como "raiz".
+  eu="$(readlink -f -- "$eu" 2>/dev/null || printf '%s' "$eu")"
+  dir="$(cd "$(dirname -- "$eu")/.." 2>/dev/null && pwd)"
+  if __raiz_valida "$dir"; then printf '%s' "$dir"; return 0; fi
+
+  ponteiro="${XDG_STATE_HOME:-$HOME/.local/state}/meowsystem/raiz"
+  if [ -f "$ponteiro" ]; then
+    cand="$(head -n1 "$ponteiro" 2>/dev/null)"
+    if __raiz_valida "$cand"; then printf '%s' "$cand"; return 0; fi
+  fi
+
+  for cand in "$HOME/Desenvolvimento/MeowSystem" \
+              "/mnt/Apate/Desenvolvimento/MeowSystem" \
+              "$HOME/MeowSystem"; do
+    if __raiz_valida "$cand"; then printf '%s' "$cand"; return 0; fi
+  done
+  return 1
+}
+
+RAIZ="$(__resolver_raiz)" || {
+  printf 'meow: não achei o repositório do MeowSystem.\n' >&2
+  printf '      aponte com: MEOW_RAIZ=/caminho/do/clone meow %s\n' "${1:-status}" >&2
+  exit 3
+}
+MEOW_RAIZ="$RAIZ"; export MEOW_RAIZ
+# shellcheck source=../lib/comum.sh
+. "$RAIZ/lib/comum.sh"
+
+CONF="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
+CONF_PADRAO="$RAIZ/meow.conf.exemplo"
+COSMIC="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
+IS_DARK="$COSMIC/com.system76.CosmicTheme.Mode/v1/is_dark"
+
+# --- 2. configuração --------------------------------------------------------
+# Ler o exemplo quando não há conf é o mesmo caminho que o `install.sh` toma no
+# seco: sem FLAVOR e ACCENT nada aqui embaixo tem o que conferir, e morrer com
+# "variável não associada" esconderia a causa de verdade.
+CONF_LIDA=""
+carregar_conf() {
+  local fonte="$CONF"
+  [ -f "$fonte" ] || fonte="$CONF_PADRAO"
+  [ -f "$fonte" ] || { meow_erro "não achei nem $CONF nem $CONF_PADRAO"; return "$MEOW_ERRO"; }
+  # shellcheck disable=SC1090
+  . "$fonte" || { meow_erro "$fonte tem erro de sintaxe"; return "$MEOW_ERRO"; }
+  CONF_LIDA="$fonte"
+  FLAVOR="${FLAVOR:-mocha}"; ACCENT="${ACCENT:-mauve}"
+  MODO="${MODO:-escuro}";    LOGO="${LOGO:-$FLAVOR}"
+  return 0
+}
+
+# Troca (ou acrescenta) uma chave do meow.conf preservando o comentário da linha.
+# É o que faz `meow tema claro` e `meow logo <x>` valerem também para o próximo
+# `meow aplicar` — sem isso a mudança duraria até o self-heal seguinte.
+conf_definir() {
+  local chave="$1" valor="$2" texto novo
+  if [ ! -f "$CONF" ]; then
+    texto="$(cat "$CONF_PADRAO" 2>/dev/null)" || return "$MEOW_ERRO"
+  else
+    texto="$(cat "$CONF")"
+  fi
+  if printf '%s\n' "$texto" | grep -qE "^${chave}="; then
+    novo="$(printf '%s\n' "$texto" \
+            | sed -E "s|^(${chave}=)[^#]*([[:space:]]*#.*)?\$|\1\"${valor}\"\2|")"
+  else
+    novo="$texto"$'\n'"${chave}=\"${valor}\""
+  fi
+  meow_escrever "$CONF" "$novo" 644
+}
+
+# --- 3. leituras de estado --------------------------------------------------
+alvo_tema() { printf '%s-%s' "$FLAVOR" "$ACCENT"; }
+
+capturas() {
+  local d
+  for d in "$RAIZ"/state/tema/*/; do
+    [ -d "$d" ] || continue
+    printf '%s\n' "$(basename "$d")"
+  done
+}
+
+# Qual captura está de fato aplicada agora. Devolve o nome, ou nada.
+# O `--conferir` do aplicar_tema.sh já normaliza o alpha que a Aurora reescreve,
+# então "confere" aqui quer dizer o que ela entende por confere — não uma
+# segunda regra que discordaria da primeira em silêncio.
+tema_ativo() {
+  local n
+  while IFS= read -r n; do
+    [ -n "$n" ] || continue
+    if MEOW_DRY_RUN=0 "$RAIZ/scripts/aplicar_tema.sh" "$n" --conferir >/dev/null 2>&1; then
+      printf '%s' "$n"; return 0
+    fi
+  done < <(capturas)
+  return 1
+}
+
+# Gêmeo da `etapa_modo` do install.sh: claro e escuro NÃO são dois temas, são o
+# mesmo tema com um interruptor (docs/COSMIC-THEMING.md §2b). Se um dia a regra
+# do "auto" mudar, mudam as duas — estão a um `grep MODO_AUTO` de distância.
+modo_desejado() {
+  local hora ini fim
+  case "${MODO:-escuro}" in
+    escuro) printf 'true' ;;
+    claro)  printf 'false' ;;
+    auto)
+      hora="$(date +%-H)"
+      ini="${MODO_AUTO_CLARO_DE:-7}"; fim="${MODO_AUTO_CLARO_ATE:-18}"
+      if [ "$hora" -ge "$ini" ] && [ "$hora" -lt "$fim" ]; then printf 'false'; else printf 'true'; fi ;;
+    *) return 1 ;;
+  esac
+}
+
+is_dark_atual() { cat "$IS_DARK" 2>/dev/null || printf '?'; }
+
+logos_disponiveis() {
+  local f n
+  for f in "$RAIZ"/assets/meow-*-painel.svg; do
+    [ -f "$f" ] || continue
+    n="$(basename "$f" .svg)"; n="${n#meow-}"; n="${n%-painel}"
+    printf '%s\n' "$n"
+  done
+}
+
+# --- 4. as conferências -----------------------------------------------------
+# Cada uma devolve 0/1/2/3 e imprime detalhe em stdout (capturado pelo runner).
+# Todas rodam em seco: `doctor` sem `--consertar` não escreve configuração.
+
+chk_conf() {
+  [ -f "$CONF" ] || { echo "meow.conf ainda não existe — o install.sh cria a partir do exemplo"; return "$MEOW_DIVERGENTE"; }
+  local v
+  for v in FLAVOR ACCENT MODO LOGO; do
+    [ -n "${!v:-}" ] || { echo "$v não está definida em $CONF"; return "$MEOW_ERRO"; }
+  done
+  echo "flavor=$FLAVOR accent=$ACCENT modo=$MODO logo=$LOGO"
+  return 0
+}
+
+chk_gerar() {
+  local rc=0
+  python3 "$RAIZ/scripts/gerar_temas.py" --conferir >/dev/null 2>&1 || rc=1
+  python3 "$RAIZ/scripts/gerar_gato.py"  --conferir >/dev/null 2>&1 || rc=1
+  [ "$rc" = "0" ] && { echo "temas e gatos conferem com palette/"; return 0; }
+  echo "algum .ron ou .svg saiu da paleta — 'meow doctor --consertar' regenera"
+  return "$MEOW_DIVERGENTE"
+}
+
+chk_tema() {
+  local alvo; alvo="$(alvo_tema)"
+  [ -d "$RAIZ/state/tema/$alvo" ] || {
+    echo "não há captura para '$alvo' — importe themes/meowsystem-$alvo.ron uma vez pela GUI"
+    echo "e rode: meow tema capturar $alvo"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+  MEOW_DRY_RUN=0 "$RAIZ/scripts/aplicar_tema.sh" "$alvo" --conferir 2>&1
+}
+
+chk_modo() {
+  local desejado atual
+  desejado="$(modo_desejado)" || { echo "MODO='$MODO' desconhecido — esperado escuro|claro|auto"; return "$MEOW_ERRO"; }
+  atual="$(is_dark_atual)"
+  [ "$atual" = "$desejado" ] && { echo "modo $MODO (is_dark=$atual)"; return 0; }
+  echo "is_dark=$atual, mas MODO=$MODO pede $desejado"
+  return "$MEOW_DIVERGENTE"
+}
+
+chk_icones() {
+  MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" LOGO="$LOGO" \
+    ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/construir_icones.sh" 2>&1
+}
+
+chk_pastas() {
+  MEOW_DRY_RUN=1 ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+    ICONES_PASTAS="${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/construir_pastas.sh" 2>&1
+}
+
+chk_wallpaper() {
+  MEOW_DRY_RUN=1 WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+    WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+    "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1
+}
+
+chk_apps() {
+  APPS_ATIVOS="${APPS_ATIVOS:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir 2>&1
+}
+
+# --- 5. os consertos --------------------------------------------------------
+fix_gerar() {
+  python3 "$RAIZ/scripts/gerar_temas.py" 2>&1 || return "$MEOW_ERRO"
+  python3 "$RAIZ/scripts/gerar_gato.py" --accent "$ACCENT" 2>&1 || return "$MEOW_ERRO"
+  return "$MEOW_DIVERGENTE"
+}
+fix_tema()      { MEOW_DRY_RUN=0 "$RAIZ/scripts/aplicar_tema.sh" "$(alvo_tema)" 2>&1; }
+fix_modo()      { local d; d="$(modo_desejado)" || return "$MEOW_ERRO"; meow_escrever "$IS_DARK" "$d" 644; }
+fix_icones()    { MEOW_DRY_RUN=0 FLAVOR="$FLAVOR" LOGO="$LOGO" \
+                    ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/construir_icones.sh" 2>&1; }
+fix_pastas()    { MEOW_DRY_RUN=0 ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+                    ICONES_PASTAS="${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/construir_pastas.sh" 2>&1; }
+fix_wallpaper() { MEOW_DRY_RUN=0 WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+                    WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+                    "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
+fix_apps()      { MEOW_DRY_RUN=0 APPS_ATIVOS="${APPS_ATIVOS:-}" \
+                    "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1; }
+
+# `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
+# `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
+# mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
+VERIFICAVEIS=(conf gerar tema modo icones pastas wallpaper apps)
+SEM_CONSERTO=" conf "
+
+# --- 6. o runner das conferências -------------------------------------------
+declare -a CHK_NOME=() CHK_RC=() CHK_SAIDA=()
+
+rodar_checks() {
+  CHK_NOME=(); CHK_RC=(); CHK_SAIDA=()
+  local nome saida rc
+  for nome in "${VERIFICAVEIS[@]}"; do
+    saida="$("chk_$nome" 2>&1)"; rc=$?
+    CHK_NOME+=("$nome"); CHK_RC+=("$rc"); CHK_SAIDA+=("$saida")
+  done
+}
+
+rotulo_rc() {
+  case "$1" in
+    0) printf '%sok%s  ' "$C_VERDE" "$C_ZERO" ;;
+    1) printf '%s~~%s  ' "$C_AMARELO" "$C_ZERO" ;;
+    3) printf '%s--%s  ' "$C_DIM" "$C_ZERO" ;;
+    *) printf '%serro%s' "$C_VERM" "$C_ZERO" ;;
+  esac
+}
+
+# Primeira linha da saída do verificador: é ela que cabe na tabela.
+primeira_linha() { printf '%s' "${1%%$'\n'*}"; }
+
+imprimir_check() {
+  local i="$1" detalhar="${2:-0}" linha
+  linha="$(primeira_linha "${CHK_SAIDA[$i]}")"
+  printf '  %s %-10s %s\n' "$(rotulo_rc "${CHK_RC[$i]}")" "${CHK_NOME[$i]}" "$linha"
+  if [ "$detalhar" = "1" ] && [ "${CHK_RC[$i]}" != "0" ]; then
+    printf '%s\n' "${CHK_SAIDA[$i]}" | tail -n +2 | while IFS= read -r l; do
+      [ -n "$l" ] || continue
+      printf '       %s%s%s\n' "$C_DIM" "$l" "$C_ZERO"
+    done
+  fi
+}
+
+pior_rc() {
+  local pior=0 rc
+  for rc in "${CHK_RC[@]}"; do
+    # 2 (erro) manda em tudo; depois 1 (divergente). 3 (pulado) não é falha.
+    [ "$rc" = "2" ] && { printf '2'; return; }
+    [ "$rc" = "1" ] && pior=1
+  done
+  printf '%s' "$pior"
+}
+
+# --- 7. comandos ------------------------------------------------------------
+campo() { printf '    %s%-12s%s %s\n' "$C_DIM" "$1" "$C_ZERO" "$2"; }
+
+cmd_status() {
+  carregar_conf || return "$MEOW_ERRO"
+  meow_titulo "MeowSystem — estado"
+
+  meow_passo "Configuração"
+  campo "arquivo"  "$CONF_LIDA"
+  campo "flavor"   "$FLAVOR"
+  campo "accent"   "$ACCENT"
+  campo "modo"     "$MODO (is_dark=$(is_dark_atual))"
+
+  meow_passo "Tema"
+  local alvo ativo
+  alvo="$(alvo_tema)"
+  campo "alvo"     "$alvo"
+  if ativo="$(tema_ativo)"; then
+    if [ "$ativo" = "$alvo" ]; then
+      campo "ativo"  "$(printf '%s%s%s' "$C_VERDE" "$ativo" "$C_ZERO")"
+    else
+      campo "ativo"  "$(printf '%s%s%s  (o alvo é %s)' "$C_AMARELO" "$ativo" "$C_ZERO" "$alvo")"
+    fi
+  else
+    campo "ativo"    "$(printf '%snenhuma captura confere%s' "$C_AMARELO" "$C_ZERO")"
+  fi
+  campo "capturas"  "$(capturas | paste -sd', ' -)"
+
+  meow_passo "Ícones e logo"
+  local tema_icones logo_path n_icones
+  tema_icones="$(cat "$COSMIC/com.system76.CosmicTk/v1/icon_theme" 2>/dev/null || printf '(nenhum)')"
+  logo_path="$(cat "$COSMIC/dev.cappsy.CosmicExtAppletLogoMenu/v1/custom_logo_path" 2>/dev/null || printf '(nenhuma)')"
+  n_icones="$(find "$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                \( -type f -o -type l \) 2>/dev/null | wc -l)"
+  campo "tema"     "$tema_icones"
+  campo "arquivos" "$n_icones em ~/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+  campo "logo"     "$LOGO  ->  $logo_path"
+
+  meow_passo "Papéis de parede"
+  local l
+  while IFS= read -r l; do
+    campo "${l%%:*}" "$(printf '%s' "${l#*:}" | sed 's/^ *//')"
+  done < <(MEOW_DRY_RUN=1 WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+             WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+             "$RAIZ/scripts/wallpaper.sh" estado 2>/dev/null)
+
+  meow_passo "Divergências"
+  rodar_checks
+  local i qtd=0
+  for i in "${!CHK_NOME[@]}"; do
+    [ "${CHK_RC[$i]}" = "0" ] && continue
+    imprimir_check "$i" 0
+    qtd=$((qtd+1))
+  done
+  if [ "$qtd" = "0" ]; then
+    meow_ok "nada divergente — tudo no lugar"
+  else
+    meow_info "detalhes e conserto: meow doctor --consertar"
+  fi
+  printf '\n'
+  return "$(pior_rc)"
+}
+
+cmd_doctor() {
+  local consertar=0
+  case "${1:-}" in
+    --consertar|-c) consertar=1 ;;
+    "") ;;
+    *) meow_erro "opção desconhecida: $1"; meow_info "use: meow doctor [--consertar]"; return "$MEOW_ERRO" ;;
+  esac
+  carregar_conf || return "$MEOW_ERRO"
+
+  meow_titulo "MeowSystem — doctor"
+  meow_seco && meow_aviso "MEOW_DRY_RUN=1 — nada será escrito"
+  printf '\n'
+  rodar_checks
+  local i
+  for i in "${!CHK_NOME[@]}"; do imprimir_check "$i" 1; done
+
+  local pior; pior="$(pior_rc)"
+  if [ "$consertar" = "0" ]; then
+    printf '\n'
+    case "$pior" in
+      0) meow_ok "nada a consertar" ;;
+      1) meow_muda "há divergências — rode: meow doctor --consertar" ;;
+      *) meow_erro "algo falhou ao conferir; veja os detalhes acima" ;;
+    esac
+    printf '\n'
+    return "$pior"
+  fi
+
+  # --- conserto ------------------------------------------------------------
+  # O lock é daqui para baixo: até agora só se leu, e ler junto com o timer é
+  # inofensivo. Escrever junto não é (regra 10 do contrato).
+  meow_travar || return "$MEOW_ERRO"
+  meow_passo "Consertando o que falhou"
+  local nome rc saida mexeu=0 falhou=0
+  for i in "${!CHK_NOME[@]}"; do
+    nome="${CHK_NOME[$i]}"
+    [ "${CHK_RC[$i]}" = "0" ] && continue
+    case "$SEM_CONSERTO" in *" $nome "*)
+      meow_pula "$nome: sem conserto automático (é o install.sh que cria)"; continue ;;
+    esac
+    if [ "${CHK_RC[$i]}" = "3" ]; then
+      meow_pula "$nome: falta dependência — o conserto não é nosso"
+      continue
+    fi
+    saida="$("fix_$nome" 2>&1)"; rc=$?
+    printf '%s\n' "$saida" | sed 's/^/  /'
+    case "$rc" in
+      0|1) mexeu=1 ;;
+      3)   ;;
+      *)   falhou=1 ;;
+    esac
+  done
+
+  meow_registrar "doctor --consertar mexeu=$mexeu falhou=$falhou"
+  printf '\n'
+  if [ "$falhou" = "1" ]; then
+    meow_erro "alguma etapa falhou — nada ficou pela metade, cada uma é independente"
+    printf '\n'; return "$MEOW_ERRO"
+  fi
+  if [ "$mexeu" = "1" ]; then
+    meow_notificar "MeowSystem" "O doctor consertou o que estava divergente."
+    meow_ok "consertado. Confira com: meow doctor"
+  else
+    meow_ok "nada a consertar"
+  fi
+  printf '\n'
+  return 0
+}
+
+cmd_tema() {
+  carregar_conf || return "$MEOW_ERRO"
+  local arg="${1:-}"
+  case "$arg" in
+    "")
+      meow_titulo "Tema"
+      local ativo
+      campo "alvo" "$(alvo_tema)"
+      if ativo="$(tema_ativo)"; then campo "ativo" "$ativo"
+      else campo "ativo" "nenhuma captura confere"; fi
+      campo "modo" "$MODO (is_dark=$(is_dark_atual))"
+      printf '\n  %scapturas disponíveis%s\n' "$C_DIM" "$C_ZERO"
+      capturas | sed 's/^/    /'
+      printf '\n  %smeow tema <nome> aplica · meow tema claro|escuro|auto troca o modo%s\n\n' \
+             "$C_DIM" "$C_ZERO"
+      return 0 ;;
+
+    claro|escuro|auto)
+      MODO="$arg"
+      conf_definir MODO "$arg"; local rc_conf=$?
+      [ "$rc_conf" -ge 2 ] && { meow_erro "não consegui gravar MODO em $CONF"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      fix_modo; local rc=$?
+      case "$rc" in
+        0) meow_ok "modo $arg já estava ativo (is_dark=$(is_dark_atual))" ;;
+        1) meow_ok "modo $arg aplicado (is_dark=$(is_dark_atual))"
+           meow_registrar "tema modo=$arg"
+           meow_notificar "MeowSystem" "Modo $arg." ;;
+        *) meow_erro "não consegui escrever $IS_DARK"; return "$MEOW_ERRO" ;;
+      esac
+      return "$rc" ;;
+
+    capturar)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow tema capturar <nome>"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/capturar_tema.sh" "$1"; local rc=$?
+      [ "$rc" = "0" ] && meow_registrar "tema capturar $1"
+      return "$rc" ;;
+
+    desfazer) cmd_desfazer ;;
+
+    -h|--help)
+      printf 'uso: meow tema [<captura>|claro|escuro|auto|capturar <nome>|desfazer]\n'; return 0 ;;
+
+    *)
+      if [ ! -d "$RAIZ/state/tema/$arg" ]; then
+        meow_erro "não existe captura '$arg'"
+        meow_info "disponíveis: $(capturas | paste -sd', ' -)"
+        return "$MEOW_SEM_DEPENDENCIA"
+      fi
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/aplicar_tema.sh" "$arg"; local rc=$?
+      if [ "$rc" = "0" ]; then
+        meow_registrar "tema $arg"
+        meow_notificar "MeowSystem" "Tema $arg aplicado."
+      fi
+      return "$rc" ;;
+  esac
+}
+
+cmd_logo() {
+  carregar_conf || return "$MEOW_ERRO"
+  local arg="${1:-}"
+  if [ -z "$arg" ]; then
+    meow_titulo "Logo do painel"
+    campo "em uso" "$LOGO"
+    campo "arquivo" "$(cat "$COSMIC/dev.cappsy.CosmicExtAppletLogoMenu/v1/custom_logo_path" 2>/dev/null || printf '(nenhuma)')"
+    printf '\n  %svariantes com desenho de painel%s\n' "$C_DIM" "$C_ZERO"
+    logos_disponiveis | sed 's/^/    /'
+    # As variantes `-preto` existem em assets/, mas só na versão com disco de
+    # fundo. Sem um `meow-<x>-preto-painel.svg`, o construir_icones.sh cairia no
+    # gato do flavor sem avisar — melhor não oferecer do que oferecer e ignorar.
+    printf '\n  %sas variantes -preto não têm versão de painel: usá-las voltaria ao gato do flavor%s\n' \
+           "$C_DIM" "$C_ZERO"
+    printf '  %smeow logo <variante> troca a logo e o botão do dock de uma vez%s\n\n' "$C_DIM" "$C_ZERO"
+    return 0
+  fi
+
+  if ! logos_disponiveis | grep -qx "$arg"; then
+    meow_erro "não existe assets/meow-$arg-painel.svg"
+    meow_info "disponíveis: $(logos_disponiveis | paste -sd', ' -)"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  LOGO="$arg"
+  conf_definir LOGO "$arg"; local rc_conf=$?
+  [ "$rc_conf" -ge 2 ] && { meow_erro "não consegui gravar LOGO em $CONF"; return "$MEOW_ERRO"; }
+  meow_travar || return "$MEOW_ERRO"
+  # O construir_icones.sh reinicia o cosmic-panel quando algo muda: a logo é
+  # cacheada no carregamento do applet e o arquivo de destino tem o nome do
+  # FLAVOR, não o da variante (docs/COSMIC-THEMING.md §3). Dizer isso antes é
+  # mais honesto do que o painel piscar sem explicação.
+  meow_info "se algo mudar, o painel reinicia (é como o applet relê a logo)"
+  fix_icones; local rc=$?
+  [ "$rc" = "1" ] && { meow_registrar "logo $arg"; meow_notificar "MeowSystem" "Logo $arg."; }
+  return "$rc"
+}
+
+cmd_icones() {
+  carregar_conf || return "$MEOW_ERRO"
+  case "${1:-}" in
+    reconstruir)
+      meow_travar || return "$MEOW_ERRO"
+      local rc_i rc_p
+      fix_icones; rc_i=$?
+      fix_pastas; rc_p=$?
+      [ "$rc_i" -ge 2 ] || [ "$rc_p" -ge 2 ] && return "$MEOW_ERRO"
+      meow_registrar "icones reconstruir"
+      [ "$rc_i" = "1" ] || [ "$rc_p" = "1" ] && return "$MEOW_DIVERGENTE"
+      return 0 ;;
+    ""|estado)
+      local dir n_apps n_pastas
+      dir="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+      meow_titulo "Ícones"
+      campo "tema"      "$(cat "$COSMIC/com.system76.CosmicTk/v1/icon_theme" 2>/dev/null || printf '(nenhum)')"
+      campo "diretório" "$dir"
+      campo "base"      "${ICONES_BASE:-Papirus-Dark}"
+      campo "pastas"    "${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}"
+      n_apps="$(find "$dir/scalable/apps" -type f 2>/dev/null | wc -l)"
+      n_pastas="$(find "$dir" -path '*/places/*' \( -type f -o -type l \) 2>/dev/null | wc -l)"
+      campo "aplicativos" "$n_apps"
+      campo "lugares"     "$n_pastas"
+      printf '\n'
+      local saida rc
+      saida="$(chk_icones)"; rc=$?
+      printf '  %s %-10s %s\n' "$(rotulo_rc "$rc")" "ícones" "$(primeira_linha "$saida")"
+      saida="$(chk_pastas)"; local rc2=$?
+      printf '  %s %-10s %s\n\n' "$(rotulo_rc "$rc2")" "pastas" "$(primeira_linha "$saida")"
+      [ "$rc" = "0" ] && [ "$rc2" = "0" ] && return 0
+      return "$MEOW_DIVERGENTE" ;;
+    *) meow_erro "uso: meow icones [estado|reconstruir]"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_wallpaper() {
+  carregar_conf || return "$MEOW_ERRO"
+  local acao="${1:-estado}"
+  case "$acao" in
+    estado|aplicar|adicionar|banir)
+      # Só passa adiante o que o scripts/wallpaper.sh tem de verdade. Os
+      # comandos `proximo`, `fixar`, `favoritar`, `recolorir` e `semear` do
+      # contrato NÃO existem ainda — e `proximo` em particular não é
+      # implementável na rotação nativa: o cosmic-bg não fala D-Bus, e
+      # reescrever a configuração REINICIA a rotação na primeira imagem em vez
+      # de avançar (medido; está no cabeçalho do wallpaper.sh).
+      case "$acao" in aplicar|adicionar|banir) meow_travar || return "$MEOW_ERRO" ;; esac
+      shift || true
+      WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+        WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+        "$RAIZ/scripts/wallpaper.sh" "$acao" ${1:+"$1"}
+      return $? ;;
+    proximo|fixar|favoritar|recolorir|semear|intervalo|ordem)
+      meow_erro "'$acao' ainda não existe"
+      meow_info "o que existe hoje: estado, aplicar, adicionar <img|pasta>, banir <img>"
+      meow_info "intervalo e ordem se mudam no $CONF (WALLPAPER_INTERVALO / WALLPAPER_ORDEM)"
+      return "$MEOW_SEM_DEPENDENCIA" ;;
+    *) meow_erro "uso: meow wallpaper [estado|aplicar|adicionar <alvo>|banir <img>]"
+       return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_apps() {
+  carregar_conf || return "$MEOW_ERRO"
+  case "${1:-tabela}" in
+    tabela)
+      meow_titulo "Aplicativos"
+      printf '  %s%-18s %-12s %-12s %s%s\n' "$C_DIM" "módulo" "instalado" "tema" "apps do meow.conf" "$C_ZERO"
+      local pasta slugs det conf rc_geral=0
+      while IFS=$'\t' read -r pasta slugs det conf; do
+        [ -n "$pasta" ] || continue
+        local c_inst c_tema
+        case "$det" in
+          0) c_inst="$(printf '%ssim%s' "$C_VERDE" "$C_ZERO")" ;;
+          *) c_inst="$(printf '%snão%s' "$C_DIM" "$C_ZERO")" ;;
+        esac
+        case "$conf" in
+          0) c_tema="$(printf '%saplicado%s' "$C_VERDE" "$C_ZERO")" ;;
+          1) c_tema="$(printf '%spendente%s' "$C_AMARELO" "$C_ZERO")"; rc_geral=1 ;;
+          3) c_tema="$(printf '%s--%s' "$C_DIM" "$C_ZERO")" ;;
+          *) c_tema="$(printf '%serro%s' "$C_VERM" "$C_ZERO")"; rc_geral=2 ;;
+        esac
+        # As cores custam bytes invisíveis: o %-12s não alinha sozinho.
+        printf '  %-18s %-23s %-23s %s\n' "$pasta" "$c_inst" "$c_tema" "$slugs"
+      done < <(APPS_ATIVOS="${APPS_ATIVOS:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
+      printf '\n  %sslug sem módulo ainda não é falha: aparece só quando alguém escrever o manifesto.%s\n' \
+             "$C_DIM" "$C_ZERO"
+      printf '  %smeow apps aplicar [slug] tematiza; sem slug, todos.%s\n\n' "$C_DIM" "$C_ZERO"
+      return "$rc_geral" ;;
+    conferir)
+      APPS_ATIVOS="${APPS_ATIVOS:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir; return $? ;;
+    aplicar)
+      shift
+      meow_travar || return "$MEOW_ERRO"
+      local lista="${APPS_ATIVOS:-}"
+      [ -n "${1:-}" ] && lista="$1"
+      APPS_ATIVOS="$lista" "$RAIZ/scripts/aplicar_apps.sh" aplicar; local rc=$?
+      [ "$rc" = "1" ] && meow_registrar "apps aplicar ${1:-todos}"
+      return "$rc" ;;
+    *) meow_erro "uso: meow apps [tabela|conferir|aplicar [slug]]"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_aplicar() {
+  # NÃO pega o lock: quem pega é o próprio install.sh. Dois flock no mesmo
+  # arquivo, um do pai e outro do filho, dariam "outro meow está rodando" —
+  # e o culpado seria este processo.
+  local seco="${MEOW_DRY_RUN:-0}"
+  case "${1:-}" in
+    --seco|--dry-run) seco=1 ;;
+    "") ;;
+    *) meow_erro "uso: meow aplicar [--seco]"; return "$MEOW_ERRO" ;;
+  esac
+  MEOW_DRY_RUN="$seco" "$RAIZ/install.sh"
+}
+
+cmd_desfazer() {
+  carregar_conf || return "$MEOW_ERRO"
+  if [ ! -d "$RAIZ/state/tema/original" ]; then
+    meow_erro "não há captura 'original' em state/tema/"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  # Pergunta só quando há alguém para responder. Em automação (`| meow`, timer,
+  # hook) segue sem perguntar — é a regra "zero pergunta em modo automático".
+  if [ -t 0 ] && [ "${MEOW_SIM:-0}" != "1" ]; then
+    printf '  %sisto devolve o tema do COSMIC para a captura "original".%s\n' "$C_AMARELO" "$C_ZERO"
+    printf '  continuar? (s/N) '
+    local resp=""
+    read -r -t "${MEOW_TIMEOUT:-30}" resp || true
+    case "$resp" in s|S|sim|Sim) ;; *) printf '\n  cancelado.\n'; return 0 ;; esac
+  fi
+  meow_travar || return "$MEOW_ERRO"
+  "$RAIZ/scripts/aplicar_tema.sh" original; local rc=$?
+  if [ "$rc" = "0" ]; then
+    meow_registrar "desfazer -> original"
+    meow_notificar "MeowSystem" "Tema devolvido para a captura original."
+  fi
+  return "$rc"
+}
+
+cmd_log() {
+  local arq="$MEOW_ESTADO/meow.log"
+  [ -f "$arq" ] || { meow_aviso "ainda não há log em $arq"; return "$MEOW_SEM_DEPENDENCIA"; }
+  meow_titulo "Últimas 50 linhas — $arq"
+  local l quando resto
+  while IFS= read -r l; do
+    quando="${l%% *}"; resto="${l#* }"
+    case "$resto" in
+      *falhou*|*erro*|*falhos=[1-9]*)
+        printf '  %s%s%s %s%s%s\n' "$C_DIM" "$quando" "$C_ZERO" "$C_VERM" "$resto" "$C_ZERO" ;;
+      *aplicad*|*consertou*|*mexeu=1*)
+        printf '  %s%s%s %s%s%s\n' "$C_DIM" "$quando" "$C_ZERO" "$C_VERDE" "$resto" "$C_ZERO" ;;
+      *)
+        printf '  %s%s%s %s\n' "$C_DIM" "$quando" "$C_ZERO" "$resto" ;;
+    esac
+  done < <(tail -n 50 "$arq")
+  printf '\n'
+  return 0
+}
+
+# --- 8. o menu sem argumento ------------------------------------------------
+# Itens montados a partir do estado REAL: as capturas que existem viram
+# "tema <nome>", as variantes de logo viram "logo <nome>". Assim nenhum item do
+# menu pede argumento — não há prompt para digitar, e não há como escolher um
+# nome que não existe.
+menu_itens() {
+  printf 'status\tPainel de estado: flavor, accent, tema, ícones, papel de parede e o que está divergente.\n'
+  printf 'doctor\tRoda todas as conferências em seco e lista as divergências. Não escreve nada.\n'
+  printf 'doctor --consertar\tConfere e aplica só o que falhou. Não usa sudo e não baixa nada.\n'
+  printf 'tema\tMostra o tema alvo, o ativo e as capturas disponíveis.\n'
+  local n
+  while IFS= read -r n; do
+    [ -n "$n" ] || continue
+    printf 'tema %s\tAplica a captura "%s" por cópia, sem passar pela GUI.\n' "$n" "$n"
+  done < <(capturas)
+  printf 'tema claro\tEscreve is_dark=false. Claro e escuro são o MESMO tema, com um interruptor.\n'
+  printf 'tema escuro\tEscreve is_dark=true.\n'
+  printf 'tema auto\tDeixa o horário decidir (claro das 7h às 18h, por padrão).\n'
+  printf 'logo\tLista as variantes de logo do painel.\n'
+  while IFS= read -r n; do
+    [ -n "$n" ] || continue
+    printf 'logo %s\tTroca a logo do painel e o botão do dock para a variante %s.\n' "$n" "$n"
+  done < <(logos_disponiveis)
+  printf 'icones\tEstado do tema de ícones: qual está selecionado e quantos arquivos tem.\n'
+  printf 'icones reconstruir\tRemonta MeowSystem-Icons e as pastas coloridas.\n'
+  printf 'wallpaper\tEstado do carrossel: pasta, quantas imagens, intervalo e ordem.\n'
+  printf 'apps\tTabela: módulo, app instalado, tema aplicado ou pendente.\n'
+  printf 'aplicar\tRoda o install.sh inteiro. Idempotente: nada é escrito duas vezes.\n'
+  printf 'log\tÚltimas 50 linhas do log do MeowSystem.\n'
+  printf 'desfazer\tDevolve o tema do COSMIC para a captura "original".\n'
+}
+
+menu_numerado() {
+  local -a cmds=() descs=()
+  local linha
+  while IFS=$'\t' read -r linha desc; do
+    cmds+=("$linha"); descs+=("$desc")
+  done < <(menu_itens)
+
+  meow_titulo "meow"
+  local i
+  for i in "${!cmds[@]}"; do
+    printf '  %s%2d%s  %-22s %s%s%s\n' "$C_MAUVE" "$((i+1))" "$C_ZERO" \
+           "${cmds[$i]}" "$C_DIM" "${descs[$i]}" "$C_ZERO"
+  done
+  printf '\n'
+
+  # Sem terminal não há escolha a fazer: listar e sair 0 é melhor do que
+  # pendurar um hook ou um timer esperando um ENTER que nunca vem.
+  if [ ! -t 0 ]; then
+    meow_info "sem terminal interativo — rode 'meow <comando>' direto"
+    return 0
+  fi
+  printf '  %sescolha (ENTER cancela):%s ' "$C_MAUVE" "$C_ZERO"
+  local escolha=""
+  read -r -t "${MEOW_TIMEOUT:-60}" escolha || { printf '\n'; return 0; }
+  [ -n "$escolha" ] || { printf '  cancelado.\n'; return 0; }
+  case "$escolha" in
+    ''|*[!0-9]*) meow_erro "não é um número: $escolha"; return "$MEOW_ERRO" ;;
+  esac
+  [ "$escolha" -ge 1 ] && [ "$escolha" -le "${#cmds[@]}" ] || {
+    meow_erro "fora da lista: $escolha"; return "$MEOW_ERRO"; }
+  local -a partes=()
+  read -r -a partes <<< "${cmds[$((escolha-1))]}"
+  printf '\n  %s>>>%s meow %s\n\n' "$C_MAUVE" "$C_ZERO" "${partes[*]}"
+  despachar "${partes[@]}"
+}
+
+cmd_menu() {
+  carregar_conf || return "$MEOW_ERRO"
+  if ! meow_tem fzf; then
+    menu_numerado
+    return $?
+  fi
+
+  local selecao rc
+  # Mesmas medidas do conjurar.zsh (altura, borda, margem, cabeçalho, preview à
+  # direita, --with-nth=1 sobre `comando<TAB>descrição`); a paleta é a nossa.
+  selecao="$(menu_itens | fzf \
+      --height=60% --layout=reverse --border=rounded \
+      --margin=1 --padding=1 \
+      --prompt="  Meow > " \
+      --header="  ENTER executar | ESC sair" \
+      --color="bg+:#313244,fg+:#cdd6f4,hl:#cba6f7,hl+:#f5c2e7,pointer:#a6e3a1,marker:#a6e3a1,prompt:#cba6f7,header:#6c7086,border:#6c7086" \
+      --preview-window="right:50%:wrap" \
+      --delimiter=$'\t' --with-nth=1 \
+      --preview='printf "%s\n" {2}')"
+  rc=$?
+  # 130 = ESC/Ctrl-C. Cancelar não é erro.
+  [ "$rc" = "130" ] && { printf '  %scancelado.%s\n' "$C_DIM" "$C_ZERO"; return 0; }
+  [ "$rc" != "0" ] || [ -z "$selecao" ] && return 0
+
+  local cmd="${selecao%%$'\t'*}"
+  local -a partes=()
+  read -r -a partes <<< "$cmd"
+  printf '\n  %s>>>%s meow %s\n' "$C_MAUVE" "$C_ZERO" "${partes[*]}"
+  despachar "${partes[@]}"
+}
+
+# --- 9. ajuda e despacho ----------------------------------------------------
+cmd_ajuda() {
+  cat <<'FIM'
+
+meow — Catppuccin para o COSMIC
+
+  meow                         menu interativo (fzf; sem ele, menu numerado)
+  meow status                  painel de estado e o que está divergente
+  meow doctor                  confere tudo em seco. Sai 1 se houver divergência
+  meow doctor --consertar      confere e aplica só o que falhou
+
+  meow tema                    tema alvo, tema ativo e capturas disponíveis
+  meow tema <captura>          aplica a captura por cópia (sem GUI)
+  meow tema claro|escuro|auto  troca o modo e grava MODO no meow.conf
+  meow tema capturar <nome>    fotografa o estado atual como captura <nome>
+  meow tema desfazer           o mesmo que meow desfazer
+
+  meow logo                    variantes de logo do painel
+  meow logo <variante>         troca a logo do painel e o botão do dock
+
+  meow icones                  estado do tema de ícones
+  meow icones reconstruir      remonta o tema e as pastas coloridas
+
+  meow wallpaper               estado do carrossel
+  meow wallpaper aplicar       liga/reafirma a rotação nativa do COSMIC
+  meow wallpaper adicionar <alvo>   copia imagem ou pasta para ativos/
+  meow wallpaper banir <img>   move para banidos/ (nunca apaga)
+
+  meow apps                    tabela: módulo, instalado, tema
+  meow apps aplicar [slug]     tematiza um app, ou todos
+  meow aplicar [--seco]        roda o install.sh inteiro
+  meow desfazer                volta o tema para a captura "original"
+  meow log                     últimas 50 linhas do log
+
+Variáveis:
+  MEOW_DRY_RUN=1    não escreve nada
+  MEOW_RAIZ         onde está o clone do MeowSystem
+  MEOW_CONF         outro meow.conf
+  MEOW_SIM=1        não pergunta nada (usado pelo desfazer)
+
+Códigos de saída: 0 certo · 1 divergente · 2 erro · 3 falta dependência.
+
+FIM
+  return 0
+}
+
+despachar() {
+  case "${1:-}" in
+    ""|menu)          cmd_menu ;;
+    status|estado)    shift; cmd_status "$@" ;;
+    doctor|medico)    shift; cmd_doctor "$@" ;;
+    tema)             shift; cmd_tema "$@" ;;
+    logo)             shift; cmd_logo "$@" ;;
+    icones|ícones)    shift; cmd_icones "$@" ;;
+    wallpaper|parede) shift; cmd_wallpaper "$@" ;;
+    apps)             shift; cmd_apps "$@" ;;
+    aplicar)          shift; cmd_aplicar "$@" ;;
+    desfazer)         shift; cmd_desfazer "$@" ;;
+    log)              shift; cmd_log "$@" ;;
+    ajuda|-h|--help|help) cmd_ajuda ;;
+    *) meow_erro "comando desconhecido: $1"
+       meow_info "veja: meow --help  (ou 'meow' sem argumento para o menu)"
+       return "$MEOW_ERRO" ;;
+  esac
+}
+
+despachar "$@"
