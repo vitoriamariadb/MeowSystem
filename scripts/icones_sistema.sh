@@ -58,7 +58,9 @@ BASE="$HOME/.local/share/icons/$TEMA"
 # Os dois tamanhos, e a espessura de traço de cada um. Foi a escolha dela ao ver
 # a folha: "depende do tamanho" — fino onde o ícone respira, dobrado onde ele
 # tem 22px para existir. A chave do array é o diretório; o valor, o stroke-width.
-declare -A TRACO=( ["22x22/status"]=2 ["scalable/status"]=1 )
+# 4 no pequeno foi escolha dela, olhando a folha: 2 ainda ficava fino demais ao
+# lado dos ícones cheios do Papirus que dividem a mesma barra.
+declare -A TRACO=( ["22x22/status"]=4 ["scalable/status"]=1 )
 
 declare -A MAPA_LIDO=()   # nome COSMIC -> glifo Arcticons
 declare -A ALIAS_OK=()    # glifo -> 1, quando a repetição é deliberada
