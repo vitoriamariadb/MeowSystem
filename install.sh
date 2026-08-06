@@ -483,6 +483,17 @@ etapa_completar_icones() {
 # nosso). Vem DEPOIS do `etapa_icones`, que é quem escreve o `index.theme`: sem a
 # declaração `scalable/mimetypes` lá, estes arquivos existiriam no disco e não
 # seriam encontrados por ninguém.
+# Os ícones do LANÇADOR, do acervo Catppuccin de aplicativo. Depois do
+# `etapa_icones` pelo mesmo motivo da etapa irmã: quem declara `512x512/apps` no
+# index.theme é aquele, e sem a declaração estes PNG não são achados por ninguém.
+etapa_icones_apps() {
+  passo "Ícones dos aplicativos"
+  ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
+    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_apps.sh"
+  return $?
+}
+
 etapa_mimetypes() {
   passo "Ícones de tipo de arquivo"
   ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
@@ -770,7 +781,7 @@ main() {
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_upstream etapa_fontes
                 etapa_icones etapa_pastas etapa_hicolor etapa_completar_icones
-                etapa_mimetypes etapa_jogos
+                etapa_mimetypes etapa_icones_apps etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_som etapa_apps
                 etapa_autoreparo)
   TOTAL=${#etapas[@]}
