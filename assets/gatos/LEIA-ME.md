@@ -16,15 +16,28 @@ precisar estar aqui.
 
 ## Quando o gato novo aparece
 
-Sozinho, na próxima volta do relógio — `meow-logo.timer`, a cada 30 minutos por
-padrão. Se a pressa for grande:
+**Entrar no acervo é imediato.** Um vigia do systemd (`meow-assets.path`) olha
+esta pasta: o arquivo que você solta aqui vai para o disco em menos de um
+segundo, e o que você apaga sai junto. Não há comando a rodar, e o MeowSystem
+avisa por notificação quando isso acontece. Medido em 05/08/2026: um disparo por
+arquivo, nunca em laço.
+
+**Entrar não é aparecer.** O vigia *não gira* o gato — acrescentar um arquivo não
+muda qual está no ar. Quem gira é o relógio, `meow-logo.timer`, uma vez por dia
+(`LOGO_INTERVALO` no `meow.conf`). E o gato do canto do dock só troca no **login
+seguinte**, porque o `cosmic-panel` carrega os ícones uma vez e não os relê.
+
+Para não esperar:
 
 ```bash
 meow logo girar     # passa para o próximo agora
 meow logo listar    # mostra o acervo e quem está no ar
 ```
 
-A troca vale **na hora**, sem reiniciar o painel e sem piscar a tela.
+A troca da chave vale **na hora**, sem reiniciar o painel e sem piscar a tela.
+
+Para desligar o vigia: `ASSETS_VIGIA="nao"` no `meow.conf`. Aí o gato novo volta
+a entrar só na volta do relógio.
 
 > **Hoje ela não muda pixel nenhum, e o motivo não é bug.** O gato do painel é
 > desenhado pelo applet **Logo Menu** (`dev.cappsy`), que **não está montado em
@@ -50,7 +63,7 @@ A troca vale **na hora**, sem reiniciar o painel e sem piscar a tela.
 |---|---|---|
 | papéis de parede | `~/.local/share/backgrounds/meowsystem/ativos/` | soltou o arquivo, já entrou — o `cosmic-bg` lê a pasta |
 | ícones de aplicativo | `src/icons/` | `meow icones reconstruir` |
-| logos do painel | **aqui** | soltou o arquivo, entra na próxima volta |
+| logos do painel | **aqui** | soltou o arquivo, já entrou — o `meow-assets.path` vigia a pasta |
 
 Os papéis de parede **moram** no repositório, em `wallpapers/` — são 242 imagens
 e 193 MB, baixadas de `zhichaoh/catppuccin-wallpapers` em 05/08/2026. O que não

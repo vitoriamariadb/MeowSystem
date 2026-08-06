@@ -327,6 +327,14 @@ chk_jogos() {
   MEOW_DRY_RUN=1 "$RAIZ/scripts/jogos_steam.sh" 2>&1
 }
 
+# O vigia de `assets/gatos/` — as unidades `meow-assets.path`/`.service`. Confere
+# o TEXTO da unidade (com o `@ACERVO@` já substituído, como o instalador grava) e
+# se o gatilho está ligado e não-falho. Não usa `MEOW_DRY_RUN=1`: o `--conferir`
+# do script já é a leitura pura, e o seco lá dentro dá no mesmo caminho.
+chk_assets() {
+  ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" "$RAIZ/scripts/vigia_assets.sh" --conferir 2>&1
+}
+
 chk_greeter() {
   MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1
 }
@@ -365,12 +373,14 @@ fix_mimetypes() { ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
 fix_sistema()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_sistema.sh" --aplicar 2>&1; }
 fix_jogos()     { "$RAIZ/scripts/jogos_steam.sh" 2>&1; }
+fix_assets()    { ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" \
+                    "$RAIZ/scripts/vigia_assets.sh" --aplicar 2>&1; }
 fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1; }
 
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro greeter icones hicolor mimetypes sistema jogos pastas wallpaper apps)
+VERIFICAVEIS=(conf gerar tema modo vidro greeter icones hicolor mimetypes sistema jogos pastas wallpaper apps assets)
 SEM_CONSERTO=" conf "
 
 # --- 6. o runner das conferências -------------------------------------------

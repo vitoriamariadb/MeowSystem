@@ -1,0 +1,117 @@
+# meow-assets.service — o gato que ela acabou de soltar em `assets/gatos/` entra
+# na rotação, disparado pelo `meow-assets.path` irmão.
+#
+# O QUE ELE RODA, E POR QUE NÃO É `girar`
+#   `logo.sh` sem argumento = "aplicar": põe o acervo INTEIRO no disco
+#   (`~/.config/cosmic/logos/meow-<nome>.svg`), remove de lá o que ela tirou da
+#   pasta, e garante que a chave do applet aponta para algum gato do acervo — SEM
+#   avançar a rotação. É exatamente o pedido: "soltou o arquivo, ele ENTRA na
+#   rotação". Girar aqui seria outra coisa, e uma coisa ruim: acrescentar um gato
+#   passaria a mexer em QUAL gato está no ar, escolhendo o próximo da fila (que
+#   nem é o que ela acabou de desenhar). Quem gira é o relógio — um gato por dia,
+#   decisão dela.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# POR QUE ISTO NÃO ENTRA EM LAÇO — CONFERIDO NO CÓDIGO, NÃO SUPOSTO
+# ─────────────────────────────────────────────────────────────────────────────
+#   Um serviço disparado por mudança que escreve DENTRO do diretório vigiado se
+#   redispara para sempre. Medido que a armadilha é real: escrever ou apagar um
+#   arquivo em `assets/gatos/` dispara a unidade.
+#
+#   Lidas as quatro escritas do `logo.sh`, TODAS caem fora do caminho vigiado:
+#     - o acervo instalado ....... `~/.config/cosmic/logos/meow-<nome>.svg`
+#     - a chave do applet ........ `~/.config/cosmic/dev.cappsy.…/v1/custom_logo_*`
+#     - o estado da rotação ...... `~/.local/state/meowsystem/logo-atual`
+#     - os botões do dock ........ `~/.local/share/icons/<tema>/scalable/apps/`
+#   E a remoção de órfão — o `rm -f` que o SPRINTS.md manda conferir — mira em
+#   `$LOGOS_DIR`, que é `~/.config/cosmic/logos`, NUNCA no acervo. O script nunca
+#   escreve no repositório; a pasta dela é entrada, não saída.
+#
+#   Este log também fica fora: `~/.local/state/meowsystem/logo.log`.
+#
+#   O `StartLimit*` abaixo é o disjuntor caso alguém um dia quebre essa regra.
+#
+# A ARMADILHA DO `append:` (medida em 2026-08-04, reconfirmada em 05/08)
+#   `StandardOutput=append:` é montado ANTES de qualquer comando do serviço e
+#   antes até do `StateDirectory=`. Reproduzido de novo hoje, com o diretório de
+#   destino ausente: `Failed to set up standard output: No such file or
+#   directory`, `status=209/STDOUT`, e nada mais roda. Quem garante que
+#   `~/.local/state/meowsystem` existe ANTES é o `scripts/vigia_assets.sh`, que
+#   faz o `mkdir -p` antes de instalar a unidade — a mesma disciplina da etapa do
+#   auto-reparo no `install.sh`.
+#
+# `$R` SIM, `${R}` NUNCA — MEDIDO EM 05/08/2026
+#   O systemd expande `${NOME}` na linha de Exec mesmo dentro de aspas simples, e
+#   uma variável que ele não conhece vira STRING VAZIA. Testado: `sh -c 'R=abc;
+#   printf "[%s][%s]" "$R" "${R}"'` imprimiu `[abc][]`. Já `${NOME:-padrão}` ele
+#   deixa passar inteiro (o `:` não é nome de variável válido) e quem expande é o
+#   shell — testado com `DEF=doshell; "${DEF:-fallback}"`, que saiu `doshell`.
+#   Por isso as duas formas usadas aqui são `$R` e `${VAR:-padrão}`, e nenhuma
+#   linha usa `${VAR}` sozinho.
+#
+# ConditionPathExists NO PONTEIRO, E NÃO NO REPOSITÓRIO
+#   Se /mnt/Apate estiver desmontado, o ponteiro em `~/.local/state` continua lá
+#   (ele mora em /home) e é o `[ -x "$R/scripts/logo.sh" ]` do ExecStart que faz a
+#   degradação silenciosa: sai 0, sem erro e sem barulho. É a mesma degradação do
+#   `meow-logo.service`, e é ela que a Sprint E pede — a condição no `.path` faria
+#   pior, e o porquê está no cabeçalho daquele arquivo.
+
+[Unit]
+Description=MeowSystem — o gato novo do acervo entra na rotação
+Documentation=file:%h/.local/state/meowsystem/raiz
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+
+# O DISJUNTOR DO LAÇO
+#   Hoje o serviço não escreve no diretório vigiado, e isso está conferido linha a
+#   linha acima. Amanhã alguém acrescenta uma escrita e o par `.path`/`.service`
+#   passa a girar sozinho, gastando CPU sem nada na tela para denunciar. Com o
+#   limite, o vigia PARA e fica vermelho no `systemctl --user status` — o
+#   `meow doctor` acusa e o `--consertar` faz o `reset-failed` antes de religar.
+#   Vinte em um minuto é folga larga para ela arrastar um punhado de gatos de uma
+#   vez (medido: um arquivo solto = 1 a 2 disparos) e apertado para um laço, que
+#   queima a cota em menos de um segundo.
+StartLimitIntervalSec=60s
+StartLimitBurst=20
+
+[Service]
+Type=oneshot
+
+# A chave do `meow.conf` desliga o vigia SEM desinstalar nada. O `install.sh`
+# também remove as unidades quando ela é "nao" — as duas coisas juntas porque
+# editar a conf tem de valer na hora, e não só depois da próxima instalação.
+# Sem `[ -f ]` antes do `.`: numa máquina recém-clonada a conf pode não existir, e
+# um `source` de arquivo ausente mataria a condição por engano em vez de pulá-la.
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${ASSETS_VIGIA:-sim}" = "sim" ]'
+
+ExecStart=/bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; . %h/.config/meow/meow.conf; export FLAVOR LOGO; exec "$R/scripts/logo.sh"'
+
+# 1 é "estava divergente e eu consertei" — o código que o `logo.sh` devolve
+# quando o acervo mudou, que é justamente o caso normal aqui. 3 é "o applet
+# dev.cappsy não está nesta máquina". Sem esta linha, TODA entrada de gato novo
+# apareceria como serviço falho.
+SuccessExitStatus=1 3
+
+# O AVISO, E SÓ QUANDO ALGO DE FATO ENTROU
+#   Mesmo mecanismo do `meow-doctor.service`: o systemd entrega `EXIT_STATUS` ao
+#   ExecStopPost mesmo quando o código está no `SuccessExitStatus`. Só o 1 fala.
+#   Sem isto, o recurso seria invisível: ela solta o arquivo, nada pisca (o gato
+#   do dock só é relido no login seguinte — o cosmic-panel não tem watch de
+#   inotify sobre arquivo de ícone) e ela não teria como saber se funcionou.
+#   O prefixo `-` existe porque uma máquina sem servidor de notificação faria o
+#   `notify-send` sair != 0 e marcaria o serviço como falho por causa do aviso.
+#
+#   NENHUMA ASPA DENTRO DA MENSAGEM — e isto foi um defeito de verdade, pego aqui
+#   antes de virar bug: o texto trazia `\"meow logo listar\"`. O systemd entrega o
+#   script inteiro ao `sh` como UM argumento, e lá dentro aquelas aspas FECHAM a
+#   string do corpo. Conferido com `systemctl --user show -p ExecStopPost`: o
+#   corpo se partia em três argumentos, e o `notify-send` recusa o excesso. Aspa
+#   simples também não serve (o systemd já usou as dela). Texto sem aspas resolve.
+ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${ASSETS_VIGIA_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "O acervo de gatos mudou e já está no disco. O gato do dock troca no próximo login; meow logo listar mostra quem está no ar."'
+
+# Um vigia travado seguraria o disparo seguinte. Isto aqui lê uma pasta e escreve
+# meia dúzia de SVG pequenos; um minuto é folga de sobra.
+TimeoutStartSec=1min
+
+StandardOutput=append:%h/.local/state/meowsystem/logo.log
+StandardError=inherit
+SyslogIdentifier=meow-assets

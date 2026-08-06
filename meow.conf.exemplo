@@ -111,5 +111,21 @@ APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,
 # de todo apt, e dois reparadores no mesmo evento dariam avisos contraditórios.
 AUTO_REPARO="sim"                 # timer diário: meow doctor --consertar às 5h
 AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
+
+# O gato solto em `assets/gatos/` entra NA HORA, sem esperar o relógio?
+#   Com "sim", o par `meow-assets.path`/`meow-assets.service` vigia a pasta por
+#   inotify: soltou um SVG, ele vai para o disco e entra na rotação; apagou, sai.
+#   Sem isso, a mudança só chega na volta seguinte do `meow-logo.timer` — que
+#   com LOGO_INTERVALO="1d" é um dia inteiro de espera para descobrir se o
+#   arquivo entrou.
+#
+#   O vigia NÃO gira o gato: acrescentar um arquivo não muda qual está no ar. Quem
+#   gira é o relógio, um por dia, que foi a escolha dela.
+#
+#   E ele é do MeowSystem, não do self-heal do Ritual da Aurora: aquele é de outro
+#   projeto e pode ser desligado, e o recurso morreria junto sem dizer por quê.
+ASSETS_VIGIA="sim"
+ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho
+
 BACKUPS_MANTIDOS="10"
 LOG_NIVEL="info"                  # silencioso | info | debug

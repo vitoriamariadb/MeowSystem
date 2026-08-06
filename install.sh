@@ -773,6 +773,28 @@ etapa_logo() {
   return "$MEOW_DIVERGENTE"
 }
 
+# ---------------------------------------------------------------------------
+# O VIGIA DO ACERVO — A PASTA PASSA A RESPONDER NA HORA
+#
+#   Pedido dela em 05/08: "o comando do meow tem que disparar em automático,
+#   talvez no self heal algo assim". A etapa acima põe o acervo no disco e liga o
+#   RELÓGIO; esta liga o par `meow-assets.path` + `meow-assets.service`, que faz
+#   um SVG solto em `assets/gatos/` entrar sem esperar a volta do relógio — que
+#   hoje é de um dia.
+#
+#   VEM DEPOIS DA `etapa_logo` DE PROPÓSITO: o vigia dispara o mesmo `logo.sh`
+#   daquela etapa, e ligá-lo antes seria armar o gatilho de um recurso que ainda
+#   não foi aplicado uma vez.
+#
+#   NÃO É NO SELF-HEAL DO RITUAL DA AURORA, que foi o palpite dela. Aquilo é de
+#   outro projeto, roda como root e ela pode desligar; o recurso morreria junto,
+#   calado. O porquê inteiro está no cabeçalho de `scripts/vigia_assets.sh`.
+etapa_assets() {
+  passo "Vigia do acervo de gatos (systemd --user)"
+  ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" "$MEOW_RAIZ/scripts/vigia_assets.sh"
+  return $?
+}
+
 etapa_wallpaper() {
   passo "Papéis de parede"
   WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
@@ -801,7 +823,7 @@ main() {
                 etapa_icones etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_sistema etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_som etapa_apps
-                etapa_autoreparo)
+                etapa_assets etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
   for e in "${etapas[@]}"; do
