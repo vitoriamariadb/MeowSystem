@@ -4,7 +4,46 @@ Este arquivo é **autossuficiente**: quem for executar uma sprint não precisa d
 nenhum contexto de conversa anterior. Cada uma traz o que já foi medido, o que
 fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
-Última atualização: **05/08/2026**.
+Última atualização: **06/08/2026**.
+
+---
+
+## AO VOLTAR, COMECE POR AQUI
+
+Em 05/08/2026 as sprints **A, D, E e F** foram executadas. **B e C pararam na
+folha visual, de propósito: quem escolhe é ela.** Nada foi aplicado nas duas —
+`icons/apps.map` e `scripts/construir_pastas.sh` estão intocados.
+
+O repositório está limpo, `./install.sh` roda duas vezes sem escrever um byte e
+`./bin/meow doctor` diz `nada a consertar`. **Não há trabalho técnico pendente.**
+
+### As três decisões que são dela, e só dela
+
+1. **Os aplicativos órfãos** — folha em `~/folha-apps-orfaos.html`. São **12**
+   apps, 44 candidatos, **nenhum é o mesmo aplicativo**: 18 não mentem, 26
+   mentem. Pela regra do projeto nada entra sozinho. *Antes de aplicar, releia o
+   alerta de contraste no topo da folha: sete dos candidatos mais honestos são
+   monocromáticos e somem sobre fundo claro (1,3:1).*
+2. **As pastas** — folha em `~/folha-pastas.html`, **com a ressalva de que a
+   premissa da Sprint C caiu**: o `cosmic-files` só pede 2 das 14. O caminho que
+   sobra é **renomear** os 8 nomes XDG que ele de fato usa. Se ela topar, a
+   implementação exige o `construir_pastas.sh` ceder a lista (ver Sprint C).
+3. **A barra do painel** — o Arcticons não tem estado nenhum, então volume,
+   wifi, microfone e notificações continuam no Papirus. Ou se desenham as
+   variantes à mão (é desenho autoral, que ela já rejeitou uma vez), ou se acha
+   um terceiro pack que as tenha, ou fica como está. **Enquanto não houver
+   decisão, não mexer.**
+
+### Duas coisas que dependem de ela agir, não de código
+
+- **Relogar.** Os 28 ícones novos da Sprint A só aparecem no próximo login: o
+  `cosmic-panel` lê o tema ao iniciar e não o vigia. **Não derrube o painel para
+  antecipar isso** — foi o que a deixou sem painel e sem dock duas vezes em
+  04/08, numa máquina de uma tela só.
+- **A captura de tema velha.** O `doctor` mostra código **4** (divergente por
+  escolha dela): ela mexeu em Aparência e a GUI derivou um tema novo. Não é
+  defeito e não notifica de madrugada. Para fixar o que está na tela:
+  `meow tema capturar mocha-mauve`.
 
 ---
 
