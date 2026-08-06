@@ -478,6 +478,87 @@ com um comando: `pkill -x cosmic-panel`.
 
 ---
 
+## 4g. Ícone `symbolic` no COSMIC: a cor do arquivo é JOGADA FORA
+
+Medido em **05/08/2026**, ao abrir a Sprint A.
+
+O `SPRINTS.md` já dizia que os symbolic são "recoloridos pelo toolkit em tempo de
+desenho". Isso agora está **medido**, e o resultado é mais forte do que a frase
+sugeria: o toolkit não ajusta a cor — ele **descarta o arquivo inteiro e repinta
+com uma cor só**, preservando apenas o alpha.
+
+**A prova, sem inferência.** O `cosmic-applet-bluetooth-disabled-symbolic` tem
+**dois tons** gravados no disco:
+
+```bash
+$ grep -oE '(fill|stroke)="[^"]*"' \
+    /usr/share/icons/hicolor/scalable/status/cosmic-applet-bluetooth-disabled-symbolic.svg \
+  | sort | uniq -c
+      2 fill="#232323"
+      1 fill="#808080"
+      1 fill="none"
+```
+
+E na tela dela, no painel, sai **um tom só**:
+
+```bash
+$ convert Screenshot.png -crop 26x26+1755+12 +repage -depth 8 txt: \
+  | grep -oE '#[0-9A-F]{6}' | sort | uniq -c | sort -rn | head -2
+    125 #FFFFFF          <- o icone
+     43 #2C2D3F          <- o fundo do painel
+```
+
+`#232323` e `#808080` viraram `#FFFFFF`. Dois tons viraram um.
+
+**Consequência dura, e ela redesenha a Sprint A.** Ícone pastel colorido é
+**impossível** nas páginas das Configurações e nos applets da barra. Não importa
+a cor que se pinte no arquivo: o toolkit apaga. O único eixo de mudança que
+sobrevive ali é o **desenho** — a forma do traço. A cor continua vindo do
+`CosmicTheme`, que o MeowSystem já controla.
+
+Isso também significa que **recolorir Arcticons via `?color=` do Iconify é
+desperdício** para estes 126 ícones. Continua valendo para a Sprint B, onde os
+alvos são ícones de aplicativo, que não passam por este caminho.
+
+### De onde vêm os 126 ícones que o COSMIC pede
+
+Os nomes não saem limpos do binário: as strings do Rust ficam **coladas** umas nas
+outras, sem NUL entre elas, então `strings | grep -x` devolve lixo do tipo
+`folderfolder-symbolicuser-home...`. O jeito que funciona é casar por dicionário
+contra os nomes que existem em disco, com o mais longo ganhando:
+
+```bash
+find -L /usr/share/icons ~/.local/share/icons -name '*-symbolic.svg' \
+  | xargs -n1 basename | sed -E 's/\.svg$//' | sort -u > /tmp/nomes-reais.txt
+# depois: re.finditer com alternation dos nomes ordenados por tamanho decrescente
+# sobre `strings -a` de cosmic-settings, cosmic-applets, cosmic-osd, cosmic-notifications
+```
+
+Resolvidos no resolvedor real (`Gtk.IconTheme` com `MeowSystem-Icons`), a 22 e 24 px:
+
+| origem | quantos |
+|---|---|
+| Papirus-Dark | 96 |
+| Cosmic | 24 |
+| hicolor | 5 |
+| Pop | 1 (lixo: a string `-symbolic` solta, que é o `ends_with` do libcosmic) |
+
+Os **24 do tema Cosmic são exatamente as páginas das Configurações** que ela
+fotografou (`preferences-*`). O `MeowSystem-Icons` hoje **não tem nenhum ícone
+symbolic próprio** — o `Directories=` dele só declara `apps`, `mimetypes` e
+`places`.
+
+### O traço do Arcticons some a 22 px, e o conserto é um atributo
+
+Os SVG do Arcticons vêm com `stroke="currentColor"` num `viewBox="0 0 48 48"` e
+**sem `stroke-width` declarado**. O padrão SVG é `1` — que a 22 px de tela vira
+**0,46 px** e desaparece. Dobrar o `stroke-width` resolve e é um atributo só.
+
+Cuidado ao inserir: um elemento com `stroke-width` **duplicado** é XML inválido e
+o Chrome recusa o SVG inteiro, calado, mostrando ícone quebrado.
+
+---
+
 ## 5. Fronteira com o Ritual da Aurora
 
 O Aurora roda como root a cada hora, no boot e após todo apt. Onde os dois querem
