@@ -10,9 +10,16 @@
 #   uma. Ficar de olho no processo seria um daemon nosso para adivinhar o
 #   relógio de outro.
 #
-#   Então são dois relógios independentes, e é honesto que seja assim: o padrão
-#   deixa o gato mais lento que a parede (30 min contra 5), de modo que a troca
-#   do gato é um evento raro e notado, e não parte do piscar do fundo.
+#   Então são dois relógios independentes, e é honesto que seja assim: o gato é
+#   muito mais lento que a parede — UM POR DIA contra 5 minutos —, de modo que a
+#   troca do gato é um evento raro e notado, e não parte do piscar do fundo.
+#
+# O `30min` ABAIXO É UM SENTINELA, NÃO O INTERVALO REAL. NÃO O EDITE.
+#   O `install.sh` faz `${conteudo//OnUnitActiveSec=30min/OnUnitActiveSec=${LOGO_INTERVALO:-1d}}`
+#   ao instalar. Trocar este `30min` para `1d` aqui parece uma correção óbvia e
+#   quebraria a substituição EM SILÊNCIO: o valor do `meow.conf` deixaria de ser
+#   aplicado e o intervalo congelaria no que estivesse escrito. O que vale é o
+#   que está instalado — confira com `systemctl --user cat meow-logo.timer`.
 #
 # `Persistent=false` DE PROPÓSITO — O OPOSTO DO meow-doctor.timer
 #   Lá o `true` é essencial: um reparo perdido enquanto a máquina estava
