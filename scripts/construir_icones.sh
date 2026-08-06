@@ -69,8 +69,17 @@ places_no_disco() {
 # o vazio — e foi exatamente esse o defeito que custou as "três rodadas".
 tem_mimetypes() { [ -d "$TEMA_DIR/scalable/mimetypes" ]; }
 
+# `512x512/apps` é o acervo Catppuccin de APLICATIVO (PNG com alpha, posto pelo
+# icones_apps.sh). Fica num tamanho fixo, e não em `scalable/`, porque é raster:
+# declarar raster como escalável é o defeito que o thunderbird.png já cometeu
+# aqui. Vem ANTES de `scalable/apps` na lista para vencer o desenho autoral nos
+# nomes em que os dois existem — a ordem de `Directories=` é a ordem de busca.
+tem_apps_png() { [ -d "$TEMA_DIR/512x512/apps" ]; }
+
 indice() {
-  local dirs="scalable/apps" tam
+  local dirs="" tam
+  tem_apps_png && dirs="512x512/apps,"
+  dirs="${dirs}scalable/apps"
   tem_mimetypes && dirs="$dirs,scalable/mimetypes"
   while IFS= read -r tam; do dirs="$dirs,$tam/places"; done < <(places_no_disco)
 
@@ -88,6 +97,16 @@ Type=Scalable
 MinSize=8
 MaxSize=512
 FIM
+
+  if tem_apps_png; then
+    cat <<'FIM'
+
+[512x512/apps]
+Size=512
+Context=Applications
+Type=Fixed
+FIM
+  fi
 
   if tem_mimetypes; then
     cat <<'FIM'

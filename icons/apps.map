@@ -1,0 +1,47 @@
+# icons/apps.map — que ícone Catppuccin veste cada aplicativo do lançador.
+#
+# FORMATO      nome-de-icone-do-.desktop : arquivo em icons/catppuccin-apps/<flavor>/
+#
+# A REGRA É "MESMO APLICATIVO", E ELA CUSTA COBERTURA DE PROPÓSITO
+#   O acervo tem 146 ícones e esta máquina tem 51 aplicativos, mas só 16 entram.
+#   O que barra o resto é a mesma regra que valeu para os mimetypes: um ícone
+#   errado é pior que um ícone genérico, porque ele MENTE sobre o que é a coisa.
+#   Descartados por isso, todos com correspondência tentadora e falsa:
+#       com.boxy_svg.BoxySVG  -> inkscape   (programas diferentes)
+#       com.system76.CosmicEdit -> notepad  (idem)
+#       net.davidotek.pupgui2 -> lutris     (idem)
+#       org.bleachbit.BleachBit -> ccleaner (idem)
+#   Os 35 restantes continuam vindo do Papirus, que os cobre bem.
+#
+# O QUE NÃO SE TOCA, POR PEDIDO EXPRESSO DELA
+#   Os jogos da Steam (steam_icon_*), o Hefesto e o FogStripper. O script pula
+#   esses nomes mesmo que um dia apareçam aqui.
+#
+# PROCEDÊNCIA E LICENÇA — LEIA ANTES DE PUBLICAR QUALQUER COISA
+#   Daveedmee/catppuccin-icons, sem licença declarada (`license: null` na API do
+#   GitHub, conferido em 05/08/2026). Sem licença NÃO é domínio público: é
+#   "todos os direitos reservados". Uso pessoal nesta máquina, sem redistribuir.
+#   É por isso que os PNG não vão para o git — e a regra de imagem do .gitignore
+#   já garante isso sozinha. Se algum dia este repositório for publicado, esta
+#   pasta e este mapa saem juntos.
+#
+#   Dark = Macchiato e light = Latte, segundo o README do próprio autor. O acervo
+#   entregue em .ico é 24bpp SEM canal alpha (ícone viraria quadrado sólido); o
+#   que se usa aqui são os PNG de 512x512 com alpha, da pasta de preview.
+
+com.brave.Browser:brave
+com.discordapp.Discord:discord
+com.obsproject.Studio:obs-studio
+com.spotify.Client:spotify
+firefox:firefox
+google-chrome:chrome
+io.github.shiftey.Desktop:github
+md.obsidian.Obsidian:obsidian-md
+meow-whatsapp:whatsapp
+org.gimp.GIMP:gimp
+org.kde.krita:krita
+org.qbittorrent.qBittorrent:qbittorrent
+org.telegram.desktop:telegram
+org.videolan.VLC:vlc
+steam:steam
+vscode:vscode
