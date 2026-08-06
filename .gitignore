@@ -22,9 +22,9 @@ src/fonts/upstream/
 *.mp4
 !docs/spec-visual/*.png
 
-# Estado local da máquina: capturas de tema, backups, log. É por-máquina, não por-repo.
+# Estado local da máquina: backups e log ficam fora, em ~/.local/state/meowsystem.
 # state/tema/ E VERSIONADO: sao as capturas que fazem o "3 cliques uma vez na vida"
-# valerem em qualquer maquina. Sao arquivos de texto pequenos.
+# continuarem valendo mesmo se esta maquina for reformatada. Sao texto pequeno.
 
 *.tmp
 *.bak

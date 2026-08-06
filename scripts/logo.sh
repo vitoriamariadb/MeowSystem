@@ -27,9 +27,10 @@
 #   esse sufixo, e é por isso que o `assets/meow-symbolic.svg` fica de fora.
 #
 # O APPLET É DE TERCEIRO
-#   `dev.cappsy` não vem com o COSMIC. Numa máquina que não o tenha, isto aqui
-#   não é erro: é etapa pulada, com a razão dita em voz alta. O MeowSystem vai
-#   ser publicado, e supor o applet de um terceiro seria supor a máquina dela.
+#   `dev.cappsy` não vem com o COSMIC: ela o instalou, e pode desinstalá-lo ou
+#   tirá-lo do painel a qualquer momento. Quando ele não está, isto aqui não é
+#   erro: é etapa pulada, com a razão dita em voz alta. Isso não é portabilidade
+#   — é o que faz o instalador não explodir quando um programa não está no lugar.
 #
 # CONVIVÊNCIA COM O RITUAL DA AURORA
 #   O Aurora é dono de `~/.config/cosmic/logos/gato-pop.svg` e o repõe no
