@@ -95,7 +95,8 @@ o que os reproduz é `scripts/wallpaper.sh semear`, com o commit pinado.
 - **O lançador** — sem as duplicatas ("(Local)"/"(Sistema)") e sem os aplicativos
   que são dependência de pacote, não programa que se abre.
 - **Os papéis de parede** — carrossel na rotação nativa do COSMIC.
-- **Os aplicativos** — VS Code, Obsidian, qBittorrent, bat, btop. GTK e Qt vêm de
+- **Os aplicativos** — VS Code, Obsidian, qBittorrent, bat, btop e o ZapZap (que
+  além do tema ganha o nome "WhatsApp" e o ícone da bandeja). GTK e Qt vêm de
   graça: com `apply_theme_global` ligado, o COSMIC já os pinta a partir do tema.
 
 ---
