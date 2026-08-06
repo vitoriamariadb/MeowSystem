@@ -268,7 +268,35 @@ lista falsa de "12 ícones faltando" que na verdade era zero.
 
 ---
 
-## Sprint B — Curadoria assistida: candidatos para os apps sem ícone
+## Sprint B — Curadoria assistida  ← **folha pronta, ESPERANDO A ESCOLHA DELA**
+
+> **A folha está em `~/folha-apps-orfaos.html`.** Nada foi aplicado: esta sprint
+> termina na escolha dela, e o `icons/apps.map` segue intocado.
+>
+> **Três números do texto abaixo estão errados, e foram medidos de novo:**
+> os órfãos são **12**, não 25 (nem os 35 que o cabeçalho do `apps.map` afirma).
+> Os outros já resolvem fora do Papirus: 7 jogos Steam em `hicolor`, 3 flatpaks,
+> 1 por caminho absoluto, e o `thunderbird` já está no `MeowSystem-Icons`.
+> **Zero candidatos são o mesmo aplicativo** — pela regra dura, nada entra
+> sozinho. 18 são genéricos honestos, 26 mentem, 1 app não tem nada.
+>
+> **A busca por regex sobre nomes é necessária e insuficiente** — três dos
+> melhores candidatos são invisíveis a ela, e só apareceram rasterizando os 428
+> glifos e olhando: `lib.svg` são três livros (Foliate), `security.svg` é uma
+> câmera (Snapshot), `verilog.svg` é um chip (btop).
+>
+> **O alerta que não estava previsto:** sete dos candidatos mais honestos são
+> traço monocromático na cor `text`. Medido em contraste WCAG, o traço macchiato
+> `#CAD3F5` dá **11,0:1 sobre Mocha e 1,3:1 sobre Latte** — some. Trocar de
+> flavor inverte o lado (`#4C4F69`: 2,1:1 e 7,1:1), e o `icones_apps.sh` instala
+> um flavor por vez. É o defeito de 04/08 outra vez, agora com número. Os
+> candidatos coloridos e os PNG do acervo de aplicativo não têm esse problema.
+>
+> **Custo escondido:** candidato do `catppuccin-apps` é uma linha no mapa;
+> candidato do pack `vscode-icons` **não é** — o `icones_apps.sh` só lê
+> `icons/catppuccin-apps/$VARIANTE/*.png` e escreve em `512x512/apps`.
+
+### O registro de como a sprint foi desenhada (continua válido)
 
 **Por que existe.** Ideia dela, textual: *"os que não encontrarem peça pros
 frentes procurarem semelhantes usando regex similares e criando uma lista com os
@@ -361,7 +389,40 @@ diretório tem dono único) e já é idempotente.
 
 ---
 
-## Sprint C — As pastas do Gestor de Arquivos
+## Sprint C — As pastas  ← **a premissa está ERRADA; folha em `~/folha-pastas.html`**
+
+> **O `cosmic-files` não pede 12 das 14.** Medido casando por dicionário os 2.480
+> nomes de `places` do disco contra `strings -a /usr/bin/cosmic-files`: o binário
+> contém **12** nomes de pasta, e das 14 desta sprint só **duas** aparecem —
+> `folder-download` e `folder-templates`.
+>
+> O motivo é estrutural: `folder-github`, `folder-docker` e companhia são apelidos
+> do Papirus para o **Dolphin/KDE**, que lê um `.directory` dentro da pasta. O
+> `cosmic-files` **não tem essa lógica** — `.directory` aparece **zero** vezes no
+> binário. Instalar as 12 seria instalar ícone que ela nunca veria.
+>
+> **O casamento que vale é outro:** os nomes XDG que ele de fato pede. O pack
+> cobre 8 dos 12, mas com outro nome (`folder_images`→`pictures`,
+> `folder_audio`→`music`, `folder_docs`→`documents`, `folder_video`→`videos`,
+> `folder_public`→`publicshare`). **Entra por renomeio, e é decisão dela.**
+>
+> **Dois fatos que ninguém tinha visto:** `folder-docker` **já é azul** hoje (o
+> `papirus-folders` não tem variante mauve dela, e ela cai no Papirus) — a mistura
+> de estilos que esta sprint pergunta se ela aceita **já está na tela**. E
+> **nenhum dos 14 ícones do pack usa `mauve`**, que é o accent dela.
+>
+> **Dois donos — a resposta medida é (b), e (a) não funciona.** O
+> `construir_pastas.sh` reproduz todo apelido do Papirus e reescreve o link quando
+> `readlink` diverge; um arquivo regular ali devolve `readlink` vazio e o
+> `ln -sfn` o substitui. **9 das 14 seriam apagadas a cada ciclo** (passe 1) e
+> **5 passariam batido** (passe 2, que tem `[ -e ] && continue`) — metade quebra
+> alto, metade em silêncio. E (a) não decide nada, porque quem escolhe o
+> diretório é o **tamanho**, não a ordem de `Directories=` (ver §4g). A saída é o
+> `construir_pastas.sh` conhecer a lista e ceder, como o `icones_apps.sh` já faz
+> com `INTOCAVEIS`. Cuidado com `folder-videos → folder-video`, que é cadeia de
+> nível 2: ceder o segundo faz o primeiro virar pastel de carona.
+
+### O registro de como a sprint foi desenhada (o resto continua válido)
 
 **Por que existe.** A tela que ela mandou dizendo *"esses são os ícones que eu
 quero"* era a página do pack mostrando `folder-debug`, `folder-docker`,
@@ -394,7 +455,23 @@ próprio, dono único, e a ordem de `Directories=` decide quem ganha), ou o
 
 ---
 
-## Sprint D — O `install.sh` como wizard
+## Sprint D — O wizard  ← **FEITA em 05/08/2026**
+
+> `meow configurar` (e `./install.sh --wizard`). O esquema — ordem, seções, ajuda
+> — é **lido do `meow.conf.exemplo`**, não de uma lista dentro do script: são
+> **31 chaves**, e a lista que este arquivo dava estava incompleta.
+>
+> **O defeito que a implementação revelou:** o `meow.conf.exemplo` tinha
+> `LOGO_INTERVALO=` **duas vezes** (`30m` e `1d`). O `.` do shell obedece a
+> **última**; o `conf_definir` escrevia a **primeira** — ou seja, o `meow` dizia
+> "gravado" e o valor em vigor não mudava. Corrigido, e vale como regra: a
+> premissa "o exemplo é a lista de chaves" só se sustenta sem chave repetida.
+>
+> Provado: ENTER em tudo não escreve um byte · `MEOW_DRY_RUN=1` não escreve ·
+> `echo | ./install.sh` não trava e não pergunta · sem tty o wizard diz "sem
+> terminal interativo" e segue · o `install.sh` duas vezes não escreve nada.
+
+## O texto original da sprint (o desenho continua válido)
 
 **Por que existe.** Pedido dela, textual: *"o install faz dele wizard pra eu ir
 modificando e afins."*
@@ -512,7 +589,33 @@ seguidas, o par foi para `failed`, o `meow doctor` acusou e o `--consertar` fez
 
 ---
 
-## Sprint F — Podar o que só existia para publicação
+## Sprint F — A poda  ← **FEITA em 05/08/2026, e não era código**
+
+> **Nenhum dos três itens de código existia.** Medido antes de remover:
+> `lib/aurora.sh` não existe (só `comum.sh`); `dnf|pacman|zypper|nix-env|
+> rpm-ostree|emerge|apk` dão **zero** ocorrências; não há detecção de schema.
+> A poda foi de **promessa**, não de linha — nenhuma função removida, nenhum
+> arquivo apagado. Os dois itens do README já tinham sido feitos em `11c758a`.
+>
+> O que parecia detecção de schema (`e_chave_da_aurora`) é o oposto: ela deduz a
+> regra da Aurora em vez de cravar `v2`, para sobreviver a uma migração **nesta**
+> máquina. Removê-la seria erro.
+>
+> **A promessa falsa que a releitura pegou:** o README dizia *"Todo passo faz
+> backup antes de sobrescrever"*. São **7 scripts**, não todos. A regra real que
+> entrou é melhor que a prometida: backup do que é de outro, e nada nos
+> diretórios de dono único, onde o conteúdo anterior é a saída da rodada
+> anterior do próprio script.
+>
+> **Um bug encontrado de raspão, e corrigido:** o `install.sh` gravava o timer
+> com `${LOGO_INTERVALO:-1d}` e anunciava na tela `${LOGO_INTERVALO:-30m}`. Não
+> aparecia na máquina dela só porque o `meow.conf` dela **tem** a chave.
+>
+> Intactos de propósito, e conferidos um a um: o `garantir_backup` colado na
+> linha anterior ao `rm -f "$vivo"` (361/362), a fronteira com a Aurora e o
+> código 4, e a degradação elegante em 26 arquivos.
+
+## O texto original da sprint (o critério continua valendo)
 
 **Por que existe.** A decisão de não publicar tornou obsoleto um bloco de
 trabalho que estava planejado e um bloco de texto que já está escrito.
@@ -572,6 +675,14 @@ folha que fez ela decidir abandonar os ícones autorais.
 | o tema parou de desfazer o vidro dela | fronteira por árvore + código 4, testados em COSMIC isolado |
 | o doctor enxerga receita ≠ produto | `'Low2' pede alpha 7C, está gravado D9` |
 | 28 ícones do próprio COSMIC em Arcticons | `strace` no `cosmic-settings`: 9 carregados do nosso tema já na 1ª tela |
+| o acervo de gatos responde na hora | `.svg` solto → **1** disparo no journal, não laço |
+| `meow configurar` edita o `meow.conf` | ENTER em tudo não escreve um byte |
+| nenhuma promessa de portabilidade no repo | e nada do que a poda ia remover era código |
+
+**O que espera decisão dela, e só isso:** as folhas da **Sprint B**
+(`~/folha-apps-orfaos.html`) e da **Sprint C** (`~/folha-pastas.html`). Nada foi
+aplicado nas duas — `icons/apps.map` e `scripts/construir_pastas.sh` estão
+intocados.
 | `assets/gatos/` responde na hora, sem esperar o relógio | um `.svg` solto disparou 1 vez e entrou; apagado, disparou 1 vez e saiu — e `install.sh` duas vezes não disparou nenhuma |
 
 **Pendência que depende dela, e leva 2 segundos:** o vidro no disco ainda é o da
