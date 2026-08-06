@@ -134,6 +134,42 @@ curl -s "https://api.iconify.design/search?query=<termo>&prefix=arcticons&limit=
 com a regra de que **nenhum hex vive dentro de script**. Recolorir Arcticons para
 Catppuccin é o encaixe mais natural que apareceu até agora, e é barato.
 
+### A direção estética, definida por ela olhando as duas telas
+
+Ela comparou a página do Arcticons com o `catwalk.webp` do `catppuccin/vscode-icons`
+e fechou o desenho numa frase: *"esse primeiro pack parece que se encaixa legal
+no estilo que queremos né? Só precisaríamos deixar as cores mais fortes de acordo
+com a logo do app original."*
+
+Isso é **exatamente** o que o `vscode-icons` faz, e é o que dá coerência ao
+conjunto: **traço fino monocromático + UMA cor por ícone, escolhida por afinidade
+com a marca original.** O Firefox puxa `peach`, o Spotify puxa `green`, o Discord
+puxa `blue` — cada um reconhecível, todos na mesma paleta.
+
+O Arcticons é a matéria-prima certa para isso porque já é **traço puro**: o pack
+se descreve como *Logos*, grid de 48 px, e vem sem cor própria. Colorir é atribuir
+uma cor, não repintar um desenho.
+
+**O método, e ele é automatizável:**
+
+1. para cada aplicativo, pegar a cor dominante da marca real — a fonte natural é
+   o ícone que o Papirus já entrega, que é colorido e está no disco
+2. converter para **Oklab** e achar a cor Catppuccin mais próxima em matiz, não
+   em RGB (frentes deste projeto já escreveram esse conversor duas vezes; a
+   pesquisa em `docs/pesquisas/` tem os números)
+3. aplicar no `stroke`/`fill` do SVG do Arcticons
+4. gerar nos 4 flavors, como todo o resto do projeto
+
+**Duas armadilhas já medidas neste projeto, e as duas mordem aqui:**
+
+- **A paleta não tem cor escura E saturada.** Croma máximo 0,039 entre as cores
+  com L < 0,55. Marcas escuras (GitHub, Steam) vão para um tom claro ou para um
+  neutro — decidir explicitamente qual, e registrar.
+- **Duas marcas podem cair na mesma cor Catppuccin.** Já existe um caso no disco:
+  com `--accent green`, `cosmic-files` e `cosmic-term` nascem gêmeos em silêncio.
+  O gerador precisa de uma asserção que **estoure** quando dois ícones do mesmo
+  contexto recebem a mesma cor, em vez de deixar passar.
+
 **Cuidados antes de sair recolorindo:**
 
 - **CC BY-SA 4.0 é _share-alike_ com atribuição.** Uso local não exige nada, mas
@@ -445,6 +481,27 @@ trabalho que estava planejado e um bloco de texto que já está escrito.
 
 **Como conferir:** `./install.sh` duas vezes, `meow doctor` verde, e nenhuma
 promessa no README que o código não cumpra.
+
+---
+
+## Por onde começar, em concreto
+
+Quem pegar isto do zero, sem nenhum contexto de conversa, faz nesta ordem:
+
+1. **Leia** este arquivo inteiro e `docs/COSMIC-THEMING.md` (os fatos medidos
+   nesta máquina, com data e método — inclusive conclusões erradas anteriores e
+   por que eram erradas).
+2. **Confira o estado**: `./bin/meow doctor` e `git log --oneline -12`.
+3. **Sprint A**, e comece pela **medição**, não pelo código: descobrir quais
+   ícones o `cosmic-settings` pede e onde cada um resolve hoje.
+4. **Baixe uma amostra do Arcticons** (10 ícones, pela API do Iconify), colora
+   pelo método acima, e **monte a folha visual** a 22 px e 48 px, nos dois
+   fundos. Mostre a ela **antes** de processar 13 mil.
+5. Só depois de ela aprovar a folha, escreva o gerador.
+
+A regra que atravessa tudo: **a folha visual vem antes do código.** Foi assim que
+se descobriu que 19 dos 27 candidatos a desenho autoral eram logomarca, e foi a
+folha que fez ela decidir abandonar os ícones autorais.
 
 ---
 
