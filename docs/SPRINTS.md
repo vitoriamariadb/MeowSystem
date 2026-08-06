@@ -432,46 +432,83 @@ não-tty) tem de seguir o caminho de sempre, sem travar.
 
 ---
 
-## Sprint E — Sincronização automática dos assets
+## Sprint E — Sincronização automática dos assets  ← **FEITA em 05/08/2026**
 
-**Por que existe.** Pedido dela em 05/08: *"o comando do meow tem que disparar em
-automático, talvez no self heal algo assim"* — sobre soltar um arquivo na pasta e
-ele entrar sozinho.
+> **O que entrou:** o par `systemd/meow-assets.path` + `systemd/meow-assets.service`,
+> instalado e conferido por `scripts/vigia_assets.sh`, ligado no `install.sh`
+> (`etapa_assets`) e no `meow doctor` (`chk_assets`/`fix_assets`, verificável
+> `assets`). Duas chaves novas no `meow.conf`: `ASSETS_VIGIA` e
+> `ASSETS_VIGIA_NOTIFICAR`.
+>
+> **A prova:** com o vigia ligado e 10 s de silêncio medidos antes, um `.svg`
+> solto em `assets/gatos/` disparou **exatamente uma vez** (23:22:44) e o gato
+> apareceu em `~/.config/cosmic/logos/`; apagá-lo disparou **exatamente uma vez**
+> (23:23:10) e o órfão saiu do disco. `./install.sh` rodou duas vezes inteiras
+> sem disparar o vigia nenhuma vez, e a segunda não escreveu um byte.
+>
+> **O que ele NÃO faz, de propósito:** não gira o gato. Acrescentar um arquivo
+> não muda qual está no ar — quem gira é o relógio, um por dia, que foi a escolha
+> dela. E o gato do dock só troca no login seguinte, porque o `cosmic-panel` não
+> tem watch de inotify sobre arquivo de ícone (já medido neste projeto). Por isso
+> o serviço avisa por `notify-send` quando o acervo muda: sem o aviso, o recurso
+> rodaria, devolveria sucesso e não mostraria nada.
 
-**O estado hoje:**
+### O que a medição CONTRADISSE nesta sprint
 
-- `assets/gatos/` é a interface da logo: soltar um `.svg` ali o põe na rotação —
-  mas só na próxima volta do `meow-logo.timer`, que é de **30 minutos**
-- os papéis de parede entram na hora, porque o `cosmic-bg` lê a pasta
-- não existe `meow-assets.path`
+A armadilha 1 desta sprint dizia, textualmente: *"Uma unit `.path` apontando para
+um diretório inexistente falha no boot. Precisa de `ConditionPathIsDirectory=` e
+de degradação silenciosa."* **As duas metades estão erradas**, e a receita
+produziria o defeito que ela queria evitar. Medido em 05/08/2026, systemd 255:
 
-**Desenho:** uma unit `.path` do systemd de usuário, do **próprio MeowSystem** —
-nunca pendurada no self-heal do Aurora, que é de outro projeto e que ela pode
-desativar.
+| teste | resultado |
+|---|---|
+| `.path` com `PathModified=/mnt/NAO-EXISTE/repo/assets/gatos`, sem condição | **`active (waiting)`** — não falha. O systemd vigia o ancestral que existe (`/mnt`) e espera |
+| o mesmo, criando o diretório depois e soltando um SVG | disparou **2 vezes** (criação do diretório e chegada do arquivo) — ou seja, o vigia se cura sozinho quando o Ápate monta |
+| `.path` **com** `ConditionPathIsDirectory=` e o diretório ausente | `ConditionResult=no`, `ActiveState=inactive` |
+| o mesmo, criando o diretório depois e soltando um SVG | disparou **0 vezes** — condição de unidade é avaliada na PARTIDA, e nada a reavalia |
 
-```ini
-[Path]
-PathModified=%h/... ou o diretório do repo
-Unit=meow-assets.service
-```
+Conclusão: no cenário exato que a condição existia para cobrir — `/mnt/Apate`
+desmontado no boot e montado depois — ela troca um vigia que se recupera sozinho
+por um vigia morto e calado. A degradação silenciosa foi para o **serviço**
+(`ConditionPathExists=` no ponteiro da raiz, que mora em `/home`, mais o
+`[ -x "$R/scripts/logo.sh" ] || exit 0` do `ExecStart`).
 
-**Duas armadilhas medidas neste projeto, e as duas mordem aqui:**
+A armadilha 2 **se confirmou** e continua valendo: com o diretório de log
+ausente, `StandardOutput=append:` derruba o serviço com `Failed to set up
+standard output: No such file or directory`, `status=209/STDOUT`, antes de
+qualquer comando. Quem garante o diretório é o `mkdir -p` do
+`scripts/vigia_assets.sh`.
 
-1. **O caminho é `/mnt/Apate`**, que pode estar desmontado. Uma unit `.path`
-   apontando para um diretório inexistente falha no boot. Precisa de
-   `ConditionPathIsDirectory=` e de degradação silenciosa.
-2. **`StandardOutput=append:` é montado antes de tudo**, inclusive antes de
-   `StateDirectory=`. Se o diretório de log não existir, o serviço falha com
-   `Failed to set up standard output` e nada mais roda. Está documentado no
-   cabeçalho de `systemd/meow-doctor.service` — releia antes de escrever a unit.
+### O laço: conferido no código, não suposto
 
-**Cuidado com o laço:** o serviço disparado pela mudança **não pode escrever
-dentro do diretório vigiado**, ou ele se redispara para sempre. O `logo.sh`
-remove órfão do acervo — confira se o alvo dele está fora do caminho vigiado.
+Medido que a armadilha é real — escrever **ou apagar** um arquivo dentro do
+diretório vigiado dispara a unidade; escrever no diretório **pai** (`assets/`)
+**não** dispara, o que é o que torna seguro o `gerar_gato.py` reescrever
+`assets/meow-<flavor>.svg` a cada instalação.
 
-**Como conferir:** soltar um `.svg` em `assets/gatos/`, esperar, e ver a logo
-mudar sem comando nenhum. Depois `systemctl --user status meow-assets.path` e o
-journal, para provar que disparou **uma vez** e não em laço.
+Lidas as escritas do `logo.sh`, todas caem fora do caminho vigiado:
+`~/.config/cosmic/logos/`, a chave do applet `dev.cappsy`,
+`~/.local/state/meowsystem/logo-atual` e os botões do dock em
+`~/.local/share/icons/<tema>/scalable/apps/`. O `rm -f` que esta sprint mandava
+conferir mira em `$LOGOS_DIR` — que é `~/.config/cosmic/logos` —, nunca no
+acervo. E o `StartLimitBurst=20`/`StartLimitIntervalSec=60s` do serviço é o
+disjuntor caso alguém quebre essa regra um dia: testado forçando 25 partidas
+seguidas, o par foi para `failed`, o `meow doctor` acusou e o `--consertar` fez
+`reset-failed` e religou.
+
+### Dois detalhes de systemd que custam uma tarde
+
+- **`$R` sim, `${R}` não.** O systemd expande `${NOME}` na linha de `Exec` mesmo
+  dentro de aspas simples, e variável que ele não conhece vira string vazia.
+  Testado: `sh -c 'R=abc; printf "[%s][%s]" "$R" "${R}"'` imprimiu `[abc][]`. Já
+  `${NOME:-padrão}` passa inteiro (o `:` não é nome de variável válido) e quem
+  expande é o shell — `DEF=doshell; "${DEF:-fallback}"` saiu `doshell`. É por
+  isso que as unidades deste projeto só usam essas duas formas.
+- **Nenhuma aspa dentro do texto do `notify-send`.** O systemd entrega o script
+  inteiro ao `sh` como UM argumento; uma aspa dupla escapada no meio da mensagem
+  FECHA a string e o corpo se parte em três argumentos, que o `notify-send`
+  recusa. Pego aqui com `systemctl --user show -p ExecStopPost` antes de virar
+  bug.
 
 ---
 
@@ -535,6 +572,7 @@ folha que fez ela decidir abandonar os ícones autorais.
 | o tema parou de desfazer o vidro dela | fronteira por árvore + código 4, testados em COSMIC isolado |
 | o doctor enxerga receita ≠ produto | `'Low2' pede alpha 7C, está gravado D9` |
 | 28 ícones do próprio COSMIC em Arcticons | `strace` no `cosmic-settings`: 9 carregados do nosso tema já na 1ª tela |
+| `assets/gatos/` responde na hora, sem esperar o relógio | um `.svg` solto disparou 1 vez e entrou; apagado, disparou 1 vez e saiu — e `install.sh` duas vezes não disparou nenhuma |
 
 **Pendência que depende dela, e leva 2 segundos:** o vidro no disco ainda é o da
 captura (`D9`) e não o que ela escolheu (`7C`), porque o estrago de 05/08 às
@@ -550,8 +588,9 @@ mão seria repetir o ato que causou o problema.
 comece pela **medição**, não pelo código: descobrir de onde os ícones vêm e
 mostrar a folha antes de decidir. Se a medição travar, **B** (curadoria dos
 ícones que faltam) tem o maior ganho visível e já tem método pronto, e **C**
-(pastas) é irmã dela e sai na mesma folha. **D** e **E** são infraestrutura e não
-mudam pixel. **F** é limpeza e pode ir a qualquer momento.
+(pastas) é irmã dela e sai na mesma folha. **D** é infraestrutura e não muda
+pixel (**E** já foi feita, em 05/08). **F** é limpeza e pode ir a qualquer
+momento.
 
 Ela está trabalhando na própria máquina enquanto isto roda. Nada de abrir janela
 na tela dela; para ver o resultado, renderize em headless ou peça que ela olhe.

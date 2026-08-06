@@ -60,7 +60,7 @@ editar.
 
 | o quê | onde | quando aparece |
 |---|---|---|
-| gatos da logo | `assets/gatos/` | na próxima volta do relógio (30 min), ou já com `meow logo girar` |
+| gatos da logo | `assets/gatos/` | **no acervo, na hora** — o `meow-assets.path` vigia a pasta. Qual gato está *no ar* é o relógio que decide (1×/dia), ou `meow logo girar` |
 | papéis de parede | `~/.local/share/backgrounds/meowsystem/ativos/` | na hora — o `cosmic-bg` lê a pasta |
 
 Os papéis de parede ficam fora do git de propósito — imagem grande em git é

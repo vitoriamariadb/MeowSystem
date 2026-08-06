@@ -1,0 +1,77 @@
+# meow-assets.path — a PASTA é a interface, e agora ela responde na hora.
+#
+# POR QUE ISTO EXISTE
+#   Pedido dela em 05/08/2026: "o comando do meow tem que disparar em automático,
+#   talvez no self heal algo assim". Soltar um gato em `assets/gatos/` já o punha
+#   na rotação — mas só na volta seguinte do `meow-logo.timer`, que hoje é de UM
+#   DIA (`LOGO_INTERVALO="1d"`). Esperar um dia para saber se o arquivo entrou é
+#   praticamente não ter resposta: o sintoma que o `logo.sh` mais teme está
+#   escrito no cabeçalho dele — "coloquei o arquivo e não aconteceu nada".
+#
+# POR QUE NÃO PENDURADO NO SELF-HEAL DO RITUAL DA AURORA
+#   O Aurora é de outro projeto, roda como root e ela pode desligá-lo. Emprestar
+#   o gatilho do vizinho significaria que, no dia em que ela desativasse o Aurora,
+#   o gato pararia de entrar sozinho e NADA diria por quê. A unidade é nossa; quem
+#   liga e desliga é o `ASSETS_VIGIA` do `meow.conf`.
+#
+# `@ACERVO@` É SUBSTITUÍDO PELO install.sh (via scripts/vigia_assets.sh)
+#   As outras unidades deste projeto vão por cópia byte a byte, usando o
+#   especificador `%h`. Aqui não dá: o acervo mora no REPOSITÓRIO, em /mnt/Apate,
+#   e o systemd não tem especificador para "onde está o clone". O instalador troca
+#   o marcador pelo caminho real antes de gravar, e o `meow_escrever` continua
+#   comparando por conteúdo — que é o que impede este passo de reescrever a
+#   unidade e recarregar o systemd a cada execução.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# NÃO HÁ `ConditionPathIsDirectory=` AQUI, E ISSO CONTRARIA O docs/SPRINTS.md
+# ─────────────────────────────────────────────────────────────────────────────
+# A Sprint E manda pôr a condição, com a justificativa de que "uma unit `.path`
+# apontando para um diretório inexistente falha no boot". MEDIDO em 05/08/2026,
+# no systemd 255 desta máquina, e as duas metades da frase são falsas:
+#
+#   1. NÃO FALHA. Uma `.path` com `PathModified=/mnt/NAO-EXISTE/repo/assets/gatos`
+#      subiu como `active (waiting)`, sem uma linha de erro. O systemd vigia o
+#      ancestral mais próximo que EXISTE (ali, `/mnt`) e espera o resto aparecer.
+#
+#   2. A CONDIÇÃO PIORARIA A DEGRADAÇÃO. Com `ConditionPathIsDirectory=` e o
+#      diretório ausente, a unidade é PULADA — `ConditionResult=no`,
+#      `ActiveState=inactive` — e fica pulada para sempre, porque condição de
+#      unidade é avaliada na PARTIDA e nada a reavalia depois. Testado: criando o
+#      diretório em seguida e soltando um SVG dentro, o serviço disparou ZERO
+#      vezes. Sem a condição, o mesmo teste disparou DUAS (uma na criação do
+#      diretório, uma na chegada do arquivo).
+#
+#   Ou seja: no cenário exato que a condição existia para cobrir — /mnt/Apate
+#   desmontado no boot e montado depois —, ela troca um vigia que se cura sozinho
+#   por um vigia morto e calado. A degradação silenciosa que a sprint pede mora no
+#   SERVIÇO, e está lá: ver o cabeçalho de `meow-assets.service`.
+#
+# O DIRETÓRIO PAI NÃO DISPARA — E ISSO É O QUE TORNA O ALVO SEGURO
+#   Medido no mesmo teste: escrever em `assets/` (um nível ACIMA do vigiado) não
+#   dispara nada. Importa porque o `gerar_gato.py` reescreve
+#   `assets/meow-<flavor>.svg` a cada `install.sh`; se o pai disparasse, toda
+#   instalação acordaria o vigia. Escrever ou APAGAR dentro de `assets/gatos/`
+#   dispara — e apagar disparar é desejável: é assim que o gato que ela tirou do
+#   acervo sai também do disco, sem esperar o relógio.
+#
+# `PathModified` E NÃO `PathChanged`: MEDIDO, DÁ NO MESMO
+#   Copiando um arquivo de 8 MB para dentro do diretório vigiado, as duas chaves
+#   deram exatamente 2 disparos (a criação e o fechamento da escrita). Fica o
+#   `PathModified` porque é o que o SPRINTS.md desenhou e porque ele também pega
+#   edição no lugar; o serviço é idempotente, então disparo a mais custa uma
+#   leitura e nenhuma escrita.
+
+[Unit]
+Description=MeowSystem — vigia assets/gatos/ e põe o gato novo na rotação
+Documentation=man:systemd.path(5)
+
+[Path]
+PathModified=@ACERVO@
+Unit=meow-assets.service
+
+# `default.target`, e não `paths.target`: os dois estão ativos nesta sessão, mas
+# as duas outras unidades `.path` desta máquina (o vigia de vidro do Aurora e o
+# guard da Steam do Hefesto) usam `default.target` e estão comprovadamente de pé
+# depois do boot. Seguir o que já se sabe que funciona aqui custa nada.
+[Install]
+WantedBy=default.target
