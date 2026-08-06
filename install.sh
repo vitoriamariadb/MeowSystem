@@ -380,8 +380,9 @@ etapa_gerar() {
 # 04/08/2026, escrever em Dark.Builder/v1/accent não moveu Dark/v1/accent nem em
 # 4s nem depois; o cosmic-settings-daemon estava vivo e não derivou. Quem deriva
 # é o app gráfico. Então a captura tem de nascer de um import manual.
-# Depois disso a captura vai para o git e QUALQUER máquina a recebe por cópia,
-# com zero clique — é uma vez na vida do projeto, não uma vez por máquina.
+# Depois disso a captura vai para o git e o `aplicar_tema.sh` a reproduz por
+# cópia, com zero clique — e vale de novo se ESTA máquina for reformatada: o
+# custo do import manual não volta.
 etapa_tema() {
   passo "Tema"
   local alvo="${FLAVOR}-${ACCENT}"
@@ -780,8 +781,14 @@ etapa_logo() {
     mudou=1
   fi
 
-  [ "$mudou" = "0" ] && { meow_ok "rotação de gatos já ligada (a cada ${LOGO_INTERVALO:-30m})"; return 0; }
-  meow_ok "os gatos giram a cada ${LOGO_INTERVALO:-30m} — 'meow logo listar' mostra o acervo"
+  # O PADRÃO AQUI TEM DE SER O MESMO QUE O DA GRAVAÇÃO — eram dois, e mentia
+  #   A substituição no timer (acima) usa `${LOGO_INTERVALO:-1d}` e estas duas
+  #   linhas usavam `:-30m`. Num `meow.conf` sem a chave, o timer era gravado com
+  #   `1d` e a tela anunciava `30m` — dizer no passado uma coisa que não
+  #   aconteceu, o mesmo pecado que o resumo das etapas já corrigiu neste arquivo.
+  #   Não aparecia na máquina dela só porque o conf dela TEM a chave.
+  [ "$mudou" = "0" ] && { meow_ok "rotação de gatos já ligada (a cada ${LOGO_INTERVALO:-1d})"; return 0; }
+  meow_ok "os gatos giram a cada ${LOGO_INTERVALO:-1d} — 'meow logo listar' mostra o acervo"
   return "$MEOW_DIVERGENTE"
 }
 
