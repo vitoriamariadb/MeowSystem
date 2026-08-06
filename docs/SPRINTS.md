@@ -188,7 +188,27 @@ uma cor, não repintar um desenho.
 
 ---
 
-## Sprint A — Os ícones do próprio COSMIC  ← **a que ela mais quer**
+## Sprint A — Os ícones do próprio COSMIC  ← **FEITA em 05/08/2026, em parte**
+
+> **O que entrou:** as **21 páginas das Configurações** + 7 ícones únicos, pelo
+> `icons/sistema.map` e `scripts/icones_sistema.sh`. Provado com `strace`: o
+> `cosmic-settings` carrega os ícones novos do `scalable/status`.
+>
+> **O que NÃO entrou, e é medição, não desistência:** a **barra**. Os applets são
+> famílias de estado (`audio-volume-*` em 5, `network-wireless-*` em 7,
+> `microphone-sensitivity-*` em 4) e o Arcticons tem **zero** sufixos `-off`,
+> `-mute`, `-muted`, `-disabled`, `-low`, `-high`, `-medium` — medido contra o
+> índice completo dos 14.996 nomes. Vestir um estado só faria o ícone mudar de
+> estilo conforme o volume. Continua no Papirus.
+>
+> **O que sobrou para decidir com ela:** se vale desenhar as variantes de estado
+> à mão (é desenho autoral, que ela já rejeitou uma vez) ou procurar um terceiro
+> pack que as tenha. **Enquanto não houver decisão, a barra fica como está.**
+>
+> Leia `docs/COSMIC-THEMING.md` §4g antes de mexer: a cor do arquivo é jogada
+> fora pelo toolkit, e a escolha de tamanho não é pela ordem de `Directories=`.
+
+### O registro de como a sprint foi conduzida (o histórico abaixo continua válido)
 
 **Por que existe.** Ela mandou a tela das Configurações (Rede, Bluetooth,
 Acessibilidade, Área de trabalho, Telas, Som, Energia e Bateria, Dispositivos de
@@ -514,6 +534,7 @@ folha que fez ela decidir abandonar os ícones autorais.
 | 242 wallpapers (eram 239) | 3 faltavam por bug de URL não escapada, calado desde a 1ª semeadura |
 | o tema parou de desfazer o vidro dela | fronteira por árvore + código 4, testados em COSMIC isolado |
 | o doctor enxerga receita ≠ produto | `'Low2' pede alpha 7C, está gravado D9` |
+| 28 ícones do próprio COSMIC em Arcticons | `strace` no `cosmic-settings`: 9 carregados do nosso tema já na 1ª tela |
 
 **Pendência que depende dela, e leva 2 segundos:** o vidro no disco ainda é o da
 captura (`D9`) e não o que ela escolheu (`7C`), porque o estrago de 05/08 às
