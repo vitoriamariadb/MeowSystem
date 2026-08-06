@@ -54,6 +54,12 @@
 #   dispara — e apagar disparar é desejável: é assim que o gato que ela tirou do
 #   acervo sai também do disco, sem esperar o relógio.
 #
+# O `LEIA-ME.md` DO ACERVO TAMBÉM DISPARA, E TUDO BEM
+#   Ele mora dentro da pasta vigiada, então editá-lo acorda o serviço — observado
+#   duas vezes hoje, ao atualizar aquele arquivo. O `logo.sh` só olha `*.svg`,
+#   então a rodada não muda nada, sai 0 e não notifica. Fica registrado aqui para
+#   ninguém tomar essa linha do `logo.log` por sintoma de laço.
+#
 # `PathModified` E NÃO `PathChanged`: MEDIDO, DÁ NO MESMO
 #   Copiando um arquivo de 8 MB para dentro do diretório vigiado, as duas chaves
 #   deram exatamente 2 disparos (a criação e o fechamento da escrita). Fica o
