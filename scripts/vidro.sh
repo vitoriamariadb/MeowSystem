@@ -136,12 +136,57 @@ if [ "$escritos" -eq 0 ]; then
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 
+# --- A RECEITA E O PRODUTO ESTÃO DE ACORDO? ---------------------------------
+# ISTO TERIA GRITADO ÀS 18:00:40 DE 05/08 EM VEZ DE FICAR QUATRO HORAS INVISÍVEL
+#   Em Aparência ela escolhe `frosted` (um nome: Low2, High2...) e a GUI DERIVA a
+#   cor com o alpha correspondente em `alpha_map`. Se alguém reescrever a cor
+#   derivada por fora — foi o que o instalador fez, impondo a captura —, a receita
+#   passa a apontar para um vidro que a cor gravada não tem. Nada quebra, nada
+#   avisa, e a tela fica diferente do que o painel de controle diz.
+#
+#   Aqui só se COMPARA e se AVISA. Corrigir seria escrever o produto derivado na
+#   mão, que é precisamente o ato que criou o problema — e a derivação real tem
+#   mais campos do que este script conhece. Quem deriva certo é a GUI: mover o
+#   slider uma vez basta.
+_frosted_para_chave() {
+  # "VeryLow2" -> "very_low_2" ; "Low2" -> "low_2" ; "Medium" -> "medium"
+  printf '%s' "$1" | sed -E 's/([a-z0-9])([A-Z])/\1_\2/g; s/([A-Za-z])([0-9])/\1_\2/g' \
+    | tr 'A-Z' 'a-z'
+}
+
+conferir_receita() {
+  local b="$BASE/com.system76.CosmicTheme.Dark.Builder/v2"
+  local d="$BASE/com.system76.CosmicTheme.Dark/v2"
+  [ -f "$b/frosted" ] && [ -f "$b/alpha_map" ] && [ -f "$d/transparent_background" ] || return 0
+
+  local nome chave fator esperado gravado
+  nome="$(cat "$b/frosted")"
+  chave="$(_frosted_para_chave "$nome")"
+  fator="$(sed -nE "s/.*[^a-z_]${chave}: *([0-9.]+).*/\1/p" "$b/alpha_map" | head -1)"
+  [ -n "$fator" ] || return 0
+
+  esperado="$(python3 -c "print(f'{round($fator*255):02X}')" 2>/dev/null)" || return 0
+  gravado="$(grep -oE '#[0-9A-Fa-f]{8}' "$d/transparent_background" | head -1)"
+  gravado="${gravado: -2}"
+  [ -n "$gravado" ] || return 0
+
+  if [ "$esperado" != "$gravado" ]; then
+    meow_aviso "o vidro na tela não é o que você escolheu: '$nome' pede alpha $esperado, está gravado $gravado"
+    meow_info "abra Aparência e mova o slider de opacidade uma vez — só a GUI deriva a cor corretamente"
+    return 1
+  fi
+  return 0
+}
+
 if [ "$mudou" = "0" ]; then
   if [ "$desejado" = "true" ]; then
     meow_ok "vidro já conforme: painel $op_painel, dock $op_dock, mantido ao maximizar"
   else
     meow_ok "vidro já conforme: painel $op_painel, dock $op_dock; sai ao maximizar (padrão do COSMIC)"
   fi
+  # Sai 4, não 1: não há o que consertar — quem deriva é a GUI. Ver o cabeçalho de
+  # `conferir_receita` e o bloco do código 4 em scripts/aplicar_tema.sh.
+  conferir_receita || exit 4
   exit "$MEOW_OK"
 fi
 

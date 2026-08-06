@@ -9,8 +9,9 @@
 #
 # OS CÓDIGOS DE SAÍDA SÃO A INTERFACE (regra 7 do contrato)
 #   0 = estava tudo certo · 1 = divergia e foi consertado · 2 = erro de verdade ·
-#   3 = falta dependência (app não instalado). Só o 2 é falha para o systemd — por
-#   isso o `SuccessExitStatus=1 3`. E é o 1 que dispara a notificação, no
+#   3 = falta dependência (app não instalado) · 4 = divergente por escolha DELA,
+#   sem conserto possível. Só o 2 é falha para o systemd — por
+#   isso o `SuccessExitStatus=1 3 4`. E é o 1 que dispara a notificação, no
 #   ExecStopPost: sem esse detalhe o auto-reparo avisaria todo dia, mesmo sem ter
 #   feito nada, e ela aprenderia a ignorar o aviso.
 #
@@ -74,8 +75,13 @@ ExecStartPre=-/bin/sh -c 'L=%h/.local/state/meowsystem/doctor.log; [ -f "$L" ] |
 #   saída 2, e o auto-reparo falharia todo dia.
 ExecStart=%h/.local/bin/meow doctor --consertar
 
-# 1 (consertou) e 3 (faltou dependência) são informação, não falha.
-SuccessExitStatus=1 3
+# 1 (consertou), 3 (faltou dependência) e 4 (divergente por escolha dela) são
+# informação, não falha. O 4 nasceu em 05/08/2026: quando ela mexe em Aparência, a
+# captura de tema fica velha e o doctor NÃO deve consertar — consertar seria
+# desfazer o ajuste dela, e por timer isso viraria desfazer todo dia. Como o
+# ExecStopPost abaixo só fala quando o código é 1, o 4 fica registrado no log e
+# calado na tela, que é exatamente o que se quer.
+SuccessExitStatus=1 3 4
 
 # Um doctor travado seguraria o lock de `~/.local/state/meowsystem/lock` até o fim
 # dos tempos. Cinco minutos é folga de sobra para o pior caso, que é esperar o

@@ -254,7 +254,10 @@ chk_tema() {
     echo "e rode: meow tema capturar $alvo"
     return "$MEOW_SEM_DEPENDENCIA"
   }
-  MEOW_DRY_RUN=0 "$RAIZ/scripts/aplicar_tema.sh" "$alvo" --conferir 2>&1
+  # O doctor é MANUTENÇÃO: ele confere com `--respeitar-gui` e pode devolver 4,
+  # "a captura está velha". Ver o tratamento do 4 no runner e no cabeçalho do
+  # aplicar_tema.sh — 4 não é divergência, é decisão dela, e não notifica.
+  MEOW_DRY_RUN=0 "$RAIZ/scripts/aplicar_tema.sh" "$alvo" --respeitar-gui --conferir 2>&1
 }
 
 chk_modo() {
@@ -331,7 +334,7 @@ fix_gerar() {
   python3 "$RAIZ/scripts/gerar_gato.py" --accent "$ACCENT" 2>&1 || return "$MEOW_ERRO"
   return "$MEOW_DIVERGENTE"
 }
-fix_tema()      { "$RAIZ/scripts/aplicar_tema.sh" "$(alvo_tema)" 2>&1; }
+fix_tema()      { "$RAIZ/scripts/aplicar_tema.sh" "$(alvo_tema)" --respeitar-gui 2>&1; }
 fix_modo()      { local d; d="$(modo_desejado)" || return "$MEOW_ERRO"; meow_escrever "$IS_DARK" "$d" 644; }
 fix_icones()    { FLAVOR="$FLAVOR" LOGO="$LOGO" \
                     ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
@@ -383,11 +386,14 @@ pad() {
   printf '%s%*s' "$t" "$n" ""
 }
 
+# 4 = "divergente por escolha dela" (hoje: a captura de tema está velha porque ela
+# mexeu em Aparência). Sai com o mesmo `--` do 3 porque a leitura é a mesma para
+# quem olha: não há nada que o auto-reparo deva fazer aqui.
 rotulo_rc() {
   case "$1" in
     0) printf '%sok%s  ' "$C_VERDE" "$C_ZERO" ;;
     1) printf '%s~~%s  ' "$C_AMARELO" "$C_ZERO" ;;
-    3) printf '%s--%s  ' "$C_DIM" "$C_ZERO" ;;
+    3|4) printf '%s--%s  ' "$C_DIM" "$C_ZERO" ;;
     *) printf '%serro%s' "$C_VERM" "$C_ZERO" ;;
   esac
 }
@@ -576,6 +582,14 @@ cmd_doctor() {
     esac
     if [ "${CHK_RC[$i]}" = "3" ]; then
       meow_pula "$nome: falta dependência — o conserto não é nosso"
+      continue
+    fi
+    # 4: divergente POR ESCOLHA DELA. Consertar aqui seria desfazer o ajuste que
+    # ela acabou de fazer na GUI — e, como o timer roda todo dia, seria desfazer
+    # todo dia. É por isso que o 4 existe em vez de reusar o 1: ele sai do laço de
+    # conserto sem sair do relatório.
+    if [ "${CHK_RC[$i]}" = "4" ]; then
+      meow_pula "$nome: é escolha sua, não divergência — o auto-reparo não mexe"
       continue
     fi
     saida="$("fix_$nome" 2>&1)"; rc=$?
