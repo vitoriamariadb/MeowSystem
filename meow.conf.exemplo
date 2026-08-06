@@ -78,13 +78,22 @@ WALLPAPER_DIR="$HOME/.local/share/backgrounds/meowsystem/ativos"
 WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
 WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
 
-# O GATO DO DOCK GIRA JUNTO COM O PAPEL DE PAREDE
-#   Pedido dela: "a ideia é esse gato trocar a medida de troca do wallpaper".
-#   Por isso esta chave nasce VAZIA e o padrão é o WALLPAPER_INTERVALO acima —
-#   mexer no carrossel move os dois de uma vez, sem ninguém descobrir depois que
-#   havia uma segunda chave escondida com outro número.
-#   Preencha só se quiser os dois ritmos separados. Ex.: LOGO_INTERVALO="30m"
-LOGO_INTERVALO=""
+# UM GATO POR DIA — e o número aqui não é escolha estética, é consequência
+#   O pedido original era o gato trocar junto com o papel de parede, a cada 5
+#   minutos. Medido em 05/08/2026, e isso derruba a ideia: o `cosmic-panel` tem
+#   SEIS watches de inotify — as três configs de painel e as três de tema — e
+#   NENHUM sobre arquivo de ícone. Ele carrega o gato do dock uma vez, ao
+#   iniciar a sessão, e não relê. Trocar o arquivo a cada 5 min seriam 288
+#   escritas por dia para um efeito que só aparece no login seguinte.
+#
+#   O applet "Logo Menu" resolveria isso ao vivo, mas ela recusou com razão: ele
+#   nasce AO LADO do botão do dock, e ficariam dois gatos iguais na barra.
+#
+#   Então o desenho é o que ela pediu depois: "não me importo de trocar o gato
+#   por dia. Tipo a ideia é essa." Um dia de intervalo, e o gato novo aparece no
+#   próximo login. Diminuir este número não faz o gato trocar mais rápido na
+#   tela — só escreve mais no disco.
+LOGO_INTERVALO="1d"
 WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
 WALLPAPER_SEMENTES="comunidade,cosmic,minhas"   # o que o `meow wallpaper semear` baixa
 
