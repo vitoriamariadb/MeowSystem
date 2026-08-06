@@ -28,8 +28,9 @@ segundos, nem depois. Quem deriva é o app `cosmic-settings`, com a janela abert
 
 **Consequência de arquitetura:** um tema novo precisa ser importado pela GUI
 **uma vez**. Depois disso, `scripts/capturar_tema.sh` fotografa o resultado, a foto
-vai para o git, e `scripts/aplicar_tema.sh` reproduz por cópia em qualquer máquina,
-sem GUI. É uma vez na vida do projeto, não uma vez por máquina.
+vai para o git, e `scripts/aplicar_tema.sh` reproduz por cópia — sem GUI, sem
+clique. É uma vez na vida do projeto, e vale de novo se esta máquina for
+reformatada: o custo do import não volta.
 
 **O que NÃO fazer:** escrever chave por chave em `Dark/v1`. As árvores derivadas já
 discordam entre si nesta máquina — `Dark/v1` tem 30 chaves e `Dark/v2` tem 17, e o

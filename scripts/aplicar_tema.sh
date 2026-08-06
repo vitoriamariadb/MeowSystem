@@ -188,14 +188,19 @@ e_chave_da_aurora() {
 # --- BACKUP: ESTE SCRIPT É O ÚNICO DO PROJETO QUE APAGA ARQUIVO ALHEIO -------
 # Ele sobrescreve arquivos de tema e REMOVE os que sobram em relação à captura
 # (ver o bloco "os arquivos que SOBRAM", mais abaixo, para saber por que remover
-# é necessário). Até 05/08/2026 ele fazia as duas coisas sem guardar nada — e o
-# README prometia, na cara, "todo passo faz backup antes de sobrescrever".
+# é necessário). Até 05/08/2026 ele fazia as duas coisas sem guardar nada.
 #
-# NESTA MÁQUINA o risco era pequeno: as capturas nasceram aqui, então "sobrando"
-# dá zero. O risco real é o de PUBLICAR: na máquina de um estranho, com uma
-# versão do COSMIC que tenha chaves que a nossa captura não conhece, cada uma
-# dessas chaves é um `rm -f` sem volta no tema que ele montou. Era a única coisa
-# no projeto capaz de destruir dado de quem não é a Vitória.
+# O BACKUP NUNCA FOI SOBRE PUBLICAR — ELE PROTEGE O TEMA DELA
+#   Já se escreveu aqui que o risco "real" era o de outra máquina, e que nesta
+#   ele seria pequeno porque as capturas nasceram aqui. É falso, e a prova está
+#   no próprio script: o bloco "os arquivos que SOBRAM" documenta que um import
+#   pela GUI CRIOU 33 arquivos que a captura não conhecia. Cada arquivo que a
+#   GUI dela derive e a captura não tenha é, sem este backup, um `rm -f` sem
+#   volta no tema que ELA ajustou — nesta máquina, hoje, no `install.sh` e no
+#   auto-reparo das 5h.
+#
+#   Por isso o backup não é negociável e não sai com a poda do que existia para
+#   publicação: ele é a rede embaixo do único `rm` do projeto.
 #
 # PREGUIÇOSO DE PROPÓSITO: o backup só nasce quando algo vai mesmo ser escrito
 # ou removido. Um `--conferir` não cria nada, e a rodada que já está conforme —

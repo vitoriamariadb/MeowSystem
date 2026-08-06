@@ -137,9 +137,14 @@ O contrato completo está em [`docs/COSMIC-THEMING.md`](docs/COSMIC-THEMING.md) 
 Em **05/08/2026** ficou decidido: este repositório **não vai ser publicado**. Ele
 existe para deixar o COSMIC de uma pessoa funcional e bonito, e acoplar-se a essa
 máquina é permitido — `apt`, caminhos absolutos, o uid do `cosmic-greeter`, os
-`.desktop` dos jogos dela. Some junto todo o trabalho que só existia por causa da
-publicação: abstração de gerenciador de pacotes, detecção de schema do COSMIC
-para outras versões, camada de detecção do Aurora.
+`.desktop` dos jogos dela.
+
+Some junto o trabalho que só existia por causa da publicação: abstração de
+gerenciador de pacotes, detecção de schema do COSMIC para outras versões, camada
+única de detecção do Aurora. **Nenhum dos três chegou a existir como código** —
+eram planos, e a poda foi de promessa, não de linha: `lib/` tem um arquivo só
+(`comum.sh`), e nenhum gerenciador além do `apt` aparece em `bin`, `scripts`,
+`lib` ou `install.sh`.
 
 Duas coisas **não** eram sobre publicar, e continuam valendo inteiras:
 
@@ -194,8 +199,17 @@ O instalador **recusa por caminho** — não por boa intenção — escrever em
 patchado duas vezes, e uma versão nova mataria os dois patches junto com os
 workspaces alfinetados.
 
-Todo passo faz backup antes de sobrescrever, em
-`~/.local/state/meowsystem/backups/<ISO>/`.
+**Quem apaga, guarda antes.** O `aplicar_tema.sh` é o único ponto do projeto que
+remove arquivo que não é dele, e faz backup da árvore inteira em
+`~/.local/state/meowsystem/backups/<ISO>/`. O `hicolor.sh` e os cinco módulos de
+`app-themes/` fazem o mesmo com o arquivo de terceiro que sobrescrevem.
+
+Os demais **não** fazem backup, e isso é a regra, não um esquecimento: eles
+escrevem em diretórios que o projeto criou e dos quais é dono único — o tema
+`MeowSystem-Icons`, os gatos `meow-*.svg`, o som, os `.desktop` sombreados em
+`~/.local/share/applications/`. Ali o conteúdo anterior é a saída da rodada
+anterior deles mesmos, e guardá-lo seria encher o disco de cópias idênticas.
+A regra é **backup do que é de outro**, não backup de tudo.
 
 ---
 
