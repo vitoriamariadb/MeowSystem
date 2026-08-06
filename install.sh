@@ -53,12 +53,18 @@ passo() { PASSO=$((PASSO+1)); meow_passo "[$PASSO/$TOTAL] $*"; }
 #   É o mesmo pecado que o `wallpaper.sh` já tinha corrigido no tempo verbal do
 #   modo seco: dizer no passado uma coisa que não aconteceu. Aqui a separação é
 #   o que torna a idempotência VISÍVEL em vez de prometida.
+# O 4 É INFORMAÇÃO, NÃO FALHA — e esquecê-lo aqui já custou uma etapa "vermelha"
+#   `4` = divergente por ESCOLHA DELA, sem conserto possível: hoje é a captura de
+#   tema que ficou velha porque ela mexeu em Aparência, e o vidro cuja cor
+#   derivada não corresponde mais ao slider. Sem esta linha, o instalador
+#   anunciava `falhou: vidro` num sistema em que nada falhou — e sair 2 no fim
+#   ainda faria a unidade do systemd marcar o serviço como falho todo dia.
 concluir() {
   local nome="$1" rc="$2"
   case "$rc" in
     0) CONFEREM+=("$nome") ;;                     # já estava certo: nada escrito
     1) FEITOS+=("$nome") ;;                       # divergia e foi consertado
-    3) PULADOS+=("$nome") ;;
+    3|4) PULADOS+=("$nome") ;;
     *) FALHOS+=("$nome") ;;
   esac
 }
@@ -377,15 +383,26 @@ etapa_tema() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  if MEOW_DRY_RUN=0 "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$alvo" --conferir >/dev/null 2>&1; then
-    meow_ok "tema '$alvo' já aplicado"
-    return 0
-  fi
+  # `--respeitar-gui`: rodar o instalador de novo é MANUTENÇÃO, e manutenção não
+  # desfaz o que ela ajustou em Aparência. Foi assim que o ajuste de vidro dela
+  # das 17:59 de 05/08 morreu às 18:00:36. Ver a fronteira por árvore no
+  # aplicar_tema.sh. Quem impõe a captura é o comando explícito (`meow tema X`).
+  local rc
+  MEOW_DRY_RUN=0 "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$alvo" --respeitar-gui --conferir >/dev/null 2>&1
+  rc=$?
+  case "$rc" in
+    0) meow_ok "tema '$alvo' já aplicado"; return 0 ;;
+    4) meow_pula "tema '$alvo': a captura está velha — você mexeu em Aparência"
+       meow_info "para fixar o que está na tela: meow tema capturar $alvo"
+       return 0 ;;
+  esac
   if meow_seco; then
     meow_muda "aplicaria o tema '$alvo'"
     return "$MEOW_DIVERGENTE"
   fi
-  "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$alvo" | sed 's/^/  /' || return "$MEOW_ERRO"
+  "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$alvo" --respeitar-gui | sed 's/^/  /'
+  rc="${PIPESTATUS[0]}"
+  case "$rc" in 0|4) ;; *) return "$MEOW_ERRO" ;; esac
   meow_notificar "MeowSystem" "Tema $alvo aplicado."
   return "$MEOW_DIVERGENTE"
 }

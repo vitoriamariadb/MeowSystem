@@ -65,6 +65,59 @@ e_chave_dela() {
   return 1
 }
 
+# --- A FRONTEIRA É POR ÁRVORE, NÃO POR CHAVE ---------------------------------
+# PROTEGER O INSUMO E IMPOR O PRODUTO GARANTE UM TEMA HÍBRIDO
+#   Libertar `frosted` e `alpha_map` (acima) resolveu metade do problema e criou a
+#   outra. Medido nesta máquina, e é o defeito que motivou este bloco:
+#
+#     17:59:12–17:59:46  ela mexe os dois slideres; a GUI DERIVA o tema
+#     18:00:36           o install.sh reescreve NOVE arquivos de Dark/v2 de volta
+#                        para a captura de 04/08
+#
+#   Resultado no disco em 05/08, quatro horas depois e ainda hoje: `frosted=Low2`,
+#   que implica alpha `7C`, ao lado de `transparent_background = #313244D9`. A
+#   receita dela apontando para um vidro que a cor gravada não tem. Ela mexeu o
+#   slider, viu mudar, e o instalador desfez sem dizer nada.
+#
+# ENTÃO A DIVISÃO CERTA É ESTA
+#   *.Builder/v*   = A RECEITA. Continua imposta pela captura: é ela que faz o
+#                    tema valer numa máquina onde ninguém nunca abriu a GUI.
+#   {Dark,Light}/  = O PRODUTO da GUI. Imposto só quando o arquivo não existe
+#                    (bootstrap) ou quando a receita do destino confere com a da
+#                    captura. Se a receita divergiu, quem manda é a derivação
+#                    dela — e a captura é que está velha.
+#
+# POR QUE NÃO "O RGB É NOSSO E O ALPHA É DELA"
+#   Foi a outra proposta em cima da mesa, e ela parte cada arquivo ao meio. Os
+#   `transparent_*` carregam o ACCENT junto: congelados como chave dela, um
+#   `meow tema mocha-pink` deixaria a janela flutuante com foco mauve e a
+#   maximizada com foco rosa, para sempre. Fronteira por árvore não parte arquivo
+#   nenhum.
+e_produto() {
+  case "$1" in
+    com.system76.CosmicTheme.Dark/*|com.system76.CosmicTheme.Light/*) return 0 ;;
+  esac
+  return 1
+}
+
+# A receita do destino confere com a da captura? Comparação por conteúdo, nas
+# chaves que a GUI escreve. Ausente dos dois lados = confere (não há o que
+# divergir); presente só na captura = confere (máquina nova, ainda vai receber).
+receita_diverge() {
+  local arv v chave a b
+  for arv in Dark Light; do
+    for v in v1 v2; do
+      for chave in "${CHAVES_DELA[@]}"; do
+        a="$ORIGEM/com.system76.CosmicTheme.$arv.Builder/$v/$chave"
+        b="$COSMIC/com.system76.CosmicTheme.$arv.Builder/$v/$chave"
+        [ -f "$a" ] && [ -f "$b" ] || continue
+        cmp -s "$a" "$b" || return 0
+      done
+    done
+  done
+  return 1
+}
+
 uso() {
   cat <<'FIM'
 uso: aplicar_tema.sh <nome> [--conferir]
@@ -82,8 +135,18 @@ FIM
 
 [ $# -ge 1 ] || { uso >&2; exit 2; }
 NOME="$1"; shift
+# Varre TODOS os argumentos, não só o primeiro. Antes olhava apenas `$1`, e com
+# duas flags na linha (`--respeitar-gui --conferir`) a segunda ia para o lixo em
+# silêncio — a mesma armadilha que já custou um `--yes` inventado na unidade do
+# systemd. Opção desconhecida agora é erro, não é ignorada.
 CONFERIR=0
-[ "${1:-}" = "--conferir" ] && CONFERIR=1
+for a in "$@"; do
+  case "$a" in
+    --conferir)      CONFERIR=1 ;;
+    --respeitar-gui) ;;   # lido mais abaixo, junto do bloco que o explica
+    *) echo "ERRO: opção desconhecida: '$a'" >&2; uso >&2; exit 2 ;;
+  esac
+done
 [ "$SECO" = "1" ] && CONFERIR=1
 
 case "$NOME" in ''|*/*|.*) echo "ERRO: nome inválido: '$NOME'" >&2; exit 2 ;; esac
@@ -188,6 +251,28 @@ FIM
 divergentes=0
 escritos=0
 iguais=0
+cedidos=0
+
+# --- A FRONTEIRA É OPT-IN, E ISSO NÃO É TIMIDEZ ------------------------------
+# Ceder o produto derivado é o comportamento certo na MANUTENÇÃO — o install.sh
+# rodando de novo, o doctor das 5h — em que ninguém pediu para mudar o tema e
+# reimpor a captura só desfaria o que ela ajustou.
+#
+# Numa DECISÃO dela é o oposto. `meow tema mocha-pink` e `meow desfazer` são
+# ordens explícitas: ali a captura tem de vencer, ou o comando não faria nada e
+# ela ficaria com o accent antigo sem entender por quê. E o caso é real, não
+# hipotético: `frosted` costuma ser igual entre capturas de flavors diferentes,
+# então uma receita "velha" travaria a troca de flavor para sempre.
+#
+# Daí a flag. Quem chama para manter, passa; quem chama porque ela mandou, não.
+RESPEITAR_GUI=0
+[ "${MEOW_RESPEITAR_GUI:-0}" = "1" ] && RESPEITAR_GUI=1
+for a in "$@"; do [ "$a" = "--respeitar-gui" ] && RESPEITAR_GUI=1; done
+
+# Resolvido UMA vez, antes do laço: é a mesma resposta para todos os arquivos, e
+# dentro do laço custaria uma varredura por arquivo.
+RECEITA_VELHA=0
+[ "$RESPEITAR_GUI" = "1" ] && receita_diverge && RECEITA_VELHA=1
 
 while IFS= read -r -d '' arq; do
   rel="${arq#"$ORIGEM"/}"
@@ -210,6 +295,15 @@ while IFS= read -r -d '' arq; do
     elif cmp -s "$arq" "$destino"; then
       iguais=$((iguais+1)); continue
     fi
+  fi
+
+  # O produto derivado só é imposto quando a receita ainda bate — ver a fronteira
+  # por árvore, acima. Divergiu a receita, quem manda é a derivação da GUI dela.
+  # A comparação vem ANTES desta guarda de propósito: um arquivo que já está
+  # idêntico não foi "cedido", ele só está certo. Contá-lo aqui faria o script
+  # anunciar "120 arquivos preservados" numa árvore em que nove divergiam.
+  if [ "$RECEITA_VELHA" = "1" ] && e_produto "$rel" && [ -f "$destino" ]; then
+    cedidos=$((cedidos+1)); continue
   fi
 
   divergentes=$((divergentes+1))
@@ -248,6 +342,12 @@ for arvore in "$ORIGEM"/com.system76.CosmicTheme.*; do
   while IFS= read -r -d '' vivo; do
     rel="${vivo#"$COSMIC"/}"
     [ -e "$ORIGEM/$rel" ] && continue
+    # Com a receita divergente, um arquivo "a mais" dentro das árvores de produto
+    # provavelmente foi a GUI dela que derivou — remover seria desfazer o ajuste
+    # por outra porta, depois de ter cedido na porta da frente.
+    if [ "$RECEITA_VELHA" = "1" ] && e_produto "$rel"; then
+      cedidos=$((cedidos+1)); continue
+    fi
     sobrando=$((sobrando+1))
     if [ "$CONFERIR" = "1" ]; then
       [ "$SECO" = "1" ] && echo "  removeria $rel"
@@ -258,8 +358,30 @@ for arvore in "$ORIGEM"/com.system76.CosmicTheme.*; do
   done < <(find "$COSMIC/$nome_arvore" -type f -print0)
 done
 
+# --- O CÓDIGO 4: "A CAPTURA ESTÁ VELHA" NÃO É DIVERGÊNCIA ---------------------
+# Ele existe por causa do timer. O `meow-doctor.service` roda todo dia às 5h e o
+# `ExecStopPost` notifica QUANDO O CÓDIGO É 1 — porque 1 significa "divergia e foi
+# consertado". Se "a captura está velha" saísse 1, ela receberia
+# "o auto-reparo corrigiu" toda madrugada, sem nada ter sido corrigido e sem nada
+# PODER ser: quem decide recapturar é ela. Seria a notificação mentirosa diária,
+# o mesmo anti-padrão que o projeto recusou no F11.
+#
+# 4 = divergente por escolha dela. O doctor mostra e não conserta; a unidade o
+# aceita como sucesso (`SuccessExitStatus=1 3 4`) e o ExecStopPost fica calado,
+# porque só olha o 1.
+MEOW_CAPTURA_VELHA=4
+
+aviso_receita() {
+  echo "a captura '$NOME' está velha: você mexeu em Aparência e a GUI derivou um tema novo."
+  echo "  $cedidos arquivo(s) preservados. Para fixar o que está na tela: meow tema capturar $NOME"
+}
+
 if [ "$CONFERIR" = "1" ]; then
   if [ "$divergentes" -eq 0 ] && [ "$sobrando" -eq 0 ]; then
+    if [ "$cedidos" -gt 0 ]; then
+      aviso_receita
+      exit "$MEOW_CAPTURA_VELHA"
+    fi
     echo "tema '$NOME' já aplicado ($iguais arquivos conferem)"
     exit 0
   fi
@@ -268,5 +390,10 @@ if [ "$CONFERIR" = "1" ]; then
   exit 1
 fi
 
-echo "tema '$NOME' aplicado: $escritos escritos, $iguais já estavam certos${sobrando:+, $sobrando removidos}"
+if [ "$escritos" -eq 0 ] && [ "$sobrando" -eq 0 ] && [ "$cedidos" -gt 0 ]; then
+  aviso_receita
+  exit "$MEOW_CAPTURA_VELHA"
+fi
+
+echo "tema '$NOME' aplicado: $escritos escritos, $iguais já estavam certos${sobrando:+, $sobrando removidos}${cedidos:+, $cedidos preservados da sua GUI}"
 exit 0
