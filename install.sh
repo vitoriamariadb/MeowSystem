@@ -502,6 +502,17 @@ etapa_mimetypes() {
   return $?
 }
 
+# Os ícones do PRÓPRIO COSMIC — as páginas das Configurações — vestidos pelo
+# Arcticons. Mesmo motivo das duas etapas irmãs para vir depois do `etapa_icones`:
+# quem declara `<tam>/status` no index.theme é aquele, e sem a declaração estes
+# SVG existiriam no disco sem ninguém achá-los.
+etapa_icones_sistema() {
+  passo "Ícones do sistema"
+  ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_sistema.sh"
+  return $?
+}
+
 # O SOM. O alcance inteiro desta etapa e UM arquivo -- o som de mudanca de volume,
 # o unico que o COSMIC realmente toca (medido: `pw-play` aparece em 2 dos 41
 # binarios cosmic-*, e canberra em nenhum). Fica em etapa propria porque nao
@@ -788,7 +799,7 @@ main() {
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_upstream etapa_fontes
                 etapa_icones etapa_pastas etapa_hicolor etapa_completar_icones
-                etapa_mimetypes etapa_icones_apps etapa_jogos
+                etapa_mimetypes etapa_icones_apps etapa_icones_sistema etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_som etapa_apps
                 etapa_autoreparo)
   TOTAL=${#etapas[@]}

@@ -76,11 +76,33 @@ tem_mimetypes() { [ -d "$TEMA_DIR/scalable/mimetypes" ]; }
 # nomes em que os dois existem — a ordem de `Directories=` é a ordem de busca.
 tem_apps_png() { [ -d "$TEMA_DIR/512x512/apps" ]; }
 
+# `<tam>/status` é o Arcticons vestindo os ícones do PRÓPRIO COSMIC, posto lá pelo
+# `icones_sistema.sh`. Mesma regra dos outros: declarar só o que EXISTE.
+#
+# SÃO DOIS TAMANHOS DE PROPÓSITO, E ISSO FOI MEDIDO
+#   O mesmo ícone entra em `22x22/status` com o traço dobrado e em
+#   `scalable/status` com o traço fino do pack. Funciona porque a crate do COSMIC
+#   escolhe POR TAMANHO, não pela ordem desta lista: plantando o mesmo nome nos
+#   dois e rodando o `cosmic-settings` sob strace, ele abriu o grande mesmo com o
+#   22x22 declarado primeiro. É o que dá à barra um traço que se enxerga a 22px
+#   sem engrossar o ícone das Configurações.
+status_no_disco() {
+  local d tam
+  for d in "$TEMA_DIR"/*/status; do
+    [ -d "$d" ] || continue
+    tam="$(basename "${d%/status}")"
+    case "$tam" in
+      [0-9]*x[0-9]*|scalable) printf '%s\n' "$tam" ;;
+    esac
+  done
+}
+
 indice() {
   local dirs="" tam
   tem_apps_png && dirs="512x512/apps,"
   dirs="${dirs}scalable/apps"
   tem_mimetypes && dirs="$dirs,scalable/mimetypes"
+  while IFS= read -r tam; do dirs="$dirs,$tam/status"; done < <(status_no_disco)
   while IFS= read -r tam; do dirs="$dirs,$tam/places"; done < <(places_no_disco)
 
   cat <<FIM
@@ -119,6 +141,28 @@ MinSize=8
 MaxSize=512
 FIM
   fi
+
+  while IFS= read -r tam; do
+    if [ "$tam" = scalable ]; then
+      cat <<FIM
+
+[scalable/status]
+Size=48
+Context=Status
+Type=Scalable
+MinSize=8
+MaxSize=512
+FIM
+    else
+      cat <<FIM
+
+[$tam/status]
+Size=${tam%%x*}
+Context=Status
+Type=Fixed
+FIM
+    fi
+  done < <(status_no_disco)
 
   while IFS= read -r tam; do
     cat <<FIM
