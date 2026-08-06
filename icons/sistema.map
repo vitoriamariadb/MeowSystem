@@ -1,0 +1,64 @@
+# sistema.map — os ícones do PRÓPRIO COSMIC, vestidos pelo Arcticons.
+#
+# Formato:  nome-que-o-COSMIC-pede : nome-no-arcticons [ : alias ]
+#
+# O terceiro campo, quando presente, é a palavra `alias`: marca uma repetição
+# DELIBERADA de desenho. Sem ela, dois alvos apontando para o mesmo glifo fazem
+# o gerador ESTOURAR — é a asserção que o SPRINTS.md pede, para que dois ícones
+# nunca nasçam gêmeos em silêncio.
+#
+# O QUE NÃO ESTÁ AQUI CONTINUA VINDO DO PAPIRUS, e isso é de propósito:
+#
+#   - As FAMÍLIAS DE ESTADO. Medido em 05/08/2026 contra o índice completo do
+#     Arcticons (14.996 nomes): o pack tem ZERO sufixos `-off`, `-mute`,
+#     `-muted`, `-disabled`, `-low`, `-high`, `-medium`, e não tem `microphone`.
+#     O COSMIC pede `audio-volume-*` em 5 estados, `network-wireless-*` em 7 e
+#     `microphone-sensitivity-*` em 4. Vestir só um estado deixaria o ícone
+#     MUDANDO DE ESTILO conforme o volume ou o sinal — pior que não vestir.
+#
+#   - Os BOTÕES DE JANELA (`window-close/maximize/minimize/restore`) e os
+#     elementos internos de interface (`go-*`, `edit-*`, `pan-*`, `list-*`).
+#     Fora do que ela pediu, usados o tempo todo, e sem equivalente decente.
+#
+#   - `preferences-wired`. O `arcticons:network` é um TELEFONE DE MESA, e o pack
+#     não tem ethernet, router, modem nem cabo. Um ícone errado é pior que um
+#     genérico, porque mente sobre o que a coisa é.
+#
+# A COR NÃO ENTRA AQUI, e isso está medido (docs/COSMIC-THEMING.md §4g): o
+# toolkit do COSMIC descarta a cor do arquivo e repinta o ícone inteiro com a cor
+# de texto do tema. Os SVG ficam em `currentColor` porque é o que o pack entrega
+# e porque qualquer cor que puséssemos seria apagada.
+
+# --- as páginas das Configurações (a tela que ela mandou) --------------------
+preferences-appearance-symbolic:palette
+preferences-applications-symbolic:apps
+preferences-default-applications-symbolic:star
+preferences-desktop-accessibility-symbolic:access
+preferences-desktop-display-symbolic:tv
+preferences-desktop-wallpaper-symbolic:gallery
+preferences-dock-symbolic:launcher
+preferences-input-devices-symbolic:keyboard
+preferences-network-and-wireless-symbolic:wifi
+preferences-wireless-symbolic:signal
+preferences-panel-symbolic:taskbar
+preferences-power-and-battery-symbolic:battery
+preferences-region-and-language-symbolic:translate
+preferences-time-and-language-symbolic:clock
+preferences-system-time-symbolic:clock:alias
+preferences-sound-symbolic:volume
+preferences-startup-applications-symbolic:rocket
+preferences-vpn-symbolic:shield
+preferences-window-management-symbolic:layout
+preferences-workspaces-symbolic:tile
+preferences-X11-applications-symbolic:box
+
+# --- os únicos que aparecem nas Configurações, e não têm estado -------------
+display-symbolic:tv:alias
+system-users-symbolic:contacts
+connection-secure-symbolic:lock
+speaker-symbolic:speaker
+input-keyboard-symbolic:keyboard:alias
+input-mouse-symbolic:mouse
+tablet-symbolic:tablet
+scanner-symbolic:scanner
+smartphone-symbolic:phone
