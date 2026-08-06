@@ -60,6 +60,20 @@ _meow_logos() {
   (( ${#nomes} )) && _describe -t logos 'variante de logo' nomes
 }
 
+# As chaves saem do meow.conf.exemplo do repo, que é a lista canônica — a mesma
+# que o wizard pergunta e que o migrar_conf.py acrescenta. Cair no meow.conf dela
+# quando o repo não for encontrado é de propósito: ali estão as chaves que ela de
+# fato tem, inclusive as que ela mesma inventou.
+_meow_chaves() {
+  local raiz conf
+  local -a nomes
+  raiz="$(_meow_raiz)" && conf="$raiz/meow.conf.exemplo"
+  [[ -f "$conf" ]] || conf="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
+  [[ -f "$conf" ]] || return 1
+  nomes=(${(f)"$(grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' -- "$conf" | sed 's/=$//' | sort -u)"})
+  (( ${#nomes} )) && _describe -t chaves 'chave do meow.conf' nomes
+}
+
 _meow() {
   local curcontext="$curcontext" state line
   local -a comandos
@@ -71,6 +85,7 @@ _meow() {
     'icones:estado do tema de ícones'
     'wallpaper:carrossel de papéis de parede'
     'apps:tabela de módulo, app instalado e tema'
+    'configurar:wizard: pergunta as chaves do meow.conf e grava lá'
     'ativar:roda o install.sh inteiro'
     'aplicar:o mesmo que ativar'
     'desfazer:volta o tema para a captura original'
@@ -157,6 +172,9 @@ _meow() {
               (( ${#slugs} )) && _describe -t slugs 'app' slugs
             fi
           fi
+          ;;
+        configurar|config|wizard)
+          (( CURRENT == 2 )) && _meow_chaves
           ;;
         aplicar|ativar)
           _arguments '--seco[mostra o que faria, sem escrever nada]'

@@ -2,14 +2,26 @@
 # install.sh — instala o MeowSystem inteiro. Sem flag nenhuma.
 #
 #   ./install.sh              faz tudo
+#   ./install.sh --wizard     pergunta o meow.conf antes, e então faz tudo
 #   MEOW_DRY_RUN=1 ./install.sh   mostra o que faria, sem escrever nada
 #
-# POR QUE NÃO TEM FLAG
+# POR QUE QUASE NÃO TEM FLAG
 #   A §5.1 do RELATORIO propunha 14 flags (--tema, --icones, --logo, --all...).
 #   Está declarada histórica: quem decide o que instalar é o `meow.conf`, não a
 #   linha de comando. Uma flag a menos é uma decisão a menos na hora de usar.
 #   O `--dry-run` sobrevive como MEOW_DRY_RUN=1 — invisível no uso normal,
 #   disponível para auditar antes de deixar rodar.
+#
+#   `--wizard` é a única exceção, e ela NÃO abre um segundo lugar onde as
+#   decisões moram: o wizard é `meow configurar`, que pergunta as chaves do
+#   `meow.conf`, grava LÁ e sai. Depois dele o instalador roda como sempre, lendo
+#   o mesmo arquivo de sempre. Uma flag que escolhesse o que instalar seria a
+#   segunda fonte de verdade que este projeto recusa; uma flag que só EDITA a
+#   primeira não é.
+#
+#   E ele nunca é o padrão: o `install.sh` roda em timer, por script e pelo
+#   `meow aplicar`. Um prompt no caminho normal penduraria todos eles. Por isso
+#   quem pergunta é a flag, e o wizard ainda confere `[ -t 0 ]` por dentro.
 #
 # FALHA POR UNIDADE, NUNCA GLOBAL (regra 8 do contrato)
 #   Cada etapa é uma função que RETORNA código; nenhuma chama `exit`. Um app
@@ -807,9 +819,55 @@ etapa_wallpaper() {
 }
 
 # ---------------------------------------------------------------------------
+uso() {
+  cat <<'FIM'
+
+install.sh — instala o MeowSystem inteiro.
+
+  ./install.sh              faz tudo, sem perguntar nada
+  ./install.sh --wizard     roda `meow configurar` antes (pergunta as chaves do
+                            meow.conf, grava lá) e então instala como sempre
+  ./install.sh --help       isto aqui
+
+  MEOW_DRY_RUN=1 ./install.sh   mostra o que faria, sem escrever nada
+
+Quem decide o que é instalado é o meow.conf, nunca a linha de comando.
+
+FIM
+}
+
 main() {
+  local wizard=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --wizard|-w) wizard=1 ;;
+      -h|--help)   uso; return 0 ;;
+      "")          ;;
+      *) meow_erro "opção desconhecida: $1"
+         meow_info "o que existe: --wizard, --help. O resto mora no meow.conf."
+         return 2 ;;
+    esac
+    shift
+  done
+
   meow_titulo "MeowSystem — Catppuccin para o COSMIC"
   meow_seco && meow_aviso "MEOW_DRY_RUN=1 — nada será escrito"
+
+  # O WIZARD VEM ANTES DO LOCK, E É UM PROCESSO À PARTE
+  #   Ele grava no meow.conf e sai; o `etapa_conf` logo abaixo lê o arquivo já
+  #   com as respostas dela. Rodá-lo aqui dentro do mesmo processo, depois do
+  #   `meow_travar`, seria perguntar com o lock na mão — e um ENTER esquecido
+  #   deixaria o timer do auto-reparo travado do outro lado.
+  #   Sem tty ele não pergunta nada e devolve 0: `echo | ./install.sh --wizard`
+  #   instala igual, sem pendurar.
+  if [ "$wizard" = "1" ]; then
+    MEOW_WIZARD_SEM_APLICAR=1 MEOW_RAIZ="$MEOW_RAIZ" "$MEOW_RAIZ/bin/meow" configurar
+    local rc_wiz=$?
+    if [ "$rc_wiz" -ge 2 ]; then
+      meow_erro "o wizard falhou — nada foi instalado"
+      return 2
+    fi
+  fi
 
   meow_travar || return 2
 
