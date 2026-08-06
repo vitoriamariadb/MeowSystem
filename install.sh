@@ -731,13 +731,19 @@ etapa_logo() {
     conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
     # O intervalo é do meow.conf, não do arquivo da unidade: mudar a cadência
     # tem de ser editar UMA linha da conf, como tudo mais neste projeto.
-    [ "$u" = "meow-logo.timer" ] && conteudo="${conteudo//OnUnitActiveSec=30min/OnUnitActiveSec=${LOGO_INTERVALO:-30m}}"
+    # O GATO GIRA JUNTO COM O PAPEL DE PAREDE — pedido dela em 05/08/2026:
+    # "a ideia é esse gato trocar a medida de troca do wallpaper". Por isso o
+    # padrao de LOGO_INTERVALO e o proprio WALLPAPER_INTERVALO, e nao um numero
+    # solto: quem mexer no carrossel move os dois de uma vez, sem descobrir que
+    # havia uma segunda chave escondida. Definir LOGO_INTERVALO no meow.conf
+    # continua separando os dois, para quem quiser.
+    [ "$u" = "meow-logo.timer" ] && conteudo="${conteudo//OnUnitActiveSec=30min/OnUnitActiveSec=${LOGO_INTERVALO:-${WALLPAPER_INTERVALO:-5m}}}"
     meow_escrever "$destino/$u" "$conteudo" 644
     case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
   done
 
   if meow_seco; then
-    [ "$mudou" = "1" ] && { meow_muda "ligaria a rotação a cada ${LOGO_INTERVALO:-30m}"; return "$MEOW_DIVERGENTE"; }
+    [ "$mudou" = "1" ] && { meow_muda "ligaria a rotação a cada ${LOGO_INTERVALO:-${WALLPAPER_INTERVALO:-5m}}"; return "$MEOW_DIVERGENTE"; }
     meow_ok "rotação de gatos já ligada"
     return 0
   fi
