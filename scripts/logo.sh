@@ -210,6 +210,40 @@ fi
 meow_escrever "$APPLET/custom_logo_active" "true" 644
 case $? in 1) mudou=1 ;; esac
 
+# --- O GATO DO DOCK, QUE É O ÚNICO QUE ELA DE FATO VÊ ------------------------
+# A ROTAÇÃO GIRAVA NO LUGAR ERRADO, E ISSO SÓ APARECEU EM 05/08/2026 ÀS 22h
+#   Ela apontou o gato do canto do dock e perguntou por que a Coquinha não estava
+#   lá. Medido: aquele ícone é `com.system76.CosmicAppLibrary`, e quem o escrevia
+#   era o `construir_icones.sh` a partir de um caminho FIXO —
+#   `assets/meow-${FLAVOR}-painel.svg`. Ele nunca consultou o acervo.
+#
+#   Enquanto isso, toda a rotação construída neste projeto mirava em
+#   `custom_logo_path`, do applet Logo Menu — que NÃO ESTÁ MONTADO em barra
+#   nenhuma nesta máquina. Ou seja: o gato que gira ninguém vê, e o gato que ela
+#   vê não gira. A Coquinha e o Mimir entraram no acervo e nunca chegariam à
+#   tela dela.
+#
+# POR QUE O DONO PASSA A SER ESTE SCRIPT, E NÃO O construir_icones.sh
+#   O comentário §3 daquele script documenta o preço de errar isto: os dois já
+#   escreveram a mesma chave, e a etapa de ícones — que roda ANTES — desfazia a
+#   rotação a cada `install.sh`, sem erro nenhum na tela. Dois donos da mesma
+#   linha é o modo de falha que este projeto mais persegue.
+#   A fronteira aqui é a mesma que resolveu o vidro hoje: quem gira é o dono
+#   (este script); o outro só escreve no BOOTSTRAP, quando o arquivo não existe.
+TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+BOTOES_DOCK=(com.system76.CosmicPanelAppButton com.system76.CosmicAppLibrary)
+DIR_BOTOES="$HOME/.local/share/icons/$TEMA_ICONES/scalable/apps"
+
+if [ -f "$alvo" ]; then
+  for _b in "${BOTOES_DOCK[@]}"; do
+    meow_escrever "$DIR_BOTOES/$_b.svg" "$(cat "$alvo")" 644
+    case $? in
+      1) mudou=1 ;;
+      2) meow_erro "não consegui vestir o botão do dock com $_b"; exit "$MEOW_ERRO" ;;
+    esac
+  done
+fi
+
 if [ "$mudou" = "0" ]; then
   meow_ok "logo já no lugar: ${NOMES[$proximo]} (acervo de ${#POOL[@]})"
   exit "$MEOW_OK"

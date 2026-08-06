@@ -77,6 +77,14 @@ ICONES_FLAVOR="macchiato"
 WALLPAPER_DIR="$HOME/.local/share/backgrounds/meowsystem/ativos"
 WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
 WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
+
+# O GATO DO DOCK GIRA JUNTO COM O PAPEL DE PAREDE
+#   Pedido dela: "a ideia é esse gato trocar a medida de troca do wallpaper".
+#   Por isso esta chave nasce VAZIA e o padrão é o WALLPAPER_INTERVALO acima —
+#   mexer no carrossel move os dois de uma vez, sem ninguém descobrir depois que
+#   havia uma segunda chave escondida com outro número.
+#   Preencha só se quiser os dois ritmos separados. Ex.: LOGO_INTERVALO="30m"
+LOGO_INTERVALO=""
 WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
 WALLPAPER_SEMENTES="comunidade,cosmic,minhas"   # o que o `meow wallpaper semear` baixa
 

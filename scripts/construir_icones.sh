@@ -164,7 +164,21 @@ if [ ! -f "$GATO_PAINEL" ]; then
   meow_erro "falta $GATO_PAINEL — rode scripts/gerar_gato.py"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
+# SÓ NO BOOTSTRAP — O DONO DESTE ARQUIVO PASSOU A SER O logo.sh EM 05/08/2026
+#   Este laço escrevia o gato do dock a partir de um caminho FIXO
+#   (`assets/meow-${FLAVOR}-painel.svg`), em toda rodada. O efeito, medido no dia
+#   em que ela apontou o gato do canto e perguntou por que não era a Coquinha:
+#   o ícone que ela olha todo dia NUNCA participou da rotação, e a rotação
+#   inteira mirava no applet Logo Menu, que não está montado em barra nenhuma.
+#
+#   Agora quem veste o botão é o `scripts/logo.sh`, que é o dono do acervo e de
+#   quem está no ar. Aqui fica só o bootstrap: se o arquivo ainda não existe
+#   (máquina nova, antes de a etapa de logo rodar), põe o gato do flavor para
+#   que não haja um botão sem ícone no meio da instalação. Escrever sempre
+#   traria de volta os DOIS DONOS descritos no §3 logo abaixo — e aquele defeito
+#   desfazia a rotação em silêncio a cada `install.sh`.
 for nome in "${BOTOES[@]}"; do
+  [ -f "$TEMA_DIR/scalable/apps/$nome.svg" ] && continue
   meow_escrever "$TEMA_DIR/scalable/apps/$nome.svg" "$(cat "$GATO_PAINEL")" 644
   case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao instalar $nome"; exit "$MEOW_ERRO" ;; esac
 done
