@@ -26,6 +26,13 @@ meow logo listar    # mostra o acervo e quem está no ar
 
 A troca vale **na hora**, sem reiniciar o painel e sem piscar a tela.
 
+> **Hoje ela não muda pixel nenhum, e o motivo não é bug.** O gato do painel é
+> desenhado pelo applet **Logo Menu** (`dev.cappsy`), que **não está montado em
+> barra nenhuma** nesta máquina. O `meow logo girar` troca a chave corretamente e
+> diz que trocou — porque trocou —, mas não há quem desenhe. Para ver o gato:
+> **Ajustes → Área de trabalho → Painel → Applets**, e acrescente "Logo Menu".
+> A ordem dos applets é dela; nenhum script do projeto mexe nisso.
+
 ## Dois cuidados que economizam confusão
 
 - **Nada de `-symbolic.svg` no nome.** O applet do painel achata em uma cor só
@@ -45,7 +52,13 @@ A troca vale **na hora**, sem reiniciar o painel e sem piscar a tela.
 | ícones de aplicativo | `src/icons/` | `meow icones reconstruir` |
 | logos do painel | **aqui** | soltou o arquivo, entra na próxima volta |
 
-Os papéis de parede não moram no repositório de propósito: são 136 MB, e um
-repositório que vai ser público não aguenta isso. A pasta acima é a fonte, e o
-`cosmic-bg` aponta direto para ela — `meow wallpaper adicionar <arquivo>` copia
-para lá com as verificações, mas arrastar o arquivo na mão funciona igual.
+Os papéis de parede **moram** no repositório, em `wallpapers/` — são 242 imagens
+e 193 MB, baixadas de `zhichaoh/catppuccin-wallpapers` em 05/08/2026. O que não
+vai para o **git** são os arquivos de imagem, barrados pela regra de `*.png`/
+`*.jpg` do `.gitignore`: imagem grande em git é dívida que não se paga, e o
+Andromeda já ficou 18 h com o auto-sync mudo por um arquivo de mais de 100 MB.
+Quem reproduz a pasta é `scripts/wallpaper.sh semear`, com o commit pinado.
+
+A pasta de `~/.local/share/backgrounds/` acima é o que o `cosmic-bg` lê de fato —
+`meow wallpaper adicionar <arquivo>` copia para lá com as verificações, mas
+arrastar o arquivo na mão funciona igual.
