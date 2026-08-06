@@ -63,8 +63,10 @@ editar.
 | gatos da logo | `assets/gatos/` | na próxima volta do relógio (30 min), ou já com `meow logo girar` |
 | papéis de parede | `~/.local/share/backgrounds/meowsystem/ativos/` | na hora — o `cosmic-bg` lê a pasta |
 
-Os 136 MB de papel de parede ficam fora do repositório de propósito: ele vai ser
-público, e imagem grande em git é dívida que não se paga.
+Os papéis de parede ficam fora do git de propósito — imagem grande em git é
+dívida que não se paga, e o Andromeda já ficou 18 h com o auto-sync mudo por um
+arquivo de mais de 100 MB. Eles moram em `wallpapers/`, dentro do repositório, e
+o que os reproduz é `scripts/wallpaper.sh semear`, com o commit pinado.
 
 ---
 
@@ -77,9 +79,19 @@ público, e imagem grande em git é dívida que não se paga.
 - **O vidro ao maximizar** — painel e dock mantêm o fosco quando uma janela
   maximiza (`keep_style_on_maximize`, duas chaves, valem na hora).
 - **Os dois gatos** — a logo do painel e o botão do dock, em mauve.
-- **Os ícones** — Papirus como base, com as pastas em `cat-mocha-mauve`, num tema
-  derivado que não toca no pacote do apt. Inclui desenho autoral para os oito
-  aplicativos do próprio COSMIC, que vinham em teal do Pop!_OS.
+- **Os ícones** — Papirus como base, num tema derivado que não toca no pacote do
+  apt, com **três acervos** por cima e um alvo diferente para cada um:
+
+  | acervo | veste | quantos |
+  |---|---|---|
+  | `catppuccin/vscode-icons` (MIT) | os **tipos de arquivo** — o que o Gestor de Arquivos desenha | 123 |
+  | `Daveedmee/catppuccin-icons` | os **aplicativos** do lançador, em pastel | 16 |
+  | desenho autoral | os apps do próprio COSMIC, o FogStripper e o Hefesto | 10 |
+
+  Confundi-los custa caro: o primeiro tem 656 glifos e **nenhum** deles casa com
+  um aplicativo instalado aqui além do `vscode` — ele é de linguagem e formato de
+  arquivo. As pastas continuam em `cat-mocha-mauve`, do `papirus-folders`.
+  O que fica de fora dos três segue no Papirus, por herança.
 - **O lançador** — sem as duplicatas ("(Local)"/"(Sistema)") e sem os aplicativos
   que são dependência de pacote, não programa que se abre.
 - **Os papéis de parede** — carrossel na rotação nativa do COSMIC.
@@ -120,32 +132,31 @@ O contrato completo está em [`docs/COSMIC-THEMING.md`](docs/COSMIC-THEMING.md) 
 
 ---
 
-## Noutra máquina
+## Uma máquina só, e isso é uma decisão
 
-O projeto nasceu numa máquina só e está sendo aberto para qualquer COSMIC. O que
-já é verdade, e o que ainda não é:
+Em **05/08/2026** ficou decidido: este repositório **não vai ser publicado**. Ele
+existe para deixar o COSMIC de uma pessoa funcional e bonito, e acoplar-se a essa
+máquina é permitido — `apt`, caminhos absolutos, o uid do `cosmic-greeter`, os
+`.desktop` dos jogos dela. Some junto todo o trabalho que só existia por causa da
+publicação: abstração de gerenciador de pacotes, detecção de schema do COSMIC
+para outras versões, camada de detecção do Aurora.
 
-**Funciona sem o Ritual da Aurora.** Nenhum caminho de execução depende dele. As
-regras de convivência só entram em ação quando ele existe.
-
-**Cada módulo pula o que não encontra.** App ausente, `cosmic-greeter` ausente,
-applet de terceiro ausente, `systemd --user` ausente — tudo isso é "pulado", com
-a razão dita em voz alta, e nunca aborta o resto. Os códigos de saída separam
-"divergente" (1) de "erro" (2) de "falta dependência" (3) justamente para isso.
+Duas coisas **não** eram sobre publicar, e continuam valendo inteiras:
 
 **Nada é apagado sem backup.** O único ponto do projeto capaz de remover arquivo
-de tema alheio — `aplicar_tema.sh` — guarda as árvores inteiras em
+de tema — `aplicar_tema.sh` — guarda as árvores inteiras em
 `~/.local/state/meowsystem/backups/<ISO>/` antes, com `manifesto.sha256` e um
-`COMO-RESTAURAR.txt` ao lado. Esse era o bloqueador real de publicação.
+`COMO-RESTAURAR.txt` ao lado. Isso protege o tema **dela**.
 
-**O que ainda supõe esta máquina**, e está no caminho de sair:
+**Cada módulo pula o que não encontra.** App ausente, `cosmic-greeter` ausente,
+applet de terceiro ausente — tudo é "pulado", com a razão dita em voz alta, e
+nunca aborta o resto. Não é portabilidade: é o que faz o instalador não explodir
+quando um programa não está instalado.
 
-- as capturas de `state/tema/` vieram de um COSMIC 1.0.12; numa versão com
-  schema diferente elas podem não casar chave a chave;
-- o `apt` é o único gerenciador de pacotes que o instalador conhece (o COSMIC
-  também roda em Fedora, Arch e NixOS);
-- há caminhos e nomes desta instalação em comentários de medição — são registro
-  histórico, não configuração, mas convém lê-los como tal.
+**Uma consequência de licença.** `icons/catppuccin-apps/` vem de um acervo **sem
+licença declarada**. Uso local, sem redistribuir — os PNG ficam fora do git pela
+regra de imagem, o que já garante isso sozinho. Se algum dia esta decisão mudar,
+essa pasta e o `icons/apps.map` saem juntos.
 
 ---
 
@@ -153,6 +164,9 @@ de tema alheio — `aplicar_tema.sh` — guarda as árvores inteiras em
 
 ```
 assets/gatos/     os gatos da rotação — solte um .svg e ele entra
+icons/            os acervos Catppuccin de terceiro + os mapas que os aplicam
+wallpapers/       os 242 papéis de parede (fora do git; o semear os reproduz)
+docs/SPRINTS.md   o que falta fazer, escrito para ser lido sem contexto nenhum
 docs/pesquisas/   o material bruto das investigações multi-frente
 docs/historico/   de onde o projeto veio (não é lido por script nenhum)
 palette/          a fonte única de verdade de cor (4 flavors x 26 cores)
