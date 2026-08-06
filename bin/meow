@@ -133,17 +133,20 @@ carregar_conf() {
 #
 #   Limite conhecido: valor que CONTENHA `#` (um hex de cor, por exemplo) seria
 #   lido como comentário. Nenhuma chave deste conf é assim — as cores vêm da
-#   paleta, nunca do conf — e as duas chaves que esta função escreve (MODO e
-#   LOGO) são palavras.
-conf_definir() {
-  local chave="$1" valor="$2" texto novo="" linha resto antes espacos comentario achou=0
-  if [ ! -f "$CONF" ]; then
-    texto="$(cat "$CONF_PADRAO" 2>/dev/null)" || return "$MEOW_ERRO"
-  else
-    texto="$(cat "$CONF")"
-  fi
+#   paleta, nunca do conf — e o wizard recusa `#` e `"` na resposta dela.
+#
+# TODAS AS OCORRÊNCIAS, NÃO SÓ A PRIMEIRA — E ISSO É MEDIÇÃO, NÃO ZELO
+#   O `meow.conf.exemplo` tinha `LOGO_INTERVALO=` DUAS vezes (30m na seção da
+#   logo, 1d na do wallpaper) até 05/08/2026. O arquivo é lido pelo `.` do shell,
+#   onde vale a ÚLTIMA atribuição; esta função escrevia só a PRIMEIRA. O
+#   resultado numa máquina recém-instalada seria `meow configurar` gravar `2h`,
+#   imprimir o diff certo, e o valor em vigor continuar `1d` — sem nada acusar.
+#   O exemplo foi corrigido, e aqui a regra passou a ser "a chave inteira": um
+#   conf com a mesma chave duas vezes sai deste caminho com as duas concordando.
+conf_texto_definir() {
+  local texto="$1" chave="$2" valor="$3" novo="" linha resto antes espacos comentario achou=0
   while IFS= read -r linha; do
-    if [ "$achou" = "0" ] && [ "${linha#"$chave"=}" != "$linha" ]; then
+    if [ "${linha#"$chave"=}" != "$linha" ]; then
       achou=1
       resto="${linha#"$chave"=}"
       if [ "${resto#*#}" != "$resto" ]; then
@@ -161,7 +164,17 @@ conf_definir() {
   done <<< "$texto"
   novo="${novo%$'\n'}"
   [ "$achou" = "1" ] || novo="$novo"$'\n'"$chave=\"$valor\""
-  meow_escrever "$CONF" "$novo" 644
+  printf '%s' "$novo"
+}
+
+conf_definir() {
+  local chave="$1" valor="$2" texto
+  if [ ! -f "$CONF" ]; then
+    texto="$(cat "$CONF_PADRAO" 2>/dev/null)" || return "$MEOW_ERRO"
+  else
+    texto="$(cat "$CONF")"
+  fi
+  meow_escrever "$CONF" "$(conf_texto_definir "$texto" "$chave" "$valor")" 644
 }
 
 # Log e notificação TAMBÉM são escrita. `MEOW_DRY_RUN=1` promete não escrever
@@ -904,6 +917,367 @@ cmd_apps() {
   esac
 }
 
+# --- 7b. o wizard -----------------------------------------------------------
+# `meow configurar` — pedido dela: "o install faz dele wizard pra eu ir
+# modificando e afins."
+#
+# ELE É UM JEITO DE EDITAR O meow.conf, NÃO UM SEGUNDO LUGAR ONDE AS DECISÕES
+# MORAM
+#   O cabeçalho do `install.sh` diz que quem decide é o `meow.conf`, não a linha
+#   de comando. O wizard não contradiz isso: ele PERGUNTA, grava no `meow.conf` e
+#   sai. Nada do que ele pergunta existe fora do arquivo, e nada do que ele
+#   responde fica em outro lugar. Duas fontes de verdade seria o mesmo defeito de
+#   "dois donos" que mais custou a este projeto.
+#
+# A LISTA DE CHAVES SAI DO meow.conf.exemplo, E ISSO NÃO É PREGUIÇA
+#   Uma lista de perguntas escrita aqui dentro seria a segunda cópia da lista de
+#   chaves — e a segunda cópia é sempre a que ninguém atualiza. É o mesmo motivo
+#   pelo qual a completion do zsh lê as capturas do disco e o `migrar_conf.py` lê
+#   as chaves novas do exemplo. Chave nova no exemplo vira pergunta nova sozinha;
+#   chave que sair de lá para de ser perguntada sozinha.
+#
+#   Do exemplo saem três coisas: a ORDEM das perguntas, a SEÇÃO (`# --- Ícones`)
+#   que vira o cabeçalho na tela, e o COMENTÁRIO colado acima da chave, que é a
+#   ajuda. O comentário é a documentação dela — escrito para ser lido na hora de
+#   decidir, que é exatamente a hora em que o wizard o mostra.
+#
+# NUNCA PERGUNTA SEM TERMINAL INTERATIVO
+#   `[ -t 0 ]`, como o `desfazer` e o menu numerado já fazem. Sem tty ele imprime
+#   os valores e sai 0 — nunca pendura um timer, um hook ou um `| meow`.
+#
+# AS OPÇÕES SÃO SUGESTÃO, NÃO REGRA
+#   Onde o comentário do exemplo declara `a | b | c`, o wizard mostra a lista.
+#   Mas ele NÃO recusa um valor de fora dela: `WALLPAPER_INTERVALO` documenta
+#   `30s | 5m | 2h` e aceita qualquer duração do systemd — recusar `10m` seria o
+#   wizard proibindo o que o `meow.conf` permite. O que ele faz é pedir
+#   confirmação, que pega o erro de digitação sem inventar uma regra nova.
+declare -a WIZ_CHAVES=()
+declare -A WIZ_AJUDA=() WIZ_SECAO=() WIZ_NOVO=() WIZ_ANTES=()
+
+# Lê o esquema do meow.conf.exemplo: ordem, seção e o comentário de cada chave.
+# "Colado" importa, e a regra é a mesma do migrar_conf.py: linha em branco ou
+# cabeçalho de seção encerram o bloco, senão a primeira chave de cada seção
+# arrastaria o cabeçalho inteiro como se fosse ajuda dela.
+wiz_ler_esquema() {
+  local linha chave bloco="" secao=""
+  WIZ_CHAVES=(); WIZ_AJUDA=(); WIZ_SECAO=()
+  [ -f "$CONF_PADRAO" ] || return "$MEOW_SEM_DEPENDENCIA"
+  while IFS= read -r linha || [ -n "$linha" ]; do
+    case "$linha" in
+      '# --- '*)
+        secao="${linha#\# --- }"; secao="${secao%%-*}"
+        secao="${secao%"${secao##*[![:space:]]}"}"
+        bloco=""; continue ;;
+      '#'*)  bloco="$bloco$linha"$'\n'; continue ;;
+      '')    bloco=""; continue ;;
+    esac
+    case "$linha" in
+      [A-Za-z_]*=*)
+        chave="${linha%%=*}"
+        case "$chave" in *[!A-Za-z0-9_]*) bloco=""; continue ;; esac
+        # Chave repetida entra na fila UMA vez: perguntar duas vezes a mesma
+        # coisa é oferecer à pessoa a chance de se contradizer.
+        [ -n "${WIZ_SECAO[$chave]+x}" ] || WIZ_CHAVES+=("$chave")
+        WIZ_AJUDA[$chave]="$bloco"; WIZ_SECAO[$chave]="$secao"
+        ;;
+    esac
+    bloco=""
+  done < "$CONF_PADRAO"
+  [ "${#WIZ_CHAVES[@]}" -gt 0 ]
+}
+
+# A ÚLTIMA linha que atribui a chave — é a que o `.` do shell obedece.
+wiz_linha_da_chave() {
+  grep -E -- "^[[:space:]]*(export[[:space:]]+)?$1=" "$2" 2>/dev/null | tail -n1
+}
+
+# O valor CRU, como está escrito no arquivo. Não é o mesmo que o valor expandido:
+# `WALLPAPER_DIR="$HOME/..."` e `ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"` valem
+# justamente por não estarem expandidos, e gravar a expansão congelaria os dois.
+wiz_valor_da_linha() {
+  local resto="${1#*=}"
+  case "$resto" in
+    '"'*) resto="${resto#\"}"; printf '%s' "${resto%%\"*}" ;;
+    "'"*) resto="${resto#\'}"; printf '%s' "${resto%%\'*}" ;;
+    *)    printf '%s' "${resto%%[[:space:]#]*}" ;;
+  esac
+}
+
+# O comentário que mora na MESMA linha da chave (`RAIO="8"  # corner_radii`).
+# Para várias chaves ele é a única ajuda que existe.
+wiz_comentario_da_linha() {
+  local linha="$1" resto="${1#*=}" cauda
+  case "$resto" in
+    '"'*) cauda="${resto#\"}"; cauda="${cauda#*\"}" ;;
+    "'"*) cauda="${resto#\'}"; cauda="${cauda#*\'}" ;;
+    *)    cauda="$linha" ;;
+  esac
+  case "$cauda" in *'#'*) printf '%s' "$(printf '%s' "${cauda#*#}" | sed 's/^ *//')" ;; esac
+}
+
+# Uma opção por linha, ou nada. Só reconhece o formato `a | b | c` que este conf
+# usa desde a primeira versão, e desiste da linha inteira se qualquer pedaço não
+# parecer um valor — uma frase em prosa com uma barra no meio não é uma lista.
+wiz_opcoes() {
+  local chave="$1" ajuda="$2" inline="$3" l tok saida=""
+  # LOGO é a única lida do DISCO: as variantes são arquivos, e uma lista escrita
+  # aqui ficaria velha no dia em que alguém desenhasse outro gato de painel.
+  if [ "$chave" = "LOGO" ]; then logos_disponiveis; return 0; fi
+  while IFS= read -r l; do
+    case "$l" in *'|'*) ;; *) continue ;; esac
+    l="${l#\#}"; l="${l%%(*}"
+    saida=""
+    # `|| [ -n "$tok" ]`: a última opção da lista não tem `\n` depois, e sem isto
+    # o `read` a descarta — `silencioso | info | debug` virava `silencioso, info`.
+    while IFS= read -r tok || [ -n "$tok" ]; do
+      tok="${tok#"${tok%%[![:space:]]*}"}"; tok="${tok%"${tok##*[![:space:]]}"}"
+      case "$tok" in
+        ''|*[!A-Za-z0-9_.:+-]*) saida=""; break ;;
+      esac
+      saida="$saida$tok"$'\n'
+    done < <(printf '%s' "$l" | tr '|' '\n')
+    [ -n "$saida" ] && { printf '%s' "$saida"; return 0; }
+  done <<< "$ajuda"$'\n'"$inline"
+  return 0
+}
+
+# `+slug` / `-slug` numa chave que é lista separada por vírgula. Sem isto, mexer
+# em APPS_ATIVOS pelo wizard seria redigitar 23 slugs para tirar um — e uma
+# pergunta que ninguém consegue responder é uma pergunta que não existe.
+wiz_lista_editar() {
+  local valor="$1"; shift
+  local -a itens=() novos=()
+  local op alvo item achou
+  IFS=',' read -r -a itens <<< "$valor"
+  for op in "$@"; do
+    alvo="${op#[+-]}"
+    [ -n "$alvo" ] || continue
+    case "$op" in
+      +*) achou=0
+          for item in "${itens[@]}"; do [ "$item" = "$alvo" ] && achou=1; done
+          [ "$achou" = "0" ] && itens+=("$alvo") ;;
+      -*) novos=()
+          for item in "${itens[@]}"; do [ "$item" = "$alvo" ] || novos+=("$item"); done
+          itens=("${novos[@]}") ;;
+    esac
+  done
+  local fora; fora="$(IFS=','; printf '%s' "${itens[*]}")"
+  printf '%s' "$fora"
+}
+
+wiz_ajuda_linhas() {
+  printf '%s' "$1" | sed 's/^# \{0,1\}//'
+}
+
+# O valor cru da chave no arquivo dela, caindo no exemplo quando ela ainda não
+# tem a chave — que é o mesmo que o `migrar_conf.py` vai acrescentar depois.
+wiz_bruto() {
+  local linha; linha="$(wiz_linha_da_chave "$1" "$2")"
+  [ -n "$linha" ] || linha="$(wiz_linha_da_chave "$1" "$CONF_PADRAO")"
+  wiz_valor_da_linha "$linha"
+}
+
+# Pergunta UMA chave. 0 = seguiu adiante · 1 = ela quis sair (nada é gravado).
+wiz_perguntar() {
+  local chave="$1" arq="$2"
+  local linha bruto inline ajuda opcoes resp mostrado expandido n_ajuda
+  linha="$(wiz_linha_da_chave "$chave" "$arq")"
+  [ -n "$linha" ] || linha="$(wiz_linha_da_chave "$chave" "$CONF_PADRAO")"
+  bruto="$(wiz_valor_da_linha "$linha")"
+  inline="$(wiz_comentario_da_linha "$linha")"
+  ajuda="${WIZ_AJUDA[$chave]:-}"
+  opcoes="$(wiz_opcoes "$chave" "$ajuda" "$inline")"
+  # sim/nao não está escrito em lugar nenhum como lista, e não precisa estar: o
+  # próprio valor diz que a chave é um interruptor.
+  [ -z "$opcoes" ] && case "$bruto" in sim|nao) opcoes=$'sim\nnao' ;; esac
+  n_ajuda="$(printf '%s' "$ajuda" | grep -c '^#' || true)"
+
+  expandido="${!chave:-}"
+  mostrado="$bruto"
+  case "$bruto" in
+    *'$'*) [ -n "$expandido" ] && [ "$expandido" != "$bruto" ] \
+             && mostrado="$bruto  ->  $expandido" ;;
+  esac
+
+  # As 3 primeiras linhas do comentário, que é onde ele diz o que a chave faz. O
+  # resto sai no `?` — blocos de 15 linhas (VIDRO_OPACIDADE_*, ASSETS_VIGIA)
+  # empurrariam a pergunta para fora da tela, e uma pergunta que rolou para cima
+  # é uma pergunta respondida no escuro.
+  local visivel=""
+  [ -n "$ajuda" ] && visivel="$(wiz_ajuda_linhas "$ajuda" | grep -v '^[[:space:]]*$' | head -n 3)"
+
+  printf '\n  %s%s%s\n' "$C_MAUVE$C_FORTE" "$chave" "$C_ZERO"
+  [ -n "$inline" ] && printf '    %s%s%s\n' "$C_DIM" "$inline" "$C_ZERO"
+  if [ -n "$visivel" ]; then
+    printf '%s\n' "$visivel" | while IFS= read -r l; do
+      printf '    %s%s%s\n' "$C_DIM" "$l" "$C_ZERO"
+    done
+    [ "${n_ajuda:-0}" -gt 3 ] && printf '    %s(? mostra o comentário inteiro)%s\n' "$C_DIM" "$C_ZERO"
+  fi
+  # A lista só é repetida quando ela NÃO está no comentário que acabou de sair na
+  # tela — senão a mesma frase apareceria duas vezes seguidas, uma com `|` e
+  # outra com vírgula, como se fossem coisas diferentes.
+  if [ -n "$opcoes" ]; then
+    case "$visivel$inline" in
+      *'|'*) ;;
+      *) printf '    %s%s%s\n' "$C_AZUL" "$(printf '%s' "$opcoes" | em_linha)" "$C_ZERO" ;;
+    esac
+  fi
+  case "$bruto" in
+    *,*) printf '    %s+slug acrescenta · -slug remove · ou digite a lista inteira%s\n' "$C_DIM" "$C_ZERO" ;;
+  esac
+
+  while :; do
+    printf '  %s[%s]%s %s>%s ' "$C_DIM" "$mostrado" "$C_ZERO" "$C_MAUVE" "$C_ZERO"
+    resp=""
+    read -r -t "${MEOW_TIMEOUT:-300}" resp || {
+      printf '\n'; meow_info "sem resposta — nada foi gravado"; return 1; }
+    case "$resp" in
+      '')      return 0 ;;
+      q|Q|sair) meow_info "saindo — nada foi gravado"; return 1 ;;
+      '?')     printf '\n'; wiz_ajuda_linhas "$ajuda" | sed "s/^/    /"; printf '\n'; continue ;;
+    esac
+    # `"` e `#` quebrariam a linha do conf: um fecha a aspa, o outro vira
+    # comentário. Ver o cabeçalho do conf_texto_definir.
+    case "$resp" in
+      *'"'*|*'#'*) meow_erro 'sem aspas duplas nem # no valor — eles quebram a linha do conf'; continue ;;
+    esac
+    case "$resp" in
+      [+-]*) local -a ops=(); read -r -a ops <<< "${resp//,/ }"
+             resp="$(wiz_lista_editar "$bruto" "${ops[@]}")" ;;
+    esac
+    [ "$resp" = "$bruto" ] && return 0
+    if [ -n "$opcoes" ] && ! grep -qxF -- "$resp" <<< "$opcoes"; then
+      printf '    %s"%s" não está na lista.%s usar assim mesmo? (s/N) ' "$C_AMARELO" "$resp" "$C_ZERO"
+      local ok=""
+      read -r -t "${MEOW_TIMEOUT:-300}" ok || { printf '\n'; return 1; }
+      case "$ok" in s|S|sim|Sim) ;; *) continue ;; esac
+    fi
+    WIZ_ANTES[$chave]="$bruto"; WIZ_NOVO[$chave]="$resp"
+    return 0
+  done
+}
+
+cmd_configurar() {
+  carregar_conf || return "$MEOW_ERRO"
+  local so_uma=""
+  case "${1:-}" in
+    "") ;;
+    -h|--help)
+      printf 'uso: meow configurar [CHAVE]\n'
+      printf '     sem CHAVE, pergunta todas as chaves do meow.conf, na ordem do arquivo.\n'
+      return 0 ;;
+    *) so_uma="$1" ;;
+  esac
+  wiz_ler_esquema || { meow_erro "não consegui ler as chaves de $CONF_PADRAO"; return "$MEOW_ERRO"; }
+
+  local fonte="$CONF"; [ -f "$fonte" ] || fonte="$CONF_PADRAO"
+  local chave achou=0
+  if [ -n "$so_uma" ]; then
+    for chave in "${WIZ_CHAVES[@]}"; do [ "$chave" = "$so_uma" ] && achou=1; done
+    [ "$achou" = "1" ] || {
+      meow_erro "não existe a chave '$so_uma' no meow.conf"
+      meow_info "as que existem: $(printf '%s\n' "${WIZ_CHAVES[@]}" | em_linha)"
+      return "$MEOW_SEM_DEPENDENCIA"; }
+  fi
+
+  meow_titulo "MeowSystem — configurar"
+  campo "arquivo" "$CONF"
+  [ "$fonte" = "$CONF_PADRAO" ] && meow_info "ainda não há $CONF — os padrões vêm de $CONF_PADRAO"
+
+  # Sem tty não há a quem perguntar. Imprimir o que está lá e sair 0 é o mesmo
+  # que o menu numerado faz — e é o que impede um timer ou um `| meow` de ficar
+  # pendurado num prompt que ninguém vai responder.
+  if [ ! -t 0 ]; then
+    printf '\n'
+    for chave in "${WIZ_CHAVES[@]}"; do
+      [ -n "$so_uma" ] && [ "$chave" != "$so_uma" ] && continue
+      campo "$chave" "$(wiz_bruto "$chave" "$fonte")"
+    done
+    printf '\n'
+    meow_info "sem terminal interativo — nada foi perguntado e nada foi escrito"
+    meow_info "num terminal: meow configurar    ·    ou edite $CONF na mão"
+    printf '\n'
+    return 0
+  fi
+
+  printf '\n  %sENTER mantém o valor · ? mostra a ajuda inteira · q sai sem gravar%s\n' \
+         "$C_DIM" "$C_ZERO"
+  WIZ_NOVO=(); WIZ_ANTES=()
+  local secao_atual="" saiu=0
+  for chave in "${WIZ_CHAVES[@]}"; do
+    [ -n "$so_uma" ] && [ "$chave" != "$so_uma" ] && continue
+    if [ -z "$so_uma" ] && [ "${WIZ_SECAO[$chave]}" != "$secao_atual" ]; then
+      secao_atual="${WIZ_SECAO[$chave]}"
+      meow_passo "${secao_atual:-Configuração}"
+    fi
+    wiz_perguntar "$chave" "$fonte" || { saiu=1; break; }
+  done
+
+  if [ "${#WIZ_NOVO[@]}" = "0" ]; then
+    printf '\n'
+    [ "$saiu" = "1" ] || meow_ok "nada mudou — $CONF não foi tocado"
+    printf '\n'
+    return 0
+  fi
+  if [ "$saiu" = "1" ]; then
+    printf '\n'
+    meow_aviso "saiu no meio — as ${#WIZ_NOVO[@]} respostas anteriores foram descartadas"
+    printf '\n'
+    return 0
+  fi
+
+  meow_passo "O que muda no meow.conf"
+  local texto
+  texto="$(cat "$fonte")"
+  for chave in "${WIZ_CHAVES[@]}"; do
+    [ -n "${WIZ_NOVO[$chave]+x}" ] || continue
+    printf '    %s- %s="%s"%s\n' "$C_VERM"  "$chave" "${WIZ_ANTES[$chave]}" "$C_ZERO"
+    printf '    %s+ %s="%s"%s\n' "$C_VERDE" "$chave" "${WIZ_NOVO[$chave]}"  "$C_ZERO"
+    texto="$(conf_texto_definir "$texto" "$chave" "${WIZ_NOVO[$chave]}")"
+  done
+  printf '\n'
+
+  meow_escrever "$CONF" "$texto" 644
+  local rc=$?
+  case "$rc" in
+    0) meow_ok "$CONF já estava assim — nada foi escrito"; printf '\n'; return 0 ;;
+    1) if meow_seco; then
+         meow_muda "MEOW_DRY_RUN=1 — o meow.conf NÃO foi escrito"
+         printf '\n'
+         return "$MEOW_DIVERGENTE"
+       fi
+       meow_ok "gravado em $CONF"
+       registrar "configurar: $(printf '%s\n' "${!WIZ_NOVO[@]}" | sort | em_linha)" ;;
+    *) meow_erro "não consegui gravar $CONF"; return "$MEOW_ERRO" ;;
+  esac
+
+  # Quem chamou foi o `install.sh --wizard`: ele já vai instalar em seguida, e
+  # perguntar aqui seria perguntar duas vezes a mesma coisa.
+  if [ "${MEOW_WIZARD_SEM_APLICAR:-0}" = "1" ]; then
+    meow_info "o install.sh segue daqui com os valores novos"
+    printf '\n'
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  printf '\n  aplicar agora? (S/n) '
+  local resp=""
+  if [ "${MEOW_SIM:-0}" = "1" ]; then
+    resp="s"; printf 's\n'
+  else
+    read -r -t "${MEOW_TIMEOUT:-300}" resp || resp="n"
+  fi
+  case "$resp" in
+    n|N|nao|não|Nao|Não)
+      printf '\n'
+      meow_info "não apliquei. Quando quiser: meow aplicar"
+      printf '\n'
+      return "$MEOW_DIVERGENTE" ;;
+  esac
+  printf '\n'
+  cmd_aplicar
+}
+
 cmd_aplicar() {
   # NÃO pega o lock: quem pega é o próprio install.sh. Dois flock no mesmo
   # arquivo, um do pai e outro do filho, dariam "outro meow está rodando" —
@@ -988,6 +1362,7 @@ menu_itens() {
   printf 'icones reconstruir\tRemonta MeowSystem-Icons e as pastas coloridas.\n'
   printf 'wallpaper\tEstado do carrossel: pasta, quantas imagens, intervalo e ordem.\n'
   printf 'apps\tTabela: módulo, app instalado, tema aplicado ou pendente.\n'
+  printf 'configurar\tPergunta chave por chave o que está no meow.conf. ENTER mantém; no fim grava e oferece aplicar.\n'
   printf 'aplicar\tRoda o install.sh inteiro. Idempotente: nada é escrito duas vezes.\n'
   printf 'log\tÚltimas 50 linhas do log do MeowSystem.\n'
   printf 'desfazer\tDevolve o tema do COSMIC para a captura "original".\n'
@@ -1103,6 +1478,10 @@ meow — Catppuccin para o COSMIC
 
   meow apps                    tabela: módulo, instalado, tema
   meow apps aplicar [slug]     tematiza um app, ou todos
+
+  meow configurar              wizard: pergunta chave por chave o que está no
+                               meow.conf, grava lá e oferece aplicar
+  meow configurar <CHAVE>      pergunta uma chave só (ex.: meow configurar ACCENT)
   meow ativar [--seco]         roda o install.sh inteiro (o mesmo que 'aplicar')
   meow aplicar [--seco]        idem — os dois nomes valem
   meow desfazer                volta o tema para a captura "original"
@@ -1112,7 +1491,8 @@ Variáveis:
   MEOW_DRY_RUN=1    não escreve nada
   MEOW_RAIZ         onde está o clone do MeowSystem
   MEOW_CONF         outro meow.conf
-  MEOW_SIM=1        não pergunta nada (usado pelo desfazer)
+  MEOW_SIM=1        não pergunta nada (o desfazer, e o "aplicar agora?" do wizard)
+  MEOW_TIMEOUT      segundos de espera em cada pergunta (300 no wizard)
 
 Códigos de saída: 0 certo · 1 divergente · 2 erro · 3 falta dependência.
 
@@ -1130,6 +1510,9 @@ despachar() {
     icones|ícones)    shift; cmd_icones "$@" ;;
     wallpaper|parede) shift; cmd_wallpaper "$@" ;;
     apps)             shift; cmd_apps "$@" ;;
+    # `configurar` é o wizard. Ele NÃO é o padrão de nada: o `install.sh` sem
+    # argumento continua sem perguntar, porque roda em timer e por script.
+    configurar|config|wizard) shift; cmd_configurar "$@" ;;
     # `ativar` é o nome que ela procurou quando quis "rodar o install sem flag".
     # Não é comando novo: é o mesmo `aplicar`, com o nome que veio à cabeça
     # primeiro. Um sinônimo custa uma linha; lembrar do verbo certo custa uma

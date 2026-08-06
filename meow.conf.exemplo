@@ -2,6 +2,12 @@
 # meow.conf — tudo que o MeowSystem-Theme decide fica aqui.
 # Editou uma linha? Rode:  meow aplicar
 # Ver o que mudaria sem aplicar:  meow aplicar --dry-run
+#
+# Prefere responder a perguntas em vez de editar?  meow configurar
+#   (é o mesmo arquivo: o wizard pergunta, grava AQUI e oferece aplicar. Cada
+#    pergunta é uma chave deste arquivo, na ordem em que ela aparece, e a ajuda
+#    que ele mostra é o comentário que está logo acima dela. Escreveu um
+#    comentário melhor aqui? O wizard passa a mostrá-lo.)
 # ---------------------------------------------------------------------------
 
 # --- Aparência -------------------------------------------------------------
@@ -27,7 +33,7 @@ LOGO="mocha"
 # `meow logo listar` mostra o acervo e quem está no ar; `meow logo girar` passa
 # ao próximo na hora, sem reiniciar nada.
 LOGO_ROTACAO="nao"
-LOGO_INTERVALO="30m"      # de quanto em quanto tempo o timer troca
+# (o LOGO_INTERVALO fica na seção de Wallpaper, junto do porquê de ser um dia)
 
 # Estrutura — herdada do seu tema atual. Mexa com consciência.
 RAIO="8"                 # corner_radii (px)
