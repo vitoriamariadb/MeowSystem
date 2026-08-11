@@ -1,6 +1,24 @@
 #!/usr/bin/env bash
-# icones_apps_arcticons.sh — os aplicativos do LANÇADOR que o acervo Catppuccin
-# de aplicativo não cobre, vestidos pelo Arcticons e recoloridos na paleta.
+# icones_apps_arcticons.sh — os aplicativos do LANÇADOR vestidos em TRAÇO de
+# linha, recolorido na paleta. DOIS acervos entram aqui, e um instalador só sai.
+#
+# DOIS ACERVOS, DESDE 11/08/2026
+#   `icons/arcticons-apps/`    glifos do pack Arcticons, desenhados à mão por
+#                              terceiros. Mapa: `icons/apps-arcticons.map`.
+#   `icons/convertidos-apps/`  a arte do PRÓPRIO aplicativo, convertida de
+#                              chapado para traço por nós. Mapa:
+#                              `icons/apps-convertidos.map`. Quem gera é o
+#                              `scripts/construir_convertidos.sh`; aqui ela
+#                              chega pronta e commitada.
+#
+#   A junção é ADITIVA e `_vestido()` NÃO MUDOU uma linha: a conversão sai no
+#   mesmo dialeto do pack (sem `stroke-width`, `stroke="currentColor"`), de
+#   propósito. Conferido: 39 de 39 Arcticons e 25 de 25 convertidos casam com o
+#   regex de injeção abaixo.
+#
+#   E continua havendo UM dono de `48x48/apps`. Um segundo script instalador
+#   seria o laço eterno: cada um veria a arte do outro como órfã, apagaria, e o
+#   `meow fix` alternaria entre os dois estados sem nunca convergir.
 #
 # POR QUE EXISTE UM SEGUNDO SCRIPT DE APLICATIVO
 #   O `icones_apps.sh` só sabe ler `icons/catppuccin-apps/$VARIANTE/*.png` e só
@@ -39,11 +57,34 @@
 #      `CosmicAppList`, só applets (que são `status`, e já são da Sprint A).
 #      Papirus usa a mesma convenção — `48x48/apps/*.svg`, `Type=Fixed`.
 #
-#   3. O TRAÇO. O pack desenha num `viewBox="0 0 48 48"` e NÃO declara
-#      `stroke-width`; o padrão SVG é 1. A 48 px de tela isso dá exatamente
-#      1 px, que é o que ela escolheu ao ver a folha da Sprint A ("1× a 48 px,
-#      4× a 22 px"). Como aqui o desenho é sempre a 48 px ou mais, fica 1.
-#      Engrossar é UM número no array `TRACO` abaixo.
+#   3. O TRAÇO É **1,75** DESDE 11/08/2026, E O NÚMERO FOI MEDIDO.
+#      O pack desenha num `viewBox="0 0 48 48"` e NÃO declara `stroke-width`; o
+#      padrão SVG é 1, e era isso que estava no ar. Em 11/08/2026 ela olhou o
+#      lançador e pediu: "só engrossaria mais a linha".
+#
+#      Quanto engrossar não foi votado. A régua é a CONTRA-FORMA QUE SOBREVIVE —
+#      quantos dos buracos fechados do desenho original ainda existem depois de
+#      engrossar (o empastamento deixou de servir: traço de 2 px tem miolo
+#      próprio, e todo pixel do miolo tem 8 vizinhos com tinta). Em 75 ícones ×
+#      7 pesos, a 48 px:
+#
+#         peso | contra-formas vivas    | tinta na caixa
+#              | Arcticons | conversão  | Arcticons | conversão
+#         1,0  |   100%    |   100%     |   13,0%   |   18,8%
+#         1,5  |    97%    |    80%     |   19,1%   |   24,6%
+#         1,75 |    97%    |    76%     |   21,2%   |   27,8%   <- escolhido
+#         2,0  |    97%    |    74%     |   23,0%   |   30,0%
+#         2,5  |    96%    |    66%     |   26,8%   |   35,2%
+#
+#      Quem limita NÃO é o Arcticons (97% de 1,5 a 2,25): é a conversão, densa
+#      por construção. 1,75 é o maior peso em que a Spotify ainda tem três ondas
+#      e o Wilber ainda tem olho — a 2,0 as duas ondas de cima soldam. E entrega
+#      o que ela pediu: +63% de tinta na caixa contra o 1,0.
+#
+#      O NÚMERO É UM SÓ PARA OS DOIS ACERVOS, e isso é o ponto: se só o
+#      convertido engrossasse, quebrava-se a coerência que é a razão de tudo
+#      isto. Por isso nenhum arquivo dos dois acervos grava `stroke-width` —
+#      quem manda é o array `TRACO` abaixo, e engrossar continua sendo UM número.
 #      Cuidado ao inserir: `stroke-width` DUPLICADO é XML inválido e o
 #      rasterizador recusa o SVG inteiro, calado.
 #
@@ -63,6 +104,8 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 ORIGEM="$RAIZ/icons/arcticons-apps"
 MAPA="$RAIZ/icons/apps-arcticons.map"
+ORIGEM_CONV="$RAIZ/icons/convertidos-apps"
+MAPA_CONV="$RAIZ/icons/apps-convertidos.map"
 MAPA_PNG="$RAIZ/icons/apps.map"
 PALETA="$RAIZ/palette/catppuccin.json"
 TEMA="${ICONES_TEMA:-${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
@@ -79,7 +122,7 @@ FLAVOR="${FLAVOR:-mocha}"
 # a mostrar aplicativo) seja uma linha. Quem DECLARA o diretório no `index.theme`
 # não é este script — é o `construir_icones.sh`, que o monta a partir do que
 # existe no disco. Ter dois donos daquela linha já custou um laço eterno.
-declare -A TRACO=( ["48x48/apps"]=1 )
+declare -A TRACO=( ["48x48/apps"]=1.75 )
 
 # Pedido expresso dela: estes ficam como estão, venha o que vier. Mesma lista do
 # `icones_apps.sh` — se um nome intocável entrar no mapa, ele é ignorado aqui
@@ -120,7 +163,10 @@ _ler_curadoria() {
   return 0
 }
 
-declare -A GLIFO=()      # nome do .desktop -> glifo Arcticons
+declare -A GLIFO=()      # nome do .desktop -> glifo Arcticons (só esse acervo)
+declare -A ARTE=()       # nome do .desktop -> caminho do SVG a vestir (os DOIS)
+declare -A ACERVO=()     # nome do .desktop -> "Arcticons" | "convertido"
+declare -A DUPLO=()      # nome que apareceu nos DOIS mapas de traço
 declare -A COR=()        # nome do .desktop -> chave da paleta
 declare -A ALIAS_OK=()   # glifo ou cor -> 1, quando a repetição é deliberada
 declare -A HEX=()        # chave da paleta -> hex do flavor em uso
@@ -166,12 +212,50 @@ _ler_mapa() {
       continue
     fi
     GLIFO["$nome"]="$glifo"
+    ARTE["$nome"]="$ORIGEM/$glifo.svg"
+    ACERVO["$nome"]="Arcticons"
     COR["$nome"]="$cor"
     if [ "${marca:-}" = "alias" ]; then ALIAS_OK["$glifo"]=1; ALIAS_OK["cor:$cor"]=1; fi
   done < "$MAPA"
   # `return 0` NÃO É DECORAÇÃO: um `while` devolve o status do último comando do
   # corpo, e a última linha do mapa não é um alias — o teste devolveria 1 e, com
   # `set -e`, o script morreria aqui, calado e com código 1. Aconteceu no irmão.
+  return 0
+}
+
+# --- o SEGUNDO mapa: o acervo convertido -------------------------------------
+# `nome : origem-chapada : cor [ : parametros ]`. Daqui saem só os campos 1 e 3:
+# a origem e os parâmetros são do `construir_convertidos.sh`, que é quem GERA a
+# arte. Aqui ela já chega pronta, com o nome do próprio aplicativo — não há
+# indireção por glifo, e é por isso que não existe campo `glifo` naquele mapa.
+#
+# AUSÊNCIA DO MAPA NÃO É DEFEITO: quem só tem o Arcticons continua funcionando
+# igual, e é o mesmo critério do `icons/curadoria.map`.
+_ler_mapa_convertidos() {
+  local linha nome origem cor
+  [ -f "$MAPA_CONV" ] || return 0
+  while IFS= read -r linha; do
+    case "$linha" in
+      '#!cor-por-categoria') COR_POR_CATEGORIA=1; continue ;;
+      ''|'#'*) continue ;;
+    esac
+    IFS=':' read -r nome origem cor _ <<<"$linha"
+    [ -n "$nome" ] && [ -n "$origem" ] && [ -n "$cor" ] || continue
+    intocavel "$nome" && continue
+    if [ -n "${CURADO[$nome]:-}" ]; then
+      meow_debug "$nome: arte escolhida na curadoria — o convertido sai de cima"
+      continue
+    fi
+    # Nome nos DOIS mapas de traço: não sobrescreve nem escolhe um vencedor em
+    # silêncio — anota e deixa o `_conferir_gemeos` ESTOURAR com o nome na tela.
+    if [ -n "${ACERVO[$nome]:-}" ]; then
+      DUPLO["$nome"]=1
+      continue
+    fi
+    ARTE["$nome"]="$ORIGEM_CONV/$nome.svg"
+    ACERVO["$nome"]="convertido"
+    COR["$nome"]="$cor"
+  done < "$MAPA_CONV"
   return 0
 }
 
@@ -219,18 +303,34 @@ PY
 #     docs/COSMIC-THEMING.md) — todos os `.svg`, em todos os tamanhos, antes de
 #     qualquer `.png`. Duas listas da mesma verdade, e a que ganha é a que
 #     ninguém escolheu.
+#
+#   nome nos DOIS mapas de TRAÇO — desde 11/08/2026 há dois acervos, e o mesmo
+#     aplicativo listado nos dois é a mesma doença de novo: `_desejado` veria as
+#     duas artes disputando `48x48/apps/<nome>.svg`, e quem ganharia seria a
+#     ordem de leitura, que ninguém escolheu.
 _conferir_gemeos() {
   local nome chave erro=0 linha outro
   declare -A visto_glifo=() visto_cor=()
 
-  for nome in "${!GLIFO[@]}"; do
-    chave="${GLIFO[$nome]}"
-    if [ -n "${visto_glifo[$chave]:-}" ] && [ -z "${ALIAS_OK[$chave]:-}" ]; then
-      meow_erro "dois aplicativos receberiam o mesmo desenho '$chave': '$nome' e '${visto_glifo[$chave]}'"
-      meow_erro "  decida: troque um dos dois, ou marque a repetição com ':alias' no fim da linha"
-      erro=1
+  for nome in "${!DUPLO[@]}"; do
+    meow_erro "'$nome' está nos DOIS mapas de traço (apps-arcticons.map e apps-convertidos.map)"
+    meow_erro "  a arte que venceria seria a ordem de leitura, não uma escolha — tire de um dos dois"
+    erro=1
+  done
+
+  # O laço é sobre `COR`, que tem os nomes dos DOIS acervos. A asserção de GLIFO
+  # só se aplica a quem TEM glifo (o convertido não tem: a arte se chama pelo
+  # nome do aplicativo, 1 para 1); a de COR vale para os dois.
+  for nome in "${!COR[@]}"; do
+    if [ -n "${GLIFO[$nome]:-}" ]; then
+      chave="${GLIFO[$nome]}"
+      if [ -n "${visto_glifo[$chave]:-}" ] && [ -z "${ALIAS_OK[$chave]:-}" ]; then
+        meow_erro "dois aplicativos receberiam o mesmo desenho '$chave': '$nome' e '${visto_glifo[$chave]}'"
+        meow_erro "  decida: troque um dos dois, ou marque a repetição com ':alias' no fim da linha"
+        erro=1
+      fi
+      visto_glifo["$chave"]="$nome"
     fi
-    visto_glifo["$chave"]="$nome"
 
     chave="${COR[$nome]}"
     if [ "$COR_POR_CATEGORIA" = 1 ]; then
@@ -248,8 +348,8 @@ _conferir_gemeos() {
     while IFS= read -r linha; do
       case "$linha" in ''|'#'*) continue ;; esac
       outro="${linha%%:*}"
-      if [ -n "${GLIFO[$outro]:-}" ]; then
-        meow_erro "'$outro' está nos DOIS mapas (apps.map e apps-arcticons.map)"
+      if [ -n "${COR[$outro]:-}" ]; then
+        meow_erro "'$outro' está nos DOIS mapas (apps.map e o mapa de traço do acervo ${ACERVO[$outro]})"
         meow_erro "  o .svg venceria o .png sem ninguém ter decidido — tire de um dos dois"
         erro=1
       fi
@@ -300,23 +400,30 @@ _vestido() {
 }
 
 # --- o que deveria estar no disco --------------------------------------------
-# "dir<TAB>nome<TAB>glifo", só dos glifos que existem de fato. Um glifo faltando
-# é aviso, não erro: aquele aplicativo continua vindo do Papirus, como sempre.
+# "dir<TAB>nome<TAB>caminho-da-arte", só das artes que existem de fato. Arte
+# faltando é aviso, não erro: aquele aplicativo continua vindo do Papirus, como
+# sempre. O terceiro campo é o CAMINHO, e não o glifo, justamente porque os dois
+# acervos moram em diretórios diferentes e o resto do script não precisa saber
+# de qual deles cada arte veio — ela sai no mesmo dialeto.
 _desejado() {
-  local nome glifo dir
+  local nome dir
   for dir in "${!TRACO[@]}"; do
-    for nome in "${!GLIFO[@]}"; do
-      glifo="${GLIFO[$nome]}"
-      [ -f "$ORIGEM/$glifo.svg" ] && printf '%s\t%s\t%s\n' "$dir" "$nome" "$glifo"
+    for nome in "${!ARTE[@]}"; do
+      [ -f "${ARTE[$nome]}" ] && printf '%s\t%s\t%s\n' "$dir" "$nome" "${ARTE[$nome]}"
     done
   done
 }
 
 _avisar_faltantes() {
   local nome glifo
-  for nome in "${!GLIFO[@]}"; do
+  for nome in "${!ARTE[@]}"; do
+    [ -f "${ARTE[$nome]}" ] && continue
+    if [ "${ACERVO[$nome]}" = "convertido" ]; then
+      meow_aviso "'$nome' está no apps-convertidos.map mas a arte não está no acervo"
+      meow_info "  gere o acervo com: ./scripts/construir_convertidos.sh"
+      continue
+    fi
     glifo="${GLIFO[$nome]}"
-    [ -f "$ORIGEM/$glifo.svg" ] && continue
     meow_aviso "o glifo '$glifo' não está em icons/arcticons-apps — '$nome' fica no Papirus"
     meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o icons/arcticons-apps/$glifo.svg"
   done
@@ -329,13 +436,13 @@ _avisar_faltantes() {
 #   `--conferir` gritando 123 divergências num tema correto. Compara-se com
 #   `$(...)` porque é assim que se escreve.
 _conferir() {
-  local dir nome glifo divergentes=0 ausentes=0 orfaos=0 total=0 arq alvo
-  while IFS=$'\t' read -r dir nome glifo; do
+  local dir nome arte divergentes=0 ausentes=0 orfaos=0 total=0 arq alvo
+  while IFS=$'\t' read -r dir nome arte; do
     total=$((total + 1))
     alvo="$BASE/$dir/$nome.svg"
     if [ ! -f "$alvo" ]; then
       ausentes=$((ausentes + 1))
-    elif [ "$(_vestido "$ORIGEM/$glifo.svg" "${TRACO[$dir]}" "${HEX[${COR[$nome]}]}")" != "$(cat "$alvo")" ]; then
+    elif [ "$(_vestido "$arte" "${TRACO[$dir]}" "${HEX[${COR[$nome]}]}")" != "$(cat "$alvo")" ]; then
       divergentes=$((divergentes + 1))
     fi
   done < <(_desejado)
@@ -345,25 +452,25 @@ _conferir() {
     for arq in "$BASE/$dir"/*.svg; do
       [ -e "$arq" ] || continue
       nome="$(basename "$arq" .svg)"
-      [ -n "${GLIFO[$nome]:-}" ] || orfaos=$((orfaos + 1))
+      [ -n "${ARTE[$nome]:-}" ] || orfaos=$((orfaos + 1))
     done
   done
 
   if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
-    meow_ok "$total aplicativo(s) já vestidos de Arcticons ($FLAVOR)"
+    meow_ok "$total aplicativo(s) já vestidos em traço ($FLAVOR)"
     return "$MEOW_OK"
   fi
-  meow_muda "aplicativos em Arcticons: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
+  meow_muda "aplicativos em traço: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
   return "$MEOW_DIVERGENTE"
 }
 
 _aplicar() {
-  local dir nome glifo arq mudou=0 postos=0 removidos=0 rc
+  local dir nome arte arq mudou=0 postos=0 removidos=0 rc
 
-  while IFS=$'\t' read -r dir nome glifo; do
+  while IFS=$'\t' read -r dir nome arte; do
     set +e
     meow_escrever "$BASE/$dir/$nome.svg" \
-      "$(_vestido "$ORIGEM/$glifo.svg" "${TRACO[$dir]}" "${HEX[${COR[$nome]}]}")" 644
+      "$(_vestido "$arte" "${TRACO[$dir]}" "${HEX[${COR[$nome]}]}")" 644
     rc=$?
     set -e
     case "$rc" in
@@ -380,7 +487,7 @@ _aplicar() {
     for arq in "$BASE/$dir"/*.svg; do
       [ -e "$arq" ] || continue
       nome="$(basename "$arq" .svg)"
-      if [ -z "${GLIFO[$nome]:-}" ]; then
+      if [ -z "${ARTE[$nome]:-}" ]; then
         if meow_seco; then
           meow_muda "removeria $arq (saiu do mapa)"
         else
@@ -393,10 +500,10 @@ _aplicar() {
   done
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "aplicativos já vestidos de Arcticons ($FLAVOR)"
+    meow_ok "aplicativos já vestidos em traço ($FLAVOR)"
     return "$MEOW_OK"
   fi
-  meow_info "aplicativos em Arcticons: $postos posto(s), $removidos removido(s) — $FLAVOR"
+  meow_info "aplicativos em traço: $postos posto(s), $removidos removido(s) — $FLAVOR"
   meow_info "os ícones novos aparecem no próximo login (o painel não relê o tema)"
   return "$MEOW_DIVERGENTE"
 }
@@ -407,6 +514,10 @@ main() {
   # à mão, e para isso a lista dela já tem de estar lida.
   _ler_curadoria
   _ler_mapa
+  # O convertido entra DEPOIS, e a ordem importa por um motivo só: é ele quem
+  # detecta o nome repetido nos dois mapas. Trocar a ordem trocaria só a
+  # mensagem, mas a mensagem é a metade útil de uma asserção.
+  _ler_mapa_convertidos
   _conferir_gemeos || return $?
   _ler_paleta || return $?
   _avisar_faltantes
