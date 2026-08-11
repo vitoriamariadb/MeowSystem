@@ -70,18 +70,29 @@ except Exception:
 " 2>/dev/null || printf '%s' "#A6E3A1"
 }
 
-# Guarda o original na primeira vez, e devolve o caminho de onde LER a receita.
+# Devolve o caminho de onde LER a receita — E NÃO ESCREVE NADA.
 # Enquanto o link estiver intacto (nunca aplicamos, ou o flatpak atualizou e o
 # recriou), a fonte é ele; a partir da primeira aplicação, é a cópia guardada.
+#
+# ELA GUARDAVA O ORIGINAL AQUI DENTRO, E ISSO ERA ESCRITA NO `conferir`
+#   Até 08/08/2026 esta função fazia o `cp -L` do original quando o guardado não
+#   existia. Como `meow_app_conferir` a chama, `meow apps conferir` — e o `meow
+#   apps tabela`, que a CLI roda só para desenhar a tabela — ESCREVIAM em disco.
+#   Conferir é leitura, e é o único modo em que se confia para auditar antes de
+#   deixar rodar. O `cp` mudou-se para o `aplicar`, que é onde escrita mora.
 _zz_fonte() {
-  if [ -L "$_ZZ_ORIGEM" ]; then
-    if [ ! -f "$_ZZ_GUARDADO" ] && ! meow_seco; then
-      cp -L "$_ZZ_ORIGEM" "$_ZZ_GUARDADO" 2>/dev/null || true
-    fi
-    printf '%s' "$_ZZ_ORIGEM"
-    return
-  fi
+  if [ -L "$_ZZ_ORIGEM" ]; then printf '%s' "$_ZZ_ORIGEM"; return; fi
   if [ -f "$_ZZ_GUARDADO" ]; then printf '%s' "$_ZZ_GUARDADO"; else printf '%s' "$_ZZ_ORIGEM"; fi
+}
+
+# O par escritor da função acima: guarda o original antes da PRIMEIRA aplicação.
+# Só o `aplicar` chama. `-L` porque a origem é o symlink de export do flatpak e
+# o que interessa é o conteúdo apontado, não o link.
+_zz_guardar_original() {
+  [ -L "$_ZZ_ORIGEM" ] || return 0
+  [ -f "$_ZZ_GUARDADO" ] && return 0
+  meow_seco && return 0
+  cp -L "$_ZZ_ORIGEM" "$_ZZ_GUARDADO" 2>/dev/null || true
 }
 
 _zz_desktop_desejado() {
@@ -181,7 +192,9 @@ PY
 
 meow_app_detectar() {
   meow_tem flatpak || return "$MEOW_SEM_DEPENDENCIA"
-  flatpak info "$_ZZ_APP" >/dev/null 2>&1 || return "$MEOW_SEM_DEPENDENCIA"
+  # por diretório, não por `flatpak info`: aquele cria o repositório ostree no
+  # home só por ser perguntado, e detecção não pode escrever (ver lib/comum.sh).
+  meow_flatpak_tem "$_ZZ_APP" || return "$MEOW_SEM_DEPENDENCIA"
   [ -f "$_ZZ_ORIGEM" ] || return "$MEOW_SEM_DEPENDENCIA"
   meow_tem python3 || return "$MEOW_SEM_DEPENDENCIA"
   [ -f "$_ZZ_PAPIRUS" ] || return "$MEOW_SEM_DEPENDENCIA"
@@ -222,6 +235,12 @@ meow_app_aplicar() {
   local tema; tema="$(_zz_tema_dir)"
   local icone="$tema/scalable/apps/$_ZZ_ICONE.svg"
   local mudou=0
+
+  # ANTES de escrever por cima: guardar o original é a regra 4 do contrato, e
+  # aqui é o único ponto que pode fazê-lo (o `conferir` não escreve mais).
+  # Tem de vir antes do `meow_escrever` do `.desktop`, senão o que se guarda já
+  # é a nossa própria saída.
+  _zz_guardar_original
 
   meow_escrever "$icone" "$(_zz_icone_desejado)" 644
   case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao instalar o ícone"; return "$MEOW_ERRO" ;; esac

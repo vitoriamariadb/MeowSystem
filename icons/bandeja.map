@@ -1,0 +1,227 @@
+# bandeja.map — os ícones da BANDEJA (o `CosmicAppletStatusArea` da barra),
+#                vestidos pelo Arcticons.
+#
+# Formato:  nome-que-o-APP-manda-no-IconName : nome-no-arcticons [ : alias ]
+#
+# O nome da esquerda NÃO é um nome de `.desktop`: é o valor da propriedade
+# `IconName` que o próprio aplicativo publica no D-Bus, na interface
+# `org.kde.StatusNotifierItem`. Ele pode não ter nada a ver com o id do app.
+#
+# ============================================================================
+# ESTE MAPA ESTÁ VAZIO DE PROPÓSITO, E A MEDIÇÃO DE 08/08/2026 EXPLICA
+# ============================================================================
+#
+# A bandeja dela tem DOIS itens vivos, e nenhum dos dois é alvo legítimo hoje.
+#
+#   $ busctl --user get-property org.kde.StatusNotifierWatcher \
+#       /StatusNotifierWatcher org.kde.StatusNotifierWatcher \
+#       RegisteredStatusNotifierItems
+#     as 2 ":1.1408/org/ayatana/NotificationItem/steam"
+#          ":1.1621/org/ayatana/NotificationItem/hefesto_dualsense4unix"
+#
+# 1. A STEAM MANDA `IconThemePath`, E ELE VENCE O TEMA. Medido:
+#
+#      steam:   IconName = "steam_tray_mono"
+#               IconThemePath = "~/.steam/debian-installation/public"
+#
+#    Naquele diretório existe `steam_tray_mono.png`, 48x48, de ago/2014, cuja cor
+#    dominante é `#DEDEDE` (722 px). O ícone que aparece na barra dela, recortado
+#    da captura de hoje em x 1614..1629, é `#DEDEDE` (118 px). O SVG que o
+#    resolvedor de TEMA devolveria para esse nome é
+#    `/usr/share/icons/Papirus-Dark/22x22/panel/steam_tray_mono.svg`, e ele usa
+#    `#dfdfdf` — um passo de hex ADIANTE. Ou seja: o que está na tela é o raster
+#    da Steam, não o do tema. Pôr um arquivo aqui para `steam_tray_mono` seria
+#    trabalho apagado, do mesmo jeito que pintar cor num symbolic é (§4g).
+#
+# 2. O HEFESTO É ALCANÇÁVEL — E O QUE ESTÁ LÁ É DESENHO DELA.
+#
+#      hefesto: IconName = "hefesto-dualsense4unix-symbolic"
+#               IconThemePath = ""        (vazio: o tema alcança)
+#               sem IconPixmap
+#
+#    A via está PROVADA (ver o cabeçalho do `scripts/icones_bandeja.sh`): um
+#    arquivo com esse nome dentro do `MeowSystem-Icons` vence o `hicolor` do
+#    usuário com folga, porque o laço externo da busca é o NOME DO TEMA e o
+#    `hicolor` é o fim da fila (docs/COSMIC-THEMING.md §2).
+#
+#    MAS O QUE ESTÁ LÁ HOJE NÃO É UM SYMBOLIC GENÉRICO DO `hicolor`. É
+#    `~/.local/share/icons/hicolor/symbolic/apps/hefesto-dualsense4unix-symbolic.svg`,
+#    byte a byte idêntico a
+#    `hefesto-dualsense4unix/assets/simbolico/hefesto-dualsense4unix-symbolic.svg`
+#    (conferido com `cmp`): o ARO ABERTO DA LOGO com o MARTELO ao centro,
+#    redesenhado por ela em 07/08/2026 pela DECISÃO 14 ("redesenhar o símbolo
+#    mais parecido com a logo, mantendo a grade pequena"), com três propostas
+#    recusadas por medição, oito parágrafos de porquê dentro do arquivo e um
+#    teste que o trava (`tests/unit/test_simbolico_do_painel.py`).
+#
+#    A logo do Hefesto já está nos INTOCÁVEIS do `icones_apps.sh` e do
+#    `icones_apps_arcticons.sh`. O `-symbolic` é a MESMA logo, da mesma autora,
+#    para o mesmo aplicativo — só na grade de 16. Trocá-la por um glifo de
+#    terceiro seria apagar desenho dela, que é exatamente o que aquela lista
+#    existe para impedir. Por isso o nome está nos INTOCÁVEIS do script, e não
+#    aqui.
+#
+#    E não há glifo honesto para pôr no lugar, mesmo que ela quisesse trocar.
+#    Medido contra o índice completo do pack (15.300 nomes resolvíveis, de
+#    `https://api.iconify.design/collection?prefix=arcticons`):
+#      hefesto · dualsense · dualshock · gamepad · joystick · controller
+#      · joypad · remap  ->  ZERO cada um
+#      playstation-family ->  é a MARCA da Sony, num utilitário de terceiro que
+#                             não é da Sony. Mente sobre de quem a coisa é.
+#      mantis-gamepad-pro ->  marca de outro aplicativo
+#      games/games-2/games-3/emoji-video-game -> genéricos honestos, mas
+#                             substituiriam a logo DELA por um desenho anônimo
+#    As opções estão rasterizadas a 20 px na folha, para ela ver e decidir se
+#    algum dia quiser. Enquanto ela não escolher, o ícone FICA — e isso é
+#    resultado, não fracasso, pela mesma regra que o `apps-arcticons.map` fixou.
+#
+# ============================================================================
+# A COR NÃO ENTRA AQUI — E ISSO FOI REMEDIDO NA PRÓPRIA BANDEJA
+# ============================================================================
+#
+# O `docs/COSMIC-THEMING.md` §4g mediu o descarte de cor nos applets do COSMIC.
+# Em 08/08/2026 a mesma medição foi repetida no caminho da BANDEJA, que é outro
+# consumidor, e dá o mesmo:
+#
+#   arquivo:  4 × fill="#bebebe"   (no symbolic do Hefesto, em disco)
+#   tela:     #FFFFFF × 99         (recorte x 1654..1672, y 15..34)
+#
+# `#bebebe` saiu `#FFFFFF`. O toolkit descarta a cor e repinta, preservando só o
+# alfa. Então aqui, como no `icones_sistema.sh`, o único eixo que sobrevive é o
+# DESENHO — e os SVG ficam em `currentColor`, que é o que o pack entrega.
+#
+# CONTRAPROVA NO MESMO RECORTE: o raster da Steam sai `#DEDEDE`, a cor exata do
+# arquivo. O toolkit repinta symbolic e NÃO repinta raster.
+#
+# ============================================================================
+# PROCEDÊNCIA
+# ============================================================================
+#
+# Arcticons, CC BY-SA 4.0. Baixado um a um pela API do Iconify, nunca o
+# repositório inteiro. Ver `icons/PROCEDENCIA.md`.
+
+# (nenhuma linha ativa — ver o motivo acima)
+
+# ============================================================================
+# OS APPS COM BANDEJA, UM A UM — remedido em 10/08/2026 a pedido dela
+# ============================================================================
+#
+# A pergunta foi: "apps como ZapZap, qBittorrent e afins que têm tray e applet,
+# esses foram aplicados também?" A resposta é NÃO para quatro dos cinco, e o
+# motivo é diferente em cada um. Este mapa continua sem linha ativa por isso.
+#
+#   ZapZap        SVG embutido no CÓDIGO, rasterizado para QPixmap. Provado
+#                 lendo o fonte do app (zapzap/assets/icons/tray_icon.py):
+#                     def __build(svg_str) -> QIcon:
+#                         qimg = QImage(...); qpix = QPixmap.fromImage(qimg)
+#                         return QIcon(qpix.scaled(QSize(128,128)))
+#                 Um QIcon feito de PIXMAP viaja como `IconPixmap` — raster
+#                 pronto dentro da mensagem D-Bus. O tema não é consultado em
+#                 momento nenhum.
+#
+#                 EU ESCREVI AQUI QUE ERA IMPOSSÍVEL, E ELA PERGUNTOU A COISA
+#                 CERTA: "por que não, se literalmente alteramos o ícone dele na
+#                 dock?" A pergunta desfez a minha conclusão. "O tema não
+#                 alcança" continua verdade — e é irrelevante, porque o desenho
+#                 não precisa vir do tema: ele pode ser trocado NA FONTE, que é
+#                 uma string dentro de um `.py`. Ver a seção do ZapZap abaixo.
+#                 Feito em 10/08/2026: `_SYMBOLIC` agora é o `whatsapp` do
+#                 Arcticons. As três variantes DELE (`default`,
+#                 `symbolic_light`, `symbolic_dark`) continuam existindo, e o
+#                 `app-themes/zapzap/manifesto.sh` já força `symbolic_light`.
+#
+#   qBittorrent   Recurso Qt embutido (`:/icons/…` nas strings do binário), pelo
+#                 mesmo caminho de pixmap. Existem `qbittorrent-tray-dark.svg` e
+#                 `-light.svg` em `share/icons/hicolor/status` dentro do flatpak,
+#                 mas são para ambientes que leem tema — o app usa o QRC dele.
+#                 O que dá para escolher é `Advanced\TrayIconStyle`, que aceita
+#                 `Normal`, `MonoDark` e `MonoLight`. As strings do binário
+#                 dizem o que significam: "Monochrome (for dark theme)" e
+#                 "(for light theme)". Ela está em `MonoDark`, que é o certo
+#                 para a barra escura — conferido, e por isso NÃO foi mexido.
+#
+#   Spotify       `IconThemePath` apontando para dentro da árvore do flatpak
+#                 (…/files/extra/share/spotify/icons), que é somente-leitura.
+#                 Aquele caminho entra ANTES do tema, então nada nosso alcança.
+#
+#   Hefesto       O ÚNICO alcançável: `IconName` preenchido, `IconThemePath`
+#                 vazio, sem `IconPixmap`. E o que está lá é desenho DELA, que
+#                 ela decidiu manter — ver a seção lá em cima.
+#
+#   Steam         `IconThemePath` = ~/.steam/debian-installation/public, que
+#                 também vence o tema. MAS aquele diretório está no HOME dela, e
+#                 é o único destes cinco onde dá para agir. Ver abaixo.
+#
+# ============================================================================
+# A STEAM FOI VESTIDA POR SUBSTITUIÇÃO DE ARQUIVO, E ISSO PRECISA DE REGISTRO
+# ============================================================================
+#
+#   ~/.steam/debian-installation/public/steam_tray_mono.png
+#
+# O de fábrica era 48x48, de ago/2014, cinza chapado `#EAEAEA`. Foi substituído
+# pelo glifo `steam` do Arcticons, rasterizado a 48 px em tempo de DESENHO (não
+# redimensionado depois — é a regra que o serrilhado de 08/08 ensinou), com o
+# traço em `#DEDEDE` fixo no arquivo.
+#
+# A COR VEM PRONTA, E ISSO NÃO É DESCUIDO: a medição da bandeja (seção acima)
+# mostrou que o toolkit repinta `symbolic` mas NÃO repinta raster — a contraprova
+# foi justamente este ícone, que saía na tela com a cor exata do disco. Como aqui
+# o formato é PNG, a cor tem de estar no arquivo.
+#
+# O original está preservado ao lado, como `steam_tray_mono.png.meow-original`.
+# Para desfazer: renomear de volta por cima.
+#
+# ISTO NÃO É IDEMPOTENTE E NENHUM SCRIPT O REFAZ. Uma atualização da Steam pode
+# devolver o arquivo de fábrica, e o sintoma será "o ícone da Steam voltou a
+# destoar" — sem nada no `meow conferir` acusando, porque não há dono
+# automatizado desta linha. Se isso incomodar, o conserto é promover esta
+# substituição a um script com `--conferir`, como o `nomes_apps.sh` fez para os
+# `.desktop` de dentro do flatpak.
+
+# ============================================================================
+# O ZAPZAP FOI VESTIDO NA FONTE — 10/08/2026
+# ============================================================================
+#
+#   …/com.rtosta.zapzap/…/site-packages/zapzap/assets/icons/tray_icon.py
+#
+# A constante `_SYMBOLIC` daquele arquivo era um balão de WhatsApp CHAPADO, com
+# `fill: {color}`. Virou o `whatsapp` do Arcticons, em contorno, com
+# `stroke-width: 4` na grade de 48 — a mesma espessura que o `icones_sistema.sh`
+# usa para 22 px, escolhida rasterizando a 22 px e olhando, não por analogia.
+#
+# O `{color}` e o `{notify}` FORAM PRESERVADOS, e isso não é detalhe: o `color`
+# é o que faz `symbolic_light`/`symbolic_dark` continuarem existindo, e o
+# `notify` é o contador vermelho de mensagens não lidas. Renderizado dentro do
+# sandbox, com `QGuiApplication(offscreen)`, chamando o código real do app:
+#   qtd=0  -> QIcon válido, 128x128
+#   qtd=56 -> QIcon válido, com o contador desenhado por cima
+#
+# O HARDLINK DO OSTREE FOI QUEBRADO, NÃO SOBRESCRITO
+#   O arquivo tinha `links=2`: o segundo é o objeto dentro do repositório OSTree
+#   do flatpak. Escrever POR CIMA alteraria o objeto do repo — o mesmo inode —
+#   e corromperia o checksum de uma coisa que o flatpak considera imutável. O
+#   que foi feito: copiar, apagar o link, pôr a cópia no lugar. O repo fica
+#   intacto e a árvore de deploy passa a ter arquivo próprio (`links=1`).
+#
+# ISTO NÃO É IDEMPOTENTE, IGUAL À STEAM — E AQUI O RISCO É MAIOR
+#   Um `flatpak update com.rtosta.zapzap` devolve o arquivo de fábrica e o ícone
+#   volta a destoar, sem nada acusando. Pior: se um dia o ZapZap mudar o formato
+#   daquela constante, reaplicar às cegas pode QUEBRAR O APP — é código Python
+#   sendo editado, não um PNG. Por isso o original de fábrica está guardado em
+#   `icons/tray-terceiros/zapzap-tray_icon.py.original`, para comparar antes de
+#   repetir a manobra.
+#
+#   Para desfazer: `flatpak update com.rtosta.zapzap`, ou copiar o original
+#   guardado por cima do arquivo (e apagar o `__pycache__` ao lado dele).
+#
+# ============================================================================
+# O PLACAR DEPOIS DE TUDO
+# ============================================================================
+#
+#   Steam        VESTIDO   arquivo PNG no home dela, substituído
+#   ZapZap       VESTIDO   constante Python dentro do flatpak, substituída
+#   Hefesto      MANTIDO   alcançável pelo tema, mas é desenho DELA
+#   qBittorrent  NÃO       recurso Qt COMPILADO no binário (`:/icons/…`); não há
+#                          arquivo para trocar sem recompilar o app
+#   Spotify      NÃO       `IconThemePath` para dentro da árvore do flatpak, e
+#                          aquele diretório é somente-leitura de verdade

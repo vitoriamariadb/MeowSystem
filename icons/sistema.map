@@ -62,3 +62,79 @@ input-mouse-symbolic:mouse
 tablet-symbolic:tablet
 scanner-symbolic:scanner
 smartphone-symbolic:phone
+
+# ============================================================================
+# OS ÍCONES DA BARRA — 10/08/2026, decidido por ela vendo os buracos
+# ============================================================================
+#
+# As 30 linhas acima vestem os `preferences-*-symbolic`, que são as PÁGINAS do
+# app Ajustes. A barra do COSMIC — volume, wi-fi, bateria, bluetooth, energia —
+# nunca passou por aqui: medido em 10/08/2026, dos 30 ícones que os applets
+# realmente pedem, 26 vinham do Papirus-Dark e 4 do `hicolor`. Nenhum do tema.
+#
+# O QUE ELA VIU ANTES DE DECIDIR, E POR QUE A DECISÃO É INCOMUM
+#   A folha `scripts/folha_barra.py` mostrou cada estado dos dois lados, no
+#   tamanho real da barra. O placar é ruim e ela o viu inteiro: 13 estados com
+#   glifo, 13 SEM, e ZERO das oito famílias fecha todos os seus estados.
+#
+#   O motivo é a natureza do acervo, e não tem contorno: o Arcticons é pack de
+#   ícone de APLICATIVO Android. Procurando o que falta, o que aparece são apps
+#   — `mute` só existe como `mutereminder`, `bell` como `taco-bell`, `power`
+#   como `microsoft-powerpoint`. `pause`, `logout` e `ethernet` dão zero.
+#
+#   O CUSTO, QUE ELA ACEITOU DE OLHOS ABERTOS: estado é o que a barra é.
+#   `audio-volume-high` e `audio-volume-muted` não são dois ícones, são dois
+#   quadros do mesmo. Com metade vestida, o desenho TROCA DE LINGUAGEM no
+#   instante em que ela aperta mudo, ou quando a bateria cai de cheia para
+#   fraca. Eu apresentei isso duas vezes, com a folha na mão; ela mandou
+#   aplicar. Está aplicado.
+#
+#   PARA DESFAZER: apagar as linhas abaixo e rodar `meow icones reconstruir`.
+#   Os 13 nomes voltam ao Papirus na mesma passagem, porque a remoção de órfão
+#   deste script tira o arquivo e o resolvedor cai para o próximo tema da
+#   cadeia. Nenhum arquivo do Papirus foi tocado.
+#
+# OS `:alias` AQUI SÃO TODOS DELIBERADOS, E DIZEM A MESMA COISA
+#   Três níveis de volume compartilham um desenho porque o Arcticons tem UM
+#   glifo de volume, não uma escada. O mesmo vale para o wi-fi. A alternativa
+#   seria inventar variação recolorindo ou girando — o que seria desenho nosso
+#   assinado como se fosse do pack, e este projeto não faz isso.
+#
+#   Consequência a olho nu: os três níveis de volume ficam INDISTINGUÍVEIS entre
+#   si, e os três de sinal também. A barra deixa de informar intensidade e passa
+#   a informar só "tem som" / "tem sinal".
+
+# volume — 3 de 4 estados; o MUDO fica no Papirus
+audio-volume-high-symbolic:volume
+audio-volume-medium-symbolic:volume:alias
+audio-volume-low-symbolic:volume:alias
+
+# wi-fi — 3 de 4; o OFFLINE fica no Papirus
+network-wireless-signal-excellent-symbolic:wifi
+network-wireless-signal-good-symbolic:wifi:alias
+network-wireless-signal-weak-symbolic:wifi:alias
+
+# rede com fio — 1 de 2; o SEM CABO fica no Papirus
+network-wired-symbolic:network
+
+# bateria — 1 de 4; fraca, crítica e carregando ficam no Papirus.
+# `:alias` porque `preferences-power-and-battery-symbolic` (a PÁGINA de Energia
+# do Ajustes, lá em cima) já usa o mesmo desenho. Os dois nunca aparecem na
+# mesma tela — um é a barra, o outro é uma lista dentro de uma janela — então
+# repetir informa a mesma coisa nos dois lugares em vez de confundir.
+battery-full-symbolic:battery:alias
+
+# bluetooth — 1 de 2; o DESLIGADO fica no Papirus
+cosmic-applet-bluetooth-active-symbolic:bluetooth
+
+# notificações — 1 de 3; TEM NOVA e SILENCIADA ficam no Papirus
+cosmic-applet-notification-symbolic:notifications
+
+# energia — 3 de 5. `arcticons/reboot` foi RECUSADO ao ser rasterizado: o
+# desenho é uma figura humana, marca de um app com esse nome, não uma seta de
+# reinício. REINICIAR e SAIR ficam no Papirus.
+system-shutdown-symbolic:power
+# `:alias` pelo mesmo motivo da bateria: `connection-secure-symbolic` (o cadeado
+# de rede segura) já usa `lock`. Cadeado é cadeado nos dois casos.
+system-lock-screen-symbolic:lock:alias
+system-suspend-symbolic:moon
