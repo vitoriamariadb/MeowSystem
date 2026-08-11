@@ -162,8 +162,28 @@ ESTADO_BG="$HOME/.local/state/cosmic/com.system76.CosmicBackground/v1/wallpapers
 
 limpar_estado_morto() {
   [ -f "$ESTADO_BG" ] || return 1
-  local novo mortas
-  novo="$(python3 - "$ESTADO_BG" <<'FIM' 2>/dev/null
+
+  # SÓ QUANDO NÃO HÁ DONO VIVO — o cabeçalho acima já explica o porquê, e agora
+  # o código respeita o que ele diz. Medido em 10/08/2026: `stat` deste arquivo
+  # deu 16:33 e depois 16:38:12 — cinco minutos exatos, batendo com o
+  # `rotation_frequency: 300` de `output.DP-1`. O `cosmic-bg` reescreve o
+  # arquivo INTEIRO nesse ritmo, a partir da lista que carregou na memória.
+  # Gravar por cima enquanto ele vive é apostar contra o dono do arquivo: ou a
+  # nossa escrita some no próximo tique, ou ela apaga a rotação em curso. E
+  # como a limpeza só vale no login seguinte de qualquer jeito, esperar não
+  # custa nada — o ganho de escrever agora é zero.
+  if pgrep -x cosmic-bg >/dev/null 2>&1; then
+    meow_debug "cosmic-bg de pé — a limpeza do estado fica para uma sessão em que ele não esteja"
+    return 1
+  fi
+
+  local novo mortas saida
+  # UMA LEITURA SÓ, E NÃO DUAS. Antes eram duas invocações separadas de
+  # `python3` que reabriam o arquivo em momentos diferentes; com o `cosmic-bg`
+  # reescrevendo no meio, a contagem da segunda podia discordar do conteúdo que
+  # a primeira produziu — e a frase do `meow_info` mentiria sobre o que foi
+  # feito. A primeira linha da saída é a contagem, o resto é o conteúdo novo.
+  saida="$(python3 - "$ESTADO_BG" <<'FIM' 2>/dev/null
 import os, re, sys
 texto = open(sys.argv[1], encoding="utf-8").read()
 # ("DP-1", Path("/caminho")),  — uma entrada por linha, é o formato que ele grava.
@@ -177,17 +197,21 @@ for linha in texto.splitlines():
     guardar.append(linha)
 if not mortas:
     sys.exit(1)          # nada a fazer: o chamador trata como "já limpo"
-print(mortas, file=sys.stderr)
+print(mortas)
 print("\n".join(guardar))
 FIM
 )" || return 1
-  mortas="$(python3 - "$ESTADO_BG" <<'FIM' 2>/dev/null
-import os, re, sys
-padrao = re.compile(r'^\s*\(\s*"[^"]*"\s*,\s*Path\("([^"]*)"\)\s*\)\s*,?\s*$')
-print(sum(1 for l in open(sys.argv[1], encoding="utf-8")
-          if (m := padrao.match(l)) and not os.path.exists(m.group(1))))
-FIM
-)"
+  mortas="${saida%%$'\n'*}"
+  # `$( )` come as newlines do fim: se sobrasse conteúdo NENHUM depois da poda,
+  # a saída seria só a contagem, sem newline alguma — e `${saida#*$'\n'}`, que
+  # devolve a string intacta quando não acha o padrão, entregaria o número como
+  # se fosse o arquivo novo. Não deve acontecer (o arquivo tem os parênteses de
+  # abertura e fecho, que não casam com o padrão de entrada), mas o custo de
+  # não escrever lixo no estado do COSMIC é uma linha.
+  case "$saida" in
+    *$'\n'*) novo="${saida#*$'\n'}" ;;
+    *)       novo="" ;;
+  esac
   if meow_seco; then
     meow_muda "removeria $mortas caminho(s) fantasma do estado do papel de parede"
     return 0
@@ -214,10 +238,33 @@ cmd_aplicar() {
   local desejada; desejada="$(config_desejada)"
   local mudou=0
 
-  # `all` é o que vale (same-on-all está ligado), mas as saídas por nome existem e
-  # o COSMIC lê a que casar. Escrever as três de forma consistente evita um estado
-  # em que o monitor certo mostra a imagem errada — e tratar saída desconectada
-  # sem erro é de graça, já que só escrevemos os arquivos que já existem.
+  # `same-on-all` PASSOU A SER NOSSO EM 08/08/2026 — E É ELA QUE DECIDE TUDO
+  #   O comentário que estava aqui dizia "`all` é o que vale (same-on-all está
+  #   ligado)". Era falso desde 06/08 15:48:02, e o preço apareceu na tela dela:
+  #   com `same-on-all: false`, quem manda é o `output.<saída>`, e o `all` — o
+  #   arquivo que este script escreve e que o `estado` lia — fica INERTE.
+  #
+  #   Medido em 08/08, no estado vivo do cosmic-bg: a TV dela girava as imagens
+  #   da NASA de `/usr/share/backgrounds` de 5 em 5 minutos, em ordem alfabética,
+  #   enquanto o `all` apontava para o acervo dela e o `estado` respondia
+  #   "carrossel ATIVO". Duas escritas soltas no `output.DP-1` em 48 h, e o
+  #   conserto só passava às 5h — uma delas ficou 38 h no ar.
+  #
+  #   ESTE SCRIPT NÃO ESCREVE `same-on-all`, E ISSO FOI MEDIDO, NÃO SUPOSTO.
+  #   A saída óbvia parecia ser gravar `true` e deixar só o `all` mandar. Foi
+  #   tentado em 08/08/2026 e o TESTE REFUTOU: com `same-on-all` valendo `true`
+  #   no disco, um `output.DP-1` apontando para `/usr/share/backgrounds` levou a
+  #   tela de volta para as imagens da NASA em menos de 20 s. O `cosmic-bg`
+  #   continuou obedecendo o arquivo da saída.
+  #
+  #   Duas leituras sobram, e nenhuma está provada: ou a chave é lida uma vez, no
+  #   início da sessão (ele subiu às 00:02 lendo `false`), ou ela não governa
+  #   precedência nenhuma. Separar as duas exige medir depois de um login novo —
+  #   até lá, escrever a chave seria impor um valor da GUI dela apostando num
+  #   efeito que ninguém demonstrou.
+  #
+  #   O que continua valendo é o de sempre: escrever TODO `output.*` que existe,
+  #   porque é neles que o cosmic-bg obedece — provado pelo mesmo teste.
   #
   # A LISTA DE SAÍDAS SAI DO DISCO, NÃO DE UMA LISTA CRAVADA — e isto custou a
   # tela dela ficar PRETA. A versão anterior tratava `DP-1` e `HDMI-A-1` porque
@@ -256,10 +303,42 @@ cmd_aplicar() {
     done < <(grep -oP '^\s*"\K[^"]+' "$BG/backgrounds" 2>/dev/null)
   fi
 
-  local alvo
+  # A FRONTEIRA: RESET DE FÁBRICA SE CONSERTA, ESCOLHA DELA NÃO SE TOCA
+  #   Medido em 07/08 e 08/08/2026: algum processo do COSMIC reescreveu o
+  #   `output.DP-1` apontando para `/usr/share/backgrounds` — a pasta de fábrica
+  #   —, com TODOS os campos no default do construtor (`Zoom`, `Alphanumeric`,
+  #   `rotation_frequency: 300`). Quem mexe num controle da GUI não produz isso:
+  #   carrega os valores anteriores. É reset programático, não escolha.
+  #
+  #   Reverter tudo cegamente seria o defeito que o `aplicar_tema.sh` já
+  #   documenta ter custado caro (§ "os dois slideres de vidro fosco são dela"):
+  #   fotografar uma preferência e passar a impô-la todo dia. Então a regra é a
+  #   mesma daquele arquivo, aplicada por saída:
+  #
+  #     aponta para o nosso acervo  -> confere, nada a fazer
+  #     aponta para a pasta de FÁBRICA -> é o reset; conserta (código 1)
+  #     aponta para QUALQUER outro lugar -> é ela; não se toca (código 4)
+  #
+  #   O terceiro caso é o que impede este script de brigar com ela no dia em que
+  #   ela apontar o papel de parede para uma pasta própria pela GUI.
+  local FABRICA="/usr/share/backgrounds"
+  local alvo escolha_dela=0 fonte_atual
   for alvo in "${alvos[@]}"; do
     local conteudo="$desejada"
     [ "$alvo" = "all" ] || conteudo="${desejada/output: \"all\"/output: \"${alvo#output.}\"}"
+
+    if [ -f "$BG/$alvo" ]; then
+      fonte_atual="$(grep -oP 'source: Path\("\K[^"]+' "$BG/$alvo" 2>/dev/null)"
+      case "$fonte_atual" in
+        "$ATIVOS"|"$ATIVOS"/*|"") ;;                  # é nosso (ou ilegível): segue
+        "$FABRICA"|"$FABRICA"/*) ;;                   # reset de fábrica: conserta
+        *)
+          meow_pula "$alvo aponta para $fonte_atual — é escolha sua, não mexo"
+          escolha_dela=1
+          continue ;;
+      esac
+    fi
+
     meow_escrever "$BG/$alvo" "$conteudo" 644
     case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao escrever $alvo"; return "$MEOW_ERRO" ;; esac
   done
@@ -272,6 +351,13 @@ cmd_aplicar() {
   limpar_estado_morto || true
 
   if [ "$mudou" = "0" ]; then
+    # 4 = divergente POR ESCOLHA DELA. Sai do laço de conserto sem sair do
+    # relatório, e o `meow-doctor.service` não notifica — senão ela receberia
+    # "o auto-reparo consertou" toda madrugada por uma pasta que ela escolheu.
+    if [ "$escolha_dela" = "1" ]; then
+      meow_info "o carrossel está no lugar; a saída acima é escolha sua"
+      return 4
+    fi
     meow_ok "carrossel já configurado ($n imagens, a cada $INTERVALO, $ORDEM)"
     return "$MEOW_OK"
   fi
@@ -286,14 +372,29 @@ cmd_estado() {
   echo "imagens:   $n"
   echo "intervalo: $INTERVALO ($(segundos_de "$INTERVALO")s)"
   echo "ordem:     $ORDEM ($(metodo_de "$ORDEM"))"
-  if [ -f "$BG/all" ]; then
-    local fonte; fonte="$(grep -oP 'source: Path\("\K[^"]+' "$BG/all" 2>/dev/null)"
-    if [ "$fonte" = "$ATIVOS" ]; then
-      echo "estado:    carrossel ATIVO"
-    else
-      echo "estado:    apontando para outro lugar ($fonte)"
-    fi
+  # CONFERE O ARQUIVO QUE MANDA, NÃO O `all` — ignorar isto já fez este comando
+  # MENTIR. Em 08/08/2026 ele respondia "carrossel ATIVO" lendo o `all` enquanto
+  # a tela dela exibia o papel de parede de fábrica: `same-on-all` era `false`,
+  # e quem valia era o `output.DP-1`. O projeto agora é dono da chave e a escreve
+  # como `true`, mas o diagnóstico continua perguntando ao disco quem manda —
+  # senão volta a mentir no dia em que alguma coisa a mudar de novo.
+  local mesma; mesma="$(cat "$BG/same-on-all" 2>/dev/null)"
+  local -a mandam=()
+  if [ "$mesma" = "false" ]; then
+    local f
+    for f in "$BG"/output.*; do [ -f "$f" ] && mandam+=("$f"); done
   fi
+  [ "${#mandam[@]}" -gt 0 ] || mandam=("$BG/all")
+
+  local fora=0 fonte arq
+  for arq in "${mandam[@]}"; do
+    [ -f "$arq" ] || continue
+    fonte="$(grep -oP 'source: Path\("\K[^"]+' "$arq" 2>/dev/null)"
+    [ "$fonte" = "$ATIVOS" ] && continue
+    echo "estado:    $(basename "$arq") aponta para outro lugar ($fonte)"
+    fora=1
+  done
+  [ "$fora" = "0" ] && echo "estado:    carrossel ATIVO"
   # A imagem exata que está na tela não é observável: o cosmic-bg não fala D-Bus
   # e não grava o índice em lugar nenhum. Dizer "não sei" é melhor que inventar.
   echo "atual:     (o cosmic-bg não expõe qual imagem está em exibição)"

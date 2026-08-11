@@ -1,0 +1,59 @@
+# meow-wallpaper.service — reafirma o carrossel, e só ele.
+#
+# O QUE ELE FAZ: `scripts/wallpaper.sh aplicar`. Lê os arquivos de
+# `com.system76.CosmicBackground/v1` e só escreve quando a saída aponta para o
+# nosso acervo ou para a pasta de FÁBRICA. Se apontar para outro lugar, é
+# escolha dela: o script devolve 4 e não toca em nada.
+#
+# NÃO NOTIFICA, DE PROPÓSITO
+#   O `meow-doctor.service` avisa quando conserta porque um reparo diário é
+#   evento raro. Aqui o relógio bate a cada 15 minutos: pendurar um
+#   `notify-send` no `ExecStopPost` transformaria uma correção silenciosa e
+#   correta numa fonte de ruído — e o aviso que se aprende a ignorar é pior que
+#   nenhum. O rastro fica no log do MeowSystem, que o `meow log` mostra.
+#
+# CÓDIGOS: 0 já estava certo · 1 consertou · 3 falta dependência (menos de duas
+# imagens no acervo) · 4 escolha dela. Nenhum deles é falha, e por isso os
+# quatro entram no `SuccessExitStatus` — sem isso a unidade apareceria como
+# `failed` no `systemctl --user status` justamente quando fez o certo.
+#
+# `$R` SIM, `${R}` NÃO: o systemd expande `${NOME}` na linha de `Exec` mesmo
+# dentro de aspas simples, e variável que ele não conhece vira string vazia.
+#
+# ConditionPathExists no ponteiro da raiz: se `/mnt/Apate` estiver desmontado, a
+# unidade é PULADA com o motivo no journal, em vez de falhar de 15 em 15 minutos
+# para sempre. O ponteiro mora em `/home`, que está sempre montado.
+
+[Unit]
+Description=MeowSystem — reafirma o carrossel de papéis de parede
+Documentation=file:%h/.local/state/meowsystem/raiz
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+
+[Service]
+Type=oneshot
+
+# O LOCK, QUE ATÉ AQUI SÓ VALIA PARA A MÃO DELA
+#   `meow_travar` (lib/comum.sh:131) existe e é chamado em dez pontos do
+#   `bin/meow` — mas em NENHUM script de `scripts/`. Como esta unidade chama o
+#   `wallpaper.sh` direto, o relógio de 15 em 15 minutos podia entrar no meio de
+#   um `meow doctor --consertar` (que também chama `wallpaper.sh aplicar`, agora
+#   sob o lock) sem nada para segurá-lo. O `flock(1)` do util-linux usa o mesmo
+#   `flock(2)` do `meow_travar`, sobre o MESMO arquivo — os dois lados se veem.
+#
+#   `-E 0` E NÃO `SuccessExitStatus`: sem ele o `flock` sai 1 quando o lock está
+#   ocupado, e 1 aqui é o código de "consertei". Neste serviço só sujaria o log;
+#   no `meow-assets.service` irmão, cujo `ExecStopPost` dispara `notify-send`
+#   exatamente em `EXIT_STATUS=1`, daria um aviso FALSO na tela dela. Com
+#   `-E 0` ceder a vez sai 0 — silêncio, que é o certo: quem está com o lock vai
+#   fazer o mesmo trabalho, e o relógio bate de novo em 15 minutos.
+#
+#   O `mkdir` é do mesmo motivo do `append:` do irmão: o `flock` cria o arquivo
+#   de lock, mas não o diretório, e numa máquina onde o `install.sh` ainda não
+#   passou ele não existe. Prefixo `-` para não falhar por causa disso.
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/wallpaper.sh" ] || exit 0; export WALLPAPER_BASE WALLPAPER_INTERVALO WALLPAPER_ORDEM; exec "$R/scripts/wallpaper.sh" aplicar'
+
+SuccessExitStatus=1 3 4
+
+StandardOutput=append:%h/.local/state/meowsystem/wallpaper.log
+StandardError=inherit

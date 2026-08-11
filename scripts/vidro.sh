@@ -38,6 +38,16 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
+CONFERIR=0
+for _a in "$@"; do
+  case "$_a" in
+    --conferir) CONFERIR=1 ;;
+    -h|--help) printf 'uso: vidro.sh [--conferir]\n\n  --conferir  não escreve nada: mostra o que está no disco e a\n              faixa real de alpha derivada do alpha_map de agora.\n'; exit 0 ;;
+    *) meow_erro "opção desconhecida: '$_a' — só existe --conferir"; exit 2 ;;
+  esac
+done
+unset _a
+
 # "sim" -> o vidro fica ao maximizar. "nao" -> volta o comportamento de fábrica.
 VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}"
 
@@ -51,15 +61,23 @@ VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}"
 #       alpha = opacity  x  alpha_map[frosted]
 #
 #   e `frosted`/`alpha_map` são exatamente os dois sliders de Aparência → Vidro
-#   fosco ("Espessura do efeito fosco" e "Opacidade do vidro"). O `alpha_map`
-#   desta máquina vai de 0,62 a 0,92 — ou seja, o slider inteiro é um fator de
-#   pouco mais de 1,5x. Quem manda na escala é ESTA chave:
+#   fosco ("Espessura do efeito fosco" e "Opacidade do vidro").
 #
-#       opacity   alcance do slider, ponta a ponta
-#       0.05      3,1% -> 4,6%    = 1,5 ponto   (invisível)
-#       0.10      6,2% -> 9,2%    = 3,0 pontos
-#       0.24     14,9% -> 22,1%   = 7,2 pontos
-#       0.50     31,0% -> 46,0%   = 15 pontos
+#   AQUI HAVIA UMA TABELA FOTOGRAFADA, E ELA ENVELHECEU 3x
+#     Este bloco dizia "o alpha_map desta máquina vai de 0,62 a 0,92" e trazia
+#     quatro linhas de porcentagem derivadas disso. Em 10/08/2026 o alpha_map
+#     vivo ia de 0,18 a 0,48 — a tabela estava quase três vezes otimista, e foi
+#     ela que sustentou o `opacity=0.1` como se desse "6,2% a 9,2%". Desenhava
+#     2,3%. O `alpha_map` é REESCRITO toda vez que o tema é reimportado; qualquer
+#     número fotografado aqui vira mentira na importação seguinte. Por isso a
+#     tabela agora é DERIVADA na hora:
+#
+#         scripts/vidro.sh --conferir
+#
+#   ATENÇÃO À NOMENCLATURA INVERTIDA DO alpha_map
+#     `extremely_high_2` é o MENOR alpha (mais fosco = menos cor própria da
+#     barra) e `extremely_low` é o MAIOR. Ler "high" como "mais opaco" inverte a
+#     conclusão inteira.
 #
 #   Em 05/08 eu unifiquei as duas barras em 0.05 para corrigir uma assimetria que
 #   ELA não tinha reclamado — e o efeito colateral foi tirar dos sliders dela
@@ -68,10 +86,53 @@ VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}"
 # POR QUE VOLTARAM A SER DUAS CHAVES
 #   O COSMIC trata painel e dock como configurações independentes, com páginas
 #   separadas na GUI. Impor um valor só é uma decisão nossa sobre a tela dela.
-#   Os padrões abaixo são o que ela tinha e escolheu; `VIDRO_OPACIDADE` continua
-#   valendo como atalho para igualar as duas de uma vez.
-VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-${VIDRO_OPACIDADE:-0.1}}"
-VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-${VIDRO_OPACIDADE:-0.24}}"
+#   `VIDRO_OPACIDADE` continua valendo como atalho para igualar as duas de uma vez.
+#
+# POR QUE OS PADRÕES SUBIRAM DE 0.1/0.24 PARA 0.19/0.26 EM 10/08/2026
+#   O ALVO É PORCENTAGEM DESENHADA, NÃO O NÚMERO DESTA CHAVE. Foi essa distinção
+#   que faltou, e ela custou três medições no mesmo dia:
+#
+#     16:01  alpha_map ia de 0,18 a 0,48 (very_high_2 = 0,22615).
+#            Com 0.1 e 0.24, o painel desenhava 2,3% e o dock 5,4% — a queixa
+#            "as barras não têm corpo" era literalmente isso.
+#     18:31  ELA mexeu o slider "Opacidade do vidro" em Aparência. A GUI rederivou
+#            o tema inteiro (37 arquivos entre 18:31:39 e 18:32:47) e o alpha_map
+#            passou a ir de 0,61 a 0,91. Com as MESMAS chaves, painel 6,6% e dock
+#            15,8%: metade do problema ela já tinha resolvido sozinha, no controle
+#            que é dela.
+#
+#   A conta 0.55/0.75 que parecia dar "12,4% e 17,0%" foi feita com o alpha_map
+#   das 16:01. Aplicada às 18:40 daria 36% e 49% — barra quase chapada, e o vidro
+#   fosco vira lembrança. Por isso o alvo ficou sendo a PORCENTAGEM combinada
+#   (painel ~12,4%, dock ~17,0%) e o número desta chave saiu dela por divisão:
+#   0,124/0,65615 = 0,19 e 0,170/0,65615 = 0,26.
+#
+#   A PROPORÇÃO DELA FOI PRESERVADA, E ISSO É DE PROPÓSITO. O dock continua mais
+#   presente que o painel — igualar as duas foi exatamente o erro de 05/08
+#   descrito acima. E a folga do slider continua: de ponta a ponta do alpha_map
+#   de hoje, o painel varia de 11,6% a 17,3%, e o dock de 15,9% a 23,7%. Os
+#   controles dela seguem valendo alguma coisa, que era a queixa original.
+#
+#   SE A PORCENTAGEM DE HOJE NÃO FOR MAIS ESTA, o número aqui é que está velho —
+#   não a conta. `scripts/vidro.sh --conferir` imprime a tabela derivada do
+#   alpha_map de agora, inclusive a linha "hoje, com frosted=...". Divida o alvo
+#   pelo fator que ele mostra e escreva o resultado aqui.
+#
+#   Quem quiser a leitura de waybar de verdade (30-40% de cor) tem dois caminhos,
+#   e os dois são dela: o slider "Opacidade do vidro" (que move o alpha_map) e o
+#   "Espessura do efeito fosco" (que escolhe qual chave do alpha_map vale).
+#
+# ESTES DOIS PADRÕES SÃO O QUE REALMENTE VALE — O meow.conf NÃO CHEGA AQUI
+#   Medido em 10/08/2026: `bin/meow` sourceia o meow.conf sem exportar, e tanto
+#   `chk_vidro` quanto `fix_vidro` passam só `VIDRO_AO_MAXIMIZAR` na linha de
+#   comando. O `etapa_vidro` do install.sh faz igual. Ou seja: as chaves
+#   `VIDRO_OPACIDADE_*` do meow.conf são lidas por bin/meow e morrem lá — nunca
+#   alcançam este script. Enquanto a ponte não existir, os padrões daqui e os
+#   valores do meow.conf têm de ser mantidos IGUAIS, senão o `meow doctor
+#   --consertar` desfaz calado o que ela escreveu no conf. A ponte é uma linha em
+#   cada uma das duas funções de bin/meow, e está anotada como pendência.
+VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-${VIDRO_OPACIDADE:-0.19}}"
+VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-${VIDRO_OPACIDADE:-0.26}}"
 
 case "$VIDRO_AO_MAXIMIZAR" in
   sim|true|1)  desejado="true" ;;
@@ -96,8 +157,61 @@ op_painel="$(normalizar_opacidade VIDRO_OPACIDADE_PAINEL "$VIDRO_OPACIDADE_PAINE
 op_dock="$(normalizar_opacidade VIDRO_OPACIDADE_DOCK "$VIDRO_OPACIDADE_DOCK")" \
   || exit "$MEOW_ERRO"
 
-BASE="$HOME/.config/cosmic"
+BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
 BARRAS=(Panel Dock)
+
+_frosted_para_chave() {
+  # "VeryLow2" -> "very_low_2" ; "Low2" -> "low_2" ; "Medium" -> "medium"
+  printf '%s' "$1" | sed -E 's/([a-z0-9])([A-Z])/\1_\2/g; s/([A-Za-z])([0-9])/\1_\2/g' \
+    | tr 'A-Z' 'a-z'
+}
+
+# --- --conferir: a tabela que não envelhece ---------------------------------
+# O `alpha_map` é reescrito a cada reimportação do tema, então a única tabela
+# honesta é a que se calcula na hora. As duas pontas da faixa são
+# `extremely_high_2` (o MENOR alpha — mais fosco) e `extremely_low` (o maior);
+# elas são rotuladas aqui pelo EFEITO e não pelo nome da chave, porque o nome
+# mente: "high" ali é mais fosco, não mais opaco.
+faixa_alpha() {
+  local am="$BASE/com.system76.CosmicTheme.Dark/v2/alpha_map"
+  [ -r "$am" ] || { meow_pula "alpha_map ausente — sem faixa a mostrar"; return 0; }
+  local lo hi frosted fator chave o
+  lo="$(sed -nE 's/.*[^a-z_]extremely_high_2: *([0-9.]+).*/\1/p' "$am" | head -1)"
+  hi="$(sed -nE 's/.*[^a-z_]extremely_low: *([0-9.]+).*/\1/p' "$am" | head -1)"
+  [ -n "$lo" ] && [ -n "$hi" ] || { meow_pula "não consegui ler as pontas do alpha_map"; return 0; }
+
+  meow_info "quanto da COR da barra é desenhada, com o alpha_map de agora:"
+  printf '    %-9s %s\n' "opacity" "mais fosco  ->  menos fosco"
+  for o in 0.10 0.19 0.24 0.26 0.50 1.00; do
+    awk -v o="$o" -v lo="$lo" -v hi="$hi" \
+      'BEGIN{printf "    %-9s %5.1f%%       ->  %5.1f%%\n", o, o*lo*100, o*hi*100}'
+  done
+  printf '    (a faixa vem do alpha_map vivo: %s a %s)\n' "$lo" "$hi"
+
+  # E o ponto exato em que ela está agora — que é o único número que importa
+  # para decidir se a barra tem corpo ou não.
+  frosted="$(cat "$BASE/com.system76.CosmicTheme.Dark/v2/frosted" 2>/dev/null)" || return 0
+  [ -n "$frosted" ] || return 0
+  chave="$(_frosted_para_chave "$frosted")"
+  fator="$(sed -nE "s/.*[^a-z_]${chave}: *([0-9.]+).*/\1/p" "$am" | head -1)"
+  [ -n "$fator" ] || return 0
+  awk -v f="$fator" -v p="$op_painel" -v d="$op_dock" -v n="$frosted" \
+    'BEGIN{printf "    hoje, com frosted=%s (%.5f): painel %.1f%%, dock %.1f%%\n", n, f, p*f*100, d*f*100}'
+}
+
+if [ "$CONFERIR" = "1" ]; then
+  meow_info "no disco agora:"
+  for barra in "${BARRAS[@]}"; do
+    dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+    [ -d "$dir" ] || { meow_pula "com.system76.CosmicPanel.$barra não está configurado aqui"; continue; }
+    printf '    %-6s opacity=%s  keep_style_on_maximize=%s\n' "$barra" \
+      "$(cat "$dir/opacity" 2>/dev/null || echo '?')" \
+      "$(cat "$dir/keep_style_on_maximize" 2>/dev/null || echo '?')"
+  done
+  meow_info "o que este script quer: painel $op_painel, dock $op_dock, ao maximizar $desejado"
+  faixa_alpha
+  exit "$MEOW_OK"
+fi
 
 mudou=0
 escritos=0
@@ -148,11 +262,9 @@ fi
 #   mão, que é precisamente o ato que criou o problema — e a derivação real tem
 #   mais campos do que este script conhece. Quem deriva certo é a GUI: mover o
 #   slider uma vez basta.
-_frosted_para_chave() {
-  # "VeryLow2" -> "very_low_2" ; "Low2" -> "low_2" ; "Medium" -> "medium"
-  printf '%s' "$1" | sed -E 's/([a-z0-9])([A-Z])/\1_\2/g; s/([A-Za-z])([0-9])/\1_\2/g' \
-    | tr 'A-Z' 'a-z'
-}
+#
+# (`_frosted_para_chave` mora lá em cima, junto do `--conferir`: as duas
+#  conferências precisam dela, e a de cima roda antes deste ponto do arquivo.)
 
 conferir_receita() {
   local b="$BASE/com.system76.CosmicTheme.Dark.Builder/v2"
