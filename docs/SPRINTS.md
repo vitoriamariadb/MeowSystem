@@ -257,6 +257,44 @@ lado a lado. Quem escolhe é ela, olhando.
 
 **Nada disso se aplica sem ela ver na folha primeiro.** A regra não mudou.
 
+### O veredito dela sobre o conversor — 11/08/2026, olhando a folha
+
+*"tão todos muito bons"*. **O caminho é o conversor.** Não se desenham 26 ícones
+à mão.
+
+Quatro ajustes pedidos, e o quarto é uma ordem de não-fazer:
+
+1. **Engrossar a linha.** *"só engrossaria mais a linha"*. Com uma condição que
+   não é dela mas decorre do objetivo: o traço tem de subir **junto** com os 30
+   Arcticons que já estão na tela. Se só o convertido engrossar, quebra-se a
+   coerência que é a razão de tudo isto.
+2. **Boca no GIMP.** O Wilber convertido perdeu o focinho — fronteira de baixo
+   contraste que o algoritmo descartou. O GIMP já estava na lista de "retoque".
+3. **O Gradia faltou na folha.** E o motivo é real: ele não tem SVG chapado de
+   origem — zero no índice Arcticons de 14.996 nomes, ausente do Papirus. Só
+   existem o SVG colorido do próprio flatpak e um `-symbolic`.
+4. **Bluetooth, wifi e cabo: fica o original.** *"bt tá sem logo, pode deixar o
+   original nesse caso. wifi e conexão por cabo também"*.
+
+**Sobre o item 4, medido antes de aceitar** (a ampliação da captura dela): o
+Bluetooth **não** está quebrado — é o desenho do Papirus, o símbolo dentro de um
+quadrado tipo chip. Wifi e cabo não têm entrada própria na barra dela. Ou seja:
+não há ícone faltando a consertar, e a instrução dela é para **não inventar
+glifo onde não há origem honesta** — a mesma regra que fez 11 dos 12 órfãos da
+Sprint B ficarem no Papirus. Ícone errado mente sobre o que a coisa é.
+
+Isto **confirma** a decisão de 08/08 sobre a barra do painel, e ela deixa de ser
+"pendência que ninguém mexeu" para ser escolha reafirmada.
+
+### O que os `-symbolic` do próprio app NÃO resolvem (testado, 11/08)
+
+Ideia que parecia barata para os três sem origem (Flatseal, Gradia, Warehouse):
+os três flatpaks trazem um `<app-id>-symbolic.svg`. Rasterizados a 48px ao lado
+de três Arcticons recoloridos, o veredito foi imediato: **os symbolic do GNOME
+são formas CHEIAS monocromáticas em grade 16**, não traço. Postos no lançador,
+virariam manchas pesadas no meio das linhas — exatamente a queixa que originou
+tudo isto. **Via descartada, com prova na tela.**
+
 **Prioridade 1 — os 3 de fábrica**, que hoje mostram o ícone cru do app ou do
 Papirus: Flatseal, Gradia, Warehouse. (Estes três estão registrados em
 `icons/apps-arcticons.map:296-298` como "os que ficam de fora, por honestidade" —
