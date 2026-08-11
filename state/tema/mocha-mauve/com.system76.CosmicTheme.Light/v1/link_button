@@ -62,13 +62,13 @@
     border: (
         red: 0.07450981,
         green: 0.08235294,
-        blue: 0.12941177,
+        blue: 0.12156863,
         alpha: 1.0,
     ),
     disabled_border: (
         red: 0.07450981,
         green: 0.08235294,
-        blue: 0.12941177,
+        blue: 0.12156863,
         alpha: 0.5,
     ),
 )

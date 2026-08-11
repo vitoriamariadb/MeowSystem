@@ -1,5 +1,5 @@
 (
-    base: "#1E1E2EFF",
+    base: "#1E1E2ED6",
     component: (
         base: "#2C2D3EFF",
         hover: "#414251FF",
@@ -7,14 +7,14 @@
         selected: "#414251FF",
         selected_text: "#CBA6F7FF",
         focus: "#CBA6F7FF",
-        divider: "#EDF1FF33",
-        on: "#EDF1FFFF",
+        divider: "#FFFFFF33",
+        on: "#FFFFFFFF",
         disabled: "#2C2D3E80",
-        on_disabled: "#EDF1FFA6",
+        on_disabled: "#FFFFFFA6",
         border: "#B8BCD4FF",
         disabled_border: "#B8BCD480",
     ),
-    divider: "#424457FF",
-    on: "#D4DDFBFF",
+    divider: "#4B4B58FF",
+    on: "#FFFFFFFF",
     small_widget: "#2B2B3140",
 )

@@ -1,8 +1,8 @@
 (
     base: "#8839EFFF",
-    hover: "#8041D6FF",
-    pressed: "#A07BDEFF",
-    selected: "#8041D6FF",
+    hover: "#8041D5FF",
+    pressed: "#A17BDDFF",
+    selected: "#8041D5FF",
     selected_text: "#8839EFFF",
     focus: "#8839EFFF",
     divider: "#FFFFFFFF",
