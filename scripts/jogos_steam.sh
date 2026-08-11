@@ -1,127 +1,298 @@
 #!/usr/bin/env bash
-# jogos_steam.sh — as capas dos jogos dela de volta, na área de trabalho E no lançador.
+# jogos_steam.sh — um .desktop por jogo INSTALADO da Steam, no lançador dela.
 #
-# ONDE ELAS ESTAVAM, E POR QUE NÃO APARECIAM
-#   A Steam cria um `.desktop` por jogo na ÁREA DE TRABALHO quando ela pede
-#   "criar atalho" — oito, aqui. Os ícones existem (`steam_icon_<appid>` no
-#   hicolor do usuário), os arquivos existem, e mesmo assim a tela estava vazia.
+# A FONTE DE VERDADE É O appmanifest, NÃO A ÁREA DE TRABALHO
+#   A versão de 05/08 copiava os `.desktop` que a Steam tivesse deixado na área
+#   de trabalho. Ela apagou aqueles oito arquivos, a mesa ficou vazia, e o
+#   script virou um no-op que saía 0 — o `meow doctor` pintava "jogos" de verde
+#   todo dia enquanto NENHUM jogo existia no lançador. A Steam só escreve
+#   `.desktop` de jogo quando a pessoa pede "criar atalho", um por um; esperar
+#   por isso é esperar por nada. Aqui a fonte passa a ser
+#   `appmanifest_*.acf`, que a Steam mantém sozinha para cada jogo instalado.
 #
-#   Duas causas independentes, e as duas precisavam cair:
+# DUAS BIBLIOTECAS, NÃO UMA
+#   `libraryfolders.vdf` declara `~/.steam/steam` E `/mnt/Mnemosyne/SteamLibrary`.
+#   Quem lê só a primeira perde o Black Myth: Wukong — o jogo mais pesado do
+#   disco — em silêncio. E quando /mnt/Mnemosyne não está montado, a ausência do
+#   manifesto é FALSA: por isso a limpeza de órfãos é adiada nessa rodada, em vez
+#   de apagar o atalho e recriá-lo na boot seguinte, o script brigando consigo.
 #
-#   1. `~/.local/share/icons/hicolor/index.theme` declarava quatro tamanhos e a
-#      pasta tinha treze. Dois jogos só existiam em `32x32` e eram invisíveis
-#      para o resolvedor. Isso é do `scripts/hicolor.sh`, e já está resolvido.
-#
-#   2. `com.system76.CosmicFiles/v1/desktop` tinha `show_content: false` — a área
-#      de trabalho do COSMIC não desenhava arquivo NENHUM. Com essa chave
-#      desligada, consertar ícone não adianta: não há onde ele aparecer.
-#
-# POR QUE TAMBÉM NO LANÇADOR
-#   A área de trabalho fica coberta por janela quase o tempo todo numa máquina de
-#   uma tela só. O lançador é onde ela procura programa. Os `.desktop` da Steam
-#   ficam na área de trabalho e por isso NUNCA estiveram no lançador — não é
-#   defeito, é onde a Steam os põe. Copiar para `~/.local/share/applications` os
-#   coloca nos dois lugares, e a cópia é nossa: se ela apagar o atalho da área de
-#   trabalho, o do lançador continua.
+# JOGO x FERRAMENTA, POR ESTRUTURA E NÃO POR NOME
+#   Dos 30 manifestos, 9 são runtime (Proton, Steam Linux Runtime, Steamworks).
+#   Casar `Proton*` no nome quebra no dia em que a Valve mudar o rótulo, ou
+#   quando um jogo de verdade se chamar "Protocol". O critério aqui é a capa
+#   vertical no `librarycache`: medido nesta máquina, 21 de 21 jogos têm uma, e
+#   0 de 9 ferramentas tem. O segundo critério (ícone `steam_icon_<appid>` no
+#   hicolor) cobre o jogo recém-instalado cuja arte ainda não baixou — e também
+#   nenhuma das 9 ferramentas o tem.
 #
 # O ÍCONE FICA NATURAL, A PEDIDO DELA
-#   Nada de tematizar: a capa que a Steam baixou é a arte do jogo, e trocá-la por
-#   um desenho na paleta tornaria oito jogos indistinguíveis entre si. Este script
-#   não escreve ícone nenhum — só garante que o que já existe seja alcançável.
-#
-# O NOME DO ARQUIVO É NORMALIZADO, O NOME NA TELA NÃO
-#   O destino é `steam-<appid>.desktop`, não "ORPHEUS TO HELL AND BACK.desktop".
-#   O appid é estável; o título do atalho ela pode renomear a qualquer momento, e
-#   aí a cópia antiga viraria uma segunda entrada no lançador — exatamente a
-#   duplicata que o `ocultar_apps.sh` existe para evitar. O `Name=` de dentro do
-#   arquivo é copiado como está, então na tela continua o nome do jogo.
+#   Nada de tematizar: 21 capas repintadas na paleta viram 21 ícones iguais. A
+#   capa é a identidade do jogo. E o `Icon=` guarda um NOME, nunca um caminho
+#   dentro de `~/.steam` — aquilo é cache do cliente, e a subpasta muda de nome
+#   a cada atualização de arte.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+# `meow_nome_do_mapa`: o encurtamento do rótulo mora no `nomes_apps.sh`, com a
+# lista em `icons/apps-nomes.map`. As chaves de lá são `steam-<appid>` (o Sackboy
+# e o ORPHEUS estouravam a célula do lançador) — a chave NÃO muda junto com o
+# prefixo do arquivo, senão o mapa deixaria de casar em silêncio.
+. "$RAIZ/scripts/nomes_apps.sh"
 
 APPS="$HOME/.local/share/applications"
-CFG="$HOME/.config/cosmic/com.system76.CosmicFiles/v1/desktop"
+HICOLOR="$HOME/.local/share/icons/hicolor"
+STEAM="$HOME/.steam/steam"
+CACHE="$STEAM/appcache/librarycache"
+LIBVDF="$STEAM/steamapps/libraryfolders.vdf"
 
-# `xdg-user-dir` porque o nome da pasta segue o idioma: aqui é "Área de trabalho",
-# noutra máquina é "Desktop". Cravar qualquer um dos dois é escolher em qual
-# máquina o script funciona.
-if meow_tem xdg-user-dir; then
-  MESA="$(xdg-user-dir DESKTOP 2>/dev/null)"
-else
-  MESA=""
-fi
-[ -n "$MESA" ] && [ -d "$MESA" ] || MESA="$HOME/Área de trabalho"
+# A Steam aqui é NATIVA (deb): `which steam` -> /usr/games/steam, e
+# /usr/share/applications/steam.desktop usa exatamente isso. Nada de flatpak, e
+# nada de /usr/local/bin/steam-resiliente.sh: aquele wrapper é do Ritual da
+# Aurora e o self-heal pode removê-lo — um Exec quebrado é um jogo que não abre.
+STEAM_BIN="$(command -v steam 2>/dev/null || true)"
+[ -n "$STEAM_BIN" ] || STEAM_BIN="/usr/games/steam"
 
-mudou=0
+meow_tem awk || { meow_pula "sem awk — não dá para ler os manifestos da Steam"; exit "$MEOW_SEM_DEPENDENCIA"; }
 
-# --- 1. a área de trabalho precisa desenhar alguma coisa ---------------------
-# Substituição cirúrgica de UMA chave dentro do RON. Reescrever o bloco inteiro
-# levaria junto `grid_spacing`, `icon_size` e os dois `show_*` restantes — que são
-# escolhas dela, e das quais este script não sabe nada.
-if [ -f "$CFG" ]; then
-  if grep -q 'show_content: *false' "$CFG"; then
-    novo="$(sed 's/show_content: *false/show_content: true/' "$CFG")"
-    if meow_seco; then
-      meow_muda "ligaria os ícones na área de trabalho (show_content)"
-      mudou=1
-    else
-      meow_escrever "$CFG" "$novo" 644
-      case $? in
-        1) mudou=1; meow_ok "área de trabalho passa a mostrar os arquivos" ;;
-        2) meow_erro "não consegui escrever $CFG"; exit "$MEOW_ERRO" ;;
-      esac
-    fi
-  fi
-else
-  meow_pula "cosmic-files ainda não tem configuração — área de trabalho não tocada"
-fi
-
-# --- 2. os atalhos de jogo, da mesa para o lançador --------------------------
-if [ ! -d "$MESA" ]; then
-  meow_pula "não achei a área de trabalho ($MESA)"
-  [ "$mudou" = "1" ] && exit "$MEOW_DIVERGENTE"
+if [ ! -d "$STEAM/steamapps" ]; then
+  meow_pula "Steam não instalada — nada a fazer"
   exit "$MEOW_OK"
 fi
 
-copiados=0
-achados=0
-while IFS= read -r arq; do
-  # `steam://rungameid/` é o que distingue um atalho de JOGO de qualquer outro
-  # .desktop que ela tenha largado na mesa. Casar por `Icon=steam_icon_` deixaria
-  # de fora o jogo cujo ícone a Steam não baixou (aqui, o "Scarlet Deer Inn",
-  # que usa o ícone genérico) — e ele é um jogo como os outros.
-  id="$(grep -m1 -oP 'steam://rungameid/\K[0-9]+' "$arq" 2>/dev/null)" || continue
-  [ -n "$id" ] || continue
-  achados=$((achados + 1))
+# --- consultas ---------------------------------------------------------------
 
-  destino="$APPS/steam-$id.desktop"
-  meow_escrever "$destino" "$(cat "$arq")" 644
-  case $? in
-    1) mudou=1; copiados=$((copiados + 1)) ;;
-    2) meow_erro "não consegui instalar $(basename "$arq")"; exit "$MEOW_ERRO" ;;
-  esac
-done < <(find "$MESA" -maxdepth 1 -type f -name '*.desktop' 2>/dev/null | sort)
+# CANONICALIZAR ANTES DO `sort -u` NÃO É ZELO, É O QUE FAZ A DEDUPLICAÇÃO EXISTIR.
+# `~/.steam/steam` é um symlink para `~/.steam/debian-installation`, que é
+# EXATAMENTE o caminho que o `libraryfolders.vdf` grava. São duas strings
+# diferentes para o mesmo diretório: sem o `readlink -f`, o `sort -u` deixa as
+# duas passarem e cada jogo é processado DUAS vezes (medido: 41 jogos e 18
+# ferramentas onde há 21 e 9). O `.steam/steam` fica como fallback para a
+# máquina onde o vdf não existe.
+bibliotecas() {
+  { printf '%s\n' "$STEAM"
+    [ -r "$LIBVDF" ] && awk -F'"' '/^[[:space:]]*"path"/ {print $4}' "$LIBVDF"
+  } | while IFS= read -r p; do
+        [ -n "$p" ] || continue
+        readlink -f -- "$p" 2>/dev/null || printf '%s\n' "$p"
+      done | sort -u
+  return 0
+}
 
-if [ "$achados" -eq 0 ]; then
-  meow_pula "nenhum atalho de jogo da Steam na área de trabalho"
+# A arte por BUSCA, não por caminho fixo: a Steam renomeou `library_600x900.jpg`
+# para `library_capsule.jpg` e passou a enterrar cada arte numa subpasta cujo
+# nome é o hash do conteúdo. `-type f` sem `-maxdepth` cobre os dois layouts;
+# `sort -rn` pelo TAMANHO desempata quando sobra uma versão antiga ao lado da
+# nova. O jpg de nome-hash (32x32) fica FORA da lista de propósito: ampliá-lo
+# 8x planta um borrão, e um borrão é pior que o ícone genérico da Steam.
+arte_do_jogo() {
+  local c="$CACHE/$1" f nome
+  [ -d "$c" ] || return 1
+  for nome in library_capsule.jpg library_600x900.jpg library_header.jpg header.jpg logo.png; do
+    f="$(find "$c" -type f -name "$nome" -printf '%s\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)"
+    [ -n "$f" ] && { printf '%s\n' "$f"; return 0; }
+  done
+  return 1
+}
+
+capa_vertical() {
+  find "$CACHE/$1" -type f \( -name library_capsule.jpg -o -name library_600x900.jpg \) 2>/dev/null | grep -q .
+}
+
+icone_bom_da_steam() {
+  local t
+  for t in 256x256 128x128; do
+    [ -f "$HICOLOR/$t/apps/steam_icon_$1.png" ] && return 0
+  done
+  return 1
+}
+
+algum_icone_da_steam() {
+  find "$HICOLOR" -name "steam_icon_$1.png" 2>/dev/null | grep -q .
+}
+
+# 0 = já está certo · 1 = não deu (sem convert, sem arte) · 2 = mudou / mudaria.
+# O `-strip` + `exclude-chunk=tIME` é o que torna a saída BYTE-IDÊNTICA para a
+# mesma entrada: sem ele o timestamp embutido no PNG faz o arquivo mudar toda
+# rodada e o doctor acusa divergência eterna. Medido: dois `convert` separados
+# por um segundo dão o mesmo sha256.
+plantar_icone() {
+  local id="$1" fonte destino dir tmp
+  destino="$HICOLOR/256x256/apps/meow-steam-$id.png"
+  meow_tem convert || return 1
+  fonte="$(arte_do_jogo "$id")" || return 1
+  meow_destino_permitido "$destino" || return 1
+  dir="$(dirname "$destino")"
+  mkdir -p "$dir" || return 1
+  # O temporário nasce DENTRO do diretório de destino: `mv` entre sistemas de
+  # arquivos diferentes não é atômico (trava 2 do lib/comum.sh).
+  tmp="$(mktemp -p "$dir" ".meow.XXXXXX.png")" || return 1
+  if ! convert "$fonte" -resize 246x246 -background none -gravity center -extent 256x256 \
+        -strip -define png:exclude-chunk=tIME,tEXt,zTXt "$tmp" 2>/dev/null; then
+    rm -f "$tmp"; return 1
+  fi
+  if [ -f "$destino" ] && cmp -s "$tmp" "$destino"; then
+    rm -f "$tmp"; return 0
+  fi
+  if meow_seco; then rm -f "$tmp"; return 2; fi
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$destino" || { rm -f "$tmp"; return 1; }
+  return 2
+}
+
+# --- 1. os jogos, dos manifestos para o lançador ------------------------------
+
+mudou=0; jogos=0; ferramentas=0; ausentes=0; escritos=0
+vivos=""
+
+while IFS= read -r lib; do
+  [ -n "$lib" ] || continue
+  if [ ! -d "$lib/steamapps" ]; then
+    meow_aviso "biblioteca da Steam não montada ($lib) — os jogos dela ficam de fora e a limpeza é adiada"
+    ausentes=$((ausentes + 1))
+    continue
+  fi
+
+  for m in "$lib"/steamapps/appmanifest_*.acf; do
+    [ -e "$m" ] || continue
+    id="$(awk -F'"' '/"appid"/{print $4; exit}' "$m")"
+    nome="$(awk -F'"' '/"name"/{print $4; exit}' "$m")"
+    [ -n "$id" ] && [ -n "$nome" ] || continue
+    case "$id" in ''|*[!0-9]*) continue ;; esac
+
+    if ! capa_vertical "$id" && ! algum_icone_da_steam "$id"; then
+      ferramentas=$((ferramentas + 1))
+      continue
+    fi
+
+    jogos=$((jogos + 1))
+    vivos="$vivos$id"$'\n'
+
+    curto="$(meow_nome_do_mapa "steam-$id" 2>/dev/null)" || curto=""
+    [ -n "$curto" ] && nome="$curto"
+
+    if icone_bom_da_steam "$id"; then
+      icone="steam_icon_$id"
+    else
+      plantar_icone "$id"
+      case $? in
+        0) icone="meow-steam-$id" ;;
+        2) icone="meow-steam-$id"; mudou=1 ;;
+        *) if algum_icone_da_steam "$id"; then icone="steam_icon_$id"; else icone="steam"; fi ;;
+      esac
+    fi
+
+    corpo="$(printf '%s\n' \
+      '[Desktop Entry]' \
+      '# Gerado por MeowSystem/scripts/jogos_steam.sh a partir do appmanifest da Steam.' \
+      '# Edições feitas aqui são desfeitas na próxima rodada — mude o script.' \
+      'Type=Application' \
+      'Version=1.0' \
+      "Name=$nome" \
+      "Comment=Jogo da Steam (appid $id)" \
+      "Exec=$STEAM_BIN steam://rungameid/$id" \
+      "Icon=$icone" \
+      'Terminal=false' \
+      'Categories=Game;' \
+      'Keywords=steam;jogo;game;' \
+      'StartupNotify=true' \
+      "StartupWMClass=steam_app_$id" \
+      'X-MeowSystem=jogo-steam' \
+      "X-SteamAppId=$id")"
+
+    meow_escrever "$APPS/meow-steam-$id.desktop" "$corpo" 644
+    case $? in
+      1) mudou=1; escritos=$((escritos + 1)) ;;
+      2) meow_erro "não consegui instalar o atalho do appid $id"; exit "$MEOW_ERRO" ;;
+    esac
+  done
+done < <(bibliotecas)
+
+# --- 2. limpeza: o que existe no destino e não deveria mais existir -----------
+# Só apaga com PROVA DE AUTORIA (a marca X-MeowSystem, ou o `rungameid` dos dois
+# geradores antigos). Nunca por prefixo de nome sozinho: um `.desktop` que ela
+# escreveu à mão não é órfão de ninguém.
+
+removidos=0
+if [ "$ausentes" -gt 0 ]; then
+  meow_info "biblioteca desmontada nesta rodada — limpeza de órfãos adiada de propósito"
+else
+  for f in "$APPS"/meow-steam-*.desktop; do
+    [ -e "$f" ] || continue
+    grep -q '^X-MeowSystem=jogo-steam$' "$f" || continue
+    orfao="$(basename "$f" .desktop)"; orfao="${orfao#meow-steam-}"
+    printf '%s' "$vivos" | grep -qx "$orfao" && continue
+    if meow_seco; then
+      meow_muda "removeria o atalho de um jogo desinstalado (appid $orfao)"
+    else
+      rm -f "$f" "$HICOLOR/256x256/apps/meow-steam-$orfao.png"
+    fi
+    mudou=1; removidos=$((removidos + 1))
+  done
+
+  # Os dois donos antigos: `steam-jogo-<appid>.desktop` (steam-gera-atalhos.sh do
+  # Ritual da Aurora) e `steam-<appid>.desktop` (a versão anterior deste script).
+  # Hoje não existe nenhum dos dois no disco — isto é trava preventiva contra a
+  # duplicata, não limpeza pendente.
+  for f in "$APPS"/steam-jogo-*.desktop "$APPS"/steam-[0-9]*.desktop; do
+    [ -e "$f" ] || continue
+    grep -q 'steam://rungameid/' "$f" || continue
+    if meow_seco; then
+      meow_muda "removeria atalho do gerador antigo: $(basename "$f")"
+    else
+      rm -f "$f"
+    fi
+    mudou=1; removidos=$((removidos + 1))
+  done
+
+  # Cache de ícones do gerador do Aurora, órfão desde 29/07 (17 PNGs, um deles de
+  # um jogo que ela nem tem mais). Só sai quando nenhum `.desktop` o referencia.
+  velho="$HOME/.local/share/icons/steam-jogos"
+  if [ -d "$velho" ] && ! grep -rqls 'icons/steam-jogos' "$APPS" 2>/dev/null; then
+    if meow_seco; then
+      meow_muda "removeria o cache de ícones órfão do gerador antigo ($velho)"
+    else
+      rm -rf "$velho"
+    fi
+    mudou=1
+  fi
+fi
+
+# --- 3. o veredito ------------------------------------------------------------
+
+# A NOTA DAS FERRAMENTAS SAI POR ÚLTIMO, E É POR CAUSA DA TABELA DO `meow doctor`
+#   O `bin/meow` mostra na coluna só a PRIMEIRA linha de cada verificador
+#   (`primeira_linha`, seção 6). Impressa aqui, antes do veredito, esta nota
+#   virava a linha da tabela: em 10/08/2026 o `meow doctor` dizia "9
+#   ferramenta(s) da Steam (Proton, runtimes) fora do lançador" na linha `jogos`
+#   — número certo, coisa errada, e nenhum sinal dos 21 jogos. O `trap ... EXIT`
+#   entrega a mesma frase depois de qualquer um dos quatro vereditos, sem
+#   repeti-la nos quatro nem mexer nos `exit` que carregam o código de retorno.
+[ "$ferramentas" -gt 0 ] && trap 'meow_info "$ferramentas ferramenta(s) da Steam (Proton, runtimes) fora do lançador, de propósito"' EXIT
+
+if [ "$jogos" -eq 0 ]; then
+  meow_pula "a Steam está instalada mas nenhum jogo instalado tem manifesto — nada a criar"
   [ "$mudou" = "1" ] && exit "$MEOW_DIVERGENTE"
   exit "$MEOW_OK"
 fi
 
 if [ "$mudou" = "0" ]; then
-  meow_ok "$achados jogo(s) da Steam já no lançador e na área de trabalho"
+  meow_ok "$jogos jogo(s) da Steam no lançador, com a capa que a Steam baixou"
   exit "$MEOW_OK"
 fi
 
-meow_seco && { meow_muda "levaria $achados jogo(s) da Steam para o lançador"; exit "$MEOW_DIVERGENTE"; }
+if meow_seco; then
+  meow_muda "$jogos jogo(s) da Steam: $escritos atalho(s) a escrever, $removidos a remover"
+  exit "$MEOW_DIVERGENTE"
+fi
 
-# `update-desktop-database` só vale para o diretório do USUÁRIO aqui — sem sudo,
-# sem tocar em /usr/share. Se não existir, o lançador acha do mesmo jeito na
-# próxima varredura; a base é um índice de MIME, não a lista de aplicativos.
+# `update-desktop-database` é índice de MIME, não a lista do lançador — se faltar,
+# o lançador acha do mesmo jeito na varredura seguinte. Só o diretório do USUÁRIO.
 meow_tem update-desktop-database && update-desktop-database "$APPS" 2>/dev/null || true
 
-[ "$copiados" -gt 0 ] && meow_ok "$copiados jogo(s) da Steam no lançador (ícone natural, como ela pediu)"
-meow_info "os da área de trabalho aparecem assim que o cosmic-files reler"
+[ "$escritos" -gt 0 ] && meow_ok "$escritos jogo(s) da Steam no lançador (ícone natural, como ela pediu)"
+[ "$removidos" -gt 0 ] && meow_ok "$removidos atalho(s) de jogo desinstalado removidos"
+meow_info "para juntá-los num grupo: lançador → Novo grupo → nome 'Jogos' → categoria Game"
 exit "$MEOW_DIVERGENTE"
