@@ -402,3 +402,93 @@ meow_app_aplicar() {
   meow_registrar "obsidian: cssTheme=$MEOW_OBSIDIAN_TEMA em $MEOW_OBSIDIAN_VAULT"
   return "$MEOW_DIVERGENTE"
 }
+
+# --- DESFAZER (11/08/2026) --------------------------------------------------
+# Chegam aqui `meow apps reverter obsidian` e o passo 2/6 do `--uninstall`.
+#
+# A MESMA RECUSA DO `aplicar`, PELO MESMO MOTIVO
+#   Com o Obsidian aberto, ele regrava o `appearance.json` ao sair e desfaria o
+#   nosso desfazer — o tema voltaria sozinho e pareceria que o comando mentiu.
+#   Recusar é a resposta certa, e recusa não é erro (3, "pendente").
+#
+# `cssTheme=""` É O PADRÃO DO OBSIDIAN, não um valor inventado: é o que o app
+# grava quando ela escolhe o tema base na interface.
+#
+# O QUE NÃO VOLTA: o snippet `dracula_background` que o `aplicar` desmarcou. O
+# `.css` dele nunca saiu do disco (ver `_meow_obsidian_json`) — remarcar é um
+# clique na interface, e adivinhar por ela seria repor uma escolha que não é
+# nossa. A mensagem diz onde está.
+meow_app_reverter() {
+  meow_app_detectar || {
+    meow_pula "Obsidian não instalado (ou o vault não está onde eu procuro)"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+
+  local tema_dir appearance mudou=0 arquivo rc
+  tema_dir="$(_meow_obsidian_tema_dir)"
+  appearance="$(_meow_obsidian_appearance)"
+
+  # Levantar ANTES de recusar por app aberto: com nada a fazer, "já estava
+  # desfeito" é 0 mesmo com o Obsidian na tela.
+  local -a nossos=()
+  for arquivo in theme.css manifest.json; do
+    _meow_obsidian_igual "$MEOW_OBSIDIAN_VENDOR/$arquivo" "$tema_dir/$arquivo" \
+      && nossos+=("$arquivo")
+  done
+  local json_pendente=0
+  _meow_obsidian_json conferir "$appearance" "" >/dev/null 2>&1
+  case $? in
+    0) ;;
+    1) json_pendente=1 ;;
+    *) meow_erro "obsidian: não consegui ler o appearance.json"; return "$MEOW_ERRO" ;;
+  esac
+
+  if [ "${#nossos[@]}" -eq 0 ] && [ "$json_pendente" = "0" ]; then
+    meow_ok "obsidian: já estava sem o Catppuccin"
+    return "$MEOW_OK"
+  fi
+
+  if _meow_obsidian_rodando; then
+    meow_aviso "obsidian: o app está ABERTO — nada foi escrito."
+    meow_aviso "obsidian: ele regrava o appearance.json ao sair e traria o tema de volta."
+    meow_aviso "obsidian: feche o Obsidian e rode de novo."
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  meow_destino_permitido "$appearance" || return "$MEOW_ERRO"
+
+  if meow_seco; then
+    [ "${#nossos[@]}" -gt 0 ] && meow_muda "obsidian: removeria ${nossos[*]} de $tema_dir"
+    [ "$json_pendente" = "1" ] && meow_muda "obsidian: cssTheme voltaria ao padrão do app"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  # 1. os dois arquivos do tema — só saem os que ainda são byte a byte os nossos.
+  #    Um `theme.css` que ela editou deixou de ser nosso e fica.
+  for arquivo in ${nossos[@]+"${nossos[@]}"}; do
+    if rm -f "$tema_dir/$arquivo"; then mudou=1; else
+      meow_erro "obsidian: não consegui remover $tema_dir/$arquivo"; return "$MEOW_ERRO"
+    fi
+  done
+  # `rmdir` sem `-p` e sem `-f`: some se ficou vazio, fica se ela pôs algo lá.
+  [ -d "$tema_dir" ] && rmdir "$tema_dir" 2>/dev/null
+  [ "$mudou" = "1" ] && meow_muda "obsidian: tema $MEOW_OBSIDIAN_TEMA removido do vault"
+
+  # 2. o appearance.json, pelo mesmo varredor que o aplicou. O python grava
+  #    direto (não passa por `meow_escrever`), então nada disto entra no
+  #    manifesto — que é o que impede o desinstalador de apagar o arquivo depois.
+  if [ "$json_pendente" = "1" ]; then
+    _meow_obsidian_json aplicar "$appearance" ""
+    rc=$?
+    case $rc in
+      0|1) mudou=1; meow_muda "obsidian: cssTheme de volta ao padrão do app" ;;
+      *) meow_erro "obsidian: falhou ao devolver o appearance.json"; return "$MEOW_ERRO" ;;
+    esac
+  fi
+
+  [ "$mudou" = "0" ] && { meow_ok "obsidian: já estava sem o Catppuccin"; return "$MEOW_OK"; }
+  meow_ok "obsidian: sem o Catppuccin — reabra o app para ver"
+  meow_info "o snippet 'dracula_background' continua no disco, desmarcado: Aparência > Snippets CSS"
+  meow_info "tire 'obsidian' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  return "$MEOW_DIVERGENTE"
+}

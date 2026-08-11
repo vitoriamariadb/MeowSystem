@@ -533,3 +533,105 @@ meow_app_aplicar() {
   meow_registrar "toolkits-gtk-qt: aplicado (icon_theme=${icone_cosmic:-n/a})"
   return "$MEOW_DIVERGENTE"
 }
+
+# --- DESFAZER (11/08/2026) --------------------------------------------------
+# Chegam aqui `meow apps reverter qt5ct|gtk|qt` e o passo 2/6 do `--uninstall`.
+#
+# ESTE É O MÓDULO CUJA REVERSÃO MAIS PODE DOER, E POR ISSO ELE É O MAIS ESTREITO
+#   O que ele aplicou não é arte nossa: é a SINCRONIA entre o tema do COSMIC e os
+#   dois toolkits. Desfazer não é apagar um tema, é cortar essa ligação — e um
+#   corte mal feito deixa app GTK sem CSS nenhum ou app Qt apontando para um tema
+#   de ícones que o desinstalador acabou de remover.
+#
+#   Então os três passos aqui devolvem VALORES DE FÁBRICA verificáveis, nunca
+#   "o que ela tinha" (ninguém guardou isso), e cada um só age quando o estado
+#   atual ainda é o nosso:
+#
+#     apply_theme_global  -> `false`, que é o padrão do COSMIC. Apagar o arquivo
+#                            seria mais limpo no papel, mas o CosmicTk trata
+#                            ausência e `false` de formas diferentes conforme a
+#                            versão, e `false` é o que a interface dela mostra
+#                            desmarcado.
+#     symlink do gtk.css  -> vira ARQUIVO REAL com o mesmo conteúdo. É o estado
+#                            em que o COSMIC deixa a máquina sozinho, e é o que
+#                            havia antes de religarmos (ver `arquivo-igual` em
+#                            `_meow_tk_gtk_estado`). Apagar o CSS deixaria os
+#                            apps GTK sem a paleta que eles já usam hoje.
+#     icon_theme do qtNct -> `$ICONES_BASE` (Papirus-Dark por padrão), um tema que
+#                            EXISTE na máquina. Deixar `MeowSystem-Icons` seria
+#                            apontar para a árvore que o passo 5/6 do
+#                            desinstalador remove — apps Qt sem ícone nenhum.
+_MEOW_TK_ICONES_FABRICA="${ICONES_BASE:-Papirus-Dark}"
+
+meow_app_reverter() {
+  meow_app_detectar || {
+    meow_pula "sem COSMIC aqui — nada a desfazer nos toolkits"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+
+  local mudou=0 erro=0 css curto estado global conf atual conteudo tmp
+
+  # --- 1. a chave global do CosmicTk ---------------------------------------
+  global="$(_meow_tk_ler_tk apply_theme_global || printf 'ausente')"
+  if [ "$global" = "true" ]; then
+    if meow_seco; then
+      meow_muda "apply_theme_global voltaria para false"; mudou=1
+    elif _meow_tk_backup "$MEOW_TK_TK_DIR/apply_theme_global" \
+         && printf '%s' "false" > "$MEOW_TK_TK_DIR/apply_theme_global" 2>/dev/null; then
+      mudou=1; meow_muda "apply_theme_global=false (GTK e Qt deixam de seguir o COSMIC)"
+    else
+      erro=1; meow_erro "não consegui desligar o apply_theme_global"
+    fi
+  fi
+
+  # --- 2. os symlinks do GTK ------------------------------------------------
+  # Só desfazemos o link que aponta para DENTRO do diretório gerado pelo COSMIC
+  # (`ok`). `link-alheio` é dela e não se toca — a mesma regra do aplicar.
+  for css in "$MEOW_TK_GTK3_CSS" "$MEOW_TK_GTK4_CSS"; do
+    estado="$(_meow_tk_gtk_estado "$css")"
+    [ "$estado" = "ok" ] || continue
+    curto="$(_meow_tk_curto "$css")"
+    if meow_seco; then
+      meow_muda "$curto voltaria a ser arquivo comum (hoje é symlink)"; mudou=1; continue
+    fi
+    if ! _meow_tk_backup "$css"; then
+      erro=1; meow_erro "backup de $curto falhou — não desfiz o link"; continue
+    fi
+    # cp para um temporário ao lado e rename: sem isto, um corte entre o `rm` do
+    # link e a cópia deixaria a máquina sem gtk.css nenhum.
+    tmp="$(mktemp -p "$(dirname "$css")" ".meow.XXXXXX")" || { erro=1; continue; }
+    if cp -L -- "$css" "$tmp" 2>/dev/null && chmod 644 "$tmp" && mv -f -- "$tmp" "$css"; then
+      mudou=1; meow_muda "$curto: symlink desfeito, virou arquivo comum"
+    else
+      rm -f "$tmp"; erro=1; meow_erro "não consegui desfazer o link de $curto"
+    fi
+  done
+
+  # --- 3. o icon_theme do qt5ct/qt6ct --------------------------------------
+  if _meow_tk_qt_presente; then
+    for conf in "$MEOW_TK_QT5_CONF" "$MEOW_TK_QT6_CONF"; do
+      _meow_tk_conf_vale "$conf" || continue
+      [ -f "$conf" ] || continue
+      atual="$(_meow_tk_ini_ler "$conf" icon_theme || printf '')"
+      # Só mexe se o valor de lá ainda for o tema que NÓS pusemos.
+      [ "$atual" = "${NOME_TEMA_ICONES:-MeowSystem-Icons}" ] || continue
+      if meow_seco; then
+        meow_muda "$(basename "$conf"): icon_theme voltaria para $_MEOW_TK_ICONES_FABRICA"; mudou=1; continue
+      fi
+      if ! conteudo="$(_meow_tk_ini_definir "$conf" icon_theme "$_MEOW_TK_ICONES_FABRICA")"; then
+        erro=1; meow_erro "não consegui montar o conteúdo de $conf"; continue
+      fi
+      if _meow_tk_backup "$conf" && printf '%s' "$conteudo" > "$conf" 2>/dev/null; then
+        mudou=1; meow_muda "$(basename "$conf"): icon_theme=$_MEOW_TK_ICONES_FABRICA"
+      else
+        erro=1; meow_erro "não consegui escrever $conf"
+      fi
+    done
+  fi
+
+  [ "$erro" = "1" ] && return "$MEOW_ERRO"
+  [ "$mudou" = "0" ] && { meow_ok "toolkits: já estavam sem a sincronia do MeowSystem"; return "$MEOW_OK"; }
+  meow_seco || meow_ok "toolkits: GTK e Qt desligados do tema do COSMIC (vale ao reabrir os apps)"
+  meow_seco || meow_info "tire 'qt5ct' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  return "$MEOW_DIVERGENTE"
+}
