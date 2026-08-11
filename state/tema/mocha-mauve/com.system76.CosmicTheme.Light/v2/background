@@ -1,5 +1,5 @@
 (
-    base: "#CCD0DAD9",
+    base: "#CCD0DA8A",
     component: (
         base: "#EAEEF8D9",
         hover: "#E9ECF5DD",
@@ -7,14 +7,14 @@
         selected: "#E9ECF5DD",
         selected_text: "#8839EFFF",
         focus: "#8839EFFF",
-        divider: "#02021133",
-        on: "#020211FF",
+        divider: "#00000033",
+        on: "#000000FF",
         disabled: "#EAEEF86D",
-        on_disabled: "#020211A6",
-        border: "#131521FF",
-        disabled_border: "#13152180",
+        on_disabled: "#000000A6",
+        border: "#13151FFF",
+        disabled_border: "#13151F80",
     ),
-    divider: "#9EA1A9E1",
+    divider: "#9EA1A8E1",
     on: "#000000FF",
     small_widget: "#C1C3CA40",
 )
