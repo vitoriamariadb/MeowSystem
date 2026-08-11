@@ -121,9 +121,51 @@ PASTAS_XDG="nao"
 # O nome era WALLPAPER_DIR e apontava para `ativos/`, mas quem lia era
 # WALLPAPER_BASE — chave que não existia neste arquivo. Ou seja: mudar o valor
 # não movia nada. Corrigido em 08/08/2026; agora o nome daqui é o nome lido.
+# --- A FORMA DO PAINEL E DO DOCK ---------------------------------------------
+# Estas chaves existiam só como variável de ambiente do `scripts/forma.sh`:
+# ninguém conseguia mudá-las sem editar o script. Passaram para cá em
+# 11/08/2026, quando a primeira delas precisou de fato ser trocada.
+#
+# SOLTO  = a barra descola das bordas (ganha margem e cantos arredondados).
+# ILHA   = a barra ENCOLHE até o tamanho do conteúdo, virando uma pastilha.
+#
+# ATENÇÃO, e é a razão de a chave estar aqui: `ILHA="sim"` grava
+# `expand_to_edges=false`, e nesse modo o `cosmic-panel` FUNDE os três segmentos
+# (inicial, central, final) num bloco único centralizado. Está no fonte dele
+# (`space/layout.rs`), não é defeito nosso. Ou seja: com a ilha ligada, arrumar
+# os miniaplicativos por segmento na GUI de Configurações não tem efeito nenhum
+# — foi o que a fez perguntar, em 11/08, por que o gato aparecia colado nos
+# aplicativos mesmo estando no "Segmento inicial".
+#
+# Por isso o dock nasce com ILHA="nao": ela quis o gato à esquerda, os
+# aplicativos no centro e nada à direita, e esse layout só existe com
+# `expand_to_edges=true`. Para voltar à pastilha (e aceitar a fusão), é uma
+# palavra: FORMA_DOCK_ILHA="sim".
+FORMA_PAINEL_SOLTO="sim"          # sim | nao
+FORMA_DOCK_SOLTO="sim"            # sim | nao
+FORMA_PAINEL_ILHA="nao"           # sim | nao
+FORMA_DOCK_ILHA="nao"             # sim | nao  <- ver o aviso acima
+FORMA_MARGEM_PAINEL="6"
+FORMA_MARGEM_DOCK="8"
+FORMA_RAIO_PAINEL="8"
+FORMA_RAIO_DOCK="16"
+FORMA_ESPACO_PAINEL="4"
+FORMA_ESPACO_DOCK="8"
+FORMA_RECHEIO_PAINEL="5"
+FORMA_RECHEIO_DOCK="6"
+
 WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
 WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
 WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
+
+# Como a imagem ocupa a tela. Em 11/08/2026 ela mandou uma captura com duas
+# tarjas pretas, uma de cada lado, e disse: "o wallpaper precisa preencher a
+# largura e altura". A causa era um `Fit` cravado no `wallpaper.sh` — sob um
+# comentário que dizia que a escolha era dela e estava sendo preservada.
+#   preencher  cobre a tela inteira; o que não couber, corta   (o que ela pediu)
+#   caber      mostra a imagem inteira; o que sobrar vira tarja preta
+#   esticar    deforma a imagem até caber (praticamente nunca é o que se quer)
+WALLPAPER_AJUSTE="preencher"      # preencher | caber | esticar
 
 # UM GATO POR DIA — e o número aqui não é escolha estética, é consequência
 #   O pedido original era o gato trocar junto com o papel de parede, a cada 5
@@ -145,6 +187,35 @@ WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
 # (havia um WALLPAPER_SEMENTES aqui, com "comunidade,cosmic,minhas". Nunca
 #  existiu categoria nenhuma no `cmd_semear`: ele baixa a coleção Catppuccin do
 #  commit pinado, e ponto. Removido em 08/08/2026 — chave que nada lê.)
+
+# OS CAMINHOS QUE VOCÊ ESCOLHEU, E QUE O CARROSSEL NÃO DEVE DEVOLVER
+#   Caminhos absolutos separados por `:` (a mesma convenção do $PATH). Cada um
+#   vale para ele mesmo e para tudo abaixo dele. Vazio = nenhum.
+#
+# POR QUE ESTA CHAVE EXISTE — 11/08/2026
+#   Até aqui a fronteira do `scripts/wallpaper.sh` tinha três casos: o papel de
+#   parede apontando para o nosso acervo (confere), para a pasta de fábrica
+#   `/usr/share/backgrounds` (é reset programático, conserta) e para QUALQUER
+#   outro lugar (é escolha dela, não se toca). O terceiro caso era generoso
+#   demais, e a conta chegou: o `output.DP-1` voltou a apontar para
+#   `~/Imagens/Parede_papel/Cyberpunk Neon Cat…jpeg` — a pasta onde o papel de
+#   parede dela morava ANTES do MeowSystem —, o script leu aquilo como escolha
+#   dela e devolveu código 4. O relógio de 15 minutos rodou, devolveu 4, e
+#   repetiu isso a cada quinze minutos sem consertar nada. A frase dela foi "o
+#   papel de parede voltou a ser o antigo também. novamente": ela NÃO tinha
+#   escolhido.
+#
+#   O que faltava era distinguir "escolha dela de agora" de "onde o wallpaper
+#   dela estava antes". Não há como ler isso do disco — o COSMIC grava o mesmo
+#   arquivo nos dois casos. Então a decisão passou a ser DITA, uma vez, em vez
+#   de adivinhada toda vez: um caminho listado aqui é dela e não se toca
+#   (código 4); qualquer outro caminho não-nosso é reversão e se conserta
+#   (código 1), com o caminho substituído dito no log.
+#
+#   Você não precisa editar esta linha à mão. Quando o script consertar algo que
+#   você de fato queria, ele imprime o comando que autoriza:
+#       meow wallpaper permitir "/home/voce/Imagens/aquela-pasta"
+WALLPAPER_FONTES_DELA=""
 
 # --- Apps ------------------------------------------------------------------
 # Vírgula-separado. `meow apps` lista o que está instalado e o que falta.

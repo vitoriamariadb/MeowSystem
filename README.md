@@ -49,6 +49,7 @@ em `scripts/construir_icones.sh` §1.
 | Idem, com verificações | `./scripts/wallpaper.sh adicionar <arquivo\|pasta>` |
 | Tirar um papel de parede da rotação | `./scripts/wallpaper.sh banir <arquivo>` |
 | Ver o estado do carrossel | `./scripts/wallpaper.sh estado` |
+| **Manter um papel de parede que não é do carrossel** | `meow wallpaper permitir <caminho>` |
 | Mudar qualquer coisa | edite `~/.config/meow/meow.conf` e rode `./install.sh` |
 
 Tudo que o projeto **decide** vive em um arquivo: `~/.config/meow/meow.conf`.

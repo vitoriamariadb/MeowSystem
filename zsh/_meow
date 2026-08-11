@@ -143,11 +143,14 @@ _meow() {
               'adicionar:copia imagem ou pasta para ativos/'
               'banir:move para banidos/ (nunca apaga)'
               'semear:baixa a coleção Catppuccin do commit pinado (usa rede)'
+              'permitir:marca um caminho como escolha sua — o carrossel para de devolvê-lo'
             )
             _describe -t acoes 'ação' acoes
           else
             case "$words[2]" in
-              adicionar|banir) _files ;;
+              # `permitir` completa arquivo E diretório: a chave aceita os dois,
+              # e cada entrada vale para ela mesma e para tudo abaixo dela.
+              adicionar|banir|permitir) _files ;;
             esac
           fi
           ;;
