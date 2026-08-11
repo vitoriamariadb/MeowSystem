@@ -182,10 +182,80 @@ prontos" e entram na sprint. O trabalho passa de **31** para **39** ícones —
 28 Arcticons + 3 de fábrica + 8 redesenhos.
 
 E entra uma pergunta que precede todo desenho, e que é dela:
-**o que faz um ícone parecer do MeowSystem?** O FogStripper e o Hefesto são os
-dois únicos que ela reconhece hoje — a resposta provavelmente está no que esses
-dois têm e os outros oito não. Vale rasterizar os dez lado a lado a 48px e
-olhar, antes de desenhar o primeiro traço novo.
+**o que faz um ícone parecer do MeowSystem?**
+
+### A segunda correção dela, e esta desmonta a sprint inteira
+
+Meia hora depois, ela mandou uma captura do lançador aberto e uma frase:
+*"no sentido de criarmos icons igual o nosso tema atual, entende?"*
+
+**A pergunta acima já estava respondida, e a resposta não era a que este texto
+supunha.** Não se trata de dar personalidade a cada aplicativo. Trata-se de
+**coerência de estilo**.
+
+Na captura, os ícones em Arcticons — Ajustes, Ampliar, Apostrophe, Boxy SVG,
+Brave, Calculadora, Captura de Tela, Câmera, Discord, File Roller, BleachBit —
+formam visivelmente um conjunto: **traço de linha fino, sem preenchimento, cor
+pastel Catppuccin**. O que salta aos olhos é o que está **cheio** no meio deles.
+E o mais gritante é o "Arquivos": a pasta mauve chapada.
+
+Que é, exatamente, a "pasta rosa" da queixa original. As duas frases dela eram a
+mesma frase.
+
+**Consequência, e ela inverte o diagnóstico anterior:**
+
+> O "nosso tema" **não é** o desenho autoral. É o **traço**.
+>
+> O desenho autoral atual — formas chapadas com contorno universal — é o que
+> está fora do padrão. Ela olhou a Loja, os Arquivos, o Reprodutor e o Terminal
+> e não os reconheceu como nossos **não por falta de personalidade, mas por
+> serem cheios num lançador de linhas**.
+
+O escopo vira outro, e encolhe:
+
+| antes se pensava | agora se sabe |
+|---|---|
+| 39 ícones a desenhar, um a um, com identidade própria | os 28 em Arcticons **já estão no padrão** — não se mexe |
+| os 8 `com.system76.Cosmic*` estão prontos | os 8 estão **fora** do padrão: são chapados |
+| FogStripper e Hefesto são a régua | a régua é o **conjunto Arcticons**; os dois autorais é que destoam |
+| trabalho de desenho, um por vez | trabalho de **conversão de estilo**, possivelmente em lote |
+
+**O que de fato está fora do padrão hoje:**
+1. os 8 `com.system76.Cosmic*` (chapados) — inclui Arquivos, Terminal, Loja, Reprodutor
+2. FogStripper e Hefesto (chapados) — **mas são desenho dela; pode ser exceção deliberada, e a decisão é dela**
+3. Flatseal, Gradia e Warehouse (crus de fábrica)
+
+### A pergunta dela que virou o caminho principal
+
+No mesmo dia: *"será que não temos um script pra converter todos os icons, seja
+png ou svg, pra virar só a linha de contorno?"*
+
+Com o escopo corrigido acima, **essa deixou de ser uma alternativa e passou a ser
+a via principal**. Se um conversor levar formas chapadas ao traço com qualidade,
+ele resolve os itens 1 e 3 de uma vez, sem 39 desenhos à mão.
+
+O que precisa ser medido antes de acreditar nisso (está sendo, em paralelo):
+- o alvo não é abstrato: `icons/arcticons-apps/` tem 39 SVGs com grade,
+  `stroke-width` e terminações medíveis. É esse peso que a saída tem de imitar.
+- o teste honesto não é o par antes/depois. É **misturar conversões novas com
+  Arcticons feitos à mão, sem rótulo**. Se ela não distinguir, funciona.
+- e o caso mais duro é `src/icons/autorais/`, chapado com contorno — é lá que a
+  queixa mora, e é por lá que se começa.
+
+E ela mesma já disse onde fica o limite da ideia, na frase seguinte:
+*"isso é, se for mais simples, mas dependendo o desenho autoral já resolve
+mesmo"*.
+
+Ou seja: **o conversor não é a meta, é a hipótese barata.** Ele só ganha se for
+de fato mais simples E o resultado passar despercebido no meio dos Arcticons. Se
+o teste sem rótulo denunciar as conversões, o caminho é desenhar à mão, no
+estilo de traço — e isso não é derrota, é a segunda opção que ela já autorizou de
+antemão.
+
+As duas coisas estão sendo medidas em paralelo, e vão para a **mesma folha**,
+lado a lado. Quem escolhe é ela, olhando.
+
+**Nada disso se aplica sem ela ver na folha primeiro.** A regra não mudou.
 
 **Prioridade 1 — os 3 de fábrica**, que hoje mostram o ícone cru do app ou do
 Papirus: Flatseal, Gradia, Warehouse. (Estes três estão registrados em
