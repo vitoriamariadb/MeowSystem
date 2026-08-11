@@ -30,11 +30,33 @@ else
   C_DIM=""; C_FORTE=""; C_ZERO=""
 fi
 
-meow_titulo() { printf '\n%s%s%s\n' "$C_MAUVE$C_FORTE" "$*" "$C_ZERO"; }
-meow_passo()  { printf '\n  %s%s%s\n  %s%s%s\n' "$C_MAUVE$C_FORTE" "$*" "$C_ZERO" \
+# --- LOG_NIVEL: silencioso | info | debug -----------------------------------
+# A chave existia no `meow.conf.exemplo` desde a primeira versão e NENHUM script
+# a lia — o `meow configurar` perguntava, dizia "gravado", e a saída continuava
+# idêntica. Em 08/08/2026 as chaves inertes foram varridas: as da estrutura do
+# tema saíram (não tinham como funcionar), e esta ficou, porque custa três
+# linhas e é o único jeito de calar o instalador.
+#
+# O QUE ELA CALA, E O QUE NUNCA CALA
+#   `silencioso` esconde o que é PROGRESSO — título, passo, info e o "já estava
+#   certo". Continua mostrando o que MUDOU (`~~`), o que foi pulado, aviso e
+#   erro. Um modo silencioso que engula erro não é silêncio, é cegueira: quem
+#   liga isto quer parar de ler 25 etapas dizendo "ok", não parar de saber que
+#   algo quebrou. `debug` não acrescenta ruído por conta própria; ele existe
+#   para os scripts consultarem com `meow_debug`.
+MEOW_LOG_NIVEL="${LOG_NIVEL:-info}"
+meow_quieto() { [ "$MEOW_LOG_NIVEL" = "silencioso" ]; }
+meow_debug()  { [ "$MEOW_LOG_NIVEL" = "debug" ] && printf '  %s..%s   %s\n' "$C_DIM" "$C_ZERO" "$*"; return 0; }
+
+meow_titulo() { meow_quieto && return 0
+                printf '\n%s%s%s\n' "$C_MAUVE$C_FORTE" "$*" "$C_ZERO"; }
+meow_passo()  { meow_quieto && return 0
+                printf '\n  %s%s%s\n  %s%s%s\n' "$C_MAUVE$C_FORTE" "$*" "$C_ZERO" \
                        "$C_DIM" "$(printf '%.0s─' {1..52})" "$C_ZERO"; }
-meow_info()   { printf '  %s>>%s %s\n' "$C_AZUL" "$C_ZERO" "$*"; }
-meow_ok()     { printf '  %sok%s   %s\n' "$C_VERDE" "$C_ZERO" "$*"; }
+meow_info()   { meow_quieto && return 0
+                printf '  %s>>%s %s\n' "$C_AZUL" "$C_ZERO" "$*"; }
+meow_ok()     { meow_quieto && return 0
+                printf '  %sok%s   %s\n' "$C_VERDE" "$C_ZERO" "$*"; }
 meow_muda()   { printf '  %s~~%s   %s\n' "$C_AMARELO" "$C_ZERO" "$*"; }
 meow_pula()   { printf '  %s--%s   %s\n' "$C_DIM" "$C_ZERO" "$*"; }
 meow_aviso()  { printf '  %s!!%s   %s\n' "$C_AMARELO" "$C_ZERO" "$*" >&2; }
@@ -43,23 +65,71 @@ meow_seco()   { [ "$MEOW_SECO" = "1" ]; }
 
 # --- TRAVA 1: territórios proibidos ----------------------------------------
 # Uma escrita fora de lugar aqui não dá erro: dá um sintoma bizarro dias depois.
-#   /usr/share  — é do Ritual da Aurora e do apt. O self-heal reverte em até 1h,
-#                 e um `apt upgrade` sobrescreve. Escrever lá é trabalho perdido.
-#   ~/.config/zsh — é o repo Andromeda com auto-commit a cada 10min: qualquer
-#                 arquivo largado lá vira commit e push no repo PRIVADO dela.
-#   ~/.config/cosmic/com.system76.CosmicSettings.Shortcuts — os atalhos são do
-#                 Aurora, que remove Spawn órfão sob /usr/local/bin sem avisar.
+#
+# SÃO DUAS LISTAS, E A DIFERENÇA ENTRE ELAS É A DIFERENÇA ENTRE MÁQUINA E PROJETO
+#   A primeira vale em qualquer lugar do mundo: /usr é território do gerenciador
+#   de pacotes, e um `apt upgrade` sobrescreve.
+#
+#   O "o self-heal reverte em até 1h" que estava escrito aqui era grande demais
+#   para o que é medido: em 10/08/2026, `grep -rn /usr/share/applications
+#   ~/.config/zsh` não devolveu UMA linha. O Aurora disputa `/usr/share` em
+#   pontos nomeados (o ícone do App Library, self-heal:793 — e lá ele só DESFAZ o
+#   que a v3.45 dele plantou), não o diretório inteiro. Quem escreve em
+#   `/usr/share/applications` é o MeowSystem, sozinho: `ocultar_apps.sh` e
+#   `nomes_apps.sh`, com `sudo install` direto, por fora desta função.
+#
+#   A trava continua recusando o caminho, e isso está certo: ela existe para que
+#   ninguém escreva ali SEM PERCEBER. Quem precisa escrever escolheu escrever, e
+#   documentou por quê — no caso do lançador, porque o `cosmic-app-library` não
+#   deduplica por ID e uma cópia no home apareceria ao LADO da do sistema, e não
+#   no lugar dela. O que NÃO servia era "o pacote do apt é o backup": reinstalar
+#   um pacote para desfazer uma linha é caro demais para ser um botão de volta.
+#   Agora essas três escritas passam por `meow_backup_sistema` (abaixo), só
+#   acontecem com LANCADOR_SISTEMA="sim", e voltam por `meow desfazer --lancador`.
+#
+#   A segunda lista é dos VIZINHOS desta máquina — aqui, o repo Andromeda em
+#   ~/.config/zsh (auto-commit a cada 10min: arquivo largado lá vira commit no
+#   repo PRIVADO dela) e os atalhos de teclado, que são do Ritual da Aurora.
+#
+#   Cravar a segunda no código fazia o instalador recusar, na máquina de um
+#   estranho, um diretório que é dele: `~/.config/zsh` é a convenção ZDOTDIR mais
+#   comum do mundo zsh, e a recusa vinha explicada por um "repo Andromeda" que
+#   ele não tem. Pior: a própria completion mora lá, e a trava já tinha uma
+#   exceção reimplementada à mão (install.sh:185) para contorná-la.
+MEOW_PROIBIDOS_SISTEMA=(/usr/share /usr/local/share /usr/bin /usr/lib)
+MEOW_PROIBIDOS_LOCAIS=()
+MEOW_VIZINHOS="${MEOW_VIZINHOS:-$HOME/.config/meow/vizinhos.conf}"
+if [ -f "$MEOW_VIZINHOS" ]; then
+  while IFS= read -r _l || [ -n "$_l" ]; do
+    _l="${_l%%#*}"                      # comentário no fim da linha
+    _l="${_l%"${_l##*[![:space:]]}"}"   # apara espaço à direita
+    [ -z "$_l" ] && continue
+    # SEM `eval`: a única expansão que este arquivo precisa é $HOME, e passar as
+    # linhas por eval transformaria um arquivo de configuração em execução de
+    # código — `$(rm -rf ~)` numa linha bastaria.
+    MEOW_PROIBIDOS_LOCAIS+=("${_l//\$HOME/$HOME}")
+  done < "$MEOW_VIZINHOS"
+  unset _l
+fi
+
 meow_destino_permitido() {
-  local alvo="$1" real
+  local alvo="$1" real p
   real="$(readlink -m -- "$alvo")"
-  case "$real" in
-    /usr/share/*|/usr/local/share/*|/usr/bin/*|/usr/lib/*)
-      meow_erro "recusado: '$alvo' é território do sistema/Aurora"; return 1 ;;
-    "$HOME/.config/zsh"|"$HOME/.config/zsh"/*)
-      meow_erro "recusado: '$alvo' está no repo Andromeda (auto-commit em 10min)"; return 1 ;;
-    *com.system76.CosmicSettings.Shortcuts*)
-      meow_erro "recusado: os atalhos de teclado são do Ritual da Aurora"; return 1 ;;
-  esac
+  for p in "${MEOW_PROIBIDOS_SISTEMA[@]}"; do
+    case "$real" in "$p"/*)
+      meow_erro "recusado: '$alvo' é território do sistema e do gerenciador de pacotes"
+      return 1 ;;
+    esac
+  done
+  # Casa o caminho exato e tudo abaixo dele. Escreva CAMINHO ABSOLUTO no
+  # vizinhos.conf: um nome solto de componente não é casado no meio do caminho,
+  # ao contrário do que a regra antiga dos atalhos fazia.
+  for p in ${MEOW_PROIBIDOS_LOCAIS[@]+"${MEOW_PROIBIDOS_LOCAIS[@]}"}; do
+    case "$real" in "$p"|"$p"/*)
+      meow_erro "recusado: '$alvo' pertence a outro projeto nesta máquina ($p)"
+      return 1 ;;
+    esac
+  done
   return 0
 }
 
@@ -84,18 +154,141 @@ meow_escrever() {
   printf '%s' "$conteudo" > "$tmp" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   chmod "$modo" "$tmp"
   mv -f "$tmp" "$destino" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+  meow_manifesto_registrar "$destino"
   return "$MEOW_DIVERGENTE"   # 1 = "estava divergente e eu consertei"
 }
 
 # --- lock: o timer pode disparar enquanto ela roda na mão (regra 10) --------
 MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
+
+# --- UMA PASSAGEM, UMA PASTA DE BACKUP --------------------------------------
+# Quatro arquivos LIAM `MEOW_CARIMBO` (`hicolor.sh` e os módulos do VS Code, do
+# btop/bat e dos toolkits), todos com o mesmo `${MEOW_CARIMBO:-$(date ...)}` —
+# e NINGUÉM o definia. Cada um calculava o próprio `date`, então uma passagem do
+# `install.sh` que cruzasse a virada do segundo rachava os backups em duas
+# pastas. Está no disco: `backups/2026-08-04T20-14-44` (Qt) e
+# `backups/2026-08-04T20-17-02` (obsidian), mesma execução.
+#
+# `export` é o ponto: os scripts de `scripts/` e os módulos rodam como PROCESSOS
+# FILHOS e sourceiam este arquivo de novo. Sem exportar, cada um recomeçaria a
+# contagem e o defeito continuaria de pé. Quem já tiver a variável (o pai)
+# vence — é o `:-` fazendo o trabalho.
+#
+# O `aplicar_tema.sh` fica de fora de propósito: ele nem sourceia este arquivo,
+# usa o prefixo `<ISO>-tema-<nome>` e poda só o que casa com esse prefixo.
+export MEOW_CARIMBO="${MEOW_CARIMBO:-$(date +%Y-%m-%dT%H-%M-%S)}"
+# --- a trava, e o vazamento de descritor que ela sofre ----------------------
+# `exec {MEOW_FD}>arquivo` NÃO marca o descritor como close-on-exec — medido no
+# bash 5.2.21 desta máquina em 10/08/2026: um filho lançado enquanto a trava
+# está de pé aparece com o mesmo `lock` em `/proc/<pid>/fd`. Enquanto esse filho
+# viver, o `flock` continua tomado, mesmo com o `meow` que o criou já morto há
+# muito tempo.
+#
+# NÃO É TEÓRICO: naquele dia o `meow apps aplicar spotify` deixou o descritor
+# vazar para o próprio Spotify. O app ficou aberto, e a partir daí TODO comando
+# do projeto — inclusive o `install.sh` — recusava rodar dizendo "outro meow
+# está rodando". A mensagem era falsa e, pior, não dava o que fazer: não havia
+# outro meow, havia um tocador de música segurando um cadeado.
+#
+# Bash puro não tem como marcar FD_CLOEXEC, então a trava não some — o que dá
+# para fazer, e é o que se faz aqui, é PARAR DE MENTIR sobre ela. Quando o lock
+# está tomado, olha-se quem o segura de verdade e diz-se o nome do processo. Se
+# não for um processo do projeto, é descritor vazado: o texto passa a explicar
+# isso e a oferecer a saída (fechar aquele app, ou soltar o cadeado à força).
+#
+# Quem lança app de vida longa a partir de um módulo deve fechar o descritor no
+# filho — a forma é acrescentar `{MEOW_FD}>&-` ao comando (conferido: com isso o
+# filho não herda).
 meow_travar() {
   mkdir -p "$MEOW_ESTADO"
-  exec {MEOW_FD}>"$MEOW_ESTADO/lock" || return "$MEOW_ERRO"
-  if ! flock -n "$MEOW_FD"; then
-    meow_aviso "outro meow está rodando (lock em $MEOW_ESTADO/lock) — saindo"
+  local lock="$MEOW_ESTADO/lock"
+  exec {MEOW_FD}>"$lock" || return "$MEOW_ERRO"
+  flock -n "$MEOW_FD" && return 0
+
+  # Quem está de fato com o arquivo aberto. O `fuser` é o único que enxerga
+  # descritor herdado; um arquivo de PID não veria nada, porque o dono original
+  # já morreu.
+  # O `$$` sai da lista: nós mesmos acabamos de abrir o arquivo duas linhas
+  # acima, e sem esta exclusão o próprio script apareceria como "bash(...)" —
+  # casaria com o caso legítimo logo abaixo e esconderia o verdadeiro culpado.
+  local donos="" nomes=""
+  if meow_tem fuser; then
+    donos="$(fuser "$lock" 2>/dev/null | tr -s ' ')"
+    for p in $donos; do
+      [ "$p" = "$$" ] && continue
+      [ -r "/proc/$p/comm" ] && nomes="$nomes $(cat "/proc/$p/comm" 2>/dev/null)($p)"
+    done
+  fi
+
+  if [ -z "$nomes" ]; then
+    meow_aviso "outro meow está rodando (lock em $lock) — saindo"
     return "$MEOW_ERRO"
   fi
+
+  # Um processo do próprio projeto segurando o lock é o caso legítimo.
+  case "$nomes" in
+    *meow*|*install.sh*|*bash*|*aplicar_*|*construir_*|*icones_*)
+      meow_aviso "outro meow está rodando ($nomes) — saindo"
+      return "$MEOW_ERRO" ;;
+  esac
+
+  meow_erro "o cadeado está preso em:$nomes"
+  meow_aviso "isso não é outro meow — é descritor vazado. Um módulo lançou esse"
+  meow_aviso "app enquanto a trava estava de pé, e ele levou o cadeado junto."
+  meow_aviso "saídas: feche o app acima, ou solte à força com"
+  meow_aviso "  flock -u \"$lock\" true  &&  rm -f \"$lock\""
+  return "$MEOW_ERRO"
+}
+
+# --- backup do que é do SISTEMA ---------------------------------------------
+# A TRAVA 1 recusa /usr/share e está certa. Mas três scripts PRECISAM escrever
+# lá: o cosmic-app-library não honra override em ~/.local/share/applications
+# (bug upstream pop-os/cosmic-applets#667, medido aqui em 04/08/2026 com
+# NoDisplay=true E Hidden=true e o Vim continuando no lançador), então marcar o
+# arquivo que veio do apt é hoje a única coisa que esconde um app. Elas passam
+# por fora de `meow_escrever` de propósito, e por isso a cópia de segurança tem
+# de ser explícita: `dpkg -V nvidia-settings` já acusa `??5??????` nesta máquina,
+# e não havia backup nenhum para devolver.
+#
+# O destino ESPELHA o caminho absoluto — sem isso, `meow desfazer --lancador`
+# teria de adivinhar de onde cada arquivo veio.
+meow_backup_sistema() {
+  local arq="$1"
+  local dir="$MEOW_ESTADO/backups/$MEOW_CARIMBO-sistema"
+  local dest="$dir${arq}"
+  [ -f "$arq" ] || return 0
+  [ -f "$dest" ] && return 0          # já guardado nesta rodada
+  mkdir -p "$(dirname "$dest")" 2>/dev/null || return "$MEOW_ERRO"
+  # tolerar falha em vez de derrubar a etapa: ela é opcional, o backup não pode
+  # ser o motivo de o lançador não ser vestido — mas sem ele não escrevemos.
+  cp -a "$arq" "$dest" 2>/dev/null || return "$MEOW_ERRO"
+  return 0
+}
+
+# --- MANIFESTO: o que este projeto pôs no disco -----------------------------
+# Sem ele, desinstalar seria uma SEGUNDA lista, escrita à mão, que envelheceria
+# em silêncio a cada etapa nova. Quem preenche é a própria `meow_escrever`, no
+# único ponto por onde toda escrita de configuração passa.
+#
+# O sha256 é o que permite ao `--uninstall` PULAR um arquivo que a pessoa passou
+# a manter à mão depois — remover o que ela editou seria apagar trabalho dela.
+MEOW_MANIFESTO="$MEOW_ESTADO/manifesto.tsv"
+meow_manifesto_registrar() {
+  local alvo="$1" sha
+  meow_seco && return 0
+  [ -f "$alvo" ] || return 0
+  sha="$(sha256sum -- "$alvo" 2>/dev/null | cut -d' ' -f1)"
+  mkdir -p "$MEOW_ESTADO" || return 0
+  # Uma linha por caminho: a antiga sai antes de a nova entrar. O filtro é `awk`
+  # comparando o CAMPO inteiro, e não `grep "^$alvo"`, porque caminho é texto
+  # cheio de `.`, `+` e `[` — num grep isso é expressão regular, e
+  # `~/.config/a.conf` casaria com `~/aXconf`.
+  if [ -f "$MEOW_MANIFESTO" ]; then
+    awk -F'\t' -v a="$alvo" '$1 != a' "$MEOW_MANIFESTO" > "$MEOW_MANIFESTO.tmp" 2>/dev/null \
+      && mv -f "$MEOW_MANIFESTO.tmp" "$MEOW_MANIFESTO" 2>/dev/null
+    rm -f "$MEOW_MANIFESTO.tmp" 2>/dev/null
+  fi
+  printf '%s\t%s\t%s\n' "$alvo" "$(date -Iseconds)" "${sha:--}" >> "$MEOW_MANIFESTO"
   return 0
 }
 
@@ -121,6 +314,21 @@ meow_registrar() {
 }
 
 meow_tem() { command -v "$1" >/dev/null 2>&1; }
+
+# Um flatpak instalado deixa DIRETÓRIO no disco; `flatpak info` deixa um repo
+# ostree INTEIRO em ~/.local/share/flatpak/repo só por ter sido perguntado
+# (medido em HOME virgem, 10/08/2026). Detecção com efeito colateral é o mesmo
+# vazamento que o `meow_registrar` acima já teve de tapar: `MEOW_DRY_RUN=1`
+# promete não escrever nada, e perguntar não pode ser escrever.
+# Cobre instalação de usuário, de sistema e o dado por app em ~/.var/app.
+meow_flatpak_tem() {   # 0 = instalado, 1 = não
+  local id="$1"
+  [ -d "$HOME/.local/share/flatpak/app/$id" ] && return 0
+  [ -d "/var/lib/flatpak/app/$id" ] && return 0
+  [ -d "$HOME/.var/app/$id" ] && return 0
+  meow_debug "flatpak '$id' não achado por diretório (app/ nem .var/app/)"
+  return 1
+}
 
 # Notificação: ela precisa saber quando algo mudou sozinho.
 meow_notificar() {

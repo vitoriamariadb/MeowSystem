@@ -12,18 +12,25 @@
 
 # --- Aparência -------------------------------------------------------------
 
+# [essencial] Qual variante do Catppuccin. Só vale o que tem captura em
+# state/tema/ — o pré-voo avisa antes de instalar se a combinação não existir.
 # mocha | macchiato | frappe | latte
 FLAVOR="mocha"
 
+# [essencial] A cor de destaque.
 # mauve | pink | lavender | blue | sapphire | sky | teal | green | yellow | peach | maroon | red
 ACCENT="mauve"
 
+# [essencial]
 # escuro | claro | auto   (auto alterna Mocha/Latte por horário)
 MODO="escuro"
 
-# Variante da logo do gato: <flavor> (cinza) ou <flavor>-preto
-# arquivo correspondente em assets/meow-<LOGO>.svg
-LOGO="mocha"
+# Qual gato do acervo fica no ar. O acervo é a pasta `assets/gatos/`: soltou um
+# .svg lá, ele entra; apagou, sai. `meow logo` lista os que existem.
+# Com LOGO_ROTACAO="sim" esta chave é só o ponto de partida — quem manda depois
+# é o relógio. Os gatos desenhados pelo projeto foram excluídos em 08/08/2026,
+# a pedido dela: ficaram a Coquinha e o Mimir, que são os gatos dela.
+LOGO="coquinha"
 
 # O gato do painel troca sozinho, girando pelo acervo?
 # O ACERVO É A PASTA: tudo que estiver em assets/gatos/*.svg entra na rotação,
@@ -35,13 +42,23 @@ LOGO="mocha"
 LOGO_ROTACAO="nao"
 # (o LOGO_INTERVALO fica na seção de Wallpaper, junto do porquê de ser um dia)
 
-# Estrutura — herdada do seu tema atual. Mexa com consciência.
-RAIO="8"                 # corner_radii (px)
-GAP_EXTERNO="0"
-GAP_INTERNO="5"
-DICA_ATIVA="4"           # active_hint: espessura do contorno da janela em foco
-VIDRO="VeryLow2"         # frosted: nível de translucidez
-ALPHA_FUNDO="D9"         # alpha do bg_color em hex (D9 = 85%)
+# A ESTRUTURA DO TEMA NÃO MORA AQUI, E TENTAR NÃO FUNCIONARIA
+#   Raio das quinas, gaps, espessura do contorno da janela em foco, nível de
+#   vidro fosco e o alpha do fundo vivem em `palette/cosmic-map.json`, sob
+#   `estrutura_preservada` — são os valores herdados do tema que VOCÊ montou, e
+#   o `gerar_temas.py` os copia sem recalcular.
+#
+#   Até 08/08/2026 este arquivo oferecia seis chaves para eles (RAIO,
+#   GAP_EXTERNO, GAP_INTERNO, DICA_ATIVA, VIDRO, ALPHA_FUNDO) e NENHUM script as
+#   lia — o `meow configurar` perguntava, dizia "gravado", e nada mudava.
+#   Implementá-las seria pior que removê-las: elas alimentariam os `themes/*.ron`,
+#   que servem só para o import manual na GUI (o tema aplicado vem por CÓPIA de
+#   `state/tema/`). A chave pareceria funcionar e só valeria depois de três
+#   cliques em Aparência — que é o defeito de "prometer o que não se cumpre".
+#
+#   Para mudar de verdade: edite `palette/cosmic-map.json`, rode
+#   `meow doctor --consertar` para regerar o .ron, importe uma vez pela GUI e
+#   `meow tema capturar <flavor>-<accent>`.
 
 # O painel e o dock mantêm o vidro fosco quando uma janela é maximizada?
 # "nao" devolve o comportamento de fábrica do COSMIC: eles ficam opacos.
@@ -54,13 +71,15 @@ VIDRO_AO_MAXIMIZAR="sim"
 #
 # ESTE NÚMERO DÁ (OU TIRA) AUTORIDADE AOS SLIDERES DE "VIDRO FOSCO" DA GUI.
 # O alpha desenhado é  opacity x alpha_map[frosted]  — e `alpha_map`/`frosted`
-# são os dois sliders de Aparência → Vidro fosco. Como o alpha_map vai de 0,62 a
-# 0,92, o slider inteiro é um fator de 1,5x: quem manda na escala é esta chave.
-#     0.05 -> o slider move 1,5 ponto (invisível)   0.24 -> move 7,2 pontos
-#     0.10 -> move 3,0 pontos                       0.50 -> move 15 pontos
-# Quer que os sliders da GUI tenham efeito bem visível? Suba estes números.
-VIDRO_OPACIDADE_PAINEL="0.1"
-VIDRO_OPACIDADE_DOCK="0.24"
+# são os dois sliders de Aparência → Vidro fosco. Não há tabela fixa aqui: o
+# `alpha_map` é reescrito toda vez que você mexe naqueles sliders, então
+# qualquer porcentagem escrita neste arquivo envelhece. Para ver a de hoje:
+#     scripts/vidro.sh --conferir
+# Os padrões abaixo miram ~12,5% de cor no painel e ~17% no dock. O dock fica
+# mais presente que o painel de propósito: igualar os dois já anulou os
+# slideres da GUI uma vez, em 05/08/2026.
+VIDRO_OPACIDADE_PAINEL="0.19"
+VIDRO_OPACIDADE_DOCK="0.26"
 
 # --- Ícones ----------------------------------------------------------------
 
@@ -78,9 +97,31 @@ ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 #   frappe | latte | macchiato | mocha
 ICONES_FLAVOR="macchiato"
 
+# As PASTAS ESPECIAIS (Imagens, Documentos, Downloads, Músicas, Vídeos, Modelos e
+# Público) vêm do pack `vscode-icons` em vez das roxas do papirus-folders?
+#
+# ELA VIU E DISSE QUE NÃO — e o padrão aqui é a decisão dela, de 08/08/2026:
+#   "as pastas do temas dos icons do vscode catpuccin, tipo as folders, essas
+#    nao tão legais tambem".
+# São pasta VAZADA de traço claro ao lado das mauve CHEIAS, e nenhuma das 7 usa
+# `mauve`, que é o accent dela — o conjunto não fecha. O risco estava previsto
+# desde o desenho da Sprint C; quem decidiu foi a tela.
+#
+# Com "sim", elas voltam; com "nao", o `icones_pastas.sh` LIMPA o que tinha posto
+# e o `construir_pastas.sh` devolve o mauve na mesma passagem. Se um dia quiser
+# experimentar de novo, vale olhar junto com ICONES_FLAVOR="latte", que a folha
+# `~/folha-pastas-2.html` mostra com contraste bem melhor sobre fundo claro.
+PASTAS_XDG="nao"
+
 # --- Wallpaper -------------------------------------------------------------
 
-WALLPAPER_DIR="$HOME/.local/share/backgrounds/meowsystem/ativos"
+# A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
+#   ativos/ (é a que gira) · favoritos/ · banidos/ (movidos, nunca apagados) ·
+#   originais/ (a foto antes de qualquer recolorização)
+# O nome era WALLPAPER_DIR e apontava para `ativos/`, mas quem lia era
+# WALLPAPER_BASE — chave que não existia neste arquivo. Ou seja: mudar o valor
+# não movia nada. Corrigido em 08/08/2026; agora o nome daqui é o nome lido.
+WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
 WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
 WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
 
@@ -101,7 +142,9 @@ WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
 #   tela — só escreve mais no disco.
 LOGO_INTERVALO="1d"
 WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
-WALLPAPER_SEMENTES="comunidade,cosmic,minhas"   # o que o `meow wallpaper semear` baixa
+# (havia um WALLPAPER_SEMENTES aqui, com "comunidade,cosmic,minhas". Nunca
+#  existiu categoria nenhuma no `cmd_semear`: ele baixa a coleção Catppuccin do
+#  commit pinado, e ponto. Removido em 08/08/2026 — chave que nada lê.)
 
 # --- Apps ------------------------------------------------------------------
 # Vírgula-separado. `meow apps` lista o que está instalado e o que falta.
@@ -109,6 +152,24 @@ APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,
 
 # App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
 # aplica o tema sozinho quando ele aparecer. Nunca falha por app ausente.
+
+# [essencial] Mexer nos .desktop de /usr/share/applications: esconder
+# aplicativos que você não usa e encurtar nomes que estouram a célula do
+# lançador.
+#
+# POR QUE ISTO É UMA PERGUNTA E NÃO UM PADRÃO
+#   É a única coisa que este projeto faz FORA do seu home. Precisa de sudo, um
+#   `apt upgrade` do pacote desfaz (e o app reaparece), e a lista de nomes em
+#   `scripts/ocultar_apps.sh` é o gosto de quem escreveu, não o seu.
+#   Não é o caminho que a spec do freedesktop manda usar — o override em
+#   ~/.local/share/applications seria — mas o cosmic-app-library não honra o
+#   override (pop-os/cosmic-applets#667), então marcar o arquivo do apt é hoje a
+#   única coisa que funciona.
+#   Com backup em ~/.local/state/meowsystem/backups/ e volta por
+#   `meow desfazer --lancador`.
+#   "nao" = o lançador fica exatamente como o sistema entregou.
+# sim | nao
+LANCADOR_SISTEMA="nao"
 
 # --- Automação -------------------------------------------------------------
 

@@ -2,15 +2,19 @@
 # install.sh — instala o MeowSystem inteiro. Sem flag nenhuma.
 #
 #   ./install.sh              faz tudo
+#   ./install.sh --dry-run    mostra o que faria, sem escrever nada
 #   ./install.sh --wizard     pergunta o meow.conf antes, e então faz tudo
-#   MEOW_DRY_RUN=1 ./install.sh   mostra o que faria, sem escrever nada
+#   ./install.sh --uninstall  tira o MeowSystem desta máquina
 #
 # POR QUE QUASE NÃO TEM FLAG
 #   A §5.1 do RELATORIO propunha 14 flags (--tema, --icones, --logo, --all...).
 #   Está declarada histórica: quem decide o que instalar é o `meow.conf`, não a
 #   linha de comando. Uma flag a menos é uma decisão a menos na hora de usar.
-#   O `--dry-run` sobrevive como MEOW_DRY_RUN=1 — invisível no uso normal,
-#   disponível para auditar antes de deixar rodar.
+#
+#   `--dry-run` e `--uninstall` são a terceira categoria que este texto não
+#   previa: não ESCOLHEM etapa nenhuma, dizem COMO a execução se comporta. São
+#   as duas primeiras coisas que alguém de fora digita, e recusá-las com "o
+#   resto mora no meow.conf" era falso — o seco nunca morou lá.
 #
 #   `--wizard` é a única exceção, e ela NÃO abre um segundo lugar onde as
 #   decisões moram: o wizard é `meow configurar`, que pergunta as chaves do
@@ -34,19 +38,54 @@
 #     /usr/bin/cosmic-comp desta máquina está patchado DUAS vezes (workspace
 #     vazio e night light) e uma versão nova mata os dois de uma vez, derrubando
 #     os workspaces alfinetados Meow e OS.
-#   - escrever em /usr/share, no repo Andromeda ou nos atalhos de teclado.
-#     A trava está em lib/comum.sh e recusa por caminho, não por boa intenção.
+#   - escrever nos territórios de outro dono. A trava está em lib/comum.sh e
+#     recusa por caminho, não por boa intenção: /usr é do gerenciador de
+#     pacotes, e os vizinhos desta máquina (o repo Andromeda, os atalhos de
+#     teclado) vêm de ~/.config/meow/vizinhos.conf.
+#   - escrever em /usr/share SEM ser pedido. As três etapas do lançador
+#     (ocultar/nomes/absolutos) marcam .desktop que vieram do apt, e só rodam
+#     com LANCADOR_SISTEMA="sim". Elas guardam o original antes e `meow desfazer
+#     --lancador` devolve. Passam POR FORA de meow_escrever de propósito: o
+#     override em ~/.local/share/applications não funciona no COSMIC
+#     (pop-os/cosmic-applets#667), medido aqui em 04/08/2026.
 #   - sudo perto de ~/.config: um arquivo de dono root ali faz a GUI de tema
-#     falhar EM SILÊNCIO, e o sintoma só aparece dias depois.
+#     falhar EM SILÊNCIO, e o sintoma só aparece dias depois. Por isso o próprio
+#     `main()` recusa rodar como root.
 
-MEOW_RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# `pwd -P`, e não `pwd`: esta máquina tem `~/Desenvolvimento/MeowSystem` como link
+# simbólico para `/mnt/Apate/...`, e o `pwd` lógico devolve o caminho pelo qual o
+# instalador FOI CHAMADO. Este valor não fica na memória: ele é gravado em
+# `~/.local/state/meowsystem/raiz` (etapa da CLI) e é dali que o `bin/meow`, a
+# completion do zsh e o `meow-assets.path` descobrem onde mora o clone. Rodar do
+# link fazia o ponteiro trocar de nome e as conferências divergirem sem que nada
+# no disco tivesse mudado — medido em 10/08/2026 na etapa do vigia do acervo.
+MEOW_RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck source=lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
+# shellcheck source=lib/preflight.sh
+. "$MEOW_RAIZ/lib/preflight.sh"
 
 CONF_PADRAO="$MEOW_RAIZ/meow.conf.exemplo"
 CONF="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
 
 declare -a FEITOS=() CONFEREM=() PULADOS=() FALHOS=()
+
+# PULAR POR FALTA DE ROOT E PULAR POR OPT-IN SÃO A MESMA COR NA TELA, E NÃO SÃO
+# A MESMA COISA. O resumo terminava com "algumas dessas precisavam de root. Para
+# completá-las: sudo -v && ./install.sh" sempre que `ocultar`, `nomes` ou
+# `absolutos` aparecessem em `pulado:` — e nesta máquina as três se pulam por
+# `LANCADOR_SISTEMA="nao"`, que é o PADRÃO e é escolha dela. Quem seguisse a dica
+# digitaria a senha de root para ver exatamente o mesmo resumo. Cada etapa que se
+# pula por opt-in se registra aqui, e o rodapé subtrai antes de falar em sudo.
+declare -a PULADOS_OPTIN=()
+
+# O motivo é um só, escrito num lugar só: as três etapas do `/usr/share` o dizem
+# com a mesma frase, e todas caem em `MEOW_SEM_DEPENDENCIA`.
+pular_por_optin() {
+  PULADOS_OPTIN+=("$1")
+  meow_pula 'LANCADOR_SISTEMA="nao" — os .desktop de /usr/share ficam intactos'
+  return "$MEOW_SEM_DEPENDENCIA"
+}
 PASSO=0
 TOTAL=8
 
@@ -82,9 +121,26 @@ concluir() {
 }
 
 # ---------------------------------------------------------------------------
+# A LEITURA, SEPARADA DA ESCRITA
+#   O pré-voo precisa de FLAVOR/ACCENT para saber qual captura procurar, e não
+#   pode rodar depois de uma escrita — uma fase que só OLHA que já criou o
+#   meow.conf não olha mais, decide. `etapa_conf` continua sendo a etapa 1 e
+#   continua escrevendo; esta aqui só lê, e não imprime nada.
+etapa_conf_ler() {
+  local fonte="$CONF"
+  [ -f "$CONF" ] || fonte="$CONF_PADRAO"
+  # shellcheck disable=SC1090
+  . "$fonte" || { meow_erro "$fonte tem erro de sintaxe"; return "$MEOW_ERRO"; }
+  local v
+  for v in FLAVOR ACCENT MODO LOGO; do
+    [ -n "${!v:-}" ] || { meow_erro "$v não está definida em $fonte"; return "$MEOW_ERRO"; }
+  done
+  return 0
+}
+
 etapa_conf() {
   passo "Configuração"
-  local fonte="$CONF"
+  local fonte="$CONF" mudou=0
   if [ -f "$CONF" ]; then
     meow_ok "meow.conf já existe em $CONF"
     # "Já existe" NÃO É "está completo" — ver scripts/migrar_conf.py. Chave nova
@@ -97,13 +153,13 @@ etapa_conf() {
       if meow_seco; then
         local pendente
         if pendente="$(python3 "${migrar[@]}" --conferir 2>/dev/null)"; then :; else
-          meow_muda "$pendente"
+          meow_muda "$pendente"; mudou=1
         fi
       else
         local saida
         saida="$(python3 "${migrar[@]}" 2>&1)"
         case $? in
-          0) [ -n "$saida" ] && meow_ok "$saida" ;;
+          0) [ -n "$saida" ] && { meow_ok "$saida"; mudou=1; } ;;
           *) meow_aviso "não consegui conferir as chaves novas do meow.conf" ;;
         esac
       fi
@@ -113,7 +169,8 @@ etapa_conf() {
     meow_escrever "$CONF" "$conteudo" 644
     case $? in
       0) meow_ok "meow.conf criado em $CONF" ;;
-      1) if meow_seco; then
+      1) mudou=1        # criou o arquivo: isto é "mexeu", não "confere"
+         if meow_seco; then
            # No seco o arquivo NÃO foi criado — ler dele daria "arquivo
            # inexistente" e, pior, deixaria FLAVOR/ACCENT sem valor para as
            # etapas seguintes, que morreriam com "variável não associada".
@@ -135,6 +192,31 @@ etapa_conf() {
     fi
   done
   meow_info "flavor=$FLAVOR accent=$ACCENT modo=$MODO logo=$LOGO"
+
+  # O vizinhos.conf não é opcional numa máquina que TEM vizinho: sem ele, a
+  # trava que protege um repositório com auto-commit some junto com a lista que
+  # era cravada no código. Criar na DETECÇÃO é mais seguro do que depender de
+  # alguém lembrar de criar à mão.
+  local viz="${MEOW_VIZINHOS:-$HOME/.config/meow/vizinhos.conf}"
+  if [ ! -f "$viz" ] && [ -d "$HOME/.config/zsh/.git" ]; then
+    local rc_viz
+    meow_escrever "$viz" \
+"# Criado automaticamente: achei um repositório git em ~/.config/zsh.
+# O MeowSystem não escreve nos caminhos abaixo. Um por linha, absoluto.
+\$HOME/.config/zsh
+\$HOME/.config/cosmic/com.system76.CosmicSettings.Shortcuts" 644 >/dev/null
+    rc_viz=$?
+    if [ "$rc_viz" = "1" ]; then
+      mudou=1
+      meow_info "vizinhos.conf criado: ~/.config/zsh tem .git e fica protegido"
+    fi
+  fi
+
+  # O contrato do `concluir()` é 0 = já estava certo, 1 = consertei. Um
+  # `return 0` incondicional aqui punha a etapa que ACABOU de criar o meow.conf
+  # do lado "confere" do resumo — exatamente a mentira de relatório que o bloco
+  # do `concluir()` existe para não deixar acontecer.
+  [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
   return 0
 }
 
@@ -155,33 +237,42 @@ etapa_conf() {
 #   Sem ele, `meow` só funcionaria com `MEOW_RAIZ=` na frente.
 #
 # ─────────────────────────────────────────────────────────────────────────────
-# A COMPLETION É A ÚNICA ESCRITA DESTE PROJETO DENTRO DO REPO ANDROMEDA
+# A COMPLETION NÃO MORA MAIS DENTRO DO REPO ANDROMEDA
 # ─────────────────────────────────────────────────────────────────────────────
-#   A TRAVA 1 do `lib/comum.sh` recusa qualquer escrita em `~/.config/zsh`, e com
-#   razão: é o repo dela, com auto-commit a cada 10 minutos, e tema não tem nada
-#   que fazer lá. Só que o `$fpath` desta máquina foi lido, não adivinhado
-#   (`~/.config/zsh/.zcompdump`, linha `#omz fpath:`), e os ÚNICOS diretórios de
-#   completion graváveis pelo usuário estão todos dentro de `~/.config/zsh` —
-#   o que o `env.zsh` acrescenta na linha 20 e os do oh-my-zsh. Os de fora
-#   (`/usr/local/share/zsh/site-functions`) pedem root e são território do
-#   Ritual da Aurora.
+#   Até 08/2026 este projeto gravava `_meow` em `~/.config/zsh/completions/`, que a
+#   TRAVA 1 do `lib/comum.sh` recusa — e com razão: é o repo dela, com auto-commit
+#   a cada 10 min. O efeito era observável no histórico (`9bf6fa6`, `54b4e86`,
+#   `2330e43`, todos "auto: sync MeowSystem"): o artefato deste projeto viajava
+#   para o GitHub privado dela, e um `git checkout` do Andromeda podia apagá-lo
+#   sem que o MeowSystem soubesse.
 #
-#   Ou seja: ou a completion mora lá, ou ela não existe. Então esta função NÃO
-#   usa `meow_escrever` — a trava continua intacta para todo o resto do projeto,
-#   e a exceção fica visível em UM lugar só, com o mesmo cuidado atômico.
-#   A consequência é dita em voz alta na tela quando o arquivo é gravado: ele vai
-#   virar um commit no repositório privado dela. Quem não quiser, roda com
-#   MEOW_SEM_COMPLETIONS=1 e perde só o TAB.
+#   O acordo novo (self-heal v3.56): quem tem root instala. O Aurora copia
+#   `$MEOW_RAIZ/zsh/_meow` para `/usr/local/share/zsh/site-functions/_meow` a cada
+#   ciclo, lendo o ponteiro `~/.local/state/meowsystem/raiz`. Esse diretório JÁ está
+#   no `$fpath` (medido com `zsh -i -c 'print -l $fpath'` — vem do fpath compilado
+#   do zsh, não do `env.zsh`), então não é preciso mexer em dotfile nenhum.
+#
+#   Aqui, então, seguimos o padrão da casa: cada módulo PULA o que não encontra.
+#   Sem permissão de escrita, dizemos a razão em voz alta e o Aurora resolve no
+#   próximo ciclo. `MEOW_COMPLETIONS_DIR=` continua existindo para quem quiser
+#   outro destino (por exemplo o antigo, dentro do Andromeda).
 #
 #   O arquivo leva `# OVERRIDE` na segunda linha: é o contrato do próprio
 #   Andromeda (completions/CONVENCAO.md) para completion escrita à mão, e o
-#   gerador de lá preserva quem tem esse marcador nas 3 primeiras linhas.
-COMPLETIONS_DIR="${MEOW_COMPLETIONS_DIR:-$HOME/.config/zsh/completions}"
+#   gerador de lá preserva quem tem esse marcador nas 3 primeiras linhas — vale
+#   para quem apontar o MEOW_COMPLETIONS_DIR de volta para lá.
+COMPLETIONS_DIR="${MEOW_COMPLETIONS_DIR:-/usr/local/share/zsh/site-functions}"
 
-# Escrita atômica igual à da meow_escrever, sem a trava de território: o
-# temporário nasce DENTRO do diretório de destino, porque o repo mora em
-# /mnt/Apate e o destino em /home, e `mv` entre sistemas de arquivos não é
-# atômico.
+# Escrita atômica igual à da `meow_escrever`, e por fora da trava de território
+# de propósito — que continua valendo, agora pelo outro lado: o destino padrão é
+# `/usr/local/share/...`, que está em `MEOW_PROIBIDOS_SISTEMA`, e apontar
+# `MEOW_COMPLETIONS_DIR` de volta para o Andromeda cai na lista de vizinhos.
+# Nos dois casos `meow_escrever` recusaria, corretamente; aqui a escolha de
+# escrever é explícita, está num lugar só, e o teste de permissão logo abaixo é
+# quem decide se ela acontece.
+# O temporário nasce DENTRO do diretório de destino, porque o repo mora em
+# /mnt/Apate e o destino em /home ou /usr, e `mv` entre sistemas de arquivos não
+# é atômico.
 instalar_completion() {
   local origem="$MEOW_RAIZ/zsh/_meow" destino="$COMPLETIONS_DIR/_meow" tmp
 
@@ -196,6 +287,14 @@ instalar_completion() {
   fi
   if [ -f "$destino" ] && cmp -s "$origem" "$destino"; then
     meow_ok "completion do zsh já instalada em $destino"
+    return "$MEOW_OK"
+  fi
+  # O destino padrão é do sistema e pertence ao root: aqui não há o que consertar
+  # sem sudo, e não é divergência nossa — é etapa de outro dono. Por isso `pula`
+  # com `MEOW_OK` e não `meow_muda`: um `doctor` eternamente divergente por causa
+  # de um arquivo que o Aurora instala sozinho seria alarme que ninguém pode calar.
+  if [ ! -w "$COMPLETIONS_DIR" ]; then
+    meow_pula "completion do zsh pulada: '$COMPLETIONS_DIR' não é gravável — quem instala lá é o Ritual da Aurora (self-heal v3.56), no próximo ciclo"
     return "$MEOW_OK"
   fi
   if meow_seco; then
@@ -252,8 +351,8 @@ etapa_cli() {
 
   # 3 AQUI É "NÃO HÁ ONDE PÔR", E ISSO NÃO É FALHA DESTA ETAPA
   #   A `instalar_completion` devolve 3 quando o diretório de completions não
-  #   existe — numa máquina que não é esta, `~/.config/zsh/completions` pode
-  #   simplesmente não estar lá. O `-ge 2` que estava aqui engolia esse 3 junto
+  #   existe — numa máquina que não é esta, `/usr/local/share/zsh/site-functions`
+  #   pode simplesmente não estar lá. O `-ge 2` que estava aqui engolia esse 3 junto
   #   com o 2 e devolvia erro: MEDIDO num HOME de teste sem o diretório, o
   #   `install.sh` terminava com "falhou: cli" tendo instalado o `meow` inteiro
   #   e funcionando. O que se perde sem completion é o TAB, e o `meow_pula`
@@ -357,19 +456,29 @@ etapa_pacotes() {
 # ---------------------------------------------------------------------------
 etapa_gerar() {
   passo "Gerar temas e ícones a partir da paleta"
+  # O GATO SAIU DAQUI EM 08/08/2026, E TIRÁ-LO DAQUI ERA O PONTO
+  #   Ela mandou excluir os gatos do projeto e ficar só com a Coquinha e o Mimir.
+  #   Apagar os `assets/meow-*.svg` sem tirar o gerador desta etapa não resolveria
+  #   nada: o `gerar_gato.py --conferir` acusaria os arquivos ausentes, o ramo de
+  #   baixo os regeraria, e os gatos voltariam ao disco na primeira rodada do
+  #   instalador — ou às 5h da manhã, pelo `doctor --consertar`. O acervo agora é
+  #   só a pasta dela.
   local rc=0
   python3 "$MEOW_RAIZ/scripts/gerar_temas.py" --conferir >/dev/null 2>&1 || rc=1
-  python3 "$MEOW_RAIZ/scripts/gerar_gato.py" --conferir >/dev/null 2>&1 || rc=1
+  # A v1 das capturas também é GERADA da paleta (via a v2 da própria captura).
+  # Ver docs/COSMIC-THEMING.md §4h: três applets flatpak leem a v1 por inotify e a
+  # GUI não a deriva mais — se este projeto não a escrever, ninguém escreve.
+  python3 "$MEOW_RAIZ/scripts/gerar_tema_v1.py" --conferir >/dev/null 2>&1 || rc=1
   if [ "$rc" = "0" ]; then
-    meow_ok "temas e gatos já correspondem à paleta"
+    meow_ok "os temas já correspondem à paleta"
     return 0
   fi
   if meow_seco; then
-    meow_muda "regeraria temas e gatos"
+    meow_muda "regeraria os temas"
     return "$MEOW_DIVERGENTE"
   fi
   python3 "$MEOW_RAIZ/scripts/gerar_temas.py" | sed 's/^/  /' || return "$MEOW_ERRO"
-  python3 "$MEOW_RAIZ/scripts/gerar_gato.py" --accent "$ACCENT" | sed 's/^/  /' || return "$MEOW_ERRO"
+  python3 "$MEOW_RAIZ/scripts/gerar_tema_v1.py" | sed 's/^/  /' || return "$MEOW_ERRO"
   meow_ok "regenerados a partir de palette/"
   return "$MEOW_DIVERGENTE"
 }
@@ -447,12 +556,15 @@ etapa_modo() {
     *)      meow_aviso "MODO='$MODO' desconhecido — esperado escuro|claro|auto"; return "$MEOW_ERRO" ;;
   esac
   meow_escrever "$arq" "$desejado" 644
+  # Propaga o código, como todas as outras etapas deste arquivo. O `return 0`
+  # que estava aqui vencia os dois ramos do `case`, e o `concluir` jogava a
+  # etapa em CONFEREM na rodada em que ela GRAVOU — ver o bloco do `concluir()`,
+  # que é este arquivo explicando por que 0 e 1 não se juntam.
   case $? in
-    0) meow_ok "modo $MODO já ativo" ;;
-    1) meow_ok "modo $MODO aplicado" ;;
-    *) return "$MEOW_ERRO" ;;
+    0) meow_ok "modo $MODO já ativo"; return 0 ;;
+    1) meow_ok "modo $MODO aplicado"; return "$MEOW_DIVERGENTE" ;;
+    *) meow_erro "não consegui escrever $arq"; return "$MEOW_ERRO" ;;
   esac
-  return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -507,6 +619,69 @@ etapa_icones_apps() {
   return $?
 }
 
+# Os aplicativos que o acervo Catppuccin não cobre, vestidos pelo Arcticons e
+# recoloridos na paleta. Depois do `etapa_icones` pelo mesmo motivo das etapas
+# irmãs: quem declara `48x48/apps` no index.theme é aquele.
+#
+# UM DE DOZE, E ISSO É A REGRA FUNCIONANDO
+#   Dos 12 aplicativos órfãos medidos hoje, só o ONLYOFFICE tem no Arcticons um
+#   glifo que É o mesmo aplicativo (`onlyoffice-documents`, as três camadas da
+#   marca). Os outros 11 não têm nada honesto — `boxy`, `flatseal`, `bleachbit`,
+#   `foliate`, `btop`, `file-roller` dão 404 no acervo inteiro de 14.996 nomes,
+#   e os `proton-*` são da Proton AG, não do ProtonUp-Qt. Ficam no Papirus, e
+#   isso é resultado medido, não desistência: um ícone errado é pior que um
+#   genérico, porque mente sobre o que a coisa é.
+#
+# DIRETÓRIO PRÓPRIO PORQUE `scalable/apps` TEM TRÊS DONOS
+#   Lá escrevem o `completar_icones.sh`, o `logo.sh` e o bootstrap do
+#   `construir_icones.sh`. Remover órfão ali apagaria arquivo dos outros — o
+#   defeito dos dois donos, agora em três. `48x48/apps` nasce aqui e é só nosso.
+etapa_icones_apps_arcticons() {
+  passo "Ícones de aplicativo em Arcticons"
+  FLAVOR="${FLAVOR:-}" \
+    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_apps_arcticons.sh"
+  return $?
+}
+
+# A BANDEJA da barra (o CosmicAppletStatusArea). Irmã da etapa de sistema: mesmo
+# acervo, mesmo traço monocromático, mesma dependência do index.theme. O destino é
+# OUTRO — `20x20/status`, que é o tamanho MEDIDO da bandeja (19×20 px de tinta na
+# captura de 08/08) e um diretório de dono único: o `icones_sistema.sh` é dono de
+# `22x22/status` e `scalable/status` e remove órfão nos dois, então escrever lá
+# faria os dois se apagarem em laço.
+#
+# O MAPA ESTÁ VAZIO HOJE, E ISSO É RESULTADO, NÃO PENDÊNCIA
+#   O único item de bandeja alcançável pelo tema é o Hefesto, e o symbolic dele é
+#   DESENHO DELA — redesenhado em 07/08/2026, com decisão registrada e um teste
+#   que o trava no repositório do Hefesto. Trocá-lo por glifo de terceiro seria
+#   apagar trabalho dela. A via está provada e o script fica pronto para o dia em
+#   que aparecer um item que valha vestir.
+etapa_icones_bandeja() {
+  passo "Ícones da bandeja"
+  ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_bandeja.sh"
+  return $?
+}
+
+# Os `Icon=` de CAMINHO ABSOLUTO. Com caminho absoluto o tema de ícones não é nem
+# consultado — era o caso do `input-remapper-gtk`, o único dos 50 `.desktop`
+# visíveis nessa situação.
+#
+# A ORDEM AQUI É REQUISITO, NÃO ESTILO: o script recusa trocar enquanto o nome
+# novo não resolver no tema, e quem faz `input-remapper` existir é a etapa do
+# Arcticons. Colada na `etapa_nomes` pelo terceiro motivo comum às três: o arquivo
+# mora em `/usr/share`, precisa de sudo, e um `apt upgrade` o desfaz.
+etapa_absolutos() {
+  passo "Ícone por caminho absoluto"
+  if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
+    pular_por_optin absolutos; return $?
+  fi
+  ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_absolutos.sh"
+  return $?
+}
+
 etapa_mimetypes() {
   passo "Ícones de tipo de arquivo"
   ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
@@ -532,9 +707,37 @@ etapa_icones_sistema() {
 # depende de nada e nada depende dela.
 # Os aplicativos que ela nunca vai abrir. Depende de sudo porque a unica coisa
 # que funciona e marcar o arquivo do SISTEMA -- ver o cabecalho do script.
+#
+# AS TRÊS ETAPAS DO LANÇADOR SÓ RODAM SE FOREM PEDIDAS
+#   São a única coisa que este projeto faz FORA do home: marcam .desktop que
+#   vieram do apt. Precisam de sudo, um `apt upgrade` do pacote desfaz, e a
+#   lista de nomes é o gosto de quem escreveu, não o de quem instala. Por isso
+#   `LANCADOR_SISTEMA` tem padrão "nao" — com backup antes de cada escrita e
+#   volta por `meow desfazer --lancador`.
 etapa_ocultar() {
   passo "Aplicativos ocultos do lançador"
+  if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
+    pular_por_optin ocultar; return $?
+  fi
   "$MEOW_RAIZ/scripts/ocultar_apps.sh"
+  return $?
+}
+
+# Os nomes que estouravam a célula do lançador. Colada na `etapa_ocultar` porque
+# o par de motivos é o mesmo: parte do conserto mora em `/usr/share`, precisa de
+# sudo, e um `apt upgrade` do pacote o desfaz.
+#
+# DUAS CONTAS DIFERENTES, E AS DUAS FORAM MEDIDAS (ver o cabeçalho do mapa)
+#   As reticências são conta de BYTES — passou de 27, o nome vira os 24 primeiros
+#   caracteres mais "...". A quebra de linha é conta de PIXELS: a célula tem
+#   114 px e cabem duas linhas. Por isso "Visual Studio Code" parecia truncado
+#   sem estar: 18 bytes não disparam as reticências, ele só quebra.
+etapa_nomes() {
+  passo "Nomes curtos no lançador"
+  if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
+    pular_por_optin nomes; return $?
+  fi
+  "$MEOW_RAIZ/scripts/nomes_apps.sh"
   return $?
 }
 
@@ -549,6 +752,25 @@ etapa_som() {
 etapa_vidro() {
   passo "Vidro ao maximizar"
   VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" "$MEOW_RAIZ/scripts/vidro.sh"
+  return $?
+}
+
+# A geometria das barras, logo depois do vidro porque são o mesmo assunto visto
+# de dois ângulos: o `vidro.sh` decide a COR das barras, este decide a FORMA.
+#
+# NASCEU FORA DA LISTA, E ISSO É O DEFEITO QUE ESTA LINHA CONSERTA
+#   O `forma.sh` foi escrito em 10/08/2026 e nenhum caminho do projeto o
+#   chamava: `grep -rn 'forma.sh'` achava só o próprio arquivo. A geometria
+#   existia no disco dela porque alguém rodou o script à mão uma vez — numa
+#   máquina nova, ou depois de um `install.sh` limpo, as barras voltariam a ser
+#   dois retângulos de canto vivo colados na borda.
+#   É exatamente o defeito que o `chk_vidro` do `bin/meow` já documenta ter
+#   acontecido antes com o vidro ao maximizar, que "voltou ao padrão de fábrica
+#   sem que nada acusasse". Uma etapa que ninguém invoca e um verificável que
+#   ninguém confere são a mesma doença: o trabalho se perde calado.
+etapa_forma() {
+  passo "Forma das barras (painel e dock)"
+  "$MEOW_RAIZ/scripts/forma.sh"
   return $?
 }
 
@@ -584,6 +806,26 @@ etapa_upstream() {
   return $?
 }
 
+# As pastas ESPECIAIS que o cosmic-files pede pelo nome XDG, vestidas pelo pack
+# Catppuccin. Vem ANTES do `etapa_pastas` de propósito: o `construir_pastas.sh`
+# só cede um nome quando o pastel JÁ está no disco, e nesta ordem a cessão vale
+# na primeira passagem em vez de custar uma rodada.
+#
+# A PREMISSA DA SPRINT C CAIU, E O QUE ENTROU É OUTRO CAMINHO
+#   A sprint queria instalar 14 nomes do pack (`folder-github`, `folder-docker`
+#   e companhia). Medido: o `cosmic-files` contém 12 nomes de pasta e só DOIS
+#   daqueles aparecem. Os outros são apelidos do Papirus para o Dolphin/KDE, que
+#   lê um `.directory` dentro da pasta — e `.directory` aparece ZERO vezes no
+#   binário do cosmic-files. Seriam ícones que ela nunca veria. O casamento que
+#   vale é por nome XDG, e são 7.
+etapa_pastas_xdg() {
+  passo "Pastas especiais em Catppuccin"
+  PASTAS_XDG="${PASTAS_XDG:-nao}" ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
+    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_pastas.sh"
+  return $?
+}
+
 etapa_pastas() {
   passo "Pastas na cor do flavor"
   ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
@@ -593,9 +835,19 @@ etapa_pastas() {
   return $?
 }
 
+# `FLAVOR` E `ACCENT` PRECISAM ATRAVESSAR — E NÃO ATRAVESSAVAM (medido 08/08/2026)
+#   O `. "$fonte"` do `etapa_conf` cria variável de SHELL, não de ambiente, e o
+#   `aplicar_apps.sh` é processo FILHO: ele recebia `APPS_ATIVOS` porque a chamada
+#   o passa na linha, e mais nada. Provado com um módulo-sonda que só imprimia as
+#   duas: `FLAVOR=[VAZIO] ACCENT=[VAZIO]`, pelos dois caminhos (install e doctor).
+#   Ou seja, TODO módulo de app rodava no padrão fixo `mocha`/`mauve` — o
+#   `_zz_verde` do zapzap inclusive. Ninguém percebeu porque a conf dela é
+#   exatamente mocha/mauve; o dia em que ela trocasse de flavor, os apps ficariam
+#   para trás em silêncio.
 etapa_apps() {
   passo "Aplicativos"
-  APPS_ATIVOS="${APPS_ATIVOS:-}" "$MEOW_RAIZ/scripts/aplicar_apps.sh" aplicar
+  APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+    "$MEOW_RAIZ/scripts/aplicar_apps.sh" aplicar
   return $?
 }
 
@@ -731,9 +983,9 @@ etapa_logo() {
   # instalar manteria vivo o timer que uma execução anterior ligou, e ela veria
   # o gato continuar trocando depois de ter desligado a chave.
   if [ "${LOGO_ROTACAO:-nao}" != "sim" ]; then
-    if [ -f "$destino/meow-logo.timer" ]; then
-      meow_seco && { meow_muda "removeria o timer da rotação"; return "$MEOW_DIVERGENTE"; }
-      systemctl --user disable --now meow-logo.timer >/dev/null 2>&1
+    if [ -f "$destino/meow-logo.service" ] || [ -f "$destino/meow-logo.timer" ]; then
+      meow_seco && { meow_muda "removeria a rotação"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now meow-logo.timer meow-logo.service >/dev/null 2>&1
       rm -f "$destino/meow-logo.timer" "$destino/meow-logo.service"
       systemctl --user daemon-reload >/dev/null 2>&1
       meow_muda "LOGO_ROTACAO=\"${LOGO_ROTACAO:-nao}\" — rotação desligada"
@@ -749,23 +1001,38 @@ etapa_logo() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  local u conteudo
-  for u in meow-logo.service meow-logo.timer; do
-    [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
-    conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
-    # O intervalo é do meow.conf, não do arquivo da unidade: mudar a cadência
-    # tem de ser editar UMA linha da conf, como tudo mais neste projeto.
-    # UM GATO POR DIA, E NAO A CADA 5 MINUTOS
-    # O cosmic-panel tem SEIS watches de inotify -- as tres configs de painel e
-    # as tres de tema -- e NENHUM sobre arquivo de icone. Ele carrega o gato do
-    # dock uma vez, ao iniciar a sessao, e nao rele. Girar mais rapido seriam
-    # centenas de escritas por dia sem um pixel de diferenca na tela. O applet
-    # Logo Menu resolveria ao vivo, mas ela recusou com razao: nasce AO LADO do
-    # botao do dock, e ficariam dois gatos iguais na barra.
-    [ "$u" = "meow-logo.timer" ] && conteudo="${conteudo//OnUnitActiveSec=30min/OnUnitActiveSec=${LOGO_INTERVALO:-1d}}"
-    meow_escrever "$destino/$u" "$conteudo" 644
-    case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
-  done
+  # O TIMER FOI EMBORA EM 08/08/2026 — E QUEM O TEM NA MÁQUINA PRECISA PERDÊ-LO
+  #   Deixar de instalar não desinstala: o `meow-logo.timer` de uma execução
+  #   anterior continuaria vivo, girando o gato no meio da sessão para um efeito
+  #   que só apareceria no login seguinte. É a mesma disciplina do
+  #   `AUTO_REPARO="nao"` logo acima: desligar tem de DESLIGAR.
+  if [ -f "$destino/meow-logo.timer" ]; then
+    if meow_seco; then
+      meow_muda "removeria o meow-logo.timer (a rotação passou a ser no encerramento da sessão)"
+      mudou=1
+    else
+      systemctl --user disable --now meow-logo.timer >/dev/null 2>&1
+      rm -f "$destino/meow-logo.timer"
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "meow-logo.timer removido — o gato agora gira ao encerrar a sessão"
+      mudou=1
+    fi
+  fi
+
+  # A unidade vai por CÓPIA byte a byte: o intervalo não mora mais nela.
+  #   Ele virou um carimbo em `~/.local/state/meowsystem/logo-girado-em`, lido
+  #   pelo `logo.sh girar-vencido`. Substituir texto na unidade era o que
+  #   permitia o `LOGO_INTERVALO` mandar quando o gatilho era um relógio; com o
+  #   gatilho no encerramento da sessão não há `OnUnitActiveSec` onde escrevê-lo,
+  #   e dois donos da mesma regra é o defeito que este projeto mais combate.
+  #   Era um `for` de dois elementos (`.service` e `.timer`) e ficou de UM quando
+  #   o timer saiu. Laço de um elemento só é o SC2043 do shellcheck, e ele tem
+  #   razão: um `for` que nunca itera esconde que a unidade é uma só.
+  local u="meow-logo.service" conteudo
+  [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+  conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+  meow_escrever "$destino/$u" "$conteudo" 644
+  case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
 
   if meow_seco; then
     [ "$mudou" = "1" ] && { meow_muda "ligaria a rotação a cada ${LOGO_INTERVALO:-1d}"; return "$MEOW_DIVERGENTE"; }
@@ -774,21 +1041,29 @@ etapa_logo() {
   fi
 
   [ "$mudou" = "1" ] && systemctl --user daemon-reload
-  if [ "$(systemctl --user is-enabled meow-logo.timer 2>/dev/null)" != "enabled" ] ||
-     [ "$(systemctl --user is-active  meow-logo.timer 2>/dev/null)" != "active" ]; then
-    systemctl --user enable --now meow-logo.timer >/dev/null 2>&1 \
-      || { meow_erro "não consegui ligar o meow-logo.timer"; return "$MEOW_ERRO"; }
+  # `--now` importa: sem subir a unidade AGORA, ela não estaria ativa nesta
+  # sessão e o `ExecStop` — que é o trabalho inteiro — não rodaria no logout de
+  # hoje. `active (exited)` é o estado esperado, não um defeito: o `ExecStart` é
+  # um `/bin/true` e o que interessa acontece na parada.
+  if [ "$(systemctl --user is-enabled meow-logo.service 2>/dev/null)" != "enabled" ] ||
+     [ "$(systemctl --user is-active  meow-logo.service 2>/dev/null)" != "active" ]; then
+    systemctl --user enable --now meow-logo.service >/dev/null 2>&1 \
+      || { meow_erro "não consegui ligar o meow-logo.service"; return "$MEOW_ERRO"; }
     mudou=1
   fi
 
-  # O PADRÃO AQUI TEM DE SER O MESMO QUE O DA GRAVAÇÃO — eram dois, e mentia
-  #   A substituição no timer (acima) usa `${LOGO_INTERVALO:-1d}` e estas duas
-  #   linhas usavam `:-30m`. Num `meow.conf` sem a chave, o timer era gravado com
-  #   `1d` e a tela anunciava `30m` — dizer no passado uma coisa que não
-  #   aconteceu, o mesmo pecado que o resumo das etapas já corrigiu neste arquivo.
-  #   Não aparecia na máquina dela só porque o conf dela TEM a chave.
-  [ "$mudou" = "0" ] && { meow_ok "rotação de gatos já ligada (a cada ${LOGO_INTERVALO:-1d})"; return 0; }
-  meow_ok "os gatos giram a cada ${LOGO_INTERVALO:-1d} — 'meow logo listar' mostra o acervo"
+  # O PADRÃO AQUI TEM DE SER O MESMO QUE O USADO PELO `logo.sh` — eram dois, e
+  # mentia. A unidade era gravada com `${LOGO_INTERVALO:-1d}` e estas duas linhas
+  # diziam `30m`: num `meow.conf` sem a chave, a tela anunciava um intervalo que
+  # não era o gravado. Hoje quem lê o padrão é o `_giro_venceu` do `logo.sh`, e
+  # ele também usa `1d` — se um dia mudar lá, muda aqui.
+  #
+  # A FRASE DIZ QUANDO O GATO TROCA, NÃO SÓ DE QUANTO EM QUANTO
+  #   "a cada 1d" sozinho fazia esperar um gato novo aparecendo no meio do dia,
+  #   que é justamente o que não acontece: o painel só relê no login.
+  [ "$mudou" = "0" ] && { meow_ok "rotação já ligada (no máximo 1 gato a cada ${LOGO_INTERVALO:-1d}, no login seguinte)"; return 0; }
+  meow_ok "o gato gira ao encerrar a sessão, no máximo 1 a cada ${LOGO_INTERVALO:-1d}"
+  meow_info "  ele aparece no login seguinte — 'meow logo listar' mostra o acervo"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -816,12 +1091,59 @@ etapa_assets() {
 
 etapa_wallpaper() {
   passo "Papéis de parede"
-  WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+  WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
     "$MEOW_RAIZ/scripts/wallpaper.sh" aplicar
   local rc=$?
   [ "$rc" = "1" ] && [ "${WALLPAPER_NOTIFICAR:-sim}" = "sim" ] \
     && meow_notificar "MeowSystem" "Carrossel de papéis de parede ligado."
+
+  # O RELÓGIO CURTO DO CARROSSEL — por que ele nasceu em 08/08/2026
+  #   Algum processo do COSMIC devolveu o `output.DP-1` para a pasta de fábrica
+  #   duas vezes em 48 h. Com o reparo só no doctor diário, o estrago das 14:35
+  #   de 07/08 ficaria 38 horas no ar — e nesse intervalo a TV dela girava as
+  #   imagens da NASA enquanto o `estado` dizia "carrossel ATIVO". Um tique de
+  #   15 minutos fecha a janela, e só é seguro porque o `wallpaper.sh` distingue
+  #   reset de fábrica (conserta) de escolha dela (código 4, não toca).
+  #
+  #   Anda de carona no `AUTO_REPARO`: quem desliga o auto-reparo está dizendo
+  #   "não mexa sozinho na minha máquina", e isto é mexer sozinho.
+  local destino="$HOME/.config/systemd/user" u conteudo mudou_t=0
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    if [ -f "$destino/meow-wallpaper.timer" ]; then
+      meow_seco && { meow_muda "removeria o relógio do carrossel"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now meow-wallpaper.timer >/dev/null 2>&1
+      rm -f "$destino/meow-wallpaper.timer" "$destino/meow-wallpaper.service"
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" — relógio do carrossel removido"
+      return "$MEOW_DIVERGENTE"
+    fi
+    return "$rc"
+  fi
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    return "$rc"
+  fi
+  for u in meow-wallpaper.service meow-wallpaper.timer; do
+    [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+    conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    meow_escrever "$destino/$u" "$conteudo" 644
+    case $? in 1) mudou_t=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+  if meow_seco; then
+    [ "$mudou_t" = "1" ] && { meow_muda "ligaria o relógio do carrossel (15 min)"; return "$MEOW_DIVERGENTE"; }
+    return "$rc"
+  fi
+  [ "$mudou_t" = "1" ] && systemctl --user daemon-reload
+  if [ "$(systemctl --user is-enabled meow-wallpaper.timer 2>/dev/null)" != "enabled" ] ||
+     [ "$(systemctl --user is-active  meow-wallpaper.timer 2>/dev/null)" != "active" ]; then
+    systemctl --user enable --now meow-wallpaper.timer >/dev/null 2>&1 \
+      || { meow_erro "não consegui ligar o meow-wallpaper.timer"; return "$MEOW_ERRO"; }
+    mudou_t=1
+  fi
+  [ "$mudou_t" = "1" ] && {
+    meow_ok "relógio do carrossel ligado: confere a cada 15 min"
+    return "$MEOW_DIVERGENTE"
+  }
   return "$rc"
 }
 
@@ -832,30 +1154,78 @@ uso() {
 install.sh — instala o MeowSystem inteiro.
 
   ./install.sh              faz tudo, sem perguntar nada
+  ./install.sh --dry-run    mostra o que faria, sem escrever nada
   ./install.sh --wizard     roda `meow configurar` antes (pergunta as chaves do
                             meow.conf, grava lá) e então instala como sempre
+  ./install.sh --uninstall  tira o MeowSystem desta máquina
   ./install.sh --help       isto aqui
 
-  MEOW_DRY_RUN=1 ./install.sh   mostra o que faria, sem escrever nada
+  MEOW_DRY_RUN=1 ./install.sh   o mesmo que --dry-run, para script e timer
 
-Quem decide o que é instalado é o meow.conf, nunca a linha de comando.
+As flags acima dizem COMO esta execução se comporta. QUAIS etapas rodam é
+decisão do meow.conf — nunca da linha de comando.
 
 FIM
 }
 
 main() {
-  local wizard=0
+  # ROOT NÃO. Duas variantes, dois estragos diferentes, uma recusa só.
+  #   sudo ./install.sh     -> $HOME vira /root: tema, ícones, fontes, CLI e
+  #                            timers de um systemd --user que root não tem.
+  #                            Nada aparece na tela dela, e nada avisa.
+  #   sudo -E ./install.sh  -> $HOME continua o dela e o instalador larga dezenas
+  #                            de arquivos de dono ROOT em ~/.config/cosmic e
+  #                            ~/.local/share/icons. É a falha silenciosa da GUI
+  #                            de tema descrita no cabeçalho deste arquivo, e o
+  #                            conserto é um chown -R.
+  if [ "$(id -u)" = "0" ]; then
+    meow_erro "não me rode com sudo."
+    if [ -n "${SUDO_USER:-}" ]; then
+      meow_info "  rode como $SUDO_USER, na sessão gráfica dele:  ./install.sh"
+    else
+      meow_info "  rode como o seu usuário normal:  ./install.sh"
+    fi
+    meow_info "  o sudo é pedido por dentro, só onde precisa, e diz o que vai rodar antes."
+    meow_info "  instalar em nome de outra pessoa não funciona por sudo -u: as etapas"
+    meow_info "  de systemd --user precisam do DBUS/XDG_RUNTIME_DIR da sessão dela."
+    return 2
+  fi
+
+  local wizard=0 desinstalar=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --wizard|-w) wizard=1 ;;
+      # MODOS DE EXECUÇÃO, não escolhas de etapa. A regra do cabeçalho recusa
+      # flag que seja SEGUNDA FONTE DE VERDADE sobre o que instalar; estas duas
+      # não escolhem nada — dizem COMO esta execução se comporta.
+      #
+      # Os DOIS têm de ser setados: o lib/comum.sh lê MEOW_DRY_RUN no momento do
+      # source (lá em cima, antes deste laço) e grava MEOW_SECO; os scripts
+      # FILHOS leem MEOW_DRY_RUN do ambiente. Setar um só deixa metade do seco
+      # de fora, e um seco pela metade é pior que nenhum.
+      --dry-run|--seco|-n)       MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
+      --uninstall|--desinstalar) desinstalar=1 ;;
       -h|--help)   uso; return 0 ;;
       "")          ;;
       *) meow_erro "opção desconhecida: $1"
-         meow_info "o que existe: --wizard, --help. O resto mora no meow.conf."
+         meow_info "o que existe: --dry-run, --wizard, --uninstall, --help."
+         meow_info "QUAIS etapas rodam é decisão do meow.conf, não da linha de comando."
          return 2 ;;
     esac
     shift
   done
+
+  # DEPOIS do laço de flags, de propósito: um erro de digitação na linha de
+  # comando tem de ser explicado mesmo quando ninguém está olhando a tela.
+  #
+  # Sem terminal (timer, hook, `| ./install.sh`) o progresso não tem leitor:
+  # quase 600 linhas viram quase 600 linhas de journal. `silencioso` cala
+  # progresso e mantém o que importa — `~~` mudou, `--` pulou, `!!` aviso e
+  # erro. Com tty nada muda, e quem definiu LOG_NIVEL no meow.conf continua
+  # mandando.
+  if [ ! -t 1 ] && [ -z "${LOG_NIVEL:-}" ]; then
+    MEOW_LOG_NIVEL=silencioso
+  fi
 
   meow_titulo "MeowSystem — Catppuccin para o COSMIC"
   meow_seco && meow_aviso "MEOW_DRY_RUN=1 — nada será escrito"
@@ -876,6 +1246,27 @@ main() {
     fi
   fi
 
+  # A leitura da conf vem antes do pré-voo porque ele precisa de FLAVOR/ACCENT
+  # para dizer se existe captura — e não pode rodar depois de uma escrita.
+  etapa_conf_ler || return 2
+
+  # DESINSTALAR NÃO PASSA PELO PRÉ-VOO, E ISSO É DE PROPÓSITO
+  #   O pré-voo recusa a máquina que não é COSMIC, cobra binário de etapa e pede
+  #   a senha. Nada disso vale para quem está indo embora: a máquina onde o
+  #   `XDG_CURRENT_DESKTOP` deixou de dizer COSMIC é exatamente a máquina de onde
+  #   alguém quer tirar isto daqui, e um "não dá" na saída seria a pior recusa
+  #   que este arquivo poderia dar. Só a leitura da conf vem antes, porque o
+  #   desinstalador lê NOME_TEMA_ICONES e MEOW_COMPLETIONS_DIR de lá.
+  if [ "$desinstalar" = "1" ]; then
+    # shellcheck source=lib/desinstalar.sh
+    . "$MEOW_RAIZ/lib/desinstalar.sh"
+    meow_travar || return 2
+    meow_desinstalar; return $?
+  fi
+
+  meow_preflight; local rc_pf=$?
+  [ "$rc_pf" = "2" ] && return 2
+
   meow_travar || return 2
 
   # O auto-reparo é o ÚLTIMO de propósito: ele só faz sentido depois que tudo já foi
@@ -884,10 +1275,10 @@ main() {
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
-                etapa_modo etapa_greeter etapa_vidro etapa_upstream etapa_fontes
-                etapa_icones etapa_pastas etapa_hicolor etapa_completar_icones
-                etapa_mimetypes etapa_icones_apps etapa_icones_sistema etapa_jogos
-                etapa_logo etapa_wallpaper etapa_ocultar etapa_som etapa_apps
+                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_upstream etapa_fontes
+                etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
+                etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja etapa_jogos
+                etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos etapa_som etapa_apps
                 etapa_assets etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
@@ -909,6 +1300,23 @@ main() {
   [ ${#PULADOS[@]}  -gt 0 ] && meow_pula  "pulado: ${PULADOS[*]}"
   [ ${#FALHOS[@]}   -gt 0 ] && meow_erro  "falhou: ${FALHOS[*]}"
 
+  # Um `pulado:` mudo não diz o que fazer — mas dizer a coisa ERRADA é pior que
+  # o silêncio. As quatro etapas do `/usr/share` podem se pular por dois motivos
+  # (falta de root, ou `LANCADOR_SISTEMA="nao"`, que é opt-in e é o padrão), e
+  # cada um tem um conserto diferente. Quem se pulou por opt-in já se anunciou em
+  # PULADOS_OPTIN; o que sobrar é que de fato depende de sudo.
+  if [ ${#PULADOS[@]} -gt 0 ]; then
+    local p por_root=0
+    for p in "${PULADOS[@]}"; do
+      case " ${PULADOS_OPTIN[*]:-} " in *" $p "*) continue ;; esac
+      case "$p" in greeter|ocultar|nomes|absolutos) por_root=1 ;; esac
+    done
+    [ "$por_root" = "1" ] && \
+      meow_info "algumas dessas precisavam de root. Para completá-las:  sudo -v && ./install.sh"
+    [ ${#PULADOS_OPTIN[@]} -gt 0 ] && \
+      meow_info "${PULADOS_OPTIN[*]}: é opt-in, não é falta de root — LANCADOR_SISTEMA=\"sim\" no meow.conf liga"
+  fi
+
   meow_registrar "install.sh mexeu=${#FEITOS[@]} conferem=${#CONFEREM[@]} pulados=${#PULADOS[@]} falhos=${#FALHOS[@]}"
 
   if [ ${#FALHOS[@]} -gt 0 ]; then
@@ -922,10 +1330,19 @@ main() {
   if [ ${#FEITOS[@]} -eq 0 ]; then
     printf '\n  %sPronto.%s Nenhuma etapa precisou escrever nada — já estava tudo no lugar.\n\n' \
       "$C_VERDE$C_FORTE" "$C_ZERO"
-  else
-    printf '\n  %sPronto.%s Rode de novo quando quiser: nada é escrito duas vezes.\n\n' \
-      "$C_VERDE$C_FORTE" "$C_ZERO"
+    return 0
   fi
+
+  # "Rode de novo QUANDO QUISER" era a frase mais cara da tela, porque o README
+  # diz o contrário logo no parágrafo 4: numa máquina nova são TRÊS passagens até
+  # o silêncio. Não é defeito — o `index.theme` descreve os diretórios que
+  # EXISTEM, e as pastas coloridas nascem na etapa seguinte. Quem tem de saber
+  # disso é o instalador, não quem leu o parágrafo 4.
+  printf '\n  %s%d etapa(s) mudaram nesta passagem.%s\n' \
+    "$C_AMARELO$C_FORTE" "${#FEITOS[@]}" "$C_ZERO"
+  printf '  Algumas etapas dependem do resultado da anterior. Rode mais uma vez,\n'
+  printf '  até a tela dizer "nenhuma etapa precisou escrever nada":\n\n'
+  printf '      ./install.sh\n\n'
   return 0
 }
 

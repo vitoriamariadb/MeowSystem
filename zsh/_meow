@@ -52,12 +52,13 @@ _meow_logos() {
   raiz="$(_meow_raiz)" || return 1
   local -a nomes
   local f
-  for f in "$raiz"/assets/meow-*-painel.svg(N); do
+  # O acervo dela é a lista — os gatos do projeto foram excluídos em 08/08/2026.
+  for f in "$raiz"/assets/gatos/*.svg(N); do
     f="${f:t:r}"
-    f="${f#meow-}"
-    nomes+=("${f%-painel}")
+    [[ "$f" == *-symbolic ]] && continue
+    nomes+=("$f")
   done
-  (( ${#nomes} )) && _describe -t logos 'variante de logo' nomes
+  (( ${#nomes} )) && _describe -t logos 'gato do acervo' nomes
 }
 
 # As chaves saem do meow.conf.exemplo do repo, que é a lista canônica — a mesma
@@ -85,10 +86,10 @@ _meow() {
     'icones:estado do tema de ícones'
     'wallpaper:carrossel de papéis de parede'
     'apps:tabela de módulo, app instalado e tema'
-    'configurar:wizard: pergunta as chaves do meow.conf e grava lá'
+    'configurar:wizard curto: as chaves essenciais do meow.conf (--tudo para o resto)'
     'ativar:roda o install.sh inteiro'
     'aplicar:o mesmo que ativar'
-    'desfazer:volta o tema para a captura original'
+    'desfazer:volta o tema do COSMIC para antes do MeowSystem'
     'log:últimas 50 linhas do log'
     'ajuda:lista todos os comandos'
   )
@@ -157,9 +158,10 @@ _meow() {
               'tabela:módulo, instalado, tema'
               'conferir:roda o conferir de cada módulo'
               'aplicar:tematiza um app, ou todos'
+              'reverter:desfaz num app (slug obrigatório)'
             )
             _describe -t acoes 'ação' acoes
-          elif [[ "$words[2]" == aplicar ]]; then
+          elif [[ "$words[2]" == (aplicar|reverter) ]]; then
             # Os slugs saem do meow.conf dela, não de uma lista fixa aqui.
             local conf="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
             local linha
@@ -174,7 +176,13 @@ _meow() {
           fi
           ;;
         configurar|config|wizard)
-          (( CURRENT == 2 )) && _meow_chaves
+          # `--tudo` e uma CHAVE ficam lado a lado de propósito: o wizard curto
+          # é o padrão, e as duas formas de sair dele valem no mesmo lugar.
+          if (( CURRENT == 2 )); then
+            _alternative \
+              'flags:opção:((--tudo\:"pergunta o meow.conf inteiro, chave por chave"))' \
+              'chaves:chave: _meow_chaves'
+          fi
           ;;
         aplicar|ativar)
           _arguments '--seco[mostra o que faria, sem escrever nada]'

@@ -1,0 +1,19 @@
+# vizinhos.conf — quem MAIS manda em pedaços do seu home.
+#
+# O MeowSystem não escreve nestes caminhos, nem por engano, nem por symlink: a
+# checagem acontece depois do `readlink -m`, sobre o caminho já resolvido.
+#
+# Isto existe porque a lista estava CRAVADA no código, e cravada com os vizinhos
+# de UMA máquina. Numa instalação de fora, o instalador recusava
+# `~/.config/zsh` — que é a convenção ZDOTDIR mais comum do mundo zsh, e é onde
+# a completion deste projeto quer morar — explicando a recusa com um repositório
+# que aquela pessoa não tem.
+#
+# Um CAMINHO ABSOLUTO por linha. `$HOME` é expandido; nada mais é, e nada é
+# executado. `#` comenta o resto da linha. Vazio é o normal: numa máquina sem
+# vizinhos, este arquivo não precisa existir.
+#
+# Copie para ~/.config/meow/vizinhos.conf e descomente o que for seu.
+
+#$HOME/.config/zsh                                            # repo com auto-commit
+#$HOME/.config/cosmic/com.system76.CosmicSettings.Shortcuts   # atalhos de outro projeto
