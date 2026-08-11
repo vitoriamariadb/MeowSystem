@@ -31,6 +31,15 @@
 #   troca acontece aqui, antes de gravar — e por isso a CONFERÊNCIA tem de fazer a
 #   mesma troca antes de comparar, ou a unidade divergiria eternamente.
 #
+#   E POR ISSO O CAMINHO AQUI É O FÍSICO, `pwd -P`. Esta máquina tem
+#   `~/Desenvolvimento/MeowSystem` como link simbólico para `/mnt/Apate/...`, e o
+#   `pwd` lógico devolve o caminho pelo qual o script FOI CHAMADO. Medido em
+#   10/08/2026: chamado de /mnt/Apate o `--conferir` dizia `ok`, e chamado do
+#   link dizia "1 unidade(s) a instalar ou atualizar" — a mesma máquina, o mesmo
+#   disco, duas respostas. Pior que o barulho: aplicar pelo link reescreveria o
+#   `PathModified=` com o caminho do link, e o vigia passaria a depender de um
+#   symlink que ninguém prometeu manter. O acervo é UM só; o nome dele também.
+#
 # COMPARAR DO MESMO JEITO QUE SE ESCREVE
 #   `meow_escrever` grava com `printf '%s'`, que come o `\n` final. Comparar com
 #   `cmp` byte a byte acusaria divergência para sempre num arquivo perfeito — já
@@ -42,7 +51,7 @@
 #   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
 set -uo pipefail
 
-RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 

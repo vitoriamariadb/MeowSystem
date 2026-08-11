@@ -83,7 +83,27 @@ Type=oneshot
 # um `source` de arquivo ausente mataria a condição por engano em vez de pulá-la.
 ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${ASSETS_VIGIA:-sim}" = "sim" ]'
 
-ExecStart=/bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; . %h/.config/meow/meow.conf; export FLAVOR LOGO; exec "$R/scripts/logo.sh"'
+# O DEBOUNCE DE 3 SEGUNDOS — O DIRETÓRIO VIGIADO É VERSIONADO NO GIT
+#   `assets/gatos/` está sob controle de versão (`git ls-files assets/gatos`
+#   devolve os três arquivos), então um `git checkout`/`stash`/`rebase` remove e
+#   recria os SVG um a um, e o `PathModified` do irmão vê CADA passo. O serviço
+#   rodaria com o acervo pela metade — passa pela guarda de acervo vazio
+#   (logo.sh:140-143) e cai direto no `rm -f` de órfão (logo.sh:216-230),
+#   apagando do dock o gato que só sumiu porque o git estava no meio da troca.
+#   Pela systemd.path(5) a unidade NÃO redispara enquanto este serviço está
+#   ativo: os 3 s esticam a janela e engolem a rajada inteira num disparo só,
+#   já com o acervo completo de volta no disco.
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStartPre=-/usr/bin/sleep 3
+
+# O MESMO LOCK DO `bin/meow` (lib/comum.sh:131), pelo `flock(1)`, que usa o
+# mesmo `flock(2)` sobre o mesmo arquivo. Aqui é `-w 60` e não `-n`: um disparo
+# perdido é um gato que ela soltou na pasta e não entrou, e a `.path` pode não
+# disparar de novo — então esperamos a vez até um minuto. E `-E 0` porque o
+# `ExecStopPost` abaixo fala em `EXIT_STATUS=1`: sem ele, ceder a vez ao lock
+# faria o `flock` sair 1 e ela receberia na tela o aviso de "o acervo mudou"
+# sem que nada tivesse sido escrito.
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; . %h/.config/meow/meow.conf; export FLAVOR LOGO; exec "$R/scripts/logo.sh"'
 
 # 1 é "estava divergente e eu consertei" — o código que o `logo.sh` devolve
 # quando o acervo mudou, que é justamente o caso normal aqui. 3 é "o applet
@@ -109,8 +129,14 @@ SuccessExitStatus=1 3
 ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${ASSETS_VIGIA_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "O acervo de gatos mudou e já está no disco. O gato do dock troca no próximo login; meow logo listar mostra quem está no ar."'
 
 # Um vigia travado seguraria o disparo seguinte. Isto aqui lê uma pasta e escreve
-# meia dúzia de SVG pequenos; um minuto é folga de sobra.
-TimeoutStartSec=1min
+# meia dúzia de SVG pequenos; um minuto seria folga de sobra para o trabalho.
+#
+# MAS O TETO CONTA O `ExecStartPre` JUNTO: o `TimeoutStartSec` cobre a partida
+# INTEIRA, e o pior caso agora é 3 s de debounce + 60 s esperando o lock = 63 s,
+# que estouraria um minuto e mataria o serviço justamente quando ele estava
+# fazendo o certo (esperando a vez). Dois minutos põem o teto de volta acima do
+# pior caso e continuam curtos o bastante para denunciar um travamento real.
+TimeoutStartSec=2min
 
 StandardOutput=append:%h/.local/state/meowsystem/logo.log
 StandardError=inherit
