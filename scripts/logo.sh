@@ -33,9 +33,11 @@
 #   — é o que faz o instalador não explodir quando um programa não está no lugar.
 #
 # CONVIVÊNCIA COM O RITUAL DA AURORA
-#   O Aurora é dono de `~/.config/cosmic/logos/gato-pop.svg` e o repõe no
-#   self-heal. Nós escrevemos `meow-<nome>.svg` ao lado e nunca tocamos naquele
-#   arquivo — os dois acervos coexistem no mesmo diretório sem se ver.
+#   `~/.config/cosmic/logos/` é NOSSO desde o self-heal v3.56. O `gato-pop.svg`
+#   que o Aurora repunha a cada ciclo foi aposentado lá e removido daqui: era um
+#   terceiro arquivo, de outro dono e de outra paleta, para uma chave
+#   (`custom_logo_path`) que aponta para um só. Escrevemos `meow-<nome>.svg` e o
+#   diretório tem um dono só. Ver docs/FRONTEIRA.md.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -53,25 +55,83 @@ LOGO="${LOGO:-$FLAVOR}"
 CONFERIR=0
 ACAO="aplicar"
 case "${1:-}" in
-  --conferir) CONFERIR=1 ;;
-  girar)      ACAO="girar" ;;
-  listar)     ACAO="listar" ;;
+  --conferir)    CONFERIR=1 ;;
+  girar)         ACAO="girar" ;;
+  girar-vencido) ACAO="girar-vencido" ;;
+  listar)        ACAO="listar" ;;
   aplicar|"") ;;
-  *) meow_erro "uso: logo.sh [aplicar|girar|listar|--conferir]"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: logo.sh [aplicar|girar|girar-vencido|listar|--conferir]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && CONFERIR=1
 
-# --- o acervo ---------------------------------------------------------------
-# O gato gerado do flavor entra sempre (é o do projeto, e nasce da paleta); os
-# de `assets/gatos/` são os DELA. A ordem é estável — alfabética, com o do
-# projeto na frente — para que "o próximo" signifique a mesma coisa em toda
-# execução, inclusive depois de um reboot.
-declare -a POOL=() NOMES=()
-GATO_PROJETO="$RAIZ/assets/meow-${LOGO}-painel.svg"
-[ -f "$GATO_PROJETO" ] || GATO_PROJETO="$RAIZ/assets/meow-${FLAVOR}-painel.svg"
-if [ -f "$GATO_PROJETO" ]; then
-  POOL+=("$GATO_PROJETO"); NOMES+=("$FLAVOR")
+# --- O RELÓGIO DA ROTAÇÃO MORA AQUI, NÃO NA UNIDADE DO SYSTEMD --------------
+# Até 08/08/2026 quem contava o intervalo era o `OnUnitActiveSec` do
+# `meow-logo.timer`, substituído pelo `LOGO_INTERVALO` na hora de instalar. Duas
+# coisas derrubaram esse desenho:
+#
+#   1. O GATO SÓ MUDA DE APARÊNCIA NO LOGIN. O `cosmic-panel` lê o ícone do dock
+#      uma vez, ao iniciar a sessão, e não o relê (seis watches de inotify,
+#      nenhum sobre arquivo de ícone). Girar às 00:12, dez minutos depois de o
+#      painel ter carregado, escrevia no disco para um efeito que só apareceria
+#      no login seguinte — ela via SEMPRE o gato anterior. Foi a queixa de
+#      08/08: "voltamos a ter o icon antigo do lançador de menu".
+#   2. Logo, a única hora útil de girar é no ENCERRAMENTO da sessão: aí o
+#      próximo login já abre com o gato novo. Girar antes do painel subir seria
+#      corrida — medido: o `cosmic-panel` nasce no mesmo segundo em que o
+#      `cosmic-session.target` fica ativo.
+#
+# Com o gatilho no encerramento, o intervalo não pode mais viver num `OnUnitActiveSec`.
+# Ele passa a ser um CARIMBO em disco, e `girar-vencido` é quem o consulta —
+# assim "um gato por dia" continua sendo um gato por dia, mesmo que ela reinicie
+# quatro vezes num dia.
+CARIMBO_GIRO="$MEOW_ESTADO/logo-girado-em"
+
+_segundos_de() {
+  local v="${1:-1d}" n="${1:-1d}"; n="${n%[smhd]}"
+  case "$n" in ''|*[!0-9]*) printf '86400'; return ;; esac
+  case "$v" in
+    *s) printf '%s' "$n" ;;
+    *m) printf '%s' "$((n * 60))" ;;
+    *h) printf '%s' "$((n * 3600))" ;;
+    *d) printf '%s' "$((n * 86400))" ;;
+    *)  printf '%s' "$n" ;;              # sem sufixo, o systemd lê como segundos
+  esac
+}
+
+_giro_venceu() {
+  local ultimo agora intervalo
+  ultimo="$(cat "$CARIMBO_GIRO" 2>/dev/null)"
+  case "$ultimo" in ''|*[!0-9]*) return 0 ;; esac   # nunca girou: venceu
+  agora="$(date +%s)"
+  intervalo="$(_segundos_de "${LOGO_INTERVALO:-1d}")"
+  [ "$((agora - ultimo))" -ge "$intervalo" ]
+}
+
+if [ "$ACAO" = "girar-vencido" ]; then
+  if _giro_venceu; then
+    ACAO="girar"
+  else
+    meow_info "o gato ainda não venceu (${LOGO_INTERVALO:-1d}) — nada a girar"
+    exit "$MEOW_OK"
+  fi
 fi
+
+# --- o acervo ---------------------------------------------------------------
+# O ACERVO É SÓ `assets/gatos/`, E O GATO GERADO DO FLAVOR SAIU DE VEZ
+#   Até 08/08/2026 o gato desenhado por `scripts/gerar_gato.py` entrava na
+#   rotação junto com os dela, à frente dos outros. Ela pediu o contrário, com
+#   estas palavras: *"tá usando os gatos antigos, eu tinha pedido pra excluir
+#   eles e usar só a coquinha e o mimir. excluir pra não ter erro mesmo"*.
+#
+#   Tirar só daqui não bastava, e é por isso que o gerador foi embora junto: o
+#   `gerar_gato.py --conferir` roda no `install.sh` e no `doctor --consertar`, e
+#   acusaria os SVG ausentes como divergência — os gatos antigos voltariam ao
+#   disco sozinhos na rodada seguinte, que é exatamente o "erro" que ela mandou
+#   excluir. Some daqui, some do gerador, some do `install.sh`.
+#
+# A ordem é estável — alfabética — para que "o próximo" signifique a mesma coisa
+# em toda execução, inclusive depois de um reboot.
+declare -a POOL=() NOMES=()
 if [ -d "$ACERVO" ]; then
   while IFS= read -r svg; do
     case "$(basename "$svg")" in *-symbolic.svg) continue ;; esac
@@ -80,7 +140,7 @@ if [ -d "$ACERVO" ]; then
 fi
 
 if [ "${#POOL[@]}" -eq 0 ]; then
-  meow_pula "não há gato nenhum em assets/gatos/ nem gerado — nada a girar"
+  meow_pula "não há gato nenhum em $ACERVO — solte um .svg lá e ele entra"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 
@@ -191,7 +251,19 @@ else
   if [ "$indice" -ge 0 ]; then
     proximo="$indice"
   else
+    # `LOGO` do meow.conf nomeia o gato PREFERIDO do acervo — é o que vale numa
+    # máquina nova e quando a rotação está desligada. A chave deixou de nomear
+    # variante do gato gerado em 08/08/2026, quando os gatos do projeto foram
+    # excluídos; sem isto ela viraria mais uma chave que o conf oferece e nenhum
+    # código lê, que é defeito conhecido deste projeto.
+    #
+    # Só vale quando o que está no ar NÃO é gato do acervo: se apontasse para um,
+    # sobrescrever aqui desfaria a rotação a cada `install.sh` — o mesmo defeito
+    # dos dois donos, agora numa linha só.
     proximo=0
+    for i in "${!NOMES[@]}"; do
+      [ "${NOMES[$i]}" = "$LOGO" ] && { proximo=$i; break; }
+    done
   fi
 fi
 
@@ -201,7 +273,23 @@ if [ "$alvo" != "$atual" ]; then
   # applet ignorar o valor calado.
   meow_escrever "$APPLET/custom_logo_path" "\"$alvo\"" 644
   case $? in 1) mudou=1 ;; 2) meow_erro "não consegui apontar a logo"; exit "$MEOW_ERRO" ;; esac
-  meow_seco || printf '%s' "${NOMES[$proximo]}" > "$ESTADO" 2>/dev/null || true
+  # `>` abre com O_TRUNC: o arquivo fica VAZIO no disco entre a truncagem e a
+  # escrita, e é nessa fresta que um leitor pega nada. `meow_escrever`
+  # (lib/comum.sh:92) grava num temporário do mesmo diretório e faz `mv`, que é
+  # atômico — o leitor vê o valor velho ou o novo, nunca o meio.
+  meow_seco || meow_escrever "$ESTADO" "${NOMES[$proximo]}" 644 >/dev/null || true
+fi
+
+# O carimbo é do GIRO, não da escrita: marca-se quando a rotação de fato
+# aconteceu, para o `girar-vencido` da próxima sessão saber se o dia passou.
+# Fora do `if` acima porque um giro que caia no mesmo gato (acervo de um só)
+# ainda é um giro — sem isto ele tentaria de novo a cada encerramento.
+if [ "$ACAO" = "girar" ] && ! meow_seco; then
+  # Mesmo motivo do estado acima: `mv` no lugar de O_TRUNC. Aqui a fresta tem
+  # dono conhecido — o `_giro_venceu` já trata carimbo vazio como "venceu"
+  # (linhas 100-102), e o pior caso seria um giro a mais. Ainda assim, escrever
+  # certo custa a mesma linha.
+  meow_escrever "$CARIMBO_GIRO" "$(date +%s)" 644 >/dev/null || true
 fi
 
 # Fora do `if`: a chave que LIGA a logo personalizada não depende de o caminho

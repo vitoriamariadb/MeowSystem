@@ -1,34 +1,61 @@
-# meow-logo.service — passa o gato do painel para o próximo do acervo.
+# meow-logo.service — passa o gato do painel para o próximo, AO ENCERRAR A SESSÃO.
 #
-# O QUE ELE ESCREVE: UMA CHAVE, E MAIS NADA
-#   `custom_logo_path` do applet. Isso é medido (docs/COSMIC-THEMING.md §3): o
-#   applet cacheia a IMAGEM mas vigia a CONFIGURAÇÃO por inotify — apontar a
-#   chave para outro arquivo troca o gato na hora, sem reiniciar o painel, sem
-#   piscar a tela dela e sem gastar uma vida do respawn do `cosmic-session`.
-#   Os arquivos do acervo já estão no disco desde o `install.sh`; girar não
-#   instala nada.
+# POR QUE NO ENCERRAMENTO, E NÃO NUM RELÓGIO (a unidade mudou em 08/08/2026)
+#   Havia aqui um par `.timer` + `.service` que girava o gato a cada
+#   `LOGO_INTERVALO`, com `OnBootSec=10min`. Medido no boot de 08/08: o
+#   `cosmic-panel` nasceu 00:02:42 e a rotação rodou 00:12:26 — dez minutos
+#   DEPOIS de o painel ter lido o ícone. E o painel não relê: são seis watches
+#   de inotify (as três configs de painel e as três de tema) e NENHUM sobre
+#   arquivo de ícone.
 #
-# POR QUE `ExecCondition` E NÃO UM `if` DENTRO DO SCRIPT
-#   Com a rotação desligada no `meow.conf`, a unidade termina como `condition
-#   failed` — que o systemd mostra em cinza no `list-timers` e NÃO conta como
-#   falha. Um `exit 0` de dentro do script diria "sucesso" e esconderia a
-#   diferença entre "girou" e "está desligado".
-#   Sem `[ -f ]` antes do `.`: a conf pode não existir numa máquina recém-clonada,
-#   e um `source` de arquivo ausente com `set -u` mataria a condição por engano.
+#   Consequência: o gato sorteado só aparecia no login seguinte, e ela via
+#   sempre o ANTERIOR. Foi a queixa textual dela: "voltamos a ter o icon antigo
+#   do lançador de menu". Não era regressão; era o relógio no lugar errado.
 #
-# ConditionPathExists no repo: se `/mnt/Apate` estiver desmontado (o repo mora em
-# outra partição), a unidade é PULADA com o motivo no journal, em vez de falhar
-# de meia em meia hora para sempre.
+#   Girar ANTES do painel subir não resolve: é corrida. O `cosmic-panel` nasce
+#   no mesmo segundo em que o `cosmic-session.target` fica ativo, e é filho do
+#   processo `cosmic-session`, não uma unidade que se possa ordenar com
+#   `Before=`. O único instante sem corrida é o ENCERRAMENTO — aí o próximo
+#   login já abre com o gato novo.
+#
+# O TIMER FOI REMOVIDO, NÃO DESLIGADO, E ISSO É DE PROPÓSITO
+#   Um relógio que gira no meio da sessão escreve no disco para um efeito que
+#   ninguém pode ver antes do próximo login. O gato só muda de aparência no
+#   login; logo, a única hora útil de girar é uma vez por login, e é isto.
+#
+# ENTÃO QUEM CONTA O "UM POR DIA"?
+#   O `scripts/logo.sh girar-vencido`, por um carimbo em
+#   `~/.local/state/meowsystem/logo-girado-em`. O `LOGO_INTERVALO` do
+#   `meow.conf` continua mandando: com quatro reinícios num dia, o gato troca
+#   uma vez só. O intervalo saiu do `OnUnitActiveSec` porque não pode haver dois
+#   donos da mesma regra — e o gatilho por encerramento não tem onde guardá-la.
+#
+# `RemainAfterExit=yes` COM `ExecStart=/bin/true` É O IDIOMA DO ENCERRAMENTO
+#   A unidade "sobe" sem fazer nada e fica ativa a sessão inteira; o trabalho
+#   está no `ExecStop`, que o systemd roda quando o gerenciador do usuário para
+#   — isto é, no logout ou no desligamento.
+#
+# `$R` SIM, `${R}` NÃO
+#   O systemd expande `${NOME}` na linha de `Exec` mesmo dentro de aspas
+#   simples, e variável que ele não conhece vira string vazia. Testado neste
+#   projeto: `sh -c 'R=abc; printf "[%s][%s]" "$R" "${R}"'` imprime `[abc][]`.
+#   Já `${VAR:-padrão}` passa inteiro, porque `:` não é nome de variável válido.
+#
+# A CHAVE `LOGO_ROTACAO` É LIDA NO STOP, NÃO NO START
+#   Um `ExecCondition` decidiria na PARTIDA, e a resposta que importa é a de
+#   horas depois. Se ela desligar a rotação durante a sessão, o encerramento tem
+#   de respeitar isso — por isso o teste está dentro do próprio `ExecStop`.
 
 [Unit]
-Description=MeowSystem — troca o gato da logo do painel
+Description=MeowSystem — gira o gato da logo ao encerrar a sessão
 Documentation=file:%h/.local/state/meowsystem/raiz
 ConditionPathExists=%h/.local/state/meowsystem/raiz
 
 [Service]
 Type=oneshot
-ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${LOGO_ROTACAO:-nao}" = "sim" ]'
-ExecStart=/bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; . %h/.config/meow/meow.conf; export FLAVOR LOGO; exec "$R/scripts/logo.sh" girar'
+RemainAfterExit=yes
+ExecStart=/bin/true
+ExecStop=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 0; . "$C"; [ "${LOGO_ROTACAO:-nao}" = "sim" ] || exit 0; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/logo.sh" ] || exit 0; export FLAVOR LOGO LOGO_INTERVALO; exec "$R/scripts/logo.sh" girar-vencido'
 
 # 1 é o código de "estava divergente e eu consertei" deste projeto — que é
 # exatamente o que uma troca bem-sucedida devolve. Sem isto, TODA rotação
@@ -37,3 +64,6 @@ SuccessExitStatus=1 3
 
 StandardOutput=append:%h/.local/state/meowsystem/logo.log
 StandardError=inherit
+
+[Install]
+WantedBy=default.target
