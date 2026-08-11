@@ -1,0 +1,111 @@
+# icons/apps-nomes.map — o nome curto de cada aplicativo cujo nome estourava a
+#                        célula do lançador.
+#
+# FORMATO      id-do-.desktop (o nome do arquivo, sem a extensão) : nome na tela
+#
+# POR QUE ESTE ARQUIVO EXISTE
+#   Reclamação dela em 08/08/2026: ".desktop super feios", e o que incomoda são
+#   "os nomes compridos que quebram em duas linhas". Não é gosto: no lançador do
+#   COSMIC o rótulo tem uma caixa de tamanho fixo, e o que não cabe quebra, e o
+#   que quebra demais some atrás de reticências.
+#
+# OS DOIS LIMITES, MEDIDOS EM 08/08/2026 — E ELES SÃO DIFERENTES
+#
+#   1. AS RETICÊNCIAS SÃO UMA CONTA DE BYTES, NÃO DE PIXELS.
+#      `cosmic-app-library` 1.0.12, `src/widgets/application.rs`:
+#
+#          let max_name_len = 27 - source_suffix_len;
+#          let name = if name.len() > max_name_len {
+#              format!("{name:.24}...")
+#
+#      `str::len()` em Rust conta BYTES; o `{:.24}` corta em 24 CARACTERES. Ou
+#      seja: **passou de 27 bytes, vira os 24 primeiros caracteres + "..."**. Um
+#      "ç" custa 2 bytes e um "™" custa 3, então um nome com acento estoura antes
+#      do que a contagem de letras faz supor.
+#
+#      Conferido contra a tela dela, e bate letra por letra:
+#        "Sackboy™: Uma Grande Aventura"            (31 B) -> "Sackboy™: Uma Grande Ave..."
+#        "Programa de manipulação de imagem do GNU" (42 B) -> "Programa de manipulação ..."
+#
+#      O `source_suffix_len` é o "(Local)"/"(Sistema)" das duplicatas — com elas
+#      resolvidas pelo `ocultar_apps.sh`, o limite em vigor é o 27 cheio.
+#
+#   2. A QUEBRA DE LINHA É UMA CONTA DE PIXELS: **114 px**.
+#      A janela tem 1200 px fixos (`app.rs`, `max_width(1200.0)`), a grade tem 7
+#      colunas (`.chunks(7)`), o padding lateral é `space_xxl` de cada lado, o
+#      espaço entre botões é `space_xxs` e cada botão tem `space_s` de padding:
+#
+#          (1200 - 2*64 - 6*8) / 7 - 2*16 = 114,3 px
+#
+#      O rótulo é `text(name).size(14.0)` numa caixa de 40 px de altura — ou seja,
+#      DUAS linhas de 14 px cabem, a terceira é cortada. Medido em Fira Sans 14 px
+#      (a `interface_font` dela), 114 px dão mais ou menos 16 caracteres em caixa
+#      mista — "Scarlet Deer Inn" (103 px) cabe, "Ajustes do COSMIC" (119 px) não.
+#
+#   O alvo desta lista é o limite 2, o dos pixels: o que ela pediu foi parar de
+#   ver nome quebrado em duas linhas. Quem já cabe numa linha não entra aqui.
+#
+# A REGRA DE BOM SENSO: ENCURTAR NÃO É MENTIR
+#   O nome curto tem de continuar dizendo o que a coisa é. Sai o que é supérfluo
+#   — descrição de pacote, subtítulo, nome de repositório, redundância —, nunca a
+#   identidade do aplicativo. Por isso "Mad King Redemption" (139 px, duas linhas)
+#   NÃO está aqui: não há nada de supérfluo para cortar, e "Mad King" seria outro
+#   nome. Duas linhas honestas são melhores que uma linha errada.
+#
+# ONDE CADA UM É ESCRITO (o `nomes_apps.sh` decide sozinho, pelo caminho)
+#   ~/.local/share/applications        arquivo nosso, escrita direta
+#   ~/.local/share/flatpak/exports/…   é um SYMLINK para a árvore do flatpak; ele
+#                                      é substituído por arquivo real, e o alvo
+#                                      original fica guardado ao lado — a mesma
+#                                      manobra do `app-themes/zapzap`
+#   /usr/share/applications            é do apt: `sudo install -m 644`, como o
+#                                      `ocultar_apps.sh`. Volta a cada upgrade do
+#                                      pacote, e por isso o conserto é idempotente
+#
+# QUE CHAVES SÃO REESCRITAS
+#   `Name=`, e `Name[pt_BR]=`/`Name[pt]=` quando existem — que é o que o sistema
+#   dela (pt_BR) de fato lê. As outras traduções ficam como estão: reescrever o
+#   `Name[ja]` de um arquivo do sistema com uma palavra em português seria estrago
+#   gratuito. E só a seção `[Desktop Entry]` é tocada: o `code.desktop` tem um
+#   `[Desktop Action new-empty-window]` com o próprio `Name=`, e mexer nele
+#   renomearia o item do menu de contexto, não o aplicativo.
+
+# --- descrição de pacote no lugar do nome do aplicativo ---------------------
+# 294 px, TRÊS linhas e ainda truncado: o pior da tela dela. "GNU Image
+# Manipulation Program" é a expansão da sigla, não o nome do programa — o próprio
+# projeto se chama GIMP na barra de título, no site e na boca de todo mundo.
+org.gimp.GIMP:GIMP
+
+# --- jogos: fica o título, sai o subtítulo -----------------------------------
+# 212 px e truncado em "Sackboy™: Uma Grande Ave...". O jogo é o Sackboy; o
+# subtítulo e o ™ são o que sobra.
+steam-1599660:Sackboy
+# 186 px, duas linhas. Mesmo corte do Sackboy: fica o título antes dos dois-pontos.
+steam-4145130:ORPHEUS
+
+# --- nome de repositório colado no nome do app -------------------------------
+# 166 px, duas linhas. O aplicativo se chama Hefesto — "Dualsense4Unix" é o nome
+# do repositório, e o próprio ícone dele já é `hefesto-dualsense4unix`.
+# ATENÇÃO: este .desktop é criado pelo install.sh do projeto Hefesto, então uma
+# reinstalação de lá devolve o nome comprido. O `--conferir` acusa e o `--aplicar`
+# refaz — mas o conserto durável é no install.sh do Hefesto, não aqui.
+hefesto-dualsense4unix:Hefesto
+
+# --- os aplicativos do próprio COSMIC ----------------------------------------
+# Todos em /usr/share/applications: precisam de sudo e voltam a cada upgrade do
+# pacote. Nenhum deles perde o sentido no corte — o que sai é a preposição.
+com.system76.CosmicPlayer:Reprodutor
+com.system76.CosmicFiles:Arquivos
+com.system76.CosmicStore:Loja
+# "Monitor do Sistema" -> "Monitor": é o único da lista com uma segunda leitura
+# possível (a tela). Num lançador de PROGRAMAS o risco é pequeno, e o ícone é o do
+# monitor de sistema — mas se ela achar ambíguo, apagar esta linha devolve o nome
+# inteiro em duas linhas.
+com.system76.CosmicMonitor:Monitor
+# "Ajustes do COSMIC" -> "Ajustes": o "do COSMIC" é redundante dentro do COSMIC.
+dev.edfloreshz.CosmicTweaks:Ajustes
+
+# --- apelido que a própria fabricante usa ------------------------------------
+# 119 px, duas linhas. "VS Code" é como a Microsoft chama o produto na
+# documentação e no instalador; não é apelido inventado aqui.
+code:VS Code

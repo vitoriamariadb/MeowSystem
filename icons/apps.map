@@ -3,7 +3,7 @@
 # FORMATO      nome-de-icone-do-.desktop : arquivo em icons/catppuccin-apps/<flavor>/
 #
 # A REGRA É "MESMO APLICATIVO", E ELA CUSTA COBERTURA DE PROPÓSITO
-#   O acervo tem 146 ícones e esta máquina tem 51 aplicativos, mas só 16 entram.
+#   O acervo tem 146 ícones e esta máquina tem 51 aplicativos, mas só 14 entram.
 #   O que barra o resto é a mesma regra que valeu para os mimetypes: um ícone
 #   errado é pior que um ícone genérico, porque ele MENTE sobre o que é a coisa.
 #   Descartados por isso, todos com correspondência tentadora e falsa:
@@ -11,11 +11,116 @@
 #       com.system76.CosmicEdit -> notepad  (idem)
 #       net.davidotek.pupgui2 -> lutris     (idem)
 #       org.bleachbit.BleachBit -> ccleaner (idem)
-#   Os 35 restantes continuam vindo do Papirus, que os cobre bem.
+#   Os restantes continuam vindo do Papirus, que os cobre bem.
+#
+# ============================================================================
+# DOIS SAÍRAM DAQUI EM 08/08/2026, E FOI MEDIDA QUE OS TIROU
+# ============================================================================
+#
+# Ela olhou o lançador e disse: "obsidian btop telegram qb torrent não tão
+# legais. não conseguimos substituir elas?". Os quatro foram rasterizados a
+# 48 px — o tamanho que a dock desenha de verdade — e medidos contra os QUATRO
+# fundos que existem nesta máquina: Mocha `#1e1e2e`, Latte `#eff1f5` e os DOIS
+# estados do vidro da dock (`VIDRO_OPACIDADE_DOCK=0.24`, o papel de parede gira e
+# o fundo oscila na mesma captura entre `#3C3B50` e `#826E92`).
+#
+# Duas réguas, porque uma só engana:
+#   WCAG  separação de LUMINÂNCIA entre a tinta e o fundo. É cega a croma: um
+#         roxo saturado sobre um roxo dessaturado de luminância parecida marca
+#         baixo e ainda assim se lê.
+#   ΔE90  distância em Oklab (p90 da tinta) entre a tinta composta e o fundo.
+#         Perceptual, enxerga croma. É o desempate.
+#
+# O QUE O LANÇADOR DELA MEDE HOJE, nos 48 ícones que ela vê de fato:
+#     WCAG dockC   min 1,64  p10 2,35  p25 3,03  p50 3,59
+#     ΔE90 dockC   min 0,125 p10 0,247 p25 0,285 p50 0,354
+#     cobertura    min 23%   p10 36%   p50 59%   p90 86%   (só o onlyoffice, 9%)
+#     croma p90    p10 0,039 p25 0,066 p50 0,101 p75 0,132 p90 0,175
+#
+# ---- org.telegram.desktop  SAIU: o Papirus ganha em TODOS os eixos -----------
+#   `telegram.png` deste acervo é um avião pálido SEM o círculo da marca:
+#       croma 0,067 (p25 do lançador) · matiz 213,0° contra 236,7° da marca
+#       WCAG dockC 3,04 · ΔE90 dockC 0,299 · contraste INTERNO 1,12 (chapado)
+#   O Papirus entrega a marca inteira, avião DENTRO do disco azul:
+#       croma 0,137 (p75) · matiz 236,7° — a marca, dH=0°
+#       WCAG dockC 4,07 · ΔE90 dockC 0,393 (acima do p75 do lançador) · int 2,49
+#   Não há eixo em que o acervo ganhe. Fora daqui, cai no Papirus por herança.
+#
+# ---- org.qbittorrent.qBittorrent  SAIU: idem, e por margem maior -------------
+#   `qbittorrent.png` é um disco CINZA com um "qb" quase da mesma cor do disco:
+#       croma 0,040 — na fronteira da neutralidade que este projeto usa (0,04)
+#       WCAG dockC 2,86 · ΔE90 dockC 0,280 · contraste INTERNO 2,15
+#   O Papirus entrega o "qb" em NEGRITO, ciano sobre disco azul-escuro:
+#       croma 0,142 · matiz 258,4° (a marca) · int 5,57
+#       WCAG dockC 4,57 · ΔE90 dockC 0,434 — o melhor de tudo que foi medido
+#
+# ---- md.obsidian.Obsidian  FICOU, e a troca é DECISÃO DELA -------------------
+#   Aqui as duas réguas apontam para o MESMO lado, e é o lado de ficar:
+#       acervo (hoje)  WCAG dockC 3,04 · ΔE90 0,299 · cobertura 50% · croma 0,045
+#       Papirus        WCAG dockC 1,77 · ΔE90 0,176 · cobertura 41% · croma 0,214
+#   O ΔE90 0,176 do Papirus fica ABAIXO do p10 do lançador dela (0,247), e a
+#   razão é física, não gosto: o estado CLARO do vidro é `#826E92`, um roxo
+#   dessaturado — e a gema do Obsidian é roxa. Roxo sobre roxo.
+#   O que o acervo erra é SÓ a croma: 0,045 é o decil de baixo do lançador dela, e
+#   a marca real tem C=0,195 no matiz 292,2°. Ou seja, o desenho é o cristal
+#   certo e a cor é cinza — é literalmente o "cristal quase branco" que ela viu.
+#   O acervo NÃO tem outro Obsidian: `latte/obsidian-md.png` conserta a croma
+#   (0,136) sem custo de separação (ΔE90 0,292) mas pinta o cristal de AZUL,
+#   matiz 260,9° — 31,3° fora da marca. E `latte` não é escolhível por ícone:
+#   `ICONES_FLAVOR` vale para os 14 de uma vez.
+#   TROCAR PELO PAPIRUS É APAGAR UMA LINHA — a linha do Obsidian abaixo. Trocar
+#   pelo latte é mudar `ICONES_FLAVOR` no meow.conf, e aí mudam todos.
+#
+# ============================================================================
+# "TEM MUITA LOGO DESTOANTE" — E O QUE DESTOA NÃO É SÓ QUEM ESTÁ FORA
+# ============================================================================
+#
+# Em 10/08/2026 ela olhou o lançador e disse: *"tem muita logo destoante"*,
+# *"muito item destoa legal aqui dentro"*. A leitura fácil é contar quem está
+# FORA do tema (são 13, e a lista viva sai de `scripts/icones_orfaos.py`). Mas
+# medindo os que já estão DENTRO aparece a outra metade do problema: eles não
+# falam a mesma língua entre si.
+#
+# COMO FOI MEDIDO (10/08/2026, sobre os PNG de 512 do acervo macchiato)
+#   matizes   `convert -alpha remove -colors 6` e, das cores que ocupam ≥2% da
+#             caixa, quantos grupos de matiz separados por mais de 25° sobram
+#             (descartando o que tem saturação < 0,18 ou luminância extrema —
+#             cinza e branco não são "cor de marca").
+#   caixa     média do canal alpha: quanto da caixa do ícone é tinta. É o que
+#             separa a PLACA (disco/quadrado que enche tudo) do RECORTE.
+#
+#   chapado, polícromo, com placa   chrome 4 matizes [40 102 217 351] · caixa 0,79
+#   marca de 1-2 matizes, com placa github 0,79 · qbittorrent 0,79 · spotify 0,79
+#                                   obs-studio 0,76
+#   marca de 1-2 matizes, recortada firefox 0,66 · krita 0,69 · steam 0,57
+#                                   discord 0,56 · vscode 0,55 · obsidian 0,50
+#                                   vlc 0,48 · telegram 0,44 · brave 0,42
+#                                   whatsapp 0,34 · gimp 0,33 (0 matizes: é cinza)
+#   traço fino monocromático        os 3 do `icons/apps-arcticons.map`, SVG de
+#                                   1 px de traço em `48x48/apps`
+#   desenho autoral chapado         os 10 `com.system76.*`, o `repoman` e os dois
+#                                   dela, em `scalable/apps`
+#
+# SÃO QUATRO GRAMÁTICAS NA MESMA GRADE, e é isso que a vista dela pegou antes de
+# qualquer medição: um traço de 1 px ao lado de um disco chapado de 0,79 de
+# caixa não é "um ícone feio" — são duas linguagens.
+#
+# NÃO SE TROCA NADA AQUI ANTES DA RESPOSTA DELA. Qual gramática vale para o
+# lançador inteiro é gosto, e neste projeto gosto vem da folha visual, não do
+# código. Duas coisas que a folha PRECISA fazer, e a segunda já foi errada uma
+# vez: mostrar cada ícone nos DOIS tamanhos — 48 px, que é o que a dock desenha
+# (medido, cabeçalho do `icones_apps_arcticons.sh`), e ~128 px, que é a grade do
+# lançador, que é onde a queixa dela nasceu. Uma folha só a 48 px esconde
+# metade do que ela viu, porque é a 128 que a diferença nítido/borrado aparece e
+# que o traço de 1 px fica fino em proporção. Os fundos são os quatro de sempre,
+# logo abaixo.
 #
 # O QUE NÃO SE TOCA, POR PEDIDO EXPRESSO DELA
 #   Os jogos da Steam (steam_icon_*), o Hefesto e o FogStripper. O script pula
 #   esses nomes mesmo que um dia apareçam aqui.
+#   E o `btop` em `osmonitor`/`maroon` foi escolha textual dela em 08/08/2026:
+#   ele está em `icons/apps-arcticons.map`, é da gramática do traço, e não entra
+#   em nenhuma "uniformização" sem ela dizer.
 #
 # PROCEDÊNCIA E LICENÇA — LEIA ANTES DE PUBLICAR QUALQUER COISA
 #   Daveedmee/catppuccin-icons, sem licença declarada (`license: null` na API do
@@ -29,19 +134,28 @@
 #   entregue em .ico é 24bpp SEM canal alpha (ícone viraria quadrado sólido); o
 #   que se usa aqui são os PNG de 512x512 com alpha, da pasta de preview.
 
-com.brave.Browser:brave
-com.discordapp.Discord:discord
-com.obsproject.Studio:obs-studio
-com.spotify.Client:spotify
-firefox:firefox
-google-chrome:chrome
-io.github.shiftey.Desktop:github
-md.obsidian.Obsidian:obsidian-md
-meow-whatsapp:whatsapp
-org.gimp.GIMP:gimp
-org.kde.krita:krita
-org.qbittorrent.qBittorrent:qbittorrent
-org.telegram.desktop:telegram
-org.videolan.VLC:vlc
-steam:steam
-vscode:vscode
+# ============================================================================
+# ESTE MAPA FICOU VAZIO EM 10/08/2026 — E ISSO É UM RESULTADO, NÃO UM DEFEITO
+# ============================================================================
+#
+# As 14 linhas que viviam aqui vestiam o lançador com o acervo Catppuccin: a
+# marca de cada aplicativo, chapada, colorida, sobre placa. Todas as 14 mudaram
+# de mapa: estão em `icons/apps-arcticons.map`, agora em traço de 1 px.
+#
+# A decisão foi dela, em 10/08/2026, depois de ver as duas folhas
+# (`scripts/folha_icones.py` e `scripts/folha_proposta.py`). O motivo está
+# medido no cabeçalho do outro mapa e cabe numa linha: este acervo tem 146 nomes
+# e cobre DOIS dos 16 aplicativos que estavam sem tema; o Arcticons tem 14.996 e
+# cobre TREZE. Unificar aqui deixaria 25 de fora, o que não é unificar.
+#
+# O ACERVO NÃO FOI APAGADO, E ISSO É DE PROPÓSITO
+#   `icons/catppuccin-apps/` continua inteiro no repositório, nos quatro
+#   sabores. Desfazer a unificação é devolver as 14 linhas para cá e tirá-las
+#   de lá — não é baixar nada de novo. Apagar o acervo tornaria a decisão dela
+#   irreversível sem rede, e decisão de gosto tem que poder voltar atrás barato.
+#
+# O `ICONES_FLAVOR` CONTINUA IMPORTANDO
+#   Ele ainda governa os ícones de tipo de arquivo (`icons/mimetypes.map`).
+#   Enquanto este mapa estiver vazio, ele não tem efeito nenhum sobre
+#   aplicativo — e a diferença mocha/macchiato que aparecia aqui deixou de
+#   existir junto com as 14 linhas.

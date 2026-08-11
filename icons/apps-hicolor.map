@@ -1,0 +1,57 @@
+# apps-hicolor.map — os aplicativos que ficam com a MARCA DE FÁBRICA, copiada do
+# `hicolor` do sistema para dentro do nosso tema.
+#
+# Formato:  nome-de-icone-do-.desktop : caminho absoluto do arquivo no sistema
+#
+# ============================================================================
+# POR QUE ISTO É UM MAPA, E NÃO UMA TABELA DENTRO DO SCRIPT
+# ============================================================================
+#
+# Porque tem DOIS leitores, e um deles não fala bash.
+#
+#   `scripts/completar_icones.sh` — instala o que está aqui;
+#   `scripts/icones_apps.sh`      — precisa saber que estes nomes NÃO são órfãos
+#                                   dele antes de varrer `<tam>/apps`.
+#
+# Enquanto a tabela morava dentro do `completar_icones.sh`, o segundo não tinha
+# como enxergá-la, e o desfecho estava medido: o `completar` põe
+# `thunderbird.png` em `128x128/apps`, o `icones_apps.sh` não acha o nome no
+# `apps.map` dele e apaga — e o `install.sh` roda os dois nessa ordem, toda vez.
+# É o defeito de "dois donos" que este projeto já pagou uma vez, com a diferença
+# de que aqui ele piscaria todo dia, porque o auto-reparo das 5h roda os dois.
+# Um dono declara em arquivo; o vizinho lê. Ninguém duplica lista.
+#
+# ============================================================================
+# O CAMINHO CARREGA O TAMANHO, E É DELE QUE SAI O DESTINO
+# ============================================================================
+#
+# O `completar_icones.sh` deriva o diretório de destino do PRÓPRIO caminho da
+# fonte (`.../128x128/apps/` -> `128x128/apps`). Duas consequências:
+#
+#   1. apontar para o `48x48` do sistema instala em `48x48/apps`, e apontar para
+#      o `128x128` instala em `128x128/apps`. Nunca em `scalable/`, que é onde o
+#      `thunderbird.png` estava até 10/08/2026 — raster num diretório declarado
+#      `Size=128` faz o resolvedor entregar 48 px a quem pede 128
+#      (`docs/COSMIC-THEMING.md` §4d);
+#   2. o tamanho não é adivinhado nem medido com `identify`: está escrito no
+#      caminho. Uma dependência a menos.
+#
+# Escolha o MAIOR raster que o sistema oferecer: reduzir perde nitidez, ampliar
+# inventa. Conferido em 10/08/2026:
+#     /usr/share/icons/hicolor/128x128/apps/thunderbird.png  ->  PNG 128x128
+#
+# ============================================================================
+# TIRAR UMA LINHA DAQUI NÃO DEIXA NINGUÉM SEM ÍCONE
+# ============================================================================
+#
+# O Papirus COBRE o Thunderbird, em VETOR, em todos os tamanhos (medido:
+# `ls -L /usr/share/icons/Papirus-Dark/*/apps/thunderbird.svg` devolve de 16x16 a
+# 128x128, mais os `@2x`). Ou seja, esta linha não conserta uma ausência: ela
+# escolhe a marca de fábrica em vez do desenho do Papirus. Isso é gosto, e está
+# aberto na página de curadoria como os outros.
+#
+# Apagar a linha basta: quem varre `<tam>/apps` é o `icones_apps.sh`, que lê este
+# arquivo justamente para não apagar o que é do vizinho — sem a linha, o nome
+# volta a ser órfão para ele e sai no próximo `--aplicar`. O vetor do Papirus
+# volta a valer sozinho. É o desfazer inteiro, e não precisa de mais nada.
+thunderbird:/usr/share/icons/hicolor/128x128/apps/thunderbird.png
