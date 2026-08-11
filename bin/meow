@@ -105,8 +105,13 @@ MEOW_RAIZ="$RAIZ"; export MEOW_RAIZ
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-CONF="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
-CONF_PADRAO="$RAIZ/meow.conf.exemplo"
+# Os dois caminhos saem do `lib/comum.sh` desde 11/08/2026 — lá é onde mora
+# agora a única rotina que escreve neste arquivo (`meow_conf_definir`), e o
+# `wallpaper.sh permitir` da Sprint M precisa dela também. Repetir o
+# `${MEOW_CONF:-...}` aqui daria dois lugares para o override valer, e um dia
+# eles discordariam.
+CONF="$MEOW_CONF_ARQUIVO"
+CONF_PADRAO="$MEOW_CONF_PADRAO"
 COSMIC="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
 IS_DARK="$COSMIC/com.system76.CosmicTheme.Mode/v1/is_dark"
 
@@ -115,6 +120,24 @@ IS_DARK="$COSMIC/com.system76.CosmicTheme.Mode/v1/is_dark"
 # seco: sem FLAVOR e ACCENT nada aqui embaixo tem o que conferir, e morrer com
 # "variável não associada" esconderia a causa de verdade.
 CONF_LIDA=""
+# AS CHAVES `FORMA_*` PRECISAM SER EXPORTADAS, E ISSO NÃO ERA VERDADE ATÉ 11/08
+#   O `carregar_conf` faz `. "$fonte"`: as chaves ficam neste shell, não no
+#   ambiente. O `forma.sh` roda como processo filho e lê tudo de
+#   `${FORMA_...:-padrão}` — ou seja, até aqui ele SEMPRE via os padrões, e as
+#   chaves do `meow.conf` não tinham efeito nenhum sobre a geometria.
+#   Ninguém notou porque as chaves nem existiam no `meow.conf.exemplo`: só
+#   apareceram quando `FORMA_DOCK_ILHA` precisou de fato ser trocada.
+#   O `export` sem valor exporta a variável já definida; a que não existir sai
+#   vazia, e o `${...:-padrão}` do outro lado a devolve ao padrão.
+rodar_forma() {
+  (
+    export FORMA_PAINEL_SOLTO FORMA_DOCK_SOLTO FORMA_PAINEL_ILHA FORMA_DOCK_ILHA \
+           FORMA_MARGEM_PAINEL FORMA_MARGEM_DOCK FORMA_RAIO_PAINEL FORMA_RAIO_DOCK \
+           FORMA_ESPACO_PAINEL FORMA_ESPACO_DOCK FORMA_RECHEIO_PAINEL FORMA_RECHEIO_DOCK
+    "$1"/scripts/forma.sh
+  )
+}
+
 carregar_conf() {
   local fonte="$CONF"
   [ -f "$fonte" ] || fonte="$CONF_PADRAO"
@@ -127,63 +150,22 @@ carregar_conf() {
   return 0
 }
 
-# Troca (ou acrescenta) uma chave do meow.conf preservando o comentário da linha.
-# É o que faz `meow tema claro` e `meow logo <x>` valerem também para o próximo
-# `meow aplicar` — sem isso a mudança duraria até o self-heal seguinte.
+# AS DUAS ROTINAS QUE ESCREVEM NO MEOW.CONF MUDARAM DE ENDEREÇO EM 11/08/2026
+#   `conf_texto_definir` e `conf_definir` moraram aqui até a Sprint M e agora são
+#   `meow_conf_texto_definir` e `meow_conf_definir`, em `lib/comum.sh` — com o
+#   texto e o cabeçalho inteiros, que explicam por que isto é bash e não `sed` e
+#   por que troca TODAS as ocorrências da chave.
 #
-# É FEITO EM BASH, E NÃO COM UM `sed`, POR CAUSA DO COMENTÁRIO DA LINHA
-#   O meow.conf é comentado linha a linha, e o comentário é metade do valor dele
-#   como documentação. Um `sed -E 's|^(MODO=)[^#]*(#.*)?$|...|'` parece resolver
-#   e não resolve: o `[^#]*` é guloso, engole os espaços que separam o valor do
-#   comentário e devolve `MODO="claro"# escuro | claro | auto`, colado. ERE não
-#   tem quantificador preguiçoso para consertar isso. Aqui a linha é partida no
-#   primeiro `#` e os espaços de antes dele são preservados como estavam.
+#   O motivo da mudança: o `scripts/wallpaper.sh permitir` precisa gravar a
+#   `WALLPAPER_FONTES_DELA`, e ele roda como processo filho — não enxerga função
+#   definida aqui dentro. Reimplementar lá seria a segunda rotina de escrita na
+#   mesma chave, e é assim que duas versões da mesma regra passam a discordar.
 #
-#   Limite conhecido: valor que CONTENHA `#` (um hex de cor, por exemplo) seria
-#   lido como comentário. Nenhuma chave deste conf é assim — as cores vêm da
-#   paleta, nunca do conf — e o wizard recusa `#` e `"` na resposta dela.
-#
-# TODAS AS OCORRÊNCIAS, NÃO SÓ A PRIMEIRA — E ISSO É MEDIÇÃO, NÃO ZELO
-#   O `meow.conf.exemplo` tinha `LOGO_INTERVALO=` DUAS vezes (30m na seção da
-#   logo, 1d na do wallpaper) até 05/08/2026. O arquivo é lido pelo `.` do shell,
-#   onde vale a ÚLTIMA atribuição; esta função escrevia só a PRIMEIRA. O
-#   resultado numa máquina recém-instalada seria `meow configurar` gravar `2h`,
-#   imprimir o diff certo, e o valor em vigor continuar `1d` — sem nada acusar.
-#   O exemplo foi corrigido, e aqui a regra passou a ser "a chave inteira": um
-#   conf com a mesma chave duas vezes sai deste caminho com as duas concordando.
-conf_texto_definir() {
-  local texto="$1" chave="$2" valor="$3" novo="" linha resto antes espacos comentario achou=0
-  while IFS= read -r linha; do
-    if [ "${linha#"$chave"=}" != "$linha" ]; then
-      achou=1
-      resto="${linha#"$chave"=}"
-      if [ "${resto#*#}" != "$resto" ]; then
-        antes="${resto%%#*}"
-        comentario="#${resto#*#}"
-        # O sufixo que sobra depois do último caractere não-branco: exatamente
-        # os espaços que alinhavam o comentário.
-        espacos="${antes##*[![:space:]]}"
-        linha="$chave=\"$valor\"$espacos$comentario"
-      else
-        linha="$chave=\"$valor\""
-      fi
-    fi
-    novo="$novo$linha"$'\n'
-  done <<< "$texto"
-  novo="${novo%$'\n'}"
-  [ "$achou" = "1" ] || novo="$novo"$'\n'"$chave=\"$valor\""
-  printf '%s' "$novo"
-}
-
-conf_definir() {
-  local chave="$1" valor="$2" texto
-  if [ ! -f "$CONF" ]; then
-    texto="$(cat "$CONF_PADRAO" 2>/dev/null)" || return "$MEOW_ERRO"
-  else
-    texto="$(cat "$CONF")"
-  fi
-  meow_escrever "$CONF" "$(conf_texto_definir "$texto" "$chave" "$valor")" 644
-}
+#   Estes dois aliases existem para os pontos desta CLI que chamavam pelos nomes
+#   antigos continuarem legíveis; quem lê `conf_definir MODO claro` não precisa
+#   saber onde a função mora.
+conf_texto_definir() { meow_conf_texto_definir "$@"; }
+conf_definir()       { meow_conf_definir "$@"; }
 
 # Log e notificação TAMBÉM são escrita. `MEOW_DRY_RUN=1` promete não escrever
 # nada, e uma notificação na tela dela dizendo "o doctor consertou" no meio de
@@ -328,6 +310,8 @@ chk_pastas() {
 chk_wallpaper() {
   MEOW_DRY_RUN=1 WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+    WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
+    WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
     "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1
 }
 
@@ -351,7 +335,7 @@ chk_vidro() {
 # num controle de painel para o `expand_to_edges` voltar, e sem esta linha
 # ninguém acusaria.
 chk_forma() {
-  MEOW_DRY_RUN=1 "$RAIZ/scripts/forma.sh" 2>&1
+  MEOW_DRY_RUN=1 rodar_forma "$RAIZ" 2>&1
 }
 
 chk_hicolor() {
@@ -398,6 +382,15 @@ chk_sistema() {
 chk_bandeja() {
   ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$RAIZ/scripts/icones_bandeja.sh" --conferir 2>&1
+}
+
+# O ícone de bandeja da STEAM. ESTE É O VERIFICADOR QUE FALTAVA — e a falta tinha
+# preço medido: a troca de 10/08/2026 foi desfeita pelo próprio cliente 18 min
+# depois (`BVerifyInstalledFiles` reprovou o tamanho e reextraiu o
+# `public_all.zip`), e NADA acusou. Só se descobriu no dia seguinte, olhando a
+# barra. Confere E conserta: não usa sudo, escreve no HOME dela.
+chk_traysteam() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/icones_tray_steam.sh" --conferir 2>&1
 }
 
 # O `Icon=` de caminho absoluto. CONFERE, MAS NÃO CONSERTA — mesma razão exata do
@@ -488,12 +481,14 @@ fix_pastas()    { ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
                     "$RAIZ/scripts/construir_pastas.sh" 2>&1; }
 fix_wallpaper() { WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
                     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+                    WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
+                    WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
                     "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
 fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
                     "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1; }
 fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
                     "$RAIZ/scripts/vidro.sh" 2>&1; }
-fix_forma()     { "$RAIZ/scripts/forma.sh" 2>&1; }
+fix_forma()     { rodar_forma "$RAIZ" 2>&1; }
 fix_hicolor()   { "$RAIZ/scripts/hicolor.sh" 2>&1; }
 fix_mimetypes() { ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
                     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
@@ -507,6 +502,7 @@ fix_sistema()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_sistema.sh" --aplicar 2>&1; }
 fix_bandeja()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_bandeja.sh" --aplicar 2>&1; }
+fix_traysteam() { "$RAIZ/scripts/icones_tray_steam.sh" --aplicar 2>&1; }
 fix_jogos()     { "$RAIZ/scripts/jogos_steam.sh" 2>&1; }
 fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" --sem-sudo 2>&1; }
 fix_assets()    { ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" \
@@ -516,7 +512,7 @@ fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons sistema bandeja jogos ocultar absolutos nomes pastasxdg pastas wallpaper apps assets)
+VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons sistema bandeja traysteam jogos ocultar absolutos nomes pastasxdg pastas wallpaper apps assets)
 SEM_CONSERTO=" conf ocultar absolutos "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -679,6 +675,8 @@ cmd_status() {
     campo "${l%%:*}" "$(printf '%s' "${l#*:}" | sed 's/^ *//')"
   done < <(MEOW_DRY_RUN=1 WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
              WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+             WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
+             WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
              "$RAIZ/scripts/wallpaper.sh" estado 2>/dev/null)
 
   meow_passo "Divergências"
@@ -1014,7 +1012,7 @@ cmd_wallpaper() {
   carregar_conf || return "$MEOW_ERRO"
   local acao="${1:-estado}"
   case "$acao" in
-    estado|aplicar|adicionar|banir|semear)
+    estado|aplicar|adicionar|banir|semear|permitir)
       # Só passa adiante o que o scripts/wallpaper.sh tem de verdade. Os
       # comandos `proximo`, `fixar`, `favoritar` e `recolorir` do contrato NÃO
       # existem ainda — e `proximo` em particular não é implementável na rotação
@@ -1027,18 +1025,24 @@ cmd_wallpaper() {
       # pinado) DEPOIS que esta lista foi escrita, e a CLI seguia recusando um
       # comando que funciona. Lista de coisas-que-não-existem envelhece sozinha;
       # esta agora é conferida contra o `case` do fim do wallpaper.sh.
-      case "$acao" in aplicar|adicionar|banir|semear) meow_travar || return "$MEOW_ERRO" ;; esac
+      #
+      # O `permitir` entrou em 11/08/2026 (Sprint M) e TAMBÉM toma o lock: ele é
+      # o único desta lista que escreve no meow.conf, e o `meow configurar` —
+      # que escreve no mesmo arquivo — já roda sob a mesma trava.
+      case "$acao" in aplicar|adicionar|banir|semear|permitir) meow_travar || return "$MEOW_ERRO" ;; esac
       shift || true
       WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
         WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+        WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
+        WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
         "$RAIZ/scripts/wallpaper.sh" "$acao" ${1:+"$1"}
       return $? ;;
     proximo|fixar|favoritar|recolorir|intervalo|ordem)
       meow_erro "'$acao' ainda não existe"
-      meow_info "o que existe hoje: estado, aplicar, adicionar <img|pasta>, banir <img>, semear"
+      meow_info "o que existe hoje: estado, aplicar, adicionar <img|pasta>, banir <img>, semear, permitir <caminho>"
       meow_info "intervalo e ordem se mudam no $CONF (WALLPAPER_INTERVALO / WALLPAPER_ORDEM)"
       return "$MEOW_SEM_DEPENDENCIA" ;;
-    *) meow_erro "uso: meow wallpaper [estado|aplicar|adicionar <alvo>|banir <img>|semear]"
+    *) meow_erro "uso: meow wallpaper [estado|aplicar|adicionar <alvo>|banir <img>|semear|permitir <caminho>]"
        return "$MEOW_ERRO" ;;
   esac
 }

@@ -8,7 +8,7 @@ dia em que alguma coisa mudar, o que pode ser modificado e o que não pode.
 |---|---|---|---|---|
 | `catppuccin/vscode-icons` | `icons/catppuccin/<flavor>/` | MIT | sim | sim, com o aviso de copyright |
 | `Daveedmee/catppuccin-icons` | `icons/catppuccin-apps/<flavor>/` | **não declarada** | indefinido | **não** — uso local apenas |
-| Arcticons (sistema) | `icons/arcticons/` — **37** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| Arcticons (sistema) | `icons/arcticons/` — **38** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
 | Arcticons (aplicativo) | `icons/arcticons-apps/` — **8** glifos, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
 | marca de fábrica | `icons/apps-hicolor.map` — **1** nome, copiado do `hicolor` do sistema | a do próprio programa | **não** — cópia literal | não |
 | Papirus / Papirus-Dark | pacote `papirus-icon-theme` do sistema | GPL-3.0 | sim | sim, sob GPL |
@@ -63,6 +63,27 @@ o Arcticons e liberar o derivado sob a mesma licença. Como este repositório n�
 é publicado, o ponto é teórico — mas se um dia for, o share-alike passa a ter
 consequência sobre os ícones derivados dele, e só sobre eles.
 
+### O `steam` do acervo de sistema foi CÓPIA, não download — 11/08/2026
+
+O `icons/arcticons/steam.svg` (o 38.º glifo) entrou em 11/08/2026 para o
+`scripts/icones_tray_steam.sh` vestir o ícone de bandeja da Steam. Ele **não foi
+baixado**: já estava versionado aqui, em `icons/arcticons-apps/steam.svg` — mesmo
+pack, mesma licença, e nenhum dos dois acervos lê o diretório do outro. Foi `cp`,
+exatamente pela regra que o `shield` inaugurou em 10/08: *vale conferir o
+repositório antes de sair baixando*.
+
+Conferido mesmo assim contra o upstream: `curl -s
+https://api.iconify.design/arcticons/steam.svg` devolve **713 bytes byte a byte
+idênticos** ao arquivo que já estava aqui. Os dois arquivos são o mesmo desenho,
+em `currentColor`, e continuam sendo **um** glifo do pack — não dois, para efeito
+da contagem da tabela lá em cima.
+
+A cópia não muda nada na tela sozinha: o `icones_sistema.sh` e o
+`icones_bandeja.sh` leem os **mapas**, não o diretório, e nenhuma linha nova
+entrou em `icons/sistema.map` nem em `icons/bandeja.map`. Quem usa este glifo é
+só o `icones_tray_steam.sh`, que o nomeia direto no código porque o alvo dele é
+**um** arquivo fora do tema de ícones, e um mapa de uma linha seria cerimônia.
+
 - Fonte: <https://github.com/Arcticons-Team/Arcticons>
 - Medido em 05/08/2026 pela API do Iconify: **14.996 ícones**. **Reconferido em
   08/08/2026** pelo índice completo, e agora com a conta aberta, porque "14.996"
@@ -82,14 +103,22 @@ consequência sobre os ícones derivados dele, e só sobre eles.
 
 | | `icons/arcticons/` | `icons/arcticons-apps/` |
 |---|---|---|
-| quem consome | `scripts/icones_sistema.sh` **e** `scripts/icones_bandeja.sh` | `scripts/icones_apps_arcticons.sh` |
-| mapa | `icons/sistema.map` **e** `icons/bandeja.map` | `icons/apps-arcticons.map` |
-| destino | `22x22/status` + `scalable/status` (sistema) · `20x20/status` (bandeja) | `48x48/apps` |
-| cor | **nenhuma** — fica em `currentColor` | **atribuída**, chave da paleta |
+| quem consome | `scripts/icones_sistema.sh`, `scripts/icones_bandeja.sh` **e** `scripts/icones_tray_steam.sh` | `scripts/icones_apps_arcticons.sh` |
+| mapa | `icons/sistema.map` **e** `icons/bandeja.map` (o da Steam não tem mapa: é **um** arquivo, nomeado no script) | `icons/apps-arcticons.map` |
+| destino | `22x22/status` + `scalable/status` (sistema) · `20x20/status` (bandeja) · `~/.steam/…/public/steam_tray_mono.png` (Steam) | `48x48/apps` |
+| cor | **nenhuma** no acervo — fica em `currentColor` | **atribuída**, chave da paleta |
 
-O acervo de sistema tem **dois** consumidores porque a bandeja da barra é outro
+O acervo de sistema tem **três** consumidores porque a bandeja da barra é outro
 consumidor do mesmo desenho monocromático — mas cada um é dono do seu diretório,
-e nenhum escreve no do outro. Se os dois escrevessem em `scalable/status`, a
+e nenhum escreve no do outro.
+
+O terceiro é a exceção que confirma a regra da coluna "cor": o
+`icones_tray_steam.sh` **coza `#DEDEDE` no PNG que produz**, e não porque
+descuidou da paleta. O toolkit repinta `symbolic` e **não** repinta raster
+(medido em `icons/bandeja.map:79-94`), então num arquivo raster a cor tem de
+estar dentro dele — e ela é cinza, não mauve, porque os vizinhos daquela barra
+são cinzas. O SVG do acervo continua em `currentColor`; quem colore é o script,
+no momento de rasterizar. Se os dois escrevessem em `scalable/status`, a
 remoção de órfão de um apagaria o trabalho do outro a cada passagem: é o defeito
 de "dois donos", que este projeto já pagou uma vez. Ver o cabeçalho do
 `scripts/icones_bandeja.sh`, que mede por que `20x20` e não `22x22`.

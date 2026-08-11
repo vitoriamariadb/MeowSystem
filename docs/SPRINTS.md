@@ -310,7 +310,7 @@ ls ~/.local/share/icons/MeowSystem-Icons/*/apps/com.system76.Cosmic*.svg
 
 ---
 
-## Sprint K — os ícones da bandeja  ← **ABERTA, uma regressão real**
+## Sprint K — os ícones da bandeja  ← **FECHADA em 11/08/2026**
 
 Frase dela: *"temos o problema do ícone do tray de todos os apps"*.
 
@@ -333,36 +333,92 @@ applets nativos do COSMIC, dono `icones_sistema.sh`, e **já estão vestidos**
 
 | app | dá para vestir pelo tema? | por quê |
 |---|---|---|
-| **Steam** | sim, por substituição de arquivo | **REGREDIU** — ver abaixo |
+| **Steam** | sim, por substituição de arquivo | regrediu em 10/08 e está **vestido de novo**, agora com dono — ver abaixo |
 | **ZapZap** | sim, por substituição na fonte | **intacto**, conferido no arquivo vivo |
 | **qBittorrent** | **não** | recurso Qt compilado no binário; `IconName` vazio + `IconPixmap` raster |
 | **Spotify** | **não** | `IconThemePath` aponta para dentro do flatpak, somente-leitura |
 | **Hefesto** | sim, mas **não se toca** | é desenho autoral dela (Decisão 14) |
 
-### A regressão da Steam, com carimbo de hora
+### A regressão da Steam — a causa, e por que a hipótese anterior caiu
 
-`~/.steam/debian-installation/public/steam_tray_mono.png` é **byte-idêntico** ao
-original de fábrica de 2014 hoje (`cmp` contra os dois backups: mesmos 5405
-bytes). O `mtime` está preservado em 2014, mas o **`ctime` é de 10/08/2026
-23:29:55** — **11 segundos depois** de o backup ter sido criado.
+A hipótese registrada aqui era **bug no nosso passo de escrita** ("copiou o
+original por cima do desenhado"), apoiada num intervalo de **11 segundos** entre
+o backup e o `ctime`. As duas coisas estavam erradas, e a medição mostra por quê.
 
-Onze segundos é curto demais para ser um update do cliente Steam. A hipótese
-mais provável é **bug no passo de escrita**: copiou o *original* por cima em vez
-do *desenhado*. **Investigar antes de repetir a manobra** — reaplicar sem achar o
-bug reproduz a regressão.
+**Os 11 segundos não são backup → reversão.** São `birth` → `ctime` do próprio
+arquivo (23:29:55 → 23:30:06). O backup foi criado às **23:12:00**, isto é
+**17 min 55 s** antes. E aqueles 11 segundos são de uma coisa muito maior: **todo**
+arquivo de `public/` nasceu entre 23:29:55 e 23:29:57 e teve `ctime` 23:30:06,
+com o `mtime` de dentro do pacote preservado (2004, 2009, 2011, 2024, 2025…).
+Não foi *um* arquivo trocado — foi o `public_all.zip` inteiro reextraído.
 
-### O que fazer
+**Quem desfez foi a própria Steam**, e está escrito com o nome da função em
+`~/.steam/debian-installation/logs/bootstrap_log.txt`:
 
-1. Achar por que reverteu em 11 segundos. Só depois reaplicar.
-2. Promover a substituição a um script com `--conferir`, como o
-   `icons/bandeja.map:178` já pedia — hoje uma reversão é **muda**, não aparece
-   no `meow doctor`.
-3. Baixar o glifo `steam` do Arcticons e **guardar em `icons/arcticons/`** — hoje
-   ele não está no acervo (37 glifos, nenhum `steam.svg` nem `whatsapp.svg`), e
-   a manobra depende de repetir um `curl` manual.
-4. qBittorrent e Spotify: **não há via**. Registrar como limite, não como
-   pendência. (No qBittorrent, a única alavanca é `Advanced\TrayIconStyle`, e já
-   está em `MonoDark`, que é o certo para barra escura.)
+```
+[2026-08-10 23:29:48] Verificando a instalação...
+[2026-08-10 23:29:48] Verifying all executable checksums
+[2026-08-10 23:29:49] BVerifyInstalledFiles: public/steam_tray_mono.png is 2342 bytes, expected 5405
+[2026-08-10 23:29:53] Verification complete
+[2026-08-10 23:29:54] Extraindo o pacote...
+[2026-08-10 23:30:05] Instalando a atualização...
+```
+
+**Não foi o Ritual da Aurora**: `grep -rn steam_tray ~/.config/zsh/scripts/` não
+devolve uma linha. **Não foi bug nosso**: o `meow.log` não tem nenhuma entrada
+com "steam", e nenhum script do repositório citava aquele caminho.
+
+### O conserto: o arquivo passa na auditoria da Steam
+
+O cliente guarda o inventário em `package/steam_client_ubuntu12.installed`:
+
+```
+public/steam_tray_mono.png,5405;1407376580;3187707190
+                           tam ;  mtime   ;   crc32
+```
+
+Os três campos foram conferidos contra o arquivo de fábrica e batem
+(`1407376580` = 2014-08-06 22:56:20; `zlib.crc32` = `3187707190`). E o binário
+tem as duas armas — `BVerifyInstalledFiles: %s is %lld bytes, expected %lld` e
+`bad CRC on %s` —, com os arquivos daquele diretório em modo `0775`, bit de
+execução ligado. Reaplicar sem cuidar disso seria assinar uma esteira: **180**
+verificações "all executable checksums" e **174** "file sizes only" estão
+registradas naquele log, uma por abertura do cliente.
+
+O `scripts/icones_tray_steam.sh` monta o PNG com os **três** campos iguais aos de
+fábrica: chunk ancilar privado `meOw` para o tamanho, 4 bytes depois do `IEND`
+resolvidos por eliminação de Gauss sobre GF(2) para o `crc32`, e `touch -d` para
+o `mtime`. O porquê de cada passo está no cabeçalho do script.
+
+**De quebra, o traço da manobra manual estava errado, e o tamanho prova:** 2342
+bytes é exatamente o que o glifo dá a 48 px **sem** `stroke-width`; com
+`stroke-width="4"` dá 2429. A troca de 10/08 saiu com o traço padrão do SVG (1 de
+48 = 0,33 px na bandeja de 16 px) — o traço fino que o cabeçalho do
+`icones_bandeja.sh` avisa que some. O script usa **4**, o número dela.
+
+### O que foi feito
+
+1. Causa achada e provada (acima). Não era bug nosso nem da Aurora.
+2. `scripts/icones_tray_steam.sh`, com `--conferir`, `MEOW_DRY_RUN`, backup
+   antes de escrever e códigos 0/1/2/3. Ligado no `install.sh`
+   (`etapa_icones_tray_steam`) e no `meow doctor` (`chk_traysteam`/`fix_traysteam`,
+   linha `traysteam`) — a reversão deixa de ser muda, que era o que o
+   `icons/bandeja.map` pedia.
+3. Glifo `steam` no acervo, em `icons/arcticons/steam.svg` (38 glifos). **Não
+   foi baixado**: já estava em `icons/arcticons-apps/steam.svg`, mesmo pack e
+   mesma licença — foi `cp`, pela regra que o `shield` inaugurou. Conferido
+   mesmo assim contra o upstream (713 bytes byte a byte idênticos) e registrado
+   em `icons/PROCEDENCIA.md`.
+4. qBittorrent e Spotify: **não há via**, registrado como limite. (No
+   qBittorrent a única alavanca é `Advanced\TrayIconStyle`, já em `MonoDark`.)
+
+### O que fica em aberto, e é decisão dela
+
+O traço **4** é 8,33% da caixa — o peso relativo que ela aprovou na folha da
+Sprint A. Na bandeja o ícone é desenhado a 16–17 px, então dá **1,33 px** de
+tela, enquanto os simbólicos vizinhos (20 px, traço 4) dão **1,67 px**. Para
+igualar em pixel, o número é **5,0**, e é uma linha no topo do script
+(`MEOW_TRAY_STEAM_TRACO`). Fica no que ela já aprovou até ela dizer outra coisa.
 
 ### Achado solto, a esclarecer com ela
 

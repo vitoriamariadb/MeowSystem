@@ -19,9 +19,17 @@
 #
 # E POR QUE ELE SÓ É SEGURO POR CAUSA DA FRONTEIRA
 #   Um relógio de 15 minutos revertendo qualquer divergência seria brigar com
-#   ela quinze vezes por hora. O `scripts/wallpaper.sh` distingue os três casos
-#   (nosso · reset de fábrica · escolha dela) e devolve 4 no terceiro, sem
-#   escrever. Sem essa fronteira, ESTE ARQUIVO NÃO DEVE EXISTIR.
+#   ela quinze vezes por hora. O `scripts/wallpaper.sh` distingue quatro casos
+#   (nosso · reset de fábrica · caminho que ela autorizou · reversão) e devolve
+#   4 no terceiro, sem escrever. Sem essa fronteira, ESTE ARQUIVO NÃO DEVE
+#   EXISTIR.
+#
+#   O terceiro caso era "qualquer lugar que não fosse a fábrica" até 11/08/2026,
+#   e isso tornava este relógio INÚTIL exatamente quando ele mais importava: com
+#   o `output.DP-1` apontando para a pasta antiga dela, ele rodou de 15 em 15
+#   minutos devolvendo `status=4` e o carrossel ficou desligado até alguém
+#   olhar. Agora a escolha dela é uma lista dita (`WALLPAPER_FONTES_DELA`), e o
+#   que não está nela é reversão.
 #
 # NÃO É UMA UNIT `.path`, E ISSO FOI MEDIDO
 #   O `cosmic-bg` tem UMA única watch de inotify, e é exatamente sobre

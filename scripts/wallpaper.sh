@@ -44,6 +44,66 @@ BG="$HOME/.config/cosmic/com.system76.CosmicBackground/v1"
 ORDEM="${WALLPAPER_ORDEM:-aleatoria}"
 INTERVALO="${WALLPAPER_INTERVALO:-5m}"
 
+# --- COMO A IMAGEM OCUPA A TELA ----------------------------------------------
+# Em 11/08/2026 ela mandou uma captura da tela e disse: "o wallpaper precisa
+# preencher a largura e altura". A captura mostrava duas tarjas pretas, uma de
+# cada lado — a imagem cabia inteira no meio e sobrava tela.
+#
+# A causa estava AQUI, e o comentário que existia neste arquivo mentia: dizia
+# que `scaling_mode` "é escolha dela e é preservada", mas a `config_desejada`
+# gravava `Fit((0.0, 0.0, 0.0))` cravado no texto, toda vez, por cima do que ela
+# tivesse escolhido na GUI. Não era preservação nenhuma: era imposição de um
+# valor que ninguém tinha decidido.
+#
+#   preencher -> `Zoom`   a imagem cobre a tela inteira; o que não couber, corta
+#   caber     -> `Fit`    a imagem inteira aparece; o que sobrar vira tarja
+#   esticar   -> `Stretch` a imagem deforma até caber (nunca é o que se quer)
+#
+# `Fit` leva uma cor de tarja `(r, g, b)` em floats 0-1. Os outros dois não
+# levam nada — e escrever `Zoom(...)` com argumento é erro de sintaxe RON que o
+# cosmic-bg engole calado, ficando com a config anterior em memória.
+AJUSTE="${WALLPAPER_AJUSTE:-preencher}"
+
+modo_de_ajuste() {
+  case "$1" in
+    preencher|zoom)   printf 'Zoom' ;;
+    esticar|stretch)  printf 'Stretch' ;;
+    caber|fit)        printf 'Fit((0.0, 0.0, 0.0))' ;;
+    *)
+      meow_aviso "WALLPAPER_AJUSTE=\"$1\" não existe; usando preencher"
+      printf 'Zoom' ;;
+  esac
+}
+
+# --- A ALLOWLIST: A ESCOLHA DELA PASSOU A SER DITA, NÃO ADIVINHADA -----------
+# Caminhos absolutos separados por `:` (convenção do $PATH), cada um valendo
+# para ele mesmo e para tudo abaixo dele. Quem preenche é `permitir <caminho>`,
+# e o porquê inteiro está no comentário desta chave no `meow.conf.exemplo` e na
+# fronteira, mais abaixo neste arquivo.
+#
+# LER DO AMBIENTE É O QUE TORNA ISTO REAL NO RELÓGIO DE 15 MINUTOS: o
+# `meow-wallpaper.service` sourceia o meow.conf e exporta as chaves de wallpaper
+# uma a uma. Uma chave nova que não entre naquela lista de `export` chega aqui
+# vazia — e o timer passaria a desfazer, a cada quinze minutos, exatamente a
+# escolha que ela acabou de autorizar.
+FONTES_DELA="${WALLPAPER_FONTES_DELA:-}"
+
+fonte_autorizada() {
+  local fonte="$1" texto="${2-$FONTES_DELA}" p
+  [ -n "$fonte" ] && [ -n "$texto" ] || return 1
+  # Array, e não `for p in $texto` com IFS=: — a expansão sem aspas também faz
+  # *globbing*, e um caminho com `*` ou `[` no nome (a pasta dela tem emoji e
+  # espaço; `[` não seria surpresa) viraria outra coisa no meio do caminho,
+  # calado.
+  local -a lista=()
+  IFS=: read -r -a lista <<< "$texto"
+  for p in ${lista[@]+"${lista[@]}"}; do
+    [ -n "$p" ] || continue
+    case "$fonte" in "$p"|"$p"/*) return 0 ;; esac
+  done
+  return 1
+}
+
 # "30s" / "5m" / "2h" -> segundos. O COSMIC quer segundos e nada mais.
 segundos_de() {
   local v="$1" n u
@@ -67,13 +127,17 @@ metodo_de() {
 }
 
 config_desejada() {
-  local freq metodo
+  local freq metodo ajuste
   freq="$(segundos_de "$INTERVALO")"
   metodo="$(metodo_de "$ORDEM")"
+  ajuste="$(modo_de_ajuste "$AJUSTE")"
   # `filter_by_theme: false` de propósito: com `true` o COSMIC filtra as imagens
   # pelo claro/escuro do tema e pode acabar sem nenhuma candidata no diretório —
   # tela preta sem explicação. O carrossel é dela, não do tema.
-  # `filter_method` e `scaling_mode` são as escolhas dela e são preservadas.
+  #
+  # `filter_method: Lanczos` é o único campo aqui que continua cravado, e é de
+  # propósito: é o reamostrador que não serrilha ao reduzir, a mesma lição que a
+  # geração dos ícones pagou em 08/08 (512→48 em tempo de desenho).
   cat <<FIM
 (
     output: "all",
@@ -81,7 +145,7 @@ config_desejada() {
     filter_by_theme: false,
     rotation_frequency: $freq,
     filter_method: Lanczos,
-    scaling_mode: Fit((0.0, 0.0, 0.0)),
+    scaling_mode: $ajuste,
     sampling_method: $metodo,
 )
 FIM
@@ -303,7 +367,7 @@ cmd_aplicar() {
     done < <(grep -oP '^\s*"\K[^"]+' "$BG/backgrounds" 2>/dev/null)
   fi
 
-  # A FRONTEIRA: RESET DE FÁBRICA SE CONSERTA, ESCOLHA DELA NÃO SE TOCA
+  # A FRONTEIRA: QUATRO CASOS, E O QUARTO NASCEU DE UM DEFEITO MEDIDO
   #   Medido em 07/08 e 08/08/2026: algum processo do COSMIC reescreveu o
   #   `output.DP-1` apontando para `/usr/share/backgrounds` — a pasta de fábrica
   #   —, com TODOS os campos no default do construtor (`Zoom`, `Alphanumeric`,
@@ -315,12 +379,31 @@ cmd_aplicar() {
   #   fotografar uma preferência e passar a impô-la todo dia. Então a regra é a
   #   mesma daquele arquivo, aplicada por saída:
   #
-  #     aponta para o nosso acervo  -> confere, nada a fazer
-  #     aponta para a pasta de FÁBRICA -> é o reset; conserta (código 1)
-  #     aponta para QUALQUER outro lugar -> é ela; não se toca (código 4)
+  #     aponta para o nosso acervo        -> confere, nada a fazer
+  #     aponta para a pasta de FÁBRICA    -> é o reset; conserta (código 1)
+  #     aponta para a WALLPAPER_FONTES_DELA -> é ela; não se toca (código 4)
+  #     aponta para QUALQUER outro lugar  -> é reversão; conserta (código 1)
   #
-  #   O terceiro caso é o que impede este script de brigar com ela no dia em que
-  #   ela apontar o papel de parede para uma pasta própria pela GUI.
+  #   O TERCEIRO CASO ERA "QUALQUER OUTRO LUGAR" ATÉ 11/08/2026, E ISSO CUSTOU O
+  #   CARROSSEL INTEIRO. Nesta máquina o `output.DP-1` voltou a apontar para
+  #   `~/Imagens/Parede_papel/Cyberpunk Neon Cat…jpeg` — a pasta onde o papel de
+  #   parede dela morava ANTES do MeowSystem. Não é `/usr/share/backgrounds`,
+  #   então caía no "é ela" e o script se calava: o `meow-wallpaper.timer` rodou
+  #   a cada 15 minutos devolvendo `status=4`, e o carrossel nunca voltou. A
+  #   frase dela foi "o papel de parede voltou a ser o antigo também. novamente"
+  #   — ou seja, ela não tinha escolhido nada.
+  #
+  #   A fronteira sabia distinguir fábrica de não-fábrica; não sabia distinguir
+  #   "escolha dela de agora" de "onde o wallpaper dela estava antes". E não há
+  #   como ler essa diferença do disco: o COSMIC grava o MESMO arquivo nos dois
+  #   casos, e não existe carimbo de quem escreveu. Então a decisão passou a ser
+  #   DITA uma vez, em vez de adivinhada toda vez — é a `WALLPAPER_FONTES_DELA`,
+  #   preenchida por `meow wallpaper permitir <caminho>`.
+  #
+  #   O que este script NÃO faz: adivinhar. Quando conserta, ele diz no log qual
+  #   caminho substituiu e imprime o comando exato que o autoriza. Se a reversão
+  #   era escolha dela, ela desfaz com uma linha — e o timer nunca mais mexe
+  #   naquele caminho.
   local FABRICA="/usr/share/backgrounds"
   local alvo escolha_dela=0 fonte_atual
   for alvo in "${alvos[@]}"; do
@@ -333,9 +416,18 @@ cmd_aplicar() {
         "$ATIVOS"|"$ATIVOS"/*|"") ;;                  # é nosso (ou ilegível): segue
         "$FABRICA"|"$FABRICA"/*) ;;                   # reset de fábrica: conserta
         *)
-          meow_pula "$alvo aponta para $fonte_atual — é escolha sua, não mexo"
-          escolha_dela=1
-          continue ;;
+          if fonte_autorizada "$fonte_atual"; then
+            meow_pula "$alvo aponta para $fonte_atual — está na WALLPAPER_FONTES_DELA, não mexo"
+            escolha_dela=1
+            continue
+          fi
+          # Reversão. Dizer QUAL caminho saiu é o que impede este conserto de
+          # ser mágico: sem o caminho no log, um papel de parede que ela tinha
+          # posto de propósito sumiria sem deixar como voltar.
+          meow_aviso "$alvo apontava para $fonte_atual — isso não é o carrossel; devolvendo"
+          meow_info "era escolha sua? autorize e eu paro de mexer:"
+          meow_info "  meow wallpaper permitir \"$fonte_atual\""
+          ;;
       esac
     fi
 
@@ -398,6 +490,93 @@ cmd_estado() {
   # A imagem exata que está na tela não é observável: o cosmic-bg não fala D-Bus
   # e não grava o índice em lugar nenhum. Dizer "não sei" é melhor que inventar.
   echo "atual:     (o cosmic-bg não expõe qual imagem está em exibição)"
+}
+
+# --- permitir: a única forma de a escolha dela virar regra -------------------
+# O VALOR VEM DO ARQUIVO, NÃO DO AMBIENTE, E ISSO NÃO É PREFERÊNCIA
+#   O `FONTES_DELA` lá de cima chega pelo ambiente, e chega VAZIO quando alguém
+#   roda `./scripts/wallpaper.sh permitir …` na mão, sem passar pela CLI. Se a
+#   gravação usasse aquilo como base, o segundo `permitir` apagaria o primeiro —
+#   uma autorização anterior dela sumindo em silêncio, que é o pior defeito
+#   possível num comando cujo propósito é justamente respeitar a escolha dela.
+#   Aqui a lista de partida é lida do meow.conf, pela MESMA regra do wizard
+#   (`wiz_linha_da_chave`/`wiz_valor_da_linha` em bin/meow): vale a ÚLTIMA
+#   atribuição, que é a que o `.` do shell obedece.
+#
+# E O VALOR VOLTA CRU, COM O `$HOME` QUE ELA TIVER ESCRITO
+#   `WALLPAPER_BASE="$HOME/..."` é o estilo deste arquivo. Gravar a expansão
+#   congelaria o caminho; então o que sai daqui é o texto como está, com o novo
+#   caminho anexado. A expansão só acontece na hora de comparar.
+fontes_no_conf() {
+  local linha resto
+  [ -f "$MEOW_CONF_ARQUIVO" ] || return 0
+  linha="$(grep -E -- '^[[:space:]]*(export[[:space:]]+)?WALLPAPER_FONTES_DELA=' \
+             "$MEOW_CONF_ARQUIVO" 2>/dev/null | tail -n1)"
+  [ -n "$linha" ] || return 0
+  resto="${linha#*=}"
+  case "$resto" in
+    '"'*) resto="${resto#\"}"; printf '%s' "${resto%%\"*}" ;;
+    "'"*) resto="${resto#\'}"; printf '%s' "${resto%%\'*}" ;;
+    *)    printf '%s' "${resto%%[[:space:]#]*}" ;;
+  esac
+}
+
+cmd_permitir() {
+  local caminho="${1:-}"
+  [ -n "$caminho" ] || {
+    meow_erro "uso: wallpaper.sh permitir <caminho>"
+    meow_info "o caminho é o que aparece no aviso \"apontava para …\""
+    return "$MEOW_ERRO"; }
+
+  # ABSOLUTO E NORMALIZADO: é com o `source: Path(...)` do COSMIC que este valor
+  # vai ser comparado, e lá o caminho é SEMPRE absoluto. Gravar `../Imagens`
+  # produziria uma entrada que nunca casa com nada — uma autorização que não
+  # autoriza, sem nada acusando.
+  # `-m` e não `-e`: a pasta pode não existir hoje (um disco desmontado, uma
+  # pasta que ela ainda vai criar), e recusar por isso seria recusar a intenção.
+  caminho="$(readlink -m -- "$caminho")"
+
+  # O meow.conf é SOURCEADO pelo shell. Um `$` ou uma crase no valor deixariam
+  # de ser texto e virariam código no próximo `carregar_conf`; um `#` viraria
+  # comentário e comeria o resto da linha; uma aspa dupla fecharia a string. O
+  # wizard recusa `#` e `"` pelo mesmo motivo — aqui a lista é maior porque este
+  # valor é um caminho, e caminho aceita caractere que resposta de wizard não.
+  if [ "${caminho//[\"\$\`\\#]/}" != "$caminho" ]; then
+    meow_erro "não gravo caminho com \" \$ \` \\ ou # — o meow.conf é lido pelo shell"
+    return "$MEOW_ERRO"
+  fi
+
+  # A CONFERÊNCIA VEM ANTES DO AVISO DE "não existe": um caminho já coberto por
+  # uma pasta autorizada não precisa existir para nada, e avisar sobre ele seria
+  # alarme falso num comando que não vai escrever coisa nenhuma.
+  local bruto expandido
+  bruto="$(fontes_no_conf)"
+  expandido="${bruto//\$\{HOME\}/$HOME}"; expandido="${expandido//\$HOME/$HOME}"
+  if fonte_autorizada "$caminho" "$expandido"; then
+    meow_ok "$caminho já está autorizado em WALLPAPER_FONTES_DELA"
+    return "$MEOW_OK"
+  fi
+
+  [ -e "$caminho" ] || meow_aviso "$caminho não existe hoje — autorizando assim mesmo"
+
+  local novo="$caminho"
+  [ -n "$bruto" ] && novo="$bruto:$caminho"
+
+  meow_conf_definir WALLPAPER_FONTES_DELA "$novo"
+  case $? in
+    0) meow_ok "$MEOW_CONF_ARQUIVO já estava assim — nada foi escrito"
+       return "$MEOW_OK" ;;
+    1) if meow_seco; then
+         meow_muda "gravaria WALLPAPER_FONTES_DELA=\"$novo\""
+         return "$MEOW_DIVERGENTE"
+       fi
+       meow_ok "autorizado: $caminho"
+       meow_info "o carrossel não mexe mais em saída que aponte para lá"
+       meow_registrar "wallpaper permitir: $caminho"
+       return "$MEOW_DIVERGENTE" ;;
+    *) meow_erro "não consegui gravar $MEOW_CONF_ARQUIVO"
+       return "$MEOW_ERRO" ;;
+  esac
 }
 
 # Mover, nunca apagar: uma imagem banida pode ser recuperada de banidos/.
@@ -555,9 +734,18 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
 
 case "${1:-aplicar}" in
   aplicar)   cmd_aplicar ;;
+  # `--conferir` é a letra que TODO script deste projeto usa para auditar, e
+  # este era o único que não a tinha: `docs/SPRINTS.md` mandava conferir o
+  # carrossel com `./scripts/wallpaper.sh --conferir`, e o que acontecia era o
+  # ramo de uso lá embaixo, com código 2 — a documentação apontando para um
+  # comando inexistente desde que foi escrita. Aqui ela vira o que sempre
+  # significou: o `aplicar` em seco, que não escreve e devolve 1 quando há o que
+  # consertar.
+  --conferir|conferir) MEOW_SECO=1; cmd_aplicar ;;
   estado)    cmd_estado ;;
   semear)    cmd_semear ;;
   banir)     shift; cmd_banir "${1:-}" ;;
   adicionar) shift; cmd_adicionar "${1:-}" ;;
-  *) echo "uso: wallpaper.sh [aplicar|estado|semear|adicionar <alvo>|banir <img>]" >&2; exit 2 ;;
+  permitir)  shift; cmd_permitir "${1:-}" ;;
+  *) echo "uso: wallpaper.sh [aplicar|--conferir|estado|semear|adicionar <alvo>|banir <img>|permitir <caminho>]" >&2; exit 2 ;;
 esac

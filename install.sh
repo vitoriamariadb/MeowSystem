@@ -664,6 +664,30 @@ etapa_icones_bandeja() {
   return $?
 }
 
+# O ícone de bandeja da STEAM, que é o único destes cinco alcançável — e é
+# alcançável por SUBSTITUIÇÃO DE ARQUIVO, não pelo tema: a Steam publica
+# `IconThemePath` apontando para dentro do próprio diretório dela, e aquilo entra
+# ANTES do tema de ícones.
+#
+# ETAPA PRÓPRIA, E NÃO UMA LINHA NA DE CIMA
+#   A etapa da bandeja escreve dentro do `MeowSystem-Icons` e depende do
+#   `index.theme` montado pela `etapa_icones`. Esta escreve um PNG na árvore da
+#   Steam, fora do tema, e não depende de índice nenhum — só da Steam instalada.
+#   Numa máquina sem Steam ela devolve 3 e some do relatório, que é o
+#   comportamento certo para uma etapa opcional.
+#
+# ELA VOLTAVA SOZINHA, E AGORA ISSO É CONFERÍVEL
+#   Em 10/08/2026 a troca foi feita à mão e o cliente a desfez em 18 minutos:
+#   `BVerifyInstalledFiles` reprovou o arquivo pelo TAMANHO e reextraiu o
+#   `public_all.zip` inteiro. O script monta o PNG com o tamanho, o `mtime` e o
+#   `crc32` que o inventário da Steam pede, e o `meow doctor` passa a acusar se
+#   um dia ele voltar mesmo assim. A medição inteira está no cabeçalho dele.
+etapa_icones_tray_steam() {
+  passo "Ícone da bandeja da Steam"
+  "$MEOW_RAIZ/scripts/icones_tray_steam.sh"
+  return $?
+}
+
 # Os `Icon=` de CAMINHO ABSOLUTO. Com caminho absoluto o tema de ícones não é nem
 # consultado — era o caso do `input-remapper-gtk`, o único dos 50 `.desktop`
 # visíveis nessa situação.
@@ -770,7 +794,15 @@ etapa_vidro() {
 #   ninguém confere são a mesma doença: o trabalho se perde calado.
 etapa_forma() {
   passo "Forma das barras (painel e dock)"
-  "$MEOW_RAIZ/scripts/forma.sh"
+  # As chaves `FORMA_*` vêm do meow.conf e precisam ser EXPORTADAS: o conf é
+  # sourceado neste shell, e o forma.sh é processo filho. Sem isto ele vê só os
+  # padrões dele, e a geometria escolhida no conf não vale nada.
+  (
+    export FORMA_PAINEL_SOLTO FORMA_DOCK_SOLTO FORMA_PAINEL_ILHA FORMA_DOCK_ILHA \
+           FORMA_MARGEM_PAINEL FORMA_MARGEM_DOCK FORMA_RAIO_PAINEL FORMA_RAIO_DOCK \
+           FORMA_ESPACO_PAINEL FORMA_ESPACO_DOCK FORMA_RECHEIO_PAINEL FORMA_RECHEIO_DOCK
+    "$MEOW_RAIZ/scripts/forma.sh"
+  )
   return $?
 }
 
@@ -1093,6 +1125,8 @@ etapa_wallpaper() {
   passo "Papéis de parede"
   WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+    WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
+    WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
     "$MEOW_RAIZ/scripts/wallpaper.sh" aplicar
   local rc=$?
   [ "$rc" = "1" ] && [ "${WALLPAPER_NOTIFICAR:-sim}" = "sim" ] \
@@ -1104,7 +1138,9 @@ etapa_wallpaper() {
   #   de 07/08 ficaria 38 horas no ar — e nesse intervalo a TV dela girava as
   #   imagens da NASA enquanto o `estado` dizia "carrossel ATIVO". Um tique de
   #   15 minutos fecha a janela, e só é seguro porque o `wallpaper.sh` distingue
-  #   reset de fábrica (conserta) de escolha dela (código 4, não toca).
+  #   reversão (conserta) de escolha dela (código 4, não toca) — e desde
+  #   11/08/2026 "escolha dela" é o que está na `WALLPAPER_FONTES_DELA`, dito por
+  #   `meow wallpaper permitir`, e não todo caminho que não seja o de fábrica.
   #
   #   Anda de carona no `AUTO_REPARO`: quem desliga o auto-reparo está dizendo
   #   "não mexa sozinho na minha máquina", e isto é mexer sozinho.
@@ -1277,7 +1313,8 @@ main() {
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_upstream etapa_fontes
                 etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
-                etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja etapa_jogos
+                etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
+                etapa_icones_tray_steam etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos etapa_som etapa_apps
                 etapa_assets etapa_autoreparo)
   TOTAL=${#etapas[@]}

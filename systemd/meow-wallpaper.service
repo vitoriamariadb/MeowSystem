@@ -1,9 +1,13 @@
 # meow-wallpaper.service — reafirma o carrossel, e só ele.
 #
 # O QUE ELE FAZ: `scripts/wallpaper.sh aplicar`. Lê os arquivos de
-# `com.system76.CosmicBackground/v1` e só escreve quando a saída aponta para o
-# nosso acervo ou para a pasta de FÁBRICA. Se apontar para outro lugar, é
-# escolha dela: o script devolve 4 e não toca em nada.
+# `com.system76.CosmicBackground/v1` e escreve quando a saída aponta para
+# qualquer lugar que não seja o nosso acervo — a pasta de FÁBRICA ou qualquer
+# outra —, dizendo no log qual caminho substituiu. A ÚNICA exceção é o caminho
+# que ela autorizou em `WALLPAPER_FONTES_DELA`: aí o script devolve 4 e não toca
+# em nada. Até 11/08/2026 a exceção era "qualquer lugar que não fosse a fábrica",
+# e o resultado foi este serviço devolvendo 4 a cada 15 minutos por dois dias
+# enquanto o carrossel estava desligado (Sprint M).
 #
 # NÃO NOTIFICA, DE PROPÓSITO
 #   O `meow-doctor.service` avisa quando conserta porque um reparo diário é
@@ -51,7 +55,13 @@ Type=oneshot
 #   de lock, mas não o diretório, e numa máquina onde o `install.sh` ainda não
 #   passou ele não existe. Prefixo `-` para não falhar por causa disso.
 ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
-ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/wallpaper.sh" ] || exit 0; export WALLPAPER_BASE WALLPAPER_INTERVALO WALLPAPER_ORDEM; exec "$R/scripts/wallpaper.sh" aplicar'
+# A LISTA DE `export` É PARTE DA FRONTEIRA, NÃO ENFEITE
+#   `WALLPAPER_FONTES_DELA` entrou em 11/08/2026 (Sprint M) e PRECISA estar
+#   aqui: é ela que diz quais caminhos são escolha dela. Uma chave que fique de
+#   fora deste `export` chega vazia no script, e o efeito não é "não funciona" —
+#   é este relógio desfazendo, quatro vezes por hora, exatamente a escolha que
+#   ela acabou de autorizar com `meow wallpaper permitir`.
+ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/wallpaper.sh" ] || exit 0; export WALLPAPER_BASE WALLPAPER_INTERVALO WALLPAPER_ORDEM WALLPAPER_FONTES_DELA WALLPAPER_AJUSTE; exec "$R/scripts/wallpaper.sh" aplicar'
 
 SuccessExitStatus=1 3 4
 

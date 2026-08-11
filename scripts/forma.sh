@@ -62,8 +62,33 @@ FORMA_PAINEL_SOLTO="${FORMA_PAINEL_SOLTO:-sim}"
 FORMA_DOCK_SOLTO="${FORMA_DOCK_SOLTO:-sim}"
 
 # "sim" -> ilha: a barra encolhe até o tamanho do conteúdo (expand_to_edges=false).
+#
+# O DOCK SAIU DA ILHA EM 11/08/2026, E O MOTIVO NÃO É ESTÉTICO
+#   `expand_to_edges=false` não encolhe só a barra: ele FUNDE os três segmentos.
+#   No `cosmic-panel-bin/src/space/layout.rs`:
+#
+#       let is_dock = !self.config.expand_to_edges() || ...;
+#       if is_dock {
+#           windows_center = windows_left.drain(..)
+#               .chain(windows_center).chain(windows_right.drain(..)).collect_vec();
+#       }
+#
+#   As três listas viram uma só, e o bloco inteiro é centralizado. A separação
+#   início/centro/fim continua no arquivo de config — a GUI de Configurações
+#   escreve certinho —, mas o layout a IGNORA nesse modo.
+#
+#   Em 11/08 ela arrumou os miniaplicativos na GUI (gato no Segmento inicial,
+#   aplicativos no central, nada no final), mandou a captura, e o gato continuava
+#   colado nos aplicativos no meio do dock. Não havia o que consertar na GUI: a
+#   ilha é que anulava a arrumação.
+#
+#   O default do próprio cosmic-panel confirma a leitura: o Dock de fábrica nasce
+#   com `expand_to_edges: false` e TUDO dentro de `plugins_center` — o upstream
+#   nunca projetou o dock em ilha para ter um botão isolado num canto.
+#
+#   Trocar aqui é o mesmo que trocar no `meow.conf`, e volta com uma palavra.
 FORMA_PAINEL_ILHA="${FORMA_PAINEL_ILHA:-nao}"
-FORMA_DOCK_ILHA="${FORMA_DOCK_ILHA:-sim}"
+FORMA_DOCK_ILHA="${FORMA_DOCK_ILHA:-nao}"
 
 FORMA_MARGEM_PAINEL="${FORMA_MARGEM_PAINEL:-6}"
 FORMA_MARGEM_DOCK="${FORMA_MARGEM_DOCK:-8}"

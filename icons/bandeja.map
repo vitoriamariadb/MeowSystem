@@ -153,7 +153,7 @@
 #                 é o único destes cinco onde dá para agir. Ver abaixo.
 #
 # ============================================================================
-# A STEAM FOI VESTIDA POR SUBSTITUIÇÃO DE ARQUIVO, E ISSO PRECISA DE REGISTRO
+# A STEAM FOI VESTIDA POR SUBSTITUIÇÃO DE ARQUIVO — E AGORA TEM DONO
 # ============================================================================
 #
 #   ~/.steam/debian-installation/public/steam_tray_mono.png
@@ -171,12 +171,46 @@
 # O original está preservado ao lado, como `steam_tray_mono.png.meow-original`.
 # Para desfazer: renomear de volta por cima.
 #
-# ISTO NÃO É IDEMPOTENTE E NENHUM SCRIPT O REFAZ. Uma atualização da Steam pode
-# devolver o arquivo de fábrica, e o sintoma será "o ícone da Steam voltou a
-# destoar" — sem nada no `meow conferir` acusando, porque não há dono
-# automatizado desta linha. Se isso incomodar, o conserto é promover esta
-# substituição a um script com `--conferir`, como o `nomes_apps.sh` fez para os
-# `.desktop` de dentro do flatpak.
+# ---------------------------------------------------------------------------
+# ELE VOLTOU AO DE FÁBRICA EM 18 MINUTOS, E QUEM O DESFEZ FOI A PRÓPRIA STEAM
+# ---------------------------------------------------------------------------
+#
+# Este parágrafo dizia "ISTO NÃO É IDEMPOTENTE E NENHUM SCRIPT O REFAZ", com a
+# hipótese de que uma atualização da Steam poderia devolver o arquivo de fábrica.
+# Aconteceu na MESMA NOITE — e não foi atualização, foi AUDITORIA. Está escrito
+# em `~/.steam/debian-installation/logs/bootstrap_log.txt`:
+#
+#   [2026-08-10 23:29:48] Verifying all executable checksums
+#   [2026-08-10 23:29:49] BVerifyInstalledFiles: public/steam_tray_mono.png is
+#                         2342 bytes, expected 5405
+#   [2026-08-10 23:29:54] Extraindo o pacote...
+#   [2026-08-10 23:30:05] Instalando a atualização...
+#
+# O backup foi criado às 23:12:00 e a reversão às 23:29 — 18 minutos, não os
+# "11 segundos" que a Sprint K supôs (aqueles 11 s são NASCIMENTO -> `ctime` do
+# arquivo, o tempo da extração do `public_all.zip` INTEIRO: todo arquivo de
+# `public/` nasceu 23:29:55–57 e teve `ctime` 23:30:06, com o `mtime` de dentro
+# do pacote preservado). Não houve bug de escrita nossa.
+#
+# O CONSERTO: O ARQUIVO PASSA NA AUDITORIA
+#   O cliente guarda o inventário em `package/steam_client_ubuntu12.installed`:
+#     public/steam_tray_mono.png,5405;1407376580;3187707190
+#     (tamanho ; mtime ; crc32 — os três conferidos contra o arquivo de fábrica)
+#   O `scripts/icones_tray_steam.sh` monta o PNG com os TRÊS campos iguais aos de
+#   fábrica: enchimento num chunk ancilar privado `meOw` para o tamanho, 4 bytes
+#   depois do `IEND` resolvidos por álgebra sobre GF(2) para o crc32, e `touch -d`
+#   para o mtime. O porquê de cada passo está no cabeçalho daquele script.
+#
+#   O TRAÇO DA MANOBRA DE 10/08 ESTAVA ERRADO, E O TAMANHO PROVA
+#     2342 bytes é exatamente o que o glifo dá rasterizado a 48 px SEM
+#     `stroke-width`; com `stroke-width="4"` dá 2429. A troca manual saiu com o
+#     traço padrão do SVG (1 de 48 = 2% da caixa = 0,33 px na bandeja de 16 px),
+#     que é o traço fino que o cabeçalho do `icones_bandeja.sh` avisa que some.
+#     O script usa 4 — o número que ela aprovou, o mesmo do script irmão.
+#
+# AGORA TEM `--conferir`, QUE ERA O QUE ESTE PARÁGRAFO PEDIA
+#   `meow doctor` tem a linha `traysteam`, e `install.sh` tem a
+#   `etapa_icones_tray_steam`. Se um dia voltar mesmo assim, deixa de ser mudo.
 
 # ============================================================================
 # O ZAPZAP FOI VESTIDO NA FONTE — 10/08/2026

@@ -158,6 +158,90 @@ meow_escrever() {
   return "$MEOW_DIVERGENTE"   # 1 = "estava divergente e eu consertei"
 }
 
+# --- O MEOW.CONF: UM CAMINHO SÓ, E UMA FORMA SÓ DE ESCREVER NELE ------------
+# Os dois caminhos e as duas funções abaixo VIERAM do `bin/meow` em 11/08/2026,
+# e a mudança é de endereço, não de comportamento: o texto delas é o mesmo.
+#
+# O motivo é a Sprint M. O `wallpaper.sh permitir` precisa gravar uma chave no
+# meow.conf, e ele NÃO é a CLI — é um script de `scripts/`, que roda como
+# processo filho. Sem mover isto para cá, a saída seria reescrever a mesma
+# lógica de "trocar a chave preservando o comentário" num segundo lugar; e
+# chave de configuração com duas rotinas de escrita é a receita de as duas
+# discordarem no dia em que uma delas for corrigida (foi exatamente o que
+# aconteceu com a `conf_definir`, que escrevia só a PRIMEIRA ocorrência
+# enquanto o shell obedece a ÚLTIMA — ver o cabeçalho abaixo).
+#
+# `MEOW_CONF` continua sendo o override de sempre, e agora ele vale para todo
+# módulo que sourceia este arquivo, não só para a CLI.
+MEOW_CONF_ARQUIVO="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
+MEOW_CONF_PADRAO="${MEOW_CONF_PADRAO:-$MEOW_RAIZ/meow.conf.exemplo}"
+
+# Troca (ou acrescenta) uma chave do meow.conf preservando o comentário da linha.
+# É o que faz `meow tema claro`, `meow logo <x>` e `meow wallpaper permitir`
+# valerem também para o próximo `meow aplicar` — sem isso a mudança duraria até
+# o self-heal seguinte.
+#
+# É FEITO EM BASH, E NÃO COM UM `sed`, POR CAUSA DO COMENTÁRIO DA LINHA
+#   O meow.conf é comentado linha a linha, e o comentário é metade do valor dele
+#   como documentação. Um `sed -E 's|^(MODO=)[^#]*(#.*)?$|...|'` parece resolver
+#   e não resolve: o `[^#]*` é guloso, engole os espaços que separam o valor do
+#   comentário e devolve `MODO="claro"# escuro | claro | auto`, colado. ERE não
+#   tem quantificador preguiçoso para consertar isso. Aqui a linha é partida no
+#   primeiro `#` e os espaços de antes dele são preservados como estavam.
+#
+#   Limite conhecido: valor que CONTENHA `#` (um hex de cor, por exemplo) seria
+#   lido como comentário. Nenhuma chave deste conf é assim — as cores vêm da
+#   paleta, nunca do conf — e o wizard recusa `#` e `"` na resposta dela.
+#
+# TODAS AS OCORRÊNCIAS, NÃO SÓ A PRIMEIRA — E ISSO É MEDIÇÃO, NÃO ZELO
+#   O `meow.conf.exemplo` tinha `LOGO_INTERVALO=` DUAS vezes (30m na seção da
+#   logo, 1d na do wallpaper) até 05/08/2026. O arquivo é lido pelo `.` do shell,
+#   onde vale a ÚLTIMA atribuição; esta função escrevia só a PRIMEIRA. O
+#   resultado numa máquina recém-instalada seria `meow configurar` gravar `2h`,
+#   imprimir o diff certo, e o valor em vigor continuar `1d` — sem nada acusar.
+#   O exemplo foi corrigido, e aqui a regra passou a ser "a chave inteira": um
+#   conf com a mesma chave duas vezes sai deste caminho com as duas concordando.
+meow_conf_texto_definir() {
+  local texto="$1" chave="$2" valor="$3" novo="" linha resto antes espacos comentario achou=0
+  while IFS= read -r linha; do
+    if [ "${linha#"$chave"=}" != "$linha" ]; then
+      achou=1
+      resto="${linha#"$chave"=}"
+      if [ "${resto#*#}" != "$resto" ]; then
+        antes="${resto%%#*}"
+        comentario="#${resto#*#}"
+        # O sufixo que sobra depois do último caractere não-branco: exatamente
+        # os espaços que alinhavam o comentário.
+        espacos="${antes##*[![:space:]]}"
+        linha="$chave=\"$valor\"$espacos$comentario"
+      else
+        linha="$chave=\"$valor\""
+      fi
+    fi
+    novo="$novo$linha"$'\n'
+  done <<< "$texto"
+  novo="${novo%$'\n'}"
+  [ "$achou" = "1" ] || novo="$novo"$'\n'"$chave=\"$valor\""
+  printf '%s' "$novo"
+}
+
+# Grava a chave no meow.conf dela. Quando o arquivo ainda não existe, a base é o
+# `meow.conf.exemplo` — o mesmo caminho que o `install.sh` toma no seco, e o que
+# impede a primeira gravação de nascer um arquivo de uma linha só, sem nenhum
+# dos comentários que são a documentação deste projeto.
+#
+# Devolve o que a `meow_escrever` devolve: 0 já estava assim · 1 escreveu (ou
+# escreveria, no seco) · 2 falhou.
+meow_conf_definir() {
+  local chave="$1" valor="$2" texto
+  if [ -f "$MEOW_CONF_ARQUIVO" ]; then
+    texto="$(cat "$MEOW_CONF_ARQUIVO")"
+  else
+    texto="$(cat "$MEOW_CONF_PADRAO" 2>/dev/null)" || return "$MEOW_ERRO"
+  fi
+  meow_escrever "$MEOW_CONF_ARQUIVO" "$(meow_conf_texto_definir "$texto" "$chave" "$valor")" 644
+}
+
 # --- lock: o timer pode disparar enquanto ela roda na mão (regra 10) --------
 MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 
