@@ -376,6 +376,18 @@ PYFIM
 # =============================================================================
 _meow_vscode_lista() {
   if [ -z "$_MEOW_VSCODE_LISTA" ]; then
+    # SEM PERFIL NO DISCO, O VS CODE NUNCA RODOU AQUI — e perguntar CRIA o
+    # perfil. Medido em HOME virgem (10/08/2026): um único
+    # `code --list-extensions` deixa .config/Code/machineid, .config/Code/logs/,
+    # .cache/Microsoft/DeveloperTools/deviceid e
+    # .vscode/extensions/extensions.json. Num MEOW_DRY_RUN=1 isso é a promessa
+    # "nada será escrito" virando mentira na fase que só deveria OLHAR.
+    if [ ! -d "$MEOW_VSCODE_EXTDIR" ] && [ ! -d "$HOME/.config/Code/User" ]; then
+      meow_debug "VS Code sem perfil em $MEOW_VSCODE_EXTDIR nem ~/.config/Code/User"
+      _MEOW_VSCODE_LISTA=$'\n'
+      printf '%s\n' "$_MEOW_VSCODE_LISTA"
+      return 0
+    fi
     _MEOW_VSCODE_LISTA="$("$MEOW_VSCODE_BIN" --list-extensions 2>/dev/null \
                           | tr '[:upper:]' '[:lower:]')"
     # marca "já consultei e deu vazio", para não repetir a chamada de 0,22 s.
@@ -429,6 +441,10 @@ _meow_vscode_tem_ext() {
 # se o engine dela sobrevive à faxina da Aurora. Só avisa — nunca falha o passo.
 _meow_vscode_auditar_ext() {
   local pkg menor
+  # `code --version` cria o perfil igual ao `--list-extensions`. Sem perfil não
+  # há extensão para auditar, então a auditoria não tem o que fazer aqui — e
+  # perguntar seria escrever num modo que prometeu não escrever.
+  if [ ! -d "$MEOW_VSCODE_EXTDIR" ]; then return 0; fi
   menor="$("$MEOW_VSCODE_BIN" --version 2>/dev/null | head -1 | cut -d. -f2)"
   for pkg in "$(_meow_vscode_pkg "$MEOW_VSCODE_EXT_TEMA" 2>/dev/null || true)" \
              "$(_meow_vscode_pkg "$MEOW_VSCODE_EXT_ICONES" 2>/dev/null || true)"; do

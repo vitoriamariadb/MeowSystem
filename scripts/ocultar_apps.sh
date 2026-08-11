@@ -152,6 +152,15 @@ for app in "${OCULTAR[@]}"; do
 
   tmp="$(mktemp)"
   printf '%s\n' "$novo" > "$tmp"
+  # A CÓPIA VEM ANTES DA ESCRITA, SEMPRE. Este arquivo é do apt, e até aqui
+  # marcá-lo era uma via de mão única: `dpkg -V` acusava a divergência e não
+  # havia de onde voltar. Se não der para guardar, não se escreve — `meow
+  # desfazer --lancador` é a contrapartida de mexer em /usr/share.
+  if ! meow_backup_sistema "$arq"; then
+    meow_aviso "não consegui guardar cópia de $arq — não vou marcá-lo"
+    rm -f "$tmp"
+    continue
+  fi
   if sudo install -m 644 "$tmp" "$arq" 2>/dev/null; then
     mudou=1
   else

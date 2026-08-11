@@ -24,10 +24,11 @@
 #   O applet faz `.symbolic(path.contains("-symbolic.svg"))` e achata o desenho
 #   numa cor só. O nome que usamos é `meow-<flavor>.svg`, de propósito.
 #
-# NÃO MEXEMOS NO `gato-pop.svg`
-#   Aquele arquivo é do Ritual da Aurora, reinstalado a cada ciclo. Apontamos a
-#   chave para um arquivo NOSSO e o deixamos em paz — assim os dois convivem sem
-#   ninguém desfazer o trabalho do outro de hora em hora.
+# O `gato-pop.svg` NÃO EXISTE MAIS
+#   Ele era do Ritual da Aurora e era reinstalado a cada ciclo, num diretório em
+#   que a chave `custom_logo_path` já apontava para um arquivo nosso. O self-heal
+#   v3.56 aposentou a etapa e removeu o arquivo: `~/.config/cosmic/logos/` tem um
+#   dono só, e é este projeto. Ver docs/FRONTEIRA.md.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -52,13 +53,19 @@ ICONES_BASE="${ICONES_BASE:-Papirus-Dark}"
 # bash já devolve ordenado, então a lista é estável entre execuções — requisito
 # para o `meow_escrever` conseguir comparar por conteúdo. O filtro `NxN` existe
 # porque um diretório de nome inesperado viraria um `Size=` inválido no índice.
+#
+# `scalable` ENTROU EM 08/08/2026, e não é simetria gratuita com o `status`
+#   `scalable/places` é onde o `icones_pastas.sh` põe as pastas especiais em
+#   Catppuccin. Sem estar aqui, o diretório existiria no disco e NINGUÉM o
+#   acharia — é o erro clássico de quem monta tema de ícones à mão, e este
+#   projeto já o cometeu uma vez com os próprios `<tam>/places`.
 places_no_disco() {
   local d tam
   for d in "$TEMA_DIR"/*/places; do
     [ -d "$d" ] || continue
     tam="$(basename "${d%/places}")"
     case "$tam" in
-      [0-9]*x[0-9]*) printf '%s\n' "$tam" ;;
+      [0-9]*x[0-9]*|scalable) printf '%s\n' "$tam" ;;
     esac
   done
 }
@@ -72,9 +79,48 @@ tem_mimetypes() { [ -d "$TEMA_DIR/scalable/mimetypes" ]; }
 # `512x512/apps` é o acervo Catppuccin de APLICATIVO (PNG com alpha, posto pelo
 # icones_apps.sh). Fica num tamanho fixo, e não em `scalable/`, porque é raster:
 # declarar raster como escalável é o defeito que o thunderbird.png já cometeu
-# aqui. Vem ANTES de `scalable/apps` na lista para vencer o desenho autoral nos
+# aqui — e que foi consertado em 10/08/2026 pelo mesmo princípio (o raster do
+# `hicolor` agora vai para o diretório do tamanho real dele). Vem ANTES de `scalable/apps` na lista para vencer o desenho autoral nos
 # nomes em que os dois existem — a ordem de `Directories=` é a ordem de busca.
 tem_apps_png() { [ -d "$TEMA_DIR/512x512/apps" ]; }
+
+# Os `<tam>/apps` que existem no disco, do MENOR para o maior — e a razão de
+# existirem é o serrilhado.
+#
+# Até 08/08/2026 o acervo raster de aplicativo morava só em `512x512/apps`, e a
+# dock, que desenha a 48 px, recebia um PNG de 512 para reduzir 10,7× em tempo de
+# desenho. Ela viu na tela: "cheio de serrilhados". Agora o `icones_apps.sh`
+# entrega 48, 64, 128 e 256 já reduzidos com Lanczos, e o resolvedor pega o
+# tamanho exato — mas só se ele estiver DECLARADO aqui. Diretório no disco que
+# ninguém declara é diretório que ninguém acha (§2 do COSMIC-THEMING), e este
+# projeto já cometeu esse erro uma vez com os próprios `<tam>/places`.
+#
+# Derivado do disco, como todo o resto deste arquivo: assim um tamanho novo em
+# `TAMANHOS_DERIVADOS` aparece aqui sozinho, e um que saia deixa de ser
+# declarado sem ninguém editar duas listas.
+apps_no_disco() {
+  local d tam
+  for d in "$TEMA_DIR"/*/apps; do
+    [ -d "$d" ] || continue
+    tam="$(basename "${d%/apps}")"
+    case "$tam" in
+      512x512|scalable) continue ;;          # esses dois têm bloco próprio
+      [0-9]*x[0-9]*) printf '%s\n' "$tam" ;;
+    esac
+  done | sort -t x -k1,1n
+}
+
+# `48x48/apps` é o Arcticons vestindo APLICATIVO, posto lá pelo
+# `icones_apps_arcticons.sh`. Mesma regra dos outros: declarar só o que EXISTE.
+#
+# POR QUE UM DIRETÓRIO PRÓPRIO, E POR QUE 48
+#   `scalable/apps` já tem TRÊS donos (`completar_icones.sh`, `logo.sh` e o
+#   bootstrap logo abaixo). O script novo precisa remover órfão quando uma linha
+#   sai do mapa, e remover órfão em diretório de dono compartilhado apagaria
+#   arquivo dos outros. 48 não é chute: a dock dela está em `size L` e desenha
+#   ícone de aplicativo a 48 px (medido por captura de tela em 08/08/2026), e é
+#   a mesma convenção do Papirus, que também guarda SVG em `48x48/apps`.
+tem_apps_traco() { [ -d "$TEMA_DIR/48x48/apps" ]; }
 
 # `<tam>/status` é o Arcticons vestindo os ícones do PRÓPRIO COSMIC, posto lá pelo
 # `icones_sistema.sh`. Mesma regra dos outros: declarar só o que EXISTE.
@@ -99,7 +145,13 @@ status_no_disco() {
 
 indice() {
   local dirs="" tam
-  tem_apps_png && dirs="512x512/apps,"
+  # Ordem crescente, derivada do disco. Não é ela que DECIDE — o resolvedor
+  # escolhe pelo tamanho mais próximo (ver o cabeçalho do icones_apps.sh) —, mas é
+  # a ordem que o `hicolor.sh` adota pelo mesmo motivo e mantém o arquivo legível.
+  # `apps_no_disco` cobre TODO `<tam>/apps`, o do Arcticons e os derivados do
+  # acervo raster: uma lista só, para não haver duas verdades sobre o mesmo disco.
+  while IFS= read -r tam; do [ -n "$tam" ] && dirs="$dirs$tam/apps,"; done < <(apps_no_disco)
+  tem_apps_png && dirs="${dirs}512x512/apps,"
   dirs="${dirs}scalable/apps"
   tem_mimetypes && dirs="$dirs,scalable/mimetypes"
   while IFS= read -r tam; do dirs="$dirs,$tam/status"; done < <(status_no_disco)
@@ -120,6 +172,17 @@ MinSize=8
 MaxSize=512
 FIM
 
+  while IFS= read -r tam; do
+    [ -n "$tam" ] || continue
+    cat <<FIM
+
+[$tam/apps]
+Size=${tam%%x*}
+Context=Applications
+Type=Fixed
+FIM
+  done < <(apps_no_disco)
+
   if tem_apps_png; then
     cat <<'FIM'
 
@@ -129,6 +192,12 @@ Context=Applications
 Type=Fixed
 FIM
   fi
+
+  # (o bloco de `48x48/apps` sai do laço genérico acima, junto com 64, 128 e 256.
+  #  Havia um `if tem_apps_traco` fixo aqui e ele passou a duplicar a seção quando
+  #  os derivados nasceram — `Type=Fixed` com SVG dentro convive, é o que o
+  #  Papirus faz no `48x48/apps` dele, mas declarar duas vezes o mesmo diretório
+  #  é um índice que se contradiz.)
 
   if tem_mimetypes; then
     cat <<'FIM'
@@ -165,13 +234,25 @@ FIM
   done < <(status_no_disco)
 
   while IFS= read -r tam; do
-    cat <<FIM
+    if [ "$tam" = scalable ]; then
+      cat <<FIM
+
+[scalable/places]
+Size=48
+Context=Places
+Type=Scalable
+MinSize=8
+MaxSize=512
+FIM
+    else
+      cat <<FIM
 
 [$tam/places]
 Size=${tam%%x*}
 Context=Places
 Type=Fixed
 FIM
+    fi
   done < <(places_no_disco)
 }
 
@@ -203,10 +284,20 @@ meow_escrever "$TEMA_DIR/index.theme" "$(indice)" 644
 case $? in 1) mudou=1 ;; 2) meow_erro "não consegui escrever o index.theme"; exit "$MEOW_ERRO" ;; esac
 
 # --- 2. o gato do botão -----------------------------------------------------
-GATO_PAINEL="$RAIZ/assets/meow-${FLAVOR}-painel.svg"
-if [ ! -f "$GATO_PAINEL" ]; then
-  meow_erro "falta $GATO_PAINEL — rode scripts/gerar_gato.py"
-  exit "$MEOW_SEM_DEPENDENCIA"
+# O PISO SAI DO ACERVO DELA, NÃO DE UM GATO GERADO
+#   Até 08/08/2026 este piso era `assets/meow-<flavor>-painel.svg`, desenhado por
+#   `scripts/gerar_gato.py`. Ela mandou excluir os gatos do projeto e ficar só
+#   com a Coquinha e o Mimir, então o gerador e os SVG foram embora — e com eles
+#   o único caminho que este script conhecia.
+#
+#   Acervo vazio não é erro daqui: quem sabe dizer isso é o `logo.sh`, que já
+#   avisa "solte um .svg lá e ele entra". Abortar com 3 faria a etapa de ícones
+#   inteira parar por causa de uma pasta de gatos vazia — e o tema de ícones não
+#   tem nada que ver com o acervo.
+GATO_PISO=""
+if [ -d "$RAIZ/assets/gatos" ]; then
+  GATO_PISO="$(find "$RAIZ/assets/gatos" -maxdepth 1 -name '*.svg' \
+                 ! -name '*-symbolic.svg' | sort | head -n1)"
 fi
 # SÓ NO BOOTSTRAP — O DONO DESTE ARQUIVO PASSOU A SER O logo.sh EM 05/08/2026
 #   Este laço escrevia o gato do dock a partir de um caminho FIXO
@@ -221,11 +312,13 @@ fi
 #   que não haja um botão sem ícone no meio da instalação. Escrever sempre
 #   traria de volta os DOIS DONOS descritos no §3 logo abaixo — e aquele defeito
 #   desfazia a rotação em silêncio a cada `install.sh`.
-for nome in "${BOTOES[@]}"; do
-  [ -f "$TEMA_DIR/scalable/apps/$nome.svg" ] && continue
-  meow_escrever "$TEMA_DIR/scalable/apps/$nome.svg" "$(cat "$GATO_PAINEL")" 644
-  case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao instalar $nome"; exit "$MEOW_ERRO" ;; esac
-done
+if [ -n "$GATO_PISO" ]; then
+  for nome in "${BOTOES[@]}"; do
+    [ -f "$TEMA_DIR/scalable/apps/$nome.svg" ] && continue
+    meow_escrever "$TEMA_DIR/scalable/apps/$nome.svg" "$(cat "$GATO_PISO")" 644
+    case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao instalar $nome"; exit "$MEOW_ERRO" ;; esac
+  done
+fi
 
 # --- 3. a logo do painel (caminho de arquivo, não tema) ---------------------
 # O ARQUIVO É DAQUI; A CHAVE QUE APONTA PARA ELE É DO `scripts/logo.sh`.
@@ -237,15 +330,18 @@ done
 # para `meow-mocha.svg`. Medido, e não deduzido — a rotação se desfazia sozinha
 # a cada instalação, sem erro nenhum na tela.
 #
-# A divisão que sobrou: aqui se garante que o gato do FLAVOR existe no disco
-# (é o piso — sem ele o acervo poderia ficar vazio numa máquina nova); quem
-# decide qual dos gatos está no ar é o `logo.sh`, dono único de
-# `custom_logo_path` e de `custom_logo_active`.
-LOGO_SVG="$RAIZ/assets/meow-${LOGO}-painel.svg"
-[ -f "$LOGO_SVG" ] || LOGO_SVG="$GATO_PAINEL"
-DESTINO_LOGO="$LOGOS_DIR/meow-${FLAVOR}.svg"
-meow_escrever "$DESTINO_LOGO" "$(cat "$LOGO_SVG")" 644
-case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao instalar a logo"; exit "$MEOW_ERRO" ;; esac
+# A DIVISÃO ACABOU EM 08/08/2026: ESTA SEÇÃO NÃO ESCREVE MAIS NADA.
+#
+# O que havia aqui era o "piso" — garantir que `~/.config/cosmic/logos/
+# meow-<flavor>.svg` existisse, copiado do gato gerado do flavor. Com os gatos
+# do projeto excluídos a pedido dela (só Coquinha e Mimir), o piso perdeu a
+# fonte; e ele já era o último resquício dos dois donos: o `logo.sh` instala
+# TODOS os gatos do acervo neste mesmo diretório e remove os `meow-*.svg` que
+# não estão no acervo — ou seja, ele apagava este arquivo a cada rodada e este
+# script o recriava na seguinte. Medido no disco em 08/08: `meow-mocha.svg`
+# continuava lá, sozinho, sem participar de rotação nenhuma.
+#
+# Agora o diretório tem dono único, e é o `logo.sh`.
 
 # --- 4. selecionar o tema ---------------------------------------------------
 # Sem isto nada acima aparece: o tema só entra na busca se for O SELECIONADO.

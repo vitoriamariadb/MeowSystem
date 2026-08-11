@@ -22,7 +22,11 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-# aplicar | conferir | tabela
+# aplicar | conferir | tabela | reverter
+#
+# `reverter` é o único que não roda sozinho nunca: o `install.sh` e o doctor das
+# 05:00 chamam `aplicar`, e desfazer é decisão dela, digitada. Ver o `case` do
+# `rodar_modulo`, onde ele é opcional por módulo.
 #
 # `tabela` existe para o `meow apps` não precisar de uma SEGUNDA cópia do
 # `pasta_de` e do `rodar_modulo`. Ele imprime TSV cru — uma linha por módulo,
@@ -52,10 +56,29 @@ rodar_modulo() {
   (
     # shellcheck disable=SC1090
     . "$mod" || exit 2
+    # AÇÃO DESCONHECIDA NÃO PODE CAIR EM `aplicar` — E CAÍA, ATÉ 08/08/2026.
+    #   O `*)` daqui mandava qualquer coisa para `meow_app_aplicar`: um erro de
+    #   digitação (`conferrir`) ESCREVIA, em vez de dizer que não existe. Num
+    #   projeto cujo modo de auditar é `--conferir`, essa é a pior letra a
+    #   errar. Agora `aplicar` é explícito e o resto é erro de execução.
     case "$acao" in
-      detectar) meow_app_detectar ;;
-      conferir) meow_app_conferir ;;
-      *)        meow_app_aplicar ;;
+      detectar)        meow_app_detectar ;;
+      conferir)        meow_app_conferir ;;
+      aplicar)         meow_app_aplicar ;;
+      # QUARTO VERBO, E OPCIONAL DE PROPÓSITO. Só o `spotify` sabe desfazer hoje
+      # — desde 10/08/2026 chamando `spicetify restore`, que devolve o
+      # `xpui.spa` de fábrica byte a byte (conferido: sha256 5ec1901f…, o mesmo
+      # do backup guardado). Um módulo que não sabe desfazer diz isso em voz
+      # alta e vira "pendente" — fingir que desfez seria pior do que não ter o
+      # verbo, porque ela deixaria de procurar o caminho que funciona.
+      reverter)
+        if declare -F meow_app_reverter >/dev/null; then
+          meow_app_reverter
+        else
+          meow_pula "o módulo '$pasta' não sabe desfazer"
+          exit "$MEOW_SEM_DEPENDENCIA"
+        fi ;;
+      *) meow_erro "ação desconhecida para o módulo '$pasta': $acao"; exit 2 ;;
     esac
   )
 }
@@ -108,9 +131,21 @@ for slug in "${LISTA[@]}"; do
   esac
 done
 
-[ ${#APLICADOS[@]} -gt 0 ] && meow_ok   "aplicados: ${APLICADOS[*]}"
+# O RÓTULO SEGUE A AÇÃO — dizer "aplicados" num `conferir` é mentira medida.
+#   `meow apps conferir` (que NÃO escreve nada) terminava anunciando
+#   `ok aplicados: zapzap toolkits-gtk-qt`. Quem lesse concluiria que o comando
+#   de auditoria tinha mexido na máquina. O bucket é o mesmo (rc=1); o que muda
+#   é o que 1 SIGNIFICA em cada ação: no aplicar, "consertei"; no conferir,
+#   "diverge". É a mesma disciplina do tempo verbal no modo seco.
+if [ ${#APLICADOS[@]} -gt 0 ]; then
+  case "$ACAO" in
+    conferir) meow_muda "divergentes: ${APLICADOS[*]}" ;;
+    reverter) meow_ok   "desfeitos: ${APLICADOS[*]}" ;;
+    *)        meow_ok   "aplicados: ${APLICADOS[*]}" ;;
+  esac
+fi
 [ ${#JA_OK[@]}     -gt 0 ] && meow_ok   "já estavam certos: ${JA_OK[*]}"
-[ ${#PENDENTES[@]} -gt 0 ] && meow_pula "pendentes (app não instalado): ${PENDENTES[*]}"
+[ ${#PENDENTES[@]} -gt 0 ] && meow_pula "pendentes (app não instalado, ou não dá para agir agora): ${PENDENTES[*]}"
 [ ${#FALHOS[@]}    -gt 0 ] && meow_erro "falharam: ${FALHOS[*]}"
 
 [ ${#FALHOS[@]}    -gt 0 ] && exit "$MEOW_ERRO"

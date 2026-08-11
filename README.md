@@ -41,7 +41,7 @@ em `scripts/construir_icones.sh` §1.
 | Trocar o accent para rosa | `./scripts/aplicar_tema.sh mocha-pink` |
 | Ir para o tema claro | `./scripts/aplicar_tema.sh latte-mauve` |
 | **Desfazer tudo** | `./scripts/aplicar_tema.sh original` |
-| Trocar a logo do gato | edite `LOGO=` no `meow.conf` e rode `./install.sh` |
+| Fixar um gato do acervo | `meow logo coquinha` (ou edite `LOGO=` no `meow.conf`) |
 | **Pôr um gato novo na rotação** | solte o `.svg` em `assets/gatos/` |
 | Ver o acervo de gatos e quem está no ar | `meow logo listar` |
 | Passar para o próximo gato agora | `meow logo girar` |
@@ -60,7 +60,7 @@ editar.
 
 | o quê | onde | quando aparece |
 |---|---|---|
-| gatos da logo | `assets/gatos/` | **no acervo, na hora** — o `meow-assets.path` vigia a pasta. Qual gato está *no ar* é o relógio que decide (1×/dia), ou `meow logo girar` |
+| gatos da logo | `assets/gatos/` | **no acervo, na hora** — o `meow-assets.path` vigia a pasta. Qual gato fica *no ar* é decidido **ao encerrar a sessão** (no máximo 1×/dia), e ele aparece no login seguinte; `meow logo girar` passa ao próximo agora |
 | papéis de parede | `~/.local/share/backgrounds/meowsystem/ativos/` | na hora — o `cosmic-bg` lê a pasta |
 
 Os papéis de parede ficam fora do git de propósito — imagem grande em git é
@@ -78,20 +78,42 @@ o que os reproduz é `scripts/wallpaper.sh semear`, com o commit pinado.
   `/var/lib`, e vinha vazia: era a única superfície ainda de fábrica.
 - **O vidro ao maximizar** — painel e dock mantêm o fosco quando uma janela
   maximiza (`keep_style_on_maximize`, duas chaves, valem na hora).
-- **Os dois gatos** — a logo do painel e o botão do dock, em mauve.
+- **O gato do dock** — o botão do lançador, vindo do acervo `assets/gatos/`.
+  Aqui há **um** gato na tela, não dois: o applet "Logo Menu" (`dev.cappsy`), que
+  desenharia o gato do painel, **não está montado em barra nenhuma** nesta
+  máquina — medido em 05/08/2026 em `plugins_wings` e `plugins_center` das duas
+  barras. O `meow logo girar` troca a chave dele corretamente, e o `logo.sh` diz
+  isso em voz alta em vez de fingir efeito. Para ver o segundo gato:
+  Ajustes → Área de trabalho → Painel → Applets.
 - **Os ícones** — Papirus como base, num tema derivado que não toca no pacote do
-  apt, com **três acervos** por cima e um alvo diferente para cada um:
+  apt, com **quatro acervos** por cima e um alvo diferente para cada um:
 
   | acervo | veste | quantos |
   |---|---|---|
   | `catppuccin/vscode-icons` (MIT) | os **tipos de arquivo** — o que o Gestor de Arquivos desenha | 123 |
-  | `Daveedmee/catppuccin-icons` | os **aplicativos** do lançador, em pastel | 16 |
+  | `Daveedmee/catppuccin-icons` | os **aplicativos** do lançador, em pastel | 13 |
+  | Arcticons (CC BY-SA 4.0) | as **páginas das Configurações**, os ícones de sistema e **3 aplicativos** que os pastéis não cobriam | 56 + 3 |
   | desenho autoral | os apps do próprio COSMIC, o FogStripper e o Hefesto | 10 |
 
   Confundi-los custa caro: o primeiro tem 656 glifos e **nenhum** deles casa com
   um aplicativo instalado aqui além do `vscode` — ele é de linguagem e formato de
-  arquivo. As pastas continuam em `cat-mocha-mauve`, do `papirus-folders`.
-  O que fica de fora dos três segue no Papirus, por herança.
+  arquivo. O Arcticons entrou como **apoio**, para preencher lacuna: ele não é o
+  tema principal, e onde não há match honesto o ícone fica no Papirus. A **barra**
+  continua no Papirus de propósito — os applets são famílias de estado
+  (`audio-volume-*` em 5, `network-wireless-*` em 7) e o Arcticons tem **zero**
+  sufixos `-off`/`-mute`/`-low`; vestir um estado só faria o ícone mudar de
+  estilo conforme o volume. As pastas continuam em `cat-mocha-mauve`, do
+  `papirus-folders`. O que fica de fora dos quatro segue no Papirus, por herança.
+
+  **Três ícones voltaram para o Papirus de propósito, em 08/08/2026**, depois de
+  ela apontá-los na tela. O Telegram e o qBittorrent do acervo pastel eram um
+  avião **sem o círculo da marca** (croma 0,067, contraste interno 1,12) e um
+  disco cinza com o "qb" quase invisível (croma 0,040): medidos a 48 px sobre os
+  quatro fundos reais — Mocha, Latte e os **dois estados do vidro da dock** —, o
+  Papirus ganha em todos os eixos. E o btop era o **pior ícone da dock inteira**,
+  com uma placa opaca em 62% da caixa e separação 1,61, o piso dos 48; virou
+  Arcticons `osmonitor` em maroon, 5,25. Cobertura não é fidelidade: um ícone que
+  não parece a marca é pior que um que não é Catppuccin.
 - **O lançador** — sem as duplicatas ("(Local)"/"(Sistema)") e sem os aplicativos
   que são dependência de pacote, não programa que se abre.
 - **Os papéis de parede** — carrossel na rotação nativa do COSMIC.
@@ -178,7 +200,6 @@ docs/historico/   de onde o projeto veio (não é lido por script nenhum)
 palette/          a fonte única de verdade de cor (4 flavors x 26 cores)
 themes/           os .ron gerados — o que se importa na GUI
 state/tema/       as capturas: é isto que o instalador aplica
-assets/           os gatos, gerados a partir da paleta
 scripts/          os geradores e aplicadores
 app-themes/       um módulo por aplicativo (detectar/conferir/aplicar)
 lib/comum.sh      log, códigos de saída, escrita atômica e as travas
@@ -201,9 +222,19 @@ patchado duas vezes, e uma versão nova mataria os dois patches junto com os
 workspaces alfinetados.
 
 **Quem apaga, guarda antes.** O `aplicar_tema.sh` é o único ponto do projeto que
-remove arquivo que não é dele, e faz backup da árvore inteira em
-`~/.local/state/meowsystem/backups/<ISO>/`. O `hicolor.sh` e os cinco módulos de
-`app-themes/` fazem o mesmo com o arquivo de terceiro que sobrescrevem.
+**remove** arquivo que não é dele, e faz backup da árvore inteira em
+`~/.local/state/meowsystem/backups/<ISO>/`. Quem **sobrescreve** arquivo de
+terceiro também guarda antes: o `hicolor.sh`, o `greeter.sh` e os **seis**
+módulos de `app-themes/`. Uma passagem inteira do instalador usa **uma** pasta
+de backup — o carimbo nasce em `lib/comum.sh` e é exportado, porque enquanto
+cada módulo calculava o próprio `date` uma execução que cruzasse a virada do
+segundo rachava os backups em duas pastas (há prova disso no disco, em 04/08).
+
+Dois pontos escrevem fora de casa e **não** fazem backup, e é decisão declarada:
+o `ocultar_apps.sh` marca `NoDisplay=true` nos `.desktop` de `/usr/share`
+(território do apt, que devolve o original a cada upgrade — o apt é o backup), e
+o `wallpaper.sh` remove do estado do `cosmic-bg` as entradas cujo arquivo não
+existe mais.
 
 Os demais **não** fazem backup, e isso é a regra, não um esquecimento: eles
 escrevem em diretórios que o projeto criou e dos quais é dono único — o tema

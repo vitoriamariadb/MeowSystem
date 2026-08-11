@@ -168,15 +168,44 @@ declare -A APELIDO=(
   [repoman]="64x64/apps/cs-sources.svg"
 )
 
-# --- do hicolor do SISTEMA, quando o Papirus não tem -------------------------
-# O Thunderbird e alguns outros só existem no `hicolor` de /usr/share, que é o
-# FIM da cadeia de herança — e por isso perdem para qualquer coisa antes deles,
-# ou simplesmente não aparecem. Copiar para o nosso tema resolve, e é o mesmo
-# princípio da seção 2 do docs/COSMIC-THEMING.md: o que vale é estar no tema
-# SELECIONADO. Só entram aqui os que o Papirus de fato não cobre.
-declare -A DO_HICOLOR=(
-  [thunderbird]="/usr/share/icons/hicolor/48x48/apps/thunderbird.png"
-)
+# --- do hicolor do SISTEMA: a marca de fábrica, quando ela é o que se quer ----
+# A frase que estava aqui — "só entram os que o Papirus de fato não cobre" — era
+# FALSA, e o único morador desta tabela é o contraexemplo. Medido em 10/08/2026:
+#     ls -L /usr/share/icons/Papirus-Dark/*/apps/thunderbird.svg
+#   devolve 16x16, 22x22, 24x24, 32x32, 48x48, 64x64, 128x128 (e os `@2x`), todos
+#   VETOR. Sem esta tabela o Thunderbird não cairia no vazio: cairia num SVG
+#   nítido em qualquer tamanho.
+#
+# Então o que esta tabela faz de verdade é OUTRA coisa: prefere a marca DE FÁBRICA
+# ao desenho do Papirus. Isso é gosto, não técnica — e está aberto na página de
+# curadoria junto com os outros. Tirar a linha é o desfazer completo: o `--aplicar`
+# seguinte remove o arquivo do tema e o vetor do Papirus volta a valer.
+#
+# A FONTE É O RASTER GRANDE, E O DESTINO É O TAMANHO REAL DELE
+#   Até 10/08/2026 aqui estava o PNG de **48**, despejado em `scalable/apps`.
+#   Os dois erros somavam um só sintoma, que ela viu na grade do lançador: borrão.
+#   `scalable/apps` declara `Size=128`, e quem escolhe o arquivo é o TAMANHO, não
+#   a ordem (`docs/COSMIC-THEMING.md` §4d) — logo quem pedia 128 recebia 48
+#   ampliado 2,7×. É o mesmo defeito do acervo em `512x512/apps`, de cabeça para
+#   baixo. O sistema já traz o de 128 (`/usr/share/icons/hicolor/128x128/apps/`,
+#   link para o `default128.png` do pacote), e o destino passa a sair do PRÓPRIO
+#   CAMINHO da fonte, que no `hicolor` sempre carrega o `WxH`.
+#
+# A TABELA SAIU DO SCRIPT PORQUE ELA TEM DOIS LEITORES
+#   O `icones_apps.sh` é dono de `<tam>/apps` e varre órfão lá dentro. Enquanto
+#   esta lista morava aqui, ele não tinha como saber que `thunderbird.png` é de
+#   outro dono — e o `install.sh` roda os dois na mesma passagem, nesta ordem.
+#   O porquê inteiro, com a medição, está no cabeçalho do próprio mapa.
+MAPA_HICOLOR="$RAIZ/icons/apps-hicolor.map"
+declare -A DO_HICOLOR=()
+if [ -f "$MAPA_HICOLOR" ]; then
+  while IFS= read -r linha; do
+    case "$linha" in ''|'#'*) continue ;; esac
+    chave="${linha%%:*}"; caminho="${linha#*:}"
+    [ -n "$chave" ] && [ -n "$caminho" ] || continue
+    DO_HICOLOR["$chave"]="$caminho"
+  done < "$MAPA_HICOLOR"
+fi
 
 mudou=0
 avisos=0
@@ -346,15 +375,47 @@ for nome in "${!DO_HICOLOR[@]}"; do
     meow_info "$nome: $fonte não existe — pulado"
     continue
   fi
-  # PNG mesmo: o tema declara scalable/apps, mas a crate do COSMIC tenta todas as
-  # extensões, e um PNG no lugar certo vence um ícone ausente. Renomear para .svg
-  # seria mentira e o renderizador reclamaria.
-  alvo_png="$ALVO/$nome.png"
+  # PNG mesmo: renomear para `.svg` seria mentira e o renderizador reclamaria.
+  #
+  # O DIRETÓRIO É O TAMANHO REAL DO ARQUIVO, E NUNCA `scalable/`. Não há
+  # `identify` aqui de propósito: o caminho do `hicolor` já CARREGA o tamanho
+  # (`.../128x128/apps/`), e lê-lo dali não acrescenta dependência ao script.
+  lado="$(basename "$(dirname "$(dirname "$fonte")")")"
+  case "$lado" in
+    [0-9]*x[0-9]*) : ;;
+    *) meow_aviso "$nome: não consigo deduzir o tamanho de $fonte — pulado"
+       avisos=1; continue ;;
+  esac
+  # Diretório no disco que ninguém DECLARA é diretório que ninguém acha (§2). Na
+  # primeira instalação de uma máquina virgem o `128x128/apps` ainda não existe
+  # quando este script roda (quem o cria é o `icones_apps.sh`, que vem depois, e
+  # quem o declara é o `construir_icones.sh`, que vem antes) — então aqui se pula
+  # com aviso, e a linha entra na rodada seguinte. Pular é seguro justamente por
+  # causa da medição acima: enquanto isso o Thunderbird vem do vetor do Papirus.
+  if ! grep -q "^Directories=.*${lado}/apps" "$TEMA_DIR/index.theme"; then
+    meow_aviso "$nome: '${lado}/apps' ainda não está no Directories= — pulado"
+    meow_info "  entra na próxima rodada, depois de scripts/construir_icones.sh"
+    avisos=1; continue
+  fi
+  # O arquivo no lugar ERRADO tem de sair, senão ficam DOIS donos do mesmo nome e
+  # a regra da extensão (§2) faz um deles vencer sem ninguém ter decidido. É o
+  # que sobra do `scalable/apps/thunderbird.png` de antes de 10/08/2026.
+  if [ -f "$ALVO/$nome.png" ]; then
+    if meow_seco; then
+      meow_muda "removeria $nome.png de scalable/apps (raster em diretório escalável)"
+      mudou=1
+    else
+      rm -f "$ALVO/$nome.png" && mudou=1
+    fi
+  fi
+  alvo_png="$TEMA_DIR/$lado/apps/$nome.png"
   if [ ! -f "$alvo_png" ] || ! cmp -s "$fonte" "$alvo_png"; then
     if meow_seco; then
-      meow_muda "copiaria $nome do hicolor do sistema"
+      meow_muda "copiaria $nome do hicolor do sistema para $lado/apps"
     else
-      cp -f "$fonte" "$alvo_png" && mudou=1
+      meow_destino_permitido "$alvo_png" || exit "$MEOW_ERRO"
+      mkdir -p "$TEMA_DIR/$lado/apps"
+      cp -f "$fonte" "$alvo_png" && chmod 644 "$alvo_png" && mudou=1
     fi
   fi
 done

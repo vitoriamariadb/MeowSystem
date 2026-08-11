@@ -116,7 +116,9 @@ MEOW_QBT_AVISOU_SEM_AURORA=0  # "o script do Aurora não está aqui"
 # é ausência DECLARADA (3, com aviso), não meia-boca silenciosa.
 _meow_qbt_conf_dir() {
   meow_tem flatpak || return 1
-  flatpak info "$MEOW_QBT_APP_ID" >/dev/null 2>&1 || return 1
+  # por diretório, não por `flatpak info`: aquele cria o repositório ostree no
+  # home só por ser perguntado, e detecção não pode escrever (ver lib/comum.sh).
+  meow_flatpak_tem "$MEOW_QBT_APP_ID" || return 1
   printf '%s' "$HOME/.var/app/$MEOW_QBT_APP_ID/config/qBittorrent"
 }
 
