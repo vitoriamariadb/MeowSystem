@@ -1,0 +1,298 @@
+# icons/pastas.map — que glifo do pack Catppuccin veste cada PASTA ESPECIAL.
+#
+# FORMATO      nome-de-icone-freedesktop : glifo-em-icons/catppuccin/<flavor>/
+# COMENTÁRIO   linha começando com # ; linha vazia é ignorada
+#
+# ESTA LISTA NÃO É A DA SPRINT C — A PREMISSA DELA CAIU, E A MEDIÇÃO ESTÁ AQUI
+#
+#   A Sprint C queria instalar 14 nomes (`folder-github`, `folder-docker`,
+#   `folder-debug`, `folder-images`...). Medido em 08/08/2026, casando por
+#   dicionário os 2.476 nomes de `places` do disco contra
+#   `strings -a /usr/bin/cosmic-files`: o binário contém 12 nomes de pasta, e
+#   das 14 da sprint só DUAS aparecem — `folder-download` e `folder-templates`.
+#
+#   O motivo é estrutural. `folder-github`, `folder-docker` e companhia são
+#   apelidos que o Papirus mantém para o Dolphin/KDE, que lê um `.directory`
+#   dentro da pasta e usa o `Icon=` de lá. O `cosmic-files` não tem essa lógica:
+#   `.directory` aparece ZERO vezes no binário. Instalar aqueles 12 seria
+#   instalar ícone que ela nunca veria.
+#
+#   O casamento que vale é o dos nomes XDG que o `cosmic-files` de fato pede.
+#   Confirmado com `strace` (Xvfb :99, nunca na tela dela): abrindo a home ele
+#   abriu, do nosso tema, exatamente estes arquivos —
+#       32x32/places/{folder,folder-documents,folder-download,folder-music,
+#                     folder-pictures,folder-publicshare,folder-templates,
+#                     folder-videos,user-desktop}.svg
+#
+#   Destes nove, o pack cobre SETE, e cobre com OUTRO NOME. É por isso que este
+#   mapa existe: ele é a tradução.
+#
+# OS DOIS QUE FICARAM DE FORA, E POR QUÊ
+#
+#   `folder`      o pack tem `_folder`, mas este é o ícone de TODA pasta comum.
+#                 Vesti-lo apagaria as pastas mauve do `papirus-folders` da tela
+#                 inteira, que é justamente o que ela escolheu ter. Fica mauve.
+#                 Se ela quiser o contrário um dia, é uma linha aqui.
+#   `user-desktop` o pack não tem nada de Área de Trabalho. Fica mauve.
+#
+#   `user-trash`/`user-trash-full` o `cosmic-files` pede e o pack não tem. Eram
+#                 arquivos regulares no Papirus (não apelidos), então o
+#                 `construir_pastas.sh` nunca os cobriu.
+#                 CORREÇÃO DE 08/08/2026: esta linha dizia que eles "continuam
+#                 azuis". Não eram azuis, eram CINZA — `#8e8e8e` e `#9f9f9f` são
+#                 os únicos fill dos cinco tamanhos, conferido. E já não são: o
+#                 `construir_pastas.sh` os recolore no accent, lendo os dois tons
+#                 da pasta mauve vizinha em vez de cravar hex. Com isso os 12
+#                 nomes que o `cosmic-files` pede fecham no accent dela.
+#
+# A BARRA LATERAL DO `cosmic-files` NÃO PASSA POR AQUI — E A NOTA ANTIGA
+# ESTAVA PELA METADE
+#   No mesmo strace ela abriu `Papirus-Dark/symbolic/places/folder-*-symbolic.svg`.
+#   Symbolic é repintado numa cor só pelo toolkit (docs/COSMIC-THEMING.md §4g):
+#   pintar ali seria trabalho apagado. Isso continua verdade — mas só sobre a COR.
+#
+#   CORREÇÃO DE 10/08/2026, resolvida no resolvedor real (Gtk.IconTheme com
+#   `custom_theme="MeowSystem-Icons"`, de 16 a 256 px, sem abrir janela): o tema
+#   NÃO TEM UM symbolic de places sequer, e por isso os doze nomes da barra
+#   lateral caem TODOS no Papirus —
+#
+#       folder-symbolic · folder-documents-symbolic · folder-download-symbolic
+#       folder-music-symbolic · folder-pictures-symbolic · folder-videos-symbolic
+#       folder-templates-symbolic · folder-publicshare-symbolic
+#       user-home-symbolic · user-desktop-symbolic · user-trash-symbolic
+#         -> /usr/share/icons/Papirus-Dark/symbolic/places/<nome>.svg
+#       user-trash-full-symbolic
+#         -> /usr/share/icons/Papirus-Dark/symbolic/STATUS/<nome>.svg  (não places)
+#
+#   Isso HOJE não é defeito visível, e a razão é uma convenção que vale a pena
+#   registrar: renderizados em PNG, os symbolic de `places` do Papirus NÃO são
+#   pasta-com-símbolo — são o símbolo NU. `folder-documents-symbolic` é uma
+#   folha; `folder-music-symbolic`, uma colcheia; `user-home-symbolic`, uma casa.
+#   Só `folder-symbolic` é uma pasta, e é liso, porque pasta genérica é lisa
+#   mesmo. Ou seja: a barra lateral JÁ entrega símbolo por tipo, no idioma dela
+#   (glifo monocromático), enquanto a grade entrega no idioma da grade (pasta
+#   mauve com o símbolo dentro). São duas linguagens de propósito, não uma
+#   divergência.
+#
+#   Vira defeito no dia em que alguém trocar o ACERVO da grade — e é por isso
+#   que a troca de acervo foi recusada em 10/08 (ver o bloco "SÍMBOLO POR TIPO,
+#   EM MAUVE").
+#
+#   E o motivo de `folder-documents-symbolic` ser PEDIDO sem aparecer no binário
+#   é o libcosmic: ele ANEXA o sufixo no lookup quando o widget pede
+#   `.symbolic(true)`. A string solta `-symbolic` que o docs/COSMIC-THEMING.md
+#   registrava como "lixo" é esse mecanismo, não lixo.
+#
+# SÍMBOLO POR TIPO, EM MAUVE — A DECISÃO DELA, 10/08/2026
+#
+#   *"Cada pasta ganha o símbolo interno do que ela guarda, tudo recolorido no
+#   mauve dela. Mesma silhueta, mesmo mauve, símbolo por tipo."*
+#
+#   Isso RECUSA a troca de acervo que estava proposta (instalar a arte do pack
+#   `cosmic-icons`, ou a do Papirus cru, por cima). Renderizadas e comparadas
+#   lado a lado, as três candidatas têm praticamente a MESMA silhueta — a queixa
+#   nunca foi o desenho da pasta, foi a COBERTURA. Trocar de acervo custaria um
+#   script novo, um segundo dono de `scalable/places` e a licença CC-BY-SA do
+#   pack da Pop, para entregar a mesma silhueta. Não se troca.
+#
+#   E O ALVO JÁ ESTAVA CUMPRIDO NA GRADE — conferido no resolvedor real
+#   (`Gtk.IconTheme` com `custom_theme="MeowSystem-Icons"`, 10/08/2026), nome por
+#   nome, seguindo o symlink até o arquivo final:
+#
+#     folder             -> folder-cat-mocha-mauve.svg              (liso, é genérica)
+#     folder-documents   -> folder-cat-mocha-mauve-documents.svg    folha
+#     folder-download    -> folder-cat-mocha-mauve-download.svg     seta
+#     folder-music       -> folder-cat-mocha-mauve-music.svg        colcheia
+#     folder-pictures    -> folder-cat-mocha-mauve-pictures.svg     paisagem
+#     folder-publicshare -> folder-cat-mocha-mauve-image-people.svg pessoa
+#     folder-templates   -> folder-cat-mocha-mauve-templates.svg    folha xadrez
+#     folder-videos      -> folder-cat-mocha-mauve-video.svg        câmera
+#     user-desktop       -> user-cat-mocha-mauve-desktop.svg        monitor
+#     user-home          -> user-cat-mocha-mauve-home.svg           casa
+#     user-trash         -> recolorida pelo construir_pastas.sh     lixeira
+#     user-trash-full    -> recolorida pelo construir_pastas.sh     lixeira cheia
+#
+#   Nenhum deles resolve para o Papirus. Renderizados em PNG (rsvg-convert, 96
+#   px) e medidos por histograma, os fills dominantes são `#CBA6F7` (mauve do
+#   mocha), `#B792E3` (a sombra derivada do upstream) e `#313244` (surface0, a
+#   cor do símbolo interno). É literalmente o que ela descreveu.
+#
+#   O QUE FALTAVA ERAM QUATRO — e essas estavam AZUIS, ver o bloco seguinte.
+
+# AS QUATRO QUE FICAVAM AZUIS — CONSERTADAS EM 10/08/2026
+#
+#   `folder-docker` · `folder-notes` · `folder-obsidian` · `folder-systemd`
+#
+#   Nomes que o `papirus-icon-theme` instalado tem e que o
+#   `catppuccin/papirus-folders` (parado há dois anos) nunca gerou em mauve. Sem
+#   twin colorido, o laço de apelidos do `construir_pastas.sh` não criava nada, o
+#   nome saía inteiro do nosso tema e o resolvedor descia para o `Inherits=`:
+#   `Papirus-Dark/48x48/places/folder-docker.svg`, `fill:#5294e2`. Quatro pastas
+#   AZUIS, com símbolo, no meio de um conjunto mauve.
+#
+#   O conserto está no `construir_pastas.sh` (`vestir_azuis_orfaos`), não aqui:
+#   `sed` sobre a arte do Papirus com a tabela de cores LIDA DO DISCO — o par
+#   `folder-blue-documents.svg` / `folder-$COR-documents.svg` é o mesmo desenho
+#   nos cinco tamanhos, então os hexes se correspondem por posição. Zero hex
+#   cravado, e trocar `ACCENT` no `meow.conf` acerta as quatro sozinho.
+#   São 4 nomes × 5 tamanhos = 20 arquivos.
+
+# 74 VARIANTES MAUVE NO DISCO, SETE CHEGAM AO `cosmic-files` — MEDIDO 10/08/2026
+#
+#   $ ls 48x48/places/folder-cat-mocha-mauve-*.svg | wc -l
+#   74            (75 contando a genérica `folder-cat-mocha-mauve.svg`)
+#
+#   Cada uma TEM símbolo interno — uma sétima demão além dos 6 elementos da
+#   pasta; em `folder-cat-mocha-mauve-music.svg` é o `<path style="fill:#313244">`
+#   da clave. Mas só SETE chegam ao `cosmic-files`: as sete da tabela acima que
+#   terminam em `folder-cat-mocha-mauve-*`. As outras 67 são inalcançáveis
+#   NAQUELE gestor.
+#
+#   (Uma conta anterior dizia "12 vivos, 62 mortos". Errado: `folder`,
+#   `user-desktop`, `user-home`, `user-trash` e `user-trash-full` não são
+#   arquivos `folder-cat-mocha-mauve-*` — os dois do meio são `user-cat-*` e os
+#   dois últimos são arquivos regulares recoloridos.)
+#
+#   Entre as 67 estão `development`, `projects`, `code`, `torrent`, `linux`,
+#   `backup`, `important`, `activities`, `git`, `github`, `steam`, `games`. A
+#   arte que resolveria "Desenvolvimento", "Torrents" e "Andromeda-OS" existe,
+#   está mauve, tem símbolo, e não tem como chegar à tela — o gancho não existe
+#   (ver o bloco "ÍCONE POR PASTA NÃO EXISTE").
+#
+#   NÃO PODAR. Custam ~2 MB, servem a aplicativos GTK/KDE fora do `cosmic-files`
+#   (e o `folder-development` e companhia RESOLVEM: conferido no resolvedor, os
+#   apelidos existem no nosso tema), e o laço de apelidos deriva os nomes do
+#   Papirus por `readlink` — remover destino deixa link pendurado no trecho mais
+#   delicado daquele arquivo, sem ganho nenhum para ela.
+#
+#   NÃO GERAR ARTE NOVA PARA ELAS. Uma proposta de 10/08 sugeria extrair o
+#   símbolo interno com `sed -n '$p'` e reescalar por `transform="scale(5.333)"`.
+#   Isso é parsear XML por posição de linha (quebra em toda variante cujo último
+#   elemento não seja o símbolo — a genérica termina numa demão de brilho) e
+#   vestiria nomes que, por esta mesma medição, ninguém pede.
+
+# O TETO DE TAMANHO DAS PASTAS — MEDIDO EM 10/08/2026, E DEIXADO COMO ESTÁ
+#
+#   `folder` pedido a 128 e a 256 px é servido pelo nosso `64x64` AMPLIADO
+#   (`Gtk.IconTheme`, tema MeowSystem-Icons). Causa: o `papirus-folders` publica
+#   só 22/24/32/48/64 e o resolvedor esgota o NOSSO tema antes do `Inherits=` —
+#   é a mesma regra que o cabeçalho do `construir_pastas.sh` já mediu.
+#
+#   E O 96/128 DO PAPIRUS NÃO SALVA — arte reciclada, fato que não estava em
+#   lugar nenhum deste repo:
+#       $ head -1 /usr/share/icons/Papirus-Dark/96x96/places/folder-blue.svg
+#         <svg ... width="48" ...>
+#       $ head -1 /usr/share/icons/Papirus-Dark/128x128/places/folder-blue.svg
+#         <svg ... width="64" ...>
+#
+#   Nenhum PNG está envolvido (`find ... -name '*.png' -path '*places*'` -> 0),
+#   então NÃO é o serrilhado de 512->48 registrado na memória do projeto.
+#
+#   POR QUE FICA COMO ESTÁ: o único conserto real seria publicar a arte em
+#   `scalable/places` com `viewBox` — e aí o resolvedor passaria a servir o
+#   desenho de 64 px reduzido também a 22 e 24, onde hoje sai arte NATIVA (o
+#   cabeçalho do `construir_pastas.sh` mediu: 6,0% de borda parcial na nativa
+#   contra 14,9% na reduzida). Trocar nitidez em 22 px, que ela vê o dia inteiro,
+#   por nitidez em 256 px, que ela não pede, é mau negócio. Com 1920x1080 a
+#   Scale 100% e `icon_size` 100 / `grid` 75, o maior pedido é 64 px e sai
+#   nativo. Latente, não teórico: a mesma TV lista 3840x2160.
+
+# ÍCONE POR PASTA NÃO EXISTE NO `cosmic-files` — MEDIDO EM 10/08/2026
+#
+#   Nenhum script, mapa ou config deste projeto pode dar símbolo próprio a
+#   "Controle de Bordo", "Desenvolvimento", "/mnt/Apate/Torrents", "/mnt/Apate"
+#   ou "Andromeda-OS". Não é descuido nosso: o gestor não tem o gancho.
+#
+#   PROVA PELO LADO DO GESTOR
+#       $ grep -ac 'custom-icon' /usr/bin/cosmic-files                   -> 0
+#       $ grep -ac '\.directory' /usr/bin/cosmic-files                   -> 0
+#       $ grep -aoE 'metadata::[a-z:-]*' /usr/bin/cosmic-files           -> (vazio)
+#       $ grep -ac 'custom-icon' /lib/x86_64-linux-gnu/libgio-2.0.so.0   -> 0
+#       $ nm -D /usr/bin/cosmic-files | grep -E 'g_themed_icon|g_file_icon'
+#                        U g_themed_icon_get_names
+#                        U g_themed_icon_get_type
+#         (nenhum `g_file_icon_*`: mesmo que o GIO devolvesse um GFileIcon com o
+#          caminho de um PNG, o binário não teria como consumi-lo)
+#
+#   PROVA PELO LADO DO GIO — que é quem realmente decide, e isto faltava no repo.
+#   O `cosmic-files` chama `g_file_info_get_icon()` e lê os nomes com
+#   `g_themed_icon_get_names()`. Perguntando ao GIO diretamente, sem abrir
+#   janela nenhuma:
+#
+#     /home/vitoriamaria/Controle de Bordo   ['inode-directory', 'folder', ...]
+#     /home/vitoriamaria/Desenvolvimento     ['inode-directory', 'folder', ...]
+#     /mnt/Apate/Torrents                    ['inode-directory', 'folder', ...]
+#     /mnt/Apate                             ['inode-directory', 'folder', ...]
+#     /mnt/Apate/Desenvolvimento/Andromeda-OS['inode-directory', 'folder', ...]
+#     /home/vitoriamaria/Documentos          ['folder-documents', 'folder', ...]
+#     /home/vitoriamaria/Área de trabalho    ['user-desktop', ...]
+#     /home/vitoriamaria                     ['user-home', ...]
+#
+#   O GIO tem uma tabela FIXA de diretórios XDG e mais nada. Fora dela, todo
+#   diretório é `inode-directory`/`folder`. Os dois padrões que dariam ícone por
+#   pasta no Linux são o `metadata::custom-icon` do GVfs (que o Nautilus
+#   implementa POR CONTA PRÓPRIA — o libgio não tem sequer a string) e o
+#   `.directory` do KDE (que o Dolphin lê). O `cosmic-files` não implementa
+#   nenhum dos dois.
+#
+#   Upstream, ABERTAS em 10/08/2026:
+#       https://github.com/pop-os/cosmic-files/issues/591   (ícone por pasta)
+#       https://github.com/pop-os/cosmic-files/issues/1427  (pasta `.icons`)
+#
+#   A ARTE QUE ELA QUERERIA JÁ EXISTE, EM MAUVE, COM SÍMBOLO, E NÃO TEM COMO
+#   CHEGAR. No dia em que a #591 sair, o casamento é este e é uma linha cada:
+#       Controle de Bordo  -> folder-important   (a exclamação)
+#       Desenvolvimento    -> folder-development (a engrenagem)
+#       Torrents           -> folder-torrent     (o redemoinho do µTorrent)
+#       /mnt/Apate         -> folder-linux       (o pinguim)
+#       Andromeda-OS       -> folder-linux
+#   As cinco resolvem HOJE, no nosso tema, em `<tam>/places` — conferido no
+#   resolvedor. Falta só quem as peça.
+#
+#   CORREÇÃO de uma medição anterior: o binário contém `inode/directory`, o
+#   MIMETYPE — não o nome de ícone `inode-directory`. O apelido
+#   `inode-directory.svg -> folder.svg` do nosso tema existe por causa do
+#   Papirus/GTK, não do `cosmic-files`.
+#
+#   NÃO rodar `gio set ... metadata::custom-icon`: escreve em
+#   `~/.local/share/gvfs-metadata`, não tem efeito nenhum aqui e deixa sujeira
+#   que confunde a próxima medição.
+#
+#   NÃO reapontar slots do `~/.config/user-dirs.dirs` para ganhar desenho:
+#   `XDG_TEMPLATES_DIR` e `XDG_PUBLICSHARE_DIR` são lidos por navegador, GIMP e
+#   caixas de diálogo GTK/Qt para escolher onde salvar arquivo. Trocar o
+#   significado de uma pasta por um ícone é acoplamento que a próxima sessão
+#   desfaz sem entender. RECUSADO, com todas as letras.
+
+# NENHUM DESTES SETE USA `mauve`, QUE É O ACCENT DELA
+#   Medido: as cores do pack nestes glifos são blue, sky, sapphire, green,
+#   yellow, maroon e text. A mistura de estilos que a sprint temia já está na
+#   tela de qualquer jeito — `folder-docker` já é azul hoje, porque o
+#   `papirus-folders` não tem variante mauve dele.
+#
+# QUEM CEDE ESTES NOMES
+#   `scripts/construir_pastas.sh` lê ESTE arquivo e para de criar os apelidos
+#   listados aqui, para que o pastel não brigue com o mauve. Ver o cabeçalho
+#   dele — a cessão é condicional: ele só cede o nome cujo pastel já está no
+#   disco, senão a pasta ficaria AZUL até a rodada seguinte.
+
+# ESTAS SETE SÃO DO `vscode-icons`, E ELA AS REPROVOU EM 08/08/2026
+#   Ficam aqui, sem custo, porque `PASTAS_XDG="nao"` as mantém desligadas e o
+#   trabalho está medido e pronto para o dia em que ela quiser experimentar de
+#   novo (com `ICONES_FLAVOR="latte"` a folha mostra contraste bem melhor).
+#
+#   NÃO PROPONHA LIGÁ-LAS COMO "o acervo bom que estava sendo ignorado". Elas
+#   são pasta VAZADA de traço claro (`fill="none"` + `stroke`, viewBox 16x16) ao
+#   lado das mauve CHEIAS, e NENHUMA usa `mauve`. Ligar isto hoje SUBSTITUIRIA
+#   exatamente as sete pastas com símbolo mauve que ela pediu em 10/08 — ou
+#   seja, desfaria as duas decisões dela de uma vez. A frase e o motivo estão em
+#   `scripts/icones_pastas.sh`, e a comparação dos dois acervos em
+#   `icons/PROCEDENCIA.md`.
+
+folder-documents:folder_docs
+folder-download:folder_download
+folder-music:folder_audio
+folder-pictures:folder_images
+folder-publicshare:folder_public
+folder-templates:folder_templates
+folder-videos:folder_video

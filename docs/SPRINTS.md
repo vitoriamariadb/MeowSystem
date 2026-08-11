@@ -4,39 +4,561 @@ Este arquivo é **autossuficiente**: quem for executar uma sprint não precisa d
 nenhum contexto de conversa anterior. Cada uma traz o que já foi medido, o que
 fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
-Última atualização: **06/08/2026**.
+Última atualização: **11/08/2026**.
 
 ---
 
 ## AO VOLTAR, COMECE POR AQUI
 
-Em 05/08/2026 as sprints **A, D, E e F** foram executadas. **B e C pararam na
-folha visual, de propósito: quem escolhe é ela.** Nada foi aplicado nas duas —
-`icons/apps.map` e `scripts/construir_pastas.sh` estão intocados.
+**Há sete sprints abertas: H, I, J, K, L, M e N.** Todas nasceram em
+**11/08/2026**, de uma lista que ela ditou olhando a própria tela. Cada uma já
+vem com a causa **medida**, não suposta — o levantamento foi feito antes de
+escrever este texto, e o que está aqui é o resultado dele.
 
-O repositório está limpo, `./install.sh` roda duas vezes sem escrever um byte e
-`./bin/meow doctor` diz `nada a consertar`. **Não há trabalho técnico pendente.**
+As sprints A a G continuam **feitas**: A, D, E e F em 05/08/2026; B, C e G em
+08/08. Nada nelas foi reaberto.
 
-### As três decisões que são dela, e só dela
+**Comece pela tabela abaixo.** Ela diz o que é conserto de código (executável sem
+perguntar) e o que é **decisão dela** (não se toca sem resposta).
 
-1. **Os aplicativos órfãos** — folha em `~/folha-apps-orfaos.html`. São **12**
-   apps, 44 candidatos, **nenhum é o mesmo aplicativo**: 18 não mentem, 26
-   mentem. Pela regra do projeto nada entra sozinho. *Antes de aplicar, releia o
-   alerta de contraste no topo da folha: sete dos candidatos mais honestos são
-   monocromáticos e somem sobre fundo claro (1,3:1).*
-2. **As pastas** — folha em `~/folha-pastas.html`, **com a ressalva de que a
-   premissa da Sprint C caiu**: o `cosmic-files` só pede 2 das 14. O caminho que
-   sobra é **renomear** os 8 nomes XDG que ele de fato usa. Se ela topar, a
-   implementação exige o `construir_pastas.sh` ceder a lista (ver Sprint C).
-3. **A barra do painel** — o Arcticons não tem estado nenhum, então volume,
-   wifi, microfone e notificações continuam no Papirus. Ou se desenham as
-   variantes à mão (é desenho autoral, que ela já rejeitou uma vez), ou se acha
-   um terceiro pack que as tenha, ou fica como está. **Enquanto não houver
-   decisão, não mexer.**
+| sprint | o que ela viu | causa medida | quem decide |
+|---|---|---|---|
+| **H** | o gato do dock está grudado nos apps, no centro, em vez de sozinho na esquerda | `expand_to_edges=false` faz o `cosmic-panel` **fundir** os três segmentos num bloco centralizado — está no fonte, não é palpite | **ela** (3 opções, todas com preço) |
+| **I** | "à exceção dos jogos, todos deveriam ter um ícone próprio nosso desenhado" | só 10 apps têm desenho autoral; **28 usam Arcticons** e **3 estão de fábrica** | código, mas a folha visual vem antes |
+| **J** | "a pasta do sistema operacional ainda é a mesma pasta rosa" | o desenho autoral do Gestor de Arquivos **é** uma pasta genérica, na mesma cor das pastas de verdade — e há **dois SVGs brigando** pelo mesmo nome | **ela** (é gosto, não defeito) |
+| **K** | "temos o problema do ícone do tray de todos os apps" | a Steam **regrediu** ao PNG de fábrica de 2014; qBittorrent e Spotify **não têm via** pelo tema | código (Steam) + limite real (os outros) |
+| **L** | "o qBittorrent segue iniciando com o sistema operacional" | **não é o MeowSystem**: o Ritual da Aurora recopia o autostart a cada hora | código, mas **por fora** do território proibido |
+| **M** | "o papel de parede voltou a ser o antigo. novamente" | a fronteira do `wallpaper.sh` só conhece **três** casos e classificou a reversão como "escolha dela" — código **4**, a cada 15 min, para sempre | código |
+| **N** | "spotify falta o spicetify" | **não falta nada.** Está aplicado no disco desde 10/08 20:19. O app não é aberto desde 07/08 | ela (é só abrir) |
+
+E uma dívida que não é sprint, mas é o maior risco do repositório hoje:
+**o `git` está cinco dias atrasado.** O `HEAD` é de ~06/08 e o disco é de ~10/08 —
+250 caminhos, incluindo o módulo novo do Spotify e o `RECUPERACAO.md`, que é o
+manual de resgate para quando o Flathub atualizar o app. Se a máquina falhar
+agora, o manual de resgate só existe no disco que falhou.
+
+O hábito de sempre continua: rodar `./bin/meow doctor` antes de acreditar em
+qualquer coisa escrita aqui.
+
+---
+
+## Sprint H — o gato do dock, agrupado no centro  ← **ABERTA, decisão dela**
+
+Ela abriu Configurações > Área de trabalho > Dock > Miniaplicativos e mostrou a
+tela: **Segmento inicial** = Botão da Biblioteca de Aplicativos. **Segmento
+central** = vazio. **Segmento final** = Área de notificação. A configuração está
+exatamente como deveria — e mesmo assim o gato aparece colado nos apps, no meio
+do dock.
+
+### A causa, lida no fonte (não deduzida)
+
+O `cosmic-panel` está compilado nesta máquina como dependência de outro projeto
+dela, e o checkout está em
+`~/.cargo/git/checkouts/cosmic-panel-*/26fee6c/cosmic-panel-bin/src/space/layout.rs`:
+
+```rust
+let is_dock = !self.config.expand_to_edges()
+    || self.animate_state.as_ref().is_some_and(|a| !(a.cur.expanded > 0.5));
+
+if is_dock {
+    windows_center = windows_left
+        .drain(..)
+        .chain(windows_center)
+        .chain(windows_right.drain(..))
+        .collect_vec();
+}
+```
+
+Com `expand_to_edges = false`, **os três segmentos viram uma lista só** e o bloco
+inteiro é centralizado (`center_pos = layer_major/2 - center_sum/2`). A separação
+início/centro/fim continua existindo no arquivo de config — a GUI escreve
+direitinho —, mas o **layout a ignora nesse modo**. Não há bug em lugar nenhum: a
+GUI e o layout discordam sobre o que os segmentos significam.
+
+Confirmação de segunda ordem: o **default de fábrica** do próprio cosmic-panel
+para o Dock já nasce com `expand_to_edges: false` e **tudo** dentro de
+`plugins_center` — o upstream nunca projetou o Dock em modo ilha para ter um
+botão isolado num canto. Isso só existe no Painel, que nasce com `true`.
+
+### Quem escreveu `false`, e por quê
+
+Nós. `scripts/forma.sh:66` — `FORMA_DOCK_ILHA="${FORMA_DOCK_ILHA:-sim}"` — e o
+cabeçalho do script (linhas 27-31) diz o motivo: *"o dock vira ilha (solto E sem
+expandir)"*. Foi uma decisão deliberada de 10/08, para o dock não ser uma barra
+atravessando a tela com metade vazia.
+
+O `forma.sh` **nunca toca** em `plugins_wings`/`plugins_center`, e os `mtime`
+provam: `expand_to_edges` foi escrito às 21:41 pelo script; os arrays de plugin,
+às 21:50, pela GUI. As duas configurações estão certas isoladamente. A
+incompatibilidade é entre elas.
+
+### Estado medido hoje
+
+| chave (`~/.config/cosmic/com.system76.CosmicPanel.Dock/v1/`) | valor |
+|---|---|
+| `expand_to_edges` | `false` |
+| `plugins_wings` | `Some((["com.system76.CosmicPanelAppButton", "com.github.hmrdsmoke.soulless-launcher"], ["com.system76.CosmicAppList"]))` |
+| `plugins_center` | `Some([])` |
+| `spacing` | `8` · `padding` `6` · `margin` `8` · `border_radius` `16` · `size` `L` |
+
+**Achado colateral:** há **dois** applets no segmento inicial, não um. O segundo,
+`com.github.hmrdsmoke.soulless-launcher`, é um flatpak que **não aparece em lugar
+nenhum do repositório** (`grep` por `soulless`/`hmrdsmoke`: zero ocorrências).
+Ele fica entre o gato e a lista de apps, a 8px de cada um — contribui para o
+"colado" sem ser a causa.
+
+### As três opções, com o preço de cada uma
+
+1. **`expand_to_edges = true` no Dock** (`FORMA_DOCK_ILHA=nao` no `meow.conf`).
+   O gato isola de verdade no canto esquerdo. **Preço:** desfaz a ilha — o dock
+   volta a ser uma barra larga com metade vazia, que é o problema que o
+   `forma.sh` foi escrito para resolver em 10/08.
+2. **Uma segunda superfície de painel só para o gato.** Duas ilhas independentes,
+   separação real e permanente. **Preço:** é a mudança mais estrutural; criar uma
+   entrada nova em `com.system76.CosmicPanel/v1/entries` com o compositor vivo
+   não tem garantia de subir sem relogar. Deve ser feito pela GUI, se a versão
+   instalada tiver "Adicionar painel".
+3. **Só mais respiro** (`spacing` de `8` para `24`–`32`, e tirar o
+   `soulless-launcher` do array). **Preço:** mitiga, não resolve — continua sendo
+   um bloco único centralizado, só que com espaços iguais entre os três.
+
+**Não há applet de espaçador/separador** em lugar nenhum do sistema — foi
+procurado. Não dá para abrir um vão fixo entre segmentos.
+
+### Como conferir que ficou certo
+
+Olhar a tela. Isto é gosto, não medição.
+
+---
+
+## Sprint I — desenho autoral para os 31 apps  ← **ABERTA**
+
+A frase dela, em 11/08/2026: *"à exceção dos jogos, todos os demais ícones
+deveriam ter um ícone próprio nosso desenhado"*.
+
+Isto **revisa a direção de 08/08**, quando ela disse que o Arcticons *"vem pra
+apoiar o outro tema principal, não vem pra ser o tema principal"*. Em 10/08 a
+unificação levou 35 apps do lançador para Arcticons — e o Arcticons virou, na
+prática, o tema principal. A frase de 11/08 fecha esse ciclo: o tema principal
+tem de ser **nosso**.
+
+### O inventário, medido
+
+62 `.desktop` visíveis nos cinco diretórios. **21 são jogos** (`X-MeowSystem=jogo-steam`)
+e ficam **fora** por decisão dela. Restam **41**:
+
+| categoria | qtde | quais |
+|---|---|---|
+| **AUTORAL** (pronto) | 2 | FogStripper, Hefesto |
+| **AUTORAL + conflito** | 8 | os `com.system76.Cosmic*` — ver Sprint J |
+| **ARCTICONS** (a converter) | 28 | lista abaixo |
+| **FÁBRICA** (nem tema têm) | 3 | Flatseal, Gradia, Warehouse |
+
+### A correção que ela fez neste texto, no mesmo dia
+
+Ainda em 11/08, lendo o levantamento acima, ela listou o que achava que faltava:
+*"tipo da loja, gradia, warehouse, arquivos, flatseal, reprodutor, terminal,
+whatsapp"*.
+
+Quatro desses — **Loja, Arquivos, Reprodutor e Terminal** — a tabela dá como
+**prontos**, com desenho autoral em `src/icons/autorais/`. Ela olhou para eles na
+tela e **não os reconheceu como nossos**.
+
+Isso não é engano dela. É o achado desta sprint, e ele muda o escopo:
+
+> **Ter desenho autoral não é o mesmo que ter identidade.** A Loja é uma sacola
+> de compras. Os Arquivos são uma pasta. O Reprodutor é um botão de play. O
+> Terminal é um `>_`. São as silhuetas que **qualquer** tema de ícone usa — o
+> desenho é nosso no sentido de que o geramos, não no sentido de que se
+> reconhece como nosso ao olhar.
+
+O gerador diz isso de si mesmo sem perceber que era um problema
+(`gerar_icones_autorais.py:266-268`): *"A silhueta mais reconhecível que existe —
+não há o que inventar."* Escolher a silhueta mais reconhecível **é** escolher a
+mais genérica.
+
+**Consequência para o escopo:** os 8 `com.system76.Cosmic*` deixam de ser "já
+prontos" e entram na sprint. O trabalho passa de **31** para **39** ícones —
+28 Arcticons + 3 de fábrica + 8 redesenhos.
+
+E entra uma pergunta que precede todo desenho, e que é dela:
+**o que faz um ícone parecer do MeowSystem?** O FogStripper e o Hefesto são os
+dois únicos que ela reconhece hoje — a resposta provavelmente está no que esses
+dois têm e os outros oito não. Vale rasterizar os dez lado a lado a 48px e
+olhar, antes de desenhar o primeiro traço novo.
+
+**Prioridade 1 — os 3 de fábrica**, que hoje mostram o ícone cru do app ou do
+Papirus: Flatseal, Gradia, Warehouse. (Estes três estão registrados em
+`icons/apps-arcticons.map:296-298` como "os que ficam de fora, por honestidade" —
+não havia glifo honesto no Arcticons para eles. Com desenho autoral, deixam de
+ser exceção.)
+
+**Prioridade 2 — os 28 em Arcticons**, em ordem alfabética: Ajustes (CosmicTweaks),
+Apostrophe, BleachBit, Boxy SVG, Brave, btop++, Calculator, Camera, Discord,
+File Roller, Foliate, GIMP, GitHub Desktop, Google Chrome, Input Remapper, Krita,
+OBS Studio, Obsidian, ONLYOFFICE, ProtonUp-Qt, qBittorrent, Spotify, Steam (o
+cliente, não os jogos), Telegram, Thunderbird, Upscaler, VS Code, WhatsApp.
+
+### A gramática visual, que já existe e não se inventa de novo
+
+Está em `scripts/gerar_icones_autorais.py`, e o próprio script se declara na
+linha 250: *"Todos partilham o mesmo esqueleto: viewBox de 48, formas chapadas,
+traço de ~3px onde há traço, e a cor de identidade em `c['marca']`. O que muda de
+um para outro é só a silhueta."*
+
+As regras que **não** se negociam, porque cada uma custou um erro medido:
+
+- `viewBox="0 0 48 48"`, `role="img"`, `<title><nome> — Catppuccin <Flavor></title>`.
+- **Silhueta ocupa quase o quadro inteiro.** A 48px, cada pixel de margem é
+  presença perdida.
+- **Formas chapadas.** `linearGradient` vira sujeira de compressão a 48px.
+- **Todo ícone leva contorno.** É a moldura que segura o desenho contra o papel
+  de parede claro atrás do dock (erro medido e corrigido: oito ícones sumiam).
+- **Zero hex digitado à mão.** Cada forma referencia um **papel** (`sujeito`,
+  `tinta`, `contorno`, `folha`…) que resolve por **nome** em
+  `palette/catppuccin.json`. Nome que não existe na paleta faz o script morrer.
+- **Papéis são sensíveis a claro/escuro** — `contorno = ("crust", "text")`. É o
+  que faz o mesmo desenho funcionar nos 4 flavors sem duplicar lógica.
+- **Cor de identidade por app**, não o accent genérico — senão viram N manchas
+  mauve do mesmo tamanho.
+- **Uma `path` por forma composta.** Formas empilhadas viram degrau de meio pixel
+  a 48px.
+- **Decide-se olhando o PNG rasterizado a 48px**, nunca o SVG no editor. Foi
+  assim que o FogStripper perdeu a "mão se dissolvendo em partículas" (virava
+  borrão) e o Hefesto perdeu o "martelo e bigorna".
+
+### A ordem de trabalho
+
+Esta sprint **não começa pelo código**. A regra do projeto vale aqui inteira: a
+folha visual vem antes. 31 ícones é volume demais para uma folha só — o caminho é
+**por lotes**, cada lote rasterizado a 48px sobre os dois fundos reais (dock
+escuro e papel de parede claro em `opacity:0.05`), e ela aprova ou recusa lote a
+lote. Um ícone recusado é barato; 31 ícones aplicados e recusados, não.
+
+Sugestão de lote 1: **os 3 de fábrica** (Flatseal, Gradia, Warehouse) — é o
+menor lote possível, e serve para calibrar a gramática com ela antes do volume.
+
+### O que pode dar errado
+
+- Trocar `48x48/apps` (dono do `icones_apps_arcticons.sh`) por `scalable/apps`
+  (dono do `completar_icones.sh`) sem religar os dois cria **exatamente** o
+  problema da Sprint J, multiplicado por 31. Decidir o dono ANTES de desenhar.
+- O acervo Arcticons continua sendo de apoio — os ícones convertidos saem do
+  `apps-arcticons.map` e entram no gerador autoral. Deixar nos dois lugares é o
+  laço eterno que o projeto já pagou mais de uma vez.
+
+---
+
+## Sprint J — a pasta rosa, e os dois donos do mesmo nome  ← **ABERTA, decisão dela**
+
+Frase dela: *"o desenho da pasta do sistema operacional ainda é a mesma pasta
+rosa"*.
+
+### Achado 1 — ela está certa, e é de propósito
+
+O ícone do Gestor de Arquivos (`com.system76.CosmicFiles`) **é** uma pasta
+genérica. O comentário do próprio gerador diz isso com todas as letras
+(`scripts/gerar_icones_autorais.py:266-268`): *"Pasta. A silhueta mais
+reconhecível que existe — não há o que inventar."*
+
+E a cor foi escolhida deliberadamente como o **accent** (mauve), não uma cor de
+identidade própria — `gerar_icones_autorais.py:80-85`: *"a única exceção é o
+Gestor de Arquivos, que usa o ACCENT — porque as pastas dentro dele já são
+`cat-<flavor>-<accent>`"*.
+
+O raciocínio é coerente por dentro e **falha por fora**: o ícone do aplicativo
+ficou visualmente indistinguível de uma pasta qualquer. Some a Lixeira do dock,
+que é o ícone do Papirus recolorido no **mesmo** mauve por `construir_pastas.sh`,
+e o efeito é "tudo é a mesma mancha rosa".
+
+### Achado 2 — há dois SVGs diferentes para o mesmo nome, agora
+
+| arquivo | desenho | cor | quem escreveu |
+|---|---|---|---|
+| `MeowSystem-Icons/scalable/apps/com.system76.CosmicFiles.svg` | pasta cheia, autoral | `#CBA6F7` mauve | `completar_icones.sh` |
+| `MeowSystem-Icons/48x48/apps/com.system76.CosmicFiles.svg` | glifo de linha Arcticons | `#B4BEFE` lavender | `icones_apps_arcticons.sh` |
+
+Nenhum dos dois foi escrito por engano — cada script escreveu na pasta de que é
+dono, como `install.sh:629-633` manda. Só que **ninguém religou os dois**, e o
+tema ficou com duas verdades. Qual vence depende do tamanho pedido: a exatamente
+48px ganha o lavender; em qualquer outro tamanho cai no `scalable` e ganha o
+mauve. O `strace` de 08/08 (registrado neste arquivo) já mostrou que a pilha
+COSMIC costuma ir direto no `scalable` — é o mauve que está na tela dela.
+
+**Isto vale para os 8 apps `com.system76.Cosmic*`, não só o Files.** Todos têm
+autoral em `scalable/apps` e Arcticons em `48x48/apps`.
+
+### O que fazer
+
+Duas coisas separadas, e a segunda depende dela:
+
+1. **Código, sem perguntar:** resolver o conflito de donos. Os 8 nomes
+   `com.system76.Cosmic*` têm desenho autoral — devem **sair** do
+   `icons/apps-arcticons.map` (linhas 341-348), e o `icones_apps_arcticons.sh`
+   deve remover os órfãos que deixar em `48x48/apps`. Uma verdade só por nome.
+2. **Decisão dela:** o Gestor de Arquivos continua sendo uma pasta? Se sim, ao
+   menos **sai do accent** e ganha cor de identidade própria, como os outros
+   sete, para não se confundir com as pastas de verdade nem com a Lixeira. Se
+   não, precisa de silhueta nova — e aí entra na folha da Sprint I.
+
+### Como conferir
+
+```sh
+ls ~/.local/share/icons/MeowSystem-Icons/*/apps/com.system76.Cosmic*.svg
+# depois do conserto: exatamente um caminho por nome
+```
+
+---
+
+## Sprint K — os ícones da bandeja  ← **ABERTA, uma regressão real**
+
+Frase dela: *"temos o problema do ícone do tray de todos os apps"*.
+
+### A regra que decide tudo (medida em 08/08, revalidada em 11/08)
+
+O protocolo é `org.kde.StatusNotifierItem`, e a ordem de precedência é:
+`IconPixmap` presente **vence sempre** → `IconThemePath` preenchido vence o tema
+→ só com os dois ausentes e `IconName` preenchido é que o **tema** resolve.
+
+### Estado medido ao vivo hoje
+
+Só **um** item registrado no D-Bus agora: `:1.172` = **qBittorrent**.
+`IconName=""`, `IconPixmap` presente em 22×22 e 64×64. Os demais apps não estão
+abertos — o item de bandeja só nasce quando o app abre.
+
+Importante para não caçar fantasma: os ~6 ícones que ela vê à direita do painel
+(conta-gotas, prancheta, volume, bluetooth, energia) **não são bandeja** — são
+applets nativos do COSMIC, dono `icones_sistema.sh`, e **já estão vestidos**
+(42 arquivos em `22x22/status`, conferidos).
+
+| app | dá para vestir pelo tema? | por quê |
+|---|---|---|
+| **Steam** | sim, por substituição de arquivo | **REGREDIU** — ver abaixo |
+| **ZapZap** | sim, por substituição na fonte | **intacto**, conferido no arquivo vivo |
+| **qBittorrent** | **não** | recurso Qt compilado no binário; `IconName` vazio + `IconPixmap` raster |
+| **Spotify** | **não** | `IconThemePath` aponta para dentro do flatpak, somente-leitura |
+| **Hefesto** | sim, mas **não se toca** | é desenho autoral dela (Decisão 14) |
+
+### A regressão da Steam, com carimbo de hora
+
+`~/.steam/debian-installation/public/steam_tray_mono.png` é **byte-idêntico** ao
+original de fábrica de 2014 hoje (`cmp` contra os dois backups: mesmos 5405
+bytes). O `mtime` está preservado em 2014, mas o **`ctime` é de 10/08/2026
+23:29:55** — **11 segundos depois** de o backup ter sido criado.
+
+Onze segundos é curto demais para ser um update do cliente Steam. A hipótese
+mais provável é **bug no passo de escrita**: copiou o *original* por cima em vez
+do *desenhado*. **Investigar antes de repetir a manobra** — reaplicar sem achar o
+bug reproduz a regressão.
+
+### O que fazer
+
+1. Achar por que reverteu em 11 segundos. Só depois reaplicar.
+2. Promover a substituição a um script com `--conferir`, como o
+   `icons/bandeja.map:178` já pedia — hoje uma reversão é **muda**, não aparece
+   no `meow doctor`.
+3. Baixar o glifo `steam` do Arcticons e **guardar em `icons/arcticons/`** — hoje
+   ele não está no acervo (37 glifos, nenhum `steam.svg` nem `whatsapp.svg`), e
+   a manobra depende de repetir um `curl` manual.
+4. qBittorrent e Spotify: **não há via**. Registrar como limite, não como
+   pendência. (No qBittorrent, a única alavanca é `Advanced\TrayIconStyle`, e já
+   está em `MonoDark`, que é o certo para barra escura.)
+
+### Achado solto, a esclarecer com ela
+
+O daemon do **Hefesto** está rodando (PID 1603, `--foreground`) mas **não
+registra item de bandeja** no D-Bus. Pode ser normal (modo sem tray) ou bug à
+parte. Não é o mesmo problema da vestimenta.
+
+---
+
+## Sprint L — o qBittorrent que abre sozinho  ← **ABERTA, a causa é de fora**
+
+Frase dela: *"o qbtorrent segue iniciando com o sistema operacional"*. O "segue"
+é a parte importante: já foi tentado desligar, e voltou.
+
+### A via ativa, medida
+
+`~/.config/autostart/org.qbittorrent.qBittorrent.desktop`, sem `Hidden=true` e
+sem `X-GNOME-Autostart-enabled=false`. O `systemd-xdg-autostart-generator` gera a
+partir dele a unidade `app-org.qbittorrent.qBittorrent@autostart.service`, que
+agora está `loaded active running` — e o `pgrep` confirma o processo vivo.
+
+### Quem cria, e por que apagar não resolve
+
+**Não é o qBittorrent** (o `qBittorrent.conf` não tem chave de autostart; a opção
+é `setVisible(false)` fora do Windows). **Não é o MeowSystem** — o
+`app-themes/qbittorrent/manifesto.sh:7-46` declara: *"o qBittorrent NÃO é nosso
+território"*.
+
+É o **Ritual da Aurora**, em
+`~/.config/zsh/scripts/aurora-qbittorrent-config.sh:469-480`:
+
+```bash
+if [ ! -f "$AUTOSTART" ] || ! cmp -s "$DESKTOP_SRC" "$AUTOSTART"; then
+  cp "$DESKTOP_SRC" "$AUTOSTART"
+fi
+```
+
+Esse `cmp -s` é o motivo de a tentativa anterior não ter pegado: qualquer edição
+no arquivo (inclusive `Hidden=true`) vira "diferente da fonte" e é **recopiada por
+cima, em silêncio**. O script roda pelo `ritual-aurora-self-heal.timer` (unidade
+de sistema, cadência ~1h) e por `/etc/apt/apt.conf.d/99-ritual-aurora-self-heal`
+depois de **todo** `apt`.
+
+### O conserto — e a trava que ele respeita
+
+`~/.config/zsh` está na lista de vizinhos da **TRAVA 1** (`lib/comum.sh:90-99`).
+O MeowSystem **não pode** escrever lá, e não vai. Consertar na raiz (editar o
+bloco "6. autostart" do script da Aurora) é decisão dela, feita por fora.
+
+O conserto que **funciona sem tocar em território proibido**:
+
+```sh
+systemctl --user mask app-org.qbittorrent.qBittorrent@autostart.service
+```
+
+O mask cria um link para `/dev/null` em `~/.config/systemd/user/`, que tem
+prioridade **maior** que `/run/user/1000/systemd/generator.late/`. A Aurora pode
+seguir recopiando o `.desktop` para sempre — vira trabalho perdido e inofensivo,
+porque o mask bloqueia a **ativação**, não a geração. Abrir o app pelo ícone
+continua funcionando normalmente.
+
+**Não** editar `Hidden=true` no `.desktop`: some em até 1h ou no próximo `apt`.
+
+---
+
+## Sprint M — o carrossel que não volta  ← **ABERTA**
+
+Frase dela: *"o papel de parede voltou a ser o antigo também. novamente"*.
+
+### O estado medido
+
+```
+~/.config/cosmic/com.system76.CosmicBackground/v1/output.DP-1   [10/08 18:48]
+    source: Path("/home/vitoriamaria/Imagens/Parede_papel/Cyberpunk Neon Cat …jpeg")
+    sampling_method: Alphanumeric
+```
+
+O `all` está **correto** (aponta para `…/backgrounds/meowsystem/ativos`), mas
+`same-on-all` é `false` — então quem manda é o `output.DP-1`, e ele aponta para a
+pasta antiga dela.
+
+O timer roda: `meow-wallpaper.timer` está `enabled`/`active`, última execução às
+09:35 de hoje. E **devolveu `status=4`**.
+
+### Por que o timer roda a cada 15 min e nunca conserta
+
+O `scripts/wallpaper.sh:306-338` implementa uma fronteira de **três** casos:
+
+```
+aponta para o nosso acervo      -> confere, nada a fazer
+aponta para a pasta de FÁBRICA  -> é reset programático; conserta (código 1)
+aponta para QUALQUER outro lugar -> é ela; não se toca (código 4)
+```
+
+O terceiro caso existe por um bom motivo — é o que impede o script de brigar com
+ela no dia em que ela escolher uma pasta própria pela GUI. Mas
+`~/Imagens/Parede_papel/` **não é** a pasta de fábrica, então cai no terceiro
+caso, e o script se cala. Para sempre.
+
+**Falta o quarto caso: a reversão para um estado antigo que ela não escolheu.**
+A fronteira sabe distinguir "fábrica" de "não-fábrica"; não sabe distinguir
+"escolha dela de agora" de "onde o wallpaper dela estava antes do MeowSystem".
+
+### As opções de conserto
+
+1. **Allowlist explícita.** Só respeita como "escolha dela" um caminho que esteja
+   numa chave nova do `meow.conf` (ex. `WALLPAPER_FONTES_DELA`), preenchida por
+   `meow wallpaper permitir <caminho>`. Qualquer outro caminho não-nosso é
+   reversão e se conserta. **É a que mais respeita a regra do projeto**: ela
+   continua dona da decisão, mas a decisão passa a ser dita uma vez, em vez de
+   inferida do disco toda vez.
+2. **Carimbo de última escrita nossa.** Guardar em
+   `~/.local/state/meowsystem/` quando o script escreveu por último; se o
+   `output.*` mudou sem ela ter aberto Aparência, é reversão. **Frágil** — não há
+   como saber se ela abriu Aparência.
+3. **Perguntar uma vez.** O `doctor` mostra o caminho e pergunta. Quebra o modo
+   não-interativo do timer.
+
+**Recomendada: a 1.** As outras duas adivinham; essa pergunta.
+
+### Como conferir
+
+```sh
+./scripts/wallpaper.sh --conferir ; echo "codigo=$?"
+# hoje: 4 (calou-se). Depois do conserto, num caso de reversão: 1 (consertou).
+```
+
+E olhar a tela: o carrossel volta a girar de 5 em 5 minutos sobre
+`~/.local/share/backgrounds/meowsystem/ativos`.
+
+---
+
+## Sprint N — o Spotify  ← **NÃO É DEFEITO**
+
+Frase dela: *"spotify falta o spicetify"*. Foi medido, e **não falta**.
+
+| conferido | resultado |
+|---|---|
+| `spicetify` instalado | sim, `2.44.0`, em `~/.spicetify/spicetify` |
+| tema no lugar | sim, `~/.config/spicetify/Themes/catppuccin/` (`catppuccin/spicetify @ 1ec645c4`) |
+| intenção gravada | `current_theme=catppuccin`, `color_scheme=mocha` |
+| **aplicado no disco** | **sim** — `Apps/xpui/colors.css` tem `--spice-text: #cba6f7`, que é o `mauve` do `mocha` |
+| backups de fábrica | os 4 batem `sha256 5ec1901f…` |
+| versões batem | `[Backup] version` = `flatpak list` = `1.2.92.147.g5b8f9367` |
+| `meow apps conferir` | `ok   Spotify em Catppuccin mocha/mauve (via spicetify)` |
+
+**A explicação:** nada dentro de `~/.var/app/com.spotify.Client/` foi tocado
+desde **07/08/2026 18:40** — o último fechamento do app. O `spicetify apply`
+rodou em **10/08 20:19**, com o app fechado (como o manifesto exige). **Ela
+simplesmente não abriu o Spotify desde então.**
+
+### A ação
+
+Abrir o Spotify. Se aparecer Catppuccin, **não mexer em mais nada**.
+
+Se aparecer cinza de fábrica → `meow apps aplicar spotify`.
+Se abrir **em branco** → é o cenário 2 do `app-themes/spotify/RECUPERACAO.md`:
+`spicetify upgrade && spicetify backup apply`, e se não houver versão nova,
+saída limpa via `spicetify restore`.
+
+**A armadilha que destrói o backup de fábrica:** rodar `spicetify restore` com um
+backup de versão diferente da instalada copia a UI velha por cima do app novo
+**sem mensagem de erro**. Por isso o manifesto recusa agir sozinho quando as
+versões divergem. Hoje elas batem, então o risco não está presente — mas passa a
+estar no minuto seguinte a um `flatpak update` do Spotify.
+
+---
+
+### O que entrou em 08/08/2026
+
+| o quê | resultado, medido |
+|---|---|
+| **Sprint B** — órfãos em Arcticons | **1 de 12** passou na regra dura (ONLYOFFICE). Os outros 11 não existem no acervo de 14.996 nomes; ficam no Papirus. Folha: `~/folha-apps-orfaos-2.html` |
+| **Sprint C** — pastas | implementada e **recusada por ela ao ver na tela**: `PASTAS_XDG="nao"` é o padrão, e as pastas seguem mauve. O código fica de pé atrás da chave. Folha: `~/folha-pastas-2.html` |
+| **Spotify** | módulo novo, pelos *design tokens* do Encore — sem spicetify. **Revertido em 10/08/2026: agora é o spicetify que aplica** e o Meow decide o flavor/acento (`app-themes/spotify/manifesto.sh`, item 0; recuperação em `RECUPERACAO.md`) |
+| **WhatsApp** | reaplicado; o `flatpak update` tinha recriado o symlink de export |
+| **Nomes no lançador** | 10 nomes encurtados; nenhum truncado |
+| **Duplicatas** | Chrome e os dois Syncthing ocultados de novo, e agora o `doctor` confere |
+| **Gato do painel** | a rotação saiu do relógio e foi para o **encerramento da sessão** |
+| **Carrossel** | fronteira reset-de-fábrica × escolha dela, mais um relógio de 15 min |
+| **9 chaves inertes** | o wizard caiu de 31 para 24 perguntas; as 24 são lidas por código |
+| **Serrilhado do lançador** | a causa era downscale de 512→48 em tempo de desenho; agora há 48/64/128/256 gerados com Lanczos, por 936 KB. Prova visual, e a regra estava aplicada só no script irmão |
+| **As duas lixeiras** | eram os únicos 2 dos 12 nomes fora do accent — cinza, não azuis como o repo afirmava. Recoloridas lendo os tons da pasta vizinha |
+
+### A decisão que continua sendo dela, e só dela
+
+**A barra do painel.** O Arcticons não tem ícone de estado — zero sufixos `-off`,
+`-mute`, `-low`, `-high` no índice completo —, então volume, wifi, microfone e
+notificações continuam no Papirus. Isso **não é pendência**: em 08/08 ela fechou
+a direção com uma frase — *"o arcticons ele vem pra apoiar o outro tema principal
+não vem pra ser o tema principal"*. Vestir um estado só faria o ícone mudar de
+estilo conforme o volume. Só se mexe nisso se ela pedir.
 
 ### Duas coisas que dependem de ela agir, não de código
 
-- **Relogar.** Os 28 ícones novos da Sprint A só aparecem no próximo login: o
+- **Relogar.** Ícone novo e gato novo só aparecem no próximo login: o
   `cosmic-panel` lê o tema ao iniciar e não o vigia. **Não derrube o painel para
   antecipar isso** — foi o que a deixou sem painel e sem dock duas vezes em
   04/08, numa máquina de uma tela só.
@@ -44,6 +566,135 @@ O repositório está limpo, `./install.sh` roda duas vezes sem escrever um byte 
   escolha dela): ela mexeu em Aparência e a GUI derivou um tema novo. Não é
   defeito e não notifica de madrugada. Para fixar o que está na tela:
   `meow tema capturar mocha-mauve`.
+
+---
+
+## Sprint G — a árvore de tema que nunca foi vestida (`CosmicTheme` **v1**)  ← **FEITA em 08/08/2026**
+
+**Achada em 08/08/2026**, quando ela pediu para "parear os ícones por completo".
+Não era sobre ícone: era sobre cor. Foi executada no mesmo dia.
+
+### O que ficou de pé, em uma tabela
+
+| o quê | resultado, medido |
+|---|---|
+| **A v1 foi aposentada?** | **Não.** As duas árvores estão vivas. Provado pelas watches de inotify em `/proc/<pid>/fdinfo`, sem reiniciar nada: `cosmic-panel` vigia `Dark/v2` + `Light/v2`; `cosmic-ext-applet-drives` e `-clipboard-manager` vigiam `Dark/v1` (inode 3932173) + `Mode/v1`. O `-eyedropper` não vigia árvore nenhuma. Ver `docs/COSMIC-THEMING.md` §4h |
+| **A GUI deriva a v1?** | **Não.** `is_frosted` só existe no esquema v1, e **nenhum** dos 41 binários `/usr/bin/cosmic-*` contém essa string. Um derivador de v1 teria de escrevê-la |
+| **O campo do sintoma** | é `Dark/v1/background.on`, **não** `background.component.on`. `0.79136145 × 255 = 202 = 0xCA`. O `component.on` é `0.8945329 → 0xE4` |
+| **sRGB direto, sem gama** | confirmado em campos exatamente `n/255`: `bright_red` = `1.0 / 0.627451 / 0.5647059` → `#FFA090`; `gray_1` `0.105882354` → `#1B1B1B`; `gray_2` → `#262626` |
+| **Conjunto mínimo** | **19 chaves** na `Dark` e **15** na `Light` (a Light/v1 só tem 18 arquivos). Fora, com motivo: `shade` e `accent_text` (já idênticos), `window_hint` e `active_hint` (borda de janela — applet de painel não desenha), `is_frosted` (dela), `corner_radii` (é estrutura, não cor — ver achado abaixo) |
+| **Como foi gerada** | `scripts/gerar_tema_v1.py`: substituição dos literais **numéricos de R, G e B** dentro do arquivo do fóssil, com o valor do mesmo caminho na `v2` da captura. Nada de reimplementar a derivação de contraste do COSMIC — era isso que §1 proibia |
+| **O alpha** | **não entra.** Fica o do fóssil. Na v2 ele já vem multiplicado pelos dois slideres de Vidro fosco, e a captura é congelada: copiá-lo seria impor o valor fotografado de um controle contínuo |
+| **Ritual da Aurora** | a v1 está fora do alcance dele **por estrutura**: a função `temas()` do `aurora-vidro-maximizado.py` exige `transparent_*` no diretório, e a v1 não tem nenhum |
+| **Prova no disco** | 393 de 489 campos da v1 viva mudaram; **0 alphas**; os 489 caminhos RON são os mesmos antes e depois |
+
+### O antes e o depois, em hex (`Dark/v1`, ao vivo)
+
+```
+accent.base            #E272F8  ->  #CBA6F7    o mauve dela
+background.on          #CACACA  ->  #F6F8FF    era o sintoma no painel
+background.base        #313250  ->  #313244    surface0 do mocha
+background.component.on #E4E4E4 ->  #FFFFFF
+icon_button.on         #BEBEBE  ->  #B8BCD4    o ícone dentro do popup
+text_tint              #FFFFFF  ->  #CDD6F4    text do mocha
+control_tint           #777777  ->  #6C7086    overlay0
+palette.neutral_10     #FFFFFF  ->  #CDD6F4
+name                "cosmic-dark" -> "catppuccin-mocha"
+```
+
+**Por que `#F6F8FF` e não `#FFFFFF`:** a fonte de cor é a `v2` **da captura**, que
+é o estado declarado e versionado. A captura está velha (código 4: ela mexeu em
+Aparência em 05/08 e a GUI rederivou 9 arquivos de `Dark/v2`). Na captura,
+`background.on` é `#F6F8FF`; no disco vivo é `#FFFFFF`. A diferença máxima é
+**9/255 num canal** e desaparece sozinha quando ela rodar
+`meow tema capturar mocha-mauve`. Ler a v2 **viva** em vez da captura resolveria
+o resíduo e quebraria a regra de estado declarado — não valeu a troca.
+
+### O efeito na tela
+
+Os dois applets vigiam a `v1` por inotify, então o `cosmic-config` deles pode
+reler sozinho. **Nada foi reiniciado** — e não se reinicia: os dois processos
+continuaram vivos (mesmos PIDs) depois da escrita. Se não tiver recarregado, o
+valor certo já está no disco e chega no próximo login.
+
+### Achado que sobrou, e é decisão dela
+
+O `corner_radii` da v1 é o de fábrica (`radius_xs/m/l/xl` = 4/16/32/160) e o da v2
+é o dela (2/8/8/8), já declarado em `palette/cosmic-map.json →
+estrutura_preservada`. Ou seja: os popups desses dois applets têm cantos de 16 px
+onde todo o resto tem 8. É visível, mas é **estrutura, não cor** — ficou fora do
+conjunto mínimo de propósito. Para incluir, basta acrescentar `"corner_radii"` à
+lista `CONJUNTO` de `scripts/gerar_tema_v1.py`.
+
+Idem `active_hint` (v1 = 3, v2 = 4): é espessura de realce de janela ativa, que um
+applet de painel não desenha. Não vale a escrita.
+
+---
+
+### O texto original da sprint (a medição continua válida)
+
+**O que está medido.** O COSMIC tem duas árvores de tema derivadas, `v1` e `v2`.
+O projeto veste a `v2` e **nunca tocou a `v1`** — e a `v1` desta máquina é
+anterior ao projeto:
+
+```
+mtime  v1/accent      2026-04-12      v1/accent.base  = #E272F8  (um magenta)
+mtime  v1/background  2026-05-20      v2/accent.base  = #CBA6F7  (o mauve dela)
+mtime  v2/accent      2026-08-05
+```
+
+E as **quatro capturas** de `state/tema/` carregam o mesmo `v1` fóssil, md5
+idêntico — inclusive a `original`. Ou seja: **trocar de flavor ou de accent nunca
+mexeu naquela árvore**, e nunca vai, do jeito que está.
+
+**Quem lê a v1, e por isso está com a cor errada na tela dela agora:** os applets
+flatpak `dev.cappsy.CosmicExtAppletDrives` e o `clipboard-manager`. Os dois saem
+`#CACACA` no painel, contra `#FFFFFF` dos applets nativos — e `#CACACA` é, ao
+pixel, o `background.component.on` da v1 (`0.79136145 × 255 = 201,8 = 0xCA`).
+Que os floats da v1 são sRGB direto está provado no mesmo arquivo:
+`base.red = 0.19223961 × 255 = 49 = 0x31`, e `base` é `#313250`.
+
+**Por que NÃO foi consertado na mesma hora**, e isto é a parte que importa:
+
+1. O `docs/COSMIC-THEMING.md` §1 diz, com medição, **"o que NÃO fazer: escrever
+   chave por chave em `Dark/v1`"** — as duas árvores discordam (30 chaves contra
+   17, formatos diferentes) e reproduzir uma à mão "gera um tema híbrido que
+   *quase* funciona, e o quase só aparece semanas depois".
+2. A GUI **não deriva mais a v1** (os mtimes acima provam), então não há o
+   caminho barato que o resto do projeto usa: importar uma vez e fotografar.
+3. Provar que o conserto funciona exige **reiniciar os applets** dela, na tela
+   dela, no meio do uso.
+4. O ganho visível é dois applets passando de cinza-claro para branco. Real, mas
+   pequeno ao lado do risco de escrever numa árvore legada sem poder testar.
+
+**O caminho, quando for a hora.** Não escrever a v1 à mão: **gerar** a v1 a partir
+da paleta, como o `gerar_temas.py` já gera o `.ron` — a fonte de cor continua
+sendo `palette/catppuccin.json` e o mapa de destino, `palette/cosmic-map.json`.
+Depois `--conferir` campo a campo (nunca byte a byte: float contra hex), backup da
+v1 vigente porque ela é de terceiro, e um teste com o painel reiniciado **por
+escolha dela**, não pelo script.
+
+**O que checar antes de começar:** se uma versão nova do COSMIC já aposentou a v1,
+esta sprint morre sozinha — e a medição são os mtimes acima mais um
+`strings -a` nos applets flatpak procurando `CosmicTheme.*v1`.
+
+### O que a execução corrigiu neste texto
+
+- O item 3 **caiu**: não é preciso reiniciar nada para provar. As watches de
+  inotify em `/proc/<pid>/fdinfo` dizem quem lê o quê num processo vivo, e o
+  antes/depois em hex no disco prova o conserto. Os dois applets ficaram de pé,
+  mesmos PIDs, depois da escrita.
+- O item 4 **subestimava o ganho**: não eram dois applets ficando brancos, eram
+  **393 campos** de cor errada, incluindo o accent magenta `#E272F8` em todo
+  foco, seleção e realce dos dois popups.
+- A receita "gerar a partir de `cosmic-map.json`" **não fecha sozinha**: o mapa só
+  declara os slots de TOPO do `.ron`. Os campos derivados da v1 (`hover`,
+  `pressed`, `component.*`, `on_disabled`, `divider`…) saem de um algoritmo de
+  contraste que vive dentro do COSMIC, e reimplementá-lo seria exatamente o
+  híbrido do item 1. A fonte de cor virou a **`v2` da própria captura**, que é o
+  produto que o COSMIC derivou do `.ron` gerado da paleta — transitivo, mas ainda
+  ancorado em `palette/catppuccin.json`.
+- O `background.component.on` do texto acima é, na verdade, `background.on`.
 
 ---
 
@@ -94,13 +745,16 @@ GUI). Quem não é dono apenas confere.
 
 ## O acervo de ícones que existe hoje, e o que cada um cobre
 
-Três fontes, e confundi-las já causou erro. **Leia esta tabela antes de mexer em
-ícone.**
+**Quatro** fontes, e confundi-las já causou erro. **Leia esta tabela antes de
+mexer em ícone.** O Arcticons entrou por último e é o acervo de **APOIO** — ela
+fechou a direção em 08/08: *"o arcticons ele vem pra apoiar o outro tema
+principal não vem pra ser o tema principal"*.
 
 | fonte | onde | o que é | cobre |
 |---|---|---|---|
 | `catppuccin/vscode-icons` | `icons/catppuccin/<flavor>/` | 656 glifos × 4 flavors, MIT, linha fina pastel. É o pack do Iconify (`catppuccin:*`) e do allsvgicons — **os três links são o mesmo acervo**. | **tipos de arquivo** e **pastas**. 123 mimetypes instalados. |
 | `Daveedmee/catppuccin-icons` | `icons/catppuccin-apps/<macchiato\|latte>/` | 146 PNG 512×512 com alpha. As marcas conhecidas recoloridas em pastel. **Sem licença declarada** — uso local, nunca redistribuir. | **aplicativos**. 16 instalados. |
+| Arcticons | `icons/arcticons/` e `icons/arcticons-apps/` | 14.996 nomes, CC BY-SA 4.0, traço monocromático em grid 48. Baixado um a um pela API do Iconify. | os **ícones de sistema** (56, em `<tam>/status`) e o que falta de **aplicativo** (1, em `48x48/apps`). **Não tem estado** — por isso a barra fica no Papirus. |
 | desenho autoral | `src/icons/autorais/` | 10 SVG × 4 flavors, gerados por `scripts/gerar_icones_autorais.py`. | os 8 apps do COSMIC + FogStripper + Hefesto. |
 
 ### A correção que precisa ficar registrada
@@ -145,8 +799,14 @@ acharmos algum que prestasse poderíamos alterar as cores sei lá."*
 **Medido em 05/08/2026, pela API do Iconify:**
 
 ```
-Arcticons · 14.913 ícones · CC BY-SA 4.0
+Arcticons · 14.996 ícones · CC BY-SA 4.0
 ```
+
+> O número aqui dizia **14.913** e divergia dos outros três lugares do repo
+> (`icons/PROCEDENCIA.md`, `icons/sistema.map`, a Sprint A) que dizem 14.996.
+> Refeito em 08/08 pelo índice completo (`/collection?prefix=arcticons`, não pelo
+> `/search`, que é difuso): **14.996 nomes + 304 apelidos**. Os três estavam
+> certos; este estava errado.
 
 Licença **livre e que permite modificar** — é o que autoriza recolorir. São
 ícones de **linha, monocromáticos**, feitos para nomear aplicativos Android, o
@@ -201,8 +861,9 @@ uma cor, não repintar um desenho.
 
 **Duas armadilhas já medidas neste projeto, e as duas mordem aqui:**
 
-- **A paleta não tem cor escura E saturada.** Croma máximo 0,039 entre as cores
-  com L < 0,55. Marcas escuras (GitHub, Steam) vão para um tom claro ou para um
+- **A paleta não tem cor escura E saturada.** Croma máximo **0,034** entre as
+  cores com L < 0,55 no mocha (o 0,039 que estava escrito aqui não existe em
+  flavor nenhum; 0,043 é o do latte, medido em 08/08). Marcas escuras (GitHub, Steam) vão para um tom claro ou para um
   neutro — decidir explicitamente qual, e registrar.
 - **Duas marcas podem cair na mesma cor Catppuccin.** Já existe um caso no disco:
   com `--accent green`, `cosmic-files` e `cosmic-term` nascem gêmeos em silêncio.
@@ -307,7 +968,36 @@ lista falsa de "12 ícones faltando" que na verdade era zero.
 
 ---
 
-## Sprint B — Curadoria assistida  ← **folha pronta, ESPERANDO A ESCOLHA DELA**
+## Sprint B — Curadoria assistida  ← **FEITA em 08/08/2026**
+
+> **1 de 12 entrou, e isso é a regra dura funcionando.** Só o ONLYOFFICE tem no
+> Arcticons um glifo que É o mesmo aplicativo (`onlyoffice-documents`), em
+> `sapphire`, escolhido por matiz em Oklab a partir da cor dominante do ícone do
+> Papirus. Instalado em `48x48/apps` — diretório NOVO, porque `scalable/apps` tem
+> **três** donos e remover órfão lá apagaria arquivo dos outros.
+>
+> **Os outros 11 não existem no acervo**, medido contra o índice completo de
+> 14.996 nomes: `boxy`, `flatseal`, `bleachbit`, `foliate`, `btop`, `file-roller`
+> dão 404; os 32 `proton-*` são da Proton AG, não do ProtonUp-Qt. Ficam no
+> Papirus.
+>
+> **Três números deste texto estavam errados, e foram medidos de novo:**
+> os órfãos são **12** (não 25, não 35, não 14) — a diferença para a medição
+> anterior é o `syncthing`, que tem `NoDisplay=true` nos dois `.desktop` da
+> Debian e por isso **ela nunca o vê no lançador**. E o croma máximo com L<0,55 é
+> **0,034** no mocha; 0,039 não existe em flavor nenhum (0,043 é o do latte).
+>
+> **A armadilha (b) era pior que o previsto:** rodando o método nos 13, **três
+> grupos de marcas colidem na mesma cor** — peach, green e sapphire. O gerador
+> tem asserção que ESTOURA (código 2) em glifo repetido, cor repetida e nome nos
+> dois mapas; a curadoria decide, e o mapa grava a decisão.
+>
+> **O que a folha revelou e não estava previsto:** a dock é vidro e o papel de
+> parede gira, então o fundo oscila **na mesma captura** entre `#3C3B50`
+> (sapphire dá 5,8:1) e `#826E92` (2,4:1 — apagado). Não há conserto pela cor: é
+> a armadilha (a). O que sobra é engrossar o traço ou deixar no Papirus.
+
+### O registro de como a sprint foi desenhada (continua válido)
 
 > **A folha está em `~/folha-apps-orfaos.html`.** Nada foi aplicado: esta sprint
 > termina na escolha dela, e o `icons/apps.map` segue intocado.
@@ -428,7 +1118,73 @@ diretório tem dono único) e já é idempotente.
 
 ---
 
-## Sprint C — As pastas  ← **a premissa está ERRADA; folha em `~/folha-pastas.html`**
+## Sprint C — As pastas  ← **FEITA e DESLIGADA em 08/08/2026**
+
+> **O VEREDITO DELA VEIO DEPOIS DE APLICAR, E É O QUE VALE.** Implementada, ela
+> olhou o Gestor de Arquivos e disse: *"as pastas do temas dos icons do vscode
+> catpuccin, tipo as folders, essas nao tão legais tambem"*. Na tela, as 7 são
+> pasta **vazada de traço claro** ao lado das mauve **cheias** do
+> `papirus-folders`, e nenhuma das 7 usa `mauve`, que é o accent dela — o
+> conjunto não fechou. O risco estava previsto no desenho abaixo ("pode ficar
+> ótimo ou pode ficar inconsistente"); quem decidiu foi a tela, não o palpite.
+>
+> **Hoje `PASTAS_XDG="nao"` é o padrão do `meow.conf`.** O recurso ficou de pé
+> atrás da chave em vez de ser apagado: está medido, provado e pronto para o dia
+> em que ela quiser experimentar de novo — de preferência junto com
+> `ICONES_FLAVOR="latte"`, que a folha mostra com contraste bem melhor.
+>
+> **A lição de método:** a folha visual foi gerada, mas a sprint foi APLICADA
+> antes de ela olhar. A regra do projeto — *"a folha visual vem antes do código"*
+> — existe exatamente para isso, e desta vez foi invertida porque ela pediu para
+> seguir sem parar para perguntar. O custo foi uma ida e volta; a lição é que
+> "seguir sem perguntar" vale para decisão técnica, não para gosto.
+>
+> **O que o desligamento comprova, e é bom que comprove:** com o diretório
+> limpo, o `construir_pastas.sh` devolveu os 231 apelidos mauve numa passagem, e
+> as 7 voltaram a apontar para `folder-cat-mocha-mauve-*`. A cessão condicional
+> funcionou nos dois sentidos.
+
+### O que foi implementado (continua no disco, atrás da chave)
+
+> **Entraram 7 nomes XDG**, não as 14 do desenho original: `folder-documents`,
+> `folder-download`, `folder-music`, `folder-pictures`, `folder-publicshare`,
+> `folder-templates`, `folder-videos`. Vão para `scalable/places` — diretório de
+> dono único, com remoção de órfão — pelo `scripts/icones_pastas.sh` e o mapa
+> `icons/pastas.map`. Folha em `~/folha-pastas-2.html`.
+>
+> **A CESSÃO CONTINUA OBRIGATÓRIA, MAS PELO MOTIVO OPOSTO AO QUE ESTE ARQUIVO
+> DAVA.** O texto abaixo diz que a opção (a) não funciona porque "quem escolhe o
+> diretório é o tamanho, não a ordem de `Directories=`". Medido em 08/08,
+> plantando o mesmo nome nos dois lugares e rodando o `cosmic-files` sob strace
+> num `Xvfb :99`: ele abriu o **`scalable/places`**, sem nem tentar o `32x32`.
+> Mas o **GTK discorda com o mesmo disco** — resolve `scalable` a 16 e 24 px e
+> `32x32` a 32 px. Ou seja, a mesma pasta apareceria pastel a 16 px e mauve a
+> 48 px dentro do mesmo aplicativo. Não é que `scalable` perca: é que **dois
+> arquivos para um nome é o defeito dos dois donos**, e os dois resolvedores
+> desta máquina resolvem diferente.
+>
+> **A cadeia de nível 2 era pelo lado inverso, e são 11, não 1.** O aviso deste
+> arquivo mirava em `folder-videos → folder-video`; medido, cedemos o TOPO da
+> cadeia e não há carona nenhuma. O problema real é o outro: **11 apelidos**
+> (`folder-downloads`, `folder-images`, `folder-sound`, `folder-text`,
+> `folder-public`…) × 5 tamanhos = **55 links** que o passe 2 abandonaria e que
+> cairiam azuis, calados. O `construir_pastas.sh` agora desce a cadeia com
+> `readlink -f` e aponta direto para a cor.
+>
+> **Dois achados que ninguém tinha:** o `cosmic-files` pede a **32 px**, e a
+> **barra lateral dele é `-symbolic`** — repintada numa cor só pelo toolkit
+> (§4g). Pintar ali seria trabalho apagado; a barra lateral está **fora** do
+> alcance desta sprint, por medição.
+>
+> **O modo de destruição foi reproduzido**, em sandbox: sem a cessão, **5 dos 7**
+> viram link mauve na primeira rodada e 2 passam batidos. Com a cessão, duas
+> rodadas seguidas dão diff de zero linhas.
+>
+> **E a cessão é condicional, de propósito:** só cede o nome cujo pastel JÁ está
+> em `scalable/places`. Apagando aquele diretório, os 7 voltam a mauve numa
+> rodada, sozinhos — o projeto não fica com pasta sem ícone se um script sumir.
+
+### O desenho original, e por que a premissa dele caiu
 
 > **O `cosmic-files` não pede 12 das 14.** Medido casando por dicionário os 2.480
 > nomes de `places` do disco contra `strings -a /usr/bin/cosmic-files`: o binário
@@ -718,10 +1474,12 @@ folha que fez ela decidir abandonar os ícones autorais.
 | `meow configurar` edita o `meow.conf` | ENTER em tudo não escreve um byte |
 | nenhuma promessa de portabilidade no repo | e nada do que a poda ia remover era código |
 
-**O que espera decisão dela, e só isso:** as folhas da **Sprint B**
-(`~/folha-apps-orfaos.html`) e da **Sprint C** (`~/folha-pastas.html`). Nada foi
-aplicado nas duas — `icons/apps.map` e `scripts/construir_pastas.sh` estão
-intocados.
+**O que espera decisão dela, e só isso:** a **barra do painel** (volume, wifi,
+microfone, notificações), que continua no Papirus porque o Arcticons não tem
+ícone de estado — e porque ela definiu o Arcticons como acervo de APOIO, não como
+tema principal. As folhas das Sprints B e C (`~/folha-apps-orfaos-2.html` e
+`~/folha-pastas-2.html`) documentam o que entrou e o que ficou de fora, com o
+motivo medido de cada um.
 | `assets/gatos/` responde na hora, sem esperar o relógio | um `.svg` solto disparou 1 vez e entrou; apagado, disparou 1 vez e saiu — e `install.sh` duas vezes não disparou nenhuma |
 
 **Pendência que depende dela, e leva 2 segundos:** o vidro no disco ainda é o da

@@ -249,8 +249,11 @@ meow_app_detectar() {
       return "$MEOW_SEM_DEPENDENCIA"
     fi
   done
-  # `flatpak info` cobre instalação de usuário E de sistema (a dela é de usuário).
-  if ! flatpak info "$MEOW_OBSIDIAN_APP_ID" >/dev/null 2>&1; then
+  # O teste por DIRETÓRIO cobre usuário, sistema e ~/.var/app — e não cria um
+  # repositório ostree inteiro só por perguntar, que é o que `flatpak info`
+  # fazia num HOME sem flatpak nenhum (medido em 10/08/2026). Detecção com
+  # efeito colateral faz o MEOW_DRY_RUN=1 mentir.
+  if ! meow_flatpak_tem "$MEOW_OBSIDIAN_APP_ID"; then
     meow_pula "obsidian: $MEOW_OBSIDIAN_APP_ID não instalado"
     return "$MEOW_SEM_DEPENDENCIA"
   fi

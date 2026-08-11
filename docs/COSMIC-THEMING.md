@@ -37,6 +37,13 @@ discordam entre si nesta máquina — `Dark/v1` tem 30 chaves e `Dark/v2` tem 17
 `window_hint` de uma é `Some(...)` enquanto o da outra é `None`. Reproduzir isso à
 mão gera um tema híbrido que *quase* funciona, e o "quase" só aparece semanas depois.
 
+> **Este parágrafo continua valendo, e ganhou um complemento em 08/08/2026 (§4h).**
+> Dois números envelheceram: depois dos imports pela GUI, `Dark/v2` passou de 17
+> para **38** chaves (a captura `original` guarda as 17 de antes). E a conclusão
+> "não mexer na v1" precisava de uma saída, porque a v1 **não está morta**: três
+> applets flatpak leem dela. A saída não é escrever à mão — é **gerar**, por
+> substituição numérica dentro do arquivo que o próprio COSMIC escreveu. Ver §4h.
+
 ---
 
 ## 2. O nome do tema é o laço externo — `hicolor` é o fim da fila
@@ -140,6 +147,20 @@ Consequências práticas:
 
 ## 3. O gato do painel não passa por tema de ícones
 
+> **LEIA ISTO ANTES DA SEÇÃO — medido em 05/08/2026 e ainda válido em 08/08.**
+> O applet descrito abaixo **não está montado em barra nenhuma** nesta máquina:
+> `LogoMenu` não aparece em `plugins_wings` nem em `plugins_center` do
+> `CosmicPanel.Panel` nem do `CosmicPanel.Dock`. Tudo o que esta seção descreve
+> sobre `custom_logo_path` está certo e continua funcionando — só que **ninguém
+> desenha o resultado**. O gato que ela de fato vê é outro caminho: o
+> `com.system76.CosmicPanelAppButton`, que vem do TEMA DE ÍCONES e é lido uma
+> vez, no login.
+>
+> Consequência prática, e é a que explica a queixa de 08/08 ("voltamos a ter o
+> ícone antigo do lançador"): **o gato só pode mudar de aparência no login**. Foi
+> por isso que a rotação deixou de ser um relógio e passou a acontecer no
+> encerramento da sessão — ver `systemd/meow-logo.service`.
+
 O applet `dev.cappsy.CosmicExtAppletLogoMenu` guarda o caminho do arquivo direto:
 
 ```
@@ -192,6 +213,89 @@ Além disso, `CosmicTheme.Dark.Builder/v2` **não tem nenhuma chave de cor** —
 `active_hint`, `alpha_map`, `corner_radii`, `frosted*` e `window_hint`. Todas as cores
 vivem em `Builder/v1`. Receitas que mandam "escrever as chaves de cor do Builder/v2"
 criariam chaves que nunca existiram aqui.
+
+---
+
+## 4h. As DUAS árvores estão vivas — e a prova sai do `/proc`, sem reiniciar nada
+
+**Medido em 08/08/2026** (Sprint G). A pergunta era: a `v1` foi aposentada?
+**Não.** As duas árvores derivadas estão em uso ao mesmo tempo, por duas gerações
+de `libcosmic`, e cada uma tem o seu leitor.
+
+### Como se mede sem tocar na sessão dela
+
+Todo cliente de `cosmic-config` põe uma **watch de inotify** no diretório que lê.
+As watches de um processo vivo estão em `/proc/<pid>/fdinfo/*`, com o inode do
+alvo. Comparar com o inode dos diretórios de tema responde "quem lê o quê" sem
+abrir janela, sem `strace` e sem reiniciar nada:
+
+```
+for f in /proc/<pid>/fdinfo/*; do grep -H ^inotify "$f"; done   # ino: em HEX
+stat -c '%i %n' ~/.config/cosmic/com.system76.CosmicTheme.*/v*  # inode em DECIMAL
+```
+
+Resultado nesta máquina:
+
+| processo | vigia | inode |
+|---|---|---|
+| `cosmic-panel` | `Dark/v2`, `Light/v2`, `Mode/v1` | 3935095, 4195309 |
+| `cosmic-ext-applet-drives` (flatpak) | **`Dark/v1`**, `Mode/v1` | 3932173 |
+| `cosmic-ext-applet-clipboard-manager` (flatpak) | **`Dark/v1`**, `Mode/v1` | 3932173 |
+| `cosmic-ext-applet-eyedropper` (flatpak) | nenhuma árvore de tema | — |
+
+O bind-mount do flatpak preserva o inode, então a comparação vale de dentro do
+sandbox. E o `sdev:800014` do `fdinfo` é o mesmo `8:20` do `stat -c %D`.
+
+### Por que os applets flatpak ficam numa árvore e o painel na outra
+
+O esquema mudou entre as versões, e os binários carregam a prova. O blob de
+desserialização de cada applet declara **26 campos**, com `is_frosted` e **sem**
+`alpha_map`, `transparent_*`, `list_button`, `name`, `gaps`, `is_high_contrast` —
+que é exatamente o conjunto de arquivos da `v1`. O `cosmic-settings` é o inverso:
+tem `alpha_map` e `transparent_*` e **não tem** `is_frosted`.
+
+Daí sai a prova de que **a GUI não deriva mais a v1**: `is_frosted` só existe no
+esquema v1, e **nenhum dos 41 binários `/usr/bin/cosmic-*` contém essa string**.
+Um derivador que escrevesse a v1 teria de escrever essa chave. Confirma o que os
+mtimes já diziam (`Dark/v1/accent` parado em 2026-04-12, atravessando três
+imports) e o experimento de §1 (escrever no `Builder/v1` não derivou nada).
+
+### O sintoma que isso explicava
+
+Os dois applets saíam `#CACACA` no painel contra `#FFFFFF` dos nativos. O campo é
+**`Dark/v1/background.on`** — `0.79136145 × 255 = 201,8 → 202 = 0xCA`. (Uma nota
+anterior atribuía isso a `background.component.on`; aquele é `0.8945329 → 0xE4`.)
+
+### Os floats da v1 são sRGB direto, sem gama
+
+Confirmado em campos que são exatamente `n/255`, o que só acontece sem conversão:
+`palette.bright_red` = `1.0 / 0.627451 / 0.5647059` → `#FFA090` (160/255 e
+144/255, exatos); `gray_1` = `0.105882354` → `#1B1B1B` (27/255); `gray_2` →
+`#262626`. Se fosse linear, `0xE2` daria `0.760`, não `0.886`.
+
+### A v1 está FORA do alcance do Ritual da Aurora
+
+Não por acordo, por estrutura: a função `temas()` do `aurora-vidro-maximizado.py`
+só aceita um diretório que **tenha `transparent_*`** dentro. A `v1` não tem
+nenhum (são chaves só do esquema v2). Zero ping-pong, nada a normalizar ali.
+
+### Como a v1 é vestida: gerada, nunca escrita à mão
+
+`scripts/gerar_tema_v1.py`. Ele **não** reimplementa a derivação de contraste do
+COSMIC — isso seria o híbrido que §1 proíbe. Ele pega o texto do arquivo v1 do
+**fóssil** (`state/tema/original/…/v1`, escrito pelo próprio COSMIC e versionado)
+e substitui **só os literais numéricos de R, G e B** pelo valor do mesmo caminho
+no arquivo `v2` da captura — que é o produto que o COSMIC derivou do `.ron` que o
+`gerar_temas.py` gerou da paleta. A cor continua saindo de
+`palette/catppuccin.json`; o caminho é transitivo. A estrutura RON é, por
+construção, a de um arquivo que o COSMIC escreveu.
+
+**O alpha não entra: é dela.** Na v2 o alpha já vem multiplicado pelos dois
+slideres de Vidro fosco (`background.base` = `#313244B3`). Copiá-lo para a v1
+seria impor o valor *fotografado* de um controle contínuo — o defeito corrigido em
+05/08 — e pior, a captura é congelada, então o valor imposto seria sempre o
+velho. Consequência assumida: os popups desses dois applets ficam **opacos**
+enquanto os nativos ficam translúcidos.
 
 ---
 
@@ -419,10 +523,19 @@ Dois detalhes que o script precisa acertar, e ambos são silenciosos se errados:
 
 - **Toda seção precisa de `Size=`.** O parse aceita seções até a primeira que não
   declare `Size=`, e descarta o resto dali para baixo — inclusive em `Scalable`.
-- **A ordem importa.** As seções são percorridas em ordem e a primeira que sirva
-  ganha. Com `512x512` na frente, um ícone de 16px pediria o arquivo de 512 e o
-  downscale ficaria borrado na barra. O script ordena por tamanho crescente, com
-  `scalable` por último.
+- **A ordem importa** — para o *parse*, e é por isso que o script ordena por
+  tamanho crescente com `scalable` por último. **Mas não é a ordem que escolhe o
+  arquivo: é o TAMANHO.** Medido em 08/08/2026 num tema de mentira com o mesmo
+  nome em dois diretórios, invertendo a ordem de `Directories=`: nas duas o
+  resolvedor abriu o de 48 px quando se pediu 48. Confere com o strace da Sprint C
+  no `cosmic-files`.
+
+  A consequência prática levou meses para aparecer, e apareceu na tela dela: o
+  `MeowSystem-Icons` tinha o acervo raster **só** em `512x512/apps`, e a dock, que
+  desenha a 48 px, reduzia 10,7× em tempo de desenho — serrilhando. A regra deste
+  parágrafo estava certa e aplicada **só ao `hicolor.sh`**; o nosso próprio tema
+  ficou de fora. O conserto é existir arquivo no tamanho pedido: o
+  `icones_apps.sh` gera 48, 64, 128 e 256 com Lanczos, por 936 KB no total.
 
 ---
 
@@ -545,9 +658,17 @@ Resolvidos no resolvedor real (`Gtk.IconTheme` com `MeowSystem-Icons`), a 22 e 2
 | Pop | 1 (lixo: a string `-symbolic` solta, que é o `ends_with` do libcosmic) |
 
 Os **24 do tema Cosmic são exatamente as páginas das Configurações** que ela
-fotografou (`preferences-*`). O `MeowSystem-Icons` hoje **não tem nenhum ícone
-symbolic próprio** — o `Directories=` dele só declara `apps`, `mimetypes` e
-`places`.
+fotografou (`preferences-*`).
+
+> **Este parágrafo envelheceu, e a correção é de 08/08/2026.** Ele dizia: *"O
+> `MeowSystem-Icons` hoje não tem nenhum ícone symbolic próprio — o
+> `Directories=` dele só declara `apps`, `mimetypes` e `places`."* Era verdade
+> quando a Sprint A foi ABERTA, e deixou de ser quando ela foi executada, no
+> mesmo dia (commit `baeae7d`). Medido hoje: o `Directories=` declara também
+> `22x22/status` e `scalable/status`, e há **28 `*-symbolic.svg` em cada um** —
+> os 56 que o `meow doctor` conta. Um documento de fatos medidos afirmando que a
+> camada não existe é o pior tipo de erro que este arquivo pode ter, porque a
+> próxima sessão o lê antes do código.
 
 ### O traço do Arcticons some a 22 px, e o conserto é um atributo
 
@@ -563,19 +684,23 @@ o Chrome recusa o SVG inteiro, calado, mostrando ícone quebrado.
 ## 5. Fronteira com o Ritual da Aurora
 
 O Aurora roda como root a cada hora, no boot e após todo apt. Onde os dois querem
-mandar no mesmo arquivo, quem cede é o MeowSystem — exceto onde marcado.
+mandar no mesmo arquivo, **o visual é do MeowSystem** — e onde o Aurora continua dono
+(marcado na coluna), o `meow` não escreve: ele confere e diz.
 
 | Recurso | Dono | Como conviver |
 |---|---|---|
 | alpha de `background`/`primary`/`secondary` | Aurora | O `meow` grava em `transparent_*` e deixa o Aurora propagar. O `--conferir` normaliza os 2 dígitos de alpha, senão o doctor acusa divergência eterna e entra em ping-pong com a unit `.path`. |
-| `~/.config/cosmic/logos/gato-pop.svg` | Aurora | O gato Catppuccin entra como asset do Andromeda; o self-heal propaga. |
-| ícone do App Library em `/usr/share` | Aurora | Idem — mesma fonte, dois destinos. |
+| `~/.config/cosmic/logos/` | Meow | O `custom_logo_path` aponta para `meow-coquinha.svg`. O `gato-pop.svg` do Aurora foi aposentado no self-heal v3.56. |
+| ícone do App Library em `/usr/share` | Meow | O tema `MeowSystem-Icons` ganha o laço externo (§2). O Aurora **restaura o `.aurora-original`** a cada ciclo (self-heal v3.56) em vez de plantar o dele. |
 | tema do qBittorrent | Aurora | A allowlist dele ganha `catppuccin`; o `meow` chama o script em vez de escrever no `.conf`. |
 | `~/.config/fastfetch` | Aurora | É symlink para o repo Andromeda, com auto-commit em 10 min. Mudança ali é deliberada, com commit. |
 | atalhos de teclado | Aurora | O `meow` não escreve e exclui do restaurar. |
 | `pinned_workspaces` | Aurora | Fora do restaurar: restaurar por cópia derrubaria os workspaces `Meow` e `OS`. |
 | `CosmicTerm/v1` | dividido | O `meow` escreve só `color_schemes_*`. Nunca `keybindings` nem `shortcuts_custom` — é o colar dela. |
 | `plugins_wings` do painel | Aurora | Entra no backup, sai do restaurar. A ordem dos applets é dela. |
+
+> A tabela completa de domínio — alvo por alvo, quem escreve hoje e quem ganha —
+> vive em [`FRONTEIRA.md`](FRONTEIRA.md).
 
 ---
 
