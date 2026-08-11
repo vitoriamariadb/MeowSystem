@@ -362,21 +362,90 @@ autoral em `scalable/apps` e Arcticons em `48x48/apps`.
 
 Duas coisas separadas, e a segunda depende dela:
 
-1. **Código, sem perguntar:** resolver o conflito de donos. Os 8 nomes
-   `com.system76.Cosmic*` têm desenho autoral — devem **sair** do
-   `icons/apps-arcticons.map` (linhas 341-348), e o `icones_apps_arcticons.sh`
-   deve remover os órfãos que deixar em `48x48/apps`. Uma verdade só por nome.
+1. **Código, sem perguntar:** resolver o conflito de donos. Uma verdade só por
+   nome. ~~Os 8 nomes `com.system76.Cosmic*` têm desenho autoral — devem **sair**
+   do `icons/apps-arcticons.map`.~~ **Feito e DESFEITO no mesmo dia — ver abaixo.**
 2. **Decisão dela:** o Gestor de Arquivos continua sendo uma pasta? Se sim, ao
    menos **sai do accent** e ganha cor de identidade própria, como os outros
    sete, para não se confundir com as pastas de verdade nem com a Lixeira. Se
    não, precisa de silhueta nova — e aí entra na folha da Sprint I.
 
+### Achado 3 — o conserto estava certo e o vencedor estava errado (11/08/2026)
+
+O item 1 acima foi executado na manhã de 11/08 (commit `aacdc3c`): as 8 linhas
+saíram do `icons/apps-arcticons.map`, o autoral em `scalable/apps` ficou como
+verdade única. **O diagnóstico estava certo; a escolha do vencedor estava
+errada, e a prova está neste próprio arquivo.**
+
+O raciocínio da remoção foi: *"o Arcticons é acervo de APOIO — decisão dela, de
+08/08 —, e apoio preenche lacuna, não disputa nome que já tem dono."* A frase é
+verdadeira e não se aplica: em **10/08** ela aprovou na folha
+(`scripts/folha_proposta.py:79-91`) exatamente estes 8 glifos de linha, um a um,
+com o motivo escrito em cada cartão. Aprovar um a um **não é** o Arcticons
+preenchendo lacuna — é ela escolhendo o desenho. A regra de 08/08 tinha sido
+substituída pela escolha de 10/08, e eu apliquei a antiga.
+
+E o texto que desmonta a remoção está **acima nesta mesma sprint**, escrito
+horas antes: *"O 'nosso tema' não é o desenho autoral. É o traço. O desenho
+autoral atual — formas chapadas com contorno universal — é o que está fora do
+padrão."* A queixa nominal dela era a **pasta mauve chapada** dos Arquivos, que é
+precisamente o autoral que a remoção deixou vencer. A remoção não consertou a
+queixa: consolidou-a.
+
+**Devolver as 8 linhas ao mapa não bastava**, e é o que o primeiro conserto não
+viu. Com o autoral ainda instalado em `scalable/apps`, o chapado continua
+vencendo na tela dela — é o `strace` do Achado 2 outra vez. Então o conserto tem
+duas metades, e a segunda é a que faltava:
+
+1. as 8 linhas voltaram ao `icons/apps-arcticons.map`, idênticas ao estado
+   anterior a `aacdc3c` (conferido linha a linha contra o git);
+2. o `scripts/completar_icones.sh` **parou de instalar** os 8 autorais em
+   `scalable/apps` e ganhou uma lista `RETIRADOS` que **remove** os que já estão
+   lá. Remoção por NOME, nunca varredura: `scalable/apps` tem três donos, e dois
+   dos arquivos que sobram ali (`com.system76.CosmicPanelAppButton` e
+   `com.system76.CosmicAppLibrary`, os botões do dock, do `logo.sh`) casam com o
+   mesmo prefixo `com.system76.Cosmic*`.
+
+Ficaram **de fora**, e de propósito: o FogStripper, o Hefesto (nos dois nomes) e
+o apelido `repoman`. O Hefesto é a logo que **ela** desenhou — autoria dela vence
+tema, sempre —, e a decisão sobre esses dois é dela, numa folha ainda pendente.
+
+Os 8 SVGs autorais continuam versionados em `src/icons/autorais/` e o gerador
+continua produzindo-os. Desfazer é mover os 8 nomes de `RETIRADOS` de volta para
+`AUTORAL` e tirar as 8 linhas do mapa — nunca só uma das duas coisas, que é
+exatamente como o defeito nasceu.
+
+### Achado 4 — a mesma doença fora da lista dos 8: o `meow-whatsapp`
+
+Procurado o padrão, ele tinha um segundo caso. O `app-themes/zapzap/manifesto.sh`
+instalava uma **bolha verde cheia** (o `whatsapp-desktop` do Papirus recolorido)
+em `scalable/apps/meow-whatsapp.svg`, enquanto o `icons/apps-arcticons.map` traz
+`meow-whatsapp:whatsapp:sky` — glifo de **traço** — desde a unificação de 10/08.
+Dois donos, mesmo nome, e o `scalable` vencendo pelo mesmo motivo.
+
+Pelo critério dela, vence o traço. O módulo do zapzap parou de instalar a bolha e
+passa a removê-la; o que ele continua fazendo é o que só ele pode fazer — gravar
+`Icon=meow-whatsapp` no `.desktop`, que é o nome pelo qual a linha do mapa
+alcança o app.
+
+**A bandeja não foi tocada, e foi conferido antes:** o ícone da bandeja do ZapZap
+nunca passou por este SVG. Ele é `IconPixmap` cru pelo D-Bus (Achado da pesquisa
+de 05/08), e foi vestido na **fonte do app** — o `tray_icon.py` do flatpak, mais
+a chave `tray_theme=symbolic_light` — como registra o `icons/bandeja.map`.
+
 ### Como conferir
 
 ```sh
 ls ~/.local/share/icons/MeowSystem-Icons/*/apps/com.system76.Cosmic*.svg
-# depois do conserto: exatamente um caminho por nome
+ls ~/.local/share/icons/MeowSystem-Icons/*/apps/meow-whatsapp.svg
+# exatamente um caminho por nome — e tem de ser o de 48x48/apps.
+# Os únicos `com.system76.Cosmic*` que continuam em scalable/apps são os
+# DOIS botões do dock (PanelAppButton e AppLibrary), que são do logo.sh.
 ```
+
+O que sobrou é traço, e isso se mede em vez de se supor — os 9 arquivos têm
+`fill="none"` e `stroke="<cor da paleta>"`; os únicos `fill` de cor são os três
+pontinhos de `r=0.75` dentro do glifo `osmonitor` do Monitor.
 
 ---
 

@@ -27,12 +27,34 @@
 #   timer diário reaplicam. O alvo original fica guardado ao lado, em
 #   `.meow-original`, para o `flatpak repair` não achar link quebrado.
 #
-# O ÍCONE
-#   O Papirus tem `whatsapp-desktop`, mas SÓ na variante clara (`Papirus/`, não
-#   `Papirus-Dark/`) — verificado. Como o nosso tema herda do `Papirus-Dark`, ele
-#   não seria encontrado. Copiamos para o nosso tema com o nome que o `.desktop`
-#   passa a pedir, e trocamos o verde do WhatsApp (`#47AD5D`) pelo verde do
-#   Catppuccin, lido da paleta — nada de hex digitado à mão.
+# O ÍCONE — ESTE MÓDULO SÓ DÁ O NOME; QUEM DESENHA É O `apps-arcticons.map`
+#   Até 11/08/2026 era aqui: o Papirus tem `whatsapp-desktop` só na variante
+#   clara (`Papirus/`, não `Papirus-Dark/`), então copiávamos o arquivo para o
+#   nosso tema em `scalable/apps/meow-whatsapp.svg`, trocando o verde do WhatsApp
+#   (`#47AD5D`) pelo verde da paleta. Era um BALÃO VERDE CHEIO.
+#
+#   E `meow-whatsapp` também está no `icons/apps-arcticons.map`, desde a
+#   unificação de 10/08/2026, com o glifo `whatsapp` em traço `sky` — que o
+#   `icones_apps_arcticons.sh` instala em `48x48/apps`. Dois donos para o mesmo
+#   nome, exatamente a doença dos oito `com.system76.Cosmic*` da Sprint J, e com
+#   o mesmo desfecho: o resolvedor pede `scalable` primeiro (`strace` de
+#   08/08/2026, docs/SPRINTS.md), o balão cheio vencia, e o traço que ela
+#   aprovou ficava no disco sem nunca aparecer.
+#
+#   O critério dela é o mesmo dos oito, e é textual: "no sentido de criarmos
+#   icons igual o nosso tema atual" (11/08/2026) — o nosso tema é o TRAÇO. Então
+#   este módulo parou de instalar o balão e REMOVE o que já instalou. O que ele
+#   continua fazendo é o que só ele pode fazer: gravar `Icon=meow-whatsapp` no
+#   `.desktop`, que é o nome que faz a linha do mapa Arcticons alcançar o app.
+#
+#   Isto NÃO mexe na bandeja: ela nunca passou por este arquivo. O ícone da
+#   bandeja é `IconPixmap` cru pelo D-Bus, e foi vestido na FONTE do app (o
+#   `tray_icon.py` do flatpak, ver `icons/bandeja.map`) mais a chave
+#   `tray_theme=symbolic_light`, que continua sendo escrita aqui embaixo.
+#
+#   Para desfazer: devolver `_zz_icone_desejado` (está no git, commit anterior a
+#   este) e tirar a linha `meow-whatsapp:whatsapp:sky` do `apps-arcticons.map` —
+#   nunca só uma das duas, que é como o defeito nasceu.
 #
 # POR QUE NÃO MEXER NO `Exec=`
 #   A linha de execução do flatpak tem `@@u %u @@` (file-forwarding) e o
@@ -49,25 +71,9 @@ _ZZ_DESTINO="$_ZZ_ORIGEM"   # sim, o próprio: substituímos o symlink
 # `conferir` passaria sempre, comparando o arquivo com ele mesmo. Este é o tipo
 # de bug que não dá erro: só faz o módulo parar de verificar qualquer coisa.
 _ZZ_GUARDADO="$HOME/.local/share/flatpak/exports/share/applications/.$_ZZ_APP.desktop.meow-original"
-_ZZ_PAPIRUS="/usr/share/icons/Papirus/48x48/apps/whatsapp-desktop.svg"
 
 _zz_tema_dir() {
   printf '%s' "$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
-}
-
-# O verde do flavor ativo, lido da paleta canônica.
-_zz_verde() {
-  local flavor="${FLAVOR:-mocha}"
-  local paleta="$MEOW_RAIZ/palette/catppuccin.json"
-  [ -f "$paleta" ] || { printf '%s' "#A6E3A1"; return; }
-  python3 -c "
-import json, sys
-try:
-    p = json.load(open('$paleta'))
-    print(p['flavors']['$flavor']['green'])
-except Exception:
-    print('#A6E3A1')
-" 2>/dev/null || printf '%s' "#A6E3A1"
 }
 
 # Devolve o caminho de onde LER a receita — E NÃO ESCREVE NADA.
@@ -106,17 +112,13 @@ _zz_desktop_desejado() {
     "$(_zz_fonte)"
 }
 
-_zz_icone_desejado() {
-  local verde; verde="$(_zz_verde)"
-  # O ícone do Papirus usa #47ad5d (verde do WhatsApp) e #ffffff. O branco vira a
-  # base do flavor, para o balão ter o mesmo fundo das outras superfícies.
-  local base="#1E1E2E"
-  case "${FLAVOR:-mocha}" in
-    latte) base="#EFF1F5" ;;
-    frappe) base="#303446" ;;
-    macchiato) base="#24273A" ;;
-  esac
-  sed -E -e "s|#47ad5d|$verde|gI" -e "s|#ffffff|$base|gI" "$_ZZ_PAPIRUS"
+# O balão verde cheio que este módulo instalava até 11/08/2026. Ver o cabeçalho:
+# quem veste `meow-whatsapp` agora é o `icons/apps-arcticons.map`, em traço, num
+# diretório de dono único. O que sobra aqui é ARRANCAR o arquivo antigo — sem
+# isso ele continuaria vencendo em `scalable/apps`, e a decisão dela ficaria no
+# disco sem chegar à tela.
+_zz_icone_velho() {
+  printf '%s' "$(_zz_tema_dir)/scalable/apps/$_ZZ_ICONE.svg"
 }
 
 # --- O ÍCONE DA BANDEJA É OUTRO CAMINHO, E O TEMA NÃO ALCANÇA ELE -----------
@@ -196,20 +198,23 @@ meow_app_detectar() {
   # home só por ser perguntado, e detecção não pode escrever (ver lib/comum.sh).
   meow_flatpak_tem "$_ZZ_APP" || return "$MEOW_SEM_DEPENDENCIA"
   [ -f "$_ZZ_ORIGEM" ] || return "$MEOW_SEM_DEPENDENCIA"
+  # O python3 continua sendo dependência por causa do `ZapZap.conf` (a chave da
+  # bandeja). O `whatsapp-desktop` do Papirus saiu da lista em 11/08/2026: ele
+  # era a fonte do balão verde, e o balão não é mais instalado — cobrar um
+  # arquivo que ninguém lê faria o módulo se declarar sem dependência à toa.
   meow_tem python3 || return "$MEOW_SEM_DEPENDENCIA"
-  [ -f "$_ZZ_PAPIRUS" ] || return "$MEOW_SEM_DEPENDENCIA"
   return "$MEOW_OK"
 }
 
 meow_app_conferir() {
   meow_app_detectar || return "$MEOW_SEM_DEPENDENCIA"
-  local tema; tema="$(_zz_tema_dir)"
-  local icone="$tema/scalable/apps/$_ZZ_ICONE.svg"
 
   [ -f "$_ZZ_DESTINO" ] || return "$MEOW_DIVERGENTE"
-  [ -f "$icone" ] || return "$MEOW_DIVERGENTE"
   [ "$(_zz_desktop_desejado)" = "$(cat "$_ZZ_DESTINO")" ] || return "$MEOW_DIVERGENTE"
-  [ "$(_zz_icone_desejado)" = "$(cat "$icone")" ] || return "$MEOW_DIVERGENTE"
+  # A pós-condição do ícone virou de sinal em 11/08/2026: o certo agora é o
+  # arquivo NÃO existir em `scalable/apps`, para o glifo de traço de
+  # `48x48/apps` poder vencer. Ver o cabeçalho.
+  [ ! -f "$(_zz_icone_velho)" ] || return "$MEOW_DIVERGENTE"
 
   # O ícone da bandeja só é conferido se o conf existir: num ZapZap recém
   # instalado, que nunca abriu, não há arquivo — e cobrar uma chave de um arquivo
@@ -224,7 +229,7 @@ meow_app_conferir() {
 
 meow_app_aplicar() {
   meow_app_detectar || {
-    meow_pula "ZapZap não instalado (ou falta o whatsapp-desktop do Papirus)"
+    meow_pula "ZapZap não instalado (ou falta python3)"
     return "$MEOW_SEM_DEPENDENCIA"
   }
   meow_app_conferir >/dev/null 2>&1 && {
@@ -232,8 +237,7 @@ meow_app_aplicar() {
     return "$MEOW_OK"
   }
 
-  local tema; tema="$(_zz_tema_dir)"
-  local icone="$tema/scalable/apps/$_ZZ_ICONE.svg"
+  local icone; icone="$(_zz_icone_velho)"
   local mudou=0
 
   # ANTES de escrever por cima: guardar o original é a regra 4 do contrato, e
@@ -242,8 +246,20 @@ meow_app_aplicar() {
   # é a nossa própria saída.
   _zz_guardar_original
 
-  meow_escrever "$icone" "$(_zz_icone_desejado)" 644
-  case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao instalar o ícone"; return "$MEOW_ERRO" ;; esac
+  # O balão verde cheio de antes de 11/08/2026. Enquanto ele estiver aqui, o
+  # glifo de traço que ela aprovou não chega à tela — o resolvedor pede
+  # `scalable` antes de `48x48`.
+  if [ -f "$icone" ]; then
+    if meow_seco; then
+      meow_muda "removeria $icone (o glifo de traço do Arcticons é o que vale)"
+      mudou=1
+    elif meow_destino_permitido "$icone" && rm -f "$icone"; then
+      mudou=1
+      meow_info "balão verde retirado de scalable/apps — quem veste é o apps-arcticons.map"
+    else
+      meow_aviso "não consegui remover $icone — o balão cheio continua vencendo"
+    fi
+  fi
 
   meow_escrever "$_ZZ_DESTINO" "$(_zz_desktop_desejado)" 644
   case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao escrever o .desktop"; return "$MEOW_ERRO" ;; esac
@@ -272,6 +288,6 @@ meow_app_aplicar() {
   meow_tem update-desktop-database && \
     update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 
-  meow_ok "ZapZap agora aparece como '$_ZZ_NOME_NOVO', com ícone Catppuccin"
+  meow_ok "ZapZap agora aparece como '$_ZZ_NOME_NOVO' (o ícone vem do apps-arcticons.map)"
   return "$MEOW_DIVERGENTE"
 }

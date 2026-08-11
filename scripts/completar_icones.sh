@@ -79,6 +79,44 @@
 #       colorido — deixa o desenho achatado numa cor só. É a mesma armadilha que
 #       o applet LogoMenu cria com `custom_logo_path` (docs/COSMIC-THEMING.md §3).
 #
+# E O QUE ELE DEIXOU DE FAZER EM 11/08/2026: OS OITO `com.system76.Cosmic*`
+#   Até esta data ele instalava aqui oito desenhos autorais — Arquivos, Terminal,
+#   Loja, Ajustes, Editor, Monitor, Reprodutor e Captura de Tela. Eles nunca
+#   estiveram "sem ícone"; o motivo de existirem era a cor de fábrica do Pop!_OS
+#   (teal e azul-marinho, #00717C/#102A4C/#49BAC8), que não existe em Catppuccin
+#   nenhum. O motivo era bom e a solução envelheceu mal.
+#
+#   O QUE ELA DECIDIU, DUAS VEZES
+#     10/08/2026 — aprovou na folha (`scripts/folha_proposta.py:79-91`) os oito
+#     glifos de LINHA do Arcticons para estes mesmos nomes, um a um.
+#     11/08/2026 — mandou a captura do lançador: "no sentido de criarmos icons
+#     igual o nosso tema atual", e reclamou nominalmente da PASTA MAUVE CHAPADA
+#     dos Arquivos, que é justamente um destes oito autorais. O "nosso tema" é o
+#     TRAÇO; o chapado é que destoa (docs/SPRINTS.md, Sprint J).
+#
+#   POR QUE TIRAR DO MAPA ARCTICONS NÃO BASTAVA, E É ESTE O PONTO
+#     Os dois acervos escreviam o mesmo nome em diretórios diferentes — o autoral
+#     aqui em `scalable/apps`, o Arcticons em `48x48/apps`. Duas verdades por
+#     nome, e quem vence depende do tamanho pedido. O `strace` do resolvedor
+#     (08/08/2026, registrado no docs/SPRINTS.md) mostra que a pilha COSMIC
+#     costuma pedir direto em `scalable/apps` — ou seja, com o autoral instalado
+#     AQUI, o chapado ganha na tela dela por mais que o mapa Arcticons diga outra
+#     coisa. Uma verdade só por nome exige que este script pare de escrever os
+#     oito E remova os que já pôs; a lista `RETIRADOS`, abaixo, é isso.
+#
+#   O QUE NÃO SAIU, E POR QUÊ
+#     FogStripper, Hefesto (os dois nomes) e o apelido `repoman` continuam. Não
+#     são a mesma pergunta: o Hefesto é a logo que ELA desenhou — autoria dela
+#     vence tema, sempre —, o FogStripper resolvia num PNG rasterizado que vira
+#     borrão a 48 px, e nenhum dos dois está no `apps-arcticons.map` disputando
+#     nome com ninguém. A decisão sobre esses dois é dela e está numa folha.
+#
+#   COMO SE DESFAZ
+#     Os oito SVGs continuam VERSIONADOS em `src/icons/autorais/` e o gerador
+#     continua produzindo-os: desfazer é mover os oito nomes de `RETIRADOS` de
+#     volta para `AUTORAL` e tirar as oito linhas do `icons/apps-arcticons.map`.
+#     Nada foi apagado do repositório.
+#
 # ONDE ESCREVE, E POR QUE ISSO BASTA
 #   `~/.local/share/icons/MeowSystem-Icons/scalable/apps/`. O tema selecionado é
 #   o laço EXTERNO da busca (§2 do doc), então o nosso ganha do `hicolor` e do
@@ -137,25 +175,40 @@ declare -A AUTORAL=(
   # não pode depender de um caminho fora dele.
   [hefesto-dualsense4unix]="__LOGO_DELA__"
   [com.vitoriamaria.HefestoDualsense4Unix]="__LOGO_DELA__"
+)
 
-  # --- os oito aplicativos do próprio sistema --------------------------------
-  # Estes NÃO estavam "sem ícone": a auditoria os dava por pareados, porque o
-  # `hicolor` de /usr/share entrega um SVG para cada um. O problema é outro e a
-  # auditoria não tem como ver — os SVGs do Pop!_OS são teal e azul-marinho
-  # (#00717C, #102A4C, #49BAC8), cores que não existem em Catppuccin nenhum. Oito
-  # aplicativos que ela abre todo dia continuavam vestidos de fábrica no meio de
-  # um lançador inteiro na paleta.
-  #
-  # Entram por AUTORAL e não por DO_HICOLOR de propósito: DO_HICOLOR copia o
-  # arquivo do sistema como está, que é justamente o que não se quer aqui.
-  [com.system76.CosmicFiles]="cosmic-files-$FLAVOR.svg"
-  [com.system76.CosmicTerm]="cosmic-term-$FLAVOR.svg"
-  [com.system76.CosmicStore]="cosmic-store-$FLAVOR.svg"
-  [com.system76.CosmicSettings]="cosmic-settings-$FLAVOR.svg"
-  [com.system76.CosmicEdit]="cosmic-edit-$FLAVOR.svg"
-  [com.system76.CosmicMonitor]="cosmic-monitor-$FLAVOR.svg"
-  [com.system76.CosmicPlayer]="cosmic-player-$FLAVOR.svg"
-  [com.system76.CosmicScreenshot]="cosmic-screenshot-$FLAVOR.svg"
+# --- o que este script PLANTOU E AGORA TEM DE ARRANCAR ------------------------
+# Os oito `com.system76.Cosmic*` moravam na tabela acima até 11/08/2026. Tirá-los
+# de lá faz o script parar de escrever — e SÓ ISSO. O arquivo já instalado
+# continuaria no disco para sempre, vencendo o Arcticons de `48x48/apps` toda vez
+# que o resolvedor pedisse `scalable` (que é o caso comum, medido no `strace` de
+# 08/08/2026). Uma lista de "parou de ser nosso" é o que fecha o buraco.
+#
+# POR QUE UMA LISTA NOMEADA, E NÃO UMA VARREDURA DE ÓRFÃOS
+#   `scalable/apps` tem TRÊS donos — este script, o `logo.sh` (os botões do dock,
+#   `com.system76.CosmicPanelAppButton` e `com.system76.CosmicAppLibrary`, que
+#   casam com o mesmo prefixo `com.system76.Cosmic*`) e o bootstrap do
+#   `construir_icones.sh`; o `app-themes/zapzap` também escrevia ali até hoje.
+#   Varrer o que "não está na minha tabela" apagaria arquivo dos outros — é
+#   exatamente o que o cabeçalho do `icones_apps_arcticons.sh` explica ao dizer
+#   por que ele escolheu `48x48/apps` para ser dono. Então a remoção é por NOME,
+#   e cada nome aqui é uma linha que alguém escreveu de propósito.
+#
+# ELA NÃO É SÓ PARA A LIMPEZA DE HOJE
+#   Numa instalação nova ela não faz nada (o `[ -f ]` abaixo é falso) e não custa
+#   nada. Mas ela continua valendo depois: quem rodar um `install.sh` de um
+#   checkout ANTERIOR a 11/08/2026 replanta os oito, e a passagem seguinte com
+#   este código os arranca de novo. Tirá-la faria isso virar um arquivo mudo no
+#   disco outra vez.
+RETIRADOS=(
+  com.system76.CosmicFiles
+  com.system76.CosmicTerm
+  com.system76.CosmicStore
+  com.system76.CosmicSettings
+  com.system76.CosmicEdit
+  com.system76.CosmicMonitor
+  com.system76.CosmicPlayer
+  com.system76.CosmicScreenshot
 )
 
 # --- apelidos de utilitário: nome pedido -> arquivo equivalente no Papirus -----
@@ -296,6 +349,29 @@ for nome in "${!AUTORAL[@]}"; do
     2) meow_erro "não consegui instalar $nome.svg"; exit "$MEOW_ERRO" ;;
   esac
 done
+
+# --- 2b. arrancar o que este script deixou de ser dono ------------------------
+# Ver o comentário do `RETIRADOS`, acima. Enquanto o arquivo estiver aqui, o
+# glifo de linha que ela aprovou em `48x48/apps` não chega à tela: o resolvedor
+# pede `scalable` primeiro. Remover é o que torna a decisão dela visível.
+retirados=0
+for nome in "${RETIRADOS[@]}"; do
+  [ -f "$ALVO/$nome.svg" ] || continue
+  if meow_seco; then
+    meow_muda "removeria $nome.svg de scalable/apps (o glifo de linha é o que vale)"
+    mudou=1; retirados=$((retirados+1))
+    continue
+  fi
+  meow_destino_permitido "$ALVO/$nome.svg" || exit "$MEOW_ERRO"
+  if rm -f "$ALVO/$nome.svg"; then
+    mudou=1; retirados=$((retirados+1))
+  else
+    meow_aviso "não consegui remover $ALVO/$nome.svg — o chapado continua vencendo"
+    avisos=1
+  fi
+done
+[ "$retirados" -gt 0 ] && ! meow_seco &&
+  meow_ok "$retirados desenho(s) autorais retirados — quem veste os oito agora é o Arcticons"
 
 # --- 3. apelidos vindos do Papirus -------------------------------------------
 # Papirus ausente NÃO é erro: os autorais já entraram e o resto do tema continua
