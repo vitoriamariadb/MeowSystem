@@ -1,0 +1,49 @@
+# meow-wallpaper.timer — o carrossel volta em minutos, não em 38 horas.
+#
+# POR QUE UM SEGUNDO RELÓGIO, SE JÁ EXISTE O meow-doctor.timer
+#   Medido em 07 e 08/08/2026: algum processo do COSMIC reescreveu o
+#   `output.DP-1` apontando para `/usr/share/backgrounds` — a pasta de fábrica.
+#   O doctor roda uma vez por dia, às 5h. Entre o estrago (07/08 14:35) e o
+#   reparo seguinte passariam 38 horas, e nesse intervalo a TV dela girava as
+#   imagens da NASA de 5 em 5 minutos enquanto o `meow wallpaper estado`
+#   respondia "carrossel ATIVO". Não é um estado que se possa deixar um dia
+#   inteiro no ar: é o recurso mais visível do projeto, desligado em silêncio.
+#
+# POR QUE ISTO NÃO CONTRADIZ O "UM TIMER DIÁRIO E MAIS NADA"
+#   O cabeçalho do `meow-doctor.timer` recusa um SEGUNDO REPARADOR COMPLETO no
+#   mesmo evento — dois programas mexendo em tema e ícone ao mesmo tempo, com
+#   dois avisos capazes de se contradizer na tela dela. Isto aqui é outra coisa:
+#   uma etapa só, que lê cinco arquivos pequenos e quase sempre não escreve
+#   nada. Não toca em tema, não toca em ícone, não reinicia processo nenhum e
+#   não pode piscar a tela.
+#
+# E POR QUE ELE SÓ É SEGURO POR CAUSA DA FRONTEIRA
+#   Um relógio de 15 minutos revertendo qualquer divergência seria brigar com
+#   ela quinze vezes por hora. O `scripts/wallpaper.sh` distingue os três casos
+#   (nosso · reset de fábrica · escolha dela) e devolve 4 no terceiro, sem
+#   escrever. Sem essa fronteira, ESTE ARQUIVO NÃO DEVE EXISTIR.
+#
+# NÃO É UMA UNIT `.path`, E ISSO FOI MEDIDO
+#   O `cosmic-bg` tem UMA única watch de inotify, e é exatamente sobre
+#   `~/.config/cosmic/com.system76.CosmicBackground/v1`. Um vigia escrevendo ali
+#   acordaria o `cosmic-bg` a cada gravação, e ela ficaria impedida de trocar o
+#   papel de parede pela GUI — revertido em menos de um segundo. Um relógio
+#   frouxo erra por lentidão; um `.path` erraria por velocidade.
+#
+# `Persistent=false`: um reparo perdido com a máquina desligada não é dívida a
+# pagar no boot — o próximo tique, em minutos, resolve.
+
+[Unit]
+Description=MeowSystem — devolve o carrossel de papéis de parede se ele for resetado
+Documentation=man:systemd.timer(5)
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=15min
+Persistent=false
+AccuracySec=1min
+RandomizedDelaySec=2min
+Unit=meow-wallpaper.service
+
+[Install]
+WantedBy=timers.target
