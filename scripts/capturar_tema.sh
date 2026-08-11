@@ -54,6 +54,24 @@ case "$NOME" in
   ''|*/*|.*) echo "ERRO: nome inválido: '$NOME'" >&2; exit 2 ;;
 esac
 
+# `original` É O FÓSSIL DE FÁBRICA, E RECAPTURAR É VIA DE MÃO ÚNICA
+#   É o que `meow desfazer` restaura (bin/meow, `cmd_desfazer`) e o molde de que
+#   o `gerar_tema_v1.py` deriva a v1 — e AQUELE script já recusa escrever nela,
+#   pelo mesmo motivo (`MOLDE = "original"`). Este aqui tinha ficado para trás:
+#   um `meow tema capturar original` digitado sem pensar troca o tema de fábrica
+#   desta máquina pelo Catppuccin que estiver na tela, e daí em diante o
+#   `desfazer` restaura Catppuccin em cima de Catppuccin, sem erro nenhum.
+#   (`state/tema/original` está versionado e limpo no git, então um
+#   `git checkout state/tema/original` ainda salva — mas o script não pode
+#   depender disso, porque ele saía 0 dizendo "capturado".)
+if [ "$NOME" = "original" ] && [ "${MEOW_RECAPTURAR_ORIGINAL:-0}" != "1" ]; then
+  echo "ERRO: 'original' é o reset de fábrica e não se recaptura." >&2
+  echo "      É o que 'meow desfazer' restaura e o molde do gerar_tema_v1.py." >&2
+  echo "      Se é mesmo isso que você quer:" >&2
+  echo "        MEOW_RECAPTURAR_ORIGINAL=1 $0 original" >&2
+  exit 2
+fi
+
 DESTINO="$RAIZ/state/tema/$NOME"
 
 if [ ! -d "$COSMIC" ]; then
@@ -100,6 +118,27 @@ fi
   echo "arquivos: $total"
   [ ${#ausentes[@]} -gt 0 ] && echo "ausentes: ${ausentes[*]}"
 } > "$TMP/captura.txt"
+
+# GUARDA O QUE VAI SER DESTRUÍDO, ANTES DE DESTRUIR
+#   Este era o único `rm -rf` do projeto sem rede embaixo: todo o resto que
+#   escreve por cima de arquivo alheio faz backup antes (aplicar_tema.sh,
+#   hicolor.sh, os manifestos de app, o próprio gerar_tema_v1.py).
+#   O carimbo usa HÍFENS, e não `date -Iseconds`, porque a pasta `backups/` é
+#   compartilhada e o formato dela é o do `MEOW_CARIMBO` — a razão está por
+#   extenso em app-themes/vscode/manifesto.sh §helper 3. O sufixo é `-captura-`
+#   e não `-tema-` de propósito: `-tema-<nome>` é o que a poda do
+#   `aplicar_tema.sh` colhe, e o que se guarda aqui não é dela para apagar.
+#   `MEOW_ESTADO` vem com padrão porque este script NÃO carrega lib/comum.sh.
+if [ -d "$DESTINO" ]; then
+  BK="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/backups/$(date +%Y-%m-%dT%H-%M-%S)-captura-$NOME"
+  if mkdir -p "$BK" && cp -a "$DESTINO/." "$BK/"; then
+    printf '%s\n' "$DESTINO" >> "$BK/origens.txt"
+    echo "  a captura anterior de '$NOME' ficou em $BK"
+  else
+    echo "ERRO: não consegui guardar a captura anterior em $BK — nada foi apagado" >&2
+    exit 2
+  fi
+fi
 
 rm -rf "$DESTINO"
 mkdir -p "$(dirname "$DESTINO")"

@@ -87,8 +87,10 @@ CAPTURA="$RAIZ/state/tema/$ALVO"
 #   pior do que brigar com a Aurora, porque ela não tem log para consultar.
 avatar_nosso() {
   local md5="$1" f
-  for f in "$RAIZ"/assets/meow-*-preto.svg "$RAIZ"/assets/meow-*-painel.svg \
-           "$RAIZ"/assets/gatos/*.svg; do
+  # Só o acervo: os `assets/meow-*.svg` foram excluídos em 08/08/2026 e os globs
+  # não casariam nada. O md5 guardado, logo abaixo, é o que ainda reconhece um
+  # avatar posto por uma versão anterior deste script.
+  for f in "$RAIZ"/assets/gatos/*.svg; do
     [ -f "$f" ] || continue
     [ "$(md5sum < "$f" | cut -d' ' -f1)" = "$md5" ] && return 0
   done
@@ -106,9 +108,17 @@ fase_avatar() {
             | sed -n 's/^o "\(.*\)"$/\1/p')"
   [ -n "$objeto" ] || { meow_pula "AccountsService não respondeu — avatar como está"; return 0; }
 
-  desejado="$RAIZ/assets/meow-${FLAVOR:-mocha}-preto.svg"
-  [ -f "$desejado" ] || desejado="$RAIZ/assets/meow-${FLAVOR:-mocha}-painel.svg"
-  [ -f "$desejado" ] || { meow_pula "não há gato para o avatar em assets/"; return 0; }
+  # O AVATAR SAI DO ACERVO DELA, E É O PRIMEIRO EM ORDEM ALFABÉTICA — NÃO O DA
+  # ROTAÇÃO. Até 08/08/2026 era `assets/meow-<flavor>-preto.svg`, do gerador que
+  # ela mandou excluir. Poderia ser o gato que está no ar, mas aí o avatar da
+  # tela de login trocaria junto com a rotação diária, e cada troca é uma escrita
+  # no AccountsService via D-Bus. Estável é melhor: um gato só, sempre o mesmo,
+  # e quem quiser trocar renomeia o arquivo ou põe a própria foto — que o
+  # `avatar_nosso` respeita.
+  desejado="$(find "$RAIZ/assets/gatos" -maxdepth 1 -name '*.svg' \
+                ! -name '*-symbolic.svg' 2>/dev/null | sort | head -n1)"
+  [ -n "$desejado" ] && [ -f "$desejado" ] \
+    || { meow_pula "não há gato em assets/gatos/ para o avatar"; return 0; }
   md5_novo="$(md5sum < "$desejado" | cut -d' ' -f1)"
 
   atual_arq="$(busctl get-property org.freedesktop.Accounts "$objeto" \
@@ -124,7 +134,7 @@ fase_avatar() {
   fi
 
   if [ "$md5_atual" = "$md5_novo" ]; then
-    meow_ok "avatar da tela de login já é o gato ${FLAVOR:-mocha}"
+    meow_ok "avatar da tela de login já é o gato $(basename "${desejado%.svg}")"
     return 0
   fi
 
@@ -134,7 +144,7 @@ fase_avatar() {
   fi
 
   if meow_seco; then
-    meow_muda "poria o gato ${FLAVOR:-mocha} como avatar da tela de login"
+    meow_muda "poria o gato $(basename "${desejado%.svg}") como avatar da tela de login"
     return 1
   fi
 
@@ -147,8 +157,12 @@ fase_avatar() {
   if busctl call org.freedesktop.Accounts "$objeto" org.freedesktop.Accounts.User \
        SetIconFile s "$tmp" >/dev/null 2>&1; then
     rm -f "$tmp"
-    printf '%s' "$md5_novo" > "$MEOW_ESTADO/greeter-avatar.md5" 2>/dev/null || true
-    meow_ok "avatar da tela de login: gato ${FLAVOR:-mocha}"
+    # `>` trunca antes de escrever, e quem lê no meio (linha 98, a comparação
+    # que evita a chamada ao Accounts) veria md5 vazio e refaria o trabalho.
+    # `meow_escrever` é temporário + `mv`, que o leitor não consegue pegar pela
+    # metade.
+    meow_escrever "$MEOW_ESTADO/greeter-avatar.md5" "$md5_novo" 644 >/dev/null || true
+    meow_ok "avatar da tela de login: gato $(basename "${desejado%.svg}")"
     return 1
   fi
   rm -f "$tmp"

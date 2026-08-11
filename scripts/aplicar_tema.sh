@@ -56,10 +56,40 @@ declare -a CHAVES_ALPHA_AURORA=(background primary secondary)
 # CONSEQUÊNCIA PARA QUEM CAPTURA: os arquivos continuam sendo fotografados (uma
 # captura tem de ser completa para servir de backup), mas deixam de ser
 # IMPOSTOS. Aplicar uma captura nova respeita o vidro que ela escolheu.
+#
+# A ÁRVORE `Mode/v1` ENTRA AQUI PELO MESMO MOTIVO — MAS POR CAMINHO INTEIRO
+#   `Mode/v1/is_dark` e `Mode/v1/auto_switch` também são controles que a GUI
+#   expõe (Aparência → modo claro/escuro e "alternar automaticamente"), e o
+#   `auto_switch` ainda tem dono NATIVO: o `cosmic-settings-daemon` calcula
+#   nascer/pôr do sol pela geolocalização e passa a escrever o `is_dark` sozinho
+#   enquanto ele for `true`. Impor os dois pela captura punha TRÊS escritores na
+#   mesma linha: a captura, a `etapa_modo` do install.sh (que deriva do MODO no
+#   meow.conf) e o daemon. Medido em 10/08/2026: com o `is_dark` do destino em
+#   `false`, o `--conferir` acusa 1 de 187 arquivos divergente, e o auto-reparo
+#   das 5h consertaria e notificaria TODO dia — o anti-padrão que o
+#   `meow-doctor.service` gasta quarenta linhas explicando por que não pode
+#   acontecer. E ceder o `is_dark` do Mode não perde tema nenhum: `mocha-mauve` e
+#   `latte-mauve` são byte a byte iguais fora dele (`diff -rq`, reconferido em
+#   10/08/2026) — o claro nunca foi um tema, é um interruptor. O caminho para ele
+#   é `meow tema claro`, que grava MODO no meow.conf, e é lá que a decisão mora.
+#
+#   POR QUE ESTES DOIS NÃO PODEM ENTRAR EM `CHAVES_DELA`, QUE CASA POR BASENAME
+#   Porque `is_dark` NÃO existe só no Mode. Conferido nas quatro capturas:
+#   `Dark/v1/is_dark`, `Dark/v2/is_dark` e `Light/v2/is_dark` também existem, e
+#   ali o nome é campo ESTRUTURAL da árvore — a Light diz `false`, a Dark diz
+#   `true`, e nenhum dos dois é decisão de ninguém. Cedidos por basename, esses
+#   três saíam do envelope de reparo: uma árvore Light que passasse a dizer
+#   `is_dark=true` não seria consertada por `meow tema`, nem por `meow desfazer`,
+#   nem por `meow doctor --consertar`, e o script ainda anunciaria "já aplicado".
+#   Por isso o Mode é casado pelo CAMINHO RELATIVO INTEIRO, no `case` abaixo.
+#   (`auto_switch` só existe no Mode, mas fica junto: a regra é a árvore.)
 declare -a CHAVES_DELA=(frosted alpha_map)
 
 e_chave_dela() {
   local chave; chave="$(basename "$1")"
+  case "$1" in
+    com.system76.CosmicTheme.Mode/v1/is_dark|com.system76.CosmicTheme.Mode/v1/auto_switch) return 0 ;;
+  esac
   case "$1" in com.system76.CosmicTheme.*) ;; *) return 1 ;; esac
   for k in "${CHAVES_DELA[@]}"; do [ "$chave" = "$k" ] && return 0; done
   return 1
@@ -93,8 +123,29 @@ e_chave_dela() {
 #   `meow tema mocha-pink` deixaria a janela flutuante com foco mauve e a
 #   maximizada com foco rosa, para sempre. Fronteira por árvore não parte arquivo
 #   nenhum.
+#
+# A `v1` NÃO É PRODUTO DA GUI — E CEDÊ-LA NÃO PROTEGE NINGUÉM
+#   Ceder existe para não desfazer o que a GUI dela derivou. A GUI não deriva a
+#   `v1`. MEDIDO em 08/08/2026, três provas independentes:
+#     1. `Dark/v1/accent` tem mtime 2026-04-12 e atravessou intacto os TRÊS
+#        imports de tema de 04/08 e toda mexida em Aparência desde então;
+#        `Dark/v2/accent` tem mtime 2026-08-05.
+#     2. Nenhum dos 41 binários `/usr/bin/cosmic-*` contém a chave `is_frosted`,
+#        que só existe no esquema v1 — e o blob de chaves do `theme_manager` do
+#        `cosmic-settings` traz `alpha_map` e `transparent_*`, que só existem no
+#        v2. O stack nativo não conhece mais o esquema da v1.
+#     3. A v1 das QUATRO capturas e a viva são byte a byte idênticas (md5 igual),
+#        inclusive a `original`: trocar de flavor nunca mexeu naquela árvore.
+#   Quem ainda LÊ a v1 são três applets flatpak compilados contra uma libcosmic
+#   antiga. Provado sem reiniciar nada, pelas watches de inotify dos processos
+#   vivos: `cosmic-ext-applet-drives` e `-clipboard-manager` vigiam o inode de
+#   `Dark/v1` (3932173) e o de `Mode/v1`; o `cosmic-panel` vigia `Dark/v2` e
+#   `Light/v2`. As duas árvores estão VIVAS, cada uma com o seu leitor.
+#   Por isso a `v1` fica de fora da cessão: o conteúdo dela vem de
+#   `scripts/gerar_tema_v1.py`, que a deriva da paleta para dentro da captura.
 e_produto() {
   case "$1" in
+    com.system76.CosmicTheme.Dark/v1/*|com.system76.CosmicTheme.Light/v1/*) return 1 ;;
     com.system76.CosmicTheme.Dark/*|com.system76.CosmicTheme.Light/*) return 0 ;;
   esac
   return 1
@@ -212,7 +263,33 @@ BACKUP_DIR=""
 
 garantir_backup() {
   [ -n "$BACKUP_DIR" ] && return 0            # já feito nesta execução
-  BACKUP_DIR="$MEOW_ESTADO/backups/$(date -Iseconds)-tema-$NOME"
+  # `%Y-%m-%dT%H-%M-%S`, COM HÍFENS, E ISSO NÃO É ESTÉTICA
+  #   A pasta `backups/` é COMPARTILHADA por todos os módulos e todos os outros
+  #   usam esse formato (`MEOW_CARIMBO`, em lib/comum.sh; a razão está escrita
+  #   por extenso em app-themes/vscode/manifesto.sh §helper 3). Este script era
+  #   o único com `date -Iseconds`, e dois-pontos em nome de arquivo só rendem
+  #   aspas para o resto da vida de quem for restaurar na mão.
+  # O PRIMEIRO BACKUP É DE OUTRA NATUREZA, E POR ISSO LEVA OUTRO NOME
+  #   Ele é o COSMIC de ANTES do MeowSystem nesta máquina — o alvo do `meow
+  #   desfazer` e da fase 2 do `install.sh --uninstall`. Os seguintes são só
+  #   "o estado da véspera". Com o nome `-tema-PRIMEIRO-`, a retenção não o
+  #   alcança: a poda começa pelo mais antigo, que era exatamente o único que
+  #   importava, e BACKUPS_MANTIDOS=10 fazia o botão de volta evaporar na 11ª
+  #   aplicação de tema.
+  #
+  #   "PRIMEIRO" é medido, não presumido: se já existe QUALQUER backup de tema
+  #   aqui, este script já rodou antes e o que estiver no disco agora já é obra
+  #   nossa — chamar isso de "antes do MeowSystem" seria uma mentira gravada no
+  #   nome do arquivo. Numa máquina assim (a desta casa, que rodou desde
+  #   04/08/2026) nenhum PRIMEIRO nasce, e quem responde pelo desfazer continua
+  #   sendo a captura `original`, que foi tirada daqui antes de tudo.
+  local marca="" velho
+  for velho in "$MEOW_ESTADO"/backups/*-tema-*; do
+    [ -d "$velho" ] && { marca="ja-rodou"; break; }
+  done
+  [ -n "$marca" ] || marca="PRIMEIRO-"
+  [ "$marca" = "ja-rodou" ] && marca=""
+  BACKUP_DIR="$MEOW_ESTADO/backups/$(date +%Y-%m-%dT%H-%M-%S)-tema-$marca$NOME"
   mkdir -p "$BACKUP_DIR" || { echo "ERRO: não consegui criar $BACKUP_DIR" >&2; exit 2; }
 
   # Guarda as árvores INTEIRAS que esta execução pode tocar, não só os arquivos
@@ -247,10 +324,43 @@ O COSMIC relê por inotify: a interface acompanha em segundos, sem relogar.
 FIM
   echo "  backup em $BACKUP_DIR (veja COMO-RESTAURAR.txt)"
 
-  # Retenção: as N mais recentes DESTE script. Não toca em backup de outro
-  # módulo — cada um poda o que é seu.
-  ls -1d "$MEOW_ESTADO"/backups/*-tema-* 2>/dev/null | sort | head -n "-$BACKUPS_MANTIDOS" \
-    | while read -r velho; do rm -rf "$velho"; done
+  # Retenção: as N mais recentes DESTE script, DESTA captura.
+  #
+  # O GLOB TEM O NOME DA CAPTURA PORQUE O `*` LARGO ERA UM `rm -rf` NO VIZINHO
+  #   `*-tema-*` casava também `<carimbo>-tema-v1`, que é do `gerar_tema_v1.py`
+  #   e é o único registro do que havia nas capturas antes de o gerador escrever
+  #   nelas. Conferido no disco em 10/08/2026: das cinco pastas que o glob
+  #   antigo pegava, uma era `2026-08-08T16-01-18-tema-v1`. O comentário que
+  #   morava aqui jurava não tocar em backup de outro módulo, e tocava.
+  #
+  # A ORDENAÇÃO FICA COMO ESTÁ, DE PROPÓSITO: o `sort` do glibc em pt_BR ignora
+  # pontuação no primeiro nível, então as pastas antigas com dois-pontos e as
+  # novas com hífen se intercalam pela data, que é o que se quer. Um `LC_ALL=C`
+  # aqui só mudaria alguma coisa DENTRO da mesma hora da transição, e mudaria
+  # para pior: em ASCII o `-` vem antes do `:`, e a mais nova sairia primeiro.
+  # A LISTA VEM DE GLOB, E NÃO DE `ls`, POR CAUSA DO `set -e` LÁ EM CIMA
+  #   Com `pipefail` ligado, um `ls` que não casa nada devolve 2 e derruba o
+  #   pipeline inteiro — e a partir do momento em que o primeiro backup passou a
+  #   se chamar `-tema-PRIMEIRO-<nome>`, o glob `*-tema-<nome>` deixa de casar
+  #   qualquer coisa na PRIMEIRA aplicação. Medido: o script morria aqui, logo
+  #   depois de imprimir "backup em ...", sem ter aplicado o tema.
+  #
+  #   O `-tema-PRIMEIRO-` também é excluído explicitamente. O glob já não o pega;
+  #   isto é a rede para o dia em que alguém alargar o glob de novo, porque é a
+  #   única pasta daqui cuja perda não tem conserto.
+  local -a antigas=()
+  for velho in "$MEOW_ESTADO"/backups/*-tema-"$NOME"; do
+    [ -d "$velho" ] || continue
+    case "$velho" in *-tema-PRIMEIRO-*) continue ;; esac
+    antigas+=("$velho")
+  done
+  # A ORDENAÇÃO CONTINUA SENDO A DO `sort`, e o `printf` preserva isso: é o
+  # mesmo texto que o `ls` produzia, só que sem depender de o glob casar.
+  if [ "${#antigas[@]}" -gt "$BACKUPS_MANTIDOS" ]; then
+    printf '%s\n' "${antigas[@]}" | sort | head -n "-$BACKUPS_MANTIDOS" \
+      | while read -r velho; do rm -rf "$velho"; done
+  fi
+  return 0
 }
 
 divergentes=0

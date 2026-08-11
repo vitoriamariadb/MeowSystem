@@ -8,9 +8,19 @@ POR QUE ESTE SCRIPT EXISTE
     trocar uma linha do meow.conf, nunca editar um tema à mão.
 
 O QUE ELE NÃO DECIDE
-    A estrutura do tema — raio 8, gaps (0,5), active_hint 4, frosted VeryLow2 e o
-    alpha_map de 14 chaves — é da Vitória, herdada do "Estilo escuro.ron" dela.
-    Isso é copiado do template, não gerado. Só a paleta muda.
+    A estrutura do tema — raios, gaps, active_hint 4, frosted e o alpha_map de 14
+    chaves — não é calculada aqui: sai inteira de `estrutura_preservada` no
+    cosmic-map.json. Só a paleta é gerada.
+
+    E ESSA ESTRUTURA NÃO É MAIS "A FOTO DE 04/08 QUE NINGUÉM TOCA"
+    Ela era descrita aqui como "raio 8, gaps (0,5), frosted VeryLow2", herdada do
+    "Estilo escuro.ron". Em 10/08/2026 esses três números foram revistos com ela:
+    raios 0/4/8/16/32/160 (o padrão da libcosmic, que é o que devolve as PILULAS
+    — com tudo em 8 não existe pilula em canto nenhum), gaps (12, 6) e frosted
+    VeryHigh2. Este último não foi escolha nossa: a máquina JÁ estava em
+    VeryHigh2 e o JSON dizia VeryLow2, então cada regeração do tema desfazia
+    calado o slider dela. Alinhar a fonte ao vivo é o que impede a regressão.
+    Quem fotografa o vivo de volta é `scripts/capturar_tema.sh`.
 
 O ALPHA_MAP É COPIADO, NUNCA CALCULADO
     São 14 floats que o COSMIC exportou com a precisão dele (0.91999996 e não 0.92).

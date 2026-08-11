@@ -52,21 +52,24 @@
     "_nota": "D9 = 85%. Vem de ALPHA_FUNDO no meow.conf; o resto e FF."
   },
   "estrutura_preservada": {
-    "_nota": "Herdado do 'Estilo escuro.ron' dela. So a paleta muda; isto nao se toca.",
+    "_nota": "Veio do 'Estilo escuro.ron' dela e por muito tempo foi so foto: 'a paleta muda, isto nao se toca'. Em 10/08/2026 tres numeros desta secao foram revistos com ela e a foto deixou de valer sozinha.",
+    "_nota_corner_radii": "Os raios estavam achatados: xs 2 e s/m/l/xl todos 8. O padrao da libcosmic (cosmic-theme/src/model/corner.rs) e 0/4/8/16/32/160, e o 160 do radius_xl e o que faz um botao virar PILULA. Com tudo em 8 nao existe pilula em lugar nenhum da interface. O scripts/gerar_tema_v1.py:73-75 ja tinha registrado isso como decisao pendente dela; em 10/08/2026 ela decidiu devolver a hierarquia de fabrica. gerar_temas.py expande cada escalar daqui em (v, v, v, v) — por isso aqui e numero solto e no .ron sai 4-tupla.",
     "corner_radii": {
       "radius_0": 0.0,
-      "radius_xs": 2.0,
+      "radius_xs": 4.0,
       "radius_s": 8.0,
-      "radius_m": 8.0,
-      "radius_l": 8.0,
-      "radius_xl": 8.0
+      "radius_m": 16.0,
+      "radius_l": 32.0,
+      "radius_xl": 160.0
     },
+    "_nota_gaps": "(externo, interno), na semantica da libcosmic (cosmic-theme/src/model/theme.rs). Estava (0, 5) — e o externo zero e o padrao de fabrica tambem, entao o desvio dela era so no interno. Com externo 0 o mosaico do autotile encosta na barra e na borda da tela e parece defeito. (12, 6) da respiro sem desperdicar tela de 1920. So aparece com o autotile ligado (Super+Y): sem tiling, gap nenhum e desenhado.",
     "gaps": [
-      0,
-      5
+      12,
+      6
     ],
     "active_hint": 4,
-    "frosted": "VeryLow2",
+    "_nota_frosted": "Este e o slider de Aparencia -> Vidro fosco, TERRITORIO DELA. Ficou 'VeryLow2' aqui enquanto a maquina estava em VeryHigh2 desde 10/08/2026 16:01 — quer dizer que a proxima regeracao do tema desfaria a escolha dela caladamente. Foi alinhado com o vivo, nao o contrario. Se ela mexer no slider de novo, quem atualiza este campo e o scripts/capturar_tema.sh; o doctor pode ACUSAR a divergencia, nunca reescrever a maquina.",
+    "frosted": "VeryHigh2",
     "frosted_windows": true,
     "frosted_system_interface": true,
     "frosted_panel": true,
