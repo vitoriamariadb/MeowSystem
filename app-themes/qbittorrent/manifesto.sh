@@ -433,3 +433,81 @@ meow_app_aplicar() {
   meow_aviso "nada se perdeu: o tema já está no disco e o próximo ciclo ocioso aplica."
   return "$MEOW_DIVERGENTE"
 }
+
+# --- DESFAZER (11/08/2026) --------------------------------------------------
+# Chegam aqui `meow apps reverter qbittorrent` e o passo 2/6 do `--uninstall`.
+#
+# QUEM ESCREVE O CONF CONTINUA SENDO O AURORA — inclusive para desfazer.
+#   O `aplicar` delega porque o `qBittorrent.conf` é território dele e porque só
+#   ele sabe fechar o app sem matar download em andamento. Desfazer pela nossa
+#   mão aqui seria abrir uma segunda porta para o mesmo arquivo, justamente no
+#   caminho que roda uma vez na vida e ninguém testa de novo.
+#
+# O DESTINO É `dracula`, E NÃO "SEM TEMA"
+#   A allowlist do Aurora é `dracula|andromeda|catppuccin|nenhum`, e `dracula` é
+#   o que ele usa quando o estado não diz nada (`TEMA=dracula`, no próprio
+#   script). Era o que estava lá antes de nós; é para lá que devolvemos. Pedir
+#   `nenhum` deixaria o app cru, que não é o estado anterior — seria uma terceira
+#   escolha, tomada por nós, em nome dela.
+_MEOW_QBT_TEMA_AURORA_PADRAO="${MEOW_QBT_TEMA_AURORA_PADRAO:-dracula}"
+
+meow_app_reverter() {
+  _meow_qbt_pronto || return "$MEOW_SEM_DEPENDENCIA"
+
+  local conf_dir destino estado mudou=0
+  conf_dir="$(_meow_qbt_conf_dir)" || return "$MEOW_SEM_DEPENDENCIA"
+  destino="$conf_dir/themes/$MEOW_QBT_ARQUIVO"
+  estado="$(cat "$MEOW_QBT_AURORA_ESTADO" 2>/dev/null)"
+
+  if [ ! -f "$destino" ] && [ "$estado" != "$MEOW_QBT_NOME_AURORA" ]; then
+    meow_ok "qBittorrent já estava sem o Catppuccin"
+    return "$MEOW_OK"
+  fi
+
+  if meow_seco; then
+    [ -f "$destino" ] && meow_muda "removeria $destino"
+    [ "$estado" = "$MEOW_QBT_NOME_AURORA" ] && \
+      meow_muda "gravaria '$_MEOW_QBT_TEMA_AURORA_PADRAO' em $MEOW_QBT_AURORA_ESTADO"
+    meow_muda "rodaria: $MEOW_QBT_AURORA_FONTE --tema $_MEOW_QBT_TEMA_AURORA_PADRAO"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  # 1. o estado do Aurora PRIMEIRO. Se a ordem se invertesse e algo falhasse no
+  #    meio, o self-heal leria 'catppuccin' no próximo ciclo e reaplicaria tudo
+  #    — desfazer que se desfaz sozinho é pior do que não desfazer.
+  #    Escrita direta, não `meow_escrever`: este arquivo é do Aurora, e registrá-lo
+  #    no manifesto faria o desinstalador apagar o estado dele no passo seguinte.
+  if [ "$estado" = "$MEOW_QBT_NOME_AURORA" ]; then
+    if printf '%s' "$_MEOW_QBT_TEMA_AURORA_PADRAO" > "$MEOW_QBT_AURORA_ESTADO" 2>/dev/null; then
+      mudou=1; meow_muda "estado do Aurora -> $_MEOW_QBT_TEMA_AURORA_PADRAO"
+    else
+      meow_erro "não consegui gravar $MEOW_QBT_AURORA_ESTADO"
+      return "$MEOW_ERRO"
+    fi
+  fi
+
+  # 2. o conf, pelo dono dele.
+  meow_info "delegando o conf ao Aurora (ele é o dono do qBittorrent.conf)"
+  if ! bash "$MEOW_QBT_AURORA_FONTE" --tema "$_MEOW_QBT_TEMA_AURORA_PADRAO"; then
+    meow_erro "o script do Aurora falhou ao devolver o tema"
+    return "$MEOW_ERRO"
+  fi
+
+  # 3. só agora o nosso arquivo sai — e só se o conf tiver deixado de apontar
+  #    para ele. Remover antes de o Aurora reescrever o conf deixaria o
+  #    qBittorrent com CustomUIThemePath para um arquivo inexistente, que é como
+  #    se abre um app sem interface.
+  if [ -f "$destino" ]; then
+    if grep -qxF "General\\CustomUIThemePath=$destino" "$conf_dir/qBittorrent.conf" 2>/dev/null; then
+      meow_aviso "o conf ainda aponta para $destino — o Aurora adiou a gravação (download em andamento?)"
+      meow_aviso "o .qbtheme fica onde está; rode de novo com o app ocioso"
+    elif rm -f "$destino"; then
+      mudou=1; meow_muda "tema removido de $destino"
+    fi
+  fi
+
+  [ "$mudou" = "0" ] && { meow_ok "qBittorrent já estava sem o Catppuccin"; return "$MEOW_OK"; }
+  meow_ok "qBittorrent de volta ao tema $_MEOW_QBT_TEMA_AURORA_PADRAO do Aurora"
+  meow_info "tire 'qbittorrent' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  return "$MEOW_DIVERGENTE"
+}

@@ -291,3 +291,82 @@ meow_app_aplicar() {
   meow_ok "ZapZap agora aparece como '$_ZZ_NOME_NOVO' (o ícone vem do apps-arcticons.map)"
   return "$MEOW_DIVERGENTE"
 }
+
+# --- DESFAZER (11/08/2026) --------------------------------------------------
+# Chegam aqui `meow apps reverter zapzap` e, desde 11/08/2026, o passo 2/6 do
+# `install.sh --uninstall`. Nada automático chama: o doctor das 05:00 só aplica.
+#
+# AQUI NÃO SE ESCREVE COM `meow_escrever`, E O MOTIVO É O MANIFESTO
+#   Aquela função REGISTRA o que grava. Devolver o `.desktop` de fábrica por ela
+#   poria o arquivo restaurado na lista do desinstalador, que o apagaria no passo
+#   seguinte: o ZapZap ficaria SEM `.desktop` — sumiria do lançador — em vez de
+#   voltar ao que era. Por isso escrita direta. E o registro velho no manifesto
+#   não incomoda: o sha de lá é o do NOSSO conteúdo, o arquivo agora tem outro, e
+#   a guarda "mudou depois que escrevemos, fica" pula sozinha.
+#
+# O QUE ELE NÃO DEVOLVE, E POR QUÊ
+#   O balão verde de `scalable/apps` não volta. Ele deixou de ser instalado em
+#   11/08/2026 (ver o cabeçalho): recriá-lo aqui seria repor uma decisão que ela
+#   revogou. O ícone do lançador volta a ser o do flatpak assim que o `Icon=`
+#   original está de volta, que é o que importa.
+meow_app_reverter() {
+  meow_app_detectar || {
+    meow_pula "ZapZap não instalado (ou falta python3)"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+
+  # Sem o original guardado não há o que devolver — e INVENTAR um `.desktop` de
+  # flatpak à mão é a receita para um app que não abre. O caminho de volta existe
+  # e é do flatpak; dizemos qual é.
+  if [ ! -L "$_ZZ_ORIGEM" ] && [ ! -f "$_ZZ_GUARDADO" ]; then
+    meow_aviso "não achei o original em $(basename "$_ZZ_GUARDADO") — não invento um .desktop de flatpak"
+    meow_info "  o flatpak recria o dele: flatpak update com.rtosta.zapzap  (ou flatpak repair --user)"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  local mudou=0
+  local tray_atual; tray_atual="$(_zz_tray_atual)"
+
+  if meow_seco; then
+    [ -f "$_ZZ_GUARDADO" ] && meow_muda "devolveria o .desktop de fábrica (nome 'ZapZap' de volta)"
+    [ "$tray_atual" != "default" ] && meow_muda "devolveria tray_theme=default no ZapZap.conf"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  # 1. o `.desktop`. Fica um arquivo REAL onde o flatpak tinha um symlink — o
+  #    conteúdo é o mesmo, e o próximo `flatpak update` repõe o link.
+  if [ -f "$_ZZ_GUARDADO" ]; then
+    if cp -f "$_ZZ_GUARDADO" "$_ZZ_DESTINO" 2>/dev/null; then
+      rm -f "$_ZZ_GUARDADO"
+      mudou=1
+      meow_ok "o .desktop voltou ao de fábrica — o app chama-se 'ZapZap' de novo"
+    else
+      meow_erro "não consegui devolver $_ZZ_DESTINO"
+      return "$MEOW_ERRO"
+    fi
+  fi
+
+  # 2. o ícone da bandeja, pela mesma porta por onde entrou. `default` é o valor
+  #    de fábrica do ZapZap (core/config/settings/appearance.py:24).
+  if [ -f "$_ZZ_CONF" ] && [ "$tray_atual" != "default" ]; then
+    local novo
+    if novo="$(_zz_conf_com_tray default)" && [ -n "$novo" ]; then
+      if printf '%s' "$novo" > "$_ZZ_CONF" 2>/dev/null; then
+        mudou=1
+        meow_ok "ícone da bandeja: default (vale quando o ZapZap reabrir)"
+      else
+        meow_aviso "não consegui escrever o ZapZap.conf — a bandeja fica símbolica"
+      fi
+    fi
+  fi
+
+  [ "$mudou" = "0" ] && { meow_ok "ZapZap já estava como de fábrica"; return "$MEOW_OK"; }
+
+  meow_tem update-desktop-database && \
+    update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+
+  meow_info "o ícone da bandeja segue vestido na FONTE do app (tray_icon.py do flatpak)"
+  meow_info "  para devolver aquele: flatpak update com.rtosta.zapzap — ver icons/bandeja.map"
+  meow_info "tire 'zapzap' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  return "$MEOW_DIVERGENTE"
+}

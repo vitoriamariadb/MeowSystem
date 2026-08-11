@@ -65,12 +65,22 @@ rodar_modulo() {
       detectar)        meow_app_detectar ;;
       conferir)        meow_app_conferir ;;
       aplicar)         meow_app_aplicar ;;
-      # QUARTO VERBO, E OPCIONAL DE PROPÓSITO. Só o `spotify` sabe desfazer hoje
-      # — desde 10/08/2026 chamando `spicetify restore`, que devolve o
-      # `xpui.spa` de fábrica byte a byte (conferido: sha256 5ec1901f…, o mesmo
-      # do backup guardado). Um módulo que não sabe desfazer diz isso em voz
-      # alta e vira "pendente" — fingir que desfez seria pior do que não ter o
-      # verbo, porque ela deixaria de procurar o caminho que funciona.
+      # QUARTO VERBO. Desde 11/08/2026 os SETE módulos sabem desfazer — antes
+      # era só o `spotify` (que chama `spicetify restore` e devolve o `xpui.spa`
+      # de fábrica byte a byte: sha256 5ec1901f…, o mesmo do backup guardado).
+      #
+      # O QUE MUDOU, E POR QUE O VERBO CONTINUA OPCIONAL
+      #   O `install.sh --uninstall` passou a chamar `reverter` (passo 2/6 de
+      #   lib/desinstalar.sh). Enquanto seis módulos não sabiam desfazer, o
+      #   desinstalador só levava embora o que passava pela `meow_escrever`, e o
+      #   Spotify, o ZapZap e os toolkits ficavam tematizados para sempre.
+      #   O `declare -F` fica: um módulo NOVO nasce sem o verbo, e é melhor que
+      #   ele diga "não sei desfazer" em voz alta a que alguém precise
+      #   implementar a reversão antes de poder escrever o `aplicar`.
+      #
+      # NENHUM DELES FINGE. Onde a volta exata não existe — o tema que ela usava
+      # no VS Code antes, o `.desktop` de um flatpak sem original guardado — o
+      # módulo repõe o padrão de FÁBRICA e diz na tela que foi isso que fez.
       reverter)
         if declare -F meow_app_reverter >/dev/null; then
           meow_app_reverter

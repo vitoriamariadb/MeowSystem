@@ -704,3 +704,96 @@ meow_app_aplicar() {
   meow_ok "VS Code em $MEOW_VSCODE_TEMA (ícones $MEOW_VSCODE_ICONES)"
   return "$MEOW_DIVERGENTE"
 }
+
+# --- DESFAZER (11/08/2026) --------------------------------------------------
+# Chegam aqui `meow apps reverter vscode` e o passo 2/6 do `--uninstall`.
+#
+# ELE REPÕE O PADRÃO DE FÁBRICA, NÃO "O QUE ELA TINHA" — E ISSO É DELIBERADO
+#   Ninguém guardou qual era o tema dela antes (o módulo nunca precisou saber).
+#   Havia duas saídas ruins e uma honesta:
+#     · RESTAURAR o settings.json inteiro do backup mais antigo — apagaria meses
+#       de escolhas dela no editor para desfazer duas linhas. Recusado.
+#     · REMOVER as duas chaves — exigiria um removedor de JSONC novo, com o
+#       maquinário de vírgulas e comentários todo de novo, para um caminho que
+#       roda uma vez na vida. É onde um settings.json quebra calado.
+#     · ESCREVER o padrão do VS Code nas duas chaves, pelo MESMO varredor que já
+#       aplica. É o que está aqui: reusa código provado e o resultado é
+#       verificável na tela — o editor volta ao visual de fábrica.
+#   Se ela usava Dracula antes, é ela quem reescolhe. A mensagem diz isso.
+#
+# AS EXTENSÕES SAEM, PORQUE FOMOS NÓS QUE AS PUSEMOS
+#   O `aplicar` roda `--install-extension`; o par exato é `--uninstall-extension`.
+#   Deixá-las seria dizer "desfeito" com o Catppuccin ainda na lista dela.
+_MEOW_VSCODE_TEMA_FABRICA="${MEOW_VSCODE_TEMA_FABRICA:-Default Dark Modern}"
+_MEOW_VSCODE_ICONES_FABRICA="${MEOW_VSCODE_ICONES_FABRICA:-vs-seti}"
+
+meow_app_reverter() {
+  meow_app_detectar || {
+    meow_pula "VS Code não instalado (ou falta python3)"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+
+  local ext instaladas=() mudou=0 rc_set novo
+  for ext in "$MEOW_VSCODE_EXT_TEMA" "$MEOW_VSCODE_EXT_ICONES"; do
+    if _meow_vscode_tem_ext "$ext"; then instaladas+=("$ext"); fi
+  done
+
+  _meow_vscode_json conferir "$MEOW_VSCODE_SETTINGS" \
+      workbench.colorTheme "$_MEOW_VSCODE_TEMA_FABRICA" \
+      workbench.iconTheme  "$_MEOW_VSCODE_ICONES_FABRICA" >/dev/null 2>&1; rc_set=$?
+
+  if [ "${#instaladas[@]}" = "0" ] && [ "$rc_set" = "0" ]; then
+    meow_ok "VS Code já estava sem o Catppuccin"
+    return "$MEOW_OK"
+  fi
+
+  if meow_seco; then
+    for ext in ${instaladas[@]+"${instaladas[@]}"}; do
+      meow_muda "desinstalaria a extensão $ext"
+    done
+    [ "$rc_set" != "0" ] && \
+      meow_muda "mudaria $MEOW_VSCODE_SETTINGS: colorTheme=$_MEOW_VSCODE_TEMA_FABRICA, iconTheme=$_MEOW_VSCODE_ICONES_FABRICA"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  # --- 1. o settings.json. Escrita DIRETA, não `meow_escrever`: aquela registra
+  # no manifesto, e o desinstalador apagaria em seguida o arquivo que acabamos de
+  # devolver — ela perderia o settings.json inteiro.
+  if [ "$rc_set" != "0" ]; then
+    if novo="$(_meow_vscode_json aplicar "$MEOW_VSCODE_SETTINGS" \
+                 workbench.colorTheme "$_MEOW_VSCODE_TEMA_FABRICA" \
+                 workbench.iconTheme  "$_MEOW_VSCODE_ICONES_FABRICA" 2>/dev/null)" \
+       && [ -n "$novo" ]; then
+      _meow_vscode_backup "$MEOW_VSCODE_SETTINGS" || {
+        meow_erro "vscode: backup do settings.json falhou — não escrevi"
+        return "$MEOW_ERRO"
+      }
+      if printf '%s' "$novo" > "$MEOW_VSCODE_SETTINGS" 2>/dev/null; then
+        mudou=1
+        meow_muda "vscode: colorTheme=$_MEOW_VSCODE_TEMA_FABRICA, iconTheme=$_MEOW_VSCODE_ICONES_FABRICA"
+      else
+        meow_erro "vscode: não consegui escrever $MEOW_VSCODE_SETTINGS"
+        return "$MEOW_ERRO"
+      fi
+    else
+      meow_erro "vscode: não consegui montar o settings.json de volta"
+      return "$MEOW_ERRO"
+    fi
+  fi
+
+  # --- 2. as extensões. Falha aqui não derruba o resto: o tema já saiu, e uma
+  # extensão que ficou é visível na lista dela — nada quebra calado.
+  for ext in ${instaladas[@]+"${instaladas[@]}"}; do
+    if "$MEOW_VSCODE_BIN" --uninstall-extension "$ext" >/dev/null 2>&1; then
+      mudou=1; meow_muda "extensão removida: $ext"
+    else
+      meow_aviso "não consegui remover $ext — tire pela interface do editor"
+    fi
+  done
+  _MEOW_VSCODE_LISTA=""   # a lista em cache mentiria daqui para a frente
+
+  [ "$mudou" = "0" ] && { meow_ok "VS Code já estava sem o Catppuccin"; return "$MEOW_OK"; }
+  meow_ok "VS Code de volta ao tema de fábrica — reescolha o seu em File > Preferences > Theme"
+  meow_info "tire 'vscode' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  return "$MEOW_DIVERGENTE"
+}

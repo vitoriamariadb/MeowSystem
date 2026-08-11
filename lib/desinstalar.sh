@@ -13,6 +13,19 @@
 #   Os relógios saem PRIMEIRO. O `meow-doctor.timer` dispara às 5h e reaplica
 #   tudo — desinstalar com ele ligado é desinstalar até a próxima madrugada.
 #
+#   Os temas por APLICATIVO saem em segundo, antes do manifesto, e a ordem aqui
+#   também é obrigatória: o `reverter` de cada módulo LÊ arquivos que o passo do
+#   manifesto apaga (o `.qbtheme` que ele confere, o `settings.json` do VS Code,
+#   o `.desktop` guardado do ZapZap). Invertido, o desinstalador arrancaria as
+#   ferramentas antes de usá-las e os apps ficariam tematizados para sempre.
+#
+# O QUE MUDOU EM 11/08/2026
+#   Até esta data o `--uninstall` ignorava `app-themes/` inteiro. O manifesto dá
+#   conta do que passa pela `meow_escrever`, mas os módulos de aplicativo mexem
+#   por fora dela por necessidade: o spicetify reescreve o Spotify, o ZapZap tem
+#   o `.desktop` do export trocado, os toolkits religam symlink. Nada disso está
+#   no manifesto — e nada disso saía. Ela pediu o pareamento; este passo é ele.
+#
 # O QUE ELE NUNCA REMOVE
 #   Pacote do apt (foram instalados a pedido, mas podem ser de outra coisa
 #   agora), o clone do repositório, e os backups — que são a única prova do que
@@ -23,7 +36,7 @@ meow_desinstalar() {
   meow_info "isto NÃO desinstala pacotes do apt nem apaga o clone do repositório"
   meow_seco && meow_aviso "modo seco: nada será removido"
 
-  meow_passo "1/5 Relógios"
+  meow_passo "1/6 Relógios"
   if ! meow_seco; then
     # `|| true` porque desligar unidade que não existe devolve != 0, e isso não
     # é falha: é a máquina já estando como queremos deixá-la.
@@ -40,7 +53,24 @@ meow_desinstalar() {
     meow_muda "desligaria e removeria as unidades meow-* de ~/.config/systemd/user"
   fi
 
-  meow_passo "2/5 Tema do COSMIC"
+  meow_passo "2/6 Temas por aplicativo"
+  # A LISTA VEM DA CONF DELA, e um APPS_ATIVOS vazio significa "ela nunca ligou
+  # nenhum" — não há o que desfazer, e chamar o runner com lista vazia só
+  # imprimiria um resumo em branco.
+  #
+  # O RESULTADO NÃO DERRUBA A DESINSTALAÇÃO, e isso é deliberado: um módulo que
+  # recusa (Obsidian aberto, spicetify com backup de outra versão) devolve 3, e
+  # transformar isso em falha fatal deixaria a pessoa presa com metade do
+  # MeowSystem instalado. O runner já diz na tela quem ficou pendente; quem lê
+  # decide se fecha o app e roda de novo, ou se segue.
+  if [ -n "${APPS_ATIVOS:-}" ]; then
+    APPS_ATIVOS="$APPS_ATIVOS" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+      "$MEOW_RAIZ/scripts/aplicar_apps.sh" reverter || true
+  else
+    meow_pula "APPS_ATIVOS vazio no meow.conf — nenhum tema de aplicativo para desfazer"
+  fi
+
+  meow_passo "3/6 Tema do COSMIC"
   # O alvo é o PRIMEIRO backup de tema — o COSMIC de antes do MeowSystem NESTA
   # máquina. A captura `state/tema/original` NÃO serve para isto: ela foi tirada
   # de um home específico e está no git.
@@ -63,7 +93,7 @@ meow_desinstalar() {
     meow_info "  (a captura state/tema/original NÃO serve: é o tema de outra máquina)"
   fi
 
-  meow_passo "3/5 Arquivos que este projeto escreveu"
+  meow_passo "4/6 Arquivos que este projeto escreveu"
   if [ -f "$MEOW_MANIFESTO" ]; then
     # O clone tem de sair da conta ANTES do laço. A `meow_escrever` é usada
     # também para gerar arquivo DENTRO do repositório (`icons/curadoria.map`, por
@@ -105,7 +135,7 @@ meow_desinstalar() {
     meow_info "  o manifesto só existe a partir da primeira instalação que o gravou"
   fi
 
-  meow_passo "4/5 Árvores inteiras"
+  meow_passo "5/6 Árvores inteiras"
   local dir
   for dir in "$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
              "$HOME/.local/share/fonts/MeowSystem" \
@@ -118,7 +148,7 @@ meow_desinstalar() {
     meow_tem fc-cache && fc-cache -f "$HOME/.local/share/fonts" 2>/dev/null
   fi
 
-  meow_passo "5/5 CLI e estado"
+  meow_passo "6/6 CLI e estado"
   if meow_seco; then
     meow_muda "removeria ~/.local/bin/meow e a completion do zsh"
   else

@@ -673,6 +673,114 @@ meow_app_aplicar() {
   return "$pior"
 }
 
+# --- DESFAZER (11/08/2026) --------------------------------------------------
+# Chegam aqui `meow apps reverter bat|btop` e o passo 2/6 do `--uninstall`.
+#
+# SÓ SE APAGA O QUE AINDA É NOSSO, BYTE A BYTE
+#   O `.tmTheme` e o `.theme` são comparados com o que ESTE módulo instalaria
+#   antes de sumirem. Se ela editou o arquivo depois, o que está lá deixou de ser
+#   nosso e fica — é a mesma regra do sha256 do manifesto, aplicada a um par de
+#   arquivos que não passam por `meow_escrever`.
+#
+# A CHAVE DO CONFIG VOLTA AO PADRÃO, NÃO SOME
+#   Tirar a linha `--theme` do config do bat deixaria o tema anterior dela (se
+#   houvesse um) sem quem o nomeasse. Mas repor "o de antes" também é invenção:
+#   ninguém guardou. Então o critério é estreito e verificável — a linha só é
+#   mexida quando aponta para o NOSSO tema, e vira o padrão do programa.
+_bb_bat_reverter() {
+  local bin nome destino cfg texto mudou=0
+  bin="$(_bb_bat_bin)" || return "$MEOW_SEM_DEPENDENCIA"
+  nome="$(_bb_bat_tema_nome)"
+  destino="$(_bb_bat_cfg_dir "$bin")/themes/$nome.tmTheme"
+  cfg="$(_bb_bat_cfg_file "$bin")"
+
+  if [ -f "$destino" ]; then
+    if cmp -s "$(_bb_bat_tema_arquivo)" "$destino"; then
+      if meow_seco; then meow_muda "bat: removeria $destino"; mudou=1
+      elif rm -f "$destino"; then mudou=1; meow_muda "bat: tema '$nome' removido"
+      fi
+    else
+      meow_pula "bat: $destino mudou depois que escrevemos — fica"
+    fi
+  fi
+
+  if _bb_bat_linha_ok "$cfg" "$nome"; then
+    if meow_seco; then
+      meow_muda "bat: tiraria o --theme='$nome' de $cfg"; mudou=1
+    else
+      # A linha do NOSSO tema sai; o resto do config dela fica intacto.
+      texto="$(awk -v pad="$(_bb_bat_padrao_chave)" -v ok="$(_bb_bat_padrao_ok "$nome")" \
+                 '$0 ~ pad && $0 ~ ok { next } { print }' "$cfg")"
+      if printf '%s\n' "$texto" > "$cfg" 2>/dev/null; then
+        mudou=1; meow_muda "bat: --theme='$nome' retirado de $cfg"
+      else
+        meow_erro "bat: não consegui reescrever $cfg"; return "$MEOW_ERRO"
+      fi
+    fi
+  fi
+
+  # Sem isto o tema continua DENTRO do cache binário, e `bat --list-themes` ainda
+  # o oferece — arquivo removido, tema vivo. Falhar aqui não derruba o resto.
+  [ "$mudou" = "1" ] && ! meow_seco && "$bin" cache --build >/dev/null 2>&1
+  [ "$mudou" = "0" ] && return "$MEOW_OK"
+  return "$MEOW_DIVERGENTE"
+}
+
+_bb_btop_reverter() {
+  local stem destino conf texto mudou=0
+  _bb_btop_bin || return "$MEOW_SEM_DEPENDENCIA"
+  stem="$(_bb_btop_tema_stem)"
+  destino="$(_bb_btop_cfg_dir)/themes/$stem.theme"
+  conf="$(_bb_btop_cfg_dir)/btop.conf"
+
+  if [ -f "$destino" ]; then
+    if _bb_btop_conteudo | _bb_igual_stdin "$destino"; then
+      if meow_seco; then meow_muda "btop: removeria $destino"; mudou=1
+      elif rm -f "$destino"; then mudou=1; meow_muda "btop: tema '$stem' removido"
+      fi
+    else
+      meow_pula "btop: $destino mudou depois que escrevemos — fica"
+    fi
+  fi
+
+  # "Default" é o valor de fábrica do btop. Apagar a linha não serviria: o btop
+  # reserializa o btop.conf inteiro ao sair e a repõe — apontando para um tema
+  # que acabou de deixar de existir.
+  if [ -f "$conf" ] && _bb_btop_linha_ok "$conf" "$stem"; then
+    if meow_seco; then
+      meow_muda "btop: color_theme voltaria para \"Default\""; mudou=1
+    else
+      texto="$(_bb_merge_linha "$conf" "$(_bb_btop_padrao_chave)" 'color_theme = "Default"')"
+      if printf '%s\n' "$texto" > "$conf" 2>/dev/null; then
+        mudou=1; meow_muda "btop: color_theme = \"Default\""
+      else
+        meow_erro "btop: não consegui reescrever $conf"; return "$MEOW_ERRO"
+      fi
+    fi
+  fi
+
+  [ "$mudou" = "0" ] && return "$MEOW_OK"
+  return "$MEOW_DIVERGENTE"
+}
+
+meow_app_reverter() {
+  if [ "$(_bb_presentes)" = "0" ]; then
+    meow_pula "nem bat nem btop instalados"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  local pior=0 bat_rc btop_rc
+  _bb_bat_reverter;  bat_rc=$?;  pior="$(_bb_pior "$pior" "$bat_rc")"
+  _bb_btop_reverter; btop_rc=$?; pior="$(_bb_pior "$pior" "$btop_rc")"
+
+  if [ "$bat_rc" = "3" ] && [ "$btop_rc" = "3" ]; then return "$MEOW_SEM_DEPENDENCIA"; fi
+  local rotulo; rotulo="$(_bb_rotulo "$bat_rc" "$btop_rc")"
+  case "$pior" in
+    0) meow_ok "$rotulo: já estavam sem o Catppuccin" ;;
+    1) meow_seco || meow_info "tire 'bat'/'btop' de APPS_ATIVOS, ou o doctor das 05:00 reaplica" ;;
+  esac
+  return "$pior"
+}
+
 # ═══════════════════════════════════════════════════════════════════════════
 # manutenção — NÃO faz parte do contrato, é para rodar na mão
 # ═══════════════════════════════════════════════════════════════════════════
