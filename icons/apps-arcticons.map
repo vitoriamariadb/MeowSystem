@@ -281,14 +281,10 @@
 #     navegador  blue      rede     sky        mídia    green
 #     criação    pink      leitura  peach      sistema  lavender
 #
-#   A asserção de GLIFO repetido continua de pé, e UMA linha a acionava: o
-#   `CosmicMonitor` dividia o `osmonitor` com o `btop`. Eu avisei que os dois
+#   A asserção de GLIFO repetido continua de pé, e uma linha a aciona: o
+#   `CosmicMonitor` divide o `osmonitor` com o `btop`. Eu avisei que os dois
 #   ficariam iguais no lançador e ela aprovou assim mesmo — daí o `:alias`, que
 #   é a marca de "a repetição foi decidida", não de "ninguém percebeu".
-#   O `CosmicMonitor` saiu deste mapa em 11/08/2026 (ver o bloco dos OITO, mais
-#   abaixo), então hoje o `osmonitor` é só do btop e não há repetição nenhuma. O
-#   `:alias` fica na linha do btop porque é ali que ele sempre esteve, e porque
-#   a decisão dela continua valendo se o Monitor um dia voltar.
 #
 # QUATRO GLIFOS FORAM TROCADOS DEPOIS DE RASTERIZADOS, E ISSO SE MEDE
 #   O nome parecia certo e o desenho não era:
@@ -317,9 +313,7 @@ org.onlyoffice.desktopeditors:onlyoffice-documents:sapphire
 btop:osmonitor:maroon:alias
 input-remapper:keymapper:sky
 
-# — os 35 da unificação, agrupados pela categoria que define a cor.
-#   São 27 hoje: os OITO `com.system76.Cosmic*` saíram em 11/08/2026, e o bloco
-#   que explica isso está no meio da lista, no lugar onde seis deles estavam.
+# — os 35 da unificação, agrupados pela categoria que define a cor
 com.brave.Browser:brave:blue
 firefox:firefox:blue
 google-chrome:google-chrome:blue
@@ -330,15 +324,12 @@ org.telegram.desktop:telegram:sky
 thunderbird:thunderbird:sky
 com.obsproject.Studio:screen-recorder:green
 com.spotify.Client:spotify:green
-# aqui saía `com.system76.CosmicPlayer:player:green` — 11/08/2026, ver o bloco
-# dos OITO mais abaixo: tem desenho autoral, e duas verdades por nome é o laço
-# que o projeto já pagou.
+com.system76.CosmicPlayer:player:green
 org.gnome.Snapshot:camera:green
 org.videolan.VLC:vlc:green
 steam:steam:green
 com.boxy_svg.BoxySVG:vector:pink
-# aqui saía `com.system76.CosmicEdit:editor:pink` — 11/08/2026, mesmo motivo do
-# Player acima e do bloco dos OITO abaixo: tem desenho autoral.
+com.system76.CosmicEdit:editor:pink
 io.github.shiftey.Desktop:github:pink
 io.gitlab.theevilskeleton.Upscaler:upscaler:pink
 org.gimp.GIMP:photo-editor:pink
@@ -348,50 +339,34 @@ vscode:code-editor:pink
 com.github.johnfactotum.Foliate:books:peach
 md.obsidian.Obsidian:obsidian:peach
 
-# OS OITO `com.system76.Cosmic*` SAÍRAM DAQUI EM 11/08/2026 — SEIS ERAM ESTA LINHA E AS CINCO SEGUINTES
-#   Eles estavam neste mapa e, ao mesmo tempo, tinham desenho AUTORAL versionado
-#   em `src/icons/autorais/`, que o `completar_icones.sh` instala em
-#   `scalable/apps`. Dois donos para o mesmo nome, dentro do mesmo tema de
-#   ícones. Medido no disco dela naquele dia, com o Gestor de Arquivos:
+# ESTAS SEIS LINHAS SAÍRAM DAQUI EM 11/08/2026 E VOLTARAM NO MESMO DIA — O ERRO FOI MEU
+#   A remoção (com a do Player e a do Edit, acima) tinha uma premissa razoável e
+#   uma conclusão errada. A premissa: os oito `com.system76.Cosmic*` estavam
+#   NESTE mapa e, ao mesmo tempo, tinham desenho autoral em `src/icons/autorais/`
+#   que o `completar_icones.sh` instalava em `scalable/apps` — duas verdades por
+#   nome, e quem vencia dependia só do tamanho pedido. Isso era real e precisava
+#   acabar. A conclusão: "onde há desenho autoral, o autoral vence, porque o
+#   Arcticons é acervo de apoio". Foi aí que eu decidi no lugar dela.
 #
-#     scalable/apps/com.system76.CosmicFiles.svg  pasta cheia, autoral, #CBA6F7 mauve
-#     48x48/apps/com.system76.CosmicFiles.svg     glifo de linha, Arcticons, #B4BEFE lavender
+#   Ela já tinha escolhido, e duas vezes. Em 10/08/2026 aprovou na folha
+#   (`scripts/folha_proposta.py:79-91`) exatamente estes oito glifos de LINHA, um
+#   a um, com o motivo escrito no cartão. Em 11/08/2026 mandou a captura do
+#   lançador e disse "no sentido de criarmos icons igual o nosso tema atual" —
+#   e reclamou nominalmente da PASTA MAUVE CHAPADA dos Arquivos, que é o autoral
+#   que a minha remoção deixaria vencer. O "nosso tema" é o traço, não o
+#   chapado; o autoral é que está fora do padrão (docs/SPRINTS.md, Sprint J).
 #
-#   Nenhum dos dois foi escrito por engano: cada script escreveu no diretório de
-#   que é dono, como o `install.sh` manda. O defeito é que ninguém religou os
-#   dois, e o tema ficou com DUAS VERDADES POR NOME — qual vence depende só do
-#   tamanho pedido (a 48 px exatos ganhava o Arcticons; em qualquer outro caía no
-#   `scalable` e ganhava o autoral). Duas verdades por nome é o laço que o
-#   projeto já pagou mais de uma vez, e é o mesmo defeito que o cabeçalho do
-#   `icones_apps_arcticons.sh` chama de "dois donos com outra roupa" — só que
-#   entre dois ACERVOS, em vez de entre dois mapas, e por isso nenhuma das três
-#   asserções o via.
-#
-#   Onde há desenho autoral, o autoral vence: o Arcticons é acervo de APOIO
-#   (decisão dela, textual, em 08/08/2026), e apoio preenche lacuna — não disputa
-#   nome que já tem dono.
-#
-#   Tirar a linha DAQUI basta para limpar o disco também: sem o nome no mapa, o
-#   `.svg` que sobrou em `48x48/apps` vira órfão e a varredura do
-#   `icones_apps_arcticons.sh` o remove na mesma passagem. É a mesma mecânica que
-#   já valia para a curadoria dela, e ela funciona porque `48x48/apps` tem dono
-#   único.
-#
-#   As oito linhas, como estavam, para quem precisar desfazer:
-#     com.system76.CosmicEdit:editor:pink
-#     com.system76.CosmicFiles:files:lavender
-#     com.system76.CosmicMonitor:osmonitor:lavender:alias
-#     com.system76.CosmicPlayer:player:green
-#     com.system76.CosmicScreenshot:screenshots:lavender
-#     com.system76.CosmicSettings:settings:lavender
-#     com.system76.CosmicStore:shopping:lavender
-#     com.system76.CosmicTerm:terminal:lavender
-#
-#   O que este bloco NÃO decide: se o desenho autoral está BOM. Que o Gestor de
-#   Arquivos ainda seja uma pasta genérica no accent mauve é a parte 2 da
-#   Sprint J, e é decisão dela. Aqui só se garantiu que existe UM desenho por
-#   nome — qual desenho é, continua sendo pergunta aberta.
-
+#   O conserto certo, então, não é escolher outro vencedor aqui: é o autoral
+#   PARAR de ser instalado em `scalable/apps`. Quem faz isso é o
+#   `completar_icones.sh`, que desde 11/08/2026 tem uma lista de RETIRADOS e
+#   remove os oito de lá. Continua havendo uma verdade só por nome — e a verdade
+#   é a que ela escolheu.
+com.system76.CosmicFiles:files:lavender
+com.system76.CosmicMonitor:osmonitor:lavender:alias
+com.system76.CosmicScreenshot:screenshots:lavender
+com.system76.CosmicSettings:settings:lavender
+com.system76.CosmicStore:shopping:lavender
+com.system76.CosmicTerm:terminal:lavender
 dev.edfloreshz.CosmicTweaks:equalizer:lavender
 net.davidotek.pupgui2:proton:lavender
 org.bleachbit.BleachBit:cleaner:lavender

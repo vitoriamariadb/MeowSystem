@@ -873,7 +873,9 @@ etapa_pastas() {
 #   o passa na linha, e mais nada. Provado com um módulo-sonda que só imprimia as
 #   duas: `FLAVOR=[VAZIO] ACCENT=[VAZIO]`, pelos dois caminhos (install e doctor).
 #   Ou seja, TODO módulo de app rodava no padrão fixo `mocha`/`mauve` — o
-#   `_zz_verde` do zapzap inclusive. Ninguém percebeu porque a conf dela é
+#   `_zz_verde` do zapzap inclusive (essa função saiu em 11/08/2026, quando o
+#   ícone do WhatsApp passou a vir do `apps-arcticons.map`; os outros módulos
+#   continuam lendo as duas). Ninguém percebeu porque a conf dela é
 #   exatamente mocha/mauve; o dia em que ela trocasse de flavor, os apps ficariam
 #   para trás em silêncio.
 etapa_apps() {
