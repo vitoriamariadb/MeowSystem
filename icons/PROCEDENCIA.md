@@ -9,7 +9,9 @@ dia em que alguma coisa mudar, o que pode ser modificado e o que não pode.
 | `catppuccin/vscode-icons` | `icons/catppuccin/<flavor>/` | MIT | sim | sim, com o aviso de copyright |
 | `Daveedmee/catppuccin-icons` | `icons/catppuccin-apps/<flavor>/` | **não declarada** | indefinido | **não** — uso local apenas |
 | Arcticons (sistema) | `icons/arcticons/` — **38** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
-| Arcticons (aplicativo) | `icons/arcticons-apps/` — **8** glifos, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| Arcticons (aplicativo) | `icons/arcticons-apps/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| **convertido do Papirus** | `icons/convertidos-apps/` — **22** SVGs **gerados** | **GPL-3.0** (obra derivada) | sim | sim, **sob GPL** |
+| **desenho à mão do traço** | `icons/convertidos-apps/retoques/` — **3** desenhos + **2** variantes do GIMP | deste projeto (a do GIMP é derivada, GPL-3.0) | — | — |
 | marca de fábrica | `icons/apps-hicolor.map` — **1** nome, copiado do `hicolor` do sistema | a do próprio programa | **não** — cópia literal | não |
 | Papirus / Papirus-Dark | pacote `papirus-icon-theme` do sistema | GPL-3.0 | sim | sim, sob GPL |
 | `catppuccin/papirus-folders` | `src/icons/upstream/papirus-folders/` | GPL-3.0 | sim | sim, sob GPL |
@@ -152,6 +154,49 @@ de outra empresa, e pô-la no qBittorrent mentiria sobre de quem a coisa é —
 a mesma recusa que o `bandeja.map` já registrou para o `playstation-family` no
 Hefesto. No lugar ficou `libretorrent`, que desenha uma rede ponto-a-ponto e não
 a marca de ninguém.
+
+## `icons/convertidos-apps/` — arte NOSSA, derivada do Papirus — 11/08/2026
+
+O quarto acervo de aplicativo, e o único que este projeto **gera**. Ele existe
+porque o Arcticons dá o *estilo* (traço de linha) mas não dá o *próprio*: o
+glifo `spotify` do pack é o desenho que o pack tem para aquele nome, não a marca
+do aplicativo que está na máquina dela. A frase que abriu isto, em 11/08/2026,
+foi *"no sentido de criarmos icons igual o nosso tema atual, entende?"*.
+
+**Como se faz.** `scripts/converter_icone.py` rasteriza a arte chapada a 256 px,
+quantiza em regiões de cor e traça a **fronteira entre elas** (não a silhueta
+externa — silhueta pura apaga a identidade, e isso foi medido). A saída sai no
+dialeto exato do Arcticons, que é o que permite ao `icones_apps_arcticons.sh`
+vestir os dois acervos com o mesmo código. Quem roda o conversor e escreve o
+diretório é `scripts/construir_convertidos.sh`, à mão, **nunca o `install.sh`**.
+
+**A licença é GPL-3.0, e é herdada.** São **22** obras derivadas de
+`/usr/share/icons/Papirus/64x64/apps/*.svg` (pacote `papirus-icon-theme`,
+GPL-3.0). Converter para arte de linha é modificar, não citar: o resultado
+continua sob GPL. Isto não muda nada hoje — o repositório não é publicado —
+mas, se um dia for, este diretório vai junto com o texto da GPL, ao lado da
+obrigação de *share-alike* que o Arcticons já impõe sobre o outro acervo.
+
+**Um dos 25 nomes do mapa não é derivado de nada**: o Gradia (`mao` no campo da
+origem) é desenho novo, deste projeto. E as marcas que aparecem nos convertidos
+(Spotify, Steam, Telegram, GIMP…) continuam sendo **marcas dos donos delas** —
+o que a GPL cobre é o arquivo, não o direito de marca. Uso local numa máquina
+só não dispara obrigação nenhuma dos dois lados.
+
+**Os retoques à mão.** `icons/convertidos-apps/retoques/` guarda a arte que o
+conversor não produz, e é a única parte deste acervo que sobrevive a uma
+reconversão. Três desenhos novos (Gradia, Flatseal, Warehouse), na gramática do
+traço, deste projeto; e o GIMP, que é a conversão do Papirus **mais uma curva
+desenhada à mão** — logo, também GPL-3.0. O `LEIA-ME.txt` de lá registra a
+medição que prova por que a boca do Wilber não sai de parâmetro nenhum.
+
+**Os 22 glifos do Arcticons que estes 22 substituíram continuam em
+`icons/arcticons-apps/`**, sem ninguém os ler — o diretório tem **39** arquivos e
+o `apps-arcticons.map` lê **16**. Não foram apagados de propósito: desfazer a
+escolha dela tem de continuar custando uma linha de mapa, não um download. (A
+linha desse acervo na tabela dizia "**8** glifos" desde a primeira versão, e
+estava velha; corrigida na mesma passagem, junto com a coluna nova de "em uso" —
+que é o número que interessa, porque acervo não é tema.)
 
 ## O que o Arcticons cobre, e o que ele não cobre
 

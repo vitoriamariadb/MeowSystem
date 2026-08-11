@@ -295,49 +295,71 @@
 #   Letra vetorizada com traço de 1 px a 48 px é borrão, não ícone. Olhar o nome
 #   no índice não basta: tem que rasterizar e ver.
 #
-# TRÊS FICAM DE FORA, POR DECISÃO DELA E POR HONESTIDADE
-#   Flatseal, Gradia e Warehouse dão ZERO no índice de 14.996 nomes. Ficam no
+# TRÊS FICAVAM DE FORA, POR DECISÃO DELA E POR HONESTIDADE — E ISSO ACABOU
+#   Flatseal, Gradia e Warehouse dão ZERO no índice de 14.996 nomes. Ficavam no
 #   Papirus, coloridos, destoando dos 35 — porque um ícone errado é pior que um
-#   genérico, e três exceções visíveis custam menos que três mentiras.
+#   genérico, e três exceções visíveis custam menos que três mentiras. Desde
+#   11/08/2026 os três têm DESENHO À MÃO no acervo convertido, na gramática do
+#   traço: deixaram de ser exceção sem que nenhuma mentira tenha sido criada.
 #
 # COMO SE DESFAZ
 #   Apagar as linhas daqui e devolver as 12 ao `icons/apps.map` (a cópia está no
 #   histórico do git, commit anterior a este). O acervo Catppuccin continua
 #   inteiro em `icons/catppuccin-apps/` — nada foi apagado.
+#
+# ============================================================================
+# 22 NOMES SAÍRAM DAQUI EM 11/08/2026, E FORAM PARA `icons/apps-convertidos.map`
+# ============================================================================
+#
+# Não é reversão do que está escrito acima: é o passo seguinte dele. A frase dela
+# naquele dia, sobre a captura do lançador — *"no sentido de criarmos icons igual
+# o nosso tema atual, entende?"* — pedia ícone PRÓPRIO de cada aplicativo, no
+# estilo do traço. O Arcticons dá o estilo, mas não dá o próprio: o `spotify` dele
+# é o glifo de música do pack, não a marca do aplicativo dela.
+#
+# O conversor (`scripts/converter_icone.py`) resolve os dois de uma vez: pega a
+# arte CHAPADA que o Papirus já tem para aquele aplicativo exato e a traz para o
+# mesmo dialeto de traço. Ela olhou a folha com as 29 conversões e disse *"tão
+# todos muito bons"*. Os que ela viu e que ganharam foram para o mapa novo.
+#
+# QUEM FICA AQUI, E POR QUÊ — cada um por medida, não por sobra:
+#   firefox · org.kde.krita · thunderbird   a conversão FALHA: raposa, camaleão e
+#       passarinho são orgânicos, a informação está no preenchimento.
+#   com.boxy_svg.BoxySVG                    a flor do meio vira bolha a 48px.
+#   btop                                    a conversão é fiel ao Papirus — e o
+#       Papirus é o "B" na placa opaca de que ela reclamou. O Arcticons já tinha
+#       vencido aqui, em 08/08, por medida.
+#   input-remapper · io.gitlab...Upscaler   nunca tiveram origem convertível: o
+#       glifo do pack é o desenho, não um substituto dele.
+#   os oito `com.system76.Cosmic*` + Tweaks entram na Sprint J, que é decisão
+#       dela e continua ABERTA. Não se antecipa gosto.
+#
+# O ACERVO NÃO ENCOLHEU: os 22 glifos que ninguém mais lê continuam em
+# `icons/arcticons-apps/`. Apagá-los faria desfazer esta escolha custar um
+# download; do jeito que está, custa uma linha de mapa.
+#
+# UM NOME NÃO PODE ESTAR NOS DOIS MAPAS — o `_conferir_gemeos` do
+# `icones_apps_arcticons.sh` ESTOURA se estiver, pelo mesmo motivo que já
+# estourava entre este mapa e o `apps.map`: duas listas da mesma verdade, e a que
+# ganha é a que ninguém escolheu.
 
 #!cor-por-categoria
 
-# — os três primeiros, com a cor que ELA escolheu um a um em 08/08/2026;
+# — os dois primeiros, com a cor que ELA escolheu um a um em 08/08/2026;
 #   ficaram fora do esquema de categoria de propósito, e continuam valendo.
-org.onlyoffice.desktopeditors:onlyoffice-documents:sapphire
+#   (o terceiro, o ONLYOFFICE, foi para o mapa dos convertidos e levou a cor
+#   `sapphire` junto)
 btop:osmonitor:maroon:alias
 input-remapper:keymapper:sky
 
-# — os 35 da unificação, agrupados pela categoria que define a cor
-com.brave.Browser:brave:blue
+# — o que restou da unificação dos 35, agrupado pela categoria que define a cor
 firefox:firefox:blue
-google-chrome:google-chrome:blue
-com.discordapp.Discord:discord:sky
-meow-whatsapp:whatsapp:sky
-org.qbittorrent.qBittorrent:libretorrent:sky
-org.telegram.desktop:telegram:sky
 thunderbird:thunderbird:sky
-com.obsproject.Studio:screen-recorder:green
-com.spotify.Client:spotify:green
 com.system76.CosmicPlayer:player:green
-org.gnome.Snapshot:camera:green
-org.videolan.VLC:vlc:green
-steam:steam:green
 com.boxy_svg.BoxySVG:vector:pink
 com.system76.CosmicEdit:editor:pink
-io.github.shiftey.Desktop:github:pink
 io.gitlab.theevilskeleton.Upscaler:upscaler:pink
-org.gimp.GIMP:photo-editor:pink
-org.gnome.gitlab.somas.Apostrophe:writer:pink
 org.kde.krita:krita:pink
-vscode:code-editor:pink
-com.github.johnfactotum.Foliate:books:peach
-md.obsidian.Obsidian:obsidian:peach
 
 # ESTAS SEIS LINHAS SAÍRAM DAQUI EM 11/08/2026 E VOLTARAM NO MESMO DIA — O ERRO FOI MEU
 #   A remoção (com a do Player e a do Edit, acima) tinha uma premissa razoável e
@@ -368,7 +390,3 @@ com.system76.CosmicSettings:settings:lavender
 com.system76.CosmicStore:shopping:lavender
 com.system76.CosmicTerm:terminal:lavender
 dev.edfloreshz.CosmicTweaks:equalizer:lavender
-net.davidotek.pupgui2:proton:lavender
-org.bleachbit.BleachBit:cleaner:lavender
-org.gnome.Calculator:calculator:lavender
-org.gnome.FileRoller:compressor:lavender

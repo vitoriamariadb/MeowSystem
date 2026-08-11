@@ -10,10 +10,10 @@ fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
 ## AO VOLTAR, COMECE POR AQUI
 
-**Há sete sprints abertas: H, I, J, K, L, M e N.** Todas nasceram em
-**11/08/2026**, de uma lista que ela ditou olhando a própria tela. Cada uma já
-vem com a causa **medida**, não suposta — o levantamento foi feito antes de
-escrever este texto, e o que está aqui é o resultado dele.
+**Há cinco sprints abertas: H, J, L, M e N.** As sete nasceram em **11/08/2026**,
+de uma lista que ela ditou olhando a própria tela; **I e K fecharam no mesmo
+dia.** Cada uma já vem com a causa **medida**, não suposta — o levantamento foi
+feito antes de escrever este texto, e o que está aqui é o resultado dele.
 
 As sprints A a G continuam **feitas**: A, D, E e F em 05/08/2026; B, C e G em
 08/08. Nada nelas foi reaberto.
@@ -24,9 +24,9 @@ perguntar) e o que é **decisão dela** (não se toca sem resposta).
 | sprint | o que ela viu | causa medida | quem decide |
 |---|---|---|---|
 | **H** | o gato do dock está grudado nos apps, no centro, em vez de sozinho na esquerda | `expand_to_edges=false` faz o `cosmic-panel` **fundir** os três segmentos num bloco centralizado — está no fonte, não é palpite | **ela** (3 opções, todas com preço) |
-| **I** | "à exceção dos jogos, todos deveriam ter um ícone próprio nosso desenhado" | só 10 apps têm desenho autoral; **28 usam Arcticons** e **3 estão de fábrica** | código, mas a folha visual vem antes |
+| **I** | "à exceção dos jogos, todos deveriam ter um ícone próprio nosso desenhado" | o "nosso tema" é o **traço**, não o desenho autoral — e um conversor leva o chapado ao traço | **FECHADA em 11/08/2026** |
 | **J** | "a pasta do sistema operacional ainda é a mesma pasta rosa" | o desenho autoral do Gestor de Arquivos **é** uma pasta genérica, na mesma cor das pastas de verdade — e há **dois SVGs brigando** pelo mesmo nome | **ela** (é gosto, não defeito) |
-| **K** | "temos o problema do ícone do tray de todos os apps" | a Steam **regrediu** ao PNG de fábrica de 2014; qBittorrent e Spotify **não têm via** pelo tema | código (Steam) + limite real (os outros) |
+| **K** | "temos o problema do ícone do tray de todos os apps" | a Steam **regrediu** ao PNG de fábrica de 2014; qBittorrent e Spotify **não têm via** pelo tema | **FECHADA em 11/08/2026** |
 | **L** | "o qBittorrent segue iniciando com o sistema operacional" | **não é o MeowSystem**: o Ritual da Aurora recopia o autostart a cada hora | código, mas **por fora** do território proibido |
 | **M** | "o papel de parede voltou a ser o antigo. novamente" | a fronteira do `wallpaper.sh` só conhece **três** casos e classificou a reversão como "escolha dela" — código **4**, a cada 15 min, para sempre | código |
 | **N** | "spotify falta o spicetify" | **não falta nada.** Está aplicado no disco desde 10/08 20:19. O app não é aberto desde 07/08 | ela (é só abrir) |
@@ -131,7 +131,19 @@ Olhar a tela. Isto é gosto, não medição.
 
 ---
 
-## Sprint I — desenho autoral para os 31 apps  ← **ABERTA**
+## Sprint I — o lançador inteiro em traço  ← **FECHADA em 11/08/2026**
+
+> **O que foi feito, em uma tela.** O lançador tem hoje **41 aplicativos em
+> traço de linha**, de **dois** acervos que saem no mesmo dialeto: **16** do
+> Arcticons e **25** de `icons/convertidos-apps/`, que é arte do PRÓPRIO
+> aplicativo convertida de chapado para traço por um script deste projeto. O
+> traço subiu de **1** para **1,75**, um número só para os dois acervos. Quatro
+> desenhos são retoque à mão. O `install.sh` **não ganhou etapa nenhuma**: o
+> acervo é commitado, como o Arcticons.
+>
+> A seção **"O que a execução fez"**, no fim desta sprint, lista arquivo por
+> arquivo. O texto do meio é o histórico do dia, e continua valendo — ele é o
+> que explica por que o escopo virou três vezes antes de fechar.
 
 A frase dela, em 11/08/2026: *"à exceção dos jogos, todos os demais ícones
 deveriam ter um ícone próprio nosso desenhado"*.
@@ -354,6 +366,92 @@ menor lote possível, e serve para calibrar a gramática com ela antes do volume
 - O acervo Arcticons continua sendo de apoio — os ícones convertidos saem do
   `apps-arcticons.map` e entram no gerador autoral. Deixar nos dois lugares é o
   laço eterno que o projeto já pagou mais de uma vez.
+
+### O que a execução fez — 11/08/2026
+
+**O aviso acima virou asserção, e é o achado de método desta sprint.** "Não
+deixar nos dois lugares" não podia ficar como recomendação num documento: o
+`_conferir_gemeos` do `icones_apps_arcticons.sh` ganhou um terceiro cruzamento
+e **ESTOURA com código 2** se um nome aparecer nos dois mapas de traço. Testado:
+`firefox` acrescentado ao mapa novo derruba o script com o nome na tela.
+
+**Arquivos novos**
+
+| arquivo | o que é |
+|---|---|
+| `scripts/converter_icone.py` | o conversor. Rasteriza a 256 px, quantiza em regiões de cor e traça a **fronteira entre elas** — não a silhueta externa, que apagaria a identidade. Sai no dialeto exato do Arcticons e **não grava `stroke-width`**, de propósito |
+| `scripts/construir_convertidos.sh` | dono único de `icons/convertidos-apps/`. `--conferir`, `MEOW_DRY_RUN`, `meow_escrever`, remove órfão, e **o retoque à mão vence a conversão e nunca é sobrescrito** |
+| `icons/apps-convertidos.map` | 25 linhas, `nome : origem : cor [ : parâmetros ]`. **Um mapa, dois leitores**: o gerador lê 1/2/4, o instalador lê 1/3 |
+| `icons/convertidos-apps/` | o acervo gerado, **commitado** — 25 SVGs |
+| `icons/convertidos-apps/retoques/` | GIMP (boca aberta + a variante discreta), Gradia, Flatseal, Warehouse, e o `LEIA-ME.txt` com a medição |
+
+**Arquivos mudados**
+
+| arquivo | mudança |
+|---|---|
+| `scripts/icones_apps_arcticons.sh` | lê os **dois** acervos (aditivo). `_vestido()` **não mudou uma linha** — a conversão sai no mesmo dialeto. `TRACO` de `1` para `1.75`. Continua dono único de `48x48/apps` |
+| `icons/apps-arcticons.map` | 22 nomes saíram para o mapa novo; 16 ficaram, cada um por medida |
+| `bin/meow` | `chk_convertidos`, dentro de `SEM_CONSERTO` |
+| `icons/PROCEDENCIA.md` | o acervo novo, a herança **GPL-3.0** do Papirus, e os desenhos à mão |
+| `install.sh` | **nada.** Confirmado por ela: "Nenhuma etapa nova no install" |
+
+**O peso 1,75 é medido, não escolhido.** A régua é a **contra-forma que
+sobrevive** — quantos dos buracos fechados do desenho original ainda existem
+depois de engrossar. O empastamento deixou de servir porque traço de 2 px tem
+miolo próprio, e todo pixel de miolo tem 8 vizinhos com tinta: a mediana dos 39
+Arcticons vai de 3,0% a 1,0 para 47,3% a 2,0 sem que nada tenha se encostado.
+
+| peso | Arcticons | conversão | tinta na caixa (arct/conv) |
+|---|---|---|---|
+| 1,0 | 100% | 100% | 13,0% / 18,8% |
+| 1,5 | 97% | 80% | 19,1% / 24,6% |
+| **1,75** | **97%** | **76%** | **21,2% / 27,8%** |
+| 2,0 | 97% | 74% | 23,0% / 30,0% |
+| 2,5 | 96% | 66% | 26,8% / 35,2% |
+
+Quem limita **não** é o Arcticons (97% de 1,5 a 2,25): é a conversão, densa por
+construção. A 1,75 a Spotify ainda tem três ondas e o Wilber ainda tem olho; a
+2,0 as duas ondas de cima soldam. Ganho: **+63%** de tinta contra o 1,0.
+
+**Os cinco que perderam e ficaram no Arcticons**, cada um por medida:
+`firefox`, `org.kde.krita` e `thunderbird` (orgânicos — a informação está no
+preenchimento); `com.boxy_svg.BoxySVG` (a flor vira bolha); `btop` (a conversão
+é fiel ao Papirus, e o Papirus é o "B" na placa opaca de que ela reclamou).
+
+**Os três de fábrica deixaram de ser exceção**, mas não pela conversão: os
+desenhos à mão ganharam de lado a lado, a 48 px. O Gradia é o único do mapa sem
+origem chapada nenhuma — a linha dele diz `mao` no campo da origem.
+
+**Um defeito real foi encontrado e corrigido durante a execução.** A varredura
+de órfão perguntava `[ -z "${ORIGEM[$nome]}" ]`, e a linha `mao` guarda origem
+vazia de propósito: o Gradia recém-gerado foi visto como órfão e **apagado na
+mesma passagem**. O conserto é um registro separado (`CONHECIDO`) para a
+pergunta "este nome está no mapa?", que não é a mesma que "ele tem origem?".
+
+**A boca do Wilber foi estendida até tocar o pincel**, a pedido dela: *"acho que
+falta só a boca do gimp e o pincel se sobreporem"*. No original do Papirus o gato
+**segura** o pincel na boca. A primeira tentativa levou a curva para dentro do
+corpo do pincel e a boca **deixou de ser boca** — lia-se como continuação do
+cabo. Só se viu rasterizando a 400 px; a 48 px não aparecia. O ponto de controle
+subiu junto, e o canto do sorriso voltou a subir antes de encontrar o pincel.
+
+### O que NÃO foi feito, e por quê
+
+- **Bluetooth, Wi-Fi e cabo ficam no original.** Ordem dela, e foi medido antes
+  de aceitar: o Bluetooth não está quebrado, é o desenho do Papirus; Wi-Fi e
+  cabo não têm entrada própria na barra dela. São da **barra do painel**, não do
+  lançador.
+- **FogStripper e Hefesto não foram tocados.** São desenho dela, e a decisão de
+  convertê-los ou não é dela. Continuam nos `INTOCAVEIS` do script.
+- **Os oito `com.system76.Cosmic*` continuam com glifo Arcticons.** A conversão
+  dos autorais existe e é boa, mas quem decide ali é a **Sprint J**, que segue
+  aberta e é gosto dela. Antecipar seria decidir no lugar dela — o erro que este
+  mesmo mapa já registra ter cometido uma vez, hoje de manhã.
+- **O `com.system76.CosmicPlayer` continua desenhando a PALAVRA "player".** É o
+  glifo `player` do Arcticons, e letra vetorizada a 48 px é o defeito que o
+  `apps-arcticons.map` já documenta em outros quatro glifos trocados. Não foi
+  mexido porque ele é um dos oito da Sprint J. **Fica registrado como pendência
+  visível.**
 
 ---
 

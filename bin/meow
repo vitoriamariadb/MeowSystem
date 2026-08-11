@@ -354,12 +354,31 @@ chk_mimetypes() {
 
 # Os ícones do próprio COSMIC. Mesmo critério de comparação da etapa irmã: o do
 # escritor, nunca byte a byte.
-# Os aplicativos vestidos pelo Arcticons — o acervo de APOIO, para o que os packs
-# Catppuccin não cobrem. Mesmo critério de comparação das etapas irmãs: o do
-# escritor (`$(cat ...)`), nunca byte a byte.
+# Os aplicativos vestidos em TRAÇO — os DOIS acervos, o Arcticons e o convertido.
+# Mesmo critério de comparação das etapas irmãs: o do escritor (`$(cat ...)`),
+# nunca byte a byte.
 chk_arcticons() {
   FLAVOR="${FLAVOR:-}" ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$RAIZ/scripts/icones_apps_arcticons.sh" --conferir 2>&1
+}
+
+# O ACERVO CONVERTIDO, DENTRO DO REPOSITÓRIO — e este confere SEM consertar.
+#
+# Ele olha uma coisa que nenhum outro verificador olha: se a arte CHAPADA de
+# origem (o Papirus, quase sempre) mudou desde o dia em que a conversão foi
+# gerada e ela a aprovou. Um `apt upgrade` do `papirus-icon-theme` basta.
+#
+# ESTÁ EM `SEM_CONSERTO` DE PROPÓSITO, e a razão não é sudo como no `ocultar`:
+# consertar aqui seria RECONVERTER, ou seja, trocar arte que ela aprovou olhando
+# uma folha por arte que ninguém viu — em silêncio, e possivelmente enquanto ela
+# dorme, porque o timer roda sozinho. O caminho certo quando isto acusar é
+# humano: rodar `./scripts/construir_convertidos.sh`, gerar a folha, e mostrar.
+#
+# `MEOW_DRY_RUN=1` porque o `--conferir` daquele script chama o conversor para
+# saber o que a arte DEVERIA ser; o seco garante que nada seja gravado no
+# repositório por um comando de leitura.
+chk_convertidos() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/construir_convertidos.sh" --conferir 2>&1
 }
 
 # O PNG do lançador NÃO TINHA VERIFICADOR NENHUM até 08/08/2026 — `chk_apps` é o
@@ -512,8 +531,8 @@ fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons sistema bandeja traysteam jogos ocultar absolutos nomes pastasxdg pastas wallpaper apps assets)
-SEM_CONSERTO=" conf ocultar absolutos "
+VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam jogos ocultar absolutos nomes pastasxdg pastas wallpaper apps assets)
+SEM_CONSERTO=" conf ocultar absolutos convertidos "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
 # fixa "é o install.sh que cria" servia; com o `ocultar` ela passaria a mentir —
@@ -523,6 +542,7 @@ declare -A SEM_CONSERTO_RAZAO=(
   [conf]="é o install.sh que cria"
   [ocultar]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [absolutos]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
+  [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
 )
 
 # --- 6. o runner das conferências -------------------------------------------
@@ -585,7 +605,10 @@ em_linha() { paste -sd, - | sed 's/,/, /g'; }
 imprimir_check() {
   local i="$1" detalhar="${2:-0}" linha
   linha="$(primeira_linha "${CHK_SAIDA[$i]}")"
-  printf '  %s %s %s\n' "$(rotulo_rc "${CHK_RC[$i]}")" "$(pad "${CHK_NOME[$i]}" 10)" "$linha"
+  # 11, e não 10, desde 11/08/2026: `convertidos` é o primeiro nome de
+  # verificador com 11 caracteres, e com 10 a coluna da direita saía uma casa
+  # fora do prumo só naquela linha.
+  printf '  %s %s %s\n' "$(rotulo_rc "${CHK_RC[$i]}")" "$(pad "${CHK_NOME[$i]}" 11)" "$linha"
   if [ "$detalhar" = "1" ] && [ "${CHK_RC[$i]}" != "0" ]; then
     printf '%s\n' "${CHK_SAIDA[$i]}" | tail -n +2 | while IFS= read -r l; do
       l="$(sem_glifo "$l")"
