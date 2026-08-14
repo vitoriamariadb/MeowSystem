@@ -1,11 +1,25 @@
 # meow-doctor.service — o auto-reparo do MeowSystem, disparado pelo timer irmão.
 #
-# POR QUE SÓ UM TIMER DIÁRIO, E NENHUM HOOK DE APT
+# POR QUE SÓ UM TIMER DIÁRIO, E NENHUM HOOK DE APT PARA O REPARO
 #   O Ritual da Aurora já tem `/etc/apt/apt.conf.d/99-ritual-aurora-self-heal`, que
 #   roda o self-heal COMPLETO depois de todo apt. Pendurar um segundo reparador no
 #   mesmo evento colocaria dois programas mexendo em tema e ícone ao mesmo tempo,
 #   com dois avisos que podem se contradizer na tela dela. Decisão tomada: o
 #   MeowSystem repara uma vez por dia e mais nada.
+#
+#   EMENDA DE 14/08/2026 — A PALAVRA QUE FALTAVA ERA "REPARO"
+#   Existe hoje um `/etc/apt/apt.conf.d/99-meow-lancador`, e ele NÃO derruba o
+#   parágrafo acima: derruba a leitura literal dele. O que a decisão recusa é um
+#   segundo REPARADOR COMPLETO no mesmo evento — e é isso que continua recusado.
+#   O hook novo chama UM script (`ocultar_apps.sh`), com alcance de UM diretório
+#   (`/usr/share/applications`), que não toca em tema, não toca em ícone, não
+#   reinicia o cosmic-panel e não notifica nada. Sem sobreposição não há dois
+#   avisos para se contradizerem, que era o risco medido.
+#
+#   Ele existe porque `ocultar` está em `SEM_CONSERTO` no `bin/meow`: o conserto
+#   usa sudo, o doctor nunca usa, e um prompt às 5h penduraria ESTA unidade. O apt
+#   já é root — é o único evento que é ao mesmo tempo a causa do estrago e um
+#   contexto privilegiado. O porquê completo está em `scripts/99-meow-lancador`.
 #
 # OS CÓDIGOS DE SAÍDA SÃO A INTERFACE (regra 7 do contrato)
 #   0 = estava tudo certo · 1 = divergia e foi consertado · 2 = erro de verdade ·

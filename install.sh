@@ -765,6 +765,112 @@ etapa_nomes() {
   return $?
 }
 
+# O gatilho que mantém as duas etapas acima de pé entre um apt e outro.
+#
+# O PROBLEMA QUE ELA VIU, E A CONTA DOS DIAS
+#   `etapa_ocultar` e `etapa_nomes` escrevem em arquivos que vieram do apt, e o
+#   próprio cabeçalho delas já dizia que "um `apt upgrade` do pacote desfaz".
+#   Até 14/08/2026 o projeto parava aí: reaplicar era `meow ativar` na mão, e
+#   ninguém sabia QUANDO. Medido — o `google-chrome-stable` atualizou em
+#   10/08/2026 19:27 e devolveu o `.desktop` sem `NoDisplay`; ela achou os dois
+#   Chrome no lançador em 14/08 de madrugada. Quatro dias.
+#
+# POR QUE O GATILHO É O APT, E NÃO O doctor
+#   `ocultar` está em `SEM_CONSERTO` no `bin/meow` porque o conserto usa sudo e o
+#   doctor nunca usa: um prompt de senha às 5h penduraria a unidade num terminal
+#   que ninguém está olhando. Essa decisão continua certa e não muda aqui.
+#   O apt JÁ É root — não há prompt para pendurar. É o único evento da máquina
+#   que é ao mesmo tempo a CAUSA do estrago e um contexto privilegiado.
+#
+# E O "NENHUM HOOK DE APT" DO meow-doctor.service?
+#   Continua valendo para o que ele foi escrito: nada de um segundo REPARADOR
+#   COMPLETO no mesmo evento do Aurora. Isto não é reparador — é um script, um
+#   diretório (`/usr/share/applications`), sem tema, sem ícone, sem reiniciar
+#   painel e sem notificação. Sem sobreposição não há aviso contraditório na tela
+#   dela, que era o medo registrado lá. O cabeçalho da unidade foi emendado para
+#   dizer isso, em vez de ficar contradizendo o repositório.
+#
+# DESLIGAR TEM DE DESLIGAR — mesma disciplina da `etapa_autoreparo`
+#   Se `LANCADOR_SISTEMA` voltar para "nao", deixar de instalar não basta: o hook
+#   de uma execução anterior continuaria reaplicando `NoDisplay` depois de todo
+#   apt, e ela veria o lançador obedecer a uma chave que já desligou.
+etapa_lancador_apt() {
+  passo "Reaplique do lançador após apt"
+  local hook=/etc/apt/apt.conf.d/99-meow-lancador
+  local wrapper=/usr/local/sbin/meow-lancador-apt.sh
+
+  if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
+    if [ -f "$hook" ] || [ -f "$wrapper" ]; then
+      if meow_seco; then
+        meow_muda "removeria $hook (LANCADOR_SISTEMA=\"${LANCADOR_SISTEMA:-}\")"
+        return "$MEOW_DIVERGENTE"
+      fi
+      sudo rm -f "$hook" "$wrapper" 2>/dev/null
+      meow_muda "LANCADOR_SISTEMA=\"${LANCADOR_SISTEMA:-}\" — hook de apt removido"
+      return "$MEOW_DIVERGENTE"
+    fi
+    pular_por_optin lancador_apt; return $?
+  fi
+
+  local origem_hook="$MEOW_RAIZ/scripts/99-meow-lancador"
+  local origem_wrapper="$MEOW_RAIZ/scripts/meow-lancador-apt.sh"
+  local f
+  for f in "$origem_hook" "$origem_wrapper"; do
+    if [ ! -f "$f" ]; then
+      meow_erro "falta $f — repositório incompleto"
+      return "$MEOW_ERRO"
+    fi
+  done
+
+  # A substituição é o que amarra o wrapper a ESTA máquina: o caminho do clone e
+  # o nome de quem é dona do estado. Ver o cabeçalho do próprio wrapper para o
+  # porquê de não ser um especificador como o `%h` das unidades.
+  local texto
+  texto="$(sed -e "s|@ACERVO@|$MEOW_RAIZ|g" \
+               -e "s|@USUARIA@|$(id -un)|g" \
+               -e "s|@LAR@|$HOME|g" "$origem_wrapper")"
+
+  # Comparar por CONTEÚDO, não por existência (regra 5). Sem isto, todo
+  # `install.sh` reescreveria os dois arquivos e o passo nunca seria no-op.
+  local mudou=0
+  [ -f "$wrapper" ] && [ "$(cat "$wrapper" 2>/dev/null)" = "$texto" ] || mudou=1
+  cmp -s "$origem_hook" "$hook" 2>/dev/null || mudou=1
+
+  if [ "$mudou" = "0" ]; then
+    meow_ok "hook de apt do lançador já instalado"
+    return 0
+  fi
+
+  if meow_seco; then
+    meow_muda "instalaria $hook e $wrapper"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if [ ! -w /etc/apt/apt.conf.d ] && ! sudo -n true 2>/dev/null; then
+    meow_aviso "sem sudo para instalar o hook de apt do lançador"
+    meow_info "  rode 'meow ativar' com sudo disponível"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  local tmp
+  tmp="$(mktemp)" || { meow_erro "não consegui criar temporário"; return "$MEOW_ERRO"; }
+  printf '%s\n' "$texto" > "$tmp"
+  if ! sudo install -m 755 -o root -g root "$tmp" "$wrapper" 2>/dev/null; then
+    rm -f "$tmp"; meow_erro "não consegui instalar $wrapper"; return "$MEOW_ERRO"
+  fi
+  rm -f "$tmp"
+
+  # O hook vai por último: enquanto ele não existe, nada chama o wrapper. Na
+  # ordem inversa haveria uma janela — curta, mas real — em que um apt disparado
+  # nesse instante chamaria um caminho que ainda não existe.
+  if ! sudo install -m 644 -o root -g root "$origem_hook" "$hook" 2>/dev/null; then
+    meow_erro "não consegui instalar $hook"; return "$MEOW_ERRO"
+  fi
+
+  meow_muda "hook de apt instalado — o lançador se reaplica sozinho após cada apt"
+  return "$MEOW_DIVERGENTE"
+}
+
 etapa_som() {
   passo "Som de evento"
   "$MEOW_RAIZ/scripts/som.sh" aplicar
@@ -1317,7 +1423,8 @@ main() {
                 etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_jogos
-                etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos etapa_som etapa_apps
+                etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
+                etapa_lancador_apt etapa_som etapa_apps
                 etapa_assets etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
