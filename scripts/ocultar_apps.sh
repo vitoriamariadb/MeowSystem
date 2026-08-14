@@ -51,6 +51,23 @@
 #     github-desktop o do sistema é de mai/2021 e não recebe update; o Flatpak
 #                    (io.github.shiftey.Desktop) é o que ela mantém atualizado.
 #
+#   ONDE MORA A CÓPIA BOA MUDOU EM 13/08/2026 (chrome e steam)
+#   Ela saiu de `~/.local/share/applications` e foi para
+#   `/usr/local/share/applications`, e a causa é a MESMA descoberta do cabeçalho
+#   deste arquivo, aplicada ao `Exec=` em vez do `NoDisplay`: o COSMIC não honra
+#   `$XDG_DATA_HOME`. O arquivo do home estava correto no disco e o dock subia o
+#   Chrome PELADO assim mesmo — medido no processo vivo, `/proc/PID/environ` sem
+#   `LIBVA_DRIVER_NAME`. O que ele honra é o `XDG_DATA_DIRS`, e ali
+#   `/usr/local/share` vem antes de `/usr/share`.
+#
+#   Some-se a isso o fato, já anotado acima, de que o `cosmic-app-library` NÃO
+#   deduplica: manter o arquivo no home E em /usr/local dava DUAS entradas de
+#   Chrome no lançador. Por isso é um lugar só, e o Aurora recolhe a cópia do
+#   home. Detalhes em `docs/FRONTEIRA.md`.
+#
+#   Para ESTE script nada muda no mecanismo: marcar `NoDisplay=true` no arquivo
+#   de `/usr/share` continua sendo a única coisa que esconde app.
+#
 #   Então ocultar a cópia do SISTEMA resolve os três — e é exatamente a mesma
 #   operação da lista de cima. `NoDisplay` esconde do lançador e NÃO mexe nos
 #   handlers de MIME e de esquema (`steam://`, `x-scheme-handler/https`): esses
@@ -107,11 +124,12 @@ OCULTAR=(
 
 # As DUPLICATAS. Separadas da lista de cima porque o motivo é outro: aqui o
 # aplicativo FICA — o que sai é a segunda cópia dele. Ver o cabeçalho.
-# Todos são o arquivo de `/usr/share`; a cópia que ela usa está no home ou no
-# Flatpak e continua intocada.
+# Todos são o arquivo de `/usr/share`; a cópia que ela usa está em
+# `/usr/local/share/applications` (chrome, steam — desde 13/08/2026) ou no
+# Flatpak, e continua intocada.
 OCULTAR_DUPLICATA=(
-  google-chrome             # fica o do home: liga GPU e decode por hardware
-  steam                     # fica o do home: passa pelo steam-resiliente.sh
+  google-chrome             # fica o de /usr/local/share: liga GPU e decode por hardware
+  steam                     # fica o de /usr/local/share: passa pelo steam-resiliente.sh
   github-desktop            # fica o Flatpak; este .deb é de mai/2021
 )
 
