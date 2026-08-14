@@ -36,7 +36,7 @@ meow_desinstalar() {
   meow_info "isto NÃO desinstala pacotes do apt nem apaga o clone do repositório"
   meow_seco && meow_aviso "modo seco: nada será removido"
 
-  meow_passo "1/6 Relógios"
+  meow_passo "1/6 Relógios e gatilhos"
   if ! meow_seco; then
     # `|| true` porque desligar unidade que não existe devolve != 0, e isso não
     # é falha: é a máquina já estando como queremos deixá-la.
@@ -51,6 +51,32 @@ meow_desinstalar() {
     meow_ok "unidades meow-* desligadas e removidas"
   else
     meow_muda "desligaria e removeria as unidades meow-* de ~/.config/systemd/user"
+  fi
+
+  # O HOOK DE APT SAI AQUI, E NÃO NO PASSO 4
+  #   O passo 4 anda pelo manifesto e recusa, de propósito, tudo que está fora do
+  #   `$HOME` — a regra que impede um manifesto de outra máquina de mandar apagar
+  #   caminho que não é nosso. O hook mora em `/etc/apt/apt.conf.d` e o wrapper em
+  #   `/usr/local/sbin`: os dois cairiam nessa recusa e ficariam para trás.
+  #
+  #   Um hook órfão não é sujeira inofensiva. Ele chama o wrapper depois de TODO
+  #   apt, e o wrapper chama o `ocultar_apps.sh` do clone — que este arquivo
+  #   promete não apagar. Ou seja: desinstalar o MeowSystem e continuar vendo o
+  #   lançador ser reescrito depois de cada `apt upgrade`, sem nada instalado que
+  #   explicasse por quê.
+  local hook=/etc/apt/apt.conf.d/99-meow-lancador
+  local wrapper=/usr/local/sbin/meow-lancador-apt.sh
+  if [ -f "$hook" ] || [ -f "$wrapper" ]; then
+    if meow_seco; then
+      meow_muda "removeria $hook e $wrapper"
+    elif sudo rm -f "$hook" "$wrapper" 2>/dev/null; then
+      meow_ok "hook de apt do lançador removido"
+    else
+      # Sem sudo não apagamos escondido nem falhamos calados — mesma conduta da
+      # completion no passo 6.
+      meow_aviso "sem sudo para remover o hook de apt do lançador"
+      meow_info "  rode: sudo rm -f $hook $wrapper"
+    fi
   fi
 
   meow_passo "2/6 Temas por aplicativo"

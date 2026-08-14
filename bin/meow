@@ -447,6 +447,47 @@ chk_ocultar() {
   MEOW_DRY_RUN=1 "$RAIZ/scripts/ocultar_apps.sh" 2>&1
 }
 
+# O gatilho que reaplica o `ocultar` depois de todo apt. Confere, e como tudo que
+# mora fora do home, não conserta — instalar em `/etc/apt/apt.conf.d` e
+# `/usr/local/sbin` usa sudo, e o doctor nunca usa (mesma razão do `ocultar`).
+#
+# CONFERE OS DOIS ARQUIVOS, E O CONTEÚDO DE AMBOS
+#   Só existir não basta: o wrapper carrega o caminho do clone e o nome da dona
+#   substituídos no install. Se o repositório mudar de lugar — ou se o wrapper
+#   ganhar uma correção aqui — o arquivo em `/usr/local/sbin` fica velho, o hook
+#   continua chamando, e o reaplique passa a apontar para um `ocultar_apps.sh`
+#   que não existe mais. Um gatilho que dispara para o vazio é pior que gatilho
+#   nenhum: ele parece instalado na tabela do doctor.
+chk_lancadorapt() {
+  local hook=/etc/apt/apt.conf.d/99-meow-lancador
+  local wrapper=/usr/local/sbin/meow-lancador-apt.sh
+
+  if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
+    if [ -f "$hook" ] || [ -f "$wrapper" ]; then
+      meow_muda 'LANCADOR_SISTEMA="nao" mas o hook de apt continua instalado'
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_pula 'LANCADOR_SISTEMA="nao" — sem reaplique após apt'
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  [ -f "$hook" ]    || { meow_muda "falta $hook";    return "$MEOW_DIVERGENTE"; }
+  [ -f "$wrapper" ] || { meow_muda "falta $wrapper"; return "$MEOW_DIVERGENTE"; }
+
+  cmp -s "$RAIZ/scripts/99-meow-lancador" "$hook" 2>/dev/null ||
+    { meow_muda "$hook diverge do repositório"; return "$MEOW_DIVERGENTE"; }
+
+  local esperado
+  esperado="$(sed -e "s|@ACERVO@|$RAIZ|g" \
+                  -e "s|@USUARIA@|$(id -un)|g" \
+                  -e "s|@LAR@|$HOME|g" "$RAIZ/scripts/meow-lancador-apt.sh")"
+  [ "$(cat "$wrapper" 2>/dev/null)" = "$esperado" ] ||
+    { meow_muda "$wrapper diverge do repositório (o clone mudou de lugar?)"; return "$MEOW_DIVERGENTE"; }
+
+  meow_ok "o lançador se reaplica sozinho após cada apt"
+  return 0
+}
+
 # Os nomes compridos que quebravam em duas linhas no lançador. Confere sempre; o
 # conserto é PARCIAL de propósito.
 #
@@ -531,8 +572,8 @@ fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam jogos ocultar absolutos nomes pastasxdg pastas wallpaper apps assets)
-SEM_CONSERTO=" conf ocultar absolutos convertidos "
+VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper apps assets)
+SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
 # fixa "é o install.sh que cria" servia; com o `ocultar` ela passaria a mentir —
@@ -543,6 +584,7 @@ declare -A SEM_CONSERTO_RAZAO=(
   [ocultar]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [absolutos]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
+  [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
 )
 
 # --- 6. o runner das conferências -------------------------------------------

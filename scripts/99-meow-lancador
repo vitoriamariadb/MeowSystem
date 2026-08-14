@@ -1,0 +1,46 @@
+// 99-meow-lancador — reaplica o `NoDisplay` do lançador depois de todo apt.
+//
+// Fonte-de-verdade: MeowSystem/scripts/99-meow-lancador
+// Destino:          /etc/apt/apt.conf.d/99-meow-lancador
+// Quem instala:     install.sh, `etapa_lancador_apt` (só com LANCADOR_SISTEMA="sim")
+//
+// O BURACO QUE ISTO FECHA
+//   O `ocultar_apps.sh` marca `NoDisplay=true` em arquivos de
+//   `/usr/share/applications` que vieram do apt. Um `apt upgrade` do pacote
+//   devolve o original e o aplicativo reaparece no lançador. Está medido: o
+//   `google-chrome-stable` atualizou em 10/08/2026 19:27, devolveu o
+//   `google-chrome.desktop` sem a chave, e ela viu DOIS Chrome no lançador em
+//   14/08 — quatro dias com a duplicata de volta e ninguém para reaplicar.
+//
+//   O `meow doctor` não fecha esse buraco por decisão registrada: `ocultar` está
+//   em `SEM_CONSERTO` porque o conserto usa sudo e o doctor nunca usa — um
+//   prompt de senha às 5h penduraria a unidade. A decisão continua certa. O que
+//   faltava era um gatilho que JÁ FOSSE root, e o apt é exatamente isso.
+//
+// POR QUE ISTO NÃO CONTRARIA O "NENHUM HOOK DE APT" DO meow-doctor.service
+//   Aquele cabeçalho recusa pendurar um SEGUNDO REPARADOR COMPLETO no mesmo
+//   evento do Aurora: dois programas mexendo em tema e ícone ao mesmo tempo, com
+//   dois avisos que podem se contradizer na tela dela. A recusa vale e não muda.
+//
+//   Isto aqui não é um reparador: é UM script, com alcance de um diretório
+//   (`/usr/share/applications`), que não toca em tema, não toca em ícone, não
+//   reinicia o cosmic-panel e não notifica nada. Não há como contradizer o
+//   Aurora porque não há sobreposição — a `docs/FRONTEIRA.md` dá
+//   `/usr/share/applications` ao MeowSystem, sozinho.
+//
+//   O `meow-doctor.timer` segue sendo o único gatilho do REPARO. Este é o
+//   gatilho da manutenção de uma escrita que só o apt desfaz.
+//
+// POR QUE Post-Invoke E NÃO Pre-Invoke
+//   O estrago acontece quando o dpkg desempacota. Antes dele não há o que
+//   reaplicar.
+//
+// O `|| true` NÃO É DESLEIXO
+//   Um Post-Invoke que sai != 0 faz o apt terminar com erro. Nada aqui vale
+//   quebrar um `apt upgrade` dela: se o script falhar, o lançador fica com uma
+//   duplicata até o próximo apt, e isso é um incômodo — não uma máquina quebrada.
+//   O wrapper já registra a falha em ~/.local/state/meowsystem/apt-lancador.log.
+
+DPkg::Post-Invoke {
+    "if [ -x /usr/local/sbin/meow-lancador-apt.sh ]; then /usr/local/sbin/meow-lancador-apt.sh >/dev/null 2>&1 || true; fi";
+};

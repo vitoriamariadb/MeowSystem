@@ -33,9 +33,12 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `~/.config/cosmic/logos/` | ambos | **Meow** — o `gato-pop.svg` do Aurora foi aposentado |
 | `~/.local/share/icons/hicolor/index.theme` | Meow (`hicolor.sh`) | **Meow** |
 | `~/.local/share/applications/` — conteúdo do lançador | ambos | **Meow** |
-| `~/.local/share/applications/{google-chrome,steam}.desktop` (wrappers de `Exec=`) | Aurora | **Aurora** |
+| `/usr/local/share/applications/{google-chrome,steam}.desktop` (wrappers de `Exec=`) | Aurora | **Aurora** — mudou de `~/.local/share` em 13/08/2026, ver abaixo |
 | `~/.local/share/applications/{vim,qt5ct,qt6ct,debian-*xterm}.desktop` | ambos | **Meow** — `NoDisplay` preserva o handler de MIME; o `Hidden=true` do Aurora mata |
 | `/usr/share/applications/*` (`NoDisplay`, nome curto) | Meow (com sudo) | **Meow** — o Aurora não escreve ali |
+| `/etc/apt/apt.conf.d/99-meow-lancador` | Meow | **Meow** — o segundo hook de apt da máquina, ver abaixo |
+| `/usr/local/sbin/meow-lancador-apt.sh` | Meow | **Meow** — o `sbin` distingue do `/usr/local/bin` do Aurora |
+| `/etc/apt/apt.conf.d/99-ritual-aurora-self-heal` | Aurora | **Aurora** |
 | `~/.config/cosmic/com.system76.CosmicBackground` | Meow (`wallpaper.sh`) | **Meow** |
 | `/var/lib/cosmic-greeter/.config/cosmic` | Meow (`greeter.sh`) | **Meow** |
 | `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts` | Aurora | **Aurora** — é o colar dela |
@@ -47,6 +50,78 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | binário `cosmic-comp` (patches de workspace e night light) | Aurora | **Aurora** |
 | ciclo de vida do processo `cosmic-panel` | Aurora | **Aurora** — hoje desarmado (ver abaixo) |
 | tema do qBittorrent, `~/.config/fastfetch` | Aurora | **Aurora** — o `meow` chama o script de lá |
+
+---
+
+## Dois hooks de apt na mesma máquina, e por que isso não é briga (14/08/2026)
+
+A `/etc/apt/apt.conf.d` passou a ter dois `DPkg::Post-Invoke`: o
+`99-ritual-aurora-self-heal`, que já existia, e o `99-meow-lancador`, novo. O apt roda
+os dois em ordem alfabética, um de cada vez — o Meow primeiro. **Não há corrida**, e não
+há sobreposição de alvo.
+
+**Por que o segundo precisou existir.** O `ocultar_apps.sh` marca `NoDisplay=true` em
+`.desktop` que vieram do apt, e um `apt upgrade` do pacote devolve o original. Está
+medido: o `google-chrome-stable` atualizou em **10/08/2026 19:27**, devolveu o
+`google-chrome.desktop` sem a chave, e ela achou dois Chrome no lançador em **14/08**.
+Quatro dias com a duplicata de volta e nada na máquina para reaplicar.
+
+**Por que não pelo `meow doctor`.** `ocultar` está em `SEM_CONSERTO` porque o conserto
+usa sudo e o doctor nunca usa — um prompt de senha às 5h penduraria o
+`meow-doctor.service` num terminal que ninguém está olhando. Essa decisão não mudou.
+O que faltava era um gatilho que **já fosse root**, e o apt é exatamente isso: ele é ao
+mesmo tempo a causa do estrago e um contexto privilegiado.
+
+**Por que isso não contraria o "nenhum hook de apt" do `meow-doctor.service`.** Aquele
+cabeçalho recusa pendurar um segundo **reparador completo** no evento do Aurora — dois
+programas mexendo em tema e ícone ao mesmo tempo, com dois avisos que podem se
+contradizer na tela dela. O `99-meow-lancador` não é reparador: chama um script, cobre um
+diretório (`/usr/share/applications`, que esta tabela já dá ao Meow), não toca em tema,
+não toca em ícone, não reinicia o `cosmic-panel` e não notifica nada. O cabeçalho da
+unidade foi emendado para dizer isso em vez de ficar contradizendo o repositório.
+
+**O `/usr/local/sbin` é escolha de fronteira, não de gosto.** O `/usr/local/bin` é do
+Aurora nesta tabela ("wrappers de execução"). Um `sbin` separado deixa `ls` e `dpkg -S`
+dizerem de quem é cada arquivo sem ninguém precisar abrir nada — e é o diretório certo
+para um binário que só root executa.
+
+---
+
+## Wrapper de `Exec=` mora em `/usr/local/share/applications` (13/08/2026)
+
+A linha do `google-chrome.desktop` mudou de dono de diretório, e o motivo interessa aos
+dois lados porque é a **mesma** limitação do COSMIC que o `ocultar_apps.sh` já contornava
+por outro caminho.
+
+**O que quebrou.** O launcher acelerado do Chrome estava em
+`~/.local/share/applications`, correto no disco — e mesmo assim o clique no dock subia o
+Chrome SEM aceleração. Medido pelo processo vivo: `/proc/PID/environ` sem
+`LIBVA_DRIVER_NAME`, `/proc/PID/cmdline` sem nenhuma das flags. O COSMIC estava lendo o
+arquivo de `/usr/share`.
+
+**As duas medições que se somam.** Nenhuma é nova sozinha; juntas elas fecham o caminho:
+
+1. O COSMIC **não honra `$XDG_DATA_HOME`** — é o `pop-os/cosmic-applets#667` que este
+   repo mediu em 04/08 para esconder app. Vale para o `Exec=` do mesmo jeito.
+2. O `cosmic-app-library` **não deduplica por desktop-id** — mostra as duas cópias com
+   "(Local)" e "(Sistema)". Então manter o arquivo no home *e* uma cópia em outro
+   diretório dá duas entradas de Chrome no lançador.
+
+**A saída.** `XDG_DATA_DIRS` é honrado, e nele `/usr/local/share` vem **antes** de
+`/usr/share`:
+
+```
+~/.local/share/flatpak/... : /var/lib/flatpak/... : /usr/local/share : /usr/share
+```
+
+Um arquivo só, em `/usr/local/share/applications`: vence o do apt, sobrevive ao update do
+Chrome e não encosta em `/usr/share` — que continua sendo do Meow. O Aurora recolhe a
+cópia antiga do home, com guarda por `cmp` para não apagar edição dela.
+
+**O que isso muda para o `ocultar_apps.sh`:** nada no mecanismo. Ele segue marcando
+`NoDisplay=true` no arquivo de `/usr/share`, que segue sendo a única coisa que esconde
+app. O que muda é a legenda de `OCULTAR_DUPLICATA`: a cópia boa não está mais "no home",
+está em `/usr/local/share`.
 
 ---
 

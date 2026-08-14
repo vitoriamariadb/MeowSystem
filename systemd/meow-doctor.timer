@@ -20,12 +20,17 @@
 #   num bug diário. Vinte minutos de dispersão custam nada e tiram o encontro
 #   marcado.
 #
-# NÃO EXISTE UM SEGUNDO GATILHO
+# NÃO EXISTE UM SEGUNDO GATILHO PARA O REPARO
 #   Nem hook de apt, nem `.path` vigiando o tema. O hook do Aurora já roda depois de
 #   todo apt; um `.path` transformaria cada gravação do `cosmic-settings` numa
 #   rodada de reparo, brigando com a própria GUI enquanto ela mexe nos controles.
 #   Uma vez por dia é o suficiente para um reparador — o resto é `meow doctor` na
 #   mão, quando ela quiser.
+#
+#   O `99-meow-lancador` (14/08/2026) não é exceção a isto: ele não dispara o
+#   doctor nem repara nada: reaplica uma chave em `/usr/share/applications` que só
+#   o apt desfaz, no mesmo evento que a desfez. Esta unidade continua sendo o
+#   único gatilho do REPARO. Ver a emenda no cabeçalho do `.service` irmão.
 
 [Unit]
 Description=MeowSystem — dispara o auto-reparo diário do tema
