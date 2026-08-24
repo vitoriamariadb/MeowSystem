@@ -66,20 +66,40 @@ LOGO_ROTACAO="nao"
 # Esta não tem controle na GUI: se ninguém escrever, ela se perde em silêncio.
 VIDRO_AO_MAXIMIZAR="sim"
 
-# Quanto da cor da barra entra na mistura com o que está atrás (0 a 1).
-# 0 = só o fundo desfocado · 1 = chapado, sem vidro nenhum.
+# A OPACIDADE DO FUNDO É SUA, E POR ISSO ESTAS DUAS NASCEM VAZIAS (17/08/2026).
 #
-# ESTE NÚMERO DÁ (OU TIRA) AUTORIDADE AOS SLIDERES DE "VIDRO FOSCO" DA GUI.
-# O alpha desenhado é  opacity x alpha_map[frosted]  — e `alpha_map`/`frosted`
+# Ajustes → Área de trabalho → Painel (e Dock) → "Opacidade do fundo" escreve
+# EXATAMENTE a chave que estas duas escreviam. Enquanto elas tinham valor, o
+# `meow doctor` devolvia 0.19/0.26 todo dia e a sua escolha sumia sem aviso.
+# Vazio = o MeowSystem não toca em `opacity`; o slider manda.
+#
+# Preencher volta a IMPOR o número, em toda passagem do doctor. Se fizer isso:
+# o alpha desenhado é  opacity x alpha_map[frosted]  — e `alpha_map`/`frosted`
 # são os dois sliders de Aparência → Vidro fosco. Não há tabela fixa aqui: o
 # `alpha_map` é reescrito toda vez que você mexe naqueles sliders, então
 # qualquer porcentagem escrita neste arquivo envelhece. Para ver a de hoje:
 #     scripts/vidro.sh --conferir
-# Os padrões abaixo miram ~12,5% de cor no painel e ~17% no dock. O dock fica
-# mais presente que o painel de propósito: igualar os dois já anulou os
-# slideres da GUI uma vez, em 05/08/2026.
-VIDRO_OPACIDADE_PAINEL="0.19"
-VIDRO_OPACIDADE_DOCK="0.26"
+# (Os valores impostos até 17/08 eram 0.19 no painel e 0.26 no dock, mirando
+#  ~12,5% e ~17% de cor. Ficam aqui como ponto de partida, não como padrão.)
+VIDRO_OPACIDADE_PAINEL=""
+VIDRO_OPACIDADE_DOCK=""
+
+# O TAMANHO DE TUDO NA TELA — e a única forma de aumentar a FONTE no COSMIC.
+#
+# Não há chave de tamanho de fonte neste desktop: o texto da interface é 14 px
+# fixos no código da libcosmic, `interface_density` mexe só em espaçamento e
+# `COSMIC_SCALE` não alcança o painel nem a dock. Quem multiplica o texto (e
+# tudo o mais) é a escala da saída — Ajustes → Telas → Escala.
+#
+#   1.0 = 100% (padrão)   1.25 = 25% maior   1.5 = 50% maior
+#
+# Vazio = o MeowSystem não mexe na escala. Com valor, o `install.sh` aplica em
+# todas as telas ligadas — e SÓ o install: o `meow doctor` não toca nisto, para
+# que mudar pela GUI não seja desfeito no dia seguinte.
+#
+# Escala fracionária faz o Xwayland (Steam, jogos antigos) sair levemente
+# borrado, porque o compositor reamostra. Em 1.0 isso não acontece.
+ESCALA_TELA=""
 
 # --- Ícones ----------------------------------------------------------------
 

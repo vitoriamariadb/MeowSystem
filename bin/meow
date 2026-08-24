@@ -323,8 +323,19 @@ chk_apps() {
 # ninguém, e foi assim que o vidro ao maximizar voltou ao padrão de fábrica e a
 # tela de login ficou azul sem que nada acusasse. Conferir é o que transforma
 # "sumiu de novo" em "o doctor avisou".
+#
+# AS TRÊS CHAVES, E NÃO SÓ UMA (17/08/2026) — A PONTE QUE FALTAVA
+#   Este `chk_` passava só `VIDRO_AO_MAXIMIZAR`. As `VIDRO_OPACIDADE_*` do
+#   meow.conf eram sourceadas por este arquivo e morriam aqui, sem exportar: o
+#   `vidro.sh` nunca as via. Enquanto o script tinha padrão embutido, o efeito
+#   era só o conf não valer nada. Desde que o padrão virou VAZIO ("a opacidade é
+#   da GUI"), a ponte passou a ser obrigatória — sem ela, escrever um valor no
+#   conf não teria efeito nenhum e o silêncio seria pior que o atropelo.
 chk_vidro() {
   MEOW_DRY_RUN=1 VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
+    VIDRO_OPACIDADE="${VIDRO_OPACIDADE:-}" \
+    VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-}" \
+    VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-}" \
     "$RAIZ/scripts/vidro.sh" 2>&1
 }
 
@@ -547,6 +558,9 @@ fix_wallpaper() { WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WA
 fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
                     "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1; }
 fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
+                    VIDRO_OPACIDADE="${VIDRO_OPACIDADE:-}" \
+                    VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-}" \
+                    VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-}" \
                     "$RAIZ/scripts/vidro.sh" 2>&1; }
 fix_forma()     { rodar_forma "$RAIZ" 2>&1; }
 fix_hicolor()   { "$RAIZ/scripts/hicolor.sh" 2>&1; }

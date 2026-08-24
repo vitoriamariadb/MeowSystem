@@ -25,8 +25,10 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | alvo | quem escreve hoje | dono |
 |---|---|---|
 | `~/.config/cosmic/com.system76.CosmicTheme.*` | Meow + COSMIC (GUI) | **Meow** |
-| alpha do `base:` de `background`/`primary`/`secondary` | Aurora (`aurora-vidro-maximizado.py`) | **Aurora** — já funciona, não mexer |
-| `CosmicPanel.{Panel,Dock}/v1/keep_style_on_maximize`, `/opacity` | Meow (`vidro.sh`) | **Meow** |
+| alpha do `base:` de `background`/`primary`/`secondary` | Aurora (`aurora-vidro-maximizado.py`) | **Aurora** — já funciona, não mexer; **não alcança painel nem dock**, ver 23/08 |
+| `CosmicPanel.{Panel,Dock}/v1/keep_style_on_maximize` | Meow (`vidro.sh`) | **Meow** — a GUI não tem controle para ela |
+| `CosmicPanel.{Panel,Dock}/v1/opacity` | COSMIC (GUI) | **ELA** — desde 17/08/2026, ver abaixo |
+| escala das saídas (`cosmic-randr`, o `outputs.ron`) | COSMIC (GUI) | **ELA** — o `install.sh` aplica `ESCALA_TELA` quando ela pede; o doctor nunca |
 | `CosmicPanel.*/v1/plugins_{wings,center}` | Aurora | **Aurora** — a ordem dos applets é dela |
 | `CosmicTk/v1/icon_theme` e `~/.local/share/icons/MeowSystem-Icons` | Meow | **Meow** |
 | `/usr/share/icons/hicolor/.../CosmicAppLibrary.svg` | ambos | **Meow** — o Aurora restaura o `.aurora-original` |
@@ -50,6 +52,86 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | binário `cosmic-comp` (patches de workspace e night light) | Aurora | **Aurora** |
 | ciclo de vida do processo `cosmic-panel` | Aurora | **Aurora** — hoje desarmado (ver abaixo) |
 | tema do qBittorrent, `~/.config/fastfetch` | Aurora | **Aurora** — o `meow` chama o script de lá |
+
+---
+
+## A opacidade do painel e a escala da tela saíram da nossa mão (17/08/2026)
+
+Duas linhas da tabela acima trocaram de dono no mesmo dia, pelo mesmo motivo, e ele vale
+como regra geral: **onde a GUI do COSMIC tem um controle, o valor é dela.**
+
+**A opacidade.** O `vidro.sh` escrevia `CosmicPanel.{Panel,Dock}/v1/opacity` em toda
+passagem, com 0.19 e 0.26. Aquele arquivo é exatamente o que o slider *Ajustes → Área de
+trabalho → Painel → "Opacidade do fundo"* escreve. Com o `meow-doctor.timer` rodando
+`fix_vidro` todo dia, o número que ela escolhia voltava para o nosso sem que nada dissesse
+por quê — e a GUI ainda exibia 19 e 26 como se fossem a escolha dela. Era a terceira
+travessia da mesma fronteira no mesmo arquivo (05/08: unificar em 0.05; 10/08: rederivar
+para 0.19/0.26); as duas primeiras corrigiram o **número**, esta mudou o **dono**.
+
+Hoje `VIDRO_OPACIDADE_PAINEL` e `VIDRO_OPACIDADE_DOCK` nascem **vazias** no `meow.conf`, e
+vazio quer dizer "não toque". Preencher volta a impor — a ponte do conf até o script foi
+fechada no mesmo dia, então preencher agora tem efeito de verdade (antes as chaves eram
+lidas por `bin/meow` e morriam lá). O que continua nosso é `keep_style_on_maximize`, que a
+GUI não tem: se ninguém a escrever, ela se perde em silêncio.
+
+**A escala.** Ela pediu "aumentar o tamanho universal das fontes". Não existe chave de
+tamanho de fonte no COSMIC — `interface_font` não tem campo de tamanho, `interface_density`
+mexe só em espaçamento, o `default_text_size` da libcosmic é 14.0 constante no código e
+`COSMIC_SCALE` não alcança o painel. Sobra a escala da saída, que é *Ajustes → Telas →
+Escala*. O `scripts/escala.sh` a aplica pelo `cosmic-randr` (nunca editando o `outputs.ron`,
+que é estado do compositor e é reescrito por cima), e **só pelo `install.sh`**: pôr isto no
+doctor repetiria, com outro nome, o defeito que a opacidade acabou de custar.
+
+---
+
+## O alpha que o Aurora escreve NÃO chega no painel (23/08/2026)
+
+Ela reclamou que "a opacidade da barra não é respeitada". A suspeita óbvia, e a que
+esta tabela alimentava, era travessia de fronteira: o `aurora-vidro-maximizado.py`
+escreve o alpha do `base:` de `background` (hoje `0x8A`), esse número é quase igual ao
+`alpha_map[extremely_high_2]` do tema dela (0,54), e daí para "o Aurora está atropelando
+o slider" é um pulo. **A medição derrubou isso**, e vale registrar para ninguém refazer
+o caminho.
+
+**O painel descarta o alpha do tema.** O `bg_color` do `cosmic-panel` monta a cor com os
+canais de cor do tema e um alpha calculado à parte:
+
+```rust
+pub fn bg_color(&self, mut alpha: f32, opaque: bool) -> [f32; 4] {
+    if self.theme.cosmic().frosted_panel && self.blur_enabled {
+        alpha *= self.theme.cosmic().alpha_map.blurred_alpha(self.theme.cosmic().frosted);
+    }
+    if opaque { alpha = 1.; }
+    self.color_override.unwrap_or_else(|| {
+        let c = self.theme.cosmic().bg_color();
+        [c.red, c.green, c.blue, alpha]     // <- só R,G,B. O c.alpha morre aqui.
+    })
+}
+```
+
+O `0x8A` que o Aurora grava governa **janela**, não barra. O 0,54 que aparece na conta do
+painel vem do `alpha_map[frosted]`, que é outro caminho — a coincidência dos dois números
+existe porque os dois descendem do mesmo `frosted` que ela escolheu, não porque um alimente
+o outro.
+
+**E o Aurora não impõe número nenhum.** Ele copia o alpha de `transparent_X.base` para
+`X.base` — propaga a escolha dela em "Espessura do efeito fosco"/"Opacidade do vidro" em
+vez de fixar um valor. O `aurora-vidro-maximizado.path` está `active`/`enabled` e reaplica
+assim que o tema muda, mas o que ele reaplica é o que ela mesma escolheu. **Nada a mudar
+do lado do Aurora**, e a linha da tabela continua dele.
+
+**O que realmente apaga o controle dela é nosso.** Medido no pixel: com
+`keep_style_on_maximize = false` e uma janela maximizada, `opacity` é ignorada —
+`0.19` e `0.95` desenharam capturas pixel-idênticas, a barra chapada em `#313244`.
+O upstream faz `let effective_maximized = maximized && !config.keep_style_on_maximize;`
+e, quando ele vale, `config.maximize()` força `self.opacity = 1.0`. Ou seja: a chave que
+esta tabela já dava ao Meow ("a GUI não tem controle para ela") é a **pré-condição** para
+o slider dela funcionar. Perder essa chave em silêncio não estraga só o vidro ao
+maximizar — mata a "Opacidade do fundo" inteira. O `vidro.sh` passou a avisar; ele
+continua sem escrever `opacity`, que segue sendo dela.
+
+Detalhe das três medições, com os números: cabeçalho do `scripts/vidro.sh`, bloco de
+23/08/2026.
 
 ---
 
