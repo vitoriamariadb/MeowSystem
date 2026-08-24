@@ -639,6 +639,7 @@ etapa_icones_apps() {
 etapa_icones_apps_arcticons() {
   passo "Ícones de aplicativo em Arcticons"
   FLAVOR="${FLAVOR:-}" \
+    ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao}" \
     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$MEOW_RAIZ/scripts/icones_apps_arcticons.sh"
   return $?
