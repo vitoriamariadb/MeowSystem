@@ -909,6 +909,24 @@ etapa_vidro() {
 #   acontecido antes com o vidro ao maximizar, que "voltou ao padrão de fábrica
 #   sem que nada acusasse". Uma etapa que ninguém invoca e um verificável que
 #   ninguém confere são a mesma doença: o trabalho se perde calado.
+# O TAMANHO DE TUDO NA TELA — que é a única alavanca de fonte que o COSMIC tem.
+#
+# Ela pediu "aumentar o tamanho universal das fontes do pc" em 17/08/2026. Não
+# existe chave de tamanho de fonte no COSMIC: o `default_text_size` da libcosmic
+# é 14.0 constante no código, `interface_density` só mexe em espaçamento e
+# `COSMIC_SCALE` não alcança o painel. A escala da saída é o que resta, e é o
+# que a GUI chama de Ajustes → Telas → Escala. O porquê inteiro, com as
+# medições, está no cabeçalho do script.
+#
+# NÃO ENTRA NO `meow doctor`, de propósito: é controle dela na GUI, e reimpor
+# todo dia é o defeito que o `vidro.sh` corrigiu no mesmo dia. Aqui só o
+# install, e só quando `ESCALA_TELA` tem valor.
+etapa_escala() {
+  passo "Escala da tela"
+  ESCALA_TELA="${ESCALA_TELA:-}" "$MEOW_RAIZ/scripts/escala.sh"
+  return $?
+}
+
 etapa_forma() {
   passo "Forma das barras (painel e dock)"
   # As chaves `FORMA_*` vêm do meow.conf e precisam ser EXPORTADAS: o conf é
@@ -1430,7 +1448,7 @@ main() {
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
-                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_upstream etapa_fontes
+                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_escala etapa_upstream etapa_fontes
                 etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_jogos
