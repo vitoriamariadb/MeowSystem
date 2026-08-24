@@ -31,6 +31,13 @@
 #   capa é a identidade do jogo. E o `Icon=` guarda um NOME, nunca um caminho
 #   dentro de `~/.steam` — aquilo é cache do cliente, e a subpasta muda de nome
 #   a cada atualização de arte.
+#
+# UM CARTÃO POR JOGO — E ISSO INCLUI O CARTÃO QUE OUTRO ESCREVEU
+#   Escrever o nosso não basta: o lançador mostra TUDO que houver em
+#   `~/.local/share/applications`, e um segundo `.desktop` com o mesmo `Name=`
+#   é um segundo cartão. Aconteceu em 15/08/2026 com 17 jogos — quinze deles com
+#   o nome idêntico, e foi esse quinze que ela contou na tela (ver a seção 2).
+#   Por isso a limpeza tem três donos rivais, e não dois.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -211,11 +218,12 @@ while IFS= read -r lib; do
 done < <(bibliotecas)
 
 # --- 2. limpeza: o que existe no destino e não deveria mais existir -----------
-# Só apaga com PROVA DE AUTORIA (a marca X-MeowSystem, ou o `rungameid` dos dois
-# geradores antigos). Nunca por prefixo de nome sozinho: um `.desktop` que ela
-# escreveu à mão não é órfão de ninguém.
+# Só apaga com PROVA DE AUTORIA (a marca X-MeowSystem, o `rungameid` dos dois
+# geradores antigos, ou o par nome-de-arquivo + appid do molde da Steam). Nunca
+# por prefixo de nome sozinho: um `.desktop` que ela escreveu à mão não é órfão
+# de ninguém.
 
-removidos=0
+removidos=0; duplicatas=0
 if [ "$ausentes" -gt 0 ]; then
   meow_info "biblioteca desmontada nesta rodada — limpeza de órfãos adiada de propósito"
 else
@@ -246,6 +254,70 @@ else
     fi
     mudou=1; removidos=$((removidos + 1))
   done
+
+  # O TERCEIRO DONO: `steam_app_<appid>.desktop`, escrito com o MOLDE DA STEAM.
+  #
+  #   Em 15/08/2026 ela viu QUINZE jogos duas vezes no lançador. A causa não foi
+  #   a Steam: o fato medido em 10/08 continua de pé — a Steam não escreve
+  #   `.desktop` de jogo em `~/.local/share/applications`, ela escreve na ÁREA DE
+  #   TRABALHO, com o NOME DO JOGO no arquivo, e só quando a pessoa pede um por
+  #   um (os três que sobraram lá provam o formato). Os 17 `steam_app_<id>` de
+  #   14/08 03:02 nasceram do RESGATE do estrago do BleachBit daquela noite:
+  #   recriados a partir dos ícones que sobreviveram, usando aquele molde. Duas
+  #   horas depois este script rodou e escreveu os dele. Dois cartões por jogo.
+  #
+  #   A promessa deste script é "um dono só". Ela falhou porque a lista de
+  #   rivais foi escrita em 10/08 e não previa o nome que o molde da Steam
+  #   produz. Então o rival entra na lista — e não como contorno: enquanto
+  #   houver um `.desktop` por jogo que este script não escreveu, o lançador
+  #   mostra dois cartões, e o próximo resgate refaz a duplicata.
+  #
+  # AS QUATRO CONDIÇÕES, E POR QUE CADA UMA
+  #   1. a biblioteca está montada (estamos dentro do `else`) — senão o rival
+  #      pode ser o ÚNICO cartão de um jogo cujo manifesto não enxergamos hoje;
+  #   2. o appid está em `vivos`, isto é, ACABAMOS de escrever o cartão dele —
+  #      nunca removemos um rival sem deixar um substituto no lugar;
+  #   3. o nome do arquivo é exatamente `steam_app_<appid>.desktop`;
+  #   4. o corpo aponta para `steam://rungameid/<appid>`, o MESMO appid.
+  #   Nada disso é prefixo solto: um `.desktop` que ela escreveu à mão com outro
+  #   nome continua intocado, como em 10/08.
+  #
+  # BACKUP ANTES, PORQUE ESTE ARQUIVO NÃO É NOSSO
+  #   Os órfãos acima carregam a marca `X-MeowSystem` — são nossos, e apagar o
+  #   que escrevemos é reversível por definição. Este não: guardamos a cópia em
+  #   `$MEOW_ESTADO/backups/<carimbo>-duplicatas/` antes de remover, e a remoção
+  #   é ANUNCIADA na saída, nunca silenciosa.
+  bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-duplicatas"
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    f="$APPS/steam_app_$id.desktop"
+    [ -e "$f" ] || continue
+    # `([[:space:]]|$)` e não `$` solto: o molde da Steam termina a linha no
+    # appid, mas um `%U` ou uma opção depois dele continua sendo o mesmo jogo —
+    # e sem a âncora, `rungameid/316790` casaria com `rungameid/3167900`.
+    grep -qE "steam://rungameid/$id([[:space:]]|\$)" "$f" || continue
+    if meow_seco; then
+      meow_muda "removeria o cartão duplicado do appid $id (molde da Steam, $(basename "$f"))"
+    else
+      mkdir -p "$bkp" 2>/dev/null && cp -a "$f" "$bkp/" 2>/dev/null || {
+        meow_aviso "sem backup para $(basename "$f") — não removo o que não consigo guardar"
+        continue
+      }
+      rm -f "$f"
+      meow_muda "cartão duplicado do appid $id removido (cópia em $bkp)"
+    fi
+    mudou=1; duplicatas=$((duplicatas + 1))
+  done <<< "$vivos"
+  # A frase muda com o modo: em 15/08 o seco dizia "agora aparecem uma" sem ter
+  # tirado nada do disco. Modo de auditoria que fala no passado é o mesmo
+  # "aplicado" mentiroso que o `meow_notificar` já teve de tapar.
+  if [ "$duplicatas" -gt 0 ]; then
+    if meow_seco; then
+      meow_info "$duplicatas jogo(s) aparecem DUAS vezes no lançador"
+    else
+      meow_info "$duplicatas jogo(s) apareciam DUAS vezes no lançador — agora aparecem uma"
+    fi
+  fi
 
   # Cache de ícones do gerador do Aurora, órfão desde 29/07 (17 PNGs, um deles de
   # um jogo que ela nem tem mais). Só sai quando nenhum `.desktop` o referencia.
@@ -284,7 +356,7 @@ if [ "$mudou" = "0" ]; then
 fi
 
 if meow_seco; then
-  meow_muda "$jogos jogo(s) da Steam: $escritos atalho(s) a escrever, $removidos a remover"
+  meow_muda "$jogos jogo(s) da Steam: $escritos atalho(s) a escrever, $removidos a remover, $duplicatas cartão(ões) duplicado(s) a tirar do lançador"
   exit "$MEOW_DIVERGENTE"
 fi
 
@@ -294,5 +366,6 @@ meow_tem update-desktop-database && update-desktop-database "$APPS" 2>/dev/null 
 
 [ "$escritos" -gt 0 ] && meow_ok "$escritos jogo(s) da Steam no lançador (ícone natural, como ela pediu)"
 [ "$removidos" -gt 0 ] && meow_ok "$removidos atalho(s) de jogo desinstalado removidos"
+[ "$duplicatas" -gt 0 ] && meow_ok "$duplicatas jogo(s) deixaram de aparecer duas vezes no lançador"
 meow_info "para juntá-los num grupo: lançador → Novo grupo → nome 'Jogos' → categoria Game"
 exit "$MEOW_DIVERGENTE"
