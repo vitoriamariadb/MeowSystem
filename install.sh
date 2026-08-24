@@ -879,9 +879,20 @@ etapa_som() {
 
 # O vidro fosco que continuava ao maximizar e se perdeu. Duas chaves, e o painel
 # vigia os dois diretórios por inotify — então isto vale sem reiniciar nada.
+#
+# A OPACIDADE NÃO É MAIS IMPOSTA AQUI (17/08/2026). O `opacity` é a chave que o
+# slider "Opacidade do fundo" da GUI escreve; escrevê-la nesta etapa (e no
+# `meow doctor`, todo dia) desfazia a escolha dela em silêncio. Sem valor no
+# meow.conf, esta etapa cuida só do `keep_style_on_maximize`, que a GUI não tem.
+# As três chaves de opacidade são repassadas para o caso de ela querer impor um
+# valor de novo — antes elas morriam neste shell, sem exportar.
 etapa_vidro() {
   passo "Vidro ao maximizar"
-  VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" "$MEOW_RAIZ/scripts/vidro.sh"
+  VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
+    VIDRO_OPACIDADE="${VIDRO_OPACIDADE:-}" \
+    VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-}" \
+    VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-}" \
+    "$MEOW_RAIZ/scripts/vidro.sh"
   return $?
 }
 
