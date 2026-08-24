@@ -64,8 +64,32 @@ scanner-symbolic:scanner
 smartphone-symbolic:phone
 
 # ============================================================================
-# OS ÍCONES DA BARRA — 10/08/2026, decidido por ela vendo os buracos
+# OS ÍCONES DA BARRA — VESTIDOS EM 10/08/2026, DESFEITOS EM 17/08/2026
 # ============================================================================
+#
+# ELA DESFEZ, E O MOTIVO ESTAVA ESCRITO AQUI DESDE O PRIMEIRO DIA
+#   "nos icons do tray e applet padrão do sistema, wifi, bluetooth e desligar.
+#   queria voltar eles ao normal."
+#
+#   O custo que o bloco abaixo descreve — "com metade vestida, o desenho TROCA
+#   DE LINGUAGEM no instante em que ela aperta mudo" — é exatamente o que
+#   apareceu na tela. Ela nomeou três (wi-fi, bluetooth, desligar) e escolheu
+#   levar a barra INTEIRA de volta, porque reverter só três deixaria volume,
+#   bateria e notificações num estilo e o resto noutro: a mesma mistura, com
+#   menos itens.
+#
+#   O DESFAZER FOI O QUE ESTAVA PREVISTO, sem nenhum passo novo: as 13 linhas
+#   saíram, o `icones_sistema.sh` removeu os órfãos de `22x22/status` e
+#   `scalable/status`, e o resolvedor caiu para o próximo tema da cadeia. Nenhum
+#   arquivo do Papirus foi tocado em momento nenhum — nem para vestir, nem para
+#   desfazer. Custo da reversão: uma passagem.
+#
+#   PARA REFAZER, se um dia ela quiser de novo: descomentar as 13 linhas do fim
+#   deste arquivo e rodar `meow icones reconstruir`. Elas ficaram lá, comentadas,
+#   em vez de apagadas — a folha `scripts/folha_barra.py` e o placar de 13/13
+#   continuam valendo, e reescrevê-las de memória seria pior.
+#
+# --- o registro de 10/08, preservado -----------------------------------------
 #
 # As 30 linhas acima vestem os `preferences-*-symbolic`, que são as PÁGINAS do
 # app Ajustes. A barra do COSMIC — volume, wi-fi, bateria, bluetooth, energia —
@@ -104,37 +128,41 @@ smartphone-symbolic:phone
 #   si, e os três de sinal também. A barra deixa de informar intensidade e passa
 #   a informar só "tem som" / "tem sinal".
 
+# --- DESLIGADAS EM 17/08/2026. Descomentar refaz a barra inteira. ------------
+# Um `#` na frente de cada uma; nada mais foi mudado. Elas continuam aqui para
+# que refazer seja apagar 13 caracteres, e não redescobrir 13 escolhas.
+
 # volume — 3 de 4 estados; o MUDO fica no Papirus
-audio-volume-high-symbolic:volume
-audio-volume-medium-symbolic:volume:alias
-audio-volume-low-symbolic:volume:alias
+#audio-volume-high-symbolic:volume
+#audio-volume-medium-symbolic:volume:alias
+#audio-volume-low-symbolic:volume:alias
 
 # wi-fi — 3 de 4; o OFFLINE fica no Papirus
-network-wireless-signal-excellent-symbolic:wifi
-network-wireless-signal-good-symbolic:wifi:alias
-network-wireless-signal-weak-symbolic:wifi:alias
+#network-wireless-signal-excellent-symbolic:wifi
+#network-wireless-signal-good-symbolic:wifi:alias
+#network-wireless-signal-weak-symbolic:wifi:alias
 
 # rede com fio — 1 de 2; o SEM CABO fica no Papirus
-network-wired-symbolic:network
+#network-wired-symbolic:network
 
 # bateria — 1 de 4; fraca, crítica e carregando ficam no Papirus.
 # `:alias` porque `preferences-power-and-battery-symbolic` (a PÁGINA de Energia
 # do Ajustes, lá em cima) já usa o mesmo desenho. Os dois nunca aparecem na
 # mesma tela — um é a barra, o outro é uma lista dentro de uma janela — então
 # repetir informa a mesma coisa nos dois lugares em vez de confundir.
-battery-full-symbolic:battery:alias
+#battery-full-symbolic:battery:alias
 
 # bluetooth — 1 de 2; o DESLIGADO fica no Papirus
-cosmic-applet-bluetooth-active-symbolic:bluetooth
+#cosmic-applet-bluetooth-active-symbolic:bluetooth
 
 # notificações — 1 de 3; TEM NOVA e SILENCIADA ficam no Papirus
-cosmic-applet-notification-symbolic:notifications
+#cosmic-applet-notification-symbolic:notifications
 
 # energia — 3 de 5. `arcticons/reboot` foi RECUSADO ao ser rasterizado: o
 # desenho é uma figura humana, marca de um app com esse nome, não uma seta de
 # reinício. REINICIAR e SAIR ficam no Papirus.
-system-shutdown-symbolic:power
+#system-shutdown-symbolic:power
 # `:alias` pelo mesmo motivo da bateria: `connection-secure-symbolic` (o cadeado
 # de rede segura) já usa `lock`. Cadeado é cadeado nos dois casos.
-system-lock-screen-symbolic:lock:alias
-system-suspend-symbolic:moon
+#system-lock-screen-symbolic:lock:alias
+#system-suspend-symbolic:moon

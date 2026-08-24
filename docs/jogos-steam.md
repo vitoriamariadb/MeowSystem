@@ -21,6 +21,7 @@ prefixos diferentes — duplicata garantida, não possível:
 | `~/.config/zsh/scripts/steam-gera-atalhos.sh` (Ritual da Aurora, instalado em `/usr/local/bin` pelo self-heal, linha 952) | `steam-jogo-<appid>.desktop` | só os `steam-jogo-*` |
 | `scripts/jogos_steam.sh` (MeowSystem, versão de 05/08) | `steam-<appid>.desktop` | nenhuma |
 | `scripts/jogos_steam.sh` (a partir de 10/08) | `meow-steam-<appid>.desktop` | os três prefixos, com prova de autoria |
+| o **resgate** do estrago do BleachBit (14/08 03h02, à mão — ver o CHANGELOG do Aurora, v3.58) | `steam_app_<appid>.desktop`, com o molde da Steam | nenhuma |
 
 O dono é o MeowSystem. O do Aurora ficou **desarmado por convenção**: ele é
 instalado mas nenhum timer o chama (`systemctl --user list-timers --all` não o
@@ -54,6 +55,34 @@ copiava — e que ela apagou depois.
     ls /usr/share/applications | grep -i steam     # -> steam.desktop, só
     ls ~/"Área de trabalho"/ | wc -l                # -> 0
     ls ~/.local/share/Trash/files/                  # -> vazio
+
+**Reconfirmado em 15/08/2026, e vale a pena porque quase virou fato errado.**
+Naquela noite havia 17 `steam_app_<appid>.desktop` em
+`~/.local/share/applications`, e a leitura óbvia — *"pronto, a Steam passou a
+criá-los"* — é falsa. As provas:
+
+- os 17 têm o **mesmo minuto** de mtime (`14/08 03:02`), escrita em lote, e
+  nenhum mudou desde então, mesmo com a Steam aberta e jogos abertos todo dia;
+- sete jogos instalados **antes** daquele minuto (Scarlet Deer Inn, Mr. Sleepy
+  Man, Mad King Redemption, Duskfade, Wendigo Blue, PEAK, Touhou Luna Nights)
+  **não** têm `steam_app_*`; os 17 que têm são exatamente os que tinham um
+  `steam_icon_<id>.png` grande no hicolor — o critério de quem fez o resgate,
+  não um critério da Steam;
+- o conteúdo é **byte a byte** o dos atalhos que a Steam deixou na área de
+  trabalho (`diff ~/"Área de trabalho"/"Bail or Jail.desktop"
+  ~/.local/share/applications/steam_app_1715980.desktop` → idênticos), e o nome
+  que a Steam dá aos dela é **o nome do jogo**, não `steam_app_<id>`;
+- `grep -rl steam_app_ ~/.config/zsh/scripts /usr/local/bin` acha só o
+  `steam-gera-atalhos.sh`, que escreve `steam-jogo-<id>` e **não é chamado por
+  timer nenhum**.
+
+Ou seja: foram escritos à mão no resgate do BleachBit e ficaram. O
+`jogos_steam.sh` rodou duas horas depois e escreveu os dele ao lado — **17
+jogos com dois cartões no lançador**. Ela contou **quinze**, e os dois que
+faltam explicam o resto: no Sackboy e no ORPHEUS o nosso cartão usa o nome
+curto do `apps-nomes.map`, então os dois cartões não parecem o mesmo jogo. A
+limpeza do script passou a conhecer esse terceiro dono (seção 2 do próprio
+script).
 
 **2. A Steam aqui é NATIVA (deb), não flatpak.** O `Exec` dos atalhos é
 `/usr/games/steam steam://rungameid/<appid>`.
@@ -229,10 +258,19 @@ backup.
     MEOW_DRY_RUN=1 ./scripts/jogos_steam.sh    # rc=1 enquanto houver o que fazer
     ./scripts/jogos_steam.sh                   # rc=1 (consertou)
     ./scripts/jogos_steam.sh                   # rc=0 (convergiu)
-    ls ~/.local/share/applications/meow-steam-*.desktop | wc -l   # 21
+    ls ~/.local/share/applications/meow-steam-*.desktop | wc -l   # 24 em 15/08
     desktop-file-validate ~/.local/share/applications/meow-steam-*.desktop
+    bash tests/um-cartao-por-jogo.sh           # nenhum jogo com dois cartões
 
-Desfazer, se ela não gostar de ver os 21 no lançador:
+E o que prova que não sobrou cartão repetido de dono nenhum — conta `Name=`
+iguais em TODOS os diretórios que o lançador lê, não só no nosso:
+
+    for d in ~/.local/share/applications /usr/share/applications \
+             /usr/local/share/applications; do
+      grep -h '^Name=' "$d"/*.desktop 2>/dev/null
+    done | sort | uniq -d                      # -> vazio, em 15/08
+
+Desfazer, se ela não gostar de ver os 24 no lançador:
 
     rm -f ~/.local/share/applications/meow-steam-*.desktop \
           ~/.local/share/icons/hicolor/256x256/apps/meow-steam-*.png
@@ -243,3 +281,13 @@ arquivo: a limpeza do script só apaga com **prova de autoria** (marca no
 conteúdo, ou `steam://rungameid/` para os dois prefixos legados), nunca por
 prefixo de nome sozinho. Testado com um `.desktop` escrito à mão contendo
 `rungameid` — ele sobreviveu.
+
+O terceiro dono (`steam_app_<appid>.desktop`, 15/08) tem uma prova mais estreita
+ainda, porque o arquivo **não é nosso**: só sai quando as quatro condições valem
+juntas — biblioteca montada, appid com manifesto vivo (isto é, acabamos de
+escrever o substituto), nome de arquivo exatamente `steam_app_<appid>.desktop` e
+`steam://rungameid/<appid>` no corpo, **o mesmo appid**. E sai com cópia em
+`~/.local/state/meowsystem/backups/<carimbo>-duplicatas/`, anunciada na saída.
+Um `steam_app_` de jogo **desinstalado** fica onde está: sem manifesto não temos
+substituto para pôr no lugar, e apagar o único cartão é pior que ter um cartão
+velho.
