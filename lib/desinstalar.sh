@@ -44,7 +44,8 @@ meow_desinstalar() {
       meow-doctor.timer meow-doctor.service \
       meow-logo.timer meow-logo.service \
       meow-wallpaper.timer meow-wallpaper.service \
-      meow-assets.path meow-assets.service 2>/dev/null || true
+      meow-assets.path meow-assets.service \
+      meow-flatpak.path meow-flatpak.service 2>/dev/null || true
     find "$HOME/.config/systemd/user" -maxdepth 1 -name 'meow-*' \
       \( -name '*.service' -o -name '*.timer' -o -name '*.path' \) -delete 2>/dev/null || true
     systemctl --user daemon-reload 2>/dev/null || true
@@ -77,6 +78,24 @@ meow_desinstalar() {
       meow_aviso "sem sudo para remover o hook de apt do lançador"
       meow_info "  rode: sudo rm -f $hook $wrapper"
     fi
+  fi
+
+  # O ZAPZAP SAI AQUI, E NÃO NO PASSO 4 — E NÃO PELO MOTIVO DO HOOK
+  #   O hook acima escapa do passo 4 por morar fora do `$HOME`. Este é o
+  #   contrário: o `tray_icon.py` que vestimos mora DENTRO do `$HOME`
+  #   (`~/.local/share/flatpak/app/com.rtosta.zapzap/…`) e por isso o passo 4 o
+  #   alcançaria — se ele estivesse no manifesto. Ele NÃO ESTÁ, de propósito, e o
+  #   `scripts/icones_tray_zapzap.sh` explica por quê no lugar onde a chamada
+  #   seria feita: o passo 4 APAGA o que encontra, e um `tray_icon.py` apagado é
+  #   o ZapZap que não abre mais. Arquivo de terceiro não pode sumir; só pode
+  #   VOLTAR AO DE FÁBRICA.
+  #
+  #   Deixar para trás é que não dá. O ícone da bandeja continuaria com o desenho
+  #   do Arcticons depois de o MeowSystem ter sido desinstalado, sem nada na
+  #   máquina que explicasse por quê — a mesma falta que o hook órfão do lançador
+  #   causava, e que o parágrafo acima corrige.
+  if [ -x "$MEOW_RAIZ/scripts/icones_tray_zapzap.sh" ]; then
+    "$MEOW_RAIZ/scripts/icones_tray_zapzap.sh" --desfazer || true
   fi
 
   meow_passo "2/6 Temas por aplicativo"

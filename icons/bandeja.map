@@ -248,12 +248,73 @@
 #   Para desfazer: `flatpak update com.rtosta.zapzap`, ou copiar o original
 #   guardado por cima do arquivo (e apagar o `__pycache__` ao lado dele).
 #
+# ---------------------------------------------------------------------------
+# A PREVISÃO ACIMA SE CUMPRIU EM 20/08, E AGORA HÁ SCRIPT E GATILHO — 23/08/2026
+# ---------------------------------------------------------------------------
+#
+# O parágrafo acima fica como está porque é história e continua verdadeiro sobre
+# a manobra MANUAL de 10/08. O que mudou é que ela não é mais manual.
+#
+# ELA VIU, E ESTAVA CERTA
+#   "ao atualizar o flatpak tipo zap zap, o tray, o icon que fica no applet,
+#    voltaram aos originais. ao invés de respeitar o mesmo icon do wpp e afins"
+#
+#   `flatpak history` diz a hora:  ago 20 03:30:36  deploy update  com.rtosta.zapzap
+#   E o disco confirmou que a manobra sumiu inteira:
+#     diff icons/tray-terceiros/zapzap-tray_icon.py.original <arquivo vivo>
+#       -> IDÊNTICOS
+#     stat <arquivo vivo>  ->  2 links
+#   Os `2 links` são a prova de que a árvore de deploy é NOVA: o hardlink do
+#   OSTree nunca foi quebrado nela, porque nunca ninguém escreveu ali. Não foi o
+#   arquivo que voltou — foi o diretório inteiro que é outro.
+#
+# O QUE FAZ AGORA
+#   scripts/icones_tray_zapzap.sh    reaplica, e com três diferenças da manobra
+#                                    de 10/08: é IDEMPOTENTE, é ESTRUTURAL (acha
+#                                    o bloco `_SYMBOLIC = """…"""` por regex,
+#                                    exige `{color}` e `{notify}`, compila o
+#                                    resultado antes de gravar e RECUSA quando a
+#                                    forma mudou) e guarda o de fábrica por
+#                                    COMMIT em ~/.local/state/meowsystem/zapzap/.
+#                                    Tem `--conferir`, `--aplicar` e `--desfazer`.
+#   systemd/meow-flatpak.path        o gatilho: vigia o `.changed` das duas
+#   systemd/meow-flatpak.service     instalações de flatpak — o arquivo que o
+#                                    próprio flatpak carimba a cada deploy.
+#                                    Medido: o mtime do `.changed` bate no
+#                                    SEGUNDO com o último `deploy update` do
+#                                    `flatpak history`.
+#   bin/meow                         linha `trayzapzap` no doctor (e `flatpak`,
+#                                    para o gatilho). Deixa de ser mudo.
+#
+#   Não há hook nativo de flatpak que sirva, e isso foi verificado em vez de
+#   suposto: os triggers de `/usr/share/flatpak/triggers/` rodam num bwrap
+#   somente-leitura com escrita só no `exports/`, e o arquivo que precisamos
+#   reescrever fica fora dele. A medição está no cabeçalho do `.path`.
+#
+# O DESENHO MUDOU DE GRADE, E O CONTADOR VERMELHO É O MOTIVO
+#   A manobra de 10/08 pôs o glifo direto. O script põe dentro de um
+#   `<g transform="scale(5.3333333)">` e mantém o `viewBox="0 0 256 256"`:
+#   o `_DEFAULT_NOTIFICATION` desenha o balão de não-lidas em coordenadas
+#   ABSOLUTAS daquela grade e é injetado no `{notify}` sem passar por
+#   transformação nenhuma. Trocar o `viewBox` para 48 mandaria o contador para
+#   fora da tela. Conferido renderizando com o código real do app, dentro do
+#   sandbox: `symbolic_light` e `symbolic_dark`, com qtd=0 e qtd=56, os quatro
+#   com QIcon válido de 128×128, e o `default` (o balão colorido) intacto.
+#
+# O GLIFO ENTROU NO ACERVO DE SISTEMA
+#   `icons/arcticons/whatsapp.svg` — cópia do que já estava em
+#   `icons/arcticons-apps/`. É o mesmo caso do `steam.svg`, que a
+#   `icons/PROCEDENCIA.md` já registra: um glifo servindo a dois acervos continua
+#   sendo UM glifo do pack, e cada consumidor é dono do seu diretório.
+#
 # ============================================================================
 # O PLACAR DEPOIS DE TUDO
 # ============================================================================
 #
 #   Steam        VESTIDO   arquivo PNG no home dela, substituído
-#   ZapZap       VESTIDO   constante Python dentro do flatpak, substituída
+#   ZapZap       VESTIDO   constante Python dentro do flatpak, substituída — e
+#                          desde 23/08 com script, gatilho e linha no doctor,
+#                          porque o `flatpak update` de 20/08 desfez tudo
 #   Hefesto      MANTIDO   alcançável pelo tema, mas é desenho DELA
 #   qBittorrent  NÃO       recurso Qt COMPILADO no binário (`:/icons/…`); não há
 #                          arquivo para trocar sem recompilar o app

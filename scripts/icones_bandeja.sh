@@ -6,14 +6,58 @@
 #   A conclusão antiga do projeto era que a bandeja é um beco sem saída — que o
 #   applet "desenha bitmap cru" e nenhum tema alcança. Isso vale para o ZapZap e
 #   para o qBittorrent, que mandam `IconPixmap`, e está ERRADO COMO REGRA GERAL.
-#   Um item da bandeja publica no D-Bus (`org.kde.StatusNotifierItem`) DUAS
+#   Um item da bandeja publica no D-Bus (`org.kde.StatusNotifierItem`) TRÊS
 #   coisas que decidem quem desenha:
 #
 #     IconPixmap      raster embutido na mensagem. Se vier, o tema não entra.
 #     IconThemePath   um diretório que o applet põe ANTES do tema. Se vier
-#                     preenchido, o arquivo de lá vence o nosso.
+#                     preenchido, o arquivo de lá vence o nosso. E ele pode
+#                     simplesmente NÃO EXISTIR — ver a remedição de 23/08 abaixo.
 #     IconName        o nome. Com `IconPixmap` ausente e `IconThemePath` VAZIO,
 #                     quem resolve é o tema de ícones — e aí nós alcançamos.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# REMEDIDO NO D-BUS AO VIVO EM 23/08/2026 — A AFIRMAÇÃO SOBRE O ZAPZAP RESISTIU
+# ─────────────────────────────────────────────────────────────────────────────
+#   Ela reclamou que o ícone da bandeja do ZapZap volta ao original a cada
+#   `flatpak update`, e a pergunta que veio junto foi se a premissa deste
+#   cabeçalho ainda valia — o ZapZap podia ter mudado de comportamento entre
+#   versões. Foi posta à prova contra o ZapZap 7.4.2, rodando o código de bandeja
+#   REAL do app (`TrayIcon.getIcon()`, importado de dentro do sandbox dele) e
+#   lendo as propriedades do item registrado:
+#
+#     Id             'meow_probe_tray.py'      Category  'ApplicationStatus'
+#     IconName       ''                        <- VAZIO
+#     IconThemePath  GDBus.Error:…UnknownProperty: a propriedade NEM EXISTE
+#     IconPixmap     2 quadros: 22×22 e 64×64, 109.955 bytes de raster
+#
+#   CONFIRMADA — e a única coisa que este cabeçalho dizia com imprecisão era o
+#   `IconThemePath`. Estava escrito "se vier preenchido"; no ZapZap ele não vem
+#   vazio, ele NÃO É EXPORTADO. O `QDBusTrayIcon` do Qt só publica essa
+#   propriedade quando há um tema de ícones envolvido, e aqui não há: o ícone é
+#   construído de um `QPixmap`. Para efeito prático dá no mesmo (o tema não
+#   alcança), mas a linha acima passou a dizer as duas possibilidades.
+#
+#   CONTRAPROVA COLHIDA NA MESMA SESSÃO, no item que estava vivo na barra dela:
+#     qBittorrent    IconName=''  IconThemePath=''  IconPixmap=[(22,22,…)]
+#   Os dois apps que o `icons/bandeja.map` já listava como beco sem saída
+#   continuam sendo exatamente esses dois, pelas razões que ele já dava.
+#
+#   COMO SE MEDIU SEM ABRIR O WHATSAPP DELA: `flatpak run --command=python3`
+#   importando o módulo real e pendurando um `QSystemTrayIcon`. Duas tentativas,
+#   e a primeira ensina algo — `QT_QPA_PLATFORM=offscreen` devolve
+#   `isSystemTrayAvailable() = False` e NÃO registra; com `xcb` sob Xvfb,
+#   registra. A ideia de prendê-lo num barramento privado NÃO FUNCIONA: o
+#   `flatpak run` monta um `xdg-dbus-proxy` e reescreve o
+#   `DBUS_SESSION_BUS_ADDRESS` dentro do sandbox, então o `--env=` é ignorado e o
+#   item aparece na barra dela por alguns segundos. Fica o aviso para quem
+#   repetir.
+#
+#   O QUE SE FAZ COM UM ÍCONE QUE O TEMA NÃO ALCANÇA está em
+#   `scripts/icones_tray_zapzap.sh`: troca-se o desenho na FONTE do app, que é
+#   uma string de Python dentro do flatpak. E o que repõe isso depois de cada
+#   `flatpak update` — o gatilho que faltava — é o par
+#   `systemd/meow-flatpak.path` + `systemd/meow-flatpak.service`.
 #
 # A VIA ESTÁ PROVADA, E ESTA É A PROVA (08/08/2026)
 #   Plantado um SVG marcado em `MeowSystem-Icons/22x22/status/` e em
