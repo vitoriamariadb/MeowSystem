@@ -106,6 +106,7 @@ ORIGEM="$RAIZ/icons/arcticons-apps"
 MAPA="$RAIZ/icons/apps-arcticons.map"
 ORIGEM_CONV="$RAIZ/icons/convertidos-apps"
 MAPA_CONV="$RAIZ/icons/apps-convertidos.map"
+MAPA_MARCA="$RAIZ/icons/apps-marca.map"
 MAPA_PNG="$RAIZ/icons/apps.map"
 PALETA="$RAIZ/palette/catppuccin.json"
 TEMA="${ICONES_TEMA:-${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
@@ -256,6 +257,65 @@ _ler_mapa_convertidos() {
     ACERVO["$nome"]="convertido"
     COR["$nome"]="$cor"
   done < "$MAPA_CONV"
+  return 0
+}
+
+# --- o TERCEIRO mapa: a cor puxada da MARCA, e ele nasce DESLIGADO ------------
+#
+# `ICONES_COR_MARCA="sim"` no `meow.conf` liga; qualquer outra coisa (inclusive
+# a ausência da chave) deixa desligado, e desligado é o padrão do projeto.
+#
+# POR QUE ISTO É UMA CHAVE E NÃO UM COMMIT
+#   Em 23/08/2026 ela disse: *"a cor de alguns svgs tão diferentes das logos
+#   originais. tipo a do wpp ou steam, chrome"*. O pedido é legítimo e é só de
+#   COR — o traço continua traço, a paleta continua sendo a nossa.
+#
+#   Só que ele DERRUBA uma escolha que foi dela: em 10/08/2026, entre "uma cor
+#   só", "por categoria" e "uma a uma", ela escolheu POR CATEGORIA. Cor por
+#   marca é a terceira opção com outro nome, e as duas não podem valer juntas —
+#   com marca, a categoria "rede" perde as quatro cores dela de uma vez.
+#
+#   `docs/SPRINTS.md` diz que a folha visual vem antes do código e que escolha
+#   estética não chega na tela dela sem ela ter visto. Então o código existe,
+#   está testado, e espera — é ela quem vira a chave.
+#
+# É UM OVERRIDE DE UM CAMPO SÓ
+#   Ele não traz arte nem nome novo: só troca `COR[nome]` de quem já veio de um
+#   dos dois acervos. Nome que não esteja num deles é AVISO e é ignorado — não
+#   existe "vestir pelo mapa de marca", e por isso este mapa não pode criar o
+#   defeito de dois donos que o `_conferir_gemeos` persegue.
+#
+# DESLIGAR DESLIGA DE VERDADE, e é de graça por construção: este script é dono
+# único de `48x48/apps` e o `_aplicar` reescreve todo arquivo cujo CONTEÚDO
+# divergir do desejado. Com a chave em "nao" o desejado volta a ser a cor de
+# categoria, os arquivos divergem, e a passagem seguinte os reescreve. Não há
+# estado a limpar — nada foi guardado em lugar nenhum.
+COR_MARCA_LIGADA=0
+_ler_mapa_marca() {
+  # O terceiro campo é a JUSTIFICATIVA, e ela é para quem lê o mapa, não para o
+  # script — daí o `_`, como no `_ler_mapa_convertidos`.
+  local linha nome cor
+  [ "${ICONES_COR_MARCA:-nao}" = "sim" ] || return 0
+  if [ ! -f "$MAPA_MARCA" ]; then
+    meow_aviso "ICONES_COR_MARCA=sim mas icons/apps-marca.map não existe — a cor segue por categoria"
+    return 0
+  fi
+  COR_MARCA_LIGADA=1
+  while IFS= read -r linha; do
+    case "$linha" in
+      '#!cor-por-categoria') COR_POR_CATEGORIA=1; continue ;;
+      ''|'#'*) continue ;;
+    esac
+    IFS=':' read -r nome cor _ <<<"$linha"
+    [ -n "$nome" ] && [ -n "$cor" ] || continue
+    intocavel "$nome" && continue
+    # Sem arte é sem efeito: este mapa só REPINTA o que já vem de um acervo.
+    if [ -z "${COR[$nome]:-}" ]; then
+      meow_aviso "apps-marca.map: '$nome' não está em nenhum acervo de traço — linha ignorada"
+      continue
+    fi
+    COR["$nome"]="$cor"
+  done < "$MAPA_MARCA"
   return 0
 }
 
@@ -518,8 +578,18 @@ main() {
   # detecta o nome repetido nos dois mapas. Trocar a ordem trocaria só a
   # mensagem, mas a mensagem é a metade útil de uma asserção.
   _ler_mapa_convertidos
+  # A marca entra por ÚLTIMO entre os leitores, e tem de ser assim: ela repinta
+  # o que os dois acervos já trouxeram, então precisa deles lidos. Vem ANTES do
+  # `_conferir_gemeos` para que a asserção veja a cor FINAL, e não a que seria.
+  _ler_mapa_marca
   _conferir_gemeos || return $?
   _ler_paleta || return $?
+  # `if` e não `[ ] && ...`: com `set -e`, um teste falso no início de uma lista
+  # `&&` derruba o script inteiro, calado e com código 1. É o mesmo defeito que
+  # o `return 0` do `_ler_mapa` documenta — já aconteceu neste projeto.
+  if [ "$COR_MARCA_LIGADA" = 1 ]; then
+    meow_info "cor por MARCA ligada (ICONES_COR_MARCA=sim) — a cor de categoria está sobreposta"
+  fi
   _avisar_faltantes
   case "${1:-}" in
     --conferir) _conferir ;;

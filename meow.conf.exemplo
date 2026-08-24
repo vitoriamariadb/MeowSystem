@@ -117,6 +117,46 @@ ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 #   frappe | latte | macchiato | mocha
 ICONES_FLAVOR="macchiato"
 
+# A cor do traço de cada aplicativo vem da MARCA dele, em vez da CATEGORIA?
+#
+#   nao (padrão)  a cor é por categoria — a escolha dela de 10/08/2026
+#   sim           `icons/apps-marca.map` sobrepõe a cor de quem está listado lá
+#
+# ISTO ESTÁ DESLIGADO PORQUE É ESCOLHA DELA, NÃO PORQUE NÃO FUNCIONA
+#   Em 23/08/2026 ela olhou o dock e disse: "a cor de alguns svgs tão diferentes
+#   das logos originais. tipo a do wpp ou steam, chrome, coisa que nas linhas ia
+#   facilitar nossa vida". O pedido é só de COR: o traço continua traço,
+#   `fill:none` continua, e a paleta continua sendo `palette/catppuccin.json` —
+#   nenhum hex de fora entra. Muda QUAL cor da paleta cada aplicativo recebe.
+#
+#   O que a chave carrega é uma CONTRADIÇÃO com uma decisão anterior dela. Em
+#   10/08/2026, entre "uma cor só", "por categoria" e "uma a uma", ela escolheu
+#   POR CATEGORIA — seis cores para trinta e cinco nomes. Cor por marca é a
+#   terceira opção com outro nome, e as duas não convivem: a categoria "rede"
+#   (hoje `sky` inteira) se reparte em verde, lavender, sapphire e blue, e some.
+#
+#   Por isso a folha visual existe e o código espera. Ligar sem ela ter visto é
+#   exatamente o que `docs/SPRINTS.md` proíbe.
+#
+# O QUE MUDA DE FATO, se ligar (13 aplicativos; o resto não é tocado):
+#   WhatsApp  sky -> green      Steam     green -> sapphire
+#   Discord   sky -> lavender   Telegram  sky -> sapphire
+#   qBittorrent sky -> blue     Thunderbird sky -> blue
+#   Firefox   blue -> peach     Brave     blue -> peach
+#   VLC       green -> peach    Obsidian  peach -> mauve
+#   GitHub Desktop pink -> mauve  VS Code pink -> blue
+#   Foliate   peach -> teal     (o mais fraco da lista; ver o mapa)
+#
+#   O CHROME NÃO MUDA, e é medido: o azul oficial dele (#4285F4) está a 0° de
+#   matiz do `blue` do Catppuccin Mocha — não existe cor melhor na paleta. Um
+#   Chrome de quatro cores foi tentado e é impossível sem redesenhar: os 8
+#   `<path>` da conversão são contornos traçados, não as regiões de cor da logo.
+#
+# DESLIGAR DESLIGA: o `icones_apps_arcticons.sh` é dono único de `48x48/apps` e
+# reescreve por CONTEÚDO divergente. Voltar para "nao" devolve a cor de
+# categoria na passagem seguinte, sem resíduo — não há estado guardado.
+ICONES_COR_MARCA="nao"
+
 # As PASTAS ESPECIAIS (Imagens, Documentos, Downloads, Músicas, Vídeos, Modelos e
 # Público) vêm do pack `vscode-icons` em vez das roxas do papirus-folders?
 #
