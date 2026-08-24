@@ -689,6 +689,29 @@ etapa_icones_tray_steam() {
   return $?
 }
 
+# O ícone de bandeja do ZAPZAP. Etapa própria pelo mesmo motivo da da Steam: não
+# escreve no tema de ícones, escreve na árvore de DEPLOY de um flatpak — e depende
+# do ZapZap instalado, não do `index.theme`. Numa máquina sem ele devolve 3 e some
+# do relatório.
+#
+# O TEMA NÃO ALCANÇA ESTE ÍCONE, E ISSO FOI REMEDIDO NO D-BUS EM 23/08/2026
+#   Rodando o código de bandeja REAL do app dentro do sandbox dele e lendo o
+#   `org.kde.StatusNotifierItem`: `IconName` vazio, `IconThemePath` inexistente
+#   (o `QDBusTrayIcon` do Qt nem publica a propriedade) e `IconPixmap` com dois
+#   rasters prontos, 22×22 e 64×64. Não há nome para o tema resolver. A saída é
+#   trocar o desenho na FONTE do app, que é o que o script faz.
+#
+# ELE VOLTAVA SOZINHO, E ERA ISSO QUE ELA ESTAVA VENDO
+#   Queixa de 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon que
+#   fica no applet, voltaram aos originais". O `icons/bandeja.map` previa a
+#   regressão desde 10/08 e nada agia sobre ela. Quem repõe no EVENTO é a
+#   `etapa_vigia_flatpak`, lá embaixo; esta aqui é quem põe da primeira vez.
+etapa_icones_tray_zapzap() {
+  passo "Ícone da bandeja do ZapZap"
+  "$MEOW_RAIZ/scripts/icones_tray_zapzap.sh"
+  return $?
+}
+
 # Os `Icon=` de CAMINHO ABSOLUTO. Com caminho absoluto o tema de ícones não é nem
 # consultado — era o caso do `input-remapper-gtk`, o único dos 50 `.desktop`
 # visíveis nessa situação.
@@ -1259,6 +1282,36 @@ etapa_assets() {
   return $?
 }
 
+# O GATILHO DE FLATPAK — o irmão do `99-meow-lancador` para o outro empacotador.
+#
+# O BURACO QUE ELE FECHA
+#   Um `flatpak update` troca a árvore de deploy inteira e apaga o que estava
+#   escrito lá dentro. Foi o que desfez o ícone de bandeja do ZapZap em
+#   `ago 20 03:30:36` (`flatpak history`), e o que ela viu em 23/08. O
+#   `icons/bandeja.map` previa isso desde 10/08 e não havia gatilho nenhum.
+#
+#   O `meow-doctor.timer` não fecha este buraco: ele passa às 5h, então uma
+#   atualização das 10h da manhã deixa o ícone errado por dezenove horas. A lição
+#   do commit `a35b751` é exatamente essa — gatilho de EVENTO, não de relógio.
+#
+# POR QUE UMA UNIDADE `.path`, E NÃO UM HOOK NATIVO DE FLATPAK
+#   Porque o hook nativo existe e NÃO SERVE, e isso foi verificado: os triggers
+#   de `/usr/share/flatpak/triggers/` rodam dentro de um bwrap somente-leitura
+#   (as `strings` da libflatpak mostram `--ro-bind`/`--unshare-ipc` ao lado de
+#   "running trigger"), com escrita apenas no `exports/` da instalação — e o
+#   arquivo que precisamos reescrever fica fora dele. Além disso o diretório é do
+#   pacote `flatpak` do apt (`dpkg -S` confirma). A medição inteira está no
+#   cabeçalho de `systemd/meow-flatpak.path`.
+#
+# DEPOIS DA `etapa_assets` E ANTES DO AUTO-REPARO
+#   Mesma vizinhança do outro vigia, e pelo mesmo motivo: são as duas unidades
+#   `.path` do projeto, e o auto-reparo continua sendo o último de todos.
+etapa_vigia_flatpak() {
+  passo "Vigia do flatpak (systemd --user)"
+  FLATPAK_VIGIA="${FLATPAK_VIGIA:-sim}" "$MEOW_RAIZ/scripts/vigia_flatpak.sh"
+  return $?
+}
+
 etapa_wallpaper() {
   passo "Papéis de parede"
   WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
@@ -1452,10 +1505,10 @@ main() {
                 etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_escala etapa_upstream etapa_fontes
                 etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
-                etapa_icones_tray_steam etapa_jogos
+                etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_apps
-                etapa_assets etapa_autoreparo)
+                etapa_assets etapa_vigia_flatpak etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
   for e in "${etapas[@]}"; do

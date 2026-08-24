@@ -1,0 +1,136 @@
+# meow-flatpak.path — o `flatpak update` desfaz o ícone da bandeja, e agora
+#                     alguma coisa percebe isso no MESMO EVENTO.
+#
+# ============================================================================
+# POR QUE ISTO EXISTE
+# ============================================================================
+#
+# Queixa dela, 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon
+# que fica no applet, voltaram aos originais. ao invés de respeitar o mesmo icon
+# do wpp e afins".
+#
+# O `icons/bandeja.map` já previa isso por escrito desde 10/08 — "um `flatpak
+# update com.rtosta.zapzap` devolve o arquivo de fábrica e o ícone volta a
+# destoar, SEM NADA ACUSANDO" — e nunca houve gatilho. Aconteceu em
+# `ago 20 03:30:36`, segundo o `flatpak history`, e ela viu três dias depois.
+#
+# O precedente é exato: `/etc/apt/apt.conf.d/99-meow-lancador` reaplica o
+# lançador depois de todo `apt`, e nasceu do MESMO sintoma (o Chrome duplicado
+# por quatro dias). O flatpak não tinha o equivalente. Este é ele.
+#
+# ============================================================================
+# NÃO EXISTE HOOK NATIVO DE FLATPAK QUE SIRVA — E ISSO FOI VERIFICADO
+# ============================================================================
+#
+# O flatpak TEM um mecanismo de gatilho pós-deploy, e ele não serve aqui. Os
+# fatos, medidos nesta máquina (flatpak 1.18.1, 23/08/2026):
+#
+#   ls /usr/share/flatpak/triggers/
+#     desktop-database.trigger  gtk-icon-cache.trigger  mime-database.trigger
+#
+#   strings /usr/lib/x86_64-linux-gnu/libflatpak.so.0 | grep -i trigger
+#     FLATPAK_TRIGGERSDIR · "running triggers from %s" · "running trigger %s"
+#     "Error running trigger %s: %s"
+#
+# TRÊS RAZÕES PARA NÃO USÁ-LOS, em ordem de gravidade:
+#
+#   1. ELES RODAM DENTRO DE UM SANDBOX SOMENTE-LEITURA. As mesmas `strings`
+#      mostram `--ro-bind`, `--unshare-ipc`, `--unshare-pid` ao lado da mensagem
+#      "running trigger": o flatpak monta cada trigger num bwrap com a raiz em
+#      leitura, deixando escrita apenas no diretório `exports/` da instalação.
+#      O que precisamos escrever é
+#      `~/.local/share/flatpak/app/com.rtosta.zapzap/…/files/…/tray_icon.py`,
+#      que fica FORA do `exports/`. Um trigger nativo não conseguiria.
+#
+#   2. O DIRETÓRIO É DO PACOTE DO APT. `dpkg -S /usr/share/flatpak/triggers`
+#      devolve `flatpak:`. Pôr arquivo nosso ali é escrever dentro do território
+#      de outro dono, e a `docs/FRONTEIRA.md` existe para não fazermos isso.
+#
+#   3. É GLOBAL, e este projeto é de UMA usuária. Um trigger em /usr/share vale
+#      para todo mundo na máquina.
+#
+# Então o gatilho é nosso, e o evento vem do arquivo que o próprio flatpak
+# carimba.
+#
+# ============================================================================
+# `.changed` É O EVENTO, E A CORRELAÇÃO ESTÁ MEDIDA
+# ============================================================================
+#
+# O flatpak toca `<instalação>/.changed` a cada deploy. Conferido contra o
+# `flatpak history` desta máquina, sem supor:
+#
+#   flatpak history  ->  ago 21 22:54:30  deploy update  org.telegram.desktop
+#                        ago 21 22:54:43  pull           com.brave.Browser
+#                        ago 21 22:54:44  deploy update  com.brave.Browser
+#
+#   stat ~/.local/share/flatpak/.changed
+#                    ->  mtime = 2026-08-21 22:54:44
+#
+# O mtime é o segundo EXATO do último `deploy update`. Não é um relógio que
+# passa perto: é o carimbo do evento.
+#
+# ============================================================================
+# DUAS INSTALAÇÕES, DUAS LINHAS — E POR QUE `%h` BASTA AQUI
+# ============================================================================
+#
+# `PathModified=` repetido é OU: qualquer um dos dois acorda o serviço.
+#
+#   %h/.local/share/flatpak/.changed   a instalação de USUÁRIA — é onde os 28
+#                                      flatpaks dela moram, ZapZap incluído
+#                                      (`flatpak list` diz `user` em todos)
+#   /var/lib/flatpak/.changed          a do sistema — existe nesta máquina
+#                                      (mtime de fev/2026, nunca usada), e um
+#                                      `sudo flatpak install` cairia lá
+#
+# Esta unidade vai por CÓPIA BYTE A BYTE, ao contrário do `meow-assets.path`.
+# Aquele precisa de `@ACERVO@` porque vigia um diretório do REPOSITÓRIO, em
+# /mnt/Apate, e o systemd não tem especificador para "onde está o clone". Aqui os
+# dois caminhos são fixos ou resolvem com `%h`, então não há o que substituir — e
+# o `meow_escrever` continua comparando por conteúdo, que é o que impede este
+# passo de reescrever a unidade e recarregar o systemd a cada execução.
+#
+# ============================================================================
+# SEM `ConditionPathExists=`, PELA MESMA MEDIÇÃO DO meow-assets.path
+# ============================================================================
+#
+# Medido em 05/08/2026 (systemd 255, esta máquina) e registrado no cabeçalho
+# daquele arquivo: uma `.path` apontando para caminho inexistente NÃO falha —
+# sobe como `active (waiting)` e vigia o ancestral mais próximo que existe. Já
+# uma condição de unidade é avaliada na PARTIDA e nada a reavalia depois, então
+# `/var/lib/flatpak/.changed` ausente numa máquina sem flatpak de sistema
+# deixaria a unidade PULADA para sempre — inclusive para a linha do `%h`, que
+# funcionaria perfeitamente. A condição trocaria um vigia que se cura sozinho por
+# um vigia morto e calado.
+#
+# ============================================================================
+# `PathModified` E NÃO `PathChanged`
+# ============================================================================
+#
+# `PathChanged` só dispara quando o arquivo é FECHADO após escrita; `PathModified`
+# também pega a escrita em si. O `.changed` é um arquivo de ZERO BYTES cujo
+# conteúdo nunca muda — o que muda é o mtime, via `utime()`/`touch`. `PathChanged`
+# pode perder um toque que não abre e fecha o arquivo; `PathModified` não perde.
+# O serviço é idempotente, então um disparo a mais custa duas leituras e nenhuma
+# escrita — e um disparo a menos custa o ícone dela até o próximo flatpak.
+#
+# UM `flatpak update` DE VÁRIOS APPS DISPARA VÁRIAS VEZES, E TUDO BEM
+#   O `.changed` é tocado por deploy, não por transação: a atualização de
+#   ago 21 tocou duas vezes em 14 segundos. O systemd não reenfileira enquanto o
+#   serviço roda, e o `StartLimitBurst` da unidade de serviço segura o resto.
+#
+# ============================================================================
+
+[Unit]
+Description=MeowSystem — vigia o flatpak e repõe o ícone da bandeja que o update desfez
+Documentation=file:%h/.local/state/meowsystem/flatpak.log
+
+[Path]
+PathModified=%h/.local/share/flatpak/.changed
+PathModified=/var/lib/flatpak/.changed
+Unit=meow-flatpak.service
+
+# `default.target`, e não `paths.target`: é o que as outras unidades `.path`
+# desta máquina usam e o que está comprovadamente de pé depois do boot. Mesma
+# escolha, e mesmo motivo, do `meow-assets.path`.
+[Install]
+WantedBy=default.target

@@ -424,6 +424,19 @@ chk_traysteam() {
   MEOW_DRY_RUN=1 "$RAIZ/scripts/icones_tray_steam.sh" --conferir 2>&1
 }
 
+# O ícone de bandeja do ZAPZAP, que mora dentro da árvore de deploy do flatpak.
+# ESTE É O VERIFICADOR QUE FALTAVA, e a falta tinha preço medido: o
+# `flatpak update` de `ago 20 03:30:36` devolveu o `tray_icon.py` de fábrica, o
+# ícone voltou a destoar e NADA acusou — ela descobriu olhando a barra, três dias
+# depois. O `icons/bandeja.map` já previa a regressão desde 10/08.
+#
+# Confere E conserta: não usa sudo, escreve no HOME dela. Quando o ZapZap muda o
+# formato do arquivo, o script devolve 3 e diz — nunca escreve às cegas, porque é
+# código Python e vestir errado é o app que não abre.
+chk_trayzapzap() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/icones_tray_zapzap.sh" --conferir 2>&1
+}
+
 # O `Icon=` de caminho absoluto. CONFERE, MAS NÃO CONSERTA — mesma razão exata do
 # `ocultar`: o conserto escreve em /usr/share com sudo, e o doctor nunca usa sudo.
 # E isto volta sozinho: um `apt upgrade` do input-remapper devolve o caminho
@@ -524,6 +537,14 @@ chk_assets() {
   ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" "$RAIZ/scripts/vigia_assets.sh" --conferir 2>&1
 }
 
+# O gatilho de flatpak — as unidades `meow-flatpak.path`/`.service`. Mesma leitura
+# do `assets`: o TEXTO das unidades e se o gatilho está ligado e não-falho. Vão
+# por cópia byte a byte (não têm marcador a substituir, ao contrário do
+# `meow-assets.path`), então a comparação é direta.
+chk_flatpak() {
+  FLATPAK_VIGIA="${FLATPAK_VIGIA:-sim}" "$RAIZ/scripts/vigia_flatpak.sh" --conferir 2>&1
+}
+
 chk_greeter() {
   MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1
 }
@@ -579,6 +600,9 @@ fix_sistema()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
 fix_bandeja()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_bandeja.sh" --aplicar 2>&1; }
 fix_traysteam() { "$RAIZ/scripts/icones_tray_steam.sh" --aplicar 2>&1; }
+fix_trayzapzap(){ "$RAIZ/scripts/icones_tray_zapzap.sh" --aplicar 2>&1; }
+fix_flatpak(){ FLATPAK_VIGIA="${FLATPAK_VIGIA:-sim}" \
+                    "$RAIZ/scripts/vigia_flatpak.sh" --aplicar 2>&1; }
 fix_jogos()     { "$RAIZ/scripts/jogos_steam.sh" 2>&1; }
 fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" --sem-sudo 2>&1; }
 fix_assets()    { ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" \
@@ -588,7 +612,7 @@ fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper apps assets)
+VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper apps assets flatpak)
 SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase

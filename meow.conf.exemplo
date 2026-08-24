@@ -325,5 +325,27 @@ AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
 ASSETS_VIGIA="sim"
 ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho
 
+# O ícone da BANDEJA volta sozinho depois de um `flatpak update`?
+#   Queixa dela, 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon
+#   que fica no applet, voltaram aos originais". É real e se repete: um
+#   `flatpak update` troca a árvore de deploy inteira do aplicativo, e o desenho
+#   que o MeowSystem escreveu lá dentro some junto. Aconteceu em
+#   `ago 20 03:30:36`, segundo o `flatpak history`, e ela viu três dias depois.
+#
+#   Com "sim", o par `meow-flatpak.path`/`meow-flatpak.service` vigia o
+#   `.changed` das duas instalações de flatpak (a dela e a do sistema) — o
+#   arquivo que o próprio flatpak carimba a cada deploy — e repõe SÓ o que é da
+#   bandeja, no mesmo evento. Não é o tema inteiro: um update do Calculator não
+#   é motivo para reconstruir 1.200 ícones.
+#
+#   O `AUTO_REPARO` acima não substitui isto: ele passa às 5h, então uma
+#   atualização das 10h da manhã deixaria o ícone errado por dezenove horas.
+#   É a mesma lição que criou o hook de apt do lançador — gatilho de EVENTO.
+#
+#   O desenho novo só aparece quando o APLICATIVO for fechado e aberto de novo:
+#   o item da bandeja nasce quando o app abre e publica o raster no D-Bus.
+FLATPAK_VIGIA="sim"
+FLATPAK_VIGIA_NOTIFICAR="sim"     # avisa quando repôs um ícone que o update desfez
+
 BACKUPS_MANTIDOS="10"
 LOG_NIVEL="info"                  # silencioso | info | debug

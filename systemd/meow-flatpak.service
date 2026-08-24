@@ -1,0 +1,77 @@
+# meow-flatpak.service — reaplica o que é da BANDEJA depois de todo deploy de
+#                        flatpak. Disparado pelo `meow-flatpak.path`.
+#
+# O porquê do gatilho está no cabeçalho do `meow-flatpak.path` (inclusive por que
+# o mecanismo nativo de triggers do flatpak não serve). O porquê de o trabalho ser
+# só a bandeja, e não o tema inteiro, está no `scripts/apos_flatpak.sh`. Aqui fica
+# só a mecânica — e cada linha abaixo desarma uma armadilha já paga por este
+# projeto.
+#
+# `ConditionPathExists` NO ARQUIVO DE RAIZ, E NÃO NO REPOSITÓRIO
+#   O clone mora em /mnt/Apate, um NVMe separado. Se ele não montar, a unidade é
+#   PULADA em vez de falhar — que é a degradação certa: o vigia volta a funcionar
+#   sozinho no boot seguinte, sem ninguém religar nada. Mesma escolha do
+#   `meow-assets.service`.
+#
+# `ExecStartPre=/usr/bin/sleep 15` — O NÚMERO É MAIOR QUE O DOS OUTROS VIGIAS, E
+# TEM MOTIVO MEDIDO
+#   O `meow-assets.service` espera 3 s, o bastante para um SVG acabar de ser
+#   copiado. Aqui a espera é outra coisa: o `.changed` é tocado A CADA DEPLOY, e
+#   uma transação de várias aplicações emenda deploys em sequência — na de
+#   ago 21/2026, `org.telegram.desktop` às 22:54:30 e `com.brave.Browser` às
+#   22:54:44, catorze segundos entre um e outro. Correr no primeiro toque
+#   significaria ler uma árvore de deploy que o flatpak ainda vai trocar. 15 s
+#   cobre a emenda observada e, quando não cobrir, o toque seguinte dispara de
+#   novo — o script é idempotente, então o custo de rodar duas vezes é zero.
+#
+# `flock` COMPARTILHADO COM O RESTO DO PROJETO
+#   O `meow-doctor.timer` (5h) e o `meow-assets.path` escrevem no mesmo tema. Sem
+#   a trava, um deploy de flatpak às 5h em ponto poria dois processos mexendo no
+#   `MeowSystem-Icons` ao mesmo tempo. `-w 60` espera, `-E 0` faz o tempo esgotado
+#   sair como sucesso — não conseguir a trava não é falha, é "alguém já está
+#   fazendo isto agora".
+#
+# `SuccessExitStatus=1 3` NÃO É COSMÉTICA
+#   O contrato deste projeto usa 1 para "divergia e eu consertei" e 3 para "não
+#   há o que fazer aqui". Sem esta linha o systemd marcaria `failed` justamente
+#   nas vezes em que a unidade FEZ O TRABALHO — e cinco consertos seguidos
+#   estourariam o `StartLimitBurst`, desligando o vigia exatamente na máquina em
+#   que ele é mais necessário.
+#
+# `StartLimitBurst=20` EM 5 MINUTOS
+#   Um `flatpak update` que atualiza 28 aplicações toca o `.changed` até 28
+#   vezes. O limite existe contra laço de verdade (um serviço que modifica o que
+#   vigia), não contra a atualização mensal dela — e este serviço não escreve em
+#   `.changed` nenhum, então laço não há.
+#
+# A NOTIFICAÇÃO SÓ SAI QUANDO ALGO FOI CONSERTADO (código 1)
+#   Um aviso depois de todo flatpak seria ruído que ela aprenderia a ignorar. O
+#   texto diz a única coisa que ela precisa saber e que não é óbvia: o item da
+#   bandeja nasce quando o APLICATIVO abre e publica o raster no D-Bus, então o
+#   desenho novo só aparece quando o ZapZap for fechado e aberto de novo. Sem
+#   essa frase, o sintoma seria "o a ferramenta disse que consertou e continua igual".
+#
+# NÃO REINICIAMOS NADA
+#   Nem `cosmic-panel`, nem `cosmic-session`. Derrubar o painel para encurtar a
+#   espera já deixou ela sem painel e sem dock duas vezes, numa máquina de uma
+#   tela só. A espera aqui é o app reabrir, e ela é inevitável.
+
+[Unit]
+Description=MeowSystem — repõe o ícone da bandeja depois de um deploy de flatpak
+Documentation=file:%h/.local/state/meowsystem/flatpak.log
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+StartLimitIntervalSec=300s
+StartLimitBurst=20
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${FLATPAK_VIGIA:-sim}" = "sim" ]'
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStartPre=-/usr/bin/sleep 15
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/apos_flatpak.sh" ] || exit 3; . %h/.config/meow/meow.conf; export FLAVOR ACCENT NOME_TEMA_ICONES ICONES_COR_MARCA; exec "$R/scripts/apos_flatpak.sh" --aplicar'
+SuccessExitStatus=1 3
+ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${FLATPAK_VIGIA_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "Um flatpak atualizou e desfez o icone da bandeja. Ja repus. Ele aparece quando o aplicativo for fechado e aberto de novo."'
+TimeoutStartSec=5min
+StandardOutput=append:%h/.local/state/meowsystem/flatpak.log
+StandardError=inherit
+SyslogIdentifier=meow-flatpak
