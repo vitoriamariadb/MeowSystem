@@ -100,6 +100,21 @@ meow_preflight() {
     meow_tem "$b" || { meow_pula "sem $b — a etapa que depende dele vai se pular"; avisos=$((avisos+1)); }
   done
 
+  # 6b. O CARGO, E ELE MERECE UMA LINHA SÓ PARA SI.
+  #     Até 24/08/2026 este projeto NÃO COMPILAVA NADA: um grep por
+  #     `cargo|rustc|make|gcc|meson|cmake` em install.sh, scripts/, lib/ e
+  #     bin/meow devolvia zero invocações. O módulo `midia` é o primeiro, e uma
+  #     dependência de toolchain é de outra natureza que as de cima — ela não se
+  #     instala com um `apt install` de uma linha, e quem não a tem quase sempre
+  #     não a quer. Por isso ela AVISA e não mata: sem cargo, o `midia_build.sh`
+  #     devolve 3, cai em "pulados", e a máquina segue com o applet de mídia que
+  #     o flatpak já entrega. Degradação limpa, não falha.
+  if ! meow_tem cargo; then
+    meow_pula "sem cargo — o applet de mídia não é compilado (fica o do flatpak)"
+    meow_info "  se quiser: rustup toolchain install stable, e rode o install.sh de novo"
+    avisos=$((avisos+1))
+  fi
+
   # 7. Gerenciador de pacotes. Só AVISA: `etapa_pacotes` fala apt, e fingir que
   #    fala dnf/pacman sem escrever os comandos é pior do que não falar.
   if ! meow_tem apt-get; then

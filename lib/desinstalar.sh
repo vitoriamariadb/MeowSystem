@@ -115,6 +115,17 @@ meow_desinstalar() {
     meow_pula "APPS_ATIVOS vazio no meow.conf — nenhum tema de aplicativo para desfazer"
   fi
 
+  # O APPLET DE MÍDIA SAI AQUI, E A ORDEM É METADE DO VALOR DO PASSO.
+  # O `--reverter` remove a SOMBRA primeiro (`~/.local/share/applications/…
+  # NowPlaying.desktop`) e só depois o binário. O contrário abriria a janela em
+  # que a sombra fica sem `Exec=` válido — e aí a dock não volta ao applet de
+  # fábrica, ela fica com um BURACO: o cosmic-panel casa o applet pelo basename
+  # do .desktop e CONSOME o slot no primeiro acerto, sem nunca tentar o export
+  # do flatpak. Por isso a remoção tem um dono só, e é o `midia.sh`.
+  if [ -x "$MEOW_RAIZ/scripts/midia.sh" ]; then
+    "$MEOW_RAIZ/scripts/midia.sh" --reverter || true
+  fi
+
   meow_passo "3/6 Tema do COSMIC"
   # O alvo é o PRIMEIRO backup de tema — o COSMIC de antes do MeowSystem NESTA
   # máquina. A captura `state/tema/original` NÃO serve para isto: ela foi tirada
@@ -182,8 +193,14 @@ meow_desinstalar() {
 
   meow_passo "5/6 Árvores inteiras"
   local dir
+  # `…/meowsystem/midia` entra aqui como CINTO do `midia.sh --reverter` acima.
+  # O passo 4 (manifesto) não alcança esta árvore: o binário é gravado com
+  # `install -D` e a árvore de build nem passa por `meow_escrever`. E o passo 4
+  # PULA, de propósito, arquivo cujo sha256 mudou depois da escrita — o que é
+  # certo para configuração dela e insuficiente para 1,5 GB de artefato.
   for dir in "$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
              "$HOME/.local/share/fonts/MeowSystem" \
+             "$HOME/.local/state/meowsystem/midia" \
              "$HOME/.local/share/backgrounds/meowsystem"; do
     [ -d "$dir" ] || continue
     if meow_seco; then meow_muda "removeria $dir/"; else rm -rf "$dir"; meow_ok "removido $dir/"; fi

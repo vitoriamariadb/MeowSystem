@@ -1,0 +1,17 @@
+# PINO — o que exatamente compilamos, e contra o quê.
+#
+# É lido por `scripts/midia_build.sh` com `.` (source). Três valores, nenhum
+# opcional. Trocar um deles é declarar uma versão nova: o carimbo passa a
+# divergir e a próxima compilação refaz a árvore do zero.
+#
+# COMMIT é o HEAD funcional do upstream, NÃO o commit que o flatpak instalado
+# usa (e821dd7). Os três commits de diferença são tradução tcheca e metainfo —
+# nenhum pixel — mas partir do HEAD evita nascer atrasado por nada.
+#
+# LIBCOSMIC não é usado para nada além de DOCUMENTAR contra o que compilou. Quem
+# garante a versão é o `Cargo.lock` do upstream + `cargo build --locked`: o
+# `Cargo.toml` aponta o libcosmic para o git SEM `rev`, e sem o `--locked` uma
+# compilação de amanhã pegaria outro commit sem ninguém pedir.
+URL="https://github.com/cosmic-utils/cosmic-ext-applet-now-playing.git"
+COMMIT="535e84c0970100537d131dc3f0f3ed2392748987"
+LIBCOSMIC="1f6dc991eaa5115a09be2505cc8a323e5b2b0bff"

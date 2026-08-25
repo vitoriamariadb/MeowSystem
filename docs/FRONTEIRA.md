@@ -35,6 +35,10 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `~/.config/cosmic/logos/` | ambos | **Meow** — o `gato-pop.svg` do Aurora foi aposentado |
 | `~/.local/share/icons/hicolor/index.theme` | Meow (`hicolor.sh`) | **Meow** |
 | `~/.local/share/applications/` — conteúdo do lançador | ambos | **Meow** |
+| `~/.local/share/applications/com.github.DiegoMMR.CosmicExtAppletNowPlaying.desktop` | Meow (`midia.sh`) | **Meow** — a "sombra" do applet de mídia, ver abaixo |
+| `~/.local/bin/meow-applet-now-playing` e `~/.local/state/meowsystem/midia/` | Meow (`midia_build.sh`) | **Meow** |
+| `~/.config/cosmic-ext-applet-now-playing/{panel-text-width,panel-color-style,album-art-remote}` | Meow (`midia.sh`) | **Meow** |
+| `~/.config/cosmic-ext-applet-now-playing/album-color-enabled` | ela, pelo popup do applet | **ELA** — o Meow só migrou o valor do sandbox uma vez |
 | `/usr/local/share/applications/{google-chrome,steam}.desktop` (wrappers de `Exec=`) | Aurora | **Aurora** — mudou de `~/.local/share` em 13/08/2026, ver abaixo |
 | `~/.local/share/applications/{vim,qt5ct,qt6ct,debian-*xterm}.desktop` | ambos | **Meow** — `NoDisplay` preserva o handler de MIME; o `Hidden=true` do Aurora mata |
 | `/usr/share/applications/*` (`NoDisplay`, nome curto) | Meow (com sudo) | **Meow** — o Aurora não escreve ali |
@@ -52,6 +56,74 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | binário `cosmic-comp` (patches de workspace e night light) | Aurora | **Aurora** |
 | ciclo de vida do processo `cosmic-panel` | Aurora | **Aurora** — hoje desarmado (ver abaixo) |
 | tema do qBittorrent, `~/.config/fastfetch` | Aurora | **Aurora** — o `meow` chama o script de lá |
+
+---
+
+## O applet de mídia entra por sombra, e `plugins_wings` continua da Aurora (24/08/2026)
+
+Ela pediu nome da música, controles, capa e cores do álbum na dock. A causa de faltarem
+capa e cor era **uma linha** do applet Now Playing: `src/media.rs` fazia
+`metadata.art_url().and_then(file_url_to_path)`, que descarta toda URL que não seja
+`file://` — e o Spotify publica `mpris:artUrl` como `https://i.scdn.co/image/…`, nunca um
+`file://`. As duas queixas caíam juntas porque a **cor é extraída da capa**: não eram dois
+defeitos, era um.
+
+A correção é um patch nosso (`src/applets/now-playing/`), compilado nativo e instalado
+por **sombra**: um `.desktop` de **mesmo basename** em `~/.local/share/applications`.
+O cosmic-panel acha applet pelo basename do `.desktop`, varrendo os diretórios do XDG na
+ordem padrão — e `$XDG_DATA_HOME` vem **antes** de todo `XDG_DATA_DIRS`, inclusive do
+`~/.local/share/flatpak/exports/share` de onde sai o applet de hoje. O nosso `Exec=`
+vence sem que ninguém encoste na ordem dos applets.
+
+### A abstenção, e ela é a parte que importa
+
+**`plugins_wings` e `plugins_center` continuam da Aurora, e o módulo `midia` não os toca.
+Nem uma vez.** Está escrito aqui porque a tentação é real: parece natural "registrar" o
+applet novo plantando um token na asa. Dois motivos medidos dizem que não:
+
+1. **Não é preciso.** O painel casa por basename; a sombra já vence.
+2. **É perigoso.** A asa direita da dock tem **DOIS** applets —
+   `com.github.DiegoMMR.CosmicExtAppletNowPlaying` **e**
+   `com.system76.CosmicAppletStatusArea`. Um script que assumisse "a asa é uma lista de
+   um" apagaria a Status Area dela.
+
+### O buraco que o fail-safe existe para tapar
+
+Sombra presente + binário ausente = **nenhum** applet na dock. O painel consome o slot no
+primeiro acerto de basename e **nunca chega a tentar** o export do flatpak — então o
+resultado não é "volta ao applet de fábrica", é um vazio. Acontece de graça: um `rm`
+errado, um limpador de disco, um build interrompido. Por isso o `midia.sh --aplicar`
+**remove a sombra** quando o binário some, e o `--reverter` apaga **a sombra antes do
+binário**. É um `rm` de arquivo nosso, sem sudo e sem rede — o doctor das 05:00 pode
+fazer, e o efeito é ela voltar sozinha ao flatpak que funciona.
+
+### Onde ele mora, e quem o pôs lá
+
+Em 24/08/2026, **a pedido dela e pela mão dela na decisão**, o applet saiu da asa
+direita da dock e foi para a asa direita da topbar, **imediatamente antes do
+`com.system76.CosmicAppletAudio`** — o applet de Som, que é quem já desenha os
+⏮⏸⏭ ali. O `plugins_wings` das duas barras foi editado **uma vez, à mão**, com
+backup em `~/.local/state/meowsystem/backups/painel-2026-08-24/`.
+
+Isso **não** revoga a abstenção acima: o módulo `midia` continua sem escrever
+uma linha em `plugins_{wings,center}`, nem no `install.sh`, nem no doctor, nem
+no `--reverter`. Uma coisa é a pessoa mover o próprio applet; outra é um script
+que roda às 05:00 achar que sabe a ordem certa.
+
+Consequência registrada: com o Som ao lado, os ⏮⏸⏭ do próprio Now Playing viram
+duplicata visual. Por isso `MIDIA_CONTROLES` nasce `"nao"`.
+
+### O que continua não sendo nosso
+
+O flatpak `com.github.DiegoMMR.CosmicExtAppletNowPlaying` **não é desinstalado nem
+mascarado**. Ele segue atualizando e reescrevendo um export que ninguém lê — e é dele que
+vem o ícone `Icon=` da sombra. Um `flatpak update` neste applet é um **não-evento** para
+nós: sem `mask`, sem `override`, sem unidade `.path` vigiando.
+
+E o `cosmic-panel` **não é reiniciado** para antecipar a troca. A issue #13 do upstream
+(`xdg_popup: tried to grab after being mapped`) derruba topbar e dock juntas e exige
+`killall -9` — é o painel fantasma que este projeto já perseguiu uma vez. O applet novo
+sobe no **próximo login**, e cinco minutos de antecipação não pagam esse risco.
 
 ---
 

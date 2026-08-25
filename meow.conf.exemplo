@@ -281,6 +281,17 @@ WALLPAPER_FONTES_DELA=""
 # Vírgula-separado. `meow apps` lista o que está instalado e o que falta.
 APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,qt5ct"
 
+# O Marketplace do spicetify: a página DENTRO do Spotify de onde se instalam
+# extensões, snippets e outros CustomApps. Ele não vem no binário do spicetify e
+# o instalador oficial dele é um `curl | sh` que não é idempotente — aqui quem
+# baixa, registra e repõe é o módulo `app-themes/spotify`, no mesmo ciclo do
+# doctor. Nasce ligado; "nao" só deixa de instalar (não desinstala o que já foi).
+#
+# Ele NUNCA troca o `current_theme`: o Catppuccin continua vindo daqui, do
+# FLAVOR e do ACCENT. Temas baixados pelo Marketplace exigiriam
+# `current_theme=marketplace`, e aí o doctor e o Marketplace brigariam todo dia.
+SPOTIFY_MARKETPLACE="sim"
+
 # App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
 # aplica o tema sozinho quando ele aparecer. Nunca falha por app ausente.
 
@@ -346,6 +357,103 @@ ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho
 #   o item da bandeja nasce quando o app abre e publica o raster no D-Bus.
 FLATPAK_VIGIA="sim"
 FLATPAK_VIGIA_NOTIFICAR="sim"     # avisa quando repôs um ícone que o update desfez
+
+# A capa do álbum, a cor dela e os ⏮⏸⏭ na barra da dock (applet Now Playing).
+#   A QUEIXA INTEIRA MORAVA EM UMA LINHA. O `src/media.rs` do upstream descartava
+#   todo `mpris:artUrl` que não fosse `file://`, e o Spotify publica
+#   `https://i.scdn.co/...`. Capa e cor caíam JUNTAS porque a cor dominante é
+#   EXTRAÍDA da capa: sem imagem, não há de onde tirá-la. O patch deste
+#   repositório (`src/applets/now-playing/`) desfaz esse descarte.
+#
+#   NASCE LIGADO, e a decisão é dela: "se é requisição, nosso install teria que
+#   por default trazer a cura".
+#
+#   "nao" não é só deixar de instalar: o `midia.sh` REVERTE — tira a nossa
+#   sombra e o binário, e o applet do flatpak volta no próximo login. Desligar
+#   e continuar vendo o de antes seria o pior sintoma possível, porque não há
+#   onde olhar.
+#
+#   Compilar não é do doctor (é a única porta do projeto que chama o cargo):
+#   quem atravessa esse caminho é o `install.sh`. À mão, uma vez:
+#       MIDIA_COMPILAR=1 scripts/midia_build.sh
+# sim | nao
+MIDIA="sim"
+
+# Quantos pixels o nome da música pode ocupar na barra antes de virar "…".
+#   O upstream crava 260, e 260 já corta na tela dela: "This City's Tryna Br…".
+#   Medi ~215 px de folga na asa direita da dock — o Now Playing divide a asa
+#   com a Área de status —, então 440 cabe sem empurrar ninguém.
+#
+#   Valor fora de 80..900 é RECUSADO em vez de gravado. O applet tem um clamp
+#   próprio: uma largura de 5000 voltaria ao padrão em silêncio, e a conferência
+#   passaria a acusar divergência para sempre, sem ninguém entender por quê.
+# 80..900
+MIDIA_LARGURA="440"
+
+# Como a cor dominante da capa entra na barra.
+#   traco    contorno e glifos tingidos; o fundo do painel fica intacto
+#   chapado  o comportamento do upstream: a cor entra no FUNDO do botão
+#
+#   O padrão é `traco` por duas razões que se somam. A folha visual dela, de
+#   11/08/2026: "o nosso tema é o traço, não o chapado". E o `scripts/vidro.sh`
+#   deste projeto escreve a opacidade do painel — um fundo opaco no botão abriria
+#   um retângulo sólido no meio de uma dock translúcida.
+#
+#   AVISO DE GOSTO, NÃO DE DEFEITO: a cor do álbum vai DESTOAR do Catppuccin, e
+#   isso é medido. Os 14 acentos do Mocha vivem em luminância 0,69–0,86; a cor do
+#   álbum, depois de normalizada, trava em 0,38–0,62. Zero sobreposição: nenhuma
+#   capa vai calhar de cair na paleta dela. É a cor do disco, não a do tema.
+#
+#   Quem liga e desliga a cor por completo é o popup do próprio applet
+#   (`album-color-enabled`), que é escolha dela e o MeowSystem não enforça.
+# traco | chapado
+MIDIA_COR_ALBUM="traco"
+
+# Baixar a capa quando o player publica `mpris:artUrl` como http(s)?
+#   O Spotify SÓ publica https. Um player local que publica `file://` (o VLC, um
+#   arquivo no disco) continua com capa mesmo em "nao".
+#
+#   Esta chave existe para desligar o download SEM recompilar: o applet a lê do
+#   disco, não é um `cfg` de build. Ele a lê UMA vez, na subida — o laço roda a
+#   cada 500 ms e reler ali seriam 120 leituras por minuto —, então trocar aqui
+#   vale no próximo login. O que já foi baixado fica em cache
+#   (`~/.cache/cosmic-ext-applet-now-playing`), um JPEG por álbum tocado.
+# sim | nao
+MIDIA_CAPA="sim"
+#
+# Tamanho da letra na barra. "auto" = a MESMA escala tipográfica que o painel usa
+# no relógio (body/title4/title3, conforme a altura da barra) — é o certo em
+# quase todo caso. O upstream do applet não fazia isso: ele passava o tamanho do
+# ÍCONE como tamanho da FONTE, e numa dock de ícone grande a letra saía gigante
+# ao lado de tudo. Foi a primeira coisa que ela reparou, em 24/08/2026.
+# Um número (6 a 48) crava em pixels e ignora o painel.
+MIDIA_FONTE="auto"
+#
+# A música e a banda em cores diferentes, para separar as duas de relance.
+# Vale qualquer nome da paleta (palette/catppuccin.json): mauve, green, blue,
+# peach, teal, pink, sky, yellow, red, lavender, text, subtext0…  "auto" deixa
+# o texto na cor padrão do painel — que é o que o traço do álbum tinge.
+#
+# Quem traduz nome para hex é o `scripts/midia.sh`, contra o FLAVOR desta conf.
+# O applet só lê `#rrggbb`, e é de propósito: a paleta é do MeowSystem, e uma
+# cópia dela dentro do Rust seria a segunda verdade que discorda no dia em que
+# ela trocar de flavor.
+#
+# Escolha dela em 24/08/2026: roxo na música, verde na banda.
+MIDIA_COR_TITULO="mauve"
+MIDIA_COR_ARTISTA="green"
+#
+# Desenhar ⏮⏸⏭ NA BARRA, ao lado do nome.
+#
+# Nasce DESLIGADO, e é medição: o applet de Som do COSMIC já desenha os dele no
+# painel sempre que há um player tocando. Com o Now Playing colado nele — que é
+# onde ela o pôs em 24/08/2026 — os dois pares ficam lado a lado e leem como
+# defeito, não como recurso. Desligado, sobra `[capa] música · banda`, que
+# encosta nos controles do vizinho e forma um bloco só.
+#
+# Ligue se um dia o applet ficar sozinho (na dock, longe do Som): aí ele precisa
+# dos próprios botões. O popup dele tem os três de qualquer jeito, sempre.
+MIDIA_CONTROLES="nao"
 
 BACKUPS_MANTIDOS="10"
 LOG_NIVEL="info"                  # silencioso | info | debug
