@@ -829,6 +829,17 @@ chk_relogio() {
   RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" "$RAIZ/scripts/relogio.sh" conferir 2>&1
 }
 
+# O lado a lado. Mesmo contrato do relógio — vazio = não toca —, e pela mesma
+# razão, agravada: aqui a chave nem precisa da GUI para mudar sozinha, basta um
+# `Super+Y` encostado. E há um detalhe que só este verificador enxerga: com
+# escopo `PerWorkspace` o atalho NÃO escreve nada em disco (só memória, ver
+# `input/actions.rs:1008-1013`), então uma divergência que aparece aqui é sempre
+# de escrita — GUI, Tweaks ou mão — e nunca do atalho.
+chk_janelas() {
+  JANELAS_TILING="${JANELAS_TILING:-}" JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}" \
+    "$RAIZ/scripts/janelas.sh" conferir 2>&1
+}
+
 # O autostart bloqueado. Devolve 3 (e não 1) quando não há systemd de usuário ao
 # alcance, então o doctor fica quieto em vez de gritar todo dia numa máquina
 # onde o assunto não se aplica.
@@ -920,13 +931,15 @@ fix_fastfetch() { FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}" \
                     "$RAIZ/scripts/fastfetch_logo.sh" aplicar 2>&1; }
 fix_relogio()   { RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" \
                     "$RAIZ/scripts/relogio.sh" aplicar 2>&1; }
+fix_janelas()   { JANELAS_TILING="${JANELAS_TILING:-}" JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}" \
+                  "$RAIZ/scripts/janelas.sh" aplicar 2>&1; }
 fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
                     "$RAIZ/scripts/autostart.sh" aplicar 2>&1; }
 
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma relogio greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
+VERIFICAVEIS=(conf gerar tema modo vidro forma janelas relogio greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
 SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin cursor "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase

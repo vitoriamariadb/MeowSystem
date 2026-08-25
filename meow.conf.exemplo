@@ -285,6 +285,33 @@ FORMA_ESPACO_DOCK="8"
 FORMA_RECHEIO_PAINEL="5"
 FORMA_RECHEIO_DOCK="6"
 
+# --- AS JANELAS LADO A LADO (o "fibonacci") ---------------------------------
+# Em 25/08/2026 ela pediu o layout dwindle do Hyprland — cada janela nova parte
+# ao meio o espaço da anterior, formando a espiral. O cosmic-comp JÁ FAZ ISSO,
+# sem patch: é BSP binário, divide 50/50 (`tiling/mod.rs:2898` e :177-190) e
+# escolhe a orientação pelo lado mais longo da janela focada (:585-591). Isso é
+# `dwindle` + `force_split = 2`, e `force_split` não existe aqui nem faz falta.
+#
+# VAZIO = NÃO TOCA, porque isto tem atalho de teclado: `Super+Y` alterna o lado
+# a lado, `Super+O` vira a divisão de um grupo, `Super+G` solta uma janela. Se
+# ela mudar pelo atalho e a chave estiver preenchida, o doctor devolve o valor
+# daqui às 5h — o `conferir` avisa antes de isso virar mistério.
+#
+# O ESCOPO NÃO É DETALHE, É A DIFERENÇA ENTRE FUNCIONAR E NÃO FUNCIONAR:
+#   global     liga em todo workspace, inclusive nos que já existem. Medido:
+#              186.699 pixels mudaram na tela, na hora, sem reiniciar nada.
+#   workspace  cada workspace guarda o seu estado, e a chave só vale para
+#              workspace NOVO. Ligar com este escopo muda ZERO pixel na tela —
+#              `apply_tile_change` (shell/mod.rs:1485) só percorre os workspaces
+#              existentes dentro de `if matches!(.., TileBehavior::Global)`.
+#              Não é bug e não dá erro: é o que a palavra "PerWorkspace" quer
+#              dizer. Foi a armadilha que fez "Super+Y não faz nada" em 25/08.
+#
+# E o motivo mais simples de "apertei e nada aconteceu" continua valendo para os
+# dois escopos: COM UMA JANELA SÓ na tela, lado a lado é idêntico a maximizado.
+JANELAS_TILING="sim"              # sim | nao | vazio (vazio = não toca)
+JANELAS_TILING_ESCOPO="global"    # global | workspace
+
 WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
 WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
 WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
