@@ -1089,6 +1089,20 @@ etapa_forma() {
   return $?
 }
 
+# O LADO A LADO, logo depois da forma das barras porque é o mesmo assunto um
+# nível acima: a `forma.sh` decide o formato das barras, esta decide como as
+# JANELAS se arrumam no espaço que sobra.
+#
+# Não há `export` de lista aqui, e isso é de propósito — ver a armadilha nº 3
+# comentada no `etapa_forma` logo acima: o `etapa_conf` faz `set -a` em volta do
+# `.`, então toda chave do meow.conf já chega exportada e chave nova nasce
+# valendo. `JANELAS_TILING` e `JANELAS_TILING_ESCOPO` entram de graça.
+etapa_janelas() {
+  passo "Janelas lado a lado (o layout dwindle)"
+  "$MEOW_RAIZ/scripts/janelas.sh" aplicar
+  return $?
+}
+
 # O `index.theme` do hicolor DELA, que escondia os próprios ícones — entre eles
 # as logos de dois jogos da Steam. Vem antes do `completar_icones` de propósito:
 # é a base da cadeia, e completar ícone com a base quebrada é remendar por cima.
@@ -1814,7 +1828,7 @@ main() {
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
-                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_relogio etapa_escala etapa_upstream etapa_fontes
+                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_janelas etapa_relogio etapa_escala etapa_upstream etapa_fontes
                 etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos
