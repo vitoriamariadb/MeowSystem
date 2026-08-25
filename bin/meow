@@ -312,6 +312,8 @@ chk_wallpaper() {
     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
     WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
     WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
+    WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
+    WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
     "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1
 }
 
@@ -587,6 +589,64 @@ chk_greeter() {
   MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1
 }
 
+# O cursor tem DUAS alavancas (gsettings para as janelas GTK, o
+# ~/.icons/default/index.theme para o compositor), e o `conferir` do script olha
+# as duas — meia divergência já acusa, que é o certo: metade da tela com cursor
+# velho é o defeito, não o meio-termo.
+chk_cursor() {
+  MEOW_DRY_RUN=1 CURSOR="${CURSOR:-}" CURSOR_VERSAO="${CURSOR_VERSAO:-v2.0.0}" \
+    "$RAIZ/scripts/cursor.sh" conferir 2>&1
+}
+
+# O PROMPT DO ZSH, E A METADE QUE NÃO É NOSSA.
+#   Devolve 4 quando o `~/.config/starship.toml` está conforme e o `env.zsh`
+#   ainda não foi patcheado. O 4 é o que impede o ping-pong: sem ele o doctor
+#   acusaria divergência todo dia por uma linha que a TRAVA 1 nos proíbe de
+#   escrever, e o `--consertar` rodaria um conserto incapaz de consertar.
+#   O `fix_prompt` escreve um arquivo só, e ele é nosso.
+chk_prompt() {
+  PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \
+    "$RAIZ/scripts/prompt.sh" conferir 2>&1
+}
+
+# O terminal. Usa `conferir`, que compara pelo MESMO critério do escritor e não
+# byte a byte: o RON que gravamos não tem o `\n` final que o cosmic-term põe, e
+# um `cmp` acusaria divergência eterna num arquivo perfeito.
+chk_terminal() {
+  FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
+    TERMINAL_ESQUEMA="${TERMINAL_ESQUEMA:-sim}" \
+    TERMINAL_CURSOR="${TERMINAL_CURSOR:-accent}" \
+    "$RAIZ/scripts/terminal.sh" conferir 2>&1
+}
+
+# O logo ANSI do fastfetch. Pode devolver 4, e isso é o DESENHO DA FRONTEIRA,
+# não falha: o `.ansi` é nosso, a chave `logo.source` é da Aurora. O runner já
+# trata 4 como "é escolha sua" — sem isso o timer das 5h penduraria "o
+# auto-reparo corrigiu" na tela dela toda madrugada, sem ter corrigido nada.
+chk_fastfetch() {
+  FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}" \
+    FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}" \
+    FASTFETCH_LOGO_COLUNAS="${FASTFETCH_LOGO_COLUNAS:-40}" \
+    "$RAIZ/scripts/fastfetch_logo.sh" conferir 2>&1
+}
+
+# O relógio entra no doctor pela mesma razão do `forma`: config do COSMIC é
+# reescrita pela GUI, e sem esta linha uma volta ao padrão de fábrica passaria
+# despercebida. A diferença é que aqui a chave TEM botão na GUI — por isso ela
+# nasce no conf com o contrato "vazio = não toca". Com a chave vazia este
+# verificador devolve 0 sem olhar nada, que é o certo: quando ela não pediu,
+# não há divergência a apontar.
+chk_relogio() {
+  RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" "$RAIZ/scripts/relogio.sh" conferir 2>&1
+}
+
+# O autostart bloqueado. Devolve 3 (e não 1) quando não há systemd de usuário ao
+# alcance, então o doctor fica quieto em vez de gritar todo dia numa máquina
+# onde o assunto não se aplica.
+chk_autostart() {
+  AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" "$RAIZ/scripts/autostart.sh" conferir 2>&1
+}
+
 # --- 5. os consertos --------------------------------------------------------
 # NENHUM deles força `MEOW_DRY_RUN=0`. Forçar seria transformar
 # `MEOW_DRY_RUN=1 meow doctor --consertar` — o jeito de auditar antes de deixar
@@ -614,6 +674,8 @@ fix_wallpaper() { WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WA
                     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
                     WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
                     WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
+                    WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
+                    WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
                     "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
 fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
   SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" \
@@ -655,12 +717,28 @@ fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" --sem-sudo 2>&1; }
 fix_assets()    { ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" \
                     "$RAIZ/scripts/vigia_assets.sh" --aplicar 2>&1; }
 fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1; }
+fix_cursor()    { CURSOR="${CURSOR:-}" CURSOR_VERSAO="${CURSOR_VERSAO:-v2.0.0}" \
+                    "$RAIZ/scripts/cursor.sh" aplicar 2>&1; }
+fix_prompt()    { PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \
+                    "$RAIZ/scripts/prompt.sh" aplicar 2>&1; }
+fix_terminal()  { FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
+                    TERMINAL_ESQUEMA="${TERMINAL_ESQUEMA:-sim}" \
+                    TERMINAL_CURSOR="${TERMINAL_CURSOR:-accent}" \
+                    "$RAIZ/scripts/terminal.sh" aplicar 2>&1; }
+fix_fastfetch() { FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}" \
+                    FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}" \
+                    FASTFETCH_LOGO_COLUNAS="${FASTFETCH_LOGO_COLUNAS:-40}" \
+                    "$RAIZ/scripts/fastfetch_logo.sh" aplicar 2>&1; }
+fix_relogio()   { RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" \
+                    "$RAIZ/scripts/relogio.sh" aplicar 2>&1; }
+fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
+                    "$RAIZ/scripts/autostart.sh" aplicar 2>&1; }
 
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper apps midiabin midia assets flatpak)
-SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin "
+VERIFICAVEIS=(conf gerar tema modo vidro forma relogio greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper apps midiabin midia assets flatpak autostart)
+SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin cursor "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
 # fixa "é o install.sh que cria" servia; com o `ocultar` ela passaria a mentir —
@@ -673,6 +751,7 @@ declare -A SEM_CONSERTO_RAZAO=(
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
   [midiabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: MIDIA_COMPILAR=1 ./scripts/midia_build.sh"
+  [cursor]="o conserto BAIXA da rede, e o doctor não baixa — rode: ./scripts/cursor.sh aplicar"
 )
 
 # --- 6. o runner das conferências -------------------------------------------
@@ -830,6 +909,8 @@ cmd_status() {
              WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
              WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
              WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
+             WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
+             WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
              "$RAIZ/scripts/wallpaper.sh" estado 2>/dev/null)
 
   meow_passo "Divergências"
@@ -1188,6 +1269,8 @@ cmd_wallpaper() {
         WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
         WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
         WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
+        WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
+        WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
         "$RAIZ/scripts/wallpaper.sh" "$acao" ${1:+"$1"}
       return $? ;;
     proximo|fixar|favoritar|recolorir|intervalo|ordem)

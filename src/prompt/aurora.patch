@@ -1,0 +1,96 @@
+aurora.patch — as três linhas que o MeowSystem NÃO pode escrever
+================================================================
+
+O que ele faz, em `~/.config/zsh/env.zsh`:
+
+  1. `ZSH_THEME="agnoster"` -> `ZSH_THEME=""`   (linha 9)
+  2. a seção 5 passa a inicializar o `starship`, com guarda e fallback
+  3. `FZF_DEFAULT_OPTS` ganha a paleta Catppuccin Mocha que já existe em cinco
+     lugares do repositório dela e não alcançava o Ctrl+R
+
+Como aplicar (é ELA quem roda, e é decisão consciente — leia o LEIAME ao lado):
+
+    cd ~/.config/zsh
+    patch -p1 --dry-run < /mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/aurora.patch
+    patch -p1           < /mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/aurora.patch
+
+Como desfazer, byte a byte (conferido: o arquivo volta idêntico ao original):
+
+    cd ~/.config/zsh
+    patch -R -p1 < /mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/aurora.patch
+
+AVISO QUE NÃO PODE SER PULADO
+  `~/.config/zsh` é o repositório privado dela, com auto-commit a cada 10
+  minutos. Aplicar este patch vira um commit lá dentro em até 10 min, sozinho,
+  sem ninguém apertar nada. Isso é o esperado — mas tem de ser sabido ANTES.
+
+Gerado contra o `env.zsh` de 12/08/2026 04:22 (181 linhas). Se o arquivo tiver
+mudado desde então, o `--dry-run` acima acusa antes de estragar qualquer coisa.
+
+--- a/env.zsh	2026-08-25 02:18:11.958351226 -0300
++++ b/env.zsh	2026-08-25 02:18:11.965013394 -0300
+@@ -6,7 +6,13 @@
+ export BORDO_DIR="${CONTROLE_BORDO_DIR:-$HOME/Controle de Bordo}"
+
+ # --- 1. TEMA E OH MY ZSH ---
+-ZSH_THEME="agnoster"
++# ZSH_THEME vazio de propósito: quem desenha o prompt agora é o starship, na
++# seção 5. Com a string vazia o oh-my-zsh simplesmente não sourceia tema nenhum.
++#
++# E o `agnoster` que estava aqui NÃO ERA o prompt em uso. Ele era carregado pelo
++# OMZ na linha 26 e jogado fora na seção 5, pelo `export PS1` que vinha depois —
++# um tema de 2010 lido a cada abertura de shell para não aparecer na tela.
++ZSH_THEME=""
+ export ZSH_COMPDUMP="${ZDOTDIR:-$HOME/.config/zsh}/.zcompdump"
+ export PATH="$HOME/.spicetify:$HOME/.cargo/bin:$HOME/.local/bin:/snap/bin:$PATH"
+ # Dedup do PATH: shells aninhados re-somam a linha acima ao ambiente que já a tinha
+@@ -127,17 +133,45 @@
+     fi
+ fi
+
+-# --- 5. PROMPT COM CORES DE FUNDO ---
+-# Prompt: usuario@hostname com fundo colorido
++# --- 5. PROMPT (starship) ---
++# O prompt é desenhado pelo starship, com o preset OFICIAL catppuccin-powerline
++# no flavor mocha e accent mauve. A configuração é do MeowSystem e mora em
++# ~/.config/starship.toml — fora deste repositório de propósito, porque
++# ~/.config/zsh é território do Ritual da Aurora. Quem instala e confere aquele
++# arquivo é `scripts/prompt.sh` lá; aqui só se liga a chave.
++#
++# O `colors` continua: é ele que define $fg/$bg, e o fallback abaixo os usa.
+ autoload -U colors && colors
+
+-# Fundo azul para usuario@hostname, fundo escuro para diretorio
+-export PS1='%{$bg[blue]%}%{$fg[white]%} %n@%m %{$reset_color%}%{$bg[black]%}%{$fg[cyan]%} %~ %{$reset_color%} '
++# O GUARDA NÃO É ZELO. Sem ele, um shell aberto numa máquina onde o starship
++# ainda não foi instalado (ou saiu do PATH, ou o cargo foi limpo) imprimiria um
++# erro a cada abertura E ficaria sem prompt nenhum, porque a linha do PS1 antigo
++# não existe mais. O `else` devolve exatamente o prompt de antes desta mudança.
++if command -v starship >/dev/null 2>&1; then
++    eval "$(starship init zsh)"
++else
++    # Fundo azul para usuario@hostname, fundo escuro para diretorio
++    export PS1='%{$bg[blue]%}%{$fg[white]%} %n@%m %{$reset_color%}%{$bg[black]%}%{$fg[cyan]%} %~ %{$reset_color%} '
++fi
+
+ # --- 6. SEGREDOS E AJUSTES FINAIS ---
+ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+ export FZF_OMZ_DEFAULT_COMPLETION=1
+
++# A paleta do fzf, para TODO fzf — e não só para os que já a tinham.
++#
++# Este hex é o mesmo de `functions/mec.zsh:12` (__MEC_FZF_COLOR), copiado sem
++# uma vírgula de diferença. Ele já existe em CINCO lugares deste repositório
++# (env.zsh:42 no fzf-tab, mec.zsh:12, mec.zsh:147, limpeza.zsh:32 e
++# projeto.zsh:201) e em nenhum deles alcança o fzf do dia a dia: o Ctrl+R, o
++# Ctrl+T, o Alt+C e todo `fzf` chamado na unha rodavam sem cor nenhuma.
++#
++# ISTO NÃO SUBSTITUI OS CINCO. O fzf lê o FZF_DEFAULT_OPTS primeiro e a linha de
++# comando depois, e a última opção repetida vence — então tudo que já passa o
++# próprio `--color=` continua exatamente como estava. O que muda é só o que não
++# passava nada.
++export FZF_DEFAULT_OPTS="--color=bg+:#45475A,fg+:#CDD6F4,hl:#CBA6F7,hl+:#F5C2E7,pointer:#A6E3A1,marker:#A6E3A1,prompt:#CBA6F7,header:#6C7086,border:#6C7086"
++
+ if [ -f "$HOME/.env" ]; then
+     source "$HOME/.env"
+ fi
