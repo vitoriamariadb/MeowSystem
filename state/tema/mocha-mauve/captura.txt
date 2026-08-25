@@ -1,4 +1,4 @@
 captura: mocha-mauve
-quando: 2026-08-11T11:42:31-03:00
+quando: 2026-08-25T13:29:46-03:00
 origem: /home/vitoriamaria/.config/cosmic
 arquivos: 187
