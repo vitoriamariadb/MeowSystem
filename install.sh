@@ -1052,7 +1052,78 @@ etapa_pastas() {
 etapa_apps() {
   passo "Aplicativos"
   APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+    SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" \
     "$MEOW_RAIZ/scripts/aplicar_apps.sh" aplicar
+  return $?
+}
+
+# ---------------------------------------------------------------------------
+# O APPLET DE MÍDIA — A PRIMEIRA VEZ QUE ESTE PROJETO COMPILA ALGUMA COISA
+#
+#   Isso merece ser dito em voz alta, e não enfiado no meio de uma etapa. Até
+#   hoje, 24/08/2026, um grep por `cargo|rustc|make|gcc|meson|cmake` em
+#   install.sh, scripts/, lib/ e bin/meow devolvia ZERO invocações — o único
+#   acerto no repo inteiro era a palavra `make` dentro de um comentário do
+#   `escala.sh`, falando de fabricante de monitor. Este projeto copiava,
+#   escrevia e ligava unidade; daqui para frente ele também CONSTRÓI. Tudo o que
+#   vem abaixo existe para que essa novidade não vaze para o resto.
+#
+# POR QUE SÃO DUAS ETAPAS PARA UM APPLET SÓ
+#   Porque compilar é a única coisa que o `meow doctor` das 05:00 não pode
+#   fazer, e essa fronteira precisa ser um NOME, não um `if` no meio de um
+#   script. `midia_build` constrói o binário; `midia` põe a sombra `.desktop` e
+#   as chaves — e a sombra é reparável sem cargo, sem rede e sem espera. Num
+#   arquivo só, o doctor teria de atravessar o caminho do cargo para chegar às
+#   partes que ele PODE consertar, e um nome só não pode ser "consertável pela
+#   metade": o laço de conserto dá `continue` pelo NOME antes de olhar o código
+#   de saída.
+#
+# A ORDEM É OBRIGATÓRIA: O BINÁRIO ANTES DA SOMBRA
+#   O `.desktop` que o `midia.sh` escreve tem `Exec=` no caminho absoluto do
+#   binário, e o cosmic-panel casa o applet pelo BASENAME e CONSOME o slot no
+#   primeiro acerto. Sombra presente com binário ausente não devolve o applet do
+#   flatpak: deixa um BURACO na dock. Invertida, esta dupla fabricaria esse
+#   buraco uma vez por instalação nova, e só a segunda passagem o fecharia.
+#
+# `MIDIA_COMPILAR=1` VAI NA LINHA DO COMANDO, E ISSO NÃO É ESTILO
+#   O `meow.conf` é sourceado no shell do install.sh, e todo script de
+#   `scripts/` roda como PROCESSO FILHO: variável de shell não atravessa. Este
+#   esquecimento já foi cometido duas vezes neste repo — a última custou o
+#   `FLAVOR`/`ACCENT` de todo módulo de app, em silêncio, e está medida no
+#   cabeçalho do `etapa_apps`, logo acima. Aqui ele seria mudo de um jeito novo:
+#   sem a chave, o `midia_build.sh` não falha, ele recusa compilar e devolve 1 —
+#   e 1 é "divergia e foi consertado". O resumo diria `mexeu: midia_build` em
+#   TODA execução, para sempre, sem um byte ter sido escrito. É exatamente a
+#   mentira de relatório que o bloco do `concluir()` existe para não deixar
+#   acontecer.
+#
+# 91s A FRIO, 0s DEPOIS — E É POR ISSO QUE ISTO CABE NUMA ETAPA
+#   Medido hoje. A segunda passagem não invoca o cargo uma única vez: o carimbo
+#   (sha do patch, commit do PINO, sha do binário instalado, versão do rustc)
+#   bate e o script devolve 0 na hora. Sem esse carimbo, até um rebuild que não
+#   muda nada custaria ~20s — todo dia, dentro do doctor, que é o tipo de gasto
+#   que ninguém vê e ninguém remove depois.
+#
+# SEM `cargo`, A DEGRADAÇÃO É LIMPA
+#   A etapa devolve 3, cai em "pulados" e mais nada acontece: sem binário a
+#   sombra não é escrita, e a máquina continua com o applet do flatpak que
+#   sempre funcionou. Não é uma falha a ser consertada — é a máquina de quem não
+#   tem rustup, e ela fica igual ao que era antes desta etapa existir.
+etapa_midia_build() {
+  passo "Applet de mídia (compilação)"
+  MIDIA_COMPILAR=1 MIDIA="${MIDIA:-}" \
+    "$MEOW_RAIZ/scripts/midia_build.sh"
+  return $?
+}
+
+etapa_midia() {
+  passo "Applet de mídia (sombra e chaves)"
+  MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
+    MIDIA_COR_ALBUM="${MIDIA_COR_ALBUM:-}" MIDIA_CAPA="${MIDIA_CAPA:-}" \
+    MIDIA_FONTE="${MIDIA_FONTE:-}" MIDIA_COR_TITULO="${MIDIA_COR_TITULO:-}" \
+    MIDIA_COR_ARTISTA="${MIDIA_COR_ARTISTA:-}" \
+    MIDIA_CONTROLES="${MIDIA_CONTROLES:-}" FLAVOR="${FLAVOR:-}" \
+    "$MEOW_RAIZ/scripts/midia.sh"
   return $?
 }
 
@@ -1520,7 +1591,8 @@ main() {
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_apps
-                etapa_assets etapa_vigia_flatpak etapa_autoreparo)
+                etapa_assets etapa_vigia_flatpak
+                etapa_midia_build etapa_midia etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
   for e in "${etapas[@]}"; do

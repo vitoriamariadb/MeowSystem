@@ -316,7 +316,45 @@ chk_wallpaper() {
 }
 
 chk_apps() {
-  APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir 2>&1
+  APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+    SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir 2>&1
+}
+
+# O APPLET DE MÍDIA ENTRA COM DOIS NOMES, E ISSO NÃO É ARRUMAÇÃO — É O LAÇO
+#   `midiabin` é o binário compilado (scripts/midia_build.sh); `midia` é a sombra
+#   `.desktop` e as chaves (scripts/midia.sh). São dois porque o laço de conserto
+#   decide pelo NOME, e decide ANTES de olhar o código de saída:
+#   `case "$SEM_CONSERTO" in *" $nome "*)` dá `continue` na linha seguinte.
+#
+#   Compilar não é do doctor — o caminho do `cargo` é inalcançável sem
+#   `MIDIA_COMPILAR=1`, e quem exporta essa chave é o `install.sh` — então o
+#   nome do build TEM de estar em `SEM_CONSERTO`. Com um nome só para as duas
+#   metades, esse `continue` mataria junto o conserto das partes que o doctor
+#   SABE fazer, e que são `rm`/escrita no home dela, sem sudo e sem rede: a
+#   sombra, as chaves, e o fail-safe da sombra órfã — o estado em que a dock
+#   fica SEM applet nenhum, porque o painel casa pelo basename e consome o slot
+#   antes de chegar ao export do flatpak. Separados, `midia` conserta e
+#   `midiabin` acusa com o comando na tela.
+#
+#   Também NÃO é caso de rc=4: o 4 é escolha dela (o tema mexido na GUI, a
+#   opacidade do vidro) e imprime "é escolha sua, não divergência". Precisar
+#   recompilar não é gosto dela, e essa frase mandaria procurar no lugar errado.
+#
+# Nenhum padrão é repetido aqui: as chaves vazias caem no `${...:-}` do próprio
+# script, que é o único lugar onde o padrão de mídia está escrito.
+chk_midia() {
+  MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
+    MIDIA_COR_ALBUM="${MIDIA_COR_ALBUM:-}" MIDIA_CAPA="${MIDIA_CAPA:-}" \
+    MIDIA_FONTE="${MIDIA_FONTE:-}" MIDIA_COR_TITULO="${MIDIA_COR_TITULO:-}" \
+    MIDIA_COR_ARTISTA="${MIDIA_COR_ARTISTA:-}" \
+    MIDIA_CONTROLES="${MIDIA_CONTROLES:-}" FLAVOR="${FLAVOR:-}" \
+    "$RAIZ/scripts/midia.sh" --conferir 2>&1
+}
+
+# Só confere — não existe `fix_midiabin`, e a ausência é a metade que faz o
+# comentário acima valer. Ver `SEM_CONSERTO`.
+chk_midiabin() {
+  MIDIA="${MIDIA:-}" "$RAIZ/scripts/midia_build.sh" --conferir 2>&1
 }
 
 # As três que existem PORQUE se perderam caladas. Nenhuma delas era conferida por
@@ -578,7 +616,16 @@ fix_wallpaper() { WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WA
                     WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
                     "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
 fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+  SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" \
                     "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1; }
+# Só a sombra, as chaves e o fail-safe. O par `midiabin` não tem `fix_` — ver o
+# comentário do `chk_midia`.
+fix_midia()     { MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
+                    MIDIA_COR_ALBUM="${MIDIA_COR_ALBUM:-}" MIDIA_CAPA="${MIDIA_CAPA:-}" \
+                    MIDIA_FONTE="${MIDIA_FONTE:-}" MIDIA_COR_TITULO="${MIDIA_COR_TITULO:-}" \
+                    MIDIA_COR_ARTISTA="${MIDIA_COR_ARTISTA:-}" \
+                    MIDIA_CONTROLES="${MIDIA_CONTROLES:-}" FLAVOR="${FLAVOR:-}" \
+                    "$RAIZ/scripts/midia.sh" 2>&1; }
 fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
                     VIDRO_OPACIDADE="${VIDRO_OPACIDADE:-}" \
                     VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-}" \
@@ -612,8 +659,8 @@ fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper apps assets flatpak)
-SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt "
+VERIFICAVEIS=(conf gerar tema modo vidro forma greeter icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper apps midiabin midia assets flatpak)
+SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
 # fixa "é o install.sh que cria" servia; com o `ocultar` ela passaria a mentir —
@@ -625,6 +672,7 @@ declare -A SEM_CONSERTO_RAZAO=(
   [absolutos]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
+  [midiabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: MIDIA_COMPILAR=1 ./scripts/midia_build.sh"
 )
 
 # --- 6. o runner das conferências -------------------------------------------
@@ -1177,19 +1225,22 @@ cmd_apps() {
         printf '  %s %s%s%s %s%s%s %s\n' \
                "$(pad "$pasta" 18)" "$c_inst" "$(pad "$t_inst" 10)" "$C_ZERO" \
                "$c_tema" "$(pad "$t_tema" 10)" "$C_ZERO" "$slugs"
-      done < <(APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
+      done < <(APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+        SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
       printf '\n  %sslug sem módulo ainda não é falha: aparece só quando alguém escrever o manifesto.%s\n' \
              "$C_DIM" "$C_ZERO"
       printf '  %smeow apps aplicar [slug] tematiza; sem slug, todos.%s\n\n' "$C_DIM" "$C_ZERO"
       return "$rc_geral" ;;
     conferir)
-      APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir; return $? ;;
+      APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+        SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir; return $? ;;
     aplicar)
       shift
       meow_travar || return "$MEOW_ERRO"
       local lista="${APPS_ATIVOS:-}"
       [ -n "${1:-}" ] && lista="$1"
-      APPS_ATIVOS="$lista" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/aplicar_apps.sh" aplicar; local rc=$?
+      APPS_ATIVOS="$lista" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+        SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" aplicar; local rc=$?
       [ "$rc" = "1" ] && registrar "apps aplicar ${1:-todos}"
       return "$rc" ;;
     reverter)
@@ -1200,7 +1251,8 @@ cmd_apps() {
       # oferece de graça, ele se pede pelo nome.
       [ -n "${1:-}" ] || { meow_erro "uso: meow apps reverter <slug>"; return "$MEOW_ERRO"; }
       meow_travar || return "$MEOW_ERRO"
-      APPS_ATIVOS="$1" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/aplicar_apps.sh" reverter; local rc=$?
+      APPS_ATIVOS="$1" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+        SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" reverter; local rc=$?
       [ "$rc" = "1" ] && registrar "apps reverter $1"
       return "$rc" ;;
     *) meow_erro "uso: meow apps [tabela|conferir|aplicar [slug]|reverter <slug>]"; return "$MEOW_ERRO" ;;
