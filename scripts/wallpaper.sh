@@ -176,8 +176,15 @@ semear_das_dela() {
   [ "$(quantas)" -eq 0 ] || return 0
   local n=0
   while IFS= read -r img; do
-    local destino="$ATIVOS/$(basename "$img")"
+    local nome_dela; nome_dela="$(basename "$img")"
+    local destino="$ATIVOS/$nome_dela"
     [ -e "$destino" ] && continue
+    # ESTA PORTA TAMBÉM REPUNHA O QUE ELA TIROU
+    #   O `semear` da coleção já consulta o banimento; esta cópia da pasta
+    #   pessoal dela não consultava nada. Uma imagem banida daqui voltava
+    #   sozinha na primeira vez que `ativos/` esvaziasse. Medido em 24/08/2026:
+    #   era o caso de uma imagem que ela já tinha banido antes desta sessão.
+    esta_banida "$nome_dela" && continue
     meow_seco || cp -n "$img" "$destino" 2>/dev/null || continue
     n=$((n + 1))
   done < <(find "$origem" -maxdepth 1 -type f \
@@ -583,8 +590,18 @@ cmd_permitir() {
 cmd_banir() {
   local img="$1"
   [ -f "$img" ] || { meow_erro "não achei $img"; return "$MEOW_ERRO"; }
-  criar_pastas
   local nome; nome="$(basename "$img")"
+  # O SECO NÃO BANE — E ATÉ 24/08/2026 BANIA
+  #   O `mv` abaixo nunca consultou `meow_seco`: `MEOW_DRY_RUN=1 meow wallpaper
+  #   banir <img>`, que a pessoa roda esperando uma PRÉVIA, tirava a imagem de
+  #   `ativos/` de verdade. A auditoria daquele dia mediu o defeito (antigo, não
+  #   regressão) ao conferir a linha nova que grava a lista logo abaixo — que
+  #   repetia o mesmo descuido. A guarda vale para os dois.
+  if meow_seco; then
+    meow_muda "baniria $nome (iria para banidos/ e entraria em $(basename "$BANIDOS_TXT"))"
+    return "$MEOW_DIVERGENTE"
+  fi
+  criar_pastas
   # `mv -n` recusa sobrescrever — e uma imagem JÁ banida antes deixaria o arquivo
   # parado em ativos/, com o script dizendo "banida". Se a cópia em banidos/ já
   # existe e é idêntica, o banimento anterior valeu: basta tirar daqui.
@@ -592,6 +609,21 @@ cmd_banir() {
     rm -f "$img"
   else
     mv -f "$img" "$BASE/banidos/" || return "$MEOW_ERRO"
+  fi
+  # A LISTA, NÃO SÓ A PASTA: sem ela o banimento morre com esta máquina.
+  # E A LISTA PRECISA NASCER SOZINHA: a primeira escrita disto exigia que o
+  # arquivo JÁ existisse (`[ -f ] && grep ...`), então numa árvore recém-clonada
+  # — exatamente o caso que esta lista existe para resolver — o `banir` pulava
+  # calado e o `meow_ok` mentia dizendo que tinha registrado.
+  local pasta_lista; pasta_lista="$(dirname "$BANIDOS_TXT")"
+  if [ -d "$pasta_lista" ]; then
+    [ -f "$BANIDOS_TXT" ] || printf '%s\n' \
+      "# BANIDOS.txt — os papéis de parede que ela recusou, por nome de arquivo." \
+      "# O 'meow wallpaper banir' acrescenta aqui; o 'semear' não repõe o que está listado." \
+      > "$BANIDOS_TXT"
+    grep -qxF -- "$nome" "$BANIDOS_TXT" || printf '%s\n' "$nome" >> "$BANIDOS_TXT"
+  else
+    meow_aviso "não achei $pasta_lista — o banimento de $nome vale só nesta máquina"
   fi
   meow_ok "banida: $nome — está em banidos/, não foi apagada"
   cmd_aplicar >/dev/null   # força a releitura da lista
@@ -637,6 +669,82 @@ SEMENTE_COMMIT="${WALLPAPER_SEMENTE_COMMIT:-1023077979591cdeca76aae94e0359da1707
 # 0 = TODAS as imagens do repositorio. Um numero baixa so uma amostra, uma de
 # cada categoria por rodizio (util para testar sem gastar banda).
 SEMENTE_QUANTAS="${WALLPAPER_SEMENTE_QUANTAS:-0}"
+
+# --- o "não quero" dela também precisa ser receita ---------------------------
+# `banidos/` guarda os ARQUIVOS recusados, e isso resolve esta máquina. Não
+# resolve a PRÓXIMA: numa instalação nova, `banidos/` nasce vazio, e o `semear`
+# baixaria de volta as 231 imagens que ela tirou em 24/08/2026, uma por uma.
+#
+# `wallpapers/BANIDOS.txt` é a lista de nomes recusados — texto, pequeno, vai
+# para o git (a regra do `.gitignore` barra imagem, não lista). É o par do
+# `FONTES.tsv` abaixo: um diz o que ela quer, o outro diz o que ela não quer, e
+# juntos os dois reproduzem a escolha dela em qualquer máquina.
+BANIDOS_TXT="${WALLPAPER_BANIDOS:-$RAIZ/wallpapers/BANIDOS.txt}"
+
+esta_banida() {
+  local nome="$1"
+  [ -e "$BASE/banidos/$nome" ] && return 0
+  [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && return 0
+  return 1
+}
+
+# --- a curadoria dela: escolhida a mão, reproduzível pela receita -------------
+# A coleção Catppuccin acima é acervo de TERCEIRO, e o que o reproduz é o commit
+# pinado. Este bloco é o acervo DELA: o que sobreviveu à curadoria de 24/08/2026
+# e o que buscamos na internet naquele dia, imagem por imagem.
+#
+# Mesma regra do resto do repositório: a imagem não vai para o git, a RECEITA
+# vai. `wallpapers/FONTES.tsv` é a receita — uma linha por imagem, com a URL de
+# onde ela veio. Sem este arquivo, uma máquina reformatada voltaria só com o que
+# sobrou da coleção de terceiro e NENHUMA das escolhas dela; sem o `BANIDOS.txt`
+# do bloco acima, voltaria com as 242 do upstream inteiras. Os dois juntos são a
+# curadoria — um diz o que ela quer, o outro o que ela não quer.
+FONTES_TSV="${WALLPAPER_FONTES:-$RAIZ/wallpapers/FONTES.tsv}"
+CURADORIA_N=0
+
+semear_da_curadoria() {
+  CURADORIA_N=0
+  [ -f "$FONTES_TSV" ] || return 0
+  # POR QUE O AWK FILTRA ANTES, EM VEZ DE CONFIAR NO `read`
+  #   Duas armadilhas medidas em 24/08/2026, na auditoria desta própria função:
+  #   1. `read` devolve status != 0 na ÚLTIMA linha quando o arquivo não termina
+  #      em newline — as variáveis são preenchidas, mas o laço encerra ANTES de
+  #      rodar o corpo. A última imagem da receita sumia sem um aviso. (O laço
+  #      irmão, logo acima, usa here-string e por isso nunca teve o problema.)
+  #   2. `IFS=$'\t'` NÃO isola campo vazio: tab é "IFS whitespace" no bash, e
+  #      dois tabs seguidos colapsam num só. Uma linha com a URL em branco
+  #      entregava a RESOLUÇÃO dentro de `$url`, e o script tentava baixar
+  #      "1920x1080" — falhando com "não baixaram, rode de novo", que manda
+  #      consertar rede quando o defeito está no dado.
+  #   O awk conta campo de verdade (NF), exige que a URL PAREÇA uma URL, e o
+  #   here-string abaixo garante o newline final.
+  local validas descartadas
+  validas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && NF >= 3 && $3 ~ /^https?:\/\// {print}' "$FONTES_TSV")"
+  descartadas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && !(NF >= 3 && $3 ~ /^https?:\/\//) {n++} END {print n+0}' "$FONTES_TSV")"
+  if [ "$descartadas" -gt 0 ]; then
+    meow_aviso "$descartadas linha(s) de $(basename "$FONTES_TSV") sem URL utilizável — ignoradas"
+  fi
+  [ -n "$validas" ] || return 0
+
+  local falhas=0 nome categoria url resolucao
+  while IFS=$'\t' read -r nome categoria url resolucao; do
+    [ -n "$nome" ] || continue
+    local destino="$ATIVOS/$nome"
+    [ -e "$destino" ] && continue
+    esta_banida "$nome" && continue   # o que ela tirou, fica tirado
+    if meow_seco; then
+      meow_muda "baixaria $nome (curadoria)"; CURADORIA_N=$((CURADORIA_N + 1)); continue
+    fi
+    local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
+    if curl -sSL --max-time 90 -o "$tmp" "$url" 2>/dev/null && [ -s "$tmp" ]; then
+      mv -f "$tmp" "$destino"; CURADORIA_N=$((CURADORIA_N + 1))
+    else
+      rm -f "$tmp"; falhas=$((falhas + 1))
+    fi
+  done <<< "$validas"
+  [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) da curadoria não baixaram — rode de novo"
+  return 0
+}
 
 cmd_semear() {
   meow_tem curl || { meow_erro "curl não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
@@ -698,6 +806,18 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
     local nome="cat-${caminho//\//-}"
     local destino="$ATIVOS/$nome"
     [ -e "$destino" ] && continue
+    # O BANIMENTO PRECISA SOBREVIVER A UM `semear` — E NÃO SOBREVIVIA
+    #   Medido em 24/08/2026, curando o acervo com ela: `semear` repõe tudo que
+    #   não estiver em `ativos/`, e a única coisa que ele consultava era
+    #   `ativos/`. Uma imagem que ela tirou está, por definição, fora de
+    #   `ativos/` — então toda escolha dela era desfeita pela próxima
+    #   semeadura, calada, com o script relatando sucesso. Naquele dia foram
+    #   231 imagens banidas; sem esta linha, um `meow wallpaper aplicar` que
+    #   caísse no semear traria as 231 de volta para a tela dela.
+    #
+    #   `banidos/` é a memória do que ela NÃO quer. Consultá-la aqui é o que
+    #   transforma "banir" em decisão, não em adiamento.
+    esta_banida "$nome" && continue
     if meow_seco; then
       meow_muda "baixaria $nome"; n=$((n+1)); continue
     fi
@@ -714,6 +834,19 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
   # Falha de download não pode continuar sendo invisível: era o que escondia as
   # três imagens de nome com espaço.
   [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) não baixaram — rode de novo para tentar outra vez"
+
+  semear_da_curadoria
+  if [ "$CURADORIA_N" -gt 0 ]; then
+    # O TEMPO VERBAL DE NOVO: no seco NADA foi baixado. Dizer "reproduzidas", no
+    # passado, é a mesma mentira que este arquivo já documenta duas linhas abaixo
+    # — e que a auditoria de 24/08/2026 pegou nesta função, recém-escrita.
+    if meow_seco; then
+      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria dela (wallpapers/FONTES.tsv)"
+    else
+      meow_ok "$CURADORIA_N imagem(ns) da curadoria dela reproduzidas (wallpapers/FONTES.tsv)"
+    fi
+    n=$((n + CURADORIA_N))
+  fi
 
   if [ "$n" -eq 0 ]; then
     meow_ok "coleção Catppuccin já semeada"

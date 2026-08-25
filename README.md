@@ -67,7 +67,11 @@ editar.
 Os papéis de parede ficam fora do git de propósito — imagem grande em git é
 dívida que não se paga, e o Andromeda já ficou 18 h com o auto-sync mudo por um
 arquivo de mais de 100 MB. Eles moram em `wallpapers/`, dentro do repositório, e
-o que os reproduz é `scripts/wallpaper.sh semear`, com o commit pinado.
+o que os reproduz é `scripts/wallpaper.sh semear`, lendo **três receitas**: o
+commit pinado da coleção Catppuccin, o `wallpapers/FONTES.tsv` (a URL de cada
+imagem escolhida a mão) e o `wallpapers/BANIDOS.txt` (os nomes recusados, que o
+semear não repõe). O acervo tem **55 imagens**: das 242 do upstream, 11
+sobreviveram à curadoria visual de 24/08/2026, e 44 foram buscadas naquele dia.
 
 ---
 
@@ -194,7 +198,7 @@ essa pasta e o `icons/apps.map` saem juntos.
 ```
 assets/gatos/     os gatos da rotação — solte um .svg e ele entra
 icons/            os acervos Catppuccin de terceiro + os mapas que os aplicam
-wallpapers/       os 242 papéis de parede (fora do git; o semear os reproduz)
+wallpapers/       o acervo curado (fora do git; FONTES.tsv + BANIDOS.txt o reproduzem)
 docs/SPRINTS.md   o que falta fazer, escrito para ser lido sem contexto nenhum
 docs/pesquisas/   o material bruto das investigações multi-frente
 docs/historico/   de onde o projeto veio (não é lido por script nenhum)

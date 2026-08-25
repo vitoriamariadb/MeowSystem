@@ -65,12 +65,20 @@ a entrar só na volta do relógio.
 | ícones de aplicativo | `src/icons/` | `meow icones reconstruir` |
 | logos do painel | **aqui** | soltou o arquivo, já entrou — o `meow-assets.path` vigia a pasta |
 
-Os papéis de parede **moram** no repositório, em `wallpapers/` — são 242 imagens
-e 193 MB, baixadas de `zhichaoh/catppuccin-wallpapers` em 05/08/2026. O que não
-vai para o **git** são os arquivos de imagem, barrados pela regra de `*.png`/
-`*.jpg` do `.gitignore`: imagem grande em git é dívida que não se paga, e o
-Andromeda já ficou 18 h com o auto-sync mudo por um arquivo de mais de 100 MB.
-Quem reproduz a pasta é `scripts/wallpaper.sh semear`, com o commit pinado.
+Os papéis de parede **moram** no repositório, em `wallpapers/` — 55 imagens,
+depois da curadoria visual de 24/08/2026. Dessas, 11 sobreviveram às 242 de
+`zhichaoh/catppuccin-wallpapers` (baixadas em 05/08/2026) e 44 foram buscadas na
+internet naquele dia, no estilo que ela escolheu: ilustração, gato, noite,
+janela, pixel art. Nada de fotografia, e nada abaixo de 1920x1080 — a tela dela
+tem 2560x1440, e o que é menor chega borrado. O que não vai para o **git** são os arquivos de imagem,
+barrados pela regra de `*.png`/`*.jpg` do `.gitignore`: imagem grande em git é
+dívida que não se paga, e o Andromeda já ficou 18 h com o auto-sync mudo por um
+arquivo de mais de 100 MB.
+
+Quem reproduz a pasta é `scripts/wallpaper.sh semear`, lendo três receitas — o
+commit pinado da coleção, o `wallpapers/FONTES.tsv` (a URL de cada uma das 54) e
+o `wallpapers/BANIDOS.txt` (os 246 nomes recusados, que ele não repõe). As três
+são texto, e é por isso que a escolha dela sobrevive a uma máquina reformatada.
 
 A pasta de `~/.local/share/backgrounds/` acima é o que o `cosmic-bg` lê de fato —
 `meow wallpaper adicionar <arquivo>` copia para lá com as verificações, mas

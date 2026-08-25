@@ -9,10 +9,13 @@ src/fonts/upstream/
 # Imagens nunca vão para o git (o Andromeda ficou 18h com o auto-sync mudo por um
 # arquivo >100MB; aqui a regra é preventiva).
 #
-# É esta regra que mantém `wallpapers/` fora do git — os 242 arquivos de
-# zhichaoh/catppuccin-wallpapers, 193 MB, baixados em 05/08/2026 a pedido dela.
+# É esta regra que mantém `wallpapers/` fora do git. Foram 242 arquivos de
+# zhichaoh/catppuccin-wallpapers (193 MB, baixados em 05/08/2026); depois da
+# curadoria de 24/08/2026 são 55 — 11 daquele acervo e 44 buscadas na internet.
 # Eles ficam no disco, dentro do repositório, e o git não os enxerga. O que
-# reproduz a pasta é o `scripts/wallpaper.sh semear`, com o commit pinado.
+# reproduz a pasta é o `scripts/wallpaper.sh semear`, lendo o commit pinado
+# mais `wallpapers/FONTES.tsv` e `wallpapers/BANIDOS.txt` — que são texto e
+# VÃO para o git: sem eles a curadoria dela não sobrevive a uma reinstalação.
 # Os ÍCONES (`icons/catppuccin/`, 3.280 SVGs, 13 MB) VÃO para o git: são texto,
 # comprimem bem, e é o pack inteiro que ela escolheu usar.
 *.jpg
@@ -34,3 +37,13 @@ src/fonts/upstream/
 __pycache__/
 *.pyc
 .venv/
+
+# A ÁRVORE DE BUILD DO APPLET DE MÍDIA — CINTO, NÃO SUSPENSÓRIO.
+# O suspensório é o `CARGO_TARGET_DIR` que o `scripts/midia_build.sh` aponta
+# para FORA do repositório (`~/.local/state/meowsystem/midia/target`), e é ele
+# que faz o caminho normal nunca escrever aqui. Esta linha existe para o outro
+# caminho: um `cargo build` rodado à mão dentro de `src/applets/now-playing/`
+# cria 1,5 GB dentro do disco Ápate sem pedir licença, e um `git add -A`
+# distraído leva junto. Medido em 24/08/2026: 1,5 GB de target/ para 22 MB de
+# binário.
+src/applets/now-playing/target/

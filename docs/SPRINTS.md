@@ -1797,7 +1797,7 @@ folha que fez ela decidir abandonar os ícones autorais.
 |---|---|
 | 123 tipos de arquivo em Catppuccin | 14/14 alvos resolvem no pack pelo `Gtk.IconTheme` |
 | 16 aplicativos do lançador em Catppuccin | Firefox, Discord, Spotify, VLC, Steam conferidos no resolvedor |
-| 242 wallpapers (eram 239) | 3 faltavam por bug de URL não escapada, calado desde a 1ª semeadura |
+| 242 wallpapers (eram 239) — hoje **55**, ver 24/08 | 3 faltavam por bug de URL não escapada, calado desde a 1ª semeadura |
 | o tema parou de desfazer o vidro dela | fronteira por árvore + código 4, testados em COSMIC isolado |
 | o doctor enxerga receita ≠ produto | `'Low2' pede alpha 7C, está gravado D9` |
 | 28 ícones do próprio COSMIC em Arcticons | `strace` no `cosmic-settings`: 9 carregados do nosso tema já na 1ª tela |
