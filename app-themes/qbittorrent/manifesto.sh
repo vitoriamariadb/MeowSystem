@@ -30,6 +30,24 @@
 # `~/.config/zsh`, o repo com auto-commit em 10 minutos, e a própria
 # `meow_destino_permitido` recusaria a escrita.
 #
+# ─────────────────────────────────────────────────────────────────────────────
+# DESTRAVOU. O texto acima descreve o passado — atualizado em 25/08/2026.
+# ─────────────────────────────────────────────────────────────────────────────
+# O patch foi aplicado: `aurora-qbittorrent-config.sh:74` tem o case
+# `catppuccin)`, e a máquina confirma que o tema está no ar:
+#
+#   ~/.local/state/aurora/qbittorrent-tema            -> catppuccin
+#   .../qBittorrent/qBittorrent.conf UseCustomUITheme -> true
+#   .../qBittorrent/qBittorrent.conf CustomUIThemePath -> .../catppuccin-mocha.qbtheme
+#
+# O código deste módulo SEMPRE esteve certo: `_meow_qbt_aurora_destravado` lê a
+# allowlist ao vivo, então ele passou a aplicar sozinho no dia em que o Aurora
+# mudou. Quem ficou para trás foi esta prosa — e por dias o `doctor` dizia uma
+# coisa e o manifesto dizia outra. Achado pela auditoria de documentação de
+# 25/08/2026, que é o motivo de este bloco existir em vez de o texto de cima ser
+# simplesmente apagado: o raciocínio da trava continua valendo se o Aurora um dia
+# reverter a allowlist.
+#
 # Quando destravar, o módulo continua NÃO escrevendo o `qBittorrent.conf`: ele
 # instala o `.qbtheme`, grava o arquivo de estado e chama o próprio script do
 # Aurora com `--tema catppuccin`. Quem escreve o conf segue sendo o Aurora, que

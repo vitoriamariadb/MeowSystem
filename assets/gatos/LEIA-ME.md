@@ -65,9 +65,9 @@ a entrar só na volta do relógio.
 | ícones de aplicativo | `src/icons/` | `meow icones reconstruir` |
 | logos do painel | **aqui** | soltou o arquivo, já entrou — o `meow-assets.path` vigia a pasta |
 
-Os papéis de parede **moram** no repositório, em `wallpapers/` — 55 imagens,
+Os papéis de parede **moram** no repositório, em `wallpapers/` — 54 imagens,
 depois da curadoria visual de 24/08/2026. Dessas, 11 sobreviveram às 242 de
-`zhichaoh/catppuccin-wallpapers` (baixadas em 05/08/2026) e 44 foram buscadas na
+`zhichaoh/catppuccin-wallpapers` (baixadas em 05/08/2026) e 43 foram buscadas na
 internet naquele dia, no estilo que ela escolheu: ilustração, gato, noite,
 janela, pixel art. Nada de fotografia, e nada abaixo de 1920x1080 — a tela dela
 tem 2560x1440, e o que é menor chega borrado. O que não vai para o **git** são os arquivos de imagem,
@@ -77,7 +77,8 @@ arquivo de mais de 100 MB.
 
 Quem reproduz a pasta é `scripts/wallpaper.sh semear`, lendo três receitas — o
 commit pinado da coleção, o `wallpapers/FONTES.tsv` (a URL de cada uma das 54) e
-o `wallpapers/BANIDOS.txt` (os 246 nomes recusados, que ele não repõe). As três
+o `wallpapers/BANIDOS.txt` (os 246 nomes recusados, que ele não repõe — mais
+um, com emoji no nome, que só a pasta `banidos/` protege). As três
 são texto, e é por isso que a escolha dela sobrevive a uma máquina reformatada.
 
 A pasta de `~/.local/share/backgrounds/` acima é o que o `cosmic-bg` lê de fato —
