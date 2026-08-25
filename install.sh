@@ -907,9 +907,104 @@ etapa_lancador_apt() {
   return "$MEOW_DIVERGENTE"
 }
 
+# O PONTEIRO, e ele exige DUAS alavancas porque são dois programas desenhando
+# cursor nesta tela. Medido em 25/08/2026:
+#
+#   - `strings /usr/bin/cosmic-comp | grep -c cursor-theme` -> 0. O compositor
+#     NÃO lê o gsettings para cursor; ele usa a crate `xcursor` com
+#     `XCURSOR_THEME`, que está VAZIA no ambiente dele — e então cai no tema
+#     `default`, que hoje herda o Adwaita de corpo preto.
+#   - quem lê `org.gnome.desktop.interface cursor-theme` é a libgtk, ou seja,
+#     só as janelas GTK.
+#
+# Por isso o script escreve o gsettings (janelas GTK, vale na hora) E o
+# `~/.icons/default/index.theme` (o compositor, vale no próximo login). Escrever
+# só um deixa metade da tela com o cursor velho, que é pior que não mexer.
+#
+# A FRONTEIRA FOI MEDIDA, NÃO SUPOSTA: todo `gsettings set` vivo do Ritual da
+# Aurora mira `org.gnome.desktop.wm.preferences` (o `button-layout`), nunca
+# `desktop.interface`. A única menção a `cursor-theme` no repositório dela está
+# num comando manual de restauração que nem dispara nesta máquina. Detalhe com
+# as quatro medições no cabeçalho de `scripts/cursor.sh` e em docs/FRONTEIRA.md.
+etapa_cursor() {
+  passo "Cursor"
+  CURSOR="${CURSOR:-}" CURSOR_VERSAO="${CURSOR_VERSAO:-v2.0.0}" \
+    "$MEOW_RAIZ/scripts/cursor.sh" aplicar
+  return $?
+}
+
 etapa_som() {
   passo "Som de evento"
   "$MEOW_RAIZ/scripts/som.sh" aplicar
+  return $?
+}
+
+# O PROMPT, E A ÚNICA ETAPA QUE TERMINA COM UM COMANDO NA MÃO DELA.
+#
+#   O preset do starship é nosso e vai para `~/.config/starship.toml`. A linha
+#   que LIGA o starship mora em `~/.config/zsh/env.zsh`, que é do Ritual da
+#   Aurora e a TRAVA 1 recusa — então a outra metade sai como
+#   `src/prompt/aurora.patch`, e é ela quem roda. Devolve 4 quando o nosso lado
+#   está certo e o dela não; o `concluir` acima já trata 3|4 como "pulado".
+#
+# O QUE A MEDIÇÃO DERRUBOU, E VALE REGISTRAR: a Sprint R dizia que a causa era
+# `ZSH_THEME="agnoster"` na linha 9 do `env.zsh`. O agnoster é carregado pelo
+# oh-my-zsh na linha 26 e **jogado fora na linha 135**, por um `export PS1` que
+# vem depois no mesmo arquivo. Mexer só na linha 9 não mudaria um pixel — o
+# patch mexe nas duas, e o `else` dele devolve exatamente o PS1 de hoje quando o
+# starship não está no PATH.
+etapa_prompt() {
+  passo "Prompt do terminal (starship)"
+  PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \
+    "$MEOW_RAIZ/scripts/prompt.sh" aplicar
+  return $?
+}
+
+# O TERMINAL, a última peça da tela que continuava de fábrica. Escreve QUATRO
+# arquivos em `com.system76.CosmicTerm/v1` — os dois mapas de esquema e as duas
+# chaves que os SELECIONAM. Um esquema instalado e não selecionado não muda um
+# pixel, e esse era o modo de falha mais provável desta sprint.
+#
+# NÃO ENCOSTA em `font_name`, `font_size` nem `opacity`: são escolha dela, e o
+# `opacity: 96` já está no ponto. Vale sem reiniciar nada — o cosmic-term mantém
+# um watch de inotify no próprio diretório de config (medido em
+# `/proc/<pid>/fdinfo` em 25/08/2026).
+#
+# O QUE A MEDIÇÃO DERRUBOU: a sprint dizia que, se a importação da GUI caísse
+# neste arquivo, bastaria escrever o `.ron` do port oficial direto. As duas
+# coisas são verdade e não se implicam — o arquivo do port é o MIOLO de uma
+# entrada, e o de config é o MAPA inteiro (`BTreeMap<ColorSchemeId, ColorScheme>`).
+# Escrever o port cru falha com `Expected opening '{'`. Por isso o esquema é
+# derivado da `palette/catppuccin.json` daqui, e confere campo a campo com o
+# port nos quatro flavors.
+etapa_terminal() {
+  passo "Cores do terminal"
+  FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
+    TERMINAL_ESQUEMA="${TERMINAL_ESQUEMA:-sim}" \
+    TERMINAL_CURSOR="${TERMINAL_CURSOR:-accent}" \
+    "$MEOW_RAIZ/scripts/terminal.sh" aplicar
+  return $?
+}
+
+# O cartão de visita do terminal: a Coquinha em ANSI no lugar do logo do Pop!_OS.
+#
+# ESTA ETAPA NÃO TERMINA O SERVIÇO, E É DE PROPÓSITO. O desenho é nosso e mora em
+# `~/.local/share/meowsystem/fastfetch/`; a CHAVE que o faz aparecer é
+# `logo.source`, em `~/.config/fastfetch/config.jsonc` — symlink para
+# `~/.config/zsh`, território da Aurora. O script gera, CONFERE e imprime o
+# patch; nunca escreve lá. Por isso pode devolver 4, e o `concluir` já lê 4 como
+# "pulado" — sem contar falha e sem virar notificação diária.
+#
+# ANSI, e não sixel/kitty, porque foi MEDIDO ao vivo em 25/08/2026: a DA1 do
+# cosmic-term responde `\e[?6c` (sem o `;4` do sixel) e a query kitty volta
+# vazia. O VTE dele é o `alacritty_terminal`, que nunca implementou nenhum dos
+# dois. Não é preferência: é o único caminho.
+etapa_fastfetch_logo() {
+  passo "Logo do fastfetch"
+  FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}" \
+    FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}" \
+    FASTFETCH_LOGO_COLUNAS="${FASTFETCH_LOGO_COLUNAS:-40}" \
+    "$MEOW_RAIZ/scripts/fastfetch_logo.sh" aplicar
   return $?
 }
 
@@ -980,6 +1075,46 @@ etapa_forma() {
 # O `index.theme` do hicolor DELA, que escondia os próprios ícones — entre eles
 # as logos de dois jogos da Steam. Vem antes do `completar_icones` de propósito:
 # é a base da cadeia, e completar ícone com a base quebrada é remendar por cima.
+# O RELÓGIO DA BARRA DE CIMA, logo depois da geometria porque é o mesmo assunto
+# visto de perto: a `forma.sh` decide o formato da barra, esta decide o que se
+# mexe dentro dela. Os segundos eram o único elemento da tela que pedia atenção
+# uma vez por segundo — 86.400 vezes por dia para dizer algo que ela nunca
+# precisou.
+#
+# A CHAVE NASCE NO CONF E VAZIO QUER DIZER "NÃO TOQUE", igual às
+# `VIDRO_OPACIDADE_*`. É a mesma fronteira de 17/08/2026: `show_seconds` tem
+# controle na GUI (Ajustes → Data e hora), então quem decide é ela. Ela
+# autorizou tirar em 25/08/2026, e a chave é o registro dessa autorização.
+#
+# DUAS MEDIÇÕES DE 25/08 QUE VALEM MAIS QUE A MUDANÇA:
+#   - vale em menos de 2 s, sem reiniciar o painel. E o mecanismo NÃO é inotify
+#     do applet: o `cosmic-applet-time` tem zero descritores de inotify; ele já
+#     acorda 1x/s para desenhar e relê a config na mesma volta.
+#   - APAGAR O ARQUIVO NÃO REVERTE. Com o `show_seconds` movido para fora, a
+#     topbar continuou mostrando os segundos. Por isso o `remover` escreve
+#     `true`, e o valor anterior fica em `~/.local/state/meowsystem/relogio/`.
+etapa_relogio() {
+  passo "Relógio da barra de cima"
+  RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" "$MEOW_RAIZ/scripts/relogio.sh" aplicar
+  return $?
+}
+
+# Os apps que não podem subir sozinhos no login. NÃO escreve em
+# `~/.config/autostart/` (é da Aurora): o bloqueio é `systemctl --user mask` da
+# unidade que o `systemd-xdg-autostart-generator` gera a partir do `.desktop`.
+# O `~/.config/systemd/user` vem DOZE posições antes do `generator.late` no
+# `UnitPath` desta máquina, então o mask vence — medido.
+#
+# E abrir o app pelo ícone continua funcionando, provado e não suposto: o
+# lançador do COSMIC cria um ESCOPO transitório (`app-cosmic-<id>-<pid>.scope`),
+# que não é a unidade mascarada. O `@autostart.service` só é puxado pelo
+# `xdg-desktop-autostart.target`, que sobe uma vez, no login.
+etapa_autostart() {
+  passo "Autostart bloqueado"
+  AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" "$MEOW_RAIZ/scripts/autostart.sh" aplicar
+  return $?
+}
+
 etapa_hicolor() {
   passo "Fim da cadeia de ícones (hicolor do usuário)"
   "$MEOW_RAIZ/scripts/hicolor.sh"
@@ -1401,6 +1536,8 @@ etapa_wallpaper() {
     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
     WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
     WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
+    WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
+    WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
     "$MEOW_RAIZ/scripts/wallpaper.sh" aplicar
   local rc=$?
   [ "$rc" = "1" ] && [ "${WALLPAPER_NOTIFICAR:-sim}" = "sim" ] \
@@ -1585,14 +1722,14 @@ main() {
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
-                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_escala etapa_upstream etapa_fontes
+                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_relogio etapa_escala etapa_upstream etapa_fontes
                 etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
-                etapa_lancador_apt etapa_som etapa_apps
+                etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_cursor etapa_apps
                 etapa_assets etapa_vigia_flatpak
-                etapa_midia_build etapa_midia etapa_autoreparo)
+                etapa_midia_build etapa_midia etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
   for e in "${etapas[@]}"; do

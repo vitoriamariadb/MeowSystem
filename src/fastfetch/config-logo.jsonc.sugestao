@@ -1,0 +1,70 @@
+// config-logo.jsonc.sugestao — o patch da Sprint Q, pronto para colar.
+//
+// ESTE ARQUIVO NÃO É INSTALADO POR NINGUÉM, E É DE PROPÓSITO.
+//   O alvo é `~/.config/fastfetch/config.jsonc`, que é symlink para
+//   `~/.config/zsh/fastfetch/config.jsonc` — território do Ritual da Aurora,
+//   repo privado dela com auto-commit a cada 10 minutos, e recusado pela
+//   TRAVA 1 do `lib/comum.sh`. O `docs/FRONTEIRA.md` já dava essa linha à
+//   Aurora. O MeowSystem gera o desenho e CONFERE; quem troca a chave é gente.
+//
+//   Quem aplicar: abra o arquivo, troque as DUAS linhas abaixo, salve. É tudo.
+//   O `padding` fica como está — os 6 de recuo que já existiam centram o logo
+//   de 16 linhas no bloco de 25 linhas de módulos (medido, 25/08/2026).
+//
+// ANTES DE COLAR, o arquivo tem de existir:
+//   scripts/fastfetch_logo.sh aplicar     # gera o .ansi em território nosso
+//   scripts/fastfetch_logo.sh ver         # e mostra como ele sai
+//
+// DEPOIS DE COLAR, a conferência da sprint:
+//   fastfetch --pipe false                # a Coquinha no lugar do Pop!_OS
+//   scripts/fastfetch_logo.sh conferir    # tem de sair 0 (antes saía 4)
+
+// ---------------------------------------------------------------------------
+// O DIFF, contra o arquivo como ele está hoje (linhas 3 a 7)
+// ---------------------------------------------------------------------------
+//
+//   "logo": {
+// -   "type": "builtin",
+// -   "source": "pop",
+// +   "type": "file-raw",
+// +   "source": "~/.local/share/meowsystem/fastfetch/coquinha.ansi",
+//     "padding": { "top": 6, "right": 4, "left": 0 }
+//   },
+
+// ---------------------------------------------------------------------------
+// O BLOCO INTEIRO, para substituir de uma vez
+// ---------------------------------------------------------------------------
+
+  "logo": {
+    "type": "file-raw",
+    "source": "~/.local/share/meowsystem/fastfetch/coquinha.ansi",
+    "padding": { "top": 6, "right": 4, "left": 0 }
+  },
+
+// ---------------------------------------------------------------------------
+// POR QUE CADA VALOR É ESSE, E NÃO OUTRO
+// ---------------------------------------------------------------------------
+//
+// "type": "file-raw"  — e NÃO "file". Os dois foram rodados sobre o mesmo
+//   arquivo em 25/08/2026: o `file` põe um `\e[36m` na frente do conteúdo (é a
+//   "cor 1" dele) e ainda substitui `$1`..`$9` dentro do texto. O `file-raw`
+//   entrega byte por byte, que é o que um ANSI truecolor pronto precisa.
+//   Os tipos `sixel`, `kitty` e `iterm` estão FORA: o cosmic-term 1.6.0 não
+//   implementa protocolo de imagem nenhum — sondado ao vivo, a DA1 dele
+//   responde `\e[?6c` (sem o `;4` do sixel) e a query do protocolo kitty não
+//   volta resposta alguma.
+//
+// "source"  — o `~` É expandido pelo fastfetch (conferido). O arquivo mora em
+//   `~/.local/share/meowsystem/`, que é território do MeowSystem: assim a
+//   Aurora fica dona da CHAVE e o Meow dono do DESENHO, sem os dois escreverem
+//   no mesmo arquivo — que é o modo de falha que mais custou a este projeto.
+//
+// "padding"  — INALTERADO. Não é esquecimento: o fastfetch não centra logo
+//   nenhum, o `top` é recuo puro, e 6 é o que deixa as 16 linhas da Coquinha
+//   centradas contra as 25 linhas de módulos que a máquina dela imprime hoje.
+//   A largura também não muda nada de lugar: o logo `pop` ocupa 40 colunas e a
+//   Coquinha ocupa 40 — o bloco de texto continua começando na coluna 44.
+//
+// O QUE ACONTECE SE O .ansi SUMIR: nada grave. O fastfetch cai no logo que ele
+//   detecta pela distribuição — ou seja, volta o Pop!_OS de hoje. Diferente da
+//   sombra do applet de mídia, aqui não há buraco a tapar.

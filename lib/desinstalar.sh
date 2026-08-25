@@ -200,10 +200,67 @@ meow_desinstalar() {
   # certo para configuração dela e insuficiente para 1,5 GB de artefato.
   for dir in "$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
              "$HOME/.local/share/fonts/MeowSystem" \
-             "$HOME/.local/state/meowsystem/midia" \
-             "$HOME/.local/share/backgrounds/meowsystem"; do
+             "$HOME/.local/state/meowsystem/midia"; do
     [ -d "$dir" ] || continue
     if meow_seco; then meow_muda "removeria $dir/"; else rm -rf "$dir"; meow_ok "removido $dir/"; fi
+  done
+
+  # --- O ACERVO DE PAPEL DE PAREDE NÃO ENTRA NO LAÇO ACIMA (25/08/2026) -------
+  #
+  # Ele estava lá, e era um `rm -rf` de 320 MB de curadoria dela.
+  #
+  # As três árvores acima são REPRODUZÍVEIS POR CÓDIGO: os ícones saem do
+  # `construir_icones.sh`, as fontes do `instalar_fontes.sh`, o binário do applet
+  # do `midia_build.sh`. Nenhuma delas contém uma escolha; apagar é grátis e
+  # reinstalar é uma passagem do `install.sh`, sem rede e sem depender de
+  # ninguém.
+  #
+  # `~/.local/share/backgrounds/meowsystem` é outra coisa: dentro dele estão
+  # `ativos/` (54 imagens), `banidos/` (247), `favoritos/` e `originais/` — e a
+  # curadoria de 24/08/2026, que foi ela quem fez, imagem por imagem.
+  #
+  # "MAS É REPRODUZÍVEL PELA RECEITA" — e é justamente por isso que a diferença
+  # importa. O `wallpapers/FONTES.tsv` e o `wallpapers/BANIDOS.txt` estão no git
+  # e reconstroem a escolha dela, sim; mas o `semear` reconstrói **baixando da
+  # internet**, uma URL por imagem. Isso depende de rede e de as URLs
+  # continuarem vivas — e link rot não avisa. Uma receita que precisa da
+  # internet não é a mesma coisa que um script que só precisa do disco.
+  #
+  # A primeira regra deste projeto é **não destruir dado dela**
+  # (`docs/SPRINTS.md`, "Como este projeto trabalha"). Desinstalar um tema não é
+  # motivo para apagar uma coleção de imagens, e um `--uninstall` que faz isso
+  # calado é exatamente o tipo de estrago que só se descobre depois.
+  #
+  # Então o padrão é PRESERVAR e DIZER. Quem quiser mesmo apagar pede com todas
+  # as letras: `MEOW_APAGAR_ACERVO=1 ./install.sh --uninstall`.
+  local acervo="${WALLPAPER_BASE:-$HOME/.local/share/backgrounds/meowsystem}"
+  if [ -d "$acervo" ]; then
+    if [ "${MEOW_APAGAR_ACERVO:-0}" = "1" ]; then
+      if meow_seco; then
+        meow_muda "removeria $acervo/ (MEOW_APAGAR_ACERVO=1)"
+      else
+        rm -rf "$acervo"; meow_ok "removido $acervo/ (você pediu com MEOW_APAGAR_ACERVO=1)"
+      fi
+    else
+      local n_ativos n_banidos tamanho
+      n_ativos="$(find "$acervo/ativos"  -maxdepth 1 -type f 2>/dev/null | wc -l)"
+      n_banidos="$(find "$acervo/banidos" -maxdepth 1 -type f 2>/dev/null | wc -l)"
+      tamanho="$(du -sh "$acervo" 2>/dev/null | cut -f1)"
+      meow_pula "acervo de papel de parede PRESERVADO — é curadoria sua, não arquivo nosso"
+      meow_info "  $acervo/  ($tamanho: $n_ativos ativos, $n_banidos banidos)"
+      meow_info "  para apagar mesmo assim:  MEOW_APAGAR_ACERVO=1 ./install.sh --uninstall"
+    fi
+  fi
+
+  # As pastas DERIVADAS da noite/dia saem sempre: são link duro montado pelo
+  # `wallpaper.sh` a partir de `ativos/`, não têm imagem própria e o
+  # `--aplicar` as remonta em um segundo. Deixá-las para trás é que seria
+  # sujeira — pasta órfã apontando para um acervo que ninguém mais gira.
+  local derivada
+  for derivada in "$acervo/ativos-noite" "$acervo/ativos-dia"; do
+    [ -d "$derivada" ] || continue
+    if meow_seco; then meow_muda "removeria $derivada/ (derivada, link duro)"
+    else rm -rf "$derivada"; meow_ok "removido $derivada/ (derivada, link duro)"; fi
   done
   if ! meow_seco; then
     meow_tem gtk-update-icon-cache && gtk-update-icon-cache -f "$HOME/.local/share/icons" 2>/dev/null

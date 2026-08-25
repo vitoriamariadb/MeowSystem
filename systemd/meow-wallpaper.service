@@ -61,7 +61,7 @@ ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
 #   fora deste `export` chega vazia no script, e o efeito não é "não funciona" —
 #   é este relógio desfazendo, quatro vezes por hora, exatamente a escolha que
 #   ela acabou de autorizar com `meow wallpaper permitir`.
-ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/wallpaper.sh" ] || exit 0; export WALLPAPER_BASE WALLPAPER_INTERVALO WALLPAPER_ORDEM WALLPAPER_FONTES_DELA WALLPAPER_AJUSTE; exec "$R/scripts/wallpaper.sh" aplicar'
+ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/wallpaper.sh" ] || exit 0; export WALLPAPER_BASE WALLPAPER_INTERVALO WALLPAPER_ORDEM WALLPAPER_FONTES_DELA WALLPAPER_AJUSTE WALLPAPER_NOITE WALLPAPER_NOITE_INICIO WALLPAPER_NOITE_FIM WALLPAPER_LIMIAR_LUZ; exec "$R/scripts/wallpaper.sh" aplicar'
 
 SuccessExitStatus=1 3 4
 

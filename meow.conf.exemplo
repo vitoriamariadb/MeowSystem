@@ -84,6 +84,77 @@ VIDRO_AO_MAXIMIZAR="sim"
 VIDRO_OPACIDADE_PAINEL=""
 VIDRO_OPACIDADE_DOCK=""
 
+# OS SEGUNDOS DO RELÓGIO DA BARRA DE CIMA. "nao" tira, "sim" põe de volta.
+#
+# ESTA CHAVE OBEDECE AO MESMO CONTRATO DAS DUAS DE VIDRO ACIMA. O relógio tem
+# controle na GUI (Ajustes → Data e hora), e a regra do projeto é que onde a GUI
+# tem controle o valor é SEU. Vazio = o MeowSystem não toca; o botão manda.
+# Preencher volta a IMPOR, em toda passagem do `meow doctor` — inclusive às 5h.
+# Se um dia você mexer no botão e quiser que a sua escolha valha, ESVAZIE esta
+# linha em vez de brigar com o doctor.
+#
+# Medido em 25/08/2026: vale na hora, em menos de 2 s, sem reiniciar o painel.
+# E APAGAR O ARQUIVO NÃO REVERTE — o `remover` escreve `true` de volta, e o
+# valor de antes fica guardado em ~/.local/state/meowsystem/relogio/.
+#
+# O QUE ELA NÃO MEXE: a data ("25 de ago.") e o dia da semana. As chaves existem
+# no binário (`show_date_in_top_panel`, `show_weekday`) e não estão no disco —
+# ficam de fora até você pedir.
+RELOGIO_SEGUNDOS="nao"            # nao | sim | vazio (= não toca)
+
+# O logo do fastfetch: a Coquinha em ANSI no lugar do Pop!_OS.
+#
+# O DESENHO É NOSSO, A CHAVE NÃO É. O arquivo nasce em
+# ~/.local/share/meowsystem/fastfetch/<gato>.ansi, que é território do
+# MeowSystem. Quem manda o fastfetch usá-lo é `logo.source`, no config.jsonc de
+# ~/.config/fastfetch — que é symlink para ~/.config/zsh e é do Ritual da
+# Aurora. O módulo GERA e CONFERE; o patch para colar lá sai em
+# `scripts/fastfetch_logo.sh patch`. Enquanto ninguém colar, o `meow doctor`
+# mostra a pendência e NÃO notifica.
+#
+# A arte sai do SVG da Coquinha (assets/gatos/), não de foto e não de desenho
+# meu — não existe foto dela nesta máquina, e desenho autoral ela já reprovou
+# em 05/08/2026.
+FASTFETCH_LOGO="sim"              # sim | nao
+
+# Qual gato. `coquinha` e `mimir` saem de assets/gatos/; qualquer outro valor é
+# tratado como caminho de um SVG seu.
+FASTFETCH_LOGO_GATO="coquinha"
+
+# Largura em COLUNAS. 40 é a largura do logo `pop` que ele substitui, então o
+# bloco de texto continua começando na mesma coluna. A ALTURA NÃO SE CONFIGURA:
+# ela sai de 40/2,556, a proporção medida da célula do cosmic-term dela
+# (9,00 x 23,00 px) — é isso que faz o disco sair redondo em vez de oval. O
+# "40x20" que a sprint pedia desenharia um retângulo 28% mais alto que largo.
+FASTFETCH_LOGO_COLUNAS="40"
+
+# O PONTEIRO — o único elemento que atravessa a tela inteira o tempo todo.
+# Vazio = não toca, como as VIDRO_OPACIDADE_* logo acima.
+#
+# ATENÇÃO AO NOME, PORQUE ELE MENTE SOBRE A COR. Nos flavors de ACCENT do
+# acervo (`-mauve`, `-blue`, …) o CORPO do cursor recebe o accent e o contorno
+# recebe a Base — o oposto do que o nome sugere. Medido em 25/08/2026,
+# decodificando o XCursor e tirando a luminância do pixel opaco mais frequente:
+#
+#     catppuccin-mocha-light    #CDD6F4    214   <- o Text do Mocha
+#     catppuccin-mocha-mauve    #CBA6F7    180
+#     catppuccin-frappe-mauve   #CA9EE6    173
+#     catppuccin-latte-mauve    #8839EF     87   <- ESCURO, some no campo escuro
+#     catppuccin-mocha-dark     #1E1E2E     31
+#     Pop (o de fábrica)        #FFFFFF    255
+#
+# Por isso o `latte-mauve`, escolhido em 25/08 sob a premissa de que "só o Latte
+# tem corpo claro", é justamente o pior sobre papel de parede escuro. E há um
+# segundo critério: um cursor `-mauve` é mauve o tempo todo, o que contraria a
+# regra da Sprint T ("mauve significa aceso"). O `mocha-light` é o único que
+# resolve os dois — claro e neutro.
+#
+# Para ver antes de escolher:  scripts/cursor.sh estado
+# O TAMANHO não mora aqui de propósito: 24 é o padrão dos dois lados, e gravá-lo
+# seria impor um valor onde não havia nenhum.
+CURSOR="catppuccin-mocha-light"
+CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
+
 # O TAMANHO DE TUDO NA TELA — e a única forma de aumentar a FONTE no COSMIC.
 #
 # Não há chave de tamanho de fonte neste desktop: o texto da interface é 14 px
@@ -226,6 +297,45 @@ WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
 #   caber      mostra a imagem inteira; o que sobrar vira tarja preta
 #   esticar    deforma a imagem até caber (praticamente nunca é o que se quer)
 WALLPAPER_AJUSTE="preencher"      # preencher | caber | esticar
+
+# --- CLARO E ESCURO: ELA USA A MÁQUINA À NOITE ------------------------------
+# Em 24/08/2026, numa captura de 23:57, o papel de parede era vaporwave pastel
+# CLARO dentro de um sistema Mocha, e as duas barras apareciam lavadas. O papel
+# é 95% dos pixels da tela: sem campo escuro não existe "aceso".
+#
+# Com isto ligado, o `wallpaper.sh` mede a luminância perceptual de cada imagem
+# de `ativos/` e monta duas pastas de LINK DURO ao lado dela — `ativos-noite/` e
+# `ativos-dia/` —, apontando o carrossel para a do horário. NENHUM ARQUIVO É
+# MOVIDO: o acervo continua sendo `ativos/`, que é o que o `permitir`, o `banir`,
+# o `semear` e o README conhecem.
+#
+# DESLIGAR DESLIGA: com "nao" a rotação volta para `ativos/` e as duas pastas
+# derivadas somem do disco no mesmo comando.
+WALLPAPER_NOITE="sim"             # sim | nao
+WALLPAPER_NOITE_INICIO="18:00"    # HH:MM — a janela pode atravessar a meia-noite
+WALLPAPER_NOITE_FIM="07:00"       # HH:MM — início == fim = noite o dia inteiro
+
+# O CORTE, E POR QUE ELE NÃO É UM NÚMERO REDONDO
+#   0 = preto, 1 = branco, em luminância perceptual (0,2126·R + 0,7152·G +
+#   0,0722·B). Medidos os 54 papéis em 25/08/2026, o histograma tem um vale
+#   exatamente aqui: só DUAS imagens entre 0,35 e 0,40, contra 7 em cada faixa
+#   vizinha. E o vale coincide com o `surface2` do Mocha (#585B70 = 0,3603), o
+#   tom mais claro que o tema usa como FUNDO — mais claro que isso, o papel
+#   deixa de ser campo e passa a competir com a interface.
+#
+#   0,37 e não 0,36 porque 0,3603 cai EM CIMA de uma imagem (0,3605): o trecho
+#   vazio mais largo dentro do vale vai de 0,3605 a 0,3818, e 0,37 é o meio
+#   dele — nenhuma imagem fica a menos de 0,01 do corte.
+#
+#   NÃO USE `%[fx:mean]` PARA MEDIR ISTO. Ele é a média dos três canais com peso
+#   igual, e erra caso a caso: um papel com R=0,412 G=0,029 B=0,279 dá 0,240 na
+#   crua (15º lugar) e 0,128 na perceptual (2º mais escuro do acervo). O
+#   `%[fx:luminance]` também não serve — é símbolo POR PIXEL, avaliado em (0,0).
+#   O caminho certo é `-colorspace Gray` antes do `%[fx:mean]`.
+#
+#   Neste acervo dá 32 na noite e 22 no dia. Baixar põe mais imagem na noite e
+#   clareia o grupo; subir faz o contrário e aperta o dia, que já está no piso.
+WALLPAPER_LIMIAR_LUZ="0.37"       # 0 = preto, 1 = branco
 
 # UM GATO POR DIA — e o número aqui não é escolha estética, é consequência
 #   O pedido original era o gato trocar junto com o papel de parede, a cada 5
@@ -454,6 +564,76 @@ MIDIA_COR_ARTISTA="green"
 # Ligue se um dia o applet ficar sozinho (na dock, longe do Som): aí ele precisa
 # dos próprios botões. O popup dele tem os três de qualquer jeito, sempre.
 MIDIA_CONTROLES="nao"
+
+# --- Terminal --------------------------------------------------------------
+
+# A PALETA ANSI do cosmic-term — a última peça da tela que era de fábrica.
+#
+# O esquema é gerado a partir de FLAVOR e da `palette/catppuccin.json`, e bate
+# CAMPO A CAMPO com o port oficial (`catppuccin/cosmic-desktop`), conferido nos
+# quatro flavors em 25/08/2026. Nada é baixado: a paleta é local.
+#
+# São escritos QUATRO arquivos em `~/.config/cosmic/com.system76.CosmicTerm/v1`:
+# os dois mapas de esquema e as duas chaves que os SELECIONAM — um esquema
+# instalado e não selecionado não muda um pixel, e esse era o modo de falha mais
+# provável desta sprint. `font_name`, `font_size` e `opacity` NÃO são tocados:
+# são escolha dela, e o `opacity: 96` está no ponto.
+#
+# "nao" DESINSTALA — tira o nosso esquema e volta à paleta de fábrica,
+# preservando qualquer esquema que você tenha importado pela GUI. Deixar de
+# aplicar manteria de pé o que uma passagem anterior escreveu, e o sintoma seria
+# "desliguei e continua".
+TERMINAL_ESQUEMA="sim"      # sim | nao
+
+# ONDE O ACCENT ENTRA, E É A ÚNICA DECISÃO DE GOSTO DESTE MÓDULO.
+# O port oficial pinta o cursor de `rosewater` e não usa `mauve` em lugar nenhum
+# (o magenta do ANSI no Catppuccin é o `pink`, #F5C2E7, não o mauve). "accent"
+# troca o cursor pela cor de ACCENT — com mocha/mauve, #CBA6F7, a assinatura
+# dela no resto da máquina. "port" devolve exatamente o arquivo oficial.
+TERMINAL_CURSOR="accent"    # accent | port
+
+
+# O prompt do zsh, pelo starship, com o preset OFICIAL catppuccin-powerline no
+# flavor mocha e accent mauve.
+#
+#   ESTA CHAVE MANDA EM METADE DA COISA, E É DE PROPÓSITO. O preset é nosso e vai
+#   para ~/.config/starship.toml. A linha que LIGA o starship mora em
+#   ~/.config/zsh/env.zsh, que é o Ritual da Aurora — a TRAVA 1 recusa aquele
+#   caminho, e está certa: arquivo largado lá vira commit no repositório privado
+#   dela em 10 minutos. A segunda metade sai como patch, e é ela quem aplica:
+#       ./scripts/prompt.sh mostrar
+#
+#   Com "nao" o módulo não mexe em nada — NÃO desfaz. Desfazer é o `patch -R` do
+#   env.zsh primeiro e só depois `./scripts/prompt.sh remover`; na ordem inversa
+#   o shell não volta ao prompt antigo, volta ao PADRÃO do starship.
+#
+#   O starship NÃO está no apt do Pop!_OS (medido em 25/08/2026: `apt-cache
+#   policy starship` devolve vazio). Sem ele esta etapa se pula, sem escrever
+#   nada.
+#
+#   O nome não é `PROMPT` porque `PROMPT` é a variável do prompt no zsh: um
+#   `. meow.conf` dado num zsh para inspecionar o arquivo transformaria o prompt
+#   daquele terminal em "sim".
+# sim | nao
+PROMPT_STARSHIP="sim"
+
+# APPS QUE NÃO PODEM SUBIR SOZINHOS NO LOGIN.
+# Lista separada por vírgula de IDs de `.desktop` — o nome do arquivo em
+# `~/.config/autostart/`, sem a extensão. VAZIA = não faz nada.
+#
+# O bloqueio é `systemctl --user mask app-<id>@autostart.service`, e NÃO uma
+# edição do `.desktop`: `~/.config/autostart/` é do Ritual da Aurora, e um
+# `Hidden=true` ali some no próximo ciclo do self-heal (~1h) ou depois do
+# próximo `apt`.
+#
+# Abrir o app pelo ícone continua funcionando: o lançador do COSMIC cria um
+# escopo (`app-cosmic-<id>-<pid>.scope`), que não é a unidade mascarada.
+#
+# 25/08/2026: o qBittorrent, que motivou a Sprint L, JÁ estava resolvido em dois
+# lugares desde 11/08 — a Aurora desligou o próprio bloco de autostart, e o mask
+# está no disco desde 11/08 09:59. O nome fica aqui para virar política
+# declarada e conferível, em vez de um link para /dev/null sem dono.
+AUTOSTART_BLOQUEADOS="org.qbittorrent.qBittorrent"
 
 BACKUPS_MANTIDOS="10"
 LOG_NIVEL="info"                  # silencioso | info | debug

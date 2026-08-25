@@ -50,7 +50,9 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts` | Aurora | **Aurora** — é o colar dela |
 | `pinned_workspaces` | Aurora | **Aurora** |
 | `~/.config/autostart/` | Aurora | **Aurora** |
-| `gsettings` / `dconf` (`button-layout`) | Aurora | **Aurora** |
+| `gsettings` / `dconf` — `org.gnome.desktop.wm.preferences` (`button-layout`) | Aurora | **Aurora** |
+| `gsettings` / `dconf` — `org.gnome.desktop.interface` (`cursor-theme`) | Meow (`cursor.sh`) | **Meow** — resolvido em 25/08/2026, ver abaixo |
+| `~/.icons/default/index.theme` | Meow (`cursor.sh`) | **Meow** — é o que o `cosmic-comp` obedece; o gsettings NÃO o alcança |
 | `/usr/local/bin/*` (wrappers de execução) | Aurora | **Aurora** |
 | `/usr/local/share/zsh/site-functions/_meow` | Aurora | **Aurora instala, Meow fornece** |
 | binário `cosmic-comp` (patches de workspace e night light) | Aurora | **Aurora** |
@@ -327,3 +329,63 @@ comentários `v3.56` do `ritual-aurora-self-heal.sh`.
 
 Quem mudar um dos lados, muda os dois — este arquivo é o que sobra quando ninguém lembra
 por quê.
+
+---
+
+## O cursor tem dois donos na tela, e nenhum deles era nós (25/08/2026)
+
+A Sprint P abriu uma pergunta de fronteira que a tabela não respondia: a linha
+`gsettings / dconf` dava tudo à Aurora, mas nomeava **`button-layout`**, não a
+chave inteira. Antes de escrever, foi medido — e a resposta é limpa nos dois
+sentidos.
+
+**A Aurora não escreve `cursor-theme`.** Todo `gsettings set` vivo do
+repositório dela mira `org.gnome.desktop.wm.preferences`:
+
+```
+grep -rn 'gsettings set' ~/.config/zsh/scripts/
+  aurora-button-layout.service:19   ...wm.preferences button-layout
+  ritual-aurora-self-heal.sh:1833   ...wm.preferences button-layout
+```
+
+A única menção a `cursor-theme` no repositório dela está em
+`functions/restaurar.zsh:587`, dentro do comando **manual**
+`sistema_restaurar <manifesto.json>` — sem timer, sem self-heal, e sem
+manifesto no disco (`~/.config/andromeda/manifesto/` não existe). Mesmo rodado
+à mão ele não dispara aqui: `__restaurar_capturar_tema()` tem saída antecipada
+para COSMIC e grava cursor vazio, e o lado escritor é guardado por
+`[[ -n "$cursor" ]]`.
+
+A assimetria que fica: **Aurora manda em `wm.preferences`, Meow manda em
+`desktop.interface`** — onde `icon-theme` e `gtk-theme` já eram nossos pela
+mesma tabela.
+
+### E o achado que muda o desenho: são DOIS cursores, não um
+
+O `gsettings` sozinho não teria resolvido nada visível no desktop, e isso levou
+uma medição para descobrir:
+
+```
+strings /usr/bin/cosmic-comp | grep -c cursor-theme   ->  0
+grep -rl cursor-theme /usr/bin/                       ->  nenhum arquivo
+```
+
+O compositor **não lê o gsettings para cursor**. Ele usa a crate `xcursor` com
+`XCURSOR_THEME`, que está **vazia** no `/proc/<pid>/environ` do processo vivo —
+e então cai no tema `default`, que em `/usr/share/icons/default/index.theme`
+declara `Inherits=Adwaita`. **O cursor do desktop dela era Adwaita, corpo
+`#000000`**, enquanto o `Pop` que o `gsettings get` devolvia governava só as
+janelas GTK.
+
+Por isso o `cursor.sh` puxa duas alavancas: a chave do gsettings (GTK, vale na
+hora) e `~/.icons/default/index.theme` (compositor, vale no próximo login).
+`~/.icons` vem antes de `/usr/share/icons` no caminho de busca, então sombreia
+o `default` do sistema sem apagá-lo — é o mesmo movimento que o `som.sh` faz
+com o tema `freedesktop`, e não fere a TRAVA 1.
+
+**O `'Pop'` nunca foi valor gravado.** `dconf read` devolve vazio; o `Pop` vem
+de `50_pop-desktop.gschema.override:33`. Por isso `cursor.sh remover` faz
+`gsettings reset` e **não** `set 'Pop'` — repor à mão deixaria valor onde não
+havia nenhum, e isso é uma travessia de fronteira silenciosa com outro nome.
+
+---
