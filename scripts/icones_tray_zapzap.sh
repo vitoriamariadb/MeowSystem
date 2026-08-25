@@ -249,7 +249,20 @@ _pronto() {
     meow_pula "sem flatpak nesta máquina — o ZapZap não tem como estar aqui"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-  if ! flatpak info "$APP_ID" >/dev/null 2>&1; then
+  # POR DIRETÓRIO, NÃO POR `flatpak info` — E ISSO É CONSERTO DE 24/08/2026.
+  # `flatpak info` cria um repositório ostree INTEIRO em ~/.local/share/flatpak
+  # só por ter sido perguntado. `lib/comum.sh` documenta a armadilha desde
+  # 10/08 e oferece o `meow_flatpak_tem` justamente para isto; este script era o
+  # único chamador que ainda perguntava do jeito caro. O preço não era teórico:
+  # `tests/seco.sh` — o canário que garante que `MEOW_DRY_RUN=1` não escreve
+  # nada — reprovava com `./.local/share/flatpak/.changed` e
+  # `./.local/share/flatpak/repo/config`, e reprovava para o projeto INTEIRO,
+  # mascarando qualquer vazamento novo que aparecesse depois.
+  #
+  # As outras duas chamadas a `flatpak info --show-location` neste arquivo ficam
+  # como estão: só se chega nelas DEPOIS desta porta, ou seja, num HOME onde o
+  # ZapZap está instalado e o repositório já existe.
+  if ! meow_flatpak_tem "$APP_ID"; then
     meow_pula "$APP_ID não está instalado — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
