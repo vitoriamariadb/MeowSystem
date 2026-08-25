@@ -28,10 +28,32 @@
 # unidade é PULADA com o motivo no journal, em vez de falhar de 15 em 15 minutos
 # para sempre. O ponteiro mora em `/home`, que está sempre montado.
 
+# AGORA ELE TEM DOIS GATILHOS (25/08/2026)
+#   Além do `meow-wallpaper.timer` de 15 minutos, o `meow-fundo.path` acorda
+#   este mesmo serviço no INSTANTE em que a config de fundo do COSMIC muda.
+#   Motivo medido no cabeçalho daquele arquivo: abrir a janela de papel de
+#   parede — só abrir, sem clicar — reseta a saída ativa para
+#   `/usr/share/backgrounds` + `Alphanumeric`. O relógio já consertava isso, em
+#   até 15 minutos; o gatilho conserta em segundos. O `StartLimit` abaixo existe
+#   por causa dele: relógio nunca estoura burst, gatilho pode.
+
 [Unit]
 Description=MeowSystem — reafirma o carrossel de papéis de parede
 Documentation=file:%h/.local/state/meowsystem/raiz
 ConditionPathExists=%h/.local/state/meowsystem/raiz
+# O serviço escreve no diretório que o `meow-fundo.path` vigia — a receita de
+# laço. MEDIDO em 25/08/2026, com um reset de fábrica simulado na saída
+# DESCONECTADA (`output.HDMI-A-1`, para não mexer na TV dela): UM start, não
+# dois. O eco da escrita do próprio reparo chega enquanto a unidade ainda está
+# em `activating` (por causa do `sleep 2` abaixo) e o systemd o funde no
+# `JOB_START` que já está correndo, em vez de enfileirar outro.
+#
+# 20 em 5 min é folga larguíssima para esse teto de um; serve para uma sequência
+# de trocas de monitor sem nunca desarmar o vigia, que é o que um burst
+# estourado faria (unidade em `failed` e `.path` parado junto — o modo de falha
+# calado que este projeto não aceita).
+StartLimitIntervalSec=300s
+StartLimitBurst=20
 
 [Service]
 Type=oneshot
@@ -55,13 +77,48 @@ Type=oneshot
 #   de lock, mas não o diretório, e numa máquina onde o `install.sh` ainda não
 #   passou ele não existe. Prefixo `-` para não falhar por causa disso.
 ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
-# A LISTA DE `export` É PARTE DA FRONTEIRA, NÃO ENFEITE
-#   `WALLPAPER_FONTES_DELA` entrou em 11/08/2026 (Sprint M) e PRECISA estar
-#   aqui: é ela que diz quais caminhos são escolha dela. Uma chave que fique de
-#   fora deste `export` chega vazia no script, e o efeito não é "não funciona" —
-#   é este relógio desfazendo, quatro vezes por hora, exatamente a escolha que
-#   ela acabou de autorizar com `meow wallpaper permitir`.
-ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/wallpaper.sh" ] || exit 0; export WALLPAPER_BASE WALLPAPER_INTERVALO WALLPAPER_ORDEM WALLPAPER_FONTES_DELA WALLPAPER_AJUSTE WALLPAPER_NOITE WALLPAPER_NOITE_INICIO WALLPAPER_NOITE_FIM WALLPAPER_LIMIAR_LUZ; exec "$R/scripts/wallpaper.sh" aplicar'
+# A LISTA DE `export` ERA PARTE DA FRONTEIRA — E ERA TAMBÉM A ARMADILHA Nº 3
+#   Havia aqui nove nomes `WALLPAPER_*` digitados à mão. O aviso que estava
+#   escrito neste lugar continua valendo e é grave: uma chave de fora da lista
+#   chega VAZIA no script, e o efeito não é "não funciona" — é este serviço
+#   desfazendo a escolha que ela acabou de autorizar com
+#   `meow wallpaper permitir`. Só que a defesa era a própria lista, e lista fixa
+#   é o modo de falha nº 3 do idempotencia-armadilhas.md. Em 25/08/2026 ele
+#   cobrou: seis chaves `FORMA_*` novas ficaram mortas no `bin/meow` por
+#   exatamente isso, e o `doctor` dizia "já conforme" sem ter conferido nada.
+#   `set -a` exporta TUDO o que o meow.conf definir, então chave nova nasce
+#   valendo. É a mesma cura aplicada no `carregar_conf` do `bin/meow`.
+#
+#   `set -a` FUNCIONA MESMO NO `/bin/sh` DO SYSTEMD? Sim, e foi conferido, não
+#   suposto: aqui o `/bin/sh` é o dash (`/bin/sh -> dash`), e o `set -a` do
+#   POSIX marca para exportação toda atribuição FEITA DEPOIS dele — o que inclui
+#   as do arquivo lido por `.`. Testado com um conf de duas chaves:
+#       $ sh -c 'C=t.conf; set -a; . "$C"; set +a; R=x; env | grep -E "^(FOO_NOVA|R)="'
+#       FOO_NOVA=valor-novo            <- chave que NÃO estava em lista nenhuma
+#       (nada de R)                    <- atribuição depois do `set +a` não vaza
+#   O `R=$(cat …/raiz)` fica de fora do `set -a` de propósito: é variável de
+#   trabalho desta linha, não configuração dela.
+#
+#   O QUE `set -a` ALARGA, e é o preço a saber: agora TODA chave do meow.conf
+#   vira variável de ambiente do `wallpaper.sh`, não só as `WALLPAPER_*`. É
+#   seguro hoje porque o script fixa os próprios caminhos incondicionalmente
+#   (`BG=`, `LUZ_TSV=` etc. não têm `${…:-}`), mas uma chave futura com nome de
+#   variável interna do script passaria a mandar nela. Nome de chave nova
+#   continua sendo decisão com consequência.
+#
+# O `sleep 2` É DEBOUNCE, E É POR ISSO QUE NÃO HÁ LAÇO (medido em 25/08/2026)
+#   Ele mantém a unidade em `activating` por 2 s depois do disparo. A escrita do
+#   próprio reparo cai dentro dessa janela, e o systemd funde o evento no
+#   `JOB_START` que já está correndo em vez de agendar outra execução: o
+#   experimento controlado deu UM start por evento, não dois. Ver o cabeçalho do
+#   `meow-fundo.path`.
+#
+#   E ele NÃO atrapalha o relógio de 15 minutos: 2 s a mais num tique que só lê
+#   cinco arquivos pequenos e quase sempre não escreve nada é invisível — o
+#   journal mostra os tiques da manhã terminando no MESMO segundo em que
+#   começavam, e os de hoje à tarde, com o `sleep`, em 2,1 s.
+ExecStartPre=-/usr/bin/sleep 2
+ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/wallpaper.sh" ] || exit 0; exec "$R/scripts/wallpaper.sh" aplicar'
 
 SuccessExitStatus=1 3 4
 

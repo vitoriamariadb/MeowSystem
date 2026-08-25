@@ -55,7 +55,18 @@ ConditionPathExists=%h/.local/state/meowsystem/raiz
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/bin/true
-ExecStop=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 0; . "$C"; [ "${LOGO_ROTACAO:-nao}" = "sim" ] || exit 0; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/logo.sh" ] || exit 0; export FLAVOR LOGO LOGO_INTERVALO; exec "$R/scripts/logo.sh" girar-vencido'
+# A LISTA `export FLAVOR LOGO LOGO_INTERVALO` ERA A ARMADILHA Nº 3, E COBRAVA
+#   O `scripts/logo.sh` lê SEIS chaves do conf, não três: além dessas, ele lê
+#   `LOGO_ROTACAO` (que a linha já testava à mão) e, na linha 336,
+#   `NOME_TEMA_ICONES` — que ficava de FORA do export e chegava vazia. O efeito
+#   não é erro: o script cai no padrão `MeowSystem-Icons` e grava o gato numa
+#   árvore de tema que, numa máquina com `NOME_TEMA_ICONES` customizado, ninguém
+#   lê. Sem erro, sem log, sem nada — o modo de falha calado de sempre.
+#   `set -a` exporta tudo o que o conf definir, então chave nova nasce valendo.
+#   Conferido: aqui o `/bin/sh` é o dash, e o `set -a` do POSIX marca para
+#   exportação toda atribuição feita depois dele, inclusive as vindas do `.`.
+#   Mesma cura do `meow-wallpaper.service` e do `carregar_conf` do `bin/meow`.
+ExecStop=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 0; set -a; . "$C"; set +a; [ "${LOGO_ROTACAO:-nao}" = "sim" ] || exit 0; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/logo.sh" ] || exit 0; exec "$R/scripts/logo.sh" girar-vencido'
 
 # 1 é o código de "estava divergente e eu consertei" deste projeto — que é
 # exatamente o que uma troca bem-sucedida devolve. Sem isto, TODA rotação

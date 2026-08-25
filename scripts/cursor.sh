@@ -205,15 +205,50 @@ _cursor_default_e_nosso() {
   [ -f "$CURSOR_DEFAULT" ] && grep -q 'MeowSystem' "$CURSOR_DEFAULT" 2>/dev/null
 }
 
+# LER NÃO PODE ESCREVER — E O `gsettings get` ESCREVE QUANDO NÃO HÁ BARRAMENTO
+#   Medido em 25/08/2026: com a sessão de pé, `gsettings get` fala com o serviço
+#   do dconf e não toca em disco nenhum. SEM `DBUS_SESSION_BUS_ADDRESS`, o
+#   cliente do dconf não tem com quem falar e CRIA `~/.cache/dconf/user` sozinho
+#   — abrindo com O_RDWR|O_CREAT. Uma LEITURA que escreve.
+#
+#   Isso deixou o `tests/seco.sh` vermelho: ele roda o `install.sh --dry-run` com
+#   `env -i` num HOME vazio, justamente para provar que o seco não escreve nada,
+#   e a fase de DETECÇÃO do cursor sujava o HOME. É a mesma classe do defeito que
+#   aquele teste já pegou em 10/08 (o `code --list-extensions` e o
+#   `flatpak info` deixando oito arquivos): detecção com efeito colateral.
+#
+#   `DCONF_PROFILE=/dev/null` cala a criação do cache. Mas ele NÃO pode valer
+#   sempre que falta barramento, e essa foi a minha primeira tentativa, errada:
+#   sem perfil o `gsettings get` devolve o default do ESQUEMA e não o que está
+#   no banco da usuária, então logo depois de um `gsettings set` a leitura ainda
+#   diz `Adwaita` — a etapa se acha divergente e reescreve A CADA PASSAGEM. Isso
+#   deixou o `tests/convergencia.sh` vermelho ("ainda mexia na passagem 3"): eu
+#   tinha trocado um teste quebrado por outro.
+#
+#   A guarda certa é o SECO, não o barramento. No seco não há `set` nenhum para
+#   ler de volta — só se descreve o que MUDARIA —, então o default do esquema
+#   serve de base e nada precisa ser exato. Fora do seco o caminho é o normal, e
+#   aí criar o cache do dconf não viola promessa alguma: execução que escreve,
+#   escreve.
+#
+#   Vale só para LEITURA. O `gsettings set` lá embaixo nunca passa por aqui.
+_cursor_gsettings_ler() {
+  if meow_seco && [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+    DCONF_PROFILE=/dev/null gsettings "$@"
+  else
+    gsettings "$@"
+  fi
+}
+
 # O valor EFETIVO do gsettings (default de esquema incluído), sem aspas.
 _cursor_gsettings_valor() {
   meow_tem gsettings || return 1
-  gsettings get "$CURSOR_CHAVE" cursor-theme 2>/dev/null | tr -d "'"
+  _cursor_gsettings_ler get "$CURSOR_CHAVE" cursor-theme 2>/dev/null | tr -d "'"
 }
 
 _cursor_tamanho() {
   meow_tem gsettings || { printf '24'; return; }
-  gsettings get "$CURSOR_CHAVE" cursor-size 2>/dev/null || printf '24'
+  _cursor_gsettings_ler get "$CURSOR_CHAVE" cursor-size 2>/dev/null || printf '24'
 }
 
 # O tema já está no disco? Aceita também um tema que ela tenha instalado por
@@ -315,11 +350,32 @@ cmd_aplicar() {
   elif meow_seco; then
     meow_muda "gsettings cursor-theme: '$atual' -> '$nome'"; mudou=1
   else
-    if gsettings set "$CURSOR_CHAVE" cursor-theme "$nome" 2>/dev/null; then
+    # CONFERIR DEPOIS DE ESCREVER, PORQUE O `gsettings set` MENTE (25/08/2026)
+    #   Medido num HOME de brinquedo sem `DBUS_SESSION_BUS_ADDRESS`:
+    #       gsettings set ... cursor-theme 'teste-meow'   -> exit 0, sem uma
+    #       gsettings get ... cursor-theme                -> 'Adwaita'   palavra
+    #   O escritor do dconf é um serviço de D-Bus (`ca.desrt.dconf`). Sem
+    #   barramento não há quem guarde, e mesmo assim o `gsettings` sai ZERO.
+    #
+    #   O efeito era esta etapa se achar divergente TODA passagem e reescrever
+    #   para sempre — `tests/convergencia.sh` acusava "ainda mexia na passagem
+    #   3", e o culpado era `cursor`. Confiar no código de saída é o modo de
+    #   falha silencioso de sempre: o instalador dizia "já vale" e nada valia.
+    #
+    #   Não é erro fatal: numa sessão de verdade isto nunca acontece, e num CI
+    #   sem sessão não há o que consertar. Então vira PULO, com o conserto dito
+    #   em voz alta — e, principalmente, sem contar como mudança, senão a
+    #   promessa de convergência do README seria falsa em qualquer máquina sem
+    #   barramento.
+    if ! gsettings set "$CURSOR_CHAVE" cursor-theme "$nome" 2>/dev/null; then
+      meow_erro "gsettings recusou escrever cursor-theme"; return "$MEOW_ERRO"
+    fi
+    if [ "$(_cursor_gsettings_valor)" = "$nome" ]; then
       meow_muda "gsettings cursor-theme: '$atual' -> '$nome' (apps GTK, já vale)"
       mudou=1
     else
-      meow_erro "gsettings recusou escrever cursor-theme"; return "$MEOW_ERRO"
+      meow_pula "o gsettings aceitou cursor-theme e não guardou (sem barramento de sessão)"
+      meow_info "  o cursor do compositor abaixo não depende disto e continua valendo"
     fi
   fi
 

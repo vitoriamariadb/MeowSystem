@@ -103,7 +103,18 @@ ExecStartPre=-/usr/bin/sleep 3
 # `ExecStopPost` abaixo fala em `EXIT_STATUS=1`: sem ele, ceder a vez ao lock
 # faria o `flock` sair 1 e ela receberia na tela o aviso de "o acervo mudou"
 # sem que nada tivesse sido escrito.
-ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; . %h/.config/meow/meow.conf; export FLAVOR LOGO; exec "$R/scripts/logo.sh"'
+# A LISTA `export FLAVOR LOGO` ERA A ARMADILHA Nº 3, IGUAL À DO meow-logo.service
+#   O `scripts/logo.sh` lê `NOME_TEMA_ICONES` na linha 336, e ela ficava de fora
+#   deste export: chegava vazia, o script caía no padrão `MeowSystem-Icons` e o
+#   gato novo era gravado numa árvore de tema que, com `NOME_TEMA_ICONES`
+#   customizado, ninguém lê. Sem erro e sem log — o `.path` dispara, o serviço
+#   diz "Finished", e o gato não aparece.
+#
+#   O `[ -f "$C" ]` também é conserto: o `. %h/.config/meow/meow.conf` estava
+#   NU. No dash, um `.` sobre arquivo inexistente ABORTA o shell, então numa
+#   máquina onde o `install.sh` ainda não passou este serviço falhava em vez de
+#   sair calado — que é o contrato de todas as outras unidades daqui.
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; exec "$R/scripts/logo.sh"'
 
 # 1 é "estava divergente e eu consertei" — o código que o `logo.sh` devolve
 # quando o acervo mudou, que é justamente o caso normal aqui. 3 é "o applet
