@@ -179,6 +179,17 @@ _SPOT_INI="$_SPOT_CONFIG_DIR/config-xpui.ini"
 _SPOT_TEMA="$_SPOT_CONFIG_DIR/Themes/catppuccin"
 _SPOT_COLOR_INI="$_SPOT_TEMA/color.ini"
 
+# O Marketplace é um CustomApp do spicetify — uma PÁGINA dentro do Spotify, de
+# onde se instalam extensões, snippets e outros apps. Ele NÃO vem no binário: o
+# instalador oficial pergunta "Do you also want to install spicetify
+# Marketplace? (Y/n)" no fim, e em 10/08/2026 essa pergunta foi cortada de
+# propósito (item 4). Ela pediu em 24/08/2026, e agora quem instala é o
+# MeowSystem — não um `curl | sh`, que não é idempotente nem sobrevive ao doctor.
+_SPOT_MP_DIR="$_SPOT_CONFIG_DIR/CustomApps/marketplace"
+_SPOT_MP_VERSAO="$_SPOT_MP_DIR/.meow-versao"
+_SPOT_MP_RELEASES="https://github.com/spicetify/marketplace/releases"
+_SPOT_MARKETPLACE="${SPOTIFY_MARKETPLACE:-sim}"
+
 # O binário: PATH primeiro (se ela um dia o puser lá), depois o lugar onde o
 # instalador oficial o deixa. Ver item 4.
 _spot_cli() {
@@ -215,6 +226,212 @@ _spot_ini_ler() {
   [ -f "$_SPOT_INI" ] || return 1
   sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*\(.*[^[:space:]]\)[[:space:]]*$/\1/p" \
     "$_SPOT_INI" | head -1
+}
+
+# --- O CARIMBO DE VERSÃO DO BACKUP -----------------------------------------
+# MEDIDO em 24/08/2026, e é a razão de as quatro funções abaixo existirem.
+#
+# O spicetify NÃO lê a versão do Spotify do binário do app: ele lê a chave
+# `app.last-launched-version` do `prefs` — o arquivo que o Spotify só reescreve
+# QUANDO ABRE. Depois de um `flatpak update`, quem rodar `spicetify backup
+# apply` ANTES de ela abrir o Spotify grava no `[Backup] version` a versão
+# VELHA, apesar de o backup recém-tirado ser o da versão NOVA.
+#
+# Foi exatamente o que aconteceu aqui:
+#   13/08 22:32  o flatpak desempacotou a 1.2.95.453.g0eeebbed
+#   13/08 22:34  `backup apply` rodou — o xpui.spa do backup tem sha 7ce05c00…,
+#                que NÃO é o de fábrica da 1.2.92 (5ec1901f…): o backup é NOVO
+#   13/08 22:34  o ini foi carimbado com 1.2.92.147.g5b8f9367, a versão velha
+#
+# O efeito não é um aviso feio, é uma TRANCA: a guarda de versão do `aplicar` e
+# do `reverter` passa a recusar para sempre, porque os dois números nunca mais
+# se encontram sozinhos. No dia em que uma atualização de verdade apagar o tema,
+# o doctor das 05:00 se recusaria a repor — e a mensagem diria "o Spotify
+# atualizou", que é falso. A guarda que existia para proteger virou a razão de
+# o conserto automático não acontecer.
+#
+# A PROVA DE QUE O BACKUP É DA VERSÃO CERTA NÃO É O NÚMERO, É A DATA
+#   O flatpak desempacota cada versão do Spotify num diretório com o nome do
+#   commit e reaponta o symlink `active`. Se o `xpui.spa` do backup é MAIS NOVO
+#   que esse diretório, ele só pode ter saído do app que está no disco agora.
+#   Isso não depende de nenhum detalhe interno do spicetify, e continua valendo
+#   se um dia ele mudar de onde lê a versão.
+#
+# O CARIMBO NÃO É "IGNORAR A GUARDA"
+#   Quando o backup é VELHO de verdade (tirado antes do deploy atual), nada
+#   muda: o `aplicar` continua parando e mandando ler o RECUPERACAO.md, porque
+#   ali o `restore` realmente copiaria a interface velha por cima do app novo.
+
+# O diretório REAL do deploy. `active` é o symlink que o flatpak reaponta.
+_spot_deploy_dir() {
+  readlink -f -- "${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/app/com.spotify.Client/current/active" 2>/dev/null
+}
+
+# Onde o spicetify guarda o backup. Ele respeita o XDG_STATE_HOME.
+_spot_backup_spa() {
+  printf '%s' "${XDG_STATE_HOME:-$HOME/.local/state}/spicetify/Backup/xpui.spa"
+}
+
+# 0 = o backup do spicetify saiu do Spotify que está no disco AGORA.
+_spot_backup_fresco() {
+  local spa dep tspa tdep
+  spa="$(_spot_backup_spa)"
+  dep="$(_spot_deploy_dir)"
+  [ -f "$spa" ] || return 1
+  [ -n "$dep" ] && [ -d "$dep" ] || return 1
+  tspa="$(stat -c %Y -- "$spa" 2>/dev/null)" || return 1
+  tdep="$(stat -c %Y -- "$dep" 2>/dev/null)" || return 1
+  [ "$tspa" -ge "$tdep" ]
+}
+
+# Reescreve UMA linha do config-xpui.ini.
+#
+# NÃO passa pelo `meow_escrever` de propósito, e isto é decisão, não esquecimento:
+# o arquivo é do spicetify, não nosso, e entrar no manifesto o poria na fila de
+# remoção do `--uninstall` — desinstalar o MeowSystem apagaria a configuração de
+# outro programa. A trava de destino (`meow_destino_permitido`) continua valendo,
+# e a escrita continua atômica, dentro do diretório de destino.
+#
+# 0 já estava certo · 1 carimbei · 2 erro
+_spot_carimbar_versao() {
+  local vi vb texto novo modo tmp
+  vi="$(_spot_versao)"
+  [ -n "$vi" ] || return "$MEOW_ERRO"
+  [ -f "$_SPOT_INI" ] || return "$MEOW_ERRO"
+  vb="$(_spot_ini_ler version)"
+  [ "$vb" = "$vi" ] && return "$MEOW_OK"
+
+  meow_destino_permitido "$_SPOT_INI" || return "$MEOW_ERRO"
+  if meow_seco; then
+    meow_muda "carimbaria [Backup] version = $vi no config-xpui.ini (está $vb)"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  texto="$(cat -- "$_SPOT_INI")" || return "$MEOW_ERRO"
+  # `0,/re/` é "só a PRIMEIRA ocorrência" — o mesmo critério do `_spot_ini_ler`,
+  # que lê com `head -1`. Se um dia o ini tiver duas chaves `version`, leitor e
+  # escritor continuam falando da mesma linha.
+  novo="$(printf '%s\n' "$texto" | sed "0,/^[[:space:]]*version[[:space:]]*=/s|^\([[:space:]]*version[[:space:]]*=[[:space:]]*\).*\$|\1$vi|")"
+  [ -n "$novo" ] || return "$MEOW_ERRO"
+  # Conferir ANTES de trocar o arquivo: um sed que não casou devolve o texto
+  # inteiro sem erro, e sem esta linha o carimbo falharia em silêncio.
+  printf '%s\n' "$novo" | grep -qx "[[:space:]]*version[[:space:]]*=[[:space:]]*$vi" || return "$MEOW_ERRO"
+
+  modo="$(stat -c %a -- "$_SPOT_INI" 2>/dev/null)"; modo="${modo:-644}"
+  tmp="$(mktemp -p "$(dirname -- "$_SPOT_INI")" ".meow.XXXXXX")" || return "$MEOW_ERRO"
+  printf '%s\n' "$novo" > "$tmp" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+  chmod "$modo" "$tmp"
+  mv -f "$tmp" "$_SPOT_INI" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+  return "$MEOW_DIVERGENTE"
+}
+
+# --- O MARKETPLACE ---------------------------------------------------------
+# CONFERIDO NOS MESMOS TRÊS NÍVEIS DO TEMA, E PELO MESMO MOTIVO
+#   1. a INTENÇÃO   `custom_apps` no config-xpui.ini
+#   2. a RECEITA    os arquivos em ~/.config/spicetify/CustomApps/marketplace
+#   3. o RESULTADO  `spicetify-routes-marketplace.js` dentro do Apps/xpui
+#   Sem o nível 3, um `apply` que nunca aconteceu passaria por instalação
+#   bem-sucedida — e ela abriria o Spotify procurando um menu que não está lá.
+#
+# O DOWNLOAD PODE FALHAR SEM SER ERRO
+#   Sem rede, o passo devolve "falta dependência" (3) e tenta no ciclo seguinte.
+#   Um erro (2) faria o `install.sh` contar uma falha por causa de Wi-Fi caído.
+#
+# POR QUE NÃO O `curl | sh` OFICIAL
+#   Ele roda `spicetify apply` no fim, sem olhar se o Spotify está aberto, e
+#   troca `current_theme` para "marketplace" quando o tema atual tem 3 letras ou
+#   menos (linhas 61-70 do install.sh deles). Aqui o tema é "catppuccin" e
+#   escaparia — mas depender de um `if` alheio para não perder o tema dela é
+#   frágil. Este caminho nunca toca no `current_theme`.
+_spot_mp_quer() { [ "$_SPOT_MARKETPLACE" = "sim" ]; }
+
+# `custom_apps` é lista separada por vírgula. As bordas viram vírgula para que
+# o primeiro e o último item casem com o mesmo padrão dos do meio.
+_spot_mp_registrado() {
+  case ",$(_spot_ini_ler custom_apps | tr -d '[:space:]')," in
+    *,marketplace,*) return 0 ;;
+  esac
+  return 1
+}
+
+_spot_mp_baixado() {
+  [ -d "$_SPOT_MP_DIR" ] && [ -n "$(ls -A "$_SPOT_MP_DIR" 2>/dev/null)" ]
+}
+
+# MEDIDO em 24/08/2026, depois do primeiro `apply`: o spicetify NÃO cria
+# `Apps/xpui/marketplace/`. Ele ACHATA o CustomApp na raiz do xpui como
+# `spicetify-routes-marketplace.{js,css,json}` (mais `extensions/marketplace`).
+# A primeira versão desta função procurava a pasta e teria dito "falta aplicar"
+# para sempre num Spotify já correto — o mesmo erro que o item 2 deste cabeçalho
+# registra sobre procurar `xpui.spa` depois do apply.
+_spot_mp_no_disco() { [ -f "$(_spot_dir)/Apps/xpui/spicetify-routes-marketplace.js" ]; }
+
+# 0 já estava lá · 1 instalei · 2 erro · 3 falta dependência
+_spot_mp_instalar() {
+  local tag tmp zip
+  _spot_mp_baixado && return "$MEOW_OK"
+
+  meow_tem curl  || { meow_pula "sem curl — o Marketplace fica de fora"; return "$MEOW_SEM_DEPENDENCIA"; }
+  meow_tem unzip || { meow_pula "sem unzip — o Marketplace fica de fora"; return "$MEOW_SEM_DEPENDENCIA"; }
+
+  if meow_seco; then
+    meow_muda "baixaria o Marketplace do spicetify para $_SPOT_MP_DIR"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  tag="$(curl -fsSL -H 'Accept: application/json' "$_SPOT_MP_RELEASES/latest" 2>/dev/null \
+          | sed -n 's/.*"tag_name":"\([^"]*\)".*/\1/p' | head -1)"
+  if [ -z "$tag" ]; then
+    meow_aviso "não descobri a versão do Marketplace (sem rede?) — fica para o próximo ciclo"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  meow_destino_permitido "$_SPOT_MP_DIR" || return "$MEOW_ERRO"
+  tmp="$(mktemp -d)" || return "$MEOW_ERRO"
+  zip="$tmp/marketplace.zip"
+  if ! curl -fsSL -o "$zip" "$_SPOT_MP_RELEASES/download/$tag/marketplace.zip"; then
+    rm -rf "$tmp"
+    meow_aviso "o download do Marketplace $tag falhou — fica para o próximo ciclo"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if ! unzip -q -d "$tmp/x" "$zip" 2>/dev/null; then
+    rm -rf "$tmp"; meow_erro "o zip do Marketplace veio corrompido"; return "$MEOW_ERRO"
+  fi
+  # O zip traz UM diretório, `marketplace-dist`. Conferir isto é o que faz esta
+  # função quebrar COM MENSAGEM no dia em que o formato do release mudar, em vez
+  # de instalar uma pasta vazia que o `conferir` aprovaria.
+  if [ ! -d "$tmp/x/marketplace-dist" ]; then
+    rm -rf "$tmp"
+    meow_erro "o zip do Marketplace mudou de formato (sem marketplace-dist)"
+    return "$MEOW_ERRO"
+  fi
+
+  mkdir -p "$(dirname -- "$_SPOT_MP_DIR")" || { rm -rf "$tmp"; return "$MEOW_ERRO"; }
+  rm -rf "$_SPOT_MP_DIR"
+  mv "$tmp/x/marketplace-dist" "$_SPOT_MP_DIR" || { rm -rf "$tmp"; return "$MEOW_ERRO"; }
+  printf '%s\n' "$tag" > "$_SPOT_MP_VERSAO"
+  rm -rf "$tmp"
+  meow_ok "Marketplace do spicetify $tag baixado"
+  return "$MEOW_DIVERGENTE"
+}
+
+# 0 já estava registrado · 1 registrei · 2 erro
+_spot_mp_registrar() {
+  local cli
+  _spot_mp_registrado && return "$MEOW_OK"
+  if meow_seco; then
+    meow_muda "acrescentaria 'marketplace' ao custom_apps do spicetify"
+    return "$MEOW_DIVERGENTE"
+  fi
+  cli="$(_spot_cli)" || return "$MEOW_ERRO"
+  # `spicetify config <lista> <valor>` ACRESCENTA à lista; quem REMOVE é o
+  # sufixo `-` (`marketplace-`). Por isso isto não apaga outro CustomApp dela.
+  "$cli" config custom_apps marketplace >/dev/null 2>&1 || {
+    meow_erro "não consegui acrescentar 'marketplace' ao custom_apps"
+    return "$MEOW_ERRO"
+  }
+  _spot_mp_registrado || { meow_erro "o spicetify não gravou o custom_apps"; return "$MEOW_ERRO"; }
+  return "$MEOW_DIVERGENTE"
 }
 
 _spot_rodando() {
@@ -295,6 +512,21 @@ meow_app_conferir() {
   fi
   grep -qi -- "--spice-text: *#\?${hex}" "$colors" || return "$MEOW_DIVERGENTE"
 
+  if _spot_mp_quer; then
+    if ! _spot_mp_baixado; then
+      meow_muda "o Marketplace do spicetify está pedido e não foi baixado"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if ! _spot_mp_registrado; then
+      meow_muda "o Marketplace está baixado e fora do custom_apps do spicetify"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if ! _spot_mp_no_disco; then
+      meow_muda "o Marketplace está configurado e ainda não entrou no Spotify (falta um apply)"
+      return "$MEOW_DIVERGENTE"
+    fi
+  fi
+
   # A versão do backup do spicetify tem de ser a do Spotify instalado. Se
   # divergirem, restaurar produz janela em branco SEM mensagem de erro — é o
   # modo de falhar mais difícil de diagnosticar que existe aqui, e por isso ele
@@ -302,6 +534,13 @@ meow_app_conferir() {
   local vb vi
   vb="$(_spot_ini_ler version)"; vi="$(_spot_versao)"
   if [ -n "$vb" ] && [ -n "$vi" ] && [ "$vb" != "$vi" ]; then
+    if _spot_backup_fresco; then
+      # Falso alarme, mas com consequência real: enquanto os números divergem, o
+      # `aplicar` se recusa a agir. Por isso isto é DIVERGÊNCIA (que o
+      # `--consertar` resolve), e não um aviso que fica na tela para sempre.
+      meow_muda "o carimbo de versão do spicetify está velho ($vb; o Spotify é a $vi) — o backup, porém, é do app de agora"
+      return "$MEOW_DIVERGENTE"
+    fi
     meow_aviso "o backup do spicetify é da versão $vb e o Spotify é a $vi — veja app-themes/spotify/RECUPERACAO.md"
   fi
 
@@ -314,9 +553,46 @@ meow_app_aplicar() {
     meow_pula "Spotify não instalado (ou não é o flatpak de usuário)"
     return "$MEOW_SEM_DEPENDENCIA"
   }
+  # O CARIMBO VEM ANTES DE TUDO, E PODE ACONTECER COM O SPOTIFY ABERTO.
+  # Ele não toca num byte do app — corrige uma linha do config-xpui.ini. É a
+  # única parte deste módulo que a guarda "não mexo no app dela no meio do uso"
+  # não precisa proteger, e adiá-la manteria a tranca de pé por mais um ciclo
+  # inteiro do doctor. Só acontece quando o backup PROVADAMENTE é do app atual.
+  local mexi=0 vb0 vi0
+  vb0="$(_spot_ini_ler version)"; vi0="$(_spot_versao)"
+  if [ -n "$vb0" ] && [ -n "$vi0" ] && [ "$vb0" != "$vi0" ] && _spot_backup_fresco; then
+    _spot_carimbar_versao
+    case $? in
+      1) mexi=1
+         meow_seco || meow_ok "carimbo de versão do spicetify corrigido: $vb0 -> $vi0 (o backup já era do app de agora)" ;;
+      2) meow_erro "não consegui corrigir o [Backup] version do config-xpui.ini"
+         return "$MEOW_ERRO" ;;
+    esac
+  fi
+
+  # O MARKETPLACE TAMBÉM É PREPARADO COM O SPOTIFY ABERTO, PELO MESMO MOTIVO DO
+  # CARIMBO: baixar o CustomApp e acrescentá-lo ao `custom_apps` mexe só em
+  # ~/.config/spicetify. Quem precisa do app fechado é o `apply` lá embaixo — e
+  # é ele que leva o Marketplace para dentro do Spotify.
+  if _spot_mp_quer; then
+    _spot_mp_instalar
+    case $? in
+      1) mexi=1 ;;
+      2) return "$MEOW_ERRO" ;;
+    esac
+    if _spot_mp_baixado; then
+      _spot_mp_registrar
+      case $? in
+        1) mexi=1 ;;
+        2) return "$MEOW_ERRO" ;;
+      esac
+    fi
+  fi
+
   meow_app_conferir >/dev/null 2>&1
   case $? in
-    0) meow_ok "Spotify já está em Catppuccin $_SPOT_FLAVOR/$_SPOT_ACENTO — nada a fazer"
+    0) [ "$mexi" = "1" ] && return "$MEOW_DIVERGENTE"
+       meow_ok "Spotify já está em Catppuccin $_SPOT_FLAVOR/$_SPOT_ACENTO — nada a fazer"
        return "$MEOW_OK" ;;
     3) meow_pula "Spotify: nada a fazer (veja o aviso do conferir)"
        return "$MEOW_SEM_DEPENDENCIA" ;;
@@ -397,9 +673,20 @@ meow_app_reverter() {
   local vb vi
   vb="$(_spot_ini_ler version)"; vi="$(_spot_versao)"
   if [ -n "$vb" ] && [ -n "$vi" ] && [ "$vb" != "$vi" ]; then
-    meow_erro "o backup do spicetify é da versão $vb e o Spotify é a $vi — restaurar daria janela em branco"
-    meow_info "leia app-themes/spotify/RECUPERACAO.md; a volta limpa é 'flatpak install --user --reinstall flathub com.spotify.Client'"
-    return "$MEOW_ERRO"
+    if _spot_backup_fresco; then
+      # O backup é do app de agora; o número é que está velho. Carimbar antes de
+      # restaurar é o que separa "recusar por precaução" de "recusar por engano".
+      _spot_carimbar_versao >/dev/null
+      if [ "$(_spot_ini_ler version)" != "$vi" ]; then
+        meow_erro "não consegui corrigir o [Backup] version antes de restaurar"
+        return "$MEOW_ERRO"
+      fi
+      meow_info "carimbo de versão corrigido ($vb -> $vi) — o backup é do app de agora, dá para restaurar"
+    else
+      meow_erro "o backup do spicetify é da versão $vb e o Spotify é a $vi — restaurar daria janela em branco"
+      meow_info "leia app-themes/spotify/RECUPERACAO.md; a volta limpa é 'flatpak install --user --reinstall flathub com.spotify.Client'"
+      return "$MEOW_ERRO"
+    fi
   fi
 
   local cli; cli="$(_spot_cli)"
