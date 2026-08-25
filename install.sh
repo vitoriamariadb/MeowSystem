@@ -830,6 +830,18 @@ etapa_lancador_apt() {
         return "$MEOW_DIVERGENTE"
       fi
       sudo rm -f "$hook" "$wrapper" 2>/dev/null
+      # DIZER "REMOVIDO" SEM TER REMOVIDO É O QUE QUEBRAVA A CONVERGÊNCIA
+      #   O `sudo` acima engole o erro em `2>/dev/null`, e sem sudo (num teste
+      #   com `env -i`, ou numa sessão sem tty) ele falha e o arquivo continua
+      #   em /etc. Reportar `DIVERGENTE` ali é afirmar uma escrita que não
+      #   aconteceu: `tests/convergencia.sh` acusava "mexeu: lancador_apt" na
+      #   terceira passagem, para sempre, e o defeito era a mensagem, não a
+      #   etapa. Medido em 24/08/2026; nasceu com o hook, em 14/08.
+      if [ -f "$hook" ] || [ -f "$wrapper" ]; then
+        meow_aviso "sem sudo para remover $hook — ele continua ativo"
+        meow_info "  rode com sudo disponível, ou ponha LANCADOR_SISTEMA=\"sim\""
+        return "$MEOW_SEM_DEPENDENCIA"
+      fi
       meow_muda "LANCADOR_SISTEMA=\"${LANCADOR_SISTEMA:-}\" — hook de apt removido"
       return "$MEOW_DIVERGENTE"
     fi
