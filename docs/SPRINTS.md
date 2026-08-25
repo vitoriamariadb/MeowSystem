@@ -10,7 +10,7 @@ fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
 ## AO VOLTAR, COMECE POR AQUI
 
-**Há onze sprints abertas: H, J, L, M, N e a leva nova, O a T.**
+**Há dez sprints abertas: H, J, L, N e a leva nova, O a T.** (A **M** estava nesta lista até 25/08/2026, quando a auditoria descobriu que ela foi fechada em 11/08 e ninguém marcou.)
 
 As sete primeiras nasceram em **11/08/2026**, de uma lista que ela ditou olhando
 a própria tela; **I e K fecharam no mesmo dia.** As seis novas (**O a T**)
@@ -39,20 +39,23 @@ perguntar) e o que é **decisão dela** (não se toca sem resposta).
 | **J** | "a pasta do sistema operacional ainda é a mesma pasta rosa" | o desenho autoral do Gestor de Arquivos **é** uma pasta genérica, na mesma cor das pastas de verdade — e há **dois SVGs brigando** pelo mesmo nome | **ela** (é gosto, não defeito) |
 | **K** | "temos o problema do ícone do tray de todos os apps" | a Steam **regrediu** ao PNG de fábrica de 2014; qBittorrent e Spotify **não têm via** pelo tema | **FECHADA em 11/08/2026** |
 | **L** | "o qBittorrent segue iniciando com o sistema operacional" | **não é o MeowSystem**: o Ritual da Aurora recopia o autostart a cada hora | código, mas **por fora** do território proibido |
-| **M** | "o papel de parede voltou a ser o antigo. novamente" | a fronteira do `wallpaper.sh` só conhece **três** casos e classificou a reversão como "escolha dela" — código **4**, a cada 15 min, para sempre | código |
+| **M** | "o papel de parede voltou a ser o antigo. novamente" | a fronteira do `wallpaper.sh` conhecia **três** casos e classificou a reversão como "escolha dela" | **FECHADA em 11/08/2026** — a allowlist recomendada foi implementada no mesmo dia; ninguém atualizou este texto |
 | **N** | "spotify falta o spicetify" | **não falta nada.** Está aplicado no disco desde 10/08 20:19. O app não é aberto desde 07/08 | ela (é só abrir) |
 | **O** | — (levantado por frente) | o `cosmic-term` está com a **paleta ANSI de fábrica**: existe `font_name` e `opacity`, não existe `color_schemes_dark`. É a única peça do sistema sem Catppuccin | código |
-| **P** | — | **nenhum tema de cursor**, em lugar nenhum do projeto. O ponteiro atravessa a tela o tempo todo e é o de fábrica | **ela** (é gosto; folha visual antes) |
-| **Q** | — | o `fastfetch` dela abre com o logo do **Pop!_OS**. A direção que ela escolheu é **pixel art**, e este é o único lugar da tela com arte grande sem disputa | **ela** (nada desenhado à mão) |
+| **P** | — | o cursor é o `Pop`, da distribuição. A chave **não** fica no `CosmicTk`: é `gsettings org.gnome.desktop.interface cursor-theme` | **DECIDIDO 25/08:** `catppuccin-latte-mauve` (Latte porque só ele tem corpo claro) |
+| **Q** | — | o `fastfetch` dela abre com o logo do **Pop!_OS**. A direção que ela escolheu é **pixel art** | **DECIDIDO 25/08:** a Coquinha em ANSI, de foto dela |
 | **R** | — | o prompt é `agnoster`, de 2010. `starship` não está instalado. Mora em `~/.config/zsh`, que é **território da Aurora** | código, **por fora** |
 | **S** | "esse em específico eu odiei" (o vaporwave claro) | o carrossel não distingue claro de escuro; um papel claro dentro de um sistema Mocha lava as duas barras. **Depende da Sprint M** | código |
-| **T** | — | quatro candidatos a ponto focal e nenhum vence. A regra proposta: **mauve = aceso**, em três lugares só — o que implica o logo do gato deixar de ser lilás permanente | **ela** (mockup antes) |
+| **T** | — | quatro candidatos a ponto focal e nenhum vence. **mauve = aceso**, em três lugares só | **DECIDIDO 25/08:** faz relógio e canto direito; o logo do gato só como mockup |
 
-E uma dívida que não é sprint, mas é o maior risco do repositório hoje:
-**o `git` está cinco dias atrasado.** O `HEAD` é de ~06/08 e o disco é de ~10/08 —
-250 caminhos, incluindo o módulo novo do Spotify e o `RECUPERACAO.md`, que é o
-manual de resgate para quando o Flathub atualizar o app. Se a máquina falhar
-agora, o manual de resgate só existe no disco que falhou.
+~~E uma dívida que não é sprint, mas é o maior risco do repositório hoje: **o
+`git` está cinco dias atrasado.**~~ **PAGA em 24-25/08/2026.** O `HEAD` era de
+~06/08 com o disco em ~10/08 — 250 caminhos fora do git, incluindo o módulo do
+Spotify e o `RECUPERACAO.md`, que é o manual de resgate para quando o Flathub
+atualizar o app. Hoje o Spotify está em `70afe7a`, o applet de mídia em
+`7bd7f07`, a curadoria de papel de parede em `527b36d`, e a árvore está limpa.
+Fica registrado porque **o modo de falha volta sozinho**: é imagem grande e
+trabalho de outra sessão que não se commita, não um evento único.
 
 O hábito de sempre continua: rodar `./bin/meow doctor` antes de acreditar em
 qualquer coisa escrita aqui.
@@ -776,7 +779,23 @@ continua funcionando normalmente.
 
 ---
 
-## Sprint M — o carrossel que não volta  ← **ABERTA**
+## Sprint M — o carrossel que não volta  ← **FECHADA em 11/08/2026**
+
+> **Esta sprint estava marcada como aberta até 25/08/2026, e não estava.** A
+> auditoria de documentação daquele dia pegou: a opção "**Recomendada: a 1**" do
+> texto abaixo — a allowlist `WALLPAPER_FONTES_DELA` / `meow wallpaper permitir`
+> — **foi implementada em 11/08**, no mesmo dia em que a sprint foi escrita.
+> `scripts/wallpaper.sh:394` diz, no próprio código: *"O TERCEIRO CASO ERA
+> 'QUALQUER OUTRO LUGAR' ATÉ 11/08/2026"*. A fronteira tem **quatro** casos hoje.
+>
+> Medido em 25/08, ao vivo: o `output.DP-1` aponta para `.../meowsystem/ativos`,
+> e o `meow-wallpaper.service` fecha com `ExecMainStatus=0` — não o código 4 "a
+> cada 15 min, para sempre" que o texto descreve.
+>
+> **O texto original fica abaixo por valer como registro do defeito e do
+> raciocínio** — mas ele descreve o passado, não o estado de hoje.
+
+### O texto original da sprint (o desenho foi o que se implementou)
 
 Frase dela: *"o papel de parede voltou a ser o antigo também. novamente"*.
 
@@ -1155,7 +1174,7 @@ e o `opacity: 96` já está no ponto.
 
 ---
 
-## Sprint P — o ponteiro não tem tema  ← **ABERTA, decisão dela**
+## Sprint P — o ponteiro não tem tema  ← **ABERTA, decidida em 25/08**
 
 **O que ela vai ver.** O cursor é o único elemento que atravessa a tela inteira o
 tempo todo, e é o de fábrica.
@@ -1164,24 +1183,53 @@ tempo todo, e é o de fábrica.
 zero ocorrências fora de `scripts/coleta-meowsystem.sh:158-164`, que é inventário
 read-only. É o buraco visual mais visível do inventário.
 
-**O que fazer.** Catppuccin tem cursor oficial
-([`catppuccin/cursors`](https://github.com/catppuccin/cursors)), nos 4 flavors ×
-accents — inclusive **mauve**, que é o accent dela. Instala em
-`~/.local/share/icons/`, e a chave do COSMIC é
-`~/.config/cosmic/com.system76.CosmicTk/v1/cursor_theme` (**confirmar o nome da
-chave antes**, não está medido).
+**O cursor de hoje, medido:** `Pop` — o tema da distribuição. É o mesmo caso da
+Sprint Q: a marca do Pop!_OS ocupando o lugar da identidade dela.
 
-**Por que é decisão dela, e não conserto.** Cursor é gosto puro, e o Catppuccin
-tem duas famílias de forma bem diferentes. **A folha visual vem antes do código:**
-montar uma folha com o cursor atual e 2 ou 3 candidatos, sobre fundo escuro e
-sobre fundo claro, e mostrar antes de instalar.
+**A ESCOLHA, decidida por ela em 25/08/2026: `catppuccin-latte-mauve-cursors`.**
+**Latte, não Mocha**, e isso é contraintuitivo o bastante para merecer a linha:
+os quatro flavors do Catppuccin diferem no **corpo** do cursor — Mocha, Frappé e
+Macchiato têm corpo **escuro**; só o **Latte** tem corpo claro. Com a Sprint S
+levando o papel de parede para o lado noturno, cursor escuro sobre campo escuro
+some. É por isso que o ponteiro padrão de quase todo sistema é branco.
 
-**Não fazer:** não instalar em `/usr/share/icons` — é território travado pela
-TRAVA 1 do `lib/comum.sh`.
+O `-mauve` mantém o accent dela no detalhe sem virar mancha lilás — o que também
+evita brigar com a Sprint T: se **mauve significa "aceso"**, um cursor mauve
+estaria aceso o tempo todo. Base: [Volantes](https://github.com/varlesh/volantes-cursors),
+GPL-2.0.
+
+**ONDE A CHAVE MORA — E NÃO É ONDE SE ESPERA.** Medido em 25/08:
+`com.system76.CosmicTk/v1/` tem `apply_theme_global`, `header_size`, `icon_theme`,
+`interface_density`, `interface_font` e `monospace_font` — **não existe
+`cursor_theme`**. O `cosmic-comp` lê `org.gnome.desktop.interface` (gsettings) e
+as variáveis `XCURSOR_THEME`/`XCURSOR_SIZE`; as duas variáveis estão **vazias**
+no ambiente, e o valor em vigor é:
+
+```
+gsettings get org.gnome.desktop.interface cursor-theme  ->  'Pop'
+gsettings get org.gnome.desktop.interface cursor-size    ->  24
+```
+
+**A FRONTEIRA QUE ISSO ABRE, e que precisa ser resolvida ANTES do código:**
+`gsettings`/`dconf` aparece em `docs/FRONTEIRA.md:53` como território da Aurora —
+mas a linha nomeia **`button-layout`**, não a chave inteira. Ou seja: não está
+decidido se `cursor-theme` é nosso ou dela. **Perguntar ao Ritual da Aurora antes
+de escrever**, e registrar a resposta no `FRONTEIRA.md`. Escrever primeiro e
+descobrir depois é exatamente o modo de falha que mais custou a este projeto
+(dois programas no mesmo arquivo).
+
+**A folha visual continua vindo antes do código:** montar o cursor atual (`Pop`) e
+2 ou 3 candidatos, sobre fundo escuro e sobre fundo claro, e mostrar. A decisão
+acima é da direção, não do desenho — se o Latte-mauve ficar feio na tela, ela
+manda.
+
+**Não fazer:** não instalar em `/usr/share/icons` — território travado pela
+TRAVA 1 do `lib/comum.sh`. O destino é `~/.local/share/icons/` (que já existe e
+já hospeda o `MeowSystem-Icons`) ou `~/.icons/` (que **não** existe hoje).
 
 ---
 
-## Sprint Q — o cartão de visita mostra a marca errada  ← **ABERTA, decisão dela**
+## Sprint Q — o cartão de visita mostra a marca errada  ← **ABERTA, decidida em 25/08**
 
 **O que ela vai ver.** O `fastfetch` dela abre com o logo do **Pop!_OS**, num
 desktop que se chama MeowSystem, tem gato no painel e cujo dono tem dois gatos
@@ -1203,9 +1251,22 @@ grande aparece sem disputar espaço com nada.
 `cosmic-term` suporta o protocolo de imagem** — se não suportar, o caminho é ANSI
 colorido, que combina melhor com pixel art de qualquer forma.
 
+**A ESCOLHA, decidida por ela em 25/08/2026: a Coquinha, em ANSI, a partir de
+foto dela.** Três razões, nesta ordem:
+
+1. **Gato preto é silhueta**, que é o que aparece em quatro das cinco referências
+   de papel de parede dela.
+2. **ANSI colorido funciona em qualquer terminal**, sem depender de o
+   `cosmic-term` implementar protocolo de imagem (kitty/sixel) — o que ainda não
+   está medido e, se faltar, derrubaria a sprint inteira.
+3. **Sai de foto dela**, não de desenho meu.
+
+O caminho é `chafa` reduzindo uma foto para ~40×20 células. **O teste que decide:**
+se a Coquinha ficar irreconhecível nesse tamanho, o plano B é pixel art de acervo
+com licença declarada — **nunca** desenhada por mim.
+
 **Não fazer:** **nada desenhado à mão por mim.** Ela reprovou desenho autoral em
-05/08/2026 ("sinceramente são péssimos") e estava certa. Sai de foto dela
-(Coquinha e Mimir) convertida, ou de acervo pronto com licença.
+05/08/2026 ("sinceramente são péssimos") e estava certa.
 
 **Como conferir.** `fastfetch --pipe false` e olhar; e `config.jsonc` continua
 com os 18 módulos em português intactos.
@@ -1267,13 +1328,15 @@ que ela mais repete. Se o corte deixar menos de ~20 imagens de cada lado, é sin
 de que faltam imagens, não de que o corte está errado — e aí a sprint vira busca,
 não classificação.
 
-**Cruza com a Sprint M** (o carrossel que não volta): as duas mexem no
-`wallpaper.sh`, e M é pré-requisito — não adianta separar dia e noite se a
-configuração é revertida a cada 15 minutos.
+**A dependência da Sprint M caiu.** Quando esta sprint foi escrita, M constava
+como aberta e seria pré-requisito — não adianta separar dia e noite se a
+configuração é revertida a cada 15 minutos. A auditoria de 25/08 mostrou que **M
+foi fechada em 11/08**: a fronteira tem quatro casos e o carrossel está saudável.
+**S pode começar quando quiser.**
 
 ---
 
-## Sprint T — a regra da atenção  ← **ABERTA, decisão dela**
+## Sprint T — a regra da atenção  ← **ABERTA, decidida em 25/08 (em parte)**
 
 **A ideia.** As referências dela têm **um** sujeito por imagem. A tela dela tem
 quatro candidatos a ponto focal e nenhum vence. A regra proposta:
@@ -1297,15 +1360,58 @@ como **mockup**, nunca como commit.
 2. **O canto superior direito tem seis glifos de ~16px espalhados por ~200px.** Em
    2560px de largura isso não é informação, é poeira.
 
-**O que medir antes.** Se o formato do relógio é configurável sem GUI; e quais
-applets da direita podem sair do painel. **Cuidado de fronteira:**
-`plugins_wings`/`plugins_center` — a ordem dos applets — é **território da
-Aurora** (`docs/FRONTEIRA.md:32`), e o MeowSystem **nunca** escreveu essas chaves.
-Mexer ali é conversa com o outro projeto, não commit nosso.
+**A DECISÃO DELA, em 25/08/2026:** fazer **as duas partes baratas** (segundos e
+canto direito) e o logo do gato **só como mockup**, nunca como commit.
+
+**O relógio já está medido, e a chave existe:**
+
+```
+~/.config/cosmic/com.system76.CosmicAppletTime/v1/
+    show_seconds      = true      <- é esta
+    military_time     = true
+    first_day_of_week = 6
+```
+
+O binário aceita ainda `show_date_in_top_panel` e `show_weekday`. Tirar os
+segundos é **uma linha, reversível em uma linha**.
+
+**A ressalva que vale mais que a mudança:** o relógio **tem controle na GUI** do
+COSMIC, e a regra do projeto (`docs/FRONTEIRA.md:133`) diz que onde a GUI tem
+controle, **o valor é dela**. Ela autorizou explicitamente em 25/08 — mas quem
+executar deve confirmar que a autorização ainda vale antes de escrever, porque
+esta é a categoria de chave que o projeto combinou não decidir sozinho.
+
+**O que ainda falta medir:** quais applets da direita podem sair do painel.
+**Cuidado de fronteira:** `plugins_wings`/`plugins_center` — a ordem dos applets —
+é **território da Aurora** (`docs/FRONTEIRA.md:32`), e o MeowSystem **nunca**
+escreveu essas chaves. Mexer ali é conversa com o outro projeto, não commit
+nosso. Se a conversa não acontecer, a sprint entrega só o relógio — e isso já
+vale, porque é o único elemento da tela que se move sozinho.
 
 **A regra é indivisível.** Se o realce de foco não for configurável, a regra fica
 aplicada pela metade — o mauve sumiria dos lugares certos e continuaria nos
 errados, que é **pior** do que não aplicar. Ou vai inteira, ou não vai.
+
+---
+
+## A ordem, decidida por ela em 25/08/2026
+
+**T → P → Q**, e o resto quando der.
+
+- **T primeiro** porque as duas partes baratas (relógio sem segundos, canto
+  direito enxuto) dão resultado visível **hoje**, com uma linha cada e reversíveis
+  em uma linha. Nenhuma das outras cinco tem essa relação.
+- **P depois** porque passa por uma folha visual e por uma conversa de fronteira
+  com a Aurora (o `gsettings`) — quer dizer, tem espera embutida.
+- **Q por último** das três porque depende de um teste que pode derrubá-la: se a
+  Coquinha ficar irreconhecível em 40×20 células, o desenho muda.
+- **O** (terminal) é código puro e não espera ninguém — pode entrar em qualquer
+  buraco entre as outras.
+- **S** (dia/noite) depende da **Sprint M**, que é pré-requisito: não adianta
+  separar claro de escuro se a configuração é revertida a cada 15 minutos.
+- **R** (prompt) é a única que o MeowSystem **não executa sozinho** — mora em
+  `~/.config/zsh`, território da Aurora, e sai como patch ou como comando que ela
+  roda.
 
 ---
 
@@ -2092,7 +2198,7 @@ folha que fez ela decidir abandonar os ícones autorais.
 |---|---|
 | 123 tipos de arquivo em Catppuccin | 14/14 alvos resolvem no pack pelo `Gtk.IconTheme` |
 | 16 aplicativos do lançador em Catppuccin | Firefox, Discord, Spotify, VLC, Steam conferidos no resolvedor |
-| 242 wallpapers (eram 239) — hoje **55**, ver 24/08 | 3 faltavam por bug de URL não escapada, calado desde a 1ª semeadura |
+| 242 wallpapers (eram 239) — hoje **54**, ver 24/08 | 3 faltavam por bug de URL não escapada, calado desde a 1ª semeadura |
 | o tema parou de desfazer o vidro dela | fronteira por árvore + código 4, testados em COSMIC isolado |
 | o doctor enxerga receita ≠ produto | `'Low2' pede alpha 7C, está gravado D9` |
 | 28 ícones do próprio COSMIC em Arcticons | `strace` no `cosmic-settings`: 9 carregados do nosso tema já na 1ª tela |

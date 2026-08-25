@@ -11,7 +11,7 @@ src/fonts/upstream/
 #
 # É esta regra que mantém `wallpapers/` fora do git. Foram 242 arquivos de
 # zhichaoh/catppuccin-wallpapers (193 MB, baixados em 05/08/2026); depois da
-# curadoria de 24/08/2026 são 55 — 11 daquele acervo e 44 buscadas na internet.
+# curadoria de 24/08/2026 são 54 — 11 daquele acervo e 43 buscadas na internet.
 # Eles ficam no disco, dentro do repositório, e o git não os enxerga. O que
 # reproduz a pasta é o `scripts/wallpaper.sh semear`, lendo o commit pinado
 # mais `wallpapers/FONTES.tsv` e `wallpapers/BANIDOS.txt` — que são texto e

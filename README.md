@@ -70,8 +70,8 @@ arquivo de mais de 100 MB. Eles moram em `wallpapers/`, dentro do repositório, 
 o que os reproduz é `scripts/wallpaper.sh semear`, lendo **três receitas**: o
 commit pinado da coleção Catppuccin, o `wallpapers/FONTES.tsv` (a URL de cada
 imagem escolhida a mão) e o `wallpapers/BANIDOS.txt` (os nomes recusados, que o
-semear não repõe). O acervo tem **55 imagens**: das 242 do upstream, 11
-sobreviveram à curadoria visual de 24/08/2026, e 44 foram buscadas naquele dia.
+semear não repõe). O acervo tem **54 imagens**: das 242 do upstream, 11
+sobreviveram à curadoria visual de 24/08/2026, e 43 foram buscadas naquele dia.
 
 ---
 
@@ -91,19 +91,27 @@ sobreviveram à curadoria visual de 24/08/2026, e 44 foram buscadas naquele dia.
   isso em voz alta em vez de fingir efeito. Para ver o segundo gato:
   Ajustes → Área de trabalho → Painel → Applets.
 - **Os ícones** — Papirus como base, num tema derivado que não toca no pacote do
-  apt, com **quatro acervos** por cima e um alvo diferente para cada um:
+  apt, com **quatro acervos em uso** por cima e um alvo diferente para cada um:
 
   | acervo | veste | quantos |
   |---|---|---|
   | `catppuccin/vscode-icons` (MIT) | os **tipos de arquivo** — o que o Gestor de Arquivos desenha | 123 |
-  | `Daveedmee/catppuccin-icons` | os **aplicativos** do lançador, em pastel | 13 |
-  | Arcticons (CC BY-SA 4.0) | as **páginas das Configurações**, os ícones de sistema e **3 aplicativos** que os pastéis não cobriam | 56 + 3 |
+  | Arcticons (CC BY-SA 4.0) | as **páginas das Configurações**, os ícones de sistema e os **aplicativos do lançador**, em traço | 30 + 16 |
+  | convertidos do Papirus (GPL-3.0) | os aplicativos que o Arcticons não cobria — chapado levado ao traço pelo `converter_icone.py` | 25 |
   | desenho autoral | os apps do próprio COSMIC, o FogStripper e o Hefesto | 10 |
 
-  Confundi-los custa caro: o primeiro tem 656 glifos e **nenhum** deles casa com
-  um aplicativo instalado aqui além do `vscode` — ele é de linguagem e formato de
-  arquivo. O Arcticons entrou como **apoio**, para preencher lacuna: ele não é o
-  tema principal, e onde não há match honesto o ícone fica no Papirus. A **barra**
+  **O acervo pastel saiu de cena, e a tabela acima é de 25/08/2026.** Até 10/08 os
+  aplicativos do lançador vinham do `Daveedmee/catppuccin-icons`, em PNG pastel —
+  o `icons/apps.map` que os aplicava está **vazio desde então**, e o próprio
+  arquivo diz isso no cabeçalho. Quem os substituiu foi a decisão dela de 11/08:
+  **"o nosso tema é o traço, não o chapado"** (Sprint I). O Daveedmee continua no
+  disco, sem uso, e sem licença declarada — uso local, nunca redistribuir.
+
+  Confundi-los custa caro: o `vscode-icons` tem 656 glifos e **nenhum** deles casa
+  com um aplicativo instalado aqui além do `vscode` — ele é de linguagem e formato
+  de arquivo. E o Arcticons **deixou de ser apoio**: em 11/08 ele passou de
+  "preencher lacuna" a vestir o lançador inteiro junto com os convertidos. Onde
+  não há match honesto, o ícone continua no Papirus. A **barra**
   continua no Papirus de propósito — os applets são famílias de estado
   (`audio-volume-*` em 5, `network-wireless-*` em 7) e o Arcticons tem **zero**
   sufixos `-off`/`-mute`/`-low`; vestir um estado só faria o ícone mudar de
@@ -170,9 +178,11 @@ máquina é permitido — `apt`, caminhos absolutos, o uid do `cosmic-greeter`, 
 Some junto o trabalho que só existia por causa da publicação: abstração de
 gerenciador de pacotes, detecção de schema do COSMIC para outras versões, camada
 única de detecção do Aurora. **Nenhum dos três chegou a existir como código** —
-eram planos, e a poda foi de promessa, não de linha: `lib/` tem um arquivo só
-(`comum.sh`), e nenhum gerenciador além do `apt` aparece em `bin`, `scripts`,
-`lib` ou `install.sh`.
+eram planos, e a poda foi de promessa, não de linha: nenhum gerenciador além do
+`apt` aparece em `bin`, `scripts`, `lib` ou `install.sh`. (`lib/` tinha **um**
+arquivo quando isto foi escrito; hoje tem três — `comum.sh`, `desinstalar.sh` e
+`preflight.sh`, os dois últimos de 11/08/2026 —, mas nenhum deles é camada de
+abstração: são código que roda.)
 
 Duas coisas **não** eram sobre publicar, e continuam valendo inteiras:
 
