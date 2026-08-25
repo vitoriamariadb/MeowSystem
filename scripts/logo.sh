@@ -188,7 +188,21 @@ applet_montado() {
                       "$barras.Dock/v1/plugins_wings"  "$barras.Dock/v1/plugins_center"
 }
 
-if ! applet_montado; then
+# O AVISO SÓ VALE QUANDO A ROTAÇÃO ESTÁ LIGADA — DECISÃO DELA, 24/08/2026.
+#   "isso tá fora em definitivo do projeto", sobre o applet Logo Menu. Com o
+#   applet fora, o aviso deixa de ser informação e vira ruído: repetir a cada
+#   `install.sh` uma instrução que ela já recusou é gastar a atenção dela para
+#   nada, e é assim que um aviso de verdade passa despercebido depois.
+#
+#   O que NÃO mudou: a checagem continua no código, e volta a falar sozinha no
+#   dia em que alguém puser `LOGO_ROTACAO="sim"` de novo. O parágrafo acima
+#   continua verdadeiro — girar sem o applet montado não muda um pixel — e é
+#   exatamente por isso que a rotação foi desligada em vez de o aviso ser
+#   apagado. Silenciar o alarme sem desligar o forno é o que este projeto recusa.
+#
+#   O gato que ela VÊ no canto da dock não depende disto: vem do
+#   `com.system76.CosmicPanelAppButton`, pelo tema de ícones, e continua igual.
+if [ "${LOGO_ROTACAO:-nao}" = "sim" ] && ! applet_montado; then
   meow_aviso "o applet da logo não está em nenhuma das barras — girar não muda nada na tela"
   meow_info "  para usá-lo: Ajustes → Área de trabalho → Painel → Applets, e acrescente"
   meow_info "  \"Logo Menu\". A ordem dos applets é dela; este script não mexe nisso."
