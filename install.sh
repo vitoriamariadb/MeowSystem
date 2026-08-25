@@ -126,11 +126,23 @@ concluir() {
 #   pode rodar depois de uma escrita — uma fase que só OLHA que já criou o
 #   meow.conf não olha mais, decide. `etapa_conf` continua sendo a etapa 1 e
 #   continua escrevendo; esta aqui só lê, e não imprime nada.
+#
+# `set -a` EM VOLTA DO `.` — A ARMADILHA Nº 3, CURADA AQUI TAMBÉM (25/08/2026)
+#   O conf é sourceado NESTE shell, e quase toda etapa chama um script de
+#   `scripts/`, que é processo FILHO. Sem exportação, o filho vê só os padrões
+#   dele. A defesa era cada etapa manter a sua listinha de `export` — e lista
+#   fixa envelhece calada: o `etapa_forma` exportava 12 nomes `FORMA_*` enquanto
+#   o `scripts/forma.sh` já lia 18, e as seis novas (ALA_INICIAL/ALA_FINAL/CENTRO
+#   × painel e dock) chegavam VAZIAS. O sintoma, reproduzido: `meow doctor`
+#   aplicava o tamanho da bandeja e `./install.sh` dizia "confere" sem aplicar —
+#   numa máquina nova a bandeja nunca encolhia, e nada acusava.
+#   `set -a` exporta tudo o que o conf definir, então chave nova nasce valendo.
+#   É a mesma cura do `carregar_conf` do `bin/meow` e do `meow-wallpaper.service`.
 etapa_conf_ler() {
   local fonte="$CONF"
   [ -f "$CONF" ] || fonte="$CONF_PADRAO"
   # shellcheck disable=SC1090
-  . "$fonte" || { meow_erro "$fonte tem erro de sintaxe"; return "$MEOW_ERRO"; }
+  set -a; . "$fonte" || { set +a; meow_erro "$fonte tem erro de sintaxe"; return "$MEOW_ERRO"; }; set +a
   local v
   for v in FLAVOR ACCENT MODO LOGO; do
     [ -n "${!v:-}" ] || { meow_erro "$v não está definida em $fonte"; return "$MEOW_ERRO"; }
@@ -183,8 +195,11 @@ etapa_conf() {
       *) meow_erro "não consegui criar $CONF"; return "$MEOW_ERRO" ;;
     esac
   fi
+  # `set -a` pelo mesmo motivo do `etapa_conf_ler` — ver o parágrafo lá em cima.
+  # Esta é a leitura que vale para o resto da execução, então é a que mais
+  # importa: é daqui que saem as variáveis que as etapas passam aos scripts.
   # shellcheck disable=SC1090
-  . "$fonte" || { meow_erro "$fonte tem erro de sintaxe"; return "$MEOW_ERRO"; }
+  set -a; . "$fonte" || { set +a; meow_erro "$fonte tem erro de sintaxe"; return "$MEOW_ERRO"; }; set +a
   for v in FLAVOR ACCENT MODO LOGO; do
     if [ -z "${!v:-}" ]; then
       meow_erro "$v não está definida em $fonte"
@@ -1060,15 +1075,17 @@ etapa_escala() {
 
 etapa_forma() {
   passo "Forma das barras (painel e dock)"
-  # As chaves `FORMA_*` vêm do meow.conf e precisam ser EXPORTADAS: o conf é
-  # sourceado neste shell, e o forma.sh é processo filho. Sem isto ele vê só os
-  # padrões dele, e a geometria escolhida no conf não vale nada.
-  (
-    export FORMA_PAINEL_SOLTO FORMA_DOCK_SOLTO FORMA_PAINEL_ILHA FORMA_DOCK_ILHA \
-           FORMA_MARGEM_PAINEL FORMA_MARGEM_DOCK FORMA_RAIO_PAINEL FORMA_RAIO_DOCK \
-           FORMA_ESPACO_PAINEL FORMA_ESPACO_DOCK FORMA_RECHEIO_PAINEL FORMA_RECHEIO_DOCK
-    "$MEOW_RAIZ/scripts/forma.sh"
-  )
+  # A LISTA DE `export` QUE MORAVA AQUI ERA A ARMADILHA Nº 3, E JÁ TINHA COBRADO
+  #   Eram 12 nomes `FORMA_*` digitados à mão. O `scripts/forma.sh` passou a ler
+  #   18 — entraram `FORMA_ALA_INICIAL_*`, `FORMA_ALA_FINAL_*` e `FORMA_CENTRO_*`
+  #   para painel e dock — e as seis novas chegavam VAZIAS aqui, com o efeito
+  #   clássico: `meow doctor` aplicava o tamanho da bandeja e o `./install.sh`
+  #   dizia "confere" sem aplicar nada. Numa máquina nova a bandeja nunca
+  #   encolhia, e nenhum erro aparecia em lugar nenhum.
+  #   Agora o `etapa_conf`/`etapa_conf_ler` faz `set -a` em volta do `.`, então
+  #   TODA chave do meow.conf já sai exportada e chave nova nasce valendo — sem
+  #   lista para alguém esquecer de atualizar.
+  "$MEOW_RAIZ/scripts/forma.sh"
   return $?
 }
 
@@ -1381,6 +1398,45 @@ etapa_autoreparo() {
 #   `meow logo girar` na mão não teria para onde apontar, e ligar a rotação
 #   depois exigiria uma rodada extra do instalador antes de funcionar.
 #   O que a chave liga e desliga é o RELÓGIO, não o acervo.
+# ---------------------------------------------------------------------------
+# UMA UNIDADE PODE ESTAR LIGADA SEM O ARQUIVO EXISTIR — E TODA PERGUNTA ÓBVIA
+# RESPONDE QUE NÃO (achado da auditoria de 25/08/2026)
+#
+#   Encontrado vivo na máquina dela:
+#       ~/.config/systemd/user/default.target.wants/meow-logo.service
+#   era um symlink QUEBRADO — o alvo tinha sido apagado por uma execução
+#   anterior do `etapa_logo`, e o link do `.wants` ficou. As respostas:
+#
+#       systemctl --user is-enabled meow-logo.service  -> not-found
+#       systemctl --user is-active  meow-logo.service  -> inactive
+#       systemctl --user --failed                      -> (vazio)
+#
+#   Nenhuma delas vê o resíduo. Quem vê é o disco. E as etapas que DESLIGAM
+#   usavam justamente a pergunta que menos enxerga: `[ -f "$destino/<unidade>" ]`.
+#   Com o arquivo já apagado, o bloco de desligamento era PULADO para sempre e o
+#   instalador imprimia "rotação desligada" com um link órfão no `.wants` — o
+#   mesmo erro que o `etapa_wallpaper` tinha com o `meow-fundo.path`.
+#
+#   Daí esta função: pergunta as TRÊS coisas (arquivo, estado no systemd, link
+#   em qualquer `*.wants`/`*.requires`) e devolve 0 se qualquer uma disser que
+#   ainda há o que desligar. Deixar de instalar nunca desligou nada.
+meow_unidade_sobrou() {   # $1.. = nomes de unidade; devolve 0 se sobrou algo
+  local destino="$HOME/.config/systemd/user" u w
+  for u in "$@"; do
+    [ -f "$destino/$u" ] && return 0
+    case "$(systemctl --user is-enabled "$u" 2>/dev/null)" in
+      enabled|enabled-runtime|linked|linked-runtime) return 0 ;;
+    esac
+    [ "$(systemctl --user is-active "$u" 2>/dev/null)" = "active" ] && return 0
+    # Glob sem match fica literal, e `[ -L literal ]` é falso — não precisa de
+    # nullglob, que mudaria o comportamento de globs de outras etapas.
+    for w in "$destino"/*.wants/"$u" "$destino"/*.requires/"$u"; do
+      [ -L "$w" ] && return 0
+    done
+  done
+  return 1
+}
+
 etapa_logo() {
   passo "Gatos do painel"
   local destino="$HOME/.config/systemd/user" mudou=0 rc
@@ -1394,10 +1450,18 @@ etapa_logo() {
   # instalar manteria vivo o timer que uma execução anterior ligou, e ela veria
   # o gato continuar trocando depois de ter desligado a chave.
   if [ "${LOGO_ROTACAO:-nao}" != "sim" ]; then
-    if [ -f "$destino/meow-logo.service" ] || [ -f "$destino/meow-logo.timer" ]; then
-      meow_seco && { meow_muda "removeria a rotação"; return "$MEOW_DIVERGENTE"; }
+    # `meow_unidade_sobrou` e não `[ -f … ]`: com o arquivo já apagado e um link
+    # órfão no `default.target.wants`, a versão antiga pulava este bloco para
+    # sempre e dizia "rotação desligada". Ver o cabeçalho da função.
+    if meow_unidade_sobrou meow-logo.service meow-logo.timer; then
+      meow_seco && { meow_muda "removeria a rotação (inclusive link órfão em *.wants)"; return "$MEOW_DIVERGENTE"; }
       systemctl --user disable --now meow-logo.timer meow-logo.service >/dev/null 2>&1
       rm -f "$destino/meow-logo.timer" "$destino/meow-logo.service"
+      # O `disable` de uma unidade cujo ARQUIVO já não existe não tem o que ler
+      # para achar os links; então os tiramos à mão. É a única forma de o
+      # resíduo de uma versão antiga do instalador ir embora sozinho.
+      rm -f "$destino"/*.wants/meow-logo.service "$destino"/*.wants/meow-logo.timer \
+            "$destino"/*.requires/meow-logo.service "$destino"/*.requires/meow-logo.timer
       systemctl --user daemon-reload >/dev/null 2>&1
       meow_muda "LOGO_ROTACAO=\"${LOGO_ROTACAO:-nao}\" — rotação desligada"
       return "$MEOW_DIVERGENTE"
@@ -1557,12 +1621,25 @@ etapa_wallpaper() {
   #   "não mexa sozinho na minha máquina", e isto é mexer sozinho.
   local destino="$HOME/.config/systemd/user" u conteudo mudou_t=0
   if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
-    if [ -f "$destino/meow-wallpaper.timer" ]; then
-      meow_seco && { meow_muda "removeria o relógio do carrossel"; return "$MEOW_DIVERGENTE"; }
-      systemctl --user disable --now meow-wallpaper.timer >/dev/null 2>&1
-      rm -f "$destino/meow-wallpaper.timer" "$destino/meow-wallpaper.service"
+    # DESLIGAR TEM DE DESLIGAR OS DOIS — E A GUARDA NÃO PODE OLHAR SÓ UM ARQUIVO
+    #   Até 25/08/2026 a condição era `[ -f "$destino/meow-wallpaper.timer" ]`,
+    #   e com o `meow-fundo.path` no bolo isso virou o modo de falha nº 1: basta
+    #   o `.timer` já ter saído (uma passagem anterior, um `rm` à mão) e o
+    #   `.path` ter ficado para o bloco inteiro ser PULADO — e um `.path` que
+    #   ficou ligado continua vigiando e consertando, que é precisamente o que
+    #   `AUTO_REPARO` diferente de "sim" proíbe. Deixar de instalar não desliga
+    #   nada: quem desliga é o `disable --now`, e ele precisa ser alcançado.
+    #   O `meow_unidade_sobrou` faz as três perguntas (arquivo, estado, link em
+    #   `*.wants`) — ver o cabeçalho dele.
+    if meow_unidade_sobrou meow-wallpaper.timer meow-wallpaper.service meow-fundo.path; then
+      meow_seco && { meow_muda "removeria o relógio e o gatilho do carrossel"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now meow-wallpaper.timer meow-fundo.path >/dev/null 2>&1
+      rm -f "$destino/meow-wallpaper.timer" "$destino/meow-wallpaper.service" \
+            "$destino/meow-fundo.path"
+      rm -f "$destino"/*.wants/meow-wallpaper.timer "$destino"/*.wants/meow-fundo.path \
+            "$destino"/*.requires/meow-wallpaper.timer "$destino"/*.requires/meow-fundo.path
       systemctl --user daemon-reload >/dev/null 2>&1
-      meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" — relógio do carrossel removido"
+      meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" — relógio E gatilho do carrossel desligados e removidos"
       return "$MEOW_DIVERGENTE"
     fi
     return "$rc"
@@ -1570,25 +1647,40 @@ etapa_wallpaper() {
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
     return "$rc"
   fi
-  for u in meow-wallpaper.service meow-wallpaper.timer; do
+  for u in meow-wallpaper.service meow-wallpaper.timer meow-fundo.path; do
     [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
     conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
     meow_escrever "$destino/$u" "$conteudo" 644
     case $? in 1) mudou_t=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
   done
   if meow_seco; then
-    [ "$mudou_t" = "1" ] && { meow_muda "ligaria o relógio do carrossel (15 min)"; return "$MEOW_DIVERGENTE"; }
+    # O `mudou_t` aqui também sobe quando só o CONTEÚDO de uma unidade mudou
+    # (um comentário, por exemplo), e não só quando ela é nova — por isso a
+    # frase fala em "instalar/atualizar", e não em "ligar". Dizer "ligaria o
+    # relógio" num arquivo que já está ligado é a mentirinha que faz a pessoa
+    # procurar problema onde não há.
+    [ "$mudou_t" = "1" ] && { meow_muda "instalaria/atualizaria o relógio (15 min) e o gatilho do carrossel"; return "$MEOW_DIVERGENTE"; }
     return "$rc"
   fi
   [ "$mudou_t" = "1" ] && systemctl --user daemon-reload
-  if [ "$(systemctl --user is-enabled meow-wallpaper.timer 2>/dev/null)" != "enabled" ] ||
-     [ "$(systemctl --user is-active  meow-wallpaper.timer 2>/dev/null)" != "active" ]; then
-    systemctl --user enable --now meow-wallpaper.timer >/dev/null 2>&1 \
-      || { meow_erro "não consegui ligar o meow-wallpaper.timer"; return "$MEOW_ERRO"; }
-    mudou_t=1
-  fi
+  # O RELÓGIO E O GATILHO SÃO UMA DUPLA, NÃO ALTERNATIVAS (25/08/2026)
+  #   O `meow-fundo.path` acorda o MESMO serviço no instante em que a config de
+  #   fundo muda — porque abrir a janela de papel de parede, só abrir, reseta a
+  #   saída ativa para `/usr/share/backgrounds` + `Alphanumeric` (medido; o diff
+  #   está no cabeçalho da unidade). O relógio já cobria isso em até 15 minutos,
+  #   e é justamente esse quarto de hora que ela reclamou de odiar.
+  #   O relógio FICA: gatilho de inotify não sobrevive a tudo (sessão sem watch,
+  #   daemon-reload no meio da escrita), e a garantia continua sendo o tempo.
+  for u in meow-wallpaper.timer meow-fundo.path; do
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      systemctl --user enable --now "$u" >/dev/null 2>&1 \
+        || { meow_erro "não consegui ligar o $u"; return "$MEOW_ERRO"; }
+      mudou_t=1
+    fi
+  done
   [ "$mudou_t" = "1" ] && {
-    meow_ok "relógio do carrossel ligado: confere a cada 15 min"
+    meow_ok "carrossel protegido: relógio de 15 min + gatilho no instante da mudança"
     return "$MEOW_DIVERGENTE"
   }
   return "$rc"

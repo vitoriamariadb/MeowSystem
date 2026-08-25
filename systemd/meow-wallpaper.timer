@@ -31,12 +31,47 @@
 #   olhar. Agora a escolha dela é uma lista dita (`WALLPAPER_FONTES_DELA`), e o
 #   que não está nela é reversão.
 #
-# NÃO É UMA UNIT `.path`, E ISSO FOI MEDIDO
-#   O `cosmic-bg` tem UMA única watch de inotify, e é exatamente sobre
-#   `~/.config/cosmic/com.system76.CosmicBackground/v1`. Um vigia escrevendo ali
-#   acordaria o `cosmic-bg` a cada gravação, e ela ficaria impedida de trocar o
-#   papel de parede pela GUI — revertido em menos de um segundo. Um relógio
-#   frouxo erra por lentidão; um `.path` erraria por velocidade.
+# ESTE ARQUIVO DIZIA "NÃO É UMA UNIT `.path`". DESDE 25/08/2026 EXISTE UMA.
+#   O texto que morava aqui era:
+#
+#     "NÃO É UMA UNIT `.path`, E ISSO FOI MEDIDO — o `cosmic-bg` tem UMA única
+#      watch de inotify, e é exatamente sobre este diretório. Um vigia escrevendo
+#      ali acordaria o `cosmic-bg` a cada gravação, e ela ficaria impedida de
+#      trocar o papel de parede pela GUI — revertido em menos de um segundo. Um
+#      relógio frouxo erra por lentidão; um `.path` erraria por velocidade."
+#
+#   Metade continua verdade e a outra metade nunca foi argumento contra o
+#   `.path`, e é justo separar as duas antes de deixar a contradição de pé:
+#
+#   (1) "acordaria o cosmic-bg a cada gravação" — vale para o RELÓGIO também. O
+#       que acorda o `cosmic-bg` é a ESCRITA, e quem escreve é o
+#       `meow-wallpaper.service`, o mesmo nos dois gatilhos. Isso nunca separou
+#       um do outro.
+#
+#   (2) "ela ficaria impedida de trocar o papel de parede pela GUI" — ESSE é o
+#       preço real, e ele foi pago: em 25/08/2026, com o `meow-fundo.path` no
+#       ar, uma escolha fora da `WALLPAPER_FONTES_DELA` foi desfeita em 2,1 s
+#       (medido numa saída desconectada, para não mexer na TV dela). Com o
+#       relógio sozinho eram até 15 minutos.
+#
+#   O que mudou de 11/08 para cá e permitiu aceitar (2): a `WALLPAPER_FONTES_DELA`
+#   passou a existir como lista DITA, então há um caminho pelo qual a escolha
+#   dela é respeitada para sempre (`meow wallpaper permitir <caminho>`, e o
+#   `wallpaper.sh` devolve 4 sem tocar em nada). ATENÇÃO, e está medido: nesta
+#   máquina a lista está VAZIA hoje, então neste momento TODA escolha feita pela
+#   GUI, de qualquer pasta fora do acervo, é desfeita em ~2 s — e o motivo só
+#   aparece no `meow log`, não na tela dela. Antes de tratar isso como resolvido,
+#   é decisão DELA, não técnica.
+#
+#   E o que decidiu a favor do `.path` foi a queixa dela: abrir a janela de papel
+#   de parede sem querer quebrava o carrossel, e esperar um quarto de hora era o
+#   que ela disse odiar. Ver `systemd/meow-fundo.path` para o diff medido.
+#
+# O RELÓGIO NÃO SAI, E NÃO É REDUNDÂNCIA PREGUIÇOSA
+#   Gatilho de inotify não sobrevive a tudo: sessão que subiu sem a unidade
+#   carregada, `daemon-reload` no meio de uma escrita, unidade desarmada por
+#   `StartLimit` estourado. O relógio é a garantia que não depende de evento
+#   nenhum. Gatilho para ser rápido, relógio para ser certo.
 #
 # `Persistent=false`: um reparo perdido com a máquina desligada não é dívida a
 # pagar no boot — o próximo tique, em minutos, resolve.

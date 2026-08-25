@@ -1,0 +1,125 @@
+# meow-fundo.path — ABRIR a janela de papel de parede já quebra o carrossel.
+#                   Este é o gatilho que conserta em segundos, não em 15 minutos.
+#
+# ============================================================================
+# O QUE FOI MEDIDO, EM 25/08/2026
+# ============================================================================
+#
+# Queixa dela: "toda vez que eu abro sem querer essa janela de papel de parede
+# ele quebra meu tema, odeio isso de coração".
+#
+# Reproduzido com `cosmic-settings wallpaper` aberto e FECHADO sem clicar em
+# nada. O diff, byte a byte, de `CosmicBackground/v1/output.DP-1`:
+#
+#   - source: Path("/home/vitoriamaria/.local/share/backgrounds/meowsystem/ativos-dia")
+#   + source: Path("/usr/share/backgrounds")
+#   - sampling_method: Random,
+#   + sampling_method: Alphanumeric,
+#
+# Os outros quatro arquivos do diretório (`all`, `output.HDMI-A-1`,
+# `backgrounds`, `same-on-all`) ficaram INTACTOS. Ou seja: a página escreve os
+# padrões de fábrica só para a saída ativa, ao ser montada, sem interação
+# nenhuma. Não é ela clicando errado — é a janela.
+#
+# ============================================================================
+# POR QUE UM GATILHO, SE JÁ EXISTE O RELÓGIO DE 15 MINUTOS
+# ============================================================================
+#
+# O `meow-wallpaper.timer` já conserta isso — em até 15 minutos. Essa é a
+# diferença inteira entre "o sistema se cura" e a experiência dela, que é abrir
+# a janela sem querer, ver a TV virar as fotos da NASA e ficar com raiva por um
+# quarto de hora. O reparo é o MESMO serviço; o que faltava era o evento.
+#
+# O relógio CONTINUA: um gatilho que dependa de inotify não sobrevive a tudo (o
+# arquivo pode ser reescrito com a sessão sem watch, o systemd pode ter sido
+# recarregado no meio). Gatilho para ser rápido, relógio para ser garantido —
+# a mesma dupla do `meow-flatpak.path` com o `meow-doctor.timer`.
+#
+# ============================================================================
+# VIGIA O DIRETÓRIO, NÃO O ARQUIVO — E ISSO FOI TESTADO, NÃO SUPOSTO
+# ============================================================================
+#
+# `output.DP-1` tem o nome do monitor DELA no caminho. Trocar de cabo, de TV ou
+# de porta renomeia o arquivo, e um `PathChanged=` fixo viraria um vigia vivo
+# apontando para um arquivo que não existe mais — o modo de falha calado de
+# sempre. O systemd não aceita glob em `PathChanged=`, então a saída é vigiar o
+# DIRETÓRIO, que não muda de nome.
+#
+# Medido nesta máquina (systemd 255, 25/08/2026) com uma unidade descartável:
+# `PathChanged=` num diretório dispara nos TRÊS jeitos de escrever ali dentro —
+# criar arquivo novo (1 disparo), reescrever arquivo existente (1) e escrita
+# atômica por rename (1). O `cosmic-config` usa o terceiro; o teste cobriu os
+# outros dois para o dia em que ele mudar.
+#
+# ============================================================================
+# NÃO HÁ LAÇO — E O TETO MEDIDO É UM DISPARO POR EVENTO, NÃO DOIS
+# ============================================================================
+#
+# O serviço disparado ESCREVE no diretório vigiado, que é a receita clássica de
+# laço infinito. Duas coisas o impedem, e as duas foram medidas em 25/08/2026,
+# não deduzidas:
+#
+# (1) O CONTRATO DO `wallpaper.sh`: o `meow_escrever` compara o conteúdo antes
+#     de gravar (`lib/comum.sh`), então uma execução que não tem nada a
+#     consertar não toca em disco e não gera evento nenhum. A prova está nos
+#     mtimes: `all` e `output.HDMI-A-1` ficaram parados às 07:14 enquanto o
+#     serviço rodou 15 vezes ao longo da manhã.
+#
+# (2) O `ExecStartPre=sleep 2` DO SERVIÇO É UM DEBOUNCE, não um estorvo. O
+#     systemd rearma a watch assim que dispara, mas um evento que chega com o
+#     serviço ainda em `activating` vira um `JOB_START` com `JOB_REPLACE` sobre
+#     o job que já está correndo — ou seja, é ENGOLIDO pelo job em curso. Como o
+#     `sleep 2` garante que a escrita do próprio reparo cai dentro dessa janela,
+#     o eco não vira execução.
+#
+# A MEDIÇÃO, num experimento controlado sobre a saída DESCONECTADA
+# (`output.HDMI-A-1`, para não mexer na TV dela): escrevi o reset de fábrica
+# exato que a janela faz (`/usr/share/backgrounds` + `Alphanumeric`), por rename
+# atômico, e contei os starts no journal:
+#
+#     13:01:52.859  Starting meow-wallpaper.service      <- 1 disparo
+#     13:01:54.982  Finished
+#     (nada mais nos 25 s seguintes; arquivo já corrigido, mtime 13:01:54.96)
+#
+# UM start, não dois. O "dois por evento, teto" que estava escrito aqui era o
+# pior caso teórico; o caso real é um. O `StartLimitBurst=20` em 300 s do
+# serviço é, portanto, ainda mais folgado do que o cabeçalho de lá supõe.
+#
+# ============================================================================
+# O PREÇO: A ESCOLHA DELA PASSA A SER DESFEITA EM 2 SEGUNDOS, NÃO EM 15 MINUTOS
+# ============================================================================
+#
+# Este é o custo real do gatilho, e ele precisa estar escrito, não subentendido.
+# O `meow-wallpaper.timer` chegou a dizer, com razão, que um `.path` "impediria
+# ela de trocar o papel de parede pela GUI". A fronteira da Sprint M
+# (`WALLPAPER_FONTES_DELA`) é o que torna isso aceitável: um caminho autorizado
+# faz o `wallpaper.sh` devolver 4 e não tocar em nada, para sempre.
+#
+# SÓ QUE A LISTA ESTÁ VAZIA NESTA MÁQUINA HOJE (`WALLPAPER_FONTES_DELA=""`).
+# Medido no mesmo experimento, na saída desconectada: uma fonte fora do acervo
+# foi revertida 2,1 s depois de escrita, e a única explicação foi para o
+# `wallpaper.log` —
+#
+#     !!  output.HDMI-A-1 apontava para …/escolha-dela-teste — isso não é o
+#         carrossel; devolvendo
+#     >>  era escolha sua? autorize e eu paro de mexer:
+#     >>    meow wallpaper permitir "…/escolha-dela-teste"
+#
+# — que não é uma tela que ela olhe. Com o relógio sozinho ela tinha até 15
+# minutos com o papel de parede escolhido antes de ele sumir; agora tem 2
+# segundos. Se ela reclamar de "escolhi e voltou sozinho", é ISTO, e a saída é
+# `meow wallpaper permitir <pasta>` — ou tirar este gatilho, que é decisão dela
+# e não técnica.
+
+[Unit]
+Description=MeowSystem — vigia a config de fundo do COSMIC e desfaz o que a janela de papel de parede reseta
+Documentation=file:%h/.local/state/meowsystem/wallpaper.log
+
+[Path]
+PathChanged=%h/.config/cosmic/com.system76.CosmicBackground/v1
+Unit=meow-wallpaper.service
+
+# `default.target` pelo mesmo motivo do `meow-flatpak.path`: é o alvo que as
+# outras `.path` desta máquina usam e que está comprovadamente de pé no boot.
+[Install]
+WantedBy=default.target

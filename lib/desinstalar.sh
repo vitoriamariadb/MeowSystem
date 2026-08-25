@@ -43,7 +43,7 @@ meow_desinstalar() {
     systemctl --user disable --now \
       meow-doctor.timer meow-doctor.service \
       meow-logo.timer meow-logo.service \
-      meow-wallpaper.timer meow-wallpaper.service \
+      meow-wallpaper.timer meow-wallpaper.service meow-fundo.path \
       meow-assets.path meow-assets.service \
       meow-flatpak.path meow-flatpak.service 2>/dev/null || true
     find "$HOME/.config/systemd/user" -maxdepth 1 -name 'meow-*' \

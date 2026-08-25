@@ -129,24 +129,51 @@ CONF_LIDA=""
 #   apareceram quando `FORMA_DOCK_ILHA` precisou de fato ser trocada.
 #   O `export` sem valor exporta a variável já definida; a que não existir sai
 #   vazia, e o `${...:-padrão}` do outro lado a devolve ao padrão.
+#   E A LISTA ESCRITA À MÃO CAIU NA ARMADILHA Nº 3 (25/08/2026)
+#   Os doze nomes ficavam aqui, digitados. Quando o `forma.sh` ganhou as seis
+#   chaves de tamanho por segmento (FORMA_CENTRO_*, FORMA_ALA_*), elas não
+#   entraram nesta linha — e o efeito foi o MESMO bug de 11/08, de novo: o
+#   meow.conf tinha o valor, o script não via, e o `doctor` dizia "forma já
+#   conforme" com ar de quem conferiu.
+#   Não há mais lista aqui, nem derivada: quem exporta é o `set -a` do
+#   `carregar_conf`, uma vez, para TODAS as chaves e todos os scripts. Consertar
+#   caso a caso deixaria o próximo caso para o próximo esquecimento.
 rodar_forma() {
-  (
-    export FORMA_PAINEL_SOLTO FORMA_DOCK_SOLTO FORMA_PAINEL_ILHA FORMA_DOCK_ILHA \
-           FORMA_MARGEM_PAINEL FORMA_MARGEM_DOCK FORMA_RAIO_PAINEL FORMA_RAIO_DOCK \
-           FORMA_ESPACO_PAINEL FORMA_ESPACO_DOCK FORMA_RECHEIO_PAINEL FORMA_RECHEIO_DOCK
-    "$1"/scripts/forma.sh
-  )
+  "$1"/scripts/forma.sh
 }
 
 carregar_conf() {
   local fonte="$CONF"
   [ -f "$fonte" ] || fonte="$CONF_PADRAO"
   [ -f "$fonte" ] || { meow_erro "não achei nem $CONF nem $CONF_PADRAO"; return "$MEOW_ERRO"; }
+  # `set -a` É A CURA DA ARMADILHA Nº 3, E NÃO UM ATALHO (25/08/2026)
+  #   O `.` deixa as chaves NESTE shell. Todo script de `scripts/` roda como
+  #   processo filho e lê `${CHAVE:-padrão}` — então, sem exportar, o meow.conf
+  #   não tem efeito nenhum sobre eles. A resposta até hoje era listar os nomes
+  #   à mão, em cada `chk_*`/`fix_*` e dentro das unidades systemd. Essa lista
+  #   cobrou duas vezes: em 11/08 as `FORMA_*` não valiam nada, e em 25/08 seis
+  #   chaves novas (FORMA_CENTRO_*, FORMA_ALA_*) nasceram mortas do mesmo jeito
+  #   — com o `doctor` dizendo "já conforme" sem ter conferido, que é o pior
+  #   sintoma possível. É a armadilha nº 3 do idempotencia-armadilhas.md: toda
+  #   lista fixa é uma lista que alguém vai esquecer.
+  #
+  #   `set -a` exporta o que o arquivo definir, seja o que for. Conferido: os 70
+  #   nomes do meow.conf são todos do projeto (FLAVOR, ACCENT, FORMA_*,
+  #   WALLPAPER_*, MIDIA_*, …) — nenhum colide com variável de ambiente do
+  #   sistema, então exportar tudo não vaza para lugar nenhum que importe.
+  #
+  #   Os prefixos `VAR="${VAR:-padrão}"` que ainda existem nos `chk_*` NÃO saem:
+  #   eles não estão lá para exportar, e sim para dar PADRÃO a chave que o
+  #   meow.conf não tenha. Com o `set -a` eles viram redundância inofensiva; sem
+  #   os padrões, um meow.conf enxuto mudaria de comportamento.
   # shellcheck disable=SC1090
-  . "$fonte" || { meow_erro "$fonte tem erro de sintaxe"; return "$MEOW_ERRO"; }
+  set -a
+  . "$fonte" || { set +a; meow_erro "$fonte tem erro de sintaxe"; return "$MEOW_ERRO"; }
+  set +a
   CONF_LIDA="$fonte"
   FLAVOR="${FLAVOR:-mocha}"; ACCENT="${ACCENT:-mauve}"
   MODO="${MODO:-escuro}";    LOGO="${LOGO:-$FLAVOR}"
+  export FLAVOR ACCENT MODO LOGO
   return 0
 }
 
@@ -315,6 +342,168 @@ chk_wallpaper() {
     WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
     WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
     "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1
+}
+
+# O VIGIA DO FUNDO ENTRA NO DOCTOR PORQUE VIGIA QUE CAI NÃO AVISA (25/08/2026)
+#   O `wallpaper` logo acima confere a CONFIG do carrossel; este confere o
+#   GATILHO que a repõe em segundos. São perguntas diferentes, e sem esta a
+#   segunda só seria feita no próximo `install.sh`: um `systemctl --user
+#   disable` acidental, ou um `.path` que ficou `failed`, deixaria o conserto
+#   voltando a demorar 15 minutos sem nada na tela dizendo por quê. É a mesma
+#   razão pela qual `assets` e `flatpak` já estão nesta lista.
+#
+#   Não vale conferir só `is-enabled`: uma unidade pode estar habilitada e
+#   morta (`failed`), e o `.path` não se rearma sozinho depois disso — daí a
+#   checagem de `is-active` e o `reset-failed` no conserto.
+#   SÃO TRÊS UNIDADES, E CONFERIR SÓ O `.path` DEIXAVA DOIS BURACOS (25/08/2026)
+#   O `etapa_wallpaper` do install.sh instala TRÊS arquivos —
+#   `meow-wallpaper.service`, `meow-wallpaper.timer` e `meow-fundo.path` — e liga
+#   dois. A primeira versão desta conferência olhava um arquivo só, e por isso:
+#     - o `.service` podia estar VELHO no disco dela. Ele é quem sabe carregar o
+#       meow.conf; uma correção nele (a de hoje, o `set -a` no lugar da lista de
+#       `export`) só chegaria por um `./install.sh` novo, e o doctor diria
+#       "gatilho ligado" com o serviço antigo montado;
+#     - o `.service` podia SUMIR e nada acusaria: o `.path` continua `enabled` e
+#       `active` vigiando um serviço que não existe — gatilho morto parecendo
+#       instalado, que é a armadilha nº 2 do idempotencia-armadilhas.md;
+#     - o `.timer` de 15 min, que é a garantia de tempo quando o inotify não
+#       sobrevive à sessão, não tinha verificador NENHUM em toda a lista.
+#
+#   A lista de arquivos mora numa linha só, e a de "quem se liga" é DERIVADA
+#   dela pelo sufixo: `.service` é disparado, `.timer`/`.path` disparam. Uma
+#   lista a menos para alguém esquecer de atualizar.
+_FUNDO_DIR="$HOME/.config/systemd/user"
+_FUNDO_UNIDADES=(meow-wallpaper.service meow-wallpaper.timer meow-fundo.path)
+_fundo_ligaveis() {
+  local u
+  for u in "${_FUNDO_UNIDADES[@]}"; do
+    case "$u" in *.service) ;; *) printf '%s\n' "$u" ;; esac
+  done
+}
+
+# O `AUTO_REPARO="nao"` MANDA AQUI TAMBÉM, E ISTO É PARIDADE COM O install.sh
+#   O `install.sh:1559-1592` DESLIGA e APAGA as três quando a chave não é "sim"
+#   — "quem desliga o auto-reparo está dizendo 'não mexa sozinho'", e um `.path`
+#   de inotify é o que mais mexe sozinho no projeto inteiro. Sem esta guarda o
+#   doctor faria o contrário do instalador: acusaria "instalaria meow-fundo.path"
+#   todo dia, e o `--consertar` religaria o que o `./install.sh` tinha acabado de
+#   tirar. Dois donos com regras opostas sobre o mesmo arquivo é como se ganha um
+#   ping-pong que ninguém entende de onde vem.
+#   É a mesma forma do `chk_assets`/`chk_flatpak` com `ASSETS_VIGIA`/
+#   `FLATPAK_VIGIA`, e do `chk_lancadorapt` com `LANCADOR_SISTEMA`: com a chave
+#   desligada e nada instalado, 3 (pulado); com sobra no disco ou no systemd, 1.
+chk_fundo() {
+  local u texto sobrou=0
+  meow_tem systemctl && [ -d "/run/user/$(id -u)/systemd" ] || {
+    meow_pula "sem systemd de usuária — o gatilho do fundo não se aplica aqui"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    for u in "${_FUNDO_UNIDADES[@]}"; do [ -f "$_FUNDO_DIR/$u" ] && sobrou=1; done
+    # O systemd é perguntado além do disco porque uma unidade pode continuar
+    # LIGADA com o arquivo já apagado à mão — o `is-enabled` responde pelo que
+    # ele carregou, não pelo que está no diretório.
+    while IFS= read -r u; do
+      case "$(systemctl --user is-enabled "$u" 2>/dev/null)" in
+        enabled|enabled-runtime) sobrou=1 ;;
+      esac
+      [ "$(systemctl --user is-active "$u" 2>/dev/null)" = "active" ] && sobrou=1
+    done < <(_fundo_ligaveis)
+    [ "$sobrou" = "1" ] && {
+      meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" mas o relógio e o gatilho do carrossel continuam ligados"
+      return "$MEOW_DIVERGENTE"
+    }
+    meow_pula "AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem relógio nem gatilho do carrossel"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  # COMPARAR DO MESMO JEITO QUE SE ESCREVE — a armadilha está escrita no
+  # cabeçalho do vigia_flatpak.sh e eu caí nela mesmo assim, em 25/08/2026: o
+  # `meow_escrever` grava com `printf '%s'` e come o `\n` final, então `cmp` byte
+  # a byte acusa divergência PARA SEMPRE num arquivo perfeito — o `--consertar`
+  # reinstalava, o `doctor` seguinte reclamava de novo, e nada convergia. A
+  # substituição de comando come o `\n` dos DOIS lados, que é o critério de quem
+  # escreveu o arquivo. (Medido hoje: as unidades do repositório TERMINAM em
+  # `\n` e as instaladas NÃO — um `cmp` reprovaria as três, sempre.)
+  for u in "${_FUNDO_UNIDADES[@]}"; do
+    [ -f "$RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+    texto="$(cat "$RAIZ/systemd/$u")"
+    if [ ! -f "$_FUNDO_DIR/$u" ] || [ "$texto" != "$(cat "$_FUNDO_DIR/$u" 2>/dev/null)" ]; then
+      meow_muda "instalaria/atualizaria $u"
+      return "$MEOW_DIVERGENTE"
+    fi
+  done
+  # Não vale conferir só `is-enabled`: uma unidade pode estar habilitada e morta
+  # (`failed`), e nem `.path` nem `.timer` se rearmam sozinhos depois disso —
+  # daí a checagem de `is-active` e o `reset-failed` no conserto.
+  while IFS= read -r u; do
+    if [ "$(systemctl --user is-failed "$u" 2>/dev/null)" = "failed" ]; then
+      meow_muda "$u está em failed — religaria"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      meow_muda "ligaria o $u"
+      return "$MEOW_DIVERGENTE"
+    fi
+  done < <(_fundo_ligaveis)
+  meow_ok "carrossel protegido: relógio de 15 min + gatilho no instante da mudança"
+  return "$MEOW_OK"
+}
+
+fix_fundo() {
+  local u
+  meow_tem systemctl && [ -d "/run/user/$(id -u)/systemd" ] || return "$MEOW_SEM_DEPENDENCIA"
+
+  # O SECO PARA AQUI, E A FALTA DESTA GUARDA FOI MEDIDA (25/08/2026)
+  #   Todo `fix_*` acima chama um SCRIPT, e cada script já respeita o
+  #   `MEOW_DRY_RUN` sozinho — é o que o cabeçalho da seção 5 promete. Este é o
+  #   primeiro que executa comando na própria CLI, e por isso a promessa não
+  #   valia para ele: com `MEOW_DRY_RUN=1 meow doctor --consertar`, medido com um
+  #   HOME de mentira e um `systemctl` de mentira no PATH, ele criava
+  #   `~/.config/systemd/user/` e disparava os TRÊS comandos —
+  #   `daemon-reload`, `reset-failed` e `enable --now` —, terminando com um
+  #   "gatilho do fundo ligado" na tela. Ou seja: o modo que existe para AUDITAR
+  #   antes de deixar rodar mexia no systemd dela e ainda mentia sobre o feito.
+  #
+  #   O `tests/seco.sh` não pega isto: ele audita o `install.sh`, não o doctor.
+  #
+  #   Sai 1 (e não 0) de propósito: "havia o que consertar" continua sendo
+  #   verdade, e é o código que o runner lê para dizer "é isto que o conserto
+  #   FARIA". Parar aqui é a mesma forma do `meow_seco && CONFERIR=1` que os
+  #   vigias de assets e de flatpak usam no topo deles.
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    meow_seco && { meow_muda "removeria o relógio e o gatilho do carrossel"; return "$MEOW_DIVERGENTE"; }
+    while IFS= read -r u; do
+      systemctl --user disable --now "$u" >/dev/null 2>&1
+    done < <(_fundo_ligaveis)
+    for u in "${_FUNDO_UNIDADES[@]}"; do rm -f "$_FUNDO_DIR/$u"; done
+    systemctl --user daemon-reload >/dev/null 2>&1
+    meow_ok "AUTO_REPARO=\"${AUTO_REPARO:-}\" — relógio e gatilho do carrossel desligados e removidos"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if meow_seco; then
+    meow_muda "instalaria e ligaria o relógio (15 min) e o gatilho do carrossel"
+    return "$MEOW_DIVERGENTE"
+  fi
+  mkdir -p "$_FUNDO_DIR"
+  for u in "${_FUNDO_UNIDADES[@]}"; do
+    meow_escrever "$_FUNDO_DIR/$u" "$(cat "$RAIZ/systemd/$u")" 644
+    case $? in 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+  systemctl --user daemon-reload >/dev/null 2>&1
+  # O `reset-failed` cobre as TRÊS: o `.service` disparado é justamente o que
+  # falha primeiro, e enquanto ele estiver em `failed` o `.path` que o chama
+  # dispara para o vazio.
+  systemctl --user reset-failed "${_FUNDO_UNIDADES[@]}" >/dev/null 2>&1
+  while IFS= read -r u; do
+    systemctl --user enable --now "$u" >/dev/null 2>&1 \
+      || { meow_erro "não consegui ligar o $u"; return "$MEOW_ERRO"; }
+  done < <(_fundo_ligaveis)
+  meow_ok "carrossel protegido: relógio de 15 min + gatilho no instante da mudança"
+  return "$MEOW_DIVERGENTE"
 }
 
 chk_apps() {
@@ -737,7 +926,7 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma relogio greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper apps midiabin midia assets flatpak autostart)
+VERIFICAVEIS=(conf gerar tema modo vidro forma relogio greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
 SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin cursor "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -757,9 +946,31 @@ declare -A SEM_CONSERTO_RAZAO=(
 # --- 6. o runner das conferências -------------------------------------------
 declare -a CHK_NOME=() CHK_RC=() CHK_SAIDA=()
 
+# A TABELA É A SAÍDA, ENTÃO O VERIFICADOR TEM DE FALAR — E DESDE HOJE ELE PODE
+# NÃO FALAR (25/08/2026)
+#   O `LOG_NIVEL` do meow.conf era inerte: o `lib/comum.sh` grava
+#   `MEOW_LOG_NIVEL` no momento do `source`, que aqui acontece ANTES do
+#   `carregar_conf`, e as chaves não saíam deste shell. O `set -a` mudou a
+#   segunda metade — agora a chave chega a TODO script filho, e lá ela é lida no
+#   source, valendo de verdade.
+#
+#   Medido: `LOG_NIVEL=silencioso ./scripts/relogio.sh conferir` sai com 0 e
+#   imprime NADA — `meow_ok` é a primeira coisa que o silêncio cala. A linha da
+#   tabela é `primeira_linha` da saída do verificador, então cada linha `ok`
+#   ficaria com a coluna da direita em branco: uma tabela de 37 buracos, com o
+#   `meow doctor` desta CLI ainda falando (o `MEOW_LOG_NIVEL` daqui é sempre
+#   `info`). E `LOG_NIVEL=debug` é o defeito espelhado: medido, o
+#   `icones_tray_steam.sh --conferir` imprime `.. alvo: 5405 bytes, mtime …`
+#   ANTES do `ok`, e a tabela mostraria o debug no lugar do estado.
+#
+#   Uma linha de estado não é PROGRESSO, que é o que o `silencioso` promete
+#   calar — ela é a resposta que a pessoa pediu. Então os verificadores rodam em
+#   `info`, e só eles: o `local` devolve a chave dela ao sair daqui, e o laço de
+#   conserto (que imprime a saída crua) continua obedecendo o meow.conf.
 rodar_checks() {
   CHK_NOME=(); CHK_RC=(); CHK_SAIDA=()
   local nome saida rc
+  local LOG_NIVEL=info; export LOG_NIVEL
   for nome in "${VERIFICAVEIS[@]}"; do
     saida="$("chk_$nome" 2>&1)"; rc=$?
     CHK_NOME+=("$nome"); CHK_RC+=("$rc"); CHK_SAIDA+=("$saida")
@@ -1209,7 +1420,12 @@ cmd_icones() {
       campo "aplicativos" "$n_apps"
       campo "lugares"     "$n_pastas"
       printf '\n'
+      # Mesma tabela, mesma razão do `rodar_checks`: sem isto um
+      # `LOG_NIVEL="silencioso"` no meow.conf deixaria estas duas linhas com a
+      # coluna da direita vazia, e um `debug` mostraria a linha de depuração no
+      # lugar do estado.
       local saida rc
+      local LOG_NIVEL=info; export LOG_NIVEL
       saida="$(chk_icones)"; rc=$?
       printf '  %s %s %s\n' "$(rotulo_rc "$rc")" "$(pad "ícones" 10)" "$(primeira_linha "$saida")"
       saida="$(chk_pastas)"; local rc2=$?
