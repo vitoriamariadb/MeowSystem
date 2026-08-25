@@ -92,7 +92,49 @@ aparece na hora. Agora o `Row` é `Shrink` dentro de um `container` com
 `max_width`: o applet mede o próprio texto e ocupa só isso, e a largura do
 `meow.conf` passa a ser o limite em que o título começa a elipsar.
 
+**O popup redistribuído.** Ver a seção abaixo — é a única mudança que não é da
+barra, e a `MIDIA_LARGURA` não tem nada a ver com ela.
+
 **O modo de cor `traco`.** É o padrão daqui, e é uma decisão visual, não técnica.
+
+## O popup: o que estava furado, e o que a largura NÃO explicava
+
+A largura do popup **não é do `meow.conf` e não é nossa**. Quem crava é o
+libcosmic, em `applet::Context::popup_container`:
+
+```rust
+Limits::NONE.min_height(1.).min_width(360.0).max_width(360.0).max_height(1000.0)
+```
+
+Mínimo **igual** ao máximo: 360px lógicos, sempre. O `size_limits` que o
+`window.rs` do upstream entrega ao positioner (min 200 / max 370) descreve só o
+retângulo do Wayland e nunca chega à medição dos widgets — e `MIDIA_LARGURA`
+(440) é o teto do texto **na barra** (`panel_text_width`), sem caminho nenhum
+até aqui.
+
+**Medido** na captura de 25/08/2026 (tela dela, painel `S`, escala ~1,04): o
+cartão do popup tinha 375px de tela e a capa 84px. `375/360 = 1,042` e
+`84/80 = 1,05` — o **mesmo** fator. Ou seja: o cartão **já** ia de borda a borda
+nos 360 do libcosmic. O que faltava não era largura, era o que ocupasse ela.
+
+O palpite óbvio — "faltou `Length::Fill`" — também estava errado. O `push` do
+iced promove a largura do pai quando o filho é `Fill`
+(`iced/widget/src/row.rs:136`), então a coluna de texto já media os 244px que
+sobram da capa. Os defeitos eram de **composição**, três:
+
+| sintoma | causa |
+|---|---|
+| controles centrados no cartão, não no texto | `align_x(Alignment::Center)` na `Column` de fora + o `Row` dos controles em `Shrink`: medido, o centro dos três botões batia em 1153px e o do cartão em 1156px |
+| faixa morta debaixo da capa | os controles eram um **terceiro andar**, abaixo da linha da capa (que tem `artwork_size` = 4× o ícone do painel = 80px na barra `S`) |
+| engrenagem solta no canto | um `Row` inteiro só para ela, com um `text("")` `Fill` de espaçador e um segundo `text("")` de largura fixa no lugar do botão de players quando só há um |
+
+O conserto é distribuir, não alargar: a engrenagem desceu para a **linha do
+título** (que é `Fill`, então ela encosta na mesma margem direita que o resto) e
+os controles entraram **dentro da coluna de texto**, herdando a margem esquerda
+do título. Sumiu o andar vazio de cima, sumiu a faixa morta debaixo da capa, e a
+altura da coluna passou a bater com a da capa. Zero pixel chutado: o `Fill` que
+já existia passou a ser escrito explicitamente em cada `Row`, em vez de herdado
+por efeito colateral do `push`.
 
 ## Por que `traco`, e não o `chapado` do upstream
 
@@ -156,8 +198,19 @@ git -C "$ARV" checkout -- .                       # tira o patch antigo
 git -C "$ARV" checkout <commit-novo>              # se for mudar de base
 git -C "$ARV" apply /mnt/Apate/Desenvolvimento/MeowSystem/src/applets/now-playing/0001-meow-capa-cor-controles.patch
 # ... edite, compile, teste ...
-git -C "$ARV" diff > /mnt/Apate/Desenvolvimento/MeowSystem/src/applets/now-playing/0001-meow-capa-cor-controles.patch
+git -C "$ARV" diff | sed 's/[[:space:]]*$//' \
+  > /mnt/Apate/Desenvolvimento/MeowSystem/src/applets/now-playing/0001-meow-capa-cor-controles.patch
 ```
+
+O `sed` não é frescura: o `pre-commit` deste projeto roda
+`sed -i 's/[[:space:]]*$//'` em todo arquivo de texto staged, e um `.patch` é
+texto. O `git diff` cru escreve as linhas de contexto **vazias** como `" "` (um
+espaço), e o hook come esse espaço no commit — reescrevendo o arquivo **depois**
+de o carimbo ter guardado o sha256 dele. Resultado: o `meow doctor` passaria a
+acusar divergência do applet todo dia, sem nada ter mudado de verdade. Aplicando
+o `sed` na hora de gerar, o arquivo já nasce no formato que o hook deixaria, e o
+`git apply` engole as linhas de contexto sem espaço sem reclamar (é o que já
+acontecia — este patch nunca teve espaço sobrando desde a primeira versão).
 
 Se mudar de base, atualize `COMMIT` no `PINO`. O carimbo do `midia_build.sh`
 inclui o sha256 deste patch e o `COMMIT` do `PINO`: qualquer um dos dois mudando,

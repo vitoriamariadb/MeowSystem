@@ -617,7 +617,7 @@ index ee8024f..aff491b 100644
 +    }
 +}
 diff --git a/src/ui.rs b/src/ui.rs
-index cec145f..1695f37 100644
+index cec145f..2406005 100644
 --- a/src/ui.rs
 +++ b/src/ui.rs
 @@ -21,20 +21,105 @@ pub fn panel<'a>(core: &Core, model: &'a AppModel) -> Element<'a, Message> {
@@ -767,3 +767,180 @@ index cec145f..1695f37 100644
              }),
          })
          .on_press(Message::TogglePopup);
+@@ -76,34 +169,40 @@ pub fn popup<'a>(core: &Core, model: &'a AppModel) -> Element<'a, Message> {
+     core.applet.popup_container(content).into()
+ }
+
++// A LARGURA DO POPUP NÃO É NOSSA — E NÃO É A `MIDIA_LARGURA`.
++//   Quem crava é o libcosmic, em `applet::Context::popup_container`:
++//   `Limits::NONE.min_width(360.0).max_width(360.0)`. Mínimo IGUAL ao máximo,
++//   360px lógicos, sempre. O `size_limits` que o `window.rs` entrega ao
++//   positioner (min 200 / max 370) descreve só o retângulo do Wayland e nunca
++//   chega à medição dos widgets. E `MIDIA_LARGURA` (440) é o TETO DO TEXTO NA
++//   BARRA — `panel_text_width`, usado lá em cima no `panel()` — e não tem
++//   caminho nenhum até aqui.
++//
++//   MEDIDO na captura de 25/08/2026 (tela dela, painel `S`, escala ~1,04): o
++//   cartão do popup media 375px de tela e a capa 84px. `375/360 = 1,042` e
++//   `84/80 = 1,05` — o MESMO fator. Ou seja: o cartão já ia de borda a borda
++//   nos 360 do libcosmic. O que faltava não era largura, era o que ocupasse
++//   ela.
++//
++// POR QUE O CONTEÚDO PARECIA "SÓ NA METADE ESQUERDA"
++//   Nada aqui estava furado por falta de `Length::Fill` — o `media_row` já
++//   herdava `Fill` do filho (o `push` do iced faz `self.width.enclose(child)`,
++//   `iced/widget/src/row.rs:136`), então a coluna de texto já media os 244px
++//   que sobram da capa. O buraco era de COMPOSIÇÃO: dos 360px de cartão só o
++//   ~172px de tinta à esquerda tinha conteúdo, e a única coisa ancorada na
++//   borda direita era a engrenagem, sozinha num andar próprio. Título curto
++//   como "All I Do" alinhado à esquerda num nó de 244px lê como buraco.
++//
++//   O conserto é distribuir, não alargar: a engrenagem desce para a LINHA DO
++//   TÍTULO (que já é `Fill`, então ela encosta na mesma margem direita que o
++//   resto) e os controles entram DENTRO da coluna de texto, herdando a margem
++//   esquerda do título. Some o andar vazio de cima, some a faixa morta debaixo
++//   da capa, e a altura da coluna passa a bater com a da capa.
+ fn main_popup<'a>(core: &Core, model: &'a AppModel) -> Element<'a, Message> {
+     let size = core.applet.suggested_size(true);
+     let padding = core.applet.suggested_padding(true);
+     let artwork_size = size.0.saturating_mul(4);
+
+-    let player_selector: Element<'_, Message> = if model.players.len() > 1 {
+-        accessible_icon_button_without_tooltip(
+-            "view-list-symbolic",
+-            size.0,
+-            fl!("select-player"),
+-            Message::ShowPlayerList,
+-        )
+-    } else {
+-        text("").width(Length::Fixed(f32::from(size.0))).into()
+-    };
+-
+-    let header = Row::new()
+-        .width(Length::Fill)
+-        .align_y(cosmic::iced::alignment::Vertical::Center)
+-        .push(player_selector)
+-        .push(text("").width(Length::Fill))
+-        .push(accessible_icon_button_without_tooltip(
+-            "preferences-system-symbolic",
+-            size.0,
+-            fl!("settings"),
+-            Message::ShowSettings,
+-        ));
+-
+     let artwork = model.now_playing.album_art_path.as_ref().map_or_else(
+         || {
+             icon::from_name("audio-x-generic-symbolic")
+@@ -121,28 +220,60 @@ fn main_popup<'a>(core: &Core, model: &'a AppModel) -> Element<'a, Message> {
+         },
+     );
+
+-    let media_info = Column::new()
++    // AS AÇÕES (lista de players + engrenagem) MORAM NA LINHA DO TÍTULO.
++    //   Antes eram um `Row` inteiro só para elas, com um `text("")` de espaçador
++    //   `Fill` e um segundo `text("")` de largura fixa no lugar do botão de
++    //   players quando só há um — um ícone solto num andar sem nada, custando
++    //   ~44px de altura para não alinhar com coisa nenhuma. Na linha do título
++    //   a engrenagem termina exatamente onde o título, o artista e os controles
++    //   terminam: uma margem direita só, para tudo. E o placeholder invisível
++    //   deixa de existir — o botão de players simplesmente não é empurrado.
++    let mut acoes = Row::new()
+         .spacing(4)
++        .align_y(cosmic::iced::alignment::Vertical::Center);
++    if model.players.len() > 1 {
++        acoes = acoes.push(accessible_icon_button_without_tooltip(
++            "view-list-symbolic",
++            size.0,
++            fl!("select-player"),
++            Message::ShowPlayerList,
++        ));
++    }
++    let acoes = acoes.push(accessible_icon_button_without_tooltip(
++        "preferences-system-symbolic",
++        size.0,
++        fl!("settings"),
++        Message::ShowSettings,
++    ));
++
++    // `Fill` EXPLÍCITO, e não herdado. O `Row::push` do iced já promove a
++    // largura do pai para `Fill` quando um filho é `Fill`, mas isso é efeito
++    // colateral de quem se empurra dentro — trocar a ordem dos `push`, ou o
++    // título deixar de ser `Fill`, mudaria a largura do Row sem ninguém pedir.
++    // Escrito, o contrato fica: esta linha ocupa o que o popup der, o título
++    // fica com a sobra e as ações encostam na borda.
++    let titulo = Row::new()
++        .width(Length::Fill)
++        .spacing(8)
++        .align_y(cosmic::iced::alignment::Vertical::Center)
+         .push(
+             text(model.now_playing.title.as_str())
+                 .size(size.0.saturating_sub(1))
+                 .width(Length::Fill)
+                 .wrapping(Wrapping::WordOrGlyph),
+         )
+-        .push(
+-            text(model.now_playing.artist.as_str())
+-                .size(size.0.saturating_sub(3))
+-                .width(Length::Fill)
+-                .wrapping(Wrapping::WordOrGlyph),
+-        );
+-
+-    let media_row = Row::new()
+-        .spacing(12)
+-        .align_y(cosmic::iced::alignment::Vertical::Center)
+-        .push(artwork)
+-        .push(media_info.width(Length::Fill));
++        .push(acoes);
+
+-    let controls = Row::new()
++    // OS CONTROLES DENTRO DA COLUNA DE TEXTO, E NÃO NUM ANDAR PRÓPRIO.
++    //   Num andar próprio eles caíam no `align_x(Center)` da coluna de fora e
++    //   ficavam centrados no CARTÃO INTEIRO: medido na captura, o centro dos
++    //   três botões batia em 1153px e o centro do cartão em 1156px — três
++    //   pixels de diferença, ou seja, alinhados com o popup e não com o texto.
++    //   O efeito colateral era a faixa morta debaixo da capa, que é alta
++    //   (`artwork_size` = 4x o ícone do painel = 80px na barra `S` dela).
++    //   Presos à coluna de texto eles herdam a margem esquerda do título.
++    let controles = Row::new()
++        .width(Length::Fill)
+         .spacing(padding.0)
+         .align_y(cosmic::iced::alignment::Vertical::Center)
+         .push(accessible_icon_button_without_tooltip(
+@@ -164,13 +295,32 @@ fn main_popup<'a>(core: &Core, model: &'a AppModel) -> Element<'a, Message> {
+             Message::NextTrack,
+         ));
+
++    let media_info = Column::new()
++        .width(Length::Fill)
++        .spacing(4)
++        .push(titulo)
++        .push(
++            text(model.now_playing.artist.as_str())
++                .size(size.0.saturating_sub(3))
++                .width(Length::Fill)
++                .wrapping(Wrapping::WordOrGlyph),
++        )
++        .push(controles);
++
++    // Uma linha só: capa à esquerda, tudo o mais na coluna que ocupa a sobra.
++    // O `align_x(Center)` que existia na coluna de fora saiu junto com os
++    // andares — ele era o que centrava os controles no cartão, e sem andares
++    // soltos não sobrou nada para centralizar.
+     Column::new()
+         .padding(12)
+-        .spacing(12)
+-        .align_x(cosmic::iced::Alignment::Center)
+-        .push(header)
+-        .push(media_row)
+-        .push(controls)
++        .push(
++            Row::new()
++                .width(Length::Fill)
++                .spacing(12)
++                .align_y(cosmic::iced::alignment::Vertical::Center)
++                .push(artwork)
++                .push(media_info),
++        )
+         .into()
+ }
+
