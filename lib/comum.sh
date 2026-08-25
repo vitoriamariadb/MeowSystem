@@ -16,6 +16,12 @@
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+# A VARIÁVEL QUE VALE É `MEOW_DRY_RUN`, E ESTA LINHA É O MOTIVO
+#   Esta atribuição roda no `source`, então `MEOW_SECO=1 ./algum_script.sh` é
+#   SOBRESCRITO aqui e não liga seco nenhum — o script roda de verdade achando
+#   que está só prevendo. Aconteceu comigo em 24/08/2026: dois `semear` que eu
+#   dei por "em seco" foram execuções reais. Dentro do script, depois deste
+#   source, atribuir `MEOW_SECO=1` funciona (é o que o `--conferir` faz).
 MEOW_SECO="${MEOW_DRY_RUN:-0}"
 
 MEOW_OK=0; MEOW_DIVERGENTE=1; MEOW_ERRO=2; MEOW_SEM_DEPENDENCIA=3
