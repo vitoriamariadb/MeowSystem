@@ -51,13 +51,24 @@
 #    E o motivo de "apertei e não fez nada" pode ser mais simples que tudo isso:
 #    COM UMA JANELA SÓ, tiling é visualmente idêntico a maximizado.
 #
-# 3. OS WORKSPACES ALFINETADOS NASCEM COM `tiling_enabled: false`
-#    `~/.config/cosmic/com.system76.CosmicComp/v1/pinned_workspaces` grava a
-#    chave por workspace, e o cosmic-comp só lê esse arquivo no INÍCIO DA SESSÃO
-#    (mesma regra que vale para o nome e a ordem dos workspaces — ver
-#    `aurora-cosmic-workspaces.py`, do Ritual da Aurora). Este script NÃO mexe
-#    lá: com `Global`, o `apply_tile_change` liga o tiling em todo workspace na
-#    hora, e o valor do `pinned_workspaces` deixa de importar.
+# 3. O `pinned_workspaces` DECIDE O LOGIN, E ISSO QUASE PASSOU BATIDO
+#    `~/.config/cosmic/com.system76.CosmicComp/v1/pinned_workspaces` grava
+#    `tiling_enabled` POR WORKSPACE, e o cosmic-comp só lê esse arquivo no
+#    INÍCIO DA SESSÃO (mesma regra do nome e da ordem — ver
+#    `aurora-cosmic-workspaces.py`, do Ritual da Aurora).
+#
+#    A PRIMEIRA VERSÃO DESTE ARQUIVO DIZIA, AQUI, QUE ELE NÃO IMPORTAVA COM
+#    ESCOPO `Global`. ERRADO, e a auditoria de 25/08/2026 pegou: `apply_tile_change`
+#    só roda quando uma das duas chaves MUDA (`src/config/mod.rs:880-892`). No
+#    login não há mudança nenhuma — o workspace nasce com o que está gravado
+#    aqui (`src/shell/mod.rs:437`, `src/shell/workspace.rs:433`). Com
+#    `tiling_enabled: false` no disco, o lado a lado morria no primeiro reboot e
+#    o `meow doctor` continuava dizendo "conforme", porque olhava só as outras
+#    duas chaves. Uma checagem que aprova o que não funciona é pior que checagem
+#    nenhuma.
+#
+#    Por isso este script escreve TRÊS coisas, e não duas. O `conferir` também
+#    olha as três — é o que separa "vale agora" de "vale amanhã".
 #
 # ============================================================================
 # IDEMPOTÊNCIA
@@ -96,6 +107,7 @@ JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}"
 JANELAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/v1"
 JANELAS_ALVO_LIGADO="$JANELAS_BASE/autotile"
 JANELAS_ALVO_ESCOPO="$JANELAS_BASE/autotile_behavior"
+JANELAS_ALVO_PIN="$JANELAS_BASE/pinned_workspaces"
 JANELAS_BINARIO="/usr/bin/cosmic-comp"
 
 # O valor de antes da PRIMEIRA gravação nossa, para o `remover` devolver o que
@@ -131,6 +143,56 @@ _janelas_dependencia() {
 
 _janelas_no_disco() {
   [ -f "$1" ] && cat "$1" 2>/dev/null || printf ''
+}
+
+# --- o pinned_workspaces, que é quem manda no LOGIN -------------------------
+# Formato: uma lista RON de entradas, cada uma com uma linha `tiling_enabled:`.
+# Mexer só nessa linha, e por regex ancorado, é de propósito: o arquivo carrega
+# o EDID do monitor, o id e o nome de cada workspace — reescrevê-lo inteiro a
+# partir daqui seria disputar o dono com o `aurora-cosmic-workspaces.py`, que é
+# quem cria e nomeia os alfinetados. Ele preserva este campo (lê em :257,
+# regrava em :277), então os dois convivem sem se apagar.
+
+# Quantas entradas estão FORA do valor pedido. 0 = conforme; vazio = sem arquivo.
+_janelas_pin_divergentes() {
+  [ -f "$JANELAS_ALVO_PIN" ] || { printf ''; return 0; }
+  local oposto; [ "$1" = "true" ] && oposto="false" || oposto="true"
+  grep -c "tiling_enabled: $oposto," "$JANELAS_ALVO_PIN" 2>/dev/null || true
+}
+
+_janelas_pin_total() {
+  [ -f "$JANELAS_ALVO_PIN" ] || { printf 0; return 0; }
+  local n; n="$(grep -c 'tiling_enabled:' "$JANELAS_ALVO_PIN" 2>/dev/null || true)"
+  printf '%s' "${n:-0}"
+}
+
+# Devolve 0 = já estava conforme · 1 = mudou (ou mudaria) · 2 = erro.
+# Os mesmos códigos do `meow_escrever`, para o chamador não precisar traduzir.
+_janelas_pin_escrever() {
+  local valor="$1" oposto novo
+  [ -f "$JANELAS_ALVO_PIN" ] || return "$MEOW_OK"   # sem alfinetado, sem assunto
+  [ "$valor" = "true" ] && oposto="false" || oposto="true"
+  grep -q "tiling_enabled: $oposto," "$JANELAS_ALVO_PIN" 2>/dev/null || return "$MEOW_OK"
+
+  if meow_seco; then
+    meow_muda "mudaria $JANELAS_ALVO_PIN (tiling_enabled: $valor)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  # `meow_escrever` com o conteúdo inteiro: ele já grava atômico (mktemp + mv),
+  # que aqui não é luxo — o cosmic-comp lê este arquivo por inotify e um
+  # `printf >` no meio da leitura entrega RON truncado. Foi assim que o painel
+  # morreu com `RonSpanned(code: Eof)` em 25/08/2026, às 18:28.
+  #
+  # E A NEWLINE FINAL PRECISA VOLTAR NA MÃO. `$( )` come toda quebra do fim, e o
+  # `meow_escrever` grava com `printf '%s'`, que não repõe nenhuma: o arquivo
+  # sairia um byte menor do que o COSMIC escreve, os dois ficariam se corrigindo
+  # e o `conferir` acusaria divergência para sempre. Foi o defeito do commit
+  # 6c09168 — 146 arquivos de diff eterno, nenhum valor diferente.
+  local nl=""
+  [ -n "$(tail -c1 "$JANELAS_ALVO_PIN" 2>/dev/null)" ] || nl=$'\n'
+  novo="$(sed "s/tiling_enabled: $oposto,/tiling_enabled: $valor,/g" "$JANELAS_ALVO_PIN")$nl" \
+    || return "$MEOW_ERRO"
+  meow_escrever "$JANELAS_ALVO_PIN" "$novo" 644
 }
 
 _janelas_lembrar_antes() {
@@ -173,18 +235,24 @@ cmd_aplicar() {
   # subentendida: os dois handlers do compositor chamam `apply_tile_change`, mas
   # ele só re-tila os workspaces que já existem quando o escopo JÁ é `Global`.
   # Gravando o escopo por último, a última escrita é sempre a que aplica.
-  local rc_l rc_e rc
+  local rc_l rc_e rc_p rc
   meow_escrever "$JANELAS_ALVO_LIGADO" "$ligado" 644; rc_l=$?
   meow_escrever "$JANELAS_ALVO_ESCOPO" "$escopo" 644; rc_e=$?
+  # A terceira, que é a que decide o LOGIN — ver a armadilha nº 3 do cabeçalho.
+  _janelas_pin_escrever "$ligado"; rc_p=$?
 
-  if [ "$rc_l" = "$MEOW_ERRO" ] || [ "$rc_e" = "$MEOW_ERRO" ]; then
+  if [ "$rc_l" = "$MEOW_ERRO" ] || [ "$rc_e" = "$MEOW_ERRO" ] || [ "$rc_p" = "$MEOW_ERRO" ]; then
     meow_erro "não consegui gravar em $JANELAS_BASE"
     meow_registrar "janelas.sh aplicar rc=$MEOW_ERRO"
     return "$MEOW_ERRO"
   fi
 
+  # `case` e não `[ a ] || [ b ] && c`: nessa forma o `&&` só enxerga o último
+  # teste, então um divergente na PRIMEIRA chave sozinho não levantava o rc.
   rc="$MEOW_OK"
-  [ "$rc_l" = "$MEOW_DIVERGENTE" ] || [ "$rc_e" = "$MEOW_DIVERGENTE" ] && rc="$MEOW_DIVERGENTE"
+  case "$MEOW_DIVERGENTE" in
+    "$rc_l"|"$rc_e"|"$rc_p") rc="$MEOW_DIVERGENTE" ;;
+  esac
 
   case "$rc" in
     "$MEOW_DIVERGENTE")
@@ -223,18 +291,24 @@ cmd_conferir() {
     return "$MEOW_ERRO"
   }
 
-  local atual_l atual_e
+  local atual_l atual_e pin_div pin_tot
   atual_l="$(_janelas_no_disco "$JANELAS_ALVO_LIGADO")"
   atual_e="$(_janelas_no_disco "$JANELAS_ALVO_ESCOPO")"
+  pin_div="$(_janelas_pin_divergentes "$ligado")"
+  pin_tot="$(_janelas_pin_total)"
 
-  if [ "$atual_l" = "$ligado" ] && [ "$atual_e" = "$escopo" ]; then
-    meow_ok "lado a lado conforme (autotile=$ligado, $escopo)"
+  if [ "$atual_l" = "$ligado" ] && [ "$atual_e" = "$escopo" ] && [ "${pin_div:-0}" = "0" ]; then
+    meow_ok "lado a lado conforme (autotile=$ligado, $escopo, $pin_tot alfinetado(s))"
     return "$MEOW_OK"
   fi
 
   meow_muda "lado a lado divergente:"
   [ "$atual_l" = "$ligado" ] || meow_muda "  autotile: disco='${atual_l:-<ausente>}', conf pede '$ligado'"
   [ "$atual_e" = "$escopo" ] || meow_muda "  autotile_behavior: disco='${atual_e:-<ausente>}', conf pede '$escopo'"
+  if [ -n "$pin_div" ] && [ "$pin_div" != "0" ]; then
+    meow_muda "  pinned_workspaces: $pin_div de $pin_tot workspace(s) alfinetado(s) fora de tiling_enabled: $ligado"
+    meow_aviso "essa é a que decide o LOGIN — as outras duas valem só na sessão de agora."
+  fi
   # O mesmo pedágio do relogio.sh: a chave tem atalho de teclado, então ela pode
   # ter mudado de propósito, e o doctor não pode desfazer isso calado.
   meow_aviso "o lado a lado tem atalho (Super+Y) e pode ter sido você."
@@ -268,7 +342,7 @@ cmd_estado() {
     n="$(grep -c 'tiling_enabled: true' "$pin" 2>/dev/null || true)"; n="${n:-0}"
     t="$(grep -c 'tiling_enabled' "$pin" 2>/dev/null || true)"; t="${t:-0}"
     meow_info "$(_janelas_col "workspaces alfinetados") $n de $t com tiling_enabled: true"
-    meow_info "  (esse arquivo só é LIDO no início da sessão; com escopo Global ele não decide nada)"
+    meow_info "  (é ESTE que decide o login — o cosmic-comp lê o arquivo uma vez, ao iniciar)"
   fi
 
   local gaps="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicTheme.Dark/v1/gaps"
@@ -297,10 +371,15 @@ cmd_remover() {
     case "$g" in Global|PerWorkspace) dev_e="$g" ;; esac
   fi
 
-  meow_escrever "$JANELAS_ALVO_LIGADO" "$dev_l" 644
-  local rc=$?
-  meow_escrever "$JANELAS_ALVO_ESCOPO" "$dev_e" 644
-  [ $? = "$MEOW_DIVERGENTE" ] && rc="$MEOW_DIVERGENTE"
+  # Os três rc, e ERRO vence DIVERGENTE. A versão anterior só comparava o
+  # segundo rc com DIVERGENTE: um erro de escrita (2) virava "ok" e o script
+  # devolvia 0 dizendo que tinha devolvido o valor. Mentira silenciosa.
+  local rc rc_e rc_p
+  meow_escrever "$JANELAS_ALVO_LIGADO" "$dev_l" 644; rc=$?
+  meow_escrever "$JANELAS_ALVO_ESCOPO" "$dev_e" 644; rc_e=$?
+  _janelas_pin_escrever "$dev_l"; rc_p=$?
+  case "$MEOW_DIVERGENTE" in "$rc_e"|"$rc_p") [ "$rc" = "$MEOW_ERRO" ] || rc="$MEOW_DIVERGENTE" ;; esac
+  case "$MEOW_ERRO"       in "$rc_e"|"$rc_p") rc="$MEOW_ERRO" ;; esac
 
   case "$rc" in
     "$MEOW_ERRO") meow_erro "não consegui devolver as chaves de $JANELAS_BASE"; return "$MEOW_ERRO" ;;
