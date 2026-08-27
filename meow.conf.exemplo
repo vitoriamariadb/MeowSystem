@@ -276,14 +276,40 @@ FORMA_PAINEL_SOLTO="sim"          # sim | nao
 FORMA_DOCK_SOLTO="sim"            # sim | nao
 FORMA_PAINEL_ILHA="nao"           # sim | nao
 FORMA_DOCK_ILHA="nao"             # sim | nao  <- ver o aviso acima
-FORMA_MARGEM_PAINEL="6"
-FORMA_MARGEM_DOCK="8"
-FORMA_RAIO_PAINEL="8"
-FORMA_RAIO_DOCK="16"
-FORMA_ESPACO_PAINEL="4"
-FORMA_ESPACO_DOCK="8"
-FORMA_RECHEIO_PAINEL="5"
-FORMA_RECHEIO_DOCK="6"
+
+# AS QUATRO ABAIXO TÊM SLIDER NA GUI, E POR ISSO NASCEM VAZIAS (26/08/2026)
+#   `margin`, `border_radius`, `spacing` e `padding` são ajustáveis no COSMIC
+#   Tweaks (o flatpak `dev.edfloreshz.CosmicTweaks`, que declara
+#   `filesystems=xdg-config/cosmic` e escreve direto em ~/.config/cosmic). Não é
+#   o cosmic-settings: a página Painel dele não tem controle de raio nenhum.
+#
+#   Até 26/08 o `forma.sh` gravava essas quatro chaves TODA passagem, com
+#   defaults preenchidos — e o `meow doctor --consertar` roda sozinho às 05:00.
+#   Ou seja: ela mexia no slider de noite e de manhã o número era nosso de novo,
+#   sem nada dizer por quê. É a mesma fronteira que o `vidro.sh` atravessou três
+#   vezes com a opacidade antes de mudar o dono, e o critério é o mesmo: onde a
+#   GUI tem um controle, o valor é dela.
+#
+#   VAZIO = NÃO TOCA. Preencha só se quiser IMPOR um valor daqui — e aí ele é
+#   gravado como sempre foi. Os números que estavam aqui viraram comentário:
+#   painel margem 6, raio 8, espaço 4, recheio 5; dock margem 8, raio 16,
+#   espaço 8, recheio 6.
+#
+#   O RAIO TEM UM TETO FÍSICO, E ELE NÃO É UM NÚMERO FIXO
+#   Um raio maior que METADE DA ALTURA da barra faz o compositor recusar a layer
+#   surface, e como painel e dock são o MESMO processo os dois somem JUNTOS.
+#   O teto é derivado (`lib/painel.sh`), não cravado: `meow painel teto` mostra
+#   a conta. Nesta máquina dá 22 no painel e 32 no dock.
+#   Com `patches/cosmic-comp-raio-clampado.patch` EM EXECUÇÃO não há teto: o
+#   compositor reduz o canto em vez de derrubar o cliente, e o raio é todo seu.
+FORMA_MARGEM_PAINEL=""
+FORMA_MARGEM_DOCK=""
+FORMA_RAIO_PAINEL=""
+FORMA_RAIO_DOCK=""
+FORMA_ESPACO_PAINEL=""
+FORMA_ESPACO_DOCK=""
+FORMA_RECHEIO_PAINEL=""
+FORMA_RECHEIO_DOCK=""
 
 # --- AS JANELAS LADO A LADO (o "fibonacci") ---------------------------------
 # Em 25/08/2026 ela pediu o layout dwindle do Hyprland — cada janela nova parte
