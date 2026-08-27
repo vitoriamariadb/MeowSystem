@@ -1,0 +1,186 @@
+# cosmic-comp-raio-clampado.patch — o raio de canto deixa de MATAR o painel.
+#
+# ============================================================================
+# O QUE ESTE PATCH RESOLVE
+# ============================================================================
+#   Topbar e dock somem juntas, "do nada", e não voltam. O processo continua no
+#   `ps`, com todos os applets, e nada na tela diz por quê. É o painel fantasma.
+#
+#   A causa é um pre-commit hook do compositor. Em
+#   `src/wayland/protocols/corner_radius.rs`, o `layer_radius_hook`:
+#
+#     :658  mede `bbox_from_surface_tree(surface, ...)` — a caixa do buffer JÁ
+#           COMITADO, ou seja o frame ANTERIOR;
+#     :669  desconta o padding com `pad_rect`;
+#     :685  compara os quatro cantos contra `half_min_dim`;
+#     :696  se algum passar, `post_error(RadiusTooLarge)`.
+#
+#   Erro de protocolo Wayland é FATAL por definição: o compositor derruba a
+#   conexão inteira do cliente. O `cosmic-panel` não morre — fica vivo e para de
+#   desenhar. E como painel e dock são o MESMO processo (ele lê as entradas
+#   "Panel" e "Dock" de `CosmicPanel/v1/entries`), os dois somem de uma vez.
+#
+#   O RAIO NOVO É COMPARADO CONTRA O TAMANHO VELHO. O `size` da config não entra
+#   na conta em lugar nenhum. Por isso NÃO EXISTE VALOR SEGURO, e por isso um
+#   teto derivado de `size` já foi tentado (25/08/2026) e falhou no mesmo dia:
+#   o que mata é o descasamento de UM FRAME — boot, applet entrando ou saindo,
+#   mudança de escala.
+#
+# ============================================================================
+# A MEDIDA QUE JUSTIFICA O PATCH (26/08/2026)
+# ============================================================================
+#   Ela passou a tarde sem barra. No disco, gravados pelo COSMIC Tweaks (o
+#   flatpak `dev.edfloreshz.CosmicTweaks`, que tem `filesystems=xdg-config/cosmic`
+#   e é a única GUI com slider de raio — o cosmic-settings NÃO tem):
+#
+#       Panel  border_radius = 41   (size=S, ~30px de altura)
+#       Dock   border_radius = 67   (size=M)
+#
+#   Com esses valores o painel NUNCA desenhava: subia, emitia
+#   `Erroneous EGL call didn't set EGLError` + `Failed to render, error: An
+#   unknown error (0)`, e ficava fantasma — reinício após reinício. Baixar para
+#   16/24 devolveu a barra NA MESMA TENTATIVA, com as linhas de render sumindo
+#   do journal.
+#
+#   Mas 8/16 também perde a corrida: 14 ocorrências de `corner radius too large`
+#   no journal entre 11 e 24/08, quase todas no primeiro minuto da sessão. São
+#   dois regimes — valor grande perde SEMPRE, valor pequeno perde ÀS VEZES — e
+#   só este patch fecha os dois.
+#
+# ============================================================================
+# O QUE MUDA, EXATAMENTE
+# ============================================================================
+#   1. `RadiusTooLarge` vira CLAMP: o raio é reduzido ao `half_min_dim` daquele
+#      frame, escrevendo no `pending()` do `CacheableCorners`. O pior caso passa
+#      a ser um canto menos redondo por um frame. Antes era a barra inteira
+#      sumindo por horas.
+#   2. `PaddingTooLarge` do mesmo hook vira `return`: quando o padding não cabe
+#      na caixa do frame anterior, não há raio a validar naquele commit — e
+#      matar o cliente por isso é o mesmo defeito com outro nome.
+#
+#   O `xdg_radius_hook` (janelas, `cosmic_corner_radius_toplevel_v1`) fica
+#   INTOCADO de propósito: em todo o histórico desta máquina o journal só
+#   registra erro de `cosmic_corner_radius_layer_v1`. Mexer no toplevel afetaria
+#   todos os aplicativos sem nenhuma evidência de que precisa.
+#
+# ============================================================================
+# O QUE ISTO CUSTA, E COMO SABER SE CAIU
+# ============================================================================
+#   Custo: recompilar o cosmic-comp e trocar o binário. Vale só no PRÓXIMO
+#   LOGIN — o compositor em execução não é substituído a quente.
+#
+#   Um `apt upgrade` do cosmic-comp devolve o binário do pacote e o patch se
+#   perde EM SILÊNCIO. O marcador `AURORA-COSMIC-RADIUS-PATCH-1` é um
+#   `#[used] static &str`, que sobrevive no binário e responde a pergunta com um
+#   `strings | grep`. Enquanto o marcador estiver presente, o raio é escolha
+#   dela e o MeowSystem não escreve `border_radius`; sem o marcador, o Meow
+#   volta a clampar por conta própria e avisa.
+#
+#   Este arquivo é aplicado junto com o patch do Aurora
+#   (`/usr/local/share/aurora/cosmic-comp-sem-workspace-vazio.patch`), que já
+#   carrega o workspace-vazio e as animações 1,75x. Conferido em 26/08/2026:
+#   os dois aplicam limpos na mesma árvore, sem hunk em comum.
+#
+# Gerado contra cosmic-comp 0.1~1787672036~24.04~31827ed.
+--- a/src/wayland/protocols/corner_radius.rs
++++ b/src/wayland/protocols/corner_radius.rs
+@@ -26,6 +26,39 @@
+ use std::sync::Mutex;
+ use wayland_backend::server::GlobalId;
+
++/// AURORA-COSMIC-RADIUS-PATCH — o raio de canto grande demais deixa de MATAR o
++/// cliente e passa a ser CLAMPADO ao maior valor que cabe.
++///
++/// POR QUE: o `layer_radius_hook` abaixo e um pre-commit hook. Ele compara o
++/// raio PEDIDO agora contra a caixa do buffer JA COMITADO — o frame ANTERIOR.
++/// Nos instantes em que os dois nao batem (boot, applet entrando ou saindo,
++/// mudanca de escala) um raio perfeitamente valido em regime permanente vira
++/// `post_error`, e erro de protocolo Wayland e FATAL: derruba a conexao inteira.
++/// O `cosmic-panel` nao morre — fica vivo e para de desenhar. Como painel e dock
++/// sao o MESMO processo, a topbar e a dock somem JUNTAS, e nada na tela diz por
++/// que. E o "painel fantasma".
++///
++/// MEDIDO NESTA MAQUINA em 26/08/2026: com `border_radius` 41 no Panel (size=S,
++/// ~30px de altura) e 67 no Dock, o painel NUNCA desenhava — subia, emitia
++/// `Failed to render, error: An unknown error (0)` e ficava fantasma, reinicio
++/// apos reinicio. Baixando para 16/24 a barra voltou na mesma tentativa. Mas
++/// 8/16 tambem perde a corrida as vezes: 14 ocorrencias no journal entre 11 e
++/// 24/08, quase todas no primeiro minuto da sessao. Nao existe valor seguro,
++/// porque o problema nao e o valor — e a comparacao contra o frame errado.
++///
++/// O QUE MUDA: em vez de `post_error(RadiusTooLarge)`, o raio e reduzido ao
++/// `half_min_dim` daquele frame. O pior caso passa a ser um canto menos redondo
++/// por um frame; antes era a barra inteira sumindo por horas.
++///
++/// O `PaddingTooLarge` do mesmo hook recebe o mesmo tratamento: em vez de matar
++/// o cliente quando o padding nao cabe na caixa do frame anterior, o hook
++/// simplesmente nao aplica raio naquele frame.
++///
++/// O #[used] e o que impede o linker de descartar um static que ninguem le — e
++/// a marca de texto por onde o self-heal reconhece este build.
++#[used]
++static AURORA_RADIUS_PATCH: &str = "AURORA-COSMIC-RADIUS-PATCH-1";
++
+ type ToplevelHookId = Mutex<Option<(HookId, Weak<CosmicCornerRadiusToplevelV1>)>>;
+ type LayerHookId = Mutex<Option<(HookId, Weak<CosmicCornerRadiusLayerV1>)>>;
+
+@@ -657,47 +690,27 @@
+ fn layer_radius_hook<D: 'static>(_state: &mut D, _dh: &DisplayHandle, surface: &WlSurface) {
+     let bbox = bbox_from_surface_tree(surface, Point::default());
+     with_states(surface, |surface_data| {
+-        let corners = *surface_data
+-            .cached_state
+-            .get::<CacheableCorners>()
+-            .pending();
++        // AURORA-COSMIC-RADIUS-PATCH: clampa em vez de derrubar o cliente.
++        // Ver o comentario do static AURORA_RADIUS_PATCH no topo do arquivo.
+         let padding = *surface_data
+             .cached_state
+             .get::<CacheablePadding>()
+             .pending();
+         let empty = Padding::default();
++        // Padding que nao cabe na caixa do frame ANTERIOR: nao ha raio a validar
++        // neste commit. Antes isto era post_error(PaddingTooLarge), fatal.
+         let Some(padded_box) = pad_rect(bbox, padding.0.as_ref().unwrap_or(&empty)) else {
+-            if let Some(hook) = surface_data.data_map.get::<LayerHookId>() {
+-                let hook_ref = hook.lock().unwrap();
+-                if let Some((_, obj)) = hook_ref.as_ref()
+-                    && let Ok(obj) = obj.upgrade()
+-                {
+-                    obj.post_error(
+-                        cosmic_corner_radius_layer_v1::Error::PaddingTooLarge as u32,
+-                        format!("{obj:?} padding too large"),
+-                    );
+-                }
+-            }
+             return;
+         };
+
+-        if corners.0.as_ref().is_some_and(|corners| {
+-            let half_min_dim = (padded_box.size.w.min(padded_box.size.h) / 2) as u32;
+-            corners.top_right > half_min_dim
+-                || corners.top_left > half_min_dim
+-                || corners.bottom_right > half_min_dim
+-                || corners.bottom_left > half_min_dim
+-        }) && let Some(hook) = surface_data.data_map.get::<LayerHookId>()
+-        {
+-            let hook_ref = hook.lock().unwrap();
+-            if let Some((_, obj)) = hook_ref.as_ref()
+-                && let Ok(obj) = obj.upgrade()
+-            {
+-                obj.post_error(
+-                    cosmic_corner_radius_layer_v1::Error::RadiusTooLarge as u32,
+-                    format!("{obj:?} corner radius too large"),
+-                );
+-            }
++        let half_min_dim = (padded_box.size.w.min(padded_box.size.h) / 2) as u32;
++        let mut cached = surface_data.cached_state.get::<CacheableCorners>();
++        let pending = cached.pending();
++        if let Some(corners) = pending.0.as_mut() {
++            corners.top_left = corners.top_left.min(half_min_dim);
++            corners.top_right = corners.top_right.min(half_min_dim);
++            corners.bottom_right = corners.bottom_right.min(half_min_dim);
++            corners.bottom_left = corners.bottom_left.min(half_min_dim);
+         }
+     });
+ }

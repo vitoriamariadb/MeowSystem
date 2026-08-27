@@ -395,43 +395,88 @@ fi
 precisa_reiniciar=0
 [ "$tema_mudou_de_nome" = "1" ] && precisa_reiniciar=1
 
+# DUAS RECUSAS ANTES DE MATAR — as duas custaram a tela dela em 26/08/2026.
+#
+# (1) HOME DE BRINQUEDO AINDA MATA O PAINEL DE VERDADE.
+#     O `tests/convergencia.sh:25` roda tudo com `env -i HOME="$H"`, num HOME
+#     descartável — e é o certo: nada do ~/.config dela é tocado. Mas o `pgrep`
+#     e o `pkill` logo abaixo NÃO olham HOME nenhum: eles varrem a tabela de
+#     processos da máquina e derrubam o cosmic-panel da SESSÃO REAL. Rodar a
+#     suíte de testes com ela usando o computador apagava topbar e dock.
+#     Se o HOME não é o do dono da sessão gráfica, este script não tem painel
+#     nenhum para reiniciar — o dele é imaginário.
+#
+# (2) MATAR SÓ VALE SE ALGUÉM FOR RESSUSCITAR.
+#     O comentário acima diz "o cosmic-session respawna em ~4ms". Isso é
+#     verdade no começo da sessão e MENTIRA depois: o backoff dele é
+#     `2^restarts` ms vezes um inteiro sorteado de 0 a 9, sem teto, e o contador
+#     nunca zera por sucesso. Medido em 26/08/2026, no restart 23, a espera saiu
+#     `58720256ms` — 16h18min. Matar o painel nesse estado não é reiniciar: é
+#     apagar a barra até o próximo login.
+#     A espera vigente está no journal do próprio supervisor, de graça.
+_ci_home_e_da_sessao() {
+  local dono
+  dono="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
+  [ -n "$dono" ] && [ "$HOME" = "$dono" ]
+}
+_ci_espera_do_supervisor() {   # ms que o cosmic-session vai dormir, ou vazio
+  journalctl --user -b -t cosmic-session --no-pager 2>/dev/null \
+    | grep -oE 'sleeping for [0-9]+ms before restarting process cosmic-panel' \
+    | tail -1 | grep -oE '[0-9]+'
+}
+
+if [ "$precisa_reiniciar" = "1" ] && ! _ci_home_e_da_sessao; then
+  meow_aviso "HOME de teste ($HOME): não reinicio o painel da sessão real"
+  meow_info  "  o pkill não conhece HOME — mataria a barra de quem está usando a máquina"
+  precisa_reiniciar=0
+fi
+
+if [ "$precisa_reiniciar" = "1" ]; then
+  _ci_espera="$(_ci_espera_do_supervisor)"
+  case "$_ci_espera" in
+    ''|*[!0-9]*) : ;;   # sem registro: o supervisor ainda não falhou, pode matar
+    *)
+      if [ "$_ci_espera" -gt 5000 ]; then
+        meow_aviso "não vou reiniciar o painel: o cosmic-session dormiria $(( _ci_espera / 60000 ))min antes de trazê-lo de volta"
+        meow_info  "  os ícones novos aparecem no próximo login, que é quando o contador zera"
+        meow_info  "  (o backoff é 2^restarts x sorteio(0..9) ms, sem teto e sem zerar por sucesso)"
+        precisa_reiniciar=0
+      fi
+      ;;
+  esac
+fi
+
 if [ "$precisa_reiniciar" = "0" ]; then
   meow_ok "tema '$TEMA_NOME' atualizado (os ícones novos aparecem no próximo login)"
   exit "$MEOW_DIVERGENTE"
 fi
 
+# O RECICLAR ENTRA PELA PORTA ÚNICA — 26/08/2026
+#   Este bloco fazia `pkill -x cosmic-panel` e, se o respawn não viesse em 10s,
+#   `setsid cosmic-panel &`. Os dois pedaços eram bugs conhecidos, e os dois
+#   custaram a tela dela:
+#
+#   1. `setsid cosmic-panel` SEM sanear o ambiente é o bug de um caractere de
+#      25/08: sem `env -i` o painel herda `PANEL_NOTIFICATIONS_FD` e
+#      `X_PRIVILEGED_WAYLAND_SOCKET` de quem chamou, e sobe SEM bandeja e SEM
+#      botão de desligar (panic em libcosmic wayland_handler.rs:110 para
+#      StatusArea, Power, Audio e Network). E isto roda desatendido às 05:00,
+#      pelo meow-doctor.timer.
+#   2. `pgrep -x cosmic-panel` como prova de sucesso responde "existe algum?",
+#      não "voltou o meu" — declara vitória vendo o processo velho agonizando,
+#      ou o painel de outro spawner.
+#
+#   Além disso, ter DOIS spawners no projeto é o que produz dois painéis
+#   disputando as mesmas layer surfaces. Agora existe um: scripts/painel.sh.
+#   Ele sabe sanear o ambiente, sabe se o cosmic-session ainda socorre (o
+#   backoff dele não tem teto e nunca zera), e recusa matar quando ninguém vai
+#   repor — inclusive quando este script roda num HOME de teste.
 if pgrep -x cosmic-panel >/dev/null 2>&1; then
-  pkill -x cosmic-panel
-  voltou=0
-  for _ in $(seq 1 20); do
-    sleep 0.5
-    if pgrep -x cosmic-panel >/dev/null 2>&1; then voltou=1; break; fi
-  done
-
-  # NUNCA CONFIAR NO RESPAWN — aprendido na tela dela, em 04/08/2026.
-  # O `cosmic-session` normalmente ressuscita o painel em ~4ms, e a versão
-  # anterior deste bloco apenas ESPERAVA por isso. Mas o respawn tem limite: com
-  # o painel morto e revivido muitas vezes na mesma sessão (388 registros no
-  # journal daquele boot), o session desistiu — e o script seguiu imprimindo
-  # "tema instalado e ativo" enquanto a Vitória ficava SEM painel e SEM dock,
-  # numa máquina de UMA tela só. Mentir sobre o sucesso é o pior modo de falha
-  # possível: ela só descobriu olhando.
-  #
-  # Agora, se o respawn não vier, subimos o painel nós mesmos. `setsid` para ele
-  # não morrer junto com este script.
-  if [ "$voltou" = "0" ]; then
-    meow_aviso "o cosmic-session não trouxe o painel de volta — subindo eu mesma"
-    setsid cosmic-panel >/dev/null 2>&1 &
-    for _ in $(seq 1 20); do
-      sleep 0.5
-      if pgrep -x cosmic-panel >/dev/null 2>&1; then voltou=1; break; fi
-    done
-  fi
-
-  if [ "$voltou" = "0" ]; then
-    meow_erro "o painel NÃO voltou. Rode 'setsid cosmic-panel &' ou relogue."
+  "$RAIZ/scripts/painel.sh" reciclar || {
+    meow_erro "não consegui reciclar o painel — os ícones novos aparecem no próximo login"
+    meow_info "  diagnóstico: meow painel estado"
     exit "$MEOW_ERRO"
-  fi
+  }
 fi
 
 meow_ok "tema '$TEMA_NOME' instalado e ativo"

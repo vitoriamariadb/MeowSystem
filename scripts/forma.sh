@@ -93,17 +93,121 @@
 #   gravado desde 11/08 e o único par com dias de uso atrás. A válvula
 #   `FORMA_RAIO_EXPERIMENTAL=sim` existe para ela poder tentar mais, sabendo o
 #   preço — trava que não pode ser destravada vira gambiarra no arquivo errado.
+# O TETO SAIU DE CRAVADO PARA DERIVADO — 26/08/2026
+#   Estava `Panel 8, Dock 16`, e esses números vieram de uma altura ERRADA: o
+#   comentário logo acima afirmava "o dock é size=L" (o disco diz M) e "a barra
+#   fica na casa dos 30px" (são 44 lógicos, medidos). Havia três tetos
+#   contraditórios no projeto para a mesma pergunta — 8/16 aqui, 20/28 nos
+#   comentários do meow.conf, e 22/32 na medição. Três números é o mesmo que
+#   nenhum.
+#   A conta agora é uma só, mora em lib/painel.sh com a citação da fonte dentro,
+#   e responde 22 (Panel) e 32 (Dock) nesta máquina.
 _forma_teto_raio() { # $1 = Panel|Dock
-  case "$1" in
-    Panel) printf '8'  ;;
-    Dock)  printf '16' ;;
-    *)     printf '8'  ;;   # barra que eu não conheço: o mais apertado dos dois
+  local t
+  t="$(meow_painel_teto "$BASE/com.system76.CosmicPanel.$1/v1" 2>/dev/null)" && { printf '%s' "$t"; return 0; }
+  # Sem conseguir derivar (size/padding ilegíveis), o mais apertado dos antigos.
+  # Não é chute: é o valor com dias de uso atrás, e é conservador.
+  printf '8'
+}
+
+# O COMPOSITOR CLAMPA SOZINHO? — a pergunta que decide se a trava acima vale
+#
+#   Em 26/08/2026 o cosmic-comp passou a ser buildado com um patch nosso que
+#   troca o `post_error(RadiusTooLarge)` por um CLAMP ao `half_min_dim` do frame
+#   (patches/cosmic-comp-raio-clampado.patch). Com esse patch de pé não existe
+#   mais raio que derrube a barra: o compositor reduz o canto e desenha.
+#
+#   Então a trava daqui deixa de ter razão de ser — e manter uma trava sem razão
+#   é atropelar a escolha dela por hábito. Enquanto o marcador estiver no
+#   binário, o raio é DELA, sem teto. Sem o marcador (um `apt upgrade` do
+#   cosmic-comp devolve o binário do pacote e o patch se perde em silêncio), a
+#   trava volta a valer — é a rede de segurança.
+#
+#   `grep -a` porque o binário é "arquivo binário" para o grep, que senão só diz
+#   "Binary file matches". Mesma razão do `esta_patchado` do
+#   aurora-cosmic-comp-ws.sh, de onde esta linha foi copiada.
+#   E NÃO BASTA O BINÁRIO TER A MARCA — MEDIDO NA MARRA EM 26/08/2026
+#     O patch foi instalado às 22:13 e o `cosmic-comp` em execução era o das
+#     01:55, do binário antigo. Trocar o arquivo NÃO troca o processo: o
+#     compositor é o servidor Wayland, e substituí-lo a quente fecharia todas as
+#     janelas. Ou seja, entre a instalação e o próximo login o binário diz
+#     "clampa" e a sessão viva NÃO clampa — e a barra fica sem rede exatamente
+#     na janela em que ela ainda pode morrer.
+#     Por isso a pergunta certa é sobre o PROCESSO, não sobre o arquivo: o
+#     compositor de pé nasceu DEPOIS de o binário patchado chegar ao disco?
+FORMA_COMP_BIN="${FORMA_COMP_BIN:-/usr/bin/cosmic-comp}"
+MEOW_PAINEL_COMP_BIN="$FORMA_COMP_BIN"
+_forma_compositor_clampa() {
+  meow_painel_compositor_clampa && return 0
+  meow_painel_patch_pendente && return 2
+  return 1
+}
+
+
+# O QUE ESTÁ NO DISCO CABE? — usado quando NÃO vamos escrever o raio
+#
+#   "Vazio = não toca" resolve o atropelo, mas abre um buraco: se o valor que a
+#   GUI gravou for grande demais E o compositor não clampar, a barra morre e o
+#   MeowSystem fica olhando. Foi exatamente o que aconteceu em 26/08/2026 —
+#   `border_radius` 41 no Panel e 67 no Dock, gravados pelo COSMIC Tweaks, e a
+#   tarde inteira sem topbar nem dock.
+#
+#   Então, quando não escrevemos: conferimos. Se couber, não encostamos no
+#   arquivo (o cosmic-panel tem inotify neste diretório — escrever à toa joga um
+#   reload na tela dela). Se não couber, cortamos e dizemos por quê.
+_forma_conferir_raio_do_disco() { # $1 = Panel|Dock  $2 = dir
+  local barra="$1" dir="$2" atual teto chave rc
+  atual="$(cat "$dir/border_radius" 2>/dev/null || true)"
+  case "$atual" in ''|*[!0-9]*) return 0 ;; esac   # ausente ou ilegível: não é nosso problema
+
+  # `meow_debug` e não `meow_pula`: com tudo certo esta função não tem NADA a
+  # dizer. Uma linha por barra em toda passagem faria o `meow doctor` marcar
+  # `forma` como divergente para sempre — o mesmo defeito que o commit de hoje
+  # ("o doctor dizia conforme mesmo assim") corrigiu do outro lado. O resumo
+  # final já diz de quem é o raio.
+  _forma_compositor_clampa; local comp=$?
+  if [ "$comp" = "0" ]; then
+    meow_debug "$barra: raio $atual é seu — o cosmic-comp clampa o que não couber"
+    return 0
+  fi
+
+  teto="$(_forma_teto_raio "$barra")"
+
+  # ESTADO INTERMEDIÁRIO: o patch está no disco e a sessão viva ainda é a velha.
+  #   Cortar aqui seria trocar a estética dela para prevenir um risco que esta
+  #   sessão já não correu — a barra está de pé com este valor. E o corte
+  #   sobreviveria ao login, deixando o canto errado justamente quando o patch
+  #   finalmente vale. Então: avisa uma vez e não encosta.
+  if [ "$comp" = "2" ] && [ "$atual" -gt "$teto" ]; then
+    meow_aviso "$barra: raio $atual — o patch do cosmic-comp já está instalado, mas vale no PRÓXIMO LOGIN"
+    meow_info  "  até lá esta sessão roda o compositor antigo; se a barra sumir, é isto"
+    return 0
+  fi
+  if [ "$atual" -le "$teto" ]; then
+    meow_debug "$barra: raio $atual é seu (cabe no teto de $teto)"
+    return 0
+  fi
+
+  chave="FORMA_RAIO_PAINEL"; [ "$barra" = "Dock" ] && chave="FORMA_RAIO_DOCK"
+  meow_aviso "$barra: raio $atual no disco, acima de $teto, e o cosmic-comp NÃO está patchado"
+  meow_info  "  com este valor topbar e dock somem JUNTAS e não voltam — medido em 26/08/2026"
+  meow_info  "  o patch some num 'apt upgrade' do cosmic-comp; refazer: aurora-cosmic-comp-ws.sh --build (~4 min)"
+  meow_info  "  para impor um valor daqui em vez disso: $chave no meow.conf"
+  meow_escrever "$dir/border_radius" "$teto" 644; rc=$?
+  case "$rc" in
+    1) mudou=1 ;;
+    2) meow_erro "não consegui escrever $dir/border_radius"; return 2 ;;
   esac
+  return 0
 }
 
 # O RAIO DO PAINEL É MENOR QUE O DO DOCK, E ISSO TEM MEDIDA
-#   O painel é `size=S` e o dock é `size=L` (lidos do disco). Com `S` o applet
-#   simbólico desenha 20px, e a barra inteira fica na casa dos 30px de altura:
+#   O painel é `size=S` e o dock é `size=M` (lidos do disco em 26/08/2026 — este
+#   comentário dizia `L`, e foi essa altura errada que sustentou o teto 8/16).
+#   Com `S` o applet
+#   simbólico desenha 20px. A barra NÃO fica "na casa dos 30px": são 44 unidades
+#   lógicas (2*padding + 40), medidas em 26/08 e conferidas contra a layer
+#   surface que o compositor desenha. Ver lib/painel.sh.
 #   raio 16 ali arredondaria a barra até quase virar cápsula. 8 no painel e 16
 #   no dock deixa as duas com a mesma LEITURA de canto, não o mesmo número.
 #
@@ -155,6 +259,8 @@ set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+# shellcheck source=../lib/painel.sh
+. "$RAIZ/lib/painel.sh"
 
 # "sim" -> solta da borda (anchor_gap). É o que faz a `margin` valer.
 FORMA_PAINEL_SOLTO="${FORMA_PAINEL_SOLTO:-sim}"
@@ -189,24 +295,44 @@ FORMA_DOCK_SOLTO="${FORMA_DOCK_SOLTO:-sim}"
 FORMA_PAINEL_ILHA="${FORMA_PAINEL_ILHA:-nao}"
 FORMA_DOCK_ILHA="${FORMA_DOCK_ILHA:-nao}"
 
-FORMA_MARGEM_PAINEL="${FORMA_MARGEM_PAINEL:-6}"
-FORMA_MARGEM_DOCK="${FORMA_MARGEM_DOCK:-8}"
-FORMA_RAIO_PAINEL="${FORMA_RAIO_PAINEL:-8}"
-FORMA_RAIO_DOCK="${FORMA_RAIO_DOCK:-16}"
+# ===========================================================================
+# 26/08/2026: A GEOMETRIA DAS BARRAS DEIXOU DE SER NOSSA. VAZIO = NÃO TOCA.
+# ===========================================================================
+#   Os oito valores abaixo eram DEFAULTS PREENCHIDOS, e este script os gravava
+#   toda passagem. Com o `meow-doctor.timer` rodando `fix_forma` às 05:00, o
+#   número que ela escolhesse no COSMIC Tweaks à noite voltava a ser o nosso de
+#   manhã — sem nada na tela dizer por quê. É a mesma fronteira que o `vidro.sh`
+#   atravessou três vezes com a opacidade antes de mudar o dono (bloco de
+#   17/08/2026 lá), e o critério é o mesmo: onde a GUI tem um controle, o valor
+#   é dela.
+#
+#   Os números que estavam aqui viraram comentário — não são lixo, são a
+#   receita que ela pode querer de volta. Para reimpor qualquer um, basta
+#   preencher a chave no meow.conf; a escrita volta a acontecer exatamente como
+#   antes. Vazio, que é o padrão, o script não encosta na chave.
+#
+#   `anchor_gap` e `expand_to_edges` (o "solto" e a "ilha") ficaram de fora
+#   desta virada de propósito: o Tweaks não os expõe, e o que a GUI não oferece
+#   continua sendo nosso — senão se perde em silêncio.
+
+FORMA_MARGEM_PAINEL="${FORMA_MARGEM_PAINEL:-}"   # era 6
+FORMA_MARGEM_DOCK="${FORMA_MARGEM_DOCK:-}"       # era 8
+FORMA_RAIO_PAINEL="${FORMA_RAIO_PAINEL:-}"       # era 8
+FORMA_RAIO_DOCK="${FORMA_RAIO_DOCK:-}"           # era 16
 
 # Espaço ENTRE os applets. O painel estava em 0 — que é o Default de fábrica, e
 # não uma assimetria herdada, ao contrário do que parecia. Mas são 13 applets de
 # 20px colados um no outro, numa TV de 1150x650mm vista de longe (medida do
 # `cosmic-randr list`): 4px de respiro é conforto de mira, não simetria.
-FORMA_ESPACO_PAINEL="${FORMA_ESPACO_PAINEL:-4}"
-FORMA_ESPACO_DOCK="${FORMA_ESPACO_DOCK:-8}"
+FORMA_ESPACO_PAINEL="${FORMA_ESPACO_PAINEL:-}"   # era 4
+FORMA_ESPACO_DOCK="${FORMA_ESPACO_DOCK:-}"       # era 8
 
 # Espaço entre o conteúdo e a moldura da barra. O painel fica no 5 que ele já
 # tinha: mexer nele muda a ALTURA da faixa reservada, e isso empurra todas as
 # janelas. O dock sobe de 4 para 6 porque a ilha arredondada precisa de um pouco
 # mais de folga para o raio não comer o ícone do canto.
-FORMA_RECHEIO_PAINEL="${FORMA_RECHEIO_PAINEL:-5}"
-FORMA_RECHEIO_DOCK="${FORMA_RECHEIO_DOCK:-6}"
+FORMA_RECHEIO_PAINEL="${FORMA_RECHEIO_PAINEL:-}" # era 5
+FORMA_RECHEIO_DOCK="${FORMA_RECHEIO_DOCK:-}"     # era 6
 
 # Tamanho POR SEGMENTO. Vazio = não toca, a mesma convenção das
 # VIDRO_OPACIDADE_*: quem não escolheu herda o tamanho da barra, e o script não
@@ -312,30 +438,69 @@ aplicar_barra() { # $1=Panel|Dock  $2=solto  $3=ilha  $4=margem  $5=raio  $6=esp
 
   solto="$(_bool "$2")"   || { meow_erro "$barra: 'solto' esperava sim|nao, veio '$2'"; return 2; }
   ilha="$(_bool "$3")"    || { meow_erro "$barra: 'ilha' esperava sim|nao, veio '$3'"; return 2; }
-  margem="$(_int  "margem do $barra"  "$4")" || return 2
-  raio="$(_int    "raio do $barra"    "$5")" || return 2
-  # A trava do raio (ver o cabeçalho). Avisa e CORTA, em vez de recusar: recusar
-  # deixaria a barra com o valor velho, que pode ser justamente o 160 que derruba
-  # o painel — o conserto tem de valer mesmo com o meow.conf errado.
-  local teto; teto="$(_forma_teto_raio "$barra")"
-  if [ "$raio" -gt "$teto" ]; then
-    local chave; chave="FORMA_RAIO_PAINEL"; [ "$barra" = "Dock" ] && chave="FORMA_RAIO_DOCK"
-    case "${FORMA_RAIO_EXPERIMENTAL:-nao}" in
-      sim|true|1)
-        meow_aviso "$barra: raio $raio acima do valor com evidência ($teto) — modo experimental, seguindo"
-        meow_info  "  se topbar e dock sumirem JUNTAS, é isto: $chave=\"$teto\" e 'meow forma' devolve"
-        ;;
-      *)
-        meow_aviso "$barra: raio $raio acima de $teto, o único valor com dias de uso atrás"
-        meow_info  "  não há teto calculável: o cosmic-comp compara o raio NOVO com a caixa do frame ANTERIOR"
-        meow_info  "  (corner_radius.rs:657-698) e mata o cliente — topbar e dock somem JUNTAS"
-        meow_info  "  para tentar acima disso: FORMA_RAIO_EXPERIMENTAL=sim, com a sessão saudável e tempo de sobra"
-        raio="$teto"
-        ;;
-    esac
+  # AS QUATRO CHAVES COM SLIDER NA GUI: VAZIO = NÃO TOCA (17/08 -> 26/08/2026)
+  #
+  #   `margin`, `border_radius`, `spacing` e `padding` têm slider no COSMIC
+  #   Tweaks (o flatpak `dev.edfloreshz.CosmicTweaks`, que declara
+  #   `filesystems=xdg-config/cosmic` e escreve direto em ~/.config/cosmic).
+  #   Não é o cosmic-settings: a página Painel dele não tem controle de raio
+  #   nenhum. Foi o Tweaks que gravou o `border_radius` 41/67 de 26/08/2026.
+  #
+  #   Até aqui este script gravava as seis chaves TODA passagem, com defaults
+  #   preenchidos — e o `meow doctor --consertar` roda sozinho às 05:00 pelo
+  #   timer. Ou seja: ela mexia no slider de noite e de manhã o número era
+  #   nosso de novo, sem nada dizer por quê. É a MESMA fronteira que o
+  #   `vidro.sh` atravessou três vezes com a opacidade antes de mudar o dono
+  #   (ver o bloco de 17/08/2026 lá).
+  #
+  #   Agora vale a convenção que este arquivo já usava para `size_center` e
+  #   `size_wings`: vazio é o padrão e significa NÃO TOCA. Quem quiser impor
+  #   preenche `FORMA_MARGEM_*`, `FORMA_RAIO_*`, `FORMA_ESPACO_*` ou
+  #   `FORMA_RECHEIO_*` no meow.conf, e aí o valor é gravado como sempre foi.
+  #
+  #   O QUE **NÃO** MUDOU DE DONO: `anchor_gap` e `expand_to_edges` (o "solto" e
+  #   a "ilha"). O Tweaks não os expõe, e são a decisão estrutural que este
+  #   script existe para tomar — a mesma regra do `keep_style_on_maximize` no
+  #   vidro.sh: o que a GUI não oferece continua sendo nosso.
+  margem="$4"; raio="$5"; espaco="$6"; recheio="$7"
+  [ -z "$margem" ]  || { margem="$(_int  "margem do $barra"  "$margem")"  || return 2; }
+  [ -z "$espaco" ]  || { espaco="$(_int  "espaço do $barra"  "$espaco")"  || return 2; }
+  [ -z "$recheio" ] || { recheio="$(_int "recheio do $barra" "$recheio")" || return 2; }
+
+  if [ -z "$raio" ]; then
+    # Não vamos escrever o raio — mas conferimos o que está no disco, porque um
+    # valor grande demais com o compositor sem patch apaga a barra inteira.
+    _forma_conferir_raio_do_disco "$barra" "$dir" || return 2
+  else
+    raio="$(_int "raio do $barra" "$raio")" || return 2
+    # A trava do raio (ver o cabeçalho). Avisa e CORTA, em vez de recusar: recusar
+    # deixaria a barra com o valor velho, que pode ser justamente o 160 que derruba
+    # o painel — o conserto tem de valer mesmo com o meow.conf errado.
+    #
+    # COM O cosmic-comp PATCHADO A TRAVA NÃO SE APLICA: o compositor clampa o
+    # canto sozinho, então não há valor que derrube a barra e cortar aqui seria
+    # só teimosia. Ver `_forma_compositor_clampa`.
+    local teto; teto="$(_forma_teto_raio "$barra")"
+    if [ "$raio" -gt "$teto" ] && _forma_compositor_clampa; then
+      meow_info "$barra: raio $raio acima de $teto, mas o cosmic-comp clampa — seguindo"
+    elif [ "$raio" -gt "$teto" ]; then
+      local chave; chave="FORMA_RAIO_PAINEL"; [ "$barra" = "Dock" ] && chave="FORMA_RAIO_DOCK"
+      case "${FORMA_RAIO_EXPERIMENTAL:-nao}" in
+        sim|true|1)
+          meow_aviso "$barra: raio $raio acima do valor com evidência ($teto) — modo experimental, seguindo"
+          meow_info  "  se topbar e dock sumirem JUNTAS, é isto: $chave=\"$teto\" e 'meow forma' devolve"
+          ;;
+        *)
+          meow_aviso "$barra: raio $raio acima de $teto, o único valor com dias de uso atrás"
+          meow_info  "  não há teto calculável: o cosmic-comp compara o raio NOVO com a caixa do frame ANTERIOR"
+          meow_info  "  (corner_radius.rs:657-698) e mata o cliente — topbar e dock somem JUNTAS"
+          meow_info  "  o conserto de raiz é o patch: aurora-cosmic-comp-ws.sh --build (~4 min)"
+          meow_info  "  para tentar acima disso sem o patch: FORMA_RAIO_EXPERIMENTAL=sim"
+          raio="$teto"
+          ;;
+      esac
+    fi
   fi
-  espaco="$(_int  "espaço do $barra"  "$6")" || return 2
-  recheio="$(_int "recheio do $barra" "$7")" || return 2
 
   # ilha e expand_to_edges são a mesma pergunta com o sinal trocado.
   case "$ilha" in true) expandir=false ;; *) expandir=true ;; esac
@@ -345,6 +510,11 @@ aplicar_barra() { # $1=Panel|Dock  $2=solto  $3=ilha  $4=margem  $5=raio  $6=esp
   for par in "anchor_gap:$solto" "margin:$margem" "border_radius:$raio" \
              "spacing:$espaco" "padding:$recheio" "expand_to_edges:$expandir"; do
     k="${par%%:*}"; v="${par#*:}"
+    # Vazio = não toca. E "não toca" é literal: nem um `meow_escrever` com o
+    # mesmo conteúdo, porque o cosmic-panel mantém inotify em
+    # CosmicPanel.Panel/v1 e .Dock/v1 (medido nos fdinfo, ver vidro.sh) — cada
+    # escrita é um reload da barra na tela dela.
+    [ -n "$v" ] || continue
     meow_escrever "$dir/$k" "$v" 644; rc=$?
     case "$rc" in
       1) mudou=1 ;;
@@ -410,8 +580,33 @@ for barra in Panel Dock; do
   meow_info "conserto: VIDRO_AO_MAXIMIZAR=\"sim\" no meow.conf e rode scripts/vidro.sh"
 done
 
+#   E O RAIO PODE NÃO SER NOSSO (26/08/2026): com `FORMA_RAIO_*` vazio este
+#   script não escreve a chave, e anunciar "com raio " (vazio) descreveria uma
+#   barra que não existe. Nesse caso a frase diz de quem é o número, e mostra o
+#   que está no disco — que é o que ela vê na tela.
+_forma_raio_dito() { # $1 = Panel|Dock  $2 = valor do meow.conf (pode ser vazio)
+  local disco
+  [ -n "$2" ] && { printf 'raio %s' "$2"; return 0; }
+  disco="$(cat "$BASE/com.system76.CosmicPanel.$1/v1/border_radius" 2>/dev/null || true)"
+  case "$disco" in
+    ''|*[!0-9]*) printf 'raio da GUI' ;;
+    *)           printf 'raio %s (seu)' "$disco" ;;
+  esac
+}
+
+# Margem também pode estar vazia — mesma razão do raio.
+_forma_margem_dita() { # $1 = Panel|Dock  $2 = valor do meow.conf
+  local disco
+  [ -n "$2" ] && { printf 'margem %s' "$2"; return 0; }
+  disco="$(cat "$BASE/com.system76.CosmicPanel.$1/v1/margin" 2>/dev/null || true)"
+  case "$disco" in
+    ''|*[!0-9]*) printf 'margem da GUI' ;;
+    *)           printf 'margem %s (sua)' "$disco" ;;
+  esac
+}
+
 if [ "$mudou" = "0" ]; then
-  meow_ok "forma já conforme: painel raio $FORMA_RAIO_PAINEL margem $FORMA_MARGEM_PAINEL, dock raio $FORMA_RAIO_DOCK margem $FORMA_MARGEM_DOCK"
+  meow_ok "forma já conforme: painel $(_forma_raio_dito Panel "$FORMA_RAIO_PAINEL") $(_forma_margem_dita Panel "$FORMA_MARGEM_PAINEL"), dock $(_forma_raio_dito Dock "$FORMA_RAIO_DOCK") $(_forma_margem_dita Dock "$FORMA_MARGEM_DOCK")"
   exit "$MEOW_OK"
 fi
 
@@ -425,8 +620,8 @@ meow_seco && exit "$MEOW_DIVERGENTE"
 #   `_bool` aqui não pode falhar: se o valor fosse inválido o `aplicar_barra`
 #   já teria saído com 2 lá em cima.
 _forma_como() { case "$(_bool "$1")" in
-                  true) printf 'em ilha com raio %s' "$2" ;;
-                  *)    printf 'de largura cheia com raio %s' "$2" ;;
+                  true) printf 'em ilha com %s' "$2" ;;
+                  *)    printf 'de largura cheia com %s' "$2" ;;
                 esac; }
-meow_ok "painel $(_forma_como "$FORMA_PAINEL_ILHA" "$FORMA_RAIO_PAINEL"), dock $(_forma_como "$FORMA_DOCK_ILHA" "$FORMA_RAIO_DOCK") — já valendo"
+meow_ok "painel $(_forma_como "$FORMA_PAINEL_ILHA" "$(_forma_raio_dito Panel "$FORMA_RAIO_PAINEL")"), dock $(_forma_como "$FORMA_DOCK_ILHA" "$(_forma_raio_dito Dock "$FORMA_RAIO_DOCK")") — já valendo"
 exit "$MEOW_DIVERGENTE"

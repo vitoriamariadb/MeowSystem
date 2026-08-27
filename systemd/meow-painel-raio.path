@@ -1,0 +1,26 @@
+[Unit]
+Description=MeowSystem — vigia a geometria das barras e clampa o raio que não couber
+# POR QUE VIGIAR O DIRETÓRIO, E NÃO O ARQUIVO border_radius
+#   O que estoura o raio quase nunca é o raio. É a barra ENCOLHER: mudar `size`,
+#   `padding`, `size_center`, `size_wings` ou `plugins_wings` muda a altura, e um
+#   raio que era legal vira ilegal no frame seguinte, sem ninguém tocar nele.
+#   `PathChanged=` em DIRETÓRIO dispara nas três formas de escrever ali dentro
+#   (criar, reescrever, rename atômico) — medido nesta máquina com systemd 255 e
+#   registrado no cabeçalho de meow-fundo.path.
+#
+# O AVISO QUE PRECISA VIR JUNTO
+#   Um `.path` sobre a geometria SEM o registro do desejo dela seria só acelerar
+#   a destruição: de 6 horas (o timer do doctor) para 2 segundos. Por isso o
+#   `painel.sh conferir` guarda o valor que ela pediu em
+#   ~/.local/state/meowsystem/painel/raio_desejado.* ANTES de cortar, e o
+#   devolve sozinho no dia em que couber. Sem esse registro, esta unidade não
+#   deveria existir.
+PartOf=cosmic-session.target
+
+[Path]
+PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Panel/v1
+PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Dock/v1
+Unit=meow-painel-raio.service
+
+[Install]
+WantedBy=cosmic-session.target
