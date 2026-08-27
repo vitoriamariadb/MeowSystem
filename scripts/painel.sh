@@ -346,13 +346,20 @@ laco() {
     nascimento="$(date +%s)"
     echo "painel reposto (pid $pid, tentativa $tentativas/$COTA)"
 
-    sleep 60 & sono=$!
-    wait -n "$pid" "$sono" 2>/dev/null
-    kill "$sono" 2>/dev/null
+    # A VIGÍLIA É UM LAÇO INTERNO, E ISSO NÃO É ESTILO — 26/08/2026
+    #   A primeira versão fazia `continue` quando o sono de reconciliação
+    #   acordava, voltando ao topo do laço externo. Mas o topo não tinha guarda
+    #   para "o meu painel ainda está vivo": ele caía no ramo de reposição e
+    #   spawnava OUTRO. Resultado, medido na tela dela: dois cosmic-panel do
+    #   mesmo laço (2041167 e 2042099), topbar e dock duplicadas.
+    #   Enquanto este painel viver, quem manda é este laço interno.
+    while kill -0 "$pid" 2>/dev/null; do
+      sleep 60 & sono=$!
+      wait -n "$pid" "$sono" 2>/dev/null
+      kill "$sono" 2>/dev/null
+      kill -0 "$pid" 2>/dev/null || break
 
-    if kill -0 "$pid" 2>/dev/null; then
-      # Foi o sono que acordou: o painel segue vivo.
-      # RENOVAR A TRÉGUA AQUI NÃO É ZELO — 26/08/2026.
+      # RENOVAR A TRÉGUA AQUI NÃO É ZELO.
       #   Carimbar só no spawn cobre os primeiros 600s (a CARENCIA do vigia da
       #   Aurora). Passado esse prazo o vigia volta a julgar um painel que é
       #   nosso, e o sinal 1 dele ("Can't start notifications applet") é
@@ -360,8 +367,14 @@ laco() {
       #   Sem esta linha o par vira um pisca-pisca: ele mata a cada 3 min, nós
       #   repomos, a cota se esgota e a barra fica caída de verdade.
       meow_painel_carencia_aurora
-      continue
-    fi
+
+      # O supervisor voltou a ter painel? O dele é melhor (tem o sino).
+      if meow_painel_do_supervisor >/dev/null 2>&1; then
+        echo "o cosmic-session voltou a ter painel — cedendo a vez (o dele tem o sino)"
+        kill -TERM "$pid" 2>/dev/null
+        break
+      fi
+    done
 
     vida=$(( $(date +%s) - nascimento ))
     [ "$vida" -ge "$VIDA_BOA" ] && { tentativas=0; janela_ini="$(date +%s)"; }
