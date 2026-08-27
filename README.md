@@ -37,6 +37,10 @@ em `scripts/construir_icones.sh` §1.
 |---|---|
 | **Aplicar tudo** (o mesmo que `./install.sh`) | `meow ativar` |
 | Ver o que está fora do lugar | `meow doctor` |
+| **Topbar e dock sumiram** | não faz nada: o `meow-painel.service` repõe em ~2s |
+| Diagnóstico da barra | `meow painel estado` |
+| Por que o raio de canto foi cortado | `meow painel teto` |
+| Fazer o painel reler a config | `meow painel reciclar` |
 | Consertar só o que estiver fora | `meow doctor --consertar` |
 | Trocar o accent para rosa | `./scripts/aplicar_tema.sh mocha-pink` |
 | Ir para o tema claro | `./scripts/aplicar_tema.sh latte-mauve` |
@@ -166,6 +170,64 @@ escrever nada. Sem isso, os dois entrariam em cabo de guerra a cada hora.
 
 O contrato completo está em [`docs/COSMIC-THEMING.md`](docs/COSMIC-THEMING.md) §5.
 
+**E onde o conflito é direto, o Meow resolve do lado dele.** O
+`aurora-painel-fantasma.sh` mata o painel apostando que "o cosmic-session
+respawna em ~4ms" — verdade no começo da sessão, falsa depois. Nenhuma linha dele
+foi tocada: o `meow-painel.service` passa a ser quem ressuscita, restaurando a
+premissa que o vigia já assume, e a trégua é carimbada no `tentativas.ts` que ele
+mesmo já lê. Contrato por arquivo de estado, não por edição alheia.
+
+---
+
+## A barra que sumia
+
+O sintoma era esse: topbar e dock sumiam juntas, do nada, e não voltavam — só
+`Alt+F2` trazia de volta, cada vez com mais frequência. São **três** problemas
+empilhados, e o repositório trata os três.
+
+**1. O raio de canto derruba a barra.** O `cosmic-comp` valida o raio num
+pre-commit hook que compara o valor NOVO contra a caixa do frame **ANTERIOR**
+(`corner_radius.rs:658` e `:685`). Erro de protocolo Wayland é fatal: o painel
+fica vivo e para de desenhar — e como painel e dock são o mesmo processo, os dois
+somem juntos. Em 26/08/2026 o COSMIC Tweaks gravou `border_radius` 41 num painel
+de 44 de altura, e a barra passou a tarde inteira sumida.
+
+- `patches/cosmic-comp-raio-clampado.patch` troca o `post_error` por um **clamp**:
+  o canto é reduzido ao que cabe em vez de o cliente ser derrubado. Aplicado junto
+  com o patch de workspace da Aurora, pelo `aurora-cosmic-comp-ws.sh --build`
+  (~4 min). Vale no próximo login.
+- Enquanto ele não estiver **em execução**, `meow painel conferir` clampa do lado
+  de cá, e guarda o número que você pediu em
+  `~/.local/state/meowsystem/painel/raio_desejado.*` — ele volta sozinho no dia em
+  que couber.
+
+**2. O supervisor do COSMIC desiste, e não avisa.** O backoff do `cosmic-session`
+é `2^restarts × sorteio(0..9)` ms — **sem teto**, e o contador **nunca zera por
+sucesso**. Nesta máquina ele chegou a 58720256 ms: 16h18min. Depois de ~20 mortes
+na mesma sessão, ele simplesmente não socorre mais.
+
+- `meow-painel.service` é o supervisor do Meow. O painel vira **filho** da unidade,
+  o laço dorme em `wait -n` (CPU zero) e acorda no instante da morte. Medido:
+  **1,97 s** entre o `pkill` e a barra de volta, com os 12 applets.
+- Ele cede a vez ao painel do `cosmic-session` assim que este voltar a ter um —
+  porque só o painel do supervisor recebe o socketpair das notificações e, com
+  ele, o sino.
+
+**3. O que a GUI oferece é dela.** `margin`, `border_radius`, `spacing` e
+`padding` têm slider no COSMIC Tweaks, e o `forma.sh` os reescrevia toda passagem
+— com o `meow doctor --consertar` rodando sozinho às 05:00. Agora vale a mesma
+convenção do `vidro.sh`: **vazio no `meow.conf` significa não toca**. Quem quiser
+impor preenche a chave. `anchor_gap` e `expand_to_edges` seguem sendo do projeto:
+a GUI não os expõe, e o que ela não oferece se perde em silêncio.
+
+O `meow painel teto` mostra a conta inteira — altura real da barra, teto derivado
+e se o compositor em execução clampa:
+
+```
+Panel  size=S   padding=2  altura=44  teto=22  raio=16
+Dock   size=M   padding=4  altura=64  teto=32  raio=24
+```
+
 ---
 
 ## Uma máquina só, e isso é uma decisão
@@ -218,6 +280,8 @@ state/tema/       as capturas: é isto que o instalador aplica
 scripts/          os geradores e aplicadores
 app-themes/       um módulo por aplicativo (detectar/conferir/aplicar)
 lib/comum.sh      log, códigos de saída, escrita atômica e as travas
+lib/painel.sh     a altura real das barras, o teto do raio e as sondas do compositor
+patches/          o que precisa ser corrigido no cosmic-comp, com o porquê medido
 docs/             o que foi MEDIDO nesta máquina, com data e método
 ```
 

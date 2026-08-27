@@ -138,6 +138,10 @@ CONF_LIDA=""
 #   Não há mais lista aqui, nem derivada: quem exporta é o `set -a` do
 #   `carregar_conf`, uma vez, para TODAS as chaves e todos os scripts. Consertar
 #   caso a caso deixaria o próximo caso para o próximo esquecimento.
+rodar_painel() {
+  "$1"/scripts/painel.sh "${2:-conferir}"
+}
+
 rodar_forma() {
   "$1"/scripts/forma.sh
 }
@@ -578,6 +582,21 @@ chk_forma() {
   MEOW_DRY_RUN=1 rodar_forma "$RAIZ" 2>&1
 }
 
+# O `painel` confere DUAS coisas que a `forma` não vê: se o raio no disco cabe
+# na altura real da barra, e se o supervisor do Meow está de pé. As duas juntas
+# são o que separa "a barra some do nada" de "a barra volta sozinha".
+chk_painel() {
+  MEOW_DRY_RUN=1 rodar_painel "$RAIZ" conferir 2>&1
+  local rc=$?
+  if [ -d "/run/user/$(id -u)/systemd" ] \
+     && [ "$(systemctl --user is-active meow-painel.service 2>/dev/null)" != "active" ] \
+     && [ -f "$HOME/.config/systemd/user/meow-painel.service" ]; then
+    printf 'o supervisor do painel está parado — a barra não volta sozinha se cair\n'
+    return "$MEOW_DIVERGENTE"
+  fi
+  return "$rc"
+}
+
 chk_hicolor() {
   MEOW_DRY_RUN=1 "$RAIZ/scripts/hicolor.sh" 2>&1
 }
@@ -894,6 +913,15 @@ fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
                     VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-}" \
                     "$RAIZ/scripts/vidro.sh" 2>&1; }
 fix_forma()     { rodar_forma "$RAIZ" 2>&1; }
+fix_painel()    {
+  rodar_painel "$RAIZ" conferir 2>&1
+  local rc=$?
+  # Religar o supervisor é conserto, e é barato: ele não escreve config nenhuma
+  # e não pisca a tela — só passa a repor o painel se ele cair.
+  [ -f "$HOME/.config/systemd/user/meow-painel.service" ] \
+    && systemctl --user start meow-painel.service >/dev/null 2>&1
+  return "$rc"
+}
 fix_hicolor()   { "$RAIZ/scripts/hicolor.sh" 2>&1; }
 fix_mimetypes() { ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
                     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
@@ -939,7 +967,7 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma janelas relogio greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
+VERIFICAVEIS=(conf gerar tema modo vidro forma painel janelas relogio greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
 SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin cursor "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -2259,6 +2287,25 @@ FIM
   return 0
 }
 
+# `meow painel` — a porta única para a barra. Ver scripts/painel.sh para o
+# porquê de cada verbo; aqui só repassamos, para que exista UM nome a lembrar.
+cmd_painel() {
+  case "${1:-estado}" in
+    conferir|teto|estado|reciclar|laco) "$RAIZ/scripts/painel.sh" "$1" ;;
+    -h|--help)
+      meow_titulo "meow painel"
+      printf '  meow painel estado     diagnóstico de uma tela\n'
+      printf '  meow painel teto       a conta do raio (altura, teto, compositor)\n'
+      printf '  meow painel conferir   clampa o raio ao que cabe, se for preciso\n'
+      printf '  meow painel reciclar   SIGTERM no painel, pela porta única\n\n'
+      printf '  O supervisor roda como meow-painel.service; ele repõe a barra em\n'
+      printf '  segundos quando ela cai, porque o cosmic-session desiste depois de\n'
+      printf '  ~20 mortes na mesma sessão (o backoff dele não tem teto e nunca zera).\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $1"; meow_info "veja: meow painel --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
 despachar() {
   case "${1:-}" in
     ""|menu)          cmd_menu ;;
@@ -2276,6 +2323,7 @@ despachar() {
     # Não é comando novo: é o mesmo `aplicar`, com o nome que veio à cabeça
     # primeiro. Um sinônimo custa uma linha; lembrar do verbo certo custa uma
     # busca no --help toda vez.
+    painel)           shift; cmd_painel "$@" ;;
     aplicar|ativar)   shift; cmd_aplicar "$@" ;;
     desfazer)         shift; cmd_desfazer "$@" ;;
     log)              shift; cmd_log "$@" ;;

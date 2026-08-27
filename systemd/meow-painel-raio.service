@@ -1,0 +1,15 @@
+[Unit]
+Description=MeowSystem — clampa o raio de canto ao que cabe na barra
+
+[Service]
+Type=oneshot
+# DEBOUNCE: o eco da nossa própria escrita cai dentro desta janela, e o COSMIC
+# Tweaks grava várias chaves em rajada quando ela arrasta um slider. Dois
+# segundos transformam a rajada em UM start. Não há laço: o `meow_escrever` só
+# grava quando o conteúdo difere, então a segunda passagem encontra o valor já
+# cabendo. Mesmo raciocínio, e mesma medição, do meow-fundo.path.
+ExecStartPre=-/bin/sleep 2
+ExecStart=%h/.local/bin/meow painel conferir
+# 1 = "estava divergente e eu consertei"; 3 = "não há o que fazer aqui".
+# Nenhum dos dois é falha desta unidade.
+SuccessExitStatus=1 3

@@ -1073,6 +1073,75 @@ etapa_escala() {
   return $?
 }
 
+# O SUPERVISOR DA BARRA — logo depois da forma, porque é o mesmo assunto:
+# a `forma.sh` decide como a barra é, esta garante que ela CONTINUE lá.
+#
+# POR QUE ISTO PRECISOU EXISTIR (26/08/2026)
+#   O `cosmic-session` respawna o painel com backoff `2^restarts x sorteio(0..9)`
+#   ms, sem teto, e o contador nunca zera por sucesso. Nesta máquina ele chegou a
+#   16h18min de espera — ou seja, qualquer morte do painel deixava a Vitória sem
+#   topbar e sem dock até o próximo login. Era isso que a fazia apertar Alt+F2
+#   cada vez mais.
+#
+# ANDA DE CARONA NO `AUTO_REPARO`, como o carrossel: quem desliga o auto-reparo
+# está dizendo "não mexa sozinho na minha máquina", e repor processo é mexer.
+etapa_painel() {
+  passo "Supervisor da barra (systemd --user)"
+  local destino="$HOME/.config/systemd/user" u conteudo mudou=0
+  local unidades=(meow-painel.service meow-painel-raio.path meow-painel-raio.service)
+
+  # O clamp do raio vale mesmo sem systemd: é o que impede a barra de sumir.
+  "$MEOW_RAIZ/scripts/painel.sh" conferir
+  local rc=$?
+  [ "$rc" = "2" ] && return "$MEOW_ERRO"
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    if meow_unidade_sobrou "${unidades[@]}"; then
+      meow_seco && { meow_muda "removeria o supervisor da barra"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now meow-painel.service meow-painel-raio.path >/dev/null 2>&1
+      rm -f "${unidades[@]/#/$destino/}"
+      rm -f "$destino"/*.wants/meow-painel.service "$destino"/*.wants/meow-painel-raio.path \
+            "$destino"/*.requires/meow-painel.service "$destino"/*.requires/meow-painel-raio.path
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" — supervisor da barra desligado e removido"
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_pula "AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem supervisor da barra"
+    return "$rc"
+  fi
+
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    meow_aviso "não há systemd --user nesta sessão — a barra não terá quem a reponha"
+    return "$rc"
+  fi
+
+  for u in "${unidades[@]}"; do
+    [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+    conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    meow_escrever "$destino/$u" "$conteudo" 644
+    case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+
+  if meow_seco; then
+    [ "$mudou" = "1" ] && { meow_muda "instalaria/atualizaria o supervisor da barra"; return "$MEOW_DIVERGENTE"; }
+    return "$rc"
+  fi
+  [ "$mudou" = "1" ] && systemctl --user daemon-reload
+
+  # O `.service` e o `.path` são uma dupla: o primeiro repõe a barra quando ela
+  # cai, o segundo clampa o raio quando a geometria muda. Nenhum substitui o
+  # outro.
+  for u in meow-painel.service meow-painel-raio.path; do
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      systemctl --user enable --now "$u" >/dev/null 2>&1 \
+        && { meow_muda "supervisor da barra armado ($u)"; rc=1; } \
+        || meow_aviso "não consegui armar $u"
+    fi
+  done
+  return "$rc"
+}
+
 etapa_forma() {
   passo "Forma das barras (painel e dock)"
   # A LISTA DE `export` QUE MORAVA AQUI ERA A ARMADILHA Nº 3, E JÁ TINHA COBRADO
@@ -1828,7 +1897,7 @@ main() {
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
-                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_janelas etapa_relogio etapa_escala etapa_upstream etapa_fontes
+                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_escala etapa_upstream etapa_fontes
                 etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos

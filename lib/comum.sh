@@ -156,7 +156,28 @@ meow_escrever() {
     return "$MEOW_DIVERGENTE"
   fi
   mkdir -p "$dir" || return "$MEOW_ERRO"
-  tmp="$(mktemp -p "$dir" ".meow.XXXXXX")" || return "$MEOW_ERRO"
+  # O PREFIXO `.atomicwrite` NÃO É COSMÉTICO — 26/08/2026
+  #   O `cosmic-config` do libcosmic IGNORA de propósito os temporários cujo nome
+  #   começa com `.atomicwrite`, ao traduzir eventos de inotify em mudanças de
+  #   chave (`libcosmic/cosmic-config/src/lib.rs:407-408`:
+  #       // Skip any .atomicwrite temporary files
+  #       if key.starts_with(".atomicwrite") { continue }
+  #   ), porque é assim que ele mesmo escreve.
+  #
+  #   Com o nosso `.meow.` o painel recebia QUATRO eventos por chave gravada — o
+  #   Create do temporário, o Modify(Data), o Name(From) e só então o Name(To)
+  #   legítimo —, e cada um faz o `cosmic-panel` reler a ENTRADA INTEIRA e
+  #   recomitar o raio de canto contra o bbox do frame anterior
+  #   (`corner_radius.rs:658` e `:685`). Ou seja: multiplicávamos por quatro os
+  #   dados jogados na corrida que apaga topbar e dock, e justamente no instante
+  #   em que a barra está mais frágil. O `forma.sh` grava até 12 chaves numa
+  #   rajada, e `spacing` está na lista `must_recreate` do painel, que respawna
+  #   os applets no meio dela.
+  #
+  #   A atomicidade não muda: o temporário continua no diretório de destino
+  #   (TRAVA 2, logo acima), então o `mv -f` segue sendo rename no mesmo
+  #   filesystem. Muda só o nome — e com ele o silêncio.
+  tmp="$(mktemp -p "$dir" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
   printf '%s' "$conteudo" > "$tmp" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   chmod "$modo" "$tmp"
   mv -f "$tmp" "$destino" || { rm -f "$tmp"; return "$MEOW_ERRO"; }

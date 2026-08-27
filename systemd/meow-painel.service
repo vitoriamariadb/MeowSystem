@@ -1,0 +1,49 @@
+[Unit]
+Description=MeowSystem — repõe o cosmic-panel quando o supervisor do COSMIC desiste
+Documentation=file:///usr/share/doc/meowsystem/painel.md
+# POR QUE ESTA UNIDADE EXISTE
+#   O `cosmic-session` respawna o painel com backoff `2^restarts x sorteio(0..9)`
+#   ms, SEM TETO, e o contador nunca zera por sucesso. Em 26/08/2026 esta máquina
+#   chegou ao restart 23 com espera de 58720256 ms — 16h18min. A partir daí,
+#   qualquer morte do painel deixa a tela sem topbar e sem dock até o próximo
+#   login. Era isso que fazia a Vitória apertar Alt+F2 cada vez mais.
+#
+# ORDEM: depois do compositor. Sem socket Wayland o laço só espera (ele não
+# falha, ver o cabeçalho de scripts/painel.sh), mas começar na hora certa evita
+# 30s de espera boba a cada login.
+PartOf=cosmic-session.target
+After=cosmic-session.target
+# StartLimit AQUI É PARA CRASH DO LAÇO, NÃO PARA MORTE DE PAINEL.
+#   Morte de painel é contabilizada DENTRO do laço (COTA/JANELA em
+#   scripts/painel.sh). Se cada morte virasse um start desta unidade, o Alt+F2
+#   dela, os dois kills do vigia da Aurora e o construir_icones.sh somariam na
+#   mesma conta e a unidade entraria em `failed` — a tecla de socorro removendo
+#   o socorro. Medido no log do Alt+F2: TRÊS invocações em 35s (14:06:29,
+#   14:07:01, 14:07:04 de 26/08).
+StartLimitIntervalSec=900
+StartLimitBurst=3
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/meow painel laco
+# `on-failure`, NÃO `always`: o caminho de ceder a vez ao painel do supervisor
+# sai com 0, e o systemd não deve tratar isso como queda.
+Restart=on-failure
+RestartSec=5s
+# 15s, e não o default de 90s: quando esta unidade para, o painel filho precisa
+# sair GRACIOSAMENTE para recolher os applets flatpak (clipboard-manager,
+# eyedropper), que vivem em app.slice — FORA do cgroup desta unidade. Um SIGKILL
+# por timeout deixaria para trás um clipboard-manager de ~1 GB enquanto o painel
+# seguinte sobe uma segunda cópia.
+TimeoutStopSec=15s
+# `mixed` manda SIGTERM só ao processo principal e SIGKILL a todo o resto do
+# cgroup — e o resto do cgroup é o PAINEL. Ele morria sem desmontar as layer
+# surfaces, o compositor as segurava órfãs, e o painel seguinte nascia por cima:
+# topbar e dock DUPLICADAS na tela. Visto num `systemctl restart` em 26/08/2026.
+# Com `control-group` o SIGTERM chega ao painel também, e o `_sair` do laço
+# ainda espera a saída graciosa antes de devolver o controle ao systemd.
+KillMode=control-group
+SyslogIdentifier=meow-painel
+
+[Install]
+WantedBy=cosmic-session.target
