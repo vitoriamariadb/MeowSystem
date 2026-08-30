@@ -1432,6 +1432,40 @@ etapa_midia_build() {
   return $?
 }
 
+# O APPLET DO MODO DE LEITURA — UMA ETAPA SÓ, E A DIFERENÇA É MEDIDA
+#   O applet de mídia precisa de duas etapas porque a sombra dele MASCARA o
+#   applet do flatpak: perder o conserto automático da sombra custaria à dock um
+#   buraco onde havia algo que funcionava. O de leitura não tem nada por trás —
+#   ele é o único dono de `com.meowsystem.AppletLeitura` —, então binário e
+#   sombra andam juntos no mesmo script, e o pior caso de uma sombra órfã é um
+#   espaço vazio na topbar que o `meow doctor` nomeia numa linha.
+#
+#   A ORDEM CONTINUA VALENDO, e agora ela é interna ao `leitura_build.sh`:
+#   binário instalado primeiro, sombra depois, e o fail-safe (sombra sem binário
+#   = sombra removida) roda ANTES da trava do `LEITURA_COMPILAR`, para que um
+#   `./install.sh` sem cargo ainda feche o buraco.
+#
+#   A TERCEIRA PEÇA NÃO É NOSSA E NÃO ENTRA AQUI: a linha do `plugins_wings` da
+#   topbar é território da Aurora (docs/FRONTEIRA.md) e é escrita À MÃO. O script
+#   AVISA quando ela falta; nenhum caminho deste arquivo a escreve — e a razão
+#   deixou de ser "é só cosmético" em 30/08/2026: o painel tem watch de inotify
+#   naquele diretório e `plugins_wings` está na lista `must_recreate` dele, então
+#   escrever ali RECRIA a topbar e respawna todos os applets na hora. Uma vez, à
+#   mão, é barato; num laço de install é a receita do painel fantasma.
+#
+# `LEITURA_COMPILAR=1` VAI NA LINHA DO COMANDO PELO MESMO MOTIVO DO IRMÃO
+#   O `meow.conf` é sourceado no shell do install.sh e todo script de `scripts/`
+#   roda como PROCESSO FILHO: variável de shell não atravessa. Sem a chave, o
+#   `leitura_build.sh` não falha — ele recusa compilar e devolve 3, que cai em
+#   "pulados". O que é a verdade: a etapa não rodou porque falta algo que não é
+#   dela resolver.
+etapa_leitura_applet() {
+  passo "Applet do modo de leitura (compilação e sombra)"
+  LEITURA_COMPILAR=1 LEITURA_APPLET="${LEITURA_APPLET:-}" \
+    "$MEOW_RAIZ/scripts/leitura_build.sh"
+  return $?
+}
+
 etapa_midia() {
   passo "Applet de mídia (sombra e chaves)"
   MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
@@ -1985,7 +2019,7 @@ main() {
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_cursor etapa_apps
                 etapa_assets etapa_vigia_flatpak
-                etapa_midia_build etapa_midia etapa_autostart etapa_autoreparo)
+                etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
   for e in "${etapas[@]}"; do

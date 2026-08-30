@@ -29,7 +29,7 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `CosmicPanel.{Panel,Dock}/v1/keep_style_on_maximize` | Meow (`vidro.sh`) | **Meow** — a GUI não tem controle para ela |
 | `CosmicPanel.{Panel,Dock}/v1/opacity` | COSMIC (GUI) | **ELA** — desde 17/08/2026, ver abaixo |
 | escala das saídas (`cosmic-randr`, o `outputs.ron`) | COSMIC (GUI) | **ELA** — o `install.sh` aplica `ESCALA_TELA` quando ela pede; o doctor nunca |
-| `CosmicPanel.*/v1/plugins_{wings,center}` | Aurora | **Aurora** — a ordem dos applets é dela |
+| `CosmicPanel.*/v1/plugins_{wings,center}` | Aurora, À MÃO | **Aurora** — a ordem dos applets é dela; nem o `midia.sh` nem o `leitura_build.sh` encostam, e os dois só AVISAM quando falta a linha |
 | `CosmicTk/v1/icon_theme` e `~/.local/share/icons/MeowSystem-Icons` | Meow | **Meow** |
 | `/usr/share/icons/hicolor/.../CosmicAppLibrary.svg` | ambos | **Meow** — o Aurora restaura o `.aurora-original` |
 | `~/.config/cosmic/logos/` | ambos | **Meow** — o `gato-pop.svg` do Aurora foi aposentado |
@@ -39,6 +39,9 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `~/.local/bin/meow-applet-now-playing` e `~/.local/state/meowsystem/midia/` | Meow (`midia_build.sh`) | **Meow** |
 | `~/.config/cosmic-ext-applet-now-playing/{panel-text-width,panel-color-style,album-art-remote}` | Meow (`midia.sh`) | **Meow** |
 | `~/.config/cosmic-ext-applet-now-playing/album-color-enabled` | ela, pelo popup do applet | **ELA** — o Meow só migrou o valor do sandbox uma vez |
+| `~/.local/share/applications/com.meowsystem.AppletLeitura.desktop` | Meow (`leitura_build.sh`) | **Meow** — a sombra do applet do modo de leitura; sem applet de fábrica por trás |
+| `~/.local/bin/meow-applet-leitura` e `~/.local/state/meowsystem/leitura/` | Meow (`leitura_build.sh`) | **Meow** |
+| `~/.local/state/cosmic/com.meowsystem.AppletLeitura/v1/ultima_{temperatura,textura}` | o applet | **ELA** — é o ponto ao qual o interruptor volta; nenhum script do Meow o lê |
 | `/usr/local/share/applications/{google-chrome,steam}.desktop` (wrappers de `Exec=`) | Aurora | **Aurora** — mudou de `~/.local/share` em 13/08/2026, ver abaixo |
 | `~/.local/share/applications/{vim,qt5ct,qt6ct,debian-*xterm}.desktop` | ambos | **Meow** — `NoDisplay` preserva o handler de MIME; o `Hidden=true` do Aurora mata |
 | `/usr/share/applications/*` (`NoDisplay`, nome curto) | Meow (com sudo) | **Meow** — o Aurora não escreve ali |
@@ -49,8 +52,8 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `/var/lib/cosmic-greeter/.config/cosmic` | Meow (`greeter.sh`) | **Meow** |
 | `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts` | Aurora | **Aurora** — é o colar dela |
 | `pinned_workspaces` | Aurora | **Aurora** |
-| `CosmicComp/v1/leitura_{temperatura,textura}` | Meow (`leitura.sh`, pelo relógio) **e** o applet da etapa 3 | **Meow escreve o horário, ELA escreve a mão** — desde 30/08/2026, ver abaixo |
-| `CosmicComp/v1/leitura_{agenda,hora_inicio,hora_fim}` | o applet da etapa 3 | **ELA** — o Meow LÊ e obedece, e nunca escreve |
+| `CosmicComp/v1/leitura_{temperatura,textura}` | Meow (`leitura.sh`, pelo relógio) **e** o applet da topbar | **Meow escreve o horário, ELA escreve a mão** — desde 30/08/2026, ver abaixo |
+| `CosmicComp/v1/leitura_{agenda,hora_inicio,hora_fim}` | o applet da topbar (`com.meowsystem.AppletLeitura`) | **ELA** — o Meow LÊ e obedece, e nunca escreve |
 | a luz quente da tela hoje (patch binário de night light) | Aurora (`aurora-night-light.py`) | **Aurora** — o `leitura.sh` não a toca; aposentá-la é a etapa 4 |
 | `~/.config/autostart/` | Aurora | **Aurora** |
 | `gsettings` / `dconf` — `org.gnome.desktop.wm.preferences` (`button-layout`) | Aurora | **Aurora** |
@@ -432,7 +435,7 @@ conserto é recompilar o `cosmic-comp` (~4 min, `sudo install` em `/usr/bin`), e
 doctor nunca usa sudo, nunca baixa e nunca compila. O comando é dela:
 `aurora-cosmic-comp-ws.sh --build`. Um build de 4 minutos disparado pelo timer
 das 05:00 seria pior que o defeito que ele corrige — é a mesma decisão que já
-tinha posto `cursor` (baixa da rede) e `midiabin` (compila) nessa lista.
+tinha posto `cursor` (baixa da rede), `midiabin` e `leiturabin` (compilam) nessa lista.
 
 **A lacuna que fica escrita para não ser esquecida.** O patch de night light do
 `aurora-night-light.py` é patch **binário**: ele reescreve o bloco
@@ -462,7 +465,7 @@ de configuração.
 | `leitura_hora_fim` | **só** o applet | `scripts/leitura.sh` |
 
 **Por que os dois primeiros podem ter dois escritores sem virar briga.** Porque as três
-últimas existem. O applet da etapa 3 tem um interruptor `Agendar`; enquanto ele estiver
+últimas existem. O applet da topbar tem um interruptor `Agendar`; enquanto ele estiver
 ligado, o relógio manda e os sliders seguem o disco. Quando ela o desliga, o
 `leitura.sh` **para de escrever inteiramente** — não escreve nem `0` — e devolve 4, que o
 `meow doctor` pinta `--` ("escolha dela"). É a mesma forma da `WALLPAPER_FONTES_DELA`:
@@ -473,8 +476,35 @@ auto-reparo que a desfaz de minuto em minuto.
 plano original punha `LEITURA_HORARIO_INICIO`/`_FIM` no `meow.conf`; a decisão dela
 ("determinar a faixa horária eu mesma, pela interface") moveu a hora para o
 `cosmic-config`. As duas chaves do `meow.conf` continuam existindo como **padrão
-declarado** para enquanto o applet não existir — e o `meow leitura estado` diz qual das
-duas fontes está mandando, sempre, em vez de deixar isso implícito.
+declarado** para enquanto o applet não tiver gravado hora nenhuma — e o `meow leitura
+estado` diz qual das duas fontes está mandando, sempre, em vez de deixar isso implícito.
+
+**O applet existe desde 30/08/2026, e ele NÃO cria as chaves ao ser instalado.** Ele lê o
+disco no arranque e só escreve o que ela mexe. Então "applet ausente" e "applet instalado
+e nunca tocado" são o mesmo estado para o `leitura.sh`, e nos dois vale o padrão do
+`meow.conf` — o que também quer dizer que instalar o applet **não muda nada** por si só.
+
+**As três peças do applet falham separado, e por isso o `estado` mostra as três.** O
+binário (`~/.local/bin/meow-applet-leitura`), a sombra `.desktop` e a linha
+`"com.meowsystem.AppletLeitura"` no `plugins_wings` da topbar. As duas primeiras são do
+Meow e o `leitura_build.sh` as instala **nesta ordem** — binário antes da sombra, sempre,
+porque sombra sem binário deixa um slot vazio na barra. A terceira é da Aurora, é escrita
+**à mão**; nenhum script deste projeto a toca, e
+quando ela falta o `leitura_build.sh --conferir` **avisa** — nunca acusa divergência, que é
+o que faria uma linha amarela eterna que o `--consertar` não pode apagar.
+
+**E `plugins_wings` NÃO é inerte — medido em 30/08/2026, e é a correção mais importante
+desta página.** Este projeto vinha repetindo que a chave "só vale no próximo início de
+sessão", e usando isso como razão para tratar a escrita como inofensiva. Não é: o
+`cosmic-panel` mantém um watch de **inotify** no diretório
+`~/.config/cosmic/com.system76.CosmicPanel.Panel/v1` (visto em `/proc/<pid>/fdinfo`, pelo
+inode do diretório), e `plugins_wings` está na lista `must_recreate` do
+`space_container.rs` do painel. Escrever a linha às 05:43 **recriou o espaço da topbar na
+hora**: o processo do painel manteve o mesmo PID e **todos** os applets renasceram com PIDs
+novos — o nosso apareceu na barra sem logout nenhum. É a mesma classe de evento que já
+apagou topbar e dock juntas nesta máquina. Uma escrita à mão é barata; em rajada, dentro de
+um `install.sh` ou de um timer, seria a fábrica do painel fantasma. Continua fora de todo
+script, agora por um motivo medido em vez de um motivo suposto.
 
 **A luz quente de hoje continua sendo da Aurora, e o `leitura.sh` não a toca.**
 `/var/lib/aurora/night-light-temp` = 3500, e quem esquenta a tela dela neste momento é um

@@ -402,16 +402,18 @@ LEITURA_AGENDA="sim"              # sim | nao | vazio (vazio = não toca)
 #   pelo applet da barra. Uma fonte só, em vez de duas que podem divergir em
 #   silêncio.
 #
-#   As DUAS linhas abaixo são o PADRÃO para enquanto o applet não existir (ele é
-#   a etapa 3 e ainda não foi escrito). Quando ele existir, elas param de valer
-#   sozinhas — e o `meow leitura estado` diz qual das duas fontes está mandando,
-#   sempre, em vez de deixar você adivinhar.
+#   As DUAS linhas abaixo são o PADRÃO para enquanto o applet não tiver gravado
+#   horário nenhum. O applet existe desde 30/08/2026, mas ele só ESCREVE o que
+#   você mexe: instalá-lo não cria as chaves. No instante em que você mudar a
+#   hora no popup, estas duas linhas param de valer sozinhas — e o
+#   `meow leitura estado` diz qual das duas fontes está mandando, sempre, em vez
+#   de deixar você adivinhar.
 #
 #   A janela pode atravessar a meia-noite, e é o caso normal: com início > fim a
 #   noite é "depois do início OU antes do fim". Início == fim vale o dia inteiro.
 #   É a MESMA regra do carrossel de papel de parede (WALLPAPER_NOITE_* abaixo);
 #   duas definições de noite na mesma máquina seria pedir para elas discordarem.
-LEITURA_HORARIO_INICIO="18:00"    # HH:MM — só vale enquanto o applet não existir
+LEITURA_HORARIO_INICIO="18:00"    # HH:MM — só vale até o applet gravar o dele
 LEITURA_HORARIO_FIM="07:00"       # HH:MM — idem
 
 # A TEMPERATURA DA NOITE, em Kelvin. A faixa é 1000–6500, inteira: foi decisão
@@ -442,6 +444,33 @@ LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
 # "às 17:30 a tela já mexeu". E trocar entre as duas é só esta palavra — o timer
 # é o mesmo, não há unidade a rearmar nem `./install.sh` a rodar de novo.
 LEITURA_RAMPA_MIN="0"             # 0 = seca | N minutos de rampa
+
+# O APPLET DA TOPBAR — o ícone com os dois sliders (30/08/2026).
+#   sim  o `./install.sh` compila `src/applets/leitura` e planta o `.desktop`.
+#   nao  DESLIGA DE VERDADE: a sombra sai primeiro, o binário depois, e a topbar
+#        volta sem ele no próximo login. As cinco chaves NÃO são apagadas — elas
+#        são o seu ajuste, e o relógio continua lendo e escrevendo nelas.
+#
+# TRÊS COISAS PRECISAM SER VERDADE PARA O ÍCONE APARECER, e só duas são nossas:
+#   1. o binário em ~/.local/bin/meow-applet-leitura   (esta chave)
+#   2. a sombra .desktop em ~/.local/share/applications (esta chave)
+#   3. a linha "com.meowsystem.AppletLeitura" no plugins_wings da topbar
+#      — arquivo da Aurora, escrito À MÃO, uma vez.
+# O `meow leitura estado` mostra as três, uma por linha, justamente porque elas
+# somem por motivos diferentes.
+#
+# ESCREVER A TERCEIRA RECRIA A TOPBAR NA HORA — medido em 30/08/2026. O painel
+# ouve aquele diretório por inotify e `plugins_wings` está na lista que o obriga
+# a refazer o espaço: todos os applets renascem no mesmo segundo. Uma vez, à mão,
+# é barato e o ícone aparece sem logout. Num laço seria a fábrica do painel
+# fantasma — por isso nenhum script deste projeto escreve nesse arquivo.
+#
+# COMPILAR É CARO UMA VEZ E DE GRAÇA DEPOIS: o build frio do libcosmic leva
+# minutos e ~1,5 GB de target; a segunda passagem não invoca o cargo, porque o
+# carimbo (fonte, Cargo.toml, Cargo.lock, binário e rustc) bate e o script
+# devolve 0 na hora. Sem cargo na máquina, a etapa cai em "pulados" e nada mais
+# acontece.
+LEITURA_APPLET="sim"              # sim | nao
 
 WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
 WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h

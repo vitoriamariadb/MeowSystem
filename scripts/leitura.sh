@@ -83,7 +83,7 @@
 #            derivadas em vez de deixá-las paradas parecendo ligadas.
 #     sim    o agendamento vale. O HORÁRIO, daqui para baixo, é do applet.
 #
-#   leitura_agenda (cosmic-config, o applet da etapa 3)   "agende AGORA?"
+#   leitura_agenda (cosmic-config, o applet do painel)   "agende AGORA?"
 #     false  ela desligou o "Agendar" pela interface: os sliders mandam, e este
 #            script não escreve NADA — nem 0. Devolve 4, que o doctor pinta como
 #            `--` ("escolha dela"). Zerar aqui seria desfazer, às 07:00, a
@@ -96,17 +96,22 @@
 #   as MESMAS chaves que o applet grava. Uma fonte só, em vez de duas que podem
 #   divergir em silêncio.
 #
-#   O applet é a etapa 3 e ainda NÃO EXISTE. Enquanto ele não existir, este
-#   script cai no padrão declarado no `meow.conf.exemplo`
-#   (LEITURA_HORARIO_INICIO/FIM) — e DIZ que está caindo nele, em vez de fingir
-#   que leu. A frase aparece no `conferir` e no `estado`; no `aplicar` ela é
-#   `meow_info`, que o `LOG_NIVEL=silencioso` da unidade systemd cala, senão
-#   seriam 1440 linhas por dia dizendo a mesma coisa.
+#   O APPLET EXISTE DESDE 30/08/2026 (src/applets/leitura), MAS AS CHAVES SÓ
+#   NASCEM QUANDO ELA MEXE NO HORÁRIO. O applet lê o disco no arranque e só
+#   ESCREVE o que ela muda — instalá-lo não cria `leitura_hora_inicio` nem
+#   `leitura_hora_fim`. Então "sem applet" e "applet instalado e nunca tocado"
+#   são o MESMO estado para este arquivo, e nos dois ele cai no padrão declarado
+#   no `meow.conf.exemplo` (LEITURA_HORARIO_INICIO/FIM) — e DIZ que está caindo
+#   nele, em vez de fingir que leu. A frase aparece no `conferir` e no `estado`;
+#   no `aplicar` ela é `meow_info`, que o `LOG_NIVEL=silencioso` da unidade
+#   systemd cala, senão seriam 1440 linhas por dia dizendo a mesma coisa.
 #
 #   Formato aceito nas duas chaves do applet: `"18:00"` (string RON, com ou sem
-#   aspas) e o inteiro de minutos desde a meia-noite (`1080`). O applet ainda não
-#   escolheu qual vai gravar; aceitar os dois custa quatro linhas e evita que a
-#   etapa 3 tenha de voltar aqui.
+#   aspas) e o inteiro de minutos desde a meia-noite (`1080`). MEDIDO em
+#   30/08/2026: o applet grava a PRIMEIRA forma — o campo é `String` e o
+#   `cosmic_config` serializa com aspas, que o `_leitura_cru` apara. Os dois
+#   formatos continuam aceitos de propósito: é ela quem pode abrir o arquivo e
+#   escrever `1080` à mão, e recusar isso seria recusar por nada.
 #
 # A JANELA DA NOITE É A MESMA DO CARROSSEL, PALAVRA POR PALAVRA
 #   Copiada do `e_noite()` do `wallpaper.sh:637`: com `início > fim` a noite é
@@ -179,6 +184,14 @@ LEITURA_K_AGENDA="$LEITURA_BASE/leitura_agenda"
 LEITURA_K_INI="$LEITURA_BASE/leitura_hora_inicio"
 LEITURA_K_FIM="$LEITURA_BASE/leitura_hora_fim"
 
+# As três peças do applet (etapa 3, 30/08/2026). Só LIDAS aqui: quem as instala
+# e confere é o `scripts/leitura_build.sh`, e o `plugins_wings` não é escrito por
+# script nenhum deste projeto (docs/FRONTEIRA.md).
+LEITURA_APPLET_ID="com.meowsystem.AppletLeitura"
+LEITURA_APPLET_BIN="$HOME/.local/bin/meow-applet-leitura"
+LEITURA_APPLET_SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$LEITURA_APPLET_ID.desktop"
+LEITURA_APPLET_ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
+
 LEITURA_COMP="/usr/bin/cosmic-comp"
 LEITURA_MARCADOR="AURORA-READING-MODE"
 LEITURA_NIGHTLIGHT="/var/lib/aurora/night-light-temp"
@@ -209,8 +222,9 @@ _leitura_cru() {
   [ -n "$v" ]
 }
 
-# "18:00" -> 1080. Também aceita o inteiro de minutos, porque o applet da etapa 3
-# ainda não escolheu qual dos dois vai gravar. Falha (1) em qualquer outra coisa.
+# "18:00" -> 1080. Também aceita o inteiro de minutos: o applet grava `"18:00"`
+# (conferido em 30/08/2026), mas quem edita o arquivo à mão pode escrever 1080, e
+# recusar isso seria recusar por nada. Falha (1) em qualquer outra coisa.
 _leitura_minutos() {
   local v="$1" h m
   case "$v" in
@@ -251,8 +265,10 @@ _leitura_resolver_agenda() {
   LEITURA_APPLET_DIZ=""
   if a="$(_leitura_cru "$LEITURA_K_AGENDA")"; then
     case "$a" in
-      # As formas `Some(...)` estão aqui porque o applet da etapa 3 pode declarar
-      # o campo como `Option<bool>`, e aí o RON no disco vem embrulhado. Os
+      # O applet declara o campo como `bool` e grava `true`/`false` pelados —
+      # conferido em 30/08/2026, em src/applets/leitura/src/main.rs. As formas
+      # `Some(...)` ficam porque custam duas linhas e cobrem o dia em que o
+      # campo virar `Option<bool>` (aí o RON no disco vem embrulhado). Os
       # parênteses são ESCAPADOS: sem aspas, o bash lê `(` como início de
       # subshell dentro do `case` e o arquivo nem parseia.
       true|"Some(true)")   LEITURA_APPLET_DIZ="sim" ;;
@@ -401,7 +417,10 @@ _leitura_dizer_fonte() {
   if [ "$LEITURA_FONTE" = "applet" ]; then
     "meow_$diz" "horário do applet (leitura_hora_inicio/fim): $janela"
   else
-    "meow_$diz" "o applet ainda não existe — usando o PADRÃO do meow.conf: $janela"
+    # "não gravou", e não "não existe": desde 30/08/2026 o applet existe, e o
+    # que falta é ela ter mexido no horário — ele só escreve o que ela muda.
+    # Dizer "não existe" mandaria procurar um binário que está instalado.
+    "meow_$diz" "o applet ainda não gravou horário — usando o PADRÃO do meow.conf: $janela"
   fi
 }
 
@@ -516,7 +535,7 @@ cmd_estado() {
     case "$LEITURA_APPLET_DIZ" in
       sim) meow_info "quem manda agora: o relógio (o applet quer o agendamento)" ;;
       nao) meow_pula "quem manda agora: OS SLIDERS — o applet desligou o 'Agendar'" ;;
-      *)   meow_pula "quem manda agora: o relógio (o applet da etapa 3 ainda não existe)" ;;
+      *)   meow_pula "quem manda agora: o relógio (o applet ainda não gravou o 'Agendar')" ;;
     esac
     if _leitura_alvo_agora; then
       meow_info "$(_leitura_col "agora são")$(_leitura_hhmm "$LEITURA_AGORA") — fase: $LEITURA_FASE (fração $LEITURA_ALVO_F)"
@@ -533,6 +552,37 @@ cmd_estado() {
       meow_pula "$(_leitura_col "$k")= <ausente>"
     fi
   done
+
+  # O APPLET, EM TRÊS PEÇAS QUE FALHAM SEPARADO (30/08/2026)
+  #   Binário, sombra `.desktop` e a linha no `plugins_wings` da topbar. Cada uma
+  #   some por um motivo diferente, então mostrar as três em linhas separadas é o
+  #   que troca "o applet sumiu" por "sumiu ESTA peça". A conferência de verdade
+  #   é do `scripts/leitura_build.sh --conferir`; aqui é diagnóstico, e por isso
+  #   nada acende divergência.
+  #
+  #   NENHUMA DAS TRÊS PRECISA DE LOGOUT — e isso contraria o que este projeto
+  #   vinha repetindo. MEDIDO em 30/08/2026, 05:43: o `cosmic-panel` mantém um
+  #   watch de inotify no diretório `CosmicPanel.Panel/v1` (visto em
+  #   `/proc/<pid>/fdinfo`, inode do diretório), e `plugins_wings` está na lista
+  #   `must_recreate` do `space_container.rs` do painel. Escrever a linha
+  #   RECRIOU o espaço da topbar na hora: o processo do painel manteve o mesmo
+  #   PID e TODOS os applets renasceram com PIDs novos, o nosso incluído.
+  #   Quem ainda espera o logout é o SHADER — o `cosmic-comp` da sessão.
+  if [ -x "$LEITURA_APPLET_BIN" ]; then
+    meow_ok "$(_leitura_col "applet: binário")$LEITURA_APPLET_BIN"
+  else
+    meow_pula "$(_leitura_col "applet: binário")ausente — LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
+  fi
+  if [ -f "$LEITURA_APPLET_SOMBRA" ]; then
+    meow_ok "$(_leitura_col "applet: .desktop")$LEITURA_APPLET_SOMBRA"
+  else
+    meow_pula "$(_leitura_col "applet: .desktop")ausente — o painel não tem o que abrir"
+  fi
+  if grep -qs "\"$LEITURA_APPLET_ID\"" "$LEITURA_APPLET_ASA"; then
+    meow_ok "$(_leitura_col "applet: na topbar")citado no plugins_wings"
+  else
+    meow_pula "$(_leitura_col "applet: na topbar")NÃO citado no plugins_wings — acrescente \"$LEITURA_APPLET_ID\" à mão"
+  fi
 
   # AS DUAS PERGUNTAS QUE NINGUÉM VÊ HOJE, E QUE SÃO DIFERENTES: o binário do
   # DISCO sabe ler os dois números? E o processo que está desenhando a tela dela
