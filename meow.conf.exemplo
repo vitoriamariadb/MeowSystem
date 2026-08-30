@@ -311,6 +311,39 @@ FORMA_ESPACO_DOCK=""
 FORMA_RECHEIO_PAINEL=""
 FORMA_RECHEIO_DOCK=""
 
+# --- O TAMANHO POR SEGMENTO DA BARRA ----------------------------------------
+# ESTAS SEIS CHAVES FALTAVAM AQUI, E ISSO É O DEFEITO QUE ESTE ARQUIVO MAIS FAZ
+#   Elas existem no `forma.sh` desde 25/08/2026 e nunca chegaram ao exemplo.
+#   Quem lesse este arquivo concluiria que o tamanho da barra é um só — que é
+#   exatamente a mentira que o commit de 26/08 já teve de consertar em outro
+#   bloco. Postas aqui em 27/08/2026, com o padrão que o script já usa (vazio).
+#
+# A GUI DE CONFIGURAÇÕES NÃO EXPÕE ISTO. Ela oferece UM tamanho para a barra
+# inteira; estas chaves separam o MEIO das duas PONTAS. Valores: vazio (herda o
+# tamanho da barra) | XS | S | M | L | XL.
+#
+# O QUE CADA SEGMENTO HOSPEDA no dock desta máquina:
+#   ala inicial  o Botão da Biblioteca — o gato que abre o lançador
+#   centro       os aplicativos abertos e fixados (`CosmicAppList`)
+#   ala final    bandeja, rede, área de transferência, bluetooth, desligar
+#
+# O PREÇO DE SUBIR UM SEGMENTO É A BARRA INTEIRA FICAR MAIS ALTA
+#   `altura_barra = 2*padding + o MAIOR applet que ela hospeda` (lib/painel.sh),
+#   e o applet mede XS=32 · S=40 · M=56 · L=64 · XL=80 unidades lógicas. Ou
+#   seja: pôr `L` na ala inicial para o gato crescer sobe o dock de 64 para 72,
+#   mesmo que só um botão tenha mudado. O teto do raio sobe junto (é metade da
+#   altura), então isso nunca aperta o `border_radius` — só afrouxa.
+#
+# MEXER AQUI RESPAWNA OS APPLETS. As chaves entram no `must_recreate` do daemon
+# (junto com `size`, `spacing` e `plugins_*`): vale na hora, sem tocar na sessão,
+# mas a barra PISCA — ao contrário do raio e da margem, que trocam sem piscar.
+FORMA_CENTRO_PAINEL=""
+FORMA_CENTRO_DOCK=""
+FORMA_ALA_INICIAL_PAINEL=""
+FORMA_ALA_FINAL_PAINEL=""
+FORMA_ALA_INICIAL_DOCK=""
+FORMA_ALA_FINAL_DOCK=""
+
 # --- AS JANELAS LADO A LADO (o "fibonacci") ---------------------------------
 # Em 25/08/2026 ela pediu o layout dwindle do Hyprland — cada janela nova parte
 # ao meio o espaço da anterior, formando a espiral. O cosmic-comp JÁ FAZ ISSO,
@@ -337,6 +370,78 @@ FORMA_RECHEIO_DOCK=""
 # dois escopos: COM UMA JANELA SÓ na tela, lado a lado é idêntico a maximizado.
 JANELAS_TILING="sim"              # sim | nao | vazio (vazio = não toca)
 JANELAS_TILING_ESCOPO="global"    # global | workspace
+
+# --- O MODO DE LEITURA, E O RELÓGIO QUE O LIGA SOZINHO ----------------------
+# Às 18:00 a tela esquenta e ganha textura de papel; às 07:00 volta ao normal,
+# sem você tocar em nada. São DOIS números escritos em
+# ~/.config/cosmic/com.system76.CosmicComp/v1/ — `leitura_temperatura` (Kelvin) e
+# `leitura_textura` (0.0 a 1.0) —, e quem os PINTA é o `cosmic-comp` recompilado.
+#
+# ENQUANTO A ETAPA 1 NÃO ENTRAR, ISTO NÃO MUDA UM PIXEL, E É DE PROPÓSITO.
+#   O compositor desta máquina ainda não sabe ler as duas chaves. Escrevê-las hoje
+#   é inofensivo (chave desconhecida em cosmic-config é arquivo que ninguém abre)
+#   e passa a valer no login DEPOIS do build do patch. `meow leitura estado` diz,
+#   em duas linhas, se o binário do disco já sabe ler e se a sessão que você está
+#   usando AGORA sabe — que são perguntas diferentes, e é a diferença entre elas
+#   que explica "escrevi e não aconteceu nada".
+#
+# VAZIO = NÃO TOCA, e aqui a chave tem três estados, não dois:
+#   vazio  o modo de leitura é seu e de mais ninguém. Nada é lido, nada é escrito,
+#          o `meow doctor` devolve verde sem olhar. É o mesmo contrato do
+#          RELOGIO_SEGUNDOS e do JANELAS_TILING acima.
+#   nao    DESLIGA DE VERDADE: os dois números voltam a 0 e o `./install.sh`
+#          desarma o `meow-leitura.timer`. Não é "parar de escrever" — é apagar o
+#          efeito, do mesmo jeito que WALLPAPER_NOITE="nao" apaga as pastas
+#          derivadas em vez de deixá-las paradas parecendo ligadas.
+#   sim    o agendamento vale.
+LEITURA_AGENDA="sim"              # sim | nao | vazio (vazio = não toca)
+
+# O HORÁRIO MORA NO APPLET, NÃO AQUI — decisão dela, 29/08/2026.
+#   Ela pediu para escolher a faixa pela interface, então a fonte da verdade são
+#   as chaves `leitura_hora_inicio` e `leitura_hora_fim` do CosmicComp, gravadas
+#   pelo applet da barra. Uma fonte só, em vez de duas que podem divergir em
+#   silêncio.
+#
+#   As DUAS linhas abaixo são o PADRÃO para enquanto o applet não existir (ele é
+#   a etapa 3 e ainda não foi escrito). Quando ele existir, elas param de valer
+#   sozinhas — e o `meow leitura estado` diz qual das duas fontes está mandando,
+#   sempre, em vez de deixar você adivinhar.
+#
+#   A janela pode atravessar a meia-noite, e é o caso normal: com início > fim a
+#   noite é "depois do início OU antes do fim". Início == fim vale o dia inteiro.
+#   É a MESMA regra do carrossel de papel de parede (WALLPAPER_NOITE_* abaixo);
+#   duas definições de noite na mesma máquina seria pedir para elas discordarem.
+LEITURA_HORARIO_INICIO="18:00"    # HH:MM — só vale enquanto o applet não existir
+LEITURA_HORARIO_FIM="07:00"       # HH:MM — idem
+
+# A TEMPERATURA DA NOITE, em Kelvin. A faixa é 1000–6500, inteira: foi decisão
+# dela em 29/08/2026 ("se é um slider por que não dá pra comportar todos?"), e
+# 6500K é o NEUTRO — ou seja, pôr 6500 aqui é o mesmo que desligar.
+#
+# 3500 não é chute meu: é o valor que a luz noturna da Aurora já usa nesta
+# máquina hoje (`/var/lib/aurora/night-light-temp`). Quer dizer que a virada das
+# 18:00 entrega exatamente a temperatura com que você já convive, agora num
+# horário que é seu.
+LEITURA_TEMPERATURA="3500"        # 1000–6500 K (6500 = neutro = desligado)
+
+# A TEXTURA DE PAPEL: 0.0 é nenhuma, 1.0 é o teto. No 100% o papel sobe o preto
+# para ~0.12, desce o branco para ~0.93 e dessatura 30%.
+#
+# ESTE NÚMERO É UMA PROPOSTA, NÃO UMA DECISÃO — e o plano de 29/08 registra o
+# teto da textura como escolha ainda em aberto, sua. 0.35 está aqui para que você
+# VEJA a coisa uma vez, que é o que a decisão está esperando; se for demais, é um
+# número; se não quiser nenhuma, é `0`.
+LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
+
+# A VIRADA: SECA OU RAMPA? Também é sua, e também está em aberto no plano.
+#   0     virada SECA: às 18:00 o degrau salta de uma vez.
+#   N     rampa de N minutos, um passo por minuto, DEPOIS da hora: às 18:00 começa
+#         a esquentar e chega ao valor cheio às 18:00+N. (O GNOME usa rampa.)
+#
+# A rampa vai depois da hora e nunca antes: "ligar às 18:00" não pode significar
+# "às 17:30 a tela já mexeu". E trocar entre as duas é só esta palavra — o timer
+# é o mesmo, não há unidade a rearmar nem `./install.sh` a rodar de novo.
+LEITURA_RAMPA_MIN="0"             # 0 = seca | N minutos de rampa
 
 WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
 WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h

@@ -49,6 +49,9 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `/var/lib/cosmic-greeter/.config/cosmic` | Meow (`greeter.sh`) | **Meow** |
 | `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts` | Aurora | **Aurora** — é o colar dela |
 | `pinned_workspaces` | Aurora | **Aurora** |
+| `CosmicComp/v1/leitura_{temperatura,textura}` | Meow (`leitura.sh`, pelo relógio) **e** o applet da etapa 3 | **Meow escreve o horário, ELA escreve a mão** — desde 30/08/2026, ver abaixo |
+| `CosmicComp/v1/leitura_{agenda,hora_inicio,hora_fim}` | o applet da etapa 3 | **ELA** — o Meow LÊ e obedece, e nunca escreve |
+| a luz quente da tela hoje (patch binário de night light) | Aurora (`aurora-night-light.py`) | **Aurora** — o `leitura.sh` não a toca; aposentá-la é a etapa 4 |
 | `~/.config/autostart/` | Aurora | **Aurora** |
 | `gsettings` / `dconf` — `org.gnome.desktop.wm.preferences` (`button-layout`) | Aurora | **Aurora** |
 | `gsettings` / `dconf` — `org.gnome.desktop.interface` (`cursor-theme`) | Meow (`cursor.sh`) | **Meow** — resolvido em 25/08/2026, ver abaixo |
@@ -438,5 +441,53 @@ comentário `// NIGHT LIGHT (Aurora)` dentro do shader — conferido no binário
 hoje, está lá —, não um marcador `AURORA-*` de fonte. Ele não está na série e
 **não é conferido** por esta linha do doctor. Cobri-lo exige outro verificador,
 com outro critério; fingir que este o cobre seria pior que a lacuna.
+
+---
+
+## As chaves `leitura_*` têm dois escritores, e isso é o desenho (30/08/2026)
+
+Três linhas novas na tabela, e elas descrevem a primeira fronteira deste projeto que
+**não é entre o Meow e a Aurora** — é entre o Meow e **ela**, dentro do mesmo diretório
+de configuração.
+
+**As cinco chaves, e quem toca em cada uma.** Em
+`~/.config/cosmic/com.system76.CosmicComp/v1/`:
+
+| chave | escreve | lê |
+|---|---|---|
+| `leitura_temperatura` (Kelvin, 0 = desligado) | `scripts/leitura.sh` **e** o applet | o `cosmic-comp` recompilado, por quadro |
+| `leitura_textura` (0.0–1.0, 0 = desligado) | `scripts/leitura.sh` **e** o applet | idem |
+| `leitura_agenda` (bool) | **só** o applet | `scripts/leitura.sh` |
+| `leitura_hora_inicio` | **só** o applet | `scripts/leitura.sh` |
+| `leitura_hora_fim` | **só** o applet | `scripts/leitura.sh` |
+
+**Por que os dois primeiros podem ter dois escritores sem virar briga.** Porque as três
+últimas existem. O applet da etapa 3 tem um interruptor `Agendar`; enquanto ele estiver
+ligado, o relógio manda e os sliders seguem o disco. Quando ela o desliga, o
+`leitura.sh` **para de escrever inteiramente** — não escreve nem `0` — e devolve 4, que o
+`meow doctor` pinta `--` ("escolha dela"). É a mesma forma da `WALLPAPER_FONTES_DELA`:
+uma lista DITA pela qual a escolha dela é respeitada para sempre, em vez de um
+auto-reparo que a desfaz de minuto em minuto.
+
+**O horário mudou de dono na noite de 29/08, e a etapa 2 foi escrita depois disso.** O
+plano original punha `LEITURA_HORARIO_INICIO`/`_FIM` no `meow.conf`; a decisão dela
+("determinar a faixa horária eu mesma, pela interface") moveu a hora para o
+`cosmic-config`. As duas chaves do `meow.conf` continuam existindo como **padrão
+declarado** para enquanto o applet não existir — e o `meow leitura estado` diz qual das
+duas fontes está mandando, sempre, em vez de deixar isso implícito.
+
+**A luz quente de hoje continua sendo da Aurora, e o `leitura.sh` não a toca.**
+`/var/lib/aurora/night-light-temp` = 3500, e quem esquenta a tela dela neste momento é um
+patch **binário** no shader do `cosmic-comp`, não uma chave. Aposentá-lo é a etapa 4 do
+plano, com outro dono. Enquanto isso os dois convivem, e o `meow leitura estado` mostra os
+dois lado a lado de propósito: sem essa linha, "a tela está quente" viraria prova de que o
+agendamento funcionou — e não é.
+
+**A pergunta que o `estado` responde e que ninguém mais responde.** Ele separa o binário
+do **disco** (`grep AURORA-READING-MODE /usr/bin/cosmic-comp`) do binário da **sessão
+viva** (`/proc/<pid>/exe`). São coisas diferentes, e a diferença é a explicação inteira de
+"escrevi a chave e não aconteceu nada": um `--build` já feito e um logout ainda não dado.
+Enquanto a etapa 1 não entrar, as duas respostas são "não", e escrever a chave continua
+sendo inofensivo e correto — o valor passa a valer no login seguinte.
 
 ---

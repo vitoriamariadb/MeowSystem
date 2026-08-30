@@ -877,6 +877,24 @@ chk_patches() {
   "$RAIZ/scripts/compositor_patches.sh" conferir 2>&1
 }
 
+# O MODO DE LEITURA (30/08/2026, etapa 2 do plano de 29/08)
+#   Mesmo contrato do relógio e do lado a lado: `LEITURA_AGENDA` vazio e este
+#   verificador devolve 0 SEM OLHAR NADA. É a única resposta honesta quando ela
+#   não pediu — e é o que faz esta linha nascer verde numa máquina que ainda não
+#   tem a chave no meow.conf.
+#
+#   E ele pode devolver 4, que o `rotulo_rc` pinta `--`: o applet da etapa 3 tem
+#   um interruptor "Agendar", e com ele desligado o degrau da tela é o que ela
+#   arrastou no slider, não o que o relógio pede. Chamar isso de divergência
+#   mandaria o `--consertar` desfazer a escolha dela às 5h da manhã.
+#
+#   SEM LISTA DE `export` AQUI, de propósito: o `set -a` do `carregar_conf` já
+#   exporta toda chave do meow.conf, e lista fixa é a armadilha nº 3 — foi ela
+#   que matou seis chaves `FORMA_*` em 25/08 com o doctor dizendo "já conforme".
+chk_leitura() {
+  "$RAIZ/scripts/leitura.sh" conferir 2>&1
+}
+
 # O autostart bloqueado. Devolve 3 (e não 1) quando não há systemd de usuário ao
 # alcance, então o doctor fica quieto em vez de gritar todo dia numa máquina
 # onde o assunto não se aplica.
@@ -979,13 +997,15 @@ fix_relogio()   { RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" \
                     "$RAIZ/scripts/relogio.sh" aplicar 2>&1; }
 fix_janelas()   { JANELAS_TILING="${JANELAS_TILING:-}" JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}" \
                   "$RAIZ/scripts/janelas.sh" aplicar 2>&1; }
+# Sem lista de chaves — ver o comentário do `chk_leitura`.
+fix_leitura()   { "$RAIZ/scripts/leitura.sh" aplicar 2>&1; }
 fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
                     "$RAIZ/scripts/autostart.sh" aplicar 2>&1; }
 
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma painel janelas patches relogio greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
+VERIFICAVEIS=(conf gerar tema modo vidro forma painel janelas patches relogio leitura greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
 SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin cursor patches "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -2165,6 +2185,8 @@ menu_itens() {
   printf 'icones reconstruir\tRemonta MeowSystem-Icons e as pastas coloridas.\n'
   printf 'wallpaper\tEstado do carrossel: pasta, quantas imagens, intervalo e ordem.\n'
   printf 'apps\tTabela: módulo, app instalado, tema aplicado ou pendente.\n'
+  printf 'leitura\tModo de leitura: que degrau o relógio pede AGORA, o que a tela mostra, e se o compositor já sabe ler os dois números.\n'
+  printf 'leitura remover\tZera temperatura e textura e desarma o relógio do modo de leitura.\n'
   printf 'configurar\tPergunta chave por chave o que está no meow.conf. ENTER mantém; no fim grava e oferece aplicar.\n'
   printf 'aplicar\tRoda o install.sh inteiro. Idempotente: nada é escrito duas vezes.\n'
   printf 'log\tÚltimas 50 linhas do log do MeowSystem.\n'
@@ -2283,6 +2305,10 @@ meow — Catppuccin para o COSMIC
   meow apps aplicar [slug]     tematiza um app, ou todos
   meow apps reverter <slug>    desfaz num app (só o spotify sabe hoje; slug obrigatório)
 
+  meow leitura                 que degrau o modo de leitura pede agora
+  meow leitura aplicar         põe o degrau da hora (o timer já faz sozinho)
+  meow leitura remover         zera temperatura e textura, e desarma o timer
+
   meow configurar              wizard curto: só as chaves essenciais
   meow configurar --tudo       pergunta o meow.conf inteiro, chave por chave
   meow configurar <CHAVE>      pergunta uma chave só (ex.: meow configurar ACCENT)
@@ -2325,6 +2351,36 @@ cmd_painel() {
   esac
 }
 
+# `meow leitura` — a porta única para o modo de leitura. Ver scripts/leitura.sh
+# para o porquê de cada verbo; aqui só repassamos, para que exista UM nome a
+# lembrar. `estado` é o padrão de propósito: quem digita `meow leitura` sem verbo
+# está perguntando, não mandando.
+cmd_leitura() {
+  # O verbo vai para uma variável ANTES do `case`, e não é preciosismo: com
+  # `set -u`, um `case "${1:-estado}"` que despacha `"$1"` morre em "variável não
+  # associada" justamente no caminho sem argumento — que é o mais usado. O
+  # `cmd_painel` logo acima tem esse defeito hoje (`meow painel` sozinho falha);
+  # não é consertado aqui para não disputar o arquivo com outra frente, mas fica
+  # dito, porque copiar o padrão dele seria herdar o bug.
+  local verbo="${1:-estado}"
+  case "$verbo" in
+    aplicar|conferir|estado|remover) "$RAIZ/scripts/leitura.sh" "$verbo" ;;
+    -h|--help)
+      meow_titulo "meow leitura"
+      printf '  meow leitura estado     que degrau o relógio pede AGORA e o que a tela mostra\n'
+      printf '  meow leitura conferir   0 conforme · 1 divergente · 4 escolha sua\n'
+      printf '  meow leitura aplicar    põe o degrau da hora (o timer faz isto sozinho)\n'
+      printf '  meow leitura remover    zera os dois números e desarma o timer\n\n'
+      printf '  O horário mora no APPLET (etapa 3), não no meow.conf: as chaves\n'
+      printf '  leitura_hora_inicio/fim de com.system76.CosmicComp. Enquanto o applet\n'
+      printf '  não existir, vale o padrão do meow.conf — e o estado diz isso na cara.\n\n'
+      printf '  Quem PINTA é o cosmic-comp recompilado (etapa 1). Até ela deslogar\n'
+      printf '  depois desse build, escrever aqui é inofensivo e não muda um pixel.\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow leitura --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
 despachar() {
   case "${1:-}" in
     ""|menu)          cmd_menu ;;
@@ -2343,6 +2399,7 @@ despachar() {
     # primeiro. Um sinônimo custa uma linha; lembrar do verbo certo custa uma
     # busca no --help toda vez.
     painel)           shift; cmd_painel "$@" ;;
+    leitura)          shift; cmd_leitura "$@" ;;
     aplicar|ativar)   shift; cmd_aplicar "$@" ;;
     desfazer)         shift; cmd_desfazer "$@" ;;
     log)              shift; cmd_log "$@" ;;

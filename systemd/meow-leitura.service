@@ -1,0 +1,82 @@
+# meow-leitura.service — põe o modo de leitura no degrau que o relógio pede.
+#
+# O QUE ELE FAZ: `scripts/leitura.sh aplicar`. Lê cinco arquivos pequenos de
+# `com.system76.CosmicComp/v1` (os dois números, mais o trio do agendamento que o
+# applet grava) e escreve SÓ quando o valor muda. Com a virada seca isso é duas
+# vezes por dia; com `LEITURA_RAMPA_MIN=N`, N vezes em cada virada.
+#
+# NÃO REINICIA NADA, e isso não é zelo: o `cosmic-comp` relê a chave sozinho pelo
+# watcher do cosmic-config (`libcosmic/cosmic-config/src/lib.rs:388`), e reiniciar
+# o compositor derrubaria a sessão inteira dela. O painel também não é tocado — a
+# issue #13 do upstream derruba topbar e dock juntas quando alguém tenta.
+#
+# NÃO NOTIFICA, pelo mesmo motivo do `meow-wallpaper.service` irmão: um
+# `notify-send` numa unidade que dispara de minuto em minuto é ruído garantido, e
+# o Não Perturbe dela engoliu 22 avisos entre 27 e 28/08/2026 de todo jeito. O
+# rastro fica no `leitura.log` daqui e no `meow log`.
+#
+# `LOG_NIVEL=silencioso` NA LINHA DO EXEC, E É O QUE TORNA O LOG LEGÍVEL
+#   O `set -a` logo antes exporta TUDO o que o meow.conf definir, incluindo o
+#   `LOG_NIVEL` dela. A atribuição na frente do `exec` vence esse valor, e só
+#   nesta unidade. Sem ela o `leitura.log` ganharia 1440 linhas por dia dizendo
+#   "já no degrau da hora" — o arquivo seria só isso, e a linha que importa (a
+#   virada das 18:00) ficaria enterrada.
+#
+#   O silêncio NÃO engole erro: `meow_erro` e `meow_aviso` escrevem em stderr, que
+#   aqui vai para o journal. Cala progresso, não diagnóstico — é a promessa do
+#   `LOG_NIVEL` no `lib/comum.sh:46`.
+#
+# `ConditionEnvironment=WAYLAND_DISPLAY` — conferido, e não suposto:
+#     systemctl --user show-environment | grep WAYLAND
+#     WAYLAND_DISPLAY=wayland-1
+#   Sem sessão gráfica não há tela para esquentar, e a unidade é PULADA com o
+#   motivo no journal em vez de rodar 1440 vezes por dia num tty.
+#
+# CÓDIGOS: 0 já estava no degrau · 1 mudou o degrau · 3 falta dependência ·
+# 4 escolha dela (o applet desligou o "Agendar"; ver o cabeçalho do
+# `scripts/leitura.sh`). Nenhum dos quatro é falha, e por isso os quatro entram no
+# `SuccessExitStatus` — sem isso a unidade apareceria `failed` no
+# `systemctl --user status` justamente quando fez o certo.
+#
+# `$R` SIM, `${R}` NÃO: o systemd expande `${NOME}` na linha de `Exec` mesmo
+# dentro de aspas simples, e variável que ele não conhece vira string vazia.
+#
+# O `flock -n -E 0` é o mesmo do `meow-wallpaper.service`, sobre o MESMO arquivo
+# de lock: o tique pode cair no meio de um `meow doctor --consertar`, que também
+# chama este script. `-E 0` porque ceder a vez tem de sair 0 — o 1 aqui significa
+# "mudou o degrau", e confundir os dois sujaria o log com viradas que não
+# aconteceram. Perder um tique não custa nada: o próximo, em um minuto, reconcilia.
+
+[Unit]
+Description=MeowSystem — põe o modo de leitura no degrau que o relógio pede
+Documentation=file:%h/.local/state/meowsystem/raiz
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+ConditionEnvironment=WAYLAND_DISPLAY
+PartOf=cosmic-session.target
+After=cosmic-session.target
+# Relógio nunca estoura burst; isto é folga para o dia em que um `.path` vier
+# acordar esta mesma unidade (o applet da etapa 3 grava no diretório vigiado).
+StartLimitIntervalSec=300s
+StartLimitBurst=20
+
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/leitura.sh" ] || exit 0; LOG_NIVEL=silencioso exec "$R/scripts/leitura.sh" aplicar'
+
+SuccessExitStatus=1 3 4
+# `LogLevelMax=notice` CALA TAMBÉM O "Starting…/Finished…" DO PRÓPRIO SYSTEMD —
+# medido em 30/08/2026, ligando e desligando a linha nesta máquina: com ela o
+# `journalctl --user -u meow-leitura.service` fica VAZIO; sem ela, aparecem duas
+# linhas por tique. Duas linhas × 1440 tiques = 2880 linhas de journal por dia
+# para uma unidade que muda alguma coisa duas vezes. Com um relógio de minuto em
+# minuto essa opção deixa de ser cosmética e passa a ser o que torna o journal
+# desta máquina legível.
+#
+# O que ela NÃO cala: `err` e `warning`. Um `meow_erro` continua aparecendo, que
+# é a única coisa que alguém procuraria aqui.
+LogLevelMax=notice
+SyslogIdentifier=meow-leitura
+
+StandardOutput=append:%h/.local/state/meowsystem/leitura.log
+StandardError=inherit

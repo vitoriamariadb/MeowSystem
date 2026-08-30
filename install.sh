@@ -1199,6 +1199,87 @@ etapa_relogio() {
   return $?
 }
 
+# O MODO DE LEITURA E O RELÓGIO QUE O LIGA SOZINHO (30/08/2026, etapa 2 do plano
+# de 29/08). Vem depois do relógio de propósito: é o mesmo assunto — o que muda
+# na tela dela por conta do horário —, e o supervisor da barra já mostrou que
+# unidade de usuário fica melhor perto de quem a usa.
+#
+# TRÊS PORTÕES, E ELES NÃO DIZEM A MESMA COISA
+#   `LEITURA_AGENDA` vazio  o script não escreve nada (contrato "vazio = não
+#                           toca"), e o timer NÃO é armado. Ninguém decide por ela
+#                           um recurso que muda a cor da tela.
+#   `LEITURA_AGENDA="nao"`  o script zera os dois números, e o timer é desarmado e
+#                           REMOVIDO. Desligar tem de desligar.
+#   `AUTO_REPARO != "sim"`  mesmo com o agendamento pedido, nada é armado: quem
+#                           desliga o auto-reparo está dizendo "não mexa sozinho
+#                           na minha máquina", e virar a cor da tela às 18:00 é
+#                           mexer. É a mesma carona do `etapa_painel` e do
+#                           carrossel.
+#
+# NADA AQUI COMPILA, BAIXA OU USA SUDO — e nada aqui pinta um pixel enquanto o
+# patch da etapa 1 não entrar no binário. As chaves ficam corretas no disco desde
+# já, e passam a valer no login seguinte ao build.
+etapa_leitura() {
+  passo "Modo de leitura (o horário liga sozinho)"
+  local destino="$HOME/.config/systemd/user" u conteudo mudou=0
+  local unidades=(meow-leitura.service meow-leitura.timer)
+
+  # O degrau vale mesmo sem systemd: é o número no disco que o compositor lê.
+  "$MEOW_RAIZ/scripts/leitura.sh" aplicar
+  local rc=$?
+  [ "$rc" = "2" ] && return "$MEOW_ERRO"
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ] || [ "${LEITURA_AGENDA:-}" != "sim" ]; then
+    if meow_unidade_sobrou "${unidades[@]}"; then
+      meow_seco && { meow_muda "removeria o relógio do modo de leitura"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now meow-leitura.timer >/dev/null 2>&1
+      rm -f "${unidades[@]/#/$destino/}"
+      rm -f "$destino"/*.wants/meow-leitura.timer "$destino"/*.requires/meow-leitura.timer
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "relógio do modo de leitura desligado e removido"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if [ -z "${LEITURA_AGENDA:-}" ]; then
+      meow_pula "LEITURA_AGENDA vazio — sem relógio do modo de leitura"
+    else
+      meow_pula "LEITURA_AGENDA=\"${LEITURA_AGENDA:-}\"/AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem relógio do modo de leitura"
+    fi
+    return "$rc"
+  fi
+
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    meow_aviso "não há systemd --user nesta sessão — o horário não vai virar sozinho"
+    return "$rc"
+  fi
+
+  for u in "${unidades[@]}"; do
+    [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+    conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    meow_escrever "$destino/$u" "$conteudo" 644
+    case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+
+  if meow_seco; then
+    [ "$mudou" = "1" ] && { meow_muda "instalaria/atualizaria o relógio do modo de leitura"; return "$MEOW_DIVERGENTE"; }
+    return "$rc"
+  fi
+  [ "$mudou" = "1" ] && systemctl --user daemon-reload
+
+  # Só o `.timer` é armado. O `.service` é puxado por ele (`Unit=`), e habilitá-lo
+  # separado criaria um segundo caminho para a mesma execução — o defeito que o
+  # `meow_unidade_sobrou` existe para enxergar.
+  if [ "$(systemctl --user is-enabled meow-leitura.timer 2>/dev/null)" != "enabled" ] ||
+     [ "$(systemctl --user is-active  meow-leitura.timer 2>/dev/null)" != "active" ]; then
+    if systemctl --user enable --now meow-leitura.timer >/dev/null 2>&1; then
+      meow_muda "relógio do modo de leitura armado (vira o degrau na hora)"
+      rc=1
+    else
+      meow_aviso "não consegui armar o meow-leitura.timer"
+    fi
+  fi
+  return "$rc"
+}
+
 # Os apps que não podem subir sozinhos no login. NÃO escreve em
 # `~/.config/autostart/` (é da Aurora): o bloqueio é `systemctl --user mask` da
 # unidade que o `systemd-xdg-autostart-generator` gera a partir do `.desktop`.
@@ -1897,7 +1978,7 @@ main() {
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
   local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
-                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_escala etapa_upstream etapa_fontes
+                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
                 etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos
