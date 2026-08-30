@@ -883,7 +883,7 @@ chk_patches() {
 #   não pediu — e é o que faz esta linha nascer verde numa máquina que ainda não
 #   tem a chave no meow.conf.
 #
-#   E ele pode devolver 4, que o `rotulo_rc` pinta `--`: o applet da etapa 3 tem
+#   E ele pode devolver 4, que o `rotulo_rc` pinta `--`: o applet da topbar tem
 #   um interruptor "Agendar", e com ele desligado o degrau da tela é o que ela
 #   arrastou no slider, não o que o relógio pede. Chamar isso de divergência
 #   mandaria o `--consertar` desfazer a escolha dela às 5h da manhã.
@@ -893,6 +893,33 @@ chk_patches() {
 #   que matou seis chaves `FORMA_*` em 25/08 com o doctor dizendo "já conforme".
 chk_leitura() {
   "$RAIZ/scripts/leitura.sh" conferir 2>&1
+}
+
+# O APPLET DO MODO DE LEITURA ENTRA COM UM NOME SÓ, E ISSO É UMA ESCOLHA
+# DIFERENTE DA DO APPLET DE MÍDIA (30/08/2026)
+#   Lá são dois — `midiabin` compila, `midia` planta a sombra —, porque o laço
+#   de conserto dá `continue` pelo NOME antes de olhar o código de saída: com um
+#   nome só em SEM_CONSERTO, o doctor perderia junto o conserto da sombra órfã,
+#   que ele SABE fazer (é um `rm` no home dela). E lá isso custa caro: sombra sem
+#   binário MASCARA o applet do flatpak e deixa a dock com um buraco onde havia
+#   um applet que funcionava.
+#
+#   Aqui não existe applet de fábrica por trás. O nosso é o único que responde
+#   por `com.meowsystem.AppletLeitura`; se o binário sumir, o pior caso é um
+#   espaço vazio na topbar, e o `leitura_build.sh --conferir` diz numa linha qual
+#   comando o fecha. Um segundo verificável para essa diferença seria mais
+#   superfície do que conserto — e superfície que envelhece sozinha.
+#
+#   Compilar continua não sendo trabalho do doctor: o caminho do `cargo` é
+#   inalcançável sem `LEITURA_COMPILAR=1`, e quem exporta essa chave é o
+#   `install.sh`. Por isso `leiturabin` está em SEM_CONSERTO.
+#
+#   Sem lista de `export` aqui, pelo mesmo motivo do `chk_leitura`: o `set -a` do
+#   `carregar_conf` já exporta toda chave do meow.conf, e lista fixa é a
+#   armadilha que matou seis chaves `FORMA_*` em 25/08 com o doctor dizendo "já
+#   conforme".
+chk_leiturabin() {
+  "$RAIZ/scripts/leitura_build.sh" --conferir 2>&1
 }
 
 # O autostart bloqueado. Devolve 3 (e não 1) quando não há systemd de usuário ao
@@ -1005,8 +1032,8 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma painel janelas patches relogio leitura greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
-SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin cursor patches "
+VERIFICAVEIS=(conf gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
+SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin leiturabin cursor patches "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
 # fixa "é o install.sh que cria" servia; com o `ocultar` ela passaria a mentir —
@@ -1019,6 +1046,7 @@ declare -A SEM_CONSERTO_RAZAO=(
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
   [midiabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: MIDIA_COMPILAR=1 ./scripts/midia_build.sh"
+  [leiturabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
   [cursor]="o conserto BAIXA da rede, e o doctor não baixa — rode: ./scripts/cursor.sh aplicar"
   [patches]="o conserto RECOMPILA o cosmic-comp (~4 min), e o doctor não compila — rode: aurora-cosmic-comp-ws.sh --build"
 )
@@ -2363,6 +2391,20 @@ cmd_leitura() {
   # não é consertado aqui para não disputar o arquivo com outra frente, mas fica
   # dito, porque copiar o padrão dele seria herdar o bug.
   local verbo="${1:-estado}"
+
+  # O `carregar_conf` NAO E OPCIONAL AQUI, e a falta dele mentia na tela.
+  #   MEDIDO em 30/08/2026, com o timer JA armado e escrevendo de minuto em
+  #   minuto: `meow leitura estado` imprimia `LEITURA_AGENDA=""` e a linha
+  #   "o MeowSystem nao agenda nada" — enquanto o `meow.conf` dela dizia "sim" e
+  #   o `meow-leitura.service` reconciliava a cada 60 s. O `chk_leitura` do
+  #   doctor acertava, porque o `cmd_doctor` carrega o conf antes; este caminho
+  #   nao carregava, e o `leitura.sh` caia no padrao vazio de `${LEITURA_AGENDA:-}`.
+  #   Uma frase falsa na tela e pior que silencio: manda a pessoa procurar no
+  #   lugar errado. O `cmd_painel` logo acima nao precisa disto (o `painel.sh`
+  #   le o proprio estado em disco); este precisa, e todo comando que delegue a
+  #   um script que le o meow.conf precisa.
+  carregar_conf || return "$MEOW_ERRO"
+
   case "$verbo" in
     aplicar|conferir|estado|remover) "$RAIZ/scripts/leitura.sh" "$verbo" ;;
     -h|--help)
@@ -2371,9 +2413,10 @@ cmd_leitura() {
       printf '  meow leitura conferir   0 conforme · 1 divergente · 4 escolha sua\n'
       printf '  meow leitura aplicar    põe o degrau da hora (o timer faz isto sozinho)\n'
       printf '  meow leitura remover    zera os dois números e desarma o timer\n\n'
-      printf '  O horário mora no APPLET (etapa 3), não no meow.conf: as chaves\n'
-      printf '  leitura_hora_inicio/fim de com.system76.CosmicComp. Enquanto o applet\n'
-      printf '  não existir, vale o padrão do meow.conf — e o estado diz isso na cara.\n\n'
+      printf '  O horário mora no APPLET da topbar, não no meow.conf: as chaves\n'
+      printf '  leitura_hora_inicio/fim de com.system76.CosmicComp. O applet só as\n'
+      printf '  escreve quando você mexe nele; até lá vale o padrão do meow.conf —\n'
+      printf '  e o estado diz na cara qual das duas fontes está mandando.\n\n'
       printf '  Quem PINTA é o cosmic-comp recompilado (etapa 1). Até ela deslogar\n'
       printf '  depois desse build, escrever aqui é inofensivo e não muda um pixel.\n'
       ;;

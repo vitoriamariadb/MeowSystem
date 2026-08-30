@@ -50,13 +50,28 @@ abre para decidir é `docs/pesquisas/2026-08-29-modo-leitura.html`, que tem duas
 abas. **Nada foi executado** — em 29/08 ela estava a 10% do limite semanal e
 escolheu gravar o plano em vez de tocar na máquina.
 
+**AS SEIS ETAPAS ESTÃO FEITAS.** Executadas em 30/08/2026 por cinco frentes em
+paralelo, um por arquivo, com a validação medida depois, à mão. Falta **um
+logout dela** — e só o shader depende dele.
+
 | etapa | estado |
 |---|---|
-| **caminho 1** — acender a luz que JÁ está no binário | **livre e não feito.** 10 min, sem build, reversível na UI. `a11y_screen_filter.ron` continua `(inverted: false,)` |
-| 1. os dois números na tela | **destravada em 30/08.** A série de patches existe e aceita um `opt` novo; o que falta é escrever o patch do modo de leitura e rodar o `--build` |
-| 2. o horário liga sozinho | livre, mas depende da decisão "rampa ou seca" |
-| 3. o slider na barra | depende da 1 |
-| 4, 5 e 6 | não começadas |
+| **caminho 1** — acender a luz que JÁ está no binário | **morto e melhor**: a luz quente deixou de morar no filtro "Escala de cinza". Ver a etapa 4 |
+| 1. os dois números na tela | **feita** · `AURORA-READING-MODE-1` no `/usr/bin/cosmic-comp`, com portão de GLSL 6/6 no compilador da NVIDIA |
+| 2. o horário liga sozinho | **feita** · `meow-leitura.timer` armado, de minuto em minuto; `LEITURA_AGENDA="sim"` no conf dela |
+| 3. o slider na barra | **feita** · `meow-applet-leitura` **vivo na topbar dela sem logout** — o `plugins_wings` não era inerte, ver abaixo |
+| 4. aposentar o night light | **feita** · o bloco quente saiu do binário; "Escala de cinza" voltou a ser cinza |
+| 5. o doctor conta a verdade | **feita** · veio de graça com a Sprint U (o verificável `patches`) |
+| 6. a dívida do raio de canto | **feita** · veio de graça com a Sprint U (o patch entrou no binário) |
+
+**O achado que muda uma regra escrita neste repositório:** `plugins_wings` **não
+é inerte**. O texto de 29/08 usava "só vale no próximo início de sessão" como
+razão para a escrita ser inofensiva. Medido às 05:43 de 30/08: o `cosmic-panel`
+mantém watch de inotify no diretório e a chave está na lista `must_recreate` —
+a escrita **recriou o espaço da topbar na hora**, matando e renascendo TODOS os
+applets (código 137), com uma segunda onda 22 s depois que levou os da dock
+junto. Painel e dock sobreviveram, mas é a mesma classe de evento que já apagou
+os dois. Quem for escrever ali de novo: com backup, e sabendo que a barra pisca.
 
 **Travado em DUAS decisões dela**, as duas de gosto e as duas resolvíveis
 arrastando o slider do `.html`: o **teto da textura** e se a **virada do
