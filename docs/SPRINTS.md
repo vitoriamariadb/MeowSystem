@@ -11,12 +11,15 @@ fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 ## AO VOLTAR, COMECE POR AQUI
 
 **Não há sprint aberta. A [Sprint U](#sprint-u--sobreviver-a-um-dist-upgrade) foi
-executada em 30/08/2026 e falta UMA coisa nela, que é decisão dela: rodar o
-`aurora-cosmic-comp-ws.sh --build`.** Todo o código entrou — a série de patches, a
-idempotência por marcador, o arquivo de estado, o verificável `patches` do doctor
-e a poda do `/var/lib/aurora`. O que não entrou foi o **binário**: o
-`patches/cosmic-comp-raio-clampado.patch` continua fora do `cosmic-comp`, e agora
-o doctor **diz isso em voz alta** em vez de o README mentir que ele está lá.
+executada e FECHADA em 30/08/2026**, incluindo o `--build`, que ela autorizou às
+01:40 pedindo *"só valida tudo antes"*. O `patches/cosmic-comp-raio-clampado.patch`
+entrou no `/usr/bin/cosmic-comp` pela primeira vez desde que foi escrito, em
+26/08 — o binário do disco carrega os DOIS marcadores, e **só falta ela deslogar**
+para a sessão ver o novo.
+
+O item 6 da sprint (as duas mensagens distintas) provou-se no primeiro uso real,
+sem ninguém fabricar caso: o doctor passou a dizer *"AURORA-COSMIC-RADIUS-PATCH-1
+está no disco mas NÃO na sessão — vale no próximo login, nada a recompilar"*.
 
 > **Por que o build não foi feito sozinho:** `/usr/bin/cosmic-greeter-start` é
 > literalmente `exec cosmic-comp cosmic-greeter`. Um binário ruim tira o desktop
@@ -2550,7 +2553,7 @@ promessa no README que o código não cumpra.
 
 ---
 
-## Sprint U — Sobreviver a um dist-upgrade  ← **EXECUTADA em 30/08/2026** (falta o `--build`)
+## Sprint U — Sobreviver a um dist-upgrade  ← **FECHADA em 30/08/2026** (build incluído)
 
 ### A pergunta que a abriu
 
@@ -2656,10 +2659,34 @@ de novo, não reler o relato) foi feita depois, à mão.
 | 6. duas mensagens distintas | idem | **feito.** `FALTA <marcador>` (refazer o build) × `no disco mas NÃO na sessão` (o próximo login resolve), com rodapé de conselho diferente para cada |
 | 7. poda do `/var/lib/aurora` | `podar_lib()` + `--podar [--seco]` | **feito e NÃO executado.** O seco diz: 449 MB hoje, liberaria **258 MB** |
 
-O que ficou de fora, e é decisão dela: **o `--build`**. Enquanto ele não rodar, o
-doctor fica **amarelo** na linha `patches` — e isso é o desenho, não defeito: o
-`cosmic-comp-raio-clampado.patch` está declarado na série e **ausente do
-binário**, que é exatamente o que esta sprint existia para deixar de esconder.
+### O build, e o que foi medido antes e depois — 30/08/2026, 01:40
+
+Ela autorizou com *"pode rodar. só valida tudo antes"*. A validação, em ordem, e
+cada linha é uma medição, não uma promessa:
+
+| antes de compilar | resultado |
+|---|---|
+| o `.orig` da versão instalada bate com o md5 do dpkg | `468c46ba3bc3466933737b185624863b` nos dois — o caminho de volta é real |
+| a árvore de fonte está no estado esperado | WS aplicado (1), raio ausente (0) |
+| dry-run do raio, procurando **fuzz** | limpo, sem fuzz — a armadilha nova do `LEIA-ME` |
+| jogo aberto, freio do auto-build, espaço em disco | nenhum, desligado, 129 GB |
+
+Compilou em **3m08s** (`--compile-only`, sem instalar). O binário saiu com os
+**dois** marcadores. Antes de instalar, três provas mais:
+
+| depois de compilar, antes de instalar | resultado |
+|---|---|
+| `ldd -r` | nenhum símbolo por resolver |
+| **teste de fumaça**: o compositor novo rodando ANINHADO, parqueado no workspace `OS` para não aparecer na tela dela | subiu (pid 179903), inicializou EGL, saiu **sem pânico** |
+| a poda seco | os 3 arquivos da versão instalada, inclusive o `.orig`, todos marcados "fica" |
+
+Depois de instalar: disco `ac3465b1…` com os dois marcadores **e** a luz noturna
+reaplicada; **a sessão dela intacta** (`/proc/3261/exe` ainda `ef12fded…`), que é
+o desenho — patch de compositor vale no próximo login. A poda liberou **258 MB**.
+
+O que falta é UM logout dela. E enquanto ele não acontece, o doctor fica amarelo
+na linha `patches` **pela segunda razão**, não pela primeira — o binário está em
+dia, quem está velha é a sessão.
 
 ### As sete coisas que a medição de 30/08 derrubou
 
@@ -2741,7 +2768,7 @@ texto de cada seção e contra a máquina.
 | **R** | o prompt | FEITA · 25/08 |
 | **S** | dia e noite no papel de parede | FEITA · 25/08 |
 | **T** | a regra da atenção | FEITA EM PARTE · o canto direito foi recusado com medição |
-| **U** | sobreviver a um dist-upgrade | CÓDIGO FEITO · 30/08 · **falta o `--build`, e é decisão dela** |
+| **U** | sobreviver a um dist-upgrade | FECHADA · 30/08 · build feito; **falta só ela deslogar** |
 
 ### As dívidas que vivem dentro de sprints fechadas
 
