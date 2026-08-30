@@ -1,0 +1,67 @@
+# meow-leitura.timer — o relógio que vira o degrau do modo de leitura.
+#
+# POR QUE DE MINUTO EM MINUTO, E NÃO UM `OnCalendar` POR HORÁRIO
+#   O plano de 29/08/2026 pedia `OnCalendar=*-*-* *:00/5` — um relógio frouxo com
+#   a hora da virada implícita. E o plano ORIGINAL da etapa 2 pedia um
+#   `OnCalendar` por horário, que é a resposta certa quando o horário é fixo.
+#
+#   Só que o horário deixou de ser fixo na MESMA noite: a decisão dela de 29/08
+#   ("o agendamento mora DENTRO do applet, não no meow.conf") pôs a hora em
+#   `~/.config/cosmic/com.system76.CosmicComp/v1/leitura_hora_inicio`, onde ela
+#   pode arrastá-la a qualquer segundo, pela interface. Uma unidade com
+#   `OnCalendar=18:00` cravado dentro não daria erro nenhum no dia em que ela
+#   mudasse para 20:30: ela ligaria a tela na hora ERRADA, calada, para sempre.
+#   Esse é o modo de falha que este projeto mais documenta ter cometido — a chave
+#   inerte, a lista fixa esquecida, o "já conforme" de quem não conferiu.
+#
+#   Manter o `OnCalendar` em dia exigiria uma segunda máquina: um `.path` sobre o
+#   diretório do CosmicComp (que a Aurora também escreve, em `activation_policy` e
+#   `pinned_workspaces`), um drop-in gerado, um `daemon-reload` a cada mudança —
+#   e um laço a desarmar, porque o próprio serviço escreve nesse diretório. Três
+#   peças novas para evitar 1438 despertares que não fazem nada.
+#
+# O PREÇO, MEDIDO EM 30/08/2026 NESTA MÁQUINA
+#   Um tique inteiro, rodado como unidade de verdade (`systemd-run --user --wait`
+#   com a MESMA linha de `Exec` do serviço):
+#       Service runtime: 26ms · CPU time consumed: 27ms
+#   São 1440 tiques por dia = ~39 s de CPU por dia, e ele lê cinco arquivos de
+#   poucos bytes e quase sempre não escreve nada. `AccuracySec=20s` ainda deixa o
+#   systemd FUNDIR este despertar com os dos outros timers dentro da janela, então
+#   o custo real é menor que a soma. E o `flock -n -E 0` da unidade de serviço faz
+#   o tique ceder a vez em vez de disputar com o doctor.
+#
+#   O `LogLevelMax=notice` do serviço é o que impede esses 1440 despertares de
+#   virarem 2880 linhas de journal por dia — medido lá, e é por causa DESTE
+#   relógio que aquela linha deixou de ser cosmética.
+#
+# E É ISTO QUE FAZ A PROMESSA DO PLANO SER VERDADE
+#   "Quando ela decidir entre virada seca e rampa, é uma palavra no meow.conf."
+#   Com um relógio só, `LEITURA_RAMPA_MIN` muda o que o script CALCULA e mais
+#   nada: sem `daemon-reload`, sem rearmar unidade, sem `./install.sh`. Com dois
+#   timers (um esparso para a virada seca, um de minuto para a rampa) seriam uma
+#   palavra E uma reinstalação — e a palavra sozinha ficaria mentindo até lá.
+#
+# `Persistent=false`: uma virada perdida com a máquina desligada NÃO é dívida a
+# pagar no boot. Ligar a máquina às 3h da manhã e receber a virada das 18:00 seria
+# a tela mudando de cor por causa de um evento de nove horas atrás. O próximo
+# tique, em menos de um minuto, põe o degrau certo de qualquer jeito.
+#
+# `WantedBy=cosmic-session.target` e não `timers.target`: sem sessão não há tela
+# para esquentar, e o serviço já é `PartOf=` do mesmo alvo. O relógio nasce e
+# morre com a sessão dela, que é exatamente o tempo em que ele tem assunto.
+
+[Unit]
+Description=MeowSystem — o relógio do modo de leitura (vira o degrau na hora)
+Documentation=man:systemd.timer(5)
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+# 3 min depois do boot para não disputar com o resto do login; o OnCalendar
+# assume dali em diante.
+OnBootSec=3min
+AccuracySec=20s
+Persistent=false
+Unit=meow-leitura.service
+
+[Install]
+WantedBy=cosmic-session.target
