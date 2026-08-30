@@ -859,6 +859,24 @@ chk_janelas() {
     "$RAIZ/scripts/janelas.sh" conferir 2>&1
 }
 
+# OS PATCHES DO COMPOSITOR — E É O ÚNICO VERIFICADOR QUE PERGUNTA SOBRE UM
+# PROCESSO, NÃO SOBRE UM ARQUIVO (30/08/2026, Sprint U)
+#   Todo `apt upgrade` reescreve `/usr/bin/cosmic-comp` e leva junto os patches
+#   da Aurora, calado — `/var/lib/aurora` guarda SEIS versões entre 13/07 e
+#   26/08, quase semanal. O sintoma chega dias depois (um workspace vazio a mais
+#   no painel; a tela azul de novo à noite) e sem causa aparente. Esta linha é
+#   onde isso passa a ter nome no mesmo lugar onde ela já olha todo dia.
+#
+#   Não vai por `notify-send` de propósito: o Não Perturbe dela engoliu 22
+#   avisos entre 27 e 28/08/2026.
+#
+#   Nenhuma chave do meow.conf: não há nada a configurar. Os caminhos do lado da
+#   Aurora (`.estado`, `series`) são do sistema, não do gosto dela — o script
+#   aceita override por variável só para poder ser testado.
+chk_patches() {
+  "$RAIZ/scripts/compositor_patches.sh" conferir 2>&1
+}
+
 # O autostart bloqueado. Devolve 3 (e não 1) quando não há systemd de usuário ao
 # alcance, então o doctor fica quieto em vez de gritar todo dia numa máquina
 # onde o assunto não se aplica.
@@ -967,8 +985,8 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma painel janelas relogio greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
-SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin cursor "
+VERIFICAVEIS=(conf gerar tema modo vidro forma painel janelas patches relogio greeter cursor prompt terminal fastfetch icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets flatpak autostart)
+SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin cursor patches "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
 # fixa "é o install.sh que cria" servia; com o `ocultar` ela passaria a mentir —
@@ -982,6 +1000,7 @@ declare -A SEM_CONSERTO_RAZAO=(
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
   [midiabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: MIDIA_COMPILAR=1 ./scripts/midia_build.sh"
   [cursor]="o conserto BAIXA da rede, e o doctor não baixa — rode: ./scripts/cursor.sh aplicar"
+  [patches]="o conserto RECOMPILA o cosmic-comp (~4 min), e o doctor não compila — rode: aurora-cosmic-comp-ws.sh --build"
 )
 
 # --- 6. o runner das conferências -------------------------------------------

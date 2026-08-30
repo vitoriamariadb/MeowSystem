@@ -56,7 +56,10 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `/usr/local/bin/*` (wrappers de execução) | Aurora | **Aurora** |
 | `/usr/local/share/zsh/site-functions/_meow` | Aurora | **Aurora instala, Meow fornece** |
 | binário `cosmic-comp` (patches de workspace e night light) | Aurora | **Aurora** |
-| ciclo de vida do processo `cosmic-panel` | Aurora | **Aurora** — hoje desarmado (ver abaixo) |
+| `/usr/local/share/aurora/patches.d/` (a `series` e os `.patch`; cópia canônica em `~/.config/zsh/patches/patches.d/`) | Aurora | **Aurora escreve, Meow lê e diz** — desde 30/08/2026, ver abaixo |
+| `/var/lib/aurora/cosmic-comp-patches.estado` | Aurora | **Aurora escreve, Meow lê e diz** — 644, dono root, legível por ela sem sudo; é o contrato do `meow doctor` |
+| `patches/*.patch` deste repositório | Meow | **Meow** — é onde o patch nasce e é revisado; quem o APLICA é a Aurora, e por isso o doctor confere se ele está na `series` |
+| ciclo de vida do processo `cosmic-panel` | Aurora | **Meow desde 26/08/2026** — o `systemd/meow-painel.service` é o supervisor; o lado da Aurora segue desarmado. A tabela dizia "Aurora" até 29/08 |
 | tema do qBittorrent, `~/.config/fastfetch` | Aurora | **Aurora** — o `meow` chama o script de lá |
 
 ---
@@ -387,5 +390,53 @@ com o tema `freedesktop`, e não fere a TRAVA 1.
 de `50_pop-desktop.gschema.override:33`. Por isso `cursor.sh remover` faz
 `gsettings reset` e **não** `set 'Pop'` — repor à mão deixaria valor onde não
 havia nenhum, e isso é uma travessia de fronteira silenciosa com outro nome.
+
+---
+
+## O patch nasce no Meow e é aplicado pela Aurora (30/08/2026)
+
+Três linhas novas na tabela, e as três descrevem o mesmo caminho de mão única: o
+`.patch` nasce aqui, a Aurora o aplica, e o Meow volta a olhar — sem nunca
+escrever de novo.
+
+**Por que a fronteira precisou de nome.** O
+`patches/cosmic-comp-raio-clampado.patch` passou **semanas** neste repositório,
+com o README dizendo que estava em produção, sem nunca entrar em binário nenhum:
+o `aurora-cosmic-comp-ws.sh` aplicava UM `.patch` só, por caminho literal, e nada
+no mundo comparava a lista dele com a nossa. Não foi descuido de ninguém — foi
+uma fronteira sem contrato. Um patch que existe de um lado e não está declarado
+do outro é um patch que **não acontece**, e falha calado.
+
+**O contrato, e é o mínimo que serve.** A Aurora grava
+`/var/lib/aurora/cosmic-comp-patches.estado` (644, dono root, **legível por ela
+sem sudo**) toda vez que alguém escreve `/usr/bin/cosmic-comp`, com uma linha por
+patch: `<req|opt> <marcador> <arquivo.patch> <presente|ausente>`. A série vive em
+`/usr/local/share/aurora/patches.d/series`, com `<classe> <arquivo.patch>
+<marcador-base>`. O Meow lê os dois, não escreve nenhum, e a leitura da cópia em
+`~/.config/zsh/patches/patches.d/` é `md5sum` e `[ -f ]` — a TRAVA 1 continua
+inteira.
+
+**O que o `meow doctor` passou a dizer** (linha `patches`,
+`scripts/compositor_patches.sh`): se todo marcador declarado está no binário do
+disco **e** no `/proc/<pid>/exe` da sessão viva, se a `versao=` do `.estado`
+ainda casa com o `dpkg-query`, e se todo `.patch` de `patches/` está declarado na
+série. A pergunta é sobre o **processo**, não sobre o arquivo — um `--build` já
+feito e uma sessão que não relogou são um estado normal, e mandar recompilar por
+causa dele seria cobrar 4 minutos de `cargo` por um logout.
+
+**E ele não conserta nada, de propósito.** `patches` está em `SEM_CONSERTO`: o
+conserto é recompilar o `cosmic-comp` (~4 min, `sudo install` em `/usr/bin`), e o
+doctor nunca usa sudo, nunca baixa e nunca compila. O comando é dela:
+`aurora-cosmic-comp-ws.sh --build`. Um build de 4 minutos disparado pelo timer
+das 05:00 seria pior que o defeito que ele corrige — é a mesma decisão que já
+tinha posto `cursor` (baixa da rede) e `midiabin` (compila) nessa lista.
+
+**A lacuna que fica escrita para não ser esquecida.** O patch de night light do
+`aurora-night-light.py` é patch **binário**: ele reescreve o bloco
+`if (color_mode == 1.0)` do shader GLSL embutido e deixa como rastro um
+comentário `// NIGHT LIGHT (Aurora)` dentro do shader — conferido no binário de
+hoje, está lá —, não um marcador `AURORA-*` de fonte. Ele não está na série e
+**não é conferido** por esta linha do doctor. Cobri-lo exige outro verificador,
+com outro critério; fingir que este o cobre seria pior que a lacuna.
 
 ---

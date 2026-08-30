@@ -4,13 +4,27 @@ Este arquivo é **autossuficiente**: quem for executar uma sprint não precisa d
 nenhum contexto de conversa anterior. Cada uma traz o que já foi medido, o que
 fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
-Última atualização: **25/08/2026**.
+Última atualização: **30/08/2026**.
 
 ---
 
 ## AO VOLTAR, COMECE POR AQUI
 
-**Não há sprint aberta.** Em 25/08/2026 as dez que constavam abertas foram
+**Não há sprint aberta. A [Sprint U](#sprint-u--sobreviver-a-um-dist-upgrade) foi
+executada em 30/08/2026 e falta UMA coisa nela, que é decisão dela: rodar o
+`aurora-cosmic-comp-ws.sh --build`.** Todo o código entrou — a série de patches, a
+idempotência por marcador, o arquivo de estado, o verificável `patches` do doctor
+e a poda do `/var/lib/aurora`. O que não entrou foi o **binário**: o
+`patches/cosmic-comp-raio-clampado.patch` continua fora do `cosmic-comp`, e agora
+o doctor **diz isso em voz alta** em vez de o README mentir que ele está lá.
+
+> **Por que o build não foi feito sozinho:** `/usr/bin/cosmic-greeter-start` é
+> literalmente `exec cosmic-comp cosmic-greeter`. Um binário ruim tira o desktop
+> **e a tela de login** junto, e ela estava trabalhando na máquina. Um build de
+> ~4 min é barato; uma tela preta às 2h da manhã, não. O cartão de recuperação
+> vem antes: `docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md`, primeira seção.
+
+Em 25/08/2026 as dez que constavam abertas foram
 fechadas numa passagem só: **seis executadas** (O, P, Q, R, S, T) e **três que
 já estavam feitas e ninguém tinha marcado** (H, J, L). A décima, a **N**, nunca
 foi defeito — é só abrir o Spotify.
@@ -25,6 +39,35 @@ execução no passado enquanto a tabela três telas acima ainda diz "ABERTA".
 > **Para quem for executar a próxima:** o índice acima é o produto, não a
 > anotação. Fechar uma sprint é DUAS edições, sempre — a seção **e** a linha da
 > tabela. Uma sem a outra é como o defeito nasce, e nasceu quatro vezes.
+
+### Onde paramos — modo de leitura (29/08/2026, 19h30)
+
+Plano completo em `docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md`; o que ela
+abre para decidir é `docs/pesquisas/2026-08-29-modo-leitura.html`, que tem duas
+abas. **Nada foi executado** — em 29/08 ela estava a 10% do limite semanal e
+escolheu gravar o plano em vez de tocar na máquina.
+
+| etapa | estado |
+|---|---|
+| **caminho 1** — acender a luz que JÁ está no binário | **livre e não feito.** 10 min, sem build, reversível na UI. `a11y_screen_filter.ron` continua `(inverted: false,)` |
+| 1. os dois números na tela | **destravada em 30/08.** A série de patches existe e aceita um `opt` novo; o que falta é escrever o patch do modo de leitura e rodar o `--build` |
+| 2. o horário liga sozinho | livre, mas depende da decisão "rampa ou seca" |
+| 3. o slider na barra | depende da 1 |
+| 4, 5 e 6 | não começadas |
+
+**Travado em DUAS decisões dela**, as duas de gosto e as duas resolvíveis
+arrastando o slider do `.html`: o **teto da textura** e se a **virada do
+agendamento é seca ou rampa** (e de quantos minutos).
+
+O que já foi decidido e não se re-litiga: o slider vai de **1000K a 6500K** (a
+faixa inteira), o **horário mora dentro do applet** (e o timer lê de lá), e a rota
+sem rebuild está **morta e medida** — nem gamma, nem `cosmic-randr`, nem escrever
+o `.ron`.
+
+O ícone do editor (`e1`) foi o único item **executado** em 29/08: está instalado
+em `48x48/apps` e aparece no próximo login.
+
+---
 
 ### O que entrou em 25/08/2026
 
@@ -41,7 +84,8 @@ mão, para dois frentes não colidirem no mesmo arquivo.
 | **S** | o carrossel gira sobre **32 dos 54** papéis — só os escuros, entre 18:00 e 07:00 |
 | **T** | o relógio perdeu os segundos. O canto direito **não** foi tocado, e a medição explica por quê |
 
-Fecha com `./bin/meow doctor` em **37 verificáveis, 37 verdes**, e o `install.sh`
+Fecha com `./bin/meow doctor` em **37 verificáveis, 37 verdes** — hoje são
+**39**: `painel`, `janelas` e `fundo` entraram no trabalho de 26/08, e o `install.sh`
 convergindo em duas passagens.
 
 ### As seis coisas que a medição derrubou, e que este arquivo afirmava
@@ -57,19 +101,17 @@ Cada linha aqui é um dia que alguém não vai perder de novo:
 | Sprint S | *"a luminância média — `identify -format '%[fx:mean]'`"* | `%[fx:mean]` **não é luminância**: pesa R, G e B igual. Um papel com R=0,412 G=0,029 B=0,279 dá 0,240 na crua (15º) e **0,128** na perceptual (2º mais escuro). E `%[fx:luminance]` é pior — é símbolo **por pixel**, avaliado em (0,0) |
 | Sprint T | *"seis glifos de ~16px … em **2560px** de largura"* | a tela é **1920×1080 a 105%**. São **cinco** glifos desenhados (o NowPlaying ocioso não pinta nada), em 224px, com 84px de tinta |
 
-### Duas dívidas achadas de passagem, e nenhuma é destas sprints
+### As duas dívidas de 25/08 estão MORTAS — auditoria de 29/08
 
-1. **`lib/desinstalar.sh:204` apaga o acervo curado dela.** O
-   `rm -rf ~/.local/share/backgrounds/meowsystem` leva `favoritos/`, `banidos/`
-   e `originais/` junto. Colide de frente com o "não destruir dado dela" que é a
-   primeira regra deste projeto. **Não foi mexido** — é conserto com desenho
-   próprio, não remendo de fim de sprint.
-2. **`adicionar` não entra na rotação.** O cabeçalho do `wallpaper.sh` diz que
-   *"`adicionar` reescreve a configuração no fim: é o que força a releitura"* e,
-   três linhas abaixo, que *"escrever conteúdo IDÊNTICO é no-op total"* — e é o
-   que acontece, porque a configuração não contém a lista de imagens. Consertar
-   exige reiniciar a rotação a cada `adicionar`, o que é decisão, não
-   implementação.
+Esta seção listava duas dívidas ("`lib/desinstalar.sh` apaga o acervo dela" e
+"`adicionar` não entra na rotação"). **As duas foram consertadas no MESMO commit
+que as escreveu** — `0bdfa43` trouxe a porta `MEOW_APAGAR_ACERVO=1` em
+`lib/desinstalar.sh:208-236` e o `forcar_releitura` em `wallpaper.sh:1340`. A
+seção nasceu obsoleta e ficou quatro dias sendo a primeira coisa que alguém lia.
+
+**Cuidado com o nome:** existem DUAS "duas dívidas achadas de passagem" neste
+arquivo. As vivas são as do topo — o `.patch` único e o `raio-clampado` — e elas
+viraram a Sprint U. Estas aqui, não.
 
 ### O que continua sendo dela, e não se toca sem resposta
 
@@ -515,14 +557,15 @@ subiu junto, e o canto do sorriso voltou a subir antes de encontrar o pincel.
 - **FogStripper e Hefesto não foram tocados.** São desenho dela, e a decisão de
   convertê-los ou não é dela. Continuam nos `INTOCAVEIS` do script.
 - **Os oito `com.system76.Cosmic*` continuam com glifo Arcticons.** A conversão
-  dos autorais existe e é boa, mas quem decide ali é a **Sprint J**, que segue
-  aberta e é gosto dela. Antecipar seria decidir no lugar dela — o erro que este
+  dos autorais existe e é boa, mas quem decidiu ali foi a **Sprint J**,
+  FECHADA em 11/08/2026 — e quem escolheu foi ela. Antecipar seria decidir no lugar dela — o erro que este
   mesmo mapa já registra ter cometido uma vez, hoje de manhã.
-- **O `com.system76.CosmicPlayer` continua desenhando a PALAVRA "player".** É o
-  glifo `player` do Arcticons, e letra vetorizada a 48 px é o defeito que o
-  `apps-arcticons.map` já documenta em outros quatro glifos trocados. Não foi
-  mexido porque ele é um dos oito da Sprint J. **Fica registrado como pendência
-  visível.**
+- ~~**O `com.system76.CosmicPlayer` continua desenhando a PALAVRA "player".**~~
+  **RESOLVIDO em 27/08/2026, e quem escolheu foi ela.** O desenho autoral está em
+  `icons/convertidos-apps/retoques/com.system76.CosmicPlayer.svg`, e a linha migrou
+  do `apps-arcticons.map` para o `apps-convertidos.map` como `mao`. O
+  `com.system76.CosmicEdit` seguiu o mesmo caminho em 29/08 — pelo mesmo motivo:
+  era «retângulo com linhas», o ícone de documento de todo tema do mundo.
 
 ---
 
@@ -1753,7 +1796,7 @@ Levantado, avaliado e **descartado** — para ninguém gastar tempo de novo:
 
 | item | por que não |
 |---|---|
-| **dock flutuante** (`expand_to_edges: false`) | é literalmente a **Sprint H**, que já está aberta esperando decisão dela: o mesmo `false` que descola a dock das bordas **funde os três segmentos** e é a causa do gato estar grudado no centro. Não é sprint nova, é a mesma decisão |
+| **dock flutuante** (`expand_to_edges: false`) | é literalmente a **Sprint H** — FECHADA em 11/08/2026, e a decisão foi dela: o mesmo `false` que descola a dock das bordas **funde os três segmentos** e é a causa do gato estar grudado no centro. Não é sprint nova, é a mesma decisão |
 | **applets de telemetria** (Minimon, System Monitor) | bem mantidos e reais, mas **nenhuma das sete referências dela tem um único número**. Ela não administra servidor; número no painel é decoração fingindo de utilidade. E instalar exige mexer em `plugins_wings`, que é da Aurora |
 | **cava, tmux** | ganho visual que só aparece em screenshot posada. `cava` precisa de um pane dedicado rodando; `tmux` só compensa se ela adotar o fluxo |
 | **CuteCosmic** (apps Qt herdarem o tema) | conceitualmente o melhor item do levantamento, mas **não empacotado para o noble** — exigiria compilar contra Qt 6.4.2. Guardar para quando houver pacote |
@@ -1818,7 +1861,7 @@ principal não vem pra ser o tema principal"*.
 |---|---|---|---|
 | `catppuccin/vscode-icons` | `icons/catppuccin/<flavor>/` | 656 glifos × 4 flavors, MIT, linha fina pastel. É o pack do Iconify (`catppuccin:*`) e do allsvgicons — **os três links são o mesmo acervo**. | **tipos de arquivo** e **pastas**. 123 mimetypes instalados. |
 | `Daveedmee/catppuccin-icons` | `icons/catppuccin-apps/<macchiato\|latte>/` | 146 PNG 512×512 com alpha. As marcas conhecidas recoloridas em pastel. **Sem licença declarada** — uso local, nunca redistribuir. | **aplicativos**. 16 instalados. |
-| Arcticons | `icons/arcticons/` e `icons/arcticons-apps/` | 14.996 nomes, CC BY-SA 4.0, traço monocromático em grid 48. Baixado um a um pela API do Iconify. | os **ícones de sistema** (56, em `<tam>/status`) e o que falta de **aplicativo** (1, em `48x48/apps`). **Não tem estado** — por isso a barra fica no Papirus. |
+| Arcticons | `icons/arcticons/` e `icons/arcticons-apps/` | 14.996 nomes, CC BY-SA 4.0, traço monocromático em grid 48. Baixado um a um pela API do Iconify. | os **ícones de sistema** (56, em `<tam>/status`) e os **aplicativos** (41 em `48x48/apps` — o número 1 é de 08/08 e envelheceu). **Não tem estado** — por isso a barra fica no Papirus. |
 | desenho autoral | `src/icons/autorais/` | 10 SVG × 4 flavors, gerados por `scripts/gerar_icones_autorais.py`. | os 8 apps do COSMIC + FogStripper + Hefesto. |
 
 ### A correção que precisa ficar registrada
@@ -2320,6 +2363,10 @@ próprio, dono único, e a ordem de `Directories=` decide quem ganha), ou o
 > — é **lido do `meow.conf.exemplo`**, não de uma lista dentro do script: são
 > **31 chaves**, e a lista que este arquivo dava estava incompleta.
 >
+> *(29/08/2026: o número envelheceu. Hoje o `meow.conf.exemplo` tem **75** chaves
+> e o wizard curto pergunta **4** — `grep -c '\[essencial\]'`. Três números
+> incompatíveis circulavam: 31 aqui, 24 na linha 1017 e 25 no `bin/meow`.)*
+>
 > **O defeito que a implementação revelou:** o `meow.conf.exemplo` tinha
 > `LOGO_INTERVALO=` **duas vezes** (`30m` e `1d`). O `.` do shell obedece a
 > **última**; o `conf_definir` escrevia a **primeira** — ou seja, o `meow` dizia
@@ -2503,24 +2550,224 @@ promessa no README que o código não cumpra.
 
 ---
 
+## Sprint U — Sobreviver a um dist-upgrade  ← **EXECUTADA em 30/08/2026** (falta o `--build`)
+
+### A pergunta que a abriu
+
+Ela perguntou, em 29/08/2026: *"lembra de colocar nas sprints a idempotência pra
+um full dist upgrade"*. A pergunta é a certa, e a resposta medida é que **hoje o
+sistema não sobrevive**: um `apt full-upgrade` derruba metade do que este
+repositório e o Ritual da Aurora constroem, e **derruba calado**.
+
+### O que foi medido (29/08/2026, investigação do modo de leitura)
+
+| o que quebra | por quê | como se descobre hoje |
+|---|---|---|
+| o patch de workspace do `cosmic-comp` | o pacote reescreve `/usr/bin/cosmic-comp` | um workspace vazio a mais no painel — ela vê |
+| o patch do night light | o mesmo binário; e **um build novo invalida os offsets** do `aurora-night-light.py` | a tela volta a ser azul à noite — ela vê |
+| o patch do raio de canto | **nunca entrou**: o `aurora-cosmic-comp-ws.sh` aplica UM `.patch` só (`$PATCH_INSTALADO`, linhas 385-414) | ninguém descobre. O README diz que aplica |
+| o modo de leitura (quando existir) | idem: o script não conhece um segundo patch | os sliders arrastam e a tela não muda — **falha muda** |
+| os botões dos apps COSMIC (se recompilados) | cada pacote traz seu próprio `libcosmic` estático | os botões voltam à direita **só naquele app** |
+| as deps de build | `libdav1d-dev` e `libpulse-dev` ausentes hoje | o build morre em 119 s |
+
+E a frequência não é hipótese: `/var/lib/aurora` guarda **seis versões** de
+`cosmic-comp` entre 13/07 e 26/08 — quase semanal. O `cosmic-settings` trocou
+**12 vezes em 70 dias**.
+
+### O que fazer
+
+1. **Trocar o patch único por uma SÉRIE.** **Use `cp`, nunca `mv`.** O
+   `aurora-cosmic-comp-ws.sh:386` procura o patch num caminho literal e devolve
+   `return 2` se não achar: mover o arquivo antes de reescrever o `compilar()`
+   deixa o `--build` morto na janela entre os dois passos. Falha segura (nada é
+   instalado), mas se um `apt upgrade` cair nessa janela ela fica no compositor de
+   fábrica, com o workspace fantasma de volta e sem causa aparente. Criar
+   `~/.config/zsh/patches/patches.d/` com um arquivo `series` que declare cada
+   patch como `req:` (obrigatório — se falhar, aborta o build e **nada** é
+   instalado) ou `opt:` (opcional — se falhar, o build segue sem aquele efeito).
+   Dry-run de **todos** antes de aplicar **qualquer um**.
+2. **Trocar a idempotência de código de saída para marcador.** `patch --forward`
+   devolve **1** para "já aplicado" — medido. Testar por
+   `grep -q <marcador> <arquivo-fonte>`, declarado na própria série.
+3. **Concatenar TODOS os marcadores** no `marcador_de()` (linha 230), senão o
+   `--ensure` não reinstala quando a série muda. Foi esse o bug de 25/08.
+4. **Fixar a ordem no self-heal:** build (todos os patches) → `aurora-night-light.py`
+   re-patcha o binário novo → `--ensure` instala. O patch binário **não**
+   sobrevive a um build.
+5. **Fazer o aviso chegar nela pelo `meow doctor`,** não por `notify-send`: o
+   Não Perturbe dela engoliu **22 avisos** entre 27 e 28/08. O build grava
+   `/var/lib/aurora/cosmic-comp-patches.estado` com uma linha por marcador, e o
+   doctor compara contra `/proc/<pid do cosmic-comp>/exe` — a pergunta é sobre o
+   **processo**, não sobre o arquivo.
+6. **Duas mensagens distintas,** porque significam coisas diferentes:
+   `FALTA <marcador>` (o build precisa ser refeito) e
+   `<marcador> está no disco mas NÃO na sessão` (vale no próximo login).
+7. **Podar `/var/lib/aurora`,** que cresce ~89 MB por versão e que nada limpa:
+   guardar os 3 `.orig` mais novos, sempre o da versão instalada, e apagar todo
+   `.aurora-ws` de versão que não é a corrente.
+
+### Como conferir que ficou certo
+
+- `./bin/meow doctor` ganha uma linha nova e ela fica **verde** com a sessão em
+  dia, **amarela** (`~~`) quando o patch está no disco mas não na sessão.
+- Simular: `sudo apt-get install --reinstall cosmic-comp`, esperar o self-heal, e
+  conferir que os marcadores voltaram **todos** — não só o de workspace.
+- Segunda passagem do `install.sh` = **0 arquivos, 0 avisos**.
+
+### O que pode dar errado
+
+- **Um `.patch` obrigatório que não aplica mais aborta o build inteiro** — e é o
+  comportamento certo: melhor ficar no binário do pacote (desktop feio, mas de
+  pé) do que instalar um compositor meio-patchado.
+- **`make VENDOR=1` apaga o `vendor/` patchado antes de compilar, em silêncio.**
+  Quem for mexer nos botões dos apps COSMIC precisa saber disso antes.
+- **O `--restore` dos dois scripts está armadilhado.** O `.pkg-orig` do
+  `aurora-cosmic-comp-ws.sh` tem md5 que **não bate** com o do dpkg (já vem com o
+  night light dentro), e o `.orig` do `aurora-night-light.py` é o binário do
+  pacote, **sem** o patch de workspace. O caminho de volta certo está no cartão
+  de recuperação de `docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md`.
+
+### Fronteira
+
+O `aurora-cosmic-comp-ws.sh`, o `ritual-aurora-self-heal.sh` e o binário do
+`cosmic-comp` são da **Aurora** (`docs/FRONTEIRA.md`). O `meow doctor`, o
+`patches/` deste repositório e a linha nova de verificável são do **Meow**.
+Escrita em `~/.config/zsh` vira commit no repositório privado dela em até 10 min
+— sempre anunciada, nunca silenciosa.
+
+### Material
+
+Tudo que sustenta esta sprint está em `docs/pesquisas/`:
+`2026-08-29-modo-leitura-e-botoes.md` (o plano e o cartão de recuperação) e os
+dois JSON brutos das 75 investigações.
+
+### O que a execução fez — 30/08/2026
+
+Três frentes em paralelo, um por arquivo, para não colidirem; a validação (medir
+de novo, não reler o relato) foi feita depois, à mão.
+
+| item | onde | estado |
+|---|---|---|
+| 1. série de patches | `~/.config/zsh/patches/patches.d/` (`series` + os 2 `.patch` + LEIA-ME) e `aurora-cosmic-comp-ws.sh` | **feito.** 3 candidatos de busca, `req`/`opt`, dry-run de todos antes de aplicar qualquer um, desfazer se um `req` cair |
+| 2. idempotência por marcador | `compilar()` | **feito.** O arquivo-fonte de cada patch sai do próprio `.patch` (a linha `+++ b/`), nada chumbado |
+| 3. marcadores concatenados | `marcador_de()` | **feito.** `sort -u` colado com `+` — o `--ensure` volta a reinstalar quando a SÉRIE muda, não só quando a versão do patch de workspace muda |
+| 4. ordem no self-heal | `ritual-aurora-self-heal.sh` | **já estava certa**, e o item da sprint estava invertido — ver abaixo |
+| 5. o aviso chega pelo doctor | `scripts/compositor_patches.sh` + `bin/meow` | **feito.** Verificável `patches`, o 40º. Pergunta sobre o **processo** (`/proc/<pid>/exe`), não sobre o arquivo |
+| 6. duas mensagens distintas | idem | **feito.** `FALTA <marcador>` (refazer o build) × `no disco mas NÃO na sessão` (o próximo login resolve), com rodapé de conselho diferente para cada |
+| 7. poda do `/var/lib/aurora` | `podar_lib()` + `--podar [--seco]` | **feito e NÃO executado.** O seco diz: 449 MB hoje, liberaria **258 MB** |
+
+O que ficou de fora, e é decisão dela: **o `--build`**. Enquanto ele não rodar, o
+doctor fica **amarelo** na linha `patches` — e isso é o desenho, não defeito: o
+`cosmic-comp-raio-clampado.patch` está declarado na série e **ausente do
+binário**, que é exatamente o que esta sprint existia para deixar de esconder.
+
+### As sete coisas que a medição de 30/08 derrubou
+
+| onde | o que o texto dizia | o que foi medido |
+|---|---|---|
+| item 4 desta sprint | *"build → `aurora-night-light.py` re-patcha → `--ensure` instala"* | **está invertido.** "Build" e "`--ensure`" são a mesma chamada vista de dois lados; o night light tem de vir **depois** do `--ensure`, senão o `cp -a` do artefato joga fora a temperatura recém-escrita e a tela dela fica em 6500K por até uma hora. A ordem no self-heal (`--ensure` :2768, night light :2781) **já estava certa** e não foi tocada |
+| item 1 desta sprint e `patches/LEIA-ME.txt` | dry-run limpo = o patch aplica | **dry-run NÃO é prova.** O `patch` do GNU usa **fuzz 2** por padrão: um `.patch` de contexto inteiramente inventado passou no `--dry-run --forward` com rc=0 e depois aplicou com *"succeeded at 1 with fuzz 2"*. A conferência por `strings` do fim **não pega** — o marcador fica presente, pregado no lugar errado. O `compilar()` agora **avisa alto** quando há fuzz; não aborta, porque fuzz também é como um patch sobrevive a upstream empurrando linhas. Ligar `-F0` nos `req` é uma linha, e é decisão dela |
+| `patches/LEIA-ME.txt`, armadilha 3 | `grep -q 'AURORA-READING-MODE-1'` | o exemplo usa o marcador **com versão**. Com uma série isso quebra: quando a versão sobe (3.54→3.67) o teste diz "não aplicado" e o `patch` reaplica sobre uma árvore que já tem o anterior. O teste é pelo **base** |
+| `docs/pesquisas/2026-08-29-…md:387` | gravar no `.estado` os marcadores **esperados**, tirados da série | grava-se o que o **build produziu**, medido com `strings` no binário instalado. A prova está na tela: o `opt` do raio está *declarado* e *ausente*. A versão "esperada" escreveria `presente` para um efeito que não existe |
+| esta sprint | *"`/var/lib/aurora` guarda **seis** versões"* | são **oito** com `.orig` guardado, mais 4 `.pkg-orig` e 4 `.aurora-ws` — **449 MB**. O argumento da frequência fica mais forte, não mais fraco |
+| `README.md` | *"o script aplica UM `.patch` só (`$PATCH_INSTALADO`, **linha 88**)"* e *"`grep raio-clampado` devolve zero"* | as duas viraram falsas no meio do próprio dia (linha 137, e `grep -c` = 3). O parágrafo foi reescrito **sem número de linha**, que é o que apodrece |
+| — (ninguém tinha escrito) | — | **o patch do night light não tem marcador.** O `aurora-night-light.py` reescreve o bloco do shader GLSL e deixa só um comentário `// NIGHT LIGHT (Aurora)` dentro dele: não é `static &str`, não casa com `AURORA-*`, não está na série. **O verificável `patches` não o cobre**, e um build novo o apaga. Cobri-lo exige outro critério; fingir que este cobre seria pior que a lacuna |
+
+E uma assimetria que também não estava escrita: o
+`cosmic-comp-sem-workspace-vazio.patch` — o patch que segura os workspaces
+alfinetados dela, o mais importante da máquina — **não existe neste
+repositório**. O `patches/` só carrega o raio-clampado. O verificador diz isso em
+voz alta, senão o "md5 igual" verde daria impressão de uma cobertura que não há.
+
+### Como conferir hoje, sem compilar nada
+
+```bash
+./bin/meow doctor                      # a linha `patches` é a 10ª da tabela
+aurora-cosmic-comp-ws.sh --status      # série, marcador por patch, disco × sessão
+aurora-cosmic-comp-ws.sh --podar --seco  # o que a poda apagaria (não apaga)
+```
+
+---
+
 ## Por onde começar, em concreto
+
+> **A versão anterior desta seção mandava executar a Sprint A do zero** — baixar
+> 10 ícones do Arcticons, montar a folha, mostrar a ela. A Sprint A está FEITA
+> desde 05/08/2026, com `strace` e 21 páginas de registro. Era exatamente o
+> defeito que o topo deste arquivo descreve, no sentido inverso: a seção da
+> sprint diz FEITA e o índice mandava refazer. Corrigido em 29/08/2026.
 
 Quem pegar isto do zero, sem nenhum contexto de conversa, faz nesta ordem:
 
 1. **Leia** este arquivo inteiro e `docs/COSMIC-THEMING.md` (os fatos medidos
    nesta máquina, com data e método — inclusive conclusões erradas anteriores e
    por que eram erradas).
-2. **Confira o estado**: `./bin/meow doctor` e `git log --oneline -12`.
-3. **Sprint A**, e comece pela **medição**, não pelo código: descobrir quais
-   ícones o `cosmic-settings` pede e onde cada um resolve hoje.
-4. **Baixe uma amostra do Arcticons** (10 ícones, pela API do Iconify), colora
-   pelo método acima, e **monte a folha visual** a 22 px e 48 px, nos dois
-   fundos. Mostre a ela **antes** de processar 13 mil.
-5. Só depois de ela aprovar a folha, escreva o gerador.
+2. **Confira o estado real**, não o que o texto promete:
+   `./bin/meow doctor` e `git log --oneline -12`.
+3. **Vá para a única sprint aberta, a [U](#sprint-u--sobreviver-a-um-dist-upgrade).**
+   O material dela está em `docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md`,
+   e o cartão de recuperação por TTY vem **antes** de qualquer build.
+4. Se for mexer em ícone, a regra que atravessa tudo continua valendo: **a folha
+   visual vem antes do código.** Foi ela que mostrou que 19 dos 27 candidatos a
+   desenho autoral eram logomarca, e foi ela que fez a decisão do traço.
 
-A regra que atravessa tudo: **a folha visual vem antes do código.** Foi assim que
-se descobriu que 19 dos 27 candidatos a desenho autoral eram logomarca, e foi a
-folha que fez ela decidir abandonar os ícones autorais.
+---
+
+## O índice de estado — este é o produto
+
+A regra do topo diz que fechar uma sprint são DUAS edições, a seção **e** o
+índice. Este é o índice. Auditado em 29/08/2026, sprint por sprint, contra o
+texto de cada seção e contra a máquina.
+
+| sprint | assunto | estado |
+|---|---|---|
+| **A** | ícones do próprio COSMIC | FEITA em parte · 05/08 |
+| **B** | curadoria assistida | FEITA · 08/08 |
+| **C** | as pastas | FEITA e DESLIGADA · 08/08 |
+| **D** | o wizard | FEITA · 05/08 |
+| **E** | sincronização de assets | FEITA · 05/08 |
+| **F** | a poda | FEITA · 05/08 |
+| **G** | árvore v1 do tema | FEITA · 08/08 |
+| **H** | o gato do dock | FECHADA · 11/08 |
+| **I** | o lançador em traço | FECHADA · 11/08 |
+| **J** | a pasta rosa, e os dois donos | FECHADA · 11/08 |
+| **K** | ícones da bandeja | FECHADA · 11/08 · **com 2 dívidas dentro** |
+| **L** | o qBittorrent que abre sozinho | FECHADA · 11/08 |
+| **M** | o carrossel que não volta | FECHADA · 11/08 |
+| **N** | o Spotify | NÃO ERA DEFEITO · a ação nunca teve registro de resultado |
+| **O** | o terminal | FEITA · 25/08 |
+| **P** | o ponteiro | FEITA · 25/08 |
+| **Q** | o fastfetch | FEITA · 25/08 |
+| **R** | o prompt | FEITA · 25/08 |
+| **S** | dia e noite no papel de parede | FEITA · 25/08 |
+| **T** | a regra da atenção | FEITA EM PARTE · o canto direito foi recusado com medição |
+| **U** | sobreviver a um dist-upgrade | CÓDIGO FEITO · 30/08 · **falta o `--build`, e é decisão dela** |
+
+### As dívidas que vivem dentro de sprints fechadas
+
+Nenhuma destas tem dono, e todas estão enterradas dentro de uma seção marcada
+como concluída — que é onde ninguém procura.
+
+1. **O traço do ícone de bandeja da Steam** (Sprint K): 4 dá 1,33 px contra
+   1,67 px dos vizinhos; o número que iguala é **5,0**, uma linha em
+   `MEOW_TRAY_STEAM_TRACO`.
+2. **O daemon do Hefesto** (Sprint K): roda, mas não registra item de bandeja no
+   D-Bus. Nunca escalou para pergunta.
+3. **As variantes de estado** (Sprint A): desenhar à mão ou achar um terceiro
+   pack. É decisão dela, e está dentro de uma sprint FEITA.
+4. **O `corner_radii` da v1** (Sprint G): 4/16/32/160 contra 2/8/8/8 da v2 — dois
+   applets com canto de 16 onde o resto tem 8. O conserto é acrescentar à lista
+   `CONJUNTO` do `gerar_tema_v1.py`.
+5. **O atalho do histórico de clipboard** (Sprint T): o corte do applet só é
+   defensável depois que ela tiver o atalho. Ele não virou item em lugar nenhum.
+
+### O trabalho de 26/08 que nunca teve sprint
+
+`meow-painel.service` (o supervisor do painel), o clamp do raio de canto, o
+`JANELAS_TILING` e o popup do applet de mídia estão no código e no `README.md`, e
+este arquivo **não os menciona uma vez**. Os três verificáveis novos do doctor —
+`painel`, `janelas`, `fundo` — nasceram daí. Se alguém for auditar o projeto pelo
+`SPRINTS.md`, vai concluir que esse trabalho não existe.
 
 ---
 
@@ -2529,7 +2776,7 @@ folha que fez ela decidir abandonar os ícones autorais.
 | entregue em 05/08/2026 | prova |
 |---|---|
 | 123 tipos de arquivo em Catppuccin | 14/14 alvos resolvem no pack pelo `Gtk.IconTheme` |
-| 16 aplicativos do lançador em Catppuccin | Firefox, Discord, Spotify, VLC, Steam conferidos no resolvedor |
+| ~~16 aplicativos do lançador em Catppuccin~~ **41 em TRAÇO** | 29/08: o `icons/apps.map` está VAZIO desde 10/08 — nenhum app vem mais do acervo Catppuccin. São 14 do Arcticons + 27 convertidos, em `48x48/apps` |
 | 242 wallpapers (eram 239) — hoje **54**, ver 24/08 | 3 faltavam por bug de URL não escapada, calado desde a 1ª semeadura |
 | o tema parou de desfazer o vidro dela | fronteira por árvore + código 4, testados em COSMIC isolado |
 | o doctor enxerga receita ≠ produto | `'Low2' pede alpha 7C, está gravado D9` |
@@ -2540,8 +2787,9 @@ folha que fez ela decidir abandonar os ícones autorais.
 
 **O que espera decisão dela, e só isso:** a **barra do painel** (volume, wifi,
 microfone, notificações), que continua no Papirus porque o Arcticons não tem
-ícone de estado — e porque ela definiu o Arcticons como acervo de APOIO, não como
-tema principal. As folhas das Sprints B e C (`~/folha-apps-orfaos-2.html` e
+ícone de estado — e porque o Arcticons não tem famílias de ESTADO
+(`audio-volume-*` em 5, `network-wireless-*` em 7) — e não mais porque ele seja
+"acervo de apoio", regra que a decisão de 11/08 derrubou. As folhas das Sprints B e C (`~/folha-apps-orfaos-2.html` e
 `~/folha-pastas-2.html`) documentam o que entrou e o que ficou de fora, com o
 motivo medido de cada um.
 | `assets/gatos/` responde na hora, sem esperar o relógio | um `.svg` solto disparou 1 vez e entrou; apagado, disparou 1 vez e saiu — e `install.sh` duas vezes não disparou nenhuma |
@@ -2554,15 +2802,17 @@ mão seria repetir o ato que causou o problema.
 
 ---
 
-## Ordem sugerida
+## Ordem sugerida  ← **MORTA em 29/08/2026**
 
-**A vem primeiro** — ela pediu duas vezes, e a segunda foi só para reforçar. Mas
-comece pela **medição**, não pelo código: descobrir de onde os ícones vêm e
-mostrar a folha antes de decidir. Se a medição travar, **B** (curadoria dos
-ícones que faltam) tem o maior ganho visível e já tem método pronto, e **C**
-(pastas) é irmã dela e sai na mesma folha. **D** é infraestrutura e não muda
-pixel (**E** já foi feita, em 05/08). **F** é limpeza e pode ir a qualquer
-momento.
+> Esta seção dizia *"**A** vem primeiro… se a medição travar, **B**… **C** é irmã
+> dela… **D** é infraestrutura… **F** é limpeza e pode ir a qualquer momento"*.
+>
+> **As seis estão FEITAS desde 05 e 08/08/2026.** A seção sobreviveu três semanas
+> mandando refazer trabalho concluído, e era a última coisa que alguém lia antes
+> de começar. Foi substituída pelo **índice de estado** acima, que é auditado
+> contra o texto de cada sprint e contra a máquina.
+>
+> A única regra desta seção que continua valendo: **ela está trabalhando na
+> própria máquina enquanto isto roda.** Nada de abrir janela na tela dela; para
+> ver resultado, renderize em headless ou peça que ela olhe.
 
-Ela está trabalhando na própria máquina enquanto isto roda. Nada de abrir janela
-na tela dela; para ver o resultado, renderize em headless ou peça que ela olhe.
