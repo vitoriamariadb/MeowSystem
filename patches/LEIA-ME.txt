@@ -1,0 +1,96 @@
+patches/ — o que este diretório é, e as QUATRO armadilhas que custam caro.
+
+================================================================================
+1. NEM TODO PATCH DAQUI ESTÁ APLICADO. HOJE, O DAQUI NÃO ESTÁ.
+================================================================================
+    Medido em 29/08/2026: o script de build da Aurora aplicava UM `.patch` só, e
+    o `cosmic-comp-raio-clampado.patch` NUNCA entrou em binário nenhum, apesar
+    de o README afirmar que entrava.
+
+    CONSERTADO EM 30/08/2026, METADE. A Sprint U trocou o patch único por uma
+    SÉRIE (`~/.config/zsh/patches/patches.d/series`, `req` aborta o build,
+    `opt` deixa seguir) e o raio-clampado ESTÁ declarado nela. Mas declarar não
+    é aplicar: o binário só muda com um `--build`, e ele ainda não rodou.
+
+        aurora-cosmic-comp-ws.sh --status   # série, marcador por patch, disco x sessão
+        ./bin/meow doctor                   # a linha `patches` diz o mesmo, todo dia
+
+    Medido em 30/08/2026, depois da série:
+
+        grep -a -o 'AURORA-[A-Z-]*-PATCH-[0-9][0-9.]*' /usr/bin/cosmic-comp
+        -> AURORA-COSMIC-WS-PATCH-3.67        (e nada de RADIUS)
+
+    A DIFERENÇA QUE IMPORTA não é o código: é que agora existe alguém dizendo
+    isso em voz alta todo dia. Antes, a única fonte era um README que mentia.
+
+    NÃO EXISTE AQUI o `cosmic-comp-sem-workspace-vazio.patch` — o patch mais
+    importante da máquina, o que segura os workspaces alfinetados dela. Ele vive
+    só do lado da Aurora (`~/.config/zsh/patches/`). Este diretório carrega UM
+    patch, e o verificador do doctor diz isso para o "md5 igual" verde não dar
+    impressão de uma cobertura que não há.
+
+================================================================================
+2. `make VENDOR=1` APAGA O `vendor/` PATCHADO — E NÃO AVISA
+================================================================================
+    Quem for patchar o libcosmic vendorizado (os botões de janela à esquerda,
+    por exemplo) precisa saber ANTES: o alvo `VENDOR=1` do Makefile do
+    cosmic-comp limpa a árvore vendorizada antes de compilar. O patch some, o
+    build funciona, e o binário sai sem o efeito. Falha silenciosa completa.
+
+================================================================================
+3. A IDEMPOTÊNCIA NÃO PODE SER PELO CÓDIGO DE SAÍDA DO `patch`
+================================================================================
+    `patch --forward` devolve **1** para "já aplicado" — medido. Um script que
+    trate 1 como erro vai refazer ou abortar para sempre. O teste certo é
+    procurar o MARCADOR no arquivo-fonte:
+
+        grep -q 'AURORA-READING-MODE' <arquivo>       <- o BASE, sem a versão
+
+    O EXEMPLO ANTERIOR AQUI ESTAVA ERRADO, e o erro custaria uma árvore de fonte
+    patchada duas vezes: ele usava `AURORA-READING-MODE-1`, o marcador COM a
+    versão. Quando a versão do patch sobe (foi o que aconteceu com o de
+    workspace, 3.54 -> 3.67), o teste com versão responde "não aplicado" e o
+    `patch` reaplica por cima do que já estava lá. O teste é sempre pelo BASE; é
+    o que a coluna 3 da `series` declara. Corrigido em 30/08/2026.
+
+    E o marcador precisa de `#[used]` no lado Rust, senão o linker o descarta e
+    o `--ensure` deixa de reconhecer o build.
+
+================================================================================
+4. DRY-RUN LIMPO NÃO É PROVA DE QUE O PATCH APLICA CERTO (30/08/2026)
+================================================================================
+    O `patch` do GNU aceita FUZZ 2 por padrão. Medido: um `.patch` com contexto
+    inteiramente inventado passou no
+
+        patch -p1 --dry-run --forward --batch < inventado.patch     -> rc=0
+
+    e depois aplicou de verdade com "Hunk #1 succeeded at 1 with fuzz 2" — no
+    lugar errado do arquivo. A conferência do fim, por `strings` no binário, NÃO
+    pega isso: o marcador está lá, pregado onde não devia.
+
+    O `compilar()` da Aurora agora AVISA alto quando houve fuzz, e não aborta —
+    porque fuzz também é como um patch legítimo sobrevive a upstream empurrando
+    linhas. Exigir `-F0` nos `req` é uma linha de código, e é decisão dela.
+
+    Ou seja: dry-run responde "o patch encosta no arquivo?", não "o patch faz o
+    que promete?". Só o marcador no binário E o efeito na tela respondem a
+    segunda.
+
+================================================================================
+SE O COMPOSITOR NÃO SUBIR — LEIA ANTES DE COMPILAR, NÃO DEPOIS
+================================================================================
+    /usr/bin/cosmic-greeter-start é literalmente `exec cosmic-comp cosmic-greeter`.
+    O greeter É o mesmo binário: um cosmic-comp quebrado tira o desktop DELA E A
+    TELA DE LOGIN JUNTO, e o drop-in da Aurora zerou o teto de tentativas — o
+    laço é infinito e silencioso. Só TTY (Ctrl+Alt+F2) ou ssh.
+
+    OS DOIS `--restore` ESTÃO ARMADILHADOS, e isto é o que alguém roda em pânico:
+      * `aurora-cosmic-comp-ws.sh --restore` copia o `.pkg-orig`, cujo md5 NÃO
+        bate com o do dpkg — ele já vem com o night light dentro.
+      * `aurora-night-light.py --restore` copia o `.orig`, que é o binário do
+        PACOTE, sem o patch de workspace: o número seco volta no painel.
+
+    O caminho de volta certo, e o procedimento completo em 6 passos, estão em
+    docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md — PRIMEIRA seção do
+    arquivo, de propósito. Deixe-o impresso ou noutro aparelho: de nada serve um
+    procedimento de recuperação que só existe na máquina que não liga.

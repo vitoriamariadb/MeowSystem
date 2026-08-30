@@ -193,9 +193,21 @@ somem juntos. Em 26/08/2026 o COSMIC Tweaks gravou `border_radius` 41 num painel
 de 44 de altura, e a barra passou a tarde inteira sumida.
 
 - `patches/cosmic-comp-raio-clampado.patch` troca o `post_error` por um **clamp**:
-  o canto é reduzido ao que cabe em vez de o cliente ser derrubado. Aplicado junto
-  com o patch de workspace da Aurora, pelo `aurora-cosmic-comp-ws.sh --build`
-  (~4 min). Vale no próximo login.
+  o canto é reduzido ao que cabe em vez de o cliente ser derrubado.
+  **ATENÇÃO — ELE AINDA NÃO ESTÁ NO BINÁRIO, e este parágrafo mentia até 29/08/2026.**
+  Medido em 30/08/2026: `grep -a -o 'AURORA-[A-Z-]*-PATCH-[0-9][0-9.]*'` em
+  `/usr/bin/cosmic-comp` devolve **um** marcador, `AURORA-COSMIC-WS-PATCH-3.67`, e
+  nada de `RADIUS`. O que mudou em 30/08 é a **causa**: a série `patches.d/` da
+  Sprint U existe e já declara o raio como `opt`, mas a série só vale no próximo
+  `aurora-cosmic-comp-ws.sh --build` (~4 min) — até ele rodar, o efeito não existe.
+  Até lá o clamp do lado do Meow é o que protege a barra, e o teto de 8 continua
+  valendo.
+- **E agora isso tem quem vigie.** A linha `patches` do `meow doctor` compara os
+  marcadores que a Aurora declara em `/var/lib/aurora/cosmic-comp-patches.estado`
+  contra o binário do disco **e** contra `/proc/<pid>/exe` — a pergunta é sobre o
+  processo, não sobre o arquivo — e confere se todo `.patch` de `patches/` está
+  declarado na série. Foi essa segunda conferência que faltava: um patch fora da
+  série não entra em binário nenhum, e era assim que este parágrafo mentia.
 - Enquanto ele não estiver **em execução**, `meow painel conferir` clampa do lado
   de cá, e guarda o número que você pediu em
   `~/.local/state/meowsystem/painel/raio_desejado.*` — ele volta sozinho no dia em
@@ -252,6 +264,14 @@ Duas coisas **não** eram sobre publicar, e continuam valendo inteiras:
 de tema — `aplicar_tema.sh` — guarda as árvores inteiras em
 `~/.local/state/meowsystem/backups/<ISO>/` antes, com `manifesto.sha256` e um
 `COMO-RESTAURAR.txt` ao lado. Isso protege o tema **dela**.
+
+> **Se o compositor não subir e você estiver sem tela de login**, o procedimento é
+> o cartão de recuperação por TTY em
+> `docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md` — a primeira seção do
+> arquivo, de propósito. Dois avisos que valem a leitura ANTES de compilar
+> qualquer coisa: o `--restore` dos dois scripts da Aurora está armadilhado (o
+> `.pkg-orig` não bate com o md5 do dpkg), e `/usr/bin/cosmic-greeter-start` é
+> literalmente `exec cosmic-comp cosmic-greeter` — o greeter é o mesmo binário.
 
 **Cada módulo pula o que não encontra.** App ausente, `cosmic-greeter` ausente,
 applet de terceiro ausente — tudo é "pulado", com a razão dita em voz alta, e
