@@ -26,6 +26,23 @@
 #   o `.desktop` do export trocado, os toolkits religam symlink. Nada disso está
 #   no manifesto — e nada disso saía. Ela pediu o pareamento; este passo é ele.
 #
+# O QUE MUDOU EM 31/08/2026 — O MODO DE LEITURA INTEIRO PASSAVA BATIDO
+#   Ele nasceu em 29 e 30/08 e ninguém voltou aqui. Eram dois buracos separados,
+#   os dois medidos hoje na máquina dela:
+#
+#   (a) A ÁRVORE DE BUILD, 1,5 GB, ficava. O binário e a sombra saíam pelo
+#       manifesto; a árvore de cargo em `~/.local/state/meowsystem/leitura` não
+#       passa por `meow_escrever` e não estava em lugar nenhum. Faltavam as duas
+#       metades do desenho que o applet de mídia já tinha: a chamada ao script
+#       dono no passo 2 e o cinto no passo 5.
+#
+#   (b) O `disable --now` do passo 1 não conhecia cinco unidades — as do modo de
+#       leitura e as do painel —, e três delas deixavam link vivo em
+#       `cosmic-session.target.wants`. O `find` que apaga os arquivos é
+#       `-maxdepth 1` e nunca desce até os `.wants`: sem `disable`, o link fica
+#       ÓRFÃO. É exatamente o resíduo de 25/08 que o `meow_unidade_sobrou` existe
+#       para enxergar, refeito aqui pelo próprio desinstalador.
+#
 # O QUE ELE NUNCA REMOVE
 #   Pacote do apt (foram instalados a pedido, mas podem ser de outra coisa
 #   agora), o clone do repositório, e os backups — que são a única prova do que
@@ -37,6 +54,30 @@ meow_desinstalar() {
   meow_seco && meow_aviso "modo seco: nada será removido"
 
   meow_passo "1/6 Relógios e gatilhos"
+  # A LISTA DO `disable` É EXPLÍCITA, E POR ISSO ELA ENVELHECE — ENVELHECEU DUAS VEZES
+  #   O `find … -delete` abaixo é `-maxdepth 1`: ele apaga os ARQUIVOS de
+  #   `~/.config/systemd/user`, e não toca nos symlinks que moram um nível
+  #   abaixo, em `*.target.wants/`. Quem tira esses links é o `disable` — e o que
+  #   não estiver nesta lista fica para trás como link ÓRFÃO apontando para um
+  #   arquivo que acabou de ser apagado. É o achado de 25/08/2026 que fez nascer
+  #   o `meow_unidade_sobrou` (install.sh), e ele é invisível para toda pergunta
+  #   óbvia: `is-enabled` diz `not-found`, `is-active` diz `inactive`,
+  #   `systemctl --user --failed` vem vazio. Só o disco vê.
+  #
+  #   Faltavam CINCO nomes, conferidos em 31/08/2026 no disco dela — as três
+  #   unidades com `[Install]` deixavam link vivo em `cosmic-session.target.wants`:
+  #       cosmic-session.target.wants/meow-leitura.timer      -> ficava órfão
+  #       cosmic-session.target.wants/meow-painel.service     -> ficava órfão
+  #       cosmic-session.target.wants/meow-painel-raio.path   -> ficava órfão
+  #   Os `.service` irmãos (`meow-leitura.service`, `meow-painel-raio.service`)
+  #   são `static` e não criam link nenhum; entram na lista pelo `--now`, para
+  #   serem PARADOS se estiverem correndo — que é o mesmo motivo pelo qual
+  #   `meow-doctor.service` e `meow-wallpaper.service` já estavam aqui.
+  #
+  #   `meow-painel.service` é o que mais importa parar: ele é `Type=simple` com
+  #   `Restart=on-failure`, um laço vivo repondo o `cosmic-panel`. Deixá-lo de pé
+  #   depois de apagarem o `~/.local/bin/meow` que ele executa (passo 6) é o
+  #   supervisor batendo num binário que não existe mais.
   if ! meow_seco; then
     # `|| true` porque desligar unidade que não existe devolve != 0, e isso não
     # é falha: é a máquina já estando como queremos deixá-la.
@@ -45,13 +86,26 @@ meow_desinstalar() {
       meow-logo.timer meow-logo.service \
       meow-wallpaper.timer meow-wallpaper.service meow-fundo.path \
       meow-assets.path meow-assets.service \
-      meow-flatpak.path meow-flatpak.service 2>/dev/null || true
+      meow-flatpak.path meow-flatpak.service \
+      meow-leitura.timer meow-leitura.service \
+      meow-painel.service meow-painel-raio.path meow-painel-raio.service 2>/dev/null || true
     find "$HOME/.config/systemd/user" -maxdepth 1 -name 'meow-*' \
       \( -name '*.service' -o -name '*.timer' -o -name '*.path' \) -delete 2>/dev/null || true
+    # O CINTO DOS LINKS, e ele não é redundância da lista acima: é o caso em que
+    # o `disable` NÃO TEM COMO funcionar. Uma desinstalação interrompida (ou uma
+    # anterior a esta correção) deixa o arquivo da unidade já apagado e o link
+    # ainda de pé — e `systemctl disable` de unidade sem arquivo não remove link
+    # nenhum. Sem esta varredura, o resíduo de 25/08 sobreviveria a QUALQUER
+    # número de `--uninstall`, que é o oposto de idempotente. Mesmo `rm -f` de
+    # glob que o `etapa_painel` do install.sh já faz nome por nome; glob sem
+    # match fica literal e `rm -f` de caminho inexistente sai 0, calado.
+    rm -f "$HOME/.config/systemd/user"/*.wants/meow-* \
+          "$HOME/.config/systemd/user"/*.requires/meow-* 2>/dev/null || true
     systemctl --user daemon-reload 2>/dev/null || true
     meow_ok "unidades meow-* desligadas e removidas"
   else
     meow_muda "desligaria e removeria as unidades meow-* de ~/.config/systemd/user"
+    meow_muda "  e os links em *.target.wants/ que sobrariam órfãos sem o disable"
   fi
 
   # O HOOK DE APT SAI AQUI, E NÃO NO PASSO 4
@@ -126,6 +180,30 @@ meow_desinstalar() {
     "$MEOW_RAIZ/scripts/midia.sh" --reverter || true
   fi
 
+  # O APPLET DO MODO DE LEITURA SAI AQUI, PELO MESMO MOTIVO E NA MESMA ORDEM
+  #   `leitura_build.sh --reverter` remove a SOMBRA, depois o binário, depois a
+  #   árvore de build — e a ordem mora lá dentro pelo motivo do parágrafo acima:
+  #   o `cosmic-panel` casa o applet pelo basename do `.desktop` e consome o slot
+  #   no primeiro acerto, então sombra sem binário deixa BURACO na barra, não o
+  #   applet de fábrica. Quem remove é o script dono, não este arquivo.
+  #
+  #   O `--reverter` é a PRIMEIRA coisa que o `main` daquele script olha, antes
+  #   da chave `LEITURA_APPLET`: desinstalar com ela em "nao" reverte do mesmo
+  #   jeito, e uma sombra que uma execução antiga deixou também sai.
+  #
+  #   O QUE FALTAVA SEM ESTA CHAMADA, medido em 31/08/2026: o binário e a sombra
+  #   saíam pelo passo 4 (o `leitura_build.sh` os registra — a sombra via
+  #   `meow_escrever`, o binário via `meow_manifesto_registrar`, porque o
+  #   `install -D` não passa pelo escritor), e a ÁRVORE DE BUILD ficava inteira:
+  #   1,5 GB em ~/.local/state/meowsystem/leitura (1.515.036.230 bytes).
+  #
+  #   As cinco chaves do CosmicComp NÃO são zeradas por ele, e isso é desenho:
+  #   são o estado do modo de leitura dela, não arquivo nosso. Quem quiser zerar
+  #   pede: `meow leitura remover`.
+  if [ -x "$MEOW_RAIZ/scripts/leitura_build.sh" ]; then
+    "$MEOW_RAIZ/scripts/leitura_build.sh" --reverter || true
+  fi
+
   meow_passo "3/6 Tema do COSMIC"
   # O alvo é o PRIMEIRO backup de tema — o COSMIC de antes do MeowSystem NESTA
   # máquina. A captura `state/tema/original` NÃO serve para isto: ela foi tirada
@@ -193,14 +271,27 @@ meow_desinstalar() {
 
   meow_passo "5/6 Árvores inteiras"
   local dir
-  # `…/meowsystem/midia` entra aqui como CINTO do `midia.sh --reverter` acima.
-  # O passo 4 (manifesto) não alcança esta árvore: o binário é gravado com
+  # `…/meowsystem/midia` e `…/meowsystem/leitura` entram aqui como CINTO dos dois
+  # `--reverter` do passo 2 (`midia.sh` e `leitura_build.sh`), que já apagam a
+  # própria árvore. O cinto vale porque o passo 2 pode não acontecer: script sem
+  # bit de execução, clone incompleto, repositório trocado de lugar — e aí é este
+  # laço, que não depende de nada, que fica sendo a única passagem por elas.
+  #
+  # O passo 4 (manifesto) não alcança nenhuma das duas: o binário é gravado com
   # `install -D` e a árvore de build nem passa por `meow_escrever`. E o passo 4
   # PULA, de propósito, arquivo cujo sha256 mudou depois da escrita — o que é
-  # certo para configuração dela e insuficiente para 1,5 GB de artefato.
+  # certo para configuração dela e insuficiente para uma árvore de cargo.
+  #
+  # O TAMANHO ESTAVA DESATUALIZADO E FALAVA DE UMA ÁRVORE SÓ. Medido hoje,
+  # 31/08/2026, com `du -sb`:
+  #     ~/.local/state/meowsystem/midia    1.956.048.518 B  (1,9 GB)
+  #     ~/.local/state/meowsystem/leitura  1.515.036.230 B  (1,5 GB)
+  # São 3,4 GB. A linha antiga dizia "1,5 GB", que hoje é o tamanho da árvore que
+  # este laço nem listava.
   for dir in "$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
              "$HOME/.local/share/fonts/MeowSystem" \
-             "$HOME/.local/state/meowsystem/midia"; do
+             "$HOME/.local/state/meowsystem/midia" \
+             "$HOME/.local/state/meowsystem/leitura"; do
     [ -d "$dir" ] || continue
     if meow_seco; then meow_muda "removeria $dir/"; else rm -rf "$dir"; meow_ok "removido $dir/"; fi
   done

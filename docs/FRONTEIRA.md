@@ -54,7 +54,7 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `pinned_workspaces` | Aurora | **Aurora** |
 | `CosmicComp/v1/leitura_{temperatura,textura}` | Meow (`leitura.sh`, pelo relógio) **e** o applet da topbar | **Meow escreve o horário, ELA escreve a mão** — desde 30/08/2026, ver abaixo |
 | `CosmicComp/v1/leitura_{agenda,hora_inicio,hora_fim}` | o applet da topbar (`com.meowsystem.AppletLeitura`) | **ELA** — o Meow LÊ e obedece, e nunca escreve |
-| a luz quente da tela hoje (patch binário de night light) | Aurora (`aurora-night-light.py`) | **Aurora** — o `leitura.sh` não a toca; aposentá-la é a etapa 4 |
+| ~~a luz quente da tela (patch binário de night light)~~ | Aurora (`aurora-night-light.py`) | **APOSENTADA** — a etapa 4 foi feita; o binário de 30/08 não tem o patch binário (medido em 31/08, ver abaixo). Quem esquenta a tela agora é o `leitura_temperatura`, e o dono é o Meow |
 | `~/.config/autostart/` | Aurora | **Aurora** |
 | `gsettings` / `dconf` — `org.gnome.desktop.wm.preferences` (`button-layout`) | Aurora | **Aurora** |
 | `gsettings` / `dconf` — `org.gnome.desktop.interface` (`cursor-theme`) | Meow (`cursor.sh`) | **Meow** — resolvido em 25/08/2026, ver abaixo |
@@ -484,6 +484,30 @@ disco no arranque e só escreve o que ela mexe. Então "applet ausente" e "apple
 e nunca tocado" são o mesmo estado para o `leitura.sh`, e nos dois vale o padrão do
 `meow.conf` — o que também quer dizer que instalar o applet **não muda nada** por si só.
 
+**E existe um terceiro estado, desde 31/08/2026: UMA PONTA SÓ.** `HoraInicio` e
+`HoraFim` são dois braços separados do `update()` do applet, cada um chamando o seu
+`set_`; arrastar só o slider de início grava `leitura_hora_inicio` e mais nada, enquanto o
+popup continua mostrando o Default no fim — que é o mesmo número do `meow.conf`, e por
+isso a divergência não aparece na tela. Até 31/08 o `leitura.sh` exigia AS DUAS chaves e,
+faltando uma, jogava fora a outra: medido naquele dia com `leitura_hora_inicio="20:00"` no
+disco e `leitura_hora_fim` ausente, o applet dizia "das 20:00 às 07:00" e o script
+esquentava a tela às 19:00, calado. Agora **cada ponta é resolvida sozinha** — chave do
+applet quando existe e é legível, padrão do `meow.conf` quando não —, o `LEITURA_FONTE`
+tem três valores (`applet`, `padrao`, `misto`) em vez de dois, e o `meow leitura estado`
+diz **qual ponta veio de onde**. A janela resolvida passa a ser exatamente a que o applet
+desenha na tela dela.
+
+**Dois controles saíram do popup em 31/08/2026, e os dois por motivo medido.** O botão
+**"Restaurar padrões"** foi removido: o braço dele era, linha por linha, o `else` do
+interruptor `Modo de leitura` (`lembra_ponto()` e os dois zeros), com um nome que prometia
+devolver os 3500 K e os 35% do padrão. Dois controles com o mesmo efeito e nomes
+diferentes não dão duas saídas — ensinam a duvidar das duas; o interruptor é o desfazer, e
+é o único. E a **linha de horário some** quando o `Agendar` está desligado, em vez de
+ficar clicável sem efeito: com `leitura_agenda = false` o `leitura.sh` devolve 4 e não
+escreve chave nenhuma, então mexer no horário ali não mudava nada. Este rev do libcosmic
+não tem estado desabilitado para `spin_button` — sumir foi o único desenho honesto
+disponível.
+
 **As três peças do applet falham separado, e por isso o `estado` mostra as três.** O
 binário (`~/.local/bin/meow-applet-leitura`), a sombra `.desktop` e a linha
 `"com.meowsystem.AppletLeitura"` no `plugins_wings` da topbar. As duas primeiras são do
@@ -506,18 +530,34 @@ apagou topbar e dock juntas nesta máquina. Uma escrita à mão é barata; em ra
 um `install.sh` ou de um timer, seria a fábrica do painel fantasma. Continua fora de todo
 script, agora por um motivo medido em vez de um motivo suposto.
 
-**A luz quente de hoje continua sendo da Aurora, e o `leitura.sh` não a toca.**
-`/var/lib/aurora/night-light-temp` = 3500, e quem esquenta a tela dela neste momento é um
-patch **binário** no shader do `cosmic-comp`, não uma chave. Aposentá-lo é a etapa 4 do
-plano, com outro dono. Enquanto isso os dois convivem, e o `meow leitura estado` mostra os
-dois lado a lado de propósito: sem essa linha, "a tela está quente" viraria prova de que o
-agendamento funcionou — e não é.
+**A luz quente da Aurora foi aposentada, e a medição é de 31/08/2026.** Este parágrafo
+dizia que quem esquentava a tela dela era um patch **binário** no shader do `cosmic-comp`,
+e que aposentá-lo era a etapa 4 do plano. A etapa foi feita. Medido:
+
+```
+strings -a /usr/bin/cosmic-comp | grep -o 'AURORA-[A-Z0-9.-]*' | sort -u
+    AURORA-COSMIC-RADIUS-PATCH-1
+    AURORA-COSMIC-WS-PATCH-3.67
+    AURORA-READING-MODE-1
+md5sum /usr/bin/cosmic-comp /var/lib/aurora/cosmic-comp-…-5c93094.aurora-ws
+    244a901d72ae8af1edf495b7bc31f7f4  (idêntico nos dois)
+```
+
+Três patches de FONTE e nenhum de night light — e o binário instalado é byte a byte o que
+saiu do build de 30/08 04:59, ou seja, **nada foi re-patchado por cima dele depois**, que é
+como o patch binário entrava. `/var/lib/aurora/night-light-temp` continua no disco com
+`3500`, mas é um arquivo de 14/07 que ninguém mais lê para pintar; não há unidade de night
+light ativa. O `leitura.sh` ainda imprime aquele número no `estado` com a frase antiga
+("patch BINÁRIO, outro dono") — o comando não mente sobre o arquivo, mas a frase envelheceu
+com esta seção.
 
 **A pergunta que o `estado` responde e que ninguém mais responde.** Ele separa o binário
 do **disco** (`grep AURORA-READING-MODE /usr/bin/cosmic-comp`) do binário da **sessão
 viva** (`/proc/<pid>/exe`). São coisas diferentes, e a diferença é a explicação inteira de
 "escrevi a chave e não aconteceu nada": um `--build` já feito e um logout ainda não dado.
-Enquanto a etapa 1 não entrar, as duas respostas são "não", e escrever a chave continua
-sendo inofensivo e correto — o valor passa a valer no login seguinte.
+**Desde 30/08/2026 as duas respostas são "sim"** — medido em 31/08, com a sessão dela de
+pé, `1` nos dois `grep -c`. Escrever a chave deixou de ser inofensivo-e-inerte e passou a
+valer na tela na hora. O dia em que um `apt upgrade` trocar o compositor as respostas
+voltam a divergir, e é para esse dia que as duas linhas existem.
 
 ---

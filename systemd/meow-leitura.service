@@ -65,6 +65,46 @@ ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
 ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/leitura.sh" ] || exit 0; LOG_NIVEL=silencioso exec "$R/scripts/leitura.sh" aplicar'
 
 SuccessExitStatus=1 3 4
+
+# `TimeoutStartSec=30s` — E ELE É OBRIGATÓRIO AQUI, NÃO ZELO
+#   `Type=oneshot` NÃO herda o `DefaultTimeoutStartSec`: o padrão dele é
+#   `infinity`. Medido em 31/08/2026 nesta máquina, com esta unidade instalada e
+#   SEM esta linha:
+#       systemctl --user show -p DefaultTimeoutStartUSec  ->  1min 30s
+#       systemctl --user show meow-leitura.service -p TimeoutStartUSec
+#                                                 ->  TimeoutStartUSec=infinity
+#   Ou seja: um `leitura.sh` que travasse ficaria em `activating (start)` PARA
+#   SEMPRE, e o systemd não dispara de novo uma unidade cujo job ainda está
+#   rodando — o modo de leitura simplesmente pararia de virar, calado, sem nada
+#   `failed` para olhar. É o modo de falha que este projeto mais documenta.
+#
+#   30s, E NÃO OS 45s QUE ESTAVAM AQUI ATÉ 31/08/2026 — a linha declarava uma
+#   invariante e a violava. A régua é a mesma do `meow-wallpaper.service`: o teto
+#   tem de ser MENOR que o período do gatilho. Não porque dois jobs se
+#   empilhariam — não se empilham, o systemd funde o pedido naquele que já está em
+#   `activating` —, mas porque um job travado ENGOLE todo disparo que cair na
+#   janela, e aqui o relógio é o ÚNICO gatilho que existe. Engolir a janela
+#   inteira é o modo de leitura parado, calado, até o teto expirar.
+#
+#   E O PERÍODO NÃO É 60s. Medido em 31/08/2026:
+#       systemctl --user show meow-leitura.timer -p AccuracyUSec
+#       AccuracyUSec=20s
+#   Com `AccuracySec=20s` o systemd dispara em qualquer ponto de [t, t+20s], então
+#   dois disparos consecutivos podem ficar a 40s um do outro — um em t+20s, o
+#   seguinte em t+60s+0. 45s não cabia nesses 40s; 30s cabe. Amostrado o relógio
+#   VIVO por seis minutos, de 200 em 200 ms, com
+#       systemctl --user show meow-leitura.service \
+#         -p InactiveExitTimestampMonotonic -p InactiveEnterTimestampMonotonic
+#   os seis intervalos entre disparos deram 57,465 · 59,946 · 59,906 · 60,165 ·
+#   59,883 · 59,941 s. O primeiro é a janela dos 20s aparecendo na prática.
+#
+#   E 30s é folga enorme para o trabalho honesto: os sete tiques dessa mesma
+#   amostra custaram de 10,536 ms a 11,785 ms cada — 30s são ~2500x o pior deles.
+#   Não há espera de lock a orçar, ao contrário dos irmãos `meow-flatpak` e
+#   `meow-assets`, cujos tetos de 5min e 2min pagam os 60s do `flock -w 60` da
+#   linha de `Exec` deles; aqui o `flock -n -E 0` cede na hora.
+TimeoutStartSec=30s
+
 # `LogLevelMax=notice` CALA TAMBÉM O "Starting…/Finished…" DO PRÓPRIO SYSTEMD —
 # medido em 30/08/2026, ligando e desligando a linha nesta máquina: com ela o
 # `journalctl --user -u meow-leitura.service` fica VAZIO; sem ela, aparecem duas

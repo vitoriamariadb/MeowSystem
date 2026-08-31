@@ -1097,7 +1097,10 @@ etapa_painel() {
 
   if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
     if meow_unidade_sobrou "${unidades[@]}"; then
-      meow_seco && { meow_muda "removeria o supervisor da barra"; return "$MEOW_DIVERGENTE"; }
+      # A chave abre a frase nos DOIS lados (o real, sete linhas abaixo, já
+      # abria): ela lê o seco e o real em sequência, e a primeira palavra é o
+      # que ela procura — o motivo, não o verbo.
+      meow_seco && { meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" — removeria o supervisor da barra"; return "$MEOW_DIVERGENTE"; }
       systemctl --user disable --now meow-painel.service meow-painel-raio.path >/dev/null 2>&1
       rm -f "${unidades[@]/#/$destino/}"
       rm -f "$destino"/*.wants/meow-painel.service "$destino"/*.wants/meow-painel-raio.path \
@@ -1107,7 +1110,22 @@ etapa_painel() {
       return "$MEOW_DIVERGENTE"
     fi
     meow_pula "AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem supervisor da barra"
-    return "$rc"
+    # UM `--` NA TELA QUE O RESUMO ARQUIVAVA EM `confere:` (31/08/2026)
+    #   O `rc` aqui é o do `painel.sh conferir`, e nesta máquina ele devolve 0
+    #   SEMPRE — o cosmic-comp em execução clampa o raio, então o script sai por
+    #   cima sem escrever nada (medido: `MEOW_DRY_RUN=1 scripts/painel.sh
+    #   conferir` -> `ok o cosmic-comp em execução clampa o raio`, rc=0). É a
+    #   mesma constatação do comentário logo abaixo, na parte que escreve.
+    #   Devolver esse 0 punha a etapa em `confere:` — "já estava certo, nada
+    #   escrito" — de uma etapa que acabou de imprimir `--`. O argumento inteiro
+    #   está escrito no ramo gêmeo do `etapa_leitura` (o do portão do
+    #   `AUTO_REPARO`), e não se repete aqui; o `concluir()` põe o 3 em
+    #   `pulados:`, nunca em `falhou:`.
+    #   O 1 continua vencendo o 3: aí o `conferir` ESCREVEU o raio de verdade
+    #   (é a máquina sem o patch do compositor), e engolir isso trocaria um
+    #   defeito de relatório por outro.
+    [ "$rc" = "1" ] && return "$MEOW_DIVERGENTE"
+    return "$MEOW_SEM_DEPENDENCIA"
   fi
 
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
@@ -1122,11 +1140,56 @@ etapa_painel() {
     case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
   done
 
+  # O SECO TAMBÉM TEM DE ENXERGAR O SUPERVISOR SOLTO, E NÃO ENXERGAVA (31/08/2026)
+  #   Medido num HOME falso com as TRÊS unidades no disco iguais às do repositório
+  #   e as duas que se armam soltas (a terceira, `meow-painel-raio.service`, é
+  #   `static` — quem a puxa é o `.path`, e ela nunca aparece nesta conta):
+  #       rc(seco)=0    <- nem uma linha na tela
+  #       rc(real)=1    ~~ supervisor da barra armado (meow-painel.service)
+  #                     ~~ supervisor da barra armado (meow-painel-raio.path)
+  #   Ou seja: a auditoria escondia a única coisa que ia mudar, e justo a que
+  #   importa — sem o `.service` armado a barra morre e ninguém a repõe, que é o
+  #   defeito inteiro que esta etapa existe para tapar. `is-enabled` e `is-active`
+  #   são leitura pura, então o `tests/seco.sh` continua verde com elas aqui.
+  #   Mesmo buraco, mesma cura do `etapa_leitura` e do `etapa_autoreparo`.
   if meow_seco; then
-    [ "$mudou" = "1" ] && { meow_muda "instalaria/atualizaria o supervisor da barra"; return "$MEOW_DIVERGENTE"; }
+    # Lista em UMA string, e não num array, por um motivo bobo e concreto: o
+    # `etapa_leitura` e o `etapa_autoreparo` usam `armaria` como 0/1, e o linter
+    # resolve nome sem olhar escopo de função — declarar `armaria=()` aqui fazia
+    # o SC2178/SC2128 cair nas DUAS irmãs, que não mudaram uma linha. Oito avisos
+    # novos por causa de uma variável local.
+    local armaria=""
+    for u in meow-painel.service meow-painel-raio.path; do
+      if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+         [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+        armaria="${armaria:+$armaria }$u"
+      fi
+    done
+    # Duas divergências DIFERENTES, duas linhas: juntá-las num `mudou` só faria a
+    # auditoria dizer "instalaria o supervisor" numa máquina onde as unidades já
+    # estão no disco e só falta armá-las — e a frase mandaria procurar o defeito
+    # no lugar errado. E o nome da unidade vai junto porque o `.service` e o
+    # `.path` falham por motivos diferentes (ver a dupla logo abaixo).
+    [ "$mudou" = "1" ] && meow_muda "instalaria/atualizaria as unidades do supervisor da barra"
+    [ -n "$armaria" ] && meow_muda "armaria o supervisor da barra ($armaria)"
+    { [ "$mudou" = "1" ] || [ -n "$armaria" ]; } && return "$MEOW_DIVERGENTE"
     return "$rc"
   fi
-  [ "$mudou" = "1" ] && systemctl --user daemon-reload
+
+  # ESCREVEU = `mexeu`, E O `rc` DO `painel.sh` NÃO SABE DISSO
+  #   Medido em 31/08/2026: com as duas unidades já armadas e as do repositório
+  #   divergindo das do disco (é o que um `git pull` produz), a etapa reescrevia
+  #   as TRÊS, chamava `daemon-reload` e devolvia o `rc` do `painel.sh conferir`
+  #   — 0 —, que o `concluir()` arquiva em `confere: … nada escrito`. E nesta
+  #   máquina o `conferir` devolve 0 SEMPRE: o cosmic-comp em execução clampa o
+  #   raio, então ele não tem o que escrever e sai por cima. Resultado: o
+  #   instalador recarregava o systemd dela e relatava que não tinha escrito
+  #   nada. É a separação 0/1 que o cabeçalho do `concluir()` existe para
+  #   defender, e o `etapa_autoreparo` já a respeita com este mesmo `mudou`.
+  if [ "$mudou" = "1" ]; then
+    systemctl --user daemon-reload
+    rc=1
+  fi
 
   # O `.service` e o `.path` são uma dupla: o primeiro repõe a barra quando ela
   # cai, o segundo clampa o raio quando a geometria muda. Nenhum substitui o
@@ -1206,15 +1269,33 @@ etapa_relogio() {
 #
 # TRÊS PORTÕES, E ELES NÃO DIZEM A MESMA COISA
 #   `LEITURA_AGENDA` vazio  o script não escreve nada (contrato "vazio = não
-#                           toca"), e o timer NÃO é armado. Ninguém decide por ela
-#                           um recurso que muda a cor da tela.
+#                           toca"), e o timer não é armado — e o que uma execução
+#                           anterior tiver armado é REMOVIDO, porque um relógio
+#                           nosso de pé já é decidir por ela.
 #   `LEITURA_AGENDA="nao"`  o script zera os dois números, e o timer é desarmado e
 #                           REMOVIDO. Desligar tem de desligar.
-#   `AUTO_REPARO != "sim"`  mesmo com o agendamento pedido, nada é armado: quem
-#                           desliga o auto-reparo está dizendo "não mexa sozinho
-#                           na minha máquina", e virar a cor da tela às 18:00 é
-#                           mexer. É a mesma carona do `etapa_painel` e do
-#                           carrossel.
+#   `AUTO_REPARO != "sim"`  mesmo com o agendamento pedido, nada é armado E NADA É
+#                           APLICADO: quem desliga o auto-reparo está dizendo "não
+#                           mexa sozinho na minha máquina", e virar a cor da tela
+#                           às 18:00 é mexer. É a mesma carona do `etapa_painel` e
+#                           do carrossel.
+#
+# O PORTÃO DO `AUTO_REPARO` PRECISOU DESCER ATÉ A ESCOLHA DO VERBO (31/08/2026)
+#   Ele só barrava o timer, e o `aplicar` rodava três linhas ANTES dele. Medido
+#   num HOME falso, com `AUTO_REPARO="nao"` e `LEITURA_AGENDA="sim"`: um
+#   `./install.sh` gravou `leitura_temperatura=3500` e `leitura_textura=0.35` — a
+#   tela âmbar — e, na linha seguinte, removeu o `meow-leitura.timer`, que era a
+#   ÚNICA coisa capaz de devolvê-la ao neutro às 07:00. Ou seja, o portão que
+#   existe para não mexer na máquina dela era exatamente o que deixava a tela
+#   presa numa cor, até alguém rodar o instalador de novo depois das 07:00.
+#   Agora o portão vem ANTES da chamada, e com o relógio proibido o script não é
+#   chamado de jeito nenhum — nem com `conferir`. Medido também: o `conferir` aqui
+#   funcionava (nada era escrito), mas despejava "modo de leitura divergente" mais
+#   quatro linhas `!!` em TODA passagem, e uma delas — "senão o timer devolve o
+#   valor da hora no próximo minuto" — é literalmente falsa numa máquina onde este
+#   ramo acabou de remover o timer. Uma linha `--` dizendo o motivo é a verdade
+#   inteira. Com `LEITURA_AGENDA="nao"` o `aplicar` continua obrigatório — é ele
+#   que zera os dois números, e desligar tem de desligar.
 #
 # NADA AQUI COMPILA, BAIXA OU USA SUDO — e nada aqui pinta um pixel enquanto o
 # patch da etapa 1 não entrar no binário. As chaves ficam corretas no disco desde
@@ -1224,27 +1305,104 @@ etapa_leitura() {
   local destino="$HOME/.config/systemd/user" u conteudo mudou=0
   local unidades=(meow-leitura.service meow-leitura.timer)
 
-  # O degrau vale mesmo sem systemd: é o número no disco que o compositor lê.
-  "$MEOW_RAIZ/scripts/leitura.sh" aplicar
-  local rc=$?
-  [ "$rc" = "2" ] && return "$MEOW_ERRO"
+  # O degrau vale mesmo sem systemd: é o número no disco que o compositor lê. Mas
+  # escrevê-lo com o relógio PROIBIDO deixa a tela numa cor sem ninguém para
+  # desfazê-la — ver o portão do `AUTO_REPARO` no cabeçalho. Aí o script não é
+  # chamado, e a etapa cai direto na linha que diz por quê.
+  local rc=0 aplicavel=1
+  if [ "${LEITURA_AGENDA:-}" = "sim" ] && [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    aplicavel=0
+  fi
+  if [ "$aplicavel" = "1" ]; then
+    "$MEOW_RAIZ/scripts/leitura.sh" aplicar
+    rc=$?
+    [ "$rc" = "2" ] && return "$MEOW_ERRO"
+  fi
 
   if [ "${AUTO_REPARO:-sim}" != "sim" ] || [ "${LEITURA_AGENDA:-}" != "sim" ]; then
     if meow_unidade_sobrou "${unidades[@]}"; then
-      meow_seco && { meow_muda "removeria o relógio do modo de leitura"; return "$MEOW_DIVERGENTE"; }
-      systemctl --user disable --now meow-leitura.timer >/dev/null 2>&1
-      rm -f "${unidades[@]/#/$destino/}"
-      rm -f "$destino"/*.wants/meow-leitura.timer "$destino"/*.requires/meow-leitura.timer
-      systemctl --user daemon-reload >/dev/null 2>&1
-      meow_muda "relógio do modo de leitura desligado e removido"
+      # A unidade vai no par que REMOVE também, como no `etapa_autoreparo`: são
+      # dois arquivos (`.service` e `.timer`), mas armado/desarmado só existe UM,
+      # e é dele que a frase fala. O `etapa_painel` é a exceção declarada — lá são
+      # TRÊS unidades e nenhum nome sozinho seria verdade, então a frase fica no
+      # recurso e o nome aparece nas linhas que armam, uma por unidade.
+      if meow_seco; then
+        meow_muda "removeria o relógio do modo de leitura (meow-leitura.timer)"
+      else
+        systemctl --user disable --now meow-leitura.timer >/dev/null 2>&1
+        rm -f "${unidades[@]/#/$destino/}"
+        # O `disable` de uma unidade cujo ARQUIVO já não existe não tem [Install]
+        # para ler e deixa o link no `*.wants` — é o achado de 25/08/2026 do
+        # `etapa_logo`, e é por isso que os links saem à mão. O laço varre as DUAS
+        # unidades, e não só o `.timer`: hoje o `.service` não tem `[Install]` e
+        # portanto ninguém consegue habilitá-lo, mas o cabeçalho do próprio
+        # `.timer` já prevê o dia em que um `.path` venha acordar essa unidade. Um
+        # link órfão que este laço não visse faria o `meow_unidade_sobrou` dizer
+        # "sobrou" para sempre, e esta etapa anunciaria "desligado e removido" em
+        # TODA execução — divergência eterna por um resíduo de uma linha.
+        for u in "${unidades[@]}"; do
+          rm -f "$destino"/*.wants/"$u" "$destino"/*.requires/"$u"
+        done
+        systemctl --user daemon-reload >/dev/null 2>&1
+        meow_muda "relógio do modo de leitura desligado e removido (meow-leitura.timer)"
+      fi
+      # O CONSELHO SAI NA PASSAGEM QUE TIRA O RELÓGIO — ANTES ELE SÓ SAÍA DEPOIS
+      #   Medido em 31/08/2026, num HOME falso com as duas unidades no disco e o
+      #   timer armado, `AUTO_REPARO="nao"` e `LEITURA_AGENDA="sim"`:
+      #       passagem 1   ~~ relógio do modo de leitura desligado e removido
+      #       passagem 2   -- AUTO_REPARO="nao" … / >> o degrau que estiver …
+      #   Ou seja: o conselho chegava uma passagem DEPOIS do momento que ele
+      #   descreve. É exatamente a passagem em que ela PERDE o relógio — quem
+      #   desliga o auto-reparo às 20:00 fica com a tela âmbar e sem quem a
+      #   devolva — e era a única em que ele não aparecia.
+      #
+      #   Ele saiu do ramo de baixo em vez de ser copiado: lá é o estado de
+      #   regime, que se repete em toda execução do instalador daí para a
+      #   frente, e um conselho impresso para sempre vira ruído que ninguém lê.
+      #   Aqui ele sai UMA vez, na passagem que muda algo.
+      #
+      #   E só com `aplicavel=0`, que é o mesmo alcance que o conselho já tinha
+      #   lá embaixo, nem um caso a mais: com `LEITURA_AGENDA="nao"` o
+      #   `leitura.sh aplicar` ACABOU de rodar e zerar os dois números, então "o
+      #   degrau que estiver no disco fica" seria falso e mandaria zerar o que já
+      #   é zero. Fica de fora também o `LEITURA_AGENDA` VAZIO, onde o degrau de
+      #   fato sobra ("vazio = não toca") — mas lá a primeira metade da frase
+      #   ("esvazie LEITURA_AGENDA") manda fazer o que já está feito, e mudar o
+      #   texto é escolha dela, não minha. Está relatado.
+      if [ "$aplicavel" = "0" ]; then
+        meow_info "  o degrau que estiver no disco fica: esvazie LEITURA_AGENDA se o modo de"
+        meow_info "  leitura é só seu, ou rode 'meow leitura remover' para zerar os dois números"
+      fi
       return "$MEOW_DIVERGENTE"
     fi
     if [ -z "${LEITURA_AGENDA:-}" ]; then
       meow_pula "LEITURA_AGENDA vazio — sem relógio do modo de leitura"
-    else
-      meow_pula "LEITURA_AGENDA=\"${LEITURA_AGENDA:-}\"/AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem relógio do modo de leitura"
+      return "$rc"
     fi
-    return "$rc"
+    # Sobra o `nao`, e aí o `rc` é o do zeramento dos dois números: 1 na passagem
+    # que zerou, 0 nas seguintes. `${…:-}` e não `$LEITURA_AGENDA` seco porque o
+    # `lib/comum.sh` liga `set -u` — a guarda de cima já garante que a chave
+    # existe aqui, mas quem mexer nela amanhã não fica com um campo minado.
+    if [ "${LEITURA_AGENDA:-}" != "sim" ]; then
+      meow_pula "LEITURA_AGENDA=\"${LEITURA_AGENDA:-}\" — sem relógio do modo de leitura"
+      return "$rc"
+    fi
+    # Sobra o portão do AUTO_REPARO com o agendamento PEDIDO. O script nem foi
+    # chamado: nada foi lido, nada foi escrito. Isso é `pulado`, e é o mesmo `3`
+    # com que o `etapa_autoreparo` responde à mesma chave. Devolver o `rc` (que
+    # aqui vale 0, porque ninguém o mexeu) jogaria esta etapa em `confere:` —
+    # "já estava certo", dito por quem não conferiu nada.
+    #
+    # A frase nomeia UM culpado. A antiga imprimia `LEITURA_AGENDA="nao"/
+    # AUTO_REPARO="sim"` nos dois ramos, e quem lesse tinha de descobrir sozinho
+    # qual das duas chaves era a razão.
+    meow_pula "AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem relógio do modo de leitura, mesmo com LEITURA_AGENDA=\"sim\""
+    # Os dois números ficam como estiverem: zerá-los aqui seria mexer sozinho na
+    # máquina de quem acabou de pedir para não mexerem nela. O caminho de volta
+    # (`meow leitura remover`) é impresso na passagem que TIRA o relógio, no ramo
+    # do `meow_unidade_sobrou` acima — aqui é o estado de regime, e repeti-lo em
+    # toda execução do instalador só ensinaria a pular as duas linhas.
+    return "$MEOW_SEM_DEPENDENCIA"
   fi
 
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
@@ -1259,11 +1417,48 @@ etapa_leitura() {
     case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
   done
 
+  # O SECO TAMBÉM TEM DE ENXERGAR O TIMER SOLTO, E NÃO ENXERGAVA (31/08/2026)
+  #   Medido num HOME falso com as duas unidades no disco, os dois números já
+  #   certos e o timer DESARMADO: o seco devolvia 0 ("confere", nada a fazer) e a
+  #   passagem real logo em seguida devolvia 1, armando o timer. Ou seja, a
+  #   auditoria escondia a única coisa que ia mudar. `is-enabled` e `is-active`
+  #   são leitura pura — o `tests/seco.sh` continua verde com elas aqui.
   if meow_seco; then
-    [ "$mudou" = "1" ] && { meow_muda "instalaria/atualizaria o relógio do modo de leitura"; return "$MEOW_DIVERGENTE"; }
+    # Duas divergências DIFERENTES, duas linhas: juntá-las num `mudou` só faria a
+    # auditoria dizer "instalaria as unidades" numa máquina onde elas já estão no
+    # disco e só o timer está solto.
+    local armaria=0
+    if [ "$(systemctl --user is-enabled meow-leitura.timer 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  meow-leitura.timer 2>/dev/null)" != "active" ]; then
+      armaria=1
+    fi
+    # O SUBSTANTIVO É O MESMO DOS DOIS LADOS, E A UNIDADE VAI JUNTO (31/08/2026)
+    #   O seco dizia "armaria o meow-leitura.timer" e o real, três linhas de
+    #   código abaixo, "relógio do modo de leitura armado": dois nomes para a
+    #   mesma coisa, e ela roda um e depois o outro. Pior, os dois nomes estavam
+    #   no MESMO bloco seco — a linha de cima falava em "as unidades do relógio
+    #   do modo de leitura" e a de baixo em "meow-leitura.timer". O padrão da
+    #   casa é o do `cmd_remover` do `scripts/leitura.sh` ("desarmaria o …" /
+    #   "… desarmado") e o do `etapa_painel`: mesmo substantivo, verbo
+    #   conjugado, nome da unidade entre parênteses.
+    [ "$mudou"   = "1" ] && meow_muda "instalaria/atualizaria as unidades do relógio do modo de leitura"
+    [ "$armaria" = "1" ] && meow_muda "armaria o relógio do modo de leitura (meow-leitura.timer)"
+    { [ "$mudou" = "1" ] || [ "$armaria" = "1" ]; } && return "$MEOW_DIVERGENTE"
     return "$rc"
   fi
-  [ "$mudou" = "1" ] && systemctl --user daemon-reload
+
+  # ESCREVEU = `mexeu`, E O `rc` DO SCRIPT NÃO SABE DISSO
+  #   Medido em 31/08/2026: com o timer já armado e a unidade do repositório
+  #   divergindo da do disco (é o que um `git pull` faz), a etapa reescrevia o
+  #   `meow-leitura.timer`, chamava `daemon-reload` e devolvia 0 — que o
+  #   `concluir()` arquiva em `confere: … nada escrito`. A tela dizia que nada
+  #   mudou logo na passagem em que o systemd foi recarregado. É a separação
+  #   0/1 que o cabeçalho do `concluir()` existe para defender, e o
+  #   `etapa_autoreparo` já a respeita com este mesmo `mudou`.
+  if [ "$mudou" = "1" ]; then
+    systemctl --user daemon-reload
+    rc=1
+  fi
 
   # Só o `.timer` é armado. O `.service` é puxado por ele (`Unit=`), e habilitá-lo
   # separado criaria um segundo caminho para a mesma execução — o defeito que o
@@ -1271,7 +1466,7 @@ etapa_leitura() {
   if [ "$(systemctl --user is-enabled meow-leitura.timer 2>/dev/null)" != "enabled" ] ||
      [ "$(systemctl --user is-active  meow-leitura.timer 2>/dev/null)" != "active" ]; then
     if systemctl --user enable --now meow-leitura.timer >/dev/null 2>&1; then
-      meow_muda "relógio do modo de leitura armado (vira o degrau na hora)"
+      meow_muda "relógio do modo de leitura armado (meow-leitura.timer)"
       rc=1
     else
       meow_aviso "não consegui armar o meow-leitura.timer"
@@ -1509,14 +1704,21 @@ etapa_autoreparo() {
   # depois de ter desligado a chave AUTO_REPARO no meow.conf.
   if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
     if [ -f "$destino/meow-doctor.timer" ]; then
+      # "o timer" era o substantivo errado: este arquivo instala QUATRO timers, e
+      # o par seco/real é o único lugar onde ela liga uma frase à outra. As duas
+      # irmãs já dizem o recurso ("supervisor da barra", "relógio do modo de
+      # leitura"); aqui é `auto-reparo`, com a unidade junto.
+      # E `${AUTO_REPARO:-}` no real, como no seco e nas irmãs: o `lib/comum.sh`
+      # liga `set -u`, e a guarda de cima usa o padrão `sim` — quem tirar essa
+      # guarda amanhã não deve encontrar um `$AUTO_REPARO` seco esperando por ele.
       if meow_seco; then
-        meow_muda "removeria o timer (AUTO_REPARO=\"${AUTO_REPARO:-}\")"
+        meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" — removeria o auto-reparo (meow-doctor.timer)"
         return "$MEOW_DIVERGENTE"
       fi
       systemctl --user disable --now meow-doctor.timer >/dev/null 2>&1
       rm -f "$destino/meow-doctor.timer" "$destino/meow-doctor.service"
       systemctl --user daemon-reload >/dev/null 2>&1
-      meow_muda "AUTO_REPARO=\"$AUTO_REPARO\" — timer desligado e removido"
+      meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" — auto-reparo desligado e removido (meow-doctor.timer)"
       return "$MEOW_DIVERGENTE"
     fi
     meow_pula "AUTO_REPARO=\"${AUTO_REPARO:-}\" no meow.conf — sem reparo automático"
@@ -1552,10 +1754,46 @@ etapa_autoreparo() {
     esac
   done
 
+  # O SECO TAMBÉM TEM DE ENXERGAR O TIMER SOLTO, E NÃO ENXERGAVA (31/08/2026)
+  #   Medido num HOME falso com as duas unidades no disco iguais às do
+  #   repositório e o `meow-doctor.timer` DESARMADO (nem `enabled`, nem `active`):
+  #       rc(seco)=0    ok   auto-reparo já instalado
+  #       rc(real)=1    (armou o timer)
+  #   Aqui foi pior que calar: o seco imprimia um `ok` VERDE dizendo "já
+  #   instalado" numa máquina onde o reparo não ia disparar nunca — o `ok` é a
+  #   linha que mais convence, e era a única errada. Instalado ele estava; ligado,
+  #   não. `is-enabled`/`is-active` são leitura pura, então o `tests/seco.sh`
+  #   continua verde com elas aqui.
   if meow_seco; then
-    [ "$mudou" = "1" ] && meow_muda "instalaria as unidades e ligaria meow-doctor.timer"
-    [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
-    meow_ok "auto-reparo já instalado"
+    local armaria=0
+    if [ "$(systemctl --user is-enabled meow-doctor.timer 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  meow-doctor.timer 2>/dev/null)" != "active" ]; then
+      armaria=1
+    fi
+    # Duas divergências DIFERENTES, duas linhas. A frase antiga era uma só —
+    # "instalaria as unidades e ligaria meow-doctor.timer" — e mentia metade nos
+    # dois sentidos: dizia que ligaria o timer numa máquina onde ele já estava
+    # ligado, e não dizia nada na máquina onde ligá-lo era tudo o que faltava.
+    # DUAS IRMÃS DIZEM `armar`, ESTA DIZ `ligar`, E É DE PROPÓSITO (31/08/2026)
+    #   `armar` é o verbo do TIMER: é o que o `cmd_remover` do
+    #   `scripts/leitura.sh` usa ("desarmaria o …" / "… desarmado") e o que o
+    #   `etapa_painel` e o `etapa_leitura` repetem. Aqui o sujeito da frase não é
+    #   o timer, é a CHAVE: `AUTO_REPARO="sim"/"nao"` liga e desliga o recurso
+    #   inteiro, a etapa se chama por ele e o ramo de cima já diz "sem reparo
+    #   automático". Trocar para "armaria o auto-reparo" faria a linha discordar
+    #   da chave que ela nomeia — então fica `ligar`, e quem vier depois não
+    #   precisa inventar um terceiro verbo.
+    #
+    #   O que NÃO era escolha, e era o defeito: o seco dizia "ligaria o
+    #   meow-doctor.timer" e o real "auto-reparo ligado: …" — verbo certo, mas
+    #   SUBSTANTIVO diferente dos dois lados, e nenhum dos dois lados tinha o
+    #   outro nome. Ela roda o seco, lê um nome, roda o real, lê outro. Agora o
+    #   substantivo é `auto-reparo` nos dois, e a unidade vai junto entre
+    #   parênteses, como no `etapa_painel`.
+    [ "$mudou"   = "1" ] && meow_muda "instalaria/atualizaria as unidades do auto-reparo"
+    [ "$armaria" = "1" ] && meow_muda "ligaria o auto-reparo (meow-doctor.timer, todo dia às 5h)"
+    { [ "$mudou" = "1" ] || [ "$armaria" = "1" ]; } && return "$MEOW_DIVERGENTE"
+    meow_ok "auto-reparo já ligado (meow-doctor.timer, todo dia às 5h, com até 20min de folga)"
     return 0
   fi
 
@@ -1580,11 +1818,15 @@ etapa_autoreparo() {
     meow_info "  até ele aparecer, cada disparo é pulado (o journal diz o caminho)"
   fi
 
+  # As duas frases abaixo são o par REAL das duas do bloco seco, na mesma ordem:
+  # "já ligado" é literalmente a mesma linha lá em cima (o seco não tem por que
+  # descrever o repouso com outras palavras), e a de baixo é o "ligaria"
+  # conjugado, com a unidade no mesmo lugar.
   if [ "$mudou" = "0" ]; then
-    meow_ok "auto-reparo já ligado (todo dia às 5h, com até 20min de folga)"
+    meow_ok "auto-reparo já ligado (meow-doctor.timer, todo dia às 5h, com até 20min de folga)"
     return 0
   fi
-  meow_ok "auto-reparo ligado: todo dia às 5h, log em $estado/doctor.log"
+  meow_ok "auto-reparo ligado (meow-doctor.timer): todo dia às 5h, log em $estado/doctor.log"
   return "$MEOW_DIVERGENTE"
 }
 

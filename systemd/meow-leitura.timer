@@ -47,18 +47,39 @@
 # tique, em menos de um minuto, põe o degrau certo de qualquer jeito.
 #
 # `WantedBy=cosmic-session.target` e não `timers.target`: sem sessão não há tela
-# para esquentar, e o serviço já é `PartOf=` do mesmo alvo. O relógio nasce e
-# morre com a sessão dela, que é exatamente o tempo em que ele tem assunto.
+# para esquentar. O relógio nasce e morre com a sessão dela, que é exatamente o
+# tempo em que ele tem assunto — mas o `WantedBy` sozinho só dava o NASCER, e o
+# morrer precisou do `PartOf=` que está logo abaixo, em [Unit]. Ver lá o porquê
+# e a medição do `Linger=yes`.
 
 [Unit]
 Description=MeowSystem — o relógio do modo de leitura (vira o degrau na hora)
 Documentation=man:systemd.timer(5)
+# `PartOf=` É O QUE FAZ O PARÁGRAFO ACIMA SER VERDADE, E FALTAVA
+#   "O relógio nasce e morre com a sessão dela" era meia verdade: `WantedBy=`
+#   manda no NASCIMENTO e não propaga parada nenhuma. Medido em 31/08/2026:
+#       loginctl show-user vitoriamaria -p Linger  ->  Linger=yes
+#   Com lingering ligado o gerente `--user` sobrevive ao logout, então o relógio
+#   continuava batendo de minuto em minuto com a sessão dela fechada — e o
+#   `WAYLAND_DISPLAY` fica no ambiente do gerente depois do logout, então nem o
+#   `ConditionEnvironment` do serviço o barrava. `PartOf=` é a diretiva que
+#   propaga o stop do alvo, e é a mesma que o `.service` já usava.
+PartOf=cosmic-session.target
+After=cosmic-session.target
 
 [Timer]
 OnCalendar=*-*-* *:*:00
-# 3 min depois do boot para não disputar com o resto do login; o OnCalendar
-# assume dali em diante.
-OnBootSec=3min
+# NÃO HÁ `OnBootSec=` AQUI, E ISSO É CORREÇÃO DE UMA CHAVE INERTE
+#   Havia um `OnBootSec=3min` dizendo "3 min depois do boot para não disputar com
+#   o resto do login; o OnCalendar assume dali em diante". A segunda metade é
+#   falsa: o systemd dispara no MAIS CEDO de todos os gatilhos, e um
+#   `*-*-* *:*:00` nunca está a mais de 60s de distância — sempre antes dos 180s.
+#   O OnCalendar assume desde o primeiro minuto, e o `OnBootSec` nunca chegou a
+#   ser o gatilho mais próximo de nada. Medido em 31/08/2026, com a unidade viva:
+#       systemctl --user show meow-leitura.timer -p NextElapseUSecMonotonic
+#       NextElapseUSecMonotonic=0
+#   Chave que não faz nada e ainda ensina o contrário do que acontece é o defeito
+#   que este projeto varreu em 08/08/2026. Ela sai.
 AccuracySec=20s
 Persistent=false
 Unit=meow-leitura.service

@@ -79,6 +79,22 @@
 [Unit]
 Description=MeowSystem — devolve o carrossel de papéis de parede se ele for resetado
 Documentation=man:systemd.timer(5)
+# SEM `PartOf=cosmic-session.target`, E ISSO É DECISÃO, NÃO ESQUECIMENTO
+#   O irmão `meow-leitura.timer` ganhou a diretiva em 31/08/2026 porque
+#   `loginctl show-user vitoriamaria -p Linger` responde `Linger=yes` — o gerente
+#   `--user` sobrevive ao logout, e relógio pendurado só em `WantedBy=` continua
+#   batendo com a sessão fechada. Aqui esse é o comportamento PEDIDO. Este é
+#   `WantedBy=timers.target`, que o gerente com lingering alcança por
+#   `basic.target` sem sessão nenhuma (`systemctl --user list-dependencies
+#   --reverse timers.target`, conferido hoje) — e é isso que o faz "a garantia que
+#   não depende de evento nenhum" do parágrafo "O RELÓGIO NÃO SAI" aqui em cima.
+#   Pendurá-lo no `cosmic-session.target` desmontaria justamente essa garantia:
+#   ela passaria a depender de a sessão estar de pé. Além disso, o que ele
+#   reconcilia é a config que o `cosmic-bg` lê no PRÓXIMO login: um reset de
+#   fábrica escrito com a sessão fechada abriria a sessão dela já errada. O irmão
+#   da leitura esquenta a TELA, que não existe sem sessão — e por isso ele também
+#   tem `ConditionEnvironment=WAYLAND_DISPLAY`, que este não tem; aqui se arruma um
+#   ARQUIVO, e arquivo arrumado com a máquina sozinha vale igual.
 
 [Timer]
 OnBootSec=3min

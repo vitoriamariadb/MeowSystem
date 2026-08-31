@@ -47,10 +47,11 @@
 #     instalar   binário primeiro, sombra depois
 #     remover    sombra primeiro, binário depois
 #     consertar  binário sumiu  ->  a sombra é REMOVIDA
+#     repor      sombra sumiu   ->  reescrita SEM cargo (ver `_sem_cargo`)
 #
-#   Essa remoção é um `rm` de arquivo nosso, sem sudo e sem rede, e roda MESMO
-#   SEM `LEITURA_COMPILAR` — ela vem antes da trava, de propósito. Ver o
-#   comentário `_aplicar`.
+#   As duas últimas rodam MESMO SEM `LEITURA_COMPILAR`, e isso é o desenho: um
+#   `rm` de arquivo nosso não é compilar, e 365 bytes de texto também não. As
+#   duas vêm antes da trava, de propósito — ver `_orfa` e `_sem_cargo`.
 #
 #   A TERCEIRA PEÇA, `plugins_wings`, NÃO É ESCRITA POR ESTE ARQUIVO E NUNCA
 #   SERÁ. É território da Aurora (docs/FRONTEIRA.md) e é onde moram os applets
@@ -198,16 +199,23 @@ _pronto() {
 # A asa da topbar é só LEITURA aqui. Devolve 0 quando o applet está citado.
 _asa_cita() { grep -qs "\"$APP_ID\"" "$ASA"; }
 
-# --- conferência (leitura pura) ---------------------------------------------
-_conferir() {
-  # (1) O FAIL-SAFE vem primeiro, porque é o estado que deixa a barra com um
-  # buraco — e é o único que piora sozinho com o tempo.
-  if [ -f "$SOMBRA" ] && [ ! -x "$BINARIO" ]; then
-    meow_muda "a sombra do applet de leitura existe e o binário não — a topbar fica com um slot vazio"
-    meow_info "  conserto: LEITURA_COMPILAR=1 $RAIZ/scripts/leitura_build.sh"
-    return "$MEOW_DIVERGENTE"
-  fi
+# O FAIL-SAFE: sombra no disco com o binário fora. É o estado que deixa a barra
+# dela com um BURACO, e o único que piora sozinho com o tempo.
+#
+# MORA AQUI, FORA DO `_conferir` E DO `_aplicar`, PORQUE PRECISA PASSAR POR CIMA
+# DE DUAS GUARDAS, NÃO DE UMA
+#   A trava do `LEITURA_COMPILAR` é a conhecida (remover uma sombra não é
+#   compilar). A segunda é o `_pronto`, e ela custou uma medição para aparecer:
+#   em 31/08/2026, com `src/applets/leitura/` fora da árvore — um `git checkout`
+#   de qualquer commit anterior a 30/08 basta —, o `_pronto` devolvia 2 em
+#   "repositório incompleto" ANTES de qualquer caminho olhar para a sombra, e o
+#   buraco na topbar sobrevivia à execução inteira. O fail-safe não depende de
+#   receita nenhuma: ele apaga um arquivo NOSSO cujo par não existe mais.
+_orfa() { [ -f "$SOMBRA" ] && [ ! -x "$BINARIO" ]; }
 
+# --- conferência (leitura pura) ---------------------------------------------
+# A sombra órfã não é conferida aqui: o `main` a intercepta antes (ver `_orfa`).
+_conferir() {
   if [ ! -x "$BINARIO" ]; then
     meow_muda "o applet do modo de leitura ainda não foi compilado ($BINARIO)"
     return "$MEOW_DIVERGENTE"
@@ -218,7 +226,7 @@ _conferir() {
     return "$MEOW_DIVERGENTE"
   fi
 
-  # (2) A sombra, comparada por CONTEÚDO e não com `cmp`. O `meow_escrever`
+  # (1) A sombra, comparada por CONTEÚDO e não com `cmp`. O `meow_escrever`
   # grava com `printf '%s'` e come o `\n` final: um `cmp` acusaria divergência
   # para sempre num arquivo perfeito.
   if [ ! -f "$SOMBRA" ] || [ "$(_texto_sombra)" != "$(cat "$SOMBRA" 2>/dev/null)" ]; then
@@ -226,7 +234,7 @@ _conferir() {
     return "$MEOW_DIVERGENTE"
   fi
 
-  # (3) A asa é AVISO, nunca divergência: o arquivo é da Aurora e nenhum script
+  # (2) A asa é AVISO, nunca divergência: o arquivo é da Aurora e nenhum script
   # nosso escreve nele. Um `--consertar` que não pode consertar é uma linha
   # amarela eterna, e linha amarela eterna se aprende a ignorar.
   if ! _asa_cita; then
@@ -238,24 +246,90 @@ _conferir() {
   return "$MEOW_OK"
 }
 
-# --- aplicação ---------------------------------------------------------------
-_aplicar() {
-  # O FAIL-SAFE roda ANTES da trava do LEITURA_COMPILAR, e isso é o desenho:
-  # remover uma sombra órfã não é compilar. Deixá-lo depois da trava faria o
-  # buraco na barra dela sobreviver a todo `./install.sh` feito sem a chave.
-  if [ -f "$SOMBRA" ] && [ ! -x "$BINARIO" ]; then
-    if meow_seco; then
-      meow_muda "removeria a sombra órfã $SOMBRA (o binário sumiu)"
-      return "$MEOW_DIVERGENTE"
-    fi
-    rm -f "$SOMBRA"
-    meow_aviso "a sombra estava órfã e foi removida — a topbar volta sem o applet, em vez de com um buraco"
-    meow_info "  para tê-lo de volta: LEITURA_COMPILAR=1 $RAIZ/scripts/leitura_build.sh"
-    return "$MEOW_DIVERGENTE"
+# ============================================================================
+# O QUE NÃO É COMPILAÇÃO NÃO PODE EXIGIR A TRAVA DE COMPILAR
+# ============================================================================
+#   Até 31/08/2026 as duas metades deste script viviam ATRÁS do
+#   `LEITURA_COMPILAR`, e o preço apareceu na medição daquele dia: com a sombra
+#   apagada e todo o resto perfeito, `--conferir` devolvia 1 e `--aplicar`
+#   devolvia 3 dizendo "precisa ser compilado" — para reescrever 365 bytes de
+#   texto. Numa máquina sem rustup a sombra NUNCA voltaria, porque o
+#   `meow_tem cargo` corta três linhas adiante.
+#
+#   O QUE ESTA FUNÇÃO CURA, MEDIDO: com a sombra apagada, `--aplicar` SEM
+#   `LEITURA_COMPILAR` repôs os 365 bytes e o `--conferir` seguinte devolveu 0.
+#   O ganho é de quem CHAMA este script — o `./install.sh` e a mão dela.
+#
+#   O QUE ELA **NÃO** CURA: O DOCTOR. E ISSO PRECISA ESTAR ESCRITO AQUI
+#     O irmão de mídia parte as metades em DOIS arquivos (`midia_build.sh`
+#     compila, `midia.sh` põe a sombra) e só o primeiro está em SEM_CONSERTO —
+#     por isso o doctor conserta a sombra dele sozinho. Aqui a separação é por
+#     CAMINHO DE CÓDIGO, e caminho de código o doctor não enxerga: o `bin/meow`
+#     lista `leiturabin` em `SEM_CONSERTO`, e o laço de conserto do `cmd_doctor`
+#     dá `continue` pelo NOME antes de olhar o código de saída. Nem existe um
+#     `fix_leiturabin` para ser chamado. Ou seja, `meow doctor --consertar`
+#     continua imprimindo "sem conserto automático" para o applet de leitura,
+#     para sempre — a linha amarela eterna segue de pé, e uma versão anterior
+#     deste parágrafo dizia que ela tinha sido curada. Não foi.
+#
+#     A DÍVIDA, PARA QUEM REABRIR A CONTA: tirar `leiturabin` do `SEM_CONSERTO` e
+#     escrever um `fix_leiturabin` que chame este script sem `LEITURA_COMPILAR`
+#     fecharia o buraco. É outro arquivo (`bin/meow`) e outra decisão — e o
+#     cabeçalho deste já pesou que um segundo nome verificável seria mais
+#     superfície do que conserto, porque aqui o pior caso é um slot vazio na
+#     topbar, e não um applet de fábrica mascarado como no irmão.
+#
+#   Devolve 0 quando não sobrou nada para o cargo fazer.
+_sem_cargo() {
+  local pronto="$ALVO/release/meow-applet-leitura" gravado r
+
+  # O seco não chega aqui hoje — `meow_seco` força `CONFERIR=1` lá em cima e o
+  # `main` desvia para o `_conferir`. O cinto fica porque o `install -D` abaixo
+  # não passa por `meow_escrever` e não tem trava própria: quem um dia mexer
+  # naquela linha não pode ganhar uma escrita de brinde.
+  meow_seco && return 1
+
+  if [ ! -x "$BINARIO" ]; then
+    # O BINÁRIO SUMIU MAS A ÁRVORE DE BUILD AINDA TEM O DELE — repor é uma cópia,
+    # não uma compilação. A prova é o carimbo, pelo sha, e ela é obrigatória:
+    # uma árvore parada num `main.rs` velho entrega um applet que roda e está
+    # errado, que é pior que não ter applet (é o mesmo perigo que o
+    # `_arvore_no_pino` do irmão evita com o commit do PINO).
+    [ -x "$pronto" ] || return 1
+    # Aqui o campo `binario` do carimbo VIVO sai da conta sozinho: sem arquivo
+    # instalado o `_sha` devolve vazio e o laço do `_carimbo_bate` pula o campo.
+    # Sobra exatamente o que interessa — fonte, receita, trava e rustc iguais.
+    _carimbo_bate || return 1
+    gravado="$(sed -n 's/^binario //p' "$CARIMBO" | head -1)"
+    [ -n "$gravado" ] || return 1
+    [ "$gravado" = "$(_sha "$pronto")" ] || return 1
+
+    meow_destino_permitido "$BINARIO" || return 1
+    install -Dm0755 "$pronto" "$BINARIO" || return 1
+    meow_manifesto_registrar "$BINARIO"
+    meow_muda "o binário sumiu e a árvore de build ainda tinha o dele — reposto sem compilar"
+  else
+    _carimbo_bate || return 1
   fi
 
+  # A SOMBRA SÓ AGORA, e a ordem binário→sombra do cabeçalho vale aqui igual: no
+  # ramo de cima o binário acabou de ser instalado, no de baixo ele já estava.
+  meow_escrever "$SOMBRA" "$(_texto_sombra)" 644; r=$?
+  [ "$r" = 2 ] && { meow_erro "não consegui escrever $SOMBRA"; return 1; }
+  return 0
+}
+
+# --- aplicação ---------------------------------------------------------------
+_aplicar() {
   # Conferir ANTES: é o que garante que a segunda passagem não chama o cargo.
   _conferir >/dev/null 2>&1 && { _conferir; return $?; }
+
+  # E, antes da trava, tentar fechar sem o cargo o que não precisa dele.
+  if _sem_cargo; then
+    _conferir
+    meow_registrar "leitura_build.sh reconciliou sem compilar"
+    return "$MEOW_DIVERGENTE"
+  fi
 
   if [ "$COMPILAR" != "1" ]; then
     meow_pula "o applet do modo de leitura precisa ser compilado, e compilar não é do doctor"
@@ -369,6 +443,24 @@ main() {
     meow_pula "LEITURA_APPLET=\"$LEITURA_APPLET\" no meow.conf — sem applet do modo de leitura"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+
+  # O FAIL-SAFE, e ele vem antes do `_pronto` — ver `_orfa`. Buraco na barra
+  # dela não espera repositório completo para ser tapado.
+  if _orfa; then
+    # `|| meow_seco` é redundante hoje (o seco já força `CONFERIR=1` lá em cima)
+    # e fica de propósito: é o que impede este `rm` de escapar se alguém um dia
+    # mexer naquela linha.
+    if [ "$CONFERIR" = 1 ] || meow_seco; then
+      meow_muda "a sombra do applet de leitura existe e o binário não — a topbar fica com um slot vazio"
+      meow_info "  conserto: LEITURA_COMPILAR=1 $RAIZ/scripts/leitura_build.sh"
+      return "$MEOW_DIVERGENTE"
+    fi
+    rm -f "$SOMBRA"
+    meow_aviso "a sombra estava órfã e foi removida — a topbar volta sem o applet, em vez de com um buraco"
+    meow_info "  para tê-lo de volta: LEITURA_COMPILAR=1 $RAIZ/scripts/leitura_build.sh"
+    return "$MEOW_DIVERGENTE"
+  fi
+
   _pronto || return $?
   if [ "$CONFERIR" = 1 ]; then _conferir; else _aplicar; fi
 }
