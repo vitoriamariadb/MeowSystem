@@ -4,18 +4,26 @@ Este arquivo é **autossuficiente**: quem for executar uma sprint não precisa d
 nenhum contexto de conversa anterior. Cada uma traz o que já foi medido, o que
 fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
-Última atualização: **30/08/2026**.
+Última atualização: **31/08/2026**.
 
 ---
 
 ## AO VOLTAR, COMECE POR AQUI
 
-**Não há sprint aberta. A [Sprint U](#sprint-u--sobreviver-a-um-dist-upgrade) foi
-executada e FECHADA em 30/08/2026**, incluindo o `--build`, que ela autorizou às
-01:40 pedindo *"só valida tudo antes"*. O `patches/cosmic-comp-raio-clampado.patch`
-entrou no `/usr/bin/cosmic-comp` pela primeira vez desde que foi escrito, em
-26/08 — o binário do disco carrega os DOIS marcadores, e **só falta ela deslogar**
-para a sessão ver o novo.
+**Não há sprint aberta.** A [Sprint U](#sprint-u--sobreviver-a-um-dist-upgrade) foi
+executada e FECHADA em **30/08/2026**, incluindo o `--build`, que ela autorizou às
+01:40 pedindo *"só valida tudo antes"*; o `patches/cosmic-comp-raio-clampado.patch`
+entrou no `/usr/bin/cosmic-comp` pela primeira vez desde que foi escrito, em 26/08. A
+[Sprint V](#sprint-v--o-modo-de-leitura) — o modo de leitura inteiro — foi FECHADA em
+**31/08/2026**, e chegou atrasada ao índice: o trabalho existia havia dois dias sem
+uma linha aqui. Ela carrega **três dívidas**, todas na lista do índice.
+
+**O logout já aconteceu, e o texto que dizia "só falta ela deslogar" envelheceu.**
+Medido em 31/08/2026: o `cosmic-comp` vivo (PID 3060, nascido em `dom ago 30 20:25:53`,
+depois do build das 04:59) carrega os **três** marcadores —
+`AURORA-COSMIC-WS-PATCH-3.67`, `AURORA-COSMIC-RADIUS-PATCH-1` e
+`AURORA-READING-MODE-1` —, e o binário do disco é byte a byte o mesmo (`md5sum`
+idêntico ao `.aurora-ws`). Disco e sessão concordam; não falta logout nenhum.
 
 O item 6 da sprint (as duas mensagens distintas) provou-se no primeiro uso real,
 sem ninguém fabricar caso: o doctor passou a dizer *"AURORA-COSMIC-RADIUS-PATCH-1
@@ -51,8 +59,14 @@ abas. **Nada foi executado** — em 29/08 ela estava a 10% do limite semanal e
 escolheu gravar o plano em vez de tocar na máquina.
 
 **AS SEIS ETAPAS ESTÃO FEITAS.** Executadas em 30/08/2026 por cinco frentes em
-paralelo, um por arquivo, com a validação medida depois, à mão. Falta **um
-logout dela** — e só o shader depende dele.
+paralelo, um por arquivo, com a validação medida depois, à mão. Uma segunda onda, em
+31/08, corrigiu o que dois revisores acharam. **O registro completo, com as medições e
+as três dívidas, é a [Sprint V](#sprint-v--o-modo-de-leitura)** — esta nota aqui é o
+estado da conversa, e o índice é o produto.
+
+~~Falta um logout dela.~~ **Não falta.** Medido em 31/08/2026: o `cosmic-comp` vivo
+nasceu em `dom ago 30 20:25:53`, depois do build das 04:59, e `/proc/<pid>/exe` carrega
+os três marcadores. O shader já está na tela dela.
 
 | etapa | estado |
 |---|---|
@@ -124,7 +138,8 @@ Cada linha aqui é um dia que alguém não vai perder de novo:
 Esta seção listava duas dívidas ("`lib/desinstalar.sh` apaga o acervo dela" e
 "`adicionar` não entra na rotação"). **As duas foram consertadas no MESMO commit
 que as escreveu** — `0bdfa43` trouxe a porta `MEOW_APAGAR_ACERVO=1` em
-`lib/desinstalar.sh:208-236` e o `forcar_releitura` em `wallpaper.sh:1340`. A
+`lib/desinstalar.sh` (o bloco `O ACERVO DE PAPEL DE PAREDE NÃO ENTRA NO LAÇO
+ACIMA`) e o `forcar_releitura` em `wallpaper.sh:1340`. A
 seção nasceu obsoleta e ficou quatro dias sendo a primeira coisa que alguém lia.
 
 **Cuidado com o nome:** existem DUAS "duas dívidas achadas de passagem" neste
@@ -1766,7 +1781,8 @@ O binário aceita ainda `show_date_in_top_panel` e `show_weekday`. Tirar os
 segundos é **uma linha, reversível em uma linha**.
 
 **A ressalva que vale mais que a mudança:** o relógio **tem controle na GUI** do
-COSMIC, e a regra do projeto (`docs/FRONTEIRA.md:133`) diz que onde a GUI tem
+COSMIC, e a regra do projeto (`docs/FRONTEIRA.md`, a linha "onde a GUI do COSMIC tem um
+controle, o valor é dela") diz que onde a GUI tem
 controle, **o valor é dela**. Ela autorizou explicitamente em 25/08 — mas quem
 executar deve confirmar que a autorização ainda vale antes de escrever, porque
 esta é a categoria de chave que o projeto combinou não decidir sozinho.
@@ -2731,6 +2747,123 @@ aurora-cosmic-comp-ws.sh --podar --seco  # o que a poda apagaria (não apaga)
 
 ---
 
+## Sprint V — O modo de leitura  ← **FECHADA em 31/08/2026** (com dívidas dentro)
+
+### Por que esta seção existe, e por que ela chega atrasada
+
+O modo de leitura inteiro — **10 arquivos**, um applet em Rust, cinco chaves de
+`cosmic-config`, duas unidades `systemd`, três etapas do `install.sh` e uma linha
+nova no desinstalador — foi construído em 30 e 31/08/2026 e **não tinha uma linha
+neste arquivo**. É a **segunda ocorrência** do defeito que a seção
+"[O trabalho de 26/08 que nunca teve sprint](#o-trabalho-de-2608-que-nunca-teve-sprint)"
+denuncia, e ela termina exatamente com a frase que serve aqui: *"se alguém for
+auditar o projeto pelo `SPRINTS.md`, vai concluir que esse trabalho não existe"*.
+
+A nota "Onde paramos — modo de leitura", no topo, é um **estado de conversa**, não
+um registro: ela não estava no índice, não listava dívida e não sobreviveria a uma
+auditoria. Esta seção é o registro.
+
+### O que foi feito
+
+Plano completo em `docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md`; a folha que
+ela abriu para decidir é `docs/pesquisas/2026-08-29-modo-leitura.html`.
+
+| etapa | onde | estado |
+|---|---|---|
+| 1. os dois números pintam a tela | patch no `cosmic-comp` (Aurora) | **feita** · `AURORA-READING-MODE-1` no binário desde 30/08 04:59 |
+| 2. o horário liga sozinho | `scripts/leitura.sh`, `systemd/meow-leitura.{service,timer}` | **feita** · timer de minuto em minuto |
+| 3. o slider na barra | `src/applets/leitura/`, `scripts/leitura_build.sh` | **feita** · applet vivo na topbar **sem logout** |
+| 4. aposentar o night light da Aurora | binário do compositor | **feita** · ver a medição abaixo |
+| 5. o doctor conta a verdade | `bin/meow` (`chk_leitura`, `chk_leiturabin`) | **feita** · veio junto da Sprint U |
+| 6. a dívida do raio de canto | Sprint U | **feita** · o patch entrou no binário |
+
+E o que a onda de correção de **31/08** acrescentou, depois que um validador cético
+e um crítico revisaram o trabalho de seis frentes:
+
+- **o horário passou a ter TRÊS estados, não dois.** `HoraInicio` e `HoraFim` são
+  braços separados do applet; o `leitura.sh` exigia as duas chaves e, faltando uma,
+  jogava fora a outra. Agora cada ponta se resolve sozinha, e o `LEITURA_FONTE` vale
+  `applet`, `padrao` ou **`misto`**.
+- **a rampa parou de saltar.** A descida partia de 1 sem perguntar até onde a subida
+  tinha chegado.
+- **o portão do `AUTO_REPARO` desceu até antes da chamada do script.**
+- **o applet perdeu o botão "Restaurar padrões"** (fazia o mesmo que o interruptor) e
+  a **linha de horário some** quando o `Agendar` está desligado.
+- **o `leitura_build.sh` ganhou um caminho sem `cargo`**, que repõe binário e sombra
+  sem compilar.
+- **o `meow-leitura.timer` ganhou `PartOf=`** e perdeu um `OnBootSec=` inerte.
+- **o `meow.conf.exemplo` parou de dizer que o compositor não sabe ler** — era falso
+  desde 30/08, e é o arquivo que ela edita.
+
+### O que foi medido (e é o que sustenta cada linha acima)
+
+| afirmação | medição, 31/08/2026 |
+|---|---|
+| o compositor já sabe ler, no disco e na sessão | `strings -a /usr/bin/cosmic-comp \| grep -c AURORA-READING-MODE` → **1**; o mesmo em `/proc/<pid>/exe` → **1** |
+| o night light da Aurora está aposentado | os marcadores do binário são três e nenhum é night light; `md5sum` do `/usr/bin/cosmic-comp` é **idêntico** ao do `.aurora-ws` de 30/08 04:59 — nada foi re-patchado por cima |
+| a rampa maior que a janela saltava | janela 18:00–18:30 com `LEITURA_RAMPA_MIN=60`: às 18:29 a fração era 0,48 e às 18:30 saltava para 1,00. Com `=600`, salto de **0,952 em um minuto**. Depois do conserto: 0,017 e 0,002 |
+| lixo no `meow.conf` virava `inf` no disco | `LEITURA_RAMPA_MIN="abc"` gravava `-9223372036854775807` em `leitura_temperatura` e `inf` em `leitura_textura` |
+| `0,35` (vírgula pt_BR) desliga a textura calada | vira 0 no `awk` sob `LC_ALL=C`; nada na tela acusa |
+| o portão do `AUTO_REPARO` prendia a tela numa cor | em HOME falso, com `AUTO_REPARO="nao"` e `LEITURA_AGENDA="sim"`, o instalador gravava 3500K/0.35 e na linha seguinte removia o timer — a única coisa capaz de desfazer às 07:00 |
+| `Type=oneshot` não herda o timeout de partida | `TimeoutStartUSec=infinity` em três unidades nossas — ver `COSMIC-THEMING.md` §4i |
+| `Linger=yes` mantinha o timer batendo sem sessão | `loginctl show-user … -p Linger` → `Linger=yes`; `WAYLAND_DISPLAY` está no ambiente do gerente |
+| quatro gestos de slider não publicam `on_release` | lido no `slider.rs` do rev pinado — ver `COSMIC-THEMING.md` §4i |
+
+Os cinco fatos de **aplicação geral** que saíram daqui foram promovidos para
+`docs/COSMIC-THEMING.md` **§4i**, com data e método, porque vão ser reencontrados
+fora do modo de leitura.
+
+### O que ficou por fazer
+
+Nenhuma destas tem dono. Estão repetidas na lista de dívidas do índice, que é onde
+se procura.
+
+> ~~**`meow-logo.service` e `meow-painel-raio.service` sem teto de partida.**~~
+> **DERRUBADA no mesmo dia, e por duas razões diferentes.** O
+> `meow-painel-raio.service` ganhou `TimeoutStartSec=30s` em 31/08, enquanto esta
+> seção estava sendo escrita. E o `meow-logo.service` **nunca foi risco**: o teto que
+> importa nele é o de PARADA, porque o trabalho inteiro está no `ExecStop` — e
+> `TimeoutStopSec` **herda** o padrão do gerente, ao contrário do de partida. Medido
+> em 31/08/2026: `DefaultTimeoutStopUSec=1min 30s`, e um `oneshot` instalado
+> (`meow-assets.service`) responde `TimeoutStopUSec=1min 30s` mesmo com
+> `TimeoutStartUSec` cravado em outro valor. O `ExecStart=/bin/true` não trava. Fica
+> registrado porque a dívida foi levantada e a medição a matou — e "oneshot herda o
+> teto de parada mas não o de partida" é o fato que sobra (`COSMIC-THEMING.md` §4i).
+
+1. **`etapa_logo` e `etapa_wallpaper` com o mesmo modo seco cego — HIPÓTESE, NÃO
+   MEDIDA.** Foi o defeito consertado hoje no `etapa_leitura` e no `etapa_autoreparo`:
+   o ramo `meow_seco` conclui pelo `mudou` do arquivo e **não pergunta**
+   `is-enabled`/`is-active`. Lendo o código, com as unidades no disco porém
+   desarmadas, o `--dry-run` do `etapa_logo` imprime um `ok` VERDE ("rotação de gatos
+   já ligada") e o do `etapa_wallpaper` devolve 0 sem uma linha, enquanto a execução
+   real armaria as unidades. **Ninguém rodou o cenário**; registrar como hipótese é o
+   ponto. Conferir antes de consertar.
+2. **`leiturabin` no `SEM_CONSERTO` do `bin/meow` ficou largo demais.** O
+   `leitura_build.sh` ganhou hoje um caminho **sem `cargo`** (`_sem_cargo`) que repõe
+   o binário a partir da árvore de build e reescreve a sombra `.desktop` — 365 bytes
+   de texto, nenhuma compilação. O doctor **poderia** consertar isso, mas o laço de
+   conserto dá `continue` **pelo nome** antes de olhar o código de saída, então a
+   sombra órfã continua sendo linha amarela eterna. Sairia com uma `fix_leiturabin`
+   que chamasse só o caminho sem-cargo. A decisão anterior — "um segundo verificável
+   seria mais superfície do que conserto" — continua certa; o que mudou foi existir um
+   conserto barato do outro lado.
+3. **`wallpaper.log` cresce com ruído e ninguém o cala.** Medido em 31/08/2026:
+   **141.793 bytes, 1.850 linhas**, das quais 1.770 são `ok carrossel já configurado`.
+   O `meow-wallpaper.timer` bate de 15 em 15 minutos (`OnUnitActiveSec=15min`), o que
+   dá **96 linhas por dia** de "nada mudou". O `meow-leitura.service` resolveu isso no
+   nascimento, com `LOG_NIVEL=silencioso` na frente do `exec`; o `meow-wallpaper.service`
+   não tem essa linha. É uma palavra na unidade.
+
+### Fronteira
+
+O patch do compositor e o binário são da **Aurora**; o `plugins_wings` da topbar é
+dela e **escrito à mão** — nenhum script deste projeto o toca. As cinco chaves
+`leitura_*` são a primeira fronteira deste projeto que não é entre o Meow e a Aurora,
+e sim **entre o Meow e ela**, dentro do mesmo diretório: `docs/FRONTEIRA.md` tem a
+tabela, os três estados do horário e o que o applet perdeu hoje.
+
+---
+
 ## Por onde começar, em concreto
 
 > **A versão anterior desta seção mandava executar a Sprint A do zero** — baixar
@@ -2746,9 +2879,11 @@ Quem pegar isto do zero, sem nenhum contexto de conversa, faz nesta ordem:
    por que eram erradas).
 2. **Confira o estado real**, não o que o texto promete:
    `./bin/meow doctor` e `git log --oneline -12`.
-3. **Vá para a única sprint aberta, a [U](#sprint-u--sobreviver-a-um-dist-upgrade).**
-   O material dela está em `docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md`,
-   e o cartão de recuperação por TTY vem **antes** de qualquer build.
+3. **Não há sprint aberta.** As duas últimas — [U](#sprint-u--sobreviver-a-um-dist-upgrade)
+   e [V](#sprint-v--o-modo-de-leitura) — fecharam em 30 e 31/08/2026, e o que sobrou
+   delas está na **lista de dívidas do índice**, que é por onde se começa. O material
+   das duas está em `docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md`, e o cartão de
+   recuperação por TTY vem **antes** de qualquer build do compositor.
 4. Se for mexer em ícone, a regra que atravessa tudo continua valendo: **a folha
    visual vem antes do código.** Foi ela que mostrou que 19 dos 27 candidatos a
    desenho autoral eram logomarca, e foi ela que fez a decisão do traço.
@@ -2783,7 +2918,8 @@ texto de cada seção e contra a máquina.
 | **R** | o prompt | FEITA · 25/08 |
 | **S** | dia e noite no papel de parede | FEITA · 25/08 |
 | **T** | a regra da atenção | FEITA EM PARTE · o canto direito foi recusado com medição |
-| **U** | sobreviver a um dist-upgrade | FECHADA · 30/08 · build feito; **falta só ela deslogar** |
+| **U** | sobreviver a um dist-upgrade | FECHADA · 30/08 · build feito e **na sessão dela** (o logout aconteceu em 30/08 20:25) |
+| **V** | o modo de leitura | FECHADA · 31/08 · **com 3 dívidas dentro** |
 
 ### As dívidas que vivem dentro de sprints fechadas
 
@@ -2802,14 +2938,35 @@ como concluída — que é onde ninguém procura.
    `CONJUNTO` do `gerar_tema_v1.py`.
 5. **O atalho do histórico de clipboard** (Sprint T): o corte do applet só é
    defensável depois que ela tiver o atalho. Ele não virou item em lugar nenhum.
+6. **`etapa_logo` e `etapa_wallpaper` com o modo seco cego** (Sprint V) —
+   **HIPÓTESE, não medida**: o ramo `meow_seco` não pergunta
+   `is-enabled`/`is-active`, então o `--dry-run` diria "já ligada" onde a execução
+   real armaria a unidade. É o defeito que o `etapa_leitura` e o `etapa_autoreparo`
+   consertaram em 31/08. Conferir antes de consertar.
+7. **`fix_leiturabin` não existe** (Sprint V): com o caminho sem-`cargo` novo do
+   `leitura_build.sh`, o doctor **poderia** repor binário e sombra sem compilar, mas
+   o laço de conserto dá `continue` pelo NOME antes de olhar o código de saída.
+8. **`wallpaper.log` sem `LOG_NIVEL=silencioso`** (Sprint V): 141.793 bytes / 1.850
+   linhas em 31/08, 1.770 delas `ok carrossel já configurado`; o timer bate de 15 em
+   15 min, o que dá ~96 linhas de ruído por dia. O irmão `meow-leitura.service` já
+   nasceu com a chave na frente do `exec`.
 
-### O trabalho de 26/08 que nunca teve sprint
+### O trabalho de 26/08 que nunca teve sprint — e o de 30/08, que repetiu
 
 `meow-painel.service` (o supervisor do painel), o clamp do raio de canto, o
 `JANELAS_TILING` e o popup do applet de mídia estão no código e no `README.md`, e
 este arquivo **não os menciona uma vez**. Os três verificáveis novos do doctor —
 `painel`, `janelas`, `fundo` — nasceram daí. Se alguém for auditar o projeto pelo
 `SPRINTS.md`, vai concluir que esse trabalho não existe.
+
+**E aconteceu de novo quatro dias depois.** O modo de leitura inteiro — 10 arquivos,
+um applet em Rust, cinco chaves, duas unidades — foi construído em 30 e 31/08 sem uma
+linha aqui. Foi registrado em 31/08/2026 como
+**[Sprint V](#sprint-v--o-modo-de-leitura)**, com as três dívidas acima. Duas
+ocorrências em cinco dias fazem disto um modo de falha do processo, não um
+esquecimento: **quem executa escreve no cabeçalho do arquivo que tocou** — e o
+cabeçalho de um `.service` ou de um `main.rs` é justamente onde ela, e quem auditar,
+nunca vão olhar.
 
 ---
 

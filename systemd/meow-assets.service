@@ -147,6 +147,15 @@ ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/me
 # que estouraria um minuto e mataria o serviço justamente quando ele estava
 # fazendo o certo (esperando a vez). Dois minutos põem o teto de volta acima do
 # pior caso e continuam curtos o bastante para denunciar um travamento real.
+#
+# E ELE NÃO É FOLGA ESCOLHIDA — a linha acima lê como se o padrão fosse finito, e
+# não é: `Type=oneshot` não herda o `DefaultTimeoutStartSec`, o padrão dele é
+# `infinity`. Medido em 31/08/2026 nas irmãs desta máquina que ainda estavam sem a
+# linha (`systemctl --user show meow-wallpaper.service -p TimeoutStartUSec` ->
+# `infinity`, contra `DefaultTimeoutStartUSec=1min 30s` do gerente); a régua
+# inteira está no bloco do `meow-leitura.service`. Sem esta linha um vigia travado
+# não "estouraria um minuto": ficaria em `activating (start)` para sempre, com o
+# `meow-assets.path` mudo atrás dele e nada aparecendo como `failed`.
 TimeoutStartSec=2min
 
 StandardOutput=append:%h/.local/state/meowsystem/logo.log

@@ -377,23 +377,45 @@ JANELAS_TILING_ESCOPO="global"    # global | workspace
 # ~/.config/cosmic/com.system76.CosmicComp/v1/ — `leitura_temperatura` (Kelvin) e
 # `leitura_textura` (0.0 a 1.0) —, e quem os PINTA é o `cosmic-comp` recompilado.
 #
-# ENQUANTO A ETAPA 1 NÃO ENTRAR, ISTO NÃO MUDA UM PIXEL, E É DE PROPÓSITO.
-#   O compositor desta máquina ainda não sabe ler as duas chaves. Escrevê-las hoje
-#   é inofensivo (chave desconhecida em cosmic-config é arquivo que ninguém abre)
-#   e passa a valer no login DEPOIS do build do patch. `meow leitura estado` diz,
-#   em duas linhas, se o binário do disco já sabe ler e se a sessão que você está
-#   usando AGORA sabe — que são perguntas diferentes, e é a diferença entre elas
-#   que explica "escrevi e não aconteceu nada".
+# QUEM PINTA É O COMPOSITOR, E DESDE 30/08/2026 ELE JÁ SABE LER.
+#   Até hoje estas linhas diziam o contrário — "o compositor desta máquina ainda
+#   não sabe ler as duas chaves, escrevê-las é inofensivo e não muda um pixel".
+#   Deixou de ser verdade às 04:59 de 30/08, quando o patch entrou no binário, e
+#   o arquivo que você edita foi o último a saber. Conferido em 31/08/2026, com
+#   esta sessão de pé:
+#       strings -a /usr/bin/cosmic-comp | grep -c AURORA-READING-MODE          ->  1
+#       strings -a /proc/$(pgrep -x cosmic-comp)/exe | grep -c AURORA-READING-MODE  ->  1
+#   O binário do disco E o cosmic-comp que está desenhando esta tela carregam o
+#   patch. Ou seja: os dois números daqui de baixo valem na tela na hora em que
+#   são escritos, sem logout e sem esperar nada.
+#
+#   NO DIA EM QUE UM `apt upgrade` TROCAR O COMPOSITOR por um sem o patch,
+#   escrever aqui volta a ser inofensivo e sem efeito nenhum — nada quebra, a
+#   tela só para de obedecer, calada. Quem responde é `meow leitura estado`, em
+#   duas linhas: se o binário do DISCO sabe ler, e se a sessão que você está
+#   usando AGORA sabe. São perguntas diferentes — um build feito e um logout
+#   ainda não dado dão respostas opostas —, e é a diferença entre elas que
+#   explica "escrevi e não aconteceu nada".
 #
 # VAZIO = NÃO TOCA, e aqui a chave tem três estados, não dois:
 #   vazio  o modo de leitura é seu e de mais ninguém. Nada é lido, nada é escrito,
 #          o `meow doctor` devolve verde sem olhar. É o mesmo contrato do
 #          RELOGIO_SEGUNDOS e do JANELAS_TILING acima.
+#          E se uma execução anterior já tiver armado o relógio, o `./install.sh`
+#          o REMOVE: um relógio nosso de pé já é decidir por você.
 #   nao    DESLIGA DE VERDADE: os dois números voltam a 0 e o `./install.sh`
 #          desarma o `meow-leitura.timer`. Não é "parar de escrever" — é apagar o
 #          efeito, do mesmo jeito que WALLPAPER_NOITE="nao" apaga as pastas
 #          derivadas em vez de deixá-las paradas parecendo ligadas.
 #   sim    o agendamento vale.
+#
+# E EXISTE UM QUARTO PORTÃO, QUE NÃO É ESTA CHAVE: com AUTO_REPARO="nao" o modo de
+# leitura não é aplicado NEM agendado, mesmo com "sim" aqui — quem desliga o
+# auto-reparo está dizendo "não mexa sozinha na minha máquina", e virar a cor da
+# tela às 18:00 é mexer. O `./install.sh` não chega a chamar o script: nada é
+# lido, nada é escrito, e o degrau que estiver no disco FICA onde está. Se você
+# desligar o auto-reparo às 20:00, com a tela já âmbar, ela fica âmbar até
+# alguém desfazer — `meow leitura remover` zera os dois números.
 LEITURA_AGENDA="sim"              # sim | nao | vazio (vazio = não toca)
 
 # O HORÁRIO MORA NO APPLET, NÃO AQUI — decisão dela, 29/08/2026.
@@ -433,12 +455,30 @@ LEITURA_TEMPERATURA="3500"        # 1000–6500 K (6500 = neutro = desligado)
 # teto da textura como escolha ainda em aberto, sua. 0.35 está aqui para que você
 # VEJA a coisa uma vez, que é o que a decisão está esperando; se for demais, é um
 # número; se não quiser nenhuma, é `0`.
+#
+# PONTO, NUNCA VÍRGULA. Num teclado pt_BR `0,35` é o erro mais fácil de cometer
+# nesta linha, e ele não dá erro nenhum: o número vira 0 lá dentro e o papel fica
+# desligado para sempre, calado. Os DOIS comandos avisam — `meow leitura estado` e
+# `meow leitura conferir` —, e o `estado` ainda imprime o número do jeito que você
+# o escreveu, vírgula e tudo, na linha logo acima do aviso. Mas os dois só falam
+# depois de você já ter passado uma noite sem textura sem saber por quê. (Vale
+# para a temperatura também: qualquer coisa que não seja um inteiro cai no
+# neutro, ou seja, desligado.)
 LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
 
 # A VIRADA: SECA OU RAMPA? Também é sua, e também está em aberto no plano.
 #   0     virada SECA: às 18:00 o degrau salta de uma vez.
 #   N     rampa de N minutos, um passo por minuto, DEPOIS da hora: às 18:00 começa
 #         a esquentar e chega ao valor cheio às 18:00+N. (O GNOME usa rampa.)
+#         SE N COUBER NA JANELA: com uma rampa maior que o tempo ligado — ou que
+#         o tempo desligado — o degrau para onde deu e nunca chega ao cheio. Não
+#         é defeito, é o relógio não ter minuto suficiente para subir; e não há
+#         conserto sem o script guardar estado entre um tique e outro, que é
+#         justamente o que o faz sobreviver a um tique perdido e a um boot no
+#         meio da noite. Onde ele parou é a fração que o `meow leitura estado`
+#         mostra, e os dois comandos avisam quando a rampa não cabe — o `estado`
+#         quando você perguntar, o `conferir` uma vez por dia, às 5h, junto com o
+#         resto do doctor.
 #
 # A rampa vai depois da hora e nunca antes: "ligar às 18:00" não pode significar
 # "às 17:30 a tela já mexeu". E trocar entre as duas é só esta palavra — o timer

@@ -193,24 +193,32 @@ somem juntos. Em 26/08/2026 o COSMIC Tweaks gravou `border_radius` 41 num painel
 de 44 de altura, e a barra passou a tarde inteira sumida.
 
 - `patches/cosmic-comp-raio-clampado.patch` troca o `post_error` por um **clamp**:
-  o canto é reduzido ao que cabe em vez de o cliente ser derrubado.
-  **ATENÇÃO — ELE AINDA NÃO ESTÁ NO BINÁRIO, e este parágrafo mentia até 29/08/2026.**
-  Medido em 30/08/2026: `grep -a -o 'AURORA-[A-Z-]*-PATCH-[0-9][0-9.]*'` em
-  `/usr/bin/cosmic-comp` devolve **um** marcador, `AURORA-COSMIC-WS-PATCH-3.67`, e
-  nada de `RADIUS`. O que mudou em 30/08 é a **causa**: a série `patches.d/` da
-  Sprint U existe e já declara o raio como `opt`, mas a série só vale no próximo
-  `aurora-cosmic-comp-ws.sh --build` (~4 min) — até ele rodar, o efeito não existe.
-  Até lá o clamp do lado do Meow é o que protege a barra, e o teto de 8 continua
-  valendo.
+  o canto é reduzido ao que cabe em vez de o cliente ser derrubado. **Ele está no
+  binário, e está em execução** — entrou no build da série de 30/08/2026, às 04:59.
+  Este parágrafo dizia o contrário e mandava você rodar um build de ~4 min que já
+  tinha rodado; ficou assim de 30/08 até 31/08/2026. Medido em 31/08/2026, com o
+  mesmo comando de antes —
+  `grep -a -o 'AURORA-[A-Z-]*-PATCH-[0-9][0-9.]*' /usr/bin/cosmic-comp | sort -u` —,
+  que agora devolve **dois** marcadores: `AURORA-COSMIC-RADIUS-PATCH-1` e
+  `AURORA-COSMIC-WS-PATCH-3.67`. Os dois estão também no `/proc/<pid>/exe` do
+  `cosmic-comp` que desenha a tela agora, e o
+  `/var/lib/aurora/cosmic-comp-patches.estado` da Aurora declara os dois
+  `presente`.
 - **E agora isso tem quem vigie.** A linha `patches` do `meow doctor` compara os
   marcadores que a Aurora declara em `/var/lib/aurora/cosmic-comp-patches.estado`
   contra o binário do disco **e** contra `/proc/<pid>/exe` — a pergunta é sobre o
   processo, não sobre o arquivo — e confere se todo `.patch` de `patches/` está
   declarado na série. Foi essa segunda conferência que faltava: um patch fora da
-  série não entra em binário nenhum, e era assim que este parágrafo mentia.
-- Enquanto ele não estiver **em execução**, `meow painel conferir` clampa do lado
-  de cá, e guarda o número que você pediu em
-  `~/.local/state/meowsystem/painel/raio_desejado.*` — ele volta sozinho no dia em
+  série não entra em binário nenhum. E é por isso que a linha do `doctor` vale
+  mais do que o parágrafo acima — ele já mentiu nas **duas** direções (dizendo que
+  o clamp estava no binário quando não estava, até 29/08; e que não estava quando
+  já estava, de 30/08 a 31/08). O `doctor` mede toda vez que roda; o parágrafo só
+  guarda o dia em que alguém mediu.
+- Com o clamp **em execução**, o teto deixa de valer: o canto das barras é seu, sem
+  limite, e o `meow painel conferir` não mexe em nada. Se um dia o compositor voltar
+  a ser o de fábrica — um `apt upgrade` de `cosmic-*` basta —, o clamp do lado de cá
+  volta a agir e guarda o número que você pediu em
+  `~/.local/state/meowsystem/painel/raio_desejado.*`, que retorna sozinho no dia em
   que couber.
 
 **2. O supervisor do COSMIC desiste, e não avisa.** O backoff do `cosmic-session`
@@ -237,8 +245,12 @@ e se o compositor em execução clampa:
 
 ```
 Panel  size=S   padding=2  altura=44  teto=22  raio=16
-Dock   size=M   padding=4  altura=64  teto=32  raio=24
+Dock   size=M   padding=4  altura=72  teto=36  raio=24
+compositor: CLAMPA (o teto acima não se aplica — o raio é seu)
 ```
+
+(Saída real desta máquina em 31/08/2026. A terceira linha é a que responde
+"o teto ainda vale?" — e hoje ela diz que não.)
 
 ---
 
@@ -317,8 +329,28 @@ que o gato do Latte estava fora da paleta: ele misturava verde do Latte, verde d
 O instalador **recusa por caminho** — não por boa intenção — escrever em
 `/usr/share`, no repositório de dotfiles ou nos atalhos de teclado. E nunca roda
 `apt upgrade` nem toca em pacote `cosmic-*`: o `cosmic-comp` desta máquina está
-patchado duas vezes, e uma versão nova mataria os dois patches junto com os
-workspaces alfinetados.
+patchado **três** vezes, e uma versão nova mataria os três de uma vez. Medido em
+31/08/2026 com
+`grep -a -o 'AURORA-[A-Z-]*-[0-9][0-9.]*' /usr/bin/cosmic-comp | sort -u`:
+
+```
+AURORA-COSMIC-RADIUS-PATCH-1
+AURORA-COSMIC-WS-PATCH-3.67
+AURORA-READING-MODE-1
+```
+
+O que se perde em cada um, para você saber pelo que olhar:
+
+| patch | o que some da tela |
+|---|---|
+| `AURORA-COSMIC-WS-PATCH` | os workspaces alfinetados — volta o workspace vazio a mais no fim, e o painel mostra um número seco |
+| `AURORA-COSMIC-RADIUS-PATCH` | o clamp do raio — um canto grande volta a derrubar a barra inteira |
+| `AURORA-READING-MODE` | **o modo de leitura**, que é o patch que PINTA a tela. Sem ele a tela para de esquentar à noite: os dois números continuam sendo gravados no disco, mas não sobra ninguém para lê-los. Nada na tela acusa — quem acusa é o `meow leitura` (linha `cosmic-comp no disco`) e a linha `patches` do `meow doctor` |
+
+**Por que a contagem muda conforme o comando.** O grep da seção do raio, lá em
+cima, filtra por `-PATCH-` e devolve **dois**; este filtra só por `AURORA-` e
+devolve **três**. Nenhum dos dois números está errado: o marcador do modo de
+leitura é `AURORA-READING-MODE-1`, e não tem a palavra `PATCH` no meio.
 
 **Quem apaga, guarda antes.** O `aplicar_tema.sh` é o único ponto do projeto que
 **remove** arquivo que não é dele, e faz backup da árvore inteira em

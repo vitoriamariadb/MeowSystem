@@ -22,6 +22,22 @@
 #   comparando por conteúdo — que é o que impede este passo de reescrever a
 #   unidade e recarregar o systemd a cada execução.
 #
+# ESTE ARQUIVO É INVÁLIDO DE PROPÓSITO: `@ACERVO@` não é caminho absoluto, então
+# `systemd-analyze verify --user` sobre QUALQUER unidade daqui carrega esta junto
+# e imprime estas duas linhas — e só elas (systemd 255, medido em 31/08/2026);
+# sobre ESTE arquivo vem uma terceira (`… has a bad unit file setting.`) e exit 1:
+#     systemd/meow-assets.path:NN: PathModified= path is not absolute, ignoring: @ACERVO@
+#     meow-assets.path: Path unit lacks path setting. Refusing.
+# Conferir de verdade é substituir antes — medido hoje, saída VAZIA e exit 0 nos
+# dois:
+#     sed "s|@ACERVO@|$PWD/assets/gatos|" systemd/meow-assets.path > /tmp/x.path
+#     systemd-analyze verify --user /tmp/x.path
+#     systemd-analyze verify --user ~/.config/systemd/user/meow-assets.path
+# A troca é textual (`${texto//@ACERVO@/$ACERVO}`, no vigia_assets.sh), então pega
+# também as menções em comentário; a única que muda COMPORTAMENTO é a do
+# `PathModified=` lá embaixo. Verificar o template e concluir que a unidade está
+# quebrada é o erro que este bloco existe para não deixar acontecer de novo.
+#
 # ─────────────────────────────────────────────────────────────────────────────
 # NÃO HÁ `ConditionPathIsDirectory=` AQUI, E ISSO CONTRARIA O docs/SPRINTS.md
 # ─────────────────────────────────────────────────────────────────────────────

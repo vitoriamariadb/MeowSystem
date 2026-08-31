@@ -13,3 +13,32 @@ ExecStart=%h/.local/bin/meow painel conferir
 # 1 = "estava divergente e eu consertei"; 3 = "não há o que fazer aqui".
 # Nenhum dos dois é falha desta unidade.
 SuccessExitStatus=1 3
+
+# `TimeoutStartSec=30s` — E AQUI O TETO NÃO TEM RELÓGIO NENHUM ATRÁS DELE
+#   `Type=oneshot` não herda o `DefaultTimeoutStartSec`: o padrão dele é
+#   `infinity`. Medido em 31/08/2026, com esta unidade viva e ainda sem a linha:
+#       systemctl --user show meow-painel-raio.service -p Type,TimeoutStartUSec
+#       Type=oneshot
+#       TimeoutStartUSec=infinity
+#   Um `painel conferir` travado ficaria em `activating (start)` PARA SEMPRE, e
+#   todo evento do `meow-painel-raio.path` seria fundido nele e perdido — o clamp
+#   do raio congelado, sem nada `failed` para olhar. Raio de canto grande já
+#   apagou a barra dela em 26/08/2026: é o pior lugar do projeto para uma falha
+#   calada.
+#
+#   O NÚMERO NÃO SAI DE UM PERÍODO, porque não há relógio: o `.path` é o único
+#   gatilho, e a única rede atrás dele é o `meow doctor`, uma vez por dia. 30s é,
+#   então, por quanto tempo o vigia pode ficar surdo. Medidos os 100 tiques que o
+#   journal desta máquina guarda (`Starting…` -> `Finished…`): min 2,069s ·
+#   mediana 2,086s · p95 2,152s · MAX 2,872s — quase tudo é o `sleep 2` de
+#   debounce aqui em cima; o trabalho em si fica sob 0,9s. 30s são ~10x o pior job
+#   inteiro e ~34x o pior trabalho. Não há espera de lock a orçar: `meow painel
+#   conferir` não chama `meow_travar` (o `cmd_painel` do `bin/meow` despacha
+#   direto para o `painel.sh`), ao contrário do `meow-flatpak` e do
+#   `meow-assets`, que esperam a vez com `flock -w 60`.
+#
+#   E 30s não briga com o `StartLimit` herdado — 5 partidas em 10s, medido com
+#   `systemctl --user show … -p StartLimitIntervalUSec,StartLimitBurst`: um job
+#   morto por teto gasta 30s por falha, e cinco delas levam 150s, que nunca cabem
+#   na janela que desarmaria o `.path`.
+TimeoutStartSec=30s

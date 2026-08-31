@@ -73,6 +73,40 @@ ExecStop=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 0; set -a;
 # apareceria como serviço falho no `systemctl --user status`.
 SuccessExitStatus=1 3
 
+# O TETO AQUI É O `TimeoutStopSec`, E NÃO O `TimeoutStartSec` — E ISSO É MEDIDO
+#   Os blocos irmãos (`meow-leitura.service`, `meow-wallpaper.service`,
+#   `meow-painel-raio.service`) provam que `Type=oneshot` não herda o
+#   `DefaultTimeoutStartSec`: o padrão da PARTIDA é `infinity`. Vale aqui também —
+#   só que nesta unidade a partida é `ExecStart=/bin/true` e TODO o trabalho está
+#   no `ExecStop`. Um `TimeoutStartSec` seria teto sobre o `/bin/true`, teatro.
+#   Medidos os dez logins que o journal guarda (`Starting…` -> `Finished…`): de
+#   5,6 ms a 10,7 ms.
+#
+#   E O LADO DO STOP NUNCA FOI `infinity`: o `TimeoutStopSec` herda o padrão do
+#   gerente mesmo em `oneshot`, e isso é a assimetria que o resto do projeto não
+#   registrava. Medido em 31/08/2026 nas SEIS unidades `oneshot` deste projeto que
+#   estão carregadas nesta máquina (assets, wallpaper, leitura, painel-raio,
+#   doctor, flatpak) — as seis deram o mesmo:
+#       systemctl --user show meow-wallpaper.service -p TimeoutStopUSec
+#       TimeoutStopUSec=1min 30s
+#       systemctl --user show -p DefaultTimeoutStopUSec  ->  1min 30s
+#   ESTA não pôde ser medida direto: com `LOGO_ROTACAO="nao"` no meow.conf dela o
+#   `install.sh` remove a unidade de propósito, e hoje
+#   `systemctl --user is-enabled meow-logo.service` responde `not-found`. O padrão
+#   passa a valer no dia em que ela ligar a chave.
+#
+#   30s E NÃO OS 90s HERDADOS, porque a conta aqui é o LOGOUT DELA: este
+#   `ExecStop` roda quando o gerenciador do usuário para, e o desligamento espera
+#   por ele. Medidos os seis encerramentos que o journal guarda
+#   (`Stopping…` -> `Stopped…`): 9,7 · 13,6 · 17,6 · 81,0 · 89,2 · 114,0 ms. O
+#   irmão `meow-assets.service` roda o MESMO `logo.sh` e mede igual: três tiques
+#   de 3,059s, 3,120s e 3,052s, dos quais 3s são o `sleep 3` de debounce de lá.
+#   30s são ~260x o pior encerramento visto, e cortam de 90s para 30s o pior caso
+#   de tela parada em "desligando" por causa de um gato. É a mesma conta que o
+#   `meow-painel.service` já fazia com `TimeoutStopSec=15s` ("15s, e não o default
+#   de 90s") — este projeto já tinha o precedente, só não o tinha aqui.
+TimeoutStopSec=30s
+
 StandardOutput=append:%h/.local/state/meowsystem/logo.log
 StandardError=inherit
 

@@ -681,6 +681,125 @@ o Chrome recusa o SVG inteiro, calado, mostrando ícone quebrado.
 
 ---
 
+## 4i. Cinco fatos de aplicação geral que o modo de leitura mediu (31/08/2026)
+
+Nenhum destes é sobre cor, e todos vão ser reencontrados por quem mexer em unidade
+`systemd` de usuário, em `slider` do libcosmic ou em `cosmic-config` — em qualquer parte
+deste projeto. Estão aqui, e não no cabeçalho do arquivo que os descobriu, porque cabeçalho
+de `.service` não é onde alguém procura.
+
+Máquina: `systemd 255 (255.4-1ubuntu8.15pop0~…~24.04)`; libcosmic no rev
+`1f6dc991eaa5115a09be2505cc8a323e5b2b0bff`, que é o pinado pelo `Cargo.lock` de
+`src/applets/leitura/`.
+
+### `Type=oneshot` NÃO herda o `DefaultTimeoutStartSec` — o padrão dele é `infinity`
+
+```
+systemctl --user show -p DefaultTimeoutStartUSec -p DefaultTimeoutStopUSec
+    DefaultTimeoutStartUSec=1min 30s
+    DefaultTimeoutStopUSec=1min 30s
+systemctl --user show -p Type -p TimeoutStartUSec meow-painel-raio.service
+    Type=oneshot                     # medido ANTES de a unidade ganhar a linha,
+    TimeoutStartUSec=infinity        # em 31/08/2026; hoje ela tem 30s cravados
+```
+
+O `DefaultTimeoutStartSec` do gerente vale 1min30 e **não se aplica** a `Type=oneshot`.
+Três unidades `oneshot` deste repositório mediram `infinity` nesse dia
+(`meow-painel-raio`, `meow-leitura`, `meow-wallpaper`), e as três ganharam
+`TimeoutStartSec=` próprio por causa disso. A consequência de não ter é o modo de falha
+mais silencioso que uma unidade pode ter: um `ExecStart` que trava fica em
+`activating (start)` **para sempre**, e como não existe timeout ele nunca vira `failed` —
+`systemctl --user --failed` continua vazio, que é justamente onde se procura. E se o
+gatilho for um `.path`, todo evento novo é fundido no job pendente e perdido. O teto conta
+o `ExecStartPre` junto (lição anterior, do `meow-assets.service`), então um `sleep 2` de
+debounce entra na conta.
+
+**O teto de PARADA é a metade que herda, e confundir os dois faz auditar a unidade
+errada.** `TimeoutStopSec` sai do padrão do gerente mesmo em `oneshot` — medido em
+`meow-assets.service`, que é `Type=oneshot` com `TimeoutStartUSec=2min` cravado e
+`TimeoutStopUSec=1min 30s` herdado. Isso importa para o idioma do encerramento
+(`RemainAfterExit=yes` + `ExecStart=/bin/true`, com o trabalho todo no `ExecStop`, como no
+`meow-logo.service`): ali o `infinity` da partida cobre um `/bin/true` que não pode travar,
+e o que segura o trabalho de verdade é o teto de parada, que já está lá.
+
+### `Linger=yes` faz o gerente `--user` sobreviver ao logout — então `WantedBy=` não basta
+
+```
+loginctl show-user vitoriamaria -p Linger
+    Linger=yes
+systemctl --user show-environment | grep WAYLAND
+    WAYLAND_DISPLAY=wayland-1
+```
+
+`WantedBy=` manda no **nascimento** — ele cria um link em `*.wants` e nada mais; não
+propaga parada nenhuma. Com lingering ligado o gerente `--user` não morre no logout, então
+um timer com `WantedBy=cosmic-session.target` continua batendo **com a sessão fechada**. E
+o `ConditionEnvironment=` não salva: `WAYLAND_DISPLAY` mora no ambiente do gerente, não no
+da sessão, e continua lá. A diretiva que propaga o stop do alvo é `PartOf=` — foi ela que
+faltava no `meow-leitura.timer` até 31/08/2026, com o `.service` irmão já a usando.
+
+### No `slider` deste rev do iced, QUATRO gestos publicam `on_change` e nunca `on_release`
+
+Lido em `iced/widget/src/slider.rs`, no `update()` do checkout `1f6dc99` acima. O
+`on_release` sai de um lugar só — o braço `ButtonReleased` / `FingerLifted` / `FingerLost`
+—, e **só quando `state.is_dragging`**. Quatro caminhos chamam o `change` sem nunca ligar
+essa bandeira:
+
+| gesto | por que escapa |
+|---|---|
+| Ctrl + roda do mouse sobre a barra | braço `WheelScrolled`, guardado por `keyboard_modifiers.control()`; não toca em `is_dragging` |
+| seta para cima, ponteiro sobre a barra | braço `KeyPressed` → `increment` |
+| seta para baixo, ponteiro sobre a barra | braço `KeyPressed` → `decrement` |
+| **Ctrl + clique** (restaura o `default` do slider) | o próprio braço `ButtonPressed` faz `state.is_dragging = false` antes de publicar, então o `ButtonReleased` seguinte não publica nada |
+
+O quarto é o mais fácil de não ver, porque acontece dentro do braço do clique. E
+`modifiers.command()` é `control()` fora do macOS (`iced/core/src/keyboard/modifiers.rs`),
+então "Ctrl" é literal aqui. **Quem usa `on_release` como "acabou o arrasto" fica com a
+flag presa** até o widget sumir da tela. O antídoto usado no applet de leitura é um carimbo
+de tempo junto da bandeira (`ultimo_toque` + um freio de 2 s), não a bandeira sozinha.
+
+### Ler `/proc/<pid>/exe` é diferente de ler o caminho que ele aponta
+
+```
+stat -L -c '%i' /proc/3060/exe   ->  262538
+stat -L -c '%i' /usr/bin/cosmic-comp  ->  262538      (hoje BATEM)
+ps -o lstart= -p 3060            ->  dom ago 30 20:25:53 2026
+ls --time-style=full-iso -la /usr/bin/cosmic-comp -> 2026-08-30 04:59:31
+```
+
+Hoje os dois batem — e batem **porque** o processo nasceu às 20:25, depois do build das
+04:59. Um processo que tenha começado ANTES da troca continua com o inode que carregou:
+`/proc/<pid>/exe` responde pelo binário que está EXECUTANDO, e o caminho responde pelo
+binário que está no disco. As duas leituras divergem exatamente no estado "binário novo no
+disco, processo velho vivo" — que é um estado normal, não um defeito, e é a explicação
+inteira de "o patch entrou e nada mudou na tela". Todo diagnóstico de patch de compositor
+tem de fazer **as duas** perguntas.
+
+Armadilha de medição junto: `stat` **sem `-L`** em `/proc/<pid>/exe` devolve o inode do
+próprio procfs (medido: `10652891`, dev 19), não o do binário. Comparar inodes sem `-L` dá
+"diferente" sempre.
+
+### O `ConfigSet::set` cru do `cosmic-config` NÃO compara antes de escrever
+
+Duas APIs, dois comportamentos, e a diferença não aparece no nome:
+
+| chamada | compara? | o que faz |
+|---|---|---|
+| `chaves.set_<campo>(&config, v)` (derivado por `CosmicConfigEntry`) | **sim** | `if self.<campo> != value` — igual devolve `Ok(false)` e **não escreve** |
+| `cosmic_config::ConfigSet::set(&config, "chave", v)` (cru) | **não** | abre uma transação, serializa em RON e grava via `atomicwrites::AtomicFile`, toda vez |
+
+Lido em `cosmic-config-derive/src/lib.rs` (o gerador dos `set_`) e em
+`cosmic-config/src/lib.rs` (o `impl ConfigSet for Config`, que é literalmente
+`let tx = self.transaction(); tx.set(...)?; tx.commit()`). Consequências práticas: **(1)**
+gravar o mesmo valor pelo caminho cru custa arquivo temporário + `rename` a cada chamada, e
+`rename` **acorda o watcher** do cosmic-config (este repositório já mediu isso do outro
+lado — ver o `lib/comum.sh` e o `.atomicwrite` que cala os eventos irmãos); **(2)** o
+`set_` derivado comparar é uma faca de dois gumes: se alguém escreveu a chave por fora e o
+struct em memória ficou velho, "voltar ao valor antigo" pelo `set_` **não grava nada** — é
+por isso que o applet de leitura tem de aceitar o que vem do disco antes de comparar.
+
+---
+
 ## 5. Fronteira com o Ritual da Aurora
 
 O Aurora roda como root a cada hora, no boot e após todo apt. Onde os dois querem
@@ -707,8 +826,16 @@ mandar no mesmo arquivo, **o visual é do MeowSystem** — e onde o Aurora conti
 ## 6. O que nunca fazer nesta máquina
 
 - **`apt upgrade` ou mexer em pacote `cosmic-*`.** O `/usr/bin/cosmic-comp` está
-  patchado duas vezes (workspace vazio e night light). Uma versão nova mata os dois de
-  uma vez e derruba os workspaces alfinetados junto.
+  patchado **três** vezes, e não duas — o night light saiu e outros dois entraram.
+  Medido em 31/08/2026:
+  `strings -a /usr/bin/cosmic-comp | grep -o 'AURORA-[A-Z0-9.-]*' | sort -u` devolve
+  `AURORA-COSMIC-WS-PATCH-3.67` (workspace vazio), `AURORA-COSMIC-RADIUS-PATCH-1` (raio de
+  canto clampado) e `AURORA-READING-MODE-1` (o modo de leitura) — e
+  `/var/lib/aurora/cosmic-comp-patches.estado` lista os três, um `req` e dois `opt`. Uma
+  versão nova do pacote mata os três de uma vez, derruba os workspaces alfinetados junto e
+  faz o modo de leitura parar de pintar sem dizer nada. Quem responde por unidade é
+  `meow doctor` (verificável `patches`); quem responde pelo modo de leitura é
+  `meow leitura estado`, que separa o binário do disco da sessão viva (§4i).
 - **`sudo` perto de `~/.config`.** Um arquivo de dono root ali faz a GUI de tema falhar
   **em silêncio**, e o sintoma aparece dias depois.
 - **Escrever em `~/.config/zsh`.** É o repo Andromeda, com auto-commit a cada 10 min:

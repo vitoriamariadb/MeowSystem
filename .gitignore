@@ -47,3 +47,12 @@ __pycache__/
 # distraído leva junto. Medido em 24/08/2026: 1,5 GB de target/ para 22 MB de
 # binário.
 src/applets/now-playing/target/
+
+# E A DO APPLET DE LEITURA, PELO MESMO MOTIVO E COM O MESMO SUSPENSÓRIO.
+# O `scripts/leitura_build.sh` também aponta o `CARGO_TARGET_DIR` para fora do
+# repositório (`~/.local/state/meowsystem/leitura/target`); esta linha é o cinto.
+# Ela faltava, e a falta foi PAGA: em 31/08/2026 um `cargo check` rodado à mão
+# dentro de `src/applets/leitura/` criou 1,1 GB dentro do Ápate e o `git status`
+# já o listava como não rastreado. Uma linha de irmão que não foi copiada junto
+# com o irmão é a forma mais barata de descobrir isso do jeito caro.
+src/applets/leitura/target/

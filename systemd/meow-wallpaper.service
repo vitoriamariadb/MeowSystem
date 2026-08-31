@@ -122,5 +122,81 @@ ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%
 
 SuccessExitStatus=1 3 4
 
+# `TimeoutStartSec=2min` — E ELE É OBRIGATÓRIO AQUI, NÃO ZELO
+#   `Type=oneshot` NÃO herda o `DefaultTimeoutStartSec`: o padrão dele é
+#   `infinity`. Medido em 31/08/2026 nesta máquina, com a unidade viva e SEM esta
+#   linha — o mesmo par de comandos que provou o buraco no `meow-leitura.service`
+#   hoje de manhã:
+#       systemctl --user show -p DefaultTimeoutStartUSec  ->  1min 30s
+#       systemctl --user show meow-wallpaper.service -p TimeoutStartUSec
+#                                                    ->  TimeoutStartUSec=infinity
+#   Um `wallpaper.sh` travado ficaria em `activating (start)` PARA SEMPRE, e o
+#   systemd não redispara unidade cujo job ainda está correndo — nem pelo
+#   relógio, nem pelo `meow-fundo.path`. Nada apareceria como `failed`: o
+#   carrossel simplesmente pararia de girar, calado. É o modo de falha exato que
+#   este arquivo passou dois dias sofrendo em 11/08/2026 (o `status=4` do
+#   cabeçalho), e ali pelo menos havia linha no log.
+#
+# DE ONDE VEM O 2min
+#   A RÉGUA É O PERÍODO DO RELÓGIO, E NÃO O MENOR INTERVALO ENTRE DOIS TIQUES.
+#   Medido em 31/08/2026 sobre os 1015 tiques que o journal desta máquina ainda
+#   guarda (18/08 00:09 → 31/08 01:24). Contando só pares dentro de um MESMO boot
+#   — o monotônico reinicia a cada um —, são 996 intervalos entre `Starting…`
+#   consecutivos:
+#       987 de 900s para cima, o menor deles 901,104s
+#         9 abaixo de 900s: 18,984 · 23,675 · 57,082 · 136,219 · 136,685 ·
+#           197,978 · 434,124 · 818,097 · 898,706
+#   Os nove pequenos não são relógio nervoso: `OnUnitActiveSec=15min` conta a
+#   partir da última ATIVAÇÃO da unidade, então o relógio é INCAPAZ de produzir
+#   intervalo abaixo de 900s. Os nove vieram do outro gatilho, o
+#   `meow-fundo.path`. Nem suspensão nem acerto de NTP explicam nenhum deles: no
+#   mesmo comando, o intervalo medido em `__MONOTONIC_TIMESTAMP` bate com o de
+#   `__REALTIME_TIMESTAMP` até o microssegundo nos nove.
+#
+#   E POR QUE ESSES 18,984s NÃO SÃO A RÉGUA. Gatilho que chega com o job ainda em
+#   `activating` NÃO enfileira um segundo job: o systemd funde o pedido naquele
+#   que já está correndo — é a mesma medição do `sleep 2` aqui em cima, UM start
+#   por evento. Teto grande, portanto, não empilha trabalho; ele ENGOLE os
+#   gatilhos que caírem na janela. Engolir um evento do `.path` custa segundos de
+#   atraso, e o `.path` existe para ser rápido, não para ser certo. Quem precisa
+#   sobreviver a um job travado é o RELÓGIO — "gatilho para ser rápido, relógio
+#   para ser certo", no cabeçalho do `meow-wallpaper.timer`. Com 120s < 900s um
+#   job travado morre, vira `failed` VISÍVEL e devolve a unidade antes de o
+#   relógio dar a volta: nenhum tique de cobertura é comido inteiro. Era isso que
+#   a versão anterior deste bloco tentava dizer com "o teto cabe dentro do
+#   período", e ela dizia com um piso de 903s que a medição não reproduz.
+#
+#   E TEM DE SER FOLGADO PARA O TRABALHO HONESTO. Os mesmos 1015 tiques,
+#   `Starting…` -> `Finished…`, partidos em 25/08 13:22 — a hora em que o
+#   `sleep 2` entrou na unidade INSTALADA, e a razão de a mediana dos dois grupos
+#   juntos (0,139s) cair abaixo do próprio debounce:
+#       546 sem debounce: min 0,000124s · mediana 0,037s · p95 0,209s · MAX 4,042s
+#       469 com debounce: min 2,046s  · mediana 2,119s · p95 2,186s · MAX 2,896s
+#   Os dois tiques de ~0,1ms são partidas que não chegaram a rodar o script: o
+#   `flock -n` cedeu a vez, ou o guarda do `raiz`/`-x` saiu 0 antes de qualquer
+#   trabalho. O pior trabalho HONESTO já visto é o MAX 4,042s da primeira faixa
+#   (script sozinho); com o debounce de hoje o mesmo tique daria ~6,04s. 120s são
+#   ~20x esse pior caso e ~55x o p95 da forma atual. E o `TimeoutStartSec` cobre a
+#   partida INTEIRA, `ExecStartPre` junto — a lição do `meow-assets.service`.
+#
+#   O COMANDO (é o que produziu os números acima, e eles crescem ~4 por hora):
+#       journalctl --user -u meow-wallpaper.service -o json \
+#         --output-fields=MESSAGE_ID,__REALTIME_TIMESTAMP,__MONOTONIC_TIMESTAMP,_BOOT_ID
+#   parear MESSAGE_ID 7d4958…dcc5 (`Starting`) com 39f534…1fbf (`Finished`).
+#
+#   POR QUE NÃO 5min, que é o dos irmãos `meow-doctor` e `meow-flatpak`: o
+#   `meow-flatpak.service` espera o lock com `flock -w 60` na própria linha de
+#   `Exec`, e 60s daquele teto são só a espera da vez. (O `meow-doctor.service`
+#   NÃO — corrigido em 31/08/2026, este parágrafo dizia "os dois": o `ExecStart`
+#   dele é `meow doctor --consertar` seco, e o `meow_travar` do `lib/comum.sh`
+#   usa `flock -n`, que DESISTE em vez de esperar. Os 5min de lá são o orçamento
+#   de um reparo completo, não espera de fila.) Aqui o `flock` é `-n -E 0` —
+#   cede na hora, sem esperar nada —, então não há esse pedaço a orçar. E esta unidade tem um SEGUNDO gatilho, o `meow-fundo.path`,
+#   que existe justamente para consertar em ~2s; um job travado segura esse
+#   gatilho por exatamente um `TimeoutStartSec`. Escolher 5min triplicaria esse
+#   refém sem nenhuma medição pedindo. O irmão com a mesma forma — `.path` mais
+#   debounce — é o `meow-assets.service`, e ele usa 2min.
+TimeoutStartSec=2min
+
 StandardOutput=append:%h/.local/state/meowsystem/wallpaper.log
 StandardError=inherit
