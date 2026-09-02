@@ -1120,14 +1120,23 @@ html, body { overflow-x: clip; }
   color: var(--text);
   font: inherit;
 }
+/* A TIRA ROLA, E O NOME CABE.
+   A validação mediu: com 57 resultados o botão era esmagado para 40 px e o
+   <span> do nome ficava com ALTURA ZERO — invisível justamente onde ele mais
+   importa, para distinguir desenhos parecidos. E não rolava: a grade tinha a
+   mesma altura do conteúdo, então as linhas de baixo simplesmente não existiam.
+   `align-content: start` é o que impede o grid de espremer as linhas para
+   caber; a altura mínima do botão garante o nome. */
 .tira-glifos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  align-content: start;
   gap: .5rem;
-  max-height: 15rem;
+  max-height: 17rem;
   overflow-y: auto;
   padding: .2rem;
 }
+.tira-glifos button { min-height: 5.2rem; }
 .tira-glifos button {
   display: flex;
   flex-direction: column;
@@ -1185,3 +1194,24 @@ a.folha {
 }
 a.folha:hover { border-color: var(--accent); }
 a.folha .oque { font-size: .72rem; color: var(--overlay1); }
+
+/* O aviso de que outra chave esta mandando. Nao e erro — e contexto: a escolha
+   dela continua valendo no arquivo, so nao tem efeito enquanto a outra vencer.
+   Por isso amarelo de aviso, e nao vermelho de recusa. */
+.frase.dominada {
+  border-left: 2px solid var(--yellow, var(--accent));
+  padding-left: .55rem;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+  display: block;
+}
+.frase.dominada b { color: var(--text); font-weight: 600; }
+
+/* Os estados que nao moram na regua do deslizante. */
+.faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .4rem; }
+.btn-mini { font-size: .72rem; padding: .2rem .5rem; }
+.btn-mini[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.faixa input[disabled] { opacity: .45; }

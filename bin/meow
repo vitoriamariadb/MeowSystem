@@ -208,9 +208,18 @@ notificar() { meow_seco || meow_notificar "$@"; }
 # --- 3. leituras de estado --------------------------------------------------
 alvo_tema() { printf '%s-%s' "$FLAVOR" "$ACCENT"; }
 
+# AS CAPTURAS MORAM EM `assets/temas/capturados/` — 02/09/2026.
+#   Esta função lia `state/tema/`, um caminho que a reorganização de pastas
+#   deixou para trás: o diretório não existe mais, então o laço não achava nada
+#   e `meow tema` imprimia "capturas disponíveis" seguido de NADA, com quatro
+#   capturas no disco. Ninguém percebeu porque o comando não errava — ele
+#   listava o vazio, calado.
+#   Quem pegou foi a validação da página, que mostra a saída deste comando num
+#   cartão: "mostra ZERO capturas e jura que nenhuma confere".
+#   O caminho certo é o que o `aplicar_tema.sh:204` e o `bin/meow:297` já usam.
 capturas() {
   local d
-  for d in "$RAIZ"/state/tema/*/; do
+  for d in "$RAIZ"/assets/temas/capturados/*/; do
     [ -d "$d" ] || continue
     printf '%s\n' "$(basename "$d")"
   done

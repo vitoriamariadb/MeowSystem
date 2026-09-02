@@ -36,10 +36,24 @@ if (location.search) {
 const $ = (sel, raiz = document) => raiz.querySelector(sel);
 
 async function api(rota, opcoes = {}) {
-  const resposta = await fetch(rota, {
-    ...opcoes,
-    headers: { "X-Meow-Token": TOKEN, "Content-Type": "application/json", ...(opcoes.headers || {}) },
-  });
+  /* O SERVIDOR PODE TER MORRIDO — e a página tem de dizer isso.
+   *   A validação mediu: "com o servidor fora do ar, todo botão Rodar vira
+   *   botão morto: zero torrada, zero gaveta, zero erro". O `fetch` rejeita, a
+   *   exceção sobe até o `onclick` e some — e ela fica clicando num botão que
+   *   não responde, sem saber que o problema não é o clique.
+   *   Acontece de verdade: o painel morre junto com o terminal que o subiu. */
+  let resposta;
+  try {
+    resposta = await fetch(rota, {
+      ...opcoes,
+      headers: { "X-Meow-Token": TOKEN, "Content-Type": "application/json", ...(opcoes.headers || {}) },
+    });
+  } catch (e) {
+    return {
+      erro: "O painel perdeu o servidor. Feche esta aba e rode ./app/run.sh de novo.",
+      sem_servidor: true,
+    };
+  }
   const texto = await resposta.text();
   let dados;
   try { dados = JSON.parse(texto); } catch { dados = { erro: texto }; }
@@ -359,10 +373,11 @@ async function salvarEscolhas() {
     return;
   }
   if (seco) {
-    MUDANCAS.clear();
-    atualizarBarraSalvar();
-    render();
-    torrada("Modo seco: nada foi escrito e o instalador não rodou", "igual");
+    /* AS ESCOLHAS FICAM — em seco, nada foi escrito, então não há o que
+     * confirmar. Limpá-las jogava fora o trabalho dela: a validação mediu
+     * "Salvar e aplicar com o modo seco ligado joga fora as escolhas
+     * pendentes". Ensaiar não pode custar o que se ensaiou. */
+    torrada("Modo seco: nada foi escrito, e as escolhas continuam esperando", "igual");
     return;
   }
   MUDANCAS.clear();
@@ -501,14 +516,64 @@ function montarControle(item, cartao) {
   if (item.faixa) {
     const [lo, hi, passo] = item.faixa;
     const caixa = elemento("div", { class: "faixa" });
+    /* O TERCEIRO ESTADO DO DESLIZANTE — 02/09/2026.
+     *   A validação mediu: "os oito deslizantes de FORMA_* não têm o estado
+     *   vazio: mostram 0 onde o arquivo está VAZIO". E vazio, neste projeto,
+     *   não é zero — é "não toca", o gesto de devolver a decisão ao COSMIC. Um
+     *   deslizante em 0 diz "raio zero, canto reto", que é uma escolha
+     *   diferente e visível na tela dela.
+     *   O mesmo botão serve à palavra especial (`MIDIA_FONTE="auto"`), que é o
+     *   mesmo caso: um valor que não mora na régua.
+     *   Quem declara isso é o esquema (`aceita_vazio`, `opcoes`), não uma lista
+     *   de chaves aqui. */
+    /* A palavra especial vem das opções OU do próprio padrão: `MIDIA_FONTE`
+     * nasce `auto` e não declara lista nenhuma — a palavra está no valor de
+     * fábrica, que é onde o arquivo a diz. */
+    const naoNumero = (v) => v && !/^[\d.,]+$/.test(v);
+    const especial = (item.opcoes || []).find(naoNumero)
+      || (naoNumero(item.padrao) ? item.padrao : null);
+    const forcado = especial && valor === especial;
+    const vazio = valor === "";
+    const naRegua = !vazio && !forcado;
     const slider = elemento("input", {
-      type: "range", min: lo, max: hi, step: passo, value: valor || lo,
+      type: "range", min: lo, max: hi, step: passo,
+      value: naRegua ? valor : lo,
       "aria-label": item.chave,
+      disabled: !naRegua,
     });
-    const saida = elemento("output", { texto: String(valor || lo) });
+    const saida = elemento("output", {
+      texto: vazio ? "não toca" : (forcado ? rotuloDeValor(valor) : String(valor || lo)),
+    });
     slider.addEventListener("input", () => { saida.textContent = slider.value; });
     slider.addEventListener("change", () => aplica(slider.value));
     caixa.append(slider, saida);
+
+    const alternativas = elemento("div", { class: "faixa-estados" });
+    if (item.aceita_vazio) {
+      alternativas.append(elemento("button", {
+        type: "button", class: "btn btn-mini",
+        "aria-pressed": String(vazio),
+        texto: "Não toca",
+        title: "Deixa a decisão com o COSMIC — é o que o vazio significa aqui",
+        onclick: () => aplica(""),
+      }));
+    }
+    if (especial) {
+      alternativas.append(elemento("button", {
+        type: "button", class: "btn btn-mini",
+        "aria-pressed": String(forcado),
+        texto: rotuloDeValor(especial),
+        onclick: () => aplica(especial),
+      }));
+    }
+    if (!naRegua) {
+      alternativas.append(elemento("button", {
+        type: "button", class: "btn btn-mini",
+        texto: "Escolher número",
+        onclick: () => aplica(String(item.padrao || lo)),
+      }));
+    }
+    if (alternativas.childNodes.length) caixa.append(alternativas);
     return caixa;
   }
 
@@ -739,6 +804,15 @@ function botaoAcervo(tipo, aoEntrar) {
       const arq = campo.files && campo.files[0];
       campo.value = "";
       if (!arq) return;
+      /* O MODO SECO COBRE ISTO TAMBÉM — 02/09/2026.
+       *   A validação pegou: "o Modo seco NÃO cobre o botão Adicionar gato —
+       *   ele escreve no repositório mesmo com o seco ligado". O seco é a rede
+       *   de segurança desta página; uma escrita que passa por baixo dela é
+       *   pior que não ter rede, porque ela confia. */
+      if ($("#seco").checked) {
+        torrada(`Modo seco: ${arq.name} não foi enviado (desligue o seco para valer)`, "igual");
+        return;
+      }
       botao.disabled = true;
       const antes = botao.textContent;
       botao.textContent = "Enviando…";
@@ -779,6 +853,34 @@ function botaoAcervo(tipo, aoEntrar) {
 /* A tira mostra o flavor pelo que ele é: fundo, superfície, texto e os quatro
  * acentos. "macchiato" não diz nada; a tira diz. */
 const CORES_DA_TIRA = ["base", "surface0", "surface2", "text", "mauve", "blue", "green", "peach"];
+
+/* NEM TODA COMBINAÇÃO DE FLAVOR E ACCENT EXISTE — 02/09/2026.
+ *   A validação mediu: "FLAVOR × ACCENT oferecem 48 combinações; só 3 existem
+ *   de verdade, e a tela não conta isso em lugar nenhum". O `install.sh` recusa
+ *   a combinação sem captura (o pré-voo avisa), mas só DEPOIS — ela escolhe,
+ *   salva, roda o instalador e leva o não.
+ *   A lista de capturas vem do disco, pela ação `tema_estado`; aqui o que
+ *   importa é o par escolhido estar entre elas. */
+function combinacaoTemCaptura() {
+  const capturas = (ESQUEMA.capturas || []).map((c) => String(c).toLowerCase());
+  if (!capturas.length) return null;
+  const f = flavorEmVigor();
+  const item = ESQUEMA.chaves.find((k) => k.chave === "ACCENT");
+  const a = item ? valorEmVigor(item) : "";
+  if (!f || !a) return null;
+  return { par: `${f}-${a}`, existe: capturas.includes(`${f}-${a}`), capturas };
+}
+
+function avisoDeCombinacao() {
+  const c = combinacaoTemCaptura();
+  if (!c || c.existe) return null;
+  return elemento("p", { class: "frase dominada" }, [
+    elemento("b", { texto: `Não há captura para ${c.par}. ` }),
+    elemento("span", {
+      texto: `O instalador recusa a combinação sem captura. Existem: ${c.capturas.join(", ")}.`,
+    }),
+  ]);
+}
 
 function controleFlavor(item, aplica) {
   const flavors = ESQUEMA.paleta.flavors || {};
@@ -991,7 +1093,7 @@ function montarApps() {
   }
 
   const filtro = elemento("input", {
-    type: "search", class: "busca-apps", value: APPS_BUSCA,
+    type: "search", class: "busca-apps", value: APPS_BUSCA, "data-foco": "apps",
     placeholder: "Filtrar aplicativo…", "aria-label": "Filtrar aplicativo",
     oninput: (e) => { APPS_BUSCA = e.target.value; render(); },
   });
@@ -1046,7 +1148,7 @@ function montarEscolhaDeIcone(app) {
   painel.append(elemento("h3", { class: "titulo-cartao", texto: `Ícone de ${app.nome}` }));
 
   const busca = elemento("input", {
-    type: "search", value: GLIFOS.termo || "",
+    type: "search", value: GLIFOS.termo || "", "data-foco": "glifos",
     placeholder: "Buscar desenho no acervo Arcticons…",
     "aria-label": "Buscar desenho",
     oninput: (e) => carregarGlifos(e.target.value.trim().toLowerCase()),
@@ -1229,6 +1331,11 @@ function montarGaleria() {
     const acoes = elemento("div", { class: "acoes" });
     /* O botão é o comando da CLI, não uma operação de arquivo inventada aqui: a
      * página nunca move nem apaga nada por conta própria. */
+    /* BANIR APARECE EM TODA ABA QUE TENHA O CAMINHO CANÔNICO — não só em "No
+     * carrossel". A validação mediu: "em Noite (25 fotos) e Dia (21 fotos)
+     * nenhuma ficha tem ação… ela vê a foto clara demais na aba da noite e
+     * precisa ir procurá-la pelo nome em No carrossel para poder recusar".
+     * O servidor já manda o `banir` de cada item justamente para isto. */
     if (banidos) {
       acoes.append(elemento("button", {
         type: "button", class: "btn",
@@ -1236,7 +1343,7 @@ function montarGaleria() {
         title: `meow wallpaper desbanir ${i.rotulo}`,
         onclick: () => rodarNaGaleria("wallpaper_desbanir", i.rotulo),
       }));
-    } else if (ABA_GALERIA === "ativos") {
+    } else if (i.banir) {
       acoes.append(elemento("button", {
         type: "button", class: "btn btn-perigo",
         texto: "Banir",
@@ -1331,6 +1438,41 @@ function montarCartao(item) {
    * arquivo e ela procura por ele. */
   const titulo = tituloDoCartao(item);
   if (titulo) cartao.append(elemento("h3", { class: "titulo-cartao", texto: titulo }));
+
+  /* QUEM MANDA HOJE, DITO NO CARTÃO — 02/09/2026.
+   *   Dois achados da validação, e o mesmo defeito nos dois: uma chave que a
+   *   página oferece com um controle vivo, mas que OUTRA chave está anulando.
+   *     · `LOGO_ROTACAO` é um interruptor morto enquanto `LOGO_MODO` estiver
+   *       preenchido (scripts/logo.sh:113-119). Ela marca "Sim", salva, e não
+   *       acontece nada.
+   *     · `LOGO` promete "qual gato fica no ar", mas em `LOGO_MODO="hora"` quem
+   *       escolhe é `LOGO_DIA`/`LOGO_NOITE` — o gato escolhido é desfeito pelo
+   *       relógio na virada seguinte.
+   *   O `bin/meow logo` já diz isso em voz alta na última linha da saída dele;
+   *   faltava a página dizer. É a mesma disciplina do `meow logo girar`, que
+   *   anuncia não ter efeito em vez de fingir que girou.
+   *
+   *   A regra é derivada e mora no servidor (`dominada_por`), não aqui: quem
+   *   sabe qual chave vence qual é quem lê o conf. */
+  if (item.chave === "FLAVOR" || item.chave === "ACCENT") {
+    const aviso = avisoDeCombinacao();
+    if (aviso) cartao.append(aviso);
+  }
+  /* O QUE ESTÁ VALENDO, quando não é o arquivo que manda. O cartão mostrava
+   * 3500 (o padrão de fábrica) com a máquina em 4700 — o número do applet. */
+  if (item.valendo_agora && item.valendo_agora !== valorEmVigor(item)) {
+    cartao.append(elemento("p", { class: "frase dominada" }, [
+      elemento("b", { texto: `Valendo agora: ${item.valendo_agora}. ` }),
+      elemento("span", { texto: "Quem guarda esse número é o applet do modo de leitura; o do arquivo é o padrão de fábrica." }),
+    ]));
+  }
+  if (item.dominada_por) {
+    const d = item.dominada_por;
+    cartao.append(elemento("p", { class: "frase dominada" }, [
+      elemento("b", { texto: `${d.chave}="${d.valor}" está mandando. ` }),
+      elemento("span", { texto: d.porque || "" }),
+    ]));
+  }
   cartao.append(montarControle(item, cartao));
 
   if (item.frase && !titulo) {
@@ -1645,7 +1787,17 @@ function botaoTrilho(g, filho, rotulo) {
     "data-grupo": g.nome,
     "aria-current": String(g.nome === ABA),
     title: g.original || g.nome,
-    onclick: () => { ABA = g.nome; gravarHash(); render(); },
+    onclick: () => {
+      /* CLICAR NO MENU LIMPA A BUSCA — a validação mediu: "o menu para de
+       * funcionar enquanto houver texto na busca". É verdade e é inevitável:
+       * com busca ativa a página mostra os RESULTADOS, não a aba, então o
+       * clique parecia não fazer nada. Trocar de seção é dizer "quero ver esta
+       * aba"; a busca sai do caminho. */
+      $("#busca").value = "";
+      ABA = g.nome;
+      gravarHash();
+      render();
+    },
   }, [
     elemento("span", { texto: rotulo || encurtar(g.nome) }),
     elemento("span", { class: "conta", texto: contaDoGrupo(g) }),
@@ -1684,6 +1836,15 @@ function contaDoGrupo(g) {
 function ancoraDoFoco() {
   const el = document.activeElement;
   if (!el || el === document.body) return null;
+  /* CAMPO COM `data-foco` É ÂNCORA POR SI SÓ.
+   *   Os dois campos de busca da aba de aplicativos ("Filtrar aplicativo" e
+   *   "Buscar desenho") nascem fora de qualquer cartão, então não tinham
+   *   âncora: a validação mediu que eles perdiam o foco NA PRIMEIRA TECLA —
+   *   digitar uma letra redesenhava a grade e o cursor caía fora. Agora eles se
+   *   identificam, e o foco volta com a posição do cursor junto. */
+  if (el.dataset && el.dataset.foco) {
+    return { foco: el.dataset.foco, pos: el.selectionStart };
+  }
   const cartao = el.closest("[data-chave]");
   if (!cartao) return el.id || null;
   return {
@@ -1696,6 +1857,18 @@ function ancoraDoFoco() {
 
 function devolverFoco(ancora) {
   if (!ancora) return;
+  if (ancora.foco) {
+    const alvo = document.querySelector(`[data-foco="${CSS.escape(ancora.foco)}"]`);
+    if (alvo) {
+      alvo.focus();
+      /* O cursor volta para onde estava: sem isto, ele salta para o fim do
+       * texto a cada tecla, e apagar uma letra no meio vira impossível. */
+      if (ancora.pos != null && alvo.setSelectionRange) {
+        try { alvo.setSelectionRange(ancora.pos, ancora.pos); } catch (e) { /* type=search */ }
+      }
+    }
+    return;
+  }
   if (typeof ancora === "string") {
     const alvo = document.getElementById(ancora);
     if (alvo) alvo.focus();
@@ -1782,6 +1955,14 @@ function render() {
     alvo.append(grade);
   }
   devolverFoco(ancora);
+  /* A ABA ABERTA APARECE — em 375px o trilho vira uma tira horizontal com vinte
+   * botões, e a validação mediu que "a marcação existe fora da tela": a aba
+   * ativa podia estar a 600px de rolagem, invisível. `nearest` não sacode a
+   * página quando ela já está à vista. */
+  const ativa = document.querySelector('#trilho button[aria-current="true"]');
+  if (ativa && ativa.scrollIntoView) {
+    ativa.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
 }
 
 /* A BUSCA IGNORA ACENTO, E ISSO NÃO É LUXO NUMA INTERFACE EM PORTUGUÊS
@@ -2009,6 +2190,21 @@ async function iniciar() {
   }
 
   montarGrupos();
+
+  /* O SECO SOBREVIVE AO F5.
+   *   Dois validadores independentes pegaram o mesmo: o interruptor voltava
+   *   DESLIGADO e calado depois de recarregar. Numa página cujo botão seguinte
+   *   pode rodar o instalador, a rede de segurança tem de ser a coisa que mais
+   *   lembra do estado. `sessionStorage` e não `localStorage`: vale enquanto a
+   *   aba viver, que é o tempo de vida do próprio servidor. */
+  try {
+    if (sessionStorage.getItem("meow-seco") === "1") $("#seco").checked = true;
+  } catch (e) { /* aba sem armazenamento: o padrão desligado continua valendo */ }
+  $("#seco").addEventListener("change", () => {
+    try {
+      sessionStorage.setItem("meow-seco", $("#seco").checked ? "1" : "0");
+    } catch (e) { /* idem */ }
+  });
 
   $("#botao-salvar").addEventListener("click", salvarEscolhas);
   $("#botao-descartar").addEventListener("click", descartarEscolhas);
