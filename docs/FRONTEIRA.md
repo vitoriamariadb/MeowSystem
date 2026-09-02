@@ -66,7 +66,9 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `/var/lib/aurora/cosmic-comp-patches.estado` | Aurora | **Aurora escreve, Meow lê e diz** — 644, dono root, legível por ela sem sudo; é o contrato do `meow doctor` |
 | `patches/*.patch` deste repositório | Meow | **Meow** — é onde o patch nasce e é revisado; quem o APLICA é a Aurora, e por isso o doctor confere se ele está na `series` |
 | ciclo de vida do processo `cosmic-panel` | Aurora | **Meow desde 26/08/2026** — o `systemd/meow-painel.service` é o supervisor; o lado da Aurora segue desarmado. A tabela dizia "Aurora" até 29/08 |
-| tema do qBittorrent, `~/.config/fastfetch` | Aurora | **Aurora** — o `meow` chama o script de lá |
+| tema do qBittorrent | Aurora | **Aurora** — o `meow` chama o script de lá |
+| `~/.config/fastfetch/config.jsonc`, chave `logo.source` | Aurora | **Meow escreve, cirurgicamente, desde 01/09/2026** — ver abaixo |
+| binário `cosmic-files` / `cosmic-files-applet` | apt | **Meow, por PATH** — `~/.local/bin/` vence `/usr/bin/`, e o nosso SAI DA FRENTE quando o pacote sobe de versão sem build correspondente |
 
 ---
 
@@ -561,3 +563,50 @@ valer na tela na hora. O dia em que um `apt upgrade` trocar o compositor as resp
 voltam a divergir, e é para esse dia que as duas linhas existem.
 
 ---
+
+---
+
+## O `logo.source` do fastfetch: a única linha que o Meow escreve num arquivo da Aurora
+
+`~/.config/fastfetch` é symlink para `~/.config/zsh/fastfetch/`, e `~/.config/zsh`
+está no `vizinhos.conf` — a TRAVA 1 do `lib/comum.sh` recusa escrever ali, e a
+recusa acontece **depois** do `readlink -m`, então o symlink não a contorna.
+
+**Até 31/08/2026** o `scripts/fastfetch_logo.sh` só LIA aquele arquivo: gerava o
+`.ansi` em território nosso, conferia se o `logo.source` apontava para ele, e
+saía **4** imprimindo o patch para ela colar à mão.
+
+**Mudou em 01/09/2026**, e por três razões, nesta ordem:
+
+1. Ela pediu que tudo fosse *"idempotente e autoajustável de forma que sobreviva
+   sempre"* — e depois, explicitamente: *"pode alterar tudo a nível de sistema,
+   incluindo no aurora"*.
+2. O gato do fastfetch passou a seguir o relógio. Sem a troca da linha, o
+   terminal ficaria com a Coquinha das 18h às 7h **todo dia, para sempre**, e o
+   script diria "gerei o Mimir" enquanto a tela mostra a Coquinha. Aviso que se
+   repete todo dia é aviso que se aprende a ignorar.
+3. A direção já estava autorizada desde 05/08/2026: *"o Andromeda pode ser
+   corrigido pelo MeowSystem"*.
+
+**As quatro guardas**, que são o que separa isto de furar a TRAVA 1:
+
+1. **Uma linha, nunca o arquivo.** A escrita é cirúrgica — troca `logo.source`
+   (e `logo.type`, se estiver errado) e mais nada. Não reserializa o JSON: um
+   `json.dump` mataria os comentários (é JSONC), a ordem das chaves e a
+   indentação dela, e o arquivo vive num repositório com auto-commit a cada
+   10 min — o diff seria o arquivo inteiro reescrito por causa de um enfeite.
+   O `_ffl_ler_conf` conta os módulos com `key` própria (os 19 em português)
+   justamente para acusar o dia em que alguém colar por cima do arquivo todo.
+2. **Backup antes, sempre**, em `~/.local/state/meowsystem/backups/<carimbo>-vizinho/`.
+   Falhar o backup **aborta** a escrita.
+3. **Em voz alta.** Nenhuma escrita acontece sem uma linha na tela dizendo qual
+   arquivo de qual vizinho foi tocado, e onde ficou o backup.
+4. **`FASTFETCH_LOGO_CONF="nao"`** volta ao comportamento antigo (só imprime o
+   patch e sai 4), sem editar script nenhum.
+
+**E o self-heal não disputa esta linha** — medido em 01/09/2026:
+`grep -n fastfetch /usr/local/sbin/ritual-aurora-self-heal.sh` devolve três
+linhas, todas sobre o **symlink** `~/.config/fastfetch -> ~/.config/zsh/fastfetch`
+(self-heal:1585-1587). O **conteúdo** do `config.jsonc` não é escrito por ele em
+ponto nenhum. Sem essa medição isto seria ping-pong de hora em hora — os dois
+donos da mesma linha, que é o defeito que este projeto mais persegue.

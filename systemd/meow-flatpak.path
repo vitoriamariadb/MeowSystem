@@ -9,7 +9,7 @@
 # que fica no applet, voltaram aos originais. ao invés de respeitar o mesmo icon
 # do wpp e afins".
 #
-# O `icons/bandeja.map` já previa isso por escrito desde 10/08 — "um `flatpak
+# O `assets/icones/bandeja.map` já previa isso por escrito desde 10/08 — "um `flatpak
 # update com.rtosta.zapzap` devolve o arquivo de fábrica e o ícone volta a
 # destoar, SEM NADA ACUSANDO" — e nunca houve gatilho. Aconteceu em
 # `ago 20 03:30:36`, segundo o `flatpak history`, e ela viu três dias depois.

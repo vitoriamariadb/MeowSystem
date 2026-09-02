@@ -281,6 +281,16 @@ LEITURA_APPLET_BIN="$HOME/.local/bin/meow-applet-leitura"
 LEITURA_APPLET_SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$LEITURA_APPLET_ID.desktop"
 LEITURA_APPLET_ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
 
+# ONDE O APPLET GUARDA O PONTO QUE ELA ARRASTOU — 31/08/2026
+#   `Config::new_state(NS_ESTADO, 1)` do libcosmic escreve em
+#   ~/.local/state/cosmic/<id>/v1/. O applet grava ali, no `lembra_ponto()`, o
+#   ÚLTIMO par não-nulo dos dois sliders — é a memória de que o interruptor
+#   precisa para religar no ponto certo. Este script passou a ler as mesmas duas
+#   chaves; ver o cabeçalho do `_leitura_resolver_alvo`.
+LEITURA_ESTADO_BASE="${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/$LEITURA_APPLET_ID/v1"
+LEITURA_K_ULT_T="$LEITURA_ESTADO_BASE/ultima_temperatura"
+LEITURA_K_ULT_X="$LEITURA_ESTADO_BASE/ultima_textura"
+
 LEITURA_COMP="/usr/bin/cosmic-comp"
 LEITURA_MARCADOR="AURORA-READING-MODE"
 LEITURA_NIGHTLIGHT="/var/lib/aurora/night-light-temp"
@@ -385,6 +395,73 @@ _leitura_resolver_agenda() {
       # subshell dentro do `case` e o arquivo nem parseia.
       true|"Some(true)")   LEITURA_APPLET_DIZ="sim" ;;
       false|"Some(false)") LEITURA_APPLET_DIZ="nao" ;;
+    esac
+  fi
+  return "$MEOW_OK"
+}
+
+# --- de onde vem o ALVO dos dois números ------------------------------------
+#
+# O BUG QUE ESTA FUNÇÃO EXISTE PARA MATAR — RELATADO POR ELA EM 31/08/2026
+#   "o negócio fica mudando de temperatura sozinho sem respeitar a temperatura
+#   que eu defini."
+#
+#   Estava certíssima, e a conta é de um minuto: o `meow-leitura.timer` bate
+#   `*-*-* *:*:00`, e cada tique gravava `LEITURA_TEMPERATURA` do meow.conf. Ela
+#   arrastava o slider para 6400 K, o applet gravava 6400 na chave do
+#   compositor, e menos de 60 segundos depois este script escrevia 3500 por
+#   cima. Medido no disco no dia: o estado do applet dizia 6400 / 1.0 e o
+#   meow.conf dizia 3500 / 0.35.
+#
+# O QUE ELA PEDIU, NA FRASE DELA
+#   "com agendamento ligado ele sempre vai reproduzir essa funcionalidade tal
+#   horário apenas. Mas respeitando os sliders."
+#
+#   Ou seja: o relógio decide QUANDO, e só isso. QUANTO é dos sliders.
+#
+# POR QUE O `ultima_*` DO ESTADO, E NÃO A CHAVE DO COMPOSITOR
+#   A chave `leitura_temperatura` é o que está NA TELA agora, e de dia ela vale
+#   0 — ler dali daria "o alvo da noite é zero", e a noite nunca mais acenderia.
+#   O `ultima_temperatura` do estado é outra coisa: é o último ponto ÚTIL que ela
+#   arrastou, gravado pelo `lembra_ponto()` do applet quando ela SOLTA o slider,
+#   e ele sobrevive ao dia inteiro em que a tela está apagada. É exatamente a
+#   memória que o interruptor do popup usa para religar no ponto certo — este
+#   script passa a religar no mesmo ponto, que é o que faz o applet e o relógio
+#   contarem a mesma história.
+#
+# O meow.conf CONTINUA VALENDO, E É O QUE SEGURA A MÁQUINA NOVA
+#   Sem applet instalado, sem sessão em que ela tenha tocado num slider, ou com
+#   lixo no estado, o alvo é o do conf — os mesmos 3500 K / 0.35 de sempre. O
+#   `estado` mostra qual das duas fontes venceu, campo a campo.
+LEITURA_FONTE_ALVO_T=""   # applet | meow.conf
+LEITURA_FONTE_ALVO_X=""   # applet | meow.conf
+
+_leitura_resolver_alvo() {
+  local v
+  LEITURA_FONTE_ALVO_T="meow.conf"
+  LEITURA_FONTE_ALVO_X="meow.conf"
+
+  # O portão é o mesmo do `_leitura_alvo_agora`: inteiro que não é inteiro, ou
+  # fora de 1000..6500, não vira alvo — cai no conf em silêncio, e quem AVISA é
+  # o `conferir`. Um `ultima_temperatura` corrompido não pode ser mais forte que
+  # o conf; ele só pode ser IGNORADO.
+  if v="$(_leitura_cru "$LEITURA_K_ULT_T")"; then
+    case "$v" in
+      ""|*[!0-9]*) ;;
+      *) if [ "$v" -ge "$LEITURA_PISO" ] && [ "$v" -le "$LEITURA_NEUTRO" ]; then
+           LEITURA_TEMPERATURA="$v"; LEITURA_FONTE_ALVO_T="applet"
+         fi ;;
+    esac
+  fi
+
+  # `LC_ALL=C` pelo mesmo motivo dos outros dois awk deste arquivo: em pt_BR a
+  # conversão de string para número segue a locale, e um `0.35` viraria 0.
+  if v="$(_leitura_cru "$LEITURA_K_ULT_X")"; then
+    case "$v" in
+      ""|*[!0-9.]*) ;;
+      *) if LC_ALL=C awk -v x="$v" 'BEGIN{ exit !(x >= 0 && x <= 1) }'; then
+           LEITURA_TEXTURA="$v"; LEITURA_FONTE_ALVO_X="applet"
+         fi ;;
     esac
   fi
   return "$MEOW_OK"
@@ -706,6 +783,7 @@ cmd_aplicar() {
     return "$LEITURA_DELA"
   fi
 
+  _leitura_resolver_alvo
   _leitura_alvo_agora || { meow_erro "não consegui calcular o degrau da hora"; return "$MEOW_ERRO"; }
   _leitura_dizer_fonte info
 
@@ -746,6 +824,7 @@ cmd_conferir() {
       meow_pula "o applet desligou o 'Agendar' — o degrau é o que você arrastou"
       return "$LEITURA_DELA"
     fi
+    _leitura_resolver_alvo
     _leitura_alvo_agora || { meow_erro "não consegui calcular o degrau da hora"; return "$MEOW_ERRO"; }
     alvo_t="$LEITURA_ALVO_T"; alvo_x="$LEITURA_ALVO_X"
     _leitura_avisar_chaves
@@ -801,6 +880,13 @@ cmd_estado() {
       nao) meow_pula "quem manda agora: OS SLIDERS — o applet desligou o 'Agendar'" ;;
       *)   meow_pula "quem manda agora: o relógio (o applet ainda não gravou o 'Agendar')" ;;
     esac
+    _leitura_resolver_alvo
+    # A linha `alvo do conf`, acima, mostra os DOIS números antes desta função
+    # rodar — ou seja, mostra o conf. Esta diz de onde cada um veio DEPOIS, que é
+    # a pergunta que ela fez em 31/08 ("por que muda sozinho?").
+    if [ "$LEITURA_FONTE_ALVO_T" = "applet" ] || [ "$LEITURA_FONTE_ALVO_X" = "applet" ]; then
+      meow_info "$(_leitura_col "alvo que vale") ${LEITURA_TEMPERATURA}K ($LEITURA_FONTE_ALVO_T) / ${LEITURA_TEXTURA} ($LEITURA_FONTE_ALVO_X) — os sliders mandam no QUANTO"
+    fi
     if _leitura_alvo_agora; then
       meow_info "$(_leitura_col "agora são")$(_leitura_hhmm "$LEITURA_AGORA") — fase: $LEITURA_FASE (fração $LEITURA_ALVO_F)"
       meow_info "$(_leitura_col "o relógio pede")temperatura=${LEITURA_ALVO_T}  textura=${LEITURA_ALVO_X}"

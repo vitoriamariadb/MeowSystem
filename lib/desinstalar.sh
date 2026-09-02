@@ -20,7 +20,7 @@
 #   ferramentas antes de usá-las e os apps ficariam tematizados para sempre.
 #
 # O QUE MUDOU EM 11/08/2026
-#   Até esta data o `--uninstall` ignorava `app-themes/` inteiro. O manifesto dá
+#   Até esta data o `--uninstall` ignorava `assets/temas-de-apps/` inteiro. O manifesto dá
 #   conta do que passa pela `meow_escrever`, mas os módulos de aplicativo mexem
 #   por fora dela por necessidade: o spicetify reescreve o Spotify, o ZapZap tem
 #   o `.desktop` do export trocado, os toolkits religam symlink. Nada disso está
@@ -88,7 +88,15 @@ meow_desinstalar() {
       meow-assets.path meow-assets.service \
       meow-flatpak.path meow-flatpak.service \
       meow-leitura.timer meow-leitura.service \
+      meow-gato.timer meow-gato.service meow-ativos.path \
       meow-painel.service meow-painel-raio.path meow-painel-raio.service 2>/dev/null || true
+    # A LISTA NOMEADA ACIMA NÃO É REDUNDANTE COM ESTE `find`, e quem acrescentar
+    # unidade nova precisa saber: o `find` APAGA o arquivo, o `disable --now` é
+    # que PARA a unidade viva e tira os links. Apagar o arquivo de uma unidade
+    # ainda ativa deixa um processo rodando sem arquivo — e, no caso do
+    # `meow-gato.service`, um SIGTERM no `cosmic-panel` disparado por uma unidade
+    # que já não existe. Toda unidade nova entra nas DUAS.
+    # (Conferido em 01/09/2026: as três da Sprint W estavam só no `find`.)
     find "$HOME/.config/systemd/user" -maxdepth 1 -name 'meow-*' \
       \( -name '*.service' -o -name '*.timer' -o -name '*.path' \) -delete 2>/dev/null || true
     # O CINTO DOS LINKS, e ele não é redundância da lista acima: é o caso em que
@@ -204,9 +212,26 @@ meow_desinstalar() {
     "$MEOW_RAIZ/scripts/leitura_build.sh" --reverter || true
   fi
 
+  # O ATALHO DO PAINEL SAI AQUI, E NÃO PELO MANIFESTO — 01/09/2026
+  #   Os dois arquivos dele (`~/.local/share/applications/com.meowsystem.Painel
+  #   .desktop` e `~/.local/bin/meow-painel`) passam por `meow_escrever` e ESTÃO
+  #   no manifesto, então o passo 4 os apagaria. O que o passo 4 não faz é
+  #   chacoalhar o `cosmic-app-library` depois — e aí o ícone continuaria na
+  #   grade de aplicativos dela, clicável, apontando para um arquivo que não
+  #   existe mais. É o mesmo buraco do applet: o menu resolve os `.desktop` no
+  #   arranque e GUARDA (`meow_lancador_reler`, em lib/comum.sh). Quem remove com
+  #   o reler junto é o script dono.
+  #
+  #   Rodar os dois (aqui e no passo 4) é inofensivo e de propósito: o `--reverter`
+  #   sai por `meow_pula` quando não há o que tirar, e o passo 4 pula arquivo que
+  #   não existe. É o mesmo cinto que o `midia.sh` e o `leitura_build.sh` já têm.
+  if [ -x "$MEOW_RAIZ/scripts/atalho.sh" ]; then
+    "$MEOW_RAIZ/scripts/atalho.sh" --reverter || true
+  fi
+
   meow_passo "3/6 Tema do COSMIC"
   # O alvo é o PRIMEIRO backup de tema — o COSMIC de antes do MeowSystem NESTA
-  # máquina. A captura `state/tema/original` NÃO serve para isto: ela foi tirada
+  # máquina. A captura `assets/temas/capturados/original` NÃO serve para isto: ela foi tirada
   # de um home específico e está no git.
   local primeiro=""
   local d
@@ -224,13 +249,13 @@ meow_desinstalar() {
   else
     meow_aviso "não há backup pré-instalação em $MEOW_ESTADO/backups/*-tema-PRIMEIRO-*"
     meow_info "  o tema do COSMIC fica como está — ajuste em Configurações > Aparência"
-    meow_info "  (a captura state/tema/original NÃO serve: é o tema de outra máquina)"
+    meow_info "  (a captura assets/temas/capturados/original NÃO serve: é o tema de outra máquina)"
   fi
 
   meow_passo "4/6 Arquivos que este projeto escreveu"
   if [ -f "$MEOW_MANIFESTO" ]; then
     # O clone tem de sair da conta ANTES do laço. A `meow_escrever` é usada
-    # também para gerar arquivo DENTRO do repositório (`icons/curadoria.map`, por
+    # também para gerar arquivo DENTRO do repositório (`assets/icones/curadoria.map`, por
     # exemplo), e essas linhas entram no manifesto como todas as outras — mas
     # aquilo é versionado, quem responde por elas é o git, e o cabeçalho deste
     # arquivo promete não tocar no clone. Sem o `-n`, um `MEOW_RAIZ` vazio viraria
@@ -311,7 +336,7 @@ meow_desinstalar() {
   # curadoria de 24/08/2026, que foi ela quem fez, imagem por imagem.
   #
   # "MAS É REPRODUZÍVEL PELA RECEITA" — e é justamente por isso que a diferença
-  # importa. O `wallpapers/FONTES.tsv` e o `wallpapers/BANIDOS.txt` estão no git
+  # importa. O `assets/papeis-de-parede/FONTES.tsv` e o `assets/papeis-de-parede/BANIDOS.txt` estão no git
   # e reconstroem a escolha dela, sim; mas o `semear` reconstrói **baixando da
   # internet**, uma URL por imagem. Isso depende de rede e de as URLs
   # continuarem vivas — e link rot não avisa. Uma receita que precisa da

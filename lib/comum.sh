@@ -5,7 +5,7 @@
 # ESTE ARQUIVO É `source`, NÃO EXECUTADO.
 #
 # AS CORES SAEM DA PALETA, COMO TUDO AQUI
-#   São os mesmos hex de `palette/catppuccin.json`, convertidos para o truecolor
+#   São os mesmos hex de `assets/paleta/catppuccin.json`, convertidos para o truecolor
 #   do terminal. Se um dia a paleta mudar, muda aqui também — mas continua sem
 #   inventar cor nova no meio do caminho.
 #
@@ -439,6 +439,42 @@ meow_flatpak_tem() {   # 0 = instalado, 1 = não
   [ -d "$HOME/.var/app/$id" ] && return 0
   meow_debug "flatpak '$id' não achado por diretório (app/ nem .var/app/)"
   return 1
+}
+
+# --- O MENU DE LANÇAMENTO RELÊ OS ÍCONES ------------------------------------
+# TRÊS CONSUMIDORES, TRÊS CACHES DIFERENTES, E É ISSO QUE FAZ "instalei e não
+# apareceu" parecer defeito de instalação quando não é:
+#
+#   o dock / painel .... `cosmic-panel`, resolve no arranque -> `painel.sh reciclar`
+#   o terminal ......... `fastfetch`, relê o arquivo a cada execução -> nada a fazer
+#   o menu de lançamento `cosmic-app-library` + `cosmic-launcher`, resolvem no
+#                        arranque e guardam -> é o que esta função destrava
+#
+# Medido em 11/08/2026: o Flatseal aparecia chapado no lançador (processo das
+# 09:34) e em traço na dock (processo das 13:08) — mesmo arquivo no disco, mesmo
+# tema ativo, idades de processo diferentes. Conferir por arquivo responde "está
+# instalado?"; só reiniciar o consumidor responde "está na tela dela?".
+#
+# `pkill -x cosmic-app-library` NÃO FUNCIONA, e a razão é boba: o `comm` do
+# kernel trunca em 15 caracteres, o nome tem 18, e o `-x` exige casamento
+# exato. Vai de `-f`, sobre a linha de comando inteira.
+#
+# MATAR AQUI É SEGURO, e é a diferença para o applet do painel (que deixa buraco
+# no dock quando morre sozinho): estes dois são filhos do `cosmic-session`, que
+# os repõe em segundos e resolve o binário pelo PATH. A grade fecha se estiver
+# aberta — por isso NUNCA chamar isto sem que algo tenha de fato mudado.
+meow_lancador_reler() {
+  meow_seco && return 0
+  local matou=0
+  # `cosmic-launcher` primeiro: é o mais barato de repor e o que ela usa por
+  # atalho de teclado, então a janela de indisponibilidade fica no menor.
+  for alvo in cosmic-launcher cosmic-app-library; do
+    if pgrep -f "$alvo" >/dev/null 2>&1; then
+      pkill -f "$alvo" 2>/dev/null && matou=1
+    fi
+  done
+  [ "$matou" = "1" ] && meow_debug "lançador chacoalhado — o cosmic-session repõe em segundos"
+  return 0
 }
 
 # Notificação: ela precisa saber quando algo mudou sozinho.

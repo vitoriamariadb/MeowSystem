@@ -163,7 +163,7 @@ SOMAS=(
 
 # O cache do tarball fica no repo e está no .gitignore: é a mesma regra do
 # baixar_upstream.sh — o git guarda a RECEITA, não os megabytes.
-CACHE="$RAIZ/src/fonts/upstream"
+CACHE="$RAIZ/assets/fontes/upstream"
 TAR="$CACHE/$NERD_ATIVO"
 
 FONTES_BASE="$HOME/.local/share/fonts"
@@ -369,6 +369,82 @@ if [ -d "$DESTINO" ]; then
       mudou=1
       refazer_cache=1
     fi
+  fi
+fi
+
+# --- 2c-bis. O ACERVO LOCAL: as fontes que ela solta ------------------------
+# 27/08/2026, ela: "/home/vitoriamaria/Downloads/zrnic.zip instala essa fonte via
+# install por favor."
+#
+# A PASTA É A INTERFACE, como em `assets/gatos/`
+#   Soltou um `.otf`/`.ttf` em `assets/fontes/locais/`, ele entra; apagou, sai. Sem
+#   lista dentro de script: uma lista fixa envelheceria na próxima fonte que ela
+#   baixasse, e o sintoma seria "coloquei o arquivo e não aconteceu nada".
+#
+# POR QUE UM SUBDIRETÓRIO, E NÃO O MESMO DESTINO
+#   O `$DESTINO` é do acervo Nerd Fonts, cuja verdade é a lista pinada por
+#   sha256 lá em cima, e cuja limpeza de órfão é de propósito ESTREITA
+#   (`JetBrainsMono*.ttf`) — o comentário de 2c diz, desde 04/08, que ela é
+#   estreita justamente para não comer o que outra frente largasse ali. Esta é
+#   essa outra frente. Misturar os dois no mesmo diretório obrigaria a
+#   distinguir por nome ou a guardar um manifesto de estado; um subdiretório
+#   resolve sem nenhum dos dois, porque `locais/` passa a ter DONO ÚNICO — e
+#   remover órfão só é seguro onde o dono é único. O fontconfig varre
+#   `~/.local/share/fonts` recursivamente, então a fonte é achada igual.
+#
+# NOMES COM ESPAÇO SÃO A NORMA AQUI, NÃO A EXCEÇÃO
+#   O arquivo que ela baixou se chama `zrnic rg.otf`. Fonte de distribuidora vem
+#   assim com frequência, então todo caminho abaixo é citado — e o laço lê por
+#   `find -print0`, não por glob solto.
+ACERVO_LOCAL="$RAIZ/assets/fontes/locais"
+DESTINO_LOCAL="$DESTINO/locais"
+
+if [ -d "$ACERVO_LOCAL" ]; then
+  meow_destino_permitido "$DESTINO_LOCAL" || exit "$MEOW_ERRO"
+  locais_postas=0; locais_tiradas=0
+  desejadas_locais=""
+
+  while IFS= read -r -d '' arq; do
+    nome_l="$(basename "$arq")"
+    desejadas_locais="$desejadas_locais$nome_l
+"
+    alvo_l="$DESTINO_LOCAL/$nome_l"
+    if [ -f "$alvo_l" ] && cmp -s "$arq" "$alvo_l"; then
+      continue
+    fi
+    if meow_seco; then
+      meow_muda "instalaria a fonte local $nome_l em $DESTINO_LOCAL"
+      mudou=1; locais_postas=$((locais_postas + 1)); continue
+    fi
+    mkdir -p "$DESTINO_LOCAL" || { meow_erro "não consegui criar $DESTINO_LOCAL"; exit "$MEOW_ERRO"; }
+    # Temporário no MESMO diretório: `mv` entre sistemas de arquivos não é
+    # atômico (a trava 2 do lib/comum.sh).
+    tmp_l="$(mktemp -p "$DESTINO_LOCAL" ".meow.XXXXXX")" || exit "$MEOW_ERRO"
+    cp -- "$arq" "$tmp_l" || { rm -f "$tmp_l"; meow_erro "não consegui copiar $nome_l"; exit "$MEOW_ERRO"; }
+    chmod 644 "$tmp_l"
+    mv -f "$tmp_l" "$alvo_l" || { rm -f "$tmp_l"; meow_erro "falhou instalar $nome_l"; exit "$MEOW_ERRO"; }
+    mudou=1; refazer_cache=1; locais_postas=$((locais_postas + 1))
+  done < <(find "$ACERVO_LOCAL" -maxdepth 1 -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print0 2>/dev/null)
+
+  # Órfão: estava no acervo ontem, não está hoje. Seguro porque o dono é único.
+  if [ -d "$DESTINO_LOCAL" ]; then
+    while IFS= read -r -d '' arq; do
+      nome_l="$(basename "$arq")"
+      printf '%s' "$desejadas_locais" | grep -qxF "$nome_l" && continue
+      if meow_seco; then
+        meow_muda "removeria $nome_l (saiu de assets/fontes/locais/)"
+      else
+        rm -f "$arq"; refazer_cache=1
+      fi
+      mudou=1; locais_tiradas=$((locais_tiradas + 1))
+    done < <(find "$DESTINO_LOCAL" -maxdepth 1 -type f -print0 2>/dev/null)
+  fi
+
+  if [ "$locais_postas" = 0 ] && [ "$locais_tiradas" = 0 ]; then
+    n_l="$(printf '%s' "$desejadas_locais" | grep -c . || true)"
+    [ "${n_l:-0}" -gt 0 ] && meow_ok "$n_l fonte(s) do acervo local já em $DESTINO_LOCAL"
+  else
+    meow_info "acervo local: $locais_postas instalada(s), $locais_tiradas removida(s)"
   fi
 fi
 

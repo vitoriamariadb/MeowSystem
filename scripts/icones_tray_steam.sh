@@ -108,7 +108,7 @@
 #
 # O `icones_bandeja.sh` se declara DONO ÚNICO de `20x20/status` dentro do
 # `MeowSystem-Icons` e remove órfão lá — qualquer arquivo cujo nome não esteja no
-# `icons/bandeja.map` ele apaga. Este aqui escreve um PNG dentro da árvore de uma
+# `assets/icones/bandeja.map` ele apaga. Este aqui escreve um PNG dentro da árvore de uma
 # instalação da Steam, fora do tema de ícones, com a cor cozida no arquivo e uma
 # dependência que o outro não tem (a Steam instalada). Enfiar isso naquele laço
 # obrigaria o mapa a descrever destinos que não são diretório de tema, e a
@@ -135,11 +135,11 @@
 #
 # A COR VEM COZIDA NO ARQUIVO, E NÃO DA PALETA
 #   §4g do `docs/COSMIC-THEMING.md` e a remedição na própria bandeja
-#   (`icons/bandeja.map:79-94`) mostram que o toolkit repinta `symbolic` e NÃO
+#   (`assets/icones/bandeja.map:79-94`) mostram que o toolkit repinta `symbolic` e NÃO
 #   repinta raster: o simbólico do Hefesto tem `#bebebe` em disco e sai `#FFFFFF`
 #   na tela; este PNG saía `#DEDEDE`, a cor exata do disco. Como aqui o formato é
 #   raster, a cor tem de estar no arquivo — e ela não sai de
-#   `palette/catppuccin.json` de propósito: os vizinhos desta barra são cinzas
+#   `assets/paleta/catppuccin.json` de propósito: os vizinhos desta barra são cinzas
 #   (`#FFFFFF` repintado nos simbólicos, `#dfdfdf` nos painéis do Papirus), e um
 #   mauve aqui seria a única coisa colorida de uma barra monocromática. `#DEDEDE`
 #   é o que foi medido na tela dela em 08/08.
@@ -162,10 +162,10 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-GLIFO="${MEOW_TRAY_STEAM_GLIFO:-$RAIZ/icons/arcticons/steam.svg}"
+GLIFO="${MEOW_TRAY_STEAM_GLIFO:-$RAIZ/assets/icones/arcticons/steam.svg}"
 TRACO="${MEOW_TRAY_STEAM_TRACO:-4}"
 COR="${MEOW_TRAY_STEAM_COR:-#DEDEDE}"
-FABRICA="$RAIZ/icons/tray-terceiros/steam_tray_mono.png.original"
+FABRICA="$RAIZ/assets/icones/tray-terceiros/steam_tray_mono.png.original"
 
 RELATIVO="public/steam_tray_mono.png"
 INVENTARIO="package/steam_client_ubuntu12.installed"
@@ -189,7 +189,7 @@ _raiz_steam() {
 # três campos de uma vez.
 #
 # O PLANO B NÃO PODE TIRAR O `mtime` DO BACKUP VERSIONADO, E ISSO QUASE PASSOU
-#   `icons/tray-terceiros/steam_tray_mono.png.original` tem o CONTEÚDO de fábrica
+#   `assets/icones/tray-terceiros/steam_tray_mono.png.original` tem o CONTEÚDO de fábrica
 #   mas foi copiado sem `-p` em 10/08: o `mtime` dele é 2026-08-10 23:31:54, não
 #   2014-08-06 22:56:20. Tamanho e `crc32` saem do conteúdo e estão certos; o
 #   `mtime` sairia doze anos errado. Por isso o plano B tira o `mtime` do arquivo
@@ -299,7 +299,7 @@ PY
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -f "$GLIFO" ]; then
-    meow_pula "sem o glifo steam em icons/arcticons — nada a vestir"
+    meow_pula "sem o glifo steam em assets/icones/arcticons — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   RAIZ_STEAM="$(_raiz_steam)" || {

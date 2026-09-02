@@ -18,7 +18,19 @@
 #   redispara para sempre. Medido que a armadilha é real: escrever ou apagar um
 #   arquivo em `assets/gatos/` dispara a unidade.
 #
-#   Lidas as quatro escritas do `logo.sh`, TODAS caem fora do caminho vigiado:
+#   UMA ESCRITA PASSOU A CAIR DENTRO, EM 01/09/2026, E ELA É DE PROPÓSITO
+#   O `logo.sh` normaliza o acervo antes de lê-lo: um SVG salvo pelo Boxy com
+#   `transform-box`/`transform-origin` é reescrito com a matriz já achatada,
+#   porque nem o librsvg nem o resvg entendem aquelas duas propriedades e a peça
+#   nova (os dentes que ela desenhou) sumia da tela sem erro nenhum.
+#
+#   O laço não acontece porque a operação é IDEMPOTENTE: o disparo extra roda,
+#   não encontra o que achatar, não escreve, sai. Medido no dia — soltar um SVG
+#   defeituoso no acervo deu DOIS disparos (a cópia e a normalização) e parou.
+#   Contra o `StartLimitBurst=20` abaixo, é folga larga; e o disjuntor continua
+#   ali para o dia em que alguém quebrar a idempotência.
+#
+#   Lidas as demais escritas do `logo.sh`, TODAS caem fora do caminho vigiado:
 #     - o acervo instalado ....... `~/.config/cosmic/logos/meow-<nome>.svg`
 #     - a chave do applet ........ `~/.config/cosmic/dev.cappsy.…/v1/custom_logo_*`
 #     - o estado da rotação ...... `~/.local/state/meowsystem/logo-atual`
@@ -137,7 +149,7 @@ SuccessExitStatus=1 3
 #   string do corpo. Conferido com `systemctl --user show -p ExecStopPost`: o
 #   corpo se partia em três argumentos, e o `notify-send` recusa o excesso. Aspa
 #   simples também não serve (o systemd já usou as dela). Texto sem aspas resolve.
-ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${ASSETS_VIGIA_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "O acervo de gatos mudou e já está no disco. O gato do dock troca no próximo login; meow logo listar mostra quem está no ar."'
+ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${ASSETS_VIGIA_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "O acervo de gatos mudou e já está no ar — dock, terminal e menu de lançamento. meow logo listar mostra quem está desenhado."'
 
 # Um vigia travado seguraria o disparo seguinte. Isto aqui lê uma pasta e escreve
 # meia dúzia de SVG pequenos; um minuto seria folga de sobra para o trabalho.

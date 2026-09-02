@@ -151,16 +151,88 @@ if [ "$CONFERIR" = "1" ]; then
   exit "$MEOW_OK"
 fi
 
+# ============================================================================
+# A ESCALA FRACIONÁRIA SERRILHA O TRAÇO FINO — E ISSO ELE PASSA A DIZER SOZINHO
+# ============================================================================
+# 01/09/2026, pergunta dela sobre os ícones do lançador: "e sobre o serrilhado
+# dos apps e icons?", com captura. O traço do Spotify, do Steam e do Telegram
+# engrossava e afinava dentro do mesmo círculo.
+#
+# NÃO ERAM OS ARQUIVOS, e isso já estava medido aqui dentro: `lib/icones.sh`
+# registra desde 27/08 que o COSMIC rasteriza vetor no tamanho pedido e que
+# `Type=Fixed` contra `Type=Scalable` dá ZERO pixel de diferença. Era a TELA:
+# `cosmic-randr list` devolvia `Scale: 90%` na TV de 1920x1080.
+#
+# O QUE 90% FAZ COM UM ÍCONE DE TRAÇO: o app desenha em 1x e o resultado é
+# reamostrado para 0,9. Uma linha de 1 px vira 0,9 px e o filtro reparte a
+# sobra entre dois pixels — em traço fino, que é o nosso tema inteiro
+# (Arcticons, `fill:none` + `stroke`), o efeito é exatamente o que ela viu.
+# Reproduzido no mesmo dia com o `com.spotify.Client.svg`: rasterizado em
+# tamanho inteiro, nítido; reduzido a 90%, o traço perde a espessura constante.
+#
+# POR QUE ISTO É AVISO E NÃO CONSERTO
+#   Consertar é pôr a escala em 100%, e aí TUDO cresce ~11% na tela dela — que
+#   é uma TV de 52 polegadas onde ela escolheu caber mais coisa. Essa é uma
+#   escolha de gosto, e a regra da casa é que gosto é dela: o script diz o que
+#   mediu, mostra a chave, e para. `ESCALA_TELA="1.0"` no meow.conf aplica.
+#
+# A CONTA DE "FRACIONÁRIA": o dano aparece quando a escala não é um inteiro.
+# 1.0 e 2.0 são reamostragens exatas (ou nenhuma); 0.9, 1.25 e 1.5 não são.
+_escala_fracionaria() {   # 0 = fracionária
+  case "$1" in
+    1|1.0|1.00|2|2.0|2.00|3|3.0) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
 if [ -z "$ESCALA_TELA" ]; then
   meow_pula "ESCALA_TELA vazia — a escala fica com a GUI"
+  if [ "${ESCALA_AVISAR:-sim}" = "sim" ]; then
+    while IFS=$'\t' read -r nome escala larg alt hz; do
+      [ -n "$nome" ] && [ -n "$escala" ] || continue
+      if _escala_fracionaria "$escala"; then
+        meow_aviso "$nome está em escala $escala (fracionária) — o traço fino dos ícones serrilha"
+        meow_info "  o app desenha em 1x e o compositor reamostra: 1 px de traço vira ${escala} px"
+        meow_info "  isso não tem conserto do lado do arquivo — o vetor já é rasterizado no tamanho certo"
+        meow_info "  se quiser nitidez no lugar do tamanho: ESCALA_TELA=\"1.0\" no meow.conf"
+        meow_info "  para calar este aviso sem mudar nada: ESCALA_AVISAR=\"nao\""
+      fi
+    done < <(saidas)
+  fi
   exit "$MEOW_OK"
 fi
 
-case "$ESCALA_TELA" in
-  [0-9]*.[0-9]*|[0-9]) : ;;
-  *) meow_erro "ESCALA_TELA='$ESCALA_TELA' — esperado um número como 1.0, 1.25, 1.5"
-     exit "$MEOW_ERRO" ;;
-esac
+# ============================================================================
+# `ESCALA_TELA="nitida"` — O AUTOMÁTICO QUE ELA PEDIU EM 01/09/2026
+# ============================================================================
+# Palavras dela, sobre a versão que só avisava: "automatico de fato. assim nao".
+# E ela tem razão: um aviso que repete todo dia a mesma frase e espera que
+# alguém digite uma chave não é adaptação, é lista de tarefas para o humano.
+#
+# O QUE `nitida` FAZ: arredonda a escala de cada saída para o INTEIRO mais
+# próximo. 0.9 vira 1; 1.25 vira 1; 1.6 vira 2. Escala inteira é a única que
+# não obriga o compositor a reamostrar o que os aplicativos desenharam — e é a
+# reamostragem que come o traço fino dos ícones (medido no mesmo dia com o
+# `com.spotify.Client.svg`: o traço perde a espessura constante).
+#
+# O QUE ELA CUSTA, E POR ISSO ESTÁ ESCRITO AQUI: sair de 0.9 para 1.0 faz TUDO
+# crescer ~11% — cabe menos coisa na tela. É troca de tamanho por nitidez, e a
+# escolha continua sendo dela: `ESCALA_TELA="0.9"` volta ao que era, e vazio
+# devolve a decisão para a GUI.
+#
+# POR QUE ARREDONDAR EM VEZ DE CHUMBAR 1.0: numa tela 4K a escala boa é 2, e
+# chumbar 1 deixaria a interface minúscula. O arredondamento respeita o tamanho
+# que ela já escolheu e só tira a fração.
+if [ "$ESCALA_TELA" = "nitida" ] || [ "$ESCALA_TELA" = "auto" ]; then
+  ESCALA_AUTO=1
+else
+  ESCALA_AUTO=0
+  case "$ESCALA_TELA" in
+    [0-9]*.[0-9]*|[0-9]) : ;;
+    *) meow_erro "ESCALA_TELA='$ESCALA_TELA' — esperado um número (1.0, 1.25) ou \"nitida\""
+       exit "$MEOW_ERRO" ;;
+  esac
+fi
 
 mudou=0
 vistas=0
@@ -168,13 +240,27 @@ while IFS=$'\t' read -r nome escala larg alt hz; do
   [ -n "$nome" ] && [ -n "$larg" ] || continue
   vistas=$((vistas + 1))
 
-  if mesma_escala "$escala" "$ESCALA_TELA"; then
-    meow_ok "$nome já está em $ESCALA_TELA"
+  # No modo `nitida` o alvo é POR SAÍDA: dois monitores podem estar em escalas
+  # diferentes, e arredondar cada um preserva o tamanho que ela escolheu em
+  # cada tela. `awk` porque o bash não faz conta com vírgula flutuante, e o
+  # arredondamento é o comum (0.5 sobe) com piso em 1 — escala 0 não existe.
+  ALVO="$ESCALA_TELA"
+  if [ "$ESCALA_AUTO" = "1" ]; then
+    # `LC_ALL=C` NÃO É ZELO: o locale dela é pt_BR, e sem isso o `printf "%.1f"`
+    # do awk devolve "1,0" — com vírgula. O `cosmic-randr` recusa aquilo, e o
+    # sintoma seria "o script diz que mudaria e nunca muda". Pego no primeiro
+    # ensaio seco, 01/09/2026.
+    ALVO="$(LC_ALL=C awk -v e="$escala" 'BEGIN { n = int(e + 0.5); if (n < 1) n = 1; printf "%.1f", n }')"
+  fi
+
+  if mesma_escala "$escala" "$ALVO"; then
+    [ "$ESCALA_AUTO" = "1" ] && meow_ok "$nome já está em escala inteira ($escala) — nada a reamostrar" \
+                             || meow_ok "$nome já está em $ALVO"
     continue
   fi
 
   if meow_seco; then
-    meow_muda "mudaria $nome de $escala para $ESCALA_TELA"
+    meow_muda "mudaria $nome de $escala para $ALVO"
     mudou=1
     continue
   fi
@@ -182,11 +268,11 @@ while IFS=$'\t' read -r nome escala larg alt hz; do
   # O MODO VAI JUNTO PORQUE O COMANDO EXIGE, e é o modo CORRENTE: passar outro
   # aqui trocaria a resolução dela de brinde. `--refresh` idem — sem ele o
   # compositor escolheria o modo preferido, que nem sempre é o que está valendo.
-  if cosmic-randr mode "$nome" "$larg" "$alt" --refresh "$hz" --scale "$ESCALA_TELA" 2>/dev/null; then
-    meow_ok "$nome: escala $escala -> $ESCALA_TELA"
+  if cosmic-randr mode "$nome" "$larg" "$alt" --refresh "$hz" --scale "$ALVO" 2>/dev/null; then
+    meow_ok "$nome: escala $escala -> $ALVO (o traço fino para de ser reamostrado)"
     mudou=1
   else
-    meow_erro "cosmic-randr recusou a escala $ESCALA_TELA em $nome"
+    meow_erro "cosmic-randr recusou a escala $ALVO em $nome"
     exit "$MEOW_ERRO"
   fi
 done < <(saidas)

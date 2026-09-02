@@ -40,7 +40,7 @@ PREVIA_DIR = os.path.join(RAIZ, 'icons', 'previa-arcticons')
 CONF_TK = os.path.join(HOME, '.config/cosmic/com.system76.CosmicTk/v1/icon_theme')
 
 # A cor sai da paleta, nunca de um hex escrito aqui — regra do
-# `palette/catppuccin.json` ("nenhum hex pode ser hardcoded em script").
+# `assets/paleta/catppuccin.json` ("nenhum hex pode ser hardcoded em script").
 CATEGORIAS = [
     ('navegador', 'blue',     'Navegadores'),
     ('rede',      'sky',      'Conversa e rede'),
@@ -295,8 +295,8 @@ def main():
     </ul>
     <h3>Quando você aprovar</h3>
     <p class="porque" style="margin:0">
-      Os 35 glifos vão para <code>icons/arcticons-apps/</code> com a cor aplicada, as 35
-      linhas entram em <code>icons/apps-arcticons.map</code>, e
+      Os 35 glifos vão para <code>assets/icones/arcticons-apps/</code> com a cor aplicada, as 35
+      linhas entram em <code>assets/icones/apps-arcticons.map</code>, e
       <code>meow icones reconstruir</code> monta o tema. Reverter é apagar as linhas do
       mapa e rodar de novo — o acervo Catppuccin continua no repo, intacto.
     </p>
@@ -308,7 +308,7 @@ def main():
         fh.write(doc)
     print(saida)
     if faltando:
-        print('SEM ARQUIVO em icons/previa-arcticons/: ' + ', '.join(faltando),
+        print('SEM ARQUIVO em assets/icones/previa-arcticons/: ' + ', '.join(faltando),
               file=sys.stderr)
         return 1
     print(f'{n_marca} marca · {n_interp} escolha minha')

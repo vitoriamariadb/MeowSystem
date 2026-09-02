@@ -1,0 +1,132 @@
+--- a/src/app.rs
++++ b/src/app.rs
+@@ -141,6 +141,11 @@
+     CosmicSettingsDesktop,
+     CosmicSettingsDisplays,
+     CosmicSettingsWallpaper,
++    // MEOW-FILES-WALLPAPER-PATCH-1 — avançar e voltar o papel de parede pelo
++    // menu de contexto da área de trabalho. Ver o comentário do handler de
++    // `Message::MeowWallpaper`, mais abaixo.
++    MeowWallpaperNext,
++    MeowWallpaperPrev,
+     DesktopViewOptions,
+     Delete,
+     EditHistory,
+@@ -214,6 +219,9 @@
+             Self::CosmicSettingsDesktop => Message::CosmicSettings("desktop"),
+             Self::CosmicSettingsDisplays => Message::CosmicSettings("displays"),
+             Self::CosmicSettingsWallpaper => Message::CosmicSettings("wallpaper"),
++            // MEOW-FILES-WALLPAPER-PATCH-1
++            Self::MeowWallpaperNext => Message::MeowWallpaper("proximo"),
++            Self::MeowWallpaperPrev => Message::MeowWallpaper("anterior"),
+             Self::Delete => Message::Delete(entity_opt),
+             Self::DesktopViewOptions => Message::DesktopViewOptions,
+             Self::EditHistory => Message::ToggleContextPage(ContextPage::EditHistory),
+@@ -345,6 +353,8 @@
+     CopyTo(Option<Entity>),
+     CopyToResult(DialogResult),
+     CosmicSettings(&'static str),
++    // MEOW-FILES-WALLPAPER-PATCH-1
++    MeowWallpaper(&'static str),
+     Cut(Option<Entity>),
+     Delete(Option<Entity>),
+     DesktopConfig(DesktopConfig),
+@@ -3048,6 +3058,47 @@
+                     }
+                 }
+             }
++            // ---- MEOW-FILES-WALLPAPER-PATCH-1 -------------------------------
++            // Avançar e voltar o papel de parede a partir do menu de contexto
++            // da área de trabalho.
++            //
++            // POR QUE CHAMAR UM PROGRAMA EXTERNO, E NÃO MEXER NA CONFIGURAÇÃO
++            // AQUI: quem manda no carrossel é o `scripts/wallpaper.sh` do
++            // MeowSystem, e ele é o ÚNICO escritor da configuração do
++            // `cosmic-bg` — a fronteira de quatro casos daquele script (nosso /
++            // fábrica / dela / reversão) e o lock compartilhado com o
++            // `meow-wallpaper.timer` moram lá. Um segundo escritor dentro do
++            // gerenciador de arquivos seria a corrida que aquele arquivo inteiro
++            // existe para impedir.
++            //
++            // `meow` SEM CAMINHO ABSOLUTO, de propósito: `~/.local/bin` está no
++            // PATH da sessão do COSMIC (medido em 01/09/2026 no `environ` do
++            // processo vivo do cosmic-files), e chumbar `/home/<alguém>/…` num
++            // patch o tornaria intransportável para a próxima máquina.
++            //
++            // FALHAR AQUI É SILENCIOSO, e é a mesma escolha do
++            // `Message::CosmicSettings` logo acima: um `warn!` no log. Quem não
++            // tem o `meow` instalado clica no item e não acontece nada — que é
++            // melhor que um diálogo de erro no meio da área de trabalho.
++            Message::MeowWallpaper(arg) => {
++                // O MARCADOR TEM DE ESTAR NUMA STRING DE CÓDIGO VIVO, NÃO NUM
++                // COMENTÁRIO — medido em 01/09/2026: o primeiro build deste
++                // patch trazia `MEOW-FILES-WALLPAPER-PATCH-1` só em comentários,
++                // e `grep -a` no binário devolvia ZERO. Um marcador que não
++                // sobrevive ao compilador não serve para o que ele existe:
++                // responder "este binário é o patchado?" depois de um
++                // `apt upgrade`. É a mesma disciplina dos marcadores
++                // `AURORA-*-PATCH-*` do cosmic-comp.
++                const MARCA: &str = "MEOW-FILES-WALLPAPER-PATCH-1";
++                let mut command = process::Command::new("meow");
++                command.arg("wallpaper").arg(arg);
++                match spawn_detached(&mut command) {
++                    Ok(()) => {}
++                    Err(err) => {
++                        log::warn!("{MARCA}: failed to run meow wallpaper {arg}: {err}");
++                    }
++                }
++            }
+             Message::Delete(entity_opt) => {
+                 let entity = entity_opt.unwrap_or_else(|| self.tab_model.active());
+                 if let Some(tab) = self.tab_model.data::<Tab>(entity) {
+--- a/src/menu.rs
++++ b/src/menu.rs
+@@ -340,6 +340,15 @@
+                     children.push(
+                         menu_item(fl!("change-wallpaper"), Action::CosmicSettingsWallpaper).into(),
+                     );
++                    // MEOW-FILES-WALLPAPER-PATCH-1 — os dois itens vêm LOGO
++                    // DEPOIS de "Alterar o plano de fundo", porque é o vizinho
++                    // temático: quem procura papel de parede olha ali primeiro.
++                    children.push(
++                        menu_item(fl!("meow-wallpaper-next"), Action::MeowWallpaperNext).into(),
++                    );
++                    children.push(
++                        menu_item(fl!("meow-wallpaper-prev"), Action::MeowWallpaperPrev).into(),
++                    );
+                     children.push(
+                         menu_item(fl!("desktop-appearance"), Action::CosmicSettingsDesktop).into(),
+                     );
+--- a/i18n/en/cosmic_files.ftl
++++ b/i18n/en/cosmic_files.ftl
+@@ -353,6 +353,8 @@
+ 
+ ## Desktop
+ change-wallpaper = Change wallpaper...
++meow-wallpaper-next = Next wallpaper
++meow-wallpaper-prev = Previous wallpaper
+ desktop-appearance = Desktop appearance...
+ display-settings = Display settings...
+ 
+--- a/i18n/pt-BR/cosmic_files.ftl
++++ b/i18n/pt-BR/cosmic_files.ftl
+@@ -379,6 +379,8 @@
+ ## Desktop
+ 
+ change-wallpaper = Alterar o plano de fundo...
++meow-wallpaper-next = Próximo papel de parede
++meow-wallpaper-prev = Papel de parede anterior
+ desktop-appearance = Aparência da área de trabalho...
+ display-settings = Configurações da tela...
+ 
+--- a/i18n/pt/cosmic_files.ftl
++++ b/i18n/pt/cosmic_files.ftl
+@@ -341,6 +341,8 @@
+ sort-by-trashed = Ordenar por data de eliminação
+ remove-from-recents = Remover dos itens recentes
+ change-wallpaper = Alterar papel de parede...
++meow-wallpaper-next = Próximo papel de parede
++meow-wallpaper-prev = Papel de parede anterior
+ desktop-appearance = Aparência da área de trabalho...
+ display-settings = Definições do ecrã...
+ reload-folder = Recarregar pasta

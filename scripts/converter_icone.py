@@ -11,8 +11,8 @@ PARA QUE SERVE
 QUEM CHAMA ISTO
     `scripts/construir_convertidos.sh`, e SÓ ele — nunca o `install.sh`. A
     conversão não é etapa de instalação, é a ferramenta que GERA o acervo
-    `icons/convertidos-apps/`, que fica COMMITADO no repositório como o
-    `icons/arcticons-apps/`. Arte que ela aprovou numa folha tem de aparecer no
+    `assets/icones/convertidos-apps/`, que fica COMMITADO no repositório como o
+    `assets/icones/arcticons-apps/`. Arte que ela aprovou numa folha tem de aparecer no
     `git diff`; arte gerada em tempo de instalação mudaria em silêncio no dia
     em que o Papirus fosse atualizado. Ver o cabeçalho daquele script.
 
@@ -53,7 +53,7 @@ O PIPELINE, EM SETE PASSOS
        substituto vetorizado da abertura morfológica que o scipy faria
     4. COLAPSA CONTORNO: componente fino que embrulha outro some, e as duas
        vizinhas se encontram no eixo médio dele. É o que impede a linha dupla
-       quando o original JÁ TEM contorno — o caso dos `src/icons/autorais/`.
+       quando o original JÁ TEM contorno — o caso dos `assets/icones/autorais/`.
     5. traça a fronteira de cada classe com marching squares, com DEDUPE
        global de aresta: fronteira entre A e B é desenhada UMA vez, não duas
        (duas cópias simplificadas divergem e engrossam o traço)
@@ -90,7 +90,7 @@ O QUE SOBROU DE FORA, E POR QUÊ (a leitura dela da folha, 11/08/2026)
       · btop — a conversão é fiel, e o original é justamente o "B" na placa
         opaca de que ela reclamou em 08/08. Aqui o Arcticons já tinha vencido.
     E três NÃO passam por aqui apesar de estarem no mapa: Flatseal, Warehouse
-    e Gradia têm desenho à mão em `icons/convertidos-apps/retoques/`, que vence
+    e Gradia têm desenho à mão em `assets/icones/convertidos-apps/retoques/`, que vence
     a conversão sempre — ver `construir_convertidos.sh`.
 
 USO
@@ -352,7 +352,7 @@ def colapsar_fitas(rot: np.ndarray, n: int, limiar48: float, res: int,
     elas separavam passa a correr pelo meio delas.
 
     ISTO É O CONSERTO MAIS IMPORTANTE DO CONVERSOR, e ele veio de olhar a
-    primeira folha a 48px. Os `src/icons/autorais/*.svg` já têm contorno:
+    primeira folha a 48px. Os `assets/icones/autorais/*.svg` já têm contorno:
     `stroke-width="2"` na cor `tinta`. Traçar a fronteira de cor ingenuamente
     devolve DUAS linhas — a de fora e a de dentro do próprio contorno — e o
     ícone sai com traço duplo, que a 48px lê como borrão, não como desenho.

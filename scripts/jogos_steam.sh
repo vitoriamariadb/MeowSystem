@@ -43,8 +43,10 @@ set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+# shellcheck source=../lib/icones.sh
+. "$RAIZ/lib/icones.sh"
 # `meow_nome_do_mapa`: o encurtamento do rótulo mora no `nomes_apps.sh`, com a
-# lista em `icons/apps-nomes.map`. As chaves de lá são `steam-<appid>` (o Sackboy
+# lista em `assets/icones/apps-nomes.map`. As chaves de lá são `steam-<appid>` (o Sackboy
 # e o ORPHEUS estouravam a célula do lançador) — a chave NÃO muda junto com o
 # prefixo do arquivo, senão o mapa deixaria de casar em silêncio.
 . "$RAIZ/scripts/nomes_apps.sh"
@@ -125,28 +127,56 @@ algum_icone_da_steam() {
 # mesma entrada: sem ele o timestamp embutido no PNG faz o arquivo mudar toda
 # rodada e o doctor acusa divergência eterna. Medido: dois `convert` separados
 # por um segundo dão o mesmo sha256.
+# A ESCADA INTEIRA, E NÃO UM TAMANHO SÓ — 27/08/2026
+#   Este script plantava em `256x256` e mais nada. Medido no resolvedor real,
+#   com a dock desenhando aplicativo a 41 px de dispositivo: os sete
+#   `meow-steam-*` devolviam pixbuf 256x256 para TODO pedido, ou seja uma
+#   redução de 6,2x em tempo de desenho. É o mesmo defeito que o
+#   `icones_apps.sh` curou em 08/08/2026 para o acervo Catppuccin — e a lição
+#   nunca tinha chegado aqui. Foi o que ela viu: "tem mt icon quebrados".
+#
+#   Os degraus vêm de `meow_icones_escada` (lib/icones.sh), que os DERIVA da
+#   escala da tela em vez de cravá-los. Nesta tela, a 114%, sai
+#   `16 22 24 32 48 56 64 72 80 96`.
+#
+#   A PROPORÇÃO 246/256 (96%) É MANTIDA EM TODO DEGRAU, e não é enfeite: era o
+#   respiro que a arte já tinha na caixa de 256. Cravar 246 nos outros tamanhos
+#   colaria a arte na borda dos pequenos e deixaria os grandes com folga demais.
 plantar_icone() {
-  local id="$1" fonte destino dir tmp
-  destino="$HICOLOR/256x256/apps/meow-steam-$id.png"
+  local id="$1" fonte destino dir tmp px lado mudou_algum=0
   meow_tem convert || return 1
   fonte="$(arte_do_jogo "$id")" || return 1
-  meow_destino_permitido "$destino" || return 1
-  dir="$(dirname "$destino")"
-  mkdir -p "$dir" || return 1
-  # O temporário nasce DENTRO do diretório de destino: `mv` entre sistemas de
-  # arquivos diferentes não é atômico (trava 2 do lib/comum.sh).
-  tmp="$(mktemp -p "$dir" ".meow.XXXXXX.png")" || return 1
-  if ! convert "$fonte" -resize 246x246 -background none -gravity center -extent 256x256 \
-        -strip -define png:exclude-chunk=tIME,tEXt,zTXt "$tmp" 2>/dev/null; then
-    rm -f "$tmp"; return 1
-  fi
-  if [ -f "$destino" ] && cmp -s "$tmp" "$destino"; then
-    rm -f "$tmp"; return 0
-  fi
-  if meow_seco; then rm -f "$tmp"; return 2; fi
-  chmod 644 "$tmp"
-  mv -f "$tmp" "$destino" || { rm -f "$tmp"; return 1; }
-  return 2
+
+  while read -r px; do
+    [ -n "$px" ] || continue
+    destino="$HICOLOR/${px}x${px}/apps/meow-steam-$id.png"
+    meow_destino_permitido "$destino" || return 1
+    dir="$(dirname "$destino")"
+    mkdir -p "$dir" || return 1
+    # 96% da caixa, como o 246/256 original.
+    lado=$(( px * 96 / 100 ))
+    [ "$lado" -lt 1 ] && lado=1
+    # O temporário nasce DENTRO do diretório de destino: `mv` entre sistemas de
+    # arquivos diferentes não é atômico (trava 2 do lib/comum.sh).
+    tmp="$(mktemp -p "$dir" ".meow.XXXXXX.png")" || return 1
+    if ! convert "$fonte" -resize "${lado}x${lado}" -background none -gravity center \
+          -extent "${px}x${px}" \
+          -strip -define png:exclude-chunk=tIME,tEXt,zTXt "$tmp" 2>/dev/null; then
+      rm -f "$tmp"; return 1
+    fi
+    if [ -f "$destino" ] && cmp -s "$tmp" "$destino"; then
+      rm -f "$tmp"; continue
+    fi
+    if meow_seco; then rm -f "$tmp"; mudou_algum=1; continue; fi
+    chmod 644 "$tmp"
+    mv -f "$tmp" "$destino" || { rm -f "$tmp"; return 1; }
+    mudou_algum=1
+  done <<EOF_ESCADA
+$(meow_icones_escada)
+EOF_ESCADA
+
+  [ "$mudou_algum" = 1 ] && return 2
+  return 0
 }
 
 # --- 1. os jogos, dos manifestos para o lançador ------------------------------
@@ -223,10 +253,11 @@ done < <(bibliotecas)
 # por prefixo de nome sozinho: um `.desktop` que ela escreveu à mão não é órfão
 # de ninguém.
 
-removidos=0; duplicatas=0
+removidos=0; duplicatas=0; degraus_removidos=0
 if [ "$ausentes" -gt 0 ]; then
   meow_info "biblioteca desmontada nesta rodada — limpeza de órfãos adiada de propósito"
 else
+
   for f in "$APPS"/meow-steam-*.desktop; do
     [ -e "$f" ] || continue
     grep -q '^X-MeowSystem=jogo-steam$' "$f" || continue
@@ -235,9 +266,38 @@ else
     if meow_seco; then
       meow_muda "removeria o atalho de um jogo desinstalado (appid $orfao)"
     else
-      rm -f "$f" "$HICOLOR/256x256/apps/meow-steam-$orfao.png"
+      # Remove de TODO degrau — inclusive dos que saíram da escada quando a
+      # escala da tela mudou; por isso o glob e não a lista.
+      rm -f "$f" "$HICOLOR"/*/apps/meow-steam-"$orfao".png
     fi
     mudou=1; removidos=$((removidos + 1))
+  done
+
+  # DEGRAU ÓRFÃO — o outro eixo da limpeza, e ele é NOVO (27/08/2026)
+  #   A varredura acima remove o ícone de um JOGO que saiu da biblioteca. Falta
+  #   o caso simétrico: o jogo continua, mas o DEGRAU saiu da escada — foi o que
+  #   aconteceu ao ligar a escada derivada, com os `256x256` antigos sobrando
+  #   fora dela. Sem isto, cada mudança de escala da tela deixaria uma camada de
+  #   arquivos mortos, e o resolvedor poderia escolher justamente um deles.
+  #
+  #   O critério é a escada VIVA, não uma lista: `meow_icones_escada` responde o
+  #   que vale agora, e todo `<tam>x<tam>/apps/meow-steam-*.png` fora dela sai.
+  #   Por isso a escada tem de ser a mesma função que PLANTA — duas listas aqui
+  #   seriam o defeito de dois donos com outra roupa.
+  escada_viva="$(meow_icones_escada)"
+  for f in "$HICOLOR"/*/apps/meow-steam-*.png; do
+    [ -e "$f" ] || continue
+    degrau="$(basename "$(dirname "$(dirname "$f")")")"   # "256x256"
+    degrau="${degrau%%x*}"
+    case "$degrau" in ''|*[!0-9]*) continue ;; esac
+    printf '%s' "$escada_viva" | grep -qx "$degrau" && continue
+    if meow_seco; then
+      meow_muda "removeria $f (degrau $degrau fora da escada desta tela)"
+    else
+      meow_destino_permitido "$f" || continue
+      rm -f "$f"
+    fi
+    mudou=1; degraus_removidos=$((degraus_removidos + 1))
   done
 
   # Os dois donos antigos: `steam-jogo-<appid>.desktop` (steam-gera-atalhos.sh do
@@ -322,7 +382,7 @@ else
   # Cache de ícones do gerador do Aurora, órfão desde 29/07 (17 PNGs, um deles de
   # um jogo que ela nem tem mais). Só sai quando nenhum `.desktop` o referencia.
   velho="$HOME/.local/share/icons/steam-jogos"
-  if [ -d "$velho" ] && ! grep -rqls 'icons/steam-jogos' "$APPS" 2>/dev/null; then
+  if [ -d "$velho" ] && ! grep -rqls 'assets/icones/steam-jogos' "$APPS" 2>/dev/null; then
     if meow_seco; then
       meow_muda "removeria o cache de ícones órfão do gerador antigo ($velho)"
     else
@@ -366,6 +426,11 @@ meow_tem update-desktop-database && update-desktop-database "$APPS" 2>/dev/null 
 
 [ "$escritos" -gt 0 ] && meow_ok "$escritos jogo(s) da Steam no lançador (ícone natural, como ela pediu)"
 [ "$removidos" -gt 0 ] && meow_ok "$removidos atalho(s) de jogo desinstalado removidos"
+# A MENSAGEM NÃO PODE MENTIR: degrau órfão não é jogo desinstalado. Os dois
+# contadores existem separados porque a primeira versão somava tudo em
+# `removidos` e anunciou "7 atalhos de jogo desinstalado" quando o que saíra
+# foram sete arquivos `256x256` de jogos que continuam instalados.
+[ "${degraus_removidos:-0}" -gt 0 ] && meow_ok "$degraus_removidos ícone(s) em degrau fora da escada removidos (a escada desta tela é: $(meow_icones_escada_dita))"
 [ "$duplicatas" -gt 0 ] && meow_ok "$duplicatas jogo(s) deixaram de aparecer duas vezes no lançador"
 meow_info "para juntá-los num grupo: lançador → Novo grupo → nome 'Jogos' → categoria Game"
 exit "$MEOW_DIVERGENTE"

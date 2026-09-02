@@ -7,7 +7,7 @@ justifica sozinho**.
 | arquivo | o que é |
 |---|---|
 | `especificacao-original.md` | o relatório que serviu de especificação (§2 paleta, §4 como o COSMIC se veste, §8 o inventário da máquina). Boa parte já foi superada pelo que se mediu depois — quando os dois discordarem, [`docs/COSMIC-THEMING.md`](../COSMIC-THEMING.md) vence, porque lá cada afirmação tem data e método |
-| `estilo-escuro-original.ron` | o tema que a Vitória tinha montado à mão antes do projeto. É a origem da estrutura preservada — raio 8, gaps (0,5), `active_hint` 4, `frosted` VeryLow2 e o `alpha_map` de 14 chaves — que hoje vive em `palette/cosmic-map.json` sob `estrutura_preservada`. O projeto trocou a paleta e não tocou na estrutura: isto aqui é a prova de qual era qual |
+| `estilo-escuro-original.ron` | o tema que a Vitória tinha montado à mão antes do projeto. É a origem da estrutura preservada — raio 8, gaps (0,5), `active_hint` 4, `frosted` VeryLow2 e o `alpha_map` de 14 chaves — que hoje vive em `assets/paleta/cosmic-map.json` sob `estrutura_preservada`. O projeto trocou a paleta e não tocou na estrutura: isto aqui é a prova de qual era qual |
 
 ## O que foi removido, e por quê
 

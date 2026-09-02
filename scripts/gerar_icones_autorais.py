@@ -31,7 +31,7 @@ OS PAPÉIS SÃO SENSÍVEIS A FLAVOR CLARO, E ISSO NÃO É DETALHE
     corpo dá 7,06 no Latte e 12,97 no Mocha, e contra o próprio mauve dá 4,79 e
     9,23. No Mocha ele vira a moldura escura do touchpad real, no Latte a borda
     clara que o separa do corpo. Uma forma a mais que resolve os dois flavors de
-    uma vez. Os números saem de `palette/catppuccin.json`, fórmula WCAG 2.x.
+    uma vez. Os números saem de `assets/paleta/catppuccin.json`, fórmula WCAG 2.x.
 
 AS DUAS DECISÕES DE DESENHO QUE FORAM MEDIDAS A 48px, NÃO IMAGINADAS
     Os ícones são vistos a ~48px no lançador. Nesse tamanho:
@@ -120,8 +120,8 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-PALETA = RAIZ / "palette" / "catppuccin.json"
-DESTINO = RAIZ / "src" / "icons" / "autorais"
+PALETA = RAIZ / "assets" / "paleta" / "catppuccin.json"
+DESTINO = RAIZ / "assets" / "icones" / "autorais"
 
 # Papel -> (nome Catppuccin em flavor escuro, nome em flavor claro).
 PAPEIS = {

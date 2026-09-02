@@ -7,7 +7,7 @@
 #   nas linhas ia facilitar nossa vida"*.
 #
 #   O pedido é só de COR. O traço continua traço, `fill:none` continua
-#   `fill:none`, e a paleta continua sendo `palette/catppuccin.json` — nenhum hex
+#   `fill:none`, e a paleta continua sendo `assets/paleta/catppuccin.json` — nenhum hex
 #   de fora entra no tema. O que muda é QUAL cor da paleta cada aplicativo veste.
 #
 # POR QUE ELA PRECISA DECIDIR, E NÃO EU
@@ -49,7 +49,7 @@ HOME = os.path.expanduser('~')
 #
 # Estes hexes são de FORA e existem só para comparação visual nesta folha. A
 # regra "nenhum hex hardcoded" vale para a cor do TEMA, que continua saindo de
-# `palette/catppuccin.json` — aqui não há cor de tema nenhuma.
+# `assets/paleta/catppuccin.json` — aqui não há cor de tema nenhuma.
 #
 # `medido`  = a arte instalada NESTA máquina, rasterizada a 128 px e medida em
 #             Oklab (bin de matiz de 30°, cor do bin dominante). Sempre a arte
@@ -401,7 +401,7 @@ def main():
     </p>
     <p class="porque" style="margin:0">
       Escolher só uma parte também vale: cada linha de
-      <code>icons/apps-marca.map</code> é independente. Apagar a do Foliate, ou a
+      <code>assets/icones/apps-marca.map</code> é independente. Apagar a do Foliate, ou a
       do Brave, não afeta as outras.
     </p>
   </div>

@@ -1,0 +1,69 @@
+# meow-gato.timer — o relógio que troca o gato do dock e o do terminal.
+#
+# POR QUE DE CINCO EM CINCO MINUTOS, E NÃO UM `OnCalendar` NAS DUAS BORDAS
+#   A resposta óbvia seria `OnCalendar=18:00` e `OnCalendar=07:00` — dois
+#   despertares por dia em vez de 288, e a virada no segundo exato. Ela é
+#   ERRADA aqui pelo mesmo motivo, medido, que já derrubou a mesma ideia no
+#   `meow-leitura.timer`: A HORA NÃO É FIXA.
+#
+#   A janela de noite vem do `lib/noite.sh`, e ele lê, nesta ordem: `NOITE_*` do
+#   `meow.conf`, depois `leitura_hora_inicio`/`leitura_hora_fim` do CosmicComp —
+#   que ELA ARRASTA na interface do applet do modo de leitura, a qualquer
+#   segundo —, depois `WALLPAPER_NOITE_*`. Uma unidade com `18:00` cravado
+#   dentro não daria erro nenhum no dia em que ela mudasse para 20:30: o gato
+#   trocaria na hora errada, calado, para sempre.
+#
+#   Manter o `OnCalendar` em dia exigiria um `.path` sobre o diretório do
+#   CosmicComp (que a Aurora também escreve), um drop-in gerado, um
+#   `daemon-reload` a cada mudança e um laço a desarmar. Três peças novas para
+#   economizar 286 despertares que custam 0,05 s cada.
+#
+# O PREÇO, MEDIDO EM 01/09/2026 NESTA MÁQUINA
+#   Um tique comum, com o carimbo do fastfetch batendo:  0,05 s
+#   288 tiques/dia = ~14 s de CPU por dia. E `AccuracySec=60s` deixa o systemd
+#   FUNDIR este despertar com os dos outros timers dentro da janela, então o
+#   custo real é menor que a soma.
+#
+#   ANTES DA GUARDA BARATA ERAM 0,37 s POR TIQUE, porque o `fastfetch_logo.sh`
+#   rasterizava o SVG em 2048 px SEMPRE, só para poder comparar. 288 × 0,37 s =
+#   ~106 s/dia por um efeito que acontece duas vezes. A guarda (um carimbo com
+#   gato + colunas + linhas, invalidado por mtime do SVG) está documentada em
+#   `_ffl_ja_esta_certo`, e o `conferir` do doctor NÃO a usa — barato no minuto,
+#   desconfiado uma vez por dia.
+#
+# `AccuracySec=60s` E NÃO OS 20s DO IRMÃO: com período de 300s e uma virada que
+# tem janela de horas, um minuto de folga não custa nada e dá ao systemd espaço
+# para agrupar despertares. O atraso máximo da troca do gato passa a ser 6 min.
+#
+# `Persistent=false`: uma virada perdida com a máquina desligada NÃO é dívida a
+# pagar no boot. O próximo tique, em menos de cinco minutos, põe o gato certo de
+# qualquer jeito — e `Persistent=true` faria o primeiro tique depois de um
+# desligamento longo cair no meio do login, que é justamente quando reciclar o
+# painel é pior.
+#
+# `OnActiveSec=30s` DÁ O PRIMEIRO TIQUE LOGO APÓS O LOGIN, sem esperar até o
+# próximo múltiplo de 5. É o que faz o gato estar certo já na primeira olhada da
+# manhã, em vez de ficar até 5 min com o rosto da noite. 30s é depois de o
+# `cosmic-panel` ter subido (ele nasce no mesmo segundo do
+# `cosmic-session.target`), então um reciclo aqui não pega o painel nascendo.
+#
+# `WantedBy=cosmic-session.target` e `PartOf=`: sem sessão não há dock para
+# vestir, e o `Linger=yes` desta máquina (medido em 31/08/2026) mantém o gerente
+# `--user` vivo depois do logout — sem o `PartOf=` o relógio continuaria batendo
+# com a sessão fechada.
+
+[Unit]
+Description=MeowSystem — o relógio do gato (troca no nascer e no pôr da noite)
+Documentation=man:systemd.timer(5)
+PartOf=cosmic-session.target
+After=cosmic-session.target
+
+[Timer]
+OnActiveSec=30s
+OnCalendar=*-*-* *:00/5:00
+AccuracySec=60s
+Persistent=false
+Unit=meow-gato.service
+
+[Install]
+WantedBy=cosmic-session.target

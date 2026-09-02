@@ -14,7 +14,7 @@
 # Queixa dela, 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon
 # que fica no applet, voltaram aos originais."
 #
-# O `icons/bandeja.map` já tinha ESCRITO que isso ia acontecer, em 10/08:
+# O `assets/icones/bandeja.map` já tinha ESCRITO que isso ia acontecer, em 10/08:
 # "Um `flatpak update com.rtosta.zapzap` devolve o arquivo de fábrica e o ícone
 # volta a destoar, SEM NADA ACUSANDO." O `flatpak history` diz quando foi:
 #
@@ -60,7 +60,7 @@
 #                           motivo medido: `~/.local/share/flatpak/exports/share`
 #                           está no `XDG_DATA_DIRS` desta máquina (ver
 #                           docs/FRONTEIRA.md:145), e um app novo pode chegar
-#                           trazendo `icons/hicolor/...` com um nome que a
+#                           trazendo `assets/icones/hicolor/...` com um nome que a
 #                           bandeja resolve. É barato — o script compara por
 #                           conteúdo e não escreve nada quando está tudo certo.
 #

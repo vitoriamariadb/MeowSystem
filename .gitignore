@@ -1,22 +1,36 @@
 # Upstreams baixados: Papirus, cosmic-icons, wallpapers da comunidade. São grandes
 # e reproduzíveis — o repo guarda o script que baixa, com commit pinado, não o conteúdo.
-src/icons/upstream/
-src/wallpapers/baixados/
+assets/icones/upstream/
+assets/papeis-de-parede/baixados/
 # O tarball da Nerd Font tem 6,4 MB; a receita (versão pinada + os SHA-256 de
 # cada face) está em scripts/instalar_fontes.sh, que é o que importa versionar.
-src/fonts/upstream/
+assets/fontes/upstream/
+
+# As fontes que ela solta em `assets/fontes/locais/` — o BINÁRIO fica de fora, o
+# LEIA-ME entra. Duas razões, e as duas valem sozinhas:
+#   · prática: é o mesmo motivo do upstream acima — binário de fonte não é o que
+#     este repositório tem a dizer; o que se versiona é a etapa que o instala;
+#   · de licença: fonte de terceiro vem com EULA própria (a `zrnic rg.otf` veio
+#     com o "Typodermic Desktop EULA 2026.pdf" no zip), e o repositório não é
+#     lugar de redistribuí-la.
+# Consequência assumida: numa máquina nova a fonte não volta sozinha — é preciso
+# soltar o arquivo no acervo de novo. Está escrito no LEIA-ME de lá.
+assets/fontes/locais/*.otf
+assets/fontes/locais/*.ttf
+assets/fontes/locais/*.OTF
+assets/fontes/locais/*.TTF
 
 # Imagens nunca vão para o git (o Andromeda ficou 18h com o auto-sync mudo por um
 # arquivo >100MB; aqui a regra é preventiva).
 #
-# É esta regra que mantém `wallpapers/` fora do git. Foram 242 arquivos de
+# É esta regra que mantém `assets/papeis-de-parede/` fora do git. Foram 242 arquivos de
 # zhichaoh/catppuccin-wallpapers (193 MB, baixados em 05/08/2026); depois da
 # curadoria de 24/08/2026 são 54 — 11 daquele acervo e 43 buscadas na internet.
 # Eles ficam no disco, dentro do repositório, e o git não os enxerga. O que
 # reproduz a pasta é o `scripts/wallpaper.sh semear`, lendo o commit pinado
-# mais `wallpapers/FONTES.tsv` e `wallpapers/BANIDOS.txt` — que são texto e
+# mais `assets/papeis-de-parede/FONTES.tsv` e `assets/papeis-de-parede/BANIDOS.txt` — que são texto e
 # VÃO para o git: sem eles a curadoria dela não sobrevive a uma reinstalação.
-# Os ÍCONES (`icons/catppuccin/`, 3.280 SVGs, 13 MB) VÃO para o git: são texto,
+# Os ÍCONES (`assets/icones/catppuccin/`, 3.280 SVGs, 13 MB) VÃO para o git: são texto,
 # comprimem bem, e é o pack inteiro que ela escolheu usar.
 *.jpg
 *.jpeg
@@ -26,7 +40,7 @@ src/fonts/upstream/
 !docs/spec-visual/*.png
 
 # Estado local da máquina: backups e log ficam fora, em ~/.local/state/meowsystem.
-# state/tema/ E VERSIONADO: sao as capturas que fazem o "3 cliques uma vez na vida"
+# assets/temas/capturados/ E VERSIONADO: sao as capturas que fazem o "3 cliques uma vez na vida"
 # continuarem valendo mesmo se esta maquina for reformatada. Sao texto pequeno.
 
 *.tmp
@@ -56,3 +70,23 @@ src/applets/now-playing/target/
 # já o listava como não rastreado. Uma linha de irmão que não foi copiada junto
 # com o irmão é a forma mais barata de descobrir isso do jeito caro.
 src/applets/leitura/target/
+
+# --- O ACERVO DE PAPÉIS DE PAREDE MORA AQUI DESDE 01/09/2026 ----------------
+# Ele veio de `~/.local/share/backgrounds/meowsystem/` (que virou symlink para
+# cá), por decisão dela: uma pasta só, visível onde ela trabalha.
+#
+# AS REGRAS ABAIXO SÃO POR DIRETÓRIO, E NÃO POR EXTENSÃO, DE PROPÓSITO. As
+# linhas `*.jpg`/`*.png` acima já cobririam quase tudo — mas "quase" é o que
+# custa caro: um `.gif`, um `.bmp`, um `.avif` ou uma anotação `.txt` largada
+# lá dentro entraria no git sem ninguém perceber, e o Andromeda já ficou 18 h
+# com o auto-sync mudo por UM arquivo grande demais.
+#
+# O que FICA versionado nesta pasta são as três receitas — `FONTES.tsv`,
+# `BANIDOS.txt` e `LICENSE` —, e é por isso que elas estão no mesmo nível e não
+# dentro de `ativos/`. São elas que reproduzem o acervo num disco novo.
+assets/papeis-de-parede/ativos/
+assets/papeis-de-parede/ativos-dia/
+assets/papeis-de-parede/ativos-noite/
+assets/papeis-de-parede/banidos/
+assets/papeis-de-parede/favoritos/
+assets/papeis-de-parede/originais/

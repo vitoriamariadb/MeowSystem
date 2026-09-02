@@ -8,7 +8,7 @@ no mesmo espírito do `Dracula_OS-Theme`, mas nativo de COSMIC.
 |---|---|
 | Alvo | Pop!_OS 24.04 LTS · COSMIC 1.0.0 · cosmic-comp (Wayland) · 1920×1080 @60Hz |
 | Paleta | Catppuccin Mocha (accent Mauve) — 4 flavors gerados |
-| Repositório proposto | `vitoriamariadb/MeowSystem-Theme` (GPL-3.0) |
+| Repositório proposto | `[REDACTED]/MeowSystem-Theme` (GPL-3.0) |
 | Integra com | `Andromeda-OS` (zsh) e `Spellbook-OS` |
 | Data | 4 de agosto de 2026 |
 
@@ -34,15 +34,15 @@ bash scripts/listar-apps.sh            # tabela: id | nome | ícone | origem
 bash scripts/listar-apps.sh --csv      # pra planilha
 ```
 
-**Passo 2 — teste o tema hoje mesmo.** Já tem três `.ron` prontos em `themes/`
+**Passo 2 — teste o tema hoje mesmo.** Já tem três `.ron` prontos em `assets/temas/`
 (§2.5). Importe e veja se a direção agrada antes de escrever uma linha de código.
 
 **Passo 3 — entregue o `PROMPT-a ferramenta-CODE.md`** ao a ferramenta. Ele foi escrito
 pra ser colado inteiro, com sprints e critérios de aceite.
 
 Legenda de confiança usada em todo o documento:
-**✅ verificado** nesta pesquisa · **⚠️ validar** (existe, mas confirme nome/versão/estado) ·
-**❌ não existe** (com plano B).
+** verificado** nesta pesquisa · ** validar** (existe, mas confirme nome/versão/estado) ·
+** não existe** (com plano B).
 
 ---
 
@@ -154,9 +154,9 @@ prontos — importe, olhe 10 minutos em cada, decide com os olhos.
 
 | Arquivo | O que é |
 |---|---|
-| `themes/meowsystem-mocha-mauve.ron` | **recomendado** — sua estrutura + Mocha + accent Mauve |
-| `themes/meowsystem-mocha-pink.ron` | igual, accent Pink e `window_hint` Mauve |
-| `themes/meowsystem-macchiato-mauve.ron` | base um tom mais claro, se Mocha ficar pesado |
+| `assets/temas/meowsystem-mocha-mauve.ron` | **recomendado** — sua estrutura + Mocha + accent Mauve |
+| `assets/temas/meowsystem-mocha-pink.ron` | igual, accent Pink e `window_hint` Mauve |
+| `assets/temas/meowsystem-macchiato-mauve.ron` | base um tom mais claro, se Mocha ficar pesado |
 
 Importar: **Configurações → Área de trabalho → Aparência → Importar**.
 
@@ -173,12 +173,12 @@ está na §8.4.
 
 | Repo | Para quê | Status |
 |---|---|---|
-| `catppuccin/cosmic-desktop` | temas `.ron` do COSMIC + esquemas do cosmic-term, 4 flavors × todos os accents | ✅ existe, MIT, ~260★ |
-| `catppuccin/whiskers` | gerador (templates Tera) usado por eles | ✅ |
-| `catppuccin/palette` | as cores canônicas em formato de máquina | ⚠️ validar nome do arquivo/API |
-| `catppuccin/papirus-folders` | pastas do Papirus recoloridas, `cat-<flavor>-<cor>` | ✅ verificado |
-| `catppuccin/cursors` | tema de cursor | ⚠️ validar release |
-| `cosmic-themes.org` | galeria da comunidade (tem Catppuccin publicado) | ✅ |
+| `catppuccin/cosmic-desktop` | temas `.ron` do COSMIC + esquemas do cosmic-term, 4 flavors × todos os accents |  existe, MIT, ~260 |
+| `catppuccin/whiskers` | gerador (templates Tera) usado por eles |  |
+| `catppuccin/palette` | as cores canônicas em formato de máquina |  validar nome do arquivo/API |
+| `catppuccin/papirus-folders` | pastas do Papirus recoloridas, `cat-<flavor>-<cor>` |  verificado |
+| `catppuccin/cursors` | tema de cursor |  validar release |
+| `cosmic-themes.org` | galeria da comunidade (tem Catppuccin publicado) |  |
 
 O `catppuccin/cosmic-desktop` aceita overrides na geração — e são exatamente os
 eixos que você já configurou à mão:
@@ -195,7 +195,7 @@ Opções disponíveis: `accent`, `roundness` (`round`/`slightlyround`/`square`),
 
 **Decisão de arquitetura:** o repositório deve usar o `whiskers` como gerador
 oficial (upstream cuida de mudanças de schema do COSMIC) **e** manter os `.ron`
-gerados versionados em `themes/`, pra instalação funcionar sem toolchain Rust.
+gerados versionados em `assets/temas/`, pra instalação funcionar sem toolchain Rust.
 
 ### 3.2 Por app — os que você usa
 
@@ -206,26 +206,26 @@ gerados versionados em `themes/`, pra instalação funcionar sem toolchain Rust.
 
 | App (no seu launcher / no Dracula_OS) | Caminho Catppuccin | Status |
 |---|---|---|
-| COSMIC (painel, dock, applets, Configurações, Files, Edit) | `catppuccin/cosmic-desktop` → `.ron` | ✅ |
-| cosmic-term | `themes/cosmic-term/*.ron` do mesmo repo | ✅ |
-| GTK3 / GTK4 / Flatpak | **não precisa de tema GTK**: o COSMIC gera o CSS a partir do tema quando "aplicar tema global" está ligado (✅ documentado pela System76) | ✅ |
-| Qt / KDE (você usa `breeze-dark`) | Catppuccin Kvantum / qt5ct | ⚠️ validar |
-| Firefox | o tema global do COSMIC já alcança o Firefox (✅ System76); reforço opcional com userChrome | ✅ / ⚠️ |
-| Chrome / Chromium | via extensão de userstyles | ⚠️ |
-| kitty | `catppuccin/kitty` | ⚠️ validar |
-| Spotify (Spicetify) | `catppuccin/spicetify` | ⚠️ validar |
-| Obsidian | `catppuccin/obsidian` | ⚠️ validar |
-| Telegram Desktop | port oficial (`.tdesktop-theme`) | ⚠️ validar |
-| Discord / Vesktop | `catppuccin/discord` | ⚠️ validar |
-| qBittorrent | port oficial | ⚠️ validar se cobre app Qt ou só WebUI |
-| VS Code / Zed | ports oficiais | ✅ (Zed verificado) |
-| OnlyOffice | sem port conhecido | ❌ → tema escuro nativo + recolor manual |
-| Foliate, Apostrophe, BleachBit, Flatseal, GParted, Gradia, File Roller, Calculadora | apps GTK → herdam do tema global | ✅ automático |
-| Boxy SVG (Electron) | sem port | ❌ → tema escuro nativo |
-| zsh (`Andromeda-OS`) | trocar paleta Dracula do `functions/_helpers.zsh`; `catppuccin/zsh-syntax-highlighting` | ⚠️ |
-| bat, btop, fzf, delta, starship, lazygit | ports oficiais | ⚠️ validar um a um |
-| fastfetch | sem port; logo ASCII + cores da paleta (§4.9) | ❌ → fazemos |
-| Sons do sistema | Catppuccin não tem tema de som | ❌ → reaproveitar os 25 `.oga` CC0 do `Dracula_OS-Theme` |
+| COSMIC (painel, dock, applets, Configurações, Files, Edit) | `catppuccin/cosmic-desktop` → `.ron` |  |
+| cosmic-term | `assets/temas/cosmic-term/*.ron` do mesmo repo |  |
+| GTK3 / GTK4 / Flatpak | **não precisa de tema GTK**: o COSMIC gera o CSS a partir do tema quando "aplicar tema global" está ligado ( documentado pela System76) |  |
+| Qt / KDE (você usa `breeze-dark`) | Catppuccin Kvantum / qt5ct |  validar |
+| Firefox | o tema global do COSMIC já alcança o Firefox ( System76); reforço opcional com userChrome |  /  |
+| Chrome / Chromium | via extensão de userstyles |  |
+| kitty | `catppuccin/kitty` |  validar |
+| Spotify (Spicetify) | `catppuccin/spicetify` |  validar |
+| Obsidian | `catppuccin/obsidian` |  validar |
+| Telegram Desktop | port oficial (`.tdesktop-theme`) |  validar |
+| Discord / Vesktop | `catppuccin/discord` |  validar |
+| qBittorrent | port oficial |  validar se cobre app Qt ou só WebUI |
+| VS Code / Zed | ports oficiais |  (Zed verificado) |
+| OnlyOffice | sem port conhecido |  → tema escuro nativo + recolor manual |
+| Foliate, Apostrophe, BleachBit, Flatseal, GParted, Gradia, File Roller, Calculadora | apps GTK → herdam do tema global |  automático |
+| Boxy SVG (Electron) | sem port |  → tema escuro nativo |
+| zsh (`Andromeda-OS`) | trocar paleta Dracula do `functions/_helpers.zsh`; `catppuccin/zsh-syntax-highlighting` |  |
+| bat, btop, fzf, delta, starship, lazygit | ports oficiais |  validar um a um |
+| fastfetch | sem port; logo ASCII + cores da paleta (§4.9) |  → fazemos |
+| Sons do sistema | Catppuccin não tem tema de som |  → reaproveitar os 25 `.oga` CC0 do `Dracula_OS-Theme` |
 
 **Instrução importante pro a ferramenta:** não confiar nesta tabela como verdade
 final. O primeiro passo do build é **gerar** o catálogo consultando a lista
@@ -238,7 +238,7 @@ aparece sozinho na próxima execução.
 **Não existe tema de ícones Catppuccin oficial completo.** Isso é o principal
 trabalho artesanal do projeto. Quatro caminhos, em ordem de custo/benefício:
 
-1. **Papirus + `catppuccin/papirus-folders`** (✅ verificado, mais barato).
+1. **Papirus + `catppuccin/papirus-folders`** ( verificado, mais barato).
    Cobre pastas com precisão Catppuccin e ~4000 ícones de app do Papirus.
    ```bash
    sudo apt install papirus-icon-theme
@@ -250,7 +250,7 @@ trabalho artesanal do projeto. Quatro caminhos, em ordem de custo/benefício:
    `~/.local/share/icons/MeowSystem-Icons/` e aplicar as pastas lá, deixando o
    sistema intocado (idempotente, reversível).
 2. **`Cosmictron`** (comunidade, `SethStormR/Cosmictron`) — feito *para* o
-   COSMIC, 8 cores, acompanha `.ron` e wallpapers. ⚠️ Tem o detalhe conhecido de
+   COSMIC, 8 cores, acompanha `.ron` e wallpapers.  Tem o detalhe conhecido de
    precisar remover `Places/16` pra pastas renderizarem.
 3. **Fork recolorido do `pop-os/cosmic-icons`** (CC-SA-4.0): pegar os SVGs
    nativos do COSMIC e trocar as cores pela paleta — via mapa de cores exato
@@ -266,12 +266,12 @@ favoritos**, com herança em cascata (§4.5). Igual à estratégia
 ### 3.4 Wallpapers
 
 - `zhichaoh/catppuccin-wallpapers` — coleção da comunidade, wallpapers já dentro
-  da paleta, organizados em pastas ⚠️ (não é repo oficial do Catppuccin, então o
+  da paleta, organizados em pastas  (não é repo oficial do Catppuccin, então o
   instalador deve pinar um commit e não seguir `main` cegamente). É a fonte mais
   prática pra encher a pasta de rotação no primeiro dia.
-- `pop-os/cosmic-wallpapers` — os oficiais do COSMIC ✅
+- `pop-os/cosmic-wallpapers` — os oficiais do COSMIC
 - **O melhor caminho pro seu caso:** recolorir *suas* imagens pra paleta.
-  `lutgen` (CLI, ⚠️ validar nome do pacote) aplica um LUT Catppuccin em qualquer
+  `lutgen` (CLI,  validar nome do pacote) aplica um LUT Catppuccin em qualquer
   foto. Seu gato rosa continua sendo seu gato — só passa a ser Catppuccin de fato,
   em vez de rosa-vizinho. Um único comando por imagem, resultado reprodutível,
   e o repo guarda o script, não as fotos (peso).
@@ -292,7 +292,7 @@ revelou), a estrutura de configuração e o comportamento observável.
 
 Cada componente tem um diretório `com.system76.<Componente>/v1/` e **cada
 chave é um arquivo separado** contendo um valor RON. Padrões do sistema em
-`/usr/share/cosmic/<mesma estrutura>` (✅ confirmado no empacotamento do `cosmic-bg`).
+`/usr/share/cosmic/<mesma estrutura>` ( confirmado no empacotamento do `cosmic-bg`).
 
 ```
 ~/.config/cosmic/
@@ -365,7 +365,7 @@ Pra ir além do estático existe `cosmic-ext-bg` (comunidade, drop-in do
 `cosmic-bg`): wallpaper em **vídeo**, GIF animado, shader WGSL e slideshow por
 CLI (`cosmic-ext-bg-ctl set ~/Wallpapers/ -r 300`). É o substituto natural do
 `--video-wallpaper` (xwinwrap+mpv) do `Dracula_OS-Theme`, que **não funciona no
-Wayland**. ⚠️ Trocar um serviço de sessão do COSMIC por um fork é a decisão mais
+Wayland**.  Trocar um serviço de sessão do COSMIC por um fork é a decisão mais
 arriscada do projeto: entra como flag opcional (`--wallpaper-animado`), nunca no
 `--all`, e com rollback documentado.
 
@@ -432,7 +432,7 @@ Depois de instalar qualquer ícone: `gtk-update-icon-cache -f ~/.local/share/ico
 
 - **GTK3/GTK4**: com "aplicar tema global" ligado (`CosmicTk` → `apply_theme_global`),
   o COSMIC **gera** o CSS a partir do seu tema e aplica em GTK3, GTK4 e apps
-  Flatpak (✅ documentado pela System76). Isso apaga metade do trabalho do
+  Flatpak ( documentado pela System76). Isso apaga metade do trabalho do
   `Dracula_OS-Theme`: não há tema GTK a manter, nem `dark.css` de extensão pra
   substituir.
 - **Flatpak**: além disso, pode precisar de acesso aos temas/ícones do usuário:
@@ -446,18 +446,18 @@ Depois de instalar qualquer ícone: `gtk-update-icon-cache -f ~/.local/share/ico
   `configurar-atalhos-cosmic.sh` no Andromeda-OS — o repo de tema **não deve**
   duplicar isso, só referenciar).
 - Tela de login: `cosmic-greeter` usa o tema do sistema; wallpaper próprio é
-  configuração separada (⚠️ validar caminho no inventário).
-- Sons: Catppuccin não tem tema de som ❌. Plano B: reaproveitar os 25 `.oga`
+  configuração separada ( validar caminho no inventário).
+- Sons: Catppuccin não tem tema de som . Plano B: reaproveitar os 25 `.oga`
   CC0 (Kenney) que o `Dracula_OS-Theme` já empacotou.
 
 ### 4.8 Limites honestos
 
 | Você pediu | Realidade | O que dá pra fazer |
 |---|---|---|
-| Ícones animados no dock/painel | ❌ Não existe. Ícone XDG é SVG estático; o renderizador não executa animação SMIL/CSS. | (a) **applet próprio** em Rust/libcosmic que redesenha o ícone num timer — animação real, é a única via legítima no painel; (b) cursor animado (XCursor é multi-frame por spec); (c) wallpaper animado (§4.4) |
-| Substituir CSS do shell (como `pop-shell-dark.css`) | ❌ COSMIC não tem CSS. É Rust + RON tipado. | Tudo pelo `.ron` + configs de painel. Menos poder de gambiarra, muito mais estabilidade |
-| Blur / vidro | ✅ Existe (`frosted*`) e você já usa | Manter; custo de GPU é irrelevante na sua 4060 |
-| Tema em app proprietário (OnlyOffice, Boxy SVG) | ❌ Sem port | Tema escuro nativo do app; não prometer coerência total |
+| Ícones animados no dock/painel |  Não existe. Ícone XDG é SVG estático; o renderizador não executa animação SMIL/CSS. | (a) **applet próprio** em Rust/libcosmic que redesenha o ícone num timer — animação real, é a única via legítima no painel; (b) cursor animado (XCursor é multi-frame por spec); (c) wallpaper animado (§4.4) |
+| Substituir CSS do shell (como `pop-shell-dark.css`) |  COSMIC não tem CSS. É Rust + RON tipado. | Tudo pelo `.ron` + configs de painel. Menos poder de gambiarra, muito mais estabilidade |
+| Blur / vidro |  Existe (`frosted*`) e você já usa | Manter; custo de GPU é irrelevante na sua 4060 |
+| Tema em app proprietário (OnlyOffice, Boxy SVG) |  Sem port | Tema escuro nativo do app; não prometer coerência total |
 
 Dizer isso agora evita a decepção de descobrir no meio do caminho. O rice fica
 excelente sem ícone animado — e se você quiser mesmo o gato piscando no painel,
@@ -469,7 +469,7 @@ excelente sem ícone animado — e se você quiser mesmo o gato piscando no pain
   (`"logo": {"source": "~/.config/fastfetch/meow.txt", "type": "file-raw"}`) —
   é ali que entra um gato em ASCII com as cores Catppuccin, no lugar do
   logotipo do Pop!_OS que aparece hoje no seu terminal.
-- **zsh/Andromeda-OS**: o `functions/_helpers.zsh` tem "Paleta Dracula" —
+- **assets/zsh/Andromeda-OS**: o `functions/_helpers.zsh` tem "Paleta Dracula" —
   virar Catppuccin ali propaga pra todos os 27 módulos de uma vez.
 - **Documentos e apps do dia a dia** (`bat`, `btop`, `fzf`, `delta`) fecham a
   sensação de "tudo combina" com muito pouco esforço.
@@ -490,21 +490,21 @@ MeowSystem-Theme/
 ├── build.sh                # gera dist/ (temas + ícones + PNGs multi-tamanho)
 ├── catalog.json            # GERADO: apps × port Catppuccin × status
 ├── mapping.json            # app_id -> ícone (curado; regeneração preserva edições)
-├── palette/
+├── assets/paleta/
 │   ├── catppuccin.json     # 4 flavors × 26 cores (fonte única de verdade)
 │   └── cosmic-map.json     # o mapa da §2.2
-├── themes/
+├── assets/temas/
 │   ├── cosmic/*.ron        # flavor × accent (gerados, versionados)
 │   └── cosmic-term/*.ron
 ├── src/
-│   ├── icons/
+│   ├── assets/icones/
 │   │   ├── autorais/       # sua logo do gato + ícones que você desenhar
 │   │   ├── overrides/      # symbolic de sistema com forma customizada
 │   │   └── upstream/       # (git-ignored) Papirus/cosmic-icons baixados
-│   ├── wallpapers/         # scripts de recolorização (não as fotos)
+│   ├── assets/papeis-de-parede/         # scripts de recolorização (não as fotos)
 │   ├── sounds/             # .oga CC0 herdados do Dracula_OS
 │   └── fastfetch/          # meow.txt (ASCII art) + config.jsonc
-├── app-themes/             # kitty, spicetify, obsidian, discord, telegram, bat, btop...
+├── assets/temas-de-apps/             # kitty, spicetify, obsidian, discord, telegram, bat, btop...
 ├── state/                  # snapshot de ~/.config/cosmic (capturar/restaurar)
 ├── scripts/
 │   ├── coleta.sh           # o inventário read-only (já existe aqui)
@@ -570,7 +570,7 @@ re-executável sem duplicar efeito.
 
 | # | Entrega | Depende de |
 |---|---|---|
-| 0 | Inventário (`coleta.sh`) + esqueleto do repo + `palette/` | você rodar o script |
+| 0 | Inventário (`coleta.sh`) + esqueleto do repo + `assets/paleta/` | você rodar o script |
 | 1 | `gerar_temas.py` → todos os `.ron`; `aplicar_tema.sh`; confirmar CLI do cosmic-settings; **teste do symbolic** (§4.5) | 0 |
 | 2 | Logo do gato instalada como ícone do menu/dock/greeter + PNGs multi-tamanho | 1 |
 | 3 | `MeowSystem-Icons`: herança Papirus + pastas Catppuccin + `mapping.json` gerado dos seus `.desktop` | 0, 2 |
@@ -649,7 +649,7 @@ lógica do cosmic-settings, não é cópia). Então o `install.sh` usa
 **importar-uma-vez → capturar → restaurar**:
 
 1. você importa o `.ron` pela GUI (uma vez, 10 segundos);
-2. `scripts/capturar_tema.sh` copia as 4 árvores + `Mode` para `state/tema/<nome>/`;
+2. `scripts/capturar_tema.sh` copia as 4 árvores + `Mode` para `assets/temas/capturados/<nome>/`;
 3. daí em diante `aplicar_tema.sh` **restaura por cópia de arquivo** — 100%
    automático, idempotente, e reversível.
 
@@ -709,7 +709,7 @@ O instalador **não toca** nessas listas. Backup antes, diff depois.
 
 ```ron
 rotation_frequency: 300,
-source: Path(".../Cyberpunk Neon Cat Wallpaper _ Synthwave Vibe 🐱💜.jpeg"),
+source: Path(".../Cyberpunk Neon Cat Wallpaper _ Synthwave Vibe .jpeg"),
 backgrounds: []
 ```
 
@@ -724,7 +724,7 @@ Tem: `rsvg-convert`, `convert` (ImageMagick 6), `gtk-update-icon-cache`, `fzf`,
 `fastfetch`, `zsh`. Faltam: `papirus-icon-theme`, `lutgen` (recolorir wallpaper),
 `whiskers` (opcional), `bat`, `btop`. Seu fastfetch está com
 `"logo": {"type": "builtin", "source": "pop"}` — é ali que o gato ASCII entra
-(arquivos prontos em `src/fastfetch/`).
+(arquivos prontos em `assets/fastfetch/`).
 
 ### 8.11 cosmic-term é o seu terminal — e ainda está no padrão
 
@@ -735,7 +735,7 @@ com.system76.CosmicTerm/v1/  →  font_size: 14 · opacity: 96 · use_bright_bol
 
 Não existe chave de esquema de cores ainda — ela só nasce quando você importa um
 esquema pela primeira vez (**Ver → Esquemas de cores… → Importar**, com
-`themes/cosmic-term/*.ron` do `catppuccin/cosmic-desktop`). Por isso o sprint 5
+`assets/temas/cosmic-term/*.ron` do `catppuccin/cosmic-desktop`). Por isso o sprint 5
 usa a mesma técnica do tema: importa uma vez, diffa o `~/.config` pra descobrir
 onde foi parar, e automatiza por cópia. Suas preferências (fonte 14, opacidade
 96, negrito brilhante) são preservadas.

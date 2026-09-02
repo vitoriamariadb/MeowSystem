@@ -353,11 +353,37 @@ laco() {
     #   spawnava OUTRO. Resultado, medido na tela dela: dois cosmic-panel do
     #   mesmo laço (2041167 e 2042099), topbar e dock duplicadas.
     #   Enquanto este painel viver, quem manda é este laço interno.
+    # A RONDA É DE 5s, E ERA DE 60s — 01/09/2026, DUPLA NA TELA DELA
+    #   Ela viu topbar E dock duplicadas por volta das 20:32 e perguntou por que
+    #   o problema tinha voltado. Não era o painel fantasma: era ESTE laço.
+    #   Medido no journal do dia:
+    #
+    #     20:29:02  meow-painel: painel reposto (pid 1894196)   <- o NOSSO
+    #     ~20:32    o cosmic-session, vencido o backoff, repôs o DELE
+    #     20:33:02  meow-painel: o cosmic-session voltou a ter painel — cedendo
+    #
+    #   Entre a volta do supervisor e a nossa cessão, DOIS cosmic-panel
+    #   desenhavam a mesma barra e a mesma dock. A cessão estava correta; ela só
+    #   acontecia na próxima acordada, e a acordada era de minuto em minuto —
+    #   240s de dupla naquele caso (quatro sonos), porque quem define o instante
+    #   da volta é o backoff do supervisor, não nós.
+    #
+    #   Cinco segundos põem o teto da dupla em 5s. O custo é a ronda:
+    #   `meow_painel_do_supervisor` são dois `pgrep` e um `ps` por painel vivo —
+    #   12 rondas por minuto contra 1. É barulho de fundo perto de um painel
+    #   duplicado na tela dela.
+    #
+    #   O QUE NÃO ACELERA JUNTO É A TRÉGUA DA AURORA: ela escreve um arquivo em
+    #   /run, e 12 escritas por minuto seriam I/O para nada. O contador abaixo a
+    #   mantém no ritmo antigo (uma por minuto), que é o que a CARENCIA=600s do
+    #   vigia da Aurora precisa.
+    local desde_tregua=60
     while kill -0 "$pid" 2>/dev/null; do
-      sleep 60 & sono=$!
+      sleep 5 & sono=$!
       wait -n "$pid" "$sono" 2>/dev/null
       kill "$sono" 2>/dev/null
       kill -0 "$pid" 2>/dev/null || break
+      desde_tregua=$(( desde_tregua + 5 ))
 
       # RENOVAR A TRÉGUA AQUI NÃO É ZELO.
       #   Carimbar só no spawn cobre os primeiros 600s (a CARENCIA do vigia da
@@ -366,7 +392,10 @@ laco() {
       #   PERMANENTE num painel sem o socketpair do supervisor — o nosso.
       #   Sem esta linha o par vira um pisca-pisca: ele mata a cada 3 min, nós
       #   repomos, a cota se esgota e a barra fica caída de verdade.
-      meow_painel_carencia_aurora
+      if [ "$desde_tregua" -ge 60 ]; then
+        meow_painel_carencia_aurora
+        desde_tregua=0
+      fi
 
       # O supervisor voltou a ter painel? O dele é melhor (tem o sino).
       if meow_painel_do_supervisor >/dev/null 2>&1; then

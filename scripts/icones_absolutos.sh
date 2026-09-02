@@ -44,7 +44,7 @@
 # SÓ MEXE EM CAMINHO ABSOLUTO — ESSA É A TRAVA
 #   Se o `Icon=` já for um nome, o script não toca. Não há "melhorar" um nome aqui:
 #   trocar um nome que resolve por outro é decisão de mapa, não de script, e é o
-#   que o `icons/apps.map` e o `icons/apps-arcticons.map` fazem. A única coisa que
+#   que o `assets/icones/apps.map` e o `assets/icones/apps-arcticons.map` fazem. A única coisa que
 #   este arquivo conserta é a forma que impede o tema de ser consultado.
 #
 # E SÓ NA SEÇÃO `[Desktop Entry]`
@@ -54,7 +54,7 @@
 #   seção errada, efeito outro.
 #
 # O NOME NOVO TEM DE EXISTIR NO TEMA, E QUEM O CRIA É OUTRO SCRIPT
-#   `input-remapper` passou a existir por uma linha no `icons/apps-arcticons.map`
+#   `input-remapper` passou a existir por uma linha no `assets/icones/apps-arcticons.map`
 #   (`input-remapper:keymapper:sky`, com a medição de cor lá dentro), posta em
 #   `48x48/apps` pelo `icones_apps_arcticons.sh`. Este script NÃO instala ícone:
 #   se o nome não resolver, ele avisa e não escreve — trocar um caminho que
@@ -93,7 +93,7 @@ DIRS=(
 #
 #   input-remapper-gtk  Icon=/usr/share/input-remapper/input-remapper.svg, o
 #                       único caminho absoluto dos 50 visíveis. O nome novo é
-#                       `input-remapper`, que o `icons/apps-arcticons.map` faz
+#                       `input-remapper`, que o `assets/icones/apps-arcticons.map` faz
 #                       existir com o glifo `keymapper` na cor `sky` — gamepad com
 #                       D-pad na frente de um teclado, que é a composição do
 #                       próprio ícone do upstream.
@@ -206,7 +206,7 @@ for linha in "${TROCAR[@]}"; do
     # funciona. Um `Icon=` que não resolve dá ícone genérico — pior que o velho.
     if ! _resolve "$nome"; then
       meow_aviso "'$nome' ainda não resolve no tema $TEMA — '$id' fica com o caminho absoluto"
-      meow_info "  rode o icones_apps_arcticons.sh primeiro (a linha está em icons/apps-arcticons.map)"
+      meow_info "  rode o icones_apps_arcticons.sh primeiro (a linha está em assets/icones/apps-arcticons.map)"
       sem_icone=$((sem_icone + 1))
       continue
     fi

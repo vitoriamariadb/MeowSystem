@@ -173,7 +173,7 @@ uso() {
   cat <<'FIM'
 uso: aplicar_tema.sh <nome> [--conferir]
 
-Restaura no COSMIC a captura state/tema/<nome>/.
+Restaura no COSMIC a captura assets/temas/capturados/<nome>/.
 
   <nome>       qual captura aplicar. Ex.: original, mocha-mauve.
   --conferir   não escreve; sai 0 se já está aplicado, 1 se divergente.
@@ -201,8 +201,8 @@ done
 [ "$SECO" = "1" ] && CONFERIR=1
 
 case "$NOME" in ''|*/*|.*) echo "ERRO: nome inválido: '$NOME'" >&2; exit 2 ;; esac
-ORIGEM="$RAIZ/state/tema/$NOME"
-[ -d "$ORIGEM" ] || { echo "ERRO: captura '$NOME' não existe em state/tema/" >&2; exit 3; }
+ORIGEM="$RAIZ/assets/temas/capturados/$NOME"
+[ -d "$ORIGEM" ] || { echo "ERRO: captura '$NOME' não existe em assets/temas/capturados/" >&2; exit 3; }
 
 # Zera os dois dígitos de alpha do `base:` de primeiro nível, para comparar só o
 # que é nosso. O `base:` raiz é o que vem com 4 espaços de indentação — os
@@ -266,7 +266,7 @@ garantir_backup() {
   # `%Y-%m-%dT%H-%M-%S`, COM HÍFENS, E ISSO NÃO É ESTÉTICA
   #   A pasta `backups/` é COMPARTILHADA por todos os módulos e todos os outros
   #   usam esse formato (`MEOW_CARIMBO`, em lib/comum.sh; a razão está escrita
-  #   por extenso em app-themes/vscode/manifesto.sh §helper 3). Este script era
+  #   por extenso em assets/temas-de-apps/vscode/manifesto.sh §helper 3). Este script era
   #   o único com `date -Iseconds`, e dois-pontos em nome de arquivo só rendem
   #   aspas para o resto da vida de quem for restaurar na mão.
   # O PRIMEIRO BACKUP É DE OUTRA NATUREZA, E POR ISSO LEVA OUTRO NOME

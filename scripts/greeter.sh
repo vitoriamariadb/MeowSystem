@@ -54,13 +54,13 @@ alvo_tema() {
 }
 
 ALVO="$(alvo_tema)"
-CAPTURA="$RAIZ/state/tema/$ALVO"
+CAPTURA="$RAIZ/assets/temas/capturados/$ALVO"
 
 # ---------------------------------------------------------------------------
 # FASE 1 — O AVATAR, QUE NÃO PRECISA DE sudo E POR ISSO VEM ANTES DE TUDO
 #
 # O gato JÁ ESTAVA na tela de login desta máquina — `/var/lib/AccountsService/
-# icons/vitoriamaria` bate byte a byte com `assets/meow-mocha-preto.svg`. Mas
+# assets/icones/vitoriamaria` bate byte a byte com `assets/meow-mocha-preto.svg`. Mas
 # nenhum script deste repositório sabia disso: foi posto na mão em 04/08/2026, e
 # numa máquina recém-instalada simplesmente não existiria. Era um enfeite sem
 # dono, do tipo que some no primeiro reset e ninguém sabe repor.
@@ -149,7 +149,7 @@ fase_avatar() {
   fi
 
   # O daemon roda como root e COPIA o arquivo para /var/lib/AccountsService/
-  # icons/. O caminho de origem precisa ser legível por ele — o repo pode estar
+  # assets/icones/. O caminho de origem precisa ser legível por ele — o repo pode estar
   # numa partição que só o usuário monta, então a origem é uma cópia em /tmp
   # com modo 644, e não o caminho do repo.
   local tmp; tmp="$(mktemp --suffix=.svg)" || return 2

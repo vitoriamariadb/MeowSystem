@@ -45,15 +45,19 @@ em `scripts/construir_icones.sh` §1.
 | Trocar o accent para rosa | `./scripts/aplicar_tema.sh mocha-pink` |
 | Ir para o tema claro | `./scripts/aplicar_tema.sh latte-mauve` |
 | **Desfazer tudo** | `./scripts/aplicar_tema.sh original` |
-| Fixar um gato do acervo | `meow logo coquinha` (ou edite `LOGO=` no `meow.conf`) |
-| **Pôr um gato novo na rotação** | solte o `.svg` em `assets/gatos/` |
-| Ver o acervo de gatos e quem está no ar | `meow logo listar` |
-| Passar para o próximo gato agora | `meow logo girar` |
-| **Adicionar papel de parede** | arraste a imagem para `~/.local/share/backgrounds/meowsystem/ativos/` |
+| **Os dois gatos estão sempre na tela** | nada: de dia Mimir no dock e Coquinha no terminal; de noite, trocados |
+| Ver quem está no ar, e por quê | `meow logo listar` |
+| Trocar quem é o gato de dia/de noite | `LOGO_DIA=` / `LOGO_NOITE=` no `meow.conf` — o terminal segue invertido sozinho |
+| **Pôr um gato novo no acervo** | solte o `.svg` em `assets/gatos/` |
+| **Adicionar papel de parede** | arraste a imagem para `assets/papeis-de-parede/ativos/` |
 | Idem, com verificações | `./scripts/wallpaper.sh adicionar <arquivo\|pasta>` |
-| Tirar um papel de parede da rotação | `./scripts/wallpaper.sh banir <arquivo>` |
-| Ver o estado do carrossel | `./scripts/wallpaper.sh estado` |
+| **Tirar um papel de parede da rotação** | apague o arquivo de `assets/papeis-de-parede/ativos/` — em ~4 s ele entra no `BANIDOS.txt` sozinho |
+| Idem, sem apagar (vai para `banidos/`) | `meow wallpaper banir <arquivo>` |
+| Ver o estado do carrossel | `meow wallpaper estado` |
+| **Avançar / voltar o papel de parede** | botão direito na área de trabalho — ou `meow wallpaper proximo` \| `anterior` |
+| Devolver o carrossel agora (sem esperar os 30 min) | `meow wallpaper carrossel` |
 | **Manter um papel de parede que não é do carrossel** | `meow wallpaper permitir <caminho>` |
+| **Mudar qualquer coisa, sem editar arquivo** | `meow abrir` — ou o ícone **MeowSystem** no lançador |
 | Mudar qualquer coisa | edite `~/.config/meow/meow.conf` e rode `./install.sh` |
 
 Tudo que o projeto **decide** vive em um arquivo: `~/.config/meow/meow.conf`.
@@ -66,16 +70,88 @@ editar.
 | o quê | onde | quando aparece |
 |---|---|---|
 | gatos da logo | `assets/gatos/` | **no acervo, na hora** — o `meow-assets.path` vigia a pasta. Qual gato fica *no ar* é decidido **ao encerrar a sessão** (no máximo 1×/dia), e ele aparece no login seguinte; `meow logo girar` passa ao próximo agora |
-| papéis de parede | `~/.local/share/backgrounds/meowsystem/ativos/` | na hora — o `cosmic-bg` lê a pasta |
+| papéis de parede | `assets/papeis-de-parede/ativos/` | na hora — o `cosmic-bg` lê a pasta. **Apagar de lá é definitivo**: o `meow-ativos.path` nota o sumiço em ~4 s e grava o nome no `BANIDOS.txt`, para o `semear` não repor |
 
 Os papéis de parede ficam fora do git de propósito — imagem grande em git é
 dívida que não se paga, e o Andromeda já ficou 18 h com o auto-sync mudo por um
-arquivo de mais de 100 MB. Eles moram em `wallpapers/`, dentro do repositório, e
-o que os reproduz é `scripts/wallpaper.sh semear`, lendo **três receitas**: o
-commit pinado da coleção Catppuccin, o `wallpapers/FONTES.tsv` (a URL de cada
-imagem escolhida a mão) e o `wallpapers/BANIDOS.txt` (os nomes recusados, que o
+arquivo de mais de 100 MB.
+
+**E, desde 01/09/2026, eles não moram no repositório nem fora do git.** Havia
+145 MB de imagem em `assets/papeis-de-parede/` (e uma segunda pasta,
+`src/wallpapers/`, que era FANTASMA — só existia no `.gitignore`). As 51 eram
+cópia byte a byte do acervo vivo, **nenhum script as lia**, e apagar ali não
+fazia nada — foi ela quem topou nisso. Saíram. O que ficou naquela pasta é o
+que o código de fato lê: as receitas.
+
+**Desde 01/09/2026 o acervo vivo mora no próprio repositório**, em
+`assets/papeis-de-parede/ativos/` — decisão dela: uma pasta só, visível onde ela
+trabalha, em vez de escondida dentro do `.local`. O caminho antigo
+(`~/.local/share/backgrounds/meowsystem`) continua valendo: virou symlink para
+cá. Quem manda é a chave `WALLPAPER_BASE`. Mover a base INTEIRA (e não só
+`ativos/`) é o que preserva os links duros das pastas de dia e de noite — elas
+precisam do mesmo sistema de arquivos que `ativos/`. Quem o
+reproduz é `scripts/wallpaper.sh semear`, lendo **três receitas**: o
+commit pinado da coleção Catppuccin, o `assets/papeis-de-parede/FONTES.tsv` (a URL de cada
+imagem escolhida a mão) e o `assets/papeis-de-parede/BANIDOS.txt` (os nomes recusados, que o
 semear não repõe). O acervo tem **54 imagens**: das 242 do upstream, 11
 sobreviveram à curadoria visual de 24/08/2026, e 43 foram buscadas naquele dia.
+
+---
+
+## O painel: configurar sem editar arquivo
+
+```bash
+meow abrir        # ou o ícone "MeowSystem" no lançador
+```
+
+Uma página local com **as 95 chaves do `meow.conf`** — cada uma mostrando o valor
+que você escolheu, o que vinha de fábrica e a explicação que está no
+`meow.conf.exemplo` — e **30 ações** (instalar, `doctor`, consertar, desinstalar,
+trocar tema/flavor/accent, girar o gato, papel de parede, modo de leitura,
+reciclar a barra), com a saída aparecendo **ao vivo** enquanto rodam.
+
+O interruptor **Modo seco** no topo põe `MEOW_DRY_RUN=1` em tudo que aceita, que
+é a promessa deste projeto — dá para ver o que aconteceria antes de deixar
+acontecer.
+
+**Não há uma lista de chaves dentro dele.** O catálogo é lido do
+`meow.conf.exemplo`, com as mesmas regras que o `meow configurar` usa: chave nova
+no exemplo aparece na página sozinha, chave que sair de lá some sozinha.
+`tests/app.sh` compara as duas leituras e falha se elas divergirem. E quem
+escreve no `meow.conf` é o `meow_conf_definir` de `lib/comum.sh`, o mesmo de
+sempre — nunca um `sed` improvisado: gravar uma chave e voltar deixa o arquivo
+idêntico byte a byte, com o comentário da linha e os espaços que o alinham.
+
+**Gravar não é aplicar, e a página não finge que é.** Escrever a chave e o tema
+mudar na tela são coisas diferentes aqui desde sempre. Ela conta quantas chaves
+esperam, com o botão que as aplica ao lado.
+
+O backend é `python3` da biblioteca padrão, **sem dependência nova**. Escuta em
+`127.0.0.1`, em porta que o kernel escolhe, com um token de sessão sorteado a
+cada execução; confere `Host` e `Origin`; e **nenhum comando vem da página como
+texto** — ela manda um `id` de uma lista fechada, e o argumento é conferido
+contra o que existe no disco. Fechar a janela derruba tudo.
+
+O porquê de cada decisão está em [`app/LEIA-ME.md`](app/LEIA-ME.md) — inclusive o
+que foi medido sobre o `sudo` desta máquina, que não é o que parecia.
+
+---
+
+## As folhas visuais
+
+`docs/folhas/` guarda as **18 páginas HTML que decidiram partes deste tema**: os
+ícones lado a lado no tamanho real, as pastas par a par, os cinco pesos de traço,
+os cursores medidos em pixel, os 54 papéis separados por luminância. É onde se
+vê *por que* o tema é assim, em vez de ler a prosa que descreve a escolha.
+
+Elas moravam soltas na home, fora de qualquer controle de versão, desde agosto de
+2026; entraram em 01/09/2026 **por cópia** — os originais continuam lá. São 5,9 MB
+e isso é deliberado: não são acervo reproduzível como os papéis de parede (que
+saíram por 145 MB no mesmo dia), são o registro de uma decisão dela, e o
+`meow.conf.exemplo` já cita duas delas por caminho.
+
+O índice, com o que cada uma mostra e a decisão que produziu, está em
+[`docs/folhas/LEIA-ME.md`](docs/folhas/LEIA-ME.md).
 
 ---
 
@@ -87,6 +163,18 @@ sobreviveram à curadoria visual de 24/08/2026, e 43 foram buscadas naquele dia.
   `/var/lib`, e vinha vazia: era a única superfície ainda de fábrica.
 - **O vidro ao maximizar** — painel e dock mantêm o fosco quando uma janela
   maximiza (`keep_style_on_maximize`, duas chaves, valem na hora).
+- **Os dois gatos, sempre os dois** — o do dock e o do terminal nunca são o
+  mesmo. De dia o **Mimir** no dock e a **Coquinha** no `fastfetch`; às 18:00
+  eles trocam de lugar. Quem manda no dock é `LOGO_DIA`/`LOGO_NOITE`; o terminal
+  não tem par de chaves próprio — ele usa a REGRA "o gato que o dock não está
+  mostrando" (`FASTFETCH_LOGO_MODO="espelho"`), lida do arquivo do tema de
+  ícones, que é o que ela de fato vê.
+
+  Fixar quatro valores em vez da regra funcionaria hoje e envelheceria no
+  primeiro dia em que ela trocasse o gato do dock: seriam dois pares a manter
+  opostos à mão, e nada avisaria se deixassem de ser. Um dia os dois mostrariam
+  o mesmo gato e o "sempre os dois" viraria mentira em silêncio.
+
 - **O gato do dock** — o botão do lançador, vindo do acervo `assets/gatos/`.
   Aqui há **um** gato na tela, não dois: o applet "Logo Menu" (`dev.cappsy`), que
   desenharia o gato do painel, **não está montado em barra nenhuma** nesta
@@ -100,13 +188,13 @@ sobreviveram à curadoria visual de 24/08/2026, e 43 foram buscadas naquele dia.
   | acervo | veste | quantos |
   |---|---|---|
   | `catppuccin/vscode-icons` (MIT) | os **tipos de arquivo** — o que o Gestor de Arquivos desenha | 123 |
-  | Arcticons (CC BY-SA 4.0) | as **páginas das Configurações**, os ícones de sistema e os **aplicativos do lançador**, em traço | 30 + 16 |
-  | convertidos do Papirus (GPL-3.0) | os aplicativos que o Arcticons não cobria — chapado levado ao traço pelo `converter_icone.py` | 25 |
+  | Arcticons (CC BY-SA 4.0) | as **páginas das Configurações**, os ícones de sistema e os **aplicativos do lançador**, em traço | 30 + **14** |
+  | convertidos do Papirus (GPL-3.0) | os aplicativos que o Arcticons não cobria — chapado levado ao traço pelo `converter_icone.py` | **27** (2 são desenho `mao`: CosmicPlayer e CosmicEdit) |
   | desenho autoral | os apps do próprio COSMIC, o FogStripper e o Hefesto | 10 |
 
   **O acervo pastel saiu de cena, e a tabela acima é de 25/08/2026.** Até 10/08 os
   aplicativos do lançador vinham do `Daveedmee/catppuccin-icons`, em PNG pastel —
-  o `icons/apps.map` que os aplicava está **vazio desde então**, e o próprio
+  o `assets/icones/apps.map` que os aplicava está **vazio desde então**, e o próprio
   arquivo diz isso no cabeçalho. Quem os substituiu foi a decisão dela de 11/08:
   **"o nosso tema é o traço, não o chapado"** (Sprint I). O Daveedmee continua no
   disco, sem uso, e sem licença declarada — uso local, nunca redistribuir.
@@ -150,7 +238,7 @@ isso — o daemon não deriva, escrever no `Builder` não deriva, abrir o
 `cosmic-settings` não deriva. Só o import explícito deriva.
 
 Então o projeto importou os três temas **uma vez**, fotografou o resultado em
-`state/tema/` e versionou no git. A partir daí aplicar é copiar arquivo — sem GUI,
+`assets/temas/capturados/` e versionou no git. A partir daí aplicar é copiar arquivo — sem GUI,
 sem flag, e **numa máquina recém-formatada, com zero clique**.
 
 ### 2. Claro e escuro são o mesmo tema
@@ -290,35 +378,52 @@ applet de terceiro ausente — tudo é "pulado", com a razão dita em voz alta, 
 nunca aborta o resto. Não é portabilidade: é o que faz o instalador não explodir
 quando um programa não está instalado.
 
-**Uma consequência de licença.** `icons/catppuccin-apps/` vem de um acervo **sem
+**Uma consequência de licença.** `assets/icones/catppuccin-apps/` vem de um acervo **sem
 licença declarada**. Uso local, sem redistribuir — os PNG ficam fora do git pela
 regra de imagem, o que já garante isso sozinho. Se algum dia esta decisão mudar,
-essa pasta e o `icons/apps.map` saem juntos.
+essa pasta e o `assets/icones/apps.map` saem juntos.
 
 ---
 
 ## Estrutura
 
+Nove diretórios no topo, e a regra que separa dois deles: **`assets/` é o que o
+projeto DESENHA, `src/` é o que ele COMPILA.** Até 01/09/2026 não era assim — os
+ícones estavam em `icons/` E em `src/icons/`, as fontes e os sons moravam dentro
+de `src/` ao lado do código Rust, e havia sete diretórios de topo a mais
+(`palette/`, `themes/`, `state/`, `app-themes/`, `wallpapers/`, `zsh/`, `icons/`).
+Um acervo em dois lugares é um acervo que diverge.
+
 ```
-assets/gatos/     os gatos da rotação — solte um .svg e ele entra
-icons/            os acervos Catppuccin de terceiro + os mapas que os aplicam
-wallpapers/       o acervo curado (fora do git; FONTES.tsv + BANIDOS.txt o reproduzem)
-docs/SPRINTS.md   o que falta fazer, escrito para ser lido sem contexto nenhum
-docs/pesquisas/   o material bruto das investigações multi-frente
-docs/historico/   de onde o projeto veio (não é lido por script nenhum)
-palette/          a fonte única de verdade de cor (4 flavors x 26 cores)
-themes/           os .ron gerados — o que se importa na GUI
-state/tema/       as capturas: é isto que o instalador aplica
-scripts/          os geradores e aplicadores
-app-themes/       um módulo por aplicativo (detectar/conferir/aplicar)
-lib/comum.sh      log, códigos de saída, escrita atômica e as travas
-lib/painel.sh     a altura real das barras, o teto do raio e as sondas do compositor
-patches/          o que precisa ser corrigido no cosmic-comp, com o porquê medido
-docs/             o que foi MEDIDO nesta máquina, com data e método
+assets/                     TUDO que é arte e dado de entrada (nada aqui compila)
+  gatos/                    os gatos — solte um .svg e ele entra no acervo
+  icones/                   os acervos (Arcticons, Catppuccin, convertidos, autorais)
+                            e os `.map` que dizem qual arte veste qual app
+  paleta/                   a fonte única de verdade de cor (4 flavors x 26 cores)
+  temas/                    os .ron gerados — o que se importa na GUI
+  temas/capturados/         as capturas: é isto que o instalador aplica
+  temas-de-apps/            um módulo por aplicativo (detectar/conferir/aplicar)
+  papeis-de-parede/         o acervo curado (fora do git; FONTES.tsv o reproduz)
+  fontes/ cursores/ sons/   o resto do que se veste
+  fastfetch/ prompt/ zsh/   os arquivos que vão para fora do repositório
+src/applets/                o que COMPILA: os applets em Rust
+app/                        o que ele SERVE: o painel de configuração visual
+                            (página local + backend em python3 da stdlib)
+scripts/                    os geradores e aplicadores (um assunto por arquivo)
+lib/comum.sh                log, códigos de saída, escrita atômica e as travas
+lib/noite.sh                "é noite agora?" — uma vez só, para a máquina inteira
+lib/painel.sh               a altura das barras, o teto do raio, as sondas do compositor
+patches/                    o que precisa ser corrigido no cosmic-comp e no
+                            cosmic-files, com o porquê medido
+systemd/                    as unidades: os relógios e os vigias
+bin/meow                    a CLI
+docs/                       o que foi MEDIDO nesta máquina, com data e método
+docs/folhas/                as 18 folhas visuais que decidiram este tema
+tests/                      os testes que rodam contra a máquina de verdade
 ```
 
-**Nenhum hex vive dentro de script.** Toda cor sai de `palette/catppuccin.json`, e
-o destino de cada cor sai de `palette/cosmic-map.json`. Foi assim que se descobriu
+**Nenhum hex vive dentro de script.** Toda cor sai de `assets/paleta/catppuccin.json`, e
+o destino de cada cor sai de `assets/paleta/cosmic-map.json`. Foi assim que se descobriu
 que o gato do Latte estava fora da paleta: ele misturava verde do Latte, verde do
 **Mocha** e dois valores que não são Catppuccin nenhum.
 
@@ -356,7 +461,7 @@ leitura é `AURORA-READING-MODE-1`, e não tem a palavra `PATCH` no meio.
 **remove** arquivo que não é dele, e faz backup da árvore inteira em
 `~/.local/state/meowsystem/backups/<ISO>/`. Quem **sobrescreve** arquivo de
 terceiro também guarda antes: o `hicolor.sh`, o `greeter.sh` e os **seis**
-módulos de `app-themes/`. Uma passagem inteira do instalador usa **uma** pasta
+módulos de `assets/temas-de-apps/`. Uma passagem inteira do instalador usa **uma** pasta
 de backup — o carimbo nasce em `lib/comum.sh` e é exportado, porque enquanto
 cada módulo calculava o próprio `date` uma execução que cruzasse a virada do
 segundo rachava os backups em duas pastas (há prova disso no disco, em 04/08).

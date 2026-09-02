@@ -46,8 +46,8 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # é o que torna isso possível sem partir o significado de FLAVOR no resto do repo.
 FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
 
-ORIGEM="$RAIZ/icons/catppuccin/$FLAVOR_ICONES"
-MAPA="$RAIZ/icons/mimetypes.map"
+ORIGEM="$RAIZ/assets/icones/catppuccin/$FLAVOR_ICONES"
+MAPA="$RAIZ/assets/icones/mimetypes.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 DESTINO="$HOME/.local/share/icons/$TEMA/scalable/mimetypes"
 
@@ -67,11 +67,11 @@ _ler_mapa() {
 # --- dependências -------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o pack Catppuccin não está em icons/catppuccin/$FLAVOR_ICONES — nada a vestir"
+    meow_pula "o pack Catppuccin não está em assets/icones/catppuccin/$FLAVOR_ICONES — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem icons/mimetypes.map — nada a vestir"
+    meow_pula "sem assets/icones/mimetypes.map — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"

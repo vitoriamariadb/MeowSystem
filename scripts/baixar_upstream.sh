@@ -17,7 +17,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-DESTINO="$RAIZ/src/icons/upstream"
+DESTINO="$RAIZ/assets/icones/upstream"
 
 # repositório                                   pasta            commit pinado
 FONTES=(

@@ -84,7 +84,7 @@
 #   O som que este script instala é GERADO AQUI, por síntese, pelo código logo
 #   abaixo. É obra do próprio MeowSystem e o registramos como CC0-1.0. Nada é
 #   baixado, então não há licença de terceiro para auditar. Registro auditável:
-#   `src/sounds/CREDITOS.md` no repositório, e um `LICENCAS.txt` que o script
+#   `assets/sons/CREDITOS.md` no repositório, e um `LICENCAS.txt` que o script
 #   escreve ao lado do som instalado.
 #
 #   NÃO copie os `.oga` do sistema para dentro do nosso tema:

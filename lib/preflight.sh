@@ -126,12 +126,12 @@ meow_preflight() {
   # 8. Existe captura para o que o meow.conf pediu? Descobrir isso na etapa 5,
   #    depois de escrever a CLI e instalar pacotes, é descobrir tarde.
   if [ -n "${FLAVOR:-}" ] && [ -n "${ACCENT:-}" ] \
-     && [ ! -d "$MEOW_RAIZ/state/tema/${FLAVOR}-${ACCENT}" ]; then
+     && [ ! -d "$MEOW_RAIZ/assets/temas/capturados/${FLAVOR}-${ACCENT}" ]; then
     meow_aviso "não há captura para '${FLAVOR}-${ACCENT}' — o tema do COSMIC não vai ser aplicado"
     # `original` fica de fora da lista: é reset de fábrica DESTA máquina, não uma
     # variante que alguém escolheria no meow.conf.
     local prontas="" _c
-    for _c in "$MEOW_RAIZ/state/tema"/*; do
+    for _c in "$MEOW_RAIZ/assets/temas/capturados"/*; do
       [ -d "$_c" ] || continue
       [ "${_c##*/}" = "original" ] && continue
       prontas="$prontas${_c##*/} "

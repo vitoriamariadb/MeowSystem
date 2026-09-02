@@ -50,8 +50,8 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ORIGEM="$RAIZ/icons/arcticons"
-MAPA="$RAIZ/icons/sistema.map"
+ORIGEM="$RAIZ/assets/icones/arcticons"
+MAPA="$RAIZ/assets/icones/sistema.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
@@ -60,7 +60,35 @@ BASE="$HOME/.local/share/icons/$TEMA"
 # tem 22px para existir. A chave do array é o diretório; o valor, o stroke-width.
 # 4 no pequeno foi escolha dela, olhando a folha: 2 ainda ficava fino demais ao
 # lado dos ícones cheios do Papirus que dividem a mesma barra.
-declare -A TRACO=( ["22x22/status"]=4 ["scalable/status"]=1 )
+#
+# ============================================================================
+# O TRAÇO 4 QUE ELA ESCOLHEU NUNCA CHEGOU À TELA — MEDIDO EM 27/08/2026
+# ============================================================================
+#   O `22x22/status` é `Type=Fixed Size=22`, e um diretório Fixed só é escolhido
+#   no pedido EXATO. Varrido o resolvedor real (`Gtk.IconTheme.lookup_icon`)
+#   sobre o tema dela, com `preferences-appearance-symbolic`:
+#
+#     20 -> scalable/status     23 -> scalable/status     40 -> scalable/status
+#     21 -> scalable/status     24 -> scalable/status     48 -> scalable/status
+#     22 -> 22x22/status   <- o ÚNICO
+#
+#   E ninguém pede 22. A tela dela está a 114%, então a barra pede 20 lógicos =
+#   23 de dispositivo, e as Configurações pedem 32 ou 48. Ou seja: os 28 ícones
+#   saem TODOS do `scalable/status`, onde o traço era 1 — que num viewBox de 48
+#   desenhado a 23px vale 0,48 px de tela. É o "fio fantasma" que o cabeçalho
+#   deste arquivo sempre avisou que some, e era ele que estava no ar.
+#
+#   O `22x22/status` fica como está, com o 4 dela: é a escolha registrada para
+#   aquele tamanho, e ela volta a valer sozinha se a tela for para 100% (quando
+#   a barra passa a pedir 20... que também cai no scalable — ou seja, ele é
+#   praticamente inalcançável, e isso é o achado, não um detalhe).
+#
+#   2,5 no `scalable/status` é escolha dela, olhando a folha de 27/08 com o
+#   mesmo ícone em 1 / 2 / 2,5 / 3 / 4, rasterizado nos DOIS tamanhos que de
+#   fato existem: 23px (a barra) e 40px (as Configurações). O 4 empasta a 23px —
+#   o detalhe de baixo vira duas bolhas —, e o 1 desaparece. Um arquivo só serve
+#   os dois consumidores, então o número é o compromisso entre eles.
+declare -A TRACO=( ["22x22/status"]=4 ["scalable/status"]=2.5 )
 
 declare -A MAPA_LIDO=()   # nome COSMIC -> glifo Arcticons
 declare -A ALIAS_OK=()    # glifo -> 1, quando a repetição é deliberada
@@ -108,11 +136,11 @@ _conferir_gemeos() {
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o acervo Arcticons não está em icons/arcticons — nada a vestir"
+    meow_pula "o acervo Arcticons não está em assets/icones/arcticons — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem icons/sistema.map — nada a vestir"
+    meow_pula "sem assets/icones/sistema.map — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"

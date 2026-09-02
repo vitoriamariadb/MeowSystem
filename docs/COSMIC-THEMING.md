@@ -185,6 +185,27 @@ papéis de parede?".
 | o **conteúdo** do SVG apontado | **nada** — o applet cacheou a imagem no carregamento |
 | a **chave** `custom_logo_path`, para outro arquivo | **troca na hora**, sem reiniciar o painel |
 
+> **MEDIDO DE NOVO EM 01/09/2026, E A TABELA GANHOU UMA LINHA.** A pergunta de
+> 04/08 era sobre a chave do applet Logo Menu. A que ficou aberta era sobre o
+> **botão do dock** (`com.system76.CosmicPanelAppButton`), que vem do TEMA DE
+> ÍCONES — e a resposta que este documento dava por implicação ("trocar ícone de
+> tema exige reiniciar o painel") estava **meio certa**:
+>
+> | o que se faz | o que acontece |
+> |---|---|
+> | reescrever o SVG do botão no tema de ícones | **zero pixel muda** — o `cosmic-panel-button` resolve o ícone no arranque e guarda |
+> | `kill <pid do cosmic-panel-button>` | **buraco no dock** — o `cosmic-panel` NÃO ressuscita applet morto |
+> | `meow painel reciclar` (SIGTERM no painel, pela porta única) | **botão de volta em ~6 s, com o gato NOVO** |
+>
+> Provado com captura de tela antes e depois, nas três linhas. É isso que faz o
+> gato do dock seguir o relógio — duas trocas por dia, não uma a cada meia hora,
+> e é a mudança de FREQUÊNCIA que tornou o pisca aceitável, não uma medição nova
+> que contradiga a de 04/08.
+>
+> O `cosmic-files-applet` (quem desenha a área de trabalho) é outro caso: é filho
+> do `cosmic-session`, não do painel, então reciclar o painel não o toca — mas
+> matá-lo funciona, e ele volta em segundos resolvendo pelo PATH.
+
 O applet vigia a configuração por inotify (o processo tem 6 fds de inotify), mas não
 vigia o arquivo de imagem. Então reescrever `meow-mocha.svg` no lugar não faz efeito
 até o próximo `pkill -x cosmic-panel`; já apontar a chave para um
@@ -283,11 +304,11 @@ nenhum (são chaves só do esquema v2). Zero ping-pong, nada a normalizar ali.
 
 `scripts/gerar_tema_v1.py`. Ele **não** reimplementa a derivação de contraste do
 COSMIC — isso seria o híbrido que §1 proíbe. Ele pega o texto do arquivo v1 do
-**fóssil** (`state/tema/original/…/v1`, escrito pelo próprio COSMIC e versionado)
+**fóssil** (`assets/temas/capturados/original/…/v1`, escrito pelo próprio COSMIC e versionado)
 e substitui **só os literais numéricos de R, G e B** pelo valor do mesmo caminho
 no arquivo `v2` da captura — que é o produto que o COSMIC derivou do `.ron` que o
 `gerar_temas.py` gerou da paleta. A cor continua saindo de
-`palette/catppuccin.json`; o caminho é transitivo. A estrutura RON é, por
+`assets/paleta/catppuccin.json`; o caminho é transitivo. A estrutura RON é, por
 construção, a de um arquivo que o COSMIC escreveu.
 
 **O alpha não entra: é dela.** Na v2 o alpha já vem multiplicado pelos dois
@@ -417,7 +438,7 @@ O som de fábrica do `freedesktop` é **CC-BY-SA-3.0** (Lucas McCallister), e a 
 essa compatibilidade, e de mão única. O do tema Pop é CC-BY-SA-4.0 (Mads Rosendahl),
 redistribuível, mas alto e longo demais. Sintetizar sai mais barato que discutir
 licença: o arquivo é obra do projeto, registrado como **CC0-1.0** em
-`src/sounds/CREDITOS.md` e no `LICENCAS.txt` que o script deixa na máquina.
+`assets/sons/CREDITOS.md` e no `LICENCAS.txt` que o script deixa na máquina.
 
 ### O que fica INALCANÇÁVEL, e o custo de cada um
 
@@ -633,6 +654,30 @@ sobrevive ali é o **desenho** — a forma do traço. A cor continua vindo do
 Isso também significa que **recolorir Arcticons via `?color=` do Iconify é
 desperdício** para estes 126 ícones. Continua valendo para a Sprint B, onde os
 alvos são ícones de aplicativo, que não passam por este caminho.
+
+### Nem o FORMATO do arquivo escapa (medido em 27/08/2026)
+
+Ela pediu uma **borda roxa** no botão de desligar do dock. A hipótese que valia a
+pena testar era a do §3: o applet decide `symbolic` por `path.contains("-symbolic
+.svg")`, uma checagem de STRING no caminho — então um arquivo `.png` teria o
+sufixo errado e escaparia do achatamento.
+
+Testado nas duas formas, com o anel gravado em `#CBA6F7` (o mauve do mocha) e o
+glifo em `currentColor`, respawnando os applets pelo `spacing` do dock:
+
+| arquivo plantado | o que saiu no recorte da tela |
+|---|---|
+| `scalable/status/system-shutdown-symbolic.svg` | 94 px `#FFFFFF`, **zero** `#CBA6F7` |
+| `20x20/status/system-shutdown-symbolic.png` (40×40) | 94 px `#FFFFFF`, zero `#CBA6F7` — e serrilhado, porque é raster esticado |
+
+O achatamento **não é do rasterizador de SVG**: é o toolkit repintando o buffer
+final. Raster passa pelo mesmo caminho. Portanto **não existe ícone colorido na
+barra do COSMIC**, em nenhum formato — a única cor ali é a cor de texto do tema,
+e ela vale para todos os applets ao mesmo tempo.
+
+O que sobrevive continua sendo o DESENHO: o anel externo daquele ícone É a borda
+que ela pediu, e o botão passou de 75% para 95% da caixa. Só a cor não pôde vir.
+Ver `assets/icones/sistema-retoques/LEIA-ME.txt`.
 
 ### De onde vêm os 126 ícones que o COSMIC pede
 

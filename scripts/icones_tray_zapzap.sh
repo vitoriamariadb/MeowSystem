@@ -10,7 +10,7 @@
 #    voltaram aos originais. ao invés de respeitar o mesmo icon do wpp e afins"
 #
 # Está certa, e o repositório já tinha PREVISTO isto por escrito em 10/08 —
-# `icons/bandeja.map`, seção "O ZAPZAP FOI VESTIDO NA FONTE":
+# `assets/icones/bandeja.map`, seção "O ZAPZAP FOI VESTIDO NA FONTE":
 #
 #   "Um `flatpak update com.rtosta.zapzap` devolve o arquivo de fábrica e o
 #    ícone volta a destoar, SEM NADA ACUSANDO."
@@ -22,7 +22,7 @@
 #
 # E o disco confirma que a manobra de 10/08 sumiu inteira. Medido hoje:
 #
-#   diff icons/tray-terceiros/zapzap-tray_icon.py.original \
+#   diff assets/icones/tray-terceiros/zapzap-tray_icon.py.original \
 #        ~/.local/share/flatpak/app/com.rtosta.zapzap/…/tray_icon.py
 #   -> IDÊNTICOS (o arquivo vivo é o de fábrica outra vez)
 #   stat -> 2 links   (hardlink do OSTree INTACTO: nunca foi quebrado nesta
@@ -97,7 +97,7 @@
 # medição acima. E é também a porta: a constante é editável.
 #
 # POR QUE A EDIÇÃO É ESTRUTURAL, E NÃO UM ARQUIVO INTEIRO POR CIMA
-#   O `icons/bandeja.map` avisa, com razão, que "se um dia o ZapZap mudar o
+#   O `assets/icones/bandeja.map` avisa, com razão, que "se um dia o ZapZap mudar o
 #   formato daquela constante, reaplicar às cegas pode QUEBRAR O APP — é código
 #   Python sendo editado, não um PNG".
 #
@@ -152,7 +152,7 @@
 #   Ao lado do arquivo há `__pycache__/tray_icon.cpython-313.pyc`. O Python
 #   invalida `.pyc` por tamanho+mtime da fonte, e os dois mudam aqui — então na
 #   prática ele já seria ignorado. O `.pyc` é removido mesmo assim porque a
-#   instrução de DESFAZER do `icons/bandeja.map` manda removê-lo, e deixar para
+#   instrução de DESFAZER do `assets/icones/bandeja.map` manda removê-lo, e deixar para
 #   trás um arquivo compilado de um código que não existe mais é a espécie de
 #   detalhe que custa uma tarde daqui a um ano. O `/app` é somente-leitura dentro
 #   do sandbox: o ZapZap recompila em memória a cada abertura, o que para UM
@@ -166,7 +166,7 @@
 #
 # Um por COMMIT de deploy — que é o diretório que o `flatpak update` troca. Assim
 # o desfazer funciona mesmo para uma versão do ZapZap que este repositório nunca
-# viu, e não depende do `icons/tray-terceiros/zapzap-tray_icon.py.original`, que
+# viu, e não depende do `assets/icones/tray-terceiros/zapzap-tray_icon.py.original`, que
 # é a fotografia de UMA versão (a de 10/08, que por acaso é igual à de hoje).
 #
 # `--desfazer` põe o guardado de volta. É o que o `install.sh --uninstall` chama:
@@ -189,7 +189,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 . "$RAIZ/lib/comum.sh"
 
 APP_ID="${MEOW_TRAY_ZAPZAP_APP:-com.rtosta.zapzap}"
-GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-$RAIZ/icons/arcticons/whatsapp.svg}"
+GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-$RAIZ/assets/icones/arcticons/whatsapp.svg}"
 TRACO="${MEOW_TRAY_ZAPZAP_TRACO:-4}"
 GUARDA="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/zapzap"
 
@@ -421,7 +421,7 @@ _conferir() {
       return "$MEOW_DIVERGENTE" ;;
     DESCONHECIDO)
       meow_aviso "o tray_icon.py do ZapZap mudou de forma: $motivo"
-      meow_info "  compare com icons/tray-terceiros/zapzap-tray_icon.py.original antes de repetir a manobra"
+      meow_info "  compare com assets/icones/tray-terceiros/zapzap-tray_icon.py.original antes de repetir a manobra"
       return "$MEOW_SEM_DEPENDENCIA" ;;
     *)
       meow_erro "${motivo:-não consegui inspecionar $alvo}"
@@ -464,7 +464,7 @@ _aplicar() {
     DESCONHECIDO)
       meow_aviso "o tray_icon.py do ZapZap mudou de forma: $motivo"
       meow_info "  nada foi escrito — é código Python, e vestir às cegas quebraria o app"
-      meow_info "  compare com icons/tray-terceiros/zapzap-tray_icon.py.original"
+      meow_info "  compare com assets/icones/tray-terceiros/zapzap-tray_icon.py.original"
       return "$MEOW_SEM_DEPENDENCIA" ;;
     *)
       meow_erro "${motivo:-não consegui vestir $alvo}"

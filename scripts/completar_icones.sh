@@ -112,9 +112,9 @@
 #     nome com ninguém. A decisão sobre esses dois é dela e está numa folha.
 #
 #   COMO SE DESFAZ
-#     Os oito SVGs continuam VERSIONADOS em `src/icons/autorais/` e o gerador
+#     Os oito SVGs continuam VERSIONADOS em `assets/icones/autorais/` e o gerador
 #     continua produzindo-os: desfazer é mover os oito nomes de `RETIRADOS` de
-#     volta para `AUTORAL` e tirar as oito linhas do `icons/apps-arcticons.map`.
+#     volta para `AUTORAL` e tirar as oito linhas do `assets/icones/apps-arcticons.map`.
 #     Nada foi apagado do repositório.
 #
 # ONDE ESCREVE, E POR QUE ISSO BASTA
@@ -150,7 +150,7 @@ BASE="${ICONES_BASE:-Papirus-Dark}"
 BASE_DIR="/usr/share/icons/$BASE"
 FLAVOR="${FLAVOR:-mocha}"
 ACCENT="${ACCENT:-mauve}"
-AUTORAIS="$RAIZ/src/icons/autorais"
+AUTORAIS="$RAIZ/assets/icones/autorais"
 
 # --- os dois aplicativos dela: nome pedido pelo .desktop -> desenho autoral ----
 # O Hefesto aparece com DOIS nomes de ícone na máquina, e os dois precisam do
@@ -188,7 +188,7 @@ declare -A AUTORAL=(
 #   `scalable/apps` tem TRÊS donos — este script, o `logo.sh` (os botões do dock,
 #   `com.system76.CosmicPanelAppButton` e `com.system76.CosmicAppLibrary`, que
 #   casam com o mesmo prefixo `com.system76.Cosmic*`) e o bootstrap do
-#   `construir_icones.sh`; o `app-themes/zapzap` também escrevia ali até hoje.
+#   `construir_icones.sh`; o `assets/temas-de-apps/zapzap` também escrevia ali até hoje.
 #   Varrer o que "não está na minha tabela" apagaria arquivo dos outros — é
 #   exatamente o que o cabeçalho do `icones_apps_arcticons.sh` explica ao dizer
 #   por que ele escolheu `48x48/apps` para ser dono. Então a remoção é por NOME,
@@ -249,7 +249,7 @@ declare -A APELIDO=(
 #   esta lista morava aqui, ele não tinha como saber que `thunderbird.png` é de
 #   outro dono — e o `install.sh` roda os dois na mesma passagem, nesta ordem.
 #   O porquê inteiro, com a medição, está no cabeçalho do próprio mapa.
-MAPA_HICOLOR="$RAIZ/icons/apps-hicolor.map"
+MAPA_HICOLOR="$RAIZ/assets/icones/apps-hicolor.map"
 declare -A DO_HICOLOR=()
 if [ -f "$MAPA_HICOLOR" ]; then
   while IFS= read -r linha; do
@@ -278,7 +278,7 @@ if ! grep -q '^Directories=.*scalable/apps' "$TEMA_DIR/index.theme"; then
   exit "$MEOW_ERRO"
 fi
 # O python3 desenha os SVGs a partir da paleta — mas os oito SVGs prontos ESTÃO
-# VERSIONADOS em `src/icons/autorais/`. Sair 3 aqui recusaria um trabalho que dá
+# VERSIONADOS em `assets/icones/autorais/`. Sair 3 aqui recusaria um trabalho que dá
 # para fazer: numa máquina sem python3 os ícones já existem no clone e só faltava
 # copiá-los. Então falta de python3 vira AVISO, e só vira dependência ausente
 # (código 3) lá embaixo, se o flavor pedido de fato não estiver no repositório —
@@ -286,7 +286,7 @@ fi
 SEM_PYTHON=0
 if ! meow_tem python3; then
   meow_aviso "python3 ausente — não dá para conferir os SVGs contra a paleta"
-  meow_info "  os autorais já versionados em src/icons/autorais/ continuam entrando"
+  meow_info "  os autorais já versionados em assets/icones/autorais/ continuam entrando"
   SEM_PYTHON=1
   avisos=1
 fi
@@ -300,7 +300,7 @@ meow_seco || mkdir -p "$ALVO" || { meow_erro "não consegui criar $ALVO"; exit "
 if [ "$SEM_PYTHON" = "0" ] &&
    ! python3 "$RAIZ/scripts/gerar_icones_autorais.py" --accent "$ACCENT" --conferir >/dev/null 2>&1; then
   if meow_seco; then
-    meow_muda "regeraria os SVGs autorais em src/icons/autorais/"
+    meow_muda "regeraria os SVGs autorais em assets/icones/autorais/"
     mudou=1
   else
     if ! python3 "$RAIZ/scripts/gerar_icones_autorais.py" --accent "$ACCENT" | sed 's/^/  /'; then
@@ -337,7 +337,7 @@ for nome in "${!AUTORAL[@]}"; do
       # Aqui, e SÓ aqui, a falta de python3 vira dependência ausente: o SVG deste
       # flavor não está no repositório e não há com que desenhá-lo.
       meow_erro "falta $fonte e não há python3 para desenhá-lo"
-      meow_info "  instale python3 ou rode com um FLAVOR já versionado em src/icons/autorais/"
+      meow_info "  instale python3 ou rode com um FLAVOR já versionado em assets/icones/autorais/"
       exit "$MEOW_SEM_DEPENDENCIA"
     fi
     meow_erro "falta $fonte — o gerador não produziu o flavor '$FLAVOR'"

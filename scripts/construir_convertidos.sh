@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# construir_convertidos.sh — GERA o acervo `icons/convertidos-apps/`: os ícones
+# construir_convertidos.sh — GERA o acervo `assets/icones/convertidos-apps/`: os ícones
 # do lançador que nós convertemos de CHAPADO para TRAÇO, no dialeto do Arcticons.
 #
 # Ele NÃO instala nada. Quem veste o lançador continua sendo UM script só, o
@@ -31,8 +31,8 @@
 #
 # ENTÃO A CONVERSÃO NÃO É UMA ETAPA DE INSTALAÇÃO: É UM ACERVO.
 #
-#   Exatamente como `icons/arcticons-apps/`, que está COMMITADO no repositório e
-#   não é baixado no install. Este script gera `icons/convertidos-apps/*.svg`
+#   Exatamente como `assets/icones/arcticons-apps/`, que está COMMITADO no repositório e
+#   não é baixado no install. Este script gera `assets/icones/convertidos-apps/*.svg`
 #   DENTRO do repositório, e quem instala continua sendo um script só.
 #
 #   Três razões, e nenhuma é preguiça:
@@ -54,12 +54,12 @@
 # O QUE ESTE SCRIPT É DONO, E POR QUE ISSO É SEGURO
 # ============================================================================
 #
-# Dono único de `icons/convertidos-apps/`, um diretório que NASCE aqui e onde
+# Dono único de `assets/icones/convertidos-apps/`, um diretório que NASCE aqui e onde
 # mais ninguém escreve — a mesma disciplina do `icones_apps_arcticons.sh` com
 # `48x48/apps` e do `icones_sistema.sh` com `22x22/status`. Por isso ele pode
 # remover órfão: nome que saiu do mapa, arquivo que sai do disco.
 #
-# A EXCEÇÃO SÃO OS RETOQUES, e ela é explícita: `icons/convertidos-apps/
+# A EXCEÇÃO SÃO OS RETOQUES, e ela é explícita: `assets/icones/convertidos-apps/
 # retoques/NOME.svg` é escrito À MÃO e NUNCA é sobrescrito nem varrido. Se o
 # retoque existe, ele é copiado para o acervo e a conversão automática nem roda.
 # Um retoque é decisão humana registrada, e reconverter por cima apagaria a
@@ -69,7 +69,7 @@
 # COMO ISTO SE LIGA AO RESTO
 # ============================================================================
 #
-#   `icons/apps-convertidos.map`          o mapa, lido por ESTE script e pelo
+#   `assets/icones/apps-convertidos.map`          o mapa, lido por ESTE script e pelo
 #                                         `icones_apps_arcticons.sh`. Campos 1,
 #                                         2 e 4 são meus; o campo 3 (a cor) é
 #                                         dele. Um mapa só, porque duas listas
@@ -77,8 +77,8 @@
 #                                         `_conferir_gemeos` daquele script
 #                                         ESTOURA para impedir.
 #   `scripts/converter_icone.py`          o conversor. Chamado SEM `--lw`.
-#   `icons/convertidos-apps/`             a saída, commitada.
-#   `icons/convertidos-apps/retoques/`    a decisão humana, escrita à mão.
+#   `assets/icones/convertidos-apps/`             a saída, commitada.
+#   `assets/icones/convertidos-apps/retoques/`    a decisão humana, escrita à mão.
 #   `bin/meow` -> `chk_convertidos`       confere, e está em SEM_CONSERTO: o
 #                                         `--conferir` avisa que a origem do
 #                                         Papirus mudou, mas o conserto
@@ -101,8 +101,8 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/comum.sh"
 
 CONVERSOR="$RAIZ/scripts/converter_icone.py"
-MAPA="$RAIZ/icons/apps-convertidos.map"
-DESTINO="$RAIZ/icons/convertidos-apps"
+MAPA="$RAIZ/assets/icones/apps-convertidos.map"
+DESTINO="$RAIZ/assets/icones/convertidos-apps"
 RETOQUES="$DESTINO/retoques"
 
 declare -A ORIGEM=()     # nome do .desktop -> arquivo chapado de origem
@@ -126,7 +126,7 @@ declare -A CONHECIDO=()  # nome -> 1 para toda linha do mapa, com origem ou sem
 # arquivo. Ver o cabeçalho do mapa.
 #
 # O caminho da origem pode ser absoluto (o Papirus, um flatpak), relativo ao
-# repositório (`src/icons/autorais/...`), ou a palavra `mao`.
+# repositório (`assets/icones/autorais/...`), ou a palavra `mao`.
 #
 # `mao` NÃO É "sem origem por descuido": é a declaração de que aquele ícone
 # NASCE à mão, porque não existe arte chapada honesta de onde partir. Hoje só o
@@ -161,7 +161,7 @@ _ler_mapa() {
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem icons/apps-convertidos.map — nada a converter"
+    meow_pula "sem assets/icones/apps-convertidos.map — nada a converter"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$CONVERSOR" ]; then
@@ -285,7 +285,7 @@ _aplicar() {
   done
 
   # Órfão: estava no mapa ontem, não está hoje. Removível porque o dono é único —
-  # `icons/convertidos-apps/` nasce aqui e nenhum outro script escreve nele.
+  # `assets/icones/convertidos-apps/` nasce aqui e nenhum outro script escreve nele.
   # O subdiretório `retoques/` NÃO é varrido: é escrito à mão, e o glob `*.svg`
   # não desce em subdiretório.
   if [ -d "$DESTINO" ]; then

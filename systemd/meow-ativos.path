@@ -1,0 +1,50 @@
+# meow-ativos.path — vigia a pasta do acervo e faz "apagar" valer na hora.
+#
+# A PROMESSA QUE ESTE ARQUIVO CUMPRE
+#   O README diz, desde a primeira versão: *"Tudo que o projeto desenha vive
+#   numa pasta, e a pasta é a configuração: soltou o arquivo, entrou; apagou,
+#   saiu. Não há lista em script nenhum para editar."* Era verdade para
+#   `assets/gatos/` (o `meow-assets.path` cuida) e MENTIRA para os papéis de
+#   parede: apagar um à mão o tirava da rotação agora e o `semear` o repunha
+#   depois, calado.
+#
+#   Ela topou nisso em 01/09/2026 — apagou papéis feios e nada aconteceu — e a
+#   decisão dela foi de uma linha: *"sempre que apagar o script se auto
+#   corrige"*. Quem corrige é o `reconciliar_sumicos` do `scripts/wallpaper.sh`;
+#   esta unidade só o acorda na hora, em vez de esperar o relógio de 15 min.
+#
+# `PathModified` E NÃO `PathChanged` — a diferença custa o recurso inteiro
+#   `PathChanged` só dispara quando o diretório é FECHADO após escrita. Apagar
+#   um arquivo de dentro dele modifica o diretório sem abrir/fechar nada, e o
+#   `unlink` passaria despercebido — que é exatamente o evento que este vigia
+#   existe para pegar. É a mesma escolha do `meow-assets.path`, e lá o motivo
+#   está escrito para o caso simétrico (o arquivo que ENTRA).
+#
+# O CAMINHO É SUBSTITUÍDO NA INSTALAÇÃO (`@ATIVOS@`), como no irmão dos gatos: a
+# base pode ser trocada por `WALLPAPER_BASE` no meow.conf, e uma unidade com o
+# caminho cravado apontaria para uma pasta que não existe — vigia que vigia o
+# lugar errado não dá erro, só não faz nada.
+#
+# NÃO EXISTE RISCO DE LAÇO, e isso foi conferido antes de escrever
+#   O `meow-wallpaper.service` chama `wallpaper.sh aplicar`, que ESCREVE em
+#   `ativos-dia/` e `ativos-noite/` (as derivadas) e na configuração do
+#   `cosmic-bg` — nunca em `ativos/`. As duas exceções são comandos de mão
+#   (`adicionar` e `banir`), e um disparo a mais depois deles é inofensivo:
+#   o `aplicar` é idempotente e a reconciliação vê "nada sumiu".
+#
+# `WantedBy=cosmic-session.target` e não `default.target`: sem sessão não há
+# carrossel para reconciliar, e o `Linger=yes` desta máquina manteria o vigia
+# armado depois do logout — o `PartOf=` é o que propaga a parada.
+
+[Unit]
+Description=MeowSystem — vigia ativos/ e faz "apagar um papel de parede" valer
+Documentation=file:%h/.local/state/meowsystem/raiz
+PartOf=cosmic-session.target
+After=cosmic-session.target
+
+[Path]
+PathModified=@ATIVOS@
+Unit=meow-wallpaper.service
+
+[Install]
+WantedBy=cosmic-session.target

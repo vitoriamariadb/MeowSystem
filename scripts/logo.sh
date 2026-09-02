@@ -1,10 +1,53 @@
 #!/usr/bin/env bash
-# logo.sh — a logo do painel gira entre os gatos de `assets/gatos/`.
+# logo.sh — o gato do dock e do painel: de dia a Coquinha, de noite o Mimir.
 #
-#   ./logo.sh              instala o acervo e garante que a chave aponta para um deles
-#   ./logo.sh girar        passa para o próximo gato (vale NA HORA, sem reiniciar nada)
+#   ./logo.sh              põe no ar o gato que a HORA pede (e instala o acervo)
+#   ./logo.sh girar        passa para o próximo gato (só no modo `rotacao`)
 #   ./logo.sh --conferir   não escreve; 1 se algo divergir
-#   ./logo.sh listar       mostra o acervo e quem está no ar
+#   ./logo.sh listar       mostra o acervo, quem está no ar e por quê
+#
+# ============================================================================
+# O QUE MUDOU EM 01/09/2026, E O QUE FOI MEDIDO PARA PODER MUDAR
+# ============================================================================
+# O PEDIDO DELA: "de noite o menu com o mimir e de dia a coquinha" — o mesmo
+# que o applet do modo de leitura já faz com a lua e o sol na barra.
+#
+# ISSO ERA DADO COMO IMPOSSÍVEL AQUI, POR ESCRITO, E A FRASE ESTAVA ERRADA
+#   O bloco "O GATO DO DOCK" mais abaixo dizia, desde 05/08/2026:
+#
+#       "trocar ícone de tema exige reiniciar o painel, que pisca a tela. Por
+#        isso a rotação não o acompanha: um enfeite não vale um pisca-pisca a
+#        cada 30 minutos."
+#
+#   A primeira metade continua VERDADEIRA e foi remedida em 01/09/2026, com
+#   captura de tela antes e depois: reescrever
+#   `~/.local/share/icons/<tema>/scalable/apps/com.system76.CosmicPanelAppButton.svg`
+#   com o outro gato e esperar 2s NÃO troca um pixel na tela. O
+#   `cosmic-panel-button` resolve o ícone uma vez, no arranque, e guarda.
+#
+#   Matar SÓ o applet também não serve, e isso é novo: `kill <pid do
+#   cosmic-panel-button>` deixou um BURACO no dock — o `cosmic-panel` NÃO
+#   ressuscita applet morto. O botão só voltou com o painel inteiro.
+#
+#   O que caiu foi a SEGUNDA metade — a conta. `./bin/meow painel reciclar`
+#   (SIGTERM no `cosmic-panel`, pela porta única do `scripts/painel.sh`) trouxe
+#   o botão de volta JÁ COM O GATO NOVO, em ~6s, com o `meow-painel.service`
+#   armado. E a frequência deixou de ser "a cada 30 minutos": são DUAS trocas
+#   por dia, no nascer e no pôr da janela de noite. Um pisca de ~2s duas vezes
+#   por dia é preço diferente de um a cada meia hora — e é por isso que a
+#   decisão muda sem que a medição de 05/08 tenha ficado errada.
+#
+# A PORTA É `scripts/painel.sh reciclar`, E NUNCA UM `pkill` DAQUI
+#   Aquele script recusa reciclar quando o `meow-painel.service` está parado E o
+#   `cosmic-session` dormiria minutos antes de repor o painel — o backoff do
+#   supervisor é `2^N × sorteio(0..9)`, sem teto e sem zerar. Um `pkill -x
+#   cosmic-panel` escrito aqui seria um segundo dono dessa regra, e o dia em que
+#   o backoff estivesse alto ela ficaria sem barra por minutos por causa de um
+#   gato. `LOGO_RECICLAR="nao"` desliga o reciclo sem tirar a troca do arquivo.
+#
+# O QUE NÃO PRECISA DE RECICLO NENHUM: o `fastfetch`, que lê o arquivo do logo a
+# cada execução. Quem cuida dele é o `scripts/fastfetch_logo.sh`, chamado no fim
+# desta rodada — o gato do terminal troca sozinho, sem piscar nada.
 #
 # A PASTA É A INTERFACE
 #   Quem manda no acervo é `assets/gatos/`: soltou um SVG lá, ele entra na
@@ -43,6 +86,8 @@ set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+# shellcheck source=../lib/noite.sh
+. "$RAIZ/lib/noite.sh"
 
 ACERVO="$RAIZ/assets/gatos"
 LOGOS_DIR="$HOME/.config/cosmic/logos"
@@ -52,6 +97,37 @@ ESTADO="$MEOW_ESTADO/logo-atual"
 FLAVOR="${FLAVOR:-mocha}"
 LOGO="${LOGO:-$FLAVOR}"
 
+# --- AS TRÊS MANEIRAS DE ESCOLHER O GATO ------------------------------------
+#   hora     (padrão) o relógio manda: `LOGO_NOITE` de noite, `LOGO_DIA` de dia.
+#   rotacao  o desenho antigo: gira no encerramento da sessão, um por
+#            `LOGO_INTERVALO`. Continua inteiro, e `LOGO_ROTACAO="sim"` continua
+#            sendo o que o liga — ver a compatibilidade logo abaixo.
+#   fixo     `LOGO=` vence sempre; nada gira, nada segue relógio.
+#
+# COMPATIBILIDADE, PORQUE O CONF DELA JÁ EXISTE E NÃO PODE MENTIR
+#   O `meow.conf` desta máquina tem `LOGO_ROTACAO="nao"` desde 24/08/2026. Se o
+#   novo padrão fosse `hora` sem olhar para essa chave, tudo bem — mas numa
+#   máquina com `LOGO_ROTACAO="sim"` o padrão novo DESLIGARIA calado a rotação
+#   que a pessoa ligou. Então: quem escreveu `LOGO_ROTACAO="sim"` e não escreveu
+#   `LOGO_MODO` continua no modo `rotacao`. Chave velha não vira inerte.
+if [ -n "${LOGO_MODO:-}" ]; then
+  :
+elif [ "${LOGO_ROTACAO:-nao}" = "sim" ]; then
+  LOGO_MODO="rotacao"
+else
+  LOGO_MODO="hora"
+fi
+
+# Os nomes saem do acervo (`assets/gatos/<nome>.svg`). Um nome que não exista
+# não é erro fatal: o script avisa e cai no `LOGO`, porque um gato errado na
+# tela é melhor que um instalador que aborta por causa de um enfeite.
+LOGO_DIA="${LOGO_DIA:-coquinha}"
+LOGO_NOITE="${LOGO_NOITE:-mimir}"
+# `nao` troca o arquivo e NÃO recicla o painel: o gato novo passa a valer no
+# próximo login. Existe para quem não quer o pisca de ~2s, e para o dia em que
+# ela estiver gravando a tela.
+LOGO_RECICLAR="${LOGO_RECICLAR:-sim}"
+
 CONFERIR=0
 ACAO="aplicar"
 case "${1:-}" in
@@ -59,8 +135,13 @@ case "${1:-}" in
   girar)         ACAO="girar" ;;
   girar-vencido) ACAO="girar-vencido" ;;
   listar)        ACAO="listar" ;;
+  # `modo` IMPRIME O MODO EFETIVO E SAI. Existe para que o `install.sh` não
+  # precise reimplementar a regra de compatibilidade `LOGO_ROTACAO` -> `LOGO_MODO`
+  # acima: dois donos da mesma regra é o defeito que este projeto mais persegue,
+  # e a etapa de lá precisa saber qual unidade do systemd instalar.
+  modo)          printf '%s\n' "$LOGO_MODO"; exit "$MEOW_OK" ;;
   aplicar|"") ;;
-  *) meow_erro "uso: logo.sh [aplicar|girar|girar-vencido|listar|--conferir]"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: logo.sh [aplicar|girar|girar-vencido|listar|modo|--conferir]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && CONFERIR=1
 
@@ -107,6 +188,20 @@ _giro_venceu() {
   [ "$((agora - ultimo))" -ge "$intervalo" ]
 }
 
+# GIRAR SÓ EXISTE NO MODO `rotacao`, E RECUSAR É MELHOR QUE FINGIR
+#   No modo `hora` o gato é função do relógio: um `girar` que trocasse o arquivo
+#   seria desfeito no tique seguinte do `meow-gato.timer`, no máximo cinco
+#   minutos depois. Ela veria o gato mudar e voltar sozinho, sem nada na tela
+#   explicando por quê — que é exatamente o modo de falha calado que este projeto
+#   persegue. Sai 0 (não é erro; é etapa que não se aplica) e diz o que fazer.
+if [ "$ACAO" = "girar" ] || [ "$ACAO" = "girar-vencido" ]; then
+  if [ "$LOGO_MODO" != "rotacao" ]; then
+    meow_pula "o modo é \`$LOGO_MODO\` — o gato não gira, ele segue o relógio"
+    meow_info "  para girar: LOGO_MODO=\"rotacao\" no ~/.config/meow/meow.conf"
+    exit "$MEOW_OK"
+  fi
+fi
+
 if [ "$ACAO" = "girar-vencido" ]; then
   if _giro_venceu; then
     ACAO="girar"
@@ -129,6 +224,55 @@ fi
 #   disco sozinhos na rodada seguinte, que é exatamente o "erro" que ela mandou
 #   excluir. Some daqui, some do gerador, some do `install.sh`.
 #
+# --- ANTES DE LER O ACERVO: O DESENHO DELA TEM DE SER DESENHÁVEL -------------
+# 01/09/2026, e é o defeito mais caro que este acervo já teve. Ela pôs dentes na
+# Coquinha e no Mimir no Boxy SVG e salvou por cima. Tudo aqui funcionou: o
+# `meow-assets.path` disparou, o acervo foi para o disco, o painel reciclou, o
+# `.ansi` do terminal foi regerado. E os dentes não apareceram em lugar nenhum.
+#
+# A causa estava DENTRO do arquivo: o Boxy posiciona forma nova com
+# `transform-box: fill-box` + `transform-origin`, duas propriedades do SVG 2 que
+# NEM o librsvg (rsvg-convert, GTK, o `.ansi` do fastfetch) NEM o resvg (o que o
+# COSMIC usa para ícone de tema) implementam. Os dois leem a matriz e a aplicam
+# a partir do (0,0) do arquivo: o dente do Mimir, que devia cair em (554, 634),
+# ia para (-191, -705) — fora do viewBox, invisível, sem uma linha de erro.
+#
+# O `normalizar_svg.py` faz a aritmética que os dois renderizadores não fazem
+# (E = T(o)·M·T(-o)) e grava uma matriz comum, sem tocar no `d=` nem no
+# `bx:shape=` — ela reabre no editor e continua arrastando a peça como antes.
+# É idempotente: numa pasta já normalizada não escreve nada e sai 0.
+#
+# POR QUE AQUI, E NÃO SÓ NA HORA DE COPIAR PARA O DISCO
+#   Consertar só na saída deixaria o arquivo do repositório quebrado — e ele é
+#   o que ela abre da próxima vez, o que o `git diff` mostra e o que qualquer
+#   outro programa dela vai ler. O arquivo é a fonte; ele é que tem de ficar são.
+#
+# ESCREVER NO DIRETÓRIO VIGIADO REDISPARA O `meow-assets.path`, E ISSO É ACEITO
+#   O cabeçalho do `meow-assets.service` diz que nenhuma escrita daqui cai
+#   dentro do acervo. Esta cai, e é a única. O laço não acontece porque a
+#   segunda passada não muda byte nenhum (idempotente): o disparo extra roda,
+#   não escreve, sai. Um disparo a mais por edição dela, contra o
+#   `StartLimitBurst=20` — folga de sobra, e o disjuntor continua lá para o dia
+#   em que alguém quebrar a idempotência.
+if [ -d "$ACERVO" ] && meow_tem python3 && [ -f "$RAIZ/scripts/normalizar_svg.py" ]; then
+  if meow_seco; then
+    python3 "$RAIZ/scripts/normalizar_svg.py" --conferir "$ACERVO" || true
+  else
+    _svg_saida="$(python3 "$RAIZ/scripts/normalizar_svg.py" "$ACERVO" 2>&1)"
+    if [ -n "$_svg_saida" ]; then
+      printf '%s\n' "$_svg_saida"
+      # O aviso é para ELA, não para o log: um desenho que não vai aparecer na
+      # tela é exatamente a pergunta que ela faria meia hora depois.
+      case "$_svg_saida" in
+        *"não vai aparecer"*|*"não sei"*)
+          meow_notificar "MeowSystem" \
+            "Um gato do acervo tem desenho que o painel não sabe mostrar — meow doctor conta qual." 2>/dev/null || true ;;
+      esac
+    fi
+    unset _svg_saida
+  fi
+fi
+
 # A ordem é estável — alfabética — para que "o próximo" signifique a mesma coisa
 # em toda execução, inclusive depois de um reboot.
 declare -a POOL=() NOMES=()
@@ -149,15 +293,32 @@ destino_de() { printf '%s/meow-%s.svg' "$LOGOS_DIR" "$1"; }
 # --- listar -----------------------------------------------------------------
 if [ "$ACAO" = "listar" ]; then
   atual="$(cat "$APPLET/custom_logo_path" 2>/dev/null | tr -d '"')"
+  # O que ela VÊ é o botão do dock, não a chave do applet Logo Menu (que não
+  # está montado nesta máquina). Listar só a chave responderia a pergunta errada.
+  _tema="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+  _no_dock="$HOME/.local/share/icons/$_tema/scalable/apps/com.system76.CosmicPanelAppButton.svg"
   meow_titulo "Gatos do painel (${#POOL[@]})"
   for i in "${!NOMES[@]}"; do
-    if [ "$(destino_de "${NOMES[$i]}")" = "$atual" ]; then
-      meow_ok "${NOMES[$i]}  <- no ar"
-    else
-      meow_info "${NOMES[$i]}"
+    _marca=""
+    [ "$(destino_de "${NOMES[$i]}")" = "$atual" ] && _marca="  <- na chave do applet"
+    if [ -f "$_no_dock" ] && cmp -s "${POOL[$i]}" "$_no_dock"; then
+      _marca="$_marca  <- NO DOCK (é o que ela vê)"
     fi
+    if [ -n "$_marca" ]; then meow_ok "${NOMES[$i]}$_marca"; else meow_info "${NOMES[$i]}"; fi
   done
-  printf '\n  acervo dela: %s\n  solte um .svg ali e ele entra na rotação.\n\n' "$ACERVO"
+
+  _j="$(meow_noite_janela)"
+  _ini="${_j%% *}"; _fim="${_j#* }"; _fim="${_fim%% *}"
+  printf '\n  modo    : %s' "$LOGO_MODO"
+  case "$LOGO_MODO" in
+    hora)    printf '  (dia=%s · noite=%s)\n' "$LOGO_DIA" "$LOGO_NOITE" ;;
+    rotacao) printf '  (gira a cada %s, no encerramento da sessão)\n' "${LOGO_INTERVALO:-1d}" ;;
+    *)       printf '  (LOGO="%s" vence sempre)\n' "$LOGO" ;;
+  esac
+  printf '  noite   : %s–%s  (fonte: %s)\n' \
+    "$(meow_hora_de_minutos "$_ini")" "$(meow_hora_de_minutos "$_fim")" "${_j##* }"
+  printf '  agora   : %s, portanto é %s\n' "$(date +%H:%M)" "$(meow_fase_da_hora "$_ini" "$_fim")"
+  printf '  acervo  : %s\n  solte um .svg ali e ele entra.\n\n' "$ACERVO"
   exit "$MEOW_OK"
 fi
 
@@ -254,10 +415,46 @@ for i in "${!NOMES[@]}"; do
   [ "$(destino_de "${NOMES[$i]}")" = "$atual" ] && { indice=$i; break; }
 done
 
+# O ÍNDICE DE UM NOME DO ACERVO, ou -1. Usado pelo modo `hora` e pelo `LOGO`.
+_indice_de() {
+  local alvo="$1" i
+  for i in "${!NOMES[@]}"; do
+    [ "${NOMES[$i]}" = "$alvo" ] && { printf '%s' "$i"; return 0; }
+  done
+  printf '%s' "-1"
+}
+
+FASE=""; FONTE_JANELA=""
 if [ "$ACAO" = "girar" ]; then
   # Fora do acervo (ou primeira vez) começa do zero; dentro, avança em círculo.
   proximo=$(( (indice + 1) % ${#NOMES[@]} ))
   [ "$indice" -lt 0 ] && proximo=0
+elif [ "$LOGO_MODO" = "hora" ]; then
+  # --- O MODO NOVO: O RELÓGIO MANDA, E ELE MANDA SOBRE O QUE JÁ ESTÁ NO AR ----
+  # Aqui NÃO se preserva o que está na chave, ao contrário dos outros dois modos.
+  # A razão é a diferença entre "quem gira é o script" e "quem gira é a hora":
+  # no modo `rotacao` sobrescrever a chave a cada `install.sh` desfaria a
+  # rotação; no modo `hora` NÃO sobrescrever seria o gato ficar preso no rosto
+  # da fase anterior para sempre, que é o defeito que este modo veio curar.
+  #
+  # A JANELA VEM DO `lib/noite.sh`, QUE É A ÚNICA NOITE DA MÁQUINA. Ver lá a
+  # ordem de precedência e por que a fonte é dita em voz alta.
+  _j="$(meow_noite_janela)"
+  _ini="${_j%% *}"; _fim="${_j#* }"; _fim="${_fim%% *}"; FONTE_JANELA="${_j##* }"
+  if meow_e_noite "$_ini" "$_fim"; then FASE="noite"; _quer="$LOGO_NOITE"
+  else                                  FASE="dia";   _quer="$LOGO_DIA"; fi
+
+  proximo="$(_indice_de "$_quer")"
+  if [ "$proximo" -lt 0 ]; then
+    # O acervo é a interface: um nome que não está lá é engano de digitação no
+    # conf, ou um gato que ela apagou. Avisar é obrigatório — cair calado no
+    # primeiro do acervo faria o gato certo nunca aparecer, e ela procuraria o
+    # defeito no relógio.
+    meow_aviso "LOGO_${FASE^^}=\"$_quer\" não está em $ACERVO — caindo em \"$LOGO\""
+    proximo="$(_indice_de "$LOGO")"
+    [ "$proximo" -lt 0 ] && proximo=0
+  fi
+  unset _j _ini _fim _quer
 else
   # Sem girar: só garante que a chave aponta para ALGUM gato do acervo. Se já
   # aponta, não se mexe — senão toda rodada do instalador desfaria a rotação e
@@ -337,18 +534,82 @@ TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 BOTOES_DOCK=(com.system76.CosmicPanelAppButton com.system76.CosmicAppLibrary)
 DIR_BOTOES="$HOME/.local/share/icons/$TEMA_ICONES/scalable/apps"
 
+dock_mudou=0
 if [ -f "$alvo" ]; then
   for _b in "${BOTOES_DOCK[@]}"; do
     meow_escrever "$DIR_BOTOES/$_b.svg" "$(cat "$alvo")" 644
     case $? in
-      1) mudou=1 ;;
+      1) mudou=1; dock_mudou=1 ;;
       2) meow_erro "não consegui vestir o botão do dock com $_b"; exit "$MEOW_ERRO" ;;
     esac
   done
 fi
 
+# --- E O RECICLO, QUE É O QUE FAZ O ARQUIVO VIRAR PIXEL -----------------------
+# MEDIDO EM 01/09/2026, com captura de tela antes e depois:
+#   1. escrever o SVG e esperar 2s  ->  ZERO pixel muda. O `cosmic-panel-button`
+#      resolve o ícone no arranque e guarda.
+#   2. `kill <pid do cosmic-panel-button>`  ->  BURACO no dock. O `cosmic-panel`
+#      não ressuscita applet morto; o botão só voltou com o painel inteiro.
+#   3. `scripts/painel.sh reciclar`  ->  botão de volta em ~6s, com o gato NOVO.
+#
+# SÓ QUANDO O ARQUIVO DE FATO MUDOU. Este script roda a cada cinco minutos pelo
+# `meow-gato.timer`, e o `meow-assets.path` o dispara de novo a cada mexida no
+# acervo. Reciclar sem mudança seria 288 piscadas por dia — com o teste, são
+# DUAS: a do nascer e a do pôr da janela de noite.
+#
+# A PORTA É ÚNICA, E NÃO É UM `pkill` DAQUI. Ver o cabeçalho: o
+# `scripts/painel.sh reciclar` recusa quando o supervisor dormiria minutos, e
+# essa recusa é a única coisa entre um gato e uma barra sumida. `|| true`
+# porque a recusa dele é decisão correta, não falha desta etapa — e o arquivo já
+# está no disco de qualquer jeito, então o gato certo aparece no próximo login.
+if [ "$dock_mudou" = "1" ] && ! meow_seco; then
+  if [ "$LOGO_RECICLAR" != "sim" ]; then
+    meow_info "gato do dock trocado; LOGO_RECICLAR=\"$LOGO_RECICLAR\" — vale no próximo login"
+  elif [ -x "$RAIZ/scripts/painel.sh" ]; then
+    meow_info "gato do dock trocado — reciclando o painel para ele aparecer"
+    "$RAIZ/scripts/painel.sh" reciclar || true
+    # E O MENU DE LANÇAMENTO, QUE É O TERCEIRO CONSUMIDOR E TEM CACHE PRÓPRIO.
+    # O `com.system76.CosmicAppLibrary` que acabamos de vestir é o ícone da
+    # GRADE — reciclar o painel repõe o botão do dock e não toca no
+    # `cosmic-app-library`, que resolveu o ícone quando subiu. Sem esta linha o
+    # gato novo aparecia no dock e no terminal, e continuava velho no menu até
+    # o login seguinte: as três telas discordando sobre o mesmo arquivo, que é
+    # o sintoma que este projeto persegue. Ver `meow_lancador_reler`.
+    meow_lancador_reler
+  fi
+fi
+
+# --- O GATO DO TERMINAL VAI JUNTO -------------------------------------------
+# O `fastfetch` lê o arquivo do logo a CADA execução: não há cache, não há
+# reciclo, não há pisca. Chamar daqui é o que faz o dock e o terminal nunca
+# discordarem sobre a hora — e é barato, porque o `fastfetch_logo.sh` sai em
+# silêncio quando o `.ansi` da fase já está no lugar.
+#
+# NÃO É ERRO DAQUI SE ELE FALHAR: ele tem código de saída próprio (4 = "o
+# config.jsonc da Aurora ainda não aponta para nós") e quem o interpreta é o
+# `install.sh` e o `bin/meow doctor`. Aqui ele é efeito colateral desejado, não
+# etapa — por isso `|| true` e saída silenciada.
+# `FFL_FUNDO=1` liga a guarda barata de lá: com o carimbo batendo, o tique sai
+# sem rasterizar nada. Ver o bloco `_ffl_ja_esta_certo` no fastfetch_logo.sh — e
+# note que o `conferir` do doctor NÃO passa essa variável, então a checagem
+# profunda continua acontecendo uma vez por dia.
+if [ "$LOGO_MODO" = "hora" ] && ! meow_seco && [ -x "$RAIZ/scripts/fastfetch_logo.sh" ]; then
+  FFL_FUNDO=1 LOG_NIVEL=silencioso "$RAIZ/scripts/fastfetch_logo.sh" aplicar >/dev/null 2>&1 || true
+fi
+
+# O PORQUÊ ENTRA NA LINHA, E NÃO SÓ O QUÊ. "no ar: mimir" às 15h parece defeito;
+# "no ar: mimir (noite, janela 18:00–07:00 de meow.conf)" é uma frase que se
+# pode conferir contra o relógio sem abrir um arquivo.
+PORQUE=""
+if [ -n "$FASE" ]; then
+  _j="$(meow_noite_janela)"; _i="${_j%% *}"; _f="${_j#* }"; _f="${_f%% *}"
+  PORQUE=" — $FASE, janela $(meow_hora_de_minutos "$_i")–$(meow_hora_de_minutos "$_f") ($FONTE_JANELA)"
+  unset _j _i _f
+fi
+
 if [ "$mudou" = "0" ]; then
-  meow_ok "logo já no lugar: ${NOMES[$proximo]} (acervo de ${#POOL[@]})"
+  meow_ok "logo já no lugar: ${NOMES[$proximo]}$PORQUE"
   exit "$MEOW_OK"
 fi
 
@@ -356,6 +617,6 @@ meow_seco && exit "$MEOW_DIVERGENTE"
 if [ "$ACAO" = "girar" ]; then
   meow_ok "o gato do painel agora é ${NOMES[$proximo]} — já valendo, sem reiniciar"
 else
-  meow_ok "acervo de ${#POOL[@]} gato(s) instalado; no ar: ${NOMES[$proximo]}"
+  meow_ok "acervo de ${#POOL[@]} gato(s) instalado; no ar: ${NOMES[$proximo]}$PORQUE"
 fi
 exit "$MEOW_DIVERGENTE"

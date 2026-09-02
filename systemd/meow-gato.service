@@ -1,0 +1,91 @@
+# meow-gato.service — põe na tela o gato que a HORA pede: a Coquinha de dia, o
+# Mimir de noite. Dois lugares de uma vez: o botão do dock e o logo do fastfetch.
+#
+# O PEDIDO DELA, 01/09/2026
+#   "queria que de noite o menu ficasse com o mimir e de dia a coquinha. além
+#    disso eu gostaria que o mesmo ocorresse com o terminal no nosso fastfetch"
+#
+# É O MESMO `logo.sh` QUE O `meow-assets.path` E O `install.sh` CHAMAM
+#   Um script, três gatilhos, e nenhuma cópia da regra: quem decide o gato é o
+#   `LOGO_MODO` do `meow.conf` lido lá dentro, não esta unidade. Se ela puser
+#   `LOGO_MODO="rotacao"`, este relógio continua batendo e o `logo.sh` continua
+#   respondendo "o modo é rotacao — o gato não gira pelo relógio", sem escrever
+#   nada. Unidade que sabe demais sobre a regra é o segundo dono que este projeto
+#   persegue.
+#
+# `flock -n -E 0` SOBRE O MESMO LOCK DE TODO MUNDO
+#   O tique pode cair no meio de um `install.sh` ou de um `meow doctor
+#   --consertar`, que também chamam o `logo.sh`. `-n` cede a vez na hora em vez
+#   de esperar; `-E 0` faz ceder sair 0, porque aqui o 1 significa "troquei o
+#   gato" e confundir os dois encheria o log de trocas que não aconteceram.
+#   Perder um tique não custa nada: o próximo vem em cinco minutos, e a virada
+#   tem uma janela de horas.
+#
+# `ConditionEnvironment=WAYLAND_DISPLAY` — SEM SESSÃO NÃO HÁ DOCK PARA VESTIR
+#   E, mais importante, o `logo.sh` pode RECICLAR O PAINEL. Um tique que
+#   disparasse com a sessão fechada (o `Linger=yes` desta máquina deixa o gerente
+#   `--user` vivo depois do logout — medido em 31/08/2026 no irmão
+#   `meow-leitura.timer`) mandaria SIGTERM num `cosmic-panel` que não existe, ou
+#   pior, no da sessão seguinte no meio do login.
+#
+# `$R` SIM, `${R}` NÃO: o systemd expande `${NOME}` na linha de `Exec` mesmo
+# dentro de aspas simples, e variável que ele não conhece vira string vazia.
+#
+# O `set -a` EXPORTA O CONF INTEIRO, e a lista explícita ficou de fora de
+# propósito: o `logo.sh` lê NOVE chaves hoje (`FLAVOR`, `LOGO`, `LOGO_MODO`,
+# `LOGO_DIA`, `LOGO_NOITE`, `LOGO_RECICLAR`, `LOGO_ROTACAO`, `LOGO_INTERVALO`,
+# `NOME_TEMA_ICONES`) e mais as da janela de noite lidas pelo `lib/noite.sh`
+# (`NOITE_*`, `WALLPAPER_NOITE_*`). Uma lista aqui envelheceria calada na próxima
+# chave nova — foi exatamente o defeito nº 3 do `meow-logo.service`, que gravava
+# o gato numa árvore de tema que ninguém lia porque `NOME_TEMA_ICONES` chegava
+# vazia.
+
+[Unit]
+Description=MeowSystem — o gato da hora (Coquinha de dia, Mimir de noite)
+Documentation=file:%h/.local/state/meowsystem/raiz
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+ConditionEnvironment=WAYLAND_DISPLAY
+PartOf=cosmic-session.target
+After=cosmic-session.target
+# O `meow-assets.path` acorda o mesmo script quando ela mexe no acervo; folga
+# para os dois gatilhos coincidirem sem estourar burst.
+StartLimitIntervalSec=300s
+StartLimitBurst=20
+
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/logo.sh" ] || exit 0; LOG_NIVEL=silencioso exec "$R/scripts/logo.sh"'
+
+# 1 = "estava divergente e eu consertei", que é o que uma troca de gato devolve.
+# 3 = falta dependência (o applet dev.cappsy não está nesta máquina, ou o acervo
+#     está vazio) — não é falha, é etapa que não se aplica.
+SuccessExitStatus=1 3
+
+# `TimeoutStartSec=120s` — E O TETO AQUI É MAIOR QUE O DOS IRMÃOS, DE PROPÓSITO
+#   `Type=oneshot` NÃO herda o `DefaultTimeoutStartSec` (o padrão dele é
+#   `infinity`), e sem teto um `logo.sh` travado ficaria em `activating (start)`
+#   para sempre — e o systemd não dispara de novo uma unidade cujo job ainda
+#   roda. O gato pararia de virar, calado.
+#
+#   A régua dos irmãos é "menor que o período do gatilho", e aqui o período é
+#   300s: 120s cabe com folga. O teto é maior que os 30s do `meow-leitura`
+#   porque este tique pode fazer duas coisas caras que aquele nunca faz:
+#     1. RECICLAR O PAINEL. O `scripts/painel.sh reciclar` manda SIGTERM e volta
+#        na hora, mas ele acontece só nas duas viradas do dia.
+#     2. RASTERIZAR O SVG em 2048 px para o fastfetch, quando a fase mudou.
+#   MEDIDO em 01/09/2026, três rodadas de cada:
+#        tique comum (carimbo batendo)  0,05 s · 0,05 s · 0,05 s
+#        tique de virada (regerando)    0,37 s · 0,37 s · 0,36 s
+#   120s são ~325x o pior deles.
+TimeoutStartSec=120s
+
+# 288 tiques por dia. Sem esta linha seriam 576 pares "Starting…/Finished…" no
+# journal por dia, dizendo que nada aconteceu — o mesmo motivo pelo qual ela
+# existe no `meow-leitura.service`, que bate 1440 vezes.
+LogLevelMax=notice
+
+# O tique não tem pressa: a virada tem uma janela de horas e ninguém está
+# esperando por ela. Ceder CPU e disco para o que ela estiver fazendo é de graça.
+Nice=10
+IOSchedulingClass=idle

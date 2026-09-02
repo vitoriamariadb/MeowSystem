@@ -11,9 +11,9 @@
 #
 # POR QUE A ARTE É COPIADA PARA O REPO, E NÃO SÓ PARA ~/.local
 #   Instalar direto no tema resolveria HOJE e quebraria na próxima rodada do
-#   `install.sh`, que reconstrói o tema a partir de `icons/`. A escolha dela tem
-#   que virar fonte, senão vira lixo: a arte vai para `icons/curadoria/` e o
-#   apontamento para `icons/curadoria.map`. O `icones_apps.sh` roda ANTES e
+#   `install.sh`, que reconstrói o tema a partir de `assets/icones/`. A escolha dela tem
+#   que virar fonte, senão vira lixo: a arte vai para `assets/icones/curadoria/` e o
+#   apontamento para `assets/icones/curadoria.map`. O `icones_apps.sh` roda ANTES e
 #   pinta o lançador inteiro; este script roda DEPOIS e sobrepõe o que ela
 #   escolheu à mão. Última palavra é dela, e a ordem é o que garante isso.
 #
@@ -34,8 +34,8 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA"
-ACERVO="$RAIZ/icons/curadoria"
-MAPA="$RAIZ/icons/curadoria.map"
+ACERVO="$RAIZ/assets/icones/curadoria"
+MAPA="$RAIZ/assets/icones/curadoria.map"
 
 uso() {
   cat <<FIM
@@ -220,7 +220,7 @@ done < "$LISTA"
 # ─────────────────────────────────────────────────────────────────────────────
 # O MAPA É O QUE SOBREVIVE À PRÓXIMA RODADA DO INSTALADOR
 # ─────────────────────────────────────────────────────────────────────────────
-# Sem ele, `icons/curadoria/` seria um monte de arquivo solto sem dono, e o
+# Sem ele, `assets/icones/curadoria/` seria um monte de arquivo solto sem dono, e o
 # `install.sh` não teria como saber que aquilo tem precedência sobre o acervo
 # automático. O formato é o mesmo dos outros mapas do projeto: uma linha por
 # entrada, `#` comenta, campos separados por TAB, ordenado para o diff ser legível.

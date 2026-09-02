@@ -16,7 +16,7 @@
 #   impediria redistribuir num repositório GPL-3. Em 05/08/2026 ela decidiu que o
 #   projeto não será publicado: sem redistribuição, o impedimento deixa de
 #   existir para uso nesta máquina. O que continua valendo está no cabeçalho de
-#   icons/apps.map, e vale a pena reler antes de mudar de ideia sobre publicar.
+#   assets/icones/apps.map, e vale a pena reler antes de mudar de ideia sobre publicar.
 #
 # PNG, NÃO SVG — E A ESCOLHA É MEDIDA
 #   O acervo entrega `.ico` de 256x256 a 24 bits por pixel, ou seja SEM canal
@@ -26,7 +26,7 @@
 #   são raster, vão para `512x512/apps` e NUNCA para `scalable/` — meter raster
 #   dentro de um diretório declarado como escalável é o defeito que o
 #   thunderbird.png já cometeu neste tema (consertado em 10/08/2026: hoje ele vai
-#   para `128x128/apps`, o tamanho real dele — ver `icons/apps-hicolor.map`).
+#   para `128x128/apps`, o tamanho real dele — ver `assets/icones/apps-hicolor.map`).
 #
 # CÓDIGOS DE SAÍDA
 #   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta o acervo
@@ -35,6 +35,8 @@ set -euo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+# shellcheck source=../lib/icones.sh
+. "$RAIZ/lib/icones.sh"
 
 # `ICONES_FLAVOR` TEM DOIS CONSUMIDORES, E O `meow.conf` SÓ DOCUMENTA UM
 #   O comentário da chave, no `meow.conf`, a descreve como sendo dos ícones de
@@ -49,7 +51,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   Medido (10/08/2026): `google-chrome.png` traz o red `#ED8796`, que é o
 #   macchiato; o mocha seria `#F38BA8`. Não é dívida técnica e não se "conserta"
 #   recolorindo — recolorir desfaria uma decisão dela em silêncio, e ainda por
-#   cima num acervo de terceiro cuja licença o `icons/PROCEDENCIA.md` registra
+#   cima num acervo de terceiro cuja licença o `assets/icones/PROCEDENCIA.md` registra
 #   como não declarada. Se um dia ela pedir mocha no lançador, a saída limpa é
 #   SEPARAR a chave (`APPS_FLAVOR`), e o acervo só publica latte e macchiato.
 FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
@@ -62,8 +64,8 @@ case "$FLAVOR_ICONES" in
   *) VARIANTE="macchiato"; APROXIMOU="$FLAVOR_ICONES" ;;
 esac
 
-ORIGEM="$RAIZ/icons/catppuccin-apps/$VARIANTE"
-MAPA="$RAIZ/icons/apps.map"
+ORIGEM="$RAIZ/assets/icones/catppuccin-apps/$VARIANTE"
+MAPA="$RAIZ/assets/icones/apps.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 BASE_TEMA="$HOME/.local/share/icons/$TEMA"
 DESTINO="$BASE_TEMA/512x512/apps"
@@ -132,7 +134,22 @@ DESTINO="$BASE_TEMA/512x512/apps"
 #
 #   Custo medido: os dez derivados de um ícone somam ~40 KB, contra os 770 KB do
 #   512 que já estava instalado. A escada inteira dos 13 é menos de 1 MB.
-TAMANHOS_DERIVADOS=(24 32 48 56 64 72 80 96 128 256)
+# A ESCADA DEIXOU DE SER CRAVADA EM 27/08/2026, E O MOTIVO NÃO É ELEGÂNCIA
+#   Estes dez números foram medidos em 08/08/2026 numa tela a 100%, e a
+#   justificativa inteira (acima) fala em "a dock desenha a 48 px" e "o lançador
+#   a 76 px" — pixels de DISPOSITIVO daquele dia. A tela dela está a 114% desde
+#   então: a dock desenha a ~41 e o lançador a ~87, e ninguém releu nada, porque
+#   não havia o que ler. Um número medido em captura de tela envelhece no dia em
+#   que a tela muda, e envelhece CALADO.
+#
+#   `meow_icones_escada` (lib/icones.sh) devolve a mesma escada quando a tela é
+#   a de 08/08 e OUTRA quando ela muda — a faixa é derivada da escala. A conta,
+#   as duas pontas medidas e a garantia de idempotência estão lá.
+#
+#   E havia DUAS escadas neste projeto: esta, e nenhuma no `jogos_steam.sh`, que
+#   plantava só `256x256` e por isso reduzia 6,2x na dock. Agora há uma função
+#   só, e os dois scripts a chamam.
+mapfile -t TAMANHOS_DERIVADOS < <(meow_icones_escada)
 # O `\n` NÃO É ENFEITE — sem ele a varredura de órfão nunca saía do 512
 #   Esta função é usada dentro de `$(for px in ...; do dir_de "$px"; done)`, e um
 #   `printf` sem quebra de linha faz os dez caminhos virarem UMA palavra colada:
@@ -161,11 +178,11 @@ intocavel() {
 # A remoção de órfão daqui apaga `.png` cujo nome não está no `apps.map`. Isso
 # era certo enquanto TODO `.png` de `<tam>/apps` fosse meu — e não é mais:
 #
-#   `icons/apps-hicolor.map`  o `completar_icones.sh` copia a marca de fábrica do
+#   `assets/icones/apps-hicolor.map`  o `completar_icones.sh` copia a marca de fábrica do
 #                             `hicolor` do sistema para o diretório do tamanho
 #                             REAL dela (`thunderbird` -> `128x128/apps`), que é
 #                             um dos meus;
-#   `icons/curadoria.map`     o `importar_icones.sh` instala a arte que ELA
+#   `assets/icones/curadoria.map`     o `importar_icones.sh` instala a arte que ELA
 #                             escolheu na página de curadoria, e um PNG escolhido
 #                             vai para `<lado>x<lado>/apps` pelo mesmo motivo.
 #
@@ -193,7 +210,7 @@ _ler_alheios() {
   local linha chave caminho ext subdir lado
   # `nome:caminho-no-sistema` — a marca de fábrica. O diretório de destino sai
   # do caminho da fonte, exatamente como o `completar_icones.sh` o deriva.
-  if [ -f "$RAIZ/icons/apps-hicolor.map" ]; then
+  if [ -f "$RAIZ/assets/icones/apps-hicolor.map" ]; then
     while IFS= read -r linha; do
       case "$linha" in ''|'#'*) continue ;; esac
       chave="${linha%%:*}"; caminho="${linha#*:}"
@@ -202,17 +219,17 @@ _ler_alheios() {
       case "$lado" in
         [0-9]*x[0-9]*) ALHEIO_ARQ["$lado/apps/$chave.png"]=1 ;;
       esac
-    done < "$RAIZ/icons/apps-hicolor.map"
+    done < "$RAIZ/assets/icones/apps-hicolor.map"
   fi
   # `chave<TAB>extensão<TAB>subdiretório` — escrito pelo `importar_icones.sh`.
   # Ele só existe depois da primeira importação; ausência não é defeito.
-  if [ -f "$RAIZ/icons/curadoria.map" ]; then
+  if [ -f "$RAIZ/assets/icones/curadoria.map" ]; then
     while IFS=$'\t' read -r chave ext subdir; do
       case "$chave" in ''|'#'*) continue ;; esac
       [ -n "$ext" ] && [ -n "$subdir" ] || continue
       CURADO["$chave"]=1
       ALHEIO_ARQ["$subdir/$chave.$ext"]=1
-    done < "$RAIZ/icons/curadoria.map"
+    done < "$RAIZ/assets/icones/curadoria.map"
   fi
   return 0
 }
@@ -255,10 +272,10 @@ _ler_mapa() {
 
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o acervo Catppuccin de aplicativos não está em icons/catppuccin-apps/$VARIANTE"
+    meow_pula "o acervo Catppuccin de aplicativos não está em assets/icones/catppuccin-apps/$VARIANTE"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-  [ -f "$MAPA" ] || { meow_pula "sem icons/apps.map — nada a vestir"; return "$MEOW_SEM_DEPENDENCIA"; }
+  [ -f "$MAPA" ] || { meow_pula "sem assets/icones/apps.map — nada a vestir"; return "$MEOW_SEM_DEPENDENCIA"; }
   return "$MEOW_OK"
 }
 

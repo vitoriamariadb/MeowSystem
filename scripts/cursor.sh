@@ -155,7 +155,7 @@
 # LICENÇA (regra do projeto: acervo de terceiro tem licença registrada)
 #   O tema é o Volantes Cursors (varlesh), **GPL-2.0**, recolorido com a paleta
 #   Catppuccin e empacotado por catppuccin/cursors. Registro auditável no
-#   repositório: `src/cursors/CREDITOS.md`. Este script escreve uma cópia do
+#   repositório: `assets/cursores/CREDITOS.md`. Este script escreve uma cópia do
 #   `LICENSE` e do `AUTHORS` que vêm dentro do próprio pacote ao lado do tema
 #   instalado, para que a auditoria também funcione na máquina dela.
 #

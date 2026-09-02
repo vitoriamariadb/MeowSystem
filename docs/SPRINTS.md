@@ -10,24 +10,108 @@ fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
 ## AO VOLTAR, COMECE POR AQUI
 
-**Não há sprint aberta.** A [Sprint U](#sprint-u--sobreviver-a-um-dist-upgrade) foi
-executada e FECHADA em **30/08/2026**, incluindo o `--build`, que ela autorizou às
-01:40 pedindo *"só valida tudo antes"*; o `patches/cosmic-comp-raio-clampado.patch`
-entrou no `/usr/bin/cosmic-comp` pela primeira vez desde que foi escrito, em 26/08. A
-[Sprint V](#sprint-v--o-modo-de-leitura) — o modo de leitura inteiro — foi FECHADA em
-**31/08/2026**, e chegou atrasada ao índice: o trabalho existia havia dois dias sem
-uma linha aqui. Ela carrega **três dívidas**, todas na lista do índice.
+**Não há sprint aberta. A Sprint W foi executada e FECHADA em 01/09/2026** — ver
+[Sprint W](#sprint-w--o-gato-da-hora-o-menu-e-a-arrumação) logo abaixo. Ela juntou
+cinco pedidos dela numa tarde e terminou com o `install.sh` dizendo *"Nenhuma
+etapa precisou escrever nada"* duas vezes seguidas e o doctor em **41 ok**.
 
-**O logout já aconteceu, e o texto que dizia "só falta ela deslogar" envelheceu.**
-Medido em 31/08/2026: o `cosmic-comp` vivo (PID 3060, nascido em `dom ago 30 20:25:53`,
-depois do build das 04:59) carrega os **três** marcadores —
-`AURORA-COSMIC-WS-PATCH-3.67`, `AURORA-COSMIC-RADIUS-PATCH-1` e
-`AURORA-READING-MODE-1` —, e o binário do disco é byte a byte o mesmo (`md5sum`
-idêntico ao `.aurora-ws`). Disco e sessão concordam; não falta logout nenhum.
+**O QUE FALTA, E SÓ ISSO:** um logout (ou reboot). O
+`AURORA-COSMIC-RADIUS-PATCH-2` está no disco e não na sessão — o doctor diz
+*"1 marcador só vale no próximo login"*, que é a verdade e não é conserto a
+fazer. O reboot também ativa o pipewire novo (1.5.85 → 1.6.8).
 
-O item 6 da sprint (as duas mensagens distintas) provou-se no primeiro uso real,
-sem ninguém fabricar caso: o doctor passou a dizer *"AURORA-COSMIC-RADIUS-PATCH-1
-está no disco mas NÃO na sessão — vale no próximo login, nada a recompilar"*.
+---
+
+## Sprint W — O gato da hora, o menu e a arrumação  ← **FECHADA em 01/09/2026**
+
+Cinco pedidos dela na mesma tarde, e um comando de upgrade que ela queria rodar
+sem quebrar nada. Tudo medido, tudo idempotente, tudo com etapa no `install.sh`
+e conferidor no `meow doctor` — que passou a ser o critério de "pronto" depois
+de ela dizer: *"tudo tem que ser idempotente e autoajustável (script
+inteligente) de forma que ele sobreviva sempre. o install e o selfheal devem ser
+atualizados inclusive."*
+
+**1. O gato segue o relógio.** Coquinha de dia, Mimir de noite, no botão do dock
+E no logo do fastfetch. `LOGO_MODO="hora"` é o novo padrão; `rotacao` e `fixo`
+continuam inteiros, e quem tinha `LOGO_ROTACAO="sim"` não muda de comportamento.
+Peças: `lib/noite.sh` (a noite da máquina, uma vez só — ela estava copiada em
+três lugares), `systemd/meow-gato.{timer,service}` (tique de 5 min, 0,05 s
+cada), etapa e conferidor.
+> **A medição que destravou:** reescrever o SVG do botão do dock **não muda um
+> pixel** — o `cosmic-panel-button` resolve o ícone no arranque. Matar só o
+> applet abre um **buraco** no dock. Quem faz o gato aparecer é
+> `meow painel reciclar`, em ~6 s. O comentário do `logo.sh` dizia desde 05/08
+> que isso não valia a pena "a cada 30 minutos" — e estava certo; o que mudou é
+> que agora são **duas trocas por dia**.
+> **Provado ao vivo às 18:06 de 01/09**, sem intervenção: o dock virou Mimir
+> sozinho na virada.
+
+**2. Avançar e voltar papel de parede.** `meow wallpaper proximo|anterior|carrossel`.
+> **A âncora que faltava** estava neste repositório havia semanas, usada para
+> outra coisa: `~/.local/state/cosmic/…/v1/wallpapers` guarda a imagem que o
+> `cosmic-bg` está mostrando. Com ela, "próximo" deixa de ser adivinhação. O
+> cabeçalho do `wallpaper.sh` continua certo sobre o `cosmic-bg` não falar
+> D-Bus — o que mudou é o significado de "avançar": fixar a imagem seguinte, com
+> prazo (`WALLPAPER_FIXO_TTL`, 30 min) para o carrossel voltar sozinho.
+
+**3. Os dois itens no menu da área de trabalho.** `patches/cosmic-files-wallpaper-menu.patch`
++ `scripts/files_menu.sh`. Ver as armadilhas **5** e **6** do `patches/LEIA-ME.txt`.
+> Quem desenha a área de trabalho é o **`cosmic-files-applet`**, não o
+> `cosmic-files` — descobrir isso custou um build inteiro. E o binário vai para
+> `~/.local/bin`, que vence `/usr/bin` no PATH: o apt não tem o que sobrescrever.
+
+**4. A arrumação do repositório.** 16 diretórios de topo → **9**. A regra:
+**`assets/` é o que o projeto DESENHA, `src/` é o que ele COMPILA.** 4206
+arquivos movidos com `git mv` (o histórico seguiu). Sumiram `icons/`,
+`palette/`, `themes/`, `state/`, `app-themes/`, `wallpapers/` e `zsh/` do topo.
+> **A primeira tentativa foi REVERTIDA**, e vale registrar por quê: a regra de
+> substituição pegou a palavra solta `zsh` (o shell) em 36 frases de prosa — "o
+> prompt do zsh mora em" virou "o prompt do assets/zsh mora em". A cura foi
+> exigir que o token venha **seguido de barra** (é diretório, não palavra), com
+> uma segunda passada só para os caminhos ancorados em `$RAIZ/`, `$MEOW_RAIZ/` e
+> `../`, que a primeira regra excluía de propósito.
+
+**5. Apagar um papel de parede virou banir, e o acervo mudou de casa.** Ela
+apagou imagens feias e nada aconteceu — porque havia **três** pastas de papel de
+parede, duas delas falsas: `src/wallpapers/` era **fantasma** (só existia no
+`.gitignore`) e `wallpapers/` eram 145 MB de cópia byte a byte que **nenhum
+script lia**. As imagens saíram; ficaram as três receitas.
+> E o buraco real estava no lado certo: `meow wallpaper banir` era permanente,
+> apagar à mão de `ativos/` não era. Curado pelo `meow-ativos.path` +
+> `reconciliar_sumicos`, com **quatro guardas** (primeira passagem, pasta vazia,
+> sumiço em massa, já-banido). **Medido: 4 s** entre apagar e ficar permanente.
+> Depois, a pedido dela, o acervo inteiro mudou para
+> `assets/papeis-de-parede/` — `~/.local/share/backgrounds/meowsystem` virou
+> symlink. Mover a base INTEIRA preservou os links duros das pastas de dia e
+> noite (mesmo inode, `nlink=2`, zero duplicação).
+
+**6. O comando grande, rodado e acompanhado.** `apt full-upgrade` + `topgrade` +
+`autoremove` + `cargo`: **87 pacotes, 0 removidos**. Tema, ícones, cursor,
+terminal, starship, spicetify e o repo `~/.config/zsh` — **intactos**. O único
+que quebra é o `cosmic-comp`, e ele se reergue sozinho: o hook
+`DPkg::Post-Invoke` → self-heal → `--ensure` → auto-build, disparado às
+16:50:31, tentativa 1/3.
+> **Uma dívida virou conserto no mesmo dia:** o patch do raio parou de aplicar
+> (o upstream reescreveu `layer_radius_hook`) e o build seguiu sem ele, calado,
+> porque é `opt`. Quem acusou foi o `meow doctor`. Reescrito, compilado e
+> validado como `AURORA-COSMIC-RADIUS-PATCH-2`.
+
+**7. Duas afirmações antigas foram MEDIDAS e corrigidas.** O `wallpaper.sh`
+dizia, por escrito, que não dava para medir se o `cosmic-bg` segue link
+simbólico "sem apontar a configuração dela para uma pasta de teste, o que esta
+sprint não faz". Dava: **ele segue, e desenha a imagem**. E o primeiro teste foi
+desfeito em segundos pelo `meow-fundo.path` — a melhor prova possível de que
+aquela proteção funciona.
+
+**Fronteira atravessada, com as quatro guardas.** O `logo.source` do
+`config.jsonc` do fastfetch (território da Aurora) passou a ser escrito pelo
+Meow: uma linha, backup antes, em voz alta, e `FASTFETCH_LOGO_CONF="nao"` para
+desligar. O porquê inteiro está em `docs/FRONTEIRA.md`. Autorizado por ela:
+*"pode alterar tudo a nível de sistema. incluindo no aurora tá bom?"*
+
+---
+
+> **Contexto histórico da Sprint U, mantido:**
 
 > **Por que o build não foi feito sozinho:** `/usr/bin/cosmic-greeter-start` é
 > literalmente `exec cosmic-comp cosmic-greeter`. Um binário ruim tira o desktop
@@ -281,7 +365,7 @@ Olhar a tela. Isto é gosto, não medição.
 
 > **O que foi feito, em uma tela.** O lançador tem hoje **41 aplicativos em
 > traço de linha**, de **dois** acervos que saem no mesmo dialeto: **16** do
-> Arcticons e **25** de `icons/convertidos-apps/`, que é arte do PRÓPRIO
+> Arcticons e **25** de `assets/icones/convertidos-apps/`, que é arte do PRÓPRIO
 > aplicativo convertida de chapado para traço por um script deste projeto. O
 > traço subiu de **1** para **1,75**, um número só para os dois acervos. Quatro
 > desenhos são retoque à mão. O `install.sh` **não ganhou etapa nenhuma**: o
@@ -319,7 +403,7 @@ Ainda em 11/08, lendo o levantamento acima, ela listou o que achava que faltava:
 whatsapp"*.
 
 Quatro desses — **Loja, Arquivos, Reprodutor e Terminal** — a tabela dá como
-**prontos**, com desenho autoral em `src/icons/autorais/`. Ela olhou para eles na
+**prontos**, com desenho autoral em `assets/icones/autorais/`. Ela olhou para eles na
 tela e **não os reconheceu como nossos**.
 
 Isso não é engano dela. É o achado desta sprint, e ele muda o escopo:
@@ -393,11 +477,11 @@ a via principal**. Se um conversor levar formas chapadas ao traço com qualidade
 ele resolve os itens 1 e 3 de uma vez, sem 39 desenhos à mão.
 
 O que precisa ser medido antes de acreditar nisso (está sendo, em paralelo):
-- o alvo não é abstrato: `icons/arcticons-apps/` tem 39 SVGs com grade,
+- o alvo não é abstrato: `assets/icones/arcticons-apps/` tem 39 SVGs com grade,
   `stroke-width` e terminações medíveis. É esse peso que a saída tem de imitar.
 - o teste honesto não é o par antes/depois. É **misturar conversões novas com
   Arcticons feitos à mão, sem rótulo**. Se ela não distinguir, funciona.
-- e o caso mais duro é `src/icons/autorais/`, chapado com contorno — é lá que a
+- e o caso mais duro é `assets/icones/autorais/`, chapado com contorno — é lá que a
   queixa mora, e é por lá que se começa.
 
 E ela mesma já disse onde fica o limite da ideia, na frase seguinte:
@@ -455,7 +539,7 @@ tudo isto. **Via descartada, com prova na tela.**
 
 **Prioridade 1 — os 3 de fábrica**, que hoje mostram o ícone cru do app ou do
 Papirus: Flatseal, Gradia, Warehouse. (Estes três estão registrados em
-`icons/apps-arcticons.map:296-298` como "os que ficam de fora, por honestidade" —
+`assets/icones/apps-arcticons.map:296-298` como "os que ficam de fora, por honestidade" —
 não havia glifo honesto no Arcticons para eles. Com desenho autoral, deixam de
 ser exceção.)
 
@@ -482,7 +566,7 @@ As regras que **não** se negociam, porque cada uma custou um erro medido:
   de parede claro atrás do dock (erro medido e corrigido: oito ícones sumiam).
 - **Zero hex digitado à mão.** Cada forma referencia um **papel** (`sujeito`,
   `tinta`, `contorno`, `folha`…) que resolve por **nome** em
-  `palette/catppuccin.json`. Nome que não existe na paleta faz o script morrer.
+  `assets/paleta/catppuccin.json`. Nome que não existe na paleta faz o script morrer.
 - **Papéis são sensíveis a claro/escuro** — `contorno = ("crust", "text")`. É o
   que faz o mesmo desenho funcionar nos 4 flavors sem duplicar lógica.
 - **Cor de identidade por app**, não o accent genérico — senão viram N manchas
@@ -526,19 +610,19 @@ e **ESTOURA com código 2** se um nome aparecer nos dois mapas de traço. Testad
 | arquivo | o que é |
 |---|---|
 | `scripts/converter_icone.py` | o conversor. Rasteriza a 256 px, quantiza em regiões de cor e traça a **fronteira entre elas** — não a silhueta externa, que apagaria a identidade. Sai no dialeto exato do Arcticons e **não grava `stroke-width`**, de propósito |
-| `scripts/construir_convertidos.sh` | dono único de `icons/convertidos-apps/`. `--conferir`, `MEOW_DRY_RUN`, `meow_escrever`, remove órfão, e **o retoque à mão vence a conversão e nunca é sobrescrito** |
-| `icons/apps-convertidos.map` | 25 linhas, `nome : origem : cor [ : parâmetros ]`. **Um mapa, dois leitores**: o gerador lê 1/2/4, o instalador lê 1/3 |
-| `icons/convertidos-apps/` | o acervo gerado, **commitado** — 25 SVGs |
-| `icons/convertidos-apps/retoques/` | GIMP (boca aberta + a variante discreta), Gradia, Flatseal, Warehouse, e o `LEIA-ME.txt` com a medição |
+| `scripts/construir_convertidos.sh` | dono único de `assets/icones/convertidos-apps/`. `--conferir`, `MEOW_DRY_RUN`, `meow_escrever`, remove órfão, e **o retoque à mão vence a conversão e nunca é sobrescrito** |
+| `assets/icones/apps-convertidos.map` | 25 linhas, `nome : origem : cor [ : parâmetros ]`. **Um mapa, dois leitores**: o gerador lê 1/2/4, o instalador lê 1/3 |
+| `assets/icones/convertidos-apps/` | o acervo gerado, **commitado** — 25 SVGs |
+| `assets/icones/convertidos-apps/retoques/` | GIMP (boca aberta + a variante discreta), Gradia, Flatseal, Warehouse, e o `LEIA-ME.txt` com a medição |
 
 **Arquivos mudados**
 
 | arquivo | mudança |
 |---|---|
 | `scripts/icones_apps_arcticons.sh` | lê os **dois** acervos (aditivo). `_vestido()` **não mudou uma linha** — a conversão sai no mesmo dialeto. `TRACO` de `1` para `1.75`. Continua dono único de `48x48/apps` |
-| `icons/apps-arcticons.map` | 22 nomes saíram para o mapa novo; 16 ficaram, cada um por medida |
+| `assets/icones/apps-arcticons.map` | 22 nomes saíram para o mapa novo; 16 ficaram, cada um por medida |
 | `bin/meow` | `chk_convertidos`, dentro de `SEM_CONSERTO` |
-| `icons/PROCEDENCIA.md` | o acervo novo, a herança **GPL-3.0** do Papirus, e os desenhos à mão |
+| `assets/icones/PROCEDENCIA.md` | o acervo novo, a herança **GPL-3.0** do Papirus, e os desenhos à mão |
 | `install.sh` | **nada.** Confirmado por ela: "Nenhuma etapa nova no install" |
 
 **O peso 1,75 é medido, não escolhido.** A régua é a **contra-forma que
@@ -595,7 +679,7 @@ subiu junto, e o canto do sorriso voltou a subir antes de encontrar o pincel.
   mesmo mapa já registra ter cometido uma vez, hoje de manhã.
 - ~~**O `com.system76.CosmicPlayer` continua desenhando a PALAVRA "player".**~~
   **RESOLVIDO em 27/08/2026, e quem escolheu foi ela.** O desenho autoral está em
-  `icons/convertidos-apps/retoques/com.system76.CosmicPlayer.svg`, e a linha migrou
+  `assets/icones/convertidos-apps/retoques/com.system76.CosmicPlayer.svg`, e a linha migrou
   do `apps-arcticons.map` para o `apps-convertidos.map` como `mao`. O
   `com.system76.CosmicEdit` seguiu o mesmo caminho em 29/08 — pelo mesmo motivo:
   era «retângulo com linhas», o ícone de documento de todo tema do mundo.
@@ -670,7 +754,7 @@ Duas coisas separadas, e a segunda depende dela:
 
 1. **Código, sem perguntar:** resolver o conflito de donos. Uma verdade só por
    nome. ~~Os 8 nomes `com.system76.Cosmic*` têm desenho autoral — devem **sair**
-   do `icons/apps-arcticons.map`.~~ **Feito e DESFEITO no mesmo dia — ver abaixo.**
+   do `assets/icones/apps-arcticons.map`.~~ **Feito e DESFEITO no mesmo dia — ver abaixo.**
 2. **Decisão dela:** o Gestor de Arquivos continua sendo uma pasta? Se sim, ao
    menos **sai do accent** e ganha cor de identidade própria, como os outros
    sete, para não se confundir com as pastas de verdade nem com a Lixeira. Se
@@ -679,7 +763,7 @@ Duas coisas separadas, e a segunda depende dela:
 ### Achado 3 — o conserto estava certo e o vencedor estava errado (11/08/2026)
 
 O item 1 acima foi executado na manhã de 11/08 (commit `aacdc3c`): as 8 linhas
-saíram do `icons/apps-arcticons.map`, o autoral em `scalable/apps` ficou como
+saíram do `assets/icones/apps-arcticons.map`, o autoral em `scalable/apps` ficou como
 verdade única. **O diagnóstico estava certo; a escolha do vencedor estava
 errada, e a prova está neste próprio arquivo.**
 
@@ -703,7 +787,7 @@ viu. Com o autoral ainda instalado em `scalable/apps`, o chapado continua
 vencendo na tela dela — é o `strace` do Achado 2 outra vez. Então o conserto tem
 duas metades, e a segunda é a que faltava:
 
-1. as 8 linhas voltaram ao `icons/apps-arcticons.map`, idênticas ao estado
+1. as 8 linhas voltaram ao `assets/icones/apps-arcticons.map`, idênticas ao estado
    anterior a `aacdc3c` (conferido linha a linha contra o git);
 2. o `scripts/completar_icones.sh` **parou de instalar** os 8 autorais em
    `scalable/apps` e ganhou uma lista `RETIRADOS` que **remove** os que já estão
@@ -716,16 +800,16 @@ Ficaram **de fora**, e de propósito: o FogStripper, o Hefesto (nos dois nomes) 
 o apelido `repoman`. O Hefesto é a logo que **ela** desenhou — autoria dela vence
 tema, sempre —, e a decisão sobre esses dois é dela, numa folha ainda pendente.
 
-Os 8 SVGs autorais continuam versionados em `src/icons/autorais/` e o gerador
+Os 8 SVGs autorais continuam versionados em `assets/icones/autorais/` e o gerador
 continua produzindo-os. Desfazer é mover os 8 nomes de `RETIRADOS` de volta para
 `AUTORAL` e tirar as 8 linhas do mapa — nunca só uma das duas coisas, que é
 exatamente como o defeito nasceu.
 
 ### Achado 4 — a mesma doença fora da lista dos 8: o `meow-whatsapp`
 
-Procurado o padrão, ele tinha um segundo caso. O `app-themes/zapzap/manifesto.sh`
+Procurado o padrão, ele tinha um segundo caso. O `assets/temas-de-apps/zapzap/manifesto.sh`
 instalava uma **bolha verde cheia** (o `whatsapp-desktop` do Papirus recolorido)
-em `scalable/apps/meow-whatsapp.svg`, enquanto o `icons/apps-arcticons.map` traz
+em `scalable/apps/meow-whatsapp.svg`, enquanto o `assets/icones/apps-arcticons.map` traz
 `meow-whatsapp:whatsapp:sky` — glifo de **traço** — desde a unificação de 10/08.
 Dois donos, mesmo nome, e o `scalable` vencendo pelo mesmo motivo.
 
@@ -737,7 +821,7 @@ alcança o app.
 **A bandeja não foi tocada, e foi conferido antes:** o ícone da bandeja do ZapZap
 nunca passou por este SVG. Ele é `IconPixmap` cru pelo D-Bus (Achado da pesquisa
 de 05/08), e foi vestido na **fonte do app** — o `tray_icon.py` do flatpak, mais
-a chave `tray_theme=symbolic_light` — como registra o `icons/bandeja.map`.
+a chave `tray_theme=symbolic_light` — como registra o `assets/icones/bandeja.map`.
 
 ### Como conferir
 
@@ -848,12 +932,12 @@ bytes é exatamente o que o glifo dá a 48 px **sem** `stroke-width`; com
    antes de escrever e códigos 0/1/2/3. Ligado no `install.sh`
    (`etapa_icones_tray_steam`) e no `meow doctor` (`chk_traysteam`/`fix_traysteam`,
    linha `traysteam`) — a reversão deixa de ser muda, que era o que o
-   `icons/bandeja.map` pedia.
-3. Glifo `steam` no acervo, em `icons/arcticons/steam.svg` (38 glifos). **Não
-   foi baixado**: já estava em `icons/arcticons-apps/steam.svg`, mesmo pack e
+   `assets/icones/bandeja.map` pedia.
+3. Glifo `steam` no acervo, em `assets/icones/arcticons/steam.svg` (38 glifos). **Não
+   foi baixado**: já estava em `assets/icones/arcticons-apps/steam.svg`, mesmo pack e
    mesma licença — foi `cp`, pela regra que o `shield` inaugurou. Conferido
    mesmo assim contra o upstream (713 bytes byte a byte idênticos) e registrado
-   em `icons/PROCEDENCIA.md`.
+   em `assets/icones/PROCEDENCIA.md`.
 4. qBittorrent e Spotify: **não há via**, registrado como limite. (No
    qBittorrent a única alavanca é `Advanced\TrayIconStyle`, já em `MonoDark`.)
 
@@ -912,7 +996,7 @@ agora está `loaded active running` — e o `pgrep` confirma o processo vivo.
 
 **Não é o qBittorrent** (o `qBittorrent.conf` não tem chave de autostart; a opção
 é `setVisible(false)` fora do Windows). **Não é o MeowSystem** — o
-`app-themes/qbittorrent/manifesto.sh:7-46` declara: *"o qBittorrent NÃO é nosso
+`assets/temas-de-apps/qbittorrent/manifesto.sh:7-46` declara: *"o qBittorrent NÃO é nosso
 território"*.
 
 É o **Ritual da Aurora**, em
@@ -1059,7 +1143,7 @@ simplesmente não abriu o Spotify desde então.**
 Abrir o Spotify. Se aparecer Catppuccin, **não mexer em mais nada**.
 
 Se aparecer cinza de fábrica → `meow apps aplicar spotify`.
-Se abrir **em branco** → é o cenário 2 do `app-themes/spotify/RECUPERACAO.md`:
+Se abrir **em branco** → é o cenário 2 do `assets/temas-de-apps/spotify/RECUPERACAO.md`:
 `spicetify upgrade && spicetify backup apply`, e se não houver versão nova,
 saída limpa via `spicetify restore`.
 
@@ -1077,7 +1161,7 @@ estar no minuto seguinte a um `flatpak update` do Spotify.
 |---|---|
 | **Sprint B** — órfãos em Arcticons | **1 de 12** passou na regra dura (ONLYOFFICE). Os outros 11 não existem no acervo de 14.996 nomes; ficam no Papirus. Folha: `~/folha-apps-orfaos-2.html` |
 | **Sprint C** — pastas | implementada e **recusada por ela ao ver na tela**: `PASTAS_XDG="nao"` é o padrão, e as pastas seguem mauve. O código fica de pé atrás da chave. Folha: `~/folha-pastas-2.html` |
-| **Spotify** | módulo novo, pelos *design tokens* do Encore — sem spicetify. **Revertido em 10/08/2026: agora é o spicetify que aplica** e o Meow decide o flavor/acento (`app-themes/spotify/manifesto.sh`, item 0; recuperação em `RECUPERACAO.md`) |
+| **Spotify** | módulo novo, pelos *design tokens* do Encore — sem spicetify. **Revertido em 10/08/2026: agora é o spicetify que aplica** e o Meow decide o flavor/acento (`assets/temas-de-apps/spotify/manifesto.sh`, item 0; recuperação em `RECUPERACAO.md`) |
 | **WhatsApp** | reaplicado; o `flatpak update` tinha recriado o symlink de export |
 | **Nomes no lançador** | 10 nomes encurtados; nenhum truncado |
 | **Duplicatas** | Chrome e os dois Syncthing ocultados de novo, e agora o `doctor` confere |
@@ -1160,7 +1244,7 @@ valor certo já está no disco e chega no próximo login.
 ### Achado que sobrou, e é decisão dela
 
 O `corner_radii` da v1 é o de fábrica (`radius_xs/m/l/xl` = 4/16/32/160) e o da v2
-é o dela (2/8/8/8), já declarado em `palette/cosmic-map.json →
+é o dela (2/8/8/8), já declarado em `assets/paleta/cosmic-map.json →
 estrutura_preservada`. Ou seja: os popups desses dois applets têm cantos de 16 px
 onde todo o resto tem 8. É visível, mas é **estrutura, não cor** — ficou fora do
 conjunto mínimo de propósito. Para incluir, basta acrescentar `"corner_radii"` à
@@ -1183,7 +1267,7 @@ mtime  v1/background  2026-05-20      v2/accent.base  = #CBA6F7  (o mauve dela)
 mtime  v2/accent      2026-08-05
 ```
 
-E as **quatro capturas** de `state/tema/` carregam o mesmo `v1` fóssil, md5
+E as **quatro capturas** de `assets/temas/capturados/` carregam o mesmo `v1` fóssil, md5
 idêntico — inclusive a `original`. Ou seja: **trocar de flavor ou de accent nunca
 mexeu naquela árvore**, e nunca vai, do jeito que está.
 
@@ -1209,7 +1293,7 @@ Que os floats da v1 são sRGB direto está provado no mesmo arquivo:
 
 **O caminho, quando for a hora.** Não escrever a v1 à mão: **gerar** a v1 a partir
 da paleta, como o `gerar_temas.py` já gera o `.ron` — a fonte de cor continua
-sendo `palette/catppuccin.json` e o mapa de destino, `palette/cosmic-map.json`.
+sendo `assets/paleta/catppuccin.json` e o mapa de destino, `assets/paleta/cosmic-map.json`.
 Depois `--conferir` campo a campo (nunca byte a byte: float contra hex), backup da
 v1 vigente porque ela é de terceiro, e um teste com o painel reiniciado **por
 escolha dela**, não pelo script.
@@ -1233,7 +1317,7 @@ esta sprint morre sozinha — e a medição são os mtimes acima mais um
   contraste que vive dentro do COSMIC, e reimplementá-lo seria exatamente o
   híbrido do item 1. A fonte de cor virou a **`v2` da própria captura**, que é o
   produto que o COSMIC derivou do `.ron` gerado da paleta — transitivo, mas ainda
-  ancorado em `palette/catppuccin.json`.
+  ancorado em `assets/paleta/catppuccin.json`.
 - O `background.component.on` do texto acima é, na verdade, `background.on`.
 
 ---
@@ -1301,7 +1385,7 @@ E a prova visual: uma captura da topbar dela mostra o papel de parede
 **atravessando e borrado** atrás da barra. Está ligado, no nível máximo.
 
 **Consequência prática:** "ligar o vidro fosco" não é sprint — já está feito, e o
-`palette/cosmic-map.json` do próprio projeto grava isso na seção
+`assets/paleta/cosmic-map.json` do próprio projeto grava isso na seção
 `estrutura_preservada`. **A v1 é legado e mente.** Quem for medir estado de tema,
 leia a v2.
 
@@ -1370,14 +1454,14 @@ exatamente onde tudo isso é digitado.
 
 **O que fazer.** Existe port **oficial e específico** para o cosmic-term (não é
 adaptação): [`catppuccin/cosmic-desktop`](https://github.com/catppuccin/cosmic-desktop),
-pasta `themes/cosmic-term/`, nos 4 flavors.
+pasta `assets/temas/cosmic-term/`, nos 4 flavors.
 
 **A armadilha que decide o desenho da sprint:** o README manda importar pela GUI
 (**View → Color schemes… → Import**). Antes de escrever qualquer script, **medir
 onde a importação cai no disco** — se ela vira arquivo em
 `~/.config/cosmic/com.system76.CosmicTerm/v1/color_schemes_dark`, o projeto pode
 escrever direto e o módulo é trivial. Se o formato for opaco, o caminho é o mesmo
-das capturas de tema (`state/tema/`): importar **uma vez** na GUI e fotografar.
+das capturas de tema (`assets/temas/capturados/`): importar **uma vez** na GUI e fotografar.
 
 **Como conferir.** `cat ~/.config/cosmic/com.system76.CosmicTerm/v1/color_schemes_dark`
 existe e o nome aparece; e a olho: `#CBA6F7` (o mauve dela) no lugar do magenta
@@ -1523,8 +1607,8 @@ já hospeda o `MeowSystem-Icons`) ou `~/.icons/` (que **não** existe hoje).
 > Se o `.ansi` sumir, o fastfetch cai no logo da distribuição — volta o Pop, sem
 > buraco.
 >
-> **Achado solto:** o repositório já tinha `src/fastfetch/config.jsonc` e
-> `src/fastfetch/meow.txt`, de 04/08, que **nada instala** e que não correspondem
+> **Achado solto:** o repositório já tinha `assets/fastfetch/config.jsonc` e
+> `assets/fastfetch/meow.txt`, de 04/08, que **nada instala** e que não correspondem
 > ao config vivo. Arquivo morto, e vale decidir se sai.
 
 
@@ -1574,7 +1658,7 @@ com os 18 módulos em português intactos.
 
 > **Executada em 25/08/2026, nas duas metades.** O `~/.config/starship.toml` é
 > nosso (`scripts/prompt.sh`); a linha que liga o starship saiu como
-> `src/prompt/aurora.patch` e foi aplicada à mão no `env.zsh`, anunciado.
+> `assets/prompt/aurora.patch` e foi aplicada à mão no `env.zsh`, anunciado.
 >
 > **A causa que o texto abaixo dá está errada, e é o achado que interessa.** O
 > `ZSH_THEME="agnoster"` da linha 9 é carregado pelo oh-my-zsh na linha 26 e
@@ -1893,10 +1977,10 @@ principal não vem pra ser o tema principal"*.
 
 | fonte | onde | o que é | cobre |
 |---|---|---|---|
-| `catppuccin/vscode-icons` | `icons/catppuccin/<flavor>/` | 656 glifos × 4 flavors, MIT, linha fina pastel. É o pack do Iconify (`catppuccin:*`) e do allsvgicons — **os três links são o mesmo acervo**. | **tipos de arquivo** e **pastas**. 123 mimetypes instalados. |
-| `Daveedmee/catppuccin-icons` | `icons/catppuccin-apps/<macchiato\|latte>/` | 146 PNG 512×512 com alpha. As marcas conhecidas recoloridas em pastel. **Sem licença declarada** — uso local, nunca redistribuir. | **aplicativos**. 16 instalados. |
-| Arcticons | `icons/arcticons/` e `icons/arcticons-apps/` | 14.996 nomes, CC BY-SA 4.0, traço monocromático em grid 48. Baixado um a um pela API do Iconify. | os **ícones de sistema** (56, em `<tam>/status`) e os **aplicativos** (41 em `48x48/apps` — o número 1 é de 08/08 e envelheceu). **Não tem estado** — por isso a barra fica no Papirus. |
-| desenho autoral | `src/icons/autorais/` | 10 SVG × 4 flavors, gerados por `scripts/gerar_icones_autorais.py`. | os 8 apps do COSMIC + FogStripper + Hefesto. |
+| `catppuccin/vscode-icons` | `assets/icones/catppuccin/<flavor>/` | 656 glifos × 4 flavors, MIT, linha fina pastel. É o pack do Iconify (`catppuccin:*`) e do allsvgicons — **os três links são o mesmo acervo**. | **tipos de arquivo** e **pastas**. 123 mimetypes instalados. |
+| `Daveedmee/catppuccin-icons` | `assets/icones/catppuccin-apps/<macchiato\|latte>/` | 146 PNG 512×512 com alpha. As marcas conhecidas recoloridas em pastel. **Sem licença declarada** — uso local, nunca redistribuir. | **aplicativos**. 16 instalados. |
+| Arcticons | `assets/icones/arcticons/` e `assets/icones/arcticons-apps/` | 14.996 nomes, CC BY-SA 4.0, traço monocromático em grid 48. Baixado um a um pela API do Iconify. | os **ícones de sistema** (56, em `<tam>/status`) e os **aplicativos** (41 em `48x48/apps` — o número 1 é de 08/08 e envelheceu). **Não tem estado** — por isso a barra fica no Papirus. |
+| desenho autoral | `assets/icones/autorais/` | 10 SVG × 4 flavors, gerados por `scripts/gerar_icones_autorais.py`. | os 8 apps do COSMIC + FogStripper + Hefesto. |
 
 ### A correção que precisa ficar registrada
 
@@ -1919,7 +2003,7 @@ Blender, Godot, Unity ou Docker Desktop.
 Comando que produz a lista:
 
 ```bash
-ls icons/catppuccin/macchiato/ | sed 's/.svg$//' \
+ls assets/icones/catppuccin/macchiato/ | sed 's/.svg$//' \
   | grep -xE 'adobe-.*|figma|docker|gitlab|python|rust|go|java|godot|unity|blender'
 ```
 
@@ -1944,7 +2028,7 @@ Arcticons · 14.996 ícones · CC BY-SA 4.0
 ```
 
 > O número aqui dizia **14.913** e divergia dos outros três lugares do repo
-> (`icons/PROCEDENCIA.md`, `icons/sistema.map`, a Sprint A) que dizem 14.996.
+> (`assets/icones/PROCEDENCIA.md`, `assets/icones/sistema.map`, a Sprint A) que dizem 14.996.
 > Refeito em 08/08 pelo índice completo (`/collection?prefix=arcticons`, não pelo
 > `/search`, que é difuso): **14.996 nomes + 304 apelidos**. Os três estavam
 > certos; este estava errado.
@@ -1970,7 +2054,7 @@ curl -s "https://api.iconify.design/search?query=<termo>&prefix=arcticons&limit=
 
 **Por que isso muda o desenho das duas sprints.** Monocromático de linha é
 *matéria-prima*, não produto acabado: uma cor só, trocável com um `sed` no
-`stroke`/`fill`. E este projeto já tem a fonte única de cor — `palette/catppuccin.json`,
+`stroke`/`fill`. E este projeto já tem a fonte única de cor — `assets/paleta/catppuccin.json`,
 com a regra de que **nenhum hex vive dentro de script**. Recolorir Arcticons para
 Catppuccin é o encaixe mais natural que apareceu até agora, e é barato.
 
@@ -2014,7 +2098,7 @@ uma cor, não repintar um desenho.
 **Cuidados antes de sair recolorindo:**
 
 - **CC BY-SA 4.0 é _share-alike_ com atribuição.** Uso local não exige nada, mas
-  registre a procedência em `icons/PROCEDENCIA.md` como o projeto já faz para
+  registre a procedência em `assets/icones/PROCEDENCIA.md` como o projeto já faz para
   Papirus e papirus-folders. Se um dia houver publicação, o share-alike passa a
   ter consequência.
 - **Baixe pela API do Iconify, não o repositório inteiro** (são ~15 mil ícones).
@@ -2032,7 +2116,7 @@ uma cor, não repintar um desenho.
 ## Sprint A — Os ícones do próprio COSMIC  ← **FEITA em 05/08/2026, em parte**
 
 > **O que entrou:** as **21 páginas das Configurações** + 7 ícones únicos, pelo
-> `icons/sistema.map` e `scripts/icones_sistema.sh`. Provado com `strace`: o
+> `assets/icones/sistema.map` e `scripts/icones_sistema.sh`. Provado com `strace`: o
 > `cosmic-settings` carrega os ícones novos do `scalable/status`.
 >
 > **O que NÃO entrou, e é medição, não desistência:** a **barra**. Os applets são
@@ -2141,7 +2225,7 @@ lista falsa de "12 ícones faltando" que na verdade era zero.
 ### O registro de como a sprint foi desenhada (continua válido)
 
 > **A folha está em `~/folha-apps-orfaos.html`.** Nada foi aplicado: esta sprint
-> termina na escolha dela, e o `icons/apps.map` segue intocado.
+> termina na escolha dela, e o `assets/icones/apps.map` segue intocado.
 >
 > **Três números do texto abaixo estão errados, e foram medidos de novo:**
 > os órfãos são **12**, não 25 (nem os 35 que o cabeçalho do `apps.map` afirma).
@@ -2164,7 +2248,7 @@ lista falsa de "12 ícones faltando" que na verdade era zero.
 >
 > **Custo escondido:** candidato do `catppuccin-apps` é uma linha no mapa;
 > candidato do pack `vscode-icons` **não é** — o `icones_apps.sh` só lê
-> `icons/catppuccin-apps/$VARIANTE/*.png` e escreve em `512x512/apps`.
+> `assets/icones/catppuccin-apps/$VARIANTE/*.png` e escreve em `512x512/apps`.
 
 ### O registro de como a sprint foi desenhada (continua válido)
 
@@ -2174,7 +2258,7 @@ possíveis icons e eu escolho."*
 
 **O estado atual, medido.** Dos 51 aplicativos com ícone nesta máquina:
 
-- 16 já usam o acervo Catppuccin de aplicativo (`icons/apps.map`)
+- 16 já usam o acervo Catppuccin de aplicativo (`assets/icones/apps.map`)
 - 10 usam desenho autoral (8 do COSMIC + FogStripper + Hefesto)
 - **os demais continuam no Papirus** — e são o alvo desta sprint
 
@@ -2185,7 +2269,7 @@ Para gerar a lista dos que faltam:
 python3 - <<'EOF'
 import json, glob, os
 d = json.load(open('/tmp/audit.json'))
-mapeados = {l.split(':')[0] for l in open('icons/apps.map')
+mapeados = {l.split(':')[0] for l in open('assets/icones/apps.map')
             if l.strip() and not l.startswith('#')}
 for a in d['aplicativos']:
     if a['icone'] not in mapeados and 'Papirus' in a['tema']:
@@ -2201,7 +2285,7 @@ sugerido, e um veredito honesto de se ele **mente** sobre o que é o aplicativo.
 A busca é por regex sobre os nomes dos dois acervos, mais o nome legível:
 
 ```bash
-ls icons/catppuccin/macchiato/ icons/catppuccin-apps/macchiato/ \
+ls assets/icones/catppuccin/macchiato/ assets/icones/catppuccin-apps/macchiato/ \
   | sed 's/\.\(svg\|png\)$//' | grep -iE '<termo>'
 ```
 
@@ -2221,7 +2305,7 @@ específico que se encaixe."* Testado em 05/08/2026, com o comando acima:
 Ou seja: a busca por semelhança **resolve uma parte e não resolve o resto**, e o
 motivo é estrutural — o pack `vscode-icons` é de **desenvolvimento**, então tem
 `folder_packages` e não tem calculadora. Onde ele não alcança, os candidatos vêm
-do acervo de aplicativo (`icons/catppuccin-apps/`) ou não existem, e aí o ícone
+do acervo de aplicativo (`assets/icones/catppuccin-apps/`) ou não existem, e aí o ícone
 fica no Papirus e isso é dito na folha em voz alta, em vez de forçar um
 casamento ruim.
 
@@ -2253,7 +2337,7 @@ google-chrome --headless=new --disable-gpu --no-sandbox \
   --screenshot=/tmp/folha.png "file://$HOME/<arquivo>.html"
 ```
 
-**Depois que ela escolher:** as linhas entram em `icons/apps.map` e
+**Depois que ela escolher:** as linhas entram em `assets/icones/apps.map` e
 `./scripts/icones_apps.sh --aplicar` faz o resto. O script já remove órfão (o
 diretório tem dono único) e já é idempotente.
 
@@ -2291,7 +2375,7 @@ diretório tem dono único) e já é idempotente.
 > `folder-download`, `folder-music`, `folder-pictures`, `folder-publicshare`,
 > `folder-templates`, `folder-videos`. Vão para `scalable/places` — diretório de
 > dono único, com remoção de órfão — pelo `scripts/icones_pastas.sh` e o mapa
-> `icons/pastas.map`. Folha em `~/folha-pastas-2.html`.
+> `assets/icones/pastas.map`. Folha em `~/folha-pastas-2.html`.
 >
 > **A CESSÃO CONTINUA OBRIGATÓRIA, MAS PELO MOTIVO OPOSTO AO QUE ESTE ARQUIVO
 > DAVA.** O texto abaixo diz que a opção (a) não funciona porque "quem escolhe o
@@ -2440,7 +2524,7 @@ de verdade seria o mesmo defeito de "dois donos".
 - No fim, mostra o diff do que mudou e pergunta se aplica agora.
 
 **Onde mexer:** `bin/meow` (novo `cmd_configurar`), `install.sh` (a flag),
-`zsh/_meow` (completion), `meow.conf.exemplo` (é a lista de chaves e a fonte dos
+`assets/zsh/_meow` (completion), `meow.conf.exemplo` (é a lista de chaves e a fonte dos
 comentários que o wizard mostra como ajuda).
 
 **Como conferir:** rodar o wizard aceitando tudo com Enter não pode escrever um
@@ -2975,7 +3059,7 @@ nunca vão olhar.
 | entregue em 05/08/2026 | prova |
 |---|---|
 | 123 tipos de arquivo em Catppuccin | 14/14 alvos resolvem no pack pelo `Gtk.IconTheme` |
-| ~~16 aplicativos do lançador em Catppuccin~~ **41 em TRAÇO** | 29/08: o `icons/apps.map` está VAZIO desde 10/08 — nenhum app vem mais do acervo Catppuccin. São 14 do Arcticons + 27 convertidos, em `48x48/apps` |
+| ~~16 aplicativos do lançador em Catppuccin~~ **41 em TRAÇO** | 29/08: o `assets/icones/apps.map` está VAZIO desde 10/08 — nenhum app vem mais do acervo Catppuccin. São 14 do Arcticons + 27 convertidos, em `48x48/apps` |
 | 242 wallpapers (eram 239) — hoje **54**, ver 24/08 | 3 faltavam por bug de URL não escapada, calado desde a 1ª semeadura |
 | o tema parou de desfazer o vidro dela | fronteira por árvore + código 4, testados em COSMIC isolado |
 | o doctor enxerga receita ≠ produto | `'Low2' pede alpha 7C, está gravado D9` |
