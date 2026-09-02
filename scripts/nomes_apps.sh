@@ -5,6 +5,8 @@
 #   ./nomes_apps.sh              aplica (o mesmo que --aplicar)
 #   ./nomes_apps.sh --conferir   não escreve; devolve 1 se algo divergir
 #   ./nomes_apps.sh --sem-sudo   aplica só o que não precisa de root
+#   ./nomes_apps.sh --so-flatpak aplica só nos exports de flatpak do home
+#   ./nomes_apps.sh --so-sistema aplica só em /usr/share e /var/lib (é o gatilho do apt)
 #
 # O QUE ELA VÊ HOJE, E POR QUE
 #   "os .desktop super feios" — e, perguntada, o que incomoda são "os nomes
@@ -143,12 +145,38 @@ fi
 
 CONFERIR=0
 SEM_SUDO=0
-case "${1:-}" in
-  --conferir) CONFERIR=1 ;;
-  --sem-sudo) SEM_SUDO=1 ;;
-  ''|--aplicar) ;;
-  *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar|--sem-sudo]"; exit "$MEOW_ERRO" ;;
-esac
+# Restringe o trabalho a UMA classe de caminho (ver `_classe`, logo abaixo).
+# Vazio = todas, que é o modo do `install.sh` e do doctor.
+#
+# OS DOIS FILTROS NASCERAM DE DOIS GATILHOS QUE NÃO PODEM RODAR O SCRIPT INTEIRO
+# — 02/09/2026
+#   --so-flatpak  é o `scripts/apos_flatpak.sh`. Um deploy de flatpak recria o
+#                 symlink de export e devolve o nome comprido (medido: `org.gimp.GIMP`
+#                 voltou a "GNU Image Manipulation Program" no update de
+#                 `set 2 15:23`). O gatilho tem de reescrever SÓ o que o evento
+#                 desfez. Sem o filtro sobraria `--sem-sudo`, que conta os nomes
+#                 de /usr/share como "pendentes" e sai 1 — e 1 é "consertei" no
+#                 contrato do projeto, então TODO flatpak update dispararia a
+#                 notificação dela sem ter consertado nada.
+#   --so-sistema  é o `scripts/meow-lancador-apt.sh`, que roda como ROOT. Sem o
+#                 filtro, o `meow_escrever` gravaria os `.desktop` do home dela
+#                 com dono root:root (ele escreve num temporário e renomeia, e o
+#                 temporário nasce do processo — não herda o dono do arquivo
+#                 antigo). É a armadilha 3 do cabeçalho daquele wrapper, e a
+#                 correção é não deixar o root chegar perto do home.
+SO_CLASSE=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --conferir)   CONFERIR=1 ;;
+    --sem-sudo)   SEM_SUDO=1 ;;
+    --so-flatpak) SO_CLASSE=flatpak ;;
+    --so-sistema) SO_CLASSE=sistema ;;
+    ''|--aplicar) ;;
+    *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar|--sem-sudo|--so-flatpak|--so-sistema]"
+       exit "$MEOW_ERRO" ;;
+  esac
+  shift
+done
 meow_seco && CONFERIR=1
 
 if [ ! -f "$MEOW_NOMES_MAPA" ]; then
@@ -212,6 +240,10 @@ for linha in "${LINHAS[@]}"; do
     grep -qE '^NoDisplay=true' "$arq" 2>/dev/null && continue
 
     classe="$(_classe "$dir")"
+    # O filtro fica DEPOIS do `achou=1`: um app que existe só em /usr/share
+    # continua sendo "instalado" mesmo quando esta passada não vai tocá-lo, e
+    # contá-lo como ausente faria o resumo mentir para quem lê o log.
+    [ -n "$SO_CLASSE" ] && [ "$classe" != "$SO_CLASSE" ] && continue
     fonte="$arq"
     [ "$classe" = "flatpak" ] && fonte="$(_fonte_de "$arq")"
 
@@ -312,7 +344,17 @@ if [ "$mudou" = 1 ]; then
     done
   fi
   meow_ok "nomes do lançador encurtados"
-  meow_info "vale no próximo início do lançador"
+  # ATÉ 02/09/2026 AQUI DIZIA "vale no próximo início do lançador", E ERA VERDADE
+  # — E ERA O DEFEITO.
+  #   O `update-desktop-database` acima reconstrói um índice de MIME; ele não faz
+  #   o `cosmic-app-library` reler nada. Aqueles dois processos resolvem nome e
+  #   ícone NO ARRANQUE e guardam (medido em 11/08/2026, ver o cabeçalho de
+  #   `meow_lancador_reler`). Sem esta linha, o arquivo fica certo no disco e a
+  #   tela dela continua com o nome comprido até ela reiniciar a sessão — que é
+  #   exatamente a distância entre "consertei" e "ela viu consertado".
+  #   A chamada é guardada pelo `mudou = 1`: sem escrita, ninguém chacoalha o
+  #   lançador, porque isso fecharia a grade se ela estivesse com ela aberta.
+  meow_lancador_reler
 fi
 
 exit "$MEOW_DIVERGENTE"

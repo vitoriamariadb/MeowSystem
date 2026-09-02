@@ -288,6 +288,14 @@ meow_app_aplicar() {
   meow_tem update-desktop-database && \
     update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 
+  # E O `update-desktop-database` NÃO BASTA — 02/09/2026
+  #   Ele reconstrói o índice de MIME. Quem desenha o item do lançador é o
+  #   `cosmic-app-library`, que resolve `Icon=` no arranque e guarda. Depois do
+  #   `flatpak update` daquela data o arquivo voltou a ser nosso em segundos e o
+  #   balão verde de fábrica continuou na tela dela — a queixa foi "o icon do wpp
+  #   voltou ao default dele", e metade dela era este cache.
+  meow_lancador_reler
+
   meow_ok "ZapZap agora aparece como '$_ZZ_NOME_NOVO' (o ícone vem do apps-arcticons.map)"
   return "$MEOW_DIVERGENTE"
 }

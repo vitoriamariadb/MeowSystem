@@ -64,6 +64,43 @@
 #                           bandeja resolve. É barato — o script compara por
 #                           conteúdo e não escreve nada quando está tudo certo.
 #
+#   nomes_apps.sh --so-flatpak
+#   aplicar_apps.sh (só zapzap e spotify)
+#                           OS DOIS ENTRARAM EM 02/09/2026, E O MOTIVO É UMA
+#                           MEDIÇÃO QUE CONTRADIZ O BLOCO LOGO ABAIXO.
+#
+#                           Queixa dela, 02/09/2026: "o icon do wpp voltou ao
+#                           default dele". O `flatpak history` diz quando:
+#
+#                             set  2 15:23:34  deploy update  org.gimp.GIMP
+#                             set  2 15:24:09  deploy update  com.rtosta.zapzap
+#
+#                           O bloco "POR QUE O LANCADOR TAMBEM ENTRA" (mais
+#                           abaixo) mediu, em 23/08, que um update NÃO desfaz o
+#                           ícone do lançador — e aquilo continua verdade PARA O
+#                           TEMA DE ÍCONES. Só que o ZapZap não é vestido pelo
+#                           tema sozinho: o `assets/temas-de-apps/zapzap/manifesto.sh`
+#                           SUBSTITUI o symlink de export por um arquivo real, e
+#                           é esse arquivo que diz `Icon=meow-whatsapp` e
+#                           `Name=WhatsApp`. O deploy recria o symlink, o
+#                           `Icon=` volta a `com.rtosta.zapzap`, e o glifo de
+#                           traço fica no disco sem nome que o alcance. O mesmo
+#                           vale para o `Name=` curto do GIMP.
+#
+#                           O `meow-doctor.timer` das 05:00 consertaria — no dia
+#                           seguinte. Ela viu em quatro horas, que é a distância
+#                           entre o update e a queixa. O gatilho de evento existe
+#                           justamente para essa janela.
+#
+#                           O `aplicar_apps.sh` entra RESTRITO a dois slugs, e
+#                           não com o `APPS_ATIVOS` inteiro: só o `zapzap` e o
+#                           `spotify` escrevem DENTRO da árvore de deploy do
+#                           flatpak (o spicetify reescreve `Apps/xpui` em
+#                           `~/.local/share/flatpak/app/com.spotify.Client/…`).
+#                           Os outros cinco módulos moram em `~/.config` e em
+#                           `~/.var/app/…/config`, que o deploy não toca — rodá-los
+#                           aqui seria trabalho no evento errado.
+#
 # NÃO ENTRA o tema inteiro. Um `flatpak update` do Calculator não é motivo para
 # reconstruir 1.200 ícones, remontar o `index.theme` e reescrever o tema do
 # COSMIC. Quem faz a passagem completa é o `meow-doctor.timer`, às 5h, uma vez
@@ -116,13 +153,16 @@ _rodar() {
   fi
   local arg=--aplicar
   [ "$CONFERIR" = 1 ] && arg=--conferir
+  # O que sobrar em "$@" vai JUNTO do verbo — é assim que o `nomes_apps.sh`
+  # recebe o `--so-flatpak` sem precisar de um segundo executor aqui.
+  set -- "$arg" "$@"
   # FLAVOR e ICONES_COR_MARCA so interessam ao `icones_apps_arcticons.sh`; passar
   # para todos e inofensivo (os outros ignoram) e evita um segundo `_rodar` so
   # para ele — dois caminhos de invocacao e o que se esquece de atualizar.
   ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     FLAVOR="${FLAVOR:-}" \
     ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao}" \
-    "$RAIZ/scripts/$script" "$arg"
+    "$RAIZ/scripts/$script" "$@"
   _dobrar $?
 }
 
@@ -145,6 +185,45 @@ _rodar icones_bandeja.sh
 #   esta linha ele fica com a arte de fabrica ate o `meow-doctor.timer` do dia
 #   seguinte. A passagem custa uma leitura quando nao ha o que fazer (rc=0).
 _rodar icones_apps_arcticons.sh
+
+# ============================================================================
+# O `.desktop` DE EXPORT — O QUE O DEPLOY REALMENTE DESFAZ (02/09/2026)
+# ============================================================================
+# O bloco acima trata do TEMA de ícones, que sobrevive ao update. Estes dois
+# tratam dos arquivos que o próprio deploy reescreve: o `Name=` curto e, no caso
+# do ZapZap, o `Icon=meow-whatsapp` que faz o glifo de traço alcançar o app.
+# O porquê está no cabeçalho.
+_rodar nomes_apps.sh --so-flatpak
+
+# --- os módulos de app que moram na árvore do flatpak -----------------------
+# `APPS_ATIVOS` é a lista dela, e a unidade do systemd não a exporta (ela exporta
+# só FLAVOR/ACCENT/NOME_TEMA_ICONES/ICONES_COR_MARCA). Ler a chave direto do
+# arquivo é de propósito: dar `source` no meow.conf inteiro aqui sobrescreveria
+# justamente as variáveis que a unidade acabou de passar.
+if [ -z "${APPS_ATIVOS:-}" ] && [ -f "$HOME/.config/meow/meow.conf" ]; then
+  APPS_ATIVOS="$(sed -n 's/^[[:space:]]*APPS_ATIVOS=//p' "$HOME/.config/meow/meow.conf" \
+                 | tail -n 1 | tr -d '"'\''')"
+fi
+
+# A interseção com a lista dela: um slug desligado no meow.conf continua
+# desligado aqui. Sem isto, o gatilho tematizaria um app que ela mandou deixar em
+# paz — e um gatilho que desobedece à configuração é pior que gatilho nenhum.
+_flatpak_apps=""
+for _slug in zapzap spotify; do
+  case ",${APPS_ATIVOS:-}," in
+    *",$_slug,"*) _flatpak_apps="${_flatpak_apps:+$_flatpak_apps,}$_slug" ;;
+  esac
+done
+
+if [ -n "$_flatpak_apps" ] && [ -x "$RAIZ/scripts/aplicar_apps.sh" ]; then
+  _acao=aplicar
+  [ "$CONFERIR" = 1 ] && _acao=conferir
+  APPS_ATIVOS="$_flatpak_apps" "$RAIZ/scripts/aplicar_apps.sh" "$_acao"
+  _dobrar $?
+elif [ -n "$_flatpak_apps" ]; then
+  meow_aviso "falta $RAIZ/scripts/aplicar_apps.sh — repositório incompleto"
+  _dobrar 2
+fi
 
 case "$pior" in
   -1|3) exit "$MEOW_SEM_DEPENDENCIA" ;;
