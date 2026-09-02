@@ -1250,6 +1250,175 @@ function montarEscolhaDeIcone(app) {
   return painel;
 }
 
+/* --- os jogos da Steam ----------------------------------------------------- */
+/* Ela, 02/09/2026: "veja se está integrado ao app meowsystem." Não estava — tirar
+ * um jogo da tela, ou apagar a sobra de um que perdeu a licença, era editar
+ * `assets/icones/jogos-fora.map` num editor de texto.
+ *
+ * A PÁGINA NÃO APAGA NADA, E ISSO É DE PROPÓSITO
+ *   Aqui ela escolhe; quem age é o `scripts/jogos_steam.sh` no botão "Arrumar
+ *   os jogos no lançador", que já passa pelo confirmar e pela gaveta de saída.
+ *   É a regra da casa (a receita vai para o repositório, o resultado não) e
+ *   mantém `rm -rf` fora de um servidor HTTP.
+ *
+ * TRÊS ESTADOS, TRÊS PALAVRAS — e a etiqueta diz qual é sem ela abrir nada:
+ *   "no lançador"  o normal: cartão na tela, arquivos onde estão
+ *   "fora"         escondido a pedido dela; o disco não é tocado
+ *   "apagar"       fora E os arquivos saem na próxima passagem
+ * Com o registro de disparo, "apagar" que já rodou vira "apagado" — a linha
+ * está gasta e não dispara de novo, nem se ela reinstalar o jogo. */
+let JOGOS = null;
+let JOGOS_BUSCA = "";
+let JOGO_ABERTO = null;
+
+async function carregarJogos() {
+  const r = await api("/api/jogos");
+  JOGOS = r.erro ? { jogos: [], total: 0 } : r;
+  render();
+}
+
+async function definirJogo(appid, acao, motivo, remover) {
+  const r = await api("/api/jogo-fora", {
+    method: "POST",
+    body: JSON.stringify({ appid, acao, motivo, remover: !!remover }),
+  });
+  if (r.erro) { torrada(r.erro, "ruim"); return; }
+  torrada(remover ? "Voltou ao normal — vale depois de arrumar os jogos"
+                  : `Escolha gravada — ${r.depois}`);
+  JOGO_ABERTO = null;
+  await carregarJogos();
+}
+
+function etiquetaDoJogo(j) {
+  if (j.gasto) return { texto: "apagado", classe: "jogo-gasto" };
+  if (j.acao === "apagar") return { texto: "apagar", classe: "jogo-apagar" };
+  if (j.acao === "esconder") return { texto: "fora", classe: "jogo-fora" };
+  return { texto: "no lançador", classe: "app-fabrica" };
+}
+
+function montarJogos() {
+  const caixa = elemento("div");
+  if (!JOGOS) {
+    carregarJogos();
+    caixa.append(elemento("p", { class: "sem-previa", texto: "Lendo a biblioteca da Steam…" }));
+    return caixa;
+  }
+
+  caixa.append(elemento("div", { class: "linha-filtro" }, [
+    elemento("input", {
+      type: "search", class: "busca-apps", value: JOGOS_BUSCA, "data-foco": "jogos",
+      placeholder: "Filtrar jogo…", "aria-label": "Filtrar jogo",
+      oninput: (e) => { JOGOS_BUSCA = e.target.value; render(); },
+    }),
+    elemento("span", { class: "frase nota-secao",
+      texto: `${JOGOS.total} jogos instalados na Steam.` }),
+  ]));
+
+  const termo = semAcento(JOGOS_BUSCA.trim());
+  const lista = (JOGOS.jogos || []).filter((j) =>
+    !termo || semAcento(j.nome).includes(termo) || j.appid.includes(termo));
+
+  const grade = elemento("div", { class: "grade-jogos" });
+  for (const j of lista) {
+    const marca = etiquetaDoJogo(j);
+    const capa = j.url
+      ? elemento("img", { src: j.url, alt: "", loading: "lazy" })
+      /* Jogo sem capa é jogo sem manifesto: a linha do mapa que sobreviveu ao
+       * jogo. O retângulo com o appid diz isso sem precisar de frase. */
+      : elemento("div", { class: "jogo-sem-capa", texto: j.appid });
+    grade.append(elemento("button", {
+      type: "button",
+      class: "jogo" + (JOGO_ABERTO === j.appid ? " aberto" : "")
+             + (j.acao || j.gasto ? " marcado" : ""),
+      title: `appid ${j.appid}`,
+      onclick: () => { JOGO_ABERTO = JOGO_ABERTO === j.appid ? null : j.appid; render(); },
+    }, [
+      capa,
+      elemento("span", { class: "app-nome", texto: j.nome }),
+      elemento("span", { class: "app-marca " + marca.classe, texto: marca.texto }),
+    ]));
+    if (JOGO_ABERTO === j.appid) grade.append(montarEscolhaDeJogo(j));
+  }
+  caixa.append(grade);
+  return caixa;
+}
+
+function montarEscolhaDeJogo(j) {
+  const painel = elemento("div", { class: "escolha-jogo" });
+  painel.append(elemento("h3", { class: "titulo-cartao", texto: j.nome }));
+
+  /* O ESTADO ATUAL EM UMA FRASE, ANTES DAS ESCOLHAS. Sem isto o painel abre com
+   * três botões e nenhuma dica de onde aquele jogo está agora. */
+  let onde = j.cartao ? "Tem cartão no lançador." : "Sem cartão no lançador.";
+  if (j.gasto) {
+    onde = `Arquivos apagados em ${j.apagado_em || "uma passagem anterior"}. `
+         + "A linha está gasta: não apaga de novo, nem se você reinstalar.";
+  } else if (j.acao === "apagar") {
+    onde = "Marcado para apagar — os arquivos saem na próxima passagem.";
+  } else if (j.acao === "esconder") {
+    onde = "Fora do lançador a pedido. Os arquivos continuam no disco.";
+  }
+  painel.append(elemento("p", { class: "frase", texto: onde }));
+  if (j.motivo) painel.append(elemento("p", { class: "frase nota-secao", texto: j.motivo }));
+
+  const motivo = elemento("input", {
+    type: "text", class: "motivo-jogo", "data-foco": "motivo-jogo",
+    placeholder: "Por quê? (fica escrito no mapa, ao lado da linha)",
+    "aria-label": "Motivo",
+  });
+  painel.append(motivo);
+
+  const linha = elemento("div", { class: "linha-botoes" });
+
+  if (j.acao !== "esconder") {
+    linha.append(elemento("button", {
+      type: "button", class: "btn",
+      texto: "Tirar do lançador",
+      title: "Some da lista de aplicativos. Nenhum arquivo é tocado.",
+      onclick: () => definirJogo(j.appid, "esconder", motivo.value),
+    }));
+  }
+
+  /* O "apagar" só aparece quando há o que apagar. Numa linha já gasta ele seria
+   * um botão que promete uma ação que o script vai recusar — e um botão que não
+   * faz nada é pior que um botão a menos. */
+  if (!j.gasto && j.no_disco) {
+    linha.append(elemento("button", {
+      type: "button", class: "btn btn-perigo",
+      texto: "Apagar os arquivos",
+      title: "Tira do lançador E remove a pasta do jogo e o manifesto, uma vez só.",
+      onclick: async () => {
+        /* A PERGUNTA É AQUI, e não só no botão que executa. Gravar no mapa se
+         * desfaz com um clique, mas ela precisa saber, ANTES de escolher, que
+         * esta é a opção que leva gigabytes embora. */
+        const sim = await perguntar({
+          titulo: `Apagar os arquivos de ${j.nome}?`,
+          texto: "A pasta do jogo e o manifesto saem do disco na próxima vez que "
+               + "você arrumar os jogos, com a Steam fechada. Dispara uma vez só: "
+               + "se você reinstalar depois, nada é apagado.",
+          comando: `${j.appid}:apagar:  →  jogos-fora.map`,
+          ok: "Marcar para apagar", perigo: true,
+        });
+        if (sim) definirJogo(j.appid, "apagar", motivo.value);
+      },
+    }));
+  }
+
+  if (j.acao || j.gasto) {
+    linha.append(elemento("button", {
+      type: "button", class: "btn",
+      texto: j.gasto ? "Tirar a linha gasta" : "Voltar ao normal",
+      title: "Apaga a linha do jogos-fora.map. O cartão volta na próxima passagem.",
+      onclick: () => definirJogo(j.appid, "", "", true),
+    }));
+  }
+
+  painel.append(linha);
+  painel.append(elemento("p", { class: "frase nota-secao",
+    texto: "Escolher grava no mapa. Quem age é \u201cArrumar os jogos no lançador\u201d." }));
+  return painel;
+}
+
 /* --- a galeria de papéis de parede ---------------------------------------- */
 /* É O CASO DE USO MAIS VISUAL DO PROJETO, e era o que ela fazia à mão: abrir a
  * pasta no gerenciador de arquivos e apagar o que não gostava (o
@@ -1628,18 +1797,44 @@ async function rodar(acao, argumento) {
   abrirGaveta(r);
 }
 
-function confirmar(acao, argumento, seco) {
+/* UMA CAIXA DE PERGUNTA, E NÃO DUAS — 02/09/2026
+ *   A seção "Jogos da Steam" precisava perguntar antes de marcar um jogo para
+ *   apagar, e a saída rápida seria `window.confirm`. Ela abriria uma caixa do
+ *   NAVEGADOR no meio de uma página inteira em Catppuccin, com o botão em
+ *   inglês e sem o traço de perigo — e, pior, dizendo a mesma coisa de um jeito
+ *   diferente de todas as outras confirmações da página. O `<dialog>` já existia
+ *   e já sabia mostrar "isto usa sudo" e "isto é destrutivo"; o que faltava era
+ *   ele aceitar uma pergunta que não fosse uma ação do servidor. */
+function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
+                     perigo = false, neutro = false }) {
   const dlg = $("#confirmar");
-  $("#confirmar-titulo").textContent = acao.rotulo;
-  $("#confirmar-texto").textContent = acao.ajuda;
-  $("#confirmar-sudo").hidden = !acao.sudo;
-  $("#confirmar-comando").textContent =
-    (seco ? "MEOW_DRY_RUN=1 " : "") + acao.argv.replace("@ARG@", argumento);
-  $("#confirmar-ok").textContent = seco ? "Rodar em seco" : "Rodar de verdade";
-  $("#confirmar-ok").className = "btn " + (seco ? "btn" : acao.destrutivo ? "btn-perigo" : "btn-accent");
+  $("#confirmar-titulo").textContent = titulo;
+  $("#confirmar-texto").textContent = texto;
+  $("#confirmar-sudo").hidden = !sudo;
+  $("#confirmar-comando").textContent = comando;
+  /* Esconder o <code> deixaria o <p> que o embrulha ocupando espaço vazio — o
+   * que vira um buraco no meio da caixa quando a pergunta não tem comando. */
+  $("#confirmar-comando").closest("p").hidden = !comando;
+  $("#confirmar-ok").textContent = ok;
+  /* Três pesos, e o do meio existe: rodar em seco não é compromisso nenhum, e
+   * pintar aquele botão com a cor de acento o faria parecer a ação principal. */
+  $("#confirmar-ok").className =
+    "btn " + (neutro ? "" : perigo ? "btn-perigo" : "btn-accent");
   dlg.showModal();
   return new Promise((resolve) => {
     dlg.addEventListener("close", () => resolve(dlg.returnValue === "sim"), { once: true });
+  });
+}
+
+function confirmar(acao, argumento, seco) {
+  return perguntar({
+    titulo: acao.rotulo,
+    texto: acao.ajuda,
+    comando: (seco ? "MEOW_DRY_RUN=1 " : "") + acao.argv.replace("@ARG@", argumento),
+    ok: seco ? "Rodar em seco" : "Rodar de verdade",
+    sudo: acao.sudo,
+    perigo: acao.destrutivo,
+    neutro: seco,
   });
 }
 
@@ -1816,6 +2011,7 @@ function contaDoGrupo(g) {
     return lista ? String(lista.itens.length) : "";
   }
   if (g.tipo === "apps") return APPS ? String(APPS.total) : "";
+  if (g.tipo === "jogos") return JOGOS ? String(JOGOS.total) : "";
   return String(g.itens.length);
 }
 
@@ -1915,6 +2111,7 @@ function render() {
     }
     if (g.tipo === "folhas") { alvo.append(montarFolhas(g.itens)); continue; }
     if (g.tipo === "apps") { alvo.append(montarApps()); continue; }
+    if (g.tipo === "jogos") { alvo.append(montarJogos()); continue; }
     if (g.tipo === "galeria") { alvo.append(montarGaleria()); continue; }
     /* A grade de ícones abre a seção de ícones: uma grade para o grupo inteiro,
      * e não uma miniatura repetida dentro de cada cartão. O que ela mostra é o
@@ -2171,6 +2368,7 @@ function montarGrupos() {
      * meow.conf, é o acervo em si, que neste projeto É a configuração ("soltou o
      * arquivo, entrou; apagou, saiu"). */
     GRUPOS.push({ tipo: "apps", nome: "Ícone de cada aplicativo", itens: [] });
+    GRUPOS.push({ tipo: "jogos", nome: "Jogos da Steam", itens: [] });
     GRUPOS.push({ tipo: "galeria", nome: "Galeria de papéis de parede", itens: [] });
 
     GRUPOS_VISUAIS = new Set(

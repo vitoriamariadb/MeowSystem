@@ -1215,3 +1215,84 @@ a.folha .oque { font-size: .72rem; color: var(--overlay1); }
   color: var(--accent);
 }
 .faixa input[disabled] { opacity: .45; }
+
+/* --- os jogos da Steam ----------------------------------------------------
+   A grade é mais larga que a de aplicativos porque o que ela mostra é OUTRA
+   coisa: ali são ícones de 40 px, aqui são capas verticais de 600x900. Uma
+   capa espremida em 150 px de largura fica com o título ilegível, e a capa é a
+   identidade do jogo — foi por isso que este projeto decidiu não tematizá-la. */
+.grade-jogos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr));
+  gap: .8rem;
+}
+.grade-jogos .jogo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .45rem;
+  padding: .55rem .5rem .7rem;
+  border: 1px solid var(--surface0);
+  border-radius: 10px;
+  background: var(--mantle);
+  color: var(--subtext1);
+  font: inherit;
+  font-size: .78rem;
+  cursor: pointer;
+  min-width: 0;
+}
+.grade-jogos .jogo:hover { border-color: var(--surface2); color: var(--text); }
+.grade-jogos .jogo.aberto {
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* O jogo com decisão tomada não some da grade — ela precisa poder revê-lo e
+   desfazer. O que muda é o peso: fica mais apagado que os outros, e a etiqueta
+   diz o quê. */
+.grade-jogos .jogo.marcado { opacity: .62; }
+.grade-jogos .jogo.marcado:hover, .grade-jogos .jogo.aberto { opacity: 1; }
+.grade-jogos .jogo img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 7px;
+  background: var(--crust);
+}
+/* Sem capa é sem manifesto: a linha do mapa que sobreviveu ao jogo. O
+   retângulo tracejado com o appid diz "isto é uma decisão, não um jogo". */
+.jogo-sem-capa {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--surface2);
+  border-radius: 7px;
+  background: var(--crust);
+  color: var(--overlay0);
+  font-size: .72rem;
+}
+.jogo-fora { color: var(--peach); }
+.jogo-apagar { color: var(--red); }
+.jogo-gasto { color: var(--overlay0); }
+
+.escolha-jogo {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  margin: .3rem 0 1rem;
+  padding: 1.1rem;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--mantle));
+}
+.motivo-jogo {
+  padding: .5rem .7rem;
+  border-radius: 8px;
+  border: 1px solid var(--surface1);
+  background: var(--base);
+  color: var(--text);
+  font: inherit;
+}
+.linha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; }
