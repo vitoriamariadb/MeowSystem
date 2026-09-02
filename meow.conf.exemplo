@@ -239,6 +239,11 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 #
 # Escala fracionária faz o Xwayland (Steam, jogos antigos) sair levemente
 # borrado, porque o compositor reamostra. Em 1.0 isso não acontece.
+#
+# A LISTA ESTÁ AQUI PORQUE A PÁGINA E O WIZARD LEEM ESTA LINHA — 02/09/2026.
+# Sem ela a chave virava campo de texto livre e aceitava `gigante` calado; o
+# `escala.sh` então caía no `*)` e ninguém ligava o erro ao clique.
+# vazio | nitida | 1.0 | 1.25 | 1.5 | 2.0
 ESCALA_TELA=""
 
 # --- Ícones ----------------------------------------------------------------
@@ -759,7 +764,10 @@ WALLPAPER_NOITE_FIM="07:00"       # HH:MM — início == fim = noite o dia intei
 #
 #   Neste acervo dá 32 na noite e 22 no dia. Baixar põe mais imagem na noite e
 #   clareia o grupo; subir faz o contrário e aperta o dia, que já está no piso.
-WALLPAPER_LIMIAR_LUZ="0.37"       # 0 = preto, 1 = branco
+# A faixa escrita no formato que o derivador entende — é o que dá o deslizante,
+# igual ao LEITURA_TEXTURA, que é o mesmo tipo de número. Antes desta linha a
+# chave aceitava qualquer texto sem uma palavra na tela.
+WALLPAPER_LIMIAR_LUZ="0.37"       # 0.0 a 1.0 (0 = preto, 1 = branco)
 
 # UM GATO POR DIA — e o número aqui não é escolha estética, é consequência
 #   O pedido original era o gato trocar junto com o papel de parede, a cada 5
@@ -776,7 +784,16 @@ WALLPAPER_LIMIAR_LUZ="0.37"       # 0 = preto, 1 = branco
 #   por dia. Tipo a ideia é essa." Um dia de intervalo, e o gato novo aparece no
 #   próximo login. Diminuir este número não faz o gato trocar mais rápido na
 #   tela — só escreve mais no disco.
+# Duração: número e unidade. A lista abaixo é EXEMPLO de escala, não cerca — o
+# `segundos_de` aceita qualquer uma, e a página confere só a forma.
+# 6h | 12h | 1d | 7d
 LOGO_INTERVALO="1d"
+
+# A notificação quando o carrossel troca de imagem. Sem uma linha própria, esta
+# chave HERDAVA o comentário do LOGO_INTERVALO logo acima — e passou a herdar a
+# lista de durações dele junto, ganhando quatro botões (6h, 12h, 1d, 7d) para
+# responder sim ou não. Pego pelo `tests/app.sh` no mesmo dia em que a lista foi
+# escrita: o painel e o wizard leram a mesma chave de formas diferentes.
 WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
 # (havia um WALLPAPER_SEMENTES aqui, com "comunidade,cosmic,minhas". Nunca
 #  existiu categoria nenhuma no `cmd_semear`: ele baixa a coleção Catppuccin do

@@ -479,6 +479,69 @@ def _opcoes_finais(chave, ajuda, inline, padrao, herdada=False):
 RE_DURACAO = re.compile(r"^\d+(?:[.,]\d+)?[smhd]$")
 
 
+# AS CHAVES QUE ANULAM OUTRAS, DECLARADAS EM UM LUGAR SÓ.
+#   Isto é uma lista, e listas envelhecem — mas esta descreve uma RELAÇÃO entre
+#   chaves que só existe dentro dos scripts (`logo.sh:113-119` e `:432-449`), e
+#   não há como derivá-la do texto do `meow.conf.exemplo` sem inventar. O que dá
+#   para exigir é que ela seja pequena, explicada, e conferida: cada entrada diz
+#   a condição em que a chave dominante vence, e o teste `tests/app.sh` confere
+#   que as chaves citadas existem.
+DOMINIOS = {
+    "LOGO_ROTACAO": {
+        "chave": "LOGO_MODO",
+        "quando": lambda v: bool(v) and v != "rotacao",
+        "porque": "Esta chave só liga a rotação com LOGO_MODO vazio ou em "
+                  "\"rotacao\" — hoje ela não tem efeito nenhum.",
+    },
+    "LOGO": {
+        "chave": "LOGO_MODO",
+        "quando": lambda v: v == "hora",
+        "porque": "No modo hora quem escolhe o gato é LOGO_DIA/LOGO_NOITE; "
+                  "esta chave só entra quando um daqueles nomes não está no "
+                  "acervo.",
+    },
+    "FASTFETCH_LOGO_GATO": {
+        "chave": "FASTFETCH_LOGO_MODO",
+        "quando": lambda v: bool(v) and v != "fixo",
+        "porque": "Esta chave só vale com FASTFETCH_LOGO_MODO=\"fixo\"; nos "
+                  "outros modos o gato do terminal segue o do dock.",
+    },
+}
+
+
+def _valor_vivo(chave):
+    """O valor que a chave tem NA MÁQUINA agora (o conf dela, ou o exemplo)."""
+    return (valores_brutos() or {}).get(chave, "")
+
+
+# O estado que o applet do modo de leitura guarda, chave a chave. A ligação é
+# derivada do NOME (`LEITURA_TEMPERATURA` -> `leitura_temperatura`), e não uma
+# lista: a próxima chave dessa família nasce coberta.
+CONF_COMP = os.path.expanduser("~/.config/cosmic/com.system76.CosmicComp/v1")
+
+
+def _valendo_agora(chave):
+    if not chave.startswith("LEITURA_"):
+        return None
+    arq = os.path.join(CONF_COMP, chave.lower())
+    try:
+        with open(arq, encoding="utf-8") as fh:
+            valor = fh.read().strip().strip('"')
+    except OSError:
+        return None
+    return valor or None
+
+
+def _dominada_por(chave):
+    regra = DOMINIOS.get(chave)
+    if not regra:
+        return None
+    valor = _valor_vivo(regra["chave"])
+    if not regra["quando"](valor):
+        return None
+    return {"chave": regra["chave"], "valor": valor, "porque": regra["porque"]}
+
+
 def _opcoes_fechadas(chave, ajuda, inline, padrao):
     """As opções que valem como CERCA na hora de escrever — e só essas.
 
@@ -594,6 +657,12 @@ def _faixa(ajuda, inline):
     return None
 
 
+# Palavras que convivem com uma faixa: valores especiais que o script trata
+# antes de olhar o número. Hoje é uma só, e ela está escrita no arquivo que a
+# declara ("a palavra `auto` devolve a escala do painel").
+_PALAVRAS_COM_FAIXA = ("auto",)
+
+
 def _faixa_confere(faixa, padrao):
     """A faixa só vale se o PRÓPRIO PADRÃO DA CHAVE couber nela.
 
@@ -619,7 +688,16 @@ def _faixa_confere(faixa, padrao):
     try:
         valor = float(padrao.replace(",", "."))
     except ValueError:
-        return None
+        # UMA PALAVRA COMO PADRÃO NÃO MATA A FAIXA QUANDO A PALAVRA É UMA DAS
+        # OPÇÕES DECLARADAS — 02/09/2026.
+        #   `MIDIA_FONTE` nasce `auto` e o arquivo crava, com todas as letras,
+        #   "A UNIDADE É PIXEL, E A FAIXA VAI DE 6 A 48". Como `auto` não é
+        #   número, a faixa era descartada, e a chave virava campo de texto sem
+        #   cerca nenhuma: a validação mediu um `999` entrando calado.
+        #   A guarda que existia continua valendo (o `sim` do `JANELAS_TILING`
+        #   segue matando a faixa), porque ali a palavra NÃO é uma opção
+        #   declarada — é só o valor de um interruptor.
+        return faixa if padrao in _PALAVRAS_COM_FAIXA else None
     return faixa if faixa[0] <= valor <= faixa[1] else None
 
 
@@ -727,6 +805,22 @@ def _frase_curta(ajuda, inline):
     # dizer duas vezes a mesma coisa. Sem frase, o cartão fica com o nome, o
     # controle e o padrão, que já é a informação inteira.
     return "" if _e_linha_de_opcoes(inline) else inline
+
+
+def _capturas_no_disco():
+    """Os nomes das capturas de tema que existem — `mocha-mauve`, `latte-mauve`…
+
+    A página usa para avisar ANTES: `FLAVOR` × `ACCENT` dão 48 combinações e só
+    as capturadas instalam. Sem isto ela escolhia, salvava, rodava o instalador
+    e só então levava o não. (E o `bin/meow` lia isso de `state/tema/`, um
+    caminho que a reorganização deixou para trás — corrigido no mesmo dia.)
+    """
+    pasta = os.path.join(RAIZ, "assets", "temas", "capturados")
+    try:
+        return sorted(n for n in os.listdir(pasta)
+                      if os.path.isdir(os.path.join(pasta, n)))
+    except OSError:
+        return []
 
 
 def ler_esquema():
@@ -845,6 +939,21 @@ def ler_esquema():
                 _opcoes_finais(chave, ajuda, inline, _valor_da_linha(linha), herdada),
                 _faixa_confere(_faixa(ajuda, inline), _valor_da_linha(linha)),
                 _valor_da_linha(linha)),
+            # QUAL CHAVE ESTÁ ANULANDO ESTA, se alguma — 02/09/2026.
+            #   A validação achou dois interruptores vivos e inertes:
+            #   `LOGO_ROTACAO` (que só vale com `LOGO_MODO` vazio) e `LOGO`
+            #   (que em `LOGO_MODO="hora"` perde para `LOGO_DIA`/`LOGO_NOITE`).
+            #   A página não tinha como saber: quem lê a conf dela é este
+            #   arquivo. O campo diz a chave que manda, o valor que ela tem
+            #   HOJE, e a frase que explica — a página só desenha.
+            "dominada_por": _dominada_por(chave),
+            # O QUE ESTÁ VALENDO AGORA, quando não é o conf que manda.
+            #   As chaves `LEITURA_*` são o padrão de FÁBRICA: quem decide o
+            #   quanto é o que o applet guardou quando ela soltou o slider —
+            #   está escrito no próprio meow.conf.exemplo, e o cartão mostrava
+            #   o número do arquivo como se ele mandasse. A validação mediu:
+            #   conf diz 3500, a máquina está em 4700.
+            "valendo_agora": _valendo_agora(chave),
             "ajuda_herdada": herdada,
             "essencial": "[essencial]" in ajuda,
             # Lista separada por vírgula: a regra é o que o comentário DIZ, não uma
@@ -2890,7 +2999,19 @@ class Manipulador(BaseHTTPRequestHandler):
         busca = (consulta.get("busca", [""])[0] or "").strip().lower()
         limite = 60
         fora, vistos = [], set()
-        for pasta, grupo in (("arcticons-apps", "no repositório"), ("upstream", "acervo Arcticons")):
+        # O `upstream/` NÃO É O ARCTICONS — e eu supus que era.
+        #   A validação mediu: "assets/icones/upstream/ contém papirus-folders,
+        #   não Arcticons: 21.844 SVGs dos quais 21.000 são folder-cat-*.svg".
+        #   Buscar "steam" devolvia um glifo do Steam e 56 PASTAS coloridas.
+        #   Oferecer pasta como ícone de aplicativo é pior que não oferecer
+        #   nada: ela escolheria uma, salvaria, e o lançador ficaria com uma
+        #   pasta no lugar do programa.
+        #   As fontes certas são os acervos de APLICATIVO do repositório, e é só
+        #   isso que esta rota mostra agora.
+        for pasta, grupo in (("arcticons-apps", "traço (Arcticons)"),
+                             ("autorais", "desenho nosso"),
+                             ("convertidos-apps", "convertido"),
+                             ("catppuccin-apps", "Catppuccin")):
             raiz = os.path.join(RAIZ, "assets", "icones", pasta)
             if not os.path.isdir(raiz):
                 continue
@@ -3063,6 +3184,9 @@ class Manipulador(BaseHTTPRequestHandler):
                 "exemplo": CONF_PADRAO,
                 "raiz": RAIZ,
                 "chaves": esquema,
+                # Quais combinações de FLAVOR × ACCENT existem de verdade: a
+                # página avisa ANTES de ela salvar uma que o instalador recusa.
+                "capturas": _capturas_no_disco(),
                 # `escreve` é DERIVADO (ver a função de mesmo nome), nunca
                 # digitado por ação. E as opções da ação `oculta` não vão: o
                 # argumento dela é uma imagem escolhida na galeria, e mandar os

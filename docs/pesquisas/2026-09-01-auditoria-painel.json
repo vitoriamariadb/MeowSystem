@@ -1,0 +1,1102 @@
+{
+ "titulo": "Auditoria do painel de configuração, aba a aba, num navegador real",
+ "data": "2026-09-01",
+ "por_que": "Ela olhou a página e disse: \"o layout tá totalmente sem simetria.. Fora que não tá agradável no geral. além disso eu realmente não sei se ele funciona de fato. Eu preciso que corrija isso e teste como user no navegador cada feature.\" Esta pesquisa é a resposta à segunda metade: uma varredura completa usaram a página no Chromium headless, clicando em tudo, com o modo seco ligado.",
+ "metodo": {
+  "frentes": 51,
+  "auditores": 9,
+  "ceticos": 41,
+  "sintese": 1,
+  "regra": "todo achado marcado como QUEBRADO passou por um cético independente, instruído a REFUTAR; na dúvida, refutar. O que sobreviveu está aqui.",
+  "ferramenta": "Playwright (Chromium headless), servidor local em 127.0.0.1 com token de sessão"
+ },
+ "resumo": {
+  "achados": 120,
+  "quebrado": 40,
+  "confuso": 67,
+  "polimento": 13
+ },
+ "plano_de_correcao": "PLANO DE CORREÇÃO — painel `app/` do MeowSystem\n(base: HEAD `9c84fb1`, árvore limpa em `app/`; li o código, não editei nada)\n\n═══════════════════════════════════════════════════════════════\nANTES DE COMEÇAR — 3 coisas que mudam o tamanho do trabalho\n═══════════════════════════════════════════════════════════════\n\n1) **Seis causas-raiz explicam ~60 dos ~90 achados.** Quase nada aqui é \"conserto de chave\"; é regra errada num derivador ou um valor lido do disco onde devia ser lido da escolha pendente. Trate a lista de achados como sintoma, não como backlog.\n\n2) **Um achado NÃO reproduz mais no HEAD.** `FASTFETCH_LOGO_DIA/NOITE` já **não** mostram [Espelho|Hora|Fixo]: rodei `ler_esquema()` agora e as duas vêm com `opcoes: []` (a guarda `_opcoes_finais`/`_e_tabela` de `servidor.py:331-360` pegou o caso). O defeito que sobra é outro e continua real: elas caem em **campo de texto livre** quando deviam ser miniaturas de gato + estado \"herda LOGO_DIA (mimir)\". Não vá caçar o bug dos três botões — ele já morreu.\n\n3) **Ordem das ondas (uma por arquivo, do jeito que você toca):**\n onda 1 `app/pagina/app.js` (itens A1-A5 — devolve a interatividade; sozinha resolve ~25 achados)\n onda 2 `app/servidor.py` (B1-B6 — devolve os botões de escolha, as listas do repo e os botões mortos)\n onda 3 `meow.conf.exemplo` (C1-C3 — devolve os títulos; é texto, não código)\n onda 4 `app/pagina/estilo.css` (D1-D3 — polimento medido)\n `app/pagina/index.html`: **nada a fazer.** Todo o desenho é montado por JS; não há um só controle no HTML.\n\n═══════════════════════════════════════════════════════════════\nA. app/pagina/app.js — onda 1\n═══════════════════════════════════════════════════════════════\n\n**A1. UM SÓ LUGAR LÊ O VALOR: `valorEmVigor(item)`.** ⟨GENÉRICA — mata 8 achados \"quebrado\" de uma vez⟩\nHoje três controles leem `item.valor` (o disco) para decidir o que pintar, enquanto o resto lê a escolha pendente. Lugares exatos:\n· `app.js:755` `controleFlavor` → `pintar(item.valor ?? \"\")`\n· `app.js:783` `controleCor` → `pintar(item.valor ?? \"\")`\n· `app.js:424` fichas, dentro de `desenhar()` → `(item.valor || \"\")`\nTroque os três por `valorEmVigor(item)` (o `controleImagem`, em `app.js:658`, já faz assim e é o único controle desta página que pinta certo). Nas fichas, apague também os dois `item.valor = novos.join(sep)` (`app.js:432` e `:447`) — escrever no ESQUEMA de dentro do controle é o que faz o segundo gesto apagar o primeiro.\nCura: FLAVOR e ACCENT não marcam · MIDIA_COR_TITULO/ARTISTA não marcam · ICONES_FLAVOR não marca · APPS_ATIVOS × e + não desenham · AUTOSTART_BLOQUEADOS + não desenha · WALLPAPER_FONTES_DELA Enter não desenha e o 2º caminho apaga o 1º.\n\n**A2. `escolher()` tem de devolver `true`.** ⟨GENÉRICA, 1 linha⟩\n`app.js:275-288` termina em `render()` e devolve `undefined`; por isso todo `if (await aplica(x)) pintar(x)` da página é código morto. Acrescente `return true` (e `return false` no `if (!item) return`). Depois do A1 isso é cinto e suspensório — mas sem ele qualquer controle novo nasce quebrado do mesmo jeito.\n\n**A3. `escolher()` não pode reconstruir a página inteira.** ⟨GENÉRICA — cura o foco e destrava as prévias ao vivo⟩\n`escolher()` chama `render()` (`app.js:287`), que faz `replaceChildren()` em `#conteudo` (`app.js:1560`) e destrói o nó focado. É a causa medida de \"o deslizante MIDIA_LARGURA perde o foco na 2ª seta\". Faça `escolher()` (a) atualizar MUDANCAS + as classes do cartão + a barra de salvar, e (b) chamar um `repintarDerivados()` que só redesenha o que depende de OUTRA chave — o cabeçalho de seção (mock da barra, grade de ícones), os cartões com dependência (A5) e as prévias de cor. Se preferir o caminho curto: guarde `document.activeElement` (id + selectionStart) antes do `replaceChildren()` e devolva o foco depois.\n\n**A4. Toda prévia lê a escolha pendente, e reage a `input`, não só a `change`.** ⟨GENÉRICA⟩\nCrie um `valorDe(chave)` (consulta MUDANCAS, cai em `ESQUEMA.chaves[].valor`) e use nos três lugares que hoje leem o disco:\n· `mockDaBarra` — o `val()` de `app.js:793-797` (lê `k.valor`); e ele só é montado uma vez, em `render()` (`app.js:1602-1607`) — como o A3 passa a redesenhar o cabeçalho, o desenho volta a ser \"ao vivo\" como o comentário de `app.js:788-791` promete.\n· `simulacaoLeitura` — `app.js:840-846`; e no controle de faixa (`app.js:476`) ligue o `input` (não só o `change`) a repintar véu/papel/legenda junto com o `<output>`.\n· `controleCor` — `app.js:761` lê `FLAVOR` do disco, então as 12 bolinhas continuam nos hexes do flavor gravado depois de ela escolher outro.\nCura: 4 achados \"acao-sem-efeito\"/\"nao-da-para-entender\" (mock congelado, simulação de leitura congelada, paleta de ACCENT mentindo, número × legenda se contradizendo).\n\n**A5. Cartão que não vale hoje tem de dizer isso.** ⟨GENÉRICA, casada com B4⟩\nEm `montarCartao` (`app.js:1225`): se `item.depende` (campo novo, vindo do servidor — ver B4) e `valorDe(item.depende.chave) !== item.depende.valor`, ponha classe `sem-efeito` no `<article>`, uma linha \"sem efeito: LOGO_MODO=hora manda\" e um botão que leva ao cartão que manda (setar `ABA` + `location.hash` + `scrollIntoView`). Em `montarAcao` (`app.js:1326`) o mesmo para ações (`logo_girar` com LOGO_MODO≠rotacao).\nCura de um golpe: LOGO_ROTACAO inerte · LOGO_DIA/LOGO_NOITE vivos no modo Fixo · FILES_MENU_AUTOBUILD · JANELAS_TILING_ESCOPO · WALLPAPER_NOITE_INÍCIO/FIM/LIMIAR com a noite desligada · o botão \"Passar ao próximo gato\".\n\n**A6. Os controles de ação usam a mesma prévia dos cartões.** ⟨GENÉRICA, casada com B5⟩\n`montarAcao` (`app.js:1326-1345`) só sabe fazer `<select>` de texto. Passe a: se `acao.previa === \"gato\"` → `controleImagem`; `\"flavor\"`/`\"captura\"` → `controleFlavor` sobre o par flavor-accent do nome da captura; senão segmentos até 5, `<select>` acima. E três correções no mesmo bloco:\n· o valor inicial vem do que está valendo (`acao.valor_de` → `valorDe(\"MODO\")`, `valorDe(\"LOGO\")`), não da 1ª opção — hoje \"Claro/escuro\" nasce em `claro` numa máquina em `escuro`, e um clique em Rodar trocaria o tema dela;\n· o `<code class=\"cmd\">` reage à escolha (resolva `@ARG@` na hora — hoje `@ARG@` fica na tela, jargão vazado) e mostra `meow tema mocha-pink`, sem o prefixo `/mnt/.../bin/`, que é igual nos 30 cartões e é justamente o que a elipse deixa visível;\n· enquanto um trabalho corre (`TRABALHO`), desabilite os outros \"Rodar\" e marque o cartão que está correndo — hoje o 2º clique vira torrada de erro 409.\n· a pastilha: hoje só existe \"aceita seco\". Acrescente **\"escreve\"** derivada de `acao.seco` (o servidor já manda o campo; é a mesma verdade que `/api/rodar` usa em `servidor.py:2513`) — \"aceita seco\" responde outra pergunta, e é a única marca que separa `doctor` de `doctor --consertar`.\n\n**A7. Acrescentar ao acervo — o botão já existe, falta plugá-lo em 2 lugares.** ⟨o pedido explícito dela⟩\n`botaoAcervo` (`app.js:685`) já cobre `gato`, `parede` e `icone`, e `/api/acervo` já resolve as três pastas (`servidor.py:1988-2013`). Hoje só o gato tem botão. Ponha:\n· `botaoAcervo(\"parede\", …)` no topo de `montarGaleria` (`app.js:1115`) — é o gesto oposto do Banir e hoje ela abre o gerenciador de arquivos à mão;\n· `botaoAcervo(\"icone\", …)` ao lado da grade de `gradeDeIcones` (`app.js:871`).\nE, no `aoEntrar` dos três, **recarregue o `/api/esquema`**, não só as prévias: `controleImagem` monta os botões a partir de `item.opcoes`, que vem do ESQUEMA carregado uma vez no arranque — é por isso que o gato enviado não vira botão até um F5. Mostre na torrada o campo `depois` que o servidor já calcula e hoje é descartado (\"o vigia põe o gato novo no acervo em segundos\"), e escreva o destino no `title` do botão (\"manda um .svg para assets/gatos/\").\n\n**A8. Folhas visuais: a aba inteira é texto morto.** ⟨caso a caso, mas barato⟩\n`montarFolhas` (`app.js:1650`) só emite `<b>` + `<span>`. Faça cada folha um `<a href=\"/folha?arquivo=…&t=TOKEN\" target=\"_blank\">` (rota nova — B6) e acrescente \"copiar caminho\". E `casa()` (`app.js:1643`) só testa `rotulo/ajuda/id` para item sem `chave`: acrescente `arquivo` e `caminho`, senão a busca continua fazendo a aba desaparecer (digitar \"cursor\" some com a `folha-cursor.html`).\n\n**A9. Dois rótulos crus e uma tira sem tradução.** ⟨GENÉRICA de graça⟩\n`ROTULO_DE_VALOR` (`app.js:120-128`) é um dicionário de VALORES (não de chaves) — acrescente `global`, `workspace`, `accent`, `port`; e em `controleFlavor` (`app.js:754`) troque `texto: nome` por `rotuloDeValor(nome)` (o dicionário já tem \"Frappé\" com acento).\n\n**A10. A barra \"Fundo\" mora onde ela age.** ⟨caso a caso⟩\n`barraDeFundos` (`app.js:576`) é emitida no topo da página (`render`, `app.js:1580`) mesmo quando repinta um elemento só. Emita-a **dentro** do bloco que ela repinta (o cartão com `previa === \"gato\"/\"cursor\"` e a grade de ícones), com o rótulo \"Ver o ícone sobre:\" em vez de \"Fundo\" — em Aparência ▸ Geral existe hoje uma pílula \"Latte\" no topo e um botão \"latte\" do FLAVOR logo abaixo, duas coisas diferentes com o mesmo nome na mesma tela.\n\n**A11. Galeria: três buracos pequenos.** ⟨caso a caso⟩\n· \"Banir\" também nas sub-abas Noite e Dia (`app.js:1163-1180`) — `ativos-noite/` e `ativos-dia/` são link duro do MESMO arquivo, então é a mesma operação, e são as duas telas onde ela repara que a imagem está clara demais;\n· contadores das cinco sub-abas no primeiro desenho (`app.js:1119-1126` só escreve a conta se `PREVIAS` já tem o grupo) — peça as cinco de uma vez, ou deixe o servidor devolver as contagens junto;\n· \"Favoritos\" vazio: em vez de só dizer que está vazia, diga como se enche (soltar arquivo em `favoritos/`). **Não** invente um botão \"Favoritar\": não existe verbo `favoritar` no `bin/meow` (a lista aceita é `estado|aplicar|adicionar|banir|desbanir|semear|permitir|proximo|anterior|carrossel`), e a página nunca move arquivo por conta própria.\n\n**A12. Grade de ícones honesta.** ⟨casada com B7⟩ Quando `_prev_icones` passar a devolver `places` e `mimetypes`, desenhe uma tira por categoria ao lado da chave que a muda (pastas → ICONES_PASTAS/PASTAS_XDG, tipos de arquivo → ICONES_FLAVOR). Enquanto isso não vier, escreva na frase que são 24 de 47 e que é só \"aplicativos\". E torne a frase \"Reconstruir o tema de ícones\" um **botão** para a ação `icones_reconstruir`, que existe e não é chamada de lugar nenhum dessa aba.\n\n═══════════════════════════════════════════════════════════════\nB. app/servidor.py — onda 2\n═══════════════════════════════════════════════════════════════\n\n**B1. Dois botões da galeria não chamam nada — as ações não existem.** ⟨caso a caso, mas é o achado mais grave da página⟩\n`ACOES` (`servidor.py:911+`) não tem `wallpaper_banir` nem `wallpaper_desbanir`, e `rodarNaGaleria` (`app.js:1201-1203`) faz `if (!acao) return` — retorno mudo. São 46 botões \"Banir\" e 255 \"Devolver\" que morrem em silêncio. Acrescente as duas entradas (`_meow(\"wallpaper\",\"banir\",\"@ARG@\")` / `desbanir`, `seco:True`, a de banir `destrutivo`) **com provedor novo** (ver B2), porque `iniciar()` (`servidor.py:1699`) exige que o argumento esteja na lista do disco — é a fronteira de segurança do arquivo e ela não se abre.\nJunto, as outras ações que a CLI tem e a página não: `tema_capturar` (`meow tema capturar <nome>`), `apps_aplicar_um` e `apps_reverter` (`meow apps aplicar|reverter <slug>`), `files_menu_build` (`meow files-menu build`, marcada como demorada). Para papel de parede **não** crie `wallpaper_adicionar`: `/api/acervo` tipo `parede` já faz isso e não passa por processo nenhum (A7).\n\n**B2. `PROVEDORES` é o mecanismo certo — ele só está subalimentado.** ⟨GENÉRICA⟩\n`servidor.py:899-903` tem três provedores (`capturas`, `gatos`, `modos`). Acrescente, todos lendo o disco: `paredes_ativas` (caminhos de `ativos/`), `paredes_banidas` (nomes de `banidos/`), `apps` (os módulos de `assets/temas-de-apps/`), `temas_icones` (dirs de `/usr/share/icons` + `~/.local/share/icons` + `~/.icons` que tenham `index.theme`), `cursores` (ver B3), `autostart` (os `.desktop` de `~/.config/autostart/`), `cores_pasta` (os `cat-<flavor>-<accent>` que existem em `assets/icones/upstream/papirus-folders/src/`).\nExceção declarada: `tema capturar <nome>` cria nome novo, então nenhum provedor o valida. Trate como um segundo tipo — `arg_livre: r\"^[a-z0-9][a-z0-9-]{0,31}$\"` — validado por regex em `iniciar()`. É a única brecha, e ela é fechada por padrão.\n\n**B3. A lista de CURSOR oferece 3 valores que o `cursor.sh` não sabe resolver.** ⟨caso a caso, mas é escrita no sistema dela⟩\n`_prev_cursores` (`servidor.py:1345-1387`) enumera todo diretório com `cursors/` e ainda cria um apelido curto como **segunda opção clicável**. Só que `scripts/cursor.sh:189` é `_cursor_nome_tema() { printf '%s-cursors' \"$1\"; }` — o script SEMPRE acrescenta `-cursors`. Então `CURSOR=\"Adwaita\"` procura `Adwaita-cursors` (não existe) e cai no download de `https://github.com/catppuccin/cursors/.../Adwaita-cursors.zip`; e `catppuccin-mocha-light-cursors` vira `…-cursors-cursors`.\nConserto: a fonte devolve **um item por ponteiro real**, com `id` = o nome que o `cursor.sh` resolve (diretório terminado em `-cursors`, menos o sufixo) e o apelido virando campo `alias` usado só para achar o arquivo da prévia — nunca uma segunda opção. Diretório que não existe como `<valor>-cursors` fica de fora da lista de escolha (Adwaita, Pop, breeze) e, se quiser, aparece desabilitado com o motivo. Regra derivada do disco + da regra do script, não lista fixa.\n\n**B4. Dependência entre chaves, declarada pelo arquivo.** ⟨GENÉRICA — é o par do A5⟩\nEm `ler_esquema()` (`servidor.py:643-712`), acrescente o campo `depende`, derivado do texto (que já existe em vários blocos): regex conservadora sobre `ajuda + inline` para `só (tem efeito|vale|é lida|são lidas) (com|quando|se) CHAVE=valor` e para a convenção nova `# vale com CHAVE=valor` (é o que você escreve nas 6 chaves que não dizem — ver C2). Uma regra, e ela cobre LOGO_ROTACAO, LOGO_DIA/NOITE, FILES_MENU_AUTOBUILD, JANELAS_TILING_ESCOPO, WALLPAPER_NOITE_* e as próximas que nascerem.\n\n**B5. O derivador de opções — três regras novas, nenhuma lista de chaves.** ⟨GENÉRICA — é literalmente o pedido dela⟩\na) **`XS | S | M | L | XL` sendo descartado.** `_opcoes` (`servidor.py:235-292`) corta no primeiro `(` e exige que TODO token case `RE_TOKEN_OPCAO`; a linha do `meow.conf.exemplo:379` é `… tamanho da barra) | XS | S | M | L | XL.` — o primeiro token é `tamanho da barra)` e o último tem ponto final. Normalize antes de partir: descarte o que vem até o **último `)`** que anteceda a primeira `|`, e tire pontuação final. Devolve botões às 6 chaves `FORMA_CENTRO_*`/`FORMA_ALA_*`, que hoje são campo de texto onde ela digita a letra de cabeça — o mesmíssimo defeito do LOGO_MODO que ela reclamou. Espelhe em `_e_linha_de_opcoes` (`servidor.py:197`), senão a linha vira opção no controle E frase embaixo dele.\nb) **Opções que vêm do disco.** `_opcoes` tem hoje um `if chave in (\"LOGO\",\"LOGO_DIA\",\"LOGO_NOITE\",\"FASTFETCH_LOGO_GATO\")` — a única lista fixa do arquivo. Troque por uma tabela `FONTES_DO_DISCO` de (regex sobre ajuda+inline+padrão) → provedor:\n · cita `assets/gatos/` → `_gatos()` (pega as 4 de hoje e as próximas)\n · diz `vazio = herda LOGO_DIA` → as opções da chave citada, **mais** o estado vazio rotulado \"herda LOGO_DIA (mimir)\" (resolve FASTFETCH_LOGO_DIA/NOITE, que hoje são texto livre)\n · cita \"tema de ícones\" instalado / `~/.local/share/icons` → provedor `temas_icones` (resolve ICONES_BASE, hoje texto livre que aceita `Nao-Existe-Nenhum` e faz `construir_pastas.sh:135` sair com SEM_DEPENDENCIA)\n · cita `papirus-folders` → provedor `cores_pasta`, oferecido como flavor+acento com amostra, mais a opção \"seguir FLAVOR e ACCENT\" que preserva a forma `cat-${FLAVOR}-${ACCENT}` (resolve ICONES_PASTAS)\n · cita `catppuccin/cursors` release → as tags conhecidas (resolve CURSOR_VERSAO).\nc) **Números e durações.** Acrescente `tipo_numero` + `unidade` derivados do próprio padrão e do comentário: `^\\d+$` → inteiro (unidade lida do texto: px, colunas, minutos, backups); `^\\d*[.,]\\d+$` ou faixa 0..1 → deslizante com passo 0.01; `^\\d+[smhd]$` → duração (número + unidade). Cobre de uma vez FORMA_* (8), VIDRO_OPACIDADE_* (2), LEITURA_RAMPA_MIN, FASTFETCH_LOGO_COLUNAS, BACKUPS_MANTIDOS, WALLPAPER_LIMIAR_LUZ, WALLPAPER_FIXO_TTL, LOGO_INTERVALO, MIDIA_FONTE (que é `auto` **ou** 6-48 → dois botões + deslizante). Para ESCALA_TELA a lista é fechada e mora no script (`scripts/escala.sh:226-234`: `nitida`/`auto` ou número): opções [Nítida | 1.0 | 1.25 | 1.5 | não mexer] + campo numérico.\nd) `controleImagem` (`app.js:632`) precisa honrar `item.aceita_vazio` e acrescentar o `botaoVazio` — CURSOR já vem com `aceita_vazio: true` do servidor e mesmo assim não tem como voltar ao vazio. Uma linha, vale para todo controle de imagem futuro.\n\n**B6. `/api/definir` valida só o NOME da chave.** ⟨GENÉRICA — é escrita no meow.conf dela⟩\n`servidor.py:2474-2483` confere que a chave está no esquema e manda gravar. Por isso `banana` entra em `FORMA_RAIO_PAINEL`, `gigante` em `ESCALA_TELA`, `abc` em `BACKUPS_MANTIDOS`, `999` em `VIDRO_OPACIDADE_PAINEL` — e o `meow doctor --consertar` das 05:00 passa a errar todo dia. Use o esquema que já está na mão: valor tem de ser membro de `opcoes` (ou vazio, se `aceita_vazio`), ou casar `faixa`, ou `HH:MM` se `horario`, ou o `tipo_numero` de B5c. Recuse com 400 e mensagem — a torrada de erro já existe em `gravar()` (`app.js:355-365`). O teto do raio é o caso caro: use `meow painel teto` (a ação já existe em Fazer ▸ Barra e janelas) para conhecer o valor (22 painel / 32 dock nesta máquina) e recuse acima disso enquanto o `patches/cosmic-comp-raio-clampado.patch` não estiver rodando — `forma.sh` já sabe detectar (`_forma_compositor_clampa`). Essa chave apaga topbar e dock JUNTAS.\n\n**B7. Prévias que faltam.** ⟨caso a caso, barato⟩\n`_prev_icones` (`servidor.py:1319`) só varre `48x48/apps`, `scalable/apps`, `64x64/apps` — as pastas (`64x64/places`, 202 arquivos) e os tipos de arquivo (`scalable/mimetypes`, 123) ficam invisíveis, justamente as categorias que 3 das 6 chaves da aba mudam. Acrescente as duas subpastas (o `grupo` já é devolvido item a item e `previas()` já filtra por grupo, `servidor.py:1574`).\nE dê `previa` às ações com `arg` no `/api/esquema` (`servidor.py:2427-2430`): reaproveite `_tipo_de_previa` sobre as opções do provedor — gatos viram miniatura, captura `<flavor>-<accent>` vira tira de cores. É o que faz \"Pôr um gato no dock\" deixar de ser um `<select>` de texto numa página que desenha os dois gatos duas abas antes.\n\n**B8. Rota das folhas.** ⟨caso a caso, 8 linhas⟩ Em `do_GET` (`servidor.py:1850+`), antes do 404: `/folha?arquivo=<basename>` com token, `os.path.basename` no nome, só `.html`, só dentro de `FOLHAS`. É a cerca que o `/previa?tipo=arquivo` já usa (`servidor.py:1904-1920`) — copie o padrão, não invente outro.\n\n**B9. Títulos herdados.** ⟨GENÉRICA — casada com C1⟩ Em `ler_esquema`, quando `ajuda_herdada` for verdadeiro e existir `inline`, a `frase` do item passa a ser o `inline` (o bloco continua inteiro em `ajuda`, a um clique). Sozinho isso conserta LOGO_DIA/NOITE (\"o dock de dia\"/\"o dock de noite\"), ICONES_BASE/PASTAS, CURSOR_VERSAO, LOG_NIVEL, WALLPAPER_INTERVALO, WALLPAPER_NOTIFICAR e os três pares `*_NOTIFICAR` da Automação — 12 cartões que hoje explicam a chave do vizinho.\nE um ajuste em `_frase_curta`/`_e_titulo` (`servidor.py:451-466` e `:495`): quando a primeira oração é \"grito\" e o resto do parágrafo é curto, **rebaixe para minúscula** em vez de descartar. É o que faz LEITURA_TEMPERATURA perder a única frase que nomeia a chave e a unidade (\"A TEMPERATURA DA NOITE, em Kelvin\", 0,74 > 0,70) e ficar com o título \"A faixa é 1000–6500\", sem um K na tela.\n\n═══════════════════════════════════════════════════════════════\nC. meow.conf.exemplo — onda 3 (é texto; nada aqui é código)\n═══════════════════════════════════════════════════════════════\n\nO cabeçalho do arquivo já promete que o comentário é a ajuda da interface. Metade dos achados \"não dá para entender\" se conserta escrevendo o comentário que falta, e não mexendo em regra nenhuma.\n\n**C1. Comentário de linha para as chaves que só herdam.** Uma linha `# …` na própria linha da chave (o campo `inline`, que passa a ser título com B9) em: MODO (\"claro ou escuro em toda a máquina\"), NOITE_INICIO / NOITE_FIM (\"quando a noite começa/termina\" — hoje as duas se chamam **\"Preenchido\"**), VIDRO_OPACIDADE_PAINEL / _DOCK (hoje as duas se chamam \"Ajustes → Área de trabalho → Painel (e Dock)\"), as 12 FORMA_* (hoje 12 cartões com 2 títulos, e um deles é \"AS quatro abaixo TÊM slider na GUI\" encabeçando OITO), LEITURA_HORARIO_INICIO/FIM, JANELAS_TILING e _ESCOPO, MIDIA e MIDIA_CAPA, APPS_ATIVOS (hoje o título é \"Vírgula-separado\"), LANCADOR_SISTEMA, TERMINAL_CURSOR, WALLPAPER_ORDEM (o único cartão da página sem título e sem \"Por quê\"), BACKUPS_MANTIDOS.\n\n**C2. A convenção de dependência, escrita.** `# vale com LOGO_MODO=hora` nas duas chaves de rosto; `# vale com LOGO_MODO=` (vazio) no LOGO_ROTACAO; `# vale com FILES_MENU=sim`; `# vale com JANELAS_TILING=sim`; `# vale com WALLPAPER_NOITE=sim`. É o que alimenta B4/A5.\n\n**C3. Duas ajudas envelhecidas.** ESCALA_TELA (linhas 218-232) é anterior ao `nitida`, que entrou no `escala.sh` em 01/09 — a página acusa de \"fora do padrão\" o valor que a máquina dela está usando. E CURSOR_VERSAO só tem `# release fixado…`, que nunca aparece.\n\n(aviso) Ao mexer aqui, rode `tests/app.sh`: ele compara `_opcoes` do servidor com `wiz_opcoes` do `bin/meow`, e as duas leituras deste arquivo têm de continuar de acordo.\n\n═══════════════════════════════════════════════════════════════\nD. app/pagina/estilo.css — onda 4\n═══════════════════════════════════════════════════════════════\n\n**D1.** O rótulo some no fundo claro. `estilo.css:742` e `:845` põem `background: var(--fundo-teste)` sem par para a cor do texto: medi 1,57:1 para \"Mimir\" sobre Latte (o mínimo legível é 4,5). Faça `paleta_css` (`servidor.py:880-886`, onde os quatro `--fundo-*` são gerados) emitir também um `--texto-sobre-teste` por fundo, e `aplicarFundo()` (`app.js:572`) setar os dois. É a barra que existe para conferir o ícone nos dois extremos; num deles não dá para ler qual gato é qual.\n**D2.** `.acao code.cmd` (`estilo.css:459-465`): `nowrap` + elipse sobre um caminho absoluto de 44 caracteres deixa ver só o prefixo do repositório e esconde o subcomando — `doctor` e `doctor --consertar` viram o mesmo texto. Com A6 mostrando `meow …` sem prefixo, isso deixa de morder; se sobrar, corte pela ESQUERDA.\n**D3.** `.cartao .padrao` (`estilo.css:292-297`): `nowrap` sem `overflow` faz \"padrão $HOME/.local/share/backgrounds/meowsystem\" vazar 19,75 px para fora do cartão. `max-width` + elipse + `title`.\n**D4.** Classe `.sem-efeito` para o A5 (opacidade ~.55, um traço lateral), no mesmo espírito do `.nao-salvo` que já existe.\n\n═══════════════════════════════════════════════════════════════\nO QUE **NÃO** VALE A PENA MEXER\n═══════════════════════════════════════════════════════════════\n\n· **A arquitetura do derivador** (`_tipo_de_previa`, `_opcoes`, `_faixa`, `_frase_curta`). Ela já decide pelo CONTEÚDO e é o motivo de `MIDIA_COR_TITULO` ter ganhado bolinhas sem ninguém escrever o nome dela. Estenda com regras; não substitua por dicionário de chaves — o comentário de `servidor.py:1390-1420` explica por que, e a armadilha nº 3 do projeto já cobrou duas vezes.\n· **A fronteira `ACOES` + `PROVEDORES`.** Nenhum texto do navegador vira comando, e não há `shell=True` no arquivo. Não relaxe isso para \"resolver\" Banir/Devolver — a saída certa é provedor novo (B2).\n· **O modelo MUDANCAS → Salvar.** Foi pedido dela em 01/09 e está certo. Os defeitos são de leitura de valor (A1), não do modelo.\n· **A prévia duplicada dos dois cartões de leitura** como item próprio: ela some sozinha se você subir a simulação para o cabeçalho da seção, como já foi feito com o mock da barra (`app.js:1100-1108`). Não abra tarefa separada.\n· **Antes/depois das 13 trocas de `ICONES_COR_MARCA`.** Exigiria renderizar duas árvores de ícone para uma chave que ela deixou desligada de propósito (\"isto está desligado porque é escolha dela\"). Caro, e não muda decisão nenhuma.\n· **Seletor de PASTA para `WALLPAPER_BASE`.** Navegador não escolhe diretório por caminho; não tente. Ofereça as duas candidatas que o repositório conhece + conferência de existência no servidor, e pare aí.\n· **Botão \"Favoritar\" na galeria.** O verbo não existe no `bin/meow`; criar um só para o botão é mexer na CLI por causa da página, e a regra é o contrário.\n· **Desenho novo de segmentos para a aba \"O tamanho por segmento da barra\".** Mais barato e mais honesto: **não** mostrar ali o mock de raio/margem/recheio (hoje ele aparece porque o servidor marca todo `FORMA_*` com `previa: \"barra\"`). Um desenho de outro assunto é pior que desenho nenhum.\n· **`destacarSemGritar` e a sigla \"ansi\".** Consertar quatro letras exige uma lista de siglas — pequena, mas é lista fixa. Deixe por último, ou escreva \"ANSI\" já minúsculo/maiúsculo certo no `meow.conf.exemplo` (C1) e o problema não existe.\n· **Não caçar** o bug de `FASTFETCH_LOGO_DIA` com botões de modo: não reproduz mais no HEAD (medido hoje). O que sobra é B5b.\n\n═══════════════════════════════════════════════════════════════\nMAPA RÁPIDO (arquivo → itens, na ordem em que eu tocaria)\n═══════════════════════════════════════════════════════════════\n`app/pagina/app.js` — A1 A2 A3 A4 · A5 A6 A7 · A8 A9 A10 A11 A12\n`app/servidor.py` — B1 B2 B6 · B5 B4 B3 · B9 B7 B8\n`meow.conf.exemplo` — C1 C2 C3\n`app/pagina/estilo.css` — D1 D4 D2 D3\n`app/pagina/index.html` — nada\n`bin/meow`, `scripts/*` — nada (a CLI já tem todos os verbos que faltam na página)\n\nDepois de cada onda: `tests/app.sh` (ele guarda o acordo entre o painel e o wizard sobre o `meow.conf.exemplo`), e uma passada com o **Modo seco ligado** clicando FLAVOR, ACCENT, uma ficha de APPS_ATIVOS e um deslizante — são os quatro controles que provam A1+A2+A3 de uma vez.",
+ "achados": [
+  {
+   "chave": "LEITURA_TEMPERATURA / LEITURA_TEXTURA",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "A simulação (o véu de Kelvin e a textura de papel sobre o papel de parede) fica congelada no valor salvo: arrastar o slider muda o número ao lado e mais nada.",
+   "evidencia": "Com o Modo seco ligado, arrastei o slider de LEITURA_TEMPERATURA com o mouse de verdade, de 3500 até 1315: o <output> foi para 1315, o cartão ganhou as classes 'mexeu nao-salvo', mas a div .veu continuou com style='background:rgb(255 193 141)' (a cor de 3500K) e a legenda continuou escrita 'simulação — 3500K, textura 0.35'. Repeti em LEITURA_TEXTURA de 0.35 para 1.0: a div .papel manteve 'color-mix(... rosewater 8% ...) saturate(90%) contrast(97%)', que são os números de 0.35 (8% = 0.35×22, 90% = 100−0.35×30). Saí para a aba 'As janelas lado a lado' e voltei — a aba re-renderiza, e aí o cartão passa a mostrar DOIS números que se contradizem: o slider em 1200 e a legenda em '3500K'. Nenhum erro no console. Causa no código: app/pagina/app.js:839 monta simulacaoLeitura(item) a partir de item.valor (o valor gravado) e app.js:476 só liga o 'input' do slider ao <output>; a imagem só é redesenhada por render(), que roda depois de Salvar.",
+   "esperado": "O véu, a camada de papel e a legenda devem ser recalculados no evento 'input' do slider, junto com o <output> — é literalmente para isso que a prévia existe (o próprio comentário do meow.conf.exemplo diz que 3500 está ali 'para que você VEJA a coisa uma vez'). E as duas simulações devem reagir às duas chaves ao mesmo tempo, porque o efeito na tela é o par, não cada número sozinho.",
+   "gravidade": "quebrado",
+   "aba": "O modo de leitura"
+  },
+  {
+   "chave": "LEITURA_TEMPERATURA / LEITURA_TEXTURA",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "A página mostra o número do meow.conf como se ele mandasse na tela, mas nesta máquina quem manda é o applet — mexer no slider e salvar não muda um pixel, e a página não avisa.",
+   "evidencia": "A página mostra o slider em 3500 e a legenda '3500K'. No disco, agora: ~/.local/state/cosmic/com.meowsystem.AppletLeitura/v1/ultima_temperatura = 4700 e ~/.config/cosmic/com.system76.CosmicComp/v1/leitura_temperatura = 4700 — 4700K é o que está pintando a tela, não 3500. O scripts/leitura.sh:446-463 sobrescreve LEITURA_TEMPERATURA/LEITURA_TEXTURA com o ponto do applet quando ele existe e passa no filtro (LEITURA_FONTE_ALVO_T=\"applet\"), e o próprio script imprime 'alvo que vale ... — os sliders mandam no QUANTO' (leitura.sh:888). O meow.conf.exemplo:508-517 diz o mesmo com todas as letras: 'ESTA LINHA VIROU O PADRÃO DE FÁBRICA, NÃO MAIS O ALVO'. Dumpei o texto visível da aba inteira sem os blocos 'Por quê': não há uma única palavra sobre applet, sobre 'padrão de fábrica' ou sobre qual das duas fontes está valendo.",
+   "esperado": "O cartão deve dizer, na cara, qual fonte está mandando agora — do mesmo jeito que outros cartões já mostram a linha 'vale como:'. Algo como 'hoje quem manda é o applet: 4700K — este número só entra se o applet nunca tiver gravado', com o valor real lido do estado do applet, e um atalho para a ação 'Modo de leitura: estado' (que existe, mas está escondida em Fazer ▸ Barra e janelas e nunca é ligada a partir daqui). Sem isso, ela arrasta, salva, olha a tela e não aconteceu nada — que é exatamente a reclamação de 31/08 registrada no próprio arquivo.",
+   "gravidade": "quebrado",
+   "aba": "O modo de leitura"
+  },
+  {
+   "chave": "LEITURA_RAMPA_MIN",
+   "tipo": "controle-errado",
+   "sintoma": "Campo de texto livre, sem unidade e sem validação nenhuma: aceita 'banana', '-5', '999' e '2,5' calados, e o campo vazio fica visualmente idêntico ao valor 0.",
+   "evidencia": "Digitei, um por um, 'banana', '-5', '999' e '2,5' no campo e disparei o change: em todos os quatro o input ficou com o texto digitado, element.validity.valid == true, validationMessage vazio, nenhuma torrada, nenhum aviso, e a barra de topo passou a dizer '1 escolha' pronta para Salvar. Depois apaguei o campo: value='' mas o placeholder é '0' (o padrão), então na tela o campo vazio e o valor 0 são a mesma imagem — e o vazio foi registrado como escolha pendente mesmo assim (cartão 'mexeu nao-salvo', barra '1 escolha'). Em nenhum lugar do cartão aparece a palavra 'minutos': o título é 'A virada: seca ou rampa?' e a unidade só existe dentro do 'Por quê'. O meow.conf.exemplo:545-560 declara '0 = seca | N minutos de rampa', e o próprio scripts/leitura.sh:723-736 tem avisos escritos justamente porque a vírgula do teclado pt_BR vira 0 lá dentro, calada.",
+   "esperado": "Um campo numérico (ou deslizante 0–60) com sufixo 'min' visível e um rótulo dizendo '0 = virada seca'. Vírgula, letra e negativo devem ser recusados na hora, na página, e não virar um aviso de shell que ela só vai ler depois de uma noite errada.",
+   "gravidade": "quebrado",
+   "aba": "O modo de leitura"
+  },
+  {
+   "chave": "LEITURA_HORARIO_INICIO / LEITURA_HORARIO_FIM",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Os dois cartões têm o MESMO título, e o título não diz o que a chave faz — só dá para distinguir início de fim lendo o nome cru da chave em caixa alta.",
+   "evidencia": "Os <h3> da aba, na ordem: ['Às 18:00 a tela esquenta e ganha textura de papel', 'Ela pediu para escolher a faixa pela interface', 'Ela pediu para escolher a faixa pela interface', 'A faixa é 1000–6500', ...]. Os dois cartões de hora, lado a lado na grade, dizem palavra por palavra 'Ela pediu para escolher a faixa pela interface' — que é uma nota de decisão de projeto, não a descrição da chave. A única coisa que separa os dois é o <code>LEITURA_HORARIO_INICIO</code> / <code>LEITURA_HORARIO_FIM</code> no topo. Acontece porque as duas chaves dividem o mesmo bloco de comentário no meow.conf.exemplo:477-494 e o servidor tira o título do primeiro parágrafo do bloco, igual para as duas.",
+   "esperado": "'A que horas a tela esquenta' e 'A que horas ela volta ao normal' — uma frase por chave, dizendo o papel de cada uma. E, já que o comentário avisa que a janela pode atravessar a meia-noite, o par deveria aparecer junto ('das 18:00 às 07:00'), não como dois cartões gêmeos que ela precisa decifrar pelo nome da variável.",
+   "gravidade": "confuso",
+   "aba": "O modo de leitura"
+  },
+  {
+   "chave": "LEITURA_TEMPERATURA",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O número não tem unidade: o título é 'A faixa é 1000–6500' e o valor ao lado do slider é '1315', sem um K em lugar nenhum, e sem marca de que 6500 é o neutro (= desligado).",
+   "evidencia": "Texto visível do cartão, sem o bloco 'Por quê': 'LEITURA_TEMPERATURA | A faixa é 1000–6500 | 3500 | simulação — 3500K...'. A palavra Kelvin só existe dentro do <details>. A causa é medível: o meow.conf.exemplo:497 começa com 'A TEMPERATURA DA NOITE, em Kelvin. A faixa é 1000–6500, inteira: ...', e o _e_titulo() do app/servidor.py:398-415 conta 20 maiúsculas em 27 letras nessa primeira oração (0,74 > 0,70), classifica-a como grito e a DESCARTA — jogando fora justamente a única frase que nomeia a chave e a unidade, e deixando como título a oração seguinte.",
+   "esperado": "Título que diga o que é ('A temperatura da noite, em Kelvin'), o valor com unidade ('3500 K') e a ponta direita do slider marcada como neutro/desligado — hoje ela arrasta até o fim e não tem como saber que ali o efeito acaba.",
+   "gravidade": "confuso",
+   "aba": "O modo de leitura"
+  },
+  {
+   "chave": "LEITURA_AGENDA",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O título crava 'Às 18:00' mesmo depois de ela mudar o horário nos dois cartões ao lado — o cartão passa a mentir a hora.",
+   "evidencia": "Mudei LEITURA_HORARIO_INICIO de 18:00 para 20:30 (input type=time, change disparado, cartão marcado 'mexeu nao-salvo', barra '1 escolha'). Reli os títulos da aba: o de LEITURA_AGENDA continuou 'Às 18:00 a tela esquenta e ganha textura de papel'. O texto é copiado do primeiro parágrafo do meow.conf.exemplo:430, onde 18:00 está escrito à mão.",
+   "esperado": "Ou o título usa os valores em vigor ('das 20:30 às 07:00 a tela esquenta e ganha textura de papel'), ou tira a hora da frase e deixa o horário só onde ele é editável. Uma hora escrita em pedra no cartão que liga o agendamento é a informação mais fácil de acreditar e a mais fácil de estar errada.",
+   "gravidade": "confuso",
+   "aba": "O modo de leitura"
+  },
+  {
+   "chave": "LEITURA_TEMPERATURA / LEITURA_TEXTURA",
+   "tipo": "outro",
+   "sintoma": "A mesma simulação é desenhada duas vezes, lado a lado, com a mesma imagem, o mesmo véu e a mesma legenda — dois retângulos idênticos que ocupam metade da grade e não dizem nada de diferente.",
+   "evidencia": "Nos dois cartões, o innerHTML da .simul é byte a byte o mesmo: mesmo <img src='/previa?tipo=parede&id=ativos%2Fcat-landscapes-Clearnight.jpg'>, mesmo .veu 'background:rgb(255 193 141)', mesmo .papel, mesma legenda 'simulação — 3500K, textura 0.35...'. Confirmado na captura de tela da aba. O próprio projeto já julgou esse padrão: app/pagina/app.js:1100-1108 documenta que a prévia da barra aparecia seis vezes por seção e foi movida para o topo porque 'uma prévia que aparece seis vezes não informa seis vezes mais; ela vira ruído e esconde o que mudou'. A prévia do modo de leitura nunca recebeu esse tratamento.",
+   "esperado": "Uma simulação só, no topo da seção, reagindo às duas chaves ao mesmo tempo — o mesmo desenho ao vivo que as abas de forma do painel já têm.",
+   "gravidade": "polimento",
+   "aba": "O modo de leitura"
+  },
+  {
+   "chave": "FASTFETCH_LOGO_DIA",
+   "tipo": "controle-errado",
+   "sintoma": "Oferece os botões [Espelho | Hora | Fixo | não mexer], que são as opções de OUTRA chave (FASTFETCH_LOGO_MODO); o valor que esta chave aceita é um nome de gato, e ele não aparece em lugar nenhum.",
+   "evidencia": "Com Modo seco ligado, cliquei em \"Espelho\" no cartão FASTFETCH_LOGO_DIA. O botão ficou aria-pressed=true, o cartão virou class=\"cartao mexeu nao-salvo\" e o cabeçalho passou a mostrar \"1 escolha · Descartar · Salvar e aplicar\" — ou seja, a página gravaria FASTFETCH_LOGO_DIA=\"espelho\". O cartão inteiro (título \"Como o gato do terminal é escolhido:\" e o bloco \"Por quê\") é cópia literal do cartão FASTFETCH_LOGO_MODO logo acima. O meow.conf.exemplo:180 diz `FASTFETCH_LOGO_DIA=\"\"   # vazio = herda LOGO_DIA`, e LOGO_DIA (meow.conf.exemplo:56) é um nome do acervo assets/gatos/.",
+   "esperado": "Os mesmos botões-com-miniatura que FASTFETCH_LOGO_GATO já usa — Coquinha, Mimir (o que houver em assets/gatos/*.svg) — mais o estado \"não mexer\" rotulado como \"herda LOGO_DIA (mimir)\", mostrando qual gato a herança traz hoje. E título próprio: \"O gato do terminal de dia\".",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "FASTFETCH_LOGO_NOITE",
+   "tipo": "controle-errado",
+   "sintoma": "Idem: botões [Espelho | Hora | Fixo | não mexer] no lugar do acervo de gatos.",
+   "evidencia": "No mesmo cartão, os botões renderizados são data-valor=\"espelho\"/\"hora\"/\"fixo\" mais o \"não mexer\" (este marcado, porque a chave está vazia). Título e \"Por quê\" são de novo os de FASTFETCH_LOGO_MODO. O meow.conf.exemplo:181 diz `FASTFETCH_LOGO_NOITE=\"\"  # vazio = herda LOGO_NOITE`.",
+   "esperado": "Miniaturas dos gatos de assets/gatos/ + \"não mexer\" escrito como \"herda LOGO_NOITE (coquinha)\", e título \"O gato do terminal de noite\".",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "CURSOR",
+   "tipo": "controle-errado",
+   "sintoma": "Três dos quatro ponteiros oferecidos gravam um valor que o scripts/cursor.sh não sabe resolver — ele vai tentar BAIXAR um tema que não existe no GitHub.",
+   "evidencia": "Cliquei em \"Adwaita\": aria-pressed=true, cartão \"mexeu nao-salvo\", cabeçalho \"1 escolha\". Cliquei em \"catppuccin-mocha-light-cursors\": idem. Mas scripts/cursor.sh:187 faz `_cursor_nome_tema() { printf '%s-cursors' \"$1\"; }` — o script SEMPRE acrescenta `-cursors` ao valor. Então CURSOR=\"Adwaita\" procura ~/.local/share/icons/Adwaita-cursors/cursors (não existe: `ls` mostra só catppuccin-mocha-light-cursors em ~/.local/share/icons e Adwaita/Pop sem sufixo em /usr/share/icons), cai no `_cursor_baixar_instalar` (cursor.sh:338) e pede https://github.com/catppuccin/cursors/releases/download/v2.0.0/Adwaita-cursors.zip. Com \"catppuccin-mocha-light-cursors\" fica pior: procura `catppuccin-mocha-light-cursors-cursors`. A lista vem de `_prev_cursores()` (app/servidor.py:1292-1333), que enumera diretórios do disco e ainda cria um apelido curto — o comentário lá diz \"a chave aceita os dois\", o que o cursor.sh desmente.",
+   "esperado": "Só o nome curto (`catppuccin-mocha-light`) por tema, um botão por tema, e a lista restrita ao que o cursor.sh consegue resolver (o que está instalado como `<nome>-cursors`, mais os releases catppuccin/cursors que ele sabe baixar). Se Adwaita e Pop não são valores válidos para esta chave, não podem estar entre as escolhas.",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "CURSOR",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Os dois primeiros botões são o MESMO cursor: mesma miniatura, mesmo caminho no tooltip, nomes que só diferem pelo sufixo.",
+   "evidencia": "Os dois botões trazem title=\"/home/vitoriamaria/.local/share/icons/catppuccin-mocha-light-cursors/cursors/default\" — idêntico — e as prévias /previa?tipo=cursor&id=catppuccin-mocha-light-cursors e &id=catppuccin-mocha-light desenham o mesmo arquivo. Vistos lado a lado, são dois ponteiros iguais com rótulos quase iguais e nenhuma pista de qual escolher (e um dos dois quebra — ver o achado acima).",
+   "esperado": "Um botão por ponteiro real. O apelido curto existe para a PRÉVIA achar o arquivo, não para virar uma segunda opção clicável.",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "CURSOR",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "Não há como devolver a chave ao vazio: escolhido um ponteiro, não existe botão \"não mexer\".",
+   "evidencia": "`document.querySelectorAll(\"article:has(code:text-is('CURSOR')) .vazio\")` devolve lista vazia; os únicos botões do cartão são os quatro ponteiros. O meow.conf.exemplo:191 abre o bloco com \"Vazio = não toca, como as VIDRO_OPACIDADE_* logo acima\" — e RELOGIO_SEGUNDOS, FASTFETCH_LOGO_DIA/NOITE e NOITE_INICIO/FIM, na mesma aba, todos têm o estado vazio.",
+   "esperado": "Um botão \"não mexer\" no fim da fileira de ponteiros, com o mesmo tooltip dos outros cartões (\"Vazio no meow.conf = o MeowSystem não toca nesta chave\").",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "ESCALA_TELA",
+   "tipo": "controle-errado",
+   "sintoma": "Campo de texto livre para uma chave de opções fechadas — e ele aceita qualquer coisa sem avisar, inclusive palavra inventada.",
+   "evidencia": "Digitei \"gigante\" e saí do campo: o cartão ficou \"mexeu nao-salvo\", o cabeçalho contou a escolha e nenhum aviso apareceu (o innerText do cartão continua só \"ESCALA_TELA | padrão vazio | O tamanho de tudo na tela | Por quê\"). Também aceitou \"1.25\" do mesmo jeito. O scripts/escala.sh:226-234 tem o conjunto fechado: `nitida` ou `auto` ligam o arredondamento automático, senão exige `[0-9]*.[0-9]*|[0-9]` e morre com \"esperado um número (1.0, 1.25) ou \\\"nitida\\\"\".",
+   "esperado": "Botões de escolha [Nítida (arredonda) | 1.0 | 1.25 | 1.5 | não mexer] com um campo numérico ao lado para outro valor, e o texto do cartão dizendo a escala que as telas dela estão usando agora (o `escala.sh --conferir` já mede isso).",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "ESCALA_TELA",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O valor que está gravado hoje, `nitida`, não é citado em lugar nenhum do cartão — e a página ainda o acusa de \"fora do padrão\".",
+   "evidencia": "O input traz value=\"nitida\", o cartão nasce com class=\"cartao mexeu\" e a pastilha \"padrão vazio\". O bloco \"Por quê\" exibido diz apenas \"1.0 = 100% (padrão)  1.25 = 25% maior  1.5 = 50% maior\" e \"Vazio = o MeowSystem não mexe na escala\" — porque o comentário do meow.conf.exemplo:218-232 é anterior ao `nitida`, que entrou no escala.sh:206-226 em 01/09/2026. Lendo o cartão, a conclusão é que a máquina dela está com um valor inválido.",
+   "esperado": "A ajuda tem que explicar o `nitida` (arredonda a escala de cada saída para o inteiro mais próximo, troca tamanho por nitidez) — seja atualizando o comentário do meow.conf.exemplo, seja lendo os valores aceitos do próprio escala.sh.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "VIDRO_OPACIDADE_PAINEL",
+   "tipo": "controle-errado",
+   "sintoma": "Campo de texto livre para uma fração de 0 a 1, sem deslizante, sem faixa, sem unidade — e engole valor absurdo calado.",
+   "evidencia": "Digitei \"999\" e depois \"banana\" e saí do campo: nos dois casos o cartão virou \"mexeu nao-salvo\" e nada foi sinalizado. O placeholder é só \"(vazio = não toca)\". O próprio \"Por quê\" do cartão dá os números certos — \"os valores impostos até 17/08 eram 0.19 no painel e 0.26 no dock, mirando ~12,5% e ~17% de cor\" — mas eles ficam enterrados dentro do accordion.",
+   "esperado": "Deslizante de 0 a 1 (passo 0.01) com o número ao lado e o botão \"não mexer\", como LEITURA_TEMPERATURA e MIDIA_LARGURA já fazem em outras abas. Marcas em 0.19 (painel) e 0.26 (dock) como ponto de partida.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "VIDRO_OPACIDADE_DOCK",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Os cartões do painel e do dock têm o MESMO título, e o título é um caminho de menu do COSMIC, não uma descrição do que a chave faz.",
+   "evidencia": "Os dois `<h3 class=\"titulo-cartao\">` desta aba são, letra por letra, \"Ajustes → Área de trabalho → Painel (e Dock)\". Um lê-se igual ao outro; a única coisa que distingue os cartões é a etiqueta `<code>` com o nome da chave.",
+   "esperado": "\"A opacidade do fundo do painel\" e \"A opacidade do fundo do dock\", com a frase sobre Ajustes → Área de trabalho virando o texto de apoio (é ela que explica por que a chave nasce vazia).",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "NOITE_INICIO",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O título dos dois cartões é a palavra solta \"Preenchido\" — não diz o que a chave faz, e é igual nos dois.",
+   "evidencia": "`h3` de NOITE_INICIO = \"Preenchido\" e `h3` de NOITE_FIM = \"Preenchido\". É o primeiro termo da frase do meow.conf.exemplo:68 (\"Vazio = herda… Preenchido, manda em TUDO que pergunta 'é noite?'\"), cortada no meio. Ao lado de dois campos de hora vazios (\"--:--\"), o par de cartões não diz nem qual é o início e qual é o fim.",
+   "esperado": "\"Quando a noite começa\" e \"Quando a noite termina\", com a frase de apoio dizendo o que essa janela comanda (o gato, o carrossel claro/escuro, o modo de leitura) e qual janela está valendo hoje já que ambas estão vazias — 18:00-07:00, herdadas de WALLPAPER_NOITE_*.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "NOITE_FIM",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "O botão \"não mexer\" ao lado do campo de hora nunca mostra que está ativo — com a chave vazia ele parece tão desligado quanto com a chave preenchida.",
+   "evidencia": "Preenchi NOITE_INICIO com 22:30: o botão continua class=\"btn\" e aria-pressed=null. Cliquei nele: o campo voltou a \"\", o cartão voltou a class=\"cartao\" (funcionou) — mas o botão SEGUE class=\"btn\", aria-pressed=null. E clicar nele com o campo já vazio não produz reação visível nenhuma. Nos cartões de segmentos da mesma aba (RELOGIO_SEGUNDOS, FASTFETCH_LOGO_DIA) o \"não mexer\" é um botão com aria-pressed e destaque.",
+   "esperado": "O mesmo tratamento dos segmentos: com o campo vazio, o \"não mexer\" fica marcado (aria-pressed=true) e destacado, deixando claro que a chave está entregue ao WALLPAPER_NOITE_* / 18:00-07:00 em vez de simplesmente não ter sido preenchida ainda.",
+   "gravidade": "polimento",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "FASTFETCH_LOGO_COLUNAS",
+   "tipo": "controle-errado",
+   "sintoma": "Contagem de colunas em campo de texto livre: aceita \"abc\" e \"-5\" sem reclamar, e não há como ver o efeito da largura.",
+   "evidencia": "Digitei \"abc\" e depois \"-5\" e saí do campo: o cartão virou \"mexeu nao-salvo\" nas duas vezes e o valor ficou lá. O input é type=\"text\" (placeholder \"40\"), sem min, max ou passo. O \"Por quê\" explica que 40 é a largura do logo `pop` e que a altura sai de 40/2,556 — quer dizer, o valor tem consequência geométrica medida.",
+   "esperado": "Campo numérico (ou deslizante) com mínimo, com \"colunas\" escrito ao lado do número, e a altura resultante calculada ao vivo (\"64 colunas ≈ 25 linhas\"), já que a página conhece a razão 2,556.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "CURSOR_VERSAO",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Cartão com o mesmo título do cartão anterior (\"O ponteiro\"), ajuda que nunca fala da versão, e um \"(vazio = não toca)\" que é mentira.",
+   "evidencia": "`h3` de CURSOR = \"O ponteiro\" e `h3` de CURSOR_VERSAO = \"O ponteiro\". O bloco \"Por quê\" dos dois cartões é o mesmo ensaio de 20 linhas sobre luminância de ponteiros, que não menciona versão nenhuma. O input tem placeholder \"(vazio = não toca)\", mas scripts/cursor.sh:178 faz `CURSOR_VERSAO=\"${CURSOR_VERSAO:-v2.0.0}\"` — vazio vira v2.0.0, não \"não toca\". O único comentário que existe sobre a chave (meow.conf.exemplo:215, `# release fixado, para o acervo não mudar sozinho`) não é exibido.",
+   "esperado": "Título próprio (\"Qual release do acervo de ponteiros\"), a linha de comentário da própria chave como ajuda, placeholder \"v2.0.0\" em vez de \"(vazio = não toca)\", e — já que é uma tag de release do catppuccin/cursors — uma lista das versões conhecidas em vez de texto livre.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "(prévia do topo da aba: os dois desenhos painel/dock)",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "Os dois desenhos ao vivo no topo desta aba não reagem a nenhuma chave dela, e a legenda fala de valores que moram em outra aba.",
+   "evidencia": "Antes de mexer em nada o mock era style=\"--raio:8px; --margem:20px; --espaco:4px;--recheio:5px; --op:0.8\". Depois de VIDRO_OPACIDADE_PAINEL=0.19: idêntico. Depois de VIDRO_AO_MAXIMIZAR=Não (cartão marcado \"mexeu nao-salvo\", cabeçalho \"1 escolha\"): idêntico, `--op` continuou 0.8. A legenda diz \"o painel com raio 8, margem 20, espaço 4 e recheio 5\" — FORMA_RAIO_PAINEL, FORMA_MARGEM_PAINEL, FORMA_ESPACO_PAINEL e FORMA_RECHEIO_PAINEL são chaves de Ícones ▸ A forma do painel e do dock, nenhuma delas está nesta aba.",
+   "esperado": "Ou o desenho responde às chaves desta aba — `--op` seguindo VIDRO_OPACIDADE_PAINEL/DOCK e o vidro sumindo quando VIDRO_AO_MAXIMIZAR=nao, com uma janela maximizada desenhada atrás — ou ele não aparece aqui, porque hoje é uma figura que promete prévia e não é prévia de nada.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "RELOGIO_SEGUNDOS",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O título fala em aspas dos valores crus do arquivo e nunca diz o que é tirado ou posto.",
+   "evidencia": "`h3` = `\"nao\" tira, \"sim\" põe de volta`, logo acima de botões que dizem Não / Sim / não mexer. O título nunca menciona segundos nem o relógio da barra de cima; isso só aparece se a pessoa abrir o \"Por quê\".",
+   "esperado": "\"Os segundos no relógio da barra de cima\" como título, e o par nao/sim explicado pelos próprios botões, que já estão traduzidos.",
+   "gravidade": "polimento",
+   "aba": "Aparência ▸ A noite da máquina"
+  },
+  {
+   "chave": "ICONES_FLAVOR",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "Clicar numa amostra de flavor não move a marcação: o anel e o nome em mauve continuam em `macchiato` mesmo depois de eu escolher `latte`.",
+   "evidencia": "Modo seco ligado, aba Ícones ▸ Geral. Cliquei no botão `latte` do cartão ICONES_FLAVOR. A barra de baixo passou a dizer \"1 escolha\", o cartão ganhou as classes `mexeu nao-salvo` e o topo passou a exibir a pastilha \"padrão macchiato\" — mas `aria-pressed=\"true\"` continuou em `macchiato`, e o print do cartão mostra o anel e o rótulo destacado ainda em macchiato (/tmp/meow-trabalho). Troquei de aba (Terminal) e voltei: MUDANCAS ainda tem latte, o cartão ainda destaca macchiato. Causa no código: em /mnt/Apate/Desenvolvimento/MeowSystem/app/pagina/app.js:751 o onclick é `if (await aplica(nome)) pintar(nome)`, e `escolher()` (linha 275) não tem `return` — devolve undefined, então `pintar` nunca roda; e na reconstrução a linha 754 chama `pintar(item.valor ?? \"\")`, o valor do disco, em vez de `valorEmVigor(item)`.",
+   "esperado": "O botão clicado assume a marcação na hora (aria-pressed e o anel), e ao redesenhar o cartão a marcação segue `valorEmVigor(item)`, não `item.valor` — como já acontece nos segmentos Sim/Não do mesmo grupo (PASTAS_XDG respondeu certo ao clique). Hoje o cartão diz duas coisas contraditórias ao mesmo tempo: \"padrão macchiato\" (logo, o valor escolhido não é macchiato) e macchiato marcado.",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ Geral"
+  },
+  {
+   "chave": "ICONES_BASE",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "Campo de texto livre para um valor que só pode ser um tema de ícones INSTALADO na máquina — e a página conhece essa lista, mas não a oferece.",
+   "evidencia": "Cliquei no campo do cartão ICONES_BASE (valor `Papirus-Dark`), apaguei e digitei `Nao-Existe-Nenhum`, saí do campo: aceito em silêncio, o cartão só ficou `mexeu nao-salvo`, nenhum aviso, nenhuma sugestão. A máquina tem 22 temas instalados (Adwaita, breeze, breeze-dark, Cosmic, ePapirus, ePapirus-Dark, gnome, hicolor, Humanity, Humanity-Dark, MeowSystem-Icons, Papirus, Papirus-Dark, Papirus-Light, Pop, ubuntu-mono-*, …). O servidor JÁ sabe varrer esses diretórios: `_prev_cursores()` em /mnt/Apate/Desenvolvimento/MeowSystem/app/servidor.py:1291 percorre ~/.local/share/icons, ~/.icons e /usr/share/icons para montar as opções de CURSOR. E o erro é caro: scripts/construir_pastas.sh:135 sai com SEM_DEPENDENCIA e imprime \"<nome> não está instalado — pastas coloridas puladas\" quando o valor não existe.",
+   "esperado": "Uma lista (botões/`<select>`) com os temas de ícones que existem em /usr/share/icons, ~/.local/share/icons e ~/.icons — a mesma varredura que a chave CURSOR já usa — com o valor atual marcado, em vez de digitar o nome de cor.",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ Geral"
+  },
+  {
+   "chave": "ICONES_PASTAS",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "Campo de texto que expõe sintaxe de shell (`cat-${FLAVOR}-${ACCENT}`) para escolher a cor das pastas, sem oferecer nenhum dos 56 conjuntos que o próprio repositório traz e sem dizer de onde vêm ${FLAVOR} e ${ACCENT}.",
+   "evidencia": "Apaguei o valor e digitei `cat-mocha-naoexiste`: aceito sem uma palavra. O repositório traz em /mnt/Apate/Desenvolvimento/MeowSystem/assets/icones/upstream/papirus-folders/src/64x64/places/ os 4 flavors × 14 acentos (cat-frappe-blue … cat-mocha-yellow, 4368 arquivos), que são exatamente os valores válidos que scripts/construir_pastas.sh:105 consome via `COR=\"${ICONES_PASTAS:-cat-mocha-mauve}\"`. O cartão mostra só \"vale como: cat-mocha-mauve\" — e esse `mocha` vem da chave FLAVOR, que mora em OUTRA aba (Aparência ▸ Geral), enquanto o cartão vizinho ICONES_FLAVOR, na mesma tela, está em `macchiato`. Nada no cartão diz qual chave é ${FLAVOR}, qual é ${ACCENT}, nem onde trocá-las.",
+   "esperado": "Dois seletores (flavor e acento) montados a partir dos nomes que existem em assets/icones/upstream/papirus-folders/src/, com amostra da pasta colorida, mais uma opção explícita \"seguir FLAVOR e ACCENT\" que preserva a forma com variável — e, se a forma com variável ficar, dizer no cartão de onde cada variável vem e com que valor.",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ Geral"
+  },
+  {
+   "chave": "ICONES_BASE, ICONES_PASTAS",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "As duas chaves herdam o texto de NOME_TEMA_ICONES: três cartões em fila com o título idêntico \"O nome do tema de ícones que este projeto\", e o \"Por quê\" das duas explica uma chave que não é a delas.",
+   "evidencia": "Abri os três `Por quê` da primeira fila: os TRÊS mostram o mesmo bloco — \"O nome do tema de ícones que este projeto constrói e instala em ~/.local/share/icons/. Trocar aqui muda a árvore inteira de destino…\". O esquema confirma: ICONES_BASE e ICONES_PASTAS vêm com `ajuda_herdada: true` e a `ajuda` de NOME_TEMA_ICONES. A explicação verdadeira de cada uma está no comentário de fim de linha do meow.conf.exemplo:241-242 — `# tema herdado como fallback` e `# cor das pastas (papirus-folders)` — que o servidor até captura no campo `inline` (servidor.py:595), mas o app.js nunca desenha: `grep -n \"inline\" app/pagina/app.js` não devolve uma linha de renderização.",
+   "esperado": "Quando `ajuda_herdada` for verdadeira e existir `inline`, o título e a frase do cartão saem do `inline` (\"Tema herdado como fallback\", \"A cor das pastas, do papirus-folders\") — nunca o bloco do vizinho. Dois cartões diferentes não podem ter o mesmo título.",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ Geral"
+  },
+  {
+   "chave": "PASTAS_XDG",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O título do cartão é \"As pastas especiais (Imagens\" — cortado no parêntese aberto, e sem a pergunta que dizia o que a chave faz. Só sobram dois botões Sim/Não sem objeto.",
+   "evidencia": "O `<h3 class=\"titulo-cartao\">` tem exatamente o texto `As pastas especiais (Imagens` e nenhum atributo `title` (medido: 'SEM TITLE' nos seis cartões da aba). A frase inteira do meow.conf.exemplo:302-303 é \"As PASTAS ESPECIAIS (Imagens, Documentos, Downloads, Músicas, Vídeos, Modelos e Público) vêm do pack `vscode-icons` em vez das roxas do papirus-folders?\" — a metade que responde \"em vez do quê\" some. Mesmo defeito em NOME_TEMA_ICONES (\"O nome do tema de ícones que este projeto\", corte depois de 9 palavras). Causa: `tituloDoCartao` (app.js:144) corta na primeira vírgula quando passa de 52 caracteres, e em app.js:1063 a `frase` completa só é desenhada `if (item.frase && !titulo)` — havendo título, a frase inteira nunca aparece.",
+   "esperado": "O título não corta no meio de um parêntese nem descarta a oração que define a chave; e quando ele corta, o texto inteiro fica no `title` do `<h3>` ou numa frase abaixo do controle, em vez de só dentro do \"Por quê\" fechado.",
+   "gravidade": "confuso",
+   "aba": "Ícones ▸ Geral"
+  },
+  {
+   "chave": "grade de ícones do topo",
+   "tipo": "controle-errado",
+   "sintoma": "A prévia da aba mostra só ícones de APLICATIVO — justamente a categoria que 3 das 6 chaves da aba não mexem. ICONES_FLAVOR (tipos de arquivo), ICONES_PASTAS e PASTAS_XDG (pastas) mudam ícones que a grade nunca desenha.",
+   "evidencia": "A grade tem 24 figuras, todas de app (be.alexandervanhee.gradia, btop, com.boxy_svg.BoxySVG, …). `_prev_icones()` em app/servidor.py:1266-1288 só varre `48x48/apps`, `scalable/apps` e `64x64/apps`. No disco, o tema instalado tem 202 arquivos em 64x64/places (as pastas de ICONES_PASTAS/PASTAS_XDG) e 123 em scalable/mimetypes (os tipos de arquivo de ICONES_FLAVOR) — nenhum aparece. A grade também mostra 24 dos 47 ícones de app existentes, sem \"mostrar mais\" e sem dizer que é uma amostra.",
+   "esperado": "A prévia acompanha a chave: uma tira de pastas (folder, Documentos, Downloads, Imagens) ao lado de ICONES_PASTAS e PASTAS_XDG, e uma tira de tipos de arquivo ao lado de ICONES_FLAVOR — desenhadas de 64x64/places e scalable/mimetypes, que já estão no disco. Se a grade de apps continuar no topo, ela precisa dizer que mostra 24 de 47 e que é só a categoria \"aplicativos\".",
+   "gravidade": "confuso",
+   "aba": "Ícones ▸ Geral"
+  },
+  {
+   "chave": "ICONES_COR_MARCA",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "A chave que troca a cor de 13 aplicativos nominais não mostra nenhum antes/depois, e a página não avisa que o valor em vigor (`sim`) contradiz a decisão que o próprio cartão documenta.",
+   "evidencia": "O cartão está com `Sim` marcado e a pastilha \"padrão nao\" no topo. Abrindo o \"Por quê\" aparece, em caixa alta, \"ISTO ESTÁ DESLIGADO PORQUE É ESCOLHA DELA, NÃO PORQUE NÃO FUNCIONA\" e a lista exata das 13 trocas (WhatsApp sky→green, Firefox blue→peach, Obsidian peach→mauve, …) que vive em /mnt/Apate/Desenvolvimento/MeowSystem/assets/icones/apps-marca.map (161 linhas). Fechado o \"Por quê\", o cartão inteiro é: nome da chave, a frase \"A cor do traço de cada aplicativo vem da marca dele\" e dois botões. Firefox, Brave, Discord, Steam, Obsidian e VS Code estão na grade de ícones logo acima, e nada muda ali ao alternar Sim/Não.",
+   "esperado": "O cartão mostra as duas cores lado a lado para os 13 nomes do apps-marca.map (ou ao menos os que estão na grade acima), e sinaliza na cara — não dentro de um `details` fechado — que o valor gravado é o oposto do que o próprio texto registra como a decisão dela.",
+   "gravidade": "confuso",
+   "aba": "Ícones ▸ Geral"
+  },
+  {
+   "chave": "grade de ícones do topo (frase)",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "A frase acima da grade nomeia entre aspas o passo seguinte — \"Reconstruir o tema de ícones\" — e ele não é clicável em lugar nenhum da aba.",
+   "evidencia": "A frase é `O tema de ícones como ele está no disco agora. Trocar uma chave abaixo só muda isto depois de “Reconstruir o tema de ícones”.` e é um `<p class=\"frase\">` de texto puro (app.js:1609-1613); medido: 0 `<a>` e 0 `<button>` dentro dela, e 0 elementos clicáveis nas 24 figuras da grade. A ação existe, mas em outro rótulo do menu: Fazer ▸ Ícones e gato ▸ \"Reconstruir o tema de ícones\" (id `icones_reconstruir`, servidor.py:949). Some-se a isso que salvar daqui não roda essa ação: `salvarEscolhas()` (app.js:341) termina em `await rodarAcao(\"instalar\")` — o instalador inteiro.",
+   "esperado": "A frase vira um botão (ou link) que leva à ação \"Reconstruir o tema de ícones\", ou a ação ganha um botão na própria aba, ao lado da grade que ela atualiza. E o texto diz o que a barra de salvar realmente faz (roda `instalar`), em vez de mandar procurar uma ação em outra aba.",
+   "gravidade": "polimento",
+   "aba": "Ícones ▸ Geral"
+  },
+  {
+   "chave": "APPS_ATIVOS",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "As fichas não respondem: tirar uma não a apaga da tela, e acrescentar uma não a desenha — a escolha só existe invisível, e o segundo gesto apaga o primeiro.",
+   "evidencia": "Aba Apps, Modo seco ligado. Cliquei no × da ficha \"steam\": o cartão ganhou o anel de não-salvo e o cabeçalho passou a \"1 escolha\", mas as 23 fichas continuaram as mesmas, com \"steam\" no lugar. Em seguida digitei \"naoexiste-xyz\" no campo \"+ acrescentar\" e apertei Enter: o campo esvaziou, nenhuma ficha nova apareceu, o contador continuou em \"1 escolha\", e MUDANCAS passou a valer \"…,vlc,steam,qt5ct,naoexiste-xyz\" — ou seja, a remoção de steam foi silenciosamente descartada. Causa em app/pagina/app.js: o `desenhar()` das fichas lê `item.valor` (o disco) e o `if (await aplica(...))` espera um retorno que `escolher()` nunca dá (a função não tem `return`), então `desenhar()` nunca roda e o `render()` seguinte repinta a lista do disco.",
+   "esperado": "O × tira a ficha da tela na hora e o Enter acrescenta a ficha nova, as duas lendo a escolha ainda não salva (`valorEmVigor`), como já fazem os botões de opção do lado.",
+   "gravidade": "quebrado",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "APPS_ATIVOS",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "São 23 fichas de texto livre e o repositório só sabe tematizar 8 delas; as outras 15 não fazem nada e a página as mostra exatamente igual.",
+   "evidencia": "Aba Apps: fichas cosmic-term, fastfetch, zsh, fzf, bat, btop, vscode, obsidian, qbittorrent, firefox, brave, chrome, thunderbird, discord, telegram, spotify, zapzap, obs, gimp, krita, vlc, steam, qt5ct. Em /mnt/Apate/Desenvolvimento/MeowSystem/assets/temas-de-apps/ existem SETE módulos (btop-bat, obsidian, qbittorrent, spotify, toolkits-gtk-qt, vscode, zapzap) e o `pasta_de` de scripts/aplicar_apps.sh só traduz bat|btop e qt5ct|gtk|qt. Os 15 restantes caem no `return 4` do `rodar_modulo`, comentado no próprio script como \"sem módulo ainda: silêncio, não é falha\". O campo \"+ acrescentar\" aceitou \"naoexiste-xyz\" sem uma palavra.",
+   "esperado": "O campo deveria oferecer a lista dos módulos que existem em assets/temas-de-apps/ (o servidor já sabe lê-la, e a ação `apps` já monta a tabela), e as fichas sem módulo deveriam aparecer apagadas/marcadas como \"não temos módulo para este\" em vez de idênticas às que funcionam.",
+   "gravidade": "confuso",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "APPS_ATIVOS",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O título do cartão é \"Vírgula-separado\" — descreve o formato do arquivo, não o que a chave faz.",
+   "evidencia": "Aba Apps, primeiro cartão: <h3 class=\"titulo-cartao\">Vírgula-separado</h3>. A palavra \"tema\" não aparece em lugar nenhum do cartão; para descobrir que esta lista decide quais aplicativos recebem o Catppuccin é preciso abrir \"Por quê\", que só diz \"Vírgula-separado. `meow apps` lista o que está instalado e o que falta\".",
+   "esperado": "Um título que diga o efeito, do tipo \"Quais aplicativos recebem o tema\" — o formato (vírgula) já é dado pelo próprio controle de fichas e não precisa ser o título.",
+   "gravidade": "confuso",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "LANCADOR_SISTEMA",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O título termina no meio da frase (\"…esconder aplicativos que você\") e nada no rosto do cartão avisa que esta é a única chave que pede sudo e escreve fora do /home.",
+   "evidencia": "Aba Apps, terceiro cartão: <h3>Mexer nos .desktop de /usr/share/applications: esconder aplicativos que você</h3>, e abaixo só \"Sim | Não\". O aviso — \"É a única coisa que este projeto faz FORA do seu home. Precisa de sudo, um `apt upgrade` do pacote desfaz\" — está enterrado no <details> \"Por quê\", fechado por padrão. A chave está em \"sim\" contra um padrão \"nao\", e o cartão só mostra a pastilha \"padrão nao\".",
+   "esperado": "Frase inteira (ou reescrita curta) e uma pastilha visível de \"pede sudo · escreve fora do seu /home\" no cartão, do mesmo jeito que as ações do \"Fazer\" já mostram \"pode usar sudo\".",
+   "gravidade": "confuso",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "AUTO_REPARO_NOTIFICAR",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Três pares de cartões da aba Automação são visualmente idênticos — mesmo título, mesmos botões, mesmo \"Por quê\" palavra por palavra; só o nome em monoespaçado difere.",
+   "evidencia": "Aba Automação: AUTO_REPARO e AUTO_REPARO_NOTIFICAR mostram os dois \"O auto-reparo é um timer do systemd --user\"; ASSETS_VIGIA e ASSETS_VIGIA_NOTIFICAR mostram os dois \"O gato solto em `assets/gatos/` entra na hora\"; FLATPAK_VIGIA e FLATPAK_VIGIA_NOTIFICAR mostram os dois \"O ícone da bandeja volta sozinho depois de um `flatpak update`?\". Comparei o HTML dos pares: os <pre> do \"Por quê\" são idênticos. O comentário de linha que separa os dois EXISTE no esquema (o campo `inline` traz \"avisa quando consertar algo sozinho\", \"avisa quando o acervo mudou sozinho\", \"avisa quando repôs um ícone que o update desfez\"), mas `grep -n \"\\.inline\" app/pagina/app.js` não devolve nada: a página nunca o desenha.",
+   "esperado": "O cartão do …_NOTIFICAR deveria usar o `inline` como título (\"Avisa quando consertar algo sozinho\") — ou, melhor ainda, virar um interruptor secundário dentro do cartão da chave-mãe, já que sem ela ligada ele não significa nada.",
+   "gravidade": "confuso",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "MIDIA_COR_ARTISTA",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "A bolinha marcada não acompanha o clique: escolho uma cor, o cartão diz que há escolha pendente, mas o anel continua na cor antiga — vou salvar uma cor que a tela nunca me mostrou.",
+   "evidencia": "Aba Automação, Modo seco ligado. Cliquei na bolinha `teal` de MIDIA_COR_ARTISTA: MUDANCAS.get('MIDIA_COR_ARTISTA') virou \"teal\", o cartão ganhou a classe `nao-salvo` e o cabeçalho foi para \"1 escolha\" — mas o único button com aria-pressed=true continuou sendo `green`. O mesmo em MIDIA_COR_TITULO: cliquei em `peach`, MUDANCAS ficou \"peach\", e o anel permaneceu em `mauve` (confirmado em captura). Contraste medido no mesmo instante: o segmento MIDIA_CONTROLES marcou certo. Causa em app/pagina/app.js:783 — `controleCor` termina com `pintar(item.valor ?? \"\")`, o valor do DISCO, enquanto os segmentos usam `pintar(valor)` com `valor = valorEmVigor(item)`.",
+   "esperado": "A bolinha clicada fica marcada na hora, como acontece em ACCENT e nos botões de opção.",
+   "gravidade": "quebrado",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "MIDIA_COR_TITULO",
+   "tipo": "controle-errado",
+   "sintoma": "A grade oferece as 26 cores da paleta e nenhuma delas é \"auto\" — o valor que o próprio comentário documenta e que não tem como ser escolhido pela página.",
+   "evidencia": "Aba Automação. Contei os botões da grade de MIDIA_COR_TITULO e de MIDIA_COR_ARTISTA: 26, de `rosewater` a `crust`, e `es.filter(e=>e.dataset.valor=='auto').length` devolve 0. O \"Por quê\" do mesmo cartão diz: \"'auto' deixa o texto na cor padrão do painel — que é o que o traço do álbum tinge\". Também não há como esvaziar a chave depois de escolher uma cor.",
+   "esperado": "Um botão \"Auto (a cor do painel)\" ao lado da grade, marcável como as bolinhas — é o valor que devolve o comportamento padrão e hoje só se alcança editando o meow.conf à mão.",
+   "gravidade": "confuso",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "MIDIA_FONTE",
+   "tipo": "controle-errado",
+   "sintoma": "Campo de texto livre onde o comentário declara duas coisas fechadas: a palavra \"auto\" ou um número de 6 a 48. Aceita qualquer coisa sem reclamar.",
+   "evidencia": "Aba Automação: <input type=\"text\" aria-label=\"MIDIA_FONTE\" placeholder=\"auto\">, valor \"auto\". Digitei \"999\" e apertei Enter: virou escolha pendente (MUDANCAS ganhou ['MIDIA_FONTE','999']), sem torrada, sem aviso, sem faixa. O meow.conf.exemplo:873 e a prosa acima dele dizem \"'auto' = a MESMA escala tipográfica que o painel usa no relógio\" e \"Um número (6 a 48) crava em pixels e ignora o painel\".",
+   "esperado": "Dois botões de opção \"Auto | Cravar em pixels\", e o segundo abrindo um deslizante de 6 a 48 px — a mesma forma que MIDIA_LARGURA já ganhou por ter a faixa escrita no formato que o servidor reconhece.",
+   "gravidade": "confuso",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "MIDIA_LARGURA",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "O deslizante perde o foco a cada seta do teclado: a primeira seta anda um passo, a segunda não faz nada.",
+   "evidencia": "Aba Automação, Modo seco ligado. Foquei o range (document.activeElement = INPUT/range/MIDIA_LARGURA), apertei ArrowRight uma vez: valor foi de 440 para 441 e o activeElement virou BODY. Apertei ArrowRight de novo: o valor continuou 441. Num teste anterior o próprio Playwright recusou a segunda tecla com \"Element is not attached to the DOM\". Causa: o `change` do slider chama `escolher()`, que chama `render()` e reconstrói a grade inteira, destruindo o nó que estava com o foco.",
+   "esperado": "Ajustar de 80 a 900 com as setas sem perder o foco — o render deveria preservar o elemento focado, ou o slider deveria repintar-se sozinho em vez de disparar um render global.",
+   "gravidade": "quebrado",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "MIDIA",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O título diz \"A capa do álbum\", mas o \"Não\" desta chave desinstala o applet inteiro (tira a sombra e o binário) — o cartão parece falar de uma imagem e manda no applet todo.",
+   "evidencia": "Aba Automação, cartão MIDIA: <h3>A capa do álbum</h3> + Sim/Não. O \"Por quê\" do mesmo cartão diz \"'nao' não é só deixar de instalar: o `midia.sh` REVERTE — tira a nossa sombra e o binário, e o applet do flatpak volta no próximo login\". Na mesma aba há um MIDIA_CAPA separado, cujo título é \"Baixar a capa quando o player publica `mpris:artUrl` como\" — as duas chaves passam a parecer a mesma coisa.",
+   "esperado": "Título que nomeie o objeto (\"O applet Now Playing na barra\") e um aviso no rosto do cartão de que \"Não\" desfaz a instalação, para não confundir com MIDIA_CAPA.",
+   "gravidade": "confuso",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "MIDIA_CAPA",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O título do cartão termina cortado no meio da frase, na palavra \"como\".",
+   "evidencia": "Aba Automação: <h3 class=\"titulo-cartao\">Baixar a capa quando o player publica `mpris:artUrl` como</h3>. A frase original é \"Baixar a capa quando o player publica `mpris:artUrl` como http(s)?\" — o corte do `tituloDoCartao` comeu justamente a parte que dava sentido à pergunta. O mesmo acontece em LANCADOR_SISTEMA (\"…que você\").",
+   "esperado": "Ou a frase inteira, ou um título curto escrito para o cartão; nunca um corte que termina em preposição.",
+   "gravidade": "polimento",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "LOG_NIVEL",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O cartão explica outra chave: título e \"Por quê\" são os de BACKUPS_MANTIDOS, e embaixo deles ficam três botões Silencioso/Info/Debug.",
+   "evidencia": "Aba Terminal, último cartão: <code>LOG_NIVEL</code> + <h3>Quantos backups o projeto guarda antes de apagar o mais antigo</h3> + botões Silencioso | Info | Debug (Debug marcado), e o <details> repete \"Quantos backups o projeto guarda… '0' desliga a poda e guarda todos\". A palavra \"log\" só aparece no nome em monoespaçado. No esquema, LOG_NIVEL vem com ajuda_herdada=true (herdou o bloco de BACKUPS_MANTIDOS, porque a única coisa que ele tem de próprio é o comentário de linha `silencioso | info | debug`), e a marca de herdada nunca é desenhada: em app/pagina/app.js o parágrafo `class=\"frase herdada\"` só é criado quando NÃO há título — e título sempre há, porque ele é gerado da mesma frase herdada.",
+   "esperado": "Cartão com texto próprio (\"Quanto o MeowSystem escreve no log\") e, enquanto não houver, a marca de ajuda herdada visível, para a explicação não passar por descrição desta chave.",
+   "gravidade": "quebrado",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "AUTOSTART_BLOQUEADOS",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "Mesmo defeito das fichas de Apps: acrescentar um id não desenha ficha nenhuma, e a escolha fica invisível.",
+   "evidencia": "Aba Terminal, Modo seco ligado. Digitei \"ritual_aurora\" no campo \"+ acrescentar\" e apertei Enter: o campo esvaziou, a lista continuou com a única ficha org.qbittorrent.qBittorrent, e MUDANCAS.get('AUTOSTART_BLOQUEADOS') passou a \"org.qbittorrent.qBittorrent,ritual_aurora\". O cartão ganhou o anel de não-salvo e o contador foi para \"1 escolha\", sem nada na lista que dissesse o quê.",
+   "esperado": "A ficha nova aparece na hora; o × tira a existente na hora.",
+   "gravidade": "quebrado",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "AUTOSTART_BLOQUEADOS",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "Exige digitar de cabeça o id exato de um .desktop, sem extensão, sem oferecer os que existem na máquina.",
+   "evidencia": "Aba Terminal: uma ficha e um campo \"+ acrescentar\" de texto livre. O \"Por quê\" diz \"o nome do arquivo em `~/.config/autostart/`, sem a extensão\". Essa pasta tem hoje openrgb-gloway.desktop e ritual_aurora.desktop — dois nomes que a página não mostra em lugar nenhum. Um erro de digitação vira um `systemctl --user mask` de uma unidade que não existe, sem retorno na tela.",
+   "esperado": "Uma lista escolhível dos .desktop de ~/.config/autostart/ (e dos aplicativos instalados), do mesmo jeito que a ação \"Aplicar uma captura\" já lê as capturas do disco num <select>.",
+   "gravidade": "confuso",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "TERMINAL_CURSOR",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Os dois botões são as palavras cruas \"accent\" e \"port\", e o título do cartão descreve a opção que NÃO está escolhida.",
+   "evidencia": "Aba Terminal: <h3>O port oficial pinta o cursor de `rosewater`</h3> e os botões <button data-valor=\"accent\">accent</button> <button data-valor=\"port\">port</button> — \"accent\" marcado. Nenhum dos dois passa pelo ROTULO_DE_VALOR de app/pagina/app.js:120-128 (que traduz sim/nao/traco/chapado etc.), então saem minúsculos e em inglês, ao lado de cartões que dizem \"Traço | Chapado\". O título anuncia o comportamento de \"port\" enquanto o valor em vigor é \"accent\".",
+   "esperado": "Rótulos legíveis com a cor à vista — \"Cor de destaque (mauve)\" e \"Port oficial (rosewater)\", cada um com sua bolinha —, e um título que diga a decisão (\"De que cor fica o cursor do terminal\").",
+   "gravidade": "confuso",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "BACKUPS_MANTIDOS",
+   "tipo": "controle-errado",
+   "sintoma": "Contagem de backups num campo de texto livre: aceita \"abc\" sem reclamar, e o \"0 = guarda todos\" só existe no texto escondido.",
+   "evidencia": "Aba Terminal, Modo seco ligado: <input type=\"text\" aria-label=\"BACKUPS_MANTIDOS\" placeholder=\"10\">, valor 10 — sem `type=number`, sem min/max. Digitei \"abc\" e apertei Enter: virou escolha pendente (MUDANCAS.get('BACKUPS_MANTIDOS') = \"abc\"), o cartão ganhou anel de não-salvo e o cabeçalho foi para \"1 escolha\", sem nenhuma torrada de recusa. O comentário do meow.conf.exemplo:972-974 diz \"'0' desliga a poda e guarda todos\", frase que só aparece dentro do \"Por quê\".",
+   "esperado": "Um campo numérico (ou deslizante) que não aceite letra, com o \"0 = guardar todos\" dito no rosto do cartão em vez de escondido.",
+   "gravidade": "confuso",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "TERMINAL_ESQUEMA",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "A sigla ANSI sai em minúsculas no título: \"A paleta ansi do cosmic-term\".",
+   "evidencia": "Aba Terminal, primeiro cartão: <h3 class=\"titulo-cartao\">A paleta ansi do cosmic-term</h3>. O `destacarSemGritar` de app/pagina/app.js só poupa palavras gritadas de até três letras (a lista FUNCIONAIS_GRITADAS), e ANSI tem quatro — então a sigla é rebaixada como se fosse ênfase.",
+   "esperado": "\"A paleta ANSI do cosmic-term\" — siglas de quatro letras (ANSI, XDG, HTML) precisam ficar de fora do de-gritar.",
+   "gravidade": "polimento",
+   "aba": "Apps · Automação · Terminal"
+  },
+  {
+   "chave": "aba: O gato segue o relógio",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "A aba ainda se chama \"O gato segue o relógio\" — nome que só descreve UM dos três modos e não diz que se trata do ícone do botão de lançamento do painel.",
+   "evidencia": "No trilho lateral o rótulo é \"O gato segue o relógio · 4\". Cliquei \"Fixo\" no LOGO_MODO (com Modo seco ligado) e o gato deixa de seguir relógio nenhum — o nome da aba passa a mentir sobre o próprio conteúdo. A usuária pediu explicitamente \"Ícone para o Menu de Lançamento\".",
+   "esperado": "Renomear a aba para \"Ícone para o Menu de Lançamento\" (o nome que ela pediu) e mover o subtítulo \"como ele é escolhido\" para dentro do cartão do LOGO_MODO, que é quem trata dos três modos.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "LOGO_DIA / LOGO_NOITE",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Os dois cartões são gêmeos: mesmo título (\"Os dois rostos\"), mesmas duas miniaturas, mesmo texto de \"Por quê\". Nada na tela diz qual é o de dia e qual é o de noite.",
+   "evidencia": "Screenshot da aba: cartão 2 = \"LOGO_DIA / Os dois rostos / Coquinha Mimir\" e cartão 3 = \"LOGO_NOITE / Os dois rostos / Coquinha Mimir\" — idênticos, exceto o identificador em caixa alta e qual botão está marcado. E o servidor JÁ manda a distinção: em /api/esquema, LOGO_DIA vem com inline:\"o dock de dia\" e LOGO_NOITE com inline:\"o dock de noite\"; o `tituloDoCartao` de app/pagina/app.js:144 usa só o campo `frase`, que é o parágrafo compartilhado, e joga o `inline` fora.",
+   "esperado": "Título de cada cartão dizendo a fase: \"O gato de DIA\" e \"O gato de NOITE\" (o texto já vem pronto no `inline` da API), mais um selo na miniatura marcada dizendo \"é este que está no dock agora\".",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "LOGO",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O modo \"Fixo\" declara que \"LOGO= vence sempre\", mas a chave LOGO não está nesta aba nem é citada nela — mora em Aparência ▸ Geral. O mesmo vale para o modo \"Rotação\", que depende de LOGO_INTERVALO, na aba Wallpaper ▸ Claro e escuro.",
+   "evidencia": "Cliquei \"Fixo\" no LOGO_MODO (Modo seco ligado): a barra passou a \"1 escolha / Salvar e aplicar\" e a aba continuou com os mesmos 4 cartões — nenhum atalho, nenhum aviso, nenhuma menção a LOGO. Confirmado no /api/esquema: LOGO tem secao \"Aparência\" (subseção Geral) e LOGO_INTERVALO tem secao \"Wallpaper\".",
+   "esperado": "Trazer LOGO para esta aba (é o ícone do menu de lançamento, o assunto da aba) ou, no mínimo, fazer o cartão do LOGO_MODO revelar o controle da chave que passou a mandar assim que \"Fixo\" ou \"Rotação\" é escolhido.",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "LOGO_DIA / LOGO_NOITE",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "Com LOGO_MODO em \"Rotação\" ou \"Fixo\", as duas chaves deixam de ser lidas, mas continuam na tela ativas, marcadas e clicáveis, sem nenhuma marca de que não valem mais.",
+   "evidencia": "Cliquei \"Rotação\" e depois \"Fixo\" no LOGO_MODO e medi os cartões: LOGO_DIA e LOGO_NOITE seguiram com opacity 1, todos os botões com disabled=false, aria-pressed intacto (mimir / coquinha) e classe apenas \"cartao\". Nada mudou nos dois cartões.",
+   "esperado": "Quando o modo não for \"Hora\", esmaecer os dois cartões (ou marcá-los \"não vale no modo Fixo\") — como a página já faz com a marca de cartão não-salvo, mostrando que a escolha ali não tem efeito.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "Adicionar gato (POST /api/acervo)",
+   "tipo": "outro",
+   "sintoma": "O único controle da aba que escreve no repositório da usuária ignora o Modo seco e não pede confirmação nenhuma.",
+   "evidencia": "Com o Modo seco LIGADO (conferido: #seco.checked == true), mandei um arquivo pelo input do cartão LOGO_DIA. A página fez o POST assim mesmo e o servidor só parou na checagem de extensão — torrada \"só aceito .svg aqui\" e HTTP 400 no console. O corpo enviado por app.js é {tipo, nome, conteudo}, sem o campo `seco`, e `_api_acervo` em app/servidor.py:1921 não consulta o modo seco em ponto nenhum: um .svg de verdade teria sido gravado em assets/gatos/. Toda ação da aba \"Fazer\" abre diálogo de confirmação; esta, que escreve no repo git, não abre nenhum.",
+   "esperado": "Ou o envio respeita o Modo seco (dizendo \"em seco: gravaria assets/gatos/<nome>.svg\"), ou ele mostra antes de mandar um diálogo com a prévia do desenho, o nome final e o caminho de destino — igual ao diálogo das ações.",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "Adicionar gato",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "O gato enviado não vira botão de escolha: os cartões continuam oferecendo só coquinha e mimir até a página ser recarregada à mão.",
+   "evidencia": "Reproduzi o passo pós-envio sem tocar no disco: injetei um terceiro item ('gato-novo') nas PREVIAS e chamei render(), que é exatamente o que o onchange do botão faz (app.js:660 — `carregarPrevias(\"gato\"...); render()`). Resultado medido: PREVIAS passou a ['coquinha','mimir','gato-novo'], mas os botões de LOGO_DIA e LOGO_NOITE seguiram [coquinha, mimir]. Causa: `controleImagem` usa `item.opcoes`, que vem de ESQUEMA, e ESQUEMA só é carregado uma vez no arranque (app.js: única atribuição de ESQUEMA, em /api/esquema).",
+   "esperado": "Depois de um envio bem-sucedido, recarregar o /api/esquema junto com as prévias — e já deixar o gato novo selecionado/rolado à vista, para o clique ter resposta imediata.",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "Adicionar gato",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O botão não diz para onde o arquivo vai nem o que ainda falta acontecer para o gato aparecer na tela.",
+   "evidencia": "Cliquei \"Adicionar gato\" no cartão LOGO_DIA: abriu o seletor nativo de arquivo (accept=\".svg,image/svg+xml\") e nada mais. Medi o atributo title dos dois botões \"Adicionar gato\": vazio nos dois. Em nenhum lugar da aba aparece \"assets/gatos/\". E o servidor devolve um campo `depois` (\"o vigia põe o gato novo no acervo em segundos\") que o app.js descarta: a torrada de sucesso só monta \"<nome> entrou no acervo\".",
+   "esperado": "Rótulo/tooltip dizendo o destino (\"manda um .svg para assets/gatos/ do repositório\") e torrada de sucesso mostrando o `depois` que o servidor já calcula, além do lembrete de que o dock só troca quando o painel reciclar (LOGO_RECICLAR).",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "Adicionar gato",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "A aba sabe acrescentar ao acervo, mas não sabe listar nem TIRAR — não há como remover ou renomear um gato pela página.",
+   "evidencia": "Na aba só existem os botões de escolha (coquinha, mimir) e \"Adicionar gato\". Não há × nas miniaturas nem qualquer ação de remoção, ao contrário das caixas de fichas de APPS_ATIVOS, que têm × para tirar. O próprio comentário da chave, exibido no \"Por quê\" do LOGO em Geral, promete os dois sentidos: \"soltou um .svg lá, ele entra; apagou, sai\" — a página só implementa a entrada.",
+   "esperado": "Um × por miniatura (com confirmação, e recusando remover o gato que está em vigor) e a origem do arquivo visível, já que /api/previas devolve o caminho absoluto de cada um — hoje ele só aparece no `title` do botão.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "LOGO_MODO",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Os três botões viraram escolha (bom), mas nenhum deles explica o que faz, e o título do cartão é uma frase cortada que termina em dois-pontos.",
+   "evidencia": "O cartão mostra \"Como o gato do dock e o do terminal são escolhidos:\" e, embaixo, \"Hora | Rotação | Fixo\". Medi o atributo title dos três botões: vazio nos três; nenhum aria-describedby. A explicação de cada modo (a tabela hora/rotacao/fixo do meow.conf.exemplo:45-53) só aparece depois de abrir o <details> \"Por quê\".",
+   "esperado": "Uma linha de legenda sob o modo escolhido (\"Hora — Mimir de dia, Coquinha de noite\" / \"Rotação — gira a cada 1d no encerramento da sessão\" / \"Fixo — sempre o gato de LOGO\") e um título que seja frase inteira, sem o dois-pontos órfão.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "LOGO_MODO",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O cartão promete decidir também o gato do TERMINAL, mas quem decide isso é outra chave, em outra aba, e o padrão dela desobedece ao LOGO_MODO.",
+   "evidencia": "Título do cartão: \"Como o gato do dock e o do terminal são escolhidos:\". No /api/esquema, FASTFETCH_LOGO_MODO tem opcoes ['espelho','hora','fixo'], valor 'espelho' e fica na subseção \"A noite da máquina\" — e \"espelho\" significa mostrar no terminal o gato que o dock NÃO está mostrando. Escolher \"Hora\" aqui não faz o terminal seguir a hora.",
+   "esperado": "Ou o cartão fala só do dock (\"Como o ícone do menu de lançamento é escolhido\"), ou traz o FASTFETCH_LOGO_MODO para o lado, como par visível — as duas chaves são uma decisão só e hoje estão em abas diferentes.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "LOGO_MODO",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "No modo \"Hora\" a aba não mostra qual é a janela de noite em vigor, nem se agora é dia ou noite, nem qual gato está no dock neste instante — e o \"Por quê\" manda olhar \"abaixo\", onde não há nada.",
+   "evidencia": "O texto do \"Por quê\" que abri diz \"A janela de noite é a MESMA do resto da máquina — ver NOITE_INICIO/NOITE_FIM abaixo\". Abaixo, nesta aba, só existem LOGO_DIA, LOGO_NOITE e LOGO_RECICLAR: as duas chaves citadas estão na aba \"A noite da máquina\" e, medido no /api/esquema, estão VAZIAS (valor \"\"), ou seja, a janela real vem de outra fonte (WALLPAPER_NOITE_* ou 18:00–07:00) e a página não diz qual.",
+   "esperado": "Uma linha viva no cartão com o que `scripts/logo.sh listar` já imprime — janela em vigor, a fonte dela, se agora é dia ou noite e quem está no dock — ou um atalho para a ação \"Gatos: quem está no ar, e por quê\", que existe em Fazer ▸ Ícones e gato e não é chamada de lugar nenhum desta aba.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "LOGO_DIA / LOGO_NOITE",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "Escolher o mesmo gato para dia e para noite é aceito sem um aviso, e isso desliga na prática o modo \"Hora\" — com dois gatos no acervo, é um clique de distância.",
+   "evidencia": "Com LOGO_NOITE já em \"coquinha\", cliquei \"Coquinha\" no cartão LOGO_DIA (Modo seco ligado). Estado medido depois: LOGO_DIA -> coquinha, LOGO_NOITE -> coquinha, LOGO_MODO -> hora; a barra passou a \"1 escolha / Descartar / Salvar e aplicar\", sem torrada, sem aviso e sem nada no texto da aba.",
+   "esperado": "Aviso no cartão quando os dois rostos coincidem (\"dia e noite estão com o mesmo gato — o modo Hora não vai trocar nada\"), ou desmarcar o gato já usado na outra fase.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "LOGO_ROTACAO",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "A chave aparece em Aparência ▸ Geral como um Sim/Não vivo, mas está inerte nesta máquina: enquanto LOGO_MODO tiver valor, LOGO_ROTACAO nunca é lida.",
+   "evidencia": "Cliquei \"Sim\" no LOGO_ROTACAO (Modo seco ligado): a barra passou a \"1 escolha / Salvar e aplicar\" e nada na página cita LOGO_MODO (medido: a palavra não aparece no conteúdo). Mas scripts/logo.sh:113-119 só cai no ramo `LOGO_ROTACAO=\"sim\" -> rotacao` quando `LOGO_MODO` está VAZIO, e o meow.conf dela tem LOGO_MODO=\"hora\" na linha 131. Salvar esse \"Sim\" grava a chave e não muda nada.",
+   "esperado": "Ou o cartão do LOGO_ROTACAO diz que está encoberto (\"sem efeito: LOGO_MODO=hora manda\") e oferece o atalho para o LOGO_MODO, ou clicar \"Sim\" ali passa a escrever LOGO_MODO=\"rotacao\", que é o que a pessoa quis dizer.",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ O gato segue o relógio"
+  },
+  {
+   "chave": "FORMA_RAIO_PAINEL · FORMA_RAIO_DOCK",
+   "tipo": "controle-errado",
+   "sintoma": "O raio de canto é um campo de texto vazio e sem limite, justamente a chave que apaga topbar e dock JUNTAS quando passa do teto.",
+   "evidencia": "Aba \"A forma do painel e do dock\", cartão FORMA_RAIO_PAINEL. Digitei 999 e saí do campo: aceito em silêncio, o cartão virou \"cartao mexeu nao-salvo\" e o banner passou a \"1 escolha\" pronta para Salvar. Nenhum aviso, nenhum máximo, nenhum `max` no input (min=- max=- inputmode=-). O próprio \"Por quê\" do cartão diz \"Um raio maior que METADE DA ALTURA da barra faz o compositor recusar a layer surface, e como painel e dock são o MESMO processo os dois somem JUNTOS… `meow painel teto` mostra a conta. Nesta máquina dá 22 no painel e 32 no dock\" — mas isso está dentro de um <details> fechado, e o número 22/32 não aparece em lugar nenhum da tela.",
+   "esperado": "Deslizante 0..teto com o teto lido na hora de `meow painel teto` (a ação \"Barra: o teto do raio de canto\" já existe em Fazer ▸ Barra e janelas, e o valor é do repositório/máquina), o número ao lado, e o teto escrito no cartão. Acima do teto: marca vermelha e recusa de salvar enquanto `patches/cosmic-comp-raio-clampado.patch` não estiver em execução — o próprio forma.sh já sabe detectar isso (`_forma_compositor_clampa`).",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "FORMA_MARGEM_PAINEL · FORMA_MARGEM_DOCK · FORMA_ESPACO_PAINEL · FORMA_ESPACO_DOCK · FORMA_RECHEIO_PAINEL · FORMA_RECHEIO_DOCK",
+   "tipo": "controle-errado",
+   "sintoma": "Seis números de geometria como campo de texto livre: sem unidade na tela, sem deslizante, e aceitam qualquer coisa que não seja número.",
+   "evidencia": "Aba \"A forma do painel e do dock\". Digitei \"banana\" em FORMA_RAIO_PAINEL e \"2\"/\"30\"/\"40\" em FORMA_MARGEM_PAINEL, FORMA_RECHEIO_PAINEL e FORMA_ESPACO_PAINEL: todos aceitos, cartão \"mexeu nao-salvo\", banner \"1 escolha\". Nenhum campo tem type=number, min, max nem inputmode; o placeholder é só \"(vazio = não toca)\". Do lado do sistema, `scripts/forma.sh:425` (`_int`) só recusa na hora de APLICAR — e `/api/definir` (app/servidor.py:2326-2335) valida apenas o NOME da chave, nunca o valor, então \"banana\" entra no meow.conf dela e o `meow doctor --consertar` das 05:00 passa a errar todo dia.",
+   "esperado": "Deslizante + número com unidade escrita (px/unidades lógicas) e faixa plausível por chave, do mesmo jeito que MIDIA_LARGURA e LEITURA_TEMPERATURA já fazem nesta mesma página. E validação no /api/definir: valor não-inteiro não devia chegar ao meow.conf.",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "grade-barras (o par de desenhos painel/dock no topo das duas abas de FORMA)",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "O \"desenho ao vivo\" não é ao vivo: nenhuma mudança de controle mexe nele.",
+   "evidencia": "Aba \"A forma do painel e do dock\": guardei o outerHTML do topo, depois pus FORMA_MARGEM_PAINEL=2, FORMA_RECHEIO_PAINEL=30, FORMA_ESPACO_PAINEL=40, FORMA_RAIO_PAINEL=999 e cliquei FORMA_PAINEL_ILHA=Não e FORMA_PAINEL_SOLTO=Não. Nas cinco medições o HTML do mock ficou byte a byte igual: style=\"--raio:8px; --margem:20px; --espaco:4px;--recheio:5px; --op:0.8\". O comentário do próprio código (app/pagina/app.js:788-791) promete o contrário: \"desenhá-la aqui, nos valores escolhidos… porque acompanha o controle no mesmo quadro\". `mockDaBarra` só é chamado uma vez, na montagem do grupo (app.js:1399-1402), lendo ESQUEMA.chaves — nunca é redesenhado.",
+   "esperado": "Redesenhar os dois mocks a cada mudança de qualquer FORMA_*/VIDRO_* (é a única resposta visual que estas abas oferecem), e mostrar no desenho a diferença entre SOLTO/grudado e ILHA/pastilha — hoje o desenho é sempre uma barra flutuante arredondada, mesmo com SOLTO=Não.",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "grade-barras — a legenda \"aqui aparece o padrão dele\"",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "A legenda do desenho afirma mostrar o padrão do COSMIC, mas mostra números antigos do MeowSystem que hoje não valem em lugar nenhum.",
+   "evidencia": "Legenda na tela: \"desenho, não captura: o painel com raio 8, margem 20, espaço 4 e recheio 5. Vazio no meow.conf significa que o COSMIC decide, e aqui aparece o padrão dele.\" Os fallbacks vêm cravados em app.js:800-803 (painel 8/6/4/5, dock 16/8/8/6) e são exatamente os números que o meow.conf.exemplo:352-354 diz terem sido APOSENTADOS (\"Os números que estavam aqui viraram comentário: painel margem 6, raio 8, espaço 4, recheio 5; dock margem 8, raio 16, espaço 8, recheio 6\"). O valor que de fato está valendo é o que o COSMIC Tweaks gravou em ~/.config/cosmic, que a página não lê.",
+   "esperado": "Ou ler o valor real de ~/.config/cosmic/com.system76.CosmicPanel.{Panel,Dock}/v1/{border_radius,margin,spacing,padding} e desenhar isso, dizendo \"o que está no disco agora\"; ou dizer honestamente \"não sei o que o COSMIC está usando — abra o COSMIC Tweaks\". Afirmar que 8 é o padrão do COSMIC é informação falsa numa página cujo motivo de existir é não ter de adivinhar.",
+   "gravidade": "confuso",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "os 12 cartões FORMA_* (título do cartão)",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Doze cartões e só dois títulos, ambos falando do arquivo e não da chave: quatro dizem \"Estas chaves existiam só como variável de ambiente\" e oito dizem \"AS quatro abaixo TÊM slider na GUI\".",
+   "evidencia": "Screenshot da aba: FORMA_PAINEL_SOLTO, FORMA_DOCK_SOLTO, FORMA_PAINEL_ILHA e FORMA_DOCK_ILHA têm o MESMO título e o MESMO \"Por quê\" (1097 caracteres idênticos nos quatro); os oito numéricos têm o mesmo título e o mesmo \"Por quê\" (1536 caracteres idênticos nos oito). A única coisa que distingue FORMA_PAINEL_SOLTO de FORMA_DOCK_SOLTO na tela é o nome cru em maiúsculas. Além disso o título \"AS quatro abaixo\" encabeça OITO cartões, e \"abaixo\" se refere a linhas de um arquivo que ela não está lendo. Causa: `tituloDoCartao` (app.js:144-157) corta a primeira oração da ajuda do BLOCO, que é comum a todas as chaves dele.",
+   "esperado": "Título por chave, dizendo o que ela faz e em qual barra: \"Margem do painel\", \"Raio de canto da dock\", \"O painel descola das bordas\", \"A dock encolhe até virar pastilha\". O nome cru fica como está, de canto; a frase grande tem de ser a da chave.",
+   "gravidade": "confuso",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "FORMA_PAINEL_SOLTO · FORMA_DOCK_SOLTO · FORMA_PAINEL_ILHA · FORMA_DOCK_ILHA",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Quatro pares Sim/Não sem nada na tela que diga o que é \"solto\" e o que é \"ilha\", e sem o aviso de que a ilha desliga o arranjo por segmento.",
+   "evidencia": "Cartões mostram apenas: nome cru, título repetido, [Sim|Não], \"Por quê\" fechado. As definições (\"SOLTO = a barra descola das bordas… ILHA = a barra ENCOLHE até o tamanho do conteúdo\") e o aviso (\"com a ilha ligada, arrumar os miniaplicativos por segmento na GUI de Configurações não tem efeito nenhum\") só existem dentro do <details> fechado, idêntico nos quatro. Hoje FORMA_PAINEL_ILHA está em \"sim\" (o cartão marca \"padrão nao\"), e a aba vizinha \"O tamanho por segmento da barra\" oferece três chaves de PAINEL sem uma palavra sobre essa interação.",
+   "esperado": "Cada cartão com a sua frase (\"Solto: a barra descola da borda\" / \"Ilha: a barra encolhe até o conteúdo\") e, no cartão da ILHA ligada, um aviso visível ligando à aba de segmentos — a página já tem o componente de aviso (#aviso-aplicar).",
+   "gravidade": "confuso",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "FORMA_CENTRO_PAINEL · FORMA_CENTRO_DOCK · FORMA_ALA_INICIAL_PAINEL · FORMA_ALA_FINAL_PAINEL · FORMA_ALA_INICIAL_DOCK · FORMA_ALA_FINAL_DOCK",
+   "tipo": "controle-errado",
+   "sintoma": "Seis chaves de cinco degraus fechados (XS|S|M|L|XL) aparecem como campo de texto onde ela tem de digitar a letra de cabeça — é o mesmo defeito do LOGO_MODO que ela reclamou.",
+   "evidencia": "Aba \"O tamanho por segmento da barra\": FORMA_ALA_INICIAL_DOCK mostra um input de texto com a letra \"L\" solta e FORMA_ALA_FINAL_DOCK com \"S\". Digitei \"XG\", depois \"l\" minúsculo, depois \"64\": os três foram aceitos em silêncio, cartão \"mexeu nao-salvo\", banner \"1 escolha\". `scripts/forma.sh:528` (`_tam`) só aceita XS|S|M|L|XL e falha na hora de aplicar — depois de o lixo já estar no meow.conf dela. A lista existe no arquivo com barras (meow.conf.exemplo:379: \"tamanho da barra) | XS | S | M | L | XL.\"), mas o `_opcoes` do servidor descarta a linha porque ela quebra no meio da frase e o primeiro token (\"tamanho da barra)\") não casa com RE_TOKEN_OPCAO.",
+   "esperado": "Botões de opção [XS · S · M · L · XL · não mexer], com o tamanho medido ao lado de cada um (XS=32 · S=40 · M=56 · L=64 · XL=80, que o próprio bloco já traz) — e, já que essas letras vão parar em `size_wings`, dizer no cartão qual segmento é qual (ala inicial = o gato do lançador; centro = os apps; ala final = bandeja/rede/desligar).",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "FORMA_ALA_INICIAL_DOCK · FORMA_ALA_FINAL_DOCK (o par de alas)",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Dá para esvaziar uma ala sozinha, e a página não avisa que isso apaga o tamanho da OUTRA — as duas dividem uma chave só no COSMIC.",
+   "evidencia": "Esvaziei FORMA_ALA_FINAL_DOCK (estava \"S\") deixando FORMA_ALA_INICIAL_DOCK em \"L\": banner \"1 escolha\", nenhum aviso na aba (busca por .aviso/.alerta/.nota no #conteudo voltou vazia), nenhum botão no cartão. O comportamento real está medido em scripts/forma.sh:340-350: `size_wings` é uma tupla, \"partindo de `Some((None, Some(S)))`, rodar com só `FORMA_ALA_INICIAL_DOCK=\\\"XS\\\"` deixa `Some((Some(XS), None))` — o `S` da bandeja evapora\".",
+   "esperado": "Tratar as duas alas como UM controle (as duas pontas no mesmo cartão), ou avisar no cartão que mexer numa reescreve a outra. Deixar a página oferecer o gesto que o próprio script documenta como perda de valor é o pior dos dois mundos.",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "FORMA_CENTRO_* · FORMA_ALA_* — o placeholder \"(vazio = não toca)\"",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O placeholder promete que esvaziar devolve o padrão, e para estas seis chaves não devolve: uma vez escritas, não há volta pela interface.",
+   "evidencia": "Todos os seis campos mostram \"(vazio = não toca)\". O forma.sh diz o contrário com todas as letras (\"E NÃO HÁ CAMINHO DE VOLTA POR ESTAS CHAVES… esvaziar a chave no meow.conf não os apaga: este script só deixa de encostar neles, e o valor fica valendo para sempre… o buraco não tem tampa nenhuma pela interface\", scripts/forma.sh:352-368), e a saída de fato é `rm ~/.config/cosmic/com.system76.CosmicPanel.{Dock,Panel}/v1/size_{wings,center}`. Somando: o ramo de campo de texto do app.js (linhas 517-533) nem sequer ganha o botão \"não mexer\" que os campos de hora e os segmentos ganham (`botaoVazio`, app.js:463 e 497-506) — confirmado: o cartão FORMA_ALA_FINAL_DOCK não tem botão nenhum.",
+   "esperado": "Ou um botão \"devolver ao padrão\" que rode de fato o rm dos dois arquivos do CosmicPanel (é a única volta que existe, e o repositório já sabe o caminho), ou trocar o texto para a verdade: \"vazio deixa como está — não desfaz o que já foi gravado\".",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "grade-barras na aba \"O tamanho por segmento da barra\"",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "A aba de TAMANHO é encabeçada pelo desenho de raio/margem/espaço/recheio — que não tem nada a ver com o assunto dela e nunca muda.",
+   "evidencia": "O topo da aba é o mesmo elemento .grade-barras da aba anterior, com a mesma legenda \"desenho, não captura: o painel com raio 8, margem 20, espaço 4 e recheio 5…\". Alterei FORMA_ALA_INICIAL_DOCK para XG, l, 64 e XL: o desenho não mudou, e ele não desenha segmento nenhum — as 5 pastilhas do mock são fixas. Causa: o header é disparado por `i.previa === \"barra\"`, que o servidor atribui a todo prefixo FORMA_ (app.js:1398-1403).",
+   "esperado": "Um desenho que mostre o que ESTA aba muda: as três faixas (ala inicial · centro · ala final) com a altura de cada degrau escolhido, e a altura resultante da barra — que é o preço documentado (\"pôr `L` na ala inicial sobe o dock de 64 para 72\"). Ou nenhum desenho, que é melhor que um desenho de outro assunto.",
+   "gravidade": "confuso",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "JANELAS_TILING_ESCOPO",
+   "tipo": "controle-errado",
+   "sintoma": "O cartão oferece um terceiro botão \"não mexer\" que o meow.conf.exemplo não declara para esta chave — e que o script traduz para \"global\", ou seja, o oposto de não mexer.",
+   "evidencia": "Cliquei \"não mexer\" em JANELAS_TILING_ESCOPO: aceito, cartão \"mexeu nao-salvo\". O arquivo declara só dois valores (meow.conf.exemplo:427 → `JANELAS_TILING_ESCOPO=\"global\"    # global | workspace`) e o padrão NÃO é vazio. Do lado do sistema, scripts/janelas.sh:224 e :289 fazem `escopo=\"$(_janelas_escopo \"${JANELAS_TILING_ESCOPO:-global}\")\"` e gravam Global no disco — o comentário ali diz por quê (\"O escopo tem padrão porque `sim` sem `Global` é a armadilha nº 1\"). Causa do botão: `aceita_vazio` (app/servidor.py:651-659) casa \"VAZIO = NÃO TOCA\" no texto do BLOCO, frase que fala do JANELAS_TILING, não do escopo.",
+   "esperado": "Só [Global · Workspace], sem terceiro estado, com a diferença escrita no cartão (global vale nos workspaces que já existem; workspace só vale em workspace novo e muda zero pixel agora). Se o terceiro estado ficar, ele tem de significar o que diz — hoje ele grava Global sem avisar.",
+   "gravidade": "quebrado",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "JANELAS_TILING · JANELAS_TILING_ESCOPO (título do cartão)",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Os dois cartões têm o mesmo título, e ele é uma frase de história (\"Em 25/08/2026 ela pediu o layout dwindle do Hyprland\") que não diz o que nenhum dos dois controles faz.",
+   "evidencia": "Screenshot da aba: cartão JANELAS_TILING e cartão JANELAS_TILING_ESCOPO, ambos com o título \"Em 25/08/2026 ela pediu o layout dwindle do Hyprland\" e o mesmo \"Por quê\" (1516 caracteres idênticos nos dois). Nada na tela explica que \"escopo\" é a diferença entre a coisa funcionar e não funcionar — texto que existe, mas dentro do <details> fechado.",
+   "esperado": "\"Ligar o lado a lado (janelas se dividem sozinhas)\" no primeiro e \"Onde o lado a lado vale\" no segundo, com a consequência de cada escopo em uma linha. Vale citar os atalhos (Super+Y / Super+O / Super+G) no cartão, porque é por eles que ela muda isso no dia a dia.",
+   "gravidade": "confuso",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "JANELAS_TILING_ESCOPO (rótulos dos botões)",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Os botões mostram \"global\" e \"workspace\" em minúscula crua, ao lado de um cartão irmão que mostra \"Sim\" e \"Não\" traduzidos.",
+   "evidencia": "Aba \"As janelas lado a lado\": os botões renderizam literalmente `global` e `workspace`. `ROTULO_DE_VALOR` (app/pagina/app.js:120-128) não tem entrada para nenhum dos dois, então `rotuloDeValor` devolve o valor cru.",
+   "esperado": "\"Em todo workspace\" e \"Só neste workspace\" (ou ao menos \"Global\" e \"Workspace\" com maiúscula), como as outras 20 opções da página.",
+   "gravidade": "polimento",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "JANELAS_TILING_ESCOPO (quando JANELAS_TILING está em \"não mexer\")",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "Com o lado a lado em \"não mexer\", o cartão do escopo continua inteiro, clicável e sem nenhum sinal de que não vai ser aplicado.",
+   "evidencia": "Cliquei \"não mexer\" em JANELAS_TILING e conferi o cartão vizinho: os três botões seguem habilitados (disabled = [false, false, false]), classe \"cartao\", opacidade 1, nenhum texto novo. Do lado do sistema, `cmd_aplicar` sai logo na primeira linha quando JANELAS_TILING está vazio (scripts/janelas.sh:210-212: \"JANELAS_TILING vazio — o lado a lado é seu (Super+Y manda)\") e o escopo nunca chega a ser escrito.",
+   "esperado": "Esmaecer o cartão do escopo e dizer \"sem efeito enquanto o lado a lado estiver em 'não mexer'\" — a página já tem o conceito de dependência entre chaves em outros lugares e este par é o caso mais óbvio dela.",
+   "gravidade": "confuso",
+   "aba": "Ícones ▸ A forma do painel e do dock (12) · O tamanho por segmento da barra (6) · As janelas lado a lado (2)"
+  },
+  {
+   "chave": "#seco + botão Rodar (13 ações)",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "O Modo seco nasce DESLIGADO a cada carga da página, e 13 ações que escrevem no sistema disparam de verdade no primeiro clique em \"Rodar\", sem nenhum diálogo.",
+   "evidencia": "index.html:45 traz `<input type=\"checkbox\" id=\"seco\">` sem `checked`; medi `#seco.checked === false` logo após um reload. Cliquei em \"Rodar\" no cartão \"Estado da máquina\" (aba Ciclo de vida): `document.querySelector('#confirmar').open === false` e a gaveta abriu com o trabalho já correndo — nenhuma pergunta. Como `rodar()` (app.js:1162) só chama `confirmar()` quando `acao.confirma || acao.sudo || acao.destrutivo`, medi no navegador a lista que roda sem diálogo e escreve: doctor_consertar, tema_aplicar, tema_modo, icones_reconstruir, logo_trocar, logo_girar, wallpaper_proximo, wallpaper_anterior, wallpaper_carrossel, wallpaper_aplicar, painel_reciclar, leitura_aplicar, apps_aplicar.",
+   "esperado": "Ou o Modo seco nasce LIGADO (e ela desliga de propósito para valer), ou toda ação com `seco: true` (= toda ação que escreve) passa pelo diálogo de confirmação que já existe, mostrando o comando resolvido. Hoje só as 5 ações com `confirma/sudo/destrutivo` perguntam.",
+   "gravidade": "quebrado",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "tema_modo (\"Claro / escuro / automático\")",
+   "tipo": "controle-errado",
+   "sintoma": "O `<select>` nasce em \"claro\" enquanto a máquina está em MODO=\"escuro\" — o controle mostra o oposto do estado real, e um clique em Rodar troca o tema dela para claro.",
+   "evidencia": "Abri a aba \"Tema e cor\" e li `[...document.querySelectorAll('#conteudo select')].map(s=>s.value)` → `['latte-mauve','claro']`. O ~/.config/meow/meow.conf:16 diz `MODO=\"escuro\"`, e a saída de \"Estado da máquina\" que rodei confirma: `modo escuro (is_dark=true)`. O select é preenchido em `montarAcao` (app.js:1132-1136) sem nunca consultar o valor vigente — fica sempre na primeira opção do provedor.",
+   "esperado": "O select deve nascer marcado no valor que está valendo (escuro), como fazem os botões de opção da chave MODO na aba Aparência ▸ Geral. Melhor ainda: usar os mesmos três botões de opção da chave MODO, já que o comando grava exatamente essa chave.",
+   "gravidade": "quebrado",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "tema_aplicar (\"Aplicar uma captura\")",
+   "tipo": "controle-errado",
+   "sintoma": "Escolher tema — o assunto mais visual do projeto — é um `<select>` de quatro slugs de texto, sem nenhuma cor, sem dizer qual está aplicada, e nascendo na primeira da lista (latte-mauve), que não é a atual.",
+   "evidencia": "Aba \"Tema e cor\": o select tem as opções latte-mauve, mocha-mauve, mocha-pink, original e `value === 'latte-mauve'`. O `meow status` que rodei diz `alvo mocha-mauve` / `ativo nenhuma captura confere`. O innerText inteiro da aba não contém um único fato sobre o tema em vigor. Na mesma página, as chaves FLAVOR e ACCENT (Aparência ▸ Geral) desenham tiras de 8 cores e bolinhas da paleta, e o servidor já gera /paleta.css a partir de assets/paleta/catppuccin.json.",
+   "esperado": "Cada captura como um botão-amostra com a tira de cores do flavor+accent que ela é (latte-mauve, mocha-mauve, mocha-pink já dizem flavor e accent no próprio nome), a atual marcada, e \"original\" separada com aviso do que ela significa — em vez de quatro linhas de texto num menu suspenso.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "logo_trocar (\"Pôr um gato no dock\")",
+   "tipo": "controle-errado",
+   "sintoma": "Escolher o gato do dock é um `<select>` de texto (\"coquinha\", \"mimir\"), enquanto a aba de configuração desenha os dois gatos.",
+   "evidencia": "Aba \"Ícones e gato\": o cartão tem `<select>` com opções de texto e zero `<img>` (medi `#conteudo img` = 0 nas sete abas de Fazer). Na aba Aparência ▸ \"O gato segue o relógio\", o cartão \"Os dois rostos\" (LOGO_DIA/LOGO_NOITE) traz duas miniaturas reais, com `src=\"/previa?tipo=gato&id=coquinha\"` e `id=mimir` — o endpoint já existe e já funciona.",
+   "esperado": "Os mesmos botões-com-miniatura de LOGO_DIA/LOGO_NOITE, apontando para /previa?tipo=gato&id=<nome>, com o gato em vigor marcado (a chave LOGO=\"coquinha\" está no conf e a página já a lê).",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "code.cmd de todos os cartões de ação",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "A linha de comando embaixo de cada cartão é cortada com reticências, e o pedaço cortado é justamente o subcomando — o que diferencia uma ação que só lê de uma que escreve.",
+   "evidencia": "Screenshot da aba Ciclo de vida: \"Conferir (doctor)\" mostra `/mnt/.../bin/meow doctor` e \"Consertar o que estiver fora\" mostra `/mnt/.../bin/meow doctor…` — o `--consertar` está escondido; \"Desinstalar o MeowSystem\" mostra `/mnt/.../install.sh --un…`. Na aba Papel de parede, os SEIS cartões mostram a mesma coisa: `/mnt/.../bin/meow wallpa…`. Medi no cartão \"Aplicar uma captura\": `scrollWidth 384 > clientWidth 367`. A causa é estilo.css:459-465 (`white-space:nowrap; overflow:hidden; text-overflow:ellipsis`) sobre um caminho absoluto de 44 caracteres de prefixo.",
+   "esperado": "Mostrar `meow wallpaper proximo` (sem o prefixo da raiz, que é o mesmo em todos os 30 cartões), ou cortar pela ESQUERDA. Uma linha que só deixa ver o caminho do repositório não informa nada e ainda faz \"conferir\" e \"consertar\" parecerem o mesmo comando.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "tema_aplicar · tema_modo · logo_trocar (@ARG@)",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Nas três ações que têm escolha, o comando exibido nunca resolve o argumento: continua literalmente `@ARG@` depois de a pessoa escolher, e nada mais na tela repete a escolha antes de rodar.",
+   "evidencia": "Aba \"Tema e cor\": troquei o select de \"Aplicar uma captura\" para `mocha-pink` (confirmei `select.value === 'mocha-pink'`) e o `code.cmd` seguiu `/mnt/.../bin/meow tema @ARG@`. Como essas três ações têm `confirma: false`, o diálogo — que é o único lugar onde `acao.argv.replace(\"@ARG@\", argumento)` acontece (app.js:1182) — nunca aparece. O valor escolhido só é mostrado na gaveta, DEPOIS de o comando já ter rodado.",
+   "esperado": "O `code.cmd` deve reagir ao select e mostrar `meow tema mocha-pink`. Um marcador `@ARG@` na tela é jargão interno vazado para a interface.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "tema_aplicar · tema_modo · logo_trocar (persistência do select)",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "A escolha feita no `<select>` é perdida ao trocar de aba e voltar — volta para a primeira opção, sem aviso.",
+   "evidencia": "Aba \"Tema e cor\": escolhi `mocha-pink`, cliquei em \"Aplicativos\" no trilho, voltei em \"Tema e cor\" e li `select.value === 'latte-mauve'`. `render()` (app.js:1353) faz `alvo.replaceChildren()` e remonta os cartões do zero, sem guardar estado nenhum das ações.",
+   "esperado": "A escolha deve sobreviver à navegação (ou, melhor, o select deve sempre voltar marcado no valor em vigor no sistema — que é o que ela esperaria ler ali).",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "pastilha \"ACEITA SECO\"",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Nada na tela diz \"esta ação escreve na sua máquina\". O único sinal é a pastilha \"ACEITA SECO\", que fala de uma capacidade de simulação, não do risco.",
+   "evidencia": "Nas seis abas de ação, os cartões que escrevem trazem só \"ACEITA SECO\" (ex.: \"Fazer a barra reler a configuração\", que reinicia o painel dela por ~2 s; \"Consertar o que estiver fora\"; \"Reconstruir o tema de ícones\"), e os que só leem não trazem pastilha nenhuma (\"Conferir (doctor)\", \"Estado da máquina\", \"Barra: diagnóstico\", \"Aplicativos: tabela\" — medi `.pastilha` = 0 em todos). O servidor já sabe a diferença: em servidor.py:2131 ele devolve `\"escreve\": bool(ACOES[acao].get(\"seco\"))`, e o comentário ao lado diz que \"seco\" marca exatamente quem escreve.",
+   "esperado": "Uma pastilha \"ESCREVE\" (e sua ausência significando \"só lê\") nos cartões, com a informação que o servidor já manda. A pastilha de seco pode ficar, mas ela responde outra pergunta.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "botão Rodar (todos os cartões)",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "Enquanto um trabalho corre, todos os botões \"Rodar\" continuam habilitados e nenhum cartão mostra que é ele que está correndo; o segundo clique vira uma torrada de erro.",
+   "evidencia": "Aba Ciclo de vida, cliquei \"Rodar\" em \"Conferir (doctor)\" e, com ele correndo, medi `[...document.querySelectorAll('#conteudo article.acao button')].map(b=>b.disabled)` → `[false,false,false,false,false,false]` e todas as classes dos cartões iguais (`'acao'`). Cliquei então em \"Rodar\" do cartão \"Últimas 50 linhas do log\": apareceu a torrada \"já há um trabalho correndo: Conferir (doctor)\" (recusa do servidor, 409) e nada mudou na gaveta.",
+   "esperado": "Durante um trabalho, desabilitar os outros \"Rodar\" e marcar o cartão que está correndo (a gaveta já sabe o rótulo). Recusar depois do clique é transformar um estado conhecido em erro.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "logo_girar (\"Passar ao próximo gato\")",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "O botão não faz nada na configuração de hoje, e nada na tela avisa: ele tem exatamente a mesma cara de um botão que funciona.",
+   "evidencia": "O ~/.config/meow/meow.conf:131 diz `LOGO_MODO=\"hora\"`, e a própria ajuda do cartão diz \"Só tem efeito com LOGO_MODO='rotacao'\". O botão \"Rodar\" está habilitado, com a mesma cor accent dos demais. A página conhece o valor: LOGO_MODO é um cartão da aba Aparência ▸ \"O gato segue o relógio\", com os botões Hora/Rotação/Fixo.",
+   "esperado": "Desabilitar (ou marcar visivelmente) o botão quando LOGO_MODO ≠ \"rotacao\", dizendo o modo atual e oferecendo um atalho para a chave — em vez de deixar a pessoa clicar para descobrir num despejo de terminal que não girou nada.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "apps_aplicar (aba Aplicativos)",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "A aba \"Aplicativos\" tem só dois cartões e nenhum deles aceita escolher um app, embora o repositório conheça os 23 e a CLI aceite um por vez.",
+   "evidencia": "Medi 2 cartões na aba: \"Aplicativos: tabela\" (`meow apps`) e \"Tematizar os aplicativos\" (`meow apps aplicar`, sem `arg`, sem `<select>`). A ajuda do bin/meow declara `meow apps aplicar [slug]  tematiza um app, ou todos` e `meow apps reverter <slug>  desfaz num app`. O ~/.config/meow/meow.conf:68 tem APPS_ATIVOS com 23 slugs (cosmic-term, fastfetch, zsh, fzf, bat, btop, vscode, obsidian, qbittorrent, firefox, brave, chrome, thunderbird, discord, telegram, spotify, zapzap, obs, gimp, krita, vlc, steam, qt5ct), que a página já desenha como fichas na aba Apps. `meow apps reverter` não existe em ACOES (servidor.py:858+).",
+   "esperado": "Um seletor de app (provedor a partir de APPS_ATIVOS / da tabela do aplicar_apps.sh) no \"Tematizar\", e um cartão \"Reverter num app\" com o mesmo seletor. Hoje, para retematizar só o Spotify, ela precisa reaplicar os 23.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "aba Papel de parede (6 ações)",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "A aba do assunto mais visual da máquina não mostra uma única imagem, não deixa escolher um papel de parede e não tem como acrescentar ao acervo — só \"próximo\" e \"anterior\" às cegas.",
+   "evidencia": "Medi `#conteudo img` = 0 e `#conteudo svg` = 0 nas seis ações da aba (Carrossel: estado · Próximo · Anterior · Soltar a fixação · Reafirmar a rotação · Semear o acervo); nenhuma tem `<select>`. A ajuda do bin/meow (linhas 2452-2454) declara `meow wallpaper adicionar <alvo>`, `meow wallpaper banir <img>` e `meow wallpaper desbanir <nome>` — nenhum dos três existe no dicionário ACOES de app/servidor.py, que só tem estado/aplicar/proximo/anterior/carrossel/semear. O servidor já sabe servir miniaturas (a Galeria consome /api/previas e mostra 46 imagens no carrossel).",
+   "esperado": "A tira de miniaturas do acervo aqui também, com a imagem em vigor marcada e um clique para fixá-la; e um cartão \"Acrescentar ao acervo\" ligado ao `meow wallpaper adicionar`, que já existe e é o caminho oficial para o acervo crescer.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "aba Tema e cor — `meow tema capturar` ausente",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "A lista de capturas nunca cresce pela página: dá para aplicar as quatro que existem, e não dá para criar uma nova a partir do que está na tela.",
+   "evidencia": "As quatro opções do `<select>` de \"Aplicar uma captura\" vêm de `_capturas()` (servidor.py:685), que lista assets/temas/capturados/ — hoje latte-mauve, mocha-mauve, mocha-pink, original. A ajuda do bin/meow declara `meow tema capturar <nome>  fotografa o estado atual como captura <nome>`, e essa ação não existe em ACOES. Causa estrutural: `montarAcao` (app.js:1126-1159) só sabe montar um `<select>` de provedor — nenhuma ação da página aceita um valor digitado ou um arquivo escolhido, que é o que `capturar <nome>`, `wallpaper adicionar <alvo>` e `apps reverter <slug>` precisariam.",
+   "esperado": "Um cartão \"Guardar o tema de agora como captura\" com um campo de nome — é o botão de ACRESCENTAR ao acervo que falta neste assunto, e a razão de o select ficar preso em quatro slugs para sempre.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "files_menu (aba Barra e janelas)",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "O cartão \"Menu da área de trabalho: estado\" só diagnostica; se o diagnóstico acusar que falta, a página não oferece nada para consertar.",
+   "evidencia": "Na aba \"Barra e janelas\" o cartão roda `meow files-menu` e não tem pastilha nenhuma (só leitura). A ajuda do bin/meow:2451 declara `meow files-menu build  compila o cosmic-files patchado da versão instalada`, e o despacho existe (bin/meow:2565-2571) — mas `files-menu build` não está em ACOES. As duas chaves do assunto (FILES_MENU, FILES_MENU_AUTOBUILD) moram noutra aba (Wallpaper ▸ \"Os dois itens de papel de parede\"), sem nenhum vínculo com este cartão.",
+   "esperado": "Um segundo cartão \"Compilar o menu da área de trabalho\" ao lado do diagnóstico (marcado como demorado), e um vínculo entre esse cartão e as duas chaves que o governam.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "leitura_aplicar (\"Aplicar o degrau da hora\")",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O cartão usa \"degrau\" sem dizer o que é, e não mostra qual valor vai aplicar — nem temperatura, nem textura, nem a hora que decide.",
+   "evidencia": "O texto inteiro do cartão é \"Põe agora o que o timer poria sozinho.\", com o comando `meow leitura aplicar` (truncado na tela). Para saber o que ele vai fazer é preciso rodar antes o cartão vizinho \"Modo de leitura: estado\" e ler um despejo de terminal na gaveta. Na aba de configuração Ícones ▸ \"O modo de leitura\", as mesmas grandezas (LEITURA_TEMPERATURA, LEITURA_TEXTURA) têm deslizante COM simulação de imagem, e LEITURA_HORARIO_INICIO/FIM (18:00/07:00) estão à mão.",
+   "esperado": "O cartão deve dizer, sem rodar nada, algo como \"agora são 21h → noite → 3400 K, textura 0.20\", com a mesma previsão visual que a aba de configuração já desenha.",
+   "gravidade": "confuso",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "aba Folhas visuais (18 itens)",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "As 18 folhas são texto morto: nada é clicável, nada abre, e o caminho absoluto que a frase manda usar não tem nem botão de copiar.",
+   "evidencia": "Medi na primeira folha: `a,button,input` = 0, `tabindex` = null, `role` = null, `cursor: auto`. Cliquei numa linha (folha-4-icones.html): a URL não mudou e nenhuma torrada apareceu — nada aconteceu. A frase do topo diz \"abra pelo caminho abaixo, ou pelo gerenciador de arquivos\", mas `montarFolhas` (app.js:1446-1460) só emite `<b>` + `<span class=\"oque\">`, e o `do_GET` do servidor (servidor.py:1797-1900) não tem nenhuma rota para docs/folhas — as rotas são /, /api/*, /gato.svg, /previa e os estáticos de app/pagina.",
+   "esperado": "Cada folha como um link que abre a folha (uma rota que sirva docs/folhas/<nome>.html, com o mesmo token), ou pelo menos um botão \"copiar caminho\". Uma lista de 18 caminhos que a pessoa tem de selecionar com o mouse é a aba inteira sem função.",
+   "gravidade": "quebrado",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "aba Folhas visuais (busca)",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "A busca do topo nunca encontra uma folha — a aba inteira é invisível para o único atalho de navegação da página.",
+   "evidencia": "Com a aba \"Folhas visuais\" aberta, digitei \"cursor\" na busca: sobraram 0 folhas, embora exista `folha-cursor.html`, e o conteúdo pulou para o cartão CURSOR da aba \"A noite da máquina\". Causa: `casa()` (app.js:1436-1444) testa `item.rotulo/ajuda/id` para itens sem `chave`, e uma folha só tem `arquivo` e `caminho` (servidor.py:2141-2147) — o array de campos sai vazio e `.some()` devolve false sempre.",
+   "esperado": "A busca deve casar pelo nome do arquivo (e, se houver, pelo assunto da folha). Hoje digitar \"pastas\" some com as três folhas de pastas.",
+   "gravidade": "quebrado",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "aba Folhas visuais (conteúdo das linhas)",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Nenhuma folha diz o que decidiu, quando, nem sobre o quê — só nome de arquivo e caminho, duas vezes a mesma informação.",
+   "evidencia": "As 18 linhas são `folha-pastas-2.html` + `/mnt/Apate/Desenvolvimento/MeowSystem/docs/folhas/folha-pastas-2.html`; o caminho repete o nome. Não há data, resumo nem miniatura. O estilo.css:636 define `.folha .data { font-variant-numeric: tabular-nums; }` — uma coluna de data desenhada no CSS que nenhum código emite (`montarFolhas`, app.js:1446, só cria `<b>` e `.oque`).",
+   "esperado": "Data e uma linha de assunto por folha (\"o que esta folha decidiu\"), que é o que a frase de abertura promete ao dizer que elas \"decidiram este tema\" — ou, no mínimo, tirar o caminho repetido e pôr a miniatura, já que são folhas visuais.",
+   "gravidade": "polimento",
+   "aba": "Fazer: Ciclo de vida · Tema e cor · Ícones e gato · Papel de parede · Barra e janelas · Aplicativos · Folhas visuais"
+  },
+  {
+   "chave": "FLAVOR",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "Clicar num flavor não move a marcação: `mocha` continua sendo o único botão marcado, qualquer que seja o clicado — não há como saber o que será salvo.",
+   "evidencia": "Modo seco ligado, aba Aparência ▸ Geral. Cliquei na tira `latte`. O banner passou a \"1 escolha\" (title=FLAVOR) e o cartão ganhou a borda de não-salvo, mas o aria-pressed continuou `mocha=true · macchiato=false · frappe=false · latte=false`. Troquei para Terminal e voltei: idem. Nenhuma torrada aparece. A única palavra NOVA no cartão é a pastilha \"padrão mocha\" no canto — que se lê como \"o valor é mocha\", o contrário do que aconteceu. Captura: /tmp/meow-trabalho",
+   "esperado": "O botão clicado fica marcado no mesmo instante, como já acontece em MODO e em LOGO. A causa está em app/pagina/app.js:755 — `controleFlavor` faz `pintar(item.valor ?? \"\")` (o valor do DISCO) enquanto `controleImagem` (linha 658) faz `pintar(valorEmVigor(item))`; e `escolher()` (linha 275) não devolve nada, então o `if (await aplica(nome)) pintar(nome)` do onclick nunca roda.",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ Geral (+ a barra \"Fundo\" do topo)"
+  },
+  {
+   "chave": "ACCENT",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "Mesmo defeito: clicar numa bolinha de cor não move o anel de seleção; `mauve` fica marcado para sempre.",
+   "evidencia": "Modo seco ligado. Cliquei na bolinha `green`. O banner foi para \"2 escolhas\" (FLAVOR · ACCENT) e o cartão ficou não-salvo, mas o aria-pressed permaneceu `mauve=true` e `green=false`. Como as bolinhas não têm rótulo visível (só title \"green — #A6E3A1\"), o único sinal de escolha some junto: a tela mostra mauve selecionado e a pastilha \"padrão mauve\". Depois de escolher e trocar de aba, continua mauve marcado.",
+   "esperado": "O anel (box-shadow de .cores-grade button[aria-pressed=true]) passa para a cor clicada na hora. Mesma correção: app/pagina/app.js:783, trocar `pintar(item.valor ?? \"\")` por `pintar(valorEmVigor(item))` (e fazer `escolher()` devolver true).",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ Geral (+ a barra \"Fundo\" do topo)"
+  },
+  {
+   "chave": "FLAVOR",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "A aba oferece 4 flavors × 12 accents = 48 combinações, mas só 3 têm captura no repositório; escolher qualquer uma das outras 45 grava a chave e o tema do COSMIC simplesmente não é aplicado.",
+   "evidencia": "Cliquei em `frappe` e em `green` — os dois botões aceitam sem nenhuma marca, aviso ou desabilitação. A MESMA página já carrega a lista real: no ESQUEMA.acoes, a ação `tema_aplicar` (\"Aplicar uma captura\", em Fazer ▸ Tema e cor) traz opcoes = [\"latte-mauve\", \"mocha-mauve\", \"mocha-pink\", \"original\"] — lida de assets/temas/capturados/ por `_capturas()` em app/servidor.py:687. lib/preflight.sh:127-140 só avisa DEPOIS, no log: \"não há captura para 'frappe-green' — o tema do COSMIC não vai ser aplicado\". A frase do meow.conf.exemplo que diz isso (\"Só vale o que tem captura em assets/temas/capturados/\") nem aparece no cartão: como o título foi derivado dela, o app.js só desenha a frase quando NÃO há título (app.js:1071), então ela fica escondida dentro do \"Por quê\".",
+   "esperado": "Os botões de FLAVOR e as bolinhas de ACCENT marcam quais combinações têm captura (as outras desabilitadas, ou com a nota \"sem captura — o tema não será aplicado\"), lendo a lista de `_capturas()` que o servidor já devolve. Idealmente com um botão \"Capturar este tema\" (scripts/capturar_tema.sh) para acrescentar ao acervo, como o \"Adicionar gato\" faz no cartão LOGO.",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ Geral (+ a barra \"Fundo\" do topo)"
+  },
+  {
+   "chave": "LOGO_ROTACAO",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "Botão Sim/Não vivo para uma chave que, do jeito que o meow.conf dela está hoje, nenhum script lê — clicar \"Sim\" e salvar não faz gato nenhum girar.",
+   "evidencia": "Modo seco ligado; cliquei em \"Sim\" e o cartão registrou (banner \"3 escolhas | FLAVOR · ACCENT · LOGO_ROTACAO\", aria-pressed sim=true). Mas scripts/logo.sh:113-119 decide o modo assim: `if [ -n \"${LOGO_MODO:-}\" ]; then :` — ou seja, com LOGO_MODO preenchido a LOGO_ROTACAO é ignorada por completo. O ~/.config/meow/meow.conf dela tem LOGO_MODO=\"hora\" (linha 131) e o próprio meow.conf.exemplo entrega LOGO_MODO=\"hora\". Nem o cartão nem o \"Por quê\" (que li aberto na tela) mencionam LOGO_MODO uma única vez.",
+   "esperado": "Ou o cartão diz na cara \"quem manda hoje é LOGO_MODO=hora — esta chave só vale com LOGO_MODO vazio\" e fica desabilitado, ou ele vira parte do mesmo controle de LOGO_MODO (Hora | Rotação | Fixo), que é a chave que de fato governa. Duas chaves para a mesma decisão, em duas abas diferentes, sem nenhuma dizer qual vence.",
+   "gravidade": "quebrado",
+   "aba": "Aparência ▸ Geral (+ a barra \"Fundo\" do topo)"
+  },
+  {
+   "chave": "LOGO",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "O cartão promete \"Qual gato do acervo fica no ar\", mas com LOGO_MODO=\"hora\" (o valor dela) quem escolhe o gato do dock é LOGO_DIA/LOGO_NOITE — LOGO só entra como plano B.",
+   "evidencia": "Cliquei em \"Mimir\" no cartão LOGO (o controle responde certo: a miniatura clicada fica marcada — é o único controle desta aba que pinta bem, porque usa valorEmVigor). Só que scripts/logo.sh:432-455, no modo `hora`, faz `_quer=\"$LOGO_DIA\"`/`\"$LOGO_NOITE\"` e só cai em `\"$LOGO\"` quando esse nome não existe no acervo (\"caindo em \\\"$LOGO\\\"\"). O conf dela: LOGO_MODO=\"hora\", LOGO_DIA=\"mimir\", LOGO_NOITE=\"coquinha\", LOGO=\"coquinha\". O cartão não diz nada disso — a informação está espalhada em outra aba (\"O gato segue o relógio\").",
+   "esperado": "O cartão LOGO mostra o modo em vigor e o efeito real (\"hoje o relógio manda: mimir de dia, coquinha de noite — LOGO só vale se um desses nomes sumir do acervo\"), com atalho para trocar LOGO_MODO. Como está, ela escolhe um gato, salva, e vê outro no dock.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ Geral (+ a barra \"Fundo\" do topo)"
+  },
+  {
+   "chave": "ACCENT",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "As 12 bolinhas continuam nos hexes do flavor gravado no disco mesmo depois de escolher outro flavor — a cor oferecida não é a cor que ela vai receber.",
+   "evidencia": "Cliquei em FLAVOR=`latte` e reli os títulos das bolinhas: antes `mauve — #CBA6F7 · pink — #F5C2E7 · lavender — #B4BEFE`; depois, idênticos. No Latte o mauve é um roxo escuro, não o #CBA6F7 do Mocha. Causa: app/pagina/app.js:761 lê `ESQUEMA.chaves.find(FLAVOR).valor` (disco) em vez de valorEmVigor.",
+   "esperado": "Escolher um flavor repinta a paleta de ACCENT com as cores daquele flavor (e a tira do flavor escolhido já está desenhada logo ao lado, então a comparação fica honesta).",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ Geral (+ a barra \"Fundo\" do topo)"
+  },
+  {
+   "chave": "MODO",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O título do cartão descreve só a terceira opção — \"Auto alterna Mocha/Latte por horário\" — e nada na tela diz o que a chave faz nem o que \"Escuro\"/\"Claro\" mudam.",
+   "evidencia": "O cartão traz: código MODO, ponto de essencial, o título \"Auto alterna Mocha/Latte por horário\" e três botões [Escuro | Claro | Auto]. Abri o \"Por quê\": o texto inteiro é `# [essencial]` + `# escuro | claro | auto (auto alterna Mocha/Latte por horário)` — a frase que o servidor extrai (campo `frase`) é literalmente \"auto alterna Mocha/Latte por horário\". Ao lado, FLAVOR e ACCENT ganham títulos que descrevem a chave (\"Qual variante do Catppuccin\", \"A cor de destaque\"); MODO, que é a terceira chave essencial da aba, ganha uma frase sobre um botão só.",
+   "esperado": "Um título que diga a chave (\"Claro ou escuro em toda a máquina\") e a explicação do `auto` embaixo dos botões, onde ela é uma nota e não o nome do cartão. Como o texto sai do meow.conf.exemplo, a correção mais barata é escrever uma linha de comentário para MODO ali (o cabeçalho do arquivo já promete que o comentário é a ajuda da interface).",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ Geral (+ a barra \"Fundo\" do topo)"
+  },
+  {
+   "chave": "barra \"Fundo\" (Mocha / Vidro escuro / Vidro claro / Latte)",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "Nesta aba as quatro pílulas repintam UM elemento só (as duas miniaturas de gato do cartão LOGO, lá embaixo) — clicar nelas não muda nada nos três cartões que ficam logo abaixo delas, e a palavra \"Fundo\" não diz que a coisa é sobre ícones.",
+   "evidencia": "Medi a cada clique: `document.querySelectorAll('.opcoes-imagem, .previa-grade').length` = 1 nesta aba, e só o `background` desse container muda (Mocha rgb(30,30,46) → Vidro escuro rgb(60,61,80) → Vidro claro rgb(129,114,161) → Latte rgb(239,241,245)); o fundo dos cartões (rgb(24,24,37)) e o do body (rgb(30,30,46)) ficam iguais. A barra fica no topo (y=84), 340 px acima do cartão LOGO, que é a única coisa que ela afeta. Pior: existe uma pílula \"Latte\" ali e um botão \"latte\" no cartão FLAVOR logo abaixo, duas coisas diferentes com o mesmo nome na mesma tela.",
+   "esperado": "A tira de fundos mora junto do que ela repinta (dentro do cartão LOGO / da grade de ícones), com um rótulo que diga a pergunta que ela responde — algo como \"Ver o ícone sobre:\" em vez de \"Fundo\". Numa aba onde ela mexe em um cartão só, quatro pílulas no topo da página parecem um seletor de tema global e não são.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ Geral (+ a barra \"Fundo\" do topo)"
+  },
+  {
+   "chave": "barra \"Fundo\" — pílulas Vidro claro e Latte",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Ao pôr o gato sobre um fundo claro — que é exatamente para o que a barra existe — o nome do gato some: o rótulo continua nas cores do tema escuro.",
+   "evidencia": "Contraste medido (WCAG) do texto do botão contra o fundo real do próprio botão: Mocha 8,07:1 (Coquinha) e 9,26:1 (Mimir); Vidro escuro 5,23 / 6,00; Vidro claro 2,13 / 2,44; Latte 1,80 / 1,57. Ou seja, com \"Latte\" o rótulo `Mimir` (#BAC2DE sobre #EFF1F5) fica em 1,57:1 — praticamente invisível. Captura: /tmp/meow-trabalho A regra é a de app/pagina/estilo.css:845 (`background: var(--fundo-teste)`) sem par para a cor do texto.",
+   "esperado": "O rótulo do botão fica fora do retângulo repintado, ou a cor do texto acompanha o fundo escolhido (claro sobre Mocha/Vidro escuro, escuro sobre Vidro claro/Latte). O ponto da barra é conferir o ícone nos dois extremos; num deles não dá para ler qual gato é qual.",
+   "gravidade": "confuso",
+   "aba": "Aparência ▸ Geral (+ a barra \"Fundo\" do topo)"
+  },
+  {
+   "chave": "FLAVOR",
+   "tipo": "outro",
+   "sintoma": "Os quatro rótulos aparecem crus e em minúscula — `mocha`, `macchiato`, `frappe`, `latte` —, fora da regra que o resto da página segue.",
+   "evidencia": "Na mesma tela, MODO mostra \"Escuro / Claro / Auto\" e LOGO mostra \"Coquinha / Mimir\", porque passam por `rotuloDeValor()`. O dicionário ROTULO_DE_VALOR (app.js:126) já tem `mocha: \"Mocha\", macchiato: \"Macchiato\", frappe: \"Frappé\", latte: \"Latte\"` — inclusive o acento de Frappé —, mas `controleFlavor` (app.js:754) escreve `texto: nome` direto.",
+   "esperado": "Usar `rotuloDeValor(nome)` na tira de flavors, como todos os outros controles. O valor gravado no meow.conf continua `mocha`; muda só o que a tela escreve.",
+   "gravidade": "polimento",
+   "aba": "Aparência ▸ Geral (+ a barra \"Fundo\" do topo)"
+  },
+  {
+   "chave": "WALLPAPER_FONTES_DELA",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "Digitar um caminho e apertar Enter não cria ficha nenhuma: a caixa continua visualmente vazia, e o segundo caminho acrescentado APAGA o primeiro.",
+   "evidencia": "Aba \"Claro e escuro\", Modo seco ligado. Digitei `/home/vitoriamaria/Imagens/Parede_papel` no campo \"+ acrescentar\" e apertei Enter. O HTML da caixa depois do Enter continua `<div class=\"fichas\"><input class=\"nova\" placeholder=\"+ acrescentar\"></div>` — zero `<span class=\"ficha\">` —, mas o valor pendente foi registrado: `MUDANCAS` = [[\"WALLPAPER_FONTES_DELA\",\"/home/vitoriamaria/Imagens/Parede_papel\"]]. Em seguida digitei `/tmp/a:/tmp/b` + Enter e `MUDANCAS` virou [[\"WALLPAPER_FONTES_DELA\",\"/tmp/a:/tmp/b\"]] — o caminho anterior sumiu. Causa no código: `escolher()` (app.js:275-287) não devolve nada, então o `if (await aplica(novos.join(sep)))` do ramo de fichas (app.js:445) nunca roda `item.valor = …; desenhar()`; e o `desenhar()` lê `item.valor` (app.js:422), o valor DO DISCO, ignorando o pendente que `valorEmVigor()` guarda. O mesmo defeito derruba o × de tirar item (medido no widget irmão APPS_ATIVOS: 23 fichas antes do clique no ×, 23 depois, com MUDANCAS já marcada).",
+   "esperado": "A ficha do caminho tem que aparecer no ato, com o × para tirar, e um segundo Enter tem que ACRESCENTAR à lista (`a:b`), não substituir. Basta o ramo de fichas ler `valorEmVigor(item)` em vez de `item.valor`, e `escolher()` devolver `true`.",
+   "gravidade": "quebrado",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "Banir (botão de cada figura na sub-aba \"No carrossel\")",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "Os 46 botões \"Banir\" da galeria não chamam nada — a ação que eles pedem não existe no servidor, e o clique morre em silêncio, sem erro nem torrada.",
+   "evidencia": "Na aba \"Galeria de papéis de parede\" contei 46 figuras, cada uma com um botão \"Banir\" (não cliquei — é proibido escrever no sistema). Medi no navegador: `ESQUEMA.acoes.map(a=>a.id).filter(i=>i.startsWith('wallpaper'))` devolve apenas ['wallpaper','wallpaper_proximo','wallpaper_anterior','wallpaper_carrossel','wallpaper_aplicar','wallpaper_semear']; `ESQUEMA.acoes.find(a=>a.id==='wallpaper_banir')` devolve `undefined`. O botão chama `rodarNaGaleria(\"wallpaper_banir\", …)` (app.js:976), e a primeira linha dessa função é `const acao = ESQUEMA.acoes.find(a=>a.id===acaoId); if (!acao) return;` (app.js:1000-1002) — retorno mudo. O dicionário ACOES de app/servidor.py (linha 858 em diante) não tem a chave `wallpaper_banir`, embora o verbo exista na CLI (`bin/meow`:1672 e `cmd_banir` em scripts/wallpaper.sh:1602).",
+   "esperado": "Registrar `wallpaper_banir` em ACOES (argv `meow wallpaper banir @ARG@`, seco:True, destrutivo) para o botão de fato mover a imagem para banidos/ e a galeria recarregar; enquanto a ação não existir, o clique tem de dizer o erro em vez de não fazer nada.",
+   "gravidade": "quebrado",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "Devolver (botão de cada figura na sub-aba \"Recusadas\")",
+   "tipo": "acao-sem-efeito",
+   "sintoma": "Mesmo defeito do \"Banir\": 255 imagens recusadas, cada uma com um botão \"Devolver\" que não chama ação nenhuma.",
+   "evidencia": "Sub-aba \"Recusadas\" (contador 255), 60 figuras desenhadas por página, todas com botão \"Devolver\" e um \"Mostrar mais 60 (de 255)\" abaixo da grade. `ESQUEMA.acoes.find(a=>a.id==='wallpaper_desbanir')` devolve `undefined` no navegador; o botão chama `rodarNaGaleria(\"wallpaper_desbanir\", i.rotulo)` (app.js:969) e a função retorna em silêncio. A CLI TEM o verbo (`meow wallpaper desbanir <nome>`, bin/meow:2454), escrito em 01/09 justamente para este botão — o comentário de app.js:891-903 diz isso com todas as letras.",
+   "esperado": "Registrar `wallpaper_desbanir` em ACOES e ligar o botão. Com 255 itens paginados de 60 em 60 e sem campo de busca, ainda faria falta filtrar por nome antes de achar a imagem que se quer de volta.",
+   "gravidade": "quebrado",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "Galeria ▸ sub-abas \"Noite\" e \"Dia\"",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "As duas sub-abas mostram as imagens (25 e 21) e não oferecem botão nenhum: vê-se a imagem que se quer tirar e não há o que clicar.",
+   "evidencia": "Cliquei em \"Noite\": 25 figuras, `#conteudo .galeria figure button` = [] (nenhum botão). Cliquei em \"Dia\": 21 figuras, também []. Só \"No carrossel\" tem \"Banir\" e só \"Recusadas\" tem \"Devolver\" (app.js:963-980 só desenha ações nesses dois casos). E `ativos-noite/` e `ativos-dia/` são link duro do MESMO arquivo de `ativos/` (comentário de meow.conf.exemplo:640-646 e `_prev_paredes` em servidor.py:1241), ou seja: banir a partir dali seria a mesma operação, sobre o mesmo arquivo.",
+   "esperado": "O \"Banir\" tem de aparecer também em Noite e Dia, sobre o arquivo correspondente de `ativos/` — são as duas telas onde ela de fato repara que um papel está claro demais para a noite.",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "Galeria ▸ sub-aba \"Favoritos\"",
+   "tipo": "nao-da-para-interagir",
+   "sintoma": "A sub-aba existe, diz que está vazia, e não há em lugar nenhum da página um botão para favoritar — ela nunca vai deixar de estar vazia por dentro do painel.",
+   "evidencia": "Cliquei em \"Favoritos\": 0 figuras e a frase \"nenhum favorito ainda — a pasta favoritos/ está vazia.\" (app.js:938-939). Nenhuma das outras quatro sub-abas tem botão de favoritar (medi `#conteudo .galeria figure button` nas cinco: só 'Banir' em ativos e 'Devolver' em banidos). E o `bin/meow` não tem verbo `favoritar` — a lista de verbos aceitos é `estado|aplicar|adicionar|banir|desbanir|semear|permitir|proximo|anterior|carrossel` (bin/meow:1672).",
+   "esperado": "Ou um botão \"Favoritar\" em cada figura (com o verbo correspondente na CLI), ou a frase dizendo COMO se enche a pasta (soltar arquivo em favoritos/) — hoje a aba só informa que não tem nada e não dá saída nenhuma.",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "Galeria ▸ acrescentar imagem ao acervo",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "A galeria é a tela do acervo e não tem como PÔR uma imagem nele, embora a CLI tenha o comando.",
+   "evidencia": "Nas cinco sub-abas, os únicos botões fora da grade são o \"Mostrar mais 60 (de 255)\" (Recusadas) e nenhum nas demais — medido com `[...document.querySelectorAll('#conteudo button.btn')].filter(b=>!b.closest('figure'))`. `grep -n wallpaper_adicionar app/servidor.py` não devolve nada: o dicionário ACOES tem `wallpaper_semear` (que BAIXA DA REDE) mas não `adicionar`, apesar de `meow wallpaper adicionar <img|pasta>` existir (bin/meow:1672 e :2453).",
+   "esperado": "Um botão \"Acrescentar imagem/pasta\" no topo da galeria, ligado a `meow wallpaper adicionar`, com seletor de arquivo — é o gesto oposto do Banir e é o que ela hoje faz abrindo o gerenciador de arquivos à mão.",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "Galeria ▸ contadores das sub-abas",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Os contadores nascem em branco: a sub-aba só ganha número depois de ser aberta uma vez, e o item do menu \"Galeria de papéis de parede\" é o único do trilho sem número.",
+   "evidencia": "Ao abrir a galeria, os rótulos das sub-abas eram ['No carrossel 46','Noite','Dia','Favoritos','Recusadas'] — só a aba ativa tinha número. Depois de clicar em Noite: ['No carrossel 46','Noite 25','Dia','Favoritos','Recusadas']; depois de Dia: '…Dia 21…'; e só ao entrar em Recusadas apareceu 'Recusadas 255'. No trilho lateral, todos os grupos exibem contagem ('Geral 3', 'Claro e escuro 7', 'Folhas visuais 18') e \"Galeria de papéis de parede\" aparece sem nenhuma (app.js:1349 devolve '' para grupos do tipo galeria; app.js:925 só escreve a conta se `PREVIAS` já tiver o grupo).",
+   "esperado": "Contar as cinco pastas de uma vez ao montar a galeria (o servidor já lê as cinco em `_prev_paredes`, servidor.py:1241) e mostrar 46/25/21/0/255 desde o primeiro desenho, mais o total no item do menu.",
+   "gravidade": "polimento",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "WALLPAPER_BASE",
+   "tipo": "falta-lista-do-repo",
+   "sintoma": "Caixa de texto livre para a pasta-mãe do carrossel: sem seletor de pasta, sem as pastas que o próprio repositório conhece, e sem qualquer conferência de que o caminho existe.",
+   "evidencia": "Aba Wallpaper ▸ Geral. O controle é `<textarea aria-label=\"WALLPAPER_BASE\" placeholder=\"$HOME/.local/share/backgrounds/meowsystem\">` — nada de `list`, `datalist` ou botão de procurar. Apaguei o valor e escrevi `/nao/existe/essa/pasta`: o cartão só ganhou as classes `mexeu nao-salvo`, nenhuma mensagem apareceu, e o botão \"Salvar e aplicar\" continuou habilitado (`disabled=false`). O valor em vigor hoje é `/mnt/Apate/Desenvolvimento/MeowSystem/assets/papeis-de-parede`, que é onde estão as 46 imagens do carrossel e as 255 banidas — é DESTA chave que a galeria inteira e as prévias dependem (`_wallpaper_base()`, servidor.py:1234).",
+   "esperado": "Oferecer as candidatas que o repositório já conhece (o padrão `$HOME/.local/share/backgrounds/meowsystem` e a `assets/papeis-de-parede` do clone) como escolhas, mais um seletor de pasta; e recusar/avisar caminho inexistente antes de deixar salvar, porque salvar errado esvazia o carrossel e a galeria de uma vez.",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "WALLPAPER_INTERVALO",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O cartão explica a chave errada: o título e o \"Por quê\" inteiros são os de WALLPAPER_BASE. Nada no cartão diz que os botões 30s/5m/2h são o tempo de troca do papel de parede.",
+   "evidencia": "Aba Wallpaper ▸ Geral. O cartão traz, em cima dos botões, o título \"A pasta-mãe do carrossel\" — o mesmo do cartão vizinho WALLPAPER_BASE — e, aberto o `<details>`, o texto \"A pasta-mãe do carrossel. As quatro que importam nascem dentro dela: ativos/ … Corrigido em 08/08/2026\", que é literalmente o bloco de WALLPAPER_BASE (meow.conf.exemplo:592-596). Causa: a única linha de comentário de WALLPAPER_INTERVALO é `# 30s | 5m | 2h` (meow.conf.exemplo:597), consumida como lista de opções, e o cartão cai no parágrafo do bloco anterior.",
+   "esperado": "Quando a única linha da chave virar lista de opções, o cartão não pode herdar a prosa da chave de cima: escreva a frase da própria chave (\"de quanto em quanto tempo o carrossel troca de imagem\") e deixe o \"Por quê\" vazio, em vez de mostrar a explicação de outra chave.",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "WALLPAPER_FIXO_TTL",
+   "tipo": "controle-errado",
+   "sintoma": "Campo de texto livre para uma duração, sem unidade visível, sem exemplo de formato, e com o valor especial documentado (\"0\" = para sempre) escondido no fim de um parágrafo fechado.",
+   "evidencia": "Aba Wallpaper ▸ Geral, valor `30m` em `<input type=\"text\">`. Digitei `depois do almoco`, saí do campo: o cartão só ficou `mexeu nao-salvo`, nenhuma reclamação, e \"Salvar e aplicar\" continuou habilitado. O `\"0\" = para sempre; aí quem solta é meow wallpaper carrossel` (meow.conf.exemplo:605) só aparece expandindo o \"Por quê\". No cartão AO LADO, WALLPAPER_INTERVALO — a mesma espécie de valor — ganhou três botões (30s/5m/2h) porque o comentário dele está escrito como `a | b | c`.",
+   "esperado": "Ou botões com os degraus úteis (0/15m/30m/2h/\"para sempre\"), ou número + unidade num controle só, com o \"0 = para sempre\" dito na cara do cartão; e recusar texto que não seja duração antes de deixar salvar.",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "WALLPAPER_ORDEM",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "É o único cartão da página sem título e sem \"Por quê\": só o nome da chave e dois botões, \"Aleatória\" e \"Alfabética\", sem uma linha dizendo o que é ordenado.",
+   "evidencia": "Aba \"Os dois itens de papel de parede\". O innerText inteiro do cartão é: \"WALLPAPER_ORDEM ⏎ Aleatória ⏎ Alfabética\" — não há `h3.titulo-cartao` nem `<details class=\"porque\">`, ao contrário dos outros três cartões da aba (FILES_MENU, FILES_MENU_AUTOBUILD e WALLPAPER_AJUSTE, todos com título e \"Por quê\"). Causa: a única linha de comentário da chave é `# aleatoria | alfabetica` (meow.conf.exemplo:623), que a regra de opções consome inteira, e não sobra prosa nenhuma.",
+   "esperado": "Uma frase no cartão (\"em que ordem o carrossel percorre as imagens de ativos/\"), como todo cartão vizinho tem. Um cartão careca no meio de cartões explicados é exatamente o que ela reclamou de não conseguir entender.",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "FILES_MENU_AUTOBUILD",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Continua totalmente ativo e sem nenhuma marca depois de FILES_MENU virar \"Não\", quando não há mais nada para compilar.",
+   "evidencia": "Aba \"Os dois itens de papel de parede\", Modo seco ligado. Cliquei em \"Não\" no FILES_MENU (aria-pressed passou para Não:true). No cartão FILES_MENU_AUTOBUILD logo abaixo, medi depois do clique: botões `Sim:dis=false` / `Não:dis=false`, `aria-pressed` ainda em Sim, e `getComputedStyle(cartao).opacity` = 1 — nenhum apagamento, nenhum aviso de que a chave deixou de valer.",
+   "esperado": "Esmaecer (ou desabilitar) o cartão dependente e dizer por quê — \"só vale com FILES_MENU=sim\" —, como qualquer painel de configuração faz com opção subordinada.",
+   "gravidade": "polimento",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "WALLPAPER_NOITE_INICIO / WALLPAPER_NOITE_FIM",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Os dois cartões repetem, como título e como \"Por quê\", o bloco inteiro de WALLPAPER_NOITE; as duas regras que só existem nas linhas deles nunca aparecem. E o campo aceita ficar vazio sem dizer o que vazio significa.",
+   "evidencia": "Aba \"Claro e escuro\". Os dois cartões trazem o título \"Em 24/08/2026\" e, aberto o `<details>`, o mesmo texto do cartão WALLPAPER_NOITE (\"Em 24/08/2026, numa captura de 23:57 … DESLIGAR DESLIGA\"). Os comentários próprios — `HH:MM — a janela pode atravessar a meia-noite` e `HH:MM — início == fim = noite o dia inteiro` (meow.conf.exemplo:648-649) — não aparecem em lugar nenhum da página. Além disso, esvaziei o `<input type=\"time\">` do INÍCIO: o cartão aceitou (`mexeu nao-salvo`, MUDANCAS = [[\"WALLPAPER_NOITE_INICIO\",\"\"]]) e o cartão não tem botão \"não mexer\" (medi: nenhum `<button>` no cartão) nem frase sobre o que acontece com a janela vazia.",
+   "esperado": "Cada cartão com a sua própria frase — \"a janela pode atravessar a meia-noite\" e \"início igual ao fim = noite o dia inteiro\" — e um texto dizendo o que vale quando o campo fica vazio (ou impedir o vazio, se ele não significa nada).",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "WALLPAPER_LIMIAR_LUZ",
+   "tipo": "controle-errado",
+   "sintoma": "Campo de texto livre para um valor de escala 0–1: sem deslizante, sem os limites na tela, sem recusar valor fora da faixa, e sem mostrar a consequência, que a própria página já calcula.",
+   "evidencia": "Aba \"Claro e escuro\": `<input type=\"text\" aria-label=\"WALLPAPER_LIMIAR_LUZ\" placeholder=\"0.37\">`, valor 0.37. Digitei `5` (fora da faixa) e saí do campo: cartão só ficou `mexeu nao-salvo`, sem mensagem. O título é o fragmento \"O corte\" e o `0 = preto, 1 = branco` (meow.conf.exemplo:671) só aparece dentro do \"Por quê\". Na mesma página, LEITURA_TEXTURA — outro valor 0–1 — ganhou deslizante com número e simulação de imagem; e a galeria já sabe o efeito deste corte com o acervo de hoje: \"Noite 25\" e \"Dia 21\".",
+   "esperado": "Deslizante de 0 a 1 (passo 0,01) com o número ao lado e os extremos rotulados \"preto\"/\"branco\", e a contagem que resulta do valor escolhido (\"com 0,37: 25 na noite, 21 no dia\") — é a informação que faz a escolha ter sentido, e a página já a tem.",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "LOGO_INTERVALO",
+   "tipo": "controle-errado",
+   "sintoma": "Campo de texto livre com `1d` e nenhuma unidade, exemplo ou lista: não dá para saber se aceita `1d`, `24h`, `1440` ou `1 dia`.",
+   "evidencia": "Aba \"Claro e escuro\": `<input type=\"text\" aria-label=\"LOGO_INTERVALO\" placeholder=\"1d\">`, valor `1d`, título \"Um gato por DIA\". A linha da chave em meow.conf.exemplo:688 não traz comentário nenhum (o do ~/.config/meow/meow.conf traz só \"um gato por dia; aparece no login seguinte\"), então nada na página declara o formato aceito nem a unidade.",
+   "esperado": "Ou botões com os degraus que fazem sentido (12h · 1d · 7d), ou número + unidade em dois controles amarrados — e a frase do cartão dizendo que abaixar o número não troca o gato mais rápido na tela, que é a conclusão medida no próprio comentário.",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "WALLPAPER_NOTIFICAR",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "O cartão é explicado pelo bloco da chave de cima: título \"Um gato por DIA\" e o \"Por quê\" inteiro do LOGO_INTERVALO, falando de inotify e do applet Logo Menu — nada sobre notificação.",
+   "evidencia": "Aba \"Claro e escuro\". innerText do cartão: \"WALLPAPER_NOTIFICAR ⏎ Um gato por DIA ⏎ Sim ⏎ Não ⏎ Por quê\", e o `<details>` aberto mostra \"UM GATO POR DIA — e o número aqui não é escolha estética… O applet 'Logo Menu' resolveria isso ao vivo…\", que é o bloco de LOGO_INTERVALO (meow.conf.exemplo:674-688). O comentário próprio da chave — `# avisa qual imagem entrou` (meow.conf.exemplo:689) — é justamente a frase certa, e não aparece.",
+   "esperado": "Usar o comentário da própria linha como título do cartão (\"avisa qual imagem entrou\") e não herdar a prosa da chave anterior quando a chave tem comentário de linha próprio.",
+   "gravidade": "confuso",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "WALLPAPER_NOITE",
+   "tipo": "nao-da-para-entender",
+   "sintoma": "Desligar a noite (\"Não\") deixa as três chaves que dependem dela — INÍCIO, FIM e LIMIAR_LUZ — ativas e sem nenhuma marca de que pararam de valer.",
+   "evidencia": "Aba \"Claro e escuro\", Modo seco ligado. Cliquei em \"Não\" no WALLPAPER_NOITE e medi os cartões abaixo: WALLPAPER_NOITE_INICIO segue `input type=time` com `18:00`, `disabled=false`, opacidade do cartão 1; WALLPAPER_LIMIAR_LUZ segue com `0.37`, `disabled=false`. O próprio \"Por quê\" da chave diz que com \"nao\" a rotação volta para `ativos/` e as duas pastas derivadas somem do disco (meow.conf.exemplo:645-646), ou seja, horário e limiar deixam de ter efeito algum.",
+   "esperado": "Esmaecer os três cartões dependentes e dizer \"só vale com WALLPAPER_NOITE=sim\", para a escolha de desligar mostrar o que ela desliga.",
+   "gravidade": "polimento",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  },
+  {
+   "chave": "WALLPAPER_BASE",
+   "tipo": "outro",
+   "sintoma": "O rótulo \"padrão $HOME/.local/share/backgrounds/meowsystem\" vaza para fora do cartão e é cortado pela borda.",
+   "evidencia": "Aba Wallpaper ▸ Geral, viewport 1500×1000. Medido: o cartão vai de x=255,2 a x=651,5 e o `<span class=\"padrao\">` vai de x=380,0 a x=671,2 — 19,75 px além da borda direita, com `white-space: nowrap` e `overflow: visible`. Na captura, o texto aparece truncado exatamente na borda do cartão.",
+   "esperado": "Truncar com reticências e `title` completo, ou quebrar a linha, para o valor padrão não sair do cartão — é o cartão da chave de que a galeria inteira depende.",
+   "gravidade": "polimento",
+   "aba": "Wallpaper ▸ Geral · Os dois itens de papel de parede · Claro e escuro · Galeria de papéis de parede"
+  }
+ ]
+}
