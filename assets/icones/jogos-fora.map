@@ -14,10 +14,18 @@
 #   A pasta nunca é montada a partir desta lista: ela sai do `"installdir"` do
 #   próprio manifesto. Um appid errado aqui não acha manifesto e não apaga nada.
 #
-#   O `apagar` é PERMANENTE, do mesmo jeito que o `BANIDOS.txt` dos papéis de
-#   parede: enquanto a linha existir, aqueles arquivos não voltam a ficar no
-#   disco. **Se um dia ela reinstalar o jogo, tire a linha ANTES** — senão a
-#   passagem seguinte apaga o que a Steam acabou de baixar.
+#   O `apagar` DISPARA UMA VEZ SÓ, e ela não precisa lembrar de nada.
+#   A primeira versão deste arquivo era permanente e pedia "tire a linha antes de
+#   reinstalar". Ela recusou na hora: *"aí não. tem que ser automatico pq é fogo
+#   assim."* Uma regra que só não destrói porque alguém leu um bilhete de meses
+#   atrás não é conserto.
+#
+#   O disparo fica registrado em `~/.local/state/meowsystem/jogos-apagados`. A
+#   Steam só escreve `appmanifest_<appid>.acf` quando alguém manda instalar —
+#   então um manifesto que aparece DEPOIS do disparo é reinstalação, e nada mais.
+#   Nesse caso a linha está GASTA: o cartão volta ao lançador como o de qualquer
+#   jogo, o disco não é tocado, e o script avisa que a linha pode sair daqui.
+#   Deixá-la também não faz mal.
 #
 #   E nada é apagado com a Steam ABERTA, nem com uma biblioteca desmontada: nos
 #   dois casos a limpeza é adiada para a próxima passagem, em voz alta.
