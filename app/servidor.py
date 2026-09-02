@@ -214,6 +214,24 @@ def _e_linha_de_opcoes(linha):
     return all(RE_TOKEN_OPCAO.match(t.strip()) for t in texto.split("|") if t.strip())
 
 
+_PADROES_EXEMPLO = {}
+
+
+def _padrao_do_exemplo(chave):
+    """O valor de fábrica da chave, lido do `meow.conf.exemplo`. Com cache: esta
+    função é chamada uma vez por chave em cada leitura do esquema."""
+    if not _PADROES_EXEMPLO:
+        try:
+            with open(os.path.join(RAIZ, "meow.conf.exemplo"), encoding="utf-8") as fh:
+                for linha in fh:
+                    if RE_CHAVE.match(linha):
+                        nome = linha.split("=", 1)[0].strip()
+                        _PADROES_EXEMPLO[nome] = _valor_da_linha(linha)
+        except OSError:
+            _PADROES_EXEMPLO["__vazio__"] = ""
+    return _PADROES_EXEMPLO.get(chave, "")
+
+
 def _opcoes(chave, ajuda, inline):
     """A primeira linha, da ajuda ou do comentário de linha, que seja `a | b | c`.
 
@@ -234,10 +252,83 @@ def _opcoes(chave, ajuda, inline):
         if not tokens or any(not RE_TOKEN_OPCAO.match(t) for t in tokens):
             continue
         return tokens
-    return []
+    tabela = _opcoes_da_lista_indentada(ajuda)
+    # A TABELA SÓ É DESTA CHAVE SE O VALOR DE FÁBRICA DELA ESTIVER NA TABELA.
+    #   `FASTFETCH_LOGO_MODO` traz `espelho | hora | fixo` e nasce `espelho` — é
+    #   dele. As duas chaves logo abaixo (`_DIA`, `_NOITE`) herdam o mesmo
+    #   comentário porque não têm um próprio, e nascem VAZIAS: ganhariam três
+    #   botões de modo para escolher um NOME DE GATO.
+    #   O padrão é lido aqui dentro, e não recebido de quem chama, porque o
+    #   `tests/app.sh` compara ESTA função com o `wiz_opcoes` do bash — as duas
+    #   precisam decidir sozinhas, com a mesma informação.
+    if tabela and _padrao_do_exemplo(chave) not in tabela:
+        return []
+    return tabela
 
 
-def _opcoes_finais(chave, ajuda, inline, padrao):
+# A SEGUNDA FORMA DE LISTAR OPÇÕES NESTE ARQUIVO — e ela era invisível para a
+# página até 01/09/2026, quando ela apontou:
+#
+#   "Como o gato do dock e do terminal são escolhidos e tá escrito horas. Cara,
+#    era pra ter o que de opção ali? Se era pra ter opção pq não tem botões de
+#    escolha?"
+#
+# O `LOGO_MODO` TEM três opções, e o `meow.conf.exemplo` as lista — mas numa
+# tabela indentada, não em `a | b | c`:
+#
+#   #   hora     (padrão) LOGO_NOITE de noite, LOGO_DIA de dia...
+#   #   rotacao  gira pelo acervo ao encerrar a sessão...
+#   #   fixo     LOGO= vence sempre; nada gira, nada segue relógio.
+#
+# Como só a forma com barras era reconhecida, a chave caía em CAMPO DE TEXTO e
+# ela tinha de digitar `hora` de cabeça — numa página cujo motivo de existir é
+# não precisar decorar valor.
+#
+# A regra é derivada da FORMA, não de uma lista de chaves: três ou mais linhas
+# seguidas do comentário, todas indentadas igual, todas começando por uma
+# palavra curta em minúsculas seguida de dois ou mais espaços e uma explicação.
+# Isso é uma tabela de opções em qualquer arquivo, e é assim que este projeto
+# escreve as dele. Hoje pega `LOGO_MODO` e `FASTFETCH_LOGO_MODO`; amanhã pega a
+# próxima que nascer com a mesma cara, sem ninguém vir aqui.
+RE_OPCAO_TABELA = re.compile(r"^#(\s{2,})([a-z][a-z0-9_-]{1,14})\s{2,}\S")
+
+
+def _opcoes_da_lista_indentada(ajuda):
+    melhor = []
+    atual = []
+    recuo = None
+    for linha in ajuda.splitlines():
+        m = RE_OPCAO_TABELA.match(linha.rstrip())
+        if m and (recuo is None or len(m.group(1)) == recuo):
+            recuo = len(m.group(1))
+            atual.append(m.group(2))
+            continue
+        # Uma linha de continuação (mais indentada) não quebra a tabela: as
+        # explicações deste arquivo costumam ocupar duas linhas.
+        if atual and linha.startswith("#") and recuo and \
+                len(linha) > 1 and len(linha[1:]) - len(linha[1:].lstrip()) > recuo:
+            continue
+        if len(atual) > len(melhor):
+            melhor = atual
+        atual = []
+        recuo = None
+    if len(atual) > len(melhor):
+        melhor = atual
+    return melhor if len(melhor) >= 3 else []
+
+
+def _e_tabela(chave, ajuda, inline):
+    """As opções vieram da tabela indentada (e não de uma linha `a | b | c`)?"""
+    for linha in (ajuda.splitlines() + [inline]):
+        if "|" in linha:
+            texto = linha.lstrip("#").split("(", 1)[0]
+            tokens = [x.strip() for x in texto.split("|")]
+            if tokens and all(RE_TOKEN_OPCAO.match(x) for x in tokens if x):
+                return False
+    return bool(_opcoes_da_lista_indentada(ajuda))
+
+
+def _opcoes_finais(chave, ajuda, inline, padrao, herdada=False):
     """As opções que a página oferece, com dois ajustes sobre o que o texto diz.
 
     1. `vazio` NÃO É UM VALOR, É A AUSÊNCIA DELE
@@ -260,6 +351,19 @@ def _opcoes_finais(chave, ajuda, inline, padrao):
        nove chaves hoje, e vale sozinha para a próxima que nascer assim.
     """
     opcoes = [o for o in _opcoes(chave, ajuda, inline) if o != "vazio"]
+    # A TABELA INDENTADA SÓ DESCREVE A CHAVE SE O VALOR DE FÁBRICA ESTIVER NELA.
+    #   `FASTFETCH_LOGO_MODO` traz a tabela `espelho / hora / fixo` e nasce
+    #   `espelho` — a tabela é dele. As duas chaves logo abaixo, `_DIA` e
+    #   `_NOITE`, herdam aquele comentário porque não têm um próprio, e nascem
+    #   VAZIAS: ganhavam três botões de modo para escolher um NOME DE GATO.
+    #   Pego pelo `tests/app.sh`, que compara o que o painel lê com o que o
+    #   wizard lê. O critério é o mesmo nos dois, e não depende de saber quem
+    #   herdou o quê — só de olhar se o valor de fábrica é uma das opções.
+    #   `padrao or ""` e não `padrao and ...`: as duas chaves do caso nascem
+    #   VAZIAS, e uma condição que exige padrão preenchido as deixaria passar —
+    #   que era exatamente o defeito.
+    if opcoes and (padrao or "") not in opcoes and _e_tabela(chave, ajuda, inline):
+        return []
     if not opcoes and padrao in ("sim", "nao"):
         return ["sim", "nao"]
     return opcoes
@@ -551,13 +655,13 @@ def ler_esquema():
             #   e cairia no `*)` de qualquer `case` do projeto sem nada avisar.
             #   Aqui ele sai da lista de opções e vira o terceiro estado do
             #   controle, que é o que a prosa do arquivo quer dizer.
-            "opcoes": _opcoes_finais(chave, ajuda, inline, _valor_da_linha(linha)),
+            "opcoes": _opcoes_finais(chave, ajuda, inline, _valor_da_linha(linha), herdada),
             "faixa": _faixa_confere(_faixa(ajuda, inline), _valor_da_linha(linha)),
             # Que prévia visual esta chave merece. Deduzido do conteúdo dela —
             # ver `_tipo_de_previa`, que explica por que não há lista aqui.
             "previa": _tipo_de_previa(
                 chave,
-                _opcoes_finais(chave, ajuda, inline, _valor_da_linha(linha)),
+                _opcoes_finais(chave, ajuda, inline, _valor_da_linha(linha), herdada),
                 _faixa_confere(_faixa(ajuda, inline), _valor_da_linha(linha)),
                 _valor_da_linha(linha)),
             "ajuda_herdada": herdada,
@@ -1788,6 +1892,46 @@ class Manipulador(BaseHTTPRequestHandler):
             with open(arquivo, "rb") as fh:
                 return self._responder(fh.read(), tipo=TIPOS[".svg"])
 
+        if caminho == "/previa" and consulta.get("tipo", [""])[0] == "arquivo":
+            # SERVIR UM ARQUIVO POR CAMINHO É UMA PORTA, e ela tem cerca.
+            #   Sem a cerca, um GET forjado leria QUALQUER arquivo do disco
+            #   (`/previa?tipo=arquivo&id=/etc/shadow`). Então: caminho real
+            #   (resolvido, sem `..`), dentro de uma das duas árvores de arte
+            #   que esta página tem motivo para mostrar, e só extensão de
+            #   imagem. Fora disso é 404 — nem uma mensagem diferente, para não
+            #   virar sonda de existência de arquivo.
+            alvo_arq = os.path.realpath(consulta.get("id", [""])[0] or "")
+            # A cerca acompanha a busca do `_icone_na_tela`: são as pastas de
+            # ARTE da máquina, e nada mais. `/usr/share/pixmaps` entra porque é
+            # de lá que vem o ícone de vários aplicativos antigos.
+            permitidos = [os.path.realpath(x) for x in (
+                os.path.join(RAIZ, "assets", "icones"),
+                os.path.expanduser("~/.local/share/icons"),
+                os.path.expanduser("~/.local/share/flatpak/exports/share/icons"),
+                "/usr/share/icons",
+                "/usr/share/pixmaps",
+                "/var/lib/flatpak/exports/share/icons",
+                os.path.expanduser("~/.local/share/Steam"),
+                os.path.expanduser("~/.steam"),
+            ) if os.path.isdir(x)]
+            ok_pasta = any(alvo_arq.startswith(p + os.sep) for p in permitidos)
+            ext_arq = os.path.splitext(alvo_arq)[1].lower()
+            if not ok_pasta or ext_arq not in (".svg", ".png"):
+                return self._recusar(404, "não achei")
+            try:
+                with open(alvo_arq, "rb") as fh:
+                    dados_arq = fh.read()
+            except OSError:
+                return self._recusar(404, "não achei")
+            tipo_mime = "image/svg+xml" if ext_arq == ".svg" else "image/png"
+            self.send_response(200)
+            self.send_header("Content-Type", tipo_mime)
+            self.send_header("Content-Length", str(len(dados_arq)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(dados_arq)
+            return None
+
         if caminho == "/previa":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
@@ -1826,6 +1970,403 @@ class Manipulador(BaseHTTPRequestHandler):
                     return self._responder(fh.read(), tipo=TIPOS[raiz_ext])
         return self._recusar(404, "não existe aqui")
 
+    # ========================================================================
+    # ACRESCENTAR AO ACERVO DO REPOSITÓRIO — 01/09/2026
+    # ========================================================================
+    # Pedido dela, primeiro para os gatos e logo depois generalizado com as
+    # palavras "é esse tipo de solução pra toda aba viu?", e antes disso:
+    # "ela tem que integrar e atuar diretamente no repo local do user".
+    #
+    # A página deixa de ser só um editor de texto do `meow.conf` e passa a
+    # ALIMENTAR o repositório: o desenho novo, o papel de parede novo, o ícone
+    # novo entram pela página e caem na pasta que já é a configuração deste
+    # projeto ("soltou o arquivo, entrou").
+    #
+    # O DESTINO NÃO É ESCOLHIDO PELO NAVEGADOR. A página manda um `tipo`
+    # (`gato`, `parede`, `icone`) e o servidor resolve a pasta — se o caminho
+    # viesse no corpo, um POST forjado escreveria em qualquer lugar do disco.
+    # O nome é saneado até virar `[A-Za-z0-9._-]`, e `..` some junto.
+    #
+    # SVG PASSA PELO `normalizar_svg.py` ANTES DE ENCOSTAR NO ACERVO. É o mesmo
+    # conserto que o `logo.sh` faz: um desenho salvo no Boxy com
+    # `transform-origin` entra e não aparece na tela, e o defeito é mudo.
+    ACERVOS = {
+        "gato": {
+            "pasta": ("assets", "gatos"),
+            "extensoes": (".svg",),
+            "normaliza": True,
+            "depois": "o vigia põe o gato novo no acervo em segundos",
+        },
+        "parede": {
+            "pasta": ("assets", "papeis-de-parede", "ativos"),
+            "extensoes": (".jpg", ".jpeg", ".png", ".webp"),
+            "normaliza": False,
+            "depois": "o carrossel passa a sortear a imagem nova",
+        },
+        "icone": {
+            "pasta": ("assets", "icones", "overrides"),
+            "extensoes": (".svg",),
+            "normaliza": True,
+            "depois": "vale depois de \"Reconstruir o tema de ícones\"",
+        },
+    }
+
+    def _api_acervo(self, corpo):
+        import base64 as _b64
+        import re as _re
+
+        tipo = str(corpo.get("tipo", ""))
+        conf = self.ACERVOS.get(tipo)
+        if not conf:
+            return self._json({"erro": "acervo desconhecido"}, 400)
+
+        nome = os.path.basename(str(corpo.get("nome", "")))
+        nome = _re.sub(r"[^A-Za-z0-9._-]", "-", nome).lstrip(".-")[:80]
+        if not nome:
+            return self._json({"erro": "nome de arquivo vazio"}, 400)
+        ext = os.path.splitext(nome)[1].lower()
+        if ext not in conf["extensoes"]:
+            return self._json(
+                {"erro": "só aceito %s aqui" % ", ".join(conf["extensoes"])}, 400)
+        # A ARMADILHA DO NOME, que o `logo.sh` documenta desde 05/08: o applet do
+        # painel achata em uma cor só qualquer arquivo cujo caminho contenha
+        # `-symbolic.svg`. Um gato com esse sufixo viraria silhueta.
+        if nome.endswith("-symbolic.svg"):
+            return self._json({"erro": "nome terminado em -symbolic.svg vira silhueta"}, 400)
+
+        try:
+            dados = _b64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+        except Exception:
+            return self._json({"erro": "conteúdo não é base64"}, 400)
+        if not dados:
+            return self._json({"erro": "arquivo vazio"}, 400)
+        if len(dados) > 12 << 20:
+            return self._json({"erro": "arquivo maior que 12 MB"}, 413)
+        if ext == ".svg" and b"<svg" not in dados[:4096].lower():
+            return self._json({"erro": "isso não parece um SVG"}, 400)
+
+        destino_dir = os.path.join(RAIZ, *conf["pasta"])
+        try:
+            os.makedirs(destino_dir, exist_ok=True)
+        except OSError as e:
+            return self._json({"erro": "não consegui criar %s: %s" % (destino_dir, e)}, 500)
+        destino = os.path.join(destino_dir, nome)
+        substituiu = os.path.exists(destino)
+
+        # Escrita atômica: o `meow-assets.path` vigia esta pasta e acorda com a
+        # escrita — ele não pode encontrar meio arquivo.
+        tmp = destino + ".meow-parcial"
+        try:
+            with open(tmp, "wb") as fh:
+                fh.write(dados)
+            os.replace(tmp, destino)
+        except OSError as e:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            return self._json({"erro": "não consegui gravar: %s" % e}, 500)
+
+        normalizado = ""
+        if conf["normaliza"]:
+            script = os.path.join(RAIZ, "scripts", "normalizar_svg.py")
+            if os.path.isfile(script):
+                try:
+                    r = subprocess.run([sys.executable, script, destino],
+                                       capture_output=True, text=True, timeout=30)
+                    normalizado = (r.stdout or "").strip()
+                except Exception:
+                    normalizado = ""
+
+        return self._json({
+            "ok": True,
+            "nome": nome,
+            "destino": destino,
+            "substituiu": substituiu,
+            "normalizado": normalizado,
+            "depois": conf["depois"],
+        })
+
+    # ========================================================================
+    # OS APLICATIVOS, E O ÍCONE DE CADA UM — 01/09/2026
+    # ========================================================================
+    # Ela, olhando a aba de ícones: "naquela página de icones, cara, um dos html
+    # do a ferramenta anteriormente permitia escolher o icon pra substituir tal
+    # programa. Aqui não temos isso. Ali tá travadasso. Todo e qualquer programa
+    # com .desktop tinha que tá ali." E o princípio, logo depois: "permitir
+    # facilidade do user. pra não depender de ajuda sempre."
+    #
+    # É o pedido mais importante desta página inteira. Trocar o ícone de um
+    # aplicativo hoje exige editar `assets/icones/apps-arcticons.map` à mão,
+    # saber que o glifo tem de existir em `assets/icones/arcticons-apps/`, e
+    # rodar o construtor. Nada disso é conhecimento que ela deveria precisar ter
+    # para dizer "quero outro desenho no Telegram".
+    #
+    # O QUE ESTA ROTA DEVOLVE: todo `.desktop` da máquina, com o ícone que está
+    # NA TELA agora (o do tema instalado, não o do repositório) e a linha do
+    # mapa quando existe. A escolha dela é gravada no MAPA DO REPOSITÓRIO — é o
+    # que faz a decisão sobreviver a uma reinstalação, que é a regra desta casa:
+    # a imagem não vai para o git, a receita vai.
+    DIRS_DESKTOP = (
+        ("/usr/share/applications", "sistema"),
+        ("/usr/local/share/applications", "local"),
+        ("~/.local/share/applications", "usuária"),
+        ("/var/lib/flatpak/exports/share/applications", "flatpak"),
+        ("~/.local/share/flatpak/exports/share/applications", "flatpak"),
+        ("/var/lib/snapd/desktop/applications", "snap"),
+    )
+
+    def _desktops(self):
+        """Todo `.desktop` visível da máquina: id, nome, ícone declarado, origem."""
+        vistos = {}
+        for bruto, origem in self.DIRS_DESKTOP:
+            pasta = os.path.expanduser(bruto)
+            if not os.path.isdir(pasta):
+                continue
+            try:
+                nomes = sorted(os.listdir(pasta))
+            except OSError:
+                continue
+            for arq in nomes:
+                if not arq.endswith(".desktop"):
+                    continue
+                ident = arq[: -len(".desktop")]
+                caminho = os.path.join(pasta, arq)
+                dados = {"id": ident, "nome": ident, "icone": "", "origem": origem,
+                         "arquivo": caminho, "oculto": False}
+                try:
+                    with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
+                        em_entrada = False
+                        for linha in fh:
+                            linha = linha.strip()
+                            if linha.startswith("["):
+                                # Só a [Desktop Entry] principal conta: as ações
+                                # extras ([Desktop Action …]) têm Name e Icon
+                                # próprios e roubariam o nome do aplicativo.
+                                em_entrada = linha == "[Desktop Entry]"
+                                continue
+                            if not em_entrada:
+                                continue
+                            if linha.startswith("Name=") and dados["nome"] == ident:
+                                dados["nome"] = linha[5:].strip()
+                            elif linha.startswith("Icon="):
+                                dados["icone"] = linha[5:].strip()
+                            elif linha.startswith(("NoDisplay=", "Hidden=")):
+                                if linha.split("=", 1)[1].strip().lower() == "true":
+                                    dados["oculto"] = True
+                except OSError:
+                    continue
+                # Quem vem depois vence: o `.desktop` da usuária sobrepõe o do
+                # sistema, que é a mesma precedência que o lançador usa.
+                vistos[ident] = dados
+        return sorted(vistos.values(), key=lambda d: d["nome"].lower())
+
+    def _mapa_arcticons(self):
+        """As linhas ativas de `apps-arcticons.map`, por id de aplicativo."""
+        fora = {}
+        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
+        try:
+            with open(caminho, "r", encoding="utf-8") as fh:
+                for linha in fh:
+                    corte = linha.strip()
+                    if not corte or corte.startswith("#"):
+                        continue
+                    campos = [c.strip() for c in corte.split(":")]
+                    if len(campos) >= 3:
+                        fora[campos[0]] = {"glifo": campos[1], "cor": campos[2],
+                                           "alias": len(campos) > 3 and campos[3] == "alias"}
+        except OSError:
+            pass
+        return fora
+
+    # A ORDEM DE BUSCA É A MESMA QUE O LANÇADOR USA, e ela tem de ir até o fim:
+    # a primeira versão só olhava o NOSSO tema, então os 24 jogos da Steam e
+    # todo aplicativo que o MeowSystem ainda não veste apareciam como quadrado
+    # vazio — como se não tivessem ícone, quando têm. Um quadrado vazio numa
+    # grade de 65 diz "está quebrado", e não "este ainda não é nosso".
+    TEMAS_DE_ICONE = ("", "hicolor", "Papirus-Dark", "Papirus", "Adwaita")
+    TAMANHOS = ("scalable", "256x256", "128x128", "64x64", "48x48", "32x32", "24x24", "22x22")
+
+    def _icone_na_tela(self, d, base_tema):
+        """(caminho do ícone que aparece hoje, se é do nosso tema)."""
+        nome = d["icone"] or d["id"]
+        # 1. caminho absoluto no próprio `.desktop` — é o que a Steam faz.
+        if nome.startswith("/") and os.path.isfile(nome):
+            return nome, False
+        bases = [(base_tema, True)]
+        for raiz_icones in (os.path.expanduser("~/.local/share/icons"),
+                            "/usr/share/icons", "/var/lib/flatpak/exports/share/icons",
+                            os.path.expanduser("~/.local/share/flatpak/exports/share/icons")):
+            for tema in self.TEMAS_DE_ICONE:
+                if not tema:
+                    continue
+                bases.append((os.path.join(raiz_icones, tema), False))
+        for base, e_nosso in bases:
+            for tam in self.TAMANHOS:
+                for ext in (".svg", ".png"):
+                    cand = os.path.join(base, tam, "apps", nome + ext)
+                    if os.path.isfile(cand):
+                        return cand, e_nosso
+        for pix in ("/usr/share/pixmaps", os.path.expanduser("~/.local/share/pixmaps")):
+            for ext in (".svg", ".png", ".xpm"):
+                cand = os.path.join(pix, nome + ext)
+                if os.path.isfile(cand) and ext != ".xpm":
+                    return cand, False
+        return "", False
+
+    def _api_apps(self, consulta):
+        busca = (consulta.get("busca", [""])[0] or "").strip().lower()
+        mapa = self._mapa_arcticons()
+        tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
+        base_tema = os.path.expanduser("~/.local/share/icons/%s" % tema)
+        fora = []
+        for d in self._desktops():
+            if d["oculto"]:
+                continue
+            if busca and busca not in d["nome"].lower() and busca not in d["id"].lower():
+                continue
+            # O ícone que está NA TELA: o arquivo do tema instalado, se houver.
+            # "está instalado?" e "está na tela dela?" são perguntas diferentes,
+            # e esta página tem de responder a segunda.
+            atual, nosso = self._icone_na_tela(d, base_tema)
+            fora.append({
+                "id": d["id"], "nome": d["nome"], "icone": d["icone"],
+                "origem": d["origem"], "nosso": nosso,
+                "url": ("/previa?tipo=arquivo&id=" + quote(atual, safe="")) if atual else "",
+                "mapa": mapa.get(d["id"]) or mapa.get(d["icone"]) or None,
+            })
+        return self._json({"apps": fora, "total": len(fora)})
+
+    def _api_glifos(self, consulta):
+        """O acervo de desenhos que a página pode oferecer para um aplicativo.
+
+        Dois lugares, e a diferença importa:
+          · `arcticons-apps/` são os 39 já escolhidos e presentes no repositório;
+          · `upstream/` é o pack Arcticons inteiro (21 mil), baixado uma vez.
+        Escolher um do upstream COPIA o arquivo para `arcticons-apps/`, porque é
+        de lá que o `icones_apps_arcticons.sh` lê — a página faz o que o
+        comentário daquele script manda fazer à mão.
+        """
+        busca = (consulta.get("busca", [""])[0] or "").strip().lower()
+        limite = 60
+        fora, vistos = [], set()
+        for pasta, grupo in (("arcticons-apps", "no repositório"), ("upstream", "acervo Arcticons")):
+            raiz = os.path.join(RAIZ, "assets", "icones", pasta)
+            if not os.path.isdir(raiz):
+                continue
+            for dirpath, _, nomes in os.walk(raiz):
+                for nome in sorted(nomes):
+                    if not nome.endswith(".svg"):
+                        continue
+                    glifo = nome[:-4]
+                    if glifo in vistos:
+                        continue
+                    if busca and busca not in glifo.lower():
+                        continue
+                    vistos.add(glifo)
+                    caminho = os.path.join(dirpath, nome)
+                    fora.append({"glifo": glifo, "grupo": grupo,
+                                 "url": "/previa?tipo=arquivo&id=" + quote(caminho, safe="")})
+                    if len(fora) >= limite:
+                        return self._json({"glifos": fora, "limitado": True})
+        return self._json({"glifos": fora, "limitado": False})
+
+    def _api_app_icone(self, corpo):
+        """Grava a escolha dela no mapa do repositório — e traz o glifo junto."""
+        import re as _re
+        import shutil as _shutil
+
+        app = str(corpo.get("app", "")).strip()
+        glifo = str(corpo.get("glifo", "")).strip()
+        cor = str(corpo.get("cor", "")).strip()
+        remover = bool(corpo.get("remover"))
+        if not app or not _re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
+            return self._json({"erro": "aplicativo inválido"}, 400)
+
+        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
+        try:
+            with open(caminho, "r", encoding="utf-8") as fh:
+                linhas = fh.read().split("\n")
+        except OSError as e:
+            return self._json({"erro": "não achei o mapa: %s" % e}, 500)
+
+        def id_da_linha(l):
+            corte = l.strip()
+            if not corte or corte.startswith("#"):
+                return None
+            return corte.split(":")[0].strip()
+
+        # O ARQUIVO INTEIRO SOBREVIVE — só a linha do aplicativo muda.
+        #   A primeira versão reescrevia o mapa filtrando as linhas em branco, e
+        #   o `git diff` do teste mostrou o estrago: um arquivo de 350 linhas,
+        #   com blocos de comentário que explicam cada decisão de cor, perdeu
+        #   suas separações. Editar a configuração de alguém não é reformatar o
+        #   arquivo dela.
+        novas = list(linhas)
+        indice = next((i for i, l in enumerate(novas) if id_da_linha(l) == app), None)
+        if remover:
+            if indice is None:
+                return self._json({"ok": True, "removido": False, "app": app})
+            del novas[indice]
+            with open(caminho, "w", encoding="utf-8") as fh:
+                fh.write("\n".join(novas))
+            return self._json({"ok": True, "removido": True, "app": app})
+
+        if not _re.match(r"^[a-z0-9._-]{1,60}$", glifo):
+            return self._json({"erro": "glifo inválido"}, 400)
+        cores = set((_paleta_dados().get("ordem") or []))
+        if cores and cor not in cores:
+            return self._json({"erro": "a cor tem de ser um nome da paleta"}, 400)
+
+        # O GLIFO TEM DE EXISTIR EM `arcticons-apps/` — é de lá que o construtor
+        # lê. Se ela escolheu um do acervo grande, ele vem junto: é isso que faz
+        # a página "atuar no repositório" em vez de mandar recado.
+        destino_glifo = os.path.join(RAIZ, "assets", "icones", "arcticons-apps", glifo + ".svg")
+        copiou = False
+        if not os.path.isfile(destino_glifo):
+            achado = ""
+            up = os.path.join(RAIZ, "assets", "icones", "upstream")
+            for dirpath, _, nomes in os.walk(up):
+                if glifo + ".svg" in nomes:
+                    achado = os.path.join(dirpath, glifo + ".svg")
+                    break
+            if not achado:
+                return self._json({"erro": "não achei o desenho '%s' no acervo" % glifo}, 404)
+            try:
+                _shutil.copy2(achado, destino_glifo)
+                copiou = True
+            except OSError as e:
+                return self._json({"erro": "não consegui trazer o desenho: %s" % e}, 500)
+
+        # REPETIR GLIFO OU COR FAZ O GERADOR ESTOURAR, a menos que a linha diga
+        # `alias` — está no cabeçalho do mapa. A página não pode deixar ela cair
+        # nessa armadilha, então detecta a repetição e grava o `alias` sozinha,
+        # dizendo que fez isso.
+        mapa = self._mapa_arcticons()
+        repetido = any(m["glifo"] == glifo or m["cor"] == cor
+                       for chave, m in mapa.items() if chave != app)
+        linha = "%s:%s:%s%s" % (app, glifo, cor, ":alias" if repetido else "")
+
+        if indice is not None:
+            novas[indice] = linha
+        else:
+            # Entra junto das outras linhas ativas — depois da última — para o
+            # arquivo continuar lendo como uma lista, e não como um comentário
+            # com uma linha solta no fim.
+            ultima = max((i for i, l in enumerate(novas) if id_da_linha(l)), default=None)
+            if ultima is None:
+                novas.append(linha)
+            else:
+                novas.insert(ultima + 1, linha)
+        try:
+            with open(caminho, "w", encoding="utf-8") as fh:
+                fh.write("\n".join(novas))
+        except OSError as e:
+            return self._json({"erro": "não consegui gravar o mapa: %s" % e}, 500)
+        return self._json({"ok": True, "app": app, "glifo": glifo, "cor": cor,
+                           "alias": repetido, "trouxe_do_acervo": copiou,
+                           "depois": "vale depois de \"Reconstruir o tema de ícones\""})
+
     def do_POST(self):
         alvo = urlparse(self.path)
         consulta = parse_qs(alvo.query)
@@ -1836,7 +2377,13 @@ class Manipulador(BaseHTTPRequestHandler):
         if not self._token_confere(consulta):
             return self._recusar(403, "token de sessão ausente ou errado")
         tamanho = int(self.headers.get("Content-Length") or 0)
-        if tamanho > 1 << 20:
+        # 1 MB bastava enquanto o POST só carregava chave e valor. Desde que a
+        # página envia ARQUIVO para o acervo (um papel de parede tem 2 a 8 MB, e
+        # base64 cresce um terço), o teto sobe — mas só para essa rota. As
+        # outras continuam recusando corpo grande, que é o que impede um POST
+        # forjado de encher a memória do servidor.
+        teto = (20 << 20) if alvo.path == "/api/acervo" else (1 << 20)
+        if tamanho > teto:
             return self._recusar(413, "corpo grande demais")
         try:
             corpo = json.loads(self.rfile.read(tamanho).decode("utf-8") or "{}")
@@ -1893,6 +2440,12 @@ class Manipulador(BaseHTTPRequestHandler):
                 },
             })
 
+        if caminho == "/api/apps":
+            return self._api_apps(consulta)
+
+        if caminho == "/api/glifos":
+            return self._api_glifos(consulta)
+
         if caminho == "/api/previas":
             dados = previas(consulta.get("tipo", [""])[0],
                             consulta.get("grupo", [""])[0] or None)
@@ -1929,6 +2482,12 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": "chave fora do meow.conf.exemplo"}, 400)
             rc, saida = definir(chave, valor, seco=seco)
             return self._json({"rc": rc, "saida": saida, "chave": chave, "valor": valor})
+
+        if caminho == "/api/acervo":
+            return self._api_acervo(corpo)
+
+        if caminho == "/api/app-icone":
+            return self._api_app_icone(corpo)
 
         if caminho == "/api/rodar":
             acao = str(corpo.get("acao", ""))

@@ -42,7 +42,7 @@ LOGO="coquinha"
 LOGO_ROTACAO="nao"
 # (o LOGO_INTERVALO fica na seção de Wallpaper, junto do porquê de ser um dia)
 
-# --- O GATO SEGUE O RELÓGIO (novo em 01/09/2026) -----------------------------
+# --- ÍCONE PARA O MENU DE LANÇAMENTO -----------------------------------------
 # Como o gato do dock e o do terminal são escolhidos:
 #
 #   hora     (padrão) LOGO_NOITE de noite, LOGO_DIA de dia. A janela de noite é

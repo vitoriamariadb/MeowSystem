@@ -49,22 +49,49 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 ABRIR=1
 SO_URL=0
+PID_ARQ="$MEOW_ESTADO/app.pid"
+
 case "${1:-}" in
   --sem-abrir) ABRIR=0 ;;
   --porta-so|--porta-só) ABRIR=0; SO_URL=1 ;;
+  --parar)
+    # O painel solto precisa de uma porta para ser fechado — senão a única saída
+    # seria `pkill`, que é a ferramenta errada para um processo que a gente
+    # mesmo largou de propósito.
+    if [ -f "$PID_ARQ" ] && kill -0 "$(cat "$PID_ARQ")" 2>/dev/null; then
+      kill -TERM "$(cat "$PID_ARQ")" 2>/dev/null
+      rm -f "$PID_ARQ"
+      meow_ok "painel encerrado"
+    else
+      rm -f "$PID_ARQ"
+      meow_pula "não há painel de pé"
+    fi
+    exit 0 ;;
+  --estado)
+    if [ -f "$PID_ARQ" ] && kill -0 "$(cat "$PID_ARQ")" 2>/dev/null; then
+      meow_ok "painel de pé (pid $(cat "$PID_ARQ"))"
+    else
+      meow_pula "painel parado"
+    fi
+    exit 0 ;;
   ''|--abrir) ;;
   -h|--help)
     cat <<'FIM'
 
 app/run.sh — o painel de configuração visual do MeowSystem
 
-  ./app/run.sh              sobe o backend, abre o navegador e fica de pé
-  ./app/run.sh --sem-abrir  sobe e imprime a URL, sem abrir janela nenhuma
+  ./app/run.sh              sobe o backend, abre o navegador e DEVOLVE o terminal
+  ./app/run.sh --parar      encerra o painel que ficou de pé
+  ./app/run.sh --estado     diz se há painel de pé
+  ./app/run.sh --sem-abrir  sobe e imprime a URL, preso ao terminal (para testes)
   ./app/run.sh --porta-so   sobe, imprime a URL e sai (só para conferir)
 
 O backend escuta em 127.0.0.1, numa porta que o kernel escolhe, com um token de
-sessão sorteado a cada execução. Ele nunca é exposto à rede, e morre junto com
-este script.
+sessão sorteado a cada execução. Nunca é exposto à rede.
+
+No uso normal ele fica SOLTO: o terminal volta para você e o painel segue de pé
+até `--parar` (ou até o fim da sessão gráfica). Com `--sem-abrir` ele fica preso
+ao terminal e morre com ele — é assim que os testes o sobem e derrubam.
 
 FIM
     exit 0 ;;
@@ -170,9 +197,41 @@ if [ "$ABRIR" = "1" ]; then
   fi
 fi
 
-meow_info "Ctrl+C encerra o painel (e qualquer trabalho que estiver correndo)."
-printf '\n'
+# ============================================================================
+# O TERMINAL DELA VOLTA — 01/09/2026
+# ============================================================================
+# Pedido dela, olhando o terminal preso depois de abrir o painel: "abre essa
+# janela ao inves dela rodar em background".
+#
+# O script segurava o terminal com `wait "$PID"` e um `trap` que matava o
+# servidor na saida. Isso e o certo para `--sem-abrir` (quem chama e um teste, e
+# quer o servidor morto no fim), e e errado para o uso NORMAL: ela clica no
+# atalho do lancador ou digita `meow abrir`, e o terminal fica ocupado ate ela
+# lembrar de dar Ctrl+C.
+#
+# Entao os dois modos se separam aqui:
+#   · uso normal      -> o servidor e SOLTO (`disown`), o trap desarma, e este
+#                        script sai. Quem encerra e a propria pagina (o botao
+#                        Encerrar) ou `meow abrir --parar`.
+#   · `--sem-abrir`   -> continua preso ao terminal e morre com ele, porque e
+#                        assim que `tests/app-navegador.py` sobe e derruba o
+#                        painel sem deixar processo orfao.
+if [ "$ABRIR" = "0" ]; then
+  meow_info "Ctrl+C encerra o painel (e qualquer trabalho que estiver correndo)."
+  printf '\n'
+  # `wait` acorda no instante em que o Python cair — inclusive quando ele cai
+  # sozinho. Sem isto, fechar a aba deixaria o servidor de pé para sempre.
+  wait "$PID"
+  exit $?
+fi
 
-# `wait` acorda no instante em que o Python cair — inclusive quando ele cai
-# sozinho. Sem isto, fechar a aba deixaria o servidor de pé para sempre.
-wait "$PID"
+# O `trap` some ANTES do disown: ele é quem mataria o servidor na saída deste
+# script, e sair é exatamente o que vamos fazer agora.
+trap - EXIT INT TERM HUP
+rm -f "$TUBO"
+disown "$PID" 2>/dev/null || true
+printf '%s\n' "$PID" > "$PID_ARQ" 2>/dev/null || true
+
+meow_ok "o painel ficou de pé sozinho (pid $PID) — o terminal é seu de novo"
+meow_info "para encerrar:  meow abrir --parar"
+printf '\n'

@@ -291,9 +291,11 @@ function atualizarBarraSalvar() {
   const n = MUDANCAS.size;
   barra.hidden = n === 0;
   if (!n) return;
-  $("#salvar-conta").textContent =
-    n === 1 ? "1 escolha esperando" : `${n} escolhas esperando`;
-  $("#salvar-lista").textContent = [...MUDANCAS.keys()].join(" · ");
+  /* A lista de chaves virou `title`: no banner não há largura para ela, e o
+   * cartão de cada chave já está marcado na página. */
+  const conta = $("#salvar-conta");
+  conta.textContent = n === 1 ? "1 escolha" : `${n} escolhas`;
+  conta.title = [...MUDANCAS.keys()].join(" · ");
 }
 
 async function descartarEscolhas() {
@@ -653,8 +655,76 @@ function controleImagem(item, tipo, aplica) {
     botao.append(elemento("span", { texto: rotuloDeValor(opcao) }));
     caixa.append(botao);
   }
-  pintar(item.valor ?? "");
-  return caixa;
+  pintar(valorEmVigor(item));
+  const add = tipo === "gato" ? botaoAcervo("gato", async () => {
+    await carregarPrevias("gato", null, true);
+    render();
+  }) : null;
+  return add ? elemento("div", { class: "com-acervo" }, [caixa, add]) : caixa;
+}
+
+/* ===========================================================================
+ * ACRESCENTAR AO ACERVO — o mesmo botão para todo acervo do repositório
+ * ===========================================================================
+ * "ela tem que integrar e atuar diretamente no repo local do user", e depois:
+ * "é esse tipo de solução pra toda aba viu?".
+ *
+ * Um só componente, três acervos (gato, papel de parede, ícone). Ele não
+ * escolhe pasta nenhuma: manda o TIPO, e o servidor resolve o destino — a
+ * página nunca soube, e não deve saber, onde ficam as pastas do repositório.
+ *
+ * O SVG que entra por aqui passa pelo `normalizar_svg.py` do lado de lá, que é
+ * o mesmo conserto que o `logo.sh` faz: um desenho salvo no Boxy com
+ * `transform-origin` entra e simplesmente não aparece na tela. */
+const ACERVO_ACEITA = {
+  gato: { aceita: ".svg,image/svg+xml", rotulo: "Adicionar gato" },
+  parede: { aceita: "image/jpeg,image/png,image/webp", rotulo: "Adicionar imagem" },
+  icone: { aceita: ".svg,image/svg+xml", rotulo: "Adicionar ícone" },
+};
+
+function botaoAcervo(tipo, aoEntrar) {
+  const conf = ACERVO_ACEITA[tipo];
+  if (!conf) return null;
+  const campo = elemento("input", {
+    type: "file", accept: conf.aceita, hidden: true,
+    onchange: async () => {
+      const arq = campo.files && campo.files[0];
+      campo.value = "";
+      if (!arq) return;
+      botao.disabled = true;
+      const antes = botao.textContent;
+      botao.textContent = "Enviando…";
+      try {
+        const b64 = await new Promise((ok, falha) => {
+          const leitor = new FileReader();
+          leitor.onerror = () => falha(new Error("não consegui ler o arquivo"));
+          leitor.onload = () => ok(String(leitor.result).split(",")[1] || "");
+          leitor.readAsDataURL(arq);
+        });
+        const r = await api("/api/acervo", {
+          method: "POST",
+          body: JSON.stringify({ tipo, nome: arq.name, conteudo: b64 }),
+        });
+        if (r.erro) { torrada(r.erro, "erro"); return; }
+        torrada(
+          `${r.nome} entrou no acervo${r.substituiu ? " (substituiu o anterior)" : ""}`
+          + (r.normalizado ? " — e foi normalizado para o painel desenhar" : ""),
+          "ok");
+        if (aoEntrar) await aoEntrar();
+      } catch (e) {
+        torrada(String(e.message || e), "erro");
+      } finally {
+        botao.disabled = false;
+        botao.textContent = antes;
+      }
+    },
+  });
+  const botao = elemento("button", {
+    type: "button", class: "btn btn-acervo",
+    texto: conf.rotulo,
+    onclick: () => campo.click(),
+  });
+  return elemento("div", { class: "acervo-add" }, [botao, campo]);
 }
 
 /* --- amostras de flavor --------------------------------------------------- */
@@ -817,6 +887,206 @@ function gradeDeIcones(limite = 24) {
   return grade;
 }
 
+
+/* ===========================================================================
+ * OS APLICATIVOS E SEUS ÍCONES — a aba que ela cobrou
+ * ===========================================================================
+ * "naquela página de icones, cara, um dos html do a ferramenta anteriormente permitia
+ *  escolher o icon pra substituir tal programa. Aqui não temos isso. Ali tá
+ *  travadasso. Todo e qualquer programa com .desktop tinha que tá ali."
+ * E o princípio, que vale para esta aba e para as próximas:
+ * "permitir facilidade do user. pra não depender de ajuda sempre."
+ *
+ * Cada aplicativo da máquina, com o ícone que está NA TELA agora. Trocar é
+ * escolher um desenho e uma cor; a escolha é gravada no
+ * `assets/icones/apps-arcticons.map` DO REPOSITÓRIO — é o que faz ela
+ * sobreviver a uma reinstalação, e é o que "atuar no repo local" quer dizer.
+ * O desenho escolhido, se ainda não estava no repositório, vem junto do acervo
+ * Arcticons (21 mil) para `assets/icones/arcticons-apps/`. */
+let APPS = null;
+let APPS_BUSCA = "";
+let APP_ABERTO = null;
+let GLIFOS = { termo: null, itens: [], carregando: false };
+
+async function carregarApps() {
+  const r = await api("/api/apps");
+  APPS = r.erro ? { apps: [], total: 0 } : r;
+  render();
+}
+
+async function carregarGlifos(termo) {
+  if (GLIFOS.termo === termo && !GLIFOS.carregando) return;
+  GLIFOS = { termo, itens: [], carregando: true };
+  const r = await api(`/api/glifos?busca=${encodeURIComponent(termo || "")}`);
+  GLIFOS = { termo, itens: r.glifos || [], carregando: false, limitado: r.limitado };
+  render();
+}
+
+function montarApps() {
+  const caixa = elemento("div");
+  if (!APPS) {
+    carregarApps();
+    caixa.append(elemento("p", { class: "sem-previa", texto: "Lendo os aplicativos…" }));
+    return caixa;
+  }
+
+  const filtro = elemento("input", {
+    type: "search", class: "busca-apps", value: APPS_BUSCA,
+    placeholder: "Filtrar aplicativo…", "aria-label": "Filtrar aplicativo",
+    oninput: (e) => { APPS_BUSCA = e.target.value; render(); },
+  });
+  caixa.append(elemento("div", { class: "linha-filtro" }, [
+    filtro,
+    elemento("span", { class: "frase nota-secao",
+      texto: `${APPS.total} aplicativos com .desktop nesta máquina.` }),
+  ]));
+
+  const termo = semAcento(APPS_BUSCA.trim());
+  const lista = (APPS.apps || []).filter((a) =>
+    !termo || semAcento(a.nome).includes(termo) || semAcento(a.id).includes(termo));
+
+  const grade = elemento("div", { class: "grade-apps" });
+  for (const a of lista) {
+    const fig = elemento("button", {
+      type: "button",
+      class: "app" + (APP_ABERTO === a.id ? " aberto" : ""),
+      title: `${a.id}  ·  ${a.origem}`,
+      onclick: () => {
+        APP_ABERTO = APP_ABERTO === a.id ? null : a.id;
+        /* A busca começa pelo nome do aplicativo — é o palpite certo na maioria
+         * das vezes ("Telegram" acha `telegram`). Quando não acha nada, o
+         * `montarEscolhaDeIcone` cai para o acervo do repositório, para a
+         * fileira nunca abrir vazia. */
+        if (APP_ABERTO) carregarGlifos(a.nome.split(/\s+/)[0].toLowerCase());
+        render();
+      },
+    }, [
+      a.url
+        ? elemento("img", { src: a.url, alt: "", loading: "lazy" })
+        : elemento("div", { class: "lugar", style: "width:40px;height:40px;border-radius:8px" }),
+      elemento("span", { class: "app-nome", texto: a.nome }),
+      /* A etiqueta diz o ESTADO, em uma palavra: a cor quando o app já está no
+       * nosso mapa, "de fábrica" quando o ícone que aparece é o que veio com
+       * ele. Sem isso, os dois casos são visualmente iguais e ela não sabe
+       * onde ainda há trabalho. */
+      a.mapa
+        ? elemento("span", { class: "app-marca", texto: a.mapa.cor })
+        : elemento("span", { class: "app-marca app-fabrica",
+                             texto: a.nosso ? "nosso" : "de fábrica" }),
+    ]);
+    grade.append(fig);
+    if (APP_ABERTO === a.id) grade.append(montarEscolhaDeIcone(a));
+  }
+  caixa.append(grade);
+  return caixa;
+}
+
+function montarEscolhaDeIcone(app) {
+  const painel = elemento("div", { class: "escolha-icone" });
+  painel.append(elemento("h3", { class: "titulo-cartao", texto: `Ícone de ${app.nome}` }));
+
+  const busca = elemento("input", {
+    type: "search", value: GLIFOS.termo || "",
+    placeholder: "Buscar desenho no acervo Arcticons…",
+    "aria-label": "Buscar desenho",
+    oninput: (e) => carregarGlifos(e.target.value.trim().toLowerCase()),
+  });
+  painel.append(busca);
+
+  let escolhido = app.mapa ? app.mapa.glifo : null;
+  let corEscolhida = app.mapa ? app.mapa.cor : ((ESQUEMA.paleta.ordem || [])[0] || "mauve");
+
+  const tiraGlifos = elemento("div", { class: "tira-glifos" });
+  const pintarGlifos = () => {
+    for (const b of tiraGlifos.querySelectorAll("button")) {
+      b.setAttribute("aria-pressed", String(b.dataset.glifo === escolhido));
+    }
+  };
+  if (GLIFOS.carregando) {
+    tiraGlifos.append(elemento("p", { class: "sem-previa", texto: "Procurando…" }));
+  } else if (!GLIFOS.itens.length) {
+    tiraGlifos.append(elemento("p", { class: "sem-previa",
+      texto: "Nenhum desenho com esse nome — mostrando o acervo do repositório." }));
+    if (GLIFOS.termo) carregarGlifos("");
+  }
+  for (const g of GLIFOS.itens) {
+    tiraGlifos.append(elemento("button", {
+      type: "button", "data-glifo": g.glifo, title: `${g.glifo} — ${g.grupo}`,
+      "aria-pressed": String(g.glifo === escolhido),
+      onclick: () => { escolhido = g.glifo; pintarGlifos(); },
+    }, [
+      elemento("img", { src: g.url, alt: "", loading: "lazy" }),
+      elemento("span", { texto: g.glifo }),
+    ]));
+  }
+  painel.append(tiraGlifos);
+
+  const cores = elemento("div", { class: "cores-grade" });
+  /* `ordem` e não `ordem_canonica`: o nome errado deixava a fileira de cores
+   * VAZIA — o painel abria sem como escolher cor, e nada avisava. Visto ao
+   * testar no navegador, contando os botões: zero. */
+  const flavorAtual = (ESQUEMA.chaves.find((k) => k.chave === "FLAVOR") || {}).valor || "mocha";
+  for (const nome of (ESQUEMA.paleta.ordem || [])) {
+    const hex = ((ESQUEMA.paleta.flavors || {})[flavorAtual] || {})[nome];
+    cores.append(elemento("button", {
+      type: "button", "data-cor": nome, title: nome,
+      "aria-pressed": String(nome === corEscolhida),
+      style: hex ? `background:${hex}` : "",
+      onclick: () => {
+        corEscolhida = nome;
+        for (const b of cores.querySelectorAll("button")) {
+          b.setAttribute("aria-pressed", String(b.dataset.cor === corEscolhida));
+        }
+      },
+    }));
+  }
+  painel.append(elemento("div", { class: "rotulo-mini", texto: "Cor" }));
+  painel.append(cores);
+
+  const acoes = elemento("div", { class: "escolha-botoes" });
+  acoes.append(elemento("button", {
+    type: "button", class: "btn btn-accent", texto: "Usar este ícone",
+    onclick: async () => {
+      if (!escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }
+      const r = await api("/api/app-icone", {
+        method: "POST",
+        body: JSON.stringify({ app: app.id, glifo: escolhido, cor: corEscolhida }),
+      });
+      if (r.erro) { torrada(r.erro, "erro"); return; }
+      torrada(
+        `${app.nome}: ${escolhido} em ${corEscolhida}`
+        + (r.trouxe_do_acervo ? " — o desenho entrou no repositório" : "")
+        + (r.alias ? " (marcado como alias: o desenho ou a cor já eram de outro app)" : ""),
+        "ok");
+      APP_ABERTO = null;
+      await carregarApps();
+    },
+  }));
+  if (app.mapa) {
+    acoes.append(elemento("button", {
+      type: "button", class: "btn", texto: "Tirar do mapa",
+      onclick: async () => {
+        const r = await api("/api/app-icone", {
+          method: "POST", body: JSON.stringify({ app: app.id, remover: true }),
+        });
+        if (r.erro) { torrada(r.erro, "erro"); return; }
+        torrada(`${app.nome} saiu do mapa — volta para o ícone de fábrica`, "ok");
+        APP_ABERTO = null;
+        await carregarApps();
+      },
+    }));
+  }
+  acoes.append(botaoAcervo("icone", async () => { await carregarApps(); }));
+  acoes.append(elemento("button", {
+    type: "button", class: "btn", texto: "Reconstruir o tema",
+    title: "A escolha só aparece na tela depois disto",
+    onclick: () => rodarAcao("icones_reconstruir"),
+  }));
+  painel.append(acoes);
+  painel.append(elemento("p", { class: "frase",
+    texto: "A escolha é gravada em assets/icones/apps-arcticons.map, no repositório." }));
+  return painel;
+}
 
 /* --- a galeria de papéis de parede ---------------------------------------- */
 /* É O CASO DE USO MAIS VISUAL DO PROJETO, e era o que ela fazia à mão: abrir a
@@ -1276,9 +1546,12 @@ function botaoTrilho(g, filho, rotulo) {
  *   `/api/previas`. Um zero ao lado de 46 fotos é pior que nenhum número: diz à
  *   pessoa que não há nada ali, justamente na seção mais visual da página. */
 function contaDoGrupo(g) {
-  if (g.tipo !== "galeria") return String(g.itens.length);
-  const lista = PREVIAS.get("parede/" + ABA_GALERIA);
-  return lista ? String(lista.itens.length) : "";
+  if (g.tipo === "galeria") {
+    const lista = PREVIAS.get("parede/" + ABA_GALERIA);
+    return lista ? String(lista.itens.length) : "";
+  }
+  if (g.tipo === "apps") return APPS ? String(APPS.total) : "";
+  return String(g.itens.length);
 }
 
 function render() {
@@ -1311,6 +1584,7 @@ function render() {
                                    texto: encurtar(g.nome) }));
     }
     if (g.tipo === "folhas") { alvo.append(montarFolhas(g.itens)); continue; }
+    if (g.tipo === "apps") { alvo.append(montarApps()); continue; }
     if (g.tipo === "galeria") { alvo.append(montarGaleria()); continue; }
     /* A grade de ícones abre a seção de ícones: uma grade para o grupo inteiro,
      * e não uma miniatura repetida dentro de cada cartão. O que ela mostra é o
@@ -1464,6 +1738,7 @@ async function iniciar() {
   /* A galeria é um grupo do trilho como os outros — ela não é uma chave do
    * meow.conf, é o acervo em si, que neste projeto É a configuração ("soltou o
    * arquivo, entrou; apagou, saiu"). */
+  GRUPOS.push({ tipo: "apps", nome: "Ícone de cada aplicativo", itens: [] });
   GRUPOS.push({ tipo: "galeria", nome: "Galeria de papéis de parede", itens: [] });
 
   GRUPOS_VISUAIS = new Set(

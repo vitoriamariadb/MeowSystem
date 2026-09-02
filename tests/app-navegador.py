@@ -127,6 +127,9 @@ def main():
             pag.on("console", lambda m: (
                 m.type == "error"
                 and "Failed to load resource" not in m.text
+                # `Failed to fetch` no fim é a página pedindo algo enquanto o
+                # teste já derrubou o servidor — teardown, não defeito.
+                and "Failed to fetch" not in m.text
                 and erros_de_console.append(m.text)))
             pag.on("pageerror", lambda e: erros_de_console.append(str(e)))
             pag.goto(url, wait_until="networkidle")
@@ -262,7 +265,12 @@ def main():
             pag.locator("#conteudo .acao, #conteudo .cartao",
                         has_text="Estado da máquina").locator("button").first.click()
             saida = ""
-            for _ in range(20):
+            # PACIÊNCIA DE 25 s, e não de 10: o `meow status` consulta systemd,
+            # cosmic-randr e o tema inteiro. Numa máquina ocupada — foi o caso
+            # em 01/09/2026, com nove frentes de auditoria rodando junto — ele
+            # passa de dez segundos, e o teste reprovava uma ação que estava
+            # certa.
+            for _ in range(50):
                 pag.wait_for_timeout(500)
                 saida = pag.locator(".gaveta, .saida, pre").first.inner_text()
                 if len(saida) > 200:

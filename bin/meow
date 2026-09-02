@@ -1908,6 +1908,35 @@ wiz_opcoes() {
     done < <(printf '%s' "$l" | tr '|' '\n')
     [ -n "$saida" ] && { printf '%s' "$saida"; return 0; }
   done <<< "$ajuda"$'\n'"$inline"
+
+  # A SEGUNDA FORMA DE LISTAR OPÇÕES NESTE ARQUIVO — 01/09/2026.
+  #   Nem toda chave escreve `a | b | c`. Várias listam em TABELA INDENTADA:
+  #
+  #     #   hora     (padrão) LOGO_NOITE de noite, LOGO_DIA de dia...
+  #     #   rotacao  gira pelo acervo ao encerrar a sessão...
+  #     #   fixo     LOGO= vence sempre.
+  #
+  #   Só a forma com barras era reconhecida, então o `LOGO_MODO` chegava aqui
+  #   sem opção nenhuma e o wizard pedia para DIGITAR `hora`. Palavras dela, ao
+  #   ver o mesmo defeito na página: "era pra ter o que de opção ali? Se era pra
+  #   ter opção pq não tem botões de escolha?".
+  #
+  #   A GUARDA É O VALOR DE FÁBRICA. Duas chaves logo abaixo de uma tabela
+  #   herdam o comentário do bloco (`FASTFETCH_LOGO_DIA` e `_NOITE`, que querem
+  #   um NOME DE GATO) — e ganhariam três botões de modo. Se o valor de fábrica
+  #   da chave não está na tabela, a tabela não é dela. O `app/servidor.py` usa
+  #   exatamente este critério, e o `tests/app.sh` compara os dois.
+  #   `grep -P` e não `awk`: o `match($0, //, m)` com terceiro argumento é
+  #   extensão do gawk, e num sistema com mawk ele falha CALADO — o wizard
+  #   voltaria a não achar tabela nenhuma e o `tests/app.sh` acusaria a
+  #   divergência sem dizer por quê. Pego assim mesmo, na primeira rodada.
+  local tabela padrao_bruto
+  tabela="$(printf '%s\n' "$ajuda" \
+    | grep -oP '^#\s{2,}\K[a-z][a-z0-9_-]{1,14}(?=\s{2,}\S)' 2>/dev/null || true)"
+  [ "$(printf '%s' "$tabela" | grep -c .)" -ge 3 ] || return 0
+  padrao_bruto="$(wiz_valor_da_linha "$(wiz_linha_da_chave "$chave" "$CONF_PADRAO")")"
+  printf '%s\n' "$tabela" | grep -qxF -- "$padrao_bruto" || return 0
+  printf '%s' "$tabela"
   return 0
 }
 
