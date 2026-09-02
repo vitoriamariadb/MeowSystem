@@ -37,11 +37,36 @@
 #   Um Post-Invoke que sai != 0 faz o `apt` terminar em erro. Ver o cabeçalho do
 #   `99-meow-lancador`.
 
+# ============================================================================
+# SÃO DOIS ALVOS DESDE 02/09/2026, E O SEGUNDO CHEGOU TARDE
+# ============================================================================
+#   O `apt full-upgrade` de `set 2 15:21:34` atualizou o pacote `code` e devolveu
+#   `Name=Visual Studio Code` ao `/usr/share/applications/code.desktop`. O hook
+#   rodou — e reaplicou só o `NoDisplay`, porque era só isso que ele conhecia. O
+#   nome curto ("VS Code") ficou esperando o `meow-doctor.timer` das 05:00, que
+#   não conserta nomes de /usr/share por decisão registrada (o conserto usa sudo
+#   e o doctor nunca usa).
+#
+#   `ocultar_apps.sh` e `nomes_apps.sh` escrevem no MESMO diretório, pelo MESMO
+#   motivo, e são desfeitos pelo MESMO evento. Ter um no gatilho e o outro não
+#   era um descuido, não uma escolha.
+#
+#   O `--so-sistema` NÃO É OPCIONAL AQUI. Sem ele o `nomes_apps.sh` também
+#   passaria pelos `.desktop` do home dela — e este processo é root, então o
+#   `meow_escrever` (temporário + rename) deixaria os arquivos com dono
+#   root:root. É a armadilha 3 do bloco acima, vista de outro ângulo.
+#
+# O CÓDIGO DE SAÍDA É DOBRADO, com a mesma regra do `scripts/apos_flatpak.sh`:
+#   2 vence tudo · 1 vence 0 · 0 só sobrevive se ninguém consertou nada.
+#   Sem dobrar, um `ocultar` que consertou (1) seguido de um `nomes` já correto
+#   (0) perderia o chown e a linha de log — justamente na vez que importava.
+
 ACERVO="@ACERVO@"
 USUARIA="@USUARIA@"
 LAR="@LAR@"
 
 ALVO="$ACERVO/scripts/ocultar_apps.sh"
+ALVO_NOMES="$ACERVO/scripts/nomes_apps.sh"
 ESTADO="$LAR/.local/state/meowsystem"
 LOG="$ESTADO/apt-lancador.log"
 
@@ -74,6 +99,23 @@ export HOME MEOW_ESTADO
 
 saida="$("$ALVO" 2>&1)"
 rc=$?
+
+# O segundo alvo: o `Name=` curto dos `.desktop` do apt. Ausente não é falha —
+# um repositório mais velho que esta mudança simplesmente não tem o arquivo, e
+# quebrar o `apt` dela por isso seria desproporcional.
+if [ -x "$ALVO_NOMES" ]; then
+  saida_nomes="$("$ALVO_NOMES" --so-sistema 2>&1)"
+  rc_nomes=$?
+  saida="$saida${saida_nomes:+ | $saida_nomes}"
+  # A dobra: 2 vence tudo, 1 vence 0.
+  case "$rc_nomes" in
+    2) rc=2 ;;
+    1) [ "$rc" = 2 ] || rc=1 ;;
+    3) ;;
+    0) ;;
+    *) rc=2 ;;
+  esac
+fi
 
 # 0 = já estava oculto · 1 = divergia e foi reaplicado · o resto é problema.
 # Só o 1 justifica mexer em dono de arquivo e só o 1 vale uma linha de log com
