@@ -53,6 +53,10 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 APPS="$HOME/.local/share/applications"
 HICOLOR="$HOME/.local/share/icons/hicolor"
+# A lista de appids que ficam fora do lançador mesmo tendo manifesto. O porquê
+# de ela existir — e por que não dá para deduzir o caso dela — está no cabeçalho
+# do próprio mapa.
+MEOW_JOGOS_FORA="${MEOW_JOGOS_FORA:-$RAIZ/assets/icones/jogos-fora.map}"
 STEAM="$HOME/.steam/steam"
 CACHE="$STEAM/appcache/librarycache"
 LIBVDF="$STEAM/steamapps/libraryfolders.vdf"
@@ -104,6 +108,27 @@ arte_do_jogo() {
     [ -n "$f" ] && { printf '%s\n' "$f"; return 0; }
   done
   return 1
+}
+
+# 0 = está na lista de fora. O mapa é relido a cada consulta, e não carregado num
+# array: são poucas linhas, e é a mesma disciplina do `meow_nome_do_mapa` — lista
+# em memória global envelhece sem avisar.
+jogo_fora() {
+  [ -f "$MEOW_JOGOS_FORA" ] || return 1
+  awk -F: -v id="$1" '
+    /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+    $1 == id { achou = 1; exit }
+    END { exit !achou }
+  ' "$MEOW_JOGOS_FORA"
+}
+
+# O motivo, para a linha de log dizer POR QUE aquele jogo não está na tela.
+jogo_fora_motivo() {
+  [ -f "$MEOW_JOGOS_FORA" ] || return 1
+  awk -F: -v id="$1" '
+    /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+    $1 == id { sub(/^[^:]*:[[:space:]]*/, ""); print; exit }
+  ' "$MEOW_JOGOS_FORA"
 }
 
 capa_vertical() {
@@ -181,7 +206,7 @@ EOF_ESCADA
 
 # --- 1. os jogos, dos manifestos para o lançador ------------------------------
 
-mudou=0; jogos=0; ferramentas=0; ausentes=0; escritos=0
+mudou=0; jogos=0; ferramentas=0; ausentes=0; escritos=0; fora=0; fora_notas=""
 vivos=""
 
 while IFS= read -r lib; do
@@ -198,6 +223,23 @@ while IFS= read -r lib; do
     nome="$(awk -F'"' '/"name"/{print $4; exit}' "$m")"
     [ -n "$id" ] && [ -n "$nome" ] || continue
     case "$id" in ''|*[!0-9]*) continue ;; esac
+
+    # A LISTA DE FORA VEM ANTES DE TUDO — e não entra em `vivos` de propósito.
+    #   Não somar o appid ali é o que faz a limpeza da seção 2 APAGAR o cartão
+    #   que já existia, em vez de apenas parar de criá-lo. Uma linha nova no mapa
+    #   tira o jogo da tela dela na mesma passagem; apagar a linha o traz de
+    #   volta. Sem isso, o mapa só valeria para jogo que ainda não tem cartão.
+    if jogo_fora "$id"; then
+      fora=$((fora + 1))
+      # A NOTA NÃO SAI AQUI, E É A MESMA ARMADILHA DAS FERRAMENTAS
+      #   O `meow doctor` mostra só a PRIMEIRA linha de cada verificador. Um
+      #   `meow_info` dentro do laço vira a linha da tabela e some com os 22
+      #   jogos — foi o que aconteceu em 10/08/2026 com a nota das ferramentas.
+      #   Por isso a frase é guardada e entregue pelo `trap ... EXIT`, depois do
+      #   veredito.
+      fora_notas="$fora_notas${fora_notas:+$'\n'}$nome (appid $id) — $(jogo_fora_motivo "$id")"
+      continue
+    fi
 
     if ! capa_vertical "$id" && ! algum_icone_da_steam "$id"; then
       ferramentas=$((ferramentas + 1))
@@ -402,7 +444,21 @@ fi
 #   — número certo, coisa errada, e nenhum sinal dos 21 jogos. O `trap ... EXIT`
 #   entrega a mesma frase depois de qualquer um dos quatro vereditos, sem
 #   repeti-la nos quatro nem mexer nos `exit` que carregam o código de retorno.
-[ "$ferramentas" -gt 0 ] && trap 'meow_info "$ferramentas ferramenta(s) da Steam (Proton, runtimes) fora do lançador, de propósito"' EXIT
+#   UM TRAP SÓ, DUAS NOTAS. `trap ... EXIT` chamado duas vezes SUBSTITUI o
+#   anterior — dois `trap` aqui fariam a segunda nota apagar a primeira em
+#   silêncio, que é pior do que não ter nota nenhuma.
+_notas_finais() {
+  [ "$ferramentas" -gt 0 ] &&
+    meow_info "$ferramentas ferramenta(s) da Steam (Proton, runtimes) fora do lançador, de propósito"
+  if [ "$fora" -gt 0 ]; then
+    meow_info "$fora jogo(s) fora do lançador pelo assets/icones/jogos-fora.map:"
+    printf '%s\n' "$fora_notas" | while IFS= read -r n; do
+      [ -n "$n" ] && meow_info "  $n"
+    done
+  fi
+  return 0
+}
+{ [ "$ferramentas" -gt 0 ] || [ "$fora" -gt 0 ]; } && trap _notas_finais EXIT
 
 if [ "$jogos" -eq 0 ]; then
   meow_pula "a Steam está instalada mas nenhum jogo instalado tem manifesto — nada a criar"
