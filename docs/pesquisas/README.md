@@ -1,7 +1,6 @@
 # Pesquisas — o material bruto, para não se perder
 
-Cada arquivo aqui é o retorno **íntegro** de uma investigação multi-frente: o
-diagnóstico, as evidências com comando e saída, e as refutações adversariais que
+Cada arquivo aqui é o retorno **íntegro** de uma investigação: o diagnóstico, as evidências com comando e saída, e as refutações adversariais que
 tentaram derrubar cada conclusão. Nada foi resumido nem editado.
 
 Está versionado por um motivo prático: uma investigação destas custa horas de
@@ -18,6 +17,9 @@ precisa estar em algum lugar que não seja uma conversa perdida.
 | `2026-08-29-sliders-modo-leitura.json` | Como dar slider de temperatura e de textura (o "Modo de leitura" do HyperOS) valendo a quente, e o agendamento por horário |
 | `2026-08-29-modo-leitura-e-botoes.md` | **Comece por aqui** para os dois assuntos acima: o plano executável, o shader final e o cartão de recuperação por TTY |
 | `2026-08-29-modo-leitura.html` | **Abra com duplo clique.** Duas abas: o applet funcionando (roda o HUNK B do shader de verdade, em WebGL) e a folha dos ícones (13 desenhados, 8 de pé, com os mortos e o porquê). Offline, sem servidor |
+| `2026-09-01-auditoria-painel.json` | A página de configuração percorrida num navegador real, aba a aba: **120 achados**, 40 deles quebrados |
+| `2026-09-01-correcao-painel.json` | As três correções em paralelo (servidor, conf de exemplo, testes) e a conferência de cada uma |
+| `2026-09-02-validacao-painel.json` | A validação depois do conserto: **244 recursos exercidos**, 169 funcionando |
 
 ## Como ler
 
@@ -42,3 +44,28 @@ trabalho está em [`docs/SPRINTS.md`](../SPRINTS.md) — **não** em `docs/sprin
 que tem um arquivo só, de 05/08, e não é o caminho vivo. Aqui fica o rascunho, com os
 erros dentro — inclusive uma atribuição minha que era correlação lida como causa,
 e que a refutação derrubou.
+
+## As três de setembro, e por que vieram em série
+
+Ela olhou a página do `app/` e disse duas coisas no mesmo fôlego: *"o layout tá
+totalmente sem simetria"* e *"eu realmente não sei se ele funciona de fato"*. A
+primeira metade se resolve olhando. A segunda, não.
+
+**1. Auditoria.** A página inteira percorrida num Chromium headless, com o modo
+seco ligado, clicando em cada controle de cada aba. Todo achado marcado como
+quebrado passou por uma **conferência independente**, feita com a ordem de
+tentar REFUTAR — e de refutar na dúvida, porque alarme falso manda consertar o
+que não está quebrado. Sobraram 120, e a lista virou o plano.
+
+**2. Correção.** Três frentes em paralelo, cada uma em **um arquivo diferente**
+para não colidirem: o servidor, o `meow.conf.exemplo` e os testes. Cada entrega
+foi conferida contra o diff, sem confiar no relato de quem a escreveu — e uma
+delas foi reprovada, com duas regressões que só apareceram assim.
+
+**3. Validação.** A mesma disciplina, agora perguntando "funciona?" em vez de
+"está errado?". 244 recursos exercidos, um a um, cada quebrado reproduzido do
+zero antes de virar tarefa.
+
+**O que isso ensinou, e vale além desta página:** o que uma passagem relata como
+quebrado sobrevive menos da metade das vezes a uma segunda tentando reproduzir.
+A conferência independente não é zelo — é o que separa achado de palpite.

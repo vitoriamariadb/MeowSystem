@@ -26,11 +26,12 @@ O QUE ELE FAZ, E O QUE NAO FAZ
   botao funciona e um teste que nao pode rodar duas vezes.
 
 A AUDITORIA DE 01/09/2026, E O BURACO QUE ELA ABRIU NESTE ARQUIVO
-  Cinquenta e um frentes usaram a pagina num navegador de verdade e voltaram com
-  120 achados. Quarenta deles estavam em recursos que ESTE arquivo dava por
-  bons: ele passava com 34 verificacoes no verde enquanto clicar num flavor
-  deixava a marcacao no flavor antigo, tirar uma ficha de app nao tirava nada da
-  tela e 46 botoes da galeria chamavam uma acao que o servidor nao tem.
+  A pagina foi percorrida inteira num navegador de verdade, aba a aba, e a
+  varredura voltou com 120 achados. Quarenta deles estavam em recursos que
+  ESTE arquivo dava por bons: ele passava com 34 verificacoes no verde
+  enquanto clicar num flavor deixava a marcacao no flavor antigo, tirar uma
+  ficha de app nao tirava nada da tela e 46 botoes da galeria chamavam uma
+  acao que o servidor nao tem.
 
   A causa e uma so, e vale para todo teste de tela: ele conferia que a pagina
   RESPONDE, e nao que ela responde CERTO. "A barra do Salvar apareceu" e uma
@@ -315,7 +316,7 @@ def main():
             # UMA CHAVE SEM CARTAO E UMA CHAVE QUE ELA NAO PODE CONFIGURAR.
             #   O resumo do topo conta 95 chaves lidas; isto confere que as 95
             #   chegaram a ALGUMA aba. Uma chave que o servidor le e a pagina
-            #   nao desenha e a definicao de "depender de IA sempre".
+            #   nao desenha e a definicao de "depender de ajuda sempre".
             sem_cartao = sorted(k["chave"] for k in chaves if k["chave"] not in censo)
             checa(not sem_cartao,
                   f"as {len(chaves)} chaves do esquema têm cartão em alguma aba"
@@ -653,7 +654,7 @@ def main():
             saida = ""
             # PACIÊNCIA DE 25 s, e não de 10: o `meow status` consulta systemd,
             # cosmic-randr e o tema inteiro. Numa máquina ocupada — foi o caso
-            # em 01/09/2026, com nove frentes de auditoria rodando junto — ele
+            # em 01/09/2026, durante a auditoria da pagina — ele
             # passa de dez segundos, e o teste reprovava uma ação que estava
             # certa.
             for _ in range(50):

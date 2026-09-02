@@ -42,7 +42,7 @@
 #      02:11:37  gravado `false`         -> 6 s depois a topbar mostrava "25 de ago., 02:11"
 #      02:13:06  gravado `true` de volta -> 2 s depois a topbar mostrava "02:13:08"
 #
-#    Capturas comparadas com `captura-de-tela.sh`, sem reiniciar NADA — nem
+#    Capturas de tela comparadas uma a uma, sem reiniciar NADA — nem
 #    `cosmic-panel`, nem `cosmic-comp`, nem a sessão.
 #
 #    A ARMADILHA: O MECANISMO **NÃO** É O INOTIFY DO APPLET.

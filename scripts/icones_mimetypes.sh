@@ -4,8 +4,8 @@
 # POR QUE ESTE SCRIPT EXISTE, E POR QUE ELE NÃO MEXE EM ÍCONE DE APLICATIVO
 #   Ela mandou usar `catppuccin/vscode-icons` em vez dos ícones autorais que o
 #   projeto desenhava. O pack é ótimo e tem os quatro flavors — mas ele é de
-#   LINGUAGEM E FORMATO DE ARQUIVO, não de aplicativo. Medido duas vezes, por um
-#   frente e depois por mim, com o mesmo resultado:
+#   LINGUAGEM E FORMATO DE ARQUIVO, não de aplicativo. Medido duas vezes, em
+#   passagens separadas, com o mesmo resultado:
 #
 #       nomes de ícone que os .desktop desta máquina pedem ......... 50
 #       cobertos pelo pack .......................................... 1  (vscode)

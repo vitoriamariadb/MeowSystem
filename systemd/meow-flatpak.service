@@ -49,7 +49,7 @@
 #   texto diz a única coisa que ela precisa saber e que não é óbvia: o item da
 #   bandeja nasce quando o APLICATIVO abre e publica o raster no D-Bus, então o
 #   desenho novo só aparece quando o ZapZap for fechado e aberto de novo. Sem
-#   essa frase, o sintoma seria "o a ferramenta disse que consertou e continua igual".
+#   essa frase, o sintoma seria "o script disse que consertou e continua igual".
 #
 # NÃO REINICIAMOS NADA
 #   Nem `cosmic-panel`, nem `cosmic-session`. Derrubar o painel para encurtar a

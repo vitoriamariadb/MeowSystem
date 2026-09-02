@@ -13,9 +13,9 @@ justifica sozinho**.
 
 Saíram do repositório em 05/08/2026, junto da decisão de publicar:
 
-- **`PROMPT-a ferramenta-CODE.md`** — o prompt de partida da primeira sessão. Cumpriu
-  o papel; manter um prompt de bootstrap num repositório publicado só confunde
-  quem chega.
+- **`ESPECIFICACAO-DE-PARTIDA.md`** — o documento de arranque, escrito antes da
+  primeira linha de código. Cumpriu o papel; manter um documento de arranque no
+  repositório só confunde quem chega.
 - **`meowsystem-inventario-20260804-1252.md`** (188 KB) — o inventário da
   máquina. É **regenerável** a qualquer momento por
   `scripts/coleta-meowsystem.sh`, e um inventário congelado envelhece mal:

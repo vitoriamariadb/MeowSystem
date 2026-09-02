@@ -1053,7 +1053,7 @@ function gradeDeIcones(limite = 24) {
 /* ===========================================================================
  * OS APLICATIVOS E SEUS ÍCONES — a aba que ela cobrou
  * ===========================================================================
- * "naquela página de icones, cara, um dos html do a ferramenta anteriormente permitia
+ * "naquela página de icones, cara, uma das telas antigas permitia
  *  escolher o icon pra substituir tal programa. Aqui não temos isso. Ali tá
  *  travadasso. Todo e qualquer programa com .desktop tinha que tá ali."
  * E o princípio, que vale para esta aba e para as próximas:
