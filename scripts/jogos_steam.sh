@@ -122,14 +122,48 @@ jogo_fora() {
   ' "$MEOW_JOGOS_FORA"
 }
 
+# A AÇÃO DA LINHA: `esconder` (padrão) ou `apagar`.
+#   O segundo campo é OPCIONAL, e é assim de propósito. Uma linha de duas partes
+#   — `<appid>:<motivo>` — continua valendo e continua significando a coisa mais
+#   fraca: tirar da tela e não encostar no disco. Só quem escreve a palavra
+#   `apagar` autoriza `rm -rf` em 2,4 G, e ela fica visível na linha, não numa
+#   flag em outro arquivo.
+jogo_fora_acao() {
+  [ -f "$MEOW_JOGOS_FORA" ] || { printf 'esconder'; return 1; }
+  awk -F: -v id="$1" '
+    /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+    $1 == id {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2)
+      print ($2 == "apagar" ? "apagar" : "esconder"); achou = 1; exit
+    }
+    END { if (!achou) print "esconder" }
+  ' "$MEOW_JOGOS_FORA"
+}
+
 # O motivo, para a linha de log dizer POR QUE aquele jogo não está na tela.
+# Pula o campo da ação quando ele existe — senão o aviso sairia com um "apagar:"
+# grudado na frente da frase.
 jogo_fora_motivo() {
   [ -f "$MEOW_JOGOS_FORA" ] || return 1
   awk -F: -v id="$1" '
     /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
-    $1 == id { sub(/^[^:]*:[[:space:]]*/, ""); print; exit }
+    $1 == id {
+      campo = 2
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2)
+      if ($2 == "apagar" || $2 == "esconder") campo = 3
+      linha = $campo
+      for (i = campo + 1; i <= NF; i++) linha = linha ":" $i
+      gsub(/^[[:space:]]+/, "", linha)
+      print linha; exit
+    }
   ' "$MEOW_JOGOS_FORA"
 }
+
+# A Steam ABERTA reescreve manifesto e reabre arquivos do jogo a qualquer
+# momento — inclusive baixando de novo o que acabamos de apagar. Apagar debaixo
+# dela é como trocar o pneu com o carro andando: pode dar certo, e quando não dá,
+# o estrago é uma biblioteca meio apagada.
+steam_rodando() { pgrep -x steam >/dev/null 2>&1; }
 
 capa_vertical() {
   find "$CACHE/$1" -type f \( -name library_capsule.jpg -o -name library_600x900.jpg \) 2>/dev/null | grep -q .
@@ -434,6 +468,106 @@ else
   fi
 fi
 
+# --- 2b. os arquivos em disco dos appids marcados `apagar` --------------------
+#
+# POR QUE ISTO É SEGURO SENDO UM `rm -rf`
+#   A pasta NUNCA é montada a partir do mapa. Ela sai do `"installdir"` do
+#   próprio `appmanifest_<appid>.acf`, colada em `<biblioteca>/steamapps/common/`.
+#   Um appid errado na lista não acha manifesto e não apaga nada; um `installdir`
+#   com barra, `.` ou `..` é recusado antes de virar caminho. O mapa escolhe QUAL
+#   jogo; quem diz ONDE ele mora é a Steam.
+#
+# A ORDEM É PASTA E DEPOIS MANIFESTO, E ISSO NÃO É DETALHE
+#   O manifesto é a ÚNICA coisa que sabe o nome da pasta. Apagado primeiro, uma
+#   queda de energia no meio deixaria 2,4 G num diretório que ninguém mais sabe
+#   associar a nada. Na ordem certa, o pior caso é um manifesto sobrando — que a
+#   passagem seguinte encontra e termina.
+#
+# É PERMANENTE, COMO O `BANIDOS.txt` DOS PAPÉIS DE PAREDE
+#   Enquanto a linha estiver no mapa, toda passagem garante que aqueles arquivos
+#   não estão no disco. Se ela reinstalar o jogo um dia, TEM DE TIRAR A LINHA
+#   antes — senão a próxima passagem apaga o que a Steam acabou de baixar. Está
+#   dito no cabeçalho do mapa, e o aviso abaixo repete na hora em que acontece.
+apagados=0
+if [ "$fora" -eq 0 ]; then
+  :
+elif [ "$ausentes" -gt 0 ]; then
+  meow_info "biblioteca desmontada nesta rodada — limpeza de arquivos de jogo adiada de propósito"
+elif steam_rodando; then
+  meow_info "Steam aberta — a limpeza dos arquivos de jogo fica para a próxima passagem"
+else
+  while IFS= read -r lib; do
+    [ -n "$lib" ] || continue
+    [ -d "$lib/steamapps" ] || continue
+    for m in "$lib"/steamapps/appmanifest_*.acf; do
+      [ -e "$m" ] || continue
+      id="$(awk -F'"' '/"appid"/{print $4; exit}' "$m")"
+      case "$id" in ''|*[!0-9]*) continue ;; esac
+      jogo_fora "$id" || continue
+      [ "$(jogo_fora_acao "$id")" = "apagar" ] || continue
+
+      instal="$(awk -F'"' '/"installdir"/{print $4; exit}' "$m")"
+      pasta=""
+      case "$instal" in
+        ''|.|..|*/*) : ;;   # nome de pasta que não é nome de pasta: não vira caminho
+        *) [ -d "$lib/steamapps/common/$instal" ] && pasta="$lib/steamapps/common/$instal" ;;
+      esac
+
+      if meow_seco; then
+        [ -n "$pasta" ] && meow_muda "apagaria $pasta ($(du -sh "$pasta" 2>/dev/null | cut -f1))"
+        meow_muda "apagaria $m"
+        mudou=1
+        continue
+      fi
+
+      if [ -n "$pasta" ]; then
+        tam="$(du -sh "$pasta" 2>/dev/null | cut -f1)"
+        if rm -rf -- "$pasta"; then
+          meow_ok "apagados os arquivos de $instal (${tam:-?}) — $lib/steamapps/common/"
+          apagados=$((apagados + 1)); mudou=1
+        else
+          meow_aviso "não consegui apagar $pasta — o manifesto fica, para a próxima passagem terminar"
+          continue
+        fi
+      fi
+
+      if rm -f -- "$m"; then
+        [ -n "$pasta" ] || meow_ok "apagado o manifesto órfão do appid $id (a pasta já não existia)"
+        mudou=1
+      else
+        meow_aviso "não consegui apagar $m"
+      fi
+    done
+  done < <(bibliotecas)
+
+  [ "$apagados" -gt 0 ] && \
+    meow_info "se algum dia ela reinstalar, tire a linha do assets/icones/jogos-fora.map ANTES — senão a passagem seguinte apaga o download"
+fi
+
+# --- 2c. o PRÓXIMO caso: avisar, e nunca apagar por conta própria -------------
+#
+# A Steam não guarda em arquivo nenhum "esta conta perdeu a licença deste app" —
+# medido em 02/09/2026: manifesto, libraryfolders.vdf e localconfig.vdf continuam
+# todos dizendo "instalado". O único lugar onde aquilo aparece é o log do
+# cliente, na forma `RequestingLicense` -> `AppError_5`.
+#
+# POR QUE ISSO SÓ AVISA
+#   A MESMA linha sai com a Steam em modo offline, com a sessão caída e com
+#   licença de família em uso por outra pessoa. Apagar cartão — ou pior, 2,4 G —
+#   a partir dela seria o script punindo uma queda de rede. Então ele aponta, diz
+#   a data, e a decisão continua sendo dela, numa linha do mapa.
+sem_licenca=""
+for _log in "$STEAM/logs/console_log.txt" "$STEAM/logs/console_log.previous.txt"; do
+  [ -r "$_log" ] || continue
+  while IFS= read -r _id; do
+    case "$_id" in ''|*[!0-9]*) continue ;; esac
+    jogo_fora "$_id" && continue                     # ela já decidiu sobre este
+    printf '%s' "$vivos" | grep -qx "$_id" || continue  # não tem cartão: nada a dizer
+    case " $sem_licenca " in *" $_id "*) continue ;; esac
+    sem_licenca="${sem_licenca:+$sem_licenca }$_id"
+  done < <(grep -h 'AppError_5' "$_log" 2>/dev/null | grep -oE 'AppID [0-9]+' | awk '{print $2}' | sort -u)
+done
+
 # --- 3. o veredito ------------------------------------------------------------
 
 # A NOTA DAS FERRAMENTAS SAI POR ÚLTIMO, E É POR CAUSA DA TABELA DO `meow doctor`
@@ -456,9 +590,15 @@ _notas_finais() {
       [ -n "$n" ] && meow_info "  $n"
     done
   fi
+  if [ -n "$sem_licenca" ]; then
+    meow_aviso "a Steam recusou licença (AppError_5) para: $sem_licenca"
+    meow_info "  o cartão continua na tela porque o manifesto diz 'instalado' — pode ser só sessão caída ou modo offline"
+    meow_info "  se for definitivo (demo retirada da loja), ponha no assets/icones/jogos-fora.map:"
+    meow_info "    <appid>:apagar:<o motivo, com a data>   — tira da tela E limpa o disco"
+  fi
   return 0
 }
-{ [ "$ferramentas" -gt 0 ] || [ "$fora" -gt 0 ]; } && trap _notas_finais EXIT
+{ [ "$ferramentas" -gt 0 ] || [ "$fora" -gt 0 ] || [ -n "$sem_licenca" ]; } && trap _notas_finais EXIT
 
 if [ "$jogos" -eq 0 ]; then
   meow_pula "a Steam está instalada mas nenhum jogo instalado tem manifesto — nada a criar"
