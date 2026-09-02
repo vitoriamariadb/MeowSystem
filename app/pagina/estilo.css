@@ -1165,3 +1165,23 @@ html, body { overflow-x: clip; }
 .com-acervo { display: flex; flex-direction: column; gap: .6rem; align-items: flex-start; }
 
 .app-fabrica { color: var(--overlay0); }
+
+/* As folhas viraram cartoes-link: o nome legivel em cima, o arquivo embaixo. */
+.grade-folhas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  gap: .8rem;
+}
+a.folha {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  padding: .85rem .95rem;
+  border: 1px solid var(--surface0);
+  border-radius: 10px;
+  background: var(--mantle);
+  color: var(--text);
+  text-decoration: none;
+}
+a.folha:hover { border-color: var(--accent); }
+a.folha .oque { font-size: .72rem; color: var(--overlay1); }

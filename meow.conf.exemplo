@@ -21,7 +21,17 @@ FLAVOR="mocha"
 # mauve | pink | lavender | blue | sapphire | sky | teal | green | yellow | peach | maroon | red
 ACCENT="mauve"
 
-# [essencial]
+# [essencial] Claro ou escuro em toda a máquina. O FLAVOR acima diz QUAL escuro
+# (mocha, macchiato, frappe); esta diz SE a máquina veste claro ou escuro, e
+# `auto` entrega a decisão ao relógio.
+#
+# A CHAVE NÃO TINHA UMA LINHA DE EXPLICAÇÃO, E O CARTÃO FICAVA COM A DA OPÇÃO
+#   Até 02/09/2026 o único texto aqui era a lista de valores. A página e o
+#   `meow configurar` tiram o título e o "Por quê" do PRIMEIRO parágrafo do
+#   comentário, e o que sobrava era o aparte entre parênteses: o cartão se
+#   chamava "Auto alterna Mocha/Latte por horário" — a descrição da TERCEIRA
+#   opção no lugar do nome da chave, com "Escuro" e "Claro" ao lado sem uma
+#   palavra dizendo o que mudam.
 # escuro | claro | auto   (auto alterna Mocha/Latte por horário)
 MODO="escuro"
 
@@ -238,7 +248,23 @@ ESCALA_TELA=""
 # antiga não é apagada, então o `meow doctor` passa a conferir a nova e a
 # velha fica no disco até você removê-la à mão.
 NOME_TEMA_ICONES="MeowSystem-Icons"
+
+# De qual tema instalado o nosso HERDA o que ele não desenha. Vira o `Inherits=`
+# do index.theme, e todo ícone que falta no MeowSystem sai daí — apontar para um
+# tema claro clareia justamente o que ficou de fora, e nada mais.
+#
+# ESTA CHAVE E A DE BAIXO NÃO TINHAM COMENTÁRIO PRÓPRIO — corrigido em 02/09/2026
+#   Estavam coladas na `NOME_TEMA_ICONES`, sem linha em branco entre elas, e
+#   quem lê uma chave sem comentário lê o comentário da chave de cima: os TRÊS
+#   cartões apareciam em fila com o mesmo título ("O nome do tema de ícones que
+#   este projeto constrói e instala em ~/.local/share/icons/") e o mesmo "Por
+#   quê", que explicava uma chave que não era a delas. O `meow configurar` fazia
+#   igual. O conserto é o branco e o parágrafo: cada uma diz o que faz.
 ICONES_BASE="Papirus-Dark"        # tema herdado como fallback
+
+# A cor das PASTAS comuns, pintada pelo `papirus-folders`. Deixe escrito com
+# `${FLAVOR}` e `${ACCENT}` em vez do nome já expandido: assim trocar o flavor lá
+# em cima repinta as pastas na mesma passagem, sem ninguém voltar aqui.
 ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 
 # O flavor dos ÍCONES DE TIPO DE ARQUIVO, do pack `catppuccin/vscode-icons` —
@@ -332,6 +358,20 @@ FORMA_DOCK_SOLTO="sim"            # sim | nao
 FORMA_PAINEL_ILHA="nao"           # sim | nao
 FORMA_DOCK_ILHA="nao"             # sim | nao  <- ver o aviso acima
 
+# Quatro medidas em pixels, uma para o painel e outra para a dock: a margem da
+# borda, o raio dos cantos, o espaço entre applets e o recheio de dentro. Vazio
+# = o MeowSystem não toca.
+#
+# A FAIXA DE CADA UMA ESTÁ NO COMENTÁRIO DA PRÓPRIA LINHA, E ISSO É O CONTROLE
+#   A página e o `meow configurar` derivam o controle do texto: onde há uma
+#   faixa declarada de cara (`80..900` da MIDIA_LARGURA, `1000–6500` da
+#   temperatura) nasce um deslizante; onde não há, nasce campo de texto livre.
+#   Até 02/09/2026 estas oito não declaravam nada, e as oito apareciam como
+#   caixinha vazia para digitar um número de cabeça — sem unidade na tela e sem
+#   nada segurando o valor que apaga a barra. A faixa mora no comentário DE
+#   LINHA, e não neste bloco, porque o bloco é um só para as oito e cada uma tem
+#   a sua.
+#
 # AS QUATRO ABAIXO TÊM SLIDER NA GUI, E POR ISSO NASCEM VAZIAS (26/08/2026)
 #   `margin`, `border_radius`, `spacing` e `padding` são ajustáveis no COSMIC
 #   Tweaks (o flatpak `dev.edfloreshz.CosmicTweaks`, que declara
@@ -357,16 +397,27 @@ FORMA_DOCK_ILHA="nao"             # sim | nao  <- ver o aviso acima
 #   a conta. Nesta máquina dá 22 no painel e 32 no dock.
 #   Com `patches/cosmic-comp-raio-clampado.patch` EM EXECUÇÃO não há teto: o
 #   compositor reduz o canto em vez de derrubar o cliente, e o raio é todo seu.
-FORMA_MARGEM_PAINEL=""
-FORMA_MARGEM_DOCK=""
-FORMA_RAIO_PAINEL=""
-FORMA_RAIO_DOCK=""
-FORMA_ESPACO_PAINEL=""
-FORMA_ESPACO_DOCK=""
-FORMA_RECHEIO_PAINEL=""
-FORMA_RECHEIO_DOCK=""
+#
+#   POR ISSO A FAIXA DAS DUAS LINHAS DE RAIO É ESSE TETO, E NÃO UM NÚMERO REDONDO
+#   `0 a 22` no painel e `0 a 32` na dock é onde o deslizante da página termina —
+#   arrastar até o fim não pode ser um gesto que apaga a barra dela. Não é trava:
+#   escrever um número maior à mão continua possível, e o `forma.sh` avisa e
+#   CORTA (ou segue, se o compositor estiver clampado). Se o `meow painel teto`
+#   passar a dizer outro número — outra escala, outro `size`, outro applet mais
+#   alto —, é ESTE comentário que envelheceu, e é ele que se corrige.
+FORMA_MARGEM_PAINEL=""            # 0 a 24 px  (o quanto o painel descola da borda)
+FORMA_MARGEM_DOCK=""              # 0 a 24 px  (o quanto a dock descola da borda)
+FORMA_RAIO_PAINEL=""              # 0 a 22 px  (o teto desta máquina; acima disso a barra some)
+FORMA_RAIO_DOCK=""                # 0 a 32 px  (o teto desta máquina; acima disso a barra some)
+FORMA_ESPACO_PAINEL=""            # 0 a 24 px  (folga entre um applet e o vizinho)
+FORMA_ESPACO_DOCK=""              # 0 a 24 px  (folga entre um applet e o vizinho)
+FORMA_RECHEIO_PAINEL=""           # 0 a 16 px  (folga interna; cada px sobe a barra em 2)
+FORMA_RECHEIO_DOCK=""             # 0 a 16 px  (folga interna; cada px sobe a barra em 2)
 
 # --- O TAMANHO POR SEGMENTO DA BARRA ----------------------------------------
+# O tamanho de cada segmento da barra, um por um: o MEIO e as duas PONTAS.
+# Vazio = aquele segmento herda o tamanho da barra inteira.
+#
 # ESTAS SEIS CHAVES FALTAVAM AQUI, E ISSO É O DEFEITO QUE ESTE ARQUIVO MAIS FAZ
 #   Elas existem no `forma.sh` desde 25/08/2026 e nunca chegaram ao exemplo.
 #   Quem lesse este arquivo concluiria que o tamanho da barra é um só — que é
@@ -374,8 +425,21 @@ FORMA_RECHEIO_DOCK=""
 #   bloco. Postas aqui em 27/08/2026, com o padrão que o script já usa (vazio).
 #
 # A GUI DE CONFIGURAÇÕES NÃO EXPÕE ISTO. Ela oferece UM tamanho para a barra
-# inteira; estas chaves separam o MEIO das duas PONTAS. Valores: vazio (herda o
-# tamanho da barra) | XS | S | M | L | XL.
+# inteira; estas chaves separam o MEIO das duas PONTAS. Os degraus são cinco, e
+# só eles: XS, S, M, L e XL — ou vazio, que herda o tamanho da barra.
+#
+# OS CINCO DEGRAUS FICAM NO COMENTÁRIO DE CADA LINHA, E NÃO AQUI — 02/09/2026
+#   A página e o `meow configurar` viram botões de escolha quando acham uma
+#   lista `a | b | c`; até hoje a linha acima escrevia os degraus junto com a
+#   palavra `vazio` e uma explicação no meio, o que não é lista de valores e é
+#   descartado inteiro (um token com espaço derruba a linha, dos dois lados).
+#   As seis caíam em campo de texto livre, e a auditoria digitou `XG`, `l` e
+#   `64`: os três foram aceitos calados, para o `forma.sh:528` recusar depois.
+#   Como este bloco é UM para as seis e o wizard do `bin/meow` não herda
+#   comentário de vizinha, a lista tem de morar no comentário DE LINHA de cada
+#   chave — é o único lugar que a página e o wizard leem igual.
+#   MAIÚSCULAS de propósito: o `_tam` do `forma.sh` só aceita `XS|S|M|L|XL`, e
+#   uma lista em minúsculas daria botões que gravam valor recusado.
 #
 # O QUE CADA SEGMENTO HOSPEDA no dock desta máquina:
 #   ala inicial  o Botão da Biblioteca — o gato que abre o lançador
@@ -392,12 +456,12 @@ FORMA_RECHEIO_DOCK=""
 # MEXER AQUI RESPAWNA OS APPLETS. As chaves entram no `must_recreate` do daemon
 # (junto com `size`, `spacing` e `plugins_*`): vale na hora, sem tocar na sessão,
 # mas a barra PISCA — ao contrário do raio e da margem, que trocam sem piscar.
-FORMA_CENTRO_PAINEL=""
-FORMA_CENTRO_DOCK=""
-FORMA_ALA_INICIAL_PAINEL=""
-FORMA_ALA_FINAL_PAINEL=""
-FORMA_ALA_INICIAL_DOCK=""
-FORMA_ALA_FINAL_DOCK=""
+FORMA_CENTRO_PAINEL=""            # XS | S | M | L | XL   (o meio do painel de cima)
+FORMA_CENTRO_DOCK=""              # XS | S | M | L | XL   (o meio da dock: os aplicativos)
+FORMA_ALA_INICIAL_PAINEL=""       # XS | S | M | L | XL   (a ponta esquerda do painel)
+FORMA_ALA_FINAL_PAINEL=""         # XS | S | M | L | XL   (a ponta direita do painel)
+FORMA_ALA_INICIAL_DOCK=""         # XS | S | M | L | XL   (a ponta esquerda da dock: o gato)
+FORMA_ALA_FINAL_DOCK=""           # XS | S | M | L | XL   (a ponta direita: bandeja, rede, desligar)
 
 # --- AS JANELAS LADO A LADO (o "fibonacci") ---------------------------------
 # Em 25/08/2026 ela pediu o layout dwindle do Hyprland — cada janela nova parte
@@ -424,6 +488,21 @@ FORMA_ALA_FINAL_DOCK=""
 # E o motivo mais simples de "apertei e nada aconteceu" continua valendo para os
 # dois escopos: COM UMA JANELA SÓ na tela, lado a lado é idêntico a maximizado.
 JANELAS_TILING="sim"              # sim | nao | vazio (vazio = não toca)
+
+# O escopo do lado a lado: em quais workspaces ele passa a valer.
+#
+#   global     vale em todo workspace, inclusive nos que já existem — medido:
+#              186.699 pixels mudaram na tela, na hora, sem reiniciar nada.
+#   workspace  cada workspace guarda o seu, e a chave só vale para workspace
+#              NOVO. Ligar com este escopo muda ZERO pixel agora.
+#
+# NÃO HÁ TERCEIRO ESTADO AQUI, E O BLOCO DE CIMA FAZIA PARECER QUE HAVIA
+#   Esta linha vinha colada na `JANELAS_TILING`, sem comentário próprio, e
+#   herdava o bloco dela — que declara o terceiro estado ("não mexer") da OUTRA
+#   chave. A página lia aquilo como se valesse também aqui e desenhava um
+#   terceiro botão; o `janelas.sh:224` traduz linha em branco para `global`, ou
+#   seja, o contrário do que o botão prometia. Esta chave tem duas palavras e
+#   mais nada. Corrigido em 02/09/2026.
 JANELAS_TILING_ESCOPO="global"    # global | workspace
 
 # --- O MODO DE LEITURA, E O RELÓGIO QUE O LIGA SOZINHO ----------------------
@@ -490,8 +569,8 @@ LEITURA_AGENDA="sim"              # sim | nao | vazio (vazio = não toca)
 #   noite é "depois do início OU antes do fim". Início == fim vale o dia inteiro.
 #   É a MESMA regra do carrossel de papel de parede (WALLPAPER_NOITE_* abaixo);
 #   duas definições de noite na mesma máquina seria pedir para elas discordarem.
-LEITURA_HORARIO_INICIO="18:00"    # HH:MM — só vale até o applet gravar o dele
-LEITURA_HORARIO_FIM="07:00"       # HH:MM — idem
+LEITURA_HORARIO_INICIO="18:00"    # HH:MM  (a que horas a tela esquenta)
+LEITURA_HORARIO_FIM="07:00"       # HH:MM  (a que horas ela volta ao normal)
 
 # A TEMPERATURA DA NOITE, em Kelvin. A faixa é 1000–6500, inteira: foi decisão
 # dela em 29/08/2026 ("se é um slider por que não dá pra comportar todos?"), e
@@ -540,6 +619,8 @@ LEITURA_TEMPERATURA="3500"        # 1000–6500 K (6500 = neutro = desligado)
 # applet guardou quando ela soltou o slider; esta só entra quando aquele falta.
 LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
 
+# Quantos minutos a virada leva para chegar ao valor cheio. `0` é o degrau seco.
+#
 # A VIRADA: SECA OU RAMPA? Também é sua, e também está em aberto no plano.
 #   0     virada SECA: às 18:00 o degrau salta de uma vez.
 #   N     rampa de N minutos, um passo por minuto, DEPOIS da hora: às 18:00 começa
@@ -557,7 +638,17 @@ LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
 # A rampa vai depois da hora e nunca antes: "ligar às 18:00" não pode significar
 # "às 17:30 a tela já mexeu". E trocar entre as duas é só esta palavra — o timer
 # é o mesmo, não há unidade a rearmar nem `./install.sh` a rodar de novo.
-LEITURA_RAMPA_MIN="0"             # 0 = seca | N minutos de rampa
+#
+# A UNIDADE É MINUTO, E O FIM DO DESLIZANTE É 60 — 02/09/2026
+#   Até hoje esta linha dizia `0 = seca | N minutos de rampa`, que parece uma
+#   lista de valores e não é nenhuma das duas coisas: a página descartava a
+#   linha inteira e desenhava campo de texto livre, sem unidade e sem faixa. A
+#   auditoria digitou `banana`, `-5`, `999` e `2,5` — os quatro entraram calados
+#   e só o script reclamaria, uma noite depois. Uma faixa escrita `0 a 60` vira
+#   deslizante, e 60 é uma hora de subida: acima disso a rampa deixa de ser a
+#   virada e vira o horário, e o aviso de "não coube na janela" ali em cima passa
+#   a valer com facilidade. Não é trava do script — ele aceita qualquer inteiro.
+LEITURA_RAMPA_MIN="0"             # 0 a 60 min  (0 = virada seca)
 
 # O APPLET DA TOPBAR — o ícone com os dois sliders (30/08/2026).
 #   sim  o `./install.sh` compila `src/applets/leitura` e planta o `.desktop`.
@@ -869,8 +960,12 @@ MIDIA_CAPA="sim"
 # quase todo caso. O upstream do applet não fazia isso: ele passava o tamanho do
 # ÍCONE como tamanho da FONTE, e numa dock de ícone grande a letra saía gigante
 # ao lado de tudo. Foi a primeira coisa que ela reparou, em 24/08/2026.
-# Um número (6 a 48) crava em pixels e ignora o painel.
-MIDIA_FONTE="auto"
+#
+# A UNIDADE É PIXEL, E A FAIXA VAI DE 6 A 48. Um número dentro dela crava o
+# tamanho e ignora o painel; a palavra `auto` devolve a escala do painel. São os
+# dois únicos valores que o applet entende, e a auditoria mostrou o preço de não
+# dizê-lo: um `999` digitado no campo entrou como escolha pendente, calado.
+MIDIA_FONTE="auto"                # auto, ou 6 a 48 px
 #
 # A música e a banda em cores diferentes, para separar as duas de relance.
 # Vale qualquer nome da paleta (assets/paleta/catppuccin.json): mauve, green, blue,
@@ -972,4 +1067,15 @@ AUTOSTART_BLOQUEADOS="org.qbittorrent.qBittorrent"
 # escrita em arquivo do sistema deixa uma cópia; sem teto, elas se acumulam
 # para sempre. "0" desliga a poda e guarda todos.
 BACKUPS_MANTIDOS="10"
+
+# Quanto o MeowSystem fala: `silencioso` só erro, `info` o que mudou e `debug`
+# cada passo — é o nível que o `meow doctor` pede quando um conserto não bate.
+#
+# O CARTÃO DELA EXPLICAVA A VIZINHA, E ISSO ESTAVA NA TELA
+#   Esta linha vinha COLADA na `BACKUPS_MANTIDOS` acima, sem branco e sem
+#   comentário próprio, e chave sem comentário herda o da chave de cima. O
+#   cartão do nível de log se chamava "Quantos backups o projeto guarda antes de
+#   apagar o mais antigo" e trazia embaixo três botões de verbosidade; o "Por
+#   quê" repetia a poda de backups. Uma linha em branco e um parágrafo desfazem
+#   a herança — 02/09/2026.
 LOG_NIVEL="info"                  # silencioso | info | debug
