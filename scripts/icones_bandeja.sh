@@ -40,7 +40,7 @@
 #
 #   CONTRAPROVA COLHIDA NA MESMA SESSÃO, no item que estava vivo na barra dela:
 #     qBittorrent    IconName=''  IconThemePath=''  IconPixmap=[(22,22,…)]
-#   Os dois apps que o `icons/bandeja.map` já listava como beco sem saída
+#   Os dois apps que o `assets/icones/bandeja.map` já listava como beco sem saída
 #   continuam sendo exatamente esses dois, pelas razões que ele já dava.
 #
 #   COMO SE MEDIU SEM ABRIR O WHATSAPP DELA: `flatpak run --command=python3`
@@ -90,7 +90,7 @@
 # POR QUE O DESTINO É `20x20/status`, E POR QUE ELE É NOVO
 #   Não é simetria: é a única forma de ter DONO ÚNICO. O `icones_sistema.sh`
 #   declara-se dono de `22x22/status` E de `scalable/status`, e REMOVE ÓRFÃO nos
-#   dois — qualquer arquivo cujo nome não esteja no `icons/sistema.map` ele apaga.
+#   dois — qualquer arquivo cujo nome não esteja no `assets/icones/sistema.map` ele apaga.
 #   Se este script escrevesse lá, os dois ficariam apagando o trabalho um do
 #   outro a cada passagem: o laço eterno de dois donos, que este projeto já pagou
 #   uma vez (o comentário está no `construir_icones.sh`).
@@ -168,8 +168,8 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ORIGEM="${MEOW_BANDEJA_ORIGEM:-$RAIZ/icons/arcticons}"
-MAPA="${MEOW_BANDEJA_MAPA:-$RAIZ/icons/bandeja.map}"
+ORIGEM="${MEOW_BANDEJA_ORIGEM:-$RAIZ/assets/icones/arcticons}"
+MAPA="${MEOW_BANDEJA_MAPA:-$RAIZ/assets/icones/bandeja.map}"
 TEMA="${ICONES_TEMA:-${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
@@ -258,11 +258,11 @@ _conferir_gemeos() {
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o acervo Arcticons não está em icons/arcticons — nada a vestir"
+    meow_pula "o acervo Arcticons não está em assets/icones/arcticons — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem icons/bandeja.map — nada a vestir"
+    meow_pula "sem assets/icones/bandeja.map — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"
@@ -301,22 +301,22 @@ _avisar_faltantes() {
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
     [ -f "$ORIGEM/$glifo.svg" ] && continue
-    meow_aviso "o glifo '$glifo' não está em icons/arcticons — '$nome' fica como está"
-    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o icons/arcticons/$glifo.svg"
+    meow_aviso "o glifo '$glifo' não está em assets/icones/arcticons — '$nome' fica como está"
+    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o assets/icones/arcticons/$glifo.svg"
   done
   return 0
 }
 
 # "NADA A FAZER" TEM TRÊS CAUSAS, E DIZER A ERRADA MANDA PROCURAR NO LUGAR ERRADO
-#   mapa sem linha        a decisão está no `icons/bandeja.map`
+#   mapa sem linha        a decisão está no `assets/icones/bandeja.map`
 #   linha sem glifo       o `_avisar_faltantes` já disse qual baixar
 #   tudo no lugar         é o caso feliz
 _frase_nada_a_fazer() {
   local total="$1"
   if [ "${#MAPA_LIDO[@]}" = 0 ]; then
-    printf 'a bandeja não tem alvo hoje (0 linha ativa no mapa) — ver icons/bandeja.map'
+    printf 'a bandeja não tem alvo hoje (0 linha ativa no mapa) — ver assets/icones/bandeja.map'
   elif [ "$total" = 0 ]; then
-    printf '%s linha(s) no mapa e nenhum glifo em icons/arcticons — nada a vestir' "${#MAPA_LIDO[@]}"
+    printf '%s linha(s) no mapa e nenhum glifo em assets/icones/arcticons — nada a vestir' "${#MAPA_LIDO[@]}"
   else
     printf '%s ícone(s) da bandeja já vestidos de Arcticons' "$total"
   fi

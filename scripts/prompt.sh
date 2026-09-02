@@ -15,7 +15,7 @@
 #   parte exatamente onde a fronteira parte:
 #
 #     NOSSO   ~/.config/starship.toml   -> este script instala e confere
-#     DELA    ~/.config/zsh/env.zsh     -> sai como `src/prompt/aurora.patch`
+#     DELA    ~/.config/zsh/env.zsh     -> sai como `assets/prompt/aurora.patch`
 #
 #   Isso não é meio-trabalho: é a única divisão que não mente. Um script que
 #   escrevesse as duas metades atravessaria a fronteira; um que não escrevesse
@@ -66,8 +66,8 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 #   para inspecionar o arquivo e o prompt daquele terminal virar "sim". Um nome
 #   com dois caracteres a mais custa menos que esse susto.
 PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}"
-PROMPT_FONTE="$MEOW_RAIZ/src/prompt/starship.toml"
-PROMPT_PATCH="$MEOW_RAIZ/src/prompt/aurora.patch"
+PROMPT_FONTE="$MEOW_RAIZ/assets/prompt/starship.toml"
+PROMPT_PATCH="$MEOW_RAIZ/assets/prompt/aurora.patch"
 PROMPT_ALVO="${PROMPT_ALVO:-$HOME/.config/starship.toml}"
 # `ZDOTDIR` não chega aqui (este script roda em bash, e a variável é do shell
 # interativo dela), então o padrão é a convenção — que é o que ela usa.

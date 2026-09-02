@@ -3,11 +3,11 @@
 # linha, recolorido na paleta. DOIS acervos entram aqui, e um instalador só sai.
 #
 # DOIS ACERVOS, DESDE 11/08/2026
-#   `icons/arcticons-apps/`    glifos do pack Arcticons, desenhados à mão por
-#                              terceiros. Mapa: `icons/apps-arcticons.map`.
-#   `icons/convertidos-apps/`  a arte do PRÓPRIO aplicativo, convertida de
+#   `assets/icones/arcticons-apps/`    glifos do pack Arcticons, desenhados à mão por
+#                              terceiros. Mapa: `assets/icones/apps-arcticons.map`.
+#   `assets/icones/convertidos-apps/`  a arte do PRÓPRIO aplicativo, convertida de
 #                              chapado para traço por nós. Mapa:
-#                              `icons/apps-convertidos.map`. Quem gera é o
+#                              `assets/icones/apps-convertidos.map`. Quem gera é o
 #                              `scripts/construir_convertidos.sh`; aqui ela
 #                              chega pronta e commitada.
 #
@@ -21,7 +21,7 @@
 #   `meow fix` alternaria entre os dois estados sem nunca convergir.
 #
 # POR QUE EXISTE UM SEGUNDO SCRIPT DE APLICATIVO
-#   O `icones_apps.sh` só sabe ler `icons/catppuccin-apps/$VARIANTE/*.png` e só
+#   O `icones_apps.sh` só sabe ler `assets/icones/catppuccin-apps/$VARIANTE/*.png` e só
 #   sabe escrever em `512x512/apps`. O Arcticons é outra coisa em tudo: é SVG, é
 #   traço monocromático, e a cor é atribuída por nós a partir da paleta. Enfiar
 #   os dois no mesmo script obrigaria a um `if` por linha do mapa; separar custa
@@ -102,13 +102,13 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ORIGEM="$RAIZ/icons/arcticons-apps"
-MAPA="$RAIZ/icons/apps-arcticons.map"
-ORIGEM_CONV="$RAIZ/icons/convertidos-apps"
-MAPA_CONV="$RAIZ/icons/apps-convertidos.map"
-MAPA_MARCA="$RAIZ/icons/apps-marca.map"
-MAPA_PNG="$RAIZ/icons/apps.map"
-PALETA="$RAIZ/palette/catppuccin.json"
+ORIGEM="$RAIZ/assets/icones/arcticons-apps"
+MAPA="$RAIZ/assets/icones/apps-arcticons.map"
+ORIGEM_CONV="$RAIZ/assets/icones/convertidos-apps"
+MAPA_CONV="$RAIZ/assets/icones/apps-convertidos.map"
+MAPA_MARCA="$RAIZ/assets/icones/apps-marca.map"
+MAPA_PNG="$RAIZ/assets/icones/apps.map"
+PALETA="$RAIZ/assets/paleta/catppuccin.json"
 TEMA="${ICONES_TEMA:-${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
@@ -123,7 +123,28 @@ FLAVOR="${FLAVOR:-mocha}"
 # a mostrar aplicativo) seja uma linha. Quem DECLARA o diretório no `index.theme`
 # não é este script — é o `construir_icones.sh`, que o monta a partir do que
 # existe no disco. Ter dois donos daquela linha já custou um laço eterno.
-declare -A TRACO=( ["48x48/apps"]=1.75 )
+# 2,25 DESDE 27/08/2026, E O 1,75 NÃO ESTAVA ERRADO — A CAIXA É QUE MUDOU
+#   O 1,75 foi medido em 11/08 contra uma caixa de 48 px, e o cabeçalho acima
+#   registra a prova: captura de tela com os ícones da dock em `x 1063..1109`,
+#   47 px de largura. Duas premissas daquele dia caíram desde então:
+#     · a dock está em `size M`, não `L` (o disco diz M; o forma.sh já anotou a
+#       divergência em 26/08, e ela nunca chegou aos scripts de ícone);
+#     · a escala da tela saiu de 100% para 114%.
+#   MEDIDO na captura de 27/08, caixa de tinta dos três ícones do centro da dock:
+#   40, 36 e 40 px. A dock desenha aplicativo a ~41 px, não a 48.
+#
+#   A consequência é aritmética: 1,75 num viewBox de 48 desenhado a 41 px vale
+#   1,50 px de tela. Traço fracionário nunca cai em pixel inteiro — cada linha
+#   fica repartida entre dois pixels em tons diferentes, e nas diagonais e nos
+#   cantos isso é a sujeira que ela chamou de serrilhado ("na real todos os apps
+#   ficam serrilhados agora que notei"). Não era esticamento: está medido que o
+#   COSMIC rasteriza o vetor no tamanho pedido, e que `Type=Fixed` contra
+#   `Type=Scalable` dá ZERO pixel de diferença na tela.
+#
+#   2,25 é escolha dela na folha de 27/08, com o mesmo ícone em 1,75 / 2,0 /
+#   2,25 / 2,5 rasterizado a 41 px. Vale 1,92 px de tela — firma o desenho sem
+#   fechar o vão do ">" do terminal, que é o que o 2,5 começa a fazer.
+declare -A TRACO=( ["48x48/apps"]=2.25 )
 
 # Pedido expresso dela: estes ficam como estão, venha o que vier. Mesma lista do
 # `icones_apps.sh` — se um nome intocável entrar no mapa, ele é ignorado aqui
@@ -139,7 +160,7 @@ intocavel() {
 }
 
 # A ESCOLHA DELA NA PÁGINA DE CURADORIA TIRA O NOME DAQUI
-#   `icons/curadoria.map` é escrito pelo `importar_icones.sh` com a arte que ELA
+#   `assets/icones/curadoria.map` é escrito pelo `importar_icones.sh` com a arte que ELA
 #   escolheu à mão. Um nome que está lá não pode continuar sendo vestido aqui:
 #   a arte dela vai para `scalable/apps`, a minha fica em `48x48/apps`, e a de
 #   48 vence a 48 px — a escolha dela ficaria no disco sem nunca aparecer na
@@ -155,12 +176,12 @@ intocavel() {
 declare -A CURADO=()
 _ler_curadoria() {
   local chave ext subdir
-  [ -f "$RAIZ/icons/curadoria.map" ] || return 0
+  [ -f "$RAIZ/assets/icones/curadoria.map" ] || return 0
   while IFS=$'\t' read -r chave ext subdir; do
     case "$chave" in ''|'#'*) continue ;; esac
     [ -n "$ext" ] && [ -n "$subdir" ] || continue
     CURADO["$chave"]=1
-  done < "$RAIZ/icons/curadoria.map"
+  done < "$RAIZ/assets/icones/curadoria.map"
   return 0
 }
 
@@ -231,7 +252,7 @@ _ler_mapa() {
 # indireção por glifo, e é por isso que não existe campo `glifo` naquele mapa.
 #
 # AUSÊNCIA DO MAPA NÃO É DEFEITO: quem só tem o Arcticons continua funcionando
-# igual, e é o mesmo critério do `icons/curadoria.map`.
+# igual, e é o mesmo critério do `assets/icones/curadoria.map`.
 _ler_mapa_convertidos() {
   local linha nome origem cor
   [ -f "$MAPA_CONV" ] || return 0
@@ -297,7 +318,7 @@ _ler_mapa_marca() {
   local linha nome cor
   [ "${ICONES_COR_MARCA:-nao}" = "sim" ] || return 0
   if [ ! -f "$MAPA_MARCA" ]; then
-    meow_aviso "ICONES_COR_MARCA=sim mas icons/apps-marca.map não existe — a cor segue por categoria"
+    meow_aviso "ICONES_COR_MARCA=sim mas assets/icones/apps-marca.map não existe — a cor segue por categoria"
     return 0
   fi
   COR_MARCA_LIGADA=1
@@ -336,7 +357,7 @@ print(d[flavor].get(chave, ""))
 PY
 )" || { meow_erro "não consegui ler a paleta para o flavor '$FLAVOR'"; return "$MEOW_ERRO"; }
     if [ -z "$saida" ]; then
-      meow_erro "a cor '$nome' não existe em palette/catppuccin.json (flavor $FLAVOR)"
+      meow_erro "a cor '$nome' não existe em assets/paleta/catppuccin.json (flavor $FLAVOR)"
       return "$MEOW_ERRO"
     fi
     HEX["$nome"]="$saida"
@@ -357,7 +378,7 @@ PY
 #     vizinhos na mesma cor não é erro de sintaxe — é uma decisão, e decisão
 #     tomada em silêncio é a que este projeto persegue.
 #
-#   nome nos DOIS mapas — o mesmo aplicativo listado aqui e em `icons/apps.map`.
+#   nome nos DOIS mapas — o mesmo aplicativo listado aqui e em `assets/icones/apps.map`.
 #     Não daria erro nenhum na tela: o SVG simplesmente venceria o PNG, porque
 #     dentro de um tema a EXTENSÃO é o laço externo da busca (§2 do
 #     docs/COSMIC-THEMING.md) — todos os `.svg`, em todos os tamanhos, antes de
@@ -423,15 +444,15 @@ _conferir_gemeos() {
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o acervo Arcticons de aplicativo não está em icons/arcticons-apps"
+    meow_pula "o acervo Arcticons de aplicativo não está em assets/icones/arcticons-apps"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem icons/apps-arcticons.map — nada a vestir"
+    meow_pula "sem assets/icones/apps-arcticons.map — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$PALETA" ]; then
-    meow_pula "sem palette/catppuccin.json — sem fonte de cor, nada a vestir"
+    meow_pula "sem assets/paleta/catppuccin.json — sem fonte de cor, nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! meow_tem python3; then
@@ -484,8 +505,8 @@ _avisar_faltantes() {
       continue
     fi
     glifo="${GLIFO[$nome]}"
-    meow_aviso "o glifo '$glifo' não está em icons/arcticons-apps — '$nome' fica no Papirus"
-    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o icons/arcticons-apps/$glifo.svg"
+    meow_aviso "o glifo '$glifo' não está em assets/icones/arcticons-apps — '$nome' fica no Papirus"
+    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o assets/icones/arcticons-apps/$glifo.svg"
   done
   return 0
 }

@@ -25,7 +25,7 @@ POR QUE ESTA ÁRVORE EXISTE E NINGUÉM A VESTIA
 NÃO SE ESCREVE A V1 À MÃO — E TAMBÉM NÃO SE RECALCULA A DERIVAÇÃO
     O `docs/COSMIC-THEMING.md` §1 proíbe escrever chave por chave: as duas
     árvores discordam e reproduzir uma à mão gera um híbrido que *quase*
-    funciona. Mas gerar a v1 a partir de `palette/catppuccin.json` sozinho seria
+    funciona. Mas gerar a v1 a partir de `assets/paleta/catppuccin.json` sozinho seria
     PIOR: a paleta e o `cosmic-map.json` só declaram os slots de TOPO do `.ron`
     (accent, bg_color, ...). Os 209 campos derivados da v1 (hover, pressed,
     component.*, on_disabled, divider...) saem de um algoritmo de contraste que
@@ -33,10 +33,10 @@ NÃO SE ESCREVE A V1 À MÃO — E TAMBÉM NÃO SE RECALCULA A DERIVAÇÃO
 
     Então a fonte de cor é a `v2` DA PRÓPRIA CAPTURA — que é o produto que o
     COSMIC derivou do `.ron` que o `gerar_temas.py` gerou da paleta. A cor
-    continua vindo de `palette/catppuccin.json`; só o caminho é transitivo.
+    continua vindo de `assets/paleta/catppuccin.json`; só o caminho é transitivo.
 
 O QUE ESTE SCRIPT FAZ, LITERALMENTE
-    Pega o texto do arquivo v1 do FÓSSIL (`state/tema/original/.../v1/<chave>`,
+    Pega o texto do arquivo v1 do FÓSSIL (`assets/temas/capturados/original/.../v1/<chave>`,
     escrito pelo próprio COSMIC e versionado no git) e substitui, no lugar, os
     literais numéricos de R, G e B de cada campo de cor pelo valor do MESMO
     caminho no arquivo v2 da captura. Nada mais. A estrutura RON resultante é,
@@ -88,7 +88,7 @@ O CONJUNTO É MÍNIMO, E O CRITÉRIO ESTÁ AQUI
                             escrever um número que ninguém lê.
 
 A V1 DA `original` É O RESET DE FÁBRICA — E O MOLDE
-    O script RECUSA escrever em `state/tema/original/`. É de onde sai o molde, é
+    O script RECUSA escrever em `assets/temas/capturados/original/`. É de onde sai o molde, é
     o que o `meow desfazer` restaura, e é o backup versionado do tema de
     terceiro que estava aqui antes do projeto.
 """
@@ -103,7 +103,7 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-CAPTURAS = RAIZ / "state" / "tema"
+CAPTURAS = RAIZ / "assets" / "temas" / "capturados"
 # `original` tem DOIS empregos, e só um deles é portátil:
 #   (a) MOLDE do esquema v1 — o conjunto de chaves e a forma dos arquivos que o
 #       COSMIC de 04/2026 escreveu. É isto que este script usa.
@@ -348,7 +348,7 @@ class Backup:
     """A v1 vigente é de TERCEIRO (é o `cosmic-dark` de fábrica). Ela já está no
     git em quatro cópias byte a byte idênticas, e o `aplicar_tema.sh` guarda a
     árvore viva antes de escrever em ~/.config. Este backup cobre o terceiro
-    caso: as capturas em `state/tema/` que este script reescreve.
+    caso: as capturas em `assets/temas/capturados/` que este script reescreve.
 
     Preguiçoso de propósito: só nasce se algo for mesmo escrito. Uma rodada
     conforme — a maioria — não cria pasta nenhuma."""
@@ -377,7 +377,7 @@ class Backup:
         if self.dir is None:
             return
         (self.dir / "origens.txt").write_text(
-            "Cópia do que havia em state/tema/<captura>/**/v1 antes de o\n"
+            "Cópia do que havia em assets/temas/capturados/<captura>/**/v1 antes de o\n"
             "gerar_tema_v1.py escrever. A v1 é o tema de fábrica do COSMIC\n"
             "(`cosmic-dark`), anterior a este projeto.\n\n"
             "Para voltar:  cp -a <arquivo> " + str(CAPTURAS) + "/<mesmo caminho>\n"
@@ -446,7 +446,7 @@ def main() -> int:
     for nome in alvos:
         captura = CAPTURAS / nome
         if not captura.is_dir():
-            sys.exit(f"ERRO: captura '{nome}' não existe em state/tema/.")
+            sys.exit(f"ERRO: captura '{nome}' não existe em assets/temas/capturados/.")
         mexeu_captura = False
         for arv in ARVORES:
             molde_d = CAPTURAS / MOLDE / f"com.system76.CosmicTheme.{arv}" / "v1"

@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeowSystem — os ícones da barra</title>
+<style>
+  :root { --tinta:#cdd6f4; --fraco:#a6adc8; --linha:#313244; --caixa:#181825;
+    --accent:#cba6f7; --papel:#1e1e2e; --vermelho:#f38ba8; --verde:#a6e3a1; }
+  * { box-sizing:border-box }
+  body { margin:0; background:#11111b; color:var(--tinta);
+    font:15px/1.55 "Inter","Cantarell",system-ui,sans-serif }
+  .envelope { max-width:1000px; margin:0 auto; padding:40px 24px 80px }
+  h1 { font-size:29px; margin:.2em 0 .3em; letter-spacing:-.02em }
+  .olho { color:var(--accent); font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; margin:0 }
+  .abre { color:var(--fraco); max-width:72ch; margin:0 0 22px }
+  .painel { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 20px }
+  .painel div { flex:1 1 210px; background:var(--caixa); border:1px solid var(--linha);
+    border-radius:12px; padding:13px 16px }
+  .painel b { display:block; font-size:24px; font-weight:600 }
+  .painel small { color:var(--fraco); font-size:12.5px }
+  .painel .r b { color:var(--vermelho) } .painel .v b { color:var(--verde) }
+  .aviso { border:1px solid var(--vermelho); border-radius:14px; padding:18px 20px;
+    background:rgba(243,139,168,.06); margin:0 0 34px; font-size:14px }
+  .aviso b { color:var(--vermelho) }
+  .aviso code { background:#11111b; border:1px solid var(--linha); border-radius:5px;
+    padding:1px 6px; font-size:12.5px }
+  .grupo { margin:0 0 30px }
+  .cabeca { display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--linha); padding-bottom:8px; margin-bottom:12px }
+  .cabeca h2 { font-size:17px; margin:0; font-weight:600 }
+  .conta { font-size:12px; border-radius:999px; padding:2px 11px;
+    font-family:ui-monospace,monospace }
+  .conta.boa { background:rgba(166,227,161,.14); color:var(--verde) }
+  .conta.ruim { background:rgba(243,139,168,.14); color:var(--vermelho) }
+  .explica { color:var(--fraco); font-size:13px; margin:0 0 14px }
+  .lista { display:flex; flex-direction:column; gap:8px }
+  .par { display:grid; grid-template-columns:auto 20px auto 1fr; align-items:center;
+    gap:14px; background:var(--papel); border:1px solid var(--linha);
+    border-radius:11px; padding:12px 16px }
+  .par.quebra { border-color:rgba(243,139,168,.4) }
+  .col { display:flex; align-items:center; gap:9px; min-width:104px }
+  .rot { font-size:10px; color:var(--fraco); opacity:.75; margin-right:2px }
+  .i64, .g64 { width:64px; height:64px; display:block }
+  .i20, .g20 { width:20px; height:20px; display:block }
+  .g64 svg, .g20 svg { width:100%; height:100% }
+  .i64, .i20 { filter:brightness(0) invert(88%) sepia(9%) saturate(700%) hue-rotate(190deg) }
+  .buraco { color:var(--vermelho); font-size:12px; font-style:italic; width:104px }
+  .seta { color:var(--fraco); text-align:center }
+  .fim { display:flex; flex-direction:column; gap:3px; min-width:0 }
+  .fim b { font-size:13px }
+  .fim code { font:11px/1.4 ui-monospace,monospace; color:var(--fraco);
+    overflow-wrap:anywhere }
+  .tag { align-self:flex-start; font-size:10px; letter-spacing:.05em;
+    text-transform:uppercase; border-radius:999px; padding:2px 9px; margin-top:2px }
+  .tag.ok { background:rgba(166,227,161,.13); color:var(--verde) }
+  .tag.zero { background:rgba(243,139,168,.13); color:var(--vermelho) }
+  .fecho { border-top:1px solid var(--linha); padding-top:18px; color:var(--fraco);
+    font-size:13.5px; max-width:74ch }
+  @media (max-width:700px) { .par { grid-template-columns:1fr; } .seta { display:none } }
+</style></head>
+<body><div class="envelope">
+  <p class="olho">MeowSystem · barra do COSMIC</p>
+  <h1>Os ícones da barra — e por que a troca não fecha</h1>
+  <p class="abre">
+    Cada linha é um ÍCONE DE ESTADO que os applets pedem. À esquerda o que está na sua
+    barra hoje; à direita o que o Arcticons daria — ou o buraco, em vermelho, onde ele
+    não tem nada. Os dois lados aparecem em 64&nbsp;px e no tamanho real da barra,
+    <b>20&nbsp;px</b>. <b>Nada foi aplicado.</b>
+  </p>
+  <div class="painel">
+    <div class="v"><b>13</b><small>estados com glifo no Arcticons</small></div>
+    <div class="r"><b>13</b><small>estados sem glifo — ficariam no Papirus</small></div>
+    <div class="r"><b>0</b><small>famílias completas, de 8 examinadas</small></div>
+    <div class="r"><b>4</b><small>nomes certos que entregaram desenho errado</small></div>
+  </div>
+
+  <div class="aviso">
+    <b>O motivo é a natureza do pack, e não dá para contornar.</b> O Arcticons é um acervo
+    de ícones de <b>aplicativo Android</b>: 14.996 nomes, quase todos marcas. Ele não tem
+    vocabulário de estado de sistema. Procurando o que falta, o que aparece são apps:
+    <code>mute</code> → <code>mutereminder</code> · <code>bell</code> →
+    <code>taco-bell</code> · <code>power</code> → <code>microsoft-powerpoint</code>.
+    <code>pause</code>, <code>logout</code> e <code>ethernet</code> dão zero.
+    Os nomes que casaram — <code>volume</code>, <code>wifi</code>, <code>battery</code> —
+    existem por acaso, não como parte de um conjunto.<br><br>
+    E estado é o que a barra <b>é</b>: <code>audio-volume-high</code> e
+    <code>audio-volume-muted</code> não são dois ícones, são dois quadros do mesmo. Vestir
+    um e não o outro faz o desenho <b>trocar de linguagem no instante em que você aperta
+    mudo</b> — mais visível que a diferença que a troca queria corrigir.
+  </div>
+
+
+      <section class="grupo">
+        <header class="cabeca"><h2>Volume</h2><span class="conta ruim">3/4</span></header>
+        <p class="explica">O applet troca de ícone conforme o nível — e quando você muta.</p>
+        <div class="lista">
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCAxIEwgNCA1IEwgMSA1IEwgMSAxMSBMIDQgMTEgTCA4IDE1IEwgOCAxIHogTSAxMCAxIEwgMTAgMi41IEMgMTIuMzIgMy4yNCAxNCA1LjQzIDE0IDggQyAxNCAxMC41NyAxMi4zMiAxMi43NiAxMCAxMy41IEwgMTAgMTUgQyAxMy4xNSAxNC4yMiAxNS41IDExLjQgMTUuNSA4IEMgMTUuNSA0LjYgMTMuMTUgMS43OCAxMCAxIHogTSAxMCA1IEwgMTAgMTEgQyAxMS4wNiAxMC40MiAxMS43ODkgOS4zIDExLjc4OSA4IEMgMTEuNzg5IDYuNyAxMS4wNyA1LjU4IDEwIDUgeiIvPgo8L3N2Zz4K" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCAxIEwgNCA1IEwgMSA1IEwgMSAxMSBMIDQgMTEgTCA4IDE1IEwgOCAxIHogTSAxMCAxIEwgMTAgMi41IEMgMTIuMzIgMy4yNCAxNCA1LjQzIDE0IDggQyAxNCAxMC41NyAxMi4zMiAxMi43NiAxMCAxMy41IEwgMTAgMTUgQyAxMy4xNSAxNC4yMiAxNS41IDExLjQgMTUuNSA4IEMgMTUuNSA0LjYgMTMuMTUgMS43OCAxMCAxIHogTSAxMCA1IEwgMTAgMTEgQyAxMS4wNiAxMC40MiAxMS43ODkgOS4zIDExLjc4OSA4IEMgMTEuNzg5IDYuNyAxMS4wNyA1LjU4IDEwIDUgeiIvPgo8L3N2Zz4K" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M32.017 16.708c1.768 1.326 3.241 4.714 2.946 8.397c-.294 2.799-1.767 5.156-2.946 6.04M5.5 17.74v12.816h8.544l11.049 8.839V8.605L14.044 17.74zm31.673-6.777c3.094 2.357 5.598 8.397 5.303 15.026c-.442 5.009-2.946 9.133-5.303 10.901"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M32.017 16.708c1.768 1.326 3.241 4.714 2.946 8.397c-.294 2.799-1.767 5.156-2.946 6.04M5.5 17.74v12.816h8.544l11.049 8.839V8.605L14.044 17.74zm31.673-6.777c3.094 2.357 5.598 8.397 5.303 15.026c-.442 5.009-2.946 9.133-5.303 10.901"/></svg></span></div>
+          <div class="fim">
+            <b>alto</b>
+            <code>audio-volume-high-symbolic</code>
+            <span class="tag ok">arcticons/volume</span>
+          </div>
+        </div>
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwxIDQsNSBIIDEgViAxMSBIIDQgTCA4LDE1IFogTSAxMCw1IFYgMTEgQyAxMS4wNiwxMC40MiAxMS43OSw5LjMgMTEuNzksOCAxMS43OSw2LjcgMTEuMDcsNS41OCAxMCw1IFoiLz4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGQ9Ik0gMTAsMSBWIDIuNSBDIDEyLjMyLDMuMjQgMTQsNS40MyAxNCw4IDE0LDEwLjU3IDEyLjMyLDEyLjc2IDEwLDEzLjUgViAxNSBDIDEzLjE1LDE0LjIyIDE1LjUsMTEuNCAxNS41LDggMTUuNSw0LjYgMTMuMTUsMS43OCAxMCwxIFoiLz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwxIDQsNSBIIDEgViAxMSBIIDQgTCA4LDE1IFogTSAxMCw1IFYgMTEgQyAxMS4wNiwxMC40MiAxMS43OSw5LjMgMTEuNzksOCAxMS43OSw2LjcgMTEuMDcsNS41OCAxMCw1IFoiLz4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGQ9Ik0gMTAsMSBWIDIuNSBDIDEyLjMyLDMuMjQgMTQsNS40MyAxNCw4IDE0LDEwLjU3IDEyLjMyLDEyLjc2IDEwLDEzLjUgViAxNSBDIDEzLjE1LDE0LjIyIDE1LjUsMTEuNCAxNS41LDggMTUuNSw0LjYgMTMuMTUsMS43OCAxMCwxIFoiLz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M32.017 16.708c1.768 1.326 3.241 4.714 2.946 8.397c-.294 2.799-1.767 5.156-2.946 6.04M5.5 17.74v12.816h8.544l11.049 8.839V8.605L14.044 17.74zm31.673-6.777c3.094 2.357 5.598 8.397 5.303 15.026c-.442 5.009-2.946 9.133-5.303 10.901"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M32.017 16.708c1.768 1.326 3.241 4.714 2.946 8.397c-.294 2.799-1.767 5.156-2.946 6.04M5.5 17.74v12.816h8.544l11.049 8.839V8.605L14.044 17.74zm31.673-6.777c3.094 2.357 5.598 8.397 5.303 15.026c-.442 5.009-2.946 9.133-5.303 10.901"/></svg></span></div>
+          <div class="fim">
+            <b>médio</b>
+            <code>audio-volume-medium-symbolic</code>
+            <span class="tag ok">arcticons/volume</span>
+          </div>
+        </div>
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwxIDQsNSBIIDEgViAxMSBIIDQgTCA4LDE1IFoiLz4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGQ9Ik0gMTAgMSBMIDEwIDIuNSBDIDEyLjMyIDMuMjQgMTQgNS40MyAxNCA4IEMgMTQgMTAuNTcgMTIuMzIgMTIuNzYgMTAgMTMuNSBMIDEwIDE1IEMgMTMuMTUgMTQuMjIgMTUuNSAxMS40IDE1LjUgOCBDIDE1LjUgNC42IDEzLjE1IDEuNzggMTAgMSB6IE0gMTAgNSBMIDEwIDExIEMgMTEuMDYgMTAuNDIgMTEuNzg5IDkuMyAxMS43ODkgOCBDIDExLjc4OSA2LjcgMTEuMDcgNS41OCAxMCA1IHoiLz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwxIDQsNSBIIDEgViAxMSBIIDQgTCA4LDE1IFoiLz4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGQ9Ik0gMTAgMSBMIDEwIDIuNSBDIDEyLjMyIDMuMjQgMTQgNS40MyAxNCA4IEMgMTQgMTAuNTcgMTIuMzIgMTIuNzYgMTAgMTMuNSBMIDEwIDE1IEMgMTMuMTUgMTQuMjIgMTUuNSAxMS40IDE1LjUgOCBDIDE1LjUgNC42IDEzLjE1IDEuNzggMTAgMSB6IE0gMTAgNSBMIDEwIDExIEMgMTEuMDYgMTAuNDIgMTEuNzg5IDkuMyAxMS43ODkgOCBDIDExLjc4OSA2LjcgMTEuMDcgNS41OCAxMCA1IHoiLz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M32.017 16.708c1.768 1.326 3.241 4.714 2.946 8.397c-.294 2.799-1.767 5.156-2.946 6.04M5.5 17.74v12.816h8.544l11.049 8.839V8.605L14.044 17.74zm31.673-6.777c3.094 2.357 5.598 8.397 5.303 15.026c-.442 5.009-2.946 9.133-5.303 10.901"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M32.017 16.708c1.768 1.326 3.241 4.714 2.946 8.397c-.294 2.799-1.767 5.156-2.946 6.04M5.5 17.74v12.816h8.544l11.049 8.839V8.605L14.044 17.74zm31.673-6.777c3.094 2.357 5.598 8.397 5.303 15.026c-.442 5.009-2.946 9.133-5.303 10.901"/></svg></span></div>
+          <div class="fim">
+            <b>baixo</b>
+            <code>audio-volume-low-symbolic</code>
+            <span class="tag ok">arcticons/volume</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGNsYXNzPSJDb2xvclNjaGVtZS1UZXh0IiBkPSJNIDIuMzc4OTA2MiwxIDEuMDE5NTMxMiwyLjQzMzU5MzggMy43ODkwNjI1LDUgSCAxIHYgNiBoIDMgbCA0LDQgViA4LjkwMDM5MDYgbCAyLDEuODUxNTYyNCBWIDExIGMgMC4wNTUwOSwtMC4wMzAxNCAwLjEwMzA0LC0wLjA3MDQ4IDAuMTU2MjUsLTAuMTAzNTE2IGwgMS43MDMxMjUsMS41NzgxMjUgQyAxMS4zMTQwOTksMTIuOTI1MjgxIDEwLjY4OTQ4MSwxMy4yODAwNzkgMTAsMTMuNSBWIDE1IGMgMS4xMDU1NTEsLTAuMjczNzU1IDIuMTA1NjQ5LC0wLjgwNDIxNiAyLjk0MTQwNiwtMS41MjE0ODQgTCAxNC42MjEwOTQsMTUgMTYsMTMuNTY2NDA2IDE0LjI2OTUzMSwxMS45ODA0NjkgMTMuMTY2MDE2LDEwLjk1ODk4NCAxMS40ODQzNzUsOS40MDAzOTA2IDEwLDguMDI3MzQzOCA4LDYuMTczODI4MSA3LjkzOTQ1MzEsNi4xMTcxODc1IDUuMzE0NDUzMSwzLjY4NTU0NjkgWiBNIDgsMSA2LjcyODUxNTYsMi4yNzE0ODQ0IDgsMy40NDcyNjU2IFogbSAyLDAgdiAxLjUgYyAyLjMyLDAuNzQgNCwyLjkzIDQsNS41IDAsMC4zMTg2MDY4IC0wLjAyNjUxLDAuNjMwNjU5MiAtMC4wNzYxNywwLjkzNTU0NjkgbCAxLjI1NzgxMywxLjE2NjAxNTEgQyAxNS4zODQ3MTcsOS40MzY4Njk3IDE1LjUsOC43MzMyOTk2IDE1LjUsOCAxNS41LDQuNiAxMy4xNSwxLjc4IDEwLDEgWiBtIDAsNCB2IDAuMzAwNzgxMiBsIDEuNTM5MDYyLDEuNDI1NzgxMyBDIDExLjI0MTg4MSw1Ljk4ODg4NTcgMTAuNjk3NzY5LDUuMzc4MjMwMSAxMCw1IFoiLz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGNsYXNzPSJDb2xvclNjaGVtZS1UZXh0IiBkPSJNIDIuMzc4OTA2MiwxIDEuMDE5NTMxMiwyLjQzMzU5MzggMy43ODkwNjI1LDUgSCAxIHYgNiBoIDMgbCA0LDQgViA4LjkwMDM5MDYgbCAyLDEuODUxNTYyNCBWIDExIGMgMC4wNTUwOSwtMC4wMzAxNCAwLjEwMzA0LC0wLjA3MDQ4IDAuMTU2MjUsLTAuMTAzNTE2IGwgMS43MDMxMjUsMS41NzgxMjUgQyAxMS4zMTQwOTksMTIuOTI1MjgxIDEwLjY4OTQ4MSwxMy4yODAwNzkgMTAsMTMuNSBWIDE1IGMgMS4xMDU1NTEsLTAuMjczNzU1IDIuMTA1NjQ5LC0wLjgwNDIxNiAyLjk0MTQwNiwtMS41MjE0ODQgTCAxNC42MjEwOTQsMTUgMTYsMTMuNTY2NDA2IDE0LjI2OTUzMSwxMS45ODA0NjkgMTMuMTY2MDE2LDEwLjk1ODk4NCAxMS40ODQzNzUsOS40MDAzOTA2IDEwLDguMDI3MzQzOCA4LDYuMTczODI4MSA3LjkzOTQ1MzEsNi4xMTcxODc1IDUuMzE0NDUzMSwzLjY4NTU0NjkgWiBNIDgsMSA2LjcyODUxNTYsMi4yNzE0ODQ0IDgsMy40NDcyNjU2IFogbSAyLDAgdiAxLjUgYyAyLjMyLDAuNzQgNCwyLjkzIDQsNS41IDAsMC4zMTg2MDY4IC0wLjAyNjUxLDAuNjMwNjU5MiAtMC4wNzYxNywwLjkzNTU0NjkgbCAxLjI1NzgxMywxLjE2NjAxNTEgQyAxNS4zODQ3MTcsOS40MzY4Njk3IDE1LjUsOC43MzMyOTk2IDE1LjUsOCAxNS41LDQuNiAxMy4xNSwxLjc4IDEwLDEgWiBtIDAsNCB2IDAuMzAwNzgxMiBsIDEuNTM5MDYyLDEuNDI1NzgxMyBDIDExLjI0MTg4MSw1Ljk4ODg4NTcgMTAuNjk3NzY5LDUuMzc4MjMwMSAxMCw1IFoiLz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>MUDO</b>
+            <code>audio-volume-muted-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div></div>
+      </section>
+      <section class="grupo">
+        <header class="cabeca"><h2>Wi-Fi</h2><span class="conta ruim">3/4</span></header>
+        <p class="explica">Quatro quadros de intensidade, mais o desconectado.</p>
+        <div class="lista">
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gMCw0IEMgMi4wODA2LDIuMDczMiA0Ljk0OTQsMSA4LDEgYyAzLjA1MSwwIDUuOTE5LDEuMDczMSA4LDMgTCA4LDE1IFoiLz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gMCw0IEMgMi4wODA2LDIuMDczMiA0Ljk0OTQsMSA4LDEgYyAzLjA1MSwwIDUuOTE5LDEuMDczMSA4LDMgTCA4LDE1IFoiLz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M30.765 28.616a10.516 10.516 0 0 0-13.435-.037v.037m6.691 4.305a4.216 4.216 0 1 0 4.216 4.216h0a4.216 4.216 0 0 0-4.216-4.216m13.157-11.595a20.676 20.676 0 0 0-26.314 0M43.5 13.674a30.57 30.57 0 0 0-39 0"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M30.765 28.616a10.516 10.516 0 0 0-13.435-.037v.037m6.691 4.305a4.216 4.216 0 1 0 4.216 4.216h0a4.216 4.216 0 0 0-4.216-4.216m13.157-11.595a20.676 20.676 0 0 0-26.314 0M43.5 13.674a30.57 30.57 0 0 0-39 0"/></svg></span></div>
+          <div class="fim">
+            <b>ótimo</b>
+            <code>network-wireless-signal-excellent-symbolic</code>
+            <span class="tag ok">arcticons/wifi</span>
+          </div>
+        </div>
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGQ9Ik0gMCw0IEMgMi4wODA2LDIuMDczMiA0Ljk0OTQsMSA4LDEgYyAzLjA1MSwwIDUuOTE5LDEuMDczMSA4LDMgTCA4LDE1IFoiLz4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCA0IEEgOCA4IDAgMCAwIDEuOTg2MzI4MSA2LjczMjQyMTkgTCA4IDE1IEwgMTQuMDA5NzY2IDYuNzM0Mzc1IEEgOCA4IDAgMCAwIDggNCB6Ii8+Cjwvc3ZnPgo=" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGQ9Ik0gMCw0IEMgMi4wODA2LDIuMDczMiA0Ljk0OTQsMSA4LDEgYyAzLjA1MSwwIDUuOTE5LDEuMDczMSA4LDMgTCA4LDE1IFoiLz4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCA0IEEgOCA4IDAgMCAwIDEuOTg2MzI4MSA2LjczMjQyMTkgTCA4IDE1IEwgMTQuMDA5NzY2IDYuNzM0Mzc1IEEgOCA4IDAgMCAwIDggNCB6Ii8+Cjwvc3ZnPgo=" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M30.765 28.616a10.516 10.516 0 0 0-13.435-.037v.037m6.691 4.305a4.216 4.216 0 1 0 4.216 4.216h0a4.216 4.216 0 0 0-4.216-4.216m13.157-11.595a20.676 20.676 0 0 0-26.314 0M43.5 13.674a30.57 30.57 0 0 0-39 0"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M30.765 28.616a10.516 10.516 0 0 0-13.435-.037v.037m6.691 4.305a4.216 4.216 0 1 0 4.216 4.216h0a4.216 4.216 0 0 0-4.216-4.216m13.157-11.595a20.676 20.676 0 0 0-26.314 0M43.5 13.674a30.57 30.57 0 0 0-39 0"/></svg></span></div>
+          <div class="fim">
+            <b>bom</b>
+            <code>network-wireless-signal-good-symbolic</code>
+            <span class="tag ok">arcticons/wifi</span>
+          </div>
+        </div>
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGQ9Ik0gMCw0IEMgMi4wODA2LDIuMDczMiA0Ljk0OTQsMSA4LDEgYyAzLjA1MSwwIDUuOTE5LDEuMDczMSA4LDMgTCA4LDE1IFoiLz4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCA5IEEgNyA3IDAgMCAwIDQuMzc2OTUzMSAxMC4wMTc1NzggTCA4IDE1IEwgMTEuNjIxMDk0IDEwLjAxOTUzMSBBIDcgNyAwIDAgMCA4IDkgeiIvPgo8L3N2Zz4K" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGQ9Ik0gMCw0IEMgMi4wODA2LDIuMDczMiA0Ljk0OTQsMSA4LDEgYyAzLjA1MSwwIDUuOTE5LDEuMDczMSA4LDMgTCA4LDE1IFoiLz4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCA5IEEgNyA3IDAgMCAwIDQuMzc2OTUzMSAxMC4wMTc1NzggTCA4IDE1IEwgMTEuNjIxMDk0IDEwLjAxOTUzMSBBIDcgNyAwIDAgMCA4IDkgeiIvPgo8L3N2Zz4K" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M30.765 28.616a10.516 10.516 0 0 0-13.435-.037v.037m6.691 4.305a4.216 4.216 0 1 0 4.216 4.216h0a4.216 4.216 0 0 0-4.216-4.216m13.157-11.595a20.676 20.676 0 0 0-26.314 0M43.5 13.674a30.57 30.57 0 0 0-39 0"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M30.765 28.616a10.516 10.516 0 0 0-13.435-.037v.037m6.691 4.305a4.216 4.216 0 1 0 4.216 4.216h0a4.216 4.216 0 0 0-4.216-4.216m13.157-11.595a20.676 20.676 0 0 0-26.314 0M43.5 13.674a30.57 30.57 0 0 0-39 0"/></svg></span></div>
+          <div class="fim">
+            <b>fraco</b>
+            <code>network-wireless-signal-weak-symbolic</code>
+            <span class="tag ok">arcticons/wifi</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gMTEsMTEgViAxMiBDIDExLDEyLjI4IDExLjEsMTIuNTQgMTEuMjgsMTIuNzIgTCAxMi4wNiwxMy41IDExLjI4LDE0LjI4IEMgMTEuMSwxNC40NyAxMSwxNC43MyAxMSwxNSBWIDE2IEggMTIgQyAxMi4yOCwxNiAxMi41NCwxNS45IDEyLjcyLDE1LjcyIEwgMTMuNSwxNC45NCAxNC4yOCwxNS43MiBDIDE0LjQ2LDE1LjkgMTQuNzMsMTYgMTUsMTYgSCAxNiBWIDE1IEMgMTYsMTQuNzMgMTUuOSwxNC40NyAxNS43MiwxNC4yOCBMIDE0Ljk0LDEzLjUgMTUuNzIsMTIuNzIgQyAxNS45LDEyLjU0IDE2LDEyLjI4IDE2LDEyIFYgMTEgSCAxNSBDIDE0LjczLDExIDE0LjQ2LDExLjEgMTQuMjgsMTEuMjggTCAxMy41LDEyLjA3IDEyLjcyLDExLjI4IEMgMTIuNTQsMTEuMSAxMi4yOCwxMSAxMiwxMSBaIi8+CiA8cGF0aCBzdHlsZT0ib3BhY2l0eTouMzU7ZmlsbDojZGZkZmRmIiBkPSJNIDggMSBDIDQuOTQ5NCAxIDIuMDgwNiAyLjA3MzIgMCA0IEwgOCAxNSBMIDEwLjAxOTUzMSAxMi4yMjI2NTYgQyAxMC4wMTE4OTEgMTIuMTQ4NDE1IDEwIDEyLjA3NDU1MyAxMCAxMiBMIDEwIDExIEwgMTAgMTAgTCAxMS42MzY3MTkgMTAgTCAxNiA0IEMgMTMuOTE5IDIuMDczMSAxMS4wNTEgMSA4IDEgeiIvPgo8L3N2Zz4K" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gMTEsMTEgViAxMiBDIDExLDEyLjI4IDExLjEsMTIuNTQgMTEuMjgsMTIuNzIgTCAxMi4wNiwxMy41IDExLjI4LDE0LjI4IEMgMTEuMSwxNC40NyAxMSwxNC43MyAxMSwxNSBWIDE2IEggMTIgQyAxMi4yOCwxNiAxMi41NCwxNS45IDEyLjcyLDE1LjcyIEwgMTMuNSwxNC45NCAxNC4yOCwxNS43MiBDIDE0LjQ2LDE1LjkgMTQuNzMsMTYgMTUsMTYgSCAxNiBWIDE1IEMgMTYsMTQuNzMgMTUuOSwxNC40NyAxNS43MiwxNC4yOCBMIDE0Ljk0LDEzLjUgMTUuNzIsMTIuNzIgQyAxNS45LDEyLjU0IDE2LDEyLjI4IDE2LDEyIFYgMTEgSCAxNSBDIDE0LjczLDExIDE0LjQ2LDExLjEgMTQuMjgsMTEuMjggTCAxMy41LDEyLjA3IDEyLjcyLDExLjI4IEMgMTIuNTQsMTEuMSAxMi4yOCwxMSAxMiwxMSBaIi8+CiA8cGF0aCBzdHlsZT0ib3BhY2l0eTouMzU7ZmlsbDojZGZkZmRmIiBkPSJNIDggMSBDIDQuOTQ5NCAxIDIuMDgwNiAyLjA3MzIgMCA0IEwgOCAxNSBMIDEwLjAxOTUzMSAxMi4yMjI2NTYgQyAxMC4wMTE4OTEgMTIuMTQ4NDE1IDEwIDEyLjA3NDU1MyAxMCAxMiBMIDEwIDExIEwgMTAgMTAgTCAxMS42MzY3MTkgMTAgTCAxNiA0IEMgMTMuOTE5IDIuMDczMSAxMS4wNTEgMSA4IDEgeiIvPgo8L3N2Zz4K" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>OFFLINE</b>
+            <code>network-wireless-offline-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div></div>
+      </section>
+      <section class="grupo">
+        <header class="cabeca"><h2>Bateria</h2><span class="conta ruim">1/4</span></header>
+        <p class="explica">O estado que mais muda no dia, e o único coberto é o cheio.</p>
+        <div class="lista">
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gNiwxIFYgMiBIIDMgViAxNCBDIDMsMTQuNTUgMy40NDYsMTUgNCwxNSBIIDEyIEMgMTIuNTU0LDE1IDEzLDE0LjU1IDEzLDE0IFYgMiBIIDEwIFYgMSBaIi8+Cjwvc3ZnPgo=" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gNiwxIFYgMiBIIDMgViAxNCBDIDMsMTQuNTUgMy40NDYsMTUgNCwxNSBIIDEyIEMgMTIuNTU0LDE1IDEzLDE0LjU1IDEzLDE0IFYgMiBIIDEwIFYgMSBaIi8+Cjwvc3ZnPgo=" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M20.5 4.5h6.67a1 1 0 0 1 1 1v3h4.63a2 2 0 0 1 2 2v31a2 2 0 0 1-2 2H15.19a2 2 0 0 1-2-2v-31a2 2 0 0 1 2-2h4.31v-3a1 1 0 0 1 1-1m-7.31 32H34.8m-15.3-28h8.67"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M20.5 4.5h6.67a1 1 0 0 1 1 1v3h4.63a2 2 0 0 1 2 2v31a2 2 0 0 1-2 2H15.19a2 2 0 0 1-2-2v-31a2 2 0 0 1 2-2h4.31v-3a1 1 0 0 1 1-1m-7.31 32H34.8m-15.3-28h8.67"/></svg></span></div>
+          <div class="fim">
+            <b>cheia</b>
+            <code>battery-full-symbolic</code>
+            <span class="tag ok">arcticons/battery</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGQ9Ik0gNiwxIFYgMiBIIDMgViAxNCBDIDMsMTQuNTUgMy40NDYsMTUgNCwxNSBIIDEyIEMgMTIuNTU0LDE1IDEzLDE0LjU1IDEzLDE0IFYgMiBIIDEwIFYgMSBaIi8+CiA8cGF0aCBzdHlsZT0iZmlsbDojZGZkZmRmIiBkPSJNIDMsMTAgViAxNCBDIDMsMTQuNTUgMy40NDYsMTUgNCwxNSBIIDEyIEMgMTIuNTU0LDE1IDEzLDE0LjU1IDEzLDE0IFYgMTAgWiIvPgo8L3N2Zz4K" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNkZmRmZGYiIGQ9Ik0gNiwxIFYgMiBIIDMgViAxNCBDIDMsMTQuNTUgMy40NDYsMTUgNCwxNSBIIDEyIEMgMTIuNTU0LDE1IDEzLDE0LjU1IDEzLDE0IFYgMiBIIDEwIFYgMSBaIi8+CiA8cGF0aCBzdHlsZT0iZmlsbDojZGZkZmRmIiBkPSJNIDMsMTAgViAxNCBDIDMsMTQuNTUgMy40NDYsMTUgNCwxNSBIIDEyIEMgMTIuNTU0LDE1IDEzLDE0LjU1IDEzLDE0IFYgMTAgWiIvPgo8L3N2Zz4K" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>FRACA</b>
+            <code>battery-low-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNmNDQzMzYiIGNsYXNzPSJlcnJvciIgZD0iTSA2LDEgViAyIEggMyBWIDE0IEMgMywxNC41NTQgMy40NDYsMTUgNCwxNSBIIDExIFYgNiBIIDEzIFYgMiBIIDEwIFYgMSBaIi8+CiA8cGF0aCBzdHlsZT0iZmlsbDojZjQ0MzM2IiBjbGFzcz0iZXJyb3IiIGQ9Ik0gMTIsNyBWIDExIEwgMTIuMjUsMTMgSCAxMy43NSBMIDE0LDExIFYgNyBaIE0gMTIsMTQgViAxNiBIIDE0IFYgMTQgWiIvPgo8L3N2Zz4K" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5Oi4zNTtmaWxsOiNmNDQzMzYiIGNsYXNzPSJlcnJvciIgZD0iTSA2LDEgViAyIEggMyBWIDE0IEMgMywxNC41NTQgMy40NDYsMTUgNCwxNSBIIDExIFYgNiBIIDEzIFYgMiBIIDEwIFYgMSBaIi8+CiA8cGF0aCBzdHlsZT0iZmlsbDojZjQ0MzM2IiBjbGFzcz0iZXJyb3IiIGQ9Ik0gMTIsNyBWIDExIEwgMTIuMjUsMTMgSCAxMy43NSBMIDE0LDExIFYgNyBaIE0gMTIsMTQgViAxNiBIIDE0IFYgMTQgWiIvPgo8L3N2Zz4K" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>CRÍTICA</b>
+            <code>battery-caution-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · ?</span><span class="buraco">—</span></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>CARREGANDO</b>
+            <code>battery-charging-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div></div>
+      </section>
+      <section class="grupo">
+        <header class="cabeca"><h2>Energia</h2><span class="conta ruim">3/5</span></header>
+        <p class="explica">A melhor cobertura das oito — e ainda assim quebrada em dois estados.</p>
+        <div class="lista">
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwxIEMgOC41NTQsMSA5LDEuNDQ2IDksMiBWIDcgQyA5LDcuNTU0IDguNTU0LDggOCw4IDcuNDQ2LDggNyw3LjU1NCA3LDcgViAyIEMgNywxLjQ0NiA3LjQ0NiwxIDgsMSBaIi8+CiA8cGF0aCBzdHlsZT0iZmlsbDojZGZkZmRmIiBkPSJNIDExLDMgQyAxMC40NDgsMyAxMCwzLjQ0NzcgMTAsNCAxMCw0LjI4MzkgMTAuMTAyLDQuNTc2NyAxMC4zMjksNC43NDggMTEuMzU4LDUuNTI1IDExLjk5OCw2LjcxMDggMTIsOCAxMiwxMC4yMDkgMTAuMjA5LDEyIDgsMTIgNS43OTA5LDEyIDQsMTAuMjA5IDQsOCA0LjAwMjQsNi43MTA1IDQuNjQ0LDUuNTI1MyA1LjY3MTksNC43NDcxIDUuODk4MSw0LjU3NTkgNS45OTk0LDQuMjgzMyA2LDQgNiwzLjQ0NzcgNS41NTIzLDMgNSwzIDQuNzE1MSwzIDQuNDcyNCwzLjE1MTEgNC4yNTM5LDMuMzM0IDIuODYxMSw0LjQ5OTggMi4wMDYzLDYuMTgzNyAyLDggMiwxMS4zMTQgNC42ODYzLDE0IDgsMTQgMTEuMzE0LDE0IDE0LDExLjMxNCAxNCw4IDEzLjk5Niw2LjE2NzggMTMuMTM3LDQuNDYwMiAxMS43MTQsMy4yOTk4IDExLjUwNCwzLjEyODIgMTEuMjY3LDMgMTEsMyBaIi8+Cjwvc3ZnPgo=" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwxIEMgOC41NTQsMSA5LDEuNDQ2IDksMiBWIDcgQyA5LDcuNTU0IDguNTU0LDggOCw4IDcuNDQ2LDggNyw3LjU1NCA3LDcgViAyIEMgNywxLjQ0NiA3LjQ0NiwxIDgsMSBaIi8+CiA8cGF0aCBzdHlsZT0iZmlsbDojZGZkZmRmIiBkPSJNIDExLDMgQyAxMC40NDgsMyAxMCwzLjQ0NzcgMTAsNCAxMCw0LjI4MzkgMTAuMTAyLDQuNTc2NyAxMC4zMjksNC43NDggMTEuMzU4LDUuNTI1IDExLjk5OCw2LjcxMDggMTIsOCAxMiwxMC4yMDkgMTAuMjA5LDEyIDgsMTIgNS43OTA5LDEyIDQsMTAuMjA5IDQsOCA0LjAwMjQsNi43MTA1IDQuNjQ0LDUuNTI1MyA1LjY3MTksNC43NDcxIDUuODk4MSw0LjU3NTkgNS45OTk0LDQuMjgzMyA2LDQgNiwzLjQ0NzcgNS41NTIzLDMgNSwzIDQuNzE1MSwzIDQuNDcyNCwzLjE1MTEgNC4yNTM5LDMuMzM0IDIuODYxMSw0LjQ5OTggMi4wMDYzLDYuMTgzNyAyLDggMiwxMS4zMTQgNC42ODYzLDE0IDgsMTQgMTEuMzE0LDE0IDE0LDExLjMxNCAxNCw4IDEzLjk5Niw2LjE2NzggMTMuMTM3LDQuNDYwMiAxMS43MTQsMy4yOTk4IDExLjUwNCwzLjEyODIgMTEuMjY3LDMgMTEsMyBaIi8+Cjwvc3ZnPgo=" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M24 8.408V19.81m5.255-7.944A13.22 13.22 0 0 1 37.223 24h0c0 7.303-5.92 13.223-13.223 13.223h0c-7.303 0-13.223-5.92-13.223-13.223h0c0-5.27 3.129-10.037 7.964-12.133M45.5 24c0 11.874-9.626 21.5-21.5 21.5S2.5 35.874 2.5 24S12.126 2.5 24 2.5S45.5 12.126 45.5 24"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M24 8.408V19.81m5.255-7.944A13.22 13.22 0 0 1 37.223 24h0c0 7.303-5.92 13.223-13.223 13.223h0c-7.303 0-13.223-5.92-13.223-13.223h0c0-5.27 3.129-10.037 7.964-12.133M45.5 24c0 11.874-9.626 21.5-21.5 21.5S2.5 35.874 2.5 24S12.126 2.5 24 2.5S45.5 12.126 45.5 24"/></svg></span></div>
+          <div class="fim">
+            <b>desligar</b>
+            <code>system-shutdown-symbolic</code>
+            <span class="tag ok">arcticons/power</span>
+          </div>
+        </div>
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwxIEMgNS43ODQsMSA0LDIuNzg0IDQsNSBWIDcgSCAzIEMgMi40NDYsNyAyLDcuNDQ2IDIsOCBWIDE0IEMgMiwxNC41NTQgMi40NDYsMTUgMywxNSBIIDEzIEMgMTMuNTU0LDE1IDE0LDE0LjU1NCAxNCwxNCBWIDggQyAxNCw3LjQ0NiAxMy41NTQsNyAxMyw3IEggMTIgViA1IEMgMTIsMi43ODQgMTAuMjE2LDEgOCwxIFogTSA4LDMgQyA5LjEwOCwzIDEwLDMuODkyIDEwLDUgViA3IEggNiBWIDUgQyA2LDMuODkyIDYuODkyLDMgOCwzIFoiLz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwxIEMgNS43ODQsMSA0LDIuNzg0IDQsNSBWIDcgSCAzIEMgMi40NDYsNyAyLDcuNDQ2IDIsOCBWIDE0IEMgMiwxNC41NTQgMi40NDYsMTUgMywxNSBIIDEzIEMgMTMuNTU0LDE1IDE0LDE0LjU1NCAxNCwxNCBWIDggQyAxNCw3LjQ0NiAxMy41NTQsNyAxMyw3IEggMTIgViA1IEMgMTIsMi43ODQgMTAuMjE2LDEgOCwxIFogTSA4LDMgQyA5LjEwOCwzIDEwLDMuODkyIDEwLDUgViA3IEggNiBWIDUgQyA2LDMuODkyIDYuODkyLDMgOCwzIFoiLz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M10.17 19.26h27.66a1.9 1.9 0 0 1 1.898 1.9V41.6a1.9 1.9 0 0 1-1.899 1.9H10.171a1.9 1.9 0 0 1-1.9-1.9V21.16a1.9 1.9 0 0 1 1.9-1.9m3.419 0V14.9a10.401 10.401 0 0 1 20.803 0v4.36"/><circle cx="23.991" cy="31.38" r="4.034" fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M10.17 19.26h27.66a1.9 1.9 0 0 1 1.898 1.9V41.6a1.9 1.9 0 0 1-1.899 1.9H10.171a1.9 1.9 0 0 1-1.9-1.9V21.16a1.9 1.9 0 0 1 1.9-1.9m3.419 0V14.9a10.401 10.401 0 0 1 20.803 0v4.36"/><circle cx="23.991" cy="31.38" r="4.034" fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          <div class="fim">
+            <b>bloquear</b>
+            <code>system-lock-screen-symbolic</code>
+            <span class="tag ok">arcticons/lock</span>
+          </div>
+        </div>
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCAyIEEgNiA2IDAgMCAwIDIgOCBBIDYgNiAwIDAgMCA4IDE0IEEgNiA2IDAgMCAwIDE0IDggQSA2IDYgMCAwIDAgOCAyIHogTSA4IDQgQSA0IDQgMCAwIDEgMTIgOCBBIDQgNCAwIDAgMSA4IDEyIEEgNCA0IDAgMCAxIDQgOCBBIDQgNCAwIDAgMSA4IDQgeiIvPgogPHBhdGggc3R5bGU9ImZpbGw6I2RmZGZkZiIgZD0iTSA2LDcgSCAxMCBDIDEwLjU1NCw3IDExLDcuNDQ2IDExLDggMTEsOC41NTQgMTAuNTU0LDkgMTAsOSBIIDYgQyA1LjQ0Niw5IDUsOC41NTQgNSw4IDUsNy40NDYgNS40NDYsNyA2LDcgWiIvPgo8L3N2Zz4K" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCAyIEEgNiA2IDAgMCAwIDIgOCBBIDYgNiAwIDAgMCA4IDE0IEEgNiA2IDAgMCAwIDE0IDggQSA2IDYgMCAwIDAgOCAyIHogTSA4IDQgQSA0IDQgMCAwIDEgMTIgOCBBIDQgNCAwIDAgMSA4IDEyIEEgNCA0IDAgMCAxIDQgOCBBIDQgNCAwIDAgMSA4IDQgeiIvPgogPHBhdGggc3R5bGU9ImZpbGw6I2RmZGZkZiIgZD0iTSA2LDcgSCAxMCBDIDEwLjU1NCw3IDExLDcuNDQ2IDExLDggMTEsOC41NTQgMTAuNTU0LDkgMTAsOSBIIDYgQyA1LjQ0Niw5IDUsOC41NTQgNSw4IDUsNy40NDYgNS40NDYsNyA2LDcgWiIvPgo8L3N2Zz4K" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M42.213 35.215C38.476 41.551 31.585 45.8 23.702 45.8C11.838 45.8 2.22 36.174 2.22 24.3S11.837 2.8 23.7 2.8c-9.647 19.619 6.773 33.218 18.512 32.415"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M42.213 35.215C38.476 41.551 31.585 45.8 23.702 45.8C11.838 45.8 2.22 36.174 2.22 24.3S11.837 2.8 23.7 2.8c-9.647 19.619 6.773 33.218 18.512 32.415"/></svg></span></div>
+          <div class="fim">
+            <b>suspender</b>
+            <code>system-suspend-symbolic</code>
+            <span class="tag ok">arcticons/moon</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwyIEEgMSwxIDAgMCAwIDcsMyAxLDEgMCAwIDAgOCw0IDQsNCAwIDAgMSAxMiw4IEggMTAgTCAxMywxMiAxNiw4IEggMTQgQSA2LDYgMCAwIDAgOCwyIFogTSAzLDQgMCw4IEggMiBBIDYsNiAwIDAgMCA4LDE0IDEsMSAwIDAgMCA5LDEzIDEsMSAwIDAgMCA4LDEyIDQsNCAwIDAgMSA0LDggSCA2IFoiLz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwyIEEgMSwxIDAgMCAwIDcsMyAxLDEgMCAwIDAgOCw0IDQsNCAwIDAgMSAxMiw4IEggMTAgTCAxMywxMiAxNiw4IEggMTQgQSA2LDYgMCAwIDAgOCwyIFogTSAzLDQgMCw4IEggMiBBIDYsNiAwIDAgMCA4LDE0IDEsMSAwIDAgMCA5LDEzIDEsMSAwIDAgMCA4LDEyIDQsNCAwIDAgMSA0LDggSCA2IFoiLz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>REINICIAR</b>
+            <code>system-reboot-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gMTIsNSAxNiw4IDEyLDExIFYgOSBIIDggViA3IEggMTIgWiIvPgogPHBhdGggc3R5bGU9ImZpbGw6I2RmZGZkZiIgZD0iTSA4LDIgQSA2LDYgMCAwIDAgMiw4IDYsNiAwIDAgMCA4LDE0IDYsNiAwIDAgMCAxMi4yNCwxMi4yNCBMIDEwLjgyNiwxMC44MjYgQSA0LDQgMCAwIDEgOCwxMiA0LDQgMCAwIDEgNCw4IDQsNCAwIDAgMSA4LDQgNCw0IDAgMCAxIDEwLjgyNiw1LjE3MzggTCAxMi4yNCwzLjc1OTggQSA2LDYgMCAwIDAgOCwyIFoiLz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gMTIsNSAxNiw4IDEyLDExIFYgOSBIIDggViA3IEggMTIgWiIvPgogPHBhdGggc3R5bGU9ImZpbGw6I2RmZGZkZiIgZD0iTSA4LDIgQSA2LDYgMCAwIDAgMiw4IDYsNiAwIDAgMCA4LDE0IDYsNiAwIDAgMCAxMi4yNCwxMi4yNCBMIDEwLjgyNiwxMC44MjYgQSA0LDQgMCAwIDEgOCwxMiA0LDQgMCAwIDEgNCw4IDQsNCAwIDAgMSA4LDQgNCw0IDAgMCAxIDEwLjgyNiw1LjE3MzggTCAxMi4yNCwzLjc1OTggQSA2LDYgMCAwIDAgOCwyIFoiLz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>SAIR</b>
+            <code>system-log-out-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div></div>
+      </section>
+      <section class="grupo">
+        <header class="cabeca"><h2>Bluetooth</h2><span class="conta ruim">1/2</span></header>
+
+        <div class="lista">
+        <div class="par">
+          <div class="col"><span class="rot">hoje · hicolor</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTciIHZpZXdCb3g9IjAgMCAxNiAxNyIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlN0YXR1cyBJY29ucy9ibHVldG9vdGgtYWN0aXZlLXN5bWJvbGljIj4KPHBhdGggaWQ9IlZlY3RvciIgZD0iTTguNSAwLjAyMDAxOTVDNS40NTMgMC4wMjAwMTk1IDMgMi42OTYwMiAzIDYuMDIwMDJWMTAuMDJDMyAxMy4zNDQgNS40NTMgMTYuMDIgOC41IDE2LjAyQzExLjU0NyAxNi4wMiAxNCAxMy4zNDQgMTQgMTAuMDJWNi4wMjAwMkMxNCAyLjY5NjAyIDExLjU0NyAwLjAyMDAxOTUgOC41IDAuMDIwMDE5NVYwLjAyMDAxOTVaTTguNDYgMi4wODIwMkM4LjUyNzEyIDIuMDgwOTcgOC41OTM3NiAyLjA5MzQ0IDguNjU1OTUgMi4xMTg3QzguNzE4MTUgMi4xNDM5NSA4Ljc3NDYyIDIuMTgxNDcgOC44MjIgMi4yMjkwMkwxMS44MjIgNS4yMjkwMkMxMS44NzE4IDUuMjc4NjYgMTEuOTEwNiA1LjMzODI1IDExLjkzNTggNS40MDM4OUMxMS45NjEgNS40Njk1MyAxMS45NzIgNS41Mzk3NSAxMS45NjgzIDUuNjA5OTZDMTEuOTY0NSA1LjY4MDE3IDExLjk0NiA1Ljc0ODggMTEuOTEzOSA1LjgxMTM2QzExLjg4MTggNS44NzM5MiAxMS44MzY4IDUuOTI5IDExLjc4MiA1Ljk3MzAyTDkuMTQ1IDguMDgzMDJMMTEuNzgxIDEwLjE5MkMxMS44MzU5IDEwLjIzNiAxMS44ODA5IDEwLjI5MSAxMS45MTMxIDEwLjM1MzVDMTEuOTQ1MyAxMC40MTYgMTEuOTYzOSAxMC40ODQ2IDExLjk2NzggMTAuNTU0OUMxMS45NzE3IDEwLjYyNTEgMTEuOTYwNyAxMC42OTUzIDExLjkzNTYgMTAuNzYxQzExLjkxMDQgMTAuODI2NyAxMS44NzE3IDEwLjg4NjMgMTEuODIyIDEwLjkzNkw4LjgyMiAxMy45MzZDOC43NTIwOCAxNC4wMDU3IDguNjYzMDkgMTQuMDUzMiA4LjU2NjI0IDE0LjA3MjRDOC40Njk0IDE0LjA5MTYgOC4zNjkwMyAxNC4wODE3IDguMjc3ODEgMTQuMDQzOUM4LjE4NjU4IDE0LjAwNjIgOC4xMDg1NyAxMy45NDIyIDguMDUzNjIgMTMuODYwMkM3Ljk5ODY2IDEzLjc3ODIgNy45NjkyMiAxMy42ODE3IDcuOTY5IDEzLjU4M1Y5LjAyMzAyTDUuNzgxIDEwLjc3M0M1LjY3NzE0IDEwLjg1MSA1LjU0Njk5IDEwLjg4NTYgNS40MTgxIDEwLjg2OTNDNS4yODkyMiAxMC44NTMxIDUuMTcxNzIgMTAuNzg3MyA1LjA5MDQ5IDEwLjY4NTlDNS4wMDkyNiAxMC41ODQ1IDQuOTcwNjggMTAuNDU1NSA0Ljk4MjkgMTAuMzI2MkM0Ljk5NTEzIDEwLjE5NjkgNS4wNTcyMSAxMC4wNzc0IDUuMTU2IDkuOTkzMDJMNy41NDMgOC4wODMwMkw1LjE1NiA2LjE3MzAyQzUuMTAyNDUgNi4xMzI3OSA1LjA1NzUzIDYuMDgyMjIgNS4wMjM5IDYuMDI0MjlDNC45OTAyOCA1Ljk2NjM3IDQuOTY4NjMgNS45MDIyOSA0Ljk2MDI1IDUuODM1ODRDNC45NTE4NyA1Ljc2OTM5IDQuOTU2OTIgNS43MDE5MyA0Ljk3NTExIDUuNjM3NDhDNC45OTMyOSA1LjU3MzAyIDUuMDI0MjUgNS41MTI4NyA1LjA2NjEzIDUuNDYwNkM1LjEwODAxIDUuNDA4MzQgNS4xNTk5NiA1LjM2NTAyIDUuMjE4OSA1LjMzMzIyQzUuMjc3ODUgNS4zMDE0MiA1LjM0MjU4IDUuMjgxNzggNS40MDkyNiA1LjI3NTQ4QzUuNDc1OTMgNS4yNjkxNyA1LjU0MzIgNS4yNzYzMyA1LjYwNzA2IDUuMjk2NTJDNS42NzA5MiA1LjMxNjcxIDUuNzMwMDcgNS4zNDk1MyA1Ljc4MSA1LjM5MzAyTDcuOTY5IDcuMTQzMDJWMi41ODMwMkM3Ljk2ODk4IDIuNDUxNzkgOC4wMjA1NiAyLjMyNTgxIDguMTEyNjEgMi4yMzIyNkM4LjIwNDY1IDIuMTM4NzIgOC4zMjk3OCAyLjA4NTEyIDguNDYxIDIuMDgzMDJMOC40NiAyLjA4MjAyWk04Ljk3IDMuNzkwMDJWNi45NDMwMkwxMC43MjIgNS41NDMwMkw4Ljk3IDMuNzkwMDJaTTguOTcgOS4yMjQwMlYxMi4zNzZMMTAuNzIyIDEwLjYyNEw4Ljk3IDkuMjI0MDJaIiBmaWxsPSIjMjMyMzIzIi8+CjwvZz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTciIHZpZXdCb3g9IjAgMCAxNiAxNyIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlN0YXR1cyBJY29ucy9ibHVldG9vdGgtYWN0aXZlLXN5bWJvbGljIj4KPHBhdGggaWQ9IlZlY3RvciIgZD0iTTguNSAwLjAyMDAxOTVDNS40NTMgMC4wMjAwMTk1IDMgMi42OTYwMiAzIDYuMDIwMDJWMTAuMDJDMyAxMy4zNDQgNS40NTMgMTYuMDIgOC41IDE2LjAyQzExLjU0NyAxNi4wMiAxNCAxMy4zNDQgMTQgMTAuMDJWNi4wMjAwMkMxNCAyLjY5NjAyIDExLjU0NyAwLjAyMDAxOTUgOC41IDAuMDIwMDE5NVYwLjAyMDAxOTVaTTguNDYgMi4wODIwMkM4LjUyNzEyIDIuMDgwOTcgOC41OTM3NiAyLjA5MzQ0IDguNjU1OTUgMi4xMTg3QzguNzE4MTUgMi4xNDM5NSA4Ljc3NDYyIDIuMTgxNDcgOC44MjIgMi4yMjkwMkwxMS44MjIgNS4yMjkwMkMxMS44NzE4IDUuMjc4NjYgMTEuOTEwNiA1LjMzODI1IDExLjkzNTggNS40MDM4OUMxMS45NjEgNS40Njk1MyAxMS45NzIgNS41Mzk3NSAxMS45NjgzIDUuNjA5OTZDMTEuOTY0NSA1LjY4MDE3IDExLjk0NiA1Ljc0ODggMTEuOTEzOSA1LjgxMTM2QzExLjg4MTggNS44NzM5MiAxMS44MzY4IDUuOTI5IDExLjc4MiA1Ljk3MzAyTDkuMTQ1IDguMDgzMDJMMTEuNzgxIDEwLjE5MkMxMS44MzU5IDEwLjIzNiAxMS44ODA5IDEwLjI5MSAxMS45MTMxIDEwLjM1MzVDMTEuOTQ1MyAxMC40MTYgMTEuOTYzOSAxMC40ODQ2IDExLjk2NzggMTAuNTU0OUMxMS45NzE3IDEwLjYyNTEgMTEuOTYwNyAxMC42OTUzIDExLjkzNTYgMTAuNzYxQzExLjkxMDQgMTAuODI2NyAxMS44NzE3IDEwLjg4NjMgMTEuODIyIDEwLjkzNkw4LjgyMiAxMy45MzZDOC43NTIwOCAxNC4wMDU3IDguNjYzMDkgMTQuMDUzMiA4LjU2NjI0IDE0LjA3MjRDOC40Njk0IDE0LjA5MTYgOC4zNjkwMyAxNC4wODE3IDguMjc3ODEgMTQuMDQzOUM4LjE4NjU4IDE0LjAwNjIgOC4xMDg1NyAxMy45NDIyIDguMDUzNjIgMTMuODYwMkM3Ljk5ODY2IDEzLjc3ODIgNy45NjkyMiAxMy42ODE3IDcuOTY5IDEzLjU4M1Y5LjAyMzAyTDUuNzgxIDEwLjc3M0M1LjY3NzE0IDEwLjg1MSA1LjU0Njk5IDEwLjg4NTYgNS40MTgxIDEwLjg2OTNDNS4yODkyMiAxMC44NTMxIDUuMTcxNzIgMTAuNzg3MyA1LjA5MDQ5IDEwLjY4NTlDNS4wMDkyNiAxMC41ODQ1IDQuOTcwNjggMTAuNDU1NSA0Ljk4MjkgMTAuMzI2MkM0Ljk5NTEzIDEwLjE5NjkgNS4wNTcyMSAxMC4wNzc0IDUuMTU2IDkuOTkzMDJMNy41NDMgOC4wODMwMkw1LjE1NiA2LjE3MzAyQzUuMTAyNDUgNi4xMzI3OSA1LjA1NzUzIDYuMDgyMjIgNS4wMjM5IDYuMDI0MjlDNC45OTAyOCA1Ljk2NjM3IDQuOTY4NjMgNS45MDIyOSA0Ljk2MDI1IDUuODM1ODRDNC45NTE4NyA1Ljc2OTM5IDQuOTU2OTIgNS43MDE5MyA0Ljk3NTExIDUuNjM3NDhDNC45OTMyOSA1LjU3MzAyIDUuMDI0MjUgNS41MTI4NyA1LjA2NjEzIDUuNDYwNkM1LjEwODAxIDUuNDA4MzQgNS4xNTk5NiA1LjM2NTAyIDUuMjE4OSA1LjMzMzIyQzUuMjc3ODUgNS4zMDE0MiA1LjM0MjU4IDUuMjgxNzggNS40MDkyNiA1LjI3NTQ4QzUuNDc1OTMgNS4yNjkxNyA1LjU0MzIgNS4yNzYzMyA1LjYwNzA2IDUuMjk2NTJDNS42NzA5MiA1LjMxNjcxIDUuNzMwMDcgNS4zNDk1MyA1Ljc4MSA1LjM5MzAyTDcuOTY5IDcuMTQzMDJWMi41ODMwMkM3Ljk2ODk4IDIuNDUxNzkgOC4wMjA1NiAyLjMyNTgxIDguMTEyNjEgMi4yMzIyNkM4LjIwNDY1IDIuMTM4NzIgOC4zMjk3OCAyLjA4NTEyIDguNDYxIDIuMDgzMDJMOC40NiAyLjA4MjAyWk04Ljk3IDMuNzkwMDJWNi45NDMwMkwxMC43MjIgNS41NDMwMkw4Ljk3IDMuNzkwMDJaTTguOTcgOS4yMjQwMlYxMi4zNzZMMTAuNzIyIDEwLjYyNEw4Ljk3IDkuMjI0MDJaIiBmaWxsPSIjMjMyMzIzIi8+CjwvZz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="m17.064 31.07l13.872-13.802l-6.779-6.768v27l6.779-6.768L17.064 16.93"/><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="m17.064 31.07l13.872-13.802l-6.779-6.768v27l6.779-6.768L17.064 16.93"/><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/></svg></span></div>
+          <div class="fim">
+            <b>ligado</b>
+            <code>cosmic-applet-bluetooth-active-symbolic</code>
+            <span class="tag ok">arcticons/bluetooth</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · hicolor</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlN0YXR1cyBJY29ucy9ibHVldG9vdGgtZGlzYWJsZWQtc3ltYm9saWMiPgo8ZyBpZD0iR3JvdXAiPgo8cGF0aCBpZD0iVmVjdG9yIiBkPSJNMCAwSDE2VjE2SDBWMFoiIGZpbGw9IiM4MDgwODAiIGZpbGwtb3BhY2l0eT0iMC4wMSIvPgo8cGF0aCBpZD0iVmVjdG9yXzIiIGQ9Ik04LjUwMDExIDAuMDE5OTg5QzcuMjMyMTEgMC4wMTk5ODkgNi4wODQxMiAwLjUwNDM3NSA1LjE1NjEyIDEuMjg0NEw3Ljk2OTEgNC4wOTI5VjIuNTc5NzhDNy45NjkxMiAyLjQ4MTA5IDcuOTk4NDIgMi4zODQ2NCA4LjA1MzMgMi4zMDI1N0M4LjEwODE4IDIuMjIwNSA4LjE4NjE5IDIuMTU2NDggOC4yNzc0NSAyLjExODY1QzguMzY4NzIgMi4wODA4MyA4LjQ2OTE4IDIuMDcwODYgOC41NjYxMiAyLjA5QzguNjYzMDYgMi4xMDkxNSA4Ljc1MjEyIDIuMTU2NTcgOC44MjIxIDIuMjI2MjVMMTEuODIyMSA1LjIyMjVDMTEuODcxOSA1LjI3MjA4IDExLjkxMDcgNS4zMzE1OSAxMS45MzU5IDUuMzk3MTVDMTEuOTYxMSA1LjQ2MjcxIDExLjk3MjEgNS41MzI4MyAxMS45Njg0IDUuNjAyOTVDMTEuOTY0NiA1LjY3MzA3IDExLjk0NjEgNS43NDE2MyAxMS45MTQgNS44MDQxMUMxMS44ODE5IDUuODY2NiAxMS44MzcgNS45MjE2IDExLjc4MjEgNS45NjU1NkwxMC43MDUxIDYuODI1NDhMMTMuOTk1MSAxMC4xMTE0QzEzLjk5NTEgMTAuMDc2NCAxNC4wMDAxIDEwLjA0MjUgMTQuMDAwMSAxMC4wMDc1VjYuMDEyNUMxNC4wMDAxIDIuNjkyNjUgMTEuNTQ3MSAwLjAxOTk4OSA4LjUwMDExIDAuMDE5OTg5Wk00LjE4NjExIDIuMjkyMTRDMy40MDc0MiAzLjM3NjEgMi45OTIyNSA0LjY3ODQzIDMuMDAwMTEgNi4wMTI1VjEwLjAwNzVDMy4wMDAxMSAxMy4zMjc0IDUuNDUzMTEgMTYgOC41MDAxMSAxNkMxMC45NjExIDE2IDEzLjAzNDEgMTQuMjU1MiAxMy43NDAxIDExLjgzNTJMOS42MDQxMSA3LjcwNTM5TDkuMTQ0MTIgOC4wNzE5NEwxMS43ODExIDEwLjE3OTNDMTEuODM2IDEwLjIyMzIgMTEuODgxIDEwLjI3ODEgMTEuOTEzMiAxMC4zNDA2QzExLjk0NTQgMTAuNDAzIDExLjk2NCAxMC40NzE2IDExLjk2NzkgMTAuNTQxN0MxMS45NzE4IDEwLjYxMTggMTEuOTYwOCAxMC42ODIgMTEuOTM1NyAxMC43NDc2QzExLjkxMDUgMTAuODEzMiAxMS44NzE4IDEwLjg3MjcgMTEuODIyMSAxMC45MjI0TDguODIyMSAxMy45MTg2QzguNzUyMTggMTMuOTg4MiA4LjY2MzIxIDE0LjAzNTYgOC41NjYzNiAxNC4wNTQ4QzguNDY5NTIgMTQuMDc0IDguMzY5MTQgMTQuMDY0MSA4LjI3NzkxIDE0LjAyNjRDOC4xODY2OCAxMy45ODg3IDguMTA4NjggMTMuOTI0OCA4LjA1MzczIDEzLjg0MjlDNy45OTg3NyAxMy43NjEgNy45NjkzMiAxMy42NjQ3IDcuOTY5MSAxMy41NjYxVjkuMDExNzVMNS43ODExMiAxMC43NTk2QzUuMjYxMTIgMTEuMTc3IDQuNjM1MTIgMTAuMzk2IDUuMTU2MTIgOS45ODA1NEw3LjU0MzExIDguMDcyOTJMNS4zNzcxMiA2LjAxMjVDNC44MTExMiA1LjYwMjAyIDUuMjU3MTIgNC45MjM4NSA1Ljc4MTEyIDUuMzg2MjdMNy45NjkxIDcuMTM0MDlWNi4wNzE0Mkw0LjE4NjExIDIuMjkyMTRaTTguOTY5MSAzLjc4NTI3VjUuMDkxNjZMOS45OTIxMSA2LjExNDM3TDEwLjcyMTEgNS41MzUxTDguOTY5MSAzLjc4NTI3Wk04Ljk2OTEgOS4yMTE1MVYxMi4zNjA2TDEwLjcyMTEgMTAuNjEwOEw4Ljk2OTEgOS4yMTE1MVoiIGZpbGw9IiMyMzIzMjMiLz4KPHBhdGggaWQ9IlZlY3Rvcl8zIiBkPSJNMTQuODU5NCAxMi45NTI0TDMuNTUwNjkgMS42NTc3NUMzLjE2MTM0IDEuMjY4ODggMi41MzAwOSAxLjI2ODg3IDIuMTQwNzMgMS42NTc3M0MxLjc1MTM4IDIuMDQ2NiAxLjc1MTM3IDIuNjc3MDkgMi4xNDA3MyAzLjA2NTk1TDEzLjQ0OTUgMTQuMzYwNkMxMy44Mzg4IDE0Ljc0OTUgMTQuNDcwMSAxNC43NDk1IDE0Ljg1OTUgMTQuMzYwNkMxNS4yNDg4IDEzLjk3MTcgMTUuMjQ4OCAxMy4zNDEzIDE0Ljg1OTQgMTIuOTUyNFoiIGZpbGw9IiMyMzIzMjMiLz4KPC9nPgo8L2c+Cjwvc3ZnPgo=" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlN0YXR1cyBJY29ucy9ibHVldG9vdGgtZGlzYWJsZWQtc3ltYm9saWMiPgo8ZyBpZD0iR3JvdXAiPgo8cGF0aCBpZD0iVmVjdG9yIiBkPSJNMCAwSDE2VjE2SDBWMFoiIGZpbGw9IiM4MDgwODAiIGZpbGwtb3BhY2l0eT0iMC4wMSIvPgo8cGF0aCBpZD0iVmVjdG9yXzIiIGQ9Ik04LjUwMDExIDAuMDE5OTg5QzcuMjMyMTEgMC4wMTk5ODkgNi4wODQxMiAwLjUwNDM3NSA1LjE1NjEyIDEuMjg0NEw3Ljk2OTEgNC4wOTI5VjIuNTc5NzhDNy45NjkxMiAyLjQ4MTA5IDcuOTk4NDIgMi4zODQ2NCA4LjA1MzMgMi4zMDI1N0M4LjEwODE4IDIuMjIwNSA4LjE4NjE5IDIuMTU2NDggOC4yNzc0NSAyLjExODY1QzguMzY4NzIgMi4wODA4MyA4LjQ2OTE4IDIuMDcwODYgOC41NjYxMiAyLjA5QzguNjYzMDYgMi4xMDkxNSA4Ljc1MjEyIDIuMTU2NTcgOC44MjIxIDIuMjI2MjVMMTEuODIyMSA1LjIyMjVDMTEuODcxOSA1LjI3MjA4IDExLjkxMDcgNS4zMzE1OSAxMS45MzU5IDUuMzk3MTVDMTEuOTYxMSA1LjQ2MjcxIDExLjk3MjEgNS41MzI4MyAxMS45Njg0IDUuNjAyOTVDMTEuOTY0NiA1LjY3MzA3IDExLjk0NjEgNS43NDE2MyAxMS45MTQgNS44MDQxMUMxMS44ODE5IDUuODY2NiAxMS44MzcgNS45MjE2IDExLjc4MjEgNS45NjU1NkwxMC43MDUxIDYuODI1NDhMMTMuOTk1MSAxMC4xMTE0QzEzLjk5NTEgMTAuMDc2NCAxNC4wMDAxIDEwLjA0MjUgMTQuMDAwMSAxMC4wMDc1VjYuMDEyNUMxNC4wMDAxIDIuNjkyNjUgMTEuNTQ3MSAwLjAxOTk4OSA4LjUwMDExIDAuMDE5OTg5Wk00LjE4NjExIDIuMjkyMTRDMy40MDc0MiAzLjM3NjEgMi45OTIyNSA0LjY3ODQzIDMuMDAwMTEgNi4wMTI1VjEwLjAwNzVDMy4wMDAxMSAxMy4zMjc0IDUuNDUzMTEgMTYgOC41MDAxMSAxNkMxMC45NjExIDE2IDEzLjAzNDEgMTQuMjU1MiAxMy43NDAxIDExLjgzNTJMOS42MDQxMSA3LjcwNTM5TDkuMTQ0MTIgOC4wNzE5NEwxMS43ODExIDEwLjE3OTNDMTEuODM2IDEwLjIyMzIgMTEuODgxIDEwLjI3ODEgMTEuOTEzMiAxMC4zNDA2QzExLjk0NTQgMTAuNDAzIDExLjk2NCAxMC40NzE2IDExLjk2NzkgMTAuNTQxN0MxMS45NzE4IDEwLjYxMTggMTEuOTYwOCAxMC42ODIgMTEuOTM1NyAxMC43NDc2QzExLjkxMDUgMTAuODEzMiAxMS44NzE4IDEwLjg3MjcgMTEuODIyMSAxMC45MjI0TDguODIyMSAxMy45MTg2QzguNzUyMTggMTMuOTg4MiA4LjY2MzIxIDE0LjAzNTYgOC41NjYzNiAxNC4wNTQ4QzguNDY5NTIgMTQuMDc0IDguMzY5MTQgMTQuMDY0MSA4LjI3NzkxIDE0LjAyNjRDOC4xODY2OCAxMy45ODg3IDguMTA4NjggMTMuOTI0OCA4LjA1MzczIDEzLjg0MjlDNy45OTg3NyAxMy43NjEgNy45NjkzMiAxMy42NjQ3IDcuOTY5MSAxMy41NjYxVjkuMDExNzVMNS43ODExMiAxMC43NTk2QzUuMjYxMTIgMTEuMTc3IDQuNjM1MTIgMTAuMzk2IDUuMTU2MTIgOS45ODA1NEw3LjU0MzExIDguMDcyOTJMNS4zNzcxMiA2LjAxMjVDNC44MTExMiA1LjYwMjAyIDUuMjU3MTIgNC45MjM4NSA1Ljc4MTEyIDUuMzg2MjdMNy45NjkxIDcuMTM0MDlWNi4wNzE0Mkw0LjE4NjExIDIuMjkyMTRaTTguOTY5MSAzLjc4NTI3VjUuMDkxNjZMOS45OTIxMSA2LjExNDM3TDEwLjcyMTEgNS41MzUxTDguOTY5MSAzLjc4NTI3Wk04Ljk2OTEgOS4yMTE1MVYxMi4zNjA2TDEwLjcyMTEgMTAuNjEwOEw4Ljk2OTEgOS4yMTE1MVoiIGZpbGw9IiMyMzIzMjMiLz4KPHBhdGggaWQ9IlZlY3Rvcl8zIiBkPSJNMTQuODU5NCAxMi45NTI0TDMuNTUwNjkgMS42NTc3NUMzLjE2MTM0IDEuMjY4ODggMi41MzAwOSAxLjI2ODg3IDIuMTQwNzMgMS42NTc3M0MxLjc1MTM4IDIuMDQ2NiAxLjc1MTM3IDIuNjc3MDkgMi4xNDA3MyAzLjA2NTk1TDEzLjQ0OTUgMTQuMzYwNkMxMy44Mzg4IDE0Ljc0OTUgMTQuNDcwMSAxNC43NDk1IDE0Ljg1OTUgMTQuMzYwNkMxNS4yNDg4IDEzLjk3MTcgMTUuMjQ4OCAxMy4zNDEzIDE0Ljg1OTQgMTIuOTUyNFoiIGZpbGw9IiMyMzIzMjMiLz4KPC9nPgo8L2c+Cjwvc3ZnPgo=" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>DESLIGADO</b>
+            <code>cosmic-applet-bluetooth-disabled-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div></div>
+      </section>
+      <section class="grupo">
+        <header class="cabeca"><h2>Notificações</h2><span class="conta ruim">1/3</span></header>
+
+        <div class="lista">
+        <div class="par">
+          <div class="col"><span class="rot">hoje · hicolor</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlN0YXR1cyBJY29ucy9ub3RpZmljYXRpb24tc3ltYm9saWMiIGNsaXAtcGF0aD0idXJsKCNjbGlwMF80NjEyXzEyNDI5MykiPgo8ZyBpZD0iR3JvdXAiPgo8cGF0aCBpZD0iVmVjdG9yIiBkPSJNMCAwTDE2IDBWMTZIMEwwIDBaIiBmaWxsPSIjODA4MDgwIiBmaWxsLW9wYWNpdHk9IjAuMDEiLz4KPHBhdGggaWQ9IlZlY3Rvcl8yIiBkPSJNMTMgM0gzQzEuODk1NDMgMyAxIDMuODk1NDMgMSA1VjEwQzEgMTEuMTA0NiAxLjg5NTQzIDEyIDMgMTJIMTNDMTQuMTA0NiAxMiAxNSAxMS4xMDQ2IDE1IDEwVjVDMTUgMy44OTU0MyAxNC4xMDQ2IDMgMTMgM1oiIGZpbGw9IiMyMzIzMjMiLz4KPHBhdGggaWQ9IlZlY3Rvcl8zIiBkPSJNMTIgMTJMMTAgMTVMOCAxMkgxMloiIGZpbGw9IiMyMzIzMjMiLz4KPC9nPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzQ2MTJfMTI0MjkzIj4KPHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo=" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlN0YXR1cyBJY29ucy9ub3RpZmljYXRpb24tc3ltYm9saWMiIGNsaXAtcGF0aD0idXJsKCNjbGlwMF80NjEyXzEyNDI5MykiPgo8ZyBpZD0iR3JvdXAiPgo8cGF0aCBpZD0iVmVjdG9yIiBkPSJNMCAwTDE2IDBWMTZIMEwwIDBaIiBmaWxsPSIjODA4MDgwIiBmaWxsLW9wYWNpdHk9IjAuMDEiLz4KPHBhdGggaWQ9IlZlY3Rvcl8yIiBkPSJNMTMgM0gzQzEuODk1NDMgMyAxIDMuODk1NDMgMSA1VjEwQzEgMTEuMTA0NiAxLjg5NTQzIDEyIDMgMTJIMTNDMTQuMTA0NiAxMiAxNSAxMS4xMDQ2IDE1IDEwVjVDMTUgMy44OTU0MyAxNC4xMDQ2IDMgMTMgM1oiIGZpbGw9IiMyMzIzMjMiLz4KPHBhdGggaWQ9IlZlY3Rvcl8zIiBkPSJNMTIgMTJMMTAgMTVMOCAxMkgxMloiIGZpbGw9IiMyMzIzMjMiLz4KPC9nPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzQ2MTJfMTI0MjkzIj4KPHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo=" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M39.329 31.61c-2.356-1.831-2.717-2.416-4.294-10.775c-1.339-7.097-4.274-9.304-7.918-10.458c.202-.439.323-.922.323-1.437a3.44 3.44 0 0 0-6.88 0c0 .515.12.998.323 1.437c-3.644 1.154-6.58 3.36-7.918 10.458c-1.577 8.359-1.938 8.944-4.294 10.775c-2.433 1.891-2.355 6.249.884 6.249h9.743a4.703 4.703 0 0 0 9.403 0h9.744c3.239 0 3.317-4.358.884-6.249m-20.031 6.249h9.403"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M39.329 31.61c-2.356-1.831-2.717-2.416-4.294-10.775c-1.339-7.097-4.274-9.304-7.918-10.458c.202-.439.323-.922.323-1.437a3.44 3.44 0 0 0-6.88 0c0 .515.12.998.323 1.437c-3.644 1.154-6.58 3.36-7.918 10.458c-1.577 8.359-1.938 8.944-4.294 10.775c-2.433 1.891-2.355 6.249.884 6.249h9.743a4.703 4.703 0 0 0 9.403 0h9.744c3.239 0 3.317-4.358.884-6.249m-20.031 6.249h9.403"/></svg></span></div>
+          <div class="fim">
+            <b>normal</b>
+            <code>cosmic-applet-notification-symbolic</code>
+            <span class="tag ok">arcticons/notifications</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · hicolor</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlN0YXR1cyBJY29ucy9ub3RpZmljYXRpb24tbmV3LXN5bWJvbGljIiBjbGlwLXBhdGg9InVybCgjY2xpcDBfNDYxNF8xMjQ2OTUpIj4KPHBhdGggaWQ9IlZlY3RvciIgZD0iTTAgMEgxNlYxNkgwVjBaIiBmaWxsPSIjODA4MDgwIiBmaWxsLW9wYWNpdHk9IjAuMDEiLz4KPHBhdGggaWQ9IlZlY3Rvcl8yIiBkPSJNNy4yMzk5NSAzQzcuNzM1NjggMy43Mzk2IDguMDAwODcgNC42MDk2MyA4LjAwMTk1IDUuNUM4LjAwMTk1IDYuMDkwOTUgNy44ODU1NiA2LjY3NjExIDcuNjU5NDEgNy4yMjIwOEM3LjQzMzI2IDcuNzY4MDQgNy4xMDE4IDguMjY0MTIgNi42ODM5MyA4LjY4MTk4QzYuMjY2MDcgOS4wOTk4NCA1Ljc2OTk5IDkuNDMxMzEgNS4yMjQwMyA5LjY1NzQ2QzQuNjc4MDYgOS44ODM2IDQuMDkyOSAxMCAzLjUwMTk1IDEwQzIuNjExNzkgOS45OTk1MSAxLjc0MTc4IDkuNzM1MDIgMS4wMDE5NSA5LjI0VjEwQzEuMDAxOTUgMTEuMTA4IDEuODkzOTUgMTIgMy4wMDE5NSAxMkgxMy4wMDJDMTQuMTEgMTIgMTUuMDAyIDExLjEwOCAxNS4wMDIgMTBWNUMxNS4wMDIgMy44OTIgMTQuMTEgMyAxMy4wMDIgM0g3LjIzOTk1WiIgZmlsbD0iIzIzMjMyMyIvPgo8cGF0aCBpZD0iVmVjdG9yXzMiIGQ9Ik0xMiAxMkwxMCAxNUw4IDEySDEyWiIgZmlsbD0iIzIzMjMyMyIvPgo8cGF0aCBpZD0iVmVjdG9yXzQiIGQ9Ik0zLjUgMkMyLjU3MTc0IDIgMS42ODE1IDIuMzY4NzUgMS4wMjUxMyAzLjAyNTEzQzAuMzY4NzQ5IDMuNjgxNSAwIDQuNTcxNzQgMCA1LjVDMCA2LjQyODI2IDAuMzY4NzQ5IDcuMzE4NSAxLjAyNTEzIDcuOTc0ODdDMS42ODE1IDguNjMxMjUgMi41NzE3NCA5IDMuNSA5QzQuNDI4MjYgOSA1LjMxODUgOC42MzEyNSA1Ljk3NDg3IDcuOTc0ODdDNi42MzEyNSA3LjMxODUgNyA2LjQyODI2IDcgNS41QzcgNC41NzE3NCA2LjYzMTI1IDMuNjgxNSA1Ljk3NDg3IDMuMDI1MTNDNS4zMTg1IDIuMzY4NzUgNC40MjgyNiAyIDMuNSAyWk0zIDNINFY2SDNWM1pNMyA3SDRWOEgzVjdaIiBmaWxsPSIjMjMyMzIzIi8+CjwvZz4KPGRlZnM+CjxjbGlwUGF0aCBpZD0iY2xpcDBfNDYxNF8xMjQ2OTUiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlN0YXR1cyBJY29ucy9ub3RpZmljYXRpb24tbmV3LXN5bWJvbGljIiBjbGlwLXBhdGg9InVybCgjY2xpcDBfNDYxNF8xMjQ2OTUpIj4KPHBhdGggaWQ9IlZlY3RvciIgZD0iTTAgMEgxNlYxNkgwVjBaIiBmaWxsPSIjODA4MDgwIiBmaWxsLW9wYWNpdHk9IjAuMDEiLz4KPHBhdGggaWQ9IlZlY3Rvcl8yIiBkPSJNNy4yMzk5NSAzQzcuNzM1NjggMy43Mzk2IDguMDAwODcgNC42MDk2MyA4LjAwMTk1IDUuNUM4LjAwMTk1IDYuMDkwOTUgNy44ODU1NiA2LjY3NjExIDcuNjU5NDEgNy4yMjIwOEM3LjQzMzI2IDcuNzY4MDQgNy4xMDE4IDguMjY0MTIgNi42ODM5MyA4LjY4MTk4QzYuMjY2MDcgOS4wOTk4NCA1Ljc2OTk5IDkuNDMxMzEgNS4yMjQwMyA5LjY1NzQ2QzQuNjc4MDYgOS44ODM2IDQuMDkyOSAxMCAzLjUwMTk1IDEwQzIuNjExNzkgOS45OTk1MSAxLjc0MTc4IDkuNzM1MDIgMS4wMDE5NSA5LjI0VjEwQzEuMDAxOTUgMTEuMTA4IDEuODkzOTUgMTIgMy4wMDE5NSAxMkgxMy4wMDJDMTQuMTEgMTIgMTUuMDAyIDExLjEwOCAxNS4wMDIgMTBWNUMxNS4wMDIgMy44OTIgMTQuMTEgMyAxMy4wMDIgM0g3LjIzOTk1WiIgZmlsbD0iIzIzMjMyMyIvPgo8cGF0aCBpZD0iVmVjdG9yXzMiIGQ9Ik0xMiAxMkwxMCAxNUw4IDEySDEyWiIgZmlsbD0iIzIzMjMyMyIvPgo8cGF0aCBpZD0iVmVjdG9yXzQiIGQ9Ik0zLjUgMkMyLjU3MTc0IDIgMS42ODE1IDIuMzY4NzUgMS4wMjUxMyAzLjAyNTEzQzAuMzY4NzQ5IDMuNjgxNSAwIDQuNTcxNzQgMCA1LjVDMCA2LjQyODI2IDAuMzY4NzQ5IDcuMzE4NSAxLjAyNTEzIDcuOTc0ODdDMS42ODE1IDguNjMxMjUgMi41NzE3NCA5IDMuNSA5QzQuNDI4MjYgOSA1LjMxODUgOC42MzEyNSA1Ljk3NDg3IDcuOTc0ODdDNi42MzEyNSA3LjMxODUgNyA2LjQyODI2IDcgNS41QzcgNC41NzE3NCA2LjYzMTI1IDMuNjgxNSA1Ljk3NDg3IDMuMDI1MTNDNS4zMTg1IDIuMzY4NzUgNC40MjgyNiAyIDMuNSAyWk0zIDNINFY2SDNWM1pNMyA3SDRWOEgzVjdaIiBmaWxsPSIjMjMyMzIzIi8+CjwvZz4KPGRlZnM+CjxjbGlwUGF0aCBpZD0iY2xpcDBfNDYxNF8xMjQ2OTUiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>TEM NOVA</b>
+            <code>cosmic-applet-notification-new-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · hicolor</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlN0YXR1cyBJY29ucy9ub3RpZmljYXRpb24tZGlzYWJsZWQtc3ltYm9saWMiIGNsaXAtcGF0aD0idXJsKCNjbGlwMF80NjE0XzEyNDY5NCkiPgo8ZyBpZD0iR3JvdXAiPgo8cGF0aCBpZD0iVmVjdG9yIiBkPSJNMCAwSDE2VjE2SDBWMFoiIGZpbGw9IiM4MDgwODAiIGZpbGwtb3BhY2l0eT0iMC4wMSIvPgo8cGF0aCBpZD0iVmVjdG9yXzIiIGQ9Ik0xMi41NDE0IDEyLjEzNDNMMi42OTkxMyAyLjI5MjA1QzIuMzA5NzcgMS45MDI3IDEuNjc4NSAxLjkwMjcxIDEuMjg5MTUgMi4yOTIwNkMwLjg5OTc5NiAyLjY4MTQxIDAuODk5ODEyIDMuMzEyNjYgMS4yODkxNiAzLjcwMjAyTDExLjEzMTQgMTMuNTQ0MkMxMS41MjA3IDEzLjkzMzYgMTIuMTUyIDEzLjkzMzYgMTIuNTQxMyAxMy41NDQzQzEyLjkzMDcgMTMuMTU0OSAxMi45MzA3IDEyLjUyMzYgMTIuNTQxNCAxMi4xMzQzWiIgZmlsbD0iIzIzMjMyMyIvPgo8cGF0aCBpZD0iVmVjdG9yXzMiIGQ9Ik0zIDNDMS44OTIgMyAxIDMuODkyIDEgNVYxMEMxIDExLjEwOCAxLjg5MiAxMiAzIDEySDEyLjQxTDMuNDEgM0gzWk01LjM5MDAxIDNMMTQuMDc0IDExLjY4NEMxNC42MyAxMS4zMjkgMTUgMTAuNzExIDE1IDEwVjVDMTUgMy44OTIgMTQuMTA4IDMgMTMgM0g1LjM5MDAxWiIgZmlsbD0iIzIzMjMyMyIvPgo8cGF0aCBpZD0iVmVjdG9yXzQiIGQ9Ik04IDEyTDYgMTVMNCAxMkg4WiIgZmlsbD0iIzIzMjMyMyIvPgo8L2c+CjwvZz4KPGRlZnM+CjxjbGlwUGF0aCBpZD0iY2xpcDBfNDYxNF8xMjQ2OTQiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IlN0YXR1cyBJY29ucy9ub3RpZmljYXRpb24tZGlzYWJsZWQtc3ltYm9saWMiIGNsaXAtcGF0aD0idXJsKCNjbGlwMF80NjE0XzEyNDY5NCkiPgo8ZyBpZD0iR3JvdXAiPgo8cGF0aCBpZD0iVmVjdG9yIiBkPSJNMCAwSDE2VjE2SDBWMFoiIGZpbGw9IiM4MDgwODAiIGZpbGwtb3BhY2l0eT0iMC4wMSIvPgo8cGF0aCBpZD0iVmVjdG9yXzIiIGQ9Ik0xMi41NDE0IDEyLjEzNDNMMi42OTkxMyAyLjI5MjA1QzIuMzA5NzcgMS45MDI3IDEuNjc4NSAxLjkwMjcxIDEuMjg5MTUgMi4yOTIwNkMwLjg5OTc5NiAyLjY4MTQxIDAuODk5ODEyIDMuMzEyNjYgMS4yODkxNiAzLjcwMjAyTDExLjEzMTQgMTMuNTQ0MkMxMS41MjA3IDEzLjkzMzYgMTIuMTUyIDEzLjkzMzYgMTIuNTQxMyAxMy41NDQzQzEyLjkzMDcgMTMuMTU0OSAxMi45MzA3IDEyLjUyMzYgMTIuNTQxNCAxMi4xMzQzWiIgZmlsbD0iIzIzMjMyMyIvPgo8cGF0aCBpZD0iVmVjdG9yXzMiIGQ9Ik0zIDNDMS44OTIgMyAxIDMuODkyIDEgNVYxMEMxIDExLjEwOCAxLjg5MiAxMiAzIDEySDEyLjQxTDMuNDEgM0gzWk01LjM5MDAxIDNMMTQuMDc0IDExLjY4NEMxNC42MyAxMS4zMjkgMTUgMTAuNzExIDE1IDEwVjVDMTUgMy44OTIgMTQuMTA4IDMgMTMgM0g1LjM5MDAxWiIgZmlsbD0iIzIzMjMyMyIvPgo8cGF0aCBpZD0iVmVjdG9yXzQiIGQ9Ik04IDEyTDYgMTVMNCAxMkg4WiIgZmlsbD0iIzIzMjMyMyIvPgo8L2c+CjwvZz4KPGRlZnM+CjxjbGlwUGF0aCBpZD0iY2xpcDBfNDYxNF8xMjQ2OTQiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>SILENCIADA</b>
+            <code>cosmic-applet-notification-disabled-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div></div>
+      </section>
+      <section class="grupo">
+        <header class="cabeca"><h2>Rede com fio</h2><span class="conta ruim">1/2</span></header>
+
+        <div class="lista">
+        <div class="par">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gMSwxIEMgMSwxIDAsMSAwLDIgdiAxMCBjIDAsMSAxLDEgMSwxIGggMiBsIDEsMSBoIDcgbCAxLC0xIGggMiBjIDAsMCAxLDAuMTMgMSwtMSBWIDIgQyAxNSwxIDE0LDEgMTQsMSBaIE0gMiwzIEggMyBWIDUgSCA0IFYgMyBIIDUgViA1IEggNiBWIDMgSCA3IFYgNSBIIDggViAzIGggMSB2IDIgaCAxIFYgMyBoIDEgdiAyIGggMSBWIDMgaCAxIHYgOCBoIC0yIGwgLTEsMSBIIDUgTCA0LDExIEggMiBaIi8+Cjwvc3ZnPgo=" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gMSwxIEMgMSwxIDAsMSAwLDIgdiAxMCBjIDAsMSAxLDEgMSwxIGggMiBsIDEsMSBoIDcgbCAxLC0xIGggMiBjIDAsMCAxLDAuMTMgMSwtMSBWIDIgQyAxNSwxIDE0LDEgMTQsMSBaIE0gMiwzIEggMyBWIDUgSCA0IFYgMyBIIDUgViA1IEggNiBWIDMgSCA3IFYgNSBIIDggViAzIGggMSB2IDIgaCAxIFYgMyBoIDEgdiAyIGggMSBWIDMgaCAxIHYgOCBoIC0yIGwgLTEsMSBIIDUgTCA0LDExIEggMiBaIi8+Cjwvc3ZnPgo=" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="g64"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M19.259 12.482a24 24 0 0 1-.883-4.394C18.218 6.604 16.924 5.5 15.43 5.5H8.507c-1.78 0-3.152 1.538-2.995 3.311C7.091 26.677 21.322 40.91 39.19 42.488c1.773.157 3.31-1.21 3.31-2.99v-6.173c0-2.253-1.103-3.543-2.587-3.7a24 24 0 0 1-4.394-.884a4.91 4.91 0 0 0-4.88 1.247l-2.963 2.963A31.34 31.34 0 0 1 15.05 20.325l2.963-2.963a4.91 4.91 0 0 0 1.247-4.88z"/><circle cx="35.483" cy="12.515" r="7.015" fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="35.483" cy="8.732" r=".75" fill="#cdd6f4"/><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M35.483 11.187v5.311"/></svg></span><span class="g20"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48"><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M19.259 12.482a24 24 0 0 1-.883-4.394C18.218 6.604 16.924 5.5 15.43 5.5H8.507c-1.78 0-3.152 1.538-2.995 3.311C7.091 26.677 21.322 40.91 39.19 42.488c1.773.157 3.31-1.21 3.31-2.99v-6.173c0-2.253-1.103-3.543-2.587-3.7a24 24 0 0 1-4.394-.884a4.91 4.91 0 0 0-4.88 1.247l-2.963 2.963A31.34 31.34 0 0 1 15.05 20.325l2.963-2.963a4.91 4.91 0 0 0 1.247-4.88z"/><circle cx="35.483" cy="12.515" r="7.015" fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="35.483" cy="8.732" r=".75" fill="#cdd6f4"/><path fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round" d="M35.483 11.187v5.311"/></svg></span></div>
+          <div class="fim">
+            <b>conectado</b>
+            <code>network-wired-symbolic</code>
+            <span class="tag ok">arcticons/network</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5OjAuMzU7ZmlsbDojZGZkZmRmIiBkPSJNIDEsMSBDIDEsMSAwLDEgMCwyIHYgMTAgYyAwLDEgMSwxIDEsMSBoIDIgbCAxLDEgaCA2IFYgMTIgSCA1IEwgNCwxMSBIIDIgViAzIEggMyBWIDUgSCA0IFYgMyBIIDUgViA1IEggNiBWIDMgSCA3IFYgNSBIIDggViAzIGggMSB2IDIgaCAxIFYgMyBoIDEgdiAyIGggMSBWIDMgaCAxIHYgNiBoIDIgViAyIEMgMTUsMSAxNCwxIDE0LDEgWiIvPgogPHBhdGggc3R5bGU9ImZpbGw6I2RmZGZkZiIgZD0ibSAxMSwxMCB2IDEgYyAwLDAuMjcgMC4xLDAuNTMgMC4yOCwwLjcyIGwgMC43OCwwLjc4IC0wLjc4LDAuNzggQyAxMS4xLDEzLjQ2IDExLDEzLjcyIDExLDE0IHYgMSBoIDEgYyAwLjI4LDAgMC41NCwtMC4xIDAuNzIsLTAuMjggbCAwLjc4LC0wLjc5IDAuNzgsMC43OSBDIDE0LjQ2LDE0LjkgMTQuNzIsMTUgMTUsMTUgaCAxIHYgLTEgYyAwLC0wLjI4IC0wLjEsLTAuNTQgLTAuMjgsLTAuNzIgTCAxNC45NCwxMi41IDE1LjcyLDExLjcyIEMgMTUuOSwxMS41MyAxNiwxMS4yNyAxNiwxMSB2IC0xIGggLTEgYyAtMC4yOCwwIC0wLjU0LDAuMSAtMC43MiwwLjI4IEwgMTMuNSwxMS4wNiAxMi43MiwxMC4yOCBDIDEyLjU0LDEwLjEgMTIuMjgsMTAgMTIsMTAgWiIvPgo8L3N2Zz4K" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJvcGFjaXR5OjAuMzU7ZmlsbDojZGZkZmRmIiBkPSJNIDEsMSBDIDEsMSAwLDEgMCwyIHYgMTAgYyAwLDEgMSwxIDEsMSBoIDIgbCAxLDEgaCA2IFYgMTIgSCA1IEwgNCwxMSBIIDIgViAzIEggMyBWIDUgSCA0IFYgMyBIIDUgViA1IEggNiBWIDMgSCA3IFYgNSBIIDggViAzIGggMSB2IDIgaCAxIFYgMyBoIDEgdiAyIGggMSBWIDMgaCAxIHYgNiBoIDIgViAyIEMgMTUsMSAxNCwxIDE0LDEgWiIvPgogPHBhdGggc3R5bGU9ImZpbGw6I2RmZGZkZiIgZD0ibSAxMSwxMCB2IDEgYyAwLDAuMjcgMC4xLDAuNTMgMC4yOCwwLjcyIGwgMC43OCwwLjc4IC0wLjc4LDAuNzggQyAxMS4xLDEzLjQ2IDExLDEzLjcyIDExLDE0IHYgMSBoIDEgYyAwLjI4LDAgMC41NCwtMC4xIDAuNzIsLTAuMjggbCAwLjc4LC0wLjc5IDAuNzgsMC43OSBDIDE0LjQ2LDE0LjkgMTQuNzIsMTUgMTUsMTUgaCAxIHYgLTEgYyAwLC0wLjI4IC0wLjEsLTAuNTQgLTAuMjgsLTAuNzIgTCAxNC45NCwxMi41IDE1LjcyLDExLjcyIEMgMTUuOSwxMS41MyAxNiwxMS4yNyAxNiwxMSB2IC0xIGggLTEgYyAtMC4yOCwwIC0wLjU0LDAuMSAtMC43MiwwLjI4IEwgMTMuNSwxMS4wNiAxMi43MiwxMC4yOCBDIDEyLjU0LDEwLjEgMTIuMjgsMTAgMTIsMTAgWiIvPgo8L3N2Zz4K" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>SEM CABO</b>
+            <code>network-wired-disconnected-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div></div>
+      </section>
+      <section class="grupo">
+        <header class="cabeca"><h2>Microfone</h2><span class="conta ruim">0/2</span></header>
+        <p class="explica">Nenhum dos dois existe no pack.</p>
+        <div class="lista">
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwwIEMgNi4zNCwwIDUsMS4zNCA1LDMgViA4IEMgNSw5LjY2IDYuMzQsMTEgOCwxMSA5LjY2LDExIDExLDkuNjYgMTEsOCBWIDMgQyAxMSwxLjM0IDkuNjYsMCA4LDAgWiBNIDIsNyBWIDggQyAyLDEwLjk3IDQuMTYsMTMuNDMgNywxMy45MSBWIDE2IEggOSBWIDEzLjkxIEMgMTEuODQsMTMuNDMgMTQsMTAuOTcgMTQsOCBWIDcgSCAxMiBWIDggQyAxMiwxMC4yMyAxMC4yMywxMiA4LDEyIDUuNzcsMTIgNCwxMC4yMyA0LDggViA3IFoiLz4KPC9zdmc+Cg==" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGYiIGQ9Ik0gOCwwIEMgNi4zNCwwIDUsMS4zNCA1LDMgViA4IEMgNSw5LjY2IDYuMzQsMTEgOCwxMSA5LjY2LDExIDExLDkuNjYgMTEsOCBWIDMgQyAxMSwxLjM0IDkuNjYsMCA4LDAgWiBNIDIsNyBWIDggQyAyLDEwLjk3IDQuMTYsMTMuNDMgNywxMy45MSBWIDE2IEggOSBWIDEzLjkxIEMgMTEuODQsMTMuNDMgMTQsMTAuOTcgMTQsOCBWIDcgSCAxMiBWIDggQyAxMiwxMC4yMyAxMC4yMywxMiA4LDEyIDUuNzcsMTIgNCwxMC4yMyA0LDggViA3IFoiLz4KPC9zdmc+Cg==" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>ATIVO</b>
+            <code>microphone-sensitivity-high-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div>
+        <div class="par quebra">
+          <div class="col"><span class="rot">hoje · Papirus</span><img class="i64" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGY7b3BhY2l0eTouMzUiIGQ9Ik0gOCAwIEMgNi42Mzk4IDAgNS41MTIzMzEyIDAuOTA1ODcxMjUgNS4xNDQ1MzEyIDIuMTQ0NTMxMiBMIDExIDggTCAxMSAzIEMgMTEgMS4zNCA5LjY2IDAgOCAwIHogTSAyLjUgMSBMIDEgMi41IEwgNSA2LjUgTCA1IDggQyA1IDkuNjYgNi4zNCAxMSA4IDExIEMgOC40Mzk2NTcxIDExIDguODQ4ODczMSAxMC44OTQzIDkuMjIyNjU2MiAxMC43MjI2NTYgTCA5Ljk3MDcwMzEgMTEuNDcwNzAzIEMgOS4zOTE4NDM2IDExLjgwMzQ5NyA4LjcyNDMzNTMgMTIgOCAxMiBDIDUuNzcgMTIgNCAxMC4yMyA0IDggTCA0IDcgTCAyIDcgTCAyIDggQyAyIDEwLjk3IDQuMTYgMTMuNDMwMTU2IDcgMTMuOTEwMTU2IEwgNyAxNiBMIDkgMTYgTCA5IDEzLjkxMDE1NiBDIDkuODg5MjY5MiAxMy43NjAzNzYgMTAuNzAyMTgzIDEzLjQwNTkwOSAxMS40MTAxNTYgMTIuOTEwMTU2IEwgMTMuNSAxNSBMIDE1IDEzLjUgTCAyLjUgMSB6IE0gMTIgNyBMIDEyIDggQyAxMiA4LjMwNjggMTEuOTQ4ODU5IDguNTk3MDU5NCAxMS44ODA4NTkgOC44ODA4NTk0IEwgMTMuNDQ5MjE5IDEwLjQ0OTIxOSBDIDEzLjc5MjIxOSA5LjcwMDQxODggMTQgOC44Nzc4IDE0IDggTCAxNCA3IEwgMTIgNyB6Ii8+Cjwvc3ZnPgo=" alt=""><img class="i20" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmVyc2lvbj0iMS4xIj4KIDxwYXRoIHN0eWxlPSJmaWxsOiNkZmRmZGY7b3BhY2l0eTouMzUiIGQ9Ik0gOCAwIEMgNi42Mzk4IDAgNS41MTIzMzEyIDAuOTA1ODcxMjUgNS4xNDQ1MzEyIDIuMTQ0NTMxMiBMIDExIDggTCAxMSAzIEMgMTEgMS4zNCA5LjY2IDAgOCAwIHogTSAyLjUgMSBMIDEgMi41IEwgNSA2LjUgTCA1IDggQyA1IDkuNjYgNi4zNCAxMSA4IDExIEMgOC40Mzk2NTcxIDExIDguODQ4ODczMSAxMC44OTQzIDkuMjIyNjU2MiAxMC43MjI2NTYgTCA5Ljk3MDcwMzEgMTEuNDcwNzAzIEMgOS4zOTE4NDM2IDExLjgwMzQ5NyA4LjcyNDMzNTMgMTIgOCAxMiBDIDUuNzcgMTIgNCAxMC4yMyA0IDggTCA0IDcgTCAyIDcgTCAyIDggQyAyIDEwLjk3IDQuMTYgMTMuNDMwMTU2IDcgMTMuOTEwMTU2IEwgNyAxNiBMIDkgMTYgTCA5IDEzLjkxMDE1NiBDIDkuODg5MjY5MiAxMy43NjAzNzYgMTAuNzAyMTgzIDEzLjQwNTkwOSAxMS40MTAxNTYgMTIuOTEwMTU2IEwgMTMuNSAxNSBMIDE1IDEzLjUgTCAyLjUgMSB6IE0gMTIgNyBMIDEyIDggQyAxMiA4LjMwNjggMTEuOTQ4ODU5IDguNTk3MDU5NCAxMS44ODA4NTkgOC44ODA4NTk0IEwgMTMuNDQ5MjE5IDEwLjQ0OTIxOSBDIDEzLjc5MjIxOSA5LjcwMDQxODggMTQgOC44Nzc4IDE0IDggTCAxNCA3IEwgMTIgNyB6Ii8+Cjwvc3ZnPgo=" alt=""></div>
+          <span class="seta">→</span>
+          <div class="col"><span class="buraco">sem glifo</span></div>
+          <div class="fim">
+            <b>MUDO</b>
+            <code>microphone-sensitivity-muted-symbolic</code>
+            <span class="tag zero">fica no Papirus</span>
+          </div>
+        </div></div>
+      </section>
+
+  <p class="fecho">
+    Repare no lado esquerdo: o Papirus symbolic é <b>chapado</b> — silhueta preenchida,
+    sem contorno. O Arcticons é o oposto: contorno de 1&nbsp;px, miolo vazado. Então a
+    sua queixa tem fundamento — <b>são mesmo duas linguagens</b>, e não uma variação de
+    peso. O que as iguala é só a cor, porque o COSMIC descarta a cor do arquivo e repinta
+    tudo na cor de texto do tema (medido no <code>docs/COSMIC-THEMING.md</code> §4g).
+    <br><br>
+    A escolha, então, é entre <b>uma barra chapada e íntegra</b> e <b>uma barra vazada
+    pela metade</b>: 13 estados em contorno e 13 chapados, alternando entre as
+    duas linguagens conforme o volume, a bateria ou o sinal mudam. Não há terceira opção
+    dentro do Arcticons — a folha acima é o acervo inteiro, não uma amostra.
+  </p>
+</div></body></html>

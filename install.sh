@@ -262,7 +262,7 @@ etapa_conf() {
 #   sem que o MeowSystem soubesse.
 #
 #   O acordo novo (self-heal v3.56): quem tem root instala. O Aurora copia
-#   `$MEOW_RAIZ/zsh/_meow` para `/usr/local/share/zsh/site-functions/_meow` a cada
+#   `$MEOW_RAIZ/assets/zsh/_meow` para `/usr/local/share/zsh/site-functions/_meow` a cada
 #   ciclo, lendo o ponteiro `~/.local/state/meowsystem/raiz`. Esse diretório JÁ está
 #   no `$fpath` (medido com `zsh -i -c 'print -l $fpath'` — vem do fpath compilado
 #   do zsh, não do `env.zsh`), então não é preciso mexer em dotfile nenhum.
@@ -289,7 +289,7 @@ COMPLETIONS_DIR="${MEOW_COMPLETIONS_DIR:-/usr/local/share/zsh/site-functions}"
 # /mnt/Apate e o destino em /home ou /usr, e `mv` entre sistemas de arquivos não
 # é atômico.
 instalar_completion() {
-  local origem="$MEOW_RAIZ/zsh/_meow" destino="$COMPLETIONS_DIR/_meow" tmp
+  local origem="$MEOW_RAIZ/assets/zsh/_meow" destino="$COMPLETIONS_DIR/_meow" tmp
 
   if [ "${MEOW_SEM_COMPLETIONS:-0}" = "1" ]; then
     meow_pula "completions do zsh puladas (MEOW_SEM_COMPLETIONS=1)"
@@ -388,6 +388,32 @@ etapa_cli() {
 
   [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
   return 0
+}
+
+# ---------------------------------------------------------------------------
+# O ATALHO DO PAINEL — o único ícone deste projeto que abre uma janela
+#
+#   Tudo o mais que o instalador planta é tema, ícone de OUTRO aplicativo, applet
+#   de barra ou unidade de systemd. Este é o `.desktop` do MeowSystem ele mesmo:
+#   o que ela clica no lançador para abrir a página que configura as 95 chaves do
+#   `meow.conf` sem editar o arquivo. O que ele abre está em `app/`, e o porquê de
+#   cada decisão está em `app/LEIA-ME.md` e no cabeçalho de `scripts/atalho.sh`.
+#
+# VEM LOGO DEPOIS DA `etapa_cli`, E A ORDEM É UMA DEPENDÊNCIA DE VERDADE
+#   O `.desktop` aponta para `~/.local/bin/meow-painel`, uma cópia que resolve o
+#   clone pelo ponteiro `~/.local/state/meowsystem/raiz` — e quem grava aquele
+#   ponteiro é a `etapa_cli`, três linhas acima. Plantado antes dela, numa
+#   máquina recém-formatada, o atalho nasceria apontando para um ponteiro que
+#   ainda não existe: um ícone que abre e diz "não achei o repositório" na
+#   primeira vez que alguém o usa.
+#
+#   O mesmo raciocínio da `etapa_cli` sobre COPIAR em vez de linkar vale aqui, e
+#   com mais força: o clone mora num NVMe separado, e um `Exec=` apontando para
+#   /mnt/Apate vira um clique que não faz nada no dia em que o disco não montar.
+etapa_atalho() {
+  passo "Atalho do painel de configuração"
+  "$MEOW_RAIZ/scripts/atalho.sh"
+  return $?
 }
 
 # ---------------------------------------------------------------------------
@@ -494,7 +520,7 @@ etapa_gerar() {
   fi
   python3 "$MEOW_RAIZ/scripts/gerar_temas.py" | sed 's/^/  /' || return "$MEOW_ERRO"
   python3 "$MEOW_RAIZ/scripts/gerar_tema_v1.py" | sed 's/^/  /' || return "$MEOW_ERRO"
-  meow_ok "regenerados a partir de palette/"
+  meow_ok "regenerados a partir de assets/paleta/"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -510,11 +536,11 @@ etapa_gerar() {
 etapa_tema() {
   passo "Tema"
   local alvo="${FLAVOR}-${ACCENT}"
-  local captura="$MEOW_RAIZ/state/tema/$alvo"
+  local captura="$MEOW_RAIZ/assets/temas/capturados/$alvo"
 
   if [ ! -d "$captura" ]; then
     meow_aviso "ainda não há captura para '$alvo'"
-    meow_info "importe themes/meowsystem-$alvo.ron uma vez em"
+    meow_info "importe assets/temas/meowsystem-$alvo.ron uma vez em"
     meow_info "  Configurações > Área de trabalho > Aparência > Importar"
     meow_info "e depois rode: ./scripts/capturar_tema.sh $alvo"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -586,6 +612,43 @@ etapa_modo() {
 # Os dois gatos e o tema de ícones saem juntos: a logo do painel é caminho de
 # arquivo e o botão do dock é tema de ícones, mas os dois vêm do mesmo SVG e
 # reiniciam o mesmo processo. Separá-los custaria dois piscar de painel.
+# O DESENHO DELA, ANTES DE VIRAR TEMA — 01/09/2026.
+#   Um SVG salvo pelo Boxy pode trazer `transform-box: fill-box` +
+#   `transform-origin`, que nem o librsvg nem o resvg implementam: a peça vai
+#   parar fora do viewBox e some da tela sem erro nenhum. Aconteceu com os
+#   dentes que ela desenhou nos dois gatos, e custou uma tarde para achar,
+#   porque a pipeline inteira devolvia sucesso.
+#
+#   Vem ANTES do `etapa_icones` porque `assets/icones/autorais/` alimenta o tema
+#   de ícones: normalizar depois seria consertar a fonte e instalar a cópia
+#   quebrada. Os gatos têm o conserto no próprio `logo.sh` (o vigia do acervo
+#   dispara aquele script, não este arquivo), e este passo os cobre de novo por
+#   ser barato e idempotente: numa árvore sã não escreve nada e sai 0.
+#
+#   O acervo de terceiro (`arcticons/`, `catppuccin/`, ~25 mil arquivos) fica de
+#   fora: é arte que ninguém edita aqui, e varrê-la seria segundos por rodada
+#   para conferir o que não muda.
+etapa_svg() {
+  passo "Desenhos (SVG normalizados)"
+  meow_tem python3 || { meow_pula "python3 não está aqui"; return 0; }
+  local pastas=() p
+  for p in assets/gatos assets/icones/autorais assets/icones/overrides; do
+    [ -d "$MEOW_RAIZ/$p" ] && pastas+=("$MEOW_RAIZ/$p")
+  done
+  [ "${#pastas[@]}" -gt 0 ] || return 0
+  local rc
+  if meow_seco; then
+    python3 "$MEOW_RAIZ/scripts/normalizar_svg.py" --conferir "${pastas[@]}"; rc=$?
+  else
+    python3 "$MEOW_RAIZ/scripts/normalizar_svg.py" "${pastas[@]}"; rc=$?
+  fi
+  # O normalizador é mudo quando não há nada a fazer — bom para um vigia que
+  # roda a cada mexida, ruim para uma etapa de instalador, onde silêncio é
+  # indistinguível de "essa etapa não rodou". A linha diz o que foi conferido.
+  [ "$rc" = "0" ] && meow_ok "$(find "${pastas[@]}" -name '*.svg' 2>/dev/null | wc -l) desenho(s) nossos já falam a língua dos renderizadores"
+  return "$rc"
+}
+
 etapa_icones() {
   passo "Ícones e logo"
   FLAVOR="$FLAVOR" LOGO="$LOGO" ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
@@ -718,7 +781,7 @@ etapa_icones_tray_steam() {
 #
 # ELE VOLTAVA SOZINHO, E ERA ISSO QUE ELA ESTAVA VENDO
 #   Queixa de 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon que
-#   fica no applet, voltaram aos originais". O `icons/bandeja.map` previa a
+#   fica no applet, voltaram aos originais". O `assets/icones/bandeja.map` previa a
 #   regressão desde 10/08 e nada agia sobre ela. Quem repõe no EVENTO é a
 #   `etapa_vigia_flatpak`, lá embaixo; esta aqui é quem põe da primeira vez.
 etapa_icones_tray_zapzap() {
@@ -959,7 +1022,7 @@ etapa_som() {
 #   O preset do starship é nosso e vai para `~/.config/starship.toml`. A linha
 #   que LIGA o starship mora em `~/.config/zsh/env.zsh`, que é do Ritual da
 #   Aurora e a TRAVA 1 recusa — então a outra metade sai como
-#   `src/prompt/aurora.patch`, e é ela quem roda. Devolve 4 quando o nosso lado
+#   `assets/prompt/aurora.patch`, e é ela quem roda. Devolve 4 quando o nosso lado
 #   está certo e o dela não; o `concluir` acima já trata 3|4 como "pulado".
 #
 # O QUE A MEDIÇÃO DERRUBOU, E VALE REGISTRAR: a Sprint R dizia que a causa era
@@ -990,7 +1053,7 @@ etapa_prompt() {
 # coisas são verdade e não se implicam — o arquivo do port é o MIOLO de uma
 # entrada, e o de config é o MAPA inteiro (`BTreeMap<ColorSchemeId, ColorScheme>`).
 # Escrever o port cru falha com `Expected opening '{'`. Por isso o esquema é
-# derivado da `palette/catppuccin.json` daqui, e confere campo a campo com o
+# derivado da `assets/paleta/catppuccin.json` daqui, e confere campo a campo com o
 # port nos quatro flavors.
 etapa_terminal() {
   passo "Cores do terminal"
@@ -1019,7 +1082,30 @@ etapa_fastfetch_logo() {
   FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}" \
     FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}" \
     FASTFETCH_LOGO_COLUNAS="${FASTFETCH_LOGO_COLUNAS:-40}" \
+    FASTFETCH_LOGO_MODO="${FASTFETCH_LOGO_MODO:-hora}" \
+    FASTFETCH_LOGO_DIA="${FASTFETCH_LOGO_DIA:-}" FASTFETCH_LOGO_NOITE="${FASTFETCH_LOGO_NOITE:-}" \
+    FASTFETCH_LOGO_CONF="${FASTFETCH_LOGO_CONF:-sim}" \
+    LOGO_DIA="${LOGO_DIA:-}" LOGO_NOITE="${LOGO_NOITE:-}" \
+    NOITE_INICIO="${NOITE_INICIO:-}" NOITE_FIM="${NOITE_FIM:-}" \
+    WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" \
     "$MEOW_RAIZ/scripts/fastfetch_logo.sh" aplicar
+  return $?
+}
+
+# OS DOIS ITENS DE PAPEL DE PAREDE NO MENU DE CONTEXTO DA ÁREA DE TRABALHO
+#
+#   Pedido dela em 01/09/2026. O menu é do `cosmic-files` — mais precisamente do
+#   `cosmic-files-applet`, que é quem entra em `Mode::Desktop` —, e não há
+#   sistema de plugin: os itens só existem patchando o fonte e recompilando.
+#
+#   ESTA ETAPA NUNCA COMPILA. Ela instala o artefato da versão instalada, se
+#   houver, e some do caminho se não houver — o porquê inteiro está no cabeçalho
+#   de `scripts/files_menu.sh`, item 3. O build é `meow files-menu build`, ou o
+#   auto-build que a própria etapa dispara em background.
+etapa_files_menu() {
+  passo "Papel de parede no menu de contexto"
+  FILES_MENU="${FILES_MENU:-sim}" FILES_MENU_AUTOBUILD="${FILES_MENU_AUTOBUILD:-sim}" \
+    "$MEOW_RAIZ/scripts/files_menu.sh" aplicar
   return $?
 }
 
@@ -1877,19 +1963,115 @@ meow_unidade_sobrou() {   # $1.. = nomes de unidade; devolve 0 se sobrou algo
   return 1
 }
 
+# O RELÓGIO DO GATO — instalado quando `LOGO_MODO="hora"`, removido quando não.
+#
+#   Novo em 01/09/2026, com o pedido dela: "de noite o menu com o mimir e de dia
+#   a coquinha; o mesmo no terminal com o fastfetch". Quem decide o gato é o
+#   `logo.sh`; esta função só liga e desliga o par de unidades que o acorda de
+#   cinco em cinco minutos. O porquê do intervalo está no `meow-gato.timer`.
+#
+#   DESLIGAR TEM DE DESLIGAR, e por isso o `else` existe: sem ele, quem trocasse
+#   para `LOGO_MODO="rotacao"` continuaria com o relógio vivo, e o gato voltaria
+#   ao rosto da hora cinco minutos depois de cada giro. Os dois donos da mesma
+#   linha, de novo — só que desta vez atravessando duas unidades do systemd.
+_logo_relogio() {
+  local liga="$1" destino="$HOME/.config/systemd/user" mudou=0 u conteudo
+
+  if [ "$liga" != "sim" ]; then
+    if meow_unidade_sobrou meow-gato.timer meow-gato.service; then
+      meow_seco && { meow_muda "removeria o relógio do gato (LOGO_MODO não é \"hora\")"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now meow-gato.timer meow-gato.service >/dev/null 2>&1
+      rm -f "$destino/meow-gato.timer" "$destino/meow-gato.service"
+      # Link órfão em *.wants sobrevive ao `disable` quando o ARQUIVO da unidade
+      # já não existe — o `disable` não tem o que ler para achá-lo. Mesma cura
+      # que o bloco do `meow-logo` abaixo aplica.
+      rm -f "$destino"/*.wants/meow-gato.timer "$destino"/*.wants/meow-gato.service \
+            "$destino"/*.requires/meow-gato.timer "$destino"/*.requires/meow-gato.service
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "relógio do gato removido"
+      return "$MEOW_DIVERGENTE"
+    fi
+    return 0
+  fi
+
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    meow_aviso "não há systemd --user aqui — o gato não troca sozinho na virada"
+    meow_info "  troque na mão com 'meow logo' quando quiser"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  for u in meow-gato.service meow-gato.timer; do
+    [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+    conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    meow_escrever "$destino/$u" "$conteudo" 644
+    case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+
+  if meow_seco; then
+    [ "$mudou" = "1" ] && { meow_muda "ligaria o relógio do gato (tique de 5 min)"; return "$MEOW_DIVERGENTE"; }
+    return 0
+  fi
+
+  [ "$mudou" = "1" ] && systemctl --user daemon-reload
+  # `enable --now` no TIMER, nunca no `.service`: o serviço é `oneshot` e quem o
+  # acorda é o relógio. Ligar o serviço com `--now` o faria rodar uma vez agora e
+  # ficar `inactive (dead)`, que é o estado certo mas confunde quem for olhar.
+  if [ "$(systemctl --user is-enabled meow-gato.timer 2>/dev/null)" != "enabled" ] ||
+     [ "$(systemctl --user is-active  meow-gato.timer 2>/dev/null)" != "active" ]; then
+    systemctl --user enable --now meow-gato.timer >/dev/null 2>&1 \
+      || { meow_erro "não consegui ligar o meow-gato.timer"; return "$MEOW_ERRO"; }
+    mudou=1
+  fi
+  [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
+  return 0
+}
+
 etapa_logo() {
   passo "Gatos do painel"
-  local destino="$HOME/.config/systemd/user" mudou=0 rc
+  local destino="$HOME/.config/systemd/user" mudou=0 rc modo
+
+  # O MODO EFETIVO VEM DO PRÓPRIO `logo.sh`, e não de uma cópia da regra aqui.
+  # Ele já precisa resolver a compatibilidade `LOGO_ROTACAO="sim"` -> modo
+  # `rotacao`; reimplementá-la nesta etapa criaria duas respostas para "que modo
+  # está valendo", e elas divergiriam na primeira chave nova.
+  modo="$("$MEOW_RAIZ/scripts/logo.sh" modo 2>/dev/null)" || modo="hora"
+  [ -n "$modo" ] || modo="hora"
 
   FLAVOR="$FLAVOR" LOGO="$LOGO" "$MEOW_RAIZ/scripts/logo.sh"
   rc=$?
   [ "$rc" = "1" ] && mudou=1
   [ "$rc" -ge 2 ] && return "$rc"
 
+  _logo_relogio "$([ "$modo" = "hora" ] && echo sim || echo nao)"
+  rc=$?
+  [ "$rc" = "1" ] && mudou=1
+  [ "$rc" = "2" ] && return "$rc"
+
+  if [ "$modo" = "hora" ]; then
+    # A rotação por encerramento não pode ficar viva ao lado do relógio: seriam
+    # dois donos do mesmo gato, e o do logout venceria até o tique seguinte.
+    if meow_unidade_sobrou meow-logo.service meow-logo.timer; then
+      if meow_seco; then
+        meow_muda "removeria a rotação por encerramento (o modo é \"hora\")"; mudou=1
+      else
+        systemctl --user disable --now meow-logo.timer meow-logo.service >/dev/null 2>&1
+        rm -f "$destino/meow-logo.timer" "$destino/meow-logo.service"
+        rm -f "$destino"/*.wants/meow-logo.service "$destino"/*.wants/meow-logo.timer \
+              "$destino"/*.requires/meow-logo.service "$destino"/*.requires/meow-logo.timer
+        systemctl --user daemon-reload >/dev/null 2>&1
+        meow_muda "rotação por encerramento removida — quem manda agora é o relógio"; mudou=1
+      fi
+    fi
+    meow_seco && [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
+    [ "$mudou" = "1" ] && { meow_ok "o gato segue o relógio: ${LOGO_DIA:-coquinha} de dia, ${LOGO_NOITE:-mimir} de noite"; return "$MEOW_DIVERGENTE"; }
+    meow_ok "o gato já segue o relógio (${LOGO_DIA:-coquinha} de dia, ${LOGO_NOITE:-mimir} de noite)"
+    return 0
+  fi
+
   # Desligar tem de DESLIGAR (mesma disciplina do auto-reparo): deixar de
   # instalar manteria vivo o timer que uma execução anterior ligou, e ela veria
   # o gato continuar trocando depois de ter desligado a chave.
-  if [ "${LOGO_ROTACAO:-nao}" != "sim" ]; then
+  if [ "$modo" != "rotacao" ]; then
     # `meow_unidade_sobrou` e não `[ -f … ]`: com o arquivo já apagado e um link
     # órfão no `default.target.wants`, a versão antiga pulava este bloco para
     # sempre e dizia "rotação desligada". Ver o cabeçalho da função.
@@ -2010,7 +2192,7 @@ etapa_assets() {
 #   Um `flatpak update` troca a árvore de deploy inteira e apaga o que estava
 #   escrito lá dentro. Foi o que desfez o ícone de bandeja do ZapZap em
 #   `ago 20 03:30:36` (`flatpak history`), e o que ela viu em 23/08. O
-#   `icons/bandeja.map` previa isso desde 10/08 e não havia gatilho nenhum.
+#   `assets/icones/bandeja.map` previa isso desde 10/08 e não havia gatilho nenhum.
 #
 #   O `meow-doctor.timer` não fecha este buraco: ele passa às 5h, então uma
 #   atualização das 10h da manhã deixa o ícone errado por dezenove horas. A lição
@@ -2071,13 +2253,15 @@ etapa_wallpaper() {
     #   nada: quem desliga é o `disable --now`, e ele precisa ser alcançado.
     #   O `meow_unidade_sobrou` faz as três perguntas (arquivo, estado, link em
     #   `*.wants`) — ver o cabeçalho dele.
-    if meow_unidade_sobrou meow-wallpaper.timer meow-wallpaper.service meow-fundo.path; then
-      meow_seco && { meow_muda "removeria o relógio e o gatilho do carrossel"; return "$MEOW_DIVERGENTE"; }
-      systemctl --user disable --now meow-wallpaper.timer meow-fundo.path >/dev/null 2>&1
+    if meow_unidade_sobrou meow-wallpaper.timer meow-wallpaper.service meow-fundo.path meow-ativos.path; then
+      meow_seco && { meow_muda "removeria o relógio e os dois gatilhos do carrossel"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now meow-wallpaper.timer meow-fundo.path meow-ativos.path >/dev/null 2>&1
       rm -f "$destino/meow-wallpaper.timer" "$destino/meow-wallpaper.service" \
-            "$destino/meow-fundo.path"
+            "$destino/meow-fundo.path" "$destino/meow-ativos.path"
       rm -f "$destino"/*.wants/meow-wallpaper.timer "$destino"/*.wants/meow-fundo.path \
-            "$destino"/*.requires/meow-wallpaper.timer "$destino"/*.requires/meow-fundo.path
+            "$destino"/*.wants/meow-ativos.path \
+            "$destino"/*.requires/meow-wallpaper.timer "$destino"/*.requires/meow-fundo.path \
+            "$destino"/*.requires/meow-ativos.path
       systemctl --user daemon-reload >/dev/null 2>&1
       meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" — relógio E gatilho do carrossel desligados e removidos"
       return "$MEOW_DIVERGENTE"
@@ -2087,9 +2271,16 @@ etapa_wallpaper() {
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
     return "$rc"
   fi
-  for u in meow-wallpaper.service meow-wallpaper.timer meow-fundo.path; do
+  # O `@ATIVOS@` do `meow-ativos.path` é substituído aqui, e não deixado como
+  # `%h/...`: o `PathModified=` aceita especificadores, mas a base do acervo é
+  # configurável (`WALLPAPER_BASE`) e um caminho cravado vigiaria uma pasta que
+  # pode não existir — vigia no lugar errado não dá erro, só não faz nada. É a
+  # mesma cura do `@ACERVO@` no `scripts/vigia_assets.sh`.
+  local _ativos="${WALLPAPER_BASE:-$HOME/.local/share/backgrounds/meowsystem}/ativos"
+  for u in meow-wallpaper.service meow-wallpaper.timer meow-fundo.path meow-ativos.path; do
     [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
     conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    [ "$u" = "meow-ativos.path" ] && conteudo="${conteudo//@ATIVOS@/$_ativos}"
     meow_escrever "$destino/$u" "$conteudo" 644
     case $? in 1) mudou_t=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
   done
@@ -2111,7 +2302,7 @@ etapa_wallpaper() {
   #   e é justamente esse quarto de hora que ela reclamou de odiar.
   #   O relógio FICA: gatilho de inotify não sobrevive a tudo (sessão sem watch,
   #   daemon-reload no meio da escrita), e a garantia continua sendo o tempo.
-  for u in meow-wallpaper.timer meow-fundo.path; do
+  for u in meow-wallpaper.timer meow-fundo.path meow-ativos.path; do
     if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
        [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
       systemctl --user enable --now "$u" >/dev/null 2>&1 \
@@ -2120,7 +2311,7 @@ etapa_wallpaper() {
     fi
   done
   [ "$mudou_t" = "1" ] && {
-    meow_ok "carrossel protegido: relógio de 15 min + gatilho no instante da mudança"
+    meow_ok "carrossel protegido: relógio de 15 min + gatilho na config + vigia de ativos/"
     return "$MEOW_DIVERGENTE"
   }
   return "$rc"
@@ -2253,13 +2444,13 @@ main() {
   # instalação e "consertaria" o que ainda estava sendo escrito.
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
-  local etapas=(etapa_conf etapa_cli etapa_pacotes etapa_gerar etapa_tema
+  local etapas=(etapa_conf etapa_cli etapa_atalho etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
-                etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
+                etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
-                etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_cursor etapa_apps
+                etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
                 etapa_assets etapa_vigia_flatpak
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}

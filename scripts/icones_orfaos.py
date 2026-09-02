@@ -163,7 +163,7 @@ def main():
             print(f"     {o['icone'] or '(sem Icon=)':40s} -> {o['atual']}")
         if orfaos:
             print('  >> ficar fora não é defeito: um ícone errado é pior que um '
-                  'genérico (icons/apps.map)')
+                  'genérico (assets/icones/apps.map)')
 
     return MEOW_DIVERGENTE if orfaos else MEOW_OK
 

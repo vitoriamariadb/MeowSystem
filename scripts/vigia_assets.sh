@@ -218,7 +218,11 @@ _aplicar() {
     return "$MEOW_OK"
   fi
   meow_ok "vigia ligado: soltou um .svg em assets/gatos/, ele entra na hora"
-  meow_info "  o gato do dock só troca no próximo login — o painel não relê ícone"
+  # A frase antiga ("só troca no próximo login") morreu em 01/09/2026: o
+  # `logo.sh` passou a reciclar o painel e a chacoalhar o menu de lançamento
+  # quando o arquivo do dock muda de verdade. Aviso que envelhece é pior que
+  # aviso nenhum — manda ela esperar por algo que já aconteceu.
+  meow_info "  o gato novo aparece em segundos: dock (painel reciclado), terminal e menu"
   return "$MEOW_DIVERGENTE"
 }
 

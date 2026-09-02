@@ -11,7 +11,7 @@
 #   compridos que quebram em duas linhas". Não é gosto: no lançador o rótulo mora
 #   numa caixa de tamanho fixo, e o que não cabe quebra ou some atrás de "...".
 #
-# OS DOIS LIMITES, MEDIDOS EM 08/08/2026 (o `icons/apps-nomes.map` traz a conta)
+# OS DOIS LIMITES, MEDIDOS EM 08/08/2026 (o `assets/icones/apps-nomes.map` traz a conta)
 #   reticências : passou de 27 BYTES, o lançador corta nos 24 primeiros
 #                 CARACTERES e acrescenta "...". É `max_name_len = 27` em
 #                 `cosmic-app-library/src/widgets/application.rs`, e o `str::len()`
@@ -22,9 +22,9 @@
 #                 uns 16 caracteres em caixa mista.
 #
 # A LISTA NÃO MORA AQUI, DE PROPÓSITO
-#   Ela está em `icons/apps-nomes.map`, com o motivo de cada corte ao lado. Lista
+#   Ela está em `assets/icones/apps-nomes.map`, com o motivo de cada corte ao lado. Lista
 #   cravada dentro de script envelhece e ninguém acha — é a mesma razão que põe os
-#   ícones em `icons/apps.map` e os mimetypes em `icons/mimetypes.map`.
+#   ícones em `assets/icones/apps.map` e os mimetypes em `assets/icones/mimetypes.map`.
 #
 # POR QUE ESCREVER NO ARQUIVO EXISTENTE, E NÃO NUMA CÓPIA NO HOME
 #   Porque o `cosmic-app-library` NÃO DEDUPLICA POR ID — medido em 04/08/2026 e
@@ -40,7 +40,7 @@
 #                                      flatpak, que é somente-leitura. Mas o LINK
 #                                      mora no home dela e pode virar arquivo
 #                                      real. É a mesma manobra do
-#                                      `app-themes/zapzap/manifesto.sh`, com o
+#                                      `assets/temas-de-apps/zapzap/manifesto.sh`, com o
 #                                      alvo original guardado em `.meow-original`
 #                                      para o `flatpak repair` não achar link
 #                                      quebrado. Um `flatpak update` do app
@@ -76,7 +76,7 @@ MEOW_NOMES_RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_NOMES_RAIZ/lib/comum.sh"
 
-MEOW_NOMES_MAPA="${MEOW_NOMES_MAPA:-$MEOW_NOMES_RAIZ/icons/apps-nomes.map}"
+MEOW_NOMES_MAPA="${MEOW_NOMES_MAPA:-$MEOW_NOMES_RAIZ/assets/icones/apps-nomes.map}"
 
 # Os diretórios que o lançador varre, na ordem dele. Todos entram: o mesmo id
 # pode existir em mais de um, e cada cópia visível é um item na tela.

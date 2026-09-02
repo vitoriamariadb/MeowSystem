@@ -17,7 +17,7 @@
 #
 # SÃO DUAS AFIRMAÇÕES, E A SEGUNDA É A QUE ENVELHECE
 #   1. o desinstalador chama o `reverter` — uma linha, quebra alto se sumir;
-#   2. TODO módulo em `app-themes/` define `meow_app_reverter` — esta é a que
+#   2. TODO módulo em `assets/temas-de-apps/` define `meow_app_reverter` — esta é a que
 #      apodrece sozinha: um módulo novo nasce com `detectar/conferir/aplicar`
 #      (é o que o contrato exige) e o quarto verbo é opcional no runner. Sem
 #      este teste, o primeiro app-tema escrito depois de hoje volta a ficar
@@ -43,7 +43,7 @@ fi
 # `MEOW_IGNORA_DESKTOP=1` e o `lib/comum.sh` antes: os módulos são escritos para
 # serem `source` DEPOIS dele (usam meow_ok, MEOW_OK, meow_seco). Carregá-los
 # soltos daria "comando não encontrado" e um falso positivo de sintaxe.
-for mod in "$RAIZ"/app-themes/*/manifesto.sh; do
+for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
   nome="$(basename "$(dirname "$mod")")"
   if ! (
         set +u
@@ -62,4 +62,4 @@ done
 
 [ "$falhou" = "0" ] || exit 1
 printf 'ok: o --uninstall desfaz os %s módulos de aplicativo\n' \
-  "$(find "$RAIZ/app-themes" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+  "$(find "$RAIZ/assets/temas-de-apps" -mindepth 1 -maxdepth 1 -type d | wc -l)"

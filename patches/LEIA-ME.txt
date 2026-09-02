@@ -1,4 +1,4 @@
-patches/ — o que este diretório é, e as QUATRO armadilhas que custam caro.
+patches/ — o que este diretório é, e as CINCO armadilhas que custam caro.
 
 ================================================================================
 1. NEM TODO PATCH DAQUI ESTÁ APLICADO. HOJE, O DAQUI NÃO ESTÁ.
@@ -25,9 +25,17 @@ patches/ — o que este diretório é, e as QUATRO armadilhas que custam caro.
 
     NÃO EXISTE AQUI o `cosmic-comp-sem-workspace-vazio.patch` — o patch mais
     importante da máquina, o que segura os workspaces alfinetados dela. Ele vive
-    só do lado da Aurora (`~/.config/zsh/patches/`). Este diretório carrega UM
-    patch, e o verificador do doctor diz isso para o "md5 igual" verde não dar
-    impressão de uma cobertura que não há.
+    só do lado da Aurora (`~/.config/zsh/patches/`). Este diretório carrega TRÊS
+    dos quatro da série, e o verificador do doctor diz isso para o "md5 igual"
+    verde não dar impressão de uma cobertura que não há.
+
+    O TERCEIRO ENTROU EM 31/08/2026: `cosmic-comp-menu-clique-curto.patch`. Ela
+    descreveu o defeito assim — "em apps como o gradia o botão direito se aperta
+    e desaperta": o menu da janela nasce EMBAIXO do cursor, então um item já está
+    sob o ponteiro quando o release do mesmo clique chega, e o
+    `selected && Released` do `MenuGrab::button` fechava o menu antes de ela
+    conseguir ler o que havia dentro. O patch engole o release que chega em menos
+    de 250 ms desde o nascimento do grab. O press-drag-release continua íntegro.
 
 ================================================================================
 2. `make VENDOR=1` APAGA O `vendor/` PATCHADO — E NÃO AVISA
@@ -76,6 +84,85 @@ patches/ — o que este diretório é, e as QUATRO armadilhas que custam caro.
     que promete?". Só o marcador no binário E o efeito na tela respondem a
     segunda.
 
+
+================================================================================
+5. NEM TODO PATCH DAQUI É DO COSMIC-COMP — E CONFUNDIR ISSO DEU ALARME FALSO
+================================================================================
+    Entrou em 01/09/2026 o primeiro `.patch` que não é do compositor:
+
+        cosmic-files-wallpaper-menu.patch
+
+    Ele põe "Próximo papel de parede" e "Papel de parede anterior" no menu de
+    contexto da área de trabalho. Quatro coisas o separam dos outros três:
+
+      * O ALVO É OUTRO BINÁRIO — e não é o que o nome sugere. Quem desenha a
+        área de trabalho é o `cosmic-files-applet` (ele chama
+        `cosmic_files::desktop()`, que fixa `Mode::Desktop`), não o
+        `cosmic-files`. Os dois saem do mesmo pacote e da mesma lib, então o
+        patch é um só — mas são DOIS binários a instalar. Instalar só o primeiro
+        compila, instala, não dá erro nenhum e não muda um item no menu dela.
+
+      * QUEM O APLICA É NOSSO: `scripts/files_menu.sh`, não a série da Aurora.
+        Ele tem marcador (`MEOW-FILES-WALLPAPER-PATCH-1`), artefato por versão
+        de pacote e auto-build próprios.
+
+      * ELE NÃO VAI PARA `/usr/bin`. O binário patchado mora em `~/.local/bin`,
+        que vem ANTES de `/usr/bin` no PATH da sessão (medido), e os dois
+        programas são lançados por NOME. Um `apt upgrade` não tem o que
+        sobrescrever.
+
+      * QUANDO A VERSÃO DO PACOTE SOBE SEM BUILD, O NOSSO SAI DA FRENTE. É o
+        contrário do que o `aurora-cosmic-comp-ws.sh` faz, e de propósito: lá o
+        binário patchado é o compositor, e ficar sem ele é ficar sem sessão. Aqui
+        o custo de falhar para o upstream são dois itens de menu por alguns
+        minutos — muito mais barato que um gerenciador de arquivos de uma semana
+        atrás vencendo o que o apt acabou de instalar.
+
+    O ALARME FALSO, para não se repetir: o `scripts/compositor_patches.sh`
+    comparava TODO `.patch` deste diretório contra a série da Aurora — que é a
+    série do cosmic-comp — e dizia do arquivo novo, com cara de certo, "está no
+    repo e não na série, nunca entra em binário nenhum" e "a Aurora não o
+    carrega". As duas frases eram falsas. O conferidor passou a olhar só
+    `cosmic-comp-*.patch`, e a DIZER em voz alta quais ficaram de fora da conta.
+    O filtro é pelo NOME, de propósito: adivinhar o alvo pelos `+++` responde
+    errado no dia em que um patch do compositor tocar um arquivo de nome
+    parecido, e um nome é um contrato mais barato de manter que uma heurística.
+
+================================================================================
+6. O PATCH DO RAIO FOI REESCRITO EM 01/09/2026 — E ELE MOSTRA COMO ISSO ACONTECE
+================================================================================
+    O `apt full-upgrade` daquele dia levou o cosmic-comp para `a830784`, e o
+    `cosmic-comp-raio-clampado.patch` parou de aplicar:
+
+        [opt] cosmic-comp-raio-clampado.patch: NÃO aplica (rc=1)
+              Hunk #2 FAILED at 690
+
+    O upstream reescreveu `layer_radius_hook`: ele deixou de medir pelo
+    `bbox_from_surface_tree` (a caixa do frame ANTERIOR) e passou a medir pelo
+    tamanho do último `configure` que o cliente reconheceu. Isso conserta METADE
+    do problema — a medida errada. A outra metade continua lá: raio grande ainda
+    é `post_error(RadiusTooLarge)`, e `post_error` num cliente Wayland é fatal.
+    Então o clamp continua valendo, agora por cima da medida nova. Reescrito
+    como AURORA-COSMIC-RADIUS-PATCH-2.
+
+    TRÊS COISAS QUE ESSE DIA ENSINOU:
+
+      a) O `opt` FEZ O QUE DEVIA, e ninguém percebeu na hora. O build seguiu sem
+         o efeito, instalou um binário útil e não avisou em voz alta. Quem
+         acusou foi o `meow doctor`, na linha `patches`. Conferir aquela linha
+         DEPOIS DE TODO upgrade do cosmic-comp é o hábito que fecha esse buraco.
+
+      b) O MARCADOR PRECISA DE `#[used]`. Sem ele, o `static` que carrega a
+         string é descartado pelo compilador: o binário compila igual, funciona
+         igual, e sai SEM o marcador. Medido no primeiro build do patch
+         reescrito — `grep -a` devolveu vazio para RADIUS. E como o `--ensure`
+         decide reinstalar comparando marcadores, isso viraria uma recompilação
+         por ciclo do self-heal, para sempre.
+
+      c) O ESTRAGO REAL ERA MENOR QUE O SUSTO. Os valores dela (painel 16, dock
+         24) estão abaixo do teto (22, 36), então mesmo sem o clamp não havia
+         risco imediato. Medir o teto ANTES de entrar em pânico é `meow painel
+         teto`.
 ================================================================================
 SE O COMPOSITOR NÃO SUBIR — LEIA ANTES DE COMPILAR, NÃO DEPOIS
 ================================================================================

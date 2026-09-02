@@ -13,7 +13,7 @@
 #   Instalar aqueles 12 seria instalar ícone que ela nunca veria.
 #
 #   O que ele pede de verdade são os nomes XDG, e disso o pack cobre 7 — com
-#   OUTRO NOME. A tradução mora em `icons/pastas.map`, com a medição completa.
+#   OUTRO NOME. A tradução mora em `assets/icones/pastas.map`, com a medição completa.
 #
 # ONDE ISTO ENTRA, E POR QUE NÃO NOS `<tam>/places`
 #   Em `scalable/places`, um diretório que nasce aqui: nenhum outro script do
@@ -46,7 +46,7 @@
 #
 # O QUE NÃO ESTIVER NO MAPA CONTINUA MAUVE
 #   `folder` (a pasta comum), `user-desktop` e o lixo não estão no mapa — de
-#   propósito, e o porquê de cada um está em `icons/pastas.map`.
+#   propósito, e o porquê de cada um está em `assets/icones/pastas.map`.
 #
 # CÓDIGOS DE SAÍDA (o contrato do projeto)
 #   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta o pack
@@ -60,8 +60,8 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # etapas irmãs usam, para que os tipos de arquivo e as pastas nunca discordem.
 FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
 
-ORIGEM="$RAIZ/icons/catppuccin/$FLAVOR_ICONES"
-MAPA="$RAIZ/icons/pastas.map"
+ORIGEM="$RAIZ/assets/icones/catppuccin/$FLAVOR_ICONES"
+MAPA="$RAIZ/assets/icones/pastas.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 DESTINO="$HOME/.local/share/icons/$TEMA/scalable/places"
 
@@ -84,11 +84,11 @@ _ler_mapa() {
 # --- dependências -------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o pack Catppuccin não está em icons/catppuccin/$FLAVOR_ICONES — nada a vestir"
+    meow_pula "o pack Catppuccin não está em assets/icones/catppuccin/$FLAVOR_ICONES — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem icons/pastas.map — nada a vestir"
+    meow_pula "sem assets/icones/pastas.map — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"
@@ -206,7 +206,7 @@ _aplicar() {
 #
 #   Ou seja: ligar `PASTAS_XDG="sim"` hoje não ACRESCENTA símbolo, SUBSTITUI o
 #   que já tem por traço vazado sem mauve. As duas decisões dela apontam para o
-#   mesmo lado. Quem for reabrir isto, releia `icons/pastas.map` inteiro antes —
+#   mesmo lado. Quem for reabrir isto, releia `assets/icones/pastas.map` inteiro antes —
 #   a medição está lá, com a tabela nome -> arquivo final.
 #
 # COMO O DESLIGAMENTO FUNCIONA, E POR QUE NÃO TEM CÓDIGO NOVO

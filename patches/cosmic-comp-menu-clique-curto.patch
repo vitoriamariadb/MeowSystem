@@ -1,0 +1,119 @@
+# cosmic-comp-menu-clique-curto.patch — o menu de janela para de fechar sozinho.
+#
+# ============================================================================
+# O DEFEITO, DESCRITO POR ELA EM 31/08/2026
+# ============================================================================
+#   "em apps como o gradia o botao direito se aperta e desaperta" — clicar com o
+#   botao direito na barra de titulo abre o menu da janela (Empilhar janelas,
+#   Minimizar, Fazer captura de tela, ...) e ele SOME no instante em que o dedo
+#   solta o botao. Nao da tempo de escolher nada.
+#
+# ============================================================================
+# A CAUSA, MEDIDA NO FONTE
+# ============================================================================
+#   src/shell/grabs/menu/mod.rs, PointerGrab::button do MenuGrab:
+#
+#       if selected && event.state == ButtonState::Released {
+#           handle.unset_grab(...);        // fecha o menu
+#       }
+#
+#   O menu nasce EMBAIXO do cursor. Ou seja: no instante em que ele abre, um dos
+#   itens ja esta com `pointer_entered = true` (na foto dela era o "Fazer captura
+#   de tela"). O `Released` do MESMO clique que abriu o menu chega milissegundos
+#   depois, encontra `selected == true`, e fecha.
+#
+#   Isso e o idioma "press-drag-release" — segurar, arrastar ate o item, soltar —
+#   que e legitimo e que TODO menu de desktop suporta. O que falta aqui e o outro
+#   idioma, o do clique curto: apertar e soltar deixa o menu ABERTO, e o proximo
+#   clique escolhe. GTK, Qt e o proprio cosmic-panel fazem os dois; este menu so
+#   fazia o primeiro.
+#
+# ============================================================================
+# A CURA, E POR QUE ENGOLIR O EVENTO EM VEZ DE SO NAO FECHAR
+# ============================================================================
+#   Um `Released` que chega em menos de CLIQUE_CURTO desde o nascimento do grab e
+#   o release do clique que ABRIU o menu — nao e uma escolha dela. Ele e engolido
+#   inteiro: nao vai para o widget iced e nao fecha o grab.
+#
+#   Nao basta pular so o `unset_grab`: o `PointerTarget::button` logo acima ja
+#   repassa o evento ao iced, e o `button` do iced dispara o `on_press` no
+#   RELEASE. Sem engolir, o clique curto ATIVARIA o item que estivesse sob o
+#   cursor — trocar "o menu some" por "o menu executa Minimizar sozinho" seria
+#   pior do que o defeito.
+#
+#   250ms e o limiar. E o mesmo numero que o GTK usa para separar clique de
+#   arrasto em menu (gtk/gtkmenushell.c, MENU_SHELL_TIMEOUT). Acima dele, o
+#   press-drag-release continua funcionando exatamente como antes: quem segurar o
+#   botao meio segundo, arrastar ate um item e soltar, aciona o item.
+#
+#   O menu aberto por TECLADO ou por clique no cosmic-panel nao passa por aqui
+#   com um release pendente, entao nada muda para eles: o `nascimento` fica no
+#   passado e o primeiro release que chegar ja estara fora da janela dos 250ms.
+#
+# ============================================================================
+# O MARCADOR
+# ============================================================================
+#   `AURORA-COSMIC-MENU-PATCH-1`, um `#[used] static &str` — sem o `#[used]` o
+#   linker descarta um static que ninguem le e o `--ensure` deixa de reconhecer
+#   o build (armadilha 3 do patches/LEIA-ME.txt).
+#
+--- a/src/shell/grabs/menu/mod.rs
++++ b/src/shell/grabs/menu/mod.rs
+@@ -510,12 +510,32 @@
+     touch_entered: Option<TouchSlot>,
+ }
+ 
++/// AURORA-COSMIC-MENU-PATCH — o menu de janela para de fechar no release do
++/// clique que o abriu. O menu nasce EMBAIXO do cursor, entao um item ja esta com
++/// `pointer_entered` quando o release do botao direito chega, e o ramo
++/// `selected && Released` do `button()` fechava o menu antes de ela ver o que
++/// havia dentro. Ver o cabecalho do .patch.
++///
++/// O `#[used]` e o que impede o linker de descartar um static que ninguem le —
++/// sem ele o `--ensure` do aurora-cosmic-comp-ws.sh nao enxerga este patch no
++/// binario e nunca reinstala.
++#[used]
++static AURORA_MENU_PATCH: &str = "AURORA-COSMIC-MENU-PATCH-1";
++
++/// Abaixo disto, um `Released` e o fim do clique que ABRIU o menu, nao uma
++/// escolha dela. Mesmo limiar que o GTK usa para separar clique de arrasto em
++/// menu (gtkmenushell.c). Acima dele o press-drag-release continua igual: quem
++/// segurar o botao, arrastar ate um item e soltar, aciona o item.
++const CLIQUE_CURTO: std::time::Duration = std::time::Duration::from_millis(250);
++
+ pub struct MenuGrab {
+     elements: Arc<Mutex<Vec<Element>>>,
+     start_data: GrabStartData,
+     seat: Seat<State>,
+     screen_space_relative: Option<Output>,
+     scale: Arc<Mutex<f64>>,
++    /// AURORA-COSMIC-MENU-PATCH: quando este grab nasceu.
++    nascimento: std::time::Instant,
+ }
+ 
+ impl PointerGrab<State> for MenuGrab {
+@@ -600,6 +620,16 @@
+         handle: &mut PointerInnerHandle<'_, State>,
+         event: &ButtonEvent,
+     ) {
++        // AURORA-COSMIC-MENU-PATCH: engole o release do clique que ABRIU o menu.
++        //
++        // Engolir inteiro, e nao apenas pular o `unset_grab` la embaixo, porque
++        // o `PointerTarget::button` repassa o evento ao iced e o `button` do
++        // iced dispara o `on_press` NO RELEASE: sem isto, o clique curto
++        // acionaria o item que estivesse sob o cursor — trocar "o menu some" por
++        // "o menu minimiza a janela sozinho" seria pior do que o defeito.
++        if event.state == ButtonState::Released && self.nascimento.elapsed() < CLIQUE_CURTO {
++            return;
++        }
+         let any_entered = self
+             .elements
+             .lock()
+@@ -1075,6 +1105,7 @@
+             seat: seat.clone(),
+             screen_space_relative,
+             scale,
++            nascimento: std::time::Instant::now(),
+         }
+     }
+ 

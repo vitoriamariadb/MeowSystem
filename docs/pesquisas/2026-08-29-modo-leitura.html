@@ -1,0 +1,1307 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modo de Leitura COSMIC</title>
+<!--
+  MeowSystem -- modo de leitura: o applet funcionando e a folha dos icones, num
+  arquivo so. SOLTO E OFFLINE: abra com duplo clique, sem servidor e sem rede.
+  Fontes do sistema (Fira Sans, JetBrainsMono Nerd Font Mono) -- as do CosmicTk.
+
+  O QUE E REAL: o fragment shader da aba "O applet" e o HUNK B do
+  patches.d/cosmic-comp-modo-leitura.patch, colado sem edicao. O shader do
+  cosmic-comp e #version 100 (GLSL ES 1.00), a linguagem do WebGL 1 -- entao o
+  que a tela mostra e o mesmo codigo que vai para o compositor.
+
+  O QUE NAO E REAL: o applet sozinho nao pinta pixel nenhum. Ele grava as cinco
+  chaves de cosmic-config; quem pinta e o cosmic-comp recompilado (etapa 1).
+
+  Plano e cartao de recuperacao: 2026-08-29-modo-leitura-e-botoes.md
+  Sprint da idempotencia:        ../SPRINTS.md (Sprint U)
+-->
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<style>
+
+/* ---------------------------------------------------------------------------
+   Catppuccin — o design system que a máquina dela já usa. Mocha é o padrão
+   (o desktop dela é escuro); Latte é o claro. Nenhuma cor é declarada fora
+   destes três blocos.
+   --------------------------------------------------------------------------- */
+:root {
+  --crust:    #dce0e8;
+  --mantle:   #e6e9ef;
+  --base:     #eff1f5;
+  --surface0: #ccd0da;
+  --surface1: #bcc0cc;
+  --overlay:  #7c7f93;
+  --subtext:  #6c6f85;
+  --text:     #4c4f69;
+  --mauve:    #8839ef;
+  --peach:    #fe640b;
+  --green:    #40a02b;
+  --red:      #d20f39;
+  --sombra:   0 1px 2px rgba(76,79,105,.10), 0 8px 24px rgba(76,79,105,.10);
+  --linha:    1px solid var(--surface0);
+
+  --p1: .35rem; --p2: .7rem; --p3: 1.1rem; --p4: 1.7rem; --p5: 2.6rem;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --crust:    #11111b;
+    --mantle:   #181825;
+    --base:     #1e1e2e;
+    --surface0: #313244;
+    --surface1: #45475a;
+    --overlay:  #6c7086;
+    --subtext:  #a6adc8;
+    --text:     #cdd6f4;
+    --mauve:    #cba6f7;
+    --peach:    #fab387;
+    --green:    #a6e3a1;
+    --red:      #f38ba8;
+    --sombra:   0 1px 2px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.42);
+    --linha:    1px solid var(--surface0);
+  }
+}
+:root[data-theme="dark"] {
+  --crust:    #11111b;
+  --mantle:   #181825;
+  --base:     #1e1e2e;
+  --surface0: #313244;
+  --surface1: #45475a;
+  --overlay:  #6c7086;
+  --subtext:  #a6adc8;
+  --text:     #cdd6f4;
+  --mauve:    #cba6f7;
+  --peach:    #fab387;
+  --green:    #a6e3a1;
+  --red:      #f38ba8;
+  --sombra:   0 1px 2px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.42);
+  --linha:    1px solid var(--surface0);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  background: var(--mantle);
+  color: var(--text);
+  font-family: "Fira Sans", "Noto Sans", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono { font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", ui-monospace, monospace; }
+
+.folha {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: var(--p5) var(--p3) var(--p5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p4);
+}
+
+/* --- cabeçalho ----------------------------------------------------------- */
+header { display: flex; flex-direction: column; gap: var(--p2); }
+
+.eyebrow {
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: .7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--overlay);
+  display: flex; align-items: center; gap: var(--p2); flex-wrap: wrap;
+}
+.eyebrow b { color: var(--mauve); font-weight: 500; }
+
+h1 {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 300;
+  letter-spacing: -.022em;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 em { font-style: normal; color: var(--mauve); font-weight: 500; }
+
+.lede {
+  max-width: 66ch;
+  color: var(--subtext);
+  font-size: 1.02rem;
+  margin: 0;
+}
+.lede code {
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: .88em;
+  color: var(--text);
+  background: var(--surface0);
+  padding: .08em .38em;
+  border-radius: 4px;
+}
+
+/* --- grade principal ----------------------------------------------------- */
+.palco {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 348px;
+  gap: var(--p3);
+  align-items: start;
+}
+@media (max-width: 980px) { .palco { grid-template-columns: minmax(0,1fr); } }
+
+/* --- a TV ---------------------------------------------------------------- */
+.tv {
+  position: relative;
+  background: var(--crust);
+  border: var(--linha);
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: var(--sombra);
+}
+.tv canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 7px;
+  background: #11111b;
+}
+.tv-rodape {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: var(--p2); flex-wrap: wrap;
+  padding: var(--p2) var(--p1) 0;
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: .68rem;
+  color: var(--overlay);
+  letter-spacing: .04em;
+}
+.selo {
+  display: inline-flex; align-items: center; gap: .4em;
+  color: var(--mauve);
+}
+.selo::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--mauve);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mauve) 22%, transparent);
+}
+
+/* --- o applet ------------------------------------------------------------ */
+.applet {
+  background: var(--base);
+  border: var(--linha);
+  border-radius: 12px;
+  box-shadow: var(--sombra);
+  overflow: hidden;
+  position: sticky; top: var(--p3);
+}
+@media (max-width: 980px) { .applet { position: static; } }
+
+.applet-topo {
+  display: flex; align-items: center; gap: var(--p2);
+  padding: var(--p3) var(--p3) var(--p2);
+  border-bottom: var(--linha);
+}
+.applet-topo svg { flex: none; color: var(--mauve); }
+.applet-topo h2 { font-size: .95rem; font-weight: 500; margin: 0; flex: 1; }
+
+.corpo { padding: var(--p3); display: flex; flex-direction: column; gap: var(--p3); }
+
+.linha-ctrl { display: flex; flex-direction: column; gap: var(--p1); }
+.linha-ctrl > .cabeca {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--p2);
+}
+.linha-ctrl label { font-size: .88rem; font-weight: 400; }
+.valor {
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--peach);
+  font-weight: 500;
+}
+.valor.neutro { color: var(--overlay); }
+
+.dica { font-size: .72rem; color: var(--overlay); margin: 0; }
+
+/* toggle no estilo COSMIC */
+.chave {
+  appearance: none; border: 0; cursor: pointer;
+  width: 42px; height: 24px; border-radius: 12px;
+  background: var(--surface1);
+  position: relative; flex: none;
+  transition: background .18s ease;
+}
+.chave::after {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--base);
+  transition: transform .18s ease;
+}
+.chave[aria-checked="true"] { background: var(--mauve); }
+.chave[aria-checked="true"]::after { transform: translateX(18px); }
+.chave:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--mauve); outline-offset: 2px;
+}
+
+/* sliders */
+input[type=range] {
+  appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 3px; background: var(--trilha, var(--surface1));
+}
+input[type=range]::-moz-range-track {
+  height: 6px; border-radius: 3px; background: var(--trilha, var(--surface1));
+}
+input[type=range]::-webkit-slider-thumb {
+  appearance: none; width: 17px; height: 17px; border-radius: 50%;
+  background: var(--base); border: 2px solid var(--mauve);
+  margin-top: -5.5px;
+}
+input[type=range]::-moz-range-thumb {
+  width: 17px; height: 17px; border-radius: 50%;
+  background: var(--base); border: 2px solid var(--mauve);
+}
+input[type=range]:disabled { opacity: .4; cursor: not-allowed; }
+
+.faixa-k { --trilha: linear-gradient(90deg, #ff5d1f, #ffb166, #ffd9b8, #f2f0ee, #eaf0ff); }
+.faixa-t { --trilha: linear-gradient(90deg, var(--surface1), var(--peach)); }
+
+.escala {
+  display: flex; justify-content: space-between;
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: .62rem; color: var(--overlay);
+  letter-spacing: .04em;
+}
+
+hr { border: 0; border-top: var(--linha); margin: 0; }
+
+.horas { display: flex; align-items: center; gap: var(--p1); }
+.horas span { font-size: .82rem; color: var(--subtext); }
+input[type=time], select {
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: .8rem;
+  background: var(--mantle);
+  color: var(--text);
+  border: var(--linha);
+  border-radius: 6px;
+  padding: .3em .45em;
+}
+select { flex: 1; }
+
+.btn {
+  font: inherit; font-size: .85rem;
+  background: var(--surface0); color: var(--text);
+  border: 0; border-radius: 8px;
+  padding: .55em 1em; cursor: pointer;
+  transition: background .15s ease;
+}
+.btn:hover { background: var(--surface1); }
+
+.desligado { opacity: .45; pointer-events: none; }
+
+/* --- painel de chaves ---------------------------------------------------- */
+.rodape {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--p3);
+}
+@media (max-width: 860px) { .rodape { grid-template-columns: minmax(0,1fr); } }
+
+.cartao {
+  background: var(--base);
+  border: var(--linha);
+  border-radius: 12px;
+  padding: var(--p3);
+  display: flex; flex-direction: column; gap: var(--p2);
+  min-width: 0;
+}
+.cartao h3 {
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: .68rem; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--overlay); font-weight: 500; margin: 0;
+}
+.cartao p { margin: 0; font-size: .84rem; color: var(--subtext); }
+
+.chaves { display: flex; flex-direction: column; gap: 3px; overflow-x: auto; }
+.kv {
+  display: grid; grid-template-columns: minmax(0,1fr) auto;
+  gap: var(--p2); align-items: baseline;
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: .74rem;
+  padding: .32em .5em;
+  border-radius: 5px;
+  background: var(--mantle);
+  white-space: nowrap;
+}
+.kv .k { color: var(--subtext); overflow: hidden; text-overflow: ellipsis; }
+.kv .v { color: var(--peach); font-variant-numeric: tabular-nums; font-weight: 500; }
+.kv.piscou { animation: piscar .5s ease; }
+@keyframes piscar {
+  from { background: color-mix(in srgb, var(--mauve) 30%, var(--mantle)); }
+  to   { background: var(--mantle); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kv.piscou { animation: none; }
+  .chave::after, .chave { transition: none; }
+}
+
+.relogio {
+  display: flex; align-items: baseline; gap: var(--p2); flex-wrap: wrap;
+}
+.relogio .agora {
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: 1.9rem; font-weight: 500; font-variant-numeric: tabular-nums;
+  color: var(--text); letter-spacing: -.02em;
+}
+.pill {
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: .68rem; letter-spacing: .06em; text-transform: uppercase;
+  padding: .22em .6em; border-radius: 99px;
+  border: 1px solid currentColor;
+}
+.pill.on  { color: var(--peach); }
+.pill.off { color: var(--overlay); }
+
+.nota {
+  border-left: 2px solid var(--mauve);
+  padding-left: var(--p2);
+  font-size: .84rem;
+  color: var(--subtext);
+}
+.nota b { color: var(--text); font-weight: 500; }
+
+footer {
+  font-size: .8rem; color: var(--overlay);
+  border-top: var(--linha); padding-top: var(--p3);
+  display: flex; flex-direction: column; gap: var(--p1);
+}
+
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.7rem;margin-top:var(--p2)}
+.links a{display:flex;flex-direction:column;gap:.2rem;text-decoration:none;background:var(--base);
+ border:var(--linha);border-radius:10px;padding:.8rem .9rem;color:var(--text);transition:border-color .15s}
+.links a:hover,.links a:focus-visible{border-color:var(--mauve);outline:none}
+.links .t{font-weight:500;font-size:.92rem}
+.links .d{font-size:.78rem;color:var(--subtext)}
+.links .f{font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",monospace;font-size:.68rem;color:var(--overlay)}
+footer code {
+  font-family: "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
+  font-size: .95em; color: var(--subtext);
+}
+
+</style>
+<style>
+
+*,*::before,*::after{box-sizing:border-box} html{color-scheme:light dark} body{margin:0}
+:root{--crust:#dce0e8;--mantle:#e6e9ef;--base:#eff1f5;--surface0:#ccd0da;--surface1:#bcc0cc;
+ --overlay:#7c7f93;--subtext:#6c6f85;--text:#4c4f69;--mauve:#8839ef;--peach:#fe640b;
+ --linha:1px solid var(--surface0);--sombra:0 1px 2px rgba(76,79,105,.10),0 8px 24px rgba(76,79,105,.10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--crust:#11111b;--mantle:#181825;
+ --base:#1e1e2e;--surface0:#313244;--surface1:#45475a;--overlay:#6c7086;--subtext:#a6adc8;
+ --text:#cdd6f4;--mauve:#cba6f7;--peach:#fab387;--linha:1px solid var(--surface0);
+ --sombra:0 1px 2px rgba(0,0,0,.35),0 12px 32px rgba(0,0,0,.42)}}
+:root[data-theme="dark"]{--crust:#11111b;--mantle:#181825;--base:#1e1e2e;--surface0:#313244;
+ --surface1:#45475a;--overlay:#6c7086;--subtext:#a6adc8;--text:#cdd6f4;--mauve:#cba6f7;
+ --peach:#fab387;--linha:1px solid var(--surface0);
+ --sombra:0 1px 2px rgba(0,0,0,.35),0 12px 32px rgba(0,0,0,.42)}
+body{background:var(--mantle);color:var(--text);font-family:"Fira Sans","Noto Sans",system-ui,sans-serif;
+ font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.mono,code{font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",ui-monospace,monospace}
+.folha{max-width:900px;margin:0 auto;padding:2.6rem 1.1rem;display:flex;flex-direction:column;gap:1.7rem}
+.eyebrow{font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",monospace;font-size:.7rem;
+ letter-spacing:.14em;text-transform:uppercase;color:var(--overlay);display:flex;gap:.7rem;
+ flex-wrap:wrap;align-items:center} .eyebrow b{color:var(--mauve);font-weight:500}
+h1{font-size:clamp(1.7rem,4vw,2.3rem);font-weight:300;letter-spacing:-.022em;margin:0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--mauve);font-weight:500}
+h2.sec{font-size:1.25rem;font-weight:400;margin:.9rem 0 0;letter-spacing:-.01em}
+.lede{max-width:64ch;color:var(--subtext);margin:0}
+.lede code,p code{font-size:.88em;color:var(--text);background:var(--surface0);padding:.08em .38em;border-radius:4px}
+.cand{background:var(--base);border:var(--linha);border-radius:12px;padding:1.1rem;display:flex;
+ flex-direction:column;gap:.7rem;box-shadow:var(--sombra)}
+.cand.rec{border-color:var(--mauve)}
+.cand-topo{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
+.cand-topo h3{margin:0;font-size:1.05rem;font-weight:500}
+.tag{font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",monospace;font-size:.62rem;
+ letter-spacing:.1em;text-transform:uppercase;color:var(--mauve);border:1px solid var(--mauve);
+ border-radius:99px;padding:.15em .55em}
+.arq{margin-left:auto;font-size:.72rem;color:var(--overlay)}
+.cand p{margin:0;color:var(--subtext);font-size:.92rem;max-width:62ch}
+.cand p b{color:var(--text);font-weight:500}
+.tiras{display:grid;grid-template-columns:auto minmax(0,1fr);gap:1.1rem;align-items:center}
+@media (max-width:720px){.tiras{grid-template-columns:minmax(0,1fr)}}
+.tira{display:flex;align-items:flex-end;gap:.9rem;padding:.8rem .9rem;background:var(--mantle);border-radius:9px}
+.amostra{display:flex;flex-direction:column;align-items:center;gap:.35rem}
+.cx{height:48px;display:flex;align-items:center;color:var(--text)}
+.px{font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",monospace;font-size:.58rem;color:var(--overlay)}
+.contexto{display:flex;justify-content:center}
+.topbar{display:flex;align-items:center;gap:.55rem;background:#181825;color:#cdd6f4;border-radius:17px;
+ padding:.4rem .8rem;font-size:.72rem;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.topbar .hora{white-space:nowrap} .ws{color:#a6adc8;padding:0 .2rem}
+.ws.on{background:#cba6f7;color:#1e1e2e;border-radius:9px;padding:.1rem .45rem;font-weight:600}
+.sep{width:1px;height:14px;background:#45475a} .ico{color:#a6adc8;display:flex;align-items:center}
+.ico.atual{color:#cba6f7}
+.estados{background:var(--base);border:2px solid var(--mauve);border-radius:12px;padding:1.3rem;
+ display:flex;flex-direction:column;gap:1rem;box-shadow:var(--sombra)}
+.par{display:flex;gap:1.7rem;flex-wrap:wrap;justify-content:center}
+.estado{display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.estado .rot{font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",monospace;font-size:.64rem;
+ letter-spacing:.08em;text-transform:uppercase;color:var(--overlay)}
+.estado .rot b{color:var(--peach)}
+.caixa{background:var(--base);border:var(--linha);border-radius:12px;padding:1.1rem;
+ display:flex;flex-direction:column;gap:.5rem}
+.caixa h2{margin:0;font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",monospace;font-size:.68rem;
+ letter-spacing:.13em;text-transform:uppercase;color:var(--overlay);font-weight:500}
+.caixa ul{margin:0;padding-left:1.1rem;color:var(--subtext);font-size:.88rem;
+ display:flex;flex-direction:column;gap:.3rem} .caixa b{color:var(--text);font-weight:500}
+.nota{border-left:2px solid var(--mauve);padding-left:.7rem;color:var(--subtext);font-size:.9rem}
+.nota b{color:var(--text);font-weight:500}
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.7rem}
+.links a{display:flex;flex-direction:column;gap:.2rem;text-decoration:none;background:var(--base);
+ border:var(--linha);border-radius:10px;padding:.8rem .9rem;color:var(--text);transition:border-color .15s}
+.links a:hover,.links a:focus-visible{border-color:var(--mauve);outline:none}
+.links .t{font-weight:500;font-size:.92rem}
+.links .d{font-size:.78rem;color:var(--subtext)}
+.links .f{font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",monospace;font-size:.68rem;color:var(--overlay)}
+footer{border-top:var(--linha);padding-top:1.1rem;color:var(--overlay);font-size:.8rem;
+ display:flex;flex-direction:column;gap:.35rem} footer code{color:var(--subtext)}
+
+
+/* --- a costura entre as duas metades ------------------------------------- */
+.abas { display:flex; gap:.35rem; border-bottom: var(--linha); }
+.aba { font: inherit; font-size:.92rem; background:none; border:0; cursor:pointer;
+  color: var(--subtext); padding:.6rem .9rem; border-bottom:2px solid transparent;
+  margin-bottom:-1px; transition: color .15s, border-color .15s; }
+.aba:hover { color: var(--text); }
+.aba[aria-selected="true"] { color: var(--mauve); border-bottom-color: var(--mauve); font-weight:500; }
+.aba:focus-visible { outline:2px solid var(--mauve); outline-offset:2px; border-radius:4px; }
+.painel { display:flex; flex-direction:column; gap:1.7rem; }
+.painel[hidden] { display:none; }
+.links { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:.7rem; }
+.links a { display:flex; flex-direction:column; gap:.2rem; text-decoration:none;
+  background:var(--base); border:var(--linha); border-radius:10px; padding:.8rem .9rem;
+  color:var(--text); transition:border-color .15s; }
+.links a:hover, .links a:focus-visible { border-color:var(--mauve); outline:none; }
+.links .t { font-weight:500; font-size:.92rem; }
+.links .d { font-size:.78rem; color:var(--subtext); }
+.links .f { font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",monospace;
+  font-size:.68rem; color:var(--overlay); }
+</style>
+</head>
+<body>
+<div class="folha">
+
+  <header style="display:flex;flex-direction:column;gap:.7rem">
+    <div class="eyebrow"><span>MeowSystem</span><span>·</span><span>29 de agosto de 2026</span>
+      <span>·</span><b>o shader é o de verdade</b></div>
+    <h1>Modo de leitura: os <em>dois sliders</em>, o horário e os ícones</h1>
+    <p class="lede">
+      Duas coisas num arquivo só. Na primeira aba, o applet funcionando — e o que pinta a tela é o
+      <code>offscreen.frag</code> do <code>cosmic-comp</code> rodando em WebGL, porque o shader do
+      COSMIC é <code>#version&nbsp;100</code>, que é exatamente a linguagem do navegador. Na segunda,
+      a folha dos ícones. As duas existem para você <b>decidir arrastando e olhando</b>, não para ler.
+    </p>
+  </header>
+
+  <div class="abas" role="tablist" aria-label="Seções">
+    <button class="aba" role="tab" id="t-applet" aria-controls="p-applet" aria-selected="true">O applet</button>
+    <button class="aba" role="tab" id="t-icones" aria-controls="p-icones" aria-selected="false">Os ícones</button>
+  </div>
+
+  <div class="painel" id="p-applet" role="tabpanel" aria-labelledby="t-applet">
+<div class="palco">
+
+    <div class="tv">
+      <canvas id="tela" width="1120" height="700" aria-label="Desktop COSMIC simulado com o modo de leitura aplicado"></canvas>
+      <div class="tv-rodape">
+        <span class="selo">offscreen.frag · GLSL ES 1.00</span>
+        <span id="uniformes">leitura_temp vec3(1.000, 1.000, 1.000) · leitura_textura 0.00</span>
+      </div>
+    </div>
+
+    <div class="applet" id="applet">
+      <div class="applet-topo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 5.5A2.5 2.5 0 0 1 4.5 3H10a2 2 0 0 1 2 2v14a1.5 1.5 0 0 0-1.5-1.5H4.5A2.5 2.5 0 0 1 2 15V5.5Z"/>
+          <path d="M22 5.5A2.5 2.5 0 0 0 19.5 3H14a2 2 0 0 0-2 2v14a1.5 1.5 0 0 1 1.5-1.5h6A2.5 2.5 0 0 0 22 15V5.5Z"/>
+        </svg>
+        <h2>Modo de leitura</h2>
+        <button class="chave" id="mestre" role="switch" aria-checked="false" aria-label="Ligar o modo de leitura"></button>
+      </div>
+
+      <div class="corpo">
+
+        <div class="linha-ctrl" id="grupo-temp">
+          <div class="cabeca">
+            <label for="temp">Temperatura</label>
+            <span class="valor" id="v-temp">6500 K</span>
+          </div>
+          <input type="range" class="faixa-k" id="temp" min="1000" max="6500" step="100" value="6500">
+          <div class="escala"><span>1000 K</span><span>neutro 6500 K</span></div>
+        </div>
+
+        <div class="linha-ctrl" id="grupo-tex">
+          <div class="cabeca">
+            <label for="textura">Textura</label>
+            <span class="valor" id="v-tex">0%</span>
+          </div>
+          <input type="range" class="faixa-t" id="textura" min="0" max="100" step="1" value="0">
+          <div class="escala"><span>sem papel</span><span>papel cheio</span></div>
+          <div class="horas" style="margin-top:var(--p1)">
+            <span>papel</span>
+            <select id="papel">
+              <option value="1" selected>e-ink (Kindle)</option>
+              <option value="2">sépia</option>
+              <option value="3">lavado</option>
+              <option value="0">colorido</option>
+            </select>
+          </div>
+          <p class="dica" id="dica-papel"></p>
+        </div>
+
+        <p class="dica" id="aviso-peso" hidden
+           style="color:var(--peach);border-left:2px solid var(--peach);padding-left:.6rem"></p>
+
+        <hr>
+
+        <div class="linha-ctrl">
+          <div class="cabeca">
+            <label for="agendar">Agendar</label>
+            <button class="chave" id="agendar" role="switch" aria-checked="false" aria-label="Agendar por horário"></button>
+          </div>
+          <div id="grupo-agenda" class="desligado" style="display:flex;flex-direction:column;gap:var(--p2);margin-top:var(--p1)">
+            <div class="horas">
+              <span>das</span>
+              <input type="time" id="h-ini" value="18:00">
+              <span>às</span>
+              <input type="time" id="h-fim" value="07:00">
+            </div>
+            <div class="horas">
+              <span>virada</span>
+              <select id="virada">
+                <option value="0">seca</option>
+                <option value="20" selected>rampa de 20 min</option>
+                <option value="40">rampa de 40 min</option>
+                <option value="60">rampa de 60 min</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+
+        <button class="btn" id="padroes">Restaurar padrões</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rodape">
+
+    <div class="cartao">
+      <h3>O que o applet grava</h3>
+      <p>
+        Cinco arquivos em <span class="mono">~/.config/cosmic/com.system76.CosmicComp/v1/</span>.
+        As duas primeiras o shader lê a cada quadro; as três últimas só o timer lê.
+      </p>
+      <div class="chaves" id="chaves"></div>
+      <p class="dica">
+        Um <span class="mono">cosmic-comp</span> sem o patch ignora as cinco em silêncio —
+        é o que torna a instalação segura de desfazer.
+      </p>
+    </div>
+
+    <div class="cartao">
+      <h3>O relógio, para ver o agendamento</h3>
+      <div class="relogio">
+        <span class="agora mono" id="relogio">18:00</span>
+        <span class="pill off" id="estado-agenda">desligado</span>
+      </div>
+      <input type="range" id="hora" min="0" max="1439" step="5" value="1320" aria-label="Hora simulada">
+      <div class="escala"><span>00:00</span><span>12:00</span><span>23:55</span></div>
+      <p class="dica">
+        Arraste para atravessar a noite. Com a rampa, a temperatura desce aos poucos
+        na entrada e sobe na saída — a virada seca troca de uma vez.
+      </p>
+      <div class="nota">
+        <b>Decida arrastando.</b> As duas pendências do plano são estas: até onde vai o
+        teto da textura, e se a virada é seca ou rampa. É por isso que este mockup existe.
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div class="painel" id="p-icones" role="tabpanel" aria-labelledby="t-icones" hidden>
+
+    <div class="estados">
+      <h2 class="sec" style="margin:0">Não é um ícone. São dois, e eles se alternam.</h2>
+      <p style="margin:0;color:var(--subtext);max-width:64ch">
+        Não precisa de um «universal» para ocupar o espaço do applet — a resposta melhor é a que o
+        painel já usa para volume, bateria e rede: <b>o ícone conta o estado</b>. Sol quando o modo
+        de leitura está desligado, lua quando está ligado. Você lê a barra e sabe, sem abrir o popover.
+      </p>
+      <div class="par">
+        <div class="estado"><div style="color:var(--text)"><svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24a10 10 0 0 1 20 0"/><path d="M24 6v4M9.5 24h-4M42.5 24h-4M12.5 12.5l2.8 2.8M35.5 12.5l-2.8 2.8"/><path d="M6 31h36"/><path d="M10 38h28M10 44h18"/></g></svg></div>
+          <span class="rot">desligado · <b>dia</b></span><div class="topbar"><span class="hora">29 de ago., 18:12</span><span class="ws on">Meow</span><span class="ws">OS</span><span class="ws">3</span><span class="sep"></span><span class="ico "><svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24a10 10 0 0 1 20 0"/><path d="M24 6v4M9.5 24h-4M42.5 24h-4M12.5 12.5l2.8 2.8M35.5 12.5l-2.8 2.8"/><path d="M6 31h36"/><path d="M10 38h28M10 44h18"/></g></svg></span><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM19 5a10 10 0 0 1 0 14"/></svg></div></div>
+        <div class="estado"><div style="color:var(--peach)"><svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 6a13 13 0 1 0 9.5 21.9A13.8 13.8 0 0 1 31 6Z"/><path d="M8 34h32M8 41h22"/></g></svg></div>
+          <span class="rot">ligado · <b>noite</b></span><div class="topbar"><span class="hora">29 de ago., 18:12</span><span class="ws on">Meow</span><span class="ws">OS</span><span class="ws">3</span><span class="sep"></span><span class="ico atual"><svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 6a13 13 0 1 0 9.5 21.9A13.8 13.8 0 0 1 31 6Z"/><path d="M8 34h32M8 41h22"/></g></svg></span><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM19 5a10 10 0 0 1 0 14"/></svg></div></div>
+      </div>
+      <p style="margin:0;color:var(--subtext);font-size:.88rem;max-width:64ch">
+        Os dois têm a <b>mesma massa</b>: forma grande em cima, duas linhas embaixo. É por isso que a
+        troca não «pula» na barra.
+      </p>
+    </div>
+
+    <div class="nota">
+      <b>Os quatro ficam como opção.</b> A chave <code>LEITURA_ICONE</code> no <code>meow.conf</code>
+      escolhe o conjunto; o padrão é o par sol/lua. Trocar é uma linha e um <code>meow aplicar</code>
+      — nenhum rebuild, porque ícone é arquivo, não binário.
+    </div>
+
+    <div class="nota">
+      <b>Traço 2,2, e é deliberado.</b> O Arcticons não declara <code>stroke-width</code> e usa o
+      padrão 1, que em <code>viewBox 48</code> vira 0,33&nbsp;px num applet de 16&nbsp;px e some.
+      2,2 é o mesmo peso que o pipeline já instala hoje (<code>2.25</code>). O tamanho que decide é
+      16&nbsp;px: é a coluna onde 5 dos 13 desenhos morreram.
+    </div>
+
+    <h2 class="sec">Os candidatos do modo de leitura</h2>
+    <article class="cand rec">
+      <div class="cand-topo"><h3>A lua sobre o texto</h3><span class="tag">recomendado</span><code class="arq">r2.svg</code></div>
+      <p>A lua tem presença própria e as duas linhas dizem <b>texto</b> sem desenhar um livro inteiro. É o único que diz «leitura noturna» e não apenas «livro». Sobrevive a 16&nbsp;px porque o vazado é grande.</p>
+      <div class="tiras"><div class="tira"><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 6a13 13 0 1 0 9.5 21.9A13.8 13.8 0 0 1 31 6Z"/><path d="M8 34h32M8 41h22"/></g></svg></div><span class="px">16</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 6a13 13 0 1 0 9.5 21.9A13.8 13.8 0 0 1 31 6Z"/><path d="M8 34h32M8 41h22"/></g></svg></div><span class="px">20</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 6a13 13 0 1 0 9.5 21.9A13.8 13.8 0 0 1 31 6Z"/><path d="M8 34h32M8 41h22"/></g></svg></div><span class="px">24</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 6a13 13 0 1 0 9.5 21.9A13.8 13.8 0 0 1 31 6Z"/><path d="M8 34h32M8 41h22"/></g></svg></div><span class="px">32</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 6a13 13 0 1 0 9.5 21.9A13.8 13.8 0 0 1 31 6Z"/><path d="M8 34h32M8 41h22"/></g></svg></div><span class="px">48</span></div></div><div class="contexto"><div class="topbar"><span class="hora">29 de ago., 18:12</span><span class="ws on">Meow</span><span class="ws">OS</span><span class="ws">3</span><span class="sep"></span><span class="ico atual"><svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 6a13 13 0 1 0 9.5 21.9A13.8 13.8 0 0 1 31 6Z"/><path d="M8 34h32M8 41h22"/></g></svg></span><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM19 5a10 10 0 0 1 0 14"/></svg></div></div></div>
+    </article>
+    <article class="cand rec">
+      <div class="cand-topo"><h3>O sol no horizonte</h3><span class="tag">recomendado</span><code class="arq">s3.svg</code></div>
+      <p>O par exato da lua: mesma massa em cima, mesmas linhas embaixo. Venceu os outros dois sóis — os de raios diagonais viram ruído a 16&nbsp;px e o miolo some. <b>É o estado desligado.</b></p>
+      <div class="tiras"><div class="tira"><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24a10 10 0 0 1 20 0"/><path d="M24 6v4M9.5 24h-4M42.5 24h-4M12.5 12.5l2.8 2.8M35.5 12.5l-2.8 2.8"/><path d="M6 31h36"/><path d="M10 38h28M10 44h18"/></g></svg></div><span class="px">16</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24a10 10 0 0 1 20 0"/><path d="M24 6v4M9.5 24h-4M42.5 24h-4M12.5 12.5l2.8 2.8M35.5 12.5l-2.8 2.8"/><path d="M6 31h36"/><path d="M10 38h28M10 44h18"/></g></svg></div><span class="px">20</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24a10 10 0 0 1 20 0"/><path d="M24 6v4M9.5 24h-4M42.5 24h-4M12.5 12.5l2.8 2.8M35.5 12.5l-2.8 2.8"/><path d="M6 31h36"/><path d="M10 38h28M10 44h18"/></g></svg></div><span class="px">24</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24a10 10 0 0 1 20 0"/><path d="M24 6v4M9.5 24h-4M42.5 24h-4M12.5 12.5l2.8 2.8M35.5 12.5l-2.8 2.8"/><path d="M6 31h36"/><path d="M10 38h28M10 44h18"/></g></svg></div><span class="px">32</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24a10 10 0 0 1 20 0"/><path d="M24 6v4M9.5 24h-4M42.5 24h-4M12.5 12.5l2.8 2.8M35.5 12.5l-2.8 2.8"/><path d="M6 31h36"/><path d="M10 38h28M10 44h18"/></g></svg></div><span class="px">48</span></div></div><div class="contexto"><div class="topbar"><span class="hora">29 de ago., 18:12</span><span class="ws on">Meow</span><span class="ws">OS</span><span class="ws">3</span><span class="sep"></span><span class="ico atual"><svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24a10 10 0 0 1 20 0"/><path d="M24 6v4M9.5 24h-4M42.5 24h-4M12.5 12.5l2.8 2.8M35.5 12.5l-2.8 2.8"/><path d="M6 31h36"/><path d="M10 38h28M10 44h18"/></g></svg></span><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM19 5a10 10 0 0 1 0 14"/></svg></div></div></div>
+    </article>
+    <article class="cand">
+      <div class="cand-topo"><h3>O livro aberto</h3><code class="arq">r1.svg</code></div>
+      <p>O mais seguro: é o <span class='mono'>books.svg</span> do Arcticons, já no acervo. Lê em qualquer tamanho. O preço é ser genérico — diz «livro», não «leitura noturna».</p>
+      <div class="tiras"><div class="tira"><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 14c-4-3.6-10.5-4.8-16.5-4v25c6-.8 12.5.4 16.5 4 4-3.6 10.5-4.8 16.5-4V10c-6-.8-12.5.4-16.5 4Z"/><path d="M24 14v25"/></g></svg></div><span class="px">16</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 14c-4-3.6-10.5-4.8-16.5-4v25c6-.8 12.5.4 16.5 4 4-3.6 10.5-4.8 16.5-4V10c-6-.8-12.5.4-16.5 4Z"/><path d="M24 14v25"/></g></svg></div><span class="px">20</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 14c-4-3.6-10.5-4.8-16.5-4v25c6-.8 12.5.4 16.5 4 4-3.6 10.5-4.8 16.5-4V10c-6-.8-12.5.4-16.5 4Z"/><path d="M24 14v25"/></g></svg></div><span class="px">24</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 14c-4-3.6-10.5-4.8-16.5-4v25c6-.8 12.5.4 16.5 4 4-3.6 10.5-4.8 16.5-4V10c-6-.8-12.5.4-16.5 4Z"/><path d="M24 14v25"/></g></svg></div><span class="px">32</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 14c-4-3.6-10.5-4.8-16.5-4v25c6-.8 12.5.4 16.5 4 4-3.6 10.5-4.8 16.5-4V10c-6-.8-12.5.4-16.5 4Z"/><path d="M24 14v25"/></g></svg></div><span class="px">48</span></div></div><div class="contexto"><div class="topbar"><span class="hora">29 de ago., 18:12</span><span class="ws on">Meow</span><span class="ws">OS</span><span class="ws">3</span><span class="sep"></span><span class="ico atual"><svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 14c-4-3.6-10.5-4.8-16.5-4v25c6-.8 12.5.4 16.5 4 4-3.6 10.5-4.8 16.5-4V10c-6-.8-12.5.4-16.5 4Z"/><path d="M24 14v25"/></g></svg></span><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM19 5a10 10 0 0 1 0 14"/></svg></div></div></div>
+    </article>
+    <article class="cand">
+      <div class="cand-topo"><h3>O livro com halo</h3><code class="arq">r6.svg</code></div>
+      <p>Bonito a 32 e 48&nbsp;px, onde os três raios leem como luz saindo da página. A 16&nbsp;px encostam na capa e viram uma coroa.</p>
+      <div class="tiras"><div class="tira"><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 20c-3.4-3-9-4-14.5-3.3v20c5.5-.7 11.1.3 14.5 3.3 3.4-3 9-4 14.5-3.3v-20C33 15.7 27.4 16.7 24 19.7Z"/><path d="M24 20v20"/><path d="M24 5v4M14.5 8.5l2 3.2M33.5 8.5l-2 3.2"/></g></svg></div><span class="px">16</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 20c-3.4-3-9-4-14.5-3.3v20c5.5-.7 11.1.3 14.5 3.3 3.4-3 9-4 14.5-3.3v-20C33 15.7 27.4 16.7 24 19.7Z"/><path d="M24 20v20"/><path d="M24 5v4M14.5 8.5l2 3.2M33.5 8.5l-2 3.2"/></g></svg></div><span class="px">20</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 20c-3.4-3-9-4-14.5-3.3v20c5.5-.7 11.1.3 14.5 3.3 3.4-3 9-4 14.5-3.3v-20C33 15.7 27.4 16.7 24 19.7Z"/><path d="M24 20v20"/><path d="M24 5v4M14.5 8.5l2 3.2M33.5 8.5l-2 3.2"/></g></svg></div><span class="px">24</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 20c-3.4-3-9-4-14.5-3.3v20c5.5-.7 11.1.3 14.5 3.3 3.4-3 9-4 14.5-3.3v-20C33 15.7 27.4 16.7 24 19.7Z"/><path d="M24 20v20"/><path d="M24 5v4M14.5 8.5l2 3.2M33.5 8.5l-2 3.2"/></g></svg></div><span class="px">32</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 20c-3.4-3-9-4-14.5-3.3v20c5.5-.7 11.1.3 14.5 3.3 3.4-3 9-4 14.5-3.3v-20C33 15.7 27.4 16.7 24 19.7Z"/><path d="M24 20v20"/><path d="M24 5v4M14.5 8.5l2 3.2M33.5 8.5l-2 3.2"/></g></svg></div><span class="px">48</span></div></div><div class="contexto"><div class="topbar"><span class="hora">29 de ago., 18:12</span><span class="ws on">Meow</span><span class="ws">OS</span><span class="ws">3</span><span class="sep"></span><span class="ico atual"><svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 20c-3.4-3-9-4-14.5-3.3v20c5.5-.7 11.1.3 14.5 3.3 3.4-3 9-4 14.5-3.3v-20C33 15.7 27.4 16.7 24 19.7Z"/><path d="M24 20v20"/><path d="M24 5v4M14.5 8.5l2 3.2M33.5 8.5l-2 3.2"/></g></svg></span><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM19 5a10 10 0 0 1 0 14"/></svg></div></div></div>
+    </article>
+
+    <h2 class="sec">O ícone do editor de texto</h2>
+    <p class="lede">
+      O <span class="mono">r4</span> era igual ao do editor — os dois são «retângulo com linhas». O
+      <span class="mono">com.system76.CosmicEdit</span> usava o <code>editor.svg</code> do Arcticons,
+      que é o ícone de <b>documento</b>: não diz editar, diz «tem texto aqui dentro».
+    </p>
+    <article class="cand rec">
+      <div class="cand-topo"><h3>A página com o lápis</h3><span class="tag">recomendado</span><code class="arq">e1.svg</code></div>
+      <p>O lápis atravessa o canto e sai da página: lê <b>editar</b> em todos os tamanhos, 16&nbsp;px incluído. Mantém a moldura que dá parentesco com o conjunto. <b>Instalado em 29/08.</b></p>
+      <div class="tiras"><div class="tira"><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M38 22V9a4 4 0 0 0-4-4H12a4 4 0 0 0-4 4v30a4 4 0 0 0 4 4h13"/><path d="M14 14h18M14 21h18M14 28h10"/><path d="m41.5 26.5-13 13-5.5 1.5 1.5-5.5 13-13a2.6 2.6 0 0 1 4 4Z"/></g></svg></div><span class="px">16</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M38 22V9a4 4 0 0 0-4-4H12a4 4 0 0 0-4 4v30a4 4 0 0 0 4 4h13"/><path d="M14 14h18M14 21h18M14 28h10"/><path d="m41.5 26.5-13 13-5.5 1.5 1.5-5.5 13-13a2.6 2.6 0 0 1 4 4Z"/></g></svg></div><span class="px">20</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M38 22V9a4 4 0 0 0-4-4H12a4 4 0 0 0-4 4v30a4 4 0 0 0 4 4h13"/><path d="M14 14h18M14 21h18M14 28h10"/><path d="m41.5 26.5-13 13-5.5 1.5 1.5-5.5 13-13a2.6 2.6 0 0 1 4 4Z"/></g></svg></div><span class="px">24</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M38 22V9a4 4 0 0 0-4-4H12a4 4 0 0 0-4 4v30a4 4 0 0 0 4 4h13"/><path d="M14 14h18M14 21h18M14 28h10"/><path d="m41.5 26.5-13 13-5.5 1.5 1.5-5.5 13-13a2.6 2.6 0 0 1 4 4Z"/></g></svg></div><span class="px">32</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M38 22V9a4 4 0 0 0-4-4H12a4 4 0 0 0-4 4v30a4 4 0 0 0 4 4h13"/><path d="M14 14h18M14 21h18M14 28h10"/><path d="m41.5 26.5-13 13-5.5 1.5 1.5-5.5 13-13a2.6 2.6 0 0 1 4 4Z"/></g></svg></div><span class="px">48</span></div></div><div class="contexto"><div class="topbar"><span class="hora">29 de ago., 18:12</span><span class="ws on">Meow</span><span class="ws">OS</span><span class="ws">3</span><span class="sep"></span><span class="ico atual"><svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M38 22V9a4 4 0 0 0-4-4H12a4 4 0 0 0-4 4v30a4 4 0 0 0 4 4h13"/><path d="M14 14h18M14 21h18M14 28h10"/><path d="m41.5 26.5-13 13-5.5 1.5 1.5-5.5 13-13a2.6 2.6 0 0 1 4 4Z"/></g></svg></span><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM19 5a10 10 0 0 1 0 14"/></svg></div></div></div>
+    </article>
+    <article class="cand">
+      <div class="cand-topo"><h3>O lápis dentro da página</h3><code class="arq">e4.svg</code></div>
+      <p>Limpo e legível, mas o lápis fica pequeno demais: a 16&nbsp;px vira o ícone antigo com um ponto no canto.</p>
+      <div class="tiras"><div class="tira"><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="5" width="32" height="38" rx="4"/><path d="M14 14h20M14 21h20M14 28h12"/><path d="m28 33 6-6 3 3-6 6-4 1z"/></g></svg></div><span class="px">16</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="5" width="32" height="38" rx="4"/><path d="M14 14h20M14 21h20M14 28h12"/><path d="m28 33 6-6 3 3-6 6-4 1z"/></g></svg></div><span class="px">20</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="5" width="32" height="38" rx="4"/><path d="M14 14h20M14 21h20M14 28h12"/><path d="m28 33 6-6 3 3-6 6-4 1z"/></g></svg></div><span class="px">24</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="5" width="32" height="38" rx="4"/><path d="M14 14h20M14 21h20M14 28h12"/><path d="m28 33 6-6 3 3-6 6-4 1z"/></g></svg></div><span class="px">32</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="5" width="32" height="38" rx="4"/><path d="M14 14h20M14 21h20M14 28h12"/><path d="m28 33 6-6 3 3-6 6-4 1z"/></g></svg></div><span class="px">48</span></div></div><div class="contexto"><div class="topbar"><span class="hora">29 de ago., 18:12</span><span class="ws on">Meow</span><span class="ws">OS</span><span class="ws">3</span><span class="sep"></span><span class="ico atual"><svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="5" width="32" height="38" rx="4"/><path d="M14 14h20M14 21h20M14 28h12"/><path d="m28 33 6-6 3 3-6 6-4 1z"/></g></svg></span><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM19 5a10 10 0 0 1 0 14"/></svg></div></div></div>
+    </article>
+    <article class="cand">
+      <div class="cand-topo"><h3>O lápis sobre as linhas</h3><code class="arq">e3.svg</code></div>
+      <p>Bonito a 48&nbsp;px, mas perde a moldura — e a 16&nbsp;px vira uma mancha diagonal sem forma.</p>
+      <div class="tiras"><div class="tira"><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m38 8 4 4-22 22-6 2 2-6z"/><path d="M8 40h26"/><path d="M8 30h9M8 22h14M8 14h14"/></g></svg></div><span class="px">16</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m38 8 4 4-22 22-6 2 2-6z"/><path d="M8 40h26"/><path d="M8 30h9M8 22h14M8 14h14"/></g></svg></div><span class="px">20</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m38 8 4 4-22 22-6 2 2-6z"/><path d="M8 40h26"/><path d="M8 30h9M8 22h14M8 14h14"/></g></svg></div><span class="px">24</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m38 8 4 4-22 22-6 2 2-6z"/><path d="M8 40h26"/><path d="M8 30h9M8 22h14M8 14h14"/></g></svg></div><span class="px">32</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m38 8 4 4-22 22-6 2 2-6z"/><path d="M8 40h26"/><path d="M8 30h9M8 22h14M8 14h14"/></g></svg></div><span class="px">48</span></div></div><div class="contexto"><div class="topbar"><span class="hora">29 de ago., 18:12</span><span class="ws on">Meow</span><span class="ws">OS</span><span class="ws">3</span><span class="sep"></span><span class="ico atual"><svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m38 8 4 4-22 22-6 2 2-6z"/><path d="M8 40h26"/><path d="M8 30h9M8 22h14M8 14h14"/></g></svg></span><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM19 5a10 10 0 0 1 0 14"/></svg></div></div></div>
+    </article>
+    <article class="cand">
+      <div class="cand-topo"><h3>O cursor de texto</h3><code class="arq">e2.svg</code></div>
+      <p>A ideia era boa (só editor tem caret), mas virou símbolo abstrato: lê como «]I», não como texto.</p>
+      <div class="tiras"><div class="tira"><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="6" width="34" height="36" rx="4"/><path d="M13 15h13M13 22h9M13 33h20"/><path d="M31 16v14M28 16h6M28 30h6"/></g></svg></div><span class="px">16</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="6" width="34" height="36" rx="4"/><path d="M13 15h13M13 22h9M13 33h20"/><path d="M31 16v14M28 16h6M28 30h6"/></g></svg></div><span class="px">20</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="6" width="34" height="36" rx="4"/><path d="M13 15h13M13 22h9M13 33h20"/><path d="M31 16v14M28 16h6M28 30h6"/></g></svg></div><span class="px">24</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="6" width="34" height="36" rx="4"/><path d="M13 15h13M13 22h9M13 33h20"/><path d="M31 16v14M28 16h6M28 30h6"/></g></svg></div><span class="px">32</span></div><div class="amostra"><div class="cx"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="6" width="34" height="36" rx="4"/><path d="M13 15h13M13 22h9M13 33h20"/><path d="M31 16v14M28 16h6M28 30h6"/></g></svg></div><span class="px">48</span></div></div><div class="contexto"><div class="topbar"><span class="hora">29 de ago., 18:12</span><span class="ws on">Meow</span><span class="ws">OS</span><span class="ws">3</span><span class="sep"></span><span class="ico atual"><svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="6" width="34" height="36" rx="4"/><path d="M13 15h13M13 22h9M13 33h20"/><path d="M31 16v14M28 16h6M28 30h6"/></g></svg></span><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM19 5a10 10 0 0 1 0 14"/></svg></div></div></div>
+    </article>
+
+    <div class="caixa">
+      <h2>Os que não passaram, e por quê</h2>
+      <ul>
+        <li><b>A</b> — livro + lua ao lado: a 16 px os dois viram uma mancha só</li>
+        <li><b>B</b> — página + lua no canto: a lua encostou na borda e virou defeito de recorte</li>
+        <li><b>F</b> — livro + sol nascendo: o arco virou alça: lê como sacola de compras</li>
+        <li><b>r3</b> — lua dentro do vão do livro: colide com a página e vira orelha torta</li>
+        <li><b>r4</b> — a página escrita: é o ícone de arquivo de texto de todo tema — e <b>era o que o editor usava</b></li>
+        <li><b>r5</b> — meia-lua sobre a página: virou um cartão com botão de liga-desliga no meio</li>
+        <li><b>s1 / s2</b> — sóis de 8 e de 4 raios: os raios viram ruído a 16 px e o miolo desaparece</li>
+      </ul>
+    </div>
+
+    <div class="caixa">
+      <h2>Onde os arquivos moram</h2>
+      <ul>
+        <li>Os 8 SVGs de pé: <code>assets/icones/autorais/leitura/</code>. Os nomes são os
+          <code>.svg</code> de cada cartão acima — <b>esta é a única legenda que existe</b>.</li>
+        <li>O do editor, já instalado:
+          <code>assets/icones/convertidos-apps/com.system76.CosmicEdit.svg</code>, com cópia em
+          <code>retoques/</code> (é o que impede o conversor de passar por cima) e a linha
+          <code>com.system76.CosmicEdit:mao:pink</code> no <code>apps-convertidos.map</code>.</li>
+        <li>Os do applet instalarão em
+          <code>~/.local/share/icons/MeowSystem-Icons/scalable/status/</code> quando ele existir.</li>
+      </ul>
+    </div>
+  </div>
+
+<div class="links">
+    <a href="2026-08-29-modo-leitura-e-botoes.md">
+      <span class="t">O plano de execução</span>
+      <span class="d">As 6 etapas, o shader final e o cartão de recuperação por TTY.</span>
+      <span class="f">2026-08-29-modo-leitura-e-botoes.md</span></a>
+    <a href="../SPRINTS.md">
+      <span class="t">Sprint U — dist-upgrade</span>
+      <span class="d">Como tudo isto sobrevive a um <code>apt full-upgrade</code>.</span>
+      <span class="f">docs/SPRINTS.md</span></a>
+    <a href="README.md">
+      <span class="t">O material bruto</span>
+      <span class="d">Os dois JSON das 75 investigações, com o que cada trilha derrubou.</span>
+      <span class="f">docs/pesquisas/README.md</span></a>
+  </div>
+
+  <footer>
+    <span>O bloco de temperatura e grão é o <b>HUNK B</b> do
+      <code>patches.d/cosmic-comp-modo-leitura.patch</code>, colado sem edição. A conversão
+      Kelvin&nbsp;→&nbsp;RGB usa a tabela <code>WHITEPOINTS</code> do redshift, a mesma que o
+      <code>aurora-night-light.py</code> já carrega.</span>
+    <span>O applet real <b>não</b> pinta nada sozinho — grava chave, e quem pinta é o compositor
+      recompilado. Sem a etapa 1, os sliders arrastam e a tela não muda.</span>
+    <span>O ícone novo do editor já entrou em <code>48x48/apps</code> e aparece no próximo login;
+      os do applet instalam em <code>scalable/status/</code> quando o applet existir.</span>
+  </footer>
+</div>
+
+<script>
+
+"use strict";
+
+/* ===========================================================================
+   1. A CENA — desenhada em canvas 2D e entregue ao WebGL como textura.
+      Precisa ter branco (para o papel aparecer), preto (para a tinta) e cor
+      saturada (para a dessaturação de 30% ficar visível).
+   =========================================================================== */
+const W = 1120, H = 700;
+const cena = document.createElement("canvas");
+cena.width = W; cena.height = H;
+const c = cena.getContext("2d");
+
+function arredondado(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y,     x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x,     y + h, r);
+  ctx.arcTo(x,     y + h, x,     y,     r);
+  ctx.arcTo(x,     y,     x + w, y,     r);
+  ctx.closePath();
+}
+
+function desenharCena() {
+  // wallpaper — gradiente no espírito dos papéis de parede dela
+  const g = c.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0,    "#3b2f52");
+  g.addColorStop(0.42, "#6d4a6b");
+  g.addColorStop(0.72, "#c98a86");
+  g.addColorStop(1,    "#f0c9a8");
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+
+  // topbar do COSMIC
+  c.fillStyle = "rgba(24,24,37,.78)";
+  arredondado(c, W/2 - 150, 14, 300, 34, 17); c.fill();
+  c.fillStyle = "#cdd6f4";
+  c.font = '500 13px "Fira Sans", sans-serif';
+  c.textBaseline = "middle";
+  c.fillText("29 de ago., 18:12", W/2 - 132, 32);
+  c.fillStyle = "#cba6f7";
+  arredondado(c, W/2 + 12, 20, 48, 22, 11); c.fill();
+  c.fillStyle = "#1e1e2e";
+  c.font = '600 12px "Fira Sans", sans-serif';
+  c.fillText("Meow", W/2 + 20, 32);
+  c.fillStyle = "#a6adc8";
+  c.font = '400 12px "Fira Sans", sans-serif';
+  c.fillText("OS", W/2 + 72, 32);
+  c.fillText("3", W/2 + 104, 32);
+
+  /* --- janela de LEITURA (clara) — é aqui que o papel se vê ------------- */
+  const lx = 62, ly = 92, lw = 560, lh = 490;
+  c.save();
+  c.shadowColor = "rgba(0,0,0,.45)"; c.shadowBlur = 34; c.shadowOffsetY = 10;
+  c.fillStyle = "#fdfdfb";
+  arredondado(c, lx, ly, lw, lh, 10); c.fill();
+  c.restore();
+
+  // barra de título — botões À ESQUERDA, ordem fechar · maximizar · minimizar
+  c.fillStyle = "#f0efec";
+  arredondado(c, lx, ly, lw, 40, 10); c.fill();
+  c.fillRect(lx, ly + 28, lw, 12);
+  const bts = [["#e8615a", "#8f2d28"], ["#e6b452", "#8a6612"], ["#7fc46a", "#3d6f31"]];
+  bts.forEach((par, i) => {
+    c.beginPath(); c.arc(lx + 22 + i * 22, ly + 20, 6.5, 0, Math.PI * 2);
+    c.fillStyle = par[0]; c.fill();
+  });
+  c.fillStyle = "#5b5b57";
+  c.font = '500 13px "Fira Sans", sans-serif';
+  c.fillText("Espinosa — Ética, Parte III", lx + 104, ly + 20);
+
+  // texto de leitura
+  c.fillStyle = "#2a2a28";
+  c.font = '600 21px "Fira Sans", sans-serif';
+  c.fillText("Da origem e natureza das afecções", lx + 34, ly + 84);
+  c.fillStyle = "#4a4a46";
+  c.font = '400 14.5px "Fira Sans", sans-serif';
+  const linhas = [
+    "A maior parte dos que escreveram sobre as afecções e o modo",
+    "de viver dos homens parece tratar não de coisas naturais, que",
+    "seguem as leis comuns da natureza, mas de coisas que estão",
+    "fora dela. Chegam mesmo a conceber o homem na natureza",
+    "como um império dentro de outro império.",
+    "",
+    "Nada acontece na natureza que possa ser atribuído a um vício",
+    "dela, pois a natureza é sempre a mesma, e sua virtude e potência",
+    "de agir é uma e a mesma em toda parte. Isto é: as leis e regras",
+    "da natureza, segundo as quais todas as coisas acontecem e",
+    "mudam de uma forma em outra, são sempre e em toda parte",
+    "as mesmas."
+  ];
+  linhas.forEach((t, i) => c.fillText(t, lx + 34, ly + 126 + i * 26));
+
+  // marcação com cor saturada — para a dessaturação de 30% aparecer
+  c.fillStyle = "rgba(203,166,247,.45)";
+  c.fillRect(lx + 34, ly + 434, 240, 20);
+  c.fillStyle = "#2a2a28";
+  c.font = 'italic 400 14.5px "Fira Sans", sans-serif';
+  c.fillText("um império dentro de outro", lx + 38, ly + 444);
+
+  /* --- terminal (escuro) — a tinta ------------------------------------- */
+  const tx = 648, ty = 176, tw = 412, th = 406;
+  c.save();
+  c.shadowColor = "rgba(0,0,0,.5)"; c.shadowBlur = 30; c.shadowOffsetY = 10;
+  c.fillStyle = "#1a1a28";
+  arredondado(c, tx, ty, tw, th, 10); c.fill();
+  c.restore();
+  c.fillStyle = "#252539";
+  arredondado(c, tx, ty, tw, 34, 10); c.fill();
+  c.fillRect(tx, ty + 24, tw, 10);
+  // botões do app COSMIC: à direita, que é o que a issue #640 ainda não resolve
+  c.fillStyle = "#6c7086";
+  c.font = '400 15px "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace';
+  c.fillText("─  ⤢  ✕", tx + tw - 76, ty + 17);
+  c.fillStyle = "#a6adc8";
+  c.font = '500 12px "Fira Sans", sans-serif';
+  c.fillText("meow doctor", tx + 16, ty + 17);
+
+  c.font = '400 12.5px "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace';
+  const term = [
+    ["#a6e3a1", " lado a lado conforme (autotile=true, Global)"],
+    ["#a6e3a1", " ícones: 214 conferidos, 0 órfãos"],
+    ["#f9e2af", "~~ modo de leitura: no disco, NÃO na sessão"],
+    ["#6c7086", "   vale no próximo login"],
+    ["#a6e3a1", " painel: topbar e dock desenhando"],
+    ["#a6e3a1", " cursor: MeowSystem-Cursors nas duas pontas"],
+    ["#f38ba8", " raio de canto: pedido 20, teto do Meow 8"],
+    ["#6c7086", "   o patch entra no próximo build"],
+    ["#cdd6f4", ""],
+    ["#cba6f7", " meow leitura estado"],
+    ["#cdd6f4", "temperatura   3500 K"],
+    ["#cdd6f4", "textura       35%"],
+    ["#cdd6f4", "agenda        18:00 → 07:00, rampa 20 min"],
+    ["#a6e3a1", "agora         LIGADO (dentro da janela)"]
+  ];
+  term.forEach((l, i) => { c.fillStyle = l[0]; c.fillText(l[1], tx + 16, ty + 62 + i * 23); });
+
+  /* --- dock ------------------------------------------------------------- */
+  c.fillStyle = "rgba(24,24,37,.72)";
+  arredondado(c, W/2 - 168, H - 62, 336, 48, 24); c.fill();
+  const cores = ["#89b4fa", "#a6e3a1", "#f9e2af", "#cba6f7", "#f38ba8", "#94e2d5"];
+  cores.forEach((cor, i) => {
+    c.beginPath(); c.arc(W/2 - 132 + i * 53, H - 38, 13, 0, Math.PI * 2);
+    c.fillStyle = cor; c.fill();
+  });
+}
+desenharCena();
+
+/* ===========================================================================
+   2. O SHADER — HUNK B do patch, colado sem edição.
+      A única diferença para o arquivo do compositor: aqui não existem os
+      #ifdef EXTERNAL / NO_ALPHA / DEBUG_FLAGS, que o smithay liga por variante.
+   =========================================================================== */
+const VS = `
+attribute vec2 pos;
+varying vec2 v_coords;
+void main() {
+  v_coords = vec2(pos.x * 0.5 + 0.5, 0.5 - pos.y * 0.5);
+  gl_Position = vec4(pos, 0.0, 1.0);
+}`;
+
+const FS = `
+precision highp float;
+uniform sampler2D tex;
+uniform float alpha;
+varying vec2 v_coords;
+uniform float invert;
+uniform float color_mode;
+
+// ======================= HUNK A ==========================================
+uniform vec3  leitura_temp;
+uniform float leitura_textura;
+uniform float leitura_papel;   // 0 colorido · 1 e-ink · 2 sépia · 3 lavado
+
+float meow_grao(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+// ===================== FIM DO HUNK A ======================================
+
+void main() {
+    vec4 color = texture2D(tex, v_coords);
+    color = vec4(color.rgb, 1.0) * alpha;
+    color.rgb /= color.a;
+
+    if (invert == 1.0) { color.rgb = 1.0 - color.rgb; }
+
+    // (a cadeia do color_mode fica aqui no arquivo real — intocada, porque é
+    //  a âncora do aurora-night-light.py)
+
+    // ======================= HUNK B ======================================
+    // (1) TEXTURA / PAPEL — quatro fórmulas, escolhidas por leitura_papel.
+    //
+    // POR QUE QUATRO E NÃO UMA: a fórmula 0 (a original) dessatura só 30% e
+    // comprime a faixa dinâmica. Isso tira o brilho de painel, mas a tela
+    // continua COLORIDA — e ela testou e disse que não parece Kindle. Um Kindle
+    // é monocromático, com tinta que nunca chega ao preto, papel creme, e
+    // contraste em CURVA, não linear. As três outras atacam isso.
+    if (leitura_textura > 0.0) {
+        float t = clamp(leitura_textura, 0.0, 1.0);
+        vec3  base = color.rgb;
+        vec3  papel;
+
+        // luminância perceptual, usada por três das quatro
+        float lum = dot(base, vec3(0.2126, 0.7152, 0.0722));
+
+        if (leitura_papel < 0.5) {
+            // --- 0: PAPEL COLORIDO (a original) ---------------------------
+            // faixa comprimida + dessaturação de 30%. Mantém a cor.
+            papel = vec3(0.118, 0.113, 0.104) + vec3(0.815, 0.800, 0.760) * base;
+            float cinza = dot(papel, vec3(0.2126, 0.7152, 0.0722));
+            papel = mix(papel, vec3(cinza), 0.30);
+
+        } else if (leitura_papel < 1.5) {
+            // --- 1: E-INK (o Kindle de verdade) ---------------------------
+            // MONOCROMÁTICO. A cor some inteira, e é isso que faz a diferença.
+            // A curva em S (smoothstep feito à mão, que é válido em ES 1.00)
+            // segura os meios-tons e abre o contraste onde está o texto.
+            // Tinta 0.13 e papel 0.93: nenhum dos dois toca o extremo, que é o
+            // que separa "papel" de "tela apagada".
+            float c = lum * lum * (3.0 - 2.0 * lum);
+            papel = mix(vec3(0.130, 0.125, 0.118), vec3(0.930, 0.905, 0.855), c);
+
+        } else if (leitura_papel < 2.5) {
+            // --- 2: SÉPIA (papel envelhecido) -----------------------------
+            // Monocromático também, mas o papel puxa para o âmbar e a tinta
+            // para o marrom. É o "modo noturno" dos leitores de e-book.
+            float c = lum * lum * (3.0 - 2.0 * lum);
+            papel = mix(vec3(0.160, 0.118, 0.082), vec3(0.945, 0.878, 0.760), c);
+
+        } else {
+            // --- 3: PAPEL LAVADO (meio-termo) -----------------------------
+            // Dessatura 75% em vez de 100%: a cor vira um resíduo, o suficiente
+            // para distinguir um link de um texto, sem parecer um monitor.
+            vec3 comp = vec3(0.118, 0.113, 0.104) + vec3(0.815, 0.800, 0.760) * base;
+            float c = lum * lum * (3.0 - 2.0 * lum);
+            vec3 mono = mix(vec3(0.130, 0.125, 0.118), vec3(0.930, 0.905, 0.855), c);
+            papel = mix(comp, mono, 0.75);
+        }
+
+        color.rgb = mix(base, papel, t);
+
+        // O GRÃO. Multiplicativo, para aparecer no papel e sumir na tinta —
+        // que é o comportamento de uma página de verdade. A amplitude sobe com
+        // a fórmula: e-ink e sépia pedem mais textura, porque perderam a cor e
+        // é o grão que sobra para dizer "isto é papel".
+        vec2 pix = floor(gl_FragCoord.xy);
+        float g = (meow_grao(pix) + meow_grao(floor(pix * 0.34) + 11.0)) * 0.5 - 0.5;
+        float amp = (leitura_papel < 0.5) ? 0.085 : 0.155;
+
+        color.rgb *= 1.0 + g * (amp * t);
+        color.rgb = clamp(color.rgb, 0.0, 1.0);
+    }
+
+    // (2) TEMPERATURA — sem if: desligado é vec3(1.0) e vira multiplicação neutra
+    color.rgb *= leitura_temp;
+    // ===================== FIM DO HUNK B =================================
+
+    color.rgb *= color.a;
+    gl_FragColor = color;
+}`;
+
+const tela = document.getElementById("tela");
+const gl = tela.getContext("webgl", { antialias: false, preserveDrawingBuffer: false });
+
+function compilar(tipo, src) {
+  const s = gl.createShader(tipo);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    throw new Error(gl.getShaderInfoLog(s));
+  }
+  return s;
+}
+
+let prog, uni;
+if (gl) {
+  prog = gl.createProgram();
+  gl.attachShader(prog, compilar(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, compilar(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, "pos");
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cena);
+
+  uni = {
+    temp:    gl.getUniformLocation(prog, "leitura_temp"),
+    textura: gl.getUniformLocation(prog, "leitura_textura"),
+    papel:   gl.getUniformLocation(prog, "leitura_papel"),
+    alpha:   gl.getUniformLocation(prog, "alpha"),
+    invert:  gl.getUniformLocation(prog, "invert"),
+    modo:    gl.getUniformLocation(prog, "color_mode")
+  };
+  gl.uniform1f(uni.alpha, 1.0);
+  gl.uniform1f(uni.invert, 0.0);
+  gl.uniform1f(uni.modo, 0.0);
+  gl.viewport(0, 0, W, H);
+}
+
+/* ===========================================================================
+   3. KELVIN → RGB — tabela WHITEPOINTS do redshift (colorramp.c), a mesma que
+      o aurora-night-light.py carrega. No produto quem interpola é o Rust,
+      uma vez por mudança; o shader recebe o vec3 pronto.
+   =========================================================================== */
+const WHITEPOINTS = {
+  1000: [1.00000, 0.18172, 0.00000], 1500: [1.00000, 0.42101, 0.00000],
+  2000: [1.00000, 0.54862, 0.08754], 2500: [1.00000, 0.64546, 0.28802],
+  3000: [1.00000, 0.71760, 0.42107], 3500: [1.00000, 0.77987, 0.54468],
+  4000: [1.00000, 0.82854, 0.64606], 4500: [1.00000, 0.87325, 0.74112],
+  5000: [1.00000, 0.90993, 0.82219], 5500: [1.00000, 0.94380, 0.89904],
+  6000: [1.00000, 0.97481, 0.96759], 6500: [1.00000, 1.00000, 1.00000]
+};
+
+function kelvinParaRgb(k) {
+  k = Math.max(1000, Math.min(6500, k));
+  const baixo = Math.floor(k / 500) * 500;
+  const alto  = Math.min(6500, baixo + 500);
+  const a = WHITEPOINTS[baixo], b = WHITEPOINTS[alto];
+  if (baixo === alto) return a.slice();
+  const f = (k - baixo) / 500;
+  return [0, 1, 2].map(i => a[i] + (b[i] - a[i]) * f);
+}
+
+/* ===========================================================================
+   4. ESTADO — é literalmente o que vai para as cinco chaves de config.
+   =========================================================================== */
+const PADRAO = { ligado: false, temperatura: 6500, textura: 0, papel: 1, agenda: false,
+                 inicio: "18:00", fim: "07:00", virada: 20 };
+
+/* As quatro fórmulas de papel, e o que cada uma sacrifica. É a decisão que ela
+   pediu depois de testar a primeira versão: "a textura não deixa parecido com
+   um Kindle" — e não deixava mesmo, porque dessaturava só 30%. */
+const PAPEIS = {
+  1: "Monocromático, tinta 0.13, papel 0.93, contraste em curva. É o Kindle: a cor some inteira, e é isso que faz a diferença.",
+  2: "O mesmo e-ink, com o papel puxado para o âmbar e a tinta para o marrom. É o modo noturno dos leitores de e-book.",
+  3: "Dessatura 75%: a cor vira resíduo — dá para distinguir um link de um texto, sem parecer monitor.",
+  0: "A primeira versão: comprime a faixa e dessatura 30%. Tira o brilho de painel, mas a tela continua colorida."
+};
+let st = Object.assign({}, PADRAO);
+let horaSim = 1320;   // 22:00 — só do mockup, não é chave.
+                      // NÃO usar 1080 (18:00): é a borda exata da rampa, onde o
+                      // peso é 0 e NADA é aplicado. A primeira versão abria assim,
+                      // e o efeito parecia quebrado — a textura era multiplicada
+                      // por zero antes de chegar ao shader.
+
+const $ = id => document.getElementById(id);
+const el = {
+  mestre: $("mestre"), temp: $("temp"), textura: $("textura"),
+  agendar: $("agendar"), hIni: $("h-ini"), hFim: $("h-fim"), virada: $("virada"),
+  vTemp: $("v-temp"), vTex: $("v-tex"), padroes: $("padroes"),
+  papel: $("papel"), dicaPapel: $("dica-papel"),
+  grupoTemp: $("grupo-temp"), grupoTex: $("grupo-tex"), grupoAgenda: $("grupo-agenda"),
+  chaves: $("chaves"), relogio: $("relogio"), hora: $("hora"),
+  estadoAgenda: $("estado-agenda"), uniformes: $("uniformes")
+};
+
+const paraMin = hhmm => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m; };
+const paraHhmm = min => String(Math.floor(min / 60) % 24).padStart(2, "0") + ":" +
+                        String(min % 60).padStart(2, "0");
+
+/* Quanto o agendamento pede AGORA: 0 = fora da janela, 1 = dentro, fração na rampa.
+   É esta função que o systemd timer executa no produto — só que lendo o relógio
+   do sistema em vez do slider. */
+function pesoDaAgenda() {
+  if (!st.agenda) return 1;
+  const ini = paraMin(st.inicio), fim = paraMin(st.fim), r = Number(st.virada);
+  const dentro = ini <= fim ? (horaSim >= ini && horaSim < fim)
+                            : (horaSim >= ini || horaSim < fim);   // atravessa meia-noite
+  if (r === 0) return dentro ? 1 : 0;
+
+  const dist = (de, ate) => { const d = ate - de; return d < 0 ? d + 1440 : d; };
+  const desdeIni = dist(ini, horaSim);
+  const ateFim   = dist(horaSim, fim);
+  if (dentro) {
+    if (desdeIni < r) return desdeIni / r;          // subindo
+    if (ateFim   < r) return ateFim / r;            // descendo
+    return 1;
+  }
+  return 0;
+}
+
+function pintar() {
+  if (!gl) return;
+  const peso = st.ligado ? pesoDaAgenda() : 0;
+  // 6500 K é o neutro: a rampa caminha do neutro até o valor escolhido
+  const kEfetivo = 6500 - (6500 - st.temperatura) * peso;
+  const texEfetiva = (st.textura / 100) * peso;
+  const rgb = kelvinParaRgb(kEfetivo);
+
+  gl.uniform3f(uni.temp, rgb[0], rgb[1], rgb[2]);
+  gl.uniform1f(uni.textura, texEfetiva);
+  gl.uniform1f(uni.papel, st.papel);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  el.uniformes.textContent =
+    `leitura_temp vec3(${rgb.map(v => v.toFixed(3)).join(", ")}) · ` +
+    `leitura_textura ${texEfetiva.toFixed(2)} · leitura_papel ${st.papel}`;
+}
+
+/* As cinco chaves, escritas como o cosmic-config guarda: um arquivo por chave. */
+const anterior = {};
+function pintarChaves() {
+  const vals = {
+    leitura_temperatura: st.ligado ? st.temperatura : 0,
+    leitura_textura:     st.ligado ? (st.textura / 100).toFixed(2) : "0.00",
+    leitura_papel:       st.papel,
+    leitura_agenda:      st.agenda,
+    leitura_hora_inicio: `"${st.inicio}"`,
+    leitura_hora_fim:    `"${st.fim}"`
+  };
+  el.chaves.innerHTML = "";
+  for (const [k, v] of Object.entries(vals)) {
+    const d = document.createElement("div");
+    d.className = "kv" + (anterior[k] !== undefined && anterior[k] !== String(v) ? " piscou" : "");
+    d.innerHTML = `<span class="k">${k}</span><span class="v"></span>`;
+    d.querySelector(".v").textContent = String(v);
+    el.chaves.appendChild(d);
+    anterior[k] = String(v);
+  }
+}
+
+function sincronizar() {
+  el.mestre.setAttribute("aria-checked", String(st.ligado));
+  el.agendar.setAttribute("aria-checked", String(st.agenda));
+  el.temp.value = st.temperatura;
+  el.textura.value = st.textura;
+  el.hIni.value = st.inicio;
+  el.hFim.value = st.fim;
+  el.virada.value = st.virada;
+  el.papel.value = st.papel;
+  el.dicaPapel.textContent = PAPEIS[st.papel] || "";
+
+  el.vTemp.textContent = st.temperatura >= 6500 ? "neutro" : st.temperatura + " K";
+  el.vTemp.classList.toggle("neutro", st.temperatura >= 6500);
+  el.vTex.textContent = st.textura + "%";
+  el.vTex.classList.toggle("neutro", st.textura === 0);
+
+  el.grupoTemp.classList.toggle("desligado", !st.ligado);
+  el.grupoTex.classList.toggle("desligado", !st.ligado);
+
+  // O AVISO QUE FALTAVA. Com o agendamento ligado, o peso da hora MULTIPLICA os
+  // dois sliders — e num peso 0 (fora da janela, ou na borda exata da rampa) a
+  // tela não muda por mais que ela arraste. Sem esta linha o controle parece
+  // quebrado, e foi exatamente o que aconteceu na primeira versão.
+  var pesoAgora = st.ligado ? pesoDaAgenda() : 0;
+  var aviso = document.getElementById("aviso-peso");
+  if (st.ligado && st.agenda && pesoAgora < 1) {
+    aviso.hidden = false;
+    aviso.textContent = pesoAgora === 0
+      ? "O relógio está FORA da janela — os dois sliders estão sendo multiplicados por zero. Arraste o relógio para dentro do horário, ou desligue Agendar."
+      : "O relógio está na rampa: os sliders valem " + Math.round(pesoAgora * 100) + "% agora.";
+  } else {
+    aviso.hidden = true;
+  }
+  el.grupoAgenda.classList.toggle("desligado", !st.agenda);
+
+  el.relogio.textContent = paraHhmm(horaSim);
+  const peso = st.ligado ? pesoDaAgenda() : 0;
+  const p = el.estadoAgenda;
+  if (!st.ligado)        { p.textContent = "desligado";               p.className = "pill off"; }
+  else if (!st.agenda)   { p.textContent = "ligado, sem horário";     p.className = "pill on";  }
+  else if (peso === 0)   { p.textContent = "fora da janela";          p.className = "pill off"; }
+  else if (peso < 1)     { p.textContent = "em rampa · " + Math.round(peso * 100) + "%";
+                           p.className = "pill on"; }
+  else                   { p.textContent = "dentro da janela";        p.className = "pill on";  }
+
+  pintarChaves();
+  pintar();
+}
+
+/* --- eventos ------------------------------------------------------------- */
+el.mestre.addEventListener("click", () => { st.ligado = !st.ligado; sincronizar(); });
+el.agendar.addEventListener("click", () => { st.agenda = !st.agenda; sincronizar(); });
+el.temp.addEventListener("input",    e => { st.temperatura = +e.target.value; sincronizar(); });
+el.textura.addEventListener("input", e => { st.textura = +e.target.value; sincronizar(); });
+el.hIni.addEventListener("change",   e => { st.inicio = e.target.value; sincronizar(); });
+el.hFim.addEventListener("change",   e => { st.fim = e.target.value; sincronizar(); });
+el.virada.addEventListener("change", e => { st.virada = +e.target.value; sincronizar(); });
+el.papel.addEventListener("change",  e => { st.papel = +e.target.value; sincronizar(); });
+el.hora.addEventListener("input",    e => { horaSim = +e.target.value; sincronizar(); });
+el.padroes.addEventListener("click", () => { st = Object.assign({}, PADRAO); sincronizar(); });
+
+[el.mestre, el.agendar].forEach(b => b.addEventListener("keydown", ev => {
+  if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); b.click(); }
+}));
+
+/* Estado inicial de demonstração: ligado, 3500 K, 35% de textura, agendado.
+   É a configuração que o plano propõe como ponto de partida. */
+st = { ligado: true, temperatura: 3500, textura: 55, papel: 1, agenda: true,
+       inicio: "18:00", fim: "07:00", virada: 20 };
+sincronizar();
+
+if (!gl) {
+  document.querySelector(".tv-rodape").innerHTML =
+    '<span style="color:var(--red)">Este navegador não expôs WebGL — os controles funcionam, ' +
+    'mas a tela não vai pintar.</span>';
+}
+
+
+/* --- as abas ------------------------------------------------------------- */
+(function () {
+  var abas = Array.prototype.slice.call(document.querySelectorAll(".aba"));
+  function mostrar(id) {
+    abas.forEach(function (a) {
+      var sel = a.id === id;
+      a.setAttribute("aria-selected", String(sel));
+      document.getElementById(a.getAttribute("aria-controls")).hidden = !sel;
+    });
+  }
+  abas.forEach(function (a, i) {
+    a.addEventListener("click", function () { mostrar(a.id); });
+    a.addEventListener("keydown", function (ev) {
+      if (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft") return;
+      ev.preventDefault();
+      var alvo = abas[(i + (ev.key === "ArrowRight" ? 1 : abas.length - 1)) % abas.length];
+      alvo.focus(); mostrar(alvo.id);
+    });
+  });
+})();
+</script>
+</body>
+</html>

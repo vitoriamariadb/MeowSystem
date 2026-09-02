@@ -40,7 +40,7 @@
 #   pastel a 16px e mauve a 48px dentro de um mesmo aplicativo GTK.
 #
 #   A cessão é a saída, no padrão do `INTOCAVEIS` do `icones_apps.sh`: a lista
-#   vem de `icons/pastas.map`, que é a mesma que o outro script instala — uma
+#   vem de `assets/icones/pastas.map`, que é a mesma que o outro script instala — uma
 #   fonte de verdade só.
 #
 #   MAS SÓ SE CEDE O QUE JÁ ESTÁ NO DISCO. Ceder um nome cujo pastel ainda não
@@ -103,12 +103,12 @@ TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 BASE="${ICONES_BASE:-Papirus-Dark}"
 BASE_DIR="/usr/share/icons/$BASE"
 COR="${ICONES_PASTAS:-cat-mocha-mauve}"
-FONTE="${MEOW_CAT_FOLDERS:-$RAIZ/src/icons/upstream/papirus-folders}"
+FONTE="${MEOW_CAT_FOLDERS:-$RAIZ/assets/icones/upstream/papirus-folders}"
 
 TAMANHOS=(22x22 24x24 32x32 48x48 64x64)
 
 # --- os nomes que este script CEDE (ver o cabeçalho) -------------------------
-MAPA_PASTAS="$RAIZ/icons/pastas.map"
+MAPA_PASTAS="$RAIZ/assets/icones/pastas.map"
 PASTEL_DIR="$TEMA_DIR/scalable/places"
 
 declare -A CEDIDOS=()
@@ -165,7 +165,7 @@ mudou=0
 # `papirus-folders` simplesmente não os tem, então eles caem no Papirus base e
 # saem CINZA (`#8e8e8e`, `#9f9f9f`, os únicos fill dos cinco tamanhos).
 #
-# CORRIGE UM FATO ERRADO NO REPO: o `icons/pastas.map` diz que essas duas
+# CORRIGE UM FATO ERRADO NO REPO: o `assets/icones/pastas.map` diz que essas duas
 # "continuam azuis". Não são azuis, são cinza — conferido nos 5 tamanhos.
 #
 # OS TONS SAEM DAS PASTAS DELA, NÃO DE UM HEX CRAVADO AQUI

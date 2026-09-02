@@ -1,0 +1,98 @@
+# appid.map — o app_id que a JANELA anuncia, e o .desktop a que ele pertence.
+#
+# Formato:  app_id : desktop-id-do-alvo [ : alias ]
+#
+#   `app_id`     a string EXATA que a janela manda em `xdg_toplevel.set_app_id`,
+#                lida pela sonda (`scripts/appid_sonda.py --janelas`). Nunca
+#                deduzida, nunca "arrumada".
+#   `desktop-id` o nome do `.desktop` REAL do aplicativo, sem `.desktop`. É de lá
+#                que o `Name=`, o `Icon=` e o `Exec=` da ponte são DERIVADOS a
+#                cada passagem — nada aqui é digitado à mão duas vezes.
+#   `alias`      autoriza que dois app_id apontem para o MESMO alvo. Sem ela o
+#                script ESTOURA, no molde do `sistema.map`: duas pontes para o
+#                mesmo aplicativo quase sempre são um app_id velho que ninguém
+#                tirou daqui depois de uma atualização.
+#
+# ============================================================================
+# POR QUE ESTE ARQUIVO É ESCRITO À MÃO, E NÃO GERADO
+# ============================================================================
+#
+# Porque NÃO EXISTE REGRA que ligue os dois lados. Medido em 27/08/2026 contra o
+# parque real desta máquina, o casamento do `cosmic-app-list` é igualdade de
+# string inteira, sem normalização nenhuma: não troca `.` por `-`, não troca `_`
+# por `-`, não tira prefixo de domínio reverso, não tira sufixo, não casa por
+# prefixo nem por subcadeia, não tem tratamento de espaço. `google.chrome`,
+# `google_chrome` e `CosmicTerm` dão SEM CASAMENTO, os três.
+#
+# As duas provas de que a dedução falha, e as duas estão neste arquivo:
+#
+#   · O briefing desta etapa previa que o app_id do Boxy SVG fosse `boxy-svg`,
+#     pela regra "Electron sem --class usa o nome do binário". A MEDIÇÃO deu
+#     `boxy-svg-boxy-svg-linux` — o nome sai DOBRADO e com sufixo `-linux`.
+#     Uma linha escrita por dedução teria falhado EM SILÊNCIO.
+#
+#   · `~/.local/share/applications/hefesto-dualsense4unix.desktop` JÁ declara
+#     `StartupWMClass=Hefesto-Dualsense4Unix`. Alguém já tentou esta ponte e
+#     CHUTOU a classe. O app_id real é `__main__.py`. A ponte existe, está
+#     errada, e é por isso que o Hefesto some da dock.
+#
+# Regra desta casa, então: só entra aqui o par que a SONDA MEDIU com a janela
+# aberta. app_id novo é AVISO com a linha pronta para colar — nunca escrita
+# automática. Enquanto ninguém colar, a etapa PULA e diz em voz alta. "Fica como
+# está" é resultado, não fracasso.
+#
+# ============================================================================
+# O QUE NÃO PODE ENTRAR AQUI (o script recusa, com o motivo na tela)
+# ============================================================================
+#
+#   · `steam_app_*` — é a chave do `jogos_steam.sh`, que já escreve
+#     `StartupWMClass=steam_app_<appid>` no MESMO diretório desde 15/08/2026.
+#     Dois donos na mesma chave é a regra 1 do contrato, e já custou a este
+#     projeto quinze cartões duplicados no lançador.
+#
+#   · qualquer app_id que JÁ CASE hoje. `StartupWMClass` é a PRIMEIRA etapa do
+#     `find_app_by_id` e varre o parque INTEIRO antes das outras — uma ponte com
+#     `StartupWMClass=google-chrome` venceria
+#     `/usr/local/share/applications/google-chrome.desktop`, que é o wrapper
+#     ACELERADO do Ritual da Aurora (13/08/2026), e o clique no dock voltaria a
+#     subir o Chrome pelado. O script confere isso a cada rodada, ignorando as
+#     próprias pontes, e recusa antes de escrever.
+#
+#   · app_id de janela que não é do aplicativo. `btop.desktop` tem
+#     `Terminal=true`: quem abre a janela é o emulador, e o toplevel anuncia
+#     `com.system76.CosmicTerm` (medido). Nenhuma ponte conserta isso.
+#     `com.system76.CosmicScreenshot` não cria toplevel nenhum. Os dois ficam
+#     fora, e ficam aqui escritos para ninguém refazer o caminho.
+
+# ============================================================================
+# MEDIDO EM 27/08/2026 — sonda `ext_foreign_toplevel_list_v1`, janela aberta
+# ============================================================================
+
+# O Boxy SVG, a dor que originou a etapa. Ela abriu o programa e a janela não
+# apareceu na dock, embora o ícone exista e o cartão apareça no lançador.
+#   app_id medido .... boxy-svg-boxy-svg-linux
+#   .desktop dele .... com.boxy_svg.BoxySVG (export do flatpak, user)
+#   StartupWMClass ... `Boxy SVG`, com espaço e maiúsculas — não casa com o
+#                      app_id nem ignorando caixa, e a janela nunca anuncia essa
+#                      string. O wrapper (`files/main/boxy-svg.sh`) roda
+#                      `zypak-wrapper ... --ozone-platform=wayland` SEM `--class`.
+# É o único Electron do parque que não casa: Obsidian, Discord, Brave, GitHub
+# Desktop e ONLYOFFICE usam zypak e também não passam `--class`, e casam todos.
+# ATENÇÃO: um bump de Electron pode trocar esse app_id EM SILÊNCIO. O `--conferir`
+# é quem acusa, cruzando a sonda com o casador a cada rodada.
+boxy-svg-boxy-svg-linux:com.boxy_svg.BoxySVG
+
+# O Hefesto, o app DELA — `python3 -m`, e o app_id é o nome do MÓDULO.
+#   app_id medido .... __main__.py   (título da janela: "A minha mesa")
+#   .desktop dele .... hefesto-dualsense4unix (~/.local/share/applications)
+# CONTRAPROVA que estreita o diagnóstico: o `fogstripper` tem a MESMA forma
+# (`venv/bin/python3 src/main.py`) e mede `fogstripper`, e casa. Ou seja o defeito
+# não é "app Python": é este app não fixar o prgname.
+#
+# ESTA PONTE É REMENDO, NÃO CONSERTO, e a diferença importa:
+#   `__main__.py` é um app_id GENÉRICO. Qualquer outro app dela lançado com
+#   `python3 -m` anunciaria a MESMA string, e a ponte passaria a mandar a janela
+#   errada para o ícone do Hefesto. O conserto de raiz é uma linha no app dela —
+#   `GLib.set_prgname("...")` antes de criar a janela — e aí o app_id nasce certo,
+#   casa com o `.desktop` que já existe, e esta linha sai daqui.
+__main__.py:hefesto-dualsense4unix

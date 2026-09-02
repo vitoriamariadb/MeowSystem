@@ -5,7 +5,7 @@
 #   Depois de unificar os 35 do lançador em Arcticons: "os ícones da tray e do
 #   applet tão sincronizados também?" Não estavam. Medido: dos 30 ícones que os
 #   applets da barra realmente pedem, 26 vinham do Papirus-Dark e 4 do `hicolor`.
-#   ZERO do nosso tema. O `icons/sistema.map` já é Arcticons, mas cobre os
+#   ZERO do nosso tema. O `assets/icones/sistema.map` já é Arcticons, mas cobre os
 #   `preferences-*-symbolic`, que são as PÁGINAS do app Ajustes — não a barra.
 #
 #   Ela escolheu trocar o que tivesse glifo e manter o resto. Esta folha existe
@@ -55,8 +55,8 @@ from gi.repository import Gtk  # noqa: E402
 HOME = os.path.expanduser('~')
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONF_TK = os.path.join(HOME, '.config/cosmic/com.system76.CosmicTk/v1/icon_theme')
-# Os glifos candidatos ficam FORA de `icons/arcticons/`: nada aqui foi decidido,
-# e um acervo é o que os scripts instalam. Ver `icons/PROCEDENCIA.md`.
+# Os glifos candidatos ficam FORA de `assets/icones/arcticons/`: nada aqui foi decidido,
+# e um acervo é o que os scripts instalam. Ver `assets/icones/PROCEDENCIA.md`.
 CAND = os.path.join(os.environ.get('MEOW_PREVIA_BARRA',
                     '/tmp/meow-trabalho'
                     'e4e8c324-c21e-476b-9f65-a21e0f4250f6/scratchpad/barra'))

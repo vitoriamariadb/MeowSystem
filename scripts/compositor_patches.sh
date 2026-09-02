@@ -358,8 +358,32 @@ cmd_conferir() {
   # --- 4. o repositório contra a série (o motivo da sprint) -----------------
   local serie=""
   serie="$(_cp_serie_arquivo)" || serie=""
+  # SÓ OS PATCHES DO COSMIC-COMP ENTRAM NESTA CONTA, E O FILTRO NASCEU DE UM
+  # ALARME FALSO MEDIDO EM 01/09/2026
+  #   Naquele dia entrou em `patches/` o primeiro `.patch` que NÃO é do
+  #   compositor: o `cosmic-files-wallpaper-menu.patch`, dos dois itens de papel
+  #   de parede no menu da área de trabalho. Este conferidor o comparou contra a
+  #   série da Aurora — que é a série do `cosmic-comp` — e disse duas coisas
+  #   erradas com cara de certo: "está no repo e não na série, nunca entra em
+  #   binário nenhum" e "a Aurora não o carrega". Ele entra em binário sim, e
+  #   quem o aplica é o `scripts/files_menu.sh`, que tem dono, marcador e
+  #   artefato próprios.
+  #
+  #   O FILTRO É PELO NOME, e isso é deliberado: o alternativo seria abrir cada
+  #   `.patch` e adivinhar o alvo pelos `+++`, que responde errado no dia em que
+  #   um patch do cosmic-comp tocar um arquivo de nome parecido. `cosmic-comp-*`
+  #   é a convenção que os quatro patches da série já seguem desde 25/08/2026, e
+  #   um nome é um contrato mais barato de manter que uma heurística.
   local -a repo=()
-  mapfile -t repo < <(find "$CP_REPO" -maxdepth 1 -name '*.patch' -printf '%f\n' 2>/dev/null | sort)
+  mapfile -t repo < <(find "$CP_REPO" -maxdepth 1 -name 'cosmic-comp-*.patch' -printf '%f\n' 2>/dev/null | sort)
+
+  # E os OUTROS são contados em voz alta, para "0 fora da série" não passar a
+  # impressão de que este conferidor viu o diretório inteiro.
+  local -a outros=()
+  mapfile -t outros < <(find "$CP_REPO" -maxdepth 1 -name '*.patch' ! -name 'cosmic-comp-*.patch' -printf '%f\n' 2>/dev/null | sort)
+  if [ "${#outros[@]}" -gt 0 ]; then
+    _cp_diz info "fora desta conta (não são do cosmic-comp, têm dono próprio): ${outros[*]}"
+  fi
 
   if [ "${#repo[@]}" = "0" ]; then
     _cp_diz info "nenhum .patch em $CP_REPO — nada a comparar com a série"

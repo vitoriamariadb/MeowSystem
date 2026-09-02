@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<!--
+  app/pagina/index.html — a página de configuração do MeowSystem.
+
+  O ESQUELETO É PROPOSITALMENTE VAZIO. Não há um único nome de chave escrito
+  aqui: tudo o que aparece na tela é montado pelo `app.js` a partir do que o
+  `app/servidor.py` devolve em `/api/esquema`, que por sua vez lê o
+  `meow.conf.exemplo`. Escrever "FLAVOR" neste arquivo seria a terceira cópia da
+  lista de chaves do projeto, e o cabeçalho do servidor conta o que as duas
+  primeiras já custaram.
+
+  O `@TOKEN@` é substituído pelo servidor no momento de servir. Ele não vai para
+  o localStorage nem fica na barra de endereço: o `app.js` o lê deste atributo e
+  limpa a URL no primeiro instante.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeowSystem</title>
+<!-- A paleta vem do servidor, gerada de assets/paleta/catppuccin.json no flavor
+     que o meow.conf dela manda. Nenhum hex vive no CSS. -->
+<link rel="stylesheet" href="/paleta.css">
+<link rel="stylesheet" href="/estilo.css">
+</head>
+<body data-token="@TOKEN@">
+
+<a class="pular" href="#principal">Pular para o conteúdo</a>
+
+<header class="topo">
+  <div class="marca">
+    <img class="gato" src="/gato.svg" alt="" width="34" height="34">
+    <div>
+      <h1>MeowSystem</h1>
+      <p class="sub" id="resumo">carregando…</p>
+    </div>
+  </div>
+
+  <div class="busca-caixa">
+    <input id="busca" type="search" placeholder="Buscar chave ou ação…  ( / )"
+           autocomplete="off" aria-label="Buscar chave ou ação">
+  </div>
+
+  <label class="seco" title="Prevê o que aconteceria sem escrever nada (MEOW_DRY_RUN=1)">
+    <input type="checkbox" id="seco">
+    <span>Modo seco</span>
+  </label>
+</header>
+
+<div class="corpo">
+  <nav class="trilho" id="trilho" aria-label="Seções"></nav>
+
+  <main id="principal" tabindex="-1">
+    <div id="aviso-aplicar" class="aviso" hidden>
+      <span id="aviso-texto"></span>
+      <button type="button" class="btn btn-accent" data-acao-rapida="doctor_consertar">
+        Consertar o que estiver fora
+      </button>
+    </div>
+    <div id="conteudo"></div>
+  </main>
+</div>
+
+<!-- A gaveta de saída ao vivo. Nasce fechada e sobe quando um trabalho começa. -->
+<section class="gaveta" id="gaveta" hidden aria-live="polite">
+  <div class="gaveta-topo">
+    <div>
+      <strong id="gaveta-titulo"></strong>
+      <code id="gaveta-comando"></code>
+    </div>
+    <div class="gaveta-botoes">
+      <span id="gaveta-estado" class="pastilha"></span>
+      <button type="button" class="btn btn-perigo" id="parar">Parar</button>
+      <button type="button" class="btn" id="fechar-gaveta">Fechar</button>
+    </div>
+  </div>
+  <pre id="saida" tabindex="0"></pre>
+</section>
+
+<div id="torradas" class="torradas" aria-live="polite"></div>
+
+<!-- O diálogo de confirmação das ações que escrevem fundo. É `<dialog>` nativo:
+     ele já traz o foco preso, o Esc e o fundo inerte, que seriam trinta linhas
+     de JavaScript para reimplementar pior. -->
+<dialog id="confirmar">
+  <form method="dialog">
+    <h2 id="confirmar-titulo"></h2>
+    <p id="confirmar-texto"></p>
+    <div id="confirmar-sudo" class="aviso-sudo" hidden>
+      <strong>Esta ação pode usar sudo.</strong>
+      <span>Nada aqui pede, lê ou guarda senha. Mas o sudo desta máquina usa
+      <code>timestamp_type=global</code> com 60 min de cache: se você digitou uma
+      senha de sudo em qualquer terminal na última hora, as etapas privilegiadas
+      vão rodar sem perguntar nada. Se não digitou, elas se pulam sozinhas e
+      aparecem em <code>pulado:</code>.</span>
+    </div>
+    <p class="comando-previa"><code id="confirmar-comando"></code></p>
+    <menu>
+      <button value="nao" class="btn">Cancelar</button>
+      <button value="sim" class="btn btn-accent" id="confirmar-ok">Rodar</button>
+    </menu>
+  </form>
+</dialog>
+
+<script src="/app.js"></script>
+</body>
+</html>

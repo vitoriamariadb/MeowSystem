@@ -13,7 +13,7 @@
 # --- Aparência -------------------------------------------------------------
 
 # [essencial] Qual variante do Catppuccin. Só vale o que tem captura em
-# state/tema/ — o pré-voo avisa antes de instalar se a combinação não existir.
+# assets/temas/capturados/ — o pré-voo avisa antes de instalar se a combinação não existir.
 # mocha | macchiato | frappe | latte
 FLAVOR="mocha"
 
@@ -42,21 +42,55 @@ LOGO="coquinha"
 LOGO_ROTACAO="nao"
 # (o LOGO_INTERVALO fica na seção de Wallpaper, junto do porquê de ser um dia)
 
+# --- O GATO SEGUE O RELÓGIO (novo em 01/09/2026) -----------------------------
+# Como o gato do dock e o do terminal são escolhidos:
+#
+#   hora     (padrão) LOGO_NOITE de noite, LOGO_DIA de dia. A janela de noite é
+#            a MESMA do resto da máquina — ver NOITE_INICIO/NOITE_FIM abaixo.
+#   rotacao  gira pelo acervo ao encerrar a sessão, um a cada LOGO_INTERVALO.
+#            É o desenho antigo; LOGO_ROTACAO="sim" continua ligando-o sozinho.
+#   fixo     LOGO= vence sempre; nada gira, nada segue relógio.
+LOGO_MODO="hora"
+
+# Os dois rostos. Os nomes saem do acervo (assets/gatos/<nome>.svg).
+LOGO_DIA="mimir"       # o dock de dia
+LOGO_NOITE="coquinha"  # o dock de noite
+
+# Na virada, o gato do dock só aparece depois de o painel reciclar (~2 s de
+# pisca, duas vezes por dia). MEDIDO em 01/09/2026: reescrever o SVG sem
+# reciclar não muda um pixel — o cosmic-panel-button resolve o ícone no arranque
+# e guarda. Com "nao" o arquivo troca do mesmo jeito e o gato novo aparece no
+# próximo login; o do fastfetch troca na hora de qualquer forma, porque o
+# fastfetch relê o arquivo a cada execução.
+LOGO_RECICLAR="sim"
+
+# --- A NOITE DA MÁQUINA, EM UM LUGAR SÓ --------------------------------------
+# Vazio = herda WALLPAPER_NOITE_INICIO/FIM (ou 18:00-07:00). Preenchido, manda
+# em TUDO que pergunta "é noite?": o gato, o carrossel de papel de parede claro
+# e escuro, e o padrão do modo de leitura. A regra é a de sempre —
+# inicio > fim atravessa a meia-noite; inicio == fim é noite o dia inteiro.
+#
+# QUEM VENCE, NESTA ORDEM: estas duas chaves; depois a janela que você arrasta
+# na interface do applet do modo de leitura; depois WALLPAPER_NOITE_*; depois
+# 18:00-07:00. `meow logo listar` diz qual delas está valendo agora.
+NOITE_INICIO=""
+NOITE_FIM=""
+
 # A ESTRUTURA DO TEMA NÃO MORA AQUI, E TENTAR NÃO FUNCIONARIA
 #   Raio das quinas, gaps, espessura do contorno da janela em foco, nível de
-#   vidro fosco e o alpha do fundo vivem em `palette/cosmic-map.json`, sob
+#   vidro fosco e o alpha do fundo vivem em `assets/paleta/cosmic-map.json`, sob
 #   `estrutura_preservada` — são os valores herdados do tema que VOCÊ montou, e
 #   o `gerar_temas.py` os copia sem recalcular.
 #
 #   Até 08/08/2026 este arquivo oferecia seis chaves para eles (RAIO,
 #   GAP_EXTERNO, GAP_INTERNO, DICA_ATIVA, VIDRO, ALPHA_FUNDO) e NENHUM script as
 #   lia — o `meow configurar` perguntava, dizia "gravado", e nada mudava.
-#   Implementá-las seria pior que removê-las: elas alimentariam os `themes/*.ron`,
+#   Implementá-las seria pior que removê-las: elas alimentariam os `assets/temas/*.ron`,
 #   que servem só para o import manual na GUI (o tema aplicado vem por CÓPIA de
-#   `state/tema/`). A chave pareceria funcionar e só valeria depois de três
+#   `assets/temas/capturados/`). A chave pareceria funcionar e só valeria depois de três
 #   cliques em Aparência — que é o defeito de "prometer o que não se cumpre".
 #
-#   Para mudar de verdade: edite `palette/cosmic-map.json`, rode
+#   Para mudar de verdade: edite `assets/paleta/cosmic-map.json`, rode
 #   `meow doctor --consertar` para regerar o .ron, importe uma vez pela GUI e
 #   `meow tema capturar <flavor>-<accent>`.
 
@@ -128,6 +162,31 @@ FASTFETCH_LOGO_GATO="coquinha"
 # "40x20" que a sprint pedia desenharia um retângulo 28% mais alto que largo.
 FASTFETCH_LOGO_COLUNAS="40"
 
+# Como o gato do TERMINAL é escolhido:
+#
+#   espelho  (padrão) mostra o gato que o dock NÃO está mostrando. É o que faz
+#            os DOIS gatos estarem sempre na tela ao mesmo tempo: de dia o Mimir
+#            no dock e a Coquinha no terminal; de noite, invertido. A regra se
+#            mantém sozinha — trocar LOGO_DIA acima basta, o terminal segue.
+#   hora     segue o relógio igual ao dock (os dois mostram o mesmo gato).
+#   fixo     FASTFETCH_LOGO_GATO vence sempre.
+#
+# FASTFETCH_LOGO_DIA/NOITE só são lidas nos modos `hora` e no fallback do
+# `espelho` (primeira instalação, quando o botão do dock ainda não existe).
+#
+# O arquivo gerado se chama `gato.ansi`, e não `<nome>.ansi`: um arquivo cujo
+# conteúdo muda duas vezes por dia não pode ter o nome de um gato só.
+FASTFETCH_LOGO_MODO="espelho"
+FASTFETCH_LOGO_DIA=""             # vazio = herda LOGO_DIA
+FASTFETCH_LOGO_NOITE=""           # vazio = herda LOGO_NOITE
+
+# Deixar o MeowSystem corrigir sozinho a linha `logo.source` do config.jsonc do
+# fastfetch — que é da Aurora (symlink para ~/.config/zsh/fastfetch/).
+# A escrita é CIRÚRGICA (duas chaves, o resto do arquivo intacto), guarda backup
+# antes em ~/.local/state/meowsystem/backups/ e diz em voz alta o que tocou.
+# Com "nao", o script volta a só imprimir o patch e sair 4.
+FASTFETCH_LOGO_CONF="sim"
+
 # O PONTEIRO — o único elemento que atravessa a tela inteira o tempo todo.
 # Vazio = não toca, como as VIDRO_OPACIDADE_* logo acima.
 #
@@ -174,6 +233,10 @@ ESCALA_TELA=""
 
 # --- Ícones ----------------------------------------------------------------
 
+# O nome do tema de ícones que este projeto constrói e instala em
+# ~/.local/share/icons/. Trocar aqui muda a árvore inteira de destino — e a
+# antiga não é apagada, então o `meow doctor` passa a conferir a nova e a
+# velha fica no disco até você removê-la à mão.
 NOME_TEMA_ICONES="MeowSystem-Icons"
 ICONES_BASE="Papirus-Dark"        # tema herdado como fallback
 ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
@@ -191,13 +254,13 @@ ICONES_FLAVOR="macchiato"
 # A cor do traço de cada aplicativo vem da MARCA dele, em vez da CATEGORIA?
 #
 #   nao (padrão)  a cor é por categoria — a escolha dela de 10/08/2026
-#   sim           `icons/apps-marca.map` sobrepõe a cor de quem está listado lá
+#   sim           `assets/icones/apps-marca.map` sobrepõe a cor de quem está listado lá
 #
 # ISTO ESTÁ DESLIGADO PORQUE É ESCOLHA DELA, NÃO PORQUE NÃO FUNCIONA
 #   Em 23/08/2026 ela olhou o dock e disse: "a cor de alguns svgs tão diferentes
 #   das logos originais. tipo a do wpp ou steam, chrome, coisa que nas linhas ia
 #   facilitar nossa vida". O pedido é só de COR: o traço continua traço,
-#   `fill:none` continua, e a paleta continua sendo `palette/catppuccin.json` —
+#   `fill:none` continua, e a paleta continua sendo `assets/paleta/catppuccin.json` —
 #   nenhum hex de fora entra. Muda QUAL cor da paleta cada aplicativo recebe.
 #
 #   O que a chave carrega é uma CONTRADIÇÃO com uma decisão anterior dela. Em
@@ -244,14 +307,6 @@ ICONES_COR_MARCA="nao"
 # `~/folha-pastas-2.html` mostra com contraste bem melhor sobre fundo claro.
 PASTAS_XDG="nao"
 
-# --- Wallpaper -------------------------------------------------------------
-
-# A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
-#   ativos/ (é a que gira) · favoritos/ · banidos/ (movidos, nunca apagados) ·
-#   originais/ (a foto antes de qualquer recolorização)
-# O nome era WALLPAPER_DIR e apontava para `ativos/`, mas quem lia era
-# WALLPAPER_BASE — chave que não existia neste arquivo. Ou seja: mudar o valor
-# não movia nada. Corrigido em 08/08/2026; agora o nome daqui é o nome lido.
 # --- A FORMA DO PAINEL E DO DOCK ---------------------------------------------
 # Estas chaves existiam só como variável de ambiente do `scripts/forma.sh`:
 # ninguém conseguia mudá-las sem editar o script. Passaram para cá em
@@ -442,6 +497,22 @@ LEITURA_HORARIO_FIM="07:00"       # HH:MM — idem
 # dela em 29/08/2026 ("se é um slider por que não dá pra comportar todos?"), e
 # 6500K é o NEUTRO — ou seja, pôr 6500 aqui é o mesmo que desligar.
 #
+# ESTA LINHA VIROU O PADRÃO DE FÁBRICA, NÃO MAIS O ALVO — 31/08/2026
+#   Quem manda no QUANTO, desde hoje, é o SLIDER do applet. Ela relatou o defeito
+#   com todas as letras: "o negócio fica mudando de temperatura sozinho sem
+#   respeitar a temperatura que eu defini" — e estava certa: o relógio bate de
+#   minuto em minuto e cada tique reescrevia esta linha por cima do que ela tinha
+#   acabado de arrastar.
+#
+#   Agora o `scripts/leitura.sh` lê primeiro o ponto que o applet guardou em
+#   `~/.local/state/cosmic/com.meowsystem.AppletLeitura/v1/ultima_temperatura`, e
+#   só cai AQUI quando aquele não existe ou não passa no filtro — máquina nova,
+#   applet não instalado, sessão em que ela nunca tocou num slider. O relógio
+#   ficou com o QUANDO, que é tudo o que ela pediu que ele tivesse.
+#
+#   Para ver qual das duas fontes está valendo agora:  ./scripts/leitura.sh estado
+#   (a linha `alvo que vale` nomeia a fonte de cada um dos dois números).
+#
 # 3500 não é chute meu: é o valor que a luz noturna da Aurora já usa nesta
 # máquina hoje (`/var/lib/aurora/night-light-temp`). Quer dizer que a virada das
 # 18:00 entrega exatamente a temperatura com que você já convive, agora num
@@ -464,6 +535,9 @@ LEITURA_TEMPERATURA="3500"        # 1000–6500 K (6500 = neutro = desligado)
 # depois de você já ter passado uma noite sem textura sem saber por quê. (Vale
 # para a temperatura também: qualquer coisa que não seja um inteiro cai no
 # neutro, ou seja, desligado.)
+# E VALE PARA ELA A MESMA COISA DA TEMPERATURA (31/08/2026): esta linha é o
+# PADRÃO DE FÁBRICA. O alvo que o relógio persegue é o `ultima_textura` que o
+# applet guardou quando ela soltou o slider; esta só entra quando aquele falta.
 LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
 
 # A VIRADA: SECA OU RAMPA? Também é sua, e também está em aberto no plano.
@@ -511,9 +585,41 @@ LEITURA_RAMPA_MIN="0"             # 0 = seca | N minutos de rampa
 # devolve 0 na hora. Sem cargo na máquina, a etapa cai em "pulados" e nada mais
 # acontece.
 LEITURA_APPLET="sim"              # sim | nao
+# --- Wallpaper -------------------------------------------------------------
 
+# A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
+#   ativos/ (é a que gira) · favoritos/ · banidos/ (movidos, nunca apagados) ·
+#   originais/ (a foto antes de qualquer recolorização)
+# O nome era WALLPAPER_DIR e apontava para `ativos/`, mas quem lia era
+# WALLPAPER_BASE — chave que não existia neste arquivo. Ou seja: mudar o valor
+# não movia nada. Corrigido em 08/08/2026; agora o nome daqui é o nome lido.
 WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
 WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
+
+# Quanto tempo dura a imagem que você escolheu com "avançar"/"voltar" (no menu
+# de contexto da área de trabalho, ou `meow wallpaper proximo`). Enquanto ela
+# vale, o carrossel está PARADO — o cosmic-bg gira o que estiver na pasta, e uma
+# imagem escolhida é um arquivo só. Quem devolve o carrossel é o
+# meow-wallpaper.timer, que já roda a cada 15 min.
+# "0" = para sempre; aí quem solta é `meow wallpaper carrossel`.
+WALLPAPER_FIXO_TTL="30m"
+
+# --- OS DOIS ITENS DE PAPEL DE PAREDE NO MENU DA ÁREA DE TRABALHO -----------
+# "Próximo papel de parede" e "Papel de parede anterior" no botão direito da
+# área de trabalho. Não há sistema de plugin no COSMIC: os itens só existem
+# patchando o `cosmic-files` e recompilando. O binário patchado mora em
+# ~/.local/bin (que vem antes de /usr/bin no PATH), então um `apt upgrade` não o
+# sobrescreve — e quando a versão do pacote sobe sem que haja build para ela, o
+# nosso SAI DA FRENTE sozinho até o build novo ficar pronto.
+FILES_MENU="sim"                  # sim | nao
+
+# Compilar sozinho quando o apt subir a versão do cosmic-files? O build baixa
+# ~161 MB de fonte e leva minutos; roda em background (Nice=19, IO idle), no
+# máximo 3 tentativas por versão, e adia se houver jogo aberto.
+# Com "nao", o doctor avisa e você roda `meow files-menu build` quando quiser.
+FILES_MENU_AUTOBUILD="sim"
+
+
 WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
 
 # Como a imagem ocupa a tela. Em 11/08/2026 ela mandou uma captura com duas
@@ -621,7 +727,7 @@ APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,
 # O Marketplace do spicetify: a página DENTRO do Spotify de onde se instalam
 # extensões, snippets e outros CustomApps. Ele não vem no binário do spicetify e
 # o instalador oficial dele é um `curl | sh` que não é idempotente — aqui quem
-# baixa, registra e repõe é o módulo `app-themes/spotify`, no mesmo ciclo do
+# baixa, registra e repõe é o módulo `assets/temas-de-apps/spotify`, no mesmo ciclo do
 # doctor. Nasce ligado; "nao" só deixa de instalar (não desinstala o que já foi).
 #
 # Ele NUNCA troca o `current_theme`: o Catppuccin continua vindo daqui, do
@@ -767,7 +873,7 @@ MIDIA_CAPA="sim"
 MIDIA_FONTE="auto"
 #
 # A música e a banda em cores diferentes, para separar as duas de relance.
-# Vale qualquer nome da paleta (palette/catppuccin.json): mauve, green, blue,
+# Vale qualquer nome da paleta (assets/paleta/catppuccin.json): mauve, green, blue,
 # peach, teal, pink, sky, yellow, red, lavender, text, subtext0…  "auto" deixa
 # o texto na cor padrão do painel — que é o que o traço do álbum tinge.
 #
@@ -796,7 +902,7 @@ MIDIA_CONTROLES="nao"
 
 # A PALETA ANSI do cosmic-term — a última peça da tela que era de fábrica.
 #
-# O esquema é gerado a partir de FLAVOR e da `palette/catppuccin.json`, e bate
+# O esquema é gerado a partir de FLAVOR e da `assets/paleta/catppuccin.json`, e bate
 # CAMPO A CAMPO com o port oficial (`catppuccin/cosmic-desktop`), conferido nos
 # quatro flavors em 25/08/2026. Nada é baixado: a paleta é local.
 #
@@ -862,5 +968,8 @@ PROMPT_STARSHIP="sim"
 # declarada e conferível, em vez de um link para /dev/null sem dono.
 AUTOSTART_BLOQUEADOS="org.qbittorrent.qBittorrent"
 
+# Quantos backups o projeto guarda antes de apagar o mais antigo. Cada
+# escrita em arquivo do sistema deixa uma cópia; sem teto, elas se acumulam
+# para sempre. "0" desliga a poda e guarda todos.
 BACKUPS_MANTIDOS="10"
 LOG_NIVEL="info"                  # silencioso | info | debug

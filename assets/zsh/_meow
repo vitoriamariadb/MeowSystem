@@ -1,0 +1,214 @@
+#compdef meow
+# OVERRIDE — escrito à mão; não gerar por scripts/gerar-completions.py.
+#
+# Este arquivo nasce no repo MeowSystem-Theme e o install.sh dele instala uma
+# cópia em ~/.config/zsh/completions/_meow, que é o único diretório de
+# completions gravável dentro do $fpath desta máquina (env.zsh, linha 20).
+#
+# POR QUE O MARCADOR ESTÁ NA SEGUNDA LINHA, E NÃO NA PRIMEIRA
+#   O gerador de completions do Andromeda (scripts/gerar-completions.py) procura
+#   "# OVERRIDE" nas TRÊS primeiras linhas de cada arquivo e preserva quem o
+#   tem. A primeira linha não serve para isso: `#compdef meow` precisa estar
+#   nela, senão o compinit não registra nada e o arquivo vira texto morto. Hoje
+#   o gerador só escreve `_<função-zsh>` e `meow` não é uma função zsh — o
+#   marcador é cinto e suspensório para o dia em que alguém definir uma.
+#
+# AS LISTAS SÃO LIDAS DO DISCO, NUNCA ESCRITAS AQUI
+#   As capturas de tema e as variantes de logo mudam quando ela captura ou gera
+#   uma nova. Uma lista fixa aqui dentro seria a terceira cópia da mesma verdade
+#   e a primeira a ficar velha. A raiz do repo sai do mesmo ponteiro que a CLI
+#   usa — ~/.local/state/meowsystem/raiz, gravado pelo install.sh — porque o
+#   clone vive em /mnt/Apate e nada garante que ele estará sempre lá.
+
+_meow_raiz() {
+  local ponteiro="${XDG_STATE_HOME:-$HOME/.local/state}/meowsystem/raiz"
+  local cand
+  if [[ -n "${MEOW_RAIZ:-}" && -f "$MEOW_RAIZ/lib/comum.sh" ]]; then
+    print -r -- "$MEOW_RAIZ"
+    return 0
+  fi
+  if [[ -f "$ponteiro" ]]; then
+    cand="$(<"$ponteiro")"
+    cand="${cand%%$'\n'*}"
+    if [[ -f "$cand/lib/comum.sh" ]]; then
+      print -r -- "$cand"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+_meow_capturas() {
+  local raiz
+  raiz="$(_meow_raiz)" || return 1
+  local -a nomes
+  # (/N:t) = só diretórios, sem erro quando não houver nenhum, só o nome final.
+  nomes=("$raiz"/state/tema/*(/N:t))
+  (( ${#nomes} )) && _describe -t capturas 'captura de tema' nomes
+}
+
+_meow_logos() {
+  local raiz
+  raiz="$(_meow_raiz)" || return 1
+  local -a nomes
+  local f
+  # O acervo dela é a lista — os gatos do projeto foram excluídos em 08/08/2026.
+  for f in "$raiz"/assets/gatos/*.svg(N); do
+    f="${f:t:r}"
+    [[ "$f" == *-symbolic ]] && continue
+    nomes+=("$f")
+  done
+  (( ${#nomes} )) && _describe -t logos 'gato do acervo' nomes
+}
+
+# As chaves saem do meow.conf.exemplo do repo, que é a lista canônica — a mesma
+# que o wizard pergunta e que o migrar_conf.py acrescenta. Cair no meow.conf dela
+# quando o repo não for encontrado é de propósito: ali estão as chaves que ela de
+# fato tem, inclusive as que ela mesma inventou.
+_meow_chaves() {
+  local raiz conf
+  local -a nomes
+  raiz="$(_meow_raiz)" && conf="$raiz/meow.conf.exemplo"
+  [[ -f "$conf" ]] || conf="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
+  [[ -f "$conf" ]] || return 1
+  nomes=(${(f)"$(grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' -- "$conf" | sed 's/=$//' | sort -u)"})
+  (( ${#nomes} )) && _describe -t chaves 'chave do meow.conf' nomes
+}
+
+_meow() {
+  local curcontext="$curcontext" state line
+  local -a comandos
+  comandos=(
+    'status:painel de estado e o que está divergente'
+    'doctor:confere tudo em seco; sai 1 se houver divergência'
+    'tema:mostra, aplica ou captura um tema'
+    'logo:variantes da logo do painel'
+    'icones:estado do tema de ícones'
+    'wallpaper:carrossel de papéis de parede'
+    'files-menu:os 2 itens de papel de parede no menu da área de trabalho'
+    'apps:tabela de módulo, app instalado e tema'
+    'configurar:wizard curto: as chaves essenciais do meow.conf (--tudo para o resto)'
+    'ativar:roda o install.sh inteiro'
+    'aplicar:o mesmo que ativar'
+    'desfazer:volta o tema do COSMIC para antes do MeowSystem'
+    'log:últimas 50 linhas do log'
+    'ajuda:lista todos os comandos'
+  )
+
+  # Sem `&& return` depois do _arguments: com ele, o caso normal (que devolve 0)
+  # sairia antes de olhar o $state e nenhum subcomando completaria nada.
+  _arguments -C '1: :->comando' '*:: :->resto'
+
+  case "$state" in
+    comando)
+      _describe -t comandos 'comando do meow' comandos
+      ;;
+    resto)
+      case "$words[1]" in
+        tema)
+          if (( CURRENT == 2 )); then
+            local -a fixos
+            fixos=(
+              'claro:escreve is_dark=false'
+              'escuro:escreve is_dark=true'
+              'auto:deixa o horário decidir'
+              'capturar:fotografa o estado atual como uma captura nova'
+              'desfazer:volta para a captura original'
+            )
+            _describe -t modos 'modo' fixos
+            _meow_capturas
+          fi
+          ;;
+        logo)
+          (( CURRENT == 2 )) && _meow_logos
+          ;;
+        doctor)
+          _arguments '--consertar[aplica só o que falhou]'
+          ;;
+        icones)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'estado:só mostra'
+              'reconstruir:remonta o tema de ícones e as pastas coloridas'
+            )
+            _describe -t acoes 'ação' acoes
+          fi
+          ;;
+        wallpaper)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'estado:pasta, quantas imagens, intervalo e ordem'
+              'aplicar:liga ou reafirma a rotação nativa do COSMIC'
+              'proximo:avança para a próxima imagem do grupo (fixa por WALLPAPER_FIXO_TTL)'
+              'anterior:volta para a imagem anterior do grupo'
+              'carrossel:solta a fixação e devolve a rotação agora'
+              'adicionar:copia imagem ou pasta para ativos/'
+              'banir:move para banidos/ (nunca apaga)'
+              'semear:baixa a coleção Catppuccin do commit pinado (usa rede)'
+              'permitir:marca um caminho como escolha sua — o carrossel para de devolvê-lo'
+            )
+            _describe -t acoes 'ação' acoes
+          else
+            case "$words[2]" in
+              # `permitir` completa arquivo E diretório: a chave aceita os dois,
+              # e cada entrada vale para ela mesma e para tudo abaixo dela.
+              adicionar|banir|permitir) _files ;;
+            esac
+          fi
+          ;;
+        files-menu)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'estado:versão do pacote, artefato guardado e qual binário está no PATH'
+              'aplicar:põe o binário patchado no lugar (nunca compila)'
+              'build:baixa o fonte da versão instalada, patcha e compila (minutos)'
+              'remover:tira o nosso e devolve o cosmic-files do pacote'
+            )
+            _describe -t acoes 'ação' acoes
+          fi
+          ;;
+        apps)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'tabela:módulo, instalado, tema'
+              'conferir:roda o conferir de cada módulo'
+              'aplicar:tematiza um app, ou todos'
+              'reverter:desfaz num app (slug obrigatório)'
+            )
+            _describe -t acoes 'ação' acoes
+          elif [[ "$words[2]" == (aplicar|reverter) ]]; then
+            # Os slugs saem do meow.conf dela, não de uma lista fixa aqui.
+            local conf="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
+            local linha
+            local -a slugs
+            if [[ -f "$conf" ]]; then
+              linha="$(grep -m1 '^APPS_ATIVOS=' "$conf" 2>/dev/null)"
+              linha="${linha#APPS_ATIVOS=}"
+              linha="${linha//\"/}"
+              slugs=(${(s:,:)linha})
+              (( ${#slugs} )) && _describe -t slugs 'app' slugs
+            fi
+          fi
+          ;;
+        configurar|config|wizard)
+          # `--tudo` e uma CHAVE ficam lado a lado de propósito: o wizard curto
+          # é o padrão, e as duas formas de sair dele valem no mesmo lugar.
+          if (( CURRENT == 2 )); then
+            _alternative \
+              'flags:opção:((--tudo\:"pergunta o meow.conf inteiro, chave por chave"))' \
+              'chaves:chave: _meow_chaves'
+          fi
+          ;;
+        aplicar|ativar)
+          _arguments '--seco[mostra o que faria, sem escrever nada]'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_meow "$@"

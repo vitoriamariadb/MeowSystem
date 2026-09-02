@@ -3,8 +3,8 @@
 
 POR QUE ESTE SCRIPT EXISTE
     Nenhum hex pode viver dentro de script (regra 1 do contrato: estado desejado é
-    declarado, não imperativo). Toda cor vem de `palette/catppuccin.json`, e o
-    destino de cada cor vem de `palette/cosmic-map.json`. Trocar de flavor é
+    declarado, não imperativo). Toda cor vem de `assets/paleta/catppuccin.json`, e o
+    destino de cada cor vem de `assets/paleta/cosmic-map.json`. Trocar de flavor é
     trocar uma linha do meow.conf, nunca editar um tema à mão.
 
 O QUE ELE NÃO DECIDE
@@ -40,9 +40,9 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-PALETA = RAIZ / "palette" / "catppuccin.json"
-MAPA = RAIZ / "palette" / "cosmic-map.json"
-DESTINO = RAIZ / "themes"
+PALETA = RAIZ / "assets" / "paleta" / "catppuccin.json"
+MAPA = RAIZ / "assets" / "paleta" / "cosmic-map.json"
+DESTINO = RAIZ / "assets" / "temas"
 
 # A ordem em que os slots aparecem no arquivo exportado pelo COSMIC. O parser RON
 # não se importa com ordem, mas manter a do export deixa o `diff` legível contra o
@@ -103,7 +103,7 @@ def gerar(flavor: str, accent: str, paleta: dict, mapa: dict) -> str:
 
     linhas = [
         f"// MeowSystem — Catppuccin {flavor.capitalize()} / accent {accent.capitalize()}",
-        "// GERADO por scripts/gerar_temas.py a partir de palette/. Não edite à mão:",
+        "// GERADO por scripts/gerar_temas.py a partir de assets/paleta/. Não edite à mão:",
         "// a próxima geração sobrescreve. Para mudar cor, mude a paleta ou o mapa.",
         "// Estrutura (raio, gaps, active_hint, frosted, alpha_map) é da Vitória e é preservada.",
         "// Importar em: Configurações > Área de trabalho > Aparência > Importar",

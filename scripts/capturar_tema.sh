@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# capturar_tema.sh — fotografa as árvores de tema do COSMIC para state/tema/<nome>/.
+# capturar_tema.sh — fotografa as árvores de tema do COSMIC para assets/temas/capturados/<nome>/.
 #
 # POR QUE ISTO EXISTE
 #   O COSMIC não tem CLI de tema: a derivação que transforma o que a GUI edita
@@ -39,7 +39,7 @@ uso() {
   cat <<'FIM'
 uso: capturar_tema.sh <nome>
 
-Fotografa as árvores de tema do COSMIC para state/tema/<nome>/.
+Fotografa as árvores de tema do COSMIC para assets/temas/capturados/<nome>/.
 
   <nome>   como a captura se chama. Ex.: original, mocha-mauve, latte-mauve.
 
@@ -61,8 +61,8 @@ esac
 #   um `meow tema capturar original` digitado sem pensar troca o tema de fábrica
 #   desta máquina pelo Catppuccin que estiver na tela, e daí em diante o
 #   `desfazer` restaura Catppuccin em cima de Catppuccin, sem erro nenhum.
-#   (`state/tema/original` está versionado e limpo no git, então um
-#   `git checkout state/tema/original` ainda salva — mas o script não pode
+#   (`assets/temas/capturados/original` está versionado e limpo no git, então um
+#   `git checkout assets/temas/capturados/original` ainda salva — mas o script não pode
 #   depender disso, porque ele saía 0 dizendo "capturado".)
 if [ "$NOME" = "original" ] && [ "${MEOW_RECAPTURAR_ORIGINAL:-0}" != "1" ]; then
   echo "ERRO: 'original' é o reset de fábrica e não se recaptura." >&2
@@ -72,7 +72,7 @@ if [ "$NOME" = "original" ] && [ "${MEOW_RECAPTURAR_ORIGINAL:-0}" != "1" ]; then
   exit 2
 fi
 
-DESTINO="$RAIZ/state/tema/$NOME"
+DESTINO="$RAIZ/assets/temas/capturados/$NOME"
 
 if [ ! -d "$COSMIC" ]; then
   echo "ERRO: $COSMIC não existe — isto é um COSMIC?" >&2
@@ -125,7 +125,7 @@ fi
 #   hicolor.sh, os manifestos de app, o próprio gerar_tema_v1.py).
 #   O carimbo usa HÍFENS, e não `date -Iseconds`, porque a pasta `backups/` é
 #   compartilhada e o formato dela é o do `MEOW_CARIMBO` — a razão está por
-#   extenso em app-themes/vscode/manifesto.sh §helper 3. O sufixo é `-captura-`
+#   extenso em assets/temas-de-apps/vscode/manifesto.sh §helper 3. O sufixo é `-captura-`
 #   e não `-tema-` de propósito: `-tema-<nome>` é o que a poda do
 #   `aplicar_tema.sh` colhe, e o que se guarda aqui não é dela para apagar.
 #   `MEOW_ESTADO` vem com padrão porque este script NÃO carrega lib/comum.sh.
@@ -146,6 +146,6 @@ mv "$TMP" "$DESTINO"
 trap - EXIT
 
 echo
-echo "capturado: state/tema/$NOME/  ($total arquivos)"
+echo "capturado: assets/temas/capturados/$NOME/  ($total arquivos)"
 [ ${#ausentes[@]} -gt 0 ] && echo "aviso: árvores ausentes nesta máquina: ${ausentes[*]}"
 exit 0

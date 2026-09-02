@@ -7,7 +7,7 @@
 #
 # POR QUE ISTO EXISTE
 #   Queixa dela, 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon
-#   que fica no applet, voltaram aos originais". O `icons/bandeja.map` previa a
+#   que fica no applet, voltaram aos originais". O `assets/icones/bandeja.map` previa a
 #   regressão desde 10/08 e não havia nada que agisse sobre ela. O par
 #   `meow-flatpak.path` + `meow-flatpak.service` fecha essa distância — e o
 #   cabeçalho do `.path` traz a medição que escolheu o `.changed` como evento,

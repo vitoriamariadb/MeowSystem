@@ -1,0 +1,58 @@
+locais/ — as fontes que ela SOLTA aqui, e que não vêm de release nenhuma.
+
+A REGRA, EM UMA LINHA
+    Soltou um `.otf` ou `.ttf` nesta pasta -> ele é instalado em
+    `~/.local/share/fonts/MeowSystem/locais/` na próxima passagem do
+    `scripts/instalar_fontes.sh`. Apagou daqui -> some de lá.
+
+    É a mesma interface de `assets/gatos/`: quem manda é a PASTA, não uma lista
+    dentro de script. Uma lista fixa envelheceria no dia em que ela baixasse
+    outra fonte, e o sintoma seria "coloquei o arquivo e não aconteceu nada".
+
+POR QUE UM SUBDIRETÓRIO PRÓPRIO, E NÃO O MESMO DE SEMPRE
+    `~/.local/share/fonts/MeowSystem/` é do acervo Nerd Fonts, cuja verdade é a
+    LISTA PINADA por sha256 dentro do `instalar_fontes.sh`. A limpeza de órfão
+    de lá é de propósito estreita (`JetBrainsMono*.ttf`) justamente para não
+    comer o que outra frente largasse ali — o comentário do script diz isso com
+    todas as letras desde 04/08/2026.
+
+    Misturar os dois acervos no mesmo diretório obrigaria a distinguir os
+    arquivos por nome, ou a guardar um manifesto de estado. Um subdiretório
+    resolve sem nenhum dos dois: `locais/` tem DONO ÚNICO, então remover órfão
+    ali é seguro e não precisa de memória. O fontconfig varre
+    `~/.local/share/fonts` recursivamente, então a fonte é achada igual.
+
+O BINÁRIO NÃO VAI PARA O GIT
+    O `.gitignore` já ignora `assets/fontes/upstream/` (o tarball do Nerd Fonts) e
+    passa a ignorar os binários daqui pela mesma razão prática — e por uma
+    segunda, que é de licença: fonte de terceiro vem com EULA própria, e o
+    repositório não é o lugar de redistribuí-la. O que se versiona é o LEIA-ME
+    e a etapa do script.
+
+    Consequência honesta: numa máquina nova a fonte não volta sozinha. É preciso
+    soltar o arquivo aqui de novo. O mesmo já vale para o tarball do upstream,
+    com a diferença de que aquele o script sabe baixar e este não — não há de
+    onde.
+
+================================================================================
+zrnic rg.otf
+================================================================================
+
+Pedido dela em 27/08/2026: *"/home/vitoriamaria/Downloads/zrnic.zip instala essa
+fonte via install por favor."*
+
+    família   Zrnic  (a tabela `name` também traz "Zrnic Rg")
+    estilo    Regular
+    formato   CFF — é OpenType/PostScript, não TrueType; daí o `.otf`
+    autoria   Typodermic Fonts
+
+O zip trazia, além do `.otf`, um `read-this.html` e o `Typodermic Desktop EULA
+2026.pdf`. Os dois ficaram no zip original em `~/Downloads/`, que é onde a
+licença deve ser consultada — não foram copiados para cá porque o acervo é de
+fontes, e um PDF aqui viraria arquivo que ninguém sabe por que existe.
+
+NÃO É MONOESPAÇADA, e isso importa para o que ela pode fazer com ela: o
+`fc-scan` devolve `spacing` vazio. O terminal e o editor de código do COSMIC só
+listam faces monoespaçadas (a medição está no cabeçalho do
+`instalar_fontes.sh`), então esta fonte NÃO vai aparecer para escolher lá — ela
+serve para interface, título e arte.

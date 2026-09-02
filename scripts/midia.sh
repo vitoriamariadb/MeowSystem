@@ -32,7 +32,7 @@
 #   LOGIN. Entre a instalação e o login, `pgrep` acha o do flatpak. Tratar isso
 #   como divergência criaria uma linha amarela que o `--consertar` não consegue
 #   apagar — exatamente a tranca que o módulo do Spotify acabou de perder
-#   (app-themes/spotify/manifesto.sh, o carimbo de versão). Aviso diz a verdade
+#   (assets/temas-de-apps/spotify/manifesto.sh, o carimbo de versão). Aviso diz a verdade
 #   e não mente sobre poder consertar.
 #
 # NÃO REINICIAMOS O cosmic-panel PARA ANTECIPAR
@@ -71,7 +71,7 @@ COR_TITULO="${MIDIA_COR_TITULO:-mauve}"
 COR_ARTISTA="${MIDIA_COR_ARTISTA:-green}"
 CONTROLES="${MIDIA_CONTROLES:-nao}"
 _FLAVOR="${FLAVOR:-mocha}"
-PALETA="$RAIZ/palette/catppuccin.json"
+PALETA="$RAIZ/assets/paleta/catppuccin.json"
 
 CONFERIR=0; REVERTER=0
 case "${1:-}" in
@@ -122,7 +122,7 @@ _controles_valido() { [ "$CONTROLES" = "sim" ] || [ "$CONTROLES" = "nao" ]; }
 _capa_valor() { [ "$CAPA" = "sim" ] && printf 'true' || printf 'false'; }
 
 # NOME DA PALETA -> HEX. Quem traduz é AQUI, não o applet: a paleta
-# (`palette/catppuccin.json`) é do MeowSystem, e embutir uma cópia dela no Rust
+# (`assets/paleta/catppuccin.json`) é do MeowSystem, e embutir uma cópia dela no Rust
 # criaria a segunda verdade que discorda no dia em que ela trocar de flavor.
 # `auto` viaja como a palavra `auto`, e o applet a rejeita no teste de hex —
 # então "auto" quer dizer "não pinte", sem precisar apagar arquivo nenhum.
@@ -192,7 +192,7 @@ _pronto() {
   for c in "$COR_TITULO" "$COR_ARTISTA"; do
     if ! _cor_nome_valido "$c"; then
       meow_aviso "a cor \"$c\" não existe na paleta $_FLAVOR — confira o meow.conf"
-      meow_info "  nomes válidos: os do palette/catppuccin.json (mauve, green, blue, peach…), ou auto"
+      meow_info "  nomes válidos: os do assets/paleta/catppuccin.json (mauve, green, blue, peach…), ou auto"
       return "$MEOW_SEM_DEPENDENCIA"
     fi
   done

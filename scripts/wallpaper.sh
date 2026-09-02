@@ -115,16 +115,30 @@
 #   o README manda ela usar para arrastar imagem, e sobre o qual `banir`,
 #   `adicionar` e `semear` operam. O acervo tem de continuar sendo um só.
 #
-#   Então as pastas derivadas são feitas de LINK DURO (`ln`, sem `-s`), e a
-#   escolha entre duro e simbólico não é gosto: o `read_dir` do Rust devolve
-#   `file_type()` SEM seguir link simbólico, e um `is_file()` do outro lado
-#   descartaria a pasta inteira — tela preta, sem mensagem. Não dá para medir
-#   isso sem apontar a configuração dela para uma pasta de teste e olhar a TV
-#   dela, o que esta sprint não faz. O link duro não abre essa pergunta: para
-#   todo teste do sistema de arquivos ele É um arquivo comum, e como aponta para
-#   o mesmo inode não custa disco nem duplica imagem. Exige o mesmo sistema de
-#   arquivos, e é por isso que as duas pastas nascem ao LADO de `ativos/`. (Há
-#   queda para simbólico se o `ln` duro falhar, para não ficar sem nada.)
+#   Então as pastas derivadas são feitas de LINK DURO (`ln`, sem `-s`). Como
+#   aponta para o mesmo inode, ele não custa disco nem duplica imagem — e exige
+#   o mesmo sistema de arquivos, que é por que as duas pastas nascem ao LADO de
+#   `ativos/`. (Há queda para simbólico se o `ln` duro falhar.)
+#
+#   A JUSTIFICATIVA QUE ESTAVA AQUI ERA UM MEDO NÃO MEDIDO, E FOI MEDIDA EM
+#   01/09/2026. O texto dizia: *"o `read_dir` do Rust devolve `file_type()` SEM
+#   seguir link simbólico, e um `is_file()` do outro lado descartaria a pasta
+#   inteira — tela preta, sem mensagem. Não dá para medir isso sem apontar a
+#   configuração dela para uma pasta de teste e olhar a TV dela, o que esta
+#   sprint não faz."*
+#
+#   Dá, e foi feito: uma pasta `teste-simbolico/` com três links simbólicos para
+#   imagens de `ativos/`, o `source:` apontado para lá, e o estado do próprio
+#   cosmic-bg lido depois:
+#       ("DP-1", Path(".../teste-simbolico/cat-landscapes-Cloudsnight.jpg"))
+#   Ou seja: **o cosmic-bg SEGUE link simbólico e desenha a imagem**. Não há tela
+#   preta. O link duro continua sendo a escolha certa — por inode e por disco,
+#   não por medo —, e a queda para simbólico deixou de ser um degrau para o
+#   desconhecido.
+#
+#   (O primeiro teste foi DESFEITO EM SEGUNDOS pelo `meow-fundo.path`, que viu a
+#   configuração mudar e a restaurou. Foi preciso parar o vigia para medir — e
+#   isso é, por si só, a melhor prova de que aquela proteção funciona.)
 #
 # A TROCA CUSTA UMA REESCRITA DE CONFIGURAÇÃO POR VIRADA, E SÓ
 #   Trocar `ativos-noite/` por `ativos-dia/` muda o texto do `source:`, e o
@@ -713,7 +727,60 @@ soltar_derivadas() {
 # AS DUAS DERIVADAS SÃO MONTADAS JUNTAS, e não só a da vez. Custam link duro,
 # isto é, zero disco — e assim a virada das 18:00 é a reescrita de UMA linha de
 # configuração, sem criação de pasta no minuto em que ela está olhando a tela.
+# A FIXAÇÃO ENTRA POR CIMA, DEPOIS DE O GRUPO ESTAR RESOLVIDO — e é por isso que
+# há um invólucro em vez de um `if` no meio do miolo.
+#
+#   1. O grupo precisa ser resolvido de qualquer jeito: as pastas `ativos-dia/`
+#      e `ativos-noite/` são montadas lá dentro, e o `proximo` precisa da lista
+#      do grupo para saber quem vem depois. Pular o miolo quando há fixação
+#      deixaria as derivadas envelhecendo enquanto ela navega.
+#   2. O miolo tem cinco `return 0` diferentes (acervo vazio, grupo pequeno,
+#      falha de montagem…). Enfiar a fixação em cada um seria cinco cópias da
+#      mesma regra — o defeito que este projeto mais persegue.
+#
+# QUEM SOLTA A FIXAÇÃO VENCIDA É AQUI, e só fora do seco: o `--conferir` precisa
+# poder dizer "soltaria" sem soltar.
 resolver_rotacao() {
+  _resolver_grupo || return $?
+  local fixo
+
+  # CURADORIA SOLTA A FIXAÇÃO — 01/09/2026, e este é o pedido dela em uma linha:
+  # "preciso que vc melhore o projeto nesse sentido", depois de mover oito
+  # papéis de parede para `banidos/` e não ver nada mudar na tela.
+  #
+  # O QUE ACONTECEU, MEDIDO: mover funcionou (saíram de `ativos/` e dos grupos
+  # em segundos), mas a tela estava com a imagem FIXADA pelo "avançar papel de
+  # parede" do menu da área de trabalho, que fixa por `WALLPAPER_FIXO_TTL`
+  # (30 min). Fixação é para segurar uma escolha dela — mas ela ACABOU de fazer
+  # outra escolha, e a mais recente vence. Sem isto, o recurso parece quebrado
+  # exatamente no momento em que ela está usando o outro recurso.
+  #
+  # Só quando algo foi de fato banido nesta rodada (`CUROU`), não a cada
+  # passagem: soltar a fixação em toda reafirmação do carrossel jogaria fora a
+  # escolha dela do nada, que é o defeito oposto e pior.
+  if [ "${CUROU:-0}" = "1" ] && [ -f "$FIXADO" ]; then
+    if meow_seco; then
+      meow_muda "soltaria a fixação — você acabou de banir papel de parede"
+    else
+      soltar_fixo
+      meow_info "curadoria nova: soltei a fixação para o carrossel responder na hora"
+    fi
+  fi
+
+  if fixo="$(fixo_valido)"; then
+    ROTACAO="$fixo"; GRUPO="fixado"
+  elif [ -f "$FIXADO" ]; then
+    if meow_seco; then
+      meow_muda "soltaria a fixação vencida — o carrossel volta"
+    else
+      soltar_fixo
+      meow_info "fixação vencida ($FIXO_TTL) — o carrossel voltou"
+    fi
+  fi
+  return 0
+}
+
+_resolver_grupo() {
   ROTACAO="$ATIVOS"; GRUPO=""; NOITE_N=0; DIA_N=0
 
   [ "$NOITE" = "sim" ] || return 0   # o `sim_ou_nao` já avisou de valor estranho
@@ -788,6 +855,113 @@ fonte_nossa() {
     "$ATIVOS"|"$ATIVOS"/*|"$NOITE_DIR"|"$NOITE_DIR"/*|"$DIA_DIR"|"$DIA_DIR"/*) return 0 ;;
   esac
   return 1
+}
+
+# ============================================================================
+# AVANÇAR E VOLTAR O PAPEL DE PAREDE (01/09/2026)
+# ============================================================================
+# O PEDIDO DELA: "adicionar no botão direito do mouse, no menu de contexto
+# quando eu o aperto na área de trabalho, a opção de avançar wallpaper e voltar
+# wallpaper".
+#
+# O CABEÇALHO DESTE ARQUIVO DIZIA "NÃO EXISTE GATILHO DE PRÓXIMO", E CONTINUA
+# CERTO SOBRE O `cosmic-bg`
+#   Ele não fala D-Bus: não tem nome no barramento, não tem conexão, e o binário
+#   não contém string de D-Bus nenhuma (medido em 04/08/2026). Os fds dele são
+#   dois sockets Wayland e um inotify. Não há como pedir "próximo" a ele.
+#
+# O QUE MUDOU FOI A DESCOBERTA DA ÂNCORA, e ela estava neste mesmo arquivo, 80
+# linhas abaixo, sendo usada para outra coisa:
+#   `~/.local/state/cosmic/com.system76.CosmicBackground/v1/wallpapers` guarda a
+#   imagem que está EM CADA SAÍDA, escrita pelo próprio cosmic-bg:
+#       [ ("DP-1", Path("…/ativos-dia/meow-lofi-lofi-j38rp5.jpg")), ]
+#   Com isso "próximo" deixa de ser adivinhação: sabe-se onde a rotação está, e
+#   dá para escolher quem vem depois na lista ordenada do grupo.
+#
+# COMO SE MOSTRA UMA IMAGEM ESCOLHIDA: `source: Path(<arquivo>)`
+#   O `config_desejada` já escreve `Path("$ROTACAO")`, e o RON aceita arquivo
+#   tanto quanto diretório. Então FIXAR é só trocar o valor de `$ROTACAO` — não
+#   há um segundo formato de configuração, nem um segundo caminho de escrita, e
+#   toda a fronteira de quatro casos do `cmd_aplicar` continua valendo.
+#
+# O PREÇO, DITO EM VOZ ALTA: COM UMA IMAGEM SÓ, NÃO HÁ ROTAÇÃO
+#   Enquanto a fixação vale, o carrossel está parado. Isso é inevitável — o
+#   `cosmic-bg` gira o que estiver na PASTA, e uma pasta não tem "posição
+#   atual" que se possa empurrar. Fingir o contrário seria pior.
+#
+# ENTÃO A FIXAÇÃO EXPIRA, e é isso que a torna aceitável
+#   `WALLPAPER_FIXO_TTL` (padrão 30m) é quanto tempo a escolha dela dura. Quem
+#   devolve o carrossel é o `meow-wallpaper.timer`, que já roda a cada 15 min
+#   chamando o `aplicar` — nenhuma unidade nova, nenhum relógio novo. Com `0` a
+#   fixação é para sempre, e aí quem a solta é `meow wallpaper carrossel`.
+#
+#   O TTL é o que separa este recurso de uma armadilha: sem ele, um clique
+#   distraído em "avançar" deixaria o carrossel morto por dias, e o sintoma
+#   ("o papel de parede parou de girar") não apontaria para o clique.
+FIXO_TTL="${WALLPAPER_FIXO_TTL:-30m}"
+FIXADO="$MEOW_ESTADO/wallpaper-fixado"
+# "Houve curadoria nesta rodada?" — escrita pelas duas reconciliações, lida pelo
+# `resolver_rotacao`. Variável e não arquivo: o efeito é desta passagem só.
+CUROU=0
+
+# `<caminho><TAB><epoch>` — o caminho para saber o que mostrar, o carimbo para
+# saber quando soltar. Duas coisas num arquivo só porque elas nascem e morrem
+# juntas: um carimbo sem caminho não diz nada, e um caminho sem carimbo nunca
+# expira.
+gravar_fixo() { printf '%s\t%s\n' "$1" "$(date +%s)" > "$FIXADO" 2>/dev/null; }
+soltar_fixo() { rm -f "$FIXADO" 2>/dev/null; return 0; }
+
+# Imprime o caminho fixado se ele ainda vale; falha (1) se não há fixação, se o
+# arquivo sumiu do acervo, ou se o prazo passou. NUNCA apaga nada: quem apaga é
+# `resolver_rotacao`, para que o `--conferir` (que roda em seco) possa dizer
+# "soltaria a fixação" sem soltá-la.
+fixo_valido() {
+  local linha caminho quando ttl agora
+  [ -f "$FIXADO" ] || return 1
+  linha="$(cat "$FIXADO" 2>/dev/null)" || return 1
+  caminho="${linha%%	*}"; quando="${linha##*	}"
+  [ -n "$caminho" ] && [ -f "$caminho" ] || return 1
+  case "$quando" in ''|*[!0-9]*) return 1 ;; esac
+  ttl="$(segundos_de "$FIXO_TTL")"
+  # `0` (ou qualquer coisa que vire 0) = para sempre. É o mesmo idioma de
+  # `LEITURA_RAMPA_MIN=0` e do `rotation_frequency` do COSMIC: zero desliga o
+  # relógio, não zera o prazo.
+  if [ "$ttl" -gt 0 ]; then
+    agora="$(date +%s)"
+    [ "$((agora - quando))" -lt "$ttl" ] || return 1
+  fi
+  printf '%s' "$caminho"
+}
+
+# A imagem que o cosmic-bg está mostrando AGORA, lida do estado dele. Só devolve
+# caminho que seja NOSSO — uma entrada apontando para `/usr/share/backgrounds`
+# (a saída de fábrica, ou um monitor que a fronteira ainda não consertou) não
+# serve de âncora para "próximo".
+#
+# LÊ TODAS AS SAÍDAS E FICA COM A PRIMEIRA NOSSA. Com dois monitores mostrando
+# imagens diferentes, "próximo" passa a ser relativo ao primeiro — e não há
+# resposta melhor: o `source` é um só por saída, mas o comando é um só.
+imagem_atual() {
+  local estado="$HOME/.local/state/cosmic/com.system76.CosmicBackground/v1/wallpapers"
+  local p
+  [ -f "$estado" ] || return 1
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    fonte_nossa "$p" && [ -f "$p" ] && { printf '%s' "$p"; return 0; }
+  done < <(grep -oP 'Path\("\K[^"]+' "$estado" 2>/dev/null)
+  return 1
+}
+
+# As imagens do grupo da vez, em ordem ESTÁVEL (`LC_ALL=C sort`), uma por linha.
+#
+# A ORDEM É ALFABÉTICA MESMO COM `WALLPAPER_ORDEM="aleatoria"`, e isso é de
+# propósito: "aleatória" descreve como o `cosmic-bg` SORTEIA a próxima; aqui é
+# preciso uma sequência que seja a MESMA nas duas direções, senão "avançar" e
+# "voltar" não se desfariam. Uma lista sorteada faria "voltar" cair em qualquer
+# lugar — e o botão prometeria desfazer sem desfazer.
+lista_do_grupo() {
+  local dir="$1"
+  find "$dir" -maxdepth 1 \( -type f -o -type l \) 2>/dev/null | LC_ALL=C sort
 }
 
 # --- o estado com caminho fantasma, que suja o journal a cada 5 minutos -------
@@ -884,8 +1058,206 @@ FIM
   esac
 }
 
+# ============================================================================
+# APAGAR À MÃO PASSA A SER BANIR (01/09/2026)
+# ============================================================================
+# O QUE ELA DESCOBRIU, E TINHA RAZÃO
+#   Ela apagou papéis de parede feios e nada aconteceu — porque apagou da pasta
+#   ERRADA (`assets/papeis-de-parede/`, que era 145 MB de cópia inerte que
+#   nenhum script lia; as imagens saíram do repositório no mesmo dia). Mas ao
+#   perguntar "essa pasta então não é usada?" ela expôs um buraco de verdade no
+#   lado CERTO:
+#
+#     `meow wallpaper banir X`  -> move para banidos/ E grava no BANIDOS.txt.
+#                                  PERMANENTE.
+#     apagar X à mão de ativos/ -> sai da rotação agora, e o `semear` traz de
+#                                  volta na próxima vez. TEMPORÁRIO, sem avisar.
+#
+#   Duas ações que parecem a mesma coisa e não são. E o README promete o
+#   contrário desde sempre: *"a pasta é a configuração: soltou o arquivo,
+#   entrou; apagou, saiu"* — verdade para `assets/gatos/`, mentira aqui.
+#
+# O QUE ESTA FUNÇÃO FAZ
+#   Guarda a lista de nomes que estavam em `ativos/` na passagem anterior. Na
+#   seguinte, o que sumiu entra no `BANIDOS.txt` sozinho. A decisão dela virou
+#   uma linha: *"sempre que apagar o script se auto corrige"*.
+#
+# AS QUATRO GUARDAS — sem elas isto apaga o acervo dela algum dia
+#   1. PRIMEIRA PASSAGEM NÃO BANE NADA. Sem lista anterior não há "sumiu": só
+#      se grava o retrato e volta. Senão, a primeira execução numa máquina nova
+#      baniria o acervo inteiro.
+#   2. PASTA VAZIA NÃO BANE NADA. `ativos/` vazio é disco desmontado, `mv`
+#      interrompido, home ainda não montado no boot — nunca "ela apagou 54
+#      imagens". Avisa e NÃO atualiza o retrato, para o próximo ciclo reconhecer
+#      o estado bom.
+#   3. SUMIÇO EM MASSA NÃO BANE NADA. Mais da metade fora de uma vez é evento,
+#      não curadoria. Mesmo tratamento: avisa e segura o retrato.
+#   4. QUEM JÁ ESTÁ BANIDO NÃO É BANIDO DE NOVO. O `cmd_banir` também faz o
+#      arquivo sumir de `ativos/`; sem este teste ele apareceria aqui como
+#      "sumiço" e a lista ganharia linha duplicada a cada banimento.
+#
+# EM SECO NÃO ESCREVE NADA, e é por isso que o retrato só é gravado no fim: um
+# `--conferir` que atualizasse a lista faria o sumiço ser esquecido sem nunca
+# ter sido banido.
+VISTAS="$MEOW_ESTADO/wallpaper-vistas.txt"
+
+reconciliar_sumicos() {
+  local -a agora=() sumidas=()
+  local nome n_antes n_agora
+
+  mapfile -t agora < <(find "$ATIVOS" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | LC_ALL=C sort)
+  n_agora="${#agora[@]}"
+
+  if [ ! -f "$VISTAS" ]; then
+    meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null
+    return 0                                   # guarda 1
+  fi
+  n_antes="$(grep -c . "$VISTAS" 2>/dev/null || echo 0)"
+
+  if [ "$n_agora" = "0" ] && [ "$n_antes" -gt 0 ]; then
+    meow_aviso "ativos/ está VAZIO e tinha $n_antes imagem(ns) — não vou banir nada"
+    meow_info  "  isso é disco desmontado ou home ainda não montado, não curadoria"
+    return 0                                   # guarda 2
+  fi
+
+  mapfile -t sumidas < <(comm -23 <(LC_ALL=C sort -u "$VISTAS") <(printf '%s\n' ${agora[@]+"${agora[@]}"}))
+  [ "${#sumidas[@]}" = "0" ] && { meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null; return 0; }
+
+  if [ "$n_antes" -gt 4 ] && [ "${#sumidas[@]}" -gt $(( n_antes / 2 )) ]; then
+    meow_aviso "${#sumidas[@]} de $n_antes imagens sumiram de ativos/ de uma vez — não vou banir nada"
+    meow_info  "  se foi você mesma, bana uma a uma: meow wallpaper banir <nome>"
+    return 0                                   # guarda 3
+  fi
+
+  # GUARDA 4 — SÓ O TEXTO CONTA AQUI, E ISSO É UM CONSERTO DE 01/09/2026
+  #   Ela moveu 8 imagens de `ativos/` para `banidos/` pelo gerenciador de
+  #   arquivos, às 20:58. O vigia acordou, os grupos de dia e de noite foram
+  #   refeitos, e o carrossel parou de mostrá-las — tudo certo na tela. Mas o
+  #   `BANIDOS.txt` continuou o de 17:57: NENHUM dos 8 nomes entrou.
+  #
+  #   A causa era esta linha chamando `esta_banida`, que responde 0 tanto para
+  #   "está no BANIDOS.txt" quanto para "existe um arquivo com esse nome em
+  #   `banidos/`". Movendo o arquivo, a segunda metade passa a valer ANTES de a
+  #   primeira ser escrita: cada nome era pulado como se já estivesse
+  #   registrado, e o retrato era atualizado por cima.
+  #
+  #   POR QUE ISSO IMPORTA, JÁ QUE NA TELA FUNCIONOU: as imagens não vão para o
+  #   git — só as receitas vão. Numa máquina reformatada, `banidos/` nasce
+  #   VAZIA, e aí o único que sabe o que ela recusou é o `BANIDOS.txt`. Sem o
+  #   nome lá, o `semear` repõe a imagem que ela tirou. É o mesmo buraco que o
+  #   auto-banir veio tapar em 01/09, na variante "mover" em vez de "apagar" —
+  #   e ele passou despercebido porque as duas ações parecem a mesma.
+  #
+  #   Então: a guarda contra escrever duas vezes é o TEXTO, e só ele.
+  local -a novas=()
+  for nome in "${sumidas[@]}"; do
+    [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
+    novas+=("$nome")
+  done
+  [ "${#novas[@]}" = "0" ] && { meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null; return 0; }
+
+  if meow_seco; then
+    meow_muda "baniria ${#novas[@]} imagem(ns) apagada(s) à mão: ${novas[*]}"
+    return 1
+  fi
+
+  mkdir -p "$(dirname "$BANIDOS_TXT")" 2>/dev/null
+  [ -f "$BANIDOS_TXT" ] || printf '%s\n' \
+    "# BANIDOS.txt — os papéis de parede que ela recusou, por nome de arquivo." \
+    "# O 'semear' não repõe nada que esteja aqui." > "$BANIDOS_TXT"
+  for nome in "${novas[@]}"; do
+    grep -qxF -- "$nome" "$BANIDOS_TXT" || printf '%s\n' "$nome" >> "$BANIDOS_TXT"
+  done
+  meow_ok "${#novas[@]} imagem(ns) apagada(s) à mão entraram no BANIDOS.txt — o semear não as repõe"
+  meow_info "  ${novas[*]}"
+  meow_registrar "wallpaper.sh auto-banir: ${novas[*]}"
+  printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null
+  CUROU=1
+  return 1
+}
+
+# ============================================================================
+# ARRASTAR PARA `banidos/` É BANIR — 01/09/2026
+# ============================================================================
+# Pergunta dela, com a coisa já feita: "remover os papeis de parede de ativos
+# automaticamente corrige os papeis de parede disponivel? pq movi pra pasta dos
+# que eu não quero mas não vi mudando isso."
+#
+# Ela tinha movido 8 imagens de `ativos/` para `banidos/` pelo gerenciador de
+# arquivos. Medido no mesmo minuto: na TELA funcionou (o vigia acordou, os
+# grupos de dia e noite foram refeitos, o carrossel parou de sorteá-las), mas o
+# `BANIDOS.txt` continuou o de três horas antes — nenhum dos 8 nomes registrado.
+# A causa está comentada na guarda 4 do `reconciliar_sumicos`.
+#
+# ISTO AQUI É A OUTRA METADE, e vale para o passado também: qualquer arquivo que
+# esteja em `banidos/` e não esteja no `BANIDOS.txt` é uma recusa dela que o
+# repositório não sabe repetir. Na primeira passagem depois deste conserto eram
+# 121 — anos de curadoria que uma máquina reformatada teria desfeito, porque as
+# imagens não vão para o git e `banidos/` nasceria vazia lá.
+#
+# É a mesma regra do resto do projeto: a PASTA é a interface, e o texto é a
+# receita. Ela arrasta; nós registramos.
+reconciliar_banidos_pasta() {
+  [ -d "$BASE/banidos" ] || return 0
+  local -a novas=()
+  local nome
+  while IFS= read -r nome; do
+    [ -n "$nome" ] || continue
+    [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
+    # NOME COM EMOJI NAO ENTRA NO TEXTO — e isto e uma regra do repositorio, nao
+    # capricho: o ADR-011 dela proibe emoji nos arquivos versionados, e o
+    # `universal-sanitizer.py` do pre-commit REMOVE o caractere em vez de
+    # recusar o commit. Medido em 01/09/2026, ao commitar: a linha
+    # "Cyberpunk Neon Cat Wallpaper _ Synthwave Vibe <gato><coracao>.jpeg" virou
+    # a mesma frase SEM os dois emojis — e um nome sem os emojis nao casa com
+    # arquivo nenhum, entao a linha deixava de banir o que dizia banir, calada.
+    #
+    # Registrar aqui criaria ping-pong: nos escrevemos, o hook apaga o emoji, e
+    # na rodada seguinte o nome "falta" de novo. Fica de fora, e a protecao
+    # daquela imagem continua sendo a PASTA `banidos/` — que e onde ela ja
+    # estava. O aviso sai uma vez por rodada, para ninguem procurar o defeito.
+    if printf '%s' "$nome" | grep -qP '[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{FE0F}]' 2>/dev/null; then
+      meow_debug "banidos: '$nome' tem emoji no nome e nao entra no BANIDOS.txt (ADR-011)"
+      continue
+    fi
+    novas+=("$nome")
+  done < <(find "$BASE/banidos" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | LC_ALL=C sort)
+
+  [ "${#novas[@]}" = "0" ] && return 0
+
+  if meow_seco; then
+    meow_muda "registraria ${#novas[@]} imagem(ns) que estão em banidos/ e não no BANIDOS.txt"
+    return 1
+  fi
+
+  mkdir -p "$(dirname "$BANIDOS_TXT")" 2>/dev/null
+  [ -f "$BANIDOS_TXT" ] || printf '%s\n' \
+    "# BANIDOS.txt — os papéis de parede que ela recusou, por nome de arquivo." \
+    "# O 'semear' não repõe nada que esteja aqui." > "$BANIDOS_TXT"
+  for nome in "${novas[@]}"; do
+    printf '%s\n' "$nome" >> "$BANIDOS_TXT"
+  done
+  meow_ok "${#novas[@]} imagem(ns) de banidos/ entraram no BANIDOS.txt — a recusa agora sobrevive a uma reinstalação"
+  meow_registrar "wallpaper.sh registrar-banidos: ${#novas[@]}"
+  CUROU=1
+  return 1
+}
+
 cmd_aplicar() {
   criar_pastas || { meow_erro "não consegui criar as pastas"; return "$MEOW_ERRO"; }
+  # ANTES do `semear_das_dela`, e a ordem não é detalhe: aquele copia imagens
+  # das pastas dela para `ativos/`. Rodar depois faria uma imagem recém-copiada
+  # contar como "nova" no retrato e — pior — uma que ela apagou de `ativos/` mas
+  # que ainda existe na pasta de origem voltaria ANTES de ser reconhecida como
+  # sumida, e o banimento nunca aconteceria.
+  reconciliar_sumicos
+  # DEPOIS do `reconciliar_sumicos` e ANTES do `semear_das_dela`: o primeiro é
+  # quem transforma "sumiu de ativos/" em linha de texto; este varre a pasta
+  # inteira e pega o que chegou lá por qualquer outro caminho (o gerenciador de
+  # arquivos dela, um `mv` no terminal, uma versão anterior deste script). E
+  # tem de vir antes de semear, senão a imagem volta para `ativos/` na mesma
+  # rodada em que seria registrada.
+  reconciliar_banidos_pasta
   semear_das_dela
 
   local n; n="$(quantas)"
@@ -1307,6 +1679,81 @@ _adicionar_uma() {
   return 0
 }
 
+# O INVERSO DO `banir`, QUE NÃO EXISTIA — 01/09/2026
+#
+# POR QUE ELE FALTAVA, E POR QUE ISSO PESAVA
+#   `cmd_banir` faz DUAS coisas: move a imagem para `banidos/` E grava o nome no
+#   `BANIDOS.txt`, que é o que impede o `semear` de repô-la. Desfazer isso à mão
+#   exigia saber das duas — e `adicionar banidos/<img>` sozinho não desfaz: a
+#   imagem volta para `ativos/` e o nome CONTINUA na lista de recusadas. O
+#   resultado é um estado que se contradiz: a foto girando no carrossel e o
+#   arquivo do repositório dizendo que ela foi recusada. No próximo `semear`
+#   numa máquina limpa, a recusa venceria de novo, sem ninguém entender por quê.
+#
+#   Ficou de fora até hoje porque banir era o gesto natural (apagar de `ativos/`,
+#   que o vigia percebe em ~4 s) e desbanir não tinha gesto nenhum: era mexer
+#   num arquivo de texto. Com a galeria de miniaturas da página, desbanir passou
+#   a ser um clique — e um clique precisa de um comando que faça a coisa
+#   INTEIRA, não metade dela.
+#
+# SÃO 255 IMAGENS EM `banidos/` NESTA MÁQUINA, e nenhuma foi apagada: o banir
+# move, nunca remove. É por isso que desbanir é possível de verdade e não uma
+# promessa — o arquivo está lá.
+cmd_desbanir() {
+  local nome; nome="$(basename "${1:-}")"
+  [ -n "$nome" ] || { meow_erro "uso: wallpaper.sh desbanir <nome-do-arquivo>"; return "$MEOW_ERRO"; }
+  local origem="$BASE/banidos/$nome"
+  if [ ! -f "$origem" ]; then
+    meow_erro "não achei $nome em banidos/"
+    meow_info "  o nome é o do ARQUIVO, sem caminho — veja: ls \"$BASE/banidos\""
+    return "$MEOW_ERRO"
+  fi
+
+  local na_lista=0
+  [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && na_lista=1
+  local em_ativos=0
+  [ -e "$ATIVOS/$nome" ] && em_ativos=1
+
+  if [ "$em_ativos" = "1" ] && [ "$na_lista" = "0" ]; then
+    meow_ok "$nome já está em ativos/ e fora da lista — nada a fazer"
+    return "$MEOW_OK"
+  fi
+
+  if meow_seco; then
+    [ "$em_ativos" = "0" ] && meow_muda "devolveria $nome para ativos/"
+    [ "$na_lista" = "1" ]  && meow_muda "tiraria $nome de $(basename "$BANIDOS_TXT")"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  criar_pastas
+  # `cp` e não `mv`: a cópia em `banidos/` fica como estava. Banir de novo é um
+  # comando, e é bom que ele não dependa de o arquivo ter sobrevivido a esta ida
+  # e volta — a pasta `banidos/` é o arquivo morto, e arquivo morto não se
+  # esvazia por causa de uma mudança de ideia.
+  if [ "$em_ativos" = "0" ]; then
+    cp -n "$origem" "$ATIVOS/" 2>/dev/null || { meow_erro "não consegui copiar $nome"; return "$MEOW_ERRO"; }
+  fi
+
+  # A SEGUNDA METADE, que é a que faltava em qualquer contorno manual.
+  # `grep -vxF` compara a LINHA INTEIRA e literalmente: nome de arquivo é texto
+  # cheio de `.`, `+` e `[`, e num grep de expressão regular `cat-lofi.jpg`
+  # casaria com `catXlofiXjpg`. É o mesmo cuidado do `meow_manifesto_registrar`.
+  if [ "$na_lista" = "1" ]; then
+    local tmp; tmp="$(mktemp -p "$(dirname "$BANIDOS_TXT")" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
+    grep -vxF -- "$nome" "$BANIDOS_TXT" > "$tmp" 2>/dev/null
+    mv -f "$tmp" "$BANIDOS_TXT" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+  fi
+
+  meow_ok "devolvida: $nome — está em ativos/ e saiu da lista de recusadas"
+  # A MESMA ORDEM DO `banir` e do `adicionar`, e pelo mesmo motivo medido: o
+  # `aplicar` põe a imagem na pasta derivada do grupo certo (a noite está
+  # ligada), e só depois o `forcar_releitura` faz o cosmic-bg reler — sozinho o
+  # `aplicar` escreve conteúdo idêntico e é ignorado.
+  cmd_aplicar >/dev/null
+  forcar_releitura
+  return "$MEOW_DIVERGENTE"
+}
+
 cmd_adicionar() {
   local alvo="$1"
   criar_pastas
@@ -1365,11 +1812,11 @@ SEMENTE_QUANTAS="${WALLPAPER_SEMENTE_QUANTAS:-0}"
 # resolve a PRÓXIMA: numa instalação nova, `banidos/` nasce vazio, e o `semear`
 # baixaria de volta as 231 imagens que ela tirou em 24/08/2026, uma por uma.
 #
-# `wallpapers/BANIDOS.txt` é a lista de nomes recusados — texto, pequeno, vai
+# `assets/papeis-de-parede/BANIDOS.txt` é a lista de nomes recusados — texto, pequeno, vai
 # para o git (a regra do `.gitignore` barra imagem, não lista). É o par do
 # `FONTES.tsv` abaixo: um diz o que ela quer, o outro diz o que ela não quer, e
 # juntos os dois reproduzem a escolha dela em qualquer máquina.
-BANIDOS_TXT="${WALLPAPER_BANIDOS:-$RAIZ/wallpapers/BANIDOS.txt}"
+BANIDOS_TXT="${WALLPAPER_BANIDOS:-$RAIZ/assets/papeis-de-parede/BANIDOS.txt}"
 
 esta_banida() {
   local nome="$1"
@@ -1384,12 +1831,12 @@ esta_banida() {
 # e o que buscamos na internet naquele dia, imagem por imagem.
 #
 # Mesma regra do resto do repositório: a imagem não vai para o git, a RECEITA
-# vai. `wallpapers/FONTES.tsv` é a receita — uma linha por imagem, com a URL de
+# vai. `assets/papeis-de-parede/FONTES.tsv` é a receita — uma linha por imagem, com a URL de
 # onde ela veio. Sem este arquivo, uma máquina reformatada voltaria só com o que
 # sobrou da coleção de terceiro e NENHUMA das escolhas dela; sem o `BANIDOS.txt`
 # do bloco acima, voltaria com as 242 do upstream inteiras. Os dois juntos são a
 # curadoria — um diz o que ela quer, o outro o que ela não quer.
-FONTES_TSV="${WALLPAPER_FONTES:-$RAIZ/wallpapers/FONTES.tsv}"
+FONTES_TSV="${WALLPAPER_FONTES:-$RAIZ/assets/papeis-de-parede/FONTES.tsv}"
 CURADORIA_N=0
 
 semear_da_curadoria() {
@@ -1531,9 +1978,9 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
     # passado, é a mesma mentira que este arquivo já documenta duas linhas abaixo
     # — e que a auditoria de 24/08/2026 pegou nesta função, recém-escrita.
     if meow_seco; then
-      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria dela (wallpapers/FONTES.tsv)"
+      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria dela (assets/papeis-de-parede/FONTES.tsv)"
     else
-      meow_ok "$CURADORIA_N imagem(ns) da curadoria dela reproduzidas (wallpapers/FONTES.tsv)"
+      meow_ok "$CURADORIA_N imagem(ns) da curadoria dela reproduzidas (assets/papeis-de-parede/FONTES.tsv)"
     fi
     n=$((n + CURADORIA_N))
   fi
@@ -1555,8 +2002,97 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
   return "$MEOW_DIVERGENTE"
 }
 
+# --- avançar / voltar --------------------------------------------------------
+# `$1` = +1 ou -1. Devolve 1 (mudou) porque é o código de "estava diferente e eu
+# escrevi" deste projeto — e é o que o `bin/meow` já sabe interpretar.
+#
+# POR QUE O GRUPO, E NÃO O ACERVO INTEIRO
+#   Avançar tem de andar pela mesma lista que o carrossel gira. Se a noite está
+#   ligada, o carrossel gira `ativos-noite/`; oferecer, no "próximo", uma imagem
+#   clara que o grupo da noite exclui seria o botão desfazendo a curadoria de
+#   dia/noite a cada clique.
+#
+# QUANDO NÃO SE SABE ONDE ESTAMOS, COMEÇA DO COMEÇO. `imagem_atual` falha se o
+# estado do cosmic-bg ainda não tem entrada nossa (sessão recém-aberta, monitor
+# novo). Aí `avançar` mostra a primeira e `voltar` mostra a última — que é o que
+# um carrossel faz quando se entra nele pela borda.
+cmd_passo() {
+  local delta="$1" dir lista n atual i alvo
+  criar_pastas || { meow_erro "não consegui criar as pastas"; return "$MEOW_ERRO"; }
+  resolver_rotacao
+
+  # Com fixação valendo, `$ROTACAO` é um ARQUIVO; a lista tem de vir da pasta do
+  # grupo, não dele. `_resolver_grupo` já deixou `$GRUPO` em "dia"/"noite" antes
+  # de o invólucro sobrescrever — mas ele o troca por "fixado", então a pasta se
+  # redescobre aqui pelo mesmo teste de sempre.
+  if   [ -d "$NOITE_DIR" ] && [ "$GRUPO" != "dia" ] && e_noite; then dir="$NOITE_DIR"
+  elif [ -d "$DIA_DIR" ]   && ! e_noite;                        then dir="$DIA_DIR"
+  else dir="$ATIVOS"; fi
+  [ -d "$dir" ] || dir="$ATIVOS"
+
+  mapfile -t lista < <(lista_do_grupo "$dir")
+  n="${#lista[@]}"
+  if [ "$n" -lt 2 ]; then
+    meow_aviso "só $n imagem(ns) em $(basename "$dir") — não há para onde avançar"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  # A âncora é o BASENAME, não o caminho: o estado do cosmic-bg pode apontar
+  # para `ativos-dia/x.jpg` enquanto a lista da vez é de `ativos-noite/` (a
+  # virada aconteceu entre uma coisa e outra). Comparar caminho inteiro perderia
+  # a posição e voltaria sempre para a primeira imagem na hora da virada.
+  atual="$(imagem_atual || true)"
+  i=-1
+  if [ -n "$atual" ]; then
+    local j
+    for j in "${!lista[@]}"; do
+      [ "$(basename "${lista[$j]}")" = "$(basename "$atual")" ] && { i="$j"; break; }
+    done
+  fi
+  if [ "$i" -lt 0 ]; then
+    [ "$delta" -gt 0 ] && i=-1 || i=0
+  fi
+
+  # `% n` em bash pode devolver negativo; o `+ n` antes do segundo `%` é o que
+  # faz `voltar` na primeira imagem cair na última em vez de virar índice -1.
+  alvo=$(( ( (i + delta) % n + n ) % n ))
+
+  if meow_seco; then
+    meow_muda "fixaria $(basename "${lista[$alvo]}") (${alvo_1:-$((alvo + 1))} de $n, grupo $(basename "$dir"))"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  gravar_fixo "${lista[$alvo]}"
+  # `cmd_aplicar` é quem escreve a configuração, e ele relê a fixação por
+  # `resolver_rotacao`. Nada aqui escreve em `$BG` — um segundo escritor daquela
+  # configuração é o defeito que o `cmd_aplicar` inteiro existe para evitar.
+  cmd_aplicar >/dev/null || true
+  meow_ok "papel de parede: $(basename "${lista[$alvo]}")  [$((alvo + 1))/$n · grupo $(basename "$dir")]"
+  if [ "$(segundos_de "$FIXO_TTL")" -gt 0 ]; then
+    meow_info "  o carrossel volta em $FIXO_TTL (ou agora, com 'meow wallpaper carrossel')"
+  else
+    meow_info "  fixado até você soltar: 'meow wallpaper carrossel'"
+  fi
+  return "$MEOW_DIVERGENTE"
+}
+
+cmd_carrossel() {
+  if [ ! -f "$FIXADO" ]; then
+    meow_ok "o carrossel já está girando — nada fixado"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then meow_muda "soltaria a fixação e devolveria o carrossel"; return "$MEOW_DIVERGENTE"; fi
+  soltar_fixo
+  cmd_aplicar >/dev/null || true
+  meow_ok "carrossel de volta"
+  return "$MEOW_DIVERGENTE"
+}
+
 case "${1:-aplicar}" in
   aplicar)   cmd_aplicar ;;
+  proximo|próximo|avançar|avancar)  cmd_passo 1 ;;
+  anterior|voltar)                  cmd_passo -1 ;;
+  carrossel|soltar)                 cmd_carrossel ;;
   # `--conferir` é a letra que TODO script deste projeto usa para auditar, e
   # este era o único que não a tinha: `docs/SPRINTS.md` mandava conferir o
   # carrossel com `./scripts/wallpaper.sh --conferir`, e o que acontecia era o
@@ -1568,7 +2104,8 @@ case "${1:-aplicar}" in
   estado)    cmd_estado ;;
   semear)    cmd_semear ;;
   banir)     shift; cmd_banir "${1:-}" ;;
+  desbanir)  shift; cmd_desbanir "${1:-}" ;;
   adicionar) shift; cmd_adicionar "${1:-}" ;;
   permitir)  shift; cmd_permitir "${1:-}" ;;
-  *) echo "uso: wallpaper.sh [aplicar|--conferir|estado|semear|adicionar <alvo>|banir <img>|permitir <caminho>]" >&2; exit 2 ;;
+  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|carrossel|--conferir|estado|semear|adicionar <alvo>|banir <img>|desbanir <nome>|permitir <caminho>]" >&2; exit 2 ;;
 esac

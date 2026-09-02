@@ -51,7 +51,7 @@ pasta_de() {
 
 rodar_modulo() {
   local pasta="$1" acao="$2"
-  local mod="$RAIZ/app-themes/$pasta/manifesto.sh"
+  local mod="$RAIZ/assets/temas-de-apps/$pasta/manifesto.sh"
   [ -f "$mod" ] || return 4          # 4 = não temos módulo para esse app ainda
   (
     # shellcheck disable=SC1090
@@ -105,7 +105,7 @@ if [ "$ACAO" = "tabela" ]; then
     slug="$(printf '%s' "$slug" | tr -d ' ')"
     [ -n "$slug" ] || continue
     pasta="$(pasta_de "$slug")"
-    [ -f "$RAIZ/app-themes/$pasta/manifesto.sh" ] || continue
+    [ -f "$RAIZ/assets/temas-de-apps/$pasta/manifesto.sh" ] || continue
     case " $vistos " in
       *" $pasta "*) SLUGS_DE[$pasta]="${SLUGS_DE[$pasta]}, $slug"; continue ;;
     esac

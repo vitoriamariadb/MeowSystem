@@ -20,7 +20,8 @@
 #   pior caso ele ACUSA a divergência e escreve o comando na tela.
 #
 # O CARIMBO É O QUE FAZ A SEGUNDA PASSAGEM CUSTAR ZERO
-#   Cinco campos. Batendo os cinco, este script devolve 0 sem invocar o cargo
+#   Seis campos (o sexto, `arte`, entrou em 31/08 — ver o `_sha_arte`). Batendo
+#   os seis, este script devolve 0 sem invocar o cargo
 #   uma única vez. MEDIDO no irmão: até um rebuild que não muda nada custa ~20s,
 #   e o `meow-doctor.service` tem `TimeoutStartSec=5min`.
 #
@@ -165,10 +166,35 @@ X-CosmicShrinkable=true
 EOF
 }
 
+# O SEXTO CAMPO, E POR QUE ELE PRECISOU EXISTIR — 31/08/2026
+#   Os quatro SVGs do modo de leitura entraram DENTRO do binário, por
+#   `include_bytes!` (ver o bloco dos ícones em src/main.rs). Isso os torna parte
+#   da receita sem que nenhum dos cinco campos anteriores saiba: editar o traço
+#   de `r2.svg` não muda o `main.rs`, não muda o Cargo.toml e não muda o lock — o
+#   carimbo bateria, este script devolveria 0, e o applet continuaria desenhando
+#   a arte VELHA. Falha silenciosa completa, do mesmo feitio das que o
+#   `patches/LEIA-ME.txt` cataloga.
+#
+#   Um campo só para os quatro: o sha dos shas, na ordem do `ARTE` abaixo, que é
+#   a mesma ordem em que o `main.rs` os embute. Qualquer um deles muda e o campo
+#   muda.
+ARTE=(
+  "$RAIZ/assets/icones/autorais/leitura/r2.svg"
+  "$RAIZ/assets/icones/autorais/leitura/s3.svg"
+  "$RAIZ/assets/icones/autorais/leitura/r1.svg"
+  "$RAIZ/assets/icones/autorais/leitura/r6.svg"
+)
+
+_sha_arte() {
+  local f saida=""
+  for f in "${ARTE[@]}"; do saida="$saida$(_sha "$f")"; done
+  printf '%s' "$saida" | sha256sum | cut -d' ' -f1
+}
+
 _carimbo_vivo() {
-  printf 'fonte %s\nreceita %s\ntrava %s\nbinario %s\nrustc %s\n' \
+  printf 'fonte %s\nreceita %s\ntrava %s\narte %s\nbinario %s\nrustc %s\n' \
     "$(_sha "$FONTE")" "$(_sha "$MANIFESTO")" "$(_sha "$TRAVA")" \
-    "$(_sha "$BINARIO")" "$(_rustc_versao)"
+    "$(_sha_arte)" "$(_sha "$BINARIO")" "$(_rustc_versao)"
 }
 
 # Compara campo a campo. Campo VIVO vazio é pulado (é o caso do rustc no seco);
@@ -187,7 +213,10 @@ _carimbo_bate() {
 
 _pronto() {
   local f
-  for f in "$FONTE" "$MANIFESTO" "$TRAVA"; do
+  # Os quatro SVGs entram AQUI e não só no carimbo: eles são `include_bytes!`, e
+  # um deles faltando não é "recompila mais tarde", é o `cargo` morrendo com um
+  # erro sobre um caminho — melhor dizer "repositório incompleto" antes.
+  for f in "$FONTE" "$MANIFESTO" "$TRAVA" "${ARTE[@]}"; do
     if [ ! -f "$f" ]; then
       meow_erro "falta $f — repositório incompleto"
       return "$MEOW_ERRO"
@@ -222,7 +251,7 @@ _conferir() {
   fi
 
   if ! _carimbo_bate; then
-    meow_muda "o applet de leitura instalado não é o desta receita (fonte, Cargo.toml, Cargo.lock ou rustc mudaram)"
+    meow_muda "o applet de leitura instalado não é o desta receita (fonte, Cargo.toml, Cargo.lock, os SVGs ou o rustc mudaram)"
     return "$MEOW_DIVERGENTE"
   fi
 

@@ -119,6 +119,92 @@ FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}"
 # tratado como caminho de arquivo, para ela poder apontar um SVG dela mesma.
 FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}"
 
+# --- 01/09/2026: O GATO DO TERMINAL PASSA A SEGUIR O RELÓGIO ------------------
+# Ela pediu o mesmo que o dock: Coquinha de dia, Mimir de noite. Aqui é MUITO
+# mais barato que lá — o `fastfetch` lê o arquivo do logo a cada execução, não
+# guarda nada, e não há painel para reciclar. Trocar o conteúdo do arquivo é o
+# recurso inteiro.
+#
+#   espelho (padrão) o terminal mostra o gato que o dock NÃO está mostrando.
+#   hora    o terminal segue o relógio igual ao dock — os dois iguais.
+#   fixo    `FASTFETCH_LOGO_GATO` vence sempre — o comportamento até 31/08.
+#
+# --- O MODO `espelho`, E POR QUE ELE É UMA REGRA E NÃO QUATRO VALORES --------
+# O PEDIDO DELA, 01/09/2026: *"mimir de dia, e durante o dia no terminal fica a
+# coquinha. coquinha de noite e durante a noite o mimir fica no terminal. pra
+# sempre termos os 2?"*
+#
+# Dava para atender fixando quatro chaves — `LOGO_DIA=mimir`,
+# `LOGO_NOITE=coquinha`, `FASTFETCH_LOGO_DIA=coquinha`,
+# `FASTFETCH_LOGO_NOITE=mimir`. Funcionaria HOJE e envelheceria no primeiro dia
+# em que ela trocasse o gato do dock: as quatro chaves são dois pares que
+# precisam ser mantidos opostos à mão, e nada avisaria se eles deixassem de ser.
+# Um dia os dois mostrariam o mesmo gato e o "sempre termos os 2" viraria
+# mentira em silêncio.
+#
+# A REGRA É "O OUTRO", e ela se mantém sozinha. Trocar `LOGO_DIA` no meow.conf
+# passa a bastar: o terminal segue, invertido, sem tocar em mais nada.
+#
+# DE ONDE SAI "O QUE O DOCK ESTÁ MOSTRANDO": do ARQUIVO no tema de ícones, não
+# de um cálculo paralelo. Recomputar a fase aqui seria uma SEGUNDA opinião sobre
+# a mesma pergunta — e num dia de borda (o tique das 18:00 pegando um dos dois
+# antes do outro) as duas discordariam. Lendo o disco, o pior caso é o terminal
+# ficar um tique atrás, nunca contradizer o que ela vê.
+#
+# COM MAIS DE DOIS GATOS NO ACERVO, "o outro" vira "o SEGUINTE na ordem
+# alfabética, em círculo". Com dois, que é o caso dela, as duas definições são a
+# mesma coisa. É o mesmo critério de ordem que o `logo.sh` usa para girar.
+#
+# O ARQUIVO PASSA A SE CHAMAR `gato.ansi`, E O NOME IMPORTA
+#   No modo `fixo` o destino continua `<nome-do-gato>.ansi`, e um arquivo
+#   chamado `coquinha.ansi` contém a Coquinha. No modo `hora` o conteúdo muda
+#   duas vezes por dia: manter o nome `coquinha.ansi` faria um arquivo mentir
+#   sobre si mesmo metade do tempo, e quem fosse depurar leria o nome e pararia
+#   ali. `gato.ansi` diz o que é — o gato da vez.
+FASTFETCH_LOGO_MODO="${FASTFETCH_LOGO_MODO:-espelho}"
+FASTFETCH_LOGO_DIA="${FASTFETCH_LOGO_DIA:-${LOGO_DIA:-coquinha}}"
+FASTFETCH_LOGO_NOITE="${FASTFETCH_LOGO_NOITE:-${LOGO_NOITE:-mimir}}"
+
+# --- A FRONTEIRA MUDOU DE LADO, E ISSO É DECISÃO CONSCIENTE -------------------
+# ATÉ 31/08/2026 este script SÓ LIA o `config.jsonc` dela e imprimia o patch,
+# saindo 4. O cabeçalho explicava: o arquivo é symlink para
+# `~/.config/zsh/fastfetch/`, território do Ritual da Aurora, recusado pela
+# TRAVA 1 do `lib/comum.sh`, e com auto-commit a cada 10 min no repo PRIVADO dela.
+#
+# O QUE MUDOU
+#   1. Ela pediu, em 01/09/2026, que tudo fosse "idempotente e autoajustável de
+#      forma que ele sobreviva sempre". Um recurso cuja última etapa é um humano
+#      colando JSON à mão não sobrevive a nada.
+#   2. O modo `hora` torna a pendência PERMANENTE em vez de pontual: sem a troca
+#      da linha, o terminal fica com a Coquinha das 18h às 7h, todo dia, para
+#      sempre — e o script diria "gerei o mimir" enquanto a tela mostra a
+#      coquinha. Aviso que se repete todo dia é aviso que se aprende a ignorar.
+#   3. Ela já autorizou a direção em 05/08/2026: "o Andromeda pode ser corrigido
+#      pelo MeowSystem". A regra que fica é a mesma de lá — corrigir vale quando
+#      o outro lado está objetivamente atrás, e NUNCA em silêncio.
+#
+# AS QUATRO GUARDAS, sem as quais isto seria exatamente o que a TRAVA 1 impede
+#   1. UMA LINHA, NUNCA O ARQUIVO. A escrita é cirúrgica: troca `logo.source` (e
+#      `logo.type`, se estiver errado) e mais nada. Comentários, os módulos em
+#      português, a ordem das chaves e o `padding` saem intactos — e o
+#      `_ffl_ler_conf` conta os módulos com chave própria justamente para
+#      acusar o dia em que alguém colar por cima do arquivo inteiro.
+#   2. BACKUP ANTES, sempre, em `$MEOW_ESTADO/backups/`. É o mesmo idioma do
+#      `meow_backup_sistema`, e pelo mesmo motivo: sem ele, "desfazer" seria
+#      reinstalar o repo dela.
+#   3. EM VOZ ALTA. Nenhuma escrita aqui acontece sem uma linha na tela dizendo
+#      qual arquivo de qual vizinho foi tocado.
+#   4. `FASTFETCH_LOGO_CONF="nao"` volta ao comportamento antigo (só imprime o
+#      patch e sai 4), sem editar script nenhum.
+#
+# E O SELF-HEAL NÃO DISPUTA ESTA LINHA — MEDIDO EM 01/09/2026
+#   `grep -n fastfetch /usr/local/sbin/ritual-aurora-self-heal.sh` devolve TRÊS
+#   linhas, todas sobre o SYMLINK `~/.config/fastfetch -> ~/.config/zsh/fastfetch`
+#   (self-heal:1585-1587). O CONTEÚDO do `config.jsonc` não é escrito por ele em
+#   ponto nenhum. Sem isso, isto aqui seria ping-pong de hora em hora — os dois
+#   donos da mesma linha, que é o defeito que este projeto mais persegue.
+FASTFETCH_LOGO_CONF="${FASTFETCH_LOGO_CONF:-sim}"
+
 # LARGURA EM COLUNAS. 40 não é chute: é a largura do logo `pop` que este
 # substitui (medido — o bloco de informação continua começando na MESMA coluna,
 # então nada do texto dela se desloca). Mexer aqui é seguro; a altura se ajusta
@@ -137,7 +223,73 @@ FASTFETCH_LOGO_CELULA="${FASTFETCH_LOGO_CELULA:-2.556}"
 FFL_RASTER=2048
 
 FFL_BASE="$HOME/.local/share/meowsystem/fastfetch"
-FFL_ALVO="$FFL_BASE/$(basename "${FASTFETCH_LOGO_GATO%.svg}").ansi"
+
+# --- QUEM É O GATO DA VEZ, E ONDE ELE MORA ----------------------------------
+# No modo `hora` a janela vem do `lib/noite.sh` — a MESMA que decide o gato do
+# dock. Duas noites nesta máquina é o que aquele arquivo existe para impedir.
+
+# O gato que está NO BOTÃO DO DOCK agora, pelo arquivo — ou vazio se não der
+# para dizer. Compara por conteúdo (`cmp`), não por nome: o arquivo do tema de
+# ícones se chama `com.system76.CosmicPanelAppButton.svg` e não carrega o nome
+# do gato em lugar nenhum.
+_ffl_gato_do_dock() {
+  local tema="${NOME_TEMA_ICONES:-MeowSystem-Icons}" svg botao
+  botao="$HOME/.local/share/icons/$tema/scalable/apps/com.system76.CosmicPanelAppButton.svg"
+  [ -f "$botao" ] || return 1
+  for svg in "$MEOW_RAIZ/assets/gatos"/*.svg; do
+    [ -f "$svg" ] || continue
+    case "$(basename "$svg")" in *-symbolic.svg) continue ;; esac
+    cmp -s "$svg" "$botao" && { basename "${svg%.svg}"; return 0; }
+  done
+  return 1
+}
+
+# O SEGUINTE no acervo, em círculo. Com dois gatos, é "o outro".
+_ffl_o_outro() {
+  local atual="$1" i
+  local -a nomes=()
+  while IFS= read -r svg; do
+    case "$(basename "$svg")" in *-symbolic.svg) continue ;; esac
+    nomes+=("$(basename "${svg%.svg}")")
+  done < <(find "$MEOW_RAIZ/assets/gatos" -maxdepth 1 -name '*.svg' 2>/dev/null | LC_ALL=C sort)
+  [ "${#nomes[@]}" -ge 2 ] || return 1
+  for i in "${!nomes[@]}"; do
+    [ "${nomes[$i]}" = "$atual" ] && { printf '%s' "${nomes[$(( (i + 1) % ${#nomes[@]} ))]}"; return 0; }
+  done
+  return 1
+}
+
+FFL_FASE=""; FFL_PORQUE=""
+case "$FASTFETCH_LOGO_MODO" in
+  espelho)
+    FFL_ALVO="$FFL_BASE/gato.ansi"
+    _dock="$(_ffl_gato_do_dock || true)"
+    _outro=""
+    [ -n "$_dock" ] && _outro="$(_ffl_o_outro "$_dock" || true)"
+    if [ -n "$_outro" ]; then
+      FASTFETCH_LOGO_GATO="$_outro"; FFL_PORQUE="o dock está com $_dock"
+    else
+      # CAIR PARA A FASE, e não para o primeiro do acervo. Isto acontece na
+      # PRIMEIRA instalação (o botão do dock ainda não existe) e num acervo de
+      # um gato só. Cair na fase invertida mantém a promessa "os dois na tela"
+      # assim que houver dois; cair no primeiro do acervo daria os dois iguais.
+      # shellcheck source=../lib/noite.sh
+      . "$MEOW_RAIZ/lib/noite.sh"
+      if meow_e_noite; then FFL_FASE="noite"; FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_DIA}"
+      else                  FFL_FASE="dia";   FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_NOITE}"; fi
+      FFL_PORQUE="não li o botão do dock; espelhei a fase ($FFL_FASE)"
+    fi
+    unset _dock _outro ;;
+  hora)
+    # shellcheck source=../lib/noite.sh
+    . "$MEOW_RAIZ/lib/noite.sh"
+    if meow_e_noite; then FFL_FASE="noite"; FASTFETCH_LOGO_GATO="$FASTFETCH_LOGO_NOITE"
+    else                  FFL_FASE="dia";   FASTFETCH_LOGO_GATO="$FASTFETCH_LOGO_DIA"; fi
+    FFL_PORQUE="modo hora, $FFL_FASE"
+    FFL_ALVO="$FFL_BASE/gato.ansi" ;;
+  *)
+    FFL_ALVO="$FFL_BASE/$(basename "${FASTFETCH_LOGO_GATO%.svg}").ansi" ;;
+esac
 
 # O config.jsonc DELA. Só é LIDO — nunca aberto para escrita, em nenhum caminho
 # deste arquivo.
@@ -155,30 +307,113 @@ _ffl_linhas() {
       'BEGIN { n = int(c / r + 0.5); if (n < 1) n = 1; print n }'
 }
 
+# --- QUAL BLOCO A FONTE DELA SABE DESENHAR -----------------------------------
+# 01/09/2026, pedido dela depois de ver o gato do terminal: "outra fonte
+# melhoraria?" e "o projeto precisa ser mais inteligente pra se adaptar nesse
+# sentido". As duas perguntas têm a mesma resposta, e ela é medível.
+#
+# O TETO DE DETALHE DE UM DESENHO FEITO DE LETRAS é quantos subpixels cabem numa
+# célula, e isso depende do que a FONTE tem:
+#
+#   half   `▀▄`        1x2 por célula   qualquer fonte
+#   quad   `▘▝▖▗▚▞…`   2x2              qualquer fonte monoespaçada séria
+#   sext   `🬀🬁🬂…`      2x3              Symbols for Legacy Computing (Unicode 13)
+#
+# MEDIDO NA MÁQUINA DELA, hoje: a `JetBrainsMono Nerd Font Mono` NÃO tem os
+# sextantes — renderizados com ela, os glifos saem em branco (média de pixel
+# 0.000, contra 0.234 do `▘` e 0.936 do `█`). Varri as fontes instaladas: NENHUMA
+# tem. Por isso o padrão cai em `quad`, e é isso que ela vê hoje.
+#
+# ENTÃO POR QUE O CÓDIGO DOS SEXTANTES EXISTE: porque a fonte do terminal é
+# escolha dela e muda. Cascadia Code nova, JuliaMono e Iosevka têm os glifos; no
+# dia em que ela trocar, o gato ganha 50% de detalhe vertical SOZINHO, sem
+# ninguém lembrar de vir aqui. É a mesma disciplina do resto do projeto: medir a
+# máquina e escolher, em vez de chumbar o que era verdade um dia.
+#
+# A GUARDA CONTRA O FALSO POSITIVO: existir o glifo não basta — se ele vier de
+# uma fonte de FALLBACK com métrica diferente, o mosaico abre frestas. Por isso
+# o teste é feito no ARQUIVO da fonte do terminal (via `fc-match`), não no nome:
+# o fallback do fontconfig não entra na conta.
+#
+# `FASTFETCH_LOGO_BLOCOS` no meow.conf: auto (padrão) · quadrante · sextante.
+_ffl_fonte_arquivo() {
+  local nome
+  nome="$(sed -n 's/^"\(.*\)"$/\1/p' "$HOME/.config/cosmic/com.system76.CosmicTerm/v1/font_name" 2>/dev/null)"
+  [ -n "$nome" ] || nome="${FASTFETCH_LOGO_FONTE:-monospace}"
+  fc-match -f '%{file}' "$nome:spacing=100" 2>/dev/null
+}
+
+_ffl_tem_sextante() {
+  meow_tem convert || return 1
+  local arq media
+  arq="$(_ffl_fonte_arquivo)"
+  [ -n "$arq" ] && [ -f "$arq" ] || return 1
+  # Um glifo ausente é desenhado como NADA (ou como .notdef vazio) — a média de
+  # pixel do rótulo é 0. É o mesmo teste que reprovou a fonte dela hoje, e ele
+  # não precisa de fontTools, que não está instalado nesta máquina.
+  media="$(convert -background black -fill white -font "$arq" -pointsize 40 \
+             label:"🬀" -format "%[fx:mean]" info: 2>/dev/null)"
+  case "${media:-0}" in
+    0|0.0|0.00*|"") return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+_ffl_blocos() {
+  case "${FASTFETCH_LOGO_BLOCOS:-auto}" in
+    quadrante) printf 'quad' ;;
+    sextante)  printf 'sext' ;;
+    *) if _ffl_tem_sextante; then printf 'sext'; else printf 'quad'; fi ;;
+  esac
+}
+
 # --- o conversor -------------------------------------------------------------
 # DETERMINÍSTICO, que é o que torna o `conferir` possível: gera de novo num
 # temporário e compara com o que está no disco. Sem isso toda checagem acusaria
 # divergência e o auto-reparo entraria em ping-pong (a lição do `custom_logo_path`).
 _ffl_gerar() {
   local destino="$1" svg="$2" colunas="$3" linhas="$4"
-  python3 - "$svg" "$colunas" "$linhas" "$destino" "$FFL_RASTER" <<'PY'
+  python3 - "$svg" "$colunas" "$linhas" "$destino" "$FFL_RASTER" "$(_ffl_blocos)" <<'PY'
 import subprocess, sys
 
-svg, colunas, linhas, destino, raster = (
-    sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4], int(sys.argv[5]))
+svg, colunas, linhas, destino, raster, blocos = (
+    sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4], int(sys.argv[5]),
+    sys.argv[6])
+# Quantos subpixels cabem na célula, decidido lá fora por MEDIÇÃO da fonte.
+SX, SY = (2, 3) if blocos == "sext" else (2, 2)
 
 # 1. SVG -> PNG grande. O rsvg-convert é o mesmo renderizador que o delegado
 #    `svg =>` do ImageMagick chama; usá-lo direto tira a dúvida de qual dos dois
 #    (MSVG interno ou librsvg) atendeu.
-png = subprocess.run(["rsvg-convert", "-w", str(raster), "-h", str(raster), svg],
+# O `-a` NÃO É ENFEITE — 01/09/2026. Sem ele, `-w R -h R` estica o desenho para
+# encher o quadrado, e o viewBox dos gatos deixou de ser quadrado no dia em que
+# ela aumentou o gato dentro do quadro (1030x1079 no Mimir). Medido: o gato saía
+# 254 px de largura por 255 de altura onde o certo é 243x255 — 4,5% mais gordo,
+# um círculo virando elipse. Com `-a` a proporção é preservada e o que sobra do
+# quadrado fica transparente, que é exatamente o que a grade de blocos ignora.
+png = subprocess.run(["rsvg-convert", "-a", "-w", str(raster), "-h", str(raster), svg],
                      check=True, capture_output=True).stdout
 
 # 2. PNG -> grade de pixels em TEXTO. Sem PIL: o `txt:` do ImageMagick é ASCII,
 #    uma linha por pixel, com `#RRGGBBAA` no meio. O `!` do -resize é
-#    deliberado: a imagem é quadrada e a grade não é (2 pixels por célula, e a
-#    célula não é 1:2), então a proporção TEM de ser forçada aqui — é isso que
+#    deliberado: a imagem é quadrada e a grade não é (2x2 pixels por célula, e a
+#    célula não é 1:1), então a proporção TEM de ser forçada aqui — é isso que
 #    faz o disco sair redondo na tela dela.
-larg, alt = colunas, linhas * 2
+#
+# QUATRO PIXELS POR CÉLULA, E NÃO DOIS — 01/09/2026, pedido dela: "não
+# conseguimos melhorar a resolução dos meus gatos no terminal?". A versão
+# anterior amostrava `colunas x (linhas*2)` = 40x32 e desenhava com `▀`/`▄`
+# (meio bloco): um subpixel de 8x8 px na tela dela, que é o serrilhado grosso
+# que ela apontou. Com os QUADRANTES do bloco Unicode (▘▝▖▗▚▞▌▐▛▜▙▟) cabem
+# QUATRO subpixels por célula, e a amostragem passa a 80x32 — o dobro de
+# detalhe horizontal, na MESMA área da tela e sem mexer no layout dela.
+#
+# POR QUE NÃO SEXTANTES (2x3, que dariam 80x48): MEDIDO na fonte do terminal
+# dela. `JetBrainsMonoNerdFontMono-Regular.ttf` não tem os glifos de
+# `Symbols for Legacy Computing` (U+1FB00–1FB3B) — renderizados com ela, saem
+# em branco (média de pixel 0.000, contra 0.234 do `▘` e 0.936 do `█`). Um
+# gato desenhado com caractere ausente vira uma parede de retângulos vazios.
+larg, alt = colunas * SX, linhas * SY
 txt = subprocess.run(
     ["convert", "png:-", "-alpha", "on", "-filter", "Lanczos",
      "-resize", "%dx%d!" % (larg, alt), "-depth", "8", "txt:-"],
@@ -199,25 +434,89 @@ for l in txt.splitlines():
 LIMIAR = 128
 VAZIO = (0, 0, 0, 0)
 
+# OS GLIFOS, INDEXADOS PELA MÁSCARA DE SUBPIXELS
+#   O bit `i` é o subpixel `i` na ordem de leitura: esquerda->direita,
+#   cima->baixo. Em 2x2, bit0 = superior-esquerdo … bit3 = inferior-direito.
+#   Em 2x3 a mesma regra dá seis bits, e é exatamente a convenção do bloco
+#   Unicode `Symbols for Legacy Computing`, o que faz a fórmula abaixo ser uma
+#   soma e não uma tabela de 60 linhas.
+QUAD = " ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█"
+
+
+def glifo(m, n):
+    """O caractere que acende os subpixels de `m`, num mosaico de `n` deles."""
+    if n == 4:
+        return QUAD[m]
+    # 2x3. Os quatro casos fora do bloco 1FB00 são os que a Unicode já tinha:
+    # vazio, cheio, e as duas colunas inteiras (que são os meios-blocos).
+    if m == 0:
+        return " "
+    if m == 63:
+        return "█"
+    if m == 21:      # 0b010101 — coluna esquerda inteira
+        return "▌"
+    if m == 42:      # 0b101010 — coluna direita inteira
+        return "▐"
+    i = m - 1 - (1 if m > 21 else 0) - (1 if m > 42 else 0)
+    return chr(0x1FB00 + i)
+
+
+def _media(cores):
+    n = len(cores)
+    return (sum(c[0] for c in cores) // n,
+            sum(c[1] for c in cores) // n,
+            sum(c[2] for c in cores) // n)
+
+
+def _erro(cores, m):
+    """Quão longe cada pixel fica da média do seu grupo, na partição `m`."""
+    a = [c for i, c in enumerate(cores) if m >> i & 1]
+    b = [c for i, c in enumerate(cores) if not (m >> i & 1)]
+    total = 0
+    for grupo in (a, b):
+        if not grupo:
+            continue
+        med = _media(grupo)
+        for c in grupo:
+            total += sum((c[k] - med[k]) ** 2 for k in (0, 1, 2))
+    return total
+
+
+N = SX * SY
 partes = []
 for ly in range(linhas):
     # Cada linha recomeça do zero: sem isso o estado vazaria de uma linha para a
     # outra e um `.ansi` cortado pela metade desenharia lixo colorido.
     fg = bg = "reset"
     linha = ["\x1b[0m"]
-    for x in range(larg):
-        cima, baixo = px.get((x, ly * 2), VAZIO), px.get((x, ly * 2 + 1), VAZIO)
-        oc, ob = cima[3] >= LIMIAR, baixo[3] >= LIMIAR
-        if oc and ob:
-            novo_fg, novo_bg, ch = cima[:3], baixo[:3], "▀"
-        elif oc:
-            novo_fg, novo_bg, ch = cima[:3], None, "▀"
-        elif ob:
-            novo_fg, novo_bg, ch = baixo[:3], None, "▄"
-        else:
+    for x in range(colunas):
+        celula = [px.get((x * SX + dx, ly * SY + dy), VAZIO)
+                  for dy in range(SY) for dx in range(SX)]
+        cheios = [i for i, c in enumerate(celula) if c[3] >= LIMIAR]
+
+        if not cheios:
             # Célula vazia: só o FUNDO importa. Não mexer no foreground poupa
             # uma sequência por pixel transparente — e são muitos.
             novo_fg, novo_bg, ch = fg, None, " "
+        elif len(cheios) < N:
+            # BORDA DO DISCO: o que é transparente TEM de ficar no fundo do
+            # terminal, senão o papel de parede dela some atrás de um retângulo.
+            # Então aqui a partição não é escolhida — ela é imposta pelo alfa.
+            m = sum(1 << i for i in cheios)
+            novo_fg, novo_bg, ch = _media([celula[i] for i in cheios]), None, glifo(m, N)
+        else:
+            # MIOLO OPACO: aí sim há liberdade, e a pergunta é qual partição em
+            # dois grupos descreve melhor os subpixels. Testam-se todas (a
+            # sólida inclusa, que vence quando são quase iguais) e fica a de
+            # menor erro quadrático. Empate resolve pelo menor índice, porque
+            # este arquivo PRECISA ser determinístico: o `conferir` gera de novo
+            # e compara byte a byte.
+            melhor = min(range(1 << N), key=lambda m: (_erro(celula, m), m))
+            a = [celula[i] for i in range(N) if melhor >> i & 1]
+            b = [celula[i] for i in range(N) if not (melhor >> i & 1)]
+            novo_fg = _media(a) if a else _media(b)
+            novo_bg = _media(b) if b else _media(a)
+            ch = glifo(melhor, N)
         if novo_bg != bg:
             linha.append("\x1b[49m" if novo_bg is None
                          else "\x1b[48;2;%d;%d;%dm" % novo_bg)
@@ -239,12 +538,50 @@ PY
 # conteúdo é um arquivo de 20 KB cheio de ESC — passá-lo por `$( )` e por
 # `printf '%s'` é pedir para o shell comer byte. Segue-se o mesmo caminho do
 # `som.sh`: escreve-se com `mv`, e por isso o conferidor compara com `cmp`.
+
+# --- A GUARDA BARATA, E POR QUE ELA PRECISOU EXISTIR -------------------------
+# MEDIDO EM 01/09/2026: um `aplicar` que não muda nada custa 0,37 s — porque
+# `_ffl_instalar` gera o ANSI num temporário SEMPRE, só para poder comparar. É o
+# preço do determinismo, e estava certo enquanto isto rodava uma vez por
+# `install.sh`. Com o `meow-gato.timer` de cinco em cinco minutos passariam a ser
+# 288 rasterizações de 2048 px por dia = ~106 s de CPU, para um efeito que
+# acontece DUAS vezes.
+#
+# O CARIMBO GUARDA TUDO O QUE O GERADOR CONSOME, e é por isso que ele é uma
+# linha com três campos e não só o nome: mudar `FASTFETCH_LOGO_COLUNAS` no conf
+# tem de regerar, e um carimbo só com o nome do gato diria "já está certo".
+#   <nome-do-gato> <colunas> <linhas>
+#
+# AS TRÊS PORTAS QUE ATRAVESSAM A GUARDA — sem elas isto vira cache que mente:
+#   1. o `.ansi` não existe (alguém apagou, ou é a primeira vez);
+#   2. o carimbo não bate (trocou de gato, de largura ou de proporção);
+#   3. o SVG é MAIS NOVO que o `.ansi` (ela redesenhou o gato no acervo).
+#
+# E O `conferir` NÃO USA A GUARDA, DE PROPÓSITO. Ele é o comando do
+# `meow-doctor.timer`, roda uma vez por dia e a função dele é justamente
+# desconfiar do carimbo: se o conversor mudar de código, ou se alguém editar o
+# `.ansi` à mão, quem acusa é ele. Barato no minuto, desconfiado no dia.
+_ffl_carimbo() { printf '%s/.gato-atual' "$FFL_BASE"; }
+_ffl_ja_esta_certo() {
+  local svg="$1" colunas="$2" linhas="$3" querido lido
+  [ -f "$FFL_ALVO" ] || return 1
+  lido="$(cat "$(_ffl_carimbo)" 2>/dev/null)" || return 1
+  querido="$(basename "${FASTFETCH_LOGO_GATO%.svg}") $colunas $linhas"
+  [ "$lido" = "$querido" ] || return 1
+  [ -f "$svg" ] && [ "$svg" -nt "$FFL_ALVO" ] && return 1
+  return 0
+}
+
 _ffl_instalar() {
   local svg colunas linhas tmp
   svg="$(_ffl_svg)"; colunas="$FASTFETCH_LOGO_COLUNAS"; linhas="$(_ffl_linhas)"
 
   [ -f "$svg" ] || { meow_erro "não achei o SVG '$svg'"; return "$MEOW_ERRO"; }
   meow_destino_permitido "$FFL_ALVO" || return "$MEOW_ERRO"
+
+  if [ "${FFL_FUNDO:-0}" = "1" ] && _ffl_ja_esta_certo "$svg" "$colunas" "$linhas"; then
+    return "$MEOW_OK"
+  fi
 
   if meow_seco; then
     tmp="$(mktemp -p "${TMPDIR:-/tmp}" ".meow-ffl.XXXXXX")" || return "$MEOW_ERRO"
@@ -263,12 +600,44 @@ _ffl_instalar() {
     rm -f "$tmp"; meow_erro "falha ao converter '$svg' para ANSI"; return "$MEOW_ERRO"
   fi
   if [ -f "$FFL_ALVO" ] && cmp -s "$tmp" "$FFL_ALVO"; then
-    rm -f "$tmp"; return "$MEOW_OK"          # regra 5: idêntico, não reescreve
+    rm -f "$tmp"
+    # O CARIMBO É REESCRITO MESMO SEM MUDANÇA, e essa linha é o que faz a guarda
+    # barata nascer valendo numa máquina que já tinha o `.ansi` no lugar. Sem
+    # ela, a primeira rodada depois desta versão passaria pelo caminho caro e a
+    # SEGUNDA também — para sempre, porque nada jamais escreveria o carimbo.
+    printf '%s %s %s\n' "$(basename "${FASTFETCH_LOGO_GATO%.svg}")" "$colunas" "$linhas" \
+      > "$(_ffl_carimbo)" 2>/dev/null || true
+    return "$MEOW_OK"                        # regra 5: idêntico, não reescreve
   fi
   chmod 644 "$tmp"
   mv -f "$tmp" "$FFL_ALVO" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+  printf '%s %s %s\n' "$(basename "${FASTFETCH_LOGO_GATO%.svg}")" "$colunas" "$linhas" \
+    > "$(_ffl_carimbo)" 2>/dev/null || true
   meow_manifesto_registrar "$FFL_ALVO"
+  _ffl_varrer_orfaos
   return "$MEOW_DIVERGENTE"
+}
+
+# --- O QUE SOBROU DO MODO ANTERIOR SAI DO DISCO ------------------------------
+# Regra 3 do contrato: reescrever o estado inteiro, nunca acrescentar. Sem isto,
+# trocar `FASTFETCH_LOGO_MODO` de `fixo` para `hora` deixaria o `coquinha.ansi`
+# de 20 KB parado ali para sempre — um arquivo que ninguém lê, que ninguém sabe
+# de onde veio, e que ainda por cima PARECE a fonte do logo para quem for
+# depurar. É o mesmo motivo pelo qual o `logo.sh` apaga os `meow-*.svg` que
+# saíram do acervo.
+#
+# SÓ SE APAGA `.ansi` DENTRO DE `$FFL_BASE`, que é diretório NOSSO, criado por
+# este script e por mais ninguém — e nunca o alvo da vez.
+_ffl_varrer_orfaos() {
+  local velho
+  [ -d "$FFL_BASE" ] || return 0
+  for velho in "$FFL_BASE"/*.ansi; do
+    [ -f "$velho" ] || continue
+    [ "$velho" = "$FFL_ALVO" ] && continue
+    if meow_seco; then meow_muda "removeria $velho (sobrou do modo anterior)"
+    else rm -f "$velho" && meow_info "removi $(basename "$velho") (sobrou do modo anterior)"; fi
+  done
+  return 0
 }
 
 # --- leitura do config.jsonc DELA -------------------------------------------
@@ -324,6 +693,135 @@ print(len(chaves))
 PY
 }
 
+# --- a escrita cirúrgica no config.jsonc dela --------------------------------
+# TROCA DUAS CHAVES E MAIS NADA. Não reserializa o JSON: um `json.dump` mataria
+# os comentários (é JSONC), a ordem das chaves e a indentação dela — e o arquivo
+# vive num repo com auto-commit, então o diff de 10 minutos depois seria o
+# arquivo inteiro reescrito por um enfeite. O que se faz aqui é achar o VALOR de
+# `logo.source` (e de `logo.type`) DENTRO do bloco `"logo"`, por varredura que
+# respeita aspas e escapes, e substituir o intervalo de bytes.
+#
+# O `~` VAI LITERAL, e isso é medido: o cabeçalho deste arquivo registra que o
+# `fastfetch` expande `~` em `logo.source` nos dois tipos (`file` e `file-raw`).
+# Gravar o caminho absoluto funcionaria igual, mas quebraria o arquivo dela no
+# dia em que o home mudasse de nome — e o resto do arquivo usa `~`.
+_ffl_escrever_conf() {
+  local alvo_rel="~/.local/share/meowsystem/fastfetch/$(basename "$FFL_ALVO")"
+  local bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-vizinho"
+
+  if meow_seco; then
+    meow_muda "mudaria logo.source de $FFL_CONF_DELA para \"$alvo_rel\""
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  # GUARDA 2: backup antes de encostar. Falhar aqui ABORTA a escrita — sem rede
+  # de segurança não se mexe no arquivo de outro projeto, ponto.
+  mkdir -p "$bkp" 2>/dev/null || { meow_erro "não consegui criar $bkp"; return "$MEOW_ERRO"; }
+  cp -a "$FFL_CONF_DELA" "$bkp/config.jsonc" 2>/dev/null \
+    || { meow_erro "não consegui guardar backup de $FFL_CONF_DELA — não vou escrever"; return "$MEOW_ERRO"; }
+
+  python3 - "$FFL_CONF_DELA" "$alvo_rel" <<'PY' || return "$MEOW_ERRO"
+import os, sys, tempfile
+
+caminho, fonte_nova = sys.argv[1], sys.argv[2]
+bruto = open(caminho, encoding="utf-8").read()
+
+def varre(texto, inicio):
+    """Percorre a partir de `inicio` devolvendo (i, char) fora de string e de
+    comentário. Sem isto, um `//` dentro do "$schema" (primeira linha deste
+    arquivo) seria lido como comentário e a varredura pularia o resto da linha."""
+    i, n = inicio, len(texto)
+    while i < n:
+        c = texto[i]
+        if c == '"':
+            j = i + 1
+            while j < n:
+                if texto[j] == "\\": j += 2; continue
+                if texto[j] == '"': break
+                j += 1
+            yield i, '"', j          # a string inteira, de i até j
+            i = j + 1
+        elif c == "/" and i + 1 < n and texto[i+1] == "/":
+            while i < n and texto[i] != "\n": i += 1
+        elif c == "/" and i + 1 < n and texto[i+1] == "*":
+            i += 2
+            while i + 1 < n and not (texto[i] == "*" and texto[i+1] == "/"): i += 1
+            i += 2
+        else:
+            yield i, c, i
+            i += 1
+
+# 1. Onde começa o bloco "logo"? Procura a CHAVE, não a palavra: um comentário
+#    com a palavra "logo" (e há vários neste arquivo) não pode virar âncora.
+inicio_logo = None
+for i, c, fim in varre(bruto, 0):
+    if c == '"' and bruto[i:fim+1] == '"logo"':
+        inicio_logo = fim + 1
+        break
+if inicio_logo is None:
+    sys.stderr.write("não achei a chave \"logo\" no config.jsonc\n"); sys.exit(1)
+
+# 2. Dentro do bloco, achar os valores de "source" e "type", parando na chave
+#    que fecha o objeto — assim um "source" de outro módulo nunca é atingido.
+alvos, profundidade, chave = {}, 0, None
+for i, c, fim in varre(bruto, inicio_logo):
+    if c == "{": profundidade += 1
+    elif c == "}":
+        profundidade -= 1
+        if profundidade <= 0: break
+    elif c == '"':
+        txt = bruto[i:fim+1]
+        if chave in ("source", "type") and profundidade == 1:
+            alvos[chave] = (i, fim + 1); chave = None
+        elif profundidade == 1 and txt.strip('"') in ("source", "type"):
+            chave = txt.strip('"')
+        else:
+            chave = None
+    elif c == ":":
+        pass
+    elif not c.isspace():
+        chave = None
+
+if "source" not in alvos:
+    sys.stderr.write("não achei logo.source dentro do bloco \"logo\"\n"); sys.exit(1)
+
+# 3. Substituir de trás para a frente: mexer no começo primeiro deslocaria os
+#    índices do que vem depois.
+trocas = [(alvos["source"], '"%s"' % fonte_nova)]
+if "type" in alvos:
+    trocas.append((alvos["type"], '"file-raw"'))
+saida = bruto
+for (ini, fim), novo in sorted(trocas, key=lambda t: -t[0][0]):
+    saida = saida[:ini] + novo + saida[fim:]
+
+if saida == bruto:
+    sys.exit(0)
+
+# TRAVA 2, do lado de cá: o temporário nasce no diretório de DESTINO, e o `mv`
+# vira rename no mesmo sistema de arquivos. Aqui isso vale dobrado — o destino é
+# alvo de um `git add` automático a cada 10 min, e um arquivo pela metade seria
+# commitado quebrado.
+d = os.path.dirname(os.path.realpath(caminho))
+fd, tmp = tempfile.mkstemp(dir=d, prefix=".meow-ffl.")
+try:
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(saida)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, os.path.realpath(caminho))
+except Exception:
+    os.path.exists(tmp) and os.unlink(tmp)
+    raise
+PY
+
+  # GUARDA 3: em voz alta, sempre. Tocar arquivo de vizinho sem dizer é
+  # exatamente o que a TRAVA 1 existe para impedir.
+  meow_aviso "escrevi no config.jsonc da Aurora (logo.source -> $alvo_rel)"
+  meow_info  "  backup: $bkp/config.jsonc"
+  meow_info  "  desligue com FASTFETCH_LOGO_CONF=\"nao\" no ~/.config/meow/meow.conf"
+  meow_registrar "fastfetch_logo.sh escreveu logo.source=$alvo_rel em $FFL_CONF_DELA"
+  return "$MEOW_DIVERGENTE"
+}
+
 # 0 = o config.jsonc já aponta para o nosso .ansi · 1 = não aponta · 2 = não deu
 # para ler. Imprime sempre uma linha dizendo o que viu.
 _ffl_fronteira() {
@@ -344,11 +842,11 @@ _ffl_fronteira() {
   meow_info "  módulos com chave própria (as em português): $nchaves"
 
   if [ "$fonte" = "$FFL_ALVO" ] && [ "$tipo" = "file-raw" ]; then
-    meow_ok "o config.jsonc dela já aponta para a Coquinha"
+    meow_ok "o config.jsonc dela já aponta para $(basename "$FFL_ALVO")"
     return 0
   fi
   if [ "$fonte" = "$FFL_ALVO" ]; then
-    meow_aviso "aponta para a Coquinha, mas com logo.type=\"$tipo\" — o certo é \"file-raw\""
+    meow_aviso "aponta para $(basename "$FFL_ALVO"), mas com logo.type=\"$tipo\" — o certo é \"file-raw\""
     return 1
   fi
   return 1
@@ -373,7 +871,7 @@ cmd_patch() {
   printf '\n'
   meow_info "o \"padding\" é o que já está lá e NÃO precisa mudar: com 6 linhas"
   meow_info "  de recuo o logo de $( _ffl_linhas ) linhas fica centrado no bloco de módulos"
-  meow_info "cópia pronta no repositório: src/fastfetch/config-logo.jsonc.sugestao"
+  meow_info "cópia pronta no repositório: assets/fastfetch/config-logo.jsonc.sugestao"
   return "$MEOW_OK"
 }
 
@@ -392,16 +890,34 @@ cmd_aplicar() {
   if [ "$rc" = "$MEOW_DIVERGENTE" ] && meow_seco; then
     meow_muda "geraria o(a) $FASTFETCH_LOGO_GATO em $FASTFETCH_LOGO_COLUNAS x $(_ffl_linhas) células em $FFL_ALVO"
   elif [ "$rc" = "$MEOW_DIVERGENTE" ]; then
-    meow_muda "$FASTFETCH_LOGO_GATO em ANSI ($FASTFETCH_LOGO_COLUNAS x $(_ffl_linhas) células) em $FFL_ALVO"
+    meow_muda "$FASTFETCH_LOGO_GATO em ANSI ($FASTFETCH_LOGO_COLUNAS x $(_ffl_linhas) células)${FFL_PORQUE:+ — $FFL_PORQUE}"
     meow_info "para ver: scripts/fastfetch_logo.sh ver"
   else
-    meow_ok "o logo ANSI já estava gerado"
+    meow_ok "o logo ANSI já estava gerado (${FASTFETCH_LOGO_GATO}${FFL_PORQUE:+ — $FFL_PORQUE})"
   fi
 
   _ffl_fronteira; rcf=$?
+
+  # A FRONTEIRA SE CONSERTA SOZINHA, quando ela deixou. Ver o bloco
+  # `FASTFETCH_LOGO_CONF` lá em cima: as quatro guardas, o porquê da mudança e
+  # a medição que descarta ping-pong com o self-heal.
+  if [ "$rcf" = "1" ] && [ "$FASTFETCH_LOGO_CONF" = "sim" ] && [ -f "$FFL_CONF_DELA" ]; then
+    local rce; _ffl_escrever_conf; rce=$?
+    if [ "$rce" = "$MEOW_DIVERGENTE" ]; then
+      rc="$MEOW_DIVERGENTE"
+      # Reconferir em vez de assumir: se a troca não pegou (um `logo` aninhado
+      # inesperado, um arquivo que mudou entre a leitura e a escrita), o patch
+      # impresso abaixo continua sendo a saída honesta. Assumir sucesso aqui
+      # seria o "consertei" sem conserto que o `4` deste script existe para evitar.
+      meow_seco || { _ffl_fronteira >/dev/null 2>&1; rcf=$?; }
+    else
+      meow_erro "não consegui escrever no config.jsonc — deixo o patch abaixo"
+    fi
+  fi
+
   if [ "$rcf" = "1" ]; then
     printf '\n'
-    meow_aviso "o fastfetch ainda NÃO vai mostrar a Coquinha: falta uma troca de"
+    meow_aviso "o fastfetch ainda NÃO vai mostrar o gato: falta uma troca de"
     meow_aviso "  duas chaves no config.jsonc, que é da Aurora e não é nosso."
     printf '\n'
     _ffl_patch_texto

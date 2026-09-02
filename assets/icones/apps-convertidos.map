@@ -1,0 +1,227 @@
+# apps-convertidos.map — os aplicativos do LANÇADOR cujo ícone nós CONVERTEMOS
+# de chapado para traço, no mesmo dialeto do Arcticons, e recolorimos na paleta.
+#
+# Formato:  nome-de-icone-do-.desktop : origem-chapada : cor [ : parametros ]
+#
+# É UM MAPA SÓ PARA DOIS LEITORES, e isso não é economia: é a regra da casa.
+#   · `scripts/construir_convertidos.sh` lê os campos 1, 2 e 4 — o que converter,
+#     de onde, e com que botões. Ele GERA `assets/icones/convertidos-apps/<nome>.svg`.
+#   · `scripts/icones_apps_arcticons.sh` lê os campos 1 e 3 — que arte vestir de
+#     que cor — e pega o desenho já pronto em `assets/icones/convertidos-apps/`.
+#
+#   Dois mapas com o mesmo nome nos dois seria "duas listas da mesma verdade",
+#   que é exatamente o defeito que o `_conferir_gemeos` daquele script ESTOURA
+#   para impedir. O campo `cor` parece morto aqui e não é: ele é do outro leitor,
+#   e tirá-lo daqui obrigaria a criar um segundo mapa.
+#
+# Não há campo `glifo` como no `apps-arcticons.map` porque não há indireção: a
+# arte convertida se chama pelo nome do aplicativo, 1 para 1.
+#
+# O campo `origem` aceita:
+#   · caminho ABSOLUTO (o Papirus, um flatpak) — o normal;
+#   · caminho relativo ao repositório (`assets/icones/autorais/...`);
+#   · a palavra `mao`, que diz "não existe origem chapada honesta: esta arte
+#     NASCE à mão em `assets/icones/convertidos-apps/retoques/<nome>.svg>`". Hoje só o
+#     Gradia usa, e o porquê está na seção 3 abaixo.
+#
+# A COR É UMA CHAVE DA PALETA, NUNCA UM HEX — a mesma regra do mapa irmão.
+#   `assets/paleta/catppuccin.json` é a fonte única de cor deste projeto. O que se
+#   grava aqui é o NOME (`sapphire`, `peach`, ...); o script resolve para o hex
+#   do `$FLAVOR` em uso, e por isso este caminho serve os QUATRO flavors.
+#
+# `#!cor-por-categoria` vale aqui pelo mesmo motivo que vale lá: desde 10/08/2026
+# a cor é POR CATEGORIA, e cor repetida é o DESENHO, não o acidente. Os três
+# navegadores são azuis porque são navegadores. A asserção de nome repetido
+# entre os mapas continua de pé, e é ela que importa.
+#!cor-por-categoria
+#
+# ============================================================================
+# 1. DE ONDE ISTO VEIO — a frase dela, e a decisão que ela tomou olhando
+# ============================================================================
+#
+# 11/08/2026, sobre uma captura do próprio lançador:
+#
+#     "no sentido de criarmos icons igual o nosso tema atual, entende?"
+#
+# O "nosso tema" é o TRAÇO. O que destoava na tela dela não era falta de
+# personalidade: era o que estava CHEIO no meio de um lançador de linhas. Ela já
+# tinha dito a mesma coisa por outro lado, reclamando nominalmente da pasta mauve
+# chapada dos Arquivos — as duas frases eram a mesma frase (docs/SPRINTS.md,
+# Sprint I).
+#
+# Dias antes ela perguntara: "será que não temos um script pra converter todos os
+# icons, seja png ou svg, pra virar só a linha de contorno?". Ele foi escrito
+# (`scripts/converter_icone.py`), 29 aplicativos foram convertidos, e a folha foi
+# à tela dela. O veredito, textual:
+#
+#     "tão todos muito bons"  — com quatro pedidos, e o quarto é uma ordem de
+#                               não-fazer.
+#
+#   1. engrossar a linha — respondido na seção 2;
+#   2. dar boca ao GIMP — respondido em `convertidos-apps/retoques/LEIA-ME.txt`;
+#   3. o Gradia faltou na folha — respondido na seção 3;
+#   4. "bt tá sem logo, pode deixar o original nesse caso. wifi e conexão por
+#      cabo também" — e esses TRÊS NÃO ESTÃO AQUI, de propósito. São da barra do
+#      painel, não do lançador; outro acervo, outro script. Foi medido antes de
+#      aceitar: o Bluetooth não está quebrado, é o desenho do Papirus (o símbolo
+#      dentro de um quadrado tipo chip), e Wi-Fi e cabo não têm entrada própria
+#      na barra dela. Não há ícone faltando a consertar.
+#
+# ============================================================================
+# 2. O PESO DO TRAÇO: 1,75 — e o número é MEDIDO, não escolhido no olho
+# ============================================================================
+#
+# "só engrossaria mais a linha". Com uma condição que não é dela mas decorre do
+# objetivo: o traço tem de subir JUNTO com os Arcticons que já estão na tela. Se
+# só o convertido engrossar, quebra-se a coerência que é a razão de tudo isto.
+# Por isso a espessura NÃO mora neste acervo — nem um arquivo daqui grava
+# `stroke-width`. Quem manda é o `TRACO` do `icones_apps_arcticons.sh`: UM número
+# que engrossa os DOIS acervos juntos.
+#
+# A RÉGUA NÃO PODE SER O EMPASTAMENTO, e é honesto dizer por quê. Empastamento é
+# a fração da tinta com 6+ dos 8 vizinhos pintados. A 1px de traço isso só
+# acontece onde DUAS linhas se encostaram — era a régua certa. Mas traço de 2px
+# tem MIOLO PRÓPRIO, e todo pixel do miolo tem 8 vizinhos com tinta: a mediana
+# dos 39 Arcticons que ela já aprovou vai de 3,0% a 1,0 para 47,3% a 2,0 sem que
+# nada tenha se encostado. A régua passou a medir a espessura, não a mancha.
+#
+# O que substitui: a CONTRA-FORMA QUE SOBREVIVE. O buraco fechado é a unidade de
+# informação de um ícone de linha — as dez teclas da Calculadora, as três camadas
+# do ONLYOFFICE, o olho do Wilber, o vão da alça do Firefox. Conta-se quantos dos
+# buracos do desenho ORIGINAL (a 1,0, como o autor fez) ainda existem no mesmo
+# lugar depois de engrossar. Buraco novo não compensa buraco perdido: a peça que
+# sumiu, sumiu.
+#
+# 75 ícones x 7 pesos, rasterizados a 48px:
+#
+#   peso | contra-formas vivas          | tinta na caixa
+#        | Arcticons | conversão        | Arcticons | conversão
+#   -----+-----------+------------------+-----------+-----------
+#   1,0  |   100%    |   100%           |   13,0%   |   18,8%
+#   1,25 |    99%    |    86%           |   14,8%   |   21,5%
+#   1,5  |    97%    |    80%           |   19,1%   |   24,6%
+#   1,75 |    97%    |    76%           |   21,2%   |   27,8%   <- escolhido
+#   2,0  |    97%    |    74%           |   23,0%   |   30,0%
+#   2,25 |    97%    |    70%           |   24,7%   |   33,1%
+#   2,5  |    96%    |    66%           |   26,8%   |   35,2%
+#
+# QUEM LIMITA NÃO É O ARCTICONS: ele fica em 97% de 1,5 a 2,25. É a CONVERSÃO,
+# densa por construção — a fronteira de cor rende mais linha que um desenho feito
+# à mão (mediana de 4 subcaminhos por ícone no Arcticons).
+#
+# 1,75 é o MAIOR peso em que a Spotify ainda tem três ondas e o Wilber ainda tem
+# olho. A 2,0 as duas ondas de cima soldam e as teclas da Calculadora começam a
+# fechar; a 2,5 as teclas viram bolhas. E o ganho é o que ela pediu: +63% de
+# tinta na caixa contra o 1,0 — era essa a queixa, o traço sumia perto do resto
+# da dock.
+#
+# ============================================================================
+# 3. O RETOQUE À MÃO PRECISA DE UM LUGAR QUE SOBREVIVA À PRÓXIMA CONVERSÃO
+# ============================================================================
+#
+# `assets/icones/convertidos-apps/retoques/<nome>.svg` VENCE a conversão, sempre, e nunca
+# é sobrescrito. Se o retoque existe, o conversor nem roda para aquele nome.
+#
+# Um retoque é DECISÃO HUMANA REGISTRADA. Reconverter por cima dele apagaria a
+# decisão em silêncio — que é o defeito que este projeto persegue. Hoje são
+# quatro, e cada um está aqui por um motivo diferente:
+#
+#   org.gimp.GIMP           conversão + UMA curva desenhada à mão (a boca do
+#                           Wilber). Nenhum parâmetro a produz, e isso é
+#                           aritmético, não preguiça: no Papirus a boca não é uma
+#                           cor, é uma SOMBRA da mesma cor, a 45,0 de RGB do
+#                           focinho — e o `--funde` vale 46. Baixá-lo separa as
+#                           duas e mata o FOCINHO. Varredura completa de k x funde
+#                           (27 combinações) e mais cinco em --moda/--fita/
+#                           --envolve: nenhuma produz a boca.
+#
+#   com.github.tchx84.Flatseal   a marca é um ROLO DE FITA — cilindro em
+#                           perspectiva. Em linha vira círculo dentro de círculo
+#                           dentro de espiral: fiel e ilegível ao mesmo tempo. O
+#                           cadeado à mão não é a marca deles, é o que o programa
+#                           FAZ (permissão de flatpak) — e a troca segue a mesma
+#                           regra que pôs o `osmonitor` no btop: o que mente é
+#                           marca alheia, não desenho genérico.
+#
+#   io.github.flattool.Warehouse  o mais disputado: a conversão LÊ, é uma estante
+#                           com caixas, e é a mais fiel das três. Mas são nove
+#                           retângulos aninhados num quadrado de 48px, e as
+#                           etiquetas soldam já a 1,5. O galpão à mão diz a mesma
+#                           coisa com quatro traços.
+#
+#   be.alexandervanhee.gradia    `mao`, sem origem chapada nenhuma: zero no índice
+#                           de 14.996 nomes do Arcticons, ausente do Papirus. O
+#                           que existe é o ícone colorido do flatpak, com
+#                           GRADIENTE de fundo e um painel de interface desenhado
+#                           dentro; a fronteira de cor ali são quatro colchetes de
+#                           canto, três pílulas e dois pontinhos, e a 48px isso
+#                           vira bolha. O desenho à mão reduz ao que o programa É:
+#                           um quadro, uma imagem dentro, e o brilho de quem
+#                           retoca.
+#
+# Os três desenhos à mão nasceram nos quatro flavors e foram normalizados para o
+# dialeto do acervo (`stroke="currentColor"`, sem `stroke-width`) — a cor volta a
+# sair da paleta, pelo campo 3 desta linha, como em todo o resto do projeto.
+#
+# ============================================================================
+# 4. OS CINCO QUE FICARAM DE FORA — e nenhum ficou sem ícone
+# ============================================================================
+#
+# Estavam nos 29 alvos, foram convertidos, foram à folha, e PERDERAM. Continuam
+# no `assets/icones/apps-arcticons.map`, com o glifo desenhado à mão que já tinham:
+#
+#   firefox · org.kde.krita · thunderbird   raposa, camaleão e passarinho são
+#       ORGÂNICOS: a informação está no PREENCHIMENTO, não na fronteira, e tirar
+#       o preenchimento tira o desenho. Nenhum parâmetro conserta isso.
+#   com.boxy_svg.BoxySVG                    a flor do meio vira uma bolha a 48px.
+#   btop                                    a conversão é fiel — e o original é
+#       justamente o "B" vermelho na PLACA OPACA de que ela reclamou em
+#       08/08/2026. Aqui o Arcticons já tinha vencido, por medida.
+#
+# Os glifos Arcticons dos 22 aplicativos que SAÍRAM de lá para cá continuam em
+# `assets/icones/arcticons-apps/`, sem ninguém os ler. Não foram apagados de propósito:
+# desfazer esta escolha tem de continuar custando uma linha de mapa, não um
+# download.
+#
+# ============================================================================
+
+# --- documentos e escritório -------------------------------------------------
+org.onlyoffice.desktopeditors:/usr/share/icons/Papirus/64x64/apps/org.onlyoffice.desktopeditors.svg:sapphire
+
+# --- navegadores -------------------------------------------------------------
+com.brave.Browser:/usr/share/icons/Papirus/64x64/apps/com.brave.Browser.svg:blue
+google-chrome:/usr/share/icons/Papirus/64x64/apps/google-chrome.svg:yellow
+
+# --- conversa e rede ---------------------------------------------------------
+com.discordapp.Discord:/usr/share/icons/Papirus/64x64/apps/com.discordapp.Discord.svg:sky
+meow-whatsapp:/usr/share/icons/Papirus/64x64/apps/whatsapp.svg:sky
+org.qbittorrent.qBittorrent:/usr/share/icons/Papirus/64x64/apps/org.qbittorrent.qBittorrent.svg:sky
+org.telegram.desktop:/usr/share/icons/Papirus/64x64/apps/org.telegram.desktop.svg:sky
+
+# --- mídia, captura e jogos --------------------------------------------------
+com.obsproject.Studio:/usr/share/icons/Papirus/64x64/apps/com.obsproject.Studio.svg:green
+com.system76.CosmicEdit:mao:pink
+com.system76.CosmicPlayer:mao:green
+com.spotify.Client:/usr/share/icons/Papirus/64x64/apps/com.spotify.Client.svg:green
+org.gnome.Snapshot:/usr/share/icons/Papirus/64x64/apps/org.gnome.Snapshot.svg:green
+org.videolan.VLC:/usr/share/icons/Papirus/64x64/apps/org.videolan.VLC.svg:green
+steam:/usr/share/icons/Papirus/64x64/apps/steam.svg:green
+
+# --- criação e código --------------------------------------------------------
+be.alexandervanhee.gradia:mao:pink
+io.github.shiftey.Desktop:/usr/share/icons/Papirus/64x64/apps/io.github.shiftey.Desktop.svg:pink
+org.gimp.GIMP:/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg:pink
+org.gnome.gitlab.somas.Apostrophe:/usr/share/icons/Papirus/64x64/apps/org.gnome.gitlab.somas.Apostrophe.svg:pink
+vscode:/usr/share/icons/Papirus/64x64/apps/vscode.svg:pink
+
+# --- leitura e notas ---------------------------------------------------------
+com.github.johnfactotum.Foliate:/usr/share/icons/Papirus/64x64/apps/com.github.johnfactotum.Foliate.svg:peach
+md.obsidian.Obsidian:/usr/share/icons/Papirus/64x64/apps/md.obsidian.Obsidian.svg:peach
+
+# --- utilitários do sistema --------------------------------------------------
+com.github.tchx84.Flatseal:/usr/share/icons/Papirus/64x64/apps/com.github.tchx84.Flatseal.svg:lavender
+io.github.flattool.Warehouse:/usr/share/icons/Papirus/64x64/apps/io.github.flattool.Warehouse.svg:lavender
+net.davidotek.pupgui2:/usr/share/icons/Papirus/64x64/apps/net.davidotek.pupgui2.svg:lavender
+org.bleachbit.BleachBit:/usr/share/icons/Papirus/64x64/apps/org.bleachbit.BleachBit.svg:lavender
+org.gnome.Calculator:/usr/share/icons/Papirus/64x64/apps/org.gnome.Calculator.svg:lavender
+org.gnome.FileRoller:/usr/share/icons/Papirus/64x64/apps/org.gnome.FileRoller.svg:lavender

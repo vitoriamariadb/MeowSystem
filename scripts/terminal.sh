@@ -17,7 +17,7 @@
 # DE CONFIGURAÇÃO. SÃO DOIS FORMATOS DIFERENTES.
 # ===========================================================================
 #   O README do port oficial (`catppuccin/cosmic-desktop`, pasta
-#   `themes/cosmic-term/`) manda importar pela GUI — View → Color schemes… →
+#   `assets/temas/cosmic-term/`) manda importar pela GUI — View → Color schemes… →
 #   Import — e os quatro `.ron` de lá são UM `ColorScheme` solto:
 #
 #       (
@@ -50,13 +50,13 @@
 #   (`src/main.rs`, `Message::ColorSchemeImportResult`).
 #
 #   Por isso este script NÃO baixa o port: ele reproduz o port a partir de
-#   `palette/catppuccin.json`, que é a fonte de cor deste projeto, e faz o
+#   `assets/paleta/catppuccin.json`, que é a fonte de cor deste projeto, e faz o
 #   `insert` que a GUI faria.
 #
 # O PORT OFICIAL SAI INTEIRO DA NOSSA PALETA — E ISSO FOI CONFERIDO, NÃO SUPOSTO
-#   Os quatro arquivos de `themes/cosmic-term/` foram baixados em 25/08/2026 e
+#   Os quatro arquivos de `assets/temas/cosmic-term/` foram baixados em 25/08/2026 e
 #   comparados campo a campo com o que a regra abaixo deriva de
-#   `palette/catppuccin.json`. Os QUATRO bateram: mocha, latte, frappé e
+#   `assets/paleta/catppuccin.json`. Os QUATRO bateram: mocha, latte, frappé e
 #   macchiato, todos os 29 hex de cada um. A regra é:
 #
 #       foreground = text          cursor            = rosewater
@@ -126,7 +126,7 @@
 #   slot escuro vestido devolveria o terminal ao "COSMIC Light" de fábrica no
 #   meio do dia. Escrever os dois custa quatro arquivos e fecha o buraco.
 #
-#   O flavor claro NÃO é escolha: `palette/catppuccin.json` grava
+#   O flavor claro NÃO é escolha: `assets/paleta/catppuccin.json` grava
 #   `"claros": ["latte"]` — o Catppuccin tem exatamente UM flavor claro. O
 #   slot claro é sempre o Latte, e o slot escuro é o `FLAVOR` do meow.conf
 #   (ou mocha, se `FLAVOR` for latte).
@@ -257,7 +257,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/comum.sh"
 
 DIR="${TERMINAL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicTerm/v1}"
-PALETA="$RAIZ/palette/catppuccin.json"
+PALETA="$RAIZ/assets/paleta/catppuccin.json"
 
 ESQUEMA="${TERMINAL_ESQUEMA:-sim}"
 _FLAVOR="${FLAVOR:-mocha}"
