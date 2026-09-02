@@ -749,6 +749,10 @@ function montarCartao(item) {
 
   if (item.frase) {
     cartao.append(elemento("p", {
+      /* `herdada` = o comentário veio de um bloco que descreve várias chaves.
+       * Era itálico, e itálico em três linhas de texto corrido cansa a leitura
+       * — vira uma mancha cinza inclinada repetida pela grade inteira. Agora é
+       * um traço à esquerda, que informa a mesma coisa sem gritar. */
       class: "frase" + (item.ajuda_herdada ? " herdada" : ""),
       texto: item.frase,
       title: item.ajuda_herdada
@@ -782,16 +786,18 @@ function montarCartao(item) {
      * um só e reage a todas as chaves ao mesmo tempo — que é o comportamento
      * que a pessoa espera de "mexi no raio, olha a barra". */
   } else if (!item.previa && GRUPOS_VISUAIS.has(item.subsecao || item.secao)) {
-    /* NEM TODA CHAVE VISUAL TEM PRÉVIA HONESTA, e onde não tem a página DIZ, em
-     * uma linha, em vez de deixar o espaço vazio. É a mesma disciplina do
-     * `meow logo girar`, que anuncia não ter efeito em vez de fingir que girou.
+    /* NEM TODA CHAVE VISUAL TEM PRÉVIA HONESTA, e onde não tem a página DIZ —
+     * mas UMA VEZ POR SEÇÃO, não uma vez por cartão.
      *
-     * O aviso só aparece nos grupos que TÊM alguma prévia — a `LOG_NIVEL` não
-     * precisa se explicar por não mostrar imagem, porque ninguém esperava uma. */
-    cartao.append(elemento("p", {
-      class: "sem-previa",
-      texto: "sem prévia: o efeito desta chave só aparece na tela depois de aplicada.",
-    }));
+     * A primeira versão punha a frase inteira dentro de cada cartão. Numa seção
+     * de catorze chaves, a mesma linha aparecia catorze vezes: metade do texto
+     * da tela era um aviso repetido, e ele empurrava a explicação de verdade
+     * para fora do corte. Visto na captura da seção Automação, 01/09/2026 —
+     * nove repetições numa tela só.
+     *
+     * Fica a marca discreta no cartão (o `data-sem-previa`, que o CSS usa para
+     * um traço lateral) e a frase completa no cabeçalho da seção. */
+    cartao.dataset.semPrevia = "1";
   }
 
   if (item.ajuda) {
@@ -1033,6 +1039,16 @@ function render() {
      * e não uma miniatura repetida dentro de cada cartão. O que ela mostra é o
      * tema que está INSTALADO — "está no disco?" e "está na tela dela?" são
      * perguntas diferentes, e é a segunda que importa aqui. */
+    /* A frase do "sem prévia", uma vez por seção — ver montarCartao. */
+    if (!busca && g.tipo === "chaves"
+        && (g.itens || []).some((i) => !i.previa && GRUPOS_VISUAIS.has(i.subsecao || i.secao))) {
+      alvo.append(elemento("p", {
+        class: "frase nota-secao",
+        texto: "As chaves marcadas com um traço à esquerda não têm prévia: o efeito "
+             + "delas só aparece na tela depois de aplicadas.",
+      }));
+    }
+
     /* O par painel + dock, uma vez, antes dos controles da seção. Os dois
      * juntos porque as chaves vêm em par (`FORMA_RAIO_PAINEL` e
      * `FORMA_RAIO_DOCK` moram na mesma seção) e comparar é metade da escolha. */

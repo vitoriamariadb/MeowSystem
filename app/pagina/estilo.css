@@ -147,14 +147,22 @@ body {
   border-right: 1px solid var(--surface0);
 }
 
+/* O TRILHO EM UMA LINHA POR ITEM.
+ * Antes, "O modo de leitura, e o relogio que o liga sozinho" ocupava tres
+ * linhas e colava o contador no fim da ultima palavra — vinte itens de alturas
+ * diferentes, sem uma so linha de base em comum. Agora cada item e uma linha
+ * com reticencias (o nome inteiro fica no `title`, que o app.js ja preenche), e
+ * o numero mora numa coluna propria, alinhado a direita em todos.
+ * `align-items: center` no lugar de `baseline`: com reticencias, a baseline de
+ * um texto cortado nao coincide com a do numero. */
 .trilho button {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
   gap: .5rem;
   width: 100%;
   text-align: left;
-  padding: .45rem .6rem;
+  padding: .5rem .6rem;
   margin-bottom: 2px;
   border: 0;
   border-radius: 7px;
@@ -162,7 +170,14 @@ body {
   color: var(--subtext1);
   font: inherit;
   font-size: .84rem;
+  line-height: 1.35;
   cursor: pointer;
+}
+.trilho button > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 .trilho button:hover { background: var(--surface0); color: var(--text); }
 .trilho button[aria-current="true"] {
@@ -171,7 +186,13 @@ body {
   font-weight: 600;
 }
 .trilho button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.trilho .conta { font-size: .72rem; color: var(--overlay1); font-variant-numeric: tabular-nums; }
+.trilho .conta {
+  font-size: .72rem;
+  color: var(--overlay1);
+  font-variant-numeric: tabular-nums;
+  min-width: 1.6em;
+  text-align: right;
+}
 .trilho hr { border: 0; border-top: 1px solid var(--surface0); margin: .6rem .4rem; }
 .trilho .rotulo-grupo {
   font-size: .68rem;
@@ -190,12 +211,28 @@ main {
 main:focus-visible { outline: none; }
 
 /* --- os cartões de chave -------------------------------------------------- */
+/* A SIMETRIA DA GRADE — refeita em 01/09/2026, a pedido dela: "o layout ta
+ * totalmente sem simetria".
+ *
+ * O `align-items: start` daqui era a causa: cada cartao ficava com a altura do
+ * proprio conteudo, entao uma linha com uma chave de tres botoes ao lado de
+ * outra com quatro linhas de explicacao abria um degrau de 60 px e um buraco
+ * embaixo. Numa pagina de 95 cartoes, isso e a tela inteira desalinhada.
+ *
+ * `stretch` (o padrao, que estava sendo desligado) faz todos os cartoes de uma
+ * linha terminarem juntos; quem distribui o espaco de sobra la dentro e o
+ * `margin-top: auto` do rodape do cartao. O resultado e uma malha regular, com
+ * os "por que" alinhados na mesma linha de base em toda a linha.
+ *
+ * `minmax(0, …)` e obrigatorio junto: com `1fr` puro, um nome de arquivo longo
+ * dentro de um cartao empurra a coluna e desalinha a linha inteira. */
 .grade {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-  gap: .7rem;
-  align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
+  gap: .9rem;
+  align-items: stretch;
 }
+.grade > * { min-width: 0; }
 
 .secao-titulo {
   margin: 1.4rem 0 .6rem;
@@ -213,15 +250,25 @@ main:focus-visible { outline: none; }
   background: var(--surface0);
 }
 
+/* O CARTAO TEM TRES ZONAS, e e isso que da o alinhamento horizontal:
+ *   topo      nome da chave + padrao          (altura fixa, uma linha)
+ *   controle  o que ela mexe                  (cresce com o tipo do controle)
+ *   rodape    frase, previa e o "por que"     (empurrado para baixo)
+ * O `margin-top:auto` na ultima crianca e o que ancora o rodape — sem ele, o
+ * espaco de sobra do `stretch` ficaria no fim do cartao e cada explicacao
+ * flutuaria numa altura diferente. */
 .cartao {
   background: var(--mantle);
   border: 1px solid var(--surface0);
   border-radius: 10px;
-  padding: .7rem .8rem .75rem;
+  padding: .8rem .85rem .85rem;
   display: flex;
   flex-direction: column;
-  gap: .45rem;
+  gap: .5rem;
+  min-height: 8.5rem;
 }
+.cartao > details.porque:last-child,
+.cartao > .sem-previa:last-child { margin-top: auto; }
 /* Mexeu = diferente do padrão do meow.conf.exemplo. É a resposta visual ao
  * pedido dela — "sempre lembrando de cada uma das escolhas que eu fiz": a
  * escolha não fica só guardada, ela fica VISÍVEL contra o que vinha de fábrica. */
@@ -249,12 +296,37 @@ main:focus-visible { outline: none; }
   white-space: nowrap;
 }
 
+/* A EXPLICACAO CURTA E CORTADA EM TRES LINHAS, e o resto vive no "por que".
+ * Os comentarios do meow.conf.exemplo variam de seis palavras a seis linhas —
+ * jogar todos crus no cartao era o outro motivo da densidade irregular. Tres
+ * linhas cabem em todo cartao e o texto inteiro continua a um clique. */
 .frase {
   font-size: .8rem;
+  line-height: 1.45;
   color: var(--subtext0);
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.frase.herdada { font-style: italic; }
+.frase.herdada {
+  border-left: 2px solid var(--surface1);
+  padding-left: .55rem;
+}
+/* A nota que substituiu as repeticoes dentro dos cartoes. */
+.nota-secao {
+  margin: 0 0 .9rem;
+  color: var(--overlay1);
+  -webkit-line-clamp: none;
+  line-clamp: none;
+  display: block;
+}
+/* A marca do cartao sem previa: um traco na borda, no lugar de uma frase
+   repetida em cada um deles. */
+.cartao[data-sem-previa] { border-left: 2px solid var(--surface1); }
+.cartao[data-sem-previa].mexeu { border-left: 3px solid var(--accent); }
 
 /* --- os controles --------------------------------------------------------- */
 .controle { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
@@ -567,6 +639,24 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1rem
 .vazio-msg { color: var(--overlay1); font-size: .85rem; padding: 2rem 0; text-align: center; }
 
 /* --- telas estreitas ------------------------------------------------------ */
+/* A PAGINA NAO ROLA DE LADO — medido em 01/09/2026 com o navegador em 320, 375,
+ * 414, 768 e 1024 px. Nos tres primeiros ela rolava, com 45 px de excesso.
+ *
+ * Eram DUAS causas, e nenhuma aparece lendo o CSS:
+ *   1. o bloco do titulo dentro de `.marca` e filho de um flex e nao tinha
+ *      `min-width: 0` — entao o caminho do meow.conf, que e uma linha longa e
+ *      sem espacos, impunha a propria largura ao cabecalho inteiro (485 px de
+ *      conteudo numa tela de 375);
+ *   2. o trilho vira barra horizontal aqui embaixo, e sem `min-width: 0` o
+ *      `overflow-x: auto` dele nao segura nada: os vinte botoes empurravam a
+ *      pagina em vez de rolar por dentro.
+ *
+ * O `overflow-x: clip` na raiz e a rede de seguranca. `clip` e nao `hidden`:
+ * `hidden` cria um contexto de rolagem e quebra `position: sticky` nos filhos. */
+html, body { overflow-x: clip; }
+.marca > div { min-width: 0; }
+.sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 @media (max-width: 820px) {
   .corpo { flex-direction: column; }
   .trilho {
@@ -574,11 +664,13 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1rem
     display: flex;
     gap: .3rem;
     overflow-x: auto;
+    min-width: 0;
+    max-width: 100%;
     border-right: 0;
     border-bottom: 1px solid var(--surface0);
     padding: .5rem;
   }
-  .trilho button { width: auto; white-space: nowrap; }
+  .trilho button { width: auto; white-space: nowrap; display: inline-flex; }
   .trilho hr, .trilho .rotulo-grupo, .trilho .conta { display: none; }
   .topo { flex-wrap: wrap; }
   .busca-caixa { order: 3; flex-basis: 100%; }
