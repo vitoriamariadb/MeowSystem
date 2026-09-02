@@ -235,14 +235,20 @@ def _padrao_do_exemplo(chave):
 def _opcoes(chave, ajuda, inline):
     """A primeira linha, da ajuda ou do comentário de linha, que seja `a | b | c`.
 
-    O `LOGO` é a única lida do DISCO, pelo mesmo motivo do `bin/meow`: as
-    variantes são ARQUIVOS em `assets/gatos/`, e uma lista escrita aqui ficaria
-    velha no dia em que ela desenhasse outro gato.
+    ESTA FUNÇÃO LÊ SÓ O TEXTO, E É POR ISSO QUE ELA EXISTE SEPARADA
+        Ela é a metade que o `wiz_opcoes` do `bin/meow` também implementa, e o
+        `tests/app.sh` compara as duas chave a chave. Tudo que sai do DISCO —
+        os gatos do acervo, os temas de ícone instalados, os ponteiros que o
+        `cursor.sh` resolve — mora em `_opcoes_do_disco`, uma camada acima, que
+        é da página e o bash não precisa conhecer.
+
+        Até 01/09/2026 havia aqui um `if chave in ("LOGO", "LOGO_DIA", ...)`: a
+        ÚNICA lista fixa de chaves do arquivo, e o `tests/app.sh` carregava a
+        exceção correspondente para as mesmas quatro. Ela saiu porque a regra
+        que a substituiu é derivada do CONTEÚDO (o comentário cita
+        `assets/gatos/`) e por isso pega sozinha a quinta chave que nascer assim
+        — que é a armadilha nº 3 deste projeto, e ela já cobrou duas vezes.
     """
-    if chave in ("LOGO", "LOGO_DIA", "LOGO_NOITE", "FASTFETCH_LOGO_GATO"):
-        gatos = _gatos()
-        if gatos:
-            return gatos
     for linha in (ajuda.splitlines() + [inline]):
         if "|" not in linha:
             continue
@@ -328,6 +334,99 @@ def _e_tabela(chave, ajuda, inline):
     return bool(_opcoes_da_lista_indentada(ajuda))
 
 
+# A TERCEIRA FORMA DE LISTAR OPÇÕES: ELAS NÃO ESTÃO ESCRITAS, ELAS SÃO O DISCO
+# ─────────────────────────────────────────────────────────────────────────────
+# Havia aqui, até 01/09/2026, uma lista de quatro nomes de chave — as do gato —
+# e ela era a única lista fixa do arquivo. A auditoria daquele dia mostrou o
+# preço de a regra não ser geral: `ICONES_BASE` (um TEMA DE ÍCONES INSTALADO) e
+# `CURSOR` (um PONTEIRO INSTALADO) caíam em campo de texto, e ela tinha de
+# digitar de cabeça o nome de uma pasta — numa página cujo motivo de existir é
+# não precisar decorar valor.
+#
+# A regra passa a ser a mesma do resto do arquivo: perguntar ao CONTEÚDO. O
+# comentário da chave diz de onde os valores vêm ("o acervo é a pasta
+# `assets/gatos/`", "o nome do tema de ícones", "o PONTEIRO"), e o gatilho é
+# esse texto. Chave nova cujo comentário cite o mesmo acervo ganha os botões
+# sozinha.
+#
+# A GUARDA É O VALOR DE FÁBRICA, e é ela que faz uma regra de texto largo não
+# atropelar as vizinhas. Três exemplos medidos nesta árvore:
+#
+#   LOGO_ROTACAO   o bloco dele cita `assets/gatos/*.svg` (explica o acervo da
+#                  rotação) e o padrão é `nao` — que não é gato nenhum. Fica de
+#                  fora, e continua com os dois botões sim/não.
+#   CURSOR_VERSAO  herda o bloco do `CURSOR`, que fala de ponteiro o tempo
+#                  todo; o padrão é `v2.0.0`, que não é ponteiro instalado.
+#   TERMINAL_CURSOR  a palavra "cursor" está no nome e no bloco; o padrão é
+#                  `accent`, e a lista `accent | port` do texto continua valendo.
+#
+# É o MESMO critério que já governa a tabela indentada ("a tabela só é desta
+# chave se o valor de fábrica dela estiver na tabela"), aplicado a uma lista que
+# mora no disco em vez de no comentário.
+#
+# POR ISSO O GATILHO PODE SER LARGO, e é de propósito que ele seja: a palavra
+# "ícone" aparece em dezenas de blocos deste arquivo, e o que decide não é ela —
+# é o disco. Um gatilho estreito ("tema de ícones", exatamente assim) quebraria
+# no dia em que alguém reescrevesse o comentário para dizer a mesma coisa com
+# outras palavras, e o sintoma seria a chave voltando a ser campo de texto sem
+# ninguém entender por quê. Largo + guarda apertada envelhece melhor que
+# estreito + guarda apertada.
+#
+# A TERCEIRA COLUNA É "ESTA LISTA É UMA CERCA?", E ELA SEPARA DOIS ACERVOS QUE
+# PARECEM IGUAIS
+#   `assets/gatos/` é uma pasta que ESTA PÁGINA sabe encher: o botão "Adicionar
+#   gato" manda um `.svg` para lá, e o próprio `meow.conf.exemplo` avisa que
+#   "qualquer outro valor é tratado como caminho de um SVG seu". Recusar na
+#   escrita um nome que ainda não está na pasta seria a página proibindo o que a
+#   CLI aceita — o pior lado para errar.
+#
+#   Um tema de ícones e um ponteiro são o oposto: têm de JÁ estar instalados no
+#   sistema, e esta página não instala nem um nem outro. Um valor que não esteja
+#   lá não é "ainda não chegou", é erro — e o erro aparece longe daqui e mudo
+#   (o `construir_pastas.sh:135` sai com SEM_DEPENDENCIA; o `cursor.sh` vai
+#   tentar BAIXAR `<valor>-cursors.zip` e falhar). Aí a lista vira cerca, e o
+#   `/api/definir` recusa na hora, com a frase que diz o que se esperava.
+FONTES_DO_DISCO = (
+    (re.compile(r"assets/gatos/"), "gatos", False),
+    (re.compile(r"[íi]cones?\b", re.I), "temas_icones", True),
+    (re.compile(r"ponteiro|cursor", re.I), "cursores", True),
+)
+
+# "Vazio = herda LOGO_DIA": uma chave que declara herdar outra oferece as MESMAS
+# opções que a outra oferece. É o que devolve os botões de gato às
+# `FASTFETCH_LOGO_DIA/NOITE`, cujo bloco de comentário é o da vizinha `_MODO` e
+# por isso não cita acervo nenhum — quem cita é a chave de quem elas herdam.
+RE_HERDA = re.compile(r"herda\s+([A-Z][A-Z0-9_]{2,})")
+
+
+def _disco_detalhe(ajuda, inline, padrao):
+    """(lista, é_cerca) — as opções que saem de uma pasta, e se elas proíbem."""
+    texto = ajuda + "\n" + inline
+    for gatilho, provedor, cerca in FONTES_DO_DISCO:
+        if not gatilho.search(texto):
+            continue
+        lista = PROVEDORES[provedor]()
+        if padrao and padrao in lista:
+            return (lista, cerca)
+    # A herança declarada só vale para chave que NASCE VAZIA: é a forma que o
+    # arquivo usa para dizer "sem valor, quem manda é a outra". Quem tem valor
+    # próprio já foi decidido no laço acima.
+    alvo = RE_HERDA.search(texto)
+    if not padrao and alvo:
+        padrao_alvo = _padrao_do_exemplo(alvo.group(1))
+        if padrao_alvo:
+            for _gatilho, provedor, cerca in FONTES_DO_DISCO:
+                lista = PROVEDORES[provedor]()
+                if padrao_alvo in lista:
+                    return (lista, cerca)
+    return ([], False)
+
+
+def _opcoes_do_disco(ajuda, inline, padrao):
+    """As opções que saem de uma pasta, quando o comentário aponta para uma."""
+    return _disco_detalhe(ajuda, inline, padrao)[0]
+
+
 def _opcoes_finais(chave, ajuda, inline, padrao, herdada=False):
     """As opções que a página oferece, com dois ajustes sobre o que o texto diz.
 
@@ -349,7 +448,15 @@ def _opcoes_finais(chave, ajuda, inline, padrao, herdada=False):
        A regra olha o VALOR DE FÁBRICA: se ele é exatamente `sim` ou `nao`, a
        chave é binária — o arquivo está dizendo isso, mesmo sem listar. Vale para
        nove chaves hoje, e vale sozinha para a próxima que nascer assim.
+
+    3. E O DISCO VENCE O TEXTO, quando o comentário aponta para uma pasta
+       Ver `_opcoes_do_disco`. Vem primeiro porque é mais específico: o texto do
+       `LOGO_MODO` descreve TRÊS MODOS e as duas chaves coladas nele querem um
+       NOME DE GATO — quem sabe a diferença é a pasta, não a frase.
     """
+    do_disco = _opcoes_do_disco(ajuda, inline, padrao)
+    if do_disco:
+        return do_disco
     opcoes = [o for o in _opcoes(chave, ajuda, inline) if o != "vazio"]
     # A TABELA INDENTADA SÓ DESCREVE A CHAVE SE O VALOR DE FÁBRICA ESTIVER NELA.
     #   `FASTFETCH_LOGO_MODO` traz a tabela `espelho / hora / fixo` e nasce
@@ -367,6 +474,74 @@ def _opcoes_finais(chave, ajuda, inline, padrao, herdada=False):
     if not opcoes and padrao in ("sim", "nao"):
         return ["sim", "nao"]
     return opcoes
+
+
+RE_DURACAO = re.compile(r"^\d+(?:[.,]\d+)?[smhd]$")
+
+
+def _opcoes_fechadas(chave, ajuda, inline, padrao):
+    """As opções que valem como CERCA na hora de escrever — e só essas.
+
+    A DIFERENÇA ENTRE SUGERIR E PROIBIR, E ELA IMPORTA NA ESCRITA
+        Uma lista que veio do TEXTO é fechada: o `case` do shell do outro lado
+        só conhece aqueles valores, e `MODO="gigante"` cai no `*)` calado. Uma
+        lista que veio do DISCO é aberta: ela é o acervo de hoje, e o arquivo
+        diz isso com todas as letras — `FASTFETCH_LOGO_GATO` documenta que
+        "qualquer outro valor é tratado como caminho de um SVG seu", e o acervo
+        de gatos cresce quando ela solta um arquivo na pasta.
+
+        Tratar as duas igual faria o `/api/definir` recusar um caminho de SVG
+        que o `fastfetch_logo.sh` aceita — a página proibindo o que a CLI
+        permite, que é o pior lado para errar.
+
+        Quem decide de que lado cada acervo está é a terceira coluna de
+        `FONTES_DO_DISCO`, e o motivo está escrito lá: o que ESTA página sabe
+        encher é aberto; o que tem de já estar instalado no sistema é cerca.
+    """
+    lista, cerca = _disco_detalhe(ajuda, inline, padrao)
+    if lista:
+        return lista if cerca else []
+    opcoes = _opcoes_finais(chave, ajuda, inline, padrao)
+
+    # UMA LISTA DE DURAÇÕES É EXEMPLO, NÃO CERCA — e isso é regressão medida.
+    #   `WALLPAPER_INTERVALO` traz `# 30s | 5m | 2h`, e a validação nova passou a
+    #   recusar `10m`, `1h` e `45s`. Mas o `bin/meow` aceita qualquer duração
+    #   (ele converte com `segundos_de`), e o `meow.conf` VIVO dela já tem
+    #   `WALLPAPER_INTERVALO="5m"` ao lado de outras chaves com valores fora da
+    #   lista. Três números com unidade não são um `case` do shell: são exemplos
+    #   de escala. Um revisor pegou isto por HTTP, com 400 na cara.
+    #   A regra é da FORMA: se TODOS os tokens são duração, a lista sugere e não
+    #   proíbe — quem confere o valor é a forma de duração, logo abaixo.
+    if opcoes and all(RE_DURACAO.match(o) for o in opcoes):
+        return []
+    return opcoes
+
+
+# A FORMA DO NÚMERO, DECLARADA PELO PRÓPRIO VALOR DE FÁBRICA
+# ─────────────────────────────────────────────────────────────────────────────
+# Nenhuma chave deste arquivo diz "sou um inteiro". O que ela diz é `="40"`,
+# `="0.85"`, `="1d"` — e isso já é a declaração inteira, escrita no lugar onde
+# ninguém esquece de atualizá-la. É a mesma regra do `sim`/`nao` de
+# `_opcoes_finais`, aplicada a número em vez de a booleano.
+#
+# Serve para duas coisas: dizer à página que controle desenhar, e dar ao
+# `/api/definir` uma cerca (ver `validar_valor`) — porque até 01/09/2026 a
+# palavra `abc` entrava em `BACKUPS_MANTIDOS` sem uma queixa, e quem descobria
+# era o `meow doctor --consertar` das 05:00, todo dia, longe da tela.
+FORMAS_NUMERO = (
+    ("inteiro", re.compile(r"^\d+$"), "um número inteiro (0, 12, 40)"),
+    ("decimal", re.compile(r"^\d*[.,]\d+$"), "um número com ponto decimal (0.85)"),
+    ("duracao", re.compile(r"^\d+[smhd]$"), "uma duração: número + s/m/h/d (30m, 1d)"),
+)
+RE_HORARIO_VALOR = re.compile(r"^([01]?\d|2[0-3]):[0-5]\d$")
+
+
+def _forma_de_numero(padrao):
+    """`inteiro`, `decimal`, `duracao` — ou vazio, quando o padrão não é número."""
+    for nome, forma, _explica in FORMAS_NUMERO:
+        if forma.match(padrao or ""):
+            return nome
+    return ""
 
 
 def _faixa(ajuda, inline):
@@ -657,6 +832,12 @@ def ler_esquema():
             #   controle, que é o que a prosa do arquivo quer dizer.
             "opcoes": _opcoes_finais(chave, ajuda, inline, _valor_da_linha(linha), herdada),
             "faixa": _faixa_confere(_faixa(ajuda, inline), _valor_da_linha(linha)),
+            # A forma do número, quando há uma. Sai do VALOR DE FÁBRICA, que é
+            # onde o arquivo já a declara sem precisar de uma palavra a mais —
+            # ver `FORMAS_NUMERO`. É o que permite à página desenhar um campo
+            # numérico em vez de um campo de texto, e ao `/api/definir` recusar
+            # `abc` numa chave que conta backups.
+            "tipo_numero": _forma_de_numero(_valor_da_linha(linha)),
             # Que prévia visual esta chave merece. Deduzido do conteúdo dela —
             # ver `_tipo_de_previa`, que explica por que não há lista aqui.
             "previa": _tipo_de_previa(
@@ -745,6 +926,195 @@ def _capturas():
         return []
 
 
+# --- 3b. os acervos que moram no DISCO, e não no texto -----------------------
+#
+# O `_gatos()` acima é o modelo: a lista não está escrita em lugar nenhum, ela É
+# a pasta. Os quatro provedores abaixo respondem à mesma pergunta para os temas
+# de ícones, os ponteiros e as duas pastas de papel de parede — e nasceram
+# porque a auditoria de 01/09/2026 mediu o preço de não os ter:
+#
+#   · `ICONES_BASE` era CAMPO DE TEXTO. Digitar `Nao-Existe-Nenhum` era aceito
+#     sem uma palavra, e o `construir_pastas.sh:135` só reclamava depois, saindo
+#     com SEM_DEPENDENCIA — longe da tela onde o erro foi cometido.
+#   · `CURSOR` oferecia QUATRO ponteiros e três deles gravavam um valor que o
+#     `scripts/cursor.sh` não resolve (medido abaixo, em `_temas_de_cursor`).
+#   · os 46 botões "Banir" e os 255 "Devolver" da galeria chamavam ações que não
+#     existiam, porque sem provedor não há como validar o argumento — e a
+#     fronteira deste arquivo é justamente "argumento vem do disco, nunca do
+#     navegador".
+#
+# A ORDEM É A DA BUSCA DO XDG, e ela não é decoração: `~/.local/share/icons`
+# vence `/usr/share/icons` para o mesmo nome, que é o que faz um tema instalado
+# por ela mascarar o do sistema. Quem lista tem de enxergar o mesmo que quem usa.
+RAIZES_ICONES = ("~/.local/share/icons", "~/.icons", "/usr/share/icons")
+
+# As duas linhas do `index.theme` que a especificação de ícones do freedesktop
+# define, e que separam um tema de ícone de um tema de cursor ou de uma pasta de
+# reserva. Ver `_temas_de_icones`, que explica o que cada uma tirou da lista.
+RE_TEMA_PASTAS = re.compile(r"^\s*Directories\s*=\s*\S", re.I)
+RE_TEMA_ESCONDIDO = re.compile(r"^\s*Hidden\s*=\s*true\s*$", re.I)
+
+
+def _dirs_de_icones():
+    """(nome, caminho) de todo diretório visível na busca de ícones do XDG."""
+    for raiz in RAIZES_ICONES:
+        caminho = os.path.expanduser(raiz)
+        try:
+            nomes = sorted(os.listdir(caminho))
+        except OSError:
+            continue
+        for nome in nomes:
+            completo = os.path.join(caminho, nome)
+            if os.path.isdir(completo):
+                yield nome, completo
+
+
+def _temas_de_icones():
+    """Os temas de ícones INSTALADOS — o que `ICONES_BASE` pode de fato herdar.
+
+    O CRITÉRIO É O `index.theme`, E NÃO O NOME DA PASTA
+        `/usr/share/icons` desta máquina tem 22 diretórios e nem todos são tema
+        (`locolor` não tem `index.theme`; há até `.png` solto lá dentro). O
+        arquivo `index.theme` é o que o GTK e o COSMIC procuram para decidir que
+        aquilo é um tema — usar o mesmo teste é a única forma de a lista da
+        página e a lista de quem desenha a tela serem a mesma lista.
+
+    E DENTRO DELE, DUAS LINHAS QUE A ESPECIFICAÇÃO JÁ ESCREVEU PARA NÓS
+        Só o `index.theme` não basta, e a primeira versão desta função provou:
+        a lista saiu com `default` e `catppuccin-mocha-light-cursors` dentro —
+        os dois são temas de CURSOR, e herdá-los como base de ícone daria uma
+        árvore sem um ícone de aplicativo. O que os separa está no próprio
+        arquivo, e é da especificação de ícones do freedesktop:
+
+          Directories=   um tema de ícone é OBRIGADO a declarar as pastas de
+                         tamanho que ele oferece. Tema de cursor não tem
+                         nenhuma, e o `default` escrito pelo `cursor.sh` só tem
+                         `Inherits=`. Medido nos oito casos de borda desta
+                         máquina, é o corte exato.
+          Hidden=true    é a palavra da própria especificação para "não ofereça
+                         este numa lista de escolha". Tira o `hicolor` (a
+                         hierarquia de reserva) e o `pop-os-branding` (logos do
+                         sistema) — os dois apareciam na lista e escolher
+                         qualquer um deixaria a máquina sem ícone.
+
+        Tentei antes um teste mais óbvio — "tem uma pasta `apps/` dentro?" — e
+        ele ERRA: `ePapirus` e `Papirus-Light` montam as pastas por link
+        simbólico, então um `find` sem seguir links os declarava vazios e
+        justamente os dois Papirus, que são a base natural aqui, sumiam da
+        lista. A metadados se pergunta pelos metadados.
+
+    O TEMA QUE NÓS CONSTRUÍMOS SAI DA LISTA, E ISSO É O QUE SEPARA DUAS CHAVES
+        `NOME_TEMA_ICONES` e `ICONES_BASE` moram coladas no `meow.conf.exemplo`,
+        sob UM comentário só — então a `ICONES_BASE` herda o bloco da vizinha e
+        nenhuma regra de texto consegue distingui-las. O que as distingue é o
+        sentido: `NOME_TEMA_ICONES` é o nome que este projeto CRIA (e que numa
+        máquina limpa ainda não existe), e `ICONES_BASE` é um tema de terceiro
+        que ele HERDA. Tirar o nosso da lista resolve os dois de uma vez: a base
+        não pode ser o próprio tema (seria um `Inherits` em laço), e a chave que
+        nomeia o nosso tema deixa de casar com a lista e continua texto livre,
+        que é o certo — ela batiza uma pasta que ainda vai nascer.
+
+        O nome sai da conf (exemplo + a dela, a última vence), nunca chumbado:
+        renomear o tema move a exclusão junto.
+    """
+    nosso = valores_brutos().get("NOME_TEMA_ICONES", "")
+    fora = set()
+    for nome, caminho in _dirs_de_icones():
+        if nome == nosso or nome in fora:
+            continue
+        try:
+            with open(os.path.join(caminho, "index.theme"), "r",
+                      encoding="utf-8", errors="replace") as fh:
+                linhas = fh.read().splitlines()
+        except OSError:
+            continue
+        if any(RE_TEMA_ESCONDIDO.match(l) for l in linhas):
+            continue
+        if any(RE_TEMA_PASTAS.match(l) for l in linhas):
+            fora.add(nome)
+    return sorted(fora)
+
+
+# O sufixo que o `scripts/cursor.sh:189` acrescenta SEMPRE:
+#     _cursor_nome_tema() { printf '%s-cursors' "$1"; }
+SUFIXO_CURSOR = "-cursors"
+
+
+def _temas_de_cursor():
+    """Os valores que a chave `CURSOR` aceita — nem um a mais que isso.
+
+    O QUE A PÁGINA OFERECIA, E O QUE ACONTECIA AO CLICAR — medido em 01/09/2026
+        A lista anterior era "todo diretório com uma pasta `cursors/` dentro",
+        mais um apelido curto como SEGUNDA opção clicável. Nesta máquina isso
+        dava quatro botões, e só um deles funcionava:
+
+            catppuccin-mocha-light-cursors  -> procura `…-cursors-cursors`  ✗
+            catppuccin-mocha-light          -> procura `…-light-cursors`    ✓
+            Adwaita                         -> procura `Adwaita-cursors`    ✗
+            Pop                             -> procura `Pop-cursors`        ✗
+
+        Os três com ✗ não dão erro na tela: o `cursor.sh` conclui que o tema não
+        está instalado e vai BAIXAR `<valor>-cursors.zip` do release fixado do
+        `catppuccin/cursors` — que para `Adwaita` não existe. Ou seja, um clique
+        num ponteiro que ela tem instalado tentava a rede e falhava.
+
+    A REGRA, DERIVADA DO SCRIPT E DO DISCO
+        O `cursor.sh` resolve `<valor>-cursors/cursors/` nas três raízes de
+        ícone (`_cursor_instalado`, cursor.sh:257). Então o valor válido é o
+        nome do diretório MENOS o sufixo — e um diretório que não termine em
+        `-cursors` simplesmente não é escolhível por esta chave, por mais que
+        tenha ponteiros dentro. Nada de lista fixa: instale outro tema
+        `<x>-cursors` e ele aparece; o Adwaita continua fora porque continua
+        sem nome que o script saiba montar.
+
+        `set` e não lista: o mesmo tema pode estar em duas raízes, e oferecer o
+        mesmo nome duas vezes é o defeito que esta função veio consertar.
+    """
+    fora = set()
+    for nome, caminho in _dirs_de_icones():
+        if not nome.endswith(SUFIXO_CURSOR):
+            continue
+        if os.path.isdir(os.path.join(caminho, "cursors")):
+            fora.add(nome[: -len(SUFIXO_CURSOR)])
+    return sorted(fora)
+
+
+def _paredes_ativas():
+    """Os CAMINHOS das imagens em `ativos/` — é o que `wallpaper banir` recebe.
+
+    `cmd_banir` (wallpaper.sh:1602) começa com `[ -f "$img" ]`: o argumento dele
+    é um arquivo, não um nome. E tem de ser o de `ativos/`, não o do link duro em
+    `ativos-noite/` ou `ativos-dia/` — banir pelo link move só o link e deixa o
+    original girando, que é um banimento pela metade e mudo.
+    """
+    base = os.path.join(_wallpaper_base(), "ativos")
+    try:
+        nomes = sorted(os.listdir(base))
+    except OSError:
+        return []
+    return [os.path.join(base, n) for n in nomes
+            if os.path.splitext(n)[1].lower() in EXT_RASTER
+            and os.path.isfile(os.path.join(base, n))]
+
+
+def _paredes_banidas():
+    """Os NOMES das imagens em `banidos/` — é o que `wallpaper desbanir` recebe.
+
+    Aqui é o oposto do `banir`, e é o próprio script quem diz: `cmd_desbanir`
+    faz `basename` no que recebe e procura em `banidos/`, dizendo em voz alta
+    "o nome é o do ARQUIVO, sem caminho". São 255 nesta máquina, e nenhuma foi
+    apagada — banir move, nunca remove.
+    """
+    base = os.path.join(_wallpaper_base(), "banidos")
+    try:
+        nomes = sorted(os.listdir(base))
+    except OSError:
+        return []
+    return [n for n in nomes
+            if os.path.splitext(n)[1].lower() in EXT_RASTER
+            and os.path.isfile(os.path.join(base, n))]
+
+
 def valores_brutos():
     """O valor CRU de cada chave no meow.conf dela, caindo no exemplo quando falta.
 
@@ -800,6 +1170,76 @@ def valores_efetivos(chaves):
             k, v = pedaco.split("=", 1)
             fora[k] = v
     return fora
+
+
+def validar_valor(item, valor):
+    """None quando o valor cabe na chave; a frase da recusa quando não cabe.
+
+    POR QUE ISTO EXISTE — 01/09/2026
+        `/api/definir` conferia só o NOME da chave: se ela estava no esquema,
+        o valor ia para o disco fosse ele qual fosse. A auditoria mediu quatro
+        no navegador, todos aceitos sem uma palavra na tela:
+
+            FORMA_RAIO_PAINEL="banana"     ESCALA_TELA="gigante"
+            BACKUPS_MANTIDOS="abc"         VIDRO_OPACIDADE_PAINEL="999"
+
+        O estrago não aparece aqui: aparece de madrugada, quando o
+        `meow doctor --consertar` das 05:00 tropeça no valor e erra todo dia, ou
+        na hora em que o `escala.sh` sai com erro e ninguém liga o erro ao
+        clique de três dias antes. Um valor que o outro lado não sabe ler tem de
+        ser recusado no momento em que foi digitado, com a frase que diz o que
+        se esperava.
+
+    E A CERCA É O PRÓPRIO ESQUEMA, NUNCA UMA TABELA À PARTE
+        Tudo que ela confere já estava sendo lido do `meow.conf.exemplo` para
+        desenhar o controle: as opções, a faixa, o horário, a forma do número.
+        Quem desenha um deslizante de 1000 a 6500 já sabe recusar 9000 — só
+        faltava perguntar. Chave nova ganha a cerca junto com o controle, no
+        mesmo dia, sem ninguém vir aqui.
+
+    O VAZIO PASSA SEMPRE, e é decisão, não esquecimento: vazio é a forma que
+    este projeto inteiro usa para dizer "não mexa" (`${VAR:-}` em todo script), e
+    recusá-lo tiraria dela o gesto de desistir de uma chave. Onde vazio não faz
+    sentido, quem reclama é o script, com a mensagem dele.
+    """
+    if valor == "":
+        return None
+
+    fechadas = _opcoes_fechadas(item["chave"], item["ajuda"], item["inline"],
+                                item["padrao"])
+    if fechadas and valor not in fechadas:
+        return "%s aceita %s" % (item["chave"], " | ".join(fechadas))
+
+    # Quando a lista era de durações, ela virou sugestão lá em cima — e o que
+    # confere aqui é a FORMA: número mais unidade. `10m` passa, `banana` não.
+    if (not fechadas and item["opcoes"]
+            and all(RE_DURACAO.match(o) for o in item["opcoes"])):
+        if not RE_DURACAO.match(valor):
+            return ("%s é uma duração: número e unidade (30s, 5m, 2h, 1d)"
+                    % item["chave"])
+        return None
+
+    if item["horario"] and not RE_HORARIO_VALOR.match(valor):
+        return "%s é um horário no formato HH:MM (07:30)" % item["chave"]
+
+    if item["faixa"]:
+        lo, hi, _passo = item["faixa"]
+        try:
+            n = float(valor.replace(",", "."))
+        except ValueError:
+            return "%s é um número entre %s e %s" % (item["chave"], lo, hi)
+        if not (lo <= n <= hi):
+            return "%s vai de %s a %s — %s está fora" % (item["chave"], lo, hi, valor)
+        return None
+
+    # A forma do número só vale quando não há lista nem faixa dizendo mais.
+    if item["tipo_numero"]:
+        for nome, forma, explica in FORMAS_NUMERO:
+            if nome == item["tipo_numero"]:
+                if not forma.match(valor):
+                    return "%s espera %s" % (item["chave"], explica)
+                break
+    return None
 
 
 def definir(chave, valor, seco=False):
@@ -897,10 +1337,22 @@ def paleta_css(flavor, accent):
 # `arg` nomeia um PROVEDOR de valores válidos, e o valor que a página mandar é
 # conferido contra a lista que o provedor monta DO DISCO. Um `id` de captura que
 # não existe é recusado antes de qualquer processo nascer.
+#
+# ELE É TAMBÉM O CATÁLOGO DE OPÇÕES DA PÁGINA — 01/09/2026
+#   O mesmo dicionário alimenta duas coisas que sempre foram a mesma pergunta
+#   ("que valores existem AGORA no disco?"): o argumento de uma ação e as opções
+#   de uma chave (ver `FONTES_DO_DISCO`). Tê-los em tabelas separadas seria
+#   convidar a divergência entre o que a página OFERECE e o que o servidor
+#   ACEITA — e a página oferecendo o que o servidor recusa é exatamente o
+#   defeito que a auditoria mediu no `CURSOR`.
 PROVEDORES = {
     "capturas": _capturas,
     "gatos": _gatos,
     "modos": lambda: ["claro", "escuro", "auto"],
+    "temas_icones": _temas_de_icones,
+    "cursores": _temas_de_cursor,
+    "paredes_ativas": _paredes_ativas,
+    "paredes_banidas": _paredes_banidas,
 }
 
 
@@ -1065,6 +1517,43 @@ ACOES = {
         "argv": _meow("wallpaper", "aplicar"),
         "seco": True, "sudo": False, "confirma": False,
         "ajuda": "Reescreve o estado do cosmic-bg a partir das chaves WALLPAPER_*.",
+    },
+    # AS DUAS AÇÕES DA GALERIA, QUE FALTAVAM — 01/09/2026
+    #
+    # A auditoria contou, no navegador, 46 botões "Banir" e 255 "Devolver" que
+    # não chamavam NADA: o `rodarNaGaleria` do `app.js` procura a ação por id,
+    # não acha, e devolve calado (`if (!acao) return`). É o caso de uso mais
+    # visual da página inteira — ver a foto e recusá-la — e ele morria em
+    # silêncio, sem torrada, sem erro, sem nada.
+    #
+    # `oculta` porque elas NÃO SÃO CARTÃO na aba "Fazer": o argumento delas é
+    # uma imagem, e escolher imagem é o que a galeria já faz com miniatura. Um
+    # cartão com um `<select>` de 255 nomes de arquivo seria a pior forma
+    # possível de perguntar "qual foto?" numa página que sabe desenhá-las.
+    #
+    # E `confirma` fica FALSO nas duas, de propósito: banir MOVE para `banidos/`
+    # e o `desbanir` desfaz — o script diz isso na cara ("está em banidos/, não
+    # foi apagada"). Uma pergunta de confirmação a cada miniatura, num gesto
+    # reversível que ela vai repetir dezenas de vezes seguidas, é ruído; a
+    # tranca aqui é o modo seco e o fato de o inverso existir e estar na tela.
+    "wallpaper_banir": {
+        "rotulo": "Banir este papel de parede",
+        "grupo": "Papel de parede",
+        "argv": _meow("wallpaper", "banir", "@ARG@"), "arg": "paredes_ativas",
+        "seco": True, "sudo": False, "confirma": False,
+        "destrutivo": True, "oculta": True,
+        "ajuda": "Tira a imagem de ativos/ e a guarda em banidos/, e escreve o "
+                 "nome no BANIDOS.txt para o `semear` não a repor. Nada é "
+                 "apagado: o \"Devolver\" da sub-aba Recusadas desfaz.",
+    },
+    "wallpaper_desbanir": {
+        "rotulo": "Devolver este papel de parede",
+        "grupo": "Papel de parede",
+        "argv": _meow("wallpaper", "desbanir", "@ARG@"), "arg": "paredes_banidas",
+        "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Copia a imagem de volta para ativos/ E tira o nome do "
+                 "BANIDOS.txt — as duas metades, que é o que nenhum contorno "
+                 "manual fazia.",
     },
     "wallpaper_semear": {
         "rotulo": "Semear o acervo (BAIXA DA REDE)",
@@ -1290,13 +1779,20 @@ def _wallpaper_base():
     return base or os.path.expanduser("~/.local/share/backgrounds/meowsystem")
 
 
+# Os cinco grupos do acervo e a pasta de cada um. Fica aqui fora porque as
+# CONTAGENS precisam da lista mesmo quando a pasta está vazia: a sub-aba
+# "Favoritos" não tem um arquivo nesta máquina, e sem isto ela ficava sem número
+# nenhum na tela — indistinguível de uma aba que ainda não foi contada.
+GRUPOS_PAREDE = (("ativos", "ativos"), ("noite", "ativos-noite"),
+                 ("dia", "ativos-dia"), ("favoritos", "favoritos"),
+                 ("banidos", "banidos"))
+
+
 def _prev_paredes():
-    """Os quatro grupos do acervo. `banidos/` entra porque desbanir é um clique."""
+    """Os cinco grupos do acervo. `banidos/` entra porque desbanir é um clique."""
     base = _wallpaper_base()
     fora = []
-    for grupo, pasta in (("ativos", "ativos"), ("noite", "ativos-noite"),
-                         ("dia", "ativos-dia"), ("favoritos", "favoritos"),
-                         ("banidos", "banidos")):
+    for grupo, pasta in GRUPOS_PAREDE:
         caminho = os.path.join(base, pasta)
         try:
             nomes = sorted(os.listdir(caminho))
@@ -1311,8 +1807,21 @@ def _prev_paredes():
             # O id carrega o grupo porque o MESMO nome existe em `ativos/` e em
             # `ativos-noite/` — são link duro para o mesmo arquivo, e sem o
             # prefixo um id apontaria para dois lugares.
+            #
+            # E É POR ISSO QUE `banir` VEM SEPARADO DE `origem` — 01/09/2026
+            #   Banir é `mv`, e `mv` move O CAMINHO que recebe: banir pelo link
+            #   duro de `ativos-noite/` tira a imagem da pasta da noite e deixa a
+            #   de `ativos/` girando o dia inteiro — um banimento pela metade, e
+            #   mudo. As sub-abas Noite e Dia são justamente onde ela repara que
+            #   a imagem está clara demais, então o botão precisa existir lá; o
+            #   que ele manda é o caminho canônico, o de `ativos/`.
+            #   Vazio quando não há canônico (as recusadas, e um favorito que não
+            #   esteja em `ativos/`): aí não há o que banir, e a página não deve
+            #   desenhar o botão.
+            canonico = os.path.join(base, "ativos", nome)
             fora.append({"id": grupo + "/" + nome, "rotulo": nome,
-                         "origem": arq, "grupo": grupo})
+                         "origem": arq, "grupo": grupo,
+                         "banir": canonico if os.path.isfile(canonico) else ""})
     return fora
 
 
@@ -1343,47 +1852,44 @@ def _prev_icones():
 
 
 def _prev_cursores():
-    """Os temas de cursor disponíveis, desenhados do XCursor de verdade."""
+    """Um item por ponteiro que a chave `CURSOR` de fato SABE escolher.
+
+    O QUE ESTA FUNÇÃO DESENHAVA ANTES, E O QUE ISSO CUSTAVA — 01/09/2026
+        Ela enumerava todo diretório com uma pasta `cursors/` dentro e ainda
+        acrescentava um apelido curto como SEGUNDA opção clicável. Na tela isso
+        virava quatro ponteiros, dos quais TRÊS gravavam um valor que o
+        `scripts/cursor.sh` não resolve — e dois deles eram o mesmo cursor com
+        nomes diferentes, um funcionando e o outro não. A conta está em
+        `_temas_de_cursor`, que agora é a única a decidir quem entra.
+
+        O apelido não some: ele vira o CAMINHO por onde se acha o arquivo (o
+        valor `catppuccin-mocha-light` mora em `catppuccin-mocha-light-cursors`),
+        que era o problema legítimo que ele veio resolver. O que ele deixa de
+        ser é uma opção a mais para clicar.
+
+    Diretório que não termine em `-cursors` — Adwaita, Pop, breeze — fica de
+    fora da lista, e isso não é perda: escolhê-los NUNCA funcionou. O
+    `cursor.sh` procuraria `Adwaita-cursors`, não acharia, e tentaria baixar
+    `Adwaita-cursors.zip` do release do `catppuccin/cursors`, que não existe.
+    """
     fora = []
-    for raiz_busca in (os.path.expanduser("~/.local/share/icons"),
-                       os.path.expanduser("~/.icons"), "/usr/share/icons"):
-        try:
-            temas = sorted(os.listdir(raiz_busca))
-        except OSError:
-            continue
-        for tema in temas:
-            pasta = os.path.join(raiz_busca, tema, "cursors")
-            if not os.path.isdir(pasta):
-                continue
+    for valor in _temas_de_cursor():
+        pasta_tema = valor + SUFIXO_CURSOR
+        alvo = None
+        for raiz in RAIZES_ICONES:
+            pasta = os.path.join(os.path.expanduser(raiz), pasta_tema, "cursors")
             # `default` é o nome canônico e `left_ptr` o histórico; um costuma
             # ser link simbólico para o outro, e qualquer um serve.
-            alvo = None
             for cand in ("left_ptr", "default"):
                 caminho = os.path.join(pasta, cand)
                 if os.path.isfile(caminho):
                     alvo = os.path.realpath(caminho)
                     break
-            if not alvo:
-                continue
-            # O nome que a chave CURSOR usa é o do diretório do tema, e nesta
-            # máquina o acervo Catppuccin instala com o sufixo `-cursors`. A
-            # chave aceita os dois; o rótulo mostra o diretório real.
-            if any(f["id"] == tema for f in fora):
-                continue
-            fora.append({"id": tema, "rotulo": tema, "origem": alvo, "grupo": "cursor"})
-            # O NOME DA CHAVE E O NOME DA PASTA NÃO SÃO O MESMO, e ignorar isso
-            # deixava a chave `CURSOR` sem prévia justamente na máquina dela.
-            # O `meow.conf` traz `CURSOR="catppuccin-mocha-light"`; o acervo
-            # instala em `catppuccin-mocha-light-cursors`. Os dois funcionam
-            # porque quem resolve é o caminho de busca do XCursor, que casa o
-            # diretório pelo nome do tema — mas para achar o ARQUIVO aqui é
-            # preciso conhecer as duas grafias. O apelido custa três linhas e faz
-            # a prévia aparecer para o valor que ela de fato tem escrito.
-            if tema.endswith("-cursors"):
-                curto = tema[: -len("-cursors")]
-                if not any(f["id"] == curto for f in fora):
-                    fora.append({"id": curto, "rotulo": curto, "origem": alvo,
-                                 "grupo": "cursor"})
+            if alvo:
+                break
+        if alvo:
+            fora.append({"id": valor, "rotulo": valor, "origem": alvo,
+                         "grupo": "cursor"})
     return fora
 
 
@@ -1460,6 +1966,11 @@ PREVIA_FONTES = {
     "icone": _prev_icones,
     "cursor": _prev_cursores,
 }
+# Os grupos que um tipo TEM, mesmo os vazios. Só o papel de parede se divide em
+# grupos fixos (as cinco pastas do acervo); os outros descobrem o grupo item a
+# item. Serve às contagens de `previas()`, para uma pasta vazia mostrar 0 em vez
+# de sumir da conta — ver o comentário lá.
+PREVIA_GRUPOS = {"parede": [g for g, _pasta in GRUPOS_PAREDE]}
 # A largura da miniatura, por tipo. O papel de parede é o único que precisa ser
 # grande o bastante para ela reconhecer a foto; o resto é ícone e cabe pequeno.
 PREVIA_LARGURA = {"parede": 320, "gato": 0, "icone": 0, "cursor": 96}
@@ -1572,6 +2083,22 @@ def previas(tipo, grupo=None):
     if fonte is None:
         return None
     itens = fonte()
+    # AS CONTAGENS SAEM ANTES DO FILTRO, E É DE PROPÓSITO — 01/09/2026
+    #   As cinco sub-abas da galeria nasciam sem número: só ganhavam a conta
+    #   depois de serem ABERTAS uma vez, porque a página só sabia o tamanho do
+    #   grupo que tinha pedido. Ficava na tela "No carrossel 46 · Noite · Dia ·
+    #   Favoritos · Recusadas" — quatro rótulos mudos ao lado de um com número,
+    #   e nenhuma pista de que "Recusadas" guarda 255 imagens.
+    #   Esta função já lê as cinco pastas em uma passada (o `fonte()` acima);
+    #   contá-las custa um laço e responde a pergunta inteira de uma vez.
+    #   Os grupos conhecidos entram ZERADOS antes da conta: uma pasta vazia tem
+    #   de dizer "0", e não sumir. Sem isto, "Favoritos" — que não tem um
+    #   arquivo nesta máquina — ficava sem número, exatamente igual a uma aba
+    #   que ainda não tinha sido aberta.
+    contagens = {g: 0 for g in PREVIA_GRUPOS.get(tipo, ())}
+    for i in itens:
+        contagens[i["grupo"]] = contagens.get(i["grupo"], 0) + 1
+    total = len(itens)
     if grupo:
         itens = [i for i in itens if i["grupo"] == grupo]
     fora, faltam = [], 0
@@ -1580,12 +2107,20 @@ def previas(tipo, grupo=None):
         if not pronta:
             faltam += 1
             _enfileirar(item, tipo)
-        fora.append({
+        saida = {
             "id": item["id"], "rotulo": item["rotulo"], "grupo": item["grupo"],
             "pronta": pronta, "origem": item["origem"],
             "url": "/previa?tipo=%s&id=%s" % (tipo, quote(item["id"], safe="")),
-        })
-    return {"tipo": tipo, "itens": fora, "faltam": faltam}
+        }
+        # O campo extra que só o papel de parede tem: o caminho que a ação de
+        # banir aceita (ver `_prev_paredes`). Copiado por presença, e não por
+        # nome de tipo — a próxima fonte que precisar de um campo próprio o
+        # ganha sem ninguém vir aqui.
+        if "banir" in item:
+            saida["banir"] = item["banir"]
+        fora.append(saida)
+    return {"tipo": tipo, "itens": fora, "faltam": faltam,
+            "contagens": contagens, "total": total}
 
 
 def previa_bytes(tipo, ident):
@@ -1687,12 +2222,69 @@ TRABALHO_ATUAL = None
 TRABALHO_TRAVA = threading.Lock()
 
 
-def iniciar(acao_id, argumento, seco):
-    """Começa uma ação. Devolve (trabalho, erro)."""
+def escreve(acao):
+    """Esta ação escreve na máquina dela?
+
+    A RESPOSTA SAI DO `seco`, E AS DUAS COINCIDEM POR UMA RAZÃO
+        `seco: True` marca a ação que aceita `MEOW_DRY_RUN=1`, e uma ação que
+        nunca escreve não tem o que prever — não haveria o que o seco calasse.
+        Por isso não existe um campo `escreve` digitado à mão em cada entrada
+        de `ACOES`: seria uma segunda verdade sobre a mesma ação, e o dia em que
+        as duas discordassem a tela mostraria a errada.
+
+    E ELA É UMA PERGUNTA DIFERENTE DE "ACEITA SECO" — 01/09/2026
+        A auditoria mediu na tela: os cartões que escrevem traziam só a pastilha
+        "ACEITA SECO", que fala de uma CAPACIDADE DE SIMULAÇÃO, não de risco; os
+        que só leem não traziam pastilha nenhuma. Ou seja, a única marca visível
+        separava `doctor` de `doctor --consertar` falando de outro assunto. O
+        servidor passa a dizer a palavra certa, e a página só precisa mostrá-la.
+    """
+    return bool(acao.get("seco"))
+
+
+def iniciar(acao_id, argumento, seco, confirmado=False):
+    """Começa uma ação. Devolve (trabalho, erro) — o erro pode ser um dicionário."""
     global TRABALHO_ATUAL
     acao = ACOES.get(acao_id)
     if acao is None:
         return (None, "ação desconhecida")
+
+    # O SECO EFETIVO NÃO É O QUE A PÁGINA PEDIU — 01/09/2026
+    #   `MEOW_DRY_RUN=1` só é posto no ambiente quando a AÇÃO aceita seco (ver
+    #   logo abaixo, e é assim desde sempre). Marcar a caixa "modo seco" numa
+    #   ação que não o aceita não protege nada, e é esse valor — o efetivo, não
+    #   o pedido — que decide se a confirmação é dispensável.
+    seco_valendo = bool(seco and acao.get("seco"))
+
+    # A CONFIRMAÇÃO É UMA TRANCA DO SERVIDOR, E NÃO UM COSTUME DA PÁGINA
+    #   O campo `confirma` existe desde o primeiro dia e era só uma DICA: a
+    #   página perguntava se quisesse, e um POST direto (ou um botão que
+    #   esquecesse de perguntar) disparava `./install.sh` ou o `desfazer` na
+    #   mesma linha. A auditoria de 01/09/2026 mediu a versão prática do
+    #   problema — "o modo seco nasce desligado e treze ações que escrevem no
+    #   sistema disparam de primeira" —, e a resposta certa não é a página
+    #   lembrar de perguntar: é o servidor não obedecer sem a resposta.
+    #
+    #   No seco a tranca não se aplica, e isso não é folga: no seco NADA é
+    #   escrito, e exigir confirmação para uma simulação ensinaria a confirmar
+    #   sem ler, que é o oposto do que a tranca serve.
+    #
+    #   O erro sai como DICIONÁRIO (e não frase) porque a página tem de poder
+    #   distinguir "preciso perguntar" de "deu errado" sem ler texto: um é uma
+    #   pergunta a fazer, o outro é uma torrada vermelha.
+    if acao.get("confirma") and not seco_valendo and not confirmado:
+        return (None, {
+            "erro": "esta ação escreve na máquina e precisa de confirmação",
+            "precisa_confirmar": True,
+            "acao": acao_id,
+            "rotulo": acao["rotulo"],
+            "ajuda": acao.get("ajuda", ""),
+            "escreve": escreve(acao),
+            "sudo": bool(acao.get("sudo")),
+            "rede": bool(acao.get("rede")),
+            "destrutivo": bool(acao.get("destrutivo")),
+            "aceita_seco": bool(acao.get("seco")),
+        })
 
     argv = list(acao["argv"])
     if "@ARG@" in argv:
@@ -1706,7 +2298,7 @@ def iniciar(acao_id, argumento, seco):
     ambiente = dict(os.environ)
     ambiente["MEOW_RAIZ"] = RAIZ
     ambiente.update(acao.get("ambiente", {}))
-    if seco and acao.get("seco"):
+    if seco_valendo:
         ambiente["MEOW_DRY_RUN"] = "1"
     else:
         ambiente.pop("MEOW_DRY_RUN", None)
@@ -1865,6 +2457,54 @@ class Manipulador(BaseHTTPRequestHandler):
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
             return self._api_get(caminho, consulta)
+
+        if caminho == "/folha":
+            # A rota mora AQUI, e não em `_api_get`: `/folha` não começa com
+            # `/api/`, então lá ela nunca era alcançada — o roteador respondia
+            # "não existe aqui" antes. Pego ao abrir a primeira folha no teste.
+            if not self._token_confere(consulta):
+                return self._recusar(403, "token de sessão ausente ou errado")
+            # AS FOLHAS SÃO PARA ABRIR, e não para copiar caminho.
+            #   A auditoria mediu: "as 18 folhas são texto morto: nada é
+            #   clicável, nada abre, e o caminho absoluto que a frase manda usar
+            #   não é clicável". Servi-las daqui é o que torna a aba útil — e a
+            #   cerca é a mesma dos outros arquivos: só o que está dentro de
+            #   `docs/folhas/`, e só `.html`.
+            nome_folha = os.path.basename(consulta.get("id", [""])[0] or "")
+            alvo_folha = os.path.realpath(os.path.join(FOLHAS, nome_folha))
+            if (not alvo_folha.startswith(os.path.realpath(FOLHAS) + os.sep)
+                    or not alvo_folha.endswith(".html")
+                    or not os.path.isfile(alvo_folha)):
+                return self._recusar(404, "não achei")
+            try:
+                with open(alvo_folha, "rb") as fh:
+                    dados_folha = fh.read()
+            except OSError:
+                return self._recusar(404, "não achei")
+            self.send_response(200)
+            # `text/html` com CSP fechada: a folha é arquivo NOSSO, mas ela vem
+            # de fora do fluxo normal da página e não tem por que rodar script.
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            # A CSP PRECISA DEIXAR A FOLHA DESENHAR.
+            #   A primeira versão não declarava `script-src`, então o inline
+            #   caía no `default-src 'none'` e TRÊS das dezoito folhas abriam em
+            #   branco — as que desenham em canvas. Um revisor mediu e apontou.
+            #   O que fica de fora é o que importa: nada de rede (`connect-src`
+            #   ausente herda `none`), nada de iframe, nada de formulário. São
+            #   arquivos do próprio repositório, servidos só para 127.0.0.1 com
+            #   token de sessão — o risco que a CSP cobre aqui é a folha buscar
+            #   algo fora, e isso continua barrado.
+            self.send_header(
+                "Content-Security-Policy",
+                "default-src 'none'; img-src data: blob:; "
+                "style-src 'unsafe-inline'; script-src 'unsafe-inline'; "
+                "font-src data:")
+            self.send_header("Content-Length", str(len(dados_folha)))
+            self.end_headers()
+            self.wfile.write(dados_folha)
+            return None
+
+
 
         # O GATO DO CABEÇALHO É O GATO DE VERDADE, LIDO DO ACERVO
         #   A primeira versão punha um emoji de gato preto no HTML, e na tela dela saiu
@@ -2423,10 +3063,17 @@ class Manipulador(BaseHTTPRequestHandler):
                 "exemplo": CONF_PADRAO,
                 "raiz": RAIZ,
                 "chaves": esquema,
+                # `escreve` é DERIVADO (ver a função de mesmo nome), nunca
+                # digitado por ação. E as opções da ação `oculta` não vão: o
+                # argumento dela é uma imagem escolhida na galeria, e mandar os
+                # 255 nomes de `banidos/` em toda leitura do esquema seria peso
+                # puro numa lista que ninguém vai ler como lista.
                 "acoes": [
                     dict(v, id=k,
                          argv=" ".join(shlex.quote(p) for p in v["argv"]),
-                         opcoes=(PROVEDORES[v["arg"]]() if "arg" in v else []))
+                         escreve=escreve(v),
+                         opcoes=([] if v.get("oculta")
+                                 else PROVEDORES[v["arg"]]() if "arg" in v else []))
                     for k, v in ACOES.items()
                 ],
                 "folhas": self._folhas(),
@@ -2478,8 +3125,15 @@ class Manipulador(BaseHTTPRequestHandler):
             # A chave tem de estar no esquema. Sem esta linha a página poderia
             # gravar QUALQUER nome no meow.conf dela — inclusive um que o `. conf`
             # do shell fosse executar como variável de outro projeto.
-            if chave not in {i["chave"] for i in ler_esquema()}:
+            item = next((i for i in ler_esquema() if i["chave"] == chave), None)
+            if item is None:
                 return self._json({"erro": "chave fora do meow.conf.exemplo"}, 400)
+            # E O VALOR TAMBÉM, agora — ver `validar_valor`. 400 e não 409: é o
+            # pedido que está errado, e a torrada de erro da página já sabe
+            # mostrar a frase que vem aqui dentro.
+            queixa = validar_valor(item, valor)
+            if queixa:
+                return self._json({"erro": queixa, "chave": chave, "valor": valor}, 400)
             rc, saida = definir(chave, valor, seco=seco)
             return self._json({"rc": rc, "saida": saida, "chave": chave, "valor": valor})
 
@@ -2493,9 +3147,16 @@ class Manipulador(BaseHTTPRequestHandler):
             acao = str(corpo.get("acao", ""))
             argumento = str(corpo.get("argumento", "") or "")
             seco = bool(corpo.get("seco"))
-            trabalho, erro = iniciar(acao, argumento, seco)
+            # `confirmado` é a resposta à pergunta que o servidor recusou fazer
+            # sozinho. Ele não vem de um cabeçalho nem de um parâmetro de URL,
+            # e sim do corpo do POST: é a página que tem de dizer, com todas as
+            # letras, que perguntou e ouviu sim.
+            trabalho, erro = iniciar(acao, argumento, seco,
+                                     confirmado=bool(corpo.get("confirmado")))
             if erro:
-                return self._json({"erro": erro}, 409)
+                # O erro estruturado (a confirmação que falta) passa inteiro; o
+                # erro de sempre continua sendo uma frase, como a página espera.
+                return self._json(erro if isinstance(erro, dict) else {"erro": erro}, 409)
             # `escreve` vai junto porque o CÓDIGO 1 QUER DIZER DUAS COISAS, e a
             # página precisa saber qual — visto na tela em 01/09/2026, quando um
             # `meow status` (que só lê) terminou com a pastilha "mexeu e
@@ -2503,14 +3164,10 @@ class Manipulador(BaseHTTPRequestHandler):
             # quem ESCREVE; para quem só olha — `status`, `doctor` sem
             # `--consertar`, `tema`, `apps`, `leitura` — o mesmo 1 quer dizer "há
             # divergências", e nada foi consertado.
-            #
-            # A resposta sai do `seco`, e as duas coincidem por uma razão e não
-            # por acaso: `seco` marca a ação que aceita `MEOW_DRY_RUN=1`, e uma
-            # ação que nunca escreve não tem o que prever — não haveria o que o
-            # seco calasse. Quem só lê tem `seco: False` nas 30 ações de hoje.
             return self._json({"id": trabalho.id, "rotulo": trabalho.rotulo,
                                "comando": " ".join(shlex.quote(p) for p in trabalho.argv),
-                               "seco": seco, "escreve": bool(ACOES[acao].get("seco"))})
+                               "seco": bool(seco and ACOES[acao].get("seco")),
+                               "escreve": escreve(ACOES[acao])})
 
         if caminho == "/api/parar":
             try:

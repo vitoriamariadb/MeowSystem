@@ -123,6 +123,12 @@ const ROTULO_DE_VALOR = {
   info: "Info", debug: "Debug", traco: "Traço", chapado: "Chapado",
   espelho: "Espelho", hora: "Hora", rotacao: "Rotação", fixo: "Fixo",
   nitida: "Nítida", preencher: "Preencher", caber: "Caber", esticar: "Esticar",
+  /* Pedaços de NOME de chave que viram título quando a ajuda é herdada — ver
+   * `tituloDoCartao`. "inicio" sem acento é o nome da chave; "Início" é o que
+   * ela lê. */
+  dia: "Dia", noite: "Noite", inicio: "Início", fim: "Fim", painel: "Painel",
+  dock: "Dock", titulo: "Título", artista: "Artista", album: "Álbum",
+  largura: "Largura", fonte: "Fonte", capa: "Capa", controles: "Controles",
   mocha: "Mocha", macchiato: "Macchiato", frappe: "Frappé", latte: "Latte",
   coquinha: "Coquinha", mimir: "Mimir",
 };
@@ -142,6 +148,15 @@ function maiuscula(txt) {
 /** O título curto de um cartão: a primeira oração da explicação, sem ponto.
  *  Não inventa texto — só corta o que já está escrito no meow.conf.exemplo. */
 function tituloDoCartao(item) {
+  /* CHAVE QUE HERDA O COMENTÁRIO DO VIZINHO NÃO PODE HERDAR O TÍTULO DELE.
+   *   `LOGO_DIA` e `LOGO_NOITE` dividem o mesmo bloco de comentário, então os
+   *   dois cartões apareciam lado a lado com o título idêntico ("Os dois
+   *   rostos…") — o teste novo contou dezesseis repetições assim. Quando a
+   *   ajuda é herdada, o título vem da parte do NOME que distingue a chave das
+   *   irmãs: `LOGO_DIA` -> "Dia", `NOITE_INICIO` -> "Início". Curto, e é
+   *   exatamente a diferença entre as duas.
+   *   A explicação inteira continua no "Por quê" — nada se perde. */
+  if (item.titulo_irmas) return item.titulo_irmas;
   const frase = (item.frase || "").trim();
   if (!frase) return null;
   /* Primeira oração, e dentro dela o primeiro aparte. "O auto-reparo é UM timer
@@ -272,6 +287,12 @@ function valorEmVigor(item) {
   return MUDANCAS.has(item.chave) ? MUDANCAS.get(item.chave) : (item.valor ?? "");
 }
 
+/** O flavor que vale agora — a escolha pendente dela, ou o que está no disco. */
+function flavorEmVigor() {
+  const item = ESQUEMA.chaves.find((k) => k.chave === "FLAVOR");
+  return (item ? valorEmVigor(item) : "") || "mocha";
+}
+
 function escolher(chave, valor, cartao) {
   const item = ESQUEMA.chaves.find((i) => i.chave === chave);
   if (!item) return;
@@ -284,6 +305,14 @@ function escolher(chave, valor, cartao) {
   }
   atualizarBarraSalvar();
   render();
+  /* DEVOLVE `true`, E ISSO NÃO É DETALHE.
+   *   Os controles foram escritos contra o `gravar()` de antes, que devolvia se
+   *   a escrita deu certo: `onclick: async () => { if (await aplica(v)) pintar(v) }`.
+   *   Quando `escolher()` tomou o lugar dele e não devolvia nada, o `if` ficou
+   *   sempre falso — clicar num flavor ou numa cor registrava a escolha e NÃO
+   *   movia a marcação. A auditoria de 01/09/2026 pegou os dois: "mocha
+   *   continua sendo o único botão marcado, qualquer que seja o clicado". */
+  return true;
 }
 
 function atualizarBarraSalvar() {
@@ -421,7 +450,7 @@ function montarControle(item, cartao) {
     const caixa = elemento("div", { class: "fichas" });
     const desenhar = () => {
       caixa.replaceChildren();
-      const itens = (item.valor || "").split(sep).map((s) => s.trim()).filter(Boolean);
+      const itens = (valorEmVigor(item) || "").split(sep).map((s) => s.trim()).filter(Boolean);
       for (const nome of itens) {
         caixa.append(elemento("span", { class: "ficha" }, [
           elemento("span", { texto: nome }),
@@ -429,7 +458,7 @@ function montarControle(item, cartao) {
             type: "button", "aria-label": `Tirar ${nome}`, texto: "×",
             onclick: async () => {
               const novos = itens.filter((x) => x !== nome);
-              if (await aplica(novos.join(sep))) { item.valor = novos.join(sep); desenhar(); }
+              if (await aplica(novos.join(sep))) desenhar();
             },
           }),
         ]));
@@ -444,7 +473,11 @@ function montarControle(item, cartao) {
         const novo = entrada.value.trim();
         if (itens.includes(novo)) { torrada(`${novo} já está na lista`, "igual"); return; }
         const novos = [...itens, novo];
-        if (await aplica(novos.join(sep))) { item.valor = novos.join(sep); desenhar(); }
+        /* NÃO se escreve em `item.valor` aqui: aquilo é o que está NO DISCO, e a
+         * escolha ainda não foi salva. Escrever ali fazia a ficha sumir da
+         * tela e o cartão perder a marca de "não salvo" — a auditoria pegou as
+         * duas listas (APPS_ATIVOS e AUTOSTART_BLOQUEADOS) assim. */
+        if (await aplica(novos.join(sep))) desenhar();
       });
       caixa.append(entrada);
     };
@@ -595,6 +628,15 @@ function barraDeFundos() {
 const PREVIAS = new Map();
 let RELOGIO_PREVIA = null;
 
+/** Relê o catálogo do servidor sem perder as escolhas ainda não salvas. */
+async function recarregarEsquema() {
+  const novo = await api("/api/esquema");
+  if (novo && !novo.erro && novo.chaves) {
+    ESQUEMA = novo;
+    montarGrupos();
+  }
+}
+
 async function carregarPrevias(tipo, grupo) {
   const chave = tipo + "/" + (grupo || "");
   const r = await api(`/api/previas?tipo=${encodeURIComponent(tipo)}`
@@ -656,8 +698,14 @@ function controleImagem(item, tipo, aplica) {
     caixa.append(botao);
   }
   pintar(valorEmVigor(item));
+  /* Depois de enviar, o esquema TAMBÉM é relido: as opções de `LOGO`,
+   * `LOGO_DIA` e `LOGO_NOITE` são a pasta `assets/gatos/` (o servidor as lê do
+   * disco), e sem reler o esquema o gato novo aparecia na prévia e continuava
+   * fora dos botões de escolha até um F5. A auditoria reproduziu o passo e
+   * mediu: as prévias iam a três, os botões continuavam dois. */
   const add = tipo === "gato" ? botaoAcervo("gato", async () => {
-    await carregarPrevias("gato", null, true);
+    await recarregarEsquema();
+    await carregarPrevias("gato");
     render();
   }) : null;
   return add ? elemento("div", { class: "com-acervo" }, [caixa, add]) : caixa;
@@ -752,13 +800,19 @@ function controleFlavor(item, aplica) {
       onclick: async () => { if (await aplica(nome)) pintar(nome); },
     }, [elemento("span", { class: "nome", texto: nome }), tira]));
   }
-  pintar(item.valor ?? "");
+  /* `valorEmVigor` e não `item.valor`: o disco não sabe da escolha que ela
+   * acabou de fazer, e era o disco que estava pintando. */
+  pintar(valorEmVigor(item));
   return caixa;
 }
 
 /* --- bolinhas de cor ------------------------------------------------------ */
 function controleCor(item, aplica) {
-  const flavor = (ESQUEMA.chaves.find((k) => k.chave === "FLAVOR") || {}).valor || "mocha";
+  /* AS CORES OFERECIDAS SÃO AS DO FLAVOR ESCOLHIDO, e não as do gravado.
+   * Achado da auditoria: escolher `latte` e olhar as bolinhas do ACCENT — elas
+   * continuavam nos hexes do Mocha. A cor que ela vê tem de ser a cor que ela
+   * vai receber. */
+  const flavor = flavorEmVigor();
   const cores = (ESQUEMA.paleta.flavors || {})[flavor] || {};
   /* As opções, quando a chave as declara; senão a paleta inteira na ordem
    * canônica — que é o caso das duas cores do applet de mídia, cujo comentário
@@ -780,7 +834,9 @@ function controleCor(item, aplica) {
       onclick: async () => { if (await aplica(nome)) pintar(nome); },
     }));
   }
-  pintar(item.valor ?? "");
+  /* `valorEmVigor` e não `item.valor`: o disco não sabe da escolha que ela
+   * acabou de fazer, e era o disco que estava pintando. */
+  pintar(valorEmVigor(item));
   return caixa;
 }
 
@@ -790,9 +846,13 @@ function controleCor(item, aplica) {
  * escolhidos — e isso é mais honesto que um print, porque acompanha o controle
  * no mesmo quadro em vez de mostrar como era no dia em que alguém fotografou. */
 function mockDaBarra(item) {
+  /* AO VIVO QUER DIZER LENDO A ESCOLHA, e não o disco. O desenho prometia
+   * acompanhar o controle e não acompanhava: a auditoria mediu — "nenhuma
+   * mudança de controle mexe nele". Lia `k.valor`, que é o que está gravado;
+   * agora lê `valorEmVigor`, que é o que ela acabou de escolher. */
   const val = (chave, padrao) => {
     const k = ESQUEMA.chaves.find((x) => x.chave === chave);
-    const v = k && (k.valor ?? "");
+    const v = k ? valorEmVigor(k) : "";
     return v === "" || v == null ? padrao : v;
   };
   const dock = item.chave.includes("DOCK");
@@ -838,10 +898,10 @@ function corDeKelvin(k) {
 
 function simulacaoLeitura(item) {
   const temp = item.chave.includes("TEMPERATURA")
-    ? (item.valor || 6500)
+    ? (valorEmVigor(item) || 6500)
     : ((ESQUEMA.chaves.find((k) => k.chave === "LEITURA_TEMPERATURA") || {}).valor || 6500);
   const textura = item.chave.includes("TEXTURA")
-    ? (item.valor || 0)
+    ? (valorEmVigor(item) || 0)
     : ((ESQUEMA.chaves.find((k) => k.chave === "LEITURA_TEXTURA") || {}).valor || 0);
 
   /* A imagem de exemplo é um papel de parede DELA — o efeito sobre a foto que
@@ -1025,7 +1085,7 @@ function montarEscolhaDeIcone(app) {
   /* `ordem` e não `ordem_canonica`: o nome errado deixava a fileira de cores
    * VAZIA — o painel abria sem como escolher cor, e nada avisava. Visto ao
    * testar no navegador, contando os botões: zero. */
-  const flavorAtual = (ESQUEMA.chaves.find((k) => k.chave === "FLAVOR") || {}).valor || "mocha";
+  const flavorAtual = flavorEmVigor();
   for (const nome of (ESQUEMA.paleta.ordem || [])) {
     const hex = ((ESQUEMA.paleta.flavors || {})[flavorAtual] || {})[nome];
     cores.append(elemento("button", {
@@ -1116,13 +1176,21 @@ function montarGaleria() {
   const caixa = elemento("div");
   const abas = elemento("div", { class: "abas" });
   for (const g of GRUPOS_PAREDE) {
+    /* A CONTAGEM VEM NA PRIMEIRA RESPOSTA, para todas as abas de uma vez — o
+     * servidor passou a mandar `contagens`. Antes o número só aparecia depois
+     * de abrir a sub-aba, então a galeria abria com quatro abas mudas e uma
+     * numerada. */
+    const cheia = PREVIAS.get("parede/" + ABA_GALERIA);
+    const quantos = cheia && cheia.contagens ? cheia.contagens[g.id] : undefined;
     const lista = PREVIAS.get("parede/" + g.id);
     abas.append(elemento("button", {
       type: "button", "aria-pressed": String(g.id === ABA_GALERIA),
       onclick: () => { ABA_GALERIA = g.id; LIMITE_GALERIA = 60; render(); },
     }, [
       elemento("span", { texto: g.rotulo }),
-      elemento("span", { class: "conta", texto: lista ? ` ${lista.itens.length}` : "" }),
+      elemento("span", { class: "conta",
+        texto: quantos !== undefined ? ` ${quantos}`
+             : (lista ? ` ${lista.itens.length}` : "") }),
     ]));
   }
   caixa.append(abas);
@@ -1172,8 +1240,12 @@ function montarGaleria() {
       acoes.append(elemento("button", {
         type: "button", class: "btn btn-perigo",
         texto: "Banir",
+        /* BANE PELO CAMINHO CANÔNICO (`i.banir`), e não pelo que está sendo
+         * mostrado: `ativos-noite/` e `ativos-dia/` são LINK DURO do mesmo
+         * arquivo, e banir pelo link moveria só o link — meio banimento, e
+         * mudo. O servidor passou a devolver esse campo justamente por isso. */
         title: `meow wallpaper banir ${i.rotulo} — vai para banidos/, nunca é apagada`,
-        onclick: () => rodarNaGaleria("wallpaper_banir", i.origem),
+        onclick: () => rodarNaGaleria("wallpaper_banir", i.banir || i.origem),
       }));
     }
     fig.append(elemento("figcaption", {}, [
@@ -1228,6 +1300,7 @@ function montarCartao(item) {
   const naoSalvo = MUDANCAS.has(item.chave);
   const cartao = elemento("article", {
     class: "cartao" + (mexeu ? " mexeu" : "") + (naoSalvo ? " nao-salvo" : ""),
+    "data-chave": item.chave,
   });
 
   /* MENOS PALAVRAS NO TOPO DO CARTÃO.
@@ -1331,7 +1404,31 @@ function montarAcao(acao) {
   let escolha = null;
   if (acao.opcoes && acao.opcoes.length) {
     const sel = elemento("select", { "aria-label": `Valor para ${acao.rotulo}` });
-    for (const o of acao.opcoes) sel.append(elemento("option", { value: o, texto: o }));
+    for (const o of acao.opcoes) {
+      sel.append(elemento("option", { value: o, texto: rotuloDeValor(o) }));
+    }
+    /* O SELETOR NASCE NO ESTADO DA MÁQUINA, e não no primeiro item da lista.
+     *   A auditoria mediu: o "Claro / escuro / automático" abria em "claro"
+     *   com a máquina em `MODO="escuro"` — o controle mostrava o oposto do
+     *   que estava valendo, e um clique em Rodar sem tocar no seletor
+     *   TROCARIA o tema dela achando que não estava mudando nada.
+     *   A ligação entre a ação e a chave é DERIVADA: se a lista de opções da
+     *   ação for igual à de alguma chave do conf, aquela chave é o estado
+     *   dela. Vale para `tema_modo` hoje e para a próxima ação que nascer
+     *   assim, sem lista de nomes em lugar nenhum. */
+    /* COMPARA COMO CONJUNTO, não como sequência: a ação lista
+     * `claro, escuro, auto` e a chave `MODO` lista `escuro, claro, auto` — o
+     * mesmo conjunto em outra ordem. Exigir a ordem fazia a ligação nunca
+     * acontecer, e o seletor continuava nascendo em "claro". */
+    const mesmoConjunto = (a, b) =>
+      a && b && a.length === b.length && a.every((o) => b.includes(o));
+    const chaveDoEstado = (ESQUEMA.chaves || []).find(
+      (k) => mesmoConjunto(k.opcoes, acao.opcoes));
+    if (chaveDoEstado) {
+      const atual = valorEmVigor(chaveDoEstado);
+      if (atual && acao.opcoes.includes(atual)) sel.value = atual;
+      sel.title = `Agora: ${rotuloDeValor(atual)} (${chaveDoEstado.chave})`;
+    }
     bloco.append(sel);
     escolha = sel;
   }
@@ -1365,10 +1462,26 @@ async function rodar(acao, argumento) {
     const ok = await confirmar(acao, argumento, seco);
     if (!ok) return;
   }
-  const r = await api("/api/rodar", {
+  let r = await api("/api/rodar", {
     method: "POST",
     body: JSON.stringify({ acao: acao.id, argumento, seco }),
   });
+  /* O SERVIDOR PASSOU A TRANCAR AS AÇÕES QUE ESCREVEM — 02/09/2026.
+   *   Ele devolve 409 com `precisa_confirmar: true` e os fatos da ação
+   *   (o que escreve, se usa sudo, se aceita seco) em vez de rodar. Isso é uma
+   *   segunda tranca, depois da que a página já faz: se ela chegar aqui, é
+   *   porque a primeira não perguntou — e sem este tratamento as cinco ações
+   *   destrutivas simplesmente parariam de funcionar, com um erro seco na tela.
+   *   Aqui a recusa vira a pergunta que faltou, e o `confirmado` só é enviado
+   *   depois de ela responder. */
+  if (r && r.precisa_confirmar) {
+    const ok = await confirmar(acao, argumento, seco);
+    if (!ok) return;
+    r = await api("/api/rodar", {
+      method: "POST",
+      body: JSON.stringify({ acao: acao.id, argumento, seco, confirmado: true }),
+    });
+  }
   if (r.erro) { torrada(r.erro, "erro"); return; }
   abrirGaveta(r);
 }
@@ -1554,7 +1667,51 @@ function contaDoGrupo(g) {
   return String(g.itens.length);
 }
 
+/* ===========================================================================
+ * O FOCO SOBREVIVE AO REDESENHO — 02/09/2026
+ * ===========================================================================
+ * `render()` refaz o conteúdo inteiro. Quem estava com o foco deixa de existir,
+ * e o navegador devolve o foco ao `<body>`.
+ *
+ * A auditoria pegou o caso pior: no deslizante do `MIDIA_LARGURA`, "a primeira
+ * seta anda um passo, a segunda não faz nada" — porque a primeira seta dispara
+ * o `change`, que escolhe, que chama `render()`, que joga fora o deslizante que
+ * estava sob o dedo dela. Quem usa mouse não vê; quem usa teclado perde o
+ * controle no meio do gesto.
+ *
+ * A âncora é a CHAVE do cartão mais o tipo do elemento — e não uma posição na
+ * árvore, que muda quando um cartão nasce ou some. */
+function ancoraDoFoco() {
+  const el = document.activeElement;
+  if (!el || el === document.body) return null;
+  const cartao = el.closest("[data-chave]");
+  if (!cartao) return el.id || null;
+  return {
+    chave: cartao.dataset.chave,
+    tag: el.tagName,
+    valor: el.dataset ? el.dataset.valor : null,
+    tipo: el.type || null,
+  };
+}
+
+function devolverFoco(ancora) {
+  if (!ancora) return;
+  if (typeof ancora === "string") {
+    const alvo = document.getElementById(ancora);
+    if (alvo) alvo.focus();
+    return;
+  }
+  const cartao = document.querySelector(`[data-chave="${CSS.escape(ancora.chave)}"]`);
+  if (!cartao) return;
+  const iguais = [...cartao.querySelectorAll(ancora.tag)];
+  const alvo = ancora.valor
+    ? iguais.find((e) => e.dataset && e.dataset.valor === ancora.valor)
+    : iguais.find((e) => !ancora.tipo || e.type === ancora.tipo);
+  if (alvo) alvo.focus();
+}
+
 function render() {
+  const ancora = ancoraDoFoco();
   montarTrilho();
   const alvo = $("#conteudo");
   alvo.replaceChildren();
@@ -1615,10 +1772,16 @@ function render() {
     }
     const grade = elemento("div", { class: "grade" });
     for (const item of g.itens) {
+      /* Ação `oculta` não é cartão: o argumento dela é uma imagem, e a galeria
+       * já a oferece no lugar certo (o botão embaixo de cada foto). Um
+       * `<select>` com 255 nomes de arquivo seria a pior forma de perguntar
+       * "qual foto?" numa página que sabe desenhá-las. */
+      if (g.tipo === "acoes" && item.oculta) continue;
       grade.append(g.tipo === "acoes" ? montarAcao(item) : montarCartao(item));
     }
     alvo.append(grade);
   }
+  devolverFoco(ancora);
 }
 
 /* A BUSCA IGNORA ACENTO, E ISSO NÃO É LUXO NUMA INTERFACE EM PORTUGUÊS
@@ -1640,26 +1803,45 @@ function semAcento(texto) {
     .toLocaleLowerCase("pt-BR");
 }
 
+/* A BUSCA ALCANÇA TUDO O QUE A PÁGINA MOSTRA — chave, ação e folha.
+ * A auditoria mediu: "a busca do topo nunca encontra uma folha — a aba inteira
+ * é invisível para o único atalho de navegação da página". A causa era este
+ * `item.chave ?` na frente: quem não tem `chave` caía no ramo das ações, que
+ * lê `rotulo`/`ajuda`/`id` — campos que uma folha não tem. Agora os campos são
+ * a união, e cada tipo contribui com os seus. */
 function casa(item, busca) {
-  const campos = item.chave
-    ? [item.chave, item.frase, item.valor, item.secao, item.subsecao]
-    : [item.rotulo, item.ajuda, item.id];
-  return campos.filter(Boolean).some((c) => semAcento(c).includes(busca));
+  const campos = [
+    item.chave, item.frase, item.valor, item.secao, item.subsecao,
+    item.rotulo, item.ajuda, item.id, item.arquivo, item.nome, item.caminho,
+  ];
+  return campos.filter(Boolean).some((c) => semAcento(String(c)).includes(busca));
 }
 
+/* AS FOLHAS ABREM — 02/09/2026.
+ * A auditoria mediu esta aba como "texto morto": dezoito nomes e dezoito
+ * caminhos absolutos, nada clicável. Um caminho que ela precisa selecionar,
+ * copiar e colar num gerenciador de arquivos é a interface pedindo para ser
+ * contornada. Agora cada folha é um link que o servidor serve. */
 function montarFolhas(folhas) {
   const caixa = elemento("div");
   caixa.append(elemento("p", {
-    class: "frase",
-    texto: "As folhas visuais que decidiram este tema, versionadas em docs/folhas/. "
-         + "Elas são arquivos locais: abra pelo caminho abaixo, ou pelo gerenciador de arquivos.",
+    class: "frase nota-secao",
+    texto: "As folhas que decidiram este tema, versionadas em docs/folhas/.",
   }));
+  const grade = elemento("div", { class: "grade-folhas" });
   for (const f of folhas) {
-    caixa.append(elemento("div", { class: "folha" }, [
-      elemento("b", { texto: f.arquivo }),
-      elemento("span", { class: "oque", texto: f.caminho }),
+    grade.append(elemento("a", {
+      class: "folha",
+      href: `/folha?id=${encodeURIComponent(f.arquivo)}`,
+      target: "_blank",
+      rel: "noopener",
+      title: f.caminho,
+    }, [
+      elemento("b", { texto: maiuscula(f.arquivo.replace(/\.html$/, "").replace(/[-_]/g, " ")) }),
+      elemento("span", { class: "oque", texto: f.arquivo }),
     ]));
   }
+  caixa.append(grade);
   return caixa;
 }
 
@@ -1697,6 +1879,128 @@ document.addEventListener("click", (ev) => {
 });
 
 /* --- arranque ------------------------------------------------------------- */
+/* MONTAR OS GRUPOS É UMA FUNÇÃO, e não um trecho do arranque — porque agora
+ * há um segundo momento em que isso precisa acontecer: quando ela acrescenta
+ * um arquivo ao acervo, o catálogo do servidor muda (as opções de `LOGO` são
+ * a pasta `assets/gatos/`) e a página tem de se remontar sem recarregar. */
+function montarGrupos() {
+  GRUPOS = [];
+    /* O grupo de uma chave é o SUBTÍTULO do bloco quando existe, e o título da
+     * seção quando não. O porquê está no `servidor.py`: os marcadores de seção do
+     * meow.conf.exemplo saíram de ordem com o tempo (o `# --- Wallpaper` ficou
+     * órfão acima do bloco da forma), e o subtítulo é o que de fato descreve o
+     * assunto da chave. `Aparência` e `Ícones` continuam vindo da seção, porque
+     * ali não há subtítulo nenhum. */
+    const porGrupo = new Map();
+    for (const item of ESQUEMA.chaves) {
+      const nome = item.subsecao || item.secao || "Outras";
+      if (!porGrupo.has(nome)) porGrupo.set(nome, []);
+      porGrupo.get(nome).push(item);
+    }
+    /* O grupo guarda a SEÇÃO de onde veio: é ela que vira o nível de cima do
+     * menu. Um trilho de vinte itens planos obriga a ler os vinte para achar um;
+     * com dois níveis, ela lê cinco. */
+    /* O TÍTULO DE QUEM HERDA O COMENTÁRIO VEM DA DIFERENÇA ENTRE AS IRMÃS.
+   *   Quatro chaves do mesmo bloco — `FORMA_MARGEM_DOCK`, `FORMA_RAIO_DOCK`,
+   *   `FORMA_ESPACO_DOCK`, `FORMA_RECHEIO_DOCK` — dividem o comentário, então
+   *   dividiam o título. Usar a última parte do nome deu "Dock" nas quatro; o
+   *   que as separa é `MARGEM/RAIO/ESPACO/RECHEIO`, no meio.
+   *   Aqui as irmãs são comparadas parte a parte: o que é igual em todas sai,
+   *   e o que sobra vira o título. `FORMA_RAIO_DOCK` -> "Raio",
+   *   `LOGO_DIA` -> "Dia", `NOITE_INICIO` -> "Início".
+   *   Se nada distinguir (nomes idênticos, que não existem), o título volta a
+   *   ser a frase — nunca fica vazio. */
+  for (const itens of porGrupo.values()) {
+    /* O DONO DO COMENTÁRIO ENTRA NO GRUPO, e não só os herdeiros. Sem ele,
+     * `WALLPAPER_BASE` (dono) e `WALLPAPER_INTERVALO` (herdeiro) formavam um
+     * grupo de UM, a regra não disparava, e os dois continuavam com o mesmo
+     * título. Quem divide o comentário divide o problema. */
+    const irmas = new Map();
+    for (const i of itens) {
+      if (!i.ajuda) continue;
+      if (!irmas.has(i.ajuda)) irmas.set(i.ajuda, []);
+      irmas.get(i.ajuda).push(i);
+    }
+    for (const grupo of irmas.values()) {
+      if (grupo.length < 2) continue;
+      const partes = grupo.map((i) => i.chave.split("_"));
+      const comuns = new Set(
+        partes[0].filter((p) => partes.every((ps) => ps.includes(p))));
+      for (const i of grupo) {
+        const sobrou = i.chave.split("_").filter((p) => !comuns.has(p));
+        if (!sobrou.length) continue;
+        i.titulo_irmas = maiuscula(sobrou
+          .map((p) => ROTULO_DE_VALOR[p.toLocaleLowerCase("pt-BR")]
+                   || p.toLocaleLowerCase("pt-BR"))
+          .join(" "));
+      }
+    }
+
+    /* DESEMPATE ENTRE GRUPOS DIFERENTES DA MESMA ABA.
+     *   Três pares da aba Automação — `AUTO_REPARO`/`_NOTIFICAR`,
+     *   `ASSETS_VIGIA`/`_NOTIFICAR`, `FLATPAK_VIGIA`/`_NOTIFICAR` — não dividem
+     *   comentário entre si, mas a diferença DENTRO de cada par é a mesma
+     *   palavra: os três cartões viravam "Notificar". Aqui, quando dois títulos
+     *   colidem na mesma aba, cada um recupera a palavra anterior do próprio
+     *   nome: "Reparo notificar", "Vigia notificar", "Vigia notificar"… e o que
+     *   ainda colidir volta para a frase, que é longa mas é distinta. */
+    const palavra = (p) => ROTULO_DE_VALOR[p] || p;
+    const daCauda = (chave, n) => {
+      const partes = chave.split("_").map((x) => x.toLocaleLowerCase("pt-BR"));
+      return maiuscula(partes.slice(-n).map(palavra).join(" ")
+        .toLocaleLowerCase("pt-BR"));
+    };
+    /* Cresce da direita para a esquerda até parar de colidir: "Notificar" ->
+     * "Vigia notificar" -> "Assets vigia notificar". Três voltas bastam para os
+     * nomes deste arquivo; o que ainda colidir perde o título curto e volta
+     * para a frase, que é longa mas distingue. */
+    for (let n = 1; n <= 3; n++) {
+      const contagem = new Map();
+      for (const i of itens) {
+        if (!i.titulo_irmas) continue;
+        contagem.set(i.titulo_irmas, (contagem.get(i.titulo_irmas) || 0) + 1);
+      }
+      const colidem = itens.filter(
+        (i) => i.titulo_irmas && contagem.get(i.titulo_irmas) > 1);
+      if (!colidem.length) break;
+      for (const i of colidem) {
+        const maior = daCauda(i.chave, n + 1);
+        i.titulo_irmas = maior === i.titulo_irmas ? null : maior;
+      }
+    }
+  }
+
+  GRUPOS = [...porGrupo].map(([nome, itens]) => ({
+      tipo: "chaves", nome, itens, secaoPai: itens[0]?.secao || "Outras",
+    }));
+
+    /* As ações vêm agrupadas pelo `grupo` que o servidor declara — uma aba por
+     * assunto, na ordem em que o dicionário as define. */
+    const porAcao = new Map();
+    for (const acao of ESQUEMA.acoes) {
+      if (!porAcao.has(acao.grupo)) porAcao.set(acao.grupo, []);
+      porAcao.get(acao.grupo).push(acao);
+    }
+    for (const [nome, itens] of porAcao) GRUPOS.push({ tipo: "acoes", nome, itens });
+    if (ESQUEMA.folhas.length) {
+      GRUPOS.push({ tipo: "folhas", nome: "Folhas visuais", itens: ESQUEMA.folhas });
+    }
+
+    /* A galeria é um grupo do trilho como os outros — ela não é uma chave do
+     * meow.conf, é o acervo em si, que neste projeto É a configuração ("soltou o
+     * arquivo, entrou; apagou, saiu"). */
+    GRUPOS.push({ tipo: "apps", nome: "Ícone de cada aplicativo", itens: [] });
+    GRUPOS.push({ tipo: "galeria", nome: "Galeria de papéis de parede", itens: [] });
+
+    GRUPOS_VISUAIS = new Set(
+      GRUPOS.filter((g) => g.tipo === "chaves" && g.itens.some((i) => i.previa))
+            .map((g) => g.nome));
+    const chaveTema = ESQUEMA.chaves.find((k) => k.chave === "NOME_TEMA_ICONES");
+    GRUPO_ICONES = chaveTema ? (chaveTema.subsecao || chaveTema.secao) : null;
+    if (GRUPO_ICONES) GRUPOS_VISUAIS.add(GRUPO_ICONES);
+    aplicarFundo();
+}
+
 async function iniciar() {
   ESQUEMA = await api("/api/esquema");
   if (ESQUEMA.erro) {
@@ -1704,50 +2008,7 @@ async function iniciar() {
     return;
   }
 
-  /* O grupo de uma chave é o SUBTÍTULO do bloco quando existe, e o título da
-   * seção quando não. O porquê está no `servidor.py`: os marcadores de seção do
-   * meow.conf.exemplo saíram de ordem com o tempo (o `# --- Wallpaper` ficou
-   * órfão acima do bloco da forma), e o subtítulo é o que de fato descreve o
-   * assunto da chave. `Aparência` e `Ícones` continuam vindo da seção, porque
-   * ali não há subtítulo nenhum. */
-  const porGrupo = new Map();
-  for (const item of ESQUEMA.chaves) {
-    const nome = item.subsecao || item.secao || "Outras";
-    if (!porGrupo.has(nome)) porGrupo.set(nome, []);
-    porGrupo.get(nome).push(item);
-  }
-  /* O grupo guarda a SEÇÃO de onde veio: é ela que vira o nível de cima do
-   * menu. Um trilho de vinte itens planos obriga a ler os vinte para achar um;
-   * com dois níveis, ela lê cinco. */
-  GRUPOS = [...porGrupo].map(([nome, itens]) => ({
-    tipo: "chaves", nome, itens, secaoPai: itens[0]?.secao || "Outras",
-  }));
-
-  /* As ações vêm agrupadas pelo `grupo` que o servidor declara — uma aba por
-   * assunto, na ordem em que o dicionário as define. */
-  const porAcao = new Map();
-  for (const acao of ESQUEMA.acoes) {
-    if (!porAcao.has(acao.grupo)) porAcao.set(acao.grupo, []);
-    porAcao.get(acao.grupo).push(acao);
-  }
-  for (const [nome, itens] of porAcao) GRUPOS.push({ tipo: "acoes", nome, itens });
-  if (ESQUEMA.folhas.length) {
-    GRUPOS.push({ tipo: "folhas", nome: "Folhas visuais", itens: ESQUEMA.folhas });
-  }
-
-  /* A galeria é um grupo do trilho como os outros — ela não é uma chave do
-   * meow.conf, é o acervo em si, que neste projeto É a configuração ("soltou o
-   * arquivo, entrou; apagou, saiu"). */
-  GRUPOS.push({ tipo: "apps", nome: "Ícone de cada aplicativo", itens: [] });
-  GRUPOS.push({ tipo: "galeria", nome: "Galeria de papéis de parede", itens: [] });
-
-  GRUPOS_VISUAIS = new Set(
-    GRUPOS.filter((g) => g.tipo === "chaves" && g.itens.some((i) => i.previa))
-          .map((g) => g.nome));
-  const chaveTema = ESQUEMA.chaves.find((k) => k.chave === "NOME_TEMA_ICONES");
-  GRUPO_ICONES = chaveTema ? (chaveTema.subsecao || chaveTema.secao) : null;
-  if (GRUPO_ICONES) GRUPOS_VISUAIS.add(GRUPO_ICONES);
-  aplicarFundo();
+  montarGrupos();
 
   $("#botao-salvar").addEventListener("click", salvarEscolhas);
   $("#botao-descartar").addEventListener("click", descartarEscolhas);
