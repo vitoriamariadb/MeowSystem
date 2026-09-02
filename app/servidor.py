@@ -102,6 +102,7 @@ import os
 import queue
 import re
 import secrets
+import select
 import struct
 import shlex
 import signal
@@ -143,6 +144,13 @@ CONF_PADRAO = os.environ.get("MEOW_CONF_PADRAO") or os.path.join(RAIZ, "meow.con
 CONF = os.environ.get("MEOW_CONF") or os.path.expanduser("~/.config/meow/meow.conf")
 PALETA = os.path.join(RAIZ, "assets", "paleta", "catppuccin.json")
 FOLHAS = os.path.join(RAIZ, "docs", "folhas")
+# O mesmo diretório que `MEOW_ESTADO` do `lib/comum.sh` — e ele vem por ambiente
+# quando o `run.sh` é quem chama, para as duas metades nunca discordarem sobre
+# onde mora o `app.pid`.
+ESTADO = os.environ.get("MEOW_ESTADO") or os.path.join(
+    os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"),
+    "meowsystem",
+)
 
 TOKEN = secrets.token_urlsafe(32)
 
@@ -2547,6 +2555,41 @@ class Manipulador(BaseHTTPRequestHandler):
     def _json(self, dados, codigo=200):
         self._responder(json.dumps(dados, ensure_ascii=False), codigo=codigo)
 
+    def _pulso(self):
+        """A conexão que diz "a página está aberta" enquanto ela existir.
+
+        Não carrega dado nenhum, e é de propósito: o que informa é o socket
+        estar de pé. Fechada a janela, a escrita seguinte falha, o pulso cai e o
+        `_vigia` sai. O `Connection: close` é obrigatório — em HTTP/1.1 uma
+        resposta sem `Content-Length` só é legal assim.
+        """
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.close_connection = True
+        _pulso_entra()
+        try:
+            while True:
+                # Comentário SSE (linha iniciada por ":"): o `EventSource` do
+                # outro lado o descarta sem disparar evento nenhum, e ele serve
+                # só para a escrita acontecer.
+                self.wfile.write(b": meow\n\n")
+                self.wfile.flush()
+                # O `select` é quem enxerga a janela fechar. Um socket cujo
+                # outro lado foi embora fica LEGÍVEL, e o `recv` devolve vazio:
+                # é o fim-de-arquivo do TCP. Enquanto ninguém fecha nada, ele
+                # dorme os quinze segundos e não gasta nada.
+                pronto, _, _ = select.select([self.connection], [], [], PULSO_BATIDA)
+                if pronto and not self.connection.recv(1):
+                    break
+        except (OSError, ValueError):
+            pass
+        finally:
+            _pulso_sai()
+
     # --- rotas ---------------------------------------------------------------
     def do_GET(self):
         alvo = urlparse(self.path)
@@ -2565,6 +2608,11 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho.startswith("/api/"):
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
+            # O pulso NÃO passa pelo `_api_get`: aquele roteador devolve JSON e
+            # fecha, e este pedido é o contrário — fica aberto até a janela
+            # sumir. Ver o bloco "O PAINEL MORRE COM A JANELA QUE O ABRIU".
+            if caminho == "/api/pulso":
+                return self._pulso()
             return self._api_get(caminho, consulta)
 
         if caminho == "/folha":
@@ -3310,6 +3358,121 @@ class Manipulador(BaseHTTPRequestHandler):
         return [{"arquivo": n, "caminho": os.path.join(FOLHAS, n)} for n in nomes]
 
 
+# ============================================================================
+# O PAINEL MORRE COM A JANELA QUE O ABRIU — 02/09/2026
+# ============================================================================
+# Pedido dela, olhando o ícone do lançador não fazer o que devia: "era pra ele
+# abrir o chrome e quando eu fechar ele via navegador ele ser finalizado".
+#
+# O QUE HAVIA ANTES, E POR QUE FALHAVA NESTA MÁQUINA
+#   O `.desktop` nascia com `Terminal=true` de propósito: a janela do terminal
+#   era o interruptor, e fechá-la derrubava o servidor. O journal de 02/09/2026
+#   mostra no que isso deu — dois cliques dela, às 03:22:28 e às 03:22:44, e nos
+#   dois a mesma linha:
+#
+#       app-cosmic-com.meowsystem.Painel-44306.scope: PID 44306 vanished before
+#       we could move it to target cgroup … Failed with result 'resources'
+#
+#   O terminal do COSMIC é instância única: o processo que o lançador criou
+#   conversou com a instância já aberta e saiu no mesmo instante — daí o
+#   "vanished" — e o painel foi parar numa ABA do terminal DELA. O `app.pid`
+#   gravado às 03:22:44.587, três décimos depois do clique, prova que o servidor
+#   chegou a subir; ele morreu junto quando aquela aba fechou. Um interruptor
+#   que ela não vê não é interruptor.
+#
+# O SINAL É UMA CONEXÃO ABERTA, E NÃO UMA BATIDA POR TEMPORIZADOR
+#   A saída óbvia era a página pingar `/api/vivo` de tantos em tantos segundos.
+#   Ela quebra justamente no navegador dela: o Chrome limita o temporizador de
+#   uma aba oculta a uma vez por minuto e depois congela a aba inteira — trocar
+#   de aba mataria o painel, e isso é pior que o defeito que estamos curando.
+#
+#   Então o sinal é uma conexão que fica ABERTA (`/api/pulso`, um
+#   `text/event-stream` que só manda comentário). Ela não depende de
+#   temporizador nenhum: some no instante em que a janela fecha, porque o socket
+#   fecha com ela.
+#
+#   O `EventSource` reconecta sozinho, e é isso que faz o F5 não matar o painel:
+#   a página recarrega, o pulso volta em menos de um segundo, e a CARÊNCIA
+#   abaixo cobre o intervalo. Pelo mesmo motivo ela cobre a troca de papel de
+#   parede que recarrega a página inteira.
+#
+# TRABALHO RODANDO ADIA A SAÍDA
+#   Fechar a janela no meio de um `./install.sh` não pode virar meia instalação.
+#   Enquanto houver trabalho vivo o servidor fica de pé, e sai quando ele
+#   terminar — o `finally` do `main()` continua sendo a rede de baixo.
+#
+# NADA DISSO VALE QUANDO O PAINEL FOI SUBIDO PARA TESTE
+#   O vigia só liga com `MEOW_APP_VIGIA=1`, que é o `run.sh` no modo normal quem
+#   passa. O `--sem-abrir` de `tests/app-navegador.py` sobe um servidor SEM
+#   página nenhuma e o derruba pelo terminal: com o vigia ligado, ele se mataria
+#   sozinho no meio do teste.
+VIGIA_LIGADO = os.environ.get("MEOW_APP_VIGIA") == "1"
+# Quanto tempo sem NENHUM pulso antes de sair. Oito segundos é folga larga para
+# um F5 (que volta em menos de um) e curto o bastante para a porta não ficar
+# aberta depois de ela fechar a janela.
+VIGIA_CARENCIA = float(os.environ.get("MEOW_APP_CARENCIA") or 8)
+# E se a página nunca abrir — navegador que não subiu, clique que se perdeu — o
+# servidor não pode ficar de pé para sempre esperando ninguém.
+VIGIA_ESPERA = float(os.environ.get("MEOW_APP_ESPERA") or 120)
+# De quanto em quanto tempo o pulso escreve. A escrita é a rede de baixo: quem
+# descobre a janela fechada NA HORA é o `select` sobre o mesmo socket — fechada
+# a aba, ele fica legível com fim-de-arquivo, e o pulso cai no mesmo segundo.
+# Sem o `select`, a saída dependia da escrita seguinte e chegava a demorar os
+# quinze segundos inteiros (medido em 02/09/2026, antes desta linha existir).
+PULSO_BATIDA = 15.0
+
+_PULSOS = {"abertos": 0, "houve": False, "zerou_em": None}
+_PULSO_TRAVA = threading.Lock()
+
+
+def _pulso_entra():
+    with _PULSO_TRAVA:
+        _PULSOS["abertos"] += 1
+        _PULSOS["houve"] = True
+        _PULSOS["zerou_em"] = None
+
+
+def _pulso_sai():
+    with _PULSO_TRAVA:
+        _PULSOS["abertos"] = max(0, _PULSOS["abertos"] - 1)
+        if _PULSOS["abertos"] == 0:
+            _PULSOS["zerou_em"] = time.time()
+
+
+def _ha_trabalho_vivo():
+    return any(t.vivo() for t in list(TRABALHOS.values()))
+
+
+def _vigia(servidor, comeco):
+    """Sai quando a página que abriu este servidor some da tela."""
+    while True:
+        time.sleep(1.0)
+        with _PULSO_TRAVA:
+            abertos = _PULSOS["abertos"]
+            houve = _PULSOS["houve"]
+            zerou = _PULSOS["zerou_em"]
+        agora = time.time()
+        if not houve:
+            if agora - comeco > VIGIA_ESPERA:
+                motivo = "a página não abriu em %d s" % VIGIA_ESPERA
+                break
+            continue
+        if abertos > 0 or zerou is None or agora - zerou < VIGIA_CARENCIA:
+            continue
+        # A ORDEM IMPORTA: só depois de decidir que a janela sumiu é que se
+        # pergunta pelo trabalho. Perguntar antes faria o servidor ficar de pé
+        # durante toda uma instalação com a página aberta, o que é o normal.
+        if _ha_trabalho_vivo():
+            continue
+        motivo = "a janela foi fechada"
+        break
+    sys.stderr.write("painel: %s — encerrando.\n" % motivo)
+    sys.stderr.flush()
+    # De outra thread, que é a única forma suportada: o `serve_forever` está
+    # bloqueado na thread principal e é ele quem tem de voltar.
+    servidor.shutdown()
+
+
 def main():
     # Os operários de prévia sobem ANTES do servidor: o primeiro `/api/previas`
     # pode chegar no mesmo segundo em que a página abre, e uma fila sem ninguém
@@ -3319,6 +3482,9 @@ def main():
     servidor = ThreadingHTTPServer(("127.0.0.1", 0), Manipulador)
     servidor.daemon_threads = True
     porta = servidor.server_address[1]
+    if VIGIA_LIGADO:
+        threading.Thread(target=_vigia, args=(servidor, time.time()),
+                         daemon=True).start()
     # A ÚNICA saída em stdout, e ela é a interface com o `run.sh`: uma linha, a
     # URL inteira com o token. O `run.sh` a lê, abre o navegador nela e para de
     # olhar. Imprimir mais coisa aqui quebraria o `read` do outro lado.
@@ -3334,6 +3500,19 @@ def main():
         for trabalho in TRABALHOS.values():
             if trabalho.vivo():
                 trabalho.parar()
+        # O `app.pid` é do `run.sh`, e quem o apaga é o `--parar` dele. Só que
+        # desde 02/09/2026 o caminho normal de saída é ESTE — a janela fecha e o
+        # servidor sai sozinho —, e um pid de processo morto ali faria o
+        # `meow abrir --estado` responder pela última vez que alguém usou o
+        # `--parar`. Apagar só se o número for o NOSSO: dois painéis abertos ao
+        # mesmo tempo não podem se apagar um ao outro.
+        try:
+            arquivo_pid = os.path.join(ESTADO, "app.pid")
+            with open(arquivo_pid, "r", encoding="utf-8") as fh:
+                if fh.read().strip() == str(os.getpid()):
+                    os.unlink(arquivo_pid)
+        except (OSError, ValueError):
+            pass
         servidor.server_close()
 
 

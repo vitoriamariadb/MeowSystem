@@ -862,6 +862,14 @@ chk_flatpak() {
   FLATPAK_VIGIA="${FLATPAK_VIGIA:-sim}" "$RAIZ/scripts/vigia_flatpak.sh" --conferir 2>&1
 }
 
+# O gatilho da Steam — o irmão do de cima, e a mesma leitura. Ele existe desde
+# 02/09/2026, quando ela notou que um jogo desinstalado continuava com cartão no
+# lançador: a limpeza já era feita pelo `jogos_steam.sh` (a linha `jogos` desta
+# tabela), o que faltava era o gatilho que a chama na hora.
+chk_steamvigia() {
+  STEAM_VIGIA="${STEAM_VIGIA:-sim}" "$RAIZ/scripts/vigia_steam.sh" --conferir 2>&1
+}
+
 chk_greeter() {
   MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1
 }
@@ -1084,6 +1092,8 @@ fix_traysteam() { "$RAIZ/scripts/icones_tray_steam.sh" --aplicar 2>&1; }
 fix_trayzapzap(){ "$RAIZ/scripts/icones_tray_zapzap.sh" --aplicar 2>&1; }
 fix_flatpak(){ FLATPAK_VIGIA="${FLATPAK_VIGIA:-sim}" \
                     "$RAIZ/scripts/vigia_flatpak.sh" --aplicar 2>&1; }
+fix_steamvigia(){ STEAM_VIGIA="${STEAM_VIGIA:-sim}" \
+                    "$RAIZ/scripts/vigia_steam.sh" --aplicar 2>&1; }
 fix_jogos()     { "$RAIZ/scripts/jogos_steam.sh" 2>&1; }
 fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" --sem-sudo 2>&1; }
 fix_assets()    { ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" \
@@ -1128,7 +1138,7 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets svg flatpak autostart atalho)
+VERIFICAVEIS=(conf gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets svg flatpak steamvigia autostart atalho)
 SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin leiturabin cursor patches "
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase

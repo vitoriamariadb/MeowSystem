@@ -909,6 +909,26 @@ ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho
 FLATPAK_VIGIA="sim"
 FLATPAK_VIGIA_NOTIFICAR="sim"     # avisa quando repôs um ícone que o update desfez
 
+# O atalho do jogo sai do lançador quando você desinstala o jogo?
+#   Queixa dela, 02/09/2026: "tem jogo da steam que tá desinstalado mas ainda tem
+#   o .desktop, em teoria isso não deveria ocorrer". Estava certa. A limpeza de
+#   órfãos já existia — o que não existia era alguém chamá-la depois de uma
+#   desinstalação: o `jogos_steam.sh` só rodava no `./install.sh` e no
+#   `meow doctor`, então o cartão de um jogo removido às 3h da tarde ficava na
+#   tela até as 5h da manhã seguinte.
+#
+#   Com "sim", o par `meow-steam.path`/`meow-steam.service` vigia a pasta
+#   `steamapps/` — onde a Steam mantém um `appmanifest_<appid>.acf` por jogo
+#   instalado e o apaga ao desinstalar — e roda a mesma limpeza de sempre, com
+#   uns 45 segundos de espera para o download em curso não disparar o vigia
+#   dezenas de vezes.
+#
+#   Ele NÃO enxerga a biblioteca de outro disco (`/mnt/…/SteamLibrary`): com o
+#   disco desmontado a ausência do manifesto seria falsa, e o script adia a
+#   limpeza de propósito para não apagar o atalho de um jogo que continua lá.
+#   Para esses, quem limpa continua sendo o `meow doctor` e o instalador.
+STEAM_VIGIA="sim"
+
 # A capa do álbum, a cor dela e os ⏮⏸⏭ na barra da dock (applet Now Playing).
 #   A QUEIXA INTEIRA MORAVA EM UMA LINHA. O `src/media.rs` do upstream descartava
 #   todo `mpris:artUrl` que não fosse `file://`, e o Spotify publica

@@ -2216,6 +2216,31 @@ etapa_vigia_flatpak() {
   return $?
 }
 
+# ---------------------------------------------------------------------------
+# O VIGIA DA STEAM — A TERCEIRA UNIDADE `.path` DO PROJETO
+#
+#   Queixa dela, 02/09/2026: "tem jogo da steam que tá desinstalado mas ainda
+#   tem o .desktop, em teoria isso não deveria ocorrer". Estava certa, e o
+#   defeito não era da limpeza: a `etapa_jogos` acima remove órfão desde
+#   15/08/2026 e faz isso bem. O que faltava era alguém CHAMÁ-LA depois de uma
+#   desinstalação — o `jogos_steam.sh` só rodava aqui e no `meow doctor`, então
+#   um jogo removido às 3h da tarde deixava o cartão no lançador até as 5h da
+#   manhã seguinte.
+#
+#   Mesmo raciocínio do vigia do flatpak, e a mesma lição do commit `a35b751`:
+#   gatilho de EVENTO, não de relógio. O cabeçalho de `systemd/meow-steam.path`
+#   traz o resto — por que o evento é o diretório `steamapps/` e não um arquivo,
+#   e por que a biblioteca de `/mnt` fica de fora.
+#
+# LOGO DEPOIS DO IRMÃO, E PELO MESMO MOTIVO
+#   São as unidades `.path` do projeto, e elas andam juntas; o auto-reparo
+#   continua sendo o último de todos.
+etapa_vigia_steam() {
+  passo "Vigia da Steam (systemd --user)"
+  STEAM_VIGIA="${STEAM_VIGIA:-sim}" "$MEOW_RAIZ/scripts/vigia_steam.sh"
+  return $?
+}
+
 etapa_wallpaper() {
   passo "Papéis de parede"
   WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
@@ -2451,7 +2476,7 @@ main() {
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
-                etapa_assets etapa_vigia_flatpak
+                etapa_assets etapa_vigia_flatpak etapa_vigia_steam
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 

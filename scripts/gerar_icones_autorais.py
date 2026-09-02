@@ -413,7 +413,51 @@ def cosmic_screenshot(c: dict) -> str:
 """
 
 
+def meowsystem_painel(c: dict) -> str:
+    """O painel do MeowSystem: uma cabeça de gato, e ela é DE TRAÇO.
+
+    O ÚNICO DESENHO DESTE ARQUIVO QUE NÃO É CHAPADO, E O MOTIVO É A FOLHA DELA
+        Em 11/08/2026 ela definiu o estilo do projeto olhando o lançador — traço
+        de linha fino, `fill:none`, `stroke` pastel — e o desenho cheio deste
+        gerador é o que ficou FORA do padrão, não dentro. Um ícone novo escrito
+        hoje não tem por que repetir o estilo que ela já reprovou; ele nasce no
+        traço que os vizinhos dele usam.
+
+        Não é conversão retroativa: os outros dez continuam como estão, cada um
+        com a sua história. Este é novo, e novo se escreve no padrão de agora.
+
+    A CABEÇA VEM DAS ORELHAS PARA BAIXO, NUM CAMINHO SÓ
+        Três desenhos foram rasterizados a 48px e olhados lado a lado com o
+        Terminal e os Arquivos que já moram na dock dela (02/09/2026):
+          · elipse com as orelhas soltas por cima — as pontas encostam na elipse
+            e o cruzamento vira um nó de dois traços no mesmo pixel;
+          · a cabeça contínua, orelha-testa-orelha, e a mandíbula fechando por
+            baixo — lê como gato à primeira vista, e é esta;
+          · a mesma com um deslizador atravessando o queixo, para dizer
+            "configurar" — a 48px o deslizador cortava o rosto e o ícone deixava
+            de ler como qualquer uma das duas coisas.
+
+        A palavra "MeowSystem" fica ao lado do ícone no lançador e na dock: o
+        desenho não precisa dizer "configuração" também.
+
+    O ACCENT É A COR, COMO NOS ARQUIVOS
+        Este é o aplicativo do PRÓPRIO tema — a cor dele é a cor que ela
+        escolheu, e muda junto quando ela troca o `ACCENT`.
+    """
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="MeowSystem">
+  <title>{c['titulo']}</title>
+  <g fill="none" stroke="{c['sujeito']}" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.6 22.4 8.2 7.4l11.6 6.2a16 16 0 0 1 8.4 0l11.6-6.2-1.4 15"/>
+    <path d="M9.6 22.4a14.4 14.4 0 1 0 28.8 0"/>
+    <path d="M18.6 25v3M29.4 25v3"/>
+    <path d="M24 31v1.8l-2.6 1.6M24 32.8l2.6 1.6"/>
+  </g>
+</svg>
+"""
+
+
 DESENHOS = {
+    "meowsystem-painel": meowsystem_painel,
     "fogstripper": fogstripper,
     "hefesto": hefesto,
     "cosmic-files": cosmic_files,

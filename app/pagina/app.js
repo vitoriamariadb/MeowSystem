@@ -2228,4 +2228,27 @@ async function iniciar() {
   render();
 }
 
+/* --- O PULSO: ESTA PÁGINA É O INTERRUPTOR DO SERVIDOR ----------------------
+ * Pedido dela em 02/09/2026: "quando eu fechar ele via navegador ele ser
+ * finalizado". Quem decide isso é o `servidor.py` (ver lá o bloco "O PAINEL
+ * MORRE COM A JANELA QUE O ABRIU"); daqui sai só o sinal, e ele é uma conexão
+ * que fica aberta — não uma batida por temporizador, que o Chrome estrangula em
+ * aba oculta e congela de vez depois de alguns minutos.
+ *
+ * O `EventSource` reconecta sozinho quando cai, e é isso que faz o F5 e a troca
+ * de papel de parede (que recarrega a página) não derrubarem o painel.
+ *
+ * O TOKEN VAI NO COOKIE, e tem de ir: `EventSource` não aceita cabeçalho
+ * nenhum. O cookie de sessão que o servidor planta ao servir a página cobre
+ * este pedido como cobre o `estilo.css`. */
+try {
+  const pulso = new EventSource("/api/pulso");
+  /* Sem `onerror` o console enche de vermelho a cada reconexão — e a
+   * reconexão é o comportamento CERTO, não um defeito para relatar. */
+  pulso.onerror = () => {};
+} catch (e) {
+  /* Navegador sem EventSource: o servidor sai sozinho pela espera de
+   * `MEOW_APP_ESPERA`, e o painel funciona igual até lá. */
+}
+
 iniciar();

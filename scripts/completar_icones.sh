@@ -166,6 +166,11 @@ AUTORAIS="$RAIZ/assets/icones/autorais"
 LOGO_HEFESTO_DELA="$HOME/Desenvolvimento/hefesto-dualsense4unix/assets/hefesto-logo.svg"
 
 declare -A AUTORAL=(
+  # O painel do próprio MeowSystem. É o único desenho autoral de TRAÇO — o
+  # cabeçalho de `meowsystem_painel()`, em `gerar_icones_autorais.py`, conta por
+  # que um ícone escrito hoje nasce no padrão que ela definiu em 11/08/2026 e
+  # não no chapado dos vizinhos de tabela.
+  [com.meowsystem.Painel]="meowsystem-painel-$FLAVOR.svg"
   [fogstripper]="fogstripper-$FLAVOR.svg"
   # EXCEÇÃO, a pedido dela: o Hefesto TEM logo própria, e foi ELA que desenhou
   # (~/Desenvolvimento/hefesto-dualsense4unix/assets/hefesto-logo.svg — a bigorna
