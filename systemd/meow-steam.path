@@ -1,0 +1,47 @@
+# systemd/meow-steam.path — o gatilho que tira do lançador o jogo desinstalado.
+#
+# POR QUE ISTO EXISTE
+#   Queixa dela, 02/09/2026: "tem jogo da steam que tá desinstalado mas ainda tem
+#   o .desktop, em teoria isso não deveria ocorrer". Estava certa duas vezes.
+#
+#   A limpeza de órfãos do `scripts/jogos_steam.sh` existe desde 15/08/2026 e
+#   funciona — mas nada a CHAMAVA depois de uma desinstalação. O script só rodava
+#   no `./install.sh` e no `meow doctor --consertar`, então o atalho de um jogo
+#   removido às 3h da tarde ficava no lançador até a próxima passagem: às 5h da
+#   manhã seguinte, no melhor caso. Catorze horas de um cartão que abre um jogo
+#   que não existe mais.
+#
+#   (A segunda metade da queixa era o lançador não reler; isso se conserta dentro
+#   do `jogos_steam.sh`, com o `meow_lancador_reler` que ele não chamava.)
+#
+# O EVENTO É O DIRETÓRIO `steamapps`, E NÃO UM ARQUIVO
+#   A Steam mantém um `appmanifest_<appid>.acf` por jogo instalado e o APAGA ao
+#   desinstalar. Não há um arquivo-carimbo como o `.changed` do flatpak, então o
+#   evento é o diretório que os contém: apagar (ou criar) um `.acf` muda o mtime
+#   de `steamapps/`, e é isso que o `PathChanged` enxerga.
+#
+# OS DOIS CAMINHOS SÃO O MESMO DIRETÓRIO, E OS DOIS PRECISAM ESTAR AQUI
+#   `~/.steam/steam` é um symlink para `~/.steam/debian-installation` nesta
+#   máquina (Steam nativa, pacote deb). O `.path` do systemd arma o inotify no
+#   caminho que lhe for dado; declarar os dois é barato e cobre a máquina onde
+#   só um deles existe. Um caminho ausente não é erro: a unidade fica esperando
+#   ele aparecer.
+#
+# A BIBLIOTECA EXTERNA FICA DE FORA, E ISSO É DECISÃO
+#   `/mnt/Mnemosyne/SteamLibrary` é a segunda biblioteca dela, e um jogo
+#   desinstalado DE LÁ não dispara este gatilho. Cravar o caminho aqui poria o
+#   nome de um disco desta máquina numa unidade que o repositório versiona — e
+#   com o disco desmontado o `jogos_steam.sh` ADIA a limpeza de propósito (a
+#   ausência do manifesto seria falsa), de modo que o disparo não teria o que
+#   fazer. Para esses, quem limpa continua sendo o `meow doctor` e o instalador.
+[Unit]
+Description=MeowSystem — vigia a biblioteca da Steam e tira do lançador o jogo desinstalado
+Documentation=file:%h/.local/state/meowsystem/steam.log
+
+[Path]
+PathChanged=%h/.steam/steam/steamapps
+PathChanged=%h/.steam/debian-installation/steamapps
+Unit=meow-steam.service
+
+[Install]
+WantedBy=default.target

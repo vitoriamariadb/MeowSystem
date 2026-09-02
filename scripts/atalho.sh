@@ -29,36 +29,61 @@
 # cópia do painel que envelheceria em silêncio.
 #
 # ─────────────────────────────────────────────────────────────────────────────
-# `Terminal=true`, E ISSO É DECISÃO, NÃO PREGUIÇA
+# `Terminal=false` — E A VERSÃO ANTERIOR ESTÁ AQUI PORQUE ELA FOI MEDIDA
 # ─────────────────────────────────────────────────────────────────────────────
-# O `run.sh` é um processo que FICA DE PÉ: ele sobe o servidor, abre o navegador e
-# espera. Com `Terminal=false` ele viraria um processo invisível, e fechar o
-# painel exigiria descobrir o PID — para uma coisa que abre `./install.sh` isso é
-# ruim. Com `Terminal=true` nasce uma janela de terminal que é, literalmente, o
-# interruptor: fechar aquela janela derruba o servidor (o `trap ... HUP` do
-# `run.sh` cobre exatamente esse caso, e foi por isso que ele foi escrito).
+# Até 02/09/2026 este arquivo nascia com `Terminal=true`, e o raciocínio era
+# bom: o `run.sh` fica de pé, então a janela de terminal seria o interruptor —
+# fechá-la derrubaria o servidor, e um traceback do Python teria onde aparecer.
 #
-# A janela também é onde a URL aparece, e é onde um traceback do Python apareceria.
-# Um painel que pode rodar o instalador não deve esconder a própria saída.
+# NESTA MÁQUINA AQUILO NÃO ACONTECE. O journal de 02/09/2026 tem os dois cliques
+# dela, às 03:22:28 e às 03:22:44, e nos dois a mesma resposta:
+#
+#     app-cosmic-com.meowsystem.Painel-44306.scope: PID 44306 vanished before we
+#     could move it to target cgroup … Failed with result 'resources'
+#
+# O terminal do COSMIC é instância única: o processo que o lançador criou falou
+# com a instância já aberta e saiu no mesmo instante — daí o "vanished" — e o
+# painel foi parar numa ABA do terminal DELA, no meio do que ela estava fazendo.
+# O `app.pid` gravado às 03:22:44.587, três décimos de segundo depois do clique,
+# prova que o servidor chegou a subir: ele morreu junto quando aquela aba fechou.
+# Um interruptor que ela não vê não é interruptor, e uma aba que aparece no meio
+# do trabalho dela é pior que nenhuma janela.
+#
+# ENTÃO OS DOIS MOTIVOS DO `Terminal=true` FORAM RESOLVIDOS EM OUTRO LUGAR:
+#   · o interruptor virou a própria janela do navegador — o servidor sobe com
+#     `MEOW_APP_VIGIA=1` e sai quando o pulso da página some (o bloco "O PAINEL
+#     MORRE COM A JANELA QUE O ABRIU", em `app/servidor.py`);
+#   · a saída virou arquivo — sem tty, o `run.sh` desvia tudo para
+#     `~/.local/state/meowsystem/painel.log`, e um traceback continua tendo onde
+#     aparecer.
+#
+# `StartupWMClass` FECHA O PAR: o `run.sh` abre o Chrome com
+# `--class=com.meowsystem.Painel`, e é por esta linha que o COSMIC reconhece
+# aquela janela como sendo deste cartão — sem ela, a janela do painel entra no
+# dock com o ícone do navegador.
 #
 # ─────────────────────────────────────────────────────────────────────────────
-# O ÍCONE É NOME DE TEMA, NUNCA CAMINHO — e a escolha está declarada
+# O ÍCONE É NOME DE TEMA, NUNCA CAMINHO — e desde 02/09/2026 o desenho é NOSSO
 # ─────────────────────────────────────────────────────────────────────────────
-# `Icon=preferences-desktop-theme`, pelo mesmo motivo que o `leitura_build.sh` dá
-# para o applet dele: um nome resolve pelo TEMA em uso e continua existindo se o
-# repositório sair do disco; um caminho absoluto vira ícone quebrado.
+# `Icon=com.meowsystem.Painel` — um NOME, pelo mesmo motivo que o
+# `leitura_build.sh` dá para o applet dele: um nome resolve pelo TEMA em uso e
+# continua existindo se o repositório sair do disco; um caminho absoluto vira
+# ícone quebrado.
 #
-# O nome escolhido é o que o PRÓPRIO PROJETO já usa: o `meow_notificar` de
-# `lib/comum.sh` manda `-i preferences-desktop-theme` em toda notificação do
-# MeowSystem desde a primeira versão. O ícone do painel é o mesmo dos avisos dele
-# — uma coisa a menos para lembrar.
+# ATÉ 02/09/2026 O NOME ERA `preferences-desktop-theme`, e ela viu o resultado
+# na dock: uma engrenagem cinza CHAPADA entre o Terminal e os Arquivos, que são
+# traço lavender. O desenho era do Papirus (o `ICONES_BASE` de que o nosso tema
+# herda) — ou seja, resolvia através do nosso tema com traço de terceiro. A
+# queixa dela foi de uma linha: "não esquece de corrigir o icon da dock também".
 #
-# ELE NÃO É DESENHO NOSSO, E ISSO ESTÁ DITO: conferido em 01/09/2026, o nome não
-# aparece em `assets/icones/*.map` nem em `MeowSystem-Icons/`; quem o desenha é o
-# Papirus, que é o `ICONES_BASE` de que o nosso tema herda. Ou seja: ele resolve
-# ATRAVÉS do nosso tema, mas o traço é de terceiro. Para trocar por arte nossa,
-# basta um `.svg` em `MeowSystem-Icons/scalable/apps/` com este nome — nada aqui
-# muda, porque o `.desktop` pede pelo nome e não pelo arquivo.
+# O desenho agora é o gato de traço de `meowsystem_painel()`, em
+# `scripts/gerar_icones_autorais.py`, e quem o instala no tema é o
+# `completar_icones.sh`, como já instala os outros autorais. Ele muda de cor com
+# o `FLAVOR` e com o `ACCENT` dela, porque é gerado da paleta e não digitado.
+#
+# O `meow_notificar` de `lib/comum.sh` continua mandando
+# `-i preferences-desktop-theme` nas notificações: são coisas diferentes, e
+# trocar aquilo é outra decisão — o aviso do MeowSystem não é o painel.
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # ONDE ELE É INSTALADO, E POR QUE NÃO EM /usr/share
@@ -75,7 +100,14 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 . "$RAIZ/lib/comum.sh"
 
 APP_ID="com.meowsystem.Painel"
-DESKTOP="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$APP_ID.desktop"
+APLICATIVOS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+DESKTOP="$APLICATIVOS/$APP_ID.desktop"
+# O CARTÃO-SOMBRA DA JANELA. O nome NÃO é escolha nossa: é o `app_id` que o
+# Chromium dá a uma janela de `--app`, e o `.desktop` só é encontrado se o
+# arquivo se chamar exatamente assim. Ver a seção "A JANELA TEM UM SEGUNDO
+# CARTÃO" abaixo.
+JANELA_ID="chrome-127.0.0.1__-Default"
+JANELA="$APLICATIVOS/$JANELA_ID.desktop"
 LANCADOR="$HOME/.local/bin/meow-painel"
 
 CONFERIR=0; REVERTER=0
@@ -103,14 +135,20 @@ raiz="${MEOW_RAIZ:-}"
 [ -n "$raiz" ] || raiz="$(head -n1 "$ponteiro" 2>/dev/null || true)"
 
 if [ -z "$raiz" ] || [ ! -x "$raiz/app/run.sh" ]; then
-  printf 'meow-painel: não achei o repositório do MeowSystem.\n' >&2
-  printf '  procurei em: %s\n' "${raiz:-(o ponteiro $ponteiro está vazio ou não existe)}" >&2
-  printf '\n  Se o disco do clone não estiver montado, é isso. Monte-o e tente de novo.\n' >&2
+  onde="${raiz:-(o ponteiro $ponteiro está vazio ou não existe)}"
+  # SEM TERMINAL, O AVISO TEM DE IR ATÉ ELA. O `.desktop` é `Terminal=false`
+  # desde 02/09/2026, então escrever no stderr aqui seria falar com ninguém —
+  # exatamente o "clique que não faz nada" que este lançador existe para evitar.
+  # A notificação é a tela; o log é o registro; o stderr fica para quem rodou
+  # `meow-painel` na mão.
+  msg="Não achei o repositório do MeowSystem em $onde. Se o disco do clone não estiver montado, é isso."
+  printf 'meow-painel: %s\n' "$msg" >&2
   printf '  Para apontar à mão:  MEOW_RAIZ=/caminho/do/clone meow-painel\n' >&2
-  # Sem isto a janela de terminal fecharia antes de alguém ler o que houve — que
-  # é exatamente o "clique que não faz nada" que este lançador existe para evitar.
-  printf '\n  (ENTER para fechar) ' >&2
-  read -r _ 2>/dev/null || sleep 20
+  estado="${XDG_STATE_HOME:-$HOME/.local/state}/meowsystem"
+  mkdir -p "$estado" 2>/dev/null &&
+    printf '%s meow-painel: %s\n' "$(date -Is)" "$msg" >> "$estado/painel.log" 2>/dev/null
+  command -v notify-send >/dev/null 2>&1 &&
+    notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "$msg"
   exit 3
 fi
 exec "$raiz/app/run.sh" "$@"
@@ -134,11 +172,52 @@ Name=MeowSystem
 GenericName=Configuração do tema
 Comment=Configurar o tema, os ícones, o papel de parede e os gatos — numa página só
 Exec=$LANCADOR
-Icon=preferences-desktop-theme
-Terminal=true
+Icon=$APP_ID
+Terminal=false
 StartupNotify=true
+StartupWMClass=$APP_ID
 Categories=Settings;DesktopSettings;
 Keywords=meow;meowsystem;tema;theme;catppuccin;icones;ícones;gato;papel de parede;wallpaper;cosmic;aparência;
+FIM
+}
+
+# A JANELA TEM UM SEGUNDO CARTÃO, E ELE EXISTE SÓ PELO ÍCONE — 02/09/2026
+#
+# O QUE ELA VIU
+#   "não esquece de corrigir o icon da dock também", com a captura junto: entre o
+#   Terminal e os Arquivos — os dois de traço lavender — o painel aberto aparecia
+#   como uma engrenagem bege chapada.
+#
+# E A CAUSA NÃO ERA O `Icon=` DO CARTÃO DE CIMA
+#   O ícone da JANELA na dock não sai do `.desktop` que a lançou: o COSMIC o
+#   procura pelo `app_id` que a janela declara. Uma janela de `--app` do Chromium
+#   declara `chrome-<host>__-<perfil>` e ignora o `--class` que pedimos — medido
+#   na máquina dela, com o Chrome fechado, para descartar "é a instância que já
+#   estava aberta". Sem `.desktop` com aquele nome, o COSMIC cai no ícone
+#   genérico de aplicativo, e o genérico do Papirus é aquela engrenagem.
+#
+# ENTÃO O CONSERTO É DAR UM CARTÃO ÀQUELE NOME
+#   `NoDisplay=true` porque ele não é um segundo aplicativo: ninguém deve
+#   encontrá-lo no lançador, ele existe para o casamento da janela. O `Icon=` é o
+#   mesmo do cartão de cima — os dois mostram o gato — e o `Exec=` aponta para o
+#   mesmo lançador, de modo que fixar a janela na dock e clicar depois reabre o
+#   painel, em vez de virar um ícone morto.
+#
+# O NOME É ESTÁVEL PORQUE NÓS CONTROLAMOS AS DUAS METADES
+#   O host é sempre `127.0.0.1` (o servidor não escuta em outro lugar) e o perfil
+#   é sempre `Default` porque o `run.sh` abre com `--user-data-dir` NOSSO. Com o
+#   perfil dela seria `-Profile_2`, que muda com o que ela fizer no Chrome.
+_texto_janela() {
+  cat <<FIM
+[Desktop Entry]
+Type=Application
+Name=MeowSystem
+Comment=A janela do painel de configuração
+Exec=$LANCADOR
+Icon=$APP_ID
+Terminal=false
+NoDisplay=true
+StartupWMClass=$JANELA_ID
 FIM
 }
 
@@ -152,6 +231,7 @@ _confere_arquivo() {   # 0 = igual, 1 = divergente
 _conferir() {
   local faltando=()
   _confere_arquivo "$DESKTOP" "$(_texto_desktop)"   || faltando+=("$APP_ID.desktop")
+  _confere_arquivo "$JANELA" "$(_texto_janela)"     || faltando+=("$JANELA_ID.desktop")
   _confere_arquivo "$LANCADOR" "$(_texto_lancador)" || faltando+=("meow-painel")
   # O bit de execução conta como divergência: um lançador sem `+x` é um ícone
   # que abre e fecha na mesma hora, e nada na tela explica.
@@ -191,6 +271,13 @@ _aplicar() {
     *) meow_erro "não consegui escrever $DESKTOP"; return "$MEOW_ERRO" ;;
   esac
 
+  meow_escrever "$JANELA" "$(_texto_janela)" 644; rc=$?
+  case "$rc" in
+    0) ;;
+    1) mudou=1 ;;
+    *) meow_erro "não consegui escrever $JANELA"; return "$MEOW_ERRO" ;;
+  esac
+
   if [ "$mudou" = 0 ]; then
     meow_ok "atalho \"MeowSystem\" já está no lançador"
     return "$MEOW_OK"
@@ -217,7 +304,7 @@ _aplicar() {
 
 _reverter() {
   local n=0
-  for arq in "$DESKTOP" "$LANCADOR"; do
+  for arq in "$DESKTOP" "$JANELA" "$LANCADOR"; do
     [ -e "$arq" ] || continue
     if meow_seco; then meow_muda "removeria $arq"; else rm -f "$arq"; fi
     n=$((n+1))

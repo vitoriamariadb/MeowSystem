@@ -87,6 +87,7 @@ meow_desinstalar() {
       meow-wallpaper.timer meow-wallpaper.service meow-fundo.path \
       meow-assets.path meow-assets.service \
       meow-flatpak.path meow-flatpak.service \
+      meow-steam.path meow-steam.service \
       meow-leitura.timer meow-leitura.service \
       meow-gato.timer meow-gato.service meow-ativos.path \
       meow-painel.service meow-painel-raio.path meow-painel-raio.service 2>/dev/null || true

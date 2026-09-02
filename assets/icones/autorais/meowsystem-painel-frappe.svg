@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="MeowSystem">
+  <title>meowsystem-painel — Catppuccin Frappe</title>
+  <g fill="none" stroke="#CA9EE6" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.6 22.4 8.2 7.4l11.6 6.2a16 16 0 0 1 8.4 0l11.6-6.2-1.4 15"/>
+    <path d="M9.6 22.4a14.4 14.4 0 1 0 28.8 0"/>
+    <path d="M18.6 25v3M29.4 25v3"/>
+    <path d="M24 31v1.8l-2.6 1.6M24 32.8l2.6 1.6"/>
+  </g>
+</svg>

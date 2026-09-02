@@ -1,0 +1,44 @@
+# systemd/meow-steam.service — roda o `jogos_steam.sh` quando a biblioteca muda.
+#
+# Quem dispara: systemd/meow-steam.path. O porquê inteiro está lá.
+#
+# A ESPERA DE 45 s NÃO É ZELO, É O QUE IMPEDE O ESTOURO DO StartLimit
+#   Instalar um jogo não escreve o `.acf` uma vez: a Steam o reescreve a cada
+#   avanço do download, e cada reescrita muda o mtime de `steamapps/`. Sem a
+#   espera, um jogo de 150 GB (o Mortal Kombat desta máquina) dispararia esta
+#   unidade dezenas de vezes em poucos minutos, o `StartLimitBurst` estouraria e
+#   a unidade ficaria `failed` — ou seja, o vigia morreria justamente no dia em
+#   que ela mais mexe na biblioteca.
+#
+#   Com a espera, cada ciclo custa ~50 s e o `.path` só rearma depois que o
+#   serviço termina: quinze disparos em dez minutos é o teto, e ele não é
+#   alcançado. O atraso não custa nada — ninguém precisa que o atalho apareça no
+#   mesmo segundo em que o download começou.
+#
+# O `flock` É O MESMO CADEADO DE TODO O PROJETO
+#   Um `./install.sh` correndo e este serviço mexendo nos mesmos `.desktop` ao
+#   mesmo tempo seria uma corrida de verdade. `-w 60 -E 0`: espera um minuto e,
+#   se não conseguir, sai 0 — não é falha, é "outro está fazendo isto agora".
+#
+# SuccessExitStatus=1 3, PELO CONTRATO DE CÓDIGOS DO PROJETO
+#   1 = divergia e foi consertado (o caso NORMAL aqui), 3 = falta dependência
+#   (Steam ausente, biblioteca desmontada). Sem esta linha o systemd marcaria
+#   como falha exatamente as duas execuções que deram certo.
+[Unit]
+Description=MeowSystem — tira do lançador o atalho do jogo que a Steam desinstalou
+Documentation=file:%h/.local/state/meowsystem/steam.log
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+StartLimitIntervalSec=600s
+StartLimitBurst=15
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${STEAM_VIGIA:-sim}" = "sim" ]'
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStartPre=-/usr/bin/sleep 45
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/jogos_steam.sh" ] || exit 3; . %h/.config/meow/meow.conf; export FLAVOR ACCENT NOME_TEMA_ICONES ICONES_COR_MARCA; exec "$R/scripts/jogos_steam.sh"'
+SuccessExitStatus=1 3
+TimeoutStartSec=5min
+StandardOutput=append:%h/.local/state/meowsystem/steam.log
+StandardError=inherit
+SyslogIdentifier=meow-steam

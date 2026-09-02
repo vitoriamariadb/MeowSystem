@@ -424,6 +424,23 @@ fi
 # o lançador acha do mesmo jeito na varredura seguinte. Só o diretório do USUÁRIO.
 meow_tem update-desktop-database && update-desktop-database "$APPS" 2>/dev/null || true
 
+# E O LANÇADOR TEM DE SER AVISADO — 02/09/2026
+#   A frase acima ("o lançador acha do mesmo jeito na varredura seguinte") vale
+#   para o índice de MIME e é FALSA para o COSMIC: o `cosmic-app-library` e o
+#   `cosmic-launcher` resolvem os `.desktop` no arranque e guardam. Sem
+#   chacoalhá-los, o arquivo saiu do disco e o cartão continua na tela — que é
+#   exatamente a queixa dela de hoje, "tem jogo da steam que tá desinstalado mas
+#   ainda tem o .desktop".
+#
+#   O `atalho.sh` já fazia isso desde que nasceu; este script, que mexe em vinte
+#   e poucos cartões de uma vez, não fazia. Estava do lado errado da mesma
+#   medição — a que o cabeçalho de `meow_lancador_reler` registra.
+#
+#   SÓ AQUI, DEPOIS DO `meow_seco`: a função fecha a grade de aplicativos se ela
+#   estiver aberta, e este ponto do script é o único onde já se sabe que algo
+#   mudou de verdade.
+meow_lancador_reler
+
 [ "$escritos" -gt 0 ] && meow_ok "$escritos jogo(s) da Steam no lançador (ícone natural, como ela pediu)"
 [ "$removidos" -gt 0 ] && meow_ok "$removidos atalho(s) de jogo desinstalado removidos"
 # A MENSAGEM NÃO PODE MENTIR: degrau órfão não é jogo desinstalado. Os dois
