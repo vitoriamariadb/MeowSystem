@@ -43,6 +43,15 @@ async function api(rota, opcoes = {}) {
   const texto = await resposta.text();
   let dados;
   try { dados = JSON.parse(texto); } catch { dados = { erro: texto }; }
+  /* O 409 TEM NOME, e ele importa mais que o número: o servidor recusa um
+   * segundo trabalho enquanto o primeiro corre (um `install.sh` e um `doctor`
+   * ao mesmo tempo brigariam pelo mesmo lock). Sem esta tradução, clicar em
+   * "Conferir" com uma ação rodando deixava só um "Failed to load resource:
+   * 409" no console e NADA na tela — visto no teste de navegador de
+   * 01/09/2026. Agora a página diz o que aconteceu, na língua dela. */
+  if (resposta.status === 409 && !dados.erro) {
+    dados.erro = "Já há um trabalho rodando. Espere ele terminar (ou pare-o na gaveta).";
+  }
   if (!resposta.ok && !dados.erro) dados.erro = "HTTP " + resposta.status;
   return dados;
 }
@@ -96,6 +105,108 @@ let TRABALHO = null;         // {id, proximo, timer}
  * texto lido no editor. Numa lista de navegação, quinze itens em caixa alta são
  * quinze itens que a vista não distingue — e caixa alta ainda é o que leitor de
  * tela soletra letra a letra em alguns modos. O texto original vira o `title`. */
+/* ===========================================================================
+ * COMO A PÁGINA ESCREVE — 01/09/2026
+ * ===========================================================================
+ * Duas regras dela, no mesmo dia:
+ *   "acentuação e primeira letra sempre maiúscula"
+ *   "temos que ter menos palavras na interface como um todo"
+ *
+ * O conflito aparente entre as duas se resolve assim: o que a página ESCREVE
+ * por conta própria é curto e bem escrito; o que ela MOSTRA do meow.conf é
+ * literal, porque é o valor que vai para o arquivo. `sim` continua sendo `sim`
+ * no disco — a tela é que diz "Sim".
+ */
+const ROTULO_DE_VALOR = {
+  sim: "Sim", nao: "Não", auto: "Auto", escuro: "Escuro", claro: "Claro",
+  aleatoria: "Aleatória", alfabetica: "Alfabética", silencioso: "Silencioso",
+  info: "Info", debug: "Debug", traco: "Traço", chapado: "Chapado",
+  espelho: "Espelho", hora: "Hora", rotacao: "Rotação", fixo: "Fixo",
+  nitida: "Nítida", preencher: "Preencher", caber: "Caber", esticar: "Esticar",
+  mocha: "Mocha", macchiato: "Macchiato", frappe: "Frappé", latte: "Latte",
+  coquinha: "Coquinha", mimir: "Mimir",
+};
+
+/** O rótulo VISÍVEL de um valor do conf. O valor gravado nunca muda. */
+function rotuloDeValor(v) {
+  if (v === "" || v == null) return "vazio";
+  return ROTULO_DE_VALOR[v] || v;
+}
+
+/** Primeira letra maiúscula, o resto intacto (nomes próprios sobrevivem). */
+function maiuscula(txt) {
+  if (!txt) return txt;
+  return txt.charAt(0).toLocaleUpperCase("pt-BR") + txt.slice(1);
+}
+
+/** O título curto de um cartão: a primeira oração da explicação, sem ponto.
+ *  Não inventa texto — só corta o que já está escrito no meow.conf.exemplo. */
+function tituloDoCartao(item) {
+  const frase = (item.frase || "").trim();
+  if (!frase) return null;
+  /* Primeira oração, e dentro dela o primeiro aparte. "O auto-reparo é UM timer
+   * do systemd --user, diário, e mais nada" vira "O auto-reparo é um timer do
+   * systemd" — o resto está a um clique no "Por quê". */
+  let corte = frase.split(/(?<=[.!?])\s/)[0].replace(/[.]$/, "");
+  if (corte.length > 52) corte = corte.split(/\s*[,;—]/)[0];
+  if (corte.length > 64) {
+    const palavras = corte.split(/\s+/).slice(0, 9);
+    corte = palavras.join(" ").replace(
+      /\s+(de|do|da|dos|das|e|o|a|os|as|em|no|na|por|com|que|para)$/i, "");
+  }
+  return maiuscula(destacarSemGritar(corte));
+}
+
+/* O `meow.conf.exemplo` usa CAIXA ALTA como ênfase — funciona num arquivo de
+ * texto e vira grito numa tela cheia de cartões ("O gato solto em assets/gatos/
+ * entra NA HORA"). Aqui a ênfase volta ao normal, mas SÓ em palavras de quatro
+ * letras ou mais: `SVG`, `RON`, `GUI`, `USB` e `UM` são siglas ou palavras
+ * curtas onde a caixa é a grafia, não o tom de voz. */
+const FUNCIONAIS_GRITADAS = new Set([
+  "UM", "UMA", "NA", "NO", "NAS", "NOS", "EM", "DE", "DO", "DA", "DOS", "DAS",
+  "E", "OU", "SE", "JÁ", "SÓ", "AO", "AOS", "À", "ÀS", "COM", "SEM", "POR",
+  "QUE", "NÃO", "SIM", "TEM", "É", "SER", "VAI", "ELA", "ELE", "ISSO", "ESTE",
+]);
+
+function destacarSemGritar(txt) {
+  /* Duas regras, e a segunda existe porque a primeira sozinha produziu
+   * "entra NA Hora" — feio de um jeito novo:
+   *   · palavra de quatro letras ou mais em caixa alta é ênfase -> minúscula;
+   *   · palavra funcional curta em caixa alta (UM, NA, DE…) também é ênfase.
+   * O que sobra em caixa alta é o que de fato é sigla: SVG, RON, GUI, USB. */
+  return txt.replace(/\b[\p{Lu}ÁÉÍÓÚÂÊÔÃÕÇ]{1,}\b/gu, (p) => {
+    const letras = p.replace(/[^\p{L}]/gu, "");
+    if (letras.length >= 4 || FUNCIONAIS_GRITADAS.has(p))
+      return p.toLocaleLowerCase("pt-BR");
+    return p;
+  });
+}
+
+/* MENOS PALAVRAS NO MENU E NOS TÍTULOS — 01/09/2026.
+ * "tem muita mas muita palavra que ta poluindo desde menu ao titulo de secoes"
+ *
+ * Os títulos dos blocos do `meow.conf.exemplo` foram escritos para um ARQUIVO,
+ * onde uma frase inteira ajuda: "A NOITE DA MÁQUINA, EM UM LUGAR SÓ", "O MODO
+ * DE LEITURA, E O RELÓGIO QUE O LIGA SOZINHO". Num menu de vinte linhas, cada
+ * uma dessas é uma frase que ela tem de LER para descobrir que não é a que
+ * procura — e a metade que importa está sempre no começo.
+ *
+ * Então o rótulo curto é o começo da frase, cortado no primeiro sinal que
+ * introduz um aparte (vírgula, dois-pontos, travessão, parêntese). Nada é
+ * inventado e nada é traduzido: o nome inteiro continua no `title` e na busca.
+ * Se mesmo assim passar de seis palavras, corta em seis. */
+function encurtar(txt) {
+  if (!txt) return txt;
+  let curto = humanizar(txt).split(/\s*[,:—(]/)[0].trim();
+  const palavras = curto.split(/\s+/);
+  if (palavras.length > 7) curto = palavras.slice(0, 7).join(" ");
+  /* Cortar por contagem deixava rótulo terminando em preposição — "A forma do
+   * painel e do", visto na primeira tentativa. Uma palavra de ligação no fim é
+   * pior que o texto longo: parece defeito, não resumo. */
+  curto = curto.replace(/\s+(de|do|da|dos|das|e|o|a|os|as|em|no|na|por|com|que|para)$/i, "");
+  return curto;
+}
+
 function humanizar(txt) {
   if (!txt) return txt;
   /* O parêntese sai antes da conta, pelo mesmo motivo que no `servidor.py`: em
@@ -129,6 +240,113 @@ function torrada(texto, classe = "") {
   const el = elemento("div", { class: "torrada " + classe, texto });
   $("#torradas").append(el);
   setTimeout(() => el.remove(), classe === "erro" ? 7000 : 2600);
+}
+
+/* ===========================================================================
+ * AS ESCOLHAS FICAM NA MÃO DELA ATÉ ELA SALVAR — 01/09/2026
+ * ===========================================================================
+ * Pedido dela, e é uma mudança de modelo, não um botão a mais: "mesmo mudando
+ * aba a aba ele precisa se lembrar das escolhas e apertar em salvar já faz o
+ * trabalho de instalar e lembrar das escolhas".
+ *
+ * A primeira versão gravava no `meow.conf` A CADA CLIQUE. Três problemas, e o
+ * terceiro é o que ela sentiu:
+ *   1. escolher é experimentar — clicar em `latte` para ver a paleta não
+ *      deveria reescrever o arquivo dela;
+ *   2. o arquivo ficava num meio-termo que a tela não mostrava, porque gravar
+ *      não é aplicar (é o `install.sh` que aplica);
+ *   3. não havia UM momento em que ela dissesse "é isto" — e sem esse momento,
+ *      não há nada para lembrar.
+ *
+ * Agora: clicar guarda em `MUDANCAS`, que vive fora do render e por isso
+ * atravessa a troca de aba, a busca e o recarregamento da grade. O cartão fica
+ * marcado como não-salvo, o cabeçalho conta quantas esperam. `Salvar` grava
+ * todas de uma vez e, em seguida, RODA O INSTALADOR — que é o que faz a
+ * escolha virar pixel na tela. `Descartar` devolve tudo ao que está no disco.
+ *
+ * O modo seco continua valendo: com ele ligado, `Salvar` mostra o que faria
+ * sem escrever nada. */
+const MUDANCAS = new Map();   // chave -> valor escolhido e ainda não salvo
+
+function valorEmVigor(item) {
+  return MUDANCAS.has(item.chave) ? MUDANCAS.get(item.chave) : (item.valor ?? "");
+}
+
+function escolher(chave, valor, cartao) {
+  const item = ESQUEMA.chaves.find((i) => i.chave === chave);
+  if (!item) return;
+  const noDisco = item.valor ?? "";
+  if (valor === noDisco) MUDANCAS.delete(chave);
+  else MUDANCAS.set(chave, valor);
+  if (cartao) {
+    cartao.classList.toggle("nao-salvo", MUDANCAS.has(chave));
+    cartao.classList.toggle("mexeu", valor !== item.padrao);
+  }
+  atualizarBarraSalvar();
+  render();
+}
+
+function atualizarBarraSalvar() {
+  const barra = $("#barra-salvar");
+  const n = MUDANCAS.size;
+  barra.hidden = n === 0;
+  if (!n) return;
+  $("#salvar-conta").textContent =
+    n === 1 ? "1 escolha esperando" : `${n} escolhas esperando`;
+  $("#salvar-lista").textContent = [...MUDANCAS.keys()].join(" · ");
+}
+
+async function descartarEscolhas() {
+  MUDANCAS.clear();
+  atualizarBarraSalvar();
+  render();
+  torrada("Escolhas descartadas — o meow.conf não foi tocado", "igual");
+}
+
+/* SALVAR = GRAVAR + APLICAR, nessa ordem e sem meio-termo.
+ * Se uma gravação falhar, o instalador NÃO roda: aplicar metade das escolhas
+ * dela seria pior que não aplicar nenhuma, e o erro fica na tela dizendo qual
+ * chave recusou. */
+async function salvarEscolhas() {
+  if (!MUDANCAS.size) return;
+  const seco = $("#seco").checked;
+  const botao = $("#botao-salvar");
+  botao.disabled = true;
+  const anterior = botao.textContent;
+  botao.textContent = "Salvando…";
+
+  const falhou = [];
+  for (const [chave, valor] of MUDANCAS) {
+    const ok = await gravar(chave, valor, null);
+    if (!ok) falhou.push(chave);
+  }
+  botao.disabled = false;
+  botao.textContent = anterior;
+
+  if (falhou.length) {
+    torrada(`Não consegui gravar: ${falhou.join(", ")} — o instalador não rodou`, "erro");
+    return;
+  }
+  if (seco) {
+    MUDANCAS.clear();
+    atualizarBarraSalvar();
+    render();
+    torrada("Modo seco: nada foi escrito e o instalador não rodou", "igual");
+    return;
+  }
+  MUDANCAS.clear();
+  atualizarBarraSalvar();
+  render();
+  torrada("Escolhas gravadas no meow.conf. Aplicando…", "ok");
+  await rodarAcao("instalar");
+}
+
+/* Roda uma acao pelo id — o `Salvar` precisa disparar o instalador sem que
+ * exista um cartao clicado para ele. */
+async function rodarAcao(id, argumento) {
+  const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
+  if (!acao) { torrada(`Ação desconhecida: ${id}`, "erro"); return; }
+  return rodar(acao, argumento);
 }
 
 /* --- escrita de chave ------------------------------------------------------ */
@@ -177,8 +395,11 @@ function atualizarAviso() {
 /* A ordem dos testes é a ordem da especificidade, e ela importa: uma chave de
  * horário TAMBÉM é texto, e uma de lista TAMBÉM tem opções às vezes. */
 function montarControle(item, cartao) {
-  const valor = item.valor ?? "";
-  const aplica = (v) => gravar(item.chave, v, cartao);
+  /* `valorEmVigor` e nao `item.valor`: o que o controle mostra e a escolha dela
+   * ainda nao salva, quando existe. Sem isso, trocar de aba e voltar apagaria
+   * da tela o que ela acabou de escolher. */
+  const valor = valorEmVigor(item);
+  const aplica = (v) => escolher(item.chave, v, cartao);
 
   /* 0. A PRÉVIA VEM PRIMEIRO, quando existe — porque quando a opção PODE ser
    *    uma imagem, ela deve ser a imagem, e não um botão com o nome dela ao
@@ -267,7 +488,7 @@ function montarControle(item, cartao) {
       };
       for (const opcao of item.opcoes) {
         caixa.append(elemento("button", {
-          type: "button", "data-valor": opcao, texto: opcao, "aria-pressed": "false",
+          type: "button", "data-valor": opcao, texto: rotuloDeValor(opcao), "aria-pressed": "false",
           onclick: async () => { if (await aplica(opcao)) pintar(opcao); },
         }));
       }
@@ -285,7 +506,7 @@ function montarControle(item, cartao) {
     const caixa = elemento("div", { class: "controle" });
     const sel = elemento("select", { "aria-label": item.chave });
     if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— não mexer —" }));
-    for (const opcao of item.opcoes) sel.append(elemento("option", { value: opcao, texto: opcao }));
+    for (const opcao of item.opcoes) sel.append(elemento("option", { value: opcao, texto: rotuloDeValor(opcao) }));
     sel.value = valor;
     sel.addEventListener("change", () => aplica(sel.value));
     caixa.append(sel);
@@ -339,10 +560,10 @@ function botaoVazio(item, limpar, aplica) {
  * Os quatro são os fundos REAIS sobre os quais um ícone aparece nesta máquina;
  * quem os define é `/paleta.css`, a partir da paleta. */
 const FUNDOS = [
-  { id: "mocha", rotulo: "mocha", varr: "--fundo-mocha" },
-  { id: "vidro-escuro", rotulo: "vidro escuro", varr: "--fundo-vidro-escuro" },
-  { id: "vidro-claro", rotulo: "vidro claro", varr: "--fundo-vidro-claro" },
-  { id: "latte", rotulo: "latte", varr: "--fundo-latte" },
+  { id: "mocha", rotulo: "Mocha", varr: "--fundo-mocha" },
+  { id: "vidro-escuro", rotulo: "Vidro escuro", varr: "--fundo-vidro-escuro" },
+  { id: "vidro-claro", rotulo: "Vidro claro", varr: "--fundo-vidro-claro" },
+  { id: "latte", rotulo: "Latte", varr: "--fundo-latte" },
 ];
 let FUNDO = FUNDOS[0];
 
@@ -429,7 +650,7 @@ function controleImagem(item, tipo, aplica) {
     } else {
       botao.append(elemento("div", { class: "lugar", style: "width:48px;height:48px;border-radius:6px" }));
     }
-    botao.append(elemento("span", { texto: opcao }));
+    botao.append(elemento("span", { texto: rotuloDeValor(opcao) }));
     caixa.append(botao);
   }
   pintar(item.valor ?? "");
@@ -614,11 +835,11 @@ let ABA_GALERIA = "ativos";
 let LIMITE_GALERIA = 60;
 
 const GRUPOS_PAREDE = [
-  { id: "ativos", rotulo: "no carrossel" },
-  { id: "noite", rotulo: "grupo da noite" },
-  { id: "dia", rotulo: "grupo do dia" },
-  { id: "favoritos", rotulo: "favoritos" },
-  { id: "banidos", rotulo: "recusadas" },
+  { id: "ativos", rotulo: "No carrossel" },
+  { id: "noite", rotulo: "Noite" },
+  { id: "dia", rotulo: "Dia" },
+  { id: "favoritos", rotulo: "Favoritos" },
+  { id: "banidos", rotulo: "Recusadas" },
 ];
 
 function montarGaleria() {
@@ -732,22 +953,44 @@ async function rodarNaGaleria(acaoId, argumento) {
 
 /* --- os cartões ----------------------------------------------------------- */
 function montarCartao(item) {
-  const mexeu = (item.valor ?? "") !== item.padrao;
-  const cartao = elemento("article", { class: "cartao" + (mexeu ? " mexeu" : "") });
+  const emVigor = valorEmVigor(item);
+  const mexeu = emVigor !== item.padrao;
+  const naoSalvo = MUDANCAS.has(item.chave);
+  const cartao = elemento("article", {
+    class: "cartao" + (mexeu ? " mexeu" : "") + (naoSalvo ? " nao-salvo" : ""),
+  });
 
+  /* MENOS PALAVRAS NO TOPO DO CARTÃO.
+   *   Antes: NOME_DA_CHAVE · essencial · "padrão: mocha" — três informações
+   *   competindo, e a do meio explicada por extenso em todo cartão.
+   *   Agora: o nome, um ponto para o essencial (com o texto no `title`), e o
+   *   padrão SÓ quando a escolha dela difere dele — que é quando saber o padrão
+   *   muda alguma coisa. Um cartão no padrão não precisa dizer que está no
+   *   padrão: o controle já mostra o valor. */
   const topo = elemento("div", { class: "cartao-topo" }, [
     elemento("code", { texto: item.chave }),
-    item.essencial ? elemento("span", { class: "marca-essencial", texto: "essencial" }) : null,
-    elemento("span", {
-      class: "padrao",
-      texto: item.padrao === "" ? "padrão: vazio" : `padrão: ${item.padrao}`,
-      title: "O que o meow.conf.exemplo traz de fábrica.",
-    }),
+    item.essencial
+      ? elemento("span", { class: "marca-essencial", title: "Chave essencial", texto: "•" })
+      : null,
+    mexeu
+      ? elemento("span", {
+          class: "padrao",
+          texto: item.padrao === "" ? "padrão vazio" : `padrão ${item.padrao}`,
+          title: "O que o meow.conf.exemplo traz de fábrica.",
+        })
+      : null,
   ]);
   cartao.append(topo);
+  /* O TÍTULO DO CARTÃO É UMA FRASE, não o identificador.
+   * `LOGO_ROTACAO` diz o que a chave se chama; "O gato do painel troca sozinho"
+   * diz o que ela FAZ — e é isso que ela precisa ler para escolher. O
+   * identificador continua no topo, pequeno, porque é como a chave se chama no
+   * arquivo e ela procura por ele. */
+  const titulo = tituloDoCartao(item);
+  if (titulo) cartao.append(elemento("h3", { class: "titulo-cartao", texto: titulo }));
   cartao.append(montarControle(item, cartao));
 
-  if (item.frase) {
+  if (item.frase && !titulo) {
     cartao.append(elemento("p", {
       /* `herdada` = o comentário veio de um bloco que descreve várias chaves.
        * Era itálico, e itálico em três linhas de texto corrido cansa a leitura
@@ -802,7 +1045,7 @@ function montarCartao(item) {
 
   if (item.ajuda) {
     cartao.append(elemento("details", { class: "porque" }, [
-      elemento("summary", { texto: "por quê" }),
+      elemento("summary", { texto: "Por quê" }),
       elemento("pre", { texto: item.ajuda.replace(/^# ?/gm, "").trim() }),
     ]));
   }
@@ -965,10 +1208,42 @@ function montarTrilho() {
    *   custa estas três linhas. */
   const focado = document.activeElement?.dataset?.grupo;
   trilho.replaceChildren();
-  trilho.append(elemento("div", { class: "rotulo-grupo", texto: "Configuração" }));
+
+  /* MENU EM DOIS NÍVEIS — pedido dela em 01/09/2026 ("um menu com subtopicos é
+   * importante"). A seção é o nível de cima; o subtítulo do bloco no
+   * meow.conf.exemplo é o subtópico. Quando uma seção tem um subtópico só, ela
+   * aparece como item simples — um pai com um filho só é um degrau que não
+   * ajuda ninguém a achar nada. */
+  const porSecao = new Map();
   for (const g of GRUPOS.filter((x) => x.tipo === "chaves")) {
-    trilho.append(botaoTrilho(g));
+    if (!porSecao.has(g.secaoPai)) porSecao.set(g.secaoPai, []);
+    porSecao.get(g.secaoPai).push(g);
   }
+
+  trilho.append(elemento("div", { class: "rotulo-grupo", texto: "Configuração" }));
+  for (const [secao, grupos] of porSecao) {
+    if (grupos.length === 1 && grupos[0].nome === secao) {
+      trilho.append(botaoTrilho(grupos[0]));
+      continue;
+    }
+    const aberta = grupos.some((g) => g.nome === ABA);
+    trilho.append(elemento("div", {
+      class: "secao-menu" + (aberta ? " aberta" : ""),
+      texto: encurtar(secao),
+      title: secao,
+    }));
+    for (const g of grupos) {
+      /* Um subtópico com o mesmo nome da seção lia "Aparência / Aparência" —
+       * o pai já disse. Aqui ele é o bloco sem subtítulo do arquivo, ou seja: o
+       * geral daquela seção. */
+      /* O aparte entre parênteses sai do MENU (fica no `title`): "O gato segue
+       * o relógio (novo em 01/09/2026)" cabe em meia linha sem a data, e a
+       * data não ajuda ninguém a achar a seção. */
+      const rotulo = g.nome === secao ? "Geral" : encurtar(g.nome);
+      trilho.append(botaoTrilho(g, true, rotulo));
+    }
+  }
+
   trilho.append(elemento("hr"));
   trilho.append(elemento("div", { class: "rotulo-grupo", texto: "Fazer" }));
   for (const g of GRUPOS.filter((x) => x.tipo !== "chaves")) {
@@ -980,15 +1255,16 @@ function montarTrilho() {
   }
 }
 
-function botaoTrilho(g) {
+function botaoTrilho(g, filho, rotulo) {
   return elemento("button", {
     type: "button",
+    class: filho ? "filho" : "",
     "data-grupo": g.nome,
     "aria-current": String(g.nome === ABA),
     title: g.original || g.nome,
     onclick: () => { ABA = g.nome; gravarHash(); render(); },
   }, [
-    elemento("span", { texto: humanizar(g.nome) }),
+    elemento("span", { texto: rotulo || encurtar(g.nome) }),
     elemento("span", { class: "conta", texto: contaDoGrupo(g) }),
   ]);
 }
@@ -1031,7 +1307,8 @@ function render() {
 
   for (const g of grupos) {
     if (busca || g.tipo !== "chaves") {
-      alvo.append(elemento("h2", { class: "secao-titulo", texto: humanizar(g.nome) }));
+      alvo.append(elemento("h2", { class: "secao-titulo", title: g.nome,
+                                   texto: encurtar(g.nome) }));
     }
     if (g.tipo === "folhas") { alvo.append(montarFolhas(g.itens)); continue; }
     if (g.tipo === "galeria") { alvo.append(montarGaleria()); continue; }
@@ -1039,15 +1316,11 @@ function render() {
      * e não uma miniatura repetida dentro de cada cartão. O que ela mostra é o
      * tema que está INSTALADO — "está no disco?" e "está na tela dela?" são
      * perguntas diferentes, e é a segunda que importa aqui. */
-    /* A frase do "sem prévia", uma vez por seção — ver montarCartao. */
-    if (!busca && g.tipo === "chaves"
-        && (g.itens || []).some((i) => !i.previa && GRUPOS_VISUAIS.has(i.subsecao || i.secao))) {
-      alvo.append(elemento("p", {
-        class: "frase nota-secao",
-        texto: "As chaves marcadas com um traço à esquerda não têm prévia: o efeito "
-             + "delas só aparece na tela depois de aplicadas.",
-      }));
-    }
+    /* A nota que explicava o traço lateral saiu daqui — pedido dela no mesmo
+     * dia: "temos que ter menos palavras na interface como um todo. a página
+     * fala por si". Uma frase de vinte e duas palavras para explicar um traço
+     * de dois pixels é a interface pedindo desculpa por si mesma. O traço fica;
+     * quem quiser o texto abre o "Por quê" do cartão. */
 
     /* O par painel + dock, uma vez, antes dos controles da seção. Os dois
      * juntos porque as chaves vêm em par (`FORMA_RAIO_PAINEL` e
@@ -1169,7 +1442,12 @@ async function iniciar() {
     if (!porGrupo.has(nome)) porGrupo.set(nome, []);
     porGrupo.get(nome).push(item);
   }
-  GRUPOS = [...porGrupo].map(([nome, itens]) => ({ tipo: "chaves", nome, itens }));
+  /* O grupo guarda a SEÇÃO de onde veio: é ela que vira o nível de cima do
+   * menu. Um trilho de vinte itens planos obriga a ler os vinte para achar um;
+   * com dois níveis, ela lê cinco. */
+  GRUPOS = [...porGrupo].map(([nome, itens]) => ({
+    tipo: "chaves", nome, itens, secaoPai: itens[0]?.secao || "Outras",
+  }));
 
   /* As ações vêm agrupadas pelo `grupo` que o servidor declara — uma aba por
    * assunto, na ordem em que o dicionário as define. */
@@ -1196,6 +1474,9 @@ async function iniciar() {
   if (GRUPO_ICONES) GRUPOS_VISUAIS.add(GRUPO_ICONES);
   aplicarFundo();
 
+  $("#botao-salvar").addEventListener("click", salvarEscolhas);
+  $("#botao-descartar").addEventListener("click", descartarEscolhas);
+
   ABA = abaDoHash() || GRUPOS[0].nome;
   gravarHash();
   /* O botão voltar do navegador é o desfazer que a pessoa já tem no dedo. */
@@ -1206,8 +1487,11 @@ async function iniciar() {
 
   const mexidas = ESQUEMA.chaves.filter((i) => (i.valor ?? "") !== i.padrao).length;
   $("#resumo").textContent =
-    `${ESQUEMA.chaves.length} chaves · ${mexidas} diferentes do padrão · ${ESQUEMA.conf}`
-    + (ESQUEMA.conf_existe ? "" : "  (ainda não existe — a primeira gravação o cria)");
+    /* O caminho do meow.conf saiu da linha e foi para o `title`: ele tem 44
+     * caracteres, aparece em toda tela e nunca muda. Fica o que muda. */
+    `${ESQUEMA.chaves.length} chaves · ${mexidas} fora do padrão`
+    + (ESQUEMA.conf_existe ? "" : " · o arquivo ainda não existe");
+  $("#resumo").title = ESQUEMA.conf;
 
   render();
 }

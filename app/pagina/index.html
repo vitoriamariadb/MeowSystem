@@ -51,10 +51,23 @@
   <nav class="trilho" id="trilho" aria-label="Seções"></nav>
 
   <main id="principal" tabindex="-1">
+    <!-- A barra das escolhas ainda não salvas. Fica no topo do conteúdo, visível
+         em qualquer aba, porque as escolhas atravessam as abas. -->
+    <div id="barra-salvar" class="barra-salvar" hidden>
+      <div class="barra-salvar-texto">
+        <strong id="salvar-conta"></strong>
+        <span id="salvar-lista" class="lista-chaves"></span>
+      </div>
+      <div class="barra-salvar-botoes">
+        <button type="button" class="btn" id="botao-descartar">Descartar</button>
+        <button type="button" class="btn btn-accent" id="botao-salvar">Salvar e aplicar</button>
+      </div>
+    </div>
+
     <div id="aviso-aplicar" class="aviso" hidden>
       <span id="aviso-texto"></span>
       <button type="button" class="btn btn-accent" data-acao-rapida="doctor_consertar">
-        Consertar o que estiver fora
+        Consertar
       </button>
     </div>
     <div id="conteudo"></div>
