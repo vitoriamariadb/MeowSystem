@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Folha do menu do painel — 02/09/2026</title>
+<style>
+  :root {
+    --base:#1e1e2e; --mantle:#181825; --crust:#11111b; --surface:#313244;
+    --surface2:#585b70; --text:#cdd6f4; --sub:#a6adc8; --overlay:#7f849c;
+    --mauve:#cba6f7; --peach:#fab387; --red:#f38ba8; --green:#a6e3a1;
+    --blue:#89b4fa; --yellow:#f9e2af;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--crust); color:var(--text);
+    font:16px/1.6 "Fira Sans",system-ui,sans-serif; }
+  .wrap { max-width:1180px; margin:0 auto; padding:56px 24px 96px; }
+  h1 { font-size:30px; font-weight:600; letter-spacing:-.01em; margin:0 0 6px; }
+  .sub { color:var(--sub); margin:0 0 40px; font-size:15px; }
+  .sub code { color:var(--mauve); }
+
+  h2.secao { font-size:13px; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--overlay); font-weight:600; margin:44px 0 16px;
+    border-bottom:1px solid var(--surface); padding-bottom:8px; }
+
+  .aviso { border:1px solid var(--surface); border-left:3px solid var(--peach);
+    background:var(--mantle); padding:20px 24px; border-radius:4px; margin:0 0 36px; }
+  .aviso h3 { margin:0 0 10px; font-size:14px; color:var(--peach);
+    text-transform:uppercase; letter-spacing:.08em; font-weight:600; }
+  .aviso p { margin:0 0 10px; font-size:15px; color:var(--sub); }
+  .aviso p:last-child { margin-bottom:0; }
+  .aviso b { color:var(--text); }
+
+  .par { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+  @media (max-width:900px) { .par { grid-template-columns:1fr; } }
+
+  .col { border:1px solid var(--surface); border-radius:6px;
+    background:var(--mantle); overflow:hidden; }
+  .col.boa { border-color:var(--mauve); box-shadow:0 0 0 1px var(--mauve); }
+  .col > header { padding:16px 20px; border-bottom:1px solid var(--surface);
+    display:flex; align-items:baseline; gap:10px; }
+  .col > header h3 { margin:0; font-size:16px; font-weight:600; }
+  .col.boa > header { background:rgba(203,166,247,.07); }
+  .tag { font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+    padding:3px 9px; border-radius:99px; font-weight:600; }
+  .tag.hoje { background:#45475a; color:var(--sub); }
+  .tag.nova { background:var(--mauve); color:var(--crust); }
+
+  .menu { padding:14px 0 18px; font-size:14.5px; }
+  .rot { padding:12px 20px 6px; font-size:11px; text-transform:uppercase;
+    letter-spacing:.1em; color:var(--overlay); font-weight:600; }
+  .it { padding:5px 20px 5px 20px; color:var(--text); }
+  .it.pai { color:var(--sub); font-size:12px; text-transform:uppercase;
+    letter-spacing:.07em; padding-top:12px; }
+  .it.filho { padding-left:36px; color:var(--sub); }
+  .it .desc { display:block; font-size:12.5px; color:var(--overlay);
+    text-transform:none; letter-spacing:0; }
+  .it.erro { color:var(--red); }
+  .it.erro::after { content:" ← não é isso"; color:var(--red); font-size:12px; }
+  .it.min { color:var(--peach); }
+  .it.min::after { content:" ← minúscula"; color:var(--peach); font-size:12px; }
+  hr.sep { border:0; border-top:1px solid var(--surface); margin:10px 0; }
+
+  table { width:100%; border-collapse:collapse; font-size:14.5px; margin:0 0 10px; }
+  th, td { text-align:left; padding:10px 14px; border-bottom:1px solid var(--surface);
+    vertical-align:top; }
+  th { font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+    color:var(--overlay); font-weight:600; }
+  td.n { color:var(--sub); width:32%; }
+  code { font-family:ui-monospace,monospace; font-size:13px; color:var(--mauve); }
+  .g { color:var(--green); } .r { color:var(--red); } .p { color:var(--peach); }
+</style></head>
+<body><div class="wrap">
+
+<h1>O menu do painel</h1>
+<p class="sub">Proposta de 02/09/2026 · pedido dela: <i>“pode reorganizar os menus
+suspensos e a hierarquia deles? além de deixar mais obvio o que é aquela seção.”</i></p>
+
+<div class="aviso">
+  <h3>O que está errado hoje, e não é gosto</h3>
+  <p><b>A forma do painel, o tamanho da barra, as janelas lado a lado e o modo de
+  leitura estão pendurados em “Ícones”.</b> Não é escolha de ninguém: o menu é
+  montado lendo os títulos do <code>meow.conf.exemplo</code> na ordem do arquivo,
+  e naquele arquivo esses quatro blocos vêm depois de <code># --- Ícones</code>
+  sem um título de assunto próprio no meio. O painel herda o assunto anterior — e
+  herda errado.</p>
+  <p><b>Duas seções de ação começam em minúscula</b> — “cursor” e “acervo” —
+  enquanto as outras sete começam em maiúscula.</p>
+  <p><b>“Fazer” mistura duas coisas.</b> Metade são botões que rodam alguma coisa;
+  a outra metade são lugares para olhar e escolher (a galeria, os ícones por
+  aplicativo, os jogos, as folhas). Um lugar não é uma ação.</p>
+  <p><b>Nenhuma seção diz o que é.</b> O título aparece sozinho, e “Automação”
+  sozinho não conta a ninguém que ali moram os vigias e os relógios.</p>
+</div>
+
+<h2 class="secao">Lado a lado</h2>
+<div class="par">
+
+  <div class="col">
+    <header><h3>Como está</h3><span class="tag hoje">hoje</span></header>
+    <div class="menu">
+      <div class="rot">Configuração</div>
+      <div class="it pai">Aparência</div>
+      <div class="it filho">Geral</div>
+      <div class="it filho">Ícone para o menu de lançamento</div>
+      <div class="it filho">A noite da máquina, em um lugar só</div>
+      <div class="it pai">Ícones</div>
+      <div class="it filho">Geral</div>
+      <div class="it filho erro">A forma do painel e do dock</div>
+      <div class="it filho erro">O tamanho por segmento da barra</div>
+      <div class="it filho erro">As janelas lado a lado</div>
+      <div class="it filho erro">O modo de leitura</div>
+      <div class="it pai">Wallpaper</div>
+      <div class="it filho">Geral</div>
+      <div class="it filho">Os dois itens no menu da área de trabalho</div>
+      <div class="it filho">Claro e escuro</div>
+      <div class="it">Apps</div>
+      <div class="it">Automação</div>
+      <div class="it">Terminal</div>
+      <hr class="sep">
+      <div class="rot">Fazer</div>
+      <div class="it">Ciclo de vida</div>
+      <div class="it">Tema e cor</div>
+      <div class="it">Ícones e gato</div>
+      <div class="it">Papel de parede</div>
+      <div class="it">Barra e janelas</div>
+      <div class="it">Aplicativos</div>
+      <div class="it">Jogos da Steam</div>
+      <div class="it min">cursor</div>
+      <div class="it min">acervo</div>
+      <div class="it">Folhas visuais</div>
+      <div class="it">Ícone de cada aplicativo</div>
+      <div class="it">Galeria de papéis de parede</div>
+    </div>
+  </div>
+
+  <div class="col boa">
+    <header><h3>Proposta</h3><span class="tag nova">três blocos</span></header>
+    <div class="menu">
+      <div class="rot">Ver e escolher</div>
+      <div class="it">Papéis de parede
+        <span class="desc">O acervo. Soltar arquivo entra, banir sai.</span></div>
+      <div class="it">Ícone de cada aplicativo
+        <span class="desc">Todo programa da máquina e o desenho de cada um.</span></div>
+      <div class="it">Jogos da Steam
+        <span class="desc">Quais aparecem no lançador, e o que apagar do disco.</span></div>
+      <div class="it">Folhas visuais
+        <span class="desc">As propostas de desenho, para comparar antes de decidir.</span></div>
+      <hr class="sep">
+      <div class="rot">Ajustar</div>
+      <div class="it pai">Aparência</div>
+      <div class="it filho">Geral<span class="desc">Sabor, acento, claro e escuro.</span></div>
+      <div class="it filho">Ícone do lançador</div>
+      <div class="it filho">A noite da máquina</div>
+      <div class="it pai">Barra e dock</div>
+      <div class="it filho">Forma<span class="desc">Raio de canto, margem, vidro.</span></div>
+      <div class="it filho">Tamanho por segmento</div>
+      <div class="it pai">Janelas</div>
+      <div class="it filho">Lado a lado<span class="desc">O “fibonacci” do COSMIC.</span></div>
+      <div class="it pai">Ícones</div>
+      <div class="it filho">Geral<span class="desc">Tema, pastas, cor por marca.</span></div>
+      <div class="it pai">Papel de parede</div>
+      <div class="it filho">Carrossel</div>
+      <div class="it filho">Menu da área de trabalho</div>
+      <div class="it">Modo de leitura
+        <span class="desc">Temperatura e textura, e o relógio que liga sozinho.</span></div>
+      <div class="it">Aplicativos
+        <span class="desc">Quais programas o Meow veste por dentro.</span></div>
+      <div class="it">Automação
+        <span class="desc">Os vigias e os relógios que reaplicam sozinhos.</span></div>
+      <div class="it">Terminal</div>
+      <hr class="sep">
+      <div class="rot">Fazer</div>
+      <div class="it">Ciclo de vida
+        <span class="desc">Instalar, conferir, consertar, desfazer.</span></div>
+      <div class="it">Tema e cor</div>
+      <div class="it">Ícones e gato</div>
+      <div class="it">Papel de parede</div>
+      <div class="it">Barra e janelas</div>
+      <div class="it">Aplicativos</div>
+      <div class="it">Jogos da Steam</div>
+      <div class="it">Cursor</div>
+      <div class="it">Acervo</div>
+    </div>
+  </div>
+
+</div>
+
+<h2 class="secao">O que muda, item a item</h2>
+<table>
+  <tr><th>Mudança</th><th>Por quê</th></tr>
+  <tr>
+    <td class="n"><span class="g">Três blocos</span> no lugar de dois:
+      <b>Ver e escolher</b>, <b>Ajustar</b>, <b>Fazer</b>.</td>
+    <td>Hoje a galeria e os ícones por aplicativo estão em “Fazer”, ao lado de
+      botões que rodam o instalador. Olhar uma capa não é a mesma coisa que
+      disparar um script — e são justamente as telas em que você mais passa
+      tempo, então elas vão para o topo.</td>
+  </tr>
+  <tr>
+    <td class="n"><span class="g">Barra e dock</span> e <span class="g">Janelas</span>
+      viram assunto próprio; saem de dentro de “Ícones”.</td>
+    <td>Conserto de defeito, não de gosto. Custa um título novo no
+      <code>meow.conf.exemplo</code> — e o mesmo conserto vale para o
+      <code>meow configurar</code>, que lê o mesmo arquivo.</td>
+  </tr>
+  <tr>
+    <td class="n"><span class="g">Modo de leitura</span> sai de “Ícones” e vira
+      item de primeiro nível.</td>
+    <td>É uma coisa só, com relógio próprio, e você usa à noite. Enterrado como
+      quarto subitem de outro assunto, ninguém acha.</td>
+  </tr>
+  <tr>
+    <td class="n"><span class="p">cursor</span> → <b>Cursor</b> ·
+      <span class="p">acervo</span> → <b>Acervo</b></td>
+    <td>As outras sete já começam em maiúscula.</td>
+  </tr>
+  <tr>
+    <td class="n"><span class="g">Uma linha embaixo de cada seção</span>, dizendo
+      o que é.</td>
+    <td>Foi o segundo pedido: “deixar mais óbvio o que é aquela seção”. A linha
+      aparece no <b>menu</b> e no <b>topo da seção</b> quando ela abre.</td>
+  </tr>
+  <tr>
+    <td class="n"><span class="g">“Wallpaper” → “Papel de parede”</span></td>
+    <td>O resto do painel é em português. É o único título em inglês.</td>
+  </tr>
+</table>
+
+<div class="aviso" style="border-left-color:var(--blue); margin-top:36px">
+  <h3>Uma coisa que eu não vou decidir sozinha</h3>
+  <p>As descrições de uma linha vão contra a sua própria regra de 01/09 —
+  <i>“temos que ter menos palavras na interface como um todo. a página fala por
+  si”</i>. Acho que aqui elas se pagam: são <b>nove linhas curtas no menu</b>, e o
+  problema que você levantou é exatamente “não está óbvio o que é a seção”. Mas se
+  ficar falador demais na tela, corto e deixo só nos títulos que você não
+  reconhecer de cara.</p>
+</div>
+
+</div></body></html>
