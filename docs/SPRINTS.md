@@ -142,8 +142,8 @@ abre para decidir é `docs/pesquisas/2026-08-29-modo-leitura.html`, que tem duas
 abas. **Nada foi executado** — em 29/08 ela estava a 10% do limite semanal e
 escolheu gravar o plano em vez de tocar na máquina.
 
-**AS SEIS ETAPAS ESTÃO FEITAS.** Executadas em 30/08/2026 por cinco frentes em
-paralelo, um por arquivo, com a validação medida depois, à mão. Uma segunda onda, em
+**AS SEIS ETAPAS ESTÃO FEITAS.** Executadas em 30/08/2026 em cinco frentes
+paralelas, uma por arquivo, com a validação medida depois, à mão. Uma segunda onda, em
 31/08, corrigiu o que dois revisores acharam. **O registro completo, com as medições e
 as três dívidas, é a [Sprint V](#sprint-v--o-modo-de-leitura)** — esta nota aqui é o
 estado da conversa, e o índice é o produto.
@@ -187,9 +187,9 @@ em `48x48/apps` e aparece no próximo login.
 
 ### O que entrou em 25/08/2026
 
-Seis frentes em paralelo, um por sprint, cada um num arquivo próprio; a
+Seis frentes em paralelo, uma por sprint, cada uma num arquivo próprio; a
 integração no `install.sh`, `bin/meow` e `meow.conf.exemplo` foi feita depois, à
-mão, para dois frentes não colidirem no mesmo arquivo.
+mão, para duas frentes não colidirem no mesmo arquivo.
 
 | sprint | o que está na tela dela agora |
 |---|---|
@@ -1369,7 +1369,7 @@ um dia economizado:
 
 ### A correção que precisa ficar registrada: o vidro fosco JÁ está ligado
 
-Dois frentes se contradisseram, e o erro é instrutivo. Um leu
+Duas leituras se contradisseram, e o erro é instrutivo. Uma pegou
 `CosmicTheme.Dark/**v1**/is_frosted` = `false` e concluiu "o fosco está desligado,
 é o maior ganho disponível". O outro leu a **v2** e viu `frosted:
 ExtremelyHigh2` com os quatro booleanos em `true`.
@@ -1682,7 +1682,7 @@ com os 18 módulos em português intactos.
 > **Sobre o `FZF_DEFAULT_OPTS`, o texto erra duas vezes:** a completion **já
 > tinha cor** (`env.zsh:41-43` passa a paleta ao fzf-tab); quem rodava sem cor era
 > o Ctrl+R, o Ctrl+T, o Alt+C e todo `fzf` na unha. E o `__MEC_FZF_COLOR` não
-> está *"só no seletor de modelo de IA"* — a mesma string vive em **cinco**
+> está *"só no seletor de modelo"* — a mesma string vive em **cinco**
 > lugares, e o seletor citado é de modelo **dbt**, com cópia própria.
 >
 > **O patch reverte byte a byte** (`patch -R` + `cmp`, conferido). Desfazer é o
@@ -1710,7 +1710,7 @@ código, não depois.
 
 **Junto, porque é a mesma linha de código:** `FZF_DEFAULT_OPTS`. A paleta
 Catppuccin Mocha exata já existe em `~/.config/zsh/functions/mec.zsh:12`
-(`__MEC_FZF_COLOR`), usada **só** dentro do seletor de modelo de IA. O `fzf` do
+(`__MEC_FZF_COLOR`), usada **só** dentro do seletor de modelo. O `fzf` do
 dia a dia (Ctrl+R, completion) roda sem cor nenhuma. É promover uma paleta que
 ela já validou de "um script" para "todo uso".
 
@@ -2079,7 +2079,7 @@ uma cor, não repintar um desenho.
 1. para cada aplicativo, pegar a cor dominante da marca real — a fonte natural é
    o ícone que o Papirus já entrega, que é colorido e está no disco
 2. converter para **Oklab** e achar a cor Catppuccin mais próxima em matiz, não
-   em RGB (frentes deste projeto já escreveram esse conversor duas vezes; a
+   em RGB (este conversor já foi escrito duas vezes neste projeto; a
    pesquisa em `docs/pesquisas/` tem os números)
 3. aplicar no `stroke`/`fill` do SVG do Arcticons
 4. gerar nos 4 flavors, como todo o resto do projeto
@@ -2252,9 +2252,8 @@ lista falsa de "12 ícones faltando" que na verdade era zero.
 
 ### O registro de como a sprint foi desenhada (continua válido)
 
-**Por que existe.** Ideia dela, textual: *"os que não encontrarem peça pros
-frentes procurarem semelhantes usando regex similares e criando uma lista com os
-possíveis icons e eu escolho."*
+**Por que existe.** Ideia dela: *"os que não encontrarem, procurar semelhantes
+usando regex similares e criar uma lista com os possíveis icons e eu escolho."*
 
 **O estado atual, medido.** Dos 51 aplicativos com ícone nesta máquina:
 
@@ -2277,9 +2276,9 @@ for a in d['aplicativos']:
 EOF
 ```
 
-**O trabalho dos frentes.** Um frente por aplicativo órfão, em paralelo. Cada um
-recebe: o nome do `.desktop`, o nome legível do app, e os dois acervos. Cada um
-devolve **até 5 candidatos**, cada candidato com: o arquivo, por que ele foi
+**Como a busca roda.** Uma frente por aplicativo órfão, em paralelo. Cada uma
+recebe: o nome do `.desktop`, o nome legível do app, e os dois acervos. Cada
+uma devolve **até 5 candidatos**, cada candidato com: o arquivo, por que ele foi
 sugerido, e um veredito honesto de se ele **mente** sobre o que é o aplicativo.
 
 A busca é por regex sobre os nomes dos dois acervos, mais o nome legível:
@@ -2317,7 +2316,7 @@ Entra na folha como candidato marcado, com o veredito honesto ao lado.
 **mesmo aplicativo**. Já foram descartados, com correspondência tentadora e
 falsa: `BoxySVG → inkscape`, `CosmicEdit → notepad`, `ProtonUp-Qt → lutris`,
 `BleachBit → ccleaner`. **Um ícone errado é pior que um genérico, porque mente
-sobre o que a coisa é.** Se o frente achar que vale mesmo assim, ele marca como
+sobre o que a coisa é.** Se a busca achar que vale mesmo assim, ela marca como
 "parecido, não é o mesmo" e deixa a decisão para ela.
 
 **A entrega é uma folha visual, não uma tabela de texto.** Cada órfão numa
@@ -2761,7 +2760,7 @@ dois JSON brutos das 75 investigações.
 
 ### O que a execução fez — 30/08/2026
 
-Três frentes em paralelo, um por arquivo, para não colidirem; a validação (medir
+Três frentes em paralelo, uma por arquivo, para não colidirem; a validação (medir
 de novo, não reler o relato) foi feita depois, à mão.
 
 | item | onde | estado |
@@ -2861,8 +2860,8 @@ ela abriu para decidir é `docs/pesquisas/2026-08-29-modo-leitura.html`.
 | 5. o doctor conta a verdade | `bin/meow` (`chk_leitura`, `chk_leiturabin`) | **feita** · veio junto da Sprint U |
 | 6. a dívida do raio de canto | Sprint U | **feita** · o patch entrou no binário |
 
-E o que a onda de correção de **31/08** acrescentou, depois que um validador cético
-e um crítico revisaram o trabalho de seis frentes:
+E o que a onda de correção de **31/08** acrescentou, depois que duas conferências
+independentes revisaram o trabalho das seis frentes:
 
 - **o horário passou a ter TRÊS estados, não dois.** `HoraInicio` e `HoraFim` são
   braços separados do applet; o `leitura.sh` exigia as duas chaves e, faltando uma,

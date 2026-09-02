@@ -58,8 +58,7 @@ CONF_TK = os.path.join(HOME, '.config/cosmic/com.system76.CosmicTk/v1/icon_theme
 # Os glifos candidatos ficam FORA de `assets/icones/arcticons/`: nada aqui foi decidido,
 # e um acervo é o que os scripts instalam. Ver `assets/icones/PROCEDENCIA.md`.
 CAND = os.path.join(os.environ.get('MEOW_PREVIA_BARRA',
-                    '/tmp/meow-trabalho'
-                    'e4e8c324-c21e-476b-9f65-a21e0f4250f6/scratchpad/barra'))
+                    '/tmp/meow-previa-barra'))
 
 # (família · [(ícone que o applet pede, glifo Arcticons ou None, o que é)])
 FAMILIAS = [

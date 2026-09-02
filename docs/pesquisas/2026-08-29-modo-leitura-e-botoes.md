@@ -1,6 +1,6 @@
 # Botões à esquerda e modo de leitura no COSMIC — o que foi medido em 29/08/2026
 
-Este arquivo existe porque a investigação custou **75 frentes e 7,4 milhões de tokens**, e
+Este arquivo existe porque a investigação custou **75 frentes de leitura**, e
 porque a conclusão que sobrevive vale menos do que o caminho até ela. Quando alguém reabrir
 um destes dois assuntos, a pergunta vai ser "isso já foi medido?" — e a resposta está aqui.
 
@@ -90,7 +90,7 @@ DEPOIS, com a tela de volta e a causa entendida:
 
 ---
 
-> **ERRATA de 29/08/2026, medida por um frente que releu este arquivo do zero.**
+> **ERRATA de 29/08/2026, medida por uma frente que releu este arquivo do zero.**
 > O campo "Volta" do caminho 1 manda `sudo cp -a …5c93094.aurora-ws /usr/bin/cosmic-comp`
 > como o retorno certo. Está incompleto, e o jeito como falha é silencioso. Os
 > marcadores dos três backups:
@@ -426,7 +426,7 @@ Passos:
 ## O shader final
 
 GLSL ES 1.00 (`#version 100`) — restrição dura do `offscreen.frag` do cosmic-comp: sem
-`texelFetch`, sem funções de GLSL 3.x, sem loop de contagem variável. Um frente compilou **e
+`texelFetch`, sem funções de GLSL 3.x, sem loop de contagem variável. Uma frente compilou **e
 linkou** este bloco num contexto EGL real antes de ele entrar aqui.
 
 ```glsl

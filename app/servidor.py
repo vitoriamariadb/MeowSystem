@@ -1747,7 +1747,7 @@ ACOES = {
 # --- 5b. AS PRÉVIAS: ver o efeito antes de escolher --------------------------
 #
 # O PEDIDO DELA, EM 01/09/2026, E POR QUE ELE MUDA O DESENHO DA PÁGINA
-#   "o que pega na página do opus, precisamos ter imagens disponíveis pra cada
+#   "o que pega na página, precisamos ter imagens disponíveis pra cada
 #    feature. pra facilitar a escolha. afinal é um app de modificação visual.
 #    Sem as imagens fica difícil."
 #
@@ -2840,7 +2840,7 @@ class Manipulador(BaseHTTPRequestHandler):
     # OS APLICATIVOS, E O ÍCONE DE CADA UM — 01/09/2026
     # ========================================================================
     # Ela, olhando a aba de ícones: "naquela página de icones, cara, um dos html
-    # do a ferramenta anteriormente permitia escolher o icon pra substituir tal
+    # antigas permitia escolher o icon pra substituir tal
     # programa. Aqui não temos isso. Ali tá travadasso. Todo e qualquer programa
     # com .desktop tinha que tá ali." E o princípio, logo depois: "permitir
     # facilidade do user. pra não depender de ajuda sempre."

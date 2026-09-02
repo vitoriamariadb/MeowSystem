@@ -37,8 +37,8 @@ bash scripts/listar-apps.sh --csv      # pra planilha
 **Passo 2 — teste o tema hoje mesmo.** Já tem três `.ron` prontos em `assets/temas/`
 (§2.5). Importe e veja se a direção agrada antes de escrever uma linha de código.
 
-**Passo 3 — entregue o `PROMPT-a ferramenta-CODE.md`** ao a ferramenta. Ele foi escrito
-pra ser colado inteiro, com sprints e critérios de aceite.
+**Passo 3 — siga a `ESPECIFICACAO-DE-PARTIDA.md`.** Ela foi escrita pra ser
+lida inteira, com sprints e critérios de aceite.
 
 Legenda de confiança usada em todo o documento:
 **[sim] verificado** nesta pesquisa · **[confira] validar** (existe, mas confirme nome/versão/estado) ·
@@ -227,7 +227,7 @@ gerados versionados em `assets/temas/`, pra instalação funcionar sem toolchain
 | fastfetch | sem port; logo ASCII + cores da paleta (§4.9) | [nao] → fazemos |
 | Sons do sistema | Catppuccin não tem tema de som | [nao] → reaproveitar os 25 `.oga` CC0 do `Dracula_OS-Theme` |
 
-**Instrução importante pro a ferramenta:** não confiar nesta tabela como verdade
+**Instrução importante para quem construir:** não confiar nesta tabela como verdade
 final. O primeiro passo do build é **gerar** o catálogo consultando a lista
 oficial de ports do `catppuccin/catppuccin` e cruzando com a saída de
 `listar-apps.sh`. Assim o `catalog.json` do repo nasce verificado, e um port novo
@@ -582,11 +582,11 @@ re-executável sem duplicar efeito.
 
 ---
 
-## 7. O prompt
+## 7. A especificação de partida
 
-Está em **`PROMPT-a ferramenta-CODE.md`**, pronto pra colar. Ele inclui: contexto da
+Está em **`ESPECIFICACAO-DE-PARTIDA.md`**. Ela inclui: contexto da
 máquina, princípios não-negociáveis, a estrutura exigida, os sprints com
-critérios de aceite, os comandos de descoberta que o frente **deve** rodar antes
+critérios de aceite, os comandos de descoberta que se **deve** rodar antes
 de escrever código, e a regra anti-invenção (nunca chutar caminho, chave ou nome
 de repositório — verificar primeiro).
 

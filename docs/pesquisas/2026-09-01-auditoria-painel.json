@@ -1,13 +1,13 @@
 {
  "titulo": "Auditoria do painel de configuração, aba a aba, num navegador real",
  "data": "2026-09-01",
- "por_que": "Ela olhou a página e disse: \"o layout tá totalmente sem simetria.. Fora que não tá agradável no geral. além disso eu realmente não sei se ele funciona de fato. Eu preciso que corrija isso e teste como user no navegador cada feature.\" Esta pesquisa é a resposta à segunda metade: uma varredura completa usaram a página no Chromium headless, clicando em tudo, com o modo seco ligado.",
+ "por_que": "Ela olhou a página e disse: \"o layout tá totalmente sem simetria.. Fora que não tá agradável no geral. além disso eu realmente não sei se ele funciona de fato. Eu preciso que corrija isso e teste como user no navegador cada feature.\" Esta pesquisa é a resposta à segunda metade: uma varredura de 51 passagens usaram a página no Chromium headless, clicando em tudo, com o modo seco ligado.",
  "metodo": {
-  "frentes": 51,
-  "auditores": 9,
-  "ceticos": 41,
+  "passagens": 51,
+  "passagens de auditoria": 9,
+  "conferencias independentes": 41,
   "sintese": 1,
-  "regra": "todo achado marcado como QUEBRADO passou por um cético independente, instruído a REFUTAR; na dúvida, refutar. O que sobreviveu está aqui.",
+  "regra": "todo achado marcado como QUEBRADO passou por um conferências independentes independente, instruído a REFUTAR; na dúvida, refutar. O que sobreviveu está aqui.",
   "ferramenta": "Playwright (Chromium headless), servidor local em 127.0.0.1 com token de sessão"
  },
  "resumo": {

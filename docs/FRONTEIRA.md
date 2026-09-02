@@ -335,7 +335,7 @@ um self-heal que roda de hora em hora. Uma divergência que ela mesma escolheu (
 papel de parede pela GUI) não pode virar 24 parágrafos por dia no log.
 
 Do lado do Meow, a fronteira está em `lib/comum.sh` (TRAVA 1) e no
-`meow.conf` (`vizinhos.conf`). Do lado do Aurora, no `~/.config/zsh/as instrucoes do projeto` e nos
+`meow.conf` (`vizinhos.conf`). Do lado do Aurora, nas instruções do projeto em `~/.config/zsh/` e nos
 comentários `v3.56` do `ritual-aurora-self-heal.sh`.
 
 Quem mudar um dos lados, muda os dois — este arquivo é o que sobra quando ninguém lembra
