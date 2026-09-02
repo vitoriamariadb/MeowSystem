@@ -68,6 +68,30 @@ LIBVDF="$STEAM/steamapps/libraryfolders.vdf"
 STEAM_BIN="$(command -v steam 2>/dev/null || true)"
 [ -n "$STEAM_BIN" ] || STEAM_BIN="/usr/games/steam"
 
+# --- O VERBO, QUE FALTAVA — 02/09/2026 ---------------------------------------
+# Todo script de `scripts/` aceita `--conferir` e `--aplicar`; este só entendia
+# `MEOW_DRY_RUN=1` no ambiente. Passava despercebido porque quem o chamava era
+# sempre o `install.sh` (que exporta a variável) — até a página ganhar um botão
+# "Jogos: conferir", e um botão precisa de argumento, não de variável de
+# ambiente. Sem esta leitura, `--conferir` seria ignorado EM SILÊNCIO e o botão
+# de conferir apagaria arquivos.
+#
+# E `MEOW_DRY_RUN=1` SOZINHO AQUI NÃO FAZ NADA — medido, apagando um cartão de
+# verdade num `--conferir`, minutos depois de escrever este bloco.
+#   O `lib/comum.sh` congela a decisão na hora em que é carregado:
+#       MEOW_SECO="${MEOW_DRY_RUN:-0}"      (comum.sh:25)
+#   e o `meow_seco()` lê `MEOW_SECO`, não a variável de ambiente. Como o source
+#   acontece lá em cima, definir `MEOW_DRY_RUN` aqui embaixo chega tarde: o seco
+#   já valia 0, e o `--conferir` removeu o atalho do Stray do disco enquanto
+#   dizia que era só uma conferência.
+#   Então quem tem de mudar é `MEOW_SECO`. O `MEOW_DRY_RUN` vai junto, exportado,
+#   porque é ele que os processos FILHOS leem.
+case "${1:-}" in
+  --conferir) MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
+  ''|--aplicar) ;;
+  *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; exit "$MEOW_ERRO" ;;
+esac
+
 meow_tem awk || { meow_pula "sem awk — não dá para ler os manifestos da Steam"; exit "$MEOW_SEM_DEPENDENCIA"; }
 
 if [ ! -d "$STEAM/steamapps" ]; then
@@ -186,11 +210,16 @@ ja_apagado() {
   awk -v id="$1" '$1 == id { achou = 1; exit } END { exit !achou }' "$MEOW_JOGOS_APAGADOS"
 }
 
+# O NOME VAI JUNTO, e não é enfeite: depois que o manifesto some, ele é a ÚNICA
+# coisa no disco que ainda liga aquele número a um jogo. O painel lê este arquivo
+# para escrever "Mad King Redemption Demo" no cartão em vez de "appid 4046520" —
+# e um número sozinho numa tela de decisões é uma decisão que ela não consegue
+# reler.
 marcar_apagado() {
   meow_seco && return 0
   ja_apagado "$1" && return 0
   mkdir -p "$(dirname "$MEOW_JOGOS_APAGADOS")" 2>/dev/null || return 1
-  printf '%s %s\n' "$1" "$(date -I)" >> "$MEOW_JOGOS_APAGADOS"
+  printf '%s %s %s\n' "$1" "$(date -I)" "${2:-}" >> "$MEOW_JOGOS_APAGADOS"
 }
 
 # A Steam ABERTA reescreve manifesto e reabre arquivos do jogo a qualquer
@@ -617,7 +646,7 @@ else
     # O REGISTRO SÓ SAI COM A LIMPEZA INTEIRA FEITA. Marcar depois de uma remoção
     # pela metade gastaria a linha deixando lixo — e a passagem seguinte, vendo a
     # linha gasta, nunca voltaria para terminar o serviço.
-    [ "$falhou_algo" = 0 ] && marcar_apagado "$id"
+    [ "$falhou_algo" = 0 ] && marcar_apagado "$id" "$alvo_nome"
   done
 fi
 

@@ -94,6 +94,7 @@
 # qual está correndo.
 """Backend local do painel de configuração visual do MeowSystem."""
 
+import datetime
 import hashlib
 import hmac
 import html
@@ -140,6 +141,11 @@ if RAIZ is None:
     sys.exit(3)
 
 PAGINA = os.path.join(RAIZ, "app", "pagina")
+# O mapa dos jogos que ficam fora do lançador. Constante e não literal
+# espalhado: as três funções da seção "Jogos" o leem e uma delas o escreve,
+# e um caminho digitado três vezes é como duas delas passam a olhar
+# arquivos diferentes no dia em que ele mudar de lugar.
+MAPA_JOGOS = os.path.join(RAIZ, "assets", "icones", "jogos-fora.map")
 CONF_PADRAO = os.environ.get("MEOW_CONF_PADRAO") or os.path.join(RAIZ, "meow.conf.exemplo")
 CONF = os.environ.get("MEOW_CONF") or os.path.expanduser("~/.config/meow/meow.conf")
 PALETA = os.path.join(RAIZ, "assets", "paleta", "catppuccin.json")
@@ -1749,6 +1755,28 @@ ACOES = {
         "ajuda": "Aplica o tema em todos os módulos de APPS_ATIVOS que estiverem "
                  "instalados. App ausente vira pendente, nunca falha.",
     },
+    # --- os jogos da Steam ---------------------------------------------------
+    # `confirma` é True no aplicar porque uma linha `apagar` no mapa manda o
+    # script remover os arquivos do jogo. A página grava a receita sem perguntar
+    # nada — escrever num mapa se desfaz com um clique —, mas EXECUTAR é o
+    # momento em que gigabytes saem do disco, e é aí que a pergunta cabe.
+    "jogos": {
+        "rotulo": "Jogos: conferir",
+        "grupo": "Jogos da Steam",
+        "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh"), "--conferir"],
+        "seco": False, "sudo": False, "confirma": False,
+        "ajuda": "Lista o que mudaria: cartão a criar, cartão a remover e "
+                 "arquivo de jogo a apagar. Não escreve nada.",
+    },
+    "jogos_aplicar": {
+        "rotulo": "Arrumar os jogos no lançador",
+        "grupo": "Jogos da Steam",
+        "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh")],
+        "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
+        "ajuda": "Põe um cartão por jogo instalado e tira o dos que saíram. "
+                 "Jogo marcado \"Apagar os arquivos\" tem a pasta e o manifesto "
+                 "removidos — uma vez só, e nunca com a Steam aberta.",
+    },
 }
 
 
@@ -2713,14 +2741,20 @@ class Manipulador(BaseHTTPRequestHandler):
             ) if os.path.isdir(x)]
             ok_pasta = any(alvo_arq.startswith(p + os.sep) for p in permitidos)
             ext_arq = os.path.splitext(alvo_arq)[1].lower()
-            if not ok_pasta or ext_arq not in (".svg", ".png"):
+            # O `.jpg` entrou em 02/09/2026 com a seção "Jogos da Steam": a arte
+            # do `appcache/librarycache` é JPEG, e sem ele a grade de jogos
+            # abriria com 22 quadrados vazios. A cerca NÃO muda — `~/.steam` já
+            # estava na lista de pastas permitidas; o que muda é aceitar o
+            # formato em que a Steam guarda a capa.
+            if not ok_pasta or ext_arq not in (".svg", ".png", ".jpg", ".jpeg"):
                 return self._recusar(404, "não achei")
             try:
                 with open(alvo_arq, "rb") as fh:
                     dados_arq = fh.read()
             except OSError:
                 return self._recusar(404, "não achei")
-            tipo_mime = "image/svg+xml" if ext_arq == ".svg" else "image/png"
+            tipo_mime = {".svg": "image/svg+xml", ".png": "image/png",
+                         ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}[ext_arq]
             self.send_response(200)
             self.send_header("Content-Type", tipo_mime)
             self.send_header("Content-Length", str(len(dados_arq)))
@@ -3034,6 +3068,293 @@ class Manipulador(BaseHTTPRequestHandler):
             })
         return self._json({"apps": fora, "total": len(fora)})
 
+    # ========================================================================
+    # OS JOGOS DA STEAM — 02/09/2026
+    # ========================================================================
+    # Ela, depois de descobrir que o cartão do Mad King continuava no lançador
+    # com o jogo sem licença: "veja se está integrado ao app meowsystem." Não
+    # estava. Tirar um jogo da tela — ou apagar 2,4 G de sobra — exigia editar
+    # `assets/icones/jogos-fora.map` num editor de texto.
+    #
+    # O DESENHO É O MESMO DO ÍCONE POR APLICATIVO, E DE PROPÓSITO
+    #   A página NÃO apaga nada. Ela grava a RECEITA no mapa do repositório, e
+    #   quem age é o `scripts/jogos_steam.sh` na passagem seguinte. É a regra
+    #   desta casa — a imagem não vai para o git, a receita vai — e tem um
+    #   segundo efeito que importa mais: nenhum `rm -rf` mora dentro de um
+    #   servidor HTTP. O botão que executa é o mesmo "Arrumar os jogos" da
+    #   coluna de ações, que já passa pelo confirmar e pela gaveta de saída.
+
+    def _steam_bibliotecas(self):
+        """As pastas `steamapps` declaradas no `libraryfolders.vdf`, sem repetir.
+
+        O `readlink -f` não é zelo: `~/.steam/steam` é symlink para
+        `~/.steam/debian-installation`, que é EXATAMENTE o que o vdf grava. Sem
+        canonicalizar, cada jogo apareceria DUAS vezes na grade — é a mesma
+        armadilha que o `jogos_steam.sh` documenta no `bibliotecas()`.
+        """
+        raiz = os.path.expanduser("~/.steam/steam")
+        brutos = [raiz]
+        vdf = os.path.join(raiz, "steamapps", "libraryfolders.vdf")
+        try:
+            with open(vdf, "r", encoding="utf-8", errors="replace") as fh:
+                for linha in fh:
+                    achado = re.match(r'\s*"path"\s+"(.+)"\s*$', linha)
+                    if achado:
+                        brutos.append(achado.group(1))
+        except OSError:
+            pass
+        vistas, fora = set(), []
+        for b in brutos:
+            real = os.path.realpath(os.path.expanduser(b))
+            if real in vistas:
+                continue
+            vistas.add(real)
+            if os.path.isdir(os.path.join(real, "steamapps")):
+                fora.append(real)
+        return fora
+
+    def _capa_do_jogo(self, appid, vertical=False):
+        """A arte vertical do `librarycache`, por BUSCA e não por caminho fixo.
+
+        A Steam renomeou `library_600x900.jpg` para `library_capsule.jpg` e passou
+        a enterrar cada arte numa subpasta com o hash do conteúdo. Procurar pelo
+        NOME cobre os dois layouts. A ordem da lista é a ordem de preferência: a
+        capa vertical primeiro, porque é a que tem a cara do jogo.
+        """
+        base = os.path.expanduser("~/.steam/steam/appcache/librarycache/%s" % appid)
+        if not os.path.isdir(base):
+            return ""
+        procurados = ("library_capsule.jpg", "library_600x900.jpg")
+        if not vertical:
+            procurados += ("library_header.jpg", "header.jpg", "logo.png")
+        achados = {}
+        for dirpath, _, nomes in os.walk(base):
+            for nome in nomes:
+                if nome in procurados:
+                    caminho = os.path.join(dirpath, nome)
+                    try:
+                        tam = os.path.getsize(caminho)
+                    except OSError:
+                        continue
+                    # Sobra uma versão antiga ao lado da nova: o maior vence.
+                    if tam > achados.get(nome, (0, ""))[0]:
+                        achados[nome] = (tam, caminho)
+        for nome in procurados:
+            if nome in achados:
+                return achados[nome][1]
+        return ""
+
+    def _mapa_jogos_fora(self):
+        """As linhas ativas de `jogos-fora.map`: appid -> {acao, motivo}."""
+        fora = {}
+        try:
+            with open(MAPA_JOGOS, "r", encoding="utf-8") as fh:
+                for linha in fh:
+                    corte = linha.strip()
+                    if not corte or corte.startswith("#"):
+                        continue
+                    campos = [c.strip() for c in corte.split(":")]
+                    if not campos or not campos[0].isdigit():
+                        continue
+                    if len(campos) > 1 and campos[1] in ("apagar", "esconder"):
+                        acao, motivo = campos[1], ":".join(campos[2:]).strip()
+                    else:
+                        acao, motivo = "esconder", ":".join(campos[1:]).strip()
+                    fora[campos[0]] = {"acao": acao, "motivo": motivo}
+        except OSError:
+            pass
+        return fora
+
+    def _jogos_ja_apagados(self):
+        """Os appids cujo `apagar` JÁ disparou — o registro que torna a linha gasta.
+
+        Mora no estado, e não no mapa: o mapa é versionado e a linha vale em
+        qualquer máquina; "aqui, neste disco, já apaguei" é fato local. É o mesmo
+        arquivo que o `jogos_steam.sh` escreve, lido aqui só para a página poder
+        dizer, na etiqueta, que aquela linha não vai disparar de novo.
+        """
+        vistos = {}
+        try:
+            with open(os.path.join(ESTADO, "jogos-apagados"), "r", encoding="utf-8") as fh:
+                for linha in fh:
+                    campo = linha.split(None, 2)
+                    if campo and campo[0].isdigit():
+                        # `<appid> <data> <nome>`. O nome é o que sobra de um jogo
+                        # cujo manifesto já foi embora — sem ele o cartão da
+                        # página diria só o número.
+                        vistos[campo[0]] = {
+                            "data": campo[1] if len(campo) > 1 else "",
+                            "nome": campo[2].strip() if len(campo) > 2 else "",
+                        }
+        except OSError:
+            pass
+        return vistos
+
+    def _api_jogos(self, consulta):
+        busca = (consulta.get("busca", [""])[0] or "").strip().lower()
+        mapa = self._mapa_jogos_fora()
+        gastos = self._jogos_ja_apagados()
+        apps_dir = os.path.expanduser("~/.local/share/applications")
+        fora, vistos = [], set()
+
+        for lib in self._steam_bibliotecas():
+            steamapps = os.path.join(lib, "steamapps")
+            try:
+                nomes = sorted(os.listdir(steamapps))
+            except OSError:
+                continue
+            for arq in nomes:
+                achado = re.match(r"^appmanifest_(\d+)\.acf$", arq)
+                if not achado:
+                    continue
+                appid = achado.group(1)
+                if appid in vistos:
+                    continue
+                vistos.add(appid)
+                nome, instalado_em = appid, ""
+                try:
+                    with open(os.path.join(steamapps, arq), "r",
+                              encoding="utf-8", errors="replace") as fh:
+                        texto = fh.read()
+                    m_nome = re.search(r'"name"\s+"(.*)"', texto)
+                    m_dir = re.search(r'"installdir"\s+"(.*)"', texto)
+                    if m_nome:
+                        nome = m_nome.group(1)
+                    if m_dir and "/" not in m_dir.group(1):
+                        alvo = os.path.join(steamapps, "common", m_dir.group(1))
+                        if os.path.isdir(alvo):
+                            instalado_em = alvo
+                except OSError:
+                    pass
+
+                # JOGO x FERRAMENTA PELA CAPA **VERTICAL**, e o "vertical" é o
+                # que separa os dois — medido em 02/09/2026, na primeira versão
+                # desta rota.
+                #   O `_capa_do_jogo` cai para `header.jpg` e `logo.png` quando
+                #   não há capa vertical, e é isso que faz a grade ter arte para
+                #   todo mundo. Só que as nove ferramentas (Proton, runtimes)
+                #   TÊM header e logo — então usar "tem alguma arte" como teste
+                #   devolvia 31 itens onde o lançador mostra 22. O critério do
+                #   `jogos_steam.sh` é estrito: `library_capsule.jpg` ou
+                #   `library_600x900.jpg`, que 21 de 21 jogos têm e 0 de 9
+                #   ferramentas tem.
+                capa = self._capa_do_jogo(appid)
+                if not self._capa_do_jogo(appid, vertical=True):
+                    continue
+                if busca and busca not in nome.lower() and busca != appid:
+                    continue
+
+                linha = mapa.get(appid)
+                fora.append({
+                    "appid": appid,
+                    "nome": nome,
+                    "url": "/previa?tipo=arquivo&id=" + quote(capa, safe=""),
+                    "cartao": os.path.isfile(
+                        os.path.join(apps_dir, "meow-steam-%s.desktop" % appid)),
+                    "acao": (linha or {}).get("acao", ""),
+                    "motivo": (linha or {}).get("motivo", ""),
+                    # `gasto` é o que faz a etiqueta dizer a verdade: a linha
+                    # está no mapa, mas já disparou e não vai disparar de novo.
+                    "gasto": appid in gastos,
+                    "apagado_em": (gastos.get(appid) or {}).get("data", ""),
+                    "no_disco": bool(instalado_em),
+                })
+        # AS LINHAS SEM MANIFESTO TAMBÉM APARECEM — senão a decisão dela some
+        # da tela justamente depois de dar certo.
+        #   O Mad King é o caso: a linha `apagar` disparou, o manifesto foi
+        #   embora com os arquivos, e o laço acima — que corre sobre manifestos
+        #   — deixaria de vê-lo. A linha continuaria no mapa, sem nenhum lugar na
+        #   página onde ela pudesse lê-la ou tirá-la. Entram no fim da lista,
+        #   marcadas, porque não são jogos que ela tem: são decisões que ela
+        #   tomou.
+        conhecidos = {j["appid"] for j in fora}
+        orfas = []
+        for appid, linha in mapa.items():
+            if appid in conhecidos:
+                continue
+            if busca and busca not in appid:
+                continue
+            registro = gastos.get(appid) or {}
+            orfas.append({
+                "appid": appid,
+                "nome": registro.get("nome") or "appid %s" % appid,
+                "url": "", "cartao": False,
+                "acao": linha["acao"], "motivo": linha["motivo"],
+                "gasto": appid in gastos, "apagado_em": registro.get("data", ""),
+                "no_disco": False, "sem_manifesto": True,
+            })
+        fora.sort(key=lambda j: j["nome"].lower())
+        orfas.sort(key=lambda j: j["appid"])
+        fora.extend(orfas)
+        return self._json({"jogos": fora, "total": len(fora),
+                           "mapa": MAPA_JOGOS})
+
+    def _api_jogo_fora(self, corpo):
+        """Grava (ou tira) a linha de um jogo no `jogos-fora.map`.
+
+        NÃO APAGA NADA. Quem apaga é o `scripts/jogos_steam.sh`, na passagem
+        seguinte, com as guardas dele (Steam fechada, biblioteca montada, e o
+        caminho vindo do `installdir` do manifesto, nunca deste mapa).
+        """
+        appid = str(corpo.get("appid", "")).strip()
+        acao = str(corpo.get("acao", "")).strip()
+        motivo = " ".join(str(corpo.get("motivo", "")).split())
+        remover = bool(corpo.get("remover"))
+        if not appid.isdigit() or len(appid) > 12:
+            return self._json({"erro": "appid inválido"}, 400)
+        if not remover and acao not in ("esconder", "apagar"):
+            return self._json({"erro": "ação tem de ser esconder ou apagar"}, 400)
+        # O motivo entra num arquivo cujo separador é `:` e cujo comentário é
+        # `#`. Deixar os dois passarem faria a própria linha dela virar outra
+        # coisa na leitura seguinte — a página não pode escrever um arquivo que
+        # ela mesma não conseguiria reler.
+        motivo = motivo.replace(":", " ").replace("#", " ").strip()
+        if not motivo:
+            motivo = "escolha feita no painel em %s" % datetime.date.today().isoformat()
+
+        try:
+            with open(MAPA_JOGOS, "r", encoding="utf-8") as fh:
+                linhas = fh.read().split("\n")
+        except OSError as e:
+            return self._json({"erro": "não achei o mapa: %s" % e}, 500)
+
+        def id_da_linha(l):
+            corte = l.strip()
+            if not corte or corte.startswith("#"):
+                return None
+            return corte.split(":")[0].strip()
+
+        # O ARQUIVO INTEIRO SOBREVIVE — só a linha do jogo muda. O cabeçalho
+        # deste mapa tem cinquenta linhas explicando cada decisão; reescrevê-lo
+        # filtrando linhas seria apagar o motivo junto com a regra. Mesma
+        # disciplina do `_api_app_icone`.
+        novas = list(linhas)
+        indice = next((i for i, l in enumerate(novas) if id_da_linha(l) == appid), None)
+
+        if remover:
+            if indice is None:
+                return self._json({"ok": True, "removido": False, "appid": appid})
+            del novas[indice]
+        else:
+            nova = "%s:%s:%s" % (appid, acao, motivo)
+            if indice is not None:
+                novas[indice] = nova
+            else:
+                ultima = max((i for i, l in enumerate(novas) if id_da_linha(l)),
+                             default=None)
+                if ultima is None:
+                    novas.append(nova)
+                else:
+                    novas.insert(ultima + 1, nova)
+        try:
+            with open(MAPA_JOGOS, "w", encoding="utf-8") as fh:
+                fh.write("\n".join(novas))
+        except OSError as e:
+            return self._json({"erro": "não consegui gravar o mapa: %s" % e}, 500)
+        return self._json({"ok": True, "appid": appid, "acao": "" if remover else acao,
+                           "removido": remover,
+                           "depois": "vale depois de \"Arrumar os jogos no lançador\""})
+
     def _api_glifos(self, consulta):
         """O acervo de desenhos que a página pode oferecer para um aplicativo.
 
@@ -3265,6 +3586,9 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/glifos":
             return self._api_glifos(consulta)
 
+        if caminho == "/api/jogos":
+            return self._api_jogos(consulta)
+
         if caminho == "/api/previas":
             dados = previas(consulta.get("tipo", [""])[0],
                             consulta.get("grupo", [""])[0] or None)
@@ -3314,6 +3638,9 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/app-icone":
             return self._api_app_icone(corpo)
+
+        if caminho == "/api/jogo-fora":
+            return self._api_jogo_fora(corpo)
 
         if caminho == "/api/rodar":
             acao = str(corpo.get("acao", ""))
