@@ -947,17 +947,14 @@ html, body { overflow-x: clip; }
 .barra-salvar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-  padding: .7rem .9rem;
+  gap: .55rem;
+  flex: 0 0 auto;
+  padding: .3rem .35rem .3rem .75rem;
   border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--surface0));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 8%, var(--mantle));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--mantle));
 }
-.barra-salvar-texto { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
-.barra-salvar strong { font-size: .9rem; color: var(--text); }
+.barra-salvar strong { font-size: .82rem; color: var(--text); white-space: nowrap; }
 .lista-chaves {
   font: .72rem/1.4 ui-monospace, "JetBrains Mono", monospace;
   color: var(--subtext0);
@@ -1045,3 +1042,126 @@ html, body { overflow-x: clip; }
 .grade + .secao-titulo { margin-top: 2.2rem; }
 .trilho hr { margin: 1.1rem .4rem; }
 .trilho .rotulo-grupo { margin-bottom: .35rem; }
+
+
+/* ===========================================================================
+ * OS APLICATIVOS E SEUS ICONES
+ * ===========================================================================
+ * Grade densa: sao 65 aplicativos, e ela precisa VER todos de uma vez para
+ * achar o que quer trocar. O painel de escolha nasce embaixo do aplicativo
+ * clicado, ocupando a linha inteira — assim o contexto nao se perde. */
+.linha-filtro {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.1rem;
+}
+.busca-apps {
+  flex: 0 1 320px;
+  padding: .5rem .7rem;
+  border-radius: 8px;
+  border: 1px solid var(--surface1);
+  background: var(--mantle);
+  color: var(--text);
+  font: inherit;
+}
+.grade-apps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+  gap: .7rem;
+}
+.grade-apps .app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .45rem;
+  padding: .8rem .5rem;
+  border: 1px solid var(--surface0);
+  border-radius: 10px;
+  background: var(--mantle);
+  color: var(--subtext1);
+  font: inherit;
+  font-size: .78rem;
+  cursor: pointer;
+  min-width: 0;
+}
+.grade-apps .app:hover { border-color: var(--surface2); color: var(--text); }
+.grade-apps .app.aberto {
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.grade-apps .app img { width: 40px; height: 40px; }
+.app-nome {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-marca { font-size: .66rem; color: var(--overlay1); }
+
+.escolha-icone {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+  margin: .3rem 0 1rem;
+  padding: 1.1rem;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--mantle));
+}
+.escolha-icone input[type="search"] {
+  padding: .5rem .7rem;
+  border-radius: 8px;
+  border: 1px solid var(--surface1);
+  background: var(--base);
+  color: var(--text);
+  font: inherit;
+}
+.tira-glifos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: .5rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  padding: .2rem;
+}
+.tira-glifos button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .3rem;
+  padding: .5rem .3rem;
+  border: 1px solid var(--surface0);
+  border-radius: 9px;
+  background: var(--base);
+  color: var(--subtext0);
+  font: inherit;
+  font-size: .68rem;
+  cursor: pointer;
+  overflow: hidden;
+}
+.tira-glifos button img { width: 34px; height: 34px; filter: invert(1) opacity(.85); }
+.tira-glifos button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tira-glifos button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.rotulo-mini {
+  font-size: .72rem;
+  color: var(--overlay1);
+  margin-top: .2rem;
+}
+.escolha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.acervo-add { display: inline-flex; }
+.com-acervo { display: flex; flex-direction: column; gap: .6rem; align-items: flex-start; }
+
+.app-fabrica { color: var(--overlay0); }
