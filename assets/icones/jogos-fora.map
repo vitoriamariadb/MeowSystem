@@ -1,0 +1,51 @@
+# jogos-fora.map — appids que NÃO ganham cartão no lançador, mesmo com manifesto.
+#
+# Lido por `scripts/jogos_steam.sh`. Formato:
+#
+#     <appid>:<motivo, com a data e o que foi medido>
+#
+# O QUE ESTE ARQUIVO CONSERTA, E POR QUE NÃO DÁ PARA DEDUZIR
+#   O gerador toma o `appmanifest_<appid>.acf` como prova de que o jogo está
+#   instalado, e essa continua sendo a regra certa para quase tudo: a Steam
+#   escreve o manifesto ao instalar e o apaga ao desinstalar.
+#
+#   Só que existe um terceiro estado, e ele não aparece em arquivo nenhum:
+#   O JOGO ESTÁ NO DISCO E A CONTA NÃO TEM MAIS LICENÇA PARA ELE. É o que
+#   acontece com demo retirada da loja. Do lado de cá tudo diz "instalado" —
+#   medido em 02/09/2026 para o appid 4046520:
+#
+#     appmanifest_4046520.acf   StateFlags=4, SizeOnDisk 2.476.428.124
+#     steamapps/common/…        existe, 2,4 G, com o .exe dentro
+#     libraryfolders.vdf        lista o 4046520 entre os 32 apps da biblioteca
+#     localconfig.vdf           lista o 4046520 entre os 63 apps da usuária
+#
+#   E do lado da Steam, o mesmo appid, no `logs/console_log.txt`:
+#
+#     [2026-08-30 15:54:54] ExecuteSteamURL: "steam://rungameid/4046520"
+#     [2026-08-30 15:54:54] GameAction [AppID 4046520] : LaunchApp changed task
+#                           to RequestingLicense with ""
+#     [2026-08-30 15:54:55] GameAction [AppID 4046520] : LaunchApp failed with
+#                           AppError_5 with ""
+#
+#   `RequestingLicense` -> `AppError_5` é a Steam dizendo que a conta não tem
+#   direito ao app. O cartão abria e dava erro; para ela, "o icon dele tá e o
+#   jogo não".
+#
+# POR QUE NÃO LER O LOG EM VEZ DE MANTER UMA LISTA
+#   Porque a mesma linha aparece quando a Steam está em modo offline, quando a
+#   sessão caiu, e quando a licença é de família e alguém está jogando. Apagar
+#   cartão a partir de um log seria o script tirando jogos da tela dela por
+#   causa de uma queda de rede. Uma linha escrita à mão diz a mesma coisa sem
+#   chutar, e fica com o motivo ao lado.
+#
+# COMO TIRAR UM JOGO DA LISTA
+#   Apague a linha e rode `./install.sh` (ou espere o vigia da Steam). O cartão
+#   volta na mesma passagem, com a capa que a Steam tiver baixado.
+#
+# O ARQUIVO DO JOGO NÃO É MEXIDO POR AQUI. Este mapa decide o que aparece no
+# LANÇADOR; os 2,4 G em `steamapps/common/` e o `.acf` continuam onde estão, e
+# quem apaga aquilo é ela, ou a Steam.
+
+# Mad King Redemption Demo — o nome sai do próprio manifesto na hora do aviso,
+# então o motivo abaixo não o repete.
+4046520:demo sem licença desde 30/08/2026 (AppError_5 no console_log da Steam); os 2,4 G seguem no disco
