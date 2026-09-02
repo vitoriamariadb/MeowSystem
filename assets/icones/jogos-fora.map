@@ -3,6 +3,24 @@
 # Lido por `scripts/jogos_steam.sh`. Formato:
 #
 #     <appid>:<motivo, com a data e o que foi medido>
+#     <appid>:apagar:<motivo>
+#
+# O SEGUNDO CAMPO É OPCIONAL, E É A DIFERENÇA ENTRE ESCONDER E APAGAR
+#   Sem ele — duas partes — a linha só tira o cartão do lançador, e nenhum
+#   arquivo é tocado. Com a palavra `apagar`, toda passagem também garante que os
+#   arquivos do jogo NÃO estão no disco: a pasta em `steamapps/common/` e o
+#   `appmanifest_<appid>.acf` são removidos.
+#
+#   A pasta nunca é montada a partir desta lista: ela sai do `"installdir"` do
+#   próprio manifesto. Um appid errado aqui não acha manifesto e não apaga nada.
+#
+#   O `apagar` é PERMANENTE, do mesmo jeito que o `BANIDOS.txt` dos papéis de
+#   parede: enquanto a linha existir, aqueles arquivos não voltam a ficar no
+#   disco. **Se um dia ela reinstalar o jogo, tire a linha ANTES** — senão a
+#   passagem seguinte apaga o que a Steam acabou de baixar.
+#
+#   E nada é apagado com a Steam ABERTA, nem com uma biblioteca desmontada: nos
+#   dois casos a limpeza é adiada para a próxima passagem, em voz alta.
 #
 # O QUE ESTE ARQUIVO CONSERTA, E POR QUE NÃO DÁ PARA DEDUZIR
 #   O gerador toma o `appmanifest_<appid>.acf` como prova de que o jogo está
@@ -42,10 +60,12 @@
 #   Apague a linha e rode `./install.sh` (ou espere o vigia da Steam). O cartão
 #   volta na mesma passagem, com a capa que a Steam tiver baixado.
 #
-# O ARQUIVO DO JOGO NÃO É MEXIDO POR AQUI. Este mapa decide o que aparece no
-# LANÇADOR; os 2,4 G em `steamapps/common/` e o `.acf` continuam onde estão, e
-# quem apaga aquilo é ela, ou a Steam.
+# COMO O PRÓXIMO CASO CHEGA AQUI
+#   O `jogos_steam.sh` lê `logs/console_log.txt` atrás de `AppError_5` e AVISA —
+#   nunca apaga por conta própria. O aviso já vem com a linha pronta para colar
+#   aqui. A recusa de licença também acontece com a Steam offline e com a sessão
+#   caída, e é por isso que a última palavra é de quem escreve neste arquivo.
 
 # Mad King Redemption Demo — o nome sai do próprio manifesto na hora do aviso,
 # então o motivo abaixo não o repete.
-4046520:demo sem licença desde 30/08/2026 (AppError_5 no console_log da Steam); os 2,4 G seguem no disco
+4046520:apagar:demo sem licença desde 30/08/2026 (AppError_5 no console_log da Steam); a Steam não desinstala o que não licencia
