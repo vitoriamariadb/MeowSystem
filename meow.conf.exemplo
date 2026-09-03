@@ -338,7 +338,21 @@ ICONES_COR_MARCA="nao"
 # `~/folha-pastas-2.html` mostra com contraste bem melhor sobre fundo claro.
 PASTAS_XDG="nao"
 
-# --- A FORMA DO PAINEL E DO DOCK ---------------------------------------------
+# --- Barra e dock -----------------------------------------------------------
+#
+# O ASSUNTO PASSA A SER DAQUI PARA BAIXO — 02/09/2026
+#   Até hoje este bloco vinha logo depois de `# --- Ícones` e SEM título de
+#   assunto próprio. O painel e o `meow configurar` leem estes títulos na ordem
+#   do arquivo, e um bloco em CAIXA ALTA é subtítulo: ele herda o assunto
+#   anterior. Resultado — a forma da barra, o tamanho por segmento, as janelas
+#   lado a lado e o modo de leitura apareciam pendurados em "Ícones", que não
+#   tem relação nenhuma com nenhum dos quatro.
+#
+#   Um título em Capitulares abre assunto novo; um em CAIXA ALTA abre bloco
+#   dentro do assunto. A convenção é do arquivo e já existia — o que faltava
+#   era usá-la aqui.
+#
+# --- A FORMA DO PAINEL E DO DOCK --------------------------------------------
 # Estas chaves existiam só como variável de ambiente do `scripts/forma.sh`:
 # ninguém conseguia mudá-las sem editar o script. Passaram para cá em
 # 11/08/2026, quando a primeira delas precisou de fato ser trocada.
@@ -468,7 +482,8 @@ FORMA_ALA_FINAL_PAINEL=""         # XS | S | M | L | XL   (a ponta direita do pa
 FORMA_ALA_INICIAL_DOCK=""         # XS | S | M | L | XL   (a ponta esquerda da dock: o gato)
 FORMA_ALA_FINAL_DOCK=""           # XS | S | M | L | XL   (a ponta direita: bandeja, rede, desligar)
 
-# --- AS JANELAS LADO A LADO (o "fibonacci") ---------------------------------
+# --- Janelas ----------------------------------------------------------------
+# AS JANELAS LADO A LADO (o "fibonacci")
 # Em 25/08/2026 ela pediu o layout dwindle do Hyprland — cada janela nova parte
 # ao meio o espaço da anterior, formando a espiral. O cosmic-comp JÁ FAZ ISSO,
 # sem patch: é BSP binário, divide 50/50 (`tiling/mod.rs:2898` e :177-190) e
@@ -510,7 +525,8 @@ JANELAS_TILING="sim"              # sim | nao | vazio (vazio = não toca)
 #   mais nada. Corrigido em 02/09/2026.
 JANELAS_TILING_ESCOPO="global"    # global | workspace
 
-# --- O MODO DE LEITURA, E O RELÓGIO QUE O LIGA SOZINHO ----------------------
+# --- Modo de leitura --------------------------------------------------------
+# O RELÓGIO QUE O LIGA SOZINHO
 # Às 18:00 a tela esquenta e ganha textura de papel; às 07:00 volta ao normal,
 # sem você tocar em nada. São DOIS números escritos em
 # ~/.config/cosmic/com.system76.CosmicComp/v1/ — `leitura_temperatura` (Kelvin) e
@@ -681,7 +697,7 @@ LEITURA_RAMPA_MIN="0"             # 0 a 60 min  (0 = virada seca)
 # devolve 0 na hora. Sem cargo na máquina, a etapa cai em "pulados" e nada mais
 # acontece.
 LEITURA_APPLET="sim"              # sim | nao
-# --- Wallpaper -------------------------------------------------------------
+# --- Papel de parede --------------------------------------------------------
 
 # A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
 #   ativos/ (é a que gira) · favoritos/ · banidos/ (movidos, nunca apagados) ·
@@ -828,7 +844,7 @@ WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
 #       meow wallpaper permitir "/home/voce/Imagens/aquela-pasta"
 WALLPAPER_FONTES_DELA=""
 
-# --- Apps ------------------------------------------------------------------
+# --- Aplicativos ------------------------------------------------------------
 # Vírgula-separado. `meow apps` lista o que está instalado e o que falta.
 APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,qt5ct"
 

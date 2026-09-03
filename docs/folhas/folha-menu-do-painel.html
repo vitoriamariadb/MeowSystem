@@ -82,8 +82,11 @@ suspensos e a hierarquia deles? além de deixar mais obvio o que é aquela seç�
   e naquele arquivo esses quatro blocos vêm depois de <code># --- Ícones</code>
   sem um título de assunto próprio no meio. O painel herda o assunto anterior — e
   herda errado.</p>
-  <p><b>Duas seções de ação começam em minúscula</b> — “cursor” e “acervo” —
-  enquanto as outras sete começam em maiúscula.</p>
+  <p style="color:var(--overlay)"><s>Duas seções de ação começam em minúscula —
+  “cursor” e “acervo”.</s> <b style="color:var(--peach)">Errado, e corrigido em
+  02/09:</b> aquelas duas strings são rótulos de grupo das <i>prévias</i> (o gato
+  e o cursor), não seções do menu. Li um <code>grep</code> que misturava as duas
+  coisas. Nenhuma seção do menu está em minúscula.</p>
   <p><b>“Fazer” mistura duas coisas.</b> Metade são botões que rodam alguma coisa;
   a outra metade são lugares para olhar e escolher (a galeria, os ícones por
   aplicativo, os jogos, as folhas). Um lugar não é uma ação.</p>
@@ -124,8 +127,6 @@ suspensos e a hierarquia deles? além de deixar mais obvio o que é aquela seç�
       <div class="it">Barra e janelas</div>
       <div class="it">Aplicativos</div>
       <div class="it">Jogos da Steam</div>
-      <div class="it min">cursor</div>
-      <div class="it min">acervo</div>
       <div class="it">Folhas visuais</div>
       <div class="it">Ícone de cada aplicativo</div>
       <div class="it">Galeria de papéis de parede</div>
@@ -209,9 +210,11 @@ suspensos e a hierarquia deles? além de deixar mais obvio o que é aquela seç�
       quarto subitem de outro assunto, ninguém acha.</td>
   </tr>
   <tr>
-    <td class="n"><span class="p">cursor</span> → <b>Cursor</b> ·
-      <span class="p">acervo</span> → <b>Acervo</b></td>
-    <td>As outras sete já começam em maiúscula.</td>
+    <td class="n"><span class="g">Chave da aba passa a ser bloco + nome</span></td>
+    <td>Traduzir “Wallpaper” para “Papel de parede” e “Apps” para “Aplicativos”
+      fez os dois colidirem com os grupos de ação de mesmo nome. Dois botões, e o
+      menu casava por nome — clicar num abriria o outro. Com o bloco na frente os
+      dois podem coexistir, que é o certo: num se configura, no outro se roda.</td>
   </tr>
   <tr>
     <td class="n"><span class="g">Uma linha embaixo de cada seção</span>, dizendo

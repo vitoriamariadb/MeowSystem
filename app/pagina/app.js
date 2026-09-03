@@ -91,11 +91,25 @@ function idDeAba(nome) {
   return semAcento(String(nome)).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+/* A ABA PASSOU A SER IDENTIFICADA POR BLOCO + NOME — 02/09/2026
+ *   Enquanto "Fazer" era o único bloco de ações, o NOME bastava: nenhuma seção
+ *   de chave se chamava igual a um grupo de ação. A reorganização quebrou isso
+ *   no mesmo movimento em que consertou o resto — traduzir "Wallpaper" para
+ *   "Papel de parede" e "Apps" para "Aplicativos" criou duas colisões com os
+ *   grupos de ação de mesmo nome. Dois botões, o mesmo `ABA`, e clicar num
+ *   abriria o outro.
+ *   A chave com o bloco na frente resolve sem proibir os nomes: "Papel de
+ *   parede" pode existir em Ajustar E em Fazer, que é justamente o certo — um é
+ *   onde se configura, o outro é onde se roda. */
+function chaveDeAba(g) {
+  return (g.bloco || "fazer") + "/" + g.nome;
+}
+
 function abaDoHash() {
   const id = decodeURIComponent(location.hash.replace(/^#/, ""));
   if (!id) return null;
-  const g = GRUPOS.find((x) => idDeAba(x.nome) === id);
-  return g ? g.nome : null;
+  const g = GRUPOS.find((x) => idDeAba(chaveDeAba(x)) === id);
+  return g ? chaveDeAba(g) : null;
 }
 
 function gravarHash() {
@@ -1314,6 +1328,26 @@ function montarJogos() {
       texto: `${JOGOS.total} jogos instalados na Steam.` }),
   ]));
 
+  /* OS DOIS BOTÕES MORAM AQUI, e não numa aba "Fazer" separada.
+   *   É o que a galeria já faz com banir e devolver: a ação fica ao lado da
+   *   coisa em que ela age. Sem isto, marcar um jogo aqui e ir procurar em outra
+   *   seção o botão que aplica seria a página pedindo que ela guardasse na
+   *   cabeça o passo seguinte. */
+  const linhaAcoes = elemento("div", { class: "linha-botoes acoes-da-secao" });
+  linhaAcoes.append(elemento("button", {
+    type: "button", class: "btn",
+    texto: "Conferir",
+    title: "Lista o que mudaria. Não escreve nada.",
+    onclick: () => rodarDaSecao("jogos", () => { JOGOS = null; }),
+  }));
+  linhaAcoes.append(elemento("button", {
+    type: "button", class: "btn btn-accent",
+    texto: "Arrumar os jogos no lançador",
+    title: "Aplica as escolhas: cria e remove cartões, e apaga o que estiver marcado.",
+    onclick: () => rodarDaSecao("jogos_aplicar", () => { JOGOS = null; }),
+  }));
+  caixa.append(linhaAcoes);
+
   const termo = semAcento(JOGOS_BUSCA.trim());
   const lista = (JOGOS.jogos || []).filter((j) =>
     !termo || semAcento(j.nome).includes(termo) || j.appid.includes(termo));
@@ -1544,6 +1578,30 @@ function montarGaleria() {
     }));
   }
   return caixa;
+}
+
+/* Roda uma ação `oculta` a partir da tela a que ela pertence, e recarrega essa
+ * tela quando o trabalho termina. Generaliza o que o `rodarNaGaleria` fazia só
+ * para as imagens: a lista muda por baixo enquanto o script corre, e mostrar por
+ * um minuto um estado que já não existe é como se aprende a não confiar na
+ * página. */
+async function rodarDaSecao(acaoId, invalidar) {
+  const acao = ESQUEMA.acoes.find((a) => a.id === acaoId);
+  if (!acao) return;
+  const seco = $("#seco").checked;
+  if (acao.confirma && !(await confirmar(acao, "", seco))) return;
+  const r = await api("/api/rodar", {
+    method: "POST",
+    body: JSON.stringify({ acao: acaoId, argumento: "", seco, confirmado: true }),
+  });
+  if (r.erro) { torrada(r.erro, "erro"); return; }
+  abrirGaveta(r);
+  const esperar = setInterval(() => {
+    if (TRABALHO) return;
+    clearInterval(esperar);
+    invalidar();
+    render();
+  }, 700);
 }
 
 async function rodarNaGaleria(acaoId, argumento) {
@@ -1914,6 +1972,21 @@ async function puxar() {
 }
 
 /* --- navegação ------------------------------------------------------------ */
+/* A frase de uma linha de cada seção. Vem do servidor (`DESCRICAO_SECAO`), com
+ * o NOME da seção como chave — quem batiza as seções é o `meow.conf.exemplo`, e
+ * um segundo identificador aqui seria a lista que discorda da outra no dia em
+ * que alguém renomear um título lá. Seção sem frase simplesmente não mostra
+ * nenhuma; não há texto de reserva, porque frase genérica é pior que silêncio. */
+function descricaoDe(g) {
+  const d = (ESQUEMA && ESQUEMA.descricoes) || {};
+  if (typeof g === "string") return d[g] || "";
+  /* O BLOCO DESEMPATA. "Papel de parede" existe em Ajustar (o carrossel, a
+   * noite) e em Fazer (avançar, banir, semear): mesmo nome, trabalhos
+   * diferentes, e uma frase só serviria mal aos dois. A chave `bloco/nome` vem
+   * primeiro; sem ela, cai no nome, que é o caso da grande maioria. */
+  return d[chaveDeAba(g)] || d[g.nome] || d[g.secaoPai] || "";
+}
+
 function montarTrilho() {
   const trilho = $("#trilho");
   /* O FOCO SOBREVIVE À RECONSTRUÇÃO — e não sobrevivia (visto em 01/09/2026)
@@ -1940,13 +2013,25 @@ function montarTrilho() {
     porSecao.get(g.secaoPai).push(g);
   }
 
-  trilho.append(elemento("div", { class: "rotulo-grupo", texto: "Configuração" }));
+  /* O PRIMEIRO BLOCO É O DE OLHAR, e ele vem antes de propósito.
+   *   Ordem de menu é ordem de importância, e a galeria, os ícones por
+   *   aplicativo e os jogos são onde ela decide as coisas olhando. As chaves do
+   *   meow.conf vêm depois; os botões que rodam script, por último. */
+  const doBloco = (b) => GRUPOS.filter((g) => (g.bloco || "fazer") === b);
+  const ver = doBloco("ver");
+  if (ver.length) {
+    trilho.append(elemento("div", { class: "rotulo-grupo", texto: "Ver e escolher" }));
+    for (const g of ver) trilho.append(botaoTrilho(g));
+    trilho.append(elemento("hr"));
+  }
+
+  trilho.append(elemento("div", { class: "rotulo-grupo", texto: "Ajustar" }));
   for (const [secao, grupos] of porSecao) {
     if (grupos.length === 1 && grupos[0].nome === secao) {
       trilho.append(botaoTrilho(grupos[0]));
       continue;
     }
-    const aberta = grupos.some((g) => g.nome === ABA);
+    const aberta = grupos.some((g) => chaveDeAba(g) === ABA);
     trilho.append(elemento("div", {
       class: "secao-menu" + (aberta ? " aberta" : ""),
       texto: encurtar(secao),
@@ -1966,7 +2051,7 @@ function montarTrilho() {
 
   trilho.append(elemento("hr"));
   trilho.append(elemento("div", { class: "rotulo-grupo", texto: "Fazer" }));
-  for (const g of GRUPOS.filter((x) => x.tipo !== "chaves")) {
+  for (const g of doBloco("fazer").filter((x) => x.tipo !== "chaves")) {
     trilho.append(botaoTrilho(g));
   }
   if (focado) {
@@ -1979,8 +2064,8 @@ function botaoTrilho(g, filho, rotulo) {
   return elemento("button", {
     type: "button",
     class: filho ? "filho" : "",
-    "data-grupo": g.nome,
-    "aria-current": String(g.nome === ABA),
+    "data-grupo": chaveDeAba(g),
+    "aria-current": String(chaveDeAba(g) === ABA),
     title: g.original || g.nome,
     onclick: () => {
       /* CLICAR NO MENU LIMPA A BUSCA — a validação mediu: "o menu para de
@@ -1989,14 +2074,21 @@ function botaoTrilho(g, filho, rotulo) {
        * clique parecia não fazer nada. Trocar de seção é dizer "quero ver esta
        * aba"; a busca sai do caminho. */
       $("#busca").value = "";
-      ABA = g.nome;
+      ABA = chaveDeAba(g);
       gravarHash();
       render();
     },
   }, [
     elemento("span", { texto: rotulo || encurtar(g.nome) }),
     elemento("span", { class: "conta", texto: contaDoGrupo(g) }),
-  ]);
+    /* A LINHA QUE DIZ O QUE A SEÇÃO É — pedido dela em 02/09/2026 ("deixar mais
+     * obvio o que é aquela seção"). Só no nível de cima: num subitem ela
+     * empurraria o menu para uma altura que não cabe na tela, e o subitem já é
+     * lido dentro do assunto do pai. */
+    !filho && descricaoDe(g)
+      ? elemento("span", { class: "descricao-menu", texto: descricaoDe(g) })
+      : null,
+  ].filter(Boolean));
 }
 
 /* O NÚMERO AO LADO DO NOME TEM DE CONTAR O QUE A SEÇÃO MOSTRA.
@@ -2091,7 +2183,7 @@ function render() {
    * só a aba escolhida. */
   const grupos = busca
     ? GRUPOS.map((g) => ({ ...g, itens: g.itens.filter((i) => casa(i, busca)) })).filter((g) => g.itens.length)
-    : GRUPOS.filter((g) => g.nome === ABA);
+    : GRUPOS.filter((g) => chaveDeAba(g) === ABA);
 
   if (!grupos.length) {
     alvo.append(elemento("p", { class: "vazio-msg", texto: `Nada casa com “${$("#busca").value}”.` }));
@@ -2108,6 +2200,16 @@ function render() {
     if (busca || g.tipo !== "chaves") {
       alvo.append(elemento("h2", { class: "secao-titulo", title: g.nome,
                                    texto: encurtar(g.nome) }));
+    }
+    /* A MESMA FRASE DO MENU, DE NOVO NO TOPO DA SEÇÃO ABERTA.
+     *   No menu ela serve para ESCOLHER onde entrar; aqui serve para confirmar
+     *   que entrou no lugar certo. Repetir é o ponto: quem clicou já não vê o
+     *   menu inteiro, e as seções de chave nem título têm. Só fora da busca —
+     *   com a busca ativa a tela mostra resultados de vários assuntos, e uma
+     *   frase de assunto ali mentiria sobre o que está listado embaixo dela. */
+    if (!busca) {
+      const frase = descricaoDe(g);
+      if (frase) alvo.append(elemento("p", { class: "descricao-secao", texto: frase }));
     }
     if (g.tipo === "folhas") { alvo.append(montarFolhas(g.itens)); continue; }
     if (g.tipo === "apps") { alvo.append(montarApps()); continue; }
@@ -2349,7 +2451,8 @@ function montarGrupos() {
   }
 
   GRUPOS = [...porGrupo].map(([nome, itens]) => ({
-      tipo: "chaves", nome, itens, secaoPai: itens[0]?.secao || "Outras",
+      tipo: "chaves", bloco: "ajustar", nome, itens,
+      secaoPai: itens[0]?.secao || "Outras",
     }));
 
     /* As ações vêm agrupadas pelo `grupo` que o servidor declara — uma aba por
@@ -2359,17 +2462,37 @@ function montarGrupos() {
       if (!porAcao.has(acao.grupo)) porAcao.set(acao.grupo, []);
       porAcao.get(acao.grupo).push(acao);
     }
-    for (const [nome, itens] of porAcao) GRUPOS.push({ tipo: "acoes", nome, itens });
-    if (ESQUEMA.folhas.length) {
-      GRUPOS.push({ tipo: "folhas", nome: "Folhas visuais", itens: ESQUEMA.folhas });
+    for (const [nome, itens] of porAcao) {
+      /* GRUPO EM QUE TODA AÇÃO É OCULTA NÃO VIRA SEÇÃO.
+       *   As duas ações dos jogos moram dentro da própria tela de jogos, como as
+       *   de banir papel de parede moram dentro da galeria. Sem esta linha o
+       *   menu ganharia um "Jogos da Steam" vazio ao lado do que tem as capas —
+       *   dois botões com o mesmo nome, e o `ABA` casa por nome. */
+      if (itens.every((a) => a.oculta)) continue;
+      GRUPOS.push({ tipo: "acoes", nome, itens });
     }
+
 
     /* A galeria é um grupo do trilho como os outros — ela não é uma chave do
      * meow.conf, é o acervo em si, que neste projeto É a configuração ("soltou o
      * arquivo, entrou; apagou, saiu"). */
-    GRUPOS.push({ tipo: "apps", nome: "Ícone de cada aplicativo", itens: [] });
-    GRUPOS.push({ tipo: "jogos", nome: "Jogos da Steam", itens: [] });
-    GRUPOS.push({ tipo: "galeria", nome: "Galeria de papéis de parede", itens: [] });
+    /* TRÊS BLOCOS, E NÃO DOIS — aprovado por ela na
+     * `docs/folhas/folha-menu-do-painel.html` (02/09/2026).
+     *   A galeria e os ícones por aplicativo viviam em "Fazer", ao lado do botão
+     *   que roda o instalador. Olhar uma capa e escolher um desenho não é
+     *   disparar um script — e são as telas em que ela passa mais tempo, então
+     *   sobem para o topo. `bloco` é o que o `montarTrilho` lê; quem não diz
+     *   nada cai em "Fazer", que continua sendo o resto. */
+    GRUPOS.push({ tipo: "galeria", bloco: "ver", nome: "Galeria de papéis de parede", itens: [] });
+    GRUPOS.push({ tipo: "apps", bloco: "ver", nome: "Ícone de cada aplicativo", itens: [] });
+    GRUPOS.push({ tipo: "jogos", bloco: "ver", nome: "Jogos da Steam", itens: [] });
+    /* As folhas vêm por ÚLTIMO no bloco de olhar: são a leitura de apoio, não o
+     * lugar onde ela mexe nas coisas. A ordem do menu é a ordem em que os grupos
+     * entram nesta lista. */
+    if (ESQUEMA.folhas.length) {
+      GRUPOS.push({ tipo: "folhas", bloco: "ver", nome: "Folhas visuais",
+                    itens: ESQUEMA.folhas });
+    }
 
     GRUPOS_VISUAIS = new Set(
       GRUPOS.filter((g) => g.tipo === "chaves" && g.itens.some((i) => i.previa))
@@ -2407,7 +2530,7 @@ async function iniciar() {
   $("#botao-salvar").addEventListener("click", salvarEscolhas);
   $("#botao-descartar").addEventListener("click", descartarEscolhas);
 
-  ABA = abaDoHash() || GRUPOS[0].nome;
+  ABA = abaDoHash() || chaveDeAba(GRUPOS[0]);
   gravarHash();
   /* O botão voltar do navegador é o desfazer que a pessoa já tem no dedo. */
   addEventListener("hashchange", () => {

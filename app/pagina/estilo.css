@@ -1296,3 +1296,35 @@ a.folha .oque { font-size: .72rem; color: var(--overlay1); }
   font: inherit;
 }
 .linha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+/* --- a frase que diz o que a seção é --------------------------------------
+   Pedido dela em 02/09/2026: "deixar mais obvio o que é aquela seção". Aparece
+   em dois lugares, e cada um tem um trabalho: no MENU serve para escolher onde
+   entrar; no TOPO DA SEÇÃO, para confirmar que entrou no lugar certo.
+
+   No menu ela é a terceira célula do grid do botão (1fr auto): cai sozinha na
+   segunda linha, e o `grid-column: 1 / -1` a deixa usar a largura toda em vez de
+   se espremer na coluna do rótulo, ao lado do número. */
+.trilho .descricao-menu {
+  grid-column: 1 / -1;
+  font-size: .7rem;
+  line-height: 1.3;
+  color: var(--overlay0);
+  font-weight: 400;
+  white-space: normal;
+}
+/* A seção escolhida já grita o nome em cor de acento; a frase dela continua
+   discreta — herdar o acento faria duas linhas berrando a mesma coisa. */
+.trilho button[aria-current="true"] .descricao-menu { color: var(--overlay1); }
+
+.descricao-secao {
+  margin: -.4rem 0 1.1rem;
+  font-size: .82rem;
+  color: var(--subtext0);
+  max-width: 62ch;
+}
+
+/* Os botões que agem sobre a própria seção (arrumar os jogos, conferir) ficam
+   colados no filtro, antes da grade: é o passo seguinte natural de quem acabou
+   de marcar alguma coisa ali em cima. */
+.acoes-da-secao { margin: -.2rem 0 1rem; }
