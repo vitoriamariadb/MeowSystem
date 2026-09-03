@@ -1483,6 +1483,54 @@ def _meow(*args):
     return [os.path.join(RAIZ, "bin", "meow"), *args]
 
 
+# ============================================================================
+# O QUE CADA SEÇÃO É, EM UMA LINHA — 02/09/2026
+# ============================================================================
+# Pedido dela: "deixar mais obvio o que é aquela seção". O título sozinho não
+# conta nada — "Automação" não diz a ninguém que ali moram os vigias e os
+# relógios que reaplicam o tema.
+#
+# ISTO ANDA CONTRA UMA REGRA DELA, E A FOLHA PERGUNTOU ANTES
+#   Em 01/09 ela pediu "menos palavras na interface como um todo. a página fala
+#   por si". A `docs/folhas/folha-menu-do-painel.html` pôs a contradição na mesa
+#   e ela aprovou: são nove linhas curtas, e o problema que elas resolvem é
+#   exatamente o que ela levantou. A regra continua valendo para o resto —
+#   nenhuma dessas frases passa de uma linha, e nenhuma explica o óbvio.
+#
+# A CHAVE É O NOME DA SEÇÃO, e não um id: quem nomeia as seções é o
+# `meow.conf.exemplo`, e inventar um segundo identificador aqui seria a segunda
+# lista que discorda da primeira quando alguém renomear um título lá.
+DESCRICAO_SECAO = {
+    # Ajustar — as chaves do meow.conf
+    "Aparência": "Sabor, acento, claro e escuro.",
+    "Barra e dock": "Forma, tamanho e vidro das duas barras.",
+    "Janelas": "O lado a lado automático do COSMIC.",
+    "Ícones": "Tema de ícones, pastas coloridas e cor por marca.",
+    "Papel de parede": "O carrossel, a noite, e o menu da área de trabalho.",
+    "Modo de leitura": "Temperatura e textura da tela, e o relógio que liga sozinho.",
+    "Aplicativos": "Quais programas o MeowSystem veste por dentro.",
+    "Automação": "Os vigias e os relógios que reaplicam sem você pedir.",
+    "Terminal": "Prompt, fonte e cores do terminal.",
+    # Ver e escolher — os lugares
+    "Galeria de papéis de parede": "O acervo. Soltar arquivo entra, banir sai.",
+    "Ícone de cada aplicativo": "Todo programa da máquina, e o desenho de cada um.",
+    "Jogos da Steam": "Quais aparecem no lançador, e o que sai do disco.",
+    "Folhas visuais": "As propostas de desenho, para comparar antes de decidir.",
+    # Fazer — as ações
+    "Ciclo de vida": "Instalar, conferir, consertar e desfazer.",
+    "Tema e cor": "Trocar o tema aplicado e o modo claro/escuro.",
+    "Ícones e gato": "Reconstruir o tema de ícones e trocar a logo.",
+    "Barra e janelas": "Diagnóstico e conserto do painel e da dock.",
+    # OS DOIS NOMES QUE EXISTEM EM DOIS BLOCOS. A chave com o bloco na frente
+    # vence a chave só com o nome — mesmo rótulo, trabalhos diferentes: num se
+    # configura, no outro se roda.
+    "fazer/Papel de parede": "Avançar, devolver, banir e semear o acervo.",
+    "fazer/Aplicativos": "Ver a tabela e tematizar os aplicativos agora.",
+    "Cursor": "O tema de cursor instalado.",
+    "Acervo": "Baixar e semear a coleção de papéis de parede.",
+}
+
+
 ACOES = {
     # --- o ciclo de vida -----------------------------------------------------
     "instalar": {
@@ -1760,11 +1808,18 @@ ACOES = {
     # script remover os arquivos do jogo. A página grava a receita sem perguntar
     # nada — escrever num mapa se desfaz com um clique —, mas EXECUTAR é o
     # momento em que gigabytes saem do disco, e é aí que a pergunta cabe.
+    # AS DUAS SÃO `oculta`, E O MOTIVO É NÃO TER DUAS ENTRADAS COM O MESMO NOME
+    #   "Jogos da Steam" já é uma seção de "Ver e escolher" — a grade com as
+    #   capas. Um grupo de ação com o mesmo nome poria dois botões idênticos no
+    #   menu, e o `ABA` (que casa por nome) não saberia qual dos dois abrir. Como
+    #   os papéis de parede já fazem: a ação mora DENTRO da tela a que pertence,
+    #   e o menu tem uma linha só. O `montarGrupos` pula grupo em que toda ação é
+    #   oculta, então nenhuma seção vazia sobra.
     "jogos": {
         "rotulo": "Jogos: conferir",
         "grupo": "Jogos da Steam",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh"), "--conferir"],
-        "seco": False, "sudo": False, "confirma": False,
+        "seco": False, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Lista o que mudaria: cartão a criar, cartão a remover e "
                  "arquivo de jogo a apagar. Não escreve nada.",
     },
@@ -1773,6 +1828,7 @@ ACOES = {
         "grupo": "Jogos da Steam",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh")],
         "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
+        "oculta": True,
         "ajuda": "Põe um cartão por jogo instalado e tira o dos que saíram. "
                  "Jogo marcado \"Apagar os arquivos\" tem a pasta e o manifesto "
                  "removidos — uma vez só, e nunca com a Steam aberta.",
@@ -3570,6 +3626,7 @@ class Manipulador(BaseHTTPRequestHandler):
                     for k, v in ACOES.items()
                 ],
                 "folhas": self._folhas(),
+                "descricoes": DESCRICAO_SECAO,
                 # A paleta inteira vai junto: as amostras de flavor e de cor são
                 # desenhadas com ela, e uma segunda viagem ao servidor para 4x26
                 # valores seria viagem à toa.
