@@ -108,6 +108,7 @@ import select
 import struct
 import shlex
 import signal
+import shutil
 import subprocess
 import sys
 import threading
@@ -1591,8 +1592,8 @@ DESCRICAO_SECAO = {
     "Programas e jogos": "Quais programas o projeto veste, e quais jogos aparecem.",
     "Manutenção": "O que se reaplica sozinho, quantos backups ficam, e quanto ele fala.",
     # As duas páginas que não têm chave do meow.conf — o bloco "A máquina".
-    "Instalar e conferir": "Instalar, conferir, consertar e desfazer.",
-    "Ver o estado": "Só leitura: nenhuma destas escreve, pede senha ou baixa nada.",
+    "Instalar e conferir": "Instalar, conferir, consertar, desfazer, e ver o que está no ar.",
+    "Atualizar o sistema": "O Pop!_OS em dia, e o que a atualização desfez do MeowSystem.",
 }
 
 
@@ -1624,7 +1625,7 @@ ACOES = {
     },
     "status": {
         "rotulo": "O que está no ar agora",
-        "grupo": "Ver o estado",
+        "grupo": "Instalar e conferir",
         "argv": _meow("status"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "Variante, cor de destaque, tema, ícones e papel de parede.",
@@ -1639,10 +1640,51 @@ ACOES = {
     },
     "log": {
         "rotulo": "As últimas 50 linhas do registro",
-        "grupo": "Ver o estado",
+        "grupo": "Instalar e conferir",
         "argv": _meow("log"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "O que este projeto escreveu, e quando.",
+    },
+
+    # --- a nova versão da máquina --------------------------------------------
+    # PEDIDO DELA EM 06/09/2026: *"unificar o Instalar e Conferir com o Ver o
+    # Estado e, no lugar de Ver o Estado, criarmos uma aba para buildarmos a
+    # nova versão do SO… conferir a idempotência do app como um todo, se
+    # sobreviveríamos a um [apt full-upgrade && topgrade && …], que é a ideia do
+    # projeto também"*.
+    #
+    # O comando dela já existia e é uma linha; o que faltava era a SEGUNDA
+    # METADE. Um `full-upgrade` troca o cosmic-comp, o cosmic-panel, o fastfetch
+    # e o papirus — e cada troca dessas desfaz alguma coisa que este projeto
+    # escreveu. O `scripts/atualizar_sistema.sh` gruda as duas: atualiza, e em
+    # seguida roda o `doctor` para dizer o que a atualização desfez.
+    "sistema_ver": {
+        "rotulo": "O que a atualização mudaria",
+        "grupo": "Atualizar o sistema",
+        "bloco": "A nova versão",
+        "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
+        "seco": False, "sudo": False, "confirma": False,
+        "ajuda": "Os pacotes com versão nova e as caixas de Rust desatualizadas. "
+                 "Não escreve, não pede senha e não baixa nada.",
+    },
+    "sistema_atualizar": {
+        "rotulo": "Atualizar a máquina inteira",
+        "grupo": "Atualizar o sistema",
+        "bloco": "A nova versão",
+        "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "aplicar"],
+        "seco": True, "sudo": True, "confirma": True, "rede": True,
+        "ajuda": "apt, flatpak e cargo, e logo depois o doctor — que diz o que a "
+                 "atualização desfez do MeowSystem. Demora, e o apt mantém os "
+                 "arquivos de configuração que já estão no disco.",
+    },
+    "sistema_limpar": {
+        "rotulo": "Limpar o que sobrou",
+        "grupo": "Atualizar o sistema",
+        "bloco": "A nova versão",
+        "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "limpar"],
+        "seco": True, "sudo": True, "confirma": True,
+        "ajuda": "Pacotes órfãos e o cache de download do apt. Diz quantos "
+                 "megabytes saíram.",
     },
     # --- tema ----------------------------------------------------------------
     "tema": {
@@ -3188,14 +3230,56 @@ class Manipulador(BaseHTTPRequestHandler):
                 except Exception:
                     normalizado = ""
 
+        # DE DIA OU DE NOITE? A RESPOSTA VAI NA HORA, E NÃO NA PRÓXIMA PASSAGEM.
+        #   Pedido dela em 06/09/2026: *"como adicionamos os wallpapers pelo html
+        #   e eles vão pra pasta correta"*. Iam — mas em silêncio e só depois:
+        #   quem separa `ativos-dia/` de `ativos-noite/` é o `wallpaper.sh`, pela
+        #   luminância, na próxima vez que o carrossel reaplica. Entre soltar o
+        #   arquivo e descobrir de que lado ele caiu podiam passar cinco minutos,
+        #   e nada na tela dizia qual lado seria.
+        #
+        #   A medida aqui é a MESMA do `wallpaper.sh` — `-colorspace Gray` antes
+        #   do `%[fx:mean]`, que é Rec.709 sobre a imagem inteira. O atalho
+        #   `%[fx:luminance]` mede o pixel (0,0), e o cabeçalho daquele arquivo
+        #   registra a medição em que os dois discordaram em 0,16.
+        grupo = self._grupo_de_luz(destino) if tipo == "parede" else None
+
         return self._json({
             "ok": True,
             "nome": nome,
             "destino": destino,
             "substituiu": substituiu,
             "normalizado": normalizado,
+            "grupo": grupo,
             "depois": conf["depois"],
         })
+
+    def _grupo_de_luz(self, caminho):
+        """{"lado": "dia"|"noite", "luz": 0.21, "corte": 0.37} — ou None.
+
+        None quando não há ImageMagick ou a medida falha: a imagem entrou no
+        acervo do mesmo jeito, e a separação acontece na próxima passagem do
+        carrossel. Dizer "não sei" é melhor que chutar um lado."""
+        exe = shutil.which("magick") or shutil.which("convert")
+        if not exe:
+            return None
+        try:
+            r = subprocess.run(
+                [exe, "-quiet", "-define", "jpeg:size=256x256", caminho + "[0]",
+                 "-resize", "128x128", "-colorspace", "Gray",
+                 "-format", "%[fx:mean]", "info:"],
+                capture_output=True, text=True, timeout=20)
+            luz = float((r.stdout or "").strip())
+        except Exception:
+            return None
+        try:
+            corte = float((valores_brutos() or {}).get("WALLPAPER_LIMIAR_LUZ") or 0.37)
+        except (TypeError, ValueError):
+            corte = 0.37
+        if not 0 <= corte <= 1:
+            corte = 0.37
+        return {"lado": "dia" if luz >= corte else "noite",
+                "luz": round(luz, 3), "corte": corte}
 
     # ========================================================================
     # OS APLICATIVOS, E O ÍCONE DE CADA UM — 01/09/2026

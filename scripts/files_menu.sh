@@ -105,6 +105,24 @@ tudo_no_ar() {
   return 0
 }
 
+# 0 = não havia nada nosso · 1 = removi (ou removeria)
+#
+# O RETORNO SEGUE O CONTRATO DO PROJETO, E NÃO O `&&` DO SHELL, e a diferença
+# custou a convergência da instalação. Os três chamadores escreviam
+# `remover_nossos && …`, que dispara quando o retorno é ZERO — ou seja,
+# exatamente quando NÃO havia o que remover. Os efeitos, todos medidos em
+# 06/09/2026 num HOME de teste:
+#
+#   - a etapa dizia "(removi o nosso, que era de outra versão)" em toda
+#     passagem, sobre um diretório vazio;
+#   - e marcava `mexeu` para sempre: o `tests/convergencia.sh` reprovava na
+#     terceira passagem com `mexeu: files_menu`, e reprovava desde antes de
+#     alguém olhar;
+#   - `files_menu.sh remover` dizia "removidos" quando não havia nada, e
+#     "não havia nada nosso instalado" logo depois de apagar dois binários.
+#
+# Manter o 1 para "mudei" é o certo — é o que o `MEOW_DIVERGENTE` quer dizer no
+# projeto inteiro. Quem tinha de mudar era quem chama, e agora compara o código.
 remover_nossos() {
   local b n=0
   for b in "${BINS[@]}"; do
@@ -119,8 +137,12 @@ remover_nossos() {
 cmd_aplicar() {
   local ver dir b mudou=0
   [ "$FILES_MENU" = "sim" ] || {
-    remover_nossos && meow_muda "FILES_MENU=\"$FILES_MENU\" — itens de papel de parede removidos do menu" \
-                   || meow_pula "FILES_MENU=\"$FILES_MENU\" — o menu de contexto fica de fábrica"
+    remover_nossos
+    if [ "$?" = "1" ]; then
+      meow_muda "FILES_MENU=\"$FILES_MENU\" — itens de papel de parede removidos do menu"
+    else
+      meow_pula "FILES_MENU=\"$FILES_MENU\" — o menu de contexto fica de fábrica"
+    fi
     return "$MEOW_OK"; }
 
   ver="$(versao_do_pacote)"
@@ -132,13 +154,25 @@ cmd_aplicar() {
   # vencendo o que o apt acabou de instalar é pior que dois itens de menu a
   # menos.
   if [ ! -d "$dir" ]; then
-    remover_nossos && mudou=1
+    remover_nossos; [ "$?" = "1" ] && mudou=1
     meow_aviso "não há build patchado para o cosmic-files $ver — o do pacote está valendo"
     if [ "$mudou" = "1" ]; then
       meow_info "  (removi o nosso, que era de outra versão)"
     fi
     disparar_autobuild "$ver" || meow_info "  para construir agora: meow files-menu build"
-    return "$MEOW_DIVERGENTE"
+    # 1 SÓ QUANDO ESTA PASSAGEM ESCREVEU. Sem artefato para a versão instalada,
+    # não há nada que ESTE script possa fazer agora: quem constrói é uma unit em
+    # background, que leva minutos e baixa 161 MB. Devolver 1 aqui fazia o
+    # instalador contar `files_menu` em `mexeu:` em TODA passagem, e o
+    # `tests/convergencia.sh` reprovar na terceira sobre um passo que não tinha
+    # escrito um byte — a instalação parecia não convergir, e convergia.
+    #
+    # O 4 é o "está pendente e não há conserto nosso possível" que o
+    # `fastfetch_logo.sh` já usa, e que o `concluir` do install.sh lê como
+    # pulado. Quando o binário velho SAIU do caminho, aí sim houve escrita, e o
+    # 1 volta a ser a verdade.
+    [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
+    return 4
   fi
 
   mkdir -p "$DESTINO" 2>/dev/null || { meow_erro "não consegui criar $DESTINO"; return "$MEOW_ERRO"; }
@@ -290,7 +324,11 @@ case "${1:-aplicar}" in
   --conferir|conferir) MEOW_SECO=1; cmd_aplicar ;;
   build)               cmd_build ;;
   estado)              cmd_estado ;;
-  remover)             remover_nossos && { meow_ok "removidos; o cosmic-files do pacote volta a valer"; exit "$MEOW_DIVERGENTE"; }
+  remover)             remover_nossos
+                       if [ "$?" = "1" ]; then
+                         meow_ok "removidos; o cosmic-files do pacote volta a valer"
+                         exit "$MEOW_DIVERGENTE"
+                       fi
                        meow_ok "não havia nada nosso instalado"; exit "$MEOW_OK" ;;
   *) echo "uso: files_menu.sh [aplicar|build|--conferir|estado|remover]" >&2; exit 2 ;;
 esac

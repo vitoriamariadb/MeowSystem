@@ -458,38 +458,60 @@ main:focus-visible { outline: none; }
 }
 
 /* ===========================================================================
- * AJUSTAR — a grade das 102 chaves
+ * A GRADE — uma regra só, para todas as páginas
  * ===========================================================================
- * DUAS COISAS MUDARAM, E AS DUAS SÃO SOBRE RITMO.
+ * ELA PEDIU EM 06/09/2026, olhando "Cor e tema": *"dava pra ser 2 linhas cada
+ * qual com 3 colunas e ficaria melhor e mais otimizado"*, e sobre "O gato":
+ * *"aqui acho que caberia 4"*. E, sobre como fazer: *"otimizarmos cada bloco
+ * pra caber e fazer disso um padrão universal"*.
  *
- * 1. A grade tem TETO. Era `auto-fill` sem limite: numa tela de 27 polegadas
- *    davam seis colunas de 330px, e seis colunas de cartões de duas linhas não
- *    se leem — os olhos perdem a linha na volta. Com teto de 1240px são três
- *    colunas, alinhadas à esquerda. O vazio à direita passa a ser margem, que
- *    é uma coisa que se lê como decisão; "coluna que não encheu" não é.
+ * O QUE ESTAVA NO CAMINHO ERAM DUAS DECISÕES, E AS DUAS ERAM EXCEÇÕES
  *
- * 2. As abas rasas crescem. `auto-fill` mantinha as colunas vazias existindo,
- *    então "Janelas" (2 chaves) desenhava duas fichas estreitas num canto.
- *    `:has(> :nth-child(-n+3):last-child)` pega a própria grade — funciona
- *    também no modo "todas as abas empilhadas", em que existem 24 grades
- *    dentro do mesmo `<main>`.
+ * 1. `max-width: 1240px`. Medido na tela dela: o `#principal` tem 1671px, e a
+ *    grade usava 1240 — 431px de margem à direita em toda página. O teto
+ *    existia contra "seis colunas de 330px numa tela de 27 polegadas", que é um
+ *    problema real; a resposta certa não é limitar a GRADE, é limitar a
+ *    COLUNA. Uma coluna de 520px é a largura em que um cartão ainda se lê, e
+ *    quantas couberem cabem.
  *
- * `align-items: stretch` (o padrão) é de propósito: faz todos os cartões de uma
- * linha terminarem juntos, e é o `margin-top:auto` do rodapé do cartão que
- * distribui a sobra lá dentro. `minmax(0, …)` é obrigatório junto: com `1fr`
- * puro, um nome de arquivo longo empurra a coluna e desalinha a linha inteira. */
+ * 2. `:has(> :nth-child(-n+3):last-child)` dava colunas de 480px às grades de
+ *    até três cartões. Com 1240px de teto, 480×2 cabia e 480×3 não: os três
+ *    ajustes de "Cor e tema" desenhavam DOIS numa linha e um sozinho embaixo.
+ *    A exceção existia para uma aba de dois cartões não virar duas fichas
+ *    estreitas num canto — e o `auto-fit` resolve isso sem exceção nenhuma.
+ *
+ * COMO A REGRA ÚNICA RESOLVE OS DOIS CASOS DELA
+ *   O número de colunas sai do MÍNIMO (320px + espaço) e cada uma cresce para
+ *   ocupar a sobra. Na tela dela cabem quatro colunas de 320.
+ *   - "Cor e tema", 3 cartões: o `auto-fit` colapsa a quarta coluna vazia e as
+ *     três crescem até 520 — três colunas, que é o que ela pediu.
+ *   - "O gato ▸ No dock", 7 cartões: nenhuma coluna fica vazia, as quatro
+ *     ficam com 395px — quatro colunas, que é o que ela pediu.
+ *   Sem `:has`, sem contar cartões, sem uma linha por página.
+ *
+ * `align-items: start` (e não `stretch`): era o `stretch` que fazia o cartão
+ * "Cor de destaque" ter 313px de altura para 100px de conteúdo, com o rodapé
+ * empurrado ao chão pelo `margin-top:auto`. Cartão vazio ao lado de cartão
+ * cheio é o que ela viu e chamou de não otimizado. Os rodapés deixam de
+ * alinhar entre si; em troca, nenhum cartão finge ter conteúdo que não tem.
+ *
+ * `minmax(0, …)` no filho continua obrigatório: com `1fr` puro, um nome de
+ * arquivo longo empurra a coluna e desalinha a linha inteira. */
+/* O TETO VAI NO CARTÃO, E NÃO NA COLUNA — e a primeira tentativa errou nisto.
+ * Com `minmax(320px, 520px)` o navegador conta as colunas pelo MÁXIMO quando
+ * ele é um comprimento fixo (é o que a especificação manda), então 1620px de
+ * grade davam DUAS colunas de 520 — o defeito que se queria consertar, com
+ * outro número. Com `1fr` a conta volta a sair do mínimo, e o teto de leitura
+ * passa a ser do cartão: ele só morde nas grades de um ou dois cartões, onde a
+ * coluna ficaria larga demais para uma linha de texto. */
 .grade {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 1.15rem 1.9rem;
-  align-items: stretch;
-  max-width: var(--medida);
-}
-.grade > * { min-width: 0; }
-.grade:has(> :nth-child(-n+3):last-child) {
-  grid-template-columns: repeat(auto-fit, minmax(320px, 480px));
+  align-items: start;
   justify-content: start;
 }
+.grade > * { min-width: 0; max-width: 640px; }
 .grade + .secao-titulo { margin-top: 2.8rem; }
 
 /* ===========================================================================

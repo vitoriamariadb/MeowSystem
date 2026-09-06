@@ -170,6 +170,65 @@ else:
     n = sum(1 for i in servidor.ler_esquema() if i["opcoes"] == ["sim", "nao"])
     print("ok: as %d chaves com dois botões sim/nao têm padrão `sim` ou `nao`" % n)
 
+# --- 7. O PAINEL CONFIGURA TUDO QUE O INSTALADOR LÊ -------------------------
+#   Pedido dela em 06/09/2026: *"a ideia é o html personalizar tudo, configurar
+#   as variáveis que são lidas no install — temos que garantir isso"*.
+#
+#   O catálogo é DERIVADO dos comentários do `meow.conf.exemplo`, e o risco
+#   disso é o oposto do de uma lista escrita à mão: uma chave que um script
+#   passa a ler e o exemplo não cataloga nasce INVISÍVEL no painel. Ninguém
+#   descobre — o script tem um padrão e funciona, e ela nunca vê o controle.
+#   Foi assim que `FASTFETCH_LOGO_CELULA` e `FASTFETCH_LOGO_BLOCOS` passaram
+#   semanas sendo lidas sem cartão.
+#
+#   O SINAL É O IDIOMA, e não uma lista: toda etapa lê a configuração dela
+#   escrevendo `VAR="${VAR:-padrão}"`. Variável local de shell nunca se escreve
+#   assim, porque não vem de fora.
+import re as _re, subprocess as _sp
+
+_IDIOMA = _re.compile(r'^\s*([A-Z][A-Z0-9_]{2,})="\$\{\1:[-=]', _re.M)
+# Sobrescritas de CAMINHO para teste e constantes MEDIDAS não são ajuste dela.
+# Cada uma tem o porquê no cabeçalho do próprio script — o `SOM_GANHO` diz
+# "calibrado, não é gosto"; o `GREETER_HOME` é `/var/lib` com outro nome para o
+# teste poder rodar sem root.
+_NAO_E_AJUSTE = {
+    "APROXIMOU",        # contador interno do icones_apps.sh
+    "FORMA_COMP_BIN",   # caminho do binário do compositor, para teste
+    "GREETER_HOME",     # /var/lib/cosmic-greeter, para teste
+    "PROMPT_ALVO",      # ~/.config/starship.toml, para teste
+    "SOM_DURACAO",      # 85 ms: o debounce medido do osd, não gosto
+    "SOM_GANHO",        # calibrado com volumedetect para casar o de fábrica
+    "VIDRO_OPACIDADE",  # atalho LEGADO das duas VIDRO_OPACIDADE_*, que o
+                        # painel oferece separadas — duas portas para o mesmo
+                        # valor seriam duas respostas para a mesma pergunta
+}
+_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
+
+_catalogo = {i["chave"] for i in servidor.ler_esquema()}
+_lidas = {}
+for _f in _sp.run(["git", "ls-files"], cwd=raiz, capture_output=True,
+                  text=True).stdout.split():
+    if not _f.endswith(".sh") or _f.startswith("tests/"):
+        continue
+    try:
+        _txt = open(os.path.join(raiz, _f), encoding="utf-8", errors="replace").read()
+    except OSError:
+        continue
+    for _m in _IDIOMA.finditer(_txt):
+        _k = _m.group(1)
+        if not _INTERNAS.match(_k) and _k not in _NAO_E_AJUSTE:
+            _lidas.setdefault(_k, set()).add(_f)
+
+_sem_cartao = sorted(k for k in _lidas if k not in _catalogo)
+if _sem_cartao:
+    print("FALHOU: script lê do meow.conf e o painel não oferece: %s"
+          % ", ".join("%s (%s)" % (k, ", ".join(sorted(_lidas[k]))) for k in _sem_cartao),
+          file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: as %d chaves que os scripts leem do conf têm cartão no painel"
+          % len(_lidas))
+
 py = open(os.path.join(raiz, "app/servidor.py"), encoding="utf-8").read().splitlines()
 codigo = [l for l in py if not l.lstrip().startswith("#")]
 if any("shell=True" in l for l in codigo):
