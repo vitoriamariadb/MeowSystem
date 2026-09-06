@@ -1,7 +1,7 @@
 # `app/` — o painel de configuração visual
 
 Uma página local que configura **tudo o que hoje só se configura editando o
-`~/.config/meow/meow.conf` ou digitando comandos do `meow`**. As 102 chaves, com
+`~/.config/meow/meow.conf` ou digitando comandos do `meow`**. As 103 chaves, com
 o valor que você escolheu, o que vinha de fábrica e a explicação de cada uma; e
 34 ações, com a saída aparecendo ao vivo enquanto rodam.
 
@@ -292,7 +292,7 @@ numérica aceita como padrão passa a ser aceita por ela, e só por ela.
 | `Tab` | o de sempre; o primeiro `Tab` na página oferece "pular para o conteúdo" |
 
 A busca atravessa **todas** as seções ao mesmo tempo, e é o que faz uma página de
-102 chaves não exigir que você lembre em qual aba a chave mora.
+103 chaves não exigir que você lembre em qual aba a chave mora.
 
 ---
 

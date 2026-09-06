@@ -234,8 +234,11 @@ FASTFETCH_LOGO_CELULA="${FASTFETCH_LOGO_CELULA:-2.556}"
 # cravadas no `config.jsonc` dela e só se mudavam abrindo o arquivo:
 #   QUEBRAS  linhas em branco antes do desenho  (`padding.top`)
 #   RECUO    colunas entre o desenho e o texto  (`padding.right`, no tabular)
-FASTFETCH_LOGO_QUEBRAS="${FASTFETCH_LOGO_QUEBRAS:-6}"
+FASTFETCH_LOGO_QUEBRAS="${FASTFETCH_LOGO_QUEBRAS:-auto}"
 FASTFETCH_LOGO_RECUO="${FASTFETCH_LOGO_RECUO:-3}"
+
+# O TÍTULO DO BLOCO. Vazio = o fastfetch decide. Ver `meow.conf.exemplo`.
+FASTFETCH_TITULO="${FASTFETCH_TITULO:-}"
 
 # ONDE CADA LINHA DE INFORMAÇÃO COMEÇA: `tabular` (o único que o fastfetch sabe
 # fazer) ou `contorno` (o texto abraça a silhueta do gato). O `contorno` é
@@ -367,11 +370,43 @@ _ffl_carimbo_texto() {
     "$FASTFETCH_LOGO_COLUNAS" "$(_ffl_linhas)" "$(_ffl_blocos)"
 }
 
-# `tabular` ou `contorno`, com o desconhecido caindo no que sempre valeu.
+# O alinhamento pedido, com o desconhecido caindo no que sempre valeu.
 _ffl_alinhamento() {
   case "$FASTFETCH_LOGO_ALINHAR" in
-    contorno) printf 'contorno' ;;
-    *)        printf 'tabular' ;;
+    contorno|degraus|crescente|reto) printf '%s' "$FASTFETCH_LOGO_ALINHAR" ;;
+    *)                               printf 'tabular' ;;
+  esac
+}
+
+# O `meow-fetch` precisa estar no cano? Só quando o alinhamento não é o do
+# fastfetch. O título não entra nesta conta: ele é escrito no `config.jsonc` e
+# vale nos dois caminhos.
+_ffl_quer_meow_fetch() {
+  [ "$(_ffl_alinhamento)" != "tabular" ]
+}
+
+# QUANTAS LINHAS O BLOCO DE INFORMAÇÃO OCUPA, medido rodando o fastfetch sem
+# logo. É o que o `auto` das quebras precisa saber, e não há como derivá-lo do
+# conf: quem decide são os módulos do `config.jsonc` dela, que são dela.
+#
+# O `--pipe false` importa: com o cano detectado o fastfetch some com as cores
+# E com algumas linhas, e a conta sairia curta.
+_ffl_linhas_do_texto() {
+  meow_tem fastfetch || { printf '0'; return; }
+  fastfetch --logo none --pipe false 2>/dev/null | wc -l
+}
+
+# O `padding.top` que o config.jsonc deve levar. Com `auto`, é a metade da
+# sobra entre a altura do gato e a altura do texto — a mesma conta que o
+# `fastfetch_alinhar.py` faz do lado do contorno, para os dois alinhamentos
+# ficarem centrados do mesmo jeito.
+_ffl_quebras() {
+  case "$FASTFETCH_LOGO_QUEBRAS" in
+    ''|auto)
+      awk -v g="$(_ffl_linhas)" -v t="$(_ffl_linhas_do_texto)" \
+          'BEGIN { n = int((t - g) / 2); if (n < 0) n = 0; print n }' ;;
+    *[!0-9]*) printf '6' ;;
+    *) printf '%s' "$FASTFETCH_LOGO_QUEBRAS" ;;
   esac
 }
 
@@ -794,7 +829,7 @@ _ffl_escrever_conf() {
   cp -a "$FFL_CONF_DELA" "$bkp/config.jsonc" 2>/dev/null \
     || { meow_erro "não consegui guardar backup de $FFL_CONF_DELA — não vou escrever"; return "$MEOW_ERRO"; }
 
-  python3 - "$FFL_CONF_DELA" "$alvo_rel" "$FASTFETCH_LOGO_QUEBRAS" "$FASTFETCH_LOGO_RECUO" \
+  python3 - "$FFL_CONF_DELA" "$alvo_rel" "$(_ffl_quebras)" "$FASTFETCH_LOGO_RECUO" \
     <<'PY' || return "$MEOW_ERRO"
 import os, sys, tempfile
 
@@ -949,7 +984,7 @@ _ffl_fronteira() {
   esac
 
   meow_info "config.jsonc dela: logo.type=\"$tipo\" logo.source=\"${fonte:-<vazio>}\""
-  meow_info "  padding: topo=${pad_topo:-<sem>} recuo=${pad_recuo:-<sem>} (o conf pede $FASTFETCH_LOGO_QUEBRAS e $FASTFETCH_LOGO_RECUO)"
+  meow_info "  padding: topo=${pad_topo:-<sem>} recuo=${pad_recuo:-<sem>} (o conf pede $(_ffl_quebras) e $FASTFETCH_LOGO_RECUO)"
   meow_info "  módulos com chave própria (as em português): $nchaves"
 
   if [ "$fonte" != "$FFL_ALVO" ]; then
@@ -964,8 +999,8 @@ _ffl_fronteira() {
   # comando — o `padding` do config.jsonc fica sem efeito, e cobrá-lo daria uma
   # divergência eterna sobre um número que ninguém lê.
   if [ "$(_ffl_alinhamento)" = "tabular" ]; then
-    if [ -n "$pad_topo" ] && [ "$pad_topo" != "$FASTFETCH_LOGO_QUEBRAS" ]; then
-      meow_muda "o padding.top do config.jsonc é $pad_topo e o conf pede $FASTFETCH_LOGO_QUEBRAS"
+    if [ -n "$pad_topo" ] && [ "$pad_topo" != "$(_ffl_quebras)" ]; then
+      meow_muda "o padding.top do config.jsonc é $pad_topo e o conf pede $(_ffl_quebras)"
       return 1
     fi
     if [ -n "$pad_recuo" ] && [ "$pad_recuo" != "$FASTFETCH_LOGO_RECUO" ]; then
@@ -1014,20 +1049,35 @@ _ffl_texto_meow_fetch() {
 set -uo pipefail
 
 conf="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
-alinhar="tabular"; recuo="3"; topo="6"
+alinhar="tabular"; recuo="3"; topo="auto"
 if [ -r "$conf" ]; then
   # Subshell: o conf é um arquivo de atribuições, mas ler o arquivo de
   # configuração de um projeto para dentro do ambiente do terminal dela seria
-  # exportar noventa e tantas variáveis em toda janela nova.
+  # exportar cem variáveis em toda janela nova.
   eval "$(
     . "$conf" 2>/dev/null
     printf 'alinhar=%q; recuo=%q; topo=%q\n' \
       "${FASTFETCH_LOGO_ALINHAR:-tabular}" \
-      "${FASTFETCH_LOGO_RECUO:-3}" "${FASTFETCH_LOGO_QUEBRAS:-6}"
+      "${FASTFETCH_LOGO_RECUO:-3}" "${FASTFETCH_LOGO_QUEBRAS:-auto}"
   )"
 fi
 
-[ "$alinhar" = "contorno" ] || exec fastfetch "$@"
+# O TÍTULO NÃO PASSA POR AQUI, e a tentativa de fazê-lo passar está registrada
+# porque ela custou uma tela em branco: o fastfetch 2.61.0 REMOVEU as opções de
+# módulo da linha de comando —
+#
+#   Error: Unsupported module option: --title-format
+#          Support of module options has been removed.
+#          Please add the flag to the JSON config instead.
+#
+# e, como ele sai com erro antes de imprimir uma linha, o compositor recebia
+# entrada vazia e o terminal abria só com o gato. Quem escreve o formato do
+# título é o `fastfetch_logo.sh`, no `config.jsonc`, pelas mesmas quatro
+# guardas de sempre.
+case "$alinhar" in
+  contorno|degraus|crescente|reto) ;;
+  *) exec fastfetch "$@" ;;
+esac
 
 ponteiro="${XDG_STATE_HOME:-$HOME/.local/state}/meowsystem/raiz"
 raiz="${MEOW_RAIZ:-}"
@@ -1042,7 +1092,8 @@ if [ -z "$raiz" ] || [ ! -f "$alinhador" ] || [ ! -f "$gato" ]; then
 fi
 
 fastfetch --logo none "$@" \
-  | python3 "$alinhador" --gato "$gato" --recuo "$recuo" --topo "$topo"
+  | python3 "$alinhador" --gato "$gato" --recuo "$recuo" --topo "$topo" \
+      --modo "$alinhar"
 FIM
 }
 
@@ -1089,7 +1140,7 @@ _ffl_zsh_estado() {
 _ffl_zsh_fronteira() {
   local estado querido de para bkp
   estado="$(_ffl_zsh_estado)"
-  if [ "$(_ffl_alinhamento)" = "contorno" ]; then
+  if _ffl_quer_meow_fetch; then
     querido="meow"; de="$FFL_ZSH_ANTES"; para="$FFL_ZSH_DEPOIS"
   else
     querido="puro"; de="$FFL_ZSH_DEPOIS"; para="$FFL_ZSH_ANTES"
@@ -1099,7 +1150,7 @@ _ffl_zsh_fronteira() {
     # Nem uma linha nem outra: este arquivo NÃO inventa a chamada do fastfetch
     # no zsh de ninguém. Diz o que falta e sai.
     meow_pula "não achei a linha do fastfetch em $FFL_ZSH_DELA"
-    meow_info  "  o contorno precisa que a chamada seja \`meow-fetch --pipe false\`"
+    meow_info  "  o contorno (e o título próprio) precisam da chamada \`meow-fetch --pipe false\`"
     return 2
   fi
   if [ "$FASTFETCH_LOGO_CONF" != "sim" ]; then
@@ -1145,6 +1196,72 @@ PY
   return 1
 }
 
+# --- o formato do título, no config.jsonc dela -------------------------------
+# ELE TEM DE MORAR LÁ, e a alternativa foi tentada e medida: o fastfetch 2.61.0
+# recusa `--title-format` com "Support of module options has been removed.
+# Please add the flag to the JSON config instead" e SAI ANTES de imprimir uma
+# linha — o terminal abria só com o gato, sem uma palavra de informação.
+#
+# A escrita é do mesmo tipo cirúrgico do `logo.source`: acha a entrada `title`
+# dentro do array `modules` e troca só ela. Dois formatos existem no mundo real,
+# e os dois são tratados:
+#
+#   "title"                                    a forma curta, que é a dela
+#   { "type": "title", "format": "…" }         a forma longa, com o formato
+#
+# Com `FASTFETCH_TITULO` vazio, o caminho anda para trás: a forma longa volta a
+# ser a curta, e o fastfetch decide o título como sempre decidiu. É o mesmo
+# desfazer do alinhamento — nada aqui é de mão única.
+
+# 0 = já está como o conf pede · 1 = precisa mudar · 2 = não deu para ler
+_ffl_titulo_confere() {
+  local atual rc
+  [ -f "$FFL_CONF_DELA" ] || return 2
+  # O `2` PRECISA CHEGAR INTEIRO até aqui — "não há módulo title neste arquivo"
+  # e "o título é outro" são respostas diferentes, e só a segunda autoriza
+  # escrever. Um `| grep` engoliria o código de saída do python e as duas
+  # virariam a mesma coisa: o script passaria a tentar escrever num arquivo que
+  # não tem onde receber.
+  atual="$(python3 "$MEOW_RAIZ/scripts/fastfetch_conf.py" ler-titulo "$FFL_CONF_DELA" 2>/dev/null)"
+  rc=$?
+  [ "$rc" = "0" ] || return 2
+  [ "$atual" = "$FASTFETCH_TITULO" ]
+}
+
+_ffl_escrever_titulo() {
+  local bkp
+  _ffl_titulo_confere; case $? in 0) return 0 ;; 2) return 2 ;; esac
+
+  if [ "$FASTFETCH_LOGO_CONF" != "sim" ]; then
+    meow_pula "FASTFETCH_LOGO_CONF=\"nao\" — não escrevo o título no config.jsonc"
+    meow_info  "  para pôr à mão, troque \"title\" por:"
+    meow_info  "    { \"type\": \"title\", \"format\": \"$FASTFETCH_TITULO\" }"
+    return 2
+  fi
+  if meow_seco; then
+    meow_muda "poria o título \"$FASTFETCH_TITULO\" em $FFL_CONF_DELA"
+    return 1
+  fi
+
+  bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-vizinho"
+  mkdir -p "$bkp" 2>/dev/null || { meow_erro "não consegui criar $bkp"; return 2; }
+  cp -a "$FFL_CONF_DELA" "$bkp/config.jsonc" 2>/dev/null \
+    || { meow_erro "não consegui guardar backup de $FFL_CONF_DELA — não vou escrever"; return 2; }
+
+  python3 "$MEOW_RAIZ/scripts/fastfetch_conf.py" escrever-titulo \
+    "$FFL_CONF_DELA" "$FASTFETCH_TITULO"
+  case $? in 2) meow_erro "não consegui escrever o título em $FFL_CONF_DELA"; return 2 ;; esac
+
+  if [ -n "$FASTFETCH_TITULO" ]; then
+    meow_aviso "escrevi o título no config.jsonc da Aurora (\"$FASTFETCH_TITULO\")"
+  else
+    meow_aviso "devolvi o título do config.jsonc da Aurora ao padrão do fastfetch"
+  fi
+  meow_info  "  backup: $bkp/config.jsonc"
+  meow_registrar "fastfetch_logo.sh escreveu title.format=$FASTFETCH_TITULO em $FFL_CONF_DELA"
+  return 1
+}
+
 _ffl_patch_texto() {
   # OS NÚMEROS SAEM DO CONF, e não são mais constantes. Antes este bloco imprimia
   # `top: 6, right: 4` fixos e a linha seguinte dizia que o padding "não precisa
@@ -1154,7 +1271,7 @@ _ffl_patch_texto() {
   "logo": {
     "type": "file-raw",
     "source": "~/.local/share/meowsystem/fastfetch/$(basename "$FFL_ALVO")",
-    "padding": { "top": $FASTFETCH_LOGO_QUEBRAS, "right": $FASTFETCH_LOGO_RECUO, "left": 0 }
+    "padding": { "top": $(_ffl_quebras), "right": $FASTFETCH_LOGO_RECUO, "left": 0 }
   },
 TXT
 }
@@ -1166,7 +1283,7 @@ cmd_patch() {
   printf '\n'
   _ffl_patch_texto
   printf '\n'
-  meow_info "o \"padding\" vem do meow.conf: FASTFETCH_LOGO_QUEBRAS=$FASTFETCH_LOGO_QUEBRAS"
+  meow_info "o \"padding\" vem do meow.conf: FASTFETCH_LOGO_QUEBRAS=$FASTFETCH_LOGO_QUEBRAS -> $(_ffl_quebras)"
   meow_info "  e FASTFETCH_LOGO_RECUO=$FASTFETCH_LOGO_RECUO, para um gato de $(_ffl_linhas) linhas"
   meow_info "cópia pronta no repositório: assets/fastfetch/config-logo.jsonc.sugestao"
   return "$MEOW_OK"
@@ -1205,8 +1322,8 @@ cmd_aplicar() {
   fi
   unset _dv
 
-  # O COMPOSITOR DO CONTORNO. Ele é instalado sempre, e não só quando o
-  # alinhamento pede: ele mesmo lê a chave e vira `exec fastfetch` no tabular,
+  # O COMPOSITOR. Ele é instalado sempre, e não só quando o alinhamento pede:
+  # ele mesmo lê a chave e vira `exec fastfetch` no tabular sem título próprio,
   # e é isso que permite trocar de alinhamento sem tocar em arquivo de vizinho
   # de novo. Ver o bloco "O CONTORNO" lá em cima.
   _ffl_instalar_meow_fetch; _rcm=$?
@@ -1219,6 +1336,10 @@ cmd_aplicar() {
   _ffl_zsh_fronteira; _rcz=$?
   [ "$_rcz" = "1" ] && rc="$MEOW_DIVERGENTE"
   unset _rcz
+
+  _ffl_escrever_titulo; _rct=$?
+  [ "$_rct" = "1" ] && rc="$MEOW_DIVERGENTE"
+  unset _rct
 
   _ffl_fronteira; rcf=$?
 
@@ -1282,7 +1403,7 @@ cmd_conferir() {
     return "$MEOW_DIVERGENTE"
   fi
   meow_ok "logo ANSI conforme ($FASTFETCH_LOGO_COLUNAS x $(_ffl_linhas) células, $(_ffl_blocos))"
-  meow_info "alinhamento: $(_ffl_alinhamento) · $FASTFETCH_LOGO_QUEBRAS linha(s) antes, recuo de $FASTFETCH_LOGO_RECUO"
+  meow_info "alinhamento: $(_ffl_alinhamento) · $(_ffl_quebras) linha(s) antes, recuo de $FASTFETCH_LOGO_RECUO"
 
   # As duas peças do contorno entram na conferência do `doctor`: sem isto, o
   # `meow-fetch` podia ficar desatualizado ou a linha do env.zsh podia voltar
@@ -1292,12 +1413,18 @@ cmd_conferir() {
     meow_muda "o $(_ffl_meow_fetch) está desatualizado (ou não existe)"
     return "$MEOW_DIVERGENTE"
   fi
-  if [ "$(_ffl_zsh_estado)" != "$([ "$(_ffl_alinhamento)" = contorno ] && printf meow || printf puro)" ]; then
+  if [ "$(_ffl_zsh_estado)" != "$(_ffl_quer_meow_fetch && printf meow || printf puro)" ]; then
     case "$(_ffl_zsh_estado)" in
       nenhuma) meow_pula "não achei a linha do fastfetch em $FFL_ZSH_DELA" ;;
       *) meow_muda "a chamada do fastfetch no env.zsh não combina com FASTFETCH_LOGO_ALINHAR=\"$(_ffl_alinhamento)\""
          return "$MEOW_DIVERGENTE" ;;
     esac
+  fi
+
+  if _ffl_titulo_confere; then :; else
+    [ "$?" = "1" ] && {
+      meow_muda "o título do config.jsonc não é o que o conf pede (\"$FASTFETCH_TITULO\")"
+      return "$MEOW_DIVERGENTE"; }
   fi
 
   _ffl_fronteira; rcf=$?
@@ -1335,11 +1462,74 @@ cmd_remover() {
   return "$MEOW_DIVERGENTE"
 }
 
+# --- desfazer a fronteira, na hora de desinstalar ----------------------------
+# ESTE É O ÚNICO PEDAÇO DO FASTFETCH QUE O MANIFESTO NÃO ALCANÇA.
+#   O `gato.ansi` e o `~/.local/bin/meow-fetch` entram no manifesto pela
+#   `meow_manifesto_registrar` e saem no passo 4 do desinstalador. A LINHA do
+#   `env.zsh` não: ela é uma escrita cirúrgica dentro de um arquivo que é da
+#   Aurora, e o manifesto — que apaga arquivos inteiros — nunca poderia cuidar
+#   dela.
+#
+#   O ESTRAGO DE NÃO FAZER ISTO é diário e barulhento: o passo 4 apaga o
+#   `meow-fetch`, a linha continua chamando o `meow-fetch`, e cada terminal que
+#   ela abrir depois de desinstalar abre com `command not found`. Desinstalar
+#   tem de devolver a máquina, não deixar um buraco no shell.
+#
+#   POR QUE AQUI O `FASTFETCH_LOGO_CONF` NÃO GUARDA NADA
+#   Ele guarda a ESCRITA, e com razão: pôr a nossa chamada no arquivo dela é
+#   uma decisão dela. Tirá-la não é — se a linha diz `meow-fetch` e o
+#   `meow-fetch` está saindo do disco, restaurar `fastfetch` é conserto, não
+#   opinião. E o teste continua sendo o texto: sem a nossa linha lá, este
+#   caminho não escreve nada.
+cmd_reverter() {
+  local estado bkp
+  estado="$(_ffl_zsh_estado)"
+  if [ "$estado" != "meow" ]; then
+    meow_pula "a chamada do fastfetch no env.zsh não é nossa — nada a desfazer"
+    return "$MEOW_OK"
+  fi
+  meow_seco && {
+    meow_muda "devolveria \`${FFL_ZSH_ANTES%% |*}\` em $FFL_ZSH_DELA"
+    return "$MEOW_DIVERGENTE"
+  }
+
+  bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-vizinho"
+  mkdir -p "$bkp" 2>/dev/null || { meow_erro "não consegui criar $bkp"; return "$MEOW_ERRO"; }
+  cp -a "$FFL_ZSH_DELA" "$bkp/env.zsh" 2>/dev/null \
+    || { meow_erro "não consegui guardar backup de $FFL_ZSH_DELA — não vou escrever"; return "$MEOW_ERRO"; }
+
+  python3 - "$FFL_ZSH_DELA" "$FFL_ZSH_DEPOIS" "$FFL_ZSH_ANTES" <<'PY_REVERTER' || return "$MEOW_ERRO"
+import os, sys, tempfile
+caminho, de, para = sys.argv[1], sys.argv[2], sys.argv[3]
+bruto = open(caminho, encoding="utf-8").read()
+if de not in bruto:
+    sys.exit(1)
+saida = bruto.replace(de, para, 1)
+d = os.path.dirname(os.path.realpath(caminho))
+fd, tmp = tempfile.mkstemp(dir=d, prefix=".meow-ffl.")
+try:
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(saida)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, os.path.realpath(caminho))
+except Exception:
+    os.path.exists(tmp) and os.unlink(tmp)
+    raise
+PY_REVERTER
+
+  meow_aviso "devolvi a chamada \`fastfetch\` no env.zsh da Aurora"
+  meow_info  "  backup: $bkp/env.zsh"
+  meow_info  "  vale no PRÓXIMO terminal — este aqui já leu o arquivo"
+  meow_registrar "fastfetch_logo.sh reverter — env.zsh voltou a chamar fastfetch"
+  return "$MEOW_DIVERGENTE"
+}
+
 case "${1:-aplicar}" in
   aplicar)  cmd_aplicar ;;
   conferir) cmd_conferir ;;
   ver)      cmd_ver ;;
   patch)    cmd_patch ;;
   remover)  cmd_remover ;;
-  *) meow_erro "uso: fastfetch_logo.sh {aplicar|conferir|ver|patch|remover}"; exit "$MEOW_ERRO" ;;
+  reverter) cmd_reverter ;;
+  *) meow_erro "uso: fastfetch_logo.sh {aplicar|conferir|ver|patch|remover|reverter}"; exit "$MEOW_ERRO" ;;
 esac
