@@ -77,7 +77,7 @@ let ABA = null;              // qual grupo está aberto
 
 /* --- A ABA MORA NA URL ------------------------------------------------------
  * Sem isto, `F5` devolvia ela para a primeira aba, e não havia como mandar a si
- * mesma (ou a mim) o endereço de uma seção — numa página de 95 chaves em
+ * mesma (ou a mim) o endereço de uma seção — numa página de cem chaves em
  * dezoito grupos, "abre a galeria" virava instrução de três passos.
  *
  * O identificador é o nome do grupo achatado (sem acento, sem espaço), e não um
@@ -399,6 +399,68 @@ async function salvarEscolhas() {
   render();
   torrada("Escolhas gravadas no meow.conf. Aplicando…", "ok");
   await rodarAcao("instalar");
+}
+
+/* ===========================================================================
+ * TRAZER DE VOLTA — 06/09/2026
+ * ===========================================================================
+ * O `Importar` NÃO GRAVA. Ele lê o arquivo, manda o texto para o servidor
+ * conferir chave a chave, e o que passa vira ESCOLHA PENDENTE — igual a um
+ * clique, com o cartão marcado e o banner contando. Quem escreve continua
+ * sendo o `Salvar e aplicar`, que é o único caminho de escrita da página.
+ *
+ * POR QUE ASSIM, E NÃO GRAVANDO DIRETO
+ *   Medido: cada gravação leva 0,45 s (sobe um bash, carrega o `lib/comum.sh`
+ *   e reescreve os 55 KB do conf). Importar 96 chaves gravando seriam 43
+ *   segundos de página parada — para uma operação que ela dispara ao escolher
+ *   o arquivo errado por engano.
+ *
+ *   E encenando ela GANHA o que a página já dá: vê o que veio antes de aceitar,
+ *   o modo seco continua valendo no `Salvar`, o `Descartar` desfaz tudo com um
+ *   clique, e o instalador roda em seguida como em qualquer outra mudança.
+ */
+async function importarArquivo(arquivo) {
+  if (!arquivo) return;
+  /* Um meow.conf inteiro tem 55 KB. Meio megabyte é folga com sobra, e o teto
+   * existe para o caso do arquivo errado — um vídeo arrastado por engano
+   * viraria meio giga de string antes de o servidor dizer não. */
+  if (arquivo.size > 512 * 1024) {
+    torrada("Arquivo grande demais para ser um meow.conf", "erro");
+    return;
+  }
+  let texto;
+  try { texto = await arquivo.text(); }
+  catch { torrada("Não consegui ler o arquivo", "erro"); return; }
+
+  const r = await api("/api/importar", { method: "POST", body: JSON.stringify({ texto }) });
+  if (r.erro) { torrada(r.erro, "erro"); return; }
+
+  /* UM `render()` SÓ, NO FIM. O `escolher()` redesenha a página a cada chamada,
+   * e chamá-lo noventa e seis vezes seria noventa e seis reconstruções da
+   * árvore inteira. Aqui o miolo dele é repetido sem o redesenho, e a tela é
+   * refeita uma vez quando tudo já está no lugar. */
+  for (const m of r.mudam) MUDANCAS.set(m.chave, m.valor);
+  atualizarBarraSalvar();
+  render();
+
+  const partes = [];
+  if (r.mudam.length) partes.push(`${r.mudam.length} esperando o Salvar`);
+  if (r.iguais.length) partes.push(`${r.iguais.length} já estavam assim`);
+  if (r.recusadas.length) partes.push(`${r.recusadas.length} recusadas`);
+  if (r.desconhecidas.length) partes.push(`${r.desconhecidas.length} fora do catálogo`);
+  torrada(partes.join(" · ") || "O arquivo não trazia chave nenhuma",
+          r.mudam.length ? "ok" : "igual");
+
+  /* As recusas não cabem numa torrada e não podem sumir com ela: cada uma diz
+   * qual chave e por quê, e é o que ela precisa para consertar o arquivo. */
+  if (r.recusadas.length) {
+    for (const rec of r.recusadas.slice(0, 4)) {
+      torrada(`${rec.chave}: ${rec.erro}`, "erro");
+    }
+    if (r.recusadas.length > 4) {
+      torrada(`…e mais ${r.recusadas.length - 4} recusadas`, "erro");
+    }
+  }
 }
 
 /* Roda uma acao pelo id — o `Salvar` precisa disparar o instalador sem que
@@ -2178,7 +2240,7 @@ function render() {
   alvo.replaceChildren();
   const busca = semAcento($("#busca").value.trim());
 
-  /* A busca atravessa TODOS os grupos, e é assim que uma página de 95 chaves
+  /* A busca atravessa TODOS os grupos, e é assim que uma página de cem chaves
    * deixa de exigir que ela lembre em qual aba a chave mora. Sem busca, mostra
    * só a aba escolhida. */
   const grupos = busca
@@ -2529,6 +2591,34 @@ async function iniciar() {
 
   $("#botao-salvar").addEventListener("click", salvarEscolhas);
   $("#botao-descartar").addEventListener("click", descartarEscolhas);
+
+  /* O menu do Exportar fecha ao clicar fora e no Esc. O `<details>` nativo não
+   * faz nem uma coisa nem outra sozinho, e um menu que fica aberto atrás do
+   * dedo dela é a diferença entre um botão e um estorvo. */
+  const menu = $("#menu-exportar");
+  document.addEventListener("click", (e) => {
+    if (menu.open && !menu.contains(e.target)) menu.open = false;
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && menu.open) { menu.open = false; menu.querySelector("summary").focus(); }
+  });
+  /* Baixar não fecha a aba nem recarrega nada — mas o menu tem de sair da
+   * frente, senão parece que o clique não fez efeito (o download acontece sem
+   * pintar nada na tela). */
+  for (const a of menu.querySelectorAll("a[download]")) {
+    a.addEventListener("click", () => {
+      menu.open = false;
+      torrada("Baixando…", "igual");
+    });
+  }
+
+  /* O `value = ""` no fim não é zelo: sem ele, escolher O MESMO arquivo duas
+   * vezes seguidas não dispara `change`, e o segundo Importar não faz nada. */
+  $("#arquivo-importar").addEventListener("change", async (e) => {
+    const arquivo = e.target.files && e.target.files[0];
+    e.target.value = "";
+    await importarArquivo(arquivo);
+  });
 
   ABA = abaDoHash() || chaveDeAba(GRUPOS[0]);
   gravarHash();

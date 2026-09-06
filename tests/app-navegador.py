@@ -9,7 +9,7 @@ POR QUE ESTE ARQUIVO EXISTE, NAS PALAVRAS DELA (01/09/2026)
    corrija isso e teste como user no navegador cada feature."
 
   O `tests/app.sh` que ja existia responde outra pergunta: se o SERVIDOR le as
-  mesmas 95 chaves que o `bin/meow`, se o CSS nao tem cor solta, se nao ha
+  mesmas chaves que o `bin/meow`, se o CSS nao tem cor solta, se nao ha
   `shell=True`. Nada disso diz que um clique no trilho troca a secao, que o
   botao grava no `meow.conf`, ou que a galeria mostra as 46 miniaturas. Isso so
   se sabe clicando.

@@ -1,0 +1,81 @@
+/* app/pagina/standalone.css — o pouco que a página exportada acrescenta.
+ *
+ * SÓ EXISTE DENTRO DO HTML EXPORTADO, como o `standalone.js`. São três coisas:
+ * a barra que diz o que aquele arquivo é, o modo "todas as abas empilhadas", e
+ * o ajuste do cabeçalho fixo para caber a barra em cima dele.
+ *
+ * NENHUM HEX AQUI TAMBÉM — a regra do projeto não muda por o arquivo ser
+ * temporário. As cores saem da mesma paleta que veste o painel, embutida logo
+ * acima no `<style id="paleta-do-painel">`.
+ *
+ * ELE FICA NUMA FOLHA SEPARADA DE PROPÓSITO: quem for redesenhar mexe no
+ * `<style id="folha-do-painel">`, que é o `estilo.css` de verdade e o único que
+ * volta para o repositório. O que estiver aqui não vale para o painel e não
+ * precisa ser lido nem preservado. */
+
+.aviso-standalone {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 18px;
+  background: var(--surface0);
+  border-bottom: 1px solid var(--surface1);
+  color: var(--subtext0);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.aviso-standalone strong {
+  color: var(--text);
+}
+
+.aviso-standalone span {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+
+/* A pilha nasce escondida: ela só é montada quando o botão pede, e montar 24
+ * abas custa 24 renderizações. */
+#pilha {
+  display: none;
+}
+
+body.empilhado #conteudo,
+body.empilhado #aviso-aplicar {
+  display: none;
+}
+
+body.empilhado #pilha {
+  display: block;
+}
+
+.pilha-aba {
+  padding: 0 0 40px;
+  border-bottom: 1px dashed var(--surface1);
+  margin-bottom: 32px;
+}
+
+.pilha-aba:last-child {
+  border-bottom: 0;
+}
+
+/* O título de cada aba na pilha. Ele não existe no painel — lá o nome da seção
+ * está no menu, e o menu está sempre visível. Empilhado, o menu deixa de
+ * apontar para uma aba só, e sem este rótulo não dá para saber onde uma acaba
+ * e a outra começa. */
+.pilha-aba > h2 {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 0 18px;
+  padding: 10px 0;
+  background: var(--base);
+  color: var(--accent);
+  font-size: 15px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}

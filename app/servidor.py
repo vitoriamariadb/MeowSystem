@@ -94,6 +94,7 @@
 # qual está correndo.
 """Backend local do painel de configuração visual do MeowSystem."""
 
+import base64
 import datetime
 import hashlib
 import hmac
@@ -1347,6 +1348,26 @@ def validar_valor(item, valor):
 
     if item["faixa"]:
         lo, hi, _passo = item["faixa"]
+        # A PALAVRA QUE CONVIVE COM A FAIXA TAMBÉM É UM VALOR — 06/09/2026
+        #   Medido do jeito mais direto que existe: exportei o `meow.conf` DELA
+        #   pela própria página e reimportei o MESMO arquivo. 95 chaves voltaram
+        #   idênticas e UMA foi recusada — `MIDIA_FONTE="auto"`, o valor que
+        #   está no conf dela agora e que a aba Automação oferece como botão
+        #   "Auto", ao lado de "Escolher número". A página propunha o que este
+        #   validador respondia com 400.
+        #   A causa é uma decisão só, vista de dois lados. O `_faixa_confere`
+        #   GUARDA a faixa quando o padrão é uma das `_PALAVRAS_COM_FAIXA` —
+        #   sem isso `MIDIA_FONTE` viraria campo de texto livre e `999` entraria
+        #   calado, que foi o defeito curado em 02/09. O controle de faixa do
+        #   `app.js` desenha o botão dessa palavra a partir do valor de fábrica,
+        #   porque é ali que o arquivo a diz. Faltava a outra metade: quem aceita
+        #   a faixa POR CAUSA da palavra tem de aceitar a palavra.
+        #   E só ela, de propósito: a comparação é com o padrão DESTA chave, não
+        #   com a lista inteira. `LEITURA_TEMPERATURA` (1000–6500 K, padrão
+        #   numérico) continua recusando `auto`, porque a tela dele não desenha
+        #   esse botão — a cerca segue sendo exatamente o que a página oferece.
+        if valor == item["padrao"] and valor in _PALAVRAS_COM_FAIXA:
+            return None
         try:
             n = float(valor.replace(",", "."))
         except ValueError:
@@ -2349,6 +2370,151 @@ def previa_bytes(tipo, ident):
         return None
 
 
+# ============================================================================
+# 5b. LEVAR EMBORA, E TRAZER DE VOLTA
+# ============================================================================
+# Pedido dela em 06/09/2026: um botão de exportar ao lado do "Modo seco", com
+# duas saídas — as configurações, e "o html standalone, mostrando todas as abas,
+# com o menu lateral, de forma que eu pudesse mandar pra quem vai me ajudar a
+# melhorar o layout" — e um de importar, que só traz as configurações de volta.
+#
+# POR QUE SÃO DUAS SAÍDAS E UMA ENTRADA, E NÃO DUAS DE CADA
+#   O `.conf` é dado dela: sai e volta, e voltar é o que faz o backup valer.
+#   O `.html` é uma FOTOGRAFIA da página — ele sai para ser redesenhado lá fora,
+#   e o que volta de lá é desenho, não configuração. Um "importar página" que
+#   sobrescrevesse o `app.js` com HTML de procedência desconhecida seria a
+#   maior porta deste servidor, e ela não precisa existir: quem traduz o
+#   desenho de volta lê o arquivo e mexe no código, com o diff na frente.
+#
+# O FORMATO DO `.conf` É O ARQUIVO DELA, E NÃO UM FORMATO NOVO
+#   Exportar JSON seria mais fácil de escrever e pior de usar: o `meow.conf` é o
+#   que ela já sabe ler, o que o `meow configurar` escreve e o que o `. conf` do
+#   shell carrega. Um segundo formato para a mesma verdade é a armadilha nº 3
+#   deste repositório de novo, com outra roupa.
+#
+#   Então a exportação é o arquivo dela, byte a byte, com um cabeçalho de
+#   comentário na frente dizendo quando saiu e de onde. O cabeçalho é comentário
+#   de shell: o arquivo continua sendo um `meow.conf` válido, e reimportá-lo
+#   (ou copiá-lo por cima do original) funciona sem tirar nada.
+
+def _carimbo():
+    """AAAAMMDD-HHMM, o mesmo formato de nome que os backups do projeto usam."""
+    return time.strftime("%Y%m%d-%H%M")
+
+
+def exportar_conf():
+    """(texto, nome_do_arquivo) — as configurações dela, prontas para guardar.
+
+    Quando o `meow.conf` existe, o que sai é ELE, inteiro: os comentários que
+    ela escreveu, o alinhamento das colunas e a ordem das linhas sobrevivem. Sem
+    o arquivo (primeira instalação), o conteúdo é montado do esquema, com o
+    valor em vigor de cada chave — o que é a mesma coisa, só que sem história.
+    """
+    linhas_cabecalho = [
+        "# meow.conf — exportado pelo painel do MeowSystem em %s"
+        % time.strftime("%d/%m/%Y às %H:%M"),
+        "#",
+        "# Este arquivo é um meow.conf inteiro e válido. Para restaurar, use o",
+        "# botão Importar do painel (que grava chave a chave, validando cada uma)",
+        "# ou copie-o por cima de ~/.config/meow/meow.conf e rode `meow aplicar`.",
+        "#",
+    ]
+    try:
+        with open(CONF, "r", encoding="utf-8") as fh:
+            corpo = fh.read()
+        linhas_cabecalho.append("# Origem: %s" % CONF)
+    except OSError:
+        # Sem arquivo dela ainda: o conteúdo sai do esquema, na ordem do exemplo.
+        esquema = ler_esquema()
+        brutos = valores_brutos()
+        partes, secao = [], None
+        for item in esquema:
+            if item.get("secao") != secao:
+                secao = item.get("secao")
+                partes.append("\n# --- %s" % (secao or "Outras"))
+            partes.append('%s="%s"' % (item["chave"], brutos.get(item["chave"], "")))
+        corpo = "\n".join(partes) + "\n"
+        linhas_cabecalho.append(
+            "# Origem: o catálogo (%s ainda não existia nesta máquina)" % CONF)
+    return ("\n".join(linhas_cabecalho) + "\n\n" + corpo,
+            "meow-%s.conf" % _carimbo())
+
+
+def importar_conf(texto):
+    """Lê um meow.conf exportado e devolve o que MUDARIA. Não escreve um byte.
+
+    ELE NÃO GRAVA, E A MEDIÇÃO É O MOTIVO
+        A primeira versão gravava chave a chave aqui dentro. Cronometrado nesta
+        máquina: `definir()` leva 0,45 s por chave, porque cada chamada sobe um
+        bash, carrega o `lib/comum.sh` e reescreve os 55 KB do `meow.conf`
+        inteiro. Noventa e seis chaves são QUARENTA E TRÊS SEGUNDOS de página
+        parada, sem barra de progresso e sem como cancelar — para uma operação
+        que ela dispara por engano ao escolher o arquivo errado.
+
+        Então a importação faz o que a página inteira já faz desde 01/09: ela
+        ENCENA. Cada chave aceita entra em `MUDANCAS`, o banner acende com "N
+        esperando", e quem escreve é o `Salvar e aplicar` de sempre — o mesmo
+        botão, o mesmo diálogo, o mesmo modo seco, o mesmo instalador em
+        seguida. Importar deixa de ser um caminho de escrita paralelo (que
+        teria de reimplementar o seco, a idempotência e o aviso de aplicar) e
+        vira o que é: um jeito de preencher a tela.
+
+        Efeito colateral bom: dá para ver o que veio ANTES de aceitar, e
+        Descartar desfaz tudo com um clique.
+
+    AS DUAS PENEIRAS SÃO AS MESMAS DO CLIQUE
+        `ler_esquema()` diz se a chave existe no catálogo; `validar_valor()` diz
+        se o valor cabe nela. O que não passa é recusado com a frase, e o resto
+        entra: um arquivo com uma linha estragada traz as outras noventa e
+        cinco, em vez de não trazer nada.
+
+        E o parser não é novo: `RE_CHAVE` + `_valor_da_linha` são os mesmos que
+        o `valores_brutos()` usa para ler o conf dela. Um segundo entendedor de
+        `CHAVE="valor"` neste arquivo discordaria do primeiro no primeiro caso
+        esquisito.
+    """
+    esquema = {i["chave"]: i for i in ler_esquema()}
+    brutos = valores_brutos()
+    relatorio = {"mudam": [], "iguais": [], "recusadas": [], "desconhecidas": []}
+
+    # A ÚLTIMA ATRIBUIÇÃO VENCE, como no `.` do shell. Um arquivo com a mesma
+    # chave duas vezes tem de trazer o que o shell obedeceria, e não a primeira
+    # linha que apareceu — é a divergência que o cabeçalho de `lib/comum.sh`
+    # conta ter custado uma tarde.
+    pares = {}
+    for linha in texto.split("\n"):
+        crua = linha.strip()
+        if crua.startswith("export "):
+            crua = crua[len("export "):]
+        achado = RE_CHAVE.match(crua)
+        if achado:
+            pares[achado.group(1)] = _valor_da_linha(crua)
+
+    for chave, valor in pares.items():
+        item = esquema.get(chave)
+        if item is None:
+            relatorio["desconhecidas"].append(chave)
+            continue
+        queixa = validar_valor(item, valor)
+        if queixa:
+            relatorio["recusadas"].append(
+                {"chave": chave, "valor": valor, "erro": queixa})
+        elif brutos.get(chave, "") == valor:
+            # Já está assim no disco. Encená-la faria o banner mentir sobre
+            # quantas coisas esperam — e o `Salvar` gastaria 0,45 s para gravar
+            # o que já estava lá.
+            relatorio["iguais"].append(chave)
+        else:
+            relatorio["mudam"].append(
+                {"chave": chave, "valor": valor, "de": brutos.get(chave, "")})
+
+    # As chaves do catálogo que o arquivo NÃO trazia. Não são erro — um arquivo
+    # de uma versão anterior do projeto é exatamente isso — mas ela tem de saber
+    # que elas ficaram como estavam, e não voltaram ao padrão.
+    relatorio["ausentes"] = [c for c in esquema if c not in pares]
+    return relatorio
+
+
 # --- 6. os trabalhos ---------------------------------------------------------
 class Trabalho:
     """Um comando rodando, com a saída acumulada para a página buscar.
@@ -2611,7 +2777,7 @@ class Manipulador(BaseHTTPRequestHandler):
         self.wfile.write(corpo)
 
     def _responder(self, corpo, tipo="application/json; charset=utf-8", codigo=200,
-                   plantar_cookie=False):
+                   plantar_cookie=False, extras=None):
         if isinstance(corpo, str):
             corpo = corpo.encode("utf-8")
         self.send_response(codigo)
@@ -2633,6 +2799,14 @@ class Manipulador(BaseHTTPRequestHandler):
         # embutida em iframe alheio nem adivinhada por sniffing custa duas linhas.
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
+        # Os cabeçalhos que só uma resposta precisa — hoje, o
+        # `Content-Disposition` dos dois botões de exportar. Eles entram AQUI,
+        # e não numa função de resposta paralela, porque as quatro guardas
+        # acima têm de valer para toda resposta deste servidor: a segunda
+        # rotina de resposta seria a segunda lista de cabeçalhos, e a primeira
+        # coisa que ela esqueceria é justamente uma dessas quatro.
+        for nome, valor in (extras or {}).items():
+            self.send_header(nome, valor)
         self.end_headers()
         self.wfile.write(corpo)
 
@@ -3102,6 +3276,12 @@ class Manipulador(BaseHTTPRequestHandler):
         return "", False
 
     def _api_apps(self, consulta):
+        return self._json(self._dados_apps(consulta))
+
+    # A LISTA E A RESPOSTA SÃO COISAS DIFERENTES, desde que a página inteira
+    # pode ser exportada num arquivo só. Quem monta a resposta HTTP é o método
+    # acima; este devolve o DADO, e é ele que o `exportar_pagina` congela.
+    def _dados_apps(self, consulta):
         busca = (consulta.get("busca", [""])[0] or "").strip().lower()
         mapa = self._mapa_arcticons()
         tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
@@ -3122,7 +3302,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "url": ("/previa?tipo=arquivo&id=" + quote(atual, safe="")) if atual else "",
                 "mapa": mapa.get(d["id"]) or mapa.get(d["icone"]) or None,
             })
-        return self._json({"apps": fora, "total": len(fora)})
+        return {"apps": fora, "total": len(fora)}
 
     # ========================================================================
     # OS JOGOS DA STEAM — 02/09/2026
@@ -3247,6 +3427,10 @@ class Manipulador(BaseHTTPRequestHandler):
         return vistos
 
     def _api_jogos(self, consulta):
+        return self._json(self._dados_jogos(consulta))
+
+    # Mesma separação do `_dados_apps`, e pelo mesmo motivo.
+    def _dados_jogos(self, consulta):
         busca = (consulta.get("busca", [""])[0] or "").strip().lower()
         mapa = self._mapa_jogos_fora()
         gastos = self._jogos_ja_apagados()
@@ -3342,8 +3526,7 @@ class Manipulador(BaseHTTPRequestHandler):
         fora.sort(key=lambda j: j["nome"].lower())
         orfas.sort(key=lambda j: j["appid"])
         fora.extend(orfas)
-        return self._json({"jogos": fora, "total": len(fora),
-                           "mapa": MAPA_JOGOS})
+        return {"jogos": fora, "total": len(fora), "mapa": MAPA_JOGOS}
 
     def _api_jogo_fora(self, corpo):
         """Grava (ou tira) a linha de um jogo no `jogos-fora.map`.
@@ -3596,46 +3779,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
     def _api_get(self, caminho, consulta):
         if caminho == "/api/esquema":
-            esquema = ler_esquema()
-            chaves = [i["chave"] for i in esquema]
-            brutos = valores_brutos()
-            efetivos = valores_efetivos(chaves)
-            for item in esquema:
-                item["valor"] = brutos.get(item["chave"], "")
-                item["efetivo"] = efetivos.get(item["chave"], "")
-            return self._json({
-                "conf": CONF,
-                "conf_existe": os.path.isfile(CONF),
-                "exemplo": CONF_PADRAO,
-                "raiz": RAIZ,
-                "chaves": esquema,
-                # Quais combinações de FLAVOR × ACCENT existem de verdade: a
-                # página avisa ANTES de ela salvar uma que o instalador recusa.
-                "capturas": _capturas_no_disco(),
-                # `escreve` é DERIVADO (ver a função de mesmo nome), nunca
-                # digitado por ação. E as opções da ação `oculta` não vão: o
-                # argumento dela é uma imagem escolhida na galeria, e mandar os
-                # 255 nomes de `banidos/` em toda leitura do esquema seria peso
-                # puro numa lista que ninguém vai ler como lista.
-                "acoes": [
-                    dict(v, id=k,
-                         argv=" ".join(shlex.quote(p) for p in v["argv"]),
-                         escreve=escreve(v),
-                         opcoes=([] if v.get("oculta")
-                                 else PROVEDORES[v["arg"]]() if "arg" in v else []))
-                    for k, v in ACOES.items()
-                ],
-                "folhas": self._folhas(),
-                "descricoes": DESCRICAO_SECAO,
-                # A paleta inteira vai junto: as amostras de flavor e de cor são
-                # desenhadas com ela, e uma segunda viagem ao servidor para 4x26
-                # valores seria viagem à toa.
-                "paleta": {
-                    "ordem": _paleta_dados().get("ordem_canonica", []),
-                    "claros": _paleta_dados().get("claros", []),
-                    "flavors": _paleta_dados().get("flavors", {}),
-                },
-            })
+            return self._json(self._dados_esquema())
 
         if caminho == "/api/apps":
             return self._api_apps(consulta)
@@ -3668,7 +3812,297 @@ class Manipulador(BaseHTTPRequestHandler):
                 "vivo": trabalho.vivo(), "rc": trabalho.rc,
                 "segundos": round((trabalho.fim or time.time()) - trabalho.comeco, 1),
             })
+
+        # LEVAR EMBORA — as duas saídas do botão "Exportar".
+        #   `.conf` é o arquivo dela, para guardar ou levar para outra máquina;
+        #   `.html` é esta página inteira num arquivo só, para quem for
+        #   redesenhar o layout poder mexer nela sem ter o projeto instalado.
+        if caminho == "/api/exportar/conf":
+            texto, nome = exportar_conf()
+            return self._baixar(texto, nome, "text/plain; charset=utf-8")
+
+        if caminho == "/api/exportar/pagina":
+            texto, nome = self._exportar_pagina()
+            return self._baixar(texto, nome, TIPOS[".html"])
+
         return self._recusar(404, "não existe aqui")
+
+    def _baixar(self, corpo, nome, tipo):
+        """Uma resposta que o navegador GRAVA em vez de mostrar.
+
+        O `Content-Disposition` é a única diferença para uma resposta comum, e
+        por isso ele entra pelo `extras` do `_responder` em vez de por uma
+        rotina própria: as quatro guardas de cabeçalho continuam valendo.
+
+        E o NOME sai daqui, não do `app.js`: um `<a download="…">` no navegador
+        também funcionaria, mas o nome carrega a data, e um arquivo de
+        configuração com data errada é o tipo de coisa que só se descobre meses
+        depois, na hora de restaurar.
+        """
+        return self._responder(
+            corpo, tipo=tipo,
+            # `filename` citado: o nome é montado aqui e só tem letra, número,
+            # hífen e ponto, mas a citação é o que a especificação pede.
+            extras={"Content-Disposition":
+                    'attachment; filename="%s"' % nome.replace('"', "")})
+
+    # ========================================================================
+    # A PÁGINA INTEIRA NUM ARQUIVO SÓ
+    # ========================================================================
+    # O que sai daqui abre com dois cliques em qualquer máquina, sem Python,
+    # sem servidor e sem o projeto instalado: as vinte e quatro abas, o menu
+    # lateral, os cartões com os valores que estão no meow.conf dela agora, e
+    # uma amostra das imagens de verdade (papéis de parede, ícones, capas).
+    #
+    # COMO ELE FUNCIONA, EM UMA FRASE
+    #   É o `app.js` DE VERDADE — o mesmo arquivo, sem uma linha diferente —
+    #   rodando contra dados congelados. O que muda é um prelúdio de trinta
+    #   linhas que troca o `fetch` por uma leitura do JSON embutido e o `src`
+    #   das imagens pelo `data:` correspondente. Reescrever uma segunda versão
+    #   da página para exportar seria criar a terceira cópia da mesma tela, e
+    #   ela envelheceria em uma semana.
+    #
+    # O QUE ELE NÃO FAZ, E DIZ QUE NÃO FAZ
+    #   Nada nele grava, roda ou apaga: sem servidor não há para onde mandar.
+    #   Clicar em "Rodar" mostra o aviso em vez de fingir que rodou. É a mesma
+    #   honestidade do modo seco, levada ao extremo.
+    #
+    # AS IMAGENS SÃO AMOSTRA, E O ARQUIVO DIZ ISSO
+    #   O acervo tem 46 papéis no carrossel, 255 banidos, 64 ícones e 23 capas.
+    #   Embutir tudo daria dezenas de megabytes num arquivo feito para ser
+    #   mandado por mensagem. Entram as primeiras de cada tipo, com teto por
+    #   imagem e teto total; o que não coube fica com o quadro vazado, que é
+    #   informação e não defeito — o layout precisa saber desenhar a ausência.
+    AMOSTRA_POR_TIPO = {"parede": 30, "icone": 0, "cursor": 0, "gato": 0}
+    AMOSTRA_APPS = 36
+    AMOSTRA_JOGOS = 12
+    TETO_IMAGEM = 160 << 10      # 160 KB por imagem
+    TETO_TOTAL = 12 << 20        # 12 MB de imagens no arquivo todo
+
+    def _svg_vazado(self):
+        """O quadro que aparece onde a imagem não coube. Sem hex: a cor vem da
+        paleta que já está na página, pelo `currentColor`."""
+        return ("data:image/svg+xml;charset=utf-8," + quote(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">'
+            '<rect x="1" y="1" width="46" height="46" rx="6" fill="none" '
+            'stroke="currentColor" stroke-opacity=".35" stroke-dasharray="4 3"/>'
+            '</svg>', safe=""))
+
+    def _embutir(self, caminho, sacola, gasto):
+        """(data_uri, novo_gasto) — o arquivo em base64, ou (None, gasto)."""
+        try:
+            tamanho = os.path.getsize(caminho)
+        except OSError:
+            return None, gasto
+        if tamanho > self.TETO_IMAGEM or gasto + tamanho > self.TETO_TOTAL:
+            return None, gasto
+        try:
+            with open(caminho, "rb") as fh:
+                bruto = fh.read()
+        except OSError:
+            return None, gasto
+        ext = os.path.splitext(caminho)[1].lower()
+        mime = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg", ".webp": "image/webp"}.get(ext)
+        if mime is None:
+            return None, gasto
+        uri = "data:%s;base64,%s" % (mime, base64.b64encode(bruto).decode("ascii"))
+        return uri, gasto + tamanho
+
+    def _imagens_da_amostra(self, esquema, apps, jogos):
+        """{url_original: data_uri} — o mapa que o prelúdio usa para trocar
+        o `src` das imagens sem o `app.js` saber de nada."""
+        mapa, gasto = {}, 0
+
+        # O gato do cabeçalho: ele não é prévia, é o acervo, e é o rosto da
+        # página. Entra sempre, e é pequeno.
+        gato_svg = os.path.join(RAIZ, "assets", "gatos",
+                                "%s.svg" % os.path.basename(
+                                    (valores_efetivos(["LOGO"]) or {}).get("LOGO") or "coquinha"))
+        uri, gasto = self._embutir(gato_svg, mapa, gasto)
+        if uri:
+            mapa["/gato.svg"] = uri
+
+        # As prévias, tipo a tipo. `previas()` já enfileira o que falta gerar;
+        # aqui só se lê o que JÁ está pronto — exportar não é hora de esperar
+        # uma fila de miniaturas.
+        for tipo, limite in self.AMOSTRA_POR_TIPO.items():
+            dados = previas(tipo) or {}
+            itens = dados.get("itens", [])
+            if limite:
+                itens = itens[:limite]
+            for item in itens:
+                if not item.get("pronta"):
+                    continue
+                bytes_e_tipo = previa_bytes(tipo, item["id"])
+                if not bytes_e_tipo:
+                    continue
+                bruto, mime = bytes_e_tipo
+                if len(bruto) > self.TETO_IMAGEM or gasto + len(bruto) > self.TETO_TOTAL:
+                    continue
+                mapa[item["url"]] = "data:%s;base64,%s" % (
+                    mime, base64.b64encode(bruto).decode("ascii"))
+                gasto += len(bruto)
+
+        # Ícone de aplicativo e capa de jogo vêm por caminho de arquivo
+        # (`/previa?tipo=arquivo&id=…`), e não pela fila de prévias.
+        for lista, quantos in ((apps.get("apps", []), self.AMOSTRA_APPS),
+                               (jogos.get("jogos", []), self.AMOSTRA_JOGOS)):
+            entraram = 0
+            for item in lista:
+                if entraram >= quantos:
+                    break
+                url = item.get("url") or ""
+                if not url or url in mapa:
+                    continue
+                consulta_img = parse_qs(urlparse(url).query)
+                alvo = consulta_img.get("id", [""])[0]
+                if not alvo:
+                    continue
+                uri, novo = self._embutir(alvo, mapa, gasto)
+                if uri:
+                    mapa[url] = uri
+                    gasto = novo
+                    entraram += 1
+        return mapa, gasto
+
+    def _exportar_pagina(self):
+        """(html, nome_do_arquivo) — a página inteira, servida de um arquivo só."""
+        esquema = self._dados_esquema()
+        apps = self._dados_apps({})
+        jogos = self._dados_jogos({})
+        previas_congeladas = {}
+        for tipo in PREVIA_FONTES:
+            dados = previas(tipo) or {}
+            previas_congeladas[tipo] = dados
+            for grupo in PREVIA_GRUPOS.get(tipo, ()):
+                previas_congeladas["%s/%s" % (tipo, grupo)] = previas(tipo, grupo) or {}
+        imagens, gasto = self._imagens_da_amostra(esquema, apps, jogos)
+
+        valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
+        flavor = valores.get("FLAVOR") or "mocha"
+        if valores.get("MODO") == "claro":
+            flavor = "latte"
+        paleta = paleta_css(flavor, valores.get("ACCENT") or "mauve")
+
+        def ler(nome):
+            try:
+                with open(os.path.join(PAGINA, nome), "r", encoding="utf-8") as fh:
+                    return fh.read()
+            except OSError:
+                return ""
+
+        pagina = ler("index.html")
+        # O corpo, sem o `<head>` (que é remontado abaixo com o CSS embutido) e
+        # sem o token, que não existe fora do servidor.
+        corpo = pagina
+        if "<body" in corpo:
+            corpo = corpo[corpo.index("<body"):]
+        corpo = corpo.replace('data-token="@TOKEN@"', 'data-token="" data-standalone="1"')
+        corpo = re.sub(r'<script src="/app\.js"></script>', "", corpo)
+        corpo = corpo.replace("</body>", "").replace("</html>", "")
+
+        dados = {
+            "esquema": esquema, "apps": apps, "jogos": jogos,
+            "previas": previas_congeladas, "imagens": imagens,
+            "exportado_em": time.strftime("%d/%m/%Y às %H:%M"),
+            "maquina": {"flavor": flavor, "accent": valores.get("ACCENT") or "mauve",
+                        "modo": valores.get("MODO") or ""},
+            "amostra": {"imagens": len(imagens), "bytes": gasto},
+        }
+
+        partes = [
+            "<!DOCTYPE html>",
+            "<!--",
+            "  A PÁGINA DO MEOWSYSTEM, INTEIRA, NUM ARQUIVO SÓ.",
+            "",
+            "  Exportada em %s. Nada aqui fala com servidor nenhum: os dados" % dados["exportado_em"],
+            "  estão congelados no <script id=\"meow-dados\"> lá embaixo, e as",
+            "  imagens são uma amostra do acervo desta máquina (%d delas)." % len(imagens),
+            "",
+            "  PARA QUEM VAI REDESENHAR",
+            "    O que volta para o projeto é o conteúdo de",
+            "    <style id=\"folha-do-painel\"> — ele é o app/pagina/estilo.css",
+            "    inteiro, e é copiado de volta sem tradução nenhuma. Mexa nele",
+            "    à vontade.",
+            "",
+            "    O contrato são os NOMES DE CLASSE: .cartao, .trilho, .btn,",
+            "    .pastilha, .gaveta e companhia são gerados por JavaScript e",
+            "    também consumidos por ele. Mudar a aparência de uma classe é",
+            "    grátis; renomear ou apagar uma classe quebra a página. Se o",
+            "    desenho pedir estrutura nova, descreva a mudança em texto no",
+            "    fim do arquivo, num comentário — é mais rápido de aplicar do",
+            "    que adivinhar a intenção a partir do HTML.",
+            "-->",
+            '<html lang="pt-BR">',
+            "<head>",
+            '<meta charset="utf-8">',
+            '<meta name="viewport" content="width=device-width, initial-scale=1">',
+            "<title>MeowSystem — página para redesenho</title>",
+            '<style id="paleta-do-painel">\n%s\n</style>' % paleta,
+            # A FOLHA QUE VOLTA É ESTA, e o `id` é o contrato: quem redesenhar
+            # mexe aqui dentro, e o que sair daqui é copiado de volta para o
+            # `app/pagina/estilo.css` sem tradução nenhuma.
+            '<style id="folha-do-painel">\n%s\n</style>' % ler("estilo.css"),
+            '<style id="folha-do-standalone">\n%s\n</style>' % ler("standalone.css"),
+            "</head>",
+            corpo,
+            # O `</` escapado: um `</script>` dentro do JSON fecharia a tag aqui
+            # e derrubaria a página inteira. É o único escape que este bloco
+            # precisa, e ele não muda o dado — `<\/` e `</` são a mesma string
+            # depois do `JSON.parse`.
+            '<script id="meow-dados" type="application/json">%s</script>'
+            % json.dumps(dados, ensure_ascii=False).replace("</", "<\\/"),
+            "<script>\n%s\n</script>" % ler("standalone.js"),
+            "<script>\n%s\n</script>" % ler("app.js"),
+            "</body>",
+            "</html>",
+        ]
+        return "\n".join(partes), "meowsystem-painel-%s.html" % _carimbo()
+
+    def _dados_esquema(self):
+        """O que a página inteira consome. Um dicionário só, e é ele que o
+        `exportar_pagina` congela dentro do arquivo standalone."""
+        esquema = ler_esquema()
+        chaves = [i["chave"] for i in esquema]
+        brutos = valores_brutos()
+        efetivos = valores_efetivos(chaves)
+        for item in esquema:
+            item["valor"] = brutos.get(item["chave"], "")
+            item["efetivo"] = efetivos.get(item["chave"], "")
+        return {
+            "conf": CONF,
+            "conf_existe": os.path.isfile(CONF),
+            "exemplo": CONF_PADRAO,
+            "raiz": RAIZ,
+            "chaves": esquema,
+            # Quais combinações de FLAVOR × ACCENT existem de verdade: a
+            # página avisa ANTES de ela salvar uma que o instalador recusa.
+            "capturas": _capturas_no_disco(),
+            # `escreve` é DERIVADO (ver a função de mesmo nome), nunca
+            # digitado por ação. E as opções da ação `oculta` não vão: o
+            # argumento dela é uma imagem escolhida na galeria, e mandar os
+            # 255 nomes de `banidos/` em toda leitura do esquema seria peso
+            # puro numa lista que ninguém vai ler como lista.
+            "acoes": [
+                dict(v, id=k,
+                     argv=" ".join(shlex.quote(p) for p in v["argv"]),
+                     escreve=escreve(v),
+                     opcoes=([] if v.get("oculta")
+                             else PROVEDORES[v["arg"]]() if "arg" in v else []))
+                for k, v in ACOES.items()
+            ],
+            "folhas": self._folhas(),
+            "descricoes": DESCRICAO_SECAO,
+            # A paleta inteira vai junto: as amostras de flavor e de cor são
+            # desenhadas com ela, e uma segunda viagem ao servidor para 4x26
+            # valores seria viagem à toa.
+            "paleta": {
+                "ordem": _paleta_dados().get("ordem_canonica", []),
+                "claros": _paleta_dados().get("claros", []),
+                "flavors": _paleta_dados().get("flavors", {}),
+            },
+        }
 
     def _api_post(self, caminho, corpo):
         if caminho == "/api/definir":
@@ -3724,6 +4158,14 @@ class Manipulador(BaseHTTPRequestHandler):
                                "comando": " ".join(shlex.quote(p) for p in trabalho.argv),
                                "seco": bool(seco and ACOES[acao].get("seco")),
                                "escreve": escreve(ACOES[acao])})
+
+        # TRAZER DE VOLTA — só analisa e devolve o que mudaria; quem grava é o
+        # `Salvar e aplicar` de sempre. O porquê está em `importar_conf`.
+        if caminho == "/api/importar":
+            texto = str(corpo.get("texto", ""))
+            if not texto.strip():
+                return self._json({"erro": "o arquivo veio vazio"}, 400)
+            return self._json(importar_conf(texto))
 
         if caminho == "/api/parar":
             try:

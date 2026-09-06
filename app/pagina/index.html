@@ -46,6 +46,39 @@
     <span>Modo seco</span>
   </label>
 
+  <!-- LEVAR EMBORA E TRAZER DE VOLTA — pedido dela em 06/09/2026.
+       As duas saídas do "Exportar" são coisas diferentes e por isso são duas
+       linhas, e não um botão que adivinha: o `.conf` é dado dela, e o `.html`
+       é a página fotografada para alguém redesenhar longe daqui.
+
+       Os dois são `<a download>` e não botões com JavaScript: o cookie de
+       sessão que o servidor planta ao servir a página já autentica a
+       navegação, então não é preciso repor o token na URL — que é justamente
+       o que o `app.js` apaga da barra de endereço no primeiro instante.
+
+       O `<details>` fecha sozinho ao clicar fora (o `app.js` cuida) e não
+       precisa de uma linha de posicionamento em JavaScript. -->
+  <details class="menu" id="menu-exportar">
+    <summary class="btn" title="Levar as configurações, ou a página, para fora daqui">Exportar</summary>
+    <div class="menu-corpo">
+      <a class="menu-item" id="baixar-conf" href="/api/exportar/conf" download>
+        <strong>Configurações</strong>
+        <span>O seu meow.conf, para guardar ou levar para outra máquina.</span>
+      </a>
+      <a class="menu-item" id="baixar-pagina" href="/api/exportar/pagina" download>
+        <strong>Página para redesenho</strong>
+        <span>Esta tela inteira num arquivo só: as abas, o menu e uma amostra
+        das imagens. Abre sem servidor, e não grava nada.</span>
+      </a>
+    </div>
+  </details>
+
+  <label class="btn" id="rotulo-importar"
+         title="Ler um meow.conf exportado e trazer as escolhas para a tela">
+    Importar
+    <input type="file" id="arquivo-importar" accept=".conf,text/plain" hidden>
+  </label>
+
   <!-- SALVAR MORA NO BANNER, E É UM SÓ.
        Pedido dela em 01/09/2026: "salvar aplicar e descartar não devem viver
        dentro de cada página mas só um no banner que vale pra todos". Faz
