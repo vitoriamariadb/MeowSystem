@@ -120,23 +120,151 @@ def _ler_gato(caminho):
     return linhas if any(_visivel(l).strip() for l in linhas) else []
 
 
-def compor(texto, gato, recuo, topo):
+# O separador que o fastfetch imprime logo abaixo do título: uma linha inteira
+# de traços, do mesmo comprimento do nome. Os caracteres cobrem o hífen comum e
+# os traços de caixa que outros temas usam.
+TRACOS = set("-—–─━═_=")
+
+
+def _e_separador(linha):
+    """A linha é a régua que fica embaixo do título?"""
+    v = _visivel(linha).strip()
+    return len(v) >= 3 and set(v) <= TRACOS
+
+
+# Uma cor de FUNDO: `ESC[4x`, `ESC[10x` (as dezesseis clássicas) ou o
+# `ESC[48;…` do RGB. É o que faz uma linha de espaços ser um retângulo colorido.
+FUNDO = re.compile(r"\x1b\[(?:[0-9;]*;)?(?:4[0-7]|10[0-7]|48)(?:[;m])")
+
+
+def _tem_tinta(linha):
+    """A linha pinta alguma coisa na tela?
+
+    Não basta perguntar por caractere visível: as duas últimas linhas que o
+    fastfetch imprime são a paleta — espaços com cor de FUNDO. Elas são o
+    rodapé do bloco e ocupam altura como qualquer outra, mas um `strip()` as
+    considera vazias, e a centralização passava a alinhar um bloco duas linhas
+    mais curto do que o que se vê.
+    """
+    return bool(_visivel(linha).strip()) or bool(FUNDO.search(linha))
+
+
+def _extremos(linhas):
+    """(primeira, última) linha que pinta alguma coisa. (0, -1) se não houver."""
+    cheias = [i for i, l in enumerate(linhas) if _tem_tinta(l)]
+    return (cheias[0], cheias[-1]) if cheias else (0, -1)
+
+
+def _centralizar(gato, texto):
+    """(quebras_antes_do_gato, quebras_antes_do_texto) para os dois blocos
+    ficarem centrados um no outro.
+
+    É o `--topo auto`, e ele existe porque ela mediu na tela em 06/09/2026: com
+    o gato em 32 linhas e o texto em 25, sobrava UMA linha de gato acima da
+    primeira informação e OITO abaixo da última — o desenho parecia escorregado
+    para baixo.
+
+    A CONTA É PELO CONTEÚDO VISÍVEL, E NÃO PELO NÚMERO DE LINHAS, e essa é a
+    parte que a primeira versão errou. A saída do fastfetch termina com o
+    `break` e os dois blocos de cor, e antes deles vem uma linha em branco:
+    contando linhas cruas, texto e gato deram 32 e 32, a sobra deu ZERO e nada
+    se moveu — enquanto o olho via o bloco de informação acabar cinco linhas
+    antes do gato. Alinhar os CENTROS do que se vê resolve os dois casos de uma
+    vez, e continua valendo quando ela acrescenta um módulo ou muda a altura do
+    gato.
+    """
+    gi, gf = _extremos(gato)
+    ti, tf = _extremos(texto)
+    if gf < gi or tf < ti:
+        return 0, 0
+    # A diferença entre os centros, em meias-linhas, para o arredondamento não
+    # jogar tudo meio caractere para cima em toda composição.
+    desvio = ((gi + gf) - (ti + tf)) // 2
+    if desvio > 0:
+        return 0, desvio            # o texto desce, o gato começa no topo
+    return -desvio, 0               # o gato desce, o texto começa no topo
+
+
+def colunas(desenho, texto, recuo, modo, passo):
+    """A coluna em que CADA linha de texto começa.
+
+    Os quatro modos são a mesma medida vista de quatro jeitos, e a diferença
+    entre eles é só estética — por isso a escolha é dela, e por isso eles moram
+    aqui juntos em vez de haver um só cravado no código:
+
+      contorno   a coluna é o fim do desenho naquela linha. Cola no gato, e é o
+                 que ela pediu desenhando setas. Num desenho redondo e alto a
+                 borda esquerda do texto vira uma escada de um em um caractere.
+      degraus    o mesmo, arredondado para cima ao múltiplo de `passo`. Os
+                 degraus passam a parecer decisão em vez de tremor.
+      crescente  a coluna nunca DIMINUI: o texto acompanha o gato enquanto ele
+                 engorda e não volta quando ele afina. Tira a onda da metade de
+                 baixo, que é onde o serrilhado mais aparece.
+      reto       todas as linhas na mesma coluna — a maior que o desenho pede.
+                 É o alinhamento do fastfetch, só que medido pelo trecho que o
+                 texto de fato ocupa, e não pela largura total do logo.
+    """
+    base = []
+    for i in range(len(texto)):
+        d = desenho[i] if i < len(desenho) else ""
+        largura = len(_visivel(d).rstrip())
+        base.append((largura + recuo) if largura else recuo)
+
+    if modo == "reto":
+        maior = max((c for c, t in zip(base, texto) if _visivel(t).strip()),
+                    default=recuo)
+        cols = [maior] * len(base)
+    elif modo == "crescente":
+        cols, teto = [], recuo
+        for c in base:
+            teto = max(teto, c)
+            cols.append(teto)
+    elif modo == "degraus":
+        p = max(passo, 1)
+        cols = [((c + p - 1) // p) * p for c in base]
+    else:
+        cols = list(base)
+
+    # O TÍTULO E A RÉGUA SÃO UM PAR, E TÊM DE COMEÇAR JUNTOS.
+    #   Vista na tela dela: o título caiu na coluna 3 (ali o gato ainda não
+    #   começou) e a régua logo abaixo na coluna 44 — um salto de quarenta
+    #   colunas entre duas linhas que são a mesma coisa. O bloco de informação
+    #   parecia começar no traço, com o nome órfão no canto de cima.
+    #   Aqui as duas vão para a MAIOR das duas colunas: a régua tem o
+    #   comprimento do título, então empurrá-la para a esquerda a faria invadir
+    #   o gato.
+    for i, linha in enumerate(texto):
+        if i and _e_separador(linha) and _visivel(texto[i - 1]).strip():
+            junto = max(cols[i - 1], cols[i])
+            cols[i - 1] = cols[i] = junto
+    return cols
+
+
+def compor(texto, gato, recuo, topo, modo="contorno", passo=4):
     """As duas colunas costuradas. `texto` e `gato` são listas de linhas."""
-    desenho = [""] * max(topo, 0) + gato
+    if topo == "auto":
+        antes_gato, antes_texto = _centralizar(gato, texto)
+    else:
+        antes_gato, antes_texto = max(int(topo), 0), 0
+    desenho = [""] * antes_gato + gato
+    texto = [""] * antes_texto + texto
+
+    cols = colunas(desenho, texto, recuo, modo, passo)
     altura = max(len(desenho), len(texto))
     for i in range(altura):
         d = desenho[i] if i < len(desenho) else ""
         t = texto[i] if i < len(texto) else ""
         largura = len(_visivel(d).rstrip())
+        alvo = cols[i] if i < len(cols) else recuo
         if largura:
             # O `ESC[0m` fecha a cor do último bloco do desenho. Sem ele o
             # branco da chave herdaria a cor do pixel em que o corte caiu.
-            yield _cortar(d, largura) + "\x1b[0m" + " " * recuo + t
+            # O `max(...)` protege o desenho: uma coluna menor que a largura do
+            # traço faria o texto entrar por cima do gato.
+            enche = max(alvo - largura, 1) if t else 0
+            yield _cortar(d, largura) + "\x1b[0m" + " " * enche + t
         elif t:
-            # Linha sem desenho (o recuo do topo, ou o texto que passou da
-            # altura do gato): o recuo continua valendo, senão o bloco de cima
-            # e o de baixo começariam em colunas diferentes.
-            yield " " * recuo + t
+            yield " " * alvo + t
         else:
             yield ""
 
@@ -146,11 +274,19 @@ def main():
     p.add_argument("--gato", default="~/.local/share/meowsystem/fastfetch/gato.ansi")
     p.add_argument("--recuo", type=int, default=3,
                    help="colunas entre o fim do desenho e o começo do texto")
-    p.add_argument("--topo", type=int, default=6,
-                   help="linhas em branco antes do desenho (o padding.top de hoje)")
+    p.add_argument("--topo", default="auto",
+                   help='linhas em branco antes do desenho; "auto" centra os '
+                        "dois blocos um no outro")
+    p.add_argument("--modo", default="contorno",
+                   choices=("contorno", "degraus", "crescente", "reto"),
+                   help="como a borda esquerda do texto acompanha o desenho")
+    p.add_argument("--passo", type=int, default=4,
+                   help="o tamanho do degrau, quando --modo degraus")
     p.add_argument("--conferir", action="store_true",
                    help="não compõe; sai 0 se dá para compor, 4 se não dá")
     args = p.parse_args()
+    topo = "auto" if str(args.topo).strip().lower() in ("auto", "") \
+        else max(int(args.topo), 0)
 
     gato = _ler_gato(args.gato)
 
@@ -167,7 +303,8 @@ def main():
         return 0
 
     texto = bruto.rstrip("\n").split("\n")
-    sys.stdout.write("\n".join(compor(texto, gato, max(args.recuo, 0), args.topo)) + "\n")
+    sys.stdout.write("\n".join(
+        compor(texto, gato, max(args.recuo, 0), topo, args.modo, args.passo)) + "\n")
     return 0
 
 

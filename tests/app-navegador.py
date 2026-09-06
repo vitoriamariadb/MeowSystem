@@ -285,7 +285,19 @@ def main():
             print("\n1. A PAGINA ABRE")
             checa(pag.title() == "MeowSystem", "o titulo e MeowSystem")
             resumo = pag.locator("#resumo").inner_text()
-            checa("95 chaves" in resumo, f"o resumo conta as chaves: {resumo[:44]}…")
+            # O NÚMERO NÃO SE ESCREVE AQUI.
+            #   Ele era "95 chaves" cravado, e envelheceu em silêncio: cada
+            #   chave nova no `meow.conf.exemplo` quebrava este teste sem que
+            #   nada estivesse errado no painel. O catálogo é derivado dos
+            #   comentários do exemplo — então o número certo é o que o exemplo
+            #   diz hoje, e é com ele que se compara.
+            m_resumo = re.search(r"(\d+) chaves", resumo)
+            checa(bool(m_resumo), f"o resumo conta as chaves: {resumo[:44]}…")
+            with open(os.path.join(RAIZ, "meow.conf.exemplo"), encoding="utf-8") as fh:
+                chaves_no_exemplo = len(re.findall(r"^[A-Z_]+=", fh.read(), re.M))
+            checa(m_resumo and int(m_resumo.group(1)) == chaves_no_exemplo,
+                  f"o resumo conta {m_resumo.group(1) if m_resumo else '?'} chaves"
+                  f" e o meow.conf.exemplo cataloga {chaves_no_exemplo}")
             checa(pag.locator("#trilho button").count() >= 20,
                   f"o trilho tem {pag.locator('#trilho button').count()} secoes")
 
@@ -314,7 +326,7 @@ def main():
 
             chaves = pag.evaluate(ESQUEMA_JS)
             # UMA CHAVE SEM CARTAO E UMA CHAVE QUE ELA NAO PODE CONFIGURAR.
-            #   O resumo do topo conta 95 chaves lidas; isto confere que as 95
+            #   O resumo do topo conta as chaves do catálogo; isto confere que todas
             #   chegaram a ALGUMA aba. Uma chave que o servidor le e a pagina
             #   nao desenha e a definicao de "depender de ajuda sempre".
             sem_cartao = sorted(k["chave"] for k in chaves if k["chave"] not in censo)

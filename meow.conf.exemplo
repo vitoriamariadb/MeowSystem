@@ -186,26 +186,58 @@ FASTFETCH_LOGO_COLUNAS="40"
 # Faixa: de 8 a 60 linhas.
 FASTFETCH_LOGO_LINHAS=""
 
-# Quantas LINHAS EM BRANCO antes do gato. É o `padding.top` do config.jsonc, e
-# é o que faz as primeiras linhas de informação (o nome da máquina, o traço, o
-# sistema) aparecerem ACIMA do desenho em vez de ao lado dele. Seis é o que
-# centra um gato de 16 linhas no bloco de módulos; um gato mais alto pede menos.
-# Faixa: de 0 a 24 linhas.
-FASTFETCH_LOGO_QUEBRAS="6"
-
-# Onde cada linha de informação COMEÇA.
+# Quantas LINHAS EM BRANCO antes do gato — o `padding.top` do config.jsonc.
 #
-#   tabular   (padrão) todas na mesma coluna, logo depois da largura do gato.
-#             É o único alinhamento que o fastfetch sabe fazer sozinho.
-#   contorno  cada linha começa logo depois do fim do DESENHO naquela linha —
-#             o texto abraça a silhueta do gato, e as linhas de cima (onde o
-#             círculo ainda é estreito, ou onde nem há gato) começam à esquerda.
+#   auto  (padrão) centra os dois blocos um no outro: a sobra entre a altura do
+#         gato e a altura do texto é dividida em duas metades, e a maior vai
+#         para baixo. Foi ela quem mediu o problema na tela, em 06/09/2026: com
+#         o gato em 32 linhas e o texto em 25, sobrava UMA linha de gato acima
+#         da primeira informação e OITO abaixo da última — o desenho parecia
+#         escorregado para baixo. Com `auto` a conta se refaz sozinha sempre
+#         que ela muda a altura do gato ou acrescenta um módulo no fastfetch.
+#   0-24  o número, quando ela quiser mandar.
+FASTFETCH_LOGO_QUEBRAS="auto"
+
+# Onde cada linha de informação COMEÇA. Os quatro últimos são a mesma medida
+# vista de quatro jeitos, e a diferença entre eles é só estética:
+#
+#   tabular    (padrão) todas na mesma coluna, logo depois da largura do gato.
+#              É o único alinhamento que o fastfetch sabe fazer sozinho.
+#   contorno   cada linha começa logo depois do fim do DESENHO naquela linha —
+#              o texto abraça a silhueta, e as linhas de cima (onde o círculo
+#              ainda é estreito, ou onde nem há gato) começam à esquerda.
+#   degraus    o contorno arredondado para múltiplos de 4 colunas. Num gato
+#              redondo e alto o contorno puro faz a borda esquerda do texto
+#              subir de um em um caractere, e uma escada de um caractere parece
+#              tremor; de quatro em quatro, parece decisão.
+#   crescente  o contorno que nunca VOLTA: o texto acompanha o gato enquanto
+#              ele engorda e fica onde está quando ele afina. Tira a onda da
+#              metade de baixo, que é onde o serrilhado mais aparece.
+#   reto       todas na mesma coluna, como o tabular — mas medida pelo trecho
+#              que o texto de fato ocupa, e não pela largura total do desenho.
+#              Num gato mais alto que o texto, isso cola o bloco no gato.
 #
 # O `contorno` NÃO é uma chave do fastfetch: medido na versão 2.61.0, ele
 # imprime o logo, sobe o cursor e emite o MESMO avanço de coluna para toda
 # linha de módulo. O contorno é composto depois, pelo `meow-fetch` — ver o
 # `scripts/fastfetch_alinhar.py`, que conta a medição inteira.
-FASTFETCH_LOGO_ALINHAR="tabular"   # tabular | contorno
+FASTFETCH_LOGO_ALINHAR="tabular"   # tabular | contorno | degraus | crescente | reto
+
+# O TÍTULO DO BLOCO — a primeira linha, que o fastfetch monta de `usuário@host`.
+#
+# Vazio = não toca, e o fastfetch decide. Com texto, o valor é passado ao
+# fastfetch em `--title-format`, o que NÃO mexe no config.jsonc dela: a linha de
+# comando vence a configuração, e desligar é apagar esta chave.
+#
+# As variáveis que o fastfetch entende aqui: {user-name}, {full-user-name},
+# {host-name}, {user-name-colored}, {host-name-colored}, {at-symbol-colored},
+# {user-shell}, {home-dir}, {cwd}. As `-colored` são as que respeitam a cor de
+# título do tema; as outras saem na cor do texto.
+#
+# `{full-user-name}` sai do campo de nome completo do sistema (o GECOS). Se ele
+# estiver vazio ou sem acento, o lugar de consertar é lá — `chfn -f`, uma vez,
+# e a tela de login também melhora.
+FASTFETCH_TITULO="{full-user-name} @ {host-name-colored}"
 
 # Quantas COLUNAS entre o fim do desenho e o começo do texto. Vale nos dois
 # alinhamentos: no tabular é o `padding.right` do config.jsonc, no contorno é o

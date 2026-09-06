@@ -104,7 +104,7 @@ sobreviveram à curadoria visual de 24/08/2026, e 43 foram buscadas naquele dia.
 meow abrir        # ou o ícone "MeowSystem" no lançador
 ```
 
-Uma página local com **as 102 chaves do `meow.conf`** — cada uma mostrando o valor
+Uma página local com **as 103 chaves do `meow.conf`** — cada uma mostrando o valor
 que você escolheu, o que vinha de fábrica e a explicação que está no
 `meow.conf.exemplo` — e **34 ações** (instalar, `doctor`, consertar, desinstalar,
 trocar tema/flavor/accent, girar o gato, papel de parede, modo de leitura,
@@ -201,6 +201,31 @@ O índice, com o que cada uma mostra e a decisão que produziu, está em
     configuração de ninguém: é composto depois, pelo `meow-fetch`, que costura
     as duas colunas cortando o rabo de espaços de cada linha do `.ansi` sem
     partir uma sequência de escape no meio.
+  - `degraus` — o mesmo contorno arredondado para cima ao múltiplo de quatro
+    colunas: a escada de uma em uma vira degrau.
+  - `crescente` — o contorno que nunca volta. Acompanha o gato enquanto ele
+    engorda e não afina junto com ele, então a metade de baixo fica reta.
+  - `reto` — todas na mesma coluna, como o `tabular`, mas medida pelo trecho que
+    o **texto** ocupa, e não pela largura total do desenho.
+
+  Os cinco lado a lado, em capturas de verdade do terminal dela, estão em
+  [`docs/folhas/folha-gato-alinhamento.html`](docs/folhas/folha-gato-alinhamento.html).
+  Nenhum deles muda um dado ou uma cor: a diferença é só onde cada linha começa.
+
+  E **o título**, a linha de cima do bloco (`FASTFETCH_TITULO`). Ela vinha do
+  fastfetch como `usuária@máquina`; o formato é dele, com os campos entre
+  chaves (`{full-user-name} @ {host-name-colored}`). Vazio devolve o título de
+  fábrica. Isso **não** cabia na linha de comando: a versão 2.61.0 recusa
+  `--title-format` com "Support of module options has been removed" e sai antes
+  de imprimir uma linha, então quem escreve é o `scripts/fastfetch_conf.py`,
+  dentro do `config.jsonc` — trocando só aquele intervalo de bytes, porque o
+  arquivo é JSONC (tem comentários) e vive num repositório com commit
+  automático.
+
+  As linhas do texto ficam **centradas** contra as do desenho: o `meow-fetch`
+  mede onde a primeira e a última linha com tinta caem dos dois lados e desce
+  quem estiver mais em cima. Sem isso o texto nascia na linha 4 de um gato de 32
+  e sobrava desenho por doze linhas depois da última informação.
 
   O `meow-fetch` mora em `~/.local/bin`, como o `meow-painel`, e pelo mesmo
   motivo: sem o disco do projeto montado ele roda o `fastfetch` puro e cala, em
