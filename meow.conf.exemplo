@@ -165,12 +165,74 @@ FASTFETCH_LOGO="sim"              # sim | nao
 # tratado como caminho de um SVG seu.
 FASTFETCH_LOGO_GATO="coquinha"
 
+# O TAMANHO DO GATO NO TERMINAL, EM CÉLULAS.
+#
 # Largura em COLUNAS. 40 é a largura do logo `pop` que ele substitui, então o
-# bloco de texto continua começando na mesma coluna. A ALTURA NÃO SE CONFIGURA:
-# ela sai de 40/2,556, a proporção medida da célula do cosmic-term dela
-# (9,00 x 23,00 px) — é isso que faz o disco sair redondo em vez de oval. O
-# "40x20" que a sprint pedia desenharia um retângulo 28% mais alto que largo.
+# bloco de texto continua começando na mesma coluna. Mexer aqui é seguro, e é a
+# forma mais direta de aumentar a resolução: cada célula a mais é mais detalhe,
+# porque o desenho é reamostrado do SVG a cada geração, nunca ampliado.
+# Faixa: de 20 a 120 colunas.
 FASTFETCH_LOGO_COLUNAS="40"
+
+# Altura em LINHAS. Vazio = calculada de `colunas / FASTFETCH_LOGO_CELULA`, que
+# é o que mantém o disco redondo em vez de oval.
+#
+# ATÉ 06/09/2026 ESTA CHAVE NÃO EXISTIA, e o arquivo dizia "A ALTURA NÃO SE
+# CONFIGURA". Era verdade sobre o desenho e mentira sobre a vontade dela: o
+# terminal dela tem 27 polegadas e sobra altura, e o gato podia ser maior sem
+# empurrar nada. O que continua valendo é o AVISO — sair da proporção da célula
+# deforma o gato, e o `aplicar` diz isso em voz alta quando acontece, em vez de
+# entregar uma elipse calada.
+# Faixa: de 8 a 60 linhas.
+FASTFETCH_LOGO_LINHAS=""
+
+# Quantas LINHAS EM BRANCO antes do gato. É o `padding.top` do config.jsonc, e
+# é o que faz as primeiras linhas de informação (o nome da máquina, o traço, o
+# sistema) aparecerem ACIMA do desenho em vez de ao lado dele. Seis é o que
+# centra um gato de 16 linhas no bloco de módulos; um gato mais alto pede menos.
+# Faixa: de 0 a 24 linhas.
+FASTFETCH_LOGO_QUEBRAS="6"
+
+# Onde cada linha de informação COMEÇA.
+#
+#   tabular   (padrão) todas na mesma coluna, logo depois da largura do gato.
+#             É o único alinhamento que o fastfetch sabe fazer sozinho.
+#   contorno  cada linha começa logo depois do fim do DESENHO naquela linha —
+#             o texto abraça a silhueta do gato, e as linhas de cima (onde o
+#             círculo ainda é estreito, ou onde nem há gato) começam à esquerda.
+#
+# O `contorno` NÃO é uma chave do fastfetch: medido na versão 2.61.0, ele
+# imprime o logo, sobe o cursor e emite o MESMO avanço de coluna para toda
+# linha de módulo. O contorno é composto depois, pelo `meow-fetch` — ver o
+# `scripts/fastfetch_alinhar.py`, que conta a medição inteira.
+FASTFETCH_LOGO_ALINHAR="tabular"   # tabular | contorno
+
+# Quantas COLUNAS entre o fim do desenho e o começo do texto. Vale nos dois
+# alinhamentos: no tabular é o `padding.right` do config.jsonc, no contorno é o
+# respiro que separa o traço do gato da primeira letra.
+# Faixa: de 0 a 12 colunas.
+FASTFETCH_LOGO_RECUO="3"
+
+# PROPORÇÃO ALTURA/LARGURA DA CÉLULA do terminal — 23,00 / 9,00 px, medido no
+# cosmic-term dela com a JetBrainsMono Nerd Font Mono de 16 px. É o que converte
+# colunas em linhas quando `FASTFETCH_LOGO_LINHAS` está vazio. Quem trocar de
+# fonte muda este número uma vez, e o gato volta a sair redondo.
+# Faixa: de 1.0 a 4.0.
+FASTFETCH_LOGO_CELULA="2.556"
+
+# QUANTOS SUBPIXELS CABEM EM CADA CÉLULA — é o teto de detalhe de um desenho
+# feito de letras, e ele depende do que a FONTE do terminal tem:
+#
+#   auto        (padrão) usa sextantes se a fonte os tiver, senão quadrantes.
+#   quadrante   2x2 por célula (▘▝▖▗▚▞▌▐▛▜▙▟). Qualquer fonte monoespaçada.
+#   sextante    2x3 por célula (🬀🬁🬂…). Precisa de `Symbols for Legacy
+#               Computing` (Unicode 13) — 50% mais detalhe vertical.
+#
+# MEDIDO NESTA MÁQUINA: a JetBrainsMono Nerd Font Mono NÃO tem os sextantes, e
+# nenhuma fonte instalada aqui tem — por isso o `auto` cai em quadrante hoje. O
+# código dos sextantes existe para o dia em que ela trocar de fonte: o gato
+# ganha o detalhe sozinho, sem ninguém lembrar de vir aqui.
+FASTFETCH_LOGO_BLOCOS="auto"
 
 # Como o gato do TERMINAL é escolhido:
 #
