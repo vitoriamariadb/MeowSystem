@@ -928,8 +928,16 @@ function botaoAcervo(tipo, aoEntrar) {
           body: JSON.stringify({ tipo, nome: arq.name, conteudo: b64 }),
         });
         if (r.erro) { torrada(r.erro, "erro"); return; }
+        /* O LADO DA IMAGEM VAI NA TORRADA — 06/09/2026. Antes ela soltava o
+         * arquivo e não sabia se ele entrava no grupo de dia ou no de noite:
+         * quem separa é a luminância, e só na próxima vez que o carrossel
+         * reaplica. O servidor agora mede na hora e diz. */
+        const lado = r.grupo
+          ? ` — imagem de ${r.grupo.lado} (luz ${r.grupo.luz}, corte ${r.grupo.corte})`
+          : "";
         torrada(
           `${r.nome} entrou no acervo${r.substituiu ? " (substituiu o anterior)" : ""}`
+          + lado
           + (r.normalizado ? " — e foi normalizado para o painel desenhar" : ""),
           "ok");
         if (aoEntrar) await aoEntrar();
@@ -2106,6 +2114,18 @@ function assuntosEmOrdem() {
   return ordem;
 }
 
+/* O bloco de um assunto. Chave do `meow.conf` faz dele um assunto; sem chave, a
+ * palavra vem do `bloco` que o servidor declarou na ação — e "A máquina" é o
+ * padrão de quem não declarou nada, que é como o `Instalar e conferir` entra. */
+function blocoDoAssunto(assunto) {
+  if (temChaves(assunto)) return "Assuntos";
+  for (const g of GRUPOS) {
+    if (assuntoDe(g) !== assunto) continue;
+    for (const a of g.itens || []) if (a.bloco) return a.bloco;
+  }
+  return "A máquina";
+}
+
 /* O que separa os dois blocos do menu: um assunto tem chaves do `meow.conf`;
  * as duas páginas que sobraram de verbo só têm ações. */
 function temChaves(assunto) {
@@ -2127,12 +2147,23 @@ function montarTrilho() {
    *   "Papel de parede" para rodar. Os ícones tinham três páginas.
    *
    *   Agora o assunto é a página, e ela carrega o que existir sobre ele: a
-   *   galeria, os ajustes e as ações. Sobraram doze itens, um nível, e dois
-   *   blocos — os assuntos, e a máquina inteira. */
+   *   galeria, os ajustes e as ações. Sobraram doze itens e um nível.
+   *
+   *   TRÊS BLOCOS, E NÃO DOIS — 06/09/2026, pedido dela: *"simplificar os menus
+   *   e opções de cada bloco e suas features para caberem nos 3 blocos"*.
+   *   Eram dois (Assuntos · A máquina) desde que os verbos deixaram de nomeá-
+   *   los. O terceiro nasceu junto com a página de atualizar a máquina, e a
+   *   separação é real: "A máquina" é o MeowSystem sobre o Pop!_OS; "A nova
+   *   versão" é o Pop!_OS mudando debaixo dele.
+   *
+   *   O bloco NÃO é uma lista escrita aqui: um assunto com chave do meow.conf
+   *   é "Assuntos", e os outros dois vêm do campo `bloco` que o `ACOES` do
+   *   servidor declara ao lado do grupo — um lugar só, que é a regra deste
+   *   projeto desde o primeiro dia. */
   for (const g of GRUPOS) if (g.tipo === "home") trilho.append(botaoTrilho(g));
   let bloco = null;
   for (const assunto of assuntosEmOrdem()) {
-    const nome = temChaves(assunto) ? "Assuntos" : "A máquina";
+    const nome = blocoDoAssunto(assunto);
     if (nome !== bloco) {
       bloco = nome;
       trilho.append(rotuloDeBloco(nome));
@@ -2189,41 +2220,27 @@ function botaoDeAssunto(assunto) {
 const ICONES_MENU = {
   /* os dois blocos do menu */
   "bloco/Assuntos": '<circle cx="12.281" cy="22.389" r="2.781"/><circle cx="24" cy="18.613" r="2.781"/><circle cx="35.719" cy="24.646" r="2.781"/><path d="M24 21.394v14.925m11.719-8.893v8.893M12.281 25.17v11.149m0-16.711v-1.591m0-1.577v-1.591m0-1.578v-1.59M24 15.833v-.984m0-1.578v-1.59m11.719 7.927v-1.591m0 3.848v-.702m0-4.723v-1.591m0-1.578v-1.59"/><circle cx="24" cy="24" r="21.5"/>',
+  /* O foguete do Arcticons: a máquina indo para a versão seguinte. */
+  "bloco/A nova versão": '<path d="M5.896 22.443L42.105 5.5l-10.836 37l-11.453-13.323z"/><path d="m31.326 16.95l-11.51 12.227v8.747l3.316-4.824"/>',
+  "Atualizar o sistema": '<path d="M5.896 22.443L42.105 5.5l-10.836 37l-11.453-13.323z"/><path d="m31.326 16.95l-11.51 12.227v8.747l3.316-4.824"/>',
   "bloco/A máquina": '<path d="M24 8.408V19.81m5.255-7.944A13.22 13.22 0 0 1 37.223 24h0c0 7.303-5.92 13.223-13.223 13.223h0c-7.303 0-13.223-5.92-13.223-13.223h0c0-5.27 3.129-10.037 7.964-12.133M45.5 24c0 11.874-9.626 21.5-21.5 21.5S2.5 35.874 2.5 24S12.126 2.5 24 2.5S45.5 12.126 45.5 24"/>',
   /* AUTORAL: o acervo não tem gato. As orelhas do mascote, em três traços. */
   "O gato": '<path d="M13 21V11l8 6M35 21V11l-8 6"/><path d="M13 20c0 10 5 17 11 17s11-7 11-17"/>',
-  /* os blocos de antes, quando o menu ia por verbo */
-  "bloco/Escolher": '<path d="M4.5 11.5a3 3 0 0 1 3-3h8.718a4 4 0 0 1 2.325.745l4.914 3.51a4 4 0 0 0 2.325.745H40.5a3 3 0 0 1 3 3v20a3 3 0 0 1-3 3h-33a3 3 0 0 1-3-3z"/>',
-  "bloco/Configurar": '<circle cx="12.281" cy="22.389" r="2.781"/><circle cx="24" cy="18.613" r="2.781"/><circle cx="35.719" cy="24.646" r="2.781"/><path d="M24 21.394v14.925m11.719-8.893v8.893M12.281 25.17v11.149m0-16.711v-1.591m0-1.577v-1.591m0-1.578v-1.59M24 15.833v-.984m0-1.578v-1.59m11.719 7.927v-1.591m0 3.848v-.702m0-4.723v-1.591m0-1.578v-1.59"/><circle cx="24" cy="24" r="21.5"/>',
-  "bloco/Executar": '<path d="M24 8.408V19.81m5.255-7.944A13.22 13.22 0 0 1 37.223 24h0c0 7.303-5.92 13.223-13.223 13.223h0c-7.303 0-13.223-5.92-13.223-13.223h0c0-5.27 3.129-10.037 7.964-12.133M45.5 24c0 11.874-9.626 21.5-21.5 21.5S2.5 35.874 2.5 24S12.126 2.5 24 2.5S45.5 12.126 45.5 24"/>',
 
   /* as abas */
   "Início": '<path d="M42.5 23.075L26.062 7.525a3 3 0 0 0-4.124 0L5.5 23.075m5.86 1.54v14.68a2 2 0 0 0 2 2h7.14v-9.5h7v9.5h7.14a2 2 0 0 0 2-2v-14.68"/>',
-  "Papéis de parede": '<path d="M31.315 12.123a4.465 4.465 0 1 1 0 8.93a4.465 4.465 0 0 1 0-8.93m-11.294 8.909l7.224 7.223a.7.7 0 0 0 .992 0l1.383-1.383a.7.7 0 0 1 .993 0l7.807 7.807a.702.702 0 0 1-.497 1.198H10.076a.702.702 0 0 1-.577-1.101l9.45-13.648a.702.702 0 0 1 1.072-.097Z"/><path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/>',
-  "Ícones dos programas": '<path d="M17.5 5.5h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m-21 21h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4"/>',
-  "Jogos da Steam": '<path d="M24 2.5A21.51 21.51 0 0 0 2.5 24v.91l10.79 3.95a6 6 0 0 1 2.54-1.4a6 6 0 0 1 1.8-.21a8 8 0 0 1 .84.1h0L25 18.12a7.63 7.63 0 0 1 5.65-7.39a7.5 7.5 0 0 1 2.26-.25a7.62 7.62 0 0 1 1.68 15h0a7.5 7.5 0 0 1-2 .25h0l-9.22 6.52h0a6.06 6.06 0 0 1-11.81 2.64h0a6 6 0 0 1-.15-.82l-7.63-2.81A21.49 21.49 0 1 0 24 2.5m8.93 8a7.5 7.5 0 0 0-2.26.25a7.63 7.63 0 0 0-5.39 9.33h0A7.62 7.62 0 0 0 40 16.12h0a7.59 7.59 0 0 0-7.07-5.64ZM17.42 27.25a6.05 6.05 0 0 0-6.05 6h0a6.05 6.05 0 0 0 6.05 6h0a6.05 6.05 0 0 0 6.06-6h0a6.05 6.05 0 0 0-6.05-6.06Z"/>',
-  "Estudos de tela": '<path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4M24 5.5v37M42.5 24H24"/>',
   "Cor e tema": '<rect width="18.314" height="39" x="14.843" y="4.5" rx="3"/><path d="M14.843 33.4h18.314M14.843 22.236s3.933-.233 5.292 2.27s2.605 3.387 4.466.291s3.5-6.83 8.556-.514m-.001-11.601s-1.669-2.183-3.418-2.088s-4.099 4.972-5.418 4.852s-2.285-6.481-4.118-7.03s-5.36 2.35-5.36 2.35"/><ellipse cx="24" cy="38.01" rx="1.965" ry="1.957"/>',
   /* AUTORAL: o acervo não tem gato. As orelhas do mascote, em três traços. */
-  "O gato do dock": '<path d="M13 21V11l8 6M35 21V11l-8 6"/><path d="M13 20c0 10 5 17 11 17s11-7 11-17"/>',
   "Ícones": '<path d="M17.5 5.5h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m-21 21h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4"/>',
   "Barra e dock": '<rect width="22.05" height="32.42" x="12.98" y="7.79" rx="2"/><path d="M35 38.18h5.95a2.6 2.6 0 0 0 2.59-2.59V12.41a2.6 2.6 0 0 0-2.59-2.59H35"/><path d="M35.02 34.8h5.32V15.93h-5.32M13 38.18H7.09a2.6 2.6 0 0 1-2.59-2.59V12.41a2.6 2.6 0 0 1 2.59-2.59H13"/><path d="M12.98 34.8H7.66V15.93h5.32m2.65-3.39h16.75v24.21H15.63z"/>',
-  "Forma": '<rect width="39" height="25" x="4.5" y="9.75" rx="4" ry="4"/><path d="M16 38.25h16"/>',
-  "Vidro e relógio": '<path d="M24 2.5A21.5 21.5 0 1 1 2.5 24A21.51 21.51 0 0 1 24 2.5"/><circle cx="24" cy="24" r="2.5"/><path d="M24 21.5V11.44m2.1 13.91l12.2 7.8"/>',
-  "Música na barra": '<path d="m42.31 13.38l-25.1 3.48V7.98l25.1-3.48zm0 0v17.15m-25.1-13.67v20.88"/><circle cx="11.45" cy="37.74" r="5.76"/><circle cx="36.55" cy="30.53" r="5.76"/>',
   "Janelas e tela": '<path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/><path d="M23.339 17.751v12.496h6.248m2.665.002H38.5m-6.248-12.496H38.5m-6.248 6.248h4.061m-4.061-6.248v12.496M9.5 17.753h8.279M13.64 30.249V17.753m6.863.015v12.466"/>',
   "Papel de parede": '<path d="M31.315 12.123a4.465 4.465 0 1 1 0 8.93a4.465 4.465 0 0 1 0-8.93m-11.294 8.909l7.224 7.223a.7.7 0 0 0 .992 0l1.383-1.383a.7.7 0 0 1 .993 0l7.807 7.807a.702.702 0 0 1-.497 1.198H10.076a.702.702 0 0 1-.577-1.101l9.45-13.648a.702.702 0 0 1 1.072-.097Z"/><path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/>',
   "Dia e noite": '<path d="M42.213 35.215C38.476 41.551 31.585 45.8 23.702 45.8C11.838 45.8 2.22 36.174 2.22 24.3S11.837 2.8 23.7 2.8c-9.647 19.619 6.773 33.218 18.512 32.415"/>',
   "Terminal": '<path d="m10.559 22.908l12.586 7.269l-12.586 7.268m27.329 0H24.445"/><path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/>',
-  "Cores e prompt": '<rect width="18.314" height="39" x="14.843" y="4.5" rx="3"/><path d="M14.843 33.4h18.314M14.843 22.236s3.933-.233 5.292 2.27s2.605 3.387 4.466.291s3.5-6.83 8.556-.514m-.001-11.601s-1.669-2.183-3.418-2.088s-4.099 4.972-5.418 4.852s-2.285-6.481-4.118-7.03s-5.36 2.35-5.36 2.35"/><ellipse cx="24" cy="38.01" rx="1.965" ry="1.957"/>',
   /* AUTORAL: idem. */
-  "O gato no fastfetch": '<path d="M13 21V11l8 6M35 21V11l-8 6"/><path d="M13 20c0 10 5 17 11 17s11-7 11-17"/>',
-  "Programas": '<path d="M17.5 5.5h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m-21 21h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4"/>',
   "Manutenção": '<path d="M24 43.5c9.043-3.117 15.489-10.363 16.5-19.589a79.4 79.4 0 0 0-.071-12.027a2.54 2.54 0 0 0-2.468-2.366c-4.091-.126-8.846-.808-12.52-4.427a2.05 2.05 0 0 0-2.881 0c-3.675 3.619-8.43 4.301-12.52 4.427a2.54 2.54 0 0 0-2.468 2.366A79.4 79.4 0 0 0 7.5 23.911C8.511 33.137 14.957 40.383 24 43.5"/>',
   "Instalar e conferir": '<circle cx="13.05" cy="24" r="8.55"/><path d="M43.5 32.55V24h0h-21.91m16.3 4.93V24"/>',
-  "Aplicar agora": '<path d="M5.896 22.443L42.105 5.5l-10.836 37l-11.453-13.323z"/><path d="m31.326 16.95l-11.51 12.227v8.747l3.316-4.824"/>',
   "Programas e jogos": '<path d="M24 2.5A21.51 21.51 0 0 0 2.5 24v.91l10.79 3.95a6 6 0 0 1 2.54-1.4a6 6 0 0 1 1.8-.21a8 8 0 0 1 .84.1h0L25 18.12a7.63 7.63 0 0 1 5.65-7.39a7.5 7.5 0 0 1 2.26-.25a7.62 7.62 0 0 1 1.68 15h0a7.5 7.5 0 0 1-2 .25h0l-9.22 6.52h0a6.06 6.06 0 0 1-11.81 2.64h0a6 6 0 0 1-.15-.82l-7.63-2.81A21.49 21.49 0 1 0 24 2.5m8.93 8a7.5 7.5 0 0 0-2.26.25a7.63 7.63 0 0 0-5.39 9.33h0A7.62 7.62 0 0 0 40 16.12h0a7.59 7.59 0 0 0-7.07-5.64ZM17.42 27.25a6.05 6.05 0 0 0-6.05 6h0a6.05 6.05 0 0 0 6.05 6h0a6.05 6.05 0 0 0 6.06-6h0a6.05 6.05 0 0 0-6.05-6.06Z"/>',
-  "Ver o estado": '<path d="M42.5 18.7V9.5c0-2.2-1.8-4-4-4h-29c-2.2 0-4 1.8-4 4v9.2m0 10.6v9.2c0 2.2 1.8 4 4 4h29c2.2 0 4-1.8 4-4v-9.2M5.5 24h37"/>',
 };
 /* O «bloco/nome» vem primeiro porque "Papel de parede" existe em Configurar e em
  * Executar — o mesmo nome, dois trabalhos. Hoje os dois usam o mesmo desenho, e a

@@ -706,10 +706,12 @@ def main():
             pag.locator("#seco").uncheck()
 
             print("\n10. UMA ACAO, COM SAIDA AO VIVO")
-            # `status` mudou de nome e de pagina em 06/09/2026: era "Estado da
-            # maquina" no "Ciclo de vida", agora e' "O que esta' no ar agora" em
-            # "Ver o estado" — a pagina das duas acoes que so' leem.
-            secao("Ver o estado")
+            # `status` mudou duas vezes em 06/09/2026: de "Estado da maquina" no
+            # "Ciclo de vida" para "O que esta' no ar agora" em "Ver o estado",
+            # e dai para "Instalar e conferir" — pedido dela: *"unificar o
+            # Instalar e Conferir com o Ver o Estado"*. Conferir a maquina e ver
+            # o que esta' no ar sao a mesma pergunta feita de dois jeitos.
+            secao("Instalar e conferir")
             pag.locator("#conteudo .acao, #conteudo .cartao",
                         has_text="O que está no ar agora").locator("button").first.click()
             saida = ""
