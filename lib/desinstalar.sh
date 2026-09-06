@@ -230,6 +230,19 @@ meow_desinstalar() {
     "$MEOW_RAIZ/scripts/atalho.sh" --reverter || true
   fi
 
+  # A LINHA DO FASTFETCH NO env.zsh SAI AQUI — 06/09/2026
+  #   Mesmo desenho dos três acima, e o mesmo motivo: o manifesto apaga
+  #   ARQUIVOS, e esta é uma LINHA dentro de um arquivo que nem nosso é. O
+  #   `gato.ansi` e o `~/.local/bin/meow-fetch` estão no manifesto e saem no
+  #   passo 4; a chamada `meow-fetch --pipe false` no `~/.config/zsh/env.zsh`
+  #   ficaria — e cada terminal que ela abrisse depois de desinstalar abriria
+  #   com `command not found`. O `reverter` devolve `fastfetch --pipe false`,
+  #   com backup antes e em voz alta depois, e sai por `meow_pula` quando a
+  #   linha de lá não é nossa.
+  if [ -x "$MEOW_RAIZ/scripts/fastfetch_logo.sh" ]; then
+    "$MEOW_RAIZ/scripts/fastfetch_logo.sh" reverter || true
+  fi
+
   meow_passo "3/6 Tema do COSMIC"
   # O alvo é o PRIMEIRO backup de tema — o COSMIC de antes do MeowSystem NESTA
   # máquina. A captura `assets/temas/capturados/original` NÃO serve para isto: ela foi tirada
