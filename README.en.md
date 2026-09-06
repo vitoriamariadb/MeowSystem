@@ -34,17 +34,23 @@ happen: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # or the MeowSystem icon in the launcher
 ```
 
-103 settings and 34 actions across twelve pages — one per subject, each holding everything there
+103 settings and 37 actions across twelve pages — one per subject, each holding everything there
 is about it:
 
 - **Papel de parede** (wallpaper) — the 46-image collection, the nine settings and the seven
-  actions, on one screen.
+  actions, on one screen. Dropping a file here says right away whether it landed in the day or
+  the night group, and why.
 - **Ícones** (icons) — one icon per installed program, swappable one by one, plus the theme the
   project builds.
 - **O gato** (the cat) — the dock one and the terminal one, and who picks: you, the clock, or the
   shuffle.
-- Plus **Barra e dock**, **Terminal**, **Dia e noite**, **Programas e jogos**, **Manutenção** —
-  and two pages for the whole machine: install and check, and see what's live.
+- Plus **Barra e dock**, **Terminal**, **Dia e noite**, **Programas e jogos**, **Manutenção**.
+- **Atualizar o sistema** (upgrade) — `apt`, `flatpak` and `cargo` on one screen, and right after
+  it the `doctor` telling you what the upgrade undid. That second half is what a `full-upgrade`
+  by hand doesn't have.
+
+Every variable the installer reads has a control here — and a test enforces it, so a new key
+can't be born invisible.
 
 Clicking never changes the machine: choices pile up and a single button writes and applies them.
 The **Ensaiar sem gravar** switch (dry run) shows what would happen, writing nothing.

@@ -2644,19 +2644,37 @@ function montarHome() {
     ]));
   }
 
-  /* --- 3. as três portas ------------------------------------------------- */
+  /* --- 3. as portas: uma por bloco do menu, sempre ------------------------
+   * Eram duas escritas à mão, e o menu ganhou um terceiro bloco em 06/09/2026 —
+   * a home ficou com uma porta a menos que o menu ao lado, sem nada dizer. Aqui
+   * elas saem do MESMO `blocoDoAssunto` que desenha o menu: bloco novo aparece
+   * na home no mesmo dia, e bloco que sair some junto. */
   const ordemDosAssuntos = assuntosEmOrdem();
   const comChave = ordemDosAssuntos.filter(temChaves);
-  const soMaquina = ordemDosAssuntos.filter((a) => !temChaves(a));
-  const acoesDaMaquina = GRUPOS
-    .filter((g) => g.tipo === "acoes" && soMaquina.includes(assuntoDe(g)))
-    .reduce((s, g) => s + g.itens.length, 0);
-  const portas = [
-    [comChave[0], "Assuntos", `${ESQUEMA.chaves.length} ajustes em ${comChave.length} assuntos`,
-     "Cada assunto numa página: a coleção, os ajustes e as ações, juntos."],
-    [soMaquina[0], "A máquina", `${acoesDaMaquina} ações`,
-     "Instalar, conferir, consertar, desfazer, e o que está no ar."],
-  ];
+  const FRASE_DO_BLOCO = {
+    "Assuntos": "Cada assunto numa página: a coleção, os ajustes e as ações, juntos.",
+    "A máquina": "Instalar, conferir, consertar, desfazer, e o que está no ar.",
+    "A nova versão": "Atualizar o Pop!_OS, e ver o que a atualização desfez daqui.",
+  };
+  const blocos = [];
+  for (const assunto of ordemDosAssuntos) {
+    const nome = blocoDoAssunto(assunto);
+    let b = blocos.find((x) => x.nome === nome);
+    if (!b) blocos.push((b = { nome, primeiro: assunto, chaves: 0, acoes: 0, assuntos: 0 }));
+    b.assuntos += 1;
+    for (const g of GRUPOS) {
+      if (assuntoDe(g) !== assunto) continue;
+      if (g.tipo === "chaves") b.chaves += g.itens.length;
+      else if (g.tipo === "acoes") b.acoes += g.itens.length;
+    }
+  }
+  const portas = blocos.map((b) => [
+    b.primeiro, b.nome,
+    b.chaves
+      ? `${b.chaves} ajustes em ${b.assuntos} assunto${b.assuntos > 1 ? "s" : ""}`
+      : `${b.acoes} ${b.acoes > 1 ? "ações" : "ação"}`,
+    FRASE_DO_BLOCO[b.nome] || "",
+  ]);
   const grade = elemento("div", { class: "home-portas" });
   caixa.append(grade);
   for (const [destino, nome, conta, frase] of portas) {
