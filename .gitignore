@@ -39,6 +39,17 @@ assets/fontes/locais/*.TTF
 *.mp4
 !docs/spec-visual/*.png
 
+# AS CAPTURAS DO README VÃO PARA O GIT — 06/09/2026
+#   A regra acima existe para não versionar 54 papéis de parede baixados; ela
+#   pegava junto as sete imagens que o README mostra na abertura. Com o
+#   repositório público isso não é uma nota de rodapé: o README abre com
+#   `<img src="docs/capturas/painel.png">`, e quem chegasse pelo GitHub veria
+#   sete retângulos quebrados — a primeira impressão do projeto.
+#   São 2,4 MB, uma vez, e são a única forma de mostrar o que ele faz sem a
+#   pessoa instalar.
+!docs/capturas/*.png
+!docs/capturas/*.jpg
+
 # Estado local da máquina: backups e log ficam fora, em ~/.local/state/meowsystem.
 # assets/temas/capturados/ E VERSIONADO: sao as capturas que fazem o "3 cliques uma vez na vida"
 # continuarem valendo mesmo se esta maquina for reformatada. Sao texto pequeno.
@@ -91,3 +102,14 @@ assets/papeis-de-parede/banidos/
 assets/papeis-de-parede/favoritos/
 assets/papeis-de-parede/originais/
 
+
+# O ÚNICO ACERVO COM LICENÇA NÃO DECLARADA — 06/09/2026
+#   `Daveedmee/catppuccin-icons` não diz sob que licença está, e desde que o
+#   repositório é público isso deixou de ser uma nota de cuidado: republicar o
+#   que não se pode republicar é o erro que não dá para desfazer, porque o
+#   histórico fica. Ele já estava fora do git, mas por acidente — os 292
+#   arquivos são PNG, e o `*.png` acima os pegava. Um SVG dali entraria sem
+#   nada avisar. Agora a exclusão é pelo NOME.
+#   O instalador não perde nada: o que ele usa daqui é gerado na máquina.
+#   Ver assets/icones/PROCEDENCIA.md.
+assets/icones/catppuccin-apps/

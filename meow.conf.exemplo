@@ -8,19 +8,47 @@
 #    pergunta é uma chave deste arquivo, na ordem em que ela aparece, e a ajuda
 #    que ele mostra é o comentário que está logo acima dela. Escreveu um
 #    comentário melhor aqui? O wizard passa a mostrá-lo.)
+#
+# COMO ESTE ARQUIVO É ORGANIZADO, E O QUE CADA MARCA SIGNIFICA
+#   Uma seção é um ASSUNTO, não um bloco de arquivo. Foi assim que o painel
+#   deixou de ter três páginas de papel de parede e três de ícones: as abas
+#   vinham da ordem das seções daqui, e a ordem daqui vinha de quando cada
+#   coisa foi escrita. Agora quem manda é o assunto — a coleção, os ajustes e
+#   as ações dele moram na mesma página.
+#
+#   `# --- Capitulares ---`  abre um ASSUNTO novo.
+#   `# --- CAIXA ALTA ---`   abre um bloco DENTRO do assunto anterior.
+#   A convenção é do arquivo e já existia; até 02/09/2026 ela não era
+#   respeitada aqui, e a forma da barra, as janelas e o modo de leitura
+#   apareciam pendurados em "Ícones", que não tem relação com nenhum dos três.
+#
+#   `# @ ` é o TÍTULO do controle na tela. Um rótulo não é derivável: derivar
+#         da primeira oração do comentário produziu "Reparo notificar",
+#         "Vírgula-separado" e "Base". É a menor frase que diz o que o
+#         controle faz, e alguém a escreve.
+#   `# > ` é a FRASE que aparece embaixo do controle: uma linha, sem data e
+#         sem caminho absoluto.
+#   O resto do comentário é a memória do projeto e continua inteiro, atrás do
+#   "Por quê" de cada cartão. Nenhuma das duas marcas o substitui.
 # ---------------------------------------------------------------------------
 
-# --- Aparência -------------------------------------------------------------
+# --- Cor e tema -------------------------------------------------------------
 
+# @ Variante do Catppuccin
+# > Escuro em três intensidades, ou claro. Só valem as combinações que já têm captura pronta.
 # [essencial] Qual variante do Catppuccin. Só vale o que tem captura em
 # assets/temas/capturados/ — o pré-voo avisa antes de instalar se a combinação não existir.
 # mocha | macchiato | frappe | latte
 FLAVOR="mocha"
 
+# @ Cor de destaque
+# > A cor que marca o que está selecionado, em toda a máquina.
 # [essencial] A cor de destaque.
 # mauve | pink | lavender | blue | sapphire | sky | teal | green | yellow | peach | maroon | red
 ACCENT="mauve"
 
+# @ Claro ou escuro
+# > A variante acima diz qual escuro; esta diz se a máquina veste claro ou escuro. Em automático, quem decide é o relógio.
 # [essencial] Claro ou escuro em toda a máquina. O FLAVOR acima diz QUAL escuro
 # (mocha, macchiato, frappe); esta diz SE a máquina veste claro ou escuro, e
 # `auto` entrega a decisão ao relógio.
@@ -34,57 +62,6 @@ ACCENT="mauve"
 #   palavra dizendo o que mudam.
 # escuro | claro | auto   (auto alterna Mocha/Latte por horário)
 MODO="escuro"
-
-# Qual gato do acervo fica no ar. O acervo é a pasta `assets/gatos/`: soltou um
-# .svg lá, ele entra; apagou, sai. `meow logo` lista os que existem.
-# Com LOGO_ROTACAO="sim" esta chave é só o ponto de partida — quem manda depois
-# é o relógio. Os gatos desenhados pelo projeto foram excluídos em 08/08/2026,
-# a pedido dela: ficaram a Coquinha e o Mimir, que são os gatos dela.
-LOGO="coquinha"
-
-# O gato do painel troca sozinho, girando pelo acervo?
-# O ACERVO É A PASTA: tudo que estiver em assets/gatos/*.svg entra na rotação,
-# junto com o gato gerado do flavor. Soltou um SVG lá, ele entra; apagou, sai.
-# Nada de lista dentro de script — ela envelheceria no dia em que você
-# desenhasse outro gato, e o sintoma seria "coloquei o arquivo e não aconteceu".
-# `meow logo listar` mostra o acervo e quem está no ar; `meow logo girar` passa
-# ao próximo na hora, sem reiniciar nada.
-LOGO_ROTACAO="nao"
-# (o LOGO_INTERVALO fica na seção de Wallpaper, junto do porquê de ser um dia)
-
-# --- ÍCONE PARA O MENU DE LANÇAMENTO -----------------------------------------
-# Como o gato do dock e o do terminal são escolhidos:
-#
-#   hora     (padrão) LOGO_NOITE de noite, LOGO_DIA de dia. A janela de noite é
-#            a MESMA do resto da máquina — ver NOITE_INICIO/NOITE_FIM abaixo.
-#   rotacao  gira pelo acervo ao encerrar a sessão, um a cada LOGO_INTERVALO.
-#            É o desenho antigo; LOGO_ROTACAO="sim" continua ligando-o sozinho.
-#   fixo     LOGO= vence sempre; nada gira, nada segue relógio.
-LOGO_MODO="hora"
-
-# Os dois rostos. Os nomes saem do acervo (assets/gatos/<nome>.svg).
-LOGO_DIA="mimir"       # o dock de dia
-LOGO_NOITE="coquinha"  # o dock de noite
-
-# Na virada, o gato do dock só aparece depois de o painel reciclar (~2 s de
-# pisca, duas vezes por dia). MEDIDO em 01/09/2026: reescrever o SVG sem
-# reciclar não muda um pixel — o cosmic-panel-button resolve o ícone no arranque
-# e guarda. Com "nao" o arquivo troca do mesmo jeito e o gato novo aparece no
-# próximo login; o do fastfetch troca na hora de qualquer forma, porque o
-# fastfetch relê o arquivo a cada execução.
-LOGO_RECICLAR="sim"
-
-# --- A NOITE DA MÁQUINA, EM UM LUGAR SÓ --------------------------------------
-# Vazio = herda WALLPAPER_NOITE_INICIO/FIM (ou 18:00-07:00). Preenchido, manda
-# em TUDO que pergunta "é noite?": o gato, o carrossel de papel de parede claro
-# e escuro, e o padrão do modo de leitura. A regra é a de sempre —
-# inicio > fim atravessa a meia-noite; inicio == fim é noite o dia inteiro.
-#
-# QUEM VENCE, NESTA ORDEM: estas duas chaves; depois a janela que você arrasta
-# na interface do applet do modo de leitura; depois WALLPAPER_NOITE_*; depois
-# 18:00-07:00. `meow logo listar` diz qual delas está valendo agora.
-NOITE_INICIO=""
-NOITE_FIM=""
 
 # A ESTRUTURA DO TEMA NÃO MORA AQUI, E TENTAR NÃO FUNCIONARIA
 #   Raio das quinas, gaps, espessura do contorno da janela em foco, nível de
@@ -104,252 +81,93 @@ NOITE_FIM=""
 #   `meow doctor --consertar` para regerar o .ron, importe uma vez pela GUI e
 #   `meow tema capturar <flavor>-<accent>`.
 
-# O painel e o dock mantêm o vidro fosco quando uma janela é maximizada?
-# "nao" devolve o comportamento de fábrica do COSMIC: eles ficam opacos.
-# São duas chaves (Panel e Dock) e valem na hora — o painel vigia as duas.
-# Esta não tem controle na GUI: se ninguém escrever, ela se perde em silêncio.
-VIDRO_AO_MAXIMIZAR="sim"
+# --- O gato -----------------------------------------------------------------
 
-# A OPACIDADE DO FUNDO É SUA, E POR ISSO ESTAS DUAS NASCEM VAZIAS (17/08/2026).
-#
-# Ajustes → Área de trabalho → Painel (e Dock) → "Opacidade do fundo" escreve
-# EXATAMENTE a chave que estas duas escreviam. Enquanto elas tinham valor, o
-# `meow doctor` devolvia 0.19/0.26 todo dia e a sua escolha sumia sem aviso.
-# Vazio = o MeowSystem não toca em `opacity`; o slider manda.
-#
-# Preencher volta a IMPOR o número, em toda passagem do doctor. Se fizer isso:
-# o alpha desenhado é  opacity x alpha_map[frosted]  — e `alpha_map`/`frosted`
-# são os dois sliders de Aparência → Vidro fosco. Não há tabela fixa aqui: o
-# `alpha_map` é reescrito toda vez que você mexe naqueles sliders, então
-# qualquer porcentagem escrita neste arquivo envelhece. Para ver a de hoje:
-#     scripts/vidro.sh --conferir
-# (Os valores impostos até 17/08 eram 0.19 no painel e 0.26 no dock, mirando
-#  ~12,5% e ~17% de cor. Ficam aqui como ponto de partida, não como padrão.)
-VIDRO_OPACIDADE_PAINEL=""
-VIDRO_OPACIDADE_DOCK=""
+# --- NO DOCK ----------------------------------------------------------------
 
-# OS SEGUNDOS DO RELÓGIO DA BARRA DE CIMA. "nao" tira, "sim" põe de volta.
-#
-# ESTA CHAVE OBEDECE AO MESMO CONTRATO DAS DUAS DE VIDRO ACIMA. O relógio tem
-# controle na GUI (Ajustes → Data e hora), e a regra do projeto é que onde a GUI
-# tem controle o valor é SEU. Vazio = o MeowSystem não toca; o botão manda.
-# Preencher volta a IMPOR, em toda passagem do `meow doctor` — inclusive às 5h.
-# Se um dia você mexer no botão e quiser que a sua escolha valha, ESVAZIE esta
-# linha em vez de brigar com o doctor.
-#
-# Medido em 25/08/2026: vale na hora, em menos de 2 s, sem reiniciar o painel.
-# E APAGAR O ARQUIVO NÃO REVERTE — o `remover` escreve `true` de volta, e o
-# valor de antes fica guardado em ~/.local/state/meowsystem/relogio/.
-#
-# O QUE ELA NÃO MEXE: a data ("25 de ago.") e o dia da semana. As chaves existem
-# no binário (`show_date_in_top_panel`, `show_weekday`) e não estão no disco —
-# ficam de fora até você pedir.
-RELOGIO_SEGUNDOS="nao"            # nao | sim | vazio (= não toca)
+# @ Qual gato fica no dock
+# > Solte um .svg na pasta de gatos e ele entra na lista; apague e ele sai.
+# Qual gato do acervo fica no ar. O acervo é a pasta `assets/gatos/`: soltou um
+# .svg lá, ele entra; apagou, sai. `meow logo` lista os que existem.
+# Com LOGO_ROTACAO="sim" esta chave é só o ponto de partida — quem manda depois
+# é o relógio. Os gatos desenhados pelo projeto foram excluídos em 08/08/2026,
+# a pedido dela: ficaram a Coquinha e o Mimir, que são os gatos dela.
+LOGO="coquinha"
 
-# O logo do fastfetch: a Coquinha em ANSI no lugar do Pop!_OS.
-#
-# O DESENHO É NOSSO, A CHAVE NÃO É. O arquivo nasce em
-# ~/.local/share/meowsystem/fastfetch/<gato>.ansi, que é território do
-# MeowSystem. Quem manda o fastfetch usá-lo é `logo.source`, no config.jsonc de
-# ~/.config/fastfetch — que é symlink para ~/.config/zsh e é do Ritual da
-# Aurora. O módulo GERA e CONFERE; o patch para colar lá sai em
-# `scripts/fastfetch_logo.sh patch`. Enquanto ninguém colar, o `meow doctor`
-# mostra a pendência e NÃO notifica.
-#
-# A arte sai do SVG da Coquinha (assets/gatos/), não de foto e não de desenho
-# meu — não existe foto dela nesta máquina, e desenho autoral ela já reprovou
-# em 05/08/2026.
-FASTFETCH_LOGO="sim"              # sim | nao
+# @ O gato troca sozinho
+# > Gira pela lista em vez de ficar num só.
+# O gato do painel troca sozinho, girando pelo acervo?
+# O ACERVO É A PASTA: tudo que estiver em assets/gatos/*.svg entra na rotação,
+# junto com o gato gerado do flavor. Soltou um SVG lá, ele entra; apagou, sai.
+# Nada de lista dentro de script — ela envelheceria no dia em que você
+# desenhasse outro gato, e o sintoma seria "coloquei o arquivo e não aconteceu".
+# `meow logo listar` mostra o acervo e quem está no ar; `meow logo girar` passa
+# ao próximo na hora, sem reiniciar nada.
+LOGO_ROTACAO="nao"
 
-# Qual gato. `coquinha` e `mimir` saem de assets/gatos/; qualquer outro valor é
-# tratado como caminho de um SVG seu.
-FASTFETCH_LOGO_GATO="coquinha"
+# @ Como o gato do dock é escolhido
+# > Fixo, por horário (um de dia, outro de noite), ou girando.
+# Como o gato do dock e o do terminal são escolhidos:
+#
+#   hora     (padrão) LOGO_NOITE de noite, LOGO_DIA de dia. A janela de noite é
+#            a MESMA do resto da máquina — ver NOITE_INICIO/NOITE_FIM abaixo.
+#   rotacao  gira pelo acervo ao encerrar a sessão, um a cada LOGO_INTERVALO.
+#            É o desenho antigo; LOGO_ROTACAO="sim" continua ligando-o sozinho.
+#   fixo     LOGO= vence sempre; nada gira, nada segue relógio.
+LOGO_MODO="hora"
 
-# O TAMANHO DO GATO NO TERMINAL, EM CÉLULAS.
-#
-# Largura em COLUNAS. 40 é a largura do logo `pop` que ele substitui, então o
-# bloco de texto continua começando na mesma coluna. Mexer aqui é seguro, e é a
-# forma mais direta de aumentar a resolução: cada célula a mais é mais detalhe,
-# porque o desenho é reamostrado do SVG a cada geração, nunca ampliado.
-# Faixa: de 20 a 120 colunas.
-FASTFETCH_LOGO_COLUNAS="40"
+# @ Gato de dia no dock
+# > Vale quando a escolha é por horário.
+# Os dois rostos. Os nomes saem do acervo (assets/gatos/<nome>.svg).
+LOGO_DIA="mimir"       # o dock de dia
+# @ Gato de noite no dock
+# > Vale quando a escolha é por horário.
+LOGO_NOITE="coquinha"  # o dock de noite
 
-# Altura em LINHAS. Vazio = calculada de `colunas / FASTFETCH_LOGO_CELULA`, que
-# é o que mantém o disco redondo em vez de oval.
-#
-# ATÉ 06/09/2026 ESTA CHAVE NÃO EXISTIA, e o arquivo dizia "A ALTURA NÃO SE
-# CONFIGURA". Era verdade sobre o desenho e mentira sobre a vontade dela: o
-# terminal dela tem 27 polegadas e sobra altura, e o gato podia ser maior sem
-# empurrar nada. O que continua valendo é o AVISO — sair da proporção da célula
-# deforma o gato, e o `aplicar` diz isso em voz alta quando acontece, em vez de
-# entregar uma elipse calada.
-# Faixa: de 8 a 60 linhas.
-FASTFETCH_LOGO_LINHAS=""
+# @ Recarregar a barra na virada
+# > Sem isto o gato novo só aparece no próximo login. Custa uns 2 s de pisca, duas vezes por dia.
+# Na virada, o gato do dock só aparece depois de o painel reciclar (~2 s de
+# pisca, duas vezes por dia). MEDIDO em 01/09/2026: reescrever o SVG sem
+# reciclar não muda um pixel — o cosmic-panel-button resolve o ícone no arranque
+# e guarda. Com "nao" o arquivo troca do mesmo jeito e o gato novo aparece no
+# próximo login; o do fastfetch troca na hora de qualquer forma, porque o
+# fastfetch relê o arquivo a cada execução.
+LOGO_RECICLAR="sim"
 
-# Quantas LINHAS EM BRANCO antes do gato — o `padding.top` do config.jsonc.
+# @ De quanto em quanto o gato gira
+# > Só vale quando o gato está girando.
+# UM GATO POR DIA — e o número aqui não é escolha estética, é consequência
+#   O pedido original era o gato trocar junto com o papel de parede, a cada 5
+#   minutos. Medido em 05/08/2026, e isso derruba a ideia: o `cosmic-panel` tem
+#   SEIS watches de inotify — as três configs de painel e as três de tema — e
+#   NENHUM sobre arquivo de ícone. Ele carrega o gato do dock uma vez, ao
+#   iniciar a sessão, e não relê. Trocar o arquivo a cada 5 min seriam 288
+#   escritas por dia para um efeito que só aparece no login seguinte.
 #
-#   auto  (padrão) centra os dois blocos um no outro: a sobra entre a altura do
-#         gato e a altura do texto é dividida em duas metades, e a maior vai
-#         para baixo. Foi ela quem mediu o problema na tela, em 06/09/2026: com
-#         o gato em 32 linhas e o texto em 25, sobrava UMA linha de gato acima
-#         da primeira informação e OITO abaixo da última — o desenho parecia
-#         escorregado para baixo. Com `auto` a conta se refaz sozinha sempre
-#         que ela muda a altura do gato ou acrescenta um módulo no fastfetch.
-#   0-24  o número, quando ela quiser mandar.
-FASTFETCH_LOGO_QUEBRAS="auto"
+#   O applet "Logo Menu" resolveria isso ao vivo, mas ela recusou com razão: ele
+#   nasce AO LADO do botão do dock, e ficariam dois gatos iguais na barra.
+#
+#   Então o desenho é o que ela pediu depois: "não me importo de trocar o gato
+#   por dia. Tipo a ideia é essa." Um dia de intervalo, e o gato novo aparece no
+#   próximo login. Diminuir este número não faz o gato trocar mais rápido na
+#   tela — só escreve mais no disco.
+# Duração: número e unidade. A lista abaixo é EXEMPLO de escala, não cerca — o
+# `segundos_de` aceita qualquer uma, e a página confere só a forma.
+# 6h | 12h | 1d | 7d
+LOGO_INTERVALO="1d"
 
-# Onde cada linha de informação COMEÇA. Os quatro últimos são a mesma medida
-# vista de quatro jeitos, e a diferença entre eles é só estética:
-#
-#   tabular    (padrão) todas na mesma coluna, logo depois da largura do gato.
-#              É o único alinhamento que o fastfetch sabe fazer sozinho.
-#   contorno   cada linha começa logo depois do fim do DESENHO naquela linha —
-#              o texto abraça a silhueta, e as linhas de cima (onde o círculo
-#              ainda é estreito, ou onde nem há gato) começam à esquerda.
-#   degraus    o contorno arredondado para múltiplos de 4 colunas. Num gato
-#              redondo e alto o contorno puro faz a borda esquerda do texto
-#              subir de um em um caractere, e uma escada de um caractere parece
-#              tremor; de quatro em quatro, parece decisão.
-#   crescente  o contorno que nunca VOLTA: o texto acompanha o gato enquanto
-#              ele engorda e fica onde está quando ele afina. Tira a onda da
-#              metade de baixo, que é onde o serrilhado mais aparece.
-#   reto       todas na mesma coluna, como o tabular — mas medida pelo trecho
-#              que o texto de fato ocupa, e não pela largura total do desenho.
-#              Num gato mais alto que o texto, isso cola o bloco no gato.
-#
-# O `contorno` NÃO é uma chave do fastfetch: medido na versão 2.61.0, ele
-# imprime o logo, sobe o cursor e emite o MESMO avanço de coluna para toda
-# linha de módulo. O contorno é composto depois, pelo `meow-fetch` — ver o
-# `scripts/fastfetch_alinhar.py`, que conta a medição inteira.
-FASTFETCH_LOGO_ALINHAR="tabular"   # tabular | contorno | degraus | crescente | reto
+# --- Ícones -----------------------------------------------------------------
 
-# O TÍTULO DO BLOCO — a primeira linha, que o fastfetch monta de `usuário@host`.
-#
-# Vazio = não toca, e o fastfetch decide. Com texto, o valor é passado ao
-# fastfetch em `--title-format`, o que NÃO mexe no config.jsonc dela: a linha de
-# comando vence a configuração, e desligar é apagar esta chave.
-#
-# As variáveis que o fastfetch entende aqui: {user-name}, {full-user-name},
-# {host-name}, {user-name-colored}, {host-name-colored}, {at-symbol-colored},
-# {user-shell}, {home-dir}, {cwd}. As `-colored` são as que respeitam a cor de
-# título do tema; as outras saem na cor do texto.
-#
-# `{full-user-name}` sai do campo de nome completo do sistema (o GECOS). Se ele
-# estiver vazio ou sem acento, o lugar de consertar é lá — `chfn -f`, uma vez,
-# e a tela de login também melhora.
-FASTFETCH_TITULO="{full-user-name} @ {host-name-colored}"
-
-# Quantas COLUNAS entre o fim do desenho e o começo do texto. Vale nos dois
-# alinhamentos: no tabular é o `padding.right` do config.jsonc, no contorno é o
-# respiro que separa o traço do gato da primeira letra.
-# O 0 vale 0 de verdade desde 06/09/2026: o compositor forçava uma coluna de
-# respiro contra um risco que não se mede, e a chave mentia por uma coluna.
-# Faixa: de 0 a 12 colunas.
-FASTFETCH_LOGO_RECUO="3"
-
-# PROPORÇÃO ALTURA/LARGURA DA CÉLULA do terminal — 23,00 / 9,00 px, medido no
-# cosmic-term dela com a JetBrainsMono Nerd Font Mono de 16 px. É o que converte
-# colunas em linhas quando `FASTFETCH_LOGO_LINHAS` está vazio. Quem trocar de
-# fonte muda este número uma vez, e o gato volta a sair redondo.
-# Faixa: de 1.0 a 4.0.
-FASTFETCH_LOGO_CELULA="2.556"
-
-# QUANTOS SUBPIXELS CABEM EM CADA CÉLULA — é o teto de detalhe de um desenho
-# feito de letras, e ele depende do que a FONTE do terminal tem:
-#
-#   auto        (padrão) usa sextantes se a fonte os tiver, senão quadrantes.
-#   quadrante   2x2 por célula (▘▝▖▗▚▞▌▐▛▜▙▟). Qualquer fonte monoespaçada.
-#   sextante    2x3 por célula (🬀🬁🬂…). Precisa de `Symbols for Legacy
-#               Computing` (Unicode 13) — 50% mais detalhe vertical.
-#
-# MEDIDO NESTA MÁQUINA: a JetBrainsMono Nerd Font Mono NÃO tem os sextantes, e
-# nenhuma fonte instalada aqui tem — por isso o `auto` cai em quadrante hoje. O
-# código dos sextantes existe para o dia em que ela trocar de fonte: o gato
-# ganha o detalhe sozinho, sem ninguém lembrar de vir aqui.
-FASTFETCH_LOGO_BLOCOS="auto"
-
-# Como o gato do TERMINAL é escolhido:
-#
-#   espelho  (padrão) mostra o gato que o dock NÃO está mostrando. É o que faz
-#            os DOIS gatos estarem sempre na tela ao mesmo tempo: de dia o Mimir
-#            no dock e a Coquinha no terminal; de noite, invertido. A regra se
-#            mantém sozinha — trocar LOGO_DIA acima basta, o terminal segue.
-#   hora     segue o relógio igual ao dock (os dois mostram o mesmo gato).
-#   fixo     FASTFETCH_LOGO_GATO vence sempre.
-#
-# FASTFETCH_LOGO_DIA/NOITE só são lidas nos modos `hora` e no fallback do
-# `espelho` (primeira instalação, quando o botão do dock ainda não existe).
-#
-# O arquivo gerado se chama `gato.ansi`, e não `<nome>.ansi`: um arquivo cujo
-# conteúdo muda duas vezes por dia não pode ter o nome de um gato só.
-FASTFETCH_LOGO_MODO="espelho"
-FASTFETCH_LOGO_DIA=""             # vazio = herda LOGO_DIA
-FASTFETCH_LOGO_NOITE=""           # vazio = herda LOGO_NOITE
-
-# Deixar o MeowSystem corrigir sozinho a linha `logo.source` do config.jsonc do
-# fastfetch — que é da Aurora (symlink para ~/.config/zsh/fastfetch/).
-# A escrita é CIRÚRGICA (duas chaves, o resto do arquivo intacto), guarda backup
-# antes em ~/.local/state/meowsystem/backups/ e diz em voz alta o que tocou.
-# Com "nao", o script volta a só imprimir o patch e sair 4.
-FASTFETCH_LOGO_CONF="sim"
-
-# O PONTEIRO — o único elemento que atravessa a tela inteira o tempo todo.
-# Vazio = não toca, como as VIDRO_OPACIDADE_* logo acima.
-#
-# ATENÇÃO AO NOME, PORQUE ELE MENTE SOBRE A COR. Nos flavors de ACCENT do
-# acervo (`-mauve`, `-blue`, …) o CORPO do cursor recebe o accent e o contorno
-# recebe a Base — o oposto do que o nome sugere. Medido em 25/08/2026,
-# decodificando o XCursor e tirando a luminância do pixel opaco mais frequente:
-#
-#     catppuccin-mocha-light    #CDD6F4    214   <- o Text do Mocha
-#     catppuccin-mocha-mauve    #CBA6F7    180
-#     catppuccin-frappe-mauve   #CA9EE6    173
-#     catppuccin-latte-mauve    #8839EF     87   <- ESCURO, some no campo escuro
-#     catppuccin-mocha-dark     #1E1E2E     31
-#     Pop (o de fábrica)        #FFFFFF    255
-#
-# Por isso o `latte-mauve`, escolhido em 25/08 sob a premissa de que "só o Latte
-# tem corpo claro", é justamente o pior sobre papel de parede escuro. E há um
-# segundo critério: um cursor `-mauve` é mauve o tempo todo, o que contraria a
-# regra da Sprint T ("mauve significa aceso"). O `mocha-light` é o único que
-# resolve os dois — claro e neutro.
-#
-# Para ver antes de escolher:  scripts/cursor.sh estado
-# O TAMANHO não mora aqui de propósito: 24 é o padrão dos dois lados, e gravá-lo
-# seria impor um valor onde não havia nenhum.
-CURSOR="catppuccin-mocha-light"
-CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
-
-# O TAMANHO DE TUDO NA TELA — e a única forma de aumentar a FONTE no COSMIC.
-#
-# Não há chave de tamanho de fonte neste desktop: o texto da interface é 14 px
-# fixos no código da libcosmic, `interface_density` mexe só em espaçamento e
-# `COSMIC_SCALE` não alcança o painel nem a dock. Quem multiplica o texto (e
-# tudo o mais) é a escala da saída — Ajustes → Telas → Escala.
-#
-#   1.0 = 100% (padrão)   1.25 = 25% maior   1.5 = 50% maior
-#
-# Vazio = o MeowSystem não mexe na escala. Com valor, o `install.sh` aplica em
-# todas as telas ligadas — e SÓ o install: o `meow doctor` não toca nisto, para
-# que mudar pela GUI não seja desfeito no dia seguinte.
-#
-# Escala fracionária faz o Xwayland (Steam, jogos antigos) sair levemente
-# borrado, porque o compositor reamostra. Em 1.0 isso não acontece.
-#
-# A LISTA ESTÁ AQUI PORQUE A PÁGINA E O WIZARD LEEM ESTA LINHA — 02/09/2026.
-# Sem ela a chave virava campo de texto livre e aceitava `gigante` calado; o
-# `escala.sh` então caía no `*)` e ninguém ligava o erro ao clique.
-# vazio | nitida | 1.0 | 1.25 | 1.5 | 2.0
-ESCALA_TELA=""
-
-# --- Ícones ----------------------------------------------------------------
-
+# @ Nome do tema de ícones
+# > Como ele aparece nos Ajustes do COSMIC. Trocar aqui cria uma pasta nova.
 # O nome do tema de ícones que este projeto constrói e instala em
 # ~/.local/share/icons/. Trocar aqui muda a árvore inteira de destino — e a
 # antiga não é apagada, então o `meow doctor` passa a conferir a nova e a
 # velha fica no disco até você removê-la à mão.
 NOME_TEMA_ICONES="MeowSystem-Icons"
 
+# @ Tema de onde herdar
+# > De qual tema instalado o nosso puxa o que ele mesmo não desenha.
 # De qual tema instalado o nosso HERDA o que ele não desenha. Vira o `Inherits=`
 # do index.theme, e todo ícone que falta no MeowSystem sai daí — apontar para um
 # tema claro clareia justamente o que ficou de fora, e nada mais.
@@ -363,11 +181,15 @@ NOME_TEMA_ICONES="MeowSystem-Icons"
 #   igual. O conserto é o branco e o parágrafo: cada uma diz o que faz.
 ICONES_BASE="Papirus-Dark"        # tema herdado como fallback
 
+# @ Cor das pastas
+# > Deixe escrito com ${FLAVOR} e ${ACCENT} para acompanhar o tema sozinho.
 # A cor das PASTAS comuns, pintada pelo `papirus-folders`. Deixe escrito com
 # `${FLAVOR}` e `${ACCENT}` em vez do nome já expandido: assim trocar o flavor lá
 # em cima repinta as pastas na mesma passagem, sem ninguém voltar aqui.
 ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 
+# @ Variante dos ícones de arquivo
+# > A dos ícones por tipo de arquivo, que o gerenciador de arquivos desenha.
 # O flavor dos ÍCONES DE TIPO DE ARQUIVO, do pack `catppuccin/vscode-icons` —
 # aquilo que o cosmic-files desenha quando você abre uma pasta. É uma chave
 # PRÓPRIA, e não `$FLAVOR`, porque ela pediu os ícones em frappe ou macchiato com
@@ -378,6 +200,8 @@ ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 #   frappe | latte | macchiato | mocha
 ICONES_FLAVOR="macchiato"
 
+# @ Cor pela marca do programa
+# > Em vez da cor da categoria: Firefox laranja, Telegram azul.
 # A cor do traço de cada aplicativo vem da MARCA dele, em vez da CATEGORIA?
 #
 #   nao (padrão)  a cor é por categoria — a escolha dela de 10/08/2026
@@ -418,6 +242,8 @@ ICONES_FLAVOR="macchiato"
 # categoria na passagem seguinte, sem resíduo — não há estado guardado.
 ICONES_COR_MARCA="nao"
 
+# @ Ícones das pastas especiais
+# > Imagens, Documentos, Downloads, Músicas, Vídeos, Modelos e Público.
 # As PASTAS ESPECIAIS (Imagens, Documentos, Downloads, Músicas, Vídeos, Modelos e
 # Público) vêm do pack `vscode-icons` em vez das roxas do papirus-folders?
 #
@@ -435,20 +261,11 @@ ICONES_COR_MARCA="nao"
 PASTAS_XDG="nao"
 
 # --- Barra e dock -----------------------------------------------------------
-#
-# O ASSUNTO PASSA A SER DAQUI PARA BAIXO — 02/09/2026
-#   Até hoje este bloco vinha logo depois de `# --- Ícones` e SEM título de
-#   assunto próprio. O painel e o `meow configurar` leem estes títulos na ordem
-#   do arquivo, e um bloco em CAIXA ALTA é subtítulo: ele herda o assunto
-#   anterior. Resultado — a forma da barra, o tamanho por segmento, as janelas
-#   lado a lado e o modo de leitura apareciam pendurados em "Ícones", que não
-#   tem relação nenhuma com nenhum dos quatro.
-#
-#   Um título em Capitulares abre assunto novo; um em CAIXA ALTA abre bloco
-#   dentro do assunto. A convenção é do arquivo e já existia — o que faltava
-#   era usá-la aqui.
-#
-# --- A FORMA DO PAINEL E DO DOCK --------------------------------------------
+
+# --- FORMA ------------------------------------------------------------------
+
+# @ Painel descolado da borda
+# > Deixa um vão entre o painel e a borda da tela.
 # Estas chaves existiam só como variável de ambiente do `scripts/forma.sh`:
 # ninguém conseguia mudá-las sem editar o script. Passaram para cá em
 # 11/08/2026, quando a primeira delas precisou de fato ser trocada.
@@ -469,10 +286,18 @@ PASTAS_XDG="nao"
 # `expand_to_edges=true`. Para voltar à pastilha (e aceitar a fusão), é uma
 # palavra: FORMA_DOCK_ILHA="sim".
 FORMA_PAINEL_SOLTO="sim"          # sim | nao
+# @ Dock descolada da borda
+# > Deixa um vão entre a dock e a borda da tela.
 FORMA_DOCK_SOLTO="sim"            # sim | nao
+# @ Painel em pastilha
+# > O painel encolhe até o tamanho do conteúdo, em vez de atravessar a tela.
 FORMA_PAINEL_ILHA="nao"           # sim | nao
+# @ Dock em pastilha
+# > A dock encolhe até o tamanho dos ícones.
 FORMA_DOCK_ILHA="nao"             # sim | nao  <- ver o aviso acima
 
+# @ Distância da borda — painel
+# > Em pixels.
 # Quatro medidas em pixels, uma para o painel e outra para a dock: a margem da
 # borda, o raio dos cantos, o espaço entre applets e o recheio de dentro. Vazio
 # = o MeowSystem não toca.
@@ -521,15 +346,30 @@ FORMA_DOCK_ILHA="nao"             # sim | nao  <- ver o aviso acima
 #   passar a dizer outro número — outra escala, outro `size`, outro applet mais
 #   alto —, é ESTE comentário que envelheceu, e é ele que se corrige.
 FORMA_MARGEM_PAINEL=""            # 0 a 24 px  (o quanto o painel descola da borda)
+# @ Distância da borda — dock
+# > Em pixels.
 FORMA_MARGEM_DOCK=""              # 0 a 24 px  (o quanto a dock descola da borda)
+# @ Canto arredondado — painel
+# > Em pixels. Acima da metade da altura, o compositor limita sozinho.
 FORMA_RAIO_PAINEL=""              # 0 a 22 px  (o teto desta máquina; acima disso a barra some)
+# @ Canto arredondado — dock
+# > Em pixels.
 FORMA_RAIO_DOCK=""                # 0 a 32 px  (o teto desta máquina; acima disso a barra some)
+# @ Espaço entre ícones — painel
+# > Em pixels.
 FORMA_ESPACO_PAINEL=""            # 0 a 24 px  (folga entre um applet e o vizinho)
+# @ Espaço entre ícones — dock
+# > Em pixels.
 FORMA_ESPACO_DOCK=""              # 0 a 24 px  (folga entre um applet e o vizinho)
+# @ Folga interna — painel
+# > Em pixels, entre o conteúdo e a borda.
 FORMA_RECHEIO_PAINEL=""           # 0 a 16 px  (folga interna; cada px sobe a barra em 2)
+# @ Folga interna — dock
+# > Em pixels, entre os ícones e a borda.
 FORMA_RECHEIO_DOCK=""             # 0 a 16 px  (folga interna; cada px sobe a barra em 2)
 
-# --- O TAMANHO POR SEGMENTO DA BARRA ----------------------------------------
+# @ Ícones do meio — painel
+# > Vazio deixa o segmento herdar o tamanho geral.
 # O tamanho de cada segmento da barra, um por um: o MEIO e as duas PONTAS.
 # Vazio = aquele segmento herda o tamanho da barra inteira.
 #
@@ -572,13 +412,200 @@ FORMA_RECHEIO_DOCK=""             # 0 a 16 px  (folga interna; cada px sobe a ba
 # (junto com `size`, `spacing` e `plugins_*`): vale na hora, sem tocar na sessão,
 # mas a barra PISCA — ao contrário do raio e da margem, que trocam sem piscar.
 FORMA_CENTRO_PAINEL=""            # XS | S | M | L | XL   (o meio do painel de cima)
+# @ Ícones do meio — dock
+# > Vazio deixa o segmento herdar o tamanho geral.
 FORMA_CENTRO_DOCK=""              # XS | S | M | L | XL   (o meio da dock: os aplicativos)
+# @ Ponta esquerda — painel
+# > Vazio deixa o segmento herdar o tamanho geral.
 FORMA_ALA_INICIAL_PAINEL=""       # XS | S | M | L | XL   (a ponta esquerda do painel)
+# @ Ponta direita — painel
+# > Vazio deixa o segmento herdar o tamanho geral.
 FORMA_ALA_FINAL_PAINEL=""         # XS | S | M | L | XL   (a ponta direita do painel)
+# @ Ponta esquerda — dock
+# > Vazio deixa o segmento herdar o tamanho geral.
 FORMA_ALA_INICIAL_DOCK=""         # XS | S | M | L | XL   (a ponta esquerda da dock: o gato)
+# @ Ponta direita — dock
+# > Vazio deixa o segmento herdar o tamanho geral.
 FORMA_ALA_FINAL_DOCK=""           # XS | S | M | L | XL   (a ponta direita: bandeja, rede, desligar)
 
-# --- Janelas ----------------------------------------------------------------
+# --- VIDRO E RELÓGIO --------------------------------------------------------
+
+# @ Manter o vidro com janela maximizada
+# > "Não" devolve o comportamento de fábrica: a barra fica opaca.
+# O painel e o dock mantêm o vidro fosco quando uma janela é maximizada?
+# "nao" devolve o comportamento de fábrica do COSMIC: eles ficam opacos.
+# São duas chaves (Panel e Dock) e valem na hora — o painel vigia as duas.
+# Esta não tem controle na GUI: se ninguém escrever, ela se perde em silêncio.
+VIDRO_AO_MAXIMIZAR="sim"
+
+# @ Opacidade do painel
+# > 0 é transparente, 1 é opaco. É a mesma chave que os Ajustes do COSMIC escrevem.
+# A OPACIDADE DO FUNDO É SUA, E POR ISSO ESTAS DUAS NASCEM VAZIAS (17/08/2026).
+#
+# Ajustes → Área de trabalho → Painel (e Dock) → "Opacidade do fundo" escreve
+# EXATAMENTE a chave que estas duas escreviam. Enquanto elas tinham valor, o
+# `meow doctor` devolvia 0.19/0.26 todo dia e a sua escolha sumia sem aviso.
+# Vazio = o MeowSystem não toca em `opacity`; o slider manda.
+#
+# Preencher volta a IMPOR o número, em toda passagem do doctor. Se fizer isso:
+# o alpha desenhado é  opacity x alpha_map[frosted]  — e `alpha_map`/`frosted`
+# são os dois sliders de Aparência → Vidro fosco. Não há tabela fixa aqui: o
+# `alpha_map` é reescrito toda vez que você mexe naqueles sliders, então
+# qualquer porcentagem escrita neste arquivo envelhece. Para ver a de hoje:
+#     scripts/vidro.sh --conferir
+# (Os valores impostos até 17/08 eram 0.19 no painel e 0.26 no dock, mirando
+#  ~12,5% e ~17% de cor. Ficam aqui como ponto de partida, não como padrão.)
+VIDRO_OPACIDADE_PAINEL=""
+# @ Opacidade da dock
+# > 0 é transparente, 1 é opaco.
+VIDRO_OPACIDADE_DOCK=""
+
+# @ Segundos no relógio
+# > Mostra os segundos ao lado da hora.
+# OS SEGUNDOS DO RELÓGIO DA BARRA DE CIMA. "nao" tira, "sim" põe de volta.
+#
+# ESTA CHAVE OBEDECE AO MESMO CONTRATO DAS DUAS DE VIDRO ACIMA. O relógio tem
+# controle na GUI (Ajustes → Data e hora), e a regra do projeto é que onde a GUI
+# tem controle o valor é SEU. Vazio = o MeowSystem não toca; o botão manda.
+# Preencher volta a IMPOR, em toda passagem do `meow doctor` — inclusive às 5h.
+# Se um dia você mexer no botão e quiser que a sua escolha valha, ESVAZIE esta
+# linha em vez de brigar com o doctor.
+#
+# Medido em 25/08/2026: vale na hora, em menos de 2 s, sem reiniciar o painel.
+# E APAGAR O ARQUIVO NÃO REVERTE — o `remover` escreve `true` de volta, e o
+# valor de antes fica guardado em ~/.local/state/meowsystem/relogio/.
+#
+# O QUE ELA NÃO MEXE: a data ("25 de ago.") e o dia da semana. As chaves existem
+# no binário (`show_date_in_top_panel`, `show_weekday`) e não estão no disco —
+# ficam de fora até você pedir.
+RELOGIO_SEGUNDOS="nao"            # nao | sim | vazio (= não toca)
+
+# --- MÚSICA NA BARRA --------------------------------------------------------
+
+# @ Música na barra
+# > Capa, nome e controles do que está tocando, ao lado do relógio.
+# A capa do álbum, a cor dela e os ⏮⏸⏭ na barra da dock (applet Now Playing).
+#   A QUEIXA INTEIRA MORAVA EM UMA LINHA. O `src/media.rs` do upstream descartava
+#   todo `mpris:artUrl` que não fosse `file://`, e o Spotify publica
+#   `https://i.scdn.co/...`. Capa e cor caíam JUNTAS porque a cor dominante é
+#   EXTRAÍDA da capa: sem imagem, não há de onde tirá-la. O patch deste
+#   repositório (`src/applets/now-playing/`) desfaz esse descarte.
+#
+#   NASCE LIGADO, e a decisão é dela: "se é requisição, nosso install teria que
+#   por default trazer a cura".
+#
+#   "nao" não é só deixar de instalar: o `midia.sh` REVERTE — tira a nossa
+#   sombra e o binário, e o applet do flatpak volta no próximo login. Desligar
+#   e continuar vendo o de antes seria o pior sintoma possível, porque não há
+#   onde olhar.
+#
+#   Compilar não é do doctor (é a única porta do projeto que chama o cargo):
+#   quem atravessa esse caminho é o `install.sh`. À mão, uma vez:
+#       MIDIA_COMPILAR=1 scripts/midia_build.sh
+# sim | nao
+MIDIA="sim"
+
+# @ Largura do nome da música
+# > Em pixels, antes de virar reticências.
+# Quantos pixels o nome da música pode ocupar na barra antes de virar "…".
+#   O upstream crava 260, e 260 já corta na tela dela: "This City's Tryna Br…".
+#   Medi ~215 px de folga na asa direita da dock — o Now Playing divide a asa
+#   com a Área de status —, então 440 cabe sem empurrar ninguém.
+#
+#   Valor fora de 80..900 é RECUSADO em vez de gravado. O applet tem um clamp
+#   próprio: uma largura de 5000 voltaria ao padrão em silêncio, e a conferência
+#   passaria a acusar divergência para sempre, sem ninguém entender por quê.
+# 80..900
+MIDIA_LARGURA="440"
+
+# @ Como a cor da capa entra
+# > Tingindo só o traço, ou chapando o fundo.
+# Como a cor dominante da capa entra na barra.
+#   traco    contorno e glifos tingidos; o fundo do painel fica intacto
+#   chapado  o comportamento do upstream: a cor entra no FUNDO do botão
+#
+#   O padrão é `traco` por duas razões que se somam. A folha visual dela, de
+#   11/08/2026: "o nosso tema é o traço, não o chapado". E o `scripts/vidro.sh`
+#   deste projeto escreve a opacidade do painel — um fundo opaco no botão abriria
+#   um retângulo sólido no meio de uma dock translúcida.
+#
+#   AVISO DE GOSTO, NÃO DE DEFEITO: a cor do álbum vai DESTOAR do Catppuccin, e
+#   isso é medido. Os 14 acentos do Mocha vivem em luminância 0,69–0,86; a cor do
+#   álbum, depois de normalizada, trava em 0,38–0,62. Zero sobreposição: nenhuma
+#   capa vai calhar de cair na paleta dela. É a cor do disco, não a do tema.
+#
+#   Quem liga e desliga a cor por completo é o popup do próprio applet
+#   (`album-color-enabled`), que é escolha dela e o MeowSystem não enforça.
+# traco | chapado
+MIDIA_COR_ALBUM="traco"
+
+# @ Baixar a capa da internet
+# > Alguns tocadores publicam a capa como link, não como arquivo.
+# Baixar a capa quando o player publica `mpris:artUrl` como http(s)?
+#   O Spotify SÓ publica https. Um player local que publica `file://` (o VLC, um
+#   arquivo no disco) continua com capa mesmo em "nao".
+#
+#   Esta chave existe para desligar o download SEM recompilar: o applet a lê do
+#   disco, não é um `cfg` de build. Ele a lê UMA vez, na subida — o laço roda a
+#   cada 500 ms e reler ali seriam 120 leituras por minuto —, então trocar aqui
+#   vale no próximo login. O que já foi baixado fica em cache
+#   (`~/.cache/cosmic-ext-applet-now-playing`), um JPEG por álbum tocado.
+# sim | nao
+MIDIA_CAPA="sim"
+
+# @ Tamanho da letra
+# > Automático usa a mesma escala do relógio.
+#
+# Tamanho da letra na barra. "auto" = a MESMA escala tipográfica que o painel usa
+# no relógio (body/title4/title3, conforme a altura da barra) — é o certo em
+# quase todo caso. O upstream do applet não fazia isso: ele passava o tamanho do
+# ÍCONE como tamanho da FONTE, e numa dock de ícone grande a letra saía gigante
+# ao lado de tudo. Foi a primeira coisa que ela reparou, em 24/08/2026.
+#
+# A UNIDADE É PIXEL, E A FAIXA VAI DE 6 A 48. Um número dentro dela crava o
+# tamanho e ignora o painel; a palavra `auto` devolve a escala do painel. São os
+# dois únicos valores que o applet entende, e a auditoria mostrou o preço de não
+# dizê-lo: um `999` digitado no campo entrou como escolha pendente, calado.
+MIDIA_FONTE="auto"                # auto, ou 6 a 48 px
+
+# @ Cor do nome da música
+# > Qualquer cor da paleta.
+#
+# A música e a banda em cores diferentes, para separar as duas de relance.
+# Vale qualquer nome da paleta (assets/paleta/catppuccin.json): mauve, green, blue,
+# peach, teal, pink, sky, yellow, red, lavender, text, subtext0…  "auto" deixa
+# o texto na cor padrão do painel — que é o que o traço do álbum tinge.
+#
+# Quem traduz nome para hex é o `scripts/midia.sh`, contra o FLAVOR desta conf.
+# O applet só lê `#rrggbb`, e é de propósito: a paleta é do MeowSystem, e uma
+# cópia dela dentro do Rust seria a segunda verdade que discorda no dia em que
+# ela trocar de flavor.
+#
+# Escolha dela em 24/08/2026: roxo na música, verde na banda.
+MIDIA_COR_TITULO="mauve"
+# @ Cor do nome da banda
+# > Diferente da do título, para separar as duas de relance.
+MIDIA_COR_ARTISTA="green"
+
+# @ Botões de anterior, pausa e próxima
+# > Desenhados na barra, ao lado do nome.
+#
+# Desenhar ⏮⏸⏭ NA BARRA, ao lado do nome.
+#
+# Nasce DESLIGADO, e é medição: o applet de Som do COSMIC já desenha os dele no
+# painel sempre que há um player tocando. Com o Now Playing colado nele — que é
+# onde ela o pôs em 24/08/2026 — os dois pares ficam lado a lado e leem como
+# defeito, não como recurso. Desligado, sobra `[capa] música · banda`, que
+# encosta nos controles do vizinho e forma um bloco só.
+#
+# Ligue se um dia o applet ficar sozinho (na dock, longe do Som): aí ele precisa
+# dos próprios botões. O popup dele tem os três de qualquer jeito, sempre.
+MIDIA_CONTROLES="nao"
+
+# --- Janelas e tela ---------------------------------------------------------
+
+# @ Janelas lado a lado
+# > Cada janela nova divide o espaço da que estava em foco.
 # AS JANELAS LADO A LADO (o "fibonacci")
 # Em 25/08/2026 ela pediu o layout dwindle do Hyprland — cada janela nova parte
 # ao meio o espaço da anterior, formando a espiral. O cosmic-comp JÁ FAZ ISSO,
@@ -605,6 +632,8 @@ FORMA_ALA_FINAL_DOCK=""           # XS | S | M | L | XL   (a ponta direita: band
 # dois escopos: COM UMA JANELA SÓ na tela, lado a lado é idêntico a maximizado.
 JANELAS_TILING="sim"              # sim | nao | vazio (vazio = não toca)
 
+# @ Onde o lado a lado vale
+# > Em todas as áreas de trabalho, ou só na atual.
 # O escopo do lado a lado: em quais workspaces ele passa a valer.
 #
 #   global     vale em todo workspace, inclusive nos que já existem — medido:
@@ -621,7 +650,231 @@ JANELAS_TILING="sim"              # sim | nao | vazio (vazio = não toca)
 #   mais nada. Corrigido em 02/09/2026.
 JANELAS_TILING_ESCOPO="global"    # global | workspace
 
-# --- Modo de leitura --------------------------------------------------------
+# @ Tamanho de tudo na tela
+# > É também a única forma de aumentar a fonte no COSMIC.
+# O TAMANHO DE TUDO NA TELA — e a única forma de aumentar a FONTE no COSMIC.
+#
+# Não há chave de tamanho de fonte neste desktop: o texto da interface é 14 px
+# fixos no código da libcosmic, `interface_density` mexe só em espaçamento e
+# `COSMIC_SCALE` não alcança o painel nem a dock. Quem multiplica o texto (e
+# tudo o mais) é a escala da saída — Ajustes → Telas → Escala.
+#
+#   1.0 = 100% (padrão)   1.25 = 25% maior   1.5 = 50% maior
+#
+# Vazio = o MeowSystem não mexe na escala. Com valor, o `install.sh` aplica em
+# todas as telas ligadas — e SÓ o install: o `meow doctor` não toca nisto, para
+# que mudar pela GUI não seja desfeito no dia seguinte.
+#
+# Escala fracionária faz o Xwayland (Steam, jogos antigos) sair levemente
+# borrado, porque o compositor reamostra. Em 1.0 isso não acontece.
+#
+# A LISTA ESTÁ AQUI PORQUE A PÁGINA E O WIZARD LEEM ESTA LINHA — 02/09/2026.
+# Sem ela a chave virava campo de texto livre e aceitava `gigante` calado; o
+# `escala.sh` então caía no `*)` e ninguém ligava o erro ao clique.
+# vazio | nitida | 1.0 | 1.25 | 1.5 | 2.0
+ESCALA_TELA=""
+
+# @ Tema do ponteiro
+# > O único elemento que atravessa a tela inteira o tempo todo.
+# O PONTEIRO — o único elemento que atravessa a tela inteira o tempo todo.
+# Vazio = não toca, como as VIDRO_OPACIDADE_* logo acima.
+#
+# ATENÇÃO AO NOME, PORQUE ELE MENTE SOBRE A COR. Nos flavors de ACCENT do
+# acervo (`-mauve`, `-blue`, …) o CORPO do cursor recebe o accent e o contorno
+# recebe a Base — o oposto do que o nome sugere. Medido em 25/08/2026,
+# decodificando o XCursor e tirando a luminância do pixel opaco mais frequente:
+#
+#     catppuccin-mocha-light    #CDD6F4    214   <- o Text do Mocha
+#     catppuccin-mocha-mauve    #CBA6F7    180
+#     catppuccin-frappe-mauve   #CA9EE6    173
+#     catppuccin-latte-mauve    #8839EF     87   <- ESCURO, some no campo escuro
+#     catppuccin-mocha-dark     #1E1E2E     31
+#     Pop (o de fábrica)        #FFFFFF    255
+#
+# Por isso o `latte-mauve`, escolhido em 25/08 sob a premissa de que "só o Latte
+# tem corpo claro", é justamente o pior sobre papel de parede escuro. E há um
+# segundo critério: um cursor `-mauve` é mauve o tempo todo, o que contraria a
+# regra da Sprint T ("mauve significa aceso"). O `mocha-light` é o único que
+# resolve os dois — claro e neutro.
+#
+# Para ver antes de escolher:  scripts/cursor.sh estado
+# O TAMANHO não mora aqui de propósito: 24 é o padrão dos dois lados, e gravá-lo
+# seria impor um valor onde não havia nenhum.
+CURSOR="catppuccin-mocha-light"
+# @ Versão do tema do ponteiro
+# > Vazio usa a última versão que o projeto testou.
+CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
+
+# --- Papel de parede --------------------------------------------------------
+
+# @ Pasta do carrossel
+# > Dentro dela nascem as quatro que importam: ativos, favoritos, banidos e recusadas.
+# A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
+#   ativos/ (é a que gira) · favoritos/ · banidos/ (movidos, nunca apagados) ·
+#   originais/ (a foto antes de qualquer recolorização)
+# O nome era WALLPAPER_DIR e apontava para `ativos/`, mas quem lia era
+# WALLPAPER_BASE — chave que não existia neste arquivo. Ou seja: mudar o valor
+# não movia nada. Corrigido em 08/08/2026; agora o nome daqui é o nome lido.
+WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
+# @ De quanto em quanto a imagem troca
+# > Vale para o carrossel automático.
+WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
+
+# @ Quanto tempo dura a imagem escolhida
+# > Em minutos, depois de você usar avançar ou voltar. Zero fixa até você soltar.
+# Quanto tempo dura a imagem que você escolheu com "avançar"/"voltar" (no menu
+# de contexto da área de trabalho, ou `meow wallpaper proximo`). Enquanto ela
+# vale, o carrossel está PARADO — o cosmic-bg gira o que estiver na pasta, e uma
+# imagem escolhida é um arquivo só. Quem devolve o carrossel é o
+# meow-wallpaper.timer, que já roda a cada 15 min.
+# "0" = para sempre; aí quem solta é `meow wallpaper carrossel`.
+WALLPAPER_FIXO_TTL="30m"
+
+# @ Ordem do carrossel
+# > Sorteada, ou em ordem de nome.
+WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
+
+# @ Como a imagem ocupa a tela
+# > Preencher corta as bordas; caber deixa tarjas nas laterais.
+# Como a imagem ocupa a tela. Em 11/08/2026 ela mandou uma captura com duas
+# tarjas pretas, uma de cada lado, e disse: "o wallpaper precisa preencher a
+# largura e altura". A causa era um `Fit` cravado no `wallpaper.sh` — sob um
+# comentário que dizia que a escolha era dela e estava sendo preservada.
+#   preencher  cobre a tela inteira; o que não couber, corta   (o que ela pediu)
+#   caber      mostra a imagem inteira; o que sobrar vira tarja preta
+#   esticar    deforma a imagem até caber (praticamente nunca é o que se quer)
+WALLPAPER_AJUSTE="preencher"      # preencher | caber | esticar
+
+# @ Pastas suas que o carrossel respeita
+# > Caminhos que ele não deve substituir, um por ficha.
+# OS CAMINHOS QUE VOCÊ ESCOLHEU, E QUE O CARROSSEL NÃO DEVE DEVOLVER
+#   Caminhos absolutos separados por `:` (a mesma convenção do $PATH). Cada um
+#   vale para ele mesmo e para tudo abaixo dele. Vazio = nenhum.
+#
+# POR QUE ESTA CHAVE EXISTE — 11/08/2026
+#   Até aqui a fronteira do `scripts/wallpaper.sh` tinha três casos: o papel de
+#   parede apontando para o nosso acervo (confere), para a pasta de fábrica
+#   `/usr/share/backgrounds` (é reset programático, conserta) e para QUALQUER
+#   outro lugar (é escolha dela, não se toca). O terceiro caso era generoso
+#   demais, e a conta chegou: o `output.DP-1` voltou a apontar para
+#   `~/Imagens/Parede_papel/Cyberpunk Neon Cat…jpeg` — a pasta onde o papel de
+#   parede dela morava ANTES do MeowSystem —, o script leu aquilo como escolha
+#   dela e devolveu código 4. O relógio de 15 minutos rodou, devolveu 4, e
+#   repetiu isso a cada quinze minutos sem consertar nada. A frase dela foi "o
+#   papel de parede voltou a ser o antigo também. novamente": ela NÃO tinha
+#   escolhido.
+#
+#   O que faltava era distinguir "escolha dela de agora" de "onde o wallpaper
+#   dela estava antes". Não há como ler isso do disco — o COSMIC grava o mesmo
+#   arquivo nos dois casos. Então a decisão passou a ser DITA, uma vez, em vez
+#   de adivinhada toda vez: um caminho listado aqui é dela e não se toca
+#   (código 4); qualquer outro caminho não-nosso é reversão e se conserta
+#   (código 1), com o caminho substituído dito no log.
+#
+#   Você não precisa editar esta linha à mão. Quando o script consertar algo que
+#   você de fato queria, ele imprime o comando que autoriza:
+#       meow wallpaper permitir "/home/voce/Imagens/aquela-pasta"
+WALLPAPER_FONTES_DELA=""
+
+# @ Avisar quando a imagem troca
+# > Uma notificação com o nome da imagem nova.
+# A notificação quando o carrossel troca de imagem. Sem uma linha própria, esta
+# chave HERDAVA o comentário do LOGO_INTERVALO logo acima — e passou a herdar a
+# lista de durações dele junto, ganhando quatro botões (6h, 12h, 1d, 7d) para
+# responder sim ou não. Pego pelo `tests/app.sh` no mesmo dia em que a lista foi
+# escrita: o painel e o wizard leram a mesma chave de formas diferentes.
+WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
+
+# @ Avançar e voltar no botão direito
+# > Dois itens de papel de parede no menu da área de trabalho.
+# "Próximo papel de parede" e "Papel de parede anterior" no botão direito da
+# área de trabalho. Não há sistema de plugin no COSMIC: os itens só existem
+# patchando o `cosmic-files` e recompilando. O binário patchado mora em
+# ~/.local/bin (que vem antes de /usr/bin no PATH), então um `apt upgrade` não o
+# sobrescreve — e quando a versão do pacote sobe sem que haja build para ela, o
+# nosso SAI DA FRENTE sozinho até o build novo ficar pronto.
+FILES_MENU="sim"                  # sim | nao
+
+# @ Recompilar sozinho quando atualizar
+# > O build baixa uns 161 MB e leva minutos. Sem isto os dois itens somem na próxima atualização.
+# Compilar sozinho quando o apt subir a versão do cosmic-files? O build baixa
+# ~161 MB de fonte e leva minutos; roda em background (Nice=19, IO idle), no
+# máximo 3 tentativas por versão, e adia se houver jogo aberto.
+# Com "nao", o doctor avisa e você roda `meow files-menu build` quando quiser.
+FILES_MENU_AUTOBUILD="sim"
+
+# (havia um WALLPAPER_SEMENTES aqui, com "comunidade,cosmic,minhas". Nunca
+#  existiu categoria nenhuma no `cmd_semear`: ele baixa a coleção Catppuccin do
+#  commit pinado, e ponto. Removido em 08/08/2026 — chave que nada lê.)
+
+# --- Dia e noite ------------------------------------------------------------
+
+# @ A noite começa às
+# > Manda em tudo que pergunta "é noite?": o gato, o papel de parede e o modo de leitura.
+# Vazio = herda WALLPAPER_NOITE_INICIO/FIM (ou 18:00-07:00). Preenchido, manda
+# em TUDO que pergunta "é noite?": o gato, o carrossel de papel de parede claro
+# e escuro, e o padrão do modo de leitura. A regra é a de sempre —
+# inicio > fim atravessa a meia-noite; inicio == fim é noite o dia inteiro.
+#
+# QUEM VENCE, NESTA ORDEM: estas duas chaves; depois a janela que você arrasta
+# na interface do applet do modo de leitura; depois WALLPAPER_NOITE_*; depois
+# 18:00-07:00. `meow logo listar` diz qual delas está valendo agora.
+NOITE_INICIO=""
+# @ A noite termina às
+# > Manda em tudo que pergunta "é noite?": o gato, o papel de parede e o modo de leitura.
+NOITE_FIM=""
+
+# @ Separar imagens de dia e de noite
+# > À noite o carrossel sorteia só entre as escuras.
+# Em 24/08/2026, numa captura de 23:57, o papel de parede era vaporwave pastel
+# CLARO dentro de um sistema Mocha, e as duas barras apareciam lavadas. O papel
+# é 95% dos pixels da tela: sem campo escuro não existe "aceso".
+#
+# Com isto ligado, o `wallpaper.sh` mede a luminância perceptual de cada imagem
+# de `ativos/` e monta duas pastas de LINK DURO ao lado dela — `ativos-noite/` e
+# `ativos-dia/` —, apontando o carrossel para a do horário. NENHUM ARQUIVO É
+# MOVIDO: o acervo continua sendo `ativos/`, que é o que o `permitir`, o `banir`,
+# o `semear` e o README conhecem.
+#
+# DESLIGAR DESLIGA: com "nao" a rotação volta para `ativos/` e as duas pastas
+# derivadas somem do disco no mesmo comando.
+WALLPAPER_NOITE="sim"             # sim | nao
+# @ Imagem escura a partir das
+# > Vazio usa o horário geral da noite.
+WALLPAPER_NOITE_INICIO="18:00"    # HH:MM — a janela pode atravessar a meia-noite
+# @ Imagem escura até as
+# > Vazio usa o horário geral da noite.
+WALLPAPER_NOITE_FIM="07:00"       # HH:MM — início == fim = noite o dia inteiro
+
+# @ Onde separa imagem clara de escura
+# > 0 é preto, 1 é branco. Acima do corte, a imagem conta como de dia.
+# O CORTE, E POR QUE ELE NÃO É UM NÚMERO REDONDO
+#   0 = preto, 1 = branco, em luminância perceptual (0,2126·R + 0,7152·G +
+#   0,0722·B). Medidos os 54 papéis em 25/08/2026, o histograma tem um vale
+#   exatamente aqui: só DUAS imagens entre 0,35 e 0,40, contra 7 em cada faixa
+#   vizinha. E o vale coincide com o `surface2` do Mocha (#585B70 = 0,3603), o
+#   tom mais claro que o tema usa como FUNDO — mais claro que isso, o papel
+#   deixa de ser campo e passa a competir com a interface.
+#
+#   0,37 e não 0,36 porque 0,3603 cai EM CIMA de uma imagem (0,3605): o trecho
+#   vazio mais largo dentro do vale vai de 0,3605 a 0,3818, e 0,37 é o meio
+#   dele — nenhuma imagem fica a menos de 0,01 do corte.
+#
+#   NÃO USE `%[fx:mean]` PARA MEDIR ISTO. Ele é a média dos três canais com peso
+#   igual, e erra caso a caso: um papel com R=0,412 G=0,029 B=0,279 dá 0,240 na
+#   crua (15º lugar) e 0,128 na perceptual (2º mais escuro do acervo). O
+#   `%[fx:luminance]` também não serve — é símbolo POR PIXEL, avaliado em (0,0).
+#   O caminho certo é `-colorspace Gray` antes do `%[fx:mean]`.
+#
+#   Neste acervo dá 32 na noite e 22 no dia. Baixar põe mais imagem na noite e
+#   clareia o grupo; subir faz o contrário e aperta o dia, que já está no piso.
+# A faixa escrita no formato que o derivador entende — é o que dá o deslizante,
+# igual ao LEITURA_TEXTURA, que é o mesmo tipo de número. Antes desta linha a
+# chave aceitava qualquer texto sem uma palavra na tela.
+WALLPAPER_LIMIAR_LUZ="0.37"       # 0.0 a 1.0 (0 = preto, 1 = branco)
+
+# @ Ligar o modo de leitura no horário
+# > A tela esquenta e ganha textura de papel à noite, sem você tocar.
 # O RELÓGIO QUE O LIGA SOZINHO
 # Às 18:00 a tela esquenta e ganha textura de papel; às 07:00 volta ao normal,
 # sem você tocar em nada. São DOIS números escritos em
@@ -669,6 +922,8 @@ JANELAS_TILING_ESCOPO="global"    # global | workspace
 # alguém desfazer — `meow leitura remover` zera os dois números.
 LEITURA_AGENDA="sim"              # sim | nao | vazio (vazio = não toca)
 
+# @ Modo de leitura começa às
+# > Vale enquanto o controle da barra não tiver gravado um horário seu.
 # O HORÁRIO MORA NO APPLET, NÃO AQUI — decisão dela, 29/08/2026.
 #   Ela pediu para escolher a faixa pela interface, então a fonte da verdade são
 #   as chaves `leitura_hora_inicio` e `leitura_hora_fim` do CosmicComp, gravadas
@@ -687,8 +942,12 @@ LEITURA_AGENDA="sim"              # sim | nao | vazio (vazio = não toca)
 #   É a MESMA regra do carrossel de papel de parede (WALLPAPER_NOITE_* abaixo);
 #   duas definições de noite na mesma máquina seria pedir para elas discordarem.
 LEITURA_HORARIO_INICIO="18:00"    # HH:MM  (a que horas a tela esquenta)
+# @ Modo de leitura termina às
+# > Vale enquanto o controle da barra não tiver gravado um horário seu.
 LEITURA_HORARIO_FIM="07:00"       # HH:MM  (a que horas ela volta ao normal)
 
+# @ Temperatura da tela
+# > Em kelvin: 6500 é neutro, 1000 é o âmbar mais forte.
 # A TEMPERATURA DA NOITE, em Kelvin. A faixa é 1000–6500, inteira: foi decisão
 # dela em 29/08/2026 ("se é um slider por que não dá pra comportar todos?"), e
 # 6500K é o NEUTRO — ou seja, pôr 6500 aqui é o mesmo que desligar.
@@ -715,6 +974,8 @@ LEITURA_HORARIO_FIM="07:00"       # HH:MM  (a que horas ela volta ao normal)
 # horário que é seu.
 LEITURA_TEMPERATURA="3500"        # 1000–6500 K (6500 = neutro = desligado)
 
+# @ Textura de papel
+# > De 0 a 1. No teto o preto sobe e o branco desce, e a tela fica com cara de papel.
 # A TEXTURA DE PAPEL: 0.0 é nenhuma, 1.0 é o teto. No 100% o papel sobe o preto
 # para ~0.12, desce o branco para ~0.93 e dessatura 30%.
 #
@@ -736,6 +997,8 @@ LEITURA_TEMPERATURA="3500"        # 1000–6500 K (6500 = neutro = desligado)
 # applet guardou quando ela soltou o slider; esta só entra quando aquele falta.
 LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
 
+# @ Quanto a virada demora
+# > Em minutos, até chegar ao valor cheio. Zero é degrau seco.
 # Quantos minutos a virada leva para chegar ao valor cheio. `0` é o degrau seco.
 #
 # A VIRADA: SECA OU RAMPA? Também é sua, e também está em aberto no plano.
@@ -767,6 +1030,8 @@ LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
 #   a valer com facilidade. Não é trava do script — ele aceita qualquer inteiro.
 LEITURA_RAMPA_MIN="0"             # 0 a 60 min  (0 = virada seca)
 
+# @ Controle na barra
+# > Um ícone com dois deslizantes, para mexer sem abrir este painel.
 # O APPLET DA TOPBAR — o ícone com os dois sliders (30/08/2026).
 #   sim  o `./install.sh` compila `src/applets/leitura` e planta o `.desktop`.
 #   nao  DESLIGA DE VERDADE: a sombra sai primeiro, o binário depois, e a topbar
@@ -793,357 +1058,11 @@ LEITURA_RAMPA_MIN="0"             # 0 a 60 min  (0 = virada seca)
 # devolve 0 na hora. Sem cargo na máquina, a etapa cai em "pulados" e nada mais
 # acontece.
 LEITURA_APPLET="sim"              # sim | nao
-# --- Papel de parede --------------------------------------------------------
 
-# A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
-#   ativos/ (é a que gira) · favoritos/ · banidos/ (movidos, nunca apagados) ·
-#   originais/ (a foto antes de qualquer recolorização)
-# O nome era WALLPAPER_DIR e apontava para `ativos/`, mas quem lia era
-# WALLPAPER_BASE — chave que não existia neste arquivo. Ou seja: mudar o valor
-# não movia nada. Corrigido em 08/08/2026; agora o nome daqui é o nome lido.
-WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
-WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
+# --- Terminal ---------------------------------------------------------------
 
-# Quanto tempo dura a imagem que você escolheu com "avançar"/"voltar" (no menu
-# de contexto da área de trabalho, ou `meow wallpaper proximo`). Enquanto ela
-# vale, o carrossel está PARADO — o cosmic-bg gira o que estiver na pasta, e uma
-# imagem escolhida é um arquivo só. Quem devolve o carrossel é o
-# meow-wallpaper.timer, que já roda a cada 15 min.
-# "0" = para sempre; aí quem solta é `meow wallpaper carrossel`.
-WALLPAPER_FIXO_TTL="30m"
-
-# --- OS DOIS ITENS DE PAPEL DE PAREDE NO MENU DA ÁREA DE TRABALHO -----------
-# "Próximo papel de parede" e "Papel de parede anterior" no botão direito da
-# área de trabalho. Não há sistema de plugin no COSMIC: os itens só existem
-# patchando o `cosmic-files` e recompilando. O binário patchado mora em
-# ~/.local/bin (que vem antes de /usr/bin no PATH), então um `apt upgrade` não o
-# sobrescreve — e quando a versão do pacote sobe sem que haja build para ela, o
-# nosso SAI DA FRENTE sozinho até o build novo ficar pronto.
-FILES_MENU="sim"                  # sim | nao
-
-# Compilar sozinho quando o apt subir a versão do cosmic-files? O build baixa
-# ~161 MB de fonte e leva minutos; roda em background (Nice=19, IO idle), no
-# máximo 3 tentativas por versão, e adia se houver jogo aberto.
-# Com "nao", o doctor avisa e você roda `meow files-menu build` quando quiser.
-FILES_MENU_AUTOBUILD="sim"
-
-
-WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
-
-# Como a imagem ocupa a tela. Em 11/08/2026 ela mandou uma captura com duas
-# tarjas pretas, uma de cada lado, e disse: "o wallpaper precisa preencher a
-# largura e altura". A causa era um `Fit` cravado no `wallpaper.sh` — sob um
-# comentário que dizia que a escolha era dela e estava sendo preservada.
-#   preencher  cobre a tela inteira; o que não couber, corta   (o que ela pediu)
-#   caber      mostra a imagem inteira; o que sobrar vira tarja preta
-#   esticar    deforma a imagem até caber (praticamente nunca é o que se quer)
-WALLPAPER_AJUSTE="preencher"      # preencher | caber | esticar
-
-# --- CLARO E ESCURO: ELA USA A MÁQUINA À NOITE ------------------------------
-# Em 24/08/2026, numa captura de 23:57, o papel de parede era vaporwave pastel
-# CLARO dentro de um sistema Mocha, e as duas barras apareciam lavadas. O papel
-# é 95% dos pixels da tela: sem campo escuro não existe "aceso".
-#
-# Com isto ligado, o `wallpaper.sh` mede a luminância perceptual de cada imagem
-# de `ativos/` e monta duas pastas de LINK DURO ao lado dela — `ativos-noite/` e
-# `ativos-dia/` —, apontando o carrossel para a do horário. NENHUM ARQUIVO É
-# MOVIDO: o acervo continua sendo `ativos/`, que é o que o `permitir`, o `banir`,
-# o `semear` e o README conhecem.
-#
-# DESLIGAR DESLIGA: com "nao" a rotação volta para `ativos/` e as duas pastas
-# derivadas somem do disco no mesmo comando.
-WALLPAPER_NOITE="sim"             # sim | nao
-WALLPAPER_NOITE_INICIO="18:00"    # HH:MM — a janela pode atravessar a meia-noite
-WALLPAPER_NOITE_FIM="07:00"       # HH:MM — início == fim = noite o dia inteiro
-
-# O CORTE, E POR QUE ELE NÃO É UM NÚMERO REDONDO
-#   0 = preto, 1 = branco, em luminância perceptual (0,2126·R + 0,7152·G +
-#   0,0722·B). Medidos os 54 papéis em 25/08/2026, o histograma tem um vale
-#   exatamente aqui: só DUAS imagens entre 0,35 e 0,40, contra 7 em cada faixa
-#   vizinha. E o vale coincide com o `surface2` do Mocha (#585B70 = 0,3603), o
-#   tom mais claro que o tema usa como FUNDO — mais claro que isso, o papel
-#   deixa de ser campo e passa a competir com a interface.
-#
-#   0,37 e não 0,36 porque 0,3603 cai EM CIMA de uma imagem (0,3605): o trecho
-#   vazio mais largo dentro do vale vai de 0,3605 a 0,3818, e 0,37 é o meio
-#   dele — nenhuma imagem fica a menos de 0,01 do corte.
-#
-#   NÃO USE `%[fx:mean]` PARA MEDIR ISTO. Ele é a média dos três canais com peso
-#   igual, e erra caso a caso: um papel com R=0,412 G=0,029 B=0,279 dá 0,240 na
-#   crua (15º lugar) e 0,128 na perceptual (2º mais escuro do acervo). O
-#   `%[fx:luminance]` também não serve — é símbolo POR PIXEL, avaliado em (0,0).
-#   O caminho certo é `-colorspace Gray` antes do `%[fx:mean]`.
-#
-#   Neste acervo dá 32 na noite e 22 no dia. Baixar põe mais imagem na noite e
-#   clareia o grupo; subir faz o contrário e aperta o dia, que já está no piso.
-# A faixa escrita no formato que o derivador entende — é o que dá o deslizante,
-# igual ao LEITURA_TEXTURA, que é o mesmo tipo de número. Antes desta linha a
-# chave aceitava qualquer texto sem uma palavra na tela.
-WALLPAPER_LIMIAR_LUZ="0.37"       # 0.0 a 1.0 (0 = preto, 1 = branco)
-
-# UM GATO POR DIA — e o número aqui não é escolha estética, é consequência
-#   O pedido original era o gato trocar junto com o papel de parede, a cada 5
-#   minutos. Medido em 05/08/2026, e isso derruba a ideia: o `cosmic-panel` tem
-#   SEIS watches de inotify — as três configs de painel e as três de tema — e
-#   NENHUM sobre arquivo de ícone. Ele carrega o gato do dock uma vez, ao
-#   iniciar a sessão, e não relê. Trocar o arquivo a cada 5 min seriam 288
-#   escritas por dia para um efeito que só aparece no login seguinte.
-#
-#   O applet "Logo Menu" resolveria isso ao vivo, mas ela recusou com razão: ele
-#   nasce AO LADO do botão do dock, e ficariam dois gatos iguais na barra.
-#
-#   Então o desenho é o que ela pediu depois: "não me importo de trocar o gato
-#   por dia. Tipo a ideia é essa." Um dia de intervalo, e o gato novo aparece no
-#   próximo login. Diminuir este número não faz o gato trocar mais rápido na
-#   tela — só escreve mais no disco.
-# Duração: número e unidade. A lista abaixo é EXEMPLO de escala, não cerca — o
-# `segundos_de` aceita qualquer uma, e a página confere só a forma.
-# 6h | 12h | 1d | 7d
-LOGO_INTERVALO="1d"
-
-# A notificação quando o carrossel troca de imagem. Sem uma linha própria, esta
-# chave HERDAVA o comentário do LOGO_INTERVALO logo acima — e passou a herdar a
-# lista de durações dele junto, ganhando quatro botões (6h, 12h, 1d, 7d) para
-# responder sim ou não. Pego pelo `tests/app.sh` no mesmo dia em que a lista foi
-# escrita: o painel e o wizard leram a mesma chave de formas diferentes.
-WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
-# (havia um WALLPAPER_SEMENTES aqui, com "comunidade,cosmic,minhas". Nunca
-#  existiu categoria nenhuma no `cmd_semear`: ele baixa a coleção Catppuccin do
-#  commit pinado, e ponto. Removido em 08/08/2026 — chave que nada lê.)
-
-# OS CAMINHOS QUE VOCÊ ESCOLHEU, E QUE O CARROSSEL NÃO DEVE DEVOLVER
-#   Caminhos absolutos separados por `:` (a mesma convenção do $PATH). Cada um
-#   vale para ele mesmo e para tudo abaixo dele. Vazio = nenhum.
-#
-# POR QUE ESTA CHAVE EXISTE — 11/08/2026
-#   Até aqui a fronteira do `scripts/wallpaper.sh` tinha três casos: o papel de
-#   parede apontando para o nosso acervo (confere), para a pasta de fábrica
-#   `/usr/share/backgrounds` (é reset programático, conserta) e para QUALQUER
-#   outro lugar (é escolha dela, não se toca). O terceiro caso era generoso
-#   demais, e a conta chegou: o `output.DP-1` voltou a apontar para
-#   `~/Imagens/Parede_papel/Cyberpunk Neon Cat…jpeg` — a pasta onde o papel de
-#   parede dela morava ANTES do MeowSystem —, o script leu aquilo como escolha
-#   dela e devolveu código 4. O relógio de 15 minutos rodou, devolveu 4, e
-#   repetiu isso a cada quinze minutos sem consertar nada. A frase dela foi "o
-#   papel de parede voltou a ser o antigo também. novamente": ela NÃO tinha
-#   escolhido.
-#
-#   O que faltava era distinguir "escolha dela de agora" de "onde o wallpaper
-#   dela estava antes". Não há como ler isso do disco — o COSMIC grava o mesmo
-#   arquivo nos dois casos. Então a decisão passou a ser DITA, uma vez, em vez
-#   de adivinhada toda vez: um caminho listado aqui é dela e não se toca
-#   (código 4); qualquer outro caminho não-nosso é reversão e se conserta
-#   (código 1), com o caminho substituído dito no log.
-#
-#   Você não precisa editar esta linha à mão. Quando o script consertar algo que
-#   você de fato queria, ele imprime o comando que autoriza:
-#       meow wallpaper permitir "/home/voce/Imagens/aquela-pasta"
-WALLPAPER_FONTES_DELA=""
-
-# --- Aplicativos ------------------------------------------------------------
-# Vírgula-separado. `meow apps` lista o que está instalado e o que falta.
-APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,qt5ct"
-
-# O Marketplace do spicetify: a página DENTRO do Spotify de onde se instalam
-# extensões, snippets e outros CustomApps. Ele não vem no binário do spicetify e
-# o instalador oficial dele é um `curl | sh` que não é idempotente — aqui quem
-# baixa, registra e repõe é o módulo `assets/temas-de-apps/spotify`, no mesmo ciclo do
-# doctor. Nasce ligado; "nao" só deixa de instalar (não desinstala o que já foi).
-#
-# Ele NUNCA troca o `current_theme`: o Catppuccin continua vindo daqui, do
-# FLAVOR e do ACCENT. Temas baixados pelo Marketplace exigiriam
-# `current_theme=marketplace`, e aí o doctor e o Marketplace brigariam todo dia.
-SPOTIFY_MARKETPLACE="sim"
-
-# App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
-# aplica o tema sozinho quando ele aparecer. Nunca falha por app ausente.
-
-# [essencial] Mexer nos .desktop de /usr/share/applications: esconder
-# aplicativos que você não usa e encurtar nomes que estouram a célula do
-# lançador.
-#
-# POR QUE ISTO É UMA PERGUNTA E NÃO UM PADRÃO
-#   É a única coisa que este projeto faz FORA do seu home. Precisa de sudo, um
-#   `apt upgrade` do pacote desfaz (e o app reaparece), e a lista de nomes em
-#   `scripts/ocultar_apps.sh` é o gosto de quem escreveu, não o seu.
-#   Não é o caminho que a spec do freedesktop manda usar — o override em
-#   ~/.local/share/applications seria — mas o cosmic-app-library não honra o
-#   override (pop-os/cosmic-applets#667), então marcar o arquivo do apt é hoje a
-#   única coisa que funciona.
-#   Com backup em ~/.local/state/meowsystem/backups/ e volta por
-#   `meow desfazer --lancador`.
-#   "nao" = o lançador fica exatamente como o sistema entregou.
-# sim | nao
-LANCADOR_SISTEMA="nao"
-
-# --- Automação -------------------------------------------------------------
-
-# O auto-reparo é UM timer do systemd --user, diário, e mais nada. Não há hook de
-# APT nosso de propósito: o do Ritual da Aurora já roda o self-heal completo depois
-# de todo apt, e dois reparadores no mesmo evento dariam avisos contraditórios.
-AUTO_REPARO="sim"                 # timer diário: meow doctor --consertar às 5h
-AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
-
-# O gato solto em `assets/gatos/` entra NA HORA, sem esperar o relógio?
-#   Com "sim", o par `meow-assets.path`/`meow-assets.service` vigia a pasta por
-#   inotify: soltou um SVG, ele vai para o disco e entra na rotação; apagou, sai.
-#   Sem isso, a mudança só chega na volta seguinte do `meow-logo.timer` — que
-#   com LOGO_INTERVALO="1d" é um dia inteiro de espera para descobrir se o
-#   arquivo entrou.
-#
-#   O vigia NÃO gira o gato: acrescentar um arquivo não muda qual está no ar. Quem
-#   gira é o relógio, um por dia, que foi a escolha dela.
-#
-#   E ele é do MeowSystem, não do self-heal do Ritual da Aurora: aquele é de outro
-#   projeto e pode ser desligado, e o recurso morreria junto sem dizer por quê.
-ASSETS_VIGIA="sim"
-ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho
-
-# O ícone da BANDEJA volta sozinho depois de um `flatpak update`?
-#   Queixa dela, 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon
-#   que fica no applet, voltaram aos originais". É real e se repete: um
-#   `flatpak update` troca a árvore de deploy inteira do aplicativo, e o desenho
-#   que o MeowSystem escreveu lá dentro some junto. Aconteceu em
-#   `ago 20 03:30:36`, segundo o `flatpak history`, e ela viu três dias depois.
-#
-#   Com "sim", o par `meow-flatpak.path`/`meow-flatpak.service` vigia o
-#   `.changed` das duas instalações de flatpak (a dela e a do sistema) — o
-#   arquivo que o próprio flatpak carimba a cada deploy — e repõe SÓ o que é da
-#   bandeja, no mesmo evento. Não é o tema inteiro: um update do Calculator não
-#   é motivo para reconstruir 1.200 ícones.
-#
-#   O `AUTO_REPARO` acima não substitui isto: ele passa às 5h, então uma
-#   atualização das 10h da manhã deixaria o ícone errado por dezenove horas.
-#   É a mesma lição que criou o hook de apt do lançador — gatilho de EVENTO.
-#
-#   O desenho novo só aparece quando o APLICATIVO for fechado e aberto de novo:
-#   o item da bandeja nasce quando o app abre e publica o raster no D-Bus.
-FLATPAK_VIGIA="sim"
-FLATPAK_VIGIA_NOTIFICAR="sim"     # avisa quando repôs um ícone que o update desfez
-
-# O atalho do jogo sai do lançador quando você desinstala o jogo?
-#   Queixa dela, 02/09/2026: "tem jogo da steam que tá desinstalado mas ainda tem
-#   o .desktop, em teoria isso não deveria ocorrer". Estava certa. A limpeza de
-#   órfãos já existia — o que não existia era alguém chamá-la depois de uma
-#   desinstalação: o `jogos_steam.sh` só rodava no `./install.sh` e no
-#   `meow doctor`, então o cartão de um jogo removido às 3h da tarde ficava na
-#   tela até as 5h da manhã seguinte.
-#
-#   Com "sim", o par `meow-steam.path`/`meow-steam.service` vigia a pasta
-#   `steamapps/` — onde a Steam mantém um `appmanifest_<appid>.acf` por jogo
-#   instalado e o apaga ao desinstalar — e roda a mesma limpeza de sempre, com
-#   uns 45 segundos de espera para o download em curso não disparar o vigia
-#   dezenas de vezes.
-#
-#   Ele NÃO enxerga a biblioteca de outro disco (`/mnt/…/SteamLibrary`): com o
-#   disco desmontado a ausência do manifesto seria falsa, e o script adia a
-#   limpeza de propósito para não apagar o atalho de um jogo que continua lá.
-#   Para esses, quem limpa continua sendo o `meow doctor` e o instalador.
-STEAM_VIGIA="sim"
-
-# A capa do álbum, a cor dela e os ⏮⏸⏭ na barra da dock (applet Now Playing).
-#   A QUEIXA INTEIRA MORAVA EM UMA LINHA. O `src/media.rs` do upstream descartava
-#   todo `mpris:artUrl` que não fosse `file://`, e o Spotify publica
-#   `https://i.scdn.co/...`. Capa e cor caíam JUNTAS porque a cor dominante é
-#   EXTRAÍDA da capa: sem imagem, não há de onde tirá-la. O patch deste
-#   repositório (`src/applets/now-playing/`) desfaz esse descarte.
-#
-#   NASCE LIGADO, e a decisão é dela: "se é requisição, nosso install teria que
-#   por default trazer a cura".
-#
-#   "nao" não é só deixar de instalar: o `midia.sh` REVERTE — tira a nossa
-#   sombra e o binário, e o applet do flatpak volta no próximo login. Desligar
-#   e continuar vendo o de antes seria o pior sintoma possível, porque não há
-#   onde olhar.
-#
-#   Compilar não é do doctor (é a única porta do projeto que chama o cargo):
-#   quem atravessa esse caminho é o `install.sh`. À mão, uma vez:
-#       MIDIA_COMPILAR=1 scripts/midia_build.sh
-# sim | nao
-MIDIA="sim"
-
-# Quantos pixels o nome da música pode ocupar na barra antes de virar "…".
-#   O upstream crava 260, e 260 já corta na tela dela: "This City's Tryna Br…".
-#   Medi ~215 px de folga na asa direita da dock — o Now Playing divide a asa
-#   com a Área de status —, então 440 cabe sem empurrar ninguém.
-#
-#   Valor fora de 80..900 é RECUSADO em vez de gravado. O applet tem um clamp
-#   próprio: uma largura de 5000 voltaria ao padrão em silêncio, e a conferência
-#   passaria a acusar divergência para sempre, sem ninguém entender por quê.
-# 80..900
-MIDIA_LARGURA="440"
-
-# Como a cor dominante da capa entra na barra.
-#   traco    contorno e glifos tingidos; o fundo do painel fica intacto
-#   chapado  o comportamento do upstream: a cor entra no FUNDO do botão
-#
-#   O padrão é `traco` por duas razões que se somam. A folha visual dela, de
-#   11/08/2026: "o nosso tema é o traço, não o chapado". E o `scripts/vidro.sh`
-#   deste projeto escreve a opacidade do painel — um fundo opaco no botão abriria
-#   um retângulo sólido no meio de uma dock translúcida.
-#
-#   AVISO DE GOSTO, NÃO DE DEFEITO: a cor do álbum vai DESTOAR do Catppuccin, e
-#   isso é medido. Os 14 acentos do Mocha vivem em luminância 0,69–0,86; a cor do
-#   álbum, depois de normalizada, trava em 0,38–0,62. Zero sobreposição: nenhuma
-#   capa vai calhar de cair na paleta dela. É a cor do disco, não a do tema.
-#
-#   Quem liga e desliga a cor por completo é o popup do próprio applet
-#   (`album-color-enabled`), que é escolha dela e o MeowSystem não enforça.
-# traco | chapado
-MIDIA_COR_ALBUM="traco"
-
-# Baixar a capa quando o player publica `mpris:artUrl` como http(s)?
-#   O Spotify SÓ publica https. Um player local que publica `file://` (o VLC, um
-#   arquivo no disco) continua com capa mesmo em "nao".
-#
-#   Esta chave existe para desligar o download SEM recompilar: o applet a lê do
-#   disco, não é um `cfg` de build. Ele a lê UMA vez, na subida — o laço roda a
-#   cada 500 ms e reler ali seriam 120 leituras por minuto —, então trocar aqui
-#   vale no próximo login. O que já foi baixado fica em cache
-#   (`~/.cache/cosmic-ext-applet-now-playing`), um JPEG por álbum tocado.
-# sim | nao
-MIDIA_CAPA="sim"
-#
-# Tamanho da letra na barra. "auto" = a MESMA escala tipográfica que o painel usa
-# no relógio (body/title4/title3, conforme a altura da barra) — é o certo em
-# quase todo caso. O upstream do applet não fazia isso: ele passava o tamanho do
-# ÍCONE como tamanho da FONTE, e numa dock de ícone grande a letra saía gigante
-# ao lado de tudo. Foi a primeira coisa que ela reparou, em 24/08/2026.
-#
-# A UNIDADE É PIXEL, E A FAIXA VAI DE 6 A 48. Um número dentro dela crava o
-# tamanho e ignora o painel; a palavra `auto` devolve a escala do painel. São os
-# dois únicos valores que o applet entende, e a auditoria mostrou o preço de não
-# dizê-lo: um `999` digitado no campo entrou como escolha pendente, calado.
-MIDIA_FONTE="auto"                # auto, ou 6 a 48 px
-#
-# A música e a banda em cores diferentes, para separar as duas de relance.
-# Vale qualquer nome da paleta (assets/paleta/catppuccin.json): mauve, green, blue,
-# peach, teal, pink, sky, yellow, red, lavender, text, subtext0…  "auto" deixa
-# o texto na cor padrão do painel — que é o que o traço do álbum tinge.
-#
-# Quem traduz nome para hex é o `scripts/midia.sh`, contra o FLAVOR desta conf.
-# O applet só lê `#rrggbb`, e é de propósito: a paleta é do MeowSystem, e uma
-# cópia dela dentro do Rust seria a segunda verdade que discorda no dia em que
-# ela trocar de flavor.
-#
-# Escolha dela em 24/08/2026: roxo na música, verde na banda.
-MIDIA_COR_TITULO="mauve"
-MIDIA_COR_ARTISTA="green"
-#
-# Desenhar ⏮⏸⏭ NA BARRA, ao lado do nome.
-#
-# Nasce DESLIGADO, e é medição: o applet de Som do COSMIC já desenha os dele no
-# painel sempre que há um player tocando. Com o Now Playing colado nele — que é
-# onde ela o pôs em 24/08/2026 — os dois pares ficam lado a lado e leem como
-# defeito, não como recurso. Desligado, sobra `[capa] música · banda`, que
-# encosta nos controles do vizinho e forma um bloco só.
-#
-# Ligue se um dia o applet ficar sozinho (na dock, longe do Som): aí ele precisa
-# dos próprios botões. O popup dele tem os três de qualquer jeito, sempre.
-MIDIA_CONTROLES="nao"
-
-# --- Terminal --------------------------------------------------------------
-
+# @ Paleta do terminal
+# > As dezesseis cores que o terminal usa.
 # A PALETA ANSI do cosmic-term — a última peça da tela que era de fábrica.
 #
 # O esquema é gerado a partir de FLAVOR e da `assets/paleta/catppuccin.json`, e bate
@@ -1162,6 +1081,8 @@ MIDIA_CONTROLES="nao"
 # "desliguei e continua".
 TERMINAL_ESQUEMA="sim"      # sim | nao
 
+# @ Cor do cursor
+# > A cor de destaque, ou a que o port oficial escolheu.
 # ONDE O ACCENT ENTRA, E É A ÚNICA DECISÃO DE GOSTO DESTE MÓDULO.
 # O port oficial pinta o cursor de `rosewater` e não usa `mauve` em lugar nenhum
 # (o magenta do ANSI no Catppuccin é o `pink`, #F5C2E7, não o mauve). "accent"
@@ -1169,7 +1090,8 @@ TERMINAL_ESQUEMA="sim"      # sim | nao
 # dela no resto da máquina. "port" devolve exatamente o arquivo oficial.
 TERMINAL_CURSOR="accent"    # accent | port
 
-
+# @ Prompt do zsh
+# > O preset oficial do Catppuccin, pelo starship.
 # O prompt do zsh, pelo starship, com o preset OFICIAL catppuccin-powerline no
 # flavor mocha e accent mauve.
 #
@@ -1194,6 +1116,230 @@ TERMINAL_CURSOR="accent"    # accent | port
 # sim | nao
 PROMPT_STARSHIP="sim"
 
+# --- O gato -----------------------------------------------------------------
+
+# --- NO TERMINAL ------------------------------------------------------------
+
+# @ Gato no lugar do logo
+# > Troca o logo do Pop!_OS pelo gato, desenhado em letras.
+# O logo do fastfetch: a Coquinha em ANSI no lugar do Pop!_OS.
+#
+# O DESENHO É NOSSO, A CHAVE NÃO É. O arquivo nasce em
+# ~/.local/share/meowsystem/fastfetch/<gato>.ansi, que é território do
+# MeowSystem. Quem manda o fastfetch usá-lo é `logo.source`, no config.jsonc de
+# ~/.config/fastfetch — que é symlink para ~/.config/zsh e é do Ritual da
+# Aurora. O módulo GERA e CONFERE; o patch para colar lá sai em
+# `scripts/fastfetch_logo.sh patch`. Enquanto ninguém colar, o `meow doctor`
+# mostra a pendência e NÃO notifica.
+#
+# A arte sai do SVG da Coquinha (assets/gatos/), não de foto e não de desenho
+# meu — não existe foto dela nesta máquina, e desenho autoral ela já reprovou
+# em 05/08/2026.
+FASTFETCH_LOGO="sim"              # sim | nao
+
+# @ Qual gato
+# > Um nome da lista, ou o caminho de um .svg seu.
+# Qual gato. `coquinha` e `mimir` saem de assets/gatos/; qualquer outro valor é
+# tratado como caminho de um SVG seu.
+FASTFETCH_LOGO_GATO="coquinha"
+
+# @ Como o gato do terminal é escolhido
+# > Espelhando o do dock, por horário, ou fixo.
+# Como o gato do TERMINAL é escolhido:
+#
+#   espelho  (padrão) mostra o gato que o dock NÃO está mostrando. É o que faz
+#            os DOIS gatos estarem sempre na tela ao mesmo tempo: de dia o Mimir
+#            no dock e a Coquinha no terminal; de noite, invertido. A regra se
+#            mantém sozinha — trocar LOGO_DIA acima basta, o terminal segue.
+#   hora     segue o relógio igual ao dock (os dois mostram o mesmo gato).
+#   fixo     FASTFETCH_LOGO_GATO vence sempre.
+#
+# FASTFETCH_LOGO_DIA/NOITE só são lidas nos modos `hora` e no fallback do
+# `espelho` (primeira instalação, quando o botão do dock ainda não existe).
+#
+# O arquivo gerado se chama `gato.ansi`, e não `<nome>.ansi`: um arquivo cujo
+# conteúdo muda duas vezes por dia não pode ter o nome de um gato só.
+FASTFETCH_LOGO_MODO="espelho"
+# @ Gato de dia no terminal
+# > Vale quando a escolha é por horário.
+FASTFETCH_LOGO_DIA=""             # vazio = herda LOGO_DIA
+# @ Gato de noite no terminal
+# > Vale quando a escolha é por horário.
+FASTFETCH_LOGO_NOITE=""           # vazio = herda LOGO_NOITE
+
+# @ Largura do desenho
+# > Em colunas de texto. 40 é a largura do logo que ele substitui.
+# O TAMANHO DO GATO NO TERMINAL, EM CÉLULAS.
+#
+# Largura em COLUNAS. 40 é a largura do logo `pop` que ele substitui, então o
+# bloco de texto continua começando na mesma coluna. Mexer aqui é seguro, e é a
+# forma mais direta de aumentar a resolução: cada célula a mais é mais detalhe,
+# porque o desenho é reamostrado do SVG a cada geração, nunca ampliado.
+# Faixa: de 20 a 120 colunas.
+FASTFETCH_LOGO_COLUNAS="40"
+
+# @ Altura do desenho
+# > Em linhas. Vazio é calculada, e é o que mantém o disco redondo.
+# Altura em LINHAS. Vazio = calculada de `colunas / FASTFETCH_LOGO_CELULA`, que
+# é o que mantém o disco redondo em vez de oval.
+#
+# ATÉ 06/09/2026 ESTA CHAVE NÃO EXISTIA, e o arquivo dizia "A ALTURA NÃO SE
+# CONFIGURA". Era verdade sobre o desenho e mentira sobre a vontade dela: o
+# terminal dela tem 27 polegadas e sobra altura, e o gato podia ser maior sem
+# empurrar nada. O que continua valendo é o AVISO — sair da proporção da célula
+# deforma o gato, e o `aplicar` diz isso em voz alta quando acontece, em vez de
+# entregar uma elipse calada.
+# Faixa: de 8 a 60 linhas.
+FASTFETCH_LOGO_LINHAS=""
+
+# @ Linhas em branco antes
+# > Empurra o desenho para baixo.
+# Quantas LINHAS EM BRANCO antes do gato — o `padding.top` do config.jsonc.
+#
+#   auto  (padrão) centra os dois blocos um no outro: a sobra entre a altura do
+#         gato e a altura do texto é dividida em duas metades, e a maior vai
+#         para baixo. Foi ela quem mediu o problema na tela, em 06/09/2026: com
+#         o gato em 32 linhas e o texto em 25, sobrava UMA linha de gato acima
+#         da primeira informação e OITO abaixo da última — o desenho parecia
+#         escorregado para baixo. Com `auto` a conta se refaz sozinha sempre
+#         que ela muda a altura do gato ou acrescenta um módulo no fastfetch.
+#   0-24  o número, quando ela quiser mandar.
+FASTFETCH_LOGO_QUEBRAS="auto"
+
+# @ Onde o texto começa
+# > Numa coluna ao lado do desenho, ou contornando-o.
+# Onde cada linha de informação COMEÇA. Os quatro últimos são a mesma medida
+# vista de quatro jeitos, e a diferença entre eles é só estética:
+#
+#   tabular    (padrão) todas na mesma coluna, logo depois da largura do gato.
+#              É o único alinhamento que o fastfetch sabe fazer sozinho.
+#   contorno   cada linha começa logo depois do fim do DESENHO naquela linha —
+#              o texto abraça a silhueta, e as linhas de cima (onde o círculo
+#              ainda é estreito, ou onde nem há gato) começam à esquerda.
+#   degraus    o contorno arredondado para múltiplos de 4 colunas. Num gato
+#              redondo e alto o contorno puro faz a borda esquerda do texto
+#              subir de um em um caractere, e uma escada de um caractere parece
+#              tremor; de quatro em quatro, parece decisão.
+#   crescente  o contorno que nunca VOLTA: o texto acompanha o gato enquanto
+#              ele engorda e fica onde está quando ele afina. Tira a onda da
+#              metade de baixo, que é onde o serrilhado mais aparece.
+#   reto       todas na mesma coluna, como o tabular — mas medida pelo trecho
+#              que o texto de fato ocupa, e não pela largura total do desenho.
+#              Num gato mais alto que o texto, isso cola o bloco no gato.
+#
+# O `contorno` NÃO é uma chave do fastfetch: medido na versão 2.61.0, ele
+# imprime o logo, sobe o cursor e emite o MESMO avanço de coluna para toda
+# linha de módulo. O contorno é composto depois, pelo `meow-fetch` — ver o
+# `scripts/fastfetch_alinhar.py`, que conta a medição inteira.
+FASTFETCH_LOGO_ALINHAR="tabular"   # tabular | contorno | degraus | crescente | reto
+
+# @ A linha de cima do bloco
+# > O nome que aparece acima da régua. Vazio devolve o título de fábrica do fastfetch.
+# O TÍTULO DO BLOCO — a primeira linha, que o fastfetch monta de `usuário@host`.
+#
+# Vazio = não toca, e o fastfetch decide. Com texto, o valor é passado ao
+# fastfetch em `--title-format`, o que NÃO mexe no config.jsonc dela: a linha de
+# comando vence a configuração, e desligar é apagar esta chave.
+#
+# As variáveis que o fastfetch entende aqui: {user-name}, {full-user-name},
+# {host-name}, {user-name-colored}, {host-name-colored}, {at-symbol-colored},
+# {user-shell}, {home-dir}, {cwd}. As `-colored` são as que respeitam a cor de
+# título do tema; as outras saem na cor do texto.
+#
+# `{full-user-name}` sai do campo de nome completo do sistema (o GECOS). Se ele
+# estiver vazio ou sem acento, o lugar de consertar é lá — `chfn -f`, uma vez,
+# e a tela de login também melhora.
+FASTFETCH_TITULO="{full-user-name} @ {host-name-colored}"
+
+# @ Espaço entre desenho e texto
+# > Em colunas.
+# Quantas COLUNAS entre o fim do desenho e o começo do texto. Vale nos dois
+# alinhamentos: no tabular é o `padding.right` do config.jsonc, no contorno é o
+# respiro que separa o traço do gato da primeira letra.
+# O 0 vale 0 de verdade desde 06/09/2026: o compositor forçava uma coluna de
+# respiro contra um risco que não se mede, e a chave mentia por uma coluna.
+# Faixa: de 0 a 12 colunas.
+FASTFETCH_LOGO_RECUO="3"
+
+# @ Proporção da célula do terminal
+# > Altura dividida pela largura, na sua fonte. É o que impede o gato de achatar.
+# PROPORÇÃO ALTURA/LARGURA DA CÉLULA do terminal — 23,00 / 9,00 px, medido no
+# cosmic-term dela com a JetBrainsMono Nerd Font Mono de 16 px. É o que converte
+# colunas em linhas quando `FASTFETCH_LOGO_LINHAS` está vazio. Quem trocar de
+# fonte muda este número uma vez, e o gato volta a sair redondo.
+# Faixa: de 1.0 a 4.0.
+FASTFETCH_LOGO_CELULA="2.556"
+
+# @ Detalhe do desenho
+# > Quanto detalhe cabe em cada célula. Depende do que a sua fonte desenha.
+# QUANTOS SUBPIXELS CABEM EM CADA CÉLULA — é o teto de detalhe de um desenho
+# feito de letras, e ele depende do que a FONTE do terminal tem:
+#
+#   auto        (padrão) usa sextantes se a fonte os tiver, senão quadrantes.
+#   quadrante   2x2 por célula (▘▝▖▗▚▞▌▐▛▜▙▟). Qualquer fonte monoespaçada.
+#   sextante    2x3 por célula (🬀🬁🬂…). Precisa de `Symbols for Legacy
+#               Computing` (Unicode 13) — 50% mais detalhe vertical.
+#
+# MEDIDO NESTA MÁQUINA: a JetBrainsMono Nerd Font Mono NÃO tem os sextantes, e
+# nenhuma fonte instalada aqui tem — por isso o `auto` cai em quadrante hoje. O
+# código dos sextantes existe para o dia em que ela trocar de fonte: o gato
+# ganha o detalhe sozinho, sem ninguém lembrar de vir aqui.
+FASTFETCH_LOGO_BLOCOS="auto"
+
+# @ Corrigir a configuração do fastfetch
+# > Deixa o MeowSystem manter a linha do logo em dia sozinho.
+# Deixar o MeowSystem corrigir sozinho a linha `logo.source` do config.jsonc do
+# fastfetch — que é da Aurora (symlink para ~/.config/zsh/fastfetch/).
+# A escrita é CIRÚRGICA (duas chaves, o resto do arquivo intacto), guarda backup
+# antes em ~/.local/state/meowsystem/backups/ e diz em voz alta o que tocou.
+# Com "nao", o script volta a só imprimir o patch e sair 4.
+FASTFETCH_LOGO_CONF="sim"
+
+# --- Programas e jogos ------------------------------------------------------
+
+# @ Programas que o MeowSystem veste
+# > Um por ficha. Só os que estiverem instalados são tocados.
+# Vírgula-separado. `meow apps` lista o que está instalado e o que falta.
+APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,qt5ct"
+
+# App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
+# aplica o tema sozinho quando ele aparecer. Nunca falha por app ausente.
+
+# @ Marketplace no Spotify
+# > A página de extensões dentro do Spotify, habilitada pelo spicetify.
+# O Marketplace do spicetify: a página DENTRO do Spotify de onde se instalam
+# extensões, snippets e outros CustomApps. Ele não vem no binário do spicetify e
+# o instalador oficial dele é um `curl | sh` que não é idempotente — aqui quem
+# baixa, registra e repõe é o módulo `assets/temas-de-apps/spotify`, no mesmo ciclo do
+# doctor. Nasce ligado; "nao" só deixa de instalar (não desinstala o que já foi).
+#
+# Ele NUNCA troca o `current_theme`: o Catppuccin continua vindo daqui, do
+# FLAVOR e do ACCENT. Temas baixados pelo Marketplace exigiriam
+# `current_theme=marketplace`, e aí o doctor e o Marketplace brigariam todo dia.
+SPOTIFY_MARKETPLACE="sim"
+
+# @ Arrumar o lançador
+# > Esconde programas de sistema e encurta nomes longos. A lista é de uma máquina só — leia antes de ligar.
+# [essencial] Mexer nos .desktop de /usr/share/applications: esconder
+# aplicativos que você não usa e encurtar nomes que estouram a célula do
+# lançador.
+#
+# POR QUE ISTO É UMA PERGUNTA E NÃO UM PADRÃO
+#   É a única coisa que este projeto faz FORA do seu home. Precisa de sudo, um
+#   `apt upgrade` do pacote desfaz (e o app reaparece), e a lista de nomes em
+#   `scripts/ocultar_apps.sh` é o gosto de quem escreveu, não o seu.
+#   Não é o caminho que a spec do freedesktop manda usar — o override em
+#   ~/.local/share/applications seria — mas o cosmic-app-library não honra o
+#   override (pop-os/cosmic-applets#667), então marcar o arquivo do apt é hoje a
+#   única coisa que funciona.
+#   Com backup em ~/.local/state/meowsystem/backups/ e volta por
+#   `meow desfazer --lancador`.
+#   "nao" = o lançador fica exatamente como o sistema entregou.
+# sim | nao
+LANCADOR_SISTEMA="nao"
+
+# @ Programas bloqueados no início
+# > Um por ficha. Impede que iniciem junto com a sessão.
 # APPS QUE NÃO PODEM SUBIR SOZINHOS NO LOGIN.
 # Lista separada por vírgula de IDs de `.desktop` — o nome do arquivo em
 # `~/.config/autostart/`, sem a extensão. VAZIA = não faz nada.
@@ -1212,11 +1358,94 @@ PROMPT_STARSHIP="sim"
 # declarada e conferível, em vez de um link para /dev/null sem dono.
 AUTOSTART_BLOQUEADOS="org.qbittorrent.qBittorrent"
 
+# --- Manutenção -------------------------------------------------------------
+
+# @ Conferir e consertar todo dia
+# > Um agendamento diário que reaplica o que estiver fora do lugar.
+# O auto-reparo é UM timer do systemd --user, diário, e mais nada. Não há hook de
+# APT nosso de propósito: o do Ritual da Aurora já roda o self-heal completo depois
+# de todo apt, e dois reparadores no mesmo evento dariam avisos contraditórios.
+AUTO_REPARO="sim"                 # timer diário: meow doctor --consertar às 5h
+# @ Avisar quando consertar algo
+# > Uma notificação só quando houver conserto.
+AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
+
+# @ Gato novo entra na hora
+# > Sem esperar o relógio: solte o .svg na pasta e ele aparece.
+# O gato solto em `assets/gatos/` entra NA HORA, sem esperar o relógio?
+#   Com "sim", o par `meow-assets.path`/`meow-assets.service` vigia a pasta por
+#   inotify: soltou um SVG, ele vai para o disco e entra na rotação; apagou, sai.
+#   Sem isso, a mudança só chega na volta seguinte do `meow-logo.timer` — que
+#   com LOGO_INTERVALO="1d" é um dia inteiro de espera para descobrir se o
+#   arquivo entrou.
+#
+#   O vigia NÃO gira o gato: acrescentar um arquivo não muda qual está no ar. Quem
+#   gira é o relógio, um por dia, que foi a escolha dela.
+#
+#   E ele é do MeowSystem, não do self-heal do Ritual da Aurora: aquele é de outro
+#   projeto e pode ser desligado, e o recurso morreria junto sem dizer por quê.
+ASSETS_VIGIA="sim"
+# @ Avisar quando um gato entrar
+# > Uma notificação com o nome do arquivo.
+ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho
+
+# @ Devolver os ícones depois de atualizar flatpak
+# > Uma atualização de flatpak apaga o ícone da bandeja; isto o repõe.
+# O ícone da BANDEJA volta sozinho depois de um `flatpak update`?
+#   Queixa dela, 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon
+#   que fica no applet, voltaram aos originais". É real e se repete: um
+#   `flatpak update` troca a árvore de deploy inteira do aplicativo, e o desenho
+#   que o MeowSystem escreveu lá dentro some junto. Aconteceu em
+#   `ago 20 03:30:36`, segundo o `flatpak history`, e ela viu três dias depois.
+#
+#   Com "sim", o par `meow-flatpak.path`/`meow-flatpak.service` vigia o
+#   `.changed` das duas instalações de flatpak (a dela e a do sistema) — o
+#   arquivo que o próprio flatpak carimba a cada deploy — e repõe SÓ o que é da
+#   bandeja, no mesmo evento. Não é o tema inteiro: um update do Calculator não
+#   é motivo para reconstruir 1.200 ícones.
+#
+#   O `AUTO_REPARO` acima não substitui isto: ele passa às 5h, então uma
+#   atualização das 10h da manhã deixaria o ícone errado por dezenove horas.
+#   É a mesma lição que criou o hook de apt do lançador — gatilho de EVENTO.
+#
+#   O desenho novo só aparece quando o APLICATIVO for fechado e aberto de novo:
+#   o item da bandeja nasce quando o app abre e publica o raster no D-Bus.
+FLATPAK_VIGIA="sim"
+# @ Avisar quando repor os ícones
+# > Uma notificação depois de repor.
+FLATPAK_VIGIA_NOTIFICAR="sim"     # avisa quando repôs um ícone que o update desfez
+
+# @ Tirar do lançador o jogo desinstalado
+# > O atalho sai junto com o jogo.
+# O atalho do jogo sai do lançador quando você desinstala o jogo?
+#   Queixa dela, 02/09/2026: "tem jogo da steam que tá desinstalado mas ainda tem
+#   o .desktop, em teoria isso não deveria ocorrer". Estava certa. A limpeza de
+#   órfãos já existia — o que não existia era alguém chamá-la depois de uma
+#   desinstalação: o `jogos_steam.sh` só rodava no `./install.sh` e no
+#   `meow doctor`, então o cartão de um jogo removido às 3h da tarde ficava na
+#   tela até as 5h da manhã seguinte.
+#
+#   Com "sim", o par `meow-steam.path`/`meow-steam.service` vigia a pasta
+#   `steamapps/` — onde a Steam mantém um `appmanifest_<appid>.acf` por jogo
+#   instalado e o apaga ao desinstalar — e roda a mesma limpeza de sempre, com
+#   uns 45 segundos de espera para o download em curso não disparar o vigia
+#   dezenas de vezes.
+#
+#   Ele NÃO enxerga a biblioteca de outro disco (`/mnt/…/SteamLibrary`): com o
+#   disco desmontado a ausência do manifesto seria falsa, e o script adia a
+#   limpeza de propósito para não apagar o atalho de um jogo que continua lá.
+#   Para esses, quem limpa continua sendo o `meow doctor` e o instalador.
+STEAM_VIGIA="sim"
+
+# @ Quantos backups guardar
+# > Cada escrita em arquivo do sistema deixa uma cópia antes. Acima disso, o mais antigo sai.
 # Quantos backups o projeto guarda antes de apagar o mais antigo. Cada
 # escrita em arquivo do sistema deixa uma cópia; sem teto, elas se acumulam
 # para sempre. "0" desliga a poda e guarda todos.
 BACKUPS_MANTIDOS="10"
 
+# @ Quanto o MeowSystem fala
+# > Só erro, o que mudou, ou cada passo.
 # Quanto o MeowSystem fala: `silencioso` só erro, `info` o que mudou e `debug`
 # cada passo — é o nível que o `meow doctor` pede quando um conserto não bate.
 #

@@ -1,14 +1,23 @@
 # De onde vem cada ícone deste repositório
 
-Uso **local**, numa máquina só. O repositório não é publicado (decidido em
-05/08/2026). Mesmo assim a procedência fica registrada: é o que permite saber, no
-dia em que alguma coisa mudar, o que pode ser modificado e o que não pode.
+Feito para uma máquina só, e **público desde 06/09/2026** — a decisão de
+05/08 de não publicar caiu. Isso muda o peso desta tabela: enquanto o uso era
+local, a procedência era só uma nota de cuidado; agora ela é a resposta à
+pergunta que qualquer pessoa pode fazer sobre o que está aqui dentro.
+
+A coluna "pode redistribuir?" passa a valer de verdade, e uma linha dela
+precisava de conserto: o acervo `Daveedmee/catppuccin-icons` tem licença **não
+declarada** e nunca esteve no git — mas por acidente, não por decisão. Os 292
+arquivos dele são PNG, e o `.gitignore` exclui `*.png` desde antes de qualquer
+um pensar em licença. Um SVG dali entraria no repositório sem nada avisar.
+Desde 06/09/2026 o diretório está excluído pelo NOME, com o motivo escrito ao
+lado da regra.
 
 | acervo | onde | licença | pode modificar? | pode redistribuir? |
 |---|---|---|---|---|
 | `catppuccin/vscode-icons` | `assets/icones/catppuccin/<flavor>/` | MIT | sim | sim, com o aviso de copyright |
 | `Daveedmee/catppuccin-icons` | `assets/icones/catppuccin-apps/<flavor>/` | **não declarada** | indefinido | **não** — uso local apenas |
-| Arcticons (sistema) | `assets/icones/arcticons/` — **38** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| Arcticons (sistema) | `assets/icones/arcticons/` — **39** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
 | Arcticons (aplicativo) | `assets/icones/arcticons-apps/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
 | **convertido do Papirus** | `assets/icones/convertidos-apps/` — **22** SVGs **gerados** | **GPL-3.0** (obra derivada) | sim | sim, **sob GPL** |
 | **desenho à mão do traço** | `assets/icones/convertidos-apps/retoques/` — **3** desenhos + **2** variantes do GIMP | deste projeto (a do GIMP é derivada, GPL-3.0) | — | — |

@@ -98,11 +98,14 @@ function idDeAba(nome) {
  *   "Papel de parede" e "Apps" para "Aplicativos" criou duas colisões com os
  *   grupos de ação de mesmo nome. Dois botões, o mesmo `ABA`, e clicar num
  *   abriria o outro.
- *   A chave com o bloco na frente resolve sem proibir os nomes: "Papel de
- *   parede" pode existir em Ajustar E em Fazer, que é justamente o certo — um é
- *   onde se configura, o outro é onde se roda. */
+ *   Em 06/09/2026 ela desfez o motivo: "temos duas guias de papéis de parede,
+ *   temos várias páginas pra ícones — essas repetidas deveriam ser unidas cada
+ *   qual em uma única página". Com uma página por ASSUNTO, o nome do assunto
+ *   volta a ser único, e é ele a chave da aba: a galeria, os ajustes e as ações
+ *   do papel de parede respondem todos por "Papel de parede", e é isso que faz
+ *   os três caírem na mesma página sem uma linha de layout nova. */
 function chaveDeAba(g) {
-  return (g.bloco || "fazer") + "/" + g.nome;
+  return assuntoDe(g);
 }
 
 function abaDoHash() {
@@ -148,9 +151,23 @@ let TRABALHO = null;         // {id, proximo, timer}
 const ROTULO_DE_VALOR = {
   sim: "Sim", nao: "Não", auto: "Auto", escuro: "Escuro", claro: "Claro",
   aleatoria: "Aleatória", alfabetica: "Alfabética", silencioso: "Silencioso",
-  info: "Info", debug: "Debug", traco: "Traço", chapado: "Chapado",
+  traco: "Traço", chapado: "Chapado",
   espelho: "Espelho", hora: "Hora", rotacao: "Rotação", fixo: "Fixo",
   nitida: "Nítida", preencher: "Preencher", caber: "Caber", esticar: "Esticar",
+  /* Os valores que a tela mostrava crus, como o arquivo os escreve.
+   * `auto`, `info` e `debug` apareciam DUAS VEZES neste objeto — a primeira
+   * definição com o rótulo velho, logo acima, e esta com o novo. Em JavaScript
+   * a última vence em silêncio, então a tela estava certa e o mapa mentia:
+   * quem lesse a linha de cima concluiria que o rótulo é "Debug". As três
+   * primeiras saíram. */
+  auto: "Automático", info: "Informação", debug: "Detalhado",
+  global: "Todas as áreas", workspace: "Só a atual",
+  tabular: "Em coluna", contorno: "Contornando",
+  quadrante: "Médio", sextante: "Alto",
+  accent: "Cor de destaque", port: "Do port oficial",
+  true: "Sim", false: "Não",
+  "30s": "30 s", "5m": "5 min", "2h": "2 h", "6h": "6 h", "12h": "12 h",
+  "1d": "1 dia", "7d": "7 dias",
   /* Pedaços de NOME de chave que viram título quando a ajuda é herdada — ver
    * `tituloDoCartao`. "inicio" sem acento é o nome da chave; "Início" é o que
    * ela lê. */
@@ -184,6 +201,13 @@ function tituloDoCartao(item) {
    *   irmãs: `LOGO_DIA` -> "Dia", `NOITE_INICIO` -> "Início". Curto, e é
    *   exatamente a diferença entre as duas.
    *   A explicação inteira continua no "Por quê" — nada se perde. */
+  /* TÍTULO ESCRITO À MÃO GANHA DE TÍTULO DERIVADO.
+   *   Derivar o título da primeira oração do comentário produziu "Reparo
+   *   notificar", "Vírgula-separado", "Base" e "Na virada". Um rótulo não é
+   *   uma coisa derivável: ele é a menor frase que diz o que o controle faz, e
+   *   isso alguém escreve. Continua vindo do `meow.conf.exemplo` (uma linha
+   *   `# @ ` no bloco de cada chave), então a fonte única não se rompe. */
+  if (item.titulo) return item.titulo;
   if (item.titulo_irmas) return item.titulo_irmas;
   const frase = (item.frase || "").trim();
   if (!frase) return null;
@@ -618,7 +642,7 @@ function montarControle(item, cartao) {
       disabled: !naRegua,
     });
     const saida = elemento("output", {
-      texto: vazio ? "não toca" : (forcado ? rotuloDeValor(valor) : String(valor || lo)),
+      texto: vazio ? "como está" : (forcado ? rotuloDeValor(valor) : String(valor || lo)),
     });
     slider.addEventListener("input", () => { saida.textContent = slider.value; });
     slider.addEventListener("change", () => aplica(slider.value));
@@ -629,8 +653,8 @@ function montarControle(item, cartao) {
       alternativas.append(elemento("button", {
         type: "button", class: "btn btn-mini",
         "aria-pressed": String(vazio),
-        texto: "Não toca",
-        title: "Deixa a decisão com o COSMIC — é o que o vazio significa aqui",
+        texto: "Deixar como está",
+        title: "Quem decide passa a ser o COSMIC — é o que o vazio significa aqui",
         onclick: () => aplica(""),
       }));
     }
@@ -670,9 +694,9 @@ function montarControle(item, cartao) {
       }
       if (item.aceita_vazio) {
         caixa.append(elemento("button", {
-          type: "button", class: "vazio", "data-valor": "", texto: "não mexer",
+          type: "button", class: "vazio", "data-valor": "", texto: "Deixar como está",
           "aria-pressed": "false",
-          title: "Vazio no meow.conf = o MeowSystem não toca nesta chave; quem manda é você (ou a GUI do COSMIC).",
+          title: "Quem decide passa a ser o COSMIC, ou você pelos Ajustes dele.",
           onclick: async () => { if (await aplica("")) pintar(""); },
         }));
       }
@@ -681,7 +705,7 @@ function montarControle(item, cartao) {
     }
     const caixa = elemento("div", { class: "controle" });
     const sel = elemento("select", { "aria-label": item.chave });
-    if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— não mexer —" }));
+    if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— deixar como está —" }));
     for (const opcao of item.opcoes) sel.append(elemento("option", { value: opcao, texto: rotuloDeValor(opcao) }));
     sel.value = valor;
     sel.addEventListener("change", () => aplica(sel.value));
@@ -695,7 +719,7 @@ function montarControle(item, cartao) {
   const campo = elemento(longo ? "textarea" : "input", {
     type: longo ? false : "text",
     "aria-label": item.chave,
-    placeholder: item.aceita_vazio ? "(vazio = não toca)" : item.padrao,
+    placeholder: item.aceita_vazio ? "deixar como está" : item.padrao,
   });
   campo.value = valor;
   /* `change` e não `input`: gravar a cada tecla seriam dez escritas no meow.conf
@@ -711,8 +735,8 @@ function montarControle(item, cartao) {
 
 function botaoVazio(item, limpar, aplica) {
   return elemento("button", {
-    type: "button", class: "btn", texto: "não mexer",
-    title: "Esvazia a chave: o MeowSystem deixa de tocar nela.",
+    type: "button", class: "btn", texto: "Deixar como está",
+    title: "Quem decide passa a ser o COSMIC.",
     onclick: async () => { if (await aplica("")) limpar(); },
   });
 }
@@ -1611,12 +1635,12 @@ function montarGaleria() {
     } else if (i.banir) {
       acoes.append(elemento("button", {
         type: "button", class: "btn btn-perigo",
-        texto: "Banir",
+        texto: "Tirar",
         /* BANE PELO CAMINHO CANÔNICO (`i.banir`), e não pelo que está sendo
          * mostrado: `ativos-noite/` e `ativos-dia/` são LINK DURO do mesmo
          * arquivo, e banir pelo link moveria só o link — meio banimento, e
          * mudo. O servidor passou a devolver esse campo justamente por isso. */
-        title: `meow wallpaper banir ${i.rotulo} — vai para banidos/, nunca é apagada`,
+        title: `Sai do carrossel e vai para banidos/. Nunca é apagada. (meow wallpaper banir ${i.rotulo})`,
         onclick: () => rodarNaGaleria("wallpaper_banir", i.banir || i.origem),
       }));
     }
@@ -1714,8 +1738,8 @@ function montarCartao(item) {
     mexeu
       ? elemento("span", {
           class: "padrao",
-          texto: item.padrao === "" ? "padrão vazio" : `padrão ${item.padrao}`,
-          title: "O que o meow.conf.exemplo traz de fábrica.",
+          texto: item.padrao === "" ? "De fábrica: nada" : `De fábrica: ${rotuloDeValor(item.padrao)}`,
+          title: "O valor que o projeto traz de fábrica.",
         })
       : null,
   ]);
@@ -1751,20 +1775,23 @@ function montarCartao(item) {
    * 3500 (o padrão de fábrica) com a máquina em 4700 — o número do applet. */
   if (item.valendo_agora && item.valendo_agora !== valorEmVigor(item)) {
     cartao.append(elemento("p", { class: "frase dominada" }, [
-      elemento("b", { texto: `Valendo agora: ${item.valendo_agora}. ` }),
-      elemento("span", { texto: "Quem guarda esse número é o applet do modo de leitura; o do arquivo é o padrão de fábrica." }),
+      elemento("b", { texto: `Na máquina agora: ${rotuloDeValor(item.valendo_agora)}. ` }),
+      elemento("span", { texto: "Quem guarda esse valor é o controle da barra. Salvar faz este ajuste vencer." }),
     ]));
   }
   if (item.dominada_por) {
     const d = item.dominada_por;
     cartao.append(elemento("p", { class: "frase dominada" }, [
-      elemento("b", { texto: `${d.chave}="${d.valor}" está mandando. ` }),
+      /* CITA O CARTÃO, NÃO A VARIÁVEL. "LOGO_MODO=\"hora\" está mandando" manda
+       * procurar um nome que a tela não usa em lugar nenhum; o rótulo do cartão
+       * dominante é o mesmo texto que ela acabou de ler no menu. */
+      elemento("b", { texto: `Quem manda é «${d.titulo || d.chave}», em ${rotuloDeValor(d.valor)}. ` }),
       elemento("span", { texto: d.porque || "" }),
     ]));
   }
   cartao.append(montarControle(item, cartao));
 
-  if (item.frase && !titulo) {
+  if (item.frase) {
     cartao.append(elemento("p", {
       /* `herdada` = o comentário veio de um bloco que descreve várias chaves.
        * Era itálico, e itálico em três linhas de texto corrido cansa a leitura
@@ -1865,21 +1892,21 @@ function montarAcao(acao) {
   }
 
   const rodape = elemento("div", { class: "rodape" });
-  if (acao.sudo) rodape.append(elemento("span", { class: "pastilha p-sudo", texto: "pode usar sudo" }));
-  if (acao.destrutivo) rodape.append(elemento("span", { class: "pastilha p-perigo", texto: "desfaz coisas" }));
+  if (acao.sudo) rodape.append(elemento("span", { class: "pastilha p-sudo", texto: "pede senha" }));
+  if (acao.destrutivo) rodape.append(elemento("span", { class: "pastilha p-perigo", texto: "desfaz o que foi feito" }));
   /* `rede` é DECLARADA pela ação, nunca adivinhada do texto dela. A primeira
    * versão fazia `/rede|baixa/i.test(acao.ajuda)` e o resultado apareceu na
    * tela em 01/09/2026: o cartão "Conferir (doctor)" — cuja ajuda diz, com
    * todas as letras, que ele "nunca usa sudo e nunca baixa nada" — ganhou uma
    * pastilha "usa rede". Um marcador que lê a prosa acaba dizendo o contrário
    * dela; quem sabe se a ação toca a rede é quem a escreveu. */
-  if (acao.rede) rodape.append(elemento("span", { class: "pastilha p-rede", texto: "usa rede" }));
-  if (acao.seco) rodape.append(elemento("span", { class: "pastilha p-seco", texto: "aceita seco" }));
+  if (acao.rede) rodape.append(elemento("span", { class: "pastilha p-rede", texto: "baixa da internet" }));
+  if (acao.seco) rodape.append(elemento("span", { class: "pastilha p-seco", texto: "pode ensaiar" }));
 
   rodape.append(elemento("button", {
     type: "button",
     class: "btn " + (acao.destrutivo ? "btn-perigo" : "btn-accent"),
-    texto: "Rodar",
+    texto: "Executar",
     onclick: () => rodar(acao, escolha ? escolha.value : ""),
   }));
   bloco.append(rodape);
@@ -2046,80 +2073,194 @@ function descricaoDe(g) {
    * noite) e em Fazer (avançar, banir, semear): mesmo nome, trabalhos
    * diferentes, e uma frase só serviria mal aos dois. A chave `bloco/nome` vem
    * primeiro; sem ela, cai no nome, que é o caso da grande maioria. */
-  return d[chaveDeAba(g)] || d[g.nome] || d[g.secaoPai] || "";
+  /* O `|| d[g.secaoPai]` saiu em 06/09/2026: ele existia porque as subabas não
+   * tinham frase própria e herdavam a do pai — três abas abriam com a mesma
+   * linha. Agora há uma frase por assunto, e a herança viraria ruído. */
+  return d[chaveDeAba(g)] || d[g.nome] || "";
+}
+
+function assuntoDe(g) {
+  /* O assunto de um grupo de chaves é o TÍTULO DE SEÇÃO do meow.conf.exemplo
+   * (`secaoPai`); o de uma galeria e o de um grupo de ações é declarado. */
+  if (g.tipo === "chaves") return g.secaoPai || g.nome;
+  return g.assunto || g.nome;
+}
+
+/* A ORDEM DOS ASSUNTOS VEM DO ARQUIVO, e não de uma lista escrita aqui.
+ * Primeiro os assuntos na ordem em que suas seções aparecem no
+ * `meow.conf.exemplo`; depois os que não têm chave nenhuma — hoje "Instalar e
+ * conferir" e "Ver o estado", as duas páginas de verbo que sobraram depois da
+ * unificação. Renomear uma seção no arquivo reordena o menu sozinho. */
+function assuntosEmOrdem() {
+  const ordem = [];
+  for (const g of GRUPOS) {
+    if (g.tipo !== "chaves") continue;
+    const a = assuntoDe(g);
+    if (!ordem.includes(a)) ordem.push(a);
+  }
+  for (const g of GRUPOS) {
+    if (g.tipo === "home") continue;
+    const a = assuntoDe(g);
+    if (!ordem.includes(a)) ordem.push(a);
+  }
+  return ordem;
+}
+
+/* O que separa os dois blocos do menu: um assunto tem chaves do `meow.conf`;
+ * as duas páginas que sobraram de verbo só têm ações. */
+function temChaves(assunto) {
+  return GRUPOS.some((g) => g.tipo === "chaves" && assuntoDe(g) === assunto);
 }
 
 function montarTrilho() {
   const trilho = $("#trilho");
-  /* O FOCO SOBREVIVE À RECONSTRUÇÃO — e não sobrevivia (visto em 01/09/2026)
-   *   Trocar de seção chama `render()`, que chama isto, que apaga e refaz os 20
-   *   botões. O botão que estava com o foco deixa de existir, e o navegador
-   *   devolve o foco para o `<body>`: o Tab seguinte recomeça do topo da página.
-   *
-   *   Descobri navegando só de teclado — apertei Enter numa seção do trilho e o
-   *   próximo Tab, que devia entrar no conteúdo, voltou para o começo. Para quem
-   *   usa o mouse isso é invisível; para quem não usa, é a página perdendo o
-   *   lugar a cada clique. Guardar o nome e devolver o foco ao botão equivalente
-   *   custa estas três linhas. */
+  /* O FOCO SOBREVIVE À RECONSTRUÇÃO: guardar o nome e devolver o foco ao botão
+   * equivalente custa estas três linhas, e sem elas o Tab depois de um Enter no
+   * menu voltava para o começo da página. */
   const focado = document.activeElement?.dataset?.grupo;
   trilho.replaceChildren();
 
-  /* MENU EM DOIS NÍVEIS — pedido dela em 01/09/2026 ("um menu com subtopicos é
-   * importante"). A seção é o nível de cima; o subtítulo do bloco no
-   * meow.conf.exemplo é o subtópico. Quando uma seção tem um subtópico só, ela
-   * aparece como item simples — um pai com um filho só é um degrau que não
-   * ajuda ninguém a achar nada. */
-  const porSecao = new Map();
-  for (const g of GRUPOS.filter((x) => x.tipo === "chaves")) {
-    if (!porSecao.has(g.secaoPai)) porSecao.set(g.secaoPai, []);
-    porSecao.get(g.secaoPai).push(g);
-  }
-
-  /* O PRIMEIRO BLOCO É O DE OLHAR, e ele vem antes de propósito.
-   *   Ordem de menu é ordem de importância, e a galeria, os ícones por
-   *   aplicativo e os jogos são onde ela decide as coisas olhando. As chaves do
-   *   meow.conf vêm depois; os botões que rodam script, por último. */
-  const doBloco = (b) => GRUPOS.filter((g) => (g.bloco || "fazer") === b);
-  const ver = doBloco("ver");
-  if (ver.length) {
-    trilho.append(elemento("div", { class: "rotulo-grupo", texto: "Ver e escolher" }));
-    for (const g of ver) trilho.append(botaoTrilho(g));
-    trilho.append(elemento("hr"));
-  }
-
-  trilho.append(elemento("div", { class: "rotulo-grupo", texto: "Ajustar" }));
-  for (const [secao, grupos] of porSecao) {
-    if (grupos.length === 1 && grupos[0].nome === secao) {
-      trilho.append(botaoTrilho(grupos[0]));
-      continue;
+  /* UM ITEM POR ASSUNTO, E NENHUM NÍVEL — 06/09/2026.
+   *   O menu tinha 22 itens em três blocos de verbo (Escolher · Configurar ·
+   *   Executar) e dois níveis, e o mesmo assunto aparecia em dois ou três
+   *   deles: "Papéis de parede" para olhar, "Papel de parede" para ajustar,
+   *   "Papel de parede" para rodar. Os ícones tinham três páginas.
+   *
+   *   Agora o assunto é a página, e ela carrega o que existir sobre ele: a
+   *   galeria, os ajustes e as ações. Sobraram doze itens, um nível, e dois
+   *   blocos — os assuntos, e a máquina inteira. */
+  for (const g of GRUPOS) if (g.tipo === "home") trilho.append(botaoTrilho(g));
+  let bloco = null;
+  for (const assunto of assuntosEmOrdem()) {
+    const nome = temChaves(assunto) ? "Assuntos" : "A máquina";
+    if (nome !== bloco) {
+      bloco = nome;
+      trilho.append(rotuloDeBloco(nome));
     }
-    const aberta = grupos.some((g) => chaveDeAba(g) === ABA);
-    trilho.append(elemento("div", {
-      class: "secao-menu" + (aberta ? " aberta" : ""),
-      texto: encurtar(secao),
-      title: secao,
-    }));
-    for (const g of grupos) {
-      /* Um subtópico com o mesmo nome da seção lia "Aparência / Aparência" —
-       * o pai já disse. Aqui ele é o bloco sem subtítulo do arquivo, ou seja: o
-       * geral daquela seção. */
-      /* O aparte entre parênteses sai do MENU (fica no `title`): "O gato segue
-       * o relógio (novo em 01/09/2026)" cabe em meia linha sem a data, e a
-       * data não ajuda ninguém a achar a seção. */
-      const rotulo = g.nome === secao ? "Geral" : encurtar(g.nome);
-      trilho.append(botaoTrilho(g, true, rotulo));
-    }
-  }
-
-  trilho.append(elemento("hr"));
-  trilho.append(elemento("div", { class: "rotulo-grupo", texto: "Fazer" }));
-  for (const g of doBloco("fazer").filter((x) => x.tipo !== "chaves")) {
-    trilho.append(botaoTrilho(g));
+    trilho.append(botaoDeAssunto(assunto));
   }
   if (focado) {
     const volta = trilho.querySelector(`[data-grupo="${CSS.escape(focado)}"]`);
     if (volta) volta.focus();
   }
+}
+
+/* O número ao lado do nome soma o que a página mostra: as imagens da galeria,
+ * as chaves de cada bloco de ajuste e as ações. */
+function botaoDeAssunto(assunto) {
+  const meus = GRUPOS.filter((g) => assuntoDe(g) === assunto);
+  const conta = meus.reduce((s, g) => s + (Number(contaDoGrupo(g)) || 0), 0);
+  return elemento("button", {
+    type: "button",
+    "data-grupo": assunto,
+    "aria-current": String(assunto === ABA),
+    title: assunto,
+    onclick: () => { $("#busca").value = ""; ABA = assunto; gravarHash(); render(); },
+  }, [
+    iconeDeMenu(assunto, "assunto"),
+    elemento("span", { texto: encurtar(assunto) }),
+    elemento("span", { class: "conta", texto: conta ? String(conta) : "" }),
+  ]);
+}
+
+/* ===========================================================================
+ * OS ÍCONES DO MENU — no lugar do traço
+ * ===========================================================================
+ * OS DESENHOS SÃO OS ARQUIVOS DO ACERVO, e não uma imitação deles.
+ * A primeira versão destes ícones foi desenhada à mão na mesma gramática do
+ * acervo — e era isso o que estava errado: um desenho parecido com o Arcticons
+ * não é o Arcticons, e a barra e o dock da máquina mostram os de verdade a três
+ * centímetros deste menu. Cada entrada abaixo é o conteúdo de um arquivo de
+ * `assets/icones/arcticons/` (39 glifos, Arcticons, CC BY-SA 4.0), sem o
+ * invólucro <svg> e sem os atributos que o invólucro daqui já dá.
+ *
+ * DUAS SÃO AUTORAIS, E ESTÃO MARCADAS: o acervo não tem gato. Os dois cartões de
+ * gato usam as orelhas do mascote — três traços, mesma gramática (48/48, sem
+ * preenchimento, ponta e junta redondas).
+ *
+ * A ESPESSURA É A ÚNICA COISA QUE MUDA. O acervo desenha para 48 px reais na
+ * dock, com traço 1; aqui os glifos vivem a 17 px, e 1/48 × 17 dá 0,35 px —
+ * some numa tela sem hidpi. 2.75 devolve 0,97 px, que é onde um traço fica
+ * nítido sem engrossar o desenho até virar mancha.
+ *
+ * NENHUMA COR: `stroke="currentColor"`. O ícone herda a cor do item, então ele fica
+ * cinza no repouso e accent no item aberto, sem uma regra a mais — a mesma
+ * disciplina da paleta, aplicada a desenho. */
+const ICONES_MENU = {
+  /* os dois blocos do menu */
+  "bloco/Assuntos": '<circle cx="12.281" cy="22.389" r="2.781"/><circle cx="24" cy="18.613" r="2.781"/><circle cx="35.719" cy="24.646" r="2.781"/><path d="M24 21.394v14.925m11.719-8.893v8.893M12.281 25.17v11.149m0-16.711v-1.591m0-1.577v-1.591m0-1.578v-1.59M24 15.833v-.984m0-1.578v-1.59m11.719 7.927v-1.591m0 3.848v-.702m0-4.723v-1.591m0-1.578v-1.59"/><circle cx="24" cy="24" r="21.5"/>',
+  "bloco/A máquina": '<path d="M24 8.408V19.81m5.255-7.944A13.22 13.22 0 0 1 37.223 24h0c0 7.303-5.92 13.223-13.223 13.223h0c-7.303 0-13.223-5.92-13.223-13.223h0c0-5.27 3.129-10.037 7.964-12.133M45.5 24c0 11.874-9.626 21.5-21.5 21.5S2.5 35.874 2.5 24S12.126 2.5 24 2.5S45.5 12.126 45.5 24"/>',
+  /* AUTORAL: o acervo não tem gato. As orelhas do mascote, em três traços. */
+  "O gato": '<path d="M13 21V11l8 6M35 21V11l-8 6"/><path d="M13 20c0 10 5 17 11 17s11-7 11-17"/>',
+  /* os blocos de antes, quando o menu ia por verbo */
+  "bloco/Escolher": '<path d="M4.5 11.5a3 3 0 0 1 3-3h8.718a4 4 0 0 1 2.325.745l4.914 3.51a4 4 0 0 0 2.325.745H40.5a3 3 0 0 1 3 3v20a3 3 0 0 1-3 3h-33a3 3 0 0 1-3-3z"/>',
+  "bloco/Configurar": '<circle cx="12.281" cy="22.389" r="2.781"/><circle cx="24" cy="18.613" r="2.781"/><circle cx="35.719" cy="24.646" r="2.781"/><path d="M24 21.394v14.925m11.719-8.893v8.893M12.281 25.17v11.149m0-16.711v-1.591m0-1.577v-1.591m0-1.578v-1.59M24 15.833v-.984m0-1.578v-1.59m11.719 7.927v-1.591m0 3.848v-.702m0-4.723v-1.591m0-1.578v-1.59"/><circle cx="24" cy="24" r="21.5"/>',
+  "bloco/Executar": '<path d="M24 8.408V19.81m5.255-7.944A13.22 13.22 0 0 1 37.223 24h0c0 7.303-5.92 13.223-13.223 13.223h0c-7.303 0-13.223-5.92-13.223-13.223h0c0-5.27 3.129-10.037 7.964-12.133M45.5 24c0 11.874-9.626 21.5-21.5 21.5S2.5 35.874 2.5 24S12.126 2.5 24 2.5S45.5 12.126 45.5 24"/>',
+
+  /* as abas */
+  "Início": '<path d="M42.5 23.075L26.062 7.525a3 3 0 0 0-4.124 0L5.5 23.075m5.86 1.54v14.68a2 2 0 0 0 2 2h7.14v-9.5h7v9.5h7.14a2 2 0 0 0 2-2v-14.68"/>',
+  "Papéis de parede": '<path d="M31.315 12.123a4.465 4.465 0 1 1 0 8.93a4.465 4.465 0 0 1 0-8.93m-11.294 8.909l7.224 7.223a.7.7 0 0 0 .992 0l1.383-1.383a.7.7 0 0 1 .993 0l7.807 7.807a.702.702 0 0 1-.497 1.198H10.076a.702.702 0 0 1-.577-1.101l9.45-13.648a.702.702 0 0 1 1.072-.097Z"/><path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/>',
+  "Ícones dos programas": '<path d="M17.5 5.5h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m-21 21h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4"/>',
+  "Jogos da Steam": '<path d="M24 2.5A21.51 21.51 0 0 0 2.5 24v.91l10.79 3.95a6 6 0 0 1 2.54-1.4a6 6 0 0 1 1.8-.21a8 8 0 0 1 .84.1h0L25 18.12a7.63 7.63 0 0 1 5.65-7.39a7.5 7.5 0 0 1 2.26-.25a7.62 7.62 0 0 1 1.68 15h0a7.5 7.5 0 0 1-2 .25h0l-9.22 6.52h0a6.06 6.06 0 0 1-11.81 2.64h0a6 6 0 0 1-.15-.82l-7.63-2.81A21.49 21.49 0 1 0 24 2.5m8.93 8a7.5 7.5 0 0 0-2.26.25a7.63 7.63 0 0 0-5.39 9.33h0A7.62 7.62 0 0 0 40 16.12h0a7.59 7.59 0 0 0-7.07-5.64ZM17.42 27.25a6.05 6.05 0 0 0-6.05 6h0a6.05 6.05 0 0 0 6.05 6h0a6.05 6.05 0 0 0 6.06-6h0a6.05 6.05 0 0 0-6.05-6.06Z"/>',
+  "Estudos de tela": '<path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4M24 5.5v37M42.5 24H24"/>',
+  "Cor e tema": '<rect width="18.314" height="39" x="14.843" y="4.5" rx="3"/><path d="M14.843 33.4h18.314M14.843 22.236s3.933-.233 5.292 2.27s2.605 3.387 4.466.291s3.5-6.83 8.556-.514m-.001-11.601s-1.669-2.183-3.418-2.088s-4.099 4.972-5.418 4.852s-2.285-6.481-4.118-7.03s-5.36 2.35-5.36 2.35"/><ellipse cx="24" cy="38.01" rx="1.965" ry="1.957"/>',
+  /* AUTORAL: o acervo não tem gato. As orelhas do mascote, em três traços. */
+  "O gato do dock": '<path d="M13 21V11l8 6M35 21V11l-8 6"/><path d="M13 20c0 10 5 17 11 17s11-7 11-17"/>',
+  "Ícones": '<path d="M17.5 5.5h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m-21 21h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4"/>',
+  "Barra e dock": '<rect width="22.05" height="32.42" x="12.98" y="7.79" rx="2"/><path d="M35 38.18h5.95a2.6 2.6 0 0 0 2.59-2.59V12.41a2.6 2.6 0 0 0-2.59-2.59H35"/><path d="M35.02 34.8h5.32V15.93h-5.32M13 38.18H7.09a2.6 2.6 0 0 1-2.59-2.59V12.41a2.6 2.6 0 0 1 2.59-2.59H13"/><path d="M12.98 34.8H7.66V15.93h5.32m2.65-3.39h16.75v24.21H15.63z"/>',
+  "Forma": '<rect width="39" height="25" x="4.5" y="9.75" rx="4" ry="4"/><path d="M16 38.25h16"/>',
+  "Vidro e relógio": '<path d="M24 2.5A21.5 21.5 0 1 1 2.5 24A21.51 21.51 0 0 1 24 2.5"/><circle cx="24" cy="24" r="2.5"/><path d="M24 21.5V11.44m2.1 13.91l12.2 7.8"/>',
+  "Música na barra": '<path d="m42.31 13.38l-25.1 3.48V7.98l25.1-3.48zm0 0v17.15m-25.1-13.67v20.88"/><circle cx="11.45" cy="37.74" r="5.76"/><circle cx="36.55" cy="30.53" r="5.76"/>',
+  "Janelas e tela": '<path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/><path d="M23.339 17.751v12.496h6.248m2.665.002H38.5m-6.248-12.496H38.5m-6.248 6.248h4.061m-4.061-6.248v12.496M9.5 17.753h8.279M13.64 30.249V17.753m6.863.015v12.466"/>',
+  "Papel de parede": '<path d="M31.315 12.123a4.465 4.465 0 1 1 0 8.93a4.465 4.465 0 0 1 0-8.93m-11.294 8.909l7.224 7.223a.7.7 0 0 0 .992 0l1.383-1.383a.7.7 0 0 1 .993 0l7.807 7.807a.702.702 0 0 1-.497 1.198H10.076a.702.702 0 0 1-.577-1.101l9.45-13.648a.702.702 0 0 1 1.072-.097Z"/><path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/>',
+  "Dia e noite": '<path d="M42.213 35.215C38.476 41.551 31.585 45.8 23.702 45.8C11.838 45.8 2.22 36.174 2.22 24.3S11.837 2.8 23.7 2.8c-9.647 19.619 6.773 33.218 18.512 32.415"/>',
+  "Terminal": '<path d="m10.559 22.908l12.586 7.269l-12.586 7.268m27.329 0H24.445"/><path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/>',
+  "Cores e prompt": '<rect width="18.314" height="39" x="14.843" y="4.5" rx="3"/><path d="M14.843 33.4h18.314M14.843 22.236s3.933-.233 5.292 2.27s2.605 3.387 4.466.291s3.5-6.83 8.556-.514m-.001-11.601s-1.669-2.183-3.418-2.088s-4.099 4.972-5.418 4.852s-2.285-6.481-4.118-7.03s-5.36 2.35-5.36 2.35"/><ellipse cx="24" cy="38.01" rx="1.965" ry="1.957"/>',
+  /* AUTORAL: idem. */
+  "O gato no fastfetch": '<path d="M13 21V11l8 6M35 21V11l-8 6"/><path d="M13 20c0 10 5 17 11 17s11-7 11-17"/>',
+  "Programas": '<path d="M17.5 5.5h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m-21 21h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4"/>',
+  "Manutenção": '<path d="M24 43.5c9.043-3.117 15.489-10.363 16.5-19.589a79.4 79.4 0 0 0-.071-12.027a2.54 2.54 0 0 0-2.468-2.366c-4.091-.126-8.846-.808-12.52-4.427a2.05 2.05 0 0 0-2.881 0c-3.675 3.619-8.43 4.301-12.52 4.427a2.54 2.54 0 0 0-2.468 2.366A79.4 79.4 0 0 0 7.5 23.911C8.511 33.137 14.957 40.383 24 43.5"/>',
+  "Instalar e conferir": '<circle cx="13.05" cy="24" r="8.55"/><path d="M43.5 32.55V24h0h-21.91m16.3 4.93V24"/>',
+  "Aplicar agora": '<path d="M5.896 22.443L42.105 5.5l-10.836 37l-11.453-13.323z"/><path d="m31.326 16.95l-11.51 12.227v8.747l3.316-4.824"/>',
+  "Programas e jogos": '<path d="M24 2.5A21.51 21.51 0 0 0 2.5 24v.91l10.79 3.95a6 6 0 0 1 2.54-1.4a6 6 0 0 1 1.8-.21a8 8 0 0 1 .84.1h0L25 18.12a7.63 7.63 0 0 1 5.65-7.39a7.5 7.5 0 0 1 2.26-.25a7.62 7.62 0 0 1 1.68 15h0a7.5 7.5 0 0 1-2 .25h0l-9.22 6.52h0a6.06 6.06 0 0 1-11.81 2.64h0a6 6 0 0 1-.15-.82l-7.63-2.81A21.49 21.49 0 1 0 24 2.5m8.93 8a7.5 7.5 0 0 0-2.26.25a7.63 7.63 0 0 0-5.39 9.33h0A7.62 7.62 0 0 0 40 16.12h0a7.59 7.59 0 0 0-7.07-5.64ZM17.42 27.25a6.05 6.05 0 0 0-6.05 6h0a6.05 6.05 0 0 0 6.05 6h0a6.05 6.05 0 0 0 6.06-6h0a6.05 6.05 0 0 0-6.05-6.06Z"/>',
+  "Ver o estado": '<path d="M42.5 18.7V9.5c0-2.2-1.8-4-4-4h-29c-2.2 0-4 1.8-4 4v9.2m0 10.6v9.2c0 2.2 1.8 4 4 4h29c2.2 0 4-1.8 4-4v-9.2M5.5 24h37"/>',
+};
+/* O «bloco/nome» vem primeiro porque "Papel de parede" existe em Configurar e em
+ * Executar — o mesmo nome, dois trabalhos. Hoje os dois usam o mesmo desenho, e a
+ * chave existe para o dia em que não usarem. */
+const ICONE_PADRAO = '<circle cx="24" cy="24" r="4"/>';
+
+function iconeDeMenu(nome, bloco) {
+  const d = ICONES_MENU[(bloco || "") + "/" + nome] || ICONES_MENU[nome] || ICONE_PADRAO;
+  const casca = document.createElement("span");
+  casca.className = "menu-icone";
+  casca.setAttribute("aria-hidden", "true");
+  casca.innerHTML = '<svg viewBox="0 0 48 48" width="17" height="17" fill="none" '
+    + 'stroke="currentColor" stroke-width="2.75" stroke-linecap="round" '
+    + 'stroke-linejoin="round">' + d + "</svg>";
+  return casca;
+}
+
+/* O rótulo de bloco, com o desenho na mesma coluna dos itens. */
+function rotuloDeBloco(nome) {
+  return elemento("div", { class: "rotulo-grupo" }, [
+    iconeDeMenu(nome, "bloco"),
+    elemento("span", { texto: nome }),
+  ]);
+}
+
+/* O subtítulo de um grupo dentro da página do assunto. Quando o grupo se chama
+ * como o assunto — é o caso do bloco de ajustes de uma seção sem subtítulo no
+ * arquivo — o nome não diz nada de novo, e o que separa os grupos é o que eles
+ * SÃO: ajustes, ou ações. */
+function rotuloDoGrupo(g) {
+  /* O `humanizar` é o mesmo que o menu já aplica: os subtítulos moram em CAIXA
+   * ALTA no `meow.conf.exemplo` porque é assim que o arquivo distingue as duas
+   * alturas de título, e essa é uma convenção de ARQUIVO. Na tela ela virava
+   * grito — "NO DOCK", "FORMA", "MÚSICA NA BARRA" — no meio de uma página que
+   * não grita em nenhum outro lugar. */
+  if (g.nome !== assuntoDe(g)) return humanizar(g.nome);
+  return g.tipo === "acoes" ? "Ações" : "Ajustes";
 }
 
 function botaoTrilho(g, filho, rotulo) {
@@ -2141,6 +2282,7 @@ function botaoTrilho(g, filho, rotulo) {
       render();
     },
   }, [
+    iconeDeMenu(g.nome, g.bloco || "fazer"),
     elemento("span", { texto: rotulo || encurtar(g.nome) }),
     elemento("span", { class: "conta", texto: contaDoGrupo(g) }),
     /* A LINHA QUE DIZ O QUE A SEÇÃO É — pedido dela em 02/09/2026 ("deixar mais
@@ -2160,6 +2302,7 @@ function botaoTrilho(g, filho, rotulo) {
  *   `/api/previas`. Um zero ao lado de 46 fotos é pior que nenhum número: diz à
  *   pessoa que não há nada ali, justamente na seção mais visual da página. */
 function contaDoGrupo(g) {
+  if (g.tipo === "home") return "";
   if (g.tipo === "galeria") {
     const lista = PREVIAS.get("parede/" + ABA_GALERIA);
     return lista ? String(lista.itens.length) : "";
@@ -2244,7 +2387,8 @@ function render() {
    * deixa de exigir que ela lembre em qual aba a chave mora. Sem busca, mostra
    * só a aba escolhida. */
   const grupos = busca
-    ? GRUPOS.map((g) => ({ ...g, itens: g.itens.filter((i) => casa(i, busca)) })).filter((g) => g.itens.length)
+    ? GRUPOS.filter((g) => g.tipo !== "home")
+        .map((g) => ({ ...g, itens: g.itens.filter((i) => casa(i, busca)) })).filter((g) => g.itens.length)
     : GRUPOS.filter((g) => chaveDeAba(g) === ABA);
 
   if (!grupos.length) {
@@ -2257,21 +2401,43 @@ function render() {
   const temImagem = grupos.some((g) => g.tipo === "galeria" || g.nome === GRUPO_ICONES
     || (g.itens || []).some((i) => i.previa === "gato" || i.previa === "cursor"));
   if (temImagem) alvo.append(barraDeFundos());
+  let ultimoAssunto = null;
+  let barraDesenhada = false;   // o par painel+dock sai uma vez por página
 
   for (const g of grupos) {
-    if (busca || g.tipo !== "chaves") {
-      alvo.append(elemento("h2", { class: "secao-titulo", title: g.nome,
-                                   texto: encurtar(g.nome) }));
+    /* A home desenha o próprio cabeçalho: um `h2` "Início" acima dela seria o
+     * título de uma tela que já se apresenta. */
+    if (g.tipo === "home") { alvo.append(montarHome()); continue; }
+    /* TODA ABA TEM TÍTULO — e catorze delas não tinham.
+     *   A condição era `if (busca || g.tipo !== "chaves")`: as abas de chaves
+     *   abriam direto na frase de descrição, com um degrau de tipografia que
+     *   simplesmente não existia ali. O nome da aba estava no menu, e o menu
+     *   está sempre visível — mas quem clicou já não olha o menu, e uma tela
+     *   sem título é uma tela sem lugar.
+     *
+     *   Quando a aba é uma SUBABA, o título diz o caminho: "Barra e dock ·
+     *   Forma". Sozinho, "Forma" não diz de que forma se fala. */
+    /* O TÍTULO É O ASSUNTO, UMA VEZ POR PÁGINA.
+     *   Uma página de assunto pode ter a galeria, dois ou três blocos de ajuste
+     *   e as ações — quatro grupos, um título. Cada grupo ganha um subtítulo
+     *   próprio, e só quando há mais de um: numa página de um grupo só, o
+     *   subtítulo seria o título repetido em corpo menor.
+     *
+     *   A frase da seção repete a do menu de propósito: no menu ela serve para
+     *   escolher onde entrar, aqui para confirmar que se entrou no lugar certo.
+     *   Fora da busca, que mostra resultados de vários assuntos ao mesmo tempo. */
+    const assunto = assuntoDe(g);
+    if (assunto !== ultimoAssunto) {
+      ultimoAssunto = assunto;
+      alvo.append(elemento("h2", { class: "secao-titulo", title: assunto,
+                                   texto: encurtar(assunto) }));
+      if (!busca) {
+        const frase = descricaoDe(assunto);
+        if (frase) alvo.append(elemento("p", { class: "descricao-secao", texto: frase }));
+      }
     }
-    /* A MESMA FRASE DO MENU, DE NOVO NO TOPO DA SEÇÃO ABERTA.
-     *   No menu ela serve para ESCOLHER onde entrar; aqui serve para confirmar
-     *   que entrou no lugar certo. Repetir é o ponto: quem clicou já não vê o
-     *   menu inteiro, e as seções de chave nem título têm. Só fora da busca —
-     *   com a busca ativa a tela mostra resultados de vários assuntos, e uma
-     *   frase de assunto ali mentiria sobre o que está listado embaixo dela. */
-    if (!busca) {
-      const frase = descricaoDe(g);
-      if (frase) alvo.append(elemento("p", { class: "descricao-secao", texto: frase }));
+    if (grupos.length > 1) {
+      alvo.append(elemento("h3", { class: "subsecao-titulo", texto: rotuloDoGrupo(g) }));
     }
     if (g.tipo === "folhas") { alvo.append(montarFolhas(g.itens)); continue; }
     if (g.tipo === "apps") { alvo.append(montarApps()); continue; }
@@ -2289,8 +2455,15 @@ function render() {
 
     /* O par painel + dock, uma vez, antes dos controles da seção. Os dois
      * juntos porque as chaves vêm em par (`FORMA_RAIO_PAINEL` e
-     * `FORMA_RAIO_DOCK` moram na mesma seção) e comparar é metade da escolha. */
-    if (!busca && (g.itens || []).some((i) => i.previa === "barra")) {
+     * `FORMA_RAIO_DOCK` moram na mesma seção) e comparar é metade da escolha.
+     *
+     * UMA VEZ POR PÁGINA, E NÃO POR GRUPO — 06/09/2026. Com uma página por
+     * assunto, "Forma" e "Vidro e relógio" passaram a morar juntas em "Barra e
+     * dock", e as duas têm chaves de prévia `barra`: o par aparecia duas vezes
+     * na mesma tela, com números diferentes, como se fossem barras diferentes.
+     * O desenho é do assunto, não do bloco. */
+    if (!busca && !barraDesenhada && (g.itens || []).some((i) => i.previa === "barra")) {
+      barraDesenhada = true;
       const par = elemento("div", { class: "grade-barras" });
       par.append(mockDaBarra({ chave: "FORMA_RAIO_PAINEL" }));
       par.append(mockDaBarra({ chave: "FORMA_RAIO_DOCK" }));
@@ -2364,6 +2537,225 @@ function casa(item, busca) {
  * caminhos absolutos, nada clicável. Um caminho que ela precisa selecionar,
  * copiar e colar num gerenciador de arquivos é a interface pedindo para ser
  * contornada. Agora cada folha é um link que o servidor serve. */
+/* ===========================================================================
+ * A HOME — "o que está no ar, o que espera por mim, e por onde entro"
+ * ===========================================================================
+ * A página abria na galeria: 46 fotos e nenhuma resposta. Quem chega uma vez
+ * por semana precisa de três coisas antes de escolher aba, e todas as três já
+ * existem nos dados — só não estavam em lugar nenhum:
+ *
+ *   1. COMO A MÁQUINA ESTÁ VESTIDA. A variante, a cor de destaque, o modo, o
+ *      gato em vigor, o tema de ícones, o ponteiro. A tira de cores é o próprio
+ *      flavor, desenhado — "mocha" não diz nada, a tira diz.
+ *   2. O QUE ESPERA POR VOCÊ. As escolhas guardadas e não salvas, e quantos
+ *      ajustes estão diferentes do que vem de fábrica. Sem pendência a frase
+ *      não desaparece: ela é onde o modelo do produto ("clicar guarda, Salvar
+ *      grava") é dito antes do primeiro clique arriscado, e não depois.
+ *   3. POR ONDE ENTRAR. Os três blocos como três portas, com o tamanho de cada
+ *      um — e não como três rótulos cinza no alto de um menu.
+ *
+ * E o rodapé: as quatro ações que se roda toda semana. Elas já existem em
+ * "Rodar"; aqui elas estão a um clique de onde a página abre. */
+function montarHome() {
+  const chave = (c) => ESQUEMA.chaves.find((k) => k.chave === c);
+  const vale = (c) => { const k = chave(c); return k ? (k.efetivo || k.valor || k.padrao || "") : ""; };
+  const caixa = elemento("div", { class: "home" });
+
+  /* --- 1. o retrato ------------------------------------------------------- */
+  const retrato = elemento("section", { class: "home-retrato" });
+  const gatoNome = vale("LOGO");
+  const gatos = previasDe("gato");
+  const gato = gatos && gatos.itens.find((i) => i.id === gatoNome);
+  if (gato && gato.url) {
+    retrato.append(elemento("img", { class: "home-gato", src: gato.url, alt: "",
+                                     title: `O gato em vigor: ${gatoNome}` }));
+  }
+
+  const ident = elemento("div", { class: "home-id" });
+  ident.append(elemento("p", { class: "home-rotulo", texto: "Como a máquina está vestida" }));
+  ident.append(elemento("h2", { class: "home-titulo",
+    texto: [vale("FLAVOR"), vale("ACCENT"), vale("MODO")]
+      .map((v) => maiuscula(rotuloDeValor(v))).join(" · ") }));
+
+  /* A TIRA É O FLAVOR, DESENHADO. Mesma disciplina do cartão de variante: um
+   * nome não se compara, uma tira se compara. O acento ganha um anel — é a
+   * única cor da tira que significa algo em toda a interface. */
+  const paleta = (ESQUEMA.paleta.flavors || {})[vale("FLAVOR")] || {};
+  const tira = elemento("div", { class: "home-tira", title: "A paleta desta variante, na ordem do Catppuccin" });
+  for (const nome of (ESQUEMA.paleta.ordem || [])) {
+    if (!paleta[nome]) continue;
+    const s = elemento("span", { title: nome });
+    s.style.background = paleta[nome];
+    if (nome === vale("ACCENT")) s.dataset.acento = "1";
+    tira.append(s);
+  }
+  ident.append(tira);
+
+  const comoEscolhido = { hora: "escolhido pelo relógio", rotacao: "girando pela lista", fixo: "fixo" };
+  ident.append(elemento("p", { class: "home-linha", texto:
+    `Gato ${gatoNome || "—"}, ${comoEscolhido[vale("LOGO_MODO")] || "fixo"} · ícones ${vale("NOME_TEMA_ICONES")} · ponteiro ${vale("CURSOR") || "de fábrica"}` }));
+  retrato.append(ident);
+
+  /* As fotos são a COLEÇÃO, não "a que está na tela" — a página não sabe qual
+   * está na tela, e dizer que sabe seria a primeira mentira dela. */
+  const paredes = previasDe("parede", "ativos");
+  if (paredes && paredes.itens.length) {
+    const fotos = elemento("div", { class: "home-fotos" });
+    for (const i of paredes.itens.slice(0, 6)) {
+      if (i.url) fotos.append(elemento("img", { src: i.url, alt: "", title: i.rotulo }));
+    }
+    const n = (paredes.contagens && paredes.contagens.ativos) || paredes.itens.length;
+    fotos.append(elemento("span", { class: "home-fotos-conta",
+      texto: `${n} no carrossel, trocando a cada ${rotuloDeValor(vale("WALLPAPER_INTERVALO"))}` }));
+    retrato.append(fotos);
+  }
+  caixa.append(retrato);
+
+  /* --- 2. o que espera por você ------------------------------------------ */
+  const mexidas = ESQUEMA.chaves.filter((i) => (i.valor ?? "") !== i.padrao).length;
+  const atencao = elemento("section", { class: "home-atencao" });
+  if (MUDANCAS.size) {
+    atencao.dataset.esperando = "1";
+    atencao.append(elemento("p", {}, [
+      elemento("strong", { texto: `${MUDANCAS.size} ${MUDANCAS.size === 1 ? "escolha" : "escolhas"} esperando. ` }),
+      elemento("span", { texto: "Elas estão guardadas aqui, e não no disco. “Salvar e aplicar”, no alto, grava tudo de uma vez e roda o instalador em seguida." }),
+    ]));
+  } else {
+    atencao.append(elemento("p", {}, [
+      elemento("strong", { texto: "Nada esperando. " }),
+      elemento("span", { texto: "Escolher aqui não muda a máquina: clicar guarda, e “Salvar e aplicar” é o que grava e aplica." }),
+    ]));
+  }
+
+  /* --- 3. as três portas ------------------------------------------------- */
+  const ordemDosAssuntos = assuntosEmOrdem();
+  const comChave = ordemDosAssuntos.filter(temChaves);
+  const soMaquina = ordemDosAssuntos.filter((a) => !temChaves(a));
+  const acoesDaMaquina = GRUPOS
+    .filter((g) => g.tipo === "acoes" && soMaquina.includes(assuntoDe(g)))
+    .reduce((s, g) => s + g.itens.length, 0);
+  const portas = [
+    [comChave[0], "Assuntos", `${ESQUEMA.chaves.length} ajustes em ${comChave.length} assuntos`,
+     "Cada assunto numa página: a coleção, os ajustes e as ações, juntos."],
+    [soMaquina[0], "A máquina", `${acoesDaMaquina} ações`,
+     "Instalar, conferir, consertar, desfazer, e o que está no ar."],
+  ];
+  const grade = elemento("div", { class: "home-portas" });
+  caixa.append(grade);
+  for (const [destino, nome, conta, frase] of portas) {
+    if (!destino) continue;
+    grade.append(elemento("button", {
+      type: "button", class: "porta",
+      title: `Ir para ${destino}`,
+      onclick: () => { ABA = destino; gravarHash(); render(); },
+    }, [
+      elemento("b", { texto: nome }),
+      elemento("span", { class: "porta-conta", texto: conta }),
+      elemento("span", { class: "porta-frase", texto: frase }),
+    ]));
+  }
+
+  /* --- 3b. o que a noite muda --------------------------------------------
+   * Nada aqui é escrito à mão: cada frase só aparece quando a chave que a
+   * sustenta está ligada, e o texto sai do valor em vigor. Uma chave desligada
+   * não vira frase negativa — vira silêncio, menos o modo de leitura, que é a
+   * única que dá para confundir com defeito quando a tela não esquenta. */
+  const liga = (c) => ["sim", "true", "1"].includes(String(vale(c)).toLowerCase());
+  const noite = elemento("section", { class: "home-noite" });
+  /* `NOITE_INICIO` vazio não é "não há noite": é "quem decide a hora é o
+   * horário do modo de leitura", que é o que os comentários das duas chaves
+   * dizem. A home mostra a hora que de fato vale, e não a célula vazia. */
+  const comecaAs = vale("NOITE_INICIO") || vale("LEITURA_HORARIO_INICIO");
+  const terminaAs = vale("NOITE_FIM") || vale("LEITURA_HORARIO_FIM");
+  noite.append(elemento("h3", {}, [
+    iconeDeMenu("Dia e noite", "ajustar"),
+    elemento("span", { texto: comecaAs && terminaAs
+      ? `À noite, das ${comecaAs} às ${terminaAs}` : "À noite" }),
+  ]));
+  const frases = [];
+  if (vale("LOGO_MODO") === "hora" && vale("LOGO_NOITE")) {
+    frases.push(`O gato do dock passa a ser ${maiuscula(vale("LOGO_NOITE"))}`
+      + (vale("FASTFETCH_LOGO_MODO") === "espelho" && vale("LOGO_DIA")
+         ? `, e o do terminal, ${maiuscula(vale("LOGO_DIA"))}.` : "."));
+  }
+  if (liga("WALLPAPER_NOITE")) {
+    frases.push("O carrossel sorteia só entre as imagens escuras.");
+  }
+  if (liga("LEITURA_AGENDA")) {
+    const textura = Number(vale("LEITURA_TEXTURA") || 0);
+    const rampa = Number(vale("LEITURA_RAMPA_MIN") || 0);
+    frases.push(`A tela esquenta até ${vale("LEITURA_TEMPERATURA")} K`
+      + (textura > 0 ? ` e ganha ${Math.round(textura * 100)} % de textura de papel` : "")
+      + (rampa > 0 ? `, em ${rampa} min de rampa.` : "."));
+  } else {
+    frases.push("O modo de leitura fica desligado.");
+  }
+  noite.append(elemento("p", { class: "home-linha", texto: frases.join(" ") }));
+  const abaNoite = GRUPOS.find((g) => g.nome === "Dia e noite")
+    || GRUPOS.find((g) => g.secaoPai === "Dia e noite");
+  if (abaNoite) {
+    noite.append(elemento("button", {
+      type: "button", class: "btn btn-mini",
+      texto: "Abrir Dia e noite",
+      title: "As 13 chaves que respondem «soltar o que muda de noite»",
+      onclick: () => { ABA = chaveDeAba(abaNoite); gravarHash(); render(); },
+    }));
+  }
+  caixa.append(noite);
+
+  /* --- 4. a coluna da direita -------------------------------------------- */
+  const lado = elemento("aside", { class: "home-lado" });
+  lado.append(atencao);
+
+  /* ONDE VOCÊ MEXEU — o único número da tela que não poderia existir em outro
+   * painel, e que era um `<p>` cinza calculado uma vez. Aqui ele é a lista, e
+   * cada nome leva ao cartão: doze fatos, não um adjetivo. */
+  const diferentes = ESQUEMA.chaves.filter((i) => (i.valor ?? "") !== i.padrao);
+  const bloco = elemento("section", { class: "home-mexeu" });
+  bloco.append(elemento("h3", {}, [
+    elemento("strong", { texto: String(diferentes.length) }),
+    elemento("span", { texto: ` de ${ESQUEMA.chaves.length} mudados por você` }),
+  ]));
+  if (!diferentes.length) {
+    bloco.append(elemento("p", { class: "home-nota", texto: "Tudo como vem de fábrica." }));
+  } else {
+    const fichas = elemento("div", { class: "home-fichas" });
+    for (const i of diferentes) {
+      const grupo = GRUPOS.find((g) => (g.itens || []).some((x) => x.chave === i.chave));
+      fichas.append(elemento("button", {
+        type: "button", class: "home-ficha",
+        title: `${i.chave} · de fábrica: ${rotuloDeValor(i.padrao) || "nada"} · agora: ${rotuloDeValor(i.valor) || "nada"}`,
+        texto: tituloDoCartao(i) || i.chave,
+        onclick: grupo ? () => { ABA = chaveDeAba(grupo); gravarHash(); render(); } : null,
+      }));
+    }
+    bloco.append(fichas);
+  }
+  lado.append(bloco);
+
+  /* --- 5. o que se roda toda semana -------------------------------------- */
+  const semana = elemento("section", { class: "home-semana" });
+  semana.append(elemento("h3", { texto: "Toda semana" }));
+  const linha = elemento("div", { class: "linha-botoes" });
+  for (const [id, rotulo, principal] of [
+    ["doctor", "Conferir a máquina", true],
+    ["doctor_consertar", "Consertar o que estiver fora", false],
+    ["wallpaper_proximo", "Próxima imagem", false],
+    ["painel_reciclar", "Recarregar a barra", false],
+  ]) {
+    const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
+    if (!acao) continue;
+    linha.append(elemento("button", {
+      type: "button", class: "btn" + (principal ? " btn-accent" : ""),
+      "data-acao-rapida": id, texto: rotulo, title: acao.ajuda || "",
+    }));
+  }
+  semana.append(linha);
+  lado.append(semana);
+  caixa.append(lado);
+  return caixa;
+}
+
 function montarFolhas(folhas) {
   const caixa = elemento("div");
   caixa.append(elemento("p", {
@@ -2544,17 +2936,32 @@ function montarGrupos() {
      *   que roda o instalador. Olhar uma capa e escolher um desenho não é
      *   disparar um script — e são as telas em que ela passa mais tempo, então
      *   sobem para o topo. `bloco` é o que o `montarTrilho` lê; quem não diz
-     *   nada cai em "Fazer", que continua sendo o resto. */
-    GRUPOS.push({ tipo: "galeria", bloco: "ver", nome: "Galeria de papéis de parede", itens: [] });
-    GRUPOS.push({ tipo: "apps", bloco: "ver", nome: "Ícone de cada aplicativo", itens: [] });
-    GRUPOS.push({ tipo: "jogos", bloco: "ver", nome: "Jogos da Steam", itens: [] });
-    /* As folhas vêm por ÚLTIMO no bloco de olhar: são a leitura de apoio, não o
-     * lugar onde ela mexe nas coisas. A ordem do menu é a ordem em que os grupos
-     * entram nesta lista. */
-    if (ESQUEMA.folhas.length) {
-      GRUPOS.push({ tipo: "folhas", bloco: "ver", nome: "Folhas visuais",
-                    itens: ESQUEMA.folhas });
-    }
+     *   nada cai em "Rodar", que continua sendo o resto. */
+    GRUPOS.push({ tipo: "galeria", assunto: "Papel de parede", nome: "A coleção", itens: [] });
+    GRUPOS.push({ tipo: "apps", assunto: "Ícones", nome: "Um ícone por programa", itens: [] });
+    GRUPOS.push({ tipo: "jogos", assunto: "Programas e jogos", nome: "Os jogos instalados", itens: [] });
+
+    /* AS FOLHAS SAÍRAM DO PAINEL — 06/09/2026: "remover estudos de tela, tem que
+     * sair, é sobre meu pc". Elas são a memória do desenho, não um lugar onde se
+     * mexe na máquina; continuam versionadas em docs/folhas/ e o servidor
+     * continua sabendo abri-las. */
+
+    /* A HOME É UM GRUPO, e é por isso que ela é a aba que abre por padrão
+     * (`ABA = abaDoHash() || chaveDeAba(GRUPOS[0])`). Ela não é um assunto entre
+     * os outros — é a porta, e por isso entra antes dos dois blocos do menu. */
+    GRUPOS.unshift({ tipo: "home", nome: "Início", itens: [] });
+
+    /* AS GALERIAS ENTRAM NO ASSUNTO A QUE PERTENCEM, e é por isso que a página
+     * de papel de parede tem a coleção, os nove ajustes e as sete ações: os três
+     * grupos respondem pelo mesmo assunto. O `render()` desenha na ordem desta
+     * lista, então é aqui que eles se juntam — a galeria primeiro, porque é o
+     * objeto; os ajustes depois; as ações no fim, que é a ordem em que se usa
+     * uma página. */
+    const ordemDosAssuntos = assuntosEmOrdem();
+    const peso = { galeria: 0, apps: 0, chaves: 1, jogos: 1.5, acoes: 2 };
+    const posicao = (g) => g.tipo === "home" ? -1 : ordemDosAssuntos.indexOf(assuntoDe(g));
+    GRUPOS.sort((a, b) => (posicao(a) - posicao(b))
+      || ((peso[a.tipo] ?? 3) - (peso[b.tipo] ?? 3)));
 
     GRUPOS_VISUAIS = new Set(
       GRUPOS.filter((g) => g.tipo === "chaves" && g.itens.some((i) => i.previa))
@@ -2632,7 +3039,7 @@ async function iniciar() {
   $("#resumo").textContent =
     /* O caminho do meow.conf saiu da linha e foi para o `title`: ele tem 44
      * caracteres, aparece em toda tela e nunca muda. Fica o que muda. */
-    `${ESQUEMA.chaves.length} chaves · ${mexidas} fora do padrão`
+    `${ESQUEMA.chaves.length} ajustes · ${mexidas} mudados por você`
     + (ESQUEMA.conf_existe ? "" : " · o arquivo ainda não existe");
   $("#resumo").title = ESQUEMA.conf;
 
@@ -2663,3 +3070,4 @@ try {
 }
 
 iniciar();
+
