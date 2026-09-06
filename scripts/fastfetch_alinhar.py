@@ -78,6 +78,19 @@ import sys
 ESCAPE = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
 
 
+def _inteiro(valor, padrao, nome):
+    """O valor como inteiro não negativo, ou `padrao` — e um aviso no stderr.
+
+    O stderr não suja o cano: quem lê a saudação vê o texto, e quem for depurar
+    vê o motivo."""
+    try:
+        return max(int(str(valor).strip()), 0)
+    except (TypeError, ValueError):
+        print("meow-fetch: %s=%r não é número — usando %r"
+              % (nome, valor, padrao), file=sys.stderr)
+        return padrao
+
+
 def _visivel(linha):
     """A linha como o olho a vê: sem os escapes, que não ocupam coluna."""
     return ESCAPE.sub("", linha)
@@ -132,9 +145,80 @@ def _e_separador(linha):
     return len(v) >= 3 and set(v) <= TRACOS
 
 
-# Uma cor de FUNDO: `ESC[4x`, `ESC[10x` (as dezesseis clássicas) ou o
-# `ESC[48;…` do RGB. É o que faz uma linha de espaços ser um retângulo colorido.
-FUNDO = re.compile(r"\x1b\[(?:[0-9;]*;)?(?:4[0-7]|10[0-7]|48)(?:[;m])")
+# --- o que é TINTA, e por que é uma função só ---------------------------------
+# ESPAÇO COM COR DE FUNDO É PIXEL, e o gerador escreve exatamente isso: no
+# `fastfetch_logo.sh`, célula opaca e uniforme cai em `melhor = 0`, o glifo é
+# " " e a célula sai como `ESC[48;2;r;g;bm` + espaço. Há 723 sequências `48;2`
+# no gato de hoje e 43 delas são espaço pintado.
+#
+# A primeira versão disto era uma expressão regular, e ela CASAVA COR DE
+# FRENTE: em `\x1b[(?:[0-9;]*;)?(?:4[0-7]|10[0-7]|48)(?:[;m])`, o grupo da
+# frente pode terminar em qualquer `;` do meio, então `ESC[38;2;30;30;46m` (o
+# azul-base do Mocha, cor de TEXTO) casava — o grupo comia `38;2;30;30;` e
+# sobrava `46m`. Parâmetro SGR não se lê por casamento solto: 38, 48 e 58
+# carregam 2 ou 4 argumentos atrás, e é preciso andar por eles.
+#
+# E a mesma varredura serve aos DOIS EIXOS. A tinta de fundo só valia na
+# vertical: o `_tem_tinta` sabia que espaço pintado é pixel, e o
+# `len(_visivel(d).rstrip())` que mede a largura tratava o mesmo espaço como
+# enchimento. Quando um deles caía na ponta da linha, o `rstrip` o apagava da
+# conta e o texto entrava EM CIMA de onde o pixel estava.
+_SGR = re.compile(r"\x1b\[([0-9;]*)m")
+
+
+def _e_fundo(params):
+    """A sequência SGR `params` liga cor de fundo? Anda pelos parâmetros.
+
+    Devolve None quando a sequência não fala de fundo nenhum (para não desligar
+    o que já estava ligado), True quando liga, False quando desliga."""
+    campos = [c for c in params.split(";")]
+    i, resposta = 0, None
+    while i < len(campos):
+        c = campos[i] or "0"
+        try:
+            n = int(c)
+        except ValueError:
+            i += 1
+            continue
+        if n in (38, 48, 58):
+            # 2 = RGB (mais três), 5 = 256 cores (mais um). É por causa destes
+            # argumentos de trás que a leitura por regex errava.
+            seguinte = campos[i + 1] if i + 1 < len(campos) else ""
+            salto = 5 if seguinte == "2" else (3 if seguinte == "5" else 1)
+            if n == 48:
+                resposta = True
+            i += salto
+            continue
+        if n == 0 or n == 49:
+            resposta = False
+        elif 40 <= n <= 47 or 100 <= n <= 107:
+            resposta = True
+        i += 1
+    return resposta
+
+
+def _largura_pintada(linha):
+    """A última coluna que a linha pinta, contando espaço com fundo ativo.
+
+    Percorre acompanhando o estado do fundo: espaço com fundo conta como
+    desenho, espaço sem fundo é enchimento e não conta."""
+    fundo, coluna, ultima = False, 0, 0
+    for pedaco in re.split(r"(\x1b\[[0-9;?]*[a-zA-Z])", linha):
+        if not pedaco:
+            continue
+        m = _SGR.fullmatch(pedaco)
+        if m is not None:
+            r = _e_fundo(m.group(1))
+            if r is not None:
+                fundo = r
+            continue
+        if ESCAPE.fullmatch(pedaco):
+            continue
+        for ch in pedaco:
+            coluna += 1
+            if ch != " " or fundo:
+                ultima = coluna
+    return ultima
 
 
 def _tem_tinta(linha):
@@ -146,7 +230,7 @@ def _tem_tinta(linha):
     considera vazias, e a centralização passava a alinhar um bloco duas linhas
     mais curto do que o que se vê.
     """
-    return bool(_visivel(linha).strip()) or bool(FUNDO.search(linha))
+    return _largura_pintada(linha) > 0
 
 
 def _extremos(linhas):
@@ -207,7 +291,7 @@ def colunas(desenho, texto, recuo, modo, passo):
     base = []
     for i in range(len(texto)):
         d = desenho[i] if i < len(desenho) else ""
-        largura = len(_visivel(d).rstrip())
+        largura = _largura_pintada(d)
         base.append((largura + recuo) if largura else recuo)
 
     if modo == "reto":
@@ -237,6 +321,31 @@ def colunas(desenho, texto, recuo, modo, passo):
         if i and _e_separador(linha) and _visivel(texto[i - 1]).strip():
             junto = max(cols[i - 1], cols[i])
             cols[i - 1] = cols[i] = junto
+
+    # A PALETA É UM BLOCO, PELO MESMO MOTIVO DO PAR TÍTULO+RÉGUA.
+    #   Ela são duas linhas de oito quadrados de cor, e o olho as lê como uma
+    #   grade: se começarem em colunas diferentes, a grade entorta. Elas caíam
+    #   em 56 e 53 — três colunas de diferença — porque o `--topo auto` levou o
+    #   texto para o meio do gato, onde o queixo dele está afinando. Com o topo
+    #   fixo de antes elas caíam em duas linhas da mesma largura e ficavam
+    #   alinhadas por sorte.
+    #   O bloco é a corrida de linhas que têm tinta mas nenhum caractere
+    #   visível: espaço colorido, e nada mais. Todas recebem a MAIOR coluna do
+    #   bloco, para nenhuma invadir o desenho.
+    i = 0
+    while i < len(texto):
+        if _tem_tinta(texto[i]) and not _visivel(texto[i]).strip():
+            j = i
+            while j + 1 < len(texto) and _tem_tinta(texto[j + 1]) \
+                    and not _visivel(texto[j + 1]).strip():
+                j += 1
+            if j > i:
+                junto = max(cols[i:j + 1])
+                for k in range(i, j + 1):
+                    cols[k] = junto
+            i = j + 1
+        else:
+            i += 1
     return cols
 
 
@@ -254,14 +363,20 @@ def compor(texto, gato, recuo, topo, modo="contorno", passo=4):
     for i in range(altura):
         d = desenho[i] if i < len(desenho) else ""
         t = texto[i] if i < len(texto) else ""
-        largura = len(_visivel(d).rstrip())
+        largura = _largura_pintada(d)
         alvo = cols[i] if i < len(cols) else recuo
         if largura:
             # O `ESC[0m` fecha a cor do último bloco do desenho. Sem ele o
             # branco da chave herdaria a cor do pixel em que o corte caiu.
-            # O `max(...)` protege o desenho: uma coluna menor que a largura do
-            # traço faria o texto entrar por cima do gato.
-            enche = max(alvo - largura, 1) if t else 0
+            #
+            # O CLAMP É 0, E NÃO 1. Ele estava em 1 contra um perigo que não se
+            # mede: `alvo` é sempre `largura + recuo` e os três modos derivados
+            # só sobem, então `alvo < largura` não acontece (varridos 4000
+            # sorteios × 4 modos). O que o 1 fazia de verdade era mentir sobre a
+            # chave: o meow.conf documenta `FASTFETCH_LOGO_RECUO` de 0 a 12, e
+            # quem pedia 0 recebia 1 sem explicação. A proteção real veio da
+            # largura passar a contar pixel pintado.
+            enche = max(alvo - largura, 0) if t else 0
             yield _cortar(d, largura) + "\x1b[0m" + " " * enche + t
         elif t:
             yield " " * alvo + t
@@ -272,7 +387,14 @@ def compor(texto, gato, recuo, topo, modo="contorno", passo=4):
 def main():
     p = argparse.ArgumentParser(add_help=True, description=__doc__)
     p.add_argument("--gato", default="~/.local/share/meowsystem/fastfetch/gato.ansi")
-    p.add_argument("--recuo", type=int, default=3,
+    # SEM `type=int` NOS TRÊS. O cabeçalho promete que este filtro "NUNCA falha
+    # com pilha de erro na cara dela", e o argparse quebrava a promessa: os
+    # valores vêm do meow.conf, que é arquivo editado à mão, e um `type=int`
+    # sobre `FASTFETCH_LOGO_RECUO="tres"` mata o processo ANTES de o stdin ser
+    # lido. O cano é `fastfetch --logo none | python3 alinhar`: quando o Python
+    # morre, o stdout do cano fica VAZIO — a saudação inteira some e sobra o
+    # rastreamento, em toda janela nova. A leitura tolerante está no `_inteiro`.
+    p.add_argument("--recuo", default="3",
                    help="colunas entre o fim do desenho e o começo do texto")
     p.add_argument("--topo", default="auto",
                    help='linhas em branco antes do desenho; "auto" centra os '
@@ -280,13 +402,15 @@ def main():
     p.add_argument("--modo", default="contorno",
                    choices=("contorno", "degraus", "crescente", "reto"),
                    help="como a borda esquerda do texto acompanha o desenho")
-    p.add_argument("--passo", type=int, default=4,
+    p.add_argument("--passo", default="4",
                    help="o tamanho do degrau, quando --modo degraus")
     p.add_argument("--conferir", action="store_true",
                    help="não compõe; sai 0 se dá para compor, 4 se não dá")
     args = p.parse_args()
     topo = "auto" if str(args.topo).strip().lower() in ("auto", "") \
-        else max(int(args.topo), 0)
+        else _inteiro(args.topo, "auto", "--topo")
+    recuo = _inteiro(args.recuo, 3, "--recuo")
+    passo = _inteiro(args.passo, 4, "--passo")
 
     gato = _ler_gato(args.gato)
 
@@ -303,8 +427,18 @@ def main():
         return 0
 
     texto = bruto.rstrip("\n").split("\n")
-    sys.stdout.write("\n".join(
-        compor(texto, gato, max(args.recuo, 0), topo, args.modo, args.passo)) + "\n")
+    # A ÚLTIMA REDE. O stdin já está lido: qualquer coisa que a composição faça
+    # de errado devolve a saída do fastfetch como ela veio, que é o mesmo
+    # caminho do `if not gato` acima. Um terminal sem gato é um contratempo; um
+    # terminal em branco com um rastreamento é um defeito na cara dela.
+    try:
+        saida = "\n".join(compor(texto, gato, recuo, topo, args.modo, passo)) + "\n"
+    except Exception as erro:
+        print("meow-fetch: não consegui compor (%s) — saída sem gato"
+              % type(erro).__name__, file=sys.stderr)
+        sys.stdout.write(bruto)
+        return 0
+    sys.stdout.write(saida)
     return 0
 
 

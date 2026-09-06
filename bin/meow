@@ -909,7 +909,11 @@ chk_terminal() {
 # trata 4 como "é escolha sua" — sem isso o timer das 5h penduraria "o
 # auto-reparo corrigiu" na tela dela toda madrugada, sem ter corrigido nada.
 chk_fastfetch() {
-  FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}" \
+  # O `MEOW_DRY_RUN=1` é o mesmo de todas as `chk_*` irmãs, e faltava só nesta:
+  # o `conferir` do fastfetch chega a escrever o `~/.local/bin/meow-fetch` sem
+  # ele. "Conferir é leitura" (linha 35) só é verdade com o seco na frente.
+  MEOW_DRY_RUN=1 \
+    FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}" \
     FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}" \
     FASTFETCH_LOGO_COLUNAS="${FASTFETCH_LOGO_COLUNAS:-40}" \
     FASTFETCH_LOGO_MODO="${FASTFETCH_LOGO_MODO:-hora}" FASTFETCH_LOGO_DIA="${FASTFETCH_LOGO_DIA:-}" FASTFETCH_LOGO_NOITE="${FASTFETCH_LOGO_NOITE:-}" FASTFETCH_LOGO_CONF="${FASTFETCH_LOGO_CONF:-sim}" LOGO_DIA="${LOGO_DIA:-}" LOGO_NOITE="${LOGO_NOITE:-}" NOITE_INICIO="${NOITE_INICIO:-}" NOITE_FIM="${NOITE_FIM:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" \
