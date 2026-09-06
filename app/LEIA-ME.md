@@ -1,9 +1,9 @@
 # `app/` — o painel de configuração visual
 
 Uma página local que configura **tudo o que hoje só se configura editando o
-`~/.config/meow/meow.conf` ou digitando comandos do `meow`**. As 95 chaves, com
+`~/.config/meow/meow.conf` ou digitando comandos do `meow`**. As 102 chaves, com
 o valor que você escolheu, o que vinha de fábrica e a explicação de cada uma; e
-30 ações, com a saída aparecendo ao vivo enquanto rodam.
+34 ações, com a saída aparecendo ao vivo enquanto rodam.
 
 ```bash
 ./app/run.sh
@@ -46,13 +46,16 @@ app/
     index.html    o esqueleto (nenhum nome de chave escrito nele)
     estilo.css    o visual (nenhum hex escrito nele)
     app.js        monta a tela a partir do que o servidor derivou
+    standalone.js só existe dentro do HTML exportado: troca o fetch pelos
+                  dados congelados e as imagens pelos data: embutidos
+    standalone.css o pouco que a página exportada acrescenta
 ```
 
 Fora daqui, mas parte disto:
 
 ```
 scripts/atalho.sh          instala/confere/remove o .desktop e o lançador
-docs/folhas/               as 18 folhas visuais que vieram da home
+docs/folhas/               as 19 folhas visuais que vieram da home
 ```
 
 ---
@@ -133,7 +136,7 @@ clicando em "instalar" e nada acontecendo.
 
 ## As ações
 
-Trinta, agrupadas por assunto: ciclo de vida (instalar, doctor, consertar,
+Trinta e quatro, agrupadas por assunto: ciclo de vida (instalar, doctor, consertar,
 desinstalar, log), tema e cor, ícones e gato, papel de parede, barra e janelas,
 aplicativos.
 
@@ -218,6 +221,67 @@ por decoração apagaria o sinal.
 
 ---
 
+## Levar embora, e trazer de volta
+
+O **Exportar**, ao lado do Modo seco, tem duas saídas — e elas são coisas
+diferentes de propósito:
+
+**Configurações** baixa o seu `meow.conf` inteiro, com um cabeçalho de comentário
+dizendo quando saiu e de onde. É o arquivo de verdade, byte a byte: os seus
+comentários, o alinhamento das colunas e a ordem das linhas sobrevivem. Continua
+sendo um `meow.conf` válido — dá para copiá-lo por cima do original e rodar
+`meow aplicar`.
+
+**Página para redesenho** baixa esta tela inteira num arquivo `.html` só: as 24
+abas, o menu lateral, os cartões com os valores de agora, e uma amostra das
+imagens do acervo embutidas. Ele abre com dois cliques em qualquer máquina, sem
+Python e sem o projeto instalado, e traz um botão **"Ver todas as abas"** que
+empilha as vinte e quatro de uma vez — que é como se julga um layout inteiro sem
+clicar vinte e quatro vezes.
+
+O arquivo exportado é o `app.js` DE VERDADE rodando contra dados congelados: o
+mesmo arquivo, sem uma linha diferente. Quem mente para ele é o `standalone.js`,
+trinta linhas que trocam o `fetch` por uma leitura do JSON embutido e o `src` das
+imagens pelos `data:` da amostra. Escrever uma segunda versão da página só para
+exportar seria a terceira cópia da mesma tela neste projeto, e ela envelheceria
+na primeira semana.
+
+Nada na página exportada grava, roda ou apaga: sem servidor não há para onde
+mandar, e as rotas que escrevem respondem com o aviso em vez de fingir que
+funcionaram.
+
+### O Importar não grava
+
+Ele lê o arquivo, confere chave a chave e transforma o que passou em **escolha
+pendente** — igual a um clique, com o cartão marcado e o banner contando. Quem
+escreve continua sendo o `Salvar e aplicar`.
+
+Medido: cada gravação leva 0,45 s (sobe um bash, carrega o `lib/comum.sh` e
+reescreve os 55 KB do conf). Importar as cem chaves gravando seriam **43 segundos
+de página parada**, sem barra de progresso e sem como cancelar — para uma
+operação que se dispara ao escolher o arquivo errado por engano. Encenando, dá
+para ver o que veio antes de aceitar, o modo seco continua valendo no `Salvar`, e
+o `Descartar` desfaz tudo com um clique.
+
+As duas peneiras são as mesmas do clique: `ler_esquema()` diz se a chave existe,
+`validar_valor()` diz se o valor cabe. O que não passa é recusado com a frase na
+tela, e o resto entra — um arquivo com uma linha estragada traz as outras.
+
+**Conferido em 06/09/2026:** exportar e reimportar o mesmo arquivo devolve
+"96 já estavam assim", **zero mudanças e zero recusas** — e ainda diz que 6
+chaves do catálogo não estavam no arquivo (as do fastfetch, novas de hoje), que
+não é erro: é o aviso de que elas ficaram como estão em vez de voltar ao padrão.
+Um arquivo com uma chave inventada e um número fora da faixa traz as boas e
+mostra as duas recusas com o motivo de cada uma.
+
+A primeira medição desse ciclo achou um defeito que não era da importação:
+`MIDIA_FONTE="auto"` — o valor que está no conf dela e que a aba Automação
+oferece como botão — era **recusado pelo validador**. A página propunha o que o
+servidor respondia com 400. Corrigido no mesmo dia: a palavra que uma chave
+numérica aceita como padrão passa a ser aceita por ela, e só por ela.
+
+---
+
 ## Teclado
 
 | tecla | o que faz |
@@ -228,7 +292,7 @@ por decoração apagaria o sinal.
 | `Tab` | o de sempre; o primeiro `Tab` na página oferece "pular para o conteúdo" |
 
 A busca atravessa **todas** as seções ao mesmo tempo, e é o que faz uma página de
-95 chaves não exigir que você lembre em qual aba a chave mora.
+102 chaves não exigir que você lembre em qual aba a chave mora.
 
 ---
 

@@ -2379,7 +2379,7 @@ menu_itens() {
   printf 'apps\tTabela: módulo, app instalado, tema aplicado ou pendente.\n'
   printf 'leitura\tModo de leitura: que degrau o relógio pede AGORA, o que a tela mostra, e se o compositor já sabe ler os dois números.\n'
   printf 'leitura remover\tZera temperatura e textura e desarma o relógio do modo de leitura.\n'
-  printf 'abrir\tAbre o painel de configuração visual no navegador: as 95 chaves e 30 ações, com a saída ao vivo.\n'
+  printf 'abrir\tAbre o painel de configuração visual no navegador: as chaves e as ações, com a saída ao vivo.\n'
   printf 'configurar\tPergunta chave por chave o que está no meow.conf. ENTER mantém; no fim grava e oferece aplicar.\n'
   printf 'aplicar\tRoda o install.sh inteiro. Idempotente: nada é escrito duas vezes.\n'
   printf 'log\tÚltimas 50 linhas do log do MeowSystem.\n'
