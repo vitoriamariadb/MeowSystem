@@ -34,14 +34,19 @@ acontecer: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # ou o ícone MeowSystem no lançador
 ```
 
-103 ajustes e 34 ações em doze páginas — uma por assunto, e cada uma com tudo o que existe
+103 ajustes e 37 ações em doze páginas — uma por assunto, e cada uma com tudo o que existe
 sobre ele:
 
 - **Papel de parede** — a coleção de 46 imagens, os nove ajustes e as sete ações, na mesma tela.
+  Soltar um arquivo aqui diz na hora se ele entrou no grupo de dia ou no de noite, e por quê.
 - **Ícones** — um ícone por programa instalado, trocável um a um, e o tema que o projeto constrói.
 - **O gato** — o do dock e o do terminal, e quem escolhe: você, o relógio ou o sorteio.
-- E **Barra e dock**, **Terminal**, **Dia e noite**, **Programas e jogos**, **Manutenção** — mais
-  duas páginas para a máquina inteira: instalar e conferir, e ver o que está no ar.
+- E **Barra e dock**, **Terminal**, **Dia e noite**, **Programas e jogos**, **Manutenção**.
+- **Atualizar o sistema** — `apt`, `flatpak` e `cargo` numa tela, e logo depois o `doctor`
+  dizendo o que a atualização desfez. É a metade que um `full-upgrade` na mão não tem.
+
+Toda variável que o instalador lê tem um controle aqui — e um teste cobra isso, para que uma
+chave nova não nasça invisível.
 
 Clicar não muda a máquina: as escolhas se acumulam e um botão só grava e aplica. O interruptor
 **Ensaiar sem gravar** mostra o que aconteceria sem escrever nada.
