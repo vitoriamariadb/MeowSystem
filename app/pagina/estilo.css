@@ -132,6 +132,87 @@ body {
   background: color-mix(in srgb, var(--yellow) 12%, transparent);
 }
 
+/* --- levar embora e trazer de volta ---------------------------------------
+ * O menu é um `<details>`: o navegador já abre, fecha, faz o Enter e o Espaço
+ * funcionarem e prende o foco no lugar certo. Reimplementar isso em JavaScript
+ * seria trocar código que já existe por código para manter — e o `app.js` só
+ * acrescenta as duas coisas que o `<details>` NÃO faz: fechar ao clicar fora e
+ * no Esc. */
+.menu {
+  position: relative;
+}
+
+/* O triângulo padrão do `summary` some: o botão já se parece com botão, e a
+ * seta o faria parecer uma lista dobrável no meio de uma barra de ações. */
+.menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu[open] > summary {
+  border-color: var(--overlay0);
+}
+
+.menu-corpo {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  width: min(21rem, 80vw);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--surface1);
+  background: var(--mantle);
+  /* A única sombra desta folha, e ela tem motivo: o menu flutua POR CIMA dos
+   * cartões, e sem a sombra as duas superfícies escuras encostam sem fronteira
+   * visível — medido na tela dela, no mocha. */
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 55%, transparent);
+}
+
+.menu-item {
+  display: block;
+  padding: .55rem .7rem;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--surface0);
+}
+
+.menu-item strong {
+  display: block;
+  font-size: .88rem;
+  font-weight: 600;
+}
+
+.menu-item span {
+  display: block;
+  margin-top: 2px;
+  font-size: .76rem;
+  line-height: 1.4;
+  color: var(--subtext0);
+}
+
+/* O Importar é um `<label>` com o `<input type=file>` escondido dentro: é o
+ * jeito de ter o seletor de arquivo nativo com a aparência dos outros botões.
+ * Sem o `align-items`, o rótulo fica um fio mais alto que os vizinhos, porque
+ * ele carrega um `input` de altura zero. */
+#rotulo-importar {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
 /* --- corpo ---------------------------------------------------------------- */
 .corpo {
   display: flex;
