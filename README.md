@@ -104,9 +104,9 @@ sobreviveram à curadoria visual de 24/08/2026, e 43 foram buscadas naquele dia.
 meow abrir        # ou o ícone "MeowSystem" no lançador
 ```
 
-Uma página local com **as 95 chaves do `meow.conf`** — cada uma mostrando o valor
+Uma página local com **as 102 chaves do `meow.conf`** — cada uma mostrando o valor
 que você escolheu, o que vinha de fábrica e a explicação que está no
-`meow.conf.exemplo` — e **30 ações** (instalar, `doctor`, consertar, desinstalar,
+`meow.conf.exemplo` — e **34 ações** (instalar, `doctor`, consertar, desinstalar,
 trocar tema/flavor/accent, girar o gato, papel de parede, modo de leitura,
 reciclar a barra), com a saída aparecendo **ao vivo** enquanto rodam.
 
@@ -125,6 +125,14 @@ idêntico byte a byte, com o comentário da linha e os espaços que o alinham.
 **Gravar não é aplicar, e a página não finge que é.** Escrever a chave e o tema
 mudar na tela são coisas diferentes aqui desde sempre. Ela conta quantas chaves
 esperam, com o botão que as aplica ao lado.
+
+**Levar embora e trazer de volta.** O `Exportar` baixa o seu `meow.conf` inteiro
+(que continua sendo um `meow.conf` válido — dá para copiá-lo por cima do original)
+ou **esta tela inteira num arquivo `.html` só**: as 24 abas, o menu lateral, os
+cartões com os valores de agora e uma amostra das imagens embutidas, abrindo sem
+Python e sem o projeto instalado, para quem for redesenhar o layout mexer nele. O
+`Importar` lê um conf exportado, confere chave a chave e transforma o que passou
+em escolha pendente — ele não grava; quem grava continua sendo o `Salvar`.
 
 O backend é `python3` da biblioteca padrão, **sem dependência nova**. Escuta em
 `127.0.0.1`, em porta que o kernel escolhe, com um token de sessão sorteado a
@@ -174,6 +182,32 @@ O índice, com o que cada uma mostra e a decisão que produziu, está em
   primeiro dia em que ela trocasse o gato do dock: seriam dois pares a manter
   opostos à mão, e nada avisaria se deixassem de ser. Um dia os dois mostrariam
   o mesmo gato e o "sempre os dois" viraria mentira em silêncio.
+
+- **O tamanho e o alinhamento do gato do terminal** — largura e altura em
+  células (`FASTFETCH_LOGO_COLUNAS` e `FASTFETCH_LOGO_LINHAS`), quantas linhas
+  em branco vêm antes dele (`FASTFETCH_LOGO_QUEBRAS`) e quanto respiro separa o
+  desenho do texto (`FASTFETCH_LOGO_RECUO`). Cada célula a mais é resolução de
+  verdade: o desenho é reamostrado do SVG a cada geração, nunca ampliado.
+
+  E **onde cada linha de informação começa** (`FASTFETCH_LOGO_ALINHAR`):
+
+  - `tabular` — todas na mesma coluna, que é o único alinhamento que o fastfetch
+    sabe fazer. Medido na versão 2.61.0: ele imprime o logo, sobe o cursor e
+    emite o **mesmo** avanço de coluna para toda linha de módulo, qualquer que
+    seja a largura daquela linha do desenho.
+  - `contorno` — cada linha começa logo depois do fim do desenho **naquela
+    linha**, então o texto abraça a silhueta do gato e as primeiras linhas, onde
+    o círculo ainda é estreito, começam à esquerda. Isso não é chave de
+    configuração de ninguém: é composto depois, pelo `meow-fetch`, que costura
+    as duas colunas cortando o rabo de espaços de cada linha do `.ansi` sem
+    partir uma sequência de escape no meio.
+
+  O `meow-fetch` mora em `~/.local/bin`, como o `meow-painel`, e pelo mesmo
+  motivo: sem o disco do projeto montado ele roda o `fastfetch` puro e cala, em
+  vez de o terminal abrir com erro de Python. E ele lê a chave a cada chamada —
+  com `tabular` é um `exec fastfetch` e mais nada, o que é o que permite tocar o
+  arquivo do vizinho **uma vez** e nunca mais: trocar de alinhamento depois é
+  mudar uma chave.
 
 - **O gato do dock** — o botão do lançador, vindo do acervo `assets/gatos/`.
   Aqui há **um** gato na tela, não dois: o applet "Logo Menu" (`dev.cappsy`), que

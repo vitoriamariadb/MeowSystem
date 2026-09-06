@@ -395,7 +395,7 @@ etapa_cli() {
 #
 #   Tudo o mais que o instalador planta é tema, ícone de OUTRO aplicativo, applet
 #   de barra ou unidade de systemd. Este é o `.desktop` do MeowSystem ele mesmo:
-#   o que ela clica no lançador para abrir a página que configura as 95 chaves do
+#   o que ela clica no lançador para abrir a página que configura as chaves do
 #   `meow.conf` sem editar o arquivo. O que ele abre está em `app/`, e o porquê de
 #   cada decisão está em `app/LEIA-ME.md` e no cabeçalho de `scripts/atalho.sh`.
 #
