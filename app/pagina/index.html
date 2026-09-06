@@ -37,13 +37,19 @@
   </div>
 
   <div class="busca-caixa">
-    <input id="busca" type="search" placeholder="Buscar chave ou ação…  ( / )"
-           autocomplete="off" aria-label="Buscar chave ou ação">
+    <!-- "chave" era o nome da variável, e quem lê a tela nunca precisa
+         saber o nome da variável — ele continua no pé do cartão, para
+         procurar no meow.conf, mas deixou de ser a primeira palavra. -->
+    <input id="busca" type="search" placeholder="Buscar um ajuste ou uma ação    /"
+           autocomplete="off" aria-label="Buscar um ajuste ou uma ação">
   </div>
 
-  <label class="seco" title="Prevê o que aconteceria sem escrever nada (MEOW_DRY_RUN=1)">
+  <!-- "Seco" é a palavra do projeto (MEOW_DRY_RUN, `meow_seco`, o modo seco
+       dos scripts) e ela não diz nada a quem chega. O interruptor promete o
+       que faz: ensaiar. Uma palavra por conceito, e é esta em todo lugar. -->
+  <label class="seco" title="Mostra o que aconteceria. Nada é escrito no disco.">
     <input type="checkbox" id="seco">
-    <span>Modo seco</span>
+    <span>Ensaiar sem gravar</span>
   </label>
 
   <!-- LEVAR EMBORA E TRAZER DE VOLTA — pedido dela em 06/09/2026.
@@ -62,20 +68,20 @@
     <summary class="btn" title="Levar as configurações, ou a página, para fora daqui">Exportar</summary>
     <div class="menu-corpo">
       <a class="menu-item" id="baixar-conf" href="/api/exportar/conf" download>
-        <strong>Configurações</strong>
-        <span>O seu meow.conf, para guardar ou levar para outra máquina.</span>
+        <strong>Meus ajustes</strong>
+        <span>Um arquivo .conf para guardar, ou levar para outra máquina.</span>
       </a>
       <a class="menu-item" id="baixar-pagina" href="/api/exportar/pagina" download>
-        <strong>Página para redesenho</strong>
-        <span>Esta tela inteira num arquivo só: as abas, o menu e uma amostra
-        das imagens. Abre sem servidor, e não grava nada.</span>
+        <strong>Esta tela num arquivo</strong>
+        <span>Um .html com as abas, o menu e uma amostra das imagens. Abre
+        sem servidor, e não grava nada.</span>
       </a>
     </div>
   </details>
 
   <label class="btn" id="rotulo-importar"
-         title="Ler um meow.conf exportado e trazer as escolhas para a tela">
-    Importar
+         title="Ler um arquivo exportado e trazer as escolhas para a tela">
+    Importar ajustes
     <input type="file" id="arquivo-importar" accept=".conf,text/plain" hidden>
   </label>
 

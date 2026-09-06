@@ -1,43 +1,83 @@
 /* app/pagina/estilo.css — a folha de estilo da página de configuração.
  *
+ * REDESENHO DE 06/09/2026. Nada aqui exige uma linha de HTML nova: tudo o que
+ * mudou de posição no cartão e no cartão de ação mudou por `order` de flex, e
+ * tudo o que mudou de peso mudou por `:has()`. Os nomes de classe são os mesmos.
+ *
  * NENHUM HEX AQUI DENTRO, E ISSO É A REGRA DO README, NÃO UM CAPRICHO
- *   "Nenhum hex vive dentro de script. Toda cor sai de
- *   assets/paleta/catppuccin.json." Uma folha de estilo é o lugar mais provável
- *   do mundo para alguém digitar um `#1e1e2e` de memória — e foi assim que o
- *   gato do Latte acabou misturando verde do Latte, verde do Mocha e dois
- *   valores que não são Catppuccin nenhum (README, "Estrutura").
+ *   Toda cor sai de `assets/paleta/catppuccin.json` pelas variáveis que o
+ *   `<style id="paleta-do-painel">` define. Trocar `FLAVOR="latte"` veste a
+ *   página inteira de claro sem uma linha a mais aqui — e por isso não há
+ *   sombra que só funcione no escuro, nem `invert()` cravado (ver a tira de
+ *   glifos, que agora inverte por `light-dark()`).
  *
- *   Então este arquivo só consome variáveis. Quem as define é `/paleta.css`,
- *   gerado pelo `app/servidor.py` a partir da paleta, no FLAVOR que o meow.conf
- *   dela manda. Trocar `FLAVOR="latte"` e recarregar veste a página inteira de
- *   claro sem uma linha a mais aqui.
+ * O ACCENT SIGNIFICA "ACESO", E ESTE REDESENHO TIROU ACCENT DE ONZE LUGARES
+ *   `var(--accent)` ficou só onde algo está LIGADO, SELECIONADO, ESPERANDO ou
+ *   COM FOCO. Saiu do nome do produto, do título do diálogo, do número do
+ *   deslizante, do título do log, do fundo do desenho da barra, da seção-mãe
+ *   aberta no menu, do selo "essencial", do traço de "mexeu" (virou pêssego,
+ *   que já é "atenção sem erro") e — a maior — dos 34 botões "Rodar" da parte
+ *   de Fazer. Trinta e quatro ações principais não são ação principal nenhuma;
+ *   a ação principal desta página é "Salvar e aplicar", e ela é uma só.
  *
- * O ACCENT É `mauve` E SIGNIFICA "ACESO" (regra da Sprint T)
- *   `var(--accent)` é usada só onde algo está LIGADO, SELECIONADO ou é a AÇÃO
- *   PRINCIPAL. Espalhá-la por decoração apagaria o sinal — é a mesma disciplina
- *   que fez o applet de mídia tingir o traço em vez de chapar o fundo.
+ * TRÊS REGISTROS, PORQUE SÃO TRÊS ASSUNTOS
+ *   Ver e escolher .. a imagem é o objeto. A moldura saiu: sem borda, sem
+ *                     fundo, sem legenda permanente. Grade densa, largura
+ *                     inteira da tela.
+ *   Ajustar ........ o controle é o objeto. O cartão perdeu a caixa e virou
+ *                     linha de lista com um fio em cima; só quem carrega
+ *                     PRÉVIA (as tiras de flavor, os gatos, as bolinhas de
+ *                     cor, o desenho da barra) continua dentro de uma caixa,
+ *                     porque aí há o que olhar. Largura limitada: em 27
+ *                     polegadas, seis colunas de 330px não se leem.
+ *   Fazer .......... o risco é o objeto. Ação que só lê fica em linha rasa;
+ *                     ação que pode pedir sudo ganha caixa e fio pêssego;
+ *                     ação que desfaz ganha caixa e fio vermelho. Nenhum
+ *                     `:has()` novo no HTML: as pastilhas que já existem é que
+ *                     dizem o grau.
+ *
+ * DEGRAU DE TAMANHO
+ *   23 px seção · 14 px título de cartão · 12,8 px frase · 10,5 px legenda.
+ *   Antes a página inteira vivia entre 15,4 e 14,9 px — meio pixel de
+ *   diferença em telas com 22 cartões.
  */
+
+/* --- as medidas ----------------------------------------------------------- */
+/* Só forma: raio, espaço e tamanho de letra. Cor nenhuma mora aqui. */
+:root {
+  --r-1: 4px;
+  --r-2: 8px;
+  --r-3: 12px;
+  --r-max: 999px;
+
+  --t-secao: 1.45rem;   /* 23,2 px */
+  --t-titulo: .875rem;  /* 14 px   */
+  --t-frase: .8rem;     /* 12,8 px */
+  --t-legenda: .66rem;  /* 10,5 px */
+
+  --mono: ui-monospace, "JetBrains Mono", "Fira Code", monospace;
+
+  /* A largura em que uma coluna de texto e controle ainda se lê. Vale para as
+   * grades de Ajustar e de Fazer, e NÃO vale para as grades de imagem — ali,
+   * quanto mais couber na tela, melhor. */
+  --medida: 1240px;
+}
 
 /* --- o esqueleto ---------------------------------------------------------- */
 * { box-sizing: border-box; }
 
 /* `hidden` TEM DE VENCER, E ELE NÃO VENCIA — visto na tela em 01/09/2026
- *   O atributo `hidden` do HTML é implementado como `display: none` na folha do
- *   NAVEGADOR, que perde para qualquer regra de autor. Como `.aviso` e `.gaveta`
- *   declaram `display: flex`, as duas apareciam mesmo com o atributo posto: a
- *   página abria com uma tarja de aviso VAZIA no topo (só o botão "Consertar o
- *   que estiver fora", sem texto nenhum) e com o console de saída ocupando o
- *   rodapé antes de existir um único trabalho para mostrar.
- *
- *   Não dava para ver isso lendo o código — `aviso.hidden = true` está lá e faz
- *   o que promete. Só apareceu ao abrir a página. Esta linha é o conserto, e
- *   vale para todo elemento que ganhe `hidden` daqui em diante.
- */
+ *   O atributo `hidden` é `display: none` na folha do NAVEGADOR, que perde para
+ *   qualquer regra de autor. Como `.aviso` e `.gaveta` declaram `display:flex`,
+ *   as duas apareciam mesmo com o atributo posto: a página abria com uma tarja
+ *   de aviso vazia no topo e o console ocupando o rodapé antes de existir um
+ *   único trabalho para mostrar. */
 [hidden] { display: none !important; }
 
 html, body {
   height: 100%;
   margin: 0;
+  overflow-x: clip;   /* `clip` e não `hidden`: `hidden` quebra `sticky` nos filhos */
 }
 
 body {
@@ -49,9 +89,13 @@ body {
   overflow: hidden;               /* quem rola é a coluna do meio, não a página */
 }
 
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent); text-decoration: underline; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 /* O link que só aparece no teclado. Uma página com trilho lateral obriga quem
- * navega por Tab a atravessar 15 itens antes do primeiro controle; este link
- * salta direto e custa cinco linhas. */
+ * navega por Tab a atravessar 20 itens antes do primeiro controle. */
 .pular {
   position: absolute;
   left: -999px;
@@ -59,7 +103,7 @@ body {
   background: var(--accent);
   color: var(--crust);
   padding: .6rem 1rem;
-  border-radius: 0 0 8px 0;
+  border-radius: 0 0 var(--r-2) 0;
   font-weight: 600;
 }
 .pular:focus { left: 0; top: 0; }
@@ -68,94 +112,86 @@ body {
 .topo {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: .7rem 1rem;
+  gap: .8rem;
+  padding: .65rem 1.1rem;
   background: var(--mantle);
   border-bottom: 1px solid var(--surface0);
   flex: 0 0 auto;
 }
 
 .marca { display: flex; align-items: center; gap: .6rem; min-width: 0; }
-/* O gato vem de /gato.svg, desenhado do acervo assets/gatos/ no gato
- * que a chave LOGO diz estar no ar. `flex: 0 0 auto` porque um SVG
- * dentro de um flex encolhe até sumir quando a janela aperta. */
-.marca .gato { width: 34px; height: 34px; flex: 0 0 auto; }
+.marca > div { min-width: 0; }
+/* `flex: 0 0 auto` porque um SVG dentro de um flex encolhe até sumir quando a
+ * janela aperta. */
+.marca .gato { width: 30px; height: 30px; flex: 0 0 auto; }
+/* O NOME DO PRODUTO NÃO ESTÁ "ACESO". Ele era a única coisa em accent no alto
+ * da tela e competia com a barra de pendências, que é o que de fato pisca. */
 .marca h1 {
   margin: 0;
-  font-size: 1rem;
-  letter-spacing: .01em;
-  color: var(--accent);
+  font-size: .95rem;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  color: var(--text);
 }
 .sub {
   margin: 0;
-  font-size: .78rem;
-  color: var(--subtext0);
+  font-size: var(--t-legenda);
+  line-height: 1.35;
+  color: var(--overlay2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 
-.busca-caixa { flex: 1 1 auto; display: flex; justify-content: center; }
+/* A busca fica ENCOSTADA na marca, não centrada. Centrada, numa tela de 27
+ * polegadas ela vira uma caixa de 460px flutuando com um metro de nada dos dois
+ * lados — o mesmo oceano de vazio das abas de dois cartões. */
+.busca-caixa { flex: 1 1 auto; display: flex; justify-content: flex-start; min-width: 0; }
 #busca {
-  width: min(460px, 100%);
-  padding: .45rem .8rem;
-  border-radius: 999px;
+  width: min(320px, 100%);
+  padding: .4rem .75rem;
+  border-radius: var(--r-max);
   border: 1px solid var(--surface1);
   background: var(--surface0);
   color: var(--text);
   font: inherit;
+  font-size: .82rem;
 }
-#busca:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-  border-color: transparent;
-}
+#busca::placeholder { color: var(--overlay1); }
+#busca:focus-visible { border-color: transparent; }
 
+/* O seco é um estado PERIGOSO de esquecer ligado — ela apertaria "instalar" e
+ * nada aconteceria. Desligado ele é o item mais quieto da barra; ligado, o mais
+ * alto dela. O contraste entre os dois estados é o aviso. */
 .seco {
   display: flex;
   align-items: center;
   gap: .4rem;
-  font-size: .82rem;
-  color: var(--subtext1);
+  font-size: .8rem;
+  color: var(--overlay2);
   white-space: nowrap;
   cursor: pointer;
   padding: .3rem .6rem;
-  border-radius: 999px;
-  border: 1px solid var(--surface1);
+  border-radius: var(--r-max);
+  border: 1px solid var(--surface0);
 }
-/* O seco é um estado PERIGOSO de esquecer ligado — ela apertaria "instalar" e
- * nada aconteceria. Por isso ele se pinta de amarelo quando está ativo, em vez
- * de ficar um checkbox discreto igual a todos os outros. */
+.seco:hover { color: var(--subtext1); border-color: var(--surface1); }
 .seco:has(:checked) {
   border-color: var(--yellow);
   color: var(--yellow);
-  background: color-mix(in srgb, var(--yellow) 12%, transparent);
+  background: color-mix(in srgb, var(--yellow) 14%, transparent);
+  font-weight: 600;
 }
+.seco input { accent-color: var(--yellow); }
 
 /* --- levar embora e trazer de volta ---------------------------------------
  * O menu é um `<details>`: o navegador já abre, fecha, faz o Enter e o Espaço
- * funcionarem e prende o foco no lugar certo. Reimplementar isso em JavaScript
- * seria trocar código que já existe por código para manter — e o `app.js` só
- * acrescenta as duas coisas que o `<details>` NÃO faz: fechar ao clicar fora e
- * no Esc. */
-.menu {
-  position: relative;
-}
-
-/* O triângulo padrão do `summary` some: o botão já se parece com botão, e a
- * seta o faria parecer uma lista dobrável no meio de uma barra de ações. */
-.menu > summary {
-  list-style: none;
-  cursor: pointer;
-}
-
-.menu > summary::-webkit-details-marker {
-  display: none;
-}
-
-.menu[open] > summary {
-  border-color: var(--overlay0);
-}
+ * funcionarem e prende o foco no lugar certo. */
+.menu { position: relative; }
+.menu > summary { list-style: none; cursor: pointer; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu[open] > summary { border-color: var(--overlay0); }
 
 .menu-corpo {
   position: absolute;
@@ -167,247 +203,457 @@ body {
   flex-direction: column;
   gap: 2px;
   padding: 6px;
-  border-radius: 12px;
+  border-radius: var(--r-3);
   border: 1px solid var(--surface1);
   background: var(--mantle);
-  /* A única sombra desta folha, e ela tem motivo: o menu flutua POR CIMA dos
-   * cartões, e sem a sombra as duas superfícies escuras encostam sem fronteira
-   * visível — medido na tela dela, no mocha. */
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 55%, transparent);
+  /* Uma das duas sombras desta folha, e ela tem motivo: o menu flutua POR CIMA
+   * dos cartões, e sem ela as duas superfícies escuras encostam sem fronteira.
+   * Sai de `--crust` para o latte não ganhar um halo escuro inventado. */
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 45%, transparent);
 }
-
 .menu-item {
   display: block;
   padding: .55rem .7rem;
-  border-radius: 8px;
+  border-radius: var(--r-2);
   color: var(--text);
   text-decoration: none;
 }
+.menu-item:hover, .menu-item:focus-visible { background: var(--surface0); text-decoration: none; }
+.menu-item strong { display: block; font-size: .84rem; font-weight: 600; }
+.menu-item span { display: block; margin-top: 2px; font-size: var(--t-frase); line-height: 1.4; color: var(--subtext0); }
 
-.menu-item:hover,
-.menu-item:focus-visible {
-  background: var(--surface0);
-}
+/* O Importar é um `<label>` com o `<input type=file>` escondido dentro. Sem o
+ * `align-items`, o rótulo fica um fio mais alto que os vizinhos. */
+#rotulo-importar { display: inline-flex; align-items: center; cursor: pointer; }
 
-.menu-item strong {
-  display: block;
-  font-size: .88rem;
-  font-weight: 600;
-}
-
-.menu-item span {
-  display: block;
-  margin-top: 2px;
-  font-size: .76rem;
-  line-height: 1.4;
-  color: var(--subtext0);
-}
-
-/* O Importar é um `<label>` com o `<input type=file>` escondido dentro: é o
- * jeito de ter o seletor de arquivo nativo com a aparência dos outros botões.
- * Sem o `align-items`, o rótulo fica um fio mais alto que os vizinhos, porque
- * ele carrega um `input` de altura zero. */
-#rotulo-importar {
-  display: inline-flex;
+/* A BARRA DAS ESCOLHAS — o que ela mexeu e ainda não salvou.
+ * É o único lugar da barra de cima que usa accent, e é o certo: pendência é
+ * estado aceso, e "Salvar e aplicar" é a ação principal da página. */
+.barra-salvar {
+  display: flex;
   align-items: center;
-  cursor: pointer;
+  gap: .5rem;
+  flex: 0 0 auto;
+  padding: .28rem .3rem .28rem .7rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--surface0));
+  border-radius: var(--r-max);
+  background: color-mix(in srgb, var(--accent) 12%, var(--mantle));
 }
+.barra-salvar strong { font-size: .8rem; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lista-chaves {
+  font: .68rem/1.4 var(--mono);
+  color: var(--subtext0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 44ch;
+}
+.barra-salvar-botoes { display: flex; gap: .4rem; flex: 0 0 auto; }
 
 /* --- corpo ---------------------------------------------------------------- */
-.corpo {
-  display: flex;
-  flex: 1 1 auto;
-  min-height: 0;
-}
+.corpo { display: flex; flex: 1 1 auto; min-height: 0; }
 
+/* ===========================================================================
+ * O TRILHO — vinte itens, uma linha cada
+ * ===========================================================================
+ * Era um paredão: cada item de nível de cima carregava uma frase de descrição
+ * de duas a três linhas, sempre visível, vinte vezes. A frase não sumiu do
+ * produto — ela é a `.descricao-secao`, e aparece no alto do conteúdo, que é
+ * onde ela tem trabalho: confirmar que se entrou no lugar certo. No menu ela
+ * era a mesma informação, repetida vinte vezes, para escolher UM.
+ *
+ * Com ela fora, o trilho encolheu de ~62 px por item para 26, os três blocos do
+ * produto (Ver / Ajustar / Fazer) caíram na mesma tela, e a régua horizontal
+ * entre eles ficou sobrando — o rótulo do bloco já separa. */
 .trilho {
-  flex: 0 0 236px;
+  flex: 0 0 232px;   /* +18px: a coluna dos ícones não pode sair do rótulo */
   overflow-y: auto;
-  padding: 1rem .55rem 2.5rem;
+  padding: .5rem .5rem 3rem;
   background: var(--mantle);
   border-right: 1px solid var(--surface0);
 }
+.trilho .descricao-menu { display: none; }
+.trilho hr { display: none; }
 
-/* O TRILHO EM UMA LINHA POR ITEM.
- * Antes, "O modo de leitura, e o relogio que o liga sozinho" ocupava tres
- * linhas e colava o contador no fim da ultima palavra — vinte itens de alturas
- * diferentes, sem uma so linha de base em comum. Agora cada item e uma linha
- * com reticencias (o nome inteiro fica no `title`, que o app.js ja preenche), e
- * o numero mora numa coluna propria, alinhado a direita em todos.
- * `align-items: center` no lugar de `baseline`: com reticencias, a baseline de
- * um texto cortado nao coincide com a do numero. */
+/* O RÓTULO DE BLOCO GANHOU O DESENHO — pedido dela em 06/09/2026.
+ * Os três blocos são os três verbos do produto e eram as três únicas linhas do
+ * menu com a coluna dos ícones vazia — um buraco justamente nas linhas que
+ * dividem a lista. Com o desenho, o texto do rótulo cai na mesma vertical do
+ * texto dos itens, e o desenho passa a ser o que distingue BLOCO de SEÇÃO. */
+.trilho .rotulo-grupo {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: var(--t-legenda);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--green);
+  padding: 1.5rem .55rem .5rem;
+}
+.trilho .rotulo-grupo .menu-icone { color: inherit; }
+.trilho > .rotulo-grupo:first-child { padding-top: .7rem; }
+
+/* Cada item é UMA linha com reticências (o nome inteiro fica no `title`, que o
+ * app.js já preenche) e o número numa coluna própria, alinhado à direita. */
+/* OS ÍCONES DO MENU. Uma coluna própria no grid do botão (`auto 1fr auto`), no
+ * lugar do traço que ficava antes da palavra. O desenho herda a cor do item por
+ * `currentColor`: cinza no repouso, accent no item aberto — nenhuma regra de cor
+ * a mais, e nenhum hex. */
+.menu-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  color: var(--overlay1);
+}
+.menu-icone svg { display: block; }
+.trilho button:hover .menu-icone { color: var(--subtext0); }
+.trilho button[aria-current="true"] .menu-icone { color: var(--accent); }
+
+/* O TRAÇO EM TODOS OS ITENS, E NÃO SÓ NOS FILHOS.
+ * Ele nasceu como marca de subitem, e o resultado é que metade do menu tinha
+ * uma coluna à esquerda e a outra metade não — a linha vertical aparecia e
+ * desaparecia descendo a lista. Agora ela atravessa o menu inteiro e o degrau
+ * de nível passa a ser o RECUO, que é o que sempre disse hierarquia numa lista.
+ * Aceso, o traço é accent: é o único item aberto. */
 .trilho button {
+  position: relative;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: .5rem;
   width: 100%;
   text-align: left;
-  padding: .42rem .6rem;
+  padding: .34rem .55rem;
   margin-bottom: 1px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--r-1);
   background: transparent;
   color: var(--subtext1);
   font: inherit;
-  font-size: .84rem;
-  line-height: 1.35;
+  font-size: .82rem;
+  line-height: 1.4;
   cursor: pointer;
 }
-.trilho button > span:first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
+.trilho button > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .trilho button:hover { background: var(--surface0); color: var(--text); }
 .trilho button[aria-current="true"] {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--accent);
   font-weight: 600;
 }
-.trilho button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.trilho button:focus-visible { outline-offset: -2px; }
 .trilho .conta {
-  font-size: .72rem;
+  font-size: var(--t-legenda);
   color: var(--overlay1);
   font-variant-numeric: tabular-nums;
-  min-width: 1.6em;
+  min-width: 2ch;
   text-align: right;
 }
-.trilho hr { border: 0; border-top: 1px solid var(--surface0); margin: .6rem .4rem; }
-.trilho .rotulo-grupo {
-  font-size: .68rem;
+.trilho button[aria-current="true"] .conta { color: var(--accent); }
+
+/* «BARRA E DOCK» E «TERMINAL» SÃO SEÇÃO, E AGORA SE LEEM COMO SEÇÃO — 06/09/2026
+ * Ela, olhando o menu: "isso não é uma seção como o AJUSTAR?". Era: as duas
+ * tinham peso de item clicável, desenho na coluna dos ícones e filhas recuadas
+ * — três sinais de aba numa linha que não abre nada. E o recuo das filhas
+ * (1,3 rem) as tirava da vertical de todos os outros itens: metade do menu com
+ * sangria, metade sem, que é o "recuo estranho" que ela viu no Terminal.
+ *
+ * Agora ela é rótulo, como o do bloco, com dois degraus de distância: caixa
+ * alta menor e um degrau de recuo, que é o que a aninha debaixo do bloco. As
+ * filhas subiram a item de primeiro nível: uma vertical só, menu inteiro.
+ *
+ * OS DOIS NÍVEIS DE RÓTULO SÃO VERDES — pedido dela em 06/09/2026. O verde não é
+ * o accent (que segue querendo dizer ACESO) e não é a cor de nenhum item: ele
+ * diz "esta linha é um título, não um lugar para clicar". Uma cor, um sentido. */
+.secao-menu {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: 1.05rem .55rem .3rem;
+  font-size: calc(var(--t-legenda) * .96);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .08em;
-  color: var(--overlay0);
-  padding: .5rem .6rem .25rem;
+  letter-spacing: .085em;
+  color: var(--green);
 }
+.secao-menu .menu-icone { color: inherit; }
+/* Aberta, ela NÃO é accent: quem está aceso é o item, e dois accents empilhados
+ * na mesma coluna dizem a mesma coisa duas vezes. */
+.secao-menu.aberta { color: var(--green); font-weight: 700; }
 
 main {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 1rem 1.2rem 4rem;
+  padding: 1.4rem 1.6rem 4rem;
   min-width: 0;
 }
 main:focus-visible { outline: none; }
+#conteudo { padding-bottom: 3rem; }
 
-/* --- os cartões de chave -------------------------------------------------- */
-/* A SIMETRIA DA GRADE — refeita em 01/09/2026, a pedido dela: "o layout ta
- * totalmente sem simetria".
+/* --- cabeçalho de seção --------------------------------------------------- */
+/* O DEGRAU COMEÇA AQUI. A seção era 15,4 px com uma régua embaixo; agora é
+ * 23 px sem régua nenhuma. O tamanho separa melhor que o fio, e vinte e quatro
+ * abas × um fio é vinte e quatro fios de enfeite. */
+.secao-titulo {
+  margin: .1rem 0 .3rem;
+  padding: 0;
+  border: 0;
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  font-size: var(--t-secao);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.015em;
+  color: var(--text);
+  text-wrap: pretty;
+}
+.secao-titulo::after { content: none; }
+.secao-titulo:first-child { margin-top: 0; }
+
+/* O SUBTÍTULO DE UM GRUPO DENTRO DA PÁGINA DO ASSUNTO — 06/09/2026.
+ * Com uma página por assunto, uma tela pode ter quatro grupos (a coleção, dois
+ * blocos de ajuste, as ações) sob um título só. O degrau entre o título da
+ * página e este é de tamanho e de cor, não de régua: são 23 px contra 16, e o
+ * subtítulo não é accent — quem está aceso é o item do menu. */
+.subsecao-titulo {
+  margin: 1.7rem 0 .1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: var(--subtext1);
+}
+.subsecao-titulo:first-of-type { margin-top: .7rem; }
+
+/* ENQUANTO AS 14 ABAS DE CHAVES NÃO DESENHAREM `h2` (app.js:2262), a frase da
+ * seção é a primeira coisa da tela — uma legenda de 14px abrindo a página
+ * sozinha. Nesse caso, e só nele, ela ganha um pouco de corpo; no dia em que o
+ * título existir ela volta a ser legenda sem eu tocar em nada. */
+.descricao-secao:first-child { font-size: 1rem; color: var(--subtext1); margin-bottom: 1.8rem; }
+
+.descricao-secao {
+  margin: 0 0 1.5rem;
+  font-size: .875rem;
+  line-height: 1.5;
+  color: var(--subtext0);
+  max-width: 58ch;
+  text-wrap: pretty;
+}
+
+/* A nota que substituiu as repetições dentro dos cartões. */
+.nota-secao {
+  margin: 0 0 1.1rem;
+  font-size: var(--t-frase);
+  line-height: 1.5;
+  color: var(--overlay2);
+  max-width: 64ch;
+  display: block;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+  text-wrap: pretty;
+}
+
+/* ===========================================================================
+ * AJUSTAR — a grade das 102 chaves
+ * ===========================================================================
+ * DUAS COISAS MUDARAM, E AS DUAS SÃO SOBRE RITMO.
  *
- * O `align-items: start` daqui era a causa: cada cartao ficava com a altura do
- * proprio conteudo, entao uma linha com uma chave de tres botoes ao lado de
- * outra com quatro linhas de explicacao abria um degrau de 60 px e um buraco
- * embaixo. Numa pagina de 95 cartoes, isso e a tela inteira desalinhada.
+ * 1. A grade tem TETO. Era `auto-fill` sem limite: numa tela de 27 polegadas
+ *    davam seis colunas de 330px, e seis colunas de cartões de duas linhas não
+ *    se leem — os olhos perdem a linha na volta. Com teto de 1240px são três
+ *    colunas, alinhadas à esquerda. O vazio à direita passa a ser margem, que
+ *    é uma coisa que se lê como decisão; "coluna que não encheu" não é.
  *
- * `stretch` (o padrao, que estava sendo desligado) faz todos os cartoes de uma
- * linha terminarem juntos; quem distribui o espaco de sobra la dentro e o
- * `margin-top: auto` do rodape do cartao. O resultado e uma malha regular, com
- * os "por que" alinhados na mesma linha de base em toda a linha.
+ * 2. As abas rasas crescem. `auto-fill` mantinha as colunas vazias existindo,
+ *    então "Janelas" (2 chaves) desenhava duas fichas estreitas num canto.
+ *    `:has(> :nth-child(-n+3):last-child)` pega a própria grade — funciona
+ *    também no modo "todas as abas empilhadas", em que existem 24 grades
+ *    dentro do mesmo `<main>`.
  *
- * `minmax(0, …)` e obrigatorio junto: com `1fr` puro, um nome de arquivo longo
- * dentro de um cartao empurra a coluna e desalinha a linha inteira. */
+ * `align-items: stretch` (o padrão) é de propósito: faz todos os cartões de uma
+ * linha terminarem juntos, e é o `margin-top:auto` do rodapé do cartão que
+ * distribui a sobra lá dentro. `minmax(0, …)` é obrigatório junto: com `1fr`
+ * puro, um nome de arquivo longo empurra a coluna e desalinha a linha inteira. */
 .grade {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
-  gap: 1.15rem;
+  gap: 1.15rem 1.9rem;
   align-items: stretch;
+  max-width: var(--medida);
 }
 .grade > * { min-width: 0; }
-
-.secao-titulo {
-  margin: 1.4rem 0 .6rem;
-  font-size: .96rem;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: .6rem;
+.grade:has(> :nth-child(-n+3):last-child) {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 480px));
+  justify-content: start;
 }
-.secao-titulo:first-child { margin-top: .2rem; }
-.secao-titulo::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--surface0);
-}
+.grade + .secao-titulo { margin-top: 2.8rem; }
 
-/* O CARTAO TEM TRES ZONAS, e e isso que da o alinhamento horizontal:
- *   topo      nome da chave + padrao          (altura fixa, uma linha)
- *   controle  o que ela mexe                  (cresce com o tipo do controle)
- *   rodape    frase, previa e o "por que"     (empurrado para baixo)
- * O `margin-top:auto` na ultima crianca e o que ancora o rodape — sem ele, o
- * espaco de sobra do `stretch` ficaria no fim do cartao e cada explicacao
- * flutuaria numa altura diferente. */
+/* ===========================================================================
+ * O CARTÃO DE CHAVE — a leitura foi invertida
+ * ===========================================================================
+ * ANTES: `FASTFETCH_LOGO_COLUNAS` (mono, 600, cor de texto) · título · controle.
+ * A primeira coisa lida em cada um dos 102 cartões era o nome da variável.
+ *
+ * AGORA, e sem uma linha de HTML nova — é tudo `order` de flex:
+ *   1. o título, que é a frase que diz o que a chave FAZ
+ *   2. o aviso de quem está mandando, quando há
+ *   3. o controle
+ *   4. a explicação
+ *   5. o rodapé: nome da chave, selo de essencial, padrão de fábrica
+ *   6. o "por quê"
+ * O identificador não saiu — ele é como a chave se chama no arquivo e ela
+ * procura por ele. Ele virou legenda, no pé, do tamanho de legenda.
+ *
+ * Nos 39 cartões sem título derivado, a explicação sobe para o lugar 2: sem
+ * título, ela é o que se lê para decidir, e ler a explicação depois de já ter
+ * clicado no botão não serve para nada.
+ *
+ * O CARTÃO PERDEU A CAIXA. Uma borda igual em 102 cartões é o que faz "escolher
+ * entre dois gatos" pesar igual a "rodar um instalador de 52 etapas". Quem
+ * ficou com caixa é só quem carrega PRÉVIA — a tira de flavors, os gatos, as
+ * bolinhas de cor, o desenho da barra, a simulação do modo de leitura — porque
+ * ali existe algo para olhar, e o que se olha merece moldura. */
 .cartao {
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: 10px;
-  padding: 1.05rem 1.1rem 1.1rem;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--surface0);
+  border-radius: 0;
+  padding: .9rem .9rem 1.1rem;
   display: flex;
   flex-direction: column;
-  gap: .65rem;
-  min-height: 8.5rem;
+  gap: .6rem;
+  min-height: 0;
 }
-.cartao > details.porque:last-child,
-.cartao > .sem-previa:last-child { margin-top: auto; }
-/* Mexeu = diferente do padrão do meow.conf.exemplo. É a resposta visual ao
- * pedido dela — "sempre lembrando de cada uma das escolhas que eu fiz": a
- * escolha não fica só guardada, ela fica VISÍVEL contra o que vinha de fábrica. */
-.cartao.mexeu { border-left: 3px solid var(--accent); padding-left: calc(.8rem - 2px); }
+.cartao:has(.amostras, .opcoes-imagem, .cores-grade, .previa-grade, .simul, .mock) {
+  background: var(--mantle);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+  padding: 1rem 1.05rem 1.05rem;
+}
 
-.cartao-topo { display: flex; align-items: baseline; gap: .5rem; }
-.cartao-topo code {
-  font: 600 .78rem/1.3 ui-monospace, "JetBrains Mono", "Fira Code", monospace;
+/* A ORDEM. `.cartao > *` põe todo mundo em 3 primeiro, senão um `<select>` ou um
+ * `<textarea>` solto (que não tem classe) cai em `order:0` e pula para a frente. */
+.cartao > * { order: 3; }
+.cartao > .titulo-cartao { order: 1; }
+.cartao > .frase.dominada { order: 2; }
+.cartao > .frase { order: 4; }
+.cartao:not(:has(.titulo-cartao)) > .frase { order: 2; }
+.cartao > .cartao-topo { order: 5; }
+.cartao > .sem-previa { order: 6; }
+.cartao > details.porque { order: 7; }
+
+/* O título é o texto que ela lê para escolher. */
+.titulo-cartao {
+  margin: 0;
+  font-size: var(--t-titulo);
+  font-weight: 600;
+  line-height: 1.4;
   color: var(--text);
-  letter-spacing: -.01em;
+  letter-spacing: -.005em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
+
+/* O RODAPÉ DE METADADOS. `margin-top:auto` aqui é o que ancora o pé do cartão:
+ * sem ele, a sobra do `stretch` ficaria no fim e cada "por quê" flutuaria numa
+ * altura diferente na mesma linha da grade. */
+.cartao > .cartao-topo {
+  display: flex;
+  align-items: baseline;
+  gap: .45rem;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: .55rem;
+  border-top: 1px solid color-mix(in srgb, var(--surface0) 55%, transparent);
+}
+.cartao-topo code {
+  font: 400 var(--t-legenda)/1.3 var(--mono);
+  color: var(--overlay2);
+  letter-spacing: .02em;
+  opacity: 1;
+}
+/* O selo de essencial é um ponto, e ponto não é controle. Antes ele era um
+ * ponto mauve dentro de uma caixinha de contorno pêssego do tamanho de uma
+ * caixa de marcar — lia-se como caixa desmarcada, e é rótulo. Uma declaração
+ * só, sem borda, sem caixa alta, e em cinza: é metadado, não estado. */
 .marca-essencial {
-  font-size: .64rem;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: var(--peach);
-  border: 1px solid color-mix(in srgb, var(--peach) 40%, transparent);
-  border-radius: 4px;
-  padding: 0 .3rem;
+  font-size: .85rem;
+  line-height: 1;
+  color: var(--overlay2);
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  letter-spacing: normal;
+  text-transform: none;
 }
 .cartao .padrao {
   margin-left: auto;
-  font-size: .7rem;
-  color: var(--overlay1);
+  font-size: var(--t-legenda);
+  color: var(--overlay2);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
+.marca-pendente { font-size: var(--t-legenda); font-weight: 600; color: var(--accent); letter-spacing: .01em; }
 
-/* A EXPLICACAO CURTA E CORTADA EM TRES LINHAS, e o resto vive no "por que".
- * Os comentarios do meow.conf.exemplo variam de seis palavras a seis linhas —
- * jogar todos crus no cartao era o outro motivo da densidade irregular. Tres
- * linhas cabem em todo cartao e o texto inteiro continua a um clique. */
+/* OS DOIS ESTADOS DO CARTÃO, NA MESMA ARESTA E COM O MESMO MECANISMO.
+ * Antes eram três coisas disputando a borda esquerda — "mexeu", "não salvo" e
+ * "sem prévia" — duas delas em accent, e a terceira mudando o `padding` para
+ * caber. Agora:
+ *   pêssego = está diferente do que vem de fábrica  (metadado com atenção)
+ *   accent  = está esperando o Salvar               (estado ACESO)
+ * `inset box-shadow` no lugar de `border-left`: não desloca o texto, e as duas
+ * regras podem coexistir sem somar 3px de recuo. "Sem prévia" devolveu a aresta
+ * e diz o que tem para dizer na frase que já existe. */
+.cartao.mexeu { box-shadow: inset 3px 0 0 var(--peach); }
+.cartao.nao-salvo {
+  background: color-mix(in srgb, var(--accent) 7%, var(--mantle));
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.cartao[data-sem-previa] { border-left: 0; }
+
+/* A EXPLICAÇÃO CURTA, CORTADA EM TRÊS LINHAS; o resto vive no "por quê".
+ * Os comentários do meow.conf.exemplo variam de seis palavras a seis linhas. */
 .frase {
-  font-size: .8rem;
-  line-height: 1.45;
-  color: var(--subtext0);
   margin: 0;
+  font-size: var(--t-frase);
+  line-height: 1.5;
+  color: var(--subtext0);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-wrap: pretty;
 }
-.frase.herdada {
-  border-left: 2px solid var(--surface1);
+/* `herdada` = o comentário veio de um bloco que descreve várias chaves. */
+.frase.herdada { border-left: 2px solid var(--surface1); padding-left: .55rem; }
+/* O aviso de que outra chave está mandando. Não é erro — é contexto: a escolha
+ * dela continua valendo no arquivo, só não tem efeito enquanto a outra vencer.
+ * Por isso amarelo de aviso, e não vermelho de recusa. */
+.frase.dominada {
+  border-left: 2px solid var(--yellow);
   padding-left: .55rem;
-}
-/* A nota que substituiu as repeticoes dentro dos cartoes. */
-.nota-secao {
-  margin: 0 0 .9rem;
-  color: var(--overlay1);
+  display: block;
   -webkit-line-clamp: none;
   line-clamp: none;
-  display: block;
+  color: var(--subtext1);
 }
-/* A marca do cartao sem previa: um traco na borda, no lugar de uma frase
-   repetida em cada um deles. */
-.cartao[data-sem-previa] { border-left: 2px solid var(--surface1); }
-.cartao[data-sem-previa].mexeu { border-left: 3px solid var(--accent); }
+.frase.dominada b { color: var(--text); font-weight: 600; }
+
+/* "sem prévia honesta" — dito em uma linha, nunca um retângulo vazio. */
+.sem-previa {
+  font-size: var(--t-legenda);
+  line-height: 1.45;
+  color: var(--overlay2);
+  border-left: 2px solid var(--surface1);
+  padding-left: .5rem;
+  margin: 0;
+  text-wrap: pretty;
+}
 
 /* --- os controles --------------------------------------------------------- */
 .controle { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
@@ -415,27 +661,26 @@ main:focus-visible { outline: none; }
 input[type="text"], input[type="time"], input[type="number"], select, textarea {
   background: var(--surface0);
   border: 1px solid var(--surface1);
-  border-radius: 7px;
+  border-radius: var(--r-2);
   color: var(--text);
   font: inherit;
-  font-size: .84rem;
+  font-size: .82rem;
   padding: .35rem .55rem;
   min-width: 0;
 }
 input[type="text"], textarea { flex: 1 1 12ch; }
-textarea { resize: vertical; min-height: 3.2rem; font-family: ui-monospace, monospace; font-size: .78rem; }
+textarea { resize: vertical; min-height: 3.2rem; font-family: var(--mono); font-size: .76rem; }
 select { flex: 1 1 auto; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-/* Os botões de opção: um segmento por valor. Abaixo de cinco opções eles cabem
- * e são um clique; acima disso o `app.js` desenha um <select>, porque doze
- * segmentos numa coluna de 330px viram um emaranhado. */
+/* Um segmento por valor. Abaixo de cinco opções eles cabem e são um clique;
+ * acima disso o app.js desenha um <select>. Aceso É accent: é o valor
+ * SELECIONADO, que é um dos três usos autorizados. */
 .segmentos { display: flex; flex-wrap: wrap; gap: .25rem; }
 .segmentos button {
   border: 1px solid var(--surface1);
   background: var(--surface0);
   color: var(--subtext1);
-  border-radius: 6px;
+  border-radius: var(--r-1);
   padding: .28rem .6rem;
   font: inherit;
   font-size: .8rem;
@@ -448,29 +693,36 @@ select { flex: 1 1 auto; }
   color: var(--crust);
   font-weight: 600;
 }
-/* "não mexer" é o terceiro estado das chaves que nascem vazias, e ele não pode
- * parecer um valor como os outros: é a AUSÊNCIA de opinião nossa. Fica em
- * tracejado, e aceso ele é cinza — nunca accent, que significa "ligado". */
+/* "não mexer" é o terceiro estado das chaves que nascem vazias, e não pode
+ * parecer um valor como os outros: é a AUSÊNCIA de opinião nossa. Tracejado, e
+ * aceso ele é cinza — nunca accent, que significa "ligado". */
 .segmentos button.vazio { border-style: dashed; }
 .segmentos button.vazio[aria-pressed="true"] {
   background: var(--surface2);
   border-color: var(--overlay0);
   color: var(--text);
+  font-weight: 600;
 }
 
-.faixa { display: flex; align-items: center; gap: .5rem; width: 100%; }
+/* O número do deslizante NÃO é accent: ele é a leitura de um valor, não um
+ * estado ligado. Quem está aceso é o polegar da régua, pelo `accent-color`. */
+.faixa { display: flex; align-items: center; gap: .6rem; width: 100%; }
 .faixa input[type="range"] { flex: 1 1 auto; accent-color: var(--accent); min-width: 6rem; }
+.faixa input[disabled] { opacity: .45; }
 .faixa output {
-  font: 600 .8rem ui-monospace, monospace;
-  color: var(--accent);
+  font: 600 .82rem var(--mono);
+  color: var(--text);
   min-width: 4.5ch;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+/* Os estados que não moram na régua do deslizante. */
+.faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .1rem; }
+.btn-mini { font-size: var(--t-legenda); padding: .18rem .45rem; }
+.btn-mini[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
 /* As listas separadas por vírgula viram fichas. Sem isso, tirar um app de
- * APPS_ATIVOS seria redigitar 23 slugs — que é a razão de o wizard do bin/meow
- * ter ganhado o `+slug`/`-slug`. */
+ * APPS_ATIVOS seria redigitar 23 slugs. */
 .fichas { display: flex; flex-wrap: wrap; gap: .25rem; width: 100%; }
 .ficha {
   display: inline-flex;
@@ -478,9 +730,9 @@ select { flex: 1 1 auto; }
   gap: .3rem;
   background: var(--surface0);
   border: 1px solid var(--surface1);
-  border-radius: 999px;
+  border-radius: var(--r-max);
   padding: .12rem .3rem .12rem .55rem;
-  font-size: .76rem;
+  font-size: .74rem;
   color: var(--subtext1);
 }
 .ficha button {
@@ -491,19 +743,20 @@ select { flex: 1 1 auto; }
   font-size: .9rem;
   line-height: 1;
   padding: 0 .15rem;
-  border-radius: 999px;
+  border-radius: var(--r-max);
 }
 .ficha button:hover { color: var(--red); background: color-mix(in srgb, var(--red) 18%, transparent); }
 .fichas .nova { flex: 1 1 8ch; min-width: 7rem; }
 
 /* --- o "por quê" ---------------------------------------------------------- */
 /* O comentário inteiro do meow.conf.exemplo, a um clique. Ele é a documentação
- * deste projeto e é longo de propósito — mas aberto por padrão em 95 cartões
- * seria uma página que ninguém lê. */
-details.porque { margin-top: .1rem; }
+ * deste projeto e é longo de propósito — mas aberto por padrão em 102 cartões
+ * seria uma página que ninguém lê. O gatilho não fica accent no hover: passar o
+ * mouse não acende nada. */
+details.porque { margin-top: 0; }
 details.porque summary {
-  font-size: .74rem;
-  color: var(--overlay1);
+  font-size: var(--t-legenda);
+  color: var(--overlay2);
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -511,73 +764,163 @@ details.porque summary {
 details.porque summary::-webkit-details-marker { display: none; }
 details.porque summary::before { content: "▸ "; }
 details.porque[open] summary::before { content: "▾ "; }
-details.porque summary:hover { color: var(--accent); }
+details.porque summary:hover { color: var(--subtext1); }
 details.porque pre {
-  margin: .4rem 0 0;
-  padding: .55rem .65rem;
+  margin: .45rem 0 0;
+  padding: .6rem .7rem;
   background: var(--crust);
-  border-radius: 7px;
-  font: .74rem/1.45 ui-monospace, monospace;
+  border-radius: var(--r-2);
+  font: .72rem/1.55 var(--mono);
   color: var(--subtext0);
   white-space: pre-wrap;
   max-height: 22rem;
   overflow: auto;
 }
 
-/* --- ações ---------------------------------------------------------------- */
+/* ===========================================================================
+ * FAZER — as 34 ações, em três graus de risco
+ * ===========================================================================
+ * A queixa em uma frase: "escolher entre dois gatos, arrastar um número, e
+ * rodar um instalador de 52 etapas que pode pedir sudo" tinham a mesma borda, o
+ * mesmo tamanho e o mesmo botão mauve.
+ *
+ * O grau já estava escrito no HTML — nas pastilhas que cada ação carrega. O
+ * `:has()` só o lê:
+ *
+ *   nenhuma pastilha ........ só lê. Linha rasa, sem caixa. (Conferir, Ver a
+ *                             tabela, Listar.) A ação mais segura da página é
+ *                             a mais quieta.
+ *   pode usar sudo .......... caixa e fio pêssego. Pêssego já é "atenção sem
+ *                             erro" nesta folha (`.p-sudo`, `.aviso-sudo`,
+ *                             `.cartao.mexeu`).
+ *   desfaz coisas ........... caixa e fio vermelho, e o botão continua vermelho.
+ *
+ * "usa rede" e "aceita seco" não mudam a moldura: são propriedades da ação, não
+ * risco. Elas ficam ditas nas pastilhas. */
 .acao {
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: 10px;
-  padding: .75rem .85rem;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--surface0);
+  border-radius: 0;
+  padding: .9rem .9rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: .45rem;
+  gap: .4rem;
 }
-.acao h3 { margin: 0; font-size: .88rem; color: var(--text); }
-.acao p { margin: 0; font-size: .78rem; color: var(--subtext0); }
-.acao .rodape { display: flex; gap: .4rem; align-items: center; margin-top: auto; padding-top: .3rem; }
+.acao:has(.p-sudo), .acao:has(.p-perigo) {
+  background: var(--mantle);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+}
+.acao:has(.p-sudo) { box-shadow: inset 3px 0 0 var(--peach); }
+.acao:has(.p-perigo) {
+  border-color: color-mix(in srgb, var(--red) 32%, var(--surface0));
+  box-shadow: inset 3px 0 0 var(--red);
+}
+
+/* A ordem: nome, o que faz, o comando exato, e só então as etiquetas de risco
+ * com o botão. O comando subiu para cima do rodapé porque ele é a leitura que
+ * antecede a decisão, não um rodapé de rodapé. Feito por `order`. */
+.acao > * { order: 2; }
+.acao h3 { order: 0; margin: 0; font-size: var(--t-titulo); font-weight: 600; color: var(--text); letter-spacing: -.005em; }
+.acao p { order: 1; margin: 0; font-size: var(--t-frase); line-height: 1.5; color: var(--subtext0); text-wrap: pretty; }
 .acao code.cmd {
-  font: .7rem ui-monospace, monospace;
+  order: 3;
+  margin-top: auto;
+  padding-top: .35rem;
+  font: .7rem/1.4 var(--mono);
   color: var(--overlay1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.acao .rodape {
+  order: 4;
+  display: flex;
+  gap: .55rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0;
+  padding-top: .1rem;
+}
+/* As etiquetas à esquerda, o gatilho à direita: lê-se o risco entrando no botão. */
+.acao .rodape .btn { margin-left: auto; }
 
+/* --- botões --------------------------------------------------------------- */
 .btn {
   border: 1px solid var(--surface1);
   background: var(--surface0);
   color: var(--text);
-  border-radius: 7px;
-  padding: .35rem .75rem;
+  border-radius: var(--r-2);
+  padding: .36rem .7rem;
   font: inherit;
-  font-size: .82rem;
+  font-size: .8rem;
   cursor: pointer;
   white-space: nowrap;
 }
-.btn:hover { border-color: var(--overlay0); }
+.btn:hover { border-color: var(--overlay0); background: var(--surface1); }
 .btn-accent { background: var(--accent); border-color: var(--accent); color: var(--crust); font-weight: 600; }
-.btn-accent:hover { filter: brightness(1.08); }
-.btn-perigo { border-color: color-mix(in srgb, var(--red) 55%, transparent); color: var(--red); }
-.btn-perigo:hover { background: color-mix(in srgb, var(--red) 15%, transparent); }
-.btn:disabled { opacity: .45; cursor: not-allowed; }
-
-.pastilha {
-  font-size: .68rem;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  border-radius: 999px;
-  padding: .1rem .5rem;
-  border: 1px solid currentColor;
+.btn-accent:hover { filter: brightness(1.08); background: var(--accent); }
+.btn-perigo {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--red) 38%, var(--surface1));
+  color: var(--red);
 }
-.p-sudo { color: var(--peach); }
+.btn-perigo:hover { background: color-mix(in srgb, var(--red) 15%, transparent); border-color: var(--red); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn:disabled:hover { background: var(--surface0); border-color: var(--surface1); }
+
+/* TRINTA E QUATRO "RODAR" EM MAUVE NÃO SÃO AÇÃO PRINCIPAL.
+ * `--accent` marca LIGADO, SELECIONADO ou AÇÃO PRINCIPAL, e a ação principal
+ * desta página é uma: "Salvar e aplicar". Numa aba de oito ações, oito botões
+ * acesos apagam o sinal — e apagam junto a diferença entre "Conferir", que só
+ * lê, e "Instalar", que pode pedir sudo. Aqui o botão volta a ser botão: o que
+ * diz o grau é a moldura da ação e a etiqueta ao lado.
+ * O accent segue no diálogo de confirmação, na barra de salvar e no "Consertar"
+ * do aviso — os três lugares em que ele é, de fato, a ação principal. */
+.grade > .acao .btn-accent {
+  background: var(--surface1);
+  border-color: var(--surface2);
+  color: var(--text);
+  font-weight: 600;
+}
+.grade > .acao .btn-accent:hover { background: var(--surface2); border-color: var(--overlay0); filter: none; }
+
+/* AS ETIQUETAS DE RISCO PERDERAM A CAIXA.
+ * Três pílulas de contorno em fila, vezes 34 ações, é textura: o vermelho de
+ * "desfaz coisas" ficava igual ao azul de "usa rede". Sem contorno e em caixa
+ * alta pequena, elas viram o que são — palavras marcadas —, e a única que ainda
+ * ganha corpo é a de estado do trabalho que está correndo, na gaveta. */
+.pastilha {
+  font-size: var(--t-legenda);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: var(--subtext0);
+  white-space: nowrap;
+}
+.p-sudo   { color: var(--peach); }
 .p-perigo { color: var(--red); }
-.p-rede { color: var(--sky); }
-.p-seco { color: var(--yellow); }
-.p-ok { color: var(--green); }
-.p-erro { color: var(--red); }
+.p-rede   { color: var(--sky); }
+.p-seco   { color: var(--yellow); }
+.p-ok     { color: var(--green); }
+.p-erro   { color: var(--red); }
 .p-correndo { color: var(--yellow); }
+/* O estado do trabalho ao vivo é a exceção: aí a pílula diz "isto está
+ * acontecendo agora", e o contorno é o que a separa de um rótulo estático. */
+#gaveta-estado {
+  border: 1px solid currentColor;
+  border-radius: var(--r-max);
+  padding: .1rem .55rem;
+}
+
+.linha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+/* Os botões que agem sobre a própria seção ficam colados no filtro, antes da
+ * grade: é o passo seguinte natural de quem acabou de marcar alguma coisa. */
+.acoes-da-secao { margin: -.4rem 0 1.4rem; }
 
 /* --- aviso ---------------------------------------------------------------- */
 .aviso {
@@ -586,10 +929,11 @@ details.porque pre {
   gap: .8rem;
   background: color-mix(in srgb, var(--yellow) 12%, var(--mantle));
   border: 1px solid color-mix(in srgb, var(--yellow) 45%, transparent);
-  border-radius: 9px;
+  border-radius: var(--r-2);
   padding: .6rem .8rem;
-  margin-bottom: .9rem;
-  font-size: .82rem;
+  margin-bottom: 1.2rem;
+  max-width: var(--medida);
+  font-size: var(--t-frase);
   color: var(--yellow);
 }
 .aviso button { margin-left: auto; }
@@ -598,14 +942,16 @@ details.porque pre {
   display: block;
   background: color-mix(in srgb, var(--peach) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--peach) 40%, transparent);
-  border-radius: 8px;
-  padding: .55rem .7rem;
-  font-size: .78rem;
+  border-radius: var(--r-2);
+  padding: .6rem .75rem;
+  font-size: var(--t-frase);
+  line-height: 1.55;
   color: var(--peach);
-  margin: .6rem 0;
+  margin: .7rem 0;
 }
-.aviso-sudo strong { display: block; margin-bottom: .2rem; }
+.aviso-sudo strong { display: block; margin-bottom: .25rem; }
 .aviso-sudo span { color: var(--subtext0); }
+.aviso-sudo code { font-family: var(--mono); font-size: .95em; color: var(--subtext1); }
 
 /* --- gaveta de saída ------------------------------------------------------ */
 .gaveta {
@@ -620,38 +966,36 @@ details.porque pre {
   display: flex;
   align-items: center;
   gap: .8rem;
-  padding: .45rem .8rem;
+  padding: .45rem .9rem;
   border-bottom: 1px solid var(--surface0);
 }
-.gaveta-topo strong { font-size: .84rem; color: var(--text); }
-.gaveta-topo code {
-  display: block;
-  font: .7rem ui-monospace, monospace;
-  color: var(--overlay1);
-}
-.gaveta-botoes { margin-left: auto; display: flex; align-items: center; gap: .4rem; }
+.gaveta-topo strong { font-size: .82rem; color: var(--text); }
+.gaveta-topo code { display: block; font: .68rem var(--mono); color: var(--overlay1); }
+.gaveta-botoes { margin-left: auto; display: flex; align-items: center; gap: .45rem; }
 
 #saida {
   margin: 0;
-  padding: .6rem .9rem 1rem;
+  padding: .7rem 1rem 1.2rem;
   overflow: auto;
-  font: .76rem/1.5 ui-monospace, "JetBrains Mono", monospace;
+  font: .74rem/1.6 var(--mono);
   color: var(--subtext1);
   white-space: pre-wrap;
   word-break: break-word;
 }
-/* As quatro cores do log do projeto, relidas do texto. O `lib/comum.sh` marca
- * cada linha com um glifo (`ok`, `~~`, `--`, `!!`, `erro`) justamente porque a
- * cor do terminal não sobrevive a um cano — aqui a cor volta a partir do glifo,
- * e é a MESMA da paleta que o terminal usaria. */
+/* As cores do log do projeto, relidas do texto. O `lib/comum.sh` marca cada
+ * linha com um glifo justamente porque a cor do terminal não sobrevive a um
+ * cano — aqui a cor volta a partir do glifo. O título da linha saiu do mauve:
+ * um cabeçalho de log não é uma coisa acesa, é um cabeçalho. */
 #saida .l-ok   { color: var(--green); }
 #saida .l-muda { color: var(--yellow); }
 #saida .l-pula { color: var(--overlay1); }
 #saida .l-erro { color: var(--red); }
 #saida .l-info { color: var(--blue); }
-#saida .l-tit  { color: var(--mauve); font-weight: 600; }
+#saida .l-tit  { color: var(--text); font-weight: 700; }
 
 /* --- torradas ------------------------------------------------------------- */
+/* Sem sombra: no latte ela seria um halo claro sobre fundo claro, e a borda já
+ * faz o trabalho nos dois sabores. */
 .torradas {
   position: fixed;
   right: 1rem;
@@ -666,11 +1010,10 @@ details.porque pre {
   background: var(--surface0);
   border: 1px solid var(--surface1);
   border-left: 3px solid var(--overlay0);
-  border-radius: 8px;
+  border-radius: var(--r-2);
   padding: .45rem .75rem;
   font-size: .8rem;
   color: var(--text);
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--crust) 70%, transparent);
   animation: entra .18s ease-out;
 }
 .torrada.ok    { border-left-color: var(--green); }
@@ -683,118 +1026,54 @@ dialog {
   background: var(--mantle);
   color: var(--text);
   border: 1px solid var(--surface1);
-  border-radius: 12px;
-  padding: 1.1rem 1.2rem;
+  border-radius: var(--r-3);
+  padding: 1.2rem 1.3rem;
   max-width: 34rem;
-  box-shadow: 0 20px 60px color-mix(in srgb, var(--crust) 80%, transparent);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--crust) 50%, transparent);
 }
 dialog::backdrop { background: color-mix(in srgb, var(--crust) 65%, transparent); }
-dialog h2 { margin: 0 0 .4rem; font-size: 1rem; color: var(--accent); }
-dialog p { margin: .3rem 0; font-size: .84rem; color: var(--subtext0); }
-dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1rem 0 0; padding: 0; }
+dialog h2 { margin: 0 0 .5rem; font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
+dialog p { margin: .35rem 0; font-size: var(--t-frase); line-height: 1.55; color: var(--subtext0); }
+dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2rem 0 0; padding: 0; }
 .comando-previa code {
   display: block;
   background: var(--crust);
-  border-radius: 6px;
-  padding: .4rem .55rem;
-  font: .76rem ui-monospace, monospace;
+  border-radius: var(--r-2);
+  padding: .5rem .6rem;
+  font: .74rem var(--mono);
   color: var(--subtext1);
   overflow-x: auto;
 }
 
-/* --- folhas --------------------------------------------------------------- */
-.folha {
-  display: flex;
-  align-items: baseline;
-  gap: .7rem;
-  padding: .5rem .7rem;
-  border-radius: 8px;
-  border: 1px solid var(--surface0);
-  background: var(--mantle);
-  margin-bottom: .35rem;
-}
-.folha b { font-size: .82rem; color: var(--text); font-weight: 600; }
-.folha .data { font-size: .72rem; color: var(--overlay1); font-variant-numeric: tabular-nums; }
-.folha .oque { font-size: .78rem; color: var(--subtext0); flex: 1 1 auto; }
-
-.vazio-msg { color: var(--overlay1); font-size: .85rem; padding: 2rem 0; text-align: center; }
-
-/* --- telas estreitas ------------------------------------------------------ */
-/* A PAGINA NAO ROLA DE LADO — medido em 01/09/2026 com o navegador em 320, 375,
- * 414, 768 e 1024 px. Nos tres primeiros ela rolava, com 45 px de excesso.
- *
- * Eram DUAS causas, e nenhuma aparece lendo o CSS:
- *   1. o bloco do titulo dentro de `.marca` e filho de um flex e nao tinha
- *      `min-width: 0` — entao o caminho do meow.conf, que e uma linha longa e
- *      sem espacos, impunha a propria largura ao cabecalho inteiro (485 px de
- *      conteudo numa tela de 375);
- *   2. o trilho vira barra horizontal aqui embaixo, e sem `min-width: 0` o
- *      `overflow-x: auto` dele nao segura nada: os vinte botoes empurravam a
- *      pagina em vez de rolar por dentro.
- *
- * O `overflow-x: clip` na raiz e a rede de seguranca. `clip` e nao `hidden`:
- * `hidden` cria um contexto de rolagem e quebra `position: sticky` nos filhos. */
-html, body { overflow-x: clip; }
-.marca > div { min-width: 0; }
-.sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-@media (max-width: 820px) {
-  .corpo { flex-direction: column; }
-  .trilho {
-    flex: 0 0 auto;
-    display: flex;
-    gap: .3rem;
-    overflow-x: auto;
-    min-width: 0;
-    max-width: 100%;
-    border-right: 0;
-    border-bottom: 1px solid var(--surface0);
-    padding: .5rem;
-  }
-  .trilho button { width: auto; white-space: nowrap; display: inline-flex; }
-  .trilho hr, .trilho .rotulo-grupo, .trilho .conta { display: none; }
-  .topo { flex-wrap: wrap; }
-  .busca-caixa { order: 3; flex-basis: 100%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
-}
-
 /* ===========================================================================
- * AS PRÉVIAS — ver o efeito antes de escolher
+ * VER E ESCOLHER — a moldura sai, a imagem fica
+ * ===========================================================================
+ * São as três telas em que ela passa mais tempo (46 papéis, 64 ícones, 23
+ * capas) e eram as menos desenhadas: cada imagem morava dentro de um cartão com
+ * borda, fundo e legenda permanente, e a grade tinha o mesmo respiro da grade de
+ * texto. O resultado é que a moldura ocupava mais pixels do que a imagem em
+ * telas de 190px de coluna.
  *
- * OS NÚMEROS AQUI NÃO SÃO NOVOS: são os das 18 folhas visuais que decidiram
- * este tema, e que agora moram em `docs/folhas/`. Reusá-los é o contrário de
- * economia — é fazer a página de configuração falar a mesma língua visual das
- * folhas em que ela olhou os ícones pela primeira vez.
+ * Aqui a imagem É o objeto. Sem borda, sem fundo, sem legenda fixa, grade
+ * densa, e — diferente de Ajustar — largura inteira: quanto mais couber numa
+ * tela de 27 polegadas, melhor, porque a tarefa é comparar.
  *
- *   ícone a 48 px dentro de caixa de 64, raio 8 .. `folha-4-icones.html` e
- *                                                  `folha-conversor-11-08.html`,
- *                                                  independentes, chegaram ao
- *                                                  mesmo par. 48 é o tamanho
- *                                                  REAL que a dock desenha.
- *   grade auto-fill minmax(190px), gap 14 ....... `meow-icones-folha.html`
- *   cartão raio 14, borda 1px, texto centrado ... idem (aqui o raio cai para 11
- *                                                  e o recheio encolhe: aquilo é
- *                                                  folha de contato de 1180px,
- *                                                  isto é um painel estreito)
- *   legenda em três degraus 13.5 / 11.5 / 10.5 .. idem
- * ======================================================================== */
+ * OS NÚMEROS DA PRÉVIA DE ÍCONES NÃO SÃO NOVOS: são os das 19 folhas visuais de
+ * `docs/folhas/` — ícone a 48px dentro de caixa de 64, raio 8. 48 é o tamanho
+ * REAL que a dock desenha. */
 
 /* --- os quatro fundos de teste ------------------------------------------- */
 /* A dock é translúcida e o papel de parede gira, então o fundo por trás de um
  * ícone oscila SOZINHO entre o vidro escuro e o claro. Um ícone que some num
- * deles não está resolvido — é a lição das folhas, e é por isso que a prévia
- * deixa trocar o fundo em vez de mostrar um só. */
-.fundos { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin: .1rem 0 .6rem; }
-.fundos b { font-size: .74rem; color: var(--overlay1); font-weight: 600; }
+ * deles não está resolvido. */
+.fundos { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin: 0 0 1.4rem; }
+.fundos b { font-size: var(--t-legenda); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--overlay2); margin-right: .2rem; }
 .fundos button {
   display: inline-flex;
   align-items: center;
   gap: .4rem;
-  border-radius: 999px;
-  padding: .2rem .65rem .2rem .3rem;
+  border-radius: var(--r-max);
+  padding: .18rem .6rem .18rem .28rem;
   font: inherit;
   font-size: .76rem;
   background: var(--surface0);
@@ -802,13 +1081,255 @@ html, body { overflow-x: clip; }
   color: var(--subtext1);
   cursor: pointer;
 }
+.fundos button:hover { border-color: var(--overlay0); color: var(--text); }
 .fundos button i {
-  width: 15px; height: 15px; border-radius: 50%;
+  width: 14px; height: 14px; border-radius: 50%;
   /* O contorno interno existe para a bolinha do Latte não sumir sobre o painel
    * escuro — é o mesmo truque do swatch da `folha-cursor.html`. */
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent);
 }
-.fundos button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.fundos button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* --- a galeria dos 46 papéis de parede ------------------------------------
+ * O NOME DO ARQUIVO E O "BANIR" SAÍRAM DA PRIMEIRA LEITURA.
+ * Eram 46 nomes em monoespaçado e 46 botões de contorno vermelho na mesma tela;
+ * o vermelho virou textura e deixou de significar "cuidado". Agora a legenda e a
+ * ação aparecem sobre a imagem no `:hover` e no `:focus-within` — o teclado
+ * chega a elas do mesmo jeito, porque focar o botão acende a legenda. O que
+ * decide entre uma foto e outra é a foto. */
+.galeria {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
+  gap: 10px;
+}
+.galeria figure {
+  position: relative;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.galeria .lugar,
+.galeria img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+  background: var(--surface0);
+  border-radius: var(--r-2);
+}
+/* O lugar-marcado: um brilho que atravessa, para dizer "está vindo" sem
+ * prometer quando. Some sozinho quando a miniatura chega. */
+.galeria .lugar {
+  background: linear-gradient(100deg, var(--surface0) 38%, var(--surface1) 50%, var(--surface0) 62%);
+  background-size: 260% 100%;
+  animation: brilho 1.5s linear infinite;
+}
+@keyframes brilho { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+.galeria figure:hover, .galeria figure:focus-within { outline: 2px solid var(--surface2); outline-offset: 0; }
+.galeria figcaption {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .4rem;
+  background: color-mix(in srgb, var(--crust) 80%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.galeria figure:hover figcaption,
+.galeria figure:focus-within figcaption { opacity: 1; pointer-events: auto; }
+.galeria .nome {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: .68rem/1.3 var(--mono);
+  color: var(--subtext0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.galeria .acoes { display: flex; gap: .3rem; flex: 0 0 auto; }
+.galeria .acoes .btn { padding: .12rem .45rem; font-size: var(--t-legenda); }
+/* Fora do hover o vermelho não existe; no hover ele volta a valer. */
+.galeria .acoes .btn-perigo { border-color: transparent; background: color-mix(in srgb, var(--surface1) 70%, transparent); color: var(--subtext1); }
+.galeria .acoes .btn-perigo:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 55%, transparent); background: color-mix(in srgb, var(--red) 18%, transparent); }
+
+/* As pastilhas de recorte do acervo (No carrossel / Noite / Dia / …).
+ * Aceso é accent: é filtro SELECIONADO. */
+.abas { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 1.1rem; }
+.abas button {
+  border-radius: var(--r-max);
+  padding: .24rem .7rem;
+  font: inherit;
+  font-size: .78rem;
+  background: var(--surface0);
+  border: 1px solid var(--surface1);
+  color: var(--subtext1);
+  cursor: pointer;
+}
+.abas button:hover { border-color: var(--overlay0); color: var(--text); }
+.abas button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--crust); font-weight: 600; }
+.abas .conta { opacity: .7; font-variant-numeric: tabular-nums; margin-left: .35rem; }
+
+/* --- os 64 aplicativos e seus ícones -------------------------------------
+ * Grade densa e SEM CAIXA: são 64, e a pergunta é sempre comparativa — "o que
+ * entrou aqui e ainda está sem ícone". Sessenta e quatro bordas de 150px
+ * gastavam metade da tela em moldura; com 116px e sem borda, os 64 caem numa
+ * tela só e o que se vê são os desenhos, lado a lado, que é a comparação. */
+.linha-filtro {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.2rem;
+}
+.busca-apps {
+  flex: 0 1 280px;
+  padding: .45rem .7rem;
+  border-radius: var(--r-2);
+  border: 1px solid var(--surface1);
+  background: var(--surface0);
+  color: var(--text);
+  font: inherit;
+  font-size: .82rem;
+}
+.busca-apps::placeholder { color: var(--overlay1); }
+
+.grade-apps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(116px, 100%), 1fr));
+  gap: 2px;
+}
+.grade-apps .app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  padding: .75rem .4rem .65rem;
+  border: 1px solid transparent;
+  border-radius: var(--r-2);
+  background: transparent;
+  color: var(--subtext1);
+  font: inherit;
+  font-size: .76rem;
+  cursor: pointer;
+  min-width: 0;
+}
+.grade-apps .app:hover { background: var(--surface0); color: var(--text); }
+.grade-apps .app.aberto {
+  border-color: var(--accent);
+  background: var(--mantle);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.grade-apps .app img { width: 40px; height: 40px; }
+.app-nome { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A etiqueta é o único diferenciador entre 64 cartões, então ela fica — só
+ * pequena. "de fábrica" é a ausência de decisão e por isso é a mais apagada. */
+.app-marca { font-size: var(--t-legenda); color: var(--overlay2); }
+.app-fabrica { color: var(--overlay0); }
+
+/* O painel de escolha nasce embaixo do aplicativo clicado, ocupando a linha
+ * inteira — assim o contexto não se perde. Borda em accent porque ele está
+ * ABERTO; o fundo tingido saiu: 6% de accent espalhados por um painel grande é
+ * accent de enfeite. */
+.escolha-icone, .escolha-jogo {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+  margin: .5rem 0 1.2rem;
+  padding: 1.1rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--r-3);
+  background: var(--mantle);
+}
+.escolha-icone input[type="search"], .motivo-jogo {
+  padding: .45rem .7rem;
+  border-radius: var(--r-2);
+  border: 1px solid var(--surface1);
+  background: var(--base);
+  color: var(--text);
+  font: inherit;
+  font-size: .82rem;
+}
+
+/* A TIRA ROLA, E O NOME CABE.
+ * A validação mediu: com 57 resultados o botão era esmagado para 40px e o
+ * <span> do nome ficava com ALTURA ZERO. `align-content: start` é o que impede
+ * o grid de espremer as linhas para caber; a altura mínima garante o nome. */
+.tira-glifos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  align-content: start;
+  gap: .4rem;
+  max-height: 18rem;
+  overflow-y: auto;
+  padding: .2rem;
+}
+.tira-glifos button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .3rem;
+  min-height: 5rem;
+  padding: .5rem .3rem;
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-2);
+  background: var(--base);
+  color: var(--subtext0);
+  font: inherit;
+  font-size: var(--t-legenda);
+  cursor: pointer;
+  overflow: hidden;
+}
+/* OS GLIFOS SÃO TRAÇO PRETO, E `invert(1)` CRAVADO É UMA SUPOSIÇÃO DE FUNDO
+ * ESCURO — no latte ele deixava desenho claro sobre painel claro, invisível.
+ * `light-dark()` lê o `color-scheme` que a própria paleta gerada declara, então
+ * a inversão passa a acompanhar o FLAVOR sem uma linha de JavaScript. A primeira
+ * declaração é a rede para navegador que não conheça a função. */
+.tira-glifos button img { width: 34px; height: 34px; filter: invert(1) opacity(.85); }
+@supports (color: light-dark(black, white)) {
+  .tira-glifos button img { filter: invert(light-dark(0, 1)) opacity(.85); }
+}
+.tira-glifos button:hover { border-color: var(--surface2); color: var(--text); }
+.tira-glifos button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tira-glifos button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
+
+.rotulo-mini { font-size: var(--t-legenda); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--overlay2); }
+.escolha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.acervo-add { display: inline-flex; }
+.com-acervo { display: flex; flex-direction: column; gap: .6rem; align-items: flex-start; }
+
+/* --- a prévia dos ícones do tema ----------------------------------------- */
+.previa-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+  background: var(--fundo-teste, var(--mantle));
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+  padding: 12px;
+}
+.previa-grade figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.previa-grade .caixa {
+  width: 64px; height: 64px;        /* caixa 64 para ícone 48 — dá respiro */
+  border-radius: var(--r-2);
+  display: flex; align-items: center; justify-content: center;
+}
+.previa-grade img { width: 48px; height: 48px; object-fit: contain; }
+.previa-grade figcaption {
+  font: .64rem/1.3 var(--mono);
+  color: var(--overlay2);
+  text-align: center;
+  overflow-wrap: anywhere;
+  max-width: 84px;
+}
 
 /* --- opções que são IMAGEM (gatos, cursores) ----------------------------- */
 .opcoes-imagem { display: flex; flex-wrap: wrap; gap: .4rem; width: 100%; }
@@ -818,19 +1339,15 @@ html, body { overflow-x: clip; }
   align-items: center;
   gap: .25rem;
   padding: .35rem .4rem .3rem;
-  border-radius: 10px;
+  border-radius: var(--r-2);
   border: 1px solid var(--surface1);
   background: var(--fundo-teste, var(--surface0));
   color: var(--subtext1);
   font: inherit;
-  font-size: .72rem;
+  font-size: var(--t-legenda);
   cursor: pointer;
 }
-.opcoes-imagem button img {
-  width: 48px; height: 48px;      /* 48 é o tamanho real da dock */
-  object-fit: contain;
-  display: block;
-}
+.opcoes-imagem button img { width: 48px; height: 48px; object-fit: contain; display: block; }
 .opcoes-imagem button:hover { border-color: var(--overlay0); }
 .opcoes-imagem button[aria-pressed="true"] {
   border-color: var(--accent);
@@ -848,7 +1365,7 @@ html, body { overflow-x: clip; }
   align-items: center;
   gap: .5rem;
   padding: .3rem .45rem;
-  border-radius: 9px;
+  border-radius: var(--r-2);
   border: 1px solid var(--surface1);
   background: var(--surface0);
   color: var(--subtext1);
@@ -857,8 +1374,9 @@ html, body { overflow-x: clip; }
   cursor: pointer;
   text-align: left;
 }
+.amostras button:hover { border-color: var(--overlay0); color: var(--text); }
 .amostras button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
-.amostras .tira { display: flex; border-radius: 5px; overflow: hidden; flex: 1 1 auto; height: 20px; }
+.amostras .tira { display: flex; border-radius: var(--r-1); overflow: hidden; flex: 1 1 auto; height: 20px; }
 .amostras .tira span { flex: 1 1 auto; }
 .amostras .nome { min-width: 8ch; }
 
@@ -866,25 +1384,23 @@ html, body { overflow-x: clip; }
 .cores-grade { display: flex; flex-wrap: wrap; gap: .3rem; width: 100%; }
 .cores-grade button {
   width: 28px; height: 28px;
-  border-radius: 8px;
+  border-radius: var(--r-2);
   border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
   cursor: pointer;
   padding: 0;
 }
-.cores-grade button[aria-pressed="true"] {
-  box-shadow: 0 0 0 2px var(--base), 0 0 0 4px var(--accent);
-}
+.cores-grade button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--base), 0 0 0 4px var(--accent); }
 
 /* --- a barra desenhada ao vivo -------------------------------------------- */
 /* Um print da barra envelheceria; este desenho acompanha o controle deslizante
- * no mesmo quadro. Ele NÃO é a barra de verdade e a legenda diz isso. */
+ * no mesmo quadro. Ele NÃO é a barra de verdade e a legenda diz isso.
+ * O FUNDO ERA UM DEGRADÊ DE MAUVE E AZUL — accent de enfeite, e num lugar em
+ * que o ponto accent DENTRO da barra é o que representa o applet aceso. Virou
+ * uma lavada neutra: o único accent do desenho volta a significar algo. */
 .mock {
   width: 100%;
-  background:
-    linear-gradient(135deg,
-      color-mix(in srgb, var(--mauve) 30%, var(--crust)),
-      color-mix(in srgb, var(--blue) 25%, var(--crust)));
-  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface2) 55%, var(--crust));
+  border-radius: var(--r-3);
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -906,506 +1422,418 @@ html, body { overflow-x: clip; }
 .mock .barra span:first-child { background: var(--accent); }
 .mock .rodape { height: 26px; }
 
+/* O par de barras no topo da seção de forma: lado a lado onde couber. */
+.grade-barras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  gap: 1.15rem 1.9rem;
+  margin-bottom: 1.6rem;
+  max-width: var(--medida);
+}
+
 /* --- simulação do modo de leitura ----------------------------------------- */
-.simul { position: relative; width: 100%; border-radius: 10px; overflow: hidden; min-height: 88px; background: var(--surface0); }
+.simul { position: relative; width: 100%; border-radius: var(--r-3); overflow: hidden; min-height: 88px; background: var(--surface0); }
 .simul img { width: 100%; height: 108px; object-fit: cover; display: block; }
 .simul .veu { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: multiply; }
 .simul .papel { position: absolute; inset: 0; pointer-events: none; }
 .simul .legenda {
   position: absolute; left: 0; right: 0; bottom: 0;
-  font-size: .68rem; padding: .2rem .45rem;
-  background: color-mix(in srgb, var(--crust) 72%, transparent);
+  font-size: var(--t-legenda); padding: .25rem .45rem;
+  background: color-mix(in srgb, var(--crust) 78%, transparent);
   color: var(--subtext0);
 }
 
-/* --- grade de prévia (ícones) e galeria (papéis de parede) ---------------- */
-.previa-grade {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 10px;
-  background: var(--fundo-teste, var(--mantle));
-  border: 1px solid var(--surface0);
-  border-radius: 11px;
-  padding: 10px;
-}
-.previa-grade figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.previa-grade .caixa {
-  width: 64px; height: 64px;        /* caixa 64 para ícone 48 — dá respiro */
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-}
-.previa-grade img { width: 48px; height: 48px; object-fit: contain; }
-.previa-grade figcaption {
-  font: 11.5px/1.3 ui-monospace, "JetBrains Mono", monospace;
-  color: var(--subtext0);
-  text-align: center;
-  overflow-wrap: anywhere;
-  max-width: 96px;
-}
-
-.galeria {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 14px;
-}
-.galeria figure {
-  margin: 0;
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: 11px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.galeria .lugar,
-.galeria img {
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
-  display: block;
-  background: var(--surface0);
-}
-/* O lugar-marcado: um brilho que atravessa, para dizer "está vindo" sem
- * prometer quando. Some sozinho quando a miniatura chega. */
-.galeria .lugar {
-  background: linear-gradient(100deg, var(--surface0) 38%, var(--surface1) 50%, var(--surface0) 62%);
-  background-size: 260% 100%;
-  animation: brilho 1.3s linear infinite;
-}
-@keyframes brilho { from { background-position: 130% 0; } to { background-position: -30% 0; } }
-.galeria figcaption {
-  padding: .4rem .55rem .5rem;
-  display: flex;
-  flex-direction: column;
-  gap: .3rem;
-}
-.galeria .nome {
-  font: 11.5px/1.35 ui-monospace, "JetBrains Mono", monospace;
-  color: var(--subtext0);
-  overflow-wrap: anywhere;
-}
-.galeria .acoes { display: flex; gap: .3rem; }
-.galeria .acoes .btn { padding: .2rem .5rem; font-size: .74rem; }
-
-.abas { display: flex; flex-wrap: wrap; gap: .3rem; margin: .2rem 0 .8rem; }
-.abas button {
-  border-radius: 999px;
-  padding: .25rem .75rem;
-  font: inherit;
-  font-size: .8rem;
-  background: var(--surface0);
-  border: 1px solid var(--surface1);
-  color: var(--subtext1);
-  cursor: pointer;
-}
-.abas button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--crust); font-weight: 600; }
-.abas .conta { opacity: .65; font-variant-numeric: tabular-nums; }
-
-/* "sem prévia honesta" — dito em uma linha, nunca um retângulo vazio. */
-.sem-previa {
-  font-size: .74rem;
-  color: var(--overlay1);
-  border-left: 2px solid var(--surface1);
-  padding-left: .5rem;
-}
-
-
-/* O par de barras no topo da seção de forma: lado a lado onde couber, um sob o
-   outro na janela estreita. Mesmo respiro da `.grade` dos cartões. */
-.grade-barras {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-
-/* ===========================================================================
- * A BARRA DAS ESCOLHAS — o que ela mexeu e ainda nao salvou
- * ===========================================================================
- * Fica no topo do conteudo e some quando nao ha nada pendente: uma barra vazia
- * ocupando espaco em toda tela seria a interface falando sem ter o que dizer. */
-.barra-salvar {
-  display: flex;
-  align-items: center;
-  gap: .55rem;
-  flex: 0 0 auto;
-  padding: .3rem .35rem .3rem .75rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--surface0));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 10%, var(--mantle));
-}
-.barra-salvar strong { font-size: .82rem; color: var(--text); white-space: nowrap; }
-.lista-chaves {
-  font: .72rem/1.4 ui-monospace, "JetBrains Mono", monospace;
-  color: var(--subtext0);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 60ch;
-}
-.barra-salvar-botoes { display: flex; gap: .5rem; flex: 0 0 auto; }
-
-/* O cartao com escolha nao salva: mesma linguagem do resto — um traco, nao um
-   aviso escrito. A cor diz "isto ainda nao esta no disco". */
-.cartao.nao-salvo {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--surface0));
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-.marca-pendente {
-  font-size: .68rem;
-  color: var(--accent);
-  letter-spacing: .02em;
-}
-
-
-/* O nivel de cima do menu: rotulo da secao, sem ser botao — clicar nele nao
-   levaria a lugar nenhum, porque quem tem conteudo sao os subtopicos. */
-.secao-menu {
-  padding: 1.1rem .6rem .35rem;
-  font-size: .74rem;
-  font-weight: 600;
-  letter-spacing: .01em;
-  color: var(--subtext0);
-}
-.secao-menu.aberta { color: var(--accent); }
-.trilho button.filho { padding-left: 1.15rem; font-size: .82rem; }
-.trilho button.filho::before {
-  content: "";
-  position: absolute;
-  left: .62rem;
-  width: 2px;
-  height: 1.05em;
-  border-radius: 1px;
-  background: var(--surface1);
-}
-.trilho button.filho { position: relative; }
-.trilho button.filho[aria-current="true"]::before { background: var(--accent); }
-
-
-/* O titulo do cartao — a frase que diz o que a chave FAZ. Ele e o texto que ela
-   le para escolher; o identificador acima virou legenda. */
-.titulo-cartao {
-  margin: 0;
-  font-size: .93rem;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-/* O identificador cede o palco: menor, mais frio, ainda legivel para procurar
-   no meow.conf. */
-.cartao-topo code { opacity: .78; }
-.marca-essencial {
-  font-size: 1rem;
-  line-height: 1;
-  color: var(--accent);
-}
-
-
-/* ===========================================================================
- * O RESPIRO — 01/09/2026
- * ===========================================================================
- * "tenta dar um respiro em tudo." A pagina estava certa e apertada: cartoes
- * colados, titulo grudado no conteudo, menu sem pausa entre um assunto e o
- * seguinte. O que muda aqui e so espaco — nenhuma cor, nenhuma fonte, nenhuma
- * borda nova. Espaco e a unica coisa que faz uma tela densa parecer calma sem
- * tirar nada dela. */
-.secao-titulo {
-  margin: .4rem 0 1.1rem;
-  padding-bottom: .55rem;
-  border-bottom: 1px solid var(--surface0);
-  font-weight: 600;
-  letter-spacing: .01em;
-}
-#conteudo { padding-bottom: 3rem; }
-.fundos { margin-bottom: 1.4rem; }
-.grade + .secao-titulo { margin-top: 2.2rem; }
-.trilho hr { margin: 1.1rem .4rem; }
-.trilho .rotulo-grupo { margin-bottom: .35rem; }
-
-
-/* ===========================================================================
- * OS APLICATIVOS E SEUS ICONES
- * ===========================================================================
- * Grade densa: sao 65 aplicativos, e ela precisa VER todos de uma vez para
- * achar o que quer trocar. O painel de escolha nasce embaixo do aplicativo
- * clicado, ocupando a linha inteira — assim o contexto nao se perde. */
-.linha-filtro {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.1rem;
-}
-.busca-apps {
-  flex: 0 1 320px;
-  padding: .5rem .7rem;
-  border-radius: 8px;
-  border: 1px solid var(--surface1);
-  background: var(--mantle);
-  color: var(--text);
-  font: inherit;
-}
-.grade-apps {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
-  gap: .7rem;
-}
-.grade-apps .app {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: .45rem;
-  padding: .8rem .5rem;
-  border: 1px solid var(--surface0);
-  border-radius: 10px;
-  background: var(--mantle);
-  color: var(--subtext1);
-  font: inherit;
-  font-size: .78rem;
-  cursor: pointer;
-  min-width: 0;
-}
-.grade-apps .app:hover { border-color: var(--surface2); color: var(--text); }
-.grade-apps .app.aberto {
-  border-color: var(--accent);
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-.grade-apps .app img { width: 40px; height: 40px; }
-.app-nome {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.app-marca { font-size: .66rem; color: var(--overlay1); }
-
-.escolha-icone {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  gap: .7rem;
-  margin: .3rem 0 1rem;
-  padding: 1.1rem;
-  border: 1px solid var(--accent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--accent) 6%, var(--mantle));
-}
-.escolha-icone input[type="search"] {
-  padding: .5rem .7rem;
-  border-radius: 8px;
-  border: 1px solid var(--surface1);
-  background: var(--base);
-  color: var(--text);
-  font: inherit;
-}
-/* A TIRA ROLA, E O NOME CABE.
-   A validação mediu: com 57 resultados o botão era esmagado para 40 px e o
-   <span> do nome ficava com ALTURA ZERO — invisível justamente onde ele mais
-   importa, para distinguir desenhos parecidos. E não rolava: a grade tinha a
-   mesma altura do conteúdo, então as linhas de baixo simplesmente não existiam.
-   `align-content: start` é o que impede o grid de espremer as linhas para
-   caber; a altura mínima do botão garante o nome. */
-.tira-glifos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  align-content: start;
-  gap: .5rem;
-  max-height: 17rem;
-  overflow-y: auto;
-  padding: .2rem;
-}
-.tira-glifos button { min-height: 5.2rem; }
-.tira-glifos button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: .3rem;
-  padding: .5rem .3rem;
-  border: 1px solid var(--surface0);
-  border-radius: 9px;
-  background: var(--base);
-  color: var(--subtext0);
-  font: inherit;
-  font-size: .68rem;
-  cursor: pointer;
-  overflow: hidden;
-}
-.tira-glifos button img { width: 34px; height: 34px; filter: invert(1) opacity(.85); }
-.tira-glifos button span {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tira-glifos button[aria-pressed="true"] {
-  border-color: var(--accent);
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-.rotulo-mini {
-  font-size: .72rem;
-  color: var(--overlay1);
-  margin-top: .2rem;
-}
-.escolha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
-.acervo-add { display: inline-flex; }
-.com-acervo { display: flex; flex-direction: column; gap: .6rem; align-items: flex-start; }
-
-.app-fabrica { color: var(--overlay0); }
-
-/* As folhas viraram cartoes-link: o nome legivel em cima, o arquivo embaixo. */
-.grade-folhas {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
-  gap: .8rem;
-}
-a.folha {
-  display: flex;
-  flex-direction: column;
-  gap: .3rem;
-  padding: .85rem .95rem;
-  border: 1px solid var(--surface0);
-  border-radius: 10px;
-  background: var(--mantle);
-  color: var(--text);
-  text-decoration: none;
-}
-a.folha:hover { border-color: var(--accent); }
-a.folha .oque { font-size: .72rem; color: var(--overlay1); }
-
-/* O aviso de que outra chave esta mandando. Nao e erro — e contexto: a escolha
-   dela continua valendo no arquivo, so nao tem efeito enquanto a outra vencer.
-   Por isso amarelo de aviso, e nao vermelho de recusa. */
-.frase.dominada {
-  border-left: 2px solid var(--yellow, var(--accent));
-  padding-left: .55rem;
-  -webkit-line-clamp: none;
-  line-clamp: none;
-  display: block;
-}
-.frase.dominada b { color: var(--text); font-weight: 600; }
-
-/* Os estados que nao moram na regua do deslizante. */
-.faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .4rem; }
-.btn-mini { font-size: .72rem; padding: .2rem .5rem; }
-.btn-mini[aria-pressed="true"] {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.faixa input[disabled] { opacity: .45; }
-
-/* --- os jogos da Steam ----------------------------------------------------
-   A grade é mais larga que a de aplicativos porque o que ela mostra é OUTRA
-   coisa: ali são ícones de 40 px, aqui são capas verticais de 600x900. Uma
-   capa espremida em 150 px de largura fica com o título ilegível, e a capa é a
-   identidade do jogo — foi por isso que este projeto decidiu não tematizá-la. */
+/* --- os 23 jogos da Steam ------------------------------------------------
+ * A capa É a identidade do jogo — foi por isso que este projeto decidiu não
+ * tematizá-la. Então ela não fica dentro de um cartão: a capa é o cartão. Uma
+ * borda em volta de uma capa 600×900 só rouba os pixels dela. */
 .grade-jogos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr));
-  gap: .8rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(152px, 100%), 1fr));
+  gap: 12px;
 }
 .grade-jogos .jogo {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: .45rem;
-  padding: .55rem .5rem .7rem;
-  border: 1px solid var(--surface0);
-  border-radius: 10px;
-  background: var(--mantle);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-2);
+  background: transparent;
   color: var(--subtext1);
   font: inherit;
-  font-size: .78rem;
+  font-size: .76rem;
+  line-height: 1.35;
+  text-align: center;
   cursor: pointer;
   min-width: 0;
 }
-.grade-jogos .jogo:hover { border-color: var(--surface2); color: var(--text); }
-.grade-jogos .jogo.aberto {
-  border-color: var(--accent);
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-/* O jogo com decisão tomada não some da grade — ela precisa poder revê-lo e
-   desfazer. O que muda é o peso: fica mais apagado que os outros, e a etiqueta
-   diz o quê. */
-.grade-jogos .jogo.marcado { opacity: .62; }
-.grade-jogos .jogo.marcado:hover, .grade-jogos .jogo.aberto { opacity: 1; }
+.grade-jogos .jogo:hover { color: var(--text); }
 .grade-jogos .jogo img {
   width: 100%;
   aspect-ratio: 2 / 3;
   object-fit: cover;
-  border-radius: 7px;
+  border-radius: var(--r-2);
   background: var(--crust);
 }
-/* Sem capa é sem manifesto: a linha do mapa que sobreviveu ao jogo. O
-   retângulo tracejado com o appid diz "isto é uma decisão, não um jogo". */
+.grade-jogos .jogo:hover img { outline: 2px solid var(--surface2); }
+.grade-jogos .jogo.aberto { color: var(--text); }
+.grade-jogos .jogo.aberto img { outline: 2px solid var(--accent); outline-offset: 0; }
+/* O jogo com decisão tomada não some da grade — ela precisa poder revê-lo e
+ * desfazer. O que muda é o peso. */
+.grade-jogos .jogo.marcado { opacity: .5; }
+.grade-jogos .jogo.marcado:hover, .grade-jogos .jogo.aberto { opacity: 1; }
+/* Sem capa é sem manifesto: a linha do mapa que sobreviveu ao jogo. O retângulo
+ * tracejado com o appid diz "isto é uma decisão, não um jogo". */
 .jogo-sem-capa {
   width: 100%;
   aspect-ratio: 2 / 3;
   display: grid;
   place-items: center;
   border: 1px dashed var(--surface2);
-  border-radius: 7px;
+  border-radius: var(--r-2);
   background: var(--crust);
   color: var(--overlay0);
-  font-size: .72rem;
+  font-size: var(--t-legenda);
 }
 .jogo-fora { color: var(--peach); }
 .jogo-apagar { color: var(--red); }
 .jogo-gasto { color: var(--overlay0); }
 
-.escolha-jogo {
-  grid-column: 1 / -1;
+/* --- as 19 folhas visuais ------------------------------------------------- */
+.grade-folhas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  gap: 2px;
+  max-width: var(--medida);
+}
+.folha, a.folha {
   display: flex;
   flex-direction: column;
-  gap: .6rem;
-  margin: .3rem 0 1rem;
-  padding: 1.1rem;
-  border: 1px solid var(--accent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--accent) 6%, var(--mantle));
+  gap: .15rem;
+  padding: .6rem .7rem;
+  border: 1px solid transparent;
+  border-radius: var(--r-2);
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  margin: 0;
 }
-.motivo-jogo {
-  padding: .5rem .7rem;
-  border-radius: 8px;
+.folha b { font-size: .82rem; color: var(--text); font-weight: 600; }
+.folha .data { font-size: var(--t-legenda); color: var(--overlay1); font-variant-numeric: tabular-nums; }
+.folha .oque { font: .68rem var(--mono); color: var(--overlay2); }
+a.folha:hover { background: var(--surface0); border-color: var(--surface1); text-decoration: none; }
+a.folha:hover b { color: var(--text); }
+
+.vazio-msg { color: var(--overlay1); font-size: .85rem; padding: 2.5rem 0; text-align: center; }
+
+/* ===========================================================================
+ * A HOME
+ * ===========================================================================
+ * Ela não repete a linguagem das outras abas — ela a apresenta. Um retrato do
+ * que está no ar, uma frase do que espera por você, três portas, e as quatro
+ * ações da semana. Nenhum accent de enfeite: ele aparece no anel do acento
+ * dentro da tira (a cor que significa "aceso" em toda a interface), na tarja de
+ * pendência quando há pendência, e no único botão principal.
+ *
+ * Largura da mesma medida das grades de texto: a home é para ler, não para
+ * comparar imagem. */
+/* DUAS COLUNAS: o retrato e as portas à esquerda, o que espera por você à
+ * direita. Em uma coluna só, as três portas e as ações da semana caíam abaixo
+ * da dobra — uma home que precisa de rolagem para dizer o que se pode fazer não
+ * é uma home. */
+.home {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 21rem);
+  grid-template-areas: "retrato lado" "portas lado" "noite lado";
+  align-content: start;
+  align-items: start;
+  gap: 1.1rem;
+  max-width: var(--medida);
+}
+.home-retrato { grid-area: retrato; }
+.home-portas { grid-area: portas; }
+.home-noite { grid-area: noite; }
+
+/* --- a noite ------------------------------------------------------------- */
+/* A home dizia como a máquina está vestida AGORA e não dizia a única coisa que
+ * ela faz sozinha: virar de noite. As chaves que respondem isso moram em três
+ * abas diferentes, e nenhuma tela as reunia — quem quisesse saber o que muda às
+ * 18:00 abria três abas e somava de cabeça. Sem caixa, como os outros blocos
+ * desta coluna: o título em caixa alta já separa. */
+.home-noite {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .5rem;
+  min-width: 0;
+}
+.home-noite h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: var(--t-legenda);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--subtext0);
+}
+.home-noite h3 .menu-icone { color: inherit; }
+.home-lado {
+  grid-area: lado;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  min-width: 0;
+}
+
+/* --- onde você mexeu ----------------------------------------------------- */
+/* O "12 fora do padrão" era um parágrafo cinza que salvar não atualizava. Aqui
+ * ele é a LISTA, e cada nome leva ao cartão: doze fatos em vez de um adjetivo.
+ * Pêssego porque é a mesma cor do traço que marca esses cartões. */
+.home-mexeu { display: flex; flex-direction: column; gap: .55rem; min-width: 0; }
+.home-mexeu h3 {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: .35rem;
+  font-size: var(--t-legenda);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--overlay2);
+}
+.home-mexeu h3 strong {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  text-transform: none;
+  color: var(--peach);
+  font-variant-numeric: tabular-nums;
+}
+.home-fichas { display: flex; flex-wrap: wrap; gap: .3rem; }
+.home-ficha {
+  max-width: 100%;
+  padding: .18rem .55rem;
   border: 1px solid var(--surface1);
-  background: var(--base);
+  border-radius: var(--r-max);
+  background: var(--surface0);
+  color: var(--subtext1);
+  font: inherit;
+  font-size: var(--t-frase);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-ficha:hover { border-color: var(--peach); color: var(--text); }
+.home-nota { margin: 0; font-size: var(--t-frase); color: var(--overlay2); }
+
+/* --- o retrato ----------------------------------------------------------- */
+.home-retrato {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 1.1rem 1.3rem;
+  padding: 1.2rem 1.3rem 1.3rem;
+  background: var(--mantle);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+}
+.home-gato { width: 56px; height: 56px; display: block; }
+.home-id { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.home-rotulo {
+  margin: 0;
+  font-size: var(--t-legenda);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--overlay2);
+}
+.home-titulo {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+/* A TIRA É O FLAVOR, DESENHADO. As cores vêm da paleta pelo `style` inline que
+ * o app.js escreve — é a mesma via da `.amostras .tira`, e a única honesta:
+ * uma folha de estilo não pode conhecer as 26 cores de quatro variantes. */
+.home-tira {
+  display: flex;
+  height: 26px;
+  border-radius: var(--r-1);
+  overflow: hidden;
+  max-width: 34rem;
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  /* O CONTORNO NÃO É ENFEITE. As três últimas cores da ordem do Catppuccin são
+   * base, mantle e crust — e mantle É o fundo deste cartão. Sem o fio, um terço
+   * da tira desaparece e ela parece acabar no meio. */
+}
+.home-tira span { flex: 1 1 auto; min-width: 0; }
+/* O acento é a única cor da tira que significa algo. */
+.home-tira span[data-acento] {
+  flex: 0 0 auto;
+  width: 34px;
+  border-radius: var(--r-1);
+  box-shadow: inset 0 0 0 2px var(--mantle), inset 0 0 0 4px var(--accent);
+}
+.home-linha {
+  margin: 0;
+  font-size: var(--t-frase);
+  line-height: 1.5;
+  color: var(--subtext0);
+  text-wrap: pretty;
+}
+.home-fotos {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.home-fotos img {
+  width: 66px;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: var(--r-1);
+  background: var(--surface0);
+  display: block;
+}
+.home-fotos-conta {
+  font-size: var(--t-legenda);
+  color: var(--overlay2);
+  font-variant-numeric: tabular-nums;
+  margin-left: .3rem;
+}
+
+/* --- o que espera por você ----------------------------------------------- */
+/* SEM PENDÊNCIA A FRASE NÃO SOME. A distinção central do produto — clicar
+ * guarda, Salvar grava — só aparecia depois do primeiro clique arriscado, na
+ * barra que nasce escondida. Aqui ela é a primeira coisa dita, e quando há
+ * pendência é a MESMA linha que muda de conteúdo e de cor. */
+.home-atencao {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  padding: .9rem 1.05rem;
+  border-left: 3px solid var(--surface1);
+  border-radius: 0 var(--r-2) var(--r-2) 0;
+  background: color-mix(in srgb, var(--surface0) 45%, transparent);
+}
+.home-atencao[data-esperando] {
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+.home-atencao p {
+  margin: 0;
+  font-size: var(--t-frase);
+  line-height: 1.55;
+  color: var(--subtext0);
+  text-wrap: pretty;
+}
+.home-atencao strong { color: var(--text); font-weight: 600; }
+.home-atencao[data-esperando] strong { color: var(--accent); }
+/* O número que só este painel poderia ter. Pêssego é a cor do traço que marca
+ * o cartão mexido — é o mesmo fato, dito duas vezes na mesma cor. */
+.home-mexidas strong {
+  color: var(--peach);
+  font-variant-numeric: tabular-nums;
+  font-size: .95rem;
+}
+
+/* --- as três portas ------------------------------------------------------ */
+.home-portas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+  gap: .9rem;
+}
+.porta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .3rem;
+  padding: 1.05rem 1.1rem 1.15rem;
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+  background: var(--mantle);
   color: var(--text);
   font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-.linha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; }
-
-/* --- a frase que diz o que a seção é --------------------------------------
-   Pedido dela em 02/09/2026: "deixar mais obvio o que é aquela seção". Aparece
-   em dois lugares, e cada um tem um trabalho: no MENU serve para escolher onde
-   entrar; no TOPO DA SEÇÃO, para confirmar que entrou no lugar certo.
-
-   No menu ela é a terceira célula do grid do botão (1fr auto): cai sozinha na
-   segunda linha, e o `grid-column: 1 / -1` a deixa usar a largura toda em vez de
-   se espremer na coluna do rótulo, ao lado do número. */
-.trilho .descricao-menu {
-  grid-column: 1 / -1;
-  font-size: .7rem;
-  line-height: 1.3;
-  color: var(--overlay0);
-  font-weight: 400;
-  white-space: normal;
+.porta:hover { border-color: var(--overlay0); background: var(--surface0); }
+.porta b { font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; }
+.porta-conta {
+  font-size: var(--t-legenda);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--overlay2);
+  font-variant-numeric: tabular-nums;
 }
-/* A seção escolhida já grita o nome em cor de acento; a frase dela continua
-   discreta — herdar o acento faria duas linhas berrando a mesma coisa. */
-.trilho button[aria-current="true"] .descricao-menu { color: var(--overlay1); }
+.porta-frase { font-size: var(--t-frase); line-height: 1.5; color: var(--subtext0); text-wrap: pretty; }
 
-.descricao-secao {
-  margin: -.4rem 0 1.1rem;
-  font-size: .82rem;
-  color: var(--subtext0);
-  max-width: 62ch;
+/* --- a semana ------------------------------------------------------------ */
+.home-semana { display: flex; flex-direction: column; gap: .7rem; }
+.home-semana h3 {
+  margin: 0;
+  font-size: var(--t-legenda);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--overlay2);
 }
 
-/* Os botões que agem sobre a própria seção (arrumar os jogos, conferir) ficam
-   colados no filtro, antes da grade: é o passo seguinte natural de quem acabou
-   de marcar alguma coisa ali em cima. */
-.acoes-da-secao { margin: -.2rem 0 1rem; }
+@media (max-width: 1200px) {
+  .home {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "retrato" "portas" "noite" "lado";
+    gap: 1.6rem;
+  }
+  .home-lado { max-width: var(--medida); }
+}
+@media (max-width: 620px) {
+  .home-retrato { grid-template-columns: minmax(0, 1fr); }
+  .home-fotos { grid-column: 1; }
+  .home-titulo { font-size: 1.5rem; }
+}
+
+/* --- telas estreitas ------------------------------------------------------ */
+/* A PÁGINA NÃO ROLA DE LADO — medido em 01/09/2026 com o navegador em 320, 375,
+ * 414, 768 e 1024px. Eram duas causas, e nenhuma aparece lendo o CSS:
+ *   1. o bloco do título dentro de `.marca` é filho de um flex e não tinha
+ *      `min-width: 0` — então o caminho do meow.conf impunha a própria largura
+ *      ao cabeçalho inteiro;
+ *   2. o trilho vira barra horizontal aqui embaixo, e sem `min-width: 0` o
+ *      `overflow-x: auto` dele não segura nada. */
+@media (max-width: 860px) {
+  .corpo { flex-direction: column; }
+  .trilho {
+    flex: 0 0 auto;
+    display: flex;
+    gap: .3rem;
+    overflow-x: auto;
+    min-width: 0;
+    max-width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--surface0);
+    padding: .5rem;
+  }
+  .trilho button { width: auto; white-space: nowrap; display: inline-flex; }
+  .trilho .rotulo-grupo, .trilho .conta, .trilho .secao-menu { display: none; }
+  .trilho button, .trilho button.filho { padding-left: .55rem; }
+  .topo { flex-wrap: wrap; }
+  .busca-caixa { order: 3; flex-basis: 100%; }
+  #busca { width: 100%; }
+  main { padding: 1.1rem 1rem 4rem; }
+  .lista-chaves { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

@@ -505,21 +505,20 @@ DOMINIOS = {
     "LOGO_ROTACAO": {
         "chave": "LOGO_MODO",
         "quando": lambda v: bool(v) and v != "rotacao",
-        "porque": "Esta chave só liga a rotação com LOGO_MODO vazio ou em "
-                  "\"rotacao\" — hoje ela não tem efeito nenhum.",
+        "porque": "Ela só liga a rotação quando o gato é escolhido girando — "
+                  "hoje não tem efeito nenhum.",
     },
     "LOGO": {
         "chave": "LOGO_MODO",
         "quando": lambda v: v == "hora",
-        "porque": "No modo hora quem escolhe o gato é LOGO_DIA/LOGO_NOITE; "
-                  "esta chave só entra quando um daqueles nomes não está no "
-                  "acervo.",
+        "porque": "Por horário quem escolhe são os gatos de dia e de noite; "
+                  "esta só entra quando um daqueles dois não está na lista.",
     },
     "FASTFETCH_LOGO_GATO": {
         "chave": "FASTFETCH_LOGO_MODO",
         "quando": lambda v: bool(v) and v != "fixo",
-        "porque": "Esta chave só vale com FASTFETCH_LOGO_MODO=\"fixo\"; nos "
-                  "outros modos o gato do terminal segue o do dock.",
+        "porque": "Ela só vale com a escolha em \u201cfixo\u201d; nos outros "
+                  "modos o gato do terminal segue o do dock.",
     },
 }
 
@@ -547,6 +546,26 @@ def _valendo_agora(chave):
     return valor or None
 
 
+def _titulo_de(chave):
+    """O título escrito da chave, ou o nome dela quando não houver.
+
+    Lê o `# @ ` do bloco sem montar o esquema inteiro: `_dominada_por` roda
+    DENTRO do `ler_esquema`, e chamá-lo de volta seria recursão."""
+    try:
+        with open(CONF_PADRAO, encoding="utf-8") as fh:
+            titulo = ""
+            for linha in fh:
+                if linha.startswith("# @ "):
+                    titulo = linha[4:].strip()
+                elif linha.startswith(chave + "="):
+                    return titulo or chave
+                elif not linha.strip():
+                    titulo = titulo
+    except OSError:
+        pass
+    return chave
+
+
 def _dominada_por(chave):
     regra = DOMINIOS.get(chave)
     if not regra:
@@ -554,7 +573,12 @@ def _dominada_por(chave):
     valor = _valor_vivo(regra["chave"])
     if not regra["quando"](valor):
         return None
-    return {"chave": regra["chave"], "valor": valor, "porque": regra["porque"]}
+    # O TÍTULO VAI JUNTO, e é o que a página mostra. O aviso dizia "Quem manda é
+    # «LOGO_MODO»" — o nome da variável, que quem lê a tela não precisa saber e
+    # que não aparece em lugar nenhum do menu para ela procurar. Agora diz "Quem
+    # manda é «Como o gato é escolhido»", que é o cartão ao lado.
+    return {"chave": regra["chave"], "titulo": _titulo_de(regra["chave"]),
+            "valor": valor, "porque": regra["porque"]}
 
 
 def _opcoes_fechadas(chave, ajuda, inline, padrao):
@@ -897,6 +921,28 @@ def ler_esquema():
             colada = False
             continue
         chave = achado.group(1)
+
+        # AS DUAS MARCAS SAEM DO BLOCO ANTES DE QUALQUER OUTRA COISA — 06/09/2026
+        #   `# @ ` é o título do controle e `# > ` é a frase de baixo. As duas
+        #   são texto escrito, não derivado, e o porquê está no cabeçalho do
+        #   `meow.conf.exemplo`.
+        #
+        #   ELAS TÊM DE SAIR ANTES DO `colada`, e isso não é ordem por acaso: a
+        #   herança de comentário entre irmãs (`NOITE_INICIO`/`NOITE_FIM`, as
+        #   dezoito `FORMA_*`) exige bloco VAZIO. Com as marcas dentro, o bloco
+        #   nunca é vazio, a herança nunca dispara, e as irmãs perdem a
+        #   explicação longa que dividem — a lacuna que 01/09/2026 fechou
+        #   voltaria com outro nome.
+        titulo_escrito = frase_escrita = ""
+        resto = []
+        for l in bloco:
+            if l.startswith("# @ "):
+                titulo_escrito = l[4:].strip()
+            elif l.startswith("# > "):
+                frase_escrita = l[4:].strip()
+            else:
+                resto.append(l)
+        bloco = resto
         ajuda = "\n".join(bloco)
         inline = _comentario_da_linha(linha)
 
@@ -930,7 +976,10 @@ def ler_esquema():
             "subsecao": subsecao,
             "ajuda": ajuda,
             "inline": inline,
-            "frase": _frase_curta(ajuda, inline),
+            # O título escrito vence o derivado; a página faz a mesma escolha na
+            # ordem `titulo` -> `titulo_irmas` -> derivação.
+            "titulo": titulo_escrito,
+            "frase": frase_escrita or _frase_curta(ajuda, inline),
             "padrao": _valor_da_linha(linha),
             # `vazio` NÃO É UM VALOR, É A AUSÊNCIA DELE — e escrevê-lo seria um bug
             #   Três chaves documentam `nao | sim | vazio (= não toca)`. Lido ao pé
@@ -1522,114 +1571,110 @@ def _meow(*args):
 # `meow.conf.exemplo`, e inventar um segundo identificador aqui seria a segunda
 # lista que discorda da primeira quando alguém renomear um título lá.
 DESCRICAO_SECAO = {
-    # Ajustar — as chaves do meow.conf
-    "Aparência": "Sabor, acento, claro e escuro.",
-    "Barra e dock": "Forma, tamanho e vidro das duas barras.",
-    "Janelas": "O lado a lado automático do COSMIC.",
-    "Ícones": "Tema de ícones, pastas coloridas e cor por marca.",
-    "Papel de parede": "O carrossel, a noite, e o menu da área de trabalho.",
-    "Modo de leitura": "Temperatura e textura da tela, e o relógio que liga sozinho.",
-    "Aplicativos": "Quais programas o MeowSystem veste por dentro.",
-    "Automação": "Os vigias e os relógios que reaplicam sem você pedir.",
-    "Terminal": "Prompt, fonte e cores do terminal.",
-    # Ver e escolher — os lugares
-    "Galeria de papéis de parede": "O acervo. Soltar arquivo entra, banir sai.",
-    "Ícone de cada aplicativo": "Todo programa da máquina, e o desenho de cada um.",
-    "Jogos da Steam": "Quais aparecem no lançador, e o que sai do disco.",
-    "Folhas visuais": "As propostas de desenho, para comparar antes de decidir.",
-    # Fazer — as ações
-    "Ciclo de vida": "Instalar, conferir, consertar e desfazer.",
-    "Tema e cor": "Trocar o tema aplicado e o modo claro/escuro.",
-    "Ícones e gato": "Reconstruir o tema de ícones e trocar a logo.",
-    "Barra e janelas": "Diagnóstico e conserto do painel e da dock.",
-    # OS DOIS NOMES QUE EXISTEM EM DOIS BLOCOS. A chave com o bloco na frente
-    # vence a chave só com o nome — mesmo rótulo, trabalhos diferentes: num se
-    # configura, no outro se roda.
-    "fazer/Papel de parede": "Avançar, devolver, banir e semear o acervo.",
-    "fazer/Aplicativos": "Ver a tabela e tematizar os aplicativos agora.",
-    "Cursor": "O tema de cursor instalado.",
-    "Acervo": "Baixar e semear a coleção de papéis de parede.",
+    # UMA ENTRADA POR ASSUNTO — 06/09/2026
+    #   Eram nove frases para dezenove abas, e as subabas herdavam a do pai:
+    #   três abas abriam com a mesma linha. Com o menu num nível só e uma página
+    #   por assunto, a lista passa a ter uma frase por página, e o
+    #   `|| d[g.secaoPai]` que o `app.js` usava para tapar o buraco saiu.
+    #
+    #   A chave é o NOME DO ASSUNTO, e não um id: quem nomeia os assuntos é o
+    #   `meow.conf.exemplo`, e inventar um segundo identificador aqui seria a
+    #   segunda lista, a que discorda da primeira quando alguém renomear lá.
+    "Cor e tema": "A variante do Catppuccin, a cor de destaque, e claro ou escuro.",
+    "O gato": "Qual gato aparece no dock e no terminal, e quem escolhe.",
+    "Ícones": "O tema de ícones que o projeto constrói, e o desenho de cada programa.",
+    "Barra e dock": "Forma, tamanho, vidro e a música que aparece na barra.",
+    "Janelas e tela": "O lado a lado automático, o tamanho de tudo, e o ponteiro.",
+    "Papel de parede": "A coleção, a pasta que gira, e como a imagem ocupa a tela.",
+    "Dia e noite": "O que muda quando a noite começa: o gato, o fundo e a tela.",
+    "Terminal": "A paleta do terminal, a cor do cursor, e o prompt do zsh.",
+    "Programas e jogos": "Quais programas o projeto veste, e quais jogos aparecem.",
+    "Manutenção": "O que se reaplica sozinho, quantos backups ficam, e quanto ele fala.",
+    # As duas páginas que não têm chave do meow.conf — o bloco "A máquina".
+    "Instalar e conferir": "Instalar, conferir, consertar e desfazer.",
+    "Ver o estado": "Só leitura: nenhuma destas escreve, pede senha ou baixa nada.",
 }
 
 
 ACOES = {
     # --- o ciclo de vida -----------------------------------------------------
     "instalar": {
-        "rotulo": "Instalar / reaplicar tudo",
-        "grupo": "Ciclo de vida",
+        "rotulo": "Instalar tudo",
+        "grupo": "Instalar e conferir",
         "argv": [os.path.join(RAIZ, "install.sh")],
         "seco": True, "sudo": True, "confirma": True, "rede": True,
-        "ajuda": "Roda as 49 etapas do install.sh. Idempotente: numa máquina já "
-                 "vestida a segunda passagem não escreve um byte.",
+        "ajuda": "Passa as 52 etapas. Rodar de novo numa máquina já pronta "
+                 "não escreve um byte.",
     },
     "doctor": {
-        "rotulo": "Conferir (doctor)",
-        "grupo": "Ciclo de vida",
+        "rotulo": "Conferir a máquina",
+        "grupo": "Instalar e conferir",
         "argv": _meow("doctor"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Roda as 42 conferências em seco e lista o que está fora do "
-                 "lugar. Não escreve nada, nunca usa sudo e nunca baixa nada.",
+        "ajuda": "Faz as 46 conferências e lista o que está fora do lugar. "
+                 "Não escreve nada.",
     },
     "doctor_consertar": {
         "rotulo": "Consertar o que estiver fora",
-        "grupo": "Ciclo de vida",
+        "grupo": "Instalar e conferir",
         "argv": _meow("doctor", "--consertar"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Confere e aplica só o que falhou. É o mesmo que o timer das 5h "
-                 "faz sozinho.",
+        "ajuda": "Confere e aplica só o que falhou — o mesmo que o "
+                 "agendamento faz sozinho.",
     },
     "status": {
-        "rotulo": "Estado da máquina",
-        "grupo": "Ciclo de vida",
+        "rotulo": "O que está no ar agora",
+        "grupo": "Ver o estado",
         "argv": _meow("status"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Flavor, accent, tema ativo, ícones, papel de parede.",
+        "ajuda": "Variante, cor de destaque, tema, ícones e papel de parede.",
     },
     "desinstalar": {
         "rotulo": "Desinstalar o MeowSystem",
-        "grupo": "Ciclo de vida",
+        "grupo": "Instalar e conferir",
         "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall"],
         "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
-        "ajuda": "Tira o tema, os ícones, as unidades e a CLI. NÃO apaga o clone, "
-                 "nem os backups, nem o acervo de papel de parede.",
+        "ajuda": "Tira o tema, os ícones e os agendamentos. Não apaga "
+                 "backups nem a coleção de imagens.",
     },
     "log": {
-        "rotulo": "Últimas 50 linhas do log",
-        "grupo": "Ciclo de vida",
+        "rotulo": "As últimas 50 linhas do registro",
+        "grupo": "Ver o estado",
         "argv": _meow("log"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "O que este projeto escreveu, e quando.",
     },
     # --- tema ----------------------------------------------------------------
     "tema": {
-        "rotulo": "Tema: estado e capturas",
-        "grupo": "Tema e cor",
+        "rotulo": "Temas prontos nesta máquina",
+        "grupo": "Cor e tema",
         "argv": _meow("tema"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "O tema alvo, o que está de fato aplicado e as capturas que existem.",
+        "ajuda": "O tema alvo, o que está de fato aplicado, e as capturas "
+                 "que existem.",
     },
     "tema_aplicar": {
-        "rotulo": "Aplicar uma captura",
-        "grupo": "Tema e cor",
+        "rotulo": "Trocar de tema",
+        "grupo": "Cor e tema",
         "argv": _meow("tema", "@ARG@"), "arg": "capturas",
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Aplica a captura por CÓPIA de arquivo, sem passar pela GUI. "
-                 "Guarda a árvore anterior em backups/ antes.",
+        "ajuda": "Aplica a captura escolhida por cópia de arquivo, guardando "
+                 "a anterior antes.",
     },
     "tema_modo": {
-        "rotulo": "Claro / escuro / automático",
-        "grupo": "Tema e cor",
+        "rotulo": "Passar para claro ou escuro",
+        "grupo": "Cor e tema",
         "argv": _meow("tema", "@ARG@"), "arg": "modos",
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Claro e escuro são o MESMO tema com um interruptor — por isso "
-                 "trocar não pisca a interface. Grava MODO no meow.conf.",
+        "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
+                 "pisca a interface.",
     },
     "desfazer": {
-        "rotulo": "Devolver o tema de antes do MeowSystem",
-        "grupo": "Tema e cor",
+        "rotulo": "Voltar ao tema de antes",
+        "grupo": "Instalar e conferir",
         "argv": _meow("desfazer"),
         "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
-        "ajuda": "Volta o COSMIC ao backup pré-instalação desta máquina.",
+        "ajuda": "Devolve o COSMIC ao backup feito antes da instalação.",
         # `MEOW_SIM=1` só aqui, e só porque a página já perguntou: o `cmd_desfazer`
         # pede confirmação num `read`, e sem tty ele ficaria esperando para sempre
         # um ENTER que ninguém vai dar.
@@ -1637,78 +1682,82 @@ ACOES = {
     },
     # --- ícones e gato -------------------------------------------------------
     "icones": {
-        "rotulo": "Ícones: estado",
-        "grupo": "Ícones e gato",
+        "rotulo": "Tema de ícones instalado",
+        "grupo": "Ícones",
         "argv": _meow("icones"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Qual tema de ícones está selecionado e quantos arquivos tem.",
+        "ajuda": "Qual está selecionado e quantos arquivos ele tem.",
     },
     "icones_reconstruir": {
         "rotulo": "Reconstruir o tema de ícones",
-        "grupo": "Ícones e gato",
+        "grupo": "Ícones",
         "argv": _meow("icones", "reconstruir"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Remonta MeowSystem-Icons e as pastas coloridas. É o que faz uma "
-                 "troca de ICONES_FLAVOR aparecer na tela.",
+        "ajuda": "É o que faz uma troca de variante dos ícones aparecer na "
+                 "tela.",
     },
     "logo_listar": {
-        "rotulo": "Gatos: quem está no ar, e por quê",
-        "grupo": "Ícones e gato",
+        "rotulo": "Qual gato está no ar, e por quê",
+        "grupo": "O gato",
         "argv": _meow("logo", "listar"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "O acervo, o gato em vigor e qual regra o escolheu (fase e janela).",
+        "ajuda": "A lista, o gato em vigor, e qual regra o escolheu.",
     },
     "logo_trocar": {
         "rotulo": "Pôr um gato no dock",
-        "grupo": "Ícones e gato",
+        "grupo": "O gato",
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Troca o botão do dock. Com LOGO_MODO=\"hora\" o relógio devolve "
-                 "o gato dele na virada seguinte — para fixar, use LOGO_MODO=\"fixo\".",
+        "ajuda": "Com a escolha por horário, o relógio devolve o gato dele "
+                 "na virada seguinte. Para fixar, mude a escolha do gato "
+                 "para “fixo”.",
     },
     "logo_girar": {
         "rotulo": "Passar ao próximo gato",
-        "grupo": "Ícones e gato",
+        "grupo": "O gato",
         "argv": _meow("logo", "girar"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Só tem efeito com LOGO_MODO=\"rotacao\"; no padrão o comando diz "
-                 "isso em vez de fingir que girou.",
+        "ajuda": "Só tem efeito quando o gato está girando; fora disso o "
+                 "comando avisa em vez de fingir.",
     },
     # --- papel de parede -----------------------------------------------------
     "wallpaper": {
-        "rotulo": "Carrossel: estado",
+        "rotulo": "O carrossel agora",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Pasta, quantas imagens, intervalo, ordem e se há imagem fixada.",
+        "ajuda": "Pasta, quantas imagens, intervalo, ordem, e se há imagem "
+                 "fixada.",
     },
     "wallpaper_proximo": {
-        "rotulo": "Próximo papel de parede",
+        "rotulo": "Próxima imagem",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "proximo"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Avança e FIXA a imagem por WALLPAPER_FIXO_TTL (30 min por padrão).",
+        "ajuda": "Avança e fixa a imagem pelo tempo definido em \"Quanto "
+                 "tempo dura a imagem escolhida\".",
     },
     "wallpaper_anterior": {
-        "rotulo": "Papel de parede anterior",
+        "rotulo": "Imagem anterior",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "anterior"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Volta uma imagem, com a mesma fixação do `próximo`.",
+        "ajuda": "Volta uma imagem, com a mesma fixação.",
     },
     "wallpaper_carrossel": {
-        "rotulo": "Soltar a fixação (voltar a girar)",
+        "rotulo": "Voltar a girar",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "carrossel"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Devolve a rotação agora, sem esperar o TTL acabar.",
+        "ajuda": "Solta a imagem fixada agora, sem esperar o tempo acabar.",
     },
     "wallpaper_aplicar": {
-        "rotulo": "Reafirmar a rotação",
+        "rotulo": "Reaplicar as regras do carrossel",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "aplicar"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Reescreve o estado do cosmic-bg a partir das chaves WALLPAPER_*.",
+        "ajuda": "Reescreve o estado do papel de parede a partir dos "
+                 "ajustes.",
     },
     # AS DUAS AÇÕES DA GALERIA, QUE FALTAVAM — 01/09/2026
     #
@@ -1729,100 +1778,100 @@ ACOES = {
     # reversível que ela vai repetir dezenas de vezes seguidas, é ruído; a
     # tranca aqui é o modo seco e o fato de o inverso existir e estar na tela.
     "wallpaper_banir": {
-        "rotulo": "Banir este papel de parede",
+        "rotulo": "Tirar esta imagem do carrossel",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "banir", "@ARG@"), "arg": "paredes_ativas",
         "seco": True, "sudo": False, "confirma": False,
         "destrutivo": True, "oculta": True,
-        "ajuda": "Tira a imagem de ativos/ e a guarda em banidos/, e escreve o "
-                 "nome no BANIDOS.txt para o `semear` não a repor. Nada é "
-                 "apagado: o \"Devolver\" da sub-aba Recusadas desfaz.",
+        "ajuda": "Ela sai da pasta que gira e vai para a de banidas. Nada é "
+                 "apagado. O “Devolver” da lista de recusadas desfaz.",
     },
     "wallpaper_desbanir": {
-        "rotulo": "Devolver este papel de parede",
+        "rotulo": "Devolver uma imagem tirada",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "desbanir", "@ARG@"), "arg": "paredes_banidas",
         "seco": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Copia a imagem de volta para ativos/ E tira o nome do "
-                 "BANIDOS.txt — as duas metades, que é o que nenhum contorno "
-                 "manual fazia.",
+        "ajuda": "Volta para a pasta que gira e sai da lista de banidas — as "
+                 "duas metades.",
     },
     "wallpaper_semear": {
-        "rotulo": "Semear o acervo (BAIXA DA REDE)",
+        "rotulo": "Baixar a coleção curada",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "semear"),
         "seco": True, "sudo": False, "confirma": True, "rede": True,
-        "ajuda": "Reconstrói o acervo a partir do commit pinado e do FONTES.tsv. "
-                 "Usa rede e pode demorar; respeita o BANIDOS.txt.",
+        "ajuda": "Reconstrói a coleção a partir da lista de fontes. Usa rede "
+                 "e pode demorar. As imagens que você tirou continuam fora.",
     },
     # --- barra, janelas, leitura --------------------------------------------
     "painel_estado": {
-        "rotulo": "Barra: diagnóstico",
-        "grupo": "Barra e janelas",
+        "rotulo": "Barra e dock: diagnóstico",
+        "grupo": "Barra e dock",
         "argv": _meow("painel", "estado"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "O estado do painel, da dock e do supervisor meow-painel.service.",
+        "ajuda": "O estado do painel, da dock, e do serviço que os "
+                 "supervisiona.",
     },
     "painel_teto": {
-        "rotulo": "Barra: o teto do raio de canto",
-        "grupo": "Barra e janelas",
+        "rotulo": "Até quanto o canto pode arredondar",
+        "grupo": "Barra e dock",
         "argv": _meow("painel", "teto"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "A conta inteira — altura real, teto derivado, e se o compositor "
-                 "em execução clampa o raio em vez de derrubar a barra.",
+        "ajuda": "A conta inteira: altura real, teto derivado, e se o "
+                 "compositor limita em vez de derrubar a barra.",
     },
     "painel_reciclar": {
-        "rotulo": "Fazer a barra reler a configuração",
-        "grupo": "Barra e janelas",
+        "rotulo": "Recarregar a barra",
+        "grupo": "Barra e dock",
         "argv": _meow("painel", "reciclar"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "A barra pisca ~2 s. É o que faz um gato novo aparecer no dock "
+        "ajuda": "A barra pisca uns 2 s. É o que faz um gato novo aparecer "
                  "sem esperar o próximo login.",
     },
     "leitura": {
-        "rotulo": "Modo de leitura: estado",
-        "grupo": "Barra e janelas",
+        "rotulo": "Modo de leitura agora",
+        "grupo": "Dia e noite",
         "argv": _meow("leitura"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Que degrau o relógio pede agora, o que a tela mostra, e se o "
-                 "compositor em execução sabe ler os dois números.",
+        "ajuda": "Que degrau o relógio pede, o que a tela mostra, e se o "
+                 "compositor sabe ler os dois números.",
     },
     "leitura_aplicar": {
-        "rotulo": "Aplicar o degrau da hora",
-        "grupo": "Barra e janelas",
+        "rotulo": "Aplicar o degrau desta hora",
+        "grupo": "Dia e noite",
         "argv": _meow("leitura", "aplicar"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Põe agora o que o timer poria sozinho.",
+        "ajuda": "Põe agora o que o agendamento poria sozinho.",
     },
     "leitura_remover": {
         "rotulo": "Desligar o modo de leitura",
-        "grupo": "Barra e janelas",
+        "grupo": "Dia e noite",
         "argv": _meow("leitura", "remover"),
         "seco": True, "sudo": False, "confirma": True,
-        "ajuda": "Zera temperatura e textura e desarma o meow-leitura.timer.",
+        "ajuda": "Zera temperatura e textura, e desarma o agendamento.",
     },
     "files_menu": {
-        "rotulo": "Menu da área de trabalho: estado",
-        "grupo": "Barra e janelas",
+        "rotulo": "Menu da área de trabalho",
+        "grupo": "Papel de parede",
         "argv": _meow("files-menu"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Os dois itens de papel de parede no botão direito da área de trabalho.",
+        "ajuda": "Os dois itens de papel de parede no botão direito.",
     },
     # --- aplicativos ---------------------------------------------------------
     "apps": {
-        "rotulo": "Aplicativos: tabela",
-        "grupo": "Aplicativos",
+        "rotulo": "Programas: o que está vestido",
+        "grupo": "Programas e jogos",
         "argv": _meow("apps"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Módulo, aplicativo instalado, tema aplicado ou pendente.",
+        "ajuda": "Módulo, programa instalado, tema aplicado ou pendente.",
     },
     "apps_aplicar": {
-        "rotulo": "Tematizar os aplicativos",
-        "grupo": "Aplicativos",
+        "rotulo": "Vestir os programas agora",
+        "grupo": "Programas e jogos",
         "argv": _meow("apps", "aplicar"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Aplica o tema em todos os módulos de APPS_ATIVOS que estiverem "
-                 "instalados. App ausente vira pendente, nunca falha.",
+        "ajuda": "Aplica o tema em todos os programas marcados que estiverem "
+                 "instalados. Programa ausente fica pendente, e nunca "
+                 "derruba o resto.",
     },
     # --- os jogos da Steam ---------------------------------------------------
     # `confirma` é True no aplicar porque uma linha `apagar` no mapa manda o
@@ -1837,22 +1886,22 @@ ACOES = {
     #   e o menu tem uma linha só. O `montarGrupos` pula grupo em que toda ação é
     #   oculta, então nenhuma seção vazia sobra.
     "jogos": {
-        "rotulo": "Jogos: conferir",
-        "grupo": "Jogos da Steam",
+        "rotulo": "Ver o que mudaria nos jogos",
+        "grupo": "Programas e jogos",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh"), "--conferir"],
         "seco": False, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Lista o que mudaria: cartão a criar, cartão a remover e "
-                 "arquivo de jogo a apagar. Não escreve nada.",
+        "ajuda": "Lista atalho a criar, atalho a remover e arquivo a apagar. "
+                 "Não escreve nada.",
     },
     "jogos_aplicar": {
         "rotulo": "Arrumar os jogos no lançador",
-        "grupo": "Jogos da Steam",
+        "grupo": "Programas e jogos",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh")],
         "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
         "oculta": True,
-        "ajuda": "Põe um cartão por jogo instalado e tira o dos que saíram. "
-                 "Jogo marcado \"Apagar os arquivos\" tem a pasta e o manifesto "
-                 "removidos — uma vez só, e nunca com a Steam aberta.",
+        "ajuda": "Põe um atalho por jogo instalado e tira o dos que saíram. "
+                 "Jogo marcado para apagar tem a pasta removida — uma vez "
+                 "só, e nunca com a Steam aberta.",
     },
 }
 

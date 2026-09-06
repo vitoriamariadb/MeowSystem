@@ -1860,6 +1860,18 @@ wiz_ler_esquema() {
         secao="${linha#\# --- }"; secao="${secao%%-*}"
         secao="${secao%"${secao##*[![:space:]]}"}"
         bloco=""; continue ;;
+      '# @ '*|'# > '*)
+        # AS DUAS MARCAS DO PAINEL NÃO ENTRAM NA AJUDA DO WIZARD.
+        #   `# @ ` é o título do cartão e `# > ` é a frase de baixo — as duas
+        #   existem para a PÁGINA, que tem de decidir o rótulo de um controle
+        #   sem a pessoa abrir nada. Aqui a pergunta vem uma por vez, com o nome
+        #   da chave na frente, e o bloco inteiro logo abaixo: o título seria
+        #   uma repetição e a frase, a primeira linha do que já vem depois.
+        #
+        #   Deixá-las fora também é o que mantém os dois leitores de acordo — o
+        #   `tests/app.sh` compara chave, padrão e opções dos dois lados, e um
+        #   bloco diferente aqui é uma divergência esperando um `|` no título.
+        continue ;;
       '#'*)  bloco="$bloco$linha"$'\n'; continue ;;
       '')    bloco=""; continue ;;
     esac

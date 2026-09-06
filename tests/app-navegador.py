@@ -291,15 +291,22 @@ def main():
             #   nada estivesse errado no painel. O catálogo é derivado dos
             #   comentários do exemplo — então o número certo é o que o exemplo
             #   diz hoje, e é com ele que se compara.
-            m_resumo = re.search(r"(\d+) chaves", resumo)
-            checa(bool(m_resumo), f"o resumo conta as chaves: {resumo[:44]}…")
+            # "chaves" virou "ajustes" na tela em 06/09/2026: quem le a tela
+            # nunca precisa saber o nome da variavel, e "chave" era o nome dela.
+            m_resumo = re.search(r"(\d+) ajustes", resumo)
+            checa(bool(m_resumo), f"o resumo conta os ajustes: {resumo[:44]}…")
             with open(os.path.join(RAIZ, "meow.conf.exemplo"), encoding="utf-8") as fh:
                 chaves_no_exemplo = len(re.findall(r"^[A-Z_]+=", fh.read(), re.M))
             checa(m_resumo and int(m_resumo.group(1)) == chaves_no_exemplo,
-                  f"o resumo conta {m_resumo.group(1) if m_resumo else '?'} chaves"
+                  f"o resumo conta {m_resumo.group(1) if m_resumo else '?'} ajustes"
                   f" e o meow.conf.exemplo cataloga {chaves_no_exemplo}")
-            checa(pag.locator("#trilho button").count() >= 20,
-                  f"o trilho tem {pag.locator('#trilho button').count()} secoes")
+            # O MENU ENCOLHEU DE PROPOSITO — 06/09/2026, pedido dela: "temos
+            #   duas guias de papeis de parede… essas repetidas deveriam serem
+            #   unidas cada qual em uma unica pagina". Sao 12 assuntos mais o
+            #   Inicio, num nivel so'. O piso de 20 media o menu antigo; agora
+            #   ele cobraria de volta o que ela pediu para tirar.
+            n_trilho = pag.locator("#trilho button").count()
+            checa(10 <= n_trilho <= 16, f"o trilho tem {n_trilho} paginas")
 
             print("\n2. CADA SECAO RENDERIZA (uma a uma, medindo o que apareceu)")
             nomes = pag.locator("#trilho button").all_text_contents()
@@ -376,7 +383,12 @@ def main():
                         r"^\s*" + re.escape(parte))).first.click()
                 pag.wait_for_timeout(600)
 
-            secao("Aparência")
+            # O MENU VIROU UM NIVEL SO, UMA PAGINA POR ASSUNTO — 06/09/2026.
+            #   "Aparencia" era o bloco de arquivo; agora a pagina e o assunto,
+            #   e as paletas moram em "Cor e tema". Os gatos, que vinham na
+            #   mesma aba por serem vizinhos no meow.conf.exemplo, foram para a
+            #   pagina "O gato" — que e onde alguem os procuraria.
+            secao("Cor e tema")
             checa(pag.locator("#conteudo .tira").count() >= 4, "FLAVOR mostra as paletas")
             checa(pag.locator("#conteudo .cores-grade button, #conteudo .amostras button").count() > 8,
                   "ACCENT mostra as cores da paleta")
@@ -384,6 +396,7 @@ def main():
             # os gatos chegam por `/previa`, uma requisicao por desenho. Medir no
             # instante do clique reprovou a pagina numa das rodadas de 02/09/2026
             # com os gatos inteiros no lugar — era a rede, nao o cartao.
+            secao("O gato")
             n_gatos = 0
             for _ in range(10):
                 n_gatos = pag.locator("#conteudo img").count()
@@ -401,7 +414,7 @@ def main():
                 if n_icones > 20:
                     break
             checa(n_icones > 20, f"a grade de icones mostra {n_icones} icones do tema instalado")
-            secao("Galeria")
+            secao("Papel de parede")
             pag.wait_for_timeout(1500)
             n_fotos = pag.locator("#conteudo figure").count()
             checa(n_fotos > 20, f"a galeria mostra {n_fotos} papeis de parede")
@@ -560,6 +573,13 @@ def main():
             def mexer_no_controle(cartao):
                 """Move o controle do cartao e diz o gesto feito, ou None."""
                 faixa = cartao.locator("input[type=range]")
+                if faixa.count() and faixa.first.is_disabled():
+                    # DESLIZANTE DESABILITADO E' O ESTADO "Deixar como esta".
+                    #   `FORMA_RAIO_PAINEL=""` no conf dela desenha o deslizante
+                    #   cinza, e nenhuma tecla o move — corretamente. Tratar isso
+                    #   como "o controle nao reage" acusaria a pagina de um
+                    #   defeito que e' a chave estando vazia.
+                    return None
                 if faixa.count():
                     # `End` (ou `Home`, quando ja esta no fim) e um gesto de
                     # teclado de verdade: o proprio navegador dispara `input` e
@@ -598,8 +618,21 @@ def main():
                 # auditoria dizia — "nas cinco medicoes o HTML ficou byte a byte
                 # igual" — e uma previa que nao reage a NADA, e e isso que cai
                 # aqui.
+                # AS CANDIDATAS SAO AS QUE O DESENHO LE, E NAO AS TRES PRIMEIRAS.
+                #   A prevía `barra` cobre 21 chaves, e o desenho so' consulta
+                #   cinco pares — raio, margem, espaco, recheio e opacidade.
+                #   `FORMA_PAINEL_SOLTO`, `FORMA_DOCK_SOLTO` e `FORMA_PAINEL_ILHA`
+                #   sao as tres primeiras da lista e nenhuma delas entra no
+                #   desenho: o teste cobrava do mock uma coisa que ele nunca
+                #   prometeu, e reprovava a pagina por isso. Aqui as que o
+                #   desenho de fato le vem na frente.
+                LIDAS = ("RAIO", "MARGEM", "ESPACO", "RECHEIO", "OPACIDADE",
+                         "TEMPERATURA", "TEXTURA")
+                candidatos = sorted(
+                    candidatos,
+                    key=lambda k: 0 if any(p in k["chave"] for p in LIDAS) else 1)
                 moveu, tentadas = None, []
-                for k in candidatos[:3]:
+                for k in candidatos[:4]:
                     # PELA SECAO, E NAO PELA BUSCA: o desenho da barra e um so
                     # para o grupo inteiro e o `render` so o monta sem busca.
                     secao(censo[k["chave"]]["secao"])
@@ -625,7 +658,11 @@ def main():
             print("\n9. AS ESCOLHAS ESPERAM O SALVAR")
             pag.fill("#busca", "LOG_NIVEL")
             pag.wait_for_timeout(400)
-            alvo = "Debug" if log_nivel_inicial != "debug" else "Info"
+            # OS ROTULOS DOS VALORES MUDARAM — 06/09/2026. O valor no arquivo
+            #   continua `debug`/`info`; o que a tela escreve passou pelo
+            #   `ROTULO_DE_VALOR`, e agora e "Detalhado"/"Informacao". O teste
+            #   clica no que a pessoa ve, entao e o rotulo que ele procura.
+            alvo = "Detalhado" if log_nivel_inicial != "debug" else "Informação"
             pag.locator("#conteudo .cartao button", has_text=re.compile(f"^{alvo}$")).first.click()
             pag.wait_for_timeout(500)
             checa(valor_de("LOG_NIVEL") == log_nivel_inicial,
@@ -636,11 +673,16 @@ def main():
 
             print("\n   ... e sobrevivem a troca de aba")
             pag.fill("#busca", "")
-            secao("Ciclo de vida")
-            secao("Terminal")
+            secao("Instalar e conferir")
+            # A VOLTA TEM DE SER A' PAGINA ONDE A CHAVE MORA.
+            #   O teste ia para "Terminal" e cobrava um cartao marcado — mas
+            #   `LOG_NIVEL` nunca esteve la, e desde 06/09/2026 mora em
+            #   "Manutencao". Cobrar a marca numa pagina que nao tem o cartao e'
+            #   cobrar da pagina uma coisa que a pessoa nao pediu.
+            secao("Manutenção")
             checa(pag.locator("#barra-salvar").is_visible(),
                   "depois de duas trocas de aba, a escolha continua la")
-            checa(pag.locator("#conteudo .cartao.nao-salvo").count() >= 1,
+            checa(pag.locator('#conteudo article[data-chave="LOG_NIVEL"].nao-salvo').count() >= 1,
                   "o cartao continua marcado como nao salvo")
 
             print("\n   ... e o Descartar devolve tudo")
@@ -652,6 +694,10 @@ def main():
             print("\n   ... e o Salvar em modo seco nao escreve")
             md5_antes_seco = md5_conf()
             pag.locator("#seco").check()
+            # O cartao esta' na pagina em que o teste acabou de entrar; a busca
+            # o traz de volta sem depender de qual pagina e'.
+            pag.fill("#busca", "LOG_NIVEL")
+            pag.wait_for_timeout(400)
             pag.locator("#conteudo .cartao button", has_text=re.compile(f"^{alvo}$")).first.click()
             pag.wait_for_timeout(400)
             pag.locator("#botao-salvar").click()
@@ -660,9 +706,12 @@ def main():
             pag.locator("#seco").uncheck()
 
             print("\n10. UMA ACAO, COM SAIDA AO VIVO")
-            secao("Ciclo de vida")
+            # `status` mudou de nome e de pagina em 06/09/2026: era "Estado da
+            # maquina" no "Ciclo de vida", agora e' "O que esta' no ar agora" em
+            # "Ver o estado" — a pagina das duas acoes que so' leem.
+            secao("Ver o estado")
             pag.locator("#conteudo .acao, #conteudo .cartao",
-                        has_text="Estado da máquina").locator("button").first.click()
+                        has_text="O que está no ar agora").locator("button").first.click()
             saida = ""
             # PACIÊNCIA DE 25 s, e não de 10: o `meow status` consulta systemd,
             # cosmic-randr e o tema inteiro. Numa máquina ocupada — foi o caso
@@ -685,7 +734,7 @@ def main():
             # ela continua desenhada na tela. (A auditoria mediu o outro lado
             # disso: ele nasce DESLIGADO a cada carga da pagina.)
             pag.locator("#seco").check()
-            secao("Ciclo de vida")
+            secao("Instalar e conferir")
             secao("Terminal")
             pag.fill("#busca", "wallpaper")
             pag.wait_for_timeout(300)
@@ -702,7 +751,7 @@ def main():
             #   tela e o teste morreu num timeout de 30 s. Um passo que depende
             #   de onde o passo anterior parou nao pode ser reordenado; este
             #   agora diz onde quer estar.
-            secao("Ciclo de vida")
+            secao("Instalar e conferir")
             # A acao anterior precisa TERMINAR: o servidor recusa dois trabalhos
             # ao mesmo tempo (409), e recusar e o comportamento certo dele.
             for _ in range(20):
@@ -713,8 +762,13 @@ def main():
             md5_antes = md5_conf()
             pag.locator(".seco input[type=checkbox]").check()
             pag.wait_for_timeout(300)
+            # "Conferir a maquina" e' o `doctor`, e o `has_text` casa por
+            # substring: "Conferir" sozinho pegaria tambem "Conferir e consertar
+            # todo dia" se um dia essa acao existir. O rotulo inteiro nao tem
+            # esse risco.
+            secao("Instalar e conferir")
             pag.locator("#conteudo .acao, #conteudo .cartao",
-                        has_text="Conferir").locator("button").first.click()
+                        has_text="Conferir a máquina").locator("button").first.click()
             pag.wait_for_timeout(6000)
             checa(md5_conf() == md5_antes, "com o modo seco ligado, o meow.conf nao mudou")
             pag.locator(".seco input[type=checkbox]").uncheck()
