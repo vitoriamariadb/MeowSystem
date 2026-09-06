@@ -16,11 +16,20 @@
 #   Manter o `OnCalendar` em dia exigiria um `.path` sobre o diretório do
 #   CosmicComp (que a Aurora também escreve), um drop-in gerado, um
 #   `daemon-reload` a cada mudança e um laço a desarmar. Três peças novas para
-#   economizar 286 despertares que custam 0,05 s cada.
+#   economizar 286 despertares que custam 0,07 s cada.
 #
-# O PREÇO, MEDIDO EM 01/09/2026 NESTA MÁQUINA
-#   Um tique comum, com o carimbo do fastfetch batendo:  0,05 s
-#   288 tiques/dia = ~14 s de CPU por dia. E `AccuracySec=60s` deixa o systemd
+# O PREÇO, MEDIDO EM 06/09/2026 NESTA MÁQUINA
+#   Um tique comum, com o carimbo do fastfetch batendo:  0,07 s
+#
+#   Eram 0,05 s até 01/09. A diferença é a fronteira do `config.jsonc`, que
+#   passou a consultar o fastfetch para saber a altura do bloco de informação
+#   (o `auto` das quebras). Ela chegou a custar mais: cada `$(_ffl_quebras)`
+#   rodava um fastfetch inteiro, e o `LOG_NIVEL=silencioso` não evitava nenhum
+#   — a substituição de comando acontece na expansão do argumento, antes de o
+#   `meow_quieto` poder devolver. Com a medida memoizada e a linha de log
+#   guardada, sobrou uma consulta por passagem.
+#
+#   288 tiques/dia = ~20 s de CPU por dia. E `AccuracySec=60s` deixa o systemd
 #   FUNDIR este despertar com os dos outros timers dentro da janela, então o
 #   custo real é menor que a soma.
 #

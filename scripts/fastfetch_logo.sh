@@ -391,9 +391,25 @@ _ffl_quer_meow_fetch() {
 #
 # O `--pipe false` importa: com o cano detectado o fastfetch some com as cores
 # E com algumas linhas, e a conta sairia curta.
+#
+# MEMOIZADO, e não por elegância: uma passagem de `aplicar` que precisa
+# consertar o config.jsonc chamava isto SEIS vezes, e o `conferir` do doctor,
+# duas — cada uma um `fastfetch` inteiro. Pior: o `logo.sh` roda
+# `FFL_FUNDO=1 LOG_NIVEL=silencioso fastfetch_logo.sh aplicar` de cinco em cinco
+# minutos (`FASTFETCH_LOGO_MODO="hora"`), e o `silencioso` não evita nada — a
+# substituição de comando acontece na EXPANSÃO DO ARGUMENTO do `meow_info`,
+# antes de o `meow_quieto` poder devolver. O cabeçalho do `meow-gato.timer`
+# crava "0,05 s por tique", que era verdade antes de a fronteira consultar o
+# fastfetch.
 _ffl_linhas_do_texto() {
-  meow_tem fastfetch || { printf '0'; return; }
-  fastfetch --logo none --pipe false 2>/dev/null | wc -l
+  if [ -z "${FFL_TEXTO_LINHAS:-}" ]; then
+    if meow_tem fastfetch; then
+      FFL_TEXTO_LINHAS="$(fastfetch --logo none --pipe false 2>/dev/null | wc -l)"
+    else
+      FFL_TEXTO_LINHAS=0
+    fi
+  fi
+  printf '%s' "$FFL_TEXTO_LINHAS"
 }
 
 # O `padding.top` que o config.jsonc deve levar. Com `auto`, é a metade da
@@ -829,132 +845,32 @@ _ffl_escrever_conf() {
   cp -a "$FFL_CONF_DELA" "$bkp/config.jsonc" 2>/dev/null \
     || { meow_erro "não consegui guardar backup de $FFL_CONF_DELA — não vou escrever"; return "$MEOW_ERRO"; }
 
-  python3 - "$FFL_CONF_DELA" "$alvo_rel" "$(_ffl_quebras)" "$FASTFETCH_LOGO_RECUO" \
-    <<'PY' || return "$MEOW_ERRO"
-import os, sys, tempfile
-
-caminho, fonte_nova = sys.argv[1], sys.argv[2]
-# O padding também vem do meow.conf desde 06/09/2026: eram dois números
-# cravados no arquivo dela, e mudar a altura do gato sem poder mudar o recuo
-# do topo junto deixava o desenho e o texto desencontrados.
-topo_novo, recuo_novo = sys.argv[3], sys.argv[4]
-bruto = open(caminho, encoding="utf-8").read()
-
-def varre(texto, inicio):
-    """Percorre a partir de `inicio` devolvendo (i, char) fora de string e de
-    comentário. Sem isto, um `//` dentro do "$schema" (primeira linha deste
-    arquivo) seria lido como comentário e a varredura pularia o resto da linha."""
-    i, n = inicio, len(texto)
-    while i < n:
-        c = texto[i]
-        if c == '"':
-            j = i + 1
-            while j < n:
-                if texto[j] == "\\": j += 2; continue
-                if texto[j] == '"': break
-                j += 1
-            yield i, '"', j          # a string inteira, de i até j
-            i = j + 1
-        elif c == "/" and i + 1 < n and texto[i+1] == "/":
-            while i < n and texto[i] != "\n": i += 1
-        elif c == "/" and i + 1 < n and texto[i+1] == "*":
-            i += 2
-            while i + 1 < n and not (texto[i] == "*" and texto[i+1] == "/"): i += 1
-            i += 2
-        else:
-            yield i, c, i
-            i += 1
-
-# 1. Onde começa o bloco "logo"? Procura a CHAVE, não a palavra: um comentário
-#    com a palavra "logo" (e há vários neste arquivo) não pode virar âncora.
-inicio_logo = None
-for i, c, fim in varre(bruto, 0):
-    if c == '"' and bruto[i:fim+1] == '"logo"':
-        inicio_logo = fim + 1
-        break
-if inicio_logo is None:
-    sys.stderr.write("não achei a chave \"logo\" no config.jsonc\n"); sys.exit(1)
-
-# 2. Dentro do bloco, achar os valores de "source" e "type", parando na chave
-#    que fecha o objeto — assim um "source" de outro módulo nunca é atingido.
-alvos, profundidade, chave = {}, 0, None
-for i, c, fim in varre(bruto, inicio_logo):
-    if c == "{": profundidade += 1
-    elif c == "}":
-        profundidade -= 1
-        if profundidade <= 0:
-            fim_logo = i
-            break
-    elif c == '"':
-        txt = bruto[i:fim+1]
-        if chave in ("source", "type") and profundidade == 1:
-            alvos[chave] = (i, fim + 1); chave = None
-        elif profundidade == 1 and txt.strip('"') in ("source", "type"):
-            chave = txt.strip('"')
-        else:
-            chave = None
-    elif c == ":":
-        pass
-    elif not c.isspace():
-        chave = None
-else:
-    fim_logo = len(bruto)
-
-if "source" not in alvos:
-    sys.stderr.write("não achei logo.source dentro do bloco \"logo\"\n"); sys.exit(1)
-
-# 3. Substituir de trás para a frente: mexer no começo primeiro deslocaria os
-#    índices do que vem depois.
-trocas = [(alvos["source"], '"%s"' % fonte_nova)]
-if "type" in alvos:
-    trocas.append((alvos["type"], '"file-raw"'))
-# O PADDING ENTRA POR BUSCA DE TEXTO, e não pela varredura acima. A varredura
-# existe para achar o VALOR de uma chave de string, e `top`/`right` são números
-# dentro de um objeto aninhado — a primeira tentativa fez a varredura tomar
-# conta dos dois casos e ela errou em silêncio (o arquivo saía intacto). Aqui a
-# busca é limitada ao intervalo do bloco `"logo"` que a varredura já delimitou,
-# então nenhum `"top"` de outro módulo é atingido, e o `padding` tem de estar
-# presente: esta função NÃO cria chave que não existe no arquivo dela.
-import re as _re
-recorte = bruto[inicio_logo:fim_logo]
-m_pad = _re.search(r'"padding"\s*:\s*\{', recorte)
-if m_pad:
-    prof, j = 0, m_pad.end() - 1
-    while j < len(recorte):
-        if recorte[j] == "{": prof += 1
-        elif recorte[j] == "}":
-            prof -= 1
-            if prof == 0: break
-        j += 1
-    base, dentro = inicio_logo + m_pad.end(), recorte[m_pad.end():j]
-    for nome_pad, valor_pad in (("top", topo_novo), ("right", recuo_novo)):
-        if not valor_pad.isdigit():
-            continue
-        m_n = _re.search(r'"%s"\s*:\s*(-?\d+)' % nome_pad, dentro)
-        if m_n:
-            trocas.append(((base + m_n.start(1), base + m_n.end(1)), valor_pad))
-saida = bruto
-for (ini, fim), novo in sorted(trocas, key=lambda t: -t[0][0]):
-    saida = saida[:ini] + novo + saida[fim:]
-
-if saida == bruto:
-    sys.exit(0)
-
-# TRAVA 2, do lado de cá: o temporário nasce no diretório de DESTINO, e o `mv`
-# vira rename no mesmo sistema de arquivos. Aqui isso vale dobrado — o destino é
-# alvo de um `git add` automático a cada 10 min, e um arquivo pela metade seria
-# commitado quebrado.
-d = os.path.dirname(os.path.realpath(caminho))
-fd, tmp = tempfile.mkstemp(dir=d, prefix=".meow-ffl.")
-try:
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        f.write(saida)
-    os.chmod(tmp, 0o644)
-    os.replace(tmp, os.path.realpath(caminho))
-except Exception:
-    os.path.exists(tmp) and os.unlink(tmp)
-    raise
-PY
+  # A ESCRITA MORA NO `fastfetch_conf.py`, E ISSO NÃO É ORGANIZAÇÃO: é a mesma
+  # lição que já custou o arquivo dela uma vez. Este trecho era um heredoc de
+  # 90 linhas de Python, e ele tinha o defeito de camada de sempre — trocava os
+  # números do padding de dentro de um COMENTÁRIO. Com a linha antiga comentada
+  # logo acima da que vale (o jeito mais comum de mexer em JSONC), a escrita
+  # acertava o comentário, o padding de verdade ficava como estava, e a
+  # divergência voltava todo dia: o aviso "escrevi no config.jsonc" saía em
+  # toda passagem sobre um arquivo que nunca mudava.
+  #
+  # Duas varreduras de ESCRITA de JSONC em duas linguagens divergiriam de novo.
+  # Agora é uma só, com máscara de comentários, e ela confere que o resultado
+  # ainda é JSONC válido antes de gravar. O `_ffl_ler_conf` continua com a
+  # varredura dele porque só LÊ (e conta os módulos com chave própria, que é
+  # outra pergunta): um leitor que erre devolve um número torto, não um arquivo
+  # truncado.
+  #
+  # 0 = nada a mudar · 1 = mudou · 2 = não deu.
+  python3 "$MEOW_RAIZ/scripts/fastfetch_conf.py" escrever-logo \
+    "$FFL_CONF_DELA" "$alvo_rel" "$(_ffl_quebras)" "$FASTFETCH_LOGO_RECUO"
+  case "$?" in
+    0) meow_ok "o config.jsonc dela já estava como o meow.conf pede"
+       return "$MEOW_OK" ;;
+    2) meow_erro "não consegui escrever em $FFL_CONF_DELA"
+       meow_info  "  backup intacto: $bkp/config.jsonc"
+       return "$MEOW_ERRO" ;;
+  esac
 
   # GUARDA 3: em voz alta, sempre. Tocar arquivo de vizinho sem dizer é
   # exatamente o que a TRAVA 1 existe para impedir.
@@ -984,7 +900,12 @@ _ffl_fronteira() {
   esac
 
   meow_info "config.jsonc dela: logo.type=\"$tipo\" logo.source=\"${fonte:-<vazio>}\""
-  meow_info "  padding: topo=${pad_topo:-<sem>} recuo=${pad_recuo:-<sem>} (o conf pede $(_ffl_quebras) e $FASTFETCH_LOGO_RECUO)"
+  # A LINHA SÓ SE MONTA SE ALGUÉM FOR LER. O `$(_ffl_quebras)` roda um
+  # `fastfetch` inteiro quando as quebras estão em `auto`, e a substituição de
+  # comando acontece na expansão do argumento — antes de o `meow_info` poder
+  # calar pelo `LOG_NIVEL=silencioso`. É o tique de cinco minutos do
+  # `meow-gato.timer` pagando por um número que ele descarta.
+  meow_quieto || meow_info "  padding: topo=${pad_topo:-<sem>} recuo=${pad_recuo:-<sem>} (o conf pede $(_ffl_quebras) e $FASTFETCH_LOGO_RECUO)"
   meow_info "  módulos com chave própria (as em português): $nchaves"
 
   if [ "$fonte" != "$FFL_ALVO" ]; then
@@ -1054,12 +975,30 @@ if [ -r "$conf" ]; then
   # Subshell: o conf é um arquivo de atribuições, mas ler o arquivo de
   # configuração de um projeto para dentro do ambiente do terminal dela seria
   # exportar cem variáveis em toda janela nova.
-  eval "$(
-    . "$conf" 2>/dev/null
+  #
+  # AS DUAS COSTURAS AQUI SÃO CONTRA UM MODO DE FALHA CALADO.
+  #   `set +u`: a subshell herdava o `set -u` da linha acima, e uma linha do
+  #   conf que expandisse variável não definida matava a subshell ANTES do
+  #   `printf`. O `eval` recebia string vazia, o alinhamento caía no `tabular`
+  #   do padrão, e a saída ficava byte a byte igual ao fastfetch puro: sem gato
+  #   e sem uma palavra de aviso. Nenhum `conferir` acusava, porque ele lê o
+  #   conf por outro caminho.
+  #
+  #   `>/dev/null` no `.`: o stdout do conf não era isolado, então um `echo` de
+  #   dentro dele ia para o `eval` — `echo "conf carregado"` virava
+  #   `conf: comando não encontrado` em toda janela nova.
+  dados="$(
+    set +u
+    . "$conf" >/dev/null 2>&1
     printf 'alinhar=%q; recuo=%q; topo=%q\n' \
       "${FASTFETCH_LOGO_ALINHAR:-tabular}" \
       "${FASTFETCH_LOGO_RECUO:-3}" "${FASTFETCH_LOGO_QUEBRAS:-auto}"
   )"
+  if [ -n "$dados" ]; then
+    eval "$dados"
+  else
+    printf 'meow-fetch: não consegui ler %s — alinhamento tabular\n' "$conf" >&2
+  fi
 fi
 
 # O TÍTULO NÃO PASSA POR AQUI, e a tentativa de fazê-lo passar está registrada
@@ -1087,13 +1026,27 @@ gato="$HOME/.local/share/meowsystem/fastfetch/gato.ansi"
 
 # SEM O DISCO, O TERMINAL ABRE IGUAL. Um `fastfetch` que falha porque o NVMe do
 # projeto não montou seria o pior lugar possível para este projeto aparecer.
-if [ -z "$raiz" ] || [ ! -f "$alinhador" ] || [ ! -f "$gato" ]; then
+# O `python3` entra na lista porque ele é peça do cano como as outras três.
+if [ -z "$raiz" ] || [ ! -f "$alinhador" ] || [ ! -f "$gato" ] \
+   || ! command -v python3 >/dev/null 2>&1; then
   exec fastfetch "$@"
 fi
 
-fastfetch --logo none "$@" \
-  | python3 "$alinhador" --gato "$gato" --recuo "$recuo" --topo "$topo" \
-      --modo "$alinhar"
+# O CANO NÃO É O ÚNICO CAMINHO DA SAÍDA, e essa era a falha que a guarda acima
+# não cobria: passada a guarda, o que a tela mostrava era só o que saísse do
+# python. Um traceback, um gato.ansi ilegível, qualquer coisa — e o stdout ia a
+# ZERO byte: a saudação inteira sumia numa janela nova. Aqui o fetch vai para
+# uma variável primeiro, e o alinhado só a substitui se der certo E vier com
+# conteúdo. O pior caso volta a ser o que o cabeçalho promete: o fastfetch
+# tabular, sem gato.
+saida="$(fastfetch --logo none "$@")"
+if alinhada="$(printf '%s\n' "$saida" \
+     | python3 "$alinhador" --gato "$gato" --recuo "$recuo" --topo "$topo" \
+         --modo "$alinhar")" && [ -n "$alinhada" ]; then
+  printf '%s\n' "$alinhada"
+else
+  printf '%s\n' "$saida"
+fi
 FIM
 }
 
@@ -1333,8 +1286,15 @@ cmd_aplicar() {
   esac
   unset _rcm
 
+  # O 2 SOBE PARA 4, e não some no 0. O `_ffl_zsh_fronteira` devolve 2 quando o
+  # env.zsh não tem NENHUMA das duas formas — nem a nossa, nem a dela. Isso não
+  # é "está tudo certo": é a peça do contorno faltando na tela. Deixar cair no
+  # 0 fazia o `aplicar` terminar verde com o gato invisível.
   _ffl_zsh_fronteira; _rcz=$?
-  [ "$_rcz" = "1" ] && rc="$MEOW_DIVERGENTE"
+  case "$_rcz" in
+    1) rc="$MEOW_DIVERGENTE" ;;
+    2) [ "$rc" = "$MEOW_OK" ] && rc=4 ;;
+  esac
   unset _rcz
 
   _ffl_escrever_titulo; _rct=$?
@@ -1355,9 +1315,13 @@ cmd_aplicar() {
       # impresso abaixo continua sendo a saída honesta. Assumir sucesso aqui
       # seria o "consertei" sem conserto que o `4` deste script existe para evitar.
       meow_seco || { _ffl_fronteira >/dev/null 2>&1; rcf=$?; }
-    else
+    elif [ "$rce" = "$MEOW_ERRO" ]; then
       meow_erro "não consegui escrever no config.jsonc — deixo o patch abaixo"
     fi
+    # `rce` = 0 é "não havia o que trocar": a fronteira acusa divergência em
+    # algo que esta escrita não cobre (uma chave `padding` que o arquivo dela
+    # não tem, por exemplo). O `rcf` fica como estava e o patch abaixo sai — que
+    # é a saída honesta, e não um "consertei" sobre um arquivo intocado.
   fi
 
   if [ "$rcf" = "1" ]; then
@@ -1409,13 +1373,29 @@ cmd_conferir() {
   # `meow-fetch` podia ficar desatualizado ou a linha do env.zsh podia voltar
   # ao `fastfetch` puro (um `git checkout` no repo da Aurora basta) e nada
   # acusaria — o gato continuaria certo no disco e errado na tela.
-  if ! _ffl_instalar_meow_fetch >/dev/null; then
+  # O SECO É OBRIGATÓRIO AQUI, e a linha logo acima já dizia isso para a irmã
+  # (`MEOW_SECO=1 _ffl_instalar`). Sem ele, `_ffl_instalar_meow_fetch` GRAVA o
+  # arquivo com modo 755, registra no manifesto, e só depois o `conferir`
+  # imprime "está desatualizado" — o diagnóstico consertava o que estava
+  # diagnosticando, e a passagem seguinte devolvia 0. Isso desmentia a promessa
+  # do `bin/meow` de que "conferir é leitura: nenhum caminho de doctor sem
+  # --consertar escreve configuração", inclusive no timer das 5h.
+  if ! MEOW_SECO=1 _ffl_instalar_meow_fetch >/dev/null; then
     meow_muda "o $(_ffl_meow_fetch) está desatualizado (ou não existe)"
     return "$MEOW_DIVERGENTE"
   fi
   if [ "$(_ffl_zsh_estado)" != "$(_ffl_quer_meow_fetch && printf meow || printf puro)" ]; then
     case "$(_ffl_zsh_estado)" in
-      nenhuma) meow_pula "não achei a linha do fastfetch em $FFL_ZSH_DELA" ;;
+      # 4, E NÃO 0. Sem NENHUMA das duas formas no env.zsh, a peça que põe o
+      # contorno na tela dela simplesmente não existe — e o ramo antigo caía
+      # fora do `case` sem `return`, então a função terminava em 0 e o doctor
+      # marcava o fastfetch verde. É o estado de uma máquina nova, e o de um
+      # `git checkout` no repo da Aurora que mude a FORMA do bloco. O 4 é o
+      # "está pendente e não há conserto nosso possível" que este arquivo já
+      # usa: aparece no relatório sem pendurar "o auto-reparo corrigiu".
+      nenhuma) meow_pula "não achei a linha do fastfetch em $FFL_ZSH_DELA"
+               meow_info "  o contorno precisa da chamada \`meow-fetch --pipe false\` lá"
+               return 4 ;;
       *) meow_muda "a chamada do fastfetch no env.zsh não combina com FASTFETCH_LOGO_ALINHAR=\"$(_ffl_alinhamento)\""
          return "$MEOW_DIVERGENTE" ;;
     esac

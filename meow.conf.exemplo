@@ -242,6 +242,8 @@ FASTFETCH_TITULO="{full-user-name} @ {host-name-colored}"
 # Quantas COLUNAS entre o fim do desenho e o começo do texto. Vale nos dois
 # alinhamentos: no tabular é o `padding.right` do config.jsonc, no contorno é o
 # respiro que separa o traço do gato da primeira letra.
+# O 0 vale 0 de verdade desde 06/09/2026: o compositor forçava uma coluna de
+# respiro contra um risco que não se mede, e a chave mentia por uma coluna.
 # Faixa: de 0 a 12 colunas.
 FASTFETCH_LOGO_RECUO="3"
 
