@@ -704,7 +704,13 @@ VIDRO_OPACIDADE_DOCK=""           # 0.0 a 1.0
 # O QUE ELA NÃO MEXE: a data ("25 de ago.") e o dia da semana. As chaves existem
 # no binário (`show_date_in_top_panel`, `show_weekday`) e não estão no disco —
 # ficam de fora até você pedir.
-RELOGIO_SEGUNDOS="nao"            # nao | sim | vazio (= não toca)
+# A ORDEM DA CERCA É A ORDEM DOS BOTÕES NA TELA, e esta chave era a única das
+# doze de duas opções que listava o `nao` primeiro. No painel, onde as duas
+# opções viram dois desenhos lado a lado, isso punha o "Não" à esquerda em UM
+# cartão e o "Sim" à esquerda nos outros nove da mesma aba — a conferência de
+# uso de 07/09/2026 pegou o desencontro. O padrão da chave continua `nao`; o que
+# mudou foi a ordem em que ela se oferece.
+RELOGIO_SEGUNDOS="nao"            # sim | nao | vazio (= não toca)
 
 # --- MÚSICA NA BARRA --------------------------------------------------------
 
