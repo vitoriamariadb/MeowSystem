@@ -1696,7 +1696,22 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   height: var(--altura, 22px);
   background: color-mix(in srgb, var(--base) calc(var(--op, .8) * 100%), transparent);
   border-radius: var(--raio, 8px);
-  margin: 0 var(--margem, 6px);
+  /* A MARGEM É O VÃO ATÉ A BORDA EM QUE A BARRA ESTÁ ANCORADA — 07/09/2026
+     e ela era desenhada de lado, o que estava errado duas vezes.
+
+     No cosmic-panel a `margin` só existe por causa do `anchor_gap`
+     (`get_effective_anchor_gap()` é `if self.anchor_gap { self.margin } else
+     { 0 }`, `forma.sh:20-25`), e o que ela afasta é a borda da TELA a que a
+     barra se prende — o alto, no caso do painel. Horizontalmente uma barra com
+     `expand_to_edges` atravessa a tela inteira: não há vão lateral nenhum.
+
+     E de lado ela ainda brigava com a pastilha: `.mock .barra.ilha` centraliza
+     com `margin-left/right: auto`, especificidade maior e mais abaixo na folha,
+     então com a ilha ligada — que é o valor dela agora — o número escrito não
+     chegava a UM pixel. Medido: `--margem: 20px` e margem real de 247px.
+     Continuava saindo "margem 20" na legenda, sobre um desenho que não a
+     mostrava. */
+  margin-top: var(--margem, 6px);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
