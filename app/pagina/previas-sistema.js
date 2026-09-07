@@ -221,6 +221,55 @@
     ]);
   }
 
+  /* A TARJA DE AVISO — o que as chaves NOTIFICAR fazem de verdade.
+   * O sino sozinho é um glifo de raio 4,5 num quadro de 100x60: dez pixels no
+   * botão do par, e os dois lados desenhavam a mesma figura (0,53% dos pixels
+   * diferentes, fotografados em 07/09/2026). E o sino ainda dizia a coisa
+   * errada — a chave não pendura sino nenhum em lugar nenhum: ela manda o
+   * `notify-send` pôr uma TARJA na tela dela. Então é a tarja que se desenha, no
+   * tamanho em que uma tarja se vê.
+   *
+   * O PREENCHIMENTO AQUI É A INFORMAÇÃO, e é por isso que ele existe num arquivo
+   * de traço: uma notificação é uma superfície opaca que aparece POR CIMA do que
+   * ela está fazendo. Desligada, a mesma tarja fica só o contorno pontilhado com
+   * o sino cortado — o lugar onde o aviso apareceria, e não aparece.
+   *
+   * A BARRA DA DIREITA É BARRA, E NÃO PALAVRA, de propósito: o texto da
+   * notificação é o nome do arquivo (ou da imagem) que entrou, e ele não se sabe
+   * na hora de desenhar. Inventar um nome seria a única mentira possível aqui. */
+  function tarjaDeAviso(x, y, w, h, palavra, avisa) {
+    const nome = emTexto(palavra);
+    const fonte = Math.min(4.8, h * 0.62);
+    const cy = y + h / 2;
+    const rSino = h * 0.42;
+    const xSino = x + h * 0.52;
+    const fimDaPalavra = x + h + nome.length * fonte * 0.55;
+    const g = grupo(avisa ? null : { opacity: 0.5 }, [
+      retangulo(x, y, w, h, Math.min(2.5, h * 0.38), avisa
+        ? { fill: "var(--surface1)", stroke: "var(--overlay1)", "stroke-width": 1 }
+        : { "stroke-width": 1.1, "stroke-dasharray": "4 3" }),
+      sino(xSino, cy, rSino, {
+        stroke: "var(--mauve)", "stroke-width": q(Math.max(0.75, h * 0.1)),
+      }),
+      texto(x + h, cy + fonte * 0.36, nome, {
+        "font-size": q(fonte), "text-anchor": "start",
+      }),
+    ]);
+    /* A barra só entra se sobrar largura para ela SER barra: um toco de duas
+     * unidades ao lado da palavra seria sujeira, não linha de texto. */
+    const barra = (x + w - 3) - (fimDaPalavra + 2.5);
+    if (barra >= 6) {
+      g.appendChild(retangulo(fimDaPalavra + 2.5, cy - 0.75, barra, 1.5, 0.75, {
+        fill: "var(--overlay1)", stroke: "none", opacity: 0.55,
+      }));
+    }
+    if (!avisa) {
+      g.appendChild(linha(xSino - rSino * 0.9, cy + rSino, xSino + rSino * 0.9, cy - rSino,
+        { "stroke-width": q(Math.max(0.9, h * 0.12)) }));
+    }
+    return g;
+  }
+
   function engrenagem(cx, cy, r, extra) {
     const g = grupo(extra || null, [circulo(cx, cy, r * 0.5)]);
     for (let i = 0; i < 8; i++) {
@@ -283,7 +332,25 @@
     for (const chave of Object.keys(depois)) {
       if (depois[chave] !== agora[chave]) mudou = true;
     }
-    return { agora: agora, depois: depois, mudou: mudou };
+    /* QUAIS CHAVES FORAM PEDIDAS — e isso não é o mesmo que quais mudaram.
+     * O par de botões do `app.js` desenha o bloco INTEIRO para responder por uma
+     * chave só, e chama esta função uma vez por lado: o botão da esquerda pede o
+     * valor que JÁ vale. Se o desenho olhasse a DIFERENÇA para decidir a quem
+     * dar destaque, o lado esquerdo (onde não há diferença) sairia num
+     * enquadramento e o direito noutro — que é a única coisa que o par existe
+     * para não fazer. Então o que sai daqui é o PEDIDO. */
+    const pedidas = [];
+    for (const chave of Object.keys(bruto)) {
+      const item = bruto[chave];
+      if (item && typeof item === "object" && !Array.isArray(item)
+          && primeiro(item.escolhido, item.escolha, item.pendente, item.novo) !== undefined) {
+        pedidas.push(chave);
+      }
+    }
+    for (const chave of Object.keys(extras)) {
+      if (pedidas.indexOf(chave) < 0) pedidas.push(chave);
+    }
+    return { agora: agora, depois: depois, mudou: mudou, pedidas: pedidas };
   }
 
   /* Sem acento e em caixa baixa: o meow.conf escreve `aleatoria`, mas quem
@@ -467,18 +534,19 @@
       try {
         leitura = normalizar(v, escolhido);
       } catch (e) {
-        leitura = { agora: {}, depois: {}, mudou: false };
+        leitura = { agora: {}, depois: {}, mudou: false, pedidas: [] };
       }
+      const pedidas = leitura.pedidas || [];
       let antes = null;
       let depois = null;
       let legenda = "";
       try {
-        antes = desenhar(leitura.agora);
+        antes = desenhar(leitura.agora, pedidas);
       } catch (e) {
         antes = quadroDeSocorro(titulo);
       }
       try {
-        depois = leitura.mudou ? desenhar(leitura.depois) : null;
+        depois = leitura.mudou ? desenhar(leitura.depois, pedidas) : null;
       } catch (e) {
         depois = null;
       }
@@ -555,9 +623,22 @@
     };
   }
 
-  function desenharVidro(val) {
+  function desenharVidro(val, pedidas) {
     const d = lerVidro(val);
-    const svg = moldura("o painel e a dock sobre uma janela maximizada, com o relógio da barra");
+    /* O RELÓGIO DE PERTO, E SÓ NO CARTÃO DELE
+     * O que o RELOGIO_SEGUNDOS governa são três caracteres: "9:41" vira
+     * "9:41:07". No relógio da barra isso dá 0,92% dos pixels do botão (medido
+     * em 07/09/2026) e os dois lados saem a mesma figura. Aumentar o relógio DA
+     * BARRA para resolver seria mentir sobre o tamanho do relógio dela; então
+     * entra a mesma gramática de desenho técnico da cota da largura da música,
+     * aqui embaixo: o canto direito da barra aparece de novo, ampliado, com o
+     * mesmo recheio e a mesma opacidade — é aquele pedaço, de perto.
+     * Nos outros três cartões deste bloco a ampliação não aparece: lá o assunto
+     * é o vidro, que já ocupa o quadro inteiro. */
+    const perto = Array.isArray(pedidas) && pedidas.length === 1
+      && pedidas[0] === "RELOGIO_SEGUNDOS";
+    const svg = moldura("o painel e a dock sobre uma janela maximizada, com o relógio da barra"
+      + (perto ? ", e o mesmo relógio ampliado no meio" : ""));
 
     svg.appendChild(retangulo(2, 3, 96, 54, 3.5, { "stroke-width": 1.6, opacity: 0.55 }));
     svg.appendChild(retangulo(6, 7, 88, 45, 2, { "stroke-width": 1.3, opacity: 0.45 }));
@@ -588,6 +669,27 @@
     svg.appendChild(texto(90, 13.4, d.segundos ? "9:41:07" : "9:41", {
       "font-size": 6.5, "text-anchor": "end",
     }));
+
+    if (perto) {
+      /* A moldura da ampliação é a MESMA receita da barra — `--surface2` com a
+       * opacidade do painel —, e é isso que a faz ler como "aquele pedaço" em
+       * vez de um cartaz colado por cima: as linhas da janela continuam
+       * atravessando por baixo dela, do mesmo jeito que atravessam a barra.
+       * As duas linhas de chamada saem das quinas do cerco do relógio pequeno. */
+      const chamada = { "stroke-width": 0.8, "stroke-dasharray": "2 1.6", opacity: 0.55 };
+      svg.appendChild(retangulo(62, 7.2, 29.5, 8, 1.6, chamada));
+      svg.appendChild(linha(62, 15.2, 6, 19, chamada));
+      svg.appendChild(linha(91.5, 15.2, 94, 19, chamada));
+      svg.appendChild(retangulo(5, 19, 90, 24, 3, {
+        fill: "var(--surface2)", "fill-opacity": q(d.painelDesenhada), "stroke-width": 1.4,
+      }));
+      /* 22 é o maior corpo em que "9:41:07" ainda cabe nesta moldura, e é o
+       * ponto: no botão de 228 px o relógio sai com a altura em que ela lê o
+       * relógio da barra na TV. */
+      svg.appendChild(texto(89, 37.6, d.segundos ? "9:41:07" : "9:41", {
+        "font-size": 22, "text-anchor": "end",
+      }));
+    }
 
     svg.appendChild(retangulo(31, 44, 38, 9, 4, {
       fill: "var(--surface2)", "fill-opacity": q(d.dockDesenhada), "stroke-width": 1.4,
@@ -641,13 +743,45 @@
   ];
 
   const COR_DO_ALBUM = "var(--peach)";
-  /* A asa direita da barra em corte: [capa][nome e banda][⏮⏸⏭][relógio]. Os
-   * quatro números abaixo são a divisão desse espaço, e ela é apertada de
-   * propósito — na dock dela o Now Playing divide a asa com a Área de status, e
-   * um desenho folgado esconderia justamente o aperto que a chave da largura
-   * existe para administrar. */
-  const TEXTO_X = 20;
-  const TEXTO_FIM = 58;
+
+  /* O ENQUADRAMENTO: A BARRA EM CIMA, O APPLET AMPLIADO EMBAIXO — 07/09/2026
+   *   A primeira versão desenhava a barra inteira na escala da barra, e nela o
+   *   applet cabia num naco de 56x18 unidades. Medido nos dois botões do
+   *   cartão, no tamanho em que eles aparecem (228x96): trocar `MIDIA_CAPA`
+   *   mudava 1,51% dos pixels, e `MIDIA_CONTROLES`, os mesmos 1,51% —
+   *   tecnicamente dois desenhos, a mesma figura para quem olha. Os pares que
+   *   funcionam neste painel vivem entre 6% e 20%.
+   *
+   *   O conserto é de ENQUADRAMENTO, e não de capricho: o assunto do bloco é o
+   *   applet, então é ele que ocupa o quadro. A tira de cima continua sendo a
+   *   barra — com o relógio, que é o vizinho que o próprio bloco cita, e com os
+   *   outros applets em cinza — e as duas linhas pontilhadas são a chamada de
+   *   detalhe que todo desenho técnico usa: "o que está marcado ali é isto
+   *   aqui, ampliado". A seção não sumiu; virou o contexto, que é o papel dela.
+   *
+   * A CAPA E A COR SÃO A MESMA CHAVE, E O DESENHO NÃO PODE SEPARÁ-LAS
+   *   `MIDIA_CAPA` não é "mostrar a capa": é BAIXAR a capa quando o tocador
+   *   publica `mpris:artUrl` como link (`album-art-remote`, em
+   *   `scripts/midia.sh`). O Spotify só publica link. E a cor dominante é
+   *   EXTRAÍDA do arquivo da capa — sem imagem no disco não há de onde tirá-la.
+   *   As duas queixas dela caíam na mesma linha do `src/media.rs`, e por isso
+   *   em "não" o desenho tira as duas coisas: o quadrado da capa (que o applet
+   *   nem chega a pôr no `Row`, ele some, não fica um vazio) e a cor do álbum
+   *   do botão inteiro. Um tocador local que publica arquivo continua com capa
+   *   mesmo em "não" — é o que a legenda diz, porque o desenho mostra o caso
+   *   dela, que é o Spotify.
+   *
+   * O `ZOOM` NÃO MEXE NA CALIBRAÇÃO DA LARGURA, e isso é o que permite ampliar
+   *   sem refazer a conta: ele multiplica a largura desenhada do nome E o
+   *   tamanho da letra pelo mesmo número, e `cabem` é a razão entre os dois. O
+   *   fato medido lá em cima continua de pé — em 260 o nome corta, em 440
+   *   cabe. */
+  const TIRA = { y: 3, h: 10, x: 26 };   // a barra, e onde o applet se apoia nela
+  const LUPA = { x: 2, y: 19, h: 26 };   // o applet ampliado
+  const RECUO = 3.5;                     // a folga interna do botão do applet
+  const CAPA_LADO = 17;                  // o quadrado da capa, no aumento
+  const PASSO_BOTAO = 11;                // um ⏮ ⏸ ⏭ e o vão até o seguinte
+  const ZOOM = 1.15;
 
   function lerMidia(val) {
     const larguraPx = numero(val.MIDIA_LARGURA, 440, 80, 900);
@@ -657,101 +791,156 @@
      * daí o tamanho cravado sobe na mesma proporção, e o teto de 10 existe só
      * para o desenho não sair do quadro — que já é o sintoma que a chave
      * descreve, e ele aparece de qualquer jeito. */
-    const fonte = auto ? 5 : Math.max(3, Math.min(10, 5 * (fontePx / 12)));
-    const larguraDesenhada = 7 + (larguraPx / 900) * (TEXTO_FIM - TEXTO_X - 7);
+    const fonte = (auto ? 5 : Math.max(3, Math.min(10, 5 * (fontePx / 12)))) * ZOOM;
+    const larguraDesenhada = (7 + (larguraPx / 900) * 31) * ZOOM;
+    const capa = ligado(val.MIDIA_CAPA, true);
+    const controles = ligado(val.MIDIA_CONTROLES, false);
+    /* A ORDEM DO `Row` DO APPLET: [capa][nome · banda][⏮⏸⏭], e o botão é
+     * `Length::Shrink` — ele mede o próprio conteúdo. Então tirar a capa
+     * encosta o nome na borda esquerda, e pôr os três controles alarga o botão
+     * de verdade. É essa conta, e não um enfeite, que move as bordas aqui. */
+    const textoX = LUPA.x + RECUO + (capa ? CAPA_LADO + RECUO : 0);
+    const fimTexto = textoX + larguraDesenhada;
+    const trioX = fimTexto + RECUO;
+    const fimConteudo = controles ? trioX + PASSO_BOTAO * 3 - 2 : fimTexto;
     return {
       ligada: ligado(val.MIDIA, true),
       larguraPx: larguraPx,
       larguraDesenhada: larguraDesenhada,
       chapado: escolha(val.MIDIA_COR_ALBUM, ["traco", "chapado"], "traco") === "chapado",
-      capa: ligado(val.MIDIA_CAPA, true),
-      controles: ligado(val.MIDIA_CONTROLES, false),
+      capa: capa,
+      controles: controles,
       auto: auto,
       fontePx: fontePx,
       fonte: fonte,
       corTitulo: corDaPaleta(val.MIDIA_COR_TITULO, "var(--mauve)"),
       corArtista: corDaPaleta(val.MIDIA_COR_ARTISTA, "var(--green)"),
       cabem: Math.max(1, Math.floor(larguraDesenhada / (fonte * 0.52))),
+      textoX: textoX,
+      trioX: trioX,
+      larguraApplet: fimConteudo + RECUO - LUPA.x,
     };
   }
 
   function desenharMidia(val) {
     const d = lerMidia(val);
-    const svg = moldura("a pastilha da música na barra, com capa, nome e a medida da largura");
+    const svg = moldura("a barra da dock em cima e, ampliado, o applet de música: capa, nome, os três botões e a medida da largura");
 
-    svg.appendChild(retangulo(2, 10, 96, 30, 5, {
-      fill: "var(--surface0)", "fill-opacity": 0.45, "stroke-width": 1.5,
+    /* A tira corre para fora dos dois lados de propósito: é um PEDAÇO da barra,
+     * e um pedaço não promete onde ficam as pontas dela. */
+    svg.appendChild(retangulo(-12, TIRA.y, 124, TIRA.h, 4, {
+      fill: "var(--surface0)", "fill-opacity": 0.45, "stroke-width": 1.2, opacity: 0.85,
     }));
-    svg.appendChild(texto(95, 27.5, "9:41", { "font-size": 6, "text-anchor": "end" }));
+    svg.appendChild(texto(96, TIRA.y + TIRA.h * 0.74, "9:41", {
+      "font-size": 5.5, "text-anchor": "end",
+    }));
+    /* Os outros applets. Não são enfeite: é para dentro deles que o botão
+     * cresce quando ela liga os três controles, e é o aperto da asa que o
+     * meow.conf mede quando fala em empurrar bluetooth e rede para o `⋯`. */
+    for (const x of [60, 68, 76]) {
+      svg.appendChild(retangulo(x, TIRA.y + 2.5, 5, 5, 1.5, { "stroke-width": 1, opacity: 0.3 }));
+    }
 
     if (!d.ligada) {
       /* Desligar não é "ficar sem a cor": é a pastilha inteira sair da barra, e
        * o applet do flatpak voltar no próximo login. O vazio pontilhado no
-       * lugar dela é a resposta. */
-      svg.appendChild(retangulo(6, 17, 56, 16, 3, {
-        "stroke-dasharray": "3 3", "stroke-width": 1.4, opacity: 0.45,
+       * lugar dela, nos dois tamanhos, é a resposta. */
+      svg.appendChild(retangulo(TIRA.x, TIRA.y + 1.5, 16, TIRA.h - 3, 2, {
+        "stroke-dasharray": "2.5 2.5", "stroke-width": 1.1, opacity: 0.45,
       }));
-      svg.appendChild(linha(12, 30, 56, 20, { "stroke-width": 1.2, opacity: 0.35 }));
+      svg.appendChild(retangulo(LUPA.x, LUPA.y, 53, LUPA.h, 5, {
+        "stroke-dasharray": "3.5 3.5", "stroke-width": 1.6, opacity: 0.5,
+      }));
+      svg.appendChild(linha(LUPA.x + 7, LUPA.y + LUPA.h - 6, LUPA.x + 46, LUPA.y + 6, {
+        "stroke-width": 1.3, opacity: 0.35,
+      }));
       return svg;
     }
 
-    const yTitulo = 24;
-    const yArtista = yTitulo + d.fonte * 0.95 + 1.5;
+    /* SEM CAPA NO DISCO NÃO HÁ COR DE ÁLBUM. Ver o cabeçalho: a cor dominante
+     * sai da imagem, e o botão volta à cor do painel quando ela não existe. */
+    const temCor = d.capa;
+    const tinta = temCor ? COR_DO_ALBUM : "currentColor";
+    const corGlifo = (temCor && !d.chapado) ? COR_DO_ALBUM : "currentColor";
+    const pintura = (largura) => (temCor && d.chapado
+      ? { fill: COR_DO_ALBUM, "fill-opacity": 0.45, stroke: "none" }
+      : { stroke: tinta, "stroke-width": largura, opacity: temCor ? 1 : 0.75 });
+
+    /* A pegada do applet na barra, e o aumento dela embaixo. As duas linhas
+     * pontilhadas ligam uma à outra — sem elas, o desenho de baixo seria uma
+     * pastilha flutuando fora de qualquer lugar. */
+    const tiraLarg = d.larguraApplet * 0.3;
+    svg.appendChild(retangulo(TIRA.x, TIRA.y + 1.5, tiraLarg, TIRA.h - 3, 2, pintura(1.2)));
+    for (const par of [[TIRA.x, LUPA.x], [TIRA.x + tiraLarg, LUPA.x + d.larguraApplet]]) {
+      svg.appendChild(linha(par[0], TIRA.y + TIRA.h, par[1], LUPA.y, {
+        "stroke-width": 0.9, "stroke-dasharray": "2 2", opacity: 0.4,
+      }));
+    }
+    svg.appendChild(retangulo(LUPA.x, LUPA.y, d.larguraApplet, LUPA.h, 5, pintura(1.9)));
+
+    const meio = LUPA.y + LUPA.h / 2;
+    if (d.capa) {
+      const cx = LUPA.x + RECUO;
+      const cy = meio - CAPA_LADO / 2;
+      svg.appendChild(retangulo(cx, cy, CAPA_LADO, CAPA_LADO, 2.5, {
+        "stroke-width": 1.6, stroke: corGlifo,
+      }));
+      const nx = cx + CAPA_LADO * 0.34;
+      const ny = cy + CAPA_LADO * 0.72;
+      svg.appendChild(circulo(nx, ny, 2.3, { "stroke-width": 1.5, stroke: corGlifo }));
+      svg.appendChild(linha(nx + 2.3, ny, nx + 2.3, cy + CAPA_LADO * 0.2, { "stroke-width": 1.5, stroke: corGlifo }));
+      svg.appendChild(linha(nx + 2.3, cy + CAPA_LADO * 0.2, nx + 7, cy + CAPA_LADO * 0.34, { "stroke-width": 1.5, stroke: corGlifo }));
+    }
+
     /* A pastilha cresce com a letra. Com `MIDIA_FONTE` cravado em 30 ou 48 a
-     * banda desce para fora da barra — que é exatamente o defeito que ela
+     * banda desce para fora do botão — que é exatamente o defeito que ela
      * reparou primeiro em 24/08/2026, quando o applet passava o tamanho do
      * ÍCONE como tamanho da FONTE. O desenho mostra o transbordo em vez de
      * escondê-lo. */
-    const alturaPastilha = Math.max(18, yArtista + d.fonte * 0.35 + 1 - 16);
-    if (d.chapado) {
-      svg.appendChild(retangulo(4, 16, 56, alturaPastilha, 4, {
-        fill: COR_DO_ALBUM, "fill-opacity": 0.45, stroke: "none",
-      }));
-    } else {
-      svg.appendChild(retangulo(4, 16, 56, alturaPastilha, 4, {
-        stroke: COR_DO_ALBUM, "stroke-width": 1.4,
-      }));
-    }
-
-    const corDoTraco = d.chapado ? "currentColor" : COR_DO_ALBUM;
-    svg.appendChild(retangulo(6, 19, 12, 12, 2, Object.assign(
-      { "stroke-width": 1.5, stroke: corDoTraco },
-      d.capa ? {} : { "stroke-dasharray": "2.5 2.5", opacity: 0.6 })));
-    if (d.capa) {
-      svg.appendChild(circulo(9.6, 27.4, 1.6, { "stroke-width": 1.3, stroke: corDoTraco }));
-      svg.appendChild(linha(11.2, 27.4, 11.2, 21.8, { "stroke-width": 1.3, stroke: corDoTraco }));
-      svg.appendChild(linha(11.2, 21.8, 14.4, 22.9, { "stroke-width": 1.3, stroke: corDoTraco }));
-    } else {
-      svg.appendChild(linha(7.5, 29.5, 16.5, 20.5, { "stroke-width": 1.3, opacity: 0.6 }));
-    }
-
-    svg.appendChild(texto(TEXTO_X, yTitulo, cortar("A música", d.cabem), {
+    const yTitulo = meio - d.fonte * 0.21 - 0.75;
+    const yArtista = yTitulo + d.fonte * 0.95 + 1.5;
+    svg.appendChild(texto(d.textoX, yTitulo, cortar("A música", d.cabem), {
       "font-size": q(d.fonte), "text-anchor": "start", fill: d.corTitulo,
     }));
-    svg.appendChild(texto(TEXTO_X, yArtista, cortar("A banda", d.cabem), {
+    svg.appendChild(texto(d.textoX, yArtista, cortar("A banda", d.cabem), {
       "font-size": q(d.fonte * 0.85), "text-anchor": "start", fill: d.corArtista,
     }));
 
     if (d.controles) {
-      const y0 = 21.5;
-      const y1 = 28.5;
-      svg.appendChild(linha(62, y0, 62, y1, { "stroke-width": 1.4 }));
-      svg.appendChild(caminho("M 66.5,21.5 L 66.5,28.5 L 63.5,25 Z", { "stroke-width": 1.4 }));
-      svg.appendChild(linha(70, y0, 70, y1, { "stroke-width": 1.4 }));
-      svg.appendChild(linha(72.5, y0, 72.5, y1, { "stroke-width": 1.4 }));
-      svg.appendChild(caminho("M 76,21.5 L 76,28.5 L 79,25 Z", { "stroke-width": 1.4 }));
-      svg.appendChild(linha(80, y0, 80, y1, { "stroke-width": 1.4 }));
+      /* DO TAMANHO QUE ELES TÊM: no `src/ui.rs` do applet o ícone de controle é
+       * pedido na MESMA medida do ícone da capa (`.size(size.0)` para os dois),
+       * então desenhá-los como três risquinhos ao lado de uma capa grande seria
+       * desenhar outro applet. Cheios porque `media-skip-*-symbolic` é glifo
+       * cheio, e é assim que eles aparecem na barra. */
+      const alt = 15;
+      const topo = meio - alt / 2;
+      const base = meio + alt / 2;
+      const cheio = { fill: corGlifo, stroke: corGlifo, "stroke-width": 1 };
+      const x0 = d.trioX;
+      svg.appendChild(retangulo(x0, topo, 2, alt, 0.6, cheio));
+      svg.appendChild(caminho("M " + q(x0 + 9) + "," + q(topo)
+        + " L " + q(x0 + 9) + "," + q(base) + " L " + q(x0 + 2) + "," + q(meio) + " Z", cheio));
+      const x1 = x0 + PASSO_BOTAO;
+      svg.appendChild(retangulo(x1 + 1.2, topo, 2.6, alt, 0.6, cheio));
+      svg.appendChild(retangulo(x1 + 5.2, topo, 2.6, alt, 0.6, cheio));
+      const x2 = x0 + PASSO_BOTAO * 2;
+      svg.appendChild(caminho("M " + q(x2) + "," + q(topo)
+        + " L " + q(x2) + "," + q(base) + " L " + q(x2 + 7) + "," + q(meio) + " Z", cheio));
+      svg.appendChild(retangulo(x2 + 7, topo, 2, alt, 0.6, cheio));
     }
 
     /* A cota. As duas hastes pontilhadas ligam o começo e o fim do espaço do
      * nome à medida embaixo — sem elas o traço solto seria só um traço. */
-    const fim = TEXTO_X + d.larguraDesenhada;
-    for (const x of [TEXTO_X, fim]) {
-      svg.appendChild(linha(x, 40, x, 44, { "stroke-width": 1, "stroke-dasharray": "1.5 1.5", opacity: 0.5 }));
-      svg.appendChild(linha(x, 44, x, 48, { "stroke-width": 1.4 }));
+    const baseLupa = LUPA.y + LUPA.h;
+    const fim = d.textoX + d.larguraDesenhada;
+    for (const x of [d.textoX, fim]) {
+      svg.appendChild(linha(x, baseLupa + 0.5, x, baseLupa + 3.5, {
+        "stroke-width": 1, "stroke-dasharray": "1.5 1.5", opacity: 0.5,
+      }));
+      svg.appendChild(linha(x, baseLupa + 3.5, x, baseLupa + 7, { "stroke-width": 1.4 }));
     }
-    svg.appendChild(linha(TEXTO_X, 46, fim, 46, { "stroke-width": 1.4 }));
-    svg.appendChild(texto((TEXTO_X + fim) / 2, 56, d.larguraPx + " px", { "font-size": 5.5 }));
+    svg.appendChild(linha(d.textoX, baseLupa + 5.5, fim, baseLupa + 5.5, { "stroke-width": 1.4 }));
+    svg.appendChild(texto((d.textoX + fim) / 2, 57.5, d.larguraPx + " px", { "font-size": 5.5 }));
     return svg;
   }
 
@@ -766,17 +955,24 @@
         const s = achatar(bruta) || padrao;
         return (s === "auto" || NOMES_DA_PALETA.indexOf(s) < 0) ? "cor padrão do painel" : s;
       };
-      corpo = "a pastilha com " + (d.capa ? "capa" : "o lugar da capa vazio (a capa por link não é baixada)")
+      corpo = "a barra em cima e o applet ampliado embaixo, "
+        + (d.capa
+          ? "com capa e com a cor do álbum "
+            + (d.chapado ? "chapando o fundo do botão" : "tingindo só o traço")
+          : "sem capa e sem cor de álbum — a cor é extraída da imagem, e sem imagem não há de onde tirá-la")
         + ", o nome em " + nomeDeCor(val.MIDIA_COR_TITULO, "mauve")
         + " e a banda em " + nomeDeCor(val.MIDIA_COR_ARTISTA, "green")
-        + ", " + d.larguraPx + " px de nome antes das reticências, a cor do álbum "
-        + (d.chapado ? "chapando o fundo do botão" : "tingindo só o traço")
-        + ", letra " + (d.auto ? "na escala do painel" : "cravada em " + d.fontePx + " px")
-        + " e " + (d.controles ? "com" : "sem") + " os três botões";
+        + ", " + d.larguraPx + " px de nome antes das reticências, letra "
+        + (d.auto ? "na escala do painel" : "cravada em " + d.fontePx + " px")
+        + " e " + (d.controles ? "com os três botões, que alargam a pastilha na barra" : "sem os três botões");
     }
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
-      d.ligada && !d.chapado ? "a cor do álbum aqui é só um exemplo: a de verdade vem do disco que estiver tocando" : "",
+      d.ligada && !d.capa
+        ? "«não» desliga o DOWNLOAD da capa por link (é o que o Spotify publica); um tocador que publica arquivo no disco continua com capa"
+        : "",
+      d.ligada && d.capa && !d.chapado ? "a cor do álbum aqui é só um exemplo: a de verdade vem do disco que estiver tocando" : "",
+      d.ligada && d.controles ? "o applet de Som, ao lado, já desenha os dele quando há player — é por isso que estes nascem desligados" : "",
       c.vazias.length ? VAZIO_FABRICA : "",
     ]);
   }
@@ -908,15 +1104,15 @@
     svg.appendChild(texto(82, 18.5, d.intervalo.rotulo, { "font-size": 7 }));
 
     if (d.ordem === "alfabetica") {
-      svg.appendChild(linha(74, 32, 90, 32, { "stroke-width": 1.6 }));
-      svg.appendChild(seta(90, 32, 0, 3));
-      svg.appendChild(texto(70, 34, "A", { "font-size": 5.5 }));
-      svg.appendChild(texto(95, 34, "Z", { "font-size": 5.5 }));
+      svg.appendChild(linha(74, 30, 90, 30, { "stroke-width": 1.6 }));
+      svg.appendChild(seta(90, 30, 0, 3));
+      svg.appendChild(texto(70, 32, "A", { "font-size": 5.5 }));
+      svg.appendChild(texto(95, 32, "Z", { "font-size": 5.5 }));
     } else {
-      svg.appendChild(linha(70, 28, 92, 36, { "stroke-width": 1.5 }));
-      svg.appendChild(seta(92, 36, 20, 3));
-      svg.appendChild(linha(70, 36, 92, 28, { "stroke-width": 1.5 }));
-      svg.appendChild(seta(92, 28, -20, 3));
+      svg.appendChild(linha(70, 26, 92, 34, { "stroke-width": 1.5 }));
+      svg.appendChild(seta(92, 34, 20, 3));
+      svg.appendChild(linha(70, 34, 92, 26, { "stroke-width": 1.5 }));
+      svg.appendChild(seta(92, 26, -20, 3));
     }
 
     /* O prazo da imagem escolhida: o alfinete diz "esta fica", o número diz
@@ -927,14 +1123,54 @@
       "font-size": 5.5, "text-anchor": "start",
     }));
 
-    const bell = sino(38, 50, 4.5, d.avisa ? {} : { opacity: 0.4 });
-    svg.appendChild(bell);
-    if (!d.avisa) svg.appendChild(linha(34, 54, 42, 46, { "stroke-width": 1.3, opacity: 0.6 }));
+    /* O AVISO É UMA TARJA, E NÃO UM SINO — 07/09/2026
+     * A chave não pendura sino nenhum em lugar nenhum: ela manda o
+     * `meow_notificar` pôr uma notificação na tela dizendo QUAL imagem entrou.
+     * O sino de raio 4,5 que morava aqui mudava 0,67% dos pixels do botão do
+     * par — os dois lados desenhavam a mesma figura, e a conferência de uso
+     * relatou exatamente isso.
+     *   A largura sai do que sobrou: o alfinete do prazo ocupa até x≈30 e o
+     * menu do botão direito começa em x=66, então a tarja mora entre os dois.
+     * Ela é a mesma `tarjaDeAviso` das três de "Manutenção", e é de propósito:
+     * quatro chaves fazem a mesma coisa e passam a ter a mesma figura. */
+    svg.appendChild(tarjaDeAviso(31, 45.5, 33, 11, "imagem", d.avisa));
 
-    const menuAtrib = d.menu ? { "stroke-width": 1.4 } : { "stroke-width": 1.2, "stroke-dasharray": "2.5 2.5", opacity: 0.45 };
-    svg.appendChild(retangulo(52, 44, 20, 13, 1.5, menuAtrib));
-    svg.appendChild(linha(55, 48.5, 69, 48.5, Object.assign({}, menuAtrib, { "stroke-width": 1.1 })));
-    svg.appendChild(linha(55, 52.5, 65, 52.5, Object.assign({}, menuAtrib, { "stroke-width": 1.1 })));
+    /* O MENU DO BOTÃO DIREITO, INTEIRO — e não uma caixinha pontilhada. Medido
+     * em 07/09/2026, a caixinha mudava 1,91% dos pixels do botão entre "sim" e
+     * "nao": os dois lados eram a mesma figura com o traço tracejado. Mas a
+     * chave não acende nem apaga uma caixa; ela ACRESCENTA DOIS ITENS ao menu
+     * da área de trabalho, e com isso o menu cresce e o que estava embaixo
+     * desce. Desenhar o menu dos dois tamanhos é desenhar o que ela vai ver
+     * quando clicar com o botão direito.
+     *
+     * Os itens de fábrica são barras, e não palavras: quantos e quais o COSMIC
+     * põe ali muda de versão para versão, e escrever nomes que este arquivo não
+     * lê de lugar nenhum seria a única mentira possível neste canto. Os NOSSOS
+     * dois vão com seta, um para cada lado, porque é isso que eles fazem —
+     * "Próximo papel de parede" e "Papel de parede anterior". */
+    const itensDeFabrica = [[69.5, 93], [69.5, 88], [69.5, 91]];
+    if (d.menu) {
+      svg.appendChild(retangulo(66, 37, 32, 22, 2, { "stroke-width": 1.6 }));
+      for (const [y, graus] of [[41.5, 0], [45.5, 180]]) {
+        const ponta = graus === 0 ? 74 : 68.5;
+        svg.appendChild(linha(68.5, y, 74, y, { "stroke-width": 1.8, stroke: "var(--mauve)" }));
+        svg.appendChild(seta(ponta, y, graus, 3.2));
+        svg.appendChild(linha(76.5, y, 95, y, { "stroke-width": 2.4, stroke: "var(--mauve)" }));
+      }
+      svg.appendChild(linha(67.5, 48.5, 96.5, 48.5, { "stroke-width": 1.1, opacity: 0.4 }));
+      for (let i = 0; i < itensDeFabrica.length; i++) {
+        svg.appendChild(linha(itensDeFabrica[i][0], 51 + i * 3.4, itensDeFabrica[i][1], 51 + i * 3.4, {
+          "stroke-width": 2.2, opacity: 0.55,
+        }));
+      }
+    } else {
+      svg.appendChild(retangulo(66, 37, 32, 13.5, 2, { "stroke-width": 1.6 }));
+      for (let i = 0; i < itensDeFabrica.length; i++) {
+        svg.appendChild(linha(itensDeFabrica[i][0], 41 + i * 3.4, itensDeFabrica[i][1], 41 + i * 3.4, {
+          "stroke-width": 2.2, opacity: 0.55,
+        }));
+      }
+    }
     return svg;
   }
 
@@ -950,7 +1186,7 @@
       + ", troca a cada " + d.intervalo.rotulo
       + " em ordem " + (d.ordem === "alfabetica" ? "de nome" : "sorteada")
       + ", a escolhida fica " + (d.ttlEterno ? "até você soltar o carrossel" : "por " + d.ttl.rotulo)
-      + ", " + (d.avisa ? "com aviso" : "sem aviso")
+      + ", " + (d.avisa ? "com tarja na tela dizendo qual imagem entrou" : "sem tarja na tela")
       + " e " + (d.menu ? "com" : "sem") + " os itens no botão direito";
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
@@ -1057,27 +1293,57 @@
         p.y + (p.y < ANEL.cy ? 0 : 3.4), marca.t, { "font-size": 5, "text-anchor": ancora }));
     }
 
-    /* O acervo: com a separação ligada são duas pastas de horário; desligada,
-     * é uma só, com claras e escuras no mesmo sorteio. */
+    /* O ACERVO É A COLUNA DA DIREITA INTEIRA, e não uma tira de 12 unidades no
+     * alto: era ali que a chave desta seção ficava invisível. Medido em
+     * 07/09/2026, o par "sim"/"nao" mudava 2,05% dos pixels do botão — duas
+     * pastinhas viravam uma, e nada mais. A régua do corte desceu para a faixa
+     * de baixo (onde não havia nada) e o acervo herdou os 42 de altura.
+     *
+     * AS MESMAS DOZE FICHAS NOS DOIS LADOS, porque a chave não move arquivo
+     * nenhum: ligada, o `wallpaper.sh` mede a luminância de cada imagem de
+     * `ativos/` e monta duas pastas de LINK DURO ao lado dela (`ativos-dia/` e
+     * `ativos-noite/`), apontando o carrossel para a do horário; desligada, as
+     * duas somem do disco e volta a haver um sorteio só. Por isso as fichas se
+     * REAGRUPAM em vez de aparecer e sumir — separar não é apagar. E a divisão
+     * é desigual (sete claras, cinco escuras) porque no acervo dela também é:
+     * o `wallpaper.sh` imprime "32 de 54" numa hora e "22 de 54" na outra. */
+    const FICHAS = [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0];   // 1 = clara · 0 = escura
+    function fichaDeAcervo(x, y, clara) {
+      svg.appendChild(retangulo(x, y, 6.6, 7.6, 1, { "stroke-width": 1.2, opacity: 0.85 }));
+      if (clara) svg.appendChild(sol(x + 3.3, y + 3.8, 2.5, { "stroke-width": 1.1, stroke: "var(--yellow)" }));
+      else svg.appendChild(lua(x + 3.3, y + 3.8, 2.3, { "stroke-width": 1.1, stroke: "var(--blue)" }));
+    }
     if (d.separa) {
-      svg.appendChild(retangulo(66, 7, 14, 12, 1.5, { "stroke-width": 1.5 }));
-      svg.appendChild(sol(73, 13, 3.4, { "stroke-width": 1.3, stroke: "var(--yellow)" }));
-      svg.appendChild(retangulo(83, 7, 14, 12, 1.5, { "stroke-width": 1.5 }));
-      svg.appendChild(lua(90, 13, 3.4, { "stroke-width": 1.3, stroke: "var(--blue)" }));
+      /* Duas pastas, uma por horário. A da vez é a que o carrossel está
+       * sorteando AGORA — mas "agora" não cabe num desenho puro, então as duas
+       * aparecem inteiras e quem diz qual está valendo é a legenda. */
+      for (const [px, quais, nome] of [
+        [67, FICHAS.filter((c) => c), "dia"],
+        [84, FICHAS.filter((c) => !c), "noite"],
+      ]) {
+        svg.appendChild(retangulo(px, 4, 14, 42, 2, { "stroke-width": 1.5 }));
+        svg.appendChild(texto(px + 7, 11, nome, { "font-size": 4.6, opacity: 0.8 }));
+        for (let i = 0; i < quais.length; i++) {
+          fichaDeAcervo(px + 0.4 + (i % 2) * 6.9, 14 + Math.floor(i / 2) * 7.8, quais[i]);
+        }
+      }
     } else {
-      svg.appendChild(retangulo(66, 7, 31, 12, 1.5, { "stroke-width": 1.5 }));
-      svg.appendChild(sol(76, 13, 3.4, { "stroke-width": 1.3, stroke: "var(--yellow)" }));
-      svg.appendChild(lua(88, 13, 3.4, { "stroke-width": 1.3, stroke: "var(--blue)" }));
+      svg.appendChild(retangulo(67, 4, 31, 42, 2, { "stroke-width": 1.5 }));
+      svg.appendChild(texto(82.5, 11, "ativos", { "font-size": 4.6, opacity: 0.8 }));
+      for (let i = 0; i < FICHAS.length; i++) {
+        fichaDeAcervo(67.9 + (i % 4) * 7.4, 15.5 + Math.floor(i / 4) * 9.5, FICHAS[i]);
+      }
     }
 
     /* O corte: uma régua do escuro ao claro com a marca onde a imagem deixa de
-     * contar como de noite. */
-    svg.appendChild(lua(68, 33, 2.4, { "stroke-width": 1.2, stroke: "var(--blue)" }));
-    svg.appendChild(sol(95, 33, 2.6, { "stroke-width": 1.2, stroke: "var(--yellow)" }));
-    svg.appendChild(linha(73, 33, 90, 33, { "stroke-width": 1.4, opacity: 0.6 }));
-    const marca = 73 + 17 * d.limiar;
-    svg.appendChild(linha(marca, 29.5, marca, 36.5, { "stroke-width": 2 }));
-    svg.appendChild(texto(Math.max(78, Math.min(88, marca)), 42, String(d.limiar), { "font-size": 5 }));
+     * contar como de noite. Na faixa de baixo, larga, porque é ela que diz
+     * QUAIS fichas caem em cada pasta do acervo ao lado. */
+    svg.appendChild(lua(22, 54, 3, { "stroke-width": 1.2, stroke: "var(--blue)" }));
+    svg.appendChild(sol(78, 54, 3.2, { "stroke-width": 1.2, stroke: "var(--yellow)" }));
+    svg.appendChild(linha(28, 54, 72, 54, { "stroke-width": 1.4, opacity: 0.6 }));
+    const marca = 28 + 44 * d.limiar;
+    svg.appendChild(linha(marca, 50, marca, 58, { "stroke-width": 2 }));
+    svg.appendChild(texto(Math.max(33, Math.min(67, marca)), 48, String(d.limiar), { "font-size": 5 }));
     return svg;
   }
 
@@ -1162,34 +1428,96 @@
     };
   }
 
+  /* Um deslizante do popup: o trilho e o cursor onde o número desta seção o
+   * põe. A fração já chega entre 0 e 1 — quem a calcula é quem conhece a faixa
+   * daquele deslizante, que é a do APPLET e não uma inventada aqui. */
+  function deslizante(x1, x2, y, fracao) {
+    const f = Math.max(0, Math.min(1, Number(fracao) || 0));
+    return grupo(null, [
+      linha(x1, y, x2, y, { "stroke-width": 1.2, opacity: 0.5 }),
+      circulo(x1 + (x2 - x1) * f, y, 1.7, { "stroke-width": 1.2, fill: "var(--surface2)" }),
+    ]);
+  }
+
   function desenharLeitura(val) {
     const d = lerLeitura(val);
-    const svg = moldura("a mesma página em duas metades: fria à esquerda, na temperatura e na textura escolhidas à direita");
+    const svg = moldura("a mesma página em duas metades: fria à esquerda, na temperatura e na"
+      + " textura escolhidas à direita"
+      + (d.applet ? ", e o controle da barra com o popup aberto" : ", sem o controle na barra"));
 
     svg.appendChild(retangulo(3, 3, 94, 34, 3, { "stroke-width": 1.8 }));
     svg.appendChild(linha(4, 10, 96, 10, { "stroke-width": 1, opacity: 0.35 }));
-    svg.appendChild(texto(9, 8.2, "9:41", { "font-size": 4.5, "text-anchor": "start", opacity: 0.6 }));
-
-    /* O controle na barra: dois deslizantes minúsculos no canto da topbar. Ele
-     * não aparece pontilhado quando está desligado — ele simplesmente não está
-     * lá, que é o que "nao" faz com o ícone. */
-    if (d.applet) {
-      svg.appendChild(linha(83, 6, 92, 6, { "stroke-width": 1.1 }));
-      svg.appendChild(circulo(86, 6, 1.2, { "stroke-width": 1.1 }));
-      svg.appendChild(linha(83, 8.6, 92, 8.6, { "stroke-width": 1.1 }));
-      svg.appendChild(circulo(89.5, 8.6, 1.2, { "stroke-width": 1.1 }));
-    }
+    /* 21:41 e não 9:41: a metade da direita é a tela quente, o selo do canto é
+     * a lua, e o corte de baixo diz "das 18:00 às 07:00". A hora de manhã era a
+     * única frase falsa do quadro. */
+    svg.appendChild(texto(9, 8.2, "21:41", { "font-size": 4.5, "text-anchor": "start", opacity: 0.6 }));
 
     /* A textura levanta o preto: o mesmo parágrafo, do lado do papel, perde
      * contraste. É metade do que a chave faz, e a única metade que dá para ver
-     * num desenho de traço. */
+     * num desenho de traço.
+     *
+     * AS DUAS COLUNAS ENCOLHERAM DE 41 PARA 32 UNIDADES em 07/09/2026, as duas
+     * na mesma medida — o que a comparação exige é que as metades sejam a MESMA
+     * página, não que sejam largas. O que entrou na largura que sobrou está no
+     * bloco do controle na barra, logo abaixo. */
     const opacidadeDireita = 1 - d.textura * 0.45;
-    const linhasEsq = [45, 44, 46, 36];
-    const linhasDir = [90, 89, 91, 80];
+    const linhasEsq = [39, 38, 40, 31];
+    const linhasDir = [78, 77, 79, 70];
     for (let i = 0; i < 4; i++) {
       const y = 16 + i * 6;
-      svg.appendChild(linha(9, y, linhasEsq[i], y, { "stroke-width": 1.8, opacity: 0.75 }));
-      svg.appendChild(linha(54, y, linhasDir[i], y, { "stroke-width": 1.8, opacity: q(0.75 * opacidadeDireita) }));
+      svg.appendChild(linha(8, y, linhasEsq[i], y, { "stroke-width": 1.8, opacity: 0.75 }));
+      svg.appendChild(linha(47, y, linhasDir[i], y, { "stroke-width": 1.8, opacity: q(0.75 * opacidadeDireita) }));
+    }
+
+    /* O CONTROLE NA BARRA PRECISAVA SER VISTO — 07/09/2026
+     *   Ele era dois riscos de 9 unidades no canto da topbar, e o par de
+     *   desenhos do `LEITURA_APPLET` mudava 0,53% dos pixels do botão:
+     *   fotografados lado a lado, o «Sim» e o «Não» desenhavam a mesma figura.
+     *   Foi a conferência de uso, clicando botão a botão, quem pegou.
+     *
+     *   O QUE ENTROU NO LUGAR é o que a chave dá: o selo no canto da barra e,
+     *   pendurado nele, o popup com os DOIS DESLIZANTES — que é o nome que o
+     *   próprio meow.conf.exemplo dá a esta chave ("um ícone com dois
+     *   deslizantes, para mexer sem abrir este painel").
+     *
+     *   O POPUP ESTÁ DESENHADO ABERTO, E A LEGENDA DIZ ISSO. Na barra ele é só
+     *   o selo; o popup abre no clique. Um desenho não é captura, mas também
+     *   não pode deixar quem olha achar que a tela dela fica assim parada — daí
+     *   a nota, e não só o traço.
+     *
+     *   TRÊS COISAS SÃO COPIADAS DO APPLET, não inventadas aqui: o selo da
+     *   barra é a LUA quando é noite, e o popup repete o MESMO selo na primeira
+     *   linha (`arte_da_barra` e o comentário do `view_window`, em
+     *   src/applets/leitura/src/main.rs); o deslizante de cima é a temperatura,
+     *   de 1000 a 6500 K (PISO e NEUTRO, no mesmo arquivo); o de baixo é a
+     *   textura, de 0 a 100%. Os dois cursores ficam onde os números desta
+     *   seção os põem — um controle que não anda com o número ao lado seria uma
+     *   segunda mentira, menor e mais fácil de acreditar.
+     *
+     *   Com "nao" nada disso está lá: nem pontilhado, nem fantasma. É o que a
+     *   chave faz com o ícone. */
+    if (d.applet) {
+      svg.appendChild(lua(88, 6.4, 2, { "stroke-width": 1.3 }));
+      /* O popup é a única coisa CHAPADA deste quadro, e aqui o chapado é a
+       * informação: popup é superfície, e superfície esconde a página atrás —
+       * a mesma decisão do vidro da barra e da janela solta. `surface0` porque
+       * o fundo do cartão é `base`/`mantle`: um popup pintado de `base` teria
+       * só o contorno, e sumiria de novo no tamanho do botão.
+       *
+       * ELE ENTRA ANTES DO VÉU DE PROPÓSITO: o cosmic-comp esquenta a saída
+       * inteira, popup incluído. Desenhá-lo por cima do véu o deixaria frio
+       * dentro de uma tela quente, que é coisa que a máquina não faz. */
+      svg.appendChild(retangulo(70, 11.5, 25, 22.5, 2.5, {
+        fill: "var(--surface0)", "stroke-width": 1.4,
+      }));
+      svg.appendChild(lua(73.8, 15.4, 1.7, { "stroke-width": 1.1 }));
+      svg.appendChild(retangulo(83.5, 13.6, 9, 3.6, 1.8, { "stroke-width": 1.1 }));
+      svg.appendChild(circulo(90.6, 15.4, 1.15, { fill: "currentColor", stroke: "none" }));
+      svg.appendChild(linha(72.5, 19.2, 92.5, 19.2, { "stroke-width": 0.8, opacity: 0.3 }));
+      svg.appendChild(texto(74, 24.8, "K", { "font-size": 4.4, opacity: 0.8 }));
+      svg.appendChild(deslizante(78.5, 92.5, 23.2, (d.temp - 1000) / 5500));
+      svg.appendChild(texto(74, 31.4, "%", { "font-size": 4.4, opacity: 0.8 }));
+      svg.appendChild(deslizante(78.5, 92.5, 29.8, d.textura));
     }
 
     const intensidade = Math.max(0, Math.min(1, (6500 - d.temp) / 5500)) * 0.55;
@@ -1197,15 +1525,23 @@
       /* O véu para 1,5 antes da moldura e tem o mesmo raio dela: um retângulo
        * de canto reto encostado numa moldura arredondada aparece como um erro
        * de desenho, e chama atenção justamente para o canto em vez da cor. */
-      svg.appendChild(retangulo(50.5, 4.5, 44.5, 31, 2.5, {
+      svg.appendChild(retangulo(43.5, 4.5, 51.5, 31, 2.5, {
         fill: corDeKelvin(d.temp), "fill-opacity": q(intensidade), stroke: "none",
       }));
     }
     if (d.textura > 0) {
       const fibras = Math.max(1, Math.round(d.textura * 5));
+      /* A FIBRA É DA PÁGINA, O VÉU É DA TELA — e é por isso que uma para na
+       * borda do popup e o outro passa por cima dele. O grão do cosmic-comp
+       * cai sobre a saída inteira, popup incluído; desenhado, ele virava um
+       * tracejado atravessando o "%" e o cursor do deslizante, que se lê como
+       * defeito de desenho e não como grão. Então a fibra fica no papel, que é
+       * onde a metáfora deste quadro a põe, e o popup a cobre como qualquer
+       * janela cobre o que está embaixo. */
+      const fimDaFibra = d.applet ? 69 : 94;
       for (let i = 0; i < fibras; i++) {
         const y = 13 + (i + 0.5) * (23 / fibras);
-        svg.appendChild(linha(52, y, 94, y, {
+        svg.appendChild(linha(45, y, fimDaFibra, y, {
           "stroke-width": 0.6,
           "stroke-dasharray": "5 4",
           stroke: "var(--rosewater)",
@@ -1213,10 +1549,10 @@
         }));
       }
     }
-    svg.appendChild(linha(50, 4, 50, 36, { "stroke-width": 1, "stroke-dasharray": "2 3", opacity: 0.5 }));
+    svg.appendChild(linha(43, 4, 43, 36, { "stroke-width": 1, "stroke-dasharray": "2 3", opacity: 0.5 }));
 
-    svg.appendChild(texto(27, 44, "6500 K", { "font-size": 5.5 }));
-    svg.appendChild(texto(73, 44, d.temp + " K", { "font-size": 5.5 }));
+    svg.appendChild(texto(23, 44, "6500 K", { "font-size": 5.5 }));
+    svg.appendChild(texto(69, 44, d.temp + " K", { "font-size": 5.5 }));
 
     /* O relógio da virada, em corte: o degrau seco salta, a rampa sobe. E ela
      * sobe DEPOIS da hora, nunca antes — "ligar às 18:00" não pode significar
@@ -1249,9 +1585,12 @@
         : (d.agendaVazia
           ? "sem agendamento: vazio quer dizer que o modo de leitura é só seu"
           : "com o agendamento desligado: a virada não acontece sozinha"))
-      + ", " + (d.applet ? "com o controle na barra" : "sem o controle na barra");
+      + ", " + (d.applet
+        ? "com o controle na barra: o selo no canto e o popup dele, com os dois deslizantes"
+        : "sem o controle na barra: quem mexe passa a ser esta página, ou o relógio");
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
+      d.applet ? "o popup está desenhado ABERTO para caber na figura; na barra ele é só o selo, e abre no clique" : "",
       d.temp >= 6500 ? "6500 K é o neutro: nesta temperatura os dois lados ficam iguais, ou seja, desligado" : "",
       d.virgula ? "a textura foi escrita com vírgula, e lá dentro isso vira 0 (papel desligado): use ponto" : "",
       "é simulação: quem pinta de verdade é o cosmic-comp recompilado, e o slider do applet vence este número",
@@ -1263,15 +1602,23 @@
   /* ======================================================================== */
   /* A PERGUNTA: "Programas que o MeowSystem veste" é uma lista de 22 nomes
    * separados por vírgula, e ninguém lê 22 nomes para saber o que a chave faz.
-   * O desenho mostra o lançador com quatro atalhos ACESOS — os quatro primeiros
-   * da lista, escritos como estão nela —, e é aí que a palavra "veste" ganha
-   * sentido: são os aplicativos que ganham a cara do tema.
+   * A fileira de cima mostra o lançador com quatro atalhos ACESOS — os quatro
+   * primeiros da lista, escritos como estão nela —, e é aí que a palavra
+   * "veste" ganha sentido: são os aplicativos que ganham a cara do tema.
    *
-   * O quinto atalho é o do sistema, e ele existe para responder a chave mais
-   * perigosa da seção: com "Arrumar o lançador" ligado, ele SOME (fica
-   * pontilhado, com o olho cortado). É a única coisa que este projeto faz fora
-   * do home dela, e ver o atalho desaparecendo é mais honesto que ler
-   * "[essencial]" num rodapé. */
+   * A FILEIRA DE BAIXO É "ARRUMAR O LANÇADOR", E ELA MUDOU EM 07/09/2026.
+   *   Era UM atalho com um olho cortado dentro, e o par "nao"/"sim" mudava
+   *   2,29% dos pixels do botão — dois desenhos que a olho eram o mesmo. A
+   *   causa não era falta de capricho: um glifo de 14x14 num quadro de 100x60
+   *   não tem como responder nada. Agora são cinco atalhos de sistema que
+   *   viram dois, porque é isso que a chave faz — a lista do
+   *   `scripts/ocultar_apps.sh` tem TRINTA nomes, e o que se vê na tela é uma
+   *   fileira do lançador esvaziando. Continua sendo a única coisa que este
+   *   projeto faz fora do home dela.
+   *
+   * E O SPOTIFY VIROU UMA JANELA INTEIRA, pelo mesmo motivo: o Marketplace do
+   *   spicetify é uma PÁGINA dentro do programa (um item na lateral e uma grade
+   *   de extensões), e não uma janelinha com um mais. */
   const REGRAS_LANCADOR = [
     { chave: "APPS_ATIVOS", ok: null },
     { chave: "SPOTIFY_MARKETPLACE", ok: booleanoValido },
@@ -1290,75 +1637,85 @@
 
   function desenharLancador(val) {
     const d = lerLancador(val);
-    const svg = moldura("o lançador com quatro atalhos vestidos pelo MeowSystem e o atalho do sistema");
+    const svg = moldura("o lançador com os atalhos vestidos, a fileira do sistema e a janela do Spotify");
 
-    svg.appendChild(retangulo(3, 3, 94, 40, 4, { "stroke-width": 1.8 }));
-    svg.appendChild(retangulo(9, 6.5, 82, 7, 3.5, { "stroke-width": 1.2, opacity: 0.6 }));
-    svg.appendChild(circulo(13.5, 10, 1.8, { "stroke-width": 1.2, opacity: 0.6 }));
-    svg.appendChild(linha(15, 11.4, 16.5, 12.8, { "stroke-width": 1.2, opacity: 0.6 }));
+    /* --- o lançador ------------------------------------------------------- */
+    svg.appendChild(retangulo(3, 3, 64, 47, 4, { "stroke-width": 1.8 }));
+    svg.appendChild(retangulo(8, 4.5, 54, 6, 3, { "stroke-width": 1.2, opacity: 0.6 }));
+    svg.appendChild(circulo(12, 7.2, 1.5, { "stroke-width": 1.2, opacity: 0.6 }));
+    svg.appendChild(linha(13.2, 8.4, 14.4, 9.6, { "stroke-width": 1.2, opacity: 0.6 }));
 
-    const xs = [7, 25, 43, 61, 79];
     for (let i = 0; i < 4; i++) {
-      const x = xs[i];
+      const x = 6 + i * 15;
       const nome = d.apps[i];
       if (nome) {
-        svg.appendChild(retangulo(x, 18, 14, 14, 3, { "stroke-width": 1.8, stroke: "var(--mauve)" }));
-        svg.appendChild(circulo(x + 7, 25, 3, { "stroke-width": 1.4, stroke: "var(--mauve)" }));
+        svg.appendChild(retangulo(x, 12.5, 11, 11, 2.6, { "stroke-width": 1.7, stroke: "var(--mauve)" }));
+        svg.appendChild(circulo(x + 5.5, 18, 2.5, { "stroke-width": 1.3, stroke: "var(--mauve)" }));
         svg.appendChild(caminho(
-          "M " + q(x + 9.5) + ",17 l 1.6,1.6 l 3.2,-3.6",
-          { "stroke-width": 1.5, stroke: "var(--green)" }));
-        svg.appendChild(texto(x + 7, 38, cortar(nome, 7), { "font-size": 4.2, opacity: 0.85 }));
+          "M " + q(x + 7.4) + ",11.7 l 1.4,1.4 l 2.8,-3.2",
+          { "stroke-width": 1.4, stroke: "var(--green)" }));
+        svg.appendChild(texto(x + 5.5, 27.5, cortar(nome, 6), { "font-size": 4.2, opacity: 0.85 }));
       } else {
-        svg.appendChild(retangulo(x, 18, 14, 14, 3, {
+        svg.appendChild(retangulo(x, 12.5, 11, 11, 2.6, {
           "stroke-width": 1.4, "stroke-dasharray": "3 3", opacity: 0.4,
         }));
       }
     }
 
-    /* O atalho do sistema. Ligado, o `.desktop` de /usr/share/applications é
-     * marcado e o aplicativo some do lançador — o olho cortado é a única figura
-     * que diz "escondido" sem uma palavra. */
-    const x5 = xs[4];
-    if (d.arruma) {
-      svg.appendChild(retangulo(x5, 18, 14, 14, 3, {
-        "stroke-width": 1.4, "stroke-dasharray": "3 3", opacity: 0.5,
+    svg.appendChild(texto(6, 31.5, "sistema", { "font-size": 4.2, "text-anchor": "start", opacity: 0.6 }));
+    for (let i = 0; i < (d.arruma ? 2 : 5); i++) {
+      const x = 5.5 + i * 12.2;
+      svg.appendChild(retangulo(x, 33, 12.4, 12.4, 2.8, { "stroke-width": 2.3 }));
+      svg.appendChild(circulo(x + 6.2, 39.2, 3.4, { "stroke-width": 1.9 }));
+      const larg = d.arruma ? 5.5 : 10.8;
+      svg.appendChild(linha(x + 6.2 - larg / 2, 48.4, x + 6.2 + larg / 2, 48.4, {
+        "stroke-width": 2.6, opacity: 0.75,
       }));
-      svg.appendChild(caminho(
-        "M " + q(x5 + 1.5) + ",25 C " + q(x5 + 4) + ",21 " + q(x5 + 10) + ",21 " + q(x5 + 12.5) + ",25"
-        + " C " + q(x5 + 10) + ",29 " + q(x5 + 4) + ",29 " + q(x5 + 1.5) + ",25 Z",
-        { "stroke-width": 1.3, opacity: 0.7 }));
-      svg.appendChild(circulo(x5 + 7, 25, 1.6, { "stroke-width": 1.2, opacity: 0.7 }));
-      svg.appendChild(linha(x5 + 2, 30, x5 + 12, 20, { "stroke-width": 1.4 }));
-    } else {
-      svg.appendChild(retangulo(x5, 18, 14, 14, 3, { "stroke-width": 1.6, opacity: 0.8 }));
-      svg.appendChild(circulo(x5 + 7, 25, 3, { "stroke-width": 1.3, opacity: 0.8 }));
     }
-    svg.appendChild(texto(x5 + 7, 38, "sistema", { "font-size": 4.2, opacity: 0.7 }));
 
-    /* Bloqueado no início: o botão de ligar cortado. O número ao lado é quantos
-     * programas estão na lista — sem ele o desenho não diria se é um ou dez. */
     const bloqueia = d.bloqueados.length > 0;
     const atrib = bloqueia ? { "stroke-width": 1.6 } : { "stroke-width": 1.3, opacity: 0.4 };
-    svg.appendChild(caminho(arco(12, 51, 4.5, 35, 325), atrib));
-    svg.appendChild(linha(12, 45, 12, 49.5, atrib));
+    svg.appendChild(caminho(arco(9, 56, 3.4, 35, 325), atrib));
+    svg.appendChild(linha(9, 51.8, 9, 54.6, atrib));
     if (bloqueia) {
-      svg.appendChild(linha(6.5, 56, 17.5, 45.5, { "stroke-width": 1.5 }));
-      svg.appendChild(texto(21, 53, String(d.bloqueados.length), {
-        "font-size": 6, "text-anchor": "start",
+      svg.appendChild(linha(5, 59.4, 13, 51.8, { "stroke-width": 1.5 }));
+      svg.appendChild(texto(16, 58, String(d.bloqueados.length), {
+        "font-size": 5.5, "text-anchor": "start",
       }));
     }
 
-    /* A loja dentro do Spotify: uma janelinha com um mais. Pontilhada quando a
-     * chave está em "nao" — que só deixa de instalar, e não desinstala o que já
-     * está lá. */
+    /* --- o Spotify -------------------------------------------------------- */
+    svg.appendChild(retangulo(70, 3, 27, 56, 3, { "stroke-width": 1.6 }));
+    svg.appendChild(texto(83.5, 9, "Spotify", { "font-size": 5, opacity: 0.8 }));
+    svg.appendChild(linha(70, 11.5, 97, 11.5, { "stroke-width": 1.1, opacity: 0.5 }));
+    svg.appendChild(linha(79.5, 11.5, 79.5, 59, { "stroke-width": 1.1, opacity: 0.5 }));
+
+    for (let i = 0; i < 2; i++) {
+      svg.appendChild(linha(72, 17 + i * 6, 77.5, 17 + i * 6, { "stroke-width": 1.5, opacity: 0.6 }));
+    }
     const lojaAtrib = d.loja
-      ? { "stroke-width": 1.6 }
-      : { "stroke-width": 1.3, "stroke-dasharray": "3 3", opacity: 0.45 };
-    svg.appendChild(texto(64, 53, "Spotify", { "font-size": 5, "text-anchor": "end", opacity: 0.8 }));
-    svg.appendChild(retangulo(68, 45, 24, 13, 2, lojaAtrib));
-    svg.appendChild(linha(68, 49, 92, 49, Object.assign({}, lojaAtrib, { "stroke-width": 1.1 })));
-    svg.appendChild(linha(80, 51, 80, 56, lojaAtrib));
-    svg.appendChild(linha(77.5, 53.5, 82.5, 53.5, lojaAtrib));
+      ? { "stroke-width": 1.8, stroke: "var(--mauve)" }
+      : { "stroke-width": 1.3, "stroke-dasharray": "2.5 2.5", opacity: 0.4 };
+    svg.appendChild(linha(72, 29, 77.5, 29, lojaAtrib));
+
+    if (d.loja) {
+      svg.appendChild(retangulo(81.5, 15, 14, 5, 2.5, { "stroke-width": 1.2, opacity: 0.6 }));
+      for (let i = 0; i < 6; i++) {
+        const cx = 81.5 + (i % 2) * 7.5;
+        const cy = 23 + Math.floor(i / 2) * 11.5;
+        svg.appendChild(retangulo(cx, cy, 6.5, 9.5, 1.5, { "stroke-width": 1.4, stroke: "var(--mauve)" }));
+        svg.appendChild(linha(cx + 1, cy + 7.4, cx + 5.5, cy + 7.4, {
+          "stroke-width": 1.1, opacity: 0.55,
+        }));
+      }
+    } else {
+      svg.appendChild(retangulo(81.5, 17, 14, 14, 2, { "stroke-width": 1.4, opacity: 0.7 }));
+      svg.appendChild(circulo(88.5, 24, 3.2, { "stroke-width": 1.2, opacity: 0.7 }));
+      svg.appendChild(linha(81.5, 35, 95.5, 35, { "stroke-width": 1.5, opacity: 0.6 }));
+      svg.appendChild(linha(81.5, 39.5, 90.5, 39.5, { "stroke-width": 1.3, opacity: 0.45 }));
+      svg.appendChild(caminho(
+        "M 85,46 L 92,49.5 L 85,53 Z", { "stroke-width": 1.5, opacity: 0.75 }));
+    }
     return svg;
   }
 
@@ -1380,6 +1737,8 @@
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
       d.arruma ? "é a única coisa que o MeowSystem faz fora da sua pasta pessoal, e um apt do pacote desfaz" : "",
+      d.loja ? "" : "desligada, a loja só deixa de ser INSTALADA — se ela já estiver no seu Spotify, continua lá",
+      d.arruma ? "a fileira de baixo é desenho: quantos atalhos de sistema esta máquina tem, o painel não sabe" : "",
     ]);
   }
 
@@ -1429,8 +1788,43 @@
 
   function desenharManutencao(val) {
     const d = lerManutencao(val);
-    const svg = moldura("o conserto diário movendo a esteira dos três vigias, com os sinos de aviso");
+    const svg = moldura("o conserto diário movendo a esteira dos três vigias, e as tarjas de aviso que cada um põe na tela");
 
+    /* A FAIXA DE CIMA são os dois medidores de QUANTO — quantos backups ficam
+     * guardados e quanto o MeowSystem fala. Eles subiram para cá em 07/09/2026
+     * para abrir o rodapé inteiro às tarjas de aviso, e a máquina do meio não
+     * andou um milímetro: é ela que responde pelas quatro chaves de liga-desliga
+     * desta seção, e mexer nela seria mexer no par que já funciona. */
+
+    /* Os backups: uma pilha, e o número. Com "0" a poda está desligada e a pilha
+     * não para de crescer — daí a folha pontilhada continuando embaixo dela. */
+    svg.appendChild(retangulo(4, 0, 13, 5, 1.5, { "stroke-width": 1.4 }));
+    svg.appendChild(retangulo(7, 2.5, 13, 5, 1.5, { "stroke-width": 1.4 }));
+    svg.appendChild(retangulo(10, 5, 13, 5, 1.5, { "stroke-width": 1.4 }));
+    if (d.backups === 0) {
+      svg.appendChild(retangulo(13, 6.5, 13, 5, 1.5, {
+        "stroke-width": 1.2, "stroke-dasharray": "3 3", opacity: 0.5,
+      }));
+    }
+    svg.appendChild(texto(28, 8.5, d.backups === 0 ? "todos" : String(d.backups), {
+      "font-size": 5.5, "text-anchor": "start",
+    }));
+
+    /* Quanto o MeowSystem fala: três degraus, e o escolhido aceso. Um número
+     * seria mais preciso e menos claro — verbosidade é quantidade, e quantidade
+     * se desenha com altura. */
+    const niveis = ["silencioso", "info", "debug"];
+    const alturas = [4, 7, 10];
+    for (let i = 0; i < 3; i++) {
+      const x = 73 + i * 7;
+      const h = alturas[i];
+      svg.appendChild(retangulo(x, 10 - h, 5, h, 1, d.fala === niveis[i]
+        ? { "stroke-width": 1.8, stroke: "var(--mauve)" }
+        : { "stroke-width": 1.2, opacity: 0.35 }));
+    }
+    svg.appendChild(texto(71, 8.5, d.fala, { "font-size": 4.5, "text-anchor": "end", opacity: 0.85 }));
+
+    /* --- a máquina: o relógio espera, as três engrenagens reagem ----------- */
     svg.appendChild(linha(20, 20, 93, 20, { "stroke-width": 1.2, opacity: 0.35 }));
 
     const relogioAtrib = d.reparo
@@ -1440,7 +1834,6 @@
     svg.appendChild(linha(12, 20, 12, 14.5, relogioAtrib));
     svg.appendChild(linha(12, 20, 15.5, 22.5, relogioAtrib));
     svg.appendChild(texto(12, 33, "diário", { "font-size": 4.5, opacity: 0.75 }));
-    if (d.reparo && d.reparoAvisa) svg.appendChild(sino(12, 7, 4.5));
 
     const centros = [39, 62, 85];
     for (let i = 0; i < 3; i++) {
@@ -1450,36 +1843,27 @@
         ? { "stroke-width": 1.8, stroke: "var(--mauve)" }
         : { "stroke-width": 1.4, "stroke-dasharray": "2.5 2.5", opacity: 0.4 }));
       svg.appendChild(texto(cx, 33, v.rotulo, { "font-size": 4.5, opacity: 0.75 }));
-      if (v.ligado && v.avisa) svg.appendChild(sino(cx, 7, 4.5));
     }
 
-    /* Os backups: uma pilha, e o número. Com "0" a poda está desligada e a
-     * pilha não tem topo — daí a folha solta em cima, pontilhada. */
-    svg.appendChild(retangulo(8, 43, 14, 9, 1.5, { "stroke-width": 1.4 }));
-    svg.appendChild(retangulo(11, 45.5, 14, 9, 1.5, { "stroke-width": 1.4 }));
-    svg.appendChild(retangulo(14, 48, 14, 9, 1.5, { "stroke-width": 1.4 }));
-    if (d.backups === 0) {
-      svg.appendChild(retangulo(5, 40.5, 14, 9, 1.5, {
-        "stroke-width": 1.2, "stroke-dasharray": "3 3", opacity: 0.5,
-      }));
+    /* --- o que chega na tela dela ----------------------------------------- */
+    /* Uma tarja por peça que TEM chave de aviso, na ordem em que as peças estão
+     * lá em cima: o conserto diário, o vigia do logo, o vigia da bandeja. O
+     * vigia dos jogos não ganha linha nenhuma porque não tem chave de aviso — e
+     * essa ausência é informação, a mesma que o sino ausente carregava antes.
+     *
+     * A PEÇA DESLIGADA NÃO GANHA TARJA, nem pontilhada: quem não roda não tem
+     * como avisar, e desenhar o lugar de um aviso impossível seria oferecer um
+     * interruptor que não existe. Ligada e calada, aí sim: a tarja fica em
+     * contorno pontilhado, dizendo onde o aviso apareceria. */
+    const avisos = [
+      { palavra: "conserto", ligado: d.reparo, avisa: d.reparoAvisa },
+      { palavra: "logo", ligado: d.vigias[0].ligado, avisa: d.vigias[0].avisa },
+      { palavra: "bandeja", ligado: d.vigias[1].ligado, avisa: d.vigias[1].avisa },
+    ];
+    const naTela = avisos.filter((a) => a.ligado);
+    for (let i = 0; i < naTela.length; i++) {
+      svg.appendChild(tarjaDeAviso(3, 37 + i * 7.6, 94, 6.6, naTela[i].palavra, naTela[i].avisa));
     }
-    svg.appendChild(texto(32, 53, d.backups === 0 ? "todos" : String(d.backups), {
-      "font-size": 6.5, "text-anchor": "start",
-    }));
-
-    /* Quanto o MeowSystem fala: três degraus, e o escolhido aceso. Um número
-     * seria mais preciso e menos claro — verbosidade é quantidade, e quantidade
-     * se desenha com altura. */
-    const niveis = ["silencioso", "info", "debug"];
-    const alturas = [5, 9, 13];
-    for (let i = 0; i < 3; i++) {
-      const x = 72 + i * 8;
-      const h = alturas[i];
-      svg.appendChild(retangulo(x, 56 - h, 5, h, 1, d.fala === niveis[i]
-        ? { "stroke-width": 1.8, stroke: "var(--mauve)" }
-        : { "stroke-width": 1.2, opacity: 0.35 }));
-    }
-    svg.appendChild(texto(68, 54, d.fala, { "font-size": 5, "text-anchor": "end", opacity: 0.85 }));
     return svg;
   }
 
@@ -1487,17 +1871,23 @@
     const d = lerManutencao(val);
     const c = conferir(val, REGRAS_MANUTENCAO);
     const acesos = d.vigias.filter((v) => v.ligado);
-    const sinos = [d.reparo && d.reparoAvisa].concat(d.vigias.map((v) => v.ligado && v.avisa))
-      .filter(Boolean).length;
+    const avisando = [
+      d.reparo && d.reparoAvisa ? "conserto" : "",
+      d.vigias[0].ligado && d.vigias[0].avisa ? "logo" : "",
+      d.vigias[1].ligado && d.vigias[1].avisa ? "bandeja" : "",
+    ].filter(Boolean);
     const corpo = (d.reparo ? "o conserto diário às 5h" : "o conserto diário desligado")
       + " e " + (acesos.length
         ? acesos.length + " dos 3 vigias acesos (" + acesos.map((v) => v.rotulo).join(", ") + ")"
         : "nenhum dos 3 vigias aceso")
-      + ", " + (sinos ? sinos + " deles avisando" : "nenhum aviso")
+      + ", " + (avisando.length
+        ? plural(avisando.length, "tarja na tela", "tarjas na tela") + " (" + avisando.join(", ") + ")"
+        : "nenhuma tarja na tela")
       + ", " + (d.backups === 0 ? "todos os backups guardados" : plural(d.backups, "backup guardado", "backups guardados"))
       + " e o MeowSystem falando em " + d.fala;
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
+      "a tarja é a notificação do sistema; o vigia dos jogos não tem chave de aviso e por isso não tem tarja",
       !d.reparo ? "com o conserto desligado o modo de leitura também não é aplicado nem agendado" : "",
       c.vazias.length ? VAZIO_FABRICA : "",
     ]);
@@ -1977,6 +2367,150 @@
   }
 
   /* ======================================================================== */
+  /* 10. Início                                                                */
+  /* ======================================================================== */
+  /* A PERGUNTA QUE O DESENHO RESPONDE: "o que este painel faz com a minha
+   * máquina?" — e a resposta certa NÃO é o mapa das páginas.
+   *
+   * O mapa já está na tela três vezes no instante em que ela abre o painel: o
+   * trilho da esquerda lista as treze páginas com a contagem de cada uma, as
+   * duas portas somam os ajustes por bloco, e o cabeçalho traz o total. Um
+   * desenho do mapa seria a quarta cópia da única coisa que a home já diz bem.
+   *
+   * O QUE NÃO ESTÁ DESENHADO EM LUGAR NENHUM é a regra da casa — "gravar não é
+   * aplicar", e antes dela "clicar não é gravar". Hoje ela é uma frase cinza no
+   * canto da coluna da direita ("Escolher aqui não muda a máquina: clicar
+   * guarda, e «Salvar e aplicar» é o que grava e aplica"), e é exatamente o que
+   * quem chega não sabe: em todo outro painel de ajustes do mundo, clicar É
+   * aplicar.
+   *
+   * ENTÃO O DESENHO É O CAMINHO DE UMA ESCOLHA, e cada traço dele sai do
+   * código, não da imaginação: `escolher()` põe a chave em `MUDANCAS` e não
+   * fala com o servidor; `salvarEscolhas()` é o único caminho de escrita da
+   * página e faz DUAS coisas, nesta ordem — grava chave a chave no `meow.conf`
+   * e só então chama `rodarAcao("instalar")`. Os dois traços verdes são essas
+   * duas metades, e é por isso que são dois, e não um.
+   *
+   * A PAREDE PONTILHADA É O DISCO, e o botão é o único buraco nela. Por isso
+   * ele fica montado EM CIMA da linha, e não ao lado dela: mais nada atravessa.
+   *
+   * AS TRÊS ESCOLHAS SÃO ESQUEMÁTICAS, como as cinco linhas da fila da
+   * Instalação. Esta função é chamada com `{}` — não há valor nenhum para ler,
+   * e desenhar "3 escolhas esperando" seria inventar um número. Quem conta é o
+   * banner do alto da página, que é onde o número vive de verdade. */
+  function desenharInicio(val) {
+    /* `val` chega `{}`, como em "Instalação" e "Idempotência": a home não tem
+     * chave, e ler qualquer coisa daqui seria inventar uma. */
+    const svg = moldura(
+      "o caminho de uma escolha: os cartões marcados ficam guardados na página, e só o "
+      + "«Salvar e aplicar» atravessa a linha do disco — primeiro grava o meow.conf, "
+      + "depois roda o instalador, que é quem muda a tela");
+
+    /* --- deste lado: a página --- */
+    /* A moldura com uma barra no alto é a mesma que o desenho da Instalação usa
+     * para "a máquina", virada para dentro: aqui ela é a PÁGINA, e a barra do
+     * alto é onde nasce o banner do «Salvar e aplicar» quando há escolha. */
+    svg.appendChild(retangulo(2, 9, 27, 38, 2.5, { "stroke-width": 1.6 }));
+    svg.appendChild(retangulo(4.5, 11.8, 22, 4, 1.2, { "stroke-width": 1, opacity: 0.5 }));
+
+    /* Cada linha é um cartão de duas opções com o lado apertado marcado, e o
+     * preenchimento É a informação — é o mesmo tratamento que o botão de
+     * verdade recebe (borda no acento e um véu do acento por dentro). */
+    for (let i = 0; i < 3; i++) {
+      const cy = 23 + i * 9;
+      svg.appendChild(retangulo(5.5, cy - 3.2, 9, 6.4, 1.4, {
+        "stroke-width": 1.1, opacity: 0.45,
+      }));
+      svg.appendChild(retangulo(16.5, cy - 3.2, 9, 6.4, 1.4, {
+        "stroke-width": 1.7, stroke: "var(--accent)",
+        fill: "var(--accent)", "fill-opacity": 0.3,
+      }));
+    }
+    svg.appendChild(texto(15.5, 53.5, "só guardado", { "font-size": 4.6, opacity: 0.8 }));
+
+    /* --- a linha do disco, e o único buraco nela --- */
+    /* Dois pedaços, com a falha na altura exata do botão: a linha separa
+     * "escolhido" de "escrito", e o botão é a porta. Ele fica montado EM CIMA
+     * dela, e não ao lado, porque mais nada atravessa. */
+    svg.appendChild(linha(46.5, 4.5, 46.5, 19.5, {
+      "stroke-width": 1.2, "stroke-dasharray": "3 3", opacity: 0.45,
+    }));
+    svg.appendChild(linha(46.5, 36.5, 46.5, 52, {
+      "stroke-width": 1.2, "stroke-dasharray": "3 3", opacity: 0.45,
+    }));
+
+    svg.appendChild(linha(29.5, 28, 33.5, 28, { "stroke-width": 1.6 }));
+    svg.appendChild(grupo({ "stroke-width": 1.6 }, [seta(33.5, 28, 0, 3)]));
+
+    svg.appendChild(retangulo(35, 21, 23, 14, 3.2, {
+      "stroke-width": 1.9, stroke: "var(--accent)",
+    }));
+    /* O rótulo inteiro, em duas linhas: "Salvar" sozinho seria outro botão. */
+    svg.appendChild(texto(46.5, 26.6, "Salvar e", {
+      "font-size": 4.4, fill: "var(--accent)",
+    }));
+    svg.appendChild(texto(46.5, 31.8, "aplicar", {
+      "font-size": 4.4, fill: "var(--accent)",
+    }));
+
+    /* --- do outro lado: o arquivo, e só depois a tela --- */
+    /* DOIS TRAÇOS, E NÃO UM. `salvarEscolhas()` faz duas coisas em ordem: grava
+     * chave a chave no meow.conf e só então chama o instalador. Um traço só
+     * leria como um gesto, e é justamente o gesto que a frase da casa parte em
+     * dois — "gravar não é aplicar". */
+    svg.appendChild(linha(59, 28, 75, 28, { "stroke-width": 1.6, stroke: "var(--green)" }));
+    svg.appendChild(grupo({ "stroke-width": 1.6, stroke: "var(--green)" }, [
+      seta(75, 28, 0, 3),
+    ]));
+    svg.appendChild(texto(66, 24.4, "grava", {
+      "font-size": 4.2, fill: "var(--green)", opacity: 0.95,
+    }));
+
+    /* O nome do arquivo fica ACIMA dele: embaixo é por onde a segunda seta
+     * sai, e rótulo em cima de seta é o mesmo borrão de sempre. */
+    svg.appendChild(texto(82.5, 17.4, "meow.conf", { "font-size": 4.2, opacity: 0.9 }));
+    svg.appendChild(retangulo(76, 20, 13, 16, 1.4, { "stroke-width": 1.4 }));
+    svg.appendChild(linha(78.5, 24.5, 86.5, 24.5, { "stroke-width": 1, opacity: 0.45 }));
+    svg.appendChild(linha(78.5, 31.5, 86.5, 31.5, { "stroke-width": 1, opacity: 0.45 }));
+
+    /* A PONTA PARA NA BORDA, e não 3 unidades dentro como a da Instalação: a
+     * faixa de cima da tela é a barra, e uma seta pousada em cima dela leria
+     * como "mexe na barra" em vez de "entra na máquina". */
+    svg.appendChild(linha(82.5, 37, 82.5, 42.6, {
+      "stroke-width": 1.6, stroke: "var(--green)",
+    }));
+    svg.appendChild(grupo({ "stroke-width": 1.6, stroke: "var(--green)" }, [
+      seta(82.5, 42.6, 90, 3),
+    ]));
+    svg.appendChild(texto(74, 40.4, "aplica", {
+      "font-size": 4.2, fill: "var(--green)", opacity: 0.95,
+    }));
+
+    /* A tela é o mesmo glifo de máquina do VIDRO E RELÓGIO e da Instalação —
+     * moldura, barra em cima, dock embaixo. Quem viu um reconhece o outro. */
+    svg.appendChild(retangulo(63, 44, 34, 13, 2, { "stroke-width": 1.6 }));
+    svg.appendChild(retangulo(65.5, 45.7, 29, 3, 1, { "stroke-width": 1, opacity: 0.55 }));
+    svg.appendChild(retangulo(74, 52.4, 12, 2.6, 1.3, { "stroke-width": 1, opacity: 0.55 }));
+    return svg;
+  }
+
+  function legendaInicio(val) {
+    /* UMA LINHA, COMO AS OUTRAS DEZ — 07/09/2026
+     * A primeira versão desta legenda tinha o corpo mais três notas, e na tela
+     * virou um bloco de quatro linhas correndo a página inteira: a legenda mais
+     * comprida do painel, embaixo do desenho mais simples dele. As três notas
+     * diziam coisas verdadeiras que o desenho já diz (que os cartões são
+     * esquemáticos), que a tela já diz (o «Descartar» está ao lado do «Salvar»,
+     * escrito), ou que pertencem a outra aba (as etapas do instalador). O
+     * desenho existe para ser lido antes do texto; uma legenda de quatro linhas
+     * inverte isso. */
+    const corpo = "o caminho de uma escolha: clicar guarda na página, e só o «Salvar e aplicar»"
+      + " atravessa a linha do disco — grava o meow.conf e roda o instalador, que é quem muda"
+      + " a tela";
+    return montarLegenda(corpo);
+  }
+
+  /* ======================================================================== */
   /* o mapa                                                                    */
   /* ======================================================================== */
   /* OS NOMES SÃO OS NOVOS. "Lançadores e jogos" era "Programas e jogos" e
@@ -1997,9 +2531,14 @@
     /* A CHAVE É O NOME DA SEÇÃO, sem bloco: esta página não tem grupo de chaves
      * para batizar um, e é o `desenhoDaSecaoSemChaves` que a procura por aqui. */
     "Instalação": seguro("a instalação", desenharInstalacao, legendaInstalacao),
-    /* A ÚNICA ENTRADA QUE NÃO É DE UM BLOCO DE CHAVES: a chave do mapa é o nome
-     * da SEÇÃO, porque quem a procura é o `desenhoDaSecaoSemChaves` do app.js —
-     * a Idempotência só tem ações, e o `parDePrevias` nunca passa por ela. */
+    /* PELO NOME DA SEÇÃO, DE NOVO: quem a procura é o `desenhoDaSecaoSemChaves`
+     * do app.js — a Idempotência só tem ações, e o `parDePrevias` nunca passa
+     * por ela. */
     "Idempotência": seguro("a atualização e a conferência", desenharIdempotencia, legendaIdempotencia),
+    /* A HOME TAMBÉM ENTRA PELO NOME, e ela é a terceira sem chave nenhuma. Uma
+     * ressalva que as outras duas não têm: o `render` corta o grupo `home`
+     * antes do bloco que chama o `desenhoDaSecaoSemChaves`, então registrar
+     * aqui não basta — o `if (g.tipo === "home")` do app.js precisa chamá-lo. */
+    "Início": seguro("o caminho de uma escolha", desenharInicio, legendaInicio),
   });
 })();

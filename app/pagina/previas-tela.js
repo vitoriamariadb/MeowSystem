@@ -456,7 +456,20 @@
          * muda de escala entre um e outro não deixa comparar nada". No terminal
          * a altura da linha depende do tamanho do gato, então ela é calculada
          * UMA vez, olhando os dois modelos, e vale para os dois desenhos. */
-        var ctx = cfg.contexto ? cfg.contexto(ma, mudou ? mb : ma) : null;
+        /* E O TERCEIRO ARGUMENTO É *QUAL CHAVE ESTÁ SOB DECISÃO*.
+         * O par de botões do `app.js` desenha o bloco INTEIRO para responder por
+         * uma chave só — `desenhoNoValor` chama esta função com um `escolhido`
+         * de uma chave. Sem saber qual é, o desenho dá o mesmo peso às três, e
+         * uma chave que governa um caractere sai igual dos dois lados (medido em
+         * 07/09/2026: TERMINAL_CURSOR mudava 0,76% dos pixels do botão).
+         *
+         * A LISTA VEM DO PEDIDO, E NÃO DA DIFERENÇA. O botão da esquerda pede o
+         * valor que JÁ vale: os dois modelos saem iguais e `mudou` é falso. Se o
+         * foco saísse da diferença entre eles, o lado esquerdo perderia o
+         * enquadramento e o direito ficaria com ele — os dois lados em escalas
+         * diferentes, que é a única coisa que o par existe para não fazer. */
+        var pedidas = escolhido ? Object.keys(normalizar(escolhido)) : [];
+        var ctx = cfg.contexto ? cfg.contexto(ma, mudou ? mb : ma, pedidas) : null;
         return {
           antes: cfg.desenho(ma, ctx),
           depois: mudou ? cfg.desenho(mb, ctx) : null,
@@ -1425,16 +1438,41 @@
       };
     },
 
-    desenho: function (m) {
+    /* A VISTA DE DETALHE, E POR QUE ELA SÓ NASCE NO CARTÃO DO CURSOR
+     * O que esta chave governa é UM caractere: o bloco que pisca no fim da
+     * linha. Ele é 3,6 por 8 num quadro de 96 por 48 — 0,76% dos pixels do
+     * botão, medido em 07/09/2026, e nesse tamanho mauve e rosewater são a
+     * mesma figura. Desenhar o cursor MAIOR do que ele é seria mentir sobre o
+     * terminal; então o que entra é a gramática de desenho técnico que este
+     * projeto já usa na cota da largura da música: o MESMO cursor aparece de
+     * novo, 3,6 vezes maior, numa moldura tracejada ligada ao original por uma
+     * linha de chamada. Vista ampliada ninguém confunde com captura.
+     *
+     * NOS OUTROS DOIS CARTÕES A LUPA NÃO APARECE. Lá o que a chave governa já
+     * ocupa meio quadro (TERMINAL_ESQUEMA muda 20,2% dos pixels do botão,
+     * PROMPT_STARSHIP 11,6%), e roubar espaço deles para o cursor seria trocar
+     * um defeito por outro. */
+    contexto: function (a, b, pedidas) {
+      return { lupa: !!(pedidas && pedidas.length === 1 && pedidas[0] === "TERMINAL_CURSOR") };
+    },
+
+    desenho: function (m, ctx) {
+      var lupa = !!(ctx && ctx.lupa);
       var tom = "var(--crust, var(--base))";
       var tinta = "var(--text, " + CLARO + ")";
       var fraco = mistura(tinta, tom, 52);
       var corCursor = m.cursor === "port" ? "var(--rosewater)" : "var(--accent, var(--mauve))";
 
+      /* Com a lupa a cena inteira encolhe para a metade esquerda — a linha de
+       * comando, a saída e a tira das dezesseis continuam todas lá, só que mais
+       * estreitas. A metade direita é a ampliação. */
+      var esc = lupa ? 0.42 : 1;
+
       var s = quadro("Uma linha de comando com "
         + (m.starship ? "o prompt do starship em pastilhas" : "o prompt simples")
         + ", cursor " + (m.cursor === "port" ? "na cor do port oficial" : "na cor de destaque")
-        + " e a paleta " + (m.esquema ? "do Catppuccin" : "de fábrica") + ".");
+        + " e a paleta " + (m.esquema ? "do Catppuccin" : "de fábrica")
+        + (lupa ? ", e o mesmo cursor ampliado à direita" : "") + ".");
 
       s.appendChild(ret(1.5, 1.5, 93, 45, 3.5, { fill: tom }));
       s.appendChild(lin(3, 8.6, 93, 8.6, { stroke: fraco, "stroke-width": 1 }));
@@ -1449,9 +1487,9 @@
          * continua sendo o traço — a pastilha chapada viraria um bloco de cor
          * no meio de um desenho de linha. */
         var segmentos = [
-          { w: 20, cor: m.esquema ? "var(--mauve)" : fraco },
-          { w: 15, cor: m.esquema ? "var(--blue)" : fraco },
-          { w: 11, cor: m.esquema ? "var(--green)" : fraco },
+          { w: 20 * esc, cor: m.esquema ? "var(--mauve)" : fraco },
+          { w: 15 * esc, cor: m.esquema ? "var(--blue)" : fraco },
+          { w: 11 * esc, cor: m.esquema ? "var(--green)" : fraco },
         ];
         for (var i = 0; i < segmentos.length; i++) {
           var seg = segmentos[i];
@@ -1471,9 +1509,9 @@
         x += 5.4;
       } else {
         /* Sem starship: usuário, host e o cifrão, tudo na cor do texto. */
-        s.appendChild(lin(x, 16.4, x + 20, 16.4, { stroke: tinta, "stroke-width": 1.4 }));
-        s.appendChild(lin(x + 23, 16.4, x + 31, 16.4, { stroke: fraco, "stroke-width": 1.4 }));
-        x += 34;
+        s.appendChild(lin(x, 16.4, x + 20 * esc, 16.4, { stroke: tinta, "stroke-width": 1.4 }));
+        s.appendChild(lin(x + 23 * esc, 16.4, x + 31 * esc, 16.4, { stroke: fraco, "stroke-width": 1.4 }));
+        x += 34 * esc;
         s.appendChild(cam("M" + n2(x) + ",13.6 l2.6,2.8 l-2.6,2.8", {
           stroke: tinta, "stroke-width": 1.6,
         }));
@@ -1492,19 +1530,41 @@
         : [[tinta, 16, fraco, 34], [tinta, 11, fraco, 46], [tinta, 20, fraco, 26]];
       for (var r = 0; r < saida.length; r++) {
         var y = 26 + r * 4.6;
-        s.appendChild(lin(5, y, 5 + saida[r][1], y, { stroke: saida[r][0], "stroke-width": 1.3 }));
-        s.appendChild(lin(7.4 + saida[r][1], y, 7.4 + saida[r][1] + saida[r][3], y, {
+        var w1 = saida[r][1] * esc;
+        var w2 = saida[r][3] * esc;
+        s.appendChild(lin(5, y, 5 + w1, y, { stroke: saida[r][0], "stroke-width": 1.3 }));
+        s.appendChild(lin(7.4 + w1, y, 7.4 + w1 + w2, y, {
           stroke: saida[r][2], "stroke-width": 1.3,
         }));
       }
 
       /* A tira das dezesseis. Traço vertical e não quadradinho cheio: é a
        * mesma paleta, no estilo da casa. */
+      var passo = lupa ? 2.85 : 5.5;
       for (var c = 0; c < 16; c++) {
-        s.appendChild(lin(5.5 + c * 5.5, 40.4, 5.5 + c * 5.5, 43.8, {
+        s.appendChild(lin(5 + c * passo, 40.4, 5 + c * passo, 43.8, {
           stroke: m.esquema ? "var(--" + ANSI[c] + ")" : fraco,
-          "stroke-width": 2.4,
+          "stroke-width": lupa ? 1.9 : 2.4,
           "stroke-dasharray": m.esquema ? null : "1.2 1.4",
+        }));
+      }
+
+      if (lupa) {
+        /* 3,6 é a ampliação que faz o cursor caber na moldura sem tocar as
+         * bordas. O cursor pequeno ganha um cerco tracejado e uma linha de
+         * chamada vai dele à moldura: é a convenção da vista de detalhe, e ela
+         * diz sozinha "isto é aquilo, de perto". O chevron ampliado ao lado dá a
+         * escala e conta onde o cursor mora — no fim de uma linha vazia. */
+        var F = 3.6;
+        var chamada = { stroke: fraco, "stroke-width": 0.7, "stroke-dasharray": "2 1.8" };
+        s.appendChild(ret(52.5, 10.5, 41, 33.5, 2.5, {
+          stroke: fraco, "stroke-width": 0.8, "stroke-dasharray": "2.6 2",
+        }));
+        s.appendChild(ret(x - 1.3, 11.1, 6.2, 10.6, 1.4, chamada));
+        s.appendChild(lin(x + 5.3, 16.4, 52.5, 27.2, chamada));
+        s.appendChild(cam("M59,20.6 l6,6.6 l-6,6.6", { stroke: tinta, "stroke-width": 2.6 }));
+        s.appendChild(ret(69.5, 12.9, 3.6 * F, 8 * F, 1.8, {
+          fill: corCursor, stroke: corCursor, "stroke-width": 1.2,
         }));
       }
 

@@ -3476,8 +3476,36 @@ const LARGURA_DO_BOTAO = 220;
  *   ERRAR PARA BAIXO É SEGURO: a chave recusada fica com «Sim» e «Não», que é
  *   exatamente o que a página faz hoje. Errar para cima é o defeito que já
  *   matou duas tentativas — e é por isso que a fotografia, que não depende
- *   desta conta, é quem tem a última palavra no teste. */
-const TINTA_MINIMA = 100;
+ *   desta conta, é quem tem a última palavra no teste.
+ *
+ * O CORTE SUBIU DE 100 PARA 2000 — 07/09/2026
+ *   O que estava escrito acima continua verdadeiro, e o que mudou foi o chão da
+ *   página. A conferência de uso relatou que em três cartões da Manutenção «o
+ *   Sim e o Não desenham a mesma figura», e a medição deu razão a ela: doze dos
+ *   trinta e três pares diferiam em menos de 2% dos pixels do botão. Onze deles
+ *   foram REDESENHADOS — a tarja de notificação no lugar do sino de dez pixels,
+ *   o applet e o cursor enquadrados grandes, o menu do botão direito inteiro em
+ *   vez de uma caixinha tracejada — e passaram todos de 6%.
+ *
+ *   Sobraram DOIS, e para eles não há desenho honesto: `WALLPAPER_ORDEM`
+ *   (alfabética contra aleatória) e `STEAM_VIGIA` (o único dos quatro vigias
+ *   sem chave de aviso, então o par muda só o traço da engrenagem). Insistir
+ *   num desenho aqui seria fabricar uma diferença que a figura não tem — e a
+ *   página inteira perde a confiança de quem repara nisso uma vez.
+ *
+ *   A nova medida das 33, ordenada, mostra que o vão continua limpo e mudou de
+ *   lugar:
+ *
+ *     tinta      foto      chaves
+ *       1536    1,94%      WALLPAPER_ORDEM
+ *       1600    1,62%      STEAM_VIGIA
+ *     ----------------- o vão -----------------
+ *       2304    4,66%      WALLPAPER_NOTIFICAR
+ *       2560+   ≥6,0%      todo o resto
+ *
+ *   2000 cai no meio dele. Os dois recusados voltam para «Sim» e «Não», que é o
+ *   desfecho que este bloco sempre disse ser o certo quando a figura não muda. */
+const TINTA_MINIMA = 2000;
 
 function parVisivel(item) {
   if (PAR_VISIVEL.has(item.chave)) return PAR_VISIVEL.get(item.chave);
@@ -3934,7 +3962,16 @@ function render() {
   for (const g of ordenados) {
     /* A home desenha o próprio cabeçalho: um `h2` "Início" acima dela seria o
      * título de uma tela que já se apresenta. */
-    if (g.tipo === "home") { alvo.append(montarHome()); continue; }
+    /* O DESENHO DA HOME PRECISA SER PEDIDO AQUI, e não lá embaixo com os
+     * outros: o `desenhoDaSecaoSemChaves` mora no bloco do assunto, e este
+     * `continue` corta o caminho antes dele. Registrar "Início" no
+     * `MEOW_PREVIAS` sem esta linha não põe desenho nenhum na tela. */
+    if (g.tipo === "home") {
+      alvo.append(montarHome());
+      const soloDaHome = desenhoDaSecaoSemChaves(g.nome);
+      if (soloDaHome) alvo.append(soloDaHome);
+      continue;
+    }
     /* TODA ABA TEM TÍTULO — e catorze delas não tinham.
      *   A condição era `if (busca || g.tipo !== "chaves")`: as abas de chaves
      *   abriam direto na frase de descrição, com um degrau de tipografia que

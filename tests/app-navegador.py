@@ -1060,11 +1060,20 @@ def main():
             #   lados sao FOTOGRAFADOS e comparados pixel a pixel, o que nao
             #   depende de nenhuma heuristica.
             #
-            #   O PISO DE 0,4% SAI DO VAO MEDIDO. As 37 chaves de duas opcoes
-            #   foram fotografadas com o corte da pagina desligado: o que ela
-            #   recusa fica entre 0,00% e 0,25%, e o que ela aceita comeca em
-            #   0,53%. Entre os dois nao ha nada.
-            PISO_DE_DIFERENCA = 0.4
+            #   O PISO SAI DO VAO MEDIDO, e ele mudou de lugar em 07/09/2026.
+            #   Ate' entao o que a pagina aceitava comecava em 0,53% — tecnica-
+            #   mente diferente e visualmente identico, que foi a queixa da
+            #   conferencia de uso ("o Sim e o Nao desenham a mesma figura").
+            #   Onze desenhos foram refeitos e o corte da pagina subiu de 100
+            #   para 2000 de tinta, recusando os dois pares que nao tinham
+            #   desenho honesto (WALLPAPER_ORDEM e STEAM_VIGIA, que voltaram
+            #   para «Sim» e «Nao»). Medidos os 31 que sobraram, o mais parecido
+            #   e' LEITURA_AGENDA com 4,08%.
+            #
+            #   2% e' metade disso, e e' onde o piso fica: alto o bastante para
+            #   pegar uma regressao de verdade, e com folga para o serrilhado
+            #   nao derrubar a conferencia por meio ponto.
+            PISO_DE_DIFERENCA = 2.0
             fotos_dir = tempfile.mkdtemp(prefix="meow-par-")
             pares, parecidos, menor = 0, [], None
             try:
