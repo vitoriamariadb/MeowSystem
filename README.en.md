@@ -60,7 +60,8 @@ drawn.
 
 - **Papel de parede** (wallpaper) — the 46-image collection, its 9 settings and 12 actions, on one
   screen. Dropping a file here says right away whether it landed in the day or the night group,
-  and why.
+  and why — and you can disagree: **Dia** and **Noite** send an image to whichever side you want,
+  and **Medir** hands the decision back to the luminance.
 - **Áreas de trabalho** (workspaces) — the name and the **order** of your areas, the invisible
   padding in the name, and window tiling per area. Until now the only way was editing RON by hand.
 - **Ícones** (icons) — one icon per installed program, swappable one by one, plus the theme the

@@ -332,7 +332,8 @@ a:hover { color: var(--accent); text-decoration: underline; }
   color: var(--overlay1);
 }
 .menu-icone svg { display: block; }
-.trilho button:hover .menu-icone { color: var(--subtext0); }
+.trilho button:hover .menu-icone,
+.trilho .item-externo:hover .menu-icone { color: var(--subtext0); }
 .trilho button[aria-current="true"] .menu-icone { color: var(--accent); }
 
 /* O TRAÇO EM TODOS OS ITENS, E NÃO SÓ NOS FILHOS.
@@ -341,7 +342,11 @@ a:hover { color: var(--accent); text-decoration: underline; }
  * desaparecia descendo a lista. Agora ela atravessa o menu inteiro e o degrau
  * de nível passa a ser o RECUO, que é o que sempre disse hierarquia numa lista.
  * Aceso, o traço é accent: é o único item aberto. */
-.trilho button {
+/* O item do manual usa as MESMAS regras dos irmãos, e por isso ele entra em
+   cada seletor em vez de ganhar um bloco só seu: um bloco irmão é a folha
+   que envelhece calada no dia em que o menu mudar de recheio ou de fonte. */
+.trilho button,
+.trilho .item-externo {
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -360,14 +365,17 @@ a:hover { color: var(--accent); text-decoration: underline; }
   line-height: 1.4;
   cursor: pointer;
 }
-.trilho button > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.trilho button:hover { background: var(--surface0); color: var(--text); }
+.trilho button > span:nth-child(2),
+.trilho .item-externo > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.trilho button:hover,
+.trilho .item-externo:hover { background: var(--surface0); color: var(--text); }
 .trilho button[aria-current="true"] {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--accent);
   font-weight: 600;
 }
-.trilho button:focus-visible { outline-offset: -2px; }
+.trilho button:focus-visible,
+.trilho .item-externo:focus-visible { outline-offset: -2px; }
 .trilho .conta {
   font-size: var(--t-legenda);
   color: var(--overlay1);
@@ -376,6 +384,45 @@ a:hover { color: var(--accent); text-decoration: underline; }
   text-align: right;
 }
 .trilho button[aria-current="true"] .conta { color: var(--accent); }
+
+/* O item que sai da máquina. A seta é a convenção de "abre em outra janela", e
+   ela vale mais que qualquer palavra que coubesse ali; o `text-decoration: none`
+   existe porque é um `<a>` e o navegador o sublinharia sozinho, sozinho entre
+   os irmãos. A margem de cima o separa do último item de Sistema: ele não
+   pertence a bloco nenhum, e encostado leria como o quarto item do Sistema. */
+/* O «INÍCIO» E OS «CRÉDITOS» SÃO ROXOS — pedido dela, em duas passagens: primeiro
+   "coloca verde igual Sistema", depois "na verdade deixa Início e Créditos em
+   fonte de cor roxa". Vale a segunda.
+
+   `--mauve` e não `--accent`: o accent é a cor que marca a página ABERTA, e se
+   os dois usassem a mesma variável o Início perderia o contraste entre "esta é
+   a página" e "esta é uma das opções" no dia em que ela trocar o accent. Com o
+   mauve fixo, o `aria-current` continua tendo fundo, peso e a cor de destaque
+   só para si.
+
+   Os dois andam juntos porque são a mesma categoria: nenhum dos dois é um
+   assunto do meow.conf. Um é a página que resume as outras; o outro sai da
+   máquina. */
+.trilho > button.e-inicio:not([aria-current="true"]) { color: var(--mauve); }
+.trilho > button.e-inicio:not([aria-current="true"]) .menu-icone { color: inherit; }
+.trilho > button.e-inicio:not([aria-current="true"]):hover {
+  background: color-mix(in srgb, var(--mauve) 14%, transparent);
+  color: var(--mauve);
+}
+
+.trilho .item-externo {
+  text-decoration: none;
+  color: var(--mauve);
+}
+/* Só o primeiro se afasta do último item do Sistema: os dois externos andam
+   juntos, e um vão entre eles os leria como dois blocos de um item cada. */
+.trilho .item-externo + .item-externo { margin-top: 1px; }
+.trilho .rotulo-grupo + .item-externo,
+.trilho button + .item-externo { margin-top: .8rem; }
+.trilho .item-externo .menu-icone { color: inherit; }
+.trilho .item-externo:hover { background: color-mix(in srgb, var(--mauve) 14%, transparent); color: var(--mauve); }
+.trilho .item-externo:hover .menu-icone { color: inherit; }
+.trilho .seta-externa { color: inherit; opacity: .6; font-size: var(--t-legenda); }
 
 /* «BARRA E DOCK» E «TERMINAL» SÃO SEÇÃO, E AGORA SE LEEM COMO SEÇÃO — 06/09/2026
  * Ela, olhando o menu: "isso não é uma seção como o AJUSTAR?". Era: as duas
@@ -410,17 +457,31 @@ a:hover { color: var(--accent); text-decoration: underline; }
 main {
   flex: 1 1 auto;
   overflow-y: auto;
-  /* O RECHEIO DE CIMA TEM NOME PORQUE ALGUÉM MAIS PRECISA DELE.
-     Quem rola é o `main`, então um `sticky` com `top: 0` gruda no topo do
-     PADDING BOX — este valor abaixo do topo visível. A faixa que tapa esse vão
-     mora em `.previa-bloco::before` e lê a mesma variável: dois números iguais
-     escritos duas vezes viram dois números diferentes no dia em que um muda. */
-  --recheio-topo: 1.4rem;
-  padding: var(--recheio-topo) 1.6rem 4rem;
+  /* SEM RECHEIO EM CIMA, E ISSO É O QUE FAZ O DESENHO GRUDADO FUNCIONAR.
+     Quem rola é o `main`, e um `sticky` com `top: 0` gruda no topo do PADDING
+     BOX. Enquanto havia `padding-top` aqui, esse ponto ficava 22 px ABAIXO do
+     topo visível, e naqueles 22 px o conteúdo passava à vista.
+
+     A primeira tentativa foi tapar o vão com uma faixa pintada acima do
+     desenho. Ela funciona quando o desenho está grudado e é destrutiva quando
+     não está: pinta por cima do que vier antes dele. Medido — comeu a frase da
+     seção em cinco abas e a metade de baixo do botão de instalar fonte no
+     Terminal. Faixa que não sabe se o elemento está grudado não deveria
+     existir, e o CSS não tem como lhe contar.
+
+     Então o vão deixa de existir. O respiro de cima passa a ser MARGEM DOS
+     FILHOS: `overflow-y: auto` faz do `main` um contexto de formatação próprio,
+     então essa margem não escapa para fora dele, e as margens dos dois irmãos
+     se fundem quando o aviso aparece. `top: 0` passa a ser o topo visível. */
+  padding: 0 1.6rem 4rem;
   min-width: 0;
 }
 main:focus-visible { outline: none; }
-#conteudo { padding-bottom: 3rem; }
+/* O respiro de cima do `main`, agora nos filhos — ver o comentário lá em cima.
+   Nos dois, porque quando o aviso aparece ele é o primeiro, e margens de irmãos
+   adjacentes se fundem: 1.4 e 1.2 viram 1.4, e não 2.6. */
+#aviso-aplicar { margin-top: 1.4rem; }
+#conteudo { margin-top: 1.4rem; padding-bottom: 3rem; }
 
 /* --- cabeçalho de seção --------------------------------------------------- */
 /* O DEGRAU COMEÇA AQUI. A seção era 15,4 px com uma régua embaixo; agora é
@@ -1620,18 +1681,52 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   min-height: 92px;
   justify-content: space-between;
 }
+/* A BARRA TEM TRÊS SEGMENTOS, e não uma fileira de quadrados iguais — 07/09/2026
+   O `cosmic-panel` hospeda ala inicial, centro e ala final, cada uma com o seu
+   próprio tamanho de applet (`size_wings` é TUPLA, `size_center` é direto — ver
+   `scripts/forma.sh:217`). Enquanto o desenho era uma fileira só, as seis
+   chaves de tamanho por segmento não tinham onde aparecer, e ela clicava nos
+   botões sem que nada mudasse.
+
+   A grade de três colunas com `1fr auto 1fr` centraliza o MEIO de verdade, em
+   vez de aproximá-lo com `space-between`: com as alas de larguras diferentes,
+   `space-between` deslocaria o centro, e o centro deslocado é exatamente a
+   queixa que o `FORMA_DOCK_ILHA` documenta. */
 .mock .barra {
-  height: 22px;
+  height: var(--altura, 22px);
   background: color-mix(in srgb, var(--base) calc(var(--op, .8) * 100%), transparent);
   border-radius: var(--raio, 8px);
   margin: 0 var(--margem, 6px);
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: var(--espaco, 4px);
   padding: 0 var(--recheio, 5px);
 }
-.mock .barra span { width: 14px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--text) 55%, transparent); }
-.mock .barra span:first-child { background: var(--accent); }
+.mock .barra .seg { display: flex; align-items: center; gap: var(--espaco, 4px); }
+.mock .barra .seg:nth-child(1) { justify-self: start; }
+.mock .barra .seg:nth-child(3) { justify-self: end; }
+/* A PASTILHA: `expand_to_edges=false` encolhe a barra até o conteúdo e o
+   cosmic-panel FUNDE os três segmentos num bloco único centralizado
+   (`space/layout.rs:197-206`). Aqui a grade vira uma fileira e as três caixas
+   encostam com o mesmo espaço de dentro — que é a fusão, desenhada.
+   O tamanho de cada segmento SOBREVIVE à fusão: são dois códigos diferentes do
+   cosmic-panel, e só a arrumação se funde (`forma.sh:229`). */
+.mock .barra.ilha {
+  display: flex;
+  gap: var(--espaco, 4px);
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+.mock .barra span {
+  width: var(--sq, 14px);
+  height: var(--sq, 14px);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 55%, transparent);
+}
+/* O primeiro quadrado da ala inicial é o acento: no dock desta máquina ele é o
+   gato que abre o lançador, e é o único applet que tem cor própria. */
+.mock .barra .seg:first-child span:first-child { background: var(--accent); }
 .mock .rodape { height: 26px; }
 
 /* O par de barras no topo da seção de forma: lado a lado onde couber. */
@@ -1707,30 +1802,6 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   border-bottom: 1px solid var(--surface0);
   box-shadow: 0 10px 12px -10px var(--crust);
 }
-/* A FAIXA DO RECHEIO DO `main`, TAPADA — 06/09/2026
-   Medido: `main` tem `padding-top: 22.4px` e é ele quem rola. Um `sticky` com
-   `top: 0` gruda no topo do PADDING BOX, ou seja 22 px abaixo do topo visível —
-   e naqueles 22 px o conteúdo passava à vista, cortado no meio de um título.
-   Na tela isso não lia como "algo fixo": lia como página quebrada.
-
-   `top` negativo resolveria e cortaria o alto do desenho junto. Este pseudo
-   estende só o FUNDO para cima, e o `overflow` do `main` apara o que sobra —
-   nada aparece por cima do cabeçalho. */
-.previa-bloco::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  /* EXATAMENTE O VÃO, NUNCA MAIS QUE ELE — 07/09/2026
-     Eram 3rem, o dobro do necessário, e a sobra tapava o que vinha logo acima:
-     em cinco das nove abas o desenho nasce a 24 px da frase da seção, e a faixa
-     de 48 px comia a frase inteira. Medido com `elementFromPoint` no meio da
-     frase: quem respondia era a `.previa-bloco`, não o `<p>`. Tapar o vão é o
-     trabalho; tapar um pixel a mais é apagar conteúdo. */
-  height: var(--recheio-topo, 1.4rem);
-  background: var(--base);
-}
 /* GRUDADO, ELE PODE SER MENOR. Um desenho de 250 px preso no alto come um quarto
    da tela, e nesse tamanho ele deixa de ser referência para virar o assunto —
    que é o oposto do que ele faz ali. 150 px ainda mostra a diferença entre os
@@ -1785,6 +1856,11 @@ button.lado-previa:focus-visible {
   margin-bottom: 1.6rem;
   max-width: var(--medida);
 }
+/* DENTRO DA CAIXA GRUDADA ELA NÃO PRECISA DA MARGEM: a caixa já tem o recheio de
+   baixo, e a margem só empurraria o primeiro cartão para longe. O `max-width`
+   fica na grade e não na caixa: quem tem de pintar a linha inteira é a caixa,
+   senão o conteúdo rolando por baixo reaparece à direita dela. */
+.previa-bloco > .grade-barras { margin-bottom: 0; }
 
 /* --- simulação do modo de leitura ----------------------------------------- */
 .simul { position: relative; width: 100%; border-radius: var(--r-3); overflow: hidden; min-height: 88px; background: var(--surface0); }
@@ -1802,6 +1878,28 @@ button.lado-previa:focus-visible {
  * A capa É a identidade do jogo — foi por isso que este projeto decidiu não
  * tematizá-la. Então ela não fica dentro de um cartão: a capa é o cartão. Uma
  * borda em volta de uma capa 600×900 só rouba os pixels dela. */
+/* A LINHA DE UMA DECISÃO EXECUTADA. Discreta de propósito: ela não é conteúdo,
+   é o resto de uma escolha, e a única coisa que se faz com ela é tirá-la. */
+/* UM SIM/NÃO POR ÁREA. O nome à esquerda e o par à direita, uma linha por área:
+   é a mesma leitura de uma tabela de duas colunas, que é o que a chave é. */
+.por-area { display: flex; flex-direction: column; gap: .35rem; }
+.por-area .linha-area { display: flex; align-items: center; gap: .6rem; }
+.por-area .nome-area { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.por-area .estados { display: flex; gap: .3rem; flex: 0 0 auto; }
+
+.lista-orfas { display: flex; flex-direction: column; gap: .4rem; max-width: var(--medida); }
+.linha-orfa {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding: .45rem .7rem;
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+  background: var(--mantle);
+}
+.linha-orfa .orfa-nome { color: var(--subtext0); }
+.linha-orfa .orfa-nota { color: var(--overlay0); font-size: var(--t-frase); margin-right: auto; }
+
 .grade-jogos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(152px, 100%), 1fr));

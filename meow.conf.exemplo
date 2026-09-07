@@ -671,10 +671,20 @@ VIDRO_AO_MAXIMIZAR="sim"
 #     scripts/vidro.sh --conferir
 # (Os valores impostos até 17/08 eram 0.19 no painel e 0.26 no dock, mirando
 #  ~12,5% e ~17% de cor. Ficam aqui como ponto de partida, não como padrão.)
-VIDRO_OPACIDADE_PAINEL=""
+#
+# A FAIXA NO COMENTÁRIO DE LINHA É A CERCA — 07/09/2026
+#   Estas duas eram as únicas chaves numéricas do arquivo sem faixa escrita, e
+#   por isso as únicas que a página não sabia recusar: medido, `999` e `banana`
+#   entravam pelo /api/definir sem uma palavra na tela, para o `vidro.sh` errar
+#   depois, todo dia, num horário em que ninguém liga o erro ao clique. O
+#   `validar_valor` não tem tabela própria de propósito — a cerca É o esquema —,
+#   então a chave sem faixa é a chave sem cerca. Com a faixa aqui, a página
+#   passa a desenhar deslizante em vez de campo de texto, e as duas coisas vêm
+#   da mesma linha.
+VIDRO_OPACIDADE_PAINEL=""         # 0.0 a 1.0
 # @ Opacidade da dock
 # > 0 é transparente, 1 é opaco.
-VIDRO_OPACIDADE_DOCK=""
+VIDRO_OPACIDADE_DOCK=""           # 0.0 a 1.0
 
 # @ Segundos no relógio
 # > Mostra os segundos ao lado da hora.
