@@ -2319,11 +2319,18 @@ GRUPOS_PAREDE = (("ativos", "ativos"), ("noite", "ativos-noite"),
 
 
 # O LADO ESCRITO, PARA A FICHA SABER O QUE JÁ FOI DECIDIDO — 06/09/2026
-#   `assets/papeis-de-parede/lado.tsv` guarda SÓ a discordância: quem não está
-#   lá é separado pela luminância. O arquivo nem existe enquanto ninguém
-#   discordou de nada — "sem escolha" e "sem arquivo" são o mesmo estado, de
-#   propósito, para o registro não virar uma segunda verdade que ninguém sabe
-#   apagar.
+#   `assets/papeis-de-parede/lado.tsv` guarda a ESCOLHA: quem não está lá é
+#   separado pela luminância. O arquivo nem existe enquanto ninguém escolheu
+#   nada — "sem escolha" e "sem arquivo" são o mesmo estado, de propósito, para
+#   o registro não virar uma segunda verdade que ninguém sabe apagar.
+#
+#   DIZIA "guarda SÓ a discordância", E ISSO ERA IMPRECISO — 07/09/2026. Ela
+#   clicou "Noite" numa imagem que a medição já mandava para a noite, e o
+#   registro gravou — como devia. O `wallpaper.sh` é quem tem a frase exata, na
+#   hora de gravar: "escolha sua, a medição não decide mais por ela". É um
+#   ALFINETE, e um alfinete que concorda com a medição de hoje continua
+#   valendo no dia em que a imagem ou o limiar mudarem. Discordância é o caso
+#   comum, não a condição.
 #
 #   A ficha precisa disto por uma razão só: o botão que devolve a imagem à
 #   medição não pode aparecer numa imagem que nunca foi escolhida. Ele seria um

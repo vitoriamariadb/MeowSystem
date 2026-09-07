@@ -1,6 +1,6 @@
 # As folhas visuais
 
-Dezoito páginas HTML que **decidiram** partes deste tema. Cada uma põe as opções
+Vinte páginas HTML que **decidiram** partes deste tema. Cada uma põe as opções
 lado a lado, no tamanho real e sobre os fundos reais, para que a escolha seja
 feita olhando — e não descrita em prosa e aprovada no escuro.
 
@@ -8,6 +8,10 @@ Elas moravam soltas na home dela (13 em `~/`, 5 em `~/Documentos/`), fora de
 qualquer controle de versão, desde agosto de 2026. **Entraram aqui em
 01/09/2026, por cópia**: os originais continuam exatamente onde estavam, e os 18
 arquivos daqui são idênticos byte a byte aos de lá (conferido por `md5sum`).
+
+**As duas últimas nasceram aqui**, e não vieram da home dela: a do menu do
+painel (02/09) e a do alinhamento do gato (06/09). O parágrafo acima vale para
+as dezoito importadas.
 
 ## Por que elas valem o espaço no git
 
@@ -56,19 +60,20 @@ de modificação do arquivo, que é o dia em que a folha foi mostrada a ela.
 | 23/08 | `meow-icones-marcas.html` | Os 13 ícones cuja cor do traço passaria a vir da logo da marca, e a lista dos que não mudam. É a folha que a chave `ICONES_COR_MARCA` está esperando. |
 | 25/08 | `folha-cursor.html` | Sprint P: os cursores XCursor (Pop, Adwaita e 5 Catppuccin) lado a lado, com o corpo medido em pixel. Produziu `CURSOR="catppuccin-mocha-light"`. |
 | 25/08 | `folha-wallpaper-noite.html` | Folha de contato dos 54 papéis separados em claros e escuros por luminância perceptual. É de onde saiu o corte `WALLPAPER_LIMIAR_LUZ="0.37"`. |
+| 02/09 | `folha-menu-do-painel.html` | O menu do painel em blocos, a hierarquia e o assunto de cada seção. Foi executada. **Leva aviso no topo:** o que ela chama de «Barra e dock» é «Painel e dock» desde 07/09. |
+| 06/09 | `folha-gato-alinhamento.html` | Os cinco valores de `FASTFETCH_LOGO_ALINHAR` desenhados lado a lado. Produziu `"contorno"`, que é o que está na conf dela. |
 
-## Duas folhas ainda esperam resposta
+## Uma folha ainda espera resposta
 
-Não são arquivo morto — há chave de configuração parada esperando o que estas
-duas decidirem:
-
-- **`meow-icones-marcas.html`** → a `ICONES_COR_MARCA` nasce em `"nao"` porque a
-  cor por marca contradiz a decisão dela de 10/08 (cor por categoria), e
-  `docs/SPRINTS.md` proíbe ligar sem ela ter visto. A folha existe; a resposta
-  não veio.
 - **`meow-icones-curadoria.html`** → exporta o JSON que `meow icones importar`
   consome. É o caminho por onde uma troca de ícone entra sem ninguém editar mapa
-  à mão.
+  à mão. Continua sem uso registrado.
+
+**A `meow-icones-marcas.html` foi respondida** — atualizado em 07/09/2026. Este
+arquivo dizia *"a resposta não veio"*, e a conf dela tem
+`ICONES_COR_MARCA="sim"` desde então: a cor por marca está **ligada** na
+máquina. O `meow.conf.exemplo` mantém `"nao"` de fábrica de propósito — a
+decisão é dela, não do projeto.
 
 ## O que NÃO está aqui
 

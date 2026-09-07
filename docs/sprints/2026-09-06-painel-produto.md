@@ -3,6 +3,17 @@
 Este documento é a fonte autossuficiente das frentes abaixo. Quem trabalha em
 uma delas não precisa de mais nada além do repositório e desta folha.
 
+> **NOTA DE 07/09/2026 — DUAS SEÇÕES MUDARAM DE NOME DEPOIS DESTE DOCUMENTO.**
+> Onde se lê **«Barra e dock»**, hoje é **«Painel e dock»**; onde se lê
+> **«Idempotência»**, hoje é **«Atualização»**. Isso vale inclusive para as
+> **chaves de registro** do `window.MEOW_PREVIAS` citadas mais abaixo — a chave
+> viva é `"Painel e dock :: VIDRO E RELÓGIO"`, e o bloco da música é
+> `MÚSICA NO PAINEL`, não `MÚSICA NA BARRA`. Copiar daqui sem trocar registra
+> um desenho que nunca aparece. O elemento se chama *painel* em todo texto de
+> tela; onde "barra" sobrevive no `meow.conf.exemplo`, é o termo genérico para
+> "painel **ou** dock". Estado atual em
+> `docs/sprints/2026-09-07-acabamento-do-painel.md`.
+
 ## A decisão que originou tudo
 
 O painel nasceu como a interface do `meow.conf` **dela**. Hoje ele é público, e
