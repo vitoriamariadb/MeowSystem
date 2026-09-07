@@ -4,21 +4,42 @@ Este arquivo é **autossuficiente**: quem for executar uma sprint não precisa d
 nenhum contexto de conversa anterior. Cada uma traz o que já foi medido, o que
 fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
-Última atualização: **31/08/2026**.
+Última atualização: **07/09/2026**.
 
 ---
 
 ## AO VOLTAR, COMECE POR AQUI
 
-**Não há sprint aberta. A Sprint W foi executada e FECHADA em 01/09/2026** — ver
-[Sprint W](#sprint-w--o-gato-da-hora-o-menu-e-a-arrumação) logo abaixo. Ela juntou
-cinco pedidos dela numa tarde e terminou com o `install.sh` dizendo *"Nenhuma
-etapa precisou escrever nada"* duas vezes seguidas e o doctor em **41 ok**.
+**Não há sprint aberta, e não há nada pendente de logout ou reboot.**
 
-**O QUE FALTA, E SÓ ISSO:** um logout (ou reboot). O
-`AURORA-COSMIC-RADIUS-PATCH-2` está no disco e não na sessão — o doctor diz
-*"1 marcador só vale no próximo login"*, que é a verdade e não é conserto a
-fazer. O reboot também ativa o pipewire novo (1.5.85 → 1.6.8).
+O repositório é **público** desde 06/09/2026, e a última leva fechou em
+07/09/2026 com três versões publicadas no mesmo dia — **v1.2.2**, **v1.2.3** e
+**v1.2.4**. O registro delas, autossuficiente, está em
+[`docs/sprints/2026-09-07-acabamento-do-painel.md`](sprints/2026-09-07-acabamento-do-painel.md):
+o que mudou, o que a medição derrubou, e como cada número da capa foi obtido.
+
+**O ESTADO DE HOJE, MEDIDO:**
+
+| | |
+|---|---|
+| `install.sh` | 52 etapas; rodar de novo não escreve um byte |
+| `meow doctor` | 46 conferências, "nada a consertar" |
+| painel | 108 chaves · 45 ações · 13 páginas de assunto |
+| conferência do navegador | **84/84**, console limpo nas catorze páginas |
+| suítes de shell | `app`, `seco`, `reversao`, `um-cartao-por-jogo`, `convergencia` — todas passam |
+
+**O QUE ENVELHECEU NESTE ARQUIVO:** tudo abaixo da linha é registro de sprint
+**fechada**, e fica como está — é história medida, não plano. Duas coisas que a
+leitura de hoje contradiz, e por isso ficam ditas aqui em cima:
+
+- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **46 conferências**;
+- o *"falta um logout"* daquela mesma leva **já aconteceu**: o doctor diz
+  *"4 marcadores de pé no disco e na sessão"* e o pipewire está em 1.6.8.
+
+**O NOME DA SEÇÃO MUDOU:** o que estas sprints chamam de **«Barra e dock»** é a
+página **«Painel e dock»** desde 07/09/2026, e o elemento se chama *painel* em
+todo texto de tela. Onde "barra" sobrevive no `meow.conf.exemplo`, é de
+propósito: ali é o termo genérico para "painel **ou** dock".
 
 ---
 
