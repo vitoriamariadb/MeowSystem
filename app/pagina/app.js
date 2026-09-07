@@ -76,11 +76,20 @@ async function api(rota, opcoes = {}) {
       headers: { "X-Meow-Token": TOKEN, "Content-Type": "application/json", ...(opcoes.headers || {}) },
     });
   } catch (e) {
+    /* O AVISO É UMA FAIXA QUE FICA, NÃO QUINZE TORRADAS — 07/09/2026
+     * Medido: com 14 escolhas na bandeja e o servidor morto, um "Salvar"
+     * empilhava a MESMA frase quinze vezes (623 px de tela) e sete segundos
+     * depois a página fingia que nada tinha acontecido. E a frase antiga
+     * mandava "feche esta aba" — o único lugar onde as escolhas dela ainda
+     * existem. A faixa entra no primeiro erro de rede, fica até uma resposta
+     * chegar inteira, e diz a verdade: a aba é o cofre, fechar é perder. */
+    faixaSemServidor(true);
     return {
-      erro: "O painel perdeu o servidor. Feche esta aba e rode ./app/run.sh de novo.",
+      erro: "O painel perdeu o servidor — veja a faixa no alto.",
       sem_servidor: true,
     };
   }
+  faixaSemServidor(false);
   const texto = await resposta.text();
   let dados;
   try { dados = JSON.parse(texto); } catch { dados = { erro: texto }; }
@@ -337,9 +346,37 @@ function elemento(tag, props = {}, filhos = []) {
 }
 
 function torrada(texto, classe = "") {
+  /* CLASSE DESCONHECIDA CAI EM «erro» — 07/09/2026
+   * A conferência de produto achou uma torrada chamada com "ruim", classe que o
+   * CSS nunca definiu: o erro do destino de um jogo aparecia CINZA e sumia nos
+   * 2,6 s de torrada comum, quando a regra da casa é vermelho e 7 s. O ponto de
+   * chamada foi corrigido; este cinto existe para o próximo "ruim" não passar
+   * calado — se a classe não é das três conhecidas, é notícia ruim, e notícia
+   * ruim se veste de erro. */
+  if (classe && !["ok", "igual", "erro"].includes(classe)) classe = "erro";
+  /* A MESMA FRASE NÃO EMPILHA — 07/09/2026
+   * Medido com o servidor morto e 14 escolhas na bandeja: um "Salvar" rendia
+   * QUINZE torradas idênticas, 623 px de pilha, 58% da altura da tela. Quem
+   * repete a frase não está dizendo mais; está gritando. Enquanto uma torrada
+   * com este exato texto estiver na tela, a nova não nasce — a que existe
+   * ganha sobrevida. */
+  for (const viva of $("#torradas").children) {
+    if (viva.textContent === texto) {
+      clearTimeout(viva._timer);
+      viva._timer = setTimeout(() => viva.remove(), classe === "erro" ? 7000 : 2600);
+      return;
+    }
+  }
   const el = elemento("div", { class: "torrada " + classe, texto });
   $("#torradas").append(el);
-  setTimeout(() => el.remove(), classe === "erro" ? 7000 : 2600);
+  /* O RATO SEGURA A TORRADA. `pointer-events` era none: impossível pausar a
+   * leitura ou selecionar o texto de um erro para pesquisar. Com o ponteiro em
+   * cima o relógio para; saindo, ela ainda vive um respiro. */
+  el.addEventListener("mouseenter", () => clearTimeout(el._timer));
+  el.addEventListener("mouseleave", () => {
+    el._timer = setTimeout(() => el.remove(), 1500);
+  });
+  el._timer = setTimeout(() => el.remove(), classe === "erro" ? 7000 : 2600);
 }
 
 /* ===========================================================================
@@ -414,16 +451,160 @@ function escolher(chave, valor, cartao) {
   return true;
 }
 
+/* A faixa de servidor perdido. Um nó só, criado na primeira falha e removido
+ * na primeira resposta inteira — sem contador de tentativas, sem pulso: quem
+ * liga e desliga é o próprio `api()`, que é por onde toda conversa passa. */
+function faixaSemServidor(mostrar) {
+  let faixa = document.getElementById("faixa-sem-servidor");
+  if (!mostrar) { if (faixa) faixa.remove(); return; }
+  if (faixa) return;
+  const n = MUDANCAS.size;
+  faixa = elemento("div", { id: "faixa-sem-servidor", role: "alert" }, [
+    elemento("strong", { texto: "O painel perdeu o servidor." }),
+    elemento("span", {
+      texto: n
+        ? ` ${n === 1 ? "Sua escolha continua" : `Suas ${n} escolhas continuam`} nesta aba. O painel novo nasce em OUTRO endereço, então recarregar não reconecta: `
+        : " Rode ./app/run.sh no terminal — o painel novo nasce em outro endereço.",
+    }),
+  ]);
+  if (n) {
+    /* O RESGATE NÃO PODE DEPENDER DO SERVIDOR QUE MORREU. O «Exportar» do menu
+     * baixa por /api/…, que agora é um beco; este arquivo nasce no próprio
+     * navegador, no formato que o «Importar» do painel novo confere chave a
+     * chave. É o mesmo desenho do Importar: nada disto grava — vira escolha
+     * pendente lá, como um clique. */
+    const blob = new Blob([
+      "# Escolhas que esperavam o Salvar quando o painel caiu.\n"
+      + "# No painel novo: Importar — cada linha volta a ser escolha pendente.\n"
+      + [...MUDANCAS].map(([c, v2]) => `${c}="${String(v2).replace(/"/g, '\\"')}"`).join("\n")
+      + "\n",
+    ], { type: "text/plain" });
+    const link = elemento("a", {
+      class: "btn btn-mini",
+      href: URL.createObjectURL(blob),
+      download: "escolhas-pendentes.conf",
+      texto: "Baixar as escolhas (.conf)",
+      title: "Gerado aqui mesmo, sem servidor. No painel novo, use Importar.",
+    });
+    faixa.append(link, elemento("span", { texto: " e rode ./app/run.sh de novo." }));
+  }
+  document.querySelector("header").after(faixa);
+}
+
+/* A BANDEJA SOBREVIVE AO F5 — 07/09/2026
+ * ===========================================================================
+ * Medido: 14 escolhas pendentes, um recarregar, e `MUDANCAS.size === 0` — sem
+ * uma torrada, sem um aviso. A promessa dela, literal, era *"mesmo mudando aba
+ * a aba ele precisa se lembrar das escolhas"* — e a implementação lembrava da
+ * ABA (que mora no hash) e do ENSAIO (que mora no sessionStorage), mas não da
+ * única coisa que custa minutos para refazer. Pior: a mensagem de servidor
+ * caído manda "feche esta aba e rode ./app/run.sh de novo" — ou seja, mandava
+ * jogar fora o trabalho.
+ *
+ * O espelho vive no `sessionStorage`, como o `meow-seco`, e pelo mesmo motivo:
+ * vale enquanto a aba viver, que é a vida do próprio servidor. Escreve-se num
+ * ponto só — aqui, porque TODA mutação da bandeja chama `atualizarBarraSalvar`
+ * — e restaura-se no `iniciar`, filtrando pelo esquema: chave que deixou de
+ * existir cai fora, valor igual ao do disco cai fora (o disco pode ter mudado
+ * entre a gravação e a volta). */
+const BANDEJA_GUARDADA = "meow-bandeja";
+
+function guardarBandeja() {
+  try {
+    if (MUDANCAS.size) {
+      sessionStorage.setItem(BANDEJA_GUARDADA, JSON.stringify([...MUDANCAS]));
+    } else {
+      sessionStorage.removeItem(BANDEJA_GUARDADA);
+    }
+  } catch (e) { /* aba sem armazenamento: a bandeja vive só na memória, como antes */ }
+}
+
+function restaurarBandeja() {
+  let pares;
+  try {
+    pares = JSON.parse(sessionStorage.getItem(BANDEJA_GUARDADA) || "[]");
+  } catch (e) { return; }
+  if (!Array.isArray(pares) || !pares.length) return;
+  let vivas = 0;
+  for (const par of pares) {
+    if (!Array.isArray(par) || par.length !== 2 || typeof par[0] !== "string") continue;
+    const [chave, valor] = par;
+    const item = (ESQUEMA.chaves || []).find((i) => i.chave === chave);
+    if (!item) continue;
+    if (String(valor) === String(item.valor ?? "")) continue;
+    MUDANCAS.set(chave, String(valor));
+    vivas++;
+  }
+  if (vivas) {
+    torrada(vivas === 1
+      ? "1 escolha da sessão continua esperando o Salvar"
+      : `${vivas} escolhas da sessão continuam esperando o Salvar`, "igual");
+  }
+}
+
 function atualizarBarraSalvar() {
+  guardarBandeja();
   const barra = $("#barra-salvar");
   const n = MUDANCAS.size;
   barra.hidden = n === 0;
+  const painel = document.getElementById("lista-pendentes");
+  if (painel && (!n || painel.dataset.quantas !== String(n))) painel.remove();
   if (!n) return;
-  /* A lista de chaves virou `title`: no banner não há largura para ela, e o
-   * cartão de cada chave já está marcado na página. */
+  /* O CONTADOR ABRE A LISTA — 07/09/2026
+   * "14 escolhas" sem dizer QUAIS obrigava a caçar cartão marcado aba por aba;
+   * a lista existia, mas num `title` de hover, com os nomes CRUS das chaves
+   * ("FLAVOR · ACCENT · …") numa tela que fala português. Agora o contador é
+   * clicável: cada linha diz o cartão pelo nome que a página usa, o de → para
+   * pelos rótulos que os botões usam, e clicar nela leva à aba da chave. */
   const conta = $("#salvar-conta");
   conta.textContent = n === 1 ? "1 escolha" : `${n} escolhas`;
-  conta.title = [...MUDANCAS.keys()].join(" · ");
+  conta.title = "Clique para ver quais são";
+}
+
+function abaDaChave(chave) {
+  for (const g of GRUPOS) {
+    if (g.tipo === "chaves" && (g.itens || []).some((i) => i.chave === chave)) return assuntoDe(g);
+  }
+  return null;
+}
+
+function alternarListaPendentes() {
+  const aberto = document.getElementById("lista-pendentes");
+  if (aberto) { aberto.remove(); return; }
+  if (!MUDANCAS.size) return;
+  const linhas = [];
+  for (const [chave, valor] of MUDANCAS) {
+    const item = (ESQUEMA.chaves || []).find((i) => i.chave === chave);
+    if (!item) continue;
+    const aba = abaDaChave(chave);
+    linhas.push(elemento("button", {
+      type: "button",
+      class: "linha-pendente",
+      onclick: () => {
+        document.getElementById("lista-pendentes")?.remove();
+        if (!aba) return;
+        $("#busca").value = "";
+        ABA = aba;
+        gravarHash();
+        render();
+        /* O cartão da chave entra na tela — depois da pintura, senão não há
+         * quem rolar até ele. */
+        requestAnimationFrame(() => {
+          const alvo = document.querySelector(`#conteudo .cartao[data-chave="${CSS.escape(chave)}"]`);
+          if (alvo && alvo.scrollIntoView) alvo.scrollIntoView({ block: "center" });
+        });
+      },
+    }, [
+      elemento("span", { class: "p-nome", texto: (item && tituloDoCartao(item)) || chave }),
+      elemento("span", {
+        class: "p-troca",
+        texto: `${rotuloDeValor(item.valor ?? "")} → ${rotuloDeValor(valor)}`,
+      }),
+      elemento("span", { class: "p-aba", texto: aba || "" }),
+    ]));
+  }
+  const painel = elemento("div", { id: "lista-pendentes", "data-quantas": String(MUDANCAS.size) }, linhas);
+  $("#barra-salvar").append(painel);
 }
 
 async function descartarEscolhas() {
@@ -725,7 +906,7 @@ function montarControle(item, cartao) {
         type: "button", class: "btn btn-mini",
         "aria-pressed": String(vazio),
         texto: "Deixar como está",
-        title: "Quem decide passa a ser o COSMIC — é o que o vazio significa aqui",
+        title: "Quem decide passa a ser o COSMIC, ou você pelos Ajustes dele.",
         onclick: () => aplica(""),
       }));
     }
@@ -810,7 +991,7 @@ function montarControle(item, cartao) {
   const campo = elemento(longo ? "textarea" : "input", {
     type: longo ? false : "text",
     "aria-label": item.chave,
-    placeholder: item.aceita_vazio ? "deixar como está" : item.padrao,
+    placeholder: item.aceita_vazio ? "Deixar como está" : item.padrao,
   });
   campo.value = valor;
   /* `change` e não `input`: gravar a cada tecla seriam dez escritas no meow.conf
@@ -827,7 +1008,7 @@ function montarControle(item, cartao) {
 function botaoVazio(item, limpar, aplica) {
   return elemento("button", {
     type: "button", class: "btn", texto: "Deixar como está",
-    title: "Quem decide passa a ser o COSMIC.",
+    title: "Quem decide passa a ser o COSMIC, ou você pelos Ajustes dele.",
     onclick: async () => { if (await aplica("")) limpar(); },
   });
 }
@@ -976,7 +1157,7 @@ function controleImagem(item, tipo, aplica) {
   if (item.aceita_vazio) {
     caixa.append(elemento("button", {
       type: "button", class: "vazio", "data-valor": "", "aria-pressed": "false",
-      title: "Quem decide passa a ser a chave vizinha — é o que o vazio significa aqui.",
+      title: "Quem decide passa a ser a chave vizinha.",
       texto: "Deixar como está",
       onclick: async () => { if (await aplica("")) pintar(""); },
     }));
@@ -1067,7 +1248,7 @@ const ACERVO_ACEITA = {
   cursor: { aceita: ".zip", rotulo: "Adicionar tema", naMaquina: true },
   /* As três extensões são as do `instalar_fontes.sh adicionar`: um `.zip` de
    * Nerd Font, ou o arquivo de uma família solta. */
-  fonte: { aceita: ".zip,.ttf,.otf", rotulo: "Instalar fonte", naMaquina: true },
+  fonte: { aceita: ".zip,.ttf,.otf", rotulo: "Adicionar fonte", naMaquina: true },
   "tema-icones": { aceita: ".zip", rotulo: "Adicionar tema de ícones", naMaquina: true },
 };
 
@@ -1268,7 +1449,13 @@ function controleFlavor(item, aplica) {
     caixa.append(elemento("button", {
       type: "button", "data-valor": nome, "aria-pressed": "false",
       onclick: async () => { if (await aplica(nome)) pintar(nome); },
-    }, [elemento("span", { class: "nome", texto: nome }), tira]));
+    }, [
+      /* O rótulo pela tabela ("Frappé", com acento e maiúscula) — o VALOR que
+       * vai para o arquivo continua sendo o cru, no data-valor. A conferência
+       * de língua pegou "frappe" minúsculo em duas abas, contra a régua dela. */
+      elemento("span", { class: "nome", texto: rotuloDeValor(nome) }),
+      tira,
+    ]));
   }
   /* `valorEmVigor` e não `item.valor`: o disco não sabe da escolha que ela
    * acabou de fazer, e era o disco que estava pintando. */
@@ -1492,7 +1679,7 @@ function simulacaoLeitura(item) {
   }
   caixa.append(elemento("div", {
     class: "legenda",
-    texto: `simulação — ${temp}K, textura ${t}. Quem pinta de verdade é o cosmic-comp patchado.`,
+    texto: `desenho, não captura: ${temp} K e textura ${t} — quem pinta de verdade é o cosmic-comp recompilado.`,
   }));
   return caixa;
 }
@@ -1504,7 +1691,7 @@ function gradeDeIcones(limite = 24) {
   if (!lista.itens.length) {
     return elemento("p", {
       class: "sem-previa",
-      texto: "o tema de ícones ainda não está no disco — rode “Reconstruir o tema de ícones”.",
+      texto: "o tema de ícones ainda não está no disco — rode «Reconstruir o tema de ícones».",
     });
   }
   const grade = elemento("div", { class: "previa-grade" });
@@ -1796,7 +1983,7 @@ async function definirJogo(appid, acao, motivo, remover) {
      * apagamento armado sem que nada na tela tivesse dito que houve decisão. */
     body: JSON.stringify({ appid, acao, motivo, remover: !!remover, seco: ensaiando() }),
   });
-  if (r.erro) { torrada(r.erro, "ruim"); return; }
+  if (r.erro) { torrada(r.erro, "erro"); return; }
   if (r.seco) { torrada(r.aviso, "igual"); return; }
   torrada(remover ? "Voltou ao normal — vale depois de arrumar os jogos"
                   : `Escolha gravada — ${r.depois}`);
@@ -2429,6 +2616,11 @@ function montarCartao(item) {
    * do `meow.conf.exemplo` não se perdeu: ele é o `.motivo` dentro da `.dica`,
    * que o `?` ao lado do título abre (ver `porqueEDica`, acima). Era a sexta
    * camada de um cartão de seis; hoje são três. */
+  const buscaViva = semAcento($("#busca").value.trim());
+  if (buscaViva) {
+    const motivo = ondeCasa(item, buscaViva);
+    if (motivo) cartao.append(elemento("p", { class: "casa-por", texto: motivo }));
+  }
   return cartao;
 }
 
@@ -2719,8 +2911,10 @@ function classeDaLinha(linha) {
 
 function abrirGaveta(trabalho) {
   if (TRABALHO?.timer) clearInterval(TRABALHO.timer);
-  TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve };
+  TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve,
+               rotulo: trabalho.rotulo };
   $("#gaveta").hidden = false;
+  pastilhaDeTrabalho(false);
   $("#gaveta-titulo").textContent = trabalho.rotulo + (trabalho.seco ? "  (em seco)" : "");
   $("#gaveta-comando").textContent = trabalho.comando;
   $("#saida").replaceChildren();
@@ -2739,7 +2933,7 @@ function marcarEstado(classe, texto) {
 async function puxar() {
   if (!TRABALHO) return;
   const r = await api(`/api/trabalho?id=${TRABALHO.id}&desde=${TRABALHO.proximo}`);
-  if (r.erro) { clearInterval(TRABALHO.timer); return; }
+  if (r.erro) { clearInterval(TRABALHO.timer); pastilhaDeTrabalho(false); return; }
   TRABALHO.proximo = r.proximo;
 
   const saida = $("#saida");
@@ -2774,6 +2968,14 @@ async function puxar() {
      * zera — um `meow status` bem-sucedido não aplicou chave nenhuma, e apagar
      * o aviso ali faria a página esquecer o que ainda está esperando. */
     if (escreveu && (rc === 0 || rc === 1)) { PENDENTES.clear(); atualizarAviso(); }
+    if ($("#gaveta").hidden) {
+      /* O desfecho não pode depender de a gaveta estar à vista: quem fechou
+       * continua tendo direito de saber como acabou. A frase é a mesma da
+       * pastilha de estado, com o nome do trabalho na frente. */
+      const fim = $("#gaveta-estado").textContent;
+      torrada(`${TRABALHO.rotulo || "O trabalho"}: ${fim}`, rc === 0 || rc === 1 ? "ok" : "erro");
+    }
+    pastilhaDeTrabalho(false);
     TRABALHO = null;
   }
 }
@@ -2958,15 +3160,34 @@ function itensExternos() {
 function botaoDeAssunto(assunto) {
   const meus = GRUPOS.filter((g) => assuntoDe(g) === assunto);
   const conta = meus.reduce((s, g) => s + (Number(contaDoGrupo(g)) || 0), 0);
+  /* O PONTO DE PENDÊNCIA: a aba que tem escolha esperando ganha um ponto na
+   * cor de acento ao lado do nome. É o mesmo aviso que o cartão já dá de
+   * perto ("não salvo"), dado de longe — sem ele, saber ONDE estão as 14
+   * pendentes exigia abrir as treze abas. O trilho repinta a cada escolha,
+   * então o ponto acompanha sozinho. */
+  const pendente = meus.some((g) => g.tipo === "chaves"
+    && (g.itens || []).some((i) => MUDANCAS.has(i.chave)));
+  /* O TITLE ABRE A CONTA — 07/09/2026. O número do crachá soma ajustes e
+   * ações, e a conferência de língua mediu a dúvida que isso deixa: a porta da
+   * home fala "97 ajustes", o crachá fala "10", e nada dizia que são contas
+   * diferentes. O hover responde sem gastar largura do menu. */
+  const soAjustes = meus.filter((g) => g.tipo === "chaves")
+    .reduce((t, g) => t + (g.itens || []).length, 0);
+  const soAcoes = meus.filter((g) => g.tipo === "acoes")
+    .reduce((t, g) => t + (g.itens || []).length, 0);
   return elemento("button", {
     type: "button",
     "data-grupo": assunto,
     "aria-current": String(assunto === ABA),
-    title: assunto,
+    title: conta
+      ? `${assunto} — ${soAjustes === 1 ? "1 ajuste" : soAjustes + " ajustes"}`
+        + (soAcoes ? ` e ${soAcoes === 1 ? "1 ação" : soAcoes + " ações"}` : "")
+      : assunto,
     onclick: () => { $("#busca").value = ""; ABA = assunto; gravarHash(); render(); },
   }, [
     iconeDeMenu(assunto, "assunto"),
     elemento("span", { texto: encurtar(assunto) }),
+    pendente ? elemento("span", { class: "ponto-pendente", "aria-label": "há escolha esperando aqui" }) : null,
     elemento("span", { class: "conta", texto: conta ? String(conta) : "" }),
   ]);
 }
@@ -3814,7 +4035,7 @@ const ACERVO_DO_ASSUNTO = {
   "Ícones": {
     tipo: "tema-icones",
     nota: "Um tema de ícones de base, em .zip. Ele entra na máquina, e o "
-        + "«Tema de base» acima passa a poder escolhê-lo.",
+        + "«Tema de onde herdar» acima passa a poder escolhê-lo.",
   },
   "Terminal": {
     tipo: "fonte",
@@ -4148,7 +4369,7 @@ function render() {
     alvo.append(elemento("p", {
       class: "frase",
       texto: "O tema como está no disco agora. Trocar uma chave acima só muda "
-           + "isto depois de “Reconstruir o tema de ícones”.",
+           + "isto depois de «Reconstruir o tema de ícones».",
     }));
     alvo.append(gradeDeIcones());
   }
@@ -4200,9 +4421,16 @@ function grudarPrevias() {
     OBSERVADOR_PREVIA = new IntersectionObserver((entradas) => {
       for (const e of entradas) {
         const faixa = e.target.nextElementSibling;
-        if (faixa && faixa.classList.contains("previa-bloco")) {
-          faixa.classList.toggle("presa", !e.isIntersecting);
-        }
+        if (!faixa || !faixa.classList.contains("previa-bloco")) continue;
+        /* SÓ ENCOLHE QUEM SAIU POR CIMA — 07/09/2026
+         * `!isIntersecting` também é verdade para a sentinela que ainda está
+         * ABAIXO da tela, e a conferência de produto mediu o efeito: um bloco
+         * na segunda dobra nascia já comprimido e, quando a rolagem o trazia
+         * para a tela, ele INFLAVA de 100 para 147 px na frente do olho,
+         * empurrando exatamente o que ela ia ler. Encolhida é a faixa cujo
+         * lugar de descanso já passou — a sentinela acima do teto do `main`. */
+        const acima = e.boundingClientRect.top < (e.rootBounds ? e.rootBounds.top : 0);
+        faixa.classList.toggle("presa", !e.isIntersecting && acima);
       }
     }, { root: raiz, threshold: 0 });
   } else {
@@ -4243,6 +4471,25 @@ function semAcento(texto) {
  * `item.chave ?` na frente: quem não tem `chave` caía no ramo das ações, que
  * lê `rotulo`/`ajuda`/`id` — campos que uma folha não tem. Agora os campos são
  * a união, e cada tipo contribui com os seus. */
+/* POR QUE ESTE CARTÃO ESTÁ NO RESULTADO — 07/09/2026
+ * A conferência de primeira-vez buscou "doctor": 32 cartões, e 6 dos 8
+ * primeiros sem a palavra em NENHUM texto visível ("Janelas lado a lado",
+ * "Tamanho de tudo na tela") — o casamento vinha da chave ou do comentário,
+ * que moram dentro do `?`. Um resultado que não mostra o porquê parece
+ * sorteio, e a busca perde a confiança que o atalho `/` promete.
+ * A linha só nasce quando o casamento é INVISÍVEL: sublinhar o que já está na
+ * tela seria ruído. */
+function ondeCasa(item, busca) {
+  const visivel = semAcento([tituloDoCartao(item), item.frase, item.rotulo]
+    .filter(Boolean).join(" "));
+  if (visivel.includes(busca)) return null;
+  const c = item.chave || item.id || "";
+  if (semAcento(String(c)).includes(busca)) return `casa pela chave ${c}`;
+  if (semAcento(String(item.ajuda || "")).includes(busca)) return "casa pelo «Por quê» — o ? abre";
+  if (semAcento(String(item.valor ?? "")).includes(busca)) return "casa pelo valor atual";
+  return "casa por um campo do arquivo";
+}
+
 function casa(item, busca) {
   const campos = [
     item.chave, item.frase, item.valor, item.secao, item.subsecao,
@@ -4310,9 +4557,9 @@ function montarHome() {
   }
   ident.append(tira);
 
-  const comoEscolhido = { hora: "escolhido pelo relógio", rotacao: "girando pela lista", fixo: "fixo" };
+  const comoEscolhido = { hora: "escolhida pelo relógio", rotacao: "girando pela lista", fixo: "fixa" };
   ident.append(elemento("p", { class: "home-linha", texto:
-    `Logo ${gatoNome || "—"}, ${comoEscolhido[vale("LOGO_MODO")] || "fixo"} · ícones ${vale("NOME_TEMA_ICONES")} · ponteiro ${vale("CURSOR") || "de fábrica"}` }));
+    `Logo ${gatoNome ? rotuloDeValor(gatoNome) : "—"}, ${comoEscolhido[vale("LOGO_MODO")] || "fixa"} · ícones ${vale("NOME_TEMA_ICONES")} · ponteiro ${vale("CURSOR") || "de fábrica"}` }));
   retrato.append(ident);
 
   /* As fotos são a COLEÇÃO, não "a que está na tela" — a página não sabe qual
@@ -4337,12 +4584,12 @@ function montarHome() {
     atencao.dataset.esperando = "1";
     atencao.append(elemento("p", {}, [
       elemento("strong", { texto: `${MUDANCAS.size} ${MUDANCAS.size === 1 ? "escolha" : "escolhas"} esperando. ` }),
-      elemento("span", { texto: "Elas estão guardadas aqui, e não no disco. “Salvar e aplicar”, no alto, grava tudo de uma vez e roda o instalador em seguida." }),
+      elemento("span", { texto: "Elas estão guardadas aqui, e não no disco. «Salvar e aplicar», no alto, grava tudo de uma vez e roda o instalador em seguida." }),
     ]));
   } else {
     atencao.append(elemento("p", {}, [
       elemento("strong", { texto: "Nada esperando. " }),
-      elemento("span", { texto: "Escolher aqui não muda a máquina: clicar guarda, e “Salvar e aplicar” é o que grava e aplica." }),
+      elemento("span", { texto: "Escolher aqui não muda a máquina: clicar guarda, e «Salvar e aplicar» é o que grava e aplica." }),
     ]));
   }
 
@@ -4374,10 +4621,16 @@ function montarHome() {
       else if (g.tipo === "acoes") b.acoes += g.itens.length;
     }
   }
+  /* A CONTA DA PORTA E A DO CRACHÁ SÃO A MESMA — 07/09/2026. A porta dizia
+   * "97 ajustes" e os crachás do trilho somavam 131, porque o crachá conta
+   * ajustes E ações e a porta contava só ajustes. Dois números para a mesma
+   * pergunta é a tela pedindo desconfiança; agora a porta diz as duas parcelas
+   * com nome. */
   const portas = blocos.map((b) => [
     b.primeiro, b.nome,
     b.chaves
-      ? `${b.chaves} ajustes em ${b.assuntos} assunto${b.assuntos > 1 ? "s" : ""}`
+      ? `${b.chaves} ajustes e ${b.acoes} ${b.acoes === 1 ? "ação" : "ações"} em `
+        + `${b.assuntos} assunto${b.assuntos > 1 ? "s" : ""}`
       : `${b.acoes} ${b.acoes > 1 ? "ações" : "ação"}`,
     FRASE_DO_BLOCO[b.nome] || "",
   ]);
@@ -4420,7 +4673,7 @@ function montarHome() {
      * sendo o nome de um gato quando é o de fábrica, e é ele que aparece aqui. */
     frases.push(`A logo da dock passa a ser ${maiuscula(vale("LOGO_NOITE"))}`
       + (vale("FASTFETCH_LOGO_MODO") === "espelho" && vale("LOGO_DIA")
-         ? `, e o do terminal, ${maiuscula(vale("LOGO_DIA"))}.` : "."));
+         ? `, e a do terminal, ${maiuscula(vale("LOGO_DIA"))}.` : "."));
   }
   if (liga("WALLPAPER_NOITE")) {
     frases.push("O carrossel sorteia só entre as imagens escuras.");
@@ -4429,7 +4682,7 @@ function montarHome() {
     const textura = Number(vale("LEITURA_TEXTURA") || 0);
     const rampa = Number(vale("LEITURA_RAMPA_MIN") || 0);
     frases.push(`A tela esquenta até ${vale("LEITURA_TEMPERATURA")} K`
-      + (textura > 0 ? ` e ganha ${Math.round(textura * 100)} % de textura de papel` : "")
+      + (textura > 0 ? ` e ganha ${Math.round(textura * 100)}% de textura de papel` : "")
       + (rampa > 0 ? `, em ${rampa} min de rampa.` : "."));
   } else {
     frases.push("O modo de leitura fica desligado.");
@@ -4497,6 +4750,18 @@ function montarHome() {
   /* --- 5. o que se roda toda semana -------------------------------------- */
   const semana = elemento("section", { class: "home-semana" });
   semana.append(elemento("h3", { texto: "Toda semana" }));
+  /* A EXCEÇÃO AO AVISO, DITA ONDE ELA MORA — 07/09/2026
+   * A conferência de primeira-vez pegou a contradição: o alto da página promete
+   * "escolher aqui não muda a máquina", e 455 px abaixo, na MESMA coluna,
+   * quatro botões rodam na hora — "Próxima imagem" troca o papel de parede no
+   * primeiro clique, sem pergunta. Para quem está aprendendo o contrato, o
+   * susto desmente o aviso e mina a confiança no resto. A frase abaixo fecha o
+   * buraco sem encher os botões de selo: a regra ("escolher guarda") continua
+   * uma, e a exceção ("ação roda na hora") está escrita ao lado da exceção. */
+  semana.append(elemento("p", {
+    class: "frase nota-secao",
+    texto: "Estes rodam na hora — ação não passa pela bandeja do Salvar.",
+  }));
   const linha = elemento("div", { class: "linha-botoes" });
   for (const [id, rotulo, principal] of [
     ["doctor", "Conferir a máquina", true],
@@ -4512,6 +4777,16 @@ function montarHome() {
     }));
   }
   semana.append(linha);
+  /* A PONTE COM O TERMINAL, DITA UMA VEZ — 07/09/2026
+   * A conferência de primeira-vez procurou "ajuda" e "socorro" na página:
+   * zero resultados, e nada dizia que este painel e o comando `meow` são a
+   * mesma coisa — os agendamentos que a própria página descreve rodam por ele.
+   * Uma linha resolve; um manual aqui não é o lugar (o trilho já teve um botão
+   * "Manual" e ela o tirou). */
+  semana.append(elemento("p", {
+    class: "frase nota-secao",
+    texto: "No terminal, isto aqui é o comando meow — meow doctor confere, meow ativar aplica.",
+  }));
   lado.append(semana);
   caixa.append(lado);
   return caixa;
@@ -4561,12 +4836,36 @@ document.addEventListener("keydown", (ev) => {
 $("#busca").addEventListener("input", render);
 $("#fechar-gaveta").addEventListener("click", () => {
   $("#gaveta").hidden = true;
-  if (TRABALHO?.timer) clearInterval(TRABALHO.timer);
+  /* FECHAR NÃO É PERDER DE VISTA — 07/09/2026
+   * A conferência de produto mediu: gaveta fechada com o instalador correndo,
+   * o polling parava, nada na tela dizia que algo rodava, e não havia botão
+   * que reabrisse — um segundo clique em qualquer Executar respondia "já há um
+   * trabalho rodando" sobre um trabalho invisível. Agora fechar com trabalho
+   * vivo deixa o puxar() de pé (400 ms num servidor local é barato) e pendura
+   * uma pastilha no cabeçalho; ela reabre a gaveta, e o desfecho de um
+   * trabalho fechado vira torrada em vez de silêncio. */
+  if (TRABALHO && TRABALHO.timer !== null) {
+    pastilhaDeTrabalho(true);
+  }
 });
+
+function pastilhaDeTrabalho(mostrar) {
+  let p = document.getElementById("pastilha-trabalho");
+  if (!mostrar) { if (p) p.remove(); return; }
+  if (p || !TRABALHO) return;
+  p = elemento("button", {
+    type: "button",
+    id: "pastilha-trabalho",
+    class: "btn btn-mini",
+    texto: `${TRABALHO.rotulo || "trabalho"} rodando… — reabrir`,
+    onclick: () => { $("#gaveta").hidden = false; pastilhaDeTrabalho(false); },
+  });
+  $("#barra-salvar").before(p);
+}
 $("#parar").addEventListener("click", async () => {
   if (!TRABALHO) return;
   await api("/api/parar", { method: "POST", body: JSON.stringify({ id: TRABALHO.id }) });
-  torrada("pedido de parada enviado", "igual");
+  torrada("Pedido de parada enviado", "igual");
 });
 document.addEventListener("click", (ev) => {
   const id = ev.target.dataset?.acaoRapida;
@@ -4747,6 +5046,10 @@ async function iniciar() {
   }
 
   montarGrupos();
+  /* A bandeja volta ANTES da primeira pintura: restaurar depois do `render`
+   * faria a página nascer limpa e piscar para o estado pendente. */
+  restaurarBandeja();
+  atualizarBarraSalvar();
 
   /* O SECO SOBREVIVE AO F5.
    *   Dois validadores independentes pegaram o mesmo: o interruptor voltava
@@ -4762,11 +5065,29 @@ async function iniciar() {
    *   que o `estilo.css` lê para acender o amarelo, e o que o `ensaiando()` lê
    *   para decidir), e quem ouve é o `click`, que é o único evento que um botão
    *   de dois estados tem. */
+  /* O ENSAIO SE ANUNCIA — 07/09/2026
+   * A conferência de primeira-vez mediu o feedback de ligar o ensaio: o fundo
+   * do próprio botão a 14% de alfa, e mais nada — zero texto novo na página,
+   * e o "Salvar e aplicar", a 193 px dali, continuava prometendo gravar. O
+   * modo que existe para dar coragem de explorar era o mais tímido da tela.
+   * Ligado, o botão passa a DIZER o estado ("Ensaiando — nada grava"), e o
+   * Salvar veste a mesma borda amarela com o título contando o que ele fará
+   * de verdade. Os ids não mudam; os testes seguram por eles. */
+  const pintarEnsaio = () => {
+    const ligado = ensaiando();
+    $("#seco").textContent = ligado ? "Ensaiando — nada grava" : "Ensaiar sem gravar";
+    const salvar = $("#botao-salvar");
+    salvar.classList.toggle("em-ensaio", ligado);
+    salvar.title = ligado
+      ? "Com o ensaio ligado: confere as escolhas e mostra o que faria, sem escrever."
+      : "";
+  };
   try {
     if (sessionStorage.getItem("meow-seco") === "1") {
       $("#seco").setAttribute("aria-pressed", "true");
     }
   } catch (e) { /* aba sem armazenamento: o padrão desligado continua valendo */ }
+  pintarEnsaio();
   $("#seco").addEventListener("click", () => {
     /* Vira o estado ANTES de gravar: o clique é o gesto, e o atributo é a
      * memória dele. Um `<button>` não vira sozinho como uma caixa de marcar
@@ -4776,10 +5097,15 @@ async function iniciar() {
     try {
       sessionStorage.setItem("meow-seco", ligado ? "1" : "0");
     } catch (e) { /* idem */ }
+    pintarEnsaio();
   });
 
   $("#botao-salvar").addEventListener("click", salvarEscolhas);
   $("#botao-descartar").addEventListener("click", descartarEscolhas);
+  $("#salvar-conta").addEventListener("click", alternarListaPendentes);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") document.getElementById("lista-pendentes")?.remove();
+  });
 
   /* O menu do Exportar fecha ao clicar fora e no Esc. O `<details>` nativo não
    * faz nem uma coisa nem outra sozinho, e um menu que fica aberto atrás do

@@ -262,6 +262,65 @@ a:hover { color: var(--accent); text-decoration: underline; }
   background: color-mix(in srgb, var(--accent) 12%, var(--mantle));
 }
 .barra-salvar strong { font-size: .8rem; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* O contador é clicável: abre a lista do que espera. O sublinhado pontilhado é
+ * o convite — sem ele, "14 escolhas" parece um rótulo e ninguém clica em
+ * rótulo. */
+#salvar-conta { cursor: pointer; text-decoration: underline dotted var(--overlay0); text-underline-offset: 3px; }
+#salvar-conta:hover { text-decoration-color: var(--accent); }
+
+/* A LISTA DO QUE ESPERA — 07/09/2026. Ancorada na própria barra, cai como um
+ * balão abaixo dela. Cada linha é um botão que leva ao cartão da chave. */
+.barra-salvar { position: relative; }
+#lista-pendentes {
+  position: absolute;
+  top: calc(100% + .45rem);
+  right: 0;
+  z-index: 40;
+  min-width: 24rem;
+  max-width: 34rem;
+  max-height: 60vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  padding: .35rem;
+  border: 1px solid var(--surface1);
+  border-radius: var(--r-3);
+  background: var(--mantle);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 45%, transparent);
+}
+.linha-pendente {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .1rem .8rem;
+  align-items: baseline;
+  padding: .4rem .55rem;
+  border: 0;
+  border-radius: var(--r-2);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+}
+.linha-pendente:hover { background: var(--surface0); }
+.linha-pendente .p-nome { font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.linha-pendente .p-troca { font-size: .74rem; color: var(--subtext0); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.linha-pendente .p-aba { grid-column: 1 / -1; font-size: var(--t-legenda); color: var(--overlay1); }
+
+/* O ponto de pendência no trilho: no canto do ícone, SEM ocupar coluna — o
+ * botão é uma grade de três colunas (ícone · nome · crachá), e um quarto filho
+ * no fluxo abria uma segunda linha: na primeira captura o "11" de Cor e tela
+ * caiu para baixo do nome. Absoluto, ele não disputa lugar com ninguém. */
+.trilho .ponto-pendente {
+  position: absolute;
+  left: 1.35rem;
+  top: .32rem;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--base);
+}
 .lista-chaves {
   font: .68rem/1.4 var(--mono);
   color: var(--subtext0);
@@ -1312,6 +1371,41 @@ select { flex: 1 1 auto; }
 /* --- torradas ------------------------------------------------------------- */
 /* Sem sombra: no latte ela seria um halo claro sobre fundo claro, e a borda já
  * faz o trabalho nos dois sabores. */
+/* A linha que explica um resultado de busca cujo casamento não está à vista:
+ * cinza, pequena, e só no modo filtrado. */
+.cartao .casa-por {
+  order: 6;
+  margin: 0;
+  font-size: var(--t-legenda);
+  color: var(--overlay1);
+  font-style: italic;
+}
+
+/* O Salvar em ensaio veste o amarelo do interruptor: os dois estados são o
+ * mesmo estado, e a tela diz isso com a mesma cor. */
+#botao-salvar.em-ensaio {
+  border-color: color-mix(in srgb, var(--yellow) 55%, var(--surface1));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--yellow) 35%, transparent);
+}
+
+/* A FAIXA DE SERVIDOR PERDIDO — 07/09/2026. Vermelha e FIXA: diferente da
+ * torrada, ela relata um estado, não um evento — e o estado dura até o `api()`
+ * ouvir o servidor de novo. Mora logo sob o cabeçalho, empurrando o conteúdo
+ * em vez de tapá-lo. */
+#faixa-sem-servidor {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: wrap;
+  padding: .55rem 1.6rem;
+  background: color-mix(in srgb, var(--red) 14%, var(--mantle));
+  border-bottom: 1px solid color-mix(in srgb, var(--red) 45%, var(--surface0));
+  font-size: .85rem;
+  color: var(--text);
+}
+#faixa-sem-servidor strong { color: var(--red); }
+#faixa-sem-servidor a.btn { text-decoration: none; }
+
 .torradas {
   position: fixed;
   right: 1rem;
@@ -1331,6 +1425,16 @@ select { flex: 1 1 auto; }
   font-size: .8rem;
   color: var(--text);
   animation: entra .18s ease-out;
+  /* O TETO DE LARGURA E O PONTEIRO — 07/09/2026. Medido com o servidor fora:
+     a frase de erro esticava a torrada a ~1490 px, uma tarja atravessando a
+     tela. E `pointer-events: none` (herdado do contêiner) fazia o rato
+     atravessá-la: impossível segurar para ler ou selecionar o texto de um
+     erro. O contêiner continua `none` — é ele que não pode roubar cliques da
+     página —; a torrada em si volta a ser tocável, e o `app.js` pausa o
+     relógio dela no `mouseenter`. */
+  max-width: 28rem;
+  pointer-events: auto;
+  user-select: text;
 }
 .torrada.ok    { border-left-color: var(--green); }
 .torrada.igual { border-left-color: var(--overlay0); color: var(--subtext0); }
