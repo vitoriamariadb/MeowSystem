@@ -24,7 +24,7 @@ cd MeowSystem
 meow ativar               # todas as outras
 ```
 
-São 53 etapas. Rodar de novo numa máquina já pronta **não escreve um byte** — e diz isso, em vez
+São 52 etapas. Rodar de novo numa máquina já pronta **não escreve um byte** — e diz isso, em vez
 de listar as etapas como se as tivesse refeito. Para ver o que aconteceria antes de deixar
 acontecer: `MEOW_DRY_RUN=1 ./install.sh`.
 
@@ -112,7 +112,7 @@ mostra o que aconteceria sem escrever nada.
 ## Conferir e desfazer
 
 ```bash
-meow doctor                            # 47 conferências. Não escreve nada.
+meow doctor                            # 46 conferências. Não escreve nada.
 meow doctor --consertar                # aplica só o que estiver fora do lugar
 ./scripts/aplicar_tema.sh original     # devolve o tema de antes
 meow desinstalar                       # tira tema, ícones e agendamentos

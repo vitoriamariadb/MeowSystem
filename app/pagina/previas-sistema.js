@@ -488,13 +488,14 @@
         legenda = montarLegenda(titulo + " (não deu para ler os valores desta seção)");
       }
       if (!legenda) legenda = montarLegenda(titulo);
-      /* A legenda descreve o desenho da ESQUERDA, que é o que está valendo.
-       * Quando existe o segundo desenho, ela precisa dizer o que ele é — senão
-       * sobram dois desenhos parecidos e nenhuma pista de qual é qual. */
-      if (depois) {
-        legenda = legenda.replace(/\.$/, "")
-          + " — à direita, o mesmo desenho com a escolha que ainda não foi salva.";
-      }
+      /* A frase que diz "e o da direita é a escolha pendente" NÃO nasce aqui.
+       * Ela era escrita neste ponto e por isso saía só nos desenhos deste
+       * arquivo — as dez prévias do `previas-tela.js` ficavam com uma legenda
+       * que descrevia a esquerda sem dizer que descrevia a esquerda. Medido em
+       * "Cor e tela": com latte escolhido, o `<title>` do SVG da direita já
+       * dizia "latte" e a frase embaixo dos dois continuava dizendo "mocha".
+       * Agora quem a acrescenta é o `parDePrevias` do `app.js`, uma vez, para
+       * todo desenho que ganhe par. */
       return { antes: antes, depois: depois, legenda: legenda };
     };
   }
@@ -1657,6 +1658,325 @@
   }
 
   /* ======================================================================== */
+  /* 9. Instalação                                                             */
+  /* ======================================================================== */
+  /* ESTA SEÇÃO NÃO TEM CHAVE NENHUMA — são sete botões e nada mais, e é por
+   * isso que ela ficou sem figura até hoje: o `parDePrevias` do app.js só roda
+   * sobre grupo de CHAVES. Medido nas 14 abas, as três sem desenho são também
+   * as que deixam mais tela vazia. Quem chama esta função é o
+   * `desenhoDaSecaoSemChaves`, com `{}` na mão, e o contrato muda de lugar: sem
+   * valores não há par antes/depois nem tempo real, e a figura responde uma
+   * pergunta que não depende do meow.conf.
+   *
+   * A PERGUNTA QUE O DESENHO RESPONDE: "o que acontece quando eu aperto um
+   * destes botões?". Os sete são variações de UM mecanismo, e é ele que está no
+   * quadro:
+   *
+   *     a fila de etapas   →  cada uma OLHA a máquina antes de escrever
+   *     já está no lugar   →  confere, e não escreve nada        (verde)
+   *     está fora          →  guarda cópia, e então escreve      (pêssego)
+   *
+   * A ideia mais forte do projeto está aí e não aparecia em canto nenhum da
+   * página: rodar de novo numa máquina pronta não escreve um byte. Quem decide
+   * isso é a `meow_escrever` do lib/comum.sh, que compara o CONTEÚDO e volta
+   * sem tocar no arquivo quando ele já está do jeito que devia — a volta de
+   * baixo, da máquina para a fila, é essa segunda passagem.
+   *
+   * A GRAMÁTICA DAS DUAS CORES É A MESMA nas linhas da fila e nos dois
+   * caminhos, senão o quadro seria dois riscos paralelos sem sentido. E o que
+   * separa os caminhos não é a cor: é a PONTA. A do confere para antes da
+   * moldura da tela e termina num visto; a do escreve atravessa a moldura, e só
+   * depois de passar pela cópia. Cor confirma, geometria informa — quem não
+   * distingue verde de pêssego continua vendo um traço que entra e um que não.
+   *
+   * OS DOIS NÚMEROS SÃO CONTADOS, NÃO LEMBRADOS: 52 é o tamanho do
+   * `local etapas=(…)` do install.sh e 46 o do `VERIFICAVEIS=(…)` do bin/meow.
+   * Os botões desta mesma página já dizem esses dois números na ajuda, e um
+   * desenho que discordasse do botão ao lado seria pior que um desenho sem
+   * número nenhum. As cinco linhas da fila, essas, são esquemáticas: quantas
+   * escrevem muda a cada passagem, e é exatamente o que a segunda zera. */
+  const ETAPAS_DO_INSTALADOR = 52;
+  const CONFERENCIAS_DO_DOCTOR = 46;
+
+  /* O visto mora aqui e não lá em cima com o sol e a lua, de propósito: é o
+   * único desenho que precisa dele. Glifo genérico no topo do arquivo vira o
+   * "check" que cada seção usa com um sentido diferente, e aí ele deixa de
+   * significar alguma coisa. */
+  function visto(cx, cy, tam, extra) {
+    return caminho(
+      "M " + q(cx - tam) + "," + q(cy + tam * 0.05)
+      + " L " + q(cx - tam * 0.28) + "," + q(cy + tam * 0.72)
+      + " L " + q(cx + tam) + "," + q(cy - tam * 0.78),
+      Object.assign({ "stroke-width": 1.5 }, extra || {}));
+  }
+
+  function desenharInstalacao(val) {
+    /* `val` chega `{}`. O parâmetro fica na assinatura porque o contrato é o
+     * mesmo das outras oito entradas do mapa — não porque haja o que ler. Ler
+     * qualquer coisa dele aqui seria inventar uma chave que esta seção não tem. */
+    const svg = moldura(
+      "as " + ETAPAS_DO_INSTALADOR + " etapas do instalador passando pela máquina: "
+      + "a que já está no lugar confere e não escreve, a que está fora guarda cópia e escreve");
+
+    /* --- a fila de etapas --- */
+    svg.appendChild(texto(19, 7.6, ETAPAS_DO_INSTALADOR + " etapas", { "font-size": 5 }));
+    svg.appendChild(retangulo(3, 10, 32, 38, 3, { "stroke-width": 1.5, opacity: 0.9 }));
+
+    const LINHAS_DA_FILA = [15, 22, 29, 36, 43];
+    for (let i = 0; i < LINHAS_DA_FILA.length; i++) {
+      const y = LINHAS_DA_FILA[i];
+      const escreve = i >= 3;
+      if (escreve) {
+        /* O quadradinho cheio é o único preenchimento do quadro, e ele É a
+         * informação: cheio = alguma coisa foi gravada no disco. Em todo o
+         * resto o traço basta. */
+        svg.appendChild(retangulo(6.5, y - 1.7, 3.4, 3.4, 0.8, {
+          fill: "var(--peach)", stroke: "none",
+        }));
+      } else {
+        svg.appendChild(visto(8.2, y, 2.4, { stroke: "var(--green)", "stroke-width": 1.5 }));
+      }
+      svg.appendChild(linha(13, y, 31.5, y, escreve
+        ? { "stroke-width": 1.5, stroke: "var(--peach)", opacity: 0.85 }
+        : { "stroke-width": 1.2, opacity: 0.35 }));
+    }
+
+    /* --- a máquina --- */
+    /* Tela com barra em cima e dock embaixo: é o mesmo desenho de máquina do
+     * VIDRO E RELÓGIO, lá na Barra e dock, e quem viu um reconhece o outro sem
+     * legenda. O pé existe só para que a moldura não seja lida como "janela" —
+     * o que a etapa atravessa é o computador inteiro. */
+    svg.appendChild(retangulo(68, 13, 29, 26, 2.5, { "stroke-width": 1.6 }));
+    svg.appendChild(retangulo(70.5, 15, 24, 4, 1.2, { "stroke-width": 1.1, opacity: 0.55 }));
+    svg.appendChild(retangulo(77, 31, 11, 3, 1.5, { "stroke-width": 1.1, opacity: 0.55 }));
+    svg.appendChild(linha(82.5, 39, 82.5, 43, { "stroke-width": 1.4, opacity: 0.8 }));
+    svg.appendChild(linha(76, 43.5, 89, 43.5, { "stroke-width": 1.6, opacity: 0.8 }));
+
+    /* --- quem só confere --- */
+    /* Tracejado e parando ANTES da moldura: conferir lê a máquina e não deixa
+     * nada nela. O visto no fim é o mesmo glifo das três primeiras linhas da
+     * fila, e é ele que amarra a fila ao caminho. */
+    svg.appendChild(texto(45, 17.5, "confere", {
+      "font-size": 4.4, fill: "var(--green)", opacity: 0.95,
+    }));
+    svg.appendChild(linha(35.5, 22, 51.5, 22, {
+      "stroke-width": 1.4, stroke: "var(--green)", "stroke-dasharray": "3 2.5",
+    }));
+    svg.appendChild(visto(57, 22, 4, { stroke: "var(--green)", "stroke-width": 1.9 }));
+
+    /* --- quem escreve --- */
+    /* A cópia vem ANTES da seta, e a ordem é a de verdade: nenhuma escrita
+     * deste projeto acontece sem que o arquivo de antes esteja guardado. Duas
+     * folhas sobrepostas, e não uma: uma folha só seria "arquivo", e o que se
+     * guarda é a segunda via. As duas linhas dentro da folha da frente foram
+     * medidas na tela — sem elas, na primeira conferência a olho, o par de
+     * retângulos lia como um interruptor. */
+    svg.appendChild(linha(35.5, 36, 37.5, 36, { "stroke-width": 1.6, stroke: "var(--peach)" }));
+    svg.appendChild(retangulo(37.5, 27.5, 11, 12, 1, { "stroke-width": 1.3, opacity: 0.55 }));
+    svg.appendChild(retangulo(40.5, 30, 11, 12, 1, { "stroke-width": 1.5 }));
+    /* As duas linhas de dentro ficam LONGE do caminho — uma acima, outra
+     * abaixo. Amontoadas em volta dele (35 e 37,5, com a seta em 36) o conjunto
+     * virava um borrão de três riscos paralelos. */
+    svg.appendChild(linha(43, 33.5, 49, 33.5, { "stroke-width": 1, opacity: 0.5 }));
+    svg.appendChild(linha(43, 38.5, 47.5, 38.5, { "stroke-width": 1, opacity: 0.5 }));
+    svg.appendChild(linha(51.5, 36, 71, 36, { "stroke-width": 1.6, stroke: "var(--peach)" }));
+    /* OS DOIS RÓTULOS FICAM NA MESMA LINHA DE BASE, embaixo do caminho, e os
+     * centros estão medidos na tela: com "cópia" em 46,5 e "escreve" em 60 as
+     * duas palavras se encostaram e leram como uma só. A folga de agora é de
+     * quase quatro unidades, que na tela dela dão dez pixels. */
+    svg.appendChild(texto(44.5, 46.5, "cópia", { "font-size": 4.4, opacity: 0.85 }));
+    svg.appendChild(texto(62, 46.5, "escreve", {
+      "font-size": 4.4, fill: "var(--peach)", opacity: 0.95,
+    }));
+    /* A ponta entra 3 unidades DENTRO da moldura. Encostar na borda seria o
+     * mesmo desenho do caminho de cima com outra cor. */
+    svg.appendChild(grupo({ stroke: "var(--peach)", "stroke-width": 1.6 }, [
+      seta(71, 36, 0, 3.4),
+    ]));
+
+    /* --- rodar de novo --- */
+    /* A volta da máquina para o começo da fila, apagada de propósito: ela é a
+     * promessa que a página inteira faz e que nenhum botão mostra. Na segunda
+     * passagem as cinco linhas ficam verdes e o instalador termina dizendo, com
+     * essas palavras, que nenhuma etapa precisou escrever nada. */
+    svg.appendChild(caminho("M 88,44 L 88,54 L 19,54 L 19,50", {
+      "stroke-width": 1.2, opacity: 0.5,
+    }));
+    svg.appendChild(grupo({ "stroke-width": 1.2, opacity: 0.5 }, [seta(19, 50, -90, 3)]));
+    /* O rótulo fica do lado da PONTA, e não no meio da volta: no meio ele caía
+     * embaixo de "cópia" e de "escreve", e os três viravam um bloco de texto. */
+    svg.appendChild(texto(31, 52.5, "de novo", { "font-size": 4.4, opacity: 0.6 }));
+    return svg;
+  }
+
+  function legendaInstalacao(val) {
+    /* Sem chave não há número lido do disco, então a legenda não confere valor
+     * nenhum: ela diz o que foi desenhado e emenda o que o desenho não cabe —
+     * qual botão é qual caminho. */
+    const corpo = "as " + ETAPAS_DO_INSTALADOR + " etapas do instalador passando uma a uma pela"
+      + " máquina — a que já está no lugar confere e não escreve nada, a que está fora guarda"
+      + " cópia e só então escreve";
+    return montarLegenda(corpo, [
+      "o «Conferir a máquina» é só o caminho verde: " + CONFERENCIAS_DO_DOCTOR
+        + " conferências, e nenhuma escrita",
+      "a cópia é o que o «Voltar ao tema de antes» devolve",
+      "a volta de baixo é rodar de novo: numa máquina já pronta, nenhuma etapa escreve",
+    ]);
+  }
+
+  /* ======================================================================== */
+  /* 9. Idempotência                                                           */
+  /* ======================================================================== */
+  /* A PERGUNTA QUE O DESENHO RESPONDE: por que ATUALIZAR A MÁQUINA é assunto
+   * deste projeto, e não do terminal dela. Ela já tem o comando — está escrito
+   * no cabeçalho do `atualizar_sistema.sh`, uma linha com `apt full-upgrade`,
+   * `topgrade` e `cargo install-update`. O que essa linha não tem é a SEGUNDA
+   * METADE: cada troca de pacote (cosmic-comp, cosmic-panel, fastfetch,
+   * papirus) desfaz alguma coisa que este projeto escreveu, e ninguém se lembra
+   * de rodar o `doctor` depois de uma atualização de meia hora.
+   *
+   * Então o desenho é a linha do tempo das duas metades: as três fontes
+   * atualizam, uma peça do MeowSystem cai da prateleira, a lupa do `doctor`
+   * fica em cima do buraco e a seta verde repõe a peça. Os dois colchetes
+   * embaixo são a frase inteira sem frase nenhuma — o pontilhado mede até onde
+   * vai o comando digitado à mão, o cheio mede o que esta página faz.
+   *
+   * ESTA SEÇÃO NÃO TEM CHAVE, SÓ TRÊS AÇÕES, e por isso a função é chamada com
+   * `{}`. Não há valor para ler, não há par antes/depois e não há tempo real:
+   * é uma figura sobre o que a página faz com a máquina, não sobre um número
+   * gravado no meow.conf. As duas funções abaixo mantêm a forma das outras oito
+   * (o mesmo `val`, o mesmo `seguro`) e não tocam em chave nenhuma — o dia em
+   * que a seção ganhar uma, o contrato já está de pé.
+   *
+   * AS QUATRO PEÇAS SÃO AS DO SCRIPT, não uma invenção: o passo "4/4 O que a
+   * atualização desfez" nomeia o tema, os ícones, o applet da barra e o gato do
+   * terminal. Quatro com nome, e não as 46 conferências do `doctor`: medido na
+   * página, este quadro sai com 250 x 150 px na tela dela — 2,5 px por unidade
+   * do viewBox —, e 46 quadradinhos ali dentro seriam 46 pontos de 5 px, que é
+   * o mesmo que nada.
+   *
+   * A PEÇA CAI, NÃO GANHA UM X. Um X vermelho em cima do quadrado leria "deu
+   * erro"; o que um `full-upgrade` faz é outra coisa — a peça deixa de estar no
+   * lugar. Buraco pontilhado em cima e o quadrado tombado embaixo dizem isso, e
+   * dizem também que a peça não sumiu: ela está ali para ser reposta. */
+  const PECAS_DA_PRATELEIRA = ["tema", "ícones", "barra", "gato"];
+  /* A terceira, e não a primeira: uma peça no meio da fila deixa o buraco
+   * cercado dos dois lados, e na ponta ele leria como o fim da prateleira. E é
+   * a "barra" porque o `cosmic-panel` é um dos quatro pacotes que o cabeçalho
+   * do script nomeia como os que a atualização troca. */
+  const PECA_QUE_CAI = 2;
+  const PRATELEIRA = { x: 44, y: 8, w: 11, h: 10, passo: 13.5, linha: 19.5 };
+
+  function desenharIdempotencia(val) {
+    const svg = moldura("apt, flatpak e cargo atualizando a máquina, uma peça do MeowSystem caindo da prateleira e a conferência repondo a peça");
+
+    /* --- as três fontes, empilhadas e etiquetadas --- */
+    /* São os três nomes que aparecem na saída do script, na ordem em que ele os
+     * roda. A seta para cima é a versão subindo; ela fica em `currentColor` de
+     * propósito, para que o verde do desenho signifique uma coisa só (repor) e
+     * o vermelho, uma só (o que caiu). */
+    const fontes = ["apt", "flatpak", "cargo"];
+    for (let i = 0; i < fontes.length; i++) {
+      const y = 5 + i * 11;
+      svg.appendChild(retangulo(3, y, 27, 8, 3, { "stroke-width": 1.6 }));
+      svg.appendChild(texto(6.5, y + 5.6, fontes[i], {
+        "font-size": 4.8, "text-anchor": "start",
+      }));
+      svg.appendChild(linha(26.5, y + 6, 26.5, y + 2.4, { "stroke-width": 1.5 }));
+      svg.appendChild(grupo({ "stroke-width": 1.5 }, [seta(26.5, y + 2.4, -90, 2.1)]));
+    }
+
+    /* A atualização passando: uma seta só, do bloco das fontes para a
+     * prateleira. Ela é o "logo depois" do texto da ação. */
+    svg.appendChild(linha(32.5, 20, 39.5, 20, { "stroke-width": 1.6 }));
+    svg.appendChild(grupo({ "stroke-width": 1.6 }, [seta(39.5, 20, 0, 3)]));
+
+    /* --- a prateleira do MeowSystem --- */
+    /* Os nomes ficam ACIMA dos quadrados: embaixo da prateleira é onde a peça
+     * caída mora, e rótulo em cima de peça caída seria a legenda do lugar
+     * errado. */
+    for (let i = 0; i < PECAS_DA_PRATELEIRA.length; i++) {
+      const x = PRATELEIRA.x + i * PRATELEIRA.passo;
+      const cx = x + PRATELEIRA.w / 2;
+      const caiu = i === PECA_QUE_CAI;
+      svg.appendChild(texto(cx, 5.5, PECAS_DA_PRATELEIRA[i], {
+        "font-size": 4.2, opacity: caiu ? 1 : 0.75,
+      }));
+      if (caiu) {
+        svg.appendChild(retangulo(x, PRATELEIRA.y, PRATELEIRA.w, PRATELEIRA.h, 2, {
+          "stroke-width": 1.5, "stroke-dasharray": "3 3", stroke: "var(--red)",
+        }));
+      } else {
+        /* Quadrado limpo, sem miolo. A primeira versão punha um círculo dentro
+         * de cada peça, e na captura da página o círculo saiu do tamanho da
+         * lente da lupa: as três peças inteiras e o buraco com a lupa em cima
+         * viraram quatro quadrados com uma bolinha dentro, e o buraco — que é a
+         * informação — desapareceu. */
+        svg.appendChild(retangulo(x, PRATELEIRA.y, PRATELEIRA.w, PRATELEIRA.h, 2, {
+          "stroke-width": 1.8, stroke: "var(--mauve)",
+        }));
+      }
+    }
+    svg.appendChild(linha(42, PRATELEIRA.linha, 97, PRATELEIRA.linha, {
+      "stroke-width": 1.8, opacity: 0.7,
+    }));
+
+    /* A peça no chão. O giro é o que a faz LER como caída — o mesmo quadrado
+     * sem giro, embaixo da prateleira, leria como uma quinta peça guardada. */
+    svg.appendChild(grupo({ stroke: "var(--red)", transform: "rotate(-16 69 35)" }, [
+      retangulo(63.5, 30, PRATELEIRA.w, PRATELEIRA.h, 2, { "stroke-width": 1.8 }),
+    ]));
+
+    /* A volta. Verde, e é a única coisa verde do quadro: é a metade que só este
+     * projeto tem. Ela atravessa a linha da prateleira de propósito — a peça
+     * volta PARA CIMA dela, e uma seta que parasse embaixo diria "achei", que é
+     * meio serviço. */
+    svg.appendChild(caminho("M 74.5,29 C 78.2,27 78.6,23 77.8,18.4", {
+      "stroke-width": 1.8, stroke: "var(--green)",
+    }));
+    svg.appendChild(grupo({ stroke: "var(--green)", "stroke-width": 1.8 }, [
+      seta(77.8, 18.4, -99, 3),
+    ]));
+
+    /* A lupa em cima do buraco é o `doctor`: ele não conserta sozinho no
+     * "aplicar" — ele DIZ o que saiu do lugar, e o conserto é o botão seguinte.
+     * Por isso ela fica em `currentColor`, entre o vermelho do que caiu e o
+     * verde do que volta. */
+    svg.appendChild(circulo(78, 11, 3.6, { "stroke-width": 1.8 }));
+    svg.appendChild(linha(80.5, 13.5, 84, 17, { "stroke-width": 2 }));
+    /* O nome embaixo, na direção em que o cabo aponta: é a palavra que ela lê
+     * nos três botões desta página ("e logo depois o doctor"), e sem ela a lupa
+     * seria só uma lupa — a figura ficaria dizendo "alguém olha" em vez de
+     * "este comando olha". */
+    svg.appendChild(texto(89, 30, "doctor", { "font-size": 4.6, opacity: 0.75 }));
+
+    /* --- os dois colchetes: a medida do que cada caminho cobre --- */
+    /* O pontilhado abraça só as três fontes — é onde o comando à mão termina. O
+     * cheio abraça o quadro inteiro, prateleira e lupa incluídas. Colchete e
+     * não chave porque é medida, e medida neste arquivo já se desenha assim (a
+     * cota da largura da música). */
+    svg.appendChild(caminho("M 3,38.5 L 3,42.5 L 30,42.5 L 30,38.5", {
+      "stroke-width": 1.3, "stroke-dasharray": "3 3", opacity: 0.6,
+    }));
+    svg.appendChild(texto(16.5, 47.8, "à mão", { "font-size": 4.8, opacity: 0.7 }));
+
+    svg.appendChild(caminho("M 3,50 L 3,53 L 96,53 L 96,50", { "stroke-width": 1.6 }));
+    svg.appendChild(texto(49.5, 58.2, "esta página", { "font-size": 4.8 }));
+    return svg;
+  }
+
+  function legendaIdempotencia(val, depois) {
+    const corpo = "apt, flatpak e cargo atualizando a máquina numa tela só e, logo depois,"
+      + " a conferência: a troca de pacotes derrubou uma peça do MeowSystem, a lupa do"
+      + " doctor está em cima do buraco e a seta verde repõe a peça na prateleira";
+    return montarLegenda(corpo, [
+      "o colchete pontilhado mede até onde vai um full-upgrade digitado à mão; o cheio, o que esta página faz",
+      "as quatro peças são exemplo: o doctor faz 46 conferências e diz quais saíram do lugar",
+      "\"O que a atualização mudaria\" não escreve nada; quem mexe na máquina é \"Atualizar a máquina inteira\"",
+    ]);
+  }
+
+  /* ======================================================================== */
   /* o mapa                                                                    */
   /* ======================================================================== */
   /* OS NOMES SÃO OS NOVOS. "Lançadores e jogos" era "Programas e jogos" e
@@ -1674,5 +1994,12 @@
     "Lançadores e jogos": seguro("os lançadores e os jogos", desenharLancador, legendaLancador),
     "Manutenção": seguro("a manutenção", desenharManutencao, legendaManutencao),
     "Áreas de trabalho": seguro("as áreas de trabalho", desenharAreas, legendaAreas),
+    /* A CHAVE É O NOME DA SEÇÃO, sem bloco: esta página não tem grupo de chaves
+     * para batizar um, e é o `desenhoDaSecaoSemChaves` que a procura por aqui. */
+    "Instalação": seguro("a instalação", desenharInstalacao, legendaInstalacao),
+    /* A ÚNICA ENTRADA QUE NÃO É DE UM BLOCO DE CHAVES: a chave do mapa é o nome
+     * da SEÇÃO, porque quem a procura é o `desenhoDaSecaoSemChaves` do app.js —
+     * a Idempotência só tem ações, e o `parDePrevias` nunca passa por ela. */
+    "Idempotência": seguro("a atualização e a conferência", desenharIdempotencia, legendaIdempotencia),
   });
 })();
