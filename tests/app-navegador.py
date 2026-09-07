@@ -1273,6 +1273,73 @@ def main():
                   "o numero ao lado de cada aba nao muda depois que as listas chegam"
                   + (f" — {mexeu}" if mexeu else ""))
 
+            # ---------------------------------------------------------------
+            print("\n20c. O QUE A CONFERENCIA DE PRODUTO PEGOU")
+            # Seis lentes de uso em 07/09/2026; estas linhas cobram os consertos.
+
+            # (a) A BANDEJA SOBREVIVE AO F5. Antes: 14 escolhas pendentes, um
+            #     recarregar, e MUDANCAS.size === 0 sem uma palavra. O espelho
+            #     mora no sessionStorage e volta filtrado pelo esquema.
+            pag.goto(url); pag.wait_for_timeout(1800)
+            pag.locator('#trilho button[data-grupo="Cor e tela"]').first.click()
+            pag.wait_for_timeout(700)
+            alvo = pag.locator('#conteudo .cartao[data-chave="FLAVOR"] .amostras button:not([aria-pressed=true])').first
+            alvo.click(); pag.wait_for_timeout(500)
+            antes_n = pag.evaluate("() => MUDANCAS.size")
+            pag.reload(); pag.wait_for_timeout(2200)
+            depois_n = pag.evaluate("() => MUDANCAS.size")
+            checa(antes_n == 1 and depois_n == 1,
+                  f"a escolha pendente sobrevive ao F5 (antes={antes_n}, depois={depois_n})")
+
+            # (b) O CONTADOR ABRE A LISTA, com o nome humano do cartao e a aba.
+            pag.locator("#salvar-conta").click(); pag.wait_for_timeout(400)
+            lista = pag.evaluate("""() => {
+              const l = document.getElementById('lista-pendentes');
+              if (!l) return null;
+              const linha = l.querySelector('.linha-pendente');
+              return { linhas: l.querySelectorAll('.linha-pendente').length,
+                       nome: linha ? linha.querySelector('.p-nome').textContent : '',
+                       cru: linha ? /^[A-Z_]+$/.test(linha.querySelector('.p-nome').textContent) : true };
+            }""")
+            checa(bool(lista) and lista["linhas"] == 1 and not lista["cru"],
+                  "o contador abre a lista com o nome do cartao, nao a chave crua"
+                  + (f" — {lista}" if not lista or lista.get("cru") else ""))
+            pag.keyboard.press("Escape"); pag.wait_for_timeout(200)
+            pag.locator('#barra-salvar button:has-text("Descartar")').first.click()
+            pag.wait_for_timeout(500)
+
+            # (c) O ENSAIO SE ANUNCIA: ligado, o botao diz o estado e o Salvar
+            #     veste o amarelo.
+            pag.locator("#seco").click(); pag.wait_for_timeout(300)
+            ens = pag.evaluate("""() => ({
+              rotulo: document.getElementById('seco').textContent,
+              salvar: document.getElementById('botao-salvar').classList.contains('em-ensaio'),
+            })""")
+            checa("Ensaiando" in ens["rotulo"] and ens["salvar"],
+                  f"o ensaio ligado se anuncia no rotulo e no Salvar ({ens['rotulo']!r})")
+            pag.locator("#seco").click(); pag.wait_for_timeout(300)
+
+            # (d) A FAIXA SO ENCOLHE QUEM SAIU POR CIMA. Antes, um bloco ainda
+            #     ABAIXO da tela nascia comprimido e inflava ao entrar — medido
+            #     100 -> 147 px na frente do olho. No topo da pagina, nenhum
+            #     bloco pode estar 'presa'.
+            pag.locator('#trilho button[data-grupo="Barra e dock"]').first.click()
+            pag.wait_for_timeout(1400)
+            pag.evaluate("() => { document.getElementById('principal').scrollTop = 0; }")
+            pag.wait_for_timeout(600)
+            presas_no_topo = pag.evaluate(
+                "() => document.querySelectorAll('#conteudo .previa-bloco.presa').length")
+            checa(presas_no_topo == 0,
+                  f"no topo da pagina nenhuma faixa esta comprimida ({presas_no_topo} presa(s))")
+
+            # (e) A MESMA FRASE NAO EMPILHA: duas torradas identicas viram uma.
+            n_torradas = pag.evaluate("""() => {
+              torrada('mesma frase de teste', 'igual');
+              torrada('mesma frase de teste', 'igual');
+              return document.querySelectorAll('#torradas .torrada').length;
+            }""")
+            checa(n_torradas == 1, f"a mesma frase nao empilha torradas ({n_torradas} na tela)")
+
             print("\n20b. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,
                   f"nenhum erro de JavaScript em toda a visita"

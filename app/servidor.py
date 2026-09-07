@@ -3507,7 +3507,7 @@ class Manipulador(BaseHTTPRequestHandler):
         "tema-icones": {
             "comando": ("icones", "adicionar"),
             "extensoes": (".zip",),
-            "depois": "escolha o tema novo em \"Tema de base\" e reconstrua",
+            "depois": "escolha o tema novo em «Tema de onde herdar» e reconstrua",
         },
     }
 

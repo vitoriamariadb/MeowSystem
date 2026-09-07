@@ -413,7 +413,10 @@ ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 # também nomeia o arquivo da logo do painel (`construir_icones.sh` §), cujo dono é
 # o `logo.sh` — as duas etapas ficariam criando e apagando o mesmo arquivo a cada
 # rodada. Chave separada, dono separado.
-#   frappe | latte | macchiato | mocha
+# A ORDEM É A DE «Cor e tela» (escuro → claro), e isso é regra de tela: a cerca
+# é a ordem dos botões, e a mesma lista em duas abas com ordens diferentes lê
+# como duas listas. Era alfabética aqui e mocha-primeiro lá.
+#   mocha | macchiato | frappe | latte
 ICONES_FLAVOR="macchiato"
 
 # @ Cor pela marca do programa
@@ -864,7 +867,7 @@ WALLPAPER_FIXO_TTL="30m"
 WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
 
 # @ Como a imagem ocupa a tela
-# > Preencher corta as bordas; caber deixa tarjas nas laterais.
+# > Preencher corta as bordas; caber deixa faixas nas laterais.
 # Como a imagem ocupa a tela. Em 11/08/2026 ela mandou uma captura com duas
 # tarjas pretas, uma de cada lado, e disse: "o wallpaper precisa preencher a
 # largura e altura". A causa era um `Fit` cravado no `wallpaper.sh` — sob um

@@ -439,10 +439,18 @@
     const fator = { s: 1 / 60, m: 1, h: 60, d: 1440 }[unidade];
     /* Número sem letra é minuto, e o rótulo diz a unidade em vez de deixar um
      * "999" solto na legenda — que tanto pode ser minuto quanto segundo para
-     * quem está lendo. */
+     * quem está lendo.
+     *   E COM letra ele também fala a língua do painel: o valor gravado "5m" é
+     * a gramática do `wallpaper.sh`, não a da tela — os botões da mesma aba já
+     * dizem "5 min", e a legenda dizia "troca a cada 5m" dois dedos abaixo
+     * deles. A conferência de língua contou três grafias para o mesmo minuto
+     * na mesma aba. O que se grava não muda; o que se lê, sim. */
+    const numero = m[1].replace(",", ".");
+    const rotuloDe = { s: numero + " s", m: numero + " min", h: numero + " h",
+                       d: numero === "1" ? "1 dia" : numero + " dias" };
     return {
       minutos: n * fator,
-      rotulo: m[2] ? emTexto(valor).replace(",", ".") : (m[1].replace(",", ".") + " min"),
+      rotulo: rotuloDe[unidade],
       ok: true,
     };
   }
