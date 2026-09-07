@@ -726,6 +726,15 @@ function montarControle(item, cartao) {
 
   /* 4. opções -> segmentos até 5, <select> acima disso */
   if (item.opcoes.length) {
+    /* 4a. DUAS OPÇÕES QUE MUDAM A FIGURA -> os dois desenhos, e eles são os
+     *     botões. Ver o bloco `O PAR VIRA O CONTROLE`. Quando a figura não muda
+     *     o bastante, cai nos segmentos de sempre — sem aviso e sem caixa
+     *     vazia: uma frase explicando por que não há desenho, repetida em onze
+     *     cartões, seria pior do que não ter desenho. */
+    if (item.opcoes.length === 2) {
+      const par = parDeBotoes(item, aplica);
+      if (par) return par;
+    }
     if (item.opcoes.length <= 5) {
       const caixa = elemento("div", { class: "segmentos" });
       const pintar = (v) => {
@@ -845,6 +854,11 @@ async function recarregarEsquema() {
   const novo = await api("/api/esquema");
   if (novo && !novo.erro && novo.chaves) {
     ESQUEMA = novo;
+    /* A CLASSIFICAÇÃO DO PAR É CONTRA O DISCO, e o disco acabou de mudar.
+     * Um bloco em que uma chave mudou de valor pode passar a mostrar (ou a
+     * deixar de mostrar) a diferença de outra: com a música desligada, o applet
+     * some do desenho e as três chaves dele passam a não mudar nada. */
+    PAR_VISIVEL.clear();
     montarGrupos();
   }
 }
@@ -1288,7 +1302,11 @@ const ESCALA_APPLET = 0.25;
  * `scripts/forma.sh:205`: o painel é S e a dock é M. */
 const TAMANHO_GERAL = { painel: "S", dock: "M" };
 
-function mockDaBarra(item) {
+/* `opcoes.semLegenda` existe para o par de botões: dentro de um botão a legenda
+ * de sessenta palavras não é informação, é uma parede de texto por cima da
+ * figura que o botão veio mostrar. Fora dali ela continua obrigatória — é o que
+ * diz que o desenho não é captura de tela. */
+function mockDaBarra(item, opcoes) {
   /* AO VIVO QUER DIZER LENDO A ESCOLHA, e não o disco. O desenho prometia
    * acompanhar o controle e não acompanhava: a auditoria mediu — "nenhuma
    * mudança de controle mexe nele". Lia `k.valor`, que é o que está gravado;
@@ -1368,6 +1386,7 @@ function mockDaBarra(item) {
     `altura ${Math.round(altura / ESCALA_APPLET / 4) * 4} = 2×recheio + o maior segmento`,
   ];
 
+  if (opcoes && opcoes.semLegenda) return mock;
   return elemento("div", { style: "width:100%" }, [
     mock,
     elemento("p", {
@@ -3096,6 +3115,332 @@ function repintarPrevia(chave, valor) {
   } finally {
     PROVISORIO = null;
   }
+}
+
+/* ===========================================================================
+ * O PAR VIRA O CONTROLE — 07/09/2026
+ * ===========================================================================
+ * Pedido dela: *"como teremos o antes e depois nessa seção ao invés de
+ * selecionar o sim e o não. selecionamos o antes ou o depois com bordas
+ * indicando se tratarem de botões"*. E: *"não tô falando só dessa aba, mas
+ * todas as abas e seções binárias nesse sentido"*.
+ *
+ * A IDEIA É VELHA E JÁ CAIU DUAS VEZES, PELO MESMO DEFEITO: dois botões com
+ * borda, lado a lado, e o mesmo desenho nos dois. Escolher entre duas figuras
+ * indistinguíveis é pior do que escolher entre as palavras «Sim» e «Não» — a
+ * página fica pedindo desculpa por si mesma.
+ *
+ * O QUE MUDOU AGORA É COMO SE DECIDE QUEM GANHA PAR.
+ *   Três desenhos independentes foram propostos e os três usavam a MESMA
+ *   procuração: contar quantos NÓS da árvore mudaram. Ela mente nos dois
+ *   sentidos, e os dois foram medidos aqui:
+ *     - `FORMA_PAINEL_SOLTO` pontua 96% por contagem de nós, e a diferença
+ *       inteira entre os dois desenhos é UM PIXEL de margem;
+ *     - `LOGO_RECICLAR` difere por 1 nó em 53, e esse nó é um tracinho que vira
+ *       pontilhado — invisível num polegar.
+ *   Contar nós responde "quanto da ÁRVORE mudou". A pergunta é "quanto da
+ *   FIGURA mudou", e ela só tem uma resposta honesta: pôr os dois desenhos no
+ *   documento, deixar o navegador calcular, e medir a área que de fato ficou
+ *   diferente — em pixels, no tamanho em que o botão vai aparecer.
+ *
+ * E A ÚLTIMA PALAVRA NÃO É DESTE CÓDIGO. `tests/app-navegador.py` fotografa os
+ * dois lados de cada par que esta página desenhar, em toda aba, e reprova se
+ * duas fotos saírem iguais. A heurística aqui pode errar; a trava lá não deixa
+ * o erro chegar na tela dela. É o que faltou nas duas tentativas anteriores.
+ */
+
+/* O medidor vive fora da tela e é UM só: criar e destruir um contêiner por
+ * cartão custaria um `layout` a mais por medição, e são dezenas por aba. */
+function medidorDeDesenho() {
+  let el = document.getElementById("medidor-de-desenho");
+  if (!el) {
+    el = elemento("div", { id: "medidor-de-desenho", "aria-hidden": "true" });
+    document.body.append(el);
+  }
+  return el;
+}
+
+/* O retrato de um desenho: uma linha por elemento, com a CAIXA que o navegador
+ * calculou e a TINTA que ele vai pintar. É o que o olho vê, reduzido ao que dá
+ * para comparar — e vale igual para os SVG das prévias e para o mock da FORMA,
+ * que é HTML com variáveis de CSS. Uma rotina só para os dois é o ponto: foi
+ * justamente a variável escrita e descartada pelo CSS (`--margem` sob a
+ * pastilha) que enganou a medição por atributo. */
+function retratoDoDesenho(no, largura) {
+  const cx = medidorDeDesenho();
+  cx.style.width = largura + "px";
+  cx.replaceChildren(no);
+  const raiz = cx.getBoundingClientRect();
+  const linhas = [];
+  const anda = (e) => {
+    const r = e.getBoundingClientRect();
+    const cs = getComputedStyle(e);
+    let proprio = "";
+    for (const f of e.childNodes) if (f.nodeType === 3) proprio += f.data;
+    /* QUEM NÃO PINTA NÃO CONTA ÁREA — e isto foi medido, não suposto.
+     * Um `<g>` que só agrupa tem a caixa de todos os filhos juntos. Somar essa
+     * caixa quando o grupo se desloca dizia que a figura inteira mudou: o
+     * `JANELAS_TILING_ESCOPO` marcava 50.402 px² de tinta, e a fotografia dos
+     * dois lados dizia 0,25% dos pixels. O `<g>` entra no retrato (a posição
+     * dele é o que move os filhos) mas não engorda a conta da tinta. */
+    const semTinta = (x) => !x || x === "none" || x === "rgba(0, 0, 0, 0)"
+                         || x === "transparent";
+    /* A FORMA DENTRO DA CAIXA, e não só a caixa — 07/09/2026
+     * Dois `<path>` com o mesmo retângulo envolvente e o mesmo traço são a
+     * mesma linha para uma comparação de caixas, e podem ser desenhos
+     * completamente diferentes. Medido: `VIDRO_AO_MAXIMIZAR` dava zero de
+     * mudança aqui enquanto a fotografia dos dois lados acusava 10,05% dos
+     * pixels. O `d` (e o `points`, e o `transform`) fecha o buraco por um
+     * punhado de bytes de string. */
+    linhas.push({
+      tag: e.nodeName,
+      forma: (e.getAttribute && [e.getAttribute("d"), e.getAttribute("points"),
+                                 e.getAttribute("transform"), e.getAttribute("rx"),
+                                 e.getAttribute("ry")].filter(Boolean).join(";")) || "",
+      x: r.left - raiz.left, y: r.top - raiz.top, w: r.width, h: r.height,
+      pinta: !((semTinta(cs.fill) || cs.fillOpacity === "0")
+               && (semTinta(cs.stroke) || cs.strokeOpacity === "0")
+               && semTinta(cs.backgroundColor) && !proprio.trim()),
+      /* A LISTA CRESCE POR MEDIÇÃO, e cada nome aqui entrou porque a fotografia
+       * dos dois lados discordou desta função. O `fill-opacity` foi o caso que
+       * ensinou: `VIDRO_AO_MAXIMIZAR` troca 0,8 por 1 em dois retângulos
+       * grandes — 10,05% dos pixels — e esta conta dizia ZERO, porque
+       * `opacity` e `fill-opacity` são propriedades diferentes e só a primeira
+       * estava aqui. */
+      tinta: [cs.fill, cs.stroke, cs.backgroundColor, cs.opacity, cs.strokeWidth,
+              cs.strokeDasharray, cs.display, cs.borderRadius, cs.fillOpacity,
+              cs.strokeOpacity, cs.visibility, cs.filter, cs.clipPath, cs.mask,
+              proprio.trim()].join("|"),
+    });
+    for (const f of e.children) anda(f);
+  };
+  anda(no);
+  cx.replaceChildren();
+  return linhas;
+}
+
+/* A ÁREA QUE MUDOU, em pixels do tamanho em que o botão vai ser desenhado.
+ * Elementos são comparados em ordem de árvore; quando um existe de um lado só,
+ * a caixa dele conta inteira — sumir é a mudança mais visível que existe.
+ *
+ * COBERTURA EM GRADE, E NÃO SOMA DE CAIXAS — 07/09/2026
+ *   A primeira versão somava a caixa de cada elemento que mudou. Formas
+ *   aninhadas contam duas vezes, e o número estourava a própria figura: o
+ *   `JANELAS_TILING_ESCOPO` marcava 50.402 px² num desenho de 21.792, enquanto
+ *   a fotografia dos dois lados dizia 0,25% dos pixels diferentes. Uma medida
+ *   que pode ser maior que a coisa medida não mede nada.
+ *   A grade resolve pelo desenho: o quadro é dividido em células, cada elemento
+ *   que mudou marca as células que toca, e a conta é quantas células foram
+ *   marcadas. Duas formas em cima uma da outra marcam as MESMAS células, então
+ *   o total nunca passa da área do quadro.
+ *
+ * E A COMPARAÇÃO É DE CONJUNTOS, NUNCA POSIÇÃO POR POSIÇÃO
+ *   Este foi o defeito de verdade, e ele custou três medições até aparecer. Os
+ *   dois desenhos não têm a mesma árvore: um lado desenha uma figura a mais que
+ *   o outro, e a partir dali TUDO fica deslocado de um nó. Comparando por
+ *   índice, um `<line>` de um lado era conferido contra um `<rect>` do outro —
+ *   e no `JANELAS_TILING_ESCOPO` isso dava 29 dos 37 nós "mudados" quando a
+ *   fotografia dizia 0,25%.
+ *   Agora cada elemento vira uma CHAVE (a tag, a caixa arredondada ao pixel e a
+ *   tinta) e conta-se quantas vezes ela aparece de cada lado. Quem aparece o
+ *   mesmo número de vezes nos dois se cancela, esteja onde estiver na árvore.
+ *   O que sobra é o que mudou de verdade — e é isso que marca célula.
+ *
+ *   A célula tem 8 px porque é a ordem de grandeza do traço dos desenhos
+ *   (`stroke-width` 2 num viewBox de 100 renderizado a 220 dá ~4,4 px): menor
+ *   que isso a grade mede ruído de antialiasing, maior engole uma linha
+ *   inteira. */
+const CELULA = 8;
+
+function areaQueMuda(a, b) {
+  const chaveDe = (l) => [l.tag, Math.round(l.x), Math.round(l.y),
+                          Math.round(l.w), Math.round(l.h), l.forma, l.tinta].join("~");
+  const contar = (lista) => {
+    const m = new Map();
+    for (const l of lista) {
+      const c = chaveDe(l);
+      const t = m.get(c);
+      if (t) t.n++; else m.set(c, { linha: l, n: 1 });
+    }
+    return m;
+  };
+  const A = contar(a), B = contar(b);
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const celulas = new Set();
+  const marcar = (c) => {
+    if (!c || !c.w || !c.h) return;
+    x0 = Math.min(x0, c.x); y0 = Math.min(y0, c.y);
+    x1 = Math.max(x1, c.x + c.w); y1 = Math.max(y1, c.y + c.h);
+    if (!c.pinta) return;
+    const i0 = Math.floor(c.x / CELULA), i1 = Math.floor((c.x + c.w) / CELULA);
+    const j0 = Math.floor(c.y / CELULA), j1 = Math.floor((c.y + c.h) / CELULA);
+    if ((i1 - i0 + 1) * (j1 - j0 + 1) > 4096) return;
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) celulas.add(i + "," + j);
+  };
+  for (const [c, t] of A) if ((B.get(c) || { n: 0 }).n !== t.n) marcar(t.linha);
+  for (const [c, t] of B) if ((A.get(c) || { n: 0 }).n !== t.n) marcar(t.linha);
+  if (x1 < x0 || y1 < y0) return { larg: 0, alt: 0, uniao: 0, tinta: 0 };
+  return { larg: x1 - x0, alt: y1 - y0, uniao: (x1 - x0) * (y1 - y0),
+           tinta: celulas.size * CELULA * CELULA };
+}
+
+function grupoDaChave(chave) {
+  for (const g of GRUPOS) {
+    if (g.tipo !== "chaves") continue;
+    if ((g.itens || []).some((i) => i.chave === chave)) return g;
+  }
+  return null;
+}
+
+/* O desenho do bloco desta chave, com ELA no valor pedido e todo o resto como
+ * está no DISCO. O disco e não a bandeja: ver `parDeBotoes`. */
+function desenhoNoValor(item, valor) {
+  if (CHAVES_DO_MOCK.indexOf(item.chave) >= 0) {
+    /* O mock lê tudo por `valorEmVigor`, que já consulta o `PROVISORIO` — o
+     * mesmo caminho que o deslizante usa para repintar enquanto ela arrasta. */
+    const salvo = PROVISORIO;
+    PROVISORIO = { chave: item.chave, valor: valor };
+    try {
+      return mockDaBarra({ chave: item.chave }, { semLegenda: true });
+    } catch (e) {
+      return null;
+    } finally {
+      PROVISORIO = salvo;
+    }
+  }
+  const g = grupoDaChave(item.chave);
+  if (!g) return null;
+  const mapa = (typeof window !== "undefined" && window.MEOW_PREVIAS) || {};
+  const nome = g.nome === g.secaoPai ? g.nome : `${g.secaoPai} :: ${g.nome}`;
+  const fn = mapa[nome];
+  if (typeof fn !== "function") return null;
+  const v = {};
+  for (const it of g.itens) v[it.chave] = it.valor ?? "";
+  let r;
+  try {
+    r = fn(v, { [item.chave]: valor });
+  } catch (e) {
+    return null;
+  }
+  if (!r || !r.antes) return null;
+  /* `depois` só existe quando o valor pedido difere do que está em `v`. Quando
+   * é o mesmo, o desenho pedido É o `antes`. */
+  return (String(v[item.chave] ?? "") === String(valor)) ? r.antes : (r.depois || r.antes);
+}
+
+/* Quem já foi medido, e o que deu. A resposta é cara (dois desenhos e dois
+ * `layout`) e não muda enquanto o DISCO não mudar — então mede-se uma vez por
+ * chave e guarda-se. `MUDANCAS.clear()` e o recarregamento do esquema esvaziam
+ * este mapa; nada mais precisa saber que ele existe. */
+const PAR_VISIVEL = new Map();
+
+/* A LARGURA EM QUE O BOTÃO VAI APARECER, e é nela que se mede.
+ *   Na tela dela (1918 px) a grade tem três colunas de ~500 px; dois botões
+ *   lado a lado dentro do cartão dão ~220 px cada, descontado o recheio. Medir
+ *   num tamanho e desenhar noutro é a receita para aprovar uma diferença que
+ *   some. Numa janela estreita o botão fica menor que isto e a medida erra para
+ *   o lado seguro: aprova o que talvez não se veja, e a trava do teste
+ *   continua valendo. */
+const LARGURA_DO_BOTAO = 220;
+
+/* O CORTE SAI DO VÃO MEDIDO, e não de gosto — 07/09/2026
+ *   As 37 chaves de duas opções foram medidas de DOIS jeitos independentes: por
+ *   esta função, e fotografando os dois lados de cada par no navegador e
+ *   contando os pixels que diferem (`tests/app-navegador.py`). Os dois números
+ *   caem no mesmo lugar, e o vão entre as duas famílias é limpo:
+ *
+ *     tinta      foto      chaves
+ *         0    0,00–0,25%  FASTFETCH_LOGO_CONF, FILES_MENU_AUTOBUILD,
+ *                          LOGO_RECICLAR, JANELAS_TILING_ESCOPO
+ *     ----------------- o vão -----------------
+ *       192    0,53%       LEITURA_APPLET
+ *       384    0,53–0,75%  os três *_NOTIFICAR, TERMINAL_CURSOR
+ *      1024+   ≥1,5%       todo o resto, até 59.136 / 51,7% (FORMA_PAINEL_SOLTO)
+ *
+ *   100 cai no meio do vão. Não há número mágico: o que há é que "a figura não
+ *   muda" e "a figura muda" são duas populações separadas, e qualquer corte
+ *   entre 0 e 192 dá o mesmo resultado.
+ *
+ *   ERRAR PARA BAIXO É SEGURO: a chave recusada fica com «Sim» e «Não», que é
+ *   exatamente o que a página faz hoje. Errar para cima é o defeito que já
+ *   matou duas tentativas — e é por isso que a fotografia, que não depende
+ *   desta conta, é quem tem a última palavra no teste. */
+const TINTA_MINIMA = 100;
+
+function parVisivel(item) {
+  if (PAR_VISIVEL.has(item.chave)) return PAR_VISIVEL.get(item.chave);
+  let resposta = false;
+  try {
+    const a = desenhoNoValor(item, item.opcoes[0]);
+    const b = desenhoNoValor(item, item.opcoes[1]);
+    if (a && b) {
+      const d = areaQueMuda(retratoDoDesenho(a, LARGURA_DO_BOTAO),
+                            retratoDoDesenho(b, LARGURA_DO_BOTAO));
+      resposta = d.tinta >= TINTA_MINIMA;
+    }
+  } catch (e) {
+    resposta = false;
+  }
+  PAR_VISIVEL.set(item.chave, resposta);
+  return resposta;
+}
+
+function parDeBotoes(item, aplica) {
+  /* NA BUSCA, NÃO. Ela mostra resultados de várias seções ao mesmo tempo e
+   * repinta a cada tecla; dezenas de desenhos por tecla é o custo que a busca
+   * não pode pagar. É a mesma decisão que o par do topo do bloco já toma. */
+  if (semAcento($("#busca").value.trim())) return null;
+  if (!parVisivel(item)) return null;
+
+  const valor = valorEmVigor(item);
+  const caixa = elemento("div", { class: "par-botoes" });
+  const desenhos = new Map();
+  for (const opcao of item.opcoes) {
+    const desenho = desenhoNoValor(item, opcao);
+    if (!desenho) return null;
+    desenhos.set(opcao, desenho);
+  }
+  const pintar = (v) => {
+    for (const b of caixa.querySelectorAll("button[data-valor]")) {
+      b.setAttribute("aria-pressed", String(b.dataset.valor === v));
+    }
+  };
+  for (const opcao of item.opcoes) {
+    /* OS DOIS SÃO BOTÃO, ao contrário do par grudado no alto da seção — lá o
+     * "Como fica" não é botão porque não leva a lugar nenhum. Aqui os dois
+     * levam: cada um é uma escolha que ela ainda não fez.
+     *
+     * A PALAVRA NÃO SAI. O desenho é a promessa, a palavra é a garantia — e
+     * quem lê por leitor de tela só tem a palavra. O desenho vai como
+     * `aria-hidden`: o `<title>` dele descreve o bloco inteiro, e dentro de um
+     * botão isso atrapalha em vez de ajudar.
+     *
+     * A ORDEM É A DE `item.opcoes`, sempre, e nunca "o escolhido primeiro":
+     * clicar não pode fazer os dois desenhos trocarem de lugar. */
+    const moldura = elemento("span", { class: "desenho-botao", "aria-hidden": "true" });
+    moldura.append(desenhos.get(opcao));
+    caixa.append(elemento("button", {
+      type: "button",
+      class: "lado-botao",
+      "data-valor": opcao,
+      "aria-pressed": "false",
+      onclick: async () => { if (await aplica(opcao)) pintar(opcao); },
+    }, [moldura, elemento("span", { class: "rotulo-lado", texto: rotuloDeValor(opcao) })]));
+  }
+  /* O «Deixar como está» das três chaves que aceitam vazio fica numa linha
+   * própria embaixo, e sem desenho: o desenho dele seria igual ao de uma das
+   * duas opções, e dois botões iguais é o defeito que este bloco inteiro
+   * existe para evitar. */
+  if (item.aceita_vazio) {
+    caixa.append(elemento("button", {
+      type: "button", class: "vazio linha-inteira", "data-valor": "",
+      texto: "Deixar como está", "aria-pressed": "false",
+      title: "Quem decide passa a ser o COSMIC, ou você pelos Ajustes dele.",
+      onclick: async () => { if (await aplica("")) pintar(""); },
+    }));
+  }
+  pintar(valor);
+  return caixa;
 }
 
 function parDePrevias(g) {

@@ -74,8 +74,10 @@ DEPENDENCIA, E A DEGRADACAO QUANDO ELA FALTA
 import hashlib
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -215,6 +217,30 @@ def opcoes_na_tela(pag, chave, paciencia):
             break
         pag.wait_for_timeout(500)
     return cartao, botoes
+
+
+def pixels_diferentes(a, b):
+    """% de pixels que diferem entre dois PNG, com 3% de tolerancia de cor.
+
+    NAO E' IGUALDADE BYTE A BYTE, E ISSO FOI MEDIDO: dois SVG IDENTICOS no DOM
+    (mesmo `innerHTML`, mesma caixa) dao PNGs de 8088 e 8042 bytes, porque estao
+    em posicoes fracionarias diferentes na pagina e o antialiasing muda. Byte a
+    byte nunca dispara, e uma trava que nunca dispara nao e' trava."""
+    p = subprocess.run(["compare", "-metric", "AE", "-fuzz", "3%", a, b, "null:"],
+                       capture_output=True)
+    bruto = (p.stderr or b"").decode("utf-8", "replace").strip().split()
+    if not bruto:
+        return None
+    try:
+        n = float(bruto[0])
+    except ValueError:
+        return None
+    g = subprocess.run(["identify", "-format", "%w %h", a], capture_output=True)
+    try:
+        w, h = (int(x) for x in g.stdout.decode().split())
+    except ValueError:
+        return None
+    return 100.0 * n / max(1, w * h)
 
 
 def alvo_clicavel(botoes):
@@ -1020,7 +1046,81 @@ def main():
             checa(not mexidos,
                   "e nenhum arquivo mudou no disco" + (f" — MEXERAM: {mexidos}" if mexidos else ""))
 
-            print("\n19. O CONSOLE FICOU LIMPO?")
+            print("\n19. OS DOIS LADOS DE CADA PAR SAO FIGURAS DIFERENTES")
+            # A TRAVA QUE FALTOU NAS DUAS TENTATIVAS ANTERIORES.
+            #   A ideia do par-como-controle ja' caiu duas vezes aqui, sempre
+            #   pelo mesmo defeito: dois botoes com borda, lado a lado, e a
+            #   MESMA figura nos dois. Escolher entre duas imagens iguais e'
+            #   pior do que escolher entre as palavras «Sim» e «Não».
+            #
+            #   A pagina decide quem ganha par por uma conta sobre o DOM
+            #   (`areaQueMuda`, em `app.js`). Essa conta pode errar — errou
+            #   quatro vezes enquanto era escrita, e foi esta secao que acusou
+            #   as quatro. Entao ela nao tem a ultima palavra: aqui os dois
+            #   lados sao FOTOGRAFADOS e comparados pixel a pixel, o que nao
+            #   depende de nenhuma heuristica.
+            #
+            #   O PISO DE 0,4% SAI DO VAO MEDIDO. As 37 chaves de duas opcoes
+            #   foram fotografadas com o corte da pagina desligado: o que ela
+            #   recusa fica entre 0,00% e 0,25%, e o que ela aceita comeca em
+            #   0,53%. Entre os dois nao ha nada.
+            PISO_DE_DIFERENCA = 0.4
+            fotos_dir = tempfile.mkdtemp(prefix="meow-par-")
+            pares, parecidos, menor = 0, [], None
+            try:
+                # AS ABAS SAEM DO PROPRIO MENU, e nao de uma lista escrita
+                # aqui: uma aba nova nasce coberta, e uma renomeada nao vira um
+                # `secao()` que nao acha nada e passa calado.
+                abas = pag.eval_on_selector_all(
+                    "#trilho button[data-grupo]",
+                    "l => l.map(b => b.getAttribute('data-grupo'))")
+                for aba in abas:
+                    secao(aba)
+                    cartoes = pag.locator(
+                        '#conteudo article[data-chave]:has(.par-botoes)')
+                    for i in range(cartoes.count()):
+                        c = cartoes.nth(i)
+                        chave = c.get_attribute("data-chave")
+                        lados = c.locator(".par-botoes .desenho-botao")
+                        if lados.count() != 2:
+                            continue
+                        pares += 1
+                        # A SELECAO SAI DA FOTO: o `.desenho-botao` e'
+                        # transparente, e o fundo de acento do botao escolhido
+                        # vazaria para a imagem — duas fotos de um desenho
+                        # IDENTICO sairiam diferentes so' por causa disso.
+                        c.evaluate("""(a) => a.querySelectorAll('.lado-botao').forEach(
+                            b => b.setAttribute('data-pressed-salvo',
+                                                b.getAttribute('aria-pressed')))""")
+                        c.evaluate("""(a) => a.querySelectorAll('.lado-botao').forEach(
+                            b => b.setAttribute('aria-pressed', 'false'))""")
+                        arq = []
+                        for j in range(2):
+                            lados.nth(j).scroll_into_view_if_needed()
+                            cam = os.path.join(fotos_dir, f"{chave}-{j}.png")
+                            lados.nth(j).screenshot(path=cam)
+                            arq.append(cam)
+                        c.evaluate("""(a) => a.querySelectorAll('.lado-botao').forEach(
+                            b => b.setAttribute('aria-pressed',
+                                                b.getAttribute('data-pressed-salvo') or 'false'))"""
+                                   .replace(" or ", " || "))
+                        pct = pixels_diferentes(arq[0], arq[1])
+                        if pct is None:
+                            continue
+                        if menor is None or pct < menor[0]:
+                            menor = (pct, chave)
+                        if pct < PISO_DE_DIFERENCA:
+                            parecidos.append(f"{chave} ({pct:.2f}%)")
+            finally:
+                shutil.rmtree(fotos_dir, ignore_errors=True)
+            checa(pares > 0, f"{pares} pares de desenho apareceram na pagina")
+            checa(not parecidos,
+                  "nenhum par tem os dois lados iguais"
+                  + (f" — {', '.join(parecidos)}" if parecidos
+                     else f" (o mais parecido: {menor[1]} com {menor[0]:.2f}%)"
+                          if menor else ""))
+
+            print("\n20. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,
                   f"nenhum erro de JavaScript em toda a visita"
                   + (f" — {erros_de_console[:2]}" if erros_de_console else ""))
@@ -1033,7 +1133,7 @@ def main():
         except subprocess.TimeoutExpired:
             proc.kill()
 
-    print("\n20. O ARQUIVO DELA FICOU COMO ESTAVA")
+    print("\n21. O ARQUIVO DELA FICOU COMO ESTAVA")
     checa(md5_conf() == md5_inicial, "o meow.conf esta byte a byte como antes do teste")
 
     bons = sum(1 for ok, _ in passos if ok)
