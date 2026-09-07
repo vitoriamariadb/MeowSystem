@@ -1065,7 +1065,7 @@ select { flex: 1 1 auto; }
 /* O número do deslizante NÃO é accent: ele é a leitura de um valor, não um
  * estado ligado. Quem está aceso é o polegar da régua, pelo `accent-color`. */
 /* OS BOTÕES DE ESTADO VÃO PARA A LINHA DE BAIXO — 06/09/2026
-   Medido em "Barra e dock": num cartão onde a chave está vazia, o deslizante
+   Medido em "Painel e dock": num cartão onde a chave está vazia, o deslizante
    fica desabilitado, o `<output>` diz "como está" e ao lado vêm dois botões.
    Os quatro disputavam a mesma linha de ~270 px: o "como está" quebrava em duas
    linhas no meio do controle e os botões empilhavam um sobre o outro. Nos
@@ -2133,7 +2133,7 @@ button.lado-previa:focus-visible {
  * desenhava era a folha do NAVEGADOR: Arial no meio de uma página em Inter,
  * `border: 2px outset white`, canto reto e o `ButtonFace` cinza, que é uma cor
  * que não existe na paleta. Aparecia assim em três abas — "Cor e tela",
- * "Barra e dock" e "Modo de leitura". Tracejado e cinza, como o irmão dos
+ * "Painel e dock" e "Modo de leitura". Tracejado e cinza, como o irmão dos
  * segmentos: é a AUSÊNCIA de opinião nossa, nunca accent. */
 .par-botoes button.vazio {
   appearance: none;

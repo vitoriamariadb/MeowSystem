@@ -4,7 +4,7 @@
  *   A dona do projeto olhou a própria tela e disse, com todas as letras, que
  *   não consegue usar o painel sozinha: "eu mesma tô extremamente confusa sobre
  *   o que tal coisa faz". O único lugar onde isso não acontece é o bloco FORMA
- *   de "Barra e dock", e o que ele tem de diferente não é texto melhor — é um
+ *   de "Painel e dock", e o que ele tem de diferente não é texto melhor — é um
  *   desenho que responde ANTES da leitura e que muda quando o valor muda.
  *   Daí a regra: todo bloco tem um desenho, e o desenho reage aos valores do
  *   próprio bloco. Não é ilustração; é a resposta à pergunta "o que isto faz
@@ -589,7 +589,7 @@
   }
 
   /* ======================================================================== */
-  /* 1. Barra e dock :: VIDRO E RELÓGIO                                        */
+  /* 1. Painel e dock :: VIDRO E RELÓGIO                                        */
   /* ======================================================================== */
   /* A PERGUNTA QUE O DESENHO RESPONDE: "0 é transparente, 1 é opaco" não diz
    * nada sozinho — transparente em cima de quê? A resposta é a janela
@@ -722,7 +722,7 @@
   }
 
   /* ======================================================================== */
-  /* 2. Barra e dock :: MÚSICA NA BARRA                                        */
+  /* 2. Painel e dock :: MÚSICA NO PAINEL                                        */
   /* ======================================================================== */
   /* A PERGUNTA: "quantos pixels o nome da música pode ocupar antes de virar
    * reticências" é impossível de responder de cabeça. Então o desenho mostra a
@@ -1451,7 +1451,7 @@
     const d = lerLeitura(val);
     const svg = moldura("a mesma página em duas metades: fria à esquerda, na temperatura e na"
       + " textura escolhidas à direita"
-      + (d.applet ? ", e o controle da barra com o popup aberto" : ", sem o controle na barra"));
+      + (d.applet ? ", e o controle do painel com o popup aberto" : ", sem o controle no painel"));
 
     svg.appendChild(retangulo(3, 3, 94, 34, 3, { "stroke-width": 1.8 }));
     svg.appendChild(linha(4, 10, 96, 10, { "stroke-width": 1, opacity: 0.35 }));
@@ -1594,11 +1594,11 @@
           ? "sem agendamento: vazio quer dizer que o modo de leitura é só seu"
           : "com o agendamento desligado: a virada não acontece sozinha"))
       + ", " + (d.applet
-        ? "com o controle na barra: o selo no canto e o popup dele, com os dois deslizantes"
-        : "sem o controle na barra: quem mexe passa a ser esta página, ou o relógio");
+        ? "com o controle no painel: o selo no canto e o popup dele, com os dois deslizantes"
+        : "sem o controle no painel: quem mexe passa a ser esta página, ou o relógio");
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
-      d.applet ? "o popup está desenhado ABERTO para caber na figura; na barra ele é só o selo, e abre no clique" : "",
+      d.applet ? "o popup está desenhado ABERTO para caber na figura; no painel ele é só o selo, e abre no clique" : "",
       d.temp >= 6500 ? "6500 K é o neutro: nesta temperatura os dois lados ficam iguais, ou seja, desligado" : "",
       d.virgula ? "a textura foi escrita com vírgula, e lá dentro isso vira 0 (papel desligado): use ponto" : "",
       "é simulação: quem pinta de verdade é o cosmic-comp recompilado, e o slider do applet vence este número",
@@ -1944,7 +1944,7 @@
 
   function desenharAreas(val) {
     const d = lerAreas(val);
-    const svg = moldura("a barra com as áreas na ordem da lista, e as janelas de cada uma");
+    const svg = moldura("o painel com as áreas na ordem da lista, e as janelas de cada uma");
 
     /* --- a barra, e as pastilhas na ordem da lista --- */
     svg.appendChild(retangulo(3, 3, 94, 13, 3, { "stroke-width": 1.8 }));
@@ -2040,7 +2040,7 @@
       return montarLegenda("nenhuma área nomeada — sem nomes, a barra mostra a posição, não o nome");
     }
     const comFolga = d.areas.filter((a) => a.folga).map((a) => a.nome);
-    const corpo = "a barra com " + plural(d.areas.length, "área", "áreas")
+    const corpo = "o painel com " + plural(d.areas.length, "área", "áreas")
       + " nesta ordem: " + d.areas.map((a) => a.nome).join(", ");
     return montarLegenda(corpo, [
       comFolga.length ? "com folga invisível em " + comFolga.join(" e ") : "sem folga invisível em nenhuma",
@@ -2257,10 +2257,10 @@
    * erro"; o que um `full-upgrade` faz é outra coisa — a peça deixa de estar no
    * lugar. Buraco pontilhado em cima e o quadrado tombado embaixo dizem isso, e
    * dizem também que a peça não sumiu: ela está ali para ser reposta. */
-  const PECAS_DA_PRATELEIRA = ["tema", "ícones", "barra", "gato"];
+  const PECAS_DA_PRATELEIRA = ["tema", "ícones", "painel", "gato"];
   /* A terceira, e não a primeira: uma peça no meio da fila deixa o buraco
    * cercado dos dois lados, e na ponta ele leria como o fim da prateleira. E é
-   * a "barra" porque o `cosmic-panel` é um dos quatro pacotes que o cabeçalho
+   * o "painel" porque o `cosmic-panel` é um dos quatro pacotes que o cabeçalho
    * do script nomeia como os que a atualização troca. */
   const PECA_QUE_CAI = 2;
   const PRATELEIRA = { x: 44, y: 8, w: 11, h: 10, passo: 13.5, linha: 19.5 };
@@ -2407,7 +2407,7 @@
    * e desenhar "3 escolhas esperando" seria inventar um número. Quem conta é o
    * banner do alto da página, que é onde o número vive de verdade. */
   function desenharInicio(val) {
-    /* `val` chega `{}`, como em "Instalação" e "Idempotência": a home não tem
+    /* `val` chega `{}`, como em "Instalação" e "Atualização": a home não tem
      * chave, e ler qualquer coisa daqui seria inventar uma. */
     const svg = moldura(
       "o caminho de uma escolha: os cartões marcados ficam guardados na página, e só o "
@@ -2528,8 +2528,8 @@
    * encontradas por ninguém e o resto continua funcionando; nenhuma delas
    * quebra nada por não achar a seção. */
   window.MEOW_PREVIAS = Object.assign(window.MEOW_PREVIAS || {}, {
-    "Barra e dock :: VIDRO E RELÓGIO": seguro("o vidro da barra e o relógio", desenharVidro, legendaVidro),
-    "Barra e dock :: MÚSICA NA BARRA": seguro("a música na barra", desenharMidia, legendaMidia),
+    "Painel e dock :: VIDRO E RELÓGIO": seguro("o vidro do painel e o relógio", desenharVidro, legendaVidro),
+    "Painel e dock :: MÚSICA NO PAINEL": seguro("a música no paina", desenharMidia, legendaMidia),
     "Papel de parede": seguro("o papel de parede", desenharParede, legendaParede),
     "Dia e noite": seguro("o dia e a noite", desenharNoite, legendaNoite),
     "Modo de leitura": seguro("o modo de leitura", desenharLeitura, legendaLeitura),
@@ -2542,7 +2542,7 @@
     /* PELO NOME DA SEÇÃO, DE NOVO: quem a procura é o `desenhoDaSecaoSemChaves`
      * do app.js — a Idempotência só tem ações, e o `parDePrevias` nunca passa
      * por ela. */
-    "Idempotência": seguro("a atualização e a conferência", desenharIdempotencia, legendaIdempotencia),
+    "Atualização": seguro("a atualização e a conferência", desenharIdempotencia, legendaIdempotencia),
     /* A HOME TAMBÉM ENTRA PELO NOME, e ela é a terceira sem chave nenhuma. Uma
      * ressalva que as outras duas não têm: o `render` corta o grupo `home`
      * antes do bloco que chama o `desenhoDaSecaoSemChaves`, então registrar

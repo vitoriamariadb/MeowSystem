@@ -967,7 +967,7 @@ def main():
                 pag.locator("#botao-descartar").click()
                 pag.wait_for_timeout(700)
             vivas = paradas = 0
-            for aba in ("Cor e tela", "Logo do sistema", "Barra e dock",
+            for aba in ("Cor e tela", "Logo do sistema", "Painel e dock",
                         "Dia e noite", "Modo de leitura"):
                 secao(aba)
                 pag.wait_for_timeout(700)
@@ -1169,7 +1169,7 @@ def main():
             #     cinza de sistema — no meio de uma pagina em Inter e Catppuccin.
             #     Aconteceu com o "Deixar como esta" do par, em tres abas.
             crus = []
-            for aba_ in ("Cor e tela", "Barra e dock", "Modo de leitura", "Manutencao"):
+            for aba_ in ("Cor e tela", "Painel e dock", "Modo de leitura", "Manutencao"):
                 alvo_ = pag.locator(f'#trilho button[data-grupo^="{aba_[:6]}"]').first
                 if not alvo_.count():
                     continue
@@ -1200,7 +1200,7 @@ def main():
             #     altura e os botoes saiam em escadinha de ate 20px. Um pixel de
             #     folga e arredondamento de sub-pixel; vinte e defeito.
             escadas = []
-            for aba_ in ("Idempotência", "Instalação", "Papel de parede", "Logo do sistema"):
+            for aba_ in ("Atualização", "Instalação", "Papel de parede", "Logo do sistema"):
                 bt = pag.locator(f'#trilho button[data-grupo="{aba_}"]').first
                 if not bt.count():
                     continue
@@ -1323,7 +1323,7 @@ def main():
             #     ABAIXO da tela nascia comprimido e inflava ao entrar — medido
             #     100 -> 147 px na frente do olho. No topo da pagina, nenhum
             #     bloco pode estar 'presa'.
-            pag.locator('#trilho button[data-grupo="Barra e dock"]').first.click()
+            pag.locator('#trilho button[data-grupo="Painel e dock"]').first.click()
             pag.wait_for_timeout(1400)
             pag.evaluate("() => { document.getElementById('principal').scrollTop = 0; }")
             pag.wait_for_timeout(600)

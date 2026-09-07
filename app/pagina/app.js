@@ -2682,7 +2682,7 @@ function porqueEDica(item) {
    * todo contêiner rolável, e a `.dica` é um (`overflow: auto`, teto de 22rem):
    * andando de Tab, o foco saía do `?`, o `blur` fechava o balão, e o foco caía
    * num elemento que naquele instante já era `display: none` — uma parada morta
-   * sem anel nenhum, uma por cartão, trinta na aba "Barra e dock". Rolar o
+   * sem anel nenhum, uma por cartão, trinta na aba "Painel e dock". Rolar o
    * texto pelo teclado nunca funcionou mesmo: o `blur` do gatilho fecha. */
   const dica = elemento("div", { class: "dica", id: idDica, role: "tooltip", tabindex: "-1", hidden: true });
 
@@ -3224,7 +3224,7 @@ const ICONES_MENU = {
   /* O foguete do Arcticons: a máquina indo para a versão seguinte. Ele perdeu a
    * entrada `bloco/` — o terceiro bloco deixou de existir em 06/09/2026, e a
    * página de atualizar passou a se chamar `Idempotência`, dentro de Sistema. */
-  "Idempotência": '<path d="M5.896 22.443L42.105 5.5l-10.836 37l-11.453-13.323z"/><path d="m31.326 16.95l-11.51 12.227v8.747l3.316-4.824"/>',
+  "Atualização": '<path d="M5.896 22.443L42.105 5.5l-10.836 37l-11.453-13.323z"/><path d="m31.326 16.95l-11.51 12.227v8.747l3.316-4.824"/>',
   "bloco/Sistema": '<path d="M24 8.408V19.81m5.255-7.944A13.22 13.22 0 0 1 37.223 24h0c0 7.303-5.92 13.223-13.223 13.223h0c-7.303 0-13.223-5.92-13.223-13.223h0c0-5.27 3.129-10.037 7.964-12.133M45.5 24c0 11.874-9.626 21.5-21.5 21.5S2.5 35.874 2.5 24S12.126 2.5 24 2.5S45.5 12.126 45.5 24"/>',
   /* AUTORAL: o acervo não tem gato — e aqui o gato É o assunto, porque a logo de
    * fábrica deste projeto são a Coquinha e o Mimir. As orelhas do mascote, em
@@ -3237,7 +3237,7 @@ const ICONES_MENU = {
   "Cor e tela": '<rect width="18.314" height="39" x="14.843" y="4.5" rx="3"/><path d="M14.843 33.4h18.314M14.843 22.236s3.933-.233 5.292 2.27s2.605 3.387 4.466.291s3.5-6.83 8.556-.514m-.001-11.601s-1.669-2.183-3.418-2.088s-4.099 4.972-5.418 4.852s-2.285-6.481-4.118-7.03s-5.36 2.35-5.36 2.35"/><ellipse cx="24" cy="38.01" rx="1.965" ry="1.957"/>',
   /* AUTORAL: o acervo não tem gato. As orelhas do mascote, em três traços. */
   "Ícones": '<path d="M17.5 5.5h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m-21 21h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4"/>',
-  "Barra e dock": '<rect width="22.05" height="32.42" x="12.98" y="7.79" rx="2"/><path d="M35 38.18h5.95a2.6 2.6 0 0 0 2.59-2.59V12.41a2.6 2.6 0 0 0-2.59-2.59H35"/><path d="M35.02 34.8h5.32V15.93h-5.32M13 38.18H7.09a2.6 2.6 0 0 1-2.59-2.59V12.41a2.6 2.6 0 0 1 2.59-2.59H13"/><path d="M12.98 34.8H7.66V15.93h5.32m2.65-3.39h16.75v24.21H15.63z"/>',
+  "Painel e dock": '<rect width="22.05" height="32.42" x="12.98" y="7.79" rx="2"/><path d="M35 38.18h5.95a2.6 2.6 0 0 0 2.59-2.59V12.41a2.6 2.6 0 0 0-2.59-2.59H35"/><path d="M35.02 34.8h5.32V15.93h-5.32M13 38.18H7.09a2.6 2.6 0 0 1-2.59-2.59V12.41a2.6 2.6 0 0 1 2.59-2.59H13"/><path d="M12.98 34.8H7.66V15.93h5.32m2.65-3.39h16.75v24.21H15.63z"/>',
   "Papel de parede": '<path d="M31.315 12.123a4.465 4.465 0 1 1 0 8.93a4.465 4.465 0 0 1 0-8.93m-11.294 8.909l7.224 7.223a.7.7 0 0 0 .992 0l1.383-1.383a.7.7 0 0 1 .993 0l7.807 7.807a.702.702 0 0 1-.497 1.198H10.076a.702.702 0 0 1-.577-1.101l9.45-13.648a.702.702 0 0 1 1.072-.097Z"/><path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/>',
   /* A TELA, do `tv.svg` do acervo: é a tela inteira que o modo de leitura
    * esquenta, e não uma parte dela. Sem esta entrada a seção nova caía no
@@ -4228,7 +4228,7 @@ function render() {
         if (acervo) alvo.append(acervo);
         /* O DESENHO DE UMA SEÇÃO QUE NÃO TEM CHAVE NENHUMA — 07/09/2026
          *   `parDePrevias` só roda sobre um grupo de CHAVES, então "Instalação"
-         *   e "Idempotência" — que são só ações — nunca chegavam a ter desenho,
+         *   e "Atualização" — que são só ações — nunca chegavam a ter desenho,
          *   por mais que alguém registrasse um. Medido nas três abas sem
          *   desenho: elas são também as que deixam mais tela vazia (a
          *   Idempotência tem 311 px de conteúdo e 710 px de vazio embaixo).
@@ -4275,7 +4275,7 @@ function render() {
        *   `sticky` mora na `.previa-bloco`, e a FORMA é a única prévia que não
        *   passa pelo `parDePrevias` — ela tem mock próprio, montado aqui.
        *   Então ela ganha a MESMA caixa, em vez de uma segunda regra de CSS que
-       *   teria de ser mantida em dia com a primeira. "Barra e dock" é a seção
+       *   teria de ser mantida em dia com a primeira. "Painel e dock" é a seção
        *   de 30 chaves, a que ela mais rola: era a que mais precisava. */
       const caixa = elemento("div", { class: "previa-bloco" });
       const par = elemento("div", { class: "grade-barras" });
@@ -4283,7 +4283,7 @@ function render() {
       par.append(mockDaBarra({ chave: "FORMA_RAIO_DOCK" }));
       /* O PAR DA FORMA TAMBÉM DESFAZ — 06/09/2026
        *   Medida a interação aba a aba: em nove das dez seções o "Como está"
-       *   virava botão e devolvia as escolhas do bloco; em "Barra e dock" não,
+       *   virava botão e devolvia as escolhas do bloco; em "Painel e dock" não,
        *   porque o desenho da FORMA não passa pelo `parDePrevias` — e "Barra e
        *   dock" é justamente a seção que ela mais mexe, com 30 chaves.
        *
@@ -4312,7 +4312,7 @@ function render() {
       alvo.append(caixa);
       /* A FORMA É O BLOCO QUE ELA MAIS MEXE, e era o único sem tempo real:
        * o desenho dele não vem do `MEOW_PREVIAS`, então o registro por bloco não
-       * o alcançava. Medido: em "Barra e dock", arrastar o raio não mudava
+       * o alcançava. Medido: em "Painel e dock", arrastar o raio não mudava
        * desenho nenhum, enquanto as outras três abas com deslizante já
        * respondiam. As dez chaves que o mock lê ficam registradas apontando
        * para este mesmo par. */
@@ -4767,7 +4767,7 @@ function montarHome() {
     ["doctor", "Conferir a máquina", true],
     ["doctor_consertar", "Consertar o que estiver fora", false],
     ["wallpaper_proximo", "Próxima imagem", false],
-    ["painel_reciclar", "Recarregar a barra", false],
+    ["painel_reciclar", "Recarregar o painel", false],
   ]) {
     const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
     if (!acao) continue;
