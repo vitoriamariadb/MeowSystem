@@ -608,6 +608,19 @@ function alternarListaPendentes() {
 }
 
 async function descartarEscolhas() {
+  /* A PERGUNTA SÓ EXISTE QUANDO HÁ O QUE PERDER — 07/09/2026. O Descartar mora
+   * a 8 px do «Salvar e aplicar» (medido), dispara na hora e não tem desfazer:
+   * errar o dedo com catorze escolhas na bandeja custava a sessão inteira.
+   * Com UMA escolha, refazer é um clique e a pergunta seria burocracia; com
+   * duas ou mais, ela é a diferença entre um susto e uma perda. */
+  if (MUDANCAS.size >= 2) {
+    const ok = await perguntar({
+      titulo: "Descartar as escolhas?",
+      texto: `${MUDANCAS.size} escolhas ainda não salvas seriam jogadas fora. O meow.conf não é tocado.`,
+      ok: "Descartar", neutro: true,
+    });
+    if (!ok) return;
+  }
   MUDANCAS.clear();
   atualizarBarraSalvar();
   render();
@@ -1774,7 +1787,9 @@ function montarApps() {
            + "o ícone escolhido em «Lançadores e jogos», ao lado das capas." }));
   }
 
+  caixa.append(pulaGrade("apos-apps", "Pular a lista de aplicativos"));
   caixa.append(gradeDeApps(APPS.apps || [], APPS_BUSCA, carregarApps));
+  caixa.append(alvoDoPulo("apos-apps"));
   return caixa;
 }
 
@@ -1793,6 +1808,19 @@ function gradeDeApps(apps, filtro, recarregar) {
   const termo = semAcento(String(filtro || "").trim());
   const lista = apps.filter((a) =>
     !termo || semAcento(a.nome).includes(termo) || semAcento(a.id).includes(termo));
+
+  /* BUSCA QUE NÃO ACHA NADA TEM DE DIZER ISSO — a mesma regra que a grade de
+   * jogos ganhou hoje, medida aqui também: filtrar "steam" deixava a grade com
+   * zero filhos e NENHUMA palavra, com o texto ao lado ainda dizendo "40
+   * aplicativos". E o caso Steam merece a segunda frase: a lista é dos .desktop
+   * que o painel VESTE, e a Steam e os jogos moram em "Lançadores e jogos". */
+  if (termo && !lista.length) {
+    return elemento("p", {
+      class: "sem-previa",
+      texto: `Nenhum dos ${apps.length} aplicativos casa com “${String(filtro).trim()}” — `
+           + "a Steam e os jogos dela moram em «Lançadores e jogos».",
+    });
+  }
 
   const grade = elemento("div", { class: "grade-apps" });
   for (const a of lista) {
@@ -2090,7 +2118,9 @@ function montarJogos() {
     ]));
     if (JOGO_ABERTO === j.appid) grade.append(montarEscolhaDeJogo(j));
   }
+  caixa.append(pulaGrade("apos-jogos", "Pular os jogos"));
   caixa.append(grade);
+  caixa.append(alvoDoPulo("apos-jogos"));
 
   if (orfas.length) {
     caixa.append(elemento("h3", { class: "subsecao-titulo", texto: "Decisões já executadas" }));
@@ -2151,7 +2181,9 @@ function montarJogos() {
       texto: `${JOGOS.total_apps ?? JOGOS.apps.length} jogos com .desktop nesta `
            + "máquina. A capa acima decide se ele aparece no lançador; aqui se "
            + "escolhe o desenho com que ele aparece." }));
-    caixa.append(gradeDeApps(JOGOS.apps, JOGOS_BUSCA, carregarJogos));
+    caixa.append(pulaGrade("apos-apps-jogos", "Pular a lista"));
+  caixa.append(gradeDeApps(JOGOS.apps, JOGOS_BUSCA, carregarJogos));
+  caixa.append(alvoDoPulo("apos-apps-jogos"));
   }
   return caixa;
 }
@@ -2414,6 +2446,17 @@ function montarGaleria() {
        *   um gráfico escuro que ela quer de dia — e não havia nenhuma porta para
        *   discordar. Estes botões são a porta: decisão escrita vence a
        *   heurística, a heurística continua sendo o padrão. */
+      /* O VERBO QUE FALTAVA — 07/09/2026. A conferência de tarefas tentou
+       * "fixar ESTA imagem para sempre" e não havia caminho: a ficha oferecia
+       * Dia, Noite e Tirar, e buscar "fixar" devolvia um gato. "Usar" é o par
+       * do "Próxima imagem" da Início, apontado: fixa AGORA, pelo tempo que
+       * «Quanto tempo dura a imagem escolhida» mandar. */
+      acoes.append(elemento("button", {
+        type: "button", class: "btn btn-mini btn-accent",
+        texto: "Usar",
+        title: `Passa a valer agora. (meow wallpaper usar ${i.rotulo})`,
+        onclick: () => rodarNaGaleria("wallpaper_usar", i.banir || i.origem),
+      }));
       acoes.append(...botoesDeLado(i));
       acoes.append(elemento("button", {
         type: "button", class: "btn btn-perigo",
@@ -2432,7 +2475,9 @@ function montarGaleria() {
     ]));
     grade.append(fig);
   }
+  caixa.append(pulaGrade("apos-galeria", "Pular a galeria"));
   caixa.append(grade);
+  caixa.append(alvoDoPulo("apos-galeria"));
 
   /* 255 recusadas de uma vez seriam 255 conversões e uma página de rolagem
    * infinita. Vem de sessenta em sessenta, e quem quiser mais pede. */
@@ -2721,13 +2766,27 @@ function porqueEDica(item) {
      * o clique (Enter e Espaço disparam `click` num `<button>`). */
     try { if (gatilho.matches(":focus-visible")) mostrar(true); } catch (e) { /* idem */ }
   });
-  gatilho.addEventListener("blur", () => mostrar(false));
+  gatilho.addEventListener("blur", () => {
+    mostrar(false);
+    gatilho.removeAttribute("data-fechei");
+  });
   gatilho.addEventListener("keydown", (ev) => {
-    if (ev.key !== "Escape" || dica.hidden) return;
+    if (ev.key !== "Escape") return;
+    /* O QUE ESTÁ ABERTO NÃO É O `hidden` — 07/09/2026. Para quem chegou de
+     * TECLADO, o balão está na tela por CSS (`:focus-visible`) com o atributo
+     * `hidden` ainda posto: o teste `dica.hidden` dizia "não há nada aberto" e
+     * o Esc saía cedo, sem fechar o que o olho via. A pergunta certa é ao
+     * navegador — o balão está DESENHADO? — e a resposta certa é o mesmo
+     * `data-fechei` do clique-que-fecha, que suspende o CSS até o foco sair
+     * (o `blur` abaixo o limpa). Sem isso, a conferência de teclado mediu
+     * `hidden=true` com `display: flex` depois do Esc. */
+    const desenhada = getComputedStyle(dica).display !== "none";
+    if (!desenhada) return;
     /* O `stopPropagation` impede que o mesmo Esc que fecha a dica atravesse até
      * o atalho global e limpe a busca — dois desfazeres num toque só. */
     ev.stopPropagation();
     mostrar(false);
+    gatilho.setAttribute("data-fechei", "");
   });
   return [gatilho, dica];
 }
@@ -4380,8 +4439,19 @@ function render() {
    * ativa podia estar a 600px de rolagem, invisível. `nearest` não sacode a
    * página quando ela já está à vista. */
   const ativa = document.querySelector('#trilho button[aria-current="true"]');
+  /* SÓ ROLA QUEM ESTÁ FORA DA VISTA — 07/09/2026. O `scrollIntoView`
+   * incondicional tinha um efeito colateral medido por A/B na conferência de
+   * teclado: ele move o PONTO DE PARTIDA do Tab, e o primeiro Tab de uma carga
+   * nova caía no meio do trilho — o «Pular para o conteúdo», a busca e o
+   * Ensaiar só existiam andando para trás. Com a aba já visível (o caso de
+   * toda tela dela: o trilho inteiro cabe), nada se move e o Tab nasce onde o
+   * HTML manda. */
   if (ativa && ativa.scrollIntoView) {
-    ativa.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const t = $("#trilho").getBoundingClientRect();
+    const b = ativa.getBoundingClientRect();
+    if (b.top < t.top || b.bottom > t.bottom) {
+      ativa.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
   }
 }
 
@@ -4482,7 +4552,10 @@ function semAcento(texto) {
 function ondeCasa(item, busca) {
   const visivel = semAcento([tituloDoCartao(item), item.frase, item.rotulo]
     .filter(Boolean).join(" "));
-  if (visivel.includes(busca)) return null;
+  /* Mesma régua do `casa`: com busca de várias palavras, "visível" é quando
+   * TODAS aparecem no texto que está na tela. */
+  const palavras = busca.split(/\s+/).filter(Boolean);
+  if (palavras.every((p) => visivel.includes(p))) return null;
   const c = item.chave || item.id || "";
   if (semAcento(String(c)).includes(busca)) return `casa pela chave ${c}`;
   if (semAcento(String(item.ajuda || "")).includes(busca)) return "casa pelo «Por quê» — o ? abre";
@@ -4490,12 +4563,47 @@ function ondeCasa(item, busca) {
   return "casa por um campo do arquivo";
 }
 
+/* O PULA-GRADE — 07/09/2026. A conferência de teclado contou o custo de
+ * atravessar as grades grandes no Tab: em "Papel de parede", 138 das 181
+ * paradas são os três botões (Dia · Noite · Tirar) das 46 figuras — quem quer
+ * as ações do fim da página nada por todas elas. O mecanismo é o mesmo do
+ * «Pular para o conteúdo» do topo: um link invisível até ser focado, logo
+ * antes da grade, levando ao primeiro ponto depois dela. */
+function pulaGrade(idAlvo, rotulo) {
+  return elemento("a", { class: "pular pular-grade", href: "#" + idAlvo, texto: rotulo });
+}
+function alvoDoPulo(idAlvo) {
+  return elemento("div", { id: idAlvo, tabindex: "-1" });
+}
+
+/* OS APELIDOS DA BUSCA — 07/09/2026. A conferência de tarefas mediu termo a
+ * termo o vocabulário DELA contra o do arquivo: "quadrada" dava zero (o
+ * conceito existe, chama-se "Canto arredondado"), "restaurar" zero, "original"
+ * um resultado irrelevante. O arquivo não precisa mudar de vocabulário; a
+ * busca precisa conhecer os sinônimos de quem procura. Chaves SEM acento,
+ * porque a busca inteira roda em `semAcento`. */
+const APELIDOS_DE_BUSCA = {
+  quadrada: "canto raio", quadrado: "canto raio", redondo: "canto raio",
+  arredondado: "canto raio",
+  restaurar: "voltar reverter fabrica", original: "fabrica reverter",
+  wallpaper: "papel de parede", fundo: "papel de parede",
+  atualizar: "atualizacao", update: "atualizacao",
+};
+
 function casa(item, busca) {
   const campos = [
     item.chave, item.frase, item.valor, item.secao, item.subsecao,
     item.rotulo, item.ajuda, item.id, item.arquivo, item.nome, item.caminho,
-  ];
-  return campos.filter(Boolean).some((c) => semAcento(String(c)).includes(busca));
+  ].filter(Boolean).map((c) => semAcento(String(c)));
+  /* POR PALAVRA, COM E-LÓGICO — "terminal gato" dava zero enquanto "gato"
+   * sozinho dava 37: a busca exigia a frase contígua. Agora cada palavra pode
+   * casar num campo diferente do mesmo cartão; o cartão só entra se TODAS
+   * casarem em algum lugar. Cada palavra ainda tenta os próprios apelidos. */
+  const palavras = busca.split(/\s+/).filter(Boolean);
+  return palavras.every((p) => {
+    const formas = [p].concat((APELIDOS_DE_BUSCA[p] || "").split(" ").filter(Boolean));
+    return formas.some((f) => campos.some((c) => c.includes(f)));
+  });
 }
 
 /* AS FOLHAS ABREM — 02/09/2026.
@@ -4817,7 +4925,14 @@ function montarFolhas(folhas) {
 
 /* --- teclado -------------------------------------------------------------- */
 document.addEventListener("keydown", (ev) => {
-  const digitando = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  /* «DIGITANDO» É QUEM ACEITA TEXTO — 07/09/2026. A guarda tratava TODO
+   * <input> como campo de texto, e um deslizante é <input type=range>: depois
+   * de ajustar uma régua com as setas, o «/» morria — 12 réguas só em "Painel
+   * e dock", 12 lugares onde o atalho da busca parava de funcionar. Um range
+   * não digita nada; a barra («/») pode vir dele em paz. */
+  const el = document.activeElement;
+  const digitando = /^(TEXTAREA|SELECT)$/.test(el.tagName)
+    || (el.tagName === "INPUT" && /^(text|search|time|number|file)$/.test(el.type));
   if (ev.key === "/" && !digitando) { ev.preventDefault(); $("#busca").focus(); return; }
   if (ev.key === "Escape" && document.activeElement === $("#busca")) {
     $("#busca").value = ""; render(); return;
@@ -5129,6 +5244,7 @@ async function iniciar() {
 
   /* O `value = ""` no fim não é zelo: sem ele, escolher O MESMO arquivo duas
    * vezes seguidas não dispara `change`, e o segundo Importar não faz nada. */
+  $("#rotulo-importar").addEventListener("click", () => $("#arquivo-importar").click());
   $("#arquivo-importar").addEventListener("change", async (e) => {
     const arquivo = e.target.files && e.target.files[0];
     e.target.value = "";

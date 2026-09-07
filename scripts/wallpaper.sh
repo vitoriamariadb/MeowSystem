@@ -2465,6 +2465,34 @@ cmd_passo() {
   return "$MEOW_DIVERGENTE"
 }
 
+# "QUERO ESTA, AGORA" — 07/09/2026
+# A conferência de tarefas mediu o buraco: a jornada "fixar UMA imagem para
+# sempre" não tinha verbo — a ficha da imagem oferecia Dia, Noite e Tirar, e a
+# busca por "fixar" devolvia um gato. Toda a maquinaria já existia (o menu do
+# botão direito fixa a PRÓXIMA via `gravar_fixo`); o que faltava era poder
+# apontar QUAL. A duração é a mesma regra de sempre: `WALLPAPER_FIXO_TTL`
+# manda, e com 0 a fixação dura até `meow wallpaper carrossel`.
+cmd_usar() {
+  local img="$1"
+  [ -f "$img" ] || { meow_erro "não achei $img"; return "$MEOW_ERRO"; }
+  if meow_seco; then
+    meow_muda "fixaria $(basename "$img") como o papel de parede de agora"
+    return "$MEOW_DIVERGENTE"
+  fi
+  criar_pastas || { meow_erro "não consegui criar as pastas"; return "$MEOW_ERRO"; }
+  gravar_fixo "$img"
+  # `cmd_aplicar` é quem escreve a configuração — mesma regra do `cmd_passo`:
+  # um segundo escritor de `$BG` é o defeito que ele existe para evitar.
+  cmd_aplicar >/dev/null || true
+  meow_ok "papel de parede: $(basename "$img")"
+  if [ "$(segundos_de "$FIXO_TTL")" -gt 0 ]; then
+    meow_info "  o carrossel volta em $FIXO_TTL (ou agora, com 'meow wallpaper carrossel')"
+  else
+    meow_info "  fixado até você soltar: 'meow wallpaper carrossel'"
+  fi
+  return "$MEOW_DIVERGENTE"
+}
+
 cmd_carrossel() {
   if [ ! -f "$FIXADO" ]; then
     meow_ok "o carrossel já está girando — nada fixado"
@@ -2502,5 +2530,6 @@ case "${1:-aplicar}" in
   # sem o lado. Enquanto aquela linha não passar os dois, o caminho que funciona
   # é chamar este script direto.
   lado)      shift; cmd_lado "${1:-}" "${2:-}" ;;
-  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|carrossel|--conferir|estado|semear|adicionar <alvo>|banir <img>|desbanir <nome>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
+  usar)      shift; cmd_usar "${1:-}" ;;
+  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|usar <img>|carrossel|--conferir|estado|semear|adicionar <alvo>|banir <img>|desbanir <nome>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
 esac

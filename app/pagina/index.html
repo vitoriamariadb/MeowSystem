@@ -146,11 +146,17 @@
        repetição do que o botão vizinho já diz. O QUE entra continua dito em
        dois lugares que não custam espaço na barra: o `title`, e o seletor de
        arquivo, que só aceita `.conf`. -->
-  <label class="btn" id="rotulo-importar"
-         title="Ler um arquivo exportado e trazer as escolhas para a tela">
+  <!-- BOTÃO, E NÃO LABEL — 07/09/2026. A conferência de teclado percorreu o
+       ciclo inteiro de Tab e Shift+Tab: o Importar aparecia ZERO vezes. Uma
+       <label> não entra na fila do foco e o input está hidden — quem usa só
+       teclado não conseguia importar um .conf de jeito nenhum, e é a única
+       porta de entrada de configuração. O <button> entra na fila como os
+       irmãos Exportar e Ensaiar; quem abre o seletor é o click() no input. -->
+  <button type="button" class="btn" id="rotulo-importar"
+          title="Ler um arquivo exportado e trazer as escolhas para a tela">
     Importar
-    <input type="file" id="arquivo-importar" accept=".conf,text/plain" hidden>
-  </label>
+  </button>
+  <input type="file" id="arquivo-importar" accept=".conf,text/plain" hidden>
 
   <!-- SALVAR MORA NO BANNER, E É UM SÓ.
        Pedido dela em 01/09/2026: "salvar aplicar e descartar não devem viver
