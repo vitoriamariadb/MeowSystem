@@ -1573,7 +1573,16 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   border-radius: var(--r-3);
   background: var(--mantle);
 }
+/* `flex: 0 0 auto` PORQUE O PAINEL DO JOGO É UMA COLUNA — 07/09/2026
+   A regra geral `input[type="text"] { flex: 1 1 12ch }` (acima) foi escrita
+   para as LINHAS de controle, onde o campo de texto deve tomar a largura livre.
+   Dentro do `.escolha-jogo`, que é `flex-direction: column`, o mesmo
+   `flex-grow: 1` cresce em ALTURA: a conferência de uso mediu o campo
+   "Por quê?" com 90 px para uma linha de texto — uma caixa enorme e vazia
+   onde cabe uma frase. Varridos os treze assuntos, este é o único campo que
+   caía nisso. */
 .escolha-icone input[type="search"], .motivo-jogo {
+  flex: 0 0 auto;
   padding: .45rem .7rem;
   border-radius: var(--r-2);
   border: 1px solid var(--surface1);
