@@ -521,6 +521,30 @@ a:hover { color: var(--accent); text-decoration: underline; }
 main {
   flex: 1 1 auto;
   overflow-y: auto;
+  /* A ÂNCORA DE ROLAGEM FAZIA A FAIXA SAMBAR — 07/09/2026
+     Queixa dela: "os ícones que ficam congelados ficam sambando na tela tipo
+     travando, em todas as páginas".
+
+     Medido, quadro a quadro, rolando: o `presa` da faixa trocava de estado
+     entre 32 e 62 vezes numa rolagem só, e o navegador mexia no `scrollTop`
+     sozinho, subtraindo EXATAMENTE o que a faixa encolhe — 103 px em "Ícones",
+     104 em "Cor e tela", 60 em "Painel e dock", de 17 a 31 vezes por rolagem.
+
+     É a ancoragem de rolagem do Chrome, e o laço se fecha assim: a faixa gruda
+     e encolhe; o conteúdo abaixo sobe; o navegador compensa a subida mexendo no
+     `scrollTop` para o leitor não perder o lugar; isso devolve a sentinela para
+     dentro da tela; a faixa desgruda e cresce; o navegador compensa de novo.
+     Ninguém está errado sozinho — as duas correções se anulam em ciclo.
+
+     `none` no ROLADOR, e não na faixa: a âncora que o navegador escolhe é o
+     conteúdo ABAIXO dela, então excluir a faixa não muda nada. Medido também:
+     com a regra na `.previa-bloco`, continuam 34 e 62 trocas; aqui, uma só — a
+     legítima, de solta para grudada — e zero salto de rolagem.
+
+     O que se perde: quando algo cresce ACIMA do ponto onde ela está, a página
+     não compensa mais sozinha. Aqui isso é o carregamento das listas, que
+     chega antes de ela rolar; o samba era a cada rolagem, em seis páginas. */
+  overflow-anchor: none;
   /* SEM RECHEIO EM CIMA, E ISSO É O QUE FAZ O DESENHO GRUDADO FUNCIONAR.
      Quem rola é o `main`, e um `sticky` com `top: 0` gruda no topo do PADDING
      BOX. Enquanto havia `padding-top` aqui, esse ponto ficava 22 px ABAIXO do

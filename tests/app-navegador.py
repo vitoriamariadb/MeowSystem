@@ -1427,6 +1427,45 @@ def main():
             checa(corte == "visible",
                   f"o desenho que sangra fora do viewBox nao e' recortado ({corte})")
 
+            # (l) A FAIXA NAO SAMBA ENQUANTO ELA ROLA. Queixa dela: "os icones
+            #     que ficam congelados ficam sambando na tela tipo travando, em
+            #     todas as paginas". Medido quadro a quadro: o `presa` trocava
+            #     de estado 32 a 62 vezes numa rolagem so, porque a ancoragem de
+            #     rolagem do Chrome compensava o encolhimento da faixa mexendo
+            #     no scrollTop (-103px em "Icones"), o que devolvia a sentinela
+            #     para a tela e desgrudava a faixa — as duas correcoes se
+            #     anulando em ciclo. Uma troca (solta -> grudada) e' o certo;
+            #     duas ou mais e' o samba de volta, e nenhum salto de rolagem
+            #     pode partir do navegador.
+            samba = []
+            for aba_ in ("Ícones", "Cor e tela", "Painel e dock"):
+                pag.locator(f'#trilho button[data-grupo="{aba_}"]').first.click()
+                pag.wait_for_timeout(420)
+                pag.evaluate("() => { document.getElementById('principal').scrollTop = 0; }")
+                pag.wait_for_timeout(150)
+                d = pag.evaluate("""() => new Promise(resolve => {
+                  const c = document.getElementById('principal');
+                  const b = document.querySelector('#conteudo .previa-bloco');
+                  if (!b) return resolve(null);
+                  let esperado = c.scrollTop, saltos = 0, trocas = 0, antes = null, n = 0;
+                  (function tick() {
+                    const real = c.scrollTop;
+                    if (Math.abs(real - esperado) > 0.5) saltos++;
+                    const p = b.classList.contains('presa');
+                    if (antes !== null && p !== antes) trocas++;
+                    antes = p;
+                    c.scrollTop = real + 14;
+                    esperado = c.scrollTop;
+                    if (++n < 120) requestAnimationFrame(tick);
+                    else resolve({ trocas, saltos });
+                  })();
+                })""")
+                if d and (d["trocas"] > 1 or d["saltos"] > 0):
+                    samba.append(f"{aba_}: {d}")
+            checa(not samba,
+                  "rolando, a faixa gruda uma vez so e o navegador nao mexe na rolagem"
+                  + (f" — {samba}" if samba else ""))
+
             print("\n20b. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,
                   f"nenhum erro de JavaScript em toda a visita"
