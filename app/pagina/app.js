@@ -189,7 +189,13 @@ const ROTULO_DE_VALOR = {
    * primeiras saíram. */
   auto: "Automático", info: "Informação", debug: "Detalhado",
   global: "Todas as áreas", workspace: "Só a atual",
+  /* Os cinco valores de `FASTFETCH_LOGO_ALINHAR` moram na mesma fileira de
+   * botões, e só os dois primeiros tinham apelido: a fileira misturava
+   * "Em coluna", "Contornando", "degraus", "crescente", "reto". Os três de
+   * baixo entram com a inicial maiúscula e nada mais — apelidar o que não se
+   * entende seria inventar sentido; o que se conserta aqui é a caixa. */
   tabular: "Em coluna", contorno: "Contornando",
+  degraus: "Degraus", crescente: "Crescente", reto: "Reto",
   quadrante: "Médio", sextante: "Alto",
   accent: "Cor de destaque", port: "Do port oficial",
   true: "Sim", false: "Não",
@@ -318,7 +324,7 @@ function humanizar(txt) {
 
 function elemento(tag, props = {}, filhos = []) {
   const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(props)) {
+  for (const [k, v] of Object.entries(props || {})) {
     if (k === "class") el.className = v;
     else if (k === "texto") el.textContent = v;
     else if (k === "html") el.innerHTML = v;
@@ -624,10 +630,18 @@ function montarControle(item, cartao) {
         type: "text", class: "nova", placeholder: "+ acrescentar",
         "aria-label": `Acrescentar item a ${item.chave}`,
       });
-      entrada.addEventListener("keydown", async (ev) => {
-        if (ev.key !== "Enter" || !entrada.value.trim()) return;
-        ev.preventDefault();
+      /* O ENTER E O SAIR DO CAMPO VALEM O MESMO — 07/09/2026
+       * A conferência de uso pegou isto em "Encaixe de janelas por área":
+       * digitado `sim` e saído com Tab, o texto continuava na tela, a bandeja
+       * do "Salvar" continuava vazia, e ao trocar de aba e voltar o texto tinha
+       * sumido sem ninguém dizer nada. Só o Enter acrescentava, e nada na tela
+       * contava isso — o `+ acrescentar` do placeholder era a única pista.
+       *   Perder o que ela digitou é o pior desfecho possível de um campo de
+       * texto, e era o desfecho padrão de dois cartões. O `blur` agora
+       * acrescenta pelo mesmo caminho do Enter. */
+      const acrescentar = async () => {
         const novo = entrada.value.trim();
+        if (!novo) return;
         if (itens.includes(novo)) { torrada(`${novo} já está na lista`, "igual"); return; }
         const novos = [...itens, novo];
         /* NÃO se escreve em `item.valor` aqui: aquilo é o que está NO DISCO, e a
@@ -635,7 +649,17 @@ function montarControle(item, cartao) {
          * tela e o cartão perder a marca de "não salvo" — a auditoria pegou as
          * duas listas (APPS_ATIVOS e AUTOSTART_BLOQUEADOS) assim. */
         if (await aplica(novos.join(sep))) desenhar();
+      };
+      entrada.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter") return;
+        ev.preventDefault();
+        acrescentar();
       });
+      /* `blur` e não `change`: o `change` de um `<input type=text>` só dispara
+       * se o valor mudou DESDE O FOCO, e o `desenhar()` reconstrói o campo a
+       * cada acréscimo — havia caso em que ele não vinha. Sair do campo é o
+       * gesto, e é ele que se escuta. */
+      entrada.addEventListener("blur", () => { acrescentar(); });
       caixa.append(entrada);
     };
     desenhar();
@@ -714,10 +738,21 @@ function montarControle(item, cartao) {
       }));
     }
     if (!naRegua) {
+      /* O NÚMERO DE PARTIDA TEM DE CAIR NA RÉGUA — 07/09/2026
+       * Era `String(item.padrao || lo)`, e ele empacava sempre que o padrão da
+       * chave é uma PALAVRA. Medido em "Tamanho da letra" (`MIDIA_FONTE`, que
+       * nasce `auto`): o botão reaplicava `auto`, ou seja, o valor que já estava
+       * valendo; `naRegua` continuava falso, o deslizante continuava travado e
+       * o botão continuava lá. Não havia gesto nenhum na tela que tirasse aquele
+       * cartão do "Automático".
+       *   `lo` é o piso da faixa e é o número que o deslizante travado JÁ está
+       * mostrando — soltar nele não faz a alça pular de lugar. */
+      const partida = naoNumero(String(item.padrao ?? "")) ? String(lo) : String(item.padrao || lo);
       alternativas.append(elemento("button", {
         type: "button", class: "btn btn-mini",
-        texto: "Escolher número",
-        onclick: () => aplica(String(item.padrao || lo)),
+        texto: "Usar número",
+        title: "Destrava o deslizante — o valor passa a ser escolhido aqui.",
+        onclick: () => aplica(partida),
       }));
     }
     if (alternativas.childNodes.length) caixa.append(alternativas);
@@ -927,6 +962,24 @@ function controleImagem(item, tipo, aplica) {
     }
     botao.append(elemento("span", { texto: rotuloDeValor(opcao) }));
     caixa.append(botao);
+  }
+  /* O TERCEIRO ESTADO TAMBÉM APARECE AQUI — 07/09/2026
+   * A conferência de uso: *"«Gato de dia no terminal» e «Gato de noite no
+   * terminal» mostram dois gatos e NENHUM marcado — não dá para saber qual
+   * está valendo"*. As duas chaves (`FASTFETCH_LOGO_DIA/NOITE`) nascem vazias,
+   * e vazio ali quer dizer "herda a logo do dock" — uma escolha de verdade, e
+   * a que estava valendo. Sem um botão para ela, o `pintar("")` não achava
+   * nada para acender e a fileira ficava toda apagada, como se a página tivesse
+   * perdido o valor.
+   *   É o mesmo terceiro estado do deslizante e dos segmentos, com a mesma
+   * palavra — e ele fecha o conjunto: agora há sempre exatamente um aceso. */
+  if (item.aceita_vazio) {
+    caixa.append(elemento("button", {
+      type: "button", class: "vazio", "data-valor": "", "aria-pressed": "false",
+      title: "Quem decide passa a ser a chave vizinha — é o que o vazio significa aqui.",
+      texto: "Deixar como está",
+      onclick: async () => { if (await aplica("")) pintar(""); },
+    }));
   }
   pintar(valorEmVigor(item));
   /* UM BOTÃO POR PÁGINA, E NÃO UM POR CARTÃO — 06/09/2026.
@@ -1816,6 +1869,19 @@ function montarJogos() {
   const orfas = lista.filter((j) => j.sem_manifesto);
   const comJogo = lista.filter((j) => !j.sem_manifesto);
 
+  /* BUSCA QUE NÃO ACHA NADA TEM DE DIZER ISSO — 07/09/2026
+   * A conferência de uso: *"filtrei um jogo que não existe e a tela ficou muda
+   * — sumiu tudo e nada me disse por quê"*. Uma grade vazia e uma grade que
+   * ainda está carregando são a mesma tela, e quem digitou não sabe se errou o
+   * nome, se o jogo saiu, ou se a página quebrou. */
+  if (termo && !lista.length) {
+    caixa.append(elemento("p", {
+      class: "sem-previa",
+      texto: `Nenhum dos ${JOGOS.total} jogos casa com “${JOGOS_BUSCA.trim()}”.`,
+    }));
+    return caixa;
+  }
+
   const grade = elemento("div", { class: "grade-jogos" });
   for (const j of comJogo) {
     const marca = etiquetaDoJogo(j);
@@ -2420,7 +2486,13 @@ function porqueEDica(item) {
     "aria-expanded": "false", "aria-controls": idDica,
     "aria-label": `O que é ${tituloDoCartao(item) || item.chave}`,
   });
-  const dica = elemento("div", { class: "dica", id: idDica, role: "tooltip", hidden: true });
+  /* `tabindex="-1"` tira o balão da fila do Tab. O Chrome dá parada de foco a
+   * todo contêiner rolável, e a `.dica` é um (`overflow: auto`, teto de 22rem):
+   * andando de Tab, o foco saía do `?`, o `blur` fechava o balão, e o foco caía
+   * num elemento que naquele instante já era `display: none` — uma parada morta
+   * sem anel nenhum, uma por cartão, trinta na aba "Barra e dock". Rolar o
+   * texto pelo teclado nunca funcionou mesmo: o `blur` do gatilho fecha. */
+  const dica = elemento("div", { class: "dica", id: idDica, role: "tooltip", tabindex: "-1", hidden: true });
 
   if (item.ajuda) {
     /* O `# ` que abre cada linha de comentário é sintaxe do arquivo, não texto.
@@ -2441,7 +2513,16 @@ function porqueEDica(item) {
     dica.hidden = !aberta;
     gatilho.setAttribute("aria-expanded", String(aberta));
   };
-  gatilho.addEventListener("click", () => mostrar(dica.hidden));
+  gatilho.addEventListener("click", () => {
+    const abrir = dica.hidden;
+    mostrar(abrir);
+    /* O clique que FECHA suspende o espiar do CSS enquanto o ponteiro não sair
+     * daqui — senão o `:hover` do gatilho reabriria o balão no mesmo gesto e o
+     * `?` pareceria não responder. */
+    if (abrir) gatilho.removeAttribute("data-fechei");
+    else gatilho.setAttribute("data-fechei", "");
+  });
+  gatilho.addEventListener("mouseleave", () => gatilho.removeAttribute("data-fechei"));
   gatilho.addEventListener("focus", () => {
     /* `matches` pode não conhecer `:focus-visible` num navegador antigo, e uma
      * exceção aqui apagaria o cartão inteiro. Sem ele, o teclado continua tendo
@@ -2529,7 +2610,25 @@ function montarAcao(acao) {
     onclick: () => rodar(acao, escolha ? escolha.value : ""),
   }));
   bloco.append(rodape);
-  bloco.append(elemento("code", { class: "cmd", texto: acao.argv, title: acao.argv }));
+  /* O COMANDO NA TELA É O COMANDO QUE VAI RODAR — 07/09/2026
+   * A conferência de uso: *"a ação «Pôr um gato no dock» mostra na tela o
+   * marcador interno @ARG@ em vez do gato escolhido"*. `@ARG@` é sintaxe do
+   * `servidor.py`, e a linha embaixo do cartão existe justamente para que ela
+   * possa LER o que vai acontecer antes de apertar. Mostrar o gabarito cru
+   * quebra as duas pontas dessa promessa: não diz o que vai rodar, e ainda
+   * exibe um detalhe de implementação no meio de uma tela em português.
+   *   O `rodar()` faz esta mesma troca na hora de executar (ver `confirmar`),
+   * então as duas leituras passam a concordar; e como o valor vem de um
+   * `<select>`, a linha se reescreve quando ele muda. */
+  const linhaCmd = elemento("code", { class: "cmd" });
+  const pintarCmd = () => {
+    const texto = acao.argv.replace("@ARG@", escolha ? escolha.value : "");
+    linhaCmd.textContent = texto;
+    linhaCmd.title = texto;
+  };
+  pintarCmd();
+  if (escolha) escolha.addEventListener("change", pintarCmd);
+  bloco.append(linhaCmd);
   return bloco;
 }
 
@@ -2853,8 +2952,9 @@ function itensExternos() {
   ]));
 }
 
-/* O número ao lado do nome soma o que a página mostra: as imagens da galeria,
- * as chaves de cada bloco de ajuste e as ações. */
+/* O número ao lado do nome soma O QUE HÁ PARA MEXER: as chaves de cada bloco de
+ * ajuste e as ações. Não as imagens da galeria, nem os jogos, nem os programas
+ * — ver `contaDoGrupo`. */
 function botaoDeAssunto(assunto) {
   const meus = GRUPOS.filter((g) => assuntoDe(g) === assunto);
   const conta = meus.reduce((s, g) => s + (Number(contaDoGrupo(g)) || 0), 0);
@@ -3025,14 +3125,26 @@ function botaoTrilho(g, filho, rotulo) {
  *   meow.conf: os itens dela são as imagens, que chegam depois, do
  *   `/api/previas`. Um zero ao lado de 46 fotos é pior que nenhum número: diz à
  *   pessoa que não há nada ali, justamente na seção mais visual da página. */
+/* O NÚMERO NÃO PODE MUDAR SOZINHO — 07/09/2026
+ * A conferência de uso mediu: *"o número ao lado de «Lançadores e jogos» mente
+ * até eu abrir a aba: era 8, virou 31"*, e *"o de «Ícones» pula de 8 para 48 só
+ * de eu abrir a aba, e não volta mais"*. As três listas grandes — a galeria de
+ * papéis de parede, os programas e os jogos da Steam — chegam por rede depois
+ * da primeira pintura, e cada uma somava ao contador quando chegava.
+ *
+ * O DEFEITO NÃO ERA O ATRASO, ERA O NÚMERO SIGNIFICAR DUAS COISAS. Antes de
+ * carregar ele contava "quantos ajustes há aqui"; depois, "quantos ajustes mais
+ * quantos jogos". Ela lê o mesmo lugar e recebe duas respostas para perguntas
+ * diferentes, sem nada dizendo que a pergunta mudou — e a segunda ela nem fez:
+ * ninguém consulta o menu para saber quantos papéis de parede tem.
+ *
+ * Agora o número é UM: o que há para mexer nesta página — as chaves e as ações.
+ * Ele é sabido na primeira pintura e não se mexe mais. O tamanho de cada acervo
+ * continua escrito ao lado do próprio acervo ("46 imagens", "40 aplicativos com
+ * .desktop nesta máquina"), que é onde ele responde a alguma coisa. */
 function contaDoGrupo(g) {
   if (g.tipo === "home") return "";
-  if (g.tipo === "galeria") {
-    const lista = PREVIAS.get("parede/" + ABA_GALERIA);
-    return lista ? String(lista.itens.length) : "";
-  }
-  if (g.tipo === "apps") return APPS ? String(APPS.total) : "";
-  if (g.tipo === "jogos") return JOGOS ? String(JOGOS.total) : "";
+  if (g.tipo === "galeria" || g.tipo === "apps" || g.tipo === "jogos") return "";
   return String(g.itens.length);
 }
 
@@ -3443,6 +3555,31 @@ function parDeBotoes(item, aplica) {
   return caixa;
 }
 
+function desenhoDaSecaoSemChaves(assunto) {
+  /* Só quando NÃO há grupo de chaves nesta seção: se houver, o desenho é o do
+   * bloco, com par e tempo real, e dois desenhos na mesma página seriam a mesma
+   * figura repetida com números diferentes. */
+  for (const g of GRUPOS) {
+    if (g.tipo === "chaves" && assuntoDe(g) === assunto && (g.itens || []).length) return null;
+  }
+  const mapa = (typeof window !== "undefined" && window.MEOW_PREVIAS) || {};
+  const fn = mapa[assunto];
+  if (typeof fn !== "function") return null;
+  let r;
+  try {
+    r = fn({});
+  } catch (e) {
+    return null;
+  }
+  if (!r || !r.antes) return null;
+  const caixa = elemento("div", { class: "previa-bloco" });
+  const par = elemento("div", { class: "par-previa" });
+  par.append(elemento("div", {}, [r.antes]));
+  caixa.append(par);
+  if (r.legenda) caixa.append(elemento("p", { class: "sem-previa", texto: r.legenda }));
+  return caixa;
+}
+
 function parDePrevias(g) {
   if (g.tipo !== "chaves" || !g.itens.length) return null;
   const mapa = (typeof window !== "undefined" && window.MEOW_PREVIAS) || {};
@@ -3548,8 +3685,23 @@ function parDePrevias(g) {
   return elemento("div", { class: "previa-bloco" }, [
     par,
     /* A legenda é uma linha, no padrão que a FORMA já usa: começa por "desenho,
-     * não captura:" e diz os números desenhados. */
-    r.legenda ? elemento("p", { class: "sem-previa", texto: r.legenda }) : null,
+     * não captura:" e diz os números desenhados.
+     *
+     * UMA FRASE PARA DOIS DESENHOS, E ELA DESCREVE O DA ESQUERDA. Enquanto há
+     * um desenho só isso é óbvio; com par, não é — e a conferência de uso pegou
+     * exatamente esse buraco em "Cor e tela": escolhido o latte, o desenho da
+     * direita já era latte e a frase embaixo dos dois continuava descrevendo o
+     * mocha, sem nada dizendo a qual dos dois ela se referia. O aviso existia,
+     * mas escrito dentro de UM dos dois arquivos de prévia; aqui ele vale para
+     * os dez desenhos. */
+    r.legenda
+      ? elemento("p", {
+          class: "sem-previa",
+          texto: temEscolha
+            ? r.legenda.replace(/\.$/, "") + " — à direita, o mesmo desenho com a escolha que ainda não foi salva."
+            : r.legenda,
+        })
+      : null,
   ]);
 }
 
@@ -3816,6 +3968,19 @@ function render() {
         if (nota) alvo.append(nota);
         const acervo = acervoDoAssunto(assunto);
         if (acervo) alvo.append(acervo);
+        /* O DESENHO DE UMA SEÇÃO QUE NÃO TEM CHAVE NENHUMA — 07/09/2026
+         *   `parDePrevias` só roda sobre um grupo de CHAVES, então "Instalação"
+         *   e "Idempotência" — que são só ações — nunca chegavam a ter desenho,
+         *   por mais que alguém registrasse um. Medido nas três abas sem
+         *   desenho: elas são também as que deixam mais tela vazia (a
+         *   Idempotência tem 311 px de conteúdo e 710 px de vazio embaixo).
+         *
+         *   Aqui o desenho é da SEÇÃO e não de um bloco: não há valores para
+         *   ler, então não há par antes/depois nem tempo real. É uma figura que
+         *   responde "o que esta página faz com a minha máquina", e as funções
+         *   já aceitam valores vazios — o contrato delas cai no padrão. */
+        const soloDaSecao = desenhoDaSecaoSemChaves(assunto);
+        if (soloDaSecao) alvo.append(soloDaSecao);
       }
     }
     if (grupos.length > 1) {
@@ -3932,15 +4097,25 @@ function render() {
      *   controles, e por último o disco ("o que já está lá") — que não é
      *   escolha, é conferência, e a frase ao lado dela avisa que só muda depois
      *   de reconstruir. */
-    if (!busca && g.nome === GRUPO_ICONES) {
-      alvo.append(elemento("p", {
-        class: "frase",
-        texto: "O tema como está no disco agora. Trocar uma chave acima só muda "
-             + "isto depois de “Reconstruir o tema de ícones”.",
-      }));
-      alvo.append(gradeDeIcones());
-    }
   }
+
+  /*   ELA SAI DE DENTRO DO LAÇO — 07/09/2026
+   *   Escrita dentro do `for`, a condição `g.nome === GRUPO_ICONES` casava com
+   *   DOIS grupos — o de chaves e o de ações têm o mesmo nome desde que a seção
+   *   passou a ter os dois — e a galeria era emitida duas vezes, idêntica, com
+   *   a frase idêntica em cima das duas. A conferência de uso mediu as duas em
+   *   y=915 e y=1369, com o "Ações" preso no meio delas.
+   *     Fora do laço ela é uma só, e cai onde o parágrafo acima diz que ela tem
+   *   de cair: depois de tudo. */
+  if (!busca && GRUPOS.some((g) => g.nome === GRUPO_ICONES && assuntoDe(g) === ABA)) {
+    alvo.append(elemento("p", {
+      class: "frase",
+      texto: "O tema como está no disco agora. Trocar uma chave acima só muda "
+           + "isto depois de “Reconstruir o tema de ícones”.",
+    }));
+    alvo.append(gradeDeIcones());
+  }
+  grudarPrevias();
   devolverFoco(ancora);
   /* A ABA ABERTA APARECE — em 375px o trilho vira uma tira horizontal com vinte
    * botões, e a validação mediu que "a marcação existe fora da tela": a aba
@@ -3949,6 +4124,60 @@ function render() {
   const ativa = document.querySelector('#trilho button[aria-current="true"]');
   if (ativa && ativa.scrollIntoView) {
     ativa.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+}
+
+/* ===========================================================================
+ * A FAIXA GRUDADA ENCOLHE QUANDO GRUDA — 07/09/2026
+ * ===========================================================================
+ * Quatro dos cinco relatos da conferência de uso trouxeram a mesma queixa, em
+ * abas diferentes: *"ao rolar, o desenho grudado come uma fileira inteira de
+ * títulos — sobram botões sem nome nenhum"*, *"ocupa 213 px do alto com 71% da
+ * faixa vazia"*, *"rouba um quinto da altura da página o tempo todo"*. Medido:
+ * 213 px fechada e 250 px com o par aberto, contra 1015 px úteis do `main`.
+ *
+ * O QUE NÃO SE PODE FAZER É DESGRUDAR. O grudado é pedido dela, literal:
+ * *"esse svg tem que ter a linha congelada pois quando eu desço o navegador ele
+ * se some e eu tenho que levantar de novo"*. A faixa fica.
+ *
+ * O QUE MUDA É O TAMANHO, E SÓ ENQUANTO ELA ESTÁ PRESA. Parada no alto da
+ * página ela é o desenho inteiro, com legenda — é ali que ela é lida. Assim que
+ * a rolagem a encosta no teto, ela vira uma tira: o desenho encolhe e a legenda
+ * sai, porque legenda é leitura e a tira é referência. O que sobra é o que ela
+ * pediu que sobrasse — a figura, à vista, enquanto o dedo está no controle.
+ *
+ * COMO SE SABE QUE ESTÁ PRESA: `position: sticky` não avisa ninguém, e não há
+ * seletor de CSS para "encostou". A sentinela é um nó de altura zero colocado
+ * IMEDIATAMENTE antes da faixa; enquanto ela está à vista, a faixa não encostou.
+ * É o padrão conhecido, e é observador em vez de evento de rolagem porque o
+ * evento dispara a cada pixel e este trabalho é de layout.
+ *
+ * O observador é UM só, criado na primeira chamada. Esta página se redesenha a
+ * cada clique, e um observador por pintura vazaria um por clique. */
+let OBSERVADOR_PREVIA = null;
+
+function grudarPrevias() {
+  const raiz = document.getElementById("principal");
+  if (!raiz || typeof IntersectionObserver !== "function") return;
+  if (!OBSERVADOR_PREVIA) {
+    OBSERVADOR_PREVIA = new IntersectionObserver((entradas) => {
+      for (const e of entradas) {
+        const faixa = e.target.nextElementSibling;
+        if (faixa && faixa.classList.contains("previa-bloco")) {
+          faixa.classList.toggle("presa", !e.isIntersecting);
+        }
+      }
+    }, { root: raiz, threshold: 0 });
+  } else {
+    OBSERVADOR_PREVIA.disconnect();
+  }
+  for (const faixa of document.querySelectorAll("#conteudo .previa-bloco")) {
+    let sentinela = faixa.previousElementSibling;
+    if (!sentinela || !sentinela.classList.contains("sentinela-previa")) {
+      sentinela = elemento("div", { class: "sentinela-previa", "aria-hidden": "true" });
+      faixa.parentNode.insertBefore(sentinela, faixa);
+    }
+    OBSERVADOR_PREVIA.observe(sentinela);
   }
 }
 

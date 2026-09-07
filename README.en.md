@@ -24,7 +24,7 @@ cd MeowSystem
 meow ativar               # every other run
 ```
 
-53 steps. Running it again on a machine that is already set up **writes nothing** — and says so,
+52 steps. Running it again on a machine that is already set up **writes nothing** — and says so,
 instead of listing the steps as if it had redone them. To see what would happen before letting it
 happen: `MEOW_DRY_RUN=1 ./install.sh`.
 
@@ -115,7 +115,7 @@ The **Ensaiar sem gravar** button (dry run) glows amber while it is on, and with
 ## Check and undo
 
 ```bash
-meow doctor                            # 47 checks. Writes nothing.
+meow doctor                            # 46 checks. Writes nothing.
 meow doctor --consertar                # applies only what is out of place
 ./scripts/aplicar_tema.sh original     # restores the previous theme
 meow desinstalar                       # removes theme, icons and timers

@@ -828,9 +828,27 @@ button.porque[aria-expanded="true"] { color: var(--accent); border-color: var(--
   overflow: auto;
   overscroll-behavior: contain;
 }
-button.porque:hover + .dica,
-button.porque:focus-visible + .dica,
-.cartao > .dica:hover { display: flex !important; }
+/* O ESPIAR NÃO PODE ROUBAR O PONTEIRO, E O CLIQUE QUE FECHA TEM DE FECHAR.
+ * Medido em 07/09: com `.dica:hover` na lista, o balão se sustentava sozinho —
+ * ele cai em `top: 100%`, ou seja, exatamente em cima dos controles do próprio
+ * cartão, e bastava o ponteiro sair do `?` e entrar nele para ele continuar
+ * aberto e passar a interceptar os cliques. Em "Cor e tela" isso deixou 22 dos
+ * 50 botões inalcançáveis: o caminho do `?` até "mocha" atravessa o balão.
+ *   1. `.dica:hover` saiu da lista — quem sustenta o espiar é o gatilho, só;
+ *   2. enquanto o balão está apenas SENDO ESPIADO (o atributo `hidden` ainda
+ *      posto), ele não recebe ponteiro nenhum: o dedo atravessa por baixo dele
+ *      até o botão que ela quer. Quando o CLIQUE o abre de verdade, o `hidden`
+ *      cai, esta regra deixa de valer e ele volta a ser clicável — que é o que
+ *      rolar o texto e selecioná-lo precisam;
+ *   3. `[data-fechei]` é o clique que FECHA: sem ele o `:hover` do gatilho
+ *      reabriria o balão no mesmo gesto, e o `?` ficaria inerte para o rato. O
+ *      atributo cai quando o ponteiro sai do botão, então espiar de novo é só
+ *      voltar. */
+button.porque:hover:not([data-fechei]) + .dica[hidden],
+button.porque:focus-visible:not([data-fechei]) + .dica[hidden] {
+  display: flex !important;
+  pointer-events: none;
+}
 
 /* O porquê é o comentário do `meow.conf.exemplo`, que é a documentação deste
  * projeto e vem com as quebras de linha que o autor escreveu — daí o
@@ -857,6 +875,11 @@ button.porque:focus-visible + .dica,
   font-size: var(--t-legenda);
   color: var(--overlay2);
   font-variant-numeric: tabular-nums;
+  /* A irmã `.chave` já tinha isto e esta não. Medido em "Programas que o
+     MeowSystem veste": o padrão de fábrica é uma lista separada por vírgula com
+     dezenas de nomes, e sem ponto de quebra ela saía do balão pela horizontal —
+     a frase acabava no meio de uma palavra e o resto sumia. */
+  overflow-wrap: anywhere;
 }
 /* O selo de essencial é um ponto, e ponto não é controle. Antes ele era um
  * ponto mauve dentro de uma caixinha de contorno pêssego do tamanho de uma
@@ -1119,6 +1142,26 @@ select { flex: 1 1 auto; }
 }
 /* As etiquetas à esquerda, o gatilho à direita: lê-se o risco entrando no botão. */
 .acao .rodape .btn { margin-left: auto; }
+/* O `margin-top: auto` que empurra o rodapé para o fundo do cartão mora no
+ * `code.cmd`. Quando a ação não tem comando para mostrar, não havia quem
+ * empurrasse, e o botão parava logo abaixo da própria frase. */
+.acao:not(:has(code.cmd)) .rodape { margin-top: auto; }
+
+/* OS «EXECUTAR» DA MESMA FILEIRA EM TRÊS ALTURAS — 07/09/2026
+ * Quatro dos cinco relatos da conferência de uso trouxeram este mesmo defeito,
+ * em quatro abas diferentes: "os três Executar ficam em escadinha", "um cartão
+ * é quase o dobro da altura do outro". A raiz é uma linha só: `align-items:
+ * start` na `.grade`, acima. Com ela cada cartão tem a própria altura, e o
+ * `margin-top: auto` que existe DENTRO do `.acao` não tem folga nenhuma para
+ * consumir — não há fundo do cartão, o cartão acaba onde o texto acaba.
+ *   Esticar é o conserto certo, e não «alinhar o botão»: quem lê uma fileira
+ * de três compara os três, e comparar exige a mesma linha de base. O
+ * `align-content: start` de dentro impede que a folga recém-ganha se espalhe
+ * entre as linhas do próprio cartão — ela fica toda no fim, que é onde o
+ * `margin-top: auto` a quer. */
+.grade > .acao,
+.grade > .cartao { align-self: stretch; }
+.grade > .cartao { align-content: start; }
 
 /* --- botões --------------------------------------------------------------- */
 .btn {
@@ -1403,13 +1446,21 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 }
 @keyframes brilho { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 .galeria figure:hover, .galeria figure:focus-within { outline: 2px solid var(--surface2); outline-offset: 0; }
+/* O NOME EM CIMA, AS AÇÕES EMBAIXO — 07/09/2026
+   Era uma linha só, com o nome e os botões dividindo a largura. A conferência
+   de uso mediu o resultado: as QUARENTA E SEIS imagens do acervo mostravam
+   "cat-la…" e "meow-l…" — 51 px de nome, porque as ações não encolhem e ficam
+   com o resto. Um nome cortado no quinto caractere não distingue imagem
+   nenhuma, que é a única coisa que ele existe para fazer.
+     Em coluna o nome tem a largura inteira da miniatura. O `text-overflow`
+   continua valendo para o que ainda não couber. */
 .galeria figcaption {
   position: absolute;
   inset: auto 0 0 0;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: .4rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .25rem;
   padding: .35rem .4rem;
   background: color-mix(in srgb, var(--crust) 80%, transparent);
   opacity: 0;
@@ -1628,6 +1679,22 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   color: var(--accent);
   font-weight: 600;
 }
+/* O terceiro estado, aqui como nos segmentos: tracejado, e aceso ele é CINZA —
+ * nunca accent, que nesta folha quer dizer "escolhido por nós". Ele não tem
+ * miniatura (não há figura para "herda a vizinha"), então ganha a altura das
+ * outras pelo `justify-content` em vez de por um espaçador falso. */
+.opcoes-imagem button.vazio {
+  border-style: dashed;
+  justify-content: center;
+  min-height: 76px;
+  padding-inline: .7rem;
+}
+.opcoes-imagem button.vazio[aria-pressed="true"] {
+  border-color: var(--overlay0);
+  box-shadow: none;
+  background: var(--surface2);
+  color: var(--text);
+}
 
 /* --- amostras de flavor --------------------------------------------------- */
 /* Cada flavor aparece como a TIRA de cores que ele é: base, superfície, texto e
@@ -1823,6 +1890,42 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
    dois lados; foi o que a folha de contato confirmou. */
 .previa-bloco .par-previa svg { max-height: 150px; }
 
+/* A SENTINELA: altura zero, logo antes da faixa. Enquanto ela está à vista, a
+   faixa ainda não encostou no teto. Quem a observa é o `grudarPrevias` do
+   `app.js`; aqui ela só precisa não ocupar lugar nenhum e não aparecer. */
+.sentinela-previa { height: 0; margin: 0; padding: 0; pointer-events: none; }
+
+/* PRESA, ELA É UMA TIRA — 07/09/2026
+   Ver o bloco `A FAIXA GRUDADA ENCOLHE QUANDO GRUDA` no `app.js`. Parada, a
+   faixa é o desenho inteiro com a legenda; encostada no teto, ela é referência
+   e não leitura, então a legenda sai e a figura encolhe. Medido: 213 px caem
+   para perto de 100, e a fileira de títulos que ficava escondida atrás dela
+   volta a aparecer. A transição existe para o encolhimento não parecer um
+   salto de renderização. */
+.previa-bloco {
+  transition: padding .14s ease-out;
+}
+.previa-bloco .par-previa svg,
+.previa-bloco .rotulo-mini,
+.previa-bloco .sem-previa { transition: max-height .14s ease-out, opacity .12s ease-out; }
+
+.previa-bloco.presa { padding: .3rem 0 .35rem; }
+.previa-bloco.presa .par-previa { margin-bottom: 0; gap: .5rem .9rem; }
+.previa-bloco.presa .par-previa svg { max-height: 78px; }
+.previa-bloco.presa .par-previa > div,
+.previa-bloco.presa .par-previa > button.lado-previa { padding: .25rem .3rem .3rem; }
+/* A legenda sai da tira, e sai por ALTURA — `display: none` faria a faixa
+   pular de tamanho de uma vez, e o que se quer é ela encolher. */
+.previa-bloco.presa .sem-previa {
+  max-height: 0;
+  margin: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+/* O mock da FORMA é HTML e não SVG: ele encolhe pela própria caixa. */
+.previa-bloco.presa .mock { min-height: 0; }
+.previa-bloco.presa .mock .rodape { height: 12px; }
+
 /* O desfazer da FORMA mora acima do par, e ocupa a linha inteira da grade:
    os dois mocks são as duas colunas, e um botão espremido entre eles leria como
    pertencente a um só. */
@@ -1911,6 +2014,33 @@ button.lado-previa:focus-visible {
   align-items: stretch;
 }
 .par-botoes .linha-inteira { grid-column: 1 / -1; justify-self: start; }
+/* O «Deixar como está» do PAR nasceu sem folha nenhuma. A aparência do botão
+ * vazio estava escrita em `.segmentos button.vazio` (acima), e este botão nasce
+ * dentro de `.par-botoes` — outro ancestral, seletor não pega. O que ele
+ * desenhava era a folha do NAVEGADOR: Arial no meio de uma página em Inter,
+ * `border: 2px outset white`, canto reto e o `ButtonFace` cinza, que é uma cor
+ * que não existe na paleta. Aparecia assim em três abas — "Cor e tela",
+ * "Barra e dock" e "Modo de leitura". Tracejado e cinza, como o irmão dos
+ * segmentos: é a AUSÊNCIA de opinião nossa, nunca accent. */
+.par-botoes button.vazio {
+  appearance: none;
+  font: inherit;
+  font-size: .8rem;
+  padding: .28rem .6rem;
+  color: var(--subtext1);
+  background: var(--surface0);
+  border: 1px dashed var(--surface1);
+  border-radius: var(--r-1);
+  cursor: pointer;
+  transition: border-color .12s, background-color .12s, color .12s;
+}
+.par-botoes button.vazio:hover { border-color: var(--overlay0); color: var(--text); }
+.par-botoes button.vazio[aria-pressed="true"] {
+  background: var(--surface2);
+  border-color: var(--overlay0);
+  color: var(--text);
+  font-weight: 600;
+}
 button.lado-botao {
   appearance: none;
   display: flex;

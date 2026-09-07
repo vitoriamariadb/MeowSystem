@@ -1403,7 +1403,7 @@ def validar_valor(item, valor):
         #   pela própria página e reimportei o MESMO arquivo. 95 chaves voltaram
         #   idênticas e UMA foi recusada — `MIDIA_FONTE="auto"`, o valor que
         #   está no conf dela agora e que a aba Automação oferece como botão
-        #   "Auto", ao lado de "Escolher número". A página propunha o que este
+        #   "Auto", ao lado de "Usar número". A página propunha o que este
         #   validador respondia com 400.
         #   A causa é uma decisão só, vista de dois lados. O `_faixa_confere`
         #   GUARDA a faixa quando o padrão é uma das `_PALAVRAS_COM_FAIXA` —
@@ -2482,11 +2482,25 @@ def _tipo_de_previa(chave, opcoes, faixa, padrao):
     #   não deve pedir que ela a digite.
     if chave == "AREAS_FOLGA":
         return "areas"
-    if faixa:
+    # A SIMULAÇÃO É DO MODO DE LEITURA, E ELA SE DIZ PELO NOME DA CHAVE — 07/09/2026
+    #   Era decidida pela FAIXA: "1000 a 6500" virava kelvin, "0.0 a 1.0" virava
+    #   textura. A faixa é a coisa errada para perguntar, e a conferência de uso
+    #   mostrou o resultado na tela: o cartão "Onde separa imagem clara de
+    #   escura" (`WALLPAPER_LIMIAR_LUZ`, que declara `0.0 a 1.0`) aparecia com o
+    #   desenho do papel envelhecido e a legenda "simulação — 3500K, textura
+    #   0.35", que é o estado de OUTRA aba. Arrastar o deslizante não mexia em
+    #   nada — e não tinha como mexer: o desenho não é sobre aquela chave.
+    #
+    #   Contadas hoje, QUATRO chaves declaram uma dessas duas faixas, e só duas
+    #   são do modo de leitura; as outras são a opacidade do vidro do painel e da
+    #   dock, que herdariam o mesmo desenho errado assim que ganhassem um valor.
+    #   Isto é a mesma armadilha do `p-rede` adivinhado pela prosa da ação: um
+    #   marcador deduzido da forma acaba afirmando o que a chave não diz.
+    #
+    #   Quem sabe que a temperatura e a textura são do modo de leitura é o nome
+    #   `LEITURA_*`, e ele não se parece com nenhum outro por acaso.
+    if chave.startswith("LEITURA_") and faixa:
         lo, hi = faixa[0], faixa[1]
-        # A faixa do Kelvin visível é 1000–6500 e está escrita no arquivo. O
-        # teste é largo de propósito: qualquer chave que declare uma faixa nessa
-        # ordem de grandeza é temperatura de cor, e não há outra assim aqui.
         if lo <= 2000 and 5000 <= hi <= 10000:
             return "kelvin"
         if lo == 0 and hi == 1:

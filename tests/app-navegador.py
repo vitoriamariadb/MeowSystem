@@ -1120,7 +1120,151 @@ def main():
                      else f" (o mais parecido: {menor[1]} com {menor[0]:.2f}%)"
                           if menor else ""))
 
-            print("\n20. O CONSOLE FICOU LIMPO?")
+            # ---------------------------------------------------------------
+            print("\n20. O QUE A CONFERENCIA DE USO PEGOU, CLICANDO")
+            # Cinco defeitos medidos em 07/09/2026 percorrendo a pagina botao a
+            # botao. Os cinco eram invisiveis para quem le o codigo e obvios
+            # para quem usa: e por isso que eles viram conferencia.
+
+            # (a) O BALAO DO "?" NAO PODE ROUBAR O CLIQUE DO PROPRIO CARTAO.
+            #     Ele cai em `top: 100%`, ou seja, em cima dos controles. Com o
+            #     `.dica:hover` sustentando-o, o caminho do "?" ate a opcao
+            #     atravessava o balao e 22 dos 50 botoes de "Cor e tela" ficavam
+            #     inalcancaveis. Mede-se pelo ponteiro: quem esta sob o centro
+            #     do botao tem de ser o botao.
+            pag.goto(url); pag.wait_for_timeout(1800)
+            pag.locator('#trilho button[data-grupo="Cor e tela"]').first.click()
+            pag.wait_for_timeout(700)
+            gatilho = pag.locator('#conteudo .cartao[data-chave="FLAVOR"] button.porque').first
+            tapados = 0
+            if gatilho.count():
+                gatilho.hover()
+                pag.wait_for_timeout(350)
+                tapados = pag.evaluate("""() => {
+                  const c = document.querySelector('#conteudo .cartao[data-chave="FLAVOR"]');
+                  if (!c) return 0;
+                  let n = 0;
+                  for (const b of c.querySelectorAll('.amostras button, .segmentos button')) {
+                    const r = b.getBoundingClientRect();
+                    const q = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                    if (q && !b.contains(q) && q !== b) n++;
+                  }
+                  return n;
+                }""")
+            checa(tapados == 0,
+                  "o balao do '?' aberto nao tapa nenhuma opcao do proprio cartao"
+                  + (f" — {tapados} tapadas" if tapados else ""))
+
+            # (b) NENHUM BOTAO CAI NA FOLHA DO NAVEGADOR. Um `<button>` sem
+            #     regra de autor sai em Arial, `border: 2px outset white` e o
+            #     cinza de sistema — no meio de uma pagina em Inter e Catppuccin.
+            #     Aconteceu com o "Deixar como esta" do par, em tres abas.
+            crus = []
+            for aba_ in ("Cor e tela", "Barra e dock", "Modo de leitura", "Manutencao"):
+                alvo_ = pag.locator(f'#trilho button[data-grupo^="{aba_[:6]}"]').first
+                if not alvo_.count():
+                    continue
+                alvo_.click(); pag.wait_for_timeout(700)
+                # SO CONTA BOTAO COM TEXTO. As amostras de cor sao <button>
+                # de 28px sem conteudo nenhum, pintadas por `style` — nelas a
+                # familia da fonte nao desenha coisa alguma, e a primeira
+                # versao desta conferencia as acusou por isso.
+                crus += pag.evaluate("""() => {
+                  const fora = [];
+                  for (const b of document.querySelectorAll('#conteudo button')) {
+                    const txt = (b.textContent || '').trim();
+                    if (!txt) continue;
+                    const s = getComputedStyle(b);
+                    if (/^(Arial|Times|sans-serif|serif)$/.test(s.fontFamily.split(',')[0].trim())
+                        || s.borderStyle === 'outset') {
+                      fora.push(txt.slice(0, 24) + ' [' + s.fontFamily.split(',')[0] + ']');
+                    }
+                  }
+                  return fora;
+                }""")
+            checa(not crus,
+                  "nenhum botao da pagina caiu na folha do navegador"
+                  + (f" — {crus[:3]}" if crus else ""))
+
+            # (c) OS "EXECUTAR" DA MESMA FILEIRA FICAM NA MESMA LINHA. Com
+            #     `align-items: start` na grade cada cartao tinha a propria
+            #     altura e os botoes saiam em escadinha de ate 20px. Um pixel de
+            #     folga e arredondamento de sub-pixel; vinte e defeito.
+            escadas = []
+            for aba_ in ("Idempotência", "Instalação", "Papel de parede", "Logo do sistema"):
+                bt = pag.locator(f'#trilho button[data-grupo="{aba_}"]').first
+                if not bt.count():
+                    continue
+                bt.click(); pag.wait_for_timeout(900)
+                for tops in pag.evaluate("""() => {
+                  const fil = {};
+                  for (const b of document.querySelectorAll('#conteudo .grade > .acao .rodape .btn')) {
+                    const c = b.closest('.acao').getBoundingClientRect();
+                    (fil[Math.round(c.top / 20)] ||= []).push(Math.round(b.getBoundingClientRect().top));
+                  }
+                  return Object.values(fil).filter(v => v.length > 1);
+                }"""):
+                    if max(tops) - min(tops) > 2:
+                        escadas.append(f"{aba_}: {tops}")
+            checa(not escadas,
+                  "os 'Executar' de cada fileira ficam na mesma linha"
+                  + (f" — {escadas[:2]}" if escadas else ""))
+
+            # (d) A FAIXA GRUDADA ENCOLHE QUANDO GRUDA. Medida em 213px o
+            #     tempo todo — um quinto da altura util — ela escondia a fileira
+            #     de titulos que passava por baixo: sobravam botoes sem nome.
+            #
+            #     O QUE ESTA CONFERENCIA NAO COBRA: "nao tapa nada". Uma faixa
+            #     `sticky` opaca tapa por definicao o que rola sob ela, e um
+            #     alvo de zero so passaria por sorte da posicao de rolagem — foi
+            #     o que aconteceu na primeira versao desta linha, que passou uma
+            #     vez e reprovou na seguinte sem que nada tivesse mudado. O que
+            #     se pode exigir, e o que resolve a queixa, e ela ser PEQUENA:
+            #     100px contra 213, e a legenda saindo de cena enquanto e tira.
+            faixa_ruim = []
+            for aba_ in ("Cor e tela", "Logo do sistema", "Papel de parede"):
+                pag.locator(f'#trilho button[data-grupo="{aba_}"]').first.click()
+                pag.wait_for_timeout(1100)
+                pag.evaluate("() => { document.getElementById('principal').scrollTop = 600; }")
+                pag.wait_for_timeout(600)
+                d = pag.evaluate("""() => {
+                  const b = document.querySelector('#conteudo .previa-bloco');
+                  if (!b) return null;
+                  const r = b.getBoundingClientRect();
+                  let tapados = 0;
+                  for (const t of document.querySelectorAll('#conteudo .cartao > .titulo-cartao')) {
+                    const q = t.getBoundingClientRect();
+                    if (q.top < r.bottom && q.bottom > r.top) tapados++;
+                  }
+                  return { presa: b.classList.contains('presa'), h: Math.round(r.height), tapados };
+                }""")
+                if d and (not d["presa"] or d["h"] > 140):
+                    faixa_ruim.append(f"{aba_}: {d}")
+            checa(not faixa_ruim,
+                  "rolando, a faixa do desenho gruda e encolhe para menos de 140px"
+                  + (f" — {faixa_ruim[:2]}" if faixa_ruim else ""))
+
+            # (e) O NUMERO DO MENU NAO MUDA SOZINHO. As listas grandes chegam
+            #     por rede depois da primeira pintura; enquanto elas somavam ao
+            #     contador, o "8" ao lado de "Icones" virava "48" sem que ela
+            #     tivesse feito nada.
+            pag.goto(url); pag.wait_for_timeout(1200)
+            antes_conta = pag.evaluate("""() => Object.fromEntries(
+              [...document.querySelectorAll('#trilho button[data-grupo]')]
+                .map(b => [b.dataset.grupo, (b.querySelector('.conta') || {}).textContent || '']))""")
+            for aba_ in ("Ícones", "Lançadores e jogos", "Papel de parede"):
+                bt = pag.locator(f'#trilho button[data-grupo="{aba_}"]').first
+                if bt.count():
+                    bt.click(); pag.wait_for_timeout(2600)
+            depois_conta = pag.evaluate("""() => Object.fromEntries(
+              [...document.querySelectorAll('#trilho button[data-grupo]')]
+                .map(b => [b.dataset.grupo, (b.querySelector('.conta') || {}).textContent || '']))""")
+            mexeu = [k for k, v in antes_conta.items() if depois_conta.get(k) != v]
+            checa(not mexeu,
+                  "o numero ao lado de cada aba nao muda depois que as listas chegam"
+                  + (f" — {mexeu}" if mexeu else ""))
+
+            print("\n20b. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,
                   f"nenhum erro de JavaScript em toda a visita"
                   + (f" — {erros_de_console[:2]}" if erros_de_console else ""))
