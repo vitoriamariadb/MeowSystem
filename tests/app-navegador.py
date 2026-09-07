@@ -1379,6 +1379,54 @@ def main():
                 "() => (ESQUEMA.acoes||[]).some(a => a.id === 'wallpaper_usar')")
             checa(tem_usar, "a acao wallpaper_usar existe no esquema do servidor")
 
+            # (i) O BALAO DO «?» DIZ DE QUEM E' O TEXTO QUANDO ELE E' EMPRESTADO.
+            #     Trinta chaves herdam o comentario da irma de cima, e o balao
+            #     abria o bloco cru: o de "Imagem escura ate as" comeca por uma
+            #     captura de 23:57 e a luminancia do acervo — verdade sobre a
+            #     chave dona, estranho sobre esta. A cadeia importa: o _FIM herda
+            #     de WALLPAPER_NOITE, nao da vizinha _INICIO.
+            pag.locator('#trilho button[data-grupo="Dia e noite"]').first.click()
+            pag.wait_for_timeout(350)
+            de_quem = pag.evaluate("""() => {
+              const k = ESQUEMA.chaves.find(k => k.chave === 'WALLPAPER_NOITE_FIM');
+              const d = document.getElementById('dica-WALLPAPER_NOITE_FIM');
+              const p = d && d.querySelector('.de-quem');
+              return { dona: k && k.ajuda_de, texto: p ? p.textContent : '' };
+            }""")
+            checa(de_quem["dona"] == "WALLPAPER_NOITE"
+                  and "Separar imagens de dia e de noite" in de_quem["texto"],
+                  f"o balao herdado nomeia o bloco dono ({de_quem['dona']})")
+
+            # (j) A CAIXA DO DESENHO MEDE O QUE O DESENHO MEDE. Com `max-height`
+            #     e `width: 100%` a caixa ficava com a largura da coluna e o
+            #     desenho se centralizava dentro dela: medido, 459px de caixa
+            #     para 249px de desenho, comecando 115px a direita da margem do
+            #     texto. Aqui a folga tem de ser a do recheio, nao um vao.
+            folga = pag.evaluate("""() => {
+              const svg = document.querySelector('.previa-bloco .par-previa svg');
+              if (!svg) return null;
+              const c = svg.getBoundingClientRect();
+              const bb = svg.getBBox(), m = svg.getScreenCTM();
+              const par = svg.closest('.par-previa').getBoundingClientRect();
+              return { caixa: Math.round(c.width),
+                       pintado: Math.round(Math.min(bb.width, svg.viewBox.baseVal.width) * m.a),
+                       recuo: Math.round(c.left - par.left) };
+            }""")
+            checa(folga and folga["caixa"] - folga["pintado"] <= 30 and folga["recuo"] <= 25,
+                  f"a caixa do desenho cola no desenho (caixa {folga['caixa']}px, "
+                  f"desenho {folga['pintado']}px, recuo {folga['recuo']}px)")
+
+            # (k) E O QUE SANGRA DE PROPOSITO CONTINUA INTEIRO. A caixa colada
+            #     passou a recortar o que os desenhos pintam FORA do viewBox — o
+            #     relogio da faixa virou "8:00", com o 1 comido. Dois desenhos
+            #     sangram de proposito; o `overflow: visible` os devolve.
+            corte = pag.evaluate("""() => {
+              const svg = document.querySelector('.previa-bloco .par-previa svg');
+              return svg ? getComputedStyle(svg).overflow : '';
+            }""")
+            checa(corte == "visible",
+                  f"o desenho que sangra fora do viewBox nao e' recortado ({corte})")
+
             print("\n20b. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,
                   f"nenhum erro de JavaScript em toda a visita"

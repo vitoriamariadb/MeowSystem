@@ -918,6 +918,20 @@ button.porque:focus-visible:not([data-fechei]) + .dica[hidden] {
  * projeto e vem com as quebras de linha que o autor escreveu — daí o
  * `pre-wrap`. Ele ocupa a primeira linha inteira do balão; o nome da chave e o
  * padrão de fábrica dividem a de baixo, separados por um fio. */
+/* A PROCEDÊNCIA DO TEXTO, quando ele é emprestado. Linha inteira, acima do
+   comentário, e menor que ele: é etiqueta, não leitura. Leva O MESMO TRAÇO à
+   esquerda do `.frase.herdada`, que diz a mesma coisa no cartão — o sinal de
+   "esta explicação é da irmã" passa a ser um só, nos dois lugares. */
+.dica .de-quem {
+  flex: 1 0 100%;
+  margin: 0 0 .4rem;
+  border-left: 2px solid var(--surface1);
+  padding-left: .55rem;
+  font-size: var(--t-legenda);
+  line-height: 1.4;
+  color: var(--overlay1);
+  text-wrap: pretty;
+}
 .dica .motivo {
   flex: 1 0 100%;
   margin: 0 0 .1rem;
@@ -2006,7 +2020,36 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
    da tela, e nesse tamanho ele deixa de ser referência para virar o assunto —
    que é o oposto do que ele faz ali. 150 px ainda mostra a diferença entre os
    dois lados; foi o que a folha de contato confirmou. */
-.previa-bloco .par-previa svg { max-height: 150px; }
+/* O TETO É DE ALTURA, ENTÃO A LARGURA TEM DE SEGUIR A PROPORÇÃO — 07/09/2026
+   `max-height` com `width: 100%` não encolhe a caixa: ela continua com a
+   largura da coluna e o desenho se CENTRALIZA dentro dela, pelo
+   `preserveAspectRatio`. Medido na tela dela, na faixa de "Painel e dock":
+   caixa de 459 px pintando 249 px — 210 px de vazio DENTRO do próprio SVG, e
+   o desenho começando 115 px à direita da margem do texto, sem alinhar com
+   nada. Era essa a "faixa vazia ao lado do desenho": não a linha sobrando à
+   direita, e sim o desenho recuado no meio de uma caixa maior que ele.
+
+   Com a altura fixa e a largura em `auto`, a caixa passa a medir o que o
+   desenho mede, e ele encosta na margem do texto — que é o que o
+   `justify-content: start` da `.par-previa` sempre quis. O `max-width` é a
+   rede: numa coluna estreita demais o desenho volta a encolher em vez de
+   estourar. */
+.previa-bloco .par-previa svg {
+  height: 150px;
+  width: auto;
+  max-width: 100%;
+  /* A SANGRIA É DE PROPÓSITO EM DOIS DESENHOS, E A CAIXA LARGA A ESCONDIA.
+     Medidos os 16 desenhos da faixa: 13 cabem inteiros no `viewBox`; o de
+     "Painel e dock" tem um `<rect>` de fundo em `x=-12 w=124` — a tela que
+     continua além do quadro, desenhada assim de propósito — e o de "Dia e
+     noite" começa o rótulo `18:00` em `x=-1.8`. Enquanto a caixa era mais
+     larga que o desenho, os dois apareciam inteiros por acidente: o recorte
+     do SVG é o VIEWPORT, não o `viewBox`, e sobrava viewport de fora. Com a
+     caixa colada no desenho, o recorte passou a cortar — e o relógio da faixa
+     de "Dia e noite" virou "8:00", com o 1 comido. `visible` devolve o que
+     estava na tela antes desta regra, agora de propósito e não por sobra. */
+  overflow: visible;
+}
 
 /* A SENTINELA: altura zero, logo antes da faixa. Enquanto ela está à vista, a
    faixa ainda não encostou no teto. Quem a observa é o `grudarPrevias` do
@@ -2029,7 +2072,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 
 .previa-bloco.presa { padding: .3rem 0 .35rem; }
 .previa-bloco.presa .par-previa { margin-bottom: 0; gap: .5rem .9rem; }
-.previa-bloco.presa .par-previa svg { max-height: 78px; }
+.previa-bloco.presa .par-previa svg { height: 78px; }
 .previa-bloco.presa .par-previa > div,
 .previa-bloco.presa .par-previa > button.lado-previa { padding: .25rem .3rem .3rem; }
 /* A legenda sai da tira, e sai por ALTURA — `display: none` faria a faixa

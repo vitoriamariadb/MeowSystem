@@ -234,6 +234,16 @@ function maiuscula(txt) {
 
 /** O título curto de um cartão: a primeira oração da explicação, sem ponto.
  *  Não inventa texto — só corta o que já está escrito no meow.conf.exemplo. */
+/* O TÍTULO DA CHAVE DONA DO BLOCO DE COMENTÁRIO — vazio quando a chave tem o
+ * bloco dela. Vive aqui, e não nos dois lugares que o usam (a frase do cartão e
+ * o balão `?`), porque a resposta tem de ser a MESMA nos dois: são a mesma
+ * afirmação escrita em dois tamanhos. */
+function tituloDaDona(item) {
+  if (!item.ajuda_de) return "";
+  const dona = ESQUEMA.chaves.find((k) => k.chave === item.ajuda_de);
+  return dona ? tituloDoCartao(dona) : item.ajuda_de;
+}
+
 function tituloDoCartao(item) {
   /* CHAVE QUE HERDA O COMENTÁRIO DO VIZINHO NÃO PODE HERDAR O TÍTULO DELE.
    *   `LOGO_DIA` e `LOGO_NOITE` dividem o mesmo bloco de comentário, então os
@@ -2589,7 +2599,7 @@ function montarCartao(item) {
   if (item.valendo_agora && item.valendo_agora !== valorEmVigor(item)) {
     cartao.append(elemento("p", { class: "frase dominada" }, [
       elemento("b", { texto: `Na máquina agora: ${rotuloDeValor(item.valendo_agora)}. ` }),
-      elemento("span", { texto: "Quem guarda esse valor é o controle da barra. Salvar faz este ajuste vencer." }),
+      elemento("span", { texto: "Quem guarda esse valor é o controle do painel. Salvar faz este ajuste vencer." }),
     ]));
   }
   if (item.dominada_por) {
@@ -2613,7 +2623,7 @@ function montarCartao(item) {
       class: "frase" + (item.ajuda_herdada ? " herdada" : ""),
       texto: item.frase,
       title: item.ajuda_herdada
-        ? "Esta explicação é do bloco que cobre esta chave e as irmãs dela."
+        ? `Explicação do bloco «${tituloDaDona(item)}», que cobre esta chave e as irmãs dela.`
         : "",
     }));
   }
@@ -2732,6 +2742,21 @@ function porqueEDica(item) {
   const dica = elemento("div", { class: "dica", id: idDica, role: "tooltip", tabindex: "-1", hidden: true });
 
   if (item.ajuda) {
+    /* DE QUEM É ESTE TEXTO — 07/09/2026. Trinta chaves herdam o comentário da
+     * irmã de cima (o `ajuda_herdada` do servidor), e até aqui só a FRASE do
+     * cartão dizia isso, por um traço à esquerda. O balão `?` abria o bloco
+     * herdado cru, sem uma palavra de procedência: em "Dia e noite" são quatro
+     * balões assim, e o de "Imagem escura até as" abre com um parágrafo sobre
+     * uma captura de 23:57 e a luminância do acervo — verdade sobre a chave
+     * dona, estranho sobre esta. Uma linha antes do texto responde a pergunta
+     * que o balão criava, e de quebra diz onde está a explicação completa. */
+    const dona = tituloDaDona(item);
+    if (dona) {
+      dica.append(elemento("p", {
+        class: "de-quem",
+        texto: `Do bloco «${dona}», que explica esta chave e as irmãs de uma vez.`,
+      }));
+    }
     /* O `# ` que abre cada linha de comentário é sintaxe do arquivo, não texto.
      * O `.trim()` tira a linha em branco que quase todo bloco deixa no fim. */
     dica.append(elemento("p", { class: "motivo", texto: item.ajuda.replace(/^# ?/gm, "").trim() }));
@@ -4356,7 +4381,7 @@ function render() {
           type: "button",
           class: "btn btn-mini desfazer-forma",
           texto: pendentes.length === 1 ? "Desfazer 1 escolha" : `Desfazer ${pendentes.length} escolhas`,
-          title: "Devolve a forma da barra e da dock ao que está no disco. O meow.conf não é tocado.",
+          title: "Devolve a forma do painel e da dock ao que está no disco. O meow.conf não é tocado.",
           onclick: () => {
             for (const c of pendentes) MUDANCAS.delete(c);
             atualizarBarraSalvar();

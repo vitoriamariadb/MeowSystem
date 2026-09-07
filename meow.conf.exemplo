@@ -1196,7 +1196,7 @@ LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
 #   a valer com facilidade. Não é trava do script — ele aceita qualquer inteiro.
 LEITURA_RAMPA_MIN="0"             # 0 a 60 min  (0 = virada seca)
 
-# @ Controle na barra
+# @ Controle no painel
 # > Um ícone com dois deslizantes, para mexer sem abrir este painel.
 # O APPLET DA TOPBAR — o ícone com os dois sliders (30/08/2026).
 #   sim  o `./install.sh` compila `src/applets/leitura` e planta o `.desktop`.
