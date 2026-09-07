@@ -68,8 +68,8 @@ O desenho nunca é captura de tela: cada um diz, na legenda, quais números fora
 - **Instalar sem sair do painel** — um `.zip` de tema de ponteiro, uma fonte `.ttf`, um tema de
   ícones de base, um gato novo, um papel de parede. O arquivo enviado nunca toca o repositório:
   quem instala é o mesmo comando que você rodaria no terminal.
-- E **Cor e tela**, **Logo do sistema**, **Barra e dock**, **Dia e noite**, **Terminal**,
-  **Lançadores e jogos**, **Manutenção**, **Instalação** e **Idempotência** — esta última com
+- E **Cor e tela**, **Logo do sistema**, **Painel e dock**, **Dia e noite**, **Terminal**,
+  **Lançadores e jogos**, **Manutenção**, **Instalação** e **Atualização** — esta última com
   `apt`, `flatpak` e `cargo` numa tela e, logo depois, o `doctor` dizendo o que a atualização
   desfez. É a metade que um `full-upgrade` na mão não tem.
 
@@ -80,7 +80,7 @@ Clicar não muda a máquina: as escolhas se acumulam e um botão só grava e apl
 **Ensaiar sem gravar** acende em amarelo enquanto estiver ligado, e com ele cada "Executar"
 mostra o que aconteceria sem escrever nada.
 
-<img src="docs/capturas/painel-forma.png" width="920" alt="A aba Barra e dock, com o desenho do painel e da dock acima dos controles">
+<img src="docs/capturas/painel-forma.png" width="920" alt="A aba Painel e dock, com o desenho do painel e da dock acima dos controles">
 
 ## O que ele veste
 
@@ -88,7 +88,7 @@ mostra o que aconteceria sem escrever nada.
 |---|---|
 | **O tema do COSMIC** | As quatro árvores, aplicadas por cópia de arquivo. Claro e escuro são o mesmo tema com um interruptor, então trocar não pisca a interface. |
 | **A tela de login** | O `cosmic-greeter` tem configuração própria e vinha vazia: era a única superfície ainda de fábrica. |
-| **Barra e dock** | Forma, raio, margem, espaço e recheio de cada segmento; o vidro que sobrevive à janela maximizada; os segundos no relógio; e a música tocando ao lado dele, com capa e controles. |
+| **Painel e dock** | Forma, raio, margem, espaço e recheio de cada segmento; o vidro que sobrevive à janela maximizada; os segundos no relógio; e a música tocando ao lado dele, com capa e controles. |
 | **As áreas de trabalho** | Nome, ordem e encaixe de cada uma. A ordem da lista é a ordem da barra, e é a única forma de decidir qual área nasce primeiro. |
 | **Os ícones** | Papirus como base, pastas coloridas pelo accent, e os glifos do Arcticons por programa — trocáveis um a um, pelo painel. |
 | **O terminal** | As dezesseis cores, o cursor, o prompt do `starship`, e o gato no lugar do logo do `fastfetch`, redesenhado em caracteres a cada geração. |

@@ -38,7 +38,7 @@
 #   `Cor e tema` tinha 3 chaves e `Janelas e tela` tinha 5 — as duas menores
 #   das dez seções, num arquivo cuja maior tem 30. Como o painel deriva UMA ABA
 #   POR SEÇÃO, isso eram duas abas para oito controles, e a segunda nascia
-#   entre `Barra e dock` e `Papel de parede`, três seções longe da cor.
+#   entre `Painel e dock` e `Papel de parede`, três seções longe da cor.
 #   A pergunta que as oito respondem é uma só: como a tela se parece. Qual
 #   Catppuccin, claro ou escuro, o lado a lado, o tamanho de tudo e o ponteiro.
 #
@@ -227,7 +227,7 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 #   arquivo mudar. Numa máquina sem esse vizinho, tudo é nosso.
 
 # @ Nomes das áreas de trabalho
-# > A primeira da lista é a primeira da barra. Trocar a ordem aqui troca a sua tela.
+# > A primeira da lista é a primeira do painel. Trocar a ordem aqui troca a sua tela.
 # A ORDEM É O ASSUNTO INTEIRO, e não um detalhe de apresentação.
 #
 # No cosmic-comp (`src/shell/mod.rs`, `add_output`) as áreas alfinetadas são
@@ -294,7 +294,7 @@ AREAS_ENCAIXE=""
 #   São 21 chaves aqui, e só QUATRO trazem o nome de um gato no valor de
 #   fábrica: `LOGO`, `LOGO_DIA`, `LOGO_NOITE` e `FASTFETCH_LOGO_GATO`. As
 #   outras dezessete não nomeiam gato nenhum: falam de horário, de tamanho, de
-#   alinhamento, de título e de quando recarregar a barra.
+#   alinhamento, de título e de quando recarregar o painel.
 #   A Coquinha e o Mimir continuam sendo o que vem de fábrica, e continuam
 #   sendo os gatos dela. O que muda é o título: quem chega a este arquivo sem
 #   ter os dois gatos lê `Logo do sistema` e sabe do que se trata.
@@ -340,7 +340,7 @@ LOGO_DIA="mimir"       # o dock de dia
 # > Vale quando a escolha é por horário.
 LOGO_NOITE="coquinha"  # o dock de noite
 
-# @ Recarregar a barra na virada
+# @ Recarregar o painel na virada
 # > Sem isto o gato novo só aparece no próximo login. Custa uns 2 s de pisca, duas vezes por dia.
 # Na virada, o gato do dock só aparece depois de o painel reciclar (~2 s de
 # pisca, duas vezes por dia). MEDIDO em 01/09/2026: reescrever o SVG sem
@@ -479,7 +479,7 @@ ICONES_COR_MARCA="nao"
 # `~/folha-pastas-2.html` mostra com contraste bem melhor sobre fundo claro.
 PASTAS_XDG="nao"
 
-# --- Barra e dock -----------------------------------------------------------
+# --- Painel e dock ----------------------------------------------------------
 
 # --- FORMA ------------------------------------------------------------------
 
@@ -650,7 +650,7 @@ FORMA_ALA_FINAL_DOCK=""           # XS | S | M | L | XL   (a ponta direita: band
 # --- VIDRO E RELÓGIO --------------------------------------------------------
 
 # @ Manter o vidro com janela maximizada
-# > "Não" devolve o comportamento de fábrica: a barra fica opaca.
+# > "Não" devolve o comportamento de fábrica: o painel fica opaco.
 # O painel e o dock mantêm o vidro fosco quando uma janela é maximizada?
 # "nao" devolve o comportamento de fábrica do COSMIC: eles ficam opacos.
 # São duas chaves (Panel e Dock) e valem na hora — o painel vigia as duas.
@@ -715,9 +715,9 @@ VIDRO_OPACIDADE_DOCK=""           # 0.0 a 1.0
 # mudou foi a ordem em que ela se oferece.
 RELOGIO_SEGUNDOS="nao"            # sim | nao | vazio (= não toca)
 
-# --- MÚSICA NA BARRA --------------------------------------------------------
+# --- MÚSICA NO PAINEL -------------------------------------------------------
 
-# @ Música na barra
+# @ Música no painel
 # > Capa, nome e controles do que está tocando, ao lado do relógio.
 # A capa do álbum, a cor dela e os ⏮⏸⏭ na barra da dock (applet Now Playing).
 #   A QUEIXA INTEIRA MORAVA EM UMA LINHA. O `src/media.rs` do upstream descartava
@@ -823,7 +823,7 @@ MIDIA_COR_TITULO="mauve"
 MIDIA_COR_ARTISTA="green"
 
 # @ Botões de anterior, pausa e próxima
-# > Desenhados na barra, ao lado do nome.
+# > Desenhados no painel, ao lado do nome.
 #
 # Desenhar ⏮⏸⏭ NA BARRA, ao lado do nome.
 #
@@ -1070,7 +1070,7 @@ WALLPAPER_LIMIAR_LUZ="0.37"       # 0.0 a 1.0 (0 = preto, 1 = branco)
 LEITURA_AGENDA="sim"              # sim | nao | vazio (vazio = não toca)
 
 # @ Modo de leitura começa às
-# > Vale enquanto o controle da barra não tiver gravado um horário seu.
+# > Vale enquanto o controle do painel não tiver gravado um horário seu.
 # O HORÁRIO MORA NO APPLET, NÃO AQUI — decisão dela, 29/08/2026.
 #   Ela pediu para escolher a faixa pela interface, então a fonte da verdade são
 #   as chaves `leitura_hora_inicio` e `leitura_hora_fim` do CosmicComp, gravadas
@@ -1090,7 +1090,7 @@ LEITURA_AGENDA="sim"              # sim | nao | vazio (vazio = não toca)
 #   duas definições de noite na mesma máquina seria pedir para elas discordarem.
 LEITURA_HORARIO_INICIO="18:00"    # HH:MM  (a que horas a tela esquenta)
 # @ Modo de leitura termina às
-# > Vale enquanto o controle da barra não tiver gravado um horário seu.
+# > Vale enquanto o controle do painel não tiver gravado um horário seu.
 LEITURA_HORARIO_FIM="07:00"       # HH:MM  (a que horas ela volta ao normal)
 
 # @ Temperatura da tela

@@ -1647,7 +1647,7 @@ DESCRICAO_SECAO = {
     "Áreas de trabalho": "O nome e a ordem das áreas, e o encaixe de janelas em cada uma.",
     "Logo do sistema": "A logo que aparece no menu de lançamento, na dock e no terminal.",
     "Ícones": "O tema de ícones que o projeto constrói, e o desenho de cada programa.",
-    "Barra e dock": "Forma, tamanho, vidro e a música que aparece na barra.",
+    "Painel e dock": "Forma, tamanho, vidro e a música que aparece no painel.",
     "Papel de parede": "A coleção, a pasta que gira, e como a imagem ocupa a tela.",
     "Dia e noite": "A que horas a noite começa, e o que ela troca sozinha.",
     "Modo de leitura": "A tela quente à noite: a temperatura, a textura e o horário.",
@@ -1657,14 +1657,16 @@ DESCRICAO_SECAO = {
     # As duas páginas sem chave do meow.conf. Elas e a Manutenção formam o bloco
     # "Sistema", e quem decide isso é o `BLOCO_DA_SECAO`, logo abaixo.
     "Instalação": "Instalar, conferir, consertar, desfazer, e ver o que está no ar.",
-    "Idempotência": "O Pop!_OS em dia, e o que a atualização desfez do MeowSystem.",
+    "Atualização": "O Pop!_OS em dia, e o que a atualização desfez do MeowSystem.",
 }
 
 
 # O MENU TEM DOIS BLOCOS, E QUEM DECIDE ISSO É ESTA TABELA — 06/09/2026
 #   Pedido dela: "No menu, Assuntos vira Tópicos, A Máquina vira Sistema. E aqui
 #   dentro temos Manutenção, Instalação (antigo instalar e conferir),
-#   Idempotência (antigo atualizar o sistema)".
+#   Idempotência (antigo atualizar o sistema)". Em 07/09/2026 ela decidiu o
+#   contrário: "Atualização" — era a única aba cujo nome não dizia o conteúdo,
+#   e a palavra idempotência ficou no corpo da página, onde o desenho a ensina.
 #
 #   Antes, o `app.js` decidia sozinho por uma pergunta que PARECIA equivalente:
 #   "esta seção tem chave do meow.conf?". Sim virava "Assuntos", não virava
@@ -1680,7 +1682,7 @@ DESCRICAO_SECAO = {
 BLOCO_DA_SECAO = {
     "Manutenção": "Sistema",
     "Instalação": "Sistema",
-    "Idempotência": "Sistema",
+    "Atualização": "Sistema",
 }
 
 
@@ -1747,7 +1749,7 @@ ACOES = {
     # seguida roda o `doctor` para dizer o que a atualização desfez.
     "sistema_ver": {
         "rotulo": "O que a atualização mudaria",
-        "grupo": "Idempotência",
+        "grupo": "Atualização",
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
         "seco": False, "sudo": False, "confirma": False,
@@ -1756,7 +1758,7 @@ ACOES = {
     },
     "sistema_atualizar": {
         "rotulo": "Atualizar a máquina inteira",
-        "grupo": "Idempotência",
+        "grupo": "Atualização",
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "aplicar"],
         "seco": True, "sudo": True, "confirma": True, "rede": True,
@@ -1766,7 +1768,7 @@ ACOES = {
     },
     "sistema_limpar": {
         "rotulo": "Limpar o que sobrou",
-        "grupo": "Idempotência",
+        "grupo": "Atualização",
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "limpar"],
         "seco": True, "sudo": True, "confirma": True,
@@ -2014,7 +2016,7 @@ ACOES = {
     # --- barra, janelas, leitura --------------------------------------------
     "painel_estado": {
         "rotulo": "Barra e dock: diagnóstico",
-        "grupo": "Barra e dock",
+        "grupo": "Painel e dock",
         "argv": _meow("painel", "estado"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "O estado do painel, da dock, e do serviço que os "
@@ -2022,18 +2024,18 @@ ACOES = {
     },
     "painel_teto": {
         "rotulo": "Até quanto o canto pode arredondar",
-        "grupo": "Barra e dock",
+        "grupo": "Painel e dock",
         "argv": _meow("painel", "teto"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "A conta inteira: altura real, teto derivado, e se o "
                  "compositor limita em vez de derrubar a barra.",
     },
     "painel_reciclar": {
-        "rotulo": "Recarregar a barra",
-        "grupo": "Barra e dock",
+        "rotulo": "Recarregar o painel",
+        "grupo": "Painel e dock",
         "argv": _meow("painel", "reciclar"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "A barra pisca uns 2 s. É o que faz um gato novo aparecer "
+        "ajuda": "O painel pisca uns 2 s. É o que faz um gato novo aparecer "
                  "sem esperar o próximo login.",
     },
     "leitura": {

@@ -3,7 +3,7 @@
  * ============================================================================
  * POR QUE ESTE ARQUIVO EXISTE, e a razão é dura de ouvir: a dona do projeto
  * olhou a tela e disse que não consegue usar o painel sozinha. O único lugar
- * onde isso não acontece é o bloco FORMA de "Barra e dock", e o que ele tem de
+ * onde isso não acontece é o bloco FORMA de "Painel e dock", e o que ele tem de
  * diferente não é texto melhor — é um desenho que responde ANTES da leitura, e
  * que muda quando o valor muda.
  *

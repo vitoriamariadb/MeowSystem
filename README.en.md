@@ -71,8 +71,8 @@ drawn.
 - **Install without leaving the panel** — a cursor theme `.zip`, a `.ttf` font, a base icon theme,
   a new cat, a wallpaper. The uploaded file never touches the repository: what installs it is the
   same command you would run in the terminal.
-- Plus **Cor e tela**, **Logo do sistema**, **Barra e dock**, **Dia e noite**, **Terminal**,
-  **Lançadores e jogos**, **Manutenção**, **Instalação** and **Idempotência** — that last one runs
+- Plus **Cor e tela**, **Logo do sistema**, **Painel e dock**, **Dia e noite**, **Terminal**,
+  **Lançadores e jogos**, **Manutenção**, **Instalação** and **Atualização** — that last one runs
   `apt`, `flatpak` and `cargo` on one screen and then has `doctor` tell you what the upgrade
   undid. That second half is what a `full-upgrade` by hand doesn't have.
 
