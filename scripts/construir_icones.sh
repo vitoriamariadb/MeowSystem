@@ -49,6 +49,238 @@ FLAVOR="${FLAVOR:-mocha}"
 LOGO="${LOGO:-$FLAVOR}"
 ICONES_BASE="${ICONES_BASE:-Papirus-Dark}"
 
+# ---------------------------------------------------------------------------
+# `adicionar <pasta-ou-zip>` e `remover <nome>` — um acervo de ícones de fora
+# ---------------------------------------------------------------------------
+# O QUE A TELA PEDE, E POR QUE ELE MORA AQUI E NÃO NUM SCRIPT NOVO
+#   A aba de ícones do painel oferece a chave `ICONES_BASE` — o tema que o nosso
+#   herda —, e a lista dela sai do disco: todo diretório de
+#   `~/.local/share/icons`, `~/.icons` e `/usr/share/icons` que tenha um
+#   `index.theme` com `Directories=` e sem `Hidden=true`. Ou seja, a única forma
+#   de a lista crescer é um tema novo entrar no disco, e não havia porta para
+#   isso. Ela entra aqui porque este script é o dono de `~/.local/share/icons`
+#   neste projeto e é quem escreve a linha `Inherits=$ICONES_BASE`: um segundo
+#   script instalando tema no mesmo diretório seria a segunda verdade sobre o
+#   mesmo disco — exatamente o "dois donos" que este arquivo persegue desde 08/08.
+#
+# O CRITÉRIO DE "ISTO É UM TEMA DE ÍCONES" NÃO É O NOME DA PASTA, É O ARQUIVO
+#   `index.theme` com uma linha `Directories=` não-vazia. É a mesma regra que a
+#   lista do painel usa, e ela existe por medição: sem o `Directories=`, um tema
+#   de CURSOR (que também mora em `~/.local/share/icons` e também tem
+#   `index.theme`) entraria na lista de temas de ícone, e escolhê-lo deixaria a
+#   máquina com uma árvore sem um único ícone de aplicativo. Uma pasta de SVG
+#   solta também não passa — e isso é resposta, não recusa: ícone avulso tem
+#   outra porta, que é `assets/icones/overrides/`.
+#
+# TRÊS NOMES SÃO RECUSADOS, E CADA UM POR UM MOTIVO DIFERENTE
+#   `$TEMA_NOME`  é o tema que ESTE script constrói. Deixar um pacote de fora
+#                 cair em cima dele apagaria o trabalho das outras seis etapas de
+#                 ícone na próxima linha do zip.
+#   `hicolor`     é a hierarquia de RESERVA do freedesktop, não um tema. O
+#                 `hicolor.sh` deste projeto já conserta o `index.theme` dela;
+#                 sobrescrevê-lo esconde ícone de jogo da Steam (medido em 04/08).
+#   `default`     é o ponteiro do compositor, escrito pelo `scripts/cursor.sh`.
+#                 Um zip que se chamasse assim trocaria o cursor da tela inteira.
+#
+# O ARGUMENTO É DE FORA, E É TRATADO COMO TAL
+#   Sem `eval`, sem `shell=True`: o caminho entra citado, o zip é aberto num
+#   temporário (nunca no destino) e o que vira diretório é o `basename` peneirado
+#   para `[A-Za-z0-9._-]`, nunca o caminho que veio dentro do pacote.
+_ci_nome_seguro() {
+  local n="$1"
+  n="${n//[^A-Za-z0-9._-]/-}"
+  n="${n#"${n%%[!.-]*}"}"
+  printf '%s' "${n:0:80}"
+}
+
+_ci_nome_recusado() {
+  case "$1" in
+    "$TEMA_NOME") meow_erro "'$1' é o tema que este script constrói — recusado"; return 0 ;;
+    hicolor)      meow_erro "'hicolor' é a hierarquia de reserva do sistema, não um tema — recusado"; return 0 ;;
+    default)      meow_erro "'default' é o tema de ponteiro do compositor — recusado"; return 0 ;;
+  esac
+  return 1
+}
+
+# Um `index.theme` que declara pastas de tamanho: é o que separa tema de ícone de
+# tema de cursor. `grep -q` sem regex complicada — a linha é `Directories=` com
+# pelo menos um caractere depois.
+_ci_e_tema_de_icones() {
+  [ -f "$1/index.theme" ] && grep -qiE '^[[:space:]]*Directories[[:space:]]*=[[:space:]]*[^[:space:]]' "$1/index.theme"
+}
+
+# Instala UM diretório de tema. 0 = já idêntico · 1 = instalado · 2 = erro.
+#
+# A idempotência é por CONTEÚDO (regra 5 do projeto): "já existe uma pasta com
+# esse nome" responderia 0 para um tema copiado pela metade, que é justamente o
+# estado que a cópia em dois tempos abaixo existe para evitar.
+_ci_instalar_tema() {
+  local origem="$1" nome destino palco
+  nome="$(_ci_nome_seguro "$(basename -- "$origem")")"
+  [ -n "$nome" ] || { meow_erro "nome de tema vazio dentro do pacote"; return "$MEOW_ERRO"; }
+  _ci_nome_recusado "$nome" && return "$MEOW_ERRO"
+  destino="$HOME/.local/share/icons/$nome"
+  meow_destino_permitido "$destino" || return "$MEOW_ERRO"
+
+  if [ -d "$destino" ]; then
+    if meow_tem diff; then
+      if diff -rq -- "$origem" "$destino" >/dev/null 2>&1; then
+        meow_ok "o tema de ícones '$nome' já está instalado e idêntico"
+        return "$MEOW_OK"
+      fi
+      meow_info "'$nome' está no disco e difere do pacote — substituindo"
+    else
+      meow_ok "o tema de ícones '$nome' já está instalado (sem 'diff' para comparar)"
+      return "$MEOW_OK"
+    fi
+  fi
+
+  if meow_seco; then
+    meow_muda "instalaria o tema de ícones '$nome' em $HOME/.local/share/icons"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  mkdir -p "$HOME/.local/share/icons" || return "$MEOW_ERRO"
+  # O palco nasce DENTRO do diretório de destino: `mv` entre sistemas de arquivos
+  # não é atômico (TRAVA 2 do lib/comum.sh), e um tema de ícones tem milhares de
+  # arquivos — tempo de sobra para um corte no meio.
+  palco="$(mktemp -d -p "$HOME/.local/share/icons" ".meow-tema.XXXXXX")" || return "$MEOW_ERRO"
+  if ! cp -a -- "$origem/." "$palco/"; then
+    rm -rf "$palco"; meow_erro "não consegui copiar o tema '$nome'"; return "$MEOW_ERRO"
+  fi
+  chmod 755 "$palco"
+  rm -rf "$destino"
+  if ! mv -f "$palco" "$destino"; then
+    rm -rf "$palco"; meow_erro "falha ao mover o tema para $destino"; return "$MEOW_ERRO"
+  fi
+  # O manifesto é o que permite ao `--uninstall` saber o que é nosso.
+  meow_manifesto_registrar "$destino/index.theme"
+  meow_muda "tema de ícones '$nome' instalado em $destino"
+  return "$MEOW_DIVERGENTE"
+}
+
+_ci_colher_temas() {
+  find "$1" -maxdepth 3 -type f -name index.theme -print0 2>/dev/null
+}
+
+_ci_adicionar() {
+  local alvo="${1:-}" rc="$MEOW_OK" achou=0 e d
+  if [ -z "$alvo" ]; then
+    meow_erro "uso: construir_icones.sh adicionar <pasta-ou-zip>"
+    return "$MEOW_ERRO"
+  fi
+
+  # ── uma pasta já aberta ───────────────────────────────────────────────────
+  if [ -d "$alvo" ]; then
+    if _ci_e_tema_de_icones "$alvo"; then
+      _ci_instalar_tema "$alvo"; return $?
+    fi
+    while IFS= read -r -d '' d; do
+      d="$(dirname -- "$d")"
+      _ci_e_tema_de_icones "$d" || continue
+      _ci_instalar_tema "$d"; e=$?
+      [ "$e" -ge 2 ] && return "$e"
+      [ "$e" = "1" ] && rc="$MEOW_DIVERGENTE"
+      achou=1
+    done < <(_ci_colher_temas "$alvo")
+    [ "$achou" = "1" ] || {
+      meow_erro "'$alvo' não tem um index.theme com 'Directories=' — não é tema de ícones"
+      meow_info "  para um ícone avulso o caminho é assets/icones/overrides/"
+      return "$MEOW_ERRO"; }
+    meow_registrar "construir_icones.sh adicionar '$alvo'"
+    return "$rc"
+  fi
+
+  [ -f "$alvo" ] || { meow_erro "não achei '$alvo'"; return "$MEOW_ERRO"; }
+  case "$alvo" in
+    *.zip|*.ZIP) : ;;
+    *) meow_erro "só sei abrir .zip aqui (ou uma pasta de tema já aberta)"
+       return "$MEOW_ERRO" ;;
+  esac
+
+  # No seco não se extrai: extrair é escrever, e `MEOW_DRY_RUN=1` promete não
+  # escrever NADA — o `tests/seco.sh` roda num HOME de brinquedo justamente para
+  # pegar quem escreve "só num temporário". O nome vira palpite, e diz-se que é.
+  if meow_seco; then
+    local palpite; palpite="$(_ci_nome_seguro "$(basename -- "${alvo%.*}")")"
+    if [ -n "$palpite" ] && [ -d "$HOME/.local/share/icons/$palpite" ]; then
+      meow_ok "o tema de ícones '$palpite' já está instalado"
+      return "$MEOW_OK"
+    fi
+    meow_muda "instalaria um tema de ícones de '$alvo' em $HOME/.local/share/icons"
+    meow_info "  no seco o nome é palpite pelo arquivo; quem decide é o conteúdo do pacote"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  meow_tem unzip || { meow_erro "falta unzip"; return "$MEOW_SEM_DEPENDENCIA"; }
+  local tmp
+  tmp="$(mktemp -d -p "${TMPDIR:-/tmp}" ".meow-tema-add.XXXXXX")" || return "$MEOW_ERRO"
+  if ! unzip -q -o -- "$alvo" -d "$tmp/x" 2>/dev/null; then
+    rm -rf "$tmp"; meow_erro "o zip veio corrompido — nada instalado"; return "$MEOW_ERRO"
+  fi
+  while IFS= read -r -d '' d; do
+    d="$(dirname -- "$d")"
+    _ci_e_tema_de_icones "$d" || continue
+    _ci_instalar_tema "$d"; e=$?
+    if [ "$e" -ge 2 ]; then rm -rf "$tmp"; return "$e"; fi
+    [ "$e" = "1" ] && rc="$MEOW_DIVERGENTE"
+    achou=1
+  done < <(_ci_colher_temas "$tmp/x")
+  rm -rf "$tmp"
+
+  if [ "$achou" = "0" ]; then
+    meow_erro "o pacote não tem um index.theme com 'Directories=' — não é tema de ícones"
+    meow_info "  para um ícone avulso o caminho é assets/icones/overrides/"
+    return "$MEOW_ERRO"
+  fi
+  meow_registrar "construir_icones.sh adicionar '$alvo'"
+  return "$rc"
+}
+
+# O desfazer do `adicionar`. Só apaga em `~/.local/share/icons`: tema de
+# `/usr/share/icons` é do gerenciador de pacotes (a TRAVA 1 recusa o caminho de
+# qualquer jeito) e tema em `~/.icons` não foi este script que pôs lá. E se o que
+# sair for o `ICONES_BASE` em vigor, a herança do nosso tema aponta para o vazio
+# — então avisa-se, em vez de deixar a máquina descobrir sozinha.
+_ci_remover() {
+  local nome; nome="$(_ci_nome_seguro "${1:-}")"
+  [ -n "$nome" ] || { meow_erro "uso: construir_icones.sh remover <nome>"; return "$MEOW_ERRO"; }
+  _ci_nome_recusado "$nome" && return "$MEOW_ERRO"
+  local dir="$HOME/.local/share/icons/$nome"
+  if [ ! -d "$dir" ]; then
+    meow_pula "'$nome' não está em $HOME/.local/share/icons — nada a remover"
+    return "$MEOW_OK"
+  fi
+  meow_destino_permitido "$dir" || return "$MEOW_ERRO"
+  if meow_seco; then
+    meow_muda "removeria $dir"; return "$MEOW_DIVERGENTE"
+  fi
+  rm -rf "$dir" || { meow_erro "não consegui remover $dir"; return "$MEOW_ERRO"; }
+  meow_muda "tema de ícones '$nome' removido de $HOME/.local/share/icons"
+  [ "$nome" = "$ICONES_BASE" ] && \
+    meow_aviso "esse era o ICONES_BASE — troque a chave antes do próximo 'meow aplicar'"
+  meow_registrar "construir_icones.sh remover $nome"
+  return "$MEOW_DIVERGENTE"
+}
+
+# O DESPACHO É ANTES DE TUDO, E SÓ RECONHECE OS DOIS VERBOS NOVOS
+#   Argumento nenhum continua sendo a construção do tema, que é como o
+#   `install.sh` e o `bin/meow` chamam este script desde sempre. Um argumento
+#   desconhecido vira ERRO (2) em vez de cair calado na construção: a lição está
+#   escrita no `instalar_fontes.sh`, onde `--dry-run` — o nome da VARIÁVEL
+#   documentada — caía no ramo que ESCREVE com quem digitou jurando que só tinha
+#   conferido.
+case "${1:-}" in
+  "")        : ;;
+  adicionar) _ci_adicionar "${2:-}"; exit $? ;;
+  remover)   _ci_remover   "${2:-}"; exit $? ;;
+  *)
+    meow_erro "argumento desconhecido: $1"
+    meow_info "  uso: construir_icones.sh [adicionar <pasta-ou-zip> | remover <nome>]"
+    meow_info "  sem argumento, ele constrói o tema '$TEMA_NOME'"
+    exit "$MEOW_ERRO" ;;
+esac
+
 # Os `<tam>/places` que existem DE FATO dentro do tema, um por linha. O glob do
 # bash já devolve ordenado, então a lista é estável entre execuções — requisito
 # para o `meow_escrever` conseguir comparar por conteúdo. O filtro `NxN` existe

@@ -1483,6 +1483,67 @@ def _paleta_dados():
     return _PALETA_CACHE
 
 
+def logo_do_painel(flavor, accent):
+    """O SVG da marca, no sabor da página e na cor do acento dela.
+
+    Devolve `bytes`, ou `None` quando o acervo autoral não está no disco — o
+    que acontece antes do primeiro `install.sh`, e é um 404 honesto, não um
+    erro: a página inteira funciona sem a marca."""
+    dados = _paleta_dados()
+    flavors = dados.get("flavors", {})
+    cores = flavors.get(flavor) or flavors.get("mocha") or {}
+    if accent not in cores:
+        accent = "mauve" if "mauve" in cores else next(iter(cores), "")
+    tinta = cores.get(accent) or ""
+
+    arquivo = os.path.join(RAIZ, "assets", "icones", "autorais",
+                           "meowsystem-painel-%s.svg" % flavor)
+    if not os.path.isfile(arquivo):
+        arquivo = os.path.join(RAIZ, "assets", "icones", "autorais",
+                               "meowsystem-painel-mocha.svg")
+    if not os.path.isfile(arquivo):
+        return None
+    with open(arquivo, "r", encoding="utf-8") as fh:
+        bruto = fh.read()
+    if not tinta:
+        return bruto.encode("utf-8")
+    # SÓ O ATRIBUTO `stroke` COM VALOR HEXADECIMAL, e nada mais: o desenho é de
+    # traço (`fill="none"`), então o stroke é a cor inteira dele. Uma troca
+    # ampla — qualquer `#RRGGBB` do arquivo — pegaria também um eventual
+    # `stop-color` de gradiente e mudaria o desenho, não a cor dele.
+    return re.sub(r'stroke="#[0-9A-Fa-f]{3,8}"',
+                  'stroke="%s"' % tinta, bruto).encode("utf-8")
+
+
+def _areas_alfinetadas():
+    """Os nomes das áreas alfinetadas, na ordem, sem o espaço-figura.
+
+    Lê o `pinned_workspaces` direto em vez de chamar o `areas.sh`: um provedor
+    roda a cada pintura da página, e um subprocesso por pintura é caro para
+    responder "quais nomes existem". O arquivo é RON, mas o que se quer daqui é
+    só a sequência de `name:` — e para isso a leitura por expressão basta e não
+    escreve nada.
+
+    O ESPAÇO-FIGURA SAI. O nome no disco é `\u2007Meow\u2007` — a folga que ela
+    escolheu em 30/08 para a pastilha da barra não ficar apertada. Ela é
+    decoração de largura, não parte do nome, e um menu que a mostrasse pediria
+    para escolher entre "Meow" e " Meow " sem dizer a diferença.
+    """
+    caminho = os.path.expanduser(
+        "~/.config/cosmic/com.system76.CosmicComp/v1/pinned_workspaces")
+    try:
+        with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
+            bruto = fh.read()
+    except OSError:
+        return []
+    fora = []
+    for m in re.finditer(r'name:\s*Some\(\s*"((?:[^"\\]|\\.)*)"\s*\)', bruto):
+        nome = m.group(1).replace("\\u{2007}", "").replace("\u2007", "").strip()
+        if nome:
+            fora.append(nome)
+    return fora
+
+
 def paleta_css(flavor, accent):
     dados = _paleta_dados()
     flavors = dados.get("flavors", {})
@@ -1545,6 +1606,7 @@ PROVEDORES = {
     "modos": lambda: ["claro", "escuro", "auto"],
     "temas_icones": _temas_de_icones,
     "cursores": _temas_de_cursor,
+    "areas": _areas_alfinetadas,
     "paredes_ativas": _paredes_ativas,
     "paredes_banidas": _paredes_banidas,
 }
@@ -1581,19 +1643,44 @@ DESCRICAO_SECAO = {
     #   A chave é o NOME DO ASSUNTO, e não um id: quem nomeia os assuntos é o
     #   `meow.conf.exemplo`, e inventar um segundo identificador aqui seria a
     #   segunda lista, a que discorda da primeira quando alguém renomear lá.
-    "Cor e tema": "A variante do Catppuccin, a cor de destaque, e claro ou escuro.",
-    "O gato": "Qual gato aparece no dock e no terminal, e quem escolhe.",
+    "Cor e tela": "A variante do Catppuccin, a cor de destaque, o lado a lado e o ponteiro.",
+    "Áreas de trabalho": "O nome e a ordem das áreas, e o encaixe de janelas em cada uma.",
+    "Logo do sistema": "A logo que aparece no menu de lançamento, na dock e no terminal.",
     "Ícones": "O tema de ícones que o projeto constrói, e o desenho de cada programa.",
     "Barra e dock": "Forma, tamanho, vidro e a música que aparece na barra.",
-    "Janelas e tela": "O lado a lado automático, o tamanho de tudo, e o ponteiro.",
     "Papel de parede": "A coleção, a pasta que gira, e como a imagem ocupa a tela.",
-    "Dia e noite": "O que muda quando a noite começa: o gato, o fundo e a tela.",
+    "Dia e noite": "A que horas a noite começa, e o que ela troca sozinha.",
+    "Modo de leitura": "A tela quente à noite: a temperatura, a textura e o horário.",
     "Terminal": "A paleta do terminal, a cor do cursor, e o prompt do zsh.",
-    "Programas e jogos": "Quais programas o projeto veste, e quais jogos aparecem.",
+    "Lançadores e jogos": "Quais programas o projeto veste, e quais jogos aparecem.",
     "Manutenção": "O que se reaplica sozinho, quantos backups ficam, e quanto ele fala.",
-    # As duas páginas que não têm chave do meow.conf — o bloco "A máquina".
-    "Instalar e conferir": "Instalar, conferir, consertar, desfazer, e ver o que está no ar.",
-    "Atualizar o sistema": "O Pop!_OS em dia, e o que a atualização desfez do MeowSystem.",
+    # As duas páginas sem chave do meow.conf. Elas e a Manutenção formam o bloco
+    # "Sistema", e quem decide isso é o `BLOCO_DA_SECAO`, logo abaixo.
+    "Instalação": "Instalar, conferir, consertar, desfazer, e ver o que está no ar.",
+    "Idempotência": "O Pop!_OS em dia, e o que a atualização desfez do MeowSystem.",
+}
+
+
+# O MENU TEM DOIS BLOCOS, E QUEM DECIDE ISSO É ESTA TABELA — 06/09/2026
+#   Pedido dela: "No menu, Assuntos vira Tópicos, A Máquina vira Sistema. E aqui
+#   dentro temos Manutenção, Instalação (antigo instalar e conferir),
+#   Idempotência (antigo atualizar o sistema)".
+#
+#   Antes, o `app.js` decidia sozinho por uma pergunta que PARECIA equivalente:
+#   "esta seção tem chave do meow.conf?". Sim virava "Assuntos", não virava
+#   máquina. A pergunta funcionava por coincidência, e a coincidência acabou
+#   agora: a **Manutenção tem nove chaves** e mesmo assim é Sistema, porque o
+#   que ela ajusta não é a aparência da tela dela — é o que o computador faz
+#   sozinho enquanto ninguém olha. Heurística que erra num caso é heurística
+#   errada; virou decisão escrita, e mora do lado do servidor porque é aqui que
+#   as seções são nomeadas.
+#
+#   Ausente da tabela = "Tópicos". O padrão é o caso comum, e uma seção nova
+#   nasce onde a esmagadora maioria mora, sem precisar de linha nenhuma aqui.
+BLOCO_DA_SECAO = {
+    "Manutenção": "Sistema",
+    "Instalação": "Sistema",
+    "Idempotência": "Sistema",
 }
 
 
@@ -1601,7 +1688,7 @@ ACOES = {
     # --- o ciclo de vida -----------------------------------------------------
     "instalar": {
         "rotulo": "Instalar tudo",
-        "grupo": "Instalar e conferir",
+        "grupo": "Instalação",
         "argv": [os.path.join(RAIZ, "install.sh")],
         "seco": True, "sudo": True, "confirma": True, "rede": True,
         "ajuda": "Passa as 52 etapas. Rodar de novo numa máquina já pronta "
@@ -1609,7 +1696,7 @@ ACOES = {
     },
     "doctor": {
         "rotulo": "Conferir a máquina",
-        "grupo": "Instalar e conferir",
+        "grupo": "Instalação",
         "argv": _meow("doctor"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "Faz as 46 conferências e lista o que está fora do lugar. "
@@ -1617,7 +1704,7 @@ ACOES = {
     },
     "doctor_consertar": {
         "rotulo": "Consertar o que estiver fora",
-        "grupo": "Instalar e conferir",
+        "grupo": "Instalação",
         "argv": _meow("doctor", "--consertar"),
         "seco": True, "sudo": False, "confirma": False,
         "ajuda": "Confere e aplica só o que falhou — o mesmo que o "
@@ -1625,14 +1712,14 @@ ACOES = {
     },
     "status": {
         "rotulo": "O que está no ar agora",
-        "grupo": "Instalar e conferir",
+        "grupo": "Instalação",
         "argv": _meow("status"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "Variante, cor de destaque, tema, ícones e papel de parede.",
     },
     "desinstalar": {
         "rotulo": "Desinstalar o MeowSystem",
-        "grupo": "Instalar e conferir",
+        "grupo": "Instalação",
         "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall"],
         "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
         "ajuda": "Tira o tema, os ícones e os agendamentos. Não apaga "
@@ -1640,7 +1727,7 @@ ACOES = {
     },
     "log": {
         "rotulo": "As últimas 50 linhas do registro",
-        "grupo": "Instalar e conferir",
+        "grupo": "Instalação",
         "argv": _meow("log"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "O que este projeto escreveu, e quando.",
@@ -1660,8 +1747,8 @@ ACOES = {
     # seguida roda o `doctor` para dizer o que a atualização desfez.
     "sistema_ver": {
         "rotulo": "O que a atualização mudaria",
-        "grupo": "Atualizar o sistema",
-        "bloco": "A nova versão",
+        "grupo": "Idempotência",
+        "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "Os pacotes com versão nova e as caixas de Rust desatualizadas. "
@@ -1669,8 +1756,8 @@ ACOES = {
     },
     "sistema_atualizar": {
         "rotulo": "Atualizar a máquina inteira",
-        "grupo": "Atualizar o sistema",
-        "bloco": "A nova versão",
+        "grupo": "Idempotência",
+        "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "aplicar"],
         "seco": True, "sudo": True, "confirma": True, "rede": True,
         "ajuda": "apt, flatpak e cargo, e logo depois o doctor — que diz o que a "
@@ -1679,8 +1766,8 @@ ACOES = {
     },
     "sistema_limpar": {
         "rotulo": "Limpar o que sobrou",
-        "grupo": "Atualizar o sistema",
-        "bloco": "A nova versão",
+        "grupo": "Idempotência",
+        "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "limpar"],
         "seco": True, "sudo": True, "confirma": True,
         "ajuda": "Pacotes órfãos e o cache de download do apt. Diz quantos "
@@ -1689,7 +1776,7 @@ ACOES = {
     # --- tema ----------------------------------------------------------------
     "tema": {
         "rotulo": "Temas prontos nesta máquina",
-        "grupo": "Cor e tema",
+        "grupo": "Cor e tela",
         "argv": _meow("tema"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "O tema alvo, o que está de fato aplicado, e as capturas "
@@ -1697,7 +1784,7 @@ ACOES = {
     },
     "tema_aplicar": {
         "rotulo": "Trocar de tema",
-        "grupo": "Cor e tema",
+        "grupo": "Cor e tela",
         "argv": _meow("tema", "@ARG@"), "arg": "capturas",
         "seco": True, "sudo": False, "confirma": False,
         "ajuda": "Aplica a captura escolhida por cópia de arquivo, guardando "
@@ -1705,7 +1792,7 @@ ACOES = {
     },
     "tema_modo": {
         "rotulo": "Passar para claro ou escuro",
-        "grupo": "Cor e tema",
+        "grupo": "Cor e tela",
         "argv": _meow("tema", "@ARG@"), "arg": "modos",
         "seco": True, "sudo": False, "confirma": False,
         "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
@@ -1713,7 +1800,7 @@ ACOES = {
     },
     "desfazer": {
         "rotulo": "Voltar ao tema de antes",
-        "grupo": "Instalar e conferir",
+        "grupo": "Instalação",
         "argv": _meow("desfazer"),
         "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
         "ajuda": "Devolve o COSMIC ao backup feito antes da instalação.",
@@ -1740,14 +1827,14 @@ ACOES = {
     },
     "logo_listar": {
         "rotulo": "Qual gato está no ar, e por quê",
-        "grupo": "O gato",
+        "grupo": "Logo do sistema",
         "argv": _meow("logo", "listar"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "A lista, o gato em vigor, e qual regra o escolheu.",
     },
     "logo_trocar": {
         "rotulo": "Pôr um gato no dock",
-        "grupo": "O gato",
+        "grupo": "Logo do sistema",
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
         "seco": True, "sudo": False, "confirma": False,
         "ajuda": "Com a escolha por horário, o relógio devolve o gato dele "
@@ -1756,7 +1843,7 @@ ACOES = {
     },
     "logo_girar": {
         "rotulo": "Passar ao próximo gato",
-        "grupo": "O gato",
+        "grupo": "Logo do sistema",
         "argv": _meow("logo", "girar"),
         "seco": True, "sudo": False, "confirma": False,
         "ajuda": "Só tem efeito quando o gato está girando; fora disso o "
@@ -1828,6 +1915,86 @@ ACOES = {
         "ajuda": "Ela sai da pasta que gira e vai para a de banidas. Nada é "
                  "apagado. O “Devolver” da lista de recusadas desfaz.",
     },
+    # DE QUE LADO ESTA IMAGEM FICA — 06/09/2026
+    #   Pedido dela, com a galeria na frente: "quando eu colocar o mouse em cima
+    #   da imagem temos que ter as opções de Dia e a opção Noite, não apenas a
+    #   Tirar".
+    #
+    #   Até aqui não HAVIA como discordar: `ativos-dia/` e `ativos-noite/` eram
+    #   separadas só pela luminância medida (`-colorspace Gray` + `%[fx:mean]`
+    #   contra `WALLPAPER_LIMIAR_LUZ`). A medição acerta na maioria e erra em
+    #   alguns — uma foto clara que ela quer de madrugada, um gráfico escuro que
+    #   ela quer de dia —, e não existia porta nenhuma para dizer isso.
+    #
+    #   São TRÊS ações e não uma com três opções: cada uma é um botão na ficha
+    #   da imagem, e a ficha não tem espaço para um seletor. `auto` devolve a
+    #   imagem à medição — é o desfazer, e é ele que impede o registro de virar
+    #   uma segunda verdade que ninguém sabe apagar.
+    "wallpaper_dia": {
+        "rotulo": "Guardar esta imagem para o dia",
+        "grupo": "Papel de parede",
+        "argv": _meow("wallpaper", "lado", "@ARG@", "dia"), "arg": "paredes_ativas",
+        "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Ela passa a girar só de dia, mesmo que a medição a ache escura. "
+                 "O “Deixar a medição decidir” desfaz.",
+    },
+    "wallpaper_noite": {
+        "rotulo": "Guardar esta imagem para a noite",
+        "grupo": "Papel de parede",
+        "argv": _meow("wallpaper", "lado", "@ARG@", "noite"), "arg": "paredes_ativas",
+        "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Ela passa a girar só de noite, mesmo que a medição a ache clara. "
+                 "O “Deixar a medição decidir” desfaz.",
+    },
+    "wallpaper_lado_auto": {
+        "rotulo": "Deixar a medição decidir",
+        "grupo": "Papel de parede",
+        "argv": _meow("wallpaper", "lado", "@ARG@", "auto"), "arg": "paredes_ativas",
+        "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Tira a escolha escrita e devolve a imagem à luminância medida.",
+    },
+    # AS ÁREAS DE TRABALHO — 07/09/2026
+    #   Pedido dela: "não temos a seção pra setar os dois ambientes de trabalho
+    #   tipo o Meow e o OS". São dois, e o terceiro ("III") saiu em 25/08 e não
+    #   volta — decisão dela, confirmada em 07/09.
+    #
+    #   NENHUMA DELAS ENTRA NO `doctor`. Renomear área de trabalho é decisão de
+    #   quem usa, e um `--consertar` por timer renomearia a área de quem instalou
+    #   o projeto. Por isso são botões, e por isso `areas` não está no
+    #   `VERIFICAVEIS` do `bin/meow`.
+    "areas_ver": {
+        "rotulo": "As áreas de agora",
+        "grupo": "Áreas de trabalho",
+        "argv": _meow("areas", "estado"),
+        "seco": False, "sudo": False, "confirma": False,
+        "ajuda": "Nome, ordem, id e encaixe de cada área. Não escreve nada.",
+    },
+    "areas_aplicar": {
+        "rotulo": "Gravar as áreas",
+        "grupo": "Áreas de trabalho",
+        "argv": _meow("areas", "aplicar"),
+        "seco": True, "sudo": False, "confirma": False,
+        "ajuda": "Vale no PRÓXIMO INÍCIO DE SESSÃO: o cosmic-comp lê esse arquivo "
+                 "uma vez, ao iniciar. Nada muda na barra agora, e isso não é defeito.",
+    },
+    "areas_reverter": {
+        "rotulo": "Voltar as áreas de antes",
+        "grupo": "Áreas de trabalho",
+        "argv": _meow("areas", "reverter"),
+        "seco": True, "sudo": False, "confirma": True,
+        "ajuda": "Devolve o arquivo como estava antes da primeira gravação daqui.",
+    },
+    "areas_desalfinetar": {
+        "rotulo": "Tirar uma área",
+        "grupo": "Áreas de trabalho",
+        "argv": _meow("areas", "desalfinetar", "@ARG@"), "arg": "areas",
+        "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
+        # O ALFINETE É O QUE SEGURA A ÁREA: sem ele o cosmic-comp a destrói assim
+        # que ela esvazia. Não é "esconder", é apagar — daí `destrutivo` e a
+        # confirmação. O `MEOW_SIM` só entra porque a página já perguntou.
+        "ajuda": "APAGA a área: o nome some e o COSMIC a destrói quando ela esvaziar.",
+        "ambiente": {"MEOW_SIM": "1"},
+    },
     "wallpaper_desbanir": {
         "rotulo": "Devolver uma imagem tirada",
         "grupo": "Papel de parede",
@@ -1871,7 +2038,7 @@ ACOES = {
     },
     "leitura": {
         "rotulo": "Modo de leitura agora",
-        "grupo": "Dia e noite",
+        "grupo": "Modo de leitura",
         "argv": _meow("leitura"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "Que degrau o relógio pede, o que a tela mostra, e se o "
@@ -1879,14 +2046,14 @@ ACOES = {
     },
     "leitura_aplicar": {
         "rotulo": "Aplicar o degrau desta hora",
-        "grupo": "Dia e noite",
+        "grupo": "Modo de leitura",
         "argv": _meow("leitura", "aplicar"),
         "seco": True, "sudo": False, "confirma": False,
         "ajuda": "Põe agora o que o agendamento poria sozinho.",
     },
     "leitura_remover": {
         "rotulo": "Desligar o modo de leitura",
-        "grupo": "Dia e noite",
+        "grupo": "Modo de leitura",
         "argv": _meow("leitura", "remover"),
         "seco": True, "sudo": False, "confirma": True,
         "ajuda": "Zera temperatura e textura, e desarma o agendamento.",
@@ -1901,14 +2068,14 @@ ACOES = {
     # --- aplicativos ---------------------------------------------------------
     "apps": {
         "rotulo": "Programas: o que está vestido",
-        "grupo": "Programas e jogos",
+        "grupo": "Lançadores e jogos",
         "argv": _meow("apps"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "Módulo, programa instalado, tema aplicado ou pendente.",
     },
     "apps_aplicar": {
         "rotulo": "Vestir os programas agora",
-        "grupo": "Programas e jogos",
+        "grupo": "Lançadores e jogos",
         "argv": _meow("apps", "aplicar"),
         "seco": True, "sudo": False, "confirma": False,
         "ajuda": "Aplica o tema em todos os programas marcados que estiverem "
@@ -1929,7 +2096,7 @@ ACOES = {
     #   oculta, então nenhuma seção vazia sobra.
     "jogos": {
         "rotulo": "Ver o que mudaria nos jogos",
-        "grupo": "Programas e jogos",
+        "grupo": "Lançadores e jogos",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh"), "--conferir"],
         "seco": False, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Lista atalho a criar, atalho a remover e arquivo a apagar. "
@@ -1937,7 +2104,7 @@ ACOES = {
     },
     "jogos_aplicar": {
         "rotulo": "Arrumar os jogos no lançador",
-        "grupo": "Programas e jogos",
+        "grupo": "Lançadores e jogos",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh")],
         "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
         "oculta": True,
@@ -2101,9 +2268,54 @@ GRUPOS_PAREDE = (("ativos", "ativos"), ("noite", "ativos-noite"),
                  ("banidos", "banidos"))
 
 
+# O LADO ESCRITO, PARA A FICHA SABER O QUE JÁ FOI DECIDIDO — 06/09/2026
+#   `assets/papeis-de-parede/lado.tsv` guarda SÓ a discordância: quem não está
+#   lá é separado pela luminância. O arquivo nem existe enquanto ninguém
+#   discordou de nada — "sem escolha" e "sem arquivo" são o mesmo estado, de
+#   propósito, para o registro não virar uma segunda verdade que ninguém sabe
+#   apagar.
+#
+#   A ficha precisa disto por uma razão só: o botão que devolve a imagem à
+#   medição não pode aparecer numa imagem que nunca foi escolhida. Ele seria um
+#   botão que não faz nada em quase todos os casos, e um botão assim ensina a
+#   não confiar nos outros.
+#
+#   O cache é pelo mtime e não por tempo: a galeria pede as cinco sub-abas em
+#   sequência, e reler o arquivo cinco vezes por passagem seria trabalho à toa —
+#   mas um `lado` gravado agora tem de aparecer na próxima leitura, não no
+#   próximo minuto.
+_LADO_CACHE = {"mapa": {}, "marca": None}
+
+
+def _lado_escrito():
+    caminho = os.path.join(RAIZ, "assets", "papeis-de-parede", "lado.tsv")
+    try:
+        marca = os.path.getmtime(caminho)
+    except OSError:
+        _LADO_CACHE["mapa"], _LADO_CACHE["marca"] = {}, None
+        return {}
+    if _LADO_CACHE["marca"] == marca:
+        return _LADO_CACHE["mapa"]
+    mapa = {}
+    try:
+        with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
+            for linha in fh:
+                linha = linha.strip()
+                if not linha or linha.startswith("#"):
+                    continue
+                partes = linha.split("\t")
+                if len(partes) == 2 and partes[1] in ("dia", "noite"):
+                    mapa[partes[0]] = partes[1]
+    except OSError:
+        mapa = {}
+    _LADO_CACHE["mapa"], _LADO_CACHE["marca"] = mapa, marca
+    return mapa
+
+
 def _prev_paredes():
     """Os cinco grupos do acervo. `banidos/` entra porque desbanir é um clique."""
     base = _wallpaper_base()
+    escolhas = _lado_escrito()
     fora = []
     for grupo, pasta in GRUPOS_PAREDE:
         caminho = os.path.join(base, pasta)
@@ -2134,6 +2346,9 @@ def _prev_paredes():
             canonico = os.path.join(base, "ativos", nome)
             fora.append({"id": grupo + "/" + nome, "rotulo": nome,
                          "origem": arq, "grupo": grupo,
+                         # `""` quando a medição é que decide — é o caso comum,
+                         # e é o que faz o botão de desfazer não aparecer.
+                         "lado": escolhas.get(nome, ""),
                          "banir": canonico if os.path.isfile(canonico) else ""})
     return fora
 
@@ -2940,6 +3155,13 @@ class Manipulador(BaseHTTPRequestHandler):
             _pulso_sai()
 
     # --- rotas ---------------------------------------------------------------
+    def _logo_do_painel(self):
+        valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
+        flavor = valores.get("FLAVOR") or "mocha"
+        if valores.get("MODO") == "claro":
+            flavor = "latte"
+        return logo_do_painel(flavor, valores.get("ACCENT") or "mauve")
+
     def do_GET(self):
         alvo = urlparse(self.path)
         consulta = parse_qs(alvo.query)
@@ -3025,6 +3247,34 @@ class Manipulador(BaseHTTPRequestHandler):
         #   `os.path.basename` sobre o nome vindo da CONF (não do pedido) é
         #   paranoia barata: um `LOGO="../../etc/passwd"` no meow.conf dela não
         #   passa daqui, e a extensão é cravada em `.svg`.
+        # A MARCA DO APLICATIVO NÃO É UM GATO DELA — é o ícone do `.desktop`.
+        #   Pedido dela em 06/09/2026: "a logo do .desktop deve ser usada para
+        #   ser a logo oficial do banner do app ao invés da coquinha e do
+        #   mimir". A razão é de produto: o painel deixou de ser a interface do
+        #   meow.conf DELA e virou um programa que outra pessoa instala. A
+        #   Coquinha e a Mimir não saem do projeto — continuam sendo o que vem
+        #   de fábrica na aba "Logo do sistema", que é onde gato É o assunto.
+        #
+        # O `stroke` É TROCADO AQUI, e não no gerador.
+        #   Os quatro SVG de `assets/icones/autorais/` cravam o mauve de cada
+        #   sabor, porque é isso que o ícone do `.desktop` tem de ser: o
+        #   lançador não lê o meow.conf e não tem paleta para seguir. A PÁGINA
+        #   tem. Medido: com `ACCENT="peach"` o banner seria a única coisa roxa
+        #   numa tela pêssego. Então a rota lê o arquivo do sabor e reescreve o
+        #   valor do `stroke` com a MESMA cor que o `/paleta.css` calcula —
+        #   `_paleta_dados()`, e não uma segunda tabela de hex escrita à mão.
+        #
+        #   `MODO="claro"` força o Latte pelo mesmo motivo que já força em
+        #   `/paleta.css`: o que ela vê é o tema claro, e uma marca escura no
+        #   meio disso seria a única coisa fora do lugar.
+        if caminho == "/logo.svg":
+            if not self._token_confere(consulta):
+                return self._recusar(403, "token de sessão ausente ou errado")
+            corpo = self._logo_do_painel()
+            if corpo is None:
+                return self._recusar(404, "a logo autoral não está no acervo")
+            return self._responder(corpo, tipo=TIPOS[".svg"])
+
         if caminho == "/gato.svg":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
@@ -3161,7 +3411,91 @@ class Manipulador(BaseHTTPRequestHandler):
             "normaliza": True,
             "depois": "vale depois de \"Reconstruir o tema de ícones\"",
         },
+        # OS TRÊS QUE NÃO MORAM NO REPOSITÓRIO — 06/09/2026
+        #   Os três acima são ACERVO: o arquivo fica em `assets/`, versionado,
+        #   e é dali que o instalador o leva para a máquina. Estes três não são
+        #   arte do projeto — são pacotes de terceiros que a pessoa quer ter
+        #   instalados. Guardá-los em `assets/` engordaria o repositório com
+        #   coisa que não é nossa e que tem licença própria.
+        #
+        #   Então o arquivo enviado vai para um temporário e quem instala é o
+        #   COMANDO DA CLI, o mesmo que ela rodaria no terminal. A página
+        #   continua sem mover nem apagar nada por conta própria, e a capacidade
+        #   não nasce presa ao navegador.
+        "cursor": {
+            "comando": ("cursor", "adicionar"),
+            "extensoes": (".zip",),
+            "depois": "escolha o tema novo em \"Tema do ponteiro\" e salve",
+        },
+        "fonte": {
+            "comando": ("fontes", "adicionar"),
+            "extensoes": (".zip", ".ttf", ".otf"),
+            "depois": "a fonte já está registrada; escolha-a onde quiser usá-la",
+        },
+        "tema-icones": {
+            "comando": ("icones", "adicionar"),
+            "extensoes": (".zip",),
+            "depois": "escolha o tema novo em \"Tema de base\" e reconstrua",
+        },
     }
+
+    def _acervo_por_comando(self, conf, nome, corpo):
+        """Instala na MÁQUINA um pacote de terceiro, pelo comando da CLI.
+
+        O arquivo enviado nunca toca o repositório: ele nasce e morre num
+        diretório temporário. Se o comando falhar, não sobra nada — nem meio
+        tema instalado, nem um `.zip` órfão em `assets/`."""
+        import base64 as _b64
+        import tempfile
+
+        try:
+            dados = _b64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+        except Exception:
+            return self._json({"erro": "conteúdo não é base64"}, 400)
+        if not dados:
+            return self._json({"erro": "arquivo vazio"}, 400)
+        # O TETO AQUI É MAIOR QUE O DOS OUTROS ACERVOS, e por medição: um pacote
+        # de Nerd Font passa de 12 MB com folga, e um tema de ícones completo
+        # também. O teto do `_api_acervo` foi escolhido para UM desenho; um
+        # pacote inteiro é outra ordem de grandeza.
+        if len(dados) > 64 << 20:
+            return self._json({"erro": "arquivo maior que 64 MB"}, 413)
+
+        seco = bool(corpo.get("seco"))
+        if seco:
+            # O SECO É A REDE DA PÁGINA INTEIRA, e ela já foi furada uma vez
+            # exatamente aqui: a validação de 06/09 mediu que "o Modo seco NÃO
+            # cobre o botão Adicionar gato — ele escreve mesmo com o seco
+            # ligado". Um envio que INSTALA na máquina não pode repetir isso.
+            return self._json({
+                "ok": True, "seco": True, "nome": nome,
+                "depois": "em ensaio: %s não foi instalado" % nome,
+            })
+
+        with tempfile.TemporaryDirectory(prefix="meow-envio-") as pasta:
+            caminho = os.path.join(pasta, nome)
+            try:
+                with open(caminho, "wb") as fh:
+                    fh.write(dados)
+            except OSError as e:
+                return self._json({"erro": "não consegui gravar: %s" % e}, 500)
+            try:
+                r = subprocess.run(_meow(*conf["comando"], caminho),
+                                   capture_output=True, text=True, timeout=300)
+            except Exception as e:
+                return self._json({"erro": "não consegui rodar: %s" % e}, 500)
+
+        saida = ((r.stdout or "") + (r.stderr or "")).strip()
+        # O CONTRATO DE IDEMPOTÊNCIA CHEGA INTEIRO À TELA: 0 é "já estava
+        # assim", e isso não é erro nem é novidade — é a resposta certa para
+        # quem enviou duas vezes o mesmo arquivo. Só 2 para cima é falha.
+        if r.returncode >= 2:
+            return self._json({"erro": saida or "o comando falhou", "rc": r.returncode}, 500)
+        return self._json({
+            "ok": True, "nome": nome, "rc": r.returncode, "log": saida,
+            "depois": (conf["depois"] if r.returncode == 1
+                       else "%s já estava instalado" % nome),
+        })
 
     def _api_acervo(self, corpo):
         import base64 as _b64
@@ -3180,6 +3514,21 @@ class Manipulador(BaseHTTPRequestHandler):
         if ext not in conf["extensoes"]:
             return self._json(
                 {"erro": "só aceito %s aqui" % ", ".join(conf["extensoes"])}, 400)
+
+        # A GUARDA DO ENSAIO VEM ANTES DE QUALQUER ESCRITA — 07/09/2026
+        #   Ela cobria só os três acervos que instalam por comando, e não os três
+        #   que gravam em `assets/`. O cliente protegia esses (o `botaoAcervo`
+        #   testa o ensaio antes de enviar), e foi por isso que passou — mas
+        #   proteção só no cliente é proteção até alguém escrever um botão novo,
+        #   e este arquivo já perdeu essa aposta duas vezes.
+        if bool(corpo.get("seco")):
+            return self._json({
+                "ok": True, "seco": True, "nome": nome,
+                "depois": "em ensaio: %s não foi gravado" % nome,
+            })
+
+        if "comando" in conf:
+            return self._acervo_por_comando(conf, nome, corpo)
         # A ARMADILHA DO NOME, que o `logo.sh` documenta desde 05/08: o applet do
         # painel achata em uma cor só qualquer arquivo cujo caminho contenha
         # `-symbolic.svg`. Um gato com esse sufixo viraria silhueta.
@@ -3327,7 +3676,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 ident = arq[: -len(".desktop")]
                 caminho = os.path.join(pasta, arq)
                 dados = {"id": ident, "nome": ident, "icone": "", "origem": origem,
-                         "arquivo": caminho, "oculto": False}
+                         "arquivo": caminho, "oculto": False, "categorias": ""}
                 try:
                     with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
                         em_entrada = False
@@ -3345,6 +3694,8 @@ class Manipulador(BaseHTTPRequestHandler):
                                 dados["nome"] = linha[5:].strip()
                             elif linha.startswith("Icon="):
                                 dados["icone"] = linha[5:].strip()
+                            elif linha.startswith("Categories="):
+                                dados["categorias"] = linha[11:].strip()
                             elif linha.startswith(("NoDisplay=", "Hidden=")):
                                 if linha.split("=", 1)[1].strip().lower() == "true":
                                     dados["oculto"] = True
@@ -3414,14 +3765,50 @@ class Manipulador(BaseHTTPRequestHandler):
     # A LISTA E A RESPOSTA SÃO COISAS DIFERENTES, desde que a página inteira
     # pode ser exportada num arquivo só. Quem monta a resposta HTTP é o método
     # acima; este devolve o DADO, e é ele que o `exportar_pagina` congela.
+    # UM ÍCONE DE JOGO NÃO MORA NA ABA DE ÍCONES — 06/09/2026
+    #   Pedido dela: "na parte de ícones, os ícones que forem de jogos, coloca
+    #   pra serem selecionados na aba Lançadores e Jogos".
+    #
+    #   A razão é de uso, não de arrumação: a aba de ícones existe para vestir
+    #   os PROGRAMAS com o traço do projeto, e um jogo da Steam não se veste —
+    #   ele tem capa própria, vem e vai com a licença, e o que ela quer decidir
+    #   sobre ele é outra coisa (aparece no lançador? ocupa disco à toa?). Eram
+    #   duas perguntas diferentes na mesma página, e a de jogo era a que não
+    #   tinha resposta ali.
+    #
+    #   O CRITÉRIO É O DO PRÓPRIO ARQUIVO, e não uma lista nossa. `Categories`
+    #   com `Game` é o padrão freedesktop que os instaladores já escrevem, e o
+    #   `steam_app_<id>` cobre o que a Steam gera sem categoria. Uma lista de
+    #   nomes escrita à mão aqui seria a segunda verdade, e envelheceria a cada
+    #   jogo novo.
+    #   O padrão MEDIDO nesta máquina é `meow-steam-<appid>` — é o nome que o
+    #   `jogos_steam.sh` escreve. `steam_app_<id>` é o que a própria Steam gera
+    #   quando cria o atalho, e os dois convivem. Ambos entram; o `Categories`
+    #   pega o resto (24 dos 64 `.desktop` visíveis, medido em 06/09/2026).
+    _RE_STEAM = re.compile(r"^(meow-steam-|steam_app_)\d+$")
+
+    def _e_jogo(self, d):
+        if self._RE_STEAM.match(d.get("id", "")):
+            return True
+        cats = (d.get("categorias") or "").lower()
+        return "game" in [c.strip() for c in cats.split(";") if c.strip()]
+
     def _dados_apps(self, consulta):
         busca = (consulta.get("busca", [""])[0] or "").strip().lower()
         mapa = self._mapa_arcticons()
         tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
         base_tema = os.path.expanduser("~/.local/share/icons/%s" % tema)
         fora = []
+        jogos = 0
         for d in self._desktops():
             if d["oculto"]:
+                continue
+            if self._e_jogo(d):
+                # Ele não some do painel: some DAQUI, e reaparece inteiro na aba
+                # "Lançadores e jogos". A contagem viaja junto para que a tela
+                # possa dizer para onde ele foi — sumir sem explicação é pior do
+                # que ficar no lugar errado.
+                jogos += 1
                 continue
             if busca and busca not in d["nome"].lower() and busca not in d["id"].lower():
                 continue
@@ -3435,7 +3822,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "url": ("/previa?tipo=arquivo&id=" + quote(atual, safe="")) if atual else "",
                 "mapa": mapa.get(d["id"]) or mapa.get(d["icone"]) or None,
             })
-        return {"apps": fora, "total": len(fora)}
+        return {"apps": fora, "total": len(fora), "jogos": jogos}
 
     # ========================================================================
     # OS JOGOS DA STEAM — 02/09/2026
@@ -3659,7 +4046,31 @@ class Manipulador(BaseHTTPRequestHandler):
         fora.sort(key=lambda j: j["nome"].lower())
         orfas.sort(key=lambda j: j["appid"])
         fora.extend(orfas)
-        return {"jogos": fora, "total": len(fora), "mapa": MAPA_JOGOS}
+
+        # OS ÍCONES DELES VÊM JUNTO — 06/09/2026
+        #   A aba de ícones passou a devolver só programa (ver `_e_jogo`), e o
+        #   que ela tirou de lá tinha de chegar aqui inteiro, com a mesma forma:
+        #   o `app.js` reaproveita o painel de escolha de ícone sem saber que
+        #   está numa página diferente. Sumir de um lado sem aparecer no outro
+        #   seria perder a capacidade, não movê-la.
+        tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
+        base_tema = os.path.expanduser("~/.local/share/icons/%s" % tema)
+        arcticons = self._mapa_arcticons()
+        icones = []
+        for d in self._desktops():
+            if d["oculto"] or not self._e_jogo(d):
+                continue
+            if busca and busca not in d["nome"].lower() and busca not in d["id"].lower():
+                continue
+            atual, nosso = self._icone_na_tela(d, base_tema)
+            icones.append({
+                "id": d["id"], "nome": d["nome"], "icone": d["icone"],
+                "origem": d["origem"], "nosso": nosso,
+                "url": ("/previa?tipo=arquivo&id=" + quote(atual, safe="")) if atual else "",
+                "mapa": arcticons.get(d["id"]) or arcticons.get(d["icone"]) or None,
+            })
+        return {"jogos": fora, "total": len(fora), "mapa": MAPA_JOGOS,
+                "apps": icones, "total_apps": len(icones)}
 
     def _api_jogo_fora(self, corpo):
         """Grava (ou tira) a linha de um jogo no `jogos-fora.map`.
@@ -3674,6 +4085,18 @@ class Manipulador(BaseHTTPRequestHandler):
         remover = bool(corpo.get("remover"))
         if not appid.isdigit() or len(appid) > 12:
             return self._json({"erro": "appid inválido"}, 400)
+
+        # O ENSAIO COBRE O MAPA DOS JOGOS TAMBÉM. A linha que esta rota grava é
+        # uma RECEITA — quem apaga os 2,4 G é o `jogos_steam.sh` na passagem
+        # seguinte —, e é justamente por isso que ela precisa da guarda: escrever
+        # a receita em ensaio deixaria o apagamento armado para depois, sem que
+        # nada na tela tivesse dito que algo foi decidido.
+        if bool(corpo.get("seco")):
+            return self._json({
+                "ok": True, "seco": True, "appid": appid,
+                "aviso": ("em ensaio: a linha de %s sairia do mapa" % appid) if remover
+                         else ("em ensaio: %s seria marcado para %s" % (appid, acao)),
+            })
         if not remover and acao not in ("esconder", "apagar"):
             return self._json({"erro": "ação tem de ser esconder ou apagar"}, 400)
         # O motivo entra num arquivo cujo separador é `:` e cujo comentário é
@@ -3785,6 +4208,27 @@ class Manipulador(BaseHTTPRequestHandler):
         if not app or not _re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
             return self._json({"erro": "aplicativo inválido"}, 400)
 
+        # O ENSAIO COBRE ESTA PORTA TAMBÉM — 07/09/2026
+        #   Achado numa varredura de interação com o ensaio LIGADO: um clique em
+        #   "Usar este ícone" gravou `thunderbird:thunderbird:sky:alias` no
+        #   `apps-arcticons.map` do repositório. O `git status` acusou um arquivo
+        #   que ninguém tinha mandado mudar.
+        #
+        #   É a SEGUNDA vez que este buraco aparece, por caminhos diferentes: em
+        #   06/09 a validação mediu "o Modo seco NÃO cobre o botão Adicionar
+        #   gato". Lá o conserto foi no cliente; aqui ele fica no SERVIDOR, que é
+        #   onde a escrita mora — assim a porta está fechada mesmo para um POST
+        #   forjado ou para um botão novo que alguém esqueça de proteger.
+        #
+        #   A resposta é `ok: True` e não um erro: em ensaio, "não fiz" é o
+        #   resultado certo, não uma falha. A tela diz o que teria feito.
+        if bool(corpo.get("seco")):
+            return self._json({
+                "ok": True, "seco": True, "app": app,
+                "aviso": ("em ensaio: %s sairia do mapa" % app) if remover
+                         else ("em ensaio: %s ficaria com %s" % (app, glifo or "o desenho escolhido")),
+            })
+
         caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
         try:
             with open(caminho, "r", encoding="utf-8") as fh:
@@ -3884,7 +4328,15 @@ class Manipulador(BaseHTTPRequestHandler):
         # base64 cresce um terço), o teto sobe — mas só para essa rota. As
         # outras continuam recusando corpo grande, que é o que impede um POST
         # forjado de encher a memória do servidor.
-        teto = (20 << 20) if alvo.path == "/api/acervo" else (1 << 20)
+        #
+        # 96 MB DESDE 06/09/2026, e o número saiu de uma medição, não de um
+        # arredondamento: os acervos que INSTALAM na máquina (fonte, tema de
+        # ponteiro, tema de ícones) recebem pacote de terceiro, e um Nerd Font
+        # completo passa dos 30 MB. Com o um terço que o base64 acrescenta, 20
+        # MB de teto recusavam metade do que ela tentaria enviar. O limite de
+        # DADOS continua menor e mora em cada acervo — este aqui só impede que o
+        # servidor leia da rede mais do que jamais aceitaria.
+        teto = (96 << 20) if alvo.path == "/api/acervo" else (1 << 20)
         if tamanho > teto:
             return self._recusar(413, "corpo grande demais")
         try:
@@ -4047,14 +4499,17 @@ class Manipulador(BaseHTTPRequestHandler):
         o `src` das imagens sem o `app.js` saber de nada."""
         mapa, gasto = {}, 0
 
-        # O gato do cabeçalho: ele não é prévia, é o acervo, e é o rosto da
-        # página. Entra sempre, e é pequeno.
-        gato_svg = os.path.join(RAIZ, "assets", "gatos",
-                                "%s.svg" % os.path.basename(
-                                    (valores_efetivos(["LOGO"]) or {}).get("LOGO") or "coquinha"))
-        uri, gasto = self._embutir(gato_svg, mapa, gasto)
-        if uri:
-            mapa["/gato.svg"] = uri
+        # A MARCA DO CABEÇALHO: ela não é prévia, é o rosto da página, e entra
+        # sempre porque é pequena. Desde 06/09/2026 é a logo autoral do painel,
+        # não o gato dela — e por isso ela não sai de um arquivo do acervo, mas
+        # da rota `/logo.svg`, que já pinta o traço com o acento em vigor.
+        # Embutir o arquivo cru daria uma marca mauve numa página pêssego, que é
+        # exatamente o que a rota existe para não deixar acontecer.
+        corpo_logo = self._logo_do_painel()
+        if corpo_logo:
+            mapa["/logo.svg"] = "data:image/svg+xml;base64," + base64.b64encode(
+                corpo_logo).decode("ascii")
+            gasto += len(corpo_logo)
 
         # As prévias, tipo a tipo. `previas()` já enfileira o que falta gerar;
         # aqui só se lê o que JÁ está pronto — exportar não é hora de esperar
@@ -4227,6 +4682,7 @@ class Manipulador(BaseHTTPRequestHandler):
             ],
             "folhas": self._folhas(),
             "descricoes": DESCRICAO_SECAO,
+            "blocos": BLOCO_DA_SECAO,
             # A paleta inteira vai junto: as amostras de flavor e de cor são
             # desenhadas com ela, e uma segunda viagem ao servidor para 4x26
             # valores seria viagem à toa.

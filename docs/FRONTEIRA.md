@@ -51,7 +51,7 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `~/.config/cosmic/com.system76.CosmicBackground` | Meow (`wallpaper.sh`) | **Meow** |
 | `/var/lib/cosmic-greeter/.config/cosmic` | Meow (`greeter.sh`) | **Meow** |
 | `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts` | Aurora | **Aurora** — é o colar dela |
-| `pinned_workspaces` | Aurora | **Aurora** |
+| `pinned_workspaces` | Aurora | **Meow desde 07/09/2026** — decisão dela: *"então corrige no zsh e traz a feature pra cá"*. O reparador do Ritual da Aurora fica desarmado pela sentinela `~/.config/cosmic/.aurora-workspaces-off`, que é o opt-out que ele mesmo oferece — o script vizinho não foi editado. Quem escreve é `scripts/areas.sh`; apagar a sentinela devolve o arquivo a ele. Ver abaixo |
 | `CosmicComp/v1/leitura_{temperatura,textura}` | Meow (`leitura.sh`, pelo relógio) **e** o applet da topbar | **Meow escreve o horário, ELA escreve a mão** — desde 30/08/2026, ver abaixo |
 | `CosmicComp/v1/leitura_{agenda,hora_inicio,hora_fim}` | o applet da topbar (`com.meowsystem.AppletLeitura`) | **ELA** — o Meow LÊ e obedece, e nunca escreve |
 | ~~a luz quente da tela (patch binário de night light)~~ | Aurora (`aurora-night-light.py`) | **APOSENTADA** — a etapa 4 foi feita; o binário de 30/08 não tem o patch binário (medido em 31/08, ver abaixo). Quem esquenta a tela agora é o `leitura_temperatura`, e o dono é o Meow |
@@ -610,3 +610,37 @@ linhas, todas sobre o **symlink** `~/.config/fastfetch -> ~/.config/zsh/fastfetc
 (self-heal:1585-1587). O **conteúdo** do `config.jsonc` não é escrito por ele em
 ponto nenhum. Sem essa medição isto seria ping-pong de hora em hora — os dois
 donos da mesma linha, que é o defeito que este projeto mais persegue.
+
+## As áreas de trabalho passaram para o Meow — 07/09/2026
+
+A tabela dava o `pinned_workspaces` ao Ritual da Aurora, e por uma razão boa: o
+`aurora-cosmic-workspaces.py` roda a cada ciclo do self-heal (1 h) e **força** o
+`name` dos alfinetes da lista dele. Enquanto os dois escreviam o mesmo arquivo,
+uma renomeação feita daqui voltava atrás sozinha em até uma hora — **depois** de
+ter funcionado por um login, que é o pior sintoma que um ajuste pode ter.
+
+Ela pediu a seção no painel ("não temos a seção pra setar os dois ambientes de
+trabalho tipo o Meow e o OS"), eu mostrei o custo de respeitar a fronteira — a
+seção existiria só para olhar — e a decisão foi mover a fronteira.
+
+**O script vizinho não foi editado.** Ele já previa a cessão e dizia onde:
+
+> OPT-OUT: se `~/.config/cosmic/.aurora-workspaces-off` existir, sai sem tocar em
+> nada. Sentinela em arquivo separado, porque o COSMIC reserializa o
+> `pinned_workspaces` sozinho e apagaria qualquer marcador que morasse dentro dele.
+
+Usar a porta que o vizinho deixou aberta é melhor que arrombar a parede: o script
+dele continua intacto e atualizável, e a cessão é reversível apagando um arquivo.
+A sentinela leva a data e o porquê por dentro, para que quem a encontre daqui a
+seis meses saiba que ela é decisão, e não sujeira.
+
+**Medido depois de assumir:** `python3 aurora-cosmic-workspaces.py` responde
+`OK opt-out presente — nada a fazer`, rc 0, e o `pinned_workspaces` fica byte a
+byte como estava.
+
+**O que continua NÃO sendo nosso:** o `tiling_enabled` tem um segundo dono dentro
+deste projeto — o `scripts/janelas.sh`, que grava o campo em todas as entradas de
+uma vez a partir de `JANELAS_TILING`, e que o `meow doctor` chama todo dia. Por
+isso `AREAS_ENCAIXE` nasce vazio e o `areas.sh` recusa (rc 4) quando as duas
+chaves discordam, dizendo qual esvaziar. Gravar aqui e ver achatar amanhã seria o
+mesmo defeito, com o vizinho de dentro de casa.

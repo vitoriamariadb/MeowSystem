@@ -720,6 +720,189 @@ soltar_derivadas() {
   return 0
 }
 
+# =============================================================================
+# O REGISTRO DE LADO — A ESCOLHA DELA VENCE A MEDIÇÃO (06/09/2026)
+# =============================================================================
+# O PEDIDO, COM A GALERIA NA FRENTE
+#   *"quando eu colocar o mouse em cima da imagem temos que ter as opções de Dia
+#   e a opção Noite, não apenas a Tirar"*.
+#
+# O QUE FALTAVA, MEDIDO
+#   Até 06/09/2026 o `_resolver_grupo` separava `ativos-dia/` de `ativos-noite/`
+#   SÓ pela luminância: `medir_acervo` mede, `milesimos_de` compara, `LIMIAR_LUZ`
+#   corta. Não existia porta nenhuma para discordar da medição. As duas saídas
+#   que sobravam eram ruins do mesmo jeito: banir a imagem inteira (perder a
+#   imagem para consertar o horário dela) ou mexer no limiar, que é GLOBAL e
+#   move dezenas de outras imagens junto para corrigir uma.
+#
+#   E a medição erra de um jeito que número nenhum resolve, porque o que ela não
+#   mede é o gosto: uma foto clara que ela quer de madrugada, um gráfico escuro
+#   que ela quer de dia. O cabeçalho deste arquivo defende o limiar 0,37 com o
+#   histograma dos 54 papéis de 25/08 — e continua valendo. O que ele nunca pôde
+#   dizer é onde ela discorda.
+#
+# O DESENHO: DECISÃO ESCRITA VENCE HEURÍSTICA
+#   É o mesmo padrão que o resto do projeto já usa: a automação age por decisão
+#   escrita, e a medição só opina quando ninguém decidiu. Por isso o registro
+#   guarda SÓ a discordância — ausente quer dizer "a medição decide". Nos 46
+#   papéis desta máquina isso é a diferença entre um arquivo de 46 linhas que
+#   envelhece a cada reencode e um de duas ou três que ela abre e entende.
+#
+# `auto` NÃO É UM VALOR, É A AUSÊNCIA DA LINHA
+#   Escrever a palavra "auto" criaria três estados ("dia", "noite", "auto") onde
+#   existem dois mais o padrão, e o registro passaria a crescer com linhas que
+#   não decidem nada — exatamente o lixo silencioso que a poda mais abaixo
+#   existe para evitar.
+#
+# POR QUE ELE MORA AO LADO DO `BANIDOS.txt`, E NÃO NO ESTADO
+#   O `wallpaper-luz.tsv` fica em `$MEOW_ESTADO` porque é CACHE: apagar custa os
+#   segundos de remedir e nada mais. Este aqui é RECEITA, como o `BANIDOS.txt` e
+#   o `FONTES.tsv` — é uma escolha dela que nenhuma máquina refaz sozinha, e as
+#   imagens não vão para o git. Some daqui e a decisão morre com a formatação.
+LADO_TSV="${WALLPAPER_LADO:-$RAIZ/assets/papeis-de-parede/lado.tsv}"
+
+# nome do arquivo -> dia|noite. Só quem discorda da medição; preenchido por
+# `ler_lado`, e vazio quer dizer "ninguém discordou de nada".
+declare -A LADO=()
+
+# `|| [ -n "$nome" ]` NO `read` PORQUE A ÚLTIMA LINHA JÁ SUMIU AQUI ANTES
+#   É a armadilha 1 que o `semear_da_curadoria` documenta ter pago em 24/08/2026:
+#   o `read` devolve status != 0 na última linha quando o arquivo não termina em
+#   newline — as variáveis são preenchidas, mas o laço encerra ANTES do corpo. O
+#   `gravar_lado` sempre fecha com newline, mas este arquivo é feito para ela
+#   abrir e editar à mão, e um editor que não fecha a última linha faria a última
+#   escolha dela sumir sem aviso.
+#
+# LINHA ESTRANHA NÃO VIRA ESCOLHA. Um valor que não seja `dia` nem `noite` é
+# ignorado e contado — cair no silêncio faria uma linha malformada valer como
+# "auto" sem ninguém saber, e ela procuraria o defeito na medição.
+ler_lado() {
+  LADO=()
+  [ -f "$LADO_TSV" ] || return 0
+  local TAB=$'\t' nome escolha estranhas=0
+  while IFS="$TAB" read -r nome escolha || [ -n "$nome" ]; do
+    case "$nome" in ''|'#'*) continue ;; esac
+    case "$escolha" in
+      dia|noite) LADO["$nome"]="$escolha" ;;
+      *)         estranhas=$((estranhas + 1)) ;;
+    esac
+  done < "$LADO_TSV"
+  [ "$estranhas" -gt 0 ] && \
+    meow_aviso "$(basename "$LADO_TSV"): $estranhas linha(s) sem 'dia' nem 'noite' — ignoradas"
+  return 0
+}
+
+# Escreve o mapa `LADO` inteiro, ordenado por nome, de uma vez.
+#
+# ATÔMICO, COMO O RESTO DO SCRIPT: arquivo temporário ao lado e `mv`. Quem
+# estiver lendo o registro no meio da escrita lê o antigo inteiro, nunca meio
+# arquivo — e é o mesmo `.atomicwrite.meow.XXXXXX` que o `cmd_desbanir` usa para
+# reescrever o `BANIDOS.txt`, pelo mesmo motivo.
+#
+# ORDENADO POR `LC_ALL=C sort`, E NÃO PELA ORDEM DO MAPA: a ordem de iteração de
+# um array associativo do bash é a da tabela de espalhamento, isto é, arbitrária
+# e instável entre execuções. Sem a ordenação, gravar a MESMA escolha duas vezes
+# produziria dois arquivos diferentes — e num arquivo versionado isso é um diff
+# fantasma a cada passagem.
+#
+# MAPA VAZIO APAGA O ARQUIVO, e isto é o `auto` levado às últimas consequências:
+# "nenhuma discordância" e "arquivo ausente" têm de ser o mesmo estado, senão
+# sobra um arquivo de duas linhas de cabeçalho dizendo que existe uma escolha
+# onde não existe nenhuma. Este projeto tem histórico documentado de pasta
+# fantasma; arquivo fantasma é a mesma doença com outro nome.
+gravar_lado() {
+  local TAB=$'\t' NL=$'\n' dir tmp conteudo base
+
+  if [ "${#LADO[@]}" -eq 0 ]; then
+    [ -f "$LADO_TSV" ] || return 0
+    rm -f -- "$LADO_TSV" 2>/dev/null || return 1
+    return 0
+  fi
+
+  dir="$(dirname "$LADO_TSV")"
+  mkdir -p "$dir" 2>/dev/null || return 1
+  conteudo="# lado.tsv — de que lado cada papel de parede fica POR ESCOLHA DELA.$NL"
+  conteudo="$conteudo# nome-do-arquivo<TAB>dia|noite. Quem não está aqui é separado pela luminância.$NL"
+  while IFS= read -r base; do
+    conteudo="$conteudo$base$TAB${LADO[$base]}$NL"
+  done < <(printf '%s\n' "${!LADO[@]}" | LC_ALL=C sort)
+
+  tmp="$(mktemp -p "$dir" ".atomicwrite.meow.XXXXXX" 2>/dev/null)" || return 1
+  if printf '%s' "$conteudo" > "$tmp" 2>/dev/null \
+     && chmod 644 "$tmp" 2>/dev/null \
+     && mv -f "$tmp" "$LADO_TSV" 2>/dev/null; then
+    return 0
+  fi
+  rm -f "$tmp"
+  return 1
+}
+
+# Tira do mapa a linha de UM nome. Existe como função porque `unset "LADO[$n]"`
+# é armadilha: o bash expande o subscrito de novo dentro do `unset`, e um nome de
+# arquivo com `[` ou `]` — que a pasta dela pode ter, ela já tem emoji e espaço —
+# apagaria outra chave ou nenhuma, calado. Reconstruir o mapa custa um laço e não
+# depende de como o nome é escrito.
+_lado_esquecer() {
+  local alvo="$1" base
+  local -A resto=()
+  for base in "${!LADO[@]}"; do
+    [ "$base" = "$alvo" ] && continue
+    resto["$base"]="${LADO[$base]}"
+  done
+  LADO=()
+  [ "${#resto[@]}" -gt 0 ] || return 0
+  for base in "${!resto[@]}"; do LADO["$base"]="${resto[$base]}"; done
+  return 0
+}
+
+# A HIGIENE: UM REGISTRO QUE SÓ CRESCE VIRA LIXO SILENCIOSO
+#   Uma imagem banida (`cmd_banir` a move para `banidos/`) ou apagada à mão sai
+#   de `ativos/` e nunca mais volta sozinha. A linha dela, se ficasse, seria uma
+#   escolha sobre uma imagem que não existe — e o arquivo cresceria para sempre
+#   com nomes que ninguém reconhece mais. Este projeto já pagou por lixo assim
+#   em outra pasta; o conserto é podar na mesma passagem em que o sumiço é visto.
+#
+# É CHAMADA DEPOIS DA GUARDA DE "MENOS DE DUAS IMAGENS" DO `cmd_aplicar`, e a
+# ordem é a proteção: `ativos/` vazio (disco desmontado, home ainda não montado
+# no boot) NUNCA chega até aqui, então a poda nunca confunde acervo ausente com
+# curadoria. É o mesmo cuidado das quatro guardas do `reconciliar_sumicos`,
+# aproveitando a que já existe em vez de escrever a quinta.
+#
+# CONTA COMO DIVERGÊNCIA (devolve 1), ao contrário do `limpar_estado_morto`: uma
+# linha morta é uma sobra REAL num arquivo versionado, que não volta ao lugar
+# sozinha. Se não contasse, o `--conferir` imprimiria "~~ tiraria …" e devolveria
+# 0 — e o auto-reparo nunca passaria ali. Converge na primeira passagem de
+# verdade: podado uma vez, o nome não volta.
+podar_lado() {
+  ler_lado
+  [ "${#LADO[@]}" -gt 0 ] || return 0
+
+  local -a mortas=()
+  local -A vivas=()
+  local base
+  for base in "${!LADO[@]}"; do
+    if [ -f "$ATIVOS/$base" ]; then
+      vivas["$base"]="${LADO[$base]}"
+    else
+      mortas+=("$base")
+    fi
+  done
+  [ "${#mortas[@]}" = "0" ] && return 0
+
+  if meow_seco; then
+    meow_muda "tiraria ${#mortas[@]} linha(s) de $(basename "$LADO_TSV") — não estão mais em ativos/"
+    return 1
+  fi
+
+  LADO=()
+  if [ "${#vivas[@]}" -gt 0 ]; then
+    for base in "${!vivas[@]}"; do LADO["$base"]="${vivas[$base]}"; done
+  fi
+  gravar_lado || { meow_aviso "não consegui podar $LADO_TSV"; return 0; }
+  meow_info "${#mortas[@]} escolha(s) de lado saíram de $(basename "$LADO_TSV"): ${mortas[*]}"
+  return 1
+}
+
 # Decide para qual pasta o `source:` aponta nesta rodada, e deixa o disco pronto
 # para isso. DEVOLVE SEMPRE 0: dia e noite é melhoria, e nenhuma falha dela pode
 # derrubar o carrossel. O pior caso é voltar para `ativos/` com um aviso.
@@ -797,14 +980,52 @@ _resolver_grupo() {
     return 0
   fi
 
+  # A ESCOLHA ESCRITA É CONSULTADA ANTES DE A LUMINÂNCIA SER COMPARADA. A ordem é
+  # o recurso inteiro: escolha dela > medição. Tudo o que vem DEPOIS continua
+  # igual — o aviso de "o grupo de X ficou com N imagem(ns)" e a queda para
+  # `ativos/` valem sobre o resultado JÁ com as escolhas aplicadas, senão uma
+  # escolha dela poderia esvaziar um grupo sem que ninguém avisasse.
+  ler_lado
+
   local -a escuros=() claros=()
-  local base
-  for base in "${!LUZ[@]}"; do
-    if [ "$(milesimos_de "${LUZ[$base]}")" -lt "$lim" ]
+  local base por_escolha=0
+
+  # O UNIVERSO É O QUE FOI MEDIDO, MAIS O QUE ELA ESCOLHEU E NÃO PÔDE SER MEDIDO
+  #   `medir_acervo` deixa de fora a imagem que o ImageMagick recusou (um arquivo
+  #   truncado, um formato que ele não abre). Sem esta união, uma escolha escrita
+  #   sobre uma dessas seria ignorada em silêncio — e o único caso em que a
+  #   decisão dela é a ÚNICA informação disponível é justamente esse.
+  #
+  #   A união NÃO substitui a guarda de "nenhum papel medido" logo acima, e isso
+  #   é deliberado: sem ImageMagick nenhum, `LUZ` fica vazio e a rotação volta
+  #   inteira para `ativos/` como sempre voltou. Montar os grupos só com as duas
+  #   ou três escolhas escritas tiraria as outras 44 imagens da rotação dela para
+  #   obedecer a uma preferência — o oposto do que ela pediu.
+  local -A universo=()
+  for base in "${!LUZ[@]}"; do universo["$base"]=1; done
+  if [ "${#LADO[@]}" -gt 0 ]; then
+    for base in "${!LADO[@]}"; do
+      [ -n "${universo[$base]:-}" ] && continue
+      [ -f "$ATIVOS/$base" ] || continue    # linha morta; a poda tira na passagem certa
+      universo["$base"]=1
+    done
+  fi
+
+  for base in "${!universo[@]}"; do
+    case "${LADO[$base]:-}" in
+      noite) escuros+=("$base"); por_escolha=$((por_escolha + 1)); continue ;;
+      dia)   claros+=("$base");  por_escolha=$((por_escolha + 1)); continue ;;
+    esac
+    # `:-` porque o universo pode conter um nome que só veio do registro; esse
+    # nome sempre sai por um dos dois `continue` acima, e o valor de reserva
+    # existe para o `set -u` do topo do arquivo, não para ser usado.
+    if [ "$(milesimos_de "${LUZ[$base]:-}")" -lt "$lim" ]
       then escuros+=("$base")
       else claros+=("$base")
     fi
   done
+  [ "$por_escolha" -gt 0 ] && \
+    meow_debug "$por_escolha papel(is) de parede foram para o grupo por escolha escrita, não pela medição"
   NOITE_N="${#escuros[@]}"; DIA_N="${#claros[@]}"
 
   local dir
@@ -1267,13 +1488,24 @@ cmd_aplicar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
+  local mudou=0
+
+  # A PODA DO REGISTRO DE LADO VEM AQUI, e o lugar é a proteção: o `return` de
+  # "menos de duas imagens", logo acima, já garantiu que `ativos/` não está vazio
+  # nem inacessível. Uma imagem banida neste mesmo comando (o `cmd_banir` chama
+  # este `aplicar` no fim) já saiu de `ativos/` quando a poda passa, então a linha
+  # dela cai na MESMA passagem em que o banimento acontece — que é o contrato.
+  #
+  # ANTES do `resolver_rotacao`, para que o grupo seja montado a partir do
+  # registro já limpo em vez de um com nome morto dentro.
+  podar_lado || mudou=1     # 1 = podou (ou podaria, em seco): é divergência
+
   # DIA E NOITE VÊM ANTES DA CONFIGURAÇÃO, porque é isto que decide o `source:`.
   # Não devolve erro nunca: se a separação não der certo, `$ROTACAO` continua
   # valendo `ativos/` e o carrossel gira como girava antes de 25/08/2026.
   resolver_rotacao
 
   local desejada; desejada="$(config_desejada)"
-  local mudou=0
 
   # `same-on-all` PASSOU A SER NOSSO EM 08/08/2026 — E É ELA QUE DECIDE TUDO
   #   O comentário que estava aqui dizia "`all` é o que vale (same-on-all está
@@ -1474,7 +1706,45 @@ cmd_estado() {
       if e_noite 2>/dev/null; then agora="NOITE"; alvo="$NOITE_DIR"
       else                         agora="DIA";   alvo="$DIA_DIR"; fi
       echo "noite:     ligada, das $NOITE_INICIO às $NOITE_FIM — agora é $agora"
-      echo "limiar:    $LIMIAR_LUZ de luminância ($escuras escuras | $claras claras, contadas no disco)"
+
+      # QUANTAS ESTÃO EM CADA LADO POR ESCOLHA, E QUANTAS POR MEDIÇÃO. Sem esta
+      # conta a linha do limiar convida ao erro que a escolha escrita veio
+      # resolver: ela olharia "25 escuras | 21 claras", acharia que o número
+      # 0,37 respondeu por todas, e passaria a mexer no limiar para consertar
+      # uma imagem que já está onde ela mandou. E é uma conta BARATA — ler um
+      # arquivo de texto de duas ou três linhas —, o que importa porque este
+      # comando é diagnóstico e não pode medir imagem (ver o comentário acima).
+      #
+      # A contagem por escolha só vale para quem ainda está em `ativos/`: uma
+      # linha morta seria contada como escolha em vigor até a próxima poda.
+      #
+      # "por medição" é subtração, e não uma classificação refeita aqui, pelo
+      # mesmo motivo de sempre: recalcular custaria os 4 s de ImageMagick que
+      # este comando promete não gastar. O piso em zero cobre o instante em que
+      # as pastas derivadas estão mais velhas que o registro (uma escolha nova,
+      # antes do primeiro `aplicar`) — melhor um zero do que um número negativo.
+      ler_lado
+      local esc_dia=0 esc_noite=0 nome_l por_medicao
+      # `"${!LADO[@]}"` DIRETO, e não o `${arr[@]+"${arr[@]}"}` que este arquivo
+      # usa com array indexado: com o `!` na frente aquele contorno não é a
+      # expansão das CHAVES, é expansão INDIRETA — o bash tenta usar o valor
+      # como nome de variável e morre com "nome de variável inválido". Medido
+      # aqui em 06/09/2026, e o defeito era mudo: o erro ia para a saída de erro,
+      # que o `bin/meow` descarta ao montar o painel do `meow estado`, e a conta
+      # simplesmente dava zero. A guarda de tamanho faz o mesmo serviço sem
+      # depender de bash 4.4 para expandir array associativo vazio sob `set -u`.
+      if [ "${#LADO[@]}" -gt 0 ]; then
+        for nome_l in "${!LADO[@]}"; do
+          [ -f "$ATIVOS/$nome_l" ] || continue
+          case "${LADO[$nome_l]}" in
+            dia)   esc_dia=$((esc_dia + 1)) ;;
+            noite) esc_noite=$((esc_noite + 1)) ;;
+          esac
+        done
+      fi
+      por_medicao=$(( escuras + claras - esc_dia - esc_noite ))
+      [ "$por_medicao" -lt 0 ] && por_medicao=0
+      echo "limiar:    $LIMIAR_LUZ de luminância ($escuras escuras | $claras claras, contadas no disco; escolha sua: $esc_noite noite | $esc_dia dia · medição: $por_medicao)"
       if [ -d "$alvo" ]; then
         echo "rotação:   $alvo"
       else
@@ -1750,6 +2020,125 @@ cmd_desbanir() {
   # ligada), e só depois o `forcar_releitura` faz o cosmic-bg reler — sozinho o
   # `aplicar` escreve conteúdo idêntico e é ignorado.
   cmd_aplicar >/dev/null
+  forcar_releitura
+  return "$MEOW_DIVERGENTE"
+}
+
+# --- lado: a porta para discordar da medição --------------------------------
+# O porquê inteiro está em "O REGISTRO DE LADO", lá em cima, junto do `ler_lado`.
+# Aqui fica o comando, e as três decisões que ele carrega.
+#
+# 1. A REFERÊNCIA É RESOLVIDA COMO A DO `banir`, E PELO MESMO CUIDADO MEDIDO
+#    O `cmd_banir` recebe um CAMINHO de arquivo (`[ -f "$img" ]`), e o
+#    `app/servidor.py` documenta por que ele manda o caminho canônico, o de
+#    `ativos/`: `ativos-dia/` e `ativos-noite/` são LINK DURO do mesmo inode, e
+#    banir pelo link move só o link e deixa a imagem girando — um banimento pela
+#    metade, e mudo. Aqui o registro é por NOME (como o `BANIDOS.txt`), então o
+#    link não estraga a chave; mas a CONFERÊNCIA de existência tem de ser feita
+#    em `ativos/` de qualquer jeito, senão daria para escrever uma escolha sobre
+#    um link que sobrou de uma passagem antiga, ou sobre uma imagem que já foi
+#    banida. Por isso o caminho serve para achar o nome, e o nome é conferido
+#    contra o acervo — e só contra ele.
+#
+# 2. `auto` APAGA A LINHA, NUNCA ESCREVE A PALAVRA. Ausente é o padrão.
+#
+# 3. O `aplicar` VEM NO FIM, COMO NO `banir` E NO `desbanir`
+#    Sem ele o comando escreveria a escolha e não moveria imagem nenhuma: quem
+#    monta `ativos-dia/` e `ativos-noite/` é o `resolver_rotacao`, dentro do
+#    `aplicar`. Ela clicaria em "Noite" e não veria nada acontecer até o tique
+#    seguinte do relógio de 15 minutos — o defeito exato que este arquivo já
+#    documenta ter cometido com a fixação em 01/09/2026 ("o recurso parece
+#    quebrado justamente no momento em que ela está usando o outro recurso").
+#    E o `forcar_releitura` depois, pelo motivo da armadilha 3 do cabeçalho: a
+#    imagem SAIU da pasta que o cosmic-bg fotografou, e sem a releitura ele
+#    continuaria tentando abrir um arquivo que não está mais lá.
+#
+#    Só quando algo mudou de verdade. Uma reafirmação (`0`) não paga o preço da
+#    armadilha 2 — releitura não avança, REINICIA a rotação.
+cmd_lado() {
+  local ref="${1:-}" escolha="${2:-}"
+  if [ -z "$ref" ] || [ -z "$escolha" ]; then
+    meow_erro "uso: wallpaper.sh lado <arquivo|nome> dia|noite|auto"
+    meow_info "  dia    a imagem fica no grupo do dia, custe o que custar a medição"
+    meow_info "  noite  a imagem fica no grupo da noite"
+    meow_info "  auto   devolve a decisão para a luminância (apaga a linha)"
+    return "$MEOW_ERRO"
+  fi
+  case "$escolha" in
+    dia|noite|auto) ;;
+    *) meow_erro "não conheço o lado \"$escolha\" — é dia, noite ou auto"
+       return "$MEOW_ERRO" ;;
+  esac
+
+  # A PENEIRA, ANTES DE O NOME DE FORA VIRAR CAMINHO OU LINHA DE ARQUIVO.
+  # O `basename` derruba o `../..` de qualquer profundidade; o `.`/`..` que
+  # sobra do `basename` de um diretório é recusado à mão; e tab ou quebra de
+  # linha no nome corromperiam o TSV na gravação, com o defeito aparecendo só na
+  # leitura seguinte, em OUTRO arquivo — é o mesmo cuidado que o `medir_acervo`
+  # já toma com o cache de luminância, e a mesma recusa.
+  local nome TAB=$'\t' NL=$'\n'
+  nome="$(basename -- "$ref")"
+  case "$nome" in
+    ''|.|..) meow_erro "\"$ref\" não é nome de imagem"; return "$MEOW_ERRO" ;;
+    *"$TAB"*|*"$NL"*)
+      meow_erro "o nome tem tab ou quebra de linha — não dá para registrar o lado dele"
+      return "$MEOW_ERRO" ;;
+  esac
+
+  if [ ! -f "$ATIVOS/$nome" ]; then
+    meow_erro "não achei $nome em ativos/"
+    if [ -f "$BASE/banidos/$nome" ]; then
+      meow_info "  ela está em banidos/ — devolva antes: meow wallpaper desbanir \"$nome\""
+    else
+      meow_info "  o lado se escolhe para imagem do acervo — veja: ls \"$ATIVOS\""
+    fi
+    return "$MEOW_ERRO"
+  fi
+
+  ler_lado
+  local antes="${LADO[$nome]:-auto}"
+  if [ "$antes" = "$escolha" ]; then
+    if [ "$escolha" = "auto" ]; then
+      meow_ok "$nome já é decidida pela medição — nada a fazer"
+    else
+      meow_ok "$nome já está escrita como $escolha — nada a fazer"
+    fi
+    return "$MEOW_OK"
+  fi
+
+  if meow_seco; then
+    if [ "$escolha" = "auto" ]; then
+      meow_muda "tiraria $nome de $(basename "$LADO_TSV") — a medição voltaria a decidir"
+    else
+      meow_muda "gravaria $nome como $escolha em $(basename "$LADO_TSV")"
+    fi
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if [ "$escolha" = "auto" ]; then
+    _lado_esquecer "$nome"
+  else
+    LADO["$nome"]="$escolha"
+  fi
+  gravar_lado || { meow_erro "não consegui gravar $LADO_TSV"; return "$MEOW_ERRO"; }
+
+  if [ "$escolha" = "auto" ]; then
+    meow_ok "$nome volta para a medição (limiar $LIMIAR_LUZ decide de novo)"
+  else
+    meow_ok "$nome fica no grupo de $escolha — escolha sua, a medição não decide mais por ela"
+  fi
+
+  # A ESCOLHA É GRAVADA, MAS COM A NOITE DESLIGADA ELA NÃO FAZ NADA — E ISSO
+  # PRECISA SER DITO. Com `WALLPAPER_NOITE="nao"` as duas pastas derivadas somem
+  # do disco e a rotação é o acervo inteiro: não existe "grupo de dia" para a
+  # imagem ir. Guardar a escolha em silêncio faria o comando parecer obedecer e
+  # não obedecer — o defeito que este arquivo mais documenta ter cometido (a
+  # `LOG_NIVEL` inerte, as `WALLPAPER_SEMENTES`). O registro continua sendo
+  # escrito de propósito: a escolha vale no dia em que ela religar a noite.
+  [ "$NOITE" = "sim" ] || \
+    meow_aviso "a noite está desligada (WALLPAPER_NOITE=\"$NOITE\") — a escolha fica guardada e só separa alguma coisa quando você religar"
+
+  cmd_aplicar >/dev/null || true
   forcar_releitura
   return "$MEOW_DIVERGENTE"
 }
@@ -2107,5 +2496,11 @@ case "${1:-aplicar}" in
   desbanir)  shift; cmd_desbanir "${1:-}" ;;
   adicionar) shift; cmd_adicionar "${1:-}" ;;
   permitir)  shift; cmd_permitir "${1:-}" ;;
-  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|carrossel|--conferir|estado|semear|adicionar <alvo>|banir <img>|desbanir <nome>|permitir <caminho>]" >&2; exit 2 ;;
+  # O ÚNICO SUBCOMANDO DESTE ARQUIVO COM DOIS ARGUMENTOS, e isso importa para
+  # quem for ligá-lo à CLI: o `cmd_wallpaper` do `bin/meow` encaminha UM só
+  # (`"$acao" ${1:+"$1"}`), então `meow wallpaper lado <img> noite` chegaria aqui
+  # sem o lado. Enquanto aquela linha não passar os dois, o caminho que funciona
+  # é chamar este script direto.
+  lado)      shift; cmd_lado "${1:-}" "${2:-}" ;;
+  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|carrossel|--conferir|estado|semear|adicionar <alvo>|banir <img>|desbanir <nome>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
 esac

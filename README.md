@@ -24,7 +24,7 @@ cd MeowSystem
 meow ativar               # todas as outras
 ```
 
-São 52 etapas. Rodar de novo numa máquina já pronta **não escreve um byte** — e diz isso, em vez
+São 53 etapas. Rodar de novo numa máquina já pronta **não escreve um byte** — e diz isso, em vez
 de listar as etapas como se as tivesse refeito. Para ver o que aconteceria antes de deixar
 acontecer: `MEOW_DRY_RUN=1 ./install.sh`.
 
@@ -34,22 +34,49 @@ acontecer: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # ou o ícone MeowSystem no lançador
 ```
 
-103 ajustes e 37 ações em doze páginas — uma por assunto, e cada uma com tudo o que existe
-sobre ele:
+106 ajustes e 44 ações em treze páginas — uma por assunto, e cada uma com tudo o que existe
+sobre ele. O menu tem dois blocos: **Tópicos**, que é a sua tela, e **Sistema**, que é o que a
+máquina faz sozinha.
 
-- **Papel de parede** — a coleção de 46 imagens, os nove ajustes e as sete ações, na mesma tela.
+### Cada bloco vem com um desenho, e o desenho é o controle
+
+<img src="docs/capturas/painel-leitura.png" width="920" alt="A aba Modo de leitura: o desenho mostra a mesma página fria à esquerda e quente à direita, com o horário embaixo">
+
+Nenhum controle aqui explica o que faz só com palavras. Cada bloco abre com um SVG que responde
+à pergunta "o que isto faz com a minha tela?", desenhado a partir dos seus valores de verdade —
+e ele **repinta enquanto você arrasta o deslizante**, antes de soltar.
+
+Quando há uma escolha esperando, o desenho vira dois: **Como está** e **Como fica**, lado a
+lado, com borda de botão. Apertar "Como está" desfaz aquele bloco e só aquele. O desenho fica
+preso no alto da página enquanto você rola, para continuar servindo de referência.
+
+O desenho nunca é captura de tela: cada um diz, na legenda, quais números foram desenhados.
+
+### O que dá para fazer aqui
+
+<img src="docs/capturas/painel-areas.png" width="920" alt="A aba Áreas de trabalho, com o desenho da barra e das duas telas acima dos três ajustes">
+
+- **Papel de parede** — a coleção de 46 imagens, os 9 ajustes e as 12 ações, na mesma tela.
   Soltar um arquivo aqui diz na hora se ele entrou no grupo de dia ou no de noite, e por quê.
+- **Áreas de trabalho** — o nome e a **ordem** das suas áreas, a folga invisível no nome, e o
+  encaixe de janelas de cada uma. Até aqui, a única forma era editar RON na mão.
 - **Ícones** — um ícone por programa instalado, trocável um a um, e o tema que o projeto constrói.
-- **O gato** — o do dock e o do terminal, e quem escolhe: você, o relógio ou o sorteio.
-- E **Barra e dock**, **Terminal**, **Dia e noite**, **Programas e jogos**, **Manutenção**.
-- **Atualizar o sistema** — `apt`, `flatpak` e `cargo` numa tela, e logo depois o `doctor`
-  dizendo o que a atualização desfez. É a metade que um `full-upgrade` na mão não tem.
+- **Modo de leitura** — a tela quente da noite ganhou página própria: temperatura, textura,
+  horário e a rampa da virada.
+- **Instalar sem sair do painel** — um `.zip` de tema de ponteiro, uma fonte `.ttf`, um tema de
+  ícones de base, um gato novo, um papel de parede. O arquivo enviado nunca toca o repositório:
+  quem instala é o mesmo comando que você rodaria no terminal.
+- E **Cor e tela**, **Logo do sistema**, **Barra e dock**, **Dia e noite**, **Terminal**,
+  **Lançadores e jogos**, **Manutenção**, **Instalação** e **Idempotência** — esta última com
+  `apt`, `flatpak` e `cargo` numa tela e, logo depois, o `doctor` dizendo o que a atualização
+  desfez. É a metade que um `full-upgrade` na mão não tem.
 
 Toda variável que o instalador lê tem um controle aqui — e um teste cobra isso, para que uma
 chave nova não nasça invisível.
 
-Clicar não muda a máquina: as escolhas se acumulam e um botão só grava e aplica. O interruptor
-**Ensaiar sem gravar** mostra o que aconteceria sem escrever nada.
+Clicar não muda a máquina: as escolhas se acumulam e um botão só grava e aplica. O botão
+**Ensaiar sem gravar** acende em amarelo enquanto estiver ligado, e com ele cada "Executar"
+mostra o que aconteceria sem escrever nada.
 
 <img src="docs/capturas/painel-forma.png" width="920" alt="A aba Barra e dock, com o desenho do painel e da dock acima dos controles">
 
@@ -60,6 +87,7 @@ Clicar não muda a máquina: as escolhas se acumulam e um botão só grava e apl
 | **O tema do COSMIC** | As quatro árvores, aplicadas por cópia de arquivo. Claro e escuro são o mesmo tema com um interruptor, então trocar não pisca a interface. |
 | **A tela de login** | O `cosmic-greeter` tem configuração própria e vinha vazia: era a única superfície ainda de fábrica. |
 | **Barra e dock** | Forma, raio, margem, espaço e recheio de cada segmento; o vidro que sobrevive à janela maximizada; os segundos no relógio; e a música tocando ao lado dele, com capa e controles. |
+| **As áreas de trabalho** | Nome, ordem e encaixe de cada uma. A ordem da lista é a ordem da barra, e é a única forma de decidir qual área nasce primeiro. |
 | **Os ícones** | Papirus como base, pastas coloridas pelo accent, e os glifos do Arcticons por programa — trocáveis um a um, pelo painel. |
 | **O terminal** | As dezesseis cores, o cursor, o prompt do `starship`, e o gato no lugar do logo do `fastfetch`, redesenhado em caracteres a cada geração. |
 | **O papel de parede** | Um carrossel de 46 imagens curadas, com pastas de dia e de noite separadas por luminosidade, avançar e voltar no botão direito, e favoritos. |
@@ -82,7 +110,7 @@ Clicar não muda a máquina: as escolhas se acumulam e um botão só grava e apl
 ## Conferir e desfazer
 
 ```bash
-meow doctor                            # 46 conferências. Não escreve nada.
+meow doctor                            # 47 conferências. Não escreve nada.
 meow doctor --consertar                # aplica só o que estiver fora do lugar
 ./scripts/aplicar_tema.sh original     # devolve o tema de antes
 meow desinstalar                       # tira tema, ícones e agendamentos

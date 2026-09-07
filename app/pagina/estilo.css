@@ -1,8 +1,22 @@
 /* app/pagina/estilo.css — a folha de estilo da página de configuração.
  *
- * REDESENHO DE 06/09/2026. Nada aqui exige uma linha de HTML nova: tudo o que
- * mudou de posição no cartão e no cartão de ação mudou por `order` de flex, e
- * tudo o que mudou de peso mudou por `:has()`. Os nomes de classe são os mesmos.
+ * REDESENHO DE 06/09/2026, PRIMEIRA PASSAGEM. Nada ali exigiu uma linha de HTML
+ * nova: tudo o que mudou de posição no cartão e no cartão de ação mudou por
+ * `order` de flex, e tudo o que mudou de peso mudou por `:has()`.
+ *
+ * SEGUNDA PASSAGEM DE 06/09/2026, E ESTA PEDE MARCAÇÃO NOVA — a frase acima
+ * deixou de valer para o cartão de chave, e é honesto dizer onde. A queixa dela,
+ * com a tela na frente: *"tem algo no nosso estilo que deixa tudo muito confuso
+ * e difícil de entender. temos que melhorar isso e darmos respiro nesse
+ * sentido."* E, apontando o `VIDRO_OPACIDADE_DOCK` no pé de um cartão: *"essa
+ * parte que selecionei tem que sumir também — isso pra todos"*.
+ *
+ * O cartão tinha seis camadas e passa a ter três (ver o comentário do CARTÃO DE
+ * CHAVE, mais abaixo). O que saiu do corpo não sumiu do produto: mudou de casa
+ * para dentro de uma dica que um `?` ao lado do título abre. Duas classes novas
+ * nascem aqui e o `app.js` as escreve: `button.porque` (o gatilho) e `.dica` (o
+ * balão). Nenhuma cor nova, nenhuma medida nova — o `?` é `--t-legenda`, que já
+ * era o degrau das legendas desta folha.
  *
  * NENHUM HEX AQUI DENTRO, E ISSO É A REGRA DO README, NÃO UM CAPRICHO
  *   Toda cor sai de `assets/paleta/catppuccin.json` pelas variáveis que o
@@ -161,29 +175,36 @@ a:hover { color: var(--accent); text-decoration: underline; }
 #busca::placeholder { color: var(--overlay1); }
 #busca:focus-visible { border-color: transparent; }
 
-/* O seco é um estado PERIGOSO de esquecer ligado — ela apertaria "instalar" e
+/* O ENSAIO DEIXOU DE SER CAIXA DE MARCAR E VIROU BOTÃO QUE FICA ACESO —
+ * 06/09/2026. Palavras dela: *"ele tá como box mas poderia ser um botão que
+ * fica ativo (cor amarela fraca) algo assim"*.
+ *
+ * O seco é um estado PERIGOSO de esquecer ligado — ela apertaria "instalar" e
  * nada aconteceria. Desligado ele é o item mais quieto da barra; ligado, o mais
- * alto dela. O contraste entre os dois estados é o aviso. */
-.seco {
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  font-size: .8rem;
-  color: var(--overlay2);
-  white-space: nowrap;
-  cursor: pointer;
-  padding: .3rem .6rem;
+ * alto dela. O contraste entre os dois estados é o aviso, e o amarelo aqui é o
+ * MESMO amarelo que a caixa de marcar usava: nem a cor nem a proporção mudaram
+ * (contorno cheio, texto cheio, fundo a 14%), só o controle que as carrega.
+ *
+ * POR QUE DUAS CLASSES NO SELETOR, E NÃO UMA. A marcação é `class="btn
+ * btn-ensaio"`, e `.btn` mora seiscentas linhas ABAIXO daqui. Com uma classe só,
+ * as duas regras empatariam em especificidade e a de baixo venceria: o botão
+ * nasceria com o fundo `--surface0` de qualquer botão, e o "apagado" desta regra
+ * nunca chegaria à tela. `.btn.btn-ensaio` desempata sem depender da ordem do
+ * arquivo, que é o que se quer quando o bloco fica junto do assunto dele. */
+.btn.btn-ensaio {
   border-radius: var(--r-max);
-  border: 1px solid var(--surface0);
+  border-color: var(--surface0);
+  background: transparent;
+  color: var(--overlay2);
+  font-weight: 400;
 }
-.seco:hover { color: var(--subtext1); border-color: var(--surface1); }
-.seco:has(:checked) {
+.btn.btn-ensaio:hover { color: var(--subtext1); border-color: var(--surface1); background: transparent; }
+.btn.btn-ensaio[aria-pressed="true"] {
   border-color: var(--yellow);
   color: var(--yellow);
   background: color-mix(in srgb, var(--yellow) 14%, transparent);
   font-weight: 600;
 }
-.seco input { accent-color: var(--yellow); }
 
 /* --- levar embora e trazer de volta ---------------------------------------
  * O menu é um `<details>`: o navegador já abre, fecha, faz o Enter e o Espaço
@@ -206,9 +227,10 @@ a:hover { color: var(--accent); text-decoration: underline; }
   border-radius: var(--r-3);
   border: 1px solid var(--surface1);
   background: var(--mantle);
-  /* Uma das duas sombras desta folha, e ela tem motivo: o menu flutua POR CIMA
-   * dos cartões, e sem ela as duas superfícies escuras encostam sem fronteira.
-   * Sai de `--crust` para o latte não ganhar um halo escuro inventado. */
+  /* Uma das três sombras desta folha — e as três são a mesma coisa: superfície
+   * que FLUTUA por cima do conteúdo (este menu, o diálogo e a dica do cartão).
+   * Sem ela as duas superfícies escuras encostam sem fronteira. Sai de `--crust`
+   * para o latte não ganhar um halo escuro inventado. */
   box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 45%, transparent);
 }
 .menu-item {
@@ -388,7 +410,13 @@ a:hover { color: var(--accent); text-decoration: underline; }
 main {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 1.4rem 1.6rem 4rem;
+  /* O RECHEIO DE CIMA TEM NOME PORQUE ALGUÉM MAIS PRECISA DELE.
+     Quem rola é o `main`, então um `sticky` com `top: 0` gruda no topo do
+     PADDING BOX — este valor abaixo do topo visível. A faixa que tapa esse vão
+     mora em `.previa-bloco::before` e lê a mesma variável: dois números iguais
+     escritos duas vezes viram dois números diferentes no dia em que um muda. */
+  --recheio-topo: 1.4rem;
+  padding: var(--recheio-topo) 1.6rem 4rem;
   min-width: 0;
 }
 main:focus-visible { outline: none; }
@@ -490,10 +518,12 @@ main:focus-visible { outline: none; }
  *   Sem `:has`, sem contar cartões, sem uma linha por página.
  *
  * `align-items: start` (e não `stretch`): era o `stretch` que fazia o cartão
- * "Cor de destaque" ter 313px de altura para 100px de conteúdo, com o rodapé
- * empurrado ao chão pelo `margin-top:auto`. Cartão vazio ao lado de cartão
- * cheio é o que ela viu e chamou de não otimizado. Os rodapés deixam de
- * alinhar entre si; em troca, nenhum cartão finge ter conteúdo que não tem.
+ * "Cor de destaque" ter 313px de altura para 100px de conteúdo, com o rodapé de
+ * metadados empurrado ao chão pelo `margin-top:auto`. Cartão vazio ao lado de
+ * cartão cheio é o que ela viu e chamou de não otimizado. Aquele rodapé saiu do
+ * cartão em 06/09/2026 e o `margin-top:auto` com ele; o `start` fica, porque a
+ * altura dos cartões de uma linha continua desigual e nenhum deles deve fingir
+ * ter conteúdo que não tem.
  *
  * `minmax(0, …)` no filho continua obrigatório: com `1fr` puro, um nome de
  * arquivo longo empurra a coluna e desalinha a linha inteira. */
@@ -511,28 +541,75 @@ main:focus-visible { outline: none; }
   align-items: start;
   justify-content: start;
 }
+/* TRÊS COLUNAS, E NÃO "QUANTAS COUBEREM" — 06/09/2026
+   Pedido dela: "deixa 3x3 em todas as demais abas". O `auto-fit` acima conta
+   quantas colunas de 320 px cabem, e na tela dela — 1918 px, mais larga do que a
+   que eu vinha medindo — davam QUATRO. Uma seção de nove chaves virava 4+4+1, com
+   um cartão órfão na terceira fileira, e a mesma seção lida em duas máquinas
+   diferentes ficava com formas diferentes.
+
+   Três é o número dela, e é bom por medida além do gosto: com 3 colunas o cartão
+   fica entre 400 e 520 px, que é onde uma frase de explicação cabe em duas linhas
+   em vez de quatro. O `auto-fit` continua valendo abaixo de 1100 px — ali a
+   escolha não é de composição, é de caber. */
+@media (min-width: 1100px) {
+  .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 .grade > * { min-width: 0; max-width: 640px; }
 .grade + .secao-titulo { margin-top: 2.8rem; }
 
 /* ===========================================================================
- * O CARTÃO DE CHAVE — a leitura foi invertida
+ * O CARTÃO DE CHAVE — de seis camadas para três
  * ===========================================================================
- * ANTES: `FASTFETCH_LOGO_COLUNAS` (mono, 600, cor de texto) · título · controle.
- * A primeira coisa lida em cada um dos 102 cartões era o nome da variável.
- *
- * AGORA, e sem uma linha de HTML nova — é tudo `order` de flex:
- *   1. o título, que é a frase que diz o que a chave FAZ
- *   2. o aviso de quem está mandando, quando há
- *   3. o controle
- *   4. a explicação
+ * A PRIMEIRA PASSAGEM DE 06/09 INVERTEU A LEITURA. `FASTFETCH_LOGO_COLUNAS`
+ * (mono, 600, cor de texto) era a primeira coisa lida em cada um dos 102
+ * cartões; o título — a frase que diz o que a chave FAZ — passou para a frente e
+ * o identificador desceu para o pé. A pilha ficou assim:
+ *   1. título · 2. aviso · 3. controle · 4. explicação
  *   5. o rodapé: nome da chave, selo de essencial, padrão de fábrica
- *   6. o "por quê"
- * O identificador não saiu — ele é como a chave se chama no arquivo e ela
- * procura por ele. Ele virou legenda, no pé, do tamanho de legenda.
+ *   6. o "▸ Por quê"
  *
- * Nos 39 cartões sem título derivado, a explicação sobe para o lugar 2: sem
- * título, ela é o que se lê para decidir, e ler a explicação depois de já ter
- * clicado no botão não serve para nada.
+ * A SEGUNDA PASSAGEM CONTOU AS CAMADAS. Seis, vezes 102 cartões, em quatro
+ * colunas — é isso que ela viu quando disse *"tem algo no nosso estilo que deixa
+ * tudo muito confuso e difícil de entender; temos que melhorar isso e darmos
+ * respiro nesse sentido"*. E o rodapé era a parte mais barata de cortar, porque
+ * nenhuma das três coisas que moravam nele é o que se lê para DECIDIR: são o que
+ * se lê DEPOIS de decidir, ou quando algo não bate. Ela apontou o
+ * `VIDRO_OPACIDADE_DOCK` no pé de um cartão: *"essa parte que selecionei tem que
+ * sumir também — isso pra todos"*.
+ *
+ * O CARTÃO AGORA:
+ *
+ *     Opacidade da dock  (?)
+ *     [ deixar como está          ]
+ *     0 é transparente, 1 é opaco.
+ *
+ *   1. o título e, colado à direita dele, o `?`
+ *   2. o controle
+ *   3. a explicação
+ *
+ * NADA SE PERDE — MUDA DE CASA. O `?` abre a `.dica`, e dentro dela estão as
+ * três coisas que saíram: o porquê inteiro (que era o `<details>` "▸ Por quê"),
+ * o nome da chave e o padrão de fábrica. O identificador continua existindo
+ * porque é por ele que ela procura no arquivo; o que mudou é que ele deixou de
+ * ser lido cento e duas vezes por quem não estava procurando por ele.
+ *
+ * AS CAMADAS QUE SOBRARAM SÃO CONDICIONAIS, e é por isso que elas ficam: o aviso
+ * de quem está mandando (`.frase.dominada`) aparece em três cartões, e o traço
+ * de "sem prévia honesta" em uma seção. Camada que aparece em três cartões não é
+ * o que empilha a tela; camada que aparece em cento e dois, é.
+ *
+ * POR QUE GRADE, E NÃO MAIS UMA COLUNA DE FLEX. O `?` é irmão do título, não
+ * filho — o contrato de marcação com o `app.js` é esse, e ele existe para que o
+ * título continue sendo um `<h3>` sozinho, legível por leitor de tela sem um
+ * "ponto de interrogação" grudado no fim do nome. Dois irmãos na MESMA linha,
+ * numa coluna de flex, só se resolvem com invólucro ou com posicionamento
+ * absoluto (que atropela o título quando ele quebra em duas linhas). Com
+ * `grid-template-columns: auto minmax(0, 1fr)` eles dividem a primeira linha
+ * sem invólucro nenhum, e todo o resto do cartão atravessa as duas colunas.
+ *
+ * Nos 39 cartões sem título derivado, a explicação sobe para o lugar 1 e é ELA
+ * que divide a linha com o `?`: sem título, ela é o que se lê para decidir.
  *
  * O CARTÃO PERDEU A CAIXA. Uma borda igual em 102 cartões é o que faz "escolher
  * entre dois gatos" pesar igual a "rodar um instalador de 52 etapas". Quem
@@ -540,14 +617,22 @@ main:focus-visible { outline: none; }
  * bolinhas de cor, o desenho da barra, a simulação do modo de leitura — porque
  * ali existe algo para olhar, e o que se olha merece moldura. */
 .cartao {
+  /* A âncora da dica. Sem ela o balão se penduraria no `<main>` e escorregaria
+   * do cartão que o abriu na primeira rolagem. */
+  position: relative;
   background: transparent;
   border: 0;
   border-top: 1px solid var(--surface0);
   border-radius: 0;
   padding: .9rem .9rem 1.1rem;
-  display: flex;
-  flex-direction: column;
-  gap: .6rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  /* UMA linha explícita, e ela não é enfeite: a `.dica` é posicionada dentro
+   * desta linha (ver `.cartao > .dica`), e uma linha implícita não serve de
+   * área para filho absoluto — o navegador cairia na caixa inteira do cartão e o
+   * balão nasceria embaixo dele, não embaixo do título. */
+  grid-template-rows: auto;
+  gap: .6rem .45rem;
   min-height: 0;
 }
 .cartao:has(.amostras, .opcoes-imagem, .cores-grade, .previa-grade, .simul, .mock) {
@@ -557,19 +642,34 @@ main:focus-visible { outline: none; }
   padding: 1rem 1.05rem 1.05rem;
 }
 
-/* A ORDEM. `.cartao > *` põe todo mundo em 3 primeiro, senão um `<select>` ou um
- * `<textarea>` solto (que não tem classe) cai em `order:0` e pula para a frente. */
-.cartao > * { order: 3; }
-.cartao > .titulo-cartao { order: 1; }
+/* A ORDEM E A COLUNA, NA MESMA REGRA.
+ * `.cartao > *` põe todo mundo em 3 e atravessando as duas colunas, senão um
+ * `<select>` ou um `<textarea>` solto (que não tem classe) cai em `order: 0`,
+ * pula para a frente e ainda por cima nasce espremido na coluna do título.
+ * Só o título e o `?` moram numa coluna cada; o resto do cartão é largura
+ * inteira, exatamente como era quando isto era uma coluna de flex. */
+.cartao > * { order: 3; grid-column: 1 / -1; }
+.cartao > .titulo-cartao,
+.cartao > .titulo { order: 1; grid-column: 1; }
+/* O `?` LEVA LINHA E COLUNA CRAVADAS, E ISSO FOI MEDIDO — 06/09/2026.
+ * Com só a coluna cravada, o navegador o coloca pelo cursor de encaixe, e o
+ * cursor tem uma regra que morde aqui: colocado um item na coluna 2, o cursor
+ * fica na 3; o item seguinte, que pede a coluna 1, força uma linha nova. Nos 39
+ * cartões sem título é a EXPLICAÇÃO que pede a coluna 1 — e ela descia uma linha,
+ * deixando o `?` sozinho no meio do nada. Com a posição cravada, o `?` é
+ * encaixado antes de o cursor começar a andar, e a explicação encontra a coluna
+ * 1 da primeira linha livre. Medido nos dois casos: com título e sem. */
+.cartao > button.porque { order: 1; grid-column: 2; grid-row: 1; }
 .cartao > .frase.dominada { order: 2; }
 .cartao > .frase { order: 4; }
-.cartao:not(:has(.titulo-cartao)) > .frase { order: 2; }
-.cartao > .cartao-topo { order: 5; }
-.cartao > .sem-previa { order: 6; }
-.cartao > details.porque { order: 7; }
+/* Sem título, a explicação É o título: ela toma o lugar 1 e a coluna 1, para
+ * que o `?` fique ao lado dela e não sozinho numa linha só dele. */
+.cartao:not(:has(.titulo-cartao, .titulo)) > .frase { order: 2; grid-column: 1; }
+.cartao > .sem-previa { order: 5; }
 
 /* O título é o texto que ela lê para escolher. */
-.titulo-cartao {
+.titulo-cartao,
+.cartao > .titulo {
   margin: 0;
   font-size: var(--t-titulo);
   font-weight: 600;
@@ -580,28 +680,128 @@ main:focus-visible { outline: none; }
   text-wrap: pretty;
 }
 
-/* O RODAPÉ DE METADADOS. `margin-top:auto` aqui é o que ancora o pé do cartão:
- * sem ele, a sobra do `stretch` ficaria no fim e cada "por quê" flutuaria numa
- * altura diferente na mesma linha da grade. */
-.cartao > .cartao-topo {
-  display: flex;
-  align-items: baseline;
-  gap: .45rem;
-  flex-wrap: wrap;
-  margin-top: auto;
-  padding-top: .55rem;
-  border-top: 1px solid color-mix(in srgb, var(--surface0) 55%, transparent);
+/* ---------------------------------------------------------------------------
+ * O `?` E A DICA — pedido dela, literal: *"o tooltip fica em `?` ao lado direito
+ * do nome da seção"* (o nome da seção, aqui, é o título do cartão).
+ * ---------------------------------------------------------------------------
+ * PEQUENO DE VER, GRANDE DE ACERTAR. O glifo é `--t-legenda` (10,5 px), que é o
+ * degrau das legendas desta folha — ele não pode competir com o título de 14 px
+ * que está do lado. O ALVO, porém, é 24×24 px, que é o mínimo com que se acerta
+ * um controle com o dedo ou com um mouse apressado. Uma coisa é o desenho, outra
+ * é a área: `width`/`height` fixos com o texto centrado resolvem as duas sem
+ * `padding` que empurre o título.
+ *
+ * OS -2 px SÃO CONTA, NÃO GOSTO. A primeira linha do título mede 19,6 px
+ * (14 px × 1.4). Centrar um alvo de 24 px sobre uma linha de 19,6 pede
+ * (19,6 − 24) ÷ 2 = −2,2 px de deslocamento para cima. Com `align-self: start` o
+ * `?` fica preso à PRIMEIRA linha, e não ao meio do bloco — que é o que importa
+ * quando o título quebra em duas.
+ *
+ * ACESO É ABERTO. No repouso e no hover o `?` é cinza: passar o mouse não acende
+ * nada nesta folha. Em `aria-expanded="true"` ele é accent, que é o que accent
+ * significa aqui — ligado, selecionado, esperando ou aberto. */
+button.porque {
+  align-self: start;
+  margin-top: -2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;    /* 24 px */
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid var(--surface1);
+  border-radius: var(--r-max);
+  background: transparent;
+  color: var(--overlay2);
+  font: inherit;
+  font-size: var(--t-legenda);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
 }
-.cartao-topo code {
-  font: 400 var(--t-legenda)/1.3 var(--mono);
+button.porque:hover { color: var(--subtext1); border-color: var(--overlay0); }
+button.porque[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+
+/* A DICA NÃO TRANSBORDA A JANELA, E NÃO PRECISA DE BIBLIOTECA PARA ISSO.
+ * O truque é não ancorar o balão no BOTÃO — que é pequeno, fica encostado na
+ * direita e obrigaria a medir a janela em JavaScript — e sim no CARTÃO: `left`
+ * e `right` a zero fazem o balão nascer com a largura exata do cartão, e o
+ * cartão já é uma caixa que cabe na tela (`.grade > *` a limita em 640 px e a
+ * grade só cria coluna que cabe). Se o cartão não transborda, o balão também
+ * não, em qualquer largura de janela e sem uma linha de medição.
+ *
+ * A VERTICAL SAI DA GRADE. Filho absoluto de um contêiner de grade recebe como
+ * caixa-mãe a ÁREA que as propriedades de grade lhe dão — aqui a linha 1, a do
+ * título. `top: 100%` é, então, "logo abaixo da linha do título", e continua
+ * certo quando o título quebra em duas linhas. É por isso que `.cartao` declara
+ * `grid-template-rows: auto`: sem uma linha explícita não há área para apontar.
+ *
+ * O `!important` É OBRIGATÓRIO, E A CULPA É DA FOLHA DO NAVEGADOR. A dica nasce
+ * com o atributo `hidden`, e o `[hidden] { display: none !important }` lá de
+ * cima existe justamente para vencer as regras de autor. Para o hover abrir o
+ * balão sem esperar o JavaScript, esta regra precisa empatar em `!important` e
+ * ganhar na especificidade — que é o que estes seletores fazem. O clique, o Esc
+ * e o `aria-expanded` continuam sendo do `app.js`: o CSS cobre o rato e o
+ * teclado que só passa por cima. */
+.cartao > .dica {
+  position: absolute;
+  grid-column: 1 / -1;
+  grid-row: 1 / 2;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .35rem .7rem;
+  padding: .7rem .8rem .75rem;
+  border: 1px solid var(--surface1);
+  border-radius: var(--r-3);
+  background: var(--mantle);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 45%, transparent);
+  /* 22 rem é a mesma altura que o "▸ Por quê" já usava para o comentário
+   * inteiro do `meow.conf.exemplo` — há verbetes de seis linhas e verbetes de
+   * seis palavras, e o teto é o que impede o de seis linhas de cobrir a tela. */
+  max-height: 22rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+button.porque:hover + .dica,
+button.porque:focus-visible + .dica,
+.cartao > .dica:hover { display: flex !important; }
+
+/* O porquê é o comentário do `meow.conf.exemplo`, que é a documentação deste
+ * projeto e vem com as quebras de linha que o autor escreveu — daí o
+ * `pre-wrap`. Ele ocupa a primeira linha inteira do balão; o nome da chave e o
+ * padrão de fábrica dividem a de baixo, separados por um fio. */
+.dica .motivo {
+  flex: 1 0 100%;
+  margin: 0 0 .1rem;
+  padding-bottom: .55rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface0) 55%, transparent);
+  font-size: var(--t-frase);
+  line-height: 1.55;
+  color: var(--subtext0);
+  white-space: pre-wrap;
+  text-wrap: pretty;
+}
+.dica .chave {
+  font: 400 var(--t-legenda)/1.35 var(--mono);
   color: var(--overlay2);
   letter-spacing: .02em;
-  opacity: 1;
+  overflow-wrap: anywhere;
+}
+.dica .fabrica {
+  font-size: var(--t-legenda);
+  color: var(--overlay2);
+  font-variant-numeric: tabular-nums;
 }
 /* O selo de essencial é um ponto, e ponto não é controle. Antes ele era um
  * ponto mauve dentro de uma caixinha de contorno pêssego do tamanho de uma
  * caixa de marcar — lia-se como caixa desmarcada, e é rótulo. Uma declaração
- * só, sem borda, sem caixa alta, e em cinza: é metadado, não estado. */
+ * só, sem borda, sem caixa alta, e em cinza: é metadado, não estado. Com o
+ * rodapé fora, a casa dele é a dica, ao lado do nome da chave. */
 .marca-essencial {
   font-size: .85rem;
   line-height: 1;
@@ -611,13 +811,6 @@ main:focus-visible { outline: none; }
   padding: 0;
   letter-spacing: normal;
   text-transform: none;
-}
-.cartao .padrao {
-  margin-left: auto;
-  font-size: var(--t-legenda);
-  color: var(--overlay2);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
 }
 .marca-pendente { font-size: var(--t-legenda); font-weight: 600; color: var(--accent); letter-spacing: .01em; }
 
@@ -637,7 +830,7 @@ main:focus-visible { outline: none; }
 }
 .cartao[data-sem-previa] { border-left: 0; }
 
-/* A EXPLICAÇÃO CURTA, CORTADA EM TRÊS LINHAS; o resto vive no "por quê".
+/* A EXPLICAÇÃO CURTA, CORTADA EM TRÊS LINHAS; o resto vive na dica, atrás do `?`.
  * Os comentários do meow.conf.exemplo variam de seis palavras a seis linhas. */
 .frase {
   margin: 0;
@@ -728,7 +921,18 @@ select { flex: 1 1 auto; }
 
 /* O número do deslizante NÃO é accent: ele é a leitura de um valor, não um
  * estado ligado. Quem está aceso é o polegar da régua, pelo `accent-color`. */
-.faixa { display: flex; align-items: center; gap: .6rem; width: 100%; }
+/* OS BOTÕES DE ESTADO VÃO PARA A LINHA DE BAIXO — 06/09/2026
+   Medido em "Barra e dock": num cartão onde a chave está vazia, o deslizante
+   fica desabilitado, o `<output>` diz "como está" e ao lado vêm dois botões.
+   Os quatro disputavam a mesma linha de ~270 px: o "como está" quebrava em duas
+   linhas no meio do controle e os botões empilhavam um sobre o outro. Nos
+   cartões com número (20, 0, 4) o mesmo arranjo ficava bem, e foi por isso que
+   passou — o defeito só aparece quando a palavra é longa.
+
+   `flex-wrap` mais `flex-basis: 100%` na fileira de estados: o deslizante e o
+   valor ficam em cima, os botões embaixo, sempre. Um arranjo só para os dois
+   casos, em vez de um que depende do comprimento da palavra. */
+.faixa { display: flex; align-items: center; gap: .6rem; width: 100%; flex-wrap: wrap; }
 .faixa input[type="range"] { flex: 1 1 auto; accent-color: var(--accent); min-width: 6rem; }
 .faixa input[disabled] { opacity: .45; }
 .faixa output {
@@ -737,9 +941,12 @@ select { flex: 1 1 auto; }
   min-width: 4.5ch;
   text-align: right;
   font-variant-numeric: tabular-nums;
+  /* "como está" é uma palavra só para quem lê, e quebrá-la no meio do controle
+     é o que fazia a fileira parecer quebrada. */
+  white-space: nowrap;
 }
 /* Os estados que não moram na régua do deslizante. */
-.faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .1rem; }
+.faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .1rem; flex: 0 0 100%; }
 .btn-mini { font-size: var(--t-legenda); padding: .18rem .45rem; }
 .btn-mini[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
@@ -770,34 +977,10 @@ select { flex: 1 1 auto; }
 .ficha button:hover { color: var(--red); background: color-mix(in srgb, var(--red) 18%, transparent); }
 .fichas .nova { flex: 1 1 8ch; min-width: 7rem; }
 
-/* --- o "por quê" ---------------------------------------------------------- */
-/* O comentário inteiro do meow.conf.exemplo, a um clique. Ele é a documentação
- * deste projeto e é longo de propósito — mas aberto por padrão em 102 cartões
- * seria uma página que ninguém lê. O gatilho não fica accent no hover: passar o
- * mouse não acende nada. */
-details.porque { margin-top: 0; }
-details.porque summary {
-  font-size: var(--t-legenda);
-  color: var(--overlay2);
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-}
-details.porque summary::-webkit-details-marker { display: none; }
-details.porque summary::before { content: "▸ "; }
-details.porque[open] summary::before { content: "▾ "; }
-details.porque summary:hover { color: var(--subtext1); }
-details.porque pre {
-  margin: .45rem 0 0;
-  padding: .6rem .7rem;
-  background: var(--crust);
-  border-radius: var(--r-2);
-  font: .72rem/1.55 var(--mono);
-  color: var(--subtext0);
-  white-space: pre-wrap;
-  max-height: 22rem;
-  overflow: auto;
-}
+/* O BLOCO DO `details.porque` — o "▸ Por quê" que era a sexta camada do cartão —
+ * saiu daqui em 06/09/2026. O comentário inteiro do `meow.conf.exemplo` não se
+ * perdeu: ele é o `.motivo` dentro da `.dica`, que o `?` ao lado do título abre.
+ * Ver o bloco do CARTÃO DE CHAVE, acima. */
 
 /* ===========================================================================
  * FAZER — as 34 ações, em três graus de risco
@@ -817,8 +1000,16 @@ details.porque pre {
  *                             `.cartao.mexeu`).
  *   desfaz coisas ........... caixa e fio vermelho, e o botão continua vermelho.
  *
- * "usa rede" e "aceita seco" não mudam a moldura: são propriedades da ação, não
- * risco. Elas ficam ditas nas pastilhas. */
+ * "usa rede" não muda a moldura: é propriedade da ação, não risco. Fica dita na
+ * pastilha.
+ *
+ * O SELO "PODE ENSAIAR" SAIU EM 06/09/2026, e a razão é dela: *"o botão Pode
+ * ensaiar não faz sentido se temos o executar ali em todas as páginas — é pq o
+ * user quer arrumar só aquilo"*. O interruptor de ensaio é UM, global, e fica no
+ * alto da tela: aceso, cada `Executar` ensaia; apagado, executa de verdade.
+ * Repetir por cartão o que o interruptor já governa é ruído — trinta e quatro
+ * vezes a mesma etiqueta amarela numa tela de oito ações. A regra `.p-seco` foi
+ * apagada junto; quem para de desenhar a pastilha é o `app.js`. */
 .acao {
   background: transparent;
   border: 0;
@@ -927,7 +1118,6 @@ details.porque pre {
 .p-sudo   { color: var(--peach); }
 .p-perigo { color: var(--red); }
 .p-rede   { color: var(--sky); }
-.p-seco   { color: var(--yellow); }
 .p-ok     { color: var(--green); }
 .p-erro   { color: var(--red); }
 .p-correndo { color: var(--yellow); }
@@ -1445,6 +1635,149 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .mock .rodape { height: 26px; }
 
 /* O par de barras no topo da seção de forma: lado a lado onde couber. */
+/* O PAR DE PRÉVIAS TEM CAIXA PRÓPRIA — 06/09/2026
+   A `grade-barras` abaixo é da FORMA, e os dois mocks dela são caixas que
+   esticam. Um SVG de proporção fixa não estica: ele se centraliza e deixa o
+   resto vazio. Medido na tela do "Modo de leitura", onde há um desenho só: numa
+   coluna de 1600 px o desenho ocupava 200 px, e sobravam 1400 de nada.
+
+   A coluna aqui é do tamanho do desenho (340 px comporta os 317 que a altura de
+   190 pede, na proporção 100×60 dos dois arquivos de prévia). `auto-fit` com
+   teto FIXO é de propósito, e é o inverso da regra da grade universal: lá o
+   `1fr` existe para o cartão crescer; aqui o desenho não deve crescer além do
+   que consegue preencher. `justify-content: start` encosta o desenho solitário
+   à esquerda, no alinhamento do texto, em vez de deixá-lo boiando no meio. */
+.par-previa {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 340px));
+  gap: 1rem 1.4rem;
+  justify-content: start;
+  margin-bottom: 0.5rem;
+}
+.par-previa svg { display: block; width: 100%; height: auto; }
+/* OS DOIS LADOS TÊM DE MEDIR IGUAL. Medido na tela dela: o "Como está" é um
+   `<button>` com borda de 1 px e recheio, e o "Como fica" é um `div` sem nada —
+   então o desenho da esquerda saía visivelmente menor que o da direita, e a
+   diferença de TAMANHO competia com a diferença que o par existe para mostrar.
+   O lado que não é botão ganha a mesma caixa, com a borda transparente. */
+.par-previa > div {
+  border: 1px solid transparent;
+  border-radius: var(--r-3);
+  padding: 0.5rem 0.6rem 0.55rem;
+}
+/* SOZINHO ELE PODE SER MAIOR. Com par, os dois dividem a largura e 340 px cada
+   é o que cabe lado a lado num conteúdo de 1300; sem par, 340 px deixavam dois
+   terços da linha vazios e o desenho parecia perdido na página. O teto continua
+   existindo — um desenho de 1300 px de largura viraria um cartaz. */
+.par-previa:has(> :only-child) {
+  grid-template-columns: minmax(min(280px, 100%), 480px);
+}
+
+/* O DESENHO NÃO SOBE COM A ROLAGEM — 06/09/2026
+   Queixa dela, literal: "esse svg tem que ter a linha congelada pois quando eu
+   desço o navegador ele se some e eu tenho que levantar de novo".
+
+   É a queixa certa sobre a coisa certa: o desenho existe para responder "o que
+   este controle faz com a minha tela", e o controle está trinta centímetros
+   abaixo dele. Ler a pergunta e a resposta exigia rolar para cima e para baixo a
+   cada cartão — que é exatamente o gesto que o desenho veio abolir.
+
+   `sticky` e não `fixed`: ele gruda no alto ENQUANTO a seção dele está na tela e
+   sai junto com ela, em vez de pairar sobre a página inteira. O fundo opaco é
+   obrigatório — sem ele os cartões passariam por trás do traço — e o `--r-3`
+   fecha a caixa no lugar onde ela encosta no topo.
+
+   O teto de altura existe porque um desenho de 300 px grudado no alto comeria um
+   terço da tela: acima dele o desenho encolhe em vez de empurrar os controles
+   para fora. */
+.previa-bloco {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--base);
+  padding: .55rem 0 .7rem;
+  margin-bottom: .2rem;
+  border-radius: 0 0 var(--r-3) var(--r-3);
+  /* A SOMBRA NÃO É ENFEITE: ELA DIZ QUE ALGO PASSA POR BAIXO.
+     Medido na tela dela, em "Papel de parede": sem a sombra, um cartão de ação
+     deslizando por trás era cortado no meio do botão "Executar", com o corte
+     limpo e sem transição — e a página inteira lia-se como renderização
+     quebrada, não como um elemento fixo. A borda inferior e a sombra curta
+     dizem "há mais coisa embaixo", que é a verdade. */
+  border-bottom: 1px solid var(--surface0);
+  box-shadow: 0 10px 12px -10px var(--crust);
+}
+/* A FAIXA DO RECHEIO DO `main`, TAPADA — 06/09/2026
+   Medido: `main` tem `padding-top: 22.4px` e é ele quem rola. Um `sticky` com
+   `top: 0` gruda no topo do PADDING BOX, ou seja 22 px abaixo do topo visível —
+   e naqueles 22 px o conteúdo passava à vista, cortado no meio de um título.
+   Na tela isso não lia como "algo fixo": lia como página quebrada.
+
+   `top` negativo resolveria e cortaria o alto do desenho junto. Este pseudo
+   estende só o FUNDO para cima, e o `overflow` do `main` apara o que sobra —
+   nada aparece por cima do cabeçalho. */
+.previa-bloco::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  /* EXATAMENTE O VÃO, NUNCA MAIS QUE ELE — 07/09/2026
+     Eram 3rem, o dobro do necessário, e a sobra tapava o que vinha logo acima:
+     em cinco das nove abas o desenho nasce a 24 px da frase da seção, e a faixa
+     de 48 px comia a frase inteira. Medido com `elementFromPoint` no meio da
+     frase: quem respondia era a `.previa-bloco`, não o `<p>`. Tapar o vão é o
+     trabalho; tapar um pixel a mais é apagar conteúdo. */
+  height: var(--recheio-topo, 1.4rem);
+  background: var(--base);
+}
+/* GRUDADO, ELE PODE SER MENOR. Um desenho de 250 px preso no alto come um quarto
+   da tela, e nesse tamanho ele deixa de ser referência para virar o assunto —
+   que é o oposto do que ele faz ali. 150 px ainda mostra a diferença entre os
+   dois lados; foi o que a folha de contato confirmou. */
+.previa-bloco .par-previa svg { max-height: 150px; }
+
+/* O desfazer da FORMA mora acima do par, e ocupa a linha inteira da grade:
+   os dois mocks são as duas colunas, e um botão espremido entre eles leria como
+   pertencente a um só. */
+.par-desfazivel { position: relative; }
+.par-desfazivel > .desfazer-forma { grid-column: 1 / -1; justify-self: start; margin-bottom: .1rem; }
+
+/* O LADO QUE SE APERTA — 06/09/2026
+   Pedido dela: "selecionamos o antes ou o depois com bordas indicando se
+   tratarem de botões". A borda é a única coisa que diferencia um desenho que se
+   olha de um desenho que se aperta, e ela só aparece quando há de fato o que
+   escolher: sem escolha pendente o "Como está" volta a ser um `div`, e este
+   seletor não o alcança.
+
+   O `aria-pressed` faz o trabalho de sempre — o "Como fica" nasce marcado
+   porque ele É a escolha em vigor na bandeja. Ele não é botão (não há para onde
+   ir a partir dele), então quem recebe as regras aqui é só o "Como está". */
+button.lado-previa {
+  appearance: none;
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--surface1);
+  border-radius: var(--r-3);
+  padding: 0.5rem 0.6rem 0.55rem;
+  transition: border-color .12s, background-color .12s;
+}
+button.lado-previa:hover,
+button.lado-previa:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+/* O irmão marcado ganha o traço de acento sem virar botão: ele é o estado, não
+   a saída. Sem isto os dois lados pesam igual e o par não diz qual está valendo. */
+.par-previa > div:has(+ *) ~ div .rotulo-mini,
+.par-previa > *:last-child .rotulo-mini { color: var(--accent); }
+.par-previa > button.lado-previa .rotulo-mini { color: var(--overlay1); }
+
 .grade-barras {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
