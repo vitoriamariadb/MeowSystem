@@ -127,6 +127,21 @@ def seco(pag, ligado):
     return seco_ligado(pag) == ligado
 
 
+def descartar_tudo(pag):
+    """Clica em Descartar e responde a pergunta que nasce com 2+ escolhas.
+
+    A pergunta e' de 07/09/2026: o Descartar mora a 8 px do Salvar e jogava
+    fora a sessao inteira sem confirmar. Com UMA escolha ele continua direto;
+    com duas ou mais, o <dialog> pergunta — e quem usa responde, entao a
+    suíte tambem."""
+    pag.locator("#botao-descartar").click()
+    pag.wait_for_timeout(250)
+    dlg = pag.locator("#confirmar[open]")
+    if dlg.count():
+        dlg.locator("#confirmar-ok").click()
+        pag.wait_for_timeout(250)
+
+
 def md5_conf():
     with open(CONF, "rb") as fh:
         return hashlib.md5(fh.read()).hexdigest()
@@ -271,7 +286,7 @@ def descartar(pag):
     Roda entre um grupo de verificacoes e o proximo: uma escolha esquecida faz
     o passo seguinte contar 2 escolhas onde a frase dele diz 1."""
     if pag.locator("#barra-salvar").is_visible():
-        pag.locator("#botao-descartar").click()
+        descartar_tudo(pag)
         pag.wait_for_timeout(400)
 
 
@@ -750,7 +765,7 @@ def main():
                   "o cartao continua marcado como nao salvo")
 
             print("\n   ... e o Descartar devolve tudo")
-            pag.locator("#botao-descartar").click()
+            descartar_tudo(pag)
             pag.wait_for_timeout(500)
             checa(not pag.locator("#barra-salvar").is_visible(), "Descartar limpa a barra")
             checa(valor_de("LOG_NIVEL") == log_nivel_inicial, "e o disco nunca foi tocado")
@@ -964,7 +979,7 @@ def main():
             #   visivel" passaria a ser verdade ANTES do arrasto — o teste
             #   acusaria gravacao em todas as abas, e a acusacao seria falsa.
             if pag.locator("#barra-salvar").is_visible():
-                pag.locator("#botao-descartar").click()
+                descartar_tudo(pag)
                 pag.wait_for_timeout(700)
             vivas = paradas = 0
             for aba in ("Cor e tela", "Logo do sistema", "Painel e dock",
@@ -1305,7 +1320,7 @@ def main():
                   "o contador abre a lista com o nome do cartao, nao a chave crua"
                   + (f" — {lista}" if not lista or lista.get("cru") else ""))
             pag.keyboard.press("Escape"); pag.wait_for_timeout(200)
-            pag.locator('#barra-salvar button:has-text("Descartar")').first.click()
+            descartar_tudo(pag)
             pag.wait_for_timeout(500)
 
             # (c) O ENSAIO SE ANUNCIA: ligado, o botao diz o estado e o Salvar
@@ -1339,6 +1354,30 @@ def main():
               return document.querySelectorAll('#torradas .torrada').length;
             }""")
             checa(n_torradas == 1, f"a mesma frase nao empilha torradas ({n_torradas} na tela)")
+
+            # (f) O IMPORTAR É BOTÃO — uma <label> não entra na fila do Tab, e
+            #     a conferência de teclado mediu ZERO paradas: quem usa só
+            #     teclado não importava um .conf de jeito nenhum.
+            tag_importar = pag.evaluate(
+                "() => document.getElementById('rotulo-importar').tagName")
+            checa(tag_importar == "BUTTON",
+                  f"o Importar e' um <button> na fila do Tab ({tag_importar})")
+
+            # (g) AS HORAS DO TEMA EXISTEM E SAO REGUA. As duas chaves eram
+            #     fantasmas (bin/meow as lia, nenhum arquivo as declarava) e,
+            #     declaradas, quase nasceram como campo de horario por causa da
+            #     sigla do formato escrita no proprio comentario.
+            reguas = pag.evaluate("""() => ['MODO_AUTO_CLARO_DE','MODO_AUTO_CLARO_ATE']
+              .every(c => { const k = (ESQUEMA.chaves||[]).find(x => x.chave === c);
+                            return k && k.faixa && !k.horario; })""")
+            checa(reguas, "MODO_AUTO_CLARO_DE/ATE existem no esquema como faixa, nao horario")
+
+            # (h) O VERBO «USAR» DA GALERIA EXISTE DE PONTA A PONTA: a acao no
+            #     servidor (o chip da ficha chama por id, e id inexistente e'
+            #     exatamente o defeito que o rodarNaGaleria ja pegou uma vez).
+            tem_usar = pag.evaluate(
+                "() => (ESQUEMA.acoes||[]).some(a => a.id === 'wallpaper_usar')")
+            checa(tem_usar, "a acao wallpaper_usar existe no esquema do servidor")
 
             print("\n20b. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,

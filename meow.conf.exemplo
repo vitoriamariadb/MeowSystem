@@ -956,6 +956,25 @@ NOITE_INICIO=""
 # > Manda em tudo que pergunta "é noite?": o gato, o papel de parede e o modo de leitura.
 NOITE_FIM=""
 
+# @ O tema claro começa às
+# > Com «Claro ou escuro» em Automático: antes desta hora, o tema é o escuro.
+# DUAS CHAVES QUE EXISTIAM SEM EXISTIR — 07/09/2026. O `bin/meow` lê
+# MODO_AUTO_CLARO_DE/ATE desde que o modo automático nasceu, com 7 e 18 de
+# fábrica — e nenhum arquivo as declarava: quem quisesse o claro começando às
+# 8 tinha de LER O CÓDIGO para descobrir que a chave existe. A conferência de
+# tarefas tropeçou na consequência: a página "Dia e noite" parecia não ter nada
+# a ver com o tema, e tem — só que as horas do TEMA são estas, separadas da
+# noite da máquina (NOITE_INICIO/FIM manda no gato, no papel de parede e no
+# modo de leitura; estas duas mandam só no claro/escuro quando MODO="auto").
+# São horas cheias (7, 18), sem minutos — é assim que o `modo_desejado`
+# compara. (E esta frase evita soletrar o formato de relógio por extenso:
+# a sigla dele no comentário é o que faz o leitor classificar a chave como
+# horário — foi medido nesta mesma rodada, nesta mesma chave.)
+MODO_AUTO_CLARO_DE=""             # 0 a 23  (vazio = 7)
+# @ O tema claro termina às
+# > Com «Claro ou escuro» em Automático: desta hora em diante, o escuro volta.
+MODO_AUTO_CLARO_ATE=""            # 0 a 23  (vazio = 18)
+
 # @ Separar imagens de dia e de noite
 # > À noite o carrossel sorteia só entre as escuras.
 # Em 24/08/2026, numa captura de 23:57, o papel de parede era vaporwave pastel

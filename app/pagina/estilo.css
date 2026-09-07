@@ -121,6 +121,11 @@ a:hover { color: var(--accent); text-decoration: underline; }
   font-weight: 600;
 }
 .pular:focus { left: 0; top: 0; }
+/* O pula-grade herda o mecanismo e muda só o ancoradouro: dentro do fluxo da
+ * página, ele aparece ONDE ESTÁ (logo antes da grade) em vez de saltar para o
+ * canto da tela — quem navega por Tab está olhando para ali. */
+.pular-grade { position: relative; left: -9999px; display: inline-block; }
+.pular-grade:focus { left: 0; top: auto; margin: .2rem 0 .5rem; }
 
 /* --- topo ----------------------------------------------------------------- */
 .topo {

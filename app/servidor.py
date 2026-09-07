@@ -518,8 +518,13 @@ DOMINIOS = {
     "FASTFETCH_LOGO_GATO": {
         "chave": "FASTFETCH_LOGO_MODO",
         "quando": lambda v: bool(v) and v != "fixo",
-        "porque": "Ela só vale com a escolha em \u201cfixo\u201d; nos outros "
-                  "modos o gato do terminal segue o do dock.",
+        # CORRIGIDO EM 07/09/2026: dizia "nos outros modos o gato do terminal
+        # segue o do dock" — e em "espelho" (o padrão!) ele mostra o OUTRO
+        # gato, de propósito (scripts/fastfetch_logo.sh:128). A ajuda afirmava
+        # o contrário do comportamento de fábrica.
+        "porque": "Ela só vale com a escolha em \u201cfixo\u201d. Em "
+                  "\u201chora\u201d o terminal segue o gato do dock; em "
+                  "\u201cespelho\u201d ele mostra o OUTRO gato.",
     },
 }
 
@@ -1932,6 +1937,15 @@ ACOES = {
     #   da imagem, e a ficha não tem espaço para um seletor. `auto` devolve a
     #   imagem à medição — é o desfazer, e é ele que impede o registro de virar
     #   uma segunda verdade que ninguém sabe apagar.
+    "wallpaper_usar": {
+        "rotulo": "Usar esta imagem agora",
+        "grupo": "Papel de parede",
+        "argv": _meow("wallpaper", "usar", "@ARG@"), "arg": "paredes_ativas",
+        "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Fixa esta imagem como o papel de parede de agora. Quanto tempo "
+                 "dura é «Quanto tempo dura a imagem escolhida» — com 0, até "
+                 "«Soltar o carrossel».",
+    },
     "wallpaper_dia": {
         "rotulo": "Guardar esta imagem para o dia",
         "grupo": "Papel de parede",
