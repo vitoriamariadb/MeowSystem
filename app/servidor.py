@@ -515,6 +515,27 @@ DOMINIOS = {
         "porque": "Por horário quem escolhe são os gatos de dia e de noite; "
                   "esta só entra quando um daqueles dois não está na lista.",
     },
+    # A MARGEM QUE O COMPOSITOR JOGA FORA — 07/09/2026.
+    #   Mesmo defeito das de cima, achado no cabeçalho do próprio `forma.sh`
+    #   (linhas 19-26), que já o descrevia sem que a página soubesse: o
+    #   `get_effective_anchor_gap()` do cosmic-panel é literalmente
+    #       if self.anchor_gap { self.margin as u32 } else { 0 }
+    #   e o "solto" é quem escreve o `anchor_gap`. Com ele em "nao", o
+    #   deslizante de distância aceita o número, grava, e a barra continua
+    #   colada — "e ninguém diz por quê", nas palavras do próprio arquivo.
+    #   Agora o cartão diz.
+    "FORMA_MARGEM_PAINEL": {
+        "chave": "FORMA_PAINEL_SOLTO",
+        "quando": lambda v: v == "nao",
+        "porque": "A margem só é desenhada quando o painel está solto da "
+                  "borda: assim, o compositor descarta este número calado.",
+    },
+    "FORMA_MARGEM_DOCK": {
+        "chave": "FORMA_DOCK_SOLTO",
+        "quando": lambda v: v == "nao",
+        "porque": "A margem só é desenhada quando a dock está solta da "
+                  "borda: assim, o compositor descarta este número calado.",
+    },
     "FASTFETCH_LOGO_GATO": {
         "chave": "FASTFETCH_LOGO_MODO",
         "quando": lambda v: bool(v) and v != "fixo",
@@ -972,9 +993,18 @@ def ler_esquema():
         #   meio quebra a herança, que é exatamente o que o arquivo quer dizer
         #   quando põe uma.
         herdada = False
+        ajuda_de = ""
         if not bloco and colada and itens:
             ajuda = itens[-1]["ajuda"]
             herdada = True
+            # DE QUEM É O BLOCO — 07/09/2026. Saber que a explicação é herdada
+            # não basta: o balão `?` mostrava o texto inteiro sem uma palavra
+            # dizendo de onde ele vinha, e em "Dia e noite" isso dá QUATRO
+            # balões repetindo blocos alheios — o de `WALLPAPER_NOITE_FIM`
+            # abre com um parágrafo sobre uma captura de 23:57 e o carrossel.
+            # A herança ENCADEIA (`WALLPAPER_NOITE` -> `_INICIO` -> `_FIM`),
+            # então a dona é a primeira da fila, não a vizinha de cima.
+            ajuda_de = itens[-1]["ajuda_de"] or itens[-1]["chave"]
         colada = True
         item = {
             "chave": chave,
@@ -1025,6 +1055,10 @@ def ler_esquema():
             #   conf diz 3500, a máquina está em 4700.
             "valendo_agora": _valendo_agora(chave),
             "ajuda_herdada": herdada,
+            # A CHAVE dona do bloco, não o título dela: quem sabe titular um
+            # cartão é a página (`tituloDoCartao`), que já deriva o título de
+            # quem não tem `# @ ` escrito.
+            "ajuda_de": ajuda_de,
             "essencial": "[essencial]" in ajuda,
             # Lista separada por vírgula: a regra é o que o comentário DIZ, não uma
             # lista de nomes de chave. `APPS_ATIVOS` e `AUTOSTART_BLOQUEADOS` dizem
@@ -1991,7 +2025,7 @@ ACOES = {
         "argv": _meow("areas", "aplicar"),
         "seco": True, "sudo": False, "confirma": False,
         "ajuda": "Vale no PRÓXIMO INÍCIO DE SESSÃO: o cosmic-comp lê esse arquivo "
-                 "uma vez, ao iniciar. Nada muda na barra agora, e isso não é defeito.",
+                 "uma vez, ao iniciar. Nada muda no painel agora, e isso não é defeito.",
     },
     "areas_reverter": {
         "rotulo": "Voltar as áreas de antes",
@@ -2027,9 +2061,9 @@ ACOES = {
         "ajuda": "Reconstrói a coleção a partir da lista de fontes. Usa rede "
                  "e pode demorar. As imagens que você tirou continuam fora.",
     },
-    # --- barra, janelas, leitura --------------------------------------------
+    # --- painel, janelas, leitura --------------------------------------------
     "painel_estado": {
-        "rotulo": "Barra e dock: diagnóstico",
+        "rotulo": "Painel e dock: diagnóstico",
         "grupo": "Painel e dock",
         "argv": _meow("painel", "estado"),
         "seco": False, "sudo": False, "confirma": False,
@@ -2042,7 +2076,7 @@ ACOES = {
         "argv": _meow("painel", "teto"),
         "seco": False, "sudo": False, "confirma": False,
         "ajuda": "A conta inteira: altura real, teto derivado, e se o "
-                 "compositor limita em vez de derrubar a barra.",
+                 "compositor limita em vez de derrubar o painel.",
     },
     "painel_reciclar": {
         "rotulo": "Recarregar o painel",
