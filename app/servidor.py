@@ -3033,6 +3033,40 @@ TIPOS = {
 }
 
 
+# O ENDEREÇO DO REPOSITÓRIO SAI DO `git remote`, E ISSO NÃO É ELEGÂNCIA
+#   Escrever `https://github.com/<usuária>/MeowSystem` num arquivo versionado
+#   não sobrevive a este repositório: o hook de commit troca o nome dela por
+#   `[REDACTED]` — é a mesma redação que o README carrega —, e o link ia para
+#   o ar apontando para uma URL morta. Medido no primeiro commit que tentou.
+#
+#   Ler do remoto é mais certo, e não só mais seguro: num fork o item do menu
+#   passa a apontar para o fork de quem clonou, que é o repositório de quem
+#   está olhando a tela. Sem remoto, a função devolve vazio e o menu não desenha
+#   o item — melhor um item a menos que um link que não abre.
+def _repositorio_no_ar():
+    """A URL https do `origin`, ou "" quando não há remoto que sirva."""
+    try:
+        proc = subprocess.run(["git", "-C", RAIZ, "remote", "get-url", "origin"],
+                              capture_output=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if proc.returncode != 0:
+        return ""
+    url = proc.stdout.decode("utf-8", "replace").strip()
+    if not url:
+        return ""
+    # `git@github.com-pessoal:dona/Projeto.git` -> `https://github.com/dona/Projeto`
+    #   O sufixo depois do host é apelido de `~/.ssh/config`, e não host de
+    #   verdade: esta máquina usa um para separar duas contas. Levá-lo para a
+    #   URL daria um endereço que só resolve dentro do ssh dela.
+    m = re.match(r"^(?:git@|ssh://git@)([^:/]+)[:/](.+?)(?:\.git)?/?$", url)
+    if m:
+        host = m.group(1).split("-", 1)[0] if "." in m.group(1) else m.group(1)
+        return "https://%s/%s" % (host, m.group(2))
+    m = re.match(r"^(https?://[^/]+/.+?)(?:\.git)?/?$", url)
+    return m.group(1) if m else ""
+
+
 class Manipulador(BaseHTTPRequestHandler):
     server_version = "MeowSystem"
     sys_version = ""
@@ -4735,6 +4769,8 @@ class Manipulador(BaseHTTPRequestHandler):
             "exemplo": CONF_PADRAO,
             "raiz": RAIZ,
             "chaves": esquema,
+            # Para o item "Créditos" do menu — ver `_repositorio_no_ar`.
+            "repositorio": _repositorio_no_ar(),
             # Quais combinações de FLAVOR × ACCENT existem de verdade: a
             # página avisa ANTES de ela salvar uma que o instalador recusa.
             "capturas": _capturas_no_disco(),
