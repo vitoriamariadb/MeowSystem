@@ -1895,6 +1895,67 @@ button.lado-previa:focus-visible {
  * borda em volta de uma capa 600×900 só rouba os pixels dela. */
 /* A LINHA DE UMA DECISÃO EXECUTADA. Discreta de propósito: ela não é conteúdo,
    é o resto de uma escolha, e a única coisa que se faz com ela é tirá-la. */
+/* O PAR DE DESENHOS QUE É O CONTROLE — 07/09/2026
+   Pedido dela: "selecionamos o antes ou o depois com bordas indicando se
+   tratarem de botões". A borda é o que diferencia um desenho que se olha de um
+   desenho que se aperta, e aqui os DOIS se apertam: cada um é uma escolha que
+   ela ainda não fez. (No par grudado no alto da seção só um é botão, porque lá
+   o outro já é a escolha em vigor e não leva a lugar nenhum.)
+
+   Duas colunas iguais, sempre: os dois lados têm de MEDIR igual, senão a
+   diferença de tamanho compete com a diferença que o par existe para mostrar. */
+.par-botoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+  align-items: stretch;
+}
+.par-botoes .linha-inteira { grid-column: 1 / -1; justify-self: start; }
+button.lado-botao {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  width: 100%;
+  padding: .4rem .45rem .35rem;
+  font: inherit;
+  color: var(--subtext1);
+  background: transparent;
+  border: 1px solid var(--surface1);
+  border-radius: var(--r-3);
+  cursor: pointer;
+  transition: border-color .12s, background-color .12s, color .12s;
+}
+button.lado-botao:hover { border-color: var(--overlay0); color: var(--text); }
+/* O ESCOLHIDO GANHA A BORDA DE ACENTO E O FUNDO, e não só a cor da letra: num
+   par de desenhos a letra é a menor parte do botão, e quem olha de relance está
+   olhando a figura. */
+button.lado-botao[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+}
+button.lado-botao:focus-visible { outline-offset: 1px; }
+.par-botoes .desenho-botao { display: block; }
+.par-botoes .desenho-botao svg { display: block; width: 100%; height: auto; max-height: 96px; }
+/* O mock da FORMA é HTML, e dentro do botão ele não pode encolher a ponto de os
+   quadradinhos sumirem — 82px é a altura em que os três segmentos ainda se
+   distinguem, medida na tela dela. */
+.par-botoes .desenho-botao .mock { min-height: 0; padding: 6px; gap: 4px; }
+.par-botoes .desenho-botao .mock .rodape { height: 14px; }
+.par-botoes .rotulo-lado { font-size: var(--t-legenda); text-align: left; }
+
+/* O MEDIDOR: fora da tela, mas COM LAYOUT. `display: none` daria caixa zero em
+   tudo, e é a caixa que se quer medir. Ele existe para a página perguntar ao
+   navegador "quanto desta figura muda quando esta chave vira?" — ver
+   `retratoDoDesenho`. Nunca tem conteúdo entre duas medições. */
+#medidor-de-desenho {
+  position: absolute;
+  left: -99999px;
+  top: 0;
+  pointer-events: none;
+}
+
 /* UM SIM/NÃO POR ÁREA. O nome à esquerda e o par à direita, uma linha por área:
    é a mesma leitura de uma tabela de duas colunas, que é o que a chave é. */
 .por-area { display: flex; flex-direction: column; gap: .35rem; }
