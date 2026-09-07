@@ -34,7 +34,7 @@ acontecer: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # ou o ícone MeowSystem no lançador
 ```
 
-106 ajustes e 44 ações em treze páginas — uma por assunto, e cada uma com tudo o que existe
+108 ajustes e 45 ações em treze páginas — uma por assunto, e cada uma com tudo o que existe
 sobre ele. O menu tem dois blocos: **Tópicos**, que é a sua tela, e **Sistema**, que é o que a
 máquina faz sozinha.
 
@@ -56,7 +56,7 @@ O desenho nunca é captura de tela: cada um diz, na legenda, quais números fora
 
 <img src="docs/capturas/painel-areas.png" width="920" alt="A aba Áreas de trabalho, com o desenho da barra e das duas telas acima dos três ajustes">
 
-- **Papel de parede** — a coleção de 46 imagens, os 9 ajustes e as 12 ações, na mesma tela.
+- **Papel de parede** — a coleção de 46 imagens, os 9 ajustes e as 13 ações, na mesma tela.
   Soltar um arquivo aqui diz na hora se ele entrou no grupo de dia ou no de noite, e por quê —
   e dá para discordar: **Dia** e **Noite** mandam a imagem para o lado que você quiser, e
   **Medir** devolve a decisão à luminância.

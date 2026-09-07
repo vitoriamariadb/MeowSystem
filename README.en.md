@@ -34,7 +34,7 @@ happen: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # or the MeowSystem icon in the launcher
 ```
 
-106 settings and 44 actions across thirteen pages — one per subject, each holding everything
+108 settings and 45 actions across thirteen pages — one per subject, each holding everything
 there is about it. The menu has two blocks: **Tópicos** (topics), which is your screen, and
 **Sistema** (system), which is what the machine does on its own.
 
@@ -58,7 +58,7 @@ drawn.
 
 <img src="docs/capturas/painel-areas.png" width="920" alt="The workspaces tab, with a drawing of the bar and the two screens above its three settings">
 
-- **Papel de parede** (wallpaper) — the 46-image collection, its 9 settings and 12 actions, on one
+- **Papel de parede** (wallpaper) — the 46-image collection, its 9 settings and 13 actions, on one
   screen. Dropping a file here says right away whether it landed in the day or the night group,
   and why — and you can disagree: **Dia** and **Noite** send an image to whichever side you want,
   and **Medir** hands the decision back to the luminance.
