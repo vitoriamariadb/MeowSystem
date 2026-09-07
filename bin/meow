@@ -1684,7 +1684,112 @@ cmd_icones() {
         notificar "MeowSystem" "Ícones escolhidos por você aplicados."
       fi
       return "$rc" ;;
-    *) meow_erro "uso: meow icones [estado|reconstruir|importar <json>]"; return "$MEOW_ERRO" ;;
+    adicionar|remover)
+      # UM TEMA DE ÍCONES DE FORA, PELO PAINEL — 06/09/2026
+      #   Pedido dela: "na pasta dos ícones não aparece a opção de adicionar
+      #   pasta nova de ícones". Ela podia trocar a chave `ICONES_BASE` para
+      #   qualquer tema, mas não tinha como pôr um tema novo na máquina sem
+      #   sair do painel e abrir um gerenciador de arquivos — o que é
+      #   exatamente o tipo de ida e volta que este projeto existe para acabar.
+      #
+      #   Passa pelo `meow` e não pelo caminho do script porque o painel só
+      #   chama comando da CLI: a página nunca move nem apaga arquivo por conta
+      #   própria, e um botão que fosse a única porta para uma capacidade
+      #   deixaria quem usa o terminal sem ela.
+      local sub="$1"; shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow icones $sub <pasta-ou-zip>"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/construir_icones.sh" "$sub" "$1"; return $? ;;
+    *) meow_erro "uso: meow icones [estado|reconstruir|importar <json>|adicionar <pasta-ou-zip>|remover <nome>]"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_areas() {
+  # AS ÁREAS DE TRABALHO SÃO BOTÃO, NÃO MANUTENÇÃO — 07/09/2026
+  #   Pedido dela: "não temos a seção pra setar os dois ambientes de trabalho
+  #   tipo o Meow e o OS". Por isso `areas` NÃO entra no `VERIFICAVEIS`: com
+  #   `AREAS_NOMES="Meow, OS"` de fábrica, um `doctor --consertar` numa máquina
+  #   de outra pessoa renomearia as áreas dela e criaria uma segunda. Renomear
+  #   área de trabalho é decisão de quem usa, e decisão de quem usa não se toma
+  #   por timer.
+  carregar_conf || return "$MEOW_ERRO"
+  case "${1:-estado}" in
+    estado|conferir) "$RAIZ/scripts/areas.sh" "${1:-estado}"; return $? ;;
+    aplicar)
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/areas.sh" aplicar; return $? ;;
+    reverter)
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/areas.sh" reverter; return $? ;;
+    desalfinetar)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow areas desalfinetar <nome>"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/areas.sh" desalfinetar "$1"; return $? ;;
+    *) meow_erro "uso: meow areas [estado|conferir|aplicar|reverter|desalfinetar <nome>]"
+       return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_cursor() {
+  # O PONTEIRO GANHOU LISTA E PORTA DE ENTRADA — 06/09/2026
+  #   Ela mediu pela tela: "Temas do Ponteiro só aparece um e não aparece botão
+  #   pra adicionar tema". A primeira metade não era defeito — há um só
+  #   instalado que a chave `CURSOR` alcança, porque a regra exige o sufixo
+  #   `-cursors` no nome da pasta. A segunda era: não existia porta nenhuma.
+  #
+  #   `listar` imprime o VALOR que a chave aceita, sem o sufixo. Imprimir o nome
+  #   da pasta faria a página gravar `…-cursors` na chave, e o `aplicar` sairia
+  #   procurando um pacote que não existe — o mesmo defeito que o painel já
+  #   consertou uma vez, em 01/09.
+  carregar_conf || return "$MEOW_ERRO"
+  local acao="${1:-estado}"
+  case "$acao" in
+    estado|conferir) "$RAIZ/scripts/cursor.sh" conferir; return $? ;;
+    aplicar)
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/cursor.sh" aplicar; return $? ;;
+    listar) "$RAIZ/scripts/cursor.sh" listar; return $? ;;
+    adicionar)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow cursor adicionar <url-ou-arquivo>"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/cursor.sh" adicionar "$1"; return $? ;;
+    remover)
+      shift
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/cursor.sh" remover ${1:+"$1"}; return $? ;;
+    *) meow_erro "uso: meow cursor [estado|aplicar|listar|adicionar <url-ou-arquivo>|remover [tema]]"
+       return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_fontes() {
+  # INSTALAR UMA FONTE SEM SAIR DO PAINEL — 06/09/2026
+  #   Pedido dela: "não aparece a opção pra adicionar novas fontes ao
+  #   computador (Forma de Instalar as fontes)".
+  #
+  #   A armadilha que o `instalar_fontes.sh` documenta e que este comando herda:
+  #   copiar a fonte só para `~/.local/share/fonts` a faria sumir na próxima
+  #   passagem do instalador, calada, porque aquele script apaga do destino tudo
+  #   que não esteja no acervo do projeto. O `adicionar` escreve nos dois — e é
+  #   por isso que ele é um comando, e não um arrastar de arquivo.
+  carregar_conf || return "$MEOW_ERRO"
+  local acao="${1:-estado}"
+  case "$acao" in
+    estado|conferir) "$RAIZ/scripts/instalar_fontes.sh" --conferir; return $? ;;
+    aplicar)
+      # O script aplica quando é chamado SEM argumento — o `--conferir` é que é
+      # a exceção. Um `aplicar` literal cairia no "argumento desconhecido", e o
+      # botão do painel morreria com uma mensagem de uso.
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/instalar_fontes.sh"; return $? ;;
+    adicionar)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow fontes adicionar <arquivo.zip|.ttf|.otf>"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/instalar_fontes.sh" adicionar "$1"; return $? ;;
+    *) meow_erro "uso: meow fontes [estado|aplicar|adicionar <arquivo>]"; return "$MEOW_ERRO" ;;
   esac
 }
 
@@ -1692,9 +1797,17 @@ cmd_wallpaper() {
   carregar_conf || return "$MEOW_ERRO"
   local acao="${1:-estado}"
   case "$acao" in
-    estado|aplicar|adicionar|banir|desbanir|semear|permitir|proximo|anterior|carrossel)
+    estado|aplicar|adicionar|banir|desbanir|semear|permitir|proximo|anterior|carrossel|lado)
       # Só passa adiante o que o scripts/wallpaper.sh tem de verdade. Os
       # comandos `fixar`, `favoritar` e `recolorir` do contrato NÃO existem ainda.
+      #
+      # O ENCAMINHAMENTO PASSA `"$@"`, E NÃO UM ARGUMENTO SÓ — 06/09/2026
+      #   Era `${1:+"$1"}`, e funcionou enquanto todo subcomando daqui tinha no
+      #   máximo um argumento. O `lado <imagem> dia|noite|auto` tem dois, e o
+      #   segundo — justamente o LADO, que é a decisão inteira — seria comido
+      #   em silêncio: o script receberia só o nome da imagem e responderia com
+      #   a mensagem de uso. Um defeito mudo, e do tipo que só aparece no
+      #   primeiro subcomando de dois argumentos.
       #
       # O `proximo` E O `anterior` ENTRARAM EM 01/09/2026, e o parágrafo que
       # estava aqui — "`proximo` não é implementável na rotação nativa" — ficou
@@ -1726,7 +1839,7 @@ cmd_wallpaper() {
       # mesmo motivo dele: ele copia para `ativos/`, reescreve o `BANIDOS.txt` e
       # chama o `cmd_aplicar`, que escreve a configuração do cosmic-bg — o mesmo
       # arquivo que o timer de 15 min reescreve.
-      case "$acao" in aplicar|adicionar|banir|desbanir|semear|permitir|proximo|anterior|carrossel) meow_travar || return "$MEOW_ERRO" ;; esac
+      case "$acao" in aplicar|adicionar|banir|desbanir|semear|permitir|proximo|anterior|carrossel|lado) meow_travar || return "$MEOW_ERRO" ;; esac
       shift || true
       WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
         WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
@@ -1734,7 +1847,7 @@ cmd_wallpaper() {
         WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
         WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
         WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
-        "$RAIZ/scripts/wallpaper.sh" "$acao" ${1:+"$1"}
+        "$RAIZ/scripts/wallpaper.sh" "$acao" "$@"
       return $? ;;
     fixar|favoritar|recolorir|intervalo|ordem)
       meow_erro "'$acao' ainda não existe"
@@ -2625,6 +2738,9 @@ despachar() {
     tema)             shift; cmd_tema "$@" ;;
     logo)             shift; cmd_logo "$@" ;;
     icones|ícones)    shift; cmd_icones "$@" ;;
+    cursor|ponteiro)  shift; cmd_cursor "$@" ;;
+    areas|áreas|area) shift; cmd_areas "$@" ;;
+    fontes|fonte)     shift; cmd_fontes "$@" ;;
     wallpaper|parede) shift; cmd_wallpaper "$@" ;;
     files-menu|menu-arquivos) shift
       carregar_conf || exit "$MEOW_ERRO"

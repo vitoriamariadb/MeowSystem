@@ -29,7 +29,51 @@
 
 <header class="topo">
   <div class="marca">
-    <img class="gato" src="/gato.svg" alt="" width="34" height="34">
+    <!-- A LOGO DO BANNER É A MARCA DO PRODUTO, NÃO UM GATO DELA — 06/09/2026.
+         Pedido dela, literal: "a logo do .desktop deve ser usada para ser a
+         logo oficial do banner do app ao invés da coquinha e do mimir".
+
+         O desenho é o mesmo que o `.desktop` pede por nome
+         (`Icon=com.meowsystem.Painel`, ver `scripts/atalho.sh`): o gato de
+         traço, viewBox 0 0 48 48, com o stroke no accent do sabor. Ele nasce
+         em `scripts/gerar_icones_autorais.py`, mora em
+         `assets/icones/autorais/meowsystem-painel-<sabor>.svg` e é instalado
+         no tema por `scripts/completar_icones.sh`. A partir daqui, o ícone da
+         janela na barra de tarefas e a marca no alto da página são o MESMO
+         desenho — que é a definição de marca de produto.
+
+         A COQUINHA E A MIMIR NÃO SAÍRAM DO PROJETO. `assets/gatos/` continua
+         sendo o acervo de fábrica da aba "Logo do sistema", e a chave `LOGO`
+         continua escolhendo qual deles veste o sistema. O que mudou é de quem
+         é a marca: o aplicativo deixou de se apresentar com um gato dela.
+
+         POR QUE `src="/logo.svg"`, E NÃO O `<svg>` COLADO AQUI DENTRO
+           Colar o desenho neste arquivo seria uma segunda cópia de uma coisa
+           DERIVADA — o `gerar_icones_autorais.py` reescreve os quatro sabores,
+           e a cópia colada aqui não seria reescrita junto: o banner ficaria
+           com a logo de ontem, em silêncio. É a mesma razão que mantém este
+           esqueleto vazio de nomes de chave, logo no cabeçalho do arquivo.
+           E apontar direto para o arquivo também não serve: o `src` teria de
+           trazer o caminho absoluto da máquina de quem instalou E o sabor
+           cravado, e os dois só se sabem em tempo de execução, lendo o
+           `meow.conf`.
+
+         A ROTA EXISTE — conferida em 06/09/2026 com o painel de pé:
+         `GET /logo.svg` devolve `200 image/svg+xml`. Ela vive em
+         `app/servidor.py`, irmã do `if caminho == "/gato.svg"`, resolve o sabor
+         pelo `FLAVOR`/`MODO` do meow.conf e substitui o `stroke` pela cor de
+         `--accent` já calculada — senão a marca seria a única coisa roxa numa
+         página pêssego, porque os quatro SVG autorais trazem o mauve cravado.
+
+         A CLASSE CONTINUA `gato` DE PROPÓSITO. Ela é o gancho de
+         `.marca .gato` no `estilo.css`, e o que essa regra carrega não é
+         enfeite: o `flex: 0 0 auto` é o que impede o banner de espremer a logo
+         até ela sumir quando a janela aperta. Renomear a classe é da frente
+         que escreve a folha de estilo, não desta.
+
+         O `alt` fica vazio porque "MeowSystem" está escrito ao lado, no `<h1>`:
+         um leitor de tela que anunciasse os dois leria o nome duas vezes. -->
+    <img class="gato" src="/logo.svg" alt="" width="34" height="34">
     <div>
       <h1>MeowSystem</h1>
       <p class="sub" id="resumo">carregando…</p>
@@ -46,11 +90,28 @@
 
   <!-- "Seco" é a palavra do projeto (MEOW_DRY_RUN, `meow_seco`, o modo seco
        dos scripts) e ela não diz nada a quem chega. O interruptor promete o
-       que faz: ensaiar. Uma palavra por conceito, e é esta em todo lugar. -->
-  <label class="seco" title="Mostra o que aconteceria. Nada é escrito no disco.">
-    <input type="checkbox" id="seco">
-    <span>Ensaiar sem gravar</span>
-  </label>
+       que faz: ensaiar. Uma palavra por conceito, e é esta em todo lugar.
+
+       DE CAIXA DE MARCAR A BOTÃO QUE FICA ACESO — 06/09/2026. Palavras dela:
+       "ele tá como box mas poderia ser um botão que fica ativo (cor amarela
+       fraca) algo assim". A regra não mudou, e é a que ela mesma escreveu:
+       "se ela tiver marcada cada executar faz isso, caso contrário ele executa
+       de fato" — só o controle mudou de forma. `aria-pressed` é o atributo que
+       diz "ligado" num botão de dois estados, e é o mesmo por onde o
+       `estilo.css` acende o amarelo em `.btn-ensaio[aria-pressed="true"]`.
+       De quebra o `<button>` é focável por natureza: antes o Tab só chegava
+       aqui por causa da caixa de marcar dentro da `<label>`.
+
+       O `app.js` JÁ ACOMPANHA — 06/09/2026. Ele leu `$("#seco").checked` em
+       seis lugares até esta rodada, o que num `<button>` é `undefined` (ou
+       seja, sempre falso). Hoje quem responde é o `ensaiando()`, que lê o
+       `aria-pressed` daqui; quem inverte o atributo e o guarda no
+       `sessionStorage` é um ouvinte de `click`, porque um `<button>` nunca
+       dispara `change`. Se algum dia este `aria-pressed` sair do HTML, é o
+       `ensaiando()` que para de funcionar — e ele para em silêncio, sempre
+       dizendo "não". -->
+  <button type="button" id="seco" class="btn btn-ensaio" aria-pressed="false"
+          title="Mostra o que aconteceria. Nada é escrito no disco.">Ensaiar sem gravar</button>
 
   <!-- LEVAR EMBORA E TRAZER DE VOLTA — pedido dela em 06/09/2026.
        As duas saídas do "Exportar" são coisas diferentes e por isso são duas
@@ -79,9 +140,15 @@
     </div>
   </details>
 
+  <!-- "Importar ajustes" virou "Importar" em 06/09/2026, pedido dela literal:
+       "aí temos Importar Ajustes, podemos deixar só importar". Ele fica colado
+       no "Exportar" e o par se explica sozinho — a segunda palavra era a
+       repetição do que o botão vizinho já diz. O QUE entra continua dito em
+       dois lugares que não custam espaço na barra: o `title`, e o seletor de
+       arquivo, que só aceita `.conf`. -->
   <label class="btn" id="rotulo-importar"
          title="Ler um arquivo exportado e trazer as escolhas para a tela">
-    Importar ajustes
+    Importar
     <input type="file" id="arquivo-importar" accept=".conf,text/plain" hidden>
   </label>
 
@@ -153,6 +220,30 @@
   </form>
 </dialog>
 
+<!-- UM DESENHO POR BLOCO — os dois arquivos de prévia, ANTES do app.js.
+
+     A ordem não é gosto: cada um deles faz
+     `window.MEOW_PREVIAS = Object.assign(window.MEOW_PREVIAS || {}, {…})`, e o
+     `app.js` lê esse mapa ao desenhar cada bloco. Carregados depois, os
+     desenhos existiriam no objeto mas a primeira pintura da página já teria
+     acontecido sem eles — e como só um clique redesenha, a tela abriria sem
+     nenhum desenho e ganharia todos ao primeiro toque. `<script>` sem `defer`
+     bloqueia e executa na ordem em que aparece, que é exatamente o que se quer
+     aqui.
+
+     São dois porque são duas frentes: `previas-tela.js` cobre o que se vê na
+     tela (cor, logo, ícones, terminal) e `previas-sistema.js` o que a máquina
+     faz (barra, papel de parede, noite, leitura, lançador, manutenção). O
+     `app.js` não sabe qual arquivo trouxe qual desenho, e não deve saber: ele
+     pergunta ao mapa pela chave "Seção :: BLOCO" e desenha o que vier.
+
+     SE UM DELES NÃO EXISTIR, A PÁGINA CONTINUA DE PÉ. Um `<script>` que dá 404
+     falha em silêncio, e o `app.js` lê `window.MEOW_PREVIAS || {}` — o bloco
+     sem desenho fica como sempre foi, sem erro no console e sem buraco na
+     tela. É o que permitiu esta linha entrar antes de os dois arquivos
+     estarem prontos. -->
+<script src="/previas-tela.js"></script>
+<script src="/previas-sistema.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

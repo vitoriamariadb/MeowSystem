@@ -4,6 +4,7 @@
 #
 #   ./instalar_fontes.sh            instala e aplica
 #   ./instalar_fontes.sh --conferir só diz se está divergente (não escreve)
+#   ./instalar_fontes.sh adicionar <arquivo>   instala uma fonte dela (.zip/.ttf/.otf)
 #   MEOW_DRY_RUN=1 ./instalar_fontes.sh   mostra o que faria
 #
 # ---------------------------------------------------------------------------
@@ -113,14 +114,18 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # no ramo que ESCREVE, com quem digitou jurando que só tinha conferido. MEDIDO
 # em 2026-08-04: `./instalar_fontes.sh --dry-run` regravou o monospace_font e
 # saiu 0. Erro de uso é erro de execução (2); dependência ausente é que é 3.
+ACAO=""
+ARQUIVO_NOVO=""
 case "${1:-}" in
   "") : ;;
   --conferir)
     # shellcheck disable=SC2034
     MEOW_SECO=1 ;;
+  adicionar)
+    ACAO="adicionar"; ARQUIVO_NOVO="${2:-}" ;;
   *)
     meow_erro "argumento desconhecido: $1"
-    meow_info "  uso: instalar_fontes.sh [--conferir]"
+    meow_info "  uso: instalar_fontes.sh [--conferir | adicionar <arquivo>]"
     meow_info "  para simular sem escrever: MEOW_DRY_RUN=1 instalar_fontes.sh"
     exit "$MEOW_ERRO" ;;
 esac
@@ -169,8 +174,191 @@ TAR="$CACHE/$NERD_ATIVO"
 FONTES_BASE="$HOME/.local/share/fonts"
 DESTINO="$FONTES_BASE/MeowSystem"
 
+# O acervo das fontes DELA e o destino dele. Subiram para cá em 06/09/2026 porque
+# o `adicionar` precisa dos dois antes de o corpo do script começar; o porquê de
+# serem um subdiretório próprio continua escrito por extenso na seção 2c-bis.
+ACERVO_LOCAL="$RAIZ/assets/fontes/locais"
+DESTINO_LOCAL="$DESTINO/locais"
+
 TK="$HOME/.config/cosmic/com.system76.CosmicTk/v1"
 TERM_DIR="$HOME/.config/cosmic/com.system76.CosmicTerm/v1"
+
+# ---------------------------------------------------------------------------
+# `adicionar <arquivo>` — a fonte que ela escolheu, sem abrir terminal
+# ---------------------------------------------------------------------------
+# A QUEIXA: o painel tem a lista de fontes e não tem por onde pôr uma nova. A
+# rota manual existe desde 27/08 (soltar o arquivo em `assets/fontes/locais/` e
+# rodar o instalador); o que faltava era um subcomando para a página chamar.
+#
+# ESTE SUBCOMANDO ESCREVE NOS DOIS LUGARES, E O SEGUNDO SOZINHO SERIA UMA
+# ARMADILHA — É A MEDIÇÃO QUE MAIS IMPORTA AQUI
+#   O caminho óbvio ("copia para ~/.local/share/fonts e roda fc-cache") funciona
+#   por exatamente uma execução. A seção 2c-bis, logo abaixo, remove de
+#   `$DESTINO/locais` TODO arquivo que não esteja em `assets/fontes/locais/` —
+#   é a limpeza de órfão que só é segura porque aquele diretório tem dono único.
+#   Ou seja: uma fonte instalada direto no destino é apagada pelo `install.sh`
+#   seguinte, ou pelo `meow doctor` das 5h, sem uma linha de erro. A fonte
+#   sumiria sozinha durante a noite.
+#
+#   Então a ordem é: primeiro o ACERVO (que é a interface e a memória), depois o
+#   destino (que é o efeito imediato). Com os dois escritos, a fonte vale agora e
+#   sobrevive à próxima passagem — e a idempotência do script continua sendo a
+#   comparação por conteúdo que já existia.
+#
+# É ASSIM QUE ELE SE DESFAZ
+#   Tirar o arquivo de `assets/fontes/locais/` e rodar o instalador: a limpeza de
+#   órfão da 2c-bis o remove do disco e refaz o cache. Não há uma segunda lista
+#   para manter, e é por isso que o `adicionar` não inventa um `remover` próprio.
+#
+# AS FAMÍLIAS PINADAS NÃO SÃO TOCADAS
+#   Nada aqui escreve em `$DESTINO/*.ttf`, que é o território da lista de sha256
+#   da JetBrainsMono, nem chega perto do `Fira Sans` do pacote do sistema. Uma
+#   fonte dela cai sempre em `locais/`.
+#
+# O ARQUIVO É DE FORA, E É TRATADO COMO TAL
+#   Sem `eval`, sem `shell=True`: o caminho entra citado em todo comando, o zip é
+#   aberto num temporário (nunca no destino) e o que entra no disco é o
+#   `basename` — nunca o caminho que veio dentro do pacote. Espaço no nome é a
+#   NORMA aqui, não a exceção (`zrnic rg.otf`), então nada de peneira que troque
+#   espaço por traço; o que sai fora são os caracteres de controle, que
+#   quebrariam a leitura linha a linha da 2c-bis.
+_fonte_nome_seguro() {
+  local n; n="$(basename -- "$1" | tr -d '[:cntrl:]')"
+  n="${n#"${n%%[!.-]*}"}"      # ponto na frente é fonte que o fontconfig ignora
+  printf '%s' "$n"
+}
+
+# Põe UMA face no acervo e no destino. 0 = já estava idêntica · 1 = instalada ·
+# 2 = erro. Quem soma isso é o chamador.
+_fonte_instalar_face() {
+  local origem="$1" nome alvo_acervo alvo_destino tmp
+  nome="$(_fonte_nome_seguro "$origem")"
+  [ -n "$nome" ] || { meow_erro "nome de arquivo vazio"; return "$MEOW_ERRO"; }
+  alvo_acervo="$ACERVO_LOCAL/$nome"
+  alvo_destino="$DESTINO_LOCAL/$nome"
+
+  if [ -f "$alvo_acervo" ] && cmp -s -- "$origem" "$alvo_acervo" \
+     && [ -f "$alvo_destino" ] && cmp -s -- "$origem" "$alvo_destino"; then
+    meow_ok "'$nome' já está instalada"
+    return "$MEOW_OK"
+  fi
+
+  if meow_seco; then
+    meow_muda "instalaria '$nome' em $ACERVO_LOCAL e em $DESTINO_LOCAL"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  meow_destino_permitido "$DESTINO_LOCAL" || return "$MEOW_ERRO"
+  mkdir -p "$ACERVO_LOCAL" "$DESTINO_LOCAL" || {
+    meow_erro "não consegui criar o acervo ou o destino"; return "$MEOW_ERRO"; }
+
+  # Temporário no MESMO diretório dos dois lados: `mv` entre sistemas de
+  # arquivos não é atômico (TRAVA 2 do lib/comum.sh — o repo está em /mnt/Apate e
+  # o destino em /home), e um corte no meio deixaria meia fonte com o nome final.
+  local d
+  for d in "$ACERVO_LOCAL" "$DESTINO_LOCAL"; do
+    tmp="$(mktemp -p "$d" ".meow-fonte.XXXXXX")" || return "$MEOW_ERRO"
+    if ! cp -- "$origem" "$tmp"; then
+      rm -f "$tmp"; meow_erro "não consegui copiar '$nome'"; return "$MEOW_ERRO"
+    fi
+    chmod 644 "$tmp"
+    if ! mv -f "$tmp" "$d/$nome"; then
+      rm -f "$tmp"; meow_erro "falhou instalar '$nome' em $d"; return "$MEOW_ERRO"
+    fi
+  done
+  meow_muda "'$nome' instalada"
+  return "$MEOW_DIVERGENTE"
+}
+
+cmd_adicionar() {
+  local origem="${1:-}"
+  if [ -z "$origem" ]; then
+    meow_erro "uso: instalar_fontes.sh adicionar <arquivo.zip|.ttf|.otf>"
+    return "$MEOW_ERRO"
+  fi
+  [ -f "$origem" ] || { meow_erro "não achei '$origem'"; return "$MEOW_ERRO"; }
+
+  # Dependências do SUBCOMANDO, e não as do script inteiro. Exigir curl, tar e
+  # xz para instalar um `.otf` que já está no disco dela devolveria 3 ("falta
+  # dependência") por uma dependência que este caminho não usa — e 3 é o código
+  # que faz o instalador pular a etapa em silêncio.
+  local faltam_add=()
+  meow_tem cmp      || faltam_add+=("cmp")
+  meow_tem fc-cache || faltam_add+=("fc-cache")
+  case "$origem" in *.zip|*.ZIP) meow_tem unzip || faltam_add+=("unzip") ;; esac
+  if [ ${#faltam_add[@]} -gt 0 ]; then
+    meow_erro "faltam ferramentas: ${faltam_add[*]}"
+    meow_info "  sudo apt-get install diffutils fontconfig unzip"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  local rc="$MEOW_OK" postas=0 achadas=0 e
+  case "$origem" in
+    *.ttf|*.TTF|*.otf|*.OTF)
+      achadas=1
+      _fonte_instalar_face "$origem"; e=$?
+      [ "$e" -ge 2 ] && return "$e"
+      [ "$e" = "1" ] && { rc="$MEOW_DIVERGENTE"; postas=1; }
+      ;;
+    *.zip|*.ZIP)
+      # No seco não se extrai: extrair é escrever, e o `tests/seco.sh` roda num
+      # HOME de brinquedo justamente para pegar quem escreve "só num
+      # temporário". A resposta honesta aqui é "instalaria as fontes deste zip".
+      if meow_seco; then
+        meow_muda "abriria '$origem' e instalaria as fontes dele em $DESTINO_LOCAL"
+        return "$MEOW_DIVERGENTE"
+      fi
+      local tmp
+      tmp="$(mktemp -d -p "${TMPDIR:-/tmp}" ".meow-fonte-zip.XXXXXX")" || return "$MEOW_ERRO"
+      if ! unzip -q -o -- "$origem" -d "$tmp" 2>/dev/null; then
+        rm -rf "$tmp"; meow_erro "o zip veio corrompido — nada instalado"; return "$MEOW_ERRO"
+      fi
+      local arq
+      while IFS= read -r -d '' arq; do
+        achadas=$((achadas + 1))
+        _fonte_instalar_face "$arq"; e=$?
+        if [ "$e" -ge 2 ]; then rm -rf "$tmp"; return "$e"; fi
+        [ "$e" = "1" ] && { rc="$MEOW_DIVERGENTE"; postas=$((postas + 1)); }
+      done < <(find "$tmp" -type f \( -iname '*.ttf' -o -iname '*.otf' \) -print0 2>/dev/null)
+      rm -rf "$tmp"
+      ;;
+    *)
+      meow_erro "só sei instalar .zip, .ttf ou .otf — '$origem' não é nenhum deles"
+      return "$MEOW_ERRO" ;;
+  esac
+
+  # Pacote sem uma face dentro não é "já estava assim", é o arquivo errado — e
+  # dizer 0 aqui faria a página mostrar sucesso para um clique que não fez nada.
+  if [ "$achadas" = "0" ]; then
+    meow_erro "não achei nenhum .ttf/.otf dentro de '$origem'"
+    return "$MEOW_ERRO"
+  fi
+
+  [ "$rc" = "$MEOW_OK" ] && return "$MEOW_OK"
+
+  # O `fc-cache` FICA DENTRO DA GUARDA DO SECO, e isto quase escapou: ele
+  # reconstrói `~/.cache/fontconfig`, ou seja, ensaiar escreveria no disco. É a
+  # mesma classe do vazamento que o `meow_registrar` do lib/comum.sh já teve de
+  # tapar — "não escreve nada" costuma ser lido como "não escreve CONFIGURAÇÃO",
+  # e o cache não é configuração até a hora em que é.
+  #
+  # Fora do seco ele só roda porque algo mudou no disco — a mesma regra da seção
+  # 2d, e pelo mesmo motivo: `fc-cache -f` custa segundos.
+  if meow_seco; then
+    return "$MEOW_DIVERGENTE"
+  fi
+  if ! fc-cache -f >/dev/null 2>&1; then
+    meow_aviso "o fc-cache reclamou — a fonte está no lugar, mas confira 'fc-list'"
+  fi
+  meow_registrar "instalar_fontes.sh adicionar '$origem' ($postas face(s))"
+  meow_info "$postas face(s) instalada(s) — o acervo é $ACERVO_LOCAL"
+  return "$MEOW_DIVERGENTE"
+}
+
+if [ "$ACAO" = "adicionar" ]; then
+  cmd_adicionar "$ARQUIVO_NOVO"
+  exit $?
+fi
 
 mudou=0
 
@@ -396,8 +584,9 @@ fi
 #   O arquivo que ela baixou se chama `zrnic rg.otf`. Fonte de distribuidora vem
 #   assim com frequência, então todo caminho abaixo é citado — e o laço lê por
 #   `find -print0`, não por glob solto.
-ACERVO_LOCAL="$RAIZ/assets/fontes/locais"
-DESTINO_LOCAL="$DESTINO/locais"
+#
+# (`ACERVO_LOCAL` e `DESTINO_LOCAL` são declarados lá em cima, junto do
+#  `$DESTINO`: o subcomando `adicionar` precisa deles antes daqui.)
 
 if [ -d "$ACERVO_LOCAL" ]; then
   meow_destino_permitido "$DESTINO_LOCAL" || exit "$MEOW_ERRO"

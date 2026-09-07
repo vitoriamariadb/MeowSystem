@@ -32,7 +32,21 @@
 #   "Por quê" de cada cartão. Nenhuma das duas marcas o substitui.
 # ---------------------------------------------------------------------------
 
-# --- Cor e tema -------------------------------------------------------------
+# --- Cor e tela -------------------------------------------------------------
+
+# ESTA SEÇÃO ERA DUAS, E AS DUAS ERAM AS MENORES DO ARQUIVO — 06/09/2026
+#   `Cor e tema` tinha 3 chaves e `Janelas e tela` tinha 5 — as duas menores
+#   das dez seções, num arquivo cuja maior tem 30. Como o painel deriva UMA ABA
+#   POR SEÇÃO, isso eram duas abas para oito controles, e a segunda nascia
+#   entre `Barra e dock` e `Papel de parede`, três seções longe da cor.
+#   A pergunta que as oito respondem é uma só: como a tela se parece. Qual
+#   Catppuccin, claro ou escuro, o lado a lado, o tamanho de tudo e o ponteiro.
+#
+#   AS CINCO DE BAIXO VIERAM INTEIRAS, do lugar onde estavam. Nenhuma linha de
+#   chave mudou um byte, e a `CURSOR_VERSAO` veio COLADA na `CURSOR` — é a
+#   ausência de linha em branco entre as duas que faz a de baixo herdar o
+#   comentário da de cima. São 29 chaves deste arquivo que vivem assim; mover
+#   uma sem a irmã apaga a explicação das duas sem nada acusar.
 
 # @ Variante do Catppuccin
 # > Escuro em três intensidades, ou claro. Só valem as combinações que já têm captura pronta.
@@ -81,7 +95,209 @@ MODO="escuro"
 #   `meow doctor --consertar` para regerar o .ron, importe uma vez pela GUI e
 #   `meow tema capturar <flavor>-<accent>`.
 
-# --- O gato -----------------------------------------------------------------
+# @ Janelas lado a lado
+# > Cada janela nova divide o espaço da que estava em foco.
+# AS JANELAS LADO A LADO (o "fibonacci")
+# Em 25/08/2026 ela pediu o layout dwindle do Hyprland — cada janela nova parte
+# ao meio o espaço da anterior, formando a espiral. O cosmic-comp JÁ FAZ ISSO,
+# sem patch: é BSP binário, divide 50/50 (`tiling/mod.rs:2898` e :177-190) e
+# escolhe a orientação pelo lado mais longo da janela focada (:585-591). Isso é
+# `dwindle` + `force_split = 2`, e `force_split` não existe aqui nem faz falta.
+#
+# VAZIO = NÃO TOCA, porque isto tem atalho de teclado: `Super+Y` alterna o lado
+# a lado, `Super+O` vira a divisão de um grupo, `Super+G` solta uma janela. Se
+# ela mudar pelo atalho e a chave estiver preenchida, o doctor devolve o valor
+# daqui às 5h — o `conferir` avisa antes de isso virar mistério.
+#
+# O ESCOPO NÃO É DETALHE, É A DIFERENÇA ENTRE FUNCIONAR E NÃO FUNCIONAR:
+#   global     liga em todo workspace, inclusive nos que já existem. Medido:
+#              186.699 pixels mudaram na tela, na hora, sem reiniciar nada.
+#   workspace  cada workspace guarda o seu estado, e a chave só vale para
+#              workspace NOVO. Ligar com este escopo muda ZERO pixel na tela —
+#              `apply_tile_change` (shell/mod.rs:1485) só percorre os workspaces
+#              existentes dentro de `if matches!(.., TileBehavior::Global)`.
+#              Não é bug e não dá erro: é o que a palavra "PerWorkspace" quer
+#              dizer. Foi a armadilha que fez "Super+Y não faz nada" em 25/08.
+#
+# E o motivo mais simples de "apertei e nada aconteceu" continua valendo para os
+# dois escopos: COM UMA JANELA SÓ na tela, lado a lado é idêntico a maximizado.
+JANELAS_TILING="sim"              # sim | nao | vazio (vazio = não toca)
+
+# @ Onde o lado a lado vale
+# > Em todas as áreas de trabalho, ou só na atual.
+# O escopo do lado a lado: em quais workspaces ele passa a valer.
+#
+#   global     vale em todo workspace, inclusive nos que já existem — medido:
+#              186.699 pixels mudaram na tela, na hora, sem reiniciar nada.
+#   workspace  cada workspace guarda o seu, e a chave só vale para workspace
+#              NOVO. Ligar com este escopo muda ZERO pixel agora.
+#
+# NÃO HÁ TERCEIRO ESTADO AQUI, E O BLOCO DE CIMA FAZIA PARECER QUE HAVIA
+#   Esta linha vinha colada na `JANELAS_TILING`, sem comentário próprio, e
+#   herdava o bloco dela — que declara o terceiro estado ("não mexer") da OUTRA
+#   chave. A página lia aquilo como se valesse também aqui e desenhava um
+#   terceiro botão; o `janelas.sh:224` traduz linha em branco para `global`, ou
+#   seja, o contrário do que o botão prometia. Esta chave tem duas palavras e
+#   mais nada. Corrigido em 02/09/2026.
+JANELAS_TILING_ESCOPO="global"    # global | workspace
+
+# @ Tamanho de tudo na tela
+# > É também a única forma de aumentar a fonte no COSMIC.
+# O TAMANHO DE TUDO NA TELA — e a única forma de aumentar a FONTE no COSMIC.
+#
+# Não há chave de tamanho de fonte neste desktop: o texto da interface é 14 px
+# fixos no código da libcosmic, `interface_density` mexe só em espaçamento e
+# `COSMIC_SCALE` não alcança o painel nem a dock. Quem multiplica o texto (e
+# tudo o mais) é a escala da saída — Ajustes → Telas → Escala.
+#
+#   1.0 = 100% (padrão)   1.25 = 25% maior   1.5 = 50% maior
+#
+# Vazio = o MeowSystem não mexe na escala. Com valor, o `install.sh` aplica em
+# todas as telas ligadas — e SÓ o install: o `meow doctor` não toca nisto, para
+# que mudar pela GUI não seja desfeito no dia seguinte.
+#
+# Escala fracionária faz o Xwayland (Steam, jogos antigos) sair levemente
+# borrado, porque o compositor reamostra. Em 1.0 isso não acontece.
+#
+# A LISTA ESTÁ AQUI PORQUE A PÁGINA E O WIZARD LEEM ESTA LINHA — 02/09/2026.
+# Sem ela a chave virava campo de texto livre e aceitava `gigante` calado; o
+# `escala.sh` então caía no `*)` e ninguém ligava o erro ao clique.
+# vazio | nitida | 1.0 | 1.25 | 1.5 | 2.0
+ESCALA_TELA=""
+
+# @ Tema do ponteiro
+# > O único elemento que atravessa a tela inteira o tempo todo.
+# O PONTEIRO — o único elemento que atravessa a tela inteira o tempo todo.
+# Vazio = não toca, como as VIDRO_OPACIDADE_* logo acima.
+#
+# ATENÇÃO AO NOME, PORQUE ELE MENTE SOBRE A COR. Nos flavors de ACCENT do
+# acervo (`-mauve`, `-blue`, …) o CORPO do cursor recebe o accent e o contorno
+# recebe a Base — o oposto do que o nome sugere. Medido em 25/08/2026,
+# decodificando o XCursor e tirando a luminância do pixel opaco mais frequente:
+#
+#     catppuccin-mocha-light    #CDD6F4    214   <- o Text do Mocha
+#     catppuccin-mocha-mauve    #CBA6F7    180
+#     catppuccin-frappe-mauve   #CA9EE6    173
+#     catppuccin-latte-mauve    #8839EF     87   <- ESCURO, some no campo escuro
+#     catppuccin-mocha-dark     #1E1E2E     31
+#     Pop (o de fábrica)        #FFFFFF    255
+#
+# Por isso o `latte-mauve`, escolhido em 25/08 sob a premissa de que "só o Latte
+# tem corpo claro", é justamente o pior sobre papel de parede escuro. E há um
+# segundo critério: um cursor `-mauve` é mauve o tempo todo, o que contraria a
+# regra da Sprint T ("mauve significa aceso"). O `mocha-light` é o único que
+# resolve os dois — claro e neutro.
+#
+# Para ver antes de escolher:  scripts/cursor.sh estado
+# O TAMANHO não mora aqui de propósito: 24 é o padrão dos dois lados, e gravá-lo
+# seria impor um valor onde não havia nenhum.
+CURSOR="catppuccin-mocha-light"
+# @ Versão do tema do ponteiro
+# > Vazio usa a última versão que o projeto testou.
+CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
+
+# --- Áreas de trabalho ------------------------------------------------------
+
+# AS DUAS ÁREAS DE TRABALHO, E POR QUE ELAS SÃO O ÚNICO ASSUNTO DESTE ARQUIVO
+#   QUE NÃO VALE NA HORA — 06/09/2026
+#
+#   Pedido dela, literal: "não temos a seção pra setar os dois ambientes de
+#   trabalho tipo o Meow e o OS". Havia duas áreas com nome nesta máquina e
+#   nenhuma porta no projeto para vê-las, renomeá-las ou reordená-las: a única
+#   forma era editar RON na mão.
+#
+#   O ALFINETE É O QUE SEGURA TUDO. Uma área de trabalho do COSMIC só tem NOME
+#   se estiver alfinetada; sem alfinete o cosmic-comp a destrói assim que ela
+#   esvazia, e o painel passa a mostrar a POSIÇÃO dela (o "3" seco). Por isso
+#   `meow areas aplicar` renomeia, reordena, liga o encaixe e ACRESCENTA, mas
+#   nunca TIRA. Tirar é um comando à parte, que pede confirmação e diz o que se
+#   perde: `MEOW_SIM=1 ./scripts/areas.sh desalfinetar <nome>`.
+#
+#   SÓ VALE NO PRÓXIMO INÍCIO DE SESSÃO. O cosmic-comp lê o
+#   `~/.config/cosmic/com.system76.CosmicComp/v1/pinned_workspaces` UMA vez, ao
+#   iniciar — medido duas vezes em 04/08/2026: escrita às 04:03, nome velho na
+#   tela 3s depois, nome novo só no boot das 10:26. Não há inotify neste
+#   caminho, ao contrário do tema. Mudar aqui e olhar a barra não mostra nada, e
+#   isso NÃO é defeito.
+#
+#   E ESTE ARQUIVO PODE TER OUTRO DONO NA SUA MÁQUINA. Aqui em casa o
+#   `pinned_workspaces` é do Ritual da Aurora (`docs/FRONTEIRA.md`), que repõe
+#   o nome dos alfinetes dele de hora em hora. O `areas.sh` mede isso antes de
+#   escrever: onde o nome é do vizinho ele NÃO grava, devolve 4 e diz qual
+#   arquivo mudar. Numa máquina sem esse vizinho, tudo é nosso.
+
+# @ Nomes das áreas de trabalho
+# > A primeira da lista é a primeira da barra. Trocar a ordem aqui troca a sua tela.
+# A ORDEM É O ASSUNTO INTEIRO, e não um detalhe de apresentação.
+#
+# No cosmic-comp (`src/shell/mod.rs`, `add_output`) as áreas alfinetadas são
+# criadas PRIMEIRO, na ordem deste arquivo, e só depois as dinâmicas entram.
+# Com duas áreas, inverter a lista aqui inverte a tela: alfinetar só a segunda
+# a empurraria para a posição 1, na frente da primeira. É por isso que "Meow"
+# vem antes de "OS" — é a única forma de a área dela ser a primeira.
+#
+# São DUAS de fábrica, e não três. Houve uma terceira ("III") entre 24 e
+# 25/08/2026, e ela saiu pela mão dela: "o III é pra sair mesmo, é pra mantermos
+# na tela só os dois basicamente". O `.bak-pre-iii-fora` que existe no disco ao
+# lado do arquivo é HISTÓRIA e não modelo.
+#
+# Um nome a mais nesta lista CRIA uma área nova, herdando o monitor de uma que
+# já existe. Um nome a MENOS é recusado: faltar um nome aqui apagaria uma área.
+# Não cabem aspas, contrabarra, parênteses nem `#` — os três primeiros quebram o
+# formato do arquivo do COSMIC e o `#` corta a linha deste arquivo aqui.
+AREAS_NOMES="Meow, OS"
+
+# @ Folga invisível no nome
+# > Quais áreas ganham um espaço fantasma dos dois lados, para o nome não encostar na borda.
+# O ESPAÇO-FIGURA (U+2007), E ELE É PEDIDO DELA — 30/08/2026
+#   Com a topbar na frente: "Pq não pode ficar Meow? Já tava assim antes e o
+#   nome precisa de mais espaço, adiciona um caracter fantasma pra ser um espaço
+#   invisível." Ela recusou encurtar o nome e recusou trocá-lo por um glifo — o
+#   problema é o desenho da pastilha, não a palavra.
+#
+#   O applet de áreas (`cosmic-applet-workspaces`, src/components/app.rs:190-205)
+#   desenha cada área como o TEXTO com um piso do tamanho de um quadrado da
+#   barra. Com "Meow" em negrito o texto empata com o piso e as letras encostam
+#   na borda do círculo.
+#
+#   U+2007 e não espaço comum: espaço comum morre em qualquer aparo, e o U+2007
+#   tem a largura de um dígito e não quebra linha. O cosmic-comp não apara nome
+#   de área — conferido no fonte 5c93094, não há um `.trim()` sequer no caminho
+#   do `create_workspace_from_pinned`.
+#
+#   Escreva aqui os nomes que levam a folga, como estão na chave de cima, sem os
+#   espaços. Vazio: nenhuma leva.
+AREAS_FOLGA="Meow"
+
+# @ Encaixe de janelas por área
+# > Uma resposta por área, na ordem de cima. Vazio deixa o lado a lado geral mandar em todas.
+# O ENCAIXE POR ÁREA — e ele tem um DONO CONCORRENTE dentro do próprio projeto.
+#
+# O `JANELAS_TILING` lá em cima (seção "Cor e tela") é o lado a lado GERAL, e o
+# `scripts/janelas.sh` o grava em TODAS as áreas de uma vez, numa varredura só.
+# O `meow doctor` chama aquele script todo dia. Ou seja: um valor POR ÁREA
+# escrito aqui seria achatado por ele na passagem seguinte, calado.
+#
+# Por isso o padrão é VAZIO, que quer dizer "não encosto no campo, quem manda é
+# o `JANELAS_TILING`". Preenchendo, esta chave passa a ser a dona por área — e o
+# `areas.sh` RECUSA (código 4) enquanto o `JANELAS_TILING` continuar preenchido
+# com uma resposta diferente, dizendo qual dos dois esvaziar. Dois donos da
+# mesma linha é o defeito que mais custou caro neste repositório.
+#
+# Uma resposta só vale para todas as áreas; uma lista separada por vírgula vale
+# área a área, na mesma ordem do `AREAS_NOMES`. As palavras são `sim` e `nao`.
+AREAS_ENCAIXE=""
+
+# --- Logo do sistema --------------------------------------------------------
+
+# O NOME DIZIA DE QUEM É O GATO, NÃO O QUE A SEÇÃO FAZ — 06/09/2026
+#   São 21 chaves aqui, e só QUATRO trazem o nome de um gato no valor de
+#   fábrica: `LOGO`, `LOGO_DIA`, `LOGO_NOITE` e `FASTFETCH_LOGO_GATO`. As
+#   outras dezessete não nomeiam gato nenhum: falam de horário, de tamanho, de
+#   alinhamento, de título e de quando recarregar a barra.
+#   A Coquinha e o Mimir continuam sendo o que vem de fábrica, e continuam
+#   sendo os gatos dela. O que muda é o título: quem chega a este arquivo sem
+#   ter os dois gatos lê `Logo do sistema` e sabe do que se trata.
 
 # --- NO DOCK ----------------------------------------------------------------
 
@@ -602,109 +818,6 @@ MIDIA_COR_ARTISTA="green"
 # dos próprios botões. O popup dele tem os três de qualquer jeito, sempre.
 MIDIA_CONTROLES="nao"
 
-# --- Janelas e tela ---------------------------------------------------------
-
-# @ Janelas lado a lado
-# > Cada janela nova divide o espaço da que estava em foco.
-# AS JANELAS LADO A LADO (o "fibonacci")
-# Em 25/08/2026 ela pediu o layout dwindle do Hyprland — cada janela nova parte
-# ao meio o espaço da anterior, formando a espiral. O cosmic-comp JÁ FAZ ISSO,
-# sem patch: é BSP binário, divide 50/50 (`tiling/mod.rs:2898` e :177-190) e
-# escolhe a orientação pelo lado mais longo da janela focada (:585-591). Isso é
-# `dwindle` + `force_split = 2`, e `force_split` não existe aqui nem faz falta.
-#
-# VAZIO = NÃO TOCA, porque isto tem atalho de teclado: `Super+Y` alterna o lado
-# a lado, `Super+O` vira a divisão de um grupo, `Super+G` solta uma janela. Se
-# ela mudar pelo atalho e a chave estiver preenchida, o doctor devolve o valor
-# daqui às 5h — o `conferir` avisa antes de isso virar mistério.
-#
-# O ESCOPO NÃO É DETALHE, É A DIFERENÇA ENTRE FUNCIONAR E NÃO FUNCIONAR:
-#   global     liga em todo workspace, inclusive nos que já existem. Medido:
-#              186.699 pixels mudaram na tela, na hora, sem reiniciar nada.
-#   workspace  cada workspace guarda o seu estado, e a chave só vale para
-#              workspace NOVO. Ligar com este escopo muda ZERO pixel na tela —
-#              `apply_tile_change` (shell/mod.rs:1485) só percorre os workspaces
-#              existentes dentro de `if matches!(.., TileBehavior::Global)`.
-#              Não é bug e não dá erro: é o que a palavra "PerWorkspace" quer
-#              dizer. Foi a armadilha que fez "Super+Y não faz nada" em 25/08.
-#
-# E o motivo mais simples de "apertei e nada aconteceu" continua valendo para os
-# dois escopos: COM UMA JANELA SÓ na tela, lado a lado é idêntico a maximizado.
-JANELAS_TILING="sim"              # sim | nao | vazio (vazio = não toca)
-
-# @ Onde o lado a lado vale
-# > Em todas as áreas de trabalho, ou só na atual.
-# O escopo do lado a lado: em quais workspaces ele passa a valer.
-#
-#   global     vale em todo workspace, inclusive nos que já existem — medido:
-#              186.699 pixels mudaram na tela, na hora, sem reiniciar nada.
-#   workspace  cada workspace guarda o seu, e a chave só vale para workspace
-#              NOVO. Ligar com este escopo muda ZERO pixel agora.
-#
-# NÃO HÁ TERCEIRO ESTADO AQUI, E O BLOCO DE CIMA FAZIA PARECER QUE HAVIA
-#   Esta linha vinha colada na `JANELAS_TILING`, sem comentário próprio, e
-#   herdava o bloco dela — que declara o terceiro estado ("não mexer") da OUTRA
-#   chave. A página lia aquilo como se valesse também aqui e desenhava um
-#   terceiro botão; o `janelas.sh:224` traduz linha em branco para `global`, ou
-#   seja, o contrário do que o botão prometia. Esta chave tem duas palavras e
-#   mais nada. Corrigido em 02/09/2026.
-JANELAS_TILING_ESCOPO="global"    # global | workspace
-
-# @ Tamanho de tudo na tela
-# > É também a única forma de aumentar a fonte no COSMIC.
-# O TAMANHO DE TUDO NA TELA — e a única forma de aumentar a FONTE no COSMIC.
-#
-# Não há chave de tamanho de fonte neste desktop: o texto da interface é 14 px
-# fixos no código da libcosmic, `interface_density` mexe só em espaçamento e
-# `COSMIC_SCALE` não alcança o painel nem a dock. Quem multiplica o texto (e
-# tudo o mais) é a escala da saída — Ajustes → Telas → Escala.
-#
-#   1.0 = 100% (padrão)   1.25 = 25% maior   1.5 = 50% maior
-#
-# Vazio = o MeowSystem não mexe na escala. Com valor, o `install.sh` aplica em
-# todas as telas ligadas — e SÓ o install: o `meow doctor` não toca nisto, para
-# que mudar pela GUI não seja desfeito no dia seguinte.
-#
-# Escala fracionária faz o Xwayland (Steam, jogos antigos) sair levemente
-# borrado, porque o compositor reamostra. Em 1.0 isso não acontece.
-#
-# A LISTA ESTÁ AQUI PORQUE A PÁGINA E O WIZARD LEEM ESTA LINHA — 02/09/2026.
-# Sem ela a chave virava campo de texto livre e aceitava `gigante` calado; o
-# `escala.sh` então caía no `*)` e ninguém ligava o erro ao clique.
-# vazio | nitida | 1.0 | 1.25 | 1.5 | 2.0
-ESCALA_TELA=""
-
-# @ Tema do ponteiro
-# > O único elemento que atravessa a tela inteira o tempo todo.
-# O PONTEIRO — o único elemento que atravessa a tela inteira o tempo todo.
-# Vazio = não toca, como as VIDRO_OPACIDADE_* logo acima.
-#
-# ATENÇÃO AO NOME, PORQUE ELE MENTE SOBRE A COR. Nos flavors de ACCENT do
-# acervo (`-mauve`, `-blue`, …) o CORPO do cursor recebe o accent e o contorno
-# recebe a Base — o oposto do que o nome sugere. Medido em 25/08/2026,
-# decodificando o XCursor e tirando a luminância do pixel opaco mais frequente:
-#
-#     catppuccin-mocha-light    #CDD6F4    214   <- o Text do Mocha
-#     catppuccin-mocha-mauve    #CBA6F7    180
-#     catppuccin-frappe-mauve   #CA9EE6    173
-#     catppuccin-latte-mauve    #8839EF     87   <- ESCURO, some no campo escuro
-#     catppuccin-mocha-dark     #1E1E2E     31
-#     Pop (o de fábrica)        #FFFFFF    255
-#
-# Por isso o `latte-mauve`, escolhido em 25/08 sob a premissa de que "só o Latte
-# tem corpo claro", é justamente o pior sobre papel de parede escuro. E há um
-# segundo critério: um cursor `-mauve` é mauve o tempo todo, o que contraria a
-# regra da Sprint T ("mauve significa aceso"). O `mocha-light` é o único que
-# resolve os dois — claro e neutro.
-#
-# Para ver antes de escolher:  scripts/cursor.sh estado
-# O TAMANHO não mora aqui de propósito: 24 é o padrão dos dois lados, e gravá-lo
-# seria impor um valor onde não havia nenhum.
-CURSOR="catppuccin-mocha-light"
-# @ Versão do tema do ponteiro
-# > Vazio usa a última versão que o projeto testou.
-CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
-
 # --- Papel de parede --------------------------------------------------------
 
 # @ Pasta do carrossel
@@ -872,6 +985,21 @@ WALLPAPER_NOITE_FIM="07:00"       # HH:MM — início == fim = noite o dia intei
 # igual ao LEITURA_TEXTURA, que é o mesmo tipo de número. Antes desta linha a
 # chave aceitava qualquer texto sem uma palavra na tela.
 WALLPAPER_LIMIAR_LUZ="0.37"       # 0.0 a 1.0 (0 = preto, 1 = branco)
+
+# --- Modo de leitura --------------------------------------------------------
+
+# SETE DAS TREZE CHAVES DE `Dia e noite` FALAVAM DE OUTRA COISA — 06/09/2026
+#   `Dia e noite` respondia duas perguntas ao mesmo tempo: QUANDO é noite (o
+#   gato, o carrossel de papel de parede) e O QUE a tela faz quando é. As sete
+#   `LEITURA_*` eram a maioria da seção — sete de treze — e o efeito delas é o
+#   único que o COMPOSITOR pinta: quem escreve `leitura_temperatura` e
+#   `leitura_textura` em `com.system76.CosmicComp/v1` é o `scripts/leitura.sh`,
+#   e mais ninguém. As outras seis só dizem QUANDO é noite, e quem as lê é o
+#   `wallpaper.sh` e o `lib/noite.sh`. Dono diferente, seção própria.
+#
+#   NADA MUDOU DE LUGAR NO ARQUIVO: as sete já estavam nesta ordem e neste
+#   ponto — o que entrou foi o cabeçalho acima. A janela da noite continua
+#   sendo UMA: `NOITE_INICIO`/`NOITE_FIM`, acima, mandam aqui também.
 
 # @ Ligar o modo de leitura no horário
 # > A tela esquenta e ganha textura de papel à noite, sem você tocar.
@@ -1116,7 +1244,7 @@ TERMINAL_CURSOR="accent"    # accent | port
 # sim | nao
 PROMPT_STARSHIP="sim"
 
-# --- O gato -----------------------------------------------------------------
+# --- Logo do sistema --------------------------------------------------------
 
 # --- NO TERMINAL ------------------------------------------------------------
 
@@ -1295,7 +1423,18 @@ FASTFETCH_LOGO_BLOCOS="auto"
 # Com "nao", o script volta a só imprimir o patch e sair 4.
 FASTFETCH_LOGO_CONF="sim"
 
-# --- Programas e jogos ------------------------------------------------------
+# --- Lançadores e jogos -----------------------------------------------------
+
+# `LANÇADORES` NOMEIA O QUE ESTAS CHAVES TOCAM: O `.desktop` — 06/09/2026
+#   `LANCADOR_SISTEMA` esconde e encurta os de /usr/share/applications;
+#   `AUTOSTART_BLOQUEADOS` impede que os de ~/.config/autostart subam no login.
+#   As outras duas — `APPS_ATIVOS` e `SPOTIFY_MARKETPLACE` — vestem o programa
+#   em si, e ficam aqui porque é nesta aba que se procura por elas.
+#
+#   E `jogos` no título nunca foi chave deste arquivo: medido em 06/09/2026, o
+#   `scripts/jogos_steam.sh` não lê UMA linha daqui — ele lê o mapa
+#   `assets/icones/jogos-fora.map` e a pasta `steamapps/`. Os jogos chegam à
+#   aba pelas fichas que o painel serve, não por uma chave.
 
 # @ Programas que o MeowSystem veste
 # > Um por ficha. Só os que estiverem instalados são tocados.

@@ -35,6 +35,33 @@ if (location.search) {
 
 const $ = (sel, raiz = document) => raiz.querySelector(sel);
 
+/* ===========================================================================
+ * O ENSAIO É UM BOTÃO ACESO, E NÃO UMA CAIXA DE MARCAR — 06/09/2026
+ * ===========================================================================
+ * Palavras dela: *"ele tá como box mas poderia ser um botão que fica ativo (cor
+ * amarela fraca) algo assim"*. A REGRA não mudou, e é a que ela mesma escreveu:
+ * *"uma box pra marcar se quero ensaiar sem gravar. Se ela tiver marcada, cada
+ * executar faz isso. Caso contrário ele executa de fato."* — só o controle
+ * mudou de forma.
+ *
+ * POR QUE ISTO É UMA FUNÇÃO, E NÃO UM `.checked` TROCADO EM SEIS LUGARES
+ *   A conferência mediu NOVE pontos neste arquivo, não seis: seis leituras, uma
+ *   ESCRITA (`$("#seco").checked = true`, que restaurava do `sessionStorage`) e
+ *   um `addEventListener("change", …)` com uma leitura dentro. E num `<button>`
+ *   as três últimas são veneno silencioso: `.checked` é propriedade morta
+ *   (escrever nela não pinta nada, ler devolve `undefined`) e `change` NUNCA
+ *   dispara. Trocar só as seis leituras deixaria o botão acendendo na tela e
+ *   matando, sem uma linha de erro, o "o seco sobrevive ao F5" — que dois
+ *   validadores independentes já pegaram quebrado uma vez.
+ *
+ * `aria-pressed` é o atributo que diz "ligado" num botão de dois estados, é o
+ * que o leitor de tela anuncia, e é por onde o `estilo.css` acende o amarelo em
+ * `.btn-ensaio[aria-pressed="true"]`. Uma verdade só, lida por três leitores. */
+function ensaiando() {
+  const botao = $("#seco");
+  return !!botao && botao.getAttribute("aria-pressed") === "true";
+}
+
 async function api(rota, opcoes = {}) {
   /* O SERVIDOR PODE TER MORRIDO — e a página tem de dizer isso.
    *   A validação mediu: "com o servidor fora do ar, todo botão Rodar vira
@@ -335,7 +362,21 @@ function torrada(texto, classe = "") {
  * sem escrever nada. */
 const MUDANCAS = new Map();   // chave -> valor escolhido e ainda não salvo
 
+/* O valor sob o dedo, enquanto o dedo está no controle. Declarado aqui, e não
+ * junto do `repintarPrevia` que o usa, porque `valorEmVigor` o consulta e roda
+ * muito antes — um `let` mais abaixo cairia na zona morta e derrubaria a página
+ * na primeira pintura. */
+let PROVISORIO = null;
+
 function valorEmVigor(item) {
+  /* A ORDEM É: o dedo, a escolha pendente, o disco.
+   *   `PROVISORIO` é o valor que está sob o dedo dela AGORA, enquanto arrasta um
+   *   deslizante — ele ainda não é escolha (não entrou em `MUDANCAS`, não acende
+   *   a barra do Salvar) e mesmo assim é o que ela está vendo. Pôr a consulta
+   *   aqui, e não em cada desenho, é o que faz TODO leitor acompanhar o arrasto
+   *   sem saber que ele existe: foi assim que o desenho da FORMA — que não passa
+   *   pelo `MEOW_PREVIAS` — ganhou tempo real sem uma linha própria. */
+  if (PROVISORIO && PROVISORIO.chave === item.chave) return PROVISORIO.valor;
   return MUDANCAS.has(item.chave) ? MUDANCAS.get(item.chave) : (item.valor ?? "");
 }
 
@@ -392,7 +433,7 @@ async function descartarEscolhas() {
  * chave recusou. */
 async function salvarEscolhas() {
   if (!MUDANCAS.size) return;
-  const seco = $("#seco").checked;
+  const seco = ensaiando();
   const botao = $("#botao-salvar");
   botao.disabled = true;
   const anterior = botao.textContent;
@@ -497,7 +538,7 @@ async function rodarAcao(id, argumento) {
 
 /* --- escrita de chave ------------------------------------------------------ */
 async function gravar(chave, valor, cartao) {
-  const seco = $("#seco").checked;
+  const seco = ensaiando();
   const r = await api("/api/definir", {
     method: "POST",
     body: JSON.stringify({ chave, valor, seco }),
@@ -644,7 +685,12 @@ function montarControle(item, cartao) {
     const saida = elemento("output", {
       texto: vazio ? "como está" : (forcado ? rotuloDeValor(valor) : String(valor || lo)),
     });
-    slider.addEventListener("input", () => { saida.textContent = slider.value; });
+    slider.addEventListener("input", () => {
+      saida.textContent = slider.value;
+      /* Repintar aqui, e não no `change`: o `change` só dispara ao SOLTAR, e o
+       * gesto inteiro de procurar um valor acontece antes disso. */
+      repintarPrevia(item.chave, slider.value);
+    });
     slider.addEventListener("change", () => aplica(slider.value));
     caixa.append(slider, saida);
 
@@ -834,6 +880,11 @@ function previasDe(tipo, grupo) {
 }
 
 /* --- controles com imagem ------------------------------------------------- */
+/* Quais acervos já ganharam o botão de acrescentar NESTA pintura da página. É
+ * limpo no começo do `render()`, como o `barraDesenhada` do par painel+dock —
+ * e pelo mesmo motivo: o que vale para a página inteira aparece uma vez. */
+const ACERVO_DESENHADO = new Set();
+
 /* Gatos e cursores: a opção É o desenho. Um botão que diz "coquinha" obriga a
  * lembrar qual é a coquinha; um botão que mostra a coquinha, não. */
 function controleImagem(item, tipo, aplica) {
@@ -863,36 +914,93 @@ function controleImagem(item, tipo, aplica) {
     caixa.append(botao);
   }
   pintar(valorEmVigor(item));
-  /* Depois de enviar, o esquema TAMBÉM é relido: as opções de `LOGO`,
-   * `LOGO_DIA` e `LOGO_NOITE` são a pasta `assets/gatos/` (o servidor as lê do
-   * disco), e sem reler o esquema o gato novo aparecia na prévia e continuava
-   * fora dos botões de escolha até um F5. A auditoria reproduziu o passo e
-   * mediu: as prévias iam a três, os botões continuavam dois. */
-  const add = tipo === "gato" ? botaoAcervo("gato", async () => {
-    await recarregarEsquema();
-    await carregarPrevias("gato");
-    render();
-  }) : null;
+  /* UM BOTÃO POR PÁGINA, E NÃO UM POR CARTÃO — 06/09/2026.
+   *   MEDIDO no navegador, com a aba "Logo do sistema" aberta: SEIS botões
+   *   "Adicionar logo" na mesma tela, um sob cada chave que oferece a escolha
+   *   de uma logo (`LOGO`, `LOGO_DIA`, `LOGO_NOITE`, `FASTFETCH_LOGO_GATO`…).
+   *   Os seis fazem exatamente a mesma coisa: o acervo é um só, e um arquivo
+   *   solto ali aparece nas seis listas ao mesmo tempo.
+   *
+   *   É o mesmo defeito que o par painel+dock teve e que o selo "pode ensaiar"
+   *   teve — uma coisa que vale para a página inteira repetida uma vez por
+   *   cartão. Seis botões idênticos não oferecem seis caminhos; eles fazem
+   *   duvidar de que sejam o mesmo caminho.
+   *
+   *   O `ACERVO_DESENHADO` é limpo no começo de cada `render()`, então a
+   *   contagem é por PINTURA da página, e não global — trocar de aba devolve o
+   *   botão à aba nova. */
+  /* O BOTÃO DE ACRESCENTAR VALE PARA OS DOIS TIPOS DE IMAGEM — 06/09/2026.
+   *   Era só o gato. O ponteiro tinha a mesma fileira de miniaturas e nenhuma
+   *   porta de entrada: "Temas do Ponteiro só aparece um" parecia defeito da
+   *   lista e não era. Medido: existe UM só instalado que a chave `CURSOR`
+   *   alcança (`catppuccin-mocha-light-cursors`) — `Adwaita` e `Pop` têm
+   *   `cursors/` dentro mas não terminam em `-cursors`, e a regra que o painel
+   *   aplica exige o sufixo. Não faltava lista: faltava o botão.
+   *
+   *   Depois de enviar, o esquema TAMBÉM é relido: as opções de `LOGO`,
+   *   `LOGO_DIA` e `LOGO_NOITE` são a pasta `assets/gatos/` (o servidor as lê do
+   *   disco), e sem reler o esquema a logo nova aparecia na prévia e continuava
+   *   fora dos botões de escolha até um F5. A auditoria reproduziu o passo e
+   *   mediu: as prévias iam a três, os botões continuavam dois. O mesmo vale
+   *   para o ponteiro, cuja lista vem do `cursor.sh listar`. */
+  const cabe = (tipo === "gato" || tipo === "cursor") && !ACERVO_DESENHADO.has(tipo);
+  if (cabe) ACERVO_DESENHADO.add(tipo);
+  const add = cabe
+    ? botaoAcervo(tipo, async () => {
+        await recarregarEsquema();
+        await carregarPrevias(tipo);
+        render();
+      })
+    : null;
   return add ? elemento("div", { class: "com-acervo" }, [caixa, add]) : caixa;
 }
 
 /* ===========================================================================
- * ACRESCENTAR AO ACERVO — o mesmo botão para todo acervo do repositório
+ * ACRESCENTAR AO ACERVO — o mesmo botão para tudo o que entra de fora
  * ===========================================================================
  * "ela tem que integrar e atuar diretamente no repo local do user", e depois:
  * "é esse tipo de solução pra toda aba viu?".
  *
- * Um só componente, três acervos (gato, papel de parede, ícone). Ele não
- * escolhe pasta nenhuma: manda o TIPO, e o servidor resolve o destino — a
- * página nunca soube, e não deve saber, onde ficam as pastas do repositório.
+ * Um só componente, SEIS destinos. Ele não escolhe pasta nenhuma: manda o TIPO,
+ * e o servidor resolve o destino — a página nunca soube, e não deve saber, onde
+ * ficam as pastas do repositório nem onde um tema de ponteiro se instala.
  *
  * O SVG que entra por aqui passa pelo `normalizar_svg.py` do lado de lá, que é
  * o mesmo conserto que o `logo.sh` faz: um desenho salvo no Boxy com
- * `transform-origin` entra e simplesmente não aparece na tela. */
+ * `transform-origin` entra e simplesmente não aparece na tela.
+ *
+ * OS SEIS SÃO DE DUAS NATUREZAS, E É POR ISSO QUE HÁ UM `naMaquina`
+ *   · ACERVO (logo, papel de parede, ícone): o arquivo vira arte do projeto,
+ *     versionada em `assets/`. É de onde o instalador o leva para a máquina, e
+ *     é o que sobrevive a uma reinstalação.
+ *   · MÁQUINA (tema do ponteiro, fonte, tema de ícones): não é arte nossa — são
+ *     pacotes de terceiros, com licença própria, que ela quer TER INSTALADOS.
+ *     Guardá-los em `assets/` engordaria o repositório com coisa que não é
+ *     dele. O servidor manda o arquivo para um temporário e quem instala é o
+ *     COMANDO DA CLI, o mesmo que ela rodaria no terminal.
+ *
+ * E a diferença muda duas coisas na tela, as duas medidas do lado do servidor:
+ *   1. o `seco` VIAJA no corpo do pedido. Nos três de repositório a página
+ *      recusa o envio antes de sair (ver abaixo); nos três de máquina o
+ *      servidor conhece o ensaio e responde "não instalei", o que é melhor —
+ *      ela vê a resposta do lado que de fato instalaria;
+ *   2. eles devolvem `rc` e `log`. E `rc: 0` NÃO É ERRO: é o contrato de
+ *      idempotência deste projeto — "já estava assim" — que é exatamente a
+ *      resposta certa para quem enviou o mesmo `.zip` duas vezes. Mostrar isso
+ *      como falha ensinaria a desconfiar de uma resposta correta. */
 const ACERVO_ACEITA = {
-  gato: { aceita: ".svg,image/svg+xml", rotulo: "Adicionar gato" },
+  /* "Adicionar logo", e não "Adicionar gato" — 06/09/2026. A aba passou a falar
+   * de LOGO do sistema; a Coquinha e o Mimir continuam sendo o que vem de
+   * fábrica, e não o assunto. Quem chega sem gato nenhum ainda pode pôr a
+   * própria marca no menu de lançamento, na dock e no terminal. */
+  gato: { aceita: ".svg,image/svg+xml", rotulo: "Adicionar logo" },
   parede: { aceita: "image/jpeg,image/png,image/webp", rotulo: "Adicionar imagem" },
   icone: { aceita: ".svg,image/svg+xml", rotulo: "Adicionar ícone" },
+  cursor: { aceita: ".zip", rotulo: "Adicionar tema", naMaquina: true },
+  /* As três extensões são as do `instalar_fontes.sh adicionar`: um `.zip` de
+   * Nerd Font, ou o arquivo de uma família solta. */
+  fonte: { aceita: ".zip,.ttf,.otf", rotulo: "Instalar fonte", naMaquina: true },
+  "tema-icones": { aceita: ".zip", rotulo: "Adicionar tema de ícones", naMaquina: true },
 };
 
 function botaoAcervo(tipo, aoEntrar) {
@@ -904,12 +1012,18 @@ function botaoAcervo(tipo, aoEntrar) {
       const arq = campo.files && campo.files[0];
       campo.value = "";
       if (!arq) return;
+      const seco = ensaiando();
       /* O MODO SECO COBRE ISTO TAMBÉM — 02/09/2026.
        *   A validação pegou: "o Modo seco NÃO cobre o botão Adicionar gato —
        *   ele escreve no repositório mesmo com o seco ligado". O seco é a rede
        *   de segurança desta página; uma escrita que passa por baixo dela é
-       *   pior que não ter rede, porque ela confia. */
-      if ($("#seco").checked) {
+       *   pior que não ter rede, porque ela confia.
+       *
+       *   A RECUSA É AQUI SÓ PARA OS TRÊS DE REPOSITÓRIO. Nos três que
+       *   instalam na máquina o `seco` vai no corpo e o servidor responde por
+       *   si — ele conhece o ensaio e diz o que faria. Recusar dos dois lados
+       *   seria a página respondendo por um comando que ela não roda. */
+      if (seco && !conf.naMaquina) {
         torrada(`Modo seco: ${arq.name} não foi enviado (desligue o seco para valer)`, "igual");
         return;
       }
@@ -925,9 +1039,23 @@ function botaoAcervo(tipo, aoEntrar) {
         });
         const r = await api("/api/acervo", {
           method: "POST",
-          body: JSON.stringify({ tipo, nome: arq.name, conteudo: b64 }),
+          body: JSON.stringify({ tipo, nome: arq.name, conteudo: b64, seco }),
         });
         if (r.erro) { torrada(r.erro, "erro"); return; }
+        if (conf.naMaquina) {
+          /* O `depois` do servidor já diz o que aconteceu na língua do projeto:
+           * "em ensaio: X não foi instalado", "X já estava instalado", ou o que
+           * fazer agora que entrou. A torrada é ele, e não uma frase nossa que
+           * teria de adivinhar qual dos três casos foi. */
+          torrada(r.depois || `${r.nome} instalado`, r.rc === 1 ? "ok" : "igual");
+          /* A SAÍDA DO COMANDO VAI PARA A TELA, e não para o console: é a mesma
+           * saída que ela leria no terminal, e é onde está o nome do tema que
+           * acabou de entrar. Ela sai numa torrada própria porque a primeira já
+           * carrega a conclusão — e as duas juntas seriam um parágrafo. */
+          if (r.log) torrada(r.log.split("\n").slice(-3).join(" · "), "igual");
+          if (aoEntrar) await aoEntrar();
+          return;
+        }
         /* O LADO DA IMAGEM VAI NA TORRADA — 06/09/2026. Antes ela soltava o
          * arquivo e não sabia se ele entrava no grupo de dia ou no de noite:
          * quem separa é a luminância, e só na próxima vez que o carrossel
@@ -1055,6 +1183,16 @@ function controleCor(item, aplica) {
  * descrevem a GEOMETRIA da barra. O que existe é desenhá-la aqui, nos valores
  * escolhidos — e isso é mais honesto que um print, porque acompanha o controle
  * no mesmo quadro em vez de mostrar como era no dia em que alguém fotografou. */
+/* Exatamente as chaves que o `mockDaBarra` lê — as cinco do painel e as cinco
+ * da dock. Escrita aqui, e não deduzida do nome, porque `VIDRO_OPACIDADE_*` não
+ * começa por `FORMA_` e ficaria de fora de qualquer regra de prefixo. */
+const CHAVES_DO_MOCK = [
+  "FORMA_RAIO_PAINEL", "FORMA_MARGEM_PAINEL", "FORMA_ESPACO_PAINEL",
+  "FORMA_RECHEIO_PAINEL", "VIDRO_OPACIDADE_PAINEL",
+  "FORMA_RAIO_DOCK", "FORMA_MARGEM_DOCK", "FORMA_ESPACO_DOCK",
+  "FORMA_RECHEIO_DOCK", "VIDRO_OPACIDADE_DOCK",
+];
+
 function mockDaBarra(item) {
   /* AO VIVO QUER DIZER LENDO A ESCOLHA, e não o disco. O desenho prometia
    * acompanhar o controle e não acompanhava: a auditoria mediu — "nenhuma
@@ -1211,8 +1349,40 @@ function montarApps() {
       texto: `${APPS.total} aplicativos com .desktop nesta máquina.` }),
   ]));
 
-  const termo = semAcento(APPS_BUSCA.trim());
-  const lista = (APPS.apps || []).filter((a) =>
+  /* PARA ONDE OS JOGOS FORAM — 06/09/2026.
+   *   Pedido dela: *"na parte de ícones, os ícones que forem de jogos, coloca
+   *   pra serem selecionados na aba Lançadores e Jogos"*. O servidor passou a
+   *   separá-los (`_e_jogo`, pelo `Categories=Game` e pelo nome `meow-steam-*`)
+   *   e a mandar aqui só a CONTAGEM do que saiu.
+   *
+   *   Esta linha existe porque vinte e quatro cartões sumirem de uma aba sem
+   *   uma palavra é a página mentindo por omissão: quem estava procurando o
+   *   ícone de um jogo concluiria que ele não tem `.desktop`. Uma linha, e ela
+   *   diz para onde ir. */
+  if (APPS.jogos) {
+    caixa.append(elemento("p", { class: "nota-secao",
+      texto: `${APPS.jogos} ${APPS.jogos === 1 ? "jogo tem" : "jogos têm"} `
+           + "o ícone escolhido em «Lançadores e jogos», ao lado das capas." }));
+  }
+
+  caixa.append(gradeDeApps(APPS.apps || [], APPS_BUSCA, carregarApps));
+  return caixa;
+}
+
+/* A GRADE DE APLICATIVOS SERVE ÀS DUAS ABAS — 06/09/2026.
+ *   Ela era o corpo do `montarApps` e virou função porque a aba "Lançadores e
+ *   jogos" passou a mostrar a mesma coisa sobre os jogos: o servidor devolve os
+ *   ícones deles em `apps`, no MESMO formato de `_dados_apps`, justamente para
+ *   que o painel de escolha de ícone seja reaproveitado sem saber que está numa
+ *   página diferente. Copiar as trinta linhas para lá seria a segunda grade que
+ *   deixa de acompanhar a primeira na próxima mudança.
+ *
+ *   `recarregar` é o que muda entre as duas: a aba de ícones relê `/api/apps`, a
+ *   de jogos relê `/api/jogos` — e reler a errada deixaria a grade mostrando o
+ *   ícone velho depois de trocá-lo. */
+function gradeDeApps(apps, filtro, recarregar) {
+  const termo = semAcento(String(filtro || "").trim());
+  const lista = apps.filter((a) =>
     !termo || semAcento(a.nome).includes(termo) || semAcento(a.id).includes(termo));
 
   const grade = elemento("div", { class: "grade-apps" });
@@ -1245,13 +1415,15 @@ function montarApps() {
                              texto: a.nosso ? "nosso" : "de fábrica" }),
     ]);
     grade.append(fig);
-    if (APP_ABERTO === a.id) grade.append(montarEscolhaDeIcone(a));
+    if (APP_ABERTO === a.id) grade.append(montarEscolhaDeIcone(a, recarregar));
   }
-  caixa.append(grade);
-  return caixa;
+  return grade;
 }
 
-function montarEscolhaDeIcone(app) {
+function montarEscolhaDeIcone(app, recarregar) {
+  /* Quem mandou desenhar diz o que reler depois da escolha; sem ninguém dizer,
+   * é a lista de aplicativos, que é de onde esta tela nasceu. */
+  const relerLista = recarregar || carregarApps;
   const painel = elemento("div", { class: "escolha-icone" });
   painel.append(elemento("h3", { class: "titulo-cartao", texto: `Ícone de ${app.nome}` }));
 
@@ -1320,16 +1492,20 @@ function montarEscolhaDeIcone(app) {
       if (!escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }
       const r = await api("/api/app-icone", {
         method: "POST",
-        body: JSON.stringify({ app: app.id, glifo: escolhido, cor: corEscolhida }),
+        /* O ensaio viaja no corpo, e quem recusa é o servidor: o cliente
+         * também poderia parar aqui, mas a escrita mora lá, e é lá que a
+         * recusa tem de estar para valer contra um POST que não veio daqui. */
+        body: JSON.stringify({ app: app.id, glifo: escolhido, cor: corEscolhida, seco: ensaiando() }),
       });
       if (r.erro) { torrada(r.erro, "erro"); return; }
+      if (r.seco) { torrada(r.aviso, "igual"); return; }
       torrada(
         `${app.nome}: ${escolhido} em ${corEscolhida}`
         + (r.trouxe_do_acervo ? " — o desenho entrou no repositório" : "")
         + (r.alias ? " (marcado como alias: o desenho ou a cor já eram de outro app)" : ""),
         "ok");
       APP_ABERTO = null;
-      await carregarApps();
+      await relerLista();
     },
   }));
   if (app.mapa) {
@@ -1337,16 +1513,18 @@ function montarEscolhaDeIcone(app) {
       type: "button", class: "btn", texto: "Tirar do mapa",
       onclick: async () => {
         const r = await api("/api/app-icone", {
-          method: "POST", body: JSON.stringify({ app: app.id, remover: true }),
+          method: "POST",
+          body: JSON.stringify({ app: app.id, remover: true, seco: ensaiando() }),
         });
         if (r.erro) { torrada(r.erro, "erro"); return; }
+        if (r.seco) { torrada(r.aviso, "igual"); return; }
         torrada(`${app.nome} saiu do mapa — volta para o ícone de fábrica`, "ok");
         APP_ABERTO = null;
-        await carregarApps();
+        await relerLista();
       },
     }));
   }
-  acoes.append(botaoAcervo("icone", async () => { await carregarApps(); }));
+  acoes.append(botaoAcervo("icone", async () => { await relerLista(); }));
   acoes.append(elemento("button", {
     type: "button", class: "btn", texto: "Reconstruir o tema",
     title: "A escolha só aparece na tela depois disto",
@@ -1381,16 +1559,23 @@ let JOGO_ABERTO = null;
 
 async function carregarJogos() {
   const r = await api("/api/jogos");
-  JOGOS = r.erro ? { jogos: [], total: 0 } : r;
+  /* O molde de erro traz `apps` e `total_apps` porque a grade de ícones dos
+   * jogos os lê: sem os campos, um erro do servidor viraria um `undefined` no
+   * `.length` e derrubaria a aba inteira em vez de mostrá-la vazia. */
+  JOGOS = r.erro ? { jogos: [], total: 0, apps: [], total_apps: 0 } : r;
   render();
 }
 
 async function definirJogo(appid, acao, motivo, remover) {
   const r = await api("/api/jogo-fora", {
     method: "POST",
-    body: JSON.stringify({ appid, acao, motivo, remover: !!remover }),
+    /* A linha que isto grava é uma RECEITA: quem apaga os gigabytes é o
+     * `jogos_steam.sh` na passagem seguinte. Escrevê-la em ensaio deixaria o
+     * apagamento armado sem que nada na tela tivesse dito que houve decisão. */
+    body: JSON.stringify({ appid, acao, motivo, remover: !!remover, seco: ensaiando() }),
   });
   if (r.erro) { torrada(r.erro, "ruim"); return; }
+  if (r.seco) { torrada(r.aviso, "igual"); return; }
   torrada(remover ? "Voltou ao normal — vale depois de arrumar os jogos"
                   : `Escolha gravada — ${r.depois}`);
   JOGO_ABERTO = null;
@@ -1468,6 +1653,39 @@ function montarJogos() {
     if (JOGO_ABERTO === j.appid) grade.append(montarEscolhaDeJogo(j));
   }
   caixa.append(grade);
+
+  /* ==========================================================================
+   * O ÍCONE DE CADA JOGO, QUE ERA DA ABA DE ÍCONES — 06/09/2026
+   * ==========================================================================
+   * Pedido dela: *"na parte de ícones, os ícones que forem de jogos, coloca pra
+   * serem selecionados na aba Lançadores e Jogos"*. A razão é de uso, e não de
+   * arrumação: a aba de ícones existe para vestir os PROGRAMAS com o traço do
+   * projeto, e um jogo não se veste — ele tem capa própria, vem e vai com a
+   * licença, e o que ela decide sobre ele é outra coisa. Eram duas perguntas
+   * diferentes na mesma página, e a de jogo era a que não tinha resposta ali.
+   *
+   * A LISTA É A DO SERVIDOR, E ELA NÃO É A MESMA DAS CAPAS — medido em
+   * 06/09/2026 nesta máquina: 23 jogos com manifesto da Steam, 24 `.desktop` de
+   * jogo, 22 casando por `meow-steam-<appid>`. Os que não casam são a própria
+   * Steam e o ProtonUp-Qt (que se declaram `Categories=Game`) e um jogo cujo
+   * cartão ainda não foi escrito. Grudar o seletor de ícone dentro do cartão da
+   * capa perderia esses três — e é justamente a Steam que ela mais olha.
+   *
+   * NÃO É DUPLICAÇÃO: são duas perguntas sobre a mesma coisa, e cada uma tem um
+   * cartão só. A capa decide se o jogo APARECE no lançador; esta grade decide
+   * com que DESENHO ele aparece. O filtro é o mesmo do topo da página, então
+   * procurar um jogo estreita as duas de uma vez.
+   *
+   * `total_apps` e não `apps.length`: o servidor filtra pela busca do lado de
+   * lá quando ela é enviada, e o total é o número da máquina. */
+  if ((JOGOS.apps || []).length) {
+    caixa.append(elemento("h3", { class: "subsecao-titulo", texto: "O ícone de cada jogo" }));
+    caixa.append(elemento("p", { class: "nota-secao",
+      texto: `${JOGOS.total_apps ?? JOGOS.apps.length} jogos com .desktop nesta `
+           + "máquina. A capa acima decide se ele aparece no lançador; aqui se "
+           + "escolhe o desenho com que ele aparece." }));
+    caixa.append(gradeDeApps(JOGOS.apps, JOGOS_BUSCA, carregarJogos));
+  }
   return caixa;
 }
 
@@ -1571,6 +1789,67 @@ const GRUPOS_PAREDE = [
   { id: "banidos", rotulo: "Recusadas" },
 ];
 
+/* ===========================================================================
+ * O LADO DE CADA IMAGEM — DIA, NOITE, OU O QUE A MEDIÇÃO ACHAR
+ * ===========================================================================
+ * O comando é `meow wallpaper lado <arquivo> dia|noite|auto`, e ele grava a
+ * escolha num registro de duas colunas que o `_resolver_grupo` consulta ANTES
+ * de comparar luminância. `auto` apaga a linha: o registro só guarda
+ * discordância, e ausência é o padrão.
+ *
+ * A PÁGINA NÃO MOVE ARQUIVO, E ISTO NÃO É ZELO — é a regra da casa. Mover a
+ * imagem daqui seria uma segunda implementação do que o `wallpaper.sh` faz, com
+ * as guardas dele de fora (o link duro entre `ativos/` e `ativos-<lado>/`, o
+ * aviso de grupo com menos de duas imagens, o banimento que sobrevive). O botão
+ * dispara o comando, e é só isso que ele faz.
+ *
+ * SÃO TRÊS AÇÕES, E NÃO UMA COM PARÂMETRO, e a razão é do servidor: o `argv`
+ * dele troca UM `@ARG@` por UM elemento da lista. Um id só não teria por onde
+ * levar o segundo argumento — dois tokens colados numa string chegariam ao
+ * `subprocess` como um argumento só, e o `cmd_lado` receberia "arquivo dia"
+ * como nome de arquivo. Então `wallpaper_dia`, `wallpaper_noite` e
+ * `wallpaper_lado_auto`, medidos no `/api/esquema` de 06/09/2026, as três
+ * `oculta` e as três aceitando ensaio.
+ *
+ * O DESFAZER SÓ APARECE ONDE HÁ O QUE DESFAZER — quando o item traz o lado
+ * escrito. É a mesma disciplina do "Apagar os arquivos" na tela de jogos, que
+ * não nasce numa linha já gasta: um botão que promete uma ação que o script vai
+ * recusar é pior que um botão a menos.
+ *
+ * MEDIDO E RELATADO: o `/api/previas?tipo=parede` de hoje devolve, por item,
+ * `id · rotulo · grupo · pronta · origem · url · banir` — e NENHUM campo com o
+ * lado escrito (conferido nos 46 itens de `ativos`, todos com o mesmo conjunto
+ * de chaves). Ler o `lado.tsv` daqui seria a página inventando uma leitura de
+ * arquivo do repositório, que é exatamente o que ela não faz; então o desfazer
+ * fica esperando o campo, e ele se acende sozinho no dia em que o servidor o
+ * mandar — sem uma linha nova aqui. */
+function botoesDeLado(imagem) {
+  /* PELO CAMINHO CANÔNICO, e não pelo que está sendo mostrado: `ativos-dia/` e
+   * `ativos-noite/` são LINK DURO do mesmo arquivo, e agir pelo link mexeria só
+   * no link. É o mesmo `i.banir` que o "Tirar" ao lado já usa. */
+  const alvo = imagem.banir || imagem.origem || imagem.rotulo;
+  const botoes = [
+    ["wallpaper_dia", "Dia",
+     "Ela passa a girar só de dia, mesmo que a medição a ache escura."],
+    ["wallpaper_noite", "Noite",
+     "Ela passa a girar só de noite, mesmo que a medição a ache clara."],
+  ];
+  /* O campo ainda não vem do servidor (ver acima). Quando vier, esta linha é a
+   * única coisa que precisa acontecer para o desfazer aparecer. */
+  if (imagem.lado) {
+    botoes.push(["wallpaper_lado_auto", "Medir",
+      `Hoje está escrita como ${rotuloDeValor(imagem.lado)}. Tira a escolha e `
+      + "devolve a imagem à luminância medida."]);
+  }
+  return botoes.map(([id, rotulo, ajuda]) => elemento("button", {
+    type: "button", class: "btn btn-mini",
+    texto: rotulo,
+    title: `${ajuda} (meow wallpaper lado ${imagem.rotulo} `
+         + `${id === "wallpaper_lado_auto" ? "auto" : rotulo.toLowerCase()})`,
+    onclick: () => rodarNaGaleria(id, alvo),
+  }));
+}
+
 function montarGaleria() {
   const caixa = elemento("div");
   const abas = elemento("div", { class: "abas" });
@@ -1593,6 +1872,21 @@ function montarGaleria() {
     ]));
   }
   caixa.append(abas);
+
+  /* O BOTÃO DE ACRESCENTAR FALTAVA NA GALERIA — 06/09/2026.
+   *   Pergunta dela: *"como adicionamos os wallpapers pelo html e eles vão pra
+   *   pasta correta"*. A resposta era "não adiciona": a aba mais visual da
+   *   página, com 46 fotos na tela, era a única onde não havia como pôr uma
+   *   foto. Não é capacidade nova — o `ACERVOS["parede"]` do servidor já
+   *   respondia; faltava a ligação, e a ligação é esta linha.
+   *
+   *   Quem decide o lado (dia ou noite) é a luminância, e o servidor mede na
+   *   hora e diz na torrada. Discordar da medição é o par de botões de cada
+   *   ficha, abaixo. */
+  caixa.append(botaoAcervo("parede", async () => {
+    for (const g of GRUPOS_PAREDE) PREVIAS.delete("parede/" + g.id);
+    render();
+  }));
 
   const lista = previasDe("parede", ABA_GALERIA);
   if (!lista) {
@@ -1641,6 +1935,17 @@ function montarGaleria() {
         onclick: () => rodarNaGaleria("wallpaper_desbanir", i.rotulo),
       }));
     } else if (i.banir) {
+      /* DIA · NOITE · TIRAR — pedido dela, literal: *"quando eu colocar o mouse
+       * em cima da imagem temos que ter as opções de Dia e a opção Noite, não
+       * apenas a Tirar"*.
+       *
+       *   Hoje quem separa `ativos-dia/` de `ativos-noite/` é a LUMINÂNCIA da
+       *   imagem, medida contra `WALLPAPER_LIMIAR_LUZ`. A medição acerta na
+       *   maioria e erra em alguns — uma foto clara que ela quer de madrugada,
+       *   um gráfico escuro que ela quer de dia — e não havia nenhuma porta para
+       *   discordar. Estes botões são a porta: decisão escrita vence a
+       *   heurística, a heurística continua sendo o padrão. */
+      acoes.append(...botoesDeLado(i));
       acoes.append(elemento("button", {
         type: "button", class: "btn btn-perigo",
         texto: "Tirar",
@@ -1682,7 +1987,7 @@ function montarGaleria() {
 async function rodarDaSecao(acaoId, invalidar) {
   const acao = ESQUEMA.acoes.find((a) => a.id === acaoId);
   if (!acao) return;
-  const seco = $("#seco").checked;
+  const seco = ensaiando();
   if (acao.confirma && !(await confirmar(acao, "", seco))) return;
   const r = await api("/api/rodar", {
     method: "POST",
@@ -1700,10 +2005,16 @@ async function rodarDaSecao(acaoId, invalidar) {
 
 async function rodarNaGaleria(acaoId, argumento) {
   const acao = ESQUEMA.acoes.find((a) => a.id === acaoId);
-  if (!acao) return;
+  /* A RECUSA DEIXOU DE SER MUDA — 06/09/2026. Este `return` calado é a forma
+   * como 46 botões "Banir" e 255 "Devolver" ficaram sem chamar nada até
+   * 01/09/2026: o id não existia no `ACOES`, e a página não dizia uma palavra.
+   * Ela clicava e concluía que a página mente. Um botão desenhado sobre uma
+   * ação que não existe é defeito nosso, e agora ele aparece na tela em vez de
+   * aparecer só no console de quem estiver olhando. */
+  if (!acao) { torrada(`Ação desconhecida: ${acaoId}`, "erro"); return; }
   const r = await api("/api/rodar", {
     method: "POST",
-    body: JSON.stringify({ acao: acaoId, argumento, seco: $("#seco").checked }),
+    body: JSON.stringify({ acao: acaoId, argumento, seco: ensaiando() }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
   abrirGaveta(r);
@@ -1731,34 +2042,14 @@ function montarCartao(item) {
     "data-chave": item.chave,
   });
 
-  /* MENOS PALAVRAS NO TOPO DO CARTÃO.
-   *   Antes: NOME_DA_CHAVE · essencial · "padrão: mocha" — três informações
-   *   competindo, e a do meio explicada por extenso em todo cartão.
-   *   Agora: o nome, um ponto para o essencial (com o texto no `title`), e o
-   *   padrão SÓ quando a escolha dela difere dele — que é quando saber o padrão
-   *   muda alguma coisa. Um cartão no padrão não precisa dizer que está no
-   *   padrão: o controle já mostra o valor. */
-  const topo = elemento("div", { class: "cartao-topo" }, [
-    elemento("code", { texto: item.chave }),
-    item.essencial
-      ? elemento("span", { class: "marca-essencial", title: "Chave essencial", texto: "•" })
-      : null,
-    mexeu
-      ? elemento("span", {
-          class: "padrao",
-          texto: item.padrao === "" ? "De fábrica: nada" : `De fábrica: ${rotuloDeValor(item.padrao)}`,
-          title: "O valor que o projeto traz de fábrica.",
-        })
-      : null,
-  ]);
-  cartao.append(topo);
   /* O TÍTULO DO CARTÃO É UMA FRASE, não o identificador.
    * `LOGO_ROTACAO` diz o que a chave se chama; "O gato do painel troca sozinho"
    * diz o que ela FAZ — e é isso que ela precisa ler para escolher. O
-   * identificador continua no topo, pequeno, porque é como a chave se chama no
-   * arquivo e ela procura por ele. */
+   * identificador continua existindo, agora dentro da dica, porque é como a
+   * chave se chama no arquivo e é por ele que ela procura lá. */
   const titulo = tituloDoCartao(item);
   if (titulo) cartao.append(elemento("h3", { class: "titulo-cartao", texto: titulo }));
+  cartao.append(...porqueEDica(item));
 
   /* QUEM MANDA HOJE, DITO NO CARTÃO — 02/09/2026.
    *   Dois achados da validação, e o mesmo defeito nos dois: uma chave que a
@@ -1852,13 +2143,104 @@ function montarCartao(item) {
     cartao.dataset.semPrevia = "1";
   }
 
-  if (item.ajuda) {
-    cartao.append(elemento("details", { class: "porque" }, [
-      elemento("summary", { texto: "Por quê" }),
-      elemento("pre", { texto: item.ajuda.replace(/^# ?/gm, "").trim() }),
-    ]));
-  }
+  /* O "▸ Por quê" NÃO É MAIS DESENHADO AQUI — 06/09/2026. O comentário inteiro
+   * do `meow.conf.exemplo` não se perdeu: ele é o `.motivo` dentro da `.dica`,
+   * que o `?` ao lado do título abre (ver `porqueEDica`, acima). Era a sexta
+   * camada de um cartão de seis; hoje são três. */
   return cartao;
+}
+
+/* ===========================================================================
+ * O `?` E A DICA — a outra metade da folha de estilo
+ * ===========================================================================
+ * Pedido dela, literal, com a tela na frente: *"o tooltip fica em `?` ao lado
+ * direito do nome da seção"* — e, apontando o rodapé de um cartão, *"essa parte
+ * que selecionei tem que sumir também… isso pra todos"*.
+ *
+ * O CARTÃO PASSOU DE SEIS CAMADAS PARA TRÊS: título, controle, explicação. As
+ * três que saíram (o nome da chave, o padrão de fábrica e o "▸ Por quê") não
+ * foram apagadas — elas NASCEM aqui dentro, a um clique. `chave` e `fabrica` são
+ * criação, e não mudança de casa: o que havia antes era `.cartao-topo` com um
+ * `<code>` solto e um `.padrao` que só aparecia quando o valor divergia. Agora
+ * os dois aparecem SEMPRE, porque quem abriu a dica está justamente procurando
+ * por eles.
+ *
+ * AS CINCO TRAVAS DO CONTRATO COM O `estilo.css`, todas medidas do outro lado:
+ *   1. a `.dica` é o irmão IMEDIATO do `button.porque` — o hover é
+ *      `button.porque:hover + .dica`, e um nó entre os dois apaga o balão;
+ *   2. os dois são filhos DIRETOS do `.cartao`, que é quem os posiciona
+ *      (`.cartao > .dica`, ancorada na linha 1 da grade);
+ *   3. o `?` sai em TODO cartão, mesmo sem comentário: `.motivo` é opcional,
+ *      `.chave` e `.fabrica` não;
+ *   4. o texto do motivo entra CRU (o `white-space: pre-wrap` do CSS preserva as
+ *      quebras que o autor do `meow.conf.exemplo` escreveu), sem o `# ` que
+ *      abre cada linha de comentário no arquivo;
+ *   5. a `.marca-essencial` é opcional e vem logo depois da `.chave`.
+ *
+ * O `hidden` E O `aria-expanded` SÃO DAQUI, O HOVER É DO CSS.
+ *   A folha de estilo já abre o balão no `:hover` do gatilho e no `:focus-visible`
+ *   dele, com `!important`, porque o atributo `hidden` traz um
+ *   `display: none !important` da folha do navegador. O que ela não pode fazer é
+ *   o CLIQUE (que tem de ficar aberto depois que o dedo sai) e o estado
+ *   ANUNCIADO: `hidden` mantém o balão fora da árvore de acessibilidade mesmo
+ *   quando o CSS o desenha — quem usa leitor de tela chegaria ao `?` e não
+ *   alcançaria o texto. Por isso o `hidden` cai TAMBÉM no foco.
+ *
+ * POR QUE O FOCO SÓ ABRE QUANDO É TECLADO (`:focus-visible`)
+ *   Um clique de rato dá foco ANTES de disparar o `click`. Se o `focus` abrisse
+ *   sempre, o `click` seguinte encontraria o balão aberto e o fecharia: o botão
+ *   ficaria inerte para quem usa rato, que é a maioria dos cliques desta página.
+ *   `:focus-visible` é exatamente a pergunta "este foco veio do teclado?", e é o
+ *   mesmo critério que a folha de estilo já usa para o hover do teclado. */
+function porqueEDica(item) {
+  /* O id sai da CHAVE, e não de um contador. Um contador cresceria a cada
+   * `render()` — e esta página se redesenha a cada clique — deixando o
+   * `aria-controls` apontando para números que já não existem em nenhum lugar.
+   * A chave é única por construção (cada item aparece em um grupo só) e é
+   * estável entre redesenhos, que é o que um id precisa ser. */
+  const idDica = "dica-" + item.chave;
+  const gatilho = elemento("button", {
+    type: "button", class: "porque", texto: "?",
+    "aria-expanded": "false", "aria-controls": idDica,
+    "aria-label": `O que é ${tituloDoCartao(item) || item.chave}`,
+  });
+  const dica = elemento("div", { class: "dica", id: idDica, role: "tooltip", hidden: true });
+
+  if (item.ajuda) {
+    /* O `# ` que abre cada linha de comentário é sintaxe do arquivo, não texto.
+     * O `.trim()` tira a linha em branco que quase todo bloco deixa no fim. */
+    dica.append(elemento("p", { class: "motivo", texto: item.ajuda.replace(/^# ?/gm, "").trim() }));
+  }
+  dica.append(elemento("code", { class: "chave", texto: item.chave }));
+  if (item.essencial) {
+    dica.append(elemento("span", { class: "marca-essencial", title: "Chave essencial", texto: "•" }));
+  }
+  dica.append(elemento("span", {
+    class: "fabrica",
+    texto: item.padrao === "" ? "De fábrica: nada" : `De fábrica: ${rotuloDeValor(item.padrao)}`,
+    title: "O valor que o projeto traz de fábrica.",
+  }));
+
+  const mostrar = (aberta) => {
+    dica.hidden = !aberta;
+    gatilho.setAttribute("aria-expanded", String(aberta));
+  };
+  gatilho.addEventListener("click", () => mostrar(dica.hidden));
+  gatilho.addEventListener("focus", () => {
+    /* `matches` pode não conhecer `:focus-visible` num navegador antigo, e uma
+     * exceção aqui apagaria o cartão inteiro. Sem ele, o teclado continua tendo
+     * o clique (Enter e Espaço disparam `click` num `<button>`). */
+    try { if (gatilho.matches(":focus-visible")) mostrar(true); } catch (e) { /* idem */ }
+  });
+  gatilho.addEventListener("blur", () => mostrar(false));
+  gatilho.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Escape" || dica.hidden) return;
+    /* O `stopPropagation` impede que o mesmo Esc que fecha a dica atravesse até
+     * o atalho global e limpe a busca — dois desfazeres num toque só. */
+    ev.stopPropagation();
+    mostrar(false);
+  });
+  return [gatilho, dica];
 }
 
 /* --- as ações ------------------------------------------------------------- */
@@ -1909,7 +2291,20 @@ function montarAcao(acao) {
    * pastilha "usa rede". Um marcador que lê a prosa acaba dizendo o contrário
    * dela; quem sabe se a ação toca a rede é quem a escreveu. */
   if (acao.rede) rodape.append(elemento("span", { class: "pastilha p-rede", texto: "baixa da internet" }));
-  if (acao.seco) rodape.append(elemento("span", { class: "pastilha p-seco", texto: "pode ensaiar" }));
+  /* O SELO "PODE ENSAIAR" SAIU EM 06/09/2026, e a razão é dela: *"o botão Pode
+   * ensaiar não faz sentido se temos o executar ali em todas as páginas — é pq
+   * o user quer arrumar só aquilo"*. O interruptor de ensaio é UM, global, e
+   * fica no alto da tela: aceso, cada `Executar` já ensaia; apagado, executa de
+   * verdade. Repetir por cartão o que o interruptor governa era trinta e quatro
+   * etiquetas amarelas dizendo a mesma coisa numa tela de oito ações — ruído
+   * que empurrava para baixo as duas pastilhas que de fato distinguem uma ação
+   * da vizinha (pede senha, desfaz o que foi feito).
+   *
+   * O `acao.seco` NÃO MORREU: ele continua decidindo, no `rodar()`, se o
+   * interruptor tem efeito sobre ESTA ação (`ensaiando() && acao.seco`) e se a
+   * caixa de confirmação promete "Rodar em seco" ou "Rodar de verdade". O que
+   * saiu foi só a etiqueta; a regra ficou. A regra `.p-seco` saiu do
+   * `estilo.css` na mesma passagem. */
 
   rodape.append(elemento("button", {
     type: "button",
@@ -1923,7 +2318,7 @@ function montarAcao(acao) {
 }
 
 async function rodar(acao, argumento) {
-  const seco = $("#seco").checked && acao.seco;
+  const seco = ensaiando() && acao.seco;
   if (acao.confirma || acao.sudo || acao.destrutivo) {
     const ok = await confirmar(acao, argumento, seco);
     if (!ok) return;
@@ -2114,22 +2509,37 @@ function assuntosEmOrdem() {
   return ordem;
 }
 
-/* O bloco de um assunto. Chave do `meow.conf` faz dele um assunto; sem chave, a
- * palavra vem do `bloco` que o servidor declarou na ação — e "A máquina" é o
- * padrão de quem não declarou nada, que é como o `Instalar e conferir` entra. */
+/* ===========================================================================
+ * O BLOCO DE UM ASSUNTO — DECISÃO ESCRITA, E NÃO MAIS UMA ADIVINHAÇÃO
+ * ===========================================================================
+ * São DOIS blocos, e os nomes são dela: *"No menu, Assuntos vira Tópicos, A
+ * Máquina vira Sistema. E aqui dentro temos Manutenção, Instalação (antigo
+ * instalar e conferir), Idempotência (antigo atualizar o sistema)"*.
+ *
+ * A REGRA ANTIGA ERRAVA, E A MEDIÇÃO MOSTROU ONDE. Esta função perguntava
+ * "este assunto tem chave do `meow.conf`?" — sim virava Assuntos, não virava
+ * máquina. A pergunta funcionava por coincidência, e a coincidência acabou: a
+ * **Manutenção tem nove chaves** e mesmo assim é Sistema, porque o que ela
+ * ajusta não é a aparência da tela — é o que o computador faz sozinho enquanto
+ * ninguém olha. Heurística que erra num caso é heurística errada.
+ *
+ * A tabela mora no `servidor.py` (`BLOCO_DA_SECAO`) e chega em `ESQUEMA.blocos`,
+ * porque é lá que as seções são NOMEADAS: uma segunda lista aqui seria a que
+ * discorda da primeira no dia em que alguém renomear um título no
+ * `meow.conf.exemplo`. Ausente da tabela = "Tópicos", que é onde a esmagadora
+ * maioria mora — assunto novo nasce no lugar certo sem uma linha a mais.
+ *
+ * O `bloco` declarado na AÇÃO continua valendo como segunda porta: é por ele
+ * que as três `sistema_*` já se declaravam, e ele cobre um grupo de ação que
+ * nasça sem entrada na tabela. */
 function blocoDoAssunto(assunto) {
-  if (temChaves(assunto)) return "Assuntos";
+  const tabela = (ESQUEMA && ESQUEMA.blocos) || {};
+  if (tabela[assunto]) return tabela[assunto];
   for (const g of GRUPOS) {
     if (assuntoDe(g) !== assunto) continue;
     for (const a of g.itens || []) if (a.bloco) return a.bloco;
   }
-  return "A máquina";
-}
-
-/* O que separa os dois blocos do menu: um assunto tem chaves do `meow.conf`;
- * as duas páginas que sobraram de verbo só têm ações. */
-function temChaves(assunto) {
-  return GRUPOS.some((g) => g.tipo === "chaves" && assuntoDe(g) === assunto);
+  return "Tópicos";
 }
 
 function montarTrilho() {
@@ -2149,16 +2559,16 @@ function montarTrilho() {
    *   Agora o assunto é a página, e ela carrega o que existir sobre ele: a
    *   galeria, os ajustes e as ações. Sobraram doze itens e um nível.
    *
-   *   TRÊS BLOCOS, E NÃO DOIS — 06/09/2026, pedido dela: *"simplificar os menus
-   *   e opções de cada bloco e suas features para caberem nos 3 blocos"*.
-   *   Eram dois (Assuntos · A máquina) desde que os verbos deixaram de nomeá-
-   *   los. O terceiro nasceu junto com a página de atualizar a máquina, e a
-   *   separação é real: "A máquina" é o MeowSystem sobre o Pop!_OS; "A nova
-   *   versão" é o Pop!_OS mudando debaixo dele.
+   *   E DOIS BLOCOS, com os nomes dela — 06/09/2026: *"No menu, Assuntos vira
+   *   Tópicos, A Máquina vira Sistema. E aqui dentro temos Manutenção,
+   *   Instalação, Idempotência"*. Chegou a haver um terceiro ("A nova versão"),
+   *   e ele voltou para dentro de Sistema como `Idempotência`: atualizar o
+   *   Pop!_OS é uma coisa que se faz À MÁQUINA, e a página existe justamente
+   *   para conferir se o MeowSystem sobrevive a essa atualização.
    *
-   *   O bloco NÃO é uma lista escrita aqui: um assunto com chave do meow.conf
-   *   é "Assuntos", e os outros dois vêm do campo `bloco` que o `ACOES` do
-   *   servidor declara ao lado do grupo — um lugar só, que é a regra deste
+   *   O bloco NÃO é uma lista escrita aqui, e desde 06/09/2026 também não é uma
+   *   adivinhação: ele vem da tabela `BLOCO_DA_SECAO` do servidor, que chega em
+   *   `ESQUEMA.blocos` (ver `blocoDoAssunto`). Um lugar só, que é a regra deste
    *   projeto desde o primeiro dia. */
   for (const g of GRUPOS) if (g.tipo === "home") trilho.append(botaoTrilho(g));
   let bloco = null;
@@ -2218,29 +2628,42 @@ function botaoDeAssunto(assunto) {
  * cinza no repouso e accent no item aberto, sem uma regra a mais — a mesma
  * disciplina da paleta, aplicada a desenho. */
 const ICONES_MENU = {
-  /* os dois blocos do menu */
-  "bloco/Assuntos": '<circle cx="12.281" cy="22.389" r="2.781"/><circle cx="24" cy="18.613" r="2.781"/><circle cx="35.719" cy="24.646" r="2.781"/><path d="M24 21.394v14.925m11.719-8.893v8.893M12.281 25.17v11.149m0-16.711v-1.591m0-1.577v-1.591m0-1.578v-1.59M24 15.833v-.984m0-1.578v-1.59m11.719 7.927v-1.591m0 3.848v-.702m0-4.723v-1.591m0-1.578v-1.59"/><circle cx="24" cy="24" r="21.5"/>',
-  /* O foguete do Arcticons: a máquina indo para a versão seguinte. */
-  "bloco/A nova versão": '<path d="M5.896 22.443L42.105 5.5l-10.836 37l-11.453-13.323z"/><path d="m31.326 16.95l-11.51 12.227v8.747l3.316-4.824"/>',
-  "Atualizar o sistema": '<path d="M5.896 22.443L42.105 5.5l-10.836 37l-11.453-13.323z"/><path d="m31.326 16.95l-11.51 12.227v8.747l3.316-4.824"/>',
-  "bloco/A máquina": '<path d="M24 8.408V19.81m5.255-7.944A13.22 13.22 0 0 1 37.223 24h0c0 7.303-5.92 13.223-13.223 13.223h0c-7.303 0-13.223-5.92-13.223-13.223h0c0-5.27 3.129-10.037 7.964-12.133M45.5 24c0 11.874-9.626 21.5-21.5 21.5S2.5 35.874 2.5 24S12.126 2.5 24 2.5S45.5 12.126 45.5 24"/>',
-  /* AUTORAL: o acervo não tem gato. As orelhas do mascote, em três traços. */
-  "O gato": '<path d="M13 21V11l8 6M35 21V11l-8 6"/><path d="M13 20c0 10 5 17 11 17s11-7 11-17"/>',
+  /* OS DOIS BLOCOS DO MENU, com os nomes de 06/09/2026: `Assuntos` virou
+   * `Tópicos` e `A máquina` virou `Sistema`. As chaves aqui são o TEXTO que o
+   * trilho desenha, então renomear o bloco sem renomear a chave derruba o
+   * desenho no círculo padrão, calado — foi o que a conferência mediu. */
+  "bloco/Tópicos": '<circle cx="12.281" cy="22.389" r="2.781"/><circle cx="24" cy="18.613" r="2.781"/><circle cx="35.719" cy="24.646" r="2.781"/><path d="M24 21.394v14.925m11.719-8.893v8.893M12.281 25.17v11.149m0-16.711v-1.591m0-1.577v-1.591m0-1.578v-1.59M24 15.833v-.984m0-1.578v-1.59m11.719 7.927v-1.591m0 3.848v-.702m0-4.723v-1.591m0-1.578v-1.59"/><circle cx="24" cy="24" r="21.5"/>',
+  /* O foguete do Arcticons: a máquina indo para a versão seguinte. Ele perdeu a
+   * entrada `bloco/` — o terceiro bloco deixou de existir em 06/09/2026, e a
+   * página de atualizar passou a se chamar `Idempotência`, dentro de Sistema. */
+  "Idempotência": '<path d="M5.896 22.443L42.105 5.5l-10.836 37l-11.453-13.323z"/><path d="m31.326 16.95l-11.51 12.227v8.747l3.316-4.824"/>',
+  "bloco/Sistema": '<path d="M24 8.408V19.81m5.255-7.944A13.22 13.22 0 0 1 37.223 24h0c0 7.303-5.92 13.223-13.223 13.223h0c-7.303 0-13.223-5.92-13.223-13.223h0c0-5.27 3.129-10.037 7.964-12.133M45.5 24c0 11.874-9.626 21.5-21.5 21.5S2.5 35.874 2.5 24S12.126 2.5 24 2.5S45.5 12.126 45.5 24"/>',
+  /* AUTORAL: o acervo não tem gato — e aqui o gato É o assunto, porque a logo de
+   * fábrica deste projeto são a Coquinha e o Mimir. As orelhas do mascote, em
+   * três traços. A seção mudou de nome (`O gato` -> `Logo do sistema`); o
+   * desenho não muda, porque a marca não mudou. */
+  "Logo do sistema": '<path d="M13 21V11l8 6M35 21V11l-8 6"/><path d="M13 20c0 10 5 17 11 17s11-7 11-17"/>',
 
   /* as abas */
   "Início": '<path d="M42.5 23.075L26.062 7.525a3 3 0 0 0-4.124 0L5.5 23.075m5.86 1.54v14.68a2 2 0 0 0 2 2h7.14v-9.5h7v9.5h7.14a2 2 0 0 0 2-2v-14.68"/>',
-  "Cor e tema": '<rect width="18.314" height="39" x="14.843" y="4.5" rx="3"/><path d="M14.843 33.4h18.314M14.843 22.236s3.933-.233 5.292 2.27s2.605 3.387 4.466.291s3.5-6.83 8.556-.514m-.001-11.601s-1.669-2.183-3.418-2.088s-4.099 4.972-5.418 4.852s-2.285-6.481-4.118-7.03s-5.36 2.35-5.36 2.35"/><ellipse cx="24" cy="38.01" rx="1.965" ry="1.957"/>',
+  "Cor e tela": '<rect width="18.314" height="39" x="14.843" y="4.5" rx="3"/><path d="M14.843 33.4h18.314M14.843 22.236s3.933-.233 5.292 2.27s2.605 3.387 4.466.291s3.5-6.83 8.556-.514m-.001-11.601s-1.669-2.183-3.418-2.088s-4.099 4.972-5.418 4.852s-2.285-6.481-4.118-7.03s-5.36 2.35-5.36 2.35"/><ellipse cx="24" cy="38.01" rx="1.965" ry="1.957"/>',
   /* AUTORAL: o acervo não tem gato. As orelhas do mascote, em três traços. */
   "Ícones": '<path d="M17.5 5.5h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m-21 21h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4m21 0h-8a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-8a4 4 0 0 0-4-4"/>',
   "Barra e dock": '<rect width="22.05" height="32.42" x="12.98" y="7.79" rx="2"/><path d="M35 38.18h5.95a2.6 2.6 0 0 0 2.59-2.59V12.41a2.6 2.6 0 0 0-2.59-2.59H35"/><path d="M35.02 34.8h5.32V15.93h-5.32M13 38.18H7.09a2.6 2.6 0 0 1-2.59-2.59V12.41a2.6 2.6 0 0 1 2.59-2.59H13"/><path d="M12.98 34.8H7.66V15.93h5.32m2.65-3.39h16.75v24.21H15.63z"/>',
-  "Janelas e tela": '<path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/><path d="M23.339 17.751v12.496h6.248m2.665.002H38.5m-6.248-12.496H38.5m-6.248 6.248h4.061m-4.061-6.248v12.496M9.5 17.753h8.279M13.64 30.249V17.753m6.863.015v12.466"/>',
   "Papel de parede": '<path d="M31.315 12.123a4.465 4.465 0 1 1 0 8.93a4.465 4.465 0 0 1 0-8.93m-11.294 8.909l7.224 7.223a.7.7 0 0 0 .992 0l1.383-1.383a.7.7 0 0 1 .993 0l7.807 7.807a.702.702 0 0 1-.497 1.198H10.076a.702.702 0 0 1-.577-1.101l9.45-13.648a.702.702 0 0 1 1.072-.097Z"/><path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/>',
+  /* A TELA, do `tv.svg` do acervo: é a tela inteira que o modo de leitura
+   * esquenta, e não uma parte dela. Sem esta entrada a seção nova caía no
+   * círculo padrão — que é o desenho de "não sei o que é isto". */
+  "Modo de leitura": '<rect width="39" height="25" x="4.5" y="9.75" rx="4" ry="4"/><path d="M16 38.25h16"/>',
   "Dia e noite": '<path d="M42.213 35.215C38.476 41.551 31.585 45.8 23.702 45.8C11.838 45.8 2.22 36.174 2.22 24.3S11.837 2.8 23.7 2.8c-9.647 19.619 6.773 33.218 18.512 32.415"/>',
   "Terminal": '<path d="m10.559 22.908l12.586 7.269l-12.586 7.268m27.329 0H24.445"/><path d="M38.5 5.5h-29a4 4 0 0 0-4 4v29a4 4 0 0 0 4 4h29a4 4 0 0 0 4-4v-29a4 4 0 0 0-4-4"/>',
   /* AUTORAL: idem. */
   "Manutenção": '<path d="M24 43.5c9.043-3.117 15.489-10.363 16.5-19.589a79.4 79.4 0 0 0-.071-12.027a2.54 2.54 0 0 0-2.468-2.366c-4.091-.126-8.846-.808-12.52-4.427a2.05 2.05 0 0 0-2.881 0c-3.675 3.619-8.43 4.301-12.52 4.427a2.54 2.54 0 0 0-2.468 2.366A79.4 79.4 0 0 0 7.5 23.911C8.511 33.137 14.957 40.383 24 43.5"/>',
-  "Instalar e conferir": '<circle cx="13.05" cy="24" r="8.55"/><path d="M43.5 32.55V24h0h-21.91m16.3 4.93V24"/>',
-  "Programas e jogos": '<path d="M24 2.5A21.51 21.51 0 0 0 2.5 24v.91l10.79 3.95a6 6 0 0 1 2.54-1.4a6 6 0 0 1 1.8-.21a8 8 0 0 1 .84.1h0L25 18.12a7.63 7.63 0 0 1 5.65-7.39a7.5 7.5 0 0 1 2.26-.25a7.62 7.62 0 0 1 1.68 15h0a7.5 7.5 0 0 1-2 .25h0l-9.22 6.52h0a6.06 6.06 0 0 1-11.81 2.64h0a6 6 0 0 1-.15-.82l-7.63-2.81A21.49 21.49 0 1 0 24 2.5m8.93 8a7.5 7.5 0 0 0-2.26.25a7.63 7.63 0 0 0-5.39 9.33h0A7.62 7.62 0 0 0 40 16.12h0a7.59 7.59 0 0 0-7.07-5.64ZM17.42 27.25a6.05 6.05 0 0 0-6.05 6h0a6.05 6.05 0 0 0 6.05 6h0a6.05 6.05 0 0 0 6.06-6h0a6.05 6.05 0 0 0-6.05-6.06Z"/>',
+  "Instalação": '<circle cx="13.05" cy="24" r="8.55"/><path d="M43.5 32.55V24h0h-21.91m16.3 4.93V24"/>',
+  /* Duas janelas lado a lado numa moldura: é o que uma área de trabalho é, e
+   * distingue da "Cor e tela", que também desenha janela mas com o acento. */
+  "Áreas de trabalho": '<rect width="39" height="29" x="4.5" y="9.5" rx="3"/><path d="M24 9.5v29M9.5 16h9m-9 6h9m6-6h9m-9 6h9"/>',
+  "Lançadores e jogos": '<path d="M24 2.5A21.51 21.51 0 0 0 2.5 24v.91l10.79 3.95a6 6 0 0 1 2.54-1.4a6 6 0 0 1 1.8-.21a8 8 0 0 1 .84.1h0L25 18.12a7.63 7.63 0 0 1 5.65-7.39a7.5 7.5 0 0 1 2.26-.25a7.62 7.62 0 0 1 1.68 15h0a7.5 7.5 0 0 1-2 .25h0l-9.22 6.52h0a6.06 6.06 0 0 1-11.81 2.64h0a6 6 0 0 1-.15-.82l-7.63-2.81A21.49 21.49 0 1 0 24 2.5m8.93 8a7.5 7.5 0 0 0-2.26.25a7.63 7.63 0 0 0-5.39 9.33h0A7.62 7.62 0 0 0 40 16.12h0a7.59 7.59 0 0 0-7.07-5.64ZM17.42 27.25a6.05 6.05 0 0 0-6.05 6h0a6.05 6.05 0 0 0 6.05 6h0a6.05 6.05 0 0 0 6.06-6h0a6.05 6.05 0 0 0-6.05-6.06Z"/>',
 };
 /* O «bloco/nome» vem primeiro porque "Papel de parede" existe em Configurar e em
  * Executar — o mesmo nome, dois trabalhos. Hoje os dois usam o mesmo desenho, e a
@@ -2277,7 +2700,17 @@ function rotuloDoGrupo(g) {
    * grito — "NO DOCK", "FORMA", "MÚSICA NA BARRA" — no meio de uma página que
    * não grita em nenhum outro lugar. */
   if (g.nome !== assuntoDe(g)) return humanizar(g.nome);
-  return g.tipo === "acoes" ? "Ações" : "Ajustes";
+  /* "AJUSTES" NÃO É TÍTULO, É RUÍDO — 06/09/2026
+   *   Uma seção sem subtítulo no arquivo ganhava um `<h3>Ajustes</h3>` entre o
+   *   título da página e a primeira coisa útil. Ele não separa nada (é o único
+   *   grupo de chaves da página) e não informa nada (a página inteira é de
+   *   ajustes). Custava uma linha de altura e um degrau de leitura em oito das
+   *   dez seções. "Ações" fica: ali o rótulo SEPARA de fato — é o que distingue
+   *   o que se escolhe do que se executa.
+   *
+   *   `null` e não `""`: quem chama testa o valor e simplesmente não desenha o
+   *   `<h3>`, em vez de desenhar um vazio que continua ocupando margem. */
+  return g.tipo === "acoes" ? "Ações" : null;
 }
 
 function botaoTrilho(g, filho, rotulo) {
@@ -2327,6 +2760,305 @@ function contaDoGrupo(g) {
   if (g.tipo === "apps") return APPS ? String(APPS.total) : "";
   if (g.tipo === "jogos") return JOGOS ? String(JOGOS.total) : "";
   return String(g.itens.length);
+}
+
+/* ===========================================================================
+ * UM DESENHO POR BLOCO — O ANTES E O DEPOIS
+ * ===========================================================================
+ * A frente mais importante da rodada, e a razão é dura de ouvir: *"eu mesma tô
+ * extremamente confusa sobre o que tal coisa faz. Eu mesma não consigo fazer
+ * nada sem te pedir ajuda."* Se a dona do projeto não consegue usar o painel
+ * sozinha, ninguém consegue. O bloco FORMA era o único lugar da tela onde isso
+ * não acontecia, e o que ele tem de diferente não é texto melhor: é um desenho
+ * que responde ANTES da leitura, e que muda quando o valor muda.
+ *
+ * QUEM DESENHA NÃO É ESTE ARQUIVO. Cada bloco tem uma função em
+ * `previas-tela.js` ou `previas-sistema.js`, registrada em `window.MEOW_PREVIAS`
+ * sob a chave `"Seção :: BLOCO"` — e só `"Seção"` quando a seção não tem bloco
+ * em CAIXA ALTA, que é exatamente a regra pela qual esta página já nomeia os
+ * grupos (`subsecao || secao`). Aqui só se pergunta e se põe na tela.
+ *
+ * A CHAMADA LEVA DOIS ARGUMENTOS, e o segundo é o coração da coisa:
+ *     fn(v, escolhido) -> { antes, depois, legenda }
+ *   `v`         o que está no `meow.conf` HOJE, chave a chave, como texto;
+ *   `escolhido` só o que ela clicou e ainda não salvou (o `MUDANCAS` filtrado
+ *               para este bloco), ou nada quando não há escolha pendente.
+ *   Com uma entrada só não existiria caminho por onde `depois` pudesse diferir
+ *   de `antes`: a função é pura, e a mesma entrada só pode produzir o mesmo
+ *   desenho. É por isso que o par REAGE AO CLIQUE antes do Salvar — e é isso que
+ *   transforma o desenho em resposta à pergunta "o que este botão vai fazer com
+ *   a minha tela?". O `escolher()` já chama `render()` a cada clique, então não
+ *   é preciso nada além disto para o desenho acompanhar.
+ *
+ * A AUSÊNCIA DOS ARQUIVOS NÃO PODE APAGAR A PÁGINA. Os dois `<script>` são
+ * carregados antes do `app.js` no `index.html`, mas um deles pode não existir
+ * ainda (estão sendo escritos em frentes separadas), e um `404` de `<script>` é
+ * silencioso. Daí o `window.MEOW_PREVIAS || {}`: sem o arquivo, o bloco fica
+ * como estava, sem desenho e sem erro. O mesmo vale para um retorno estranho —
+ * um desenho que quebra não pode levar a tela junto. */
+/* O DESENHO ACOMPANHA O DEDO — 06/09/2026
+ * ===========================================================================
+ * Pedido dela: *"os slides mostrando os ajustes … real time quando for algo
+ * nesse sentido"*.
+ *
+ * Até aqui o deslizante só mexia no número enquanto ela arrastava; o desenho só
+ * mudava no `change`, isto é, quando ela SOLTAVA — e mesmo assim pelo caminho
+ * comprido: `aplica()` grava em `MUDANCAS` e chama `render()`, que reconstrói a
+ * página inteira. Arrastar um deslizante para procurar o valor certo é
+ * exatamente o gesto em que o desenho precisa responder, e era o único em que
+ * ele ficava parado.
+ *
+ * O registro abaixo é o que permite repintar SÓ o bloco daquela chave. Redesenhar
+ * a página a cada pixel de arrasto custaria caro e, pior, tiraria o foco do
+ * deslizante — o arrasto morreria no meio.
+ *
+ * `PROVISORIO` não é `MUDANCAS`: ele vive enquanto o dedo está no controle e
+ * some quando solta. Nada dele chega ao disco, e nada dele conta na barra do
+ * "Salvar" — é o que mantém de pé a regra da casa, "gravar não é aplicar". */
+const PREVIA_VIVA = new Map();   /* chave do meow.conf -> { g | forma, alvo } */
+
+function repintarPrevia(chave, valor) {
+  const reg = PREVIA_VIVA.get(chave);
+  if (!reg || !reg.alvo || !reg.alvo.parentNode) return;
+  PROVISORIO = { chave: chave, valor: valor };
+  try {
+    if (reg.forma) {
+      /* O mock lê tudo por `valorEmVigor`, que já conhece o `PROVISORIO`:
+       * reconstruir os dois basta, e não há contrato novo a inventar. */
+      const par = reg.alvo;
+      par.replaceChildren(mockDaBarra({ chave: "FORMA_RAIO_PAINEL" }),
+                          mockDaBarra({ chave: "FORMA_RAIO_DOCK" }));
+      return;
+    }
+    const novo = parDePrevias(reg.g);
+    if (novo) {
+      reg.alvo.replaceWith(novo);
+      reg.alvo = novo;
+      /* Todas as chaves do bloco apontam para o MESMO nó, e ele acabou de ser
+       * trocado: sem isto, a segunda chave do bloco repintaria um nó órfão. */
+      for (const [k, r] of PREVIA_VIVA) if (r.g === reg.g) r.alvo = novo;
+    }
+  } finally {
+    PROVISORIO = null;
+  }
+}
+
+function parDePrevias(g) {
+  if (g.tipo !== "chaves" || !g.itens.length) return null;
+  const mapa = (typeof window !== "undefined" && window.MEOW_PREVIAS) || {};
+  /* A chave é montada com a MESMA regra que batiza o grupo: quando o bloco em
+   * caixa alta existe, ele é o `g.nome` e a seção é o `g.secaoPai`. */
+  const nome = g.nome === g.secaoPai ? g.nome : `${g.secaoPai} :: ${g.nome}`;
+  const desenhar = mapa[nome];
+  if (typeof desenhar !== "function") return null;
+
+  const v = {};
+  const escolhido = {};
+  for (const item of g.itens) {
+    v[item.chave] = item.valor ?? "";
+    if (MUDANCAS.has(item.chave)) escolhido[item.chave] = MUDANCAS.get(item.chave);
+    /* O valor sob o dedo vence o que já estava escolhido, e vence o disco: é o
+     * que ela está vendo no deslizante neste instante, e o desenho tem de
+     * concordar com o número que está na tela ao lado dele. */
+    if (PROVISORIO && PROVISORIO.chave === item.chave) escolhido[item.chave] = PROVISORIO.valor;
+  }
+  let r;
+  try {
+    /* Passar `undefined` e não `{}` quando nada está pendente: é assim que o
+     * contrato pede `depois: null`, e um objeto vazio faria o outro lado
+     * calcular um segundo desenho idêntico para descobrir isso. */
+    r = desenhar(v, Object.keys(escolhido).length ? escolhido : undefined);
+  } catch (e) {
+    /* As funções já prometem não lançar, e ainda assim: uma promessa quebrada
+     * aqui apagaria a aba inteira, e o custo de não confiar são três linhas. */
+    return null;
+  }
+  if (!r || !r.antes) return null;
+
+  /* O PAR NÃO É ILUSTRAÇÃO: ELE É O CONTROLE — 06/09/2026
+   *   Pedido dela, literal: *"como teremos o antes e depois nessa seção ao
+   *   invés de selecionar o sim e o não. selecionamos o antes ou o depois com
+   *   bordas indicando se tratarem de botões"*.
+   *
+   *   Três desenhos maiores foram propostos e os três caíram na conferência —
+   *   um deles produzia, depois do recorte, dois botões PIXEL A PIXEL IDÊNTICOS.
+   *   O que sobreviveu é a leitura mais literal do que ela escreveu, e é a mais
+   *   barata: o par que já está no alto do bloco, e que já reage ao dedo dela,
+   *   ganha borda e passa a ser onde se escolhe.
+   *
+   *   A semântica é a que o par já tinha, dita em voz alta:
+   *     - "Como fica" existe só quando há escolha esperando, e é o que está
+   *       marcado. Apertá-lo não muda nada, e por isso ele NÃO é botão: um
+   *       botão que não faz nada ensina a não confiar nos outros.
+   *     - "Como está" é o desfazer DAQUELE bloco. É a única coisa nova, e é o
+   *       que faltava: até aqui, desistir custava achar cada cartão mexido, ou
+   *       o "Descartar" do topo, que joga fora as escolhas da página inteira.
+   *
+   *   Nada disto toca o disco: `MUDANCAS` é a bandeja, e "gravar não é
+   *   aplicar" continua valendo palavra por palavra. */
+  const desfazerBloco = () => {
+    let quantas = 0;
+    for (const item of g.itens) if (MUDANCAS.delete(item.chave)) quantas++;
+    if (!quantas) return;
+    atualizarBarraSalvar();
+    render();
+    torrada(quantas === 1
+      ? "1 escolha deste bloco desfeita — o meow.conf não foi tocado"
+      : `${quantas} escolhas deste bloco desfeitas — o meow.conf não foi tocado`, "igual");
+  };
+  const temEscolha = Boolean(r.depois);
+  const lado = (rotulo, svg, aoClicar) => {
+    /* SEM PAR, SEM RÓTULO. "Como está" só quer dizer alguma coisa ao lado de um
+     * "Como fica"; sozinho, ele nomeia a única coisa na tela e pede ao olho um
+     * degrau que não leva a lugar nenhum. */
+    const legenda = temEscolha
+      ? elemento("p", { class: "rotulo-mini", texto: rotulo })
+      : null;
+    /* Sem escolha esperando não há o que desfazer, e o "Como está" volta a ser
+     * o que sempre foi: um desenho. Uma borda de botão sem ação por trás é a
+     * mesma promessa vazia. */
+    if (!aoClicar) return elemento("div", {}, [legenda, svg]);
+    return elemento("button", {
+      type: "button",
+      class: "lado-previa",
+      "aria-pressed": String(rotulo !== "Como está"),
+      title: "Desfaz as escolhas deste bloco. O meow.conf não é tocado.",
+      onclick: aoClicar,
+    }, [legenda, svg]);
+  };
+  /* CLASSE PRÓPRIA, E NÃO A `grade-barras` DA FORMA — 06/09/2026
+   *   Reaproveitar a caixa da FORMA parecia certo (o mesmo enquadramento que
+   *   ela já entende), e a medição na tela mostrou que não era: os dois mocks
+   *   da FORMA são `div` que ESTICAM, e um SVG de `viewBox` 100×60 com altura
+   *   fixa não estica — ele se centraliza. Numa coluna de 1600 px o desenho
+   *   saía com 200 px de largura no meio de um oceano vazio, e a primeira
+   *   impressão de um desenho que existe para explicar era "isto está perdido
+   *   na página".
+   *
+   *   `.par-previa` limita a coluna à largura que o desenho realmente ocupa,
+   *   então ele preenche o que lhe cabe — com par ou sem par. A `grade-barras`
+   *   continua intocada, e a FORMA com ela. */
+  const par = elemento("div", { class: "par-previa" }, [
+    lado("Como está", r.antes, temEscolha ? desfazerBloco : null),
+    /* Sem escolha pendente é UM desenho, e não um par com metade vazia: um
+     * quadro em branco rotulado "Como fica" prometeria uma diferença que não
+     * existe. */
+    r.depois ? lado("Como fica", r.depois, null) : null,
+  ]);
+  return elemento("div", { class: "previa-bloco" }, [
+    par,
+    /* A legenda é uma linha, no padrão que a FORMA já usa: começa por "desenho,
+     * não captura:" e diz os números desenhados. */
+    r.legenda ? elemento("p", { class: "sem-previa", texto: r.legenda }) : null,
+  ]);
+}
+
+/* ===========================================================================
+ * A ABA "LOGO DO SISTEMA" DIZ ONDE A LOGO APARECE — 06/09/2026
+ * ===========================================================================
+ * O alvo é dela, e é de produto: *"por default temos os meus dois gatos ali,
+ * mas pensando em produto ele precisa dizer pro user que ele pode colocar o
+ * ícone do Menu de Lançamento — apertar a tecla Windows, e o atual logo do
+ * Pop!_OS"*.
+ *
+ * A aba tinha 21 chaves e nenhuma frase dizendo em QUE LUGAR DA TELA cada uma
+ * age. Quem chega vê "Qual gato fica no dock" e conclui que isto é uma seção
+ * sobre os gatos de outra pessoa — quando o que ela está oferecendo é trocar a
+ * marca do sistema em três lugares nomeados. Então a aba passa a nomeá-los,
+ * antes de qualquer controle:
+ *
+ *   · o MENU DE LANÇAMENTO, que é o que abre ao apertar a tecla Super e hoje
+ *     mostra a coquinha do Pop!_OS;
+ *   · a DOCK;
+ *   · o TERMINAL, onde o fastfetch desenha a logo em letras.
+ *
+ * E as duas coisas que a lista não diz sozinha: que a troca acontece SOZINHA de
+ * dia e de noite, e o que vem de fábrica.
+ *
+ * OS TERMOS DA ABA DEIXARAM DE FALAR EM GATO — exceto onde o assunto é
+ * literalmente o gato de fábrica, que é a última linha. A Coquinha e o Mimir não
+ * saíram de lugar nenhum: eles continuam sendo o acervo de `assets/gatos/` e o
+ * que a chave `LOGO` escolhe. O que mudou é que eles são o PADRÃO, e não o
+ * assunto — o assunto é a logo de quem estiver usando.
+ *
+ * NADA AQUI SUBSTITUI O TEXTO DAS CHAVES. As frases dos cartões continuam vindo
+ * do `meow.conf.exemplo`, que é a fonte única; esta é a moldura que faltava em
+ * volta delas, e ela mora na página porque é da página, e não do arquivo de
+ * configuração, a pergunta "onde eu vejo isto?". */
+const NOTA_DO_ASSUNTO = {
+  "Logo do sistema": {
+    /* As três pastilhas dizem só os NOMES dos lugares — é o que se lê de
+     * relance, e é o que faltava. A frase abaixo carrega o que uma pastilha não
+     * comporta sem virar parágrafo redondo. */
+    lugares: ["Logo do menu de lançamento", "Logo da dock", "Logo do terminal"],
+    fecho: "No menu de lançamento é o que aparece ao apertar a tecla Super, hoje "
+         + "no lugar da coquinha do Pop!_OS; no terminal, a logo é desenhada em "
+         + "letras. A troca acontece sozinha, de dia e de noite. De fábrica vêm "
+         + "a Coquinha e o Mimir — solte um .svg em «Adicionar logo» e a sua "
+         + "entra na lista ao lado deles.",
+  },
+};
+
+function notaDoAssunto(assunto) {
+  const nota = NOTA_DO_ASSUNTO[assunto];
+  if (!nota) return null;
+  const caixa = elemento("div");
+  const lista = elemento("div", { class: "fichas" });
+  for (const nome of nota.lugares) {
+    lista.append(elemento("span", { class: "ficha" }, [elemento("b", { texto: nome })]));
+  }
+  caixa.append(lista);
+  /* `nota-secao` sozinha, e não `frase nota-secao`: a `.frase` corta em três
+   * linhas (é o que impede um comentário de seis linhas de empurrar o cartão),
+   * e aqui o texto é o assunto da tela — cortá-lo esconderia justamente a parte
+   * que diz o que vem de fábrica. */
+  caixa.append(elemento("p", { class: "nota-secao", texto: nota.fecho }));
+  return caixa;
+}
+
+/* ===========================================================================
+ * O QUE ENTRA DE FORA, NA PÁGINA A QUE PERTENCE
+ * ===========================================================================
+ * Dois dos seis destinos do `botaoAcervo` não têm um CONTROLE de onde pendurar:
+ * a fonte e o tema de ícones de base não são a opção de uma chave — são coisas
+ * que a máquina precisa TER para que as chaves façam sentido. O gato pendura no
+ * controle de `LOGO`, o ponteiro no de `CURSOR`, a imagem na galeria; estes dois
+ * penduram no assunto.
+ *
+ * A FONTE MORA NO TERMINAL porque é lá que ela decide alguma coisa nesta
+ * máquina: o gato em ANSI do fastfetch é desenhado em células da fonte do
+ * terminal, e o `FASTFETCH_LOGO_PROPORCAO` existe justamente para converter
+ * pixel em célula "na sua fonte". Medido no `meow.conf.exemplo`: nenhuma chave
+ * nomeia uma família de fonte, então não há cartão a que ela pertença. */
+const ACERVO_DO_ASSUNTO = {
+  "Ícones": {
+    tipo: "tema-icones",
+    nota: "Um tema de ícones de base, em .zip. Ele entra na máquina, e o "
+        + "«Tema de base» acima passa a poder escolhê-lo.",
+  },
+  "Terminal": {
+    tipo: "fonte",
+    nota: "Uma fonte para o terminal, em .zip, .ttf ou .otf. Ela é instalada e "
+        + "registrada na máquina; escolhê-la é coisa dos Ajustes do terminal.",
+  },
+};
+
+function acervoDoAssunto(assunto) {
+  const conf = ACERVO_DO_ASSUNTO[assunto];
+  if (!conf) return null;
+  const botao = botaoAcervo(conf.tipo, async () => {
+    /* Reler o esquema porque a lista de temas de ícones e a de fontes são
+     * lidas do disco pelo servidor: sem isto o que acabou de entrar só
+     * apareceria depois de um F5, que é o mesmo defeito que o acervo de gatos
+     * teve até 02/09/2026. */
+    await recarregarEsquema();
+    render();
+  });
+  if (!botao) return null;
+  return elemento("div", { class: "com-acervo" }, [
+    elemento("p", { class: "frase", texto: conf.nota }),
+    botao,
+  ]);
 }
 
 /* ===========================================================================
@@ -2394,10 +3126,15 @@ function devolverFoco(ancora) {
 }
 
 function render() {
+  /* Os nós da passagem anterior morreram com ela. Um registro que sobrevive
+   * ao `render` guarda referência para árvore descartada, e o repintar acha um
+   * nó sem pai — silencioso, e cada vez mais caro. */
+  PREVIA_VIVA.clear();
   const ancora = ancoraDoFoco();
   montarTrilho();
   const alvo = $("#conteudo");
   alvo.replaceChildren();
+  ACERVO_DESENHADO.clear();
   const busca = semAcento($("#busca").value.trim());
 
   /* A busca atravessa TODOS os grupos, e é assim que uma página de cem chaves
@@ -2421,7 +3158,28 @@ function render() {
   let ultimoAssunto = null;
   let barraDesenhada = false;   // o par painel+dock sai uma vez por página
 
-  for (const g of grupos) {
+  /* OS AJUSTES VÊM ANTES DO ACERVO — 06/09/2026
+   *   Medido na tela: em "Papel de parede" a galeria tem 255 imagens e nasce no
+   *   alto da página; os nove cartões de ajuste — e o desenho do bloco, que
+   *   existe justamente para explicá-los — ficavam depois de todas elas. Para
+   *   mudar o intervalo do carrossel era preciso rolar por um acervo inteiro. O
+   *   mesmo em "Ícones", com 48.
+   *
+   *   O acervo não some nem encolhe: ele deixa de ser a porta. Quem chega numa
+   *   seção chega para ajustar; olhar a coleção é a segunda coisa que se faz
+   *   ali, e agora ela está uma rolagem abaixo em vez de na frente. */
+  const PESO = { chaves: 0, acoes: 1, galeria: 2, apps: 2, jogos: 2, folhas: 3 };
+  /* `sort` ESTÁVEL E POR SEÇÃO: devolver 0 entre grupos de seções diferentes
+   * preserva a ordem que o servidor mandou (o `sort` do JavaScript é estável
+   * desde 2019), então a sequência das seções na página não muda — só a ordem
+   * DENTRO de cada uma. E é uma cópia: `grupos` é `const` e é lido de novo
+   * adiante, no cálculo do trilho. */
+  const ordenados = grupos.slice().sort((a, b) => {
+    if (a.tipo === "home" || b.tipo === "home") return 0;
+    if (assuntoDe(a) !== assuntoDe(b)) return 0;
+    return (PESO[a.tipo] ?? 9) - (PESO[b.tipo] ?? 9);
+  });
+  for (const g of ordenados) {
     /* A home desenha o próprio cabeçalho: um `h2` "Início" acima dela seria o
      * título de uma tela que já se apresenta. */
     if (g.tipo === "home") { alvo.append(montarHome()); continue; }
@@ -2451,10 +3209,18 @@ function render() {
       if (!busca) {
         const frase = descricaoDe(assunto);
         if (frase) alvo.append(elemento("p", { class: "descricao-secao", texto: frase }));
+        /* A nota da aba vem depois da frase da seção e antes de tudo o mais:
+         * ela é o que responde "onde isto aparece na minha tela?", e essa é a
+         * primeira pergunta de quem abre a aba. */
+        const nota = notaDoAssunto(assunto);
+        if (nota) alvo.append(nota);
+        const acervo = acervoDoAssunto(assunto);
+        if (acervo) alvo.append(acervo);
       }
     }
     if (grupos.length > 1) {
-      alvo.append(elemento("h3", { class: "subsecao-titulo", texto: rotuloDoGrupo(g) }));
+      const rotulo = rotuloDoGrupo(g);
+      if (rotulo) alvo.append(elemento("h3", { class: "subsecao-titulo", texto: rotulo }));
     }
     if (g.tipo === "folhas") { alvo.append(montarFolhas(g.itens)); continue; }
     if (g.tipo === "apps") { alvo.append(montarApps()); continue; }
@@ -2484,15 +3250,56 @@ function render() {
       const par = elemento("div", { class: "grade-barras" });
       par.append(mockDaBarra({ chave: "FORMA_RAIO_PAINEL" }));
       par.append(mockDaBarra({ chave: "FORMA_RAIO_DOCK" }));
+      /* O PAR DA FORMA TAMBÉM DESFAZ — 06/09/2026
+       *   Medida a interação aba a aba: em nove das dez seções o "Como está"
+       *   virava botão e devolvia as escolhas do bloco; em "Barra e dock" não,
+       *   porque o desenho da FORMA não passa pelo `parDePrevias` — e "Barra e
+       *   dock" é justamente a seção que ela mais mexe, com 30 chaves.
+       *
+       *   O desfazer aqui cobre as DEZ chaves que o mock lê, e não as 30 da
+       *   seção: é o desfazer DESTE desenho, e prometer mais do que o desenho
+       *   mostra seria outra promessa vazia. */
+      const pendentes = CHAVES_DO_MOCK.filter((c) => MUDANCAS.has(c));
+      if (pendentes.length) {
+        par.classList.add("par-desfazivel");
+        par.prepend(elemento("button", {
+          type: "button",
+          class: "btn btn-mini desfazer-forma",
+          texto: pendentes.length === 1 ? "Desfazer 1 escolha" : `Desfazer ${pendentes.length} escolhas`,
+          title: "Devolve a forma da barra e da dock ao que está no disco. O meow.conf não é tocado.",
+          onclick: () => {
+            for (const c of pendentes) MUDANCAS.delete(c);
+            atualizarBarraSalvar();
+            render();
+            torrada(pendentes.length === 1
+              ? "1 escolha da forma desfeita — o meow.conf não foi tocado"
+              : `${pendentes.length} escolhas da forma desfeitas — o meow.conf não foi tocado`, "igual");
+          },
+        }));
+      }
       alvo.append(par);
+      /* A FORMA É O BLOCO QUE ELA MAIS MEXE, e era o único sem tempo real:
+       * o desenho dele não vem do `MEOW_PREVIAS`, então o registro por bloco não
+       * o alcançava. Medido: em "Barra e dock", arrastar o raio não mudava
+       * desenho nenhum, enquanto as outras três abas com deslizante já
+       * respondiam. As dez chaves que o mock lê ficam registradas apontando
+       * para este mesmo par. */
+      for (const chave of CHAVES_DO_MOCK) PREVIA_VIVA.set(chave, { forma: par, alvo: par });
     }
-    if (!busca && g.nome === GRUPO_ICONES) {
-      alvo.append(elemento("p", {
-        class: "frase",
-        texto: "O tema de ícones como ele está no disco agora. Trocar uma chave abaixo "
-             + "só muda isto depois de “Reconstruir o tema de ícones”.",
-      }));
-      alvo.append(gradeDeIcones());
+    /* O PAR ANTES/DEPOIS ABRE O BLOCO, e é por bloco mesmo: o desenho responde
+     * às chaves DAQUELE bloco, e pô-lo no alto da página misturaria a barra com
+     * o relógio e a música. A exceção é a FORMA, logo acima, cujo par
+     * painel+dock é do ASSUNTO — porque as chaves dele vêm em pares que moram em
+     * blocos vizinhos, e comparar os dois é metade da escolha. */
+    if (!busca) {
+      const previa = parDePrevias(g);
+      if (previa) {
+        alvo.append(previa);
+        /* Uma entrada por chave do bloco, todas apontando para o mesmo nó: o
+         * deslizante conhece a própria chave e nada mais, e é por ela que ele
+         * acha o desenho que precisa repintar. */
+        for (const item of g.itens) PREVIA_VIVA.set(item.chave, { g: g, alvo: previa });
+      }
     }
     const grade = elemento("div", { class: "grade" });
     for (const item of g.itens) {
@@ -2504,6 +3311,26 @@ function render() {
       grade.append(g.tipo === "acoes" ? montarAcao(item) : montarCartao(item));
     }
     alvo.append(grade);
+
+    /* A GRADE DO DISCO VEM DEPOIS DOS CONTROLES — 06/09/2026
+     *   Ela abria a seção, e na tela isso punha DUAS prévias em sequência: os
+     *   ícones que estão instalados agora e, logo abaixo, o desenho do que as
+     *   chaves fazem. Duas imagens seguidas, com propósitos diferentes e sem
+     *   nada entre elas, leem-se como a mesma coisa repetida.
+     *
+     *   Elas respondem a perguntas de tempos diferentes, e a ordem passa a
+     *   dizê-lo: primeiro o desenho ("o que estas chaves fazem"), depois os
+     *   controles, e por último o disco ("o que já está lá") — que não é
+     *   escolha, é conferência, e a frase ao lado dela avisa que só muda depois
+     *   de reconstruir. */
+    if (!busca && g.nome === GRUPO_ICONES) {
+      alvo.append(elemento("p", {
+        class: "frase",
+        texto: "O tema como está no disco agora. Trocar uma chave acima só muda "
+             + "isto depois de “Reconstruir o tema de ícones”.",
+      }));
+      alvo.append(gradeDeIcones());
+    }
   }
   devolverFoco(ancora);
   /* A ABA ABERTA APARECE — em 375px o trilho vira uma tira horizontal com vinte
@@ -2585,7 +3412,7 @@ function montarHome() {
   const gato = gatos && gatos.itens.find((i) => i.id === gatoNome);
   if (gato && gato.url) {
     retrato.append(elemento("img", { class: "home-gato", src: gato.url, alt: "",
-                                     title: `O gato em vigor: ${gatoNome}` }));
+                                     title: `A logo em vigor: ${gatoNome}` }));
   }
 
   const ident = elemento("div", { class: "home-id" });
@@ -2610,7 +3437,7 @@ function montarHome() {
 
   const comoEscolhido = { hora: "escolhido pelo relógio", rotacao: "girando pela lista", fixo: "fixo" };
   ident.append(elemento("p", { class: "home-linha", texto:
-    `Gato ${gatoNome || "—"}, ${comoEscolhido[vale("LOGO_MODO")] || "fixo"} · ícones ${vale("NOME_TEMA_ICONES")} · ponteiro ${vale("CURSOR") || "de fábrica"}` }));
+    `Logo ${gatoNome || "—"}, ${comoEscolhido[vale("LOGO_MODO")] || "fixo"} · ícones ${vale("NOME_TEMA_ICONES")} · ponteiro ${vale("CURSOR") || "de fábrica"}` }));
   retrato.append(ident);
 
   /* As fotos são a COLEÇÃO, não "a que está na tela" — a página não sabe qual
@@ -2645,16 +3472,20 @@ function montarHome() {
   }
 
   /* --- 3. as portas: uma por bloco do menu, sempre ------------------------
-   * Eram duas escritas à mão, e o menu ganhou um terceiro bloco em 06/09/2026 —
-   * a home ficou com uma porta a menos que o menu ao lado, sem nada dizer. Aqui
-   * elas saem do MESMO `blocoDoAssunto` que desenha o menu: bloco novo aparece
-   * na home no mesmo dia, e bloco que sair some junto. */
+   * Elas saem do MESMO `blocoDoAssunto` que desenha o menu: bloco novo aparece
+   * na home no mesmo dia, e bloco que sair some junto. Era esse o defeito de
+   * quando as portas eram escritas à mão — o menu ganhou um bloco e a home
+   * ficou com uma porta a menos, sem nada dizer.
+   *
+   * As frases seguem os DOIS nomes de 06/09/2026 (Tópicos · Sistema). As três
+   * entradas antigas ("Assuntos", "A máquina", "A nova versão") saíram em vez
+   * de ficar de reserva: uma frase que nenhum bloco alcança não é retrocompa-
+   * tibilidade, é uma linha que mente para quem lê o arquivo. Bloco sem frase
+   * cai no `|| ""`, que é silêncio — e silêncio é melhor que frase genérica. */
   const ordemDosAssuntos = assuntosEmOrdem();
-  const comChave = ordemDosAssuntos.filter(temChaves);
   const FRASE_DO_BLOCO = {
-    "Assuntos": "Cada assunto numa página: a coleção, os ajustes e as ações, juntos.",
-    "A máquina": "Instalar, conferir, consertar, desfazer, e o que está no ar.",
-    "A nova versão": "Atualizar o Pop!_OS, e ver o que a atualização desfez daqui.",
+    "Tópicos": "Cada assunto numa página: a coleção, os ajustes e as ações, juntos.",
+    "Sistema": "Instalar, conferir, manter, e o Pop!_OS em dia sem desfazer isto aqui.",
   };
   const blocos = [];
   for (const assunto of ordemDosAssuntos) {
@@ -2709,7 +3540,10 @@ function montarHome() {
   ]));
   const frases = [];
   if (vale("LOGO_MODO") === "hora" && vale("LOGO_NOITE")) {
-    frases.push(`O gato do dock passa a ser ${maiuscula(vale("LOGO_NOITE"))}`
+    /* "logo", e não "gato": a aba passou a se chamar `Logo do sistema` em
+     * 06/09/2026, e o vocabulário da home tem de ser o mesmo — o VALOR continua
+     * sendo o nome de um gato quando é o de fábrica, e é ele que aparece aqui. */
+    frases.push(`A logo da dock passa a ser ${maiuscula(vale("LOGO_NOITE"))}`
       + (vale("FASTFETCH_LOGO_MODO") === "espelho" && vale("LOGO_DIA")
          ? `, e o do terminal, ${maiuscula(vale("LOGO_DIA"))}.` : "."));
   }
@@ -2726,14 +3560,31 @@ function montarHome() {
     frases.push("O modo de leitura fica desligado.");
   }
   noite.append(elemento("p", { class: "home-linha", texto: frases.join(" ") }));
-  const abaNoite = GRUPOS.find((g) => g.nome === "Dia e noite")
-    || GRUPOS.find((g) => g.secaoPai === "Dia e noite");
-  if (abaNoite) {
+
+  /* DUAS PORTAS, E NENHUM NÚMERO CRAVADO — 06/09/2026.
+   *   Este botão era um só, dizia "As 13 chaves que respondem «soltar o que
+   *   muda de noite»" e levava a "Dia e noite". As duas metades estavam erradas
+   *   depois de a Frente A partir a seção em duas:
+   *     · o número. "Dia e noite" ficou com SEIS chaves; as outras sete
+   *       (`LEITURA_*`) mudaram-se para "Modo de leitura". Treze era a soma de
+   *       antes, e um número escrito à mão numa página derivada envelhece na
+   *       primeira vez que alguém mexe no arquivo — foi o que aconteceu;
+   *     · o destino. Este bloco fala das DUAS coisas (o carrossel e a logo, que
+   *       são de "Dia e noite"; a tela quente, que é de "Modo de leitura"), e
+   *       mandava para uma só. Quem lesse "A tela esquenta até 3500 K" e
+   *       clicasse aqui chegaria numa página onde essa chave não está.
+   *   Agora a contagem é somada dos grupos, e há um botão por assunto que
+   *   EXISTE — se um deles sumir do `meow.conf.exemplo`, o botão dele some
+   *   junto, sem deixar um caminho morto na home. */
+  for (const assunto of ["Dia e noite", "Modo de leitura"]) {
+    const meus = GRUPOS.filter((g) => g.tipo === "chaves" && assuntoDe(g) === assunto);
+    if (!meus.length) continue;
+    const quantas = meus.reduce((s, g) => s + g.itens.length, 0);
     noite.append(elemento("button", {
       type: "button", class: "btn btn-mini",
-      texto: "Abrir Dia e noite",
-      title: "As 13 chaves que respondem «soltar o que muda de noite»",
-      onclick: () => { ABA = chaveDeAba(abaNoite); gravarHash(); render(); },
+      texto: `Abrir ${assunto}`,
+      title: `${quantas} ${quantas === 1 ? "chave" : "chaves"} em «${assunto}»`,
+      onclick: () => { ABA = assunto; gravarHash(); render(); },
     }));
   }
   caixa.append(noite);
@@ -2965,16 +3816,22 @@ function montarGrupos() {
     /* A galeria é um grupo do trilho como os outros — ela não é uma chave do
      * meow.conf, é o acervo em si, que neste projeto É a configuração ("soltou o
      * arquivo, entrou; apagou, saiu"). */
-    /* TRÊS BLOCOS, E NÃO DOIS — aprovado por ela na
-     * `docs/folhas/folha-menu-do-painel.html` (02/09/2026).
-     *   A galeria e os ícones por aplicativo viviam em "Fazer", ao lado do botão
-     *   que roda o instalador. Olhar uma capa e escolher um desenho não é
-     *   disparar um script — e são as telas em que ela passa mais tempo, então
-     *   sobem para o topo. `bloco` é o que o `montarTrilho` lê; quem não diz
-     *   nada cai em "Rodar", que continua sendo o resto. */
+    /* ELAS NÃO DECLARAM BLOCO, E NÃO PRECISAM.
+     *   A galeria e os ícones por aplicativo viviam numa aba "Fazer", ao lado do
+     *   botão que roda o instalador. Olhar uma capa e escolher um desenho não é
+     *   disparar um script — e são as telas em que ela passa mais tempo. Hoje
+     *   cada uma entra no ASSUNTO a que pertence, e o bloco do assunto vem da
+     *   tabela do servidor (ver `blocoDoAssunto`): as três caem em "Tópicos"
+     *   porque nenhuma das três seções está na tabela, que é o padrão. */
     GRUPOS.push({ tipo: "galeria", assunto: "Papel de parede", nome: "A coleção", itens: [] });
     GRUPOS.push({ tipo: "apps", assunto: "Ícones", nome: "Um ícone por programa", itens: [] });
-    GRUPOS.push({ tipo: "jogos", assunto: "Programas e jogos", nome: "Os jogos instalados", itens: [] });
+    /* O ASSUNTO É O NOME DA SEÇÃO DO `meow.conf.exemplo`, e ele mudou em
+     * 06/09/2026: `Programas e jogos` virou `Lançadores e jogos`. Um assunto
+     * declarado aqui que não case com o do arquivo NÃO dá erro — ele abre uma
+     * décima terceira página no menu, com as capas dos jogos sozinhas, ao lado
+     * da página de mesmo assunto que tem as quatro chaves. Duas páginas para um
+     * assunto só é exatamente o que a unificação do menu desfez. */
+    GRUPOS.push({ tipo: "jogos", assunto: "Lançadores e jogos", nome: "Os jogos instalados", itens: [] });
 
     /* AS FOLHAS SAÍRAM DO PAINEL — 06/09/2026: "remover estudos de tela, tem que
      * sair, é sobre meu pc". Elas são a memória do desenho, não um lugar onde se
@@ -3021,13 +3878,28 @@ async function iniciar() {
    *   DESLIGADO e calado depois de recarregar. Numa página cujo botão seguinte
    *   pode rodar o instalador, a rede de segurança tem de ser a coisa que mais
    *   lembra do estado. `sessionStorage` e não `localStorage`: vale enquanto a
-   *   aba viver, que é o tempo de vida do próprio servidor. */
+   *   aba viver, que é o tempo de vida do próprio servidor.
+   *
+   *   O ESTADO É O `aria-pressed`, E POR ISSO ESTAS DOZE LINHAS MUDARAM JUNTO
+   *   COM O CONTROLE. Com a caixa de marcar, restaurar era `.checked = true` e
+   *   ouvir era `change`. Num `<button>` as duas são mudas: `.checked` não
+   *   existe e `change` não dispara. A restauração escreve o atributo (que é o
+   *   que o `estilo.css` lê para acender o amarelo, e o que o `ensaiando()` lê
+   *   para decidir), e quem ouve é o `click`, que é o único evento que um botão
+   *   de dois estados tem. */
   try {
-    if (sessionStorage.getItem("meow-seco") === "1") $("#seco").checked = true;
+    if (sessionStorage.getItem("meow-seco") === "1") {
+      $("#seco").setAttribute("aria-pressed", "true");
+    }
   } catch (e) { /* aba sem armazenamento: o padrão desligado continua valendo */ }
-  $("#seco").addEventListener("change", () => {
+  $("#seco").addEventListener("click", () => {
+    /* Vira o estado ANTES de gravar: o clique é o gesto, e o atributo é a
+     * memória dele. Um `<button>` não vira sozinho como uma caixa de marcar
+     * virava — quem inverte é esta linha. */
+    const ligado = !ensaiando();
+    $("#seco").setAttribute("aria-pressed", String(ligado));
     try {
-      sessionStorage.setItem("meow-seco", $("#seco").checked ? "1" : "0");
+      sessionStorage.setItem("meow-seco", ligado ? "1" : "0");
     } catch (e) { /* idem */ }
   });
 
