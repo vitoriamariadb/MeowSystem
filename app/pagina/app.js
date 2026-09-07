@@ -2802,24 +2802,25 @@ function montarTrilho() {
  *   a página é servida a partir do disco e o remoto pode ser um espelho, um
  *   clone de terceiro, ou nenhum. Um link de menu que aponta para lugar
  *   diferente conforme a máquina é pior que um link só. */
-const REPO_NO_AR = "https://github.com/[REDACTED]/MeowSystem";
-
-/* VERDE COMO O «SISTEMA», E ISSO É O PEDIDO DELA: *"coloca verde igual
- * Sistema"*. O verde é a cor dos RÓTULOS DE BLOCO do trilho, e é o que separa
- * "isto é um lugar da página" de "isto abre outra janela". Estes dois não são
- * abas, não têm contagem e não guardam estado — são as duas páginas do
- * repositório. */
-const LINKS_EXTERNOS = [
-  /* "O manual" saiu a pedido dela em 07/09/2026, no mesmo dia em que entrou:
-   * apontava para o topo do README, e o topo do README é a mesma coisa que a
-   * página inteira já é. Ficou o que o painel não tem em lugar nenhum — a
-   * licença de cada acervo de terceiro que este projeto veste. */
-  { nome: "Créditos", href: REPO_NO_AR + "#créditos",
-    titulo: "A paleta, os glifos e a base de ícones que este projeto usa — "
-          + "com a licença de cada um, no GitHub" },
-];
-
+/* O ENDEREÇO VEM DO SERVIDOR, que o lê do `git remote` — nunca escrito aqui.
+ * Escrito aqui ele não sobrevive ao commit: o hook troca o nome dela por
+ * `[REDACTED]`, e o link vai para o ar apontando para uma URL morta. Foi o que
+ * aconteceu no primeiro commit que tentou, em 07/09/2026. */
 function itensExternos() {
+  const repo = (ESQUEMA && ESQUEMA.repositorio) || "";
+  /* Sem remoto não há para onde ir, e um item que não abre é pior que um item a
+   * menos: ela clicaria uma vez, não aconteceria nada, e a partir dali o menu
+   * inteiro seria suspeito. */
+  if (!repo) return [];
+  /* "O manual" entrou e saiu no mesmo dia, a pedido dela: apontava para o topo
+   * do README, e o topo do README é a mesma coisa que esta página já é. Ficou o
+   * que o painel não tem em lugar nenhum — a licença de cada acervo de terceiro
+   * que este projeto veste. */
+  const LINKS_EXTERNOS = [
+    { nome: "Créditos", href: repo + "#créditos",
+      titulo: "A paleta, os glifos e a base de ícones que este projeto usa — "
+            + "com a licença de cada um, no GitHub" },
+  ];
   return LINKS_EXTERNOS.map((l) => elemento("a", {
     class: "item-externo",
     href: l.href,
