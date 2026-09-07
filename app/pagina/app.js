@@ -599,6 +599,7 @@ function montarControle(item, cartao) {
   }
   if (item.previa === "flavor") return controleFlavor(item, aplica);
   if (item.previa === "cor") return controleCor(item, aplica);
+  if (item.previa === "areas") return controlePorArea(item, aplica);
 
   /* 1. lista separada por vírgula -> fichas */
   if (item.lista || item.lista_pathsep) {
@@ -1118,6 +1119,70 @@ function avisoDeCombinacao() {
   ]);
 }
 
+/* UM SIM/NÃO POR ÁREA — 07/09/2026
+ *   `AREAS_FOLGA` guarda os NOMES das áreas que ganham o espaço-figura, e como
+ *   campo de texto pedia que ela digitasse o nome de novo, igualzinho ao que já
+ *   está na chave de cima. Errar uma letra era gravar uma linha que o
+ *   `areas.sh` não casa com área nenhuma — e ele não reclama, porque do ponto
+ *   de vista dele a lista pode nomear uma área que ainda vai existir. O único
+ *   aviso era o desenho não mudar.
+ *
+ *   AS ÁREAS SAEM DO `valorEmVigor` DA CHAVE DE CIMA, e não do disco: se ela
+ *   acabou de renomear "OS" para "Trabalho" e ainda não salvou, é "Trabalho"
+ *   que tem de aparecer aqui. As duas chaves são gravadas juntas, então mostrar
+ *   o nome velho seria mostrar um botão que grava um nome que vai deixar de
+ *   existir no mesmo "Salvar".
+ *
+ *   O QUE ELE GRAVA continua sendo o formato do arquivo: os nomes marcados,
+ *   separados por vírgula, na ordem em que aparecem em `AREAS_NOMES`. Nenhuma
+ *   chave nova, nenhum formato novo — só a forma de dizer a mesma coisa. */
+function controlePorArea(item, aplica) {
+  const nomesItem = ESQUEMA.chaves.find((k) => k.chave === "AREAS_NOMES");
+  const nomes = String(nomesItem ? valorEmVigor(nomesItem) : "")
+    .split(",").map((x) => x.trim()).filter(Boolean);
+  /* Sem áreas nomeadas não há o que ligar, e um controle vazio seria pior que o
+   * campo de texto: ele diria "não há escolha" quando o que há é uma chave de
+   * cima em branco. Cai no campo comum, que ao menos deixa escrever. */
+  if (!nomes.length) return null;
+
+  const marcadas = new Set(String(valorEmVigor(item))
+    .split(",").map((x) => x.trim()).filter(Boolean));
+  const caixa = elemento("div", { class: "por-area" });
+  for (const nome of nomes) {
+    const ligada = marcadas.has(nome);
+    const linha = elemento("div", { class: "linha-area" });
+    linha.append(elemento("span", { class: "nome-area", texto: nome }));
+    const par = elemento("div", { class: "estados" });
+    for (const [rotulo, quer] of [["Sim", true], ["Não", false]]) {
+      /* A ORDEM É A DE `AREAS_NOMES`, sempre — remontar a lista a partir dela,
+       * em vez de acrescentar no fim, faz o valor gravado ser o mesmo
+       * independentemente da ordem dos cliques. Dois caminhos que levam ao mesmo
+       * estado têm de gravar o mesmo texto, senão o "14 mudados por você" do
+       * topo conta uma mudança que não existe. */
+      const novas = new Set(marcadas);
+      if (quer) novas.add(nome); else novas.delete(nome);
+      const daria = nomes.filter((n) => novas.has(n)).join(", ");
+      par.append(elemento("button", {
+        type: "button",
+        class: "btn btn-mini" + (ligada === quer ? " escolhido" : ""),
+        "aria-pressed": String(ligada === quer),
+        /* O QUE ESTE BOTÃO GRAVARIA, escrito no próprio botão. Nenhum código
+         * desta página o lê: é o contrato com `tests/app-navegador.py`, que
+         * varre a interface sem saber o que cada cartão é e precisa de uma
+         * forma única de perguntar "qual valor você põe?". Sem ele o teste não
+         * enxergava este controle, e ficava dizendo "sem controle" sobre um
+         * cartão que tem quatro botões. */
+        "data-valor": daria,
+        texto: rotulo,
+        onclick: () => aplica(daria),
+      }));
+    }
+    linha.append(par);
+    caixa.append(linha);
+  }
+  return caixa;
+}
+
 function controleFlavor(item, aplica) {
   const flavors = ESQUEMA.paleta.flavors || {};
   const caixa = elemento("div", { class: "amostras" });
@@ -1191,7 +1256,37 @@ const CHAVES_DO_MOCK = [
   "FORMA_RECHEIO_PAINEL", "VIDRO_OPACIDADE_PAINEL",
   "FORMA_RAIO_DOCK", "FORMA_MARGEM_DOCK", "FORMA_ESPACO_DOCK",
   "FORMA_RECHEIO_DOCK", "VIDRO_OPACIDADE_DOCK",
+  /* AS DEZ QUE FALTAVAM — 07/09/2026
+   *   Queixa dela, com a aba aberta e quatro escolhas na bandeja: *"eu interajo
+   *   com os botões e os svgs não modificam"*. Medido: o bloco FORMA tem 18
+   *   chaves e o desenho ouvia 8 delas. As dez abaixo não mexiam um pixel — e
+   *   são justamente as que mais mudam a tela: a barra virar pastilha, colar na
+   *   borda, e o tamanho de cada segmento.
+   *
+   *   Elas não entraram antes porque não são NÚMERO DE GEOMETRIA: as quatro
+   *   primeiras são sim/não e as seis últimas são degraus (XS..XL). Um número
+   *   vira `--variavel` no `style` e pronto; estas pediam vocabulário novo no
+   *   desenho, e é o que `mockDaBarra` ganhou junto com esta lista. */
+  "FORMA_PAINEL_SOLTO", "FORMA_PAINEL_ILHA",
+  "FORMA_CENTRO_PAINEL", "FORMA_ALA_INICIAL_PAINEL", "FORMA_ALA_FINAL_PAINEL",
+  "FORMA_DOCK_SOLTO", "FORMA_DOCK_ILHA",
+  "FORMA_CENTRO_DOCK", "FORMA_ALA_INICIAL_DOCK", "FORMA_ALA_FINAL_DOCK",
 ];
+
+/* O APPLET MEDE ISTO, EM UNIDADES LÓGICAS — está no comentário do bloco no
+ * `meow.conf.exemplo`, medido no `lib/painel.sh`: a altura da barra é
+ * `2*recheio + o MAIOR applet que ela hospeda`. O desenho usa os mesmos cinco
+ * números para que subir um segmento engorde a barra aqui como engorda lá — é
+ * a consequência que o arquivo avisa e que nenhum controle mostrava. */
+const TAMANHO_APPLET = { XS: 32, S: 40, M: 56, L: 64, XL: 80 };
+/* Um quarto: com `M` (56) o quadrado sai com 14 px, que era a medida fixa do
+ * desenho antigo. O antigo vira o caso médio do novo, e nada encolhe de
+ * surpresa na tela dela. */
+const ESCALA_APPLET = 0.25;
+/* Vazio herda o tamanho GERAL da barra, que não é chave do meow.conf: mora no
+ * `size` do cosmic-panel. Lidos do disco em 26/08/2026 e escritos no
+ * `scripts/forma.sh:205`: o painel é S e a dock é M. */
+const TAMANHO_GERAL = { painel: "S", dock: "M" };
 
 function mockDaBarra(item) {
   /* AO VIVO QUER DIZER LENDO A ESCOLHA, e não o disco. O desenho prometia
@@ -1204,27 +1299,82 @@ function mockDaBarra(item) {
     return v === "" || v == null ? padrao : v;
   };
   const dock = item.chave.includes("DOCK");
-  const raio = val(dock ? "FORMA_RAIO_DOCK" : "FORMA_RAIO_PAINEL", dock ? 16 : 8);
-  const margem = val(dock ? "FORMA_MARGEM_DOCK" : "FORMA_MARGEM_PAINEL", dock ? 8 : 6);
-  const espaco = val(dock ? "FORMA_ESPACO_DOCK" : "FORMA_ESPACO_PAINEL", dock ? 8 : 4);
-  const recheio = val(dock ? "FORMA_RECHEIO_DOCK" : "FORMA_RECHEIO_PAINEL", dock ? 6 : 5);
-  const opac = val(dock ? "VIDRO_OPACIDADE_DOCK" : "VIDRO_OPACIDADE_PAINEL", 0.8);
+  const suf = dock ? "DOCK" : "PAINEL";
+  const raio = val("FORMA_RAIO_" + suf, dock ? 16 : 8);
+  const margem = val("FORMA_MARGEM_" + suf, dock ? 8 : 6);
+  const espaco = val("FORMA_ESPACO_" + suf, dock ? 8 : 4);
+  const recheio = val("FORMA_RECHEIO_" + suf, dock ? 6 : 5);
+  const opac = val("VIDRO_OPACIDADE_" + suf, 0.8);
 
-  const barra = elemento("div", { class: "barra" });
-  for (let i = 0; i < 5; i++) barra.append(elemento("span"));
+  const sim = (x) => String(x).trim().toLowerCase() === "sim";
+  const solto = sim(val("FORMA_" + suf + "_SOLTO", "sim"));
+  const ilha = sim(val("FORMA_" + suf + "_ILHA", "nao"));
+
+  /* O DEGRAU DE CADA SEGMENTO, e o que "vazio" quer dizer. Vazio não é zero nem
+   * é erro: é "herda o tamanho geral da barra", e o desenho tem de mostrar o
+   * tamanho herdado — senão o cartão vazio pareceria não ter tamanho nenhum. */
+  const geral = TAMANHO_GERAL[dock ? "dock" : "painel"];
+  const degrau = (chave) => {
+    const bruto = String(val(chave, "")).trim().toUpperCase();
+    const proprio = Object.prototype.hasOwnProperty.call(TAMANHO_APPLET, bruto);
+    const nome = proprio ? bruto : geral;
+    return { nome: nome, proprio: proprio, px: TAMANHO_APPLET[nome] * ESCALA_APPLET };
+  };
+  const segs = [
+    { id: "inicial", chave: "FORMA_ALA_INICIAL_" + suf, quantos: 1 },
+    { id: "centro", chave: "FORMA_CENTRO_" + suf, quantos: 3 },
+    { id: "final", chave: "FORMA_ALA_FINAL_" + suf, quantos: 2 },
+  ].map((seg) => Object.assign(seg, degrau(seg.chave)));
+
+  /* A ALTURA SAI DO MAIOR APPLET, como na máquina: `2*recheio + o maior`. Sem
+   * isto, subir a ala inicial para L não mostraria o preço — e o preço é a
+   * barra inteira ficar mais alta, que é o que o arquivo avisa. */
+  const maior = Math.max.apply(null, segs.map((s2) => s2.px));
+  const altura = 2 * (Number(recheio) || 0) + maior;
+
+  const barra = elemento("div", {
+    class: "barra" + (ilha ? " ilha" : ""),
+    style: `--altura:${Math.round(altura)}px`,
+  });
+  for (const seg of segs) {
+    const caixa = elemento("div", { class: "seg", style: `--sq:${seg.px}px` });
+    for (let i = 0; i < seg.quantos; i++) caixa.append(elemento("span"));
+    barra.append(caixa);
+  }
+
+  /* A MARGEM SÓ EXISTE SE A BARRA ESTIVER DESCOLADA — e este é o ponto em que o
+   * desenho antigo MENTIA, não apenas omitia. Medido no `scripts/forma.sh:25`:
+   * gravar `margin: 8` com `anchor_gap: false` é gravar um número que o
+   * compositor descarta calado, e a barra continua encostada na borda. O
+   * desenho pintava o vão assim mesmo — ou seja, mostrava uma tela que a
+   * máquina não ia produzir. */
+  const margemVale = solto ? margem : 0;
   const mock = elemento("div", {
     class: "mock",
-    style: `--raio:${raio}px; --margem:${margem}px; --espaco:${espaco}px;`
+    style: `--raio:${raio}px; --margem:${margemVale}px; --espaco:${espaco}px;`
          + `--recheio:${recheio}px; --op:${Math.max(0.15, Number(opac) || 0.8)}`,
   }, [barra, elemento("div", { class: "rodape" })]);
+
+  const nomeSeg = (id) => (id === "inicial" ? "ponta esquerda"
+                          : id === "final" ? "ponta direita" : "meio");
+  const tamanhos = segs.map((s2) => `${nomeSeg(s2.id)} ${s2.nome}`
+    + (s2.proprio ? "" : " (herdado)")).join(", ");
+  const notas = [
+    `raio ${raio}, espaço ${espaco} e recheio ${recheio}`,
+    solto ? `margem ${margem}` : `colada na borda — a margem ${margem} é gravada e o compositor a descarta`,
+    ilha ? "em pastilha: encolhe até o conteúdo, e os três segmentos se juntam no meio"
+         : "atravessando a tela, com os três segmentos separados",
+    tamanhos,
+    `altura ${Math.round(altura / ESCALA_APPLET / 4) * 4} = 2×recheio + o maior segmento`,
+  ];
 
   return elemento("div", { style: "width:100%" }, [
     mock,
     elemento("p", {
       class: "sem-previa",
-      texto: `desenho, não captura: ${dock ? "a dock" : "o painel"} com raio ${raio}, `
-           + `margem ${margem}, espaço ${espaco} e recheio ${recheio}. `
-           + "Vazio no meow.conf significa que o COSMIC decide, e aqui aparece o padrão dele.",
+      texto: `desenho, não captura: ${dock ? "a dock" : "o painel"} `
+           + notas.join("; ")
+           + ". Vazio no meow.conf significa que o COSMIC decide, e aqui aparece o padrão dele.",
     }),
   ]);
 }
@@ -1631,8 +1781,24 @@ function montarJogos() {
   const lista = (JOGOS.jogos || []).filter((j) =>
     !termo || semAcento(j.nome).includes(termo) || j.appid.includes(termo));
 
+  /* A DECISÃO NÃO É UM JOGO, E NÃO PODE PARECER UM — 07/09/2026
+   *   Queixa dela, sobre o Mad King: *"apagado, esse jogo já foi excluído mas
+   *   algo insiste em trazer ele de volta"*. Nada o trazia. O que ela via era a
+   *   LINHA do `jogos-fora.map` que sobreviveu ao jogo, desenhada como um
+   *   ladrilho do mesmo tamanho dos outros, na mesma grade, com um retângulo
+   *   cinza no lugar da capa. Do lado de fora isso lê "o jogo voltou, e sem
+   *   capa" — que é a leitura certa para aquele desenho.
+   *
+   *   Ela continua tendo de aparecer: sem manifesto, o laço do servidor não a
+   *   encontra, e tirá-la da tela seria esconder a única coisa que ainda existe
+   *   sobre aquela decisão. Então ela sai da grade e vira uma LINHA, com o
+   *   botão de tirar ali mesmo — antes era preciso abrir o cartão para achar o
+   *   "Tirar a linha gasta", e quem não sabe que o cartão abre não acha. */
+  const orfas = lista.filter((j) => j.sem_manifesto);
+  const comJogo = lista.filter((j) => !j.sem_manifesto);
+
   const grade = elemento("div", { class: "grade-jogos" });
-  for (const j of lista) {
+  for (const j of comJogo) {
     const marca = etiquetaDoJogo(j);
     const capa = j.url
       ? elemento("img", { src: j.url, alt: "", loading: "lazy" })
@@ -1653,6 +1819,35 @@ function montarJogos() {
     if (JOGO_ABERTO === j.appid) grade.append(montarEscolhaDeJogo(j));
   }
   caixa.append(grade);
+
+  if (orfas.length) {
+    caixa.append(elemento("h3", { class: "subsecao-titulo", texto: "Decisões já executadas" }));
+    caixa.append(elemento("p", { class: "nota-secao",
+      texto: orfas.length === 1
+        ? "Este jogo não está mais na máquina. A linha fica aqui só para você "
+          + "poder tirá-la: ela não traz o jogo de volta, e não apaga mais nada."
+        : `Estes ${orfas.length} jogos não estão mais na máquina. As linhas ficam `
+          + "aqui só para você poder tirá-las: elas não trazem os jogos de volta, "
+          + "e não apagam mais nada." }));
+    const cxOrfas = elemento("div", { class: "lista-orfas" });
+    for (const j of orfas) {
+      cxOrfas.append(elemento("div", { class: "linha-orfa" }, [
+        elemento("span", { class: "orfa-nome", texto: j.nome }),
+        elemento("span", { class: "orfa-nota",
+          texto: j.apagado_em
+            ? `arquivos apagados em ${j.apagado_em} · appid ${j.appid}`
+            : `appid ${j.appid}` }),
+        elemento("button", {
+          type: "button", class: "btn btn-mini",
+          texto: "Tirar da lista",
+          title: "Apaga a linha do jogos-fora.map. Nenhum arquivo é tocado, e o "
+               + "jogo não volta — ele não está no disco.",
+          onclick: () => definirJogo(j.appid, "", "", true),
+        }),
+      ]));
+    }
+    caixa.append(cxOrfas);
+  }
 
   /* ==========================================================================
    * O ÍCONE DE CADA JOGO, QUE ERA DA ABA DE ÍCONES — 06/09/2026
@@ -1834,8 +2029,10 @@ function botoesDeLado(imagem) {
     ["wallpaper_noite", "Noite",
      "Ela passa a girar só de noite, mesmo que a medição a ache clara."],
   ];
-  /* O campo ainda não vem do servidor (ver acima). Quando vier, esta linha é a
-   * única coisa que precisa acontecer para o desfazer aparecer. */
+  /* O DESFAZER SÓ APARECE QUANDO HÁ O QUE DESFAZER. `lado` vazio é o caso comum
+   * — a medição decide —, e ali o botão prometeria tirar uma escolha que não
+   * existe. Ele chega desde 07/09/2026: o `previas()` passou a copiar todo campo
+   * que a fonte acrescenta, em vez de só o `banir`. */
   if (imagem.lado) {
     botoes.push(["wallpaper_lado_auto", "Medir",
       `Hoje está escrita como ${rotuloDeValor(imagem.lado)}. Tira a escolha e `
@@ -2580,10 +2777,60 @@ function montarTrilho() {
     }
     trilho.append(botaoDeAssunto(assunto));
   }
+  for (const item of itensExternos()) trilho.append(item);
   if (focado) {
     const volta = trilho.querySelector(`[data-grupo="${CSS.escape(focado)}"]`);
     if (volta) volta.focus();
   }
+}
+
+/* O ÚLTIMO ITEM DO MENU SAI DA MÁQUINA — 07/09/2026
+ *   Pedido dela: "cria um botão tipo esse abaixo de sistema mas ao ser clicado
+ *   ele leva pro meu README do GitHub".
+ *
+ *   É um `<a>` e não um `<button>`, e isso não é detalhe de gosto: o botão
+ *   do meio abre em aba nova, o Ctrl+clique também, e o leitor de tela anuncia
+ *   "link" em vez de "botão" — três comportamentos que ela teria de descobrir
+ *   que não existem. O trilho estiliza pelo elemento e pela classe, então o
+ *   `<a>` recebe as mesmas regras dos irmãos.
+ *
+ *   `rel="noopener noreferrer"`: a página que abre não ganha referência a esta,
+ *   e a origem `127.0.0.1:<porta aleatória>` não vaza no cabeçalho. Não há
+ *   segredo nessa URL, mas o padrão certo custa dois atributos.
+ *
+ *   O ENDEREÇO É FIXO, e é o do repositório dela. Ele não sai do `git remote`:
+ *   a página é servida a partir do disco e o remoto pode ser um espelho, um
+ *   clone de terceiro, ou nenhum. Um link de menu que aponta para lugar
+ *   diferente conforme a máquina é pior que um link só. */
+const REPO_NO_AR = "https://github.com/[REDACTED]/MeowSystem";
+
+/* VERDE COMO O «SISTEMA», E ISSO É O PEDIDO DELA: *"coloca verde igual
+ * Sistema"*. O verde é a cor dos RÓTULOS DE BLOCO do trilho, e é o que separa
+ * "isto é um lugar da página" de "isto abre outra janela". Estes dois não são
+ * abas, não têm contagem e não guardam estado — são as duas páginas do
+ * repositório. */
+const LINKS_EXTERNOS = [
+  /* "O manual" saiu a pedido dela em 07/09/2026, no mesmo dia em que entrou:
+   * apontava para o topo do README, e o topo do README é a mesma coisa que a
+   * página inteira já é. Ficou o que o painel não tem em lugar nenhum — a
+   * licença de cada acervo de terceiro que este projeto veste. */
+  { nome: "Créditos", href: REPO_NO_AR + "#créditos",
+    titulo: "A paleta, os glifos e a base de ícones que este projeto usa — "
+          + "com a licença de cada um, no GitHub" },
+];
+
+function itensExternos() {
+  return LINKS_EXTERNOS.map((l) => elemento("a", {
+    class: "item-externo",
+    href: l.href,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    title: l.titulo,
+  }, [
+    iconeDeMenu(l.nome, "externo"),
+    elemento("span", { texto: l.nome }),
+    elemento("span", { class: "seta-externa", "aria-hidden": "true", texto: "↗" }),
+  ]));
 }
 
 /* O número ao lado do nome soma o que a página mostra: as imagens da galeria,
@@ -2663,6 +2910,9 @@ const ICONES_MENU = {
   /* Duas janelas lado a lado numa moldura: é o que uma área de trabalho é, e
    * distingue da "Cor e tela", que também desenha janela mas com o acento. */
   "Áreas de trabalho": '<rect width="39" height="29" x="4.5" y="9.5" rx="3"/><path d="M24 9.5v29M9.5 16h9m-9 6h9m6-6h9m-9 6h9"/>',
+  /* O `contacts.svg` do acervo para os Créditos: crédito é gente. O `star.svg`
+   * deste pack não serve — é um cartão com letras dentro, e não uma estrela. */
+  "Créditos": '<path d="M35.5 4.5h-23a4 4 0 0 0-4 4v31a4 4 0 0 0 4 4h23a4 4 0 0 0 4-4v-31a4 4 0 0 0-4-4M24 13.275A5.362 5.362 0 1 1 24 24a5.362 5.362 0 1 1 0-10.725m0 12.675c5.966 0 10.725 1.667 10.725 3.656v5.119h-21.45v-5.119c0-1.989 4.758-3.656 10.725-3.656"/>',
   "Lançadores e jogos": '<path d="M24 2.5A21.51 21.51 0 0 0 2.5 24v.91l10.79 3.95a6 6 0 0 1 2.54-1.4a6 6 0 0 1 1.8-.21a8 8 0 0 1 .84.1h0L25 18.12a7.63 7.63 0 0 1 5.65-7.39a7.5 7.5 0 0 1 2.26-.25a7.62 7.62 0 0 1 1.68 15h0a7.5 7.5 0 0 1-2 .25h0l-9.22 6.52h0a6.06 6.06 0 0 1-11.81 2.64h0a6 6 0 0 1-.15-.82l-7.63-2.81A21.49 21.49 0 1 0 24 2.5m8.93 8a7.5 7.5 0 0 0-2.26.25a7.63 7.63 0 0 0-5.39 9.33h0A7.62 7.62 0 0 0 40 16.12h0a7.59 7.59 0 0 0-7.07-5.64ZM17.42 27.25a6.05 6.05 0 0 0-6.05 6h0a6.05 6.05 0 0 0 6.05 6h0a6.05 6.05 0 0 0 6.06-6h0a6.05 6.05 0 0 0-6.05-6.06Z"/>',
 };
 /* O «bloco/nome» vem primeiro porque "Papel de parede" existe em Configurar e em
@@ -2716,7 +2966,11 @@ function rotuloDoGrupo(g) {
 function botaoTrilho(g, filho, rotulo) {
   return elemento("button", {
     type: "button",
-    class: filho ? "filho" : "",
+    /* `e-inicio` é o que a folha usa para pintar de verde — ver o comentário
+     * lá. A marca sai do TIPO do grupo, e não do nome: "Início" é texto de
+     * tela e pode ser traduzido ou reescrito; `tipo === "home"` é o que o
+     * servidor promete. */
+    class: (filho ? "filho" : "") + (g.tipo === "home" ? " e-inicio" : ""),
     "data-grupo": chaveDeAba(g),
     "aria-current": String(chaveDeAba(g) === ABA),
     title: g.original || g.nome,
@@ -3247,6 +3501,14 @@ function render() {
      * O desenho é do assunto, não do bloco. */
     if (!busca && !barraDesenhada && (g.itens || []).some((i) => i.previa === "barra")) {
       barraDesenhada = true;
+      /* A FORMA TAMBÉM GRUDA — 07/09/2026
+       *   Queixa dela: "a forma em barra e dock não congela". Estava certa: o
+       *   `sticky` mora na `.previa-bloco`, e a FORMA é a única prévia que não
+       *   passa pelo `parDePrevias` — ela tem mock próprio, montado aqui.
+       *   Então ela ganha a MESMA caixa, em vez de uma segunda regra de CSS que
+       *   teria de ser mantida em dia com a primeira. "Barra e dock" é a seção
+       *   de 30 chaves, a que ela mais rola: era a que mais precisava. */
+      const caixa = elemento("div", { class: "previa-bloco" });
       const par = elemento("div", { class: "grade-barras" });
       par.append(mockDaBarra({ chave: "FORMA_RAIO_PAINEL" }));
       par.append(mockDaBarra({ chave: "FORMA_RAIO_DOCK" }));
@@ -3277,7 +3539,8 @@ function render() {
           },
         }));
       }
-      alvo.append(par);
+      caixa.append(par);
+      alvo.append(caixa);
       /* A FORMA É O BLOCO QUE ELA MAIS MEXE, e era o único sem tempo real:
        * o desenho dele não vem do `MEOW_PREVIAS`, então o registro por bloco não
        * o alcançava. Medido: em "Barra e dock", arrastar o raio não mudava

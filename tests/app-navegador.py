@@ -627,8 +627,23 @@ def main():
             pag.wait_for_timeout(300)
             por_previa = {}
             for k in chaves:
-                # As previas que substituem o controle ja foram medidas no clique.
-                if k["previa"] in ("", "flavor", "cor", "gato", "cursor"):
+                # O CAMPO `previa` NOMEIA DUAS COISAS DIFERENTES, e so' uma delas
+                # cabe aqui.
+                #   Umas dizem QUAL DESENHO a secao ganha (`barra`, `kelvin`,
+                #   `textura`) — sao essas que este passo cobra, porque e' delas
+                #   que se espera repintar quando o controle mexe.
+                #   Outras dizem QUAL CONTROLE substitui o campo de texto
+                #   (`flavor`, `cor`, `gato`, `cursor`, `areas`): elas nao tem
+                #   desenho proprio, ja foram medidas no passo do clique, e
+                #   cobrar repintura delas e' cobrar de um controle uma coisa que
+                #   ele nunca prometeu.
+                #
+                #   A LISTA E' DE NAO-DESENHOS, e nao de desenhos, de proposito:
+                #   assim uma previa de desenho NOVA entra coberta sozinha, e uma
+                #   previa de controle nova reprova aqui na primeira rodada — que
+                #   e' barulhento, e e' o lado certo para errar. Foi o que
+                #   aconteceu com `areas` em 07/09/2026.
+                if k["previa"] in ("", "flavor", "cor", "gato", "cursor", "areas"):
                     continue
                 if k["chave"] in censo:
                     por_previa.setdefault(k["previa"], []).append(k)

@@ -2472,6 +2472,16 @@ def _tipo_de_previa(chave, opcoes, faixa, padrao):
         return "cor"
     if chave.startswith("FORMA_") or chave.startswith("VIDRO_"):
         return "barra"
+    # UM SIM/NÃO POR ÁREA, E NÃO UM CAMPO ONDE ELA DIGITA O NOME — 07/09/2026
+    #   `AREAS_FOLGA` é a lista das áreas que ganham o espaço-figura. Como campo
+    #   de texto livre ela tinha de escrever o nome da área EXATAMENTE como está
+    #   em `AREAS_NOMES`, e um nome errado era gravado sem uma palavra de recusa
+    #   — o `areas.sh` simplesmente não achava a área e não fazia nada. O único
+    #   sinal era o desenho da barra continuar igual, calado.
+    #   As áreas são conhecidas: estão na chave de cima. Quem sabe a resposta
+    #   não deve pedir que ela a digite.
+    if chave == "AREAS_FOLGA":
+        return "areas"
     if faixa:
         lo, hi = faixa[0], faixa[1]
         # A faixa do Kelvin visível é 1000–6500 e está escrita no arquivo. O
@@ -2640,12 +2650,26 @@ def previas(tipo, grupo=None):
             "pronta": pronta, "origem": item["origem"],
             "url": "/previa?tipo=%s&id=%s" % (tipo, quote(item["id"], safe="")),
         }
-        # O campo extra que só o papel de parede tem: o caminho que a ação de
-        # banir aceita (ver `_prev_paredes`). Copiado por presença, e não por
-        # nome de tipo — a próxima fonte que precisar de um campo próprio o
-        # ganha sem ninguém vir aqui.
-        if "banir" in item:
-            saida["banir"] = item["banir"]
+        # O CAMPO EXTRA É COPIADO POR PRESENÇA, E AGORA É VERDADE — 07/09/2026
+        #   O comentário aqui já prometia isso ("a próxima fonte que precisar de
+        #   um campo próprio o ganha sem ninguém vir aqui") e a linha abaixo dele
+        #   nomeava `banir`, um campo só. Então a promessa valia para zero
+        #   fontes: o `lado` do papel de parede nasce em `_prev_paredes`, chega
+        #   até aqui e morre nesta linha.
+        #
+        #   O preço foi o desfazer. A página já sabia desenhar o botão "Medir"
+        #   quando `imagem.lado` viesse preenchido — o comentário dela em
+        #   `app.js` diz, com todas as letras, "quando vier, esta linha é a única
+        #   coisa que precisa acontecer". Sem o campo, marcar uma imagem como Dia
+        #   ou Noite era uma porta de mão única: dava para escrever a escolha e
+        #   não dava para voltar à medição, pelo painel.
+        #
+        #   O contrato de saída são estes cinco campos; tudo que a fonte
+        #   acrescentar além deles é dela e passa. É a mesma regra escrita, agora
+        #   sem a lista de um nome só no meio do caminho.
+        for extra, quanto in item.items():
+            if extra not in ("id", "rotulo", "origem", "grupo", "url"):
+                saida[extra] = quanto
         fora.append(saida)
     return {"tipo": tipo, "itens": fora, "faltam": faltam,
             "contagens": contagens, "total": total}
@@ -3707,7 +3731,22 @@ class Manipulador(BaseHTTPRequestHandler):
         return sorted(vistos.values(), key=lambda d: d["nome"].lower())
 
     def _mapa_arcticons(self):
-        """As linhas ativas de `apps-arcticons.map`, por id de aplicativo."""
+        """As linhas ativas de `apps-arcticons.map`, por id de aplicativo.
+
+        A COR PASSA PELO `apps-marca.map` — 07/09/2026
+          Pergunta dela: *"thunderbird tá certo?"*. Estava e não estava: o
+          arquivo no disco dela é `#89B4FA`, que é o `blue` do mocha e é o que
+          a marca do Thunderbird pede; a etiqueta na página dizia `sky`.
+
+          A causa é precedência. O `icones_apps_arcticons.sh` lê as cores de
+          categoria e, com `ICONES_COR_MARCA=sim`, deixa o `apps-marca.map`
+          SOBRESCREVÊ-LAS — só para quem já tem arte, que é a regra do
+          `_ler_mapa_marca`. Esta função lia só o primeiro mapa, então mostrava
+          a cor que perdeu a disputa. Medido: erra em 2 dos 2 aplicativos que
+          estão nos dois mapas — o Firefox dizia `blue` e é `peach`.
+
+          A mesma regra, escrita do mesmo jeito, e só ela: repinta o que já
+          está aqui, nunca acrescenta um nome que este mapa não conhece."""
         fora = {}
         caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
         try:
@@ -3722,6 +3761,20 @@ class Manipulador(BaseHTTPRequestHandler):
                                            "alias": len(campos) > 3 and campos[3] == "alias"}
         except OSError:
             pass
+        if _valor_vivo("ICONES_COR_MARCA") == "sim":
+            marca = os.path.join(RAIZ, "assets", "icones", "apps-marca.map")
+            try:
+                with open(marca, "r", encoding="utf-8") as fh:
+                    for linha in fh:
+                        corte = linha.strip()
+                        if not corte or corte.startswith("#"):
+                            continue
+                        campos = [c.strip() for c in corte.split(":")]
+                        if len(campos) >= 2 and campos[0] in fora and campos[1]:
+                            fora[campos[0]]["cor"] = campos[1]
+                            fora[campos[0]]["pela_marca"] = True
+            except OSError:
+                pass
         return fora
 
     # A ORDEM DE BUSCA É A MESMA QUE O LANÇADOR USA, e ela tem de ir até o fim:
@@ -4587,7 +4640,21 @@ class Manipulador(BaseHTTPRequestHandler):
         if "<body" in corpo:
             corpo = corpo[corpo.index("<body"):]
         corpo = corpo.replace('data-token="@TOKEN@"', 'data-token="" data-standalone="1"')
-        corpo = re.sub(r'<script src="/app\.js"></script>', "", corpo)
+        # OS SCRIPTS SAEM TODOS, E A LISTA SAI DO PRÓPRIO index.html — 07/09/2026
+        #   Este `re.sub` nomeava o `app.js` e só ele. Quando os dois arquivos de
+        #   prévia entraram no `index.html`, no dia seguinte ao do exportador, as
+        #   duas tags sobreviveram ao recorte e foram parar no arquivo solto
+        #   apontando para `/previas-tela.js` — um caminho que só existe enquanto
+        #   o servidor está de pé. Resultado medido: a página exportada abre
+        #   inteira, bonita, e com ZERO desenhos, porque o `app.js` lê
+        #   `window.MEOW_PREVIAS || {}` e um mapa vazio não dá erro nenhum.
+        #
+        #   Agora a lista de scripts é LIDA do `index.html`, na ordem em que ele
+        #   os declara, e é a mesma lista que volta embutida lá embaixo. Um
+        #   script novo na página entra no arquivo exportado no mesmo dia, sem
+        #   ninguém vir aqui — que era o que este trecho já deveria fazer.
+        scripts_da_pagina = re.findall(r'<script src="/([A-Za-z0-9_.-]+\.js)"></script>', corpo)
+        corpo = re.sub(r'<script src="/[A-Za-z0-9_.-]+\.js"></script>', "", corpo)
         corpo = corpo.replace("</body>", "").replace("</html>", "")
 
         dados = {
@@ -4642,7 +4709,11 @@ class Manipulador(BaseHTTPRequestHandler):
             '<script id="meow-dados" type="application/json">%s</script>'
             % json.dumps(dados, ensure_ascii=False).replace("</", "<\\/"),
             "<script>\n%s\n</script>" % ler("standalone.js"),
-            "<script>\n%s\n</script>" % ler("app.js"),
+        ] + [
+            # Na MESMA ORDEM do `index.html`: os arquivos de prévia definem
+            # `window.MEOW_PREVIAS` e o `app.js` o consome.
+            "<script>\n%s\n</script>" % ler(nome) for nome in scripts_da_pagina
+        ] + [
             "</body>",
             "</html>",
         ]

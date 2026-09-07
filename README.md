@@ -57,7 +57,9 @@ O desenho nunca é captura de tela: cada um diz, na legenda, quais números fora
 <img src="docs/capturas/painel-areas.png" width="920" alt="A aba Áreas de trabalho, com o desenho da barra e das duas telas acima dos três ajustes">
 
 - **Papel de parede** — a coleção de 46 imagens, os 9 ajustes e as 12 ações, na mesma tela.
-  Soltar um arquivo aqui diz na hora se ele entrou no grupo de dia ou no de noite, e por quê.
+  Soltar um arquivo aqui diz na hora se ele entrou no grupo de dia ou no de noite, e por quê —
+  e dá para discordar: **Dia** e **Noite** mandam a imagem para o lado que você quiser, e
+  **Medir** devolve a decisão à luminância.
 - **Áreas de trabalho** — o nome e a **ordem** das suas áreas, a folga invisível no nome, e o
   encaixe de janelas de cada uma. Até aqui, a única forma era editar RON na mão.
 - **Ícones** — um ícone por programa instalado, trocável um a um, e o tema que o projeto constrói.
