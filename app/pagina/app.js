@@ -4962,9 +4962,25 @@ const APELIDOS_DE_BUSCA = {
 };
 
 function casa(item, busca) {
+  /* O TÍTULO DO CARTÃO ESTAVA DE FORA — 08/09/2026
+   *   Achado navegando como usuária: buscar "Braço root" não achava o cartão
+   *   chamado "Braço root (a senha uma vez)". A lista tinha `frase`, `ajuda`,
+   *   `rotulo` e a `chave` — tudo, menos o nome que está escrito na tela.
+   *
+   *   Não era um caso isolado: valia para TODO cartão cujo título não repita
+   *   as próprias palavras na descrição. A busca é o único atalho de navegação
+   *   da página (o `/` do topo), e ela falhava justamente na primeira coisa que
+   *   alguém digita — o que está lendo.
+   *
+   *   `tituloDoCartao` e não `item.titulo`: metade dos cartões tem título
+   *   DERIVADO (das irmãs, ou da primeira oração do comentário), e procurar só
+   *   o campo cru deixaria essa metade de fora do conserto. É a mesma função
+   *   que desenha o título e a mesma que o `ondeCasa` já usava para decidir se
+   *   o casamento foi visível. */
   const campos = [
     item.chave, item.frase, item.valor, item.secao, item.subsecao,
     item.rotulo, item.ajuda, item.id, item.arquivo, item.nome, item.caminho,
+    tituloDoCartao(item),
   ].filter(Boolean).map((c) => semAcento(String(c)));
   /* POR PALAVRA, COM E-LÓGICO — "terminal gato" dava zero enquanto "gato"
    * sozinho dava 37: a busca exigia a frase contígua. Agora cada palavra pode
