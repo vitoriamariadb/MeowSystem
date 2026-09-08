@@ -22,8 +22,15 @@ H="$(mktemp -d)"; trap 'rm -rf "$H"' EXIT
 PASSAGENS="${PASSAGENS:-3}"
 
 correr() {
+  # `MEOW_PONTE` APONTA PARA O VAZIO, E ISSO NÃO É PARANOIA: este teste roda o
+  # instalador num HOME de brinquedo, onde não há `meow.conf` e toda chave cai
+  # no padrão. Em 08/09/2026 isso fez a etapa do hook de apt tomar o ramo de
+  # REMOVER — e, com a ponte no ar, o ramo FUNCIONOU: o
+  # `/etc/apt/apt.conf.d/99-meow-lancador` da máquina de verdade foi apagado por
+  # um teste. O `lib/comum.sh` ganhou a cerca do `$HOME` no mesmo dia; esta
+  # linha diz a mesma coisa aqui, onde quem lê o teste a vê.
   env -i PATH="$PATH" HOME="$H" USER="${USER:-t}" \
-    MEOW_IGNORA_DESKTOP=1 NO_COLOR=1 \
+    MEOW_IGNORA_DESKTOP=1 NO_COLOR=1 MEOW_PONTE=/nao/existe \
     bash "$RAIZ/install.sh" 2>&1
 }
 

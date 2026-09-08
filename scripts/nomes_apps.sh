@@ -281,7 +281,7 @@ for linha in "${LINHAS[@]}"; do
           pendente_sudo=$((pendente_sudo + 1))
           continue
         fi
-        if [ ! -w "$arq" ] && ! sudo -n true 2>/dev/null; then
+        if ! meow_desktop_pode "$arq"; then
           pendente_sudo=$((pendente_sudo + 1))
           continue
         fi
@@ -294,7 +294,7 @@ for linha in "${LINHAS[@]}"; do
         fi
         tmp="$(mktemp)" || { falhou=1; continue; }
         printf '%s\n' "$desejado" > "$tmp"
-        if sudo install -m 644 "$tmp" "$arq" 2>/dev/null; then
+        if meow_desktop_escrever "$arq" "$tmp"; then
           mudou=1; DIRS_TOCADOS["$dir"]=1
         else
           pendente_sudo=$((pendente_sudo + 1))
@@ -339,7 +339,7 @@ if [ "$mudou" = 1 ]; then
       if [ -w "$dir" ]; then
         update-desktop-database "$dir" 2>/dev/null || true
       else
-        sudo -n update-desktop-database "$dir" 2>/dev/null || true
+        meow_desktop_banco "$dir"
       fi
     done
   fi

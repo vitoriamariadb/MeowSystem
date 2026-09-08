@@ -259,6 +259,33 @@ meow_conf_texto_definir() {
 #
 # Devolve o que a `meow_escrever` devolve: 0 já estava assim · 1 escreveu (ou
 # escreveria, no seco) · 2 falhou.
+# "A CHAVE DIZ 'nao', OU ELA SIMPLESMENTE NÃO EXISTE?" — 08/09/2026
+#
+# São perguntas diferentes, e confundi-las apagou um arquivo de `/etc`. O
+# `${LANCADOR_SISTEMA:-nao}` que a etapa do hook de apt usava responde às duas
+# com a mesma palavra: chave ausente e chave escrita "nao" viram o mesmo valor.
+# Para LER a preferência isso é certo — o padrão é não mexer em `/usr/share`.
+# Para DESTRUIR, não: remover um arquivo de `/etc` porque uma chave está
+# faltando é agir por omissão, e omissão não é decisão.
+#
+# Enquanto o `sudo` falhava calado num ambiente sem terminal, o defeito era
+# invisível. Com a ponte root, o mesmo caminho passou a funcionar — e o
+# `tests/convergencia.sh`, que roda o instalador num HOME de brinquedo onde
+# nenhuma chave existe, apagou o `99-meow-lancador` da máquina de verdade.
+#
+# Esta função lê o ARQUIVO, não a variável: devolve 0 só quando a chave está lá,
+# escrita, com o valor pedido. Sem arquivo, ou sem a chave, devolve 1.
+meow_conf_diz() {
+  local chave="$1" quer="$2" linha
+  [ -f "$MEOW_CONF_ARQUIVO" ] || return 1
+  linha="$(sed -n "s/^[[:space:]]*$chave=//p" "$MEOW_CONF_ARQUIVO" | tail -1)"
+  [ -n "$linha" ] || return 1
+  # Tira as aspas e o comentário de fim de linha, que é como o arquivo é escrito.
+  linha="${linha%%#*}"
+  linha="$(printf '%s' "$linha" | tr -d '"'"'"' \t\r')"
+  [ "$linha" = "$quer" ]
+}
+
 meow_conf_definir() {
   local chave="$1" valor="$2" texto
   if [ -f "$MEOW_CONF_ARQUIVO" ]; then
@@ -482,4 +509,129 @@ meow_notificar() {
   meow_seco && return 0
   meow_tem notify-send || return 0
   notify-send -a MeowSystem -i preferences-desktop-theme "$1" "${2:-}" 2>/dev/null || true
+}
+
+# ============================================================================
+# A PONTE ROOT — 08/09/2026
+# ============================================================================
+# Pedido dela: *"não conseguimos de alguma forma usar sudo só na instalar e criar
+# um perfil naquele conf.d ... aquele que só preciso uma vez e fica lá registrado
+# pra sempre?"*
+#
+# `/usr/local/lib/meowsystem/ponte_root.sh` é o braço root do projeto, e
+# `/etc/sudoers.d/49-meowsystem-ponte` libera os verbos DELE sem senha. Quem
+# instala os dois é o `install.sh`, e é ali — uma vez — que a senha é pedida.
+# O porquê do desenho está no cabeçalho da própria ponte.
+#
+# ESTAS DUAS FUNÇÕES SÃO A ÚNICA PORTA. Nenhum script chama a ponte pelo caminho
+# cru: assim "a ponte existe?", "ela está liberada?" e "o que fazer quando não
+# está" ficam escritos uma vez só, e um script novo não pode esquecer metade.
+MEOW_PONTE="${MEOW_PONTE:-/usr/local/lib/meowsystem/ponte_root.sh}"
+
+# "Dá para usar a ponte agora?" — e as DUAS metades importam. O arquivo pode
+# existir sem a regra (instalação pela metade, ou `PONTE_ROOT="nao"` a caminho),
+# e a regra pode existir sem o arquivo (um `rm` manual). `sudo -n` responde às
+# duas de uma vez, e responde pela VERDADE do sudo, não pela nossa suposição
+# sobre ele — que é a diferença entre conferir e adivinhar.
+# O `$HOME` TEM DE SER O DA MÁQUINA, E ISSO CUSTOU UM ARQUIVO DE /etc
+#   Em 08/09/2026, no mesmo dia em que a ponte nasceu, o `tests/convergencia.sh`
+#   — que roda o instalador num HOME de brinquedo, com `env -i` — APAGOU o
+#   `/etc/apt/apt.conf.d/99-meow-lancador` da máquina de verdade. O caminho é
+#   este: naquele HOME não há `meow.conf`, então `LANCADOR_SISTEMA` cai no
+#   padrão "nao", e a etapa do hook toma o ramo de REMOVER.
+#
+#   Antes da ponte isso era inofensivo: sob `env -i` o `sudo rm` falhava calado,
+#   e a etapa avisava "sem sudo para remover". A ponte tornou EFETIVO um caminho
+#   que só não fazia estrago porque não tinha permissão — e é esse o preço de
+#   dar poder a um programa: os caminhos que falhavam por falta de permissão
+#   passam a acontecer.
+#
+#   A cerca é comparar o `$HOME` de quem chama com o `lar` que o instalador
+#   gravou como root. A ponte não consegue fazer isso sozinha: com `env_reset`,
+#   o sudo troca o `HOME` pelo do usuário-alvo antes de ela nascer. Aqui, do
+#   lado de cá, o `$HOME` ainda é o verdadeiro.
+#
+#   O `perfil` é 0644 de propósito — ele não guarda segredo nenhum, e ser
+#   legível é o que permite esta conferência sem elevar nada.
+#
+#   O hook de apt continua funcionando: o `meow-lancador-apt.sh` roda como root
+#   e a primeira coisa que ele faz é `HOME="$LAR"`, que é exatamente o `lar` do
+#   perfil.
+meow_ponte_viva() {
+  [ -x "$MEOW_PONTE" ] || return 1
+  local lar
+  lar="$(sed -n 's/^lar=//p' "${MEOW_PONTE%/*}/perfil" 2>/dev/null)"
+  if [ -n "$lar" ] && [ "$lar" != "${HOME:-}" ]; then
+    meow_debug "ponte: \$HOME é '$HOME' e o perfil diz '$lar' — não uso a ponte daqui"
+    return 1
+  fi
+  sudo -n "$MEOW_PONTE" estado >/dev/null 2>&1
+}
+
+# Roda um verbo pela ponte. O stdin do chamador atravessa — é por ele que o nome
+# do arquivo e o conteúdo viajam, e é por isso que nenhum verbo tem argumento.
+#
+# Devolve 127 quando a ponte não está no ar, e esse número é escolhido: ele não
+# colide com nenhum código de saída do projeto (0, 1, 2, 3), então quem chama
+# consegue distinguir "a ponte recusou" de "não há ponte" e cair no caminho
+# antigo — o `sudo` que pede senha — em vez de tratar as duas como erro.
+meow_ponte() {
+  meow_ponte_viva || return 127
+  sudo -n "$MEOW_PONTE" "$1"
+}
+
+# ============================================================================
+# ESCREVER `.desktop` DE SISTEMA — UM CAMINHO, QUATRO CHAMADORES
+# ============================================================================
+# `ocultar_apps.sh`, `nomes_apps.sh`, `icones_absolutos.sh` e o `bin/meow`
+# escreviam a mesma coisa com o mesmo `sudo install`, cada um com a sua guarda.
+# Desde 08/09/2026 há a ponte, e ela é a terceira forma de escrever ali — copiar
+# a escolha entre as três para quatro arquivos é garantir que o quinto esqueça
+# metade.
+#
+# A ORDEM É DELIBERADA:
+#   1. o arquivo é MEU        -> escrevo direto, sem elevar nada
+#   2. a ponte está no ar     -> pela ponte, sem senha (o caso normal)
+#   3. o sudo está em cache   -> `sudo install`, como sempre foi
+#   4. nada disso             -> 127, e quem chamou conta ao usuário
+#
+# O 3 continua existindo por causa da máquina que ainda não instalou a ponte —
+# e do `PONTE_ROOT="nao"`, que é escolha dela. Tirar o caminho antigo faria a
+# ponte deixar de ser conforto e virar requisito.
+
+# "Dá para escrever neste `.desktop` de sistema?" — sem escrever nada.
+meow_desktop_pode() {
+  [ -w "$1" ] && return 0
+  meow_ponte_viva && return 0
+  sudo -n true 2>/dev/null
+}
+
+# meow_desktop_escrever <arquivo-alvo> <arquivo-com-o-conteudo>
+meow_desktop_escrever() {
+  local alvo="$1" fonte="$2" nome
+  nome="${alvo##*/}"
+  if [ -w "$alvo" ]; then
+    install -m 644 "$fonte" "$alvo" 2>/dev/null && return 0
+  fi
+  # A ponte recebe o NOME e o CONTEÚDO pelo stdin, nesta ordem, porque nenhum
+  # verbo dela aceita argumento — é o que deixa a regra de sudo sem curinga.
+  if meow_ponte_viva; then
+    { printf '%s\n' "$nome"; cat "$fonte"; } | meow_ponte desktop 2>/dev/null && return 0
+  fi
+  sudo install -m 644 "$fonte" "$alvo" 2>/dev/null
+}
+
+# O banco de dados do lançador, pelo caminho que estiver disponível.
+meow_desktop_banco() {
+  local dir="${1:-/usr/share/applications}"
+  meow_tem update-desktop-database || return 0
+  if [ -w "$dir" ]; then
+    update-desktop-database "$dir" 2>/dev/null || true
+    return 0
+  fi
+  if [ "$dir" = "/usr/share/applications" ] && meow_ponte_viva; then
+    meow_ponte desktop-banco 2>/dev/null && return 0
+  fi
+  sudo -n update-desktop-database "$dir" 2>/dev/null || true
+  return 0
 }

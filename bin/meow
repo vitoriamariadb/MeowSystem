@@ -749,14 +749,70 @@ chk_ocultar() {
 #   continua chamando, e o reaplique passa a apontar para um `ocultar_apps.sh`
 #   que não existe mais. Um gatilho que dispara para o vazio é pior que gatilho
 #   nenhum: ele parece instalado na tabela do doctor.
+# A PONTE ROOT — 08/09/2026
+#   Pedido dela: *"usar sudo só na instalação e criar um perfil naquele conf.d ...
+#   aquele que só preciso uma vez e fica lá registrado pra sempre"*.
+#
+#   São TRÊS peças, e meia-instalação é o estado que mais engana: a ponte sem a
+#   regra pede senha (e o painel, sem terminal, não tem como pedir); a regra sem
+#   a ponte aponta para o vazio. Por isso a conferência não pergunta "os arquivos
+#   existem?" — ela USA a ponte, com `sudo -n`, que é a única coisa que responde
+#   pela verdade do sudo em vez de por uma suposição sobre ele.
+chk_ponte() {
+  local ponte=/usr/local/lib/meowsystem/ponte_root.sh
+  local regra=/etc/sudoers.d/49-meowsystem-ponte
+  local origem="$RAIZ/scripts/ponte_root.sh"
+
+  if [ "${PONTE_ROOT:-sim}" != "sim" ]; then
+    if [ -e "$ponte" ] || [ -e "$regra" ]; then
+      meow_muda 'PONTE_ROOT="nao" mas a ponte root continua instalada'
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_pula 'PONTE_ROOT="nao" — cada conserto de sistema pede senha no terminal'
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  [ -x "$ponte" ] || { meow_muda "falta $ponte"; return "$MEOW_DIVERGENTE"; }
+  [ -f "$regra" ] || { meow_muda "falta $regra — a ponte existe e ainda pede senha"; return "$MEOW_DIVERGENTE"; }
+
+  # O ARQUIVO INSTALADO TEM DE SER O DO REPOSITÓRIO. Uma ponte velha em
+  # `/usr/local/lib` com a regra nova é o modo de falha silencioso deste
+  # desenho: os verbos que a regra libera podem já não existir lá dentro.
+  cmp -s "$origem" "$ponte" 2>/dev/null ||
+    { meow_muda "$ponte diverge do repositório"; return "$MEOW_DIVERGENTE"; }
+
+  if ! sudo -n "$ponte" estado >/dev/null 2>&1; then
+    meow_muda "a regra existe e o sudo ainda pede senha para a ponte"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  local raiz_reg
+  raiz_reg="$(sudo -n "$ponte" estado 2>/dev/null | sed -n 's/^raiz=//p')"
+  if [ "$raiz_reg" != "$RAIZ" ]; then
+    meow_muda "o perfil da ponte aponta para '$raiz_reg', e o clone está em '$RAIZ'"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  meow_ok "ponte root no ar — o conserto de sistema não pede senha"
+  return 0
+}
+
 chk_lancadorapt() {
   local hook=/etc/apt/apt.conf.d/99-meow-lancador
   local wrapper=/usr/local/sbin/meow-lancador-apt.sh
 
   if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
     if [ -f "$hook" ] || [ -f "$wrapper" ]; then
-      meow_muda 'LANCADOR_SISTEMA="nao" mas o hook de apt continua instalado'
-      return "$MEOW_DIVERGENTE"
+      # SÓ É DIVERGÊNCIA SE ELA ESCREVEU "nao". Sem a chave no arquivo, o hook
+      # instalado não contradiz nada — e acusar divergência aqui armaria o
+      # auto-reparo para apagá-lo todo dia às 5h, que é exatamente o estrago que
+      # o `meow_conf_diz` existe para não deixar acontecer.
+      if meow_conf_diz LANCADOR_SISTEMA nao; then
+        meow_muda 'LANCADOR_SISTEMA="nao" mas o hook de apt continua instalado'
+        return "$MEOW_DIVERGENTE"
+      fi
+      meow_pula "o hook de apt está instalado e o meow.conf não diz nada — fica como está"
+      return "$MEOW_SEM_DEPENDENCIA"
     fi
     meow_pula 'LANCADOR_SISTEMA="nao" — sem reaplique após apt'
     return "$MEOW_SEM_DEPENDENCIA"
@@ -1100,6 +1156,40 @@ fix_steamvigia(){ STEAM_VIGIA="${STEAM_VIGIA:-sim}" \
                     "$RAIZ/scripts/vigia_steam.sh" --aplicar 2>&1; }
 fix_jogos()     { "$RAIZ/scripts/jogos_steam.sh" 2>&1; }
 fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" --sem-sudo 2>&1; }
+
+# OS TRÊS QUE A PONTE DESTRAVOU — 08/09/2026
+#   Eles não existiam: estavam em `SEM_CONSERTO` porque o conserto precisava de
+#   sudo e o doctor não pede senha. Com a ponte root no ar isso deixou de ser
+#   verdade, e o `SEM_CONSERTO` lá em cima já os tira da lista sozinho quando ela
+#   responde. Sem ponte, estas funções continuam existindo e simplesmente nunca
+#   são chamadas — é o `SEM_CONSERTO` que decide, num lugar só.
+#
+#   O `ocultar` roda INTEIRO (ele já sabe pular o que não consegue) e o
+#   `absolutos` idem; o `lancadorapt` chama a ponte direto, porque instalar o
+#   hook é um verbo dela e não tem script intermediário.
+fix_ocultar()   { LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+                    "$RAIZ/scripts/ocultar_apps.sh" 2>&1; }
+fix_absolutos() { LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+                    "$RAIZ/scripts/icones_absolutos.sh" 2>&1; }
+fix_lancadorapt() {
+  if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
+    # A MESMA CERCA DA ETAPA DO INSTALADOR: remover arquivo de /etc pede decisão
+    # ESCRITA, nunca chave ausente. Ver `meow_conf_diz` no `lib/comum.sh` — foi
+    # este caminho, com a ponte no ar, que apagou o hook da máquina em 08/09.
+    if ! meow_conf_diz LANCADOR_SISTEMA nao; then
+      meow_aviso "o meow.conf não diz LANCADOR_SISTEMA=\"nao\" — não removo o hook"
+      return "$MEOW_SEM_DEPENDENCIA"
+    fi
+    meow_ponte apt-hook-remover 2>&1 && meow_ok "hook de apt removido pela ponte"
+    return $?
+  fi
+  if meow_ponte apt-hook-instalar 2>&1; then
+    meow_ok "hook de apt reposto pela ponte"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_aviso "a ponte não repôs o hook de apt"
+  return "$MEOW_ERRO"
+}
 fix_assets()    { ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" \
                     "$RAIZ/scripts/vigia_assets.sh" --aplicar 2>&1; }
 fix_atalho()    { "$RAIZ/scripts/atalho.sh" --aplicar 2>&1; }
@@ -1142,8 +1232,22 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets svg flatpak steamvigia autostart atalho)
-SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin leiturabin cursor patches "
+VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets svg flatpak steamvigia autostart atalho)
+# A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
+#   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
+#   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
+#   deixa de ser verdade — ela é um programa de root de verbos fechados, liberado
+#   sem senha em `/etc/sudoers.d`, e o doctor pode chamá-la sem pedir nada a
+#   ninguém. Sem ponte, a lista volta inteira e a frase volta a valer.
+#
+#   `ponte` fica SEMPRE aqui: instalar a ponte é a única coisa do projeto que
+#   escreve em `/etc/sudoers.d`, e um auto-reparo por relógio não escreve em
+#   `/etc/sudoers.d` — essa continua sendo uma decisão que passa por ela, no
+#   `./install.sh`, com a senha na mão.
+SEM_CONSERTO=" conf ponte convertidos midiabin leiturabin cursor patches "
+if ! meow_ponte_viva; then
+  SEM_CONSERTO=" conf ponte ocultar absolutos convertidos lancadorapt midiabin leiturabin cursor patches "
+fi
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
 # fixa "é o install.sh que cria" servia; com o `ocultar` ela passaria a mentir —
@@ -1151,6 +1255,7 @@ SEM_CONSERTO=" conf ocultar absolutos convertidos lancadorapt midiabin leiturabi
 # porque manda a pessoa procurar no lugar errado.
 declare -A SEM_CONSERTO_RAZAO=(
   [conf]="é o install.sh que cria"
+  [ponte]="escrever em /etc/sudoers.d é decisão sua, com a senha na mão — rode: ./install.sh"
   [ocultar]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [absolutos]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
@@ -2376,7 +2481,7 @@ desfazer_lancador() {
       [ -n "${visto[$alvo]:-}" ] && continue     # a cópia mais antiga vence
       visto[$alvo]=1
       if meow_seco; then meow_muda "devolveria $alvo"; n=$((n+1)); continue; fi
-      if sudo install -m 644 "$arq" "$alvo" 2>/dev/null; then n=$((n+1))
+      if meow_desktop_escrever "$alvo" "$arq"; then n=$((n+1))
       else meow_aviso "não consegui devolver $alvo"; fi
     done < <(find "$d" -type f 2>/dev/null | sort)
   done
@@ -2384,7 +2489,7 @@ desfazer_lancador() {
     meow_aviso "não há backup de .desktop do sistema em $MEOW_ESTADO/backups"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-  meow_seco || { meow_tem update-desktop-database && sudo update-desktop-database /usr/share/applications 2>/dev/null; }
+  meow_seco || meow_desktop_banco /usr/share/applications
   meow_ok "$n arquivo(s) devolvidos ao estado do apt"
   return "$MEOW_DIVERGENTE"
 }

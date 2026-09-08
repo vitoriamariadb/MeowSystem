@@ -133,7 +133,7 @@ meow_desinstalar() {
   if [ -f "$hook" ] || [ -f "$wrapper" ]; then
     if meow_seco; then
       meow_muda "removeria $hook e $wrapper"
-    elif sudo rm -f "$hook" "$wrapper" 2>/dev/null; then
+    elif meow_ponte apt-hook-remover >/dev/null 2>&1 || sudo rm -f "$hook" "$wrapper" 2>/dev/null; then
       meow_ok "hook de apt do lançador removido"
     else
       # Sem sudo não apagamos escondido nem falhamos calados — mesma conduta da

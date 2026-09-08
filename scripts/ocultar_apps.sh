@@ -155,7 +155,7 @@ for app in "${OCULTAR[@]}"; do
     continue
   fi
 
-  if [ ! -w "$arq" ] && ! sudo -n true 2>/dev/null; then
+  if ! meow_desktop_pode "$arq"; then
     sem_root=$((sem_root+1))
     continue
   fi
@@ -179,7 +179,7 @@ for app in "${OCULTAR[@]}"; do
     rm -f "$tmp"
     continue
   fi
-  if sudo install -m 644 "$tmp" "$arq" 2>/dev/null; then
+  if meow_desktop_escrever "$arq" "$tmp"; then
     mudou=1
   else
     sem_root=$((sem_root+1))
@@ -199,7 +199,7 @@ fi
 
 meow_seco && exit "$MEOW_DIVERGENTE"
 
-meow_tem update-desktop-database && sudo update-desktop-database "$SISTEMA" 2>/dev/null || true
+meow_desktop_banco "$SISTEMA"
 meow_ok "aplicativos de sistema ocultos do lançador"
 meow_info "vale no próximo início do lançador"
 exit "$MEOW_DIVERGENTE"
