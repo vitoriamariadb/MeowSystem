@@ -716,6 +716,14 @@ etapa_icones_apps() {
 #   defeito dos dois donos, agora em três. `48x48/apps` nasce aqui e é só nosso.
 etapa_icones_apps_arcticons() {
   passo "Ícones de aplicativo em Arcticons"
+  # OS DESENHOS À MÃO SÃO CONSTRUÍDOS AQUI, e só eles — 08/09/2026.
+  #   O acervo convertido inteiro NÃO é regerado pelo instalador: reconverter
+  #   trocaria arte que ela aprovou por arte que ninguém viu. Mas uma linha
+  #   `mao` não tem conversão nenhuma — é a cópia de um desenho dela —, e sem
+  #   este passo um retoque que chegasse pelo git, ou de um clone novo, ficaria
+  #   no repositório sem nunca virar arquivo instalável.
+  #   Pedido dela: "garantir que o nosso install consiga fazer isso".
+  "$MEOW_RAIZ/scripts/construir_convertidos.sh" --so-mao || true
   FLAVOR="${FLAVOR:-}" \
     ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao}" \
     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
