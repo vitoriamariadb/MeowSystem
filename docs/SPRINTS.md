@@ -22,9 +22,9 @@ o que mudou, o que a medição derrubou, e como cada número da capa foi obtido.
 
 | | |
 |---|---|
-| `install.sh` | 52 etapas; rodar de novo não escreve um byte |
-| `meow doctor` | 46 conferências, "nada a consertar" |
-| painel | 108 chaves · 45 ações · 13 páginas de assunto |
+| `install.sh` | 53 etapas; rodar de novo não escreve um byte |
+| `meow doctor` | 47 conferências, "nada a consertar" |
+| painel | 109 chaves · 46 ações · 13 páginas de assunto |
 | conferência do navegador | **84/84**, console limpo nas catorze páginas |
 | suítes de shell | `app`, `seco`, `reversao`, `um-cartao-por-jogo`, `convergencia` — todas passam |
 
