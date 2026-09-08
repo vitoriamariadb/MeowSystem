@@ -1856,8 +1856,14 @@ function gradeDeApps(apps, filtro, recarregar) {
        * nosso mapa, "de fábrica" quando o ícone que aparece é o que veio com
        * ele. Sem isso, os dois casos são visualmente iguais e ela não sabe
        * onde ainda há trabalho. */
-      a.mapa
-        ? elemento("span", { class: "app-marca", texto: a.mapa.cor })
+      /* A ETIQUETA TEM DE CONTAR OS DOIS ACERVOS — 08/09/2026.
+       *   Ela dizia a cor só para quem está no `apps-arcticons.map`; os 33 do
+       *   `apps-convertidos.map` — Spotify, GIMP, Chrome, os seis jogos de hoje
+       *   — caíam todos em "nosso", sem cor. Duas telas com o mesmo estado
+       *   parecendo estados diferentes é a página mentindo por omissão, que é o
+       *   defeito que ela já apontou na contagem dos jogos. */
+      (a.mapa || a.traco)
+        ? elemento("span", { class: "app-marca", texto: (a.mapa || a.traco).cor })
         : elemento("span", { class: "app-marca app-fabrica",
                              texto: a.nosso ? "nosso" : "de fábrica" }),
     ]);
@@ -1980,7 +1986,228 @@ function montarEscolhaDeIcone(app, recarregar) {
   painel.append(acoes);
   painel.append(elemento("p", { class: "frase",
     texto: "A escolha é gravada em assets/icones/apps-arcticons.map, no repositório." }));
+  painel.append(oficinaDeDesenho(app, relerLista));
   return painel;
+}
+
+/* ===========================================================================
+ * A OFICINA: O ÍCONE DO PRÓPRIO APLICATIVO, DESENHADO AQUI — 08/09/2026
+ * ===========================================================================
+ * Pedido dela: *"gostaria muito que o estilo de criação svg em alguma parte
+ * fosse automático e sugerisse dentro do meowsystem um icon svg já vetorizado
+ * pra cada app. já criando o que já fazemos mas permitindo pelo fato de ser svg
+ * que o user pudesse modificar ele depois"*, e logo em seguida: *"tudo via
+ * interface."*
+ *
+ * SÃO DUAS PORTAS DIFERENTES, E POR ISSO ELA FICA ABAIXO DA OUTRA
+ *   A tira de cima ESCOLHE um desenho pronto entre os 14.996 do Arcticons — é
+ *   desenho de outra gente, e serve quando existe um glifo honesto. Esta parte
+ *   faz a outra coisa: pega a arte DO aplicativo e a traz para o nosso traço.
+ *   Foi assim que 25 dos 33 convertidos que já existem nasceram; a diferença é
+ *   que até hoje isso exigia editar um mapa e rodar dois scripts no terminal.
+ *
+ * O CICLO É VER-MEXER-SALVAR, e o meio é a razão de ela ter pedido SVG:
+ *   1. "Vetorizar" chama o conversor e mostra o resultado. Nada é gravado.
+ *   2. Os três controles são os que a folha de 11/08 provou mudarem o desenho
+ *      (cores da quantização, fusão de cor, tolerância da simplificação).
+ *      Mexer num deles vetoriza de novo.
+ *   3. A caixa de texto é o SVG, e o desenho ao lado a acompanha a cada tecla.
+ *      É aqui que "modificar depois" acontece — e o mesmo lugar serve para
+ *      desenhar do zero quando o aplicativo não tem arte de fábrica nenhuma.
+ *   4. "Usar este desenho" grava em `retoques/` e no mapa dos convertidos.
+ *
+ * O DESENHO É MOSTRADO EM DOIS TAMANHOS, e não é enfeite: a 48 px é o tamanho
+ * REAL da dock (medido em 27/08: 40, 36 e 40 px de caixa de tinta), e é o único
+ * juízo que vale. O grande existe para ela ver o que está mexendo. Metade dos
+ * seis desenhos de hoje foram refeitos porque liam a 260 px e sumiam a 48.
+ *
+ * O ESTADO MORA FORA DO `render()` — esta página se repinta a cada clique, e um
+ * rascunho guardado num nó da árvore morreria no primeiro toque em qualquer
+ * outro controle. `OFICINA.app` é a chave: trocar de aplicativo joga o rascunho
+ * fora de propósito, porque ele é de outro desenho. */
+let OFICINA = { app: null, svg: "", origem: "", ocupada: false, erro: "",
+                k: "", funde: "", tol: "", aberta: false };
+
+function oficinaDeDesenho(app, relerLista) {
+  if (OFICINA.app !== app.id) {
+    OFICINA = { app: app.id, svg: "", origem: "", ocupada: false, erro: "",
+                k: "", funde: "", tol: "", aberta: false };
+  }
+  /* ABERTA CONTINUA ABERTA — 08/09/2026, visto no teste de navegador.
+   *   Salvar chama `relerLista()`, que redesenha a página inteira: o `details`
+   *   morre e nasce fechado, e a caixa de texto some debaixo do cursor de quem
+   *   acabou de gravar. É o mesmo modo de falha que o `ancoraDoFoco` já cura
+   *   para o foco e o `devolverRolagem` para a rolagem — o estado da tela não
+   *   pode morrer com o nó que o desenhava. */
+  const caixa = elemento("details", { class: "oficina" });
+  if (OFICINA.aberta) caixa.setAttribute("open", "");
+  caixa.addEventListener("toggle", () => { OFICINA.aberta = caixa.open; });
+  caixa.append(elemento("summary", { texto: "Desenhar a partir do ícone dele" }));
+  caixa.append(elemento("p", { class: "frase",
+    texto: "Traz a arte de fábrica para o nosso traço. O resultado é um SVG que "
+         + "você pode mexer aqui mesmo antes de aceitar." }));
+
+  /* --- as duas prévias, e a mensagem quando ainda não há o que ver --------- */
+  const previa48 = elemento("div", { class: "oficina-48" });
+  const previaG = elemento("div", { class: "oficina-grande" });
+  const aviso = elemento("p", { class: "sem-previa" });
+  const area = elemento("textarea", {
+    class: "oficina-fonte", rows: "10", spellcheck: "false",
+    "data-foco": "oficina-svg",
+    "aria-label": "O SVG do desenho",
+    placeholder: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" …',
+  });
+  area.value = OFICINA.svg;
+
+  /* O DESENHO É INSERIDO COMO TEXTO, NUNCA COMO HTML CRU.
+   *   `innerHTML` com o que veio de uma caixa de texto é a porta aberta de
+   *   sempre. `DOMParser` em `image/svg+xml` não executa `script` nem busca
+   *   `href`, e o que ele devolve é um documento morto que só serve para ser
+   *   desenhado — e o servidor recusa os dois na hora de salvar, de qualquer
+   *   forma. Duas cercas, porque a de cá também protege a página dela. */
+  const pintar = () => {
+    const texto = String(area.value || "").trim();
+    previa48.replaceChildren();
+    previaG.replaceChildren();
+    if (!texto) {
+      aviso.textContent = OFICINA.ocupada
+        ? "Vetorizando…"
+        : (OFICINA.erro || "Clique em «Vetorizar» — ou cole um SVG na caixa.");
+      return;
+    }
+    aviso.textContent = OFICINA.erro || "";
+    let doc;
+    try { doc = new DOMParser().parseFromString(texto, "image/svg+xml"); }
+    catch (e) { aviso.textContent = "o texto não é um SVG válido"; return; }
+    const raiz = doc.documentElement;
+    if (!raiz || raiz.nodeName === "parsererror" || doc.querySelector("parsererror")) {
+      aviso.textContent = "o texto não é um SVG válido — falta fechar alguma etiqueta?";
+      return;
+    }
+    for (const [alvo, px] of [[previa48, 48], [previaG, 200]]) {
+      const no = document.importNode(raiz, true);
+      no.setAttribute("width", String(px));
+      no.setAttribute("height", String(px));
+      /* A espessura e a cor NÃO estão no arquivo, de propósito — quem as põe é
+       * o instalador. Aqui elas entram só para olhar, com os mesmos números que
+       * vão para o disco: 2,25 de traço e a cor escolhida na fileira acima. */
+      no.setAttribute("stroke-width", "2.25");
+      no.style.color = "var(--text)";
+      alvo.append(no);
+    }
+  };
+
+  area.addEventListener("input", () => { OFICINA.svg = area.value; OFICINA.erro = ""; pintar(); });
+
+  /* --- os três parâmetros do conversor ------------------------------------ */
+  const controles = elemento("div", { class: "oficina-controles" });
+  const campo = (chave, rotulo, dica, passo, min, max) => {
+    const entrada = elemento("input", {
+      type: "number", value: OFICINA[chave], step: passo, min, max,
+      "data-foco": "oficina-" + chave, "aria-label": rotulo, title: dica,
+      onchange: (e) => { OFICINA[chave] = e.target.value; vetorizar(); },
+    });
+    return elemento("label", { class: "oficina-campo", title: dica },
+      [elemento("span", { texto: rotulo }), entrada]);
+  };
+  controles.append(campo("k", "Cores", "Quantas cores o conversor enxerga antes de traçar. Menos cores, menos traços.", "1", "3", "16"));
+  controles.append(campo("funde", "Fusão", "Quanto duas cores parecidas viram uma só. Sobe para simplificar.", "2", "0", "120"));
+  controles.append(campo("tol", "Aparo", "Quanto o contorno é simplificado. Sobe para tirar tremida.", "0.2", "0.2", "8"));
+
+  /* --- vetorizar ---------------------------------------------------------- */
+  async function vetorizar() {
+    OFICINA.ocupada = true; OFICINA.erro = "";
+    aviso.textContent = "Vetorizando…";
+    const r = await api("/api/app-desenho", {
+      method: "POST",
+      body: JSON.stringify({
+        app: app.id, acao: "vetorizar",
+        k: OFICINA.k || undefined, funde: OFICINA.funde || undefined, tol: OFICINA.tol || undefined,
+      }),
+    });
+    OFICINA.ocupada = false;
+    if (r.erro) { OFICINA.erro = r.erro; pintar(); return; }
+    OFICINA.svg = r.svg || "";
+    OFICINA.origem = r.origem || "";
+    area.value = OFICINA.svg;
+    pintar();
+    origemDiz.textContent = OFICINA.origem
+      ? "de: " + OFICINA.origem : "";
+  }
+
+  const origemDiz = elemento("p", { class: "frase oficina-origem",
+    texto: OFICINA.origem ? "de: " + OFICINA.origem : "" });
+
+  const botoes = elemento("div", { class: "escolha-botoes" });
+  botoes.append(elemento("button", {
+    type: "button", class: "btn", texto: "Vetorizar",
+    title: "Roda o conversor na arte de fábrica. Não grava nada.",
+    onclick: vetorizar,
+  }));
+  botoes.append(elemento("button", {
+    type: "button", class: "btn", texto: "Abrir o que já está salvo",
+    title: "Traz de volta o desenho à mão deste aplicativo, se houver, para editar",
+    onclick: async () => {
+      const r = await api("/api/app-desenho", {
+        method: "POST", body: JSON.stringify({ app: app.id, acao: "ler" }),
+      });
+      if (r.erro) { torrada(r.erro, "erro"); return; }
+      if (!r.tem) { torrada("Este aplicativo ainda não tem desenho salvo", "igual"); return; }
+      OFICINA.svg = r.svg; area.value = r.svg; pintar();
+    },
+  }));
+  botoes.append(elemento("button", {
+    type: "button", class: "btn btn-accent", texto: "Usar este desenho",
+    onclick: async () => {
+      const r = await api("/api/app-desenho", {
+        method: "POST",
+        body: JSON.stringify({ app: app.id, acao: "salvar", svg: area.value,
+                               cor: corDaOficina(app), seco: ensaiando() }),
+      });
+      if (r.erro) { OFICINA.erro = r.erro; torrada(r.erro, "erro"); pintar(); return; }
+      if (r.seco) { torrada(r.aviso, "igual"); return; }
+      torrada(`${app.nome}: desenho salvo em ${r.cor}`
+              + (r.saiu_do_arcticons ? " — e saiu do mapa Arcticons, que tinha o mesmo nome" : ""),
+              "ok");
+      await relerLista();
+    },
+  }));
+  botoes.append(elemento("button", {
+    type: "button", class: "btn", texto: "Pôr na tela",
+    title: "Instala em 48x48/apps — é o passo que faz o desenho aparecer",
+    onclick: () => rodarAcao("icones_traco"),
+  }));
+
+  const par = elemento("div", { class: "oficina-par" }, [
+    elemento("div", { class: "oficina-vidros" }, [previa48, previaG, aviso, origemDiz]),
+    elemento("div", { class: "oficina-lado" }, [controles, area]),
+  ]);
+  caixa.append(par);
+  caixa.append(botoes);
+  caixa.append(elemento("p", { class: "frase",
+    texto: "Grava em assets/icones/convertidos-apps/retoques/, no repositório. "
+         + "Sem stroke-width e sem cor no arquivo: a espessura é 2,25 para todo o "
+         + "acervo e a cor sai da paleta." }));
+  /* A primeira pintura acontece depois de o nó estar montado — o `pintar` mede
+   * nada, mas o `details` fechado não desenha, e chamar agora deixa o conteúdo
+   * pronto para quando ela abrir. */
+  pintar();
+  return caixa;
+}
+
+/* A cor da oficina é a MESMA da fileira acima: o cartão tem uma cor só, e duas
+ * fileiras de cor no mesmo painel seriam duas verdades sobre o mesmo campo do
+ * mapa. Quando o aplicativo ainda não está em mapa nenhum, o padrão é a primeira
+ * da paleta — o mesmo que o painel de cima já usa. */
+function corDaOficina(app) {
+  /* O acervo de traço vem PRIMEIRO: é o mapa em que esta oficina grava, e um
+   * aplicativo que já tem desenho à mão não pode voltar para a primeira cor da
+   * paleta só porque o outro mapa não o conhece. */
+  if (app.traco && app.traco.cor) return app.traco.cor;
+  if (app.mapa && app.mapa.cor) return app.mapa.cor;
+  const marcada = document.querySelector(".escolha-icone .cores-grade button[aria-pressed=\"true\"]");
+  if (marcada && marcada.dataset.cor) return marcada.dataset.cor;
+  return (ESQUEMA.paleta.ordem || [])[0] || "mauve";
 }
 
 /* --- os jogos da Steam ----------------------------------------------------- */
