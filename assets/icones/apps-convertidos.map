@@ -225,3 +225,43 @@ net.davidotek.pupgui2:/usr/share/icons/Papirus/64x64/apps/net.davidotek.pupgui2.
 org.bleachbit.BleachBit:/usr/share/icons/Papirus/64x64/apps/org.bleachbit.BleachBit.svg:lavender
 org.gnome.Calculator:/usr/share/icons/Papirus/64x64/apps/org.gnome.Calculator.svg:lavender
 org.gnome.FileRoller:/usr/share/icons/Papirus/64x64/apps/org.gnome.FileRoller.svg:lavender
+
+# --- jogos e emuladores ------------------------------------------------------
+# A SÉTIMA CATEGORIA, E ELA NASCEU DE UM PEDIDO — 08/09/2026
+#   "dolphin, lutris, rare, heroid, retroarch, mgba. preciso que sejam
+#    desenhados novos icons pra eles seguindo a mesma estética do nosso tema."
+#
+#   As seis do topo deste arquivo (navegador, rede, mídia, criação, leitura,
+#   sistema) foram escritas em 10/08/2026, quando não havia jogo nenhum no
+#   lançador além do Steam — e ele caiu em `green` junto com a mídia por não
+#   haver onde mais pôr. Seis lançadores e emuladores de uma vez são uma
+#   categoria, não uma sobra, e a política dela é clara: a cor é da CATEGORIA.
+#
+#   `mauve` porque é a única cor de destaque do Catppuccin que ainda não tem
+#   dono aqui, e porque ela é a cor da marca do flavor — o lugar certo para a
+#   pasta que ela mais abre.
+#
+#   O STEAM CONTINUA EM `green`, DE PROPÓSITO. Ele é escolha dela, feita antes
+#   desta categoria existir, e a regra do projeto é que escolha dela mais
+#   específica vence regra minha mais geral. Trocar é UMA palavra na linha
+#   `steam:` lá em cima — não se antecipa gosto.
+#
+# OS SEIS NASCEM `mao`, E ISSO FOI MEDIDO, NÃO SUPOSTO
+#   O `converter_icone.py` rodou nos seis antes de qualquer traço à mão, contra
+#   a arte do Papirus 64x64. Rasterizado a 48 px, só UM sobreviveu:
+#     dolphin    o golfinho vira borrão dentro do círculo — contorno duplo
+#     lutris     a lontra vira rabisco: 12 traços, 120 pontos, nada legível
+#     rare       o laço lê, mas o círculo externo come a caixa inteira
+#     heroic     LÊ BEM — escudo e espada, os dois de pé a 48 px
+#     retroarch  o bicho lê a 260 px e some a 48: o quadrado externo rouba tudo
+#     mgba       lê como portátil, mas é o Game Boy vertical do Papirus, não um
+#                GBA, e o direcional empasta
+#   Manter um convertido no meio de cinco desenhados quebraria a coerência que é
+#   a razão do acervo existir. Os seis são à mão, e o Heroic desenhado repete de
+#   propósito a leitura que a conversão dele já tinha: escudo com espada.
+com.heroicgameslauncher.hgl:mao:mauve
+io.github.dummerle.rare:mao:mauve
+io.mgba.mGBA:mao:mauve
+net.lutris.Lutris:mao:mauve
+org.DolphinEmu.dolphin-emu:mao:mauve
+org.libretro.RetroArch:mao:mauve
