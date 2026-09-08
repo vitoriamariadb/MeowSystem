@@ -1794,16 +1794,26 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
  * tamanho da dock, medido; o grande é a lupa para mexer. Metade dos desenhos de
  * hoje foram refeitos porque liam grandes e sumiam pequenos, e sem o par isso
  * só se descobre depois de instalar. */
-.oficina { margin-top: 1rem; border-top: 1px solid var(--surface0); padding-top: .8rem; }
+/* O RESUMO É UM CONVITE, E NÃO UM RODAPÉ — 08/09/2026
+   Era versalete cinza (`--overlay2`) no fim do painel: do tamanho de uma nota
+   de rodapé, com a cor de uma nota de rodapé, e lido como uma. Agora a oficina
+   abre o painel, ao lado do acervo, e o resumo tem de parecer o que é — a outra
+   metade da escolha. Caixa, borda e a cor do texto normal. */
+.oficina { margin: .2rem 0 1rem; }
 .oficina > summary {
   cursor: pointer;
-  font-size: var(--t-legenda);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  color: var(--overlay2);
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .6rem;
+  border: 1px solid var(--surface1);
+  border-radius: var(--r-2);
+  background: var(--mantle);
+  font-weight: 600;
+  color: var(--text);
 }
-.oficina > summary:hover { color: var(--text); }
+.oficina > summary:hover { border-color: var(--accent); }
+.oficina[open] > summary { border-color: var(--accent); margin-bottom: .6rem; }
 .oficina-par {
   display: grid;
   grid-template-columns: minmax(220px, 260px) 1fr;
@@ -2154,6 +2164,45 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
    faixa ainda não encostou no teto. Quem a observa é o `grudarPrevias` do
    `app.js`; aqui ela só precisa não ocupar lugar nenhum e não aparecer. */
 .sentinela-previa { height: 0; margin: 0; padding: 0; pointer-events: none; }
+
+/* A VAGA — 08/09/2026, e ela é a razão de a aba curta voltar a rolar.
+   Encolher a faixa encolhe a PÁGINA junto: a faixa está no fluxo, e o que ela
+   devolve de altura sai do `scrollHeight`. Medido na aba "Atualização", numa
+   janela de 830 px: a página tinha 877 px para 771 de tela — 106 px de folga —
+   e a faixa encolhe 164. Rolar 106 prendia a faixa, a página caía para 771,
+   ficava do tamanho exato da tela, e o navegador grampeava a rolagem em zero.
+   A faixa desprendia, a página voltava a 877, e recomeçava: a barra não descia
+   nunca. Não era a rolagem que estava quebrada — era a folga sendo comida pelo
+   próprio gesto de rolar.
+
+   A vaga é um nó vazio NO FIM DO CONTEÚDO que engorda exatamente o que a faixa
+   emagrece. A altura da página fica a mesma, a folga fica a mesma, e o ganho da
+   tira continua inteiro — o que ela devolve é espaço de TELA, no alto.
+
+   No fim, e não ao lado da faixa: ver o comentário `A VAGA VAI PARA O FIM DO
+   CONTEÚDO` no `app.js`. E nunca ANTES da faixa — ali ela empurraria a
+   sentinela de volta para dentro da tela, e prender desprenderia em ciclo. */
+.vaga-previa {
+  height: 0;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+  /* SEM TRANSIÇÃO, DE PROPÓSITO — e a primeira versão desta regra tinha uma.
+     Parecia certo animar a vaga no mesmo compasso do encolhimento; medido, era
+     o defeito de volta. A faixa NÃO encolhe em .14s: o que a transição dela
+     cobre é `padding` e `max-height`, e a altura de verdade vem do
+     `svg { height: 150px -> 78px }`, que troca num quadro. Com a vaga animada,
+     a página ficava 174 px mais curta durante 140 ms — tempo de sobra para o
+     navegador grampear a rolagem em zero. As duas mudanças têm de cair no MESMO
+     quadro, e isso quer dizer nenhuma das duas animada. */
+}
+
+/* MEDIR NÃO PODE ANIMAR. O encolhimento tem transição, e `offsetHeight` no meio
+   dela devolve o valor do quadro, não o de chegada. Esta classe existe por
+   frações de milissegundo, dentro de uma volta síncrona do JavaScript — o
+   navegador não chega a pintar nada com ela no ar. */
+.previa-bloco.medindo,
+.previa-bloco.medindo * { transition: none !important; }
 
 /* PRESA, ELA É UMA TIRA — 07/09/2026
    Ver o bloco `A FAIXA GRUDADA ENCOLHE QUANDO GRUDA` no `app.js`. Parada, a
