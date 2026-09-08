@@ -1866,6 +1866,20 @@ ACOES = {
         "ajuda": "É o que faz uma troca de variante dos ícones aparecer na "
                  "tela.",
     },
+    # O `icones_reconstruir` acima roda `construir_icones.sh` e
+    # `construir_pastas.sh` — e NENHUM dos dois toca em `48x48/apps`, que é o
+    # diretório dos desenhos em traço. Medido: depois de salvar um desenho pela
+    # interface, "Reconstruir o tema de ícones" não punha nada na tela, e o
+    # botão parecia mentir. Quem é dono daquele diretório é este script, e ele
+    # ganha um botão próprio em vez de virar uma linha escondida em outro.
+    "icones_traco": {
+        "rotulo": "Pôr os desenhos em traço na tela",
+        "grupo": "Ícones",
+        "argv": [os.path.join(RAIZ, "scripts", "icones_apps_arcticons.sh")],
+        "seco": True, "sudo": False, "confirma": False,
+        "ajuda": "Instala em 48x48/apps o que os dois acervos de traço "
+                 "declaram — é o passo que faz um desenho salvo aqui aparecer.",
+    },
     "logo_listar": {
         "rotulo": "Qual gato está no ar, e por quê",
         "grupo": "Logo do sistema",
@@ -3835,6 +3849,40 @@ class Manipulador(BaseHTTPRequestHandler):
                 vistos[ident] = dados
         return sorted(vistos.values(), key=lambda d: d["nome"].lower())
 
+    def _mapa_convertidos(self):
+        """As linhas ativas de `apps-convertidos.map`, por id de aplicativo.
+
+        É UM LEITOR SEPARADO, E ISSO É DE PROPÓSITO — 08/09/2026
+          A tentação era despejar estas linhas dentro do `_mapa_arcticons` e
+          acabar com o assunto. Seria um defeito de três pontas: o painel de
+          escolha preseleciona `mapa.glifo` na tira de glifos, e aqui o "glifo"
+          é o NOME DO APLICATIVO — um nome que não existe no acervo Arcticons,
+          então "Usar este ícone" sairia 404; o botão "Tirar do mapa" apareceria
+          apontando para o mapa errado; e a asserção de repetição do
+          `_api_app_icone` passaria a contar nomes de outro acervo.
+
+          Dois acervos, dois leitores — a mesma disciplina que o
+          `icones_apps_arcticons.sh` mantém do lado dos scripts, e pelo mesmo
+          motivo: quem mistura os dois cria o defeito de "dois donos".
+
+        O campo `mao` é o que a oficina precisa saber: uma linha `mao` promete
+        um desenho em `retoques/`, e é essa que "Abrir o que já está salvo"
+        encontra. As outras 25 têm origem chapada e podem ser revetorizadas."""
+        fora = {}
+        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+        try:
+            with open(caminho, "r", encoding="utf-8") as fh:
+                for linha in fh:
+                    corte = linha.strip()
+                    if not corte or corte.startswith("#"):
+                        continue
+                    campos = [c.strip() for c in corte.split(":")]
+                    if len(campos) >= 3:
+                        fora[campos[0]] = {"cor": campos[2], "mao": campos[1] == "mao"}
+        except OSError:
+            pass
+        return fora
+
     def _mapa_arcticons(self):
         """As linhas ativas de `apps-arcticons.map`, por id de aplicativo.
 
@@ -3866,6 +3914,7 @@ class Manipulador(BaseHTTPRequestHandler):
                                            "alias": len(campos) > 3 and campos[3] == "alias"}
         except OSError:
             pass
+
         if _valor_vivo("ICONES_COR_MARCA") == "sim":
             marca = os.path.join(RAIZ, "assets", "icones", "apps-marca.map")
             try:
@@ -3954,6 +4003,7 @@ class Manipulador(BaseHTTPRequestHandler):
     def _dados_apps(self, consulta):
         busca = (consulta.get("busca", [""])[0] or "").strip().lower()
         mapa = self._mapa_arcticons()
+        traco = self._mapa_convertidos()
         tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
         base_tema = os.path.expanduser("~/.local/share/icons/%s" % tema)
         fora = []
@@ -3979,6 +4029,13 @@ class Manipulador(BaseHTTPRequestHandler):
                 "origem": d["origem"], "nosso": nosso,
                 "url": ("/previa?tipo=arquivo&id=" + quote(atual, safe="")) if atual else "",
                 "mapa": mapa.get(d["id"]) or mapa.get(d["icone"]) or None,
+                # O SEGUNDO ACERVO DE TRAÇO, num campo PRÓPRIO — 08/09/2026.
+                # 33 aplicativos são vestidos por ele, e a página não sabia:
+                # todos apareciam como "nosso" sem cor, e a oficina de desenho
+                # abria em `rosewater` (a primeira da paleta) em vez da cor que
+                # o aplicativo já tem. Medido com o Flatseal, `lavender` desde
+                # 11/08.
+                "traco": traco.get(d["id"]) or traco.get(d["icone"]) or None,
             })
         return {"apps": fora, "total": len(fora), "jogos": jogos}
 
@@ -4214,6 +4271,11 @@ class Manipulador(BaseHTTPRequestHandler):
         tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
         base_tema = os.path.expanduser("~/.local/share/icons/%s" % tema)
         arcticons = self._mapa_arcticons()
+        # O acervo de traço vale aqui pelo mesmo motivo que vale na aba de
+        # ícones: os seis lançadores e emuladores de 08/09/2026 moram nele, e
+        # sem esta linha a grade os mostraria como "nosso", sem cor, e a oficina
+        # abriria na primeira cor da paleta em vez de `mauve`.
+        convertidos = self._mapa_convertidos()
         icones = []
         for d in self._desktops():
             if d["oculto"] or not self._e_jogo(d):
@@ -4226,6 +4288,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "origem": d["origem"], "nosso": nosso,
                 "url": ("/previa?tipo=arquivo&id=" + quote(atual, safe="")) if atual else "",
                 "mapa": arcticons.get(d["id"]) or arcticons.get(d["icone"]) or None,
+                "traco": convertidos.get(d["id"]) or convertidos.get(d["icone"]) or None,
             })
         return {"jogos": fora, "total": len(fora), "mapa": MAPA_JOGOS,
                 "apps": icones, "total_apps": len(icones)}
@@ -4470,6 +4533,297 @@ class Manipulador(BaseHTTPRequestHandler):
         return self._json({"ok": True, "app": app, "glifo": glifo, "cor": cor,
                            "alias": repetido, "trouxe_do_acervo": copiou,
                            "depois": "vale depois de \"Reconstruir o tema de ícones\""})
+
+    # ========================================================================
+    # DESENHAR O ÍCONE DO PRÓPRIO APLICATIVO, PELA INTERFACE — 08/09/2026
+    # ========================================================================
+    # Pedido dela, literal: *"gostaria muito que o estilo de criação svg em
+    # alguma parte fosse automático e sugerisse dentro do meowsystem um icon svg
+    # já vetorizado pra cada app. já criando o que já fazemos mas permitindo pelo
+    # fato de ser svg que o user pudesse modificar ele depois."* — e, logo em
+    # seguida: *"tudo via interface."*
+    #
+    # O QUE JÁ EXISTIA, E POR QUE NÃO BASTAVA
+    #   O `scripts/converter_icone.py` traça a arte chapada desde 11/08, e o
+    #   `construir_convertidos.sh` a instala. Só que os dois só respondem a um
+    #   MAPA no repositório: para vestir um aplicativo novo era preciso abrir um
+    #   arquivo de texto, escrever o caminho da arte de origem, rodar dois
+    #   scripts e olhar o resultado num terminal. Nada disso é "via interface".
+    #
+    #   O `/api/app-icone` ao lado cobre o outro caminho — ESCOLHER um desenho
+    #   pronto do acervo Arcticons. É escolha entre 14.996 desenhos de outra
+    #   gente; este aqui é o desenho DO aplicativo, e são coisas diferentes.
+    #
+    # TRÊS VERBOS, UMA PORTA
+    #   `vetorizar`  roda o conversor na arte de fábrica e DEVOLVE o SVG. Não
+    #                escreve um byte — é uma sugestão, e ela pode recusar.
+    #   `ler`        devolve o retoque que já existe, para ela editar de novo em
+    #                vez de recomeçar do zero.
+    #   `salvar`     grava o texto que ela aprovou em `retoques/<app>.svg` e a
+    #                linha `<app>:mao:<cor>` no `apps-convertidos.map`.
+    #
+    # POR QUE O SALVAR ESCREVE OS DOIS ARQUIVOS DO ACERVO
+    #   `construir_convertidos.sh` leva 4,4 s (medido: ele reconverte os 33 para
+    #   comparar), e um servidor HTTP que trava quatro segundos numa rota é um
+    #   servidor que parece morto. Para uma linha `mao` o que aquele script faz é
+    #   exatamente `cat retoques/<nome>.svg` — está escrito no `_desejado_de`
+    #   dele. Então a rota escreve o construído junto, no MESMO formato
+    #   (`meow_escrever` grava com `printf '%s'`, sem o `\n` final — daí o
+    #   `rstrip`), e o construtor continua sendo a autoridade: rodá-lo depois é
+    #   uma passagem que não muda nada.
+    #
+    # O DIALETO É CONFERIDO NA ENTRADA, e as duas AUSÊNCIAS são o coração dele.
+    #   `retoques/LEIA-ME.txt` diz: sem `stroke-width` e sem cor. A espessura vem
+    #   do `TRACO` do `icones_apps_arcticons.sh` e a cor vem da paleta pelo campo
+    #   3 do mapa. Gravar qualquer um dos dois aqui criaria um segundo dono da
+    #   mesma decisão — e o `stroke-width` duplicado é XML inválido, que o
+    #   rasterizador recusa calado. Por isso a recusa é do SERVIDOR: é aqui que a
+    #   escrita mora, e é aqui que ela tem de valer contra um POST forjado.
+    _SVG_PROIBIDO = re.compile(
+        r"<\s*(script|style|image|foreignObject|iframe|use)\b"
+        r"|xlink:|href\s*=|\bon[a-z]+\s*=|url\s*\(|@import",
+        re.I)
+
+    def _arte_de_fabrica(self, d):
+        """A arte CHAPADA do próprio aplicativo — a nossa nunca.
+
+        Vetorizar a partir do nosso traço devolveria o contorno de um contorno:
+        cada linha viraria duas, e o resultado seria um fantasma do desenho. Por
+        isso o tema do projeto sai da busca, e só dele; o Papirus continua valendo
+        como origem, que é de onde vieram 25 dos 33 convertidos que já existem.
+
+        A ordem é a do TAMANHO, não a da pasta: o conversor rasteriza a 256 px
+        para traçar, então uma origem de 512 dá contorno limpo e uma de 16 dá
+        escada. Vetor vence tudo.
+        """
+        nome = d.get("icone") or d.get("id")
+        if not nome:
+            return ""
+        if nome.startswith("/") and os.path.isfile(nome):
+            return nome
+        nosso = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
+        raizes = [os.path.expanduser("~/.local/share/flatpak/exports/share/icons"),
+                  "/var/lib/flatpak/exports/share/icons",
+                  os.path.expanduser("~/.local/share/icons"),
+                  "/usr/share/icons"]
+        grandes = ("scalable", "512x512", "256x256", "128x128", "64x64", "48x48")
+        candidatos = []
+        for raiz in raizes:
+            for tema in self.TEMAS_DE_ICONE:
+                if not tema or tema == nosso:
+                    continue
+                for i, tam in enumerate(grandes):
+                    for ext, peso in ((".svg", 0), (".png", 1)):
+                        cand = os.path.join(raiz, tema, tam, "apps", nome + ext)
+                        if os.path.isfile(cand):
+                            candidatos.append(((0 if tam == "scalable" else 1), peso, i, cand))
+        for pix in ("/usr/share/pixmaps", os.path.expanduser("~/.local/share/pixmaps")):
+            for ext, peso in ((".svg", 0), (".png", 1)):
+                cand = os.path.join(pix, nome + ext)
+                if os.path.isfile(cand):
+                    candidatos.append((2, peso, 9, cand))
+        if not candidatos:
+            return ""
+        candidatos.sort()
+        return candidatos[0][3]
+
+    def _caminho_retoque(self, app):
+        return os.path.join(RAIZ, "assets", "icones", "convertidos-apps",
+                            "retoques", app + ".svg")
+
+    def _api_app_desenho(self, corpo):
+        """Vetoriza, lê e grava o desenho à mão de UM aplicativo."""
+        import subprocess as _sub
+        import tempfile as _tmp
+
+        app = str(corpo.get("app", "")).strip()
+        acao = str(corpo.get("acao", "vetorizar")).strip()
+        if not app or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
+            return self._json({"erro": "aplicativo inválido"}, 400)
+
+        # ------------------------------------------------------------------ ler
+        if acao == "ler":
+            alvo = self._caminho_retoque(app)
+            if not os.path.isfile(alvo):
+                return self._json({"ok": True, "svg": "", "tem": False})
+            try:
+                with open(alvo, "r", encoding="utf-8") as fh:
+                    return self._json({"ok": True, "svg": fh.read(), "tem": True})
+            except OSError as e:
+                return self._json({"erro": "não consegui ler o desenho: %s" % e}, 500)
+
+        # ------------------------------------------------------------ vetorizar
+        if acao == "vetorizar":
+            d = next((x for x in self._desktops() if x["id"] == app), None)
+            if not d:
+                return self._json({"erro": "não achei o .desktop de %s" % app}, 404)
+            origem = self._arte_de_fabrica(d)
+            if not origem:
+                return self._json({
+                    "erro": "não achei arte de fábrica para %s — este é o caso "
+                            "de desenhar do zero na caixa abaixo" % app}, 404)
+            conversor = os.path.join(RAIZ, "scripts", "converter_icone.py")
+            if not os.path.isfile(conversor):
+                return self._json({"erro": "falta scripts/converter_icone.py"}, 500)
+            # Os três parâmetros que a folha de 11/08 provou serem os que mudam
+            # o resultado. Ficam presos a faixas: o conversor aceita qualquer
+            # número, e um `--k 900` vindo de um POST forjado seria um processo
+            # de minutos dentro de um servidor.
+            argv = [sys.executable, conversor, origem]
+            saida = _tmp.NamedTemporaryFile(suffix=".svg", delete=False)
+            saida.close()
+            argv.append(saida.name)
+            for chave, bandeira, menor, maior in (("k", "--k", 3, 16),
+                                                  ("funde", "--funde", 0, 120),
+                                                  ("tol", "--tol", 0.2, 8.0)):
+                if corpo.get(chave) in (None, ""):
+                    continue
+                try:
+                    v = float(corpo[chave])
+                except (TypeError, ValueError):
+                    return self._json({"erro": "%s tem de ser número" % chave}, 400)
+                if not (menor <= v <= maior):
+                    return self._json({"erro": "%s fora da faixa (%s a %s)"
+                                                % (chave, menor, maior)}, 400)
+                argv += [bandeira, ("%g" % v)]
+            try:
+                r = _sub.run(argv, capture_output=True, text=True, timeout=60)
+            except (OSError, _sub.SubprocessError) as e:
+                os.unlink(saida.name)
+                return self._json({"erro": "o conversor falhou: %s" % e}, 500)
+            if r.returncode != 0:
+                os.unlink(saida.name)
+                return self._json({"erro": "o conversor recusou esta arte: %s"
+                                            % (r.stderr or "").strip()[:300]}, 422)
+            try:
+                with open(saida.name, "r", encoding="utf-8") as fh:
+                    svg = fh.read()
+            finally:
+                os.unlink(saida.name)
+            return self._json({"ok": True, "svg": svg, "origem": origem,
+                               "nota": (r.stdout or "").strip()[:200]})
+
+        # --------------------------------------------------------------- salvar
+        if acao != "salvar":
+            return self._json({"erro": "ação desconhecida: %s" % acao}, 400)
+
+        svg = str(corpo.get("svg", ""))
+        cor = str(corpo.get("cor", "")).strip()
+        cores = set((_paleta_dados().get("ordem") or []))
+        if cores and cor not in cores:
+            return self._json({"erro": "a cor tem de ser um nome da paleta"}, 400)
+        erro = self._conferir_dialeto(svg)
+        if erro:
+            return self._json({"erro": erro}, 400)
+
+        # O ENSAIO COBRE ESTA PORTA — a mesma disciplina do `_api_app_icone`, e
+        # pelo mesmo motivo: em 07/09 um clique com o ensaio ligado gravou no
+        # repositório porque a recusa morava só no cliente.
+        if bool(corpo.get("seco")):
+            return self._json({"ok": True, "seco": True, "app": app,
+                               "aviso": "em ensaio: %s ficaria com este desenho "
+                                        "em %s" % (app, cor)})
+
+        conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+        try:
+            os.makedirs(os.path.join(conv, "retoques"), exist_ok=True)
+            with open(self._caminho_retoque(app), "w", encoding="utf-8") as fh:
+                fh.write(svg if svg.endswith("\n") else svg + "\n")
+            # O construído, no formato do `meow_escrever` — ver o cabeçalho.
+            with open(os.path.join(conv, app + ".svg"), "w", encoding="utf-8") as fh:
+                fh.write(svg.rstrip("\n"))
+        except OSError as e:
+            return self._json({"erro": "não consegui gravar o desenho: %s" % e}, 500)
+
+        erro = self._gravar_linha_convertidos(app, cor)
+        if erro:
+            return self._json({"erro": erro}, 500)
+        saiu = self._tirar_do_mapa_arcticons(app)
+        return self._json({"ok": True, "app": app, "cor": cor, "saiu_do_arcticons": saiu,
+                           "depois": "vale depois de \"Pôr os desenhos em traço na tela\""})
+
+    def _conferir_dialeto(self, svg):
+        """A recusa é do servidor. Devolve a frase do erro, ou "" se passar."""
+        texto = (svg or "").strip()
+        if not texto:
+            return "o desenho veio vazio"
+        if len(texto) > 60000:
+            return "o desenho passa de 60 000 caracteres — isto é um ícone, não um quadro"
+        if not texto.startswith("<svg") or not texto.endswith("</svg>"):
+            return "o texto tem de começar em <svg e terminar em </svg>"
+        if 'viewBox="0 0 48 48"' not in texto:
+            return 'falta viewBox="0 0 48 48" — é a caixa de todo o acervo'
+        if "stroke-width" in texto:
+            return ("tire o stroke-width: a espessura vem do TRACO do "
+                    "icones_apps_arcticons.sh, e duplicá-la é XML inválido")
+        if re.search(r"#[0-9A-Fa-f]{3,8}\b|rgba?\s*\(|hsla?\s*\(", texto):
+            return "tire a cor: ela vem da paleta, pelo campo de cor abaixo"
+        if 'stroke="currentColor"' not in texto:
+            return 'falta stroke="currentColor" — é assim que a cor entra'
+        if 'fill="none"' not in texto:
+            return 'falta fill="none" — o acervo é traço, não chapado'
+        achado = self._SVG_PROIBIDO.search(texto)
+        if achado:
+            return "o desenho traz %s, que não entra num ícone" % achado.group(0)
+        return ""
+
+    def _gravar_linha_convertidos(self, app, cor):
+        """`<app>:mao:<cor>` no mapa — trocando a linha se ela já existir."""
+        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+        try:
+            with open(caminho, "r", encoding="utf-8") as fh:
+                linhas = fh.read().split("\n")
+        except OSError as e:
+            return "não achei o mapa dos convertidos: %s" % e
+        linha = "%s:mao:%s" % (app, cor)
+
+        def id_da_linha(l):
+            corte = l.strip()
+            if not corte or corte.startswith("#"):
+                return None
+            return corte.split(":")[0].strip()
+
+        indice = next((i for i, l in enumerate(linhas) if id_da_linha(l) == app), None)
+        if indice is not None:
+            # Só a COR pode ter mudado; a origem de uma linha desta porta é
+            # sempre `mao`, porque o desenho veio da caixa de texto.
+            linhas[indice] = linha
+        else:
+            ultima = max((i for i, l in enumerate(linhas) if id_da_linha(l)), default=None)
+            linhas.insert(ultima + 1 if ultima is not None else len(linhas), linha)
+        try:
+            with open(caminho, "w", encoding="utf-8") as fh:
+                fh.write("\n".join(linhas))
+        except OSError as e:
+            return "não consegui gravar o mapa: %s" % e
+        return ""
+
+    def _tirar_do_mapa_arcticons(self, app):
+        """Um nome nos DOIS mapas faz o `_conferir_gemeos` estourar.
+
+        Está no cabeçalho do `icones_apps_arcticons.sh`: dois acervos para o
+        mesmo aplicativo é o defeito de "dois donos" com outra roupa, e o script
+        morre em vez de escolher um vencedor calado. Quem desenhou à mão decidiu
+        — o Arcticons sai, e o `48x48/apps` órfão some na varredura da mesma
+        passagem, porque aquele script é dono único do diretório.
+        """
+        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
+        try:
+            with open(caminho, "r", encoding="utf-8") as fh:
+                linhas = fh.read().split("\n")
+        except OSError:
+            return False
+        fora = [l for l in linhas
+                if not (l.strip() and not l.strip().startswith("#")
+                        and l.strip().split(":")[0].strip() == app)]
+        if len(fora) == len(linhas):
+            return False
+        try:
+            with open(caminho, "w", encoding="utf-8") as fh:
+                fh.write("\n".join(fora))
+        except OSError:
+            return False
+        return True
 
     def do_POST(self):
         alvo = urlparse(self.path)
@@ -4896,6 +5250,9 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/app-icone":
             return self._api_app_icone(corpo)
+
+        if caminho == "/api/app-desenho":
+            return self._api_app_desenho(corpo)
 
         if caminho == "/api/jogo-fora":
             return self._api_jogo_fora(corpo)
