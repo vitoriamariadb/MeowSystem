@@ -4210,12 +4210,123 @@ function devolverFoco(ancora) {
   if (alvo) alvo.focus();
 }
 
+/* ===========================================================================
+ * A ROLAGEM SOBREVIVE AO REDESENHO, E A ABA NOVA NASCE NO TOPO — 08/09/2026
+ * ===========================================================================
+ * Duas queixas dela, no mesmo dia, e é UM defeito só: `render()` reconstrói o
+ * `#conteudo` inteiro e nunca falou com o `scrollTop` do `main`.
+ *
+ *   1. "ao clicar em alguma config e setar algo ele sobe automaticamente a
+ *      barra de rolagem" — na página de papel de parede.
+ *
+ *   2. "nas abas mais curtas ... esse problema que impede de descer a
+ *      navegação". Medido entrando em "Instalação" vinda de "Papel de parede"
+ *      rolada a 1200: `scrollTop=100`, com o título da página 19 px ACIMA da
+ *      área visível. Ela chega numa tela sem cabeçalho e sem lugar.
+ *
+ * O MECANISMO É O GRAMPO DO NAVEGADOR, e ele só morde quando a página FICA
+ * BAIXA por um instante. Trocar os filhos do `#conteudo` numa tarefa só não
+ * custa nada — não há layout no meio, e o `scrollTop` atravessa intacto (é por
+ * isso que mexer numa chave comum nunca perdeu o lugar). O que morde é o
+ * redesenho em DUAS pinturas:
+ *
+ *      rodarNaGaleria() -> PREVIAS.delete("parede/ativos") -> render()
+ *          a galeria pinta VAZIA, a página encolhe, o navegador grampeia o
+ *          `scrollTop` no máximo novo (que pode ser zero)
+ *      ... as prévias chegam do servidor -> render() de novo
+ *          a página volta ao tamanho, e a rolagem não volta com ela.
+ *
+ * Trocar de aba é o mesmo grampo com o sinal invertido: a aba nova é curta, o
+ * máximo dela é 100, e a página abre em 100 em vez de no topo.
+ *
+ * A REGRA É A IDENTIDADE DA PÁGINA, e não "mudou a aba":
+ *   mesma página (a mesma aba e a mesma busca) -> a rolagem VOLTA para onde
+ *   estava, porque quem mexeu num controle continua lendo o mesmo lugar;
+ *   página outra -> começa no topo, que é onde uma tela começa.
+ *   A busca entra na identidade porque cada tecla muda a lista inteira: manter
+ *   a rolagem de um resultado no meio de outro resultado é manter um lugar que
+ *   não existe mais.
+ *
+ * O ALVO ESPERA A PÁGINA CRESCER, e é isso que cobre o caso da galeria. Quando
+ * a restauração não alcança o ponto pedido — porque naquela pintura o conteúdo
+ * ainda não cabe —, o alvo fica PENDENTE e a pintura seguinte tenta de novo.
+ * Sem isso, a segunda pintura guardaria o valor já grampeado e a espera não
+ * serviria para nada.
+ *
+ *   Quem cancela a espera é ELA: qualquer gesto de rolagem (roda, tecla, dedo,
+ *   arrastar a barra) apaga o alvo pendente na hora. Um alvo que sobrevivesse
+ *   ao gesto dela puxaria a página de volta debaixo do dedo, que é um defeito
+ *   pior que o que estamos consertando.
+ *
+ * A FAIXA GRUDADA VOLTA ANTES DA ROLAGEM, e essa ordem não é zelo.
+ *   A faixa presa é 113 px mais baixa que a solta (213 -> 100, medido). Ela
+ *   nasce SOLTA em toda pintura, e o observador só a prende no quadro seguinte
+ *   — então devolver `scrollTop = 1200` com a faixa ainda gorda põe o dedo 113
+ *   px acima do lugar, e o encolhimento que vem depois faz o conteúdo saltar
+ *   exatamente esses 113 px na frente do olho. Recolocar a classe ANTES de
+ *   devolver a rolagem faz as duas medidas falarem do mesmo desenho.
+ *
+ * E ELA VEM DEPOIS DO `devolverFoco`: `focus()` rola o elemento para dentro da
+ * vista por conta própria. Trocar a ordem seria deixar o foco decidir a
+ * rolagem, que é o defeito de novo com outro nome. */
+let PAGINA_ROLADA = null;   // que página o `main` está mostrando agora
+let ROLAGEM_PENDENTE = 0;   // ponto que ainda não coube na pintura anterior
+
+function identidadeDaPagina() {
+  return String(ABA) + "\u0000" + $("#busca").value.trim();
+}
+
+/* O GESTO DELA APAGA O ALVO. `passive: true` porque nenhum destes ouvintes
+ * chama `preventDefault` — sem isso o Chrome atrasa a rolagem esperando para
+ * saber. `pointerdown` cobre arrastar a barra; `keydown` cobre PageDown, Home,
+ * setas e o espaço. */
+function ouvirGestoDeRolagem() {
+  const m = $("#principal");
+  if (!m) return;
+  const apagar = () => { ROLAGEM_PENDENTE = 0; };
+  for (const evento of ["wheel", "touchstart", "pointerdown", "keydown"]) {
+    m.addEventListener(evento, apagar, { passive: true });
+  }
+}
+
+function guardarRolagem() {
+  const m = $("#principal");
+  if (!m) return null;
+  const pagina = identidadeDaPagina();
+  const mesma = pagina === PAGINA_ROLADA;
+  PAGINA_ROLADA = pagina;
+  /* Página outra: o alvo é o topo, EXPLÍCITO, e o pendente da página anterior
+   * morre com ela. Deixar por conta do grampo do navegador é o que produzia o
+   * `scrollTop=100` da aba curta. */
+  if (!mesma) { ROLAGEM_PENDENTE = 0; return { topo: 0, presas: 0 }; }
+  return {
+    topo: Math.max(m.scrollTop, ROLAGEM_PENDENTE),
+    presas: document.querySelectorAll("#conteudo .previa-bloco.presa").length,
+  };
+}
+
+function devolverRolagem(guardado) {
+  const m = $("#principal");
+  if (!m || !guardado) return;
+  if (guardado.presas) {
+    const faixas = document.querySelectorAll("#conteudo .previa-bloco");
+    for (let i = 0; i < guardado.presas && i < faixas.length; i++) {
+      faixas[i].classList.add("presa");
+    }
+  }
+  m.scrollTop = guardado.topo;
+  /* Não alcançou: a página ainda está baixa (a galeria pintou vazia, as
+   * miniaturas não chegaram). Fica pendente para a pintura seguinte. */
+  ROLAGEM_PENDENTE = m.scrollTop < guardado.topo - 1 ? guardado.topo : 0;
+}
+
 function render() {
   /* Os nós da passagem anterior morreram com ela. Um registro que sobrevive
    * ao `render` guarda referência para árvore descartada, e o repintar acha um
    * nó sem pai — silencioso, e cada vez mais caro. */
   PREVIA_VIVA.clear();
   const ancora = ancoraDoFoco();
+  const rolagem = guardarRolagem();
   montarTrilho();
   const alvo = $("#conteudo");
   alvo.replaceChildren();
@@ -4232,6 +4343,13 @@ function render() {
 
   if (!grupos.length) {
     alvo.append(elemento("p", { class: "vazio-msg", texto: `Nada casa com “${$("#busca").value}”.` }));
+    /* Este `return` corta o `devolverRolagem` do fim, e a frase tem de ficar À
+     * VISTA: sem isto, uma busca digitada com a página rolada deixaria a única
+     * linha da tela lá em cima, fora do campo de visão. E o alvo pendente morre
+     * junto — a página que ele descrevia não existe mais. */
+    ROLAGEM_PENDENTE = 0;
+    const rolador = $("#principal");
+    if (rolador) rolador.scrollTop = 0;
     return;
   }
 
@@ -4459,6 +4577,7 @@ function render() {
   }
   grudarPrevias();
   devolverFoco(ancora);
+  devolverRolagem(rolagem);
   /* A ABA ABERTA APARECE — em 375px o trilho vira uma tira horizontal com vinte
    * botões, e a validação mediu que "a marcação existe fora da tela": a aba
    * ativa podia estar a 600px de rolagem, invisível. `nearest` não sacode a
@@ -5186,6 +5305,9 @@ async function iniciar() {
   }
 
   montarGrupos();
+  /* O ouvinte de gesto é UM só, e nasce aqui: o `main` sobrevive a toda
+   * pintura, então registrá-lo dentro do `render()` vazaria um por clique. */
+  ouvirGestoDeRolagem();
   /* A bandeja volta ANTES da primeira pintura: restaurar depois do `render`
    * faria a página nascer limpa e piscar para o estado pendente. */
   restaurarBandeja();
