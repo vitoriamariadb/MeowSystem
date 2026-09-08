@@ -235,6 +235,14 @@ limpar)
 estado)
   printf 'ponte=%s\n' "$([ -x "$PONTE" ] && echo sim || echo nao)"
   printf 'regra=%s\n' "$([ -f "$REGRA" ] && echo sim || echo nao)"
+  # O md5 DA REGRA, e ele existe por um motivo prático: o `etapa_ponte_root` do
+  # instalador precisa saber se o arquivo em /etc já é o desejado, e a regra é
+  # 0440 root:root — ela não tem como ler. Sem isto a etapa comparava com
+  # `sudo -n cat`, que NÃO está na regra: com o cache do sudo frio a leitura
+  # voltava vazia, a etapa concluía "diverge" e pedia senha numa máquina que já
+  # estava pronta. Medido em 08/09/2026 rodando o instalador como o painel o
+  # roda, sem terminal: "a ponte fica de fora" numa ponte instalada e correta.
+  printf 'regra_md5=%s\n' "$(md5sum < "$REGRA" 2>/dev/null | cut -d' ' -f1)"
   printf 'perfil=%s\n' "$([ -r "$PERFIL" ] && echo sim || echo nao)"
   printf 'raiz=%s\n'  "$(sed -n 's/^raiz=//p' "$PERFIL" 2>/dev/null || printf '(nenhuma)')"
   printf 'hook=%s\n'  "$([ -f "$HOOK" ] && [ -x "$WRAPPER" ] && echo sim || echo nao)"

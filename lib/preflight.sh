@@ -173,12 +173,21 @@ meow_precisa_root() {
   [ -d /usr/share/icons/Papirus-Dark ] || pkg_faltam+=(papirus-icon-theme)
   [ ${#pkg_faltam[@]} -gt 0 ] && motivos+=("instalar pacotes: ${pkg_faltam[*]}")
 
-  [ "${LANCADOR_SISTEMA:-nao}" = "sim" ] && \
-    motivos+=("marcar .desktop em /usr/share/applications (esconder/renomear)")
-  # `[ -d /var/lib/cosmic-greeter ]` é legível sem sudo; o que exige sudo é
-  # entrar no `.config` de dentro. Por isso o gatilho funciona sem elevar.
-  [ -d /var/lib/cosmic-greeter ] && \
-    motivos+=("vestir a tela de login em /var/lib/cosmic-greeter")
+  # A PONTE COBRE ESTES DOIS — 08/09/2026
+  #   Marcar `.desktop` de sistema e vestir a tela de login são verbos dela, e
+  #   verbo dela não pede senha. Continuar anunciando "estas etapas precisam de
+  #   root" numa máquina com a ponte no ar é avisar de um custo que não existe —
+  #   e, pior, o aviso vem seguido de "sem terminal para pedir a senha" quando
+  #   quem roda é o painel, o que faz uma instalação inteira e bem-sucedida
+  #   parecer meia-instalação.
+  if ! meow_ponte_viva; then
+    [ "${LANCADOR_SISTEMA:-nao}" = "sim" ] && \
+      motivos+=("marcar .desktop em /usr/share/applications (esconder/renomear)")
+    # `[ -d /var/lib/cosmic-greeter ]` é legível sem sudo; o que exige sudo é
+    # entrar no `.config` de dentro. Por isso o gatilho funciona sem elevar.
+    [ -d /var/lib/cosmic-greeter ] && \
+      motivos+=("vestir a tela de login em /var/lib/cosmic-greeter")
+  fi
 
   [ ${#motivos[@]} -eq 0 ] && return 0
   sudo -n true 2>/dev/null && return 0        # já em cache: nada a pedir

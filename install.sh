@@ -963,12 +963,26 @@ etapa_ponte_root() {
   regra_quer="$(SUDO_USER="$(id -un)" bash "$origem" regra-sudo 2>/dev/null)" \
     || { meow_erro "a ponte não soube gerar a própria regra"; return "$MEOW_ERRO"; }
 
-  local mudou=0
+  # A COMPARAÇÃO NÃO PODE PRECISAR DE SUDO, e isso é o que estava errado até
+  # 08/09/2026: ela usava `sudo -n cat` nos dois arquivos, e `cat` não está na
+  # regra da ponte. Com o cache do sudo frio as duas leituras voltavam vazias, a
+  # etapa concluía "diverge" e pedia a senha numa máquina já pronta — inclusive
+  # quando quem a rodava era o painel, que não tem terminal para responder.
+  #
+  #   ponte   é 0755: `cmp` direto
+  #   perfil  é 0644 de propósito — não guarda segredo, e ser legível é o que
+  #           permite esta conferência sem elevar nada
+  #   regra   é 0440 root:root, e essa ela não lê. Quem responde é a PRÓPRIA
+  #           ponte, pelo `estado`, que devolve o md5 do arquivo — e o `estado`
+  #           está na regra, então não pede senha.
+  local mudou=0 md5_quer md5_tem
   cmp -s "$origem" "$ponte" 2>/dev/null || mudou=1
   # `$( )` come o `\n` final dos DOIS lados, então comparar assim é comparar o
   # mesmo texto — e não há divergência eterna por causa de uma quebra de linha.
-  [ "$(sudo -n cat "$perfil" 2>/dev/null)" = "$perfil_quer" ] || mudou=1
-  [ "$(sudo -n cat "$regra"  2>/dev/null)" = "$regra_quer"  ] || mudou=1
+  [ "$(cat "$perfil" 2>/dev/null)" = "$perfil_quer" ] || mudou=1
+  md5_quer="$(printf '%s\n' "$regra_quer" | md5sum | cut -d' ' -f1)"
+  md5_tem="$(sudo -n "$ponte" estado 2>/dev/null | sed -n 's/^regra_md5=//p')"
+  [ -n "$md5_tem" ] && [ "$md5_tem" = "$md5_quer" ] || mudou=1
 
   if [ "$mudou" = "0" ]; then
     meow_ok "ponte root instalada e liberada sem senha"
