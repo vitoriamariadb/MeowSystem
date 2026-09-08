@@ -1880,6 +1880,20 @@ function montarEscolhaDeIcone(app, recarregar) {
   const painel = elemento("div", { class: "escolha-icone" });
   painel.append(elemento("h3", { class: "titulo-cartao", texto: `Ícone de ${app.nome}` }));
 
+  /* A OFICINA VEM ANTES DO ACERVO — 08/09/2026
+   *   Ela estava no fim do painel, depois da grade de 39 glifos, dos 26 botões
+   *   de cor e das três ações: numa janela de 900 px de altura o resumo nascia
+   *   a 998 px do topo, fechado e escrito em versalete cinza. Medido assim, e
+   *   é a explicação de ela ter pedido, em 08/09, uma coisa que já existia:
+   *   *"nesse caso aqui ao clicar no app poderíamos ter uma seção de gerar
+   *   variações do tema no estilo MeowSystem"*.
+   *
+   *   As duas escolhas são irmãs — pegar um desenho pronto do acervo, ou fazer
+   *   um a partir da arte do próprio programa — e a segunda não pode nascer
+   *   abaixo da primeira inteira. Fechada ela continua: uma linha, e o acervo
+   *   segue logo abaixo para quem só quer escolher. */
+  painel.append(oficinaDeDesenho(app, relerLista));
+
   const busca = elemento("input", {
     type: "search", value: GLIFOS.termo || "", "data-foco": "glifos",
     placeholder: "Buscar desenho no acervo Arcticons…",
@@ -1986,7 +2000,6 @@ function montarEscolhaDeIcone(app, recarregar) {
   painel.append(acoes);
   painel.append(elemento("p", { class: "frase",
     texto: "A escolha é gravada em assets/icones/apps-arcticons.map, no repositório." }));
-  painel.append(oficinaDeDesenho(app, relerLista));
   return painel;
 }
 
@@ -2042,7 +2055,12 @@ function oficinaDeDesenho(app, relerLista) {
   const caixa = elemento("details", { class: "oficina" });
   if (OFICINA.aberta) caixa.setAttribute("open", "");
   caixa.addEventListener("toggle", () => { OFICINA.aberta = caixa.open; });
-  caixa.append(elemento("summary", { texto: "Desenhar a partir do ícone dele" }));
+  const temCapa = /^(meow-steam-|steam_app_)\d+$/.test(String(app.id));
+  caixa.append(elemento("summary", {
+    texto: temCapa
+      ? "Desenhar um no nosso traço — a partir do ícone ou da capa"
+      : "Desenhar um no nosso traço, a partir da arte dele",
+  }));
   caixa.append(elemento("p", { class: "frase",
     texto: "Traz a arte de fábrica para o nosso traço. O resultado é um SVG que "
          + "você pode mexer aqui mesmo antes de aceitar." }));
@@ -2123,7 +2141,7 @@ function oficinaDeDesenho(app, relerLista) {
    * é motivo para não oferecer: a oficina mostra os dois tamanhos justamente
    * para ela olhar e recusar, e o desenho pode ser o ponto de partida de uma
    * variação feita na caixa de texto. */
-  if (/^(meow-steam-|steam_app_)\d+$/.test(app.id)) {
+  if (temCapa) {
     const par = elemento("div", { class: "oficina-fontes", role: "group",
                                   "aria-label": "De onde vetorizar" });
     for (const [id, rotulo, dica] of [
@@ -4584,7 +4602,7 @@ function devolverRolagem(guardado) {
   if (guardado.presas) {
     const faixas = document.querySelectorAll("#conteudo .previa-bloco");
     for (let i = 0; i < guardado.presas && i < faixas.length; i++) {
-      faixas[i].classList.add("presa");
+      presilha(faixas[i], true);
     }
   }
   m.scrollTop = guardado.topo;
@@ -4917,7 +4935,7 @@ function grudarPrevias() {
          * empurrando exatamente o que ela ia ler. Encolhida é a faixa cujo
          * lugar de descanso já passou — a sentinela acima do teto do `main`. */
         const acima = e.boundingClientRect.top < (e.rootBounds ? e.rootBounds.top : 0);
-        faixa.classList.toggle("presa", !e.isIntersecting && acima);
+        presilha(faixa, !e.isIntersecting && acima);
       }
     }, { root: raiz, threshold: 0 });
   } else {
@@ -4931,6 +4949,86 @@ function grudarPrevias() {
     }
     OBSERVADOR_PREVIA.observe(sentinela);
   }
+  vagaDoConteudo();
+}
+
+/* A VAGA VAI PARA O FIM DO CONTEÚDO, E NÃO PARA JUNTO DA FAIXA — 08/09/2026
+ * A primeira versão punha a vaga logo depois da faixa, que é onde a altura
+ * some. Funcionou e ficou feio: com a faixa presa e a rolagem a 106, sobrava um
+ * buraco de 174 px entre a tira do alto e o primeiro cartão — no meio da
+ * página, do tamanho de um cartão inteiro, e sem nada dentro.
+ *
+ * O buraco é inevitável: se a página tem de continuar com 877 px de altura para
+ * caber 106 de rolagem, e o conteúdo encolhido só precisa de 703, os 174 de
+ * diferença existem em algum lugar. O que se escolhe é ONDE. No fim, ele se lê
+ * como recuo generoso embaixo do último cartão; no meio, lê-se como defeito.
+ *
+ * Uma vaga só para a página inteira: as abas têm uma faixa cada, mas a soma
+ * cobre a aba que um dia tiver duas. */
+function vagaDoConteudo() {
+  const c = document.getElementById("conteudo");
+  if (!c) return null;
+  let v = c.lastElementChild;
+  if (!v || !v.classList.contains("vaga-previa")) {
+    v = elemento("div", { class: "vaga-previa", "aria-hidden": "true" });
+    c.append(v);
+  }
+  return v;
+}
+
+/* QUANTO A FAIXA EMAGRECE, MEDIDO NELA MESMA — 08/09/2026
+ * O número não pode ser constante no código: cada aba tem um desenho de altura
+ * diferente, e o par «Como está / Como fica» muda a conta. Aqui ele sai da
+ * própria faixa, uma vez por pintura, e fica guardado no nó.
+ *
+ * A medição inteira acontece numa volta síncrona: acrescenta a classe, lê,
+ * troca, lê, devolve. Não há pintura entre a primeira e a última linha, então
+ * nada disso aparece na tela. O `medindo` desliga as transições enquanto isso
+ * porque `offsetHeight` no meio de uma animação devolve o quadro de agora, e o
+ * que se quer são os dois extremos. */
+function encolhimentoDaFaixa(faixa) {
+  if (faixa.dataset.encolhe) return Number(faixa.dataset.encolhe);
+  const estava = faixa.classList.contains("presa");
+  faixa.classList.add("medindo");
+  faixa.classList.remove("presa");
+  const solta = faixa.offsetHeight;
+  faixa.classList.add("presa");
+  const presa = faixa.offsetHeight;
+  faixa.classList.toggle("presa", estava);
+  faixa.classList.remove("medindo");
+  const d = Math.max(0, solta - presa);
+  faixa.dataset.encolhe = String(d);
+  return d;
+}
+
+/* PRENDER E SOLTAR, SEMPRE PELA VAGA. Ver o comentário `.vaga-previa` no
+ * `estilo.css`: prender sem devolver a altura à página é o que trancava a
+ * rolagem nas abas curtas. Este é o único lugar que põe e tira a classe. */
+function presilha(faixa, deve) {
+  if (!faixa || deve === faixa.classList.contains("presa")) return;
+  /* PRIMEIRO ENGORDA, DEPOIS EMAGRECE — nesta ordem, sempre.
+   *   Trocar as duas na ordem contrária deixa a página 174 px mais curta entre
+   *   uma linha e a outra. É um instante sem pintura nenhuma, e mesmo assim
+   *   custa caro: `scrollTop` é grampeado na hora, não no quadro seguinte, e a
+   *   rolagem já morreu quando a vaga chega. */
+  const m = $("#principal");
+  const onde = m ? m.scrollTop : 0;
+  const quanto = encolhimentoDaFaixa(faixa);
+  const vaga = vagaDoConteudo();
+  const tinha = vaga ? (parseFloat(vaga.style.height) || 0) : 0;
+  const soma = Math.max(0, deve ? tinha + quanto : tinha - quanto);
+  if (deve) {
+    if (vaga) vaga.style.height = soma + "px";
+    faixa.classList.add("presa");
+  } else {
+    faixa.classList.remove("presa");
+    if (vaga) vaga.style.height = soma ? soma + "px" : "";
+  }
+  /* A MEDIÇÃO TAMBÉM ENCOLHE, e ela é inevitável: `offsetHeight` com a classe
+   * no ar é a única forma de saber quanto a faixa emagrece nesta aba, nesta
+   * largura, com este desenho. O lugar é devolvido aqui, ainda dentro da mesma
+   * volta síncrona — nada disso chega a ser pintado. */
+  if (m && m.scrollTop !== onde) m.scrollTop = onde;
 }
 
 /* A BUSCA IGNORA ACENTO, E ISSO NÃO É LUXO NUMA INTERFACE EM PORTUGUÊS

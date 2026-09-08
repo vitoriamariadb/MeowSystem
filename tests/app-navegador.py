@@ -1466,6 +1466,41 @@ def main():
                   "rolando, a faixa gruda uma vez so e o navegador nao mexe na rolagem"
                   + (f" — {samba}" if samba else ""))
 
+            # (m) A ABA CURTA CHEGA AO FIM E FICA LA. O defeito que esta regra
+            #     guarda, medido em 08/09/2026 numa janela de 830px: "Atualizacao"
+            #     tinha 106px de folga e a faixa encolhe 174. Rolar ate o fim
+            #     prendia a faixa, a pagina encolhia ate ficar do tamanho exato
+            #     da tela e o navegador grampeava o scrollTop em zero — a barra
+            #     nao descia NUNCA. Ela: "pagina de atualizacao e outras seguem
+            #     com aquele problema de impedir de descer a barra de navegacao".
+            #
+            #     A regra e sobre TODA aba, e nao sobre uma lista: a aba curta e'
+            #     descoberta medindo (folga menor que o encolhimento da faixa), e
+            #     uma aba que encurtar amanha nasce coberta.
+            grupos = pag.evaluate(
+                "() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
+                ".map(b => b.dataset.grupo)")
+            grampeadas = []
+            for aba_ in grupos:
+                pag.locator(f'#trilho button[data-grupo="{aba_}"]').first.click()
+                pag.wait_for_timeout(380)
+                d = pag.evaluate("""() => {
+                  const m = document.getElementById('principal');
+                  const folga = m.scrollHeight - m.clientHeight;
+                  if (folga <= 0) return null;
+                  m.scrollTop = 9999;
+                  return { folga, foi: m.scrollTop };
+                }""")
+                if not d:
+                    continue
+                pag.wait_for_timeout(450)
+                ficou = pag.evaluate("() => document.getElementById('principal').scrollTop")
+                if abs(ficou - d["foi"]) > 1:
+                    grampeadas.append(f"{aba_}: desceu {d['foi']} e voltou para {ficou}")
+            checa(not grampeadas,
+                  f"as {len(grupos)} abas descem ate o fim e ficam la"
+                  + (f" — {grampeadas}" if grampeadas else ""))
+
             print("\n20b. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,
                   f"nenhum erro de JavaScript em toda a visita"
