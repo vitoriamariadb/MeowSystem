@@ -1,15 +1,28 @@
 <div align="center">
 
+<img src="docs/logo.svg" width="128" alt="The MeowSystem logo: a lilac line-art cat inside a circle">
+
 # MeowSystem
 
 **Catppuccin for COSMIC, built for one machine — and documented well enough to become yours.**
+
+*Everything it writes, it knows how to undo — and running it again on a ready machine writes nothing.*
+
+[![licence](https://img.shields.io/badge/licence-GPL--3.0-CBA6F7?style=for-the-badge&labelColor=1E1E2E)](LICENSE)
+[![platform](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
+[![languages](https://img.shields.io/badge/bash%204.3+-python%203%20stdlib%20only-A6E3A1?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
+
+[![installer](https://img.shields.io/badge/installer-53%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-47%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![browser suite](https://img.shields.io/badge/browser-84%2F84-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
 Theme, icons, panel, dock, terminal and wallpaper for Pop!_OS with COSMIC in a single installer,
 plus a local panel that changes all of it without opening a text file.
 
 <img src="docs/capturas/painel.png" width="920" alt="The MeowSystem configuration panel, home screen">
 
-[Português](README.md) · [Full manual](docs/) · GPL-3.0
+[Português](README.md) · [Full manual](docs/) · [Credits](docs/CREDITOS.md) · GPL-3.0
 
 </div>
 
@@ -24,7 +37,7 @@ cd MeowSystem
 meow ativar               # every other run
 ```
 
-52 steps. Running it again on a machine that is already set up **writes nothing** — and says so,
+53 steps. Running it again on a machine that is already set up **writes nothing** — and says so,
 instead of listing the steps as if it had redone them. To see what would happen before letting it
 happen: `MEOW_DRY_RUN=1 ./install.sh`.
 
@@ -34,7 +47,7 @@ happen: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # or the MeowSystem icon in the launcher
 ```
 
-108 settings and 45 actions across thirteen pages — one per subject, each holding everything
+109 settings and 46 actions across thirteen pages — one per subject, each holding everything
 there is about it. The menu has two blocks: **Tópicos** (topics), which is your screen, and
 **Sistema** (system), which is what the machine does on its own.
 
@@ -95,7 +108,7 @@ The **Ensaiar sem gravar** button (dry run) glows amber while it is on, and with
 | **The workspaces** | Name, order and tiling for each one. The order of the list is the order of the bar, and it is the only way to decide which area is born first. |
 | **The icons** | Papirus as the base, folders tinted by the accent colour, and Arcticons glyphs per program — swappable one by one, from the panel. |
 | **The terminal** | All sixteen colours, the cursor, the `starship` prompt, and the cat replacing the `fastfetch` logo, redrawn in characters on every build. |
-| **The wallpaper** | A carousel of 46 curated images, day and night folders split by luminance, next/previous on right-click, and favourites. |
+| **The wallpaper** | A carousel of 43 curated images, day and night folders split by luminance, next/previous on right-click, and favourites. |
 | **Day and night** | One schedule rules everything that asks "is it night?": the dock cat, the terminal cat, the background, and reading mode — which warms the screen and gives it paper texture, on a ramp. |
 | **Programs** | Spotify, VS Code and friends themed from the inside; Steam games with one launcher entry each, removed when the game is. |
 
@@ -115,7 +128,7 @@ The **Ensaiar sem gravar** button (dry run) glows amber while it is on, and with
 ## Check and undo
 
 ```bash
-meow doctor                            # 46 checks. Writes nothing.
+meow doctor                            # 47 checks. Writes nothing.
 meow doctor --consertar                # applies only what is out of place
 ./scripts/aplicar_tema.sh original     # restores the previous theme
 meow desinstalar                       # removes theme, icons and timers
@@ -140,9 +153,16 @@ is already installed, and only listens on `127.0.0.1`.
 
 ## Credits
 
+MeowSystem is a shell: almost everything you see on screen was drawn by someone else, under a
+licence that allows this. The four largest:
+
 - [Catppuccin](https://github.com/catppuccin/catppuccin) — the palette (MIT)
 - [Arcticons](https://github.com/Donnnno/Arcticons) — the program and panel glyphs (CC BY-SA 4.0)
 - [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) — the icon base (GPL-3.0)
 - [catppuccin/papirus-folders](https://github.com/catppuccin/papirus-folders) — the coloured folders, pinned at `f83671d1`
+
+**The full list is in [`docs/CREDITOS.md`](docs/CREDITOS.md)** — cursors, fonts, wallpapers,
+in-app themes, what was turned down and why, and what you must do if you redistribute anything
+from here. (That page is in Portuguese.)
 
 Licence: GPL-3.0.

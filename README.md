@@ -1,15 +1,28 @@
 <div align="center">
 
+<img src="docs/logo.svg" width="128" alt="A logo do MeowSystem: um gato de traço lilás dentro de um círculo">
+
 # MeowSystem
 
 **Catppuccin para o COSMIC, feito para uma máquina só — e documentado o suficiente para virar a sua.**
+
+*Tudo o que ele escreve, ele sabe desfazer — e rodar de novo numa máquina pronta não escreve um byte.*
+
+[![licença](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-CBA6F7?style=for-the-badge&labelColor=1E1E2E)](LICENSE)
+[![plataforma](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
+[![linguagens](https://img.shields.io/badge/bash%204.3+-python%203%20s%C3%B3%20stdlib-A6E3A1?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+![versão](https://img.shields.io/badge/vers%C3%A3o-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
+
+[![instalador](https://img.shields.io/badge/instalador-53%20etapas-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-47%20confer%C3%AAncias-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![conferência do navegador](https://img.shields.io/badge/navegador-84%2F84-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
 Tema, ícones, barra, dock, terminal e papel de parede do Pop!_OS com COSMIC num instalador só,
 e um painel local para mexer em tudo sem abrir um arquivo de texto.
 
 <img src="docs/capturas/painel.png" width="920" alt="O painel de configuração do MeowSystem, na tela inicial">
 
-[English](README.en.md) · [Manual completo](docs/) · GPL-3.0
+[English](README.en.md) · [Manual completo](docs/) · [Créditos](docs/CREDITOS.md) · GPL-3.0
 
 </div>
 
@@ -24,7 +37,7 @@ cd MeowSystem
 meow ativar               # todas as outras
 ```
 
-São 52 etapas. Rodar de novo numa máquina já pronta **não escreve um byte** — e diz isso, em vez
+São 53 etapas. Rodar de novo numa máquina já pronta **não escreve um byte** — e diz isso, em vez
 de listar as etapas como se as tivesse refeito. Para ver o que aconteceria antes de deixar
 acontecer: `MEOW_DRY_RUN=1 ./install.sh`.
 
@@ -34,7 +47,7 @@ acontecer: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # ou o ícone MeowSystem no lançador
 ```
 
-108 ajustes e 45 ações em treze páginas — uma por assunto, e cada uma com tudo o que existe
+109 ajustes e 46 ações em treze páginas — uma por assunto, e cada uma com tudo o que existe
 sobre ele. O menu tem dois blocos: **Tópicos**, que é a sua tela, e **Sistema**, que é o que a
 máquina faz sozinha.
 
@@ -56,7 +69,7 @@ O desenho nunca é captura de tela: cada um diz, na legenda, quais números fora
 
 <img src="docs/capturas/painel-areas.png" width="920" alt="A aba Áreas de trabalho, com o desenho da barra e das duas telas acima dos três ajustes">
 
-- **Papel de parede** — a coleção de 46 imagens, os 9 ajustes e as 13 ações, na mesma tela.
+- **Papel de parede** — a coleção de 43 imagens, os 9 ajustes e as 13 ações, na mesma tela.
   Soltar um arquivo aqui diz na hora se ele entrou no grupo de dia ou no de noite, e por quê —
   e dá para discordar: **Dia** e **Noite** mandam a imagem para o lado que você quiser, e
   **Medir** devolve a decisão à luminância.
@@ -92,7 +105,7 @@ mostra o que aconteceria sem escrever nada.
 | **As áreas de trabalho** | Nome, ordem e encaixe de cada uma. A ordem da lista é a ordem da barra, e é a única forma de decidir qual área nasce primeiro. |
 | **Os ícones** | Papirus como base, pastas coloridas pelo accent, e os glifos do Arcticons por programa — trocáveis um a um, pelo painel. |
 | **O terminal** | As dezesseis cores, o cursor, o prompt do `starship`, e o gato no lugar do logo do `fastfetch`, redesenhado em caracteres a cada geração. |
-| **O papel de parede** | Um carrossel de 46 imagens curadas, com pastas de dia e de noite separadas por luminosidade, avançar e voltar no botão direito, e favoritos. |
+| **O papel de parede** | Um carrossel de 43 imagens curadas, com pastas de dia e de noite separadas por luminosidade, avançar e voltar no botão direito, e favoritos. |
 | **Dia e noite** | Um horário manda em tudo que pergunta "é noite?": o gato do dock, o do terminal, a imagem de fundo e o modo de leitura — que esquenta a tela e lhe dá textura de papel, em rampa. |
 | **Os programas** | Spotify, VS Code e companhia vestidos por dentro; os jogos da Steam com um atalho por jogo no lançador, e o atalho saindo junto com o jogo. |
 
@@ -112,7 +125,7 @@ mostra o que aconteceria sem escrever nada.
 ## Conferir e desfazer
 
 ```bash
-meow doctor                            # 46 conferências. Não escreve nada.
+meow doctor                            # 47 conferências. Não escreve nada.
 meow doctor --consertar                # aplica só o que estiver fora do lugar
 ./scripts/aplicar_tema.sh original     # devolve o tema de antes
 meow desinstalar                       # tira tema, ícones e agendamentos
@@ -137,9 +150,16 @@ estiver instalado, e só escuta em `127.0.0.1`.
 
 ## Créditos
 
+O MeowSystem é uma casca: quase tudo o que aparece na tela foi desenhado por outra pessoa, sob uma
+licença que permite isso. Os quatro maiores:
+
 - [Catppuccin](https://github.com/catppuccin/catppuccin) — a paleta (MIT)
 - [Arcticons](https://github.com/Donnnno/Arcticons) — os glifos dos programas e do painel (CC BY-SA 4.0)
 - [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) — a base de ícones (GPL-3.0)
 - [catppuccin/papirus-folders](https://github.com/catppuccin/papirus-folders) — as pastas coloridas, pinado em `f83671d1`
+
+**A lista inteira está em [`docs/CREDITOS.md`](docs/CREDITOS.md)** — os cursores, as fontes, os
+papéis de parede, os temas de dentro dos programas, o que foi recusado e por quê, e o que você
+precisa fazer se redistribuir alguma coisa daqui.
 
 Licença: GPL-3.0.

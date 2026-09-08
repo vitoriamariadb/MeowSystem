@@ -3484,14 +3484,19 @@ function itensExternos() {
    * menos: ela clicaria uma vez, não aconteceria nada, e a partir dali o menu
    * inteiro seria suspeito. */
   if (!repo) return [];
-  /* "O manual" entrou e saiu no mesmo dia, a pedido dela: apontava para o topo
-   * do README, e o topo do README é a mesma coisa que esta página já é. Ficou o
-   * que o painel não tem em lugar nenhum — a licença de cada acervo de terceiro
-   * que este projeto veste. */
+  /* Aponta para a RAIZ do repositório, não para uma âncora: em 08/09/2026 ela
+   * pediu "que o nosso Botão de Créditos na interface levasse ao início do nosso
+   * readme". O início do README é onde estão a logo, os números medidos e o link
+   * para `docs/CREDITOS.md` — a licença de cada acervo de terceiro que este
+   * projeto veste, que o painel não tem em lugar nenhum.
+   *
+   * A âncora `#créditos` que estava aqui apontava para uma seção de quatro linhas
+   * no meio da página; o GitHub ainda a resolveria, mas ela deixaria a leitora no
+   * lugar mais pobre dos dois. */
   const LINKS_EXTERNOS = [
-    { nome: "Créditos", href: repo + "#créditos",
-      titulo: "A paleta, os glifos e a base de ícones que este projeto usa — "
-            + "com a licença de cada um, no GitHub" },
+    { nome: "Créditos", href: repo,
+      titulo: "O repositório no GitHub: a paleta, os glifos, as fontes e a base "
+            + "de ícones que este projeto veste — com a licença de cada um" },
   ];
   return LINKS_EXTERNOS.map((l) => elemento("a", {
     class: "item-externo",
