@@ -12,7 +12,9 @@ A REGRA, EM UMA LINHA
     Estes arquivos são o dialeto do acervo: `viewBox="0 0 48 48"`,
     `fill="none"`, `stroke="currentColor"`, `stroke-linecap/linejoin="round"` e
     NENHUM `stroke-width`. A espessura vem do `TRACO` do
-    `scripts/icones_apps_arcticons.sh` (hoje 1,75) e a cor vem da paleta, pelo
+    `scripts/icones_apps_arcticons.sh` (2,25 desde 27/08/2026 — o 1,75 escrito
+    aqui até 08/09 era o número de 11/08, e envelheceu quando a caixa da dock
+    passou a ser medida em ~41 px) e a cor vem da paleta, pelo
     campo 3 da linha em `assets/icones/apps-convertidos.map`. Quem editar à mão tem de
     manter as duas ausências — gravar cor ou espessura aqui cria um segundo dono
     da mesma decisão.
@@ -175,3 +177,68 @@ A ORIGEM DO PLAYER É `mao`, E ISSO É NOVO PARA UM `com.system76.*`
     Ele estava em `assets/icones/apps-arcticons.map` e mudou de mapa, porque um nome nos
     dois faz o `_conferir_gemeos` estourar. O porquê da mudança está escrito lá,
     junto com a razão de isto NÃO ser o erro de 11/08 repetido.
+
+
+================================================================================
+os SEIS jogos e emuladores  ·  08/09/2026
+org.DolphinEmu.dolphin-emu · net.lutris.Lutris · io.github.dummerle.rare
+com.heroicgameslauncher.hgl · org.libretro.RetroArch · io.mgba.mGBA
+================================================================================
+
+Pedido dela: *"dolphin, lutris, rare, heroid, retroarch, mgba. preciso que sejam
+desenhados novos icons pra eles seguindo a mesma estética do nosso tema. em .svg
+com a mesma estética."*
+
+A CONVERSÃO FOI TENTADA PRIMEIRO, NOS SEIS, E ESTÁ MEDIDA
+    `converter_icone.py` contra `/usr/share/icons/Papirus/64x64/apps/<nome>.svg`,
+    rasterizado a 48 px com traço 2,25 — que é o tamanho da dock. Um sobreviveu:
+
+      dolphin    3 classes, 2 traços. O golfinho vira contorno duplo dentro do
+                 círculo do Papirus; a 48 px é uma bolha com um risco.
+      lutris     12 traços, 120 pontos. A lontra sobre o disco laranja vira
+                 rabisco — o mesmo modo de falha do rolo de fita do Flatseal.
+      rare       10 traços, 151 pontos. O laço LÊ, e o círculo externo come a
+                 caixa inteira: o desenho fica com 40% do quadro.
+      heroic     7 traços, 59 pontos. LÊ BEM — escudo e espada de pé a 48 px.
+      retroarch  4 traços. O bicho lê a 260 px e some a 48: o quadrado externo
+                 do Papirus rouba a caixa toda.
+      mgba       7 traços. Lê como portátil, mas é o Game Boy VERTICAL do
+                 Papirus, não um GBA, e o direcional empasta.
+
+    Um convertido no meio de cinco desenhados quebraria a coerência que é a
+    razão de o acervo existir, então os seis são `mao`. O Heroic desenhado
+    repete de propósito a leitura que a conversão dele já tinha — escudo com
+    espada —, porque ela estava certa.
+
+O QUE CADA UM DESENHA, E O QUE FOI DESCARTADO NO CAMINHO
+    dolphin    golfinho saltando: corpo em curva única, bico, olho, barbatana
+               dorsal, peitoral e cauda bifurcada. SEIS versões. As três
+               primeiras liam como raio, tubarão e peixe — o que faltava era o
+               BICO (sem ele, qualquer silhueta de corpo curvo lê como peixe) e
+               uma cauda de duas lâminas em vez de um gancho.
+    lutris     cara de lontra, que é a marca deles (Lutra = lontra). A primeira
+               tentativa tinha orelhas redondas grandes no alto e lia URSO; a
+               segunda, orelhas pontudas, lia GATO. O que resolve é orelha
+               PEQUENA e LATERAL, a 10 e 2 horas, com focinho largo e baixo.
+    rare       o laço infinito da marca, com o direcional num laço e dois botões
+               no outro. O círculo externo do original saiu: ele não diz nada e
+               custa 60% da caixa.
+    heroic     escudo com espada. A espada teve de ganhar ponta e guarda CURTA:
+               lâmina fina com guarda longa lê CRUZ, não espada.
+    retroarch  o bicho, sem o quadrado de fora e com os olhos a 5x5 em vez de
+               4x4 — a 48 px, olho de 4 px fecha.
+    mgba       um GBA de verdade (horizontal), não o Game Boy vertical: corpo,
+               tela, direcional em cruz e os dois botões na diagonal.
+
+A COR É `mauve`, E ELA ABRE UMA CATEGORIA
+    O porquê está no bloco "jogos e emuladores" do `apps-convertidos.map`. Em
+    uma linha: seis de uma vez são uma categoria, e a política dela desde
+    10/08/2026 é que a cor é da CATEGORIA. O Steam continua em `green` porque é
+    escolha dela, feita antes desta categoria existir.
+
+DESDE HOJE ISTO SE FAZ PELA INTERFACE
+    A oficina "Desenhar a partir do ícone dele", na ficha de cada aplicativo do
+    painel, vetoriza a arte de fábrica, mostra o resultado a 48 e a 200 px, deixa
+    editar o SVG na tela e grava aqui. Estes seis nasceram antes dela, à mão, e
+    o formato é o mesmo — o `construir_convertidos.sh --conferir` não distingue
+    os dois, e é esse o teste.
