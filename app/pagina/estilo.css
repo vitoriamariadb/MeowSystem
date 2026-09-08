@@ -1828,6 +1828,8 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .oficina-origem { font-size: var(--t-legenda); color: var(--overlay1); overflow-wrap: anywhere; text-align: center; }
 .oficina-lado { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
 .oficina-controles { display: flex; flex-wrap: wrap; gap: .5rem; }
+.oficina-fontes { display: inline-flex; gap: .3rem; }
+.oficina-fontes button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
 .oficina-campo { display: inline-flex; align-items: center; gap: .35rem; font-size: var(--t-legenda); color: var(--subtext0); }
 .oficina-campo input {
   width: 4.5rem;

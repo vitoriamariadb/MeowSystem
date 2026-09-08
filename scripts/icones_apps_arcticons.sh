@@ -263,7 +263,22 @@ _ler_mapa_convertidos() {
     esac
     IFS=':' read -r nome origem cor _ <<<"$linha"
     [ -n "$nome" ] && [ -n "$origem" ] && [ -n "$cor" ] || continue
-    intocavel "$nome" && continue
+    # O DESENHO À MÃO VENCE A LISTA DE INTOCÁVEIS — 08/09/2026
+    #   A lista existe por pedido dela ("estes ficam como estão, venha o que
+    #   vier"), e o `steam_icon_` está lá para que NENHUMA regra nossa varra os
+    #   ícones dos jogos dela de uma vez. Isso continua valendo.
+    #
+    #   Uma linha `mao` é outra coisa: ela só existe porque ela desenhou aquele
+    #   ícone na oficina do painel, olhou o resultado a 48 px e clicou em "Usar
+    #   este desenho". É decisão escrita, uma por vez, e decisão escrita vence
+    #   heurística — a mesma regra que já governa o `lado.tsv` dos papéis de
+    #   parede e o `jogos-fora.map`.
+    #
+    #   Pedido dela em 08/09/2026: *"podemos usar ela via interface pra criarmos
+    #   variações das capas de qualquer app, incluindo os da steam?"* Sem esta
+    #   linha a resposta seria "não" — o desenho seria gravado no repositório e
+    #   descartado calado na hora de instalar.
+    if [ "$origem" != "mao" ] && intocavel "$nome"; then continue; fi
     if [ -n "${CURADO[$nome]:-}" ]; then
       meow_debug "$nome: arte escolhida na curadoria — o convertido sai de cima"
       continue

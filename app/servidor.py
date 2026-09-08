@@ -4660,6 +4660,37 @@ class Manipulador(BaseHTTPRequestHandler):
         candidatos.sort()
         return candidatos[0][3]
 
+    # ========================================================================
+    # O NOME DO ARQUIVO É O DO `Icon=`, NUNCA O DO `.desktop` — 08/09/2026
+    # ========================================================================
+    # Achado ao atender o pedido dela de usar a oficina nos jogos da Steam. O
+    # `.desktop` de um jogo se chama `meow-steam-1715980` e o `Icon=` dele diz
+    # `steam_icon_1715980` — dois nomes, e só o SEGUNDO é procurado pelo tema.
+    #
+    # Gravar sob o id produzia `48x48/apps/meow-steam-1715980.svg`: um arquivo
+    # correto, no diretório certo, que NINGUÉM procura. O desenho dela ficaria no
+    # disco sem nunca aparecer na tela — o pior desfecho possível, porque parece
+    # que funcionou. É o mesmo modo de falha que o `icones_apps_arcticons.sh`
+    # documenta sobre a curadoria: "a escolha dela ficaria no disco sem nunca
+    # aparecer na tela".
+    #
+    # Nos aplicativos comuns os dois nomes são iguais e nada muda. O
+    # `apps-convertidos.map` já era chaveado assim, aliás: `vscode` (o `.desktop`
+    # é `code.desktop`) e `meow-whatsapp` são nomes de ÍCONE, não de arquivo.
+    #
+    # E ele é resolvido no SERVIDOR, a partir do `.desktop`, não recebido do
+    # cliente: um nome escolhido pelo navegador seria um nome livre escrevendo
+    # num diretório do repositório.
+    def _nome_do_icone(self, app):
+        d = next((x for x in self._desktops() if x["id"] == app), None)
+        nome = ((d or {}).get("icone") or app).strip()
+        # `Icon=` com caminho absoluto (a Steam faz isso) não serve como nome de
+        # arquivo; nesse caso o id é o melhor que há, e o desenho vale para quem
+        # olhar pelo id.
+        if nome.startswith("/") or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", nome):
+            return app
+        return nome
+
     def _caminho_retoque(self, app):
         return os.path.join(RAIZ, "assets", "icones", "convertidos-apps",
                             "retoques", app + ".svg")
@@ -4675,8 +4706,10 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "aplicativo inválido"}, 400)
 
         # ------------------------------------------------------------------ ler
+        nome = self._nome_do_icone(app)
+
         if acao == "ler":
-            alvo = self._caminho_retoque(app)
+            alvo = self._caminho_retoque(nome)
             if not os.path.isfile(alvo):
                 return self._json({"ok": True, "svg": "", "tem": False})
             try:
@@ -4690,7 +4723,35 @@ class Manipulador(BaseHTTPRequestHandler):
             d = next((x for x in self._desktops() if x["id"] == app), None)
             if not d:
                 return self._json({"erro": "não achei o .desktop de %s" % app}, 404)
-            origem = self._arte_de_fabrica(d)
+            # A CAPA COMO SEGUNDA FONTE — 08/09/2026
+            #   Pedido dela: *"podemos usar ela via interface pra criarmos
+            #   variações das capas de qualquer app, incluindo os da steam?"*
+            #
+            #   Um jogo da Steam tem DUAS artes, e elas dizem coisas diferentes:
+            #   o `steam_icon_<appid>.png` (o ícone, 256 px, uma marca) e a
+            #   `library_capsule.jpg` (a capa, ilustração inteira com o título
+            #   escrito). A capa dá desenho mais rico e quase sempre ilegível a
+            #   48 px — mas isso é para ela ver e decidir, que é a razão de a
+            #   oficina mostrar os dois tamanhos lado a lado.
+            #
+            #   `_capa_do_jogo` já existia para a grade de jogos; aqui ela é
+            #   reusada com `vertical=False`, porque o `library_header` é
+            #   horizontal e cabe melhor num quadrado que a capa 600x900.
+            fonte = str(corpo.get("fonte", "icone")).strip()
+            origem = ""
+            if fonte == "capa":
+                achado = self._RE_STEAM.match(app)
+                if not achado:
+                    return self._json({"erro": "só jogo da Steam tem capa"}, 400)
+                origem = self._capa_do_jogo(re.sub(r"^\D+", "", app))
+                if not origem:
+                    return self._json({
+                        "erro": "a Steam não guardou capa deste jogo — "
+                                "abra a biblioteca dela uma vez e tente de novo"}, 404)
+            elif fonte != "icone":
+                return self._json({"erro": "fonte desconhecida: %s" % fonte}, 400)
+            else:
+                origem = self._arte_de_fabrica(d)
             if not origem:
                 return self._json({
                     "erro": "não achei arte de fábrica para %s — este é o caso "
@@ -4760,19 +4821,20 @@ class Manipulador(BaseHTTPRequestHandler):
         conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
         try:
             os.makedirs(os.path.join(conv, "retoques"), exist_ok=True)
-            with open(self._caminho_retoque(app), "w", encoding="utf-8") as fh:
+            with open(self._caminho_retoque(nome), "w", encoding="utf-8") as fh:
                 fh.write(svg if svg.endswith("\n") else svg + "\n")
             # O construído, no formato do `meow_escrever` — ver o cabeçalho.
-            with open(os.path.join(conv, app + ".svg"), "w", encoding="utf-8") as fh:
+            with open(os.path.join(conv, nome + ".svg"), "w", encoding="utf-8") as fh:
                 fh.write(svg.rstrip("\n"))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o desenho: %s" % e}, 500)
 
-        erro = self._gravar_linha_convertidos(app, cor)
+        erro = self._gravar_linha_convertidos(nome, cor)
         if erro:
             return self._json({"erro": erro}, 500)
-        saiu = self._tirar_do_mapa_arcticons(app)
-        return self._json({"ok": True, "app": app, "cor": cor, "saiu_do_arcticons": saiu,
+        saiu = self._tirar_do_mapa_arcticons(nome)
+        return self._json({"ok": True, "app": app, "nome": nome, "cor": cor,
+                           "saiu_do_arcticons": saiu,
                            "depois": "vale depois de \"Pôr os desenhos em traço na tela\""})
 
     def _conferir_dialeto(self, svg):

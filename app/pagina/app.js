@@ -2026,12 +2026,12 @@ function montarEscolhaDeIcone(app, recarregar) {
  * outro controle. `OFICINA.app` é a chave: trocar de aplicativo joga o rascunho
  * fora de propósito, porque ele é de outro desenho. */
 let OFICINA = { app: null, svg: "", origem: "", ocupada: false, erro: "",
-                k: "", funde: "", tol: "", aberta: false };
+                k: "", funde: "", tol: "", aberta: false, fonte: "icone" };
 
 function oficinaDeDesenho(app, relerLista) {
   if (OFICINA.app !== app.id) {
     OFICINA = { app: app.id, svg: "", origem: "", ocupada: false, erro: "",
-                k: "", funde: "", tol: "", aberta: false };
+                k: "", funde: "", tol: "", aberta: false, fonte: "icone" };
   }
   /* ABERTA CONTINUA ABERTA — 08/09/2026, visto no teste de navegador.
    *   Salvar chama `relerLista()`, que redesenha a página inteira: o `details`
@@ -2110,6 +2110,42 @@ function oficinaDeDesenho(app, relerLista) {
     return elemento("label", { class: "oficina-campo", title: dica },
       [elemento("span", { texto: rotulo }), entrada]);
   };
+  /* DE ONDE VETORIZAR — 08/09/2026, pedido dela: *"podemos usar ela via
+   * interface pra criarmos variações das capas de qualquer app, incluindo os da
+   * steam?"*
+   *
+   * O par só aparece onde existem DUAS artes, que é o caso do jogo da Steam: o
+   * `steam_icon_<appid>.png` (a marca, 256 px) e a capa da biblioteca (a
+   * ilustração inteira, com o título escrito nela). Num aplicativo comum há uma
+   * arte só, e dois botões onde não há escolha é ruído.
+   *
+   * A capa quase sempre sai ilegível a 48 px — é ilustração, não marca. Isso não
+   * é motivo para não oferecer: a oficina mostra os dois tamanhos justamente
+   * para ela olhar e recusar, e o desenho pode ser o ponto de partida de uma
+   * variação feita na caixa de texto. */
+  if (/^(meow-steam-|steam_app_)\d+$/.test(app.id)) {
+    const par = elemento("div", { class: "oficina-fontes", role: "group",
+                                  "aria-label": "De onde vetorizar" });
+    for (const [id, rotulo, dica] of [
+      ["icone", "Ícone", "O steam_icon do jogo — é a marca, e é o que costuma ler a 48 px."],
+      ["capa", "Capa", "A arte da biblioteca. Rica, e quase sempre ilegível a 48 px — olhe antes de aceitar."],
+    ]) {
+      par.append(elemento("button", {
+        type: "button", class: "btn btn-mini", "data-fonte": id, title: dica,
+        "aria-pressed": String(OFICINA.fonte === id),
+        texto: rotulo,
+        onclick: () => {
+          OFICINA.fonte = id;
+          for (const b of par.querySelectorAll("button")) {
+            b.setAttribute("aria-pressed", String(b.dataset.fonte === id));
+          }
+          vetorizar();
+        },
+      }));
+    }
+    controles.append(elemento("label", { class: "oficina-campo" },
+      [elemento("span", { texto: "De" }), par]));
+  }
   controles.append(campo("k", "Cores", "Quantas cores o conversor enxerga antes de traçar. Menos cores, menos traços.", "1", "3", "16"));
   controles.append(campo("funde", "Fusão", "Quanto duas cores parecidas viram uma só. Sobe para simplificar.", "2", "0", "120"));
   controles.append(campo("tol", "Aparo", "Quanto o contorno é simplificado. Sobe para tirar tremida.", "0.2", "0.2", "8"));
@@ -2121,7 +2157,7 @@ function oficinaDeDesenho(app, relerLista) {
     const r = await api("/api/app-desenho", {
       method: "POST",
       body: JSON.stringify({
-        app: app.id, acao: "vetorizar",
+        app: app.id, acao: "vetorizar", fonte: OFICINA.fonte,
         k: OFICINA.k || undefined, funde: OFICINA.funde || undefined, tol: OFICINA.tol || undefined,
       }),
     });
@@ -2166,7 +2202,12 @@ function oficinaDeDesenho(app, relerLista) {
       });
       if (r.erro) { OFICINA.erro = r.erro; torrada(r.erro, "erro"); pintar(); return; }
       if (r.seco) { torrada(r.aviso, "igual"); return; }
+      /* O NOME GRAVADO ENTRA NA TORRADA quando difere do aplicativo: num jogo
+       * da Steam o `.desktop` é `meow-steam-1715980` e o desenho vai para
+       * `steam_icon_1715980`, que é o que o `Icon=` pede. Sem dizer isso, ela
+       * procuraria o arquivo pelo nome errado no repositório. */
       torrada(`${app.nome}: desenho salvo em ${r.cor}`
+              + (r.nome && r.nome !== app.id ? ` (como ${r.nome})` : "")
               + (r.saiu_do_arcticons ? " — e saiu do mapa Arcticons, que tinha o mesmo nome" : ""),
               "ok");
       await relerLista();

@@ -262,9 +262,33 @@ _conferir() {
   return "$MEOW_DIVERGENTE"
 }
 
+# `--so-mao`: SÓ AS LINHAS DESENHADAS À MÃO, E O INSTALADOR CHAMA ASSIM
+# ===========================================================================
+# O `install.sh` não roda este script inteiro, e a razão está no `bin/meow`:
+# "reconverter trocaria arte que você aprovou por arte que ninguém viu". Uma
+# origem do Papirus que mudou de versão sairia diferente, e a troca aconteceria
+# calada, no meio de uma instalação.
+#
+# A linha `mao` é o caso em que isso não existe: ali "converter" é literalmente
+# `cat retoques/<nome>.svg` (ver o `_desejado_de`). Não há conversor, não há
+# origem de terceiro, não há nada a divergir — há um desenho que ELA fez e que
+# precisa chegar na tela.
+#
+# Pedido dela em 08/09/2026, sobre a oficina do painel: *"aproveitar e garantir
+# que o nosso install consiga fazer isso"*. Sem esta parte, um retoque que
+# chegasse pelo git (outra máquina, um clone novo) ou escrito à mão ficaria no
+# repositório sem nunca ser construído — e a rota do painel, que grava os dois
+# arquivos de uma vez, seria o ÚNICO caminho que funciona. Um recurso com um
+# caminho só é um recurso que quebra quando alguém usa o outro.
+#
+# A varredura de órfão fica de fora do `--so-mao`, e isso não é esquecimento:
+# ela apagaria os 25 convertidos que este modo nem olhou.
+SO_MAO=0
+
 _aplicar() {
   local nome arq mudou=0 postos=0 removidos=0 querido rc
   for nome in "${!CONHECIDO[@]}"; do
+    [ "$SO_MAO" = "1" ] && [ -z "${MAO[$nome]:-}" ] && continue
     set +e
     querido="$(_desejado_de "$nome")"; rc=$?
     set -e
@@ -288,7 +312,7 @@ _aplicar() {
   # `assets/icones/convertidos-apps/` nasce aqui e nenhum outro script escreve nele.
   # O subdiretório `retoques/` NÃO é varrido: é escrito à mão, e o glob `*.svg`
   # não desce em subdiretório.
-  if [ -d "$DESTINO" ]; then
+  if [ "$SO_MAO" != "1" ] && [ -d "$DESTINO" ]; then
     for arq in "$DESTINO"/*.svg; do
       [ -e "$arq" ] || continue
       nome="$(basename "$arq" .svg)"
@@ -305,7 +329,11 @@ _aplicar() {
   fi
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "ícones convertidos já em dia"
+    if [ "$SO_MAO" = "1" ]; then
+      meow_ok "desenhos à mão já construídos"
+    else
+      meow_ok "ícones convertidos já em dia"
+    fi
     return "$MEOW_OK"
   fi
   meow_info "ícones convertidos: $postos gerado(s), $removidos removido(s)"
@@ -319,8 +347,9 @@ main() {
   _avisar_faltantes
   case "${1:-}" in
     --conferir) _conferir ;;
+    --so-mao|--só-mão) SO_MAO=1; _aplicar ;;
     ''|--aplicar) _aplicar ;;
-    *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; return "$MEOW_ERRO" ;;
+    *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar|--so-mao]"; return "$MEOW_ERRO" ;;
   esac
 }
 
