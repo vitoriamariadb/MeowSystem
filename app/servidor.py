@@ -1725,6 +1725,39 @@ BLOCO_DA_SECAO = {
 }
 
 
+# ============================================================================
+# A PONTE ROOT, DO LADO DO PAINEL — 08/09/2026
+# ============================================================================
+# `/usr/local/lib/meowsystem/ponte_root.sh` é o braço root do projeto, liberado
+# sem senha por `/etc/sudoers.d/49-meowsystem-ponte`. O painel não a chama: quem
+# chama são os scripts. O que ele precisa saber é UMA coisa — se ela está no ar
+# —, para não prometer um prompt de senha que não vai existir, e para não
+# esconder o que ainda vai pedir.
+#
+# A RESPOSTA É MEDIDA, E É CACHEADA POR POUCO TEMPO. `sudo -n` é barato mas não
+# é de graça, e o esquema é lido a cada pintura da página. Trinta segundos é
+# menos que qualquer sessão de uso e mais que uma rajada de cliques.
+_PELA_PONTE = frozenset({"sistema_atualizar", "sistema_limpar"})
+_PONTE_CAMINHO = "/usr/local/lib/meowsystem/ponte_root.sh"
+_ponte_cache = {"quando": 0.0, "vale": False}
+
+
+def _ponte_viva():
+    agora = time.time()
+    if agora - _ponte_cache["quando"] < 30:
+        return _ponte_cache["vale"]
+    vale = False
+    if os.access(_PONTE_CAMINHO, os.X_OK):
+        try:
+            vale = subprocess.run(["sudo", "-n", _PONTE_CAMINHO, "estado"],
+                                  capture_output=True, timeout=5).returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            vale = False
+    _ponte_cache["quando"] = agora
+    _ponte_cache["vale"] = vale
+    return vale
+
+
 ACOES = {
     # --- o ciclo de vida -----------------------------------------------------
     "instalar": {
@@ -5204,14 +5237,24 @@ class Manipulador(BaseHTTPRequestHandler):
             # argumento dela é uma imagem escolhida na galeria, e mandar os
             # 255 nomes de `banidos/` em toda leitura do esquema seria peso
             # puro numa lista que ninguém vai ler como lista.
+            # A PASTILHA "PEDE SENHA" TEM DE DIZER A VERDADE DE HOJE — 08/09/2026
+            #   Com a ponte root no ar, `sistema_atualizar` e `sistema_limpar`
+            #   passam por ela e NÃO pedem senha nenhuma; a pastilha continuar
+            #   ali seria a página avisando de um custo que não existe mais, e
+            #   avisar do que não vai acontecer gasta a confiança do aviso que
+            #   importa. `instalar` mantém a pastilha em qualquer caso: é ele
+            #   que escreve em `/etc/sudoers.d`, e essa é a senha que existe.
             "acoes": [
                 dict(v, id=k,
                      argv=" ".join(shlex.quote(p) for p in v["argv"]),
                      escreve=escreve(v),
+                     sudo=bool(v.get("sudo")) and not (
+                         k in _PELA_PONTE and _ponte_viva()),
                      opcoes=([] if v.get("oculta")
                              else PROVEDORES[v["arg"]]() if "arg" in v else []))
                 for k, v in ACOES.items()
             ],
+            "ponte": _ponte_viva(),
             "folhas": self._folhas(),
             "descricoes": DESCRICAO_SECAO,
             "blocos": BLOCO_DA_SECAO,

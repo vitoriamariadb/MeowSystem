@@ -1537,6 +1537,34 @@ AUTOSTART_BLOQUEADOS="org.qbittorrent.qBittorrent"
 
 # --- Manutenção -------------------------------------------------------------
 
+# @ Braço root (a senha uma vez)
+# > Pede a senha só na instalação e registra um perfil no sudo. Sem ele, cada conserto de sistema volta a pedir senha no terminal.
+# [essencial] Instala `/usr/local/lib/meowsystem/ponte_root.sh` e a regra
+# `/etc/sudoers.d/49-meowsystem-ponte`, para que o painel e o auto-reparo
+# consigam fazer sozinhos o que precisa de root.
+#
+# O QUE ISTO RESOLVE, MEDIDO
+#   Sem a ponte, `meow doctor --consertar` recusa TRÊS itens com a mesma frase —
+#   "o conserto usa sudo, e o doctor não usa" — e os botões de senha do painel
+#   não têm como pedir senha nenhuma, porque o painel roda sem terminal. Em
+#   08/09/2026 um `full-upgrade` derrubou o hook do apt e o auto-reparo ficou
+#   olhando.
+#
+# O QUE ELA LIBERA, E O QUE NÃO
+#   A regra não é `NOPASSWD` para tudo: ela libera UM programa nosso, que tem um
+#   conjunto fechado de verbos com os destinos cravados dentro dele — marcar
+#   `.desktop` de sistema, atualizar os pacotes dos repositórios já
+#   configurados, repor o hook do apt e vestir a tela de login. Nenhum verbo
+#   aceita argumento: o nome do arquivo e o conteúdo entram pelo stdin, então a
+#   regra não tem um único curinga. É o mesmo desenho da ponte de Bluetooth do
+#   Hefesto, que já vive nesta máquina.
+#   O custo, dito sem enfeite: quem puder rodar comando como você passa a poder
+#   fazer essas quatro coisas sem senha. É muito menos que root, e não é nada.
+#   "nao" = a ponte e a regra são REMOVIDAS na próxima passagem, e o sudo volta a
+#   ser pedido no terminal a cada conserto.
+# sim | nao
+PONTE_ROOT="sim"
+
 # @ Conferir e consertar todo dia
 # > Um agendamento diário que reaplica o que estiver fora do lugar.
 # O auto-reparo é UM timer do systemd --user, diário, e mais nada. Não há hook de

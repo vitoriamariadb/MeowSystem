@@ -896,6 +896,144 @@ etapa_nomes() {
 #   Se `LANCADOR_SISTEMA` voltar para "nao", deixar de instalar não basta: o hook
 #   de uma execução anterior continuaria reaplicando `NoDisplay` depois de todo
 #   apt, e ela veria o lançador obedecer a uma chave que já desligou.
+# ============================================================================
+# A PONTE ROOT — A SENHA UMA VEZ, E NUNCA MAIS — 08/09/2026
+# ============================================================================
+# Ela, olhando três itens do doctor que se recusavam a consertar: *"não
+# conseguimos de alguma forma usar sudo só na instalar e criar um perfil naquele
+# conf.d ... aquele que só preciso uma vez e fica lá registrado pra sempre? pode
+# alterar o nosso install pra garantir o máximo de conforto pro user nesse
+# sentido?"*
+#
+# Esta etapa instala DUAS coisas e é a única do projeto que escreve em
+# `/etc/sudoers.d`:
+#   /usr/local/lib/meowsystem/ponte_root.sh   o braço root, verbos fechados
+#   /usr/local/lib/meowsystem/perfil          raiz, usuária e lar — só root grava
+#   /etc/sudoers.d/49-meowsystem-ponte        libera os verbos DELA, sem senha
+#
+# O desenho, e por que não é `NOPASSWD` nos comandos que o projeto usa, está no
+# cabeçalho de `scripts/ponte_root.sh`. Em uma linha: não existe regra estreita
+# para `install`, então quem tem de ser estreito é um programa nosso.
+#
+# ELA VEM CEDO NA LISTA, e isso não é arrumação: as etapas `ocultar`, `nomes`,
+# `absolutos`, `greeter` e `lancador_apt` PERGUNTAM pela ponte. Instalada depois
+# delas, a primeira passagem inteira cairia no caminho antigo e só a segunda
+# usaria a ponte — convergência em quatro passagens em vez de três, sem motivo.
+#
+# `visudo -c` ANTES DE MOVER, E ISSO NÃO É ZELO: um arquivo inválido em
+# `/etc/sudoers.d` derruba o `sudo` da máquina INTEIRA, para todo mundo, e o
+# conserto pede um root que já não se consegue. O arquivo é escrito num
+# temporário, conferido ali, e só então instalado.
+etapa_ponte_root() {
+  passo "Ponte root (a senha uma vez)"
+  local ponte=/usr/local/lib/meowsystem/ponte_root.sh
+  local perfil=/usr/local/lib/meowsystem/perfil
+  local regra=/etc/sudoers.d/49-meowsystem-ponte
+  local origem="$MEOW_RAIZ/scripts/ponte_root.sh"
+
+  # --- desligada: a etapa DESFAZ, e desfazer tem de ser de graça -------------
+  if [ "${PONTE_ROOT:-sim}" != "sim" ]; then
+    if [ ! -e "$ponte" ] && [ ! -e "$regra" ]; then
+      meow_pula 'PONTE_ROOT="nao" — sem braço root; o sudo volta a ser pedido no terminal'
+      return "$MEOW_OK"
+    fi
+    if meow_seco; then meow_muda "removeria $regra e $ponte"; return "$MEOW_DIVERGENTE"; fi
+    # A REGRA SAI PRIMEIRO. Na ordem inversa sobraria uma janela com a regra
+    # apontando para um arquivo que não existe — inofensiva para o sudo, e
+    # exatamente o estado que o `meow doctor` chama de meia-instalação.
+    sudo rm -f "$regra" 2>/dev/null
+    sudo rm -rf /usr/local/lib/meowsystem 2>/dev/null
+    if [ -e "$ponte" ] || [ -e "$regra" ]; then
+      meow_aviso "sem sudo para remover a ponte — ela continua ativa"
+      return "$MEOW_SEM_DEPENDENCIA"
+    fi
+    meow_muda 'PONTE_ROOT="nao" — ponte e regra removidas'
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  [ -f "$origem" ] || { meow_erro "falta $origem — repositório incompleto"; return "$MEOW_ERRO"; }
+
+  local perfil_quer regra_quer
+  perfil_quer="$(printf 'raiz=%s\nusuaria=%s\nlar=%s\n' "$MEOW_RAIZ" "$(id -un)" "$HOME")"
+
+  # Comparar por CONTEÚDO (regra 5). A regra de sudo é gerada pela PRÓPRIA
+  # ponte — `regra-sudo` —, então o texto nunca diverge do programa que ele
+  # descreve; e é gerada a partir da ORIGEM, não da instalada, para que uma
+  # ponte velha no disco não valide a si mesma.
+  regra_quer="$(SUDO_USER="$(id -un)" bash "$origem" regra-sudo 2>/dev/null)" \
+    || { meow_erro "a ponte não soube gerar a própria regra"; return "$MEOW_ERRO"; }
+
+  local mudou=0
+  cmp -s "$origem" "$ponte" 2>/dev/null || mudou=1
+  # `$( )` come o `\n` final dos DOIS lados, então comparar assim é comparar o
+  # mesmo texto — e não há divergência eterna por causa de uma quebra de linha.
+  [ "$(sudo -n cat "$perfil" 2>/dev/null)" = "$perfil_quer" ] || mudou=1
+  [ "$(sudo -n cat "$regra"  2>/dev/null)" = "$regra_quer"  ] || mudou=1
+
+  if [ "$mudou" = "0" ]; then
+    meow_ok "ponte root instalada e liberada sem senha"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "instalaria a ponte root e a regra de sudo (a senha é pedida uma vez)"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  # A SENHA É PEDIDA AQUI, E SÓ AQUI. `sudo -v` cai no prompt quando há
+  # terminal; sem terminal (o painel, um timer) não há como perguntar, e a
+  # etapa diz isso em vez de falhar calada.
+  if ! sudo -n true 2>/dev/null; then
+    if [ -t 0 ]; then
+      meow_info "esta é a única senha do MeowSystem: ela instala o braço root e"
+      meow_info "  a regra que dispensa a senha daqui em diante."
+      sudo -v || { meow_aviso "sem sudo — a ponte fica de fora, e o resto vai"; return "$MEOW_SEM_DEPENDENCIA"; }
+    else
+      meow_aviso "sem terminal para pedir a senha — a ponte fica de fora"
+      meow_info "  rode uma vez no terminal:  ./install.sh   (ou  meow ativar)"
+      return "$MEOW_SEM_DEPENDENCIA"
+    fi
+  fi
+
+  sudo install -d -m 755 -o root -g root /usr/local/lib/meowsystem \
+    || { meow_erro "não consegui criar /usr/local/lib/meowsystem"; return "$MEOW_ERRO"; }
+  sudo install -m 755 -o root -g root "$origem" "$ponte" \
+    || { meow_erro "não consegui instalar $ponte"; return "$MEOW_ERRO"; }
+
+  local tmp
+  tmp="$(mktemp)" || { meow_erro "não consegui criar temporário"; return "$MEOW_ERRO"; }
+  # COM o `\n` final: a substituição de comando que montou `$perfil_quer` comeu
+  # o dele, e um arquivo sem quebra na última linha faz o `while read` da ponte
+  # descartar justamente essa linha. Custou o `lar` em 08/09/2026.
+  printf '%s\n' "$perfil_quer" > "$tmp"
+  sudo install -m 644 -o root -g root "$tmp" "$perfil" \
+    || { rm -f "$tmp"; meow_erro "não consegui gravar $perfil"; return "$MEOW_ERRO"; }
+
+  # --- a regra, conferida ANTES de entrar em /etc ---------------------------
+  printf '%s\n' "$regra_quer" > "$tmp"
+  chmod 0440 "$tmp"
+  if ! sudo visudo -c -f "$tmp" >/dev/null 2>&1; then
+    rm -f "$tmp"
+    meow_erro "a regra gerada não passou no visudo — NÃO instalei nada em /etc/sudoers.d"
+    meow_info "  veja o texto com:  bash $origem regra-sudo"
+    return "$MEOW_ERRO"
+  fi
+  if ! sudo install -m 440 -o root -g root "$tmp" "$regra"; then
+    rm -f "$tmp"; meow_erro "não consegui instalar $regra"; return "$MEOW_ERRO"
+  fi
+  rm -f "$tmp"
+
+  # A PROVA É USAR. Instalar e dizer "pronto" seria afirmar uma liberação que
+  # ninguém exerceu — e o modo de falha silencioso deste projeto é exatamente
+  # esse. `sudo -n` só passa se a regra estiver valendo de verdade.
+  if sudo -n "$ponte" estado >/dev/null 2>&1; then
+    meow_muda "ponte root instalada — esta foi a última senha"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_aviso "a ponte foi instalada, mas o sudo ainda pede senha para ela"
+  meow_info "  confira:  sudo -l | grep meowsystem"
+  return "$MEOW_DIVERGENTE"
+}
+
 etapa_lancador_apt() {
   passo "Reaplique do lançador após apt"
   local hook=/etc/apt/apt.conf.d/99-meow-lancador
@@ -903,11 +1041,32 @@ etapa_lancador_apt() {
 
   if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
     if [ -f "$hook" ] || [ -f "$wrapper" ]; then
+      # REMOVER PEDE DECISÃO ESCRITA, E NÃO CHAVE AUSENTE — 08/09/2026
+      #   `${LANCADOR_SISTEMA:-nao}` responde a mesma coisa para "ela escreveu
+      #   nao" e para "não há meow.conf nenhum". Ler assim para NÃO MEXER é
+      #   certo; para APAGAR um arquivo de /etc, não — isso é agir por omissão.
+      #
+      #   Enquanto o `sudo` falhava calado sem terminal, o defeito era invisível.
+      #   Com a ponte root o caminho passou a funcionar, e o
+      #   `tests/convergencia.sh` — que roda isto num HOME de brinquedo, sem
+      #   chave nenhuma — apagou o `99-meow-lancador` da máquina de verdade.
+      #
+      #   Agora a remoção exige a chave escrita "nao" no arquivo dela. Sem
+      #   arquivo, ou sem a chave, o hook FICA e a etapa diz por quê: um hook a
+      #   mais é reversível; um hook a menos é o lançador parando de se reaplicar
+      #   depois de todo apt, calado.
+      if ! meow_conf_diz LANCADOR_SISTEMA nao; then
+        meow_aviso "o hook de apt existe e o meow.conf não diz LANCADOR_SISTEMA=\"nao\" — deixo como está"
+        meow_info "  para removê-lo, escreva a chave (pelo painel, em «Arrumar o lançador»)"
+        return "$MEOW_SEM_DEPENDENCIA"
+      fi
       if meow_seco; then
         meow_muda "removeria $hook (LANCADOR_SISTEMA=\"${LANCADOR_SISTEMA:-}\")"
         return "$MEOW_DIVERGENTE"
       fi
-      sudo rm -f "$hook" "$wrapper" 2>/dev/null
+      # A PONTE PRIMEIRO — sem senha, e é ela que faz isto funcionar quando
+      # quem chama é o painel ou o auto-reparo, que não têm terminal.
+      meow_ponte apt-hook-remover >/dev/null 2>&1 || sudo rm -f "$hook" "$wrapper" 2>/dev/null
       # DIZER "REMOVIDO" SEM TER REMOVIDO É O QUE QUEBRAVA A CONVERGÊNCIA
       #   O `sudo` acima engole o erro em `2>/dev/null`, e sem sudo (num teste
       #   com `env -i`, ou numa sessão sem tty) ele falha e o arquivo continua
@@ -960,9 +1119,18 @@ etapa_lancador_apt() {
     return "$MEOW_DIVERGENTE"
   fi
 
+  # PELA PONTE, QUANDO ELA EXISTE — e é o caso normal desde 08/09/2026. Ela
+  # preenche o mesmo molde com os mesmos três valores (do `perfil`, gravado por
+  # root), então o conteúdo que sai daqui e o que sai dela são o mesmo, e a
+  # comparação por conteúdo acima continua convergindo.
+  if meow_ponte apt-hook-instalar >/dev/null 2>&1; then
+    meow_muda "hook de apt instalado pela ponte — o lançador se reaplica sozinho após cada apt"
+    return "$MEOW_DIVERGENTE"
+  fi
+
   if [ ! -w /etc/apt/apt.conf.d ] && ! sudo -n true 2>/dev/null; then
     meow_aviso "sem sudo para instalar o hook de apt do lançador"
-    meow_info "  rode 'meow ativar' com sudo disponível"
+    meow_info "  rode 'meow ativar' com sudo disponível — ou ligue PONTE_ROOT=\"sim\""
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -2469,7 +2637,7 @@ main() {
   # instalação e "consertaria" o que ainda estava sendo escrito.
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
-  local etapas=(etapa_conf etapa_cli etapa_atalho etapa_pacotes etapa_gerar etapa_tema
+  local etapas=(etapa_conf etapa_cli etapa_ponte_root etapa_atalho etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja

@@ -113,11 +113,30 @@ cmd_aplicar() {
 
   meow_passo "1/4 Pacotes do sistema"
   if _as_tem apt; then
-    sudo apt update || { meow_erro "apt update falhou"; return "$MEOW_ERRO"; }
-    sudo apt full-upgrade "${APT_OPCOES[@]}" \
-      || { meow_erro "apt full-upgrade falhou — a máquina não ficou pela metade,"
-           meow_erro "  o apt desfaz o que não conseguiu; rode 'sudo apt -f install'"
-           return "$MEOW_ERRO"; }
+    # PELA PONTE, SEM SENHA — 08/09/2026. É o que faz o botão "Atualizar a
+    # máquina inteira" do painel funcionar: ele roda sem terminal, e um prompt
+    # de senha ali nunca chegava a lugar nenhum. O verbo `atualizar` da ponte é
+    # `apt update` + `full-upgrade` dos repositórios JÁ configurados — ela não
+    # instala pacote por nome nem acrescenta fonte.
+    # `rc_ponte` NUM `local` PRÓPRIO, e não `$?` no `elif`: ali ele já é o
+    # status do teste anterior em alguns caminhos, e o 127 ("não há ponte") é
+    # justamente o que precisa sobreviver intacto para escolher o outro caminho.
+    local rc_ponte=0
+    meow_ponte atualizar || rc_ponte=$?
+    if [ "$rc_ponte" = "0" ]; then
+      : # feito pela ponte
+    elif [ "$rc_ponte" = "127" ]; then
+      # Sem ponte: o caminho de sempre, que pede senha no terminal.
+      sudo apt update || { meow_erro "apt update falhou"; return "$MEOW_ERRO"; }
+      sudo apt full-upgrade "${APT_OPCOES[@]}" \
+        || { meow_erro "apt full-upgrade falhou — a máquina não ficou pela metade,"
+             meow_erro "  o apt desfaz o que não conseguiu; rode 'sudo apt -f install'"
+             return "$MEOW_ERRO"; }
+    else
+      meow_erro "a atualização falhou — a máquina não ficou pela metade,"
+      meow_erro "  o apt desfaz o que não conseguiu; rode 'sudo apt -f install'"
+      return "$MEOW_ERRO"
+    fi
     meow_ok "pacotes do sistema em dia"
     rc="$MEOW_DIVERGENTE"
   else
@@ -171,9 +190,11 @@ cmd_limpar() {
   meow_titulo "Limpar o que sobrou"
   local antes depois
   antes="$(du -sm /var/cache/apt/archives 2>/dev/null | cut -f1)"
-  sudo apt autoclean -y || true
-  sudo apt autoremove "${APT_OPCOES[@]}" || true
-  sudo apt clean || true
+  if ! meow_ponte limpar; then
+    sudo apt autoclean -y || true
+    sudo apt autoremove "${APT_OPCOES[@]}" || true
+    sudo apt clean || true
+  fi
   depois="$(du -sm /var/cache/apt/archives 2>/dev/null | cut -f1)"
   if [ -n "$antes" ] && [ -n "$depois" ]; then
     meow_ok "cache do apt: ${antes} MB -> ${depois} MB"

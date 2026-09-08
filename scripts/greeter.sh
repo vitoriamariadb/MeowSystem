@@ -184,7 +184,24 @@ fase_avatar; [ $? = 1 ] && mudou_avatar=1
 # comum devolve falso por PERMISSÃO, não por ausência, e a primeira versão deste
 # script anunciou "não há cosmic-greeter nesta máquina" numa máquina que tem.
 # Um diagnóstico errado com cara de diagnóstico certo é o pior resultado possível.
-if ! sudo -n test -d "$DESTINO" 2>/dev/null; then
+# A PONTE VÊ A ÁRVORE INTEIRA NUMA CHAMADA — 08/09/2026
+#   `greeter-ver` imprime `<md5>  <caminho relativo>` de tudo que está lá dentro.
+#   O laço abaixo fazia DOIS `sudo` por arquivo numa árvore de ~190; com a ponte
+#   é um processo, e a comparação continua sendo por conteúdo. Vazio significa
+#   "a pasta existe e não tem nada", e por isso o mapa é preenchido antes de
+#   qualquer teste — distinguir isso de "não consegui olhar" é o ponto.
+declare -A GREETER_MD5=()
+GREETER_VISTO=0
+if meow_ponte_viva; then
+  if _saida="$(meow_ponte greeter-ver 2>/dev/null)"; then
+    GREETER_VISTO=1
+    while read -r _md5 _rel; do
+      [ -n "${_rel:-}" ] && GREETER_MD5["$_rel"]="$_md5"
+    done <<<"$_saida"
+  fi
+fi
+
+if [ "$GREETER_VISTO" = "0" ] && ! sudo -n test -d "$DESTINO" 2>/dev/null; then
   if sudo -n true 2>/dev/null; then
     meow_pula "não há cosmic-greeter nesta máquina ($DESTINO)"
     exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_OK")"
@@ -210,6 +227,13 @@ for arvore in "${ARVORES[@]}"; do
   while IFS= read -r rel; do
     fonte="$CAPTURA/$arvore/$rel"
     dest="$DESTINO/$arvore/$rel"
+    if [ "$GREETER_VISTO" = "1" ]; then
+      # A árvore já foi lida inteira; aqui é só comparar dois md5.
+      if [ "${GREETER_MD5["$arvore/$rel"]:-}" != "$(md5sum < "$fonte" | cut -d' ' -f1)" ]; then
+        pendentes+=("$arvore/$rel")
+      fi
+      continue
+    fi
     if ! sudo -n test -f "$dest" 2>/dev/null; then
       pendentes+=("$arvore/$rel"); continue
     fi
@@ -227,6 +251,18 @@ fi
 if meow_seco; then
   meow_muda "vestiria a tela de login com '$ALVO' (${#pendentes[@]} arquivo(s))"
   exit "$MEOW_DIVERGENTE"
+fi
+
+# PELA PONTE: um tar com só os pendentes, e ela extrai com o dono certo. Assim
+# a tela de login passa a ser consertável pelo painel e pelo auto-reparo, que é
+# o que ela pediu em 08/09/2026 — antes, sem terminal, esta etapa só avisava.
+if meow_ponte_viva; then
+  if tar -c -C "$CAPTURA" -f - "${pendentes[@]}" 2>/dev/null | meow_ponte greeter-aplicar >/dev/null 2>&1; then
+    meow_muda "tela de login vestida com '$ALVO' (${#pendentes[@]} arquivo(s), pela ponte)"
+    meow_registrar "greeter.sh $ALVO ${#pendentes[@]} arquivo(s)"
+    exit "$MEOW_DIVERGENTE"
+  fi
+  meow_aviso "a ponte recusou vestir a tela de login — tentando pelo caminho antigo"
 fi
 
 if ! sudo -n true 2>/dev/null; then

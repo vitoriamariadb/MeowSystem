@@ -45,6 +45,8 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 | `/usr/local/share/applications/{google-chrome,steam}.desktop` (wrappers de `Exec=`) | Aurora | **Aurora** — mudou de `~/.local/share` em 13/08/2026, ver abaixo |
 | `~/.local/share/applications/{vim,qt5ct,qt6ct,debian-*xterm}.desktop` | ambos | **Meow** — `NoDisplay` preserva o handler de MIME; o `Hidden=true` do Aurora mata |
 | `/usr/share/applications/*` (`NoDisplay`, nome curto) | Meow (com sudo) | **Meow** — o Aurora não escreve ali |
+| `/usr/local/lib/meowsystem/ponte_root.sh` e `perfil` | Meow (`install.sh`, `etapa_ponte_root`) | **Meow** — root:root; nem ela nem o Meow sem senha conseguem trocá-los, e é isso que os torna confiáveis |
+| `/etc/sudoers.d/49-meowsystem-ponte` | Meow (`install.sh`) | **Meow** — o diretório é COMPARTILHADO (o Hefesto tem o `49-hefesto-bt-ponte`, a Aurora o `aurora-selfheal`); cada um escreve o SEU arquivo e nunca o do outro, ver abaixo |
 | `/etc/apt/apt.conf.d/99-meow-lancador` | Meow | **Meow** — o segundo hook de apt da máquina, ver abaixo |
 | `/usr/local/sbin/meow-lancador-apt.sh` | Meow | **Meow** — o `sbin` distingue do `/usr/local/bin` do Aurora |
 | `/etc/apt/apt.conf.d/99-ritual-aurora-self-heal` | Aurora | **Aurora** |
@@ -644,3 +646,69 @@ uma vez a partir de `JANELAS_TILING`, e que o `meow doctor` chama todo dia. Por
 isso `AREAS_ENCAIXE` nasce vazio e o `areas.sh` recusa (rc 4) quando as duas
 chaves discordam, dizendo qual esvaziar. Gravar aqui e ver achatar amanhã seria o
 mesmo defeito, com o vizinho de dentro de casa.
+
+
+---
+
+## A ponte root, e por que ela não é `NOPASSWD: ALL` (08/09/2026)
+
+Pedido dela: *"não conseguimos de alguma forma usar sudo só na instalar e criar um
+perfil naquele conf.d ... aquele que só preciso uma vez e fica lá registrado pra
+sempre?"* O incômodo era medível: `meow doctor --consertar` recusava **três** itens com
+a mesma frase — "o conserto usa sudo, e o doctor não usa" — e os botões de senha do
+painel não tinham como pedir senha nenhuma, porque o painel roda **sem terminal**.
+
+### O que existe agora
+
+| arquivo | modo | o que é |
+|---|---|---|
+| `/usr/local/lib/meowsystem/ponte_root.sh` | `0755 root:root` | o braço root: um conjunto **fechado** de verbos, com os destinos cravados dentro |
+| `/usr/local/lib/meowsystem/perfil` | `0644 root:root` | `raiz`, `usuaria` e `lar` — escrito **por root**, para o chamador não escolher a origem |
+| `/etc/sudoers.d/49-meowsystem-ponte` | `0440 root:root` | libera **só** os verbos da ponte, sem senha |
+
+### A regra não tem um único curinga, e isso é o desenho
+
+Não existe regra estreita para `install`: `NOPASSWD: /usr/bin/install -m 644 * *` é
+`NOPASSWD: ALL` com outro nome, porque o segundo `*` é qualquer destino e escrever
+qualquer arquivo como root **é** ser root.
+
+Então **nenhum verbo da ponte aceita argumento**. O nome do arquivo e o conteúdo entram
+por **stdin** — a mesma disciplina que a ponte de Bluetooth do Hefesto documenta ao lado
+(*"o nome novo do adaptador entra pelo STDIN, não por argv, justamente para que não sobre
+argumento livre a casar"*). Medido em 08/09/2026, com o cache do sudo apagado:
+
+```
+sudo -n true                          -> "uma senha é necessária"
+sudo -n .../ponte_root.sh estado      -> passa
+sudo -n .../ponte_root.sh rm          -> "uma senha é necessária"   (verbo fora da regra)
+sudo -n .../ponte_root.sh desktop x   -> "uma senha é necessária"   (a regra não tem curinga)
+```
+
+### Os oito verbos, e o que cada um alcança
+
+`desktop` e `desktop-banco` (marcar `.desktop` em `/usr/share/applications`, e só os que
+**já existem** — ela edita, não cria) · `greeter-ver` e `greeter-aplicar` (a tela de
+login) · `apt-hook-instalar` e `apt-hook-remover` · `atualizar` e `limpar` (`full-upgrade`
+dos repositórios **já configurados**; a ponte não acrescenta fonte, não instala pacote por
+nome e não roda `.deb`).
+
+Cada uso privilegiado vai para o journal (`journalctl -t meowsystem-ponte`).
+
+### O que ela custa, dito sem enfeite
+
+Quem puder rodar comando como a dona da máquina passa a poder, **sem senha**, fazer essas
+quatro coisas. É muito menos que root, por uma margem larga, e não é nada. `PONTE_ROOT="nao"`
+no `meow.conf` faz a etapa **remover** a ponte e a regra na passagem seguinte — testado
+nos dois sentidos em 08/09/2026, e o sudo volta a ser pedido no terminal.
+
+### O que a ponte NÃO faz, de propósito
+
+Ela **não se instala nem se atualiza**. Trocar o arquivo em `/usr/local/lib` e a regra em
+`/etc/sudoers.d` continua pedindo a senha, no `install.sh` — uma ponte que pudesse regravar
+a si mesma seria uma ponte que qualquer coisa rodando como ela reescreve para fazer outra
+coisa. Por isso `ponte` é o único item que fica **sempre** em `SEM_CONSERTO` no doctor: o
+auto-reparo por relógio não escreve em `/etc/sudoers.d`.
+
+`visudo -c` roda **antes** de o arquivo entrar em `/etc/sudoers.d`, e isso não é zelo: um
+arquivo inválido ali derruba o `sudo` da máquina inteira, para todo mundo, e o conserto
+pede um root que já não se consegue.
