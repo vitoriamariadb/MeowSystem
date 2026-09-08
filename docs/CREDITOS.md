@@ -90,6 +90,7 @@ commit ou o release **pinado** para o acervo não mudar debaixo de ninguém:
 | Obsidian | [catppuccin/obsidian](https://github.com/catppuccin/obsidian), sobre o [Minimal](https://github.com/kepano/obsidian-minimal) de kepano (MIT) |
 | GTK e Qt | [catppuccin/qt5ct](https://github.com/catppuccin/qt5ct) |
 | Spotify | [catppuccin/spicetify](https://github.com/catppuccin/spicetify), aplicado pelo [spicetify](https://github.com/spicetify/spicetify-cli) |
+| Heroic Games Launcher | [catppuccin/heroic](https://github.com/catppuccin/heroic) — **56** CSS, 4 flavors × 14 accents |
 
 ## A plataforma
 
