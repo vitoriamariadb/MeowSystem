@@ -761,7 +761,7 @@ main:focus-visible { outline: none; }
  * que divide a linha com o `?`: sem título, ela é o que se lê para decidir.
  *
  * O CARTÃO PERDEU A CAIXA. Uma borda igual em 102 cartões é o que faz "escolher
- * entre dois gatos" pesar igual a "rodar um instalador de 52 etapas". Quem
+ * entre dois gatos" pesar igual a "rodar o instalador inteiro". Quem
  * ficou com caixa é só quem carrega PRÉVIA — a tira de flavors, os gatos, as
  * bolinhas de cor, o desenho da barra, a simulação do modo de leitura — porque
  * ali existe algo para olhar, e o que se olha merece moldura. */
@@ -1172,7 +1172,7 @@ select { flex: 1 1 auto; }
  * FAZER — as 34 ações, em três graus de risco
  * ===========================================================================
  * A queixa em uma frase: "escolher entre dois gatos, arrastar um número, e
- * rodar um instalador de 52 etapas que pode pedir sudo" tinham a mesma borda, o
+ * rodar o instalador inteiro, que pode pedir sudo" tinham a mesma borda, o
  * mesmo tamanho e o mesmo botão mauve.
  *
  * O grau já estava escrito no HTML — nas pastilhas que cada ação carrega. O

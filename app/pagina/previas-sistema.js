@@ -22,7 +22,7 @@
  *              está vazia);
  *     depois   o MESMO desenho com o valor que ela acabou de escolher, ou
  *              `null` quando não há escolha pendente no bloco;
- *     legenda  uma linha, começando por "desenho, não captura:", dizendo os
+ *     legenda  uma linha, começando por "desenho, não é a sua tela:", dizendo os
  *              números que foram desenhados.
  *   Os dois lados usam o mesmo viewBox e o mesmo enquadramento — desenho que
  *   muda de escala entre um e outro não deixa comparar nada, que é a única
@@ -69,6 +69,21 @@
   const ALTURA_CSS = 120;      // dentro dos 90..140 que a folha pede
 
   const NS = "http://www.w3.org/2000/svg";
+
+  /* A ABERTURA DE TODA LEGENDA, NUM LUGAR SÓ — 09/09/2026
+   * Ela dizia "desenho, não captura:". Duas coisas erradas na mesma frase de
+   * três palavras: em português "captura" lê-se primeiro como VERBO, e a
+   * legenda abria parecendo dizer que o desenho *não captura* alguma coisa; e
+   * "captura" já era o nome de outra coisa desta mesma página — os temas
+   * prontos de `assets/temas/capturados/`, que a aba "Cor e tela" oferece.
+   * Uma palavra, dois conceitos, e o mais visível dos dois num fragmento sem
+   * verbo. A pergunta que a legenda existe para responder é "isto é a minha
+   * máquina?", e agora ela responde com essas palavras.
+   *
+   * Ela é constante porque são dois pontos de chamada nos dois arquivos de
+   * prévia mais o `app.js`: escrita à mão em cada um, a próxima troca deixaria
+   * metade das legendas com a abertura de ontem, calada. */
+  const ABERTURA_DA_LEGENDA = "desenho, não é a sua tela: ";
 
   /* Números que entram em atributo passam por aqui. Duas razões: um `NaN` num
    * atributo de SVG não levanta exceção nenhuma — ele apaga a forma em silêncio,
@@ -504,7 +519,7 @@
   const VAZIO_FABRICA = "vazio no meow.conf significa que vale o padrão de fábrica, e é ele que aparece aqui";
 
   function montarLegenda(corpo, notas) {
-    let frase = "desenho, não captura: " + String(corpo).replace(/\s+/g, " ").trim();
+    let frase = ABERTURA_DA_LEGENDA + String(corpo).replace(/\s+/g, " ").trim();
     const extras = aLista(notas).filter(Boolean);
     if (extras.length) frase += " — " + extras.join("; ");
     return /[.!?…]$/.test(frase) ? frase : frase + ".";
@@ -527,7 +542,10 @@
   function notaDeErradas(erradas) {
     if (!erradas.length) return "";
     const nomes = erradas.slice(0, 2).join(" e ") + (erradas.length > 2 ? " (e outras)" : "");
-    return nomes + " tem valor que a chave não aceita, e o desenho mostra o padrão";
+    /* "A CHAVE NÃO ACEITA" -> "o ajuste não aceita" — 09/09/2026. Mesma troca
+     * do `app.js`: a página inteira chama isto de ajuste, do banner à busca,
+     * e "chave" era o nome da variável aparecendo na legenda de um desenho. */
+    return nomes + " tem valor que o ajuste não aceita, e o desenho mostra o padrão";
   }
 
   /* --- a casca que nunca deixa a exceção subir ----------------------------- */
@@ -957,13 +975,13 @@
     const c = conferir(val, REGRAS_MIDIA);
     let corpo;
     if (!d.ligada) {
-      corpo = "a barra sem a pastilha da música — desligar não deixa de instalar, reverte: o applet do flatpak volta no próximo login";
+      corpo = "a barra sem a pastilha da música — desligar não deixa de instalar, reverte: o botão de música do flatpak volta no próximo login";
     } else {
       const nomeDeCor = (bruta, padrao) => {
         const s = achatar(bruta) || padrao;
         return (s === "auto" || NOMES_DA_PALETA.indexOf(s) < 0) ? "cor padrão do painel" : s;
       };
-      corpo = "a barra em cima e o applet ampliado embaixo, "
+      corpo = "a barra em cima e a pastilha da música ampliada embaixo, "
         + (d.capa
           ? "com capa e com a cor do álbum "
             + (d.chapado ? "chapando o fundo do botão" : "tingindo só o traço")
@@ -977,10 +995,10 @@
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
       d.ligada && !d.capa
-        ? "«não» desliga o DOWNLOAD da capa por link (é o que o Spotify publica); um tocador que publica arquivo no disco continua com capa"
+        ? "«não» deixa de baixar a capa por link (é o que o Spotify publica); um tocador que publica arquivo no disco continua com capa"
         : "",
       d.ligada && d.capa && !d.chapado ? "a cor do álbum aqui é só um exemplo: a de verdade vem do disco que estiver tocando" : "",
-      d.ligada && d.controles ? "o applet de Som, ao lado, já desenha os dele quando há player — é por isso que estes nascem desligados" : "",
+      d.ligada && d.controles ? "o botão de Som, ao lado, já desenha os dele quando há um tocador — é por isso que estes nascem desligados" : "",
       c.vazias.length ? VAZIO_FABRICA : "",
     ]);
   }
@@ -1194,7 +1212,7 @@
       + ", troca a cada " + d.intervalo.rotulo
       + " em ordem " + (d.ordem === "alfabetica" ? "de nome" : "sorteada")
       + ", a escolhida fica " + (d.ttlEterno ? "até você soltar o carrossel" : "por " + d.ttl.rotulo)
-      + ", " + (d.avisa ? "com tarja na tela dizendo qual imagem entrou" : "sem tarja na tela")
+      + ", " + (d.avisa ? "com uma notificação dizendo qual imagem entrou" : "sem notificação")
       + " e " + (d.menu ? "com" : "sem") + " os itens no botão direito";
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
@@ -1589,19 +1607,19 @@
       + d.textura + " à direita, "
       + (d.agenda
         ? "das " + d.ini.rotulo + " às " + d.fim.rotulo + ", "
-          + (d.rampa > 0 ? "subindo em " + d.rampa + " min depois da hora" : "com virada seca")
+          + (d.rampa > 0 ? "subindo em " + d.rampa + " min depois da hora" : "com virada imediata")
         : (d.agendaVazia
           ? "sem agendamento: vazio quer dizer que o modo de leitura é só seu"
           : "com o agendamento desligado: a virada não acontece sozinha"))
       + ", " + (d.applet
-        ? "com o controle no painel: o selo no canto e o popup dele, com os dois deslizantes"
+        ? "com o controle no painel: o selo no canto e a janelinha dele, com os dois deslizantes"
         : "sem o controle no painel: quem mexe passa a ser esta página, ou o relógio");
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
-      d.applet ? "o popup está desenhado ABERTO para caber na figura; no painel ele é só o selo, e abre no clique" : "",
+      d.applet ? "a janelinha está desenhada aberta para caber na figura; no painel ele é só o selo, e abre no clique" : "",
       d.temp >= 6500 ? "6500 K é o neutro: nesta temperatura os dois lados ficam iguais, ou seja, desligado" : "",
       d.virgula ? "a textura foi escrita com vírgula, e lá dentro isso vira 0 (papel desligado): use ponto" : "",
-      "é simulação: quem pinta de verdade é o cosmic-comp recompilado, e o slider do applet vence este número",
+      "é simulação: quem pinta de verdade é o cosmic-comp recompilado, e o deslizante do painel vence este número",
     ]);
   }
 
@@ -1745,7 +1763,7 @@
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
       d.arruma ? "é a única coisa que o MeowSystem faz fora da sua pasta pessoal, e um apt do pacote desfaz" : "",
-      d.loja ? "" : "desligada, a loja só deixa de ser INSTALADA — se ela já estiver no seu Spotify, continua lá",
+      d.loja ? "" : "desligada, a loja só deixa de ser instalada — se ela já estiver no seu Spotify, continua lá",
       d.arruma ? "a fileira de baixo é desenho: quantos atalhos de sistema esta máquina tem, o painel não sabe" : "",
     ]);
   }
@@ -1796,7 +1814,7 @@
 
   function desenharManutencao(val) {
     const d = lerManutencao(val);
-    const svg = moldura("o conserto diário movendo a esteira dos três vigias, e as tarjas de aviso que cada um põe na tela");
+    const svg = moldura("o conserto diário movendo a esteira dos três vigias, e as notificações que cada um põe na tela");
 
     /* A FAIXA DE CIMA são os dois medidores de QUANTO — quantos backups ficam
      * guardados e quanto o MeowSystem fala. Eles subiram para cá em 07/09/2026
@@ -1888,14 +1906,26 @@
       + " e " + (acesos.length
         ? acesos.length + " dos 3 vigias acesos (" + acesos.map((v) => v.rotulo).join(", ") + ")"
         : "nenhum dos 3 vigias aceso")
+      /* "TARJA" TINHA DOIS DONOS NESTE ARQUIVO — 09/09/2026. Na legenda do
+       * papel de parede ela é a FAIXA PRETA de quem escolheu "caber", que é o
+       * sentido certo da palavra; aqui ela era a notificação do sistema. As
+       * duas apareciam na mesma página, e uma delas tinha de ter nota de pé
+       * dizendo o que era. Notificação é como as próprias chaves se chamam
+       * ("Avisar quando consertar algo", "Uma notificação com o nome do
+       * arquivo"), então é essa que fica; a faixa preta continua tarja.
+       * O nome da função que DESENHA (`tarjaDeAviso`) não mudou: ela desenha
+       * uma tarja mesmo, e é código, não texto de tela. */
       + ", " + (avisando.length
-        ? plural(avisando.length, "tarja na tela", "tarjas na tela") + " (" + avisando.join(", ") + ")"
-        : "nenhuma tarja na tela")
+        ? plural(avisando.length, "notificação na tela", "notificações na tela") + " (" + avisando.join(", ") + ")"
+        : "nenhuma notificação na tela")
       + ", " + (d.backups === 0 ? "todos os backups guardados" : plural(d.backups, "backup guardado", "backups guardados"))
       + " e o MeowSystem falando em " + d.fala;
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
-      "a tarja é a notificação do sistema; o vigia dos jogos não tem chave de aviso e por isso não tem tarja",
+      /* A primeira metade desta nota existia só para dizer o que "tarja"
+       * queria dizer. Com a palavra certa na legenda, ela some, e sobra o
+       * fato que a legenda não conta sozinha. — 09/09/2026 */
+      "o vigia dos jogos não tem ajuste de aviso, e por isso nunca notifica",
       !d.reparo ? "com o conserto desligado o modo de leitura também não é aplicado nem agendado" : "",
       c.vazias.length ? VAZIO_FABRICA : "",
     ]);
@@ -2087,14 +2117,43 @@
    * depois de passar pela cópia. Cor confirma, geometria informa — quem não
    * distingue verde de pêssego continua vendo um traço que entra e um que não.
    *
-   * OS DOIS NÚMEROS SÃO CONTADOS, NÃO LEMBRADOS: 52 é o tamanho do
-   * `local etapas=(…)` do install.sh e 46 o do `VERIFICAVEIS=(…)` do bin/meow.
-   * Os botões desta mesma página já dizem esses dois números na ajuda, e um
-   * desenho que discordasse do botão ao lado seria pior que um desenho sem
-   * número nenhum. As cinco linhas da fila, essas, são esquemáticas: quantas
-   * escrevem muda a cada passagem, e é exatamente o que a segunda zera. */
-  const ETAPAS_DO_INSTALADOR = 52;
-  const CONFERENCIAS_DO_DOCTOR = 46;
+   * OS DOIS NÚMEROS SÃO CONTADOS, NÃO LEMBRADOS — E ATÉ 09/09/2026 ERAM
+   * LEMBRADOS. Este comentário dizia exatamente a frase acima e logo abaixo
+   * vinha `const ETAPAS_DO_INSTALADOR = 52`, escrito à mão. O install.sh
+   * tinha 53 etapas e o bin/meow, 48 conferências; a ajuda dos dois botões
+   * ao lado dizia 52 e 46; o README dizia 47. Cinco versões da mesma verdade,
+   * nenhuma conferida — o desenho discordando do botão ao lado, que é
+   * justamente o que a frase original prometia não deixar acontecer.
+   *
+   * Agora quem conta é o `_medidas_do_projeto()` do servidor, lendo o
+   * `local etapas=(…)` do install.sh e o `VERIFICAVEIS=(…)` do bin/meow, e o
+   * número chega pelo `window.MEOW_MEDIDAS` que o app.js publica. Uma etapa
+   * nova aparece aqui sozinha, no mesmo dia.
+   *
+   * QUANDO NÃO HÁ NÚMERO, A FRASE PERDE O NÚMERO — não ganha um chute. O
+   * servidor devolve `null` quando não consegue contar (o `medida()` abaixo
+   * trata), e "as etapas do instalador" é uma frase honesta; "as 52 etapas"
+   * numa máquina de 53 não é.
+   *
+   * As cinco linhas da fila, essas, continuam esquemáticas: quantas escrevem
+   * muda a cada passagem, e é exatamente o que a segunda zera. */
+
+  /** O número contado, ou `null`. Lido na HORA DE DESENHAR: este arquivo
+   *  carrega antes do app.js, então no corpo do módulo `MEOW_MEDIDAS` ainda
+   *  não existe. */
+  function medida(nome) {
+    const m = window.MEOW_MEDIDAS;
+    const n = m && m[nome];
+    return typeof n === "number" && n > 0 ? n : null;
+  }
+
+  /** "as 53 etapas" / "as etapas" — o artigo vem junto para que a frase
+   *  sobreviva à ausência do número. É a mesma regra do `_com_medidas` do
+   *  servidor, e as duas existem porque as duas pontas escrevem frase. */
+  function comMedida(nome, plural) {
+    const n = medida(nome);
+    return n ? "as " + n + " " + plural : "as " + plural;
+  }
 
   /* O visto mora aqui e não lá em cima com o sol e a lua, de propósito: é o
    * único desenho que precisa dele. Glifo genérico no topo do arquivo vira o
@@ -2113,11 +2172,15 @@
      * mesmo das outras oito entradas do mapa — não porque haja o que ler. Ler
      * qualquer coisa dele aqui seria inventar uma chave que esta seção não tem. */
     const svg = moldura(
-      "as " + ETAPAS_DO_INSTALADOR + " etapas do instalador passando pela máquina: "
+      comMedida("etapas", "etapas") + " do instalador passando pela máquina: "
       + "a que já está no lugar confere e não escreve, a que está fora guarda cópia e escreve");
 
     /* --- a fila de etapas --- */
-    svg.appendChild(texto(19, 7.6, ETAPAS_DO_INSTALADOR + " etapas", { "font-size": 5 }));
+    /* O rótulo só nasce quando há número: um "  etapas" solto no alto do
+     * quadro seria pior que a fila sem legenda, e a fila já se explica. */
+    if (medida("etapas")) {
+      svg.appendChild(texto(19, 7.6, medida("etapas") + " etapas", { "font-size": 5 }));
+    }
     svg.appendChild(retangulo(3, 10, 32, 38, 3, { "stroke-width": 1.5, opacity: 0.9 }));
 
     const LINHAS_DA_FILA = [15, 22, 29, 36, 43];
@@ -2211,12 +2274,12 @@
     /* Sem chave não há número lido do disco, então a legenda não confere valor
      * nenhum: ela diz o que foi desenhado e emenda o que o desenho não cabe —
      * qual botão é qual caminho. */
-    const corpo = "as " + ETAPAS_DO_INSTALADOR + " etapas do instalador passando uma a uma pela"
+    const corpo = comMedida("etapas", "etapas") + " do instalador passando uma a uma pela"
       + " máquina — a que já está no lugar confere e não escreve nada, a que está fora guarda"
       + " cópia e só então escreve";
     return montarLegenda(corpo, [
-      "o «Conferir a máquina» é só o caminho verde: " + CONFERENCIAS_DO_DOCTOR
-        + " conferências, e nenhuma escrita",
+      "o «Conferir a máquina» é só o caminho verde: " + comMedida("conferencias", "conferências")
+        + ", e nenhuma escrita",
       "a cópia é o que o «Voltar ao tema de antes» devolve",
       "a volta de baixo é rodar de novo: numa máquina já pronta, nenhuma etapa escreve",
     ]);
@@ -2248,10 +2311,10 @@
    *
    * AS QUATRO PEÇAS SÃO AS DO SCRIPT, não uma invenção: o passo "4/4 O que a
    * atualização desfez" nomeia o tema, os ícones, o applet da barra e o gato do
-   * terminal. Quatro com nome, e não as 46 conferências do `doctor`: medido na
+   * terminal. Quatro com nome, e não uma por conferência do `doctor`: medido na
    * página, este quadro sai com 250 x 150 px na tela dela — 2,5 px por unidade
-   * do viewBox —, e 46 quadradinhos ali dentro seriam 46 pontos de 5 px, que é
-   * o mesmo que nada.
+   * do viewBox —, e quase cinquenta quadradinhos ali dentro seriam pontos de
+   * 5 px, que é o mesmo que nada.
    *
    * A PEÇA CAI, NÃO GANHA UM X. Um X vermelho em cima do quadrado leria "deu
    * erro"; o que um `full-upgrade` faz é outra coisa — a peça deixa de estar no
@@ -2369,7 +2432,8 @@
       + " doctor está em cima do buraco e a seta verde repõe a peça na prateleira";
     return montarLegenda(corpo, [
       "o colchete pontilhado mede até onde vai um full-upgrade digitado à mão; o cheio, o que esta página faz",
-      "as quatro peças são exemplo: o doctor faz 46 conferências e diz quais saíram do lugar",
+      "as quatro peças são exemplo: o doctor faz " + comMedida("conferencias", "conferências")
+        + " e diz quais saíram do lugar",
       "\"O que a atualização mudaria\" não escreve nada; quem mexe na máquina é \"Atualizar a máquina inteira\"",
     ]);
   }
@@ -2529,7 +2593,7 @@
    * quebra nada por não achar a seção. */
   window.MEOW_PREVIAS = Object.assign(window.MEOW_PREVIAS || {}, {
     "Painel e dock :: VIDRO E RELÓGIO": seguro("o vidro do painel e o relógio", desenharVidro, legendaVidro),
-    "Painel e dock :: MÚSICA NO PAINEL": seguro("a música no paina", desenharMidia, legendaMidia),
+    "Painel e dock :: MÚSICA NO PAINEL": seguro("a música no painel", desenharMidia, legendaMidia),
     "Papel de parede": seguro("o papel de parede", desenharParede, legendaParede),
     "Dia e noite": seguro("o dia e a noite", desenharNoite, legendaNoite),
     "Modo de leitura": seguro("o modo de leitura", desenharLeitura, legendaLeitura),

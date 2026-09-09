@@ -658,7 +658,7 @@ FORMA_ALA_FINAL_DOCK=""           # XS | S | M | L | XL   (a ponta direita: band
 VIDRO_AO_MAXIMIZAR="sim"
 
 # @ Opacidade do painel
-# > 0 é transparente, 1 é opaco. É a mesma chave que os Ajustes do COSMIC escrevem.
+# > 0 é transparente, 1 é opaco. É o mesmo ajuste que os Ajustes do COSMIC escrevem.
 # A OPACIDADE DO FUNDO É SUA, E POR ISSO ESTAS DUAS NASCEM VAZIAS (17/08/2026).
 #
 # Ajustes → Área de trabalho → Painel (e Dock) → "Opacidade do fundo" escreve
@@ -927,8 +927,8 @@ WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
 # nosso SAI DA FRENTE sozinho até o build novo ficar pronto.
 FILES_MENU="sim"                  # sim | nao
 
-# @ Recompilar sozinho quando atualizar
-# > O build baixa uns 161 MB e leva minutos. Sem isto os dois itens somem na próxima atualização.
+# @ Reconstruir sozinho quando atualizar
+# > A reconstrução baixa uns 161 MB e leva minutos. Sem isto os dois itens somem na próxima atualização.
 # Compilar sozinho quando o apt subir a versão do cosmic-files? O build baixa
 # ~161 MB de fonte e leva minutos; roda em background (Nice=19, IO idle), no
 # máximo 3 tentativas por versão, e adia se houver jogo aberto.
@@ -1164,7 +1164,7 @@ LEITURA_TEMPERATURA="3500"        # 1000–6500 K (6500 = neutro = desligado)
 LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
 
 # @ Quanto a virada demora
-# > Em minutos, até chegar ao valor cheio. Zero é degrau seco.
+# > Em minutos, até chegar ao valor cheio. Zero é a virada imediata.
 # Quantos minutos a virada leva para chegar ao valor cheio. `0` é o degrau seco.
 #
 # A VIRADA: SECA OU RAMPA? Também é sua, e também está em aberto no plano.
@@ -1248,7 +1248,7 @@ LEITURA_APPLET="sim"              # sim | nao
 TERMINAL_ESQUEMA="sim"      # sim | nao
 
 # @ Cor do cursor
-# > A cor de destaque, ou a que o port oficial escolheu.
+# > A cor de destaque, ou a que o Catppuccin escolheu.
 # ONDE O ACCENT ENTRA, E É A ÚNICA DECISÃO DE GOSTO DESTE MÓDULO.
 # O port oficial pinta o cursor de `rosewater` e não usa `mauve` em lugar nenhum
 # (o magenta do ANSI no Catppuccin é o `pink`, #F5C2E7, não o mauve). "accent"
@@ -1257,7 +1257,7 @@ TERMINAL_ESQUEMA="sim"      # sim | nao
 TERMINAL_CURSOR="accent"    # accent | port
 
 # @ Prompt do zsh
-# > O preset oficial do Catppuccin, pelo starship.
+# > O prompt oficial do Catppuccin, pelo starship.
 # O prompt do zsh, pelo starship, com o preset OFICIAL catppuccin-powerline no
 # flavor mocha e accent mauve.
 #
@@ -1537,7 +1537,7 @@ AUTOSTART_BLOQUEADOS="org.qbittorrent.qBittorrent"
 
 # --- Manutenção -------------------------------------------------------------
 
-# @ Braço root (a senha uma vez)
+# @ Consertos de sistema sem pedir senha
 # > Pede a senha só na instalação e registra um perfil no sudo. Sem ele, cada conserto de sistema volta a pedir senha no terminal.
 # [essencial] Instala `/usr/local/lib/meowsystem/ponte_root.sh` e a regra
 # `/etc/sudoers.d/49-meowsystem-ponte`, para que o painel e o auto-reparo

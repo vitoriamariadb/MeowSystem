@@ -47,7 +47,7 @@ A AUDITORIA DE 01/09/2026, E O BURACO QUE ELA ABRIU NESTE ARQUIVO
         acrescentar de novo NAO apaga o anterior, e o × tira da tela.
     8.  O desenho ao vivo segue o controle — o veu de Kelvin e a barra
         desenhada mudam quando o controle muda, que e a unica razao de existirem.
-    11. O modo seco atravessa a navegacao.
+    11. O ensaio atravessa a navegacao.
     15. Toda acao que a pagina oferece num botao existe no servidor.
     16. O controle casa com o que o esquema declara — chave de opcoes fechadas
         nao pode virar campo de texto livre, faixa numerica tem de virar
@@ -104,7 +104,16 @@ def checa(condicao, texto):
         falhas.append(texto)
 
 
-# O MODO SECO VIROU BOTAO, E BOTAO NAO E' CAIXA DE MARCAR.
+# O VOCABULARIO DESTE ARQUIVO SEGUE O DA TELA — 09/09/2026.
+#   As linhas que este teste IMPRIME diziam "modo seco", e a pagina nao diz
+#   isso em lugar nenhum desde a passagem de linguagem de hoje: o botao se
+#   chama "Ensaiar sem gravar", acende como "Ensaiando — nada grava" e as
+#   torradas dizem "ensaio". So os TEXTOS de relatorio mudaram; nenhuma
+#   afirmacao foi afrouxada, e nenhum seletor procurava essas palavras.
+#   Os identificadores (`#seco`, `seco_ligado`, `MEOW_DRY_RUN`) ficam: sao
+#   nome de codigo, e o `id` do elemento e' contrato com o HTML.
+#
+# O ENSAIO VIROU BOTAO, E BOTAO NAO E' CAIXA DE MARCAR.
 #   Ate' 06/09/2026 o interruptor era <input type=checkbox>, e este arquivo
 #   falava com ele por .check() / .uncheck() / .is_checked(). Ela pediu botao
 #   que fica aceso ("ele ta' como box mas poderia ser um botao que fica ativo,
@@ -788,7 +797,7 @@ def main():
             checa(not pag.locator("#barra-salvar").is_visible(), "Descartar limpa a barra")
             checa(valor_de("LOG_NIVEL") == log_nivel_inicial, "e o disco nunca foi tocado")
 
-            print("\n   ... e o Salvar em modo seco nao escreve")
+            print("\n   ... e o Salvar em ensaio nao escreve")
             md5_antes_seco = md5_conf()
             seco(pag, True)
             # O cartao esta' na pagina em que o teste acabou de entrar; a busca
@@ -799,7 +808,7 @@ def main():
             pag.wait_for_timeout(400)
             pag.locator("#botao-salvar").click()
             pag.wait_for_timeout(2500)
-            checa(md5_conf() == md5_antes_seco, "Salvar em modo seco: o meow.conf nao mudou")
+            checa(md5_conf() == md5_antes_seco, "Salvar em ensaio: o meow.conf nao mudou")
             seco(pag, False)
 
             print("\n10. UMA ACAO, COM SAIDA AO VIVO")
@@ -826,8 +835,8 @@ def main():
             checa("meow" in saida.lower() or "flavor" in saida.lower(),
                   "a saida e a do comando de verdade")
 
-            print("\n11. O MODO SECO ATRAVESSA A NAVEGACAO")
-            # O modo seco e a rede de seguranca da pagina inteira: com ele
+            print("\n11. O ENSAIO ATRAVESSA A NAVEGACAO")
+            # O ensaio e a rede de seguranca da pagina inteira: com ele
             # ligado, Salvar e Rodar preveem em vez de escrever. Uma rede que se
             # desliga sozinha ao trocar de aba e pior que rede nenhuma, porque
             # ela continua desenhada na tela. (A auditoria mediu o outro lado
@@ -840,9 +849,9 @@ def main():
             pag.fill("#busca", "")
             pag.wait_for_timeout(300)
             checa(seco_ligado(pag),
-                  "ligado o Modo seco, ele continua ligado depois de duas abas e uma busca")
+                  "ligado o ensaio, ele continua ligado depois de duas abas e uma busca")
 
-            print("\n12. O MODO SECO NAO ESCREVE")
+            print("\n12. O ENSAIO NAO ESCREVE")
             # A ABA E DITA AQUI, E NAO HERDADA DO PASSO ANTERIOR.
             #   Este bloco procurava o cartao "Conferir" na aba que sobrou da
             #   verificacao anterior — e quando o passo 10 entrou no meio, com
@@ -869,7 +878,7 @@ def main():
             pag.locator("#conteudo .acao, #conteudo .cartao",
                         has_text="Conferir a máquina").locator("button").first.click()
             pag.wait_for_timeout(6000)
-            checa(md5_conf() == md5_antes, "com o modo seco ligado, o meow.conf nao mudou")
+            checa(md5_conf() == md5_antes, "com o ensaio ligado, o meow.conf nao mudou")
             seco(pag, False)
 
             print("\n13. TELA ESTREITA (a pagina nao pode rolar de lado)")

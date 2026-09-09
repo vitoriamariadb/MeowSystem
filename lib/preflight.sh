@@ -198,7 +198,7 @@ meow_precisa_root() {
   # No seco não se pede senha: `sudo -v` deixa um timestamp em /run, e uma
   # auditoria que muda o estado do sudo já não é só uma auditoria.
   if meow_seco; then
-    meow_pula "modo seco — não vou pedir a senha"
+    meow_pula "ensaio — não vou pedir a senha"
   elif [ -t 0 ]; then
     # Pedir AGORA, antes de qualquer trabalho, em vez de o prompt aparecer no
     # meio de trinta etapas — ou não aparecer, que é o que acontecia.

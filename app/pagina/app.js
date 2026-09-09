@@ -108,6 +108,23 @@ async function api(rota, opcoes = {}) {
 
 /* --- estado --------------------------------------------------------------- */
 let ESQUEMA = null;          // o que veio de /api/esquema
+
+/* AS MEDIDAS ATRAVESSAM PARA OS DESENHOS POR AQUI — 09/09/2026.
+ *
+ * `previas-sistema.js` carrega ANTES deste arquivo (a ordem está no
+ * index.html, e o exportador a repete), então ele não pode ler `ESQUEMA` no
+ * corpo do módulo: quando aquele arquivo roda, este ainda não existe. O
+ * contrato é o mesmo que já vale para `window.MEOW_PREVIAS`, só na mão
+ * contrária: lá as prévias publicam e o app consome; aqui o app publica e as
+ * prévias consomem, na hora de desenhar — que é depois do fetch.
+ *
+ * Por que não deixar o desenho pedir ao servidor: ele desenha dezenas de vezes
+ * por sessão (repinta enquanto ela arrasta o deslizante) e o número não muda
+ * entre dois quadros. E a página exportada não tem servidor para perguntar —
+ * lá o `medidas` vem congelado dentro do JSON embutido, como todo o resto. */
+function publicarMedidas() {
+  window.MEOW_MEDIDAS = (ESQUEMA && ESQUEMA.medidas) || {};
+}
 let GRUPOS = [];             // [{nome, chaves:[...]}] + as abas de ação e folhas
 let ABA = null;              // qual grupo está aberto
 
@@ -206,7 +223,14 @@ const ROTULO_DE_VALOR = {
   tabular: "Em coluna", contorno: "Contornando",
   degraus: "Degraus", crescente: "Crescente", reto: "Reto",
   quadrante: "Médio", sextante: "Alto",
-  accent: "Cor de destaque", port: "Do port oficial",
+  /* "PORT" É PALAVRA DE QUEM EMPACOTA, NÃO DE QUEM ESCOLHE UMA COR —
+   * 09/09/2026. O valor `port` do `TERMINAL_CURSOR` quer dizer "a cor que o
+   * Catppuccin oficial escolheu para o cursor" (o rosewater; ver o bloco da
+   * chave no meow.conf.exemplo). O botão dizia "Do port oficial", e o
+   * inteiro do sentido estava na palavra que ninguém entende: sem saber o
+   * que é um port, "oficial" não diz oficial DE QUÊ. Catppuccin fica — é
+   * nome próprio, está escrito na aba ao lado e ela o escolhe todo dia. */
+  accent: "Cor de destaque", port: "Do Catppuccin",
   true: "Sim", false: "Não",
   "30s": "30 s", "5m": "5 min", "2h": "2 h", "6h": "6 h", "12h": "12 h",
   "1d": "1 dia", "7d": "7 dias",
@@ -666,7 +690,7 @@ async function salvarEscolhas() {
      * confirmar. Limpá-las jogava fora o trabalho dela: a validação mediu
      * "Salvar e aplicar com o modo seco ligado joga fora as escolhas
      * pendentes". Ensaiar não pode custar o que se ensaiou. */
-    torrada("Modo seco: nada foi escrito, e as escolhas continuam esperando", "igual");
+    torrada("Ensaio: nada foi escrito, e as escolhas continuam esperando", "igual");
     return;
   }
   MUDANCAS.clear();
@@ -723,14 +747,19 @@ async function importarArquivo(arquivo) {
   if (r.iguais.length) partes.push(`${r.iguais.length} já estavam assim`);
   if (r.recusadas.length) partes.push(`${r.recusadas.length} recusadas`);
   if (r.desconhecidas.length) partes.push(`${r.desconhecidas.length} fora do catálogo`);
-  torrada(partes.join(" · ") || "O arquivo não trazia chave nenhuma",
+  torrada(partes.join(" · ") || "O arquivo não trazia nenhum ajuste",
           r.mudam.length ? "ok" : "igual");
 
   /* As recusas não cabem numa torrada e não podem sumir com ela: cada uma diz
-   * qual chave e por quê, e é o que ela precisa para consertar o arquivo. */
+   * qual ajuste e por quê, e é o que ela precisa para consertar o arquivo.
+   *
+   * AQUI O NOME CRU PODE SOBRAR, e está certo: uma linha recusada pode ser uma
+   * chave que o esquema nem conhece (foi por isso que ela foi recusada), e o
+   * `nomeVisivel` devolve o cru justamente nesse caso — é o único texto que ela
+   * pode procurar no arquivo que está tentando importar. */
   if (r.recusadas.length) {
     for (const rec of r.recusadas.slice(0, 4)) {
-      torrada(`${rec.chave}: ${rec.erro}`, "erro");
+      torrada(`${nomeVisivel(rec.chave)}: ${rec.erro}`, "erro");
     }
     if (r.recusadas.length > 4) {
       torrada(`…e mais ${r.recusadas.length - 4} recusadas`, "erro");
@@ -746,26 +775,53 @@ async function rodarAcao(id, argumento) {
   return rodar(acao, argumento);
 }
 
-/* --- escrita de chave ------------------------------------------------------ */
+/* --- escrita de um ajuste --------------------------------------------------- */
+/* A TORRADA DIZ O NOME QUE ESTÁ NA TELA, NÃO O NOME NO ARQUIVO — 09/09/2026
+ *   Ela salvava e lia "FASTFETCH_LOGO_ALINHAR = tabular". Os dois lados da
+ *   frase eram cru: o nome da variável, que o `index.html` já decidiu não ser
+ *   a primeira palavra de nada ("quem lê a tela nunca precisa saber o nome da
+ *   variável"), e o valor como ele vai para o disco, quando o `rotuloDeValor`
+ *   existe justamente para traduzi-lo. Agora ela lê "Onde o texto começa: Em
+ *   coluna", que é o cartão que ela acabou de mexer.
+ *
+ *   O nome cru NÃO SUMIU do painel: ele continua no pé do cartão, em `<code>`,
+ *   que é onde serve — procurar a linha no `meow.conf`. O que ele deixou de
+ *   ser é a legenda de uma notificação que aparece por 2,6 s.
+ *
+ *   `nomeVisivel` cai no nome cru quando o esquema não conhece o ajuste. É o
+ *   caso do erro de importação, em que a chave recusada pode nem existir. */
+function nomeVisivel(chave) {
+  const item = ESQUEMA.chaves.find((i) => i.chave === chave);
+  return (item && tituloDoCartao(item)) || chave;
+}
+
 async function gravar(chave, valor, cartao) {
   const seco = ensaiando();
+  const nome = nomeVisivel(chave);
   const r = await api("/api/definir", {
     method: "POST",
     body: JSON.stringify({ chave, valor, seco }),
   });
   if (r.erro || r.rc === 2) {
-    torrada(`${chave}: ${r.erro || r.saida || "não consegui gravar"}`, "erro");
+    torrada(`${nome}: ${r.erro || r.saida || "não consegui gravar"}`, "erro");
     return false;
   }
   /* Os três códigos do projeto, ditos com as palavras do projeto. O `0` não é
    * "nada aconteceu": é "já estava certo", que é a resposta que a idempotência
-   * deste repositório existe para poder dar. */
+   * deste repositório existe para poder dar.
+   *
+   * "EM SECO" VIROU "ENSAIO" — 09/09/2026. O `index.html` já tinha decidido em
+   * 06/09 que a palavra do interruptor é ENSAIAR ("uma palavra por conceito, e
+   * é esta em todo lugar"), mas "em todo lugar" não valia: este arquivo dizia
+   * "Modo seco" em quatro torradas e "Rodar em seco" no diálogo. Quem ligava
+   * "Ensaiar sem gravar" recebia de volta uma palavra que não tinha lido em
+   * lugar nenhum. */
   if (seco) {
-    torrada(`${chave}: em seco — nada foi escrito`, "igual");
+    torrada(`${nome}: ensaio — nada foi escrito`, "igual");
   } else if (r.rc === 0) {
-    torrada(`${chave} já estava assim`, "igual");
+    torrada(`${nome} já estava assim`, "igual");
   } else {
-    torrada(`${chave} = ${valor || "(vazio)"}`, "ok");
+    torrada(`${nome}: ${rotuloDeValor(valor)}`, "ok");
     PENDENTES.add(chave);
     atualizarAviso();
   }
@@ -782,10 +838,36 @@ function atualizarAviso() {
   const n = PENDENTES.size;
   if (!n) { aviso.hidden = true; return; }
   aviso.hidden = false;
+  /* "CHAVE" É O NOME DA VARIÁVEL, E A PÁGINA JÁ TEM O DELA — 09/09/2026
+   *   O banner conta "109 ajustes · 15 mudados por você" e a busca pede "um
+   *   ajuste ou uma ação": AJUSTE é a palavra que a página ensina na primeira
+   *   linha que ela lê. "Chave" aparecia em dez lugares dizendo a mesma coisa —
+   *   dois nomes para um conceito, e o segundo é o nome da variável, que o
+   *   `index.html` já tinha tirado do lugar de destaque em 06/09. `meow.conf`
+   *   FICA: é o arquivo dela, ela sabe onde ele mora, e é o que dá o endereço
+   *   do que acabou de ser escrito. */
   $("#aviso-texto").textContent =
     n === 1
-      ? "1 chave foi gravada no meow.conf e ainda não valeu na tela."
-      : `${n} chaves foram gravadas no meow.conf e ainda não valeram na tela.`;
+      ? "1 ajuste foi gravado no meow.conf e ainda não valeu na tela."
+      : `${n} ajustes foram gravados no meow.conf e ainda não valeram na tela.`;
+}
+
+/* O QUE O LEITOR DE TELA ANUNCIA NÃO PODE SER O NOME DA VARIÁVEL — 09/09/2026
+ * Medido percorrendo a página: os cinco controles montados aqui (horário,
+ * deslizante, lista fechada, texto e o "+ acrescentar") tinham `aria-label` com
+ * a CHAVE crua — quem usa leitor de tela ouvia "W A L L P A P E R underline
+ * F I X O underline T T L" onde quem enxerga lê "Quanto tempo dura a imagem
+ * escolhida". É a mesma regra que o `index.html` já aplicou à busca em 06/09
+ * ("chave era o nome da variável, e quem lê a tela nunca precisa saber o nome
+ * da variável"), e ela vale mais aqui do que lá: no rótulo visível o nome cru
+ * ao menos aparece ao lado do título, e no áudio ele é a ÚNICA coisa dita.
+ *
+ * `tituloDoCartao` e não `item.titulo`: metade dos cartões tem título derivado
+ * (do vizinho dono do comentário), e o campo cru deixaria essa metade sem
+ * rótulo nenhum. O `|| item.chave` no fim é o cinto — um cartão sem título
+ * é melhor anunciado pelo nome cru do que por nada. */
+function rotuloAcessivel(item) {
+  return tituloDoCartao(item) || item.chave;
 }
 
 /* --- os controles, um por forma de chave ---------------------------------- */
@@ -832,11 +914,11 @@ function montarControle(item, cartao) {
       }
       const entrada = elemento("input", {
         type: "text", class: "nova", placeholder: "+ acrescentar",
-        "aria-label": `Acrescentar item a ${item.chave}`,
+        "aria-label": `Acrescentar item a ${rotuloAcessivel(item)}`,
       });
       /* O ENTER E O SAIR DO CAMPO VALEM O MESMO — 07/09/2026
        * A conferência de uso pegou isto em "Encaixe de janelas por área":
-       * digitado `sim` e saído com Tab, o texto continuava na tela, a bandeja
+       * digitado `sim` e saído com Tab, o texto continuava na tela, a barra
        * do "Salvar" continuava vazia, e ao trocar de aba e voltar o texto tinha
        * sumido sem ninguém dizer nada. Só o Enter acrescentava, e nada na tela
        * contava isso — o `+ acrescentar` do placeholder era a única pista.
@@ -874,7 +956,7 @@ function montarControle(item, cartao) {
   if (item.horario) {
     const caixa = elemento("div", { class: "controle" });
     const campo = elemento("input", {
-      type: "time", value: valor, "aria-label": item.chave,
+      type: "time", value: valor, "aria-label": rotuloAcessivel(item),
     });
     campo.addEventListener("change", () => aplica(campo.value));
     caixa.append(campo);
@@ -908,7 +990,7 @@ function montarControle(item, cartao) {
     const slider = elemento("input", {
       type: "range", min: lo, max: hi, step: passo,
       value: naRegua ? valor : lo,
-      "aria-label": item.chave,
+      "aria-label": rotuloAcessivel(item),
       disabled: !naRegua,
     });
     const saida = elemento("output", {
@@ -999,7 +1081,7 @@ function montarControle(item, cartao) {
       return caixa;
     }
     const caixa = elemento("div", { class: "controle" });
-    const sel = elemento("select", { "aria-label": item.chave });
+    const sel = elemento("select", { "aria-label": rotuloAcessivel(item) });
     if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— deixar como está —" }));
     for (const opcao of item.opcoes) sel.append(elemento("option", { value: opcao, texto: rotuloDeValor(opcao) }));
     sel.value = valor;
@@ -1013,7 +1095,7 @@ function montarControle(item, cartao) {
   const longo = valor.length > 46;
   const campo = elemento(longo ? "textarea" : "input", {
     type: longo ? false : "text",
-    "aria-label": item.chave,
+    "aria-label": rotuloAcessivel(item),
     placeholder: item.aceita_vazio ? "Deixar como está" : item.padrao,
   });
   campo.value = valor;
@@ -1093,6 +1175,9 @@ async function recarregarEsquema() {
   const novo = await api("/api/esquema");
   if (novo && !novo.erro && novo.chaves) {
     ESQUEMA = novo;
+    /* Uma etapa nova no install.sh no meio da sessão dela muda o desenho da
+     * aba «Instalação» na releitura seguinte, sem F5. */
+    publicarMedidas();
     /* A CLASSIFICAÇÃO DO PAR É CONTRA O DISCO, e o disco acabou de mudar.
      * Um bloco em que uma chave mudou de valor pode passar a mostrar (ou a
      * deixar de mostrar) a diferença de outra: com a música desligada, o applet
@@ -1180,7 +1265,7 @@ function controleImagem(item, tipo, aplica) {
   if (item.aceita_vazio) {
     caixa.append(elemento("button", {
       type: "button", class: "vazio", "data-valor": "", "aria-pressed": "false",
-      title: "Quem decide passa a ser a chave vizinha.",
+      title: "Quem decide passa a ser o ajuste vizinho.",
       texto: "Deixar como está",
       onclick: async () => { if (await aplica("")) pintar(""); },
     }));
@@ -1296,7 +1381,7 @@ function botaoAcervo(tipo, aoEntrar) {
        *   si — ele conhece o ensaio e diz o que faria. Recusar dos dois lados
        *   seria a página respondendo por um comando que ela não roda. */
       if (seco && !conf.naMaquina) {
-        torrada(`Modo seco: ${arq.name} não foi enviado (desligue o seco para valer)`, "igual");
+        torrada(`Ensaio: ${arq.name} não foi enviado — desligue «Ensaiar sem gravar» para valer`, "igual");
         return;
       }
       botao.disabled = true;
@@ -1654,7 +1739,7 @@ function mockDaBarra(item, opcoes) {
     mock,
     elemento("p", {
       class: "sem-previa",
-      texto: `desenho, não captura: ${dock ? "a dock" : "o painel"} `
+      texto: `desenho, não é a sua tela: ${dock ? "a dock" : "o painel"} `
            + notas.join("; ")
            + ". Vazio no meow.conf significa que o COSMIC decide, e aqui aparece o padrão dele.",
     }),
@@ -1702,7 +1787,7 @@ function simulacaoLeitura(item) {
   }
   caixa.append(elemento("div", {
     class: "legenda",
-    texto: `desenho, não captura: ${temp} K e textura ${t} — quem pinta de verdade é o cosmic-comp recompilado.`,
+    texto: `desenho, não é a sua tela: ${temp} K e textura ${t} — quem pinta de verdade é o cosmic-comp recompilado.`,
   }));
   return caixa;
 }
@@ -1777,8 +1862,14 @@ function montarApps() {
   });
   caixa.append(elemento("div", { class: "linha-filtro" }, [
     filtro,
+    /* ".DESKTOP" SAIU DAS DUAS CONTAGENS — 09/09/2026. É o nome da extensão
+     * do arquivo de atalho (a convenção freedesktop), e ninguém precisa dela
+     * para entender o número: o que ele conta é quanta coisa desta máquina
+     * aparece no menu de lançamento. A extensão continua nos comentários e no
+     * `title`, para quem for procurar o arquivo. */
     elemento("span", { class: "frase nota-secao",
-      texto: `${APPS.total} aplicativos com .desktop nesta máquina.` }),
+      title: "Um por arquivo .desktop em ~/.local/share/applications e /usr/share/applications",
+      texto: `${APPS.total} aplicativos aparecem no lançador desta máquina.` }),
   ]));
 
   /* PARA ONDE OS JOGOS FORAM — 06/09/2026.
@@ -1915,7 +2006,7 @@ function montarEscolhaDeIcone(app, recarregar) {
     tiraGlifos.append(elemento("p", { class: "sem-previa", texto: "Procurando…" }));
   } else if (!GLIFOS.itens.length) {
     tiraGlifos.append(elemento("p", { class: "sem-previa",
-      texto: "Nenhum desenho com esse nome — mostrando o acervo do repositório." }));
+      texto: "Nenhum desenho com esse nome — mostrando o acervo que veio com o projeto." }));
     if (GLIFOS.termo) carregarGlifos("");
   }
   for (const g of GLIFOS.itens) {
@@ -1968,8 +2059,13 @@ function montarEscolhaDeIcone(app, recarregar) {
       if (r.seco) { torrada(r.aviso, "igual"); return; }
       torrada(
         `${app.nome}: ${escolhido} em ${corEscolhida}`
-        + (r.trouxe_do_acervo ? " — o desenho entrou no repositório" : "")
-        + (r.alias ? " (marcado como alias: o desenho ou a cor já eram de outro app)" : ""),
+        + (r.trouxe_do_acervo ? " — o desenho entrou no projeto" : "")
+        /* "ALIAS" SAIU — 09/09/2026. É a palavra do arquivo de mapa para
+         * "este programa reaproveita o desenho de outro"; na torrada ela
+         * pedia que se soubesse o formato do arquivo para entender um aviso
+         * de dois segundos. O parêntese já explicava o QUE é — bastou tirar
+         * o nome e deixar a explicação. */
+        + (r.alias ? " (o desenho ou a cor já eram de outro programa)" : ""),
         "ok");
       APP_ABERTO = null;
       await relerLista();
@@ -1977,7 +2073,11 @@ function montarEscolhaDeIcone(app, recarregar) {
   }));
   if (app.mapa) {
     acoes.append(elemento("button", {
-      type: "button", class: "btn", texto: "Tirar do mapa",
+      /* "MAPA" ERA O NOME DO ARQUIVO (apps-arcticons.map), não do que o botão
+       * faz — 09/09/2026. Ele desfaz a escolha e devolve o ícone de fábrica,
+       * e é isso que o rótulo passa a dizer; a torrada logo abaixo já dizia
+       * o efeito certo, e agora as duas contam a mesma história. */
+      type: "button", class: "btn", texto: "Voltar ao ícone de fábrica",
       onclick: async () => {
         const r = await api("/api/app-icone", {
           method: "POST",
@@ -1985,7 +2085,7 @@ function montarEscolhaDeIcone(app, recarregar) {
         });
         if (r.erro) { torrada(r.erro, "erro"); return; }
         if (r.seco) { torrada(r.aviso, "igual"); return; }
-        torrada(`${app.nome} saiu do mapa — volta para o ícone de fábrica`, "ok");
+        torrada(`${app.nome} voltou para o ícone de fábrica`, "ok");
         APP_ABERTO = null;
         await relerLista();
       },
@@ -1998,8 +2098,13 @@ function montarEscolhaDeIcone(app, recarregar) {
     onclick: () => rodarAcao("icones_reconstruir"),
   }));
   painel.append(acoes);
+  /* O CAMINHO DO ARQUIVO SAIU DA FRASE — 09/09/2026. "assets/icones/
+   * apps-arcticons.map, no repositório" respondia uma pergunta que ninguém
+   * faz na frente desta grade ("onde isto é gravado?") e escondia a que ela
+   * faz de fato: isto vale só aqui, ou em toda máquina? O caminho continua
+   * escrito no comentário do bloco acima, para quem for editar à mão. */
   painel.append(elemento("p", { class: "frase",
-    texto: "A escolha é gravada em assets/icones/apps-arcticons.map, no repositório." }));
+    texto: "A escolha fica guardada no projeto: vale em toda máquina que instalar daqui." }));
   return painel;
 }
 
@@ -2587,14 +2692,17 @@ function montarJogos() {
     const marca = etiquetaDoJogo(j);
     const capa = j.url
       ? elemento("img", { src: j.url, alt: "", loading: "lazy" })
-      /* Jogo sem capa é jogo sem manifesto: a linha do mapa que sobreviveu ao
-       * jogo. O retângulo com o appid diz isso sem precisar de frase. */
+      /* Jogo sem capa é jogo sem manifesto: a decisão que sobreviveu ao jogo.
+       * O retângulo com o número da Steam diz isso sem precisar de frase. */
       : elemento("div", { class: "jogo-sem-capa", texto: j.appid });
     grade.append(elemento("button", {
       type: "button",
       class: "jogo" + (JOGO_ABERTO === j.appid ? " aberto" : "")
              + (j.acao || j.gasto ? " marcado" : ""),
-      title: `appid ${j.appid}`,
+      /* "APPID" SAIU DO `title` — 09/09/2026, junto com a linha das decisões
+       * já executadas. Quem passa o rato numa capa quer saber que número é
+       * aquele, não como a Steam chama o campo dela. */
+      title: `Número deste jogo na Steam: ${j.appid}`,
       onclick: () => { JOGO_ABERTO = JOGO_ABERTO === j.appid ? null : j.appid; render(); },
     }, [
       capa,
@@ -2621,13 +2729,19 @@ function montarJogos() {
       cxOrfas.append(elemento("div", { class: "linha-orfa" }, [
         elemento("span", { class: "orfa-nome", texto: j.nome }),
         elemento("span", { class: "orfa-nota",
+          /* "APPID" SAIU DA TELA — 09/09/2026. É o nome do campo na Steam, e
+           * numa linha que já traz o NOME do jogo ele não distingue nada:
+           * quem lê "Mad King Redemption Demo" não precisa do número para
+           * saber de qual jogo se trata. Ele continua no `title` da linha,
+           * porque é o que ela procuraria na Steam se quisesse conferir. */
+          title: `Número deste jogo na Steam: ${j.appid}`,
           texto: j.apagado_em
-            ? `arquivos apagados em ${j.apagado_em} · appid ${j.appid}`
-            : `appid ${j.appid}` }),
+            ? `arquivos apagados em ${j.apagado_em}`
+            : "ainda na lista" }),
         elemento("button", {
           type: "button", class: "btn btn-mini",
           texto: "Tirar da lista",
-          title: "Apaga a linha do jogos-fora.map. Nenhum arquivo é tocado, e o "
+          title: "Tira esta decisão da lista. Nenhum arquivo é tocado, e o "
                + "jogo não volta — ele não está no disco.",
           onclick: () => definirJogo(j.appid, "", "", true),
         }),
@@ -2663,7 +2777,7 @@ function montarJogos() {
   if ((JOGOS.apps || []).length) {
     caixa.append(elemento("h3", { class: "subsecao-titulo", texto: "O ícone de cada jogo" }));
     caixa.append(elemento("p", { class: "nota-secao",
-      texto: `${JOGOS.total_apps ?? JOGOS.apps.length} jogos com .desktop nesta `
+      texto: `${JOGOS.total_apps ?? JOGOS.apps.length} jogos têm atalho nesta `
            + "máquina. A capa acima decide se ele aparece no lançador; aqui se "
            + "escolhe o desenho com que ele aparece." }));
     caixa.append(pulaGrade("apos-apps-jogos", "Pular a lista"));
@@ -2693,8 +2807,8 @@ function montarEscolhaDeJogo(j) {
 
   const motivo = elemento("input", {
     type: "text", class: "motivo-jogo", "data-foco": "motivo-jogo",
-    placeholder: "Por quê? (fica escrito no mapa, ao lado da linha)",
-    "aria-label": "Motivo",
+    placeholder: "Por quê? (fica anotado junto com a decisão)",
+    "aria-label": "Por que este jogo sai do lançador",
   });
   painel.append(motivo);
 
@@ -2716,9 +2830,9 @@ function montarEscolhaDeJogo(j) {
     linha.append(elemento("button", {
       type: "button", class: "btn btn-perigo",
       texto: "Apagar os arquivos",
-      title: "Tira do lançador E remove a pasta do jogo e o manifesto, uma vez só.",
+      title: "Tira do lançador e remove a pasta do jogo e o manifesto, uma vez só.",
       onclick: async () => {
-        /* A PERGUNTA É AQUI, e não só no botão que executa. Gravar no mapa se
+        /* A PERGUNTA É AQUI, e não só no botão que executa. A anotação se
          * desfaz com um clique, mas ela precisa saber, ANTES de escolher, que
          * esta é a opção que leva gigabytes embora. */
         const sim = await perguntar({
@@ -2726,7 +2840,12 @@ function montarEscolhaDeJogo(j) {
           texto: "A pasta do jogo e o manifesto saem do disco na próxima vez que "
                + "você arrumar os jogos, com a Steam fechada. Dispara uma vez só: "
                + "se você reinstalar depois, nada é apagado.",
-          comando: `${j.appid}:apagar:  →  jogos-fora.map`,
+          /* A LINHA DE BAIXO DO DIÁLOGO ERA `4046520:apagar: → jogos-fora.map`
+           * — 09/09/2026. Nos outros diálogos ali vai o comando que VAI RODAR,
+           * e aqui não roda comando nenhum: o clique anota uma decisão. Três
+           * termos de máquina (o número da Steam, a palavra do arquivo e o
+           * nome do arquivo) para dizer o que cabe em cinco palavras. */
+          comando: `${j.nome} → marcado para apagar`,
           ok: "Marcar para apagar", perigo: true,
         });
         if (sim) definirJogo(j.appid, "apagar", motivo.value);
@@ -2738,14 +2857,20 @@ function montarEscolhaDeJogo(j) {
     linha.append(elemento("button", {
       type: "button", class: "btn",
       texto: j.gasto ? "Tirar a linha gasta" : "Voltar ao normal",
-      title: "Apaga a linha do jogos-fora.map. O cartão volta na próxima passagem.",
+      title: "Tira esta decisão da lista. O cartão volta na próxima passagem.",
       onclick: () => definirJogo(j.appid, "", "", true),
     }));
   }
 
   painel.append(linha);
+  /* "O MAPA" e "jogos-fora.map" SAÍRAM DOS QUATRO TEXTOS DESTA OFICINA —
+   * 09/09/2026. O arquivo `assets/icones/jogos-fora.map` é onde a decisão
+   * mora, e o comentário do bloco continua dizendo isso; na tela ele
+   * obrigava a saber o que é um "mapa" para entender que o botão só ANOTA.
+   * É justamente a distinção que esta página inteira faz — escolher não é
+   * gravar —, e ela fica mais clara dita com as palavras da página. */
   painel.append(elemento("p", { class: "frase nota-secao",
-    texto: "Escolher grava no mapa. Quem age é \u201cArrumar os jogos no lançador\u201d." }));
+    texto: "Escolher aqui só anota. Quem age é \u201cArrumar os jogos no lançador\u201d." }));
   return painel;
 }
 
@@ -2823,9 +2948,14 @@ function botoesDeLado(imagem) {
    * existe. Ele chega desde 07/09/2026: o `previas()` passou a copiar todo campo
    * que a fonte acrescenta, em vez de só o `banir`. */
   if (imagem.lado) {
+    /* A MESMA FRASE DO `wallpaper_lado_auto` NO `servidor.py`, E ELA TEM DE
+     * SER A MESMA — 09/09/2026. Aqui a ajuda é reescrita porque a ficha da
+     * galeria acrescenta o "Hoje está escrita como X"; quando "luminância"
+     * saiu do servidor, esta cópia ficou com a palavra velha e as duas
+     * telas passaram a discordar. Ver o comentário lá. */
     botoes.push(["wallpaper_lado_auto", "Medir",
       `Hoje está escrita como ${rotuloDeValor(imagem.lado)}. Tira a escolha e `
-      + "devolve a imagem à luminância medida."]);
+      + "deixa o brilho medido da imagem decidir."]);
   }
   return botoes.map(([id, rotulo, ajuda]) => elemento("button", {
     type: "button", class: "btn btn-mini",
@@ -2950,7 +3080,10 @@ function montarGaleria() {
          * mostrado: `ativos-noite/` e `ativos-dia/` são LINK DURO do mesmo
          * arquivo, e banir pelo link moveria só o link — meio banimento, e
          * mudo. O servidor passou a devolver esse campo justamente por isso. */
-        title: `Sai do carrossel e vai para banidos/. Nunca é apagada. (meow wallpaper banir ${i.rotulo})`,
+        /* "banidos/" É O NOME DA PASTA NO DISCO — 09/09/2026. A aba ao lado
+         * já se chama "Recusadas" e é para lá que a imagem vai; citar o
+         * diretório obrigava a saber que os dois nomes são a mesma coisa. */
+        title: `Sai do carrossel e vai para as recusadas. Nunca é apagada. (meow wallpaper banir ${i.rotulo})`,
         onclick: () => rodarNaGaleria("wallpaper_banir", i.banir || i.origem),
       }));
     }
@@ -3097,8 +3230,14 @@ function montarCartao(item) {
        * um traço à esquerda, que informa a mesma coisa sem gritar. */
       class: "frase" + (item.ajuda_herdada ? " herdada" : ""),
       texto: item.frase,
+      /* "ESTA CHAVE E AS IRMÃS DELA" -> "este ajuste e os vizinhos" —
+       * 09/09/2026. Duas trocas numa frase: "chave" é o nome da variável (a
+       * página inteira chama isto de AJUSTE, do banner à busca), e "irmãs"
+       * era metáfora de quem desenhou o parser — quem lê a tela vê cartões
+       * um ao lado do outro, e o nome disso é vizinho. "Explicação do bloco"
+       * saiu inteiro: "bloco" é a unidade do arquivo, não da tela. */
       title: item.ajuda_herdada
-        ? `Explicação do bloco «${tituloDaDona(item)}», que cobre esta chave e as irmãs dela.`
+        ? `«${tituloDaDona(item)}» explica este ajuste e os vizinhos dele.`
         : "",
     }));
   }
@@ -3110,7 +3249,11 @@ function montarCartao(item) {
     cartao.append(elemento("p", {
       class: "frase",
       texto: `vale como: ${item.efetivo}`,
-      title: "O valor depois de o shell expandir as variáveis.",
+      /* "DEPOIS DE O SHELL EXPANDIR AS VARIÁVEIS" SAIU — 09/09/2026. Shell e
+       * expandir são as palavras de quem escreveu o `bin/meow`; o comentário
+       * logo acima já diz quais são os dois casos reais, e é o que a frase
+       * passa a dizer — sem obrigar ninguém a saber o que é uma variável. */
+      title: "O valor com $HOME e ${FLAVOR} já trocados.",
     }));
   }
 
@@ -3225,11 +3368,14 @@ function porqueEDica(item) {
      * uma captura de 23:57 e a luminância do acervo — verdade sobre a chave
      * dona, estranho sobre esta. Uma linha antes do texto responde a pergunta
      * que o balão criava, e de quebra diz onde está a explicação completa. */
+    /* Mesma troca de vocabulário do `title` herdado, e pela mesma razão —
+     * ver o comentário lá. As duas frases são a mesma afirmação em dois
+     * tamanhos, então elas têm de usar as mesmas palavras. — 09/09/2026 */
     const dona = tituloDaDona(item);
     if (dona) {
       dica.append(elemento("p", {
         class: "de-quem",
-        texto: `Do bloco «${dona}», que explica esta chave e as irmãs de uma vez.`,
+        texto: `De «${dona}», que explica este ajuste e os vizinhos de uma vez.`,
       }));
     }
     /* O `# ` que abre cada linha de comentário é sintaxe do arquivo, não texto.
@@ -3238,7 +3384,7 @@ function porqueEDica(item) {
   }
   dica.append(elemento("code", { class: "chave", texto: item.chave }));
   if (item.essencial) {
-    dica.append(elemento("span", { class: "marca-essencial", title: "Chave essencial", texto: "•" }));
+    dica.append(elemento("span", { class: "marca-essencial", title: "Ajuste essencial", texto: "•" }));
   }
   dica.append(elemento("span", {
     class: "fabrica",
@@ -3432,8 +3578,8 @@ function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
    * que vira um buraco no meio da caixa quando a pergunta não tem comando. */
   $("#confirmar-comando").closest("p").hidden = !comando;
   $("#confirmar-ok").textContent = ok;
-  /* Três pesos, e o do meio existe: rodar em seco não é compromisso nenhum, e
-   * pintar aquele botão com a cor de acento o faria parecer a ação principal. */
+  /* Três pesos, e o do meio existe: ensaiar não é compromisso nenhum, e pintar
+   * aquele botão com a cor de acento o faria parecer a ação principal. */
   $("#confirmar-ok").className =
     "btn " + (neutro ? "" : perigo ? "btn-perigo" : "btn-accent");
   dlg.showModal();
@@ -3447,7 +3593,7 @@ function confirmar(acao, argumento, seco) {
     titulo: acao.rotulo,
     texto: acao.ajuda,
     comando: (seco ? "MEOW_DRY_RUN=1 " : "") + acao.argv.replace("@ARG@", argumento),
-    ok: seco ? "Rodar em seco" : "Rodar de verdade",
+    ok: seco ? "Ensaiar" : "Rodar de verdade",
     sudo: acao.sudo,
     perigo: acao.destrutivo,
     neutro: seco,
@@ -3474,7 +3620,7 @@ function abrirGaveta(trabalho) {
                rotulo: trabalho.rotulo };
   $("#gaveta").hidden = false;
   pastilhaDeTrabalho(false);
-  $("#gaveta-titulo").textContent = trabalho.rotulo + (trabalho.seco ? "  (em seco)" : "");
+  $("#gaveta-titulo").textContent = trabalho.rotulo + (trabalho.seco ? "  (ensaio)" : "");
   $("#gaveta-comando").textContent = trabalho.comando;
   $("#saida").replaceChildren();
   $("#parar").disabled = false;
@@ -3702,8 +3848,8 @@ function itensExternos() {
    * lugar mais pobre dos dois. */
   const LINKS_EXTERNOS = [
     { nome: "Créditos", href: repo,
-      titulo: "O repositório no GitHub: a paleta, os glifos, as fontes e a base "
-            + "de ícones que este projeto veste — com a licença de cada um" },
+      titulo: "O projeto no GitHub: a paleta, os glifos, as fontes e a base "
+            + "de ícones que ele veste — com a licença de cada um" },
   ];
   return LINKS_EXTERNOS.map((l) => elemento("a", {
     class: "item-externo",
@@ -3925,8 +4071,9 @@ function botaoTrilho(g, filho, rotulo) {
  *
  * Agora o número é UM: o que há para mexer nesta página — as chaves e as ações.
  * Ele é sabido na primeira pintura e não se mexe mais. O tamanho de cada acervo
- * continua escrito ao lado do próprio acervo ("46 imagens", "40 aplicativos com
- * .desktop nesta máquina"), que é onde ele responde a alguma coisa. */
+ * continua escrito ao lado do próprio acervo ("46 imagens", "40 aplicativos
+ * aparecem no lançador desta máquina"), que é onde ele responde a alguma
+ * coisa. */
 function contaDoGrupo(g) {
   if (g.tipo === "home") return "";
   if (g.tipo === "galeria" || g.tipo === "apps" || g.tipo === "jogos") return "";
@@ -5050,7 +5197,7 @@ function render() {
   if (!busca && GRUPOS.some((g) => g.nome === GRUPO_ICONES && assuntoDe(g) === ABA)) {
     alvo.append(elemento("p", {
       class: "frase",
-      texto: "O tema como está no disco agora. Trocar uma chave acima só muda "
+      texto: "O tema como está no disco agora. Trocar um ajuste acima só muda "
            + "isto depois de «Reconstruir o tema de ícones».",
     }));
     alvo.append(gradeDeIcones());
@@ -5261,10 +5408,10 @@ function ondeCasa(item, busca) {
   const palavras = busca.split(/\s+/).filter(Boolean);
   if (palavras.every((p) => visivel.includes(p))) return null;
   const c = item.chave || item.id || "";
-  if (semAcento(String(c)).includes(busca)) return `casa pela chave ${c}`;
+  if (semAcento(String(c)).includes(busca)) return `casa pelo nome no arquivo: ${c}`;
   if (semAcento(String(item.ajuda || "")).includes(busca)) return "casa pelo «Por quê» — o ? abre";
   if (semAcento(String(item.valor ?? "")).includes(busca)) return "casa pelo valor atual";
-  return "casa por um campo do arquivo";
+  return "casa por algo escrito no arquivo";
 }
 
 /* O PULA-GRADE — 07/09/2026. A conferência de teclado contou o custo de
@@ -5539,7 +5686,7 @@ function montarHome() {
     noite.append(elemento("button", {
       type: "button", class: "btn btn-mini",
       texto: `Abrir ${assunto}`,
-      title: `${quantas} ${quantas === 1 ? "chave" : "chaves"} em «${assunto}»`,
+      title: `${quantas} ${quantas === 1 ? "ajuste" : "ajustes"} em «${assunto}»`,
       onclick: () => { ABA = assunto; gravarHash(); render(); },
     }));
   }
@@ -5588,7 +5735,11 @@ function montarHome() {
    * uma, e a exceção ("ação roda na hora") está escrita ao lado da exceção. */
   semana.append(elemento("p", {
     class: "frase nota-secao",
-    texto: "Estes rodam na hora — ação não passa pela bandeja do Salvar.",
+    /* "BANDEJA" ERA METÁFORA SÓ NOSSA — 09/09/2026. Ela vive nos comentários
+     * deste arquivo para nomear o que fica esperando o Salvar, e vazou para a
+     * única linha da home onde a distinção importa. Na tela, o que espera se
+     * chama ESCOLHA ("Nada esperando", "1 escolha"), e é essa a palavra. */
+    texto: "Estes rodam na hora — ação não espera o Salvar.",
   }));
   const linha = elemento("div", { class: "linha-botoes" });
   for (const [id, rotulo, principal] of [
@@ -5624,7 +5775,11 @@ function montarFolhas(folhas) {
   const caixa = elemento("div");
   caixa.append(elemento("p", {
     class: "frase nota-secao",
-    texto: "As folhas que decidiram este tema, versionadas em docs/folhas/.",
+    /* "VERSIONADAS EM docs/folhas/" — 09/09/2026. Versionar é o verbo de quem
+     * usa git, e o caminho é onde o arquivo mora no clone dela; nenhum dos
+     * dois muda o que ela faz aqui, que é abrir uma folha e ler. O que ela
+     * precisa saber é que elas ficam guardadas, e não se perdem. */
+    texto: "As folhas que decidiram este tema, guardadas junto com o projeto.",
   }));
   const grade = elemento("div", { class: "grade-folhas" });
   for (const f of folhas) {
@@ -5875,6 +6030,7 @@ function montarGrupos() {
 
 async function iniciar() {
   ESQUEMA = await api("/api/esquema");
+  publicarMedidas();
   if (ESQUEMA.erro) {
     $("#conteudo").append(elemento("p", { class: "vazio-msg", texto: ESQUEMA.erro }));
     return;

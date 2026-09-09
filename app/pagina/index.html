@@ -210,13 +210,25 @@
   <form method="dialog">
     <h2 id="confirmar-titulo"></h2>
     <p id="confirmar-texto"></p>
+    <!-- O AVISO PERDEU A LINHA DE CONFIGURAÇÃO DO SUDO — 09/09/2026.
+         Ele citava `timestamp_type=global` e "60 min de cache" para explicar um
+         fato que cabe numa frase: esta máquina lembra da senha por uma hora,
+         valendo em qualquer terminal. Quem sabe o que é `timestamp_type` não
+         precisava do aviso, e quem não sabe parava de ler ali. As três palavras
+         que sobraram são a decisão dela: vai pedir senha, ou não vai.
+
+         "ETAPAS PRIVILEGIADAS" também saiu — é como o instalador chama as
+         etapas por dentro, e na tela só dizia "as difíceis". O que importa é o
+         que elas são: as que precisam da senha.
+
+         `sudo` FICA. É o nome do comando que ela digita no terminal, está no
+         rótulo em negrito e é a única palavra por onde procurar o assunto. -->
     <div id="confirmar-sudo" class="aviso-sudo" hidden>
       <strong>Esta ação pode usar sudo.</strong>
-      <span>Nada aqui pede, lê ou guarda senha. Mas o sudo desta máquina usa
-      <code>timestamp_type=global</code> com 60 min de cache: se você digitou uma
-      senha de sudo em qualquer terminal na última hora, as etapas privilegiadas
-      vão rodar sem perguntar nada. Se não digitou, elas se pulam sozinhas e
-      aparecem em <code>pulado:</code>.</span>
+      <span>Nada aqui pede, lê ou guarda senha. Mas esta máquina lembra da senha
+      do sudo por uma hora, valendo em qualquer terminal: se você digitou uma
+      nesse período, as etapas que precisam dela rodam sem perguntar. Se não
+      digitou, elas se pulam sozinhas e aparecem como <code>pulado:</code>.</span>
     </div>
     <p class="comando-previa"><code id="confirmar-comando"></code></p>
     <menu>
