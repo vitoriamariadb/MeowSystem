@@ -10,27 +10,59 @@ fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
 ## AO VOLTAR, COMECE POR AQUI
 
-**Há DUAS sprints ABERTAS, anotadas a pedido dela e não executadas:**
-[`docs/sprints/2026-09-09-duplicata-e-fidelidade.md`](sprints/2026-09-09-duplicata-e-fidelidade.md).
-Sprint **S** — ao instalar um jogo, o cartão duplica (o rival se chama pelo
-nome legível do jogo, e a limpeza reconhece rival por nome de arquivo: é a
-quarta vez que um molde novo escapa). Sprint **T** — o traço convertido não é
-fiel ao desenho de origem; Brave e Chrome viram emaranhado, e o que decide não
-é "geométrico contra orgânico" como o conversor afirma, mas quantas fronteiras
-de cor cabem dentro da silhueta.
+**A leva de 09/09/2026 (tarde) fechou CINCO frentes.** As duas sprints que este
+arquivo listava como abertas — S e T de
+[`2026-09-09-duplicata-e-fidelidade.md`](sprints/2026-09-09-duplicata-e-fidelidade.md)
+— foram executadas, mais três coisas que a leitura do dia achou e que não
+estavam anotadas em lugar nenhum.
 
-A leva anterior de 09/09/2026 fechou três — o registro
-autossuficiente está em
-[`docs/sprints/2026-09-09-heroic-e-oficina.md`](sprints/2026-09-09-heroic-e-oficina.md),
-com os detalhamentos de código em
-[`sprint-q-conversor`](sprints/2026-09-09-sprint-q-conversor.md) e
-[`sprint-r-oficina`](sprints/2026-09-09-sprint-r-oficina.md).
-
-| sprint | o que era | como fechou |
+| frente | o que era | como fechou |
 |---|---|---|
-| **P** | o Heroic mostrava o tema de fábrica | o valor de `theme` leva `.css`; conferido com o aplicativo ABERTO, não só nos arquivos |
-| **Q** | o traço saía em escada | o conversor emite curvas; a folha espera o sim dela para regenerar os 24 |
-| **R** | a oficina não gerava variações | folha de cartões, o original ao lado, clique tira o traço |
+| **S** | ao instalar um jogo, o cartão duplicava | o rival passa a ser reconhecido pelo **conteúdo** (o `appid` sai do `Exec=`), não pelo nome do arquivo — enquanto fosse por nome, sempre haveria um quinto molde |
+| **T** | o traço convertido não é fiel | `--peso-fronteira`, **desligado por padrão**; a folha de quatro colunas espera o olhar dela |
+| **Qt** | o ícone de todo app Qt voltava a `breeze-dark` e ficava assim o dia inteiro | `meow-qt.path`; a causa é a **exportação de partida da sessão** do `cosmic-settings-daemon`, não a troca de tema |
+| **números** | a tela dizia 52 etapas numa máquina de 53, em cinco lugares que já discordavam entre si | o painel **conta** (`_medidas_do_projeto`); `tests/numeros.sh` cobra o que um humano escreve |
+| **palavras** | jargão de implementação na tela, e o nome cru da chave no leitor de tela | inventário da página rodando, três baldes, e o vocabulário do terminal convergido com o da tela |
+
+**O QUE A MEDIÇÃO DERRUBOU NESTA LEVA** — e vale mais que o que ela construiu:
+
+- **"Geométrico sai, orgânico não"** (cabeçalho do conversor): falso. A
+  Calculadora é geométrica, é a **mais carregada** das 34 conversões, e é a mais
+  fiel. O Brave é orgânico com 4 cores e falha.
+- **O "teto de legibilidade"** que a Sprint T pedia **não existe** — nenhuma das
+  três réguas separa fiel de falha, e um teto que cortasse o Brave cortaria a
+  Calculadora antes. Não foi implementado, de propósito.
+- **A tese das "fronteiras de cor"** explica o Brave e o Discord e **não explica
+  o Chrome**: a fronteira mais fraca dele é quase o dobro da do Telegram, que
+  sai fiel.
+- **O manifesto do `toolkits-gtk-qt`** afirmava que a chave era durável *"e a
+  reinício de sessão"*. A metade sobre troca de tema está certa e ficou mais
+  forte; a outra era falsa, e o módulo não era auto-curável — era curado todo
+  dia às 5h sem ninguém perceber. **29 reparos desde 04/08.**
+- **O item 2 da Sprint S** dizia que os três moldes por nome continuariam vivos
+  pelo mesmo motivo. Só **dois** continuam: o `steam_app_<id>` virou subconjunto
+  estrito da regra nova.
+- **`tests/um-cartao-por-jogo.sh` "continua passando"** era falso, e a própria
+  sprint reescrevia a garantia sem dizer: um `.desktop` que ela escrevesse à mão
+  para um jogo **instalado** agora sai junto. Está escrito no cabeçalho dos dois
+  arquivos, porque é uma perda real.
+- **A regra que só existe como comentário se repete.** O `lib/desinstalar.sh`
+  trazia *"toda unidade nova entra nas DUAS listas"* desde 01/09, quando três
+  unidades erraram — e a unidade nova de hoje errou de novo. Agora quem cobra é
+  o `tests/reversao.sh`.
+- **A suíte verde não fecha sprint.** 103/103 passando, e a foto pegou a grade
+  de ícones dizendo *"aparecem no **lançamento** desta máquina"*.
+
+**DUAS COISAS ESPERAM A DECISÃO DELA, e nenhuma foi aplicada:**
+
+1. **O traço do Brave, do Chrome e do Discord.** A folha está em
+   `~/Documentos/meow-conversor-fidelidade.html`. Recomendação medida: o
+   **Chrome vai para o desenho à mão** (18 combinações de parâmetro desenham a
+   mesma coisa; o glifo já está em `assets/icones/arcticons-apps/`); Brave e
+   Discord melhoram com o peso de fronteira, e a escolha entre isso e o à mão é
+   dela. Ligar a chave muda 6 ícones do acervo.
+2. **A regeneração dos 15 desatualizados.** A ordem natural continua sendo **T
+   antes da regeneração**, para ela decidir uma vez só.
 
 **UMA COISA PENDENTE, E É DECISÃO DELA:** a folha do conversor está em
 `~/Documentos/meow-conversor-folha.html`. Enquanto ela não olhar,
