@@ -111,8 +111,13 @@ import signal
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
+# A folha da oficina roda SEIS conversores de uma vez (09/09/2026): em série
+# eram 1,42 s medidos, e o servidor é `ThreadingHTTPServer`, então a rota
+# ocupada não tranca as outras.
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs, quote
 
@@ -2963,6 +2968,185 @@ def importar_conf(texto):
     return relatorio
 
 
+# --- 5b. a oficina de desenho: as réguas, os presets, o cache ----------------
+# 09/09/2026. Ela, em 08/09: *"o nosso gerador de ícones é fraco, não gera
+# variações nem é tão bonito quanto o original, além de ficar pixelado e não ser
+# intuitivo e fácil de usar."* Quatro queixas; três são desta frente.
+#
+# DUAS RÉGUAS DE GOSTO, UMA TABELA SÓ. «Cores», «Fusão» e «Aparo» são o
+# vocabulário do conversor, não o dela — três números que só quem leu o
+# `converter_icone.py` sabe mexer. Aqui entram duas palavras que descrevem o
+# RESULTADO (Detalhe, Suavidade) e uma função as traduz. A tradução mora num
+# lugar só de propósito: os presets da folha, a régua que o cliente arrasta e a
+# conferência de "isto é regenerável?" do `salvar` têm de dar a MESMA string,
+# senão a linha gravada no mapa não reproduz o desenho gravado ao lado dela.
+def _parametros_de(detalhe, suavidade, cheia=False):
+    """(argv para o subprocess, string canônica para o campo 4 do mapa)."""
+    def _regua(v, padrao):
+        try:
+            return max(0, min(10, int(v)))
+        except (TypeError, ValueError):
+            return padrao
+    d = _regua(detalhe, 6)
+    s = _regua(suavidade, 2)
+    k = 2 + d                        # 2 … 12
+    funde = 100 - 8 * d              # 100 … 20
+    tol = round(0.4 + 0.3 * s, 1)    # 0,4 … 3,4
+    argv = ["--k", str(k), "--funde", str(funde), "--tol", "%g" % tol]
+    if cheia:
+        argv.append("--cheia")
+    return argv, " ".join(argv)
+
+
+# A CERCA DAS RÉGUAS É MAIS APERTADA QUE A DOS TRÊS NÚMEROS, e é de propósito.
+#   O caminho antigo (`k`, `funde`, `tol` soltos) continua com a faixa de 08/09
+#   — `--k` de 3 a 16 — porque um `--k 900` vindo de um POST forjado é um
+#   processo de minutos dentro de um servidor. O caminho das réguas nem precisa
+#   dessa conferência: `_parametros_de` prende o número ANTES de fazer conta, e
+#   0…10 dá `--k` de 2 a 12, que cabe inteiro dentro do que era permitido.
+#
+#   MEDIDO em 09/09/2026, e o contrato desta sprint errava aqui: `Silhueta` é
+#   `detalhe 0`, que dá `--k 2` — UM ABAIXO do piso de 3 do caminho antigo. Se
+#   os presets passassem pela mesma conferência, o cartão mais simples da folha
+#   seria o único que nunca desenharia. `--k 2` é mais barato que `--k 3`, não
+#   mais caro: o piso guardava contra o teto, e prendeu o chão sem querer.
+_RE_PARAMETROS_DESENHO = re.compile(
+    r"^--k (\d{1,2}) --funde (\d{1,3}) --tol (\d{1,2}(?:\.\d)?)( --cheia)?$")
+
+
+def _parametros_relidos(texto):
+    """A string do campo 4 do mapa de volta a argv — RECONSTRUÍDA, nunca partida.
+
+    O `salvar` reconverte para decidir se o desenho ainda é o da linha, e os
+    parâmetros dessa reconversão vêm do cliente. Partir a string em espaços e
+    entregar os pedaços ao `subprocess` deixaria o navegador escolher bandeira
+    do conversor (`--lw 5` gravaria espessura no arquivo, que é justamente o que
+    o `_conferir_dialeto` recusa). Então: casa contra UMA forma, lê os três
+    números, confere as faixas, e MONTA o argv do zero. Devolve None quando não
+    reconhece — e quem não reconhece grava como retoque à mão, que é o desfecho
+    seguro.
+    """
+    achado = _RE_PARAMETROS_DESENHO.match((texto or "").strip())
+    if not achado:
+        return None
+    k, funde, tol = int(achado.group(1)), int(achado.group(2)), float(achado.group(3))
+    if not (2 <= k <= 16 and 0 <= funde <= 120 and 0.2 <= tol <= 8.0):
+        return None
+    argv = ["--k", str(k), "--funde", str(funde), "--tol", "%g" % tol]
+    if achado.group(4):
+        argv.append("--cheia")
+    return argv
+
+
+# id, rótulo, detalhe, suavidade, cheia, fonte
+PRESETS_DESENHO = (
+    ("fiel", "Fiel", 6, 2, False, "icone"),
+    ("limpo", "Limpo", 2, 6, False, "icone"),
+    ("silhueta", "Silhueta", 0, 4, False, "icone"),
+    ("detalhe", "Detalhe", 10, 1, False, "icone"),
+    ("cheia", "Área cheia", 4, 4, True, "icone"),
+    ("capa", "Da capa", 3, 5, False, "capa"),
+)
+
+# O CACHE É POR (ORIGEM, MTIME, PARÂMETROS), e o `mtime` não é enfeite: sem ele
+# um Papirus atualizado no `apt upgrade` continuaria desenhando a arte velha
+# até o painel reiniciar, e o `salvar` gravaria `conversao` numa linha que o
+# `construir_convertidos.sh` refaria diferente na primeira passagem.
+_CACHE_DESENHO = {}
+_CACHE_DESENHO_TETO = 64
+_CACHE_DESENHO_TRAVA = threading.Lock()
+_CONVERSOR_CHEIA = None
+_CONVERSOR_CHEIA_TRAVA = threading.Lock()
+
+
+def _conversor_tem_cheia():
+    """`--cheia` existe no conversor de hoje? Perguntado UMA vez, ao `--help`.
+
+    A chave é da Sprint Q, que está sendo escrita ao lado desta. A oficina não
+    espera por ela: sem a chave, o cartão «Área cheia» simplesmente não é
+    oferecido, e a folha sai com um cartão a menos. Perguntar ao `--help` custa
+    um processo por sessão e não presume versão nenhuma.
+    """
+    global _CONVERSOR_CHEIA
+    with _CONVERSOR_CHEIA_TRAVA:
+        if _CONVERSOR_CHEIA is None:
+            _CONVERSOR_CHEIA = False
+            conversor = os.path.join(RAIZ, "scripts", "converter_icone.py")
+            if os.path.isfile(conversor):
+                try:
+                    r = subprocess.run([sys.executable, conversor, "--help"],
+                                       capture_output=True, text=True, timeout=20)
+                    _CONVERSOR_CHEIA = "--cheia" in ((r.stdout or "") + (r.stderr or ""))
+                except (OSError, subprocess.SubprocessError):
+                    _CONVERSOR_CHEIA = False
+        return _CONVERSOR_CHEIA
+
+
+def _nota_do_conversor(saida):
+    """A contagem que o conversor imprime — E ELA SAI NO STDERR, medido em 09/09.
+
+    O contrato desta sprint dizia `stdout`, e a rota de 08/09 lia `stdout`: a
+    `nota` chegava VAZIA em toda resposta desde que a rota existe, e ninguém viu
+    porque não havia onde ela aparecesse. `scripts/converter_icone.py` termina em
+    `print(..., file=sys.stderr)`. A linha vem com o nome do arquivo na frente
+    (`org.gimp.GIMP.svg: 4 classes (0 fita), 6 traços, 149 pontos`), que é ruído
+    no balão de um cartão que já se chama pelo rótulo — sai o prefixo.
+    """
+    linhas = [l.strip() for l in (saida or "").splitlines() if l.strip()]
+    if not linhas:
+        return ""
+    nota = linhas[-1]
+    if ": " in nota:
+        nota = nota.split(": ", 1)[1]
+    return nota[:200]
+
+
+def _converter_desenho(origem, argv_extra, texto_parametros):
+    """Roda o conversor uma vez, com cache. Devolve (svg, nota, erro).
+
+    Não levanta: quem chama é um operário de `ThreadPoolExecutor` e uma exceção
+    lá dentro derrubaria a folha inteira por causa de uma variação.
+    """
+    try:
+        mtime = os.path.getmtime(origem)
+    except OSError:
+        return "", "", "a arte de origem sumiu do disco"
+    chave = (origem, mtime, texto_parametros)
+    with _CACHE_DESENHO_TRAVA:
+        achado = _CACHE_DESENHO.get(chave)
+    if achado is not None:
+        return achado[0], achado[1], ""
+    conversor = os.path.join(RAIZ, "scripts", "converter_icone.py")
+    if not os.path.isfile(conversor):
+        return "", "", "falta scripts/converter_icone.py"
+    saida = tempfile.NamedTemporaryFile(suffix=".svg", delete=False)
+    saida.close()
+    try:
+        r = subprocess.run([sys.executable, conversor, origem, saida.name] + list(argv_extra),
+                           capture_output=True, text=True, timeout=60)
+        if r.returncode != 0:
+            return "", "", ("o conversor recusou esta arte: %s"
+                            % (r.stderr or "").strip()[:300])
+        with open(saida.name, "r", encoding="utf-8") as fh:
+            svg = fh.read()
+    except (OSError, subprocess.SubprocessError) as e:
+        return "", "", "o conversor falhou: %s" % e
+    finally:
+        try:
+            os.unlink(saida.name)
+        except OSError:
+            pass
+    nota = _nota_do_conversor(r.stderr)
+    with _CACHE_DESENHO_TRAVA:
+        _CACHE_DESENHO[chave] = (svg, nota)
+        # `dict` guarda a ordem de inserção desde o 3.7: a primeira chave é a
+        # mais antiga, e é ela que sai. Sessenta e quatro entradas cobrem uma
+        # visita inteira a uma ficha sem deixar o painel virar depósito de SVG.
+        while len(_CACHE_DESENHO) > _CACHE_DESENHO_TETO:
+            _CACHE_DESENHO.pop(next(iter(_CACHE_DESENHO)))
+    return svg, nota, ""
+
+
 # --- 6. os trabalhos ---------------------------------------------------------
 class Trabalho:
     """Um comando rodando, com a saída acumulada para a página buscar.
@@ -3472,22 +3656,45 @@ class Manipulador(BaseHTTPRequestHandler):
             #   que esta página tem motivo para mostrar, e só extensão de
             #   imagem. Fora disso é 404 — nem uma mensagem diferente, para não
             #   virar sonda de existência de arquivo.
-            alvo_arq = os.path.realpath(consulta.get("id", [""])[0] or "")
             # A cerca acompanha a busca do `_icone_na_tela`: são as pastas de
             # ARTE da máquina, e nada mais. `/usr/share/pixmaps` entra porque é
             # de lá que vem o ícone de vários aplicativos antigos.
-            permitidos = [os.path.realpath(x) for x in (
-                os.path.join(RAIZ, "assets", "icones"),
-                os.path.expanduser("~/.local/share/icons"),
-                os.path.expanduser("~/.local/share/flatpak/exports/share/icons"),
-                "/usr/share/icons",
-                "/usr/share/pixmaps",
-                "/var/lib/flatpak/exports/share/icons",
-                os.path.expanduser("~/.local/share/Steam"),
-                os.path.expanduser("~/.steam"),
-            ) if os.path.isdir(x)]
-            ok_pasta = any(alvo_arq.startswith(p + os.sep) for p in permitidos)
-            ext_arq = os.path.splitext(alvo_arq)[1].lower()
+            permitidos = set()
+            for x in (os.path.join(RAIZ, "assets", "icones"),
+                      os.path.expanduser("~/.local/share/icons"),
+                      os.path.expanduser("~/.local/share/flatpak/exports/share/icons"),
+                      "/usr/share/icons",
+                      "/usr/share/pixmaps",
+                      "/var/lib/flatpak/exports/share/icons",
+                      os.path.expanduser("~/.local/share/Steam"),
+                      os.path.expanduser("~/.steam")):
+                if os.path.isdir(x):
+                    permitidos.add(os.path.normpath(x))
+                    permitidos.add(os.path.realpath(x))
+            # O CAMINHO PEDIDO E O CAMINHO RESOLVIDO SÃO DUAS PERGUNTAS, e até
+            # 09/09/2026 só a segunda era feita — o que fazia a oficina mostrar
+            # um ícone quebrado onde deveria estar o ORIGINAL, que é a metade da
+            # tela que responde à queixa dela de "não é tão bonito quanto o
+            # original". Medido: o flatpak de usuária exporta a arte como link
+            # simbólico, e
+            #   ~/.local/share/flatpak/exports/share/icons/hicolor/.../X.svg
+            # resolve para
+            #   ~/.local/share/flatpak/app/X/x86_64/stable/<hash>/export/...
+            # que está FORA de toda raiz permitida. Metade dos aplicativos desta
+            # máquina cai nesse caso.
+            #
+            # A lista NÃO cresce: o que passa a valer é o caminho como foi
+            # PEDIDO, depois de `normpath` — e é o `normpath` que mata o
+            # `..`, tanto quanto o `realpath` matava (`/usr/share/icons/../../
+            # etc/shadow` vira `/etc/shadow` e nenhuma raiz o cobre). O que se
+            # aceita a mais é um link que o próprio sistema pôs DENTRO de uma
+            # raiz permitida; plantar um lá exige já ser dono de `/usr/share` ou
+            # da pasta de flatpak dela, e a peneira de extensão continua de pé.
+            pedido = os.path.normpath(consulta.get("id", [""])[0] or "")
+            alvo_arq = os.path.realpath(pedido)
+            ok_pasta = any(pedido.startswith(p + os.sep) or alvo_arq.startswith(p + os.sep)
+                           for p in permitidos)
+            ext_arq = os.path.splitext(pedido)[1].lower()
             # O `.jpg` entrou em 02/09/2026 com a seção "Jogos da Steam": a arte
             # do `appcache/librarycache` é JPEG, e sem ele a grade de jogos
             # abriria com 22 quadrados vazios. A cerca NÃO muda — `~/.steam` já
@@ -4695,19 +4902,123 @@ class Manipulador(BaseHTTPRequestHandler):
         return os.path.join(RAIZ, "assets", "icones", "convertidos-apps",
                             "retoques", app + ".svg")
 
-    def _api_app_desenho(self, corpo):
-        """Vetoriza, lê e grava o desenho à mão de UM aplicativo."""
-        import subprocess as _sub
-        import tempfile as _tmp
+    def _vizinhos_do_dock(self):
+        """Os dois vizinhos da tira: a PRIMEIRA e a ÚLTIMA linha de dados do
+        `apps-arcticons.map`.
 
+        São LIDOS do mapa, e não escritos aqui: a tira é uma amostra da dock
+        dela, e uma amostra congelada num literal mentiria no dia em que ela
+        trocasse o primeiro ícone do acervo. Hoje saem `btop` (maroon) e
+        `dev.edfloreshz.CosmicTweaks` (lavender).
+        """
+        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
+        linhas = []
+        try:
+            with open(caminho, "r", encoding="utf-8") as fh:
+                for linha in fh:
+                    corte = linha.strip()
+                    if corte and not corte.startswith("#"):
+                        linhas.append(corte)
+        except OSError:
+            return []
+        saida = []
+        for corte in ([linhas[0], linhas[-1]] if len(linhas) > 1 else linhas):
+            campos = [c.strip() for c in corte.split(":")]
+            if len(campos) < 3 or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", campos[1]):
+                continue
+            arte = os.path.join(RAIZ, "assets", "icones", "arcticons-apps",
+                                campos[1] + ".svg")
+            try:
+                with open(arte, "r", encoding="utf-8") as fh:
+                    saida.append({"nome": campos[0], "cor": campos[2], "svg": fh.read()})
+            except OSError:
+                continue
+        return saida
+
+    def _modo_no_mapa(self, nome):
+        """`mao`, `conversao` ou "" — o que o `apps-convertidos.map` diz deste ícone.
+
+        O campo 2 é a origem: a palavra `mao` significa "nasce à mão em
+        `retoques/`", e qualquer outra coisa é um caminho de arte chapada, isto
+        é, uma linha que o `construir_convertidos.sh` sabe refazer sozinho.
+        """
+        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+        try:
+            with open(caminho, "r", encoding="utf-8") as fh:
+                for linha in fh:
+                    corte = linha.strip()
+                    if not corte or corte.startswith("#"):
+                        continue
+                    campos = [c.strip() for c in corte.split(":", 2)]
+                    if campos[0] != nome or len(campos) < 2:
+                        continue
+                    return "mao" if campos[1] == "mao" else "conversao"
+        except OSError:
+            return ""
+        return ""
+
+    def _salvo_do_app(self, nome):
+        """O desenho que já está no repositório para este ícone, e de que espécie.
+
+        O retoque à mão vem PRIMEIRO porque é o que vence: o `_desejado_de` do
+        `construir_convertidos.sh` lê `retoques/<nome>.svg` e nem chama o
+        conversor. Mostrar o construído havendo retoque seria mostrar a versão
+        que perde.
+        """
+        conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+        for caminho, palpite in ((self._caminho_retoque(nome), "mao"),
+                                 (os.path.join(conv, nome + ".svg"), "conversao")):
+            try:
+                with open(caminho, "r", encoding="utf-8") as fh:
+                    texto = fh.read()
+            except OSError:
+                continue
+            return {"tem": True, "svg": texto,
+                    "modo": self._modo_no_mapa(nome) or palpite}
+        return {"tem": False, "svg": "", "modo": ""}
+
+    def _tirar_retoque(self, nome):
+        """Apaga `retoques/<nome>.svg` — a ÚNICA remoção desta rota.
+
+        Sem ela, gravar `conversao` gravaria uma linha que não vale nada: o
+        `_desejado_de` do construtor lê `retoques/` primeiro, e o retoque VELHO
+        continuaria vencendo a conversão nova em toda passagem do
+        `construir_convertidos.sh`. O desenho dela ficaria no disco sem nunca
+        aparecer na tela — o pior desfecho, porque parece que funcionou.
+
+        A cerca é dupla, que é o mínimo para um `unlink` dentro de um servidor
+        HTTP: o `nome` já passou pelo `^[A-Za-z0-9._+-]{1,120}$` do
+        `_nome_do_icone` (e ele é resolvido AQUI, a partir do `.desktop`, nunca
+        recebido do cliente), e o alvo real tem de cair dentro da pasta
+        `retoques/` depois do `realpath`.
+        """
+        pasta = os.path.realpath(os.path.join(RAIZ, "assets", "icones",
+                                              "convertidos-apps", "retoques"))
+        alvo = os.path.realpath(self._caminho_retoque(nome))
+        if not alvo.startswith(pasta + os.sep) or not os.path.isfile(alvo):
+            return False
+        try:
+            os.unlink(alvo)
+        except OSError:
+            return False
+        return True
+
+    def _arte_da_capa(self, app):
+        """A capa da biblioteca deste jogo da Steam, ou "" se ele não for um."""
+        if not self._RE_STEAM.match(app):
+            return ""
+        return self._capa_do_jogo(re.sub(r"^\D+", "", app))
+
+    def _api_app_desenho(self, corpo):
+        """A oficina: a folha de variações, a vetorização por réguas, o gravar."""
         app = str(corpo.get("app", "")).strip()
         acao = str(corpo.get("acao", "vetorizar")).strip()
         if not app or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
             return self._json({"erro": "aplicativo inválido"}, 400)
 
-        # ------------------------------------------------------------------ ler
         nome = self._nome_do_icone(app)
 
+        # ------------------------------------------------------------------ ler
         if acao == "ler":
             alvo = self._caminho_retoque(nome)
             if not os.path.isfile(alvo):
@@ -4718,32 +5029,85 @@ class Manipulador(BaseHTTPRequestHandler):
             except OSError as e:
                 return self._json({"erro": "não consegui ler o desenho: %s" % e}, 500)
 
+        # ------------------------------------------------------------ variações
+        # A FOLHA INTEIRA NUMA CHAMADA — 09/09/2026, e é a resposta à primeira
+        # queixa dela: *"não gera variações"*. Até ontem eram um clique, um
+        # desenho, e para ver outro era mexer num número e clicar de novo — quem
+        # não sabe o que o número faz não mexe, e a oficina virava um botão só.
+        #
+        # As conversões vão para um `ThreadPoolExecutor`: em série foram 1,42 s
+        # medidos para as seis do ícone, e a mais cara de todas é a capa de um
+        # jogo da Steam, 2,38 s sozinha (460x215 de ilustração, 105 traços). Em
+        # paralelo a folha custa a MAIS LENTA, não a soma — e o cache faz a
+        # segunda visita à mesma ficha não converter nada.
+        if acao == "variacoes":
+            d = next((x for x in self._desktops() if x["id"] == app), None)
+            if not d:
+                return self._json({"erro": "não achei o .desktop de %s" % app}, 404)
+            origem = self._arte_de_fabrica(d)
+            capa = self._arte_da_capa(app)
+            tem_cheia = _conversor_tem_cheia()
+            tarefas = []
+            for pid, rotulo, det, sua, chei, fonte in PRESETS_DESENHO:
+                # Sem `--cheia` no conversor de hoje o cartão não é oferecido —
+                # a oficina não espera a Sprint Q para funcionar.
+                if chei and not tem_cheia:
+                    continue
+                arte = capa if fonte == "capa" else origem
+                if not arte:
+                    continue
+                argv, texto = _parametros_de(det, sua, chei)
+                tarefas.append({"id": pid, "rotulo": rotulo, "detalhe": det,
+                                "suavidade": sua, "cheia": chei, "fonte": fonte,
+                                "parametros": texto, "arte": arte, "argv": argv})
+            variacoes = []
+            if tarefas:
+                with ThreadPoolExecutor(max_workers=6) as piscina:
+                    futuros = [piscina.submit(_converter_desenho, t["arte"],
+                                              t["argv"], t["parametros"])
+                               for t in tarefas]
+                    for t, futuro in zip(tarefas, futuros):
+                        # UMA VARIAÇÃO QUE EXPLODE NÃO LEVA AS OUTRAS: o cartão
+                        # sai apagado com a frase curta e a folha continua.
+                        try:
+                            svg, nota, erro = futuro.result()
+                        except Exception as e:              # noqa: BLE001
+                            svg, nota, erro = "", "", "o conversor falhou: %s" % e
+                        cartao = {k: t[k] for k in ("id", "rotulo", "detalhe",
+                                                    "suavidade", "cheia", "fonte",
+                                                    "parametros")}
+                        if erro:
+                            cartao["erro"] = erro
+                        else:
+                            cartao["svg"] = svg
+                            cartao["nota"] = nota
+                        variacoes.append(cartao)
+            return self._json({
+                "ok": True, "nome": nome, "origem": origem,
+                "original": ("/previa?tipo=arquivo&id=" + quote(origem, safe="")) if origem else "",
+                "capa": ("/previa?tipo=arquivo&id=" + quote(capa, safe="")) if capa else "",
+                "salvo": self._salvo_do_app(nome),
+                "variacoes": variacoes,
+                "vizinhos": self._vizinhos_do_dock(),
+            })
+
         # ------------------------------------------------------------ vetorizar
         if acao == "vetorizar":
             d = next((x for x in self._desktops() if x["id"] == app), None)
             if not d:
                 return self._json({"erro": "não achei o .desktop de %s" % app}, 404)
             # A CAPA COMO SEGUNDA FONTE — 08/09/2026
-            #   Pedido dela: *"podemos usar ela via interface pra criarmos
-            #   variações das capas de qualquer app, incluindo os da steam?"*
-            #
             #   Um jogo da Steam tem DUAS artes, e elas dizem coisas diferentes:
             #   o `steam_icon_<appid>.png` (o ícone, 256 px, uma marca) e a
             #   `library_capsule.jpg` (a capa, ilustração inteira com o título
             #   escrito). A capa dá desenho mais rico e quase sempre ilegível a
             #   48 px — mas isso é para ela ver e decidir, que é a razão de a
             #   oficina mostrar os dois tamanhos lado a lado.
-            #
-            #   `_capa_do_jogo` já existia para a grade de jogos; aqui ela é
-            #   reusada com `vertical=False`, porque o `library_header` é
-            #   horizontal e cabe melhor num quadrado que a capa 600x900.
             fonte = str(corpo.get("fonte", "icone")).strip()
-            origem = ""
             if fonte == "capa":
-                achado = self._RE_STEAM.match(app)
-                if not achado:
+                origem = self._arte_da_capa(app)
+                if not self._RE_STEAM.match(app):
                     return self._json({"erro": "só jogo da Steam tem capa"}, 400)
-                origem = self._capa_do_jogo(re.sub(r"^\D+", "", app))
                 if not origem:
                     return self._json({
                         "erro": "a Steam não guardou capa deste jogo — "
@@ -4756,46 +5120,38 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({
                     "erro": "não achei arte de fábrica para %s — este é o caso "
                             "de desenhar do zero na caixa abaixo" % app}, 404)
-            conversor = os.path.join(RAIZ, "scripts", "converter_icone.py")
-            if not os.path.isfile(conversor):
-                return self._json({"erro": "falta scripts/converter_icone.py"}, 500)
-            # Os três parâmetros que a folha de 11/08 provou serem os que mudam
-            # o resultado. Ficam presos a faixas: o conversor aceita qualquer
-            # número, e um `--k 900` vindo de um POST forjado seria um processo
-            # de minutos dentro de um servidor.
-            argv = [sys.executable, conversor, origem]
-            saida = _tmp.NamedTemporaryFile(suffix=".svg", delete=False)
-            saida.close()
-            argv.append(saida.name)
-            for chave, bandeira, menor, maior in (("k", "--k", 3, 16),
-                                                  ("funde", "--funde", 0, 120),
-                                                  ("tol", "--tol", 0.2, 8.0)):
-                if corpo.get(chave) in (None, ""):
-                    continue
-                try:
-                    v = float(corpo[chave])
-                except (TypeError, ValueError):
-                    return self._json({"erro": "%s tem de ser número" % chave}, 400)
-                if not (menor <= v <= maior):
-                    return self._json({"erro": "%s fora da faixa (%s a %s)"
-                                                % (chave, menor, maior)}, 400)
-                argv += [bandeira, ("%g" % v)]
-            try:
-                r = _sub.run(argv, capture_output=True, text=True, timeout=60)
-            except (OSError, _sub.SubprocessError) as e:
-                os.unlink(saida.name)
-                return self._json({"erro": "o conversor falhou: %s" % e}, 500)
-            if r.returncode != 0:
-                os.unlink(saida.name)
-                return self._json({"erro": "o conversor recusou esta arte: %s"
-                                            % (r.stderr or "").strip()[:300]}, 422)
-            try:
-                with open(saida.name, "r", encoding="utf-8") as fh:
-                    svg = fh.read()
-            finally:
-                os.unlink(saida.name)
+
+            # DOIS CAMINHOS, DUAS CERCAS. As réguas (`detalhe`/`suavidade`) são
+            # o caminho da tela e a cerca delas é o `_parametros_de`, que prende
+            # em 0…10 antes de fazer conta. Os três números soltos continuam
+            # valendo para quem chama a porta de fora, com a faixa de 08/09.
+            if corpo.get("detalhe") not in (None, "") or corpo.get("suavidade") not in (None, ""):
+                argv_extra, texto = _parametros_de(corpo.get("detalhe", 6),
+                                                   corpo.get("suavidade", 2),
+                                                   bool(corpo.get("cheia")))
+            else:
+                argv_extra, partes = [], []
+                for chave, bandeira, menor, maior in (("k", "--k", 3, 16),
+                                                      ("funde", "--funde", 0, 120),
+                                                      ("tol", "--tol", 0.2, 8.0)):
+                    if corpo.get(chave) in (None, ""):
+                        continue
+                    try:
+                        v = float(corpo[chave])
+                    except (TypeError, ValueError):
+                        return self._json({"erro": "%s tem de ser número" % chave}, 400)
+                    if not (menor <= v <= maior):
+                        return self._json({"erro": "%s fora da faixa (%s a %s)"
+                                                    % (chave, menor, maior)}, 400)
+                    argv_extra += [bandeira, ("%g" % v)]
+                    partes += [bandeira, ("%g" % v)]
+                texto = " ".join(partes)
+            svg, nota, erro = _converter_desenho(origem, argv_extra, texto)
+            if erro:
+                codigo = 422 if "recusou" in erro else 500
+                return self._json({"erro": erro}, codigo)
             return self._json({"ok": True, "svg": svg, "origem": origem,
-                               "nota": (r.stdout or "").strip()[:200]})
+                               "nota": nota, "parametros": texto})
 
         # --------------------------------------------------------------- salvar
         if acao != "salvar":
@@ -4815,26 +5171,71 @@ class Manipulador(BaseHTTPRequestHandler):
         # repositório porque a recusa morava só no cliente.
         if bool(corpo.get("seco")):
             return self._json({"ok": True, "seco": True, "app": app,
-                               "aviso": "em ensaio: %s ficaria com este desenho "
+                               "aviso": "Em ensaio: %s ficaria com este desenho "
                                         "em %s" % (app, cor)})
 
+        # O MODO É DECIDIDO PELA MEDIDA, NÃO PELO QUE O CLIENTE DIZ — 09/09/2026
+        #   Uma linha `<nome>:<origem>:<cor>:<parâmetros>` é uma PROMESSA: o
+        #   `construir_convertidos.sh` vai refazer aquele desenho a partir da
+        #   origem, com aqueles botões, e esperar o mesmo arquivo. Se ela tirou
+        #   um traço com um clique na lupa, a promessa é falsa, e o construtor
+        #   passa a gritar "divergente" para sempre. Então o servidor reconverte
+        #   e COMPARA: igual vira linha regenerável; qualquer diferença — ou a
+        #   capa, cujo caminho na Steam tem um hash que muda — vira retoque à
+        #   mão, que é a forma de gravar que nunca mente.
+        d = next((x for x in self._desktops() if x["id"] == app), None)
+        fonte = str(corpo.get("fonte", "icone")).strip()
+        argv_conv = _parametros_relidos(corpo.get("parametros"))
+        texto_param = " ".join(argv_conv) if argv_conv else ""
+        origem_arte = self._arte_de_fabrica(d) if d else ""
+        # UMA ORIGEM DENTRO DA CASA DELA NÃO VIRA LINHA DE MAPA — 09/09/2026
+        #   Medido ao exercitar a rota: o GIMP daqui não vem do Papirus, vem do
+        #   flatpak de usuária, em `/home/vitoriamaria/.local/share/flatpak/...`.
+        #   Gravar isso no `apps-convertidos.map` faria duas coisas erradas de
+        #   uma vez. O repositório é PÚBLICO desde 06/09, e o campo levaria o
+        #   nome dela para dentro de um arquivo versionado — é exatamente o que a
+        #   varredura de segurança procura. E o `_ler_mapa` do
+        #   `construir_convertidos.sh` não expande `~`: numa segunda máquina a
+        #   linha vira aviso de origem que não existe, e o ícone some da conta.
+        #   Nenhuma das 33 linhas de hoje tem `/home/` — e não é acaso.
+        #
+        #   O desenho é gravado do mesmo jeito; o que muda é a ESPÉCIE: retoque à
+        #   mão, que não promete nada a ninguém, em vez de uma linha regenerável
+        #   que só se regenera nesta casa.
+        casa = os.path.realpath(os.path.expanduser("~")) + os.sep
+        da_casa = bool(origem_arte) and os.path.realpath(origem_arte).startswith(casa)
+        modo = "mao"
+        if fonte == "icone" and argv_conv and origem_arte and not da_casa:
+            # O cache da folha responde na hora quando o desenho veio de um
+            # cartão — a chave é a mesma (origem, mtime, parâmetros).
+            feito, _nota, erro_conv = _converter_desenho(origem_arte, argv_conv, texto_param)
+            if not erro_conv and feito.rstrip() == svg.rstrip():
+                modo = "conversao"
+
         conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+        tirou_retoque = False
         try:
             os.makedirs(os.path.join(conv, "retoques"), exist_ok=True)
-            with open(self._caminho_retoque(nome), "w", encoding="utf-8") as fh:
-                fh.write(svg if svg.endswith("\n") else svg + "\n")
+            if modo == "mao":
+                with open(self._caminho_retoque(nome), "w", encoding="utf-8") as fh:
+                    fh.write(svg if svg.endswith("\n") else svg + "\n")
             # O construído, no formato do `meow_escrever` — ver o cabeçalho.
             with open(os.path.join(conv, nome + ".svg"), "w", encoding="utf-8") as fh:
                 fh.write(svg.rstrip("\n"))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o desenho: %s" % e}, 500)
+        if modo == "conversao":
+            tirou_retoque = self._tirar_retoque(nome)
 
-        erro = self._gravar_linha_convertidos(nome, cor)
+        erro = self._gravar_linha_convertidos(
+            nome, cor, origem=(origem_arte if modo == "conversao" else "mao"),
+            extra=(texto_param if modo == "conversao" else ""))
         if erro:
             return self._json({"erro": erro}, 500)
         saiu = self._tirar_do_mapa_arcticons(nome)
         return self._json({"ok": True, "app": app, "nome": nome, "cor": cor,
-                           "saiu_do_arcticons": saiu,
+                           "modo": modo, "saiu_do_arcticons": saiu,
+                           "tirou_retoque": tirou_retoque,
                            "depois": "vale depois de \"Pôr os desenhos em traço na tela\""})
 
     def _conferir_dialeto(self, svg):
@@ -4862,15 +5263,27 @@ class Manipulador(BaseHTTPRequestHandler):
             return "o desenho traz %s, que não entra num ícone" % achado.group(0)
         return ""
 
-    def _gravar_linha_convertidos(self, app, cor):
-        """`<app>:mao:<cor>` no mapa — trocando a linha se ela já existir."""
+    def _gravar_linha_convertidos(self, app, cor, origem="mao", extra=""):
+        """`<app>:<origem>:<cor>[:<parâmetros>]` no mapa — trocando a linha se existir.
+
+        A ORIGEM VIROU PARÂMETRO EM 09/09/2026. Até ontem esta função só sabia
+        escrever `mao`, porque o desenho vinha sempre da caixa de texto e não
+        havia como saber de onde ele tinha nascido. Agora a oficina reconverte e
+        compara (ver o `salvar`): quando o desenho é EXATAMENTE o que a origem
+        chapada mais aqueles botões produzem, a linha guarda os quatro campos e
+        o `construir_convertidos.sh` passa a saber refazê-lo sozinho — que é a
+        diferença entre um ícone que acompanha uma atualização do Papirus e um
+        que congela no dia em que foi salvo.
+        """
         caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
         try:
             with open(caminho, "r", encoding="utf-8") as fh:
                 linhas = fh.read().split("\n")
         except OSError as e:
             return "não achei o mapa dos convertidos: %s" % e
-        linha = "%s:mao:%s" % (app, cor)
+        linha = "%s:%s:%s" % (app, origem or "mao", cor)
+        if extra:
+            linha += ":" + extra
 
         def id_da_linha(l):
             corte = l.strip()
@@ -4880,8 +5293,10 @@ class Manipulador(BaseHTTPRequestHandler):
 
         indice = next((i for i, l in enumerate(linhas) if id_da_linha(l) == app), None)
         if indice is not None:
-            # Só a COR pode ter mudado; a origem de uma linha desta porta é
-            # sempre `mao`, porque o desenho veio da caixa de texto.
+            # A linha inteira é trocada, e não só a cor: o mesmo aplicativo pode
+            # ter sido `mao` ontem e virar `conversao` hoje (ou o contrário, se
+            # ela tirar um traço na lupa), e uma troca parcial deixaria os
+            # parâmetros velhos ao lado do desenho novo.
             linhas[indice] = linha
         else:
             ultima = max((i for i, l in enumerate(linhas) if id_da_linha(l)), default=None)

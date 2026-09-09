@@ -1784,26 +1784,33 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .rotulo-mini { font-size: var(--t-legenda); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--overlay2); }
 
 /* --- a oficina de desenho ------------------------------------------------- */
-/* 08/09/2026. Ela pediu que o painel SUGIRA um SVG vetorizado para cada
- * aplicativo e a deixe mexer nele — "tudo via interface". A oficina nasce
- * FECHADA (`details`) porque a maioria das visitas à ficha de um aplicativo é
- * para escolher um glifo pronto, e um bloco de duzentos pixels aberto em toda
- * ficha empurraria a tira de glifos para fora da tela.
+/* 09/09/2026, Sprint R. Ela, em 08/09: "o nosso gerador de ícones é fraco, não
+ * gera variações nem é tão bonito quanto o original, além de ficar pixelado e
+ * não ser intuitivo e fácil de usar". Quatro queixas, e esta tela responde três.
  *
- * OS DOIS TAMANHOS LADO A LADO SÃO O PONTO DA TELA. O de 48 px é o juízo — é o
- * tamanho da dock, medido; o grande é a lupa para mexer. Metade dos desenhos de
- * hoje foram refeitos porque liam grandes e sumiam pequenos, e sem o par isso
- * só se descobre depois de instalar. */
-/* O RESUMO É UM CONVITE, E NÃO UM RODAPÉ — 08/09/2026
-   Era versalete cinza (`--overlay2`) no fim do painel: do tamanho de uma nota
-   de rodapé, com a cor de uma nota de rodapé, e lido como uma. Agora a oficina
-   abre o painel, ao lado do acervo, e o resumo tem de parecer o que é — a outra
-   metade da escolha. Caixa, borda e a cor do texto normal. */
+ *   · não gera variações  -> uma FOLHA de cartões, todos desenhados de uma vez
+ *   · não é tão bonito quanto o original -> o original entra na folha, ao lado,
+ *     como régua: até ontem ele nunca aparecia, e comparar era memória
+ *   · não é intuitivo     -> "Cores/Fusão/Aparo" era o vocabulário do conversor;
+ *     agora são duas réguas de gosto, e editar é CLICAR num traço, não escrever
+ *     XML — o textarea continua existindo, dobrado
+ *
+ * A quarta (o pixelado) é da frente do conversor, e não desta folha de estilo.
+ *
+ * SEM UM HEX SEQUER, e não por gosto: o `tests/app.sh` varre este arquivo
+ * procurando cor solta fora de comentário. O vidro da dock era `#3C3B50` no
+ * rascunho e aqui é uma mistura de dois tokens que dá o mesmo tom nos quatro
+ * flavors — ver o `.oficina-dock`. */
 .oficina { margin: .2rem 0 1rem; }
+/* O RESUMO É UM CONVITE, E NÃO UM RODAPÉ — 08/09/2026
+   Era versalete cinza no fim do painel: do tamanho de uma nota de rodapé, com a
+   cor de uma nota de rodapé, e lido como uma. Agora abre o painel, ao lado do
+   acervo, e o `Usar` mora nele — o único verbo desta tela que escreve. */
 .oficina > summary {
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: .4rem;
   padding: .4rem .6rem;
   border: 1px solid var(--surface1);
@@ -1812,49 +1819,121 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   font-weight: 600;
   color: var(--text);
 }
-.oficina > summary:hover { border-color: var(--accent); }
-.oficina[open] > summary { border-color: var(--accent); margin-bottom: .6rem; }
-.oficina-par {
-  display: grid;
-  grid-template-columns: minmax(220px, 260px) 1fr;
-  gap: .8rem;
-  margin: .6rem 0;
+.oficina > summary:hover, .oficina[open] > summary { border-color: var(--accent); }
+.oficina[open] > summary { margin-bottom: .6rem; }
+/* O marcador do `details` some quando o summary é flex em alguns motores; o
+   `list-item` devolve o triângulo, que é o que diz "isto abre". */
+.oficina > summary::marker { color: var(--overlay1); }
+
+/* --- a folha de variações -------------------------------------------------- */
+.oficina-folha { display: flex; flex-wrap: wrap; gap: .6rem; margin: .4rem 0 .8rem; }
+.oficina-cartao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .3rem;
+  /* 104 px de piso porque "Área cheia" é o rótulo mais largo da folha e, sem o
+     piso, ele quebrava em duas linhas e só aquele cartão ficava mais alto. */
+  min-width: 104px;
+  padding: .5rem .6rem .4rem;
+  margin: 0;
+  background: var(--fundo-teste, var(--mantle));
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
 }
-/* Numa tela estreita as duas colunas viram uma: o textarea a 110 px de largura
- * não é editável, e o desenho espremido não serve de juízo. */
+.oficina-cartao:hover { border-color: var(--overlay1); }
+.oficina-cartao[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.oficina-cartao:disabled { cursor: default; opacity: .55; }
+.oficina-cartao:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* O ORIGINAL É RÉGUA, NÃO OPÇÃO: `figure`, não `button`, e a borda tracejada diz
+   isso antes de ela tentar clicar. Ele é a resposta à queixa "não é tão bonito
+   quanto o original" — a comparação tem de estar na mesma linha de visão. */
+.oficina-original { cursor: default; border-style: dashed; }
+.oficina-cartao svg, .oficina-cartao img { display: block; }
+.oficina-rotulo { font-size: var(--t-legenda); color: var(--subtext0); }
+.oficina-erro { color: var(--red); }
+.oficina-lugar {
+  display: block;
+  border-radius: var(--r-1);
+  background: var(--surface0);
+}
+
+/* --- a tira do dock -------------------------------------------------------- */
+.oficina-dock-caixa { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin: .4rem 0 .8rem; }
+.oficina-legenda { font-size: var(--t-legenda); color: var(--subtext0); }
+/* O VIDRO DA DOCK, E POR QUE ELE TEM DUAS RECEITAS
+   No escuro o vidro já existe e tem nome: `--fundo-vidro-escuro`, que o
+   `paleta_css` deriva como `--base` puxada 17% para o `--text` e cujo valor
+   reproduz o medido nas folhas visuais com erro de 2/255. Repetir a conta aqui
+   seria uma segunda verdade sobre a mesma cor.
+
+   No claro NÃO se usa o `--fundo-vidro-claro`, e isso foi olhado: aquele token é
+   a dock sobre papel de parede CLARO (`--surface1` 55% + `--mauve`), um roxo de
+   verdade — e a tira mostra o vizinho `lavender`, que sumiria dentro dele. Aqui
+   a tira é uma amostra da dock, não um fundo de teste, então o claro repete a
+   receita do escuro com a mistura mais funda que o papel claro pede: 76/24, que
+   dá cinza médio, contra o 83/17 que sobre latte quase não sai do branco.
+
+   O que separa os dois é `light-dark()`, e não `prefers-color-scheme`: o painel
+   se veste pelo `FLAVOR` do meow.conf dela, que o `paleta_css` traduz em
+   `color-scheme` no `:root`. A consulta de mídia leria a preferência do
+   NAVEGADOR e mostraria o vidro escuro num painel latte aberto num Chrome
+   escuro — medido: `light-dark()` segue o `color-scheme`, a consulta não. */
+.oficina-dock {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .5rem .9rem;
+  background: light-dark(color-mix(in srgb, var(--base) 76%, var(--text)),
+                         var(--fundo-vidro-escuro));
+  border-radius: var(--r-3);
+}
+.oficina-dock-eu { display: inline-flex; }
+.oficina-dock svg { display: block; }
+
+/* --- a lupa, que é o editor ------------------------------------------------ */
+/* A SEGUNDA COLUNA NÃO É `1fr`, E FOI A FOTO QUE DISSE. Com `1fr` as duas
+   réguas comiam os 950 px que sobram numa tela de 1240: um deslizante daquele
+   comprimento tem onze paradas espalhadas por meio metro de tela, e mirar o
+   valor 6 vira pontaria. 26rem é largura de controle, não de página. */
+.oficina-par { display: grid; grid-template-columns: minmax(216px, 232px) minmax(0, 26rem); gap: .8rem; }
+/* Numa tela estreita as duas colunas viram uma: a lupa espremida não serve de
+   juízo, e a régua a 110 px não se arrasta. */
 @media (max-width: 760px) { .oficina-par { grid-template-columns: 1fr; } }
-.oficina-vidros { display: flex; flex-direction: column; gap: .5rem; align-items: center; }
-.oficina-48, .oficina-grande {
+.oficina-lupa {
   display: grid;
   place-items: center;
+  width: 100%;
+  min-height: 216px;
   background: var(--fundo-teste, var(--mantle));
   border: 1px solid var(--surface0);
   border-radius: var(--r-2);
   color: var(--text);
 }
-.oficina-48 { width: 100%; min-height: 72px; }
-.oficina-grande { width: 100%; min-height: 216px; }
-.oficina-48 svg, .oficina-grande svg { display: block; }
-.oficina-origem { font-size: var(--t-legenda); color: var(--overlay1); overflow-wrap: anywhere; text-align: center; }
-.oficina-lado { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
-.oficina-controles { display: flex; flex-wrap: wrap; gap: .5rem; }
-.oficina-fontes { display: inline-flex; gap: .3rem; }
-.oficina-fontes button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
-.oficina-campo { display: inline-flex; align-items: center; gap: .35rem; font-size: var(--t-legenda); color: var(--subtext0); }
-.oficina-campo input {
-  width: 4.5rem;
-  padding: .25rem .4rem;
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-1);
-  background: var(--base);
-  color: var(--text);
-  font: inherit;
-}
+.oficina-lupa svg { display: block; }
+/* SEM `stroke` NO `pointer-events` O CLIQUE ATRAVESSA O TRAÇO, e foi a primeira
+   coisa medida desta tela: o conversor grava os caminhos dentro de um
+   `<g fill="none">`, e a área "dentro" de um path sem preenchimento NÃO É DO
+   PATH — o clique cai no `<div>` atrás e nada acontece. Com `stroke`, o alvo
+   passa a ser a linha desenhada, que é exatamente o que ela mira. */
+.oficina-lupa svg path { pointer-events: stroke; cursor: pointer; }
+.oficina-lupa svg path:hover { stroke: var(--red); }
+.oficina-lupa-dica { font-size: var(--t-legenda); color: var(--overlay1); text-align: center; margin: 0; }
+.oficina-lado { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
+.oficina-regua { display: flex; align-items: center; gap: .6rem; font-size: var(--t-frase); color: var(--subtext0); }
+.oficina-regua span { min-width: 5.5rem; }
+.oficina-regua input { flex: 1; min-width: 0; }
+.oficina-edicao > summary { font-size: var(--t-frase); color: var(--subtext0); cursor: pointer; }
 /* Monoespaçada porque o conteúdo é um caminho SVG: alinhar número com número é
  * o que torna possível mexer numa coordenada sem contar caracteres. */
 .oficina-fonte {
   width: 100%;
   min-height: 12rem;
+  margin-top: .4rem;
   resize: vertical;
   padding: .5rem .6rem;
   border: 1px solid var(--surface0);
@@ -1867,6 +1946,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   tab-size: 2;
 }
 .oficina-fonte:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 .escolha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .acervo-add { display: inline-flex; }
 .com-acervo { display: flex; flex-direction: column; gap: .6rem; align-items: flex-start; }

@@ -147,6 +147,24 @@ def md5_conf():
         return hashlib.md5(fh.read()).hexdigest()
 
 
+def md5_de(caminho):
+    with open(caminho, "rb") as fh:
+        return hashlib.md5(fh.read()).hexdigest()
+
+
+def foto(alvo, nome):
+    """Captura de um locator (ou da pagina inteira) num PNG; devolve o caminho.
+
+    Com `--fotos` a captura vai para a MESMA pasta das outras, e nao para o
+    /tmp: as fotos de comparacao (antes/depois de um clique) sao justamente o
+    que se olha quando uma conferencia de pixel falha, e procura-las em dois
+    lugares e' o comeco de nao olhar."""
+    pasta = DESTINO_FOTOS if FOTOS else tempfile.gettempdir()
+    caminho = os.path.join(pasta, f"meow-nav-{nome}.png")
+    alvo.screenshot(path=caminho)
+    return caminho
+
+
 def valor_de(chave):
     for linha in open(CONF, encoding="utf-8"):
         if linha.startswith(chave + "="):
@@ -1501,6 +1519,153 @@ def main():
                   f"as {len(grupos)} abas descem ate o fim e ficam la"
                   + (f" — {grampeadas}" if grampeadas else ""))
 
+            print("\n22. A OFICINA: VARIACOES, O ORIGINAL AO LADO, CLIQUE PARA TIRAR")
+            # ELA VEM ANTES DA 20b DE PROPOSITO, e o contrato da sprint pedia
+            # depois: a 20b confere que o console ficou limpo "em toda a visita",
+            # e uma secao depois dela seria a unica da suite cujos erros de
+            # JavaScript ninguem le. Em 07/09 a suite passou 84/84 com defeito
+            # visivel a olho nu — nao se acrescenta um ponto cego de proposito.
+            secao("Ícones")
+            pag.wait_for_selector(".grade-apps button.app", timeout=15000)
+            # Um aplicativo com arte de fabrica: o primeiro dos doze primeiros
+            # cuja oficina responde com pelo menos cinco cartoes. Nao se fixa um
+            # nome porque a grade e' a maquina dela; se nenhum servir, pula.
+            achou = None
+            for botao in pag.locator(".grade-apps button.app").all()[:12]:
+                botao.click()
+                pag.wait_for_timeout(250)
+                det = pag.locator("details.oficina")
+                if not det.count():
+                    botao.click()
+                    continue
+                # `> summary`, e nao `summary`: desde 09/09 a oficina tem um
+                # SEGUNDO details dentro dela ("Editar o SVG"), e o seletor solto
+                # casa os dois — o Playwright recusa em modo estrito.
+                if det.first.get_attribute("open") is None:
+                    det.first.locator("> summary").click()
+                try:
+                    pag.wait_for_selector(".oficina-folha button.oficina-cartao", timeout=20000)
+                except Exception:
+                    botao.click()
+                    continue
+                if pag.locator(".oficina-folha button.oficina-cartao").count() >= 5:
+                    achou = botao
+                    break
+                botao.click()
+            checa(achou is not None, "achei uma ficha cuja oficina desenha pelo menos cinco variacoes")
+            if achou is not None:
+                folha = pag.locator(".oficina-folha")
+                checa(folha.locator("figure.oficina-original img").count() == 2,
+                      "o original esta na folha, a 48 e a 96, ao lado das variacoes")
+                # CONTAR AS <img> NAO PROVA QUE ELAS DESENHAM, e foi a foto que
+                # pegou: a arte de fabrica de metade dos aplicativos desta
+                # maquina e' um link simbolico do flatpak, o `/previa` resolvia o
+                # link e caia fora das raizes permitidas, e o cartao «Original» —
+                # que e' a metade da tela que responde "nao e tao bonito quanto o
+                # original" — aparecia como icone quebrado. `naturalWidth` e' a
+                # unica pergunta que o navegador responde com a verdade.
+                pag.wait_for_timeout(400)
+                largas = pag.eval_on_selector_all(
+                    "figure.oficina-original img", "es => es.map(e => e.naturalWidth)")
+                checa(all(w > 0 for w in largas),
+                      f"e o original DESENHA, nao e' um icone quebrado (naturalWidth={largas})")
+                lupa = pag.locator(".oficina-lupa")
+                pag.evaluate("document.querySelector('.oficina-lupa').scrollIntoView({block:'center'})")
+                pag.wait_for_timeout(300)
+                antes = foto(lupa, "22-lupa-antes")
+                alvo = folha.locator("button.oficina-cartao[data-id='limpo']")
+                alvo.click()
+                pag.wait_for_timeout(250)
+                checa(alvo.get_attribute("aria-pressed") == "true", "o cartao clicado fica marcado")
+                checa(folha.locator("button.oficina-cartao[aria-pressed='true']").count() == 1,
+                      "e so um cartao fica marcado")
+                dif = pixels_diferentes(antes, foto(lupa, "22-lupa-depois"))
+                checa(dif is not None and dif > 1.0,
+                      f"a lupa muda quando o cartao muda ({dif:.1f}% dos pixels)")
+                checa(pag.locator(".oficina-dock svg").count() == 3,
+                      "a tira do dock tem os dois vizinhos e a escolhida")
+
+                # O CLIQUE TEM DE CHEGAR NO TRACO, e esta e a primeira coisa que
+                # se mede nesta tela: com `fill:none`, a area "dentro" de um path
+                # NAO E' DO PATH, e sem `pointer-events: stroke` o clique
+                # atravessa e cai no <div> atras. Nao basta ler o estilo — o que
+                # prova e' mirar um ponto SOBRE a linha (`getPointAtLength`, o
+                # mesmo ponto que o mouse dela acertaria) e perguntar ao
+                # navegador quem esta la. Um `.click()` de locator mira o CENTRO
+                # da caixa do path, que num contorno e' o vazio do meio.
+                caminhos = lupa.locator("svg path")
+                n = caminhos.count()
+                pe = caminhos.first.evaluate("p => getComputedStyle(p).pointerEvents")
+                checa(pe == "stroke", f"o traco recebe o clique pelo stroke (pointer-events={pe})")
+                ponto = pag.evaluate("""() => {
+                  const p = document.querySelector('.oficina-lupa svg path');
+                  const s = p.ownerSVGElement, r = s.getBoundingClientRect(), v = s.viewBox.baseVal;
+                  const pt = p.getPointAtLength(p.getTotalLength() * 0.25);
+                  const x = r.left + (pt.x - v.x) * r.width / v.width;
+                  const y = r.top + (pt.y - v.y) * r.height / v.height;
+                  return { x, y, quem: (document.elementFromPoint(x, y) || {}).tagName };
+                }""")
+                checa(ponto["quem"] == "path",
+                      f"um ponto sobre a linha pertence ao traco, e nao ao fundo ({ponto['quem']})")
+                pag.mouse.click(ponto["x"], ponto["y"])
+                pag.wait_for_timeout(200)
+                checa(lupa.locator("svg path").count() == n - 1,
+                      f"clicar num traco tira o traco ({n} -> {n - 1})")
+                pag.get_by_role("button", name="Desfazer").click()
+                pag.wait_for_timeout(200)
+                checa(lupa.locator("svg path").count() == n, "Desfazer devolve o traco")
+
+                # A REGUA RE-VETORIZA A ESCOLHIDA, e uma so vez: o `input` de uma
+                # regua dispara a cada pixel do arrasto, e os 250 ms de espera do
+                # cliente sao o que impede dez processos para ela ver um desenho.
+                regua = pag.locator(".oficina-regua input[name='suavidade']")
+                antes = foto(lupa, "22-lupa-regua-antes")
+                pedidos = []
+                pag.on("request", lambda r: pedidos.append(r.url) if "/api/app-desenho" in r.url else None)
+                with pag.expect_response(lambda r: "/api/app-desenho" in r.url, timeout=25000):
+                    regua.fill("9")
+                    regua.dispatch_event("input")
+                pag.wait_for_timeout(600)
+                checa(len(pedidos) == 1, f"mover a regua dispara UMA chamada, nao uma por pixel ({len(pedidos)})")
+                dif = pixels_diferentes(antes, foto(lupa, "22-lupa-regua-depois"))
+                checa(dif is not None and dif > 0.3, f"mover a Suavidade redesenha a lupa ({dif:.1f}%)")
+                checa(folha.locator("button.oficina-cartao[aria-pressed='true']").count() == 0,
+                      "depois da regua nenhum cartao fica marcado — o desenho ja nao e o dele")
+
+                # USAR EM ENSAIO: torrada, e NADA escrito. A porta ja e' coberta
+                # pela secao 18 do lado do servidor; aqui o que se prova e' que o
+                # botao no <summary> chega la — e que ele nao FECHA a oficina em
+                # cima do que ela acabou de mandar gravar.
+                retoques = os.path.join(RAIZ, "assets", "icones", "convertidos-apps", "retoques")
+                mapa = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+                antes_r, antes_m = sorted(os.listdir(retoques)), md5_de(mapa)
+                checa(seco(pag, True), "o ensaio liga")
+                pag.locator("details.oficina > summary button").click()
+                pag.wait_for_selector(".torrada", timeout=6000)
+                checa("ensaio" in pag.locator(".torrada").last.inner_text().lower(),
+                      "Usar em ensaio avisa que e ensaio")
+                checa(pag.locator("details.oficina").first.get_attribute("open") is not None,
+                      "e o Usar no resumo nao fecha a oficina")
+                checa(sorted(os.listdir(retoques)) == antes_r and md5_de(mapa) == antes_m,
+                      "e nao escreveu em retoques/ nem no mapa")
+                seco(pag, False)
+                if FOTOS:
+                    # ROLAR E' `#principal`, NAO A JANELA — a pagina inteira nao
+                    # rola, quem rola e' a coluna. E o alvo e' a OFICINA: um
+                    # scrollTop fixo enquadrava o topo da aba e a folha ficava
+                    # fora da foto, que e' o mesmo que nao tirar foto.
+                    pag.wait_for_timeout(2800)      # a torrada sai da frente
+                    topo = pag.evaluate("""() => {
+                      const m = document.getElementById('principal');
+                      const d = document.querySelector('details.oficina');
+                      m.scrollTop += d.getBoundingClientRect().top - 170;   // a faixa grudada come 155px
+                      return m.scrollTop;
+                    }""")
+                    pag.wait_for_timeout(400)
+                    foto(pag, "22-oficina")
+                    pag.evaluate(f"document.getElementById('principal').scrollTop = {topo} + 420")
+                    pag.wait_for_timeout(400)
+                    foto(pag, "22-oficina-rolada")
             print("\n20b. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,
                   f"nenhum erro de JavaScript em toda a visita"
