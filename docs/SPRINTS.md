@@ -72,12 +72,22 @@ estavam anotadas em lugar nenhum.
 
 **DUAS COISAS ESPERAM A DECISÃO DELA, e nenhuma foi aplicada:**
 
-1. **O traço do Brave, do Chrome e do Discord.** A folha está em
-   `~/Documentos/meow-conversor-fidelidade.html`. Recomendação medida: o
-   **Chrome vai para o desenho à mão** (18 combinações de parâmetro desenham a
-   mesma coisa; o glifo já está em `assets/icones/arcticons-apps/`); Brave e
-   Discord melhoram com o peso de fronteira, e a escolha entre isso e o à mão é
-   dela. Ligar a chave muda 6 ícones do acervo.
+1. **O traço do Brave e do Discord.** A folha está em
+   `~/Documentos/meow-conversor-fidelidade.html`. Os dois melhoram com o peso de
+   fronteira, e a escolha entre isso e o desenho à mão é dela. Ligar a chave
+   muda 6 ícones do acervo.
+
+   > **O CHROME SAIU DESTA LISTA — RESOLVIDO EM 09/09/2026.** Ela olhou a folha
+   > da válvula e disse *"o app do chrome é um bom parâmetro pro que foi
+   > desenhado à mão"*; o glifo do Arcticons foi aplicado, e o retoque de 01/09
+   > (que desenhava um cubo de bicicleta) ficou em `retoques/` como o desfazer.
+   >
+   > **E a afirmação que estava aqui morreu por medida.** Dizia-se *"18
+   > combinações de parâmetro desenham a mesma coisa"*. As 18 não incluíam
+   > `--k 4`, que resolve: 8 traços → 4, o miolo para de costurar, e o desenho
+   > lê como Chrome. Renderizado e olhado a 48 e a 200 px em 09/09. O Chrome
+   > **tem** conserto dentro do conversor — o desenho à mão ganha por ser mais
+   > limpo, não por ser a única saída.
 2. **A regeneração dos 15 desatualizados.** A ordem natural continua sendo **T
    antes da regeneração**, para ela decidir uma vez só.
 
