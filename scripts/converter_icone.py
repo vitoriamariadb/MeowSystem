@@ -44,7 +44,7 @@ POR QUE NÃO É SÓ A SILHUETA
     regiões de cor**. O `>_` do terminal e as ondas do Spotify são fronteiras
     internas, e é isso que sobrevive.
 
-O PIPELINE, EM SETE PASSOS
+O PIPELINE, EM NOVE PASSOS (eram oito; o 5 é de 09/09/2026 e é opcional)
     1. rasteriza a 256px com alfa (rsvg-convert p/ SVG, convert p/ PNG)
     2. quantiza em K cores — histograma se a arte é chapada, k-means se tem
        gradiente; funde cores vizinhas e DESCARTA cor de mistura (antialias).
@@ -54,16 +54,19 @@ O PIPELINE, EM SETE PASSOS
     4. COLAPSA CONTORNO: componente fino que embrulha outro some, e as duas
        vizinhas se encontram no eixo médio dele. É o que impede a linha dupla
        quando o original JÁ TEM contorno — o caso dos `assets/icones/autorais/`.
-    5. traça a fronteira de cada classe com marching squares, com DEDUPE
+    5. PESO DE FRONTEIRA (opcional, `--peso-fronteira`, PADRÃO DESLIGADO):
+       fronteira entre duas classes de cor vizinha não vale um traço, e as
+       duas viram uma classe só — `fundir_fracas()`
+    6. traça a fronteira de cada classe com marching squares, com DEDUPE
        global de aresta: fronteira entre A e B é desenhada UMA vez, não duas
        (duas cópias simplificadas divergem e engrossam o traço)
-    6. descarta polilinha curta demais (a medida é a do Douglas–Peucker)
-    7. acha os CANTOS na cadeia crua, parte nela, alisa cada peça, guarda as
+    7. descarta polilinha curta demais (a medida é a do Douglas–Peucker)
+    8. acha os CANTOS na cadeia crua, parte nela, alisa cada peça, guarda as
        retas como retas e ajusta Bézier no que sobrou — a seção «curvas»
-    8. emite SVG viewBox 48, `fill:none stroke:currentColor stroke-width:1
+    9. emite SVG viewBox 48, `fill:none stroke:currentColor stroke-width:1
        stroke-linecap:round stroke-linejoin:round`
 
-    O passo 7 é de 09/09/2026 (Sprint Q) e é o único que mudou desde 11/08. Até
+    O passo 8 é de 09/09/2026 (Sprint Q) e é o único que mudou desde 11/08. Até
     ali a saída era só polilinha (`M x y x y …`), e a escada da grade de 256
     chegava inteira na tela — foi o que ela chamou de "pixelado" olhando a lupa
     da oficina. `--polilinha` devolve o comportamento antigo BYTE A BYTE, e é
@@ -84,10 +87,56 @@ O QUE FUNCIONA E O QUE NÃO (medido, 29 apps do lançador dela + 10 autorais)
     16/29 do Papirus saem prontos · 10/29 pedem retoque · 3/29 não têm
     conserto (Firefox, Krita, Thunderbird). Dos 10 autorais, 8 saem prontos.
     O que decide NÃO é PNG contra SVG — o Spotify convertido do PNG 512×512
-    sai igual ao que veio do SVG. O que decide é o desenho original ser
-    geométrico (sai) ou orgânico com formas sobrepostas (não sai): nesse
-    caso a informação está no PREENCHIMENTO, não na fronteira, e tirar o
-    preenchimento tira o desenho. Nenhum parâmetro conserta isso.
+    sai igual ao que veio do SVG.
+
+    "GEOMÉTRICO SAI, ORGÂNICO NÃO" ESTAVA ESCRITO AQUI E É FALSO — 09/09/2026
+        A frase durou de 11/08 a 09/09 e a Sprint T a derrubou com seis ícones
+        olhados a 150 px ao lado do original: Calculadora, Telegram e VLC
+        FIÉIS · Discord aceitável · Chrome e Brave FALHAM. O Brave é um leão —
+        orgânico, e com apenas QUATRO classes de cor; a Calculadora é cheia de
+        detalhe geométrico e é a mais fiel das seis. A régua "geométrico" não
+        prevê nenhum dos dois.
+
+    E "TETO DE LEGIBILIDADE" TAMBÉM NÃO EXPLICA, e essa era a hipótese seguinte
+        Contados os traços dos 39 Arcticons desenhados à mão (o número que
+        ninguém tinha): mediana 4 subcaminhos, mínimo 1, máximo 18, e o
+        comprimento total de traço vai de 97 a 347 unidades do viewBox 48. As
+        conversões caem DENTRO dessa faixa e não se ordenam por ela:
+            Calculadora  10 traços · 359 de comprimento · 34,6% de tinta  FIEL
+            Brave        10 traços · 303 · 29,1%                          FALHA
+            Chrome        8 traços · 253 · 24,4%                          FALHA
+            VLC           5 traços · 224 · 21,7%                          FIEL
+        A Calculadora é a MAIS carregada das 34 conversões — tanto quanto o
+        Arcticons mais carregado que existe (o `vector`, 361) — e é a mais
+        fiel. O Chrome é mais leve que ela e falha. Não há teto: subir a fusão
+        "até caber" cortaria justamente quem já cabe.
+
+        A TERCEIRA RÉGUA CHEGOU PERTO E TAMBÉM NÃO FECHA: a SOBREPOSIÇÃO, que é
+        quanto do traço cai em cima de outro traço quando a espessura sobe para
+        os 2,25 da dock (comprimento a 2,25 dividido pelo comprimento a 0,3).
+        Nos 39 Arcticons ela vale mediana 1,2%, p90 5,3% e máximo 17,3%
+        (`keymapper`). Nas conversões: Calculadora 0,1% · VLC 3,4% · Discord
+        9,3% · Chrome 9,6% · Telegram 10,9% · Brave 18,2%. Ela é a única das
+        três que põe o Brave sozinho ACIMA do pior desenho à mão que existe, e
+        o peso de fronteira o traz de 18,2% para 6,3% (o Discord, de 9,3% para
+        1,4%). Mas o Telegram sai FIEL com 10,9% e o Chrome FALHA com 9,6%:
+        ordena melhor, e mesmo assim não separa. Fica como métrica de relatório,
+        não como corte automático.
+
+    O QUE A MEDIÇÃO SUSTENTA É O CONTRASTE DA FRONTEIRA, e só em parte
+        O Brave tem uma fronteira interna de 57,9 de RGB (o vermelho contra o
+        vermelho escuro do escudo) que responde por 22,6% das arestas dele e
+        não carrega desenho nenhum. Descartá-la leva o ícone de 10 traços para
+        3 — é o `--peso-fronteira`, e o vale medido está em `fundir_fracas()`.
+        O Chrome NÃO se resolve assim: a fronteira mais fraca dele vale 133,4,
+        quase o dobro da mais fraca do Telegram (78,4), que é fiel. Um limiar
+        que alcance o Chrome apaga as três linhas de texto do `cosmic-edit` e
+        o `B` do btop — medido com 140, e é a "folha em branco" do cabeçalho
+        do `colapsar_fitas` acontecendo pela terceira vez.
+
+    ONDE A INFORMAÇÃO ESTÁ NO PREENCHIMENTO (Firefox, Krita, Thunderbird),
+    tirá-lo continua tirando o desenho, e nenhum parâmetro conserta. O que caiu
+    foi a régua que dizia PREVER quais são esses casos, não o caso.
 
 O QUE SOBROU DE FORA, E POR QUÊ (a leitura dela da folha, 11/08/2026)
     Dos 29 alvos medidos, CINCO não entram no acervo convertido — e nenhum
@@ -117,6 +166,7 @@ A GRAMÁTICA DE SAÍDA GANHOU `C`, `L` E `Z`, E OS DOIS LEITORES CONTINUAM LENDO
 USO
     converter_icone.py ENTRADA.svg|png SAIDA.svg [--curvas|--polilinha]
                        [--cheia] [--json] [--cantos 60] [--k 6] [--tol N]
+                       [--peso-fronteira [CONTRASTE]]
 """
 from __future__ import annotations
 
@@ -287,6 +337,135 @@ def quantizar(rgba: np.ndarray, k: int, funde: float) -> tuple[np.ndarray, np.nd
     rot = d.argmin(-1).astype(np.int16) + 1
     rot[fundo] = 0
     return rot, centros
+
+
+# --------------------------------------------------------- peso de fronteira
+
+LIMIAR_FRACA = 70.0     # contraste RGB abaixo do qual a fronteira não vale traço
+
+
+def fundir_fracas(rot: np.ndarray, cores: np.ndarray, n: int, limiar: float):
+    """Fronteira de POUCO CONTRASTE deixa de existir: as duas classes viram uma.
+
+    O QUE ISTO RESPONDE, E DE QUEM É A PERGUNTA — Sprint T, 09/09/2026
+        Ela disse *"sinto que não tá fidedigno"*, e a medição dos seis ícones do
+        lançador dela desenhou um padrão: Calculadora, Telegram e VLC saem
+        fiéis; o Brave sai um emaranhado. Até aqui o cabeçalho deste arquivo
+        explicava o vale com "geométrico sai, orgânico não" — e a Sprint T
+        derrubou isso: o Brave tem POUCAS formas, e falha assim mesmo, porque
+        as formas dele se sobrepõem em tons vizinhos e CADA ENCONTRO VIRA UM
+        TRAÇO. Uma fronteira entre o vermelho (238,89,59) e o vermelho escuro
+        (190,65,40) do escudo carrega quase nenhuma informação e custa uma
+        linha; a fronteira com o fundo carrega tudo, e custa a mesma linha.
+
+        Então o desenho novo é: medir o contraste de cada fronteira e não
+        desenhar as fracas. Duas classes que só se separam por um tom viram uma
+        região só, e a fronteira entre elas some — não por descarte de traço
+        depois, mas por FUSÃO DE CLASSE antes de traçar, que é o que garante
+        que o contorno externo do par saia INTEIRO em vez de virar dois arcos
+        abertos que se encostam.
+
+    ISTO NÃO É O `--funde`, E A DIFERENÇA É O LUGAR
+        O `_funde` da quantização também junta cores próximas, e por RGB. Mas
+        ele roda ANTES de tudo: antes do descarte de cor de mistura, antes do
+        filtro de moda e — o que decide — antes do `colapsar_fitas`. Subir o
+        `--funde` para 70 muda QUAIS componentes existem, e com isso muda quem
+        é fita, quem embrulha quem e onde cai o eixo médio; a arte que ela
+        aprovou em 11/08/2026 se desfaz por baixo. Aqui a fusão entra DEPOIS do
+        colapso: o colapso de fita continua vendo a classificação fina, e só o
+        TRAÇADO passa a ver a grossa.
+
+        A DIFERENÇA FOI MEDIDA NOS 34 ÍCONES EM 09/09/2026, e ela é grande.
+        `--funde 70` e `--peso-fronteira 70` são o MESMO limiar na MESMA régua,
+        e mesmo assim:
+          · o Foliate perde a fita — de `1 fita, 11 traços` para `0 fita, 4`.
+            Fundir antes soldou o contorno fino ao miolo, o `colapsar_fitas`
+            não teve mais o que reconhecer, e o eixo médio nunca aconteceu. Com
+            o peso de fronteira ele fica exatamente como está hoje.
+          · o Warehouse GANHA uma fita que não existia (`0 fita, 11` → `1 fita,
+            6`), e o FileRoller sai com MAIS traço do que antes (7 → 8) —
+            fundir cor pode criar componente fino onde não havia.
+          · o Telegram, que a Sprint T marcou como fiel e proibiu de piorar,
+            cai de 4 traços para 2 com `--funde 70` e fica intocado com
+            `--peso-fronteira 70`. O mesmo vale para o vscode (4→2), o Obsidian
+            (2→1) e o Thunderbird (7→3).
+        Onde os dois batem — Brave, Discord, Spotify, BleachBit — é onde a
+        fronteira fraca era só fronteira fraca. Onde divergem, quem está certo é
+        o peso de fronteira, porque ele não mexe em quem já saía bem.
+
+    O LIMIAR É MEDIDO, E O QUE O PRENDE É QUEM JÁ SAI BEM
+        Contraste de todas as fronteiras internas dos 29 ícones do acervo (24 do
+        mapa + 5 autorais), em 09/09/2026, ordenados: … 59,6 · 60,2 · 61,6 ·
+        62,1 · 64,6 ‖ 77,1 · 78,4 · 80,1 · 82,7 · 85,2 · 103,0 · 127,0 …
+        O vale entre 64,6 e 77,1 está VAZIO, e é largo. 70 cai no meio dele.
+
+        A trave do experimento é a Sprint T: Calculadora, Telegram e VLC não
+        podem piorar. A fronteira interna mais fraca de cada um é 204,6 · 78,4 ·
+        281,3 — o Telegram é quem manda, e 70 fica 8,4 abaixo dele. Qualquer
+        número de 65 a 77 dá a MESMA partição nestes 29; o limiar não é fino.
+
+    POR QUE RGB CRU E NÃO LUMA, QUE PARECERIA MAIS PERCEPTIVO
+        Porque a régua é o Chrome. As três pás dele são quase ISOLUMINANTES:
+        Δluma de 9,9 entre a verde e a vermelha e de 9,2 entre a vermelha e a
+        azul, contra 222,7 e 243,4 de distância RGB. Uma régua de luminância
+        apagaria exatamente as três linhas que dão a estrutura do desenho e
+        devolveria um círculo vazio. A cor separa onde o cinza não separa.
+
+    O MODO DE FALHA QUE ESTE PARÂMETRO PODE PRODUZIR, E ELE JÁ ACONTECEU
+        Descartar fronteira fraca DEMAIS transforma tudo em silhueta — está
+        contado no cabeçalho do `colapsar_fitas`: o Terminal virou um quadrado e
+        o Editor uma folha em branco na primeira folha do conversor. Por isso o
+        padrão é ZERO (desligado), e por isso o limiar se escolhe olhando o
+        vale e não o gosto: a barra de texto do `cosmic-edit` vive numa
+        fronteira de 82,7 e o `>_` do terminal numa de 271,0 — os dois estão
+        acima de 70 com folga, e é essa folga que é o experimento.
+
+    `limiar <= 0` devolve `rot` INTOCADO, pelo mesmo caminho de sempre. A saída
+    padrão do conversor continua byte a byte a de antes desta função existir.
+    """
+    if limiar <= 0:
+        return rot, []
+
+    # Só par que REALMENTE se toca. Duas classes distantes na imagem podem ter
+    # cor vizinha sem nunca fazer fronteira; fundi-las não apagaria traço nenhum
+    # e ainda mudaria a ORDEM do laço de traçado, que é o que garante que a
+    # silhueta saia primeira e inteira.
+    vizinhos = set()
+    for a, b in ((rot[:-1, :], rot[1:, :]), (rot[:, :-1], rot[:, 1:])):
+        d = a != b
+        if not d.any():
+            continue
+        par = np.unique(np.stack([a[d], b[d]]), axis=1)
+        for i in range(par.shape[1]):
+            u, v = int(par[0, i]), int(par[1, i])
+            if u and v:                      # a fronteira com o FUNDO é sagrada
+                vizinhos.add((min(u, v), max(u, v)))
+
+    pai = list(range(n))
+
+    def raiz(i):
+        while pai[i] != i:
+            pai[i] = pai[pai[i]]
+            i = pai[i]
+        return i
+
+    # A ordem é a dos pares ordenados e a fusão anda SEMPRE para o índice menor:
+    # sem isso a mesma entrada poderia sair com rótulos trocados e a saída
+    # mudaria de byte sem mudar de desenho. E o rótulo 0 nunca é alvo porque
+    # nenhum par com o fundo entra na lista.
+    fundidas = []
+    for u, v in sorted(vizinhos):
+        d = float(np.linalg.norm(cores[u - 1] - cores[v - 1]))
+        if d >= limiar:
+            continue
+        fundidas.append((u, v, round(d, 1)))
+        ru, rv = raiz(u), raiz(v)
+        if ru != rv:
+            pai[max(ru, rv)] = min(ru, rv)
+    if not fundidas:
+        return rot, []
+    tab = np.array([raiz(i) for i in range(n)], np.int16)
+    return tab[rot], fundidas
 
 
 def moda2d(rot: np.ndarray, w: int, nclasses: int) -> np.ndarray:
@@ -1106,7 +1285,7 @@ def emitir(linhas, esc: float) -> str:
 
 def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
               fita=2.2, envolve=0.55, res=RES, curvas=True, cheia=False,
-              limiar_canto=60.0, passo_canto=3):
+              limiar_canto=60.0, passo_canto=3, peso=0.0):
     """Devolve (corpo_svg, metricas).
 
     `tol` significa COISAS DIFERENTES nos dois modos, e por isso o padrão é
@@ -1114,6 +1293,10 @@ def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
     Bézier (1,0 px de 256); em polilinha é a tolerância do Douglas-Peucker
     (1,6). Um número só para as duas medidas seria um número mentindo sobre
     uma delas.
+
+    `peso` é o LIMIAR DE CONTRASTE do peso de fronteira, e o padrão é 0 =
+    DESLIGADO. Ligado, ele entra entre o colapso de fitas e o traçado — ver
+    `fundir_fracas()` para por que é ali e não na quantização.
     """
     if tol is None:
         tol = TOL_CURVAS if curvas else TOL_POLILINHA
@@ -1122,6 +1305,7 @@ def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
     n = int(rot.max()) + 1
     rot = moda2d(rot, moda, n)
     rot, fitas = colapsar_fitas(rot, n, fita, res, envolve)
+    rot, fundidas = fundir_fracas(rot, cores, n, peso)
 
     esc = 48.0 / (res + 2)   # +2 por causa da moldura de padding do traçador
     # O DESCARTE DE TRAÇO CURTO CONTINUA MEDINDO A POLILINHA APARADA, e o
@@ -1258,6 +1442,14 @@ def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
         "modo": "curvas" if curvas else "polilinha",
         "classes": n,
         "fitas": len(fitas),
+        # O LIMIAR SAI NA MÉTRICA, e não só a contagem. `fundidas` sozinho
+        # confunde "não pedi" com "pedi e não havia fronteira fraca" — e são
+        # respostas diferentes na folha de comparação.
+        "peso": peso or None,
+        "fundidas": len(fundidas),
+        # Cada par com o contraste que ele tinha, para a folha poder escrever
+        # POR QUE aquela linha sumiu em vez de só dizer que sumiu.
+        "fracas": [{"a": a, "b": b, "contraste": d} for a, b, d in fundidas],
         "linhas": len(linhas),
         "curvas": ncurvas,
         "retas": nretas,
@@ -1322,6 +1514,17 @@ def main():
                    help="curvas: erro máximo do ajuste (px de 256, padrão 1,0); "
                         "polilinha: tolerância Douglas-Peucker (padrão 1,6)")
     p.add_argument("--min-traco", type=float, default=3.2, help="descarta traço menor (px de 48)")
+    # O PADRÃO É 0 = DESLIGADO, E ISSO NÃO É TIMIDEZ.
+    #   A arte convertida que está na tela dela foi aprovada numa folha
+    #   (11/08/2026, "tão todos muito bons"). Uma chave nova que mudasse a saída
+    #   padrão trocaria arte aprovada em silêncio, que é o defeito que este
+    #   projeto persegue. Desligado, `fundir_fracas()` devolve `rot` intocado e
+    #   o `tests/conversor.sh` afirma a saída de hoje byte a byte.
+    #   `--peso-fronteira` sem número usa o vale medido, 70 — ver LIMIAR_FRACA.
+    p.add_argument("--peso-fronteira", dest="peso", type=float, nargs="?",
+                   const=LIMIAR_FRACA, default=0.0, metavar="CONTRASTE",
+                   help="não desenha fronteira com contraste RGB abaixo deste "
+                        f"valor (padrão: desligado; sem número, {LIMIAR_FRACA:.0f})")
     p.add_argument("--lw", type=float, default=None,
                    help="grava stroke-width no arquivo (padrao: NAO grava, "
                         "para o TRACO do icones_apps_arcticons.sh mandar)")
@@ -1338,7 +1541,8 @@ def main():
                    help="imprime as métricas como UMA linha JSON no stdout")
     a = p.parse_args()
     corpo, m = converter(a.entrada, a.k, a.moda, a.funde, a.tol, a.min_traco,
-                         a.fita, a.envolve, RES, a.curvas, a.cheia, a.cantos)
+                         a.fita, a.envolve, RES, a.curvas, a.cheia, a.cantos,
+                         peso=a.peso)
     with open(a.saida, "w") as f:
         f.write(svg(corpo, a.lw))
     # O JSON VAI PARA O STDOUT E A FRASE PARA O STDERR, SEMPRE NESSA ORDEM.
@@ -1355,6 +1559,13 @@ def main():
     else:
         frase = (f"{m['classes']} classes ({m['fitas']} fita), "
                  f"{m['linhas']} traços, {m['pontos']} pontos")
+    # A frase só CRESCE quando a chave foi pedida. Com ela desligada o stderr
+    # continua idêntico ao de sempre — a oficina do painel devolve esta linha
+    # como nota ao navegador, e uma palavra a mais ali é uma mudança de tela.
+    if m["fundidas"]:
+        pares = ", ".join(f"{d:.0f}" for _, _, d in
+                          ((f["a"], f["b"], f["contraste"]) for f in m["fracas"]))
+        frase += f", {m['fundidas']} fronteira(s) fraca(s) fundida(s) [{pares}]"
     print(f"{os.path.basename(a.entrada)}: {frase}", file=sys.stderr)
 
 
