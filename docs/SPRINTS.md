@@ -10,7 +10,16 @@ fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
 ## AO VOLTAR, COMECE POR AQUI
 
-**Não há sprint aberta.** A leva de 09/09/2026 fechou as três — o registro
+**Há DUAS sprints ABERTAS, anotadas a pedido dela e não executadas:**
+[`docs/sprints/2026-09-09-duplicata-e-fidelidade.md`](sprints/2026-09-09-duplicata-e-fidelidade.md).
+Sprint **S** — ao instalar um jogo, o cartão duplica (o rival se chama pelo
+nome legível do jogo, e a limpeza reconhece rival por nome de arquivo: é a
+quarta vez que um molde novo escapa). Sprint **T** — o traço convertido não é
+fiel ao desenho de origem; Brave e Chrome viram emaranhado, e o que decide não
+é "geométrico contra orgânico" como o conversor afirma, mas quantas fronteiras
+de cor cabem dentro da silhueta.
+
+A leva anterior de 09/09/2026 fechou três — o registro
 autossuficiente está em
 [`docs/sprints/2026-09-09-heroic-e-oficina.md`](sprints/2026-09-09-heroic-e-oficina.md),
 com os detalhamentos de código em
