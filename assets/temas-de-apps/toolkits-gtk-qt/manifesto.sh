@@ -57,23 +57,92 @@
 # A semântica exata foi medida com dois experimentos (não por leitura de
 # strings — a lição da Steam vale: string de binário não substitui teste):
 #
-#   EXPERIMENTO 1 — escrevi `icon_theme=MeowSystem-Icons`, esperei 3s, forcei
-#   uma regeneração. O daemon reescreveu os 4 arquivos (mtime 20:15:21, três
-#   segundos DEPOIS da minha escrita) e o valor SOBREVIVEU.
+#   EXPERIMENTO 1 (04/08/2026) — escrevi `icon_theme=MeowSystem-Icons`, esperei
+#   3s, forcei uma regeneração. O daemon reescreveu os 4 arquivos (mtime
+#   20:15:21, três segundos DEPOIS da minha escrita) e o valor SOBREVIVEU.
 #   => o daemon faz MERGE do qt5ct.conf; ele não atropela a chave.
 #
-#   EXPERIMENTO 2 — apaguei a chave `icon_theme` e forcei outra regeneração.
-#   Voltou `icon_theme=breeze-dark`.
+#   EXPERIMENTO 2 (04/08/2026) — apaguei a chave `icon_theme` e forcei outra
+#   regeneração. Voltou `icon_theme=breeze-dark`.
 #   => `breeze-dark` é DEFAULT-QUANDO-AUSENTE, não valor forçado.
-#
-# Conclusão que desenha o módulo: escrever essa chave é DURÁVEL (sobrevive a
-# troca de tema e a reinício de sessão) e é a única escrita que este módulo faz
-# no lado Qt. Como o default só volta se a chave sumir, `conferir` detecta e
-# `aplicar` repõe — o módulo é auto-curável sem ficar brigando com ninguém.
 #
 # Como forçar uma regeneração sem mexer no tema dela: reescrever um arquivo de
 # `com.system76.CosmicTheme.Dark/v1/` com os MESMOS bytes. O inotify dispara por
 # escrita, não por mudança de conteúdo — logo o tema dela não muda em nada.
+#
+# ---------------------------------------------------------------------------
+# A CONCLUSÃO DE 04/08 ESTAVA ERRADA PELA METADE — MEDIDO EM 09/09/2026
+# ---------------------------------------------------------------------------
+# O que estava escrito aqui, e que este parágrafo REVOGA:
+#
+#     "escrever essa chave é DURÁVEL (sobrevive a troca de tema e a reinício de
+#      sessão) (…) o módulo é auto-curável sem ficar brigando com ninguém."
+#
+# A primeira metade continua verdadeira. A segunda — "e a reinício de sessão" —
+# nunca foi, e o campo cobrou por 36 dias em silêncio: 29 reparos entre 04/08 e
+# 06/09/2026, um por pasta datada em
+#
+#     ls -d ~/.local/state/meowsystem/backups/*/.config/qt5ct
+#
+# Ou seja: o módulo NÃO era auto-curável — ele era curado, todo dia, pelo doctor
+# das 5h da manhã, e entre o login e essa hora todo aplicativo Qt dela ficava com
+# o ícone errado. O `~~ qt5ct.conf: icon_theme=MeowSystem-Icons` seguido, na
+# passagem seguinte, de `qt5ct.conf: icon_theme=breeze-dark` no `doctor.log` era
+# esse laço aparecendo, e ninguém o tinha lido como laço.
+#
+#   EXPERIMENTO 3 (09/09/2026) — O EXPERIMENTO 1, REFEITO COM CANÁRIAS.
+#   Semeei o `qt5ct.conf` com `icon_theme=MeowSystem-Icons` MAIS duas chaves que
+#   o daemon não conhece — `meow_canario=1` dentro do `[Appearance]` e uma seção
+#   `[Fonts]` inteira — e forcei a regeneração de dois jeitos: (a) reescrevendo
+#   `CosmicTheme.Dark/v1/accent` com os mesmos bytes e (b) idem com
+#   `CosmicTheme.Mode/v1/is_dark`. Nos dois casos o daemon regravou os `.conf`
+#   em milissegundos, REORDENOU as chaves (ele serializa a partir de um mapa) e
+#   devolveu TUDO de pé: as duas canárias e o `MeowSystem-Icons`.
+#   => o EXPERIMENTO 1 continua válido, e agora com prova mais forte: o merge é
+#      um round-trip de verdade, não uma coincidência de chaves conhecidas.
+#
+#   EXPERIMENTO 4 (09/09/2026) — ENTÃO QUEM REESCREVE? A PARTIDA DA SESSÃO.
+#   Não é troca de tema: nada em `~/.config/cosmic` foi escrito na hora do
+#   estrago (`find ~/.config/cosmic -newermt …` devolve vazio), e o tema dela
+#   está parado desde 25/08. O carimbo do dia, com milissegundo:
+#
+#       09:13:39  boot
+#       09:14:21  cosmic-settings-daemon nasce (PID 3631, `ps -o lstart`)
+#       09:14:23.513  ele grava o PRÓPRIO estado (…/CosmicSettingsDaemon/v1/
+#                     default_sink_name)
+#       09:14:23.686 … .874  os TREZE arquivos gerados, numa rajada de 190 ms,
+#                     terminando em qt5ct.conf (.866) e qt6ct.conf (.874), os
+#                     dois com `icon_theme` de volta em `breeze-dark`
+#
+#   E a prova de que foi SÓ isso: os dois `.conf` tinham nascido às 05:07:21 de
+#   06/09 (o reparo do doctor daquele dia) e ficaram com o mtime PARADO por três
+#   dias — atravessaram os doctors de 07/09, 08/09 e 09/09 às 05:0x dizendo
+#   "nada a consertar". A única escrita em 72 horas foi a das 09:14:23.
+#   => `breeze-dark` não é só DEFAULT-QUANDO-AUSENTE. Na EXPORTAÇÃO DE PARTIDA
+#      do daemon ele é valor IMPOSTO: o merge do regime permanente não vale ali.
+#
+#   O DETALHE QUE IMPEDE DE DIZER "TODO LOGIN": o boot de 08/09 21:38 NÃO
+#   derrubou a chave (o mtime prova), e naquele boot o daemon também não gravou o
+#   `default_sink_name` — a exportação de partida não chegou a rodar. Cruzando os
+#   29 reparos com `last -x reboot`: dos 28 que têm reparo anterior para
+#   comparar, 23 tiveram boot na janela; os 5 que não tiveram caem todos em dois
+#   dias de oficina (04/08 e 25/08), quando o `aplicar` foi chamado à mão. Nenhum
+#   reparo de dia normal aconteceu sem um boot antes dele. Então: QUASE todo
+#   login, não todo login.
+#
+# O QUE MUDOU NO PROJETO POR CAUSA DISSO
+#   Nasceram `systemd/meow-qt.path` e `systemd/meow-qt.service` (09/09/2026): um
+#   vigia de inotify sobre `~/.config/qt5ct` e `~/.config/qt6ct` que chama este
+#   mesmo módulo quando alguém mexe nos `.conf`. O conserto continua sendo o
+#   `meow_app_aplicar` daqui — o vigia só arranjou o EVENTO, como o
+#   `meow-fundo.path` fez pelo carrossel. A espera dela caiu de "até as 5h da
+#   manhã" para dois segundos. O cabeçalho do `.path` traz a medição inteira,
+#   inclusive por que congelar o arquivo (`chattr +i`) seria pior: mataria junto
+#   a regeneração da PALETA, que é o que faz o Qt seguir o accent dela.
+#
+#   Não há laço com o daemon: ele NÃO vigia o `qt5ct.conf`, só o escreve —
+#   medido em 09/09, as escritas nossas no arquivo não produziram nenhuma
+#   resposta dele.
 #
 # ---------------------------------------------------------------------------
 # UMA VARIÁVEL DE AMBIENTE COBRE Qt5 E Qt6 (era a minha suspeita errada)

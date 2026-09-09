@@ -2431,6 +2431,127 @@ etapa_vigia_steam() {
   return $?
 }
 
+# ---------------------------------------------------------------------------
+# O VIGIA DO Qt — A QUARTA UNIDADE `.path` DO PROJETO (09/09/2026)
+#
+#   O `etapa_apps` acima já põe o `icon_theme` nos dois `.conf` do Qt. O que
+#   faltava era alguém repô-lo depois que o COSMIC o desfaz — e ele desfaz na
+#   EXPORTAÇÃO DE PARTIDA da sessão, quase todo login. Foram 29 reparos entre
+#   04/08 e 06/09/2026, um por pasta datada em
+#   `~/.local/state/meowsystem/backups/*/.config/qt5ct`, e entre um login e o
+#   doctor das 5h todo aplicativo Qt dela passava o dia com o ícone errado.
+#
+#   A medição — quem escreve, quando, com milissegundo, e por que o regime
+#   permanente do daemon é inocente — está no cabeçalho de
+#   `systemd/meow-qt.path`. Não se repete aqui.
+#
+# POR QUE ESTA ETAPA ESCREVE AS UNIDADES NO LUGAR DE CHAMAR UM `vigia_qt.sh`
+#   Os dois irmãos mais novos (`etapa_vigia_flatpak`, `etapa_vigia_steam`)
+#   delegam a um script de `scripts/` porque o conserto DELES é próprio. Aqui o
+#   conserto já existe e é de outro dono — o módulo `toolkits-gtk-qt`, que a
+#   `etapa_apps` e o `meow doctor` já chamam. Um script novo só para instalar
+#   duas unidades seria uma terceira cópia da mesma dúzia de linhas de
+#   `meow_escrever` + `enable --now`; o `etapa_painel` já faz isso em linha, e é
+#   a forma que este segue.
+#
+# ANDA DE CARONA NO `AUTO_REPARO`, como o supervisor da barra e o carrossel:
+#   quem desliga o auto-reparo está dizendo "não mexa sozinho na minha máquina",
+#   e um `.path` de inotify é o que mais mexe sozinho no projeto. A segunda
+#   cerca é o `APPS_ATIVOS`: quem tirou `qt5ct` da lista pediu para o módulo dos
+#   toolkits não rodar, e um vigia que o chamasse assim mesmo seria o instalador
+#   desobedecendo a conf dela. As duas cercas são as MESMAS que o
+#   `ExecCondition=` da unidade avalia e as mesmas que o `chk_qtvigia` do doctor
+#   confere — três lugares, uma regra só.
+etapa_vigia_qt() {
+  passo "Vigia do Qt (systemd --user)"
+  local destino="$HOME/.config/systemd/user" u conteudo mudou=0 lista
+  local unidades=(meow-qt.service meow-qt.path)
+  local ligaveis=(meow-qt.path)
+
+  lista=",$(printf '%s' "${APPS_ATIVOS:-}" | tr -d ' '),"
+  local quer_qt=0
+  case "$lista" in *,qt5ct,*|*,qt,*|*,gtk,*) quer_qt=1 ;; esac
+
+  if [ "$quer_qt" != "1" ] || [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    local motivo="APPS_ATIVOS sem qt5ct"
+    [ "${AUTO_REPARO:-sim}" != "sim" ] && motivo="AUTO_REPARO=\"${AUTO_REPARO:-}\""
+    if meow_unidade_sobrou "${unidades[@]}"; then
+      meow_seco && { meow_muda "$motivo — removeria o vigia do Qt"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now "${ligaveis[@]}" >/dev/null 2>&1
+      rm -f "${unidades[@]/#/$destino/}"
+      # Os links de `*.wants/` e `*.requires/` saem à mão pelo mesmo motivo do
+      # `etapa_painel`: o `rm` acima é do ARQUIVO, e um link órfão apontando para
+      # ele é invisível para `is-enabled`, `is-active` e `--failed`. Só o disco vê.
+      rm -f "$destino"/*.wants/meow-qt.path "$destino"/*.wants/meow-qt.service \
+            "$destino"/*.requires/meow-qt.path "$destino"/*.requires/meow-qt.service
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "$motivo — vigia do Qt desligado e removido"
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_pula "$motivo — sem vigia do Qt"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    meow_aviso "não há systemd --user nesta sessão — o ícone do Qt só voltará no próximo doctor"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  for u in "${unidades[@]}"; do
+    [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+    conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    meow_escrever "$destino/$u" "$conteudo" 644
+    case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+
+  # O SECO TAMBÉM TEM DE ENXERGAR O GATILHO SOLTO — é a correção de 31/08/2026
+  # que o `etapa_painel` e o `etapa_leitura` já carregam: sem isto a auditoria
+  # ficava MUDA justamente na máquina em que as unidades estão no disco e só
+  # falta armá-las, que é o estado em que o defeito continua acontecendo.
+  # `is-enabled` e `is-active` são leitura pura, então o `tests/seco.sh` segue
+  # verde com eles aqui.
+  if meow_seco; then
+    local armaria=""
+    for u in "${ligaveis[@]}"; do
+      if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+         [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+        armaria="${armaria:+$armaria }$u"
+      fi
+    done
+    [ "$mudou" = "1" ] && meow_muda "instalaria/atualizaria as unidades do vigia do Qt"
+    [ -n "$armaria" ] && meow_muda "armaria o vigia do Qt ($armaria)"
+    { [ "$mudou" = "1" ] || [ -n "$armaria" ]; } && return "$MEOW_DIVERGENTE"
+    return "$MEOW_OK"
+  fi
+
+  local rc=0
+  # A LINHA NÃO É ENFEITE: o `meow_escrever` é MUDO no modo real (quem conta é
+  # quem chama), e sem ela uma passagem que reescreveu as duas unidades saía sem
+  # UMA palavra na tela e ainda assim caía em `mexeu:` no resumo — exatamente a
+  # mentira de relatório que o `concluir()` existe para não deixar acontecer, só
+  # que ao contrário. É o que acontece depois de um `git pull` que muda a
+  # unidade, e é a passagem em que ela mais precisa saber o que mudou.
+  if [ "$mudou" = "1" ]; then
+    systemctl --user daemon-reload
+    meow_muda "unidades do vigia do Qt instaladas/atualizadas"
+    rc=1
+  fi
+  # `reset-failed` antes do `enable`: enquanto o `.service` estiver em `failed`
+  # o `.path` dispara para o vazio, e nem `is-enabled` nem `is-active` do `.path`
+  # denunciam isso. Mesma rede do `fix_fundo`.
+  systemctl --user reset-failed "${unidades[@]}" >/dev/null 2>&1
+  for u in "${ligaveis[@]}"; do
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      systemctl --user enable --now "$u" >/dev/null 2>&1 \
+        && { meow_muda "vigia do Qt armado ($u)"; rc=1; } \
+        || meow_aviso "não consegui armar $u"
+    fi
+  done
+  [ "$rc" = "0" ] && meow_ok "vigia do Qt no ar — o ícone volta em segundos, não às 5h da manhã"
+  return "$rc"
+}
+
 etapa_wallpaper() {
   passo "Papéis de parede"
   WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
@@ -2613,7 +2734,7 @@ main() {
   fi
 
   meow_titulo "MeowSystem — Catppuccin para o COSMIC"
-  meow_seco && meow_aviso "MEOW_DRY_RUN=1 — nada será escrito"
+  meow_seco && meow_aviso "ensaio (MEOW_DRY_RUN=1) — nada será escrito"
 
   # O WIZARD VEM ANTES DO LOCK, E É UM PROCESSO À PARTE
   #   Ele grava no meow.conf e sai; o `etapa_conf` logo abaixo lê o arquivo já
@@ -2666,7 +2787,7 @@ main() {
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
-                etapa_assets etapa_vigia_flatpak etapa_vigia_steam
+                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_qt
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 

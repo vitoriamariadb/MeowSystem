@@ -1,0 +1,99 @@
+# meow-qt.service — repõe o `icon_theme` do qt5ct/qt6ct quando o
+#                   cosmic-settings-daemon o devolve ao `breeze-dark` de fábrica.
+#
+# Quem me acorda é o `meow-qt.path`; o cabeçalho DELE tem a medição inteira
+# (quem escreve, quando, e por que o regime permanente não é o culpado).
+#
+# O CONSERTO JÁ EXISTIA — ESTE ARQUIVO SÓ ARRANJA O EVENTO
+#   Quem sabe repor a chave é o módulo `toolkits-gtk-qt`, o mesmo que o
+#   `./install.sh` e o `meow doctor --consertar` chamam. Não há conserto novo
+#   aqui, e isso é de propósito: uma segunda cópia da regra de escrita é como se
+#   ganha um `qt5ct.conf` que o instalador e o vigia discordam sobre.
+#
+# POR QUE `APPS_ATIVOS=qt5ct` NA LINHA DE COMANDO
+#   O `aplicar_apps.sh` percorre a lista de `APPS_ATIVOS`. Sem estreitá-la, este
+#   gatilho rodaria os DEZ módulos de app (Spotify, VS Code, ZapZap…) toda vez
+#   que o daemon mexesse num `.conf` do Qt — segundos de trabalho e um punhado
+#   de backups por evento, para consertar uma linha. O `pasta_de` do
+#   `aplicar_apps.sh` mapeia `qt5ct` -> `toolkits-gtk-qt`, e é só esse módulo que
+#   roda. A cerca vem depois do `.` do meow.conf, porque o `.` sobrescreveria.
+#
+# A CERCA É O `AUTO_REPARO`, E ELA ANDA DE CARONA DE PROPÓSITO
+#   Não inventei chave nova. Quem põe `AUTO_REPARO="nao"` está dizendo "não mexa
+#   sozinho na minha máquina", e repor uma chave que o COSMIC acabou de escrever
+#   é exatamente mexer sozinho — é o mesmo raciocínio, e a mesma cerca, do
+#   supervisor da barra (`etapa_painel`) e do carrossel. A segunda condição é o
+#   `APPS_ATIVOS`: quem tirou `qt5ct` da lista pediu para o módulo não rodar, e
+#   um vigia que o rodasse assim mesmo seria o instalador desobedecendo a conf.
+#
+# NÃO HÁ LAÇO COM O DAEMON, E ISSO FOI MEDIDO — 09/09/2026
+#   O medo legítimo é: nós escrevemos o `qt5ct.conf`, o daemon vê e reescreve,
+#   nós vemos e escrevemos de novo. Não acontece, e a razão é que o daemon NÃO
+#   VIGIA esse arquivo — ele só o escreve. Medido: as duas limpezas manuais do
+#   `qt5ct.conf` de hoje (tirando as canárias do experimento) não produziram
+#   NENHUMA escrita subsequente do daemon; o arquivo ficou exatamente como o
+#   deixei. O que faz o daemon regravar é o TEMA mudar, e o nosso conserto não
+#   toca no tema.
+#
+# NÃO HÁ LAÇO CONOSCO MESMOS, E O TETO É UM ECO
+#   A nossa própria escrita cai no diretório vigiado — a receita clássica. Três
+#   coisas a contêm, as mesmas do `meow-fundo.path`:
+#     (1) o `meow_app_aplicar` do módulo sai por cima quando o valor já confere
+#         (`[ "$atual" = "$icone_cosmic" ] && continue`): a passagem seguinte não
+#         toca em disco, não gera evento e não gera backup;
+#     (2) o `ExecStartPre=sleep 2` é um DEBOUNCE — o daemon escreve o
+#         `qt5ct.conf` e o `qt6ct.conf` com 8 ms de diferença (medido: .866 e
+#         .874), e os dois eventos viram UM start porque o segundo é fundido no
+#         job que já está `activating`;
+#     (3) o eco da nossa escrita, se chegar, encontra o valor já certo e morre
+#         sem escrever.
+#
+#   A MEDIÇÃO, COM O VIGIA NO AR — 09/09/2026, JANELA DE 5 MINUTOS
+#   Provoquei a reversão exata do daemon (`sed -i` nos DOIS `.conf`, escrita no
+#   lugar) duas vezes, com 2 min de intervalo, e contei os starts no journal:
+#
+#       09:47:11.833  evento externo (qt5ct.conf e qt6ct.conf -> breeze-dark)
+#       09:47:11.849  Starting meow-qt.service        <- 1 start (16 ms depois)
+#       09:47:13.915  Finished                        <- 2,07 s (o sleep 2)
+#       09:47:31      conferido: os dois de volta em MeowSystem-Icons
+#       09:49:11.840  segundo evento externo
+#       09:49:11.855  Starting meow-qt.service        <- 1 start
+#       09:49:13.917  Finished
+#       (nada mais até o fim dos 5 minutos)
+#
+#   DOIS eventos, DOIS starts. Nem um eco: a escrita do próprio reparo, feita
+#   por volta de 09:47:13.9, não gerou start nenhum. E o `backups/` ganhou
+#   exatamente DUAS pastas (09-47-13 e 09-49-13), uma por conserto de verdade —
+#   que é o outro jeito de ver que a passagem seguinte não escreveu.
+#
+# `TimeoutStartSec` EXPLÍCITO, PELA LIÇÃO DO `meow-painel-raio.service`
+#   `Type=oneshot` NÃO herda o `DefaultTimeoutStartSec`: o padrão dele é
+#   `infinity`. Um `aplicar_apps.sh` travado ficaria em `activating (start)` para
+#   sempre e todo evento seria fundido nele — o vigia surdo, sem nada `failed`
+#   para olhar. 3 min é folgado: o módulo dos toolkits é leitura de meia dúzia de
+#   arquivos e, no pior caso, duas escritas com backup; o que pode demorar é a
+#   espera do `flock`, que tem `-w 60` logo abaixo.
+
+[Unit]
+Description=MeowSystem — repõe o tema de ícones do Qt (qt5ct/qt6ct) desfeito pelo cosmic-settings-daemon
+Documentation=file:%h/.local/state/meowsystem/qt.log
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+# Uma rajada de login são 2 eventos; 20 em 300 s deixa espaço para a Vitória
+# abrir o `qt5ct` e mexer nele à mão sem desarmar o gatilho.
+StartLimitIntervalSec=300s
+StartLimitBurst=20
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${AUTO_REPARO:-sim}" = "sim" ] || exit 1; A=",$(printf %%s "${APPS_ATIVOS:-}" | tr -d " "),"; case "$A" in *,qt5ct,*|*,qt,*|*,gtk,*) exit 0 ;; esac; exit 1'
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStartPre=-/usr/bin/sleep 2
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/aplicar_apps.sh" ] || exit 3; . %h/.config/meow/meow.conf; export FLAVOR ACCENT NOME_TEMA_ICONES ICONES_COR_MARCA; APPS_ATIVOS=qt5ct; export APPS_ATIVOS; exec "$R/scripts/aplicar_apps.sh" aplicar'
+# 1 = "estava divergente e eu consertei"; 3 = "não há o que fazer aqui" (sem
+# qt5ct/qt6ct instalado, ou sem `icon_theme` no CosmicTk). Nenhum dos dois é
+# falha desta unidade — é a mesma leitura do `meow-flatpak.service`.
+SuccessExitStatus=1 3
+TimeoutStartSec=3min
+StandardOutput=append:%h/.local/state/meowsystem/qt.log
+StandardError=inherit
+SyslogIdentifier=meow-qt
