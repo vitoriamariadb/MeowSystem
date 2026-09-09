@@ -18,6 +18,36 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 `/usr/share/*`, `/usr/local/share/*`, `~/.config/zsh` (repo dela, com auto-commit a cada
 10 min) e os atalhos de teclado. O caminho de volta é o `vizinhos.conf`.
 
+## O DESEMPATE, DECIDIDO POR ELA EM 09/09/2026
+
+> *"se for algum problema envolvendo algum hook ou o andromeda o meowsystem se
+> sobrepõem."*
+
+**Onde um hook ou o Andromeda disputarem com o MeowSystem, quem vence é o
+MeowSystem.** Vale para as três formas em que a disputa aparece nesta máquina: os
+hooks de git de `~/.config/git/hooks`, os hooks de `apt` em `/etc/apt/apt.conf.d/`,
+e o que o repositório do Andromeda repõe por conta própria.
+
+**Por que isto muda alguma coisa.** A frase de cima — *"onde os dois querem mandar
+no mesmo arquivo, o visual é do MeowSystem"* — já dizia quem ganha, mas só sobre
+**aparência**; a tabela abaixo tem quinze linhas em que o dono continua sendo o
+Aurora justamente porque ali a chave é do sistema. A decisão dela **não** apaga
+essas quinze: elas seguem como estão, porque ninguém as está disputando. O que ela
+resolve é o **empate**, que até hoje se resolvia caso a caso e por conversa — e uma
+regra que mora em conversa é uma regra que se perde na sessão seguinte.
+
+**O que ela NÃO autoriza**, e continua valendo palavra por palavra: escrever em
+território de vizinho segue exigindo as quatro guardas — **uma linha e nunca o
+arquivo inteiro**, **backup antes** (falhar o backup aborta a escrita), **em voz
+alta** na saída, e **uma chave no `meow.conf` para desligar**. Vencer o desempate é
+poder escrever a linha; não é poder escrever sem as guardas. Precedente medido: a
+escrita cirúrgica no `logo.source` do `fastfetch`, autorizada só depois de um
+`grep fastfetch` no self-heal provar que o outro dono não disputava aquela linha.
+
+**A ordem de trabalho que sai daí:** medir se o outro dono disputa mesmo a linha;
+se disputa, o MeowSystem escreve **e** deixa o desfazer pronto; se não disputa, não
+há empate para desempatar e nada muda.
+
 ---
 
 ## A tabela
