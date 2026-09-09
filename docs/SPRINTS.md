@@ -41,8 +41,8 @@ porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio
 
 | | |
 |---|---|
-| `install.sh` | 53 etapas; rodar de novo não escreve um byte |
-| `meow doctor` | **48** conferências; a única divergência é a arte convertida, e ela espera a folha |
+| `install.sh` | 54 etapas; rodar de novo não escreve um byte |
+| `meow doctor` | **49** conferências; a única divergência é a arte convertida, e ela espera a folha |
 | painel | 109 chaves · 46 ações · 13 páginas de assunto |
 | conferência do navegador | **103/103**, console limpo nas catorze páginas |
 | suítes de shell | `app`, `seco`, `reversao`, `um-cartao-por-jogo`, `convergencia`, `conversor`, `previa-cerca` — todas passam |
@@ -51,7 +51,7 @@ porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio
 **fechada**, e fica como está — é história medida, não plano. Duas coisas que a
 leitura de hoje contradiz, e por isso ficam ditas aqui em cima:
 
-- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **46 conferências**;
+- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **49 conferências**;
 - o *"falta um logout"* daquela mesma leva **já aconteceu**: o doctor diz
   *"4 marcadores de pé no disco e na sessão"* e o pipewire está em 1.6.8.
 

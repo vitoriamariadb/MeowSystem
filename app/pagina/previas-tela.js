@@ -24,7 +24,7 @@
  *   `antes`     como está agora.
  *   `depois`    como fica com a escolha — `null` quando não há escolha pendente
  *               ou quando a escolha não muda um pixel deste desenho.
- *   `legenda`   UMA linha, começando por "desenho, não captura:".
+ *   `legenda`   UMA linha, começando por "desenho, não é a sua tela:".
  *
  *   O SEGUNDO ARGUMENTO NÃO ESTÁ NA FOLHA, E A MEDIÇÃO MOSTROU QUE ELE FALTAVA.
  *   A folha pede `antes` e `depois` no retorno mas descreve a entrada como um
@@ -57,6 +57,21 @@
   "use strict";
 
   var NS = "http://www.w3.org/2000/svg";
+
+  /* A ABERTURA DE TODA LEGENDA, NUM LUGAR SÓ — 09/09/2026
+   * Ela dizia "desenho, não captura:". Duas coisas erradas na mesma frase de
+   * três palavras: em português "captura" lê-se primeiro como VERBO, e a
+   * legenda abria parecendo dizer que o desenho *não captura* alguma coisa; e
+   * "captura" já era o nome de outra coisa desta mesma página — os temas
+   * prontos de `assets/temas/capturados/`, que a aba "Cor e tela" oferece.
+   * Uma palavra, dois conceitos, e o mais visível dos dois num fragmento sem
+   * verbo. A pergunta que a legenda existe para responder é "isto é a minha
+   * máquina?", e agora ela responde com essas palavras.
+   *
+   * Ela é constante porque são dois pontos de chamada nos dois arquivos de
+   * prévia mais o `app.js`: escrita à mão em cada um, a próxima troca deixaria
+   * metade das legendas com a abertura de ontem, calada. */
+  var ABERTURA_DA_LEGENDA = "desenho, não é a sua tela: ";
 
   /* --- o quadro ----------------------------------------------------------
    * 96 por 48: a tela, a dock, o terminal e a fileira de ícones são todos
@@ -305,7 +320,7 @@
    * O acervo de logos é um punhado de SVGs em `assets/gatos/`, e uma função pura
    * não pode buscá-los. Desenhar o gato aqui não é reproduzir a Coquinha — é
    * mostrar O LUGAR dela e QUANDO ela troca, que é a pergunta do cartão. A
-   * legenda diz "desenho, não captura" exatamente por isto.
+   * legenda diz "desenho, não é a sua tela" exatamente por isto.
    *
    * O que precisa ser verdade é a DIFERENÇA: se o de dia e o de noite forem
    * iguais na tela, a chave que decide os dois vira invisível. Por isso cada
@@ -473,7 +488,7 @@
         return {
           antes: cfg.desenho(ma, ctx),
           depois: mudou ? cfg.desenho(mb, ctx) : null,
-          legenda: umaLinha("desenho, não captura: " + cfg.legenda(ma, mudou ? mb : null)),
+          legenda: umaLinha(ABERTURA_DA_LEGENDA + cfg.legenda(ma, mudou ? mb : null)),
         };
       } catch (e) {
         return quadroDeFalha(cfg.rotulo);
@@ -496,7 +511,7 @@
   }
 
   function quadroDeFalha(rotulo) {
-    var legenda = "desenho, não captura: não foi possível desenhar " + rotulo
+    var legenda = ABERTURA_DA_LEGENDA + "não foi possível desenhar " + rotulo
       + " com os valores atuais — nada na sua máquina mudou por causa disto.";
     try {
       var s = quadro("Não foi possível desenhar " + rotulo);
@@ -1359,7 +1374,7 @@
           ? "pela marca de cada programa (o mensageiro fica verde, a loja de jogos safira, o navegador pêssego)"
           : "por categoria (programas do mesmo assunto na mesma cor)")
         + ", pastas especiais "
-        + (m.xdg ? "vazadas, do outro pack" : "na mesma cor das outras")
+        + (m.xdg ? "vazadas, do outro acervo" : "na mesma cor das outras")
         + ", e o que faltar vem do " + curto(m.base) + "." + m.fecho;
     },
   });
@@ -1470,7 +1485,7 @@
 
       var s = quadro("Uma linha de comando com "
         + (m.starship ? "o prompt do starship em pastilhas" : "o prompt simples")
-        + ", cursor " + (m.cursor === "port" ? "na cor do port oficial" : "na cor de destaque")
+        + ", cursor " + (m.cursor === "port" ? "na cor do Catppuccin" : "na cor de destaque")
         + " e a paleta " + (m.esquema ? "do Catppuccin" : "de fábrica")
         + (lupa ? ", e o mesmo cursor ampliado à direita" : "") + ".");
 
@@ -1576,9 +1591,9 @@
         ? "as dezesseis cores do terminal vêm do Catppuccin"
         : "o terminal fica com a paleta de fábrica do cosmic-term")
         + ", o cursor sai "
-        + (m.cursor === "port" ? "no rosewater do port oficial" : "na cor de destaque")
+        + (m.cursor === "port" ? "no rosewater do Catppuccin" : "na cor de destaque")
         + ", e o prompt do zsh "
-        + (m.starship ? "é o preset powerline do starship" : "é o simples, sem starship")
+        + (m.starship ? "é o do Catppuccin, pelo starship" : "é o simples, sem starship")
         + "." + m.fecho;
     },
   });

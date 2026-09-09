@@ -1770,7 +1770,7 @@ ACOES = {
         "grupo": "Instalação",
         "argv": [os.path.join(RAIZ, "install.sh")],
         "seco": True, "sudo": True, "confirma": True, "rede": True,
-        "ajuda": "Passa as 52 etapas. Rodar de novo numa máquina já pronta "
+        "ajuda": "Passa {as_etapas}. Rodar de novo numa máquina já pronta "
                  "não escreve um byte.",
     },
     "doctor": {
@@ -1778,7 +1778,7 @@ ACOES = {
         "grupo": "Instalação",
         "argv": _meow("doctor"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Faz as 46 conferências e lista o que está fora do lugar. "
+        "ajuda": "Faz {as_conferencias} e lista o que está fora do lugar. "
                  "Não escreve nada.",
     },
     "doctor_consertar": {
@@ -1830,8 +1830,12 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Os pacotes com versão nova e as caixas de Rust desatualizadas. "
-                 "Não escreve, não pede senha e não baixa nada.",
+        # "CAIXAS DE RUST" SAIU — 09/09/2026. Era `crates` traduzido ao pé da
+        # letra, e a tradução é pior que o original: quem não programa lê
+        # "caixas" e procura uma caixa. O que o `cargo` lista são PROGRAMAS
+        # escritos em Rust instalados nesta máquina, e é isso que a linha diz.
+        "ajuda": "Os pacotes com versão nova e os programas em Rust "
+                 "desatualizados. Não escreve, não pede senha e não baixa nada.",
     },
     "sistema_atualizar": {
         "rotulo": "Atualizar a máquina inteira",
@@ -1839,9 +1843,14 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "aplicar"],
         "seco": True, "sudo": True, "confirma": True, "rede": True,
-        "ajuda": "apt, flatpak e cargo, e logo depois o doctor — que diz o que a "
-                 "atualização desfez do MeowSystem. Demora, e o apt mantém os "
-                 "arquivos de configuração que já estão no disco.",
+        # "O DOCTOR" SAIU DA FRASE — 09/09/2026. `doctor` é o nome do subcomando
+        # no terminal; na tela essa mesma coisa já se chama "Conferir a máquina",
+        # e ter dois nomes para um botão é a tela pedindo desconfiança. `apt`,
+        # `flatpak` e `cargo` FICAM: são os nomes próprios dos três programas que
+        # baixam, e trocá-los por paráfrase esconderia o que está sendo rodado.
+        "ajuda": "apt, flatpak e cargo, e logo depois a conferência — que diz o "
+                 "que a atualização desfez do MeowSystem. Demora, e o apt mantém "
+                 "os arquivos de configuração que já estão no disco.",
     },
     "sistema_limpar": {
         "rotulo": "Limpar o que sobrou",
@@ -1849,7 +1858,10 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "limpar"],
         "seco": True, "sudo": True, "confirma": True,
-        "ajuda": "Pacotes órfãos e o cache de download do apt. Diz quantos "
+        # "CACHE DE DOWNLOAD" -> "os pacotes que o apt já baixou" — 09/09/2026.
+        # Cache é palavra de quem programa; o que sai do disco é um monte de
+        # arquivo baixado, e dizer isso é mais curto E mais claro.
+        "ajuda": "Pacotes órfãos e os pacotes que o apt já baixou. Diz quantos "
                  "megabytes saíram.",
     },
     # --- tema ----------------------------------------------------------------
@@ -1858,16 +1870,22 @@ ACOES = {
         "grupo": "Cor e tela",
         "argv": _meow("tema"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "O tema alvo, o que está de fato aplicado, e as capturas "
-                 "que existem.",
+        # "TEMA ALVO" E "CAPTURA" SAÍRAM — 09/09/2026. "Alvo" é palavra de quem
+        # escreveu o instalador (o alvo de uma etapa); quem lê a tela escolheu
+        # um tema. E "captura" já significa OUTRA coisa na mesma página — a
+        # legenda de todo desenho diz "não é a sua tela" —, então o mesmo termo
+        # nomeava dois conceitos. O rótulo do botão já diz "Temas prontos".
+        "ajuda": "O tema que você escolheu, o que está mesmo aplicado, e os "
+                 "temas prontos que existem.",
     },
     "tema_aplicar": {
         "rotulo": "Trocar de tema",
         "grupo": "Cor e tela",
         "argv": _meow("tema", "@ARG@"), "arg": "capturas",
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Aplica a captura escolhida por cópia de arquivo, guardando "
-                 "a anterior antes.",
+        # "POR CÓPIA DE ARQUIVO" era o COMO, e o como não muda nenhuma decisão
+        # dela; "captura" saiu pelo motivo da linha de cima. — 09/09/2026
+        "ajuda": "Aplica o tema escolhido, guardando o anterior antes.",
     },
     "tema_modo": {
         "rotulo": "Passar para claro ou escuro",
@@ -1915,8 +1933,13 @@ ACOES = {
         "grupo": "Ícones",
         "argv": [os.path.join(RAIZ, "scripts", "icones_apps_arcticons.sh")],
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Instala em 48x48/apps o que os dois acervos de traço "
-                 "declaram — é o passo que faz um desenho salvo aqui aparecer.",
+        # O CAMINHO `48x48/apps` SAIU DA TELA — 09/09/2026. É a pasta interna do
+        # tema de ícones (a convenção hicolor), e saber o nome dela não muda
+        # nada para quem clica; o comentário do código, logo acima, continua
+        # dizendo qual diretório este script é dono, que é onde a informação
+        # serve. A frase passa a dizer o efeito, que é o que a decidiu.
+        "ajuda": "Põe no tema os desenhos que os dois acervos de traço trazem "
+                 "— é o passo que faz um desenho salvo aqui aparecer.",
     },
     "logo_listar": {
         "rotulo": "Qual gato está no ar, e por quê",
@@ -2028,9 +2051,14 @@ ACOES = {
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "usar", "@ARG@"), "arg": "paredes_ativas",
         "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        # O BOTÃO CITADO NÃO EXISTE COM ESSE NOME — medido em 09/09/2026 na
+        # varredura da página: a ação `wallpaper_carrossel` se chama "Voltar a
+        # girar" desde que ganhou rótulo, e esta frase mandava procurar um
+        # "Soltar o carrossel" que a tela nunca escreveu. Referência a botão só
+        # ajuda se o botão se chamar assim.
         "ajuda": "Fixa esta imagem como o papel de parede de agora. Quanto tempo "
                  "dura é «Quanto tempo dura a imagem escolhida» — com 0, até "
-                 "«Soltar o carrossel».",
+                 "«Voltar a girar».",
     },
     "wallpaper_dia": {
         "rotulo": "Guardar esta imagem para o dia",
@@ -2053,7 +2081,11 @@ ACOES = {
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "lado", "@ARG@", "auto"), "arg": "paredes_ativas",
         "seco": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Tira a escolha escrita e devolve a imagem à luminância medida.",
+        # "LUMINÂNCIA" SAIU — 09/09/2026. É o nome exato da grandeza e ninguém
+        # precisa dele para entender: o que o projeto mede é o quanto a imagem
+        # é clara, e as outras três fichas desta mesma figura já dizem "a
+        # medição a ache escura/clara". Uma palavra por conceito.
+        "ajuda": "Tira a escolha e deixa o brilho medido da imagem decidir.",
     },
     # AS ÁREAS DE TRABALHO — 07/09/2026
     #   Pedido dela: "não temos a seção pra setar os dois ambientes de trabalho
@@ -2069,14 +2101,22 @@ ACOES = {
         "grupo": "Áreas de trabalho",
         "argv": _meow("areas", "estado"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Nome, ordem, id e encaixe de cada área. Não escreve nada.",
+        # O `id` SAIU DA FRASE — 09/09/2026. Ele continua na SAÍDA do comando,
+        # que é onde serve para alguma coisa; prometê-lo no rótulo obrigava a
+        # saber o que é um id de área para entender o que o botão mostra.
+        "ajuda": "Nome, ordem e encaixe de cada área. Não escreve nada.",
     },
     "areas_aplicar": {
         "rotulo": "Gravar as áreas",
         "grupo": "Áreas de trabalho",
         "argv": _meow("areas", "aplicar"),
         "seco": True, "sudo": False, "confirma": False,
-        "ajuda": "Vale no PRÓXIMO INÍCIO DE SESSÃO: o cosmic-comp lê esse arquivo "
+        # A CAIXA ALTA SAIU — 09/09/2026. Nenhum outro texto desta página grita,
+        # e o aviso não fica mais fraco em caixa baixa: quem o lê está com o
+        # dedo no botão. `cosmic-comp` FICA — é o nome do programa que lê o
+        # arquivo, e trocá-lo por "o sistema" apagaria a única pista de onde
+        # procurar quando isto não acontecer.
+        "ajuda": "Vale no próximo início de sessão: o cosmic-comp lê esse arquivo "
                  "uma vez, ao iniciar. Nada muda no painel agora, e isso não é defeito.",
     },
     "areas_reverter": {
@@ -2094,7 +2134,9 @@ ACOES = {
         # O ALFINETE É O QUE SEGURA A ÁREA: sem ele o cosmic-comp a destrói assim
         # que ela esvazia. Não é "esconder", é apagar — daí `destrutivo` e a
         # confirmação. O `MEOW_SIM` só entra porque a página já perguntou.
-        "ajuda": "APAGA a área: o nome some e o COSMIC a destrói quando ela esvaziar.",
+        # Caixa baixa, 09/09/2026: quem marca esta ação como perigosa é a
+        # pastilha vermelha ao lado, não o grito no meio da frase.
+        "ajuda": "Apaga a área: o nome some e o COSMIC a destrói quando ela esvaziar.",
         "ambiente": {"MEOW_SIM": "1"},
     },
     "wallpaper_desbanir": {
@@ -2115,20 +2157,26 @@ ACOES = {
     },
     # --- painel, janelas, leitura --------------------------------------------
     "painel_estado": {
-        "rotulo": "Painel e dock: diagnóstico",
+        # "DIAGNÓSTICO" SAIU, E O DOIS-PONTOS JUNTO — 09/09/2026. O rótulo
+        # repetia o nome da aba em que ele já está ("Painel e dock:") e gastava
+        # a metade que sobrava numa palavra de oficina. O que o botão faz é
+        # responder "como estão os dois?", e é isso que ele passa a dizer.
+        "rotulo": "Como estão o painel e a dock",
         "grupo": "Painel e dock",
         "argv": _meow("painel", "estado"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "O estado do painel, da dock, e do serviço que os "
-                 "supervisiona.",
+        "ajuda": "O estado do painel, da dock e do serviço que cuida dos dois.",
     },
     "painel_teto": {
         "rotulo": "Até quanto o canto pode arredondar",
         "grupo": "Painel e dock",
         "argv": _meow("painel", "teto"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "A conta inteira: altura real, teto derivado, e se o "
-                 "compositor limita em vez de derrubar o painel.",
+        # "TETO DERIVADO" SAIU — 09/09/2026. "Derivado" só diz alguma coisa a
+        # quem já sabe que o teto sai de uma conta; escrito por extenso, a
+        # frase ensina a conta em vez de nomeá-la.
+        "ajuda": "A conta inteira: a altura de verdade, o teto que sai dela, e "
+                 "se o compositor corta o excesso em vez de derrubar o painel.",
     },
     "painel_reciclar": {
         "rotulo": "Recarregar o painel",
@@ -2169,11 +2217,15 @@ ACOES = {
     },
     # --- aplicativos ---------------------------------------------------------
     "apps": {
-        "rotulo": "Programas: o que está vestido",
+        # "MÓDULO" SAIU — 09/09/2026. Módulo é como o `bin/meow` organiza o
+        # próprio código; na tela ele nomeava uma coluna que quem lê não tem
+        # como interpretar. O rótulo perdeu o dois-pontos pelo mesmo motivo do
+        # "Como estão o painel e a dock": ele repetia a aba onde já está.
+        "rotulo": "Quais programas estão vestidos",
         "grupo": "Lançadores e jogos",
         "argv": _meow("apps"),
         "seco": False, "sudo": False, "confirma": False,
-        "ajuda": "Módulo, programa instalado, tema aplicado ou pendente.",
+        "ajuda": "Um por linha: se está instalado, e se o tema já foi aplicado.",
     },
     "apps_aplicar": {
         "rotulo": "Vestir os programas agora",
@@ -3156,7 +3208,7 @@ class Trabalho:
         F5 no meio de um `./install.sh` mataria o processo, ou o deixaria órfão
         escrevendo num socket morto. Guardar as linhas aqui faz a página poder
         fechar, recarregar e voltar a acompanhar o MESMO trabalho de onde parou —
-        que é o comportamento que uma instalação de 49 etapas pede.
+        que é o comportamento que uma instalação de dezenas de etapas pede.
     """
 
     _seq = 0
@@ -3345,6 +3397,101 @@ TIPOS = {
 #   passa a apontar para o fork de quem clonou, que é o repositório de quem
 #   está olhando a tela. Sem remoto, a função devolve vazio e o menu não desenha
 #   o item — melhor um item a menos que um link que não abre.
+_medidas_cache = {"carimbo": None, "valor": None}
+
+
+def _medidas_do_projeto():
+    """Os dois números que a página diz em voz alta — CONTADOS do código, nunca
+    escritos aqui.
+
+    QUATRO LUGARES DIZIAM O MESMO NÚMERO E TRÊS ESTAVAM ERRADOS — 09/09/2026
+      O desenho da aba «Instalação» abria com `const ETAPAS_DO_INSTALADOR = 52`
+      e um comentário logo acima jurando *"os dois números são CONTADOS, não
+      lembrados"*. Eram lembrados: o `install.sh` tinha 53 etapas e o
+      `bin/meow`, 48 conferências. A ajuda dos botões dizia 52 e 46, o README
+      dizia 47, e o `docs/SPRINTS.md` dizia 46 — cinco versões da mesma verdade,
+      nenhuma conferida por ninguém.
+
+      É a armadilha nº 3 do repositório com outra roupa. Onde ela aparece como
+      *"toda lista fixa é uma lista que alguém vai esquecer"* — e por isso o
+      catálogo de chaves é derivado do `meow.conf.exemplo` —, aqui ela aparece
+      como TODO NÚMERO ESCRITO À MÃO É UM NÚMERO QUE ENVELHECE. A cura é a
+      mesma: contar na hora, da mesma fonte que executa.
+
+    DE ONDE SAI CADA UM
+      `etapas`       o `local etapas=(…)` do `install.sh` — a lista que o `main`
+                     percorre. Contar as funções `etapa_*` definidas no arquivo
+                     daria um número MAIOR: existem funções de etapa que a lista
+                     não chama (as do lançador entram por dentro de outra).
+      `conferencias` o `VERIFICAVEIS=(…)` do `bin/meow` — a lista que o `doctor`
+                     percorre. Conferido em 09/09/2026: ela tem exatamente os
+                     mesmos 48 nomes das funções `chk_*` definidas no arquivo,
+                     e nenhuma sobra dos dois lados.
+
+    QUANDO NÃO DÁ PARA CONTAR, NÃO SE CHUTA
+      Devolve `None` para o número que não conseguiu contar, e quem exibe tem de
+      saber calar. Um número errado na tela é pior que nenhum: foi exatamente
+      assim que os 52 sobreviveram a uma etapa nova sem ninguém notar.
+
+    O cache é pelo (mtime, tamanho) dos dois arquivos, e não pelo relógio: a
+    página relê o esquema a cada ação, e o `install.sh` pode ganhar uma etapa
+    no meio da sessão — foi para esse caso que este número deixou de ser
+    constante.
+    """
+    inst = os.path.join(RAIZ, "install.sh")
+    cli = os.path.join(RAIZ, "bin", "meow")
+    try:
+        carimbo = tuple((os.path.getmtime(f), os.path.getsize(f))
+                        for f in (inst, cli))
+    except OSError:
+        return {"etapas": None, "conferencias": None}
+    if _medidas_cache["carimbo"] == carimbo:
+        return _medidas_cache["valor"]
+
+    def ler(caminho):
+        try:
+            with open(caminho, encoding="utf-8", errors="replace") as fh:
+                return fh.read()
+        except OSError:
+            return ""
+
+    etapas = None
+    # A lista atravessa várias linhas e termina no primeiro `)` — por isso o
+    # `[^)]*`, e não um `.*?` guloso que engoliria o resto do arquivo.
+    m = re.search(r"^\s*local etapas=\(([^)]*)\)", ler(inst), re.M)
+    if m:
+        nomes = re.findall(r"\betapa_[a-z_0-9]+\b", m.group(1))
+        if nomes:
+            etapas = len(set(nomes))
+
+    conferencias = None
+    m = re.search(r"^VERIFICAVEIS=\(([^)]*)\)", ler(cli), re.M)
+    if m:
+        nomes = m.group(1).split()
+        if nomes:
+            conferencias = len(set(nomes))
+
+    valor = {"etapas": etapas, "conferencias": conferencias}
+    _medidas_cache["carimbo"] = carimbo
+    _medidas_cache["valor"] = valor
+    return valor
+
+
+def _com_medidas(texto, medidas):
+    """Troca `{as_etapas}` e `{as_conferencias}` pela contagem de agora.
+
+    O NÚMERO VEM COM O ARTIGO, e isso não é preciosismo: quando a contagem
+    falha, o texto tem de continuar sendo uma frase em português. `as 53 etapas`
+    vira `as etapas`, e a ajuda do botão perde o número em vez de ganhar um
+    buraco (`as  etapas`) ou uma mentira (o último número que alguém lembrou).
+    """
+    n = (medidas or {}).get("etapas")
+    texto = texto.replace("{as_etapas}", "as %d etapas" % n if n else "as etapas")
+    n = (medidas or {}).get("conferencias")
+    return texto.replace("{as_conferencias}",
+                         "as %d conferências" % n if n else "as conferências")
+
+
 def _repositorio_no_ar():
     """A URL https do `origin`, ou "" quando não há remoto que sirva."""
     try:
@@ -4579,8 +4726,18 @@ class Manipulador(BaseHTTPRequestHandler):
         if bool(corpo.get("seco")):
             return self._json({
                 "ok": True, "seco": True, "appid": appid,
-                "aviso": ("em ensaio: a linha de %s sairia do mapa" % appid) if remover
-                         else ("em ensaio: %s seria marcado para %s" % (appid, acao)),
+                # "SAIRIA DO MAPA" E O `appid` SAÍRAM DA TORRADA — 09/09/2026.
+                # Mesma passagem que tirou `jogos-fora.map` e `appid` dos
+                # quatro textos da oficina no `app.js`: uma torrada de 2,6 s
+                # não é lugar para o nome de um arquivo interno nem para um
+                # número de catálogo. E o jogo não precisa ser nomeado aqui —
+                # a torrada nasce do clique no cartão DELE, com o nome do
+                # jogo em cima; buscar o nome no manifesto só para repetir o
+                # que está na tela seria uma leitura de disco por clique.
+                "aviso": ("em ensaio: este jogo sairia da lista" if remover
+                          else "em ensaio: este jogo seria marcado para %s"
+                               % ("apagar os arquivos" if acao == "apagar"
+                                  else "sair do lançador")),
             })
         if not remover and acao not in ("esconder", "apagar"):
             return self._json({"erro": "ação tem de ser esconder ou apagar"}, 400)
@@ -4710,7 +4867,10 @@ class Manipulador(BaseHTTPRequestHandler):
         if bool(corpo.get("seco")):
             return self._json({
                 "ok": True, "seco": True, "app": app,
-                "aviso": ("em ensaio: %s sairia do mapa" % app) if remover
+                # Mesma troca do `_api_jogo_fora`: "mapa" é o nome do arquivo
+                # `apps-arcticons.map`, e na tela ele dizia menos que "a
+                # escolha". — 09/09/2026
+                "aviso": ("em ensaio: %s voltaria ao ícone de fábrica" % app) if remover
                          else ("em ensaio: %s ficaria com %s" % (app, glifo or "o desenho escolhido")),
             })
 
@@ -5722,6 +5882,7 @@ class Manipulador(BaseHTTPRequestHandler):
         for item in esquema:
             item["valor"] = brutos.get(item["chave"], "")
             item["efetivo"] = efetivos.get(item["chave"], "")
+        medidas = _medidas_do_projeto()
         return {
             "conf": CONF,
             "conf_existe": os.path.isfile(CONF),
@@ -5745,8 +5906,14 @@ class Manipulador(BaseHTTPRequestHandler):
             #   avisar do que não vai acontecer gasta a confiança do aviso que
             #   importa. `instalar` mantém a pastilha em qualquer caso: é ele
             #   que escreve em `/etc/sudoers.d`, e essa é a senha que existe.
+            # OS NÚMEROS QUE A PÁGINA DIZ EM VOZ ALTA SÃO CONTADOS AQUI —
+            # 09/09/2026. Ver `_medidas_do_projeto`: eles iam para o desenho da
+            # aba «Instalação» e para a ajuda de dois botões, e estavam escritos
+            # à mão em cinco lugares que já discordavam entre si.
+            "medidas": medidas,
             "acoes": [
                 dict(v, id=k,
+                     ajuda=_com_medidas(v.get("ajuda", ""), medidas),
                      argv=" ".join(shlex.quote(p) for p in v["argv"]),
                      escreve=escreve(v),
                      sudo=bool(v.get("sudo")) and not (
