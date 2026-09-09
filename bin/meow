@@ -533,6 +533,57 @@ chk_apps() {
     SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir 2>&1
 }
 
+# O ÚNICO VERIFICADOR QUE LÊ O CÓDIGO DE OUTRO PROGRAMA — E POR QUE ELE EXISTE
+#   O módulo do Heroic (`assets/temas-de-apps/heroic/manifesto.sh`) grava em
+#   `store/config.json` o NOME DO ARQUIVO do tema, com a extensão. Isso não é
+#   convenção: é a forma exata do handler do Heroic 2.22.1, lido no `app.asar`,
+#   que faz `path.join(customThemesPath, theme)` sem acrescentar nada. Escrever
+#   sem o `.css` deixa a tela DE FÁBRICA sem um erro, sem um aviso e sem uma
+#   linha de log — foi o defeito de 08/09/2026, e ele passou por "medido de
+#   ponta a ponta" porque a medição olhou os arquivos e não a janela.
+#
+#   Este verificador relê o handler a cada passagem. Se um Heroic futuro passar
+#   a juntar o ".css" ele mesmo, o nosso valor vira `…css.css`, o arquivo não é
+#   achado, e a tela apaga de novo em silêncio — só que desta vez o doctor diz o
+#   nome do defeito. NÃO tem conserto automático de propósito: não dá para
+#   adivinhar a forma nova a partir da ausência da antiga, e um `--consertar`
+#   chutando às 5h da manhã é pior que um aviso. Por isso está em SEM_CONSERTO.
+#
+#   Devolve 3 (e não 1) quando o Heroic não está instalado, quando não é flatpak
+#   ou quando o `app.asar` não está onde se espera: numa máquina sem Heroic isto
+#   não é divergência, e 3 é o código que faz o auto-reparo ficar quieto.
+#
+#   O caminho vem dos symlinks `current/active` do flatpak, e NÃO de
+#   `flatpak info --show-location`: `flatpak info` deixa um repo ostree inteiro
+#   em ~/.local/share/flatpak/repo só por ter sido perguntado (medido em HOME
+#   virgem, 10/08/2026 — está no `meow_flatpak_tem`), e conferir não pode
+#   escrever. Custo medido do `grep -a` nos 107 MB do asar: 0,02 s no pior caso,
+#   porque o `-q` para no primeiro casamento.
+chk_heroictema() {
+  local id="com.heroicgameslauncher.hgl" raiz asar=""
+  meow_flatpak_tem "$id" || {
+    echo "Heroic não está instalado — nada a conferir"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+  for raiz in "$HOME/.local/share/flatpak" "/var/lib/flatpak"; do
+    [ -f "$raiz/app/$id/current/active/files/bin/heroic/resources/app.asar" ] || continue
+    asar="$raiz/app/$id/current/active/files/bin/heroic/resources/app.asar"
+    break
+  done
+  [ -n "$asar" ] || {
+    echo "Heroic presente, mas sem app.asar de flatpak ao alcance — nada a conferir"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+  if grep -aq -- 'join(customThemesPath, theme)' "$asar"; then
+    echo "o Heroic abre o tema pelo nome do arquivo — o módulo grava com o .css, e está certo"
+    return 0
+  fi
+  echo "o getThemeCSS do Heroic mudou de forma: não achei 'join(customThemesPath, theme)' no app.asar"
+  echo "o módulo grava 'theme' COM o .css por causa dessa linha; confira o handler antes de confiar na tela"
+  echo "arquivo: $asar"
+  return "$MEOW_DIVERGENTE"
+}
+
 # O APPLET DE MÍDIA ENTRA COM DOIS NOMES, E ISSO NÃO É ARRUMAÇÃO — É O LAÇO
 #   `midiabin` é o binário compilado (scripts/midia_build.sh); `midia` é a sombra
 #   `.desktop` e as chaves (scripts/midia.sh). São dois porque o laço de conserto
@@ -1232,7 +1283,7 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps midiabin midia assets svg flatpak steamvigia autostart atalho)
+VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia autostart atalho)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
@@ -1244,9 +1295,9 @@ VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relo
 #   escreve em `/etc/sudoers.d`, e um auto-reparo por relógio não escreve em
 #   `/etc/sudoers.d` — essa continua sendo uma decisão que passa por ela, no
 #   `./install.sh`, com a senha na mão.
-SEM_CONSERTO=" conf ponte convertidos midiabin leiturabin cursor patches "
+SEM_CONSERTO=" conf ponte convertidos heroictema midiabin leiturabin cursor patches "
 if ! meow_ponte_viva; then
-  SEM_CONSERTO=" conf ponte ocultar absolutos convertidos lancadorapt midiabin leiturabin cursor patches "
+  SEM_CONSERTO=" conf ponte ocultar absolutos convertidos lancadorapt heroictema midiabin leiturabin cursor patches "
 fi
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -1259,6 +1310,7 @@ declare -A SEM_CONSERTO_RAZAO=(
   [ocultar]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [absolutos]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
+  [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste assets/temas-de-apps/heroic/manifesto.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
   [midiabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: MIDIA_COMPILAR=1 ./scripts/midia_build.sh"
   [leiturabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
