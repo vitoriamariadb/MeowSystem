@@ -3694,7 +3694,31 @@ class Manipulador(BaseHTTPRequestHandler):
             alvo_arq = os.path.realpath(pedido)
             ok_pasta = any(pedido.startswith(p + os.sep) or alvo_arq.startswith(p + os.sep)
                            for p in permitidos)
+            # A EXTENSÃO É CONFERIDA NOS DOIS CAMINHOS, E A MEDIÇÃO EXIGIU ISSO
+            #   Aceitar o caminho PEDIDO curou o «Original» da oficina, que
+            #   aparecia quebrado porque a arte de metade dos aplicativos é um
+            #   link do flatpak para fora das raízes. Só que, conferida no
+            #   pedido, a peneira de extensão passou a olhar o NOME e não o
+            #   arquivo: um link `.svg` plantado dentro de uma raiz permitida
+            #   servia qualquer coisa que a usuária lê. Medido em 09/09/2026 com
+            #   um link em `~/.local/share/icons` apontando para um `.txt` fora
+            #   de toda raiz: 200, e o conteúdo na resposta.
+            #
+            #   Não é escalada de privilégio — plantar o link exige escrita numa
+            #   das raízes, e quem a tem já lê os arquivos dela. Mas UMA das
+            #   raízes é `assets/icones`, do repositório, que é PÚBLICO: um link
+            #   simbólico numa contribuição viraria leitura de arquivo na máquina
+            #   de quem rodasse o painel. É estreito e é evitável.
+            #
+            #   O conserto não desfaz a cura: o link do flatpak preserva a
+            #   extensão do outro lado (medido nos 3 primeiros: `.svg` → `.svg`),
+            #   então exigir que as duas batam deixa passar o caso real e barra o
+            #   link que troca de tipo. `isfile` recusa link quebrado, diretório
+            #   e dispositivo — a rota lê o arquivo inteiro na memória.
             ext_arq = os.path.splitext(pedido)[1].lower()
+            ext_alvo = os.path.splitext(alvo_arq)[1].lower()
+            if ext_alvo != ext_arq or not os.path.isfile(alvo_arq):
+                return self._recusar(404, "não achei")
             # O `.jpg` entrou em 02/09/2026 com a seção "Jogos da Steam": a arte
             # do `appcache/librarycache` é JPEG, e sem ele a grade de jogos
             # abriria com 22 quadrados vazios. A cerca NÃO muda — `~/.steam` já
