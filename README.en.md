@@ -14,7 +14,7 @@
 ![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 
 [![installer](https://img.shields.io/badge/installer-54%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-49%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![doctor](https://img.shields.io/badge/doctor-50%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 [![browser suite](https://img.shields.io/badge/browser-103%2F103-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
 Theme, icons, panel, dock, terminal and wallpaper for Pop!_OS with COSMIC in a single installer,
@@ -128,7 +128,7 @@ The **Ensaiar sem gravar** button (dry run) glows amber while it is on, and with
 ## Check and undo
 
 ```bash
-meow doctor                            # 49 checks. Writes nothing.
+meow doctor                            # 50 checks. Writes nothing.
 meow doctor --consertar                # applies only what is out of place
 ./scripts/aplicar_tema.sh original     # restores the previous theme
 meow desinstalar                       # removes theme, icons and timers

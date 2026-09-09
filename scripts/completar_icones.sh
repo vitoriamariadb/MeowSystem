@@ -501,6 +501,74 @@ for nome in "${!DO_HICOLOR[@]}"; do
   fi
 done
 
+# ---------------------------------------------------------------------------
+# O QUE SAIU DO MAPA TEM DE SAIR DO DISCO — 09/09/2026
+# ---------------------------------------------------------------------------
+# O cabeçalho do `apps-hicolor.map` prometia, palavra por palavra, que apagar
+# uma linha bastava: *"sem a linha, o nome volta a ser órfão para ele
+# [o icones_apps.sh] e sai no próximo --aplicar"*. A PROMESSA ERA FALSA, e
+# custou um ícone invisível por um mês.
+#
+#   A varredura de órfão do `icones_apps.sh` percorre o `512x512/apps` mais os
+#   tamanhos da ESCADA (`meow_icones_escada`), que nesta tela é 16..80. O
+#   `thunderbird.png` morava em `128x128/apps` — declarado no `index.theme`,
+#   servido pelo resolvedor, e fora da escada. Ninguém varria aquele diretório.
+#
+#   Consequência medida: o traço do Arcticons estava instalado em `48x48/apps`,
+#   correto e com a cor da marca, e a tela dela mostrava o raster de fábrica —
+#   porque o resolvedor escolhe por TAMANHO e lançador e painel pedem mais que
+#   48. O pior desfecho possível: parece que o trabalho não foi feito.
+#
+# É a lição de 11/08/2026 outra vez — *"tirar do mapa não basta; as duas
+# metades, sair do mapa e sair do disco, andam juntas"*. Quem escreve é este
+# script; então é ele que apaga, e não o vizinho.
+#
+# A REGRA É POR CONTEÚDO, E É ISSO QUE A TORNA SEGURA
+#   Um `.png` num `<tam>/apps` do nosso tema só é meu quando é BYTE A BYTE
+#   igual a um arquivo do `hicolor` do sistema, no mesmo tamanho — que é
+#   exatamente o que este laço acima escreve, com `cp -f`. Nada mais no tema
+#   passa nesse teste: os derivados do `icones_apps.sh` saem de um `convert
+#   -filter Lanczos` sobre o acervo Catppuccin e diferem; os do Arcticons são
+#   `.svg`; e o que ela puser ali à mão não é cópia do hicolor.
+#
+#   Comparar por NOME seria o defeito de sempre — o nome não diz quem escreveu.
+_hicolor_orfaos() {
+  local dir lado arq nome fonte n=0
+  for dir in "$TEMA_DIR"/*x*/apps; do
+    [ -d "$dir" ] || continue
+    lado="$(basename "$(dirname "$dir")")"
+    for arq in "$dir"/*.png; do
+      [ -e "$arq" ] || continue
+      nome="$(basename "$arq" .png)"
+      # ainda no mapa: é meu e continua sendo
+      [ -n "${DO_HICOLOR[$nome]:-}" ] && continue
+      fonte="/usr/share/icons/hicolor/$lado/apps/$nome.png"
+      [ -f "$fonte" ] || continue
+      cmp -s "$fonte" "$arq" || continue
+      printf '%s\n' "$arq"
+      n=$((n + 1))
+    done
+  done
+  return 0
+}
+
+while IFS= read -r arq; do
+  [ -n "$arq" ] || continue
+  if meow_seco; then
+    meow_muda "removeria $(printf '%s' "$arq" | sed "s|^$TEMA_DIR/||") (saiu do apps-hicolor.map; o traço volta a valer)"
+    mudou=1
+  else
+    meow_destino_permitido "$arq" || exit "$MEOW_ERRO"
+    if rm -f "$arq"; then
+      meow_muda "removido $(printf '%s' "$arq" | sed "s|^$TEMA_DIR/||") — saiu do apps-hicolor.map, o traço volta a valer"
+      mudou=1
+    else
+      meow_aviso "não consegui remover $arq — a marca de fábrica continua vencendo o traço"
+      avisos=1
+    fi
+  fi
+done < <(_hicolor_orfaos)
+
 for nome in "${!AUTORAL[@]}" "${!APELIDO[@]}"; do
   [ -f "$ALVO/$nome.svg" ] || faltando+=("$nome")
 done
@@ -510,8 +578,16 @@ if [ ${#faltando[@]} -gt 0 ] && ! meow_seco; then
 fi
 
 # A auditoria geral (todos os .desktop da máquina) é de outra frente. Só aponta.
-[ -x "$RAIZ/scripts/auditar_icones.sh" ] &&
+#
+# NÃO NO SECO, E O MOTIVO É O `meow doctor` — 09/09/2026. O doctor roda este
+# script com `MEOW_DRY_RUN=1` e mostra a PRIMEIRA linha da saída como veredito.
+# Com o convite aqui, a linha da conferência dizia *"ok completar — auditoria
+# completa da máquina: ./scripts/auditar_icones.sh"*: um anúncio de outra
+# ferramenta no lugar de um veredito. Conferir responde "está no lugar?"; sugerir
+# o passo seguinte é conversa de quem acabou de APLICAR.
+if ! meow_seco && [ -x "$RAIZ/scripts/auditar_icones.sh" ]; then
   meow_info "auditoria completa da máquina: ./scripts/auditar_icones.sh"
+fi
 
 if [ "$mudou" = "0" ]; then
   meow_ok "ícones completos: ${#AUTORAL[@]} autorais e ${#APELIDO[@]} apelido(s) já no lugar"

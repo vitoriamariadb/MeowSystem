@@ -323,8 +323,32 @@
 # todos muito bons"*. Os que ela viu e que ganharam foram para o mapa novo.
 #
 # QUEM FICA AQUI, E POR QUÊ — cada um por medida, não por sobra:
-#   firefox · org.kde.krita · thunderbird   a conversão FALHA: raposa, camaleão e
-#       passarinho são orgânicos, a informação está no preenchimento.
+#   firefox · org.kde.krita                 a conversão FALHA: raposa e camaleão
+#       são orgânicos, a informação está no preenchimento.
+#   thunderbird                             MEDIDO DE NOVO EM 09/09/2026, E A
+#       AFIRMAÇÃO ANTERIOR CAIU. Esta linha dizia que a conversão FALHAVA pelo
+#       mesmo motivo dos outros dois. Não falha: com `--k 8 --funde 25` o
+#       conversor devolve o pássaro com a ABA DO ENVELOPE, e o desenho lê. O que
+#       falhava era o PADRÃO — `--funde 46` funde o envelope (cinza-claro) no
+#       corpo do pássaro, porque os dois estão a menos de 46 de distância em RGB,
+#       e o que sai é um círculo liso onde devia haver um ∨.
+#
+#       É a mesma aritmética da boca do Wilber (`retoques/LEIA-ME.txt`), com o
+#       desfecho oposto: lá baixar o `--funde` mata o focinho junto e não há
+#       saída; aqui não há nada para matar, e baixar resolve.
+#
+#       ELE CONTINUA AQUI ASSIM MESMO, e por escolha: o glifo do Arcticons é
+#       mais limpo — o traço da asa tem intenção, e o do conversor tem contorno.
+#       Ela olhou os dois lado a lado em 09/09 e ficou com este. O que muda é o
+#       MOTIVO: não é "o conversor não consegue", é "o desenhado à mão está
+#       melhor". Motivo errado no arquivo é pior que motivo nenhum, porque quem
+#       ler amanhã não vai tentar de novo.
+#
+#       E o achado que vale mais que este ícone: o `apps-convertidos.map` tem um
+#       QUARTO CAMPO para parâmetro por ícone desde que existe, e **0 de 33
+#       linhas o usam** — o cabeçalho do `construir_convertidos.sh` até diz
+#       "hoje TODOS estão vazios". Antes de inventar algoritmo global novo, há
+#       uma válvula construída e nunca girada.
 #   com.boxy_svg.BoxySVG                    a flor do meio vira bolha a 48px.
 #   btop                                    a conversão é fiel ao Papirus — e o
 #       Papirus é o "B" na placa opaca de que ela reclamou. O Arcticons já tinha
