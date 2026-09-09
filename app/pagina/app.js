@@ -2019,238 +2019,427 @@ function montarEscolhaDeIcone(app, recarregar) {
  *   Foi assim que 25 dos 33 convertidos que já existem nasceram; a diferença é
  *   que até hoje isso exigia editar um mapa e rodar dois scripts no terminal.
  *
- * O CICLO É VER-MEXER-SALVAR, e o meio é a razão de ela ter pedido SVG:
- *   1. "Vetorizar" chama o conversor e mostra o resultado. Nada é gravado.
- *   2. Os três controles são os que a folha de 11/08 provou mudarem o desenho
- *      (cores da quantização, fusão de cor, tolerância da simplificação).
- *      Mexer num deles vetoriza de novo.
- *   3. A caixa de texto é o SVG, e o desenho ao lado a acompanha a cada tecla.
- *      É aqui que "modificar depois" acontece — e o mesmo lugar serve para
- *      desenhar do zero quando o aplicativo não tem arte de fábrica nenhuma.
- *   4. "Usar este desenho" grava em `retoques/` e no mapa dos convertidos.
+ * A TELA FOI REFEITA EM 09/09/2026, e o motivo são quatro palavras dela:
+ *   *"o nosso gerador de ícones é fraco, não gera variações nem é tão bonito
+ *   quanto o original, além de ficar pixelado e não ser intuitivo e fácil de
+ *   usar."*
  *
- * O DESENHO É MOSTRADO EM DOIS TAMANHOS, e não é enfeite: a 48 px é o tamanho
- * REAL da dock (medido em 27/08: 40, 36 e 40 px de caixa de tinta), e é o único
- * juízo que vale. O grande existe para ela ver o que está mexendo. Metade dos
- * seis desenhos de hoje foram refeitos porque liam a 260 px e sumiam a 48.
+ *   Quatro queixas, e três moram aqui (a quarta, o pixelado, é do conversor):
+ *
+ *   · NÃO GERA VARIAÇÕES. Era um clique, um desenho; para ver outro, mexer num
+ *     número e clicar de novo — e quem não sabe o que o número faz não mexe.
+ *     Agora a oficina abre já mostrando a FOLHA: cinco a seis desenhos, todos
+ *     convertidos de uma vez (0,3 a 1,3 s medidos, em paralelo no servidor).
+ *   · NÃO É TÃO BONITO QUANTO O ORIGINAL. O original NUNCA aparecia — comparar
+ *     era memória. Agora ele é o primeiro cartão da folha, a 48 e a 96, com
+ *     borda tracejada porque é régua e não opção.
+ *   · NÃO É INTUITIVO. "Cores/Fusão/Aparo" são os botões do conversor, não a
+ *     língua dela; editar era escrever XML; e pôr na tela eram dois botões.
+ *     Agora: duas réguas de gosto (Detalhe, Suavidade), a lupa como EDITOR
+ *     (clique num traço = tira, e o Desfazer devolve), e um verbo só — «Usar»,
+ *     que grava e instala. O XML continua existindo, dobrado.
+ *
+ * ESCOLHER NÃO É GRAVAR — regra dela, 01/09. Clicar num cartão troca a lupa, a
+ * tira do dock e as réguas, e não escreve nada. Só o «Usar» escreve.
+ *
+ * O DESENHO É JULGADO A 48 PX, e não é enfeite: é o tamanho REAL da dock
+ * (medido em 27/08: 40, 36 e 40 px de caixa de tinta). Metade dos desenhos de
+ * 08/2026 foi refeita porque lia grande e sumia pequena — por isso a tira
+ * mostra o desenho a 48 ENTRE DOIS VIZINHOS reais do acervo, na cor de cada um.
  *
  * O ESTADO MORA FORA DO `render()` — esta página se repinta a cada clique, e um
  * rascunho guardado num nó da árvore morreria no primeiro toque em qualquer
- * outro controle. `OFICINA.app` é a chave: trocar de aplicativo joga o rascunho
- * fora de propósito, porque ele é de outro desenho. */
-let OFICINA = { app: null, svg: "", origem: "", ocupada: false, erro: "",
-                k: "", funde: "", tol: "", aberta: false, fonte: "icone" };
+ * outro controle. `OFICINA.app` é a chave: trocar de aplicativo joga a folha
+ * fora de propósito, porque ela é de outro desenho.
+ *
+ * ABERTA CONTINUA ABERTA, E CARREGADA CONTINUA CARREGADA — 08/09, e de novo
+ * agora. Salvar chama `relerLista()`, que redesenha a página inteira: o
+ * `details` morria e nascia fechado debaixo do cursor de quem acabou de gravar.
+ * A cura de ontem era só o `aberta`; a folha de variações precisa da mesma
+ * proteção e de mais uma — sem o `carregou`, o nó novo pediria as seis
+ * conversões OUTRA VEZ a cada salvamento. */
+let OFICINA = oficinaZerada(null);
+
+function oficinaZerada(id) {
+  return {
+    app: id,              // id do .desktop
+    aberta: false, carregou: false, ocupada: false, erro: "",
+    cor: "",              // corDaOficina(app), fixada ao carregar
+    origem: "", original: "", capa: "",
+    variacoes: [], vizinhos: [], salvo: null,
+    escolhida: null,      // "salvo" | "fiel" | … | "editado" | null
+    escolhidaAntes: null, // o cartão de onde o desenho veio, para o Desfazer
+                          // devolver a marca quando a última mão for desfeita
+    base: "",             // o desenho do cartão escolhido, como veio
+    svg: "",              // o texto VIVO — o que a lupa mostra e o Usar grava
+    parametros: "", fonte: "icone",
+    detalhe: 6, suavidade: 2, cheia: false,
+    historico: [],        // pilha para o Desfazer (máx. 30)
+    temporizador: null,   // a espera das réguas
+  };
+}
+
+/* `houveMao()` é só informativo: quem decide se o desenho é regenerável ou
+ * retoque à mão é o SERVIDOR, reconvertendo e comparando. Uma decisão do
+ * cliente aqui seria uma promessa que o navegador não tem como cumprir. */
+function houveMao() {
+  return OFICINA.svg.trim() !== OFICINA.base.trim();
+}
+
+/* Uma função para todos os tamanhos: o cartão a 48 e a 96, a tira do dock a 48,
+ * a lupa a 200. Devolve `null` quando o texto não é SVG — quem chama decide o
+ * que dizer.
+ *
+ * O DESENHO ENTRA COMO DOCUMENTO, NUNCA COMO HTML CRU. `innerHTML` com o que
+ * veio de uma caixa de texto é a porta aberta de sempre. `DOMParser` em
+ * `image/svg+xml` não executa `script` nem busca `href`, e o que ele devolve é
+ * um documento morto que só serve para ser desenhado. */
+function desenhar(texto, px, cor, opcoes = {}) {
+  let doc;
+  try { doc = new DOMParser().parseFromString(String(texto || "").trim(), "image/svg+xml"); }
+  catch (e) { return null; }
+  const raiz = doc.documentElement;
+  if (!raiz || raiz.nodeName === "parsererror" || doc.querySelector("parsererror")) return null;
+  const no = document.importNode(raiz, true);
+  no.setAttribute("width", String(px));
+  no.setAttribute("height", String(px));
+  /* A espessura e a cor NÃO estão no arquivo, de propósito — quem as põe é o
+   * instalador. Aqui entram só para olhar, com os mesmos números que vão para o
+   * disco: 2,25 de traço (o TRACO de 48x48/apps) e a cor da fileira acima. Até
+   * ontem a prévia pintava em `var(--text)`; agora pinta na cor REAL, que é a
+   * única forma de a folha responder "como isto fica na dock?". */
+  no.setAttribute("stroke-width", "2.25");
+  if (cor) no.style.color = `var(--${cor})`;
+  /* Os ouvintes entram DEPOIS do `importNode`: postos no documento do
+   * `DOMParser` eles morreriam na importação, e o clique não chegaria em nada. */
+  if (opcoes.clicavel) {
+    no.querySelectorAll("path").forEach((p, i) => {
+      p.dataset.i = String(i);
+      /* `tabindex="-1"`: os traços não entram na fila do Tab — seriam quarenta
+       * paradas entre um controle e o seguinte. O caminho por teclado para tirar
+       * um traço é a caixa de texto, dobrada em «Editar o SVG». */
+      p.setAttribute("tabindex", "-1");
+      p.addEventListener("click", (e) => { e.preventDefault(); tirar(i); });
+    });
+  }
+  return no;
+}
+
+function tirar(i) {
+  const doc = new DOMParser().parseFromString(OFICINA.svg, "image/svg+xml");
+  const caminhos = doc.querySelectorAll("path");
+  if (!caminhos[i]) return;
+  OFICINA.historico.push(OFICINA.svg);
+  if (OFICINA.historico.length > 30) OFICINA.historico.shift();
+  caminhos[i].remove();
+  /* O TEXTO É A VERDADE, O DOM É A VISTA. O `XMLSerializer` devolve o mesmo
+   * documento menos um nó: `xmlns`, `viewBox`, `fill="none"` e
+   * `stroke="currentColor"` do `<g>` sobrevivem inteiros — e é por isso que o
+   * `_conferir_dialeto` do servidor continua passando depois de tirar traço. */
+  OFICINA.svg = new XMLSerializer().serializeToString(doc);
+  if (OFICINA.escolhida !== "editado" && houveMao()) OFICINA.escolhida = "editado";
+  redesenharOficina();
+}
+
+function desfazerOficina() {
+  if (!OFICINA.historico.length) return;
+  OFICINA.svg = OFICINA.historico.pop();
+  if (!houveMao()) OFICINA.escolhida = OFICINA.escolhidaAntes || OFICINA.escolhida;
+  redesenharOficina();
+}
+
+/* O gancho que o nó vivo instala; trocado a cada montagem, e é o que faz o
+ * estado mandar na tela em vez de o contrário. */
+let redesenharOficina = () => {};
 
 function oficinaDeDesenho(app, relerLista) {
-  if (OFICINA.app !== app.id) {
-    OFICINA = { app: app.id, svg: "", origem: "", ocupada: false, erro: "",
-                k: "", funde: "", tol: "", aberta: false, fonte: "icone" };
-  }
-  /* ABERTA CONTINUA ABERTA — 08/09/2026, visto no teste de navegador.
-   *   Salvar chama `relerLista()`, que redesenha a página inteira: o `details`
-   *   morre e nasce fechado, e a caixa de texto some debaixo do cursor de quem
-   *   acabou de gravar. É o mesmo modo de falha que o `ancoraDoFoco` já cura
-   *   para o foco e o `devolverRolagem` para a rolagem — o estado da tela não
-   *   pode morrer com o nó que o desenhava. */
+  if (OFICINA.app !== app.id) OFICINA = oficinaZerada(app.id);
+  OFICINA.cor = corDaOficina(app);
+
   const caixa = elemento("details", { class: "oficina" });
   if (OFICINA.aberta) caixa.setAttribute("open", "");
-  caixa.addEventListener("toggle", () => { OFICINA.aberta = caixa.open; });
-  const temCapa = /^(meow-steam-|steam_app_)\d+$/.test(String(app.id));
-  caixa.append(elemento("summary", {
-    texto: temCapa
-      ? "Desenhar um no nosso traço — a partir do ícone ou da capa"
-      : "Desenhar um no nosso traço, a partir da arte dele",
-  }));
-  caixa.append(elemento("p", { class: "frase",
-    texto: "Traz a arte de fábrica para o nosso traço. O resultado é um SVG que "
-         + "você pode mexer aqui mesmo antes de aceitar." }));
 
-  /* --- as duas prévias, e a mensagem quando ainda não há o que ver --------- */
-  const previa48 = elemento("div", { class: "oficina-48" });
-  const previaG = elemento("div", { class: "oficina-grande" });
-  const aviso = elemento("p", { class: "sem-previa" });
+  /* --- o resumo, e o único verbo que escreve ------------------------------ */
+  const botaoUsar = elemento("button", {
+    type: "button", class: "btn btn-accent btn-mini", texto: "Usar",
+    title: "Grava este desenho e o põe na tela.",
+    /* O `Usar` mora DENTRO do `<summary>`, e sem isto o clique nele borbulharia
+     * até o summary e FECHARIA a oficina em cima do que ela acabou de gravar. */
+    onclick: (e) => { e.stopPropagation(); e.preventDefault(); usar(); },
+  });
+  caixa.append(elemento("summary", {}, [
+    elemento("span", { texto: "Desenho no nosso traço" }), botaoUsar,
+  ]));
+
+  /* --- os lugares fixos: o estado pinta neles, nunca lê deles ------------- */
+  const caixaFolha = elemento("div", { class: "oficina-folha", role: "group",
+                                       "aria-label": "Variações" });
+  const caixaDock = elemento("div", { class: "oficina-dock-caixa" });
+  const caixaLupa = elemento("div", { class: "oficina-lupa" });
+  const dica = elemento("p", { class: "oficina-lupa-dica" });
+  const caixaReguas = elemento("div", { class: "oficina-lado" });
+
   const area = elemento("textarea", {
     class: "oficina-fonte", rows: "10", spellcheck: "false",
-    "data-foco": "oficina-svg",
-    "aria-label": "O SVG do desenho",
+    "data-foco": "oficina-svg", "aria-label": "O SVG do desenho",
     placeholder: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" …',
+    oninput: () => {
+      OFICINA.historico.push(OFICINA.svg);
+      if (OFICINA.historico.length > 30) OFICINA.historico.shift();
+      OFICINA.svg = area.value;
+      OFICINA.erro = "";
+      if (houveMao()) OFICINA.escolhida = "editado";
+      pintarLupa(); pintarDock(); pintarFolha(); sincronizarReguas();
+    },
   });
   area.value = OFICINA.svg;
 
-  /* O DESENHO É INSERIDO COMO TEXTO, NUNCA COMO HTML CRU.
-   *   `innerHTML` com o que veio de uma caixa de texto é a porta aberta de
-   *   sempre. `DOMParser` em `image/svg+xml` não executa `script` nem busca
-   *   `href`, e o que ele devolve é um documento morto que só serve para ser
-   *   desenhado — e o servidor recusa os dois na hora de salvar, de qualquer
-   *   forma. Duas cercas, porque a de cá também protege a página dela. */
-  const pintar = () => {
-    const texto = String(area.value || "").trim();
-    previa48.replaceChildren();
-    previaG.replaceChildren();
-    if (!texto) {
-      aviso.textContent = OFICINA.ocupada
-        ? "Vetorizando…"
-        : (OFICINA.erro || "Clique em «Vetorizar» — ou cole um SVG na caixa.");
+  const botaoDesfazer = elemento("button", {
+    type: "button", class: "btn btn-mini", texto: "Desfazer",
+    disabled: !OFICINA.historico.length,
+    onclick: desfazerOficina,
+  });
+
+  /* --- as réguas: nomes de gosto, não de algoritmo ------------------------ */
+  /* «Cores», «Fusão» e «Aparo» eram os três botões do conversor, e ela disse o
+   * que eles são: *"não é intuitivo e fácil de usar"*. Duas réguas descrevem o
+   * RESULTADO; a tradução para os três números mora no servidor, num lugar só. */
+  const regua = (nome, rotulo) => elemento("label", { class: "oficina-regua" }, [
+    elemento("span", { texto: rotulo }),
+    elemento("input", {
+      type: "range", name: nome, min: "0", max: "10", step: "1",
+      value: String(OFICINA[nome]), "aria-label": rotulo,
+      "data-foco": "oficina-" + nome,
+      oninput: (e) => { OFICINA[nome] = Number(e.target.value); reguar(); },
+    }),
+  ]);
+  const reguaDetalhe = regua("detalhe", "Detalhe");
+  const reguaSuavidade = regua("suavidade", "Suavidade");
+  caixaReguas.append(reguaDetalhe, reguaSuavidade,
+                     elemento("div", { class: "escolha-botoes" }, [botaoDesfazer]));
+
+  const edicao = elemento("details", { class: "oficina-edicao" }, [
+    elemento("summary", { texto: "Editar o SVG" }), area,
+  ]);
+
+  caixa.append(caixaFolha, caixaDock,
+               elemento("div", { class: "oficina-par" }, [
+                 elemento("div", {}, [caixaLupa, dica]), caixaReguas,
+               ]),
+               edicao);
+
+  /* --- as pinturas: todas a partir de OFICINA, nunca do DOM --------------- */
+  function pintarFolha() {
+    caixaFolha.replaceChildren();
+    if (OFICINA.original) {
+      caixaFolha.append(elemento("figure", { class: "oficina-cartao oficina-original" }, [
+        elemento("img", { src: OFICINA.original, alt: "", width: "48", height: "48" }),
+        elemento("img", { src: OFICINA.original, alt: "", width: "96", height: "96" }),
+        elemento("figcaption", { class: "oficina-rotulo", texto: "Original" }),
+      ]));
+    }
+    const cartoes = [];
+    if (OFICINA.salvo && OFICINA.salvo.tem) {
+      cartoes.push({ id: "salvo", rotulo: "Salvo", svg: OFICINA.salvo.svg,
+                     nota: OFICINA.salvo.modo === "mao" ? "Retoque à mão" : "Conversão do mapa" });
+    }
+    cartoes.push(...OFICINA.variacoes);
+    if (!cartoes.length) {
+      if (OFICINA.ocupada) {
+        for (let i = 0; i < 4; i++) {
+          caixaFolha.append(elemento("span", { class: "oficina-cartao oficina-original" }, [
+            elemento("span", { class: "oficina-lugar", style: "width:96px;height:96px" }),
+            elemento("span", { class: "oficina-rotulo", texto: "Desenhando…" }),
+          ]));
+        }
+      } else if (!OFICINA.erro) {
+        caixaFolha.append(elemento("p", { class: "oficina-lupa-dica",
+          texto: "Sem arte de fábrica — desenhe em «Editar o SVG»." }));
+      }
       return;
     }
-    aviso.textContent = OFICINA.erro || "";
-    let doc;
-    try { doc = new DOMParser().parseFromString(texto, "image/svg+xml"); }
-    catch (e) { aviso.textContent = "o texto não é um SVG válido"; return; }
-    const raiz = doc.documentElement;
-    if (!raiz || raiz.nodeName === "parsererror" || doc.querySelector("parsererror")) {
-      aviso.textContent = "o texto não é um SVG válido — falta fechar alguma etiqueta?";
-      return;
+    for (const v of cartoes) {
+      const b = elemento("button", {
+        type: "button", class: "oficina-cartao", "data-id": v.id,
+        "aria-pressed": String(OFICINA.escolhida === v.id),
+        title: v.nota || v.erro || "",
+        disabled: !!v.erro,
+        onclick: () => escolher(v.id),
+      });
+      const g48 = v.erro ? null : desenhar(v.svg, 48, OFICINA.cor);
+      const g96 = v.erro ? null : desenhar(v.svg, 96, OFICINA.cor);
+      if (g48 && g96) {
+        b.append(g48, g96);
+      } else {
+        b.append(elemento("span", { class: "oficina-lugar", style: "width:96px;height:96px" }));
+      }
+      b.append(elemento("span", {
+        class: "oficina-rotulo" + (v.erro ? " oficina-erro" : ""), texto: v.rotulo }));
+      caixaFolha.append(b);
     }
-    for (const [alvo, px] of [[previa48, 48], [previaG, 200]]) {
-      const no = document.importNode(raiz, true);
-      no.setAttribute("width", String(px));
-      no.setAttribute("height", String(px));
-      /* A espessura e a cor NÃO estão no arquivo, de propósito — quem as põe é
-       * o instalador. Aqui elas entram só para olhar, com os mesmos números que
-       * vão para o disco: 2,25 de traço e a cor escolhida na fileira acima. */
-      no.setAttribute("stroke-width", "2.25");
-      no.style.color = "var(--text)";
-      alvo.append(no);
-    }
-  };
-
-  area.addEventListener("input", () => { OFICINA.svg = area.value; OFICINA.erro = ""; pintar(); });
-
-  /* --- os três parâmetros do conversor ------------------------------------ */
-  const controles = elemento("div", { class: "oficina-controles" });
-  const campo = (chave, rotulo, dica, passo, min, max) => {
-    const entrada = elemento("input", {
-      type: "number", value: OFICINA[chave], step: passo, min, max,
-      "data-foco": "oficina-" + chave, "aria-label": rotulo, title: dica,
-      onchange: (e) => { OFICINA[chave] = e.target.value; vetorizar(); },
-    });
-    return elemento("label", { class: "oficina-campo", title: dica },
-      [elemento("span", { texto: rotulo }), entrada]);
-  };
-  /* DE ONDE VETORIZAR — 08/09/2026, pedido dela: *"podemos usar ela via
-   * interface pra criarmos variações das capas de qualquer app, incluindo os da
-   * steam?"*
-   *
-   * O par só aparece onde existem DUAS artes, que é o caso do jogo da Steam: o
-   * `steam_icon_<appid>.png` (a marca, 256 px) e a capa da biblioteca (a
-   * ilustração inteira, com o título escrito nela). Num aplicativo comum há uma
-   * arte só, e dois botões onde não há escolha é ruído.
-   *
-   * A capa quase sempre sai ilegível a 48 px — é ilustração, não marca. Isso não
-   * é motivo para não oferecer: a oficina mostra os dois tamanhos justamente
-   * para ela olhar e recusar, e o desenho pode ser o ponto de partida de uma
-   * variação feita na caixa de texto. */
-  if (temCapa) {
-    const par = elemento("div", { class: "oficina-fontes", role: "group",
-                                  "aria-label": "De onde vetorizar" });
-    for (const [id, rotulo, dica] of [
-      ["icone", "Ícone", "O steam_icon do jogo — é a marca, e é o que costuma ler a 48 px."],
-      ["capa", "Capa", "A arte da biblioteca. Rica, e quase sempre ilegível a 48 px — olhe antes de aceitar."],
-    ]) {
-      par.append(elemento("button", {
-        type: "button", class: "btn btn-mini", "data-fonte": id, title: dica,
-        "aria-pressed": String(OFICINA.fonte === id),
-        texto: rotulo,
-        onclick: () => {
-          OFICINA.fonte = id;
-          for (const b of par.querySelectorAll("button")) {
-            b.setAttribute("aria-pressed", String(b.dataset.fonte === id));
-          }
-          vetorizar();
-        },
-      }));
-    }
-    controles.append(elemento("label", { class: "oficina-campo" },
-      [elemento("span", { texto: "De" }), par]));
   }
-  controles.append(campo("k", "Cores", "Quantas cores o conversor enxerga antes de traçar. Menos cores, menos traços.", "1", "3", "16"));
-  controles.append(campo("funde", "Fusão", "Quanto duas cores parecidas viram uma só. Sobe para simplificar.", "2", "0", "120"));
-  controles.append(campo("tol", "Aparo", "Quanto o contorno é simplificado. Sobe para tirar tremida.", "0.2", "0.2", "8"));
 
-  /* --- vetorizar ---------------------------------------------------------- */
-  async function vetorizar() {
-    OFICINA.ocupada = true; OFICINA.erro = "";
-    aviso.textContent = "Vetorizando…";
+  function pintarDock() {
+    caixaDock.replaceChildren();
+    const eu = desenhar(OFICINA.svg, 48, OFICINA.cor);
+    if (!eu) return;
+    /* A TIRA MOSTRA O JUÍZO, E O JUÍZO É A 48 PX ENTRE VIZINHOS. Um desenho lido
+     * sozinho a 200 px engana: metade dos convertidos de 08/2026 foi refeita
+     * porque lia grande e sumia pequena. Os dois vizinhos vêm do mapa Arcticons
+     * e são desenhados na cor real deles — é a dock dela, não uma amostra. */
+    const tira = elemento("div", { class: "oficina-dock" });
+    const [a, b] = OFICINA.vizinhos;
+    if (a) tira.append(desenhar(a.svg, 48, a.cor));
+    tira.append(elemento("span", { class: "oficina-dock-eu" }, [eu]));
+    if (b) tira.append(desenhar(b.svg, 48, b.cor));
+    caixaDock.append(elemento("span", { class: "oficina-legenda", texto: "Como fica no dock" }), tira);
+  }
+
+  function pintarLupa() {
+    caixaLupa.replaceChildren();
+    dica.textContent = "";
+    if (OFICINA.erro) {
+      caixaLupa.append(elemento("p", { class: "oficina-lupa-dica oficina-erro", texto: OFICINA.erro }));
+      return;
+    }
+    if (OFICINA.ocupada) {
+      caixaLupa.append(elemento("p", { class: "oficina-lupa-dica", texto: "Desenhando…" }));
+      return;
+    }
+    const no = desenhar(OFICINA.svg, 200, OFICINA.cor, { clicavel: true });
+    if (!no) {
+      /* A FRASE DA FOLHA NÃO SE REPETE AQUI. Sem arte de fábrica quem explica é
+       * a folha, uma vez — repetir a mesma linha a 20 px de distância é o
+       * contrário de "menos palavras". O que a lupa tem a dizer, e só ela, é
+       * quando há texto na caixa e ele NÃO é um SVG: aí a caixa vazia mentiria. */
+      if (String(OFICINA.svg || "").trim()) {
+        caixaLupa.append(elemento("p", { class: "oficina-lupa-dica oficina-erro",
+          texto: "O texto não é um SVG — falta fechar alguma etiqueta?" }));
+      }
+      return;
+    }
+    caixaLupa.append(no);
+    dica.textContent = "Clique num traço para tirar";
+  }
+
+  function sincronizarReguas() {
+    reguaDetalhe.querySelector("input").value = String(OFICINA.detalhe);
+    reguaSuavidade.querySelector("input").value = String(OFICINA.suavidade);
+    botaoDesfazer.disabled = !OFICINA.historico.length;
+    botaoUsar.disabled = !String(OFICINA.svg || "").trim() || OFICINA.ocupada;
+    if (area.value !== OFICINA.svg) area.value = OFICINA.svg;
+  }
+
+  function pintarTudo() { pintarFolha(); pintarDock(); pintarLupa(); sincronizarReguas(); }
+  redesenharOficina = () => { pintarFolha(); pintarDock(); pintarLupa(); sincronizarReguas(); };
+
+  /* --- carregar: a folha inteira numa chamada ----------------------------- */
+  async function carregar() {
+    OFICINA.ocupada = true; OFICINA.erro = ""; pintarTudo();
     const r = await api("/api/app-desenho", {
-      method: "POST",
-      body: JSON.stringify({
-        app: app.id, acao: "vetorizar", fonte: OFICINA.fonte,
-        k: OFICINA.k || undefined, funde: OFICINA.funde || undefined, tol: OFICINA.tol || undefined,
-      }),
+      method: "POST", body: JSON.stringify({ app: OFICINA.app, acao: "variacoes" }),
     });
     OFICINA.ocupada = false;
-    if (r.erro) { OFICINA.erro = r.erro; pintar(); return; }
-    OFICINA.svg = r.svg || "";
+    OFICINA.carregou = true;
+    if (r.erro) { OFICINA.erro = r.erro; pintarTudo(); return; }
     OFICINA.origem = r.origem || "";
-    area.value = OFICINA.svg;
-    pintar();
-    origemDiz.textContent = OFICINA.origem
-      ? "de: " + OFICINA.origem : "";
+    OFICINA.original = r.original || "";
+    OFICINA.capa = r.capa || "";
+    OFICINA.variacoes = r.variacoes || [];
+    OFICINA.vizinhos = r.vizinhos || [];
+    OFICINA.salvo = r.salvo || null;
+    /* O CARTÃO INICIAL É O «SALVO» QUANDO HÁ UM: abrir a ficha de um aplicativo
+     * que já tem desenho e ver uma variação nova marcada seria a tela dizendo
+     * que o trabalho dela foi trocado. Sem salvo, a primeira que desenhou. */
+    const inicial = (OFICINA.salvo && OFICINA.salvo.tem)
+      ? "salvo" : ((OFICINA.variacoes.find((v) => !v.erro) || {}).id || null);
+    if (inicial) escolher(inicial); else pintarTudo();
   }
 
-  const origemDiz = elemento("p", { class: "frase oficina-origem",
-    texto: OFICINA.origem ? "de: " + OFICINA.origem : "" });
+  function escolher(id) {
+    let c = null;
+    if (id === "salvo" && OFICINA.salvo && OFICINA.salvo.tem) {
+      /* O salvo não traz parâmetros: ele é o que é. Gravá-lo de volta vira
+       * retoque à mão, que é a verdade — o servidor decide isso medindo. */
+      c = { id: "salvo", svg: OFICINA.salvo.svg, parametros: "", fonte: "icone" };
+    } else {
+      c = OFICINA.variacoes.find((v) => v.id === id);
+    }
+    if (!c || c.erro) return;
+    OFICINA.escolhida = id;
+    OFICINA.escolhidaAntes = id;
+    OFICINA.base = OFICINA.svg = c.svg || "";
+    OFICINA.parametros = c.parametros || "";
+    OFICINA.fonte = c.fonte || "icone";
+    if (c.detalhe != null) OFICINA.detalhe = c.detalhe;
+    if (c.suavidade != null) OFICINA.suavidade = c.suavidade;
+    OFICINA.cheia = !!c.cheia;
+    OFICINA.historico = [];
+    OFICINA.erro = "";
+    pintarTudo();
+  }
 
-  const botoes = elemento("div", { class: "escolha-botoes" });
-  botoes.append(elemento("button", {
-    type: "button", class: "btn", texto: "Vetorizar",
-    title: "Roda o conversor na arte de fábrica. Não grava nada.",
-    onclick: vetorizar,
-  }));
-  botoes.append(elemento("button", {
-    type: "button", class: "btn", texto: "Abrir o que já está salvo",
-    title: "Traz de volta o desenho à mão deste aplicativo, se houver, para editar",
-    onclick: async () => {
+  /* --- as réguas re-vetorizam a ESCOLHIDA, e só ela ----------------------- */
+  function reguar() {
+    clearTimeout(OFICINA.temporizador);
+    /* 250 ms DE ESPERA, e não é enfeite: `input` numa régua dispara a cada
+     * pixel do arrasto, e sem a espera um gesto de ponta a ponta pediria dez
+     * conversões — dez processos, para ela ver só a última. */
+    OFICINA.temporizador = setTimeout(async () => {
+      OFICINA.ocupada = true; OFICINA.erro = ""; pintarLupa(); sincronizarReguas();
       const r = await api("/api/app-desenho", {
-        method: "POST", body: JSON.stringify({ app: app.id, acao: "ler" }),
+        method: "POST", body: JSON.stringify({
+          app: OFICINA.app, acao: "vetorizar", fonte: OFICINA.fonte,
+          detalhe: OFICINA.detalhe, suavidade: OFICINA.suavidade, cheia: OFICINA.cheia }),
       });
-      if (r.erro) { torrada(r.erro, "erro"); return; }
-      if (!r.tem) { torrada("Este aplicativo ainda não tem desenho salvo", "igual"); return; }
-      OFICINA.svg = r.svg; area.value = r.svg; pintar();
-    },
-  }));
-  botoes.append(elemento("button", {
-    type: "button", class: "btn btn-accent", texto: "Usar este desenho",
-    onclick: async () => {
-      const r = await api("/api/app-desenho", {
-        method: "POST",
-        body: JSON.stringify({ app: app.id, acao: "salvar", svg: area.value,
-                               cor: corDaOficina(app), seco: ensaiando() }),
-      });
-      if (r.erro) { OFICINA.erro = r.erro; torrada(r.erro, "erro"); pintar(); return; }
-      if (r.seco) { torrada(r.aviso, "igual"); return; }
-      /* O NOME GRAVADO ENTRA NA TORRADA quando difere do aplicativo: num jogo
-       * da Steam o `.desktop` é `meow-steam-1715980` e o desenho vai para
-       * `steam_icon_1715980`, que é o que o `Icon=` pede. Sem dizer isso, ela
-       * procuraria o arquivo pelo nome errado no repositório. */
-      torrada(`${app.nome}: desenho salvo em ${r.cor}`
-              + (r.nome && r.nome !== app.id ? ` (como ${r.nome})` : "")
-              + (r.saiu_do_arcticons ? " — e saiu do mapa Arcticons, que tinha o mesmo nome" : ""),
-              "ok");
-      await relerLista();
-    },
-  }));
-  botoes.append(elemento("button", {
-    type: "button", class: "btn", texto: "Pôr na tela",
-    title: "Instala em 48x48/apps — é o passo que faz o desenho aparecer",
-    onclick: () => rodarAcao("icones_traco"),
-  }));
+      OFICINA.ocupada = false;
+      if (r.erro) { OFICINA.erro = r.erro; pintarTudo(); return; }
+      OFICINA.base = OFICINA.svg = r.svg || "";
+      OFICINA.parametros = r.parametros || "";
+      OFICINA.historico = [];
+      /* NENHUM CARTÃO FICA MARCADO depois da régua, porque o desenho já não é o
+       * dele. Clicar num cartão de novo devolve as réguas para os valores dele. */
+      OFICINA.escolhida = "editado";
+      OFICINA.escolhidaAntes = "editado";
+      pintarTudo();
+    }, 250);
+  }
 
-  const par = elemento("div", { class: "oficina-par" }, [
-    elemento("div", { class: "oficina-vidros" }, [previa48, previaG, aviso, origemDiz]),
-    elemento("div", { class: "oficina-lado" }, [controles, area]),
-  ]);
-  caixa.append(par);
-  caixa.append(botoes);
-  caixa.append(elemento("p", { class: "frase",
-    texto: "Grava em assets/icones/convertidos-apps/retoques/, no repositório. "
-         + "Sem stroke-width e sem cor no arquivo: a espessura é 2,25 para todo o "
-         + "acervo e a cor sai da paleta." }));
-  /* A primeira pintura acontece depois de o nó estar montado — o `pintar` mede
-   * nada, mas o `details` fechado não desenha, e chamar agora deixa o conteúdo
-   * pronto para quando ela abrir. */
-  pintar();
+  async function usar() {
+    const seco = ensaiando();
+    const r = await api("/api/app-desenho", {
+      method: "POST", body: JSON.stringify({
+        app: OFICINA.app, acao: "salvar", svg: OFICINA.svg, cor: OFICINA.cor,
+        seco, fonte: OFICINA.fonte, parametros: OFICINA.parametros }),
+    });
+    if (r.erro) { OFICINA.erro = r.erro; torrada(r.erro, "erro"); pintarLupa(); return; }
+    if (r.seco) { torrada(r.aviso, "igual"); return; }
+    /* O NOME GRAVADO ENTRA NA TORRADA quando difere do aplicativo: num jogo da
+     * Steam o `.desktop` é `meow-steam-1715980` e o desenho vai para
+     * `steam_icon_1715980`, que é o que o `Icon=` pede. Sem dizer isso, ela
+     * procuraria o arquivo pelo nome errado no repositório. */
+    torrada(`${app.nome}: desenho salvo em ${r.cor}`
+            + (r.nome && r.nome !== app.id ? ` (como ${r.nome})` : "")
+            + (r.modo === "mao" ? ", à mão" : "")
+            + (r.tirou_retoque ? " — o retoque anterior saiu" : "")
+            + (r.saiu_do_arcticons ? " — e saiu do mapa Arcticons" : ""), "ok");
+    /* As duas coisas que até ontem eram dois botões: gravar e pôr na tela. */
+    await rodarAcao("icones_traco");
+    OFICINA.carregou = false;      // o «Salvo» mudou; a folha relê ao remontar
+    await relerLista();
+  }
+
+  caixa.addEventListener("toggle", () => {
+    OFICINA.aberta = caixa.open;
+    /* A FOLHA ABRE JUNTO COM O `details`: sem clique em «Vetorizar», porque
+     * abrir já é pedir para ver. O `carregou` impede que o `relerLista()` do
+     * Usar peça as conversões de novo, e o `ocupada` impede que dois nós em voo
+     * peçam duas vezes. */
+    if (caixa.open && !OFICINA.carregou && !OFICINA.ocupada) carregar();
+  });
+
+  pintarTudo();
+  if (OFICINA.aberta && !OFICINA.carregou && !OFICINA.ocupada) carregar();
   return caixa;
 }
 
