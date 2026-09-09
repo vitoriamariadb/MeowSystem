@@ -57,9 +57,18 @@ O PIPELINE, EM SETE PASSOS
     5. traça a fronteira de cada classe com marching squares, com DEDUPE
        global de aresta: fronteira entre A e B é desenhada UMA vez, não duas
        (duas cópias simplificadas divergem e engrossam o traço)
-    6. simplifica com Douglas–Peucker e descarta polilinha curta demais
-    7. emite SVG viewBox 48, `fill:none stroke:currentColor stroke-width:1
+    6. descarta polilinha curta demais (a medida é a do Douglas–Peucker)
+    7. acha os CANTOS na cadeia crua, parte nela, alisa cada peça, guarda as
+       retas como retas e ajusta Bézier no que sobrou — a seção «curvas»
+    8. emite SVG viewBox 48, `fill:none stroke:currentColor stroke-width:1
        stroke-linecap:round stroke-linejoin:round`
+
+    O passo 7 é de 09/09/2026 (Sprint Q) e é o único que mudou desde 11/08. Até
+    ali a saída era só polilinha (`M x y x y …`), e a escada da grade de 256
+    chegava inteira na tela — foi o que ela chamou de "pixelado" olhando a lupa
+    da oficina. `--polilinha` devolve o comportamento antigo BYTE A BYTE, e é
+    por isso que ele continua existindo: `retoques/org.gimp.GIMP.svg` é uma
+    conversão retocada à mão, e a prova de qual parte é a mão depende disso.
 
 A GRAMÁTICA DE SAÍDA NÃO FOI INVENTADA: FOI MEDIDA NOS 39 ARCTICONS
     viewBox `0 0 48 48` nos 39 · `stroke-width` AUSENTE nos 39 (o padrão SVG
@@ -93,12 +102,26 @@ O QUE SOBROU DE FORA, E POR QUÊ (a leitura dela da folha, 11/08/2026)
     e Gradia têm desenho à mão em `assets/icones/convertidos-apps/retoques/`, que vence
     a conversão sempre — ver `construir_convertidos.sh`.
 
+A GRAMÁTICA DE SAÍDA GANHOU `C`, `L` E `Z`, E OS DOIS LEITORES CONTINUAM LENDO
+    Foi conferido antes de emitir, porque quebrar qualquer um dos dois só
+    apareceria na tela dela:
+      · `_vestido()` do `scripts/icones_apps_arcticons.sh` injeta a espessura
+        procurando `<path ` COM ESPAÇO — a saída tem o espaço nas duas formas
+        (`<path d=` e `<path fill="currentColor" d=`), e a injeção pega 3 de 3
+        e 9 de 9 nos casos medidos;
+      · `_conferir_dialeto()` do `app/servidor.py` exige viewBox 48,
+        `fill="none"`, `stroke="currentColor"` e RECUSA `stroke-width` e cor —
+        nada disso mudou, porque os comandos de path não são olhados por
+        nenhuma das duas.
+
 USO
-    converter_icone.py ENTRADA.svg|png SAIDA.svg [--k 6] [--moda 3] [--fita 2.2]
+    converter_icone.py ENTRADA.svg|png SAIDA.svg [--curvas|--polilinha]
+                       [--cheia] [--json] [--cantos 60] [--k 6] [--tol N]
 """
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import os
 import subprocess
@@ -573,11 +596,19 @@ def encadear(segs):
     return linhas
 
 
-def dp(pts, tol):
-    """Douglas–Peucker iterativo (a recursão estoura em contorno de 4k pontos)."""
+def _dp_guarda(pts, tol):
+    """A MÁSCARA de vértices que o Douglas–Peucker mantém.
+
+    Está separada de `dp()` porque a seção de curvas precisa dos ÍNDICES, e não
+    dos pontos: entre dois vértices mantidos a cadeia está, POR CONSTRUÇÃO, a
+    menos de `tol` da corda que os liga — o algoritmo só para de dividir quando
+    isso vale. Ou seja, o teste de "este pedaço é reto" já estava escrito aqui
+    desde sempre; faltava devolvê-lo. Escrever um segundo detector de reta ao
+    lado deste seria duas respostas para a mesma pergunta.
+    """
     n = len(pts)
     if n < 3:
-        return pts
+        return [True] * n
     guarda = [False] * n
     guarda[0] = guarda[-1] = True
     pilha = [(0, n - 1)]
@@ -602,26 +633,600 @@ def dp(pts, tol):
             guarda[iw] = True
             pilha.append((i, iw))
             pilha.append((iw, j))
-    return [p for p, g in zip(pts, guarda) if g]
+    return guarda
+
+
+def dp(pts, tol):
+    """Douglas–Peucker iterativo (a recursão estoura em contorno de 4k pontos)."""
+    if len(pts) < 3:
+        return pts
+    return [p for p, g in zip(pts, _dp_guarda(pts, tol)) if g]
 
 
 def comprimento(pts):
     return sum(math.dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1))
 
 
+# -------------------------------------------------------------------- curvas
+#
+# O QUE ESTA SEÇÃO CONSERTA, E POR QUE NENHUM PARÂMETRO CONSERTAVA
+#     Em 09/09/2026, olhando a lupa da oficina, ela chamou o traço de
+#     "pixelado". A palavra é exata, e o defeito não é de número: é de
+#     GRAMÁTICA. O traçador acima anda em LADOS DE PIXEL numa grade de 256, e
+#     por isso toda fronteira NASCE escada de degraus de 1 px. O
+#     Douglas-Peucker só escolhe QUAIS degraus ficam — apara a escada, não a
+#     desfaz. Medido no Wilber do Papirus: 1 733 arestas de pixel viram 94
+#     vértices com `--tol 1.6`, e os 94 continuam sendo cantos da grade.
+#     Subir o `--tol` tira degraus e torce a forma; baixar devolve a serra.
+#     Polilinha não tem como descrever uma curva, e era só isso que o arquivo
+#     sabia emitir.
+#
+#     O caminho novo, NESTA ORDEM, que não é a que a mão pede:
+#         1. acha os CANTOS na cadeia crua               `cantos()`
+#         2. parte a cadeia neles                        `partir()`
+#         3. alisa cada peça com as pontas pregadas      `alisar()`
+#         4. separa o que é RETO do que é curvo          `fatiar()`
+#         5. ajusta cúbicas no que sobrou                `ajustar()`
+#     Os passos 1 e 3 trocados — alisar primeiro, procurar canto depois — é o
+#     desenho intuitivo, e ele apaga os cantos antes de procurá-los; o porquê,
+#     com o número, está no comentário longo dentro de `converter()`. Tudo em
+#     numpy, porque esta máquina não tem scipy, potrace nem shapely — ver a
+#     lista medida no cabeçalho, que é o que decide a arquitetura inteira.
+#
+#     O QUE ESTA TROCA CUSTA, PARA NÃO SE DESCOBRIR DEPOIS: curva é MAIS bytes.
+#     Cada cúbica escreve três pares de coordenadas onde um vértice de
+#     polilinha escreve um. Medido nas 29 origens do mapa e dos recusados, o
+#     arquivo fica entre 1,46x (Calculadora) e 3,07x (btop) o tamanho da
+#     polilinha. A Sprint Q supunha o contrário — "≤ 40 % dos pontos" — e a
+#     medição derrubou. O que se compra com esses bytes é a escada; num ícone
+#     de 1 a 3 KB, é barato.
+#
+# O QUE **NÃO** MUDA, E É DE PROPÓSITO
+#     Tudo antes de `encadear()`: a quantização, o filtro de moda, o colapso de
+#     fitas e a deduplicação global de aresta ficam letra por letra. São eles
+#     que decidem QUAL forma é desenhada — e a forma foi aprovada na folha de
+#     11/08/2026. Esta seção só troca a LINHA que desenha a mesma forma, e o
+#     teste `tests/conversor.sh` afirma isso em pixel: as duas saídas,
+#     rasterizadas a 48 px, têm de diferir em menos de 6 % da caixa.
+
+TOL_CURVAS = 1.0        # erro máximo do ajuste de Bézier, em px da grade de 256
+TOL_POLILINHA = 1.6     # tolerância do Douglas-Peucker, em px da grade de 256
+JANELA_ALISAR = 5       # vizinhos da média móvel que apaga a escada
+TOL_RETA = 0.5          # desvio da corda abaixo do qual o pedaço é RETO (px de 256)
+MIN_RETA = 16.0         # corda mínima para valer a pena guardar a reta (px de 256)
+
+
+def alisar(pts, fechada: bool, w: int = 5) -> np.ndarray:
+    """Média móvel de janela `w` ao longo da cadeia — é ela que mata a escada.
+
+    Laço fechado: a janela é CIRCULAR e a saída volta a repetir o primeiro
+    ponto no fim, que é como `partir()` reconhece a emenda. Linha aberta: as
+    duas pontas ficam onde estão, porque ponta de traço é posição e não
+    tendência — puxar a ponta encolheria o `_` do terminal por dentro.
+
+    POR QUE ISTO NÃO DEFORMA, EM NÚMERO
+        Numa escada de degraus de 1 px a média de 5 vizinhos fica a menos de
+        0,5 px da diagonal verdadeira: 0,09 px na escala de 48, um décimo do
+        que o olho separa. Numa curva de raio r a janela puxa para dentro
+        cerca de w²/(8r); com w=5 e o menor raio que ainda sobrevive a 48 px
+        (r ≈ 8 px na grade de 256), dá 0,4 px de 256 — abaixo da tolerância do
+        ajuste, que é 1,0.
+
+    DUAS ALTERNATIVAS ÓBVIAS, E AS DUAS ESTÃO ERRADAS
+        · Alisar DEPOIS do Douglas-Peucker não resolve nada: o DP já escolheu
+          vértices que são cantos de pixel, e a média passaria a interpolar
+          ENTRE degraus escolhidos em vez de apagar a escada. O alisamento
+          precisa ver a cadeia crua, com todos os degraus.
+        · Alisar a cadeia INTEIRA antes de procurar os cantos apaga os cantos —
+          ver o comentário longo em `converter()`. Por isso quem chama daqui
+          passa uma peça de cada vez, já partida nos cantos, e as pontas
+          pregadas são justamente os cantos que têm de sobreviver.
+    """
+    p = np.asarray(pts, np.float64)
+    if fechada and len(p) > 1 and np.allclose(p[0], p[-1]):
+        p = p[:-1]
+    n = len(p)
+    if n < w:
+        return np.vstack([p, p[:1]]) if fechada and n else p
+    r = w // 2
+    if fechada:
+        idx = (np.arange(n)[:, None] + np.arange(-r, r + 1)[None, :]) % n
+        s = p[idx].mean(1)
+        return np.vstack([s, s[:1]])          # volta a fechar: último == primeiro
+    s = p.copy()
+    acum = np.vstack([np.zeros((1, 2)), np.cumsum(p, 0)])
+    for i in range(1, n - 1):
+        a, b = max(0, i - r), min(n, i + r + 1)
+        s[i] = (acum[b] - acum[a]) / (b - a)
+    return s
+
+
+def cantos(p: np.ndarray, fechada: bool, limiar: float = 60.0,
+           passo: int = 3) -> list[int]:
+    """Índices dos vértices onde a direção vira mais que `limiar` graus.
+
+    A virada é medida entre o vetor que CHEGA (de `passo` vértices atrás) e o
+    que SAI (para `passo` à frente). Um canto por vale: dentro de uma
+    vizinhança de `passo` fica só o de maior ângulo, senão um canto reto vira
+    três cantos seguidos e o trecho entre eles não tem pontos para ajustar.
+
+    ISTO SE MEDE NA CADEIA CRUA, NUNCA NA ALISADA — ver `converter()`.
+
+    A RÉGUA É O `>_` DO TERMINAL E O `B` DO BTOP, e são dois pontos porque um
+    só não decide nada: o `>` tem cantos que TÊM de sobreviver, e a moldura
+    arredondada dos dois NÃO pode ganhar bico. Medido em 09/09/2026 na cadeia
+    crua, com `passo=3`:
+
+        moldura arredondada (sem canto de verdade)   máximo  36,9°
+        o `>` do terminal                            quatro vértices a 90,0°
+        o `B` do btop                                38 vértices acima de 60°
+
+    O vale entre 36,9° e 90° é largo, e 60° cai no meio dele. Qualquer número
+    entre 40 e 85 daria a mesma partição nestes dois — o limiar não é fino, o
+    que é fino é medir na cadeia certa.
+
+    E O `passo` DE 3 É O TETO, NÃO O PISO, ao contrário do que a intuição diz.
+        Medir a virada entre vizinhos IMEDIATOS mede o degrau da grade e não a
+        forma: numa escada de 45° todo vértice daria 90°, e o traço inteiro
+        viraria canto. Mas subir o passo tampouco é de graça — na cadeia crua
+        ele ALARGA o ruído da escada. Medido na mesma moldura arredondada: o
+        máximo sobe de 36,9° (passo 3) para 53,1° (passo 4), a 7° do limiar. O
+        remédio "se o B ganhar bico, sobe o passo para 4" anda para o lado
+        errado: com 4 é a MOLDURA que começa a inventar canto.
+
+    Os índices são da cadeia SEM o ponto repetido do fim, que é o que
+    `partir()` espera. Contar o repetido faz a janela circular pular um
+    vértice na emenda, e o canto que estivesse ali sairia de lugar.
+    """
+    if fechada and len(p) > 1 and np.allclose(p[0], p[-1]):
+        p = p[:-1]
+    n = len(p)
+    if n < 2 * passo + 1:
+        return []
+    i = np.arange(n)
+    if fechada:
+        atras, frente = p[(i - passo) % n], p[(i + passo) % n]
+    else:
+        atras, frente = p[np.clip(i - passo, 0, n - 1)], p[np.clip(i + passo, 0, n - 1)]
+    v1, v2 = p - atras, frente - p
+    n1, n2 = np.linalg.norm(v1, axis=1), np.linalg.norm(v2, axis=1)
+    ok = (n1 > 0) & (n2 > 0)
+    cos = np.ones(n)
+    cos[ok] = (v1[ok] * v2[ok]).sum(1) / (n1[ok] * n2[ok])
+    ang = np.degrees(np.arccos(np.clip(cos, -1.0, 1.0)))
+    achados = []
+    for k in np.nonzero(ang > limiar)[0]:
+        k = int(k)
+        if achados and k - achados[-1] <= passo:
+            if ang[k] > ang[achados[-1]]:
+                achados[-1] = k
+        else:
+            achados.append(k)
+    # A SUPRESSÃO TAMBÉM DÁ A VOLTA. Num laço fechado o primeiro e o último
+    # achado podem ser o MESMO canto visto pelos dois lados da emenda; sem esta
+    # linha, `partir()` abriria um trecho de dois ou três pontos ali, e o ajuste
+    # devolveria um segmento reto no meio de uma curva.
+    if fechada and len(achados) > 1 and achados[0] + n - achados[-1] <= passo:
+        if ang[achados[0]] >= ang[achados[-1]]:
+            achados.pop()
+        else:
+            achados.pop(0)
+    if not fechada:
+        achados = [k for k in achados if 0 < k < n - 1]
+    return achados
+
+
+def partir(p: np.ndarray, idx: list[int], fechada: bool) -> list[np.ndarray]:
+    """A cadeia vira trechos [canto_i … canto_{i+1}], cada um com as duas pontas.
+
+    LAÇO FECHADO SEM CANTO: sai um trecho só, começando no ponto mais distante
+    do centroide. É onde a curvatura costuma ser menor, e a emenda (que é a
+    única descontinuidade possível de tangente) fica no lugar mais discreto.
+    Começar no `p[0]` que `encadear()` devolveu poria a emenda onde o traçador
+    por acaso começou a varrer a grade — um lugar arbitrário, muitas vezes no
+    meio de uma barriga.
+    """
+    if fechada:
+        if len(p) > 1 and np.allclose(p[0], p[-1]):
+            p = p[:-1]                               # sem o ponto repetido
+        n = len(p)
+        if n < 2:
+            return []
+        idx = sorted({int(k) % n for k in idx})
+        if not idx:
+            c = p.mean(0)
+            k = int(np.linalg.norm(p - c, axis=1).argmax())
+            rodado = np.roll(p, -k, axis=0)
+            return [np.vstack([rodado, rodado[:1]])]
+        rodado = np.roll(p, -idx[0], axis=0)
+        cortes = [(k - idx[0]) % n for k in idx] + [n]
+        return [np.vstack([rodado[a:b], rodado[b % n:b % n + 1]])
+                for a, b in zip(cortes, cortes[1:])]
+    cortes = [0] + sorted({int(k) for k in idx}) + [len(p) - 1]
+    return [p[a:b + 1] for a, b in zip(cortes, cortes[1:]) if b > a]
+
+
+def fatiar(p: np.ndarray, tol_reta: float = None, min_reta: float = None):
+    """A peça vira uma alternância de (início, fim, é_reto).
+
+    POR QUE UM ÍCONE PRECISA DISTO, E UMA FOTO NÃO PRECISARIA
+        Ajustar Bézier em TUDO é o que a Sprint Q pedia, e numa forma orgânica
+        funciona. Numa forma GEOMÉTRICA — que é quase todo ícone deste projeto:
+        moldura arredondada, barra, retângulo — dá o defeito oposto ao que se
+        queria consertar. Medido em 09/09/2026 na moldura do
+        `cosmic-term-mocha.svg`, rasterizada a 400 px: com `--tol 1.0` os
+        quatro lados RETOS saem ondulados, porque a cúbica que atravessa
+        [meio do lado → canto arredondado → meio do outro lado] compra a folga
+        de 1,0 px onde ela é grátis para o erro e cara para o olho. Reta torta
+        se vê de longe; curva 1 px fora de lugar, não.
+        A saída em polilinha, que se queria substituir, acertava esses lados.
+
+        Baixar o `--tol` cura e custa caro: de 1,0 para 0,25 os lados voltam a
+        ficar retos e o mesmo terminal passa de 28 para 77 curvas — 231 pontos
+        de apoio contra 40 da polilinha, quase três vezes o arquivo, para
+        desenhar quatro linhas retas com dezenas de cúbicas.
+
+        Então a reta continua sendo reta. O que sobra — e só o que sobra — vira
+        curva.
+
+    COMO SE ACHA A RETA SEM ESCREVER UM SEGUNDO DETECTOR
+        Entre dois vértices que o Douglas–Peucker mantém, a cadeia está a menos
+        da tolerância dele da corda que os liga. Isso É a definição de reto.
+        Então roda-se o DP com uma tolerância APERTADA (`tol_reta`, 0,5 px de
+        256 = 0,09 px de 48) e cada vão entre marcos vizinhos é um candidato;
+        vale como reta o que também for LONGO o bastante (`min_reta`).
+
+        O comprimento mínimo é o que impede o remédio de virar a doença: sem
+        ele, dois degraus quase alinhados de uma curva orgânica virariam "uma
+        reta", e a escada voltaria pela porta dos fundos, um segmento de cada
+        vez.
+    """
+    tol_reta = TOL_RETA if tol_reta is None else tol_reta
+    min_reta = MIN_RETA if min_reta is None else min_reta
+    n = len(p)
+    if n < 3:
+        return [(0, n - 1, False)] if n == 2 else []
+    marcos = [i for i, g in enumerate(_dp_guarda([tuple(q) for q in p], tol_reta)) if g]
+    retas = [(a, b) for a, b in zip(marcos, marcos[1:])
+             if float(np.linalg.norm(p[b] - p[a])) >= min_reta]
+    if not retas:
+        return [(0, n - 1, False)]
+    fatias, pos = [], 0
+    for a, b in retas:
+        if a > pos:
+            fatias.append((pos, a, False))
+        fatias.append((a, b, True))
+        pos = b
+    if pos < n - 1:
+        fatias.append((pos, n - 1, False))
+    return fatias
+
+
+# ---- o ajuste de Bézier: Schneider (Graphics Gems, 1990), em numpy ---------
+#
+# Os nomes seguem o artigo para quem for conferir contra a fonte. São seis
+# funções pequenas porque cada uma é um passo nomeado de lá: gerar os pontos de
+# controle por mínimos quadrados, reparametrizar por Newton-Raphson, medir o
+# erro, e dividir no pior ponto quando não convergiu.
+
+def _bezier(ctrl: np.ndarray, t) -> np.ndarray:
+    t = np.asarray(t, np.float64)[:, None]
+    u = 1.0 - t
+    return ((u ** 3) * ctrl[0] + 3 * (u ** 2) * t * ctrl[1]
+            + 3 * u * (t ** 2) * ctrl[2] + (t ** 3) * ctrl[3])
+
+
+def _param_corda(p: np.ndarray) -> np.ndarray:
+    """Parametrização por comprimento de corda — o chute inicial do artigo."""
+    d = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(p, axis=0), axis=1))])
+    return d / d[-1] if d[-1] > 0 else np.linspace(0.0, 1.0, len(p))
+
+
+def _gerar(p: np.ndarray, u: np.ndarray, t1: np.ndarray, t2: np.ndarray) -> np.ndarray:
+    """Os dois pontos de controle por mínimos quadrados (generateBezier)."""
+    b0, b1 = (1 - u) ** 3, 3 * u * (1 - u) ** 2
+    b2, b3 = 3 * u * u * (1 - u), u ** 3
+    A1, A2 = t1[None, :] * b1[:, None], t2[None, :] * b2[:, None]
+    C11, C12, C22 = (A1 * A1).sum(), (A1 * A2).sum(), (A2 * A2).sum()
+    resto = p - (b0 + b1)[:, None] * p[0] - (b2 + b3)[:, None] * p[-1]
+    X1, X2 = (A1 * resto).sum(), (A2 * resto).sum()
+    det = C11 * C22 - C12 * C12
+    a1 = (X1 * C22 - X2 * C12) / det if abs(det) > 1e-12 else 0.0
+    a2 = (C11 * X2 - C12 * X1) / det if abs(det) > 1e-12 else 0.0
+    corda = float(np.linalg.norm(p[-1] - p[0]))
+    if a1 < 1e-6 * corda or a2 < 1e-6 * corda:      # degenerado: heurística de Wu/Barsky
+        a1 = a2 = corda / 3.0
+    return np.array([p[0], p[0] + t1 * a1, p[-1] + t2 * a2, p[-1]])
+
+
+def _reparametrizar(p: np.ndarray, u: np.ndarray, ctrl: np.ndarray) -> np.ndarray:
+    """Um passo de Newton-Raphson em cada parâmetro."""
+    q1 = 3.0 * (ctrl[1:] - ctrl[:-1])
+    q2 = 2.0 * (q1[1:] - q1[:-1])
+    t = u[:, None]
+    v = 1.0 - t
+    Q = _bezier(ctrl, u)
+    Q1 = (v ** 2) * q1[0] + 2 * v * t * q1[1] + (t ** 2) * q1[2]
+    Q2 = v * q2[0] + t * q2[1]
+    num = ((Q - p) * Q1).sum(1)
+    den = (Q1 * Q1).sum(1) + ((Q - p) * Q2).sum(1)
+    # O DIVISOR ENTRA NA CONTA JÁ SANEADO, e isto não é preciosismo de estilo:
+    # `np.where(cond, u - num/den, u)` avalia os DOIS lados, então a divisão por
+    # zero acontece de qualquer jeito e sai `inf` no array antes do descarte —
+    # com aviso do numpy no stderr, que o construtor engole e ninguém vê. Onde a
+    # derivada morre (ponto de controle em cima do nó) o parâmetro fica onde
+    # está, que é a resposta certa do artigo.
+    seguro = np.where(np.abs(den) > 1e-12, den, 1.0)
+    novo = np.where(np.abs(den) > 1e-12, u - num / seguro, u)
+    return np.clip(novo, 0.0, 1.0)
+
+
+def _erro(p: np.ndarray, u: np.ndarray, ctrl: np.ndarray) -> tuple[float, int]:
+    d = np.linalg.norm(_bezier(ctrl, u) - p, axis=1)
+    i = int(d.argmax())
+    return float(d[i]), i
+
+
+def ajustar(p: np.ndarray, tol: float, t1=None, t2=None, prof: int = 0,
+            prof_max: int = 10):
+    """Lista de curvas (cada uma `ctrl` 4×2) que cobre `p` com erro < `tol`, ou
+    `None` quando o ajuste não converge — e aí o trecho volta a ser polilinha.
+
+    `t1` é a tangente unitária SAINDO de p[0]; `t2` a tangente unitária
+    CHEGANDO em p[-1], apontada para trás (convenção do artigo).
+
+    A GUARDA DE PROFUNDIDADE EXISTE PARA DESISTIR CEDO. Dividir para sempre
+    devolveria uma cúbica por par de pontos — mais pesado que a polilinha que
+    se queria trocar. A métrica `caidos` conta quantas vezes isso aconteceu,
+    para o número aparecer na folha ao lado da figura.
+
+    `prof_max=10` É MEDIDO, E O 6 QUE PARECIA BASTAR NÃO BASTA.
+        A tentação é ler a profundidade como logaritmo: 6 níveis, 64 pedaços,
+        mais que suficiente para 12 curvas. Está errado, porque a divisão NÃO É
+        AO MEIO — ela cai no ponto de PIOR ERRO, que num contorno de ícone fica
+        quase sempre perto de uma das pontas. A recursão degenera em lista, e a
+        profundidade passa a valer o NÚMERO de pedaços, não o seu logaritmo.
+        Medido em 09/09/2026 no contorno externo do Wilber do Papirus: o trecho
+        de 453 pontos precisa de 12 curvas e CAI com `prof_max=6`; com 8
+        converge nas mesmas 12, e 10 e 12 devolvem as 12 idênticas. O 10 é o 8
+        que basta mais dois níveis de folga, e não custa nada: a recursão para
+        quando converge, não quando chega ao teto.
+    """
+    n = len(p)
+    if n < 2:
+        return None
+    if t1 is None:
+        t1 = p[1] - p[0]
+        t1 = t1 / (np.linalg.norm(t1) or 1.0)
+    if t2 is None:
+        t2 = p[-2] - p[-1]
+        t2 = t2 / (np.linalg.norm(t2) or 1.0)
+    if n == 2:
+        d = np.linalg.norm(p[1] - p[0]) / 3.0
+        return [np.array([p[0], p[0] + t1 * d, p[1] + t2 * d, p[1]])]
+    u = _param_corda(p)
+    ctrl = _gerar(p, u, t1, t2)
+    err, i = _erro(p, u, ctrl)
+    if err < tol:
+        return [ctrl]
+    if err < tol * 4:                       # perto: vale iterar antes de dividir
+        for _ in range(4):
+            u = _reparametrizar(p, u, ctrl)
+            ctrl = _gerar(p, u, t1, t2)
+            err, i = _erro(p, u, ctrl)
+            if err < tol:
+                return [ctrl]
+    if prof >= prof_max or i <= 0 or i >= n - 1:
+        return None
+    tc = p[i - 1] - p[i + 1]
+    tc = tc / (np.linalg.norm(tc) or 1.0)
+    esq = ajustar(p[:i + 1], tol, t1, tc, prof + 1, prof_max)
+    dire = ajustar(p[i:], tol, -tc, t2, prof + 1, prof_max)
+    if esq is None or dire is None:
+        return None
+    return esq + dire
+
+
+def area_cheia(rot: np.ndarray, n: int):
+    """A classe que vira `fill="currentColor"` na variação «Área cheia», ou None.
+
+    Regra: o CORPO é a classe (≠ fundo) que mais faz fronteira com o fundo; a
+    candidata a área cheia é a maior classe restante, com ao menos 2 % da área
+    opaca. Devolve a máscara booleana dela.
+
+    É A VARIAÇÃO, NÃO O PADRÃO. Medido nos 39 Arcticons: `fill="none"` em 94
+    lugares contra 13 `fill="currentColor"`, e esses 13 estão em apenas DOIS
+    arquivos (`keymapper`, `osmonitor`). Preenchimento é a exceção rara do
+    dialeto, e é para ela que esta função existe — nunca para o caminho comum.
+    """
+    if n < 3:
+        return None
+    opaco = int((rot != 0).sum())
+    if not opaco:
+        return None
+    borda0 = np.zeros(n, np.int64)
+    for a, b in ((rot[:-1, :], rot[1:, :]), (rot[:, :-1], rot[:, 1:])):
+        d = a != b
+        for x, y in ((a[d], b[d]), (b[d], a[d])):
+            m = (y == 0)
+            np.add.at(borda0, x[m].astype(np.intp), 1)
+    borda0[0] = -1
+    corpo = int(borda0.argmax())
+    areas = np.bincount(rot.ravel().astype(np.intp), minlength=n).astype(np.int64)
+    areas[0] = 0
+    areas[corpo] = 0
+    cand = int(areas.argmax())
+    if areas[cand] < 0.02 * opaco:
+        return None
+    return rot == cand
+
+
+def emitir(linhas, esc: float) -> str:
+    """`linhas`: lista de (fechar, trechos, cheia); trecho = ("C", [ctrl…]) ou
+    ("L", pts). Sai `M x y` + `C …`/`L …` + `Z` quando `fechar`. Duas casas.
+
+    A POLILINHA CONTINUA SAINDO EM PARES IMPLÍCITOS, E ISSO É CONTRATO.
+        Quando o trecho de reta vem logo depois do `M`, as coordenadas são
+        emendadas SEM o `L` — `M40.19 4.65 39.44 5.21 …`, exatamente como o
+        arquivo escrevia antes desta seção existir. Não é economia de byte: o
+        `retoques/org.gimp.GIMP.svg` é uma conversão retocada, e a prova de que
+        a boca do Wilber é a única parte desenhada à mão é que os outros SEIS
+        subcaminhos batem BYTE A BYTE com `--polilinha` sobre a arte do
+        Papirus. Emitir `L` explícito aqui apagaria essa prova em silêncio, e
+        o LEIA-ME daquele diretório passaria a mentir.
+
+        Depois de um `C` o `L` é obrigatório, e aí ele aparece — par implícito
+        depois de uma cúbica seria mais um par de controle, não uma reta.
+
+    O `Z` só entra em modo curvas. Em `--polilinha` a linha fechada repete o
+    primeiro ponto no fim, como sempre fez, e um `Z` a mais mudaria o byte.
+    """
+    partes = []
+    for fechar, trechos, cheia in linhas:
+        primeiro = trechos[0][1][0]
+        primeiro = primeiro[0] if trechos[0][0] == "C" else primeiro
+        d = [f"M{primeiro[0] * esc:.2f} {primeiro[1] * esc:.2f}"]
+        for tipo, dados in trechos:
+            if tipo == "C":
+                for c in dados:
+                    d.append("C" + " ".join(f"{q[0] * esc:.2f} {q[1] * esc:.2f}"
+                                            for q in c[1:]))
+            else:
+                pares = " ".join(f"{q[0] * esc:.2f} {q[1] * esc:.2f}" for q in dados[1:])
+                if pares:
+                    d.append(pares if len(d) == 1 else "L" + pares)
+        if fechar:
+            d.append("Z")
+        atrib = ' fill="currentColor"' if cheia else ""
+        partes.append(f'<path{atrib} d="{" ".join(d)}"/>')
+    return "".join(partes)
+
+
 # ----------------------------------------------------------------- converter
 
-def converter(entrada, k=6, moda=3, funde=46.0, tol=1.6, min_traco=3.2,
-              fita=2.2, envolve=0.55, res=RES):
-    """Devolve (corpo_svg, metricas)."""
+def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
+              fita=2.2, envolve=0.55, res=RES, curvas=True, cheia=False,
+              limiar_canto=60.0, passo_canto=3):
+    """Devolve (corpo_svg, metricas).
+
+    `tol` significa COISAS DIFERENTES nos dois modos, e por isso o padrão é
+    escolhido aqui e não no `argparse`: em curvas é o erro máximo do ajuste de
+    Bézier (1,0 px de 256); em polilinha é a tolerância do Douglas-Peucker
+    (1,6). Um número só para as duas medidas seria um número mentindo sobre
+    uma delas.
+    """
+    if tol is None:
+        tol = TOL_CURVAS if curvas else TOL_POLILINHA
     rgba = rasterizar(entrada, res)
     rot, cores = quantizar(rgba, k, funde)
     n = int(rot.max()) + 1
     rot = moda2d(rot, moda, n)
     rot, fitas = colapsar_fitas(rot, n, fita, res, envolve)
 
+    esc = 48.0 / (res + 2)   # +2 por causa da moldura de padding do traçador
+    # O DESCARTE DE TRAÇO CURTO CONTINUA MEDINDO A POLILINHA APARADA, e o
+    # `1,6` está aqui fixo de propósito. Quem foi à folha de 11/08/2026 e
+    # ganhou o "tão todos muito bons" foi este critério: `comprimento(dp(linha,
+    # 1.6))`. Medir a cadeia CRUA daria outro conjunto de traços — a escada é
+    # ~35 % mais longa que a diagonal que ela desenha, então cisco que hoje é
+    # descartado passaria a sobreviver. Em `--polilinha` o número volta a ser o
+    # `--tol` do usuário, porque ali ele é a mesma medida e a saída tem de ficar
+    # byte a byte igual à de antes.
+    tol_dp = TOL_POLILINHA if curvas else tol
+
+    linhas, caidos, ncantos, ncurvas, nretas = [], 0, 0, 0, 0
+    mascara_cheia = None
+
+    def tracar(pontos, fechada, com_cheia=False, s=None):
+        """Uma cadeia de `encadear()` vira um trecho de `<path>`, ou None.
+
+        `s` é a polilinha já aparada pelo laço de fora, quando existe — o `dp()`
+        é o único laço em Python puro que sobrou no arquivo, e refazê-lo aqui
+        dobrava o custo da conversão inteira sem mudar um pixel.
+        """
+        nonlocal caidos, ncantos, ncurvas, nretas
+        if not curvas:
+            if s is None:
+                s = dp(pontos, tol)
+                if fechada and len(s) > 2 and s[0] != s[-1]:
+                    s.append(s[0])
+            if len(s) < 2:
+                return None
+            # `fechar=False`: a linha fechada repete o primeiro ponto, como
+            # sempre fez. Um `Z` aqui mudaria o byte de saída.
+            return (False, [("L", np.asarray(s, np.float64))], com_cheia)
+        # A ORDEM É `cantos → partir → alisar`, E A ÓBVIA ESTÁ ERRADA.
+        #   Alisar primeiro e procurar canto depois é o que a mão pede — e apaga
+        #   exatamente o que se ia procurar. Medido em 09/09/2026 no `>_` do
+        #   `cosmic-term-mocha.svg`: na cadeia CRUA o glifo tem quatro vértices
+        #   de 90,0°; depois de `alisar(w=5)` o maior vira 53,7° e NENHUM passa
+        #   dos 60° do limiar. O terminal saía com o `>` sem bico, os lados da
+        #   moldura ondulados, e o `_` virava uma azeitona — a média móvel tinha
+        #   comido o canto antes de alguém perguntar se ele existia.
+        #
+        #   Invertida, cada peça entre dois cantos é alisada SOZINHA e com as
+        #   pontas pregadas, então o canto sobrevive intacto e o lado reto volta
+        #   a ser uma peça reta — que uma cúbica só descreve com erro zero.
+        #
+        #   O laço fechado SEM canto é o único que ainda alisa antes de partir:
+        #   ali não há ponta para pregar, e alisar em círculo é o que mantém a
+        #   tangente contínua na emenda.
+        cru = np.asarray(pontos, np.float64)
+        idx = cantos(cru, fechada, limiar_canto, passo_canto)
+        ncantos += len(idx)
+        if fechada and not idx:
+            pecas = partir(alisar(cru, True, JANELA_ALISAR), [], True)
+        else:
+            pecas = [alisar(tr, False, JANELA_ALISAR)
+                     for tr in partir(cru, idx, fechada)]
+        trechos = []
+        for tr in pecas:
+            if len(tr) < 2:
+                continue
+            fatias = fatiar(tr)
+            for a, b, reto in fatias:
+                if b <= a:
+                    continue
+                if reto:
+                    nretas += 1
+                    trechos.append(("L", tr[[a, b]]))
+                    continue
+                sub = tr[a:b + 1]
+                if fechada and not idx and len(fatias) == 1:
+                    # A EMENDA DO LAÇO LISO PEDE UMA TANGENTE SÓ, PARTILHADA.
+                    # Com as automáticas, `t1` olha para `p[1]` e `t2` para
+                    # `p[-2]`, independentes — e o círculo do Reprodutor sai com
+                    # um bico no ponto em que fecha. A tangente da emenda é a que
+                    # passa pelos dois vizinhos do nó, e vale para os dois lados.
+                    # Só se aplica quando a peça é o laço INTEIRO: se `fatiar()`
+                    # tirou uma reta de dentro dele, o nó deixou de ser emenda e
+                    # virou junção comum, com tangente própria de cada lado.
+                    t = sub[1] - sub[-2]
+                    t = t / (np.linalg.norm(t) or 1.0)
+                    c = ajustar(sub, tol, t1=t, t2=-t)
+                else:
+                    c = ajustar(sub, tol)
+                if c is None:
+                    caidos += 1
+                    trechos.append(("L", np.asarray(
+                        dp([tuple(q) for q in sub], tol_dp), np.float64)))
+                else:
+                    ncurvas += len(c)
+                    trechos.append(("C", c))
+        return (fechada, trechos, com_cheia) if trechos else None
+
+    # A ÁREA CHEIA SAI PRIMEIRO PORQUE FICA POR BAIXO. Em SVG a ordem do
+    # documento é a ordem de pintura: emitida depois, ela cobriria os traços que
+    # desenham o miolo do próprio ícone.
+    if cheia:
+        mascara_cheia = area_cheia(rot, n)
+        if mascara_cheia is not None:
+            for linha in encadear(segmentos(mascara_cheia)):
+                t = tracar(linha, linha[0] == linha[-1], com_cheia=True)
+                if t:
+                    linhas.append(t)
+
     vistas = set()          # dedupe de aresta NÃO-orientada, global
-    linhas = []
     # ordem: fundo primeiro. A fronteira externa (silhueta) sai inteira e
     # limpa; as internas herdam só o que sobrou.
     for c in range(n):
@@ -637,26 +1242,35 @@ def converter(entrada, k=6, moda=3, funde=46.0, tol=1.6, min_traco=3.2,
             segs.append((a, b))
         for linha in encadear(segs):
             fechada = linha[0] == linha[-1]
-            s = dp(linha, tol)
+            s = dp(linha, tol_dp)
             if fechada and len(s) > 2 and s[0] != s[-1]:
                 s.append(s[0])
             if len(s) < 2:
                 continue
             if comprimento(s) * ESCALA * (RES / res) < min_traco:
                 continue
-            linhas.append(s)
+            t = tracar(linha, fechada, s=s)
+            if t:
+                linhas.append(t)
 
-    esc = 48.0 / (res + 2)   # +2 por causa da moldura de padding do traçador
-    partes = []
-    for pts in linhas:
-        d = "M" + " ".join(f"{x * esc:.2f} {y * esc:.2f}" for x, y in pts)
-        partes.append(d)
-    corpo = "".join(f'<path d="{p}"/>' for p in partes)
+    corpo = emitir(linhas, esc)
     metricas = {
+        "modo": "curvas" if curvas else "polilinha",
         "classes": n,
         "fitas": len(fitas),
         "linhas": len(linhas),
-        "pontos": sum(len(p) for p in linhas),
+        "curvas": ncurvas,
+        "retas": nretas,
+        "cantos": ncantos,
+        "caidos": caidos,
+        # True ou null — é por ela que a oficina decide se mostra o cartão da
+        # variação «Área cheia». `False` diria "pediram e não houve", que é
+        # outra coisa de "não pediram".
+        "cheia": True if mascara_cheia is not None else None,
+        # Pontos de APOIO, para as duas gramáticas caberem na mesma régua: cada
+        # cúbica vale 3 (dois controles e o nó), cada vértice de polilinha 1.
+        "pontos": sum(len(c) * 3 if t == "C" else len(c)
+                      for _, tr, _ in linhas for t, c in tr),
     }
     return corpo, metricas
 
@@ -699,19 +1313,49 @@ def main():
     p.add_argument("--funde", type=float, default=46.0, help="distância RGB p/ fundir cores")
     p.add_argument("--envolve", type=float, default=0.55, help="fração do perímetro que faz a fita ser contorno")
     p.add_argument("--fita", type=float, default=2.2, help="meia-espessura (px de 48) abaixo da qual a classe vira traço único")
-    p.add_argument("--tol", type=float, default=1.6, help="tolerância Douglas-Peucker (px de 256)")
+    # O PADRÃO DE `--tol` NÃO PODE MORAR AQUI, e é a única chave assim.
+    #   Em curvas ele é o erro máximo do ajuste de Bézier (1,0); em polilinha, a
+    #   tolerância do Douglas-Peucker (1,6). São medidas diferentes da mesma
+    #   grade de 256, e um `default=` fixo daria a uma delas o número da outra.
+    #   `None` aqui, escolha em `converter()` depois de saber o modo.
+    p.add_argument("--tol", type=float, default=None,
+                   help="curvas: erro máximo do ajuste (px de 256, padrão 1,0); "
+                        "polilinha: tolerância Douglas-Peucker (padrão 1,6)")
     p.add_argument("--min-traco", type=float, default=3.2, help="descarta traço menor (px de 48)")
     p.add_argument("--lw", type=float, default=None,
                    help="grava stroke-width no arquivo (padrao: NAO grava, "
                         "para o TRACO do icones_apps_arcticons.sh mandar)")
+    modo = p.add_mutually_exclusive_group()
+    modo.add_argument("--curvas", dest="curvas", action="store_true", default=True,
+                      help="(padrão) alisa, acha os cantos e ajusta Bézier")
+    modo.add_argument("--polilinha", dest="curvas", action="store_false",
+                      help="o traçado anterior a 09/09/2026, byte a byte")
+    p.add_argument("--cantos", type=float, default=60.0, metavar="GRAUS",
+                   help="virada acima da qual o vértice é canto e não alisa (padrão 60)")
+    p.add_argument("--cheia", action="store_true",
+                   help='a maior área interna sai com fill="currentColor"')
+    p.add_argument("--json", action="store_true",
+                   help="imprime as métricas como UMA linha JSON no stdout")
     a = p.parse_args()
     corpo, m = converter(a.entrada, a.k, a.moda, a.funde, a.tol, a.min_traco,
-                         a.fita, a.envolve)
+                         a.fita, a.envolve, RES, a.curvas, a.cheia, a.cantos)
     with open(a.saida, "w") as f:
         f.write(svg(corpo, a.lw))
-    print(f"{os.path.basename(a.entrada)}: {m['classes']} classes "
-          f"({m['fitas']} fita), {m['linhas']} traços, {m['pontos']} pontos",
-          file=sys.stderr)
+    # O JSON VAI PARA O STDOUT E A FRASE PARA O STDERR, SEMPRE NESSA ORDEM.
+    #   O `construir_convertidos.sh` chama com `2>/dev/null` e a oficina do
+    #   painel devolve o stdout como "nota" ao navegador. Trocar os dois canais
+    #   faria a nota da oficina virar uma linha de diagnóstico e o `--json`
+    #   sumir dentro do construtor.
+    if a.json:
+        print(json.dumps(m, ensure_ascii=False))
+    if a.curvas:
+        frase = (f"{m['classes']} classes ({m['fitas']} fita), "
+                 f"{m['linhas']} traços, {m['curvas']} curvas, "
+                 f"{m['cantos']} cantos, {m['caidos']} caídos")
+    else:
+        frase = (f"{m['classes']} classes ({m['fitas']} fita), "
+                 f"{m['linhas']} traços, {m['pontos']} pontos")
+    print(f"{os.path.basename(a.entrada)}: {frase}", file=sys.stderr)
 
 
 if __name__ == "__main__":
