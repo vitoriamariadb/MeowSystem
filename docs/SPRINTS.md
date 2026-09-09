@@ -10,32 +10,33 @@ fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
 ## AO VOLTAR, COMECE POR AQUI
 
-**Há três sprints ABERTAS, nenhuma executada — planejadas em 09/09/2026:**
-[`docs/sprints/2026-09-09-heroic-e-oficina.md`](sprints/2026-09-09-heroic-e-oficina.md).
-Sprint **P** (o Heroic grava o tema sem `.css`, e por isso a tela ficou de
-fábrica — causa lida no `app.asar` do 2.22.1), Sprint **Q** (o conversor
-emite escada, e é a terceira causa do "pixelado") e Sprint **R** (a oficina
-com variações, o original ao lado e clique para tirar traço). Cada uma é
-autossuficiente; começar por lá. **Q e R estão materializadas em nível de
-código** — [`sprint-q-conversor`](sprints/2026-09-09-sprint-q-conversor.md) e
-[`sprint-r-oficina`](sprints/2026-09-09-sprint-r-oficina.md). Nada pendente
-de logout ou reboot.
+**Não há sprint aberta.** A leva de 09/09/2026 fechou as três — o registro
+autossuficiente está em
+[`docs/sprints/2026-09-09-heroic-e-oficina.md`](sprints/2026-09-09-heroic-e-oficina.md),
+com os detalhamentos de código em
+[`sprint-q-conversor`](sprints/2026-09-09-sprint-q-conversor.md) e
+[`sprint-r-oficina`](sprints/2026-09-09-sprint-r-oficina.md).
 
-O repositório é **público** desde 06/09/2026, e a última leva fechou em
-07/09/2026 com três versões publicadas no mesmo dia — **v1.2.2**, **v1.2.3** e
-**v1.2.4**. O registro delas, autossuficiente, está em
-[`docs/sprints/2026-09-07-acabamento-do-painel.md`](sprints/2026-09-07-acabamento-do-painel.md):
-o que mudou, o que a medição derrubou, e como cada número da capa foi obtido.
+| sprint | o que era | como fechou |
+|---|---|---|
+| **P** | o Heroic mostrava o tema de fábrica | o valor de `theme` leva `.css`; conferido com o aplicativo ABERTO, não só nos arquivos |
+| **Q** | o traço saía em escada | o conversor emite curvas; a folha espera o sim dela para regenerar os 24 |
+| **R** | a oficina não gerava variações | folha de cartões, o original ao lado, clique tira o traço |
+
+**UMA COISA PENDENTE, E É DECISÃO DELA:** a folha do conversor está em
+`~/Documentos/meow-conversor-folha.html`. Enquanto ela não olhar,
+o `meow doctor` diz "15 desatualizados de 33" — é o esperado,
+porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio**.
 
 **O ESTADO DE HOJE, MEDIDO:**
 
 | | |
 |---|---|
 | `install.sh` | 53 etapas; rodar de novo não escreve um byte |
-| `meow doctor` | 47 conferências, "nada a consertar" |
+| `meow doctor` | **48** conferências; a única divergência é a arte convertida, e ela espera a folha |
 | painel | 109 chaves · 46 ações · 13 páginas de assunto |
-| conferência do navegador | **84/84**, console limpo nas catorze páginas |
-| suítes de shell | `app`, `seco`, `reversao`, `um-cartao-por-jogo`, `convergencia` — todas passam |
+| conferência do navegador | **103/103**, console limpo nas catorze páginas |
+| suítes de shell | `app`, `seco`, `reversao`, `um-cartao-por-jogo`, `convergencia`, `conversor`, `previa-cerca` — todas passam |
 
 **O QUE ENVELHECEU NESTE ARQUIVO:** tudo abaixo da linha é registro de sprint
 **fechada**, e fica como está — é história medida, não plano. Duas coisas que a
