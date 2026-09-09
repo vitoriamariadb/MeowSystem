@@ -15,13 +15,27 @@
 #   O buraco não deu erro em lugar nenhum. Foi preciso alguém perguntar "o
 #   install e o uninstall estão pareados?" para ele aparecer.
 #
-# SÃO DUAS AFIRMAÇÕES, E A SEGUNDA É A QUE ENVELHECE
+# SÃO TRÊS AFIRMAÇÕES, E AS DUAS ÚLTIMAS SÃO AS QUE ENVELHECEM
 #   1. o desinstalador chama o `reverter` — uma linha, quebra alto se sumir;
 #   2. TODO módulo em `assets/temas-de-apps/` define `meow_app_reverter` — esta é a que
 #      apodrece sozinha: um módulo novo nasce com `detectar/conferir/aplicar`
 #      (é o que o contrato exige) e o quarto verbo é opcional no runner. Sem
 #      este teste, o primeiro app-tema escrito depois de hoje volta a ficar
 #      para trás no `--uninstall`, em silêncio.
+#   3. TODA unidade de `systemd/` está nas DUAS listas do desinstalador — a que
+#      APAGA o arquivo (o `find`) e a que PARA a unidade viva (o
+#      `systemctl --user disable --now`). Acrescentada em 09/09/2026, e pelo
+#      mesmo motivo da 2: o `lib/desinstalar.sh` já trazia o comentário
+#      *"toda unidade nova entra nas DUAS"* — e o `meow-qt.{path,service}`,
+#      nascido naquele dia, entrou só numa. A frase estava lá desde 01/09,
+#      quando as três unidades da Sprint W tinham cometido exatamente o mesmo
+#      erro. **Uma regra que só existe como comentário é uma regra que se
+#      repete**: da segunda vez, quem cobra é este bloco.
+#
+#      O sintoma que ele evita não é cosmético: o `find` apaga o arquivo de uma
+#      unidade que continua ATIVA, e sobra processo rodando sem arquivo. No
+#      `meow-painel.service` isso é um supervisor com `Restart=on-failure`
+#      batendo num binário que o passo seguinte apagou.
 #
 # POR QUE `declare -F` NUM SUBSHELL, E NÃO UM `grep`
 #   `grep -q meow_app_reverter` passaria com a palavra dentro de um comentário —
@@ -60,6 +74,36 @@ for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
   fi
 done
 
+# --- 3. toda unidade está nas DUAS listas do desinstalador -------------------
+# A lista NOMEADA é a do `systemctl --user disable --now`, e é a que apodrece:
+# o `find -name 'meow-*' -delete` pega qualquer unidade nova de graça, então
+# esquecer a outra metade não dá erro nenhum — dá processo órfão.
+#
+# Comparo contra `systemd/`, que é a fonte: é de lá que o `install.sh` copia
+# para `~/.config/systemd/user`. Uma unidade que exista no repositório e não
+# esteja na lista é o defeito; o contrário (nome na lista sem arquivo) é
+# inofensivo, porque `disable` de unidade inexistente é justamente o estado que
+# se quer, e o `|| true` de lá já conta isso.
+nomeadas="$(sed -n '/systemctl --user disable --now/,/2>\/dev\/null/p' \
+              "$RAIZ/lib/desinstalar.sh" \
+            | grep -oE 'meow-[a-z-]+\.(path|service|timer)' | sort -u)"
+if [ -z "$nomeadas" ]; then
+  printf 'FALHOU: não achei o "systemctl --user disable --now" em lib/desinstalar.sh\n' >&2
+  printf '        (o comando mudou de forma? esta afirmação precisa ser reescrita)\n' >&2
+  falhou=1
+else
+  for u in "$RAIZ"/systemd/meow-*.path "$RAIZ"/systemd/meow-*.service "$RAIZ"/systemd/meow-*.timer; do
+    [ -e "$u" ] || continue
+    nome="$(basename "$u")"
+    printf '%s\n' "$nomeadas" | grep -qx "$nome" && continue
+    printf 'FALHOU: %s existe em systemd/ e NÃO está no "disable --now" do desinstalador\n' "$nome" >&2
+    printf '        o --uninstall apagaria o arquivo dela com a unidade ainda ativa\n' >&2
+    falhou=1
+  done
+fi
+
 [ "$falhou" = "0" ] || exit 1
 printf 'ok: o --uninstall desfaz os %s módulos de aplicativo\n' \
   "$(find "$RAIZ/assets/temas-de-apps" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+printf 'ok: as %s unidades de systemd/ estão nas duas listas do desinstalador\n' \
+  "$(find "$RAIZ/systemd" -maxdepth 1 -name 'meow-*' -type f | wc -l)"

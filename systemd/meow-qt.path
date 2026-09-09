@@ -1,0 +1,139 @@
+# meow-qt.path — o ícone do Qt voltava a `breeze-dark` A CADA LOGIN, e ficava
+#                 assim o dia inteiro. Este é o gatilho que o repõe em segundos.
+#
+# ============================================================================
+# O QUE FOI MEDIDO, EM 09/09/2026 — E O QUE A MEDIÇÃO DERRUBOU
+# ============================================================================
+#
+# O `manifesto.sh` dos toolkits afirmava, desde 04/08/2026, que escrever
+# `icon_theme` no `qt5ct.conf` era DURÁVEL — que sobrevivia à troca de tema E ao
+# reinício de sessão. A primeira metade continua verdadeira e foi reconfirmada
+# hoje. A segunda era falsa, e o campo cobrou: 29 reparos entre 04/08 e 06/09,
+# um por pasta datada em
+#
+#     ls -d ~/.local/state/meowsystem/backups/*/.config/qt5ct
+#
+# QUEM ESCREVE — só um programa, e isso foi conferido, não suposto:
+#
+#     cd /usr/bin && grep -rl --binary-files=binary "cosmic_qt_version" .
+#     -> cosmic-settings-daemon      (uma linha; /usr/lib e /usr/libexec, zero)
+#
+# QUANDO ESCREVE — o carimbo de hoje, com precisão de milissegundo:
+#
+#     09:13:39  boot
+#     09:14:21  cosmic-settings-daemon nasce (PID 3631, `ps -o lstart`)
+#     09:14:23.513  ele grava o PRÓPRIO estado
+#                   (~/.local/state/cosmic/…CosmicSettingsDaemon/v1/default_sink_name)
+#     09:14:23.686  gtk-3.0/gtk.css, gtk-4.0/gtk.css, cosmic/dark.css
+#     09:14:23.724  color-schemes/CosmicDark.colors
+#     09:14:23.784  qt5ct/colors/CosmicDark.conf
+#     09:14:23.821  cosmic/light.css, qt6ct/colors/CosmicDark.conf
+#     09:14:23.845  qt5ct e qt6ct colors/CosmicLight.conf
+#     09:14:23.857  kdeglobals
+#     09:14:23.866  qt5ct.conf   <- icon_theme=MeowSystem-Icons vira breeze-dark
+#     09:14:23.874  qt6ct.conf   <- idem
+#
+# Os TREZE arquivos gerados numa rajada de 190 ms, dois segundos depois de o
+# processo nascer. Não é troca de tema: nada em `~/.config/cosmic` foi escrito
+# às 09:14 (`find ~/.config/cosmic -newermt …`), e o tema dela está parado desde
+# 25/08. É a EXPORTAÇÃO DE PARTIDA do daemon.
+#
+# A PROVA DE QUE FOI SÓ ISSO: os dois `.conf` tinham nascido às 05:07:21 de
+# 06/09 (o reparo do doctor daquele dia) e ficaram com o mtime PARADO por três
+# dias — atravessaram os doctors de 07/09, 08/09 e 09/09 às 05:0x dizendo "nada
+# a consertar". A única escrita em 72 h foi a das 09:14:23.
+#
+# ============================================================================
+# O REGIME PERMANENTE FAZ MERGE — O EXPERIMENTO 1 DO MANIFESTO ESTAVA CERTO
+# ============================================================================
+#
+# Medido hoje, duas vezes, com o daemon já de pé. Semeei `qt5ct.conf` com
+# `icon_theme=MeowSystem-Icons` MAIS duas canárias — uma chave que o daemon não
+# conhece (`meow_canario=1`) e uma seção inteira que ele não conhece
+# (`[Fonts]`) — e forcei a regeneração de dois jeitos diferentes:
+#
+#   (a) reescrevendo `CosmicTheme.Dark/v1/accent` com os MESMOS bytes
+#   (b) reescrevendo `CosmicTheme.Mode/v1/is_dark` com os MESMOS bytes
+#
+# Nos dois casos o daemon reescreveu os `.conf` em milissegundos, REORDENOU as
+# chaves (ele serializa a partir de um mapa) e devolveu TUDO: as duas canárias
+# de pé e `icon_theme=MeowSystem-Icons` intacto. Ou seja: o daemon em regime
+# permanente lê o arquivo, mexe no que é dele e regrava. Ele não atropela nada.
+#
+# A CONCLUSÃO QUE MUDA: a chave não é durável porque o merge a preserva; ela é
+# durável ATÉ O PRÓXIMO LOGIN, e no login a exportação de partida a devolve para
+# o `breeze-dark` que está hardcoded no binário, ao lado da própria chave
+# (`strings`: "…Appearance cosmic_qt_version breeze breeze-dark
+# color_scheme_path Cosmic icon_theme custom_palette…").
+#
+# ============================================================================
+# A CORRELAÇÃO COM OS 29 REPAROS, CONTADA E NÃO ESTIMADA
+# ============================================================================
+#
+# Cruzando as 29 pastas de backup com os boots do `last -x reboot`: dos 28
+# reparos que têm um reparo anterior para comparar, 23 tiveram um boot na
+# janela entre um e outro. Os 5 que não tiveram caem todos em DOIS dias de
+# oficina (04/08 e 25/08), quando o `aplicar` foi chamado à mão várias vezes na
+# mesma tarde. Nenhum reparo de dia normal — os das 05:0x — aconteceu sem um
+# boot antes dele.
+#
+# O CONTRÁRIO NÃO É EXATO, E ISSO PRECISA ESTAR ESCRITO: o boot de 08/09 21:38
+# NÃO derrubou a chave (o mtime prova). Naquele boot o daemon também não gravou
+# o `default_sink_name` — ou seja, a exportação de partida não chegou a rodar.
+# Então o certo é "quase todo login", não "todo login"; e é por isso que a
+# defesa aqui é um VIGIA e não um serviço de uma vez só no login: o gatilho não
+# precisa saber em quais partidas o daemon exporta, ele reage à escrita.
+#
+# ============================================================================
+# POR QUE UM `.path`, E NÃO UMA DAS OUTRAS SAÍDAS
+# ============================================================================
+#
+#   * "conserta na origem": não há origem para consertar. O daemon não lê o
+#     `CosmicTk/icon_theme` dela (medido em 04/08 e ainda verdade hoje: o
+#     CosmicTk diz `MeowSystem-Icons` e ele escreveu `breeze-dark`), e não há
+#     chave nenhuma que desligue essa exportação.
+#   * "congelar o arquivo" (`chattr +i`): mataria junto a regeneração da PALETA
+#     — o `color_scheme_path` e o `custom_palette` que fazem o Qt seguir o accent
+#     dela. Seria trocar um ícone errado por uma janela cinza.
+#   * "um serviço só no login": cobre o caso conhecido e nenhum outro. Um `.path`
+#     custa o mesmo e cobre qualquer escritor futuro — inclusive o próprio
+#     `qt5ct` se ela um dia o abrir.
+#   * O relógio do `meow doctor` CONTINUA sendo a rede de segurança, exatamente
+#     como no `meow-fundo.path`: gatilho para ser rápido, relógio para ser
+#     garantido. O que este arquivo muda é a espera — de "até as 5h da manhã"
+#     para dois segundos.
+#
+# ============================================================================
+# VIGIA O DIRETÓRIO, NÃO O ARQUIVO
+# ============================================================================
+#
+# Pelo motivo já medido e registrado no cabeçalho do `meow-fundo.path`: um
+# `PathChanged=` em DIRETÓRIO dispara nas três formas de escrever ali dentro
+# (criar, reescrever no lugar, rename atômico), e as três acontecem aqui —
+# o daemon reescreve o `qt5ct.conf` NO LUGAR (o inode de 06/09 sobreviveu ao
+# 09/09), enquanto o `meow_escrever` do nosso lado grava por rename. Vigiar o
+# arquivo cobriria só uma delas.
+#
+# E o diretório é seguro: `~/.config/qt5ct` tem o `qt5ct.conf` e a pasta
+# `colors/`. O inotify de um diretório não é recursivo, então a regeneração da
+# paleta (que o daemon faz DENTRO de `colors/`, dezenas de vezes por dia) não
+# acorda ninguém aqui. Medido na rajada das 09:14:23: `colors/CosmicDark.conf`
+# ganhou inode novo sem que `~/.config/qt5ct` mudasse de mtime.
+
+[Unit]
+Description=MeowSystem — vigia o qt5ct/qt6ct e repõe o tema de ícones que o COSMIC devolve ao padrão no login
+Documentation=file:%h/.local/state/meowsystem/qt.log
+
+[Path]
+PathChanged=%h/.config/qt5ct
+PathChanged=%h/.config/qt6ct
+Unit=meow-qt.service
+
+# `default.target` e não `cosmic-session.target`, e a razão é o relógio da
+# medição: o `default.target` já está de pé às 09:13:46 (35 s ANTES da rajada do
+# daemon), enquanto o `cosmic-session.target` só é alcançado às 09:14:21.8 —
+# margem de 1,8 s. Com a partida do daemon sendo justamente o evento a cobrir,
+# não se escolhe a margem menor. É também o alvo que o `meow-fundo.path`, o
+# `meow-flatpak.path` e o `meow-steam.path` usam.
+[Install]
+WantedBy=default.target

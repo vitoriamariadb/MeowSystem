@@ -51,7 +51,7 @@
 meow_desinstalar() {
   meow_titulo "MeowSystem — desinstalar"
   meow_info "isto NÃO desinstala pacotes do apt nem apaga o clone do repositório"
-  meow_seco && meow_aviso "modo seco: nada será removido"
+  meow_seco && meow_aviso "ensaio: nada será removido"
 
   meow_passo "1/6 Relógios e gatilhos"
   # A LISTA DO `disable` É EXPLÍCITA, E POR ISSO ELA ENVELHECE — ENVELHECEU DUAS VEZES
@@ -88,6 +88,7 @@ meow_desinstalar() {
       meow-assets.path meow-assets.service \
       meow-flatpak.path meow-flatpak.service \
       meow-steam.path meow-steam.service \
+      meow-qt.path meow-qt.service \
       meow-leitura.timer meow-leitura.service \
       meow-gato.timer meow-gato.service meow-ativos.path \
       meow-painel.service meow-painel-raio.path meow-painel-raio.service 2>/dev/null || true
@@ -98,6 +99,10 @@ meow_desinstalar() {
     # `meow-gato.service`, um SIGTERM no `cosmic-panel` disparado por uma unidade
     # que já não existe. Toda unidade nova entra nas DUAS.
     # (Conferido em 01/09/2026: as três da Sprint W estavam só no `find`.)
+    # (E de novo em 09/09/2026, com o `meow-qt.{path,service}`: a unidade nova
+    #  nasceu só no `find`, e o comentário acima já dizia o que fazer. A regra
+    #  que ninguém relê é a que quebra — por isso o `tests/reversao.sh` passou a
+    #  cobrar as DUAS listas em vez de confiar nesta frase.)
     find "$HOME/.config/systemd/user" -maxdepth 1 -name 'meow-*' \
       \( -name '*.service' -o -name '*.timer' -o -name '*.path' \) -delete 2>/dev/null || true
     # O CINTO DOS LINKS, e ele não é redundância da lista acima: é o caso em que

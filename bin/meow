@@ -528,6 +528,156 @@ fix_fundo() {
   return "$MEOW_DIVERGENTE"
 }
 
+# O VIGIA DO Qt — A QUARTA UNIDADE `.path` DO PROJETO (09/09/2026)
+#
+#   A linha `apps` logo abaixo confere o VALOR (`icon_theme` dos dois `.conf`);
+#   esta confere o GATILHO que o repõe em segundos. São perguntas diferentes,
+#   pela mesma razão que separa `wallpaper` de `fundo`: sem esta, um `disable`
+#   acidental faria a `apps` voltar a acusar divergência todo dia às 5h e nada
+#   na tela diria que o vigia tinha caído.
+#
+#   POR QUE ELE PRECISOU EXISTIR, EM UMA FRASE: o cosmic-settings-daemon
+#   reescreve `qt5ct.conf`/`qt6ct.conf` na exportação de PARTIDA da sessão e
+#   devolve o `icon_theme` ao `breeze-dark` que está hardcoded nele — 29 vezes
+#   entre 04/08 e 06/09, uma por pasta de backup datada. A medição inteira, com
+#   os milissegundos, está no cabeçalho de `systemd/meow-qt.path`.
+#
+#   A lista de arquivos mora numa linha só e a de "quem se liga" é DERIVADA dela
+#   pelo sufixo, igual ao `_FUNDO_UNIDADES`: uma lista a menos para envelhecer.
+_QT_DIR="$HOME/.config/systemd/user"
+_QT_UNIDADES=(meow-qt.service meow-qt.path)
+_qt_ligaveis() {
+  local u
+  for u in "${_QT_UNIDADES[@]}"; do
+    case "$u" in *.service) ;; *) printf '%s\n' "$u" ;; esac
+  done
+}
+
+# A CERCA É A MESMA DO `chk_fundo`, E PELO MESMO MOTIVO: paridade com o
+# instalador. O `etapa_vigia_qt` DESLIGA e APAGA as duas quando `AUTO_REPARO`
+# não é "sim"; sem esta guarda o doctor acusaria "instalaria meow-qt.path" todo
+# dia e o `--consertar` religaria o que o `./install.sh` acabou de tirar.
+#
+# A SEGUNDA CERCA É O `APPS_ATIVOS`, e ela não tem irmã nas outras três: quem
+# tirou `qt5ct` da lista pediu para o módulo dos toolkits não rodar, e um vigia
+# que o chamasse assim mesmo seria a CLI desobedecendo a conf dela. É a mesma
+# condição que o `ExecCondition=` da unidade avalia — se divergissem, o doctor
+# diria "ligado" sobre um gatilho que o systemd pula em silêncio.
+chk_qtvigia() {
+  local u texto sobrou=0 lista
+  meow_tem systemctl && [ -d "/run/user/$(id -u)/systemd" ] || {
+    meow_pula "sem systemd de usuária — o gatilho do Qt não se aplica aqui"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+
+  lista=",$(printf '%s' "${APPS_ATIVOS:-}" | tr -d ' '),"
+  case "$lista" in
+    *,qt5ct,*|*,qt,*|*,gtk,*) ;;
+    *)
+      for u in "${_QT_UNIDADES[@]}"; do [ -f "$_QT_DIR/$u" ] && sobrou=1; done
+      [ "$sobrou" = "1" ] && {
+        meow_muda "qt5ct fora do APPS_ATIVOS mas o vigia do Qt continua instalado"
+        return "$MEOW_DIVERGENTE"
+      }
+      meow_pula "qt5ct fora do APPS_ATIVOS — sem vigia do Qt"
+      return "$MEOW_SEM_DEPENDENCIA" ;;
+  esac
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    for u in "${_QT_UNIDADES[@]}"; do [ -f "$_QT_DIR/$u" ] && sobrou=1; done
+    while IFS= read -r u; do
+      case "$(systemctl --user is-enabled "$u" 2>/dev/null)" in
+        enabled|enabled-runtime) sobrou=1 ;;
+      esac
+      [ "$(systemctl --user is-active "$u" 2>/dev/null)" = "active" ] && sobrou=1
+    done < <(_qt_ligaveis)
+    [ "$sobrou" = "1" ] && {
+      meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" mas o vigia do Qt continua ligado"
+      return "$MEOW_DIVERGENTE"
+    }
+    meow_pula "AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem vigia do Qt"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  # COMPARAR DO MESMO JEITO QUE SE ESCREVE — a armadilha do `\n` final está
+  # explicada no `chk_fundo` aqui em cima. `"$(cat …)"` dos DOIS lados.
+  for u in "${_QT_UNIDADES[@]}"; do
+    [ -f "$RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+    texto="$(cat "$RAIZ/systemd/$u")"
+    if [ ! -f "$_QT_DIR/$u" ] || [ "$texto" != "$(cat "$_QT_DIR/$u" 2>/dev/null)" ]; then
+      meow_muda "instalaria/atualizaria $u"
+      return "$MEOW_DIVERGENTE"
+    fi
+  done
+  while IFS= read -r u; do
+    if [ "$(systemctl --user is-failed "$u" 2>/dev/null)" = "failed" ]; then
+      meow_muda "$u está em failed — religaria"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      meow_muda "ligaria o $u"
+      return "$MEOW_DIVERGENTE"
+    fi
+  done < <(_qt_ligaveis)
+  meow_ok "vigiando qt5ct/qt6ct — o ícone do Qt volta sozinho depois do login"
+  return "$MEOW_OK"
+}
+
+# O SECO PARA ANTES DE QUALQUER `systemctl` QUE ESCREVA — é a guarda que o
+# `fix_fundo` ganhou em 25/08/2026 depois de ser medido mexendo no systemd dela
+# durante um `MEOW_DRY_RUN=1 meow doctor --consertar`. `is-enabled`/`is-active`/
+# `is-failed` são leitura pura e podem ficar de fora dela; `daemon-reload`,
+# `reset-failed`, `enable` e `disable` não.
+fix_qtvigia() {
+  local u lista
+  meow_tem systemctl && [ -d "/run/user/$(id -u)/systemd" ] || return "$MEOW_SEM_DEPENDENCIA"
+
+  lista=",$(printf '%s' "${APPS_ATIVOS:-}" | tr -d ' '),"
+  case "$lista" in
+    *,qt5ct,*|*,qt,*|*,gtk,*) ;;
+    *)
+      # Só se chega aqui vindo de um `chk_qtvigia` que devolveu 1 — ou seja,
+      # com sobra no disco ou no systemd. Quando não há sobra o `chk` devolve 3
+      # e o `--consertar` nem chama esta função.
+      meow_seco && { meow_muda "removeria o vigia do Qt (qt5ct fora do APPS_ATIVOS)"; return "$MEOW_DIVERGENTE"; }
+      while IFS= read -r u; do systemctl --user disable --now "$u" >/dev/null 2>&1; done < <(_qt_ligaveis)
+      for u in "${_QT_UNIDADES[@]}"; do rm -f "$_QT_DIR/$u"; done
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_ok "qt5ct fora do APPS_ATIVOS — vigia do Qt desligado e removido"
+      return "$MEOW_DIVERGENTE" ;;
+  esac
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    meow_seco && { meow_muda "removeria o vigia do Qt"; return "$MEOW_DIVERGENTE"; }
+    while IFS= read -r u; do systemctl --user disable --now "$u" >/dev/null 2>&1; done < <(_qt_ligaveis)
+    for u in "${_QT_UNIDADES[@]}"; do rm -f "$_QT_DIR/$u"; done
+    systemctl --user daemon-reload >/dev/null 2>&1
+    meow_ok "AUTO_REPARO=\"${AUTO_REPARO:-}\" — vigia do Qt desligado e removido"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if meow_seco; then
+    meow_muda "instalaria e ligaria o vigia do Qt (qt5ct/qt6ct)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  mkdir -p "$_QT_DIR"
+  for u in "${_QT_UNIDADES[@]}"; do
+    meow_escrever "$_QT_DIR/$u" "$(cat "$RAIZ/systemd/$u")" 644
+    case $? in 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+  systemctl --user daemon-reload >/dev/null 2>&1
+  # O `reset-failed` cobre as duas: o `.service` é o que falha primeiro, e
+  # enquanto ele estiver em `failed` o `.path` dispara para o vazio.
+  systemctl --user reset-failed "${_QT_UNIDADES[@]}" >/dev/null 2>&1
+  while IFS= read -r u; do
+    systemctl --user enable --now "$u" >/dev/null 2>&1 \
+      || { meow_erro "não consegui ligar o $u"; return "$MEOW_ERRO"; }
+  done < <(_qt_ligaveis)
+  meow_ok "vigia do Qt ligado — o ícone volta em segundos, não às 5h da manhã"
+  return "$MEOW_DIVERGENTE"
+}
+
 chk_apps() {
   APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
     SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir 2>&1
@@ -1283,7 +1433,7 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia autostart atalho)
+VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia qtvigia autostart atalho)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
@@ -1473,7 +1623,7 @@ cmd_status() {
       campo "ativo"  "$(printf '%s%s%s  (o alvo é %s)' "$C_AMARELO" "$ativo" "$C_ZERO" "$alvo")"
     fi
   else
-    campo "ativo"    "$(printf '%snenhuma captura confere%s' "$C_AMARELO" "$C_ZERO")"
+    campo "ativo"    "$(printf '%snenhum tema pronto confere%s' "$C_AMARELO" "$C_ZERO")"
   fi
   campo "capturas"  "$(capturas | em_linha)"
 
@@ -1642,7 +1792,7 @@ cmd_tema() {
       if ativo="$(tema_ativo)"; then campo "ativo" "$ativo"
       else campo "ativo" "nenhuma captura confere"; fi
       campo "modo" "$MODO (is_dark=$(is_dark_atual))"
-      printf '\n  %scapturas disponíveis%s\n' "$C_DIM" "$C_ZERO"
+      printf '\n  %stemas prontos%s\n' "$C_DIM" "$C_ZERO"
       capturas | sed 's/^/    /'
       printf '\n  %smeow tema <nome> aplica · meow tema claro|escuro|auto troca o modo%s\n\n' \
              "$C_DIM" "$C_ZERO"
@@ -1685,7 +1835,7 @@ cmd_tema() {
     desfazer) cmd_desfazer ;;
 
     -h|--help)
-      printf 'uso: meow tema [<captura>|claro|escuro|auto|capturar <nome>|desfazer]\n'; return 0 ;;
+      printf 'uso: meow tema [<tema>|claro|escuro|auto|capturar <nome>|desfazer]\n'; return 0 ;;
 
     *)
       if [ ! -d "$RAIZ/assets/temas/capturados/$arg" ]; then
@@ -2021,7 +2171,7 @@ cmd_apps() {
   case "${1:-tabela}" in
     tabela)
       meow_titulo "Aplicativos"
-      printf '  %s%s %s %s %s%s\n' "$C_DIM" "$(pad "módulo" 18)" "$(pad "instalado" 10)" "$(pad "tema" 10)" "slugs do meow.conf" "$C_ZERO"
+      printf '  %s%s %s %s %s%s\n' "$C_DIM" "$(pad "programa" 18)" "$(pad "instalado" 10)" "$(pad "tema" 10)" "nomes no meow.conf" "$C_ZERO"
       local pasta slugs det conf rc_geral=0
       local t_inst c_inst t_tema c_tema
       while IFS=$'\t' read -r pasta slugs det conf; do
@@ -2043,9 +2193,9 @@ cmd_apps() {
                "$c_tema" "$(pad "$t_tema" 10)" "$C_ZERO" "$slugs"
       done < <(APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
         SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
-      printf '\n  %sslug sem módulo ainda não é falha: aparece só quando alguém escrever o manifesto.%s\n' \
+      printf '\n  %snome sem programa ainda não é falha: aparece só quando alguém escrever o manifesto.%s\n' \
              "$C_DIM" "$C_ZERO"
-      printf '  %smeow apps aplicar [slug] tematiza; sem slug, todos.%s\n\n' "$C_DIM" "$C_ZERO"
+      printf '  %smeow apps aplicar [nome] tematiza; sem nome, todos.%s\n\n' "$C_DIM" "$C_ZERO"
       return "$rc_geral" ;;
     conferir)
       APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
@@ -2065,13 +2215,13 @@ cmd_apps() {
       # "todos" implícito do `aplicar`. `meow apps reverter` digitado por engano
       # não pode desfazer a máquina inteira; um comando destrutivo não se
       # oferece de graça, ele se pede pelo nome.
-      [ -n "${1:-}" ] || { meow_erro "uso: meow apps reverter <slug>"; return "$MEOW_ERRO"; }
+      [ -n "${1:-}" ] || { meow_erro "uso: meow apps reverter <nome>"; return "$MEOW_ERRO"; }
       meow_travar || return "$MEOW_ERRO"
       APPS_ATIVOS="$1" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
         SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" reverter; local rc=$?
       [ "$rc" = "1" ] && registrar "apps reverter $1"
       return "$rc" ;;
-    *) meow_erro "uso: meow apps [tabela|conferir|aplicar [slug]|reverter <slug>]"; return "$MEOW_ERRO" ;;
+    *) meow_erro "uso: meow apps [tabela|conferir|aplicar [nome]|reverter <nome>]"; return "$MEOW_ERRO" ;;
   esac
 }
 
@@ -2601,7 +2751,7 @@ cmd_desfazer() {
   # Pergunta só quando há alguém para responder. Em automação (`| meow`, timer,
   # hook) segue sem perguntar — é a regra "zero pergunta em modo automático".
   if [ -t 0 ] && [ "${MEOW_SIM:-0}" != "1" ]; then
-    printf '  %sisto devolve o tema do COSMIC para a captura "original".%s\n' "$C_AMARELO" "$C_ZERO"
+    printf '  %sisto devolve o tema do COSMIC para o tema "original".%s\n' "$C_AMARELO" "$C_ZERO"
     printf '  continuar? (s/N) '
     local resp=""
     read -r -t "${MEOW_TIMEOUT:-30}" resp || true
@@ -2643,13 +2793,13 @@ cmd_log() {
 # nome que não existe.
 menu_itens() {
   printf 'status\tPainel de estado: flavor, accent, tema, ícones, papel de parede e o que está divergente.\n'
-  printf 'doctor\tRoda todas as conferências em seco e lista as divergências. Não escreve nada.\n'
+  printf 'doctor\tRoda todas as conferências em ensaio e lista as divergências. Não escreve nada.\n'
   printf 'doctor --consertar\tConfere e aplica só o que falhou. Não usa sudo e não baixa nada.\n'
-  printf 'tema\tMostra o tema alvo, o ativo e as capturas disponíveis.\n'
+  printf 'tema\tMostra o tema escolhido, o que está no ar, e os temas prontos.\n'
   local n
   while IFS= read -r n; do
     [ -n "$n" ] || continue
-    printf 'tema %s\tAplica a captura "%s" por cópia, sem passar pela GUI.\n' "$n" "$n"
+    printf 'tema %s\tAplica o tema "%s" por cópia, sem passar pela GUI.\n' "$n" "$n"
   done < <(capturas)
   printf 'tema claro\tEscreve is_dark=false. Claro e escuro são o MESMO tema, com um interruptor.\n'
   printf 'tema escuro\tEscreve is_dark=true.\n'
@@ -2832,7 +2982,7 @@ cmd_painel() {
       meow_titulo "meow painel"
       printf '  meow painel estado     diagnóstico de uma tela\n'
       printf '  meow painel teto       a conta do raio (altura, teto, compositor)\n'
-      printf '  meow painel conferir   clampa o raio ao que cabe, se for preciso\n'
+      printf '  meow painel conferir   corta o raio no que cabe, se for preciso\n'
       printf '  meow painel reciclar   SIGTERM no painel, pela porta única\n\n'
       printf '  O supervisor roda como meow-painel.service; ele repõe a barra em\n'
       printf '  segundos quando ela cai, porque o cosmic-session desiste depois de\n'
