@@ -185,4 +185,95 @@ PY
   fi
 fi
 
+# --------------------------------------------------------------------------
+# `--peso-fronteira` — a chave da Sprint T, e a TRAVA que ela tem de respeitar
+#
+# A queixa dela, 09/09/2026: *"sinto que não tá fidedigno"*. A medição da Sprint
+# T derrubou a explicação que o cabeçalho do conversor dava ("geométrico sai,
+# orgânico não") e pôs outra no lugar: o que decide é quantas fronteiras de cor
+# existem dentro da silhueta, e quanto contraste cada uma tem. O Brave falha com
+# QUATRO classes porque uma das fronteiras dele vale 57,9 de RGB — o vermelho
+# contra o vermelho escuro do escudo — e mesmo assim custa uma linha.
+#
+# AS DUAS ASSERÇÕES QUE VALEM MAIS, e são as duas metades do mesmo experimento:
+#
+#   1. DESLIGADO NÃO MUDA UM BYTE. A arte convertida que está na tela dela foi
+#      aprovada numa folha (11/08/2026). Uma chave que mexesse no padrão
+#      trocaria arte aprovada em silêncio. `--peso-fronteira 0` tem de sair
+#      idêntico ao padrão, arquivo a arquivo.
+#
+#   2. LIGADO NÃO PIORA QUEM JÁ SAÍA BEM. A Sprint T nomeou a trava: a
+#      Calculadora, o Telegram e o VLC saem fiéis hoje e não podem piorar. Como
+#      o limiar de 70 foi ESCOLHIDO no vale medido (64,6 … 77,1 vazio) e a
+#      fronteira interna mais fraca do Telegram vale 78,4, a saída dos três tem
+#      de continuar byte a byte igual. Se alguém subir o limiar, esta linha cai
+#      antes de a folha da próxima leva ser gerada.
+#
+# E o canário do modo de falha: o `cosmic-edit` (as três linhas de texto vivem
+# numa fronteira de 82,7) e o `cosmic-term` (o `>_` numa de 271,0). Medido em
+# 09/09/2026 com `--peso-fronteira 140`, que é o mínimo para o limiar tocar o
+# Chrome: o Editor cai de 5 traços para 2 e vira A FOLHA EM BRANCO do cabeçalho
+# do `colapsar_fitas`, o btop de 4 para 1 e vira O QUADRADO VAZIO, e o Chrome
+# ganha… um traço a menos. É por isso que 70 é o número e 140 não é.
+# --------------------------------------------------------------------------
+for origem in "${ORIGENS[@]}"; do
+  [ -f "$origem" ] || continue
+  nome="$(basename "$origem")"
+  python3 "$CONV" "$origem" "$T/z0.svg" --json >"$T/z0.json" 2>/dev/null
+  python3 "$CONV" "$origem" "$T/z1.svg" --peso-fronteira 0 >/dev/null 2>&1
+  cmp -s "$T/z0.svg" "$T/z1.svg" \
+    && ok "$nome: --peso-fronteira 0 é o padrão byte a byte" \
+    || falha "$nome: --peso-fronteira 0 mudou a saída padrão"
+  # `peso` null e não `0`: "não pediram" é outra coisa de "pediram zero", e a
+  # folha decide por essa métrica se mostra a terceira coluna.
+  [ "$(metrica "$T/z0.json" peso)" = "None" ] && ok "$nome: a métrica diz que a chave não foi pedida" \
+    || falha "$nome: a métrica 'peso' não é null no padrão"
+  [ "$(metrica "$T/z0.json" fundidas)" = "0" ] && ok "$nome: nenhuma fronteira fundida no padrão" \
+    || falha "$nome: o padrão fundiu fronteira — a chave está ligada sozinha"
+done
+
+# A TRAVA: os três que a Sprint T proibiu de piorar, e os dois canários.
+#   Byte a byte, não "parecido": o limiar de 70 foi medido justamente para não
+#   os alcançar, e qualquer mudança aqui é mudança de arte aprovada.
+TRAVA=(
+  "/usr/share/icons/Papirus/64x64/apps/org.gnome.Calculator.svg"   # fiel, mín. 204,6
+  "/usr/share/icons/Papirus/64x64/apps/org.telegram.desktop.svg"   # fiel, mín. 78,4 <- quem manda
+  "/usr/share/icons/Papirus/64x64/apps/org.videolan.VLC.svg"       # fiel, mín. 281,3
+  "$RAIZ/assets/icones/autorais/cosmic-edit-mocha.svg"             # canário: a folha em branco
+  "$RAIZ/assets/icones/autorais/cosmic-term-mocha.svg"             # canário: o quadrado
+)
+for origem in "${TRAVA[@]}"; do
+  [ -f "$origem" ] || { printf 'pulado: %s não existe\n' "$origem"; continue; }
+  nome="$(basename "$origem")"
+  python3 "$CONV" "$origem" "$T/v0.svg" >/dev/null 2>&1
+  python3 "$CONV" "$origem" "$T/v1.svg" --peso-fronteira >/dev/null 2>&1
+  cmp -s "$T/v0.svg" "$T/v1.svg" \
+    && ok "trava: $nome não muda com --peso-fronteira" \
+    || falha "trava: $nome MUDOU com --peso-fronteira — o limiar subiu e alcançou quem já saía bem"
+done
+
+# O GANHO: o Brave é o caso que a Sprint T nomeou, e ele tem de encolher.
+#   Medido em 09/09/2026: 10 traços -> 3, fundindo UMA fronteira de 57,9 (o
+#   vermelho contra o vermelho escuro do escudo). Se isto parar de valer, ou o
+#   limiar caiu abaixo de 58 ou a fusão deixou de acontecer.
+BRAVE="/usr/share/icons/Papirus/64x64/apps/com.brave.Browser.svg"
+if [ -f "$BRAVE" ]; then
+  python3 "$CONV" "$BRAVE" "$T/w0.svg" --json >"$T/w0.json" 2>/dev/null
+  python3 "$CONV" "$BRAVE" "$T/w1.svg" --peso-fronteira --json >"$T/w1.json" 2>/dev/null
+  a=$(metrica "$T/w0.json" linhas); b=$(metrica "$T/w1.json" linhas)
+  f=$(metrica "$T/w1.json" fundidas)
+  [ "$f" -ge 1 ] && ok "brave: $f fronteira(s) fraca(s) fundida(s)" \
+                 || falha "brave: nenhuma fronteira fundida — a chave não pegou o caso que a nomeou"
+  [ "$b" -lt "$a" ] && ok "brave: $a traços -> $b com peso de fronteira" \
+                    || falha "brave: $a -> $b — o emaranhado não encolheu"
+  # A saída ligada continua sendo o dialeto do acervo. Uma chave que quebrasse
+  # o `_conferir_dialeto()` do app/servidor.py só apareceria na tela dela.
+  grep -q 'stroke-width' "$T/w1.svg" && falha "brave/peso: gravou stroke-width" \
+                                     || ok "brave/peso: sem stroke-width"
+  grep -q 'viewBox="0 0 48 48"' "$T/w1.svg" && ok "brave/peso: viewBox 48" \
+                                            || falha "brave/peso: viewBox errado"
+  grep -q '<path ' "$T/w1.svg" && ok "brave/peso: <path com espaço (o _vestido injeta)" \
+                               || falha "brave/peso: <path sem espaço"
+fi
+
 exit "$falhas"
