@@ -4,13 +4,22 @@ Este arquivo é **autossuficiente**: quem for executar uma sprint não precisa d
 nenhum contexto de conversa anterior. Cada uma traz o que já foi medido, o que
 fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
-Última atualização: **07/09/2026**.
+Última atualização: **09/09/2026**.
 
 ---
 
 ## AO VOLTAR, COMECE POR AQUI
 
-**Não há sprint aberta, e não há nada pendente de logout ou reboot.**
+**Há três sprints ABERTAS, nenhuma executada — planejadas em 09/09/2026:**
+[`docs/sprints/2026-09-09-heroic-e-oficina.md`](sprints/2026-09-09-heroic-e-oficina.md).
+Sprint **P** (o Heroic grava o tema sem `.css`, e por isso a tela ficou de
+fábrica — causa lida no `app.asar` do 2.22.1), Sprint **Q** (o conversor
+emite escada, e é a terceira causa do "pixelado") e Sprint **R** (a oficina
+com variações, o original ao lado e clique para tirar traço). Cada uma é
+autossuficiente; começar por lá. **Q e R estão materializadas em nível de
+código** — [`sprint-q-conversor`](sprints/2026-09-09-sprint-q-conversor.md) e
+[`sprint-r-oficina`](sprints/2026-09-09-sprint-r-oficina.md). Nada pendente
+de logout ou reboot.
 
 O repositório é **público** desde 06/09/2026, e a última leva fechou em
 07/09/2026 com três versões publicadas no mesmo dia — **v1.2.2**, **v1.2.3** e
