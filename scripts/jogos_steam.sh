@@ -37,7 +37,14 @@
 #   `~/.local/share/applications`, e um segundo `.desktop` com o mesmo `Name=`
 #   é um segundo cartão. Aconteceu em 15/08/2026 com 17 jogos — quinze deles com
 #   o nome idêntico, e foi esse quinze que ela contou na tela (ver a seção 2).
-#   Por isso a limpeza tem três donos rivais, e não dois.
+#
+#   O RECONHECIMENTO DO RIVAL É POR CONTEÚDO DESDE 09/09/2026, e a mudança veio
+#   de errar quatro vezes seguidas: cada rodada de duplicata trazia um NOME de
+#   arquivo novo, e a lista de nomes sempre chegava atrasada. O quarto foi
+#   `Future Knight.desktop` — o atalho da Steam, que se chama pelo nome do jogo e
+#   por isso não tem molde nenhum. Hoje a pergunta é "para qual appid este
+#   cartão aponta, e ele tem a nossa assinatura?". Os três moldes por nome
+#   continuam depois dela, para o cartão órfão que geradores nossos deixaram.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -398,10 +405,12 @@ while IFS= read -r lib; do
 done < <(bibliotecas)
 
 # --- 2. limpeza: o que existe no destino e não deveria mais existir -----------
-# Só apaga com PROVA DE AUTORIA (a marca X-MeowSystem, o `rungameid` dos dois
-# geradores antigos, ou o par nome-de-arquivo + appid do molde da Steam). Nunca
-# por prefixo de nome sozinho: um `.desktop` que ela escreveu à mão não é órfão
-# de ninguém.
+# Só apaga com PROVA DE AUTORIA — e desde 09/09/2026 a prova que manda é o
+# CONTEÚDO: para qual appid o cartão aponta, e se ele traz a nossa assinatura. Os
+# moldes por NOME de arquivo (o `rungameid` dos dois geradores antigos, o par
+# nome-de-arquivo + appid do molde da Steam) continuam logo depois dela, para o
+# que a regra por conteúdo não alcança. Nunca por prefixo de nome sozinho: um
+# `.desktop` que ela escreveu à mão não é órfão de ninguém.
 
 removidos=0; duplicatas=0; degraus_removidos=0
 if [ "$ausentes" -gt 0 ]; then
@@ -450,12 +459,123 @@ else
     mudou=1; degraus_removidos=$((degraus_removidos + 1))
   done
 
+  # --- O RIVAL RECONHECIDO PELO CONTEÚDO — 09/09/2026 -------------------------
+  #
+  # O QUARTO MOLDE NÃO TEM NOME, E É POR ISSO QUE NENHUM PADRÃO DE NOME O PEGA
+  #   Ela instalou Future Knight e viu DOIS cartões. Ao lado do nosso
+  #   `meow-steam-4235410.desktop` havia `Future Knight.desktop`, com
+  #   `Exec=steam steam://rungameid/4235410` — o atalho que a Steam escreve
+  #   quando se pede "criar atalho no menu de aplicativos", e cujo NOME DE
+  #   ARQUIVO é o `Name=` do jogo. Um jogo chamado `A Casa` viraria
+  #   `A Casa.desktop`: não há prefixo, sufixo nem separador. O nome é
+  #   imprevisível POR CONSTRUÇÃO, e nenhum glob o descreve.
+  #
+  #   É a quarta vez do mesmo defeito: a lista de rivais de 10/08 conhecia dois
+  #   moldes, 15/08 descobriu o terceiro com quinze jogos duplicados na tela
+  #   dela, e este é o quarto. Enquanto o reconhecimento for por nome de
+  #   arquivo, sempre haverá um quinto. A pergunta que não envelhece é sobre o
+  #   CONTEÚDO: para onde este cartão aponta, e quem o escreveu.
+  #
+  # AS TRÊS CONDIÇÕES, TODAS AO MESMO TEMPO
+  #   a) uma linha `Exec=` carrega `steam://rungameid/<appid>` ou
+  #      `-applaunch <appid>`, e o `<appid>` sai DALI, nunca do nome do arquivo;
+  #   b) o arquivo NÃO traz `X-MeowSystem=jogo-steam` — a nossa assinatura, que
+  #      está em todo cartão que este script escreve desde que ele nasceu;
+  #   c) esse mesmo `<appid>` está em `vivos`, isto é, acabamos de escrever
+  #      `meow-steam-<appid>.desktop` para ele. É a promessa que não se toca:
+  #      nunca tirar um cartão sem deixar substituto no lugar, senão o jogo SOME
+  #      da tela dela. Fora de `vivos` esta regra se cala — quem fala ali são os
+  #      moldes por nome, logo abaixo, e só para os cartões que geradores nossos
+  #      escreveram.
+  #   A biblioteca montada é pré-condição das três: estamos dentro do `else`.
+  #
+  # O QUE ESTA REGRA CUSTA, E TEM DE SER DITO EM VOZ ALTA
+  #   Um `.desktop` que ELA escreveu à mão para um jogo que ESTÁ instalado é
+  #   indistinguível do atalho da Steam: mesmo `rungameid`, sem a nossa marca,
+  #   nome de arquivo livre. Ele passa a sair. A garantia de 10/08 ("o que ela
+  #   escreveu à mão fica") encolheu para os jogos que NÃO têm cartão nosso — e
+  #   o que a repõe é o backup logo abaixo mais a linha anunciada na saída,
+  #   dizendo qual arquivo saiu. `tests/um-cartao-por-jogo.sh` afirma as duas
+  #   metades: o rival de nome livre sai, o escrito à mão sem substituto fica.
+  #
+  # POR QUE NÃO EXIGIR TAMBÉM QUE O `Name=` SEJA IGUAL AO NOSSO
+  #   Seria a condição que salvaria o cartão dela — e ela falha em silêncio:
+  #   `assets/icones/apps-nomes.map` ENCURTA o nosso rótulo em dois jogos desta
+  #   máquina (`steam-1599660:Sackboy`, `steam-4145130:ORPHEUS`), então o nosso
+  #   `Name=` e o da Steam já são diferentes justamente onde a duplicata
+  #   apareceria. Uma condição que se desliga sozinha quando o mapa cresce é o
+  #   quinto molde com outra roupa.
+  #
+  # A ÂNCORA DO APPID CONTINUA, E AGORA POR CONSTRUÇÃO
+  #   O appid não é procurado, é EXTRAÍDO — `[0-9]+` é guloso, então
+  #   `rungameid/3167900` devolve `3167900` e nunca `316790`, que é um jogo real
+  #   desta máquina. A comparação com `vivos` é `grep -qx`, linha inteira.
+  #
+  # O LAÇO É SOBRE OS ARQUIVOS, E NÃO SOBRE `vivos`
+  #   O molde da Steam de 15/08 podia ser varrido por appid porque o nome do
+  #   arquivo era derivado dele. Este não: o caminho só existe no glob. E o glob
+  #   é `for f in "$APPS"/*.desktop`, sem `read`, porque `Future Knight.desktop`
+  #   tem espaço — e o próximo terá acento.
+  #
+  # BACKUP ANTES, PORQUE ESTE ARQUIVO NÃO É NOSSO
+  #   Cópia em `$MEOW_ESTADO/backups/<carimbo>-duplicatas/` antes de remover, a
+  #   remoção é arquivo a arquivo pelo caminho exato, e é ANUNCIADA na saída,
+  #   nunca silenciosa. Sem conseguir guardar a cópia, não removemos.
+  bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-duplicatas"
+  # Os caminhos que esta regra já resolveu, para os moldes por nome não contarem
+  # o mesmo arquivo duas vezes. No modo seco nada sai do disco, então o `[ -e ]`
+  # dos laços de baixo não bastaria para evitar a contagem dupla.
+  ja_tratados=""
+  for f in "$APPS"/*.desktop; do
+    [ -e "$f" ] || continue
+    # (b) primeiro, porque é a peneira mais barata: nesta máquina 23 dos 24
+    # `.desktop` com `rungameid` são nossos e saem daqui na primeira linha.
+    grep -q '^X-MeowSystem=jogo-steam$' "$f" && continue
+    # (a) SÓ a linha do `Exec=`. Um `Comment=` que cite a URL não abre jogo
+    # nenhum, e um `.desktop` que fale de Steam na prosa não vira rival por
+    # isso — era o "casar com regex frouxa" que esta sprint listou como risco.
+    ids="$(grep -E '^Exec=' "$f" 2>/dev/null \
+           | grep -oE 'steam://rungameid/[0-9]+|-applaunch[[:space:]]+[0-9]+' \
+           | grep -oE '[0-9]+$' | sort -u)"
+    [ -n "$ids" ] || continue
+    # Dois appids distintos no mesmo `Exec=` não é atalho de UM jogo — é um
+    # script dela que abre mais de um. Não temos substituto para "os dois".
+    [ "$(printf '%s\n' "$ids" | wc -l)" = "1" ] || continue
+    id="$ids"
+    # (c) o substituto existe...
+    printf '%s' "$vivos" | grep -qx "$id" || continue
+    # ...e o substituto NUNCA pode ser a vítima da própria regra. Sem esta
+    # linha, um `meow-steam-<id>.desktop` que tivesse perdido a marca (arquivo
+    # truncado, edição à mão) seria removido por apontar para si mesmo.
+    [ "$f" = "$APPS/meow-steam-$id.desktop" ] && continue
+    if meow_seco; then
+      meow_muda "removeria o cartão duplicado do appid $id: $(basename "$f") (aponta para o jogo e não é nosso)"
+    else
+      mkdir -p "$bkp" 2>/dev/null && cp -a "$f" "$bkp/" 2>/dev/null || {
+        meow_aviso "sem backup para $(basename "$f") — não removo o que não consigo guardar"
+        continue
+      }
+      rm -f -- "$f"
+      meow_muda "cartão duplicado do appid $id removido: $(basename "$f") (cópia em $bkp)"
+    fi
+    ja_tratados="$ja_tratados$f"$'\n'
+    mudou=1; duplicatas=$((duplicatas + 1))
+  done
+
   # Os dois donos antigos: `steam-jogo-<appid>.desktop` (steam-gera-atalhos.sh do
   # Ritual da Aurora) e `steam-<appid>.desktop` (a versão anterior deste script).
   # Hoje não existe nenhum dos dois no disco — isto é trava preventiva contra a
   # duplicata, não limpeza pendente.
+  #
+  # E ELES NÃO VIRARAM CÓDIGO MORTO COM A REGRA POR CONTEÚDO. Estes dois nomes
+  # são PROVA DE AUTORIA NOSSA: quem os escreveu foi um gerador deste projeto (ou
+  # do Ritual da Aurora), então podem sair mesmo quando o appid NÃO está em
+  # `vivos` — cartão órfão de jogo desinstalado, exatamente onde a regra por
+  # conteúdo se cala por não ter substituto a oferecer. É a única diferença
+  # entre os dois laços, e é ela que os mantém vivos.
   for f in "$APPS"/steam-jogo-*.desktop "$APPS"/steam-[0-9]*.desktop; do
     [ -e "$f" ] || continue
+    printf '%s' "$ja_tratados" | grep -qxF "$f" && continue
     grep -q 'steam://rungameid/' "$f" || continue
     if meow_seco; then
       meow_muda "removeria atalho do gerador antigo: $(basename "$f")"
@@ -490,18 +610,36 @@ else
   #   3. o nome do arquivo é exatamente `steam_app_<appid>.desktop`;
   #   4. o corpo aponta para `steam://rungameid/<appid>`, o MESMO appid.
   #   Nada disso é prefixo solto: um `.desktop` que ela escreveu à mão com outro
-  #   nome continua intocado, como em 10/08.
+  #   nome continua intocado — hoje já não pelo motivo de 10/08, e sim porque a
+  #   regra por conteúdo lá em cima só encosta em quem tem substituto.
+  #
+  # O QUE SOBRA PARA ESTE LAÇO DEPOIS DA REGRA POR CONTEÚDO — E É POUCO
+  #   Medido ao escrever a regra nova, em 09/09/2026: a condição 2 (appid em
+  #   `vivos`) faz deste bloco um SUBCONJUNTO da regra por conteúdo. Tudo que
+  #   ele pegaria já foi pego lá em cima, e o `ja_tratados` existe justamente
+  #   para o mesmo arquivo não ser contado duas vezes no modo seco.
+  #
+  #   Sobra UM caso, e só ele: um `steam_app_<appid>.desktop` que CARREGUE a
+  #   marca `X-MeowSystem=jogo-steam` — uma cópia do nosso cartão renomeada à
+  #   mão. A regra por conteúdo pula esse arquivo pela condição (b), e este laço
+  #   não olha a marca. Fora isso, o bloco é segunda tranca.
+  #
+  #   E ele NÃO pode ser generalizado para fora de `vivos`, ao contrário dos
+  #   dois moldes acima: `steam_app_<id>` é o nome que a STEAM usa, não um
+  #   gerador nosso. Sem manifesto para aquele appid não temos substituto, e
+  #   removê-lo tiraria do lançador o único cartão de um jogo. É a afirmação 4
+  #   de `tests/um-cartao-por-jogo.sh`, e ela vale desde 15/08.
   #
   # BACKUP ANTES, PORQUE ESTE ARQUIVO NÃO É NOSSO
   #   Os órfãos acima carregam a marca `X-MeowSystem` — são nossos, e apagar o
-  #   que escrevemos é reversível por definição. Este não: guardamos a cópia em
-  #   `$MEOW_ESTADO/backups/<carimbo>-duplicatas/` antes de remover, e a remoção
-  #   é ANUNCIADA na saída, nunca silenciosa.
-  bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-duplicatas"
+  #   que escrevemos é reversível por definição. Este não: guardamos a cópia no
+  #   mesmo `$bkp` da regra por conteúdo antes de remover, e a remoção é
+  #   ANUNCIADA na saída, nunca silenciosa.
   while IFS= read -r id; do
     [ -n "$id" ] || continue
     f="$APPS/steam_app_$id.desktop"
     [ -e "$f" ] || continue
+    printf '%s' "$ja_tratados" | grep -qxF "$f" && continue
     # `([[:space:]]|$)` e não `$` solto: o molde da Steam termina a linha no
     # appid, mas um `%U` ou uma opção depois dele continua sendo o mesmo jogo —
     # e sem a âncora, `rungameid/316790` casaria com `rungameid/3167900`.
