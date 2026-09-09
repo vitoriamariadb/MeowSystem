@@ -3025,14 +3025,48 @@ def importar_conf(texto):
 # variações nem é tão bonito quanto o original, além de ficar pixelado e não ser
 # intuitivo e fácil de usar."* Quatro queixas; três são desta frente.
 #
-# DUAS RÉGUAS DE GOSTO, UMA TABELA SÓ. «Cores», «Fusão» e «Aparo» são o
-# vocabulário do conversor, não o dela — três números que só quem leu o
-# `converter_icone.py` sabe mexer. Aqui entram duas palavras que descrevem o
-# RESULTADO (Detalhe, Suavidade) e uma função as traduz. A tradução mora num
-# lugar só de propósito: os presets da folha, a régua que o cliente arrasta e a
-# conferência de "isto é regenerável?" do `salvar` têm de dar a MESMA string,
-# senão a linha gravada no mapa não reproduz o desenho gravado ao lado dela.
-def _parametros_de(detalhe, suavidade, cheia=False):
+# QUATRO RÉGUAS DE GOSTO, UMA TABELA SÓ. «Cores», «Fusão» e «Aparo» são o
+# vocabulário do conversor, não o dela — números que só quem leu o
+# `converter_icone.py` sabe mexer. Aqui entram palavras que descrevem o
+# RESULTADO (Detalhe, Suavidade, Linhas fracas, Traço mínimo) e uma função as
+# traduz. A tradução mora num lugar só de propósito: os presets da folha, a
+# régua que o cliente arrasta e a conferência de "isto é regenerável?" do
+# `salvar` têm de dar a MESMA string, senão a linha gravada no mapa não reproduz
+# o desenho gravado ao lado dela.
+#
+# AS DUAS ÚLTIMAS SÃO DE 09/09/2026, E NASCEM EM 0 = DESLIGADO
+#   Não é timidez, é a regra que o próprio conversor escreve no `--peso-fronteira`:
+#   *"a arte convertida que está na tela dela foi aprovada numa folha (11/08/2026,
+#   'tão todos muito bons'). Uma chave nova que mudasse a saída padrão trocaria
+#   arte aprovada em silêncio"*. Com as duas em 0 nenhuma bandeira nova entra no
+#   `argv` e a saída é BYTE A BYTE a de ontem — medido com `cmp` em 25 conversões
+#   (os 5 presets de ícone × 5 origens: Brave, Discord, Calculadora, GIMP,
+#   Telegram), 25/25 idênticas, contra a função recortada do git de ontem. O
+#   sexto preset («Da capa») ficou de fora porque precisa de um jogo da Steam.
+#
+#   `Linhas fracas`  -> `--peso-fronteira`, o limiar de contraste RGB abaixo do
+#       qual duas classes viram uma e a fronteira entre elas não vira traço.
+#       Medido hoje no padrão do conversor: o Brave cai de 10 traços para 3 e o
+#       Discord de 9 para 4, sem tocar em Calculadora, Telegram, VLC, GIMP,
+#       Chrome nem Obsidian. O TETO DA RÉGUA É 70, e o número é medido, não
+#       escolhido: o `converter_icone.py` lista o contraste de todas as
+#       fronteiras internas do acervo e há um vale VAZIO entre 64,6 e 77,1. Ir
+#       além de 70 alcança quem já sai bem — conferido aqui: com 82 o Telegram
+#       cai de 4 traços para 2 e o Foliate de 11 para 4, e ela mandou não piorar
+#       o Telegram. O teto é a cerca; a régua não tem como pular por cima dele.
+#   `Traço mínimo`   -> `--min-traco`, o comprimento (em px de 48) abaixo do qual
+#       a polilinha é cisco e não desenho. O padrão do conversor é 3,2 e a régua
+#       só SOBE a partir dele: 0 é "não mexer", e mandar um número menor que 3,2
+#       devolveria traço que hoje já não existe — a régua andaria para trás na
+#       primeira parada. Medido em 17 ícones: nenhum some, e os que respondem
+#       respondem de leve (Discord 9→8→6→4, Chrome 8→5→4, Foliate 11→8).
+#
+# O CAMPO 4 DO MAPA EXISTE DESDE SEMPRE E NINGUÉM O USA — 0 de 33 linhas, e o
+# cabeçalho do `construir_convertidos.sh` admite ("hoje TODOS estão vazios").
+# Estas réguas são o jeito de girar essa válvula sem ninguém decorar bandeira:
+# medido hoje, `--k 8 --funde 25` devolve o Thunderbird COM a aba do envelope,
+# que o padrão perde. O que a oficina grava ali é exatamente esta string.
+def _parametros_de(detalhe, suavidade, cheia=False, fracas=0, minimo=0):
     """(argv para o subprocess, string canônica para o campo 4 do mapa)."""
     def _regua(v, padrao):
         try:
@@ -3041,10 +3075,20 @@ def _parametros_de(detalhe, suavidade, cheia=False):
             return padrao
     d = _regua(detalhe, 6)
     s = _regua(suavidade, 2)
+    f = _regua(fracas, 0)
+    m = _regua(minimo, 0)
     k = 2 + d                        # 2 … 12
     funde = 100 - 8 * d              # 100 … 20
     tol = round(0.4 + 0.3 * s, 1)    # 0,4 … 3,4
     argv = ["--k", str(k), "--funde", str(funde), "--tol", "%g" % tol]
+    # A ORDEM DAS BANDEIRAS É PARTE DO CONTRATO: a string tem de casar com o
+    # `_RE_PARAMETROS_DESENHO` abaixo, que lê UMA forma só. Zero não vira
+    # `--peso-fronteira 0`: vira AUSÊNCIA, e é isso que faz a régua em 0 devolver
+    # o argv de ontem sem um byte a mais.
+    if f:
+        argv += ["--peso-fronteira", str(40 + 3 * f)]      # 43 … 70
+    if m:
+        argv += ["--min-traco", "%g" % round(3.2 + 0.8 * m, 1)]   # 4 … 11,2
     if cheia:
         argv.append("--cheia")
     return argv, " ".join(argv)
@@ -3062,8 +3106,19 @@ def _parametros_de(detalhe, suavidade, cheia=False):
 #   os presets passassem pela mesma conferência, o cartão mais simples da folha
 #   seria o único que nunca desenharia. `--k 2` é mais barato que `--k 3`, não
 #   mais caro: o piso guardava contra o teto, e prendeu o chão sem querer.
+#
+#   AS DUAS BANDEIRAS NOVAS ENTRAM COMO GRUPO OPCIONAL — 09/09/2026, e a forma
+#   antiga continua casando. As 33 linhas do `apps-convertidos.map` e tudo que
+#   a oficina gravou até ontem estão na forma de três parâmetros; se a cerca
+#   passasse a exigir as cinco, cada uma dessas linhas viraria "não reconheço",
+#   o `salvar` gravaria `mao`, e a arte que ELA já aprovou perderia o histórico
+#   de como foi feita. Conferido: `--k 8 --funde 52 --tol 1` continua sendo
+#   relido, com e sem `--cheia`.
 _RE_PARAMETROS_DESENHO = re.compile(
-    r"^--k (\d{1,2}) --funde (\d{1,3}) --tol (\d{1,2}(?:\.\d)?)( --cheia)?$")
+    r"^--k (\d{1,2}) --funde (\d{1,3}) --tol (\d{1,2}(?:\.\d)?)"
+    r"(?: --peso-fronteira (\d{1,3}))?"
+    r"(?: --min-traco (\d{1,2}(?:\.\d)?))?"
+    r"( --cheia)?$")
 
 
 def _parametros_relidos(texto):
@@ -3073,10 +3128,20 @@ def _parametros_relidos(texto):
     parâmetros dessa reconversão vêm do cliente. Partir a string em espaços e
     entregar os pedaços ao `subprocess` deixaria o navegador escolher bandeira
     do conversor (`--lw 5` gravaria espessura no arquivo, que é justamente o que
-    o `_conferir_dialeto` recusa). Então: casa contra UMA forma, lê os três
+    o `_conferir_dialeto` recusa). Então: casa contra UMA forma, lê os
     números, confere as faixas, e MONTA o argv do zero. Devolve None quando não
     reconhece — e quem não reconhece grava como retoque à mão, que é o desfecho
     seguro.
+
+    A FAIXA DE CADA NÚMERO NOVO É CONFERIDA ANTES DE ELE VIRAR ARGUMENTO, a
+    mesma disciplina dos três de cima. `--peso-fronteira` e `--min-traco` não
+    são caros (os dois só DESCARTAM: menos classe, menos traço — nunca mais
+    trabalho), então a cerca aqui não guarda contra processo de minutos; guarda
+    contra a string do campo 4 virar uma linha de comando escrita pela página.
+    O ZERO É RECUSADO DE PROPÓSITO: "desligado" tem uma grafia só, que é a
+    ausência da bandeira — duas grafias para o mesmo estado fariam a mesma
+    escolha gerar duas strings canônicas diferentes, e é exatamente isso que o
+    cabeçalho do `_parametros_de` proíbe.
     """
     achado = _RE_PARAMETROS_DESENHO.match((texto or "").strip())
     if not achado:
@@ -3085,19 +3150,35 @@ def _parametros_relidos(texto):
     if not (2 <= k <= 16 and 0 <= funde <= 120 and 0.2 <= tol <= 8.0):
         return None
     argv = ["--k", str(k), "--funde", str(funde), "--tol", "%g" % tol]
-    if achado.group(4):
+    if achado.group(4) is not None:
+        peso = int(achado.group(4))
+        if not (1 <= peso <= 120):
+            return None
+        argv += ["--peso-fronteira", str(peso)]
+    if achado.group(5) is not None:
+        minimo = float(achado.group(5))
+        if not (0.1 <= minimo <= 24.0):
+            return None
+        argv += ["--min-traco", "%g" % minimo]
+    if achado.group(6):
         argv.append("--cheia")
     return argv
 
 
-# id, rótulo, detalhe, suavidade, cheia, fonte
+# id, rótulo, detalhe, suavidade, cheia, fonte, linhas fracas, traço mínimo
+#
+# AS DUAS COLUNAS NOVAS SÃO ZERO NOS SEIS CARTÕES, E ISSO É ESCOLHA — 09/09/2026
+#   A folha é a arte que ela olhou e aprovou. Ligar `--peso-fronteira` no «Limpo»
+#   seria tentador (é literalmente o que a chave faz) e trocaria, sem ela pedir,
+#   o desenho que o cartão «Limpo» mostra desde ontem. As réguas novas existem
+#   para ela girar; os presets ficam onde estavam.
 PRESETS_DESENHO = (
-    ("fiel", "Fiel", 6, 2, False, "icone"),
-    ("limpo", "Limpo", 2, 6, False, "icone"),
-    ("silhueta", "Silhueta", 0, 4, False, "icone"),
-    ("detalhe", "Detalhe", 10, 1, False, "icone"),
-    ("cheia", "Área cheia", 4, 4, True, "icone"),
-    ("capa", "Da capa", 3, 5, False, "capa"),
+    ("fiel", "Fiel", 6, 2, False, "icone", 0, 0),
+    ("limpo", "Limpo", 2, 6, False, "icone", 0, 0),
+    ("silhueta", "Silhueta", 0, 4, False, "icone", 0, 0),
+    ("detalhe", "Detalhe", 10, 1, False, "icone", 0, 0),
+    ("cheia", "Área cheia", 4, 4, True, "icone", 0, 0),
+    ("capa", "Da capa", 3, 5, False, "capa", 0, 0),
 )
 
 # O CACHE É POR (ORIGEM, MTIME, PARÂMETROS), e o `mtime` não é enfeite: sem ele
@@ -3109,6 +3190,33 @@ _CACHE_DESENHO_TETO = 64
 _CACHE_DESENHO_TRAVA = threading.Lock()
 _CONVERSOR_CHEIA = None
 _CONVERSOR_CHEIA_TRAVA = threading.Lock()
+
+# --- o editor de fora: onde o arquivo mora, e quem o abre --------------------
+# 09/09/2026. Ela, olhando o «Editar o SVG»: *"o botão svg deveria abrir o svg no
+# app que eu tiver se eu editar lá. ele já é reconhecido pelo nosso app."*
+#
+# O CAMINHO É DO SERVIDOR, NUNCA DO CLIENTE — e é a mesma regra que já rege esta
+# rota inteira: *"nenhum comando vem da página como texto"* (`app/LEIA-ME.md`).
+# A página manda `acao: "editor"` e o desenho; QUEM decide em que arquivo isso
+# cai é o servidor, a partir do `.desktop`, com o nome já preso ao
+# `^[A-Za-z0-9._+-]{1,120}$` do `_nome_do_icone`.
+#
+# ELE NÃO CAI DENTRO DO REPOSITÓRIO, E ISSO É DE PROPÓSITO
+#   `~/.local/state/meowsystem/oficina/` é rascunho: o que ela abre no Boxy SVG
+#   pode voltar com `<defs>`, com metadado do editor, com hex — coisas que o
+#   `_conferir_dialeto` recusa. Um rascunho assim dentro de `assets/icones/`
+#   seria o `construir_convertidos.sh` achando arte que ninguém mandou entrar,
+#   e o repositório é PÚBLICO desde 06/09. O que entra no repositório continua
+#   entrando por um lugar só: o «Usar».
+_OFICINA_RASCUNHO = os.path.join(ESTADO, "oficina")
+
+# O LANÇADOR TAMBÉM É DICIONÁRIO FECHADO. Não há "o comando que abre" vindo de
+# lugar nenhum: são estes dois, nesta ordem, e o `shutil.which` escolhe o
+# primeiro que existe. `xdg-open` é o padrão da freedesktop; o `gio open` é a
+# rede de segurança de quem tem GLib e não tem xdg-utils.
+_LANCADORES_SVG = (("xdg-open",), ("gio", "open"))
+_EDITOR_SVG = None
+_EDITOR_SVG_TRAVA = threading.Lock()
 
 
 def _conversor_tem_cheia():
@@ -5193,6 +5301,75 @@ class Manipulador(BaseHTTPRequestHandler):
             return ""
         return self._capa_do_jogo(re.sub(r"^\D+", "", app))
 
+    def _editor_de_svg(self):
+        """Quem esta máquina abre num `.svg`, perguntado UMA vez por sessão.
+
+        Devolve `{"tem": bool, "nome": str}`. O nome é o `Name=` do `.desktop`
+        que o `xdg-mime` aponta — nesta máquina, `com.boxy_svg.BoxySVG.desktop`
+        -> "Boxy SVG".
+
+        O NOME NÃO É ENFEITE, É A DIFERENÇA ENTRE UM BOTÃO E UMA APOSTA. «Abrir
+        no editor» promete algo que só se descobre clicando; «Abrir no Boxy SVG»
+        diz o que vai acontecer antes. E quando não há handler nenhum o botão
+        não aparece — um botão que abre nada é pior que a caixa de texto que já
+        estava ali.
+
+        NADA AQUI É CRAVADO NUM APLICATIVO. `xdg-mime query default` é a
+        pergunta que o sistema responde; se ela trocar o editor amanhã, o botão
+        troca junto, sem uma linha nova.
+        """
+        global _EDITOR_SVG
+        with _EDITOR_SVG_TRAVA:
+            if _EDITOR_SVG is not None:
+                return _EDITOR_SVG
+            _EDITOR_SVG = {"tem": False, "nome": ""}
+            if not any(shutil.which(l[0]) for l in _LANCADORES_SVG):
+                return _EDITOR_SVG
+            alvo = ""
+            if shutil.which("xdg-mime"):
+                try:
+                    r = subprocess.run(["xdg-mime", "query", "default", "image/svg+xml"],
+                                       capture_output=True, text=True, timeout=10)
+                    alvo = (r.stdout or "").strip().split("\n")[0].strip()
+                except (OSError, subprocess.SubprocessError):
+                    alvo = ""
+            if not alvo or not alvo.endswith(".desktop") or "/" in alvo:
+                return _EDITOR_SVG
+            # O `Name=` sem sufixo de idioma: `Name[pt_BR]=` é outra chave, e
+            # pegar a primeira que casasse daria o nome traduzido de um
+            # aplicativo e o original de outro na mesma tela.
+            nome = ""
+            for bruto, _origem in self.DIRS_DESKTOP:
+                caminho = os.path.join(os.path.expanduser(bruto), alvo)
+                if not os.path.isfile(caminho):
+                    continue
+                try:
+                    with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
+                        for linha in fh:
+                            if linha.startswith("Name="):
+                                nome = linha[5:].strip()
+                                break
+                except OSError:
+                    pass
+                break
+            _EDITOR_SVG = {"tem": True, "nome": nome or alvo[:-8]}
+            return _EDITOR_SVG
+
+    def _caminho_rascunho(self, nome):
+        """`~/.local/state/meowsystem/oficina/<nome>.svg`, conferido.
+
+        A cerca é a mesma do `_tirar_retoque`, e pelo mesmo motivo: este caminho
+        vira argumento de um programa que a máquina escolhe. O `nome` já nasce
+        preso ao `^[A-Za-z0-9._+-]{1,120}$` do `_nome_do_icone` — e mesmo assim
+        o alvo real, depois do `realpath`, tem de cair dentro da pasta. Devolve
+        "" quando não cai.
+        """
+        pasta = os.path.realpath(_OFICINA_RASCUNHO)
+        alvo = os.path.realpath(os.path.join(_OFICINA_RASCUNHO, nome + ".svg"))
+        if not alvo.startswith(pasta + os.sep):
+            return ""
+        return alvo
+
     def _api_app_desenho(self, corpo):
         """A oficina: a folha de variações, a vetorização por réguas, o gravar."""
         app = str(corpo.get("app", "")).strip()
@@ -5213,6 +5390,100 @@ class Manipulador(BaseHTTPRequestHandler):
             except OSError as e:
                 return self._json({"erro": "não consegui ler o desenho: %s" % e}, 500)
 
+        # ---------------------------------------------------------- o editor dela
+        # 09/09/2026, pedido dela: *"o botão svg deveria abrir o svg no app que eu
+        # tiver se eu editar lá."*
+        #
+        # SÃO DUAS AÇÕES E NÃO UMA, PORQUE O CAMINHO DE VOLTA É O QUE IMPORTA
+        #   `editor` grava o rascunho e chama o handler; `editor-ler` é a
+        #   pergunta "mudou?" que a página repete enquanto ela desenha lá fora.
+        #   Sem a segunda, o recurso é via de mão única: ela salva no Boxy SVG, o
+        #   painel continua mostrando o desenho de antes, e a conclusão honesta
+        #   de quem olha é "não funcionou".
+        #
+        #   A pergunta é o `mtime`, não o conteúdo: `os.stat` custa nada e a
+        #   resposta só carrega o SVG no ciclo em que ele mudou de verdade.
+        if acao in ("editor", "editor-ler"):
+            alvo = self._caminho_rascunho(nome)
+            if not alvo:
+                return self._json({"erro": "não consegui montar o caminho do rascunho"}, 400)
+
+            if acao == "editor-ler":
+                try:
+                    mtime = os.path.getmtime(alvo)
+                except OSError:
+                    return self._json({"ok": True, "tem": False, "mudou": False})
+                try:
+                    visto = float(corpo.get("mtime") or 0)
+                except (TypeError, ValueError):
+                    visto = 0.0
+                # A COMPARAÇÃO É `!=`, E NÃO `>`. Um editor que grava por
+                # arquivo temporário e `rename` pode devolver um `mtime` MENOR
+                # que o que o painel acabou de escrever (o temporário nasceu
+                # antes). Com `>` a volta se perderia justamente no editor mais
+                # cuidadoso.
+                if abs(mtime - visto) < 0.0005:
+                    return self._json({"ok": True, "tem": True, "mudou": False, "mtime": mtime})
+                try:
+                    with open(alvo, "r", encoding="utf-8", errors="replace") as fh:
+                        texto = fh.read(200000)
+                except OSError as e:
+                    return self._json({"erro": "não consegui reler o rascunho: %s" % e}, 500)
+                # O AVISO VEM JUNTO, e não no «Usar». Boxy SVG e Inkscape gravam
+                # o que o formato deles pede — `<defs>`, metadado, às vezes cor
+                # chapada — e o `_conferir_dialeto` recusa. Dizer isso agora, na
+                # volta, é uma linha; descobrir no «Usar» é ela achar que perdeu
+                # o trabalho.
+                return self._json({"ok": True, "tem": True, "mudou": True,
+                                   "mtime": mtime, "svg": texto,
+                                   "aviso": self._conferir_dialeto(texto)})
+
+            editor = self._editor_de_svg()
+            if not editor["tem"]:
+                return self._json({"erro": "esta máquina não tem quem abra um SVG"}, 404)
+            svg = str(corpo.get("svg", ""))
+            erro = self._conferir_dialeto(svg)
+            if erro:
+                # A RECUSA NA IDA É A MESMA DO «USAR», e é de propósito: o que
+                # sai daqui para um programa de fora é o mesmo texto que sairia
+                # para o disco. Duas cercas diferentes para o mesmo desenho
+                # seriam duas verdades sobre o que este painel aceita.
+                return self._json({"erro": erro}, 400)
+            try:
+                os.makedirs(_OFICINA_RASCUNHO, exist_ok=True)
+                with open(alvo, "w", encoding="utf-8") as fh:
+                    fh.write(svg if svg.endswith("\n") else svg + "\n")
+                mtime = os.path.getmtime(alvo)
+            except OSError as e:
+                return self._json({"erro": "não consegui gravar o rascunho: %s" % e}, 500)
+
+            # O ENSAIO PARA ANTES DE ABRIR, E NÃO ANTES DE GRAVAR: o rascunho
+            # fora do repositório não é escolha dela virando arquivo versionado
+            # — é o papel de rascunho. O que o ensaio recusa é a JANELA.
+            if bool(corpo.get("seco")):
+                return self._json({"ok": True, "seco": True, "caminho": alvo,
+                                   "mtime": mtime, "editor": editor,
+                                   "aviso": "Em ensaio: o %s abriria este desenho"
+                                            % (editor["nome"] or "editor")})
+
+            lancador = next((list(l) for l in _LANCADORES_SVG if shutil.which(l[0])), None)
+            if not lancador:
+                return self._json({"erro": "esta máquina não tem quem abra um SVG"}, 404)
+            try:
+                # SEM `shell=True` E SEM ESPERAR. O `argv` é lista, o único
+                # pedaço que não é constante é o caminho que ESTE arquivo
+                # montou, e o processo é solto: um editor demora minutos, e
+                # esperar por ele travaria a rota (e, com ela, a página).
+                subprocess.Popen(lancador + [alvo],
+                                 stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL,
+                                 start_new_session=True)
+            except (OSError, subprocess.SubprocessError) as e:
+                return self._json({"erro": "não consegui abrir o editor: %s" % e}, 500)
+            return self._json({"ok": True, "caminho": alvo, "mtime": mtime,
+                               "editor": editor})
+
         # ------------------------------------------------------------ variações
         # A FOLHA INTEIRA NUMA CHAMADA — 09/09/2026, e é a resposta à primeira
         # queixa dela: *"não gera variações"*. Até ontem eram um clique, um
@@ -5232,7 +5503,7 @@ class Manipulador(BaseHTTPRequestHandler):
             capa = self._arte_da_capa(app)
             tem_cheia = _conversor_tem_cheia()
             tarefas = []
-            for pid, rotulo, det, sua, chei, fonte in PRESETS_DESENHO:
+            for pid, rotulo, det, sua, chei, fonte, frac, mini in PRESETS_DESENHO:
                 # Sem `--cheia` no conversor de hoje o cartão não é oferecido —
                 # a oficina não espera a Sprint Q para funcionar.
                 if chei and not tem_cheia:
@@ -5240,9 +5511,10 @@ class Manipulador(BaseHTTPRequestHandler):
                 arte = capa if fonte == "capa" else origem
                 if not arte:
                     continue
-                argv, texto = _parametros_de(det, sua, chei)
+                argv, texto = _parametros_de(det, sua, chei, frac, mini)
                 tarefas.append({"id": pid, "rotulo": rotulo, "detalhe": det,
                                 "suavidade": sua, "cheia": chei, "fonte": fonte,
+                                "fracas": frac, "minimo": mini,
                                 "parametros": texto, "arte": arte, "argv": argv})
             variacoes = []
             if tarefas:
@@ -5259,6 +5531,7 @@ class Manipulador(BaseHTTPRequestHandler):
                             svg, nota, erro = "", "", "o conversor falhou: %s" % e
                         cartao = {k: t[k] for k in ("id", "rotulo", "detalhe",
                                                     "suavidade", "cheia", "fonte",
+                                                    "fracas", "minimo",
                                                     "parametros")}
                         if erro:
                             cartao["erro"] = erro
@@ -5273,6 +5546,10 @@ class Manipulador(BaseHTTPRequestHandler):
                 "salvo": self._salvo_do_app(nome),
                 "variacoes": variacoes,
                 "vizinhos": self._vizinhos_do_dock(),
+                # Quem abre um SVG aqui — para a página saber se desenha o botão
+                # e com que nome. Sem handler o campo vem `{"tem": false}` e o
+                # botão simplesmente não nasce.
+                "editor": self._editor_de_svg(),
             })
 
         # ------------------------------------------------------------ vetorizar
@@ -5305,14 +5582,23 @@ class Manipulador(BaseHTTPRequestHandler):
                     "erro": "não achei arte de fábrica para %s — este é o caso "
                             "de desenhar do zero na caixa abaixo" % app}, 404)
 
-            # DOIS CAMINHOS, DUAS CERCAS. As réguas (`detalhe`/`suavidade`) são
-            # o caminho da tela e a cerca delas é o `_parametros_de`, que prende
-            # em 0…10 antes de fazer conta. Os três números soltos continuam
-            # valendo para quem chama a porta de fora, com a faixa de 08/09.
+            # DOIS CAMINHOS, DUAS CERCAS. As réguas (`detalhe`/`suavidade`/
+            # `fracas`/`minimo`) são o caminho da tela e a cerca delas é o
+            # `_parametros_de`, que prende em 0…10 antes de fazer conta. Os três
+            # números soltos continuam valendo para quem chama a porta de fora,
+            # com a faixa de 08/09.
+            #
+            # O GATILHO CONTINUA SENDO `detalhe`/`suavidade`, e não as quatro:
+            # as duas réguas novas nascem em 0, e um corpo que mandasse só
+            # `fracas: 0` cairia no caminho dos três números soltos com nenhum
+            # deles preenchido — ou seja, converteria com o padrão do conversor
+            # em vez do preset. As duas velhas são as que a tela sempre manda.
             if corpo.get("detalhe") not in (None, "") or corpo.get("suavidade") not in (None, ""):
                 argv_extra, texto = _parametros_de(corpo.get("detalhe", 6),
                                                    corpo.get("suavidade", 2),
-                                                   bool(corpo.get("cheia")))
+                                                   bool(corpo.get("cheia")),
+                                                   corpo.get("fracas", 0),
+                                                   corpo.get("minimo", 0))
             else:
                 argv_extra, partes = [], []
                 for chave, bandeira, menor, maior in (("k", "--k", 3, 16),
@@ -5437,7 +5723,11 @@ class Manipulador(BaseHTTPRequestHandler):
             return ("tire o stroke-width: a espessura vem do TRACO do "
                     "icones_apps_arcticons.sh, e duplicá-la é XML inválido")
         if re.search(r"#[0-9A-Fa-f]{3,8}\b|rgba?\s*\(|hsla?\s*\(", texto):
-            return "tire a cor: ela vem da paleta, pelo campo de cor abaixo"
+            # «ABAIXO» DEIXOU DE SER VERDADE EM 09/09/2026: a única fileira de
+            # cor era a do acervo, embaixo da oficina; agora a oficina tem a
+            # dela, ACIMA da caixa de texto. A frase passa a nomear o controle
+            # em vez de apontar para um lado da tela.
+            return "tire a cor: ela vem da paleta, pelo campo «Cor»"
         if 'stroke="currentColor"' not in texto:
             return 'falta stroke="currentColor" — é assim que a cor entra'
         if 'fill="none"' not in texto:

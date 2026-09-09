@@ -1994,7 +1994,21 @@ function montarEscolhaDeIcone(app, recarregar) {
   painel.append(busca);
 
   let escolhido = app.mapa ? app.mapa.glifo : null;
-  let corEscolhida = app.mapa ? app.mapa.cor : ((ESQUEMA.paleta.ordem || [])[0] || "mauve");
+  /* A COR DE ABERTURA VEM DOS DOIS MAPAS, E ISSO SÓ APARECEU NA FOTO — 09/09/2026
+   *
+   * Estava `app.mapa ? app.mapa.cor : ordem[0]`: quem tem desenho no acervo de
+   * TRAÇO (`apps-convertidos.map`) e não está no mapa do Arcticons caía na
+   * PRIMEIRA cor da paleta. Medido no Brave: o `apps-marca.map` diz `blue`, a
+   * oficina logo acima mostrava azul, e esta fileira abria em `rosewater` — dois
+   * seletores com o mesmo rótulo «Cor», na mesma tela, discordando.
+   *
+   * A cadeia certa já existia em `corDaOficina()`; o que faltava era usá-la aqui.
+   * Não chamo aquela função direto porque ela tem, como TERCEIRO degrau, uma
+   * leitura do DOM desta mesma fileira — e neste ponto ela ainda não foi
+   * desenhada. Chamá-la aqui leria a fileira do cartão ANTERIOR. */
+  let corEscolhida = (app.traco && app.traco.cor)
+                     || (app.mapa && app.mapa.cor)
+                     || ((ESQUEMA.paleta.ordem || [])[0] || "mauve");
 
   const tiraGlifos = elemento("div", { class: "tira-glifos" });
   const pintarGlifos = () => {
@@ -2037,6 +2051,13 @@ function montarEscolhaDeIcone(app, recarregar) {
         for (const b of cores.querySelectorAll("button")) {
           b.setAttribute("aria-pressed", String(b.dataset.cor === corEscolhida));
         }
+        /* UMA COR POR APLICATIVO, E NÃO DUAS. As duas fileiras respondem à
+         * mesma pergunta — "de que cor é o ícone do Brave?" — e o que muda é
+         * só o botão que grava (o «Usar este ícone» leva o glifo do acervo, o
+         * «Usar» da oficina leva o desenho gerado). Deixá-las divergir era a
+         * própria tela discordando de si mesma. Nenhuma das duas grava: quem
+         * grava continua sendo o botão. */
+        sincronizarCorDaOficina(nome);
       },
     }));
   }
@@ -2169,8 +2190,9 @@ function oficinaZerada(id) {
   return {
     app: id,              // id do .desktop
     aberta: false, carregou: false, ocupada: false, erro: "",
-    cor: "",              // corDaOficina(app), fixada ao carregar
-    origem: "", original: "", capa: "",
+    cor: "",              // a cor escolhida; abre em `corDaOficina(app)` e daí
+                          // em diante quem manda é a fileira de amostras daqui
+    origem: "", original: "", capa: "", nome: "",
     variacoes: [], vizinhos: [], salvo: null,
     escolhida: null,      // "salvo" | "fiel" | … | "editado" | null
     escolhidaAntes: null, // o cartão de onde o desenho veio, para o Desfazer
@@ -2178,9 +2200,19 @@ function oficinaZerada(id) {
     base: "",             // o desenho do cartão escolhido, como veio
     svg: "",              // o texto VIVO — o que a lupa mostra e o Usar grava
     parametros: "", fonte: "icone",
-    detalhe: 6, suavidade: 2, cheia: false,
+    /* AS DUAS RÉGUAS NOVAS NASCEM EM 0 = DESLIGADO — 09/09/2026. Com elas em 0
+     * o servidor não acrescenta bandeira nenhuma ao conversor, e a folha sai
+     * BYTE A BYTE como saía ontem (provado com `cmp`, 25 conversões). É a mesma
+     * regra que o `--peso-fronteira` escreve no próprio conversor: arte que ela
+     * já aprovou não se troca em silêncio. */
+    detalhe: 6, suavidade: 2, cheia: false, fracas: 0, minimo: 0,
     historico: [],        // pilha para o Desfazer (máx. 30)
     temporizador: null,   // a espera das réguas
+    /* O EDITOR DE FORA — 09/09/2026, pedido dela: *"o botão svg deveria abrir o
+     * svg no app que eu tiver se eu editar lá"*. `editor` é o que o servidor
+     * respondeu ({tem, nome}); `editorMtime` é a marca do rascunho na última vez
+     * que o painel o leu, e `editorRelogio` é o vigia que pergunta "mudou?". */
+    editor: null, editorMtime: 0, editorRelogio: null, editorEspiadas: 0,
   };
 }
 
@@ -2257,9 +2289,80 @@ function desfazerOficina() {
  * estado mandar na tela em vez de o contrário. */
 let redesenharOficina = () => {};
 
+/* ---------------------------------------------------------------------------
+ * A VOLTA DO EDITOR DE FORA — 09/09/2026
+ * ---------------------------------------------------------------------------
+ * Abrir o SVG no Boxy SVG é meia funcionalidade. A outra metade é o painel
+ * PERCEBER que ela salvou lá: sem isso ela edita, volta, vê o desenho de antes
+ * e conclui — com razão — que não funcionou.
+ *
+ * SÃO OS DOIS CAMINHOS, E NÃO UM, PORQUE ELES FALHAM EM MOMENTOS DIFERENTES
+ *   · o VIGIA (2 s, `mtime`) é o que faz parecer mágica: ela dá Ctrl+S no Boxy
+ *     e a lupa aqui repinta sozinha. Mas ele é frágil por natureza — morre se
+ *     ela fechar a oficina, trocar de aplicativo ou recarregar a página, e um
+ *     vigia eterno seria uma chamada a cada 2 s pelo resto da sessão;
+ *   · o «Reler» é o caminho que nunca morre. É um clique, e responde à pergunta
+ *     "e se eu tiver saído e voltado?" — que é exatamente quando o vigia não
+ *     está mais lá.
+ *
+ * O TETO É DE 15 MINUTOS (450 espiadas de 2 s), e é o desenho da automação que
+ * ela aceitou em 02/09: o que age sozinho age por decisão escrita e tem fim. O
+ * botão continua ali depois disso.
+ *
+ * ESTAS FUNÇÕES MORAM FORA DO `oficinaDeDesenho`, e não é gosto: o vigia
+ * atravessa redesenhos da página, e uma função presa ao fechamento do nó ANTIGO
+ * pintaria uma árvore que já não está na tela. `redesenharOficina` é o gancho
+ * que aponta sempre para o nó vivo. */
+function pararVigiaEditor() {
+  if (OFICINA.editorRelogio) clearInterval(OFICINA.editorRelogio);
+  OFICINA.editorRelogio = null;
+}
+
+async function espiarEditor(pedido) {
+  const r = await api("/api/app-desenho", {
+    method: "POST",
+    body: JSON.stringify({ app: OFICINA.app, acao: "editor-ler", mtime: OFICINA.editorMtime }),
+  });
+  if (r.erro) { pararVigiaEditor(); if (pedido) torrada(r.erro, "erro"); return; }
+  if (!r.tem) { if (pedido) torrada("Ainda não há rascunho — abra no editor primeiro", "igual"); return; }
+  if (!r.mudou) { if (pedido) torrada("O arquivo está como o painel deixou", "igual"); return; }
+  OFICINA.historico.push(OFICINA.svg);
+  if (OFICINA.historico.length > 30) OFICINA.historico.shift();
+  OFICINA.editorMtime = r.mtime;
+  OFICINA.svg = r.svg || "";
+  OFICINA.erro = "";
+  /* Voltou de fora: já não é o desenho do cartão, é dela. O «editado» é o mesmo
+   * estado em que a lupa e a caixa de texto deixam o desenho, e o servidor
+   * decide sozinho, medindo, se isso vira `conversao` ou `mao` no mapa. */
+  if (houveMao()) OFICINA.escolhida = "editado";
+  redesenharOficina();
+  /* O AVISO É O DO SERVIDOR, e ele chega ANTES do «Usar» de propósito: editor de
+   * vetor grava `<defs>`, metadado e às vezes cor chapada, e o `_conferir_dialeto`
+   * recusa. Dizer na volta é uma linha; deixar para o Usar é ela achar que
+   * perdeu o trabalho. */
+  torrada(r.aviso ? `Voltou do editor — ${r.aviso}` : "Voltou do editor", r.aviso ? "erro" : "ok");
+}
+
+function vigiarEditor() {
+  pararVigiaEditor();
+  OFICINA.editorEspiadas = 0;
+  OFICINA.editorRelogio = setInterval(() => {
+    /* A OFICINA SAIU DA TELA E NINGUÉM AVISOU — o caso é fechar a ficha do
+     * aplicativo clicando nela de novo: o nó some sem `toggle` e sem troca de
+     * `OFICINA.app`, e sem esta linha o vigia continuaria perguntando por 15
+     * minutos e torrando "Voltou do editor" sobre uma tela que já é outra. */
+    if (!document.querySelector("details.oficina")) { pararVigiaEditor(); return; }
+    if (++OFICINA.editorEspiadas > 450) { pararVigiaEditor(); return; }
+    espiarEditor(false);
+  }, 2000);
+}
+
 function oficinaDeDesenho(app, relerLista) {
-  if (OFICINA.app !== app.id) OFICINA = oficinaZerada(app.id);
-  OFICINA.cor = corDaOficina(app);
+  /* O VIGIA MORRE COM O APLICATIVO A QUE PERTENCE: sem isto, trocar de ficha
+   * deixaria um `setInterval` perguntando pelo rascunho do aplicativo anterior
+   * e escrevendo o desenho DELE por cima do que está na tela. */
+  if (OFICINA.app !== app.id) { pararVigiaEditor(); OFICINA = oficinaZerada(app.id); }
+  if (!OFICINA.cor) OFICINA.cor = corDaOficina(app);
 
   const caixa = elemento("details", { class: "oficina" });
   if (OFICINA.aberta) caixa.setAttribute("open", "");
@@ -2272,8 +2375,15 @@ function oficinaDeDesenho(app, relerLista) {
      * até o summary e FECHARIA a oficina em cima do que ela acabou de gravar. */
     onclick: (e) => { e.stopPropagation(); e.preventDefault(); usar(); },
   });
+  /* «GERAR ÍCONE — MEOWSYSTEM», E NÃO «DESENHO NO NOSSO TRAÇO» — 09/09/2026
+   *   Pedido dela, olhando esta linha: *"ao invés de desenhar no nosso traço
+   *   coloca algo como Gerar Ícone - MeowSystem"*. «Desenho no nosso traço»
+   *   descrevia o RESULTADO para quem já sabe o que é "o nosso traço"; o rótulo
+   *   novo diz o VERBO e de quem é a oficina, que é o que se lê antes de abrir.
+   *   O travessão é o do texto (—), não o hífen: é a pontuação do resto da
+   *   página. */
   caixa.append(elemento("summary", {}, [
-    elemento("span", { texto: "Desenho no nosso traço" }), botaoUsar,
+    elemento("span", { texto: "Gerar ícone — MeowSystem" }), botaoUsar,
   ]));
 
   /* --- os lugares fixos: o estado pinta neles, nunca lê deles ------------- */
@@ -2307,9 +2417,20 @@ function oficinaDeDesenho(app, relerLista) {
 
   /* --- as réguas: nomes de gosto, não de algoritmo ------------------------ */
   /* «Cores», «Fusão» e «Aparo» eram os três botões do conversor, e ela disse o
-   * que eles são: *"não é intuitivo e fácil de usar"*. Duas réguas descrevem o
-   * RESULTADO; a tradução para os três números mora no servidor, num lugar só. */
-  const regua = (nome, rotulo) => elemento("label", { class: "oficina-regua" }, [
+   * que eles são: *"não é intuitivo e fácil de usar"*. As réguas descrevem o
+   * RESULTADO; a tradução para as bandeiras mora no servidor, num lugar só.
+   *
+   * ERAM DUAS E SÃO QUATRO — 09/09/2026, pedido dela: *"falta setar cores e os
+   * outros dois slicers"*. As duas novas nascem em 0 = desligado, e em 0 elas
+   * não acrescentam bandeira nenhuma: a folha continua saindo byte a byte como
+   * saía ontem. Quem quiser ler o que cada uma faz no conversor: o cabeçalho do
+   * `_parametros_de` no `app/servidor.py`, com os números medidos. */
+  /* O `title` só entra quando há o que dizer — `title=""` no DOM é um atributo
+   * a mais que não mostra balão nenhum. As duas réguas velhas se explicam pelo
+   * nome; as novas precisam dizer que 0 é "não mexer". */
+  const regua = (nome, rotulo, titulo) => elemento("label", {
+    class: "oficina-regua", title: titulo || false,
+  }, [
     elemento("span", { texto: rotulo }),
     elemento("input", {
       type: "range", name: nome, min: "0", max: "10", step: "1",
@@ -2320,11 +2441,69 @@ function oficinaDeDesenho(app, relerLista) {
   ]);
   const reguaDetalhe = regua("detalhe", "Detalhe");
   const reguaSuavidade = regua("suavidade", "Suavidade");
-  caixaReguas.append(reguaDetalhe, reguaSuavidade,
+  const reguaFracas = regua("fracas", "Linhas fracas",
+                            "Descarta a fronteira de pouco contraste. Em 0, nada muda.");
+  const reguaMinimo = regua("minimo", "Traço mínimo",
+                            "Descarta o traço curto demais para ler a 48 px. Em 0, nada muda.");
+
+  /* --- a cor, escolhida aqui e não herdada -------------------------------- */
+  /* Ela, 09/09/2026: *"FALTA UM CAMPO PRA SELECIONAR As cores"*. A oficina já
+   * DESENHAVA na cor certa (`corDaOficina`), e é justamente isso que fazia
+   * faltar: a cor estava na tela, viva, e não havia como trocá-la sem fechar a
+   * oficina e descer até a fileira do acervo.
+   *
+   * AS AMOSTRAS SÃO A PALETA, E O HEX NÃO ENCOSTA NO CÓDIGO. O nome (`mauve`,
+   * `peach`) é o que vai para o mapa e serve os quatro flavors; o hex entra só
+   * como `style` de fundo do botão, lido do `ESQUEMA.paleta` que a página já
+   * recebeu. É a mesma disciplina da fileira de cores do acervo logo abaixo — e
+   * o `tests/app.sh` cobra a metade dela que mora no CSS.
+   *
+   * CLICAR NÃO GRAVA. Trocar a cor repinta a lupa, a folha e a tira do dock na
+   * hora, porque a oficina inteira é desenhada a partir de `OFICINA` — e não
+   * escreve uma letra em lugar nenhum. Quem escreve é o «Usar», que a leva para
+   * o TERCEIRO campo da linha do `apps-convertidos.map`. */
+  const cores = elemento("div", { class: "cores-grade" });
+  const flavorOficina = flavorEmVigor();
+  const pintarCores = () => {
+    for (const b of cores.querySelectorAll("button")) {
+      b.setAttribute("aria-pressed", String(b.dataset.cor === OFICINA.cor));
+    }
+  };
+  for (const nome of (ESQUEMA.paleta.ordem || [])) {
+    const hex = ((ESQUEMA.paleta.flavors || {})[flavorOficina] || {})[nome];
+    cores.append(elemento("button", {
+      type: "button", "data-cor": nome, title: nome,
+      "aria-pressed": String(nome === OFICINA.cor),
+      style: hex ? `background:${hex}` : "",
+      onclick: () => {
+        OFICINA.cor = nome; pintarCores(); redesenharOficina();
+        sincronizarCorDoCartao(nome);
+      },
+    }));
+  }
+
+  caixaReguas.append(reguaDetalhe, reguaSuavidade, reguaFracas, reguaMinimo,
+                     elemento("div", { class: "rotulo-mini", texto: "Cor" }), cores,
                      elemento("div", { class: "escolha-botoes" }, [botaoDesfazer]));
 
+  /* --- «Editar o SVG»: a caixa de texto, e o editor que a máquina já tem --- */
+  /* Ela, 09/09/2026: *"o botão svg deveria abrir o svg no app que eu tiver se eu
+   * editar lá. ele já é reconhecido pelo nosso app."*
+   *
+   * A CAIXA DE TEXTO CONTINUA, E NÃO É TEIMOSIA: é o caminho de quem não tem
+   * editor de vetor instalado, é o caminho por TECLADO para tirar um traço (a
+   * lupa só responde ao mouse), e é o que o `tests/app-navegador.py` exercita.
+   * O botão é um atalho por cima dela, não um substituto.
+   *
+   * O BOTÃO NÃO PODE MENTIR: sem handler para `image/svg+xml` nesta máquina ele
+   * simplesmente não nasce, e o `details` fica como estava. Um botão que abre
+   * nada é pior que nenhum botão. Quem sabe se há handler é o SERVIDOR (ele
+   * pergunta ao `xdg-mime`), e a resposta chega junto com a folha — por isso a
+   * fileira nasce vazia e é `pintarEditor()` quem a preenche. */
+  const botoesEditor = elemento("div", { class: "escolha-botoes oficina-editor" });
+
   const edicao = elemento("details", { class: "oficina-edicao" }, [
-    elemento("summary", { texto: "Editar o SVG" }), area,
+    elemento("summary", { texto: "Editar o SVG" }), botoesEditor, area,
   ]);
 
   caixa.append(caixaFolha, caixaDock,
@@ -2427,16 +2606,46 @@ function oficinaDeDesenho(app, relerLista) {
     dica.textContent = "Clique num traço para tirar";
   }
 
+  function pintarEditor() {
+    botoesEditor.replaceChildren();
+    const ed = OFICINA.editor;
+    if (!ed || !ed.tem) return;
+    botoesEditor.append(elemento("button", {
+      type: "button", class: "btn btn-mini",
+      /* O NOME DO EDITOR ENTRA NO RÓTULO, e é medido, não cravado: o servidor
+       * pergunta ao `xdg-mime` quem abre `image/svg+xml` e lê o `Name=` do
+       * `.desktop`. Nesta máquina dá «Abrir no Boxy SVG»; noutra dará o que lá
+       * estiver, e se ela trocar o padrão o botão troca junto. */
+      texto: ed.nome ? `Abrir no ${ed.nome}` : "Abrir no editor",
+      title: "Grava um rascunho fora do projeto e o abre. Salve lá e o painel relê sozinho.",
+      disabled: !String(OFICINA.svg || "").trim(),
+      onclick: abrirNoEditor,
+    }));
+    botoesEditor.append(elemento("button", {
+      type: "button", class: "btn btn-mini", texto: "Reler",
+      title: "Traz de volta o que está no arquivo agora.",
+      onclick: () => espiarEditor(true),
+    }));
+  }
+
   function sincronizarReguas() {
     reguaDetalhe.querySelector("input").value = String(OFICINA.detalhe);
     reguaSuavidade.querySelector("input").value = String(OFICINA.suavidade);
+    reguaFracas.querySelector("input").value = String(OFICINA.fracas);
+    reguaMinimo.querySelector("input").value = String(OFICINA.minimo);
+    pintarCores();
     botaoDesfazer.disabled = !OFICINA.historico.length;
     botaoUsar.disabled = !String(OFICINA.svg || "").trim() || OFICINA.ocupada;
+    /* O «Abrir no …» segue o mesmo juízo do «Usar»: sem desenho não há o que
+     * levar para fora. O «Reler» NÃO: ele é justamente o que traz desenho
+     * quando não há nenhum aqui. */
+    const abrir = botoesEditor.querySelector("button");
+    if (abrir) abrir.disabled = !String(OFICINA.svg || "").trim();
     if (area.value !== OFICINA.svg) area.value = OFICINA.svg;
   }
 
-  function pintarTudo() { pintarFolha(); pintarDock(); pintarLupa(); sincronizarReguas(); }
-  redesenharOficina = () => { pintarFolha(); pintarDock(); pintarLupa(); sincronizarReguas(); };
+  function pintarTudo() { pintarFolha(); pintarDock(); pintarLupa(); pintarEditor(); sincronizarReguas(); }
+  redesenharOficina = pintarTudo;
 
   /* --- carregar: a folha inteira numa chamada ----------------------------- */
   async function carregar() {
@@ -2453,6 +2662,11 @@ function oficinaDeDesenho(app, relerLista) {
     OFICINA.variacoes = r.variacoes || [];
     OFICINA.vizinhos = r.vizinhos || [];
     OFICINA.salvo = r.salvo || null;
+    OFICINA.editor = r.editor || null;
+    /* O NOME DO ÍCONE, que nem sempre é o id do `.desktop` — num jogo da Steam
+     * o `.desktop` é `meow-steam-1715980` e o arquivo é `steam_icon_1715980`.
+     * Quem resolve isso é o servidor; a página só guarda a resposta. */
+    OFICINA.nome = r.nome || "";
     /* O CARTÃO INICIAL É O «SALVO» QUANDO HÁ UM: abrir a ficha de um aplicativo
      * que já tem desenho e ver uma variação nova marcada seria a tela dizendo
      * que o trabalho dela foi trocado. Sem salvo, a primeira que desenhou. */
@@ -2478,6 +2692,12 @@ function oficinaDeDesenho(app, relerLista) {
     OFICINA.fonte = c.fonte || "icone";
     if (c.detalhe != null) OFICINA.detalhe = c.detalhe;
     if (c.suavidade != null) OFICINA.suavidade = c.suavidade;
+    /* AS DUAS RÉGUAS NOVAS VOLTAM A 0 NO CARTÃO QUE NÃO AS DECLARA, e é o
+     * «Salvo» que não declara. Sem o `|| 0`, escolher o «Salvo» depois de ter
+     * girado «Linhas fracas» deixaria a régua marcando 7 sobre um desenho que
+     * não foi feito com 7 — a tela mentindo sobre como aquele desenho nasceu. */
+    OFICINA.fracas = c.fracas || 0;
+    OFICINA.minimo = c.minimo || 0;
     OFICINA.cheia = !!c.cheia;
     OFICINA.historico = [];
     OFICINA.erro = "";
@@ -2495,7 +2715,8 @@ function oficinaDeDesenho(app, relerLista) {
       const r = await api("/api/app-desenho", {
         method: "POST", body: JSON.stringify({
           app: OFICINA.app, acao: "vetorizar", fonte: OFICINA.fonte,
-          detalhe: OFICINA.detalhe, suavidade: OFICINA.suavidade, cheia: OFICINA.cheia }),
+          detalhe: OFICINA.detalhe, suavidade: OFICINA.suavidade, cheia: OFICINA.cheia,
+          fracas: OFICINA.fracas, minimo: OFICINA.minimo }),
       });
       OFICINA.ocupada = false;
       if (r.erro) { OFICINA.erro = r.erro; pintarTudo(); return; }
@@ -2508,6 +2729,30 @@ function oficinaDeDesenho(app, relerLista) {
       OFICINA.escolhidaAntes = "editado";
       pintarTudo();
     }, 250);
+  }
+
+  /* --- o editor de fora: a ida ------------------------------------------- */
+  /* O CAMINHO DO ARQUIVO NÃO SAI DAQUI, e é a regra de ouro do painel: *"nenhum
+   * comando vem da página como texto. A página manda um `id` de ação"*
+   * (`app/LEIA-ME.md`). Esta função manda `acao: "editor"` e o desenho; QUEM
+   * escolhe o arquivo e monta o comando é o servidor.
+   *
+   * O ENSAIO VALE AQUI TAMBÉM: abrir uma janela é a coisa mais visível que este
+   * painel faz, e o ensaio existe justamente para ela poder clicar em tudo sem
+   * a máquina reagir. A recusa mora no servidor, como todas as outras. */
+  async function abrirNoEditor() {
+    const r = await api("/api/app-desenho", {
+      method: "POST",
+      body: JSON.stringify({ app: OFICINA.app, acao: "editor",
+                             svg: OFICINA.svg, seco: ensaiando() }),
+    });
+    if (r.erro) { torrada(r.erro, "erro"); return; }
+    OFICINA.editorMtime = r.mtime || 0;
+    if (r.seco) { torrada(r.aviso, "igual"); return; }
+    /* O VIGIA COMEÇA AQUI E NÃO ANTES: só faz sentido perguntar "mudou?" depois
+     * de haver arquivo e editor abertos. Ver o cabeçalho do `espiarEditor`. */
+    vigiarEditor();
+    torrada(`Aberto no ${(r.editor && r.editor.nome) || "editor"} — salve lá e o desenho volta`, "ok");
   }
 
   async function usar() {
@@ -2541,6 +2786,11 @@ function oficinaDeDesenho(app, relerLista) {
      * Usar peça as conversões de novo, e o `ocupada` impede que dois nós em voo
      * peçam duas vezes. */
     if (caixa.open && !OFICINA.carregou && !OFICINA.ocupada) carregar();
+    /* FECHAR A OFICINA MATA O VIGIA. Um `setInterval` perguntando pelo rascunho
+     * de uma oficina que não está mais na tela é uma chamada a cada 2 s pelo
+     * resto da sessão, e o desenho que ele traria não teria onde aparecer. O
+     * «Reler» é quem devolve isso com um clique quando ela voltar. */
+    if (!caixa.open) pararVigiaEditor();
   });
 
   pintarTudo();
@@ -2548,10 +2798,44 @@ function oficinaDeDesenho(app, relerLista) {
   return caixa;
 }
 
-/* A cor da oficina é a MESMA da fileira acima: o cartão tem uma cor só, e duas
- * fileiras de cor no mesmo painel seriam duas verdades sobre o mesmo campo do
- * mapa. Quando o aplicativo ainda não está em mapa nenhum, o padrão é a primeira
- * da paleta — o mesmo que o painel de cima já usa. */
+/* A cor com que a oficina ABRE — e só a abertura, desde 09/09/2026. Até hoje
+ * esta função mandava sempre, e por isso não havia como trocar a cor sem sair
+ * da oficina; ela: *"FALTA UM CAMPO PRA SELECIONAR As cores"*. Agora a fileira
+ * de amostras dentro da oficina manda, e esta função responde só à primeira
+ * pergunta: com que cor este aplicativo já está na tela?
+ *
+ * Continua sendo a MESMA cor da fileira do acervo, e por isso o `if (!OFICINA.cor)`
+ * do `oficinaDeDesenho`: as duas fileiras escrevem no mesmo campo do mapa, e
+ * abrir com valores diferentes seriam duas verdades sobre ele. Quando o
+ * aplicativo ainda não está em mapa nenhum, o padrão é a primeira da paleta. */
+/* AS DUAS PONTES ENTRE AS FILEIRAS DE COR — 09/09/2026.
+ *
+ * Elas mexem no DOM da OUTRA fileira e não no estado dela, de propósito: cada
+ * fileira é dona do seu valor (`corEscolhida` mora no fecho do cartão,
+ * `OFICINA.cor` no objeto da oficina), e uma função que atravessasse os dois
+ * fechos precisaria de um terceiro dono — que é justamente a terceira fonte de
+ * verdade que este repositório recusa em toda parte.
+ *
+ * Silenciosas quando a outra fileira não está na tela: a oficina é um
+ * `<details>` que pode estar fechado, e o cartão pode nem ter sido aberto. */
+function sincronizarCorDaOficina(nome) {
+  if (typeof OFICINA === "object" && OFICINA) OFICINA.cor = nome;
+  const grade = document.querySelector(".oficina-lado .cores-grade");
+  if (!grade) return;
+  for (const b of grade.querySelectorAll("button")) {
+    b.setAttribute("aria-pressed", String(b.dataset.cor === nome));
+  }
+  if (typeof redesenharOficina === "function") redesenharOficina();
+}
+
+function sincronizarCorDoCartao(nome) {
+  const grade = document.querySelector(".escolha-icone .cores-grade");
+  if (!grade) return;
+  for (const b of grade.querySelectorAll("button")) {
+    b.setAttribute("aria-pressed", String(b.dataset.cor === nome));
+  }
+}
+
 function corDaOficina(app) {
   /* O acervo de traço vem PRIMEIRO: é o mapa em que esta oficina grava, e um
    * aplicativo que já tem desenho à mão não pode voltar para a primeira cor da

@@ -15,7 +15,7 @@
 
 [![installer](https://img.shields.io/badge/installer-54%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 [![doctor](https://img.shields.io/badge/doctor-50%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
-[![browser suite](https://img.shields.io/badge/browser-103%2F103-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
+[![browser suite](https://img.shields.io/badge/browser-123%2F123-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
 Theme, icons, panel, dock, terminal and wallpaper for Pop!_OS with COSMIC in a single installer,
 plus a local panel that changes all of it without opening a text file.
