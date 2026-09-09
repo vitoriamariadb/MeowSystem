@@ -23,6 +23,7 @@ estavam anotadas em lugar nenhum.
 | **Qt** | o ícone de todo app Qt voltava a `breeze-dark` e ficava assim o dia inteiro | `meow-qt.path`; a causa é a **exportação de partida da sessão** do `cosmic-settings-daemon`, não a troca de tema |
 | **números** | a tela dizia 52 etapas numa máquina de 53, em cinco lugares que já discordavam entre si | o painel **conta** (`_medidas_do_projeto`); `tests/numeros.sh` cobra o que um humano escreve |
 | **palavras** | jargão de implementação na tela, e o nome cru da chave no leitor de tela | inventário da página rodando, três baldes, e o vocabulário do terminal convergido com o da tela |
+| **Thunderbird** | o traço estava instalado, correto e **invisível** — o nosso próprio tema tinha um raster de fábrica em `128x128` vencendo o traço de `48x48`, porque o resolvedor escolhe por tamanho | a linha saiu do `apps-hicolor.map`, e quem escreve passou a saber apagar (por conteúdo, nunca por nome). **Confirmado na tela dela:** *"isso está e ficou muito bom"* |
 
 **O QUE A MEDIÇÃO DERRUBOU NESTA LEVA** — e vale mais que o que ela construiu:
 
@@ -52,6 +53,22 @@ estavam anotadas em lugar nenhum.
   o `tests/reversao.sh`.
 - **A suíte verde não fecha sprint.** 103/103 passando, e a foto pegou a grade
   de ícones dizendo *"aparecem no **lançamento** desta máquina"*.
+- **"Instalado" e "na tela dela" continuam sendo perguntas diferentes** — e desta
+  vez quem sombreava o nosso desenho era **o nosso próprio tema**, não o do
+  sistema. A hipótese "precedência de tamanho" tinha sido testada e DESCARTADA em
+  11/08 (`lancador-cosmic-cacheia-icones`); ela cai naquele caso e vale neste,
+  porque ali os dois arquivos eram nossos em tamanhos diferentes.
+- **O desfazer documentado do `apps-hicolor.map` não funcionava.** O arquivo
+  prometia que apagar a linha bastava. A varredura de órfão do irmão só percorre
+  os tamanhos da escada (16..80 nesta tela) e o `128x128` não está nela. Apagar a
+  linha não fez nada — foi assim que o buraco apareceu.
+- **`completar_icones.sh` tinha 2 das 4 peças.** Script e etapa, sem conferidor e
+  sem auto-cura. O auto-reparo das 5h passava por cima todo dia sem olhar.
+- **A conversão do Thunderbird NÃO falhava**, ao contrário do que o
+  `apps-arcticons.map` afirmava: com `--k 8 --funde 25` a aba do envelope volta.
+  O que falhava era o **padrão**. E daí saiu o achado que abre a frente seguinte:
+  o `apps-convertidos.map` tem um **quarto campo para parâmetro por ícone** desde
+  que existe, e **0 de 33 linhas o usam**.
 
 **DUAS COISAS ESPERAM A DECISÃO DELA, e nenhuma foi aplicada:**
 
