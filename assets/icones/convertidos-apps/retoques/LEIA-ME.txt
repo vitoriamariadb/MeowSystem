@@ -31,11 +31,33 @@ e é INERTE: o nome não casa com nenhuma linha do mapa, então nada a lê. Troc
 custa renomear os dois arquivos, e é assim que desfazer continua barato.
 
 A BOCA É RETOQUE MANUAL, E ISSO SE PROVA LENDO O ARQUIVO
-    O último subcaminho é um cúbico `C`. O conversor SÓ emite polilinha
-    (`M x y x y …`) — não há uma linha nele que escreva `C`. Os outros SEIS
-    subcaminhos são byte a byte os de uma conversão limpa do
-    `/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg`, e continuam sendo:
-    nenhum deles foi tocado em nenhuma das duas rodadas abaixo.
+    O último subcaminho é um cúbico `C`.
+
+    ATÉ 09/09/2026 A PROVA ERA MAIS CURTA, E ELA ENVELHECEU. Dizia-se que o
+    conversor SÓ emitia polilinha (`M x y x y …`) e que não havia uma linha
+    nele que escrevesse `C` — então qualquer `C` no arquivo era mão humana. Na
+    Sprint Q o conversor passou a emitir curvas POR PADRÃO, e essa frase
+    deixou de valer: hoje um `C` aqui pode ser da máquina.
+
+    A PROVA QUE CONTINUA VALENDO É A OUTRA METADE, e ela nunca dependeu do
+    `C`: os outros SEIS subcaminhos são BYTE A BYTE os de
+
+        converter_icone.py --polilinha \
+            /usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg saida.svg
+
+    e é assim que se confere — o `--polilinha` existe justamente para isso, e
+    devolve o traçado anterior à Sprint Q sem um byte de diferença. O que
+    sobra depois de casar os seis é o sétimo subcaminho, e o sétimo é a boca.
+    O `tests/conversor.sh` afirma esse casamento a cada rodada, para a prova
+    não cair em silêncio no dia em que alguém mexer no emissor.
+
+    ESTE RETOQUE NÃO FOI RECONVERTIDO EM CURVAS, e a escolha é registrada:
+    reconvertê-lo mudaria os seis subcaminhos, apagaria a prova acima e
+    trocaria uma arte que ela aprovou por outra que ela não viu. A regra do
+    diretório continua inteira — nada aqui é sobrescrito. Se um dia ela quiser
+    o Wilber em curva, é decisão dela, e a boca precisa ser redesenhada junto,
+    porque ela foi ajustada contra a posição do pincel DESTE traçado (ver a
+    nota de 11/08 mais abaixo).
 
 O CAMINHO DO PARÂMETRO FOI TENTADO E É IMPOSSÍVEL — não "difícil", impossível,
 e o motivo é aritmético:
