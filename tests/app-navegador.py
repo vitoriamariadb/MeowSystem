@@ -1563,6 +1563,11 @@ def main():
                 botao.click()
             checa(achou is not None, "achei uma ficha cuja oficina desenha pelo menos cinco variacoes")
             if achou is not None:
+                # O id do `.desktop` que a oficina abriu. Ele nao e' fixo: a
+                # grade e' a maquina de quem roda, e as chamadas de porta feitas
+                # daqui para baixo precisam falar do MESMO aplicativo que esta
+                # na tela — pergunta-se ao estado, nunca se adivinha.
+                OFICINA_APP = pag.evaluate("() => OFICINA.app")
                 folha = pag.locator(".oficina-folha")
                 checa(folha.locator("figure.oficina-original img").count() == 2,
                       "o original esta na folha, a 48 e a 96, ao lado das variacoes")
@@ -1641,6 +1646,168 @@ def main():
                 checa(folha.locator("button.oficina-cartao[aria-pressed='true']").count() == 0,
                       "depois da regua nenhum cartao fica marcado — o desenho ja nao e o dele")
 
+                # ------------------------------------------------------------
+                # AS DUAS REGUAS NOVAS — 09/09/2026
+                #   Ela: "falta setar cores e os outros dois slicers". Sao
+                #   `Linhas fracas` (--peso-fronteira) e `Traco minimo`
+                #   (--min-traco), e a regra que as governa e' uma so: em 0 elas
+                #   nao existem. A afirmacao abaixo e' essa regra, medida pela
+                #   PORTA — dois `vetorizar` iguais em tudo menos pelas duas
+                #   chaves, e o SVG que volta tem de ser o mesmo texto.
+                # ------------------------------------------------------------
+                reguas = pag.eval_on_selector_all(
+                    ".oficina-regua input", "es => es.map(e => [e.name, e.value])")
+                nomes = [n for n, _v in reguas]
+                checa(nomes == ["detalhe", "suavidade", "fracas", "minimo"],
+                      f"a oficina tem as QUATRO reguas, nesta ordem ({nomes})")
+                checa(dict(reguas).get("fracas") == "0" and dict(reguas).get("minimo") == "0",
+                      "e as duas novas nascem em 0 — desligadas")
+
+                mesmo = pag.evaluate("""async (app) => {
+                  const post = (c) => fetch('/api/app-desenho', {
+                    method: 'POST',
+                    headers: { 'X-Meow-Token': TOKEN, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(Object.assign({ app, acao: 'vetorizar',
+                                                         detalhe: 6, suavidade: 2 }, c)),
+                  }).then(r => r.json());
+                  const a = await post({});                          // como era ontem
+                  const b = await post({ fracas: 0, minimo: 0 });     // com as duas novas em 0
+                  return { igual: a.svg === b.svg, pa: a.parametros, pb: b.parametros,
+                           n: (a.svg || '').length };
+                }""", OFICINA_APP)
+                checa(mesmo["igual"] and mesmo["pa"] == mesmo["pb"] and mesmo["n"] > 0,
+                      "as reguas novas em 0 devolvem o desenho de ontem, texto por texto "
+                      f"({mesmo['pa']!r} == {mesmo['pb']!r}, {mesmo['n']} caracteres)")
+
+                # E LIGADAS, ELAS CHEGAM AO CONVERSOR. A afirmacao e' a STRING
+                # CANONICA e nao a foto: quantos tracos o `--min-traco` tira
+                # depende do icone que esta grade ofereceu hoje, e um teste que
+                # depende disso falha na maquina de outra pessoa. A string e' o
+                # contrato — e' ela que vai para o campo 4 do mapa.
+                reguaMin = pag.locator(".oficina-regua input[name='minimo']")
+                with pag.expect_response(lambda r: "/api/app-desenho" in r.url, timeout=25000):
+                    reguaMin.fill("10")
+                    reguaMin.dispatch_event("input")
+                pag.wait_for_timeout(700)
+                param = pag.evaluate("() => OFICINA.parametros")
+                checa(param.endswith("--min-traco 11.2"),
+                      f"mover «Traco minimo» acrescenta a bandeira ao parametro ({param!r})")
+                reguaMin.fill("0")
+                with pag.expect_response(lambda r: "/api/app-desenho" in r.url, timeout=25000):
+                    reguaMin.dispatch_event("input")
+                pag.wait_for_timeout(700)
+                param = pag.evaluate("() => OFICINA.parametros")
+                checa("--min-traco" not in param,
+                      f"e voltar a 0 a tira de novo ({param!r})")
+
+                # ------------------------------------------------------------
+                # O CAMPO DE COR — 09/09/2026
+                #   Ela: "FALTA UM CAMPO PRA SELECIONAR As cores". A cor ja
+                #   estava viva na tela (a oficina desenha na cor do mapa) e era
+                #   justamente isso que fazia faltar: nao havia como troca-la
+                #   sem fechar a oficina. Duas coisas se afirmam aqui, e a
+                #   segunda e' a regra da casa: escolher NAO grava.
+                # ------------------------------------------------------------
+                amostras = pag.locator(".oficina-lado .cores-grade button")
+                checa(amostras.count() >= 14,
+                      f"a oficina tem a fileira de cores da paleta ({amostras.count()} amostras)")
+                mapa_c = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+                mapa_a = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
+                antes_mapas = (md5_de(mapa_c), md5_de(mapa_a))
+                cor_antes = pag.evaluate("() => OFICINA.cor")
+                outra = None
+                for i in range(amostras.count()):
+                    b = amostras.nth(i)
+                    if b.get_attribute("data-cor") != cor_antes:
+                        outra = b
+                        break
+                antes = foto(lupa, "22-lupa-cor-antes")
+                outra.click()
+                pag.wait_for_timeout(300)
+                cor_nova = pag.evaluate("() => OFICINA.cor")
+                checa(cor_nova and cor_nova != cor_antes,
+                      f"clicar numa amostra troca a cor da oficina ({cor_antes} -> {cor_nova})")
+                checa(outra.get_attribute("aria-pressed") == "true"
+                      and pag.locator(".oficina-lado .cores-grade button[aria-pressed='true']").count() == 1,
+                      "e so a amostra clicada fica marcada")
+                dif = pixels_diferentes(antes, foto(lupa, "22-lupa-cor-depois"))
+                checa(dif is not None and dif > 1.0,
+                      f"a lupa REPINTA na cor escolhida ({dif:.1f}% dos pixels)")
+                checa(pag.locator(".oficina-dock-eu svg").count() == 1
+                      and pag.locator(".oficina-folha button.oficina-cartao svg").count() > 0,
+                      "e a folha e a tira do dock continuam desenhadas")
+                checa((md5_de(mapa_c), md5_de(mapa_a)) == antes_mapas,
+                      "e escolher a cor NAO escreveu em mapa nenhum — quem grava e' o Usar")
+
+                # ------------------------------------------------------------
+                # O EDITOR DE FORA, E A VOLTA — 09/09/2026
+                #   Ela: "o botao svg deveria abrir o svg no app que eu tiver se
+                #   eu editar la". O que este teste exercita e' a VOLTA, que e' a
+                #   metade que decide se o recurso funciona: sem ela, ela salva
+                #   no Boxy SVG e o painel continua mostrando o desenho de antes.
+                #
+                #   A IDA NAO E' CLICADA, E ISSO E' DE PROPOSITO. Clicar em
+                #   «Abrir no ...» faria NASCER UMA JANELA na tela de quem esta
+                #   rodando o teste. O `seco: true` daqui e' literal, escrito no
+                #   corpo — nao vem do botao de ensaio da pagina —, e o servidor
+                #   para antes do `Popen`. Nenhum caminho deste arquivo abre um
+                #   programa.
+                # ------------------------------------------------------------
+                # O `<details>` «Editar o SVG» ABRE PRIMEIRO, e nao e' detalhe de
+                # teste: dentro de um `details` fechado o botao existe no DOM e
+                # nao existe para quem olha — `inner_text()` volta vazio e um
+                # clique estoura por elemento invisivel. Abrir e' o que ela faz.
+                edicao = pag.locator("details.oficina-edicao").first
+                if edicao.get_attribute("open") is None:
+                    edicao.locator("> summary").click()
+                    pag.wait_for_timeout(250)
+                fileira = pag.locator(".oficina-editor button")
+                tem_editor = pag.evaluate("() => !!(OFICINA.editor && OFICINA.editor.tem)")
+                if not tem_editor:
+                    checa(fileira.count() == 0,
+                          "sem handler de SVG nesta maquina, o botao nao aparece — ele nao mente")
+                else:
+                    rotulos = [fileira.nth(i).inner_text().strip() for i in range(fileira.count())]
+                    checa(len(rotulos) == 2 and rotulos[0].startswith("Abrir no ")
+                          and rotulos[1] == "Reler",
+                          f"«Editar o SVG» oferece o editor da maquina e o Reler ({rotulos})")
+                    ida = pag.evaluate("""async (app) => {
+                      const r = await fetch('/api/app-desenho', {
+                        method: 'POST',
+                        headers: { 'X-Meow-Token': TOKEN, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ app, acao: 'editor', seco: true,
+                                               svg: OFICINA.svg }),
+                      }).then(r => r.json());
+                      return r;
+                    }""", OFICINA_APP)
+                    rascunho = ida.get("caminho") or ""
+                    checa(ida.get("seco") is True and os.path.isfile(rascunho),
+                          f"a ida grava o rascunho FORA do repositorio ({rascunho})")
+                    checa(RAIZ not in rascunho and "/.local/state/meowsystem/oficina/" in rascunho,
+                          "e o caminho e' do servidor, no estado — nao do cliente e nao no projeto")
+                    try:
+                        with open(rascunho, "r", encoding="utf-8") as fh:
+                            rascunho_texto = fh.read()
+                        n_antes = lupa.locator("svg path").count()
+                        # "Ela salvou no Boxy SVG": um traco a mais, por fora.
+                        time.sleep(0.05)
+                        with open(rascunho, "w", encoding="utf-8") as fh:
+                            fh.write(rascunho_texto.replace(
+                                "</svg>", '<path d="M 6 6 L 42 42"/></svg>'))
+                        fileira.nth(1).click()          # «Reler»
+                        pag.wait_for_timeout(900)
+                        depois_n = lupa.locator("svg path").count()
+                        checa(depois_n == n_antes + 1,
+                              f"o «Reler» traz de volta o que o editor gravou "
+                              f"({n_antes} -> {depois_n} tracos)")
+                        checa(pag.evaluate("() => OFICINA.escolhida") == "editado",
+                              "e o desenho passa a ser dela, nao do cartao")
+                    finally:
+                        # O rascunho e' de fora do repositorio, mas e' arquivo
+                        # que este teste criou — quem cria, tira.
+                        if os.path.isfile(rascunho):
+                            os.unlink(rascunho)
+
                 # USAR EM ENSAIO: torrada, e NADA escrito. A porta ja e' coberta
                 # pela secao 18 do lado do servidor; aqui o que se prova e' que o
                 # botao no <summary> chega la — e que ele nao FECHA a oficina em
@@ -1649,6 +1816,16 @@ def main():
                 mapa = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
                 antes_r, antes_m = sorted(os.listdir(retoques)), md5_de(mapa)
                 checa(seco(pag, True), "o ensaio liga")
+                # A BANDEJA DE TORRADAS ESVAZIA ANTES DO CLIQUE — 09/09/2026.
+                #   Ate hoje o «Usar» era a primeira coisa desta secao a torrar,
+                #   e ler `.torrada` DEPOIS do clique bastava. Com o «Reler» do
+                #   editor torrando logo acima, `.last` devolvia a torrada
+                #   ANTERIOR (elas vivem 2,6 s) e a afirmacao lia a frase errada
+                #   — um falso negativo que nao dizia nada sobre o ensaio.
+                for _ in range(40):
+                    if pag.locator(".torrada").count() == 0:
+                        break
+                    pag.wait_for_timeout(200)
                 pag.locator("details.oficina > summary button").click()
                 pag.wait_for_selector(".torrada", timeout=6000)
                 checa("ensaio" in pag.locator(".torrada").last.inner_text().lower(),
@@ -1658,6 +1835,77 @@ def main():
                 checa(sorted(os.listdir(retoques)) == antes_r and md5_de(mapa) == antes_m,
                       "e nao escreveu em retoques/ nem no mapa")
                 seco(pag, False)
+
+                # ------------------------------------------------------------
+                # E O SALVAR GRAVA A COR NO CAMPO CERTO — 09/09/2026
+                #   Este e' o UNICO ponto desta secao que escreve de verdade, e
+                #   ele devolve tudo no `finally`. A pergunta que so uma escrita
+                #   responde: a cor escolhida na oficina cai no TERCEIRO campo
+                #   da linha do mapa que passa a ser dono do aplicativo?
+                #
+                #   NAO SE CLICA NO «USAR», e nao e' descuido: aquele botao faz
+                #   duas coisas, e a segunda e' `icones_traco` — reconstruir o
+                #   tema de icones da maquina inteira. O que se testa aqui e' a
+                #   ESCRITA, entao chama-se a porta que escreve, e so ela.
+                #
+                #   A linha do `apps-convertidos.map` e' `nome:origem:cor[:params]`
+                #   — a cor e' o campo 3. Salvar um desenho sempre passa a posse
+                #   para este mapa (o `_tirar_do_mapa_arcticons` tira o nome do
+                #   outro, porque um nome nos dois mapas faz o `_conferir_gemeos`
+                #   estourar), e por isso ele e' o mapa "dono" depois do Usar.
+                nome_icone = pag.evaluate("() => OFICINA.nome") or OFICINA_APP
+                conv_dir = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+                guardados = {}
+                for c in (mapa_c, mapa_a,
+                          os.path.join(conv_dir, nome_icone + ".svg"),
+                          os.path.join(conv_dir, "retoques", nome_icone + ".svg")):
+                    guardados[c] = open(c, "rb").read() if os.path.isfile(c) else None
+                try:
+                    cor_alvo = pag.evaluate("() => OFICINA.cor")
+                    r = pag.evaluate("""async (app) => {
+                      return await fetch('/api/app-desenho', {
+                        method: 'POST',
+                        headers: { 'X-Meow-Token': TOKEN, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ app, acao: 'salvar', svg: OFICINA.svg,
+                                               cor: OFICINA.cor, fonte: OFICINA.fonte,
+                                               parametros: OFICINA.parametros, seco: false }),
+                      }).then(r => r.json());
+                    }""", OFICINA_APP)
+                    checa(not r.get("erro") and r.get("cor") == cor_alvo,
+                          f"o salvar aceita a cor escolhida na oficina ({r.get('erro') or r.get('cor')})")
+                    campos = []
+                    with open(mapa_c, encoding="utf-8") as fh:
+                        for linha in fh:
+                            corte = linha.strip()
+                            if corte and not corte.startswith("#") \
+                               and corte.split(":")[0].strip() == nome_icone:
+                                campos = [c.strip() for c in corte.split(":")]
+                    checa(len(campos) >= 3 and campos[2] == cor_alvo,
+                          f"e ela esta no CAMPO 3 da linha de {nome_icone} no "
+                          f"apps-convertidos.map ({':'.join(campos) or 'linha nao achada'})")
+                    fora = []
+                    with open(mapa_a, encoding="utf-8") as fh:
+                        for linha in fh:
+                            corte = linha.strip()
+                            if corte and not corte.startswith("#") \
+                               and corte.split(":")[0].strip() == nome_icone:
+                                fora.append(corte)
+                    checa(not fora,
+                          "e o nome NAO ficou nos dois mapas — dois donos e' o defeito "
+                          "que o _conferir_gemeos estoura")
+                finally:
+                    # A DEVOLUCAO NAO E' OPCIONAL: este teste roda no repositorio
+                    # de verdade, e um mapa alterado por um teste e' uma linha
+                    # que ninguem escreveu aparecendo num `git diff`.
+                    for c, bruto in guardados.items():
+                        if bruto is None:
+                            if os.path.isfile(c):
+                                os.unlink(c)
+                        else:
+                            with open(c, "wb") as fh:
+                                fh.write(bruto)
+                checa((md5_de(mapa_c), md5_de(mapa_a)) == antes_mapas,
+                      "e os dois mapas voltaram byte a byte ao que eram antes do teste")
                 if FOTOS:
                     # ROLAR E' `#principal`, NAO A JANELA — a pagina inteira nao
                     # rola, quem rola e' a coluna. E o alvo e' a OFICINA: um

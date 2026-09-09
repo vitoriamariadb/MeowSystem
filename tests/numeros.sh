@@ -168,7 +168,7 @@ confere app/LEIA-ME.md 'As [0-9]+ chaves'                "$CHAVES"        "chave
 # que de fato executaram, e algumas se pulam quando o recurso não está na
 # máquina). Contar `checa(` no fonte daria um número maior que o placar e a
 # cobrança seria falsa — pior que a ausência dela. Quem atualiza os dois badges
-# é quem roda a suíte, e o placar dela é a fonte. Medido em 09/09/2026: 103/103.
+# é quem roda a suíte, e o placar dela é a fonte. Medido em 09/09/2026: 123/123.
 # O que DÁ para cobrar sem rodar nada é que os dois README digam o MESMO
 # placar. Eles já disseram 84/84 em uníssono por coincidência — foram escritos
 # no mesmo dia e envelheceram juntos —, mas a tradução é o lugar clássico onde

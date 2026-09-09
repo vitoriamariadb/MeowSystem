@@ -51,7 +51,7 @@ estavam anotadas em lugar nenhum.
   trazia *"toda unidade nova entra nas DUAS listas"* desde 01/09, quando três
   unidades erraram — e a unidade nova de hoje errou de novo. Agora quem cobra é
   o `tests/reversao.sh`.
-- **A suíte verde não fecha sprint.** 103/103 passando, e a foto pegou a grade
+- **A suíte verde não fecha sprint.** 123/123 passando, e a foto pegou a grade
   de ícones dizendo *"aparecem no **lançamento** desta máquina"*.
 - **"Instalado" e "na tela dela" continuam sendo perguntas diferentes** — e desta
   vez quem sombreava o nosso desenho era **o nosso próprio tema**, não o do
@@ -93,7 +93,7 @@ porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio
 | `install.sh` | 54 etapas; rodar de novo não escreve um byte |
 | `meow doctor` | **50** conferências; a única divergência é a arte convertida, e ela espera a folha |
 | painel | 109 chaves · 46 ações · 13 páginas de assunto |
-| conferência do navegador | **103/103**, console limpo nas catorze páginas |
+| conferência do navegador | **123/123**, console limpo nas catorze páginas |
 | suítes de shell | `app`, `seco`, `reversao`, `um-cartao-por-jogo`, `convergencia`, `conversor`, `previa-cerca` — todas passam |
 
 **O QUE ENVELHECEU NESTE ARQUIVO:** tudo abaixo da linha é registro de sprint

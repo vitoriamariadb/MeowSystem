@@ -1925,9 +1925,24 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .oficina-lupa-dica { font-size: var(--t-legenda); color: var(--overlay1); text-align: center; margin: 0; }
 .oficina-lado { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
 .oficina-regua { display: flex; align-items: center; gap: .6rem; font-size: var(--t-frase); color: var(--subtext0); }
-.oficina-regua span { min-width: 5.5rem; }
+/* 6,6rem E NÃO 5,5rem — 09/09/2026. As réguas eram «Detalhe» e «Suavidade»; com
+   «Linhas fracas» e «Traço mínimo» (13 e 12 caracteres) o rótulo quebrava em
+   duas linhas e SÓ AQUELAS DUAS ficavam mais altas, desalinhando os quatro
+   deslizantes. O `nowrap` é a tranca: um rótulo mais longo amanhã empurra a
+   coluna em vez de dobrar. */
+.oficina-regua span { min-width: 6.6rem; white-space: nowrap; }
 .oficina-regua input { flex: 1; min-width: 0; }
+/* A fileira de cor dentro da oficina é a mesma `.cores-grade` do acervo — o
+   mesmo tamanho de amostra e a mesma marca de escolhida, porque as duas
+   escrevem no MESMO campo do mapa e pareceriam controles diferentes se
+   tivessem desenhos diferentes. Aqui ela só respira menos: o `rotulo-mini`
+   «Cor» vem colado nela, e o espaço da coluna é o da lupa. */
+.oficina-lado > .rotulo-mini { margin-top: .2rem; }
 .oficina-edicao > summary { font-size: var(--t-frase); color: var(--subtext0); cursor: pointer; }
+/* Os dois botões do editor de fora ficam ENTRE o resumo e a caixa de texto: a
+   ordem é a da decisão — «abro lá fora» vem antes de «escrevo aqui», e quem não
+   tem editor nem vê a fileira, que nasce vazia. */
+.oficina-editor { margin-top: .5rem; }
 /* Monoespaçada porque o conteúdo é um caminho SVG: alinhar número com número é
  * o que torna possível mexer numa coordenada sem contar caracteres. */
 .oficina-fonte {
