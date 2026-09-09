@@ -128,7 +128,32 @@ para eu decidir escrevendo.
 
 ---
 
-## Sprint P — O Heroic: o nome do tema leva `.css`  ← **ABERTA**
+## Sprint P — O Heroic: o nome do tema leva `.css`  ← **FECHADA em 09/09/2026**
+
+> **A TELA RESPONDEU, e é o que fechou esta sprint.** Com o Heroic aberto e
+> medido por depuração remota do Electron:
+>
+> | | antes (a captura dela) | agora |
+> |---|---|---|
+> | `document.body.className` | `catppuccin-mocha-mauve` | `catppuccin-mocha-mauve` |
+> | `style.customTheme` | **vazio** | **3 052 caracteres** |
+> | `--accent` | ciano de fábrica | `#cba6f7` |
+> | `--background` | de fábrica | `#1e1e2e` |
+> | `--modal-backdrop` · `--gamecard-title-color` | vazias | `#000000cc` · `#11111bcc` |
+>
+> A classe do `body` era a MESMA nos dois lados — é por isso que o defeito
+> parecia aplicado. O que mudou foi o `<style>` deixar de nascer vazio.
+> Na foto, o acento mauve substitui o ciano em tudo: "Adicionar jogo", os
+> botões de baixar, as letras do alfabeto, "Biblioteca" na barra lateral.
+> Restam 115 das 256 variáveis sem valor, e são as que o Heroic **não define
+> em tema nenhum** — FontAwesome (`--fa-*`), escopos locais (`--a`, `--b`,
+> `--color`) e fonte. Quebram igual no tema de fábrica.
+>
+> **As capas cinza não eram nossas, e a premissa do remendo estava errada.**
+> O `--installing-effect` não vem do tema: vem de estilo inline no cartão,
+> escrito pelo JS (`style={{"--installing-effect": …}}`). Estilo inline num
+> ancestral mais próximo vence a linha do `body` sempre. A linha ficou no
+> remendo como guarda, não como cura, e está comentada dizendo isso.
 
 **Tamanho:** ~1 h. A correção são três linhas; a validação é o trabalho.
 
@@ -199,9 +224,19 @@ faltou em 08/09.
   `heroic-run` do flatpak repassa os argumentos (`zypak-wrapper … "$@"`):
 
   ```bash
-  flatpak run com.heroicgameslauncher.hgl --remote-debugging-port=9222
-  # a janela vai para o workspace reservado a testes, nunca para o dela
+  # O identificador da janela TEM de ser dito. O estacionamento adivinha pelo
+  # primeiro argumento, e com um lançador no meio (`flatpak run`, `env`,
+  # `python3 -m`) o palpite é `flatpak`/`env`/`python3` — a janela que ninguém
+  # acha fica onde nasceu, que é o workspace DELA. Medido em 09/09: 35 s na
+  # tela dela, e o log dizendo "App id not found: flatpak".
+  AURORA_APPID=com.heroicgameslauncher.hgl \
+    <estacionar> run flatpak run com.heroicgameslauncher.hgl --remote-debugging-port=9222
   ```
+
+  E a janela de exposição não é zero nem assim: o estacionamento só age depois
+  de a janela existir, e o Heroic leva ~8 s para desenhar. **Quando a janela
+  não for necessária, não abra** — a medição por depuração remota funciona com
+  ela em workspace inativo.
 
 - Medir por CDP, no venv de testes, e tirar a foto **da janela**, não da tela:
 
