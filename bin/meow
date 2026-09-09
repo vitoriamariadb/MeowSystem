@@ -323,6 +323,26 @@ chk_modo() {
   return "$MEOW_DIVERGENTE"
 }
 
+# OS ÍCONES QUE FALTAVAM — E O VIGIA QUE NÃO EXISTIA ATÉ 09/09/2026
+#   `scripts/completar_icones.sh` tinha etapa no `install.sh` e **nenhum**
+#   conferidor aqui. Um recurso com duas das quatro peças (script, etapa,
+#   conferidor, auto-cura) não está entregue — e o preço apareceu: o
+#   `128x128/apps/thunderbird.png` ficou um mês vencendo o traço do Arcticons na
+#   tela dela, e o auto-reparo das 5h passava por cima todo dia sem olhar.
+#
+#   Ele confere pelo mesmo caminho de sempre: o próprio script, em seco. Duas
+#   perguntas de uma vez — o que o `apps-hicolor.map` pede está instalado, e o
+#   que SAIU dele já saiu do disco.
+#
+#   TEM conserto automático, e é seguro: a remoção do script é por CONTEÚDO
+#   (byte a byte igual a um arquivo do `hicolor` do sistema, no mesmo tamanho),
+#   nunca por nome. Um `.png` que ela puser ali à mão não passa nesse teste.
+chk_completar() {
+  MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/completar_icones.sh" 2>&1
+}
+
 chk_icones() {
   MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" LOGO="$LOGO" \
     ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
@@ -1290,6 +1310,13 @@ fix_gerar() {
 }
 fix_tema()      { "$RAIZ/scripts/aplicar_tema.sh" "$(alvo_tema)" --respeitar-gui 2>&1; }
 fix_modo()      { local d; d="$(modo_desejado)" || return "$MEOW_ERRO"; meow_escrever "$IS_DARK" "$d" 644; }
+# O par do `chk_completar`. Sem ele o auto-reparo morria com
+# `fix_completar: comando nao encontrado` — o doctor acusava a divergencia e o
+# `--consertar` nao a curava, que e' o pior dos dois mundos: um aviso diario que
+# ninguem consegue calar. Medido em 09/09/2026, repondo o raster de proposito.
+fix_completar() { FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/completar_icones.sh" 2>&1; }
 fix_icones()    { FLAVOR="$FLAVOR" LOGO="$LOGO" \
                     ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
@@ -1433,7 +1460,7 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia qtvigia autostart atalho)
+VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones completar hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia qtvigia autostart atalho)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso

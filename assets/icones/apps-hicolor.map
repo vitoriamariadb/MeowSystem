@@ -54,4 +54,46 @@
 # arquivo justamente para não apagar o que é do vizinho — sem a linha, o nome
 # volta a ser órfão para ele e sai no próximo `--aplicar`. O vetor do Papirus
 # volta a valer sozinho. É o desfazer inteiro, e não precisa de mais nada.
-thunderbird:/usr/share/icons/hicolor/128x128/apps/thunderbird.png
+#
+# ============================================================================
+# O MAPA ESTÁ VAZIO DESDE 09/09/2026, E A RAZÃO DA ÚNICA LINHA HAVIA ENVELHECIDO
+# ============================================================================
+#
+# A linha era `thunderbird:/usr/share/icons/hicolor/128x128/apps/thunderbird.png`,
+# e o parágrafo acima explica a escolha que ela fazia: **marca de fábrica em vez
+# do desenho do Papirus**. Em 10/08/2026 essa era a escolha disponível, e as duas
+# pontas eram desenho chapado e colorido.
+#
+# DEIXOU DE SER. O `apps-arcticons.map` ganhou `thunderbird:thunderbird:sky`, e
+# desde então existe uma terceira opção que não existia: **o traço desenhado à
+# mão do Arcticons**, na cor da marca. A linha continuava escolhendo a primeira
+# porque ninguém tinha voltado a olhar a pergunta.
+#
+# E ela não escolhia em silêncio — ela VENCIA. O nosso próprio tema passou a ter
+# dois Thunderbird:
+#
+#     128x128/apps/thunderbird.png   raster de fábrica, byte a byte igual ao do
+#                                    hicolor do sistema
+#     48x48/apps/thunderbird.svg     o traço, `fill:none`, stroke #89B4FA (blue,
+#                                    a cor da marca, do `apps-marca.map`)
+#
+# O resolvedor escolhe por TAMANHO (`docs/COSMIC-THEMING.md` §4d, e a medição de
+# 08/08/2026 num tema de mentira). Lançador e painel desenham maior que 48, então
+# pediam 128 e recebiam o raster. O traço estava instalado, correto e invisível —
+# que é o pior desfecho possível, porque parece que não foi feito.
+#
+# Medido em 09/09/2026: era o ÚNICO caso. Uma varredura de `48x48/apps/*.svg`
+# procurando um `.png` de mesmo nome em qualquer outro tamanho do nosso tema
+# devolveu só o Thunderbird.
+#
+# QUEM DECIDIU: ela, vendo o traço ao lado do raster — *"esse Thunderbird tá
+# perfeito. mas pq ele não aparece na tela?"*. Gosto é dela, e este arquivo
+# sempre disse que esta linha era gosto.
+#
+# PARA VOLTAR A MARCA DE FÁBRICA de qualquer aplicativo, o formato continua o
+# mesmo e o mapa vazio é um mapa válido: escreva a linha e rode
+# `./install.sh`. O que este arquivo NÃO pode voltar a ser é uma linha que vence
+# um desenho nosso sem ninguém saber — se um dia houver outra, confira antes se
+# já existe traço para aquele nome no `apps-arcticons.map` ou no
+# `apps-convertidos.map`.
+
