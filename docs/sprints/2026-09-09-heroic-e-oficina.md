@@ -1,6 +1,9 @@
 # O Heroic sem tema, e a oficina que não convence — sprints de 09/09/2026
 
-Três sprints **abertas, nenhuma executada**. Este arquivo é autossuficiente:
+**As três foram executadas em 09/09/2026 e estão FECHADAS.** O que segue é o
+plano como foi escrito, com o veredito de cada uma no alto da sua seção — e,
+em cada veredito, o que a medição derrubou do próprio plano. Este arquivo é
+autossuficiente:
 quem for executar não precisa de contexto de conversa. Cada sprint traz o que
 já foi medido, o que fazer, em que arquivo, como conferir, e o que pode dar
 errado.
@@ -285,7 +288,38 @@ faltou em 08/09.
 
 ---
 
-## Sprint Q — O conversor: curva em vez de escada  ← **ABERTA**
+## Sprint Q — O conversor: curva em vez de escada  ← **FECHADA em 09/09/2026**
+
+> **A folha está em `~/Documentos/meow-conversor-folha.html`** — 29 ícones,
+> três colunas, os quatro fundos e a lupa de 200 px. **A regeneração dos 24
+> espera o sim dela**, e por isso `construir_convertidos.sh --conferir` passa a
+> dizer "desatualizados": é o esperado, não defeito.
+>
+> **Quatro coisas que a medição derrubou deste plano, e a primeira era grave:**
+>
+> 1. **A ordem que este texto mandava apagava os cantos que ele mandava achar.**
+>    Alisar antes de procurar derruba o bico do `>` do terminal de 90° para
+>    53,7°, abaixo do limiar de 60°: o `>` saía sem bico e o `_` virava
+>    azeitona. A ordem certa é `cantos → partir → alisar`, peça a peça.
+> 2. **Ajustar curva em tudo ondula a reta** — os quatro lados da moldura
+>    saíam tortos, e a polilinha acertava. Foi preciso uma etapa que este plano
+>    não previa: entre dois vértices que o Douglas–Peucker manteve, a cadeia já
+>    está dentro da tolerância da corda, e ali fica reta.
+> 3. **Curva ocupa MAIS bytes, não 40 %.** Nas 29 origens a razão vai de 1,46×
+>    a 3,07×, nunca abaixo de 1. A régua do teste virou um teto de 4×.
+> 4. **A régua de pixel do teste não testava nada:** comparar PNG com alfa dá
+>    zero até entre ícones diferentes. Precisa de fundo opaco; com ele, os
+>    138 px continuam válidos (medido: 0).
+>
+> E duas correções aos "remédios" da seção 7: `prof_max` tem de **subir**, não
+> descer (o Wilber precisa de 12 divisões e cai com 6), e o `B` do btop **não
+> tem barriga redonda** — o Papirus o desenha em blocos, com 26 cantos retos.
+> Arredondá-lo é que seria o defeito.
+>
+> **Números:** 29/29 convertem, zero trechos caídos, pior tempo 292 ms.
+> `tests/conversor.sh`: 43 asserções verdes. O potrace não entrou — instalar
+> pacote pediria senha interativa, e a folha diz isso na página em vez de a
+> passagem travar por 100 KB.
 
 > **Materializada em [`2026-09-09-sprint-q-conversor.md`](2026-09-09-sprint-q-conversor.md)**
 > — as funções com corpo, a folha, o teste e a régua dos dois números. O que
@@ -400,7 +434,42 @@ voltar sem ninguém ver.
 
 ---
 
-## Sprint R — A oficina: variações, o original ao lado, clicar para tirar  ← **ABERTA**
+## Sprint R — A oficina: variações, o original ao lado, clicar para tirar  ← **FECHADA em 09/09/2026**
+
+> **O que a medição derrubou deste plano:**
+>
+> - **A nota do conversor sai no `stderr`, e a rota lia o `stdout` desde
+>   08/09** — o campo chegava vazio em toda resposta, e ninguém viu porque não
+>   havia onde ele aparecer.
+> - **`Silhueta` é `--k 2`, um abaixo do piso de 3 da porta antiga.** O piso
+>   existia contra o teto e prendeu o chão sem querer: o cartão mais simples da
+>   folha seria o único que nunca desenharia.
+> - **O «Original» saía quebrado, e foi a foto que pegou.** A arte de metade
+>   dos aplicativos é um link do flatpak para fora das raízes que a rota de
+>   imagem permite. O remédio que este plano dava ("resolver o link antes de
+>   comparar") era o que já se fazia.
+> - **O teste que este plano escrevia derrubaria a suíte:** `details.oficina`
+>   agora tem um segundo `details` dentro, e o seletor sem `>` é ambíguo. E
+>   clicar num traço pelo centro da caixa erra o alvo — num contorno, o centro
+>   é o vazio; a mira certa é um ponto sobre a linha.
+> - **A capa não precisa ser tardia:** o jogo mais lento sai em 1,26 s na
+>   piscina de seis.
+> - **Decisão que este plano não previa:** origem dentro da casa dela **não**
+>   vira linha de conversão. O repositório é público e o campo levaria o nome
+>   dela para um arquivo versionado.
+>
+> **E um defeito que a conferência independente achou depois, na cerca que essa
+> cura mexeu:** aceitar o caminho pedido fez a peneira de extensão olhar o
+> NOME, não o arquivo — um link `.svg` plantado dentro de uma raiz permitida
+> servia qualquer coisa que a usuária lê. Medido com um link para um `.txt`:
+> 200, com o conteúdo na resposta. Curado exigindo que as duas extensões batam
+> e que o alvo seja arquivo regular; o link do flatpak preserva a extensão, e
+> por isso o «Original» continua aparecendo. A trava é `tests/previa-cerca.sh`,
+> 12 afirmações: oito do que tem de ser recusado, quatro do que tem de servir.
+>
+> **Números:** a rota da folha responde em 0,32–0,60 s num aplicativo comum e
+> até 1,26 s num jogo da Steam; 0,02 s na segunda vez, pela memória de
+> conversão. Cinco variações num aplicativo comum, seis num jogo.
 
 > **Materializada em [`2026-09-09-sprint-r-oficina.md`](2026-09-09-sprint-r-oficina.md)**
 > — o contrato da rota com o JSON exato, o estado do cliente, cada função, o
