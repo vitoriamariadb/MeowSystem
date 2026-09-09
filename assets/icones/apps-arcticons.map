@@ -393,6 +393,7 @@ input-remapper:keymapper:sky
 
 # — o que restou da unificação dos 35, agrupado pela categoria que define a cor
 firefox:firefox:blue
+google-chrome:google-chrome:yellow
 thunderbird:thunderbird:sky
 com.boxy_svg.BoxySVG:vector:pink
 io.gitlab.theevilskeleton.Upscaler:upscaler:pink
