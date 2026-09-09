@@ -190,7 +190,6 @@ org.onlyoffice.desktopeditors:/usr/share/icons/Papirus/64x64/apps/org.onlyoffice
 
 # --- navegadores -------------------------------------------------------------
 com.brave.Browser:/usr/share/icons/Papirus/64x64/apps/com.brave.Browser.svg:blue
-google-chrome:/usr/share/icons/Papirus/64x64/apps/google-chrome.svg:yellow
 
 # --- conversa e rede ---------------------------------------------------------
 com.discordapp.Discord:/usr/share/icons/Papirus/64x64/apps/com.discordapp.Discord.svg:sky
