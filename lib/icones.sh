@@ -159,3 +159,47 @@ meow_icones_escada() {
 meow_icones_escada_dita() {
   meow_icones_escada | tr '\n' ' ' | sed 's/ $//'
 }
+
+# --- A CACHE DO HICOLOR, DEPOIS DE PLANTAR ÍCONE — 10/09/2026 ---------------
+# MEDIDO no dia em que o primeiro jogo do Heroic ganhou capa: o PNG estava nos
+# nove degraus de `~/.local/share/icons/hicolor/*/apps/` e o GTK dizia que ele
+# não existe.
+#
+#     python3 -c "import gi; gi.require_version('Gtk','3.0'); \
+#       from gi.repository import Gtk; t=Gtk.IconTheme.new(); \
+#       t.set_custom_theme('hicolor'); print(t.has_icon('meow-heroic-…'))"
+#     # -> False, com o arquivo no disco
+#
+# A causa é a `icon-theme.cache` da raiz do hicolor (de 09/09 21:56, enquanto
+# `48x48/apps/` era de 10/09 11:44): o GTK confia nela e não varre o disco, e a
+# validade é decidida pelo mtime da RAIZ do tema — que nenhum arquivo novo dentro
+# de uma subpasta muda. É a mesma doença que o `hicolor.sh` e o
+# `completar_icones.sh` já tratam, e ela só não apareceu antes porque quem
+# plantava ícone de jogo nunca reindexou.
+#
+# O COSMIC NÃO SOFRE DISSO, e é por isso que o defeito passou meses invisível: o
+# `freedesktop-icons` do painel e da grade varre o disco. Quem some é o ícone nos
+# aplicativos GTK — e no PAINEL DELA, que resolve ícone por PyGObject
+# (`app/servidor.py`, `scripts/icones_orfaos.py`): o jogo novo entrava na aba de
+# ícones como órfão, sem ícone nenhum, dias depois de estar certo na tela.
+#
+# SÓ REINDEXA SE A CACHE JÁ EXISTIR. Criá-la onde não havia seria escolher, pela
+# máquina de alguém, um regime de cache que ela não pediu — e é o oposto do que
+# faz falta: sem cache, o GTK varre o disco e enxerga tudo.
+meow_hicolor_reindexar() {
+  local base="${1:-$HOME/.local/share/icons/hicolor}"
+  local cache="$base/icon-theme.cache"
+  meow_seco && return 0
+  [ -f "$cache" ] || return 0
+  meow_tem gtk-update-icon-cache || {
+    meow_aviso "$cache está velha e esconde os ícones novos, e não há gtk-update-icon-cache"
+    meow_info "  apague o arquivo: rm '$cache'"
+    return 1
+  }
+  gtk-update-icon-cache -q -f "$base" 2>/dev/null || {
+    meow_aviso "não consegui reindexar $cache — apague-a se algum ícone não aparecer"
+    return 1
+  }
+  meow_debug "cache do hicolor reindexada"
+  return 0
+}

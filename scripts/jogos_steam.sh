@@ -871,6 +871,14 @@ fi
 # o lançador acha do mesmo jeito na varredura seguinte. Só o diretório do USUÁRIO.
 meow_tem update-desktop-database && update-desktop-database "$APPS" 2>/dev/null || true
 
+# A MESMA CACHE VELHA DO IRMÃO DO HEROIC — 10/09/2026
+#   Este script planta `meow-steam-<appid>.png` no hicolor desde 10/08 e nunca
+#   reindexou. Na tela dela não aparecia porque o COSMIC varre o disco; some no
+#   GTK, e some no PAINEL, que resolve ícone por PyGObject — um jogo novo entrava
+#   na aba de ícones como órfão. A medição está no cabeçalho de
+#   `meow_hicolor_reindexar` (lib/icones.sh).
+meow_hicolor_reindexar
+
 # E O LANÇADOR TEM DE SER AVISADO — 02/09/2026
 #   A frase acima ("o lançador acha do mesmo jeito na varredura seguinte") vale
 #   para o índice de MIME e é FALSA para o COSMIC: o `cosmic-app-library` e o
