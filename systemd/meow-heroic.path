@@ -1,0 +1,50 @@
+# systemd/meow-heroic.path — o gatilho que põe no lançador o jogo que ela acabou
+#                            de instalar pelo Heroic, e tira o que ela removeu.
+#
+# POR QUE ISTO EXISTE
+#   Pedido dela, 10/09/2026, logo depois de os jogos do Heroic ganharem cartão:
+#   "o ponto é que qualquer jogo que eu instalar quero que automaticamente isso
+#   se corrija". Sem gatilho, o cartão de um jogo instalado às 3h da tarde só
+#   apareceria na próxima passagem do `meow doctor` — às 5h da manhã seguinte.
+#   É a mesma lição do `meow-steam.path` e do hook de apt do lançador: gatilho de
+#   EVENTO, não de relógio.
+#
+# O EVENTO É O `store_cache`, PORQUE É DELE QUE O NOSSO MÓDULO LÊ
+#   O `scripts/jogos_heroic.sh` monta os cartões a partir de
+#   `store_cache/<runner>_library.json` — a biblioteca que o Heroic guarda para
+#   desenhar a própria tela, e que ele reescreve ao instalar, ao desinstalar e a
+#   cada sincronização. Vigiar o `installed.json` do backend em vez disso seria
+#   acordar o módulo num momento em que ele ainda não tem o que escrever: sem o
+#   jogo no cache, não há título nem arte, e a passagem não faria nada.
+#
+# SÃO ARQUIVOS, E NÃO O DIRETÓRIO — a diferença é o que faz o gatilho funcionar
+#   No irmão da Steam o evento é a pasta `steamapps/`, e funciona porque lá cada
+#   jogo é um arquivo que nasce e morre: criar ou apagar muda o mtime da pasta.
+#   Aqui o arquivo é sempre o mesmo e o que muda é o CONTEÚDO — uma reescrita no
+#   lugar não mexe no mtime do diretório, e um `PathChanged` na pasta dormiria
+#   para sempre. `PathChanged` em cada arquivo pega tanto a reescrita quanto a
+#   troca por rename, e um caminho que ainda não existe não é erro: a unidade
+#   espera ele aparecer.
+#
+# OS DOIS PREFIXOS, E POR QUE OS DOIS ESTÃO AQUI
+#   O Heroic desta máquina é flatpak (`~/.var/app/com.heroicgameslauncher.hgl/`),
+#   mas o mesmo programa em deb ou AppImage guarda tudo em `~/.config/heroic/`.
+#   Declarar os dois é barato e cobre a máquina onde só um existe — a mesma
+#   escolha dos dois caminhos da Steam.
+[Unit]
+Description=MeowSystem — vigia a biblioteca do Heroic e acerta os atalhos de jogo
+Documentation=file:%h/.local/state/meowsystem/heroic.log
+
+[Path]
+PathChanged=%h/.var/app/com.heroicgameslauncher.hgl/config/heroic/store_cache/legendary_library.json
+PathChanged=%h/.var/app/com.heroicgameslauncher.hgl/config/heroic/store_cache/gog_library.json
+PathChanged=%h/.var/app/com.heroicgameslauncher.hgl/config/heroic/store_cache/nile_library.json
+PathChanged=%h/.var/app/com.heroicgameslauncher.hgl/config/heroic/sideload_apps/library.json
+PathChanged=%h/.config/heroic/store_cache/legendary_library.json
+PathChanged=%h/.config/heroic/store_cache/gog_library.json
+PathChanged=%h/.config/heroic/store_cache/nile_library.json
+PathChanged=%h/.config/heroic/sideload_apps/library.json
+Unit=meow-heroic.service
+
+[Install]
+WantedBy=default.target

@@ -109,3 +109,15 @@ dev.edfloreshz.CosmicTweaks:Ajustes
 # 119 px, duas linhas. "VS Code" é como a Microsoft chama o produto na
 # documentação e no instalador; não é apelido inventado aqui.
 code:VS Code
+
+# --- os jogos do Heroic -------------------------------------------------------
+# A chave é `heroic-<runner>-<app_name>`: o id do arquivo que o
+# `scripts/jogos_heroic.sh` escreve, sem o prefixo `meow-`. (Nos jogos da Steam a
+# chave é `steam-<appid>` e o arquivo é `meow-steam-<appid>` — divergência
+# histórica que não se repete aqui.)
+#
+# "Marvel's Guardians of the Galaxy" são 32 caracteres, e o
+# `cosmic-app-library` corta em 24 mais reticências: a tela dela mostrava
+# "Marvel's Guardians of th...". Escolha dela em 10/09/2026, com as duas opções
+# na mão: fica o nome da série, sem a marca. 23 caracteres, cabe inteiro.
+heroic-legendary-63a665088eb1480298f1e57943b225d8:Guardians of the Galaxy

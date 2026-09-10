@@ -1642,6 +1642,25 @@ FLATPAK_VIGIA_NOTIFICAR="sim"     # avisa quando repôs um ícone que o update d
 #   Para esses, quem limpa continua sendo o `meow doctor` e o instalador.
 STEAM_VIGIA="sim"
 
+# @ Pôr no lançador o jogo que você instalar pelo Heroic
+# > Instalou ou desinstalou no Heroic, o atalho acerta sozinho.
+# O atalho do jogo do Heroic entra (e sai) do lançador sozinho?
+#   Pedido dela, 10/09/2026, no mesmo dia em que os jogos do Heroic ganharam
+#   cartão: "o ponto é que qualquer jogo que eu instalar quero que
+#   automaticamente isso se corrija". Sem isto, quem escreve o cartão é o
+#   `./install.sh`, o botão do painel ou o `meow doctor` das 5h da manhã — um
+#   jogo instalado à tarde passaria a noite fora da tela.
+#
+#   Com "sim", o par `meow-heroic.path`/`meow-heroic.service` vigia os arquivos
+#   de biblioteca que o Heroic guarda em `store_cache/` — os mesmos de onde o
+#   módulo tira título e capa — e roda o `scripts/jogos_heroic.sh` uns 20
+#   segundos depois da mudança.
+#
+#   Ele NÃO é o vigia da Steam: são gatilhos separados, e desligar um não
+#   desliga o outro. E não encosta nos arquivos do jogo — o que ele mexe é
+#   atalho e ícone.
+HEROIC_VIGIA="sim"
+
 # @ Quantos backups guardar
 # > Cada escrita em arquivo do sistema deixa uma cópia antes. Acima disso, o mais antigo sai.
 # Quantos backups o projeto guarda antes de apagar o mais antigo. Cada

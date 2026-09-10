@@ -1782,6 +1782,22 @@ etapa_jogos() {
   return $?
 }
 
+# Os jogos do Heroic (Epic, GOG, Amazon e os adicionados à mão). Irmã da etapa
+# acima e pela mesma razão: o Heroic também NÃO escreve `.desktop` de jogo — as
+# duas chaves que fariam isso (`addDesktopShortcuts`, `addStartMenuShortcuts`)
+# nascem desligadas, e mesmo ligadas só valem para o que ela instalar DEPOIS.
+# Queixa dela em 10/09/2026: "os jogos instalados pelo heroic launcher não
+# aparecem nos .desktop da interface".
+#
+# Vem depois do `etapa_jogos` e pelo mesmo motivo que ele vem depois do
+# `etapa_hicolor`: sem o `index.theme` do usuário, o cartão apareceria SEM
+# ícone, e sem ícone parece que a capa do jogo se perdeu.
+etapa_jogos_heroic() {
+  passo "Jogos do Heroic"
+  "$MEOW_RAIZ/scripts/jogos_heroic.sh"
+  return $?
+}
+
 # A tela de LOGIN — a única superfície que continuava de fábrica. Depende de sudo
 # e do tema já capturado, por isso vem depois de `etapa_tema`.
 etapa_greeter() {
@@ -2432,6 +2448,26 @@ etapa_vigia_steam() {
 }
 
 # ---------------------------------------------------------------------------
+# O VIGIA DO HEROIC — A QUINTA UNIDADE `.path` DO PROJETO (10/09/2026)
+#
+#   Pedido dela, no mesmo dia em que os jogos do Heroic ganharam cartão: "o
+#   ponto é que qualquer jogo que eu instalar quero que automaticamente isso se
+#   corrija". A `etapa_jogos_heroic` acima escreve e limpa; esta é a que faz
+#   isso acontecer SOZINHO, na hora, em vez de esperar o doctor das 5h.
+#
+#   O evento são os arquivos de `store_cache/` — e não a pasta, e não o
+#   `installed.json` do backend. O cabeçalho de `systemd/meow-heroic.path`
+#   explica por que cada uma dessas três escolhas seria um gatilho que dorme.
+#
+# LOGO DEPOIS DOS IRMÃOS, e pelo mesmo motivo: são as unidades `.path` do
+# projeto, elas andam juntas, e o auto-reparo continua sendo o último de todos.
+etapa_vigia_heroic() {
+  passo "Vigia do Heroic (systemd --user)"
+  HEROIC_VIGIA="${HEROIC_VIGIA:-sim}" "$MEOW_RAIZ/scripts/vigia_heroic.sh"
+  return $?
+}
+
+# ---------------------------------------------------------------------------
 # O VIGIA DO Qt — A QUARTA UNIDADE `.path` DO PROJETO (09/09/2026)
 #
 #   O `etapa_apps` acima já põe o `icon_theme` nos dois `.conf` do Qt. O que
@@ -2784,10 +2820,10 @@ main() {
                 etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
-                etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos
+                etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
-                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_qt
+                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 

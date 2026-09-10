@@ -107,7 +107,7 @@ mostra o que aconteceria sem escrever nada.
 | **O terminal** | As dezesseis cores, o cursor, o prompt do `starship`, e o gato no lugar do logo do `fastfetch`, redesenhado em caracteres a cada geração. |
 | **O papel de parede** | Um carrossel de 43 imagens curadas, com pastas de dia e de noite separadas por luminosidade, avançar e voltar no botão direito, e favoritos. |
 | **Dia e noite** | Um horário manda em tudo que pergunta "é noite?": o gato do dock, o do terminal, a imagem de fundo e o modo de leitura — que esquenta a tela e lhe dá textura de papel, em rampa. |
-| **Os programas** | Spotify, VS Code e companhia vestidos por dentro; os jogos da Steam com um atalho por jogo no lançador, e o atalho saindo junto com o jogo. |
+| **Os programas** | Spotify, VS Code e companhia vestidos por dentro; os jogos da Steam e os do Heroic com um atalho por jogo no lançador, com a capa do jogo, e o atalho saindo junto com o jogo. |
 
 ## A máquina
 

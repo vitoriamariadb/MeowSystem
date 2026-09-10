@@ -2266,6 +2266,27 @@ ACOES = {
                  "Jogo marcado para apagar tem a pasta removida — uma vez "
                  "só, e nunca com a Steam aberta.",
     },
+    # --- os jogos do Heroic --------------------------------------------------
+    # Estas DUAS aparecem no menu, ao contrário das da Steam: não há uma tela
+    # "Jogos do Heroic" com a grade de capas, então não há nome repetido a
+    # evitar. E nenhuma é `destrutivo`: este módulo nunca encosta nos arquivos
+    # do jogo — o que ele escreve é atalho e ícone, e o que ele remove é o
+    # atalho do jogo que saiu da biblioteca.
+    "jogos_heroic": {
+        "rotulo": "Ver o que mudaria nos jogos do Heroic",
+        "grupo": "Lançadores e jogos",
+        "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--conferir"],
+        "seco": False, "sudo": False, "confirma": False,
+        "ajuda": "Lista atalho a criar e atalho a remover. Não escreve nada.",
+    },
+    "jogos_heroic_aplicar": {
+        "rotulo": "Pôr os jogos do Heroic no lançador",
+        "grupo": "Lançadores e jogos",
+        "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
+        "seco": True, "sudo": False, "confirma": False,
+        "ajuda": "Um atalho por jogo instalado no Heroic, com a capa que ele "
+                 "já baixou. Some o do jogo desinstalado.",
+    },
 }
 
 
