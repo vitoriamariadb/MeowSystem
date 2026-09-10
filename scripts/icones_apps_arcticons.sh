@@ -144,7 +144,26 @@ FLAVOR="${FLAVOR:-mocha}"
 #   2,25 é escolha dela na folha de 27/08, com o mesmo ícone em 1,75 / 2,0 /
 #   2,25 / 2,5 rasterizado a 41 px. Vale 1,92 px de tela — firma o desenho sem
 #   fechar o vão do ">" do terminal, que é o que o 2,5 começa a fazer.
-declare -A TRACO=( ["48x48/apps"]=2.25 )
+#
+# 1,25 DESDE 09/09/2026, E ELE CONTRARIA O PARÁGRAFO ACIMA — ESCOLHA DELA
+#   Na bancada de 09/09 (`~/Documentos/meow-bancada-do-traco.html`) ela desceu a
+#   régua de espessura até o fim e disse, sobre o resultado inteiro: *"por mim é
+#   isso"*. O número exportado foi 1,25, e ele está aqui porque foi decidido, não
+#   porque foi medido melhor.
+#
+#   O QUE ELE DESLOCA, E ESTÁ REGISTRADO PARA NÃO SE PERDER:
+#     · a bancada desenha a 48 px; a dock desenha a ~41 (medido em 27/08, caixa
+#       de tinta de 40, 36 e 40 px). 1,25 num viewBox de 48 a 41 px vale 1,07 px
+#       de tela — MAIS FINO que o 1,75 que o parágrafo acima recusou por cair em
+#       1,50 e repartir a linha entre dois pixels;
+#     · o argumento do serrilhado não some com o número: ele piora, porque
+#       quanto menor a fração, maior a parte da linha que vira tom intermediário.
+#
+#   Então este número tem uma folha própria a 41 px — a de 09/09, com 1,25 / 1,75
+#   / 2,25 lado a lado no tamanho REAL da dock. Se ela mantiver o 1,25 depois de
+#   ver, fica; e o parágrafo de 27/08 fica acima, inteiro, porque a medida dele
+#   continua verdadeira: quem mudou foi o gosto, não a aritmética.
+declare -A TRACO=( ["48x48/apps"]=1.25 )
 
 # Pedido expresso dela: estes ficam como estão, venha o que vier. Mesma lista do
 # `icones_apps.sh` — se um nome intocável entrar no mapa, ele é ignorado aqui
