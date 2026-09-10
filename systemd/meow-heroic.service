@@ -1,0 +1,40 @@
+# systemd/meow-heroic.service — roda o `jogos_heroic.sh` quando a biblioteca do
+#                               Heroic muda. Quem dispara: systemd/meow-heroic.path.
+#
+# A ESPERA DE 20 s, E POR QUE ELA É MENOR QUE A DA STEAM
+#   Na Steam a espera é de 45 s porque o `.acf` é reescrito a cada avanço do
+#   download, e um jogo de 150 GB dispararia a unidade dezenas de vezes. Aqui o
+#   arquivo vigiado é o CACHE DA BIBLIOTECA, que o Heroic reescreve ao terminar
+#   de instalar, ao desinstalar e ao sincronizar — não durante o download. A
+#   espera continua existindo para o caso de duas reescritas seguidas (o Heroic
+#   atualiza a biblioteca e o estado do jogo em sequência), e 20 s bastam para
+#   que a segunda caia dentro da mesma passagem.
+#
+# O `flock` É O MESMO CADEADO DE TODO O PROJETO
+#   Um `./install.sh` correndo e este serviço mexendo nos mesmos `.desktop` ao
+#   mesmo tempo seria uma corrida de verdade. `-w 60 -E 0`: espera um minuto e,
+#   se não conseguir, sai 0 — não é falha, é "outro está fazendo isto agora".
+#
+# SuccessExitStatus=1 3, PELO CONTRATO DE CÓDIGOS DO PROJETO
+#   1 = divergia e foi consertado (o caso NORMAL aqui), 3 = falta dependência
+#   (Heroic ausente, ou biblioteca que não pôde ser lida — e nesse caso o módulo
+#   não escreve nem apaga nada, de propósito). Sem esta linha o systemd marcaria
+#   como falha exatamente as execuções que deram certo.
+[Unit]
+Description=MeowSystem — acerta no lançador os atalhos dos jogos do Heroic
+Documentation=file:%h/.local/state/meowsystem/heroic.log
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+StartLimitIntervalSec=600s
+StartLimitBurst=15
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${HEROIC_VIGIA:-sim}" = "sim" ]'
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStartPre=-/usr/bin/sleep 20
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/jogos_heroic.sh" ] || exit 3; . %h/.config/meow/meow.conf; export FLAVOR ACCENT NOME_TEMA_ICONES ICONES_COR_MARCA; exec "$R/scripts/jogos_heroic.sh"'
+SuccessExitStatus=1 3
+TimeoutStartSec=5min
+StandardOutput=append:%h/.local/state/meowsystem/heroic.log
+StandardError=inherit
+SyslogIdentifier=meow-heroic

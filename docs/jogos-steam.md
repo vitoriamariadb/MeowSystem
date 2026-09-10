@@ -1,5 +1,9 @@
 # Os jogos da Steam no lançador — o que foi medido em 10/08/2026
 
+> O irmão deste documento é [`jogos-heroic.md`](jogos-heroic.md): os jogos do
+> Heroic (Epic, GOG, Amazon), medidos em 10/09/2026. Mesmo desenho, fonte de
+> verdade diferente.
+
 Este documento guarda **fatos verificados nesta máquina**, com o comando que os
 prova ao lado. Ele existe porque foi uma suposição confortável — *"a Steam deve
 criar os atalhos sozinha"* — que produziu o `scripts/jogos_steam.sh` quebrado de

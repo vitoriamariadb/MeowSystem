@@ -937,6 +937,15 @@ chk_jogos() {
   MEOW_DRY_RUN=1 "$RAIZ/scripts/jogos_steam.sh" 2>&1
 }
 
+# Os jogos do Heroic. Confere E conserta, como o irmão da Steam: escreve só no
+# HOME dela, não usa sudo e não vai à rede (a capa vem do cache que o próprio
+# Heroic já baixou). Devolve 3 — e a linha some do relatório — quando o Heroic
+# não está instalado ou quando a biblioteca dele não pôde ser lida; nesse
+# segundo caso nada é escrito nem apagado, de propósito.
+chk_jogosheroic() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/jogos_heroic.sh" --conferir 2>&1
+}
+
 # As duplicatas do lançador — o par "(Local)"/"(Sistema)" — e os aplicativos que
 # são dependência de pacote, não programa que se abre.
 #
@@ -1145,6 +1154,13 @@ chk_flatpak() {
 # tabela), o que faltava era o gatilho que a chama na hora.
 chk_steamvigia() {
   STEAM_VIGIA="${STEAM_VIGIA:-sim}" "$RAIZ/scripts/vigia_steam.sh" --conferir 2>&1
+}
+
+# O gatilho do Heroic — o mais novo dos quatro `.path`, de 10/09/2026. A
+# diferença para o da Steam está no que ele vigia: lá a pasta de manifestos, aqui
+# os arquivos de biblioteca do `store_cache`, porque é deles que o módulo lê.
+chk_heroicvigia() {
+  HEROIC_VIGIA="${HEROIC_VIGIA:-sim}" "$RAIZ/scripts/vigia_heroic.sh" --conferir 2>&1
 }
 
 chk_greeter() {
@@ -1382,7 +1398,10 @@ fix_flatpak(){ FLATPAK_VIGIA="${FLATPAK_VIGIA:-sim}" \
                     "$RAIZ/scripts/vigia_flatpak.sh" --aplicar 2>&1; }
 fix_steamvigia(){ STEAM_VIGIA="${STEAM_VIGIA:-sim}" \
                     "$RAIZ/scripts/vigia_steam.sh" --aplicar 2>&1; }
+fix_heroicvigia(){ HEROIC_VIGIA="${HEROIC_VIGIA:-sim}" \
+                    "$RAIZ/scripts/vigia_heroic.sh" --aplicar 2>&1; }
 fix_jogos()     { "$RAIZ/scripts/jogos_steam.sh" 2>&1; }
+fix_jogosheroic(){ "$RAIZ/scripts/jogos_heroic.sh" --aplicar 2>&1; }
 fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" --sem-sudo 2>&1; }
 
 # OS TRÊS QUE A PONTE DESTRAVOU — 08/09/2026
@@ -1460,7 +1479,7 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones completar hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia qtvigia autostart atalho)
+VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones completar hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso

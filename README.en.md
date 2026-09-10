@@ -110,7 +110,7 @@ The **Ensaiar sem gravar** button (dry run) glows amber while it is on, and with
 | **The terminal** | All sixteen colours, the cursor, the `starship` prompt, and the cat replacing the `fastfetch` logo, redrawn in characters on every build. |
 | **The wallpaper** | A carousel of 43 curated images, day and night folders split by luminance, next/previous on right-click, and favourites. |
 | **Day and night** | One schedule rules everything that asks "is it night?": the dock cat, the terminal cat, the background, and reading mode — which warms the screen and gives it paper texture, on a ramp. |
-| **Programs** | Spotify, VS Code and friends themed from the inside; Steam games with one launcher entry each, removed when the game is. |
+| **Programs** | Spotify, VS Code and friends themed from the inside; Steam and Heroic games with one launcher entry each, cover art included, removed when the game is. |
 
 ## The machine
 

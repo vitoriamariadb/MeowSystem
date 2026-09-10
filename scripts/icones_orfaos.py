@@ -104,17 +104,24 @@ def visiveis():
 def intocavel(icone, marca):
     """Os que ficam como estão por pedido expresso dela.
 
-    Os jogos da Steam são a maioria e mudam sozinhos — o `jogos_steam.sh` gera um
-    `.desktop` por jogo instalado, e cada um traz `X-MeowSystem=jogo-steam`. Ler
+    Os jogos são a maioria e mudam sozinhos — o `jogos_steam.sh` e o
+    `jogos_heroic.sh` geram um `.desktop` por jogo instalado, cada um com a sua
+    marca (`X-MeowSystem=jogo-steam`, `X-MeowSystem=jogo-heroic`). Ler
     essa marca é mais honesto que adivinhar pelo nome: a arte deles vem da Steam,
     não do tema, e contá-los como "fora do tema" enterra os órfãos de verdade
     num ruído que cresce a cada jogo instalado. A lista de nomes é a mesma do
     `scripts/icones_apps.sh` (`INTOCAVEIS`), e por isso está repetida e não
     derivada: um script em bash não exporta array para um em python.
     """
-    if marca == 'jogo-steam':
+    if marca in ('jogo-steam', 'jogo-heroic'):
         return True
     if icone.startswith('steam_icon_') or icone.startswith('meow-steam-'):
+        return True
+    # Os do Heroic entram pela mesma porta e pelo mesmo motivo: a capa é do jogo,
+    # não do tema. O prefixo fica ao lado da marca porque o `Icon=` de um jogo
+    # sem capa no disco cai no `com.heroicgameslauncher.hgl` — e esse é o ícone
+    # do PROGRAMA Heroic, que o tema veste e deve continuar sendo cobrado.
+    if icone.startswith('meow-heroic-'):
         return True
     return icone in ('fogstripper', 'hefesto-dualsense4unix',
                      'com.vitoriamaria.HefestoDualsense4Unix')
