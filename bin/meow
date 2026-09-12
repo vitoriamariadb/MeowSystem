@@ -889,6 +889,17 @@ chk_iconesapps() {
     "$RAIZ/scripts/icones_apps.sh" --conferir 2>&1
 }
 
+# OS RESGATADOS PRECISAM DE VERIFICADOR PELA MESMA RAZÃO QUE O `chk_iconesapps`
+# precisava: eles são vinte arquivos em `scalable/apps` que NINGUÉM MAIS escreve,
+# e um `meow icones reconstruir` que apagasse o diretório os levaria junto, sem
+# nada acusando. A folha de antes-e-depois some da tela e o PNG borrado volta —
+# exatamente o sintoma de que este trabalho existe para acabar.
+chk_resgatados() {
+  ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_resgatados.sh" --conferir 2>&1
+}
+
 chk_sistema() {
   ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$RAIZ/scripts/icones_sistema.sh" --conferir 2>&1
@@ -1388,6 +1399,13 @@ fix_arcticons() { FLAVOR="${FLAVOR:-}" ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao
 fix_iconesapps(){ ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
                     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_apps.sh" --aplicar 2>&1; }
+# Os desenhos dela que só existiam em PNG, agora em vetor. `ICONES_RESGATADOS`
+# vai junto porque é ele que decide entre instalar e RETIRAR: sem a chave no
+# ambiente, o script cairia no padrão `sim` e o "nao" dela não seria obedecido
+# quando o conserto viesse pelo doctor.
+fix_resgatados(){ ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_resgatados.sh" --aplicar 2>&1; }
 fix_sistema()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_sistema.sh" --aplicar 2>&1; }
 fix_bandeja()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
@@ -1479,7 +1497,7 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones completar hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho)
+VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
@@ -2037,6 +2055,50 @@ cmd_icones() {
         notificar "MeowSystem" "Ícones escolhidos por você aplicados."
       fi
       return "$rc" ;;
+    resgatados)
+      # OS DESENHOS DELA QUE VOLTARAM DO PNG — 11/09/2026
+      #   `meow icones resgatados` mostra quantos estão no lugar e qual é a
+      #   escolha dela; `sim`/`nao` trocam a chave e aplicam na hora.
+      #
+      #   TROCAR A CHAVE E APLICAR SÃO UMA COISA SÓ, e não duas, porque o efeito
+      #   é visível: ela liga para VER o ícone mudar. Um comando que gravasse a
+      #   chave e dissesse "rode `meow aplicar`" seria a ida e volta que este
+      #   projeto existe para acabar — a mesma razão registrada no `icones
+      #   importar`, que reconstrói sozinho depois de importar.
+      shift
+      case "${1:-}" in
+        ""|estado)
+          local par postos total
+          par="$("$RAIZ/scripts/icones_resgatados.sh" estado)"
+          postos="${par%% *}"; total="${par##* }"
+          meow_titulo "Ícones resgatados"
+          campo "escolha"   "${ICONES_RESGATADOS:-sim}"
+          campo "no tema"   "$postos de $total"
+          campo "acervo"    "$RAIZ/assets/icones/resgatados"
+          campo "mapa"      "$RAIZ/assets/icones/apps-resgatados.map"
+          printf '\n'
+          local saida rc
+          local LOG_NIVEL=info; export LOG_NIVEL
+          saida="$(chk_resgatados)"; rc=$?
+          printf '  %s %s %s\n\n' "$(rotulo_rc "$rc")" "$(pad "resgatados" 10)" "$(primeira_linha "$saida")"
+          return "$rc" ;;
+        folha)
+          # A folha mora no repo, junto do acervo: ela é a prova do trabalho, e
+          # quem abre `assets/icones/resgatados/` encontra os desenhos e o
+          # antes-e-depois no mesmo lugar. Regerar é barato e idempotente.
+          "$RAIZ/scripts/resgatados_folha.sh"; return $? ;;
+        sim|nao)
+          meow_travar || return "$MEOW_ERRO"
+          local rc_conf
+          conf_definir ICONES_RESGATADOS "$1"; rc_conf=$?
+          [ "$rc_conf" -ge 2 ] && { meow_erro "não consegui gravar ICONES_RESGATADOS em $CONF"; return "$MEOW_ERRO"; }
+          ICONES_RESGATADOS="$1"
+          local rc; fix_resgatados; rc=$?
+          [ "$rc" = "2" ] && return "$MEOW_ERRO"
+          [ "$rc" = "1" ] && registrar "icones resgatados $1"
+          return "$rc" ;;
+        *) meow_erro "uso: meow icones resgatados [estado|folha|sim|nao]"; return "$MEOW_ERRO" ;;
+      esac ;;
     adicionar|remover)
       # UM TEMA DE ÍCONES DE FORA, PELO PAINEL — 06/09/2026
       #   Pedido dela: "na pasta dos ícones não aparece a opção de adicionar
@@ -2053,7 +2115,7 @@ cmd_icones() {
       [ -n "${1:-}" ] || { meow_erro "uso: meow icones $sub <pasta-ou-zip>"; return "$MEOW_ERRO"; }
       meow_travar || return "$MEOW_ERRO"
       "$RAIZ/scripts/construir_icones.sh" "$sub" "$1"; return $? ;;
-    *) meow_erro "uso: meow icones [estado|reconstruir|importar <json>|adicionar <pasta-ou-zip>|remover <nome>]"; return "$MEOW_ERRO" ;;
+    *) meow_erro "uso: meow icones [estado|reconstruir|resgatados [sim|nao]|importar <json>|adicionar <pasta-ou-zip>|remover <nome>]"; return "$MEOW_ERRO" ;;
   esac
 }
 

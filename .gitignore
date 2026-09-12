@@ -113,3 +113,12 @@ assets/papeis-de-parede/originais/
 #   O instalador não perde nada: o que ele usa daqui é gerado na máquina.
 #   Ver assets/icones/PROCEDENCIA.md.
 assets/icones/catppuccin-apps/
+
+# Symlink local para diretrizes (não vai pro repo)
+CLAUDE.md
+
+# A bancada do resgate de ícones: os PNG extraídos, os SVG antes de passarem no
+# teste de fidelidade, e os renders de conferência. O que sobrevive à medição é
+# copiado para `assets/icones/resgatados/` e commitado de lá — aqui fica o
+# rascunho, que é grande e não interessa a ninguém depois.
+.trabalho-icones/

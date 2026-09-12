@@ -319,6 +319,66 @@ opaca `#3f3f3f` (62% da caixa, luminância < 0,10) e separação WCAG 1,61 em
 candidatos recusados e o porquê de cada um, está no cabeçalho de
 `assets/icones/apps-arcticons.map`.
 
+## `assets/icones/resgatados/` — o desenho dela de volta ao vetor — 11/09/2026
+
+O quinto acervo, e o único que **não muda o estilo de nada**. Ele existe porque
+ela desenhou os ícones dos projetos dela, exportou para PNG, e perdeu os SVG
+originais. A frase que abriu isto: *"meus pngs originais ficaram horríveis aqui
+no cosmic (…) eu perdi os svgs que eu tinha criado deles e só tinha os pngs"*.
+
+**O problema era medível.** Deduplicando por ID de `.desktop` — o arquivo em
+`~/.local/share/applications` **sombreia** o de `/usr/share`, e contar os dois
+dá número inflado —, dos **86** nomes de ícone distintos que os **91**
+aplicativos visíveis pedem, **66** resolviam para SVG e **20** caíam em PNG. Num
+COSMIC a 100% de escala numa tela de 24", um PNG de 128 px esticado até o
+tamanho do dock é exatamente o "horrível" da queixa.
+
+**Como se faz, e por que não pelo conversor.** O `construir_convertidos.sh` é a
+ferramenta errada para isto, e a diferença é de intenção: ele **reescreve** arte
+de terceiro no traço monocromático do Arcticons, para o app caber no tema. Aqui
+a arte **já era dela e já estava certa** — o que se perdeu foi o arquivo. Passar
+esses ícones pelo conversor jogaria fora justamente o que se quer de volta.
+
+Então o redesenho é **decalque**: cada PNG foi aberto e redesenhado à mão em
+path SVG, gradiente virando `<linearGradient>` de verdade, sombra virando
+`<filter>`. Nada de `potrace` ou traçado automático, e nada de PNG embutido em
+`<image>` — traçar não é redesenhar, e um PNG dentro de um SVG não é vetor.
+O critério de aceitação foi numérico, não "achei bonito": cada SVG é renderizado
+a 256 px e comparado ao original por RMSE (`compare -metric RMSE`), com teto de
+**0,15**. Os desenhos ficaram entre **0,018** e **0,105**.
+
+**A coluna `autoria` do mapa decide o quanto se pode mexer.** `dela` é obra
+autoral — reproduz, não reinterpreta, e se o SVG original reaparecer um dia, ele
+vence o resgate sem discussão. `terceiro` é logo de terceiro que **ela
+customizou** (paleta Dracula, morcego, casa assombrada): o PNG desta máquina não
+é o logo oficial, e foi a versão dela que foi resgatada. `sistema` é ícone de
+pacote que nunca passou pela mão dela, e entra só porque borrava igual.
+
+**Os três `Icon=` absolutos.** `elden-ring-tracker`, `guvcview` e `setup-mozc`
+trazem o *caminho* do PNG na chave `Icon=`, em vez de um nome de ícone — e um
+`Icon=` absoluto **pula a busca no tema inteira**. Para esses não basta instalar
+o SVG: o `icones_resgatados.sh` põe uma cópia do `.desktop` em
+`~/.local/share/applications`, que sombreia a do sistema, com a chave trocada
+para o nome do ícone. Desligar o interruptor apaga a cópia e o arquivo do
+sistema volta a valer intacto. `setup-mozc` fica de fora dessa parte por ser
+`NoDisplay=true` — não aparece no lançador.
+
+**O interruptor é dela.** `ICONES_RESGATADOS="sim|nao"` no `meow.conf`, ou
+`meow icones resgatados sim|nao`. `nao` **remove** do tema, por nome, o que este
+projeto pôs, e o PNG que estava atrás volta a valer. Não há estado guardado nem
+resíduo. O acervo continua no repo de qualquer forma: desligar é sobre o que
+aparece na tela, não sobre apagar o desenho.
+
+**O antes e depois** fica em `assets/icones/resgatados/ANTES-E-DEPOIS.png`,
+gerado por `scripts/resgatados_folha.sh` a partir do mesmo mapa — se um ícone
+entrar ou sair do resgate, a folha acompanha sozinha.
+
+**Licença.** Os `dela` são obra dela. Os `terceiro` são redesenho de logo de
+terceiro já customizada por ela: a marca continua de quem é, e o uso aqui é o
+mesmo de sempre neste repositório — tema pessoal, não publicado. Os `sistema`
+derivam de ícone de pacote e herdam a licença do pacote de origem, registrada na
+coluna do meio do mapa.
+
 ## O que não se toca, por pedido expresso dela
 
 Os jogos da Steam (`steam_icon_*`), o **Hefesto** (a logo é dela) e o

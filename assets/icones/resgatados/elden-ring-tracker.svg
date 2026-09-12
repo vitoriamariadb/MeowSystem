@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Elden Ring Tracker">
+  <title>elden-ring-tracker — resgatado do PNG</title>
+  <defs>
+    <linearGradient id="ert-disco" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="48" y2="48">
+      <stop offset="0" stop-color="#535b65"/>
+      <stop offset="1" stop-color="#20242f"/>
+    </linearGradient>
+    <linearGradient id="ert-ouro" gradientUnits="userSpaceOnUse" x1="10.88" y1="6.51" x2="44.03" y2="26.36">
+      <stop offset="0" stop-color="#ffeaa2"/>
+      <stop offset="1" stop-color="#e9af5c"/>
+    </linearGradient>
+    <filter id="ert-sombra-disco" filterUnits="userSpaceOnUse" x="-3" y="-3" width="54" height="54">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.55"/>
+      <feOffset dx="0.35" dy="0.55" result="ert-s1"/>
+      <feFlood flood-color="#0b0d12" flood-opacity="0.45"/>
+      <feComposite in2="ert-s1" operator="in"/>
+    </filter>
+    <filter id="ert-sombra-ouro" filterUnits="userSpaceOnUse" x="-3" y="-3" width="54" height="54">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.2"/>
+      <feOffset dx="0.33" dy="0.42" result="ert-s2"/>
+      <feFlood flood-color="#12141b" flood-opacity="0.62"/>
+      <feComposite in2="ert-s2" operator="in"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <ellipse cx="23.73" cy="23.84" rx="23.45" ry="23.37" fill="#0b0d12" filter="url(#ert-sombra-disco)"/>
+  <ellipse cx="23.73" cy="23.84" rx="23.45" ry="23.37" fill="url(#ert-disco)"/>
+
+  <g fill="none" stroke="url(#ert-ouro)" stroke-width="1.48" stroke-linecap="round" stroke-linejoin="round" filter="url(#ert-sombra-ouro)">
+    <path d="M23.18 7.05 L23.18 15.70"/>
+    <path d="M23.00 10.31C22.69 10.36 21.73 10.43 21.12 10.61C20.52 10.79 19.92 11.06 19.38 11.38C18.83 11.70 18.32 12.11 17.87 12.54C17.41 12.98 16.99 13.47 16.63 13.99C16.28 14.52 15.95 15.08 15.74 15.67C15.53 16.26 15.43 17.22 15.36 17.53"/>
+    <path d="M23.32 10.31C23.62 10.36 24.55 10.41 25.13 10.57C25.72 10.72 26.30 10.96 26.83 11.25C27.36 11.54 27.86 11.91 28.31 12.31C28.76 12.71 29.27 13.15 29.54 13.66C29.81 14.18 29.86 15.10 29.93 15.39"/>
+    <path d="M23.00 15.71C22.68 15.75 21.71 15.83 21.07 15.94C20.44 16.05 19.80 16.19 19.18 16.38C18.56 16.57 17.97 16.85 17.36 17.07C16.75 17.29 15.83 17.59 15.52 17.69"/>
+    <path d="M23.32 15.71C23.57 15.73 24.33 15.77 24.83 15.84C25.33 15.90 25.83 15.99 26.32 16.10C26.81 16.21 27.54 16.44 27.78 16.50"/>
+    <path d="M15.28 17.85C15.19 18.17 14.82 19.44 14.73 19.76"/>
+    <path d="M14.57 19.91C14.19 20.32 12.78 21.36 12.32 22.32C11.85 23.28 11.70 24.58 11.77 25.67C11.85 26.77 12.19 27.97 12.77 28.91C13.34 29.84 14.26 30.69 15.21 31.27C16.15 31.85 17.33 32.27 18.42 32.37C19.51 32.48 21.18 31.97 21.73 31.89"/>
+    <path d="M14.81 19.99C14.86 20.38 14.95 21.55 15.12 22.31C15.28 23.07 15.51 23.83 15.80 24.55C16.09 25.27 16.46 25.97 16.88 26.63C17.30 27.28 17.79 27.90 18.32 28.47C18.85 29.04 19.48 29.53 20.04 30.06C20.61 30.59 21.45 31.39 21.73 31.66"/>
+    <path d="M32.16 20.07C32.01 20.42 31.50 21.43 31.23 22.16C30.97 22.88 30.86 23.68 30.58 24.41C30.29 25.13 29.94 25.84 29.52 26.50C29.11 27.17 28.62 27.79 28.10 28.37C27.58 28.95 26.95 29.44 26.38 29.98C25.81 30.51 24.96 31.31 24.68 31.58"/>
+    <path d="M32.48 20.07C32.77 20.53 33.88 21.80 34.22 22.80C34.56 23.80 34.66 25.00 34.53 26.05C34.40 27.11 34.03 28.24 33.45 29.13C32.87 30.01 31.98 30.82 31.06 31.36C30.14 31.90 29.00 32.28 27.95 32.37C26.90 32.46 25.29 31.97 24.76 31.89"/>
+    <path d="M24.52 31.74C24.09 31.75 22.39 31.80 21.97 31.81"/>
+  </g>
+
+  <g fill="none" stroke="url(#ert-ouro)" stroke-width="2.62" stroke-linecap="round" filter="url(#ert-sombra-ouro)">
+    <path d="M25.19 37.69L28.30 37.69"/>
+  </g>
+  <g fill="none" stroke="url(#ert-ouro)" stroke-width="2.62" stroke-linecap="round" filter="url(#ert-sombra-ouro)">
+    <path d="M18.03 37.69L24.32 37.69"/>
+  </g>
+
+  <g fill="none" stroke="url(#ert-ouro)" stroke-width="1.47" stroke-linecap="round" stroke-linejoin="round" filter="url(#ert-sombra-ouro)">
+    <path d="M35.98 12.30L23.29 25.20L20.30 22.14"/>
+  </g>
+</svg>

@@ -397,6 +397,31 @@ NOME_TEMA_ICONES="MeowSystem-Icons"
 #   igual. O conserto é o branco e o parágrafo: cada uma diz o que faz.
 ICONES_BASE="Papirus-Dark"        # tema herdado como fallback
 
+# @ Ícones resgatados do PNG
+# > Os desenhos que só existiam como PNG, agora em vetor. "nao" devolve o PNG.
+# O QUE FOI RESGATADO
+#   Ícones que ela desenhou, exportou para PNG, e cujos SVG originais se
+#   perderam. O PNG num COSMIC a 100% de escala em tela de 24" fica borrado — foi
+#   a queixa de 11/09/2026, "meus pngs originais ficaram horríveis aqui no
+#   cosmic". Cada um foi REDESENHADO em vetor, decalcando o original: mesma
+#   silhueta, mesmas cores, gradiente virando `<linearGradient>` de verdade.
+#   Medido no mesmo dia: dos 86 nomes de ícone que os 91 aplicativos visíveis
+#   pedem, 20 caíam em PNG. A lista, com a procedência de cada um, está em
+#   `assets/icones/apps-resgatados.map`.
+#
+# ISTO NÃO É O `ICONES_COR_MARCA` NEM O CONVERSOR
+#   O conversor pega arte de terceiro e a reescreve no traço do Arcticons. Aqui a
+#   arte já era dela e já estava certa; o que se perdeu foi o arquivo. Por isso
+#   estes ficam COLORIDOS e fiéis, no meio de um tema de traço — é o desenho dela
+#   de volta, não um ícone novo.
+#
+# DESLIGAR DESLIGA: "nao" remove do tema os SVG que este projeto pôs, por nome, e
+# o PNG que estava atrás volta a valer na passagem seguinte. Não há estado
+# guardado, não há resíduo. O acervo em `assets/icones/resgatados/` continua no
+# repo de qualquer forma — desligar é sobre o que aparece na tela, não sobre
+# apagar o desenho.
+ICONES_RESGATADOS="sim"           # sim | nao
+
 # @ Cor das pastas
 # > Deixe escrito com ${FLAVOR} e ${ACCENT} para acompanhar o tema sozinho.
 # A cor das PASTAS comuns, pintada pelo `papirus-folders`. Deixe escrito com

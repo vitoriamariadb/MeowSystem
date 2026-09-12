@@ -1,0 +1,84 @@
+# apps-resgatados.map — os ícones que voltaram a ser VETOR depois de só existirem
+# em PNG.
+#
+# Formato:  nome-de-icone-do-.desktop : png-de-origem : autoria
+#
+# POR QUE ESTE MAPA EXISTE, E POR QUE ELE NÃO É O `apps-convertidos.map`
+#   O `apps-convertidos.map` é sobre VESTIR: pega um ícone chapado de terceiro e
+#   o reescreve no traço do Arcticons, monocromático, para o app caber no tema.
+#   Este aqui é sobre RESGATAR: o desenho já era dela, já estava certo, e o que
+#   se perdeu foi só o arquivo vetorial — sobrou o PNG exportado. O destino é
+#   devolver o vetor, não trocar o estilo.
+#   Por isso os dois não podem ser um mapa só: eles pedem coisas opostas ao
+#   desenhista. Um pede "esqueça a arte original e redesenhe no nosso dialeto";
+#   o outro pede "reproduza a arte original o mais literalmente que der".
+#
+# O QUE ESTAVA ACONTECENDO NA TELA — MEDIDO EM 11/09/2026
+#   Dos 101 aplicativos visíveis no lançador, 79 resolviam para SVG e 22 caíam
+#   em PNG. PNG de 128 ou 256 px num COSMIC a 100% de escala em tela de 24" fica
+#   borrado, e era exatamente essa a queixa: "meus pngs originais ficaram
+#   horríveis aqui no cosmic".
+#   Os 22 estão todos aqui embaixo. Depois deles, a conta fecha em 101 SVG.
+#
+# AUTORIA — A COLUNA QUE DECIDE O QUANTO SE PODE MEXER
+#   `dela`      desenho dela, dos projetos dela. É obra autoral: o redesenho
+#               reproduz, não reinterpreta, e nenhum script pode "melhorar" o
+#               traço depois. Se um dia o SVG original reaparecer, ele vence
+#               este arquivo sem discussão.
+#   `terceiro`  logo de terceiro que ela CUSTOMIZOU (paleta Dracula, morcego,
+#               casa assombrada). O PNG desta máquina não é o logo oficial, e é
+#               a versão dela que foi resgatada — não o logo de fábrica.
+#   `sistema`   ícone que veio com o pacote e nunca passou pela mão dela. Entra
+#               porque estava em PNG e borrava igual, não por valor autoral.
+#
+# A COLUNA DO PNG É PROCEDÊNCIA, NÃO DEPENDÊNCIA
+#   O caminho é onde o PNG foi ACHADO em 11/09/2026, e serve para duas coisas:
+#   refazer a folha de antes-e-depois, e saber de onde veio o que se está
+#   olhando. O SVG resgatado NÃO depende dele em tempo de execução — é arquivo
+#   fechado em `assets/icones/resgatados/`. Vários desses caminhos somem no
+#   próximo `apt upgrade` (`/usr/share`) ou na próxima reinstalação do app
+#   (`/opt`), e nada aqui quebra quando isso acontecer.
+
+# --- os projetos dela ---------------------------------------------------------
+luna                         : ~/.local/share/icons/hicolor/64x64/apps/luna.png                          : dela
+sigilo                       : ~/.local/share/icons/hicolor/512x512/apps/sigilo.png                      : dela
+protocolo-ouroboros          : ~/.local/share/icons/hicolor/512x512/apps/protocolo-ouroboros.png         : dela
+org.andrebfarias.Crononauta  : ~/.local/share/icons/hicolor/256x256/apps/org.andrebfarias.Crononauta.png : dela
+com.beholder.app             : ~/.local/share/icons/hicolor/512x512/apps/com.beholder.app.png            : dela
+pdfforge                     : ~/.local/share/icons/hicolor/512x512/apps/pdfforge.png                    : dela
+qrcode-void-generator        : ~/.local/share/icons/Dracula-Icones/scalable/apps/qrcode-void-generator.png : dela
+extase-em-4r73               : ~/.local/share/icons/Dracula-Icones/scalable/apps/extase-em-4r73.png      : dela
+
+# --- logos de terceiro que ela customizou -------------------------------------
+com.microsoft.Edge           : ~/.local/share/icons/Dracula-Icones/scalable/apps/com.microsoft.Edge.png  : terceiro
+net.waterfox.waterfox        : ~/.local/share/icons/Dracula-Icones/scalable/apps/net.waterfox.waterfox.png : terceiro
+whatsapp-linux-app           : ~/.local/share/icons/Dracula-Icones/scalable/apps/whatsapp-linux-app.png  : terceiro
+org.gnome.Nautilus           : ~/.local/share/icons/Dracula-Icones/scalable/apps/org.gnome.Nautilus.png  : terceiro
+photogimp                    : ~/.local/share/icons/Dracula-Icones/scalable/apps/photogimp.png           : terceiro
+com.github.rafostar.Clapper  : ~/.local/share/icons/Dracula-Icones/scalable/apps/com.github.rafostar.Clapper.png : terceiro
+uad-ng                       : ~/.local/share/icons/hicolor/512x512/apps/uad-ng.png                      : terceiro
+Ubuntu                       : ~/.local/share/icons/Dracula-Icones/scalable/apps/Ubuntu.png              : terceiro
+Ubuntu-selfservice           : ~/.local/share/icons/Dracula-Icones/scalable/apps/Ubuntu-selfservice.png  : terceiro
+
+# --- os que vieram do pacote --------------------------------------------------
+# `scrcpy` e `mozc` moram em /usr/share e voltam ao PNG a cada upgrade do pacote
+# — mas o nosso tema vem antes deles na busca, então o SVG daqui é o que aparece.
+# `guvcview` nem sequer está numa árvore de tema: `/usr/share/pixmaps` é o último
+# lugar onde o resolvedor procura, e é lá que o PNG dele está sozinho.
+# `elden-ring-tracker` aponta para /opt e o `.desktop` dele traz o caminho
+# ABSOLUTO do PNG (`Icon=/opt/...`), e não um nome de ícone. Um `Icon=` absoluto
+# PULA o tema inteiro: o SVG resgatado só aparece depois que o `.desktop` passar
+# a dizer `Icon=elden-ring-tracker`. O `icones_resgatados.sh` faz essa troca, e
+# o cabeçalho dele explica por que ela é reversível.
+scrcpy                       : /usr/share/icons/hicolor/256x256/apps/scrcpy.png                          : sistema
+# O NOME AQUI É `setup-mozc`, E NÃO `mozc`
+#   O PNG se chama `product_icon_32bpp-128.png` e mora em `/usr/share/icons/mozc/`,
+#   mas o que o `.desktop` pede é `Icon=setup-mozc` — e é o nome pedido que o
+#   resolvedor procura, não o nome do arquivo de origem. Instalar isto como
+#   `mozc.svg` daria um arquivo que ninguém nunca pede.
+#   Este é o único dos 22 que está `NoDisplay=true`: não aparece no lançador, e
+#   entra só porque custa um arquivo e cobre quem peça o ícone por nome.
+setup-mozc                   : /usr/share/icons/mozc/product_icon_32bpp-128.png                          : sistema
+guvcview                     : /usr/share/pixmaps/guvcview/guvcview.png                                  : sistema
+elden-ring-tracker           : /opt/elden-ring-tracker/assets/icons/icon.png                             : sistema
+org.mozilla.thunderbird_esr  : ~/.local/share/flatpak/exports/share/icons/hicolor/128x128/apps/org.mozilla.thunderbird_esr.png : sistema
