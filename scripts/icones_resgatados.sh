@@ -69,7 +69,8 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/comum.sh"
 
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
-ALVO="$HOME/.local/share/icons/$TEMA_NOME/scalable/apps"
+TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
+ALVO="$TEMA_DIR/scalable/apps"
 ACERVO="$RAIZ/assets/icones/resgatados"
 MAPA="$RAIZ/assets/icones/apps-resgatados.map"
 APPS_USUARIO="$HOME/.local/share/applications"
@@ -122,13 +123,93 @@ _resgatados_instalar() {
   [ "$rc_d" = "2" ] && rc=2
   [ "$rc_d" = "1" ] && [ "$rc" = "0" ] && rc=1
 
+  local rc_c; _resgatados_cache; rc_c=$?
+  [ "$rc_c" = "1" ] && [ "$rc" = "0" ] && rc=1
+
   if [ "$postos" -gt 0 ]; then
     meow_ok "$postos ícone(s) resgatado(s) no tema"
+    _resgatados_avisar
     rc=1
   elif [ "$rc" = "0" ]; then
     meow_debug "os resgatados já estavam todos no lugar"
   fi
   return "$rc"
+}
+
+# O ARQUIVO CERTO, NO LUGAR CERTO, E A TELA NÃO MUDA — 12/09/2026
+#   O `cosmic-app-library` e o `cosmic-panel` NÃO ligam em GTK:
+#       ldd /usr/bin/cosmic-app-library | grep -c libgtk   ->  0
+#   Eles são libcosmic/iced e varrem o tema de ícones AO NASCER, guardando o
+#   resultado em memória. Um SVG que chega depois disso não existe para eles até
+#   o processo reiniciar — nem reindexar a cache do GTK ajuda, porque não é a
+#   cache do GTK que eles leem.
+#
+#   Foi exatamente o que aconteceu na primeira instalação: os dois estavam de pé
+#   desde as 23:13, os ícones entraram às 01:43, o `meow icones resgatados` dizia
+#   "22 de 22" e a tela continuava com os antigos. A pergunta foi "mas pq elas
+#   não tao funcionando agora?" — e não havia nada errado com os arquivos.
+#
+#   POR QUE ISTO AVISA EM VEZ DE REINICIAR SOZINHO
+#     Reiniciar o painel é derrubar a topbar e a dock da tela dela por alguns
+#     segundos, e o `meow-painel.service` existe justamente porque o supervisor
+#     do COSMIC tem um backoff SEM TETO que já deixou esta máquina 16h sem barra
+#     (ver o cabeçalho daquela unidade). Um `pkill` escondido dentro de "instalei
+#     um ícone" é caro demais para ser efeito colateral de outra coisa — e o
+#     `install.sh` roda este script no meio de trinta etapas.
+#     Quem decide derrubar a barra é ela, com a linha impressa aqui na mão.
+_resgatados_avisar() {
+  meow_info "  o painel e o lançador leem o tema ao nascer e guardam em memória —"
+  meow_info "  para ver agora, sem esperar o próximo login:"
+  meow_info "      pkill -x cosmic-panel && pkill -f cosmic-app-library"
+}
+
+# A CACHE DO TEMA, QUE ENGOLE ÍCONE NOVO EM SILÊNCIO
+#   Com um `icon-theme.cache` dentro do diretório do tema, o GTK lê a CACHE e
+#   IGNORA o disco: um SVG copiado depois dela simplesmente não existe para o
+#   resolvedor. O `completar_icones.sh` já media isso, e o commit 0a24198 é a
+#   mesma história do outro lado (a cache do hicolor escondendo as capas de jogo).
+#
+#   ESTE SCRIPT NASCEU SEM ISTO, e o buraco era real: instalar deixava a cache
+#   mais velha que os arquivos, e quem quisesse o efeito na tela dependia de
+#   alguém lembrar de reindexar à mão. Reindexar tem de ser parte de instalar.
+#
+#   O QUE ESTA GUARDA **NÃO** CONSERTA — e vale dizer, porque em 12/09/2026 eu
+#   apontei para ela como causa de um sintoma que era de outra coisa:
+#     Quando os ícones não apareceram, a cache velha foi a primeira suspeita. Ao
+#     tentar reproduzir — `touch -d 2020` na cache e consultar de novo — o GTK
+#     achou os 22 assim mesmo, porque a cache JÁ TINHA as entradas e envelhecer
+#     a data não as remove. A causa era outra: o `cosmic-app-library` e o
+#     `cosmic-panel` estavam de pé desde as 23:13, e os ícones chegaram às 01:43.
+#     Nenhum dos dois liga em GTK (`ldd` não devolve libgtk); eles varrem o tema
+#     ao nascer, guardam em memória e não releem. Dois processos reiniciados
+#     resolveram, sem tocar em cache nenhuma.
+#   Ou seja: esta guarda cobre o resolvedor GTK, e não cobre os clientes
+#   libcosmic. Para esses, o que vale é reiniciar — ver `_resgatados_avisar`.
+#
+#   SÓ AGE SE HOUVER ÍCONE MAIS NOVO QUE ELA — sem essa condição o `-f`
+#   reescreveria a cache a cada rodada, e um script que escreve ao ser rodado
+#   duas vezes não é idempotente. Mesma guarda do `completar_icones.sh`.
+#   E REINDEXA, NÃO APAGA: quem criou a cache queria a cache.
+_resgatados_cache() {
+  local cache="$TEMA_DIR/icon-theme.cache"
+  [ -f "$cache" ] || return 0
+  [ -n "$(find "$ALVO" -name '*.svg' -newer "$cache" -print -quit 2>/dev/null)" ] || return 0
+
+  if meow_seco; then
+    meow_muda "reindexaria a cache do tema ($cache está velha e esconde os resgatados)"
+    return 1
+  fi
+  if ! meow_tem gtk-update-icon-cache; then
+    meow_aviso "$cache está velha e esconde os ícones novos, e não há gtk-update-icon-cache"
+    meow_info  "  apague o arquivo: rm '$cache'"
+    return 1
+  fi
+  if gtk-update-icon-cache -q -f "$TEMA_DIR" 2>/dev/null; then
+    meow_ok "cache do tema reindexada (ela escondia os resgatados)"
+    return 1
+  fi
+  meow_aviso "não consegui reindexar $cache — apague-a se algum ícone não aparecer"
+  return 1
 }
 
 # A cópia local do `.desktop`, para os que trazem o PNG por caminho absoluto.
@@ -178,6 +259,18 @@ _resgatados_remover() {
     fi
     rm -f "$APPS_USUARIO/$arquivo" || rc=2
   done
+
+  # REMOVER TAMBÉM SUJA A CACHE, e o sintoma é pior que o de instalar: ela segue
+  # anunciando um `.svg` que não existe mais, e o GTK NÃO cai para o PNG de trás
+  # — ele pede o arquivo que a cache prometeu, não acha, e desenha o ícone
+  # genérico. Ou seja, desligar o interruptor deixaria a tela pior do que antes
+  # de o resgate existir. O `-newer` não serve aqui (arquivo apagado não tem
+  # data), então a condição é ter apagado alguma coisa.
+  if [ "$tirados" -gt 0 ] && [ -f "$TEMA_DIR/icon-theme.cache" ] && meow_tem gtk-update-icon-cache; then
+    gtk-update-icon-cache -q -f "$TEMA_DIR" 2>/dev/null \
+      && meow_ok "cache do tema reindexada (ela ainda anunciava os retirados)" \
+      || meow_aviso "não consegui reindexar a cache — apague $TEMA_DIR/icon-theme.cache se algum ícone sumir"
+  fi
 
   [ "$tirados" -gt 0 ] && { meow_ok "$tirados ícone(s) resgatado(s) retirado(s) do tema"; rc=1; }
   return "$rc"
