@@ -105,9 +105,13 @@
 _forma_teto_raio() { # $1 = Panel|Dock
   local t
   t="$(meow_painel_teto "$BASE/com.system76.CosmicPanel.$1/v1" 2>/dev/null)" && { printf '%s' "$t"; return 0; }
-  # Sem conseguir derivar (size/padding ilegíveis), o mais apertado dos antigos.
-  # Não é chute: é o valor com dias de uso atrás, e é conservador.
-  printf '8'
+  # Sem conseguir derivar (size/padding ilegíveis), o único valor seguro.
+  # ERA `8` — "o mais apertado dos antigos", conservador enquanto o teto do
+  # compositor sem patch era `altura/2`. Desde 11/09/2026 esse teto é ZERO (ver
+  # o cabeçalho de meow_painel_teto em lib/painel.sh), e um fallback de 8 aqui
+  # seria o número que apaga a barra entrando justamente pelo caminho do
+  # "não consegui medir" — o pior lugar para chutar alto.
+  printf '0'
 }
 
 # O COMPOSITOR CLAMPA SOZINHO? — a pergunta que decide se a trava acima vale

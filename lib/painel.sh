@@ -148,9 +148,38 @@ meow_painel_altura() { # $1 = dir v1 ; imprime a altura em lógicos
   printf '%s' $(( 2 * padding + maior ))
 }
 
-meow_painel_teto() { # $1 = dir v1 ; imprime floor(altura/2)
+# O TETO SEM O PATCH É ZERO, E NÃO `altura/2` — MEDIDO EM 11/09/2026
+#   `altura/2` era a conta do compositor ANTIGO, que media o raio contra a caixa
+#   do frame ANTERIOR (`bbox_from_surface_tree`) — uma caixa com o tamanho real
+#   da barra, onde metade da altura de fato cabia. O `apt` das 17:02 de hoje
+#   trouxe o cosmic-comp que mede pelo tamanho do último `configure` que o
+#   cliente RECONHECEU, e no primeiro commit da layer surface esse tamanho ainda
+#   é 0. Então `half_min_dim` é 0, e QUALQUER raio maior que 0 vira
+#   `post_error(RadiusTooLarge)`.
+#   O comentário de patches/cosmic-comp-raio-clampado.patch já registrava a
+#   mudança de medida; o que ninguém tinha notado é que ela leva o teto a zero.
+#
+#   MEDIDO NA MARRA, cada valor com o painel reiniciado e 10s de observação:
+#       raio 8 -> 99% de CPU, RSS 3,4 GB -> 4,9 GB, ~64.000 `Protocol error 1
+#                 on object cosmic_corner_radius_layer_v1@70` por segundo
+#       raio 4 -> igual: RSS 314 MB -> 591 MB em 15s, 10.000 erros
+#       raio 1 -> igual: RSS 242 MB -> 387 MB em 9s, 10.000 erros
+#       raio 0 -> 1,3% de CPU, RSS travado em 130 MB, ZERO erros
+#   Não é uma barra que some: o `post_error` é fatal, o cosmic-panel reenvia sem
+#   tratar, e a topbar e a dock nunca chegam a desenhar. Foi o que deixou a tela
+#   dela sem barra nenhuma hoje.
+#
+#   POR QUE A TRAVA MORA AQUI, E NÃO NO `conferir`
+#   "O maior raio que não derruba a barra" é uma pergunta só, e o projeto já
+#   decidiu (26/08/2026) que ela tem UMA conta, neste arquivo. São quatro os
+#   chamadores; espalhar a ressalva por eles é recriar os três tetos
+#   contraditórios que aquela data existiu para acabar.
+meow_painel_teto() { # $1 = dir v1 ; imprime o maior raio que a barra aguenta
   local h
   h="$(meow_painel_altura "$1")" || return 1
+  # Com o patch de pé o compositor clampa sozinho e nada aqui se aplica — mas
+  # quem pergunta pelo teto ainda merece um número, e `altura/2` é o dele.
+  meow_painel_compositor_clampa || { printf '0'; return 0; }
   printf '%s' $(( h / 2 ))
 }
 
