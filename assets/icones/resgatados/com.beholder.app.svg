@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Beholder">
+  <title>com.beholder.app — resgatado do PNG</title>
+
+  <!-- disco de fundo -->
+  <circle cx="23.95" cy="23.95" r="18.33" fill="#313231"/>
+
+  <!-- sobrancelha: arco roxo com pontas redondas -->
+  <path d="M11.42 18.82 A17.42 17.42 0 0 1 36.49 18.82" fill="none" stroke="#9C57B2" stroke-width="0.85" stroke-linecap="round"/>
+
+  <!-- amendoa rosa do olho -->
+  <path d="M10.22 23.95 C17.81 13.41 30.19 13.41 37.78 23.95 C30.19 34.50 17.81 34.50 10.22 23.95 Z" fill="#F06093"/>
+
+  <!-- iris roxa -->
+  <circle cx="23.95" cy="23.95" r="6.73" fill="#9C57B2"/>
+  <!-- coroa rosa interna -->
+  <circle cx="23.95" cy="23.95" r="3.89" fill="#F06093"/>
+  <!-- pupila -->
+  <circle cx="24" cy="24" r="2.98" fill="#2A2A2A"/>
+  <!-- brilho -->
+  <circle cx="26.16" cy="21.70" r="1.22" fill="#F06093"/>
+</svg>
