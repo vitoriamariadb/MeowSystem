@@ -697,6 +697,22 @@ etapa_icones_apps() {
   return $?
 }
 
+# Os desenhos DELA que só existiam em PNG, de volta ao vetor. Depois do
+# `etapa_icones` pelo mesmo motivo das etapas irmãs — quem declara
+# `scalable/apps` no index.theme é aquele — e DEPOIS do `etapa_completar_icones`,
+# que é o outro que escreve naquele diretório: assim, se um dia um nome existir
+# nos dois, o resgate é o que fica, e isso é de propósito. Um `.svg` do acervo
+# `resgatados/` é arte dela, e arte dela vence arte gerada, sempre — a mesma
+# regra que o `completar_icones.sh` já aplica ao abrir exceção para a logo do
+# Hefesto.
+etapa_icones_resgatados() {
+  passo "Ícones resgatados do PNG"
+  ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_resgatados.sh" --aplicar
+  return $?
+}
+
 # Os aplicativos que o acervo Catppuccin não cobre, vestidos pelo Arcticons e
 # recoloridos na paleta. Depois do `etapa_icones` pelo mesmo motivo das etapas
 # irmãs: quem declara `48x48/apps` no index.theme é aquele.
@@ -2819,7 +2835,7 @@ main() {
   local etapas=(etapa_conf etapa_cli etapa_ponte_root etapa_atalho etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
-                etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
+                etapa_mimetypes etapa_icones_apps etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
