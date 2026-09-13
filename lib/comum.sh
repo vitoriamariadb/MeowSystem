@@ -286,14 +286,34 @@ meow_conf_diz() {
   [ "$linha" = "$quer" ]
 }
 
+# A QUEBRA DE LINHA DO FIM SOBREVIVE — 13/09/2026
+#   O `$(cat)` come as quebras do fim e o `meow_escrever` grava com `printf '%s'`:
+#   TODA gravação tirava o último `\n` do arquivo dela. Medido pelo painel: um
+#   Salvar ligou os segundos do relógio, o seguinte desligou, e o md5 não voltou
+#   — a única diferença era esse byte. Agora o arquivo é lido inteiro (o `x` do
+#   fim segura as quebras dentro do `$(...)`), as quebras são separadas do texto
+#   e voltam iguais na gravação.
+#
+#   A comparação "já estava assim" fica AQUI, e não no `meow_escrever`: lá ela é
+#   feita contra outro `$(cat)`, que também come a quebra, e o texto com o `\n`
+#   devolvido nunca bateria — cada Salvar regravaria o arquivo e contaria como
+#   mudança uma chave que ficou igual.
 meow_conf_definir() {
-  local chave="$1" valor="$2" texto
+  local chave="$1" valor="$2" texto novo fim="" nl=$'\n'
   if [ -f "$MEOW_CONF_ARQUIVO" ]; then
-    texto="$(cat "$MEOW_CONF_ARQUIVO")"
+    texto="$(cat "$MEOW_CONF_ARQUIVO"; printf x)"
+    texto="${texto%x}"
+    fim="${texto##*[!$nl]}"
+    texto="${texto%"$fim"}"
   else
     texto="$(cat "$MEOW_CONF_PADRAO" 2>/dev/null)" || return "$MEOW_ERRO"
+    fim="$nl"
   fi
-  meow_escrever "$MEOW_CONF_ARQUIVO" "$(meow_conf_texto_definir "$texto" "$chave" "$valor")" 644
+  novo="$(meow_conf_texto_definir "$texto" "$chave" "$valor")"
+  if [ -f "$MEOW_CONF_ARQUIVO" ] && [ "$novo" = "$texto" ]; then
+    return "$MEOW_OK"
+  fi
+  meow_escrever "$MEOW_CONF_ARQUIVO" "$novo$fim" 644
 }
 
 # --- lock: o timer pode disparar enquanto ela roda na mão (regra 10) --------
@@ -502,6 +522,48 @@ meow_lancador_reler() {
   done
   [ "$matou" = "1" ] && meow_debug "lançador chacoalhado — o cosmic-session repõe em segundos"
   return 0
+}
+
+# --- A TELA INTEIRA RELÊ O QUE MUDOU ------------------------------------------
+# 13/09/2026. Queixa dela: "as alterações que faço pela interface seja icones,
+# configs e afins nada tá aplicando de verdade". Nos ícones a medição deu razão
+# a ela: o `icones_apps_arcticons.sh` punha o desenho no tema e terminava com
+# "os ícones novos aparecem no próximo login" — o arquivo certo no disco, e a
+# dock e o menu mostrando o de antes até ela sair da sessão.
+#
+# Os dois consumidores que resolvem no arranque, cada um pela porta dele:
+#   o dock e o painel -> `scripts/painel.sh reciclar`, a porta única, que recusa
+#                        quando ninguém repõe a barra;
+#   o menu            -> `meow_lancador_reler`, logo acima.
+#
+# SÓ DEPOIS DE ALGO TER MUDADO, pela mesma razão da função de cima: o painel
+# pisca uns 2 s e a grade de aplicativos fecha se estiver aberta.
+#
+# E SÓ NA CASA DE VERDADE. Os testes rodam o instalador num HOME de brinquedo,
+# e um reciclo dali derrubaria a barra DELA no meio de uma suíte — é a lição da
+# ponte root: dar poder a um automatismo acorda os caminhos que só não faziam
+# estrago por falharem. O HOME tem de ser o da conta, lido do passwd.
+#
+# O CÓDIGO DIZ O QUE ACONTECEU, para quem chama poder dizer a verdade na tela:
+#   0  releu (ou é ensaio da CLI, que não relê nada de propósito)
+#   1  o painel recusou reciclar — o menu releu, a dock fica para o login
+#   3  este HOME não é o da sessão: nada foi tocado
+meow_tela_reler() {
+  meow_seco && return 0
+  local lar rc=0
+  lar="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
+  if [ -z "$lar" ] || ! [ "$HOME" -ef "$lar" ]; then
+    meow_debug "HOME ($HOME) não é o da conta — a tela não é desta sessão, nada a reler"
+    return 3
+  fi
+  if [ -x "$MEOW_RAIZ/scripts/painel.sh" ] && pgrep -x cosmic-panel >/dev/null 2>&1; then
+    if ! "$MEOW_RAIZ/scripts/painel.sh" reciclar; then
+      meow_aviso "o painel recusou reciclar agora — na dock, o desenho novo aparece no próximo login"
+      rc=1
+    fi
+  fi
+  meow_lancador_reler
+  return "$rc"
 }
 
 # Notificação: ela precisa saber quando algo mudou sozinho.

@@ -563,19 +563,110 @@ def _valor_vivo(chave):
 # O estado que o applet do modo de leitura guarda, chave a chave. A ligação é
 # derivada do NOME (`LEITURA_TEMPERATURA` -> `leitura_temperatura`), e não uma
 # lista: a próxima chave dessa família nasce coberta.
-CONF_COMP = os.path.expanduser("~/.config/cosmic/com.system76.CosmicComp/v1")
+COSMIC_DIR = os.environ.get("MEOW_COSMIC_DIR") or os.path.expanduser("~/.config/cosmic")
+CONF_COMP = os.path.join(COSMIC_DIR, "com.system76.CosmicComp", "v1")
+
+# O QUE A MÁQUINA TEM, NA LÍNGUA DO meow.conf — 13/09/2026
+#   Queixa dela: "muita métrica que tá hardcoded muita variavel feita na mão e
+#   não integrada ou funcionando conforme a interface do app de forma que o user
+#   não consegue ver nada se alterado de fato". Medido nesta máquina: o desenho
+#   da dock mostrava raio 16, opacidade 0,8 e a ponta esquerda "herdada" (M),
+#   com a dock dela em raio 24, opacidade 0,87 e ponta esquerda L. Os números
+#   eram constantes do `app.js`, porque as chaves de forma nascem VAZIAS — e
+#   vazio, nelas, é "não toca": o que vale é o que o COSMIC já tem no disco.
+#
+#   A TABELA É A LEITURA INVERSA DO QUE OS SCRIPTS ESCREVEM, e cada grupo diz de
+#   qual: `forma.sh` (aplicar_barra, aplicar_tamanhos), `vidro.sh`, `relogio.sh`
+#   e `janelas.sh`. Ela não tem como sair do `meow.conf.exemplo` — o arquivo diz
+#   O QUE a chave faz, não ONDE o COSMIC a guarda —, então quem a segura contra
+#   o esquecimento é o `tests/app.sh`, que confere que cada arquivo daqui ainda
+#   é escrito pelo script citado.
+_BARRAS = (("PAINEL", "com.system76.CosmicPanel.Panel/v1/"),
+           ("DOCK", "com.system76.CosmicPanel.Dock/v1/"))
+_DEGRAU = r"(XS|S|M|L|XL)"
+
+
+def _cosmic_ler(relativo):
+    try:
+        with open(os.path.join(COSMIC_DIR, relativo), encoding="utf-8") as fh:
+            return fh.read().strip()
+    except OSError:
+        return None
+
+
+def _sim_nao(bruto, invertido=False):
+    if bruto not in ("true", "false"):
+        return None
+    return "sim" if (bruto == "true") != invertido else "nao"
+
+
+def _numero_cru(bruto):
+    return bruto if re.match(r"^-?\d+(\.\d+)?$", bruto) else None
+
+
+def _degrau_proprio(bruto):
+    """`Some(L)` -> "L". `None` é "herda o tamanho geral": não há valor próprio
+    a mostrar, e o desenho já sabe herdar."""
+    m = re.match(r"^Some\(%s\)$" % _DEGRAU, bruto)
+    return m.group(1) if m else None
+
+
+def _ala(qual):
+    """`size_wings` é a tupla `Some((inicial, final))` — ver `meow_painel_wings`."""
+    forma = r"^Some\(\((None|Some\(%s\)),\s*(None|Some\(%s\))\)\)$" % (_DEGRAU, _DEGRAU)
+
+    def ler(bruto):
+        m = re.match(forma, bruto)
+        return (m.group(2) if qual == 0 else m.group(4)) if m else None
+    return ler
+
+
+NA_MAQUINA = {
+    # relogio.sh
+    "RELOGIO_SEGUNDOS": ("com.system76.CosmicAppletTime/v1/show_seconds", _sim_nao),
+    # janelas.sh
+    "JANELAS_TILING": ("com.system76.CosmicComp/v1/autotile", _sim_nao),
+    "JANELAS_TILING_ESCOPO": ("com.system76.CosmicComp/v1/autotile_behavior",
+                              {"Global": "global", "PerWorkspace": "workspace"}.get),
+}
+for _suf, _pasta in _BARRAS:
+    NA_MAQUINA.update({
+        # forma.sh, aplicar_barra — ilha e expand_to_edges têm o sinal trocado
+        "FORMA_%s_SOLTO" % _suf: (_pasta + "anchor_gap", _sim_nao),
+        "FORMA_%s_ILHA" % _suf: (_pasta + "expand_to_edges",
+                                 lambda bruto: _sim_nao(bruto, invertido=True)),
+        "FORMA_MARGEM_" + _suf: (_pasta + "margin", _numero_cru),
+        "FORMA_RAIO_" + _suf: (_pasta + "border_radius", _numero_cru),
+        "FORMA_ESPACO_" + _suf: (_pasta + "spacing", _numero_cru),
+        "FORMA_RECHEIO_" + _suf: (_pasta + "padding", _numero_cru),
+        # forma.sh, aplicar_tamanhos
+        "FORMA_CENTRO_" + _suf: (_pasta + "size_center", _degrau_proprio),
+        "FORMA_ALA_INICIAL_" + _suf: (_pasta + "size_wings", _ala(0)),
+        "FORMA_ALA_FINAL_" + _suf: (_pasta + "size_wings", _ala(1)),
+        # vidro.sh
+        "VIDRO_OPACIDADE_" + _suf: (_pasta + "opacity", _numero_cru),
+    })
 
 
 def _valendo_agora(chave):
-    if not chave.startswith("LEITURA_"):
+    if chave.startswith("LEITURA_"):
+        valor = (_cosmic_ler("com.system76.CosmicComp/v1/" + chave.lower()) or "").strip('"')
+        # O applet grava booleano em RON (`true`), e o conf diz `sim`. Sem esta
+        # tradução o cartão acusava "Na máquina agora: Sim" com o próprio cartão
+        # marcado em Sim — visto clicando no painel em 13/09/2026.
+        return _sim_nao(valor) or valor or None
+    if chave == "VIDRO_AO_MAXIMIZAR":
+        # Uma chave para as duas barras (o `vidro.sh` grava as duas): só há
+        # resposta quando elas concordam.
+        lidos = {_sim_nao(_cosmic_ler(pasta + "keep_style_on_maximize") or "")
+                 for _suf, pasta in _BARRAS}
+        return lidos.pop() if len(lidos) == 1 else None
+    regra = NA_MAQUINA.get(chave)
+    if not regra:
         return None
-    arq = os.path.join(CONF_COMP, chave.lower())
-    try:
-        with open(arq, encoding="utf-8") as fh:
-            valor = fh.read().strip().strip('"')
-    except OSError:
-        return None
-    return valor or None
+    arquivo, traduzir = regra
+    bruto = _cosmic_ler(arquivo)
+    return traduzir(bruto) if bruto else None
 
 
 def _titulo_de(chave):
@@ -1390,6 +1481,66 @@ def valores_efetivos(chaves):
     return fora
 
 
+def conf_exportada():
+    """As chaves do meow.conf como um script as recebe do `bin/meow`, ou None.
+
+    A CONF VAI JUNTO COM O TRABALHO — 13/09/2026
+      Os trabalhos do painel herdavam o ambiente do servidor e mais nada. Para o
+      `install.sh` e o `bin/meow` isso não pesa — os dois leem o meow.conf
+      sozinhos —, mas as ações que chamam um script de `scripts/` direto rodavam
+      com o padrão de cada chave. Medido pela interface: «Usar este ícone» rodou
+      o `icones_apps_arcticons.sh` sem `ICONES_COR_MARCA`, doze ícones da máquina
+      dela voltaram à cor de categoria, o painel foi reciclado para mostrá-los, e
+      a gaveta disse "os ícones novos já estão na dock e no menu".
+
+      A leitura é a do `carregar_conf` (bin/meow) e a do `etapa_conf_ler`
+      (install.sh): UM arquivo — o dela, ou o exemplo quando ele não existe —,
+      com `set -a` em volta do `.`, e os quatro padrões que os dois dão depois.
+      Os nomes saem do próprio arquivo: uma lista escrita aqui seria a armadilha
+      nº 3 de novo, a lista que alguém esquece de estender.
+
+      None quer dizer "não consegui ler", e aí o trabalho NÃO roda: rodar com as
+      chaves no padrão é exatamente o defeito que esta função existe para curar.
+    """
+    fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
+    nomes = []
+    try:
+        with open(fonte, "r", encoding="utf-8") as fh:
+            for linha in fh:
+                linha = linha.strip()
+                if linha.startswith("export "):
+                    linha = linha[len("export "):]
+                achado = RE_CHAVE.match(linha)
+                if achado and achado.group(1) not in nomes:
+                    nomes.append(achado.group(1))
+    except OSError:
+        return None
+    programa = (
+        'set -a\n'
+        '. "$1" || exit 2\n'
+        'set +a\n'
+        'FLAVOR="${FLAVOR:-mocha}"; ACCENT="${ACCENT:-mauve}"\n'
+        'MODO="${MODO:-escuro}"; LOGO="${LOGO:-$FLAVOR}"\n'
+        'shift\n'
+        'for k in "$@"; do printf "%s=%s\\0" "$k" "${!k-}"; done\n'
+    )
+    try:
+        feito = subprocess.run(
+            ["bash", "-c", programa, "_", fonte, *nomes, "FLAVOR", "ACCENT", "MODO", "LOGO"],
+            capture_output=True, timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if feito.returncode != 0:
+        return None
+    fora = {}
+    for pedaco in feito.stdout.decode("utf-8", "replace").split("\0"):
+        if "=" in pedaco:
+            k, v = pedaco.split("=", 1)
+            fora[k] = v
+    return fora
+
+
 def validar_valor(item, valor):
     """None quando o valor cabe na chave; a frase da recusa quando não cabe.
 
@@ -1480,30 +1631,75 @@ def validar_valor(item, valor):
     return None
 
 
-def definir(chave, valor, seco=False):
-    """Grava a chave pelo `meow_conf_definir` do projeto. 0 já estava · 1 escreveu."""
-    if not RE_CHAVE.match(chave + "="):
-        return (2, "nome de chave inválido")
-    # `#` e `"` no valor quebrariam a linha do conf — é a mesma recusa que o
-    # wizard já faz, e o cabeçalho de `lib/comum.sh` explica o limite: a função
-    # parte a linha no primeiro `#`, então um valor com `#` viraria comentário.
-    if '"' in valor or "#" in valor or "\n" in valor:
-        return (2, 'o valor não pode conter aspas, `#` nem quebra de linha')
+# O PAINEL NÃO ENSAIA — 13/09/2026
+#   Pedido dela: "eu tinha pedido pra tirar o app do modo sandbox". Até aqui a
+#   página mandava `seco` e este arquivo punha `MEOW_DRY_RUN=1` no ambiente de
+#   quem grava e de quem roda. O ensaio saiu da tela e sai daqui: um
+#   `MEOW_DRY_RUN` herdado do terminal que subiu o painel é arrancado do
+#   ambiente, para nada que o painel rode voltar a fingir que gravou.
+def _ambiente_do_painel():
     ambiente = dict(os.environ, MEOW_RAIZ=RAIZ)
-    if seco:
-        ambiente["MEOW_DRY_RUN"] = "1"
-    else:
-        ambiente.pop("MEOW_DRY_RUN", None)
-    programa = '. "$1/lib/comum.sh"; meow_conf_definir "$2" "$3"'
+    ambiente.pop("MEOW_DRY_RUN", None)
+    return ambiente
+
+
+def definir_varias(pares):
+    """Grava várias chaves pelo `meow_conf_definir`, num processo só.
+
+    Devolve `[(chave, rc, saída)]` na ordem pedida: 0 já estava · 1 escreveu ·
+    2 falhou. Um nome ou um valor recusado não chega ao bash — e aí NADA é
+    gravado: metade das escolhas no disco seria pior que nenhuma.
+
+    UM BASH PARA TODAS, E NÃO UM POR CHAVE — 13/09/2026
+      Cada gravação custava 0,45 s (medido em 06/09: sobe um bash, carrega o
+      `lib/comum.sh`, reescreve os 55 KB do conf), e o Salvar fazia uma por
+      escolha, em fila, antes de começar a aplicar. Aqui a lib carrega uma vez e
+      as escritas saem em sequência no MESMO processo, pela MESMA função; o que
+      deixa de se multiplicar é só o custo de subir o bash."""
+    for chave, valor in pares:
+        if not RE_CHAVE.match(chave + "="):
+            return [(chave, 2, "nome de chave inválido")]
+        # `#` e `"` no valor quebrariam a linha do conf — é a mesma recusa que o
+        # wizard já faz, e o cabeçalho de `lib/comum.sh` explica o limite: a
+        # função parte a linha no primeiro `#`, então um valor com `#` viraria
+        # comentário.
+        if '"' in valor or "#" in valor or "\n" in valor:
+            return [(chave, 2, 'o valor não pode conter aspas, `#` nem quebra de linha')]
+    if not pares:
+        return []
+    # O código de cada escrita sai numa linha-marca própria, logo depois do que
+    # a função imprimiu: é o que permite dizer QUAL chave recusou sem rodar um
+    # bash por chave.
+    programa = ('. "$1/lib/comum.sh"; shift; '
+                'while [ $# -ge 2 ]; do '
+                'meow_conf_definir "$1" "$2"; r=$?; '
+                'printf "\\n@@meow-rc %s %s\\n" "$1" "$r"; '
+                'shift 2; done')
+    argv = ["bash", "-c", programa, "_", RAIZ]
+    for chave, valor in pares:
+        argv += [chave, valor]
     try:
-        proc = subprocess.run(
-            ["bash", "-c", programa, "_", RAIZ, chave, valor],
-            capture_output=True, timeout=30, env=ambiente,
-        )
+        proc = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                              timeout=30 + 5 * len(pares), env=_ambiente_do_painel())
     except (OSError, subprocess.SubprocessError) as erro:
-        return (2, str(erro))
-    saida = (proc.stdout + proc.stderr).decode("utf-8", "replace").strip()
-    return (proc.returncode, saida)
+        return [(chave, 2, str(erro)) for chave, _valor in pares]
+    saida = proc.stdout.decode("utf-8", "replace")
+    achados, trecho = {}, []
+    for linha in saida.split("\n"):
+        partes = linha.split(" ")
+        if len(partes) == 3 and partes[0] == "@@meow-rc" and partes[2].isdigit():
+            achados[partes[1]] = (int(partes[2]), "\n".join(trecho).strip())
+            trecho = []
+        else:
+            trecho.append(linha)
+    sem_resposta = (2, saida.strip() or "o bash saiu sem dizer o que gravou")
+    return [(chave,) + achados.get(chave, sem_resposta) for chave, _valor in pares]
+
+
+def definir(chave, valor):
+    """Grava UMA chave pelo `meow_conf_definir` do projeto. 0 já estava · 1 escreveu."""
+    _chave, rc, saida = definir_varias([(chave, valor)])[0]
+    return (rc, saida)
 
 
 # --- 4. a paleta vira CSS ----------------------------------------------------
@@ -1769,7 +1965,7 @@ ACOES = {
         "rotulo": "Instalar tudo",
         "grupo": "Instalação",
         "argv": [os.path.join(RAIZ, "install.sh")],
-        "seco": True, "sudo": True, "confirma": True, "rede": True,
+        "escreve": True, "sudo": True, "confirma": True, "rede": True,
         "ajuda": "Passa {as_etapas}. Rodar de novo numa máquina já pronta "
                  "não escreve um byte.",
     },
@@ -1777,7 +1973,7 @@ ACOES = {
         "rotulo": "Conferir a máquina",
         "grupo": "Instalação",
         "argv": _meow("doctor"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Faz {as_conferencias} e lista o que está fora do lugar. "
                  "Não escreve nada.",
     },
@@ -1785,7 +1981,7 @@ ACOES = {
         "rotulo": "Consertar o que estiver fora",
         "grupo": "Instalação",
         "argv": _meow("doctor", "--consertar"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Confere e aplica só o que falhou — o mesmo que o "
                  "agendamento faz sozinho.",
     },
@@ -1793,14 +1989,14 @@ ACOES = {
         "rotulo": "O que está no ar agora",
         "grupo": "Instalação",
         "argv": _meow("status"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Variante, cor de destaque, tema, ícones e papel de parede.",
     },
     "desinstalar": {
         "rotulo": "Desinstalar o MeowSystem",
         "grupo": "Instalação",
         "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall"],
-        "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
+        "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
         "ajuda": "Tira o tema, os ícones e os agendamentos. Não apaga "
                  "backups nem a coleção de imagens.",
     },
@@ -1808,7 +2004,7 @@ ACOES = {
         "rotulo": "As últimas 50 linhas do registro",
         "grupo": "Instalação",
         "argv": _meow("log"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "O que este projeto escreveu, e quando.",
     },
 
@@ -1829,7 +2025,7 @@ ACOES = {
         "grupo": "Atualização",
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         # "CAIXAS DE RUST" SAIU — 09/09/2026. Era `crates` traduzido ao pé da
         # letra, e a tradução é pior que o original: quem não programa lê
         # "caixas" e procura uma caixa. O que o `cargo` lista são PROGRAMAS
@@ -1842,7 +2038,7 @@ ACOES = {
         "grupo": "Atualização",
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "aplicar"],
-        "seco": True, "sudo": True, "confirma": True, "rede": True,
+        "escreve": True, "sudo": True, "confirma": True, "rede": True,
         # "O DOCTOR" SAIU DA FRASE — 09/09/2026. `doctor` é o nome do subcomando
         # no terminal; na tela essa mesma coisa já se chama "Conferir a máquina",
         # e ter dois nomes para um botão é a tela pedindo desconfiança. `apt`,
@@ -1857,7 +2053,7 @@ ACOES = {
         "grupo": "Atualização",
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "limpar"],
-        "seco": True, "sudo": True, "confirma": True,
+        "escreve": True, "sudo": True, "confirma": True,
         # "CACHE DE DOWNLOAD" -> "os pacotes que o apt já baixou" — 09/09/2026.
         # Cache é palavra de quem programa; o que sai do disco é um monte de
         # arquivo baixado, e dizer isso é mais curto E mais claro.
@@ -1869,7 +2065,7 @@ ACOES = {
         "rotulo": "Temas prontos nesta máquina",
         "grupo": "Cor e tela",
         "argv": _meow("tema"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         # "TEMA ALVO" E "CAPTURA" SAÍRAM — 09/09/2026. "Alvo" é palavra de quem
         # escreveu o instalador (o alvo de uma etapa); quem lê a tela escolheu
         # um tema. E "captura" já significa OUTRA coisa na mesma página — a
@@ -1882,7 +2078,7 @@ ACOES = {
         "rotulo": "Trocar de tema",
         "grupo": "Cor e tela",
         "argv": _meow("tema", "@ARG@"), "arg": "capturas",
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         # "POR CÓPIA DE ARQUIVO" era o COMO, e o como não muda nenhuma decisão
         # dela; "captura" saiu pelo motivo da linha de cima. — 09/09/2026
         "ajuda": "Aplica o tema escolhido, guardando o anterior antes.",
@@ -1891,7 +2087,7 @@ ACOES = {
         "rotulo": "Passar para claro ou escuro",
         "grupo": "Cor e tela",
         "argv": _meow("tema", "@ARG@"), "arg": "modos",
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
                  "pisca a interface.",
     },
@@ -1899,7 +2095,7 @@ ACOES = {
         "rotulo": "Voltar ao tema de antes",
         "grupo": "Instalação",
         "argv": _meow("desfazer"),
-        "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
+        "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
         "ajuda": "Devolve o COSMIC ao backup feito antes da instalação.",
         # `MEOW_SIM=1` só aqui, e só porque a página já perguntou: o `cmd_desfazer`
         # pede confirmação num `read`, e sem tty ele ficaria esperando para sempre
@@ -1911,14 +2107,14 @@ ACOES = {
         "rotulo": "Tema de ícones instalado",
         "grupo": "Ícones",
         "argv": _meow("icones"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Qual está selecionado e quantos arquivos ele tem.",
     },
     "icones_reconstruir": {
         "rotulo": "Reconstruir o tema de ícones",
         "grupo": "Ícones",
         "argv": _meow("icones", "reconstruir"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "É o que faz uma troca de variante dos ícones aparecer na "
                  "tela.",
     },
@@ -1932,7 +2128,7 @@ ACOES = {
         "rotulo": "Pôr os desenhos em traço na tela",
         "grupo": "Ícones",
         "argv": [os.path.join(RAIZ, "scripts", "icones_apps_arcticons.sh")],
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         # O CAMINHO `48x48/apps` SAIU DA TELA — 09/09/2026. É a pasta interna do
         # tema de ícones (a convenção hicolor), e saber o nome dela não muda
         # nada para quem clica; o comentário do código, logo acima, continua
@@ -1945,14 +2141,14 @@ ACOES = {
         "rotulo": "Qual gato está no ar, e por quê",
         "grupo": "Logo do sistema",
         "argv": _meow("logo", "listar"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "A lista, o gato em vigor, e qual regra o escolheu.",
     },
     "logo_trocar": {
         "rotulo": "Pôr um gato no dock",
         "grupo": "Logo do sistema",
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Com a escolha por horário, o relógio devolve o gato dele "
                  "na virada seguinte. Para fixar, mude a escolha do gato "
                  "para “fixo”.",
@@ -1961,7 +2157,7 @@ ACOES = {
         "rotulo": "Passar ao próximo gato",
         "grupo": "Logo do sistema",
         "argv": _meow("logo", "girar"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Só tem efeito quando o gato está girando; fora disso o "
                  "comando avisa em vez de fingir.",
     },
@@ -1970,7 +2166,7 @@ ACOES = {
         "rotulo": "O carrossel agora",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Pasta, quantas imagens, intervalo, ordem, e se há imagem "
                  "fixada.",
     },
@@ -1978,7 +2174,7 @@ ACOES = {
         "rotulo": "Próxima imagem",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "proximo"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Avança e fixa a imagem pelo tempo definido em \"Quanto "
                  "tempo dura a imagem escolhida\".",
     },
@@ -1986,21 +2182,21 @@ ACOES = {
         "rotulo": "Imagem anterior",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "anterior"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Volta uma imagem, com a mesma fixação.",
     },
     "wallpaper_carrossel": {
         "rotulo": "Voltar a girar",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "carrossel"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Solta a imagem fixada agora, sem esperar o tempo acabar.",
     },
     "wallpaper_aplicar": {
         "rotulo": "Reaplicar as regras do carrossel",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "aplicar"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Reescreve o estado do papel de parede a partir dos "
                  "ajustes.",
     },
@@ -2021,12 +2217,12 @@ ACOES = {
     # e o `desbanir` desfaz — o script diz isso na cara ("está em banidos/, não
     # foi apagada"). Uma pergunta de confirmação a cada miniatura, num gesto
     # reversível que ela vai repetir dezenas de vezes seguidas, é ruído; a
-    # tranca aqui é o modo seco e o fato de o inverso existir e estar na tela.
+    # tranca aqui é o fato de o inverso existir e estar na tela.
     "wallpaper_banir": {
         "rotulo": "Tirar esta imagem do carrossel",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "banir", "@ARG@"), "arg": "paredes_ativas",
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "destrutivo": True, "oculta": True,
         "ajuda": "Ela sai da pasta que gira e vai para a de banidas. Nada é "
                  "apagado. O “Devolver” da lista de recusadas desfaz.",
@@ -2050,7 +2246,7 @@ ACOES = {
         "rotulo": "Usar esta imagem agora",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "usar", "@ARG@"), "arg": "paredes_ativas",
-        "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         # O BOTÃO CITADO NÃO EXISTE COM ESSE NOME — medido em 09/09/2026 na
         # varredura da página: a ação `wallpaper_carrossel` se chama "Voltar a
         # girar" desde que ganhou rótulo, e esta frase mandava procurar um
@@ -2064,7 +2260,7 @@ ACOES = {
         "rotulo": "Guardar esta imagem para o dia",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "lado", "@ARG@", "dia"), "arg": "paredes_ativas",
-        "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Ela passa a girar só de dia, mesmo que a medição a ache escura. "
                  "O “Deixar a medição decidir” desfaz.",
     },
@@ -2072,7 +2268,7 @@ ACOES = {
         "rotulo": "Guardar esta imagem para a noite",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "lado", "@ARG@", "noite"), "arg": "paredes_ativas",
-        "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Ela passa a girar só de noite, mesmo que a medição a ache clara. "
                  "O “Deixar a medição decidir” desfaz.",
     },
@@ -2080,7 +2276,7 @@ ACOES = {
         "rotulo": "Deixar a medição decidir",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "lado", "@ARG@", "auto"), "arg": "paredes_ativas",
-        "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         # "LUMINÂNCIA" SAIU — 09/09/2026. É o nome exato da grandeza e ninguém
         # precisa dele para entender: o que o projeto mede é o quanto a imagem
         # é clara, e as outras três fichas desta mesma figura já dizem "a
@@ -2100,7 +2296,7 @@ ACOES = {
         "rotulo": "As áreas de agora",
         "grupo": "Áreas de trabalho",
         "argv": _meow("areas", "estado"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         # O `id` SAIU DA FRASE — 09/09/2026. Ele continua na SAÍDA do comando,
         # que é onde serve para alguma coisa; prometê-lo no rótulo obrigava a
         # saber o que é um id de área para entender o que o botão mostra.
@@ -2110,7 +2306,7 @@ ACOES = {
         "rotulo": "Gravar as áreas",
         "grupo": "Áreas de trabalho",
         "argv": _meow("areas", "aplicar"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         # A CAIXA ALTA SAIU — 09/09/2026. Nenhum outro texto desta página grita,
         # e o aviso não fica mais fraco em caixa baixa: quem o lê está com o
         # dedo no botão. `cosmic-comp` FICA — é o nome do programa que lê o
@@ -2123,14 +2319,14 @@ ACOES = {
         "rotulo": "Voltar as áreas de antes",
         "grupo": "Áreas de trabalho",
         "argv": _meow("areas", "reverter"),
-        "seco": True, "sudo": False, "confirma": True,
+        "escreve": True, "sudo": False, "confirma": True,
         "ajuda": "Devolve o arquivo como estava antes da primeira gravação daqui.",
     },
     "areas_desalfinetar": {
         "rotulo": "Tirar uma área",
         "grupo": "Áreas de trabalho",
         "argv": _meow("areas", "desalfinetar", "@ARG@"), "arg": "areas",
-        "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
+        "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
         # O ALFINETE É O QUE SEGURA A ÁREA: sem ele o cosmic-comp a destrói assim
         # que ela esvazia. Não é "esconder", é apagar — daí `destrutivo` e a
         # confirmação. O `MEOW_SIM` só entra porque a página já perguntou.
@@ -2143,7 +2339,7 @@ ACOES = {
         "rotulo": "Devolver uma imagem tirada",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "desbanir", "@ARG@"), "arg": "paredes_banidas",
-        "seco": True, "sudo": False, "confirma": False, "oculta": True,
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Volta para a pasta que gira e sai da lista de banidas — as "
                  "duas metades.",
     },
@@ -2151,7 +2347,7 @@ ACOES = {
         "rotulo": "Baixar a coleção curada",
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "semear"),
-        "seco": True, "sudo": False, "confirma": True, "rede": True,
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "ajuda": "Reconstrói a coleção a partir da lista de fontes. Usa rede "
                  "e pode demorar. As imagens que você tirou continuam fora.",
     },
@@ -2164,14 +2360,14 @@ ACOES = {
         "rotulo": "Como estão o painel e a dock",
         "grupo": "Painel e dock",
         "argv": _meow("painel", "estado"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "O estado do painel, da dock e do serviço que cuida dos dois.",
     },
     "painel_teto": {
         "rotulo": "Até quanto o canto pode arredondar",
         "grupo": "Painel e dock",
         "argv": _meow("painel", "teto"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         # "TETO DERIVADO" SAIU — 09/09/2026. "Derivado" só diz alguma coisa a
         # quem já sabe que o teto sai de uma conta; escrito por extenso, a
         # frase ensina a conta em vez de nomeá-la.
@@ -2182,7 +2378,7 @@ ACOES = {
         "rotulo": "Recarregar o painel",
         "grupo": "Painel e dock",
         "argv": _meow("painel", "reciclar"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "O painel pisca uns 2 s. É o que faz um gato novo aparecer "
                  "sem esperar o próximo login.",
     },
@@ -2190,7 +2386,7 @@ ACOES = {
         "rotulo": "Modo de leitura agora",
         "grupo": "Modo de leitura",
         "argv": _meow("leitura"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Que degrau o relógio pede, o que a tela mostra, e se o "
                  "compositor sabe ler os dois números.",
     },
@@ -2198,21 +2394,21 @@ ACOES = {
         "rotulo": "Aplicar o degrau desta hora",
         "grupo": "Modo de leitura",
         "argv": _meow("leitura", "aplicar"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Põe agora o que o agendamento poria sozinho.",
     },
     "leitura_remover": {
         "rotulo": "Desligar o modo de leitura",
         "grupo": "Modo de leitura",
         "argv": _meow("leitura", "remover"),
-        "seco": True, "sudo": False, "confirma": True,
+        "escreve": True, "sudo": False, "confirma": True,
         "ajuda": "Zera temperatura e textura, e desarma o agendamento.",
     },
     "files_menu": {
         "rotulo": "Menu da área de trabalho",
         "grupo": "Papel de parede",
         "argv": _meow("files-menu"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Os dois itens de papel de parede no botão direito.",
     },
     # --- aplicativos ---------------------------------------------------------
@@ -2224,14 +2420,14 @@ ACOES = {
         "rotulo": "Quais programas estão vestidos",
         "grupo": "Lançadores e jogos",
         "argv": _meow("apps"),
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Um por linha: se está instalado, e se o tema já foi aplicado.",
     },
     "apps_aplicar": {
         "rotulo": "Vestir os programas agora",
         "grupo": "Lançadores e jogos",
         "argv": _meow("apps", "aplicar"),
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Aplica o tema em todos os programas marcados que estiverem "
                  "instalados. Programa ausente fica pendente, e nunca "
                  "derruba o resto.",
@@ -2252,7 +2448,7 @@ ACOES = {
         "rotulo": "Ver o que mudaria nos jogos",
         "grupo": "Lançadores e jogos",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh"), "--conferir"],
-        "seco": False, "sudo": False, "confirma": False, "oculta": True,
+        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Lista atalho a criar, atalho a remover e arquivo a apagar. "
                  "Não escreve nada.",
     },
@@ -2260,7 +2456,7 @@ ACOES = {
         "rotulo": "Arrumar os jogos no lançador",
         "grupo": "Lançadores e jogos",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh")],
-        "seco": True, "sudo": False, "confirma": True, "destrutivo": True,
+        "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
         "oculta": True,
         "ajuda": "Põe um atalho por jogo instalado e tira o dos que saíram. "
                  "Jogo marcado para apagar tem a pasta removida — uma vez "
@@ -2276,14 +2472,14 @@ ACOES = {
         "rotulo": "Ver o que mudaria nos jogos do Heroic",
         "grupo": "Lançadores e jogos",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--conferir"],
-        "seco": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Lista atalho a criar e atalho a remover. Não escreve nada.",
     },
     "jogos_heroic_aplicar": {
         "rotulo": "Pôr os jogos do Heroic no lançador",
         "grupo": "Lançadores e jogos",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
-        "seco": True, "sudo": False, "confirma": False,
+        "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Um atalho por jogo instalado no Heroic, com a capa que ele "
                  "já baixou. Some o do jogo desinstalado.",
     },
@@ -2899,8 +3095,8 @@ def previa_bytes(tipo, ident):
 # ============================================================================
 # 5b. LEVAR EMBORA, E TRAZER DE VOLTA
 # ============================================================================
-# Pedido dela em 06/09/2026: um botão de exportar ao lado do "Modo seco", com
-# duas saídas — as configurações, e "o html standalone, mostrando todas as abas,
+# Pedido dela em 06/09/2026: um botão de exportar ao lado do "Modo seco" (que
+# saiu da barra em 13/09), com duas saídas — as configurações, e "o html standalone, mostrando todas as abas,
 # com o menu lateral, de forma que eu pudesse mandar pra quem vai me ajudar a
 # melhorar o layout" — e um de importar, que só traz as configurações de volta.
 #
@@ -2980,10 +3176,10 @@ def importar_conf(texto):
         Então a importação faz o que a página inteira já faz desde 01/09: ela
         ENCENA. Cada chave aceita entra em `MUDANCAS`, o banner acende com "N
         esperando", e quem escreve é o `Salvar e aplicar` de sempre — o mesmo
-        botão, o mesmo diálogo, o mesmo modo seco, o mesmo instalador em
-        seguida. Importar deixa de ser um caminho de escrita paralelo (que
-        teria de reimplementar o seco, a idempotência e o aviso de aplicar) e
-        vira o que é: um jeito de preencher a tela.
+        botão, a mesma peneira, o mesmo instalador em seguida. Importar deixa
+        de ser um caminho de escrita paralelo (que teria de reimplementar a
+        peneira, a idempotência e o aplicar) e vira o que é: um jeito de
+        preencher a tela.
 
         Efeito colateral bom: dá para ver o que veio ANTES de aceitar, e
         Descartar desfaz tudo com um clique.
@@ -3405,12 +3601,13 @@ TRABALHO_TRAVA = threading.Lock()
 def escreve(acao):
     """Esta ação escreve na máquina dela?
 
-    A RESPOSTA SAI DO `seco`, E AS DUAS COINCIDEM POR UMA RAZÃO
-        `seco: True` marca a ação que aceita `MEOW_DRY_RUN=1`, e uma ação que
-        nunca escreve não tem o que prever — não haveria o que o seco calasse.
-        Por isso não existe um campo `escreve` digitado à mão em cada entrada
-        de `ACOES`: seria uma segunda verdade sobre a mesma ação, e o dia em que
-        as duas discordassem a tela mostraria a errada.
+    UM CAMPO POR AÇÃO, QUE ANTES SE CHAMAVA `seco` — 13/09/2026
+        A resposta saía do `seco: True`, que marcava a ação que aceita
+        `MEOW_DRY_RUN=1`; as duas coincidiam porque uma ação que nunca escreve
+        não tem o que ensaiar. O ensaio saiu do painel (ver
+        `_ambiente_do_painel`) e o campo trocou de nome em vez de sumir: a
+        pergunta continua sendo feita pela tela, e continua havendo UMA
+        verdade só por ação.
 
     E ELA É UMA PERGUNTA DIFERENTE DE "ACEITA SECO" — 01/09/2026
         A auditoria mediu na tela: os cartões que escrevem traziam só a pastilha
@@ -3419,22 +3616,25 @@ def escreve(acao):
         separava `doctor` de `doctor --consertar` falando de outro assunto. O
         servidor passa a dizer a palavra certa, e a página só precisa mostrá-la.
     """
-    return bool(acao.get("seco"))
+    return bool(acao.get("escreve"))
 
 
-def iniciar(acao_id, argumento, seco, confirmado=False):
+def _trabalho_json(trabalho, acao_id):
+    """O que a página precisa para abrir a gaveta de um trabalho que começou.
+
+    `escreve` vai junto porque o CÓDIGO 1 QUER DIZER DUAS COISAS, e a página
+    precisa saber qual — ver o comentário no `/api/rodar`."""
+    return {"id": trabalho.id, "rotulo": trabalho.rotulo,
+            "comando": " ".join(shlex.quote(p) for p in trabalho.argv),
+            "escreve": escreve(ACOES[acao_id])}
+
+
+def iniciar(acao_id, argumento, confirmado=False):
     """Começa uma ação. Devolve (trabalho, erro) — o erro pode ser um dicionário."""
     global TRABALHO_ATUAL
     acao = ACOES.get(acao_id)
     if acao is None:
         return (None, "ação desconhecida")
-
-    # O SECO EFETIVO NÃO É O QUE A PÁGINA PEDIU — 01/09/2026
-    #   `MEOW_DRY_RUN=1` só é posto no ambiente quando a AÇÃO aceita seco (ver
-    #   logo abaixo, e é assim desde sempre). Marcar a caixa "modo seco" numa
-    #   ação que não o aceita não protege nada, e é esse valor — o efetivo, não
-    #   o pedido — que decide se a confirmação é dispensável.
-    seco_valendo = bool(seco and acao.get("seco"))
 
     # A CONFIRMAÇÃO É UMA TRANCA DO SERVIDOR, E NÃO UM COSTUME DA PÁGINA
     #   O campo `confirma` existe desde o primeiro dia e era só uma DICA: a
@@ -3445,14 +3645,10 @@ def iniciar(acao_id, argumento, seco, confirmado=False):
     #   sistema disparam de primeira" —, e a resposta certa não é a página
     #   lembrar de perguntar: é o servidor não obedecer sem a resposta.
     #
-    #   No seco a tranca não se aplica, e isso não é folga: no seco NADA é
-    #   escrito, e exigir confirmação para uma simulação ensinaria a confirmar
-    #   sem ler, que é o oposto do que a tranca serve.
-    #
     #   O erro sai como DICIONÁRIO (e não frase) porque a página tem de poder
     #   distinguir "preciso perguntar" de "deu errado" sem ler texto: um é uma
     #   pergunta a fazer, o outro é uma torrada vermelha.
-    if acao.get("confirma") and not seco_valendo and not confirmado:
+    if acao.get("confirma") and not confirmado:
         return (None, {
             "erro": "esta ação escreve na máquina e precisa de confirmação",
             "precisa_confirmar": True,
@@ -3463,7 +3659,6 @@ def iniciar(acao_id, argumento, seco, confirmado=False):
             "sudo": bool(acao.get("sudo")),
             "rede": bool(acao.get("rede")),
             "destrutivo": bool(acao.get("destrutivo")),
-            "aceita_seco": bool(acao.get("seco")),
         })
 
     argv = list(acao["argv"])
@@ -3475,13 +3670,15 @@ def iniciar(acao_id, argumento, seco, confirmado=False):
     elif argumento:
         return (None, "esta ação não recebe argumento")
 
-    ambiente = dict(os.environ)
-    ambiente["MEOW_RAIZ"] = RAIZ
+    # A CONF VAI JUNTO COM O TRABALHO — ver `conf_exportada`. Sem ela, a ação
+    # que chama um script de `scripts/` direto roda com cada chave no padrão.
+    conf = conf_exportada()
+    if conf is None:
+        return (None, "não consegui ler o meow.conf — sem ele o trabalho rodaria "
+                      "com cada chave no padrão, e por isso não roda")
+    ambiente = _ambiente_do_painel()
+    ambiente.update(conf)
     ambiente.update(acao.get("ambiente", {}))
-    if seco_valendo:
-        ambiente["MEOW_DRY_RUN"] = "1"
-    else:
-        ambiente.pop("MEOW_DRY_RUN", None)
     # O `install.sh` cala o progresso quando NÃO há terminal (`[ ! -t 1 ]`), e é
     # a decisão certa lá — quase 600 linhas num journal não têm leitor. Aqui há
     # leitora, e ela está olhando: sem esta linha a página mostraria um retângulo
@@ -3604,6 +3801,33 @@ def _medidas_do_projeto():
     _medidas_cache["carimbo"] = carimbo
     _medidas_cache["valor"] = valor
     return valor
+
+
+def _medidas_da_tela():
+    """O tamanho geral de cada barra e a régua dos applets — lidos, não lembrados.
+
+    O `app.js` desenhava a barra com duas cópias à mão: `TAMANHO_GERAL =
+    {painel: "S", dock: "M"}` ("lidos do disco em 26/08/2026") e os cinco
+    números do `meow_painel_T`. A primeira é a foto de um dia; a segunda, uma
+    lista que o `lib/painel.sh` pode mudar sem avisar ninguém. É a mesma cura do
+    `_medidas_do_projeto`: ler na hora, da fonte que a máquina usa. Sem cache —
+    são dois arquivos de uma linha e um script de poucos KB. — 13/09/2026"""
+    barra = {}
+    for nome, (_suf, pasta) in zip(("painel", "dock"), _BARRAS):
+        m = re.match(r"^(?:Some\()?%s\)?$" % _DEGRAU, _cosmic_ler(pasta + "size") or "")
+        if m:
+            barra[nome] = m.group(1)
+    try:
+        with open(os.path.join(RAIZ, "lib", "painel.sh"), encoding="utf-8") as fh:
+            texto = fh.read()
+    except OSError:
+        texto = ""
+    regua = {}
+    corpo = re.search(r"^meow_painel_T\(\)\s*\{(.*?)^\}", texto, re.M | re.S)
+    if corpo:
+        for nome, px in re.findall(r"^\s*%s\)\s*printf '(\d+)'" % _DEGRAU, corpo.group(1), re.M):
+            regua[nome] = int(px)
+    return {"barra": barra, "tamanho_applet": regua}
 
 
 def _com_medidas(texto, medidas):
@@ -4144,17 +4368,6 @@ class Manipulador(BaseHTTPRequestHandler):
         if len(dados) > 64 << 20:
             return self._json({"erro": "arquivo maior que 64 MB"}, 413)
 
-        seco = bool(corpo.get("seco"))
-        if seco:
-            # O SECO É A REDE DA PÁGINA INTEIRA, e ela já foi furada uma vez
-            # exatamente aqui: a validação de 06/09 mediu que "o Modo seco NÃO
-            # cobre o botão Adicionar gato — ele escreve mesmo com o seco
-            # ligado". Um envio que INSTALA na máquina não pode repetir isso.
-            return self._json({
-                "ok": True, "seco": True, "nome": nome,
-                "depois": "em ensaio: %s não foi instalado" % nome,
-            })
-
         with tempfile.TemporaryDirectory(prefix="meow-envio-") as pasta:
             caminho = os.path.join(pasta, nome)
             try:
@@ -4197,18 +4410,6 @@ class Manipulador(BaseHTTPRequestHandler):
         if ext not in conf["extensoes"]:
             return self._json(
                 {"erro": "só aceito %s aqui" % ", ".join(conf["extensoes"])}, 400)
-
-        # A GUARDA DO ENSAIO VEM ANTES DE QUALQUER ESCRITA — 07/09/2026
-        #   Ela cobria só os três acervos que instalam por comando, e não os três
-        #   que gravam em `assets/`. O cliente protegia esses (o `botaoAcervo`
-        #   testa o ensaio antes de enviar), e foi por isso que passou — mas
-        #   proteção só no cliente é proteção até alguém escrever um botão novo,
-        #   e este arquivo já perdeu essa aposta duas vezes.
-        if bool(corpo.get("seco")):
-            return self._json({
-                "ok": True, "seco": True, "nome": nome,
-                "depois": "em ensaio: %s não foi gravado" % nome,
-            })
 
         if "comando" in conf:
             return self._acervo_por_comando(conf, nome, corpo)
@@ -4548,6 +4749,7 @@ class Manipulador(BaseHTTPRequestHandler):
         base_tema = os.path.expanduser("~/.local/share/icons/%s" % tema)
         fora = []
         jogos = 0
+        travas = self._travas_do_arcticons()
         for d in self._desktops():
             if d["oculto"]:
                 continue
@@ -4576,6 +4778,9 @@ class Manipulador(BaseHTTPRequestHandler):
                 # o aplicativo já tem. Medido com o Flatseal, `lavender` desde
                 # 11/08.
                 "traco": traco.get(d["id"]) or traco.get(d["icone"]) or None,
+                # A frase de por que um glifo do Arcticons não valeria aqui, ou
+                # None — ver `_travas_do_arcticons`.
+                "trava": self._motivo_da_trava(travas, [d["id"], d["icone"]], d["nome"]),
             })
         return {"apps": fora, "total": len(fora), "jogos": jogos}
 
@@ -4847,27 +5052,6 @@ class Manipulador(BaseHTTPRequestHandler):
         if not appid.isdigit() or len(appid) > 12:
             return self._json({"erro": "appid inválido"}, 400)
 
-        # O ENSAIO COBRE O MAPA DOS JOGOS TAMBÉM. A linha que esta rota grava é
-        # uma RECEITA — quem apaga os 2,4 G é o `jogos_steam.sh` na passagem
-        # seguinte —, e é justamente por isso que ela precisa da guarda: escrever
-        # a receita em ensaio deixaria o apagamento armado para depois, sem que
-        # nada na tela tivesse dito que algo foi decidido.
-        if bool(corpo.get("seco")):
-            return self._json({
-                "ok": True, "seco": True, "appid": appid,
-                # "SAIRIA DO MAPA" E O `appid` SAÍRAM DA TORRADA — 09/09/2026.
-                # Mesma passagem que tirou `jogos-fora.map` e `appid` dos
-                # quatro textos da oficina no `app.js`: uma torrada de 2,6 s
-                # não é lugar para o nome de um arquivo interno nem para um
-                # número de catálogo. E o jogo não precisa ser nomeado aqui —
-                # a torrada nasce do clique no cartão DELE, com o nome do
-                # jogo em cima; buscar o nome no manifesto só para repetir o
-                # que está na tela seria uma leitura de disco por clique.
-                "aviso": ("em ensaio: este jogo sairia da lista" if remover
-                          else "em ensaio: este jogo seria marcado para %s"
-                               % ("apagar os arquivos" if acao == "apagar"
-                                  else "sair do lançador")),
-            })
         if not remover and acao not in ("esconder", "apagar"):
             return self._json({"erro": "ação tem de ser esconder ou apagar"}, 400)
         # O motivo entra num arquivo cujo separador é `:` e cujo comentário é
@@ -4979,29 +5163,16 @@ class Manipulador(BaseHTTPRequestHandler):
         if not app or not _re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
             return self._json({"erro": "aplicativo inválido"}, 400)
 
-        # O ENSAIO COBRE ESTA PORTA TAMBÉM — 07/09/2026
-        #   Achado numa varredura de interação com o ensaio LIGADO: um clique em
-        #   "Usar este ícone" gravou `thunderbird:thunderbird:sky:alias` no
-        #   `apps-arcticons.map` do repositório. O `git status` acusou um arquivo
-        #   que ninguém tinha mandado mudar.
-        #
-        #   É a SEGUNDA vez que este buraco aparece, por caminhos diferentes: em
-        #   06/09 a validação mediu "o Modo seco NÃO cobre o botão Adicionar
-        #   gato". Lá o conserto foi no cliente; aqui ele fica no SERVIDOR, que é
-        #   onde a escrita mora — assim a porta está fechada mesmo para um POST
-        #   forjado ou para um botão novo que alguém esqueça de proteger.
-        #
-        #   A resposta é `ok: True` e não um erro: em ensaio, "não fiz" é o
-        #   resultado certo, não uma falha. A tela diz o que teria feito.
-        if bool(corpo.get("seco")):
-            return self._json({
-                "ok": True, "seco": True, "app": app,
-                # Mesma troca do `_api_jogo_fora`: "mapa" é o nome do arquivo
-                # `apps-arcticons.map`, e na tela ele dizia menos que "a
-                # escolha". — 09/09/2026
-                "aviso": ("em ensaio: %s voltaria ao ícone de fábrica" % app) if remover
-                         else ("em ensaio: %s ficaria com %s" % (app, glifo or "o desenho escolhido")),
-            })
+        # A TRANCA DO BOTÃO QUE NÃO PODE VALER — ver `_travas_do_arcticons`. A
+        # página já não o oferece; o servidor recusa mesmo assim, porque um POST
+        # direto gravaria a linha, e num app do acervo convertido ela pararia o
+        # passo dos ícones de todo mundo. Tirar a linha continua sempre valendo.
+        if not remover:
+            d = next((x for x in self._desktops() if x["id"] == app), None) or {}
+            motivo = self._motivo_da_trava(self._travas_do_arcticons(),
+                                           [app, d.get("icone", "")], d.get("nome") or app)
+            if motivo:
+                return self._json({"erro": motivo}, 409)
 
         caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
         try:
@@ -5085,7 +5256,7 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "não consegui gravar o mapa: %s" % e}, 500)
         return self._json({"ok": True, "app": app, "glifo": glifo, "cor": cor,
                            "alias": repetido, "trouxe_do_acervo": copiou,
-                           "depois": "vale depois de \"Reconstruir o tema de ícones\""})
+                           "depois": "vale depois de \"Pôr os desenhos em traço na tela\""})
 
     # ========================================================================
     # DESENHAR O ÍCONE DO PRÓPRIO APLICATIVO, PELA INTERFACE — 08/09/2026
@@ -5478,13 +5649,17 @@ class Manipulador(BaseHTTPRequestHandler):
             except OSError as e:
                 return self._json({"erro": "não consegui gravar o rascunho: %s" % e}, 500)
 
-            # O ENSAIO PARA ANTES DE ABRIR, E NÃO ANTES DE GRAVAR: o rascunho
-            # fora do repositório não é escolha dela virando arquivo versionado
-            # — é o papel de rascunho. O que o ensaio recusa é a JANELA.
-            if bool(corpo.get("seco")):
-                return self._json({"ok": True, "seco": True, "caminho": alvo,
+            # SEM JANELA QUANDO O PAINEL SUBIU SEM JANELA — 13/09/2026
+            #   Era o ensaio que parava aqui, depois de gravar o rascunho e antes
+            #   de abrir o editor, e era isso que deixava a suíte do navegador
+            #   passar por esta rota sem pôr um Inkscape na tela dela. O ensaio
+            #   saiu; quem diz agora que não há ninguém olhando é o `run.sh
+            #   --sem-abrir`, com `MEOW_APP_SEM_JANELA=1`. O rascunho é gravado
+            #   do mesmo jeito: ele mora fora do repositório.
+            if os.environ.get("MEOW_APP_SEM_JANELA") == "1":
+                return self._json({"ok": True, "sem_janela": True, "caminho": alvo,
                                    "mtime": mtime, "editor": editor,
-                                   "aviso": "Em ensaio: o %s abriria este desenho"
+                                   "aviso": "Painel sem janela: o %s não foi aberto"
                                             % (editor["nome"] or "editor")})
 
             lancador = next((list(l) for l in _LANCADORES_SVG if shutil.which(l[0])), None)
@@ -5657,14 +5832,6 @@ class Manipulador(BaseHTTPRequestHandler):
         if erro:
             return self._json({"erro": erro}, 400)
 
-        # O ENSAIO COBRE ESTA PORTA — a mesma disciplina do `_api_app_icone`, e
-        # pelo mesmo motivo: em 07/09 um clique com o ensaio ligado gravou no
-        # repositório porque a recusa morava só no cliente.
-        if bool(corpo.get("seco")):
-            return self._json({"ok": True, "seco": True, "app": app,
-                               "aviso": "Em ensaio: %s ficaria com este desenho "
-                                        "em %s" % (app, cor)})
-
         # O MODO É DECIDIDO PELA MEDIDA, NÃO PELO QUE O CLIENTE DIZ — 09/09/2026
         #   Uma linha `<nome>:<origem>:<cor>:<parâmetros>` é uma PROMESSA: o
         #   `construir_convertidos.sh` vai refazer aquele desenho a partir da
@@ -5802,6 +5969,69 @@ class Manipulador(BaseHTTPRequestHandler):
         except OSError as e:
             return "não consegui gravar o mapa: %s" % e
         return ""
+
+    def _travas_do_arcticons(self):
+        """O que faria o `icones_apps_arcticons.sh` pular uma linha nova do mapa.
+
+        O BOTÃO QUE NÃO PODE VALER — 13/09/2026
+          Medido pela interface: «Usar este ícone» no Hefesto gravou a linha, a
+          torrada disse "Hefesto: steam em green", a gaveta disse "os ícones
+          novos já estão na dock" — e a dock ficou igual. O script pula três
+          casos, e nenhum deles chegava à tela:
+
+            intocável  — a lista do script, pedido dela ("estes ficam como
+                         estão, venha o que vier"); só a linha `mao` da oficina
+                         passa por cima;
+            curadoria  — a arte que ela escolheu no `curadoria.map` vence os
+                         dois acervos de traço;
+            convertido — o app já está no `apps-convertidos.map`, e um nome nos
+                         DOIS mapas faz o `_conferir_gemeos` parar o passo
+                         inteiro: nenhum ícone de ninguém seria posto.
+
+          A lista dos intocáveis é LIDA do script, não copiada: duas listas
+          seriam duas verdades, e a daqui envelheceria primeiro."""
+        intocaveis, prefixos = set(), ()
+        try:
+            with open(os.path.join(RAIZ, "scripts", "icones_apps_arcticons.sh"),
+                      "r", encoding="utf-8") as fh:
+                texto = fh.read()
+            achado = re.search(r"^INTOCAVEIS=\(([^)]*)\)", texto, re.M)
+            if achado:
+                intocaveis = set(achado.group(1).split())
+            achado = re.search(r"^INTOCAVEIS_PREFIXO=\(([^)]*)\)", texto, re.M)
+            if achado:
+                prefixos = tuple(achado.group(1).split())
+        except OSError:
+            pass
+        curados = set()
+        try:
+            with open(os.path.join(RAIZ, "assets", "icones", "curadoria.map"),
+                      "r", encoding="utf-8") as fh:
+                for linha in fh:
+                    # A mesma leitura do `_ler_curadoria`: três campos por TAB, e
+                    # a linha só conta com os três preenchidos.
+                    campos = linha.rstrip("\n").split("\t", 2)
+                    if (len(campos) == 3 and campos[0] and not campos[0].startswith("#")
+                            and campos[1] and campos[2]):
+                        curados.add(campos[0])
+        except OSError:
+            pass
+        return intocaveis, prefixos, curados, self._mapa_convertidos()
+
+    def _motivo_da_trava(self, travas, nomes, rotulo):
+        """A frase que diz por que um glifo do Arcticons não vale neste app, ou None."""
+        intocaveis, prefixos, curados, convertidos = travas
+        nomes = [n for n in nomes if n]
+        if any(n in intocaveis or (prefixos and n.startswith(prefixos)) for n in nomes):
+            return ("%s fica como está, por pedido seu. Só um desenho feito na "
+                    "oficina «Gerar ícone», acima, troca o dele." % rotulo)
+        if any(n in curados for n in nomes):
+            return ("%s usa a arte que você escolheu na curadoria, e ela vence "
+                    "este acervo." % rotulo)
+        if any(n in convertidos for n in nomes):
+            return ("%s já tem desenho convertido do projeto. O traço dele se "
+                    "troca na oficina «Gerar ícone», acima." % rotulo)
+        return None
 
     def _tirar_do_mapa_arcticons(self, app):
         """Um nome nos DOIS mapas faz o `_conferir_gemeos` estourar.
@@ -5966,8 +6196,8 @@ class Manipulador(BaseHTTPRequestHandler):
     #
     # O QUE ELE NÃO FAZ, E DIZ QUE NÃO FAZ
     #   Nada nele grava, roda ou apaga: sem servidor não há para onde mandar.
-    #   Clicar em "Rodar" mostra o aviso em vez de fingir que rodou. É a mesma
-    #   honestidade do modo seco, levada ao extremo.
+    #   Clicar em "Rodar" mostra o aviso em vez de fingir que rodou: a tela diz
+    #   o que não aconteceu, em vez de deixar parecer que aconteceu.
     #
     # AS IMAGENS SÃO AMOSTRA, E O ARQUIVO DIZ ISSO
     #   O acervo tem 46 papéis no carrossel, 255 banidos, 64 ícones e 23 capas.
@@ -6193,7 +6423,7 @@ class Manipulador(BaseHTTPRequestHandler):
         for item in esquema:
             item["valor"] = brutos.get(item["chave"], "")
             item["efetivo"] = efetivos.get(item["chave"], "")
-        medidas = _medidas_do_projeto()
+        medidas = dict(_medidas_do_projeto(), **_medidas_da_tela())
         return {
             "conf": CONF,
             "conf_existe": os.path.isfile(CONF),
@@ -6251,7 +6481,6 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/definir":
             chave = str(corpo.get("chave", ""))
             valor = str(corpo.get("valor", ""))
-            seco = bool(corpo.get("seco"))
             # A chave tem de estar no esquema. Sem esta linha a página poderia
             # gravar QUALQUER nome no meow.conf dela — inclusive um que o `. conf`
             # do shell fosse executar como variável de outro projeto.
@@ -6264,8 +6493,62 @@ class Manipulador(BaseHTTPRequestHandler):
             queixa = validar_valor(item, valor)
             if queixa:
                 return self._json({"erro": queixa, "chave": chave, "valor": valor}, 400)
-            rc, saida = definir(chave, valor, seco=seco)
+            rc, saida = definir(chave, valor)
             return self._json({"rc": rc, "saida": saida, "chave": chave, "valor": valor})
+
+        # SALVAR E APLICAR, NUMA ROTA SÓ — 13/09/2026
+        #   Pedido dela: "removeu o botão Salvar, que salva e aplica" e "antes
+        #   aplicava ao clicar em tudo". A página fazia duas viagens com uma
+        #   pergunta no meio: gravava chave a chave pelo `/api/definir` e depois
+        #   pedia o `instalar`, cuja tranca (`confirma`) abria a caixa de "Rodar
+        #   de verdade". Fechar a caixa deixava tudo gravado e nada aplicado. A
+        #   tranca existe para o botão "Instalar tudo" de uma máquina crua; para
+        #   quem escolheu e apertou Salvar, o clique já é a resposta.
+        #
+        #   O que não muda: a peneira inteira vem ANTES de qualquer escrita (uma
+        #   escolha recusada = nada gravado, nada aplicado), e quem aplica é o
+        #   instalador INTEIRO — quais etapas rodam é decisão do meow.conf, e o
+        #   `install.sh` recusa que alguém escolha por ele. Numa máquina já
+        #   pronta ele passa em ~18 s sem reescrever o que já está certo.
+        if caminho == "/api/salvar":
+            mudancas = corpo.get("mudancas") or {}
+            if not isinstance(mudancas, dict):
+                return self._json({"erro": "as escolhas chegaram num formato que não conheço"}, 400)
+            esquema = {i["chave"]: i for i in ler_esquema()}
+            pares, recusadas = [], []
+            for chave, valor in mudancas.items():
+                chave, valor = str(chave), str(valor)
+                item = esquema.get(chave)
+                queixa = ("fora do meow.conf.exemplo" if item is None
+                          else validar_valor(item, valor))
+                if queixa:
+                    recusadas.append({"chave": chave, "erro": queixa})
+                else:
+                    pares.append((chave, valor))
+            if recusadas:
+                return self._json({"recusadas": recusadas}, 400)
+
+            gravadas, iguais, falhas = [], [], []
+            for chave, rc, saida in definir_varias(pares):
+                if rc == 0:
+                    iguais.append(chave)
+                elif rc == 1:
+                    gravadas.append(chave)
+                else:
+                    falhas.append({"chave": chave, "erro": saida or "não consegui gravar"})
+            if falhas:
+                # Metade gravada é o pior estado, e ele não é escondido: a página
+                # recebe o que entrou e o que não entrou, e o instalador NÃO roda.
+                return self._json({"gravadas": gravadas, "iguais": iguais, "falhas": falhas,
+                                   "erro": "nem tudo foi gravado, e nada foi aplicado"}, 500)
+
+            resposta = {"gravadas": gravadas, "iguais": iguais}
+            trabalho, erro = iniciar("instalar", "", confirmado=True)
+            if erro:
+                resposta["erro"] = erro["erro"] if isinstance(erro, dict) else erro
+                return self._json(resposta, 409)
+            resposta["trabalho"] = _trabalho_json(trabalho, "instalar")
+            return self._json(resposta)
 
         if caminho == "/api/acervo":
             return self._api_acervo(corpo)
@@ -6282,12 +6565,11 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/rodar":
             acao = str(corpo.get("acao", ""))
             argumento = str(corpo.get("argumento", "") or "")
-            seco = bool(corpo.get("seco"))
             # `confirmado` é a resposta à pergunta que o servidor recusou fazer
             # sozinho. Ele não vem de um cabeçalho nem de um parâmetro de URL,
             # e sim do corpo do POST: é a página que tem de dizer, com todas as
             # letras, que perguntou e ouviu sim.
-            trabalho, erro = iniciar(acao, argumento, seco,
+            trabalho, erro = iniciar(acao, argumento,
                                      confirmado=bool(corpo.get("confirmado")))
             if erro:
                 # O erro estruturado (a confirmação que falta) passa inteiro; o
@@ -6300,10 +6582,7 @@ class Manipulador(BaseHTTPRequestHandler):
             # quem ESCREVE; para quem só olha — `status`, `doctor` sem
             # `--consertar`, `tema`, `apps`, `leitura` — o mesmo 1 quer dizer "há
             # divergências", e nada foi consertado.
-            return self._json({"id": trabalho.id, "rotulo": trabalho.rotulo,
-                               "comando": " ".join(shlex.quote(p) for p in trabalho.argv),
-                               "seco": bool(seco and ACOES[acao].get("seco")),
-                               "escreve": escreve(ACOES[acao])})
+            return self._json(_trabalho_json(trabalho, acao))
 
         # TRAZER DE VOLTA — só analisa e devolve o que mudaria; quem grava é o
         # `Salvar e aplicar` de sempre. O porquê está em `importar_conf`.
