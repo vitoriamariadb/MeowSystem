@@ -88,30 +88,13 @@
            autocomplete="off" aria-label="Buscar um ajuste ou uma ação">
   </div>
 
-  <!-- "Seco" é a palavra do projeto (MEOW_DRY_RUN, `meow_seco`, o modo seco
-       dos scripts) e ela não diz nada a quem chega. O interruptor promete o
-       que faz: ensaiar. Uma palavra por conceito, e é esta em todo lugar.
-
-       DE CAIXA DE MARCAR A BOTÃO QUE FICA ACESO — 06/09/2026. Palavras dela:
-       "ele tá como box mas poderia ser um botão que fica ativo (cor amarela
-       fraca) algo assim". A regra não mudou, e é a que ela mesma escreveu:
-       "se ela tiver marcada cada executar faz isso, caso contrário ele executa
-       de fato" — só o controle mudou de forma. `aria-pressed` é o atributo que
-       diz "ligado" num botão de dois estados, e é o mesmo por onde o
-       `estilo.css` acende o amarelo em `.btn-ensaio[aria-pressed="true"]`.
-       De quebra o `<button>` é focável por natureza: antes o Tab só chegava
-       aqui por causa da caixa de marcar dentro da `<label>`.
-
-       O `app.js` JÁ ACOMPANHA — 06/09/2026. Ele leu `$("#seco").checked` em
-       seis lugares até esta rodada, o que num `<button>` é `undefined` (ou
-       seja, sempre falso). Hoje quem responde é o `ensaiando()`, que lê o
-       `aria-pressed` daqui; quem inverte o atributo e o guarda no
-       `sessionStorage` é um ouvinte de `click`, porque um `<button>` nunca
-       dispara `change`. Se algum dia este `aria-pressed` sair do HTML, é o
-       `ensaiando()` que para de funcionar — e ele para em silêncio, sempre
-       dizendo "não". -->
-  <button type="button" id="seco" class="btn btn-ensaio" aria-pressed="false"
-          title="Mostra o que aconteceria. Nada é escrito no disco.">Ensaiar sem gravar</button>
+  <!-- O ENSAIO SAIU DA BARRA — 13/09/2026. Pedido dela: "eu tinha pedido pra
+       tirar o app do modo sandbox". O botão «Ensaiar sem gravar» ficava aqui,
+       e ligado ele fazia cada clique só simular — que é, palavra por palavra, o
+       que ela descreveu: "nada tá aplicando de verdade". O painel passa a
+       escrever e aplicar sempre. O modo seco continua na CLI
+       (`MEOW_DRY_RUN=1`, `./install.sh --dry-run`), que é onde auditar antes de
+       rodar faz sentido. -->
 
   <!-- LEVAR EMBORA E TRAZER DE VOLTA — pedido dela em 06/09/2026.
        As duas saídas do "Exportar" são coisas diferentes e por isso são duas
@@ -150,24 +133,30 @@
        ciclo inteiro de Tab e Shift+Tab: o Importar aparecia ZERO vezes. Uma
        <label> não entra na fila do foco e o input está hidden — quem usa só
        teclado não conseguia importar um .conf de jeito nenhum, e é a única
-       porta de entrada de configuração. O <button> entra na fila como os
-       irmãos Exportar e Ensaiar; quem abre o seletor é o click() no input. -->
+       porta de entrada de configuração. O <button> entra na fila como o
+       irmão Exportar; quem abre o seletor é o click() no input. -->
   <button type="button" class="btn" id="rotulo-importar"
           title="Ler um arquivo exportado e trazer as escolhas para a tela">
     Importar
   </button>
   <input type="file" id="arquivo-importar" accept=".conf,text/plain" hidden>
 
-  <!-- SALVAR MORA NO BANNER, E É UM SÓ.
+  <!-- SALVAR MORA NO BANNER, É UM SÓ, E NÃO SOME.
        Pedido dela em 01/09/2026: "salvar aplicar e descartar não devem viver
        dentro de cada página mas só um no banner que vale pra todos". Faz
        sentido além da estética: as escolhas atravessam as abas, então o botão
-       que as confirma não pode pertencer a uma delas. Ele fica escondido
-       enquanto não há nada esperando. -->
-  <div id="barra-salvar" class="barra-salvar" hidden>
-    <strong id="salvar-conta"></strong>
-    <button type="button" class="btn" id="botao-descartar">Descartar</button>
-    <button type="button" class="btn btn-accent" id="botao-salvar">Salvar e aplicar</button>
+       que as confirma não pode pertencer a uma delas.
+
+       SEMPRE À VISTA — 13/09/2026. A barra nascia `hidden` e só aparecia com
+       escolha pendente, e ela leu isso como o botão arrancado da tela:
+       "removeu o botão Salvar, que salva e aplica". Agora o botão fica: com
+       escolhas, grava todas e aplica; sem nenhuma, aplica o que já está salvo.
+       O contador e o Descartar só aparecem quando há o que contar e descartar
+       — é o `app.js` que os acende. -->
+  <div id="barra-salvar" class="barra-salvar vazia">
+    <strong id="salvar-conta" hidden></strong>
+    <button type="button" class="btn" id="botao-descartar" hidden>Descartar</button>
+    <button type="button" class="btn" id="botao-salvar">Salvar e aplicar</button>
   </div>
 </header>
 
@@ -175,10 +164,13 @@
   <nav class="trilho" id="trilho" aria-label="Seções"></nav>
 
   <main id="principal" tabindex="-1">
+    <!-- O botão deste aviso é o mesmo Salvar do banner: quando ajustes foram
+         gravados e não chegaram à tela (um trabalho já corria na hora), aplicar
+         é rodar o instalador — e não o conserto parcial que ele chamava antes. -->
     <div id="aviso-aplicar" class="aviso" hidden>
       <span id="aviso-texto"></span>
-      <button type="button" class="btn btn-accent" data-acao-rapida="doctor_consertar">
-        Consertar
+      <button type="button" class="btn btn-accent" id="aviso-aplicar-botao">
+        Aplicar
       </button>
     </div>
     <div id="conteudo"></div>

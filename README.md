@@ -89,9 +89,11 @@ O desenho nunca é captura de tela: cada um diz, na legenda, quais números fora
 Toda variável que o instalador lê tem um controle aqui — e um teste cobra isso, para que uma
 chave nova não nasça invisível.
 
-Clicar não muda a máquina: as escolhas se acumulam e um botão só grava e aplica. O botão
-**Ensaiar sem gravar** acende em amarelo enquanto estiver ligado, e com ele cada "Executar"
-mostra o que aconteceria sem escrever nada.
+Clicar não muda a máquina: as escolhas se acumulam, e **Salvar e aplicar** grava tudo e roda o
+instalador na mesma hora. Sem escolha pendente, o mesmo botão aplica o que já está salvo. Os
+cartões mostram o que a máquina tem agora — o raio da dock, a opacidade, os segundos do
+relógio —, e a página relê a máquina quando o trabalho termina. Para ver antes o que mudaria, o
+modo seco continua no terminal: `./install.sh --dry-run`.
 
 <img src="docs/capturas/painel-forma.png" width="920" alt="A aba Painel e dock, com o desenho do painel e da dock acima dos controles">
 

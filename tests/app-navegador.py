@@ -47,7 +47,7 @@ A AUDITORIA DE 01/09/2026, E O BURACO QUE ELA ABRIU NESTE ARQUIVO
         acrescentar de novo NAO apaga o anterior, e o × tira da tela.
     8.  O desenho ao vivo segue o controle — o veu de Kelvin e a barra
         desenhada mudam quando o controle muda, que e a unica razao de existirem.
-    11. O ensaio atravessa a navegacao.
+    11. O ensaio saiu da pagina — nao ha interruptor, e o Salvar fica.
     15. Toda acao que a pagina oferece num botao existe no servidor.
     16. O controle casa com o que o esquema declara — chave de opcoes fechadas
         nao pode virar campo de texto livre, faixa numerica tem de virar
@@ -104,36 +104,13 @@ def checa(condicao, texto):
         falhas.append(texto)
 
 
-# O VOCABULARIO DESTE ARQUIVO SEGUE O DA TELA — 09/09/2026.
-#   As linhas que este teste IMPRIME diziam "modo seco", e a pagina nao diz
-#   isso em lugar nenhum desde a passagem de linguagem de hoje: o botao se
-#   chama "Ensaiar sem gravar", acende como "Ensaiando — nada grava" e as
-#   torradas dizem "ensaio". So os TEXTOS de relatorio mudaram; nenhuma
-#   afirmacao foi afrouxada, e nenhum seletor procurava essas palavras.
-#   Os identificadores (`#seco`, `seco_ligado`, `MEOW_DRY_RUN`) ficam: sao
-#   nome de codigo, e o `id` do elemento e' contrato com o HTML.
-#
-# O ENSAIO VIROU BOTAO, E BOTAO NAO E' CAIXA DE MARCAR.
-#   Ate' 06/09/2026 o interruptor era <input type=checkbox>, e este arquivo
-#   falava com ele por .check() / .uncheck() / .is_checked(). Ela pediu botao
-#   que fica aceso ("ele ta' como box mas poderia ser um botao que fica ativo,
-#   cor amarela fraca"), e o Playwright RECUSA os tres num <button>: "Not a
-#   checkbox or radio button". Nao e' falha de teste, e' contrato de elemento.
-#   O estado agora mora no aria-pressed, que e' o mesmo atributo que o leitor de
-#   tela le' — uma verdade so', para a maquina e para quem enxerga.
-#
-#   As duas funcoes sao IDEMPOTENTES de proposito: elas conferem antes de
-#   clicar. Um .click() cego alternaria, e um teste que alterna um estado que
-#   ja' estava certo desliga a rede de seguranca no meio do proprio teste.
-def seco_ligado(pag):
-    return pag.locator("#seco").get_attribute("aria-pressed") == "true"
-
-
-def seco(pag, ligado):
-    if seco_ligado(pag) != ligado:
-        pag.locator("#seco").click()
-        pag.wait_for_timeout(200)
-    return seco_ligado(pag) == ligado
+# O ENSAIO SAIU DA PAGINA — 13/09/2026.
+#   Pedido dela: "eu tinha pedido pra tirar o app do modo sandbox". As duas
+#   funcoes que ligavam e conferiam o «Ensaiar sem gravar» (`seco`,
+#   `seco_ligado`) sairam junto com o botao. O que este arquivo usava o ensaio
+#   para evitar — escrever no disco de quem testa — agora e' evitado em cada
+#   passo: o Salvar so' e' chamado com escolha que a peneira recusa antes de
+#   gravar, e o editor de fora nao abre porque o painel sobe com `--sem-abrir`.
 
 
 def descartar_tudo(pag):
@@ -311,8 +288,11 @@ def descartar(pag):
     """Devolve a pagina ao que esta no disco, se houver escolha pendente.
 
     Roda entre um grupo de verificacoes e o proximo: uma escolha esquecida faz
-    o passo seguinte contar 2 escolhas onde a frase dele diz 1."""
-    if pag.locator("#barra-salvar").is_visible():
+    o passo seguinte contar 2 escolhas onde a frase dele diz 1.
+
+    Quem diz que ha' escolha pendente e' o Descartar: desde 13/09/2026 a barra
+    do Salvar fica sempre na tela, e so' as pecas de dentro acendem."""
+    if pag.locator("#botao-descartar").is_visible():
         descartar_tudo(pag)
         pag.wait_for_timeout(400)
 
@@ -617,8 +597,8 @@ def main():
                 n3 = cartao.locator(".ficha").count()
                 checa(n3 == n0, f"{k['chave']}: o × tira a ficha da tela na hora"
                                 f" — {n2} → {n3}")
-            checa(not pag.locator("#barra-salvar").is_visible(),
-                  "e desfazer o gesto à mão devolve a lista ao disco: a barra some sozinha")
+            checa(not pag.locator("#salvar-conta").is_visible(),
+                  "e desfazer o gesto à mão devolve a lista ao disco: a contagem some sozinha")
             descartar(pag)
 
             print("\n8. O DESENHO AO VIVO SEGUE O CONTROLE")
@@ -773,7 +753,7 @@ def main():
             pag.wait_for_timeout(500)
             checa(valor_de("LOG_NIVEL") == log_nivel_inicial,
                   "escolher NAO grava no meow.conf — o disco so muda no Salvar")
-            checa(pag.locator("#barra-salvar").is_visible(), "a barra do Salvar aparece")
+            checa(pag.locator("#salvar-conta").is_visible(), "a contagem do Salvar aparece")
             checa("1 escolha" in pag.locator("#salvar-conta").inner_text(),
                   "a barra conta a escolha")
 
@@ -786,7 +766,7 @@ def main():
             #   "Manutencao". Cobrar a marca numa pagina que nao tem o cartao e'
             #   cobrar da pagina uma coisa que a pessoa nao pediu.
             secao("Manutenção")
-            checa(pag.locator("#barra-salvar").is_visible(),
+            checa(pag.locator("#salvar-conta").is_visible(),
                   "depois de duas trocas de aba, a escolha continua la")
             checa(pag.locator('#conteudo article[data-chave="LOG_NIVEL"].nao-salvo').count() >= 1,
                   "o cartao continua marcado como nao salvo")
@@ -794,22 +774,21 @@ def main():
             print("\n   ... e o Descartar devolve tudo")
             descartar_tudo(pag)
             pag.wait_for_timeout(500)
-            checa(not pag.locator("#barra-salvar").is_visible(), "Descartar limpa a barra")
+            checa(not pag.locator("#salvar-conta").is_visible()
+                  and not pag.locator("#botao-descartar").is_visible(),
+                  "Descartar limpa a contagem e sai da barra")
             checa(valor_de("LOG_NIVEL") == log_nivel_inicial, "e o disco nunca foi tocado")
 
-            print("\n   ... e o Salvar em ensaio nao escreve")
-            md5_antes_seco = md5_conf()
-            seco(pag, True)
-            # O cartao esta' na pagina em que o teste acabou de entrar; a busca
-            # o traz de volta sem depender de qual pagina e'.
-            pag.fill("#busca", "LOG_NIVEL")
-            pag.wait_for_timeout(400)
-            pag.locator("#conteudo .cartao button", has_text=re.compile(f"^{alvo}$")).first.click()
-            pag.wait_for_timeout(400)
-            pag.locator("#botao-salvar").click()
-            pag.wait_for_timeout(2500)
-            checa(md5_conf() == md5_antes_seco, "Salvar em ensaio: o meow.conf nao mudou")
-            seco(pag, False)
+            print("\n   ... e o Salvar continua na barra")
+            # A BARRA NAO SOME MAIS — 13/09/2026. Ela sumia sem escolha
+            # pendente, e ela leu isso como o botao removido: "removeu o botao
+            # Salvar, que salva e aplica". Sem escolha, ele aplica o que ja'
+            # esta' salvo — e por isso este teste NAO o aperta: seria rodar o
+            # instalador inteiro na maquina de quem testa.
+            checa(pag.locator("#botao-salvar").is_visible(),
+                  "sem escolha pendente, o Salvar continua na tela")
+            checa("Aplica" in (pag.locator("#botao-salvar").get_attribute("title") or ""),
+                  "e diz que aplica o que ja' esta' salvo")
 
             print("\n10. UMA ACAO, COM SAIDA AO VIVO")
             # `status` mudou duas vezes em 06/09/2026: de "Estado da maquina" no
@@ -835,23 +814,16 @@ def main():
             checa("meow" in saida.lower() or "flavor" in saida.lower(),
                   "a saida e a do comando de verdade")
 
-            print("\n11. O ENSAIO ATRAVESSA A NAVEGACAO")
-            # O ensaio e a rede de seguranca da pagina inteira: com ele
-            # ligado, Salvar e Rodar preveem em vez de escrever. Uma rede que se
-            # desliga sozinha ao trocar de aba e pior que rede nenhuma, porque
-            # ela continua desenhada na tela. (A auditoria mediu o outro lado
-            # disso: ele nasce DESLIGADO a cada carga da pagina.)
-            seco(pag, True)
-            secao("Instalação")
-            secao("Terminal")
-            pag.fill("#busca", "wallpaper")
-            pag.wait_for_timeout(300)
-            pag.fill("#busca", "")
-            pag.wait_for_timeout(300)
-            checa(seco_ligado(pag),
-                  "ligado o ensaio, ele continua ligado depois de duas abas e uma busca")
+            print("\n11. O ENSAIO SAIU DA PAGINA")
+            # Pedido dela em 13/09/2026: "eu tinha pedido pra tirar o app do
+            # modo sandbox". O interruptor nao pode voltar por engano, e a
+            # pagina nao pode guardar quem pergunte por ele.
+            checa(pag.locator("#seco").count() == 0,
+                  "nao ha interruptor de ensaio na barra")
+            checa(pag.evaluate("() => typeof ensaiando") == "undefined",
+                  "e a pagina nao tem mais quem pergunte se esta' ensaiando")
 
-            print("\n12. O ENSAIO NAO ESCREVE")
+            print("\n12. CONFERIR NAO ESCREVE")
             # A ABA E DITA AQUI, E NAO HERDADA DO PASSO ANTERIOR.
             #   Este bloco procurava o cartao "Conferir" na aba que sobrou da
             #   verificacao anterior — e quando o passo 10 entrou no meio, com
@@ -868,8 +840,6 @@ def main():
                     break
             pag.wait_for_timeout(1500)
             md5_antes = md5_conf()
-            seco(pag, True)
-            pag.wait_for_timeout(300)
             # "Conferir a maquina" e' o `doctor`, e o `has_text` casa por
             # substring: "Conferir" sozinho pegaria tambem "Conferir e consertar
             # todo dia" se um dia essa acao existir. O rotulo inteiro nao tem
@@ -878,8 +848,7 @@ def main():
             pag.locator("#conteudo .acao, #conteudo .cartao",
                         has_text="Conferir a máquina").locator("button").first.click()
             pag.wait_for_timeout(6000)
-            checa(md5_conf() == md5_antes, "com o ensaio ligado, o meow.conf nao mudou")
-            seco(pag, False)
+            checa(md5_conf() == md5_antes, "o doctor so' le: o meow.conf nao mudou")
 
             print("\n13. TELA ESTREITA (a pagina nao pode rolar de lado)")
             for larg in (320, 375, 414, 768):
@@ -1002,10 +971,10 @@ def main():
             # mudava certo. Ir para a ponta oposta e' o unico valor que o passo
             # nao pode arredondar de volta.
             # A BARRA TEM DE COMECAR APAGADA, senao a segunda medicao mente.
-            #   As secoes anteriores deixam escolhas pendentes, e "a barra esta'
-            #   visivel" passaria a ser verdade ANTES do arrasto — o teste
+            #   As secoes anteriores deixam escolhas pendentes, e "a contagem
+            #   esta' visivel" passaria a ser verdade ANTES do arrasto — o teste
             #   acusaria gravacao em todas as abas, e a acusacao seria falsa.
-            if pag.locator("#barra-salvar").is_visible():
+            if pag.locator("#botao-descartar").is_visible():
                 descartar_tudo(pag)
                 pag.wait_for_timeout(700)
             vivas = paradas = 0
@@ -1018,16 +987,25 @@ def main():
                 if not desenhos.count() or not puxadores.count():
                     continue
                 antes = [desenhos.nth(i).inner_html() for i in range(desenhos.count())]
-                puxadores.first.evaluate("""el => {
-                  const mn = Number(el.min), mx = Number(el.max), atual = Number(el.value);
-                  el.value = String(atual === mn ? mx : mn);
-                  el.dispatchEvent(new Event('input', {bubbles: true}));
-                }""")
-                pag.wait_for_timeout(500)
-                agora = pag.locator(".previa-bloco, #conteudo .grade-barras")
-                depois = [agora.nth(i).inner_html() for i in range(agora.count())]
-                mudou = any(a != b for a, b in zip(antes, depois))
-                gravou = pag.locator("#barra-salvar:visible").count() > 0
+                # AS DUAS PONTAS, E NAO SO' UMA — 13/09/2026. Desde que o "como
+                # esta'" do desenho passou a ser a MAQUINA (`valendo_agora`), a
+                # ponta escolhida pode ser justamente o valor que a maquina tem:
+                # o modo de leitura dela guarda 1000 K, o piso da regua, e
+                # arrastar ate' la nao muda a tela — o desenho, certo, fica
+                # igual. As duas pontas nunca sao as duas o valor da maquina.
+                mudou = False
+                for ponta in ("min", "max"):
+                    puxadores.first.evaluate("""(el, ponta) => {
+                      el.value = ponta === 'min' ? el.min : el.max;
+                      el.dispatchEvent(new Event('input', {bubbles: true}));
+                    }""", ponta)
+                    pag.wait_for_timeout(500)
+                    agora = pag.locator(".previa-bloco, #conteudo .grade-barras")
+                    depois = [agora.nth(i).inner_html() for i in range(agora.count())]
+                    if any(a != b for a, b in zip(antes, depois)):
+                        mudou = True
+                        break
+                gravou = pag.locator("#salvar-conta:visible").count() > 0
                 if mudou and not gravou:
                     vivas += 1
                 else:
@@ -1035,58 +1013,32 @@ def main():
                     print(f"   XX {aba}: desenho mudou={mudou} gravou={gravou}")
             checa(vivas > 0 and paradas == 0,
                   f"as {vivas} abas com deslizante repintam o desenho durante o arrasto")
-            checa(not pag.locator("#barra-salvar:visible").count(),
+            checa(not pag.locator("#salvar-conta:visible").count(),
                   "e arrastar nao acendeu a barra do Salvar — nada foi escolhido")
             pag.reload()
             pag.wait_for_timeout(1500)
 
-            print("\n18. TODA PORTA QUE ESCREVE RECUSA EM ENSAIO")
-            # ACHADO EM 07/09/2026, NUMA VARREDURA DE INTERACAO COM O ENSAIO
-            # LIGADO: um clique em "Usar este icone" gravou
-            # `thunderbird:thunderbird:sky:alias` no `apps-arcticons.map` do
-            # REPOSITORIO. O `git status` acusou um arquivo que ninguem tinha
-            # mandado mudar.
-            #
-            # E' a terceira vez que este buraco aparece, por tres caminhos
-            # diferentes — o "Adicionar gato" em 06/09, o mapa de icones e o mapa
-            # de jogos. A licao que virou regra: a guarda mora onde a ESCRITA
-            # mora, no servidor, e nao no botao. Protecao so' no cliente vale ate'
-            # alguem escrever um botao novo.
-            #
-            # O teste bate nas rotas DIRETO, sem passar por botao nenhum: e'
-            # exatamente o caso que a protecao de cliente nao cobre.
-            import json as _json, hashlib as _hl
-            vigiados = [os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map"),
-                        os.path.join(RAIZ, "assets", "icones", "jogos-fora.map"), CONF]
-            def _md5s():
-                return {a: (_hl.md5(open(a, "rb").read()).hexdigest()
-                            if os.path.exists(a) else None) for a in vigiados}
-            antes_portas = _md5s()
-            # Um SVG minimo em base64 — o acervo recusa o que nao comeca por "<svg".
-            svg64 = "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4="
-            portas = [
-                ("/api/app-icone", {"app": "thunderbird", "glifo": "vector", "cor": "pink"}),
-                ("/api/jogo-fora", {"appid": "316790", "acao": "esconder", "motivo": "prova"}),
-                ("/api/acervo", {"tipo": "gato", "nome": "prova-do-seco.svg", "conteudo": svg64}),
-            ]
-            recusaram = 0
-            for rota, corpo in portas:
-                corpo = dict(corpo, seco=True)
-                r = pag.evaluate("""async ([rota, corpo]) => {
-                  const res = await fetch(rota + location.search, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(corpo) });
-                  return await res.json();
-                }""", [rota, corpo])
-                if r.get("seco") is True:
-                    recusaram += 1
-                else:
-                    print(f"   XX {rota} nao recusou: {str(r)[:90]}")
-            checa(recusaram == len(portas),
-                  f"as {len(portas)} rotas que escrevem recusam quando o ensaio esta ligado")
-            mexidos = [os.path.basename(a) for a in vigiados if antes_portas[a] != _md5s()[a]]
-            checa(not mexidos,
-                  "e nenhum arquivo mudou no disco" + (f" — MEXERAM: {mexidos}" if mexidos else ""))
+            print("\n18. O SALVAR RECUSA ANTES DE ESCREVER")
+            # A ROTA NOVA DO SALVAR — 13/09/2026. Ela grava as escolhas e
+            # comeca o instalador na mesma chamada, e a unica coisa entre ela e
+            # um meow.conf pela metade e' a peneira que vem ANTES. O teste bate
+            # na rota direto com um valor que o esquema recusa junto de um que
+            # ele aceitaria: nada pode ser gravado, e nenhum trabalho pode
+            # comecar. (A secao que morava aqui conferia que as rotas recusavam
+            # em ensaio; o ensaio saiu, e com ele o `seco` de todas elas.)
+            antes_conf = md5_conf()
+            r = pag.evaluate("""async () => {
+              const res = await fetch('/api/salvar', {
+                method: 'POST',
+                headers: { 'X-Meow-Token': TOKEN, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mudancas: { LOG_NIVEL: 'banana', FLAVOR: 'mocha' } }) });
+              return { status: res.status, corpo: await res.json() };
+            }""")
+            recusadas = [x.get("chave") for x in (r["corpo"].get("recusadas") or [])]
+            checa(r["status"] == 400 and recusadas == ["LOG_NIVEL"]
+                  and not r["corpo"].get("trabalho"),
+                  f"um valor recusado barra o Salvar inteiro ({r['status']}, {recusadas})")
+            checa(md5_conf() == antes_conf, "e o meow.conf nao foi tocado")
 
             print("\n19. OS DOIS LADOS DE CADA PAR SAO FIGURAS DIFERENTES")
             # A TRAVA QUE FALTOU NAS DUAS TENTATIVAS ANTERIORES.
@@ -1350,16 +1302,16 @@ def main():
             descartar_tudo(pag)
             pag.wait_for_timeout(500)
 
-            # (c) O ENSAIO SE ANUNCIA: ligado, o botao diz o estado e o Salvar
-            #     veste o amarelo.
-            pag.locator("#seco").click(); pag.wait_for_timeout(300)
-            ens = pag.evaluate("""() => ({
-              rotulo: document.getElementById('seco').textContent,
-              salvar: document.getElementById('botao-salvar').classList.contains('em-ensaio'),
+            # (c) SEM ESCOLHA, O SALVAR FICA E NAO SE DESTACA — 13/09/2026. O
+            #     acento e' de quando ha' o que gravar; sem nada pendente o
+            #     botao continua ali, neutro, e o Descartar sai.
+            est = pag.evaluate("""() => ({
+              visivel: !!document.getElementById('botao-salvar').offsetParent,
+              acento: document.getElementById('botao-salvar').classList.contains('btn-accent'),
+              descartar: document.getElementById('botao-descartar').hidden,
             })""")
-            checa("Ensaiando" in ens["rotulo"] and ens["salvar"],
-                  f"o ensaio ligado se anuncia no rotulo e no Salvar ({ens['rotulo']!r})")
-            pag.locator("#seco").click(); pag.wait_for_timeout(300)
+            checa(est["visivel"] and not est["acento"] and est["descartar"],
+                  f"sem escolha, o Salvar fica neutro e o Descartar sai ({est})")
 
             # (d) A FAIXA SO ENCOLHE QUEM SAIU POR CIMA. Antes, um bloco ainda
             #     ABAIXO da tela nascia comprimido e inflava ao entrar — medido
@@ -1748,10 +1700,11 @@ def main():
                 #
                 #   A IDA NAO E' CLICADA, E ISSO E' DE PROPOSITO. Clicar em
                 #   «Abrir no ...» faria NASCER UMA JANELA na tela de quem esta
-                #   rodando o teste. O `seco: true` daqui e' literal, escrito no
-                #   corpo — nao vem do botao de ensaio da pagina —, e o servidor
-                #   para antes do `Popen`. Nenhum caminho deste arquivo abre um
-                #   programa.
+                #   rodando o teste. Quem segura a janela e' o servidor: o painel
+                #   subiu com `--sem-abrir`, que liga `MEOW_APP_SEM_JANELA=1`, e
+                #   a rota para antes do `Popen` (ate' 13/09/2026 era um `seco:
+                #   true` no corpo, que saiu junto com o ensaio). Nenhum caminho
+                #   deste arquivo abre um programa.
                 # ------------------------------------------------------------
                 # O `<details>` «Editar o SVG» ABRE PRIMEIRO, e nao e' detalhe de
                 # teste: dentro de um `details` fechado o botao existe no DOM e
@@ -1775,13 +1728,12 @@ def main():
                       const r = await fetch('/api/app-desenho', {
                         method: 'POST',
                         headers: { 'X-Meow-Token': TOKEN, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ app, acao: 'editor', seco: true,
-                                               svg: OFICINA.svg }),
+                        body: JSON.stringify({ app, acao: 'editor', svg: OFICINA.svg }),
                       }).then(r => r.json());
                       return r;
                     }""", OFICINA_APP)
                     rascunho = ida.get("caminho") or ""
-                    checa(ida.get("seco") is True and os.path.isfile(rascunho),
+                    checa(ida.get("sem_janela") is True and os.path.isfile(rascunho),
                           f"a ida grava o rascunho FORA do repositorio ({rascunho})")
                     checa(RAIZ not in rascunho and "/.local/state/meowsystem/oficina/" in rascunho,
                           "e o caminho e' do servidor, no estado — nao do cliente e nao no projeto")
@@ -1808,33 +1760,14 @@ def main():
                         if os.path.isfile(rascunho):
                             os.unlink(rascunho)
 
-                # USAR EM ENSAIO: torrada, e NADA escrito. A porta ja e' coberta
-                # pela secao 18 do lado do servidor; aqui o que se prova e' que o
-                # botao no <summary> chega la — e que ele nao FECHA a oficina em
-                # cima do que ela acabou de mandar gravar.
-                retoques = os.path.join(RAIZ, "assets", "icones", "convertidos-apps", "retoques")
-                mapa = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
-                antes_r, antes_m = sorted(os.listdir(retoques)), md5_de(mapa)
-                checa(seco(pag, True), "o ensaio liga")
-                # A BANDEJA DE TORRADAS ESVAZIA ANTES DO CLIQUE — 09/09/2026.
-                #   Ate hoje o «Usar» era a primeira coisa desta secao a torrar,
-                #   e ler `.torrada` DEPOIS do clique bastava. Com o «Reler» do
-                #   editor torrando logo acima, `.last` devolvia a torrada
-                #   ANTERIOR (elas vivem 2,6 s) e a afirmacao lia a frase errada
-                #   — um falso negativo que nao dizia nada sobre o ensaio.
-                for _ in range(40):
-                    if pag.locator(".torrada").count() == 0:
-                        break
-                    pag.wait_for_timeout(200)
-                pag.locator("details.oficina > summary button").click()
-                pag.wait_for_selector(".torrada", timeout=6000)
-                checa("ensaio" in pag.locator(".torrada").last.inner_text().lower(),
-                      "Usar em ensaio avisa que e ensaio")
-                checa(pag.locator("details.oficina").first.get_attribute("open") is not None,
-                      "e o Usar no resumo nao fecha a oficina")
-                checa(sorted(os.listdir(retoques)) == antes_r and md5_de(mapa) == antes_m,
-                      "e nao escreveu em retoques/ nem no mapa")
-                seco(pag, False)
+                # O «USAR» NAO E' CLICADO — 13/09/2026. Ate' hoje ele era
+                # apertado com o ensaio ligado, e so' torrava. Sem o ensaio, o
+                # clique grava o desenho E roda `icones_traco` na maquina de quem
+                # testa. A escrita e' conferida logo abaixo, pela porta, e
+                # devolvida no `finally`; aqui fica so' a prova de que o botao
+                # mora no resumo, onde ela o procura.
+                checa(pag.locator("details.oficina > summary button").count() == 1,
+                      "o «Usar» mora no resumo da oficina")
 
                 # ------------------------------------------------------------
                 # E O SALVAR GRAVA A COR NO CAMPO CERTO — 09/09/2026
@@ -1868,7 +1801,7 @@ def main():
                         headers: { 'X-Meow-Token': TOKEN, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ app, acao: 'salvar', svg: OFICINA.svg,
                                                cor: OFICINA.cor, fonte: OFICINA.fonte,
-                                               parametros: OFICINA.parametros, seco: false }),
+                                               parametros: OFICINA.parametros }),
                       }).then(r => r.json());
                     }""", OFICINA_APP)
                     checa(not r.get("erro") and r.get("cor") == cor_alvo,
