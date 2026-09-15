@@ -192,11 +192,38 @@ _bb_bat_bin() {
 
 _bb_btop_bin() { command -v btop >/dev/null 2>&1; }
 
+# A FAMÍLIA DA PALETA NÃO É SEMPRE "Catppuccin" — 2026-09-11
+#     As três funções abaixo cravavam `Catppuccin` / `catppuccin_` no nome do
+#     tema e no caminho do arquivo vendorizado. Enquanto todo flavor vinha do
+#     Catppuccin isso era verdade e não incomodava. No momento em que a paleta
+#     ganha um flavor de outra família — `dracula`, acrescentado a
+#     `assets/paleta/catppuccin.json` — o nome passa a mentir ("Catppuccin
+#     Dracula") e, pior, o arquivo procurado ganha um nome que ninguém escreveria
+#     à mão: o erro que aparece é `falta o tema vendorizado: .../Catppuccin
+#     Dracula.tmTheme`, e a pessoa não tem como adivinhar que era para nomear o
+#     arquivo assim.
+#
+#     `MEOW_FAMILIA_PALETA` resolve os dois: sem ela, tudo segue exatamente como
+#     era (`catppuccin`), então quem usa os quatro flavors de sempre não vê
+#     diferença nenhuma. Com ela, o nome e o caminho acompanham a família.
+_bb_familia() { printf '%s' "${MEOW_FAMILIA_PALETA:-catppuccin}"; }
+_bb_familia_titulo() {
+  local f; f="$(_bb_familia)"
+  printf '%s' "$(printf '%s' "${f:0:1}" | tr '[:lower:]' '[:upper:]')${f:1}"
+}
+
 # Nome do tema bat = o <key>name</key> do plist. Capitaliza o flavor porque é
 # assim que o upstream escreve ("Catppuccin Mocha", "Catppuccin Macchiato").
+#     QUANDO A FAMÍLIA É O PRÓPRIO TEMA, O NOME NÃO SE REPETE
+#     "Catppuccin Mocha" tem duas palavras porque são duas coisas: a família e o
+#     flavor dentro dela. O Dracula não tem flavors — ele é um tema só —, então
+#     família e flavor coincidem e "Dracula Dracula" seria ruído. Nesse caso o
+#     nome é uma palavra só.
 _bb_bat_tema_nome() {
-  local f; f="$(_bb_flavor)"
-  printf 'Catppuccin %s' "$(printf '%s' "${f:0:1}" | tr '[:lower:]' '[:upper:]')${f:1}"
+  local f fam; f="$(_bb_flavor)"; fam="$(_bb_familia)"
+  local f_tit; f_tit="$(printf '%s' "${f:0:1}" | tr '[:lower:]' '[:upper:]')${f:1}"
+  [ "$f" = "$fam" ] && { printf '%s' "$f_tit"; return; }
+  printf '%s %s' "$(_bb_familia_titulo)" "$f_tit"
 }
 _bb_bat_tema_arquivo() { printf '%s/upstream/bat/%s.tmTheme' "$MEOW_BB_DIR" "$(_bb_bat_tema_nome)"; }
 
@@ -205,10 +232,17 @@ _bb_btop_tema_stem() {
   if [ "${MEOW_BTOP_ACENTO:-}" = "mauve" ]; then
     printf 'meowsystem_%s' "$(_bb_flavor)"
   else
-    printf 'catppuccin_%s' "$(_bb_flavor)"
+    if [ "$(_bb_flavor)" = "$(_bb_familia)" ]; then printf '%s' "$(_bb_flavor)"
+    else printf '%s_%s' "$(_bb_familia)" "$(_bb_flavor)"; fi
   fi
 }
-_bb_btop_upstream() { printf '%s/upstream/btop/catppuccin_%s.theme' "$MEOW_BB_DIR" "$(_bb_flavor)"; }
+_bb_btop_upstream() {
+  if [ "$(_bb_flavor)" = "$(_bb_familia)" ]; then
+    printf '%s/upstream/btop/%s.theme' "$MEOW_BB_DIR" "$(_bb_flavor)"
+  else
+    printf '%s/upstream/btop/%s_%s.theme' "$MEOW_BB_DIR" "$(_bb_familia)" "$(_bb_flavor)"
+  fi
+}
 
 # Conteúdo do tema btop a instalar: upstream cru, ou derivado com acento mauve.
 # O sed é ancorado na chave inteira para não pegar o mesmo #89b4fa de proc_box
