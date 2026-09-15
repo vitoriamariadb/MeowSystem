@@ -2334,10 +2334,105 @@ semear_da_curadoria() {
   return 0
 }
 
+# `/`, `~` ou `./` no começo: é caminho, não `dono/repo`.
+_semente_e_pasta() {
+  case "$1" in
+    /*|'~'/*|./*|../*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Copia as imagens de uma pasta para `ativos/`, com as mesmas regras do ramo que
+# baixa: pula o que já está lá, respeita `banidos/` e obedece ao modo seco.
+#
+# O FORMATO É CONFERIDO AQUI, E ISSO NÃO É ZELO
+#   O `cosmic-bg` lê avif, gif, jpeg, png, tiff e webp — conferido no binário.
+#   SVG não está na lista. Copiar um `.svg` para `ativos/` não dá erro nenhum: a
+#   imagem simplesmente não aparece, e o carrossel pula um lugar vazio sem dizer
+#   por quê. Como a pasta mais provável é a de um gerador que exporta SVG por
+#   padrão, o aviso sai por extensão ignorada, uma vez, com o número.
+_semear_de_pasta() {
+  local origem="${1/#\~/$HOME}"
+  if [ ! -d "$origem" ]; then
+    meow_erro "semente '$origem' não é um diretório"
+    return "$MEOW_ERRO"
+  fi
+
+  local n=0 ignorados=0 arq rel nome destino
+  while IFS= read -r arq; do
+    [ -n "$arq" ] || continue
+    rel="${arq#"$origem"/}"
+    case "${rel##*.}" in
+      png|PNG|jpg|JPG|jpeg|JPEG|webp|WEBP|avif|AVIF|gif|GIF|tif|tiff|TIF|TIFF) ;;
+      *) ignorados=$((ignorados + 1)); continue ;;
+    esac
+    nome="${SEMENTE_PREFIXO}-${rel//\//-}"
+    destino="$ATIVOS/$nome"
+    [ -e "$destino" ] && continue
+    esta_banida "$nome" && continue
+    if meow_seco; then
+      meow_muda "copiaria $nome"; n=$((n + 1)); continue
+    fi
+    # Temporário no MESMO diretório e rename depois, pelo motivo do ramo que
+    # baixa: uma imagem pela metade entra na rotação e aparece cortada.
+    local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
+    if cp -- "$arq" "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
+      mv -f "$tmp" "$destino"; n=$((n + 1))
+    else
+      rm -f "$tmp"
+      meow_aviso "não consegui copiar $rel"
+    fi
+  done < <(find "$origem" -type f 2>/dev/null | LC_ALL=C sort)
+
+  if [ "$ignorados" -gt 0 ]; then
+    meow_info "$ignorados arquivo(s) de formato que o cosmic-bg não lê foram ignorados (SVG entre eles — exporte PNG)"
+  fi
+
+  semear_da_curadoria
+  if [ "$CURADORIA_N" -gt 0 ]; then
+    if meow_seco; then
+      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria dela (assets/papeis-de-parede/FONTES.tsv)"
+    else
+      meow_ok "$CURADORIA_N imagem(ns) da curadoria dela reproduzidas (assets/papeis-de-parede/FONTES.tsv)"
+    fi
+    n=$((n + CURADORIA_N))
+  fi
+
+  if [ "$n" -eq 0 ]; then
+    meow_ok "pasta-semente já semeada ($origem)"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "copiaria $n imagem(ns) da pasta $origem"
+  else
+    meow_ok "$n imagem(ns) copiadas da pasta $origem"
+  fi
+  return "$MEOW_OK"
+}
+
 cmd_semear() {
-  meow_tem curl || { meow_erro "curl não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
   meow_tem python3 || { meow_erro "python3 não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
   criar_pastas
+
+  # UMA PASTA TAMBÉM É SEMENTE — 15/09/2026
+  #   Nem toda origem é um repositório público que o `raw.githubusercontent.com`
+  #   entrega. O gerador de papéis de parede da casa (tulip-orchid) tropeça em
+  #   três coisas de uma vez: o repositório é privado, as imagens não existem
+  #   como arquivo lá dentro (são desenhadas em tempo de execução a partir de
+  #   `scenes.ts`) e o formato que ele exporta por padrão é SVG — que o
+  #   `cosmic-bg` não lê. O binário aceita avif, gif, jpeg, png, tiff e webp;
+  #   SVG não está na lista, e por isso não adianta baixar vetor.
+  #
+  #   O caminho que funciona hoje: exportar PNG do gerador para uma pasta e
+  #   apontar a semente para ela. `WALLPAPER_SEMENTE_REPO` com `/`, `~` ou `./`
+  #   no começo é tratado como diretório, e aí não há rede nem commit pinado —
+  #   o pino não faz sentido para uma pasta que é do dono.
+  if _semente_e_pasta "$SEMENTE_REPO"; then
+    _semear_de_pasta "$SEMENTE_REPO"
+    return $?
+  fi
+
+  meow_tem curl || { meow_erro "curl não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
 
   local api="https://api.github.com/repos/$SEMENTE_REPO/git/trees/$SEMENTE_COMMIT?recursive=1"
   local lista; lista="$(curl -sS --max-time 30 "$api" 2>/dev/null)" || {
