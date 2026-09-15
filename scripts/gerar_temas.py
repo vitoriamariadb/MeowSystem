@@ -36,11 +36,22 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-PALETA = RAIZ / "assets" / "paleta" / "catppuccin.json"
+# O ARQUIVO DE PALETA NÃO É MAIS FIXO — 2026-09-11
+#     Ele era `catppuccin.json` cravado aqui, e a docstring acima já prometia que
+#     "trocar de flavor é trocar uma linha do meow.conf". Só que uma paleta que
+#     não seja a do Catppuccin não tinha por onde entrar: era preciso editar o
+#     script. Agora o nome do arquivo vem de `PALETA_ARQUIVO` no meow.conf, e o
+#     default continua sendo o de sempre — quem não mexer em nada não vê
+#     diferença. `MEOW_PALETA` (caminho completo) continua valendo por cima,
+#     para teste.
+PALETA_ARQUIVO = os.environ.get("PALETA_ARQUIVO") or "catppuccin.json"
+PALETA = Path(os.environ["MEOW_PALETA"]) if os.environ.get("MEOW_PALETA") \
+    else RAIZ / "assets" / "paleta" / PALETA_ARQUIVO
 MAPA = RAIZ / "assets" / "paleta" / "cosmic-map.json"
 DESTINO = RAIZ / "assets" / "temas"
 
@@ -102,7 +113,7 @@ def gerar(flavor: str, accent: str, paleta: dict, mapa: dict) -> str:
     est = mapa["estrutura_preservada"]
 
     linhas = [
-        f"// MeowSystem — Catppuccin {flavor.capitalize()} / accent {accent.capitalize()}",
+        f"// MeowSystem — {flavor.capitalize()} / accent {accent.capitalize()}",
         "// GERADO por scripts/gerar_temas.py a partir de assets/paleta/. Não edite à mão:",
         "// a próxima geração sobrescreve. Para mudar cor, mude a paleta ou o mapa.",
         "// Estrutura (raio, gaps, active_hint, frosted, alpha_map) é da Vitória e é preservada.",
@@ -114,7 +125,13 @@ def gerar(flavor: str, accent: str, paleta: dict, mapa: dict) -> str:
     for slot in ORDEM_PALETTE:
         nome = mapa["palette"][slot]
         if slot == "name":
-            linhas.append(f'        name: "catppuccin-{flavor}",')
+            # O NOME VEM DO MAPA, NÃO DAQUI — 2026-09-11
+            #     O `cosmic-map.json` já declarava `"name": "catppuccin-<flavor>"`
+            #     desde sempre, e este script montava a string na mão, ignorando-o.
+            #     Duas verdades sobre a mesma coisa: mudar o mapa não mudava nada,
+            #     e só se descobria isso lendo o .ron gerado. Agora o mapa manda.
+            modelo = mapa["palette"].get("name", "catppuccin-<flavor>")
+            linhas.append(f'        name: "{modelo.replace("<flavor>", flavor)}",')
         else:
             linhas.append(f'        {slot}: "{cor(paleta, flavor, nome)}",')
     linhas.append("    )),")
@@ -163,6 +180,35 @@ def gerar(flavor: str, accent: str, paleta: dict, mapa: dict) -> str:
     return "\n".join(linhas)
 
 
+
+def _combos_do_conf(paleta: dict) -> list[str]:
+    """O conjunto padrão de temas, lido do meow.conf.
+
+    Lê só as duas chaves que interessam, com um parser bobo de `CHAVE="valor"` —
+    não vale a pena invocar um shell para isso, e o arquivo é declarativo.
+    Quando o conf não existe (máquina nova, CI), cai no par de sempre.
+    """
+    conf = Path(os.environ.get("MEOW_CONF") or (Path.home() / ".config/meow/meow.conf"))
+    flavor = accent = None
+    if conf.is_file():
+        for linha in conf.read_text(encoding="utf-8", errors="replace").splitlines():
+            linha = linha.strip()
+            for chave in ("FLAVOR", "ACCENT"):
+                if linha.startswith(chave + "="):
+                    valor = linha.split("=", 1)[1].split("#")[0].strip().strip('"\'')
+                    if chave == "FLAVOR":
+                        flavor = valor or None
+                    else:
+                        accent = valor or None
+    if not flavor or not accent:
+        return ["mocha-mauve", "mocha-pink", "latte-mauve"]
+    # O claro acompanha: o COSMIC alterna entre um tema escuro e um claro, e
+    # gerar só o escuro deixa o modo claro com o tema de antes.
+    claros = paleta.get("claros") or []
+    par_claro = [f"{c}-{accent}" for c in claros if c != flavor]
+    return [f"{flavor}-{accent}"] + par_claro
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description="Gera os temas .ron a partir da paleta canônica.")
     p.add_argument("combos", nargs="*", metavar="flavor-accent",
@@ -173,7 +219,14 @@ def main() -> int:
     args = p.parse_args()
 
     paleta, mapa = carregar()
-    combos = args.combos or ["mocha-mauve", "mocha-pink", "latte-mauve"]
+    # O CONJUNTO PADRÃO VEM DO meow.conf — 2026-09-11
+    #     A lista era fixa aqui, e por isso `FLAVOR="dracula"` no meow.conf
+    #     gerava mocha e latte: o script nunca leu a chave que a docstring diz
+    #     que basta trocar. Agora, sem argumento, ele gera o combo do conf
+    #     (FLAVOR-ACCENT) mais o par claro, que é o que o COSMIC pede para
+    #     alternar entre tema claro e escuro. Passar combos na linha de comando
+    #     continua vencendo, como antes.
+    combos = args.combos or _combos_do_conf(paleta)
 
     args.saida.mkdir(parents=True, exist_ok=True)
     divergentes = []

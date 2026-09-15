@@ -241,6 +241,7 @@ const ROTULO_DE_VALOR = {
   dock: "Dock", titulo: "Título", artista: "Artista", album: "Álbum",
   largura: "Largura", fonte: "Fonte", capa: "Capa", controles: "Controles",
   mocha: "Mocha", macchiato: "Macchiato", frappe: "Frappé", latte: "Latte",
+  dracula: "Drácula",
   coquinha: "Coquinha", mimir: "Mimir",
 };
 
@@ -6457,4 +6458,3 @@ try {
 }
 
 iniciar();
-
