@@ -616,6 +616,14 @@ if [ -d "$ACERVO_LOCAL" ]; then
   done < <(find "$ACERVO_LOCAL" -maxdepth 1 -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print0 2>/dev/null)
 
   # Órfão: estava no acervo ontem, não está hoje. Seguro porque o dono é único.
+  #
+  # SÓ FONTE É ÓRFÃ — 13/09/2026. O `find` pegava todo arquivo da pasta, e o
+  #   `fc-cache -f` grava ali um `.uuid` (o marcador que o fontconfig põe em cada
+  #   diretório que varre). Cada passagem apagava o `.uuid`, refazia o cache, e
+  #   o cache escrevia o `.uuid` de novo: a etapa dizia "mexeu" em toda passagem
+  #   sem nada ter mudado. Apareceu quando o «Salvar e aplicar» do painel passou a
+  #   contar as linhas `~~`. O filtro é o mesmo do laço que instala: esta frente é
+  #   dona das fontes que põe, não do que o fontconfig guarda ao lado delas.
   if [ -d "$DESTINO_LOCAL" ]; then
     while IFS= read -r -d '' arq; do
       nome_l="$(basename "$arq")"
@@ -626,7 +634,7 @@ if [ -d "$ACERVO_LOCAL" ]; then
         rm -f "$arq"; refazer_cache=1
       fi
       mudou=1; locais_tiradas=$((locais_tiradas + 1))
-    done < <(find "$DESTINO_LOCAL" -maxdepth 1 -type f -print0 2>/dev/null)
+    done < <(find "$DESTINO_LOCAL" -maxdepth 1 -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print0 2>/dev/null)
   fi
 
   if [ "$locais_postas" = 0 ] && [ "$locais_tiradas" = 0 ]; then

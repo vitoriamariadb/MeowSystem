@@ -229,6 +229,105 @@ else:
     print("ok: as %d chaves que os scripts leem do conf têm cartão no painel"
           % len(_lidas))
 
+# --- 8. O QUE O PAINEL LÊ DA MÁQUINA É O QUE OS SCRIPTS GRAVAM — 13/09/2026 --
+#   `NA_MAQUINA` (servidor.py) é a leitura inversa dos scripts: o deslizante diz
+#   "como está: 24" lendo o arquivo em que o `forma.sh` grava o raio. A tabela
+#   não sai do `meow.conf.exemplo` — o exemplo diz o que a chave faz, não onde
+#   o COSMIC a guarda —, e o dia em que um script passar a gravar outro arquivo
+#   a tela continuaria mostrando um número: o velho, com a mesma confiança.
+#   Então: toda chave da tabela existe no catálogo, e o arquivo que ela lê é
+#   citado no CÓDIGO de algum script, junto do programa do COSMIC que o guarda.
+_sh_codigo = {}
+for _f in _sp.run(["git", "ls-files", "scripts"], cwd=raiz, capture_output=True,
+                  text=True).stdout.split():
+    if _f.endswith(".sh"):
+        _txt = open(os.path.join(raiz, _f), encoding="utf-8", errors="replace").read()
+        _sh_codigo[_f] = "\n".join(l for l in _txt.splitlines() if not l.lstrip().startswith("#"))
+_sem_escritor = []
+for _k, (_arq, _traduz) in sorted(servidor.NA_MAQUINA.items()):
+    _programa = _arq.split("/")[0].split(".")[2]           # CosmicPanel, CosmicComp…
+    _nome = os.path.basename(_arq)
+    if not any(_programa in _t and _nome in _t for _t in _sh_codigo.values()):
+        _sem_escritor.append("%s (%s)" % (_k, _arq))
+_fora = sorted(k for k in servidor.NA_MAQUINA if k not in _catalogo)
+if _sem_escritor or _fora:
+    print("FALHOU: o painel lê da máquina o que nenhum script grava: %s; fora do catálogo: %s"
+          % (", ".join(_sem_escritor) or "—", ", ".join(_fora) or "—"), file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: as %d chaves que o painel lê da máquina saem de arquivos que os scripts gravam"
+          % len(servidor.NA_MAQUINA))
+
+# --- 9. O PAINEL NÃO ENSAIA — 13/09/2026 -------------------------------------
+#   Pedido dela: *"eu tinha pedido pra tirar o app do modo sandbox"*. Nenhum
+#   pedido da página leva `seco`, nenhuma rota o lê, e nenhum ambiente que o
+#   servidor monta liga `MEOW_DRY_RUN`. Olha só o CÓDIGO: os comentários contam
+#   a história do ensaio, e têm de poder continuar contando.
+_js = re.sub(r"/\*.*?\*/", "", open(os.path.join(raiz, "app/pagina/app.js"),
+                                    encoding="utf-8").read(), flags=re.S)
+_js = "\n".join(l for l in _js.splitlines() if not l.lstrip().startswith("//"))
+_restos = re.findall(r"\bseco\b|ensaiando|#seco\b", _js)
+_py = "\n".join(l for l in open(os.path.join(raiz, "app/servidor.py"), encoding="utf-8")
+                .read().splitlines() if not l.lstrip().startswith("#"))
+_restos += re.findall(r"""get\(["']seco["']\)|\[["']MEOW_DRY_RUN["']\]\s*=""", _py)
+if _restos:
+    print("FALHOU: o ensaio voltou ao painel: %s" % ", ".join(sorted(set(_restos))),
+          file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: nem a página nem o servidor falam em ensaio fora dos comentários")
+
+# --- 10. O TRABALHO LEVA A CONF, E O ÍCONE QUE NÃO VALE NÃO É OFERECIDO — 13/09 --
+#   Medido pela interface: «Usar este ícone» rodou o `icones_apps_arcticons.sh`
+#   com o ambiente do servidor e nada mais. Sem `ICONES_COR_MARCA`, doze ícones
+#   da máquina dela voltaram à cor de categoria. E no Hefesto, que o script pula
+#   por ser intocável, a tela disse que valeu e a dock ficou igual.
+#   Então: a conf exportada é a do `set -a` (com expansão e com os padrões do
+#   `carregar_conf`), um conf quebrado não vira "tudo no padrão", o `iniciar` a
+#   usa, e as três travas do script chegam ao servidor.
+import inspect as _inspect
+import tempfile as _tf
+_d = _tf.mkdtemp()
+_bom, _quebrado = os.path.join(_d, "bom.conf"), os.path.join(_d, "quebrado.conf")
+with open(_bom, "w", encoding="utf-8") as _fh:
+    _fh.write('FLAVOR="latte"\nICONES_COR_MARCA="sim"   # sim | nao\n'
+              'ICONES_PASTAS="cat-${FLAVOR}"\n')
+with open(_quebrado, "w", encoding="utf-8") as _fh:
+    _fh.write('FLAVOR="latte\n')
+_conf_dela = servidor.CONF
+try:
+    servidor.CONF = _bom
+    _exp = servidor.conf_exportada() or {}
+    servidor.CONF = _quebrado
+    _exp_quebrado = servidor.conf_exportada()
+finally:
+    servidor.CONF = _conf_dela
+_erros10 = []
+for _k, _v in (("ICONES_COR_MARCA", "sim"), ("FLAVOR", "latte"), ("ICONES_PASTAS", "cat-latte"),
+               ("MODO", "escuro")):
+    if _exp.get(_k) != _v:
+        _erros10.append("%s saiu %r, e não %r" % (_k, _exp.get(_k), _v))
+if _exp_quebrado is not None:
+    _erros10.append("um conf com erro de sintaxe virou ambiente em vez de recusa")
+_ini = _inspect.getsource(servidor.iniciar)
+if "conf_exportada()" not in _ini or "ambiente.update(conf)" not in _ini:
+    _erros10.append("o iniciar não põe a conf no ambiente do trabalho")
+_m = servidor.Manipulador.__new__(servidor.Manipulador)
+_tr = _m._travas_do_arcticons()
+if not _tr[0]:
+    _erros10.append("a lista INTOCAVEIS do script não foi lida")
+if not _m._motivo_da_trava(_tr, ["hefesto-dualsense4unix"], "Hefesto"):
+    _erros10.append("o Hefesto, intocável, não trava")
+if _tr[3] and not _m._motivo_da_trava(_tr, [sorted(_tr[3])[0]], "x"):
+    _erros10.append("um app do acervo convertido não trava")
+if _m._motivo_da_trava(_tr, ["org.exemplo.NaoExiste"], "x") is not None:
+    _erros10.append("um app sem nenhuma das três travas travou")
+if _erros10:
+    print("FALHOU: " + "; ".join(_erros10), file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: o trabalho leva a conf do set -a, e as travas do traço chegam ao servidor")
+
 py = open(os.path.join(raiz, "app/servidor.py"), encoding="utf-8").read().splitlines()
 codigo = [l for l in py if not l.lstrip().startswith("#")]
 if any("shell=True" in l for l in codigo):

@@ -64,10 +64,11 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 ABRIR=1
 SO_URL=0
+SEM_JANELA=0
 PID_ARQ="$MEOW_ESTADO/app.pid"
 
 case "${1:-}" in
-  --sem-abrir) ABRIR=0 ;;
+  --sem-abrir) ABRIR=0; SEM_JANELA=1 ;;
   --porta-so|--porta-só) ABRIR=0; SO_URL=1 ;;
   --parar)
     # O painel solto precisa de uma porta para ser fechado — senão a única saída
@@ -169,7 +170,14 @@ mkfifo -m 600 "$TUBO" || { meow_erro "não consegui criar o cano em $TUBO"; exit
 # janela do navegador fecha. Com `--sem-abrir` não há janela nenhuma para vigiar,
 # e quem derruba o servidor é o terminal — que é como `tests/app-navegador.py` o
 # sobe e o desce sem deixar processo órfão.
-MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$MEOW_ESTADO" MEOW_APP_VIGIA="$ABRIR" python3 "$SERVIDOR" > "$TUBO" &
+#
+# `MEOW_APP_SEM_JANELA=1` SÓ COM `--sem-abrir` — 13/09/2026. O ensaio da página
+# era também o que impedia os testes de abrir o editor de SVG na tela dela. Com o
+# ensaio fora do painel, quem garante isso é o modo dos testes: sem janela para
+# vigiar, também não se abre janela nenhuma. O `--porta-so` fica de fora de
+# propósito: quem o usa abre a URL num navegador, e está olhando.
+MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$MEOW_ESTADO" MEOW_APP_VIGIA="$ABRIR" \
+  MEOW_APP_SEM_JANELA="$SEM_JANELA" python3 "$SERVIDOR" > "$TUBO" &
 PID=$!
 
 limpar() {

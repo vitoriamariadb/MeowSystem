@@ -619,7 +619,16 @@ _aplicar() {
     return "$MEOW_OK"
   fi
   meow_info "aplicativos em traço: $postos posto(s), $removidos removido(s) — $FLAVOR"
-  meow_info "os ícones novos aparecem no próximo login (o painel não relê o tema)"
+  # O DESENHO VAI PARA A TELA, E NÃO PARA O PRÓXIMO LOGIN — 13/09/2026
+  #   A frase aqui era "os ícones novos aparecem no próximo login (o painel não
+  #   relê o tema)", e descrevia a tela certa: o arquivo no disco e a dock com o
+  #   desenho velho. Ela salvou ícones pela interface e não viu nenhum — "nada tá
+  #   aplicando de verdade". O painel e o menu relêem cada um pela porta dele.
+  meow_tela_reler
+  case $? in
+    0) meow_seco || meow_ok "os ícones novos já estão na dock e no menu" ;;
+    3) meow_info "fora da sessão gráfica: os ícones novos aparecem no próximo login" ;;
+  esac
   return "$MEOW_DIVERGENTE"
 }
 
