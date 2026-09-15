@@ -2190,8 +2190,51 @@ cmd_adicionar() {
 #
 # AS IMAGENS NÃO ENTRAM NO GIT
 #   O repositório guarda esta receita. As fotos ficam só na máquina.
-SEMENTE_REPO="${WALLPAPER_SEMENTE_REPO:-zhichaoh/catppuccin-wallpapers}"
-SEMENTE_COMMIT="${WALLPAPER_SEMENTE_COMMIT:-1023077979591cdeca76aae94e0359da1707a60e}"
+# A SEMENTE ACOMPANHA O FLAVOR — 15/09/2026
+#   Até aqui a semente era uma só, do Catppuccin, e o acervo não tinha como
+#   acompanhar a variante escolhida: pedir `FLAVOR="dracula"` pintava a interface
+#   inteira de Dracula e deixava o papel de parede em Catppuccin.
+#
+#   O default agora sai do FLAVOR. Quem não mexe em nada continua com a semente
+#   de sempre, porque todo flavor que não tem receita própria cai no `*`.
+#
+#   O commit segue PINADO por semente, pelo motivo do bloco acima: um upstream
+#   que muda sozinho transforma "rodei o instalador" em "rodei num dia em que o
+#   repositório estava de um jeito".
+#
+#   `WALLPAPER_SEMENTE_REPO` continua vencendo por cima, para teste e para quem
+#   quiser um acervo que não é de nenhum dos dois. Passar só o repo sem o commit
+#   é erro honesto: sem pino não há receita, e o script para e diz isso.
+_semente_do_flavor() {
+  case "${FLAVOR:-mocha}" in
+    dracula)
+      # PNG em 3440x1440 (ultrawide), editados a partir de material do Freepik.
+      # A pasta `colors/` são amostras de cor de poucos bytes e `source-images/`
+      # são os originais sem edição — nenhuma das duas é papel de parede, e é por
+      # isso que SEMENTE_IGNORAR existe.
+      SEMENTE_REPO_PADRAO="helpotters/dracula-wallpapers"
+      SEMENTE_COMMIT_PADRAO="bd6282d192b6cf8ac4241a69abaa657a0da43e75"
+      SEMENTE_IGNORAR_PADRAO="colors source-images"
+      SEMENTE_PREFIXO_PADRAO="drac"
+      ;;
+    *)
+      SEMENTE_REPO_PADRAO="zhichaoh/catppuccin-wallpapers"
+      SEMENTE_COMMIT_PADRAO="1023077979591cdeca76aae94e0359da1707a60e"
+      SEMENTE_IGNORAR_PADRAO=""
+      SEMENTE_PREFIXO_PADRAO="cat"
+      ;;
+  esac
+}
+_semente_do_flavor
+
+SEMENTE_REPO="${WALLPAPER_SEMENTE_REPO:-$SEMENTE_REPO_PADRAO}"
+SEMENTE_COMMIT="${WALLPAPER_SEMENTE_COMMIT:-$SEMENTE_COMMIT_PADRAO}"
+# Pastas do repositório que NÃO são papel de parede, separadas por espaço.
+SEMENTE_IGNORAR="${WALLPAPER_SEMENTE_IGNORAR:-$SEMENTE_IGNORAR_PADRAO}"
+# O prefixo do nome do arquivo no acervo. Era `cat-` cravado no `cmd_semear`, o
+# que deixava toda imagem do Dracula chamada `cat-...` — e o nome do arquivo é a
+# única pista de origem que sobra depois que a imagem está na pasta.
+SEMENTE_PREFIXO="${WALLPAPER_SEMENTE_PREFIXO:-$SEMENTE_PREFIXO_PADRAO}"
 # 0 = TODAS as imagens do repositorio. Um numero baixa so uma amostra, uma de
 # cada categoria por rodizio (util para testar sem gastar banda).
 SEMENTE_QUANTAS="${WALLPAPER_SEMENTE_QUANTAS:-0}"
@@ -2295,8 +2338,10 @@ except Exception:
     sys.exit(1)
 if 'tree' not in d:
     sys.exit(1)
+ignorar = set('$SEMENTE_IGNORAR'.split())
 imgs = [t['path'] for t in d['tree']
-        if t.get('type') == 'blob' and t['path'].lower().endswith(('.png', '.jpg', '.jpeg'))]
+        if t.get('type') == 'blob' and t['path'].lower().endswith(('.png', '.jpg', '.jpeg'))
+        and t['path'].split('/')[0] not in ignorar]
 por_pasta = {}
 for p in imgs:
     por_pasta.setdefault(p.split('/')[0], []).append(p)
@@ -2329,7 +2374,9 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
   while IFS=$'\t' read -r caminho caminho_url; do
     [ -n "$caminho" ] || continue
     # Prefixo com a categoria: o nome vira legível e a ordem alfanumérica agrupa.
-    local nome="cat-${caminho//\//-}"
+    # O prefixo é o da SEMENTE, não `cat-` cravado: com duas origens possíveis,
+    # o nome do arquivo é a única pista de procedência que sobra no acervo.
+    local nome="${SEMENTE_PREFIXO}-${caminho//\//-}"
     local destino="$ATIVOS/$nome"
     [ -e "$destino" ] && continue
     # O BANIMENTO PRECISA SOBREVIVER A UM `semear` — E NÃO SOBREVIVIA
