@@ -1352,8 +1352,15 @@ reconciliar_sumicos() {
   #   (`cat-`, `meow-`, `wp`): o `ls` já os devolvia em ordem, e a comparação
   #   acertava por acaso. A semente do Dracula introduziu `drac-`, que cai entre
   #   `cat-` e `meow-`, e a ordem acidental acabou — foi assim que apareceu.
-  mapfile -t sumidas < <(comm -23 <(LC_ALL=C sort -u "$VISTAS") \
-                                  <(printf '%s\n' ${agora[@]+"${agora[@]}"} | LC_ALL=C sort -u))
+  #   E o `LC_ALL=C` vale para o `comm` TAMBÉM, não só para os dois `sort`.
+  #   Ordenar em C e comparar na locale da sessão deixa a validação de ordem do
+  #   comm a cargo de uma collation diferente da que produziu a ordem. Depois da
+  #   primeira correção o aviso não sumiu, só trocou de lado ("arquivo 2" virou
+  #   "arquivo 1"); com o comm em C ele parou. Não fui atrás de qual par de
+  #   nomes as duas collations classificam ao contrário — o que está medido é
+  #   que alinhar as três pontas no mesmo C resolve, e é barato manter assim.
+  mapfile -t sumidas < <(LC_ALL=C comm -23 <(LC_ALL=C sort -u "$VISTAS") \
+                                           <(printf '%s\n' ${agora[@]+"${agora[@]}"} | LC_ALL=C sort -u))
   [ "${#sumidas[@]}" = "0" ] && { meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null; return 0; }
 
   if [ "$n_antes" -gt 4 ] && [ "${#sumidas[@]}" -gt $(( n_antes / 2 )) ]; then
