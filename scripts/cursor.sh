@@ -204,8 +204,34 @@ CURSOR_ADICIONADO=""
 # O diretório do tema é sempre `<valor>-cursors`: é o nome que o próprio pacote
 # usa por dentro, e o `index.theme` do tema não pode ser renomeado sem quebrar a
 # correspondência com o `Inherits` que escrevemos.
-_cursor_dir_tema() { printf '%s/%s-cursors' "$CURSOR_ICONES" "$1"; }
-_cursor_nome_tema() { printf '%s-cursors' "$1"; }
+# UM TEMA QUE JÁ EXISTE COM O NOME EXATO VENCE A CONVENÇÃO — 2026-09-11
+#     A convenção `<valor>-cursors` vem do Catppuccin, cujos pacotes se chamam
+#     assim (`catppuccin-mocha-light-cursors`). Ela é boa para o que o projeto
+#     baixa, e ruim para o que já está na máquina: o tema Dracula instala a pasta
+#     `Dracula-Cursor` (sem o `-s`, e sem o sufixo), então `CURSOR="Dracula-Cursor"`
+#     procurava `Dracula-Cursor-cursors`, não achava, e saía BAIXANDO um zip do
+#     GitHub do Catppuccin que não existe — a mesma armadilha que o comentário
+#     de `aplicar` já descreve para o caso `-cursors-cursors`.
+#
+#     A regra agora tem duas linhas, nesta ordem: se existir uma pasta com o nome
+#     EXATO em alguma das raízes, ela é o tema; senão, vale a convenção de antes.
+#     Quem usa Catppuccin não vê diferença — `catppuccin-mocha-light` não existe
+#     como pasta, só `catppuccin-mocha-light-cursors`, então cai na segunda linha.
+_cursor_dir_exato() {
+  local raiz
+  for raiz in "${CURSOR_RAIZES[@]}"; do
+    [ -d "$raiz/$1" ] && { printf '%s/%s' "$raiz" "$1"; return 0; }
+  done
+  return 1
+}
+_cursor_dir_tema() {
+  local exato; exato="$(_cursor_dir_exato "$1")" && { printf '%s' "$exato"; return; }
+  printf '%s/%s-cursors' "$CURSOR_ICONES" "$1"
+}
+_cursor_nome_tema() {
+  _cursor_dir_exato "$1" >/dev/null && { printf '%s' "$1"; return; }
+  printf '%s-cursors' "$1"
+}
 _cursor_url() {
   printf 'https://github.com/catppuccin/cursors/releases/download/%s/%s-cursors.zip' \
          "$CURSOR_VERSAO" "$1"
