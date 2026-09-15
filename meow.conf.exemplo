@@ -48,11 +48,18 @@
 #   comentário da de cima. São 29 chaves deste arquivo que vivem assim; mover
 #   uma sem a irmã apaga a explicação das duas sem nada acusar.
 
-# @ Variante do Catppuccin
-# > Escuro em três intensidades, ou claro. Só valem as combinações que já têm captura pronta.
-# [essencial] Qual variante do Catppuccin. Só vale o que tem captura em
+# @ Variante do tema
+# > Catppuccin em três escuros e um claro, ou Dracula. Só valem as combinações que já têm captura pronta.
+# [essencial] Qual variante de cor. Só vale o que tem captura em
 # assets/temas/capturados/ — o pré-voo avisa antes de instalar se a combinação não existir.
-# mocha | macchiato | frappe | latte
+#
+# O DRACULA ENTROU COMO VARIANTE, NÃO COMO OUTRO TEMA — 15/09/2026
+#   A paleta dele tem as mesmas 26 cores nomeadas dos quatro flavors do
+#   Catppuccin (conferido chave a chave), então cabe inteiro no mecanismo que já
+#   existia: uma entrada em `assets/paleta/catppuccin.json`, um `.ron` gerado e
+#   uma captura. Por isso o título desta chave deixou de dizer "do Catppuccin" —
+#   a lista abaixo não é mais só dele.
+# mocha | macchiato | frappe | latte | dracula
 FLAVOR="mocha"
 
 # @ Cor de destaque

@@ -1,0 +1,4 @@
+captura: dracula-mauve
+quando: 2026-09-11T22:27:28-03:00
+origem: /home/andrefarias/.config/cosmic
+arquivos: 189
