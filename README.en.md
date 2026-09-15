@@ -92,9 +92,11 @@ drawn.
 Every variable the installer reads has a control here — and a test enforces it, so a new key
 can't be born invisible.
 
-Clicking never changes the machine: choices pile up and a single button writes and applies them.
-The **Ensaiar sem gravar** button (dry run) glows amber while it is on, and with it every
-"Executar" shows what would happen, writing nothing.
+Clicking never changes the machine: choices pile up, and **Salvar e aplicar** writes them and runs
+the installer right away. With nothing pending, the same button applies what is already saved.
+The cards show what the machine has now — the dock's radius, the opacity, the clock's seconds —
+and the page re-reads the machine when the job finishes. To see what would change first, the dry
+run is still in the terminal: `./install.sh --dry-run`.
 
 <img src="docs/capturas/painel-forma.png" width="920" alt="The panel-and-dock tab, with a live drawing above the controls">
 
