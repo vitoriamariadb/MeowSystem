@@ -1341,7 +1341,19 @@ reconciliar_sumicos() {
     return 0                                   # guarda 2
   fi
 
-  mapfile -t sumidas < <(comm -23 <(LC_ALL=C sort -u "$VISTAS") <(printf '%s\n' ${agora[@]+"${agora[@]}"}))
+  # OS DOIS LADOS DO `comm` PRECISAM ESTAR ORDENADOS — 15/09/2026
+  #   Só o primeiro estava. O `comm` avisa no stderr ("o arquivo 2 não está
+  #   ordenado") e SEGUE, devolvendo uma diferença errada — e o que sai daqui é
+  #   a lista do que vai ser BANIDO. As três guardas em volta existem para não
+  #   banir por engano; não adianta nenhuma delas se a conta que as alimenta
+  #   está torta.
+  #
+  #   Ficou escondido enquanto todo nome vinha com o mesmo punhado de prefixos
+  #   (`cat-`, `meow-`, `wp`): o `ls` já os devolvia em ordem, e a comparação
+  #   acertava por acaso. A semente do Dracula introduziu `drac-`, que cai entre
+  #   `cat-` e `meow-`, e a ordem acidental acabou — foi assim que apareceu.
+  mapfile -t sumidas < <(comm -23 <(LC_ALL=C sort -u "$VISTAS") \
+                                  <(printf '%s\n' ${agora[@]+"${agora[@]}"} | LC_ALL=C sort -u))
   [ "${#sumidas[@]}" = "0" ] && { meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null; return 0; }
 
   if [ "$n_antes" -gt 4 ] && [ "${#sumidas[@]}" -gt $(( n_antes / 2 )) ]; then
@@ -2177,7 +2189,7 @@ cmd_adicionar() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- semear: a coleção Catppuccin da comunidade ----------------------------
+# --- semear: a coleção da comunidade, conforme o flavor ---------------------
 # POR QUE NÃO CLONAR O REPOSITÓRIO
 #   `zhichaoh/catppuccin-wallpapers` tem 371 MB e 242 imagens; o
 #   `orangci/walls-catppuccin-mocha` tem 795 MB. Baixar tudo para usar uma dúzia
@@ -2422,7 +2434,7 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
   fi
 
   if [ "$n" -eq 0 ]; then
-    meow_ok "coleção Catppuccin já semeada"
+    meow_ok "coleção da semente já semeada (${SEMENTE_REPO})"
     return "$MEOW_OK"
   fi
   # No seco NADA foi baixado — dizer "baixadas", no passado, é a mesma mentira
@@ -2430,10 +2442,10 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
   # dela e o log do install.sh). O tempo verbal aqui é a diferença entre um
   # relatório e uma promessa.
   if meow_seco; then
-    meow_muda "baixaria $n imagem(ns) da coleção Catppuccin (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
+    meow_muda "baixaria $n imagem(ns) da semente (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
     return "$MEOW_DIVERGENTE"
   fi
-  meow_ok "$n imagem(ns) da coleção Catppuccin baixadas (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
+  meow_ok "$n imagem(ns) da semente baixadas (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
   meow_seco || cmd_aplicar >/dev/null   # a lista é fotografada no load: precisa reescrever
   return "$MEOW_DIVERGENTE"
 }
