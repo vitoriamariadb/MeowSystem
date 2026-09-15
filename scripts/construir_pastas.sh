@@ -105,6 +105,39 @@ BASE_DIR="/usr/share/icons/$BASE"
 COR="${ICONES_PASTAS:-cat-mocha-mauve}"
 FONTE="${MEOW_CAT_FOLDERS:-$RAIZ/assets/icones/upstream/papirus-folders}"
 
+# UM FLAVOR SEM COR NO PAPIRUS-FOLDERS CAI NO VIZINHO, E DIZ QUE CAIU — 15/09/2026
+#   O valor padrão de `ICONES_PASTAS` é `cat-${FLAVOR}-${ACCENT}`, e o
+#   papirus-folders traz só as 56 combinações do Catppuccin (4 flavors × 14
+#   accents). Desde que o `dracula` entrou como variante, `FLAVOR="dracula"` pede
+#   `cat-dracula-mauve` — que não existe.
+#
+#   O que acontecia: `montar_de_para` testa `[ -f "$mauve" ]` e devolve 1 quando
+#   o arquivo não está lá. A função falha, o passe não pinta, e as pastas ficam
+#   com a cor de fábrica SEM UMA LINHA DE AVISO. É o modo de falhar que este
+#   repositório não aceita — o mesmo da leva das ferramentas que falhavam caladas.
+#
+#   A queda preserva o ACCENT, que é escolha à parte: quem pediu `pink` continua
+#   com pink. Só o flavor troca, e para o `mocha` — o mais escuro do Catppuccin,
+#   que é onde o Dracula mora. Trocar o `ICONES_PASTAS` à mão continua valendo e
+#   passa direto por aqui, porque a condição é o arquivo existir, não o nome.
+_cor_de_pasta_existe() { [ -f "$FONTE/src/64x64/places/folder-$1-documents.svg" ]; }
+
+if [ -d "$FONTE/src/64x64/places" ] && ! _cor_de_pasta_existe "$COR"; then
+  _cor_pedida="$COR"
+  case "$COR" in
+    cat-*-*) _cor_alt="cat-mocha-${COR##*-}" ;;
+    *)       _cor_alt="cat-mocha-mauve" ;;
+  esac
+  _cor_de_pasta_existe "$_cor_alt" || _cor_alt="cat-mocha-mauve"
+  if _cor_de_pasta_existe "$_cor_alt"; then
+    COR="$_cor_alt"
+    meow_info "pastas: '$_cor_pedida' não existe no papirus-folders — usando '$COR'"
+  else
+    meow_aviso "pastas: nem '$_cor_pedida' nem '$_cor_alt' existem no papirus-folders — as pastas ficam com a cor de fábrica"
+  fi
+  unset _cor_pedida _cor_alt
+fi
+
 TAMANHOS=(22x22 24x24 32x32 48x48 64x64)
 
 # --- os nomes que este script CEDE (ver o cabeçalho) -------------------------
