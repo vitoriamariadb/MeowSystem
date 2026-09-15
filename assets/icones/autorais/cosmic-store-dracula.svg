@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Loja de Aplicativos">
+  <title>cosmic-store — Catppuccin Dracula</title>
+  <path d="M17.6 19.5 v-4.8 c0 -3.5 2.9 -6.4 6.4 -6.4 c3.5 0 6.4 2.9 6.4 6.4 v4.8"
+        fill="none" stroke="#191A21" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M17.6 19.5 v-4.8 c0 -3.5 2.9 -6.4 6.4 -6.4 c3.5 0 6.4 2.9 6.4 6.4 v4.8"
+        fill="none" stroke="#62D6E8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M9 17 h30 l-2.3 20.9 c-0.2 1.9 -1.8 3.3 -3.7 3.3 H15 c-1.9 0 -3.5 -1.4 -3.7 -3.3 z"
+        fill="#62D6E8" stroke="#191A21" stroke-width="2" stroke-linejoin="round"/>
+</svg>
