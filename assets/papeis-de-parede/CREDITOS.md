@@ -57,6 +57,37 @@ O pedido original era **SVG em 4K**. Estas imagens são **PNG em 3440×1440**
 (ultrawide), segundo o próprio `readme.org` do repositório. Servem como acervo
 provisório; não são vetor e não são 4K.
 
+## `tulip-orchid` — o gerador da casa (autoral)
+
+| | |
+|---|---|
+| Repositório | `[REDACTED]/tulip-orchid` (privado) |
+| O que é | gerador de papéis de parede; 13 desenhos em 4 categorias (catedral, cemitério, ornamento, noite) |
+| Exporta | SVG 4K (3840×2160), SVG ultrawide, SVG mobile e **PNG 4K** |
+| Licença | autoral — do dono do MeowSystem |
+
+**Ainda não é semente de repositório, e não é por escolha.** Três coisas
+impedem, todas medidas em 15/09/2026:
+
+1. o repositório é **privado**, e o `semear` baixa por URL crua, sem autenticação;
+2. as imagens **não existem como arquivo** lá dentro — `src/lib/wallpapers/render.ts`
+   as desenha em tempo de execução a partir de `scenes.ts`;
+3. o formato padrão é **SVG**, e o `cosmic-bg` não lê SVG. Conferido no binário:
+   avif, gif, jpeg, jpg, png, tiff, webp.
+
+O caminho que funciona hoje é **pasta-semente**: exportar **PNG 4K** pelo menu de
+download do gerador para uma pasta, e apontar a semente para ela.
+
+```sh
+WALLPAPER_SEMENTE_REPO="$HOME/Imagens/tulip-orchid" \
+WALLPAPER_SEMENTE_PREFIXO="tulip" \
+  meow wallpaper semear
+```
+
+Sendo autoral, é a única das três origens cujas imagens **podem** ser publicadas
+junto com o tema. Quando houver PNG renderizado num repositório público ou num
+release, ela vira a semente definitiva do `dracula` e a do helpotters sai.
+
 ## Como trocar a semente sem editar código
 
 ```sh
@@ -66,5 +97,8 @@ WALLPAPER_SEMENTE_IGNORAR="pasta-a pasta-b" \
 WALLPAPER_SEMENTE_PREFIXO="abrev" \
   meow wallpaper semear
 ```
+
+O repositório pode ser `dono/repo` (baixa do GitHub, exige o commit) ou um
+caminho começando com `/`, `~` ou `./` (copia da pasta, sem rede e sem pino).
 
 Passar o repositório sem o commit é erro honesto: sem pino não há receita.
