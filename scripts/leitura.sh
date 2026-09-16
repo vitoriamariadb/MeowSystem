@@ -279,7 +279,12 @@ LEITURA_K_FIM="$LEITURA_BASE/leitura_hora_fim"
 LEITURA_APPLET_ID="com.meowsystem.AppletLeitura"
 LEITURA_APPLET_BIN="$HOME/.local/bin/meow-applet-leitura"
 LEITURA_APPLET_SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$LEITURA_APPLET_ID.desktop"
+# Os DOIS arquivos da topbar: `plugins_wings` é o par de asas, `plugins_center`
+# é o meio — e um applet arrastado para o meio em Ajustes só aparece no segundo.
+# Ver o bloco em `leitura_build.sh`: olhar só as asas dava aviso falso sobre um
+# applet que estava na tela.
 LEITURA_APPLET_ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
+LEITURA_APPLET_MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center"
 
 # ONDE O APPLET GUARDA O PONTO QUE ELA ARRASTOU — 31/08/2026
 #   `Config::new_state(NS_ESTADO, 1)` do libcosmic escreve em
@@ -930,8 +935,10 @@ cmd_estado() {
   fi
   if grep -qs "\"$LEITURA_APPLET_ID\"" "$LEITURA_APPLET_ASA"; then
     meow_ok "$(_leitura_col "applet: na topbar")citado no plugins_wings"
+  elif grep -qs "\"$LEITURA_APPLET_ID\"" "$LEITURA_APPLET_MEIO"; then
+    meow_ok "$(_leitura_col "applet: na topbar")citado no plugins_center"
   else
-    meow_pula "$(_leitura_col "applet: na topbar")NÃO citado no plugins_wings — acrescente \"$LEITURA_APPLET_ID\" à mão"
+    meow_pula "$(_leitura_col "applet: na topbar")NÃO citado nem nas asas nem no meio — acrescente \"$LEITURA_APPLET_ID\" à mão"
   fi
 
   # AS DUAS PERGUNTAS QUE NINGUÉM VÊ HOJE, E QUE SÃO DIFERENTES: o binário do
