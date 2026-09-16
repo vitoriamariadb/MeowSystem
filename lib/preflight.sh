@@ -171,6 +171,10 @@ meow_precisa_root() {
     meow_tem "$b" || pkg_faltam+=("$b")
   done
   [ -d /usr/share/icons/Papirus-Dark ] || pkg_faltam+=(papirus-icon-theme)
+  # O numpy entra aqui pelo mesmo motivo que os outros: se ele falta, a etapa de
+  # pacotes vai pedir sudo, e o pré-voo existe para que a senha seja pedida UMA
+  # vez, antes de tudo, e não no meio de cinquenta e oito etapas.
+  python3 -c 'import numpy' 2>/dev/null || pkg_faltam+=(python3-numpy)
   [ ${#pkg_faltam[@]} -gt 0 ] && motivos+=("instalar pacotes: ${pkg_faltam[*]}")
 
   # A PONTE COBRE ESTES DOIS — 08/09/2026

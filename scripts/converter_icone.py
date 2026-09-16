@@ -268,7 +268,24 @@ def quantizar(rgba: np.ndarray, k: int, funde: float) -> tuple[np.ndarray, np.nd
              | amostra[:, 1].astype(np.int32) << 8
              | amostra[:, 2].astype(np.int32))
     vals, cont = np.unique(chave, return_counts=True)
-    ordem = np.argsort(-cont)
+    # `kind="stable"` NÃO É PREFERÊNCIA — É O QUE TORNA ISTO REPRODUZÍVEL.
+    #   O padrão do argsort é quicksort, que não é estável: com contagens
+    #   EMPATADAS a ordem entre elas depende da implementação, e implementação
+    #   muda entre versões do numpy. Medido no `org.gnome.FileRoller` em
+    #   16/09/2026: quatro cores empatadas em 9 pixels disputando as últimas
+    #   vagas do top-10, e o quicksort escolhia duas delas enquanto o estável
+    #   escolhia outras duas. Cores diferentes -> traçado diferente -> SVG
+    #   diferente, a partir do MESMO arquivo de origem.
+    #
+    #   O sintoma chegou pelo caminho mais longo possível: o `/usr/bin/python3`
+    #   desta máquina não tinha numpy, então o `construir_convertidos.sh` se
+    #   pulava inteiro com "sem numpy". Instalado o `python3-numpy` (1.26.4) ao
+    #   lado do pyenv (2.4.4) que gerou a arte no disco, o `--conferir` passou a
+    #   acusar 1 desatualizado num acervo que ninguém tinha tocado.
+    #
+    #   O estável desempata pela ordem do `np.unique`, que é a ordem crescente
+    #   da chave de cor — determinística, e a mesma em qualquer numpy.
+    ordem = np.argsort(-cont, kind="stable")
     topo = vals[ordem[:k]]
     cobertura = cont[ordem[:k]].sum() / len(chave)
 

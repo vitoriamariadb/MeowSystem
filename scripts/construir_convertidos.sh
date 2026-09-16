@@ -229,6 +229,13 @@ _avisar_faltantes() {
 #   `--conferir` gritando 123 divergências num tema correto.
 _conferir() {
   local nome ausentes=0 divergentes=0 orfaos=0 total=0 arq querido rc
+  # QUAIS, E NÃO SÓ QUANTOS — 16/09/2026
+  #   A linha dizia "0 a gerar, 1 desatualizados, 0 a remover (de 31)" e o
+  #   parágrafo seguinte mandava gerar a folha e mostrar a ela ANTES de
+  #   reconverter. Só que sem o nome não há o que olhar: a folha sai com os 31 e
+  #   quem lê tem de caçar a diferença a olho. Um número que não diz onde é um
+  #   número que manda procurar.
+  local -a n_ausentes=() n_divergentes=() n_orfaos=()
   for nome in "${!CONHECIDO[@]}"; do
     set +e
     querido="$(_desejado_de "$nome")"; rc=$?
@@ -238,9 +245,9 @@ _conferir() {
     [ "$rc" = "$MEOW_OK" ] || continue
     total=$((total + 1))
     if [ ! -f "$DESTINO/$nome.svg" ]; then
-      ausentes=$((ausentes + 1))
+      ausentes=$((ausentes + 1)); n_ausentes+=("$nome")
     elif [ "$querido" != "$(cat "$DESTINO/$nome.svg")" ]; then
-      divergentes=$((divergentes + 1))
+      divergentes=$((divergentes + 1)); n_divergentes+=("$nome")
     fi
   done
 
@@ -248,7 +255,7 @@ _conferir() {
     for arq in "$DESTINO"/*.svg; do
       [ -e "$arq" ] || continue
       nome="$(basename "$arq" .svg)"
-      [ -n "${CONHECIDO[$nome]:-}" ] || orfaos=$((orfaos + 1))
+      [ -n "${CONHECIDO[$nome]:-}" ] || { orfaos=$((orfaos + 1)); n_orfaos+=("$nome"); }
     done
   fi
 
@@ -257,6 +264,9 @@ _conferir() {
     return "$MEOW_OK"
   fi
   meow_muda "ícones convertidos: $ausentes a gerar, $divergentes desatualizados, $orfaos a remover (de $total)"
+  [ "$ausentes"    -gt 0 ] && meow_info "  a gerar:        ${n_ausentes[*]}"
+  [ "$divergentes" -gt 0 ] && meow_info "  desatualizado:  ${n_divergentes[*]}"
+  [ "$orfaos"      -gt 0 ] && meow_info "  a remover:      ${n_orfaos[*]}"
   meow_info "  desatualizado = a arte do Papirus mudou. NÃO conserte no automático:"
   meow_info "  gere a folha e mostre a ela antes — arte aprovada não se troca em silêncio"
   return "$MEOW_DIVERGENTE"
