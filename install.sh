@@ -463,6 +463,20 @@ etapa_pacotes() {
   done
   [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
 
+  # O NUMPY NÃO TEM BINÁRIO, E NÃO BASTA "ter python3" — 16/09/2026
+  #   O `converter_icone.py` é quem faz o traçado de contorno e o
+  #   Douglas-Peucker, e ele não roda sem numpy. Sem isto o
+  #   `construir_convertidos.sh` se pulava inteiro com "sem numpy" e os 31
+  #   ícones convertidos ficavam FORA do tema, sem o instalador dizer que
+  #   faltava um pacote — porque a etapa de pacotes não sabia que ele existia.
+  #
+  #   E O TESTE É COM O `python3` DO PATH, de propósito. Esta máquina tem pyenv:
+  #   o `python3` do shell dele tinha numpy 2.4.4 e o `/usr/bin/python3` não
+  #   tinha nenhum. Quem roda os scripts é o segundo (timer, hook, subshell sem
+  #   a função do pyenv), então é o segundo que tem de ser testado — e é o que
+  #   um `python3 -c` dentro de um script faz naturalmente.
+  python3 -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
+
   if [ ${#faltam[@]} -eq 0 ]; then
     meow_ok "todos os pacotes necessários já estão instalados"
     return 0
