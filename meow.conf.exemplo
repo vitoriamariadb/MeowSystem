@@ -456,6 +456,24 @@ ICONES_RESGATADOS="sim"           # sim | nao
 # A cor das PASTAS comuns, pintada pelo `papirus-folders`. Deixe escrito com
 # `${FLAVOR}` e `${ACCENT}` em vez do nome já expandido: assim trocar o flavor lá
 # em cima repinta as pastas na mesma passagem, sem ninguém voltar aqui.
+#
+# O PADRÃO NÃO EXISTE PARA TODO FLAVOR, E ISSO É TRATADO — 16/09/2026
+#   `cat-${FLAVOR}-${ACCENT}` funciona para os quatro sabores do Catppuccin
+#   porque o papirus-folders traz exatamente as 56 combinações deles (4 flavors
+#   × 14 accents). Com `FLAVOR="dracula"` o valor vira `cat-dracula-mauve`, que
+#   NÃO existe — e não vai existir: o papirus-folders é um pack de terceiro e
+#   não conhece o Dracula.
+#
+#   O `construir_pastas.sh` confere a cor contra o disco antes de usar e, não
+#   achando, cai no `mocha` — o mais escuro do Catppuccin, que é onde o Dracula
+#   mora — PRESERVANDO o accent: quem pediu `pink` continua com pink. E avisa na
+#   tela qual cor entrou no lugar.
+#
+#   Antes dessa guarda a falha era CALADA: `montar_de_para` não achava o arquivo,
+#   devolvia 1, e as pastas ficavam sem pintura nenhuma sem uma linha de aviso.
+#   Escrever aqui uma cor fixa do Catppuccin "resolveria" o sintoma e quebraria
+#   a promessa da linha de cima — a de que trocar o flavor repinta as pastas
+#   sozinho. Por isso o valor continua escrito com as variáveis.
 ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 
 # @ Variante dos ícones de arquivo

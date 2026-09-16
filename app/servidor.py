@@ -1378,13 +1378,40 @@ def _temas_de_cursor():
 
         `set` e não lista: o mesmo tema pode estar em duas raízes, e oferecer o
         mesmo nome duas vezes é o defeito que esta função veio consertar.
+
+    A PREMISSA DE 01/09 CAIU EM 15/09, E ESTA LISTA SEGUIA NELA
+        O texto acima diz que um diretório sem `-cursors` "simplesmente não é
+        escolhível por esta chave". Era verdade enquanto `_cursor_dir_tema`
+        montava o caminho SEMPRE por convenção. Em 15/09 o `cursor.sh` ganhou
+        `_cursor_dir_exato`: se existe pasta com o nome EXATO em alguma raiz,
+        ela é o tema, e só sem isso vale a convenção. Foi o que fez
+        `CURSOR="Dracula-Cursor"` funcionar — o tema instala `Dracula-Cursor`,
+        sem `-s` e sem sufixo.
+
+        A lista não acompanhou: o `Dracula-Cursor` estava instalado nas DUAS
+        raízes, o `meow.conf` já apontava para ele, e a tela oferecia só o
+        Catppuccin. Quem olhasse a interface concluiria que o ponteiro do tema
+        não tinha sido trazido.
+
+        Agora a regra é a mesma dos dois lados: entra quem o `cursor.sh` sabe
+        resolver — por nome exato OU por convenção. O Adwaita continua fora,
+        pelo motivo de sempre: `Adwaita/cursors` existe, mas escolhê-lo faria o
+        script procurar `Adwaita-cursors`, não achar, e tentar baixar da rede.
+        A diferença é que agora isso é consequência da regra, não de um filtro
+        de texto que envelheceu.
     """
     fora = set()
     for nome, caminho in _dirs_de_icones():
-        if not nome.endswith(SUFIXO_CURSOR):
+        if not os.path.isdir(os.path.join(caminho, "cursors")):
             continue
-        if os.path.isdir(os.path.join(caminho, "cursors")):
+        if nome.endswith(SUFIXO_CURSOR):
+            # Convenção do Catppuccin: o valor é o nome menos o sufixo.
             fora.add(nome[: -len(SUFIXO_CURSOR)])
+        elif not os.path.isdir(os.path.join(caminho + SUFIXO_CURSOR, "cursors")):
+            # Nome exato: só entra se NÃO existir um irmão `<nome>-cursors`,
+            # senão a mesma pasta apareceria duas vezes com nomes diferentes —
+            # o defeito que esta função veio consertar.
+            fora.add(nome)
     return sorted(fora)
 
 
