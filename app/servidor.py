@@ -4651,6 +4651,32 @@ class Manipulador(BaseHTTPRequestHandler):
             pass
         return fora
 
+    def _mapa_dracula(self):
+        """Os nomes de ícone que o pack autoral Dracula veste, por nome.
+
+        POR QUE ELE PRECISA APARECER AQUI — 16/09/2026
+          O `icones_apps_dracula.sh` escreve em `scalable/apps`, que VENCE o
+          `48x48/apps` do Arcticons no resolvedor. Sem esta função a página
+          mostrava a varinha do Dracula no Krita e escrevia `pink` embaixo, que
+          é a cor do Arcticons — o desenho de um acervo com a etiqueta do
+          outro. A regra da etiqueta é antiga e continua a mesma: ela diz o que
+          está NA TELA, não o que está num mapa.
+        """
+        fora = set()
+        caminho = os.path.join(RAIZ, "assets", "icones", "apps-dracula.map")
+        try:
+            with open(caminho, "r", encoding="utf-8") as fh:
+                for linha in fh:
+                    corte = linha.split("#", 1)[0].strip()
+                    if not corte or ":" not in corte:
+                        continue
+                    nome = corte.split(":", 1)[0].strip()
+                    if nome:
+                        fora.add(nome)
+        except OSError:
+            pass
+        return fora
+
     def _mapa_arcticons(self):
         """As linhas ativas de `apps-arcticons.map`, por id de aplicativo.
 
@@ -4772,8 +4798,15 @@ class Manipulador(BaseHTTPRequestHandler):
         busca = (consulta.get("busca", [""])[0] or "").strip().lower()
         mapa = self._mapa_arcticons()
         traco = self._mapa_convertidos()
+        # O terceiro acervo. Ele não traz cor — cada desenho já tem as suas —,
+        # então é um conjunto de nomes, e não um dicionário.
+        pack_dracula = self._mapa_dracula()
         tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
         base_tema = os.path.expanduser("~/.local/share/icons/%s" % tema)
+        # O diretório que o pack ocupa. Perguntar "o arquivo na tela mora AQUI?"
+        # é mais honesto que perguntar "a chave está ligada?": a chave pode ter
+        # acabado de mudar e o instalador ainda não ter rodado.
+        dir_pack = os.path.join(base_tema, "scalable", "apps")
         fora = []
         jogos = 0
         travas = self._travas_do_arcticons()
@@ -4797,6 +4830,13 @@ class Manipulador(BaseHTTPRequestHandler):
                 "id": d["id"], "nome": d["nome"], "icone": d["icone"],
                 "origem": d["origem"], "nosso": nosso,
                 "url": ("/previa?tipo=arquivo&id=" + quote(atual, safe="")) if atual else "",
+                # VENCE OS OUTROS DOIS NA ETIQUETA PORQUE VENCE NA TELA.
+                #   `scalable/apps` ganha do `48x48/apps` no resolvedor; dizer a
+                #   cor do Arcticons debaixo de um desenho do Dracula seria a
+                #   página descrevendo um arquivo que ninguém está vendo.
+                "dracula": bool(
+                    atual and os.path.dirname(atual) == dir_pack
+                    and (d["icone"] or d["id"]) in pack_dracula),
                 "mapa": mapa.get(d["id"]) or mapa.get(d["icone"]) or None,
                 # O SEGUNDO ACERVO DE TRAÇO, num campo PRÓPRIO — 08/09/2026.
                 # 33 aplicativos são vestidos por ele, e a página não sabia:

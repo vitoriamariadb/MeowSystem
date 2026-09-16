@@ -1997,7 +1997,16 @@ function gradeDeApps(apps, filtro, recarregar) {
        *   — caíam todos em "nosso", sem cor. Duas telas com o mesmo estado
        *   parecendo estados diferentes é a página mentindo por omissão, que é o
        *   defeito que ela já apontou na contagem dos jogos. */
-      (a.mapa || a.traco)
+      /* O TERCEIRO ACERVO VEM PRIMEIRO — 16/09/2026.
+       *   O pack autoral Dracula escreve em `scalable/apps`, que vence o
+       *   `48x48/apps` do Arcticons no resolvedor. Sem esta linha a tela
+       *   mostrava a varinha do Dracula no Krita com `pink` embaixo, que é a
+       *   cor do Arcticons: o desenho de um acervo com a etiqueta do outro.
+       *   Ele não tem cor para dizer — cada desenho traz as suas, de 6 a 10 —,
+       *   então a etiqueta é o nome do acervo. */
+      a.dracula
+        ? elemento("span", { class: "app-marca app-dracula", texto: "Dracula" })
+        : (a.mapa || a.traco)
         ? elemento("span", { class: "app-marca", texto: (a.mapa || a.traco).cor })
         : elemento("span", { class: "app-marca app-fabrica",
                              texto: a.nosso ? "nosso" : "de fábrica" }),

@@ -1676,6 +1676,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
  * pequena. "de fábrica" é a ausência de decisão e por isso é a mais apagada. */
 .app-marca { font-size: var(--t-legenda); color: var(--overlay2); }
 .app-fabrica { color: var(--overlay0); }
+/* O pack autoral Dracula não tem UMA cor para a etiqueta usar — cada desenho
+ * traz de 6 a 10 cores próprias. Então a etiqueta é o NOME do acervo, e o
+ * mauve a separa das outras, que são todas nome de cor da paleta. */
+.app-dracula { color: var(--mauve); }
 
 /* O painel de escolha nasce embaixo do aplicativo clicado, ocupando a linha
  * inteira — assim o contexto não se perde. Borda em accent porque ele está
