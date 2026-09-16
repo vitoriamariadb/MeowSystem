@@ -2242,10 +2242,32 @@ _semente_do_flavor() {
       #   `svg/` fica de fora do rodízio: o semear já ignora a extensão, mas a
       #   pasta contaria como uma categoria que não existe e desequilibraria o
       #   sorteio entre catedral, cemiterio, noite e ornamento.
-      SEMENTE_REPO_PADRAO="[REDACTED]/tulip-orchid-wallpapers"
-      SEMENTE_COMMIT_PADRAO="98770f8a4092b0376d43187dc29fd8110de4e567"
-      SEMENTE_IGNORAR_PADRAO="svg"
-      SEMENTE_PREFIXO_PADRAO="tulip"
+      #   O DONO DO ACERVO NÃO MORA NO CÓDIGO — e a primeira versão disto
+      #   morava. O sanitizer de identidade do Spellbook redige qualquer
+      #   ocorrência do `user.name` do git nos arquivos que entram num commit, e
+      #   está certo: este é repositório de DUAS pessoas, e cravar o usuário do
+      #   GitHub de uma delas aqui é exatamente o que ele existe para impedir.
+      #   Cravado, virou `[REDACTED]/tulip-orchid-wallpapers` e a semeadura
+      #   passou a responder "não consegui falar com o GitHub".
+      #
+      #   O `dono/repo` vem do conf (`WALLPAPER_DRACULA_REPO`), que não é
+      #   versionado. Sem ele configurado, o flavor cai no acervo comum em vez
+      #   de quebrar: quem instala o tema sem ter um acervo próprio continua
+      #   tendo papel de parede.
+      if [ -n "${WALLPAPER_DRACULA_REPO:-}" ]; then
+        SEMENTE_REPO_PADRAO="$WALLPAPER_DRACULA_REPO"
+        SEMENTE_COMMIT_PADRAO="${WALLPAPER_DRACULA_COMMIT:-}"
+        SEMENTE_IGNORAR_PADRAO="${WALLPAPER_DRACULA_IGNORAR:-svg}"
+        SEMENTE_PREFIXO_PADRAO="${WALLPAPER_DRACULA_PREFIXO:-tulip}"
+        if [ -z "$SEMENTE_COMMIT_PADRAO" ] && ! _semente_e_pasta "$SEMENTE_REPO_PADRAO"; then
+          meow_aviso "WALLPAPER_DRACULA_REPO sem WALLPAPER_DRACULA_COMMIT — sem pino não há receita"
+        fi
+      else
+        SEMENTE_REPO_PADRAO="zhichaoh/catppuccin-wallpapers"
+        SEMENTE_COMMIT_PADRAO="1023077979591cdeca76aae94e0359da1707a60e"
+        SEMENTE_IGNORAR_PADRAO=""
+        SEMENTE_PREFIXO_PADRAO="cat"
+      fi
       ;;
     *)
       SEMENTE_REPO_PADRAO="zhichaoh/catppuccin-wallpapers"
