@@ -62,6 +62,28 @@
 # mocha | macchiato | frappe | latte | dracula
 FLAVOR="mocha"
 
+# @ Acervo de papel de parede do Dracula
+# > O repositório de onde vêm as imagens quando a variante é Dracula. Vazio usa o acervo comum.
+# [avancado] `dono/repo` do GitHub, ou um caminho começando com /, ~ ou ./ para
+# semear de uma pasta local. Vazio = o flavor `dracula` usa o mesmo acervo dos
+# sabores do Catppuccin.
+#
+# POR QUE ISTO É CONFIGURAÇÃO, E NÃO UM VALOR NO SCRIPT
+#   Esta é a única chave do arquivo que nomeia a CONTA de alguém. O sanitizer de
+#   identidade redige o `user.name` do git em tudo que entra num commit — e faz
+#   bem, porque o MeowSystem é repositório de duas pessoas. Escrito no
+#   `wallpaper.sh`, o valor virava `[REDACTED]/...` e a semeadura falhava. Aqui
+#   ele fica no `meow.conf`, que não é versionado, e cada máquina aponta para o
+#   acervo de quem quiser.
+WALLPAPER_DRACULA_REPO=""
+
+# @ Commit do acervo do Dracula
+# > O commit fixado do repositório acima. Obrigatório quando o acervo é do GitHub.
+# [avancado] Sem pino não há receita: um upstream que muda sozinho transforma
+# "rodei o instalador" em "rodei num dia em que o repositório estava de um
+# jeito". Para pasta local não se aplica.
+WALLPAPER_DRACULA_COMMIT=""
+
 # @ Cor de destaque
 # > A cor que marca o que está selecionado, em toda a máquina.
 # [essencial] A cor de destaque.
