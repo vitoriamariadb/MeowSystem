@@ -57,12 +57,39 @@
 #   linker descarta um static que ninguem le e o `--ensure` deixa de reconhecer
 #   o build (armadilha 3 do patches/LEIA-ME.txt).
 #
+# ============================================================================
+# REBASE PARA O a557859 — 16/09/2026
+# ============================================================================
+#   Escrito contra o `5c93094`. No `a557859` o `MenuGrab` ganhou um campo
+#   (`last_tablet_idx: Option<usize>`) no struct E no inicializador, e a
+#   assinatura do `fn button` do `PointerGrab` trocou `&ButtonEvent` por
+#   `&PointerButtonEvent`. Os três hunks pararam de casar.
+#
+#   COMO ISSO ESTAVA FALHANDO, E POR QUE NINGUÉM VIU
+#     O `aurora-cosmic-comp-ws.sh` aplica com `--fuzz`, e com fuzz 3 os três
+#     hunks "aplicavam": o patch(1) joga fora o contexto que não bate e enfia a
+#     linha onde sobrar. O hunk do `nascimento:` caiu DENTRO da assinatura do
+#     `fn axis()`, 240 linhas acima do inicializador do `MenuGrab`. O build
+#     morria com cinco erros, a classe `opt` da série engolia a falha, o
+#     `.estado` gravava `ausente`, e o binário saía sem o patch.
+#
+#     Foi o que aconteceu na máquina dela em 11/09/2026: o `.estado` daquele
+#     build diz `opt AURORA-COSMIC-MENU-PATCH ... ausente`, junto com o do modo
+#     de leitura. Dois patches no repositório, documentados, e nenhum dos dois
+#     em binário nenhum — nas DUAS máquinas.
+#
+#   Os hunks abaixo saem de um `git diff` sobre a árvore do `a557859` com as
+#   três edições feitas à mão, e aplicam SEM fuzz. Medido depois: compila, e o
+#   `AURORA-COSMIC-MENU-PATCH-1` está dentro do binário.
+#
+diff --git a/src/shell/grabs/menu/mod.rs b/src/shell/grabs/menu/mod.rs
+index dafbd6c..6a053a7 100644
 --- a/src/shell/grabs/menu/mod.rs
 +++ b/src/shell/grabs/menu/mod.rs
-@@ -510,12 +510,32 @@
-     touch_entered: Option<TouchSlot>,
+@@ -523,6 +523,24 @@ pub struct Element {
+     tablet_entered: Option<TabletToolDescriptor>,
  }
- 
+
 +/// AURORA-COSMIC-MENU-PATCH — o menu de janela para de fechar no release do
 +/// clique que o abriu. O menu nasce EMBAIXO do cursor, entao um item ja esta com
 +/// `pointer_entered` quando o release do botao direito chega, e o ramo
@@ -84,17 +111,18 @@
  pub struct MenuGrab {
      elements: Arc<Mutex<Vec<Element>>>,
      start_data: GrabStartData,
-     seat: Seat<State>,
+@@ -530,6 +548,8 @@ pub struct MenuGrab {
      screen_space_relative: Option<Output>,
      scale: Arc<Mutex<f64>>,
+     last_tablet_idx: Option<usize>,
 +    /// AURORA-COSMIC-MENU-PATCH: quando este grab nasceu.
 +    nascimento: std::time::Instant,
  }
- 
+
  impl PointerGrab<State> for MenuGrab {
-@@ -600,6 +620,16 @@
+@@ -614,6 +634,16 @@ impl PointerGrab<State> for MenuGrab {
          handle: &mut PointerInnerHandle<'_, State>,
-         event: &ButtonEvent,
+         event: &PointerButtonEvent,
      ) {
 +        // AURORA-COSMIC-MENU-PATCH: engole o release do clique que ABRIU o menu.
 +        //
@@ -109,11 +137,10 @@
          let any_entered = self
              .elements
              .lock()
-@@ -1075,6 +1105,7 @@
-             seat: seat.clone(),
+@@ -1338,6 +1368,7 @@ impl MenuGrab {
              screen_space_relative,
              scale,
+             last_tablet_idx: None,
 +            nascimento: std::time::Instant::now(),
          }
      }
- 

@@ -126,12 +126,35 @@
 #
 #   Marcador-base declarado na série: AURORA-READING-MODE (sem versão).
 #
+# ============================================================================
+# REBASE PARA O a557859 — 16/09/2026
+# ============================================================================
+#   Escrito contra o `5c93094`. No `a557859` os vizinhos das duas primeiras
+#   ancoras mudaram dentro do `CosmicCompConfig` (o `cursor_shake_to_find` e o
+#   `activation_policy` sairam de perto), e os hunks 1, 2 e 5 so passavam com
+#   fuzz 3 — ou seja, o patch(1) jogando fora o contexto e enfiando as linhas
+#   onde sobrasse.
+#
+#   AQUI O FUZZ DEU CERTO POR SORTE, E ISSO NAO E GARANTIA
+#     Conferido a mao: os dois campos caíram dentro do `struct` (que fecha na
+#     linha 136) e os dois defaults dentro do `impl Default` (138-187). Estava
+#     certo. Mas o mesmo fuzz 3, no patch do menu, pos uma linha dentro da
+#     assinatura de outra funcao — e ali o compilador pegou. Um hunk de valor
+#     default que caia no struct errado nao quebra build nenhum: ele so faz a
+#     tela ficar diferente do que a chave diz, meses depois, sem culpado.
+#
+#   Os hunks abaixo saem de um `git diff` sobre a arvore do `a557859` e aplicam
+#   SEM fuzz. Medido depois: compila, e o `AURORA-READING-MODE-1` esta dentro do
+#   binario — pela primeira vez, nas duas maquinas.
+#
+diff --git a/cosmic-comp-config/src/lib.rs b/cosmic-comp-config/src/lib.rs
+index 510927f..7755499 100644
 --- a/cosmic-comp-config/src/lib.rs
 +++ b/cosmic-comp-config/src/lib.rs
-@@ -104,6 +104,27 @@
-     /// Briefly magnify the cursor when the pointer is shaken, to help locate it
-     pub cursor_shake_to_find: bool,
-     pub activation_policy: ActivationPolicy,
+@@ -104,6 +104,27 @@ pub struct CosmicCompConfig {
+     pub xwayland_eavesdropping: XwaylandEavesdropping,
+     /// The threshold before windows snap themselves to output edges
+     pub edge_snap_threshold: u32,
 +    /// MODO DE LEITURA (Aurora/MeowSystem, 30/08/2026) -- temperatura de cor da
 +    /// tela, em KELVIN. `0` = DESLIGADO. A faixa util e 1000..6500, que e
 +    /// exatamente a tabela WHITEPOINTS do redshift/colorramp.c que o
@@ -153,13 +176,13 @@
 +    /// offscreen.frag. Ela ainda nao fixou esse teto (e gosto, nao engenharia),
 +    /// e la ele e uma linha.
 +    pub leitura_textura: f32,
- }
- 
- impl Default for CosmicCompConfig {
-@@ -143,6 +164,15 @@
-             cursor_hide_timeout: None,
-             cursor_shake_to_find: true,
-             activation_policy: ActivationPolicy::default(),
+     pub accessibility_zoom: ZoomConfig,
+     pub appearance_settings: AppearanceConfig,
+     /// Hide the cursor after this many seconds of pointer inactivity (None disables)
+@@ -143,6 +164,15 @@ impl Default for CosmicCompConfig {
+             focus_follows_cursor: false,
+             cursor_follows_focus: false,
+             focus_follows_cursor_delay: 250,
 +            // OS DOIS NASCEM DESLIGADOS, e isso nao e detalhe: sem chave no
 +            // disco (maquina nova, ou a chave apagada) o `get_entry` cai neste
 +            // Default. Se o default fosse "quente", um apt upgrade seguido de
@@ -169,12 +192,14 @@
 +            // passe de postprocess inteiro e PULADO: custo zero de GPU.
 +            leitura_temperatura: 0,
 +            leitura_textura: 0.0,
-         }
-     }
- }
+             descale_xwayland: XwaylandDescaling::Fractional,
+             xwayland_eavesdropping: XwaylandEavesdropping::default(),
+             edge_snap_threshold: 0,
+diff --git a/src/backend/kms/surface/mod.rs b/src/backend/kms/surface/mod.rs
+index cbc8938..8af7b99 100644
 --- a/src/backend/kms/surface/mod.rs
 +++ b/src/backend/kms/surface/mod.rs
-@@ -402,6 +402,20 @@
+@@ -402,6 +402,20 @@ impl Surface {
          let _ = self
              .thread_command
              .send(ThreadCommand::UpdateScreenFilter(config));
@@ -193,9 +218,9 @@
 +        // nao acende a tela apagada as 18h so porque o agendador escreveu.
 +        self.schedule_render();
      }
- 
+
      pub fn adaptive_sync_support(&self) -> Result<VrrSupport> {
-@@ -1902,6 +1916,17 @@
+@@ -1902,6 +1916,17 @@ fn postprocess_elements<'a>(
                          .map(|val| val as u8 as f32)
                          .unwrap_or(0.),
                  ),
@@ -213,7 +238,7 @@
              ],
          ));
      }
-@@ -1936,6 +1961,12 @@
+@@ -1936,6 +1961,12 @@ fn postprocess_elements<'a>(
                      .map(|val| val as u8 as f32)
                      .unwrap_or(0.),
              ),
@@ -225,10 +250,12 @@
 +            Uniform::new("leitura_textura", screen_filter.leitura_textura_clamp()),
          ],
      ));
- 
+
+diff --git a/src/backend/render/mod.rs b/src/backend/render/mod.rs
+index 9ad6158..0f44c40 100644
 --- a/src/backend/render/mod.rs
 +++ b/src/backend/render/mod.rs
-@@ -421,6 +421,23 @@
+@@ -421,6 +421,23 @@ pub fn init_shaders(renderer: &mut GlesRenderer) -> Result<(), GlesError> {
          &[
              UniformName::new("invert", UniformType::_1f),
              UniformName::new("color_mode", UniformType::_1f),
@@ -252,7 +279,7 @@
          ],
      )?;
      let clipping_shader = renderer.compile_custom_texture_shader(
-@@ -1378,6 +1395,21 @@
+@@ -1377,6 +1394,21 @@ where
                                  .map(|val| val as u8 as f32)
                                  .unwrap_or(0.),
                          ),
@@ -274,12 +301,14 @@
                      ],
                  );
                  constrain_render_elements(
+diff --git a/src/backend/render/shaders/offscreen.frag b/src/backend/render/shaders/offscreen.frag
+index d95859c..bd281e2 100644
 --- a/src/backend/render/shaders/offscreen.frag
 +++ b/src/backend/render/shaders/offscreen.frag
-@@ -23,6 +23,72 @@
+@@ -23,6 +23,72 @@ uniform float tint;
  uniform float invert;
  uniform float color_mode;
- 
+
 +// ======================= HUNK A ==========================================
 +// MODO DE LEITURA (Aurora/MeowSystem, 30/08/2026) -- os DOIS uniforms novos.
 +//
@@ -348,11 +377,11 @@
 +
  void main() {
      vec4 color = texture2D(tex, v_coords);
- 
-@@ -83,6 +149,78 @@
+
+@@ -83,6 +149,78 @@ void main() {
          color.rgb += correction;
      }
- 
+
 +    // ======================= HUNK B ======================================
 +    // MODO DE LEITURA. Mora AQUI por dois motivos, os dois deliberados:
 +    //
@@ -427,13 +456,15 @@
 +
      // re-multiply
      color.rgb *= color.a;
- 
+
+diff --git a/src/config/mod.rs b/src/config/mod.rs
+index 4d2fad9..65d68b7 100644
 --- a/src/config/mod.rs
 +++ b/src/config/mod.rs
-@@ -148,16 +148,122 @@
+@@ -148,16 +148,122 @@ impl From<CompTransformDef> for Transform {
      }
  }
- 
+
 +/// MARCADOR DO MODO DE LEITURA (Aurora/MeowSystem, 30/08/2026) — nao remover.
 +///
 +/// O `aurora-cosmic-comp-ws.sh` decide se o /usr/bin/cosmic-comp instalado e
@@ -489,7 +520,7 @@
 +    #[serde(skip)]
 +    pub leitura_textura: f32,
  }
- 
+
  impl ScreenFilter {
      pub fn is_noop(&self) -> bool {
 -        !self.inverted && self.color_filter.is_none()
@@ -553,11 +584,11 @@
 +        }
      }
  }
- 
-@@ -327,8 +433,21 @@
+
+@@ -327,8 +433,21 @@ impl Config {
                  .set_screen_filter(filter_conf.color_filter);
          });
- 
+
 +        // MODO DE LEITURA — a ponte do disco para o filtro vivo, no LOGIN.
 +        //
 +        // Os dois numeros nascem no cosmic-config (`leitura_temperatura`,
@@ -577,10 +608,10 @@
              cosmic_conf: cosmic_comp_config,
              cosmic_helper: config,
              settings_context,
-@@ -391,9 +510,14 @@
+@@ -391,9 +510,14 @@ impl Config {
              };
          }
- 
+
 +        // `..Default::default()` e nao os campos a mao: com dois campos novos no
 +        // struct, o literal exaustivo aqui deixaria o CRATE INTEIRO sem compilar
 +        // — e o erro apareceria a 4 minutos de build de distancia do lugar que o
@@ -592,8 +623,8 @@
 +            ..Default::default()
          }
      }
- 
-@@ -734,6 +858,18 @@
+
+@@ -740,6 +864,18 @@ impl DynamicConfig {
              &mut self.accessibility_filter.1,
          )
      }
@@ -610,10 +641,10 @@
 +        &mut self.accessibility_filter.1
 +    }
  }
- 
+
  pub fn xkb_config_to_wl(config: &XkbConfig) -> WlXkbConfig<'_> {
-@@ -1000,6 +1136,46 @@
-                     state.common.config.cosmic_conf.activation_policy = new;
+@@ -1015,6 +1151,46 @@ fn config_changed(config: cosmic_config::Config, keys: Vec<String>, state: &mut
+                     state.update_decorations();
                  }
              }
 +            // MODO DE LEITURA — os dois numeros que a tela obedece.
