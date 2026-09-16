@@ -1,0 +1,40 @@
+# wmclass.map — o `StartupWMClass` que cada aplicativo REALMENTE reporta.
+#
+# Formato:  desktop-id : app_id-que-a-janela-usa [ ; alternativa ; ... ]
+#
+# ============================================================================
+# POR QUE ESTE MAPA EXISTE
+# ============================================================================
+#
+# O dock casa uma JANELA ABERTA com o `.desktop` dela pelo `StartupWMClass`.
+# Não casando, ele não tem como saber de que programa é a janela e desenha o
+# ícone genérico de engrenagem — mesmo com o ícone do app instalado e correto.
+#
+# Medido em 2026-09-16 com o Boxy SVG: o `.desktop` do Flatpak declarava
+# `StartupWMClass=Boxy SVG`, mas a janela reportava `boxy-svg-boxy-svg` (lido no
+# tooltip do dock). O ícone existia em NOVE lugares, inclusive em
+# `MeowSystem-Icons/48x48/apps/`, e mesmo assim o dock mostrava engrenagem.
+#
+# POR QUE O EMPACOTADOR ERRA ISSO COM TANTA FREQUÊNCIA
+#   `StartupWMClass` nasceu no X11, onde o valor é a `WM_CLASS` — costuma ter
+#   maiúscula e às vezes espaço (`Boxy SVG`, `TelegramDesktop`). No Wayland o
+#   equivalente é o `app_id`, que é minúsculo e sem espaço. Um `.desktop`
+#   escrito na era X11 e rodado sob Wayland simplesmente não casa.
+#
+#   Por isso o doctor trata como SUSPEITO todo `.desktop` que, ao mesmo tempo:
+#     - roda em Flatpak com socket `wayland` (conferido em `flatpak info
+#       --show-permissions`), e portanto usará `app_id` minúsculo; e
+#     - declara `StartupWMClass` com espaço ou letra maiúscula.
+#
+#   Suspeito NÃO é erro provado: `com.meowsystem.Painel` e
+#   `org.andrebfarias.Crononauta` têm maiúscula e estão certos, porque o app_id
+#   deles é reverse-DNS. Por isso o doctor só AVISA sobre suspeitos, e só
+#   CORRIGE o que estiver escrito aqui — o valor certo não se deduz, se observa
+#   (abra o app e leia o que o dock mostra no tooltip da janela).
+#
+# O VALOR PODE TER MAIS DE UM, separado por `;`. Vale declarar o real primeiro e
+# o do empacotador depois: se uma versão futura voltar a reportar o antigo, o
+# casamento continua de pé.
+# ============================================================================
+
+com.boxy_svg.BoxySVG.desktop : boxy-svg-boxy-svg;Boxy SVG;
