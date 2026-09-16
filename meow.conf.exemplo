@@ -451,6 +451,29 @@ ICONES_BASE="Papirus-Dark"        # tema herdado como fallback
 # apagar o desenho.
 ICONES_RESGATADOS="sim"           # sim | nao
 
+# @ Pack de ícones Dracula nos aplicativos
+# > Os desenhos autorais do Dracula vestindo os aplicativos do lançador.
+# Os dezoito desenhos de `assets/icones/apps-dracula.map` entram no tema, em
+# `scalable/apps`. É arte acabada e colorida — 6 a 10 cores por desenho, todas
+# já da paleta Dracula —, ao contrário do Arcticons, que é traço monocromático
+# pintado por nós. Aqui não se recolore nada: a cópia é byte a byte.
+#
+# LIGAR ISTO TROCA ARTE QUE JÁ ESTÁ NA TELA, e por isso nasce em "nao"
+#   Onze dos dezoito nomes já vestem Arcticons: Krita, Telegram, qBittorrent,
+#   Obsidian, ONLYOFFICE, Chrome, Calculator, Warehouse, Upscaler, Steam e
+#   input-keyboard. O `scalable/apps` VENCE o `48x48/apps` no resolvedor (strace
+#   de 08/08/2026, no cabeçalho do `completar_icones.sh`), então ligar troca os
+#   onze de uma vez. Os outros sete estavam de fábrica e só ganham.
+#
+#   Ele escolheu "Dracula vence tudo" em 16/09/2026, com os dois lados na mesa.
+#   O padrão continua "nao" porque o padrão é o que vale numa máquina que não
+#   participou dessa decisão — a dela, ou uma recém-formatada.
+#
+# DESLIGAR DESLIGA, E NÃO CUSTA NADA: "nao" apaga só o que este projeto pôs, por
+# nome e conferindo o conteúdo byte a byte (arquivo editado à mão fica). O
+# Arcticons nunca saiu do `48x48` — ele reaparece sozinho na passagem seguinte.
+ICONES_DRACULA="nao"              # sim | nao
+
 # @ Cor das pastas
 # > Deixe escrito com ${FLAVOR} e ${ACCENT} para acompanhar o tema sozinho.
 # A cor das PASTAS comuns, pintada pelo `papirus-folders`. Deixe escrito com

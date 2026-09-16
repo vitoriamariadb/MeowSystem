@@ -384,3 +384,51 @@ coluna do meio do mapa.
 Os jogos da Steam (`steam_icon_*`), o **Hefesto** (a logo é dela) e o
 **FogStripper**. `scripts/icones_apps.sh` recusa esses nomes mesmo que entrem no
 mapa — a lista está em `INTOCAVEIS` e `INTOCAVEIS_PREFIXO`.
+
+## `dracula-apps/` — o pack autoral Dracula (16/09/2026)
+
+Dezessete desenhos **copiados** do `Dracula_OS-Theme`, que é repositório dele, e
+um décimo oitavo que já morava aqui. O casamento app → desenho não foi refeito:
+ele vem da SPRINT 32 daquele projeto, do `mapping.json` (214 aplicativos) e do
+`catalog.json` (295 desenhos descritos em PT-BR). O que mudou foi o **endereço**:
+
+| de onde veio | quantos |
+|---|---|
+| `src/icons/new-sessao-atual/` | 8 |
+| `src/icons/current/scalable/apps/` | 5 |
+| `src/icons/upstream/dracula-icons-circle/` | 2 |
+| `src/icons/projects/` | 1 (`nyx.svg`, arte própria) |
+| `assets/icones/resgatados/` (já daqui) | 1 (a Câmera) |
+
+**Por que copiar em vez de apontar.** A segunda coluna do
+`apps-dracula.map` apontava para dentro do `Dracula_OS-Theme`. Aquele repositório
+só existe na máquina dele — um script que o lesse funcionaria de um lado e
+quebraria do outro, e este projeto é puxado dos dois. Cada arquivo foi copiado
+com o **nome do ícone que ele veste**, o que permite ao
+`scripts/icones_apps_dracula.sh` conferir o mapa contra o disco sem sair daqui.
+
+**A Câmera é o caso fora da regra.** `io.github.cosmic_utils.camera` veste o
+`resgatados/guvcview.svg` — escolha dele, de 16/09/2026: *"a camera tem que ter o
+guvcview.svg"*. O guvcview saiu da máquina na limpeza de 15/09 e o desenho
+resgatado dele ficou sem app; a Camera do COSMIC estava de fábrica. Um desenho
+órfão e um app sem desenho. Por isso a coluna do mapa é um **caminho** e não só
+um nome: nem todo desenho mora em `dracula-apps/`.
+
+**Não se recolore nada aqui.** Cada desenho traz de 6 a 10 cores próprias, todas
+já da paleta Dracula (broom 6, key 7, dice 6, cat 10). É o oposto do Arcticons,
+que é monocromático e é pintado por nós. A cópia é literal.
+
+**Ligar e desligar.** `ICONES_DRACULA="sim"|"nao"` no `meow.conf`, e o cartão
+está no painel, na aba «Ícones». Nasce em `"nao"`: onze dos dezoito nomes já
+vestem arte aprovada no artifact de 12–15/09, e ligar troca os onze de uma vez —
+o `scalable/apps` vence o `48x48/apps` no resolvedor. Ele escolheu *"Dracula
+vence tudo"* em 16/09/2026 com os dois lados na mesa; o padrão continua `"nao"`
+porque é o que vale numa máquina que não participou da decisão.
+
+`"nao"` apaga só o que este projeto pôs, por nome e conferindo o conteúdo —
+arquivo editado à mão fica. O Arcticons nunca saiu do `48x48`: ele reaparece
+sozinho na passagem seguinte.
+
+**Licença.** Os desenhos vêm de `dracula-icons-circle`/`dracula-icons-main`
+(upstream do Dracula theme) e de arte própria dele. O uso aqui é o mesmo de
+sempre neste repositório — tema pessoal, não publicado.

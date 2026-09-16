@@ -900,6 +900,16 @@ chk_resgatados() {
     "$RAIZ/scripts/icones_resgatados.sh" --conferir 2>&1
 }
 
+# O PADRÃO AQUI É `nao`, IGUAL AO DO SCRIPT E AO DO `meow.conf.exemplo`.
+# Um padrão diferente em qualquer um dos três faria o doctor "consertar" para um
+# estado que o instalador desfaz na passagem seguinte — o pingue-pongue silencioso
+# que o `fix_resgatados` logo abaixo já documenta do outro lado.
+chk_dracula() {
+  ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_apps_dracula.sh" --conferir 2>&1
+}
+
 chk_sistema() {
   ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$RAIZ/scripts/icones_sistema.sh" --conferir 2>&1
@@ -1406,6 +1416,9 @@ fix_iconesapps(){ ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
 fix_resgatados(){ ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_resgatados.sh" --aplicar 2>&1; }
+fix_dracula()   { ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar 2>&1; }
 fix_sistema()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_sistema.sh" --aplicar 2>&1; }
 fix_bandeja()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
@@ -1497,7 +1510,7 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho)
+VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
