@@ -115,7 +115,24 @@ CARIMBO="$ESTADO/carimbo"
 APP_ID="com.meowsystem.AppletLeitura"
 BINARIO="$HOME/.local/bin/meow-applet-leitura"
 SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$APP_ID.desktop"
+# A TOPBAR TEM TRÊS LUGARES, E ESTE ARQUIVO SÓ OLHAVA UM — 16/09/2026
+#   O cosmic-panel guarda os applets em DOIS arquivos: `plugins_wings`, que é o
+#   par (asa esquerda, asa direita), e `plugins_center`, que é o meio. Arrastar
+#   um applet para o centro em Ajustes -> Painel -> Applets o grava no segundo.
+#
+#   Nesta máquina o `com.meowsystem.AppletLeitura` está no `plugins_center`
+#   desde sempre, ao lado do relógio e do audio, e o `plugins_wings` é
+#   literalmente `Some(([], []))`. O `_asa_cita` olhava só as asas, não achava,
+#   e toda rodada do instalador imprimia "o applet está instalado, mas a topbar
+#   não o cita — acrescente à mão" sobre um applet que ESTAVA na topbar, na
+#   tela, funcionando. Aviso falso é pior que aviso nenhum: ensina a ignorar a
+#   linha amarela, e a próxima é de verdade.
+#
+#   Os dois arquivos continuam sendo território da Aurora — nenhum script daqui
+#   escreve neles (ver `docs/FRONTEIRA.md` e o bloco de cima). O que muda é só
+#   onde se PROCURA.
 ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
+MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center"
 
 LEITURA_APPLET="${LEITURA_APPLET:-sim}"
 COMPILAR="${LEITURA_COMPILAR:-0}"
@@ -226,7 +243,7 @@ _pronto() {
 }
 
 # A asa da topbar é só LEITURA aqui. Devolve 0 quando o applet está citado.
-_asa_cita() { grep -qs "\"$APP_ID\"" "$ASA"; }
+_asa_cita() { grep -qs "\"$APP_ID\"" "$ASA" "$MEIO"; }
 
 # O FAIL-SAFE: sombra no disco com o binário fora. É o estado que deixa a barra
 # dela com um BURACO, e o único que piora sozinho com o tempo.
@@ -268,7 +285,8 @@ _conferir() {
   # amarela eterna, e linha amarela eterna se aprende a ignorar.
   if ! _asa_cita; then
     meow_aviso "o applet está instalado, mas a topbar não o cita — acrescente \"$APP_ID\" à mão em:"
-    meow_aviso "  $ASA  (o painel recria a topbar na hora; o shader é que espera o logout)"
+    meow_aviso "  $ASA (as asas) ou $MEIO (o meio)"
+    meow_aviso "  (o painel recria a topbar na hora; o shader é que espera o logout)"
   fi
 
   meow_ok "applet do modo de leitura $(_sha "$BINARIO" | cut -c1-8) já é o do repositório"
