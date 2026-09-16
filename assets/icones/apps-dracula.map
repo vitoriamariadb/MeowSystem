@@ -1,6 +1,6 @@
 # apps-dracula.map — os aplicativos do LANÇADOR vestidos pelo tema autoral Dracula.
 #
-# Formato:  nome-de-icone-do-.desktop : caminho-do-svg-no-Dracula_OS-Theme   # app
+# Formato:  nome-de-icone-do-.desktop : caminho-relativo-a-assets/icones/   # app
 #
 # ESTE MAPA NÃO TEM COLUNA DE COR, E A AUSÊNCIA É A INFORMAÇÃO
 #   O apps-arcticons.map tem `: cor` porque o Arcticons é MONOCROMÁTICO —
@@ -31,25 +31,46 @@
 #   desenho é gerado da paleta pelo gerar_icones_autorais.py e acompanha o
 #   flavor sozinho. Vestir por aqui seria trocar arte viva por arte congelada.
 #
+# O ACERVO MORA DENTRO DESTE REPOSITÓRIO — 16/09/2026
+#   Até hoje a segunda coluna era um caminho dentro do `Dracula_OS-Theme`, que
+#   é outro repositório e só existe na máquina DELE. Duas consequências, e as
+#   duas mediram-se aqui: (a) nenhum script lia este arquivo — ele nasceu órfão,
+#   e os aplicativos que ele descreve continuavam com o ícone de fábrica na
+#   tela; (b) se algum lesse, quebraria na máquina dela.
+#
+#   Os 17 desenhos foram COPIADOS para `assets/icones/dracula-apps/`, cada um
+#   com o nome do ícone que ele veste — é o que faz o `icones_apps_dracula.sh`
+#   poder conferir o mapa contra o disco sem sair do repositório. A procedência
+#   de cada um está em `PROCEDENCIA.md`.
+#
+#   A coluna continua sendo um CAMINHO, e não só um nome, porque nem todo
+#   desenho mora em `dracula-apps/`: a Câmera veste o `resgatados/guvcview.svg`,
+#   que é desenho dele e já estava no repositório.
 # ============================================================================
 
-io.gitlab.theevilskeleton.Upscaler : new-sessao-atual/telescope.svg   # Ampliar — telescópio
-io.github.dvlv.boxbuddyrs : new-sessao-atual/chest-variant.svg   # BoxBuddy — baú (variação)
-org.gnome.Calculator : upstream/dracula-icons-circle/scalable/apps/org.gnome.Calculator.svg   # Calculator [upstream]
-foundryvtt : new-sessao-atual/dice.svg   # Foundry VTT — dados
-google-chrome : current/scalable/apps/google-chrome.svg   # Google Chrome [alias-heuristico]
-com.system76.Popsicle : new-sessao-atual/lollipop.svg   # Gravador USB Popsicle — pirulito
-input-keyboard : upstream/dracula-icons-circle/scalable/apps/input-keyboard.svg   # Input Method [upstream]
-org.kde.krita : new-sessao-atual/magic-wand-variant.svg   # Krita — varinha (variação)
-menulibre : new-sessao-atual/scroll.svg   # Menu Editor — pergaminho
-nyx : projects/nyx.svg   # Nyx [arte-propria]
-md.obsidian.Obsidian : current/scalable/apps/050-circle.svg   # Obsidian [alias-heuristico]
-org.onlyoffice.desktopeditors : new-sessao-atual/book.svg   # ONLYOFFICE — livro
-org.qbittorrent.qBittorrent : current/scalable/apps/qbittorrent.svg   # qBittorrent [alias-heuristico]
-rlogo_icon : new-sessao-atual/spell-book.svg   # R — livro de feitiços
-steam : current/scalable/apps/steam.svg   # Steam [current-nome]
-org.telegram.desktop : current/scalable/apps/telegram.svg   # Telegram [alias-heuristico]
-io.github.flattool.Warehouse : new-sessao-atual/building.svg   # Warehouse — edifício
+io.gitlab.theevilskeleton.Upscaler : dracula-apps/io.gitlab.theevilskeleton.Upscaler.svg   # Ampliar — telescópio
+io.github.dvlv.boxbuddyrs : dracula-apps/io.github.dvlv.boxbuddyrs.svg   # BoxBuddy — baú (variação)
+org.gnome.Calculator : dracula-apps/org.gnome.Calculator.svg   # Calculator [upstream]
+foundryvtt : dracula-apps/foundryvtt.svg   # Foundry VTT — dados
+google-chrome : dracula-apps/google-chrome.svg   # Google Chrome [alias-heuristico]
+com.system76.Popsicle : dracula-apps/com.system76.Popsicle.svg   # Gravador USB Popsicle — pirulito
+input-keyboard : dracula-apps/input-keyboard.svg   # Input Method [upstream]
+org.kde.krita : dracula-apps/org.kde.krita.svg   # Krita — varinha (variação)
+menulibre : dracula-apps/menulibre.svg   # Menu Editor — pergaminho
+nyx : dracula-apps/nyx.svg   # Nyx [arte-propria]
+md.obsidian.Obsidian : dracula-apps/md.obsidian.Obsidian.svg   # Obsidian [alias-heuristico]
+org.onlyoffice.desktopeditors : dracula-apps/org.onlyoffice.desktopeditors.svg   # ONLYOFFICE — livro
+org.qbittorrent.qBittorrent : dracula-apps/org.qbittorrent.qBittorrent.svg   # qBittorrent [alias-heuristico]
+rlogo_icon : dracula-apps/rlogo_icon.svg   # R — livro de feitiços
+steam : dracula-apps/steam.svg   # Steam [current-nome]
+org.telegram.desktop : dracula-apps/org.telegram.desktop.svg   # Telegram [alias-heuristico]
+io.github.flattool.Warehouse : dracula-apps/io.github.flattool.Warehouse.svg   # Warehouse — edifício
+
+# A CÂMERA VESTE O DESENHO DO guvcview, E ISSO É ESCOLHA DELE — 16/09/2026
+#   "a camera tem que ter o guvcview.svg". O guvcview saiu da máquina na
+#   limpeza de 15/09; o desenho resgatado dele ficou, sem app para vestir. A
+#   Camera do COSMIC estava de fábrica. Um desenho órfão e um app sem desenho.
+io.github.cosmic_utils.camera : resgatados/guvcview.svg   # Câmera — o desenho do guvcview
 
 # --- já têm arte autoral no MeowSystem (não entram) -----------------------
 # com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
@@ -67,7 +88,6 @@ io.github.flattool.Warehouse : new-sessao-atual/building.svg   # Warehouse — e
 # org.andrebfarias.Crononauta : ?   # Chrononauta
 # Ubuntu-selfservice : ?   # Citrix Workspace (on Ubuntu)
 # com.github.rafostar.Clapper : ?   # Clapper
-# io.github.cosmic_utils.camera : ?   # Câmera
 # com.discordapp.Discord : ?   # Discord
 # extase-em-4r73 : ?   # Extase em 4R73
 # be.alexandervanhee.gradia : ?   # Gradia

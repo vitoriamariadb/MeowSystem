@@ -713,6 +713,20 @@ etapa_icones_resgatados() {
   return $?
 }
 
+# A ETAPA VEM DEPOIS DA DO ARCTICONS NA LISTA, E ISSO É DE PROPÓSITO
+#   As duas escrevem o ícone dos MESMOS onze aplicativos, em diretórios
+#   diferentes do mesmo tema: o Arcticons no `48x48/apps`, esta no
+#   `scalable/apps`. Não há disputa de arquivo — o resolvedor é que escolhe, e
+#   ele prefere `scalable`. Mas a ordem importa para a CACHE: quem reindexa por
+#   último é quem deixa a cache descrevendo o disco inteiro.
+etapa_icones_apps_dracula() {
+  passo "Pack Dracula nos aplicativos"
+  ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_apps_dracula.sh" --aplicar
+  return $?
+}
+
 # Os aplicativos que o acervo Catppuccin não cobre, vestidos pelo Arcticons e
 # recoloridos na paleta. Depois do `etapa_icones` pelo mesmo motivo das etapas
 # irmãs: quem declara `48x48/apps` no index.theme é aquele.
@@ -2835,7 +2849,7 @@ main() {
   local etapas=(etapa_conf etapa_cli etapa_ponte_root etapa_atalho etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
-                etapa_mimetypes etapa_icones_apps etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
+                etapa_mimetypes etapa_icones_apps etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_apps_dracula etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
