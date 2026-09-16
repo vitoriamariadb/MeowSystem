@@ -534,7 +534,36 @@ conferir_receita() {
 
   if [ "$esperado" != "$gravado" ]; then
     meow_aviso "o vidro na tela não é o que você escolheu: '$nome' pede alpha $esperado, está gravado $gravado"
-    meow_info "abra Aparência e mova o slider de opacidade uma vez — só a GUI deriva a cor corretamente"
+    # DE QUE NÍVEL É O ALPHA GRAVADO — 16/09/2026
+    #   O aviso dizia "pede AA, está gravado D9" e parava aí. Dois bytes em hexa
+    #   não contam história nenhuma, e a linha ficou meses na tela sem ninguém
+    #   saber o que fazer com ela. O `alpha_map` tem os catorze níveis com o
+    #   valor de cada um: procurar o D9 ali dentro responde a pergunta que o
+    #   aviso levanta — "gravado por quem, então?".
+    #   Medido aqui em 16/09: D9 era `very_low_2`, com a receita em `VeryHigh2`.
+    #   Seis níveis de distância. Com essa linha, o diagnóstico é imediato.
+    local de_quem
+    de_quem="$(python3 - "$b/alpha_map" "$gravado" <<'FIM' 2>/dev/null
+import re, sys
+alvo = int(sys.argv[2], 16)
+texto = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for chave, valor in re.findall(r"([a-z_0-9]+):\s*([0-9.]+)", texto):
+    if round(float(valor) * 255) == alvo:
+        print(chave); break
+FIM
+)"
+    [ -n "$de_quem" ] && meow_info "o alpha $gravado é o do nível '$de_quem' — a cor foi derivada com OUTRA escolha de vidro"
+    # E A COR TAMBÉM PODE ESTAR ERRADA, não só o alpha. Em 16/09/2026 o disco
+    # tinha `#313250D9` com FLAVOR="dracula": o RGB é de mocha (surface0
+    # #313244, quase) e o alpha é de outro nível. Os dois vieram da mesma
+    # derivação velha da GUI, de quando a máquina ainda era mocha. Quando existe
+    # captura do alvo, reimpô-la conserta os dois de uma vez e é uma linha.
+    if [ -n "${FLAVOR:-}" ] && [ -n "${ACCENT:-}" ] \
+       && [ -d "$RAIZ/assets/temas/capturados/$FLAVOR-$ACCENT" ]; then
+      meow_info "a captura '$FLAVOR-$ACCENT' existe e traz os dois coerentes:  meow tema $FLAVOR-$ACCENT"
+    else
+      meow_info "abra Aparência e mova o slider de opacidade uma vez — só a GUI deriva a cor corretamente"
+    fi
     return 1
   fi
   return 0
