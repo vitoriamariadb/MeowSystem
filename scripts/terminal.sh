@@ -292,20 +292,39 @@ meow_seco && [ "$ACAO" = "aplicar" ] && ACAO="conferir"
 # `remover` acha o que apagar) E é o valor que vai para `syntax_theme_*`. Uma
 # função só para os dois usos: duas listas discordariam no dia em que alguém
 # corrigisse o acento de "Frappé" em uma delas.
+#
+# A LISTA SAIU DAQUI E FOI PARA A PALETA — 16/09/2026
+#   Era um `case` com quatro braços e uma string com os mesmos quatro nomes.
+#   Custou exatamente o que uma lista chumbada custa: entrando o `dracula` como
+#   quinta variante (15/09), o `_pronto` recusava o flavor e o instalador dizia
+#   `FLAVOR="dracula" não é um flavor do Catppuccin` — numa máquina onde TODO o
+#   resto do tema já estava em dracula, porque todo o resto lê a paleta.
+#   Agora estes nomes também leem: `assets/paleta/catppuccin.json` tem `nomes`
+#   ao lado de `flavors`, e a próxima variante entra escrevendo um par lá, em um
+#   arquivo só.
+NOMES_ESQUEMA="$(python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+nomes = d.get("nomes") or {}
+for f in d.get("flavors", {}):
+    n = nomes.get(f)
+    if isinstance(n, str) and n:
+        print("%s\t%s" % (f, n))
+' "$PALETA" 2>/dev/null)"
+
 _nome_esquema() {
-  case "$1" in
-    mocha)     printf 'Catppuccin Mocha' ;;
-    latte)     printf 'Catppuccin Latte' ;;
-    frappe)    printf 'Catppuccin Frappé' ;;
-    macchiato) printf 'Catppuccin Macchiato' ;;
-    *)         return 1 ;;
-  esac
+  local linha
+  linha="$(printf '%s\n' "$NOMES_ESQUEMA" | awk -F'\t' -v f="$1" '$1==f{print $2; exit}')"
+  [ -n "$linha" ] || return 1
+  printf '%s' "$linha"
 }
 
 # Tudo o que este módulo pode ter escrito algum dia, em qualquer flavor. É o
 # que o `remover` procura: se ela trocou o FLAVOR entre um `aplicar` e o
-# `remover`, apagar só o flavor de agora deixaria o antigo para trás.
-NOSSOS_NOMES='Catppuccin Mocha,Catppuccin Latte,Catppuccin Frappé,Catppuccin Macchiato'
+# `remover`, apagar só o flavor de agora deixaria o antigo para trás. Sai da
+# MESMA paleta pelo mesmo motivo: um nome que só o `remover` conhece é lixo que
+# ninguém apaga.
+NOSSOS_NOMES="$(printf '%s\n' "$NOMES_ESQUEMA" | cut -f2- | paste -sd, -)"
 
 # O slot escuro segue o FLAVOR; o claro é sempre o Latte, porque o Catppuccin
 # tem um flavor claro só (`"claros": ["latte"]` na paleta).

@@ -33,6 +33,13 @@
   "claros": [
     "latte"
   ],
+  "nomes": {
+    "latte": "Catppuccin Latte",
+    "frappe": "Catppuccin Frappé",
+    "macchiato": "Catppuccin Macchiato",
+    "mocha": "Catppuccin Mocha",
+    "dracula": "Dracula"
+  },
   "flavors": {
     "latte": {
       "rosewater": "#DC8A78",
