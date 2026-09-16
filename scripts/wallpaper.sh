@@ -2227,14 +2227,25 @@ cmd_adicionar() {
 _semente_do_flavor() {
   case "${FLAVOR:-mocha}" in
     dracula)
-      # PNG em 3440x1440 (ultrawide), editados a partir de material do Freepik.
-      # A pasta `colors/` são amostras de cor de poucos bytes e `source-images/`
-      # são os originais sem edição — nenhuma das duas é papel de parede, e é por
-      # isso que SEMENTE_IGNORAR existe.
-      SEMENTE_REPO_PADRAO="helpotters/dracula-wallpapers"
-      SEMENTE_COMMIT_PADRAO="bd6282d192b6cf8ac4241a69abaa657a0da43e75"
-      SEMENTE_IGNORAR_PADRAO="colors source-images"
-      SEMENTE_PREFIXO_PADRAO="drac"
+      # ACERVO AUTORAL, GERADO EM CÓDIGO — 15/09/2026
+      #   Treze desenhos em PNG 4K (3840x2160), rasterizados do SVG que o gerador
+      #   da casa (tulip-orchid) produz. Cada cena é função pura: recebe largura,
+      #   altura e semente, devolve o SVG inteiro. Não há bitmap de origem nem
+      #   material de terceiro embutido.
+      #
+      #   Isto SUBSTITUI `helpotters/dracula-wallpapers`, que era provisório por
+      #   duas razões que aqui deixam de valer: aquele repositório não declara
+      #   licença (créditos apontavam Freepik, que exige atribuição e não
+      #   autoriza sublicenciar) e entregava 3440x1440, não 4K. Este é MIT e do
+      #   próprio dono — as imagens podem, enfim, ser publicadas com o tema.
+      #
+      #   `svg/` fica de fora do rodízio: o semear já ignora a extensão, mas a
+      #   pasta contaria como uma categoria que não existe e desequilibraria o
+      #   sorteio entre catedral, cemiterio, noite e ornamento.
+      SEMENTE_REPO_PADRAO="[REDACTED]/tulip-orchid-wallpapers"
+      SEMENTE_COMMIT_PADRAO="98770f8a4092b0376d43187dc29fd8110de4e567"
+      SEMENTE_IGNORAR_PADRAO="svg"
+      SEMENTE_PREFIXO_PADRAO="tulip"
       ;;
     *)
       SEMENTE_REPO_PADRAO="zhichaoh/catppuccin-wallpapers"

@@ -18,7 +18,7 @@ pinado por semente, nunca `main`.
 | Prefixo no acervo | `cat-` |
 | Curadoria | `FONTES.tsv`, 44 imagens em 4 categorias |
 
-## `dracula` — helpotters/dracula-wallpapers
+## helpotters/dracula-wallpapers — aposentada em 15/09/2026
 
 | | |
 |---|---|
@@ -26,6 +26,7 @@ pinado por semente, nunca `main`.
 | Commit pinado | `bd6282d192b6cf8ac4241a69abaa657a0da43e75` |
 | Licença | **não declarada** — ver o aviso abaixo |
 | Prefixo no acervo | `drac-` |
+| Situação | **não é mais a semente do `dracula`** — ver a seção seguinte |
 | O que entra | 28 imagens, depois de ignorar `colors/` e `source-images/` |
 
 ### O aviso, porque a regra acima pede
@@ -57,7 +58,7 @@ O pedido original era **SVG em 4K**. Estas imagens são **PNG em 3440×1440**
 (ultrawide), segundo o próprio `readme.org` do repositório. Servem como acervo
 provisório; não são vetor e não são 4K.
 
-## `tulip-orchid` — o gerador da casa (autoral)
+## `dracula` — tulip-orchid-wallpapers (autoral, ativa)
 
 | | |
 |---|---|
@@ -66,17 +67,26 @@ provisório; não são vetor e não são 4K.
 | Exporta | SVG 4K (3840×2160), SVG ultrawide, SVG mobile e **PNG 4K** |
 | Licença | autoral — do dono do MeowSystem |
 
-**Ainda não é semente de repositório, e não é por escolha.** Três coisas
-impedem, todas medidas em 15/09/2026:
+| Semente | `tulip-orchid-wallpapers` (público) |
+| Commit pinado | `98770f8a4092b0376d43187dc29fd8110de4e567` |
+| Licença | **MIT** — do próprio dono |
+| Prefixo no acervo | `tulip-` |
+| O que entra | 13 PNG em **3840×2160**; `svg/` fica fora do rodízio |
 
-1. o repositório é **privado**, e o `semear` baixa por URL crua, sem autenticação;
-2. as imagens **não existem como arquivo** lá dentro — `src/lib/wallpapers/render.ts`
-   as desenha em tempo de execução a partir de `scenes.ts`;
-3. o formato padrão é **SVG**, e o `cosmic-bg` não lê SVG. Conferido no binário:
-   avif, gif, jpeg, jpg, png, tiff, webp.
+Três coisas impediam o gerador de ser semente, e as três foram resolvidas
+publicando o resultado em vez do código:
 
-O caminho que funciona hoje é **pasta-semente**: exportar **PNG 4K** pelo menu de
-download do gerador para uma pasta, e apontar a semente para ela.
+1. o gerador é privado → o repositório **de saída** é público;
+2. as imagens não existiam como arquivo (eram desenhadas em runtime) → foram
+   renderizadas uma vez, em Node, chamando o mesmo `renderSvg` que a página usa;
+3. o formato era SVG, que o `cosmic-bg` não lê → rasterizadas com
+   `rsvg-convert -w 3840 -h 2160`. O SVG vai junto, para reescalar e editar.
+
+Sendo MIT e autoral, é a única das três origens cujas imagens **podem** ser
+publicadas junto com o tema.
+
+Para semear de uma pasta local (útil ao desenhar, antes de publicar), a semente
+aceita caminho: `WALLPAPER_SEMENTE_REPO="$HOME/Imagens/tulip-orchid"`.
 
 ```sh
 WALLPAPER_SEMENTE_REPO="$HOME/Imagens/tulip-orchid" \
