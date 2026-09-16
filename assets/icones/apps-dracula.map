@@ -1,140 +1,87 @@
-# apps-dracula.map — os aplicativos do LANÇADOR vestidos com o pack autoral
-# Dracula (`Dracula_OS-Theme/src/icons/new-sessao-atual`, 295 desenhos).
+# apps-dracula.map — os aplicativos do LANÇADOR vestidos pelo tema autoral Dracula.
 #
-# Formato:  nome-de-icone-do-.desktop : glifo-em-new-sessao-atual : cor [ : alias ]
+# Formato:  nome-de-icone-do-.desktop : caminho-do-svg-no-Dracula_OS-Theme   # app
 #
-# A COR É UMA CHAVE DA PALETA, NUNCA UM HEX — a mesma regra do apps-arcticons.map.
-# As chaves válidas do flavor `dracula` estão no rodapé deste arquivo.
+# ESTE MAPA NÃO TEM COLUNA DE COR, E A AUSÊNCIA É A INFORMAÇÃO
+#   O apps-arcticons.map tem `: cor` porque o Arcticons é MONOCROMÁTICO —
+#   medido: 0 cores declaradas num .svg do pack — e o script o pinta com a chave
+#   da paleta. Este pack é o oposto: cada desenho traz de 6 a 10 cores próprias
+#   (broom 6, key 7, dice 6, cat 10). É arte acabada, não glifo de traço.
+#   Recolorir pela paleta não seria aplicar o tema: seria destruir o desenho.
 #
-# ============================================================================
-# POR QUE ESTE MAPA NASCE QUASE TODO COMENTADO
-# ============================================================================
+#   Por isso a regra "a cor é uma chave da paleta, nunca um hex" não se aplica
+#   aqui. Ela nunca foi sobre hex — era sobre quem manda na cor. No Arcticons
+#   manda a paleta; neste pack mandam os desenhos, que já nasceram Dracula.
 #
-# O apps-arcticons.map tem uma regra que decide tudo: "só entra quem tem MATCH
-# DE NOME EXATO. Um ícone errado é pior que um genérico, porque mente sobre o
-# que a coisa é."
+# DE ONDE VEM CADA LINHA
+#   O casamento app -> desenho não foi refeito: ele existe desde a SPRINT 32 do
+#   Dracula_OS-Theme, em `mapping.json` (214 aplicativos) e `catalog.json` (os
+#   295 desenhos descritos em PT-BR, com tags e cores). O `origem` de cada
+#   entrada diz como o casamento foi feito, e o peso é diferente:
 #
-# Ela vale porque o Arcticons é um pack DE APLICATIVO: existe um desenho
-# chamado `onlyoffice-documents`, e ele é do OnlyOffice. Match exato é
-# verificável.
+#     override-novo      escolha manual do dono, revisada a olho
+#     current-nome       nome do ícone bate com um desenho do tema atual
+#     upstream           veio do dracula-icons-circle/main
+#     alias-heuristico   casamento por semelhança de nome
+#     arte-propria       desenho feito para o projeto
 #
-# Este pack é de outra natureza. Os 295 desenhos são CONCEITOS —
-# `athena`, `arcade`, `coffin`, `kraken`, `hourglass`. Não há um desenho
-# chamado "spotify" para casar com o Spotify. Escolher aqui é CURADORIA, e
-# curadoria não se automatiza sem cair exatamente no defeito que aquela regra
-# existe para impedir: um gerador "esperto" casaria Discord com `ghost` por
-# achar graça, e o ícone passaria a mentir.
-#
-# Por isso as linhas vêm comentadas: cada uma é uma escolha do dono. Descomente
-# e preencha glifo e cor. O rodapé lista os 295 desenhos disponíveis.
-#
-# GLIFO E COR REPETIDOS FAZEM O GERADOR ESTOURAR
-#   Mesma regra do apps-arcticons.map, e aqui ela aperta: são 48
-#   aplicativos visíveis para 26 cores da paleta. A repetição de COR vai ser
-#   inevitável — marque com ` : alias` no quarto campo, que é o que autoriza a
-#   repetição deliberada. Glifo repetido, não: há 295 desenhos para
-#   48 aplicativos, sobra de fábrica.
+# O QUE NÃO ENTRA AQUI
+#   Os aplicativos que já têm ARTE AUTORAL no próprio MeowSystem
+#   (assets/icones/autorais/*-dracula.svg) ficam comentados abaixo: aquele
+#   desenho é gerado da paleta pelo gerar_icones_autorais.py e acompanha o
+#   flavor sozinho. Vestir por aqui seria trocar arte viva por arte congelada.
 #
 # ============================================================================
 
-# io.gitlab.theevilskeleton.Upscaler : ? : ?      # Ampliar
-# com.beholder.app : ? : ?      # Beholder
-# bleachbit : ? : ?      # BleachBit
-# bleachbit : ? : ?      # BleachBit (as root)
-# io.github.dvlv.boxbuddyrs : ? : ?      # BoxBuddy
-# com.boxy_svg.BoxySVG : ? : ?      # Boxy SVG
-# org.gnome.Calculator : ? : ?      # Calculator
-# org.andrebfarias.Crononauta : ? : ?      # Chrononauta
-# Ubuntu-selfservice : ? : ?      # Citrix Workspace (on Ubuntu)
-# com.github.rafostar.Clapper : ? : ?      # Clapper
-# com.system76.CosmicSettings : ? : ?      # Configurações
-# io.github.cosmic_utils.camera : ? : ?      # Câmera
-# com.discordapp.Discord : ? : ?      # Discord
-# com.system76.CosmicEdit : ? : ?      # Editor de Texto
-# extase-em-4r73 : ? : ?      # Extase em 4R73
-# fogstripper : ? : ?      # FogStripper
-# foundryvtt : ? : ?      # Foundry VTT
-# com.system76.CosmicFiles : ? : ?      # Gestor de Arquivos
-# google-chrome : ? : ?      # Google Chrome
-# be.alexandervanhee.gradia : ? : ?      # Gradia
-# com.system76.Popsicle : ? : ?      # Gravador USB Popsicle
-hefesto-dualsense4unix : hephaestus : peach      # Hefesto - Dualsense4Unix
-#   ^ único preenchido de fábrica: `hefesto` é `hephaestus` em português, o
-#     mesmo deus ferreiro. Não é afinidade, é tradução — e o pack traz o
-#     desenho com esse nome. A cor `peach` vem da forja; troque se quiser.
-# input-keyboard : ? : ?      # Input Method
-# org.kde.krita : ? : ?      # Krita
-# com.system76.CosmicStore : ? : ?      # Loja de Aplicativos
-# menulibre : ? : ?      # Menu Editor
-# com.meowsystem.Painel : ? : ?      # MeowSystem
-# com.microsoft.Edge : ? : ?      # Microsoft Edge
-# nyx : ? : ?      # Nyx
-# com.obsproject.Studio : ? : ?      # OBS Studio
-# md.obsidian.Obsidian : ? : ?      # Obsidian
-# org.onlyoffice.desktopeditors : ? : ?      # ONLYOFFICE
-# protocolo-ouroboros : ? : ?      # Ouroboros
-# pdfforge : ? : ?      # PDForge
-# org.qbittorrent.qBittorrent : ? : ?      # qBittorrent
-# rlogo_icon : ? : ?      # R
-# sigilo : ? : ?      # Sigilo
-# com.spotify.Client : ? : ?      # Spotify
-# steam : ? : ?      # Steam
-# syncthing : ? : ?      # Syncthing Web UI
-# org.telegram.desktop : ? : ?      # Telegram
-# com.system76.CosmicTerm : ? : ?      # Terminal
-# thunderbird : ? : ?      # Thunderbird
-# uad-ng : ? : ?      # Universal Android Debloater
-# qrcode-void-generator : ? : ?      # VOID | QRcode
-# io.github.flattool.Warehouse : ? : ?      # Warehouse
-# net.waterfox.waterfox : ? : ?      # Waterfox
-# whatsapp-linux-app : ? : ?      # WhatsApp
+io.gitlab.theevilskeleton.Upscaler : new-sessao-atual/telescope.svg   # Ampliar — telescópio
+io.github.dvlv.boxbuddyrs : new-sessao-atual/chest-variant.svg   # BoxBuddy — baú (variação)
+org.gnome.Calculator : upstream/dracula-icons-circle/scalable/apps/org.gnome.Calculator.svg   # Calculator [upstream]
+foundryvtt : new-sessao-atual/dice.svg   # Foundry VTT — dados
+google-chrome : current/scalable/apps/google-chrome.svg   # Google Chrome [alias-heuristico]
+com.system76.Popsicle : new-sessao-atual/lollipop.svg   # Gravador USB Popsicle — pirulito
+input-keyboard : upstream/dracula-icons-circle/scalable/apps/input-keyboard.svg   # Input Method [upstream]
+org.kde.krita : new-sessao-atual/magic-wand-variant.svg   # Krita — varinha (variação)
+menulibre : new-sessao-atual/scroll.svg   # Menu Editor — pergaminho
+nyx : projects/nyx.svg   # Nyx [arte-propria]
+md.obsidian.Obsidian : current/scalable/apps/050-circle.svg   # Obsidian [alias-heuristico]
+org.onlyoffice.desktopeditors : new-sessao-atual/book.svg   # ONLYOFFICE — livro
+org.qbittorrent.qBittorrent : current/scalable/apps/qbittorrent.svg   # qBittorrent [alias-heuristico]
+rlogo_icon : new-sessao-atual/spell-book.svg   # R — livro de feitiços
+steam : current/scalable/apps/steam.svg   # Steam [current-nome]
+org.telegram.desktop : current/scalable/apps/telegram.svg   # Telegram [alias-heuristico]
+io.github.flattool.Warehouse : new-sessao-atual/building.svg   # Warehouse — edifício
 
-# ============================================================================
-# OS 295 DESENHOS DISPONÍVEIS
-# ============================================================================
-#
-#   air-hockey alien alien-variant amphora aphrodite arcade asteroid astronaut
-#   athena axe bag balloon balloons bat bats bible billiard black-cat blood-
-#   transfusion bomb bones book books box brain broken broom broomstick bucket
-#   bug building candies candies-variant candle candle-variant candles
-#   candlestick candy-cane candy-corn capsule cards cards-variant castle cat
-#   cauldron cemetery centaur chariot chess chest chest-variant chips circle
-#   cleaver clown coffin column computer computer-game console constellation
-#   corpse costume cross crow crown crystal crystal-ball cupcake cyclops
-#   dagger darts dead-tree dessert devil dice domino dove dracula dracula-hex
-#   dwarf earth eclipse enchanted-mirror evil eye eye-ball eyeball fairy
-#   fairy-dust fangs fear feather finger fire flag flask food fortune-telling
-#   frankenstein full-moon galaxy galaxy-variant gallows game-controller game-
-#   controller-variant game-controller-variant-five game-controller-variant-
-#   four game-controller-variant-six game-controller-variant-three game-
-#   controller-variant-two gameboy gaming gate gemstone genie ghost ghost-
-#   variant ghosts gift gifts globe glove grapes grave grave-variant graveyard
-#   graveyard-variant griffin grim-reaper guillotine halloween halloween-
-#   variant hand handcuff handcuffs harp haunted-house hearts hephaestus
-#   hephaestus-variant hermes hermes-variant hook hourglass hydra jack-o-
-#   lantern jenga kappa key knife kraken lantern laurel living-dead lollipop
-#   lyre magic magic-assistant magic-ball magic-broom magic-cape magic-hat
-#   magic-lamp magic-mirror magic-trick magic-trick-variant magic-wand magic-
-#   wand-variant magician magician-hat magician-hat-variant makeup mandolin
-#   mask mask-variant mass meteor minotaur mobile-game monkey monster monster-
-#   variant moon mortar mouse muffin mummy mushroom night observatory owl
-#   padlock paper-bag parthenon party pendant phoenix pirate planet planet-
-#   variant planet-variant-two plant podium poison pot potion potion-variant
-#   powder prisoner pumpkin pumpkin-variant pumpkins puzzle rabbit rainbow
-#   reaper ring robot robot-variant robot-variant-two rocket roulette rum
-#   sandglass satellite satellite-dish satellite-variant satellite-variant-
-#   three satellite-variant-two saw scarecrow scream scroll scythe serial-
-#   killer shield skeleton skeleton-variant skull slot-machine smoke snake
-#   space space-capsule spaceship spell spell-book spell-variant spellbook
-#   spider spider-web stage sun sweets sword target tarot telescope tent
-#   tetris tetris-variant three-dimensional-glasses tic-tac-toe ticket
-#   tombstone tombstone-variant toolbox torch treasure-chest tree trick
-#   trident trireme tube unicorn vampire vial video-card violin virtual-
-#   reality voodoo voodoo-doll wand werewolf winner witch witch-hat witch-
-#   variant wizard wizard-hat wizard-variant zeus zombie zombie-variant
-#
-# CORES VÁLIDAS (flavor dracula)
-#
-#   base blue crust flamingo green lavender mantle maroon mauve overlay0
-#   overlay1 overlay2 peach pink red rosewater sapphire sky subtext0 subtext1
-#   surface0 surface1 surface2 teal text yellow
+# --- já têm arte autoral no MeowSystem (não entram) -----------------------
+# com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
+# com.system76.CosmicEdit                    -> autorais/cosmic-edit-dracula.svg   # Editor de Texto
+# fogstripper                                -> autorais/fogstripper-dracula.svg   # FogStripper
+# com.system76.CosmicFiles                   -> autorais/cosmic-files-dracula.svg   # Gestor de Arquivos
+# com.system76.CosmicStore                   -> autorais/cosmic-store-dracula.svg   # Loja de Aplicativos
+# com.system76.CosmicTerm                    -> autorais/cosmic-term-dracula.svg   # Terminal
+
+# --- sem desenho ainda ----------------------------------------------------
+# com.beholder.app : ?   # Beholder
+# bleachbit : ?   # BleachBit
+# bleachbit : ?   # BleachBit (as root)
+# com.boxy_svg.BoxySVG : ?   # Boxy SVG
+# org.andrebfarias.Crononauta : ?   # Chrononauta
+# Ubuntu-selfservice : ?   # Citrix Workspace (on Ubuntu)
+# com.github.rafostar.Clapper : ?   # Clapper
+# io.github.cosmic_utils.camera : ?   # Câmera
+# com.discordapp.Discord : ?   # Discord
+# extase-em-4r73 : ?   # Extase em 4R73
+# be.alexandervanhee.gradia : ?   # Gradia
+# hefesto-dualsense4unix : ?   # Hefesto - Dualsense4Unix
+# com.meowsystem.Painel : ?   # MeowSystem
+# com.microsoft.Edge : ?   # Microsoft Edge
+# com.obsproject.Studio : ?   # OBS Studio
+# protocolo-ouroboros : ?   # Ouroboros
+# pdfforge : ?   # PDForge
+# sigilo : ?   # Sigilo
+# com.spotify.Client : ?   # Spotify
+# syncthing : ?   # Syncthing Web UI
+# thunderbird : ?   # Thunderbird
+# uad-ng : ?   # Universal Android Debloater
+# qrcode-void-generator : ?   # VOID | QRcode
+# net.waterfox.waterfox : ?   # Waterfox
+# whatsapp-linux-app : ?   # WhatsApp
