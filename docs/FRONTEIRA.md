@@ -55,7 +55,9 @@ há empate para desempatar e nada muda.
 | alvo | quem escreve hoje | dono |
 |---|---|---|
 | `~/.config/cosmic/com.system76.CosmicTheme.*` | Meow + COSMIC (GUI) | **Meow** |
-| alpha do `base:` de `background`/`primary`/`secondary` | Aurora (`aurora-vidro-maximizado.py`) | **Aurora** — já funciona, não mexer; **não alcança painel nem dock**, ver 23/08 |
+| `CosmicTheme.*/v*/frosted_maximized_apps` (o vidro da JANELA) | Meow (`vidro.sh`) | **Meow** — desde 19/09/2026, ver abaixo |
+| alpha do `base:` de `background`/`primary`/`secondary` | Meow (`vidro_janela.py`), **só onde não há a chave nativa** | **Meow** — desde 19/09/2026; era da Aurora |
+| detectar painel VIVO que não desenha | Meow (`lib/painel.sh`) | **Meow** — desde 19/09/2026; era da Aurora (`aurora-painel-fantasma.sh`) |
 | `CosmicPanel.{Panel,Dock}/v1/keep_style_on_maximize` | Meow (`vidro.sh`) | **Meow** — a GUI não tem controle para ela |
 | `CosmicPanel.{Panel,Dock}/v1/opacity` | COSMIC (GUI) | **ELA** — desde 17/08/2026, ver abaixo |
 | escala das saídas (`cosmic-randr`, o `outputs.ron`) | COSMIC (GUI) | **ELA** — o `install.sh` aplica `ESCALA_TELA` quando ela pede; o doctor nunca |
@@ -742,3 +744,78 @@ auto-reparo por relógio não escreve em `/etc/sudoers.d`.
 `visudo -c` roda **antes** de o arquivo entrar em `/etc/sudoers.d`, e isso não é zelo: um
 arquivo inválido ali derruba o `sudo` da máquina inteira, para todo mundo, e o conserto
 pede um root que já não se consegue.
+
+
+## O vidro da janela e o painel fantasma passaram para o Meow — 19/09/2026
+
+Duas peças que moravam na Aurora vieram para cá, e as duas pelo mesmo motivo: o
+**dono da queixa** é o Meow. Quem liga `VIDRO_AO_MAXIMIZAR` está pedindo vidro ao
+maximizar — não "vidro na barra ao maximizar", com a janela ficando opaca ao
+lado. E quem diz "a barra sumiu" está falando de painel, que é nosso desde
+sempre.
+
+### O vidro da janela
+
+A Aurora resolvia com `aurora-vidro-maximizado.py`: copiar o alpha de
+`transparent_X.base` para `X.base`, em cada par que o tema tivesse. A linha da
+tabela dizia *"já funciona, não mexer"* — e estava certa em 01/09.
+
+**O que mudou, e não fomos nós:** o COSMIC ganhou a chave nativa
+`frosted_maximized_apps` (cosmic-panel#457). Descobrimos porque o script da
+Aurora tem um `avisar_se_nativo()` que existe exatamente para isso, e ele
+disparou na primeira execução aqui:
+
+```
+!!   o COSMIC criou frosted_maximized_apps
+     a opção nativa (cosmic-panel#457) parece ter chegado —
+     esta correção pode ser aposentada em favor da de fábrica
+```
+
+Um script que sabe anunciar a própria aposentadoria vale mais que um que só
+funciona. Sem esse aviso teríamos aplicado o remendo por cima de uma chave de
+fábrica, e os dois estariam mexendo no mesmo pixel por caminhos diferentes.
+
+Então a peça que entrou **não é o remendo**: é a decisão entre os dois. Onde a
+chave nativa existe, é ela que o `vidro.sh` escreve — suportada, sobrevive a
+upgrade, e o assunto acaba aí. Onde não existe (COSMIC mais antigo), cai no
+`scripts/vidro_janela.py`, que é o código da Aurora adaptado. A nativa não é
+"preferida": ela **exclui** o remendo.
+
+O `.Builder` entra junto na escrita, porque ele é a receita de onde o COSMIC
+deriva o tema aplicado. Escrever só no derivado deixa a GUI desfazer no próximo
+toque em Aparência.
+
+### O painel fantasma
+
+"A barra sumiu" tem dois modos de falha, e o `painel.sh` só cobria um:
+
+| | causa | cura |
+|---|---|---|
+| coberto | o painel **morre** e o `cosmic-session` desiste (backoff `2^restarts` sem teto) | o `laco()` repõe |
+| faltava | o painel fica **vivo e não desenha** | SIGTERM — a mesma que o `reciclar` já fazia |
+
+O `laco()` passava direto pelo segundo, e de duas maneiras: no ramo que cede a
+vez ao painel do supervisor e no que vigia um painel já existente, ele pergunta
+"existe painel?", vê que sim e dorme. **Um fantasma responde "sim" para
+sempre**, e ceder a vez a um painel que não desenha é ficar sem barra.
+
+A detecção (`meow_painel_fantasma`, em `lib/painel.sh`) é filtrada pelo `_PID`
+do painel em execução, e é isso que a torna confiável: uma mensagem do painel
+anterior, ou de outro cliente Wayland qualquer, não conta. A versão da Aurora
+media janela de tempo e errou os dois episódios que teve — num não detectou
+nada (1h52 sem barra) e no outro acertou por coincidência, autorizada por um
+erro de **outro** cliente 16m55s antes.
+
+Detalhe que fecha uma fronteira invertida: o `lib/painel.sh` já escrevia a
+carência de um vigia externo (`aurora-painel-fantasma/tentativas.ts`) que não
+existe neste projeto — cooperávamos com um programa ausente. Agora a detecção é
+daqui, e a linha continua sendo escrita para quando o vigia da Aurora existir na
+máquina: os dois não podem reciclar o mesmo painel ao mesmo tempo.
+
+### O que NÃO veio junto, e por quê
+
+`aurora-cosmic-nightlight-watch.sh` e `aurora-cosmic-buttons-watch.sh` vigiam
+issues do GitHub e notificam quando a System76 entregar. São ferramenta de
+acompanhamento de quem mantém o projeto, não produto: ninguém que instale o
+MeowSystem quer notificação diária sobre a issue #640. O mesmo vale para o que
+é automação pessoal — qBittorrent, Steam, torrent, hefesto.

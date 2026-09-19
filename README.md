@@ -4,7 +4,7 @@
 
 # MeowSystem
 
-**Catppuccin para o COSMIC, feito para uma máquina só — e documentado o suficiente para virar a sua.**
+**O COSMIC vestido inteiro, a partir de um theme pack — e documentado o suficiente para virar o seu.**
 
 *Tudo o que ele escreve, ele sabe desfazer — e rodar de novo numa máquina pronta não escreve um byte.*
 
@@ -19,6 +19,11 @@
 
 Tema, ícones, barra, dock, terminal e papel de parede do Pop!_OS com COSMIC num instalador só,
 e um painel local para mexer em tudo sem abrir um arquivo de texto.
+
+As cores vêm de um **theme pack**: um diretório com dois arquivos e nenhuma linha de código.
+O Catppuccin vem embutido, o Dracula vem junto como prova de que o formato funciona, e
+o que um pack não declarar é herdado — `meow pack info` diz, categoria por categoria,
+o que veio de onde. O contrato está em **[docs/PACKS.md](docs/PACKS.md)**.
 
 <img src="docs/capturas/painel.png" width="920" alt="O painel de configuração do MeowSystem, na tela inicial">
 
@@ -101,9 +106,10 @@ modo seco continua no terminal: `./install.sh --dry-run`.
 
 | | |
 |---|---|
+| **As cores** | De um theme pack: `pack.json` + `paleta.json` com 26 slots nomeados. Catppuccin embutido, Dracula junto, e o seu em `~/.local/share/meowsystem/packs` — o projeto não precisa saber que ele existe. |
 | **O tema do COSMIC** | As quatro árvores, aplicadas por cópia de arquivo. Claro e escuro são o mesmo tema com um interruptor, então trocar não pisca a interface. |
 | **A tela de login** | O `cosmic-greeter` tem configuração própria e vinha vazia: era a única superfície ainda de fábrica. |
-| **Painel e dock** | Forma, raio, margem, espaço e recheio de cada segmento; o vidro que sobrevive à janela maximizada; os segundos no relógio; e a música tocando ao lado dele, com capa e controles. |
+| **Painel e dock** | Forma, raio, margem, espaço e recheio de cada segmento; o vidro que sobrevive à janela maximizada — **na barra e na janela**; os segundos no relógio; e a música tocando ao lado dele, com capa e controles. E um vigia que repõe a barra quando ela cai **ou quando fica viva sem desenhar**. |
 | **As áreas de trabalho** | Nome, ordem e encaixe de cada uma. A ordem da lista é a ordem da barra, e é a única forma de decidir qual área nasce primeiro. |
 | **Os ícones** | Papirus como base, pastas coloridas pelo accent, e os glifos do Arcticons por programa — trocáveis um a um, pelo painel. |
 | **O terminal** | As dezesseis cores, o cursor, o prompt do `starship`, e o gato no lugar do logo do `fastfetch`, redesenhado em caracteres a cada geração. |
@@ -138,12 +144,21 @@ não por boa intenção — escrever fora dos lugares que ele conhece.
 
 ## O que esperar
 
-Este repositório nasceu para uma máquina: **Pop!_OS 24.04 LTS com COSMIC**, `apt`, uma RTX 4060 e
-os `.desktop` dos jogos dela. O acoplamento é permitido e está escrito — caminhos absolutos, o uid
-do `cosmic-greeter`, a lista de programas que o lançador esconde. O que ele dá em troca é o
-inverso do costume: o `--wizard` pergunta só as quatro chaves essenciais, o `doctor` diz o que
-está fora do lugar antes de você descobrir na tela, e nada aqui é aplicado sem uma cópia do que
-havia antes. Se a sua máquina é parecida, instale. Se não é, leia o `doctor`: ele fala.
+Este repositório nasceu para uma máquina — **Pop!_OS 24.04 LTS com COSMIC** — e boa parte do
+trabalho desde então foi tirar dele o que só valia ali. O que sobrou de acoplamento está escrito,
+não escondido, e o `doctor` fala antes de você descobrir na tela.
+
+O que ele derruba sozinho, em vez de exigir da sua máquina:
+
+- **as cores** saem de um theme pack, não de um nome cravado no código;
+- **o que não existe aqui é pulado, não é erro**: sem painel configurado, sem tema em disco, sem
+  Steam, sem Heroic, cada etapa diz o que pulou e segue;
+- **o COSMIC que você tem decide o caminho**: onde há chave nativa para um ajuste, é ela que é
+  escrita; o remendo só entra onde a chave ainda não existe;
+- **nada é aplicado sem cópia do que havia antes**, e o `--wizard` pergunta só as quatro chaves
+  essenciais.
+
+Se a sua máquina é um COSMIC, instale.
 
 ## Requisitos
 
