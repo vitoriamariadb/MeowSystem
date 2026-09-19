@@ -446,6 +446,21 @@ if [ "$CONFERIR" = "1" ]; then
       "$(cat "$dir/opacity" 2>/dev/null || echo '?')" \
       "$(cat "$dir/keep_style_on_maximize" 2>/dev/null || echo '?')"
   done
+  # A JANELA, que é a outra metade da mesma chave. Sem esta linha o `--conferir`
+  # respondia só pela barra, e quem visse "ao maximizar true" com a janela ainda
+  # opaca não teria como saber onde olhar.
+  for dir_tema in "$BASE"/com.system76.CosmicTheme.*/v*; do
+    [ -d "$dir_tema" ] || continue
+    [ -f "$dir_tema/frosted_maximized_apps" ] || continue
+    printf '    %-6s frosted_maximized_apps=%s  (%s)\n' "janela" \
+      "$(cat "$dir_tema/frosted_maximized_apps" 2>/dev/null || echo '?')" \
+      "$(basename "$(dirname "$dir_tema")" | sed 's/com.system76.CosmicTheme.//')"
+    janela_vista=1
+  done
+  if [ -z "${janela_vista:-}" ]; then
+    meow_pula "este COSMIC não tem a chave nativa da janela — quem cuida dela é scripts/vidro_janela.py"
+    [ -f "$RAIZ/scripts/vidro_janela.py" ] && python3 "$RAIZ/scripts/vidro_janela.py" --conferir || true
+  fi
   meow_info "o que este script quer: painel $(descrever_opacidade "$op_painel"), dock $(descrever_opacidade "$op_dock"), ao maximizar $desejado"
   faixa_alpha
   avisar_slider_morto || true
@@ -489,6 +504,58 @@ for barra in "${BARRAS[@]}"; do
     esac
   fi
 done
+
+# ============================================================================
+# A OUTRA METADE DA MESMA CHAVE: A JANELA
+# ============================================================================
+#   Até 18/09/2026 esta chave cobria só painel e dock. Mas quem liga
+#   `VIDRO_AO_MAXIMIZAR="sim"` não está pedindo "vidro na barra ao maximizar" —
+#   está pedindo VIDRO AO MAXIMIZAR. A janela tem o problema equivalente, por
+#   outro mecanismo, e ficava de fora: um produto não pede que a pessoa ligue a
+#   mesma coisa em dois lugares.
+#
+#   O MECANISMO DA JANELA É OUTRO, e por isso o código também é. O COSMIC pinta
+#   a janela com duas paletas: flutuante usa `transparent_background` (alpha <
+#   FF, e o compositor desfoca o que está atrás); maximizada troca para
+#   `background`, opaco de fábrica. O blur continua sendo feito — o cliente
+#   segue pedindo `ext_background_effect_v1.set_blur_region` — só que não sobra
+#   transparência por onde ele apareça.
+#
+#   DOIS CAMINHOS, E QUEM ESCOLHE É O DISCO. O COSMIC ganhou a chave nativa
+#   `frosted_maximized_apps` (cosmic-panel#457): onde ela existe, ligá-la é a
+#   resposta certa e o assunto acaba aí — é suportado, sobrevive a upgrade e não
+#   depende de nós. Onde ela NÃO existe (COSMIC mais antigo), cai no
+#   `vidro_janela.py`, que sincroniza o alpha das duas paletas.
+#
+#   A ORDEM IMPORTA E NÃO É PREFERÊNCIA: rodar o remendo numa máquina que tem a
+#   chave nativa faz os dois mexerem no mesmo pixel por caminhos diferentes. Por
+#   isso a nativa não é "preferida" — ela EXCLUI o remendo.
+#
+#   Descoberto em disco, nunca listado: `.Builder` entra junto quando tem a
+#   chave, porque ele é a RECEITA de onde o COSMIC deriva o tema aplicado.
+#   Escrever só no derivado deixa a GUI desfazer no próximo toque em Aparência.
+janela_nativa=0
+for dir_tema in "$BASE"/com.system76.CosmicTheme.*/v*; do
+  [ -d "$dir_tema" ] || continue
+  [ -f "$dir_tema/frosted_maximized_apps" ] || continue
+  janela_nativa=1
+  escritos=$((escritos + 1))
+  meow_escrever "$dir_tema/frosted_maximized_apps" "$desejado" 644
+  case $? in
+    1) mudou=1 ;;
+    2) meow_erro "não consegui escrever $dir_tema/frosted_maximized_apps"; exit "$MEOW_ERRO" ;;
+  esac
+done
+
+if [ "$janela_nativa" -eq 0 ] && [ -f "$RAIZ/scripts/vidro_janela.py" ]; then
+  # Sem a chave nativa: o remendo. Ele descobre os pares (X, transparent_X) em
+  # disco e sincroniza o alpha, respeitando "Janelas" de Aparência.
+  if [ "$desejado" = "true" ]; then
+    python3 "$RAIZ/scripts/vidro_janela.py" || true
+  else
+    python3 "$RAIZ/scripts/vidro_janela.py" --restaurar || true
+  fi
+fi
 
 # NENHUM alvo existe é diferente de "os dois já estão certos", e a primeira
 # versão dizia a mesma frase nos dois casos. Num HOME recém-criado ela pulava os

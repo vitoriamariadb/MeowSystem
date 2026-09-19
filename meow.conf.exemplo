@@ -745,11 +745,27 @@ FORMA_ALA_FINAL_DOCK=""           # XS | S | M | L | XL   (a ponta direita: band
 # --- VIDRO E RELÓGIO --------------------------------------------------------
 
 # @ Manter o vidro com janela maximizada
-# > "Não" devolve o comportamento de fábrica: o painel fica opaco.
-# O painel e o dock mantêm o vidro fosco quando uma janela é maximizada?
-# "nao" devolve o comportamento de fábrica do COSMIC: eles ficam opacos.
-# São duas chaves (Panel e Dock) e valem na hora — o painel vigia as duas.
-# Esta não tem controle na GUI: se ninguém escrever, ela se perde em silêncio.
+# > "Não" devolve o comportamento de fábrica: painel, dock e janela ficam opacos.
+# O painel, o dock E A JANELA mantêm o vidro fosco quando uma janela é
+# maximizada? "nao" devolve o comportamento de fábrica do COSMIC: os três ficam
+# opacos. Valem na hora — o painel vigia as chaves dele.
+#
+# A BARRA E A JANELA SÃO MECANISMOS DIFERENTES, E ISTO É UMA CHAVE SÓ [18/09/2026]
+#   A barra se resolve com `keep_style_on_maximize` (Panel e Dock), que não tem
+#   controle na GUI: se ninguém escrever, ela se perde em silêncio. A janela se
+#   resolve por outro caminho, porque o COSMIC troca a paleta ao maximizar
+#   (`transparent_background`, translúcido, vira `background`, opaco).
+#
+#   Quem liga esta chave não está pedindo "vidro na barra": está pedindo vidro
+#   ao maximizar. Ligar a mesma coisa em dois lugares é trabalho do programa,
+#   não da pessoa — então a chave é uma só e cobre os três.
+#
+#   E O CAMINHO DA JANELA SE ADAPTA AO COSMIC QUE A MÁQUINA TEM: onde existe a
+#   chave nativa `frosted_maximized_apps` (cosmic-panel#457), é ela que é
+#   escrita — suportada, sobrevive a upgrade, e o assunto acaba aí. Onde não
+#   existe, `scripts/vidro_janela.py` sincroniza o alpha das duas paletas. A
+#   nativa não é "preferida": ela EXCLUI o remendo, senão os dois mexeriam no
+#   mesmo pixel por caminhos diferentes.
 VIDRO_AO_MAXIMIZAR="sim"
 
 # @ Opacidade do painel
