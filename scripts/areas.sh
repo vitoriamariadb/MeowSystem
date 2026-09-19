@@ -785,6 +785,17 @@ FIM
   for velho in "$MEOW_ESTADO"/backups/*-areas; do
     [ -d "$velho" ] && antigas+=("$velho")
   done
+  # "0" DESLIGA A PODA — e sem esta linha ele fazia o OPOSTO. [2026-09-18]
+  #   meow.conf.exemplo:1763 promete, na ajuda que a pessoa lê na tela:
+  #       "0" desliga a poda e guarda todos.
+  #   Mas o corte abaixo é `head -n "-$BACKUPS_MANTIDOS"`, e `head -n "-0"` NÃO
+  #   imprime nada a menos — ele imprime o arquivo INTEIRO. Medido:
+  #       $ printf 'a\nb\nc\n' | head -n "-0"
+  #       a b c        (head, GNU coreutils 9.4)
+  #   Ou seja: quem escreveu 0 para guardar TODOS os backups perdia TODOS eles na
+  #   primeira poda. As três pontas discordavam — a ajuda, o painel (que aceita 0)
+  #   e o código. Quem manda é a ajuda: é a promessa que a pessoa leu.
+  [ "${BACKUPS_MANTIDOS:-10}" -eq 0 ] 2>/dev/null && return 0
   if [ "${#antigas[@]}" -gt "$BACKUPS_MANTIDOS" ]; then
     printf '%s\n' "${antigas[@]}" | sort | head -n "-$BACKUPS_MANTIDOS" \
       | while read -r velho; do rm -rf "$velho"; done

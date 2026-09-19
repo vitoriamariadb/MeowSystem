@@ -155,7 +155,16 @@ PAGINA = os.path.join(RAIZ, "app", "pagina")
 MAPA_JOGOS = os.path.join(RAIZ, "assets", "icones", "jogos-fora.map")
 CONF_PADRAO = os.environ.get("MEOW_CONF_PADRAO") or os.path.join(RAIZ, "meow.conf.exemplo")
 CONF = os.environ.get("MEOW_CONF") or os.path.expanduser("~/.config/meow/meow.conf")
-PALETA = os.path.join(RAIZ, "assets", "paleta", "catppuccin.json")
+# A paleta vem da mesma ordem de precedência de toda a casa, e a fonte canônica
+# do contrato é `meow_paleta()` em lib/comum.sh:
+#   1. $MEOW_PALETA     caminho completo (é a porta que um theme pack usa)
+#   2. $PALETA_ARQUIVO  só o nome, resolvido dentro de assets/paleta/
+#   3. catppuccin.json  o embutido
+# São três linhas repetidas em vez de um módulo importável porque os consumidores
+# vivem em `scripts/` e em `app/`, e um import entre os dois traria um problema de
+# sys.path que este projeto não tem hoje. É o mesmo idioma de scripts/gerar_temas.py:52.
+PALETA = os.environ.get("MEOW_PALETA") or os.path.join(
+    RAIZ, "assets", "paleta", os.environ.get("PALETA_ARQUIVO") or "catppuccin.json")
 FOLHAS = os.path.join(RAIZ, "docs", "folhas")
 # O mesmo diretório que `MEOW_ESTADO` do `lib/comum.sh` — e ele vem por ambiente
 # quando o `run.sh` é quem chama, para as duas metades nunca discordarem sobre
@@ -689,6 +698,69 @@ def _titulo_de(chave):
     return chave
 
 
+def _packs_no_disco():
+    """Os ids de theme pack que existem, lidos do disco. [2026-09-18]
+
+    Do DISCO e não de uma lista escrita aqui: uma lista de nomes envelhece no dia
+    em que alguém publicar o terceiro pack, e é exatamente o defeito que o
+    formato de pack existe para não ter (ver docs/PACKS.md).
+    """
+    achados = set()
+    for base in (os.environ.get("MEOW_PACKS"),
+                 os.path.join(os.environ.get("XDG_DATA_HOME")
+                              or os.path.join(os.path.expanduser("~"), ".local", "share"),
+                              "meowsystem", "packs"),
+                 os.path.join(RAIZ, "packs")):
+        if not base or not os.path.isdir(base):
+            continue
+        for nome in os.listdir(base):
+            if os.path.isfile(os.path.join(base, nome, "pack.json")):
+                achados.add(nome)
+    return achados
+
+
+def _vestigio_de_pack(chave):
+    """None, ou o aviso de que o valor cita um pack que já não é o adotado.
+
+    O DEFEITO QUE ISTO CONTA — medido numa auditoria de QA em 18/09/2026
+        Sair do Dracula para o Catppuccin Mocha exigia seis controles em três
+        páginas, e nada na tela ligava um ao outro. Trocando só a «Variante do
+        tema» para `mocha`, ficavam para trás `ICONES_BASE="Dracula-Icones"` e
+        `ICONES_DRACULA="sim"` — e o desktop saía metade Catppuccin, metade
+        Dracula, sem uma palavra dizendo por quê.
+
+    POR QUE NÃO É `dominada_por`
+        `dominada_por` afirma que a chave está ANULADA por outra. Aqui é o
+        oposto: estas chaves estão valendo, e é assim que tem de ser — o
+        meow.conf vence o pack, e quem mora na máquina decide (docs/PACKS.md,
+        "Quem vence"). O aviso não corrige nada sozinho; só conta que o valor
+        vem de um pack que não é o que está adotado agora.
+    """
+    # O valor sai de `valores_brutos()`, como `_dominada_por` faz: em
+    # `ler_esquema` não há um `brutos` no escopo, e cada campo do item chama a
+    # sua própria fonte. A leitura é cacheada pelo próprio `valores_brutos`.
+    valor = (valores_brutos() or {}).get(chave, "")
+    if not valor:
+        return None
+    packs = _packs_no_disco()
+    if not packs:
+        return None
+    # O pack adotado: a chave PACK, ou o FLAVOR quando ela não existe — a mesma
+    # adoção por convenção de meow_pack_dir() em lib/comum.sh.
+    vals = valores_efetivos(["PACK", "FLAVOR"])
+    adotado = (vals.get("PACK") or vals.get("FLAVOR") or "").strip().lower()
+    alvo = valor.strip().lower()
+    for pack in packs:
+        if pack == adotado:
+            continue
+        if pack in alvo:
+            return {"pack": pack, "adotado": adotado or "(o embutido)",
+                    "porque": ("Este valor é do pack «%s», e o adotado agora é «%s». "
+                               "Ele continua valendo — o seu meow.conf vence o pack —, "
+                               "mas o resultado na tela fica misturado." % (pack, adotado or "embutido"))}
+    return None
+
+
 def _dominada_por(chave):
     regra = DOMINIOS.get(chave)
     if not regra:
@@ -1143,6 +1215,8 @@ def ler_esquema():
             #   arquivo. O campo diz a chave que manda, o valor que ela tem
             #   HOJE, e a frase que explica — a página só desenha.
             "dominada_por": _dominada_por(chave),
+            # O valor cita um pack que já não é o adotado? Ver _vestigio_de_pack.
+            "vestigio_de_pack": _vestigio_de_pack(chave),
             # O QUE ESTÁ VALENDO AGORA, quando não é o conf que manda.
             #   As chaves `LEITURA_*` são o padrão de FÁBRICA: quem decide o
             #   quanto é o que o applet guardou quando ela soltou o slider —
@@ -1568,6 +1642,55 @@ def conf_exportada():
     return fora
 
 
+# --- A CERCA CONTRA SUBSTITUIÇÃO DE COMANDO [2026-09-18] ---------------------
+#
+# O QUE ESTAVA ABERTO, e foi medido numa auditoria de QA
+#   A peneira de gravação recusava só aspas, `#` e quebra de linha. Deixava
+#   passar `$( )`, crase e `${ }`. E o meow.conf é SOURCEADO com `set -a; . conf`
+#   por install.sh:145 e bin/meow:174 — então um valor gravado assim:
+#
+#       FASTFETCH_TITULO="$(comando)"
+#
+#   não é texto: é comando que roda no próximo `meow ativar`, no `install.sh` que
+#   o próprio botão «Salvar e aplicar» dispara, ou no doctor das 05:00. Dentro de
+#   aspas duplas, `$(...)` e `` `...` `` executam — as aspas não protegem nada.
+#
+#   O caminho de entrada não precisa nem de token: basta a pessoa importar um
+#   meow.conf de terceiro pela própria página e clicar em salvar.
+#
+# POR QUE NÃO BASTA RECUSAR `$`
+#   A expansão de variável é FEATURE DECLARADA, e o projeto pede que ela seja
+#   usada. meow.conf.exemplo:478 diz, na ajuda que a pessoa lê na tela:
+#       "Deixe escrito com ${FLAVOR} e ${ACCENT} para acompanhar o tema sozinho."
+#   e a linha 945 tem WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem".
+#   Recusar `$` quebraria as duas e tiraria uma funcionalidade documentada.
+#
+# ENTÃO A CERCA SEPARA AS DUAS COISAS
+#   passa   : $NOME  ${NOME}          (expansão de variável, que é o que se quer)
+#   recusa  : $( )  ` `  $(( ))  ${!x}  ${x[...]}  ${x:-$(cmd)}  e $ solto
+#   A regra é positiva: só o que casa exatamente com um nome de variável passa.
+#   Tudo que não casa é recusado — inclusive o que este comentário não previu.
+_VAR_SIMPLES = re.compile(r"\$(?:\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*)")
+
+
+def expansao_perigosa(valor):
+    """A frase da recusa quando o valor executaria comando no `source`; None quando não.
+
+    Devolve frase, e não booleano, porque quem chama imprime a frase na tela — e
+    uma recusa que não diz o que fazer é uma recusa que a pessoa contorna
+    editando o arquivo à mão, que é pior.
+    """
+    if "`" in valor:
+        return ("o valor não pode ter crase: no meow.conf ela vira execução de "
+                "comando. Para o texto de uma cor ou de um nome, tire as crases.")
+    # Consome toda expansão de variável BEM formada; o que sobrar de `$` é suspeito.
+    resto = _VAR_SIMPLES.sub("", valor)
+    if "$" in resto:
+        return ("o valor só aceita `$NOME` ou `${NOME}` — as outras formas de `$` "
+                "(como `$(...)`) viram execução de comando quando o meow.conf é lido.")
+    return None
+
+
 def validar_valor(item, valor):
     """None quando o valor cabe na chave; a frase da recusa quando não cabe.
 
@@ -1648,6 +1771,14 @@ def validar_valor(item, valor):
             return "%s vai de %s a %s — %s está fora" % (item["chave"], lo, hi, valor)
         return None
 
+    # A cerca contra substituição de comando vale para TODA chave, e fica aqui
+    # de propósito: `/api/definir`, `/api/salvar` e `importar_conf` passam por
+    # `validar_valor`, então uma cerca só cobre as três portas. Ver o bloco
+    # "A CERCA CONTRA SUBSTITUIÇÃO DE COMANDO" acima.
+    perigo = expansao_perigosa(valor)
+    if perigo:
+        return "%s: %s" % (item["chave"], perigo)
+
     # A forma do número só vale quando não há lista nem faixa dizendo mais.
     if item["tipo_numero"]:
         for nome, forma, explica in FORMAS_NUMERO:
@@ -1692,6 +1823,12 @@ def definir_varias(pares):
         # comentário.
         if '"' in valor or "#" in valor or "\n" in valor:
             return [(chave, 2, 'o valor não pode conter aspas, `#` nem quebra de linha')]
+        # Defesa em profundidade: `validar_valor` já barra isto antes de chegar
+        # aqui, mas esta é a última porta antes do disco, e quem escrever um
+        # caminho novo até ela não deve conseguir furar a cerca por esquecimento.
+        perigo = expansao_perigosa(valor)
+        if perigo:
+            return [(chave, 2, perigo)]
     if not pares:
         return []
     # O código de cada escrita sai numa linha-marca própria, logo depois do que
@@ -1821,7 +1958,9 @@ def paleta_css(flavor, accent):
         accent = "mauve" if "mauve" in cores else next(iter(cores), "")
     claro = flavor in dados.get("claros", [])
     linhas = [
-        "/* Gerado por app/servidor.py a partir de assets/paleta/catppuccin.json.",
+        # O CSS diz de ONDE a cor veio. Com a paleta trocável, cravar o nome aqui faria
+        # o arquivo gerado mentir sobre a própria procedência. [2026-09-17]
+        f"/* Gerado por app/servidor.py a partir de {os.path.relpath(PALETA, RAIZ)}.",
         "   Não edite: a fonte é a paleta, e ela é a única verdade de cor. */",
         ":root {",
         f"  color-scheme: {'light' if claro else 'dark'};",
@@ -1996,6 +2135,28 @@ ACOES = {
         "ajuda": "Passa {as_etapas}. Rodar de novo numa máquina já pronta "
                  "não escreve um byte.",
     },
+    # --- som ----------------------------------------------------------------
+    # Duas ações, e a de OUVIR é a que importa na tela: escolher um timbre sem
+    # poder ouvi-lo é escolher no escuro. Ela não escreve nada — só toca o que
+    # já está instalado, ou o de fábrica se não houver nosso.
+    "som_ouvir": {
+        "rotulo": "Ouvir o som",
+        "grupo": "Manutenção",
+        "argv": [os.path.join(RAIZ, "scripts", "som.sh"), "ouvir"],
+        "escreve": False, "sudo": False, "confirma": False,
+        "ajuda": "Toca o som de volume que está instalado agora. Se não houver o "
+                 "nosso, toca o de fábrica — assim dá para comparar os dois.",
+    },
+    "som_aplicar": {
+        "rotulo": "Regravar o som",
+        "grupo": "Manutenção",
+        "argv": [os.path.join(RAIZ, "scripts", "som.sh"), "aplicar"],
+        "escreve": True, "sudo": False, "confirma": False,
+        "ajuda": "Gera o som de novo a partir do timbre do pack ativo e do seu "
+                 "meow.conf. Vale na próxima mudança de volume — nada a reiniciar. "
+                 "Com «Som ao mudar o volume» em não, este botão faz o contrário: "
+                 "tira o nosso som e devolve o de fábrica.",
+    },
     "doctor": {
         "rotulo": "Conferir a máquina",
         "grupo": "Instalação",
@@ -2023,7 +2184,11 @@ ACOES = {
         "rotulo": "Desinstalar o MeowSystem",
         "grupo": "Instalação",
         "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall"],
-        "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
+        # "sudo": True desde 18/09/2026 — ela SEMPRE atravessou sudo (o hook de
+        # apt do lançador), e passou a atravessar também na remoção da ponte
+        # root. Declarar false fazia o painel prometer que o botão não pede
+        # senha, e a pessoa via o pedido aparecer sem entender de onde veio.
+        "escreve": True, "sudo": True, "confirma": True, "destrutivo": True,
         "ajuda": "Tira o tema, os ícones e os agendamentos. Não apaga "
                  "backups nem a coleção de imagens.",
     },
@@ -2058,7 +2223,7 @@ ACOES = {
         # "caixas" e procura uma caixa. O que o `cargo` lista são PROGRAMAS
         # escritos em Rust instalados nesta máquina, e é isso que a linha diz.
         "ajuda": "Os pacotes com versão nova e os programas em Rust "
-                 "desatualizados. Não escreve, não pede senha e não baixa nada.",
+                 "desatualizados. Não escreve, não escreve e não pede senha, mas consulta o índice do crates.io para saber o que está velho.",
     },
     "sistema_atualizar": {
         "rotulo": "Atualizar a máquina inteira",
@@ -4176,6 +4341,21 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._responder(fh.read(), tipo=TIPOS[".svg"])
 
         if caminho == "/previa" and consulta.get("tipo", [""])[0] == "arquivo":
+            # O TOKEN FALTAVA AQUI, e só aqui. [2026-09-18]
+            #   Este era o único dos dezoito caminhos servidos que não conferia o
+            #   token — os vizinhos /logo.svg (:4252), /gato.svg, /previa comum
+            #   (:4366) e /paleta.css todos abrem com estas duas linhas. Medido
+            #   numa auditoria de QA: um GET sem token nenhum devolvia HTTP 200 e
+            #   31.484 bytes de PNG.
+            #   A cerca de pasta e de extensão abaixo continuava valendo, então
+            #   não era leitura de /etc — mas era uma sonda de existência de
+            #   arquivo de imagem aberta a qualquer processo local e a qualquer
+            #   <img> de página aberta no navegador (requisição no-cors não manda
+            #   Origin, e o Host bate porque é 127.0.0.1:porta mesmo).
+            #   O comentário do topo deste arquivo afirma que "todo pedido carrega
+            #   um token de sessão". Agora carrega.
+            if not self._token_confere(consulta):
+                return self._recusar(403, "token de sessão ausente ou errado")
             # SERVIR UM ARQUIVO POR CAMINHO É UMA PORTA, e ela tem cerca.
             #   Sem a cerca, um GET forjado leria QUALQUER arquivo do disco
             #   (`/previa?tipo=arquivo&id=/etc/shadow`). Então: caminho real
@@ -4260,13 +4440,12 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._recusar(404, "não achei")
             tipo_mime = {".svg": "image/svg+xml", ".png": "image/png",
                          ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}[ext_arq]
-            self.send_response(200)
-            self.send_header("Content-Type", tipo_mime)
-            self.send_header("Content-Length", str(len(dados_arq)))
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(dados_arq)
-            return None
+            # Pela porta única em vez de cinco send_header à mão. [2026-09-18]
+            #   O `_responder` já põe Cache-Control: no-store, X-Content-Type-
+            #   Options e X-Frame-Options; esta resposta artesanal punha só o
+            #   primeiro. Uma segunda rotina de resposta é uma segunda lista de
+            #   cabeçalhos para manter — e esta era a prova disso.
+            return self._responder(dados_arq, tipo=tipo_mime)
 
         if caminho == "/previa":
             if not self._token_confere(consulta):
@@ -4663,7 +4842,31 @@ class Manipulador(BaseHTTPRequestHandler):
           está NA TELA, não o que está num mapa.
         """
         fora = set()
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-dracula.map")
+        # O mapa mudou de lugar quando o Dracula virou theme pack (docs/PACKS.md).
+        #
+        # ADOÇÃO POR CONVENÇÃO, a mesma de meow_pack_dir() em lib/comum.sh: sem a
+        # chave PACK, um FLAVOR que nomeie um pack existente adota esse pack. O
+        # meow.conf desta casa tem FLAVOR="dracula" e nenhuma linha PACK — foi
+        # escrito antes de o formato existir — e sem esta regra o painel pararia
+        # de etiquetar os ícones do pack, sem erro nenhum na tela.
+        #
+        # O VALOR VEM DE `valores_efetivos`, NÃO DO AMBIENTE. Medido em
+        # 17/09/2026: o processo do servidor NÃO tem FLAVOR nem PACK no
+        # `environ` — quem o sobe é o `app/run.sh`, que não exporta o conf. Ler
+        # `os.environ` aqui devolvia string vazia e o pack sumia da etiqueta,
+        # calado. `valores_efetivos` roda o mesmo `set -a; . conf` que o
+        # `carregar_conf` do bin/meow usa, e é a única fonte de verdade sobre o
+        # valor de uma chave.
+        _v = valores_efetivos(["PACK", "FLAVOR"])
+        _pack = _v.get("PACK") or _v.get("FLAVOR") or ""
+        caminho = ""
+        if _pack:
+            cand = os.path.join(RAIZ, "packs", _pack, "icones", "apps.map")
+            if os.path.isfile(cand):
+                caminho = cand
+        if not caminho:
+            # queda para o lugar antigo, para quem ainda não migrou o acervo
+            caminho = os.path.join(RAIZ, "assets", "icones", "apps-dracula.map")
         try:
             with open(caminho, "r", encoding="utf-8") as fh:
                 for linha in fh:

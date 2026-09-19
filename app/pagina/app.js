@@ -799,6 +799,37 @@ async function importarArquivo(arquivo) {
       torrada(`…e mais ${r.recusadas.length - 4} recusadas`, "erro");
     }
   }
+
+  /* AS DESCARTADAS TAMBÉM PRECISAM DE NOME. [2026-09-18]
+   *
+   * O contador acima dizia "1 fora do catálogo" e parava aí. Medido numa
+   * auditoria: exportar o conf por /api/exportar/conf e reimportar o MESMO
+   * arquivo descarta `MEOW_FAMILIA_PALETA` — uma chave que o projeto LÊ
+   * (os manifesto.sh de assets/temas-de-apps) — sem dizer qual foi. E o cabeçalho
+   * do arquivo exportado recomenda exatamente essa rota de volta.
+   *
+   * Um número sem nome não deixa consertar: ela não tem como saber o que
+   * perdeu nem onde procurar. O nome vai CRU pelo mesmo motivo já escrito no
+   * bloco das recusadas acima — é o texto que existe no arquivo dela. */
+  if (r.desconhecidas && r.desconhecidas.length) {
+    for (const chave of r.desconhecidas.slice(0, 4)) {
+      torrada(`${chave}: fora do catálogo — ficou como estava`, "igual");
+    }
+    if (r.desconhecidas.length > 4) {
+      torrada(`…e mais ${r.desconhecidas.length - 4} fora do catálogo`, "igual");
+    }
+  }
+
+  /* E AS AUSENTES, que o servidor já manda e ninguém mostrava.
+   * O comentário de app/servidor.py:3291-3293 promete: "ela tem de saber que
+   * elas ficaram como estavam, e não voltaram ao padrão". Promessa cumprida
+   * aqui — importar um conf antigo não devolve ajuste nenhum ao default, e
+   * quem não souber disso vai procurar o que não mudou. */
+  if (r.ausentes && r.ausentes.length) {
+    const nomes = r.ausentes.slice(0, 3).map(nomeVisivel).join(", ");
+    const resto = r.ausentes.length > 3 ? ` e mais ${r.ausentes.length - 3}` : "";
+    torrada(`o arquivo não trazia ${nomes}${resto} — ficaram como estavam`, "igual");
+  }
 }
 
 /* Roda uma acao pelo id — o `Salvar` precisa disparar o instalador sem que
@@ -1483,7 +1514,7 @@ function avisoDeCombinacao() {
   return elemento("p", { class: "frase dominada" }, [
     elemento("b", { texto: `Não há captura para ${c.par}. ` }),
     elemento("span", {
-      texto: `O instalador recusa a combinação sem captura. Existem: ${c.capturas.join(", ")}.`,
+      texto: `A etapa do tema vai ser pulada — o tema do COSMIC fica como está. Existem: ${c.capturas.join(", ")}.`,
     }),
   ]);
 }
@@ -3581,6 +3612,21 @@ function montarCartao(item) {
       }),
     ]));
   }
+  /* VESTÍGIO DE OUTRO PACK. [2026-09-18]
+   *
+   * Mesma régua do `dominada_por` logo abaixo: a regra é derivada e mora no
+   * servidor, a página só desenha. Mas a frase é outra, e a diferença importa:
+   * `dominada_por` diz que a chave está ANULADA; aqui ela está VALENDO, e é
+   * assim que deve ser — o meow.conf vence o pack. O aviso só conta que o valor
+   * vem de um pack que não é o adotado, porque foi isso que fazia o desktop sair
+   * metade Catppuccin, metade Dracula, sem nada na tela explicando. */
+  if (item.vestigio_de_pack) {
+    const v = item.vestigio_de_pack;
+    cartao.append(elemento("p", { class: "frase dominada" }, [
+      elemento("b", { texto: `Vestígio do pack «${v.pack}». ` }),
+      elemento("span", { texto: v.porque || "" }),
+    ]));
+  }
   if (item.dominada_por) {
     const d = item.dominada_por;
     cartao.append(elemento("p", { class: "frase dominada" }, [
@@ -5358,7 +5404,40 @@ function render() {
    * só a aba escolhida. */
   const grupos = busca
     ? GRUPOS.filter((g) => g.tipo !== "home")
-        .map((g) => ({ ...g, itens: g.itens.filter((i) => casa(i, busca)) })).filter((g) => g.itens.length)
+        .map((g) => ({
+          ...g,
+          /* QUEM CASA NO QUE ESTÁ À VISTA VEM PRIMEIRO. [2026-09-18]
+           *
+           * O filtro achava certo e ordenava pelo arquivo, então buscar «som»
+           * devolvia 23 cartões com «Som ao mudar o volume» em ÚLTIMO — atrás
+           * de 22 que só citam a palavra na ajuda longa. Quem digita uma
+           * palavra procura o cartão que se chama assim.
+           *
+           * A régua não é nova: `ondeCasa` já devolve null exatamente quando
+           * todas as palavras aparecem em texto visível (título + frase +
+           * rótulo), e é o que a lupa usa para decidir se explica ONDE casou.
+           * Aqui o mesmo booleano vira chave de ordenação.
+           *
+           * `sort` é estável desde 2019 — o comentário de :5397 já se apoia
+           * nisso —, então dentro de cada faixa a ordem do arquivo se mantém. */
+          itens: g.itens.filter((i) => casa(i, busca))
+            .sort((a, b) => (ondeCasa(a, busca) === null ? 0 : 1)
+                          - (ondeCasa(b, busca) === null ? 0 : 1)),
+        })).filter((g) => g.itens.length)
+        /* E OS GRUPOS TAMBÉM, pelo mesmo critério. [2026-09-18]
+         *
+         * Ordenar só dentro do grupo não bastava: os grupos saem na ordem das
+         * páginas, e «Som ao mudar o volume» mora em Manutenção, que é das
+         * últimas. Medido depois de ordenar só por dentro: o cartão continuava
+         * em 27º de 37.
+         *
+         * Um grupo vale pelo melhor item que ele tem — se algum dos seus casa
+         * no texto à vista, o grupo inteiro sobe. `some` basta: não interessa
+         * QUANTOS casam, e sim se há um. */
+        .sort((a, b) => {
+          const visivel = (g) => g.itens.some((i) => ondeCasa(i, busca) === null);
+          return (visivel(a) ? 0 : 1) - (visivel(b) ? 0 : 1);
+        })
     : GRUPOS.filter((g) => chaveDeAba(g) === ABA);
 
   if (!grupos.length) {
@@ -6207,6 +6286,27 @@ document.addEventListener("keydown", (ev) => {
   if (ev.key === "Escape" && document.activeElement === $("#busca")) {
     $("#busca").value = ""; render(); return;
   }
+  /* O ESC FECHA O BALÃO DO «?». [2026-09-18]
+   *
+   * WCAG 1.4.13 (Content on Hover or Focus) pede três coisas do conteúdo que
+   * aparece no hover: ser dispensável sem mover o ponteiro, sustentar o
+   * ponteiro por cima, e persistir até sair dali. O balão atendia a terceira e
+   * falhava na primeira — quem abrisse um sem querer só se livrava dele
+   * movendo o mouse para longe, e quem usa o painel por teclado não tinha saída
+   * nenhuma.
+   *
+   * O mecanismo aqui é o MESMO que o gatilho já usa em app.js:3808: marcar
+   * `data-fechei` no gatilho irmão faz o CSS esconder o balão, e o `mouseleave`
+   * (linha 3810) limpa a marca depois, então o próximo hover volta a abrir. */
+  if (ev.key === "Escape") {
+    let fechou = false;
+    for (const dica of document.querySelectorAll(".dica")) {
+      if (getComputedStyle(dica).display === "none") continue;
+      const gatilho = dica.previousElementSibling;
+      if (gatilho) { gatilho.setAttribute("data-fechei", ""); fechou = true; }
+    }
+    if (fechou) { ev.preventDefault(); return; }
+  }
   /* Setas percorrem o trilho quando o foco está nele — é o que um menu de
    * navegação deve fazer, e o Tab continua servindo para sair dele. */
   if ((ev.key === "ArrowDown" || ev.key === "ArrowUp") && document.activeElement.dataset?.grupo) {
@@ -6445,6 +6545,24 @@ async function iniciar() {
    * nada: ninguém mais lê essa chave. */
   $("#botao-salvar").addEventListener("click", salvarEscolhas);
   $("#botao-descartar").addEventListener("click", descartarEscolhas);
+
+  /* FECHAR A JANELA COM ESCOLHAS PENDENTES PERGUNTA ANTES. [2026-09-18]
+   *
+   * O painel fica de pé enquanto a janela existe e sai junto com ela — o que é
+   * o desenho certo e está documentado em app/run.sh. O efeito colateral é que
+   * fechar a janela jogava fora as escolhas não salvas sem uma palavra, e a
+   * pessoa só descobria ao reabrir e ver tudo como antes.
+   *
+   * O LIMIAR É O MESMO DO `descartarEscolhas` (app.js:651), e pelo mesmo
+   * motivo já escrito lá: com UMA escolha, refazer é um clique, e a pergunta
+   * vira burocracia. A partir de duas, vale perguntar.
+   *
+   * O texto do diálogo é do navegador e não dá para escrever — por isso não há
+   * frase nossa aqui. Isto cobre fechar a janela e o Ctrl+W; o servidor cair
+   * por fora continua atendido pela faixa com «Baixar as escolhas (.conf)». */
+  window.addEventListener("beforeunload", (ev) => {
+    if (MUDANCAS.size >= 2) ev.preventDefault();
+  });
   /* O botão do aviso é o mesmo Salvar: sem escolha esperando, ele aplica o que
    * já está gravado — que é exatamente o que o aviso diz que falta. */
   $("#aviso-aplicar-botao").addEventListener("click", salvarEscolhas);

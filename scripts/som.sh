@@ -126,28 +126,95 @@ SOM_DURACAO="${SOM_DURACAO:-0.085}"
 # muda o TIMBRE e não o susto — ela não precisa reaprender o volume dela.
 SOM_GANHO="${SOM_GANHO:-0.18}"
 
+# --- o timbre do PACK ativo, antes dos defaults ------------------------------
+#
+# A ORDEM AQUI É O CONTRATO DE PRECEDÊNCIA (docs/PACKS.md, "Quem vence"):
+#   1. o que já está no ambiente  -> veio do meow.conf, e SEMPRE vence
+#   2. o que o pack declara       -> entra só no que sobrou
+#   3. o default do projeto       -> nas linhas `${VAR:-...}` logo abaixo
+#
+# O `: "${VAR:=valor}"` é o que faz a camada 2 respeitar a 1: ele só atribui se
+# a variável estiver vazia ou ausente. Um `export VAR=valor` cru aqui passaria
+# por cima do meow.conf da pessoa — que é exatamente o que o formato promete
+# nunca fazer.
+_som_do_pack() {
+  local dir linha
+  dir="$(meow_pack_dir)" || return 0
+  [ -n "$dir" ] || return 0
+  [ -f "$dir/pack.json" ] || return 0
+  # O pack.py imprime só o que o pack DECLARA — chave ausente não vira linha.
+  while IFS= read -r linha; do
+    case "$linha" in
+      SOM_*=*) eval ": \"\${${linha%%=*}:=${linha#*=}}\"" ;;
+    esac
+  done < <(python3 "$MEOW_RAIZ/scripts/pack.py" som "$(basename "$dir")" 2>/dev/null)
+}
+_som_do_pack
+
+# --- O TIMBRE, E POR QUE ELE SAIU DE DENTRO DO PYTHON [2026-09-17] -----------
+#
+#   Até aqui as quatro decisões de timbre viviam cravadas no gerador: 880 Hz,
+#   1320 Hz, os pesos 0.62/0.28 e o decaimento 46.0. Isso fazia sentido enquanto
+#   o MeowSystem era um tema só. Deixou de fazer quando ele virou produto com
+#   THEME PACKS (docs/PACKS.md): um pack pode trazer a própria paleta, os
+#   próprios ícones e o próprio papel de parede — e ficaria com o sino do
+#   vizinho.
+#
+#   O QUE NÃO MUDOU, e não pode mudar:
+#     - a DURAÇÃO continua presa ao debounce de 125 ms do osd (ver prova 3 no
+#       cabeçalho). Um pack pode encurtar; alongar além disso empilha o som;
+#     - o GANHO continua calibrado contra o arquivo de fábrica. Um pack que
+#       suba o ganho muda o SUSTO, não o timbre — e isso não é estética, é a
+#       pessoa levando um susto ao mexer no volume;
+#     - a síntese continua DETERMINÍSTICA, que é o que faz o `conferir`
+#       funcionar: gera de novo e compara byte a byte. Parâmetro entra pelo
+#       ambiente, nunca aleatoriedade.
+#
+#   O DEFAULT É O DE SEMPRE. Sem nenhuma destas chaves, o som gerado é
+#   byte-idêntico ao de antes desta mudança — conferido por sha256 na mesma data.
+#
+# FUNDAMENTAL e HARMÔNICO: as duas senoides que formam o sino.
+#   880 Hz é o lá da quinta oitava; 1320 é a quinta justa acima dele. A quinta
+#   soa "resolvida" e não alarmante — foi escolhida por isso.
+SOM_FUNDAMENTAL="${SOM_FUNDAMENTAL:-880.0}"
+SOM_HARMONICO="${SOM_HARMONICO:-1320.0}"
+# Os PESOS de cada senoide na mistura. Somados devem ficar abaixo de 1.0, senão
+# o ganho satura e o `max(-1, min(1, ...))` do gerador corta a onda — o que soa
+# como estalo, não como sino.
+SOM_PESO_FUNDAMENTAL="${SOM_PESO_FUNDAMENTAL:-0.62}"
+SOM_PESO_HARMONICO="${SOM_PESO_HARMONICO:-0.28}"
+# DECAIMENTO: o expoente da queda. Maior = mais seco. 46.0 dá um sino curto;
+# abaixo de ~20 a cauda começa a arrastar e o som vira "blop".
+SOM_DECAIMENTO="${SOM_DECAIMENTO:-46.0}"
+
 # --- o gerador: só biblioteca padrão, e DETERMINÍSTICO ----------------------
 # Determinístico é o que torna `conferir` possível: geramos de novo e comparamos
 # byte a byte com o que está instalado. Sem isso, toda checagem acusaria
 # divergência e o auto-reparo entraria em ping-pong.
 _som_gerar() {
   local destino="$1"
-  python3 - "$destino" "$SOM_DURACAO" "$SOM_GANHO" <<'PY'
+  python3 - "$destino" "$SOM_DURACAO" "$SOM_GANHO" \
+           "$SOM_FUNDAMENTAL" "$SOM_HARMONICO" \
+           "$SOM_PESO_FUNDAMENTAL" "$SOM_PESO_HARMONICO" "$SOM_DECAIMENTO" <<'PY'
 import math, struct, sys, wave
 
 destino, dur, ganho = sys.argv[1], float(sys.argv[2]), float(sys.argv[3])
+# O timbre vem do pack ativo, com os valores de sempre como default —
+# ver o bloco "O TIMBRE" em scripts/som.sh e a seção "som" em docs/PACKS.md.
+fund, harm = float(sys.argv[4]), float(sys.argv[5])
+peso_f, peso_h, decaimento = float(sys.argv[6]), float(sys.argv[7]), float(sys.argv[8])
 taxa = 48000
 n = int(taxa * dur)
 quadros = bytearray()
 for i in range(n):
     t = i / taxa
     # Decaimento exponencial rápido: ataque seco, sem cauda arrastada.
-    env = math.exp(-t * 46.0)
+    env = math.exp(-t * decaimento)
     # Rampas de 2 ms nas pontas: sem elas o corte estala no alto-falante.
     janela = min(1.0, i / 96.0) * min(1.0, (n - i) / 96.0)
     # Fundamental + quinta justa: sino curto, sem soar a alarme.
-    s = 0.62 * math.sin(2 * math.pi * 880.0 * t)
-    s += 0.28 * math.sin(2 * math.pi * 1320.0 * t)
+    s = peso_f * math.sin(2 * math.pi * fund * t)
+    s += peso_h * math.sin(2 * math.pi * harm * t)
     v = int(max(-1.0, min(1.0, s * env * janela * ganho)) * 32767)
     quadros += struct.pack("<hh", v, v)
 
@@ -245,6 +312,16 @@ _som_avisar_ambiente() {
 }
 
 cmd_aplicar() {
+  # A CHAVE `SOM` decide, e "não" REMOVE em vez de só não instalar. [2026-09-17]
+  #   Não instalar e remover são coisas diferentes para quem já tinha o som: sem
+  #   isto, desligar a chave deixaria o arquivo instalado tocando para sempre, e
+  #   a pessoa concluiria que o controle não funciona. É o mesmo desenho do
+  #   `icones_apps_dracula.sh`, que chama `_dracula_remover` quando a chave dele
+  #   está em "não".
+  if [ "${SOM:-sim}" != "sim" ]; then
+    cmd_remover
+    return $?
+  fi
   meow_tem python3 || { meow_erro "falta python3"; return "$MEOW_SEM_DEPENDENCIA"; }
   local rc rcl; _som_instalar; rc=$?
   [ "$rc" = "$MEOW_ERRO" ] && return "$rc"
@@ -270,6 +347,23 @@ cmd_aplicar() {
 
 cmd_conferir() {
   meow_tem python3 || { meow_erro "falta python3"; return "$MEOW_SEM_DEPENDENCIA"; }
+  # A CHAVE MANDA AQUI TAMBÉM, e ignorá-la dava as duas respostas erradas.
+  #   [2026-09-18] `cmd_aplicar` respeita SOM desde 17/09, mas esta função não —
+  #   e conferir tem de responder sobre o MESMO estado que aplicar produziria.
+  #   Medido antes da correção:
+  #     SOM=nao + arquivo instalado  -> dizia "conforme"   (o aplicar REMOVERIA)
+  #     SOM=nao + arquivo ausente    -> diria "divergente" (está como deveria)
+  #   O segundo caso é o que doía: quem desligasse o som ganharia um doctor
+  #   acusando divergência todo dia às 05:00, para sempre, sobre uma escolha
+  #   deliberada. É a armadilha do laço não convergente, de novo.
+  if [ "${SOM:-sim}" != "sim" ]; then
+    if [ -f "$SOM_ALVO" ]; then
+      meow_muda "SOM=\"nao\" e o nosso som ainda está instalado"
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_ok "som de volume de fábrica, como pedido (SOM=\"nao\")"
+    return "$MEOW_OK"
+  fi
   if [ ! -f "$SOM_ALVO" ]; then
     meow_muda "som de volume ausente (o COSMIC usa o de fábrica)"; _som_avisar_ambiente
     return "$MEOW_DIVERGENTE"
@@ -322,7 +416,15 @@ cmd_ouvir() {
   [ -f "$alvo" ] || alvo="$SOM_SISTEMA"
   [ -f "$alvo" ] || { meow_erro "não há som para ouvir"; return "$MEOW_ERRO"; }
   meow_info "tocando $alvo"
-  pw-play --volume 0.5 --media-role Notification "$alvo"
+  # O `|| return MEOW_ERRO` fecha o caso que escapava. [2026-09-18]
+  #   Sem ele, um pw-play que falha (sem servidor de áudio, sink mudo, arquivo
+  #   corrompido) devolvia o 1 do processo — e 1, no contrato desta casa, é
+  #   MEOW_DIVERGENTE, isto é, "há divergências". O painel então pintava um
+  #   fracasso de amarelo e ainda dava torrada verde.
+  #   O contrato "1 = há divergências" é do VERIFICADOR. Quem só atua não tem
+  #   divergência a relatar: ou tocou, ou deu erro. Esta função já devolvia
+  #   MEOW_ERRO nos dois abortos acima; só este escapava.
+  pw-play --volume 0.5 --media-role Notification "$alvo" || return "$MEOW_ERRO"
 }
 
 cmd_remover() {
