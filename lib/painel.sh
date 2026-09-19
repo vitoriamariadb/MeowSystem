@@ -258,6 +258,56 @@ meow_painel_carencia_aurora() {
   date +%s > "$d/tentativas.ts" 2>/dev/null || true
 }
 
+# --- o painel VIVO que parou de desenhar -------------------------------------
+#
+# O SEGUNDO MODO DE FALHA DA MESMA QUEIXA [18/09/2026]
+#   "A barra sumiu" tem duas causas, e o resto deste arquivo só cobre uma. A
+#   coberta: o painel MORRE e o `cosmic-session` desiste de repor (backoff
+#   2^restarts sem teto). A que faltava: o painel fica VIVO, com todos os
+#   applets rodando, e NUNCA MAIS DESENHA — o painel fantasma.
+#
+#   O `laco()` passava direto por ele. Nos passos 1 e 2 ele pergunta "existe
+#   painel?", vê que sim e vai dormir. Um fantasma responde "sim" para sempre.
+#
+# COMO SE RECONHECE, SEM CHUTAR
+#   Os dois sinais abaixo são filtrados por `_PID` do painel EM EXECUÇÃO. Isso
+#   é o que os torna confiáveis: uma mensagem do painel anterior, ou de outro
+#   cliente Wayland qualquer, não conta. Foi assim que a versão original disto
+#   (na outra máquina da casa) errou o alvo pelo motivo certo uma vez e acertou
+#   por coincidência outra — o diagnóstico que autorizou a cura tinha vindo de
+#   outro cliente, 16m55s antes, e o painel desenhou normalmente os 17 minutos
+#   seguintes.
+#
+#     sinal A — o painel reclamou de RENDER no próprio PID:
+#               "Failed to render" ou "Erroneous EGL call". Sozinho não serve
+#               como prova em boot saudável, mas dentro do _PID e depois da
+#               carência, serve.
+#     sinal B — ERRO DE PROTOCOLO na conexão Wayland dele. Um erro de protocolo
+#               é fatal POR DEFINIÇÃO: o compositor derruba a conexão inteira do
+#               cliente. O cosmic-panel não morre — fica vivo e para de
+#               desenhar, que é exatamente a definição de fantasma. E como
+#               painel e dock são o MESMO processo, somem juntos.
+#
+# A CARÊNCIA É PARTE DA DETECÇÃO, NÃO UM ENFEITE
+#   Um painel recém-nascido ainda está montando as layer surfaces e pode
+#   perfeitamente ter emitido um erro no caminho. Sem os 20 s, a primeira
+#   passagem depois de cada reciclagem acharia fantasma e reciclaria de novo —
+#   o laço que o `COTA` existe para impedir, criado dentro do detector.
+meow_painel_fantasma() {        # 0 = há um painel vivo que não desenha
+  local pid vida
+  pid="$(pgrep -x cosmic-panel 2>/dev/null | head -1)"
+  [ -n "$pid" ] || return 1     # sem painel não é fantasma: é ausência, e o laço já trata
+
+  vida="$(ps -o etimes= -p "$pid" 2>/dev/null | tr -d ' ')"
+  case "$vida" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$vida" -ge 20 ] || return 1
+
+  journalctl --user -b --no-pager _PID="$pid" 2>/dev/null \
+    | grep -qiE 'failed to render|erroneous egl|protocol error|error 1 on object' \
+    && return 0
+  return 1
+}
+
 # --- de quem é o painel -----------------------------------------------------
 # PELO PARENTESCO, NUNCA PELO environ: `PANEL_NOTIFICATIONS_FD` é herança e
 # desce por toda a árvore — sete linhas do log da Aurora diziam "é o do
