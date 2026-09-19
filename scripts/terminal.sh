@@ -329,13 +329,41 @@ _nome_esquema() {
 # ninguém apaga.
 NOSSOS_NOMES="$(printf '%s\n' "$NOMES_ESQUEMA" | cut -f2- | paste -sd, -)"
 
-# O slot escuro segue o FLAVOR; o claro é sempre o Latte, porque o Catppuccin
-# tem um flavor claro só (`"claros": ["latte"]` na paleta).
+# O slot escuro segue o FLAVOR; o claro sai da PALETA, não de um nome cravado.
+#
+# ERA `FLAVOR_CLARO="latte"`, E ISSO QUEBRAVA TODO PACK QUE NÃO FOSSE O
+# CATPPUCCIN [19/09/2026]
+#   O comentário anterior dizia, com todas as letras, "o claro é sempre o Latte,
+#   porque o Catppuccin tem um flavor claro só". Era verdade enquanto o
+#   Catppuccin ERA o projeto. Com o formato de pack, o claro é o que o pack
+#   declarar: o `dracula` declara `alucard`. Pedir `latte` a um pack que não o
+#   tem fazia o módulo morrer — e foi assim que este defeito apareceu, como um
+#   `erro terminal` sem mensagem no `meow doctor`.
+#
+#   A mesma lição que o bloco acima já contava sobre `NOMES_ESQUEMA`: uma lista
+#   de nomes chumbada custa exatamente o dia em que entra o quinto nome.
+_FLAVOR_CLARO_PALETA="$(python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+claros = [c for c in (d.get("claros") or []) if c in (d.get("flavors") or {})]
+print(claros[0] if claros else "")
+' "$PALETA" 2>/dev/null)"
+FLAVOR_CLARO="${_FLAVOR_CLARO_PALETA:-latte}"
+
+# E o escuro: se o FLAVOR escolhido for o claro, o par escuro é o primeiro
+# flavor que NÃO está em `claros`. Antes isto era `latte) FLAVOR_ESCURO="mocha"`,
+# com os dois nomes do Catppuccin escritos no código.
+_FLAVOR_ESCURO_PALETA="$(python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+claros = set(d.get("claros") or [])
+escuros = [f for f in (d.get("flavors") or {}) if f not in claros]
+print(escuros[0] if escuros else "")
+' "$PALETA" 2>/dev/null)"
 case "$_FLAVOR" in
-  latte) FLAVOR_ESCURO="mocha" ;;
-  *)     FLAVOR_ESCURO="$_FLAVOR" ;;
+  "$FLAVOR_CLARO") FLAVOR_ESCURO="${_FLAVOR_ESCURO_PALETA:-mocha}" ;;
+  *)               FLAVOR_ESCURO="$_FLAVOR" ;;
 esac
-FLAVOR_CLARO="latte"
 
 # --- o ajudante em python ---------------------------------------------------
 # Bash não lê RON, e um `sed` sobre um mapa aninhado com strings dentro é o
