@@ -1,5 +1,5 @@
 diff --git a/src/media.rs b/src/media.rs
-index 44dd4d5..d699f25 100644
+index 44dd4d5..4bd30c0 100644
 --- a/src/media.rs
 +++ b/src/media.rs
 @@ -1,4 +1,6 @@
@@ -80,7 +80,53 @@ index 44dd4d5..d699f25 100644
      let state = playback_state(player);
      let Ok(metadata) = player.get_metadata() else {
          return NowPlayingData {
-@@ -167,7 +177,9 @@ fn now_playing(player: &mpris::Player) -> NowPlayingData {
+@@ -154,6 +164,45 @@ fn now_playing(player: &mpris::Player) -> NowPlayingData {
+         };
+     }
+
++    // METADATA NAO-VAZIO E SEM FAIXA NAO E UMA FAIXA (2026-09-18)
++    //
++    //   O guard logo acima pergunta `metadata.is_empty()`, e um metadata com
++    //   UMA chave nao esta vazio. O Chrome, sem nada tocando, publica
++    //   exatamente isso e escapava por aqui:
++    //
++    //     $ busctl --user get-property org.mpris.MediaPlayer2.chromium.instance17315 \
++    //         /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player Metadata
++    //       a{sv} 1 "mpris:length" x 0
++    //     $ ... PlaybackStatus
++    //       s "Stopped"
++    //
++    //   Sem `xesam:title` e sem `xesam:artist`, as duas linhas abaixo caiam
++    //   nos fallbacks `unknown-title` e `unknown-artist`, que no i18n sao a
++    //   MESMA palavra: "Unknown". O painel anunciava "Unknown · Unknown" o dia
++    //   inteiro, sem musica nenhuma em lugar nenhum. Medido nesta maquina em
++    //   18/09/2026, com o Chrome aberto e parado.
++    //
++    //   Marcar como `nothing_playing` nao e cosmetico: `has_usable_metadata`
++    //   vira false, `AppModel::has_active_media()` acompanha, e `ui.rs:15`
++    //   devolve `text("")` — o applet SOME do painel, que e o que o dono
++    //   espera de um player parado. E `preferred_player` (model.rs) deixa de
++    //   eleger esse player quando outro tiver faixa de verdade.
++    //
++    //   Os fallbacks FICAM: um player que anuncia so o titulo, ou so o
++    //   artista, continua valendo como faixa e mostra "Unknown" no campo que
++    //   faltou. O criterio novo e a AUSENCIA DOS DOIS.
++    let sem_titulo = metadata.title().is_none();
++    let sem_artista = match metadata.artists() {
++        Some(artistas) => artistas.is_empty(),
++        None => true,
++    };
++    if sem_titulo && sem_artista {
++        return NowPlayingData {
++            state,
++            ..NowPlayingData::nothing_playing()
++        };
++    }
++
+     let title = metadata
+         .title()
+         .map_or_else(|| fl!("unknown-title"), ToOwned::to_owned);
+@@ -167,7 +216,9 @@ fn now_playing(player: &mpris::Player) -> NowPlayingData {
          title,
          artist,
          state,
@@ -91,7 +137,7 @@ index 44dd4d5..d699f25 100644
          has_usable_metadata: true,
      }
  }
-@@ -181,6 +193,99 @@ fn playback_state(player: &mpris::Player) -> PlaybackState {
+@@ -181,6 +232,99 @@ fn playback_state(player: &mpris::Player) -> PlaybackState {
      }
  }
 
@@ -191,7 +237,7 @@ index 44dd4d5..d699f25 100644
  fn file_url_to_path(value: &str) -> Option<PathBuf> {
      if !has_valid_percent_encoding(value) {
          return None;
-@@ -210,7 +315,7 @@ fn has_valid_percent_encoding(value: &str) -> bool {
+@@ -210,7 +354,7 @@ fn has_valid_percent_encoding(value: &str) -> bool {
 
  #[cfg(test)]
  mod tests {
@@ -200,7 +246,7 @@ index 44dd4d5..d699f25 100644
      use std::path::PathBuf;
 
      #[test]
-@@ -243,4 +348,48 @@ mod tests {
+@@ -243,4 +387,48 @@ mod tests {
          assert_eq!(file_url_to_path("file:///home/user/bad%2.png"), None);
          assert_eq!(file_url_to_path("file:///home/user/bad%ZZ.png"), None);
      }
@@ -943,4 +989,3 @@ index cec145f..2406005 100644
 +        )
          .into()
  }
-
