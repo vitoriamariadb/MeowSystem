@@ -83,7 +83,19 @@ declare -a CHAVES_ALPHA_AURORA=(background primary secondary)
 #   nem por `meow doctor --consertar`, e o script ainda anunciaria "já aplicado".
 #   Por isso o Mode é casado pelo CAMINHO RELATIVO INTEIRO, no `case` abaixo.
 #   (`auto_switch` só existe no Mode, mas fica junto: a regra é a árvore.)
-declare -a CHAVES_DELA=(frosted alpha_map)
+#
+#   `frosted_maximized_apps` ENTROU EM 19/09/2026, E POR UM LAÇO MEDIDO
+#     Quem manda nessa chave é o `vidro.sh`, pela chave `VIDRO_AO_MAXIMIZAR` do
+#     meow.conf — ela decide se o vidro fosco continua com a janela maximizada.
+#     A captura tinha `false` gravado; o `vidro.sh` escrevia `true`; o
+#     `aplicar_tema` restaurava o `false` da captura; e na passagem seguinte o
+#     vidro escrevia `true` de novo.
+#     O sintoma era o `install.sh` nunca dizer "nenhuma etapa precisou escrever
+#     nada": `tema` e `vidro` apareciam em "mexeu" em TODA passagem, com "1
+#     escritos, 170 já estavam certos". Dois donos no mesmo arquivo, brigando de
+#     hora em hora, é a armadilha que este projeto persegue desde a lib de
+#     idempotência — e desta vez os dois escritores eram nossos.
+declare -a CHAVES_DELA=(frosted alpha_map frosted_maximized_apps)
 
 e_chave_dela() {
   local chave; chave="$(basename "$1")"
