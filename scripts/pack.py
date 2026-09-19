@@ -188,6 +188,21 @@ def validar(ref, silencioso=False):
     _exigir(isinstance(dados["flavors"], dict) and dados["flavors"],
             f"{arq}: 'flavors' está vazio")
 
+    # NOME DE FLAVOR NÃO PODE TER HÍFEN [19/09/2026]
+    #   O gerador monta o arquivo de tema como "<flavor>-<accent>" e o leitor
+    #   corta no hífen. Um flavor chamado "dracula-claro" vira flavor "dracula"
+    #   com accent "claro-mauve" — e o erro que aparece é
+    #   `accent 'claro-mauve' não é uma cor`, que manda procurar defeito no
+    #   lugar errado. Medido aqui ao nomear o flavor claro do Dracula.
+    #   Recusar na validação custa uma linha; descobrir isso na tela custa uma
+    #   tarde.
+    for flavor in dados["flavors"]:
+        _exigir("-" not in flavor,
+                f"{arq}: o flavor {flavor!r} tem hífen no nome.\n"
+                f"    O tema é gravado como '<flavor>-<accent>', e o hífen parte\n"
+                f"    o nome no lugar errado. Use uma palavra só: o Catppuccin\n"
+                f"    faz 'latte'/'mocha', e o Dracula claro daqui é 'alucard'.")
+
     # Os 26 slots, e o erro diz TODOS os que faltam de uma vez.
     for flavor, cores in dados["flavors"].items():
         faltam = [s for s in SLOTS if s not in cores]

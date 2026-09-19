@@ -75,10 +75,38 @@ O que cada nome quer dizer, na prática:
 | Superfície | `surface2` `surface1` `surface0` | fundos elevados, do mais claro ao mais escuro |
 | Fundo | `base` `mantle` `crust` | o fundo da janela, o da barra, o mais profundo |
 
-**`claros`** lista quais flavors são de fundo claro. Se o seu pack não tem
-flavor claro, deixe `[]` — e leia a seção `paleta.claro_de_reserva` do
-`pack.json`, porque o COSMIC alterna entre um tema escuro e um claro e alguém
-precisa responder pelo claro.
+**`claros`** lista quais flavors são de fundo claro. O COSMIC alterna entre um
+tema escuro e um claro, e alguém precisa responder pelo claro: sem isso, ao
+alternar, a pessoa cai no tema do pack ANTERIOR.
+
+**Nome de flavor é uma palavra só, sem hífen.** O tema é gravado como
+`<flavor>-<accent>` e o leitor corta no hífen — um flavor `tema-claro` vira
+flavor `tema` com accent `claro-mauve`, e o erro que aparece manda procurar
+defeito no lugar errado. A validação recusa antes disso acontecer.
+
+### Se o seu tema não tem um claro
+
+Derive um, e confira contra o Latte. Foi o que o pack `dracula` fez em
+19/09/2026 para ganhar o `alucard`, e o método cabe em três regras:
+
+1. **Matiz do seu tema, luminância do Latte.** O Latte não é "o Mocha
+   invertido": medindo os 26 slots, ele preserva o matiz (±10°) e reescreve a
+   rampa de luminância — `base` vai de 0,01 para 0,88 e `text` de 0,68 para
+   0,08. Copiar essa rampa é herdar uma calibração pronta; o matiz é o que faz
+   a cor continuar sendo do seu tema.
+2. **A saturação também vem do Latte.** Ele clareia a estrutura *baixando* a
+   saturação (o `base` dele é quase neutro) e escurece os acentos *subindo*.
+   Manter a saturação do tema escuro produz pastel: o `base` do Dracula claro
+   saiu `#BDC6FF`, um azul forte, e os 14 acentos reprovaram contra ele.
+3. **Onde o slot original é quase neutro (saturação < 0,10), use o matiz do
+   `base`.** O matiz de um quase-branco é ruído. O `text` do Dracula é
+   `#F8F8F2`; preservar "o matiz dele" e saturar deu `#52523C`, um oliva que o
+   tema não tem.
+
+E confira com uma régua que a referência cumpra: `text` sobre `base` ≥ 7:1
+(AAA), e **cada slot não pior que o Latte no mesmo slot**. Exigir 4,5:1 de todo
+acento reprova 12 slots — e reprova o próprio Latte, onde `rosewater` sobre
+`base` dá 2,32. Esses slots são decoração, não texto.
 
 ---
 

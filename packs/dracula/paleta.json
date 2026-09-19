@@ -1,5 +1,5 @@
 {
-  "_comentario": "Paleta Dracula para o MeowSystem. Os 26 slots são o vocabulário do projeto (ver docs/PACKS.md, 'As 26 cores'), não uma afirmação de que o Dracula tenha 26 cores: o Dracula oficial publica 9 (background, current line, foreground, comment, cyan, green, orange, pink, purple, red, yellow). As demais foram DERIVADAS, e esta nota existe para que quem olhar daqui a um ano saiba quais são autorais e quais são cálculo.",
+  "_comentario": "Paleta do pack Dracula. O flavor 'dracula' traz as cores do draculatheme.com onde ele as nomeia, e derivados declarados onde nao. O flavor claro chama-se 'alucard' -- o nome que o proprio projeto Dracula da a variante clara -- e foi DERIVADO em 19/09/2026, e o metodo esta em docs/PACKS.md: matiz do Dracula, saturacao e LUMINANCIA do Catppuccin Latte (o claro de referencia do projeto, ja calibrado por quem o desenhou). Onde o slot original e quase neutro (saturacao < 0,10) o matiz usado e o do 'base', porque o matiz de um quase-branco e ruido e amplifica-lo inventa uma cor que o tema nao tem. Conferido contra o Latte slot a slot: nenhum fica abaixo de 95% do contraste que o Latte faz no mesmo slot, e text/base entrega 7,10 (AAA; o Latte faz 7,06). O NOME e o do Alucard oficial; as CORES sao derivadas aqui, nao as dele. Se um dia as oficiais entrarem, substituem estas sem trocar o nome do flavor. E o nome nao tem hifen de proposito: o gerador de tema monta o arquivo como '<flavor>-<accent>' e um hifen no flavor parte o nome no lugar errado -- medido em 19/09/2026 com 'dracula-claro', que virou accent 'claro-mauve'.",
   "fonte": "https://draculatheme.com/contribute",
   "verificado_em": "2026-09-17",
   "ordem_canonica": [
@@ -30,9 +30,12 @@
     "mantle",
     "crust"
   ],
-  "claros": [],
+  "claros": [
+    "alucard"
+  ],
   "nomes": {
-    "dracula": "Dracula"
+    "dracula": "Dracula",
+    "alucard": "Alucard"
   },
   "flavors": {
     "dracula": {
@@ -62,6 +65,34 @@
       "base": "#282A36",
       "mantle": "#21222C",
       "crust": "#191A21"
+    },
+    "alucard": {
+      "rosewater": "#8899FA",
+      "flamingo": "#DA7699",
+      "pink": "#ED77BB",
+      "mauve": "#853AF2",
+      "red": "#D40F0F",
+      "maroon": "#E84545",
+      "peach": "#E37A0A",
+      "yellow": "#9CA816",
+      "green": "#2BA149",
+      "teal": "#169486",
+      "sky": "#04A9CC",
+      "sapphire": "#20A0B3",
+      "blue": "#3062FC",
+      "lavender": "#B46FF7",
+      "text": "#4A4F67",
+      "subtext1": "#5C5F76",
+      "subtext0": "#6C6F85",
+      "overlay2": "#7C7F93",
+      "overlay1": "#8C8EA2",
+      "overlay0": "#9CA0B0",
+      "surface2": "#ADB0BF",
+      "surface1": "#BDBFCD",
+      "surface0": "#CECFDC",
+      "base": "#F0F0F6",
+      "mantle": "#E8E9F1",
+      "crust": "#DEE0EA"
     }
   }
 }

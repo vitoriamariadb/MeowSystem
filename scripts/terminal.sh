@@ -635,7 +635,20 @@ _slot_por() {
   local mapa="$DIR/color_schemes_$tipo" sel="$DIR/syntax_theme_$tipo"
   local nome entrada desejado hex rc mudou=0
 
-  nome="$(_nome_esquema "$flavor")" || return "$MEOW_ERRO"
+  # ERRO MUDO É PIOR QUE ERRO [19/09/2026]
+  #   Esta linha devolvia 2 sem imprimir uma palavra, e o `meow doctor`
+  #   mostrava `erro terminal` com a mensagem VAZIA — não havia como saber o
+  #   que faltava sem rodar o script com `bash -x`.
+  #   O caso real que expôs isso: um pack sem flavor claro. O módulo pede o
+  #   esquema claro, `_nome_esquema` não acha o nome, e tudo para. Agora ele
+  #   diz QUAL flavor faltou e ONDE se declara — que é a diferença entre um
+  #   minuto e uma hora para quem estiver escrevendo um pack.
+  if ! nome="$(_nome_esquema "$flavor")"; then
+    meow_erro "a paleta não nomeia o flavor '$flavor' (esquema $tipo do terminal)"
+    meow_info "  quem declara é a chave \"nomes\" da paleta: $(basename "$PALETA")"
+    [ "$tipo" = "light" ] && meow_info "  e o flavor claro sai de \"claros\" — um pack sem flavor claro não veste o modo claro"
+    return "$MEOW_ERRO"
+  fi
 
   hex="--"
   if [ "$_CURSOR" = "accent" ]; then
