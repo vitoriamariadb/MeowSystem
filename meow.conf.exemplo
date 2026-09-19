@@ -943,6 +943,7 @@ MIDIA_CONTROLES="nao"
 # WALLPAPER_BASE — chave que não existia neste arquivo. Ou seja: mudar o valor
 # não movia nada. Corrigido em 08/08/2026; agora o nome daqui é o nome lido.
 WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
+
 # @ De quanto em quanto a imagem troca
 # > Vale para o carrossel automático.
 WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
@@ -1776,3 +1777,72 @@ BACKUPS_MANTIDOS="10"
 #   quê" repetia a poda de backups. Uma linha em branco e um parágrafo desfazem
 #   a herança — 02/09/2026.
 LOG_NIVEL="info"                  # silencioso | info | debug
+
+# @ Som ao mudar o volume
+# > Troca o bipe de fábrica por um sino curto. O timbre vem do theme pack.
+# Instala o som que o COSMIC toca quando você mexe no volume?
+#
+#   É UM SOM SÓ, E NÃO É POR PREGUIÇA. Varrendo os 41 binários
+#   `/usr/bin/cosmic-*` em 04/08/2026: `pw-play` aparece em DOIS e `canberra` em
+#   NENHUM (os três acertos no `cosmic-initial-setup` são a cidade Canberra, da
+#   lista de fusos). Quem toca é o `cosmic-osd`, e o único evento que ele anuncia
+#   é a mudança de volume. O `cosmic-notifications` ANUNCIA a capacidade "sound"
+#   no `GetCapabilities` e não tem reprodutor nenhum — `notify-send -h
+#   string:sound-name:message` produz zero sink-inputs. Não há tema de som a
+#   fazer aqui; há um sino.
+#
+#   O ARQUIVO NASCE DO CÓDIGO, não de um download: WAV PCM 16 bit / 48 kHz /
+#   estéreo, 85 ms, sintetizado por `scripts/som.sh` na hora de instalar. Não há
+#   binário de áudio no repositório e não há licença de terceiro para auditar —
+#   o que se instala é obra do projeto, em CC0.
+#
+#   O TIMBRE VEM DO PACK. Um theme pack pode declarar as próprias frequências
+#   (ver `docs/PACKS.md`, seção "O som"); o Dracula usa sol com a terça menor
+#   acima, e o embutido usa lá com a quinta justa. As chaves `SOM_*` no seu
+#   meow.conf vencem o pack, como qualquer outra.
+#
+#   COM "nao" o arquivo é removido e o COSMIC volta ao som de fábrica —
+#   `~/.local/share/sounds/freedesktop/` sombreia UM arquivo do tema do sistema,
+#   nunca o tema inteiro, então não há o que sobrar.
+#
+#   Para ouvir sem instalar: o botão «Ouvir o som» na página, ou
+#   `./scripts/som.sh ouvir` no terminal.
+SOM="sim"
+
+# @ Nota do sino
+# > A frequência da nota base, em Hz. Vazio usa a do theme pack.
+# As CINCO chaves abaixo são o TIMBRE, e todas seguem a mesma regra: VAZIO
+# significa "use o que o theme pack declarar", e o pack embutido usa lá (880 Hz)
+# com a quinta justa acima (1320). Preencher aqui VENCE o pack — é o contrato de
+# precedência de todas as chaves (ver docs/PACKS.md, "Quem vence").
+#
+#   ELAS EXISTEM NO PAINEL PORQUE O TESTE COBRA ISSO, e o teste tem razão: uma
+#   chave que um script lê do meow.conf e que o painel não oferece é um ajuste
+#   que só quem lê o fonte descobre (tests/app.sh, "script lê do meow.conf e o
+#   painel não oferece"). Entraram em 18/09/2026, depois de o próprio teste
+#   pegar a falta.
+#
+#   O QUE DÁ CARÁTER AO SOM NÃO É A NOTA: é a distância entre as duas. Sobre uma
+#   base de 880, o harmônico em 1320 é quinta justa (resolvido, claro), 1100 é
+#   terça maior (alegre) e 1046.5 é terça menor (sombrio). O pack Dracula usa
+#   784 com 932.3, que é a terça menor — noturno sem virar alarme.
+#
+#   Para ouvir antes de decidir: o botão «Ouvir o som» logo abaixo, ou
+#   `./scripts/som.sh aplicar && ./scripts/som.sh ouvir` no terminal.
+SOM_FUNDAMENTAL=""                # 60 a 8000 Hz — vazio = o do pack
+
+# @ Segunda nota do sino
+# > O harmônico, em Hz. A distância até a nota base é o que dá o caráter.
+SOM_HARMONICO=""                  # 60 a 12000 Hz — vazio = o do pack
+
+# @ Peso da nota base
+# > Quanto a primeira senoide pesa na mistura. Os dois pesos somados têm de caber em 1.
+SOM_PESO_FUNDAMENTAL=""           # 0 a 1 — vazio = o do pack
+
+# @ Peso da segunda nota
+# > Quanto a segunda senoide pesa. Acima de 1 somado, a onda satura e vira estalo.
+SOM_PESO_HARMONICO=""             # 0 a 1 — vazio = o do pack
+
+# @ Secura do sino
+# > O quanto o som cai rápido. Maior = mais seco; abaixo de 20 a cauda arrasta.
+SOM_DECAIMENTO=""                 # 5 a 200 — vazio = o do pack

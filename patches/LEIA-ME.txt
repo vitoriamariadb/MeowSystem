@@ -29,6 +29,52 @@ patches/ — o que este diretório é, e as CINCO armadilhas que custam caro.
     dos quatro da série, e o verificador do doctor diz isso para o "md5 igual"
     verde não dar impressão de uma cobertura que não há.
 
+    O QUINTO ENTROU EM 17/09/2026: `cosmic-comp-blur-cache-textura.patch`.
+    O defeito dele não é de usabilidade como os outros — é o que DERRUBA A
+    SESSÃO. Às 19:56 daquele dia o cosmic-comp abortou com o backtrace da
+    thread de render parado em `render_blur` <- `capture_framebuffer`, e o
+    kernel registrou um `[gfxhub] page fault` do amdgpu com
+    `Faulty UTCL2 client ID: TCP (0x8)` — TCP é o Texture Cache Processor, isto
+    é, a GPU leu um endereço de textura que já não era dela. Morreram junto os
+    cosmic-applets, o cosmic-osd, o cosmic-files-applet, o cosmic-app-library e
+    o cosmic-workspaces; o greeter voltou 17 s depois.
+
+    A causa está em `capture_framebuffer`: ele usa DUAS texturas (o kawase
+    alterna entre elas a cada passe) e cacheava só uma. A segunda era criada
+    com `create_buffer` a cada chamada e descartada no fim — e o `draw` sequer
+    a lê. Barato enquanto a captura é rara; caro quando o damage tracker do
+    smithay entra no regime que ele anuncia UMA vez por processo:
+    "Duplicated FramebufferEffect element. Re-capturing every frame". Aí vira
+    uma alocação e uma liberação de textura de GPU por quadro, a 60 Hz.
+
+    O segundo hunk tira um gatilho desse regime: o caminho de captura de tela
+    (`image_copy_capture/render.rs:611`) usava `let blur_strength = 9;` cravado,
+    com um `// TODO` do próprio upstream, contra 1 ou 2 do caminho normal. Como
+    o `BlurState` é UM POR SUPERFÍCIE e compartilhado pelos dois caminhos, a
+    alternância entre `passes = 4` e `passes = 1` marcava o estado como sujo
+    toda vez, e `damage_since` passava a reportar a geometria inteira como dano.
+
+    ARMADILHA NOVA, QUE ENTRA NESTA LISTA COMO A SEXTA (ver abaixo): o cache da
+    segunda textura precisou de um NEWTYPE, não de um alias. O `UserDataMap` do
+    smithay indexa por `TypeId` — um `type BlurOffTexture<T> = Mutex<Option<T>>`
+    seria o MESMO tipo que `BlurTexture<T>`, cairia no mesmo slot, e as duas
+    texturas do ping-pong virariam uma só. O blur pintaria lixo, sem erro
+    nenhum. Por isso é `struct BlurOffTexture<T>(Mutex<Option<T>>)`.
+
+    NÃO É BACKPORT. Não existe correção upstream para colher: o pacote instalado
+    já contém todos os commits de blur do master (o último a tocar o arquivo é
+    `e8caf33`, de 04/09/2026), e o master está 3 commits à frente, nenhum em
+    render. Issues abertas com o mesmo quadro, nenhuma com resposta de
+    mantenedor: pop-os/cosmic-comp#2843 (hardware quase idêntico ao desta casa,
+    MESMO kernel), #2149 (mesmo page fault, anterior ao blur existir), #2782
+    (import cross-GPU, mesmo driver), #2795 (blur caro).
+
+    E O QUE ELE NÃO PROMETE: a #2149 é de 03/03/2026, quatro meses ANTES de o
+    blur ser mergeado. O blur é gatilho demonstrado neste crash, mas pode não
+    ser a única causa raiz da família de page faults do amdgpu. A medida de
+    controle está em `Migração-OS/scripts/medir-compositor.sh`, e o baseline de
+    antes em `Migração-OS/evidencias/compositor-ANTES-2026-09-17.txt`.
+
     O TERCEIRO ENTROU EM 31/08/2026: `cosmic-comp-menu-clique-curto.patch`. Ela
     descreveu o defeito assim — "em apps como o gradia o botão direito se aperta
     e desaperta": o menu da janela nasce EMBAIXO do cursor, então um item já está
@@ -181,3 +227,74 @@ SE O COMPOSITOR NÃO SUBIR — LEIA ANTES DE COMPILAR, NÃO DEPOIS
     docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md — PRIMEIRA seção do
     arquivo, de propósito. Deixe-o impresso ou noutro aparelho: de nada serve um
     procedimento de recuperação que só existe na máquina que não liga.
+
+================================================================================
+NO NITRO-5 O PROCEDIMENTO ACIMA É OUTRO — MEDIDO EM 17/09/2026
+================================================================================
+    O aviso de cima ("os dois --restore estão armadilhados") descreve a máquina
+    DELA. No nitro-5 do André a situação é diferente, e seguir o texto acima
+    faria alguém recusar exatamente o arquivo que funciona.
+
+    O QUE FOI MEDIDO AQUI, comando por comando:
+
+      dpkg --verify / md5sums do pacote:
+        2890f71a7222886cbcc92a8261159be1  usr/bin/cosmic-comp
+
+      md5sum /var/lib/aurora/cosmic-comp-0.1~1788962084~24.04~a557859.pkg-orig
+        2890f71a7222886cbcc92a8261159be1      <- BATE, exatamente
+
+      strings nesse .pkg-orig
+        nenhum AURORA-*, nenhum 'NIGHT LIGHT (Aurora)'
+
+    Ou seja: neste computador o `.pkg-orig` É o binário de fábrica puro. A razão
+    é simples — o night light nunca foi instalado aqui, então nunca houve o que
+    contaminar. E NÃO existe nenhum `.orig` nesta máquina, que é justamente o
+    arquivo que o procedimento dela manda usar.
+
+    O CAMINHO DE VOLTA NO NITRO-5, de um TTY (Ctrl+Alt+F2), nesta ordem:
+
+      V=0.1~1788962084~24.04~a557859
+      # 1. impede que um --ensure reinstale o build ruim pelas costas
+      sudo mv /var/lib/aurora/cosmic-comp-$V.aurora-ws \
+              /var/lib/aurora/cosmic-comp-$V.QUARENTENA
+      # 2. devolve o binário de fábrica
+      sudo cp -a /var/lib/aurora/cosmic-comp-$V.pkg-orig /usr/bin/cosmic-comp
+      sudo chmod 755 /usr/bin/cosmic-comp
+      # 3. sobe a tela de login de novo
+      sudo systemctl restart greetd
+
+    SEGUNDA REDE, se o /var/lib/aurora tiver sido perdido:
+      sudo apt-get install --reinstall \
+        /var/cache/apt/archives/cosmic-comp_${V}_amd64.deb
+
+    A LIÇÃO GERAL, que vale para as duas máquinas: NÃO confie na descrição de um
+    arquivo de reserva — meça o md5 dele contra o do dpkg antes de precisar
+    dele, e guarde o resultado por escrito. Levou um comando para descobrir que
+    o procedimento publicado era o errado para esta metade da casa.
+
+================================================================================
+7. O CACHE DO SMITHAY É INDEXADO POR TIPO — UM ALIAS NÃO CRIA SLOT NOVO
+================================================================================
+    Descoberto ao escrever o `cosmic-comp-blur-cache-textura.patch`, em
+    17/09/2026, e é o tipo de erro que compila, roda, e pinta lixo na tela.
+
+    O `UserDataMap` do smithay guarda uma coisa POR TIPO — a chave é o `TypeId`.
+    O blur precisava cachear uma segunda textura ao lado da primeira, e o
+    primeiro instinto é copiar a linha do alias que já existe:
+
+        type BlurTexture<T>    = Mutex<Option<T>>;
+        type BlurOffTexture<T> = Mutex<Option<T>>;    // <- ERRADO
+
+    Em Rust, `type` é APELIDO, não tipo novo: os dois `TypeId` são o MESMO. As
+    duas texturas do ping-pong cairiam no mesmo slot, o kawase leria e escreveria
+    na mesma textura, e o resultado sai como borrão errado — sem erro de
+    compilação, sem log, sem crash. Só feio.
+
+    O certo é um newtype de verdade:
+
+        struct BlurOffTexture<T>(Mutex<Option<T>>);
+        impl<T> Default for BlurOffTexture<T> { ... }
+
+    REGRA PRÁTICA para qualquer patch futuro que encoste em `UserDataMap`,
+    `user_data()` ou `get_or_insert_threadsafe`: se você precisa de DOIS valores
+    do mesmo formato, precisa de DOIS tipos nominais. `type` não serve.

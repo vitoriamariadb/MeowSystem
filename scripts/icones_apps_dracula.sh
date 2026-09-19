@@ -55,7 +55,17 @@ TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 ALVO="$TEMA_DIR/scalable/apps"
 ICONES="$RAIZ/assets/icones"
-MAPA="$ICONES/apps-dracula.map"
+# O acervo do Dracula virou um THEME PACK em 17/09/2026 (ver docs/PACKS.md).
+# O mapa e os desenhos moveram de assets/icones/{apps-dracula.map,dracula-apps/}
+# para packs/dracula/icones/{apps.map,apps/}, e os caminhos DENTRO do mapa
+# passaram de `dracula-apps/x.svg` para `apps/x.svg`.
+# A queda para o caminho antigo existe para quem atualizar o MeowSystem sem ter
+# o pack ainda: sem ela, um `git pull` no meio da migração deixaria o dock sem
+# os ícones, calado.
+MAPA="$(meow_pack_arquivo icones/apps.map assets/icones/apps-dracula.map)"
+# A raiz que o mapa resolve: o diretório do mapa, não uma constante. Assim o
+# mesmo script serve ao pack e ao lugar antigo sem saber em qual está.
+ICONES_BASE_MAPA="$(dirname "$MAPA")"
 
 # --- o mapa -------------------------------------------------------------------
 # Uma linha por ícone: `nome : caminho-relativo-a-assets/icones/`. O comentário
@@ -81,7 +91,10 @@ _dracula_instalar() {
 
   while IFS=$'\t' read -r nome caminho; do
     [ -n "$nome" ] || continue
-    origem="$ICONES/$caminho"
+    # A raiz é a do MAPA, não uma constante: o mesmo mapa serve ao pack
+    # (packs/dracula/icones/) e ao lugar antigo (assets/icones/), e o script
+    # não precisa saber em qual dos dois está. [2026-09-17]
+    origem="$ICONES_BASE_MAPA/$caminho"
     if [ ! -f "$origem" ]; then
       # Nome no mapa sem desenho no disco: é falha de quem editou o mapa, e
       # dizer QUAL é vale mais que um total. Não aborta — os outros dezessete
@@ -145,7 +158,10 @@ _dracula_remover() {
   while IFS=$'\t' read -r nome caminho; do
     [ -n "$nome" ] || continue
     [ -f "$ALVO/$nome.svg" ] || continue
-    origem="$ICONES/$caminho"
+    # A raiz é a do MAPA, não uma constante: o mesmo mapa serve ao pack
+    # (packs/dracula/icones/) e ao lugar antigo (assets/icones/), e o script
+    # não precisa saber em qual dos dois está. [2026-09-17]
+    origem="$ICONES_BASE_MAPA/$caminho"
     if [ -f "$origem" ] && [ "$(cat "$origem")" != "$(cat "$ALVO/$nome.svg")" ]; then
       meow_info "  $nome.svg não é o desenho do acervo — fica como está"
       continue

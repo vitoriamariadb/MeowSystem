@@ -35,6 +35,14 @@
 #   uso: scripts/folha_marcas.py [saida.html]
 #        (padrão: ~/Documentos/meow-icones-marcas.html)
 
+# CORRIGIDO EM 2026-09-17 — caminhos de antes da tradução do projeto.
+# Este arquivo procurava `palette/` e `icons/` na raiz, nomes que deixaram de
+# existir quando os diretórios viraram `assets/paleta/` e `assets/icones/`. O
+# script falhava com FileNotFoundError e ninguém via, porque nada no instalador
+# o chama — ele é gerador de folha de conferência, rodado à mão. Medido com
+# `python3 scripts/<este arquivo>`: rc=1 antes, rc=0 depois.
+# A referência de caminho certo é `scripts/folha_conversor.py:82-83`.
+
 import html
 import json
 import os
@@ -155,25 +163,28 @@ SEM_MARCA = [
 
 
 def paleta(flavor='mocha'):
-    with open(os.path.join(RAIZ, 'palette', 'catppuccin.json'), encoding='utf-8') as fh:
+    # precedência: ver meow_paleta() em lib/comum.sh
+    _paleta = os.environ.get('MEOW_PALETA') or os.path.join(
+        RAIZ, 'assets', 'paleta', os.environ.get('PALETA_ARQUIVO') or 'catppuccin.json')
+    with open(_paleta, encoding='utf-8') as fh:
         return json.load(fh)['flavors'][flavor]
 
 
 def mapas():
     """nome -> caminho da arte, lido dos mesmos dois mapas que o instalador lê."""
     arte = {}
-    for linha in open(os.path.join(RAIZ, 'icons', 'apps-arcticons.map'), encoding='utf-8'):
+    for linha in open(os.path.join(RAIZ, 'assets', 'icones', 'apps-arcticons.map'), encoding='utf-8'):
         linha = linha.strip()
         if not linha or linha.startswith('#'):
             continue
         c = linha.split(':')
-        arte[c[0]] = os.path.join(RAIZ, 'icons', 'arcticons-apps', c[1] + '.svg')
-    for linha in open(os.path.join(RAIZ, 'icons', 'apps-convertidos.map'), encoding='utf-8'):
+        arte[c[0]] = os.path.join(RAIZ, 'assets', 'icones', 'arcticons-apps', c[1] + '.svg')
+    for linha in open(os.path.join(RAIZ, 'assets', 'icones', 'apps-convertidos.map'), encoding='utf-8'):
         linha = linha.strip()
         if not linha or linha.startswith('#'):
             continue
         c = linha.split(':')
-        arte[c[0]] = os.path.join(RAIZ, 'icons', 'convertidos-apps', c[0] + '.svg')
+        arte[c[0]] = os.path.join(RAIZ, 'assets', 'icones', 'convertidos-apps', c[0] + '.svg')
     return arte
 
 

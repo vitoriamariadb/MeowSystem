@@ -165,7 +165,10 @@
 
 _SPOT_DIR_MOD="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 _SPOT_ACENTO_PY="$_SPOT_DIR_MOD/acento.py"
-_SPOT_PALETA="$MEOW_RAIZ/assets/paleta/catppuccin.json"
+# A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
+# 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
+# Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
+_SPOT_PALETA="$(meow_paleta)"
 
 # De onde saem FLAVOR e ACCENT: do AMBIENTE, posto por quem chama (bin/meow,
 # install.sh). Ler o meow.conf aqui dentro seria um segundo leitor da mesma conf,
