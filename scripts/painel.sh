@@ -120,7 +120,11 @@ conferir() {
       [ -d "$dir" ] || continue
       atual="$(cat "$dir/border_radius" 2>/dev/null)"
       case "$atual" in ''|*[!0-9]*) continue ;; esac
-      printf '%s' "$atual" > "$ESTADO/raio_desejado.$barra" 2>/dev/null || true
+      # O SECO NÃO ESCREVE, NEM O DESEJO. [2026-09-18]
+      #   Este printf rodava também sob MEOW_DRY_RUN=1, e é por ele que a ação
+      #   `doctor` do painel — declarada "escreve": false, com a ajuda dizendo
+      #   "Não escreve nada." — tocava o disco a cada conferência.
+      meow_seco || printf '%s' "$atual" > "$ESTADO/raio_desejado.$barra" 2>/dev/null || true
     done
     return "$MEOW_OK"
   fi
@@ -148,7 +152,10 @@ conferir() {
     # mudou por fora (ela, o COSMIC Tweaks, o cosmic-settings): o desejo é este
     if [ "$atual" != "$escrito" ]; then desejo="$atual"; fi
     case "$desejo" in ''|*[!0-9]*) desejo="$atual" ;; esac
-    printf '%s' "$desejo" > "$ESTADO/raio_desejado.$barra" 2>/dev/null || true
+    # Mesmo motivo do printf acima: registrar o desejo é escrita, e escrita não
+    # acontece no ensaio. O caminho de conserto (fix_painel, bin/meow) chama sem
+    # o seco, que é onde este registro pertence.
+    meow_seco || printf '%s' "$desejo" > "$ESTADO/raio_desejado.$barra" 2>/dev/null || true
 
     alvo="$desejo"
     [ "$alvo" -gt "$teto" ] && alvo="$teto"

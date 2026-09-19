@@ -97,7 +97,7 @@ html, body {
 body {
   background: var(--base);
   color: var(--text);
-  font: 14px/1.5 "Inter", "Cantarell", system-ui, -apple-system, sans-serif;
+  font: .875rem/1.5 "Inter", "Cantarell", system-ui, -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;               /* quem rola é a coluna do meio, não a página */
@@ -1265,7 +1265,17 @@ select { flex: 1 1 auto; }
   color: var(--red);
 }
 .btn-perigo:hover { background: color-mix(in srgb, var(--red) 15%, transparent); border-color: var(--red); }
-.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn:disabled {
+  /* Cores explícitas em vez de `opacity`. [2026-09-18]
+   * O esmaecimento global apagava texto E fundo juntos e derrubava o
+   * contraste para ~3,1:1 — legal pela letra da norma (estado inativo é
+   * isento), ilegível na prática. Assim o desabilitado continua
+   * visivelmente apagado, mas o rótulo permanece legível: 6,66:1. */
+  background: var(--surface0);
+  border-color: var(--surface1);
+  color: var(--subtext0);
+  cursor: not-allowed;
+}
 .btn:disabled:hover { background: var(--surface0); border-color: var(--surface1); }
 
 /* TRINTA E QUATRO "RODAR" EM MAUVE NÃO SÃO AÇÃO PRINCIPAL.
@@ -1305,6 +1315,10 @@ select { flex: 1 1 auto; }
 .p-rede   { color: var(--sky); }
 .p-ok     { color: var(--green); }
 .p-erro   { color: var(--red); }
+/* A pastilha de «pulado» não tinha cor: herdava a do corpo e ficava igual
+ * a um estado normal. O tom certo já existe e já é usado para o mesmo
+ * sentido — `#saida .l-pula` pinta o glifo `--` do terminal. [2026-09-18] */
+.p-pula { color: var(--overlay1); }
 .p-correndo { color: var(--yellow); }
 /* O estado do trabalho ao vivo é a exceção: aí a pílula diz "isto está
  * acontecendo agora", e o contorno é o que a separa de um rótulo estático. */
@@ -1675,7 +1689,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 /* A etiqueta é o único diferenciador entre 64 cartões, então ela fica — só
  * pequena. "de fábrica" é a ausência de decisão e por isso é a mais apagada. */
 .app-marca { font-size: var(--t-legenda); color: var(--overlay2); }
-.app-fabrica { color: var(--overlay0); }
+.app-fabrica { color: var(--overlay2); }
 /* O pack autoral Dracula não tem UMA cor para a etiqueta usar — cada desenho
  * traz de 6 a 10 cores próprias. Então a etiqueta é o NOME do acervo, e o
  * mauve a separa das outras, que são todas nome de cor da paleta. */
