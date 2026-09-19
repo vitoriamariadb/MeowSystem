@@ -114,6 +114,23 @@ meow_paleta() {
     printf '%s' "$MEOW_PALETA"
     return 0
   fi
+  # O PACK ATIVO VEM ANTES DO EMBUTIDO [19/09/2026]
+  #   Sem esta consulta o formato de pack ficava pela metade: `meow_pack_dir`
+  #   resolvia `packs/<id>` corretamente, o `pack validar` conferia os 26 slots
+  #   da `paleta.json` dele, e nenhum consumidor a lia. O pack declarava uma
+  #   paleta que não vestia nada — e a tela continuava saindo do embutido,
+  #   calada, que é a forma mais cara de um formato falhar.
+  #
+  #   Medido antes de ligar, e é por isso que ligar foi seguro: os 26 slots do
+  #   flavor `dracula` são IDÊNTICOS nos dois arquivos hoje. Trocar a fonte não
+  #   move um pixel nesta máquina — o que muda é que a partir daqui o pack passa
+  #   a mandar de verdade, que é o ponto do formato.
+  local _pack_dir
+  _pack_dir="$(meow_pack_dir)"
+  if [ -n "$_pack_dir" ] && [ -f "$_pack_dir/paleta.json" ]; then
+    printf '%s' "$_pack_dir/paleta.json"
+    return 0
+  fi
   printf '%s' "$MEOW_RAIZ/assets/paleta/${PALETA_ARQUIVO:-catppuccin.json}"
 }
 

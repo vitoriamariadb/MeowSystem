@@ -62,6 +62,25 @@
 # mocha | macchiato | frappe | latte | dracula
 FLAVOR="mocha"
 
+# @ Theme pack
+# > De onde vêm as cores e os ícones. Vazio usa o embutido (Catppuccin).
+# O pack é um diretório com `pack.json` e `paleta.json` — e nada mais é
+# obrigatório: o que ele não declarar é herdado do embutido, e
+# `meow pack info <id>` imprime, categoria por categoria, o que veio de onde.
+# O contrato inteiro está em docs/PACKS.md.
+#
+# Onde os packs são procurados, nesta ordem:
+#   $MEOW_PACKS  ·  ~/.local/share/meowsystem/packs  ·  <raiz>/packs
+# A do meio é a sua: um pack que você baixe vai ali e o projeto não precisa
+# saber que ele existe.
+#
+# VAZIO NÃO É "SEM PACK", É "O EMBUTIDO" — e há uma adoção por convenção:
+#   sem esta chave, um FLAVOR que nomeie um pack existente adota esse pack.
+#   É o que faz um meow.conf escrito antes do formato continuar valendo:
+#   `FLAVOR="dracula"` sem linha `PACK` acha `packs/dracula` e o adota. Esta
+#   chave, quando preenchida, vence a convenção.
+PACK=""
+
 # @ Acervo de papel de parede do Dracula
 # > O repositório de onde vêm as imagens quando a variante é Dracula. Vazio usa o acervo comum.
 # [avancado] `dono/repo` do GitHub, ou um caminho começando com /, ~ ou ./ para
