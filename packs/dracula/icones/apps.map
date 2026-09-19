@@ -1,0 +1,121 @@
+# apps.map — quais aplicativos vestem um desenho deste pack.
+#
+# FORMATO   <nome-do-ícone-do-.desktop> : <caminho relativo a este diretório>
+#
+# O caminho mudou em 17/09/2026, quando o Dracula virou um theme pack de verdade
+# (ver docs/PACKS.md). Era `dracula-apps/<arquivo>.svg`, relativo a
+# assets/icones/; agora é `apps/<arquivo>.svg`, relativo a
+# packs/dracula/icones/. O conteúdo dos desenhos não mudou.
+#
+# apps-dracula.map — os aplicativos do LANÇADOR vestidos pelo tema autoral Dracula.
+#
+# Formato:  nome-de-icone-do-.desktop : caminho-relativo-a-assets/icones/   # app
+#
+# ESTE MAPA NÃO TEM COLUNA DE COR, E A AUSÊNCIA É A INFORMAÇÃO
+#   O apps-arcticons.map tem `: cor` porque o Arcticons é MONOCROMÁTICO —
+#   medido: 0 cores declaradas num .svg do pack — e o script o pinta com a chave
+#   da paleta. Este pack é o oposto: cada desenho traz de 6 a 10 cores próprias
+#   (broom 6, key 7, dice 6, cat 10). É arte acabada, não glifo de traço.
+#   Recolorir pela paleta não seria aplicar o tema: seria destruir o desenho.
+#
+#   Por isso a regra "a cor é uma chave da paleta, nunca um hex" não se aplica
+#   aqui. Ela nunca foi sobre hex — era sobre quem manda na cor. No Arcticons
+#   manda a paleta; neste pack mandam os desenhos, que já nasceram Dracula.
+#
+# DE ONDE VEM CADA LINHA
+#   O casamento app -> desenho não foi refeito: ele existe desde a SPRINT 32 do
+#   Dracula_OS-Theme, em `mapping.json` (214 aplicativos) e `catalog.json` (os
+#   295 desenhos descritos em PT-BR, com tags e cores). O `origem` de cada
+#   entrada diz como o casamento foi feito, e o peso é diferente:
+#
+#     override-novo      escolha manual do dono, revisada a olho
+#     current-nome       nome do ícone bate com um desenho do tema atual
+#     upstream           veio do dracula-icons-circle/main
+#     alias-heuristico   casamento por semelhança de nome
+#     arte-propria       desenho feito para o projeto
+#
+# O QUE NÃO ENTRA AQUI
+#   Os aplicativos que já têm ARTE AUTORAL no próprio MeowSystem
+#   (assets/icones/autorais/*-dracula.svg) ficam comentados abaixo: aquele
+#   desenho é gerado da paleta pelo gerar_icones_autorais.py e acompanha o
+#   flavor sozinho. Vestir por aqui seria trocar arte viva por arte congelada.
+#
+# O ACERVO MORA DENTRO DESTE REPOSITÓRIO — 16/09/2026
+#   Até hoje a segunda coluna era um caminho dentro do `Dracula_OS-Theme`, que
+#   é outro repositório e só existe na máquina DELE. Duas consequências, e as
+#   duas mediram-se aqui: (a) nenhum script lia este arquivo — ele nasceu órfão,
+#   e os aplicativos que ele descreve continuavam com o ícone de fábrica na
+#   tela; (b) se algum lesse, quebraria na máquina dela.
+#
+#   Os 17 desenhos foram COPIADOS para `assets/icones/apps/`, cada um
+#   com o nome do ícone que ele veste — é o que faz o `icones_apps_dracula.sh`
+#   poder conferir o mapa contra o disco sem sair do repositório. A procedência
+#   de cada um está em `PROCEDENCIA.md`.
+#
+#   A coluna continua sendo um CAMINHO, e não só um nome, porque nem todo
+#   desenho mora em `apps/`: a Câmera veste o `resgatados/guvcview.svg`,
+#   que é desenho dele e já estava no repositório.
+# ============================================================================
+
+io.gitlab.theevilskeleton.Upscaler : apps/io.gitlab.theevilskeleton.Upscaler.svg   # Ampliar — telescópio
+io.github.dvlv.boxbuddyrs : apps/io.github.dvlv.boxbuddyrs.svg   # BoxBuddy — baú (variação)
+org.gnome.Calculator : apps/org.gnome.Calculator.svg   # Calculator [upstream]
+foundryvtt : apps/foundryvtt.svg   # Foundry VTT — dados
+google-chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]
+com.system76.Popsicle : apps/com.system76.Popsicle.svg   # Gravador USB Popsicle — pirulito
+input-keyboard : apps/input-keyboard.svg   # Input Method [upstream]
+org.kde.krita : apps/org.kde.krita.svg   # Krita — varinha (variação)
+menulibre : apps/menulibre.svg   # Menu Editor — pergaminho
+nyx : apps/nyx.svg   # Nyx [arte-propria]
+md.obsidian.Obsidian : apps/md.obsidian.Obsidian.svg   # Obsidian [alias-heuristico]
+org.onlyoffice.desktopeditors : apps/org.onlyoffice.desktopeditors.svg   # ONLYOFFICE — livro
+org.qbittorrent.qBittorrent : apps/org.qbittorrent.qBittorrent.svg   # qBittorrent [alias-heuristico]
+rlogo_icon : apps/rlogo_icon.svg   # R — livro de feitiços
+steam : apps/steam.svg   # Steam [current-nome]
+org.telegram.desktop : apps/org.telegram.desktop.svg   # Telegram [alias-heuristico]
+io.github.flattool.Warehouse : apps/io.github.flattool.Warehouse.svg   # Warehouse — edifício
+
+# A CÂMERA VESTE O DESENHO DO guvcview, E ISSO É ESCOLHA DELE — 16/09/2026
+#   "a camera tem que ter o guvcview.svg". O guvcview saiu da máquina na
+#   limpeza de 15/09; o desenho resgatado dele ficou, sem app para vestir. A
+#   Camera do COSMIC estava de fábrica. Um desenho órfão e um app sem desenho.
+io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do guvcview
+#   ^ COPIADO de assets/icones/resgatados/guvcview.svg em 17/09/2026. A entrada
+#     apontava para o acervo 'resgatados' do núcleo, de fora do pack — o que
+#     funcionava enquanto o Dracula morava dentro do repositório e deixa de
+#     funcionar no minuto em que alguém clona só o pack. Um pack precisa ser
+#     AUTOCONTIDO; reusar arte do núcleo é copiar, respeitando a licença dela.
+
+# --- já têm arte autoral no MeowSystem (não entram) -----------------------
+# com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
+# com.system76.CosmicEdit                    -> autorais/cosmic-edit-dracula.svg   # Editor de Texto
+# fogstripper                                -> autorais/fogstripper-dracula.svg   # FogStripper
+# com.system76.CosmicFiles                   -> autorais/cosmic-files-dracula.svg   # Gestor de Arquivos
+# com.system76.CosmicStore                   -> autorais/cosmic-store-dracula.svg   # Loja de Aplicativos
+# com.system76.CosmicTerm                    -> autorais/cosmic-term-dracula.svg   # Terminal
+
+# --- sem desenho ainda ----------------------------------------------------
+# com.beholder.app : ?   # Beholder
+# bleachbit : ?   # BleachBit
+# bleachbit : ?   # BleachBit (as root)
+# com.boxy_svg.BoxySVG : ?   # Boxy SVG
+# org.andrebfarias.Crononauta : ?   # Chrononauta
+# Ubuntu-selfservice : ?   # Citrix Workspace (on Ubuntu)
+# com.github.rafostar.Clapper : ?   # Clapper
+# com.discordapp.Discord : ?   # Discord
+# extase-em-4r73 : ?   # Extase em 4R73
+# be.alexandervanhee.gradia : ?   # Gradia
+# hefesto-dualsense4unix : ?   # Hefesto - Dualsense4Unix
+# com.meowsystem.Painel : ?   # MeowSystem
+# com.microsoft.Edge : ?   # Microsoft Edge
+# com.obsproject.Studio : ?   # OBS Studio
+# protocolo-ouroboros : ?   # Ouroboros
+# pdfforge : ?   # PDForge
+# sigilo : ?   # Sigilo
+# com.spotify.Client : ?   # Spotify
+# syncthing : ?   # Syncthing Web UI
+# thunderbird : ?   # Thunderbird
+# uad-ng : ?   # Universal Android Debloater
+# qrcode-void-generator : ?   # VOID | QRcode
+# net.waterfox.waterfox : ?   # Waterfox
+# whatsapp-linux-app : ?   # WhatsApp

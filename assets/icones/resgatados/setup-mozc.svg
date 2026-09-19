@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Mozc Setup">
+  <title>setup-mozc — resgatado do PNG</title>
+  <defs>
+    <linearGradient id="mozc-grad-laranja" x1="6.86" y1="6.86" x2="35.89" y2="35.89" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff8c00"/>
+      <stop offset="0.09" stop-color="#ff8400"/>
+      <stop offset="0.22" stop-color="#ff7800"/>
+      <stop offset="0.35" stop-color="#ff7000"/>
+      <stop offset="0.47" stop-color="#fb6600"/>
+      <stop offset="0.67" stop-color="#ea6103"/>
+      <stop offset="0.80" stop-color="#da5b07"/>
+      <stop offset="1" stop-color="#d65907"/>
+    </linearGradient>
+    <radialGradient id="mozc-grad-amarelo" cx="36.38" cy="27.38" r="18.75" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd400"/>
+      <stop offset="0.30" stop-color="#ffcb03"/>
+      <stop offset="0.50" stop-color="#fdc019"/>
+      <stop offset="0.58" stop-color="#fcb928"/>
+      <stop offset="0.64" stop-color="#fbb13a"/>
+      <stop offset="0.76" stop-color="#fcbe5c"/>
+      <stop offset="0.85" stop-color="#fdc976"/>
+      <stop offset="1" stop-color="#fdcf8a"/>
+    </radialGradient>
+    <linearGradient id="mozc-grad-creme" x1="12.2" y1="12.2" x2="32.8" y2="32.8" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f2f0e4"/>
+      <stop offset="0.06" stop-color="#f1efe3"/>
+      <stop offset="0.34" stop-color="#eae8da"/>
+      <stop offset="0.41" stop-color="#e7e4d5"/>
+      <stop offset="0.56" stop-color="#e5e2d2"/>
+      <stop offset="0.77" stop-color="#e1decf"/>
+      <stop offset="1" stop-color="#dedbcd"/>
+    </linearGradient>
+    <linearGradient id="mozc-grad-esfera" x1="33.0" y1="33.0" x2="40.3" y2="40.3" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f0eee2"/>
+      <stop offset="0.15" stop-color="#ebe9dc"/>
+      <stop offset="0.82" stop-color="#d4d1c3"/>
+      <stop offset="1" stop-color="#cdcabe"/>
+    </linearGradient>
+    <filter id="mozc-sombra" x="-15%" y="-15%" width="135%" height="135%">
+      <feDropShadow dx="0.38" dy="0.38" stdDeviation="0.35" flood-color="#3a1500" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <circle cx="38.72" cy="33.19" r="9.17" fill="url(#mozc-grad-amarelo)"/>
+  <circle cx="20.25" cy="22.5" r="20.51" fill="url(#mozc-grad-laranja)" filter="url(#mozc-sombra)"/>
+  <g fill="none" stroke="url(#mozc-grad-creme)" stroke-linejoin="round" filter="url(#mozc-sombra)">
+    <path d="M9.00,15.08 C9.62,15.07 11.44,15.03 12.75,15.00 C14.06,14.97 15.50,14.93 16.88,14.89 C18.25,14.85 19.69,14.82 21.00,14.77 C22.31,14.72 23.69,14.66 24.75,14.59 C25.81,14.52 26.44,14.45 27.38,14.33 C28.32,14.21 29.88,13.96 30.38,13.88" stroke-width="3.49" stroke-linecap="butt"/>
+    <path d="M17.81,10.88 C17.77,11.32 17.62,12.56 17.55,13.50 C17.48,14.44 17.43,15.50 17.40,16.50 C17.37,17.50 17.35,18.50 17.36,19.50 C17.37,20.50 17.44,21.50 17.48,22.50 C17.52,23.50 17.53,24.44 17.62,25.50 C17.71,26.56 17.81,27.79 18.00,28.88 C18.19,29.97 18.62,31.53 18.75,32.06" stroke-width="3.75" stroke-linecap="round"/>
+    <path d="M25.12,19.69 C24.56,19.82 22.84,20.13 21.75,20.44 C20.66,20.75 19.56,21.12 18.56,21.56 C17.56,22.00 16.59,22.50 15.75,23.06 C14.91,23.62 14.16,24.32 13.50,24.94 C12.84,25.57 12.31,26.15 11.81,26.81 C11.31,27.47 10.81,28.22 10.50,28.88 C10.19,29.54 9.88,30.19 9.94,30.75 C10.00,31.31 10.41,31.91 10.88,32.25 C11.35,32.59 12.06,32.78 12.75,32.81 C13.44,32.84 14.28,32.66 15.00,32.44 C15.72,32.22 16.43,31.91 17.06,31.50 C17.68,31.09 18.22,30.50 18.75,30.00 C19.28,29.50 19.81,29.06 20.25,28.50 C20.69,27.94 21.04,27.25 21.38,26.62 C21.72,26.00 22.03,25.31 22.31,24.75 C22.59,24.19 22.78,23.72 23.06,23.25 C23.34,22.78 23.59,22.32 24.00,21.94 C24.41,21.57 24.94,21.19 25.50,21.00 C26.06,20.81 26.75,20.68 27.38,20.81 C28.00,20.93 28.69,21.31 29.25,21.75 C29.81,22.19 30.34,22.82 30.75,23.44 C31.16,24.07 31.50,24.84 31.69,25.50 C31.88,26.16 31.94,26.69 31.88,27.38 C31.82,28.07 31.62,28.90 31.31,29.62 C31.00,30.34 30.56,31.03 30.00,31.69 C29.44,32.35 28.75,32.97 27.94,33.56 C27.13,34.15 26.00,34.81 25.12,35.25 C24.25,35.69 23.10,36.03 22.69,36.19" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+  <circle cx="33.19" cy="40.12" r="5.14" fill="url(#mozc-grad-esfera)" filter="url(#mozc-sombra)"/>
+</svg>

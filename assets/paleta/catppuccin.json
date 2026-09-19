@@ -1,5 +1,5 @@
 {
-  "_comentario": "Fonte unica de verdade de cor do MeowSystem. Nenhum hex pode ser hardcoded em script.",
+  "_comentario": "Fonte unica de verdade de cor do MeowSystem. Nenhum hex pode ser hardcoded em script.  O flavor 'dracula' foi acrescentado em 2026-09-11: mesmos 26 slots, cores do draculatheme.com onde ele as nomeia e derivados declarados onde não.",
   "fonte": "https://github.com/catppuccin/catppuccin (paleta oficial, 26 cores por flavor)",
   "verificado_em": "2026-08-04",
   "ordem_canonica": [
@@ -33,6 +33,13 @@
   "claros": [
     "latte"
   ],
+  "nomes": {
+    "latte": "Catppuccin Latte",
+    "frappe": "Catppuccin Frappé",
+    "macchiato": "Catppuccin Macchiato",
+    "mocha": "Catppuccin Mocha",
+    "dracula": "Dracula"
+  },
   "flavors": {
     "latte": {
       "rosewater": "#DC8A78",
@@ -145,6 +152,34 @@
       "base": "#1E1E2E",
       "mantle": "#181825",
       "crust": "#11111B"
+    },
+    "dracula": {
+      "rosewater": "#F8F0EC",
+      "flamingo": "#FFB8D1",
+      "pink": "#FF79C6",
+      "mauve": "#BD93F9",
+      "red": "#FF5555",
+      "maroon": "#FF6E6E",
+      "peach": "#FFB86C",
+      "yellow": "#F1FA8C",
+      "green": "#50FA7B",
+      "teal": "#7FE9DE",
+      "sky": "#8BE9FD",
+      "sapphire": "#62D6E8",
+      "blue": "#6272A4",
+      "lavender": "#D6ACFF",
+      "text": "#F8F8F2",
+      "subtext1": "#E0E0DA",
+      "subtext0": "#C8C8C2",
+      "overlay2": "#A4A6B8",
+      "overlay1": "#8B8DA0",
+      "overlay0": "#6272A4",
+      "surface2": "#565A72",
+      "surface1": "#44475A",
+      "surface0": "#383A4C",
+      "base": "#282A36",
+      "mantle": "#21222C",
+      "crust": "#191A21"
     }
   }
 }

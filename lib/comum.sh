@@ -69,6 +69,135 @@ meow_aviso()  { printf '  %s!!%s   %s\n' "$C_AMARELO" "$C_ZERO" "$*" >&2; }
 meow_erro()   { printf '  %serro%s %s\n' "$C_VERM" "$C_ZERO" "$*" >&2; }
 meow_seco()   { [ "$MEOW_SECO" = "1" ]; }
 
+# --- A PORTA ÚNICA DA PALETA -------------------------------------------------
+#
+# POR QUE ISTO EXISTE [2026-09-17]
+#   Onze lugares liam a paleta, e DEZ cravavam o nome do arquivo:
+#     scripts/terminal.sh:260        scripts/midia.sh:74
+#     scripts/icones_apps_arcticons.sh:111
+#     assets/temas-de-apps/heroic/manifesto.sh:161
+#     assets/temas-de-apps/spotify/manifesto.sh:168
+#     app/servidor.py:158            scripts/gerar_icones_autorais.py:123
+#     scripts/folha_conversor.py:94  scripts/folha_marcas.py:166
+#     scripts/folha_proposta.py:154
+#   O décimo primeiro — scripts/gerar_temas.py:52 — já respeitava `PALETA_ARQUIVO`
+#   e `MEOW_PALETA` desde 11/09/2026, e o comentário dele prometia que a paleta
+#   era trocável pelo meow.conf.
+#
+#   A promessa era falsa em duas camadas. A chave `PALETA_ARQUIVO` não existia no
+#   meow.conf.exemplo, e o install.sh chamava o gerador sem exportar variável
+#   nenhuma. E mesmo que existisse, trocar a paleta teria partido o projeto ao
+#   meio: o tema do COSMIC viria de uma paleta e o terminal, os ícones, o painel
+#   e os temas de aplicativo continuariam lendo o Catppuccin. Não daria erro —
+#   daria DIVERGÊNCIA SILENCIOSA, que é pior.
+#
+# O CONTRATO, em ordem de precedência
+#   1. $MEOW_PALETA       caminho completo. É a porta de teste e a que um pack usa.
+#   2. $PALETA_ARQUIVO    só o nome, resolvido dentro de assets/paleta/.
+#   3. catppuccin.json    o embutido, que continua sendo o default de sempre.
+#   A ordem é EXATAMENTE a de scripts/gerar_temas.py:52-54, que já funcionava —
+#   esta função generaliza aquele comportamento, não inventa outro.
+#
+# POR QUE UMA FUNÇÃO, E NÃO UMA VARIÁVEL EXPORTADA
+#   Uma variável precisaria ser exportada em todo ponto de entrada (install.sh
+#   tem 54 etapas, bin/meow tem 46 ações) e esquecer um ponto daria o mesmo
+#   defeito de novo, calado. Uma função resolve na hora da chamada, e quem
+#   esquecer de usá-la aparece no grep de tests/estilo.sh.
+#
+# QUEM NÃO PODE USAR ESTA FUNÇÃO
+#   Os cinco consumidores em Python. Eles repetem as três linhas equivalentes,
+#   com um comentário apontando para cá — é o idioma que gerar_temas.py já usava,
+#   e acrescentar um módulo importável entre `scripts/` e `app/` traria um
+#   problema de sys.path que este projeto não tem hoje.
+meow_paleta() {
+  if [ -n "${MEOW_PALETA:-}" ]; then
+    printf '%s' "$MEOW_PALETA"
+    return 0
+  fi
+  # O PACK ATIVO VEM ANTES DO EMBUTIDO [19/09/2026]
+  #   Sem esta consulta o formato de pack ficava pela metade: `meow_pack_dir`
+  #   resolvia `packs/<id>` corretamente, o `pack validar` conferia os 26 slots
+  #   da `paleta.json` dele, e nenhum consumidor a lia. O pack declarava uma
+  #   paleta que não vestia nada — e a tela continuava saindo do embutido,
+  #   calada, que é a forma mais cara de um formato falhar.
+  #
+  #   Medido antes de ligar, e é por isso que ligar foi seguro: os 26 slots do
+  #   flavor `dracula` são IDÊNTICOS nos dois arquivos hoje. Trocar a fonte não
+  #   move um pixel nesta máquina — o que muda é que a partir daqui o pack passa
+  #   a mandar de verdade, que é o ponto do formato.
+  local _pack_dir
+  _pack_dir="$(meow_pack_dir)"
+  if [ -n "$_pack_dir" ] && [ -f "$_pack_dir/paleta.json" ]; then
+    printf '%s' "$_pack_dir/paleta.json"
+    return 0
+  fi
+  printf '%s' "$MEOW_RAIZ/assets/paleta/${PALETA_ARQUIVO:-catppuccin.json}"
+}
+
+# O nome do arquivo, sem o caminho — para MENSAGEM, nunca para abrir.
+# Existe porque as mensagens de erro também cravavam "assets/paleta/catppuccin.json"
+# (icones_apps_arcticons.sh:394 e :489, midia.sh:195), e uma mensagem que nomeia
+# o arquivo errado manda a pessoa procurar defeito onde não há.
+# O diretório do pack ativo, ou vazio se for o embutido.
+#
+# Quem decide qual pack é o ativo: a chave PACK do meow.conf. Sem ela, o pack é
+# o embutido (Catppuccin) e esta função devolve vazio — que é o sinal para o
+# chamador usar os caminhos de sempre em assets/.
+#
+# O resolvedor de verdade é scripts/pack.py (ver docs/PACKS.md). Esta função só
+# pergunta a ele, e o faz sem sair do lugar quando não há pack: um fork de
+# python por script, num instalador de 54 etapas, custaria caro à toa.
+meow_pack_dir() {
+  local PACK="${PACK:-}"
+  # ADOÇÃO POR CONVENÇÃO [2026-09-17]
+  #   Sem a chave PACK, um FLAVOR que nomeie um pack existente adota esse pack.
+  #   É o que faz um meow.conf escrito ANTES do formato existir continuar
+  #   valendo: o desta máquina tem FLAVOR="dracula" e nenhuma linha PACK, e
+  #   exigir a chave nova faria o desktop perder os ícones no primeiro `meow
+  #   ativar` depois da atualização — calado, que é o pior jeito.
+  #   A chave explícita continua vencendo; isto é só o default.
+  if [ -z "$PACK" ] && [ -n "${FLAVOR:-}" ]; then
+    local base
+    for base in "${MEOW_PACKS:-}" "${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/packs" "$MEOW_RAIZ/packs"; do
+      [ -n "$base" ] || continue
+      [ -f "$base/$FLAVOR/pack.json" ] && { PACK="$FLAVOR"; break; }
+    done
+  fi
+  [ -n "$PACK" ] || return 0
+  [ "$PACK" = "catppuccin" ] && return 0
+  python3 "$MEOW_RAIZ/scripts/pack.py" caminho "$PACK" id >/dev/null 2>&1 || {
+    meow_aviso "pack '$PACK' não resolve — usando o embutido"
+    return 0
+  }
+  local d
+  for base in "${MEOW_PACKS:-}" "${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/packs" "$MEOW_RAIZ/packs"; do
+    [ -n "$base" ] || continue
+    d="$base/$PACK"
+    [ -f "$d/pack.json" ] && { printf '%s' "$d"; return 0; }
+  done
+  return 0
+}
+
+# Um caminho de dentro do pack ativo, com queda para o do núcleo.
+#   meow_pack_arquivo icones/apps.map  assets/icones/apps-dracula.map
+# devolve o primeiro que existir, nessa ordem. É o que permite migrar um acervo
+# para dentro de um pack sem quebrar quem ainda não migrou.
+meow_pack_arquivo() {
+  local no_pack="$1" no_nucleo="${2:-}" dir
+  dir="$(meow_pack_dir)"
+  if [ -n "$dir" ] && [ -e "$dir/$no_pack" ]; then
+    printf '%s' "$dir/$no_pack"
+    return 0
+  fi
+  [ -n "$no_nucleo" ] && [ -e "$MEOW_RAIZ/$no_nucleo" ] && printf '%s' "$MEOW_RAIZ/$no_nucleo"
+  return 0
+}
+
+meow_paleta_nome() {
+  local p; p="$(meow_paleta)"
+  printf '%s' "${p#"$MEOW_RAIZ"/}"
+}
+
 # --- TRAVA 1: territórios proibidos ----------------------------------------
 # Uma escrita fora de lugar aqui não dá erro: dá um sintoma bizarro dias depois.
 #
@@ -286,14 +415,34 @@ meow_conf_diz() {
   [ "$linha" = "$quer" ]
 }
 
+# A QUEBRA DE LINHA DO FIM SOBREVIVE — 13/09/2026
+#   O `$(cat)` come as quebras do fim e o `meow_escrever` grava com `printf '%s'`:
+#   TODA gravação tirava o último `\n` do arquivo dela. Medido pelo painel: um
+#   Salvar ligou os segundos do relógio, o seguinte desligou, e o md5 não voltou
+#   — a única diferença era esse byte. Agora o arquivo é lido inteiro (o `x` do
+#   fim segura as quebras dentro do `$(...)`), as quebras são separadas do texto
+#   e voltam iguais na gravação.
+#
+#   A comparação "já estava assim" fica AQUI, e não no `meow_escrever`: lá ela é
+#   feita contra outro `$(cat)`, que também come a quebra, e o texto com o `\n`
+#   devolvido nunca bateria — cada Salvar regravaria o arquivo e contaria como
+#   mudança uma chave que ficou igual.
 meow_conf_definir() {
-  local chave="$1" valor="$2" texto
+  local chave="$1" valor="$2" texto novo fim="" nl=$'\n'
   if [ -f "$MEOW_CONF_ARQUIVO" ]; then
-    texto="$(cat "$MEOW_CONF_ARQUIVO")"
+    texto="$(cat "$MEOW_CONF_ARQUIVO"; printf x)"
+    texto="${texto%x}"
+    fim="${texto##*[!$nl]}"
+    texto="${texto%"$fim"}"
   else
     texto="$(cat "$MEOW_CONF_PADRAO" 2>/dev/null)" || return "$MEOW_ERRO"
+    fim="$nl"
   fi
-  meow_escrever "$MEOW_CONF_ARQUIVO" "$(meow_conf_texto_definir "$texto" "$chave" "$valor")" 644
+  novo="$(meow_conf_texto_definir "$texto" "$chave" "$valor")"
+  if [ -f "$MEOW_CONF_ARQUIVO" ] && [ "$novo" = "$texto" ]; then
+    return "$MEOW_OK"
+  fi
+  meow_escrever "$MEOW_CONF_ARQUIVO" "$novo$fim" 644
 }
 
 # --- lock: o timer pode disparar enquanto ela roda na mão (regra 10) --------
@@ -502,6 +651,48 @@ meow_lancador_reler() {
   done
   [ "$matou" = "1" ] && meow_debug "lançador chacoalhado — o cosmic-session repõe em segundos"
   return 0
+}
+
+# --- A TELA INTEIRA RELÊ O QUE MUDOU ------------------------------------------
+# 13/09/2026. Queixa dela: "as alterações que faço pela interface seja icones,
+# configs e afins nada tá aplicando de verdade". Nos ícones a medição deu razão
+# a ela: o `icones_apps_arcticons.sh` punha o desenho no tema e terminava com
+# "os ícones novos aparecem no próximo login" — o arquivo certo no disco, e a
+# dock e o menu mostrando o de antes até ela sair da sessão.
+#
+# Os dois consumidores que resolvem no arranque, cada um pela porta dele:
+#   o dock e o painel -> `scripts/painel.sh reciclar`, a porta única, que recusa
+#                        quando ninguém repõe a barra;
+#   o menu            -> `meow_lancador_reler`, logo acima.
+#
+# SÓ DEPOIS DE ALGO TER MUDADO, pela mesma razão da função de cima: o painel
+# pisca uns 2 s e a grade de aplicativos fecha se estiver aberta.
+#
+# E SÓ NA CASA DE VERDADE. Os testes rodam o instalador num HOME de brinquedo,
+# e um reciclo dali derrubaria a barra DELA no meio de uma suíte — é a lição da
+# ponte root: dar poder a um automatismo acorda os caminhos que só não faziam
+# estrago por falharem. O HOME tem de ser o da conta, lido do passwd.
+#
+# O CÓDIGO DIZ O QUE ACONTECEU, para quem chama poder dizer a verdade na tela:
+#   0  releu (ou é ensaio da CLI, que não relê nada de propósito)
+#   1  o painel recusou reciclar — o menu releu, a dock fica para o login
+#   3  este HOME não é o da sessão: nada foi tocado
+meow_tela_reler() {
+  meow_seco && return 0
+  local lar rc=0
+  lar="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
+  if [ -z "$lar" ] || ! [ "$HOME" -ef "$lar" ]; then
+    meow_debug "HOME ($HOME) não é o da conta — a tela não é desta sessão, nada a reler"
+    return 3
+  fi
+  if [ -x "$MEOW_RAIZ/scripts/painel.sh" ] && pgrep -x cosmic-panel >/dev/null 2>&1; then
+    if ! "$MEOW_RAIZ/scripts/painel.sh" reciclar; then
+      meow_aviso "o painel recusou reciclar agora — na dock, o desenho novo aparece no próximo login"
+      rc=1
+    fi
+  fi
+  meow_lancador_reler
+  return "$rc"
 }
 
 # Notificação: ela precisa saber quando algo mudou sozinho.

@@ -148,6 +148,35 @@ meow_desinstalar() {
     fi
   fi
 
+  # A PONTE ROOT SAI JUNTO, E A ORDEM IMPORTA [2026-09-18]
+  #   Até aqui o `--uninstall` deixava para trás as duas peças com privilégio:
+  #   a regra `/etc/sudoers.d/49-meowsystem-ponte` e o braço
+  #   `/usr/local/lib/meowsystem/ponte_root.sh`. Sobrava um NOPASSWD vivo
+  #   apontando para um script root de um projeto que a pessoa pediu para sair —
+  #   e o clone do repositório, que este desinstalador preserva de propósito,
+  #   continua no disco para os verbos `apt-hook-instalar` e `greeter-aplicar`
+  #   alcançarem.
+  #
+  #   A REGRA PRIMEIRO, o braço depois. É a ordem de `install.sh:1000-1008`, e o
+  #   motivo está comentado lá: a ordem inversa deixa a janela de meia-instalação
+  #   em que a regra aponta para um arquivo que já não existe — que é o estado
+  #   que o doctor acusa.
+  local regra_ponte=/etc/sudoers.d/49-meowsystem-ponte
+  local braco_ponte=/usr/local/lib/meowsystem
+  if [ -f "$regra_ponte" ] || [ -d "$braco_ponte" ]; then
+    if meow_seco; then
+      meow_muda "removeria $regra_ponte e $braco_ponte"
+    elif sudo rm -f "$regra_ponte" 2>/dev/null && sudo rm -rf "$braco_ponte" 2>/dev/null; then
+      meow_ok "ponte root e regra de sudo removidas"
+    else
+      # Mesma conduta do hook acima: sem sudo não apagamos escondido nem
+      # falhamos calados. E aqui o aviso pesa mais, porque o que fica é
+      # privilégio, não configuração.
+      meow_aviso "sem sudo para remover a ponte root — a regra de sudo sem senha FICOU"
+      meow_info "  rode: sudo rm -f $regra_ponte && sudo rm -rf $braco_ponte"
+    fi
+  fi
+
   # O ZAPZAP SAI AQUI, E NÃO NO PASSO 4 — E NÃO PELO MOTIVO DO HOOK
   #   O hook acima escapa do passo 4 por morar fora do `$HOME`. Este é o
   #   contrário: o `tray_icon.py` que vestimos mora DENTRO do `$HOME`

@@ -83,7 +83,19 @@ declare -a CHAVES_ALPHA_AURORA=(background primary secondary)
 #   nem por `meow doctor --consertar`, e o script ainda anunciaria "já aplicado".
 #   Por isso o Mode é casado pelo CAMINHO RELATIVO INTEIRO, no `case` abaixo.
 #   (`auto_switch` só existe no Mode, mas fica junto: a regra é a árvore.)
-declare -a CHAVES_DELA=(frosted alpha_map)
+#
+#   `frosted_maximized_apps` ENTROU EM 19/09/2026, E POR UM LAÇO MEDIDO
+#     Quem manda nessa chave é o `vidro.sh`, pela chave `VIDRO_AO_MAXIMIZAR` do
+#     meow.conf — ela decide se o vidro fosco continua com a janela maximizada.
+#     A captura tinha `false` gravado; o `vidro.sh` escrevia `true`; o
+#     `aplicar_tema` restaurava o `false` da captura; e na passagem seguinte o
+#     vidro escrevia `true` de novo.
+#     O sintoma era o `install.sh` nunca dizer "nenhuma etapa precisou escrever
+#     nada": `tema` e `vidro` apareciam em "mexeu" em TODA passagem, com "1
+#     escritos, 170 já estavam certos". Dois donos no mesmo arquivo, brigando de
+#     hora em hora, é a armadilha que este projeto persegue desde a lib de
+#     idempotência — e desta vez os dois escritores eram nossos.
+declare -a CHAVES_DELA=(frosted alpha_map frosted_maximized_apps)
 
 e_chave_dela() {
   local chave; chave="$(basename "$1")"
@@ -356,6 +368,17 @@ FIM
   done
   # A ORDENAÇÃO CONTINUA SENDO A DO `sort`, e o `printf` preserva isso: é o
   # mesmo texto que o `ls` produzia, só que sem depender de o glob casar.
+  # "0" DESLIGA A PODA — e sem esta linha ele fazia o OPOSTO. [2026-09-18]
+  #   meow.conf.exemplo:1763 promete, na ajuda que a pessoa lê na tela:
+  #       "0" desliga a poda e guarda todos.
+  #   Mas o corte abaixo é `head -n "-$BACKUPS_MANTIDOS"`, e `head -n "-0"` NÃO
+  #   imprime nada a menos — ele imprime o arquivo INTEIRO. Medido:
+  #       $ printf 'a\nb\nc\n' | head -n "-0"
+  #       a b c        (head, GNU coreutils 9.4)
+  #   Ou seja: quem escreveu 0 para guardar TODOS os backups perdia TODOS eles na
+  #   primeira poda. As três pontas discordavam — a ajuda, o painel (que aceita 0)
+  #   e o código. Quem manda é a ajuda: é a promessa que a pessoa leu.
+  [ "${BACKUPS_MANTIDOS:-10}" -eq 0 ] 2>/dev/null && return 0
   if [ "${#antigas[@]}" -gt "$BACKUPS_MANTIDOS" ]; then
     printf '%s\n' "${antigas[@]}" | sort | head -n "-$BACKUPS_MANTIDOS" \
       | while read -r velho; do rm -rf "$velho"; done

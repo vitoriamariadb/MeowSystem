@@ -60,7 +60,25 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # etapas irmãs usam, para que os tipos de arquivo e as pastas nunca discordem.
 FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
 
+# AS PASTAS AUTORAIS DO DRACULA VÊM DE OUTRA FONTE — 16/09/2026
+#   O pack `catppuccin/vscode-icons` cobre os quatro sabores do Catppuccin e
+#   nada além: não existe um `catppuccin/dracula`. Quando o flavor é Dracula, as
+#   pastas especiais vêm de desenho próprio, em assets/icones/pastas-dracula/ —
+#   sete arquivos, um por pasta XDG, feitos sobre a silhueta da pasta base.
+#
+#   A condição é o DIRETÓRIO EXISTIR, não o nome do flavor: assim quem copiar o
+#   projeto sem esses desenhos continua caindo no Catppuccin, sem erro, e quem
+#   desenhar os seus não precisa editar este script.
 ORIGEM="$RAIZ/assets/icones/catppuccin/$FLAVOR_ICONES"
+# [2026-09-17] Era `if [ "${FLAVOR:-}" = "dracula" ]` — um NOME de tema cravado
+# no código, que um terceiro pack nunca satisfaria. Agora a pergunta é sobre o
+# que EXISTE, não sobre como o tema se chama: o pack ativo tem um acervo de
+# pastas? Então é ele. É o mesmo idioma que o comentário acima desta linha já
+# prometia — "quem desenhar os seus não precisa editar este script".
+_pastas_do_pack="$(meow_pack_arquivo icones/pastas assets/icones/pastas-dracula)"
+if [ -n "$_pastas_do_pack" ] && [ -d "$_pastas_do_pack" ]; then
+  ORIGEM="$_pastas_do_pack"
+fi
 MAPA="$RAIZ/assets/icones/pastas.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 DESTINO="$HOME/.local/share/icons/$TEMA/scalable/places"

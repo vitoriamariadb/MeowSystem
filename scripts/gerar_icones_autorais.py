@@ -116,11 +116,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-PALETA = RAIZ / "assets" / "paleta" / "catppuccin.json"
+# A paleta vem da mesma ordem de precedência de toda a casa, e a fonte canônica
+# do contrato é `meow_paleta()` em lib/comum.sh:
+#   1. $MEOW_PALETA     caminho completo (é a porta que um theme pack usa)
+#   2. $PALETA_ARQUIVO  só o nome, resolvido dentro de assets/paleta/
+#   3. catppuccin.json  o embutido
+# São três linhas repetidas em vez de um módulo importável porque os consumidores
+# vivem em `scripts/` e em `app/`, e um import entre os dois traria um problema de
+# sys.path que este projeto não tem hoje. É o mesmo idioma de scripts/gerar_temas.py:52.
+PALETA = (Path(os.environ["MEOW_PALETA"]) if os.environ.get("MEOW_PALETA")
+          else RAIZ / "assets" / "paleta" / (os.environ.get("PALETA_ARQUIVO") or "catppuccin.json"))
 DESTINO = RAIZ / "assets" / "icones" / "autorais"
 
 # Papel -> (nome Catppuccin em flavor escuro, nome em flavor claro).

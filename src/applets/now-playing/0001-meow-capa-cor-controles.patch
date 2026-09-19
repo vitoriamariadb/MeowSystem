@@ -1,5 +1,5 @@
 diff --git a/src/media.rs b/src/media.rs
-index 44dd4d5..d699f25 100644
+index 44dd4d5..634261a 100644
 --- a/src/media.rs
 +++ b/src/media.rs
 @@ -1,4 +1,6 @@
@@ -9,21 +9,21 @@ index 44dd4d5..d699f25 100644
 +use std::process::Command;
  use std::thread;
  use std::time::Duration;
-
+ 
 @@ -12,6 +14,9 @@ use crate::model::{MediaSnapshot, NowPlayingData, PlaybackState, PlayerInfo};
-
+ 
  const POLL_INTERVAL: Duration = Duration::from_millis(500);
  const RECONNECT_INTERVAL: Duration = Duration::from_secs(1);
 +const ART_DOWNLOAD_TIMEOUT_SECONDS: &str = "8";
 +const ART_DOWNLOAD_MAX_BYTES: &str = "8388608";
 +const ART_CACHE_MAX_FILES: usize = 256;
-
+ 
  #[derive(Clone, Copy, Debug)]
  pub enum MediaCommand {
 @@ -30,7 +35,8 @@ pub fn initial_snapshot() -> MediaSnapshot {
          }
      };
-
+ 
 -    match scan(&finder) {
 +    // Startup runs on the UI thread: consult the cache, never block on the network.
 +    match scan(&finder, false) {
@@ -32,7 +32,7 @@ index 44dd4d5..d699f25 100644
              eprintln!("unable to read initial MPRIS state: {error}");
 @@ -77,6 +83,10 @@ fn monitor() -> impl cosmic::iced::futures::Stream<Item = MediaSnapshot> {
  }
-
+ 
  fn monitor_loop(output: &mut mpsc::Sender<MediaSnapshot>) {
 +    // Lida UMA vez, na subida: o laço roda a cada 500ms e reler o arquivo ali
 +    // seriam 120 leituras de disco por minuto para uma chave que quase nunca
@@ -40,7 +40,7 @@ index 44dd4d5..d699f25 100644
 +    let allow_download = crate::settings::read_album_art_remote();
      let mut finder = None;
      let mut last_sent = None;
-
+ 
 @@ -99,7 +109,7 @@ fn monitor_loop(output: &mut mpsc::Sender<MediaSnapshot>) {
          let Some(active_finder) = finder.as_ref() else {
              continue;
@@ -53,7 +53,7 @@ index 44dd4d5..d699f25 100644
 @@ -121,24 +131,24 @@ fn monitor_loop(output: &mut mpsc::Sender<MediaSnapshot>) {
      }
  }
-
+ 
 -fn scan(finder: &PlayerFinder) -> Result<MediaSnapshot, mpris::FindingError> {
 +fn scan(finder: &PlayerFinder, allow_download: bool) -> Result<MediaSnapshot, mpris::FindingError> {
      let players = finder
@@ -64,7 +64,7 @@ index 44dd4d5..d699f25 100644
          .collect::<Vec<_>>();
      Ok(MediaSnapshot { players })
  }
-
+ 
 -fn player_info(player: &mpris::Player) -> PlayerInfo {
 +fn player_info(player: &mpris::Player, allow_download: bool) -> PlayerInfo {
      PlayerInfo {
@@ -74,13 +74,52 @@ index 44dd4d5..d699f25 100644
 +        now_playing: now_playing(player, allow_download),
      }
  }
-
+ 
 -fn now_playing(player: &mpris::Player) -> NowPlayingData {
 +fn now_playing(player: &mpris::Player, allow_download: bool) -> NowPlayingData {
      let state = playback_state(player);
      let Ok(metadata) = player.get_metadata() else {
          return NowPlayingData {
-@@ -167,7 +177,9 @@ fn now_playing(player: &mpris::Player) -> NowPlayingData {
+@@ -154,6 +164,38 @@ fn now_playing(player: &mpris::Player) -> NowPlayingData {
+         };
+     }
+ 
++    // METADATA NAO-VAZIO E SEM FAIXA NAO E UMA FAIXA (2026-09-18)
++    //
++    //   O guard logo acima pergunta `metadata.is_empty()`, e um metadata com
++    //   UMA chave nao esta vazio. O Chrome, sem nada tocando, publica
++    //   exatamente isso e escapava por aqui: PlaybackStatus "Stopped" e
++    //   Metadata com uma chave so, `mpris:length` = 0.
++    //
++    //   Sem `xesam:title` e sem `xesam:artist`, as duas extracoes abaixo caiam
++    //   nos fallbacks `unknown-title` e `unknown-artist`, que no i18n sao a
++    //   MESMA palavra: "Unknown". O painel anunciava "Unknown - Unknown" o dia
++    //   inteiro, sem musica nenhuma em lugar nenhum.
++    //
++    //   Marcar como `nothing_playing` nao e cosmetico: `has_usable_metadata`
++    //   vira false, `AppModel::has_active_media()` acompanha, e `ui.rs:15`
++    //   devolve `text("")` -- o applet SOME do painel, que e o que se espera de
++    //   um player parado. E `preferred_player` deixa de eleger esse player
++    //   quando outro tiver faixa de verdade.
++    //
++    //   Os fallbacks FICAM: um player que anuncia so o titulo, ou so o artista,
++    //   continua valendo como faixa. O criterio novo e a AUSENCIA DOS DOIS.
++    let sem_titulo = metadata.title().is_none();
++    let sem_artista = match metadata.artists() {
++        Some(artistas) => artistas.is_empty(),
++        None => true,
++    };
++    if sem_titulo && sem_artista {
++        return NowPlayingData {
++            state,
++            ..NowPlayingData::nothing_playing()
++        };
++    }
++
+     let title = metadata
+         .title()
+         .map_or_else(|| fl!("unknown-title"), ToOwned::to_owned);
+@@ -167,7 +209,9 @@ fn now_playing(player: &mpris::Player) -> NowPlayingData {
          title,
          artist,
          state,
@@ -91,10 +130,10 @@ index 44dd4d5..d699f25 100644
          has_usable_metadata: true,
      }
  }
-@@ -181,6 +193,99 @@ fn playback_state(player: &mpris::Player) -> PlaybackState {
+@@ -181,6 +225,99 @@ fn playback_state(player: &mpris::Player) -> PlaybackState {
      }
  }
-
+ 
 +/// Local `file://` art, or a remote `http(s)://` cover downloaded once into the
 +/// user cache. Spotify (and every web-backed player) only ever exposes an https
 +/// `mpris:artUrl`, which `file_url_to_path` rejects by design.
@@ -191,16 +230,16 @@ index 44dd4d5..d699f25 100644
  fn file_url_to_path(value: &str) -> Option<PathBuf> {
      if !has_valid_percent_encoding(value) {
          return None;
-@@ -210,7 +315,7 @@ fn has_valid_percent_encoding(value: &str) -> bool {
-
+@@ -210,7 +347,7 @@ fn has_valid_percent_encoding(value: &str) -> bool {
+ 
  #[cfg(test)]
  mod tests {
 -    use super::file_url_to_path;
 +    use super::{art_cache_path, art_path, file_url_to_path};
      use std::path::PathBuf;
-
+ 
      #[test]
-@@ -243,4 +348,48 @@ mod tests {
+@@ -243,4 +380,48 @@ mod tests {
          assert_eq!(file_url_to_path("file:///home/user/bad%2.png"), None);
          assert_eq!(file_url_to_path("file:///home/user/bad%ZZ.png"), None);
      }
@@ -256,7 +295,7 @@ index 86c2a70..512b4a8 100644
 @@ -2,25 +2,137 @@ use std::fs;
  use std::io;
  use std::path::{Path, PathBuf};
-
+ 
 -#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 +use cosmic::iced::Color;
 +
@@ -289,7 +328,7 @@ index 86c2a70..512b4a8 100644
 +    /// Desenhar ⏮⏸⏭ NA BARRA. O popup sempre os tem, independente disto.
 +    pub panel_controls: bool,
  }
-
+ 
  impl Default for AppSettings {
      fn default() -> Self {
          Self {
@@ -304,7 +343,7 @@ index 86c2a70..512b4a8 100644
          }
      }
  }
-
+ 
  #[must_use]
  pub fn settings_path() -> Option<PathBuf> {
 -    dirs::config_dir().map(|path| {
@@ -394,10 +433,10 @@ index 86c2a70..512b4a8 100644
 +        Some("false" | "0" | "nao" | "não")
 +    )
  }
-
+ 
  pub fn load() -> AppSettings {
 @@ -31,7 +143,16 @@ pub fn load() -> AppSettings {
-
+ 
      match load_from(&path) {
          Ok(settings) => settings,
 -        Err(error) if error.kind() == io::ErrorKind::NotFound => AppSettings::default(),
@@ -415,7 +454,7 @@ index 86c2a70..512b4a8 100644
              eprintln!("unable to load settings from {}: {error}", path.display());
              AppSettings::default()
 @@ -61,6 +182,13 @@ fn load_from(path: &Path) -> io::Result<AppSettings> {
-
+ 
      Ok(AppSettings {
          album_color_enabled,
 +        panel_text_width: read_width(),
@@ -427,20 +466,20 @@ index 86c2a70..512b4a8 100644
 +        panel_controls: read_panel_controls(),
      })
  }
-
+ 
 @@ -90,11 +218,12 @@ mod tests {
          let path = directory.path().join("nested/setting");
          let expected = AppSettings {
              album_color_enabled: false,
 +            ..AppSettings::default()
          };
-
+ 
          save_to(&path, expected).unwrap();
-
+ 
 -        assert_eq!(load_from(&path).unwrap(), expected);
 +        assert_eq!(load_from(&path).unwrap().album_color_enabled, expected.album_color_enabled);
      }
-
+ 
      #[test]
 diff --git a/src/style.rs b/src/style.rs
 index ee8024f..aff491b 100644
@@ -449,7 +488,7 @@ index ee8024f..aff491b 100644
 @@ -1,23 +1,55 @@
  use cosmic::iced::{Background, Color};
  use cosmic::widget::button;
-
+ 
 -pub fn applet_button(mut base: button::Style, color: Option<Color>) -> button::Style {
 -    if let Some(album) = color {
 -        let theme_base = match base.background {
@@ -474,7 +513,7 @@ index ee8024f..aff491b 100644
 +    let Some(album) = color else {
 +        return base;
 +    };
-
+ 
 -        let mixed = blend_color(theme_base, album, 0.36);
 -        let background = with_alpha(mixed, 0.64);
 -        let border = with_alpha(shift_color(album, -0.05), 0.82);
@@ -483,7 +522,7 @@ index ee8024f..aff491b 100644
 +        Some(Background::Color(color)) => color,
 +        _ => Color::from_rgb8(36, 38, 42),
 +    };
-
+ 
 -        base.background = Some(Background::Color(background));
 -        base.border_width = base.border_width.max(1.0);
 -        base.border_color = border;
@@ -515,12 +554,12 @@ index ee8024f..aff491b 100644
 +            base.icon_color = Some(foreground);
 +        }
      }
-
+ 
      base
 @@ -34,6 +66,47 @@ pub fn shift_color(color: Color, amount: f32) -> Color {
      }
  }
-
+ 
 +/// Clareia (ou escurece) a cor até ela ter contraste WCAG AA sobre o fundo.
 +/// Anda para o lado OPOSTO ao do fundo, então serve para tema claro e escuro
 +/// sem uma segunda regra.
@@ -623,7 +662,7 @@ index cec145f..2406005 100644
 @@ -21,20 +21,105 @@ pub fn panel<'a>(core: &Core, model: &'a AppModel) -> Element<'a, Message> {
      let transport = mouse_area(icon::from_name(transport_icon(model)).size(size.0))
          .on_press(Message::TogglePlayPause);
-
+ 
 -    let content = Row::new()
 +    let previous = mouse_area(icon::from_name("media-skip-backward-symbolic").size(size.0))
 +        .on_press(Message::PreviousTrack);
@@ -729,7 +768,7 @@ index cec145f..2406005 100644
 +        content = content.push(previous).push(transport).push(next);
 +    }
 +    let content = content;
-
+ 
      let album_color = model.album_color;
 +    let color_style = model.settings.panel_color_style;
      let button = button::custom(content)
@@ -770,7 +809,7 @@ index cec145f..2406005 100644
 @@ -76,34 +169,40 @@ pub fn popup<'a>(core: &Core, model: &'a AppModel) -> Element<'a, Message> {
      core.applet.popup_container(content).into()
  }
-
+ 
 +// A LARGURA DO POPUP NÃO É NOSSA — E NÃO É A `MIDIA_LARGURA`.
 +//   Quem crava é o libcosmic, em `applet::Context::popup_container`:
 +//   `Limits::NONE.min_width(360.0).max_width(360.0)`. Mínimo IGUAL ao máximo,
@@ -804,7 +843,7 @@ index cec145f..2406005 100644
      let size = core.applet.suggested_size(true);
      let padding = core.applet.suggested_padding(true);
      let artwork_size = size.0.saturating_mul(4);
-
+ 
 -    let player_selector: Element<'_, Message> = if model.players.len() > 1 {
 -        accessible_icon_button_without_tooltip(
 -            "view-list-symbolic",
@@ -834,7 +873,7 @@ index cec145f..2406005 100644
 @@ -121,28 +220,60 @@ fn main_popup<'a>(core: &Core, model: &'a AppModel) -> Element<'a, Message> {
          },
      );
-
+ 
 -    let media_info = Column::new()
 +    // AS AÇÕES (lista de players + engrenagem) MORAM NA LINHA DO TÍTULO.
 +    //   Antes eram um `Row` inteiro só para elas, com um `text("")` de espaçador
@@ -891,7 +930,7 @@ index cec145f..2406005 100644
 -        .push(artwork)
 -        .push(media_info.width(Length::Fill));
 +        .push(acoes);
-
+ 
 -    let controls = Row::new()
 +    // OS CONTROLES DENTRO DA COLUNA DE TEXTO, E NÃO NUM ANDAR PRÓPRIO.
 +    //   Num andar próprio eles caíam no `align_x(Center)` da coluna de fora e
@@ -909,7 +948,7 @@ index cec145f..2406005 100644
 @@ -164,13 +295,32 @@ fn main_popup<'a>(core: &Core, model: &'a AppModel) -> Element<'a, Message> {
              Message::NextTrack,
          ));
-
+ 
 +    let media_info = Column::new()
 +        .width(Length::Fill)
 +        .spacing(4)
@@ -943,4 +982,4 @@ index cec145f..2406005 100644
 +        )
          .into()
  }
-
+ 

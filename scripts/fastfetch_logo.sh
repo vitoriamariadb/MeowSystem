@@ -162,8 +162,8 @@ FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}"
 #   sobre si mesmo metade do tempo, e quem fosse depurar leria o nome e pararia
 #   ali. `gato.ansi` diz o que é — o gato da vez.
 FASTFETCH_LOGO_MODO="${FASTFETCH_LOGO_MODO:-espelho}"
-FASTFETCH_LOGO_DIA="${FASTFETCH_LOGO_DIA:-${LOGO_DIA:-coquinha}}"
-FASTFETCH_LOGO_NOITE="${FASTFETCH_LOGO_NOITE:-${LOGO_NOITE:-mimir}}"
+FASTFETCH_LOGO_DIA="${FASTFETCH_LOGO_DIA:-${LOGO_DIA:-mimir}}"
+FASTFETCH_LOGO_NOITE="${FASTFETCH_LOGO_NOITE:-${LOGO_NOITE:-coquinha}}"
 
 # --- A FRONTEIRA MUDOU DE LADO, E ISSO É DECISÃO CONSCIENTE -------------------
 # ATÉ 31/08/2026 este script SÓ LIA o `config.jsonc` dela e imprimia o patch,

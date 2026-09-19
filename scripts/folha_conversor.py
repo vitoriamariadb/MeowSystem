@@ -91,7 +91,17 @@ ARCTICONS = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
 #   Por isso a coluna lê o acervo primeiro e só converte quando não há arquivo.
 ACERVO = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
 
-with open(os.path.join(RAIZ, "assets", "paleta", "catppuccin.json"), encoding="utf-8") as fh:
+# A paleta vem da mesma ordem de precedência de toda a casa, e a fonte canônica
+# do contrato é `meow_paleta()` em lib/comum.sh:
+#   1. $MEOW_PALETA     caminho completo (é a porta que um theme pack usa)
+#   2. $PALETA_ARQUIVO  só o nome, resolvido dentro de assets/paleta/
+#   3. catppuccin.json  o embutido
+# São três linhas repetidas em vez de um módulo importável porque os consumidores
+# vivem em `scripts/` e em `app/`, e um import entre os dois traria um problema de
+# sys.path que este projeto não tem hoje. É o mesmo idioma de scripts/gerar_temas.py:52.
+_PALETA = os.environ.get("MEOW_PALETA") or os.path.join(
+    RAIZ, "assets", "paleta", os.environ.get("PALETA_ARQUIVO") or "catppuccin.json")
+with open(_PALETA, encoding="utf-8") as fh:
     PALETA = json.load(fh)["flavors"]["mocha"]
 
 # Os mesmos quatro do `folha_icones.py`, e pelo mesmo motivo.

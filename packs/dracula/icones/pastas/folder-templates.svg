@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Modelos">
+  <title>folder-templates — pasta Modelos</title>
+  <path fill="#433f4d" d="M 0.91,7.27 A 3.22,3.22 0 0 1 4.13,4.05 L 14.59,4.05 Q 15.55,4.05 16.2,4.69 L 19.84,8.29 Q 20.49,8.93 21.45,8.93 L 43.71,8.93 A 3.22,3.22 0 0 1 46.93,12.15 L 46.93,39.55 A 4.29,4.29 0 0 1 42.64,43.84 L 5.2,43.84 A 4.29,4.29 0 0 1 0.91,39.55 Z"/>
+  <path fill="#534b62" d="M 0.91,16.44 A 4.08,4.08 0 0 1 4.99,12.36 L 42.85,12.36 A 4.08,4.08 0 0 1 46.93,16.44 L 46.93,39.55 A 4.29,4.29 0 0 1 42.64,43.84 L 5.2,43.84 A 4.29,4.29 0 0 1 0.91,39.55 Z"/>
+  <!-- PILHA DE DUAS FOLHAS, e a silhueta e que carrega a leitura — 16/09/2026
+       A primeira tentativa (folha + esquadro) foi reprovada por um motivo que
+       nao era estetico: "a pagina branca lisa e quase o mesmo pixel-blob de
+       folder-documents; a 24px os dois viram a mesma coisa, e o usuario nao
+       distingue Documentos de Modelos no menu". A correcao tinha de mudar o
+       CONTORNO, nao o preenchimento — duas folhas sobrepostas contra uma folha
+       resolve, marca interna nao (some a 24px).
+       Da folha de tras so aparece o "L" roxo de 3.5u (1.75px a 24px), que e o
+       que diz "mais de uma". O roxo fica sobre o CORPO da pasta (3.41:1) e
+       nunca sobre o branco, onde daria 2.26:1 e sumiria. -->
+  <path fill="#BD93F9" d="M 20.3,20.5 L 32.2,20.5 A 0.8,0.8 0 0 1 33,21.3 L 33,33.2 L 20.3,33.2 Z"/>
+  <path fill="#F8F8F2" d="M 15.8,24.8 L 28.7,24.8 A 0.8,0.8 0 0 1 29.5,25.6 L 29.5,37.2 A 0.8,0.8 0 0 1 28.7,38 L 15.8,38 A 0.8,0.8 0 0 1 15,37.2 L 15,25.6 A 0.8,0.8 0 0 1 15.8,24.8 Z"/>
+</svg>

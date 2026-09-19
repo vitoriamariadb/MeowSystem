@@ -85,10 +85,11 @@ divergirem, para que a divergência apareça no mesmo dia e não meses depois.
 
 ## Quem escreve no `meow.conf`
 
-`meow_conf_definir`, de `lib/comum.sh`. Sempre. O backend chama literalmente:
+`meow_conf_definir`, de `lib/comum.sh`. Sempre. O backend carrega a lib uma vez e
+chama a função para cada chave, no mesmo bash (`definir_varias`):
 
 ```bash
-bash -c '. "$1/lib/comum.sh"; meow_conf_definir "$2" "$3"' _ RAIZ CHAVE VALOR
+bash -c '. "$1/lib/comum.sh"; shift; while [ $# -ge 2 ]; do meow_conf_definir "$1" "$2"; …; shift 2; done' _ RAIZ CHAVE VALOR [CHAVE VALOR …]
 ```
 
 Python tem `re.sub` e seria uma linha — e seria a **terceira** rotina de escrita
@@ -117,20 +118,36 @@ sempre — é o que a primeira linha do `meow.conf` diz: *"Editou uma linha? Rod
 `meow aplicar`"*. Um clique em `FLAVOR` não repinta o COSMIC: a etapa de tema
 copia árvore de arquivo, e o painel precisa reciclar.
 
-Então a página **conta**: acende um aviso com quantas chaves foram gravadas e
-ainda não valeram na tela, com o botão que as aplica ao lado.
+Por isso **Salvar e aplicar** é uma rota só (`/api/salvar`): confere todas as
+escolhas, grava, e começa o `./install.sh` na mesma chamada — sem a caixa de "Rodar
+de verdade" no meio, que deixava tudo gravado e nada aplicado quando era fechada.
+Uma escolha recusada barra o Salvar inteiro, antes de qualquer escrita. Se o
+instalador não puder começar (outro trabalho correndo), a página **conta**: acende
+um aviso com quantas chaves foram gravadas e ainda não valeram na tela, com o botão
+que as aplica ao lado.
 
 ---
 
-## O modo seco
+## Sem modo seco
 
-O interruptor **Modo seco** no topo põe `MEOW_DRY_RUN=1` em tudo que aceita — as
-escritas de chave e as ações. É a promessa do projeto, e ela vale aqui:
-**medido em 01/09/2026**, gravar uma chave em seco devolve `1` com
-`~~ mudaria /home/…/meow.conf` e o md5 do arquivo não muda.
+O painel não ensaia. Até 13/09/2026 havia um interruptor **Ensaiar sem gravar** no
+topo, que punha `MEOW_DRY_RUN=1` em tudo que aceitava — e o efeito, visto de fora,
+era o que ela descreveu: *"nada tá aplicando de verdade"*. Ela pediu o app fora do
+modo sandbox, e ele saiu da página e do servidor: nenhuma rota aceita mais `seco`,
+e um `MEOW_DRY_RUN` herdado do terminal que subiu o painel é arrancado do ambiente
+de tudo que ele roda.
 
-Ele fica amarelo quando ligado, de propósito. Um seco esquecido ligado é ela
-clicando em "instalar" e nada acontecendo.
+O modo seco continua onde auditar antes de rodar faz sentido — no terminal:
+`./install.sh --dry-run`, ou `MEOW_DRY_RUN=1` na frente de qualquer script.
+
+**O que o painel mostra da máquina.** As chaves que nascem vazias ("não toca")
+não diziam o que a máquina tem, e o desenho da barra usava números de exemplo. O
+servidor agora lê, a cada esquema, o que o COSMIC guarda para a forma e o vidro
+das barras, o relógio, o lado a lado e o modo de leitura (`NA_MAQUINA`, em
+`servidor.py`), e manda como `valendo_agora`: o deslizante vazio diz "como está:
+24", o desenho da dock usa o raio dela, e o cartão cujo valor escolhido a máquina
+ainda não tem diz "Na máquina agora". Quando um trabalho que escreve termina, a
+página relê tudo isso.
 
 ---
 
@@ -141,8 +158,9 @@ desinstalar, log), tema e cor, ícones e gato, papel de parede, barra e janelas,
 aplicativos.
 
 Cada uma mostra o comando exato que vai rodar, e as que merecem aviso o trazem
-antes do clique: **pode usar sudo**, **desfaz coisas**, **usa rede**, **aceita
-seco**. As três primeiras exigem confirmação num diálogo que repete o comando.
+antes do clique: **pode usar sudo**, **desfaz coisas**, **usa rede**. As que usam
+sudo, as que desfazem e as que o servidor tranca pedem confirmação num diálogo que
+repete o comando — uma vez só: a resposta viaja junto com o pedido.
 
 **Um trabalho por vez.** `./install.sh` e `meow doctor --consertar` pegam o
 `flock` de `~/.local/state/meowsystem/lock` (regra 10 do contrato); dois cliques
@@ -223,7 +241,7 @@ por decoração apagaria o sinal.
 
 ## Levar embora, e trazer de volta
 
-O **Exportar**, ao lado do Modo seco, tem duas saídas — e elas são coisas
+O **Exportar**, na barra do alto, tem duas saídas — e elas são coisas
 diferentes de propósito:
 
 **Configurações** baixa o seu `meow.conf` inteiro, com um cabeçalho de comentário
@@ -260,8 +278,7 @@ Medido: cada gravação leva 0,45 s (sobe um bash, carrega o `lib/comum.sh` e
 reescreve os 55 KB do conf). Importar as cem chaves gravando seriam **43 segundos
 de página parada**, sem barra de progresso e sem como cancelar — para uma
 operação que se dispara ao escolher o arquivo errado por engano. Encenando, dá
-para ver o que veio antes de aceitar, o modo seco continua valendo no `Salvar`, e
-o `Descartar` desfaz tudo com um clique.
+para ver o que veio antes de aceitar, e o `Descartar` desfaz tudo com um clique.
 
 As duas peneiras são as mesmas do clique: `ler_esquema()` diz se a chave existe,
 `validar_valor()` diz se o valor cabe. O que não passa é recusado com a frase na

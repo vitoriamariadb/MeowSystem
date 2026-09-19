@@ -48,12 +48,60 @@
 #   comentário da de cima. São 29 chaves deste arquivo que vivem assim; mover
 #   uma sem a irmã apaga a explicação das duas sem nada acusar.
 
-# @ Variante do Catppuccin
-# > Escuro em três intensidades, ou claro. Só valem as combinações que já têm captura pronta.
-# [essencial] Qual variante do Catppuccin. Só vale o que tem captura em
+# @ Variante do tema
+# > Catppuccin em três escuros e um claro, ou Dracula. Só valem as combinações que já têm captura pronta.
+# [essencial] Qual variante de cor. Só vale o que tem captura em
 # assets/temas/capturados/ — o pré-voo avisa antes de instalar se a combinação não existir.
-# mocha | macchiato | frappe | latte
+#
+# O DRACULA ENTROU COMO VARIANTE, NÃO COMO OUTRO TEMA — 15/09/2026
+#   A paleta dele tem as mesmas 26 cores nomeadas dos quatro flavors do
+#   Catppuccin (conferido chave a chave), então cabe inteiro no mecanismo que já
+#   existia: uma entrada em `assets/paleta/catppuccin.json`, um `.ron` gerado e
+#   uma captura. Por isso o título desta chave deixou de dizer "do Catppuccin" —
+#   a lista abaixo não é mais só dele.
+# mocha | macchiato | frappe | latte | dracula
 FLAVOR="mocha"
+
+# @ Theme pack
+# > De onde vêm as cores e os ícones. Vazio usa o embutido (Catppuccin).
+# O pack é um diretório com `pack.json` e `paleta.json` — e nada mais é
+# obrigatório: o que ele não declarar é herdado do embutido, e
+# `meow pack info <id>` imprime, categoria por categoria, o que veio de onde.
+# O contrato inteiro está em docs/PACKS.md.
+#
+# Onde os packs são procurados, nesta ordem:
+#   $MEOW_PACKS  ·  ~/.local/share/meowsystem/packs  ·  <raiz>/packs
+# A do meio é a sua: um pack que você baixe vai ali e o projeto não precisa
+# saber que ele existe.
+#
+# VAZIO NÃO É "SEM PACK", É "O EMBUTIDO" — e há uma adoção por convenção:
+#   sem esta chave, um FLAVOR que nomeie um pack existente adota esse pack.
+#   É o que faz um meow.conf escrito antes do formato continuar valendo:
+#   `FLAVOR="dracula"` sem linha `PACK` acha `packs/dracula` e o adota. Esta
+#   chave, quando preenchida, vence a convenção.
+PACK=""
+
+# @ Acervo de papel de parede do Dracula
+# > O repositório de onde vêm as imagens quando a variante é Dracula. Vazio usa o acervo comum.
+# [avancado] `dono/repo` do GitHub, ou um caminho começando com /, ~ ou ./ para
+# semear de uma pasta local. Vazio = o flavor `dracula` usa o mesmo acervo dos
+# sabores do Catppuccin.
+#
+# POR QUE ISTO É CONFIGURAÇÃO, E NÃO UM VALOR NO SCRIPT
+#   Esta é a única chave do arquivo que nomeia a CONTA de alguém. O sanitizer de
+#   identidade redige o `user.name` do git em tudo que entra num commit — e faz
+#   bem, porque o MeowSystem é repositório de duas pessoas. Escrito no
+#   `wallpaper.sh`, o valor virava `[REDACTED]/...` e a semeadura falhava. Aqui
+#   ele fica no `meow.conf`, que não é versionado, e cada máquina aponta para o
+#   acervo de quem quiser.
+WALLPAPER_DRACULA_REPO=""
+
+# @ Commit do acervo do Dracula
+# > O commit fixado do repositório acima. Obrigatório quando o acervo é do GitHub.
+# [avancado] Sem pino não há receita: um upstream que muda sozinho transforma
+# "rodei o instalador" em "rodei num dia em que o repositório estava de um
+# jeito". Para pasta local não se aplica.
+WALLPAPER_DRACULA_COMMIT=""
 
 # @ Cor de destaque
 # > A cor que marca o que está selecionado, em toda a máquina.
@@ -397,11 +445,77 @@ NOME_TEMA_ICONES="MeowSystem-Icons"
 #   igual. O conserto é o branco e o parágrafo: cada uma diz o que faz.
 ICONES_BASE="Papirus-Dark"        # tema herdado como fallback
 
+# @ Ícones resgatados do PNG
+# > Os desenhos que só existiam como PNG, agora em vetor. "nao" devolve o PNG.
+# O QUE FOI RESGATADO
+#   Ícones que ela desenhou, exportou para PNG, e cujos SVG originais se
+#   perderam. O PNG num COSMIC a 100% de escala em tela de 24" fica borrado — foi
+#   a queixa de 11/09/2026, "meus pngs originais ficaram horríveis aqui no
+#   cosmic". Cada um foi REDESENHADO em vetor, decalcando o original: mesma
+#   silhueta, mesmas cores, gradiente virando `<linearGradient>` de verdade.
+#   Medido no mesmo dia: dos 86 nomes de ícone que os 91 aplicativos visíveis
+#   pedem, 20 caíam em PNG. A lista, com a procedência de cada um, está em
+#   `assets/icones/apps-resgatados.map`.
+#
+# ISTO NÃO É O `ICONES_COR_MARCA` NEM O CONVERSOR
+#   O conversor pega arte de terceiro e a reescreve no traço do Arcticons. Aqui a
+#   arte já era dela e já estava certa; o que se perdeu foi o arquivo. Por isso
+#   estes ficam COLORIDOS e fiéis, no meio de um tema de traço — é o desenho dela
+#   de volta, não um ícone novo.
+#
+# DESLIGAR DESLIGA: "nao" remove do tema os SVG que este projeto pôs, por nome, e
+# o PNG que estava atrás volta a valer na passagem seguinte. Não há estado
+# guardado, não há resíduo. O acervo em `assets/icones/resgatados/` continua no
+# repo de qualquer forma — desligar é sobre o que aparece na tela, não sobre
+# apagar o desenho.
+ICONES_RESGATADOS="sim"           # sim | nao
+
+# @ Pack de ícones Dracula nos aplicativos
+# > Os desenhos autorais do Dracula vestindo os aplicativos do lançador.
+# Os dezoito desenhos de `assets/icones/apps-dracula.map` entram no tema, em
+# `scalable/apps`. É arte acabada e colorida — 6 a 10 cores por desenho, todas
+# já da paleta Dracula —, ao contrário do Arcticons, que é traço monocromático
+# pintado por nós. Aqui não se recolore nada: a cópia é byte a byte.
+#
+# LIGAR ISTO TROCA ARTE QUE JÁ ESTÁ NA TELA, e por isso nasce em "nao"
+#   Onze dos dezoito nomes já vestem Arcticons: Krita, Telegram, qBittorrent,
+#   Obsidian, ONLYOFFICE, Chrome, Calculator, Warehouse, Upscaler, Steam e
+#   input-keyboard. O `scalable/apps` VENCE o `48x48/apps` no resolvedor (strace
+#   de 08/08/2026, no cabeçalho do `completar_icones.sh`), então ligar troca os
+#   onze de uma vez. Os outros sete estavam de fábrica e só ganham.
+#
+#   Ele escolheu "Dracula vence tudo" em 16/09/2026, com os dois lados na mesa.
+#   O padrão continua "nao" porque o padrão é o que vale numa máquina que não
+#   participou dessa decisão — a dela, ou uma recém-formatada.
+#
+# DESLIGAR DESLIGA, E NÃO CUSTA NADA: "nao" apaga só o que este projeto pôs, por
+# nome e conferindo o conteúdo byte a byte (arquivo editado à mão fica). O
+# Arcticons nunca saiu do `48x48` — ele reaparece sozinho na passagem seguinte.
+ICONES_DRACULA="nao"              # sim | nao
+
 # @ Cor das pastas
 # > Deixe escrito com ${FLAVOR} e ${ACCENT} para acompanhar o tema sozinho.
 # A cor das PASTAS comuns, pintada pelo `papirus-folders`. Deixe escrito com
 # `${FLAVOR}` e `${ACCENT}` em vez do nome já expandido: assim trocar o flavor lá
 # em cima repinta as pastas na mesma passagem, sem ninguém voltar aqui.
+#
+# O PADRÃO NÃO EXISTE PARA TODO FLAVOR, E ISSO É TRATADO — 16/09/2026
+#   `cat-${FLAVOR}-${ACCENT}` funciona para os quatro sabores do Catppuccin
+#   porque o papirus-folders traz exatamente as 56 combinações deles (4 flavors
+#   × 14 accents). Com `FLAVOR="dracula"` o valor vira `cat-dracula-mauve`, que
+#   NÃO existe — e não vai existir: o papirus-folders é um pack de terceiro e
+#   não conhece o Dracula.
+#
+#   O `construir_pastas.sh` confere a cor contra o disco antes de usar e, não
+#   achando, cai no `mocha` — o mais escuro do Catppuccin, que é onde o Dracula
+#   mora — PRESERVANDO o accent: quem pediu `pink` continua com pink. E avisa na
+#   tela qual cor entrou no lugar.
+#
+#   Antes dessa guarda a falha era CALADA: `montar_de_para` não achava o arquivo,
+#   devolvia 1, e as pastas ficavam sem pintura nenhuma sem uma linha de aviso.
+#   Escrever aqui uma cor fixa do Catppuccin "resolveria" o sintoma e quebraria
+#   a promessa da linha de cima — a de que trocar o flavor repinta as pastas
+#   sozinho. Por isso o valor continua escrito com as variáveis.
 ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 
 # @ Variante dos ícones de arquivo
@@ -650,11 +764,27 @@ FORMA_ALA_FINAL_DOCK=""           # XS | S | M | L | XL   (a ponta direita: band
 # --- VIDRO E RELÓGIO --------------------------------------------------------
 
 # @ Manter o vidro com janela maximizada
-# > "Não" devolve o comportamento de fábrica: o painel fica opaco.
-# O painel e o dock mantêm o vidro fosco quando uma janela é maximizada?
-# "nao" devolve o comportamento de fábrica do COSMIC: eles ficam opacos.
-# São duas chaves (Panel e Dock) e valem na hora — o painel vigia as duas.
-# Esta não tem controle na GUI: se ninguém escrever, ela se perde em silêncio.
+# > "Não" devolve o comportamento de fábrica: painel, dock e janela ficam opacos.
+# O painel, o dock E A JANELA mantêm o vidro fosco quando uma janela é
+# maximizada? "nao" devolve o comportamento de fábrica do COSMIC: os três ficam
+# opacos. Valem na hora — o painel vigia as chaves dele.
+#
+# A BARRA E A JANELA SÃO MECANISMOS DIFERENTES, E ISTO É UMA CHAVE SÓ [18/09/2026]
+#   A barra se resolve com `keep_style_on_maximize` (Panel e Dock), que não tem
+#   controle na GUI: se ninguém escrever, ela se perde em silêncio. A janela se
+#   resolve por outro caminho, porque o COSMIC troca a paleta ao maximizar
+#   (`transparent_background`, translúcido, vira `background`, opaco).
+#
+#   Quem liga esta chave não está pedindo "vidro na barra": está pedindo vidro
+#   ao maximizar. Ligar a mesma coisa em dois lugares é trabalho do programa,
+#   não da pessoa — então a chave é uma só e cobre os três.
+#
+#   E O CAMINHO DA JANELA SE ADAPTA AO COSMIC QUE A MÁQUINA TEM: onde existe a
+#   chave nativa `frosted_maximized_apps` (cosmic-panel#457), é ela que é
+#   escrita — suportada, sobrevive a upgrade, e o assunto acaba aí. Onde não
+#   existe, `scripts/vidro_janela.py` sincroniza o alpha das duas paletas. A
+#   nativa não é "preferida": ela EXCLUI o remendo, senão os dois mexeriam no
+#   mesmo pixel por caminhos diferentes.
 VIDRO_AO_MAXIMIZAR="sim"
 
 # @ Opacidade do painel
@@ -848,6 +978,7 @@ MIDIA_CONTROLES="nao"
 # WALLPAPER_BASE — chave que não existia neste arquivo. Ou seja: mudar o valor
 # não movia nada. Corrigido em 08/08/2026; agora o nome daqui é o nome lido.
 WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
+
 # @ De quanto em quanto a imagem troca
 # > Vale para o carrossel automático.
 WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
@@ -1681,3 +1812,72 @@ BACKUPS_MANTIDOS="10"
 #   quê" repetia a poda de backups. Uma linha em branco e um parágrafo desfazem
 #   a herança — 02/09/2026.
 LOG_NIVEL="info"                  # silencioso | info | debug
+
+# @ Som ao mudar o volume
+# > Troca o bipe de fábrica por um sino curto. O timbre vem do theme pack.
+# Instala o som que o COSMIC toca quando você mexe no volume?
+#
+#   É UM SOM SÓ, E NÃO É POR PREGUIÇA. Varrendo os 41 binários
+#   `/usr/bin/cosmic-*` em 04/08/2026: `pw-play` aparece em DOIS e `canberra` em
+#   NENHUM (os três acertos no `cosmic-initial-setup` são a cidade Canberra, da
+#   lista de fusos). Quem toca é o `cosmic-osd`, e o único evento que ele anuncia
+#   é a mudança de volume. O `cosmic-notifications` ANUNCIA a capacidade "sound"
+#   no `GetCapabilities` e não tem reprodutor nenhum — `notify-send -h
+#   string:sound-name:message` produz zero sink-inputs. Não há tema de som a
+#   fazer aqui; há um sino.
+#
+#   O ARQUIVO NASCE DO CÓDIGO, não de um download: WAV PCM 16 bit / 48 kHz /
+#   estéreo, 85 ms, sintetizado por `scripts/som.sh` na hora de instalar. Não há
+#   binário de áudio no repositório e não há licença de terceiro para auditar —
+#   o que se instala é obra do projeto, em CC0.
+#
+#   O TIMBRE VEM DO PACK. Um theme pack pode declarar as próprias frequências
+#   (ver `docs/PACKS.md`, seção "O som"); o Dracula usa sol com a terça menor
+#   acima, e o embutido usa lá com a quinta justa. As chaves `SOM_*` no seu
+#   meow.conf vencem o pack, como qualquer outra.
+#
+#   COM "nao" o arquivo é removido e o COSMIC volta ao som de fábrica —
+#   `~/.local/share/sounds/freedesktop/` sombreia UM arquivo do tema do sistema,
+#   nunca o tema inteiro, então não há o que sobrar.
+#
+#   Para ouvir sem instalar: o botão «Ouvir o som» na página, ou
+#   `./scripts/som.sh ouvir` no terminal.
+SOM="sim"
+
+# @ Nota do sino
+# > A frequência da nota base, em Hz. Vazio usa a do theme pack.
+# As CINCO chaves abaixo são o TIMBRE, e todas seguem a mesma regra: VAZIO
+# significa "use o que o theme pack declarar", e o pack embutido usa lá (880 Hz)
+# com a quinta justa acima (1320). Preencher aqui VENCE o pack — é o contrato de
+# precedência de todas as chaves (ver docs/PACKS.md, "Quem vence").
+#
+#   ELAS EXISTEM NO PAINEL PORQUE O TESTE COBRA ISSO, e o teste tem razão: uma
+#   chave que um script lê do meow.conf e que o painel não oferece é um ajuste
+#   que só quem lê o fonte descobre (tests/app.sh, "script lê do meow.conf e o
+#   painel não oferece"). Entraram em 18/09/2026, depois de o próprio teste
+#   pegar a falta.
+#
+#   O QUE DÁ CARÁTER AO SOM NÃO É A NOTA: é a distância entre as duas. Sobre uma
+#   base de 880, o harmônico em 1320 é quinta justa (resolvido, claro), 1100 é
+#   terça maior (alegre) e 1046.5 é terça menor (sombrio). O pack Dracula usa
+#   784 com 932.3, que é a terça menor — noturno sem virar alarme.
+#
+#   Para ouvir antes de decidir: o botão «Ouvir o som» logo abaixo, ou
+#   `./scripts/som.sh aplicar && ./scripts/som.sh ouvir` no terminal.
+SOM_FUNDAMENTAL=""                # 60 a 8000 Hz — vazio = o do pack
+
+# @ Segunda nota do sino
+# > O harmônico, em Hz. A distância até a nota base é o que dá o caráter.
+SOM_HARMONICO=""                  # 60 a 12000 Hz — vazio = o do pack
+
+# @ Peso da nota base
+# > Quanto a primeira senoide pesa na mistura. Os dois pesos somados têm de caber em 1.
+SOM_PESO_FUNDAMENTAL=""           # 0 a 1 — vazio = o do pack
+
+# @ Peso da segunda nota
+# > Quanto a segunda senoide pesa. Acima de 1 somado, a onda satura e vira estalo.
+SOM_PESO_HARMONICO=""             # 0 a 1 — vazio = o do pack
+
+# @ Secura do sino
+# > O quanto o som cai rápido. Maior = mais seco; abaixo de 20 a cauda arrasta.
+SOM_DECAIMENTO=""                 # 5 a 200 — vazio = o do pack

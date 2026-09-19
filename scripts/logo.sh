@@ -121,8 +121,8 @@ fi
 # Os nomes saem do acervo (`assets/gatos/<nome>.svg`). Um nome que não exista
 # não é erro fatal: o script avisa e cai no `LOGO`, porque um gato errado na
 # tela é melhor que um instalador que aborta por causa de um enfeite.
-LOGO_DIA="${LOGO_DIA:-coquinha}"
-LOGO_NOITE="${LOGO_NOITE:-mimir}"
+LOGO_DIA="${LOGO_DIA:-mimir}"
+LOGO_NOITE="${LOGO_NOITE:-coquinha}"
 # `nao` troca o arquivo e NÃO recicla o painel: o gato novo passa a valer no
 # próximo login. Existe para quem não quer o pisca de ~2s, e para o dia em que
 # ela estiver gravando a tela.
@@ -301,7 +301,18 @@ if [ "$ACAO" = "listar" ]; then
   for i in "${!NOMES[@]}"; do
     _marca=""
     [ "$(destino_de "${NOMES[$i]}")" = "$atual" ] && _marca="  <- na chave do applet"
-    if [ -f "$_no_dock" ] && cmp -s "${POOL[$i]}" "$_no_dock"; then
+    # COMPARAR COM O ARQUIVO INSTALADO, NÃO COM O DO ACERVO — 16/09/2026
+    #   O que vai para o botão do dock é a cópia PROCESSADA em
+    #   `~/.config/cosmic/logos/meow-<nome>.svg`, e não o `.svg` cru de
+    #   `assets/gatos/`: os dois têm md5 diferente. Comparar com o cru só
+    #   casava enquanto quem escrevia o botão era o `construir_icones.sh`, que
+    #   copiava o asset direto. Depois que este script passou a ser o dono, o
+    #   `listar` deixou de marcar QUALQUER gato — dizia que nenhum está no dock,
+    #   com o gato certo na tela. O cru fica de reserva para a máquina onde a
+    #   cópia ainda não nasceu.
+    _instalado="$(destino_de "${NOMES[$i]}")"
+    [ -f "$_instalado" ] || _instalado="${POOL[$i]}"
+    if [ -f "$_no_dock" ] && cmp -s "$_instalado" "$_no_dock"; then
       _marca="$_marca  <- NO DOCK (é o que ela vê)"
     fi
     if [ -n "$_marca" ]; then meow_ok "${NOMES[$i]}$_marca"; else meow_info "${NOMES[$i]}"; fi
@@ -322,10 +333,29 @@ if [ "$ACAO" = "listar" ]; then
   exit "$MEOW_OK"
 fi
 
-# --- o applet existe, E ESTÁ MONTADO? ---------------------------------------
+# --- o applet existe? E ELE NÃO É O DONO DA TELA ----------------------------
+# ESTE `if` ERA UM `exit`, E O `exit` DESLIGAVA O CONSERTO DE 05/08 — 16/09/2026
+#   O bloco lá embaixo ("O GATO DO DOCK, QUE É O ÚNICO QUE ELA DE FATO VÊ")
+#   existe porque em 05/08/2026 mediu-se que o gato do canto do dock NÃO vem do
+#   applet: vem de `com.system76.CosmicPanelAppButton.svg`, do tema de ícones.
+#   O comentário daquele bloco diz a frase inteira — "o gato que gira ninguém vê,
+#   e o gato que ela vê não gira" — e o conserto foi escrever os dois.
+#
+#   Só que esta guarda continuou saindo do script ANTES dele. Numa máquina com o
+#   applet (a dela) não se nota; numa sem (a dele, medida hoje) o script inteiro
+#   virava `pulado`, e com ele o botão do dock e o gato do terminal. O sintoma:
+#   `LOGO_MODO="hora"`, `LOGO_DIA="morcego-dia"`, `LOGO_NOITE="morcego-noite"`
+#   gravados, meia-noite no relógio, e a coquinha no dock — o md5 do
+#   `com.system76.CosmicPanelAppButton.svg` batendo com `assets/gatos/coquinha.svg`,
+#   que é o `$LOGO`, que é justamente a chave que o modo `hora` não usa.
+#
+#   Falta de applet não é falta de tela. A ausência agora desliga só o que é do
+#   applet (as duas chaves `custom_logo_*`), e o resto do script — que é o que
+#   ela vê — segue.
+TEM_APPLET=1
 if [ ! -d "$APPLET" ]; then
-  meow_pula "o applet dev.cappsy (logo do painel) não está nesta máquina"
-  exit "$MEOW_SEM_DEPENDENCIA"
+  TEM_APPLET=0
+  meow_pula "o applet dev.cappsy (logo do painel) não está nesta máquina — o gato do dock e o do terminal seguem"
 fi
 
 # TER A CONFIGURAÇÃO NÃO É ESTAR NA BARRA — e a diferença é invisível de outro jeito.
@@ -482,8 +512,13 @@ alvo="$(destino_de "${NOMES[$proximo]}")"
 if [ "$alvo" != "$atual" ]; then
   # O RON quer a string entre aspas e SEM newline no fim: um \n a mais faz o
   # applet ignorar o valor calado.
-  meow_escrever "$APPLET/custom_logo_path" "\"$alvo\"" 644
-  case $? in 1) mudou=1 ;; 2) meow_erro "não consegui apontar a logo"; exit "$MEOW_ERRO" ;; esac
+  # Sem applet não há `v1/` onde escrever — e `$atual` nasce vazio, então este
+  # ramo entraria SEMPRE numa máquina sem ele. O estado abaixo continua valendo:
+  # ele é nosso, não do applet, e é dele que o `listar` lê o gato do dia.
+  if [ "$TEM_APPLET" = "1" ]; then
+    meow_escrever "$APPLET/custom_logo_path" "\"$alvo\"" 644
+    case $? in 1) mudou=1 ;; 2) meow_erro "não consegui apontar a logo"; exit "$MEOW_ERRO" ;; esac
+  fi
   # `>` abre com O_TRUNC: o arquivo fica VAZIO no disco entre a truncagem e a
   # escrita, e é nessa fresta que um leitor pega nada. `meow_escrever`
   # (lib/comum.sh:92) grava num temporário do mesmo diretório e faz `mv`, que é
@@ -507,8 +542,10 @@ fi
 # ter mudado. Numa máquina onde o applet já apontasse para o nosso arquivo mas
 # com `custom_logo_active = false`, deixá-la de fora aqui mostraria o logo de
 # fábrica para sempre, sem nada divergente para o doctor acusar.
-meow_escrever "$APPLET/custom_logo_active" "true" 644
-case $? in 1) mudou=1 ;; esac
+if [ "$TEM_APPLET" = "1" ]; then
+  meow_escrever "$APPLET/custom_logo_active" "true" 644
+  case $? in 1) mudou=1 ;; esac
+fi
 
 # --- O GATO DO DOCK, QUE É O ÚNICO QUE ELA DE FATO VÊ ------------------------
 # A ROTAÇÃO GIRAVA NO LUGAR ERRADO, E ISSO SÓ APARECEU EM 05/08/2026 ÀS 22h

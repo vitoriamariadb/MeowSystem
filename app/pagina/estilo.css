@@ -97,7 +97,7 @@ html, body {
 body {
   background: var(--base);
   color: var(--text);
-  font: 14px/1.5 "Inter", "Cantarell", system-ui, -apple-system, sans-serif;
+  font: .875rem/1.5 "Inter", "Cantarell", system-ui, -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;               /* quem rola é a coluna do meio, não a página */
@@ -180,36 +180,9 @@ a:hover { color: var(--accent); text-decoration: underline; }
 #busca::placeholder { color: var(--overlay1); }
 #busca:focus-visible { border-color: transparent; }
 
-/* O ENSAIO DEIXOU DE SER CAIXA DE MARCAR E VIROU BOTÃO QUE FICA ACESO —
- * 06/09/2026. Palavras dela: *"ele tá como box mas poderia ser um botão que
- * fica ativo (cor amarela fraca) algo assim"*.
- *
- * O seco é um estado PERIGOSO de esquecer ligado — ela apertaria "instalar" e
- * nada aconteceria. Desligado ele é o item mais quieto da barra; ligado, o mais
- * alto dela. O contraste entre os dois estados é o aviso, e o amarelo aqui é o
- * MESMO amarelo que a caixa de marcar usava: nem a cor nem a proporção mudaram
- * (contorno cheio, texto cheio, fundo a 14%), só o controle que as carrega.
- *
- * POR QUE DUAS CLASSES NO SELETOR, E NÃO UMA. A marcação é `class="btn
- * btn-ensaio"`, e `.btn` mora seiscentas linhas ABAIXO daqui. Com uma classe só,
- * as duas regras empatariam em especificidade e a de baixo venceria: o botão
- * nasceria com o fundo `--surface0` de qualquer botão, e o "apagado" desta regra
- * nunca chegaria à tela. `.btn.btn-ensaio` desempata sem depender da ordem do
- * arquivo, que é o que se quer quando o bloco fica junto do assunto dele. */
-.btn.btn-ensaio {
-  border-radius: var(--r-max);
-  border-color: var(--surface0);
-  background: transparent;
-  color: var(--overlay2);
-  font-weight: 400;
-}
-.btn.btn-ensaio:hover { color: var(--subtext1); border-color: var(--surface1); background: transparent; }
-.btn.btn-ensaio[aria-pressed="true"] {
-  border-color: var(--yellow);
-  color: var(--yellow);
-  background: color-mix(in srgb, var(--yellow) 14%, transparent);
-  font-weight: 600;
-}
+/* O botão amarelo do ensaio morava aqui até 13/09/2026, quando ela pediu o app
+ * fora do "modo sandbox". A regra saiu junto com o botão: estilo de um controle
+ * que não existe é convite para alguém desenhá-lo de volta. */
 
 /* --- levar embora e trazer de volta ---------------------------------------
  * O menu é um `<details>`: o navegador já abre, fecha, faz o Enter e o Espaço
@@ -267,6 +240,15 @@ a:hover { color: var(--accent); text-decoration: underline; }
   background: color-mix(in srgb, var(--accent) 12%, var(--mantle));
 }
 .barra-salvar strong { font-size: .8rem; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* A BARRA SEM ESCOLHA ESPERANDO — 13/09/2026. Ela ficou sempre à vista (ver o
+ * `index.html`), e o aceso de cima só existia porque ela só aparecia com
+ * pendência. Sem pendência a moldura some e fica o Salvar como qualquer botão:
+ * continua ali, continua aplicando, e não anuncia um estado que não existe. */
+.barra-salvar.vazia {
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
 /* O contador é clicável: abre a lista do que espera. O sublinhado pontilhado é
  * o convite — sem ele, "14 escolhas" parece um rótulo e ninguém clica em
  * rótulo. */
@@ -1191,11 +1173,8 @@ select { flex: 1 1 auto; }
  *
  * O SELO "PODE ENSAIAR" SAIU EM 06/09/2026, e a razão é dela: *"o botão Pode
  * ensaiar não faz sentido se temos o executar ali em todas as páginas — é pq o
- * user quer arrumar só aquilo"*. O interruptor de ensaio é UM, global, e fica no
- * alto da tela: aceso, cada `Executar` ensaia; apagado, executa de verdade.
- * Repetir por cartão o que o interruptor já governa é ruído — trinta e quatro
- * vezes a mesma etiqueta amarela numa tela de oito ações. A regra `.p-seco` foi
- * apagada junto; quem para de desenhar a pastilha é o `app.js`. */
+ * user quer arrumar só aquilo"*. A regra `.p-seco` foi apagada junto. Em
+ * 13/09/2026 saiu também o interruptor global: `Executar` executa, sempre. */
 .acao {
   background: transparent;
   border: 0;
@@ -1286,7 +1265,17 @@ select { flex: 1 1 auto; }
   color: var(--red);
 }
 .btn-perigo:hover { background: color-mix(in srgb, var(--red) 15%, transparent); border-color: var(--red); }
-.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn:disabled {
+  /* Cores explícitas em vez de `opacity`. [2026-09-18]
+   * O esmaecimento global apagava texto E fundo juntos e derrubava o
+   * contraste para ~3,1:1 — legal pela letra da norma (estado inativo é
+   * isento), ilegível na prática. Assim o desabilitado continua
+   * visivelmente apagado, mas o rótulo permanece legível: 6,66:1. */
+  background: var(--surface0);
+  border-color: var(--surface1);
+  color: var(--subtext0);
+  cursor: not-allowed;
+}
 .btn:disabled:hover { background: var(--surface0); border-color: var(--surface1); }
 
 /* TRINTA E QUATRO "RODAR" EM MAUVE NÃO SÃO AÇÃO PRINCIPAL.
@@ -1326,6 +1315,10 @@ select { flex: 1 1 auto; }
 .p-rede   { color: var(--sky); }
 .p-ok     { color: var(--green); }
 .p-erro   { color: var(--red); }
+/* A pastilha de «pulado» não tinha cor: herdava a do corpo e ficava igual
+ * a um estado normal. O tom certo já existe e já é usado para o mesmo
+ * sentido — `#saida .l-pula` pinta o glifo `--` do terminal. [2026-09-18] */
+.p-pula { color: var(--overlay1); }
 .p-correndo { color: var(--yellow); }
 /* O estado do trabalho ao vivo é a exceção: aí a pílula diz "isto está
  * acontecendo agora", e o contorno é o que a separa de um rótulo estático. */
@@ -1422,13 +1415,6 @@ select { flex: 1 1 auto; }
   font-size: var(--t-legenda);
   color: var(--overlay1);
   font-style: italic;
-}
-
-/* O Salvar em ensaio veste o amarelo do interruptor: os dois estados são o
- * mesmo estado, e a tela diz isso com a mesma cor. */
-#botao-salvar.em-ensaio {
-  border-color: color-mix(in srgb, var(--yellow) 55%, var(--surface1));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--yellow) 35%, transparent);
 }
 
 /* A FAIXA DE SERVIDOR PERDIDO — 07/09/2026. Vermelha e FIXA: diferente da
@@ -1703,7 +1689,11 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 /* A etiqueta é o único diferenciador entre 64 cartões, então ela fica — só
  * pequena. "de fábrica" é a ausência de decisão e por isso é a mais apagada. */
 .app-marca { font-size: var(--t-legenda); color: var(--overlay2); }
-.app-fabrica { color: var(--overlay0); }
+.app-fabrica { color: var(--overlay2); }
+/* O pack autoral Dracula não tem UMA cor para a etiqueta usar — cada desenho
+ * traz de 6 a 10 cores próprias. Então a etiqueta é o NOME do acervo, e o
+ * mauve a separa das outras, que são todas nome de cor da paleta. */
+.app-dracula { color: var(--mauve); }
 
 /* O painel de escolha nasce embaixo do aplicativo clicado, ocupando a linha
  * inteira — assim o contexto não se perde. Borda em accent porque ele está

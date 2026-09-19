@@ -1341,7 +1341,26 @@ reconciliar_sumicos() {
     return 0                                   # guarda 2
   fi
 
-  mapfile -t sumidas < <(comm -23 <(LC_ALL=C sort -u "$VISTAS") <(printf '%s\n' ${agora[@]+"${agora[@]}"}))
+  # OS DOIS LADOS DO `comm` PRECISAM ESTAR ORDENADOS — 15/09/2026
+  #   Só o primeiro estava. O `comm` avisa no stderr ("o arquivo 2 não está
+  #   ordenado") e SEGUE, devolvendo uma diferença errada — e o que sai daqui é
+  #   a lista do que vai ser BANIDO. As três guardas em volta existem para não
+  #   banir por engano; não adianta nenhuma delas se a conta que as alimenta
+  #   está torta.
+  #
+  #   Ficou escondido enquanto todo nome vinha com o mesmo punhado de prefixos
+  #   (`cat-`, `meow-`, `wp`): o `ls` já os devolvia em ordem, e a comparação
+  #   acertava por acaso. A semente do Dracula introduziu `drac-`, que cai entre
+  #   `cat-` e `meow-`, e a ordem acidental acabou — foi assim que apareceu.
+  #   E o `LC_ALL=C` vale para o `comm` TAMBÉM, não só para os dois `sort`.
+  #   Ordenar em C e comparar na locale da sessão deixa a validação de ordem do
+  #   comm a cargo de uma collation diferente da que produziu a ordem. Depois da
+  #   primeira correção o aviso não sumiu, só trocou de lado ("arquivo 2" virou
+  #   "arquivo 1"); com o comm em C ele parou. Não fui atrás de qual par de
+  #   nomes as duas collations classificam ao contrário — o que está medido é
+  #   que alinhar as três pontas no mesmo C resolve, e é barato manter assim.
+  mapfile -t sumidas < <(LC_ALL=C comm -23 <(LC_ALL=C sort -u "$VISTAS") \
+                                           <(printf '%s\n' ${agora[@]+"${agora[@]}"} | LC_ALL=C sort -u))
   [ "${#sumidas[@]}" = "0" ] && { meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null; return 0; }
 
   if [ "$n_antes" -gt 4 ] && [ "${#sumidas[@]}" -gt $(( n_antes / 2 )) ]; then
@@ -2177,7 +2196,7 @@ cmd_adicionar() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- semear: a coleção Catppuccin da comunidade ----------------------------
+# --- semear: a coleção da comunidade, conforme o flavor ---------------------
 # POR QUE NÃO CLONAR O REPOSITÓRIO
 #   `zhichaoh/catppuccin-wallpapers` tem 371 MB e 242 imagens; o
 #   `orangci/walls-catppuccin-mocha` tem 795 MB. Baixar tudo para usar uma dúzia
@@ -2190,8 +2209,84 @@ cmd_adicionar() {
 #
 # AS IMAGENS NÃO ENTRAM NO GIT
 #   O repositório guarda esta receita. As fotos ficam só na máquina.
-SEMENTE_REPO="${WALLPAPER_SEMENTE_REPO:-zhichaoh/catppuccin-wallpapers}"
-SEMENTE_COMMIT="${WALLPAPER_SEMENTE_COMMIT:-1023077979591cdeca76aae94e0359da1707a60e}"
+# A SEMENTE ACOMPANHA O FLAVOR — 15/09/2026
+#   Até aqui a semente era uma só, do Catppuccin, e o acervo não tinha como
+#   acompanhar a variante escolhida: pedir `FLAVOR="dracula"` pintava a interface
+#   inteira de Dracula e deixava o papel de parede em Catppuccin.
+#
+#   O default agora sai do FLAVOR. Quem não mexe em nada continua com a semente
+#   de sempre, porque todo flavor que não tem receita própria cai no `*`.
+#
+#   O commit segue PINADO por semente, pelo motivo do bloco acima: um upstream
+#   que muda sozinho transforma "rodei o instalador" em "rodei num dia em que o
+#   repositório estava de um jeito".
+#
+#   `WALLPAPER_SEMENTE_REPO` continua vencendo por cima, para teste e para quem
+#   quiser um acervo que não é de nenhum dos dois. Passar só o repo sem o commit
+#   é erro honesto: sem pino não há receita, e o script para e diz isso.
+_semente_do_flavor() {
+  case "${FLAVOR:-mocha}" in
+    dracula)
+      # ACERVO AUTORAL, GERADO EM CÓDIGO — 15/09/2026
+      #   Treze desenhos em PNG 4K (3840x2160), rasterizados do SVG que o gerador
+      #   da casa (tulip-orchid) produz. Cada cena é função pura: recebe largura,
+      #   altura e semente, devolve o SVG inteiro. Não há bitmap de origem nem
+      #   material de terceiro embutido.
+      #
+      #   Isto SUBSTITUI `helpotters/dracula-wallpapers`, que era provisório por
+      #   duas razões que aqui deixam de valer: aquele repositório não declara
+      #   licença (créditos apontavam Freepik, que exige atribuição e não
+      #   autoriza sublicenciar) e entregava 3440x1440, não 4K. Este é MIT e do
+      #   próprio dono — as imagens podem, enfim, ser publicadas com o tema.
+      #
+      #   `svg/` fica de fora do rodízio: o semear já ignora a extensão, mas a
+      #   pasta contaria como uma categoria que não existe e desequilibraria o
+      #   sorteio entre catedral, cemiterio, noite e ornamento.
+      #   O DONO DO ACERVO NÃO MORA NO CÓDIGO — e a primeira versão disto
+      #   morava. O sanitizer de identidade do Spellbook redige qualquer
+      #   ocorrência do `user.name` do git nos arquivos que entram num commit, e
+      #   está certo: este é repositório de DUAS pessoas, e cravar o usuário do
+      #   GitHub de uma delas aqui é exatamente o que ele existe para impedir.
+      #   Cravado, virou `[REDACTED]/tulip-orchid-wallpapers` e a semeadura
+      #   passou a responder "não consegui falar com o GitHub".
+      #
+      #   O `dono/repo` vem do conf (`WALLPAPER_DRACULA_REPO`), que não é
+      #   versionado. Sem ele configurado, o flavor cai no acervo comum em vez
+      #   de quebrar: quem instala o tema sem ter um acervo próprio continua
+      #   tendo papel de parede.
+      if [ -n "${WALLPAPER_DRACULA_REPO:-}" ]; then
+        SEMENTE_REPO_PADRAO="$WALLPAPER_DRACULA_REPO"
+        SEMENTE_COMMIT_PADRAO="${WALLPAPER_DRACULA_COMMIT:-}"
+        SEMENTE_IGNORAR_PADRAO="${WALLPAPER_DRACULA_IGNORAR:-svg}"
+        SEMENTE_PREFIXO_PADRAO="${WALLPAPER_DRACULA_PREFIXO:-tulip}"
+        if [ -z "$SEMENTE_COMMIT_PADRAO" ] && ! _semente_e_pasta "$SEMENTE_REPO_PADRAO"; then
+          meow_aviso "WALLPAPER_DRACULA_REPO sem WALLPAPER_DRACULA_COMMIT — sem pino não há receita"
+        fi
+      else
+        SEMENTE_REPO_PADRAO="zhichaoh/catppuccin-wallpapers"
+        SEMENTE_COMMIT_PADRAO="1023077979591cdeca76aae94e0359da1707a60e"
+        SEMENTE_IGNORAR_PADRAO=""
+        SEMENTE_PREFIXO_PADRAO="cat"
+      fi
+      ;;
+    *)
+      SEMENTE_REPO_PADRAO="zhichaoh/catppuccin-wallpapers"
+      SEMENTE_COMMIT_PADRAO="1023077979591cdeca76aae94e0359da1707a60e"
+      SEMENTE_IGNORAR_PADRAO=""
+      SEMENTE_PREFIXO_PADRAO="cat"
+      ;;
+  esac
+}
+_semente_do_flavor
+
+SEMENTE_REPO="${WALLPAPER_SEMENTE_REPO:-$SEMENTE_REPO_PADRAO}"
+SEMENTE_COMMIT="${WALLPAPER_SEMENTE_COMMIT:-$SEMENTE_COMMIT_PADRAO}"
+# Pastas do repositório que NÃO são papel de parede, separadas por espaço.
+SEMENTE_IGNORAR="${WALLPAPER_SEMENTE_IGNORAR:-$SEMENTE_IGNORAR_PADRAO}"
+# O prefixo do nome do arquivo no acervo. Era `cat-` cravado no `cmd_semear`, o
+# que deixava toda imagem do Dracula chamada `cat-...` — e o nome do arquivo é a
+# única pista de origem que sobra depois que a imagem está na pasta.
+SEMENTE_PREFIXO="${WALLPAPER_SEMENTE_PREFIXO:-$SEMENTE_PREFIXO_PADRAO}"
 # 0 = TODAS as imagens do repositorio. Um numero baixa so uma amostra, uma de
 # cada categoria por rodizio (util para testar sem gastar banda).
 SEMENTE_QUANTAS="${WALLPAPER_SEMENTE_QUANTAS:-0}"
@@ -2272,10 +2367,105 @@ semear_da_curadoria() {
   return 0
 }
 
+# `/`, `~` ou `./` no começo: é caminho, não `dono/repo`.
+_semente_e_pasta() {
+  case "$1" in
+    /*|'~'/*|./*|../*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Copia as imagens de uma pasta para `ativos/`, com as mesmas regras do ramo que
+# baixa: pula o que já está lá, respeita `banidos/` e obedece ao modo seco.
+#
+# O FORMATO É CONFERIDO AQUI, E ISSO NÃO É ZELO
+#   O `cosmic-bg` lê avif, gif, jpeg, png, tiff e webp — conferido no binário.
+#   SVG não está na lista. Copiar um `.svg` para `ativos/` não dá erro nenhum: a
+#   imagem simplesmente não aparece, e o carrossel pula um lugar vazio sem dizer
+#   por quê. Como a pasta mais provável é a de um gerador que exporta SVG por
+#   padrão, o aviso sai por extensão ignorada, uma vez, com o número.
+_semear_de_pasta() {
+  local origem="${1/#\~/$HOME}"
+  if [ ! -d "$origem" ]; then
+    meow_erro "semente '$origem' não é um diretório"
+    return "$MEOW_ERRO"
+  fi
+
+  local n=0 ignorados=0 arq rel nome destino
+  while IFS= read -r arq; do
+    [ -n "$arq" ] || continue
+    rel="${arq#"$origem"/}"
+    case "${rel##*.}" in
+      png|PNG|jpg|JPG|jpeg|JPEG|webp|WEBP|avif|AVIF|gif|GIF|tif|tiff|TIF|TIFF) ;;
+      *) ignorados=$((ignorados + 1)); continue ;;
+    esac
+    nome="${SEMENTE_PREFIXO}-${rel//\//-}"
+    destino="$ATIVOS/$nome"
+    [ -e "$destino" ] && continue
+    esta_banida "$nome" && continue
+    if meow_seco; then
+      meow_muda "copiaria $nome"; n=$((n + 1)); continue
+    fi
+    # Temporário no MESMO diretório e rename depois, pelo motivo do ramo que
+    # baixa: uma imagem pela metade entra na rotação e aparece cortada.
+    local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
+    if cp -- "$arq" "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
+      mv -f "$tmp" "$destino"; n=$((n + 1))
+    else
+      rm -f "$tmp"
+      meow_aviso "não consegui copiar $rel"
+    fi
+  done < <(find "$origem" -type f 2>/dev/null | LC_ALL=C sort)
+
+  if [ "$ignorados" -gt 0 ]; then
+    meow_info "$ignorados arquivo(s) de formato que o cosmic-bg não lê foram ignorados (SVG entre eles — exporte PNG)"
+  fi
+
+  semear_da_curadoria
+  if [ "$CURADORIA_N" -gt 0 ]; then
+    if meow_seco; then
+      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria dela (assets/papeis-de-parede/FONTES.tsv)"
+    else
+      meow_ok "$CURADORIA_N imagem(ns) da curadoria dela reproduzidas (assets/papeis-de-parede/FONTES.tsv)"
+    fi
+    n=$((n + CURADORIA_N))
+  fi
+
+  if [ "$n" -eq 0 ]; then
+    meow_ok "pasta-semente já semeada ($origem)"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "copiaria $n imagem(ns) da pasta $origem"
+  else
+    meow_ok "$n imagem(ns) copiadas da pasta $origem"
+  fi
+  return "$MEOW_OK"
+}
+
 cmd_semear() {
-  meow_tem curl || { meow_erro "curl não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
   meow_tem python3 || { meow_erro "python3 não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
   criar_pastas
+
+  # UMA PASTA TAMBÉM É SEMENTE — 15/09/2026
+  #   Nem toda origem é um repositório público que o `raw.githubusercontent.com`
+  #   entrega. O gerador de papéis de parede da casa (tulip-orchid) tropeça em
+  #   três coisas de uma vez: o repositório é privado, as imagens não existem
+  #   como arquivo lá dentro (são desenhadas em tempo de execução a partir de
+  #   `scenes.ts`) e o formato que ele exporta por padrão é SVG — que o
+  #   `cosmic-bg` não lê. O binário aceita avif, gif, jpeg, png, tiff e webp;
+  #   SVG não está na lista, e por isso não adianta baixar vetor.
+  #
+  #   O caminho que funciona hoje: exportar PNG do gerador para uma pasta e
+  #   apontar a semente para ela. `WALLPAPER_SEMENTE_REPO` com `/`, `~` ou `./`
+  #   no começo é tratado como diretório, e aí não há rede nem commit pinado —
+  #   o pino não faz sentido para uma pasta que é do dono.
+  if _semente_e_pasta "$SEMENTE_REPO"; then
+    _semear_de_pasta "$SEMENTE_REPO"
+    return $?
+  fi
+
+  meow_tem curl || { meow_erro "curl não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
 
   local api="https://api.github.com/repos/$SEMENTE_REPO/git/trees/$SEMENTE_COMMIT?recursive=1"
   local lista; lista="$(curl -sS --max-time 30 "$api" 2>/dev/null)" || {
@@ -2295,8 +2485,10 @@ except Exception:
     sys.exit(1)
 if 'tree' not in d:
     sys.exit(1)
+ignorar = set('$SEMENTE_IGNORAR'.split())
 imgs = [t['path'] for t in d['tree']
-        if t.get('type') == 'blob' and t['path'].lower().endswith(('.png', '.jpg', '.jpeg'))]
+        if t.get('type') == 'blob' and t['path'].lower().endswith(('.png', '.jpg', '.jpeg'))
+        and t['path'].split('/')[0] not in ignorar]
 por_pasta = {}
 for p in imgs:
     por_pasta.setdefault(p.split('/')[0], []).append(p)
@@ -2329,7 +2521,9 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
   while IFS=$'\t' read -r caminho caminho_url; do
     [ -n "$caminho" ] || continue
     # Prefixo com a categoria: o nome vira legível e a ordem alfanumérica agrupa.
-    local nome="cat-${caminho//\//-}"
+    # O prefixo é o da SEMENTE, não `cat-` cravado: com duas origens possíveis,
+    # o nome do arquivo é a única pista de procedência que sobra no acervo.
+    local nome="${SEMENTE_PREFIXO}-${caminho//\//-}"
     local destino="$ATIVOS/$nome"
     [ -e "$destino" ] && continue
     # O BANIMENTO PRECISA SOBREVIVER A UM `semear` — E NÃO SOBREVIVIA
@@ -2375,7 +2569,7 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
   fi
 
   if [ "$n" -eq 0 ]; then
-    meow_ok "coleção Catppuccin já semeada"
+    meow_ok "coleção da semente já semeada (${SEMENTE_REPO})"
     return "$MEOW_OK"
   fi
   # No seco NADA foi baixado — dizer "baixadas", no passado, é a mesma mentira
@@ -2383,10 +2577,10 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
   # dela e o log do install.sh). O tempo verbal aqui é a diferença entre um
   # relatório e uma promessa.
   if meow_seco; then
-    meow_muda "baixaria $n imagem(ns) da coleção Catppuccin (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
+    meow_muda "baixaria $n imagem(ns) da semente (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
     return "$MEOW_DIVERGENTE"
   fi
-  meow_ok "$n imagem(ns) da coleção Catppuccin baixadas (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
+  meow_ok "$n imagem(ns) da semente baixadas (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
   meow_seco || cmd_aplicar >/dev/null   # a lista é fotografada no load: precisa reescrever
   return "$MEOW_DIVERGENTE"
 }

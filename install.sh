@@ -463,6 +463,20 @@ etapa_pacotes() {
   done
   [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
 
+  # O NUMPY NÃO TEM BINÁRIO, E NÃO BASTA "ter python3" — 16/09/2026
+  #   O `converter_icone.py` é quem faz o traçado de contorno e o
+  #   Douglas-Peucker, e ele não roda sem numpy. Sem isto o
+  #   `construir_convertidos.sh` se pulava inteiro com "sem numpy" e os 31
+  #   ícones convertidos ficavam FORA do tema, sem o instalador dizer que
+  #   faltava um pacote — porque a etapa de pacotes não sabia que ele existia.
+  #
+  #   E O TESTE É COM O `python3` DO PATH, de propósito. Esta máquina tem pyenv:
+  #   o `python3` do shell dele tinha numpy 2.4.4 e o `/usr/bin/python3` não
+  #   tinha nenhum. Quem roda os scripts é o segundo (timer, hook, subshell sem
+  #   a função do pyenv), então é o segundo que tem de ser testado — e é o que
+  #   um `python3 -c` dentro de um script faz naturalmente.
+  python3 -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
+
   if [ ${#faltam[@]} -eq 0 ]; then
     meow_ok "todos os pacotes necessários já estão instalados"
     return 0
@@ -694,6 +708,36 @@ etapa_icones_apps() {
   ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$MEOW_RAIZ/scripts/icones_apps.sh"
+  return $?
+}
+
+# Os desenhos DELA que só existiam em PNG, de volta ao vetor. Depois do
+# `etapa_icones` pelo mesmo motivo das etapas irmãs — quem declara
+# `scalable/apps` no index.theme é aquele — e DEPOIS do `etapa_completar_icones`,
+# que é o outro que escreve naquele diretório: assim, se um dia um nome existir
+# nos dois, o resgate é o que fica, e isso é de propósito. Um `.svg` do acervo
+# `resgatados/` é arte dela, e arte dela vence arte gerada, sempre — a mesma
+# regra que o `completar_icones.sh` já aplica ao abrir exceção para a logo do
+# Hefesto.
+etapa_icones_resgatados() {
+  passo "Ícones resgatados do PNG"
+  ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_resgatados.sh" --aplicar
+  return $?
+}
+
+# A ETAPA VEM DEPOIS DA DO ARCTICONS NA LISTA, E ISSO É DE PROPÓSITO
+#   As duas escrevem o ícone dos MESMOS onze aplicativos, em diretórios
+#   diferentes do mesmo tema: o Arcticons no `48x48/apps`, esta no
+#   `scalable/apps`. Não há disputa de arquivo — o resolvedor é que escolhe, e
+#   ele prefere `scalable`. Mas a ordem importa para a CACHE: quem reindexa por
+#   último é quem deixa a cache descrevendo o disco inteiro.
+etapa_icones_apps_dracula() {
+  passo "Pack Dracula nos aplicativos"
+  ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/icones_apps_dracula.sh" --aplicar
   return $?
 }
 
@@ -2269,8 +2313,8 @@ etapa_logo() {
       fi
     fi
     meow_seco && [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
-    [ "$mudou" = "1" ] && { meow_ok "o gato segue o relógio: ${LOGO_DIA:-coquinha} de dia, ${LOGO_NOITE:-mimir} de noite"; return "$MEOW_DIVERGENTE"; }
-    meow_ok "o gato já segue o relógio (${LOGO_DIA:-coquinha} de dia, ${LOGO_NOITE:-mimir} de noite)"
+    [ "$mudou" = "1" ] && { meow_ok "o gato segue o relógio: ${LOGO_DIA:-mimir} de dia, ${LOGO_NOITE:-coquinha} de noite"; return "$MEOW_DIVERGENTE"; }
+    meow_ok "o gato já segue o relógio (${LOGO_DIA:-mimir} de dia, ${LOGO_NOITE:-coquinha} de noite)"
     return 0
   fi
 
@@ -2819,7 +2863,7 @@ main() {
   local etapas=(etapa_conf etapa_cli etapa_ponte_root etapa_atalho etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
-                etapa_mimetypes etapa_icones_apps etapa_icones_apps_arcticons etapa_icones_sistema etapa_icones_bandeja
+                etapa_mimetypes etapa_icones_apps etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_apps_dracula etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps

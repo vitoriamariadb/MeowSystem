@@ -120,7 +120,11 @@ conferir() {
       [ -d "$dir" ] || continue
       atual="$(cat "$dir/border_radius" 2>/dev/null)"
       case "$atual" in ''|*[!0-9]*) continue ;; esac
-      printf '%s' "$atual" > "$ESTADO/raio_desejado.$barra" 2>/dev/null || true
+      # O SECO NÃO ESCREVE, NEM O DESEJO. [2026-09-18]
+      #   Este printf rodava também sob MEOW_DRY_RUN=1, e é por ele que a ação
+      #   `doctor` do painel — declarada "escreve": false, com a ajuda dizendo
+      #   "Não escreve nada." — tocava o disco a cada conferência.
+      meow_seco || printf '%s' "$atual" > "$ESTADO/raio_desejado.$barra" 2>/dev/null || true
     done
     return "$MEOW_OK"
   fi
@@ -148,7 +152,10 @@ conferir() {
     # mudou por fora (ela, o COSMIC Tweaks, o cosmic-settings): o desejo é este
     if [ "$atual" != "$escrito" ]; then desejo="$atual"; fi
     case "$desejo" in ''|*[!0-9]*) desejo="$atual" ;; esac
-    printf '%s' "$desejo" > "$ESTADO/raio_desejado.$barra" 2>/dev/null || true
+    # Mesmo motivo do printf acima: registrar o desejo é escrita, e escrita não
+    # acontece no ensaio. O caminho de conserto (fix_painel, bin/meow) chama sem
+    # o seco, que é onde este registro pertence.
+    meow_seco || printf '%s' "$desejo" > "$ESTADO/raio_desejado.$barra" 2>/dev/null || true
 
     alvo="$desejo"
     [ "$alvo" -gt "$teto" ] && alvo="$teto"
@@ -232,6 +239,13 @@ estado() {
   sup="$(meow_painel_do_supervisor || true)"
   nossos="$(meow_painel_nossos | tr '\n' ' ' || true)"
   printf 'painel      : do supervisor=%s  nossos=%s\n' "${sup:-<nenhum>}" "${nossos:-<nenhum>}"
+  # "Existe painel" não é "há barra na tela" — a diferença é o painel fantasma,
+  # e sem esta linha o `estado` dizia "do supervisor=NNN" com a tela vazia.
+  if meow_painel_fantasma; then
+    printf 'desenhando  : NÃO — painel vivo sem desenhar (fantasma). O laço recicla; ou: meow painel reciclar\n'
+  else
+    printf 'desenhando  : sim\n'
+  fi
   espera="$(meow_painel_espera_supervisor)"
   if [ -n "$espera" ]; then
     printf 'supervisor  : dormiria %s ms (%s min) antes de repor\n' "$espera" "$(( espera / 60000 ))"
@@ -268,6 +282,12 @@ _sair() {
 
 laco() {
   local pid sono nascimento vida tentativas=0 janela_ini sup
+  # Carência do reciclo por fantasma. Sem ela, o detector vira o laço que o
+  # COTA existe para impedir: recicla, o painel novo demora a montar, a
+  # passagem seguinte acha fantasma de novo. 600 s é o intervalo em que um
+  # episódio real não se repete — e se repetir, o COTA lá embaixo desiste e
+  # avisa, que é o comportamento certo.
+  local ultimo_fantasma=0 agora_f
   janela_ini="$(date +%s)"
 
   # SAIR SEM ESPERAR O PAINEL DEIXA FANTASMA NA TELA — 26/08/2026
@@ -283,6 +303,20 @@ laco() {
     # 1) O supervisor do COSMIC voltou a ter painel? Ele é melhor que o nosso
     #    (tem o applet de notificações). Cedemos e ficamos de vigia.
     if sup="$(meow_painel_do_supervisor)"; then
+      # CEDER A VEZ A UM PAINEL QUE NÃO DESENHA É FICAR SEM BARRA [18/09/2026]
+      #   O painel do supervisor é preferível ao nosso — ele tem o applet de
+      #   notificações, que só o socketpair dele fornece. Mas isso vale para um
+      #   painel que DESENHA. Um fantasma responde "existo" para sempre, e este
+      #   ramo cedia a vez a ele indefinidamente.
+      agora_f="$(date +%s)"
+      if meow_painel_fantasma && [ $(( agora_f - ultimo_fantasma )) -ge 600 ]; then
+        echo "o painel do supervisor (pid $sup) está vivo e NÃO desenha — reciclando"
+        ultimo_fantasma="$agora_f"
+        kill -TERM "$sup" 2>/dev/null
+        meow_painel_carencia_aurora
+        sleep 10
+        continue
+      fi
       meow_painel_nossos | while read -r p; do
         [ -n "$p" ] && { echo "cedendo a vez ao painel do supervisor (pid $sup); encerrando o nosso (pid $p)"; kill -TERM "$p" 2>/dev/null; }
       done
@@ -293,6 +327,18 @@ laco() {
     # 2) Já existe painel nosso vivo que não nasceu deste laço (Alt+F2, por
     #    exemplo)? Não duplicamos: vigiamos.
     if pgrep -x cosmic-panel >/dev/null 2>&1 && [ -z "${pid:-}" ]; then
+      # O mesmo ponto cego do ramo acima: "existe painel" não é "há barra na
+      # tela". Aqui o painel é nosso (ou do Alt+F2), e a cura é a mesma.
+      agora_f="$(date +%s)"
+      if meow_painel_fantasma && [ $(( agora_f - ultimo_fantasma )) -ge 600 ]; then
+        echo "painel vivo que NÃO desenha — reciclando"
+        ultimo_fantasma="$agora_f"
+        meow_painel_nossos | while read -r p; do kill -TERM "$p" 2>/dev/null; done
+        pgrep -x cosmic-panel >/dev/null 2>&1 && pkill -TERM -x cosmic-panel 2>/dev/null
+        meow_painel_carencia_aurora
+        sleep 10
+        continue
+      fi
       meow_painel_carencia_aurora
       sleep 10
       continue

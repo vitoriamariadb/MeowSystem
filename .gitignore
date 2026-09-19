@@ -50,6 +50,17 @@ assets/fontes/locais/*.TTF
 !docs/capturas/*.png
 !docs/capturas/*.jpg
 
+# A FOLHA DE ANTES-E-DEPOIS DOS RESGATADOS VAI PARA O GIT — 11/09/2026
+#   Mesma razão das capturas acima, e não uma exceção nova: ela é a única forma
+#   de responder "o redesenho ficou fiel?" sem o PNG de origem na mão. E o PNG
+#   de origem é exatamente o que não sobrevive — metade dos caminhos da coluna
+#   do meio de `apps-resgatados.map` é `/usr/share` ou `/opt`, que somem no
+#   próximo upgrade do pacote. Sem a folha versionada, daqui a seis meses não
+#   existe mais como comparar: o "antes" terá desaparecido da máquina.
+#   É UM arquivo, regenerável por `meow icones resgatados folha`, e é a prova do
+#   trabalho que o acervo ao lado dele representa.
+!assets/icones/resgatados/*.png
+
 # Estado local da máquina: backups e log ficam fora, em ~/.local/state/meowsystem.
 # assets/temas/capturados/ E VERSIONADO: sao as capturas que fazem o "3 cliques uma vez na vida"
 # continuarem valendo mesmo se esta maquina for reformatada. Sao texto pequeno.
@@ -113,3 +124,29 @@ assets/papeis-de-parede/originais/
 #   O instalador não perde nada: o que ele usa daqui é gerado na máquina.
 #   Ver assets/icones/PROCEDENCIA.md.
 assets/icones/catppuccin-apps/
+
+# Symlink local para diretrizes (não vai pro repo)
+CLAUDE.md
+
+# A bancada do resgate de ícones: os PNG extraídos, os SVG antes de passarem no
+# teste de fidelidade, e os renders de conferência. O que sobrevive à medição é
+# copiado para `assets/icones/resgatados/` e commitado de lá — aqui fica o
+# rascunho, que é grande e não interessa a ninguém depois.
+.trabalho-icones/
+
+# --- anti-IA (anonimato local) ---
+AGENTS.md
+GEMINI.md
+COPILOT.md
+HANDOFF-PROMPT.md
+HANDOFF.md
+HOW_TO_RESUME.md
+VALIDATOR_BRIEF.md
+STATE.md
+.cursorrules
+.windsurfrules
+.claude/
+.cursor/
+.agente*
+.continue/
+.github/copilot-instructions.md

@@ -108,7 +108,10 @@ ORIGEM_CONV="$RAIZ/assets/icones/convertidos-apps"
 MAPA_CONV="$RAIZ/assets/icones/apps-convertidos.map"
 MAPA_MARCA="$RAIZ/assets/icones/apps-marca.map"
 MAPA_PNG="$RAIZ/assets/icones/apps.map"
-PALETA="$RAIZ/assets/paleta/catppuccin.json"
+# A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
+# 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
+# Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
+PALETA="$(meow_paleta)"
 TEMA="${ICONES_TEMA:-${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
@@ -391,7 +394,7 @@ print(d[flavor].get(chave, ""))
 PY
 )" || { meow_erro "não consegui ler a paleta para o flavor '$FLAVOR'"; return "$MEOW_ERRO"; }
     if [ -z "$saida" ]; then
-      meow_erro "a cor '$nome' não existe em assets/paleta/catppuccin.json (flavor $FLAVOR)"
+      meow_erro "a cor '$nome' não existe em $(meow_paleta_nome) (flavor $FLAVOR)"
       return "$MEOW_ERRO"
     fi
     HEX["$nome"]="$saida"
@@ -486,7 +489,7 @@ _pronto() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$PALETA" ]; then
-    meow_pula "sem assets/paleta/catppuccin.json — sem fonte de cor, nada a vestir"
+    meow_pula "sem $(meow_paleta_nome) — sem fonte de cor, nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! meow_tem python3; then
@@ -619,7 +622,16 @@ _aplicar() {
     return "$MEOW_OK"
   fi
   meow_info "aplicativos em traço: $postos posto(s), $removidos removido(s) — $FLAVOR"
-  meow_info "os ícones novos aparecem no próximo login (o painel não relê o tema)"
+  # O DESENHO VAI PARA A TELA, E NÃO PARA O PRÓXIMO LOGIN — 13/09/2026
+  #   A frase aqui era "os ícones novos aparecem no próximo login (o painel não
+  #   relê o tema)", e descrevia a tela certa: o arquivo no disco e a dock com o
+  #   desenho velho. Ela salvou ícones pela interface e não viu nenhum — "nada tá
+  #   aplicando de verdade". O painel e o menu relêem cada um pela porta dele.
+  meow_tela_reler
+  case $? in
+    0) meow_seco || meow_ok "os ícones novos já estão na dock e no menu" ;;
+    3) meow_info "fora da sessão gráfica: os ícones novos aparecem no próximo login" ;;
+  esac
   return "$MEOW_DIVERGENTE"
 }
 

@@ -889,6 +889,36 @@ chk_iconesapps() {
     "$RAIZ/scripts/icones_apps.sh" --conferir 2>&1
 }
 
+# OS RESGATADOS PRECISAM DE VERIFICADOR PELA MESMA RAZÃO QUE O `chk_iconesapps`
+# precisava: eles são vinte arquivos em `scalable/apps` que NINGUÉM MAIS escreve,
+# e um `meow icones reconstruir` que apagasse o diretório os levaria junto, sem
+# nada acusando. A folha de antes-e-depois some da tela e o PNG borrado volta —
+# exatamente o sintoma de que este trabalho existe para acabar.
+chk_resgatados() {
+  ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_resgatados.sh" --conferir 2>&1
+}
+
+# O PADRÃO AQUI É `nao`, IGUAL AO DO SCRIPT E AO DO `meow.conf.exemplo`.
+# Um padrão diferente em qualquer um dos três faria o doctor "consertar" para um
+# estado que o instalador desfaz na passagem seguinte — o pingue-pongue silencioso
+# que o `fix_resgatados` logo abaixo já documenta do outro lado.
+# O SOM ENTROU NO DOCTOR EM 18/09/2026 — antes disso ele era o único subsistema
+# do projeto que ninguém conferia. O `meow doctor` dizia "está tudo no lugar"
+# sem nunca olhar para o som, então um `apt upgrade` que repusesse o arquivo de
+# fábrica passava despercebido até alguém notar o bipe diferente.
+# A chave `SOM` viaja junto: sem ela o `som.sh conferir` responderia sobre um
+# estado diferente do que o `aplicar` produziria.
+chk_som() { SOM="${SOM:-sim}" "$RAIZ/scripts/som.sh" conferir 2>&1; }
+fix_som() { SOM="${SOM:-sim}" "$RAIZ/scripts/som.sh" aplicar 2>&1; }
+
+chk_dracula() {
+  ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_apps_dracula.sh" --conferir 2>&1
+}
+
 chk_sistema() {
   ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$RAIZ/scripts/icones_sistema.sh" --conferir 2>&1
@@ -1388,6 +1418,16 @@ fix_arcticons() { FLAVOR="${FLAVOR:-}" ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao
 fix_iconesapps(){ ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
                     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_apps.sh" --aplicar 2>&1; }
+# Os desenhos dela que só existiam em PNG, agora em vetor. `ICONES_RESGATADOS`
+# vai junto porque é ele que decide entre instalar e RETIRAR: sem a chave no
+# ambiente, o script cairia no padrão `sim` e o "nao" dela não seria obedecido
+# quando o conserto viesse pelo doctor.
+fix_resgatados(){ ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_resgatados.sh" --aplicar 2>&1; }
+fix_dracula()   { ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar 2>&1; }
 fix_sistema()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_sistema.sh" --aplicar 2>&1; }
 fix_bandeja()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
@@ -1479,7 +1519,7 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal fastfetch files_menu icones completar hicolor mimetypes iconesapps arcticons convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho)
+VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
@@ -2037,6 +2077,50 @@ cmd_icones() {
         notificar "MeowSystem" "Ícones escolhidos por você aplicados."
       fi
       return "$rc" ;;
+    resgatados)
+      # OS DESENHOS DELA QUE VOLTARAM DO PNG — 11/09/2026
+      #   `meow icones resgatados` mostra quantos estão no lugar e qual é a
+      #   escolha dela; `sim`/`nao` trocam a chave e aplicam na hora.
+      #
+      #   TROCAR A CHAVE E APLICAR SÃO UMA COISA SÓ, e não duas, porque o efeito
+      #   é visível: ela liga para VER o ícone mudar. Um comando que gravasse a
+      #   chave e dissesse "rode `meow aplicar`" seria a ida e volta que este
+      #   projeto existe para acabar — a mesma razão registrada no `icones
+      #   importar`, que reconstrói sozinho depois de importar.
+      shift
+      case "${1:-}" in
+        ""|estado)
+          local par postos total
+          par="$("$RAIZ/scripts/icones_resgatados.sh" estado)"
+          postos="${par%% *}"; total="${par##* }"
+          meow_titulo "Ícones resgatados"
+          campo "escolha"   "${ICONES_RESGATADOS:-sim}"
+          campo "no tema"   "$postos de $total"
+          campo "acervo"    "$RAIZ/assets/icones/resgatados"
+          campo "mapa"      "$RAIZ/assets/icones/apps-resgatados.map"
+          printf '\n'
+          local saida rc
+          local LOG_NIVEL=info; export LOG_NIVEL
+          saida="$(chk_resgatados)"; rc=$?
+          printf '  %s %s %s\n\n' "$(rotulo_rc "$rc")" "$(pad "resgatados" 10)" "$(primeira_linha "$saida")"
+          return "$rc" ;;
+        folha)
+          # A folha mora no repo, junto do acervo: ela é a prova do trabalho, e
+          # quem abre `assets/icones/resgatados/` encontra os desenhos e o
+          # antes-e-depois no mesmo lugar. Regerar é barato e idempotente.
+          "$RAIZ/scripts/resgatados_folha.sh"; return $? ;;
+        sim|nao)
+          meow_travar || return "$MEOW_ERRO"
+          local rc_conf
+          conf_definir ICONES_RESGATADOS "$1"; rc_conf=$?
+          [ "$rc_conf" -ge 2 ] && { meow_erro "não consegui gravar ICONES_RESGATADOS em $CONF"; return "$MEOW_ERRO"; }
+          ICONES_RESGATADOS="$1"
+          local rc; fix_resgatados; rc=$?
+          [ "$rc" = "2" ] && return "$MEOW_ERRO"
+          [ "$rc" = "1" ] && registrar "icones resgatados $1"
+          return "$rc" ;;
+        *) meow_erro "uso: meow icones resgatados [estado|folha|sim|nao]"; return "$MEOW_ERRO" ;;
+      esac ;;
     adicionar|remover)
       # UM TEMA DE ÍCONES DE FORA, PELO PAINEL — 06/09/2026
       #   Pedido dela: "na pasta dos ícones não aparece a opção de adicionar
@@ -2053,7 +2137,7 @@ cmd_icones() {
       [ -n "${1:-}" ] || { meow_erro "uso: meow icones $sub <pasta-ou-zip>"; return "$MEOW_ERRO"; }
       meow_travar || return "$MEOW_ERRO"
       "$RAIZ/scripts/construir_icones.sh" "$sub" "$1"; return $? ;;
-    *) meow_erro "uso: meow icones [estado|reconstruir|importar <json>|adicionar <pasta-ou-zip>|remover <nome>]"; return "$MEOW_ERRO" ;;
+    *) meow_erro "uso: meow icones [estado|reconstruir|resgatados [sim|nao]|importar <json>|adicionar <pasta-ou-zip>|remover <nome>]"; return "$MEOW_ERRO" ;;
   esac
 }
 
@@ -3083,6 +3167,79 @@ cmd_leitura() {
   esac
 }
 
+# --- meow pack ---------------------------------------------------------------
+#
+# O verbo dos THEME PACKS. A especificação está em docs/PACKS.md, e o resolvedor
+# é scripts/pack.py — este comando só põe um rosto nele.
+#
+# POR QUE ELE NÃO FAZ NADA SOZINHO
+#   Quem entende o formato é um arquivo só (scripts/pack.py), de propósito: antes
+#   da porta única, onze lugares liam a paleta e dez cravavam o nome do arquivo,
+#   e o resultado não era erro — era divergência silenciosa. Repetir a leitura do
+#   `pack.json` aqui em bash seria criar a segunda fonte de verdade que o formato
+#   inteiro existe para não ter.
+cmd_pack() {
+  local acao="${1:-listar}"; shift 2>/dev/null || true
+  case "$acao" in
+    validar|--validar)
+      local alvo="${1:-${PACK:-}}"
+      if [ -z "$alvo" ]; then
+        carregar_conf 2>/dev/null || true
+        alvo="${PACK:-}"
+      fi
+      [ -n "$alvo" ] || { meow_erro "diga qual pack: meow pack validar <id-ou-caminho>"; return "$MEOW_ERRO"; }
+      python3 "$RAIZ/scripts/pack.py" validar "$alvo"
+      ;;
+    info|informacao|informação)
+      local alvo="${1:-${PACK:-}}"
+      if [ -z "$alvo" ]; then
+        carregar_conf 2>/dev/null || true
+        alvo="${PACK:-catppuccin}"
+      fi
+      python3 "$RAIZ/scripts/pack.py" info "$alvo"
+      ;;
+    listar|lista|ls)
+      # Um pack é um diretório com pack.json. A lista sai do disco, não de um
+      # registro: registro desatualiza e mente, diretório não.
+      local achou=0 base d
+      meow_titulo "Theme packs"
+      while IFS= read -r base; do
+        [ -d "$base" ] || continue
+        for d in "$base"/*/; do
+          [ -f "$d/pack.json" ] || continue
+          achou=1
+          local id nome
+          id="$(basename "${d%/}")"
+          nome="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["nome"])' "$d/pack.json" 2>/dev/null || echo "$id")"
+          if python3 "$RAIZ/scripts/pack.py" validar "${d%/}" >/dev/null 2>&1; then
+            meow_ok "$id — $nome"
+          else
+            meow_aviso "$id — $nome (não valida: meow pack validar $id)"
+          fi
+          printf '       %s\n' "${d%/}"
+        done
+      done < <(python3 "$RAIZ/scripts/pack.py" raizes)
+      # O embutido não tem pack.json e não aparece na varredura — mas existe, e
+      # esconder isso faria a lista mentir por omissão.
+      meow_info "catppuccin — Catppuccin (embutido, em assets/paleta/)"
+      [ "$achou" = 1 ] || meow_pula "nenhum pack instalado além do embutido"
+      ;;
+    raizes|raízes)
+      meow_info "onde o MeowSystem procura um pack, nesta ordem:"
+      python3 "$RAIZ/scripts/pack.py" raizes | sed 's/^/       /'
+      ;;
+    -h|--help|ajuda)
+      printf 'uso: meow pack [listar|validar <id>|info <id>|raizes]\n\n'
+      printf '  listar          os packs instalados, e se cada um valida\n'
+      printf '  validar <id>    confere o pack inteiro; 0 = ok\n'
+      printf '  info <id>       o que é próprio e o que é herdado, categoria a categoria\n'
+      printf '  raizes          onde o MeowSystem procura\n\n'
+      printf 'A especificação do formato está em docs/PACKS.md.\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $acao"; meow_info "veja: meow pack --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
 despachar() {
   case "${1:-}" in
     ""|menu)          cmd_menu ;;
@@ -3111,6 +3268,7 @@ despachar() {
     # primeiro. Um sinônimo custa uma linha; lembrar do verbo certo custa uma
     # busca no --help toda vez.
     painel)           shift; cmd_painel "$@" ;;
+    pack|packs)       shift; cmd_pack "$@" ;;
     leitura)          shift; cmd_leitura "$@" ;;
     # `abrir` sobe o painel de configuração visual (a pasta `app/`). É `exec`, e
     # não uma chamada comum, porque o `run.sh` FICA DE PÉ: ele sobe o servidor,

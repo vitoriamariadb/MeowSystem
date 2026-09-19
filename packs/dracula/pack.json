@@ -1,0 +1,78 @@
+{
+  "_nota": "packs/dracula/pack.json — o segundo pack do MeowSystem, e a prova de que o formato funciona. Ele não traz código nenhum: tudo o que o Dracula faz cabe em declaração. Ver docs/PACKS.md.",
+  "formato": 1,
+  "id": "dracula",
+  "nome": "Dracula",
+  "versao": "1.0.0",
+  "autor": "MeowSystem",
+  "_nota_autor": "'MeowSystem' e não um nome de pessoa: este arquivo é versionado, e o sanitizer de identidade redige o user.name do git no que entra em commit. É o mesmo motivo que fez WALLPAPER_DRACULA_REPO nascer no meow.conf, que não é versionado, em vez de no código.",
+  "licenca": "GPL-3.0-or-later",
+  "creditos": "CREDITOS.md",
+  "heranca": "catppuccin",
+  "_nota_heranca": "Dito na cara: este pack é uma paleta e dois acervos de ícone. agente, mimetypes, fontes, sons, prompt, fastfetch e gatos vêm do pack base. 'meow pack info dracula' imprime isso linha a linha, e é para imprimir.",
+  "paleta": {
+    "arquivo": "paleta.json",
+    "flavor_padrao": "dracula",
+    "acentos": [
+      "mauve",
+      "pink",
+      "green",
+      "sky",
+      "peach",
+      "red",
+      "yellow"
+    ],
+    "_nota_claro": "O pack tem flavor claro PROPRIO desde 19/09/2026: 'alucard', declarado em claros[] da paleta.json. Antes daqui havia um 'claro_de_reserva' apontando para o latte do catppuccin — remendo declarado, que o proprio campo chamava de 'nao solucao'. Ele saiu: o modo claro do COSMIC agora alterna para um Dracula, e nao para o tema de outro pack."
+  },
+  "cosmic": {
+    "mapa": null,
+    "nome_da_paleta": "dracula-<flavor>",
+    "_nota": "mapa null = usa assets/paleta/cosmic-map.json inteiro. Só palette.name muda: o molde crava 'catppuccin-<flavor>' (cosmic-map.json:4), o que faria este tema aparecer como 'catppuccin-dracula' na GUI."
+  },
+  "icones": {
+    "apps": {
+      "mapa": "icones/apps.map",
+      "desenhos": "icones/apps/",
+      "camada": "scalable/apps",
+      "recolorir": false,
+      "_nota_recolorir": "false porque cada desenho traz de 6 a 10 cores próprias e já nasceu Dracula. Recolorir pela paleta não seria aplicar o tema: seria destruir o desenho."
+    },
+    "pastas": {
+      "desenhos": "icones/pastas/",
+      "recolorir": false
+    },
+    "mimetypes": {
+      "herda": "catppuccin",
+      "flavor": "macchiato",
+      "_nota": "Não existe acervo de mimetype Dracula. O do Catppuccin tem quatro flavors (frappe, latte, macchiato, mocha), 656 arquivos cada; o macchiato é o vizinho mais próximo em luminosidade."
+    },
+    "autorais": {
+      "gerar": true
+    }
+  },
+  "origens": {
+    "cursores": {
+      "herda": "catppuccin",
+      "tema": "catppuccin-mocha-light",
+      "_nota": "Não há pack de agente Dracula com release fixável por tag."
+    },
+    "wallpapers": {
+      "tipo": "github-arvore",
+      "repo_do_conf": "WALLPAPER_DRACULA_REPO",
+      "commit_do_conf": "WALLPAPER_DRACULA_COMMIT",
+      "ignorar": [
+        "svg"
+      ],
+      "se_vazio": "herdar",
+      "_nota": "As duas chaves nomeiam ENTRADAS DO MEOW.CONF, não valores: 'dono/repo' nomeia a conta de uma pessoa e este arquivo é versionado. Quem instala põe o repositório no próprio meow.conf."
+    }
+  },
+  "som": {
+    "_nota": "O sino do Dracula. O pack embutido usa 880 Hz + a quinta justa acima (1320), que soa resolvida e clara. Aqui a escolha é outra: sol (784) com a TERÇA MENOR acima (si bemol, 932.3). Terça menor é o intervalo que a música ocidental lê como sombrio — é o que faz o mesmo gesto de mexer no volume soar noturno em vez de alegre, sem virar alarme. O decaimento é mais lento (38 contra 46) porque a terça menor precisa de um instante a mais para ser reconhecida como intervalo; abaixo disso as duas notas viram um clique só. Duração e ganho ficam nos defaults: a primeira é presa ao debounce de 125 ms do cosmic-osd, e o segundo é calibrado contra o arquivo de fábrica — mexer neles muda o susto, não o timbre.",
+    "fundamental": 784.0,
+    "harmonico": 932.3,
+    "peso_fundamental": 0.58,
+    "peso_harmonico": 0.32,
+    "decaimento": 38.0
+  }
+}

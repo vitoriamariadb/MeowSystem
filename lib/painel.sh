@@ -148,9 +148,38 @@ meow_painel_altura() { # $1 = dir v1 ; imprime a altura em lógicos
   printf '%s' $(( 2 * padding + maior ))
 }
 
-meow_painel_teto() { # $1 = dir v1 ; imprime floor(altura/2)
+# O TETO SEM O PATCH É ZERO, E NÃO `altura/2` — MEDIDO EM 11/09/2026
+#   `altura/2` era a conta do compositor ANTIGO, que media o raio contra a caixa
+#   do frame ANTERIOR (`bbox_from_surface_tree`) — uma caixa com o tamanho real
+#   da barra, onde metade da altura de fato cabia. O `apt` das 17:02 de hoje
+#   trouxe o cosmic-comp que mede pelo tamanho do último `configure` que o
+#   cliente RECONHECEU, e no primeiro commit da layer surface esse tamanho ainda
+#   é 0. Então `half_min_dim` é 0, e QUALQUER raio maior que 0 vira
+#   `post_error(RadiusTooLarge)`.
+#   O comentário de patches/cosmic-comp-raio-clampado.patch já registrava a
+#   mudança de medida; o que ninguém tinha notado é que ela leva o teto a zero.
+#
+#   MEDIDO NA MARRA, cada valor com o painel reiniciado e 10s de observação:
+#       raio 8 -> 99% de CPU, RSS 3,4 GB -> 4,9 GB, ~64.000 `Protocol error 1
+#                 on object cosmic_corner_radius_layer_v1@70` por segundo
+#       raio 4 -> igual: RSS 314 MB -> 591 MB em 15s, 10.000 erros
+#       raio 1 -> igual: RSS 242 MB -> 387 MB em 9s, 10.000 erros
+#       raio 0 -> 1,3% de CPU, RSS travado em 130 MB, ZERO erros
+#   Não é uma barra que some: o `post_error` é fatal, o cosmic-panel reenvia sem
+#   tratar, e a topbar e a dock nunca chegam a desenhar. Foi o que deixou a tela
+#   dela sem barra nenhuma hoje.
+#
+#   POR QUE A TRAVA MORA AQUI, E NÃO NO `conferir`
+#   "O maior raio que não derruba a barra" é uma pergunta só, e o projeto já
+#   decidiu (26/08/2026) que ela tem UMA conta, neste arquivo. São quatro os
+#   chamadores; espalhar a ressalva por eles é recriar os três tetos
+#   contraditórios que aquela data existiu para acabar.
+meow_painel_teto() { # $1 = dir v1 ; imprime o maior raio que a barra aguenta
   local h
   h="$(meow_painel_altura "$1")" || return 1
+  # Com o patch de pé o compositor clampa sozinho e nada aqui se aplica — mas
+  # quem pergunta pelo teto ainda merece um número, e `altura/2` é o dele.
+  meow_painel_compositor_clampa || { printf '0'; return 0; }
   printf '%s' $(( h / 2 ))
 }
 
@@ -227,6 +256,56 @@ meow_painel_carencia_aurora() {
   local d="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/aurora-painel-fantasma"
   [ -d "$d" ] || return 0
   date +%s > "$d/tentativas.ts" 2>/dev/null || true
+}
+
+# --- o painel VIVO que parou de desenhar -------------------------------------
+#
+# O SEGUNDO MODO DE FALHA DA MESMA QUEIXA [18/09/2026]
+#   "A barra sumiu" tem duas causas, e o resto deste arquivo só cobre uma. A
+#   coberta: o painel MORRE e o `cosmic-session` desiste de repor (backoff
+#   2^restarts sem teto). A que faltava: o painel fica VIVO, com todos os
+#   applets rodando, e NUNCA MAIS DESENHA — o painel fantasma.
+#
+#   O `laco()` passava direto por ele. Nos passos 1 e 2 ele pergunta "existe
+#   painel?", vê que sim e vai dormir. Um fantasma responde "sim" para sempre.
+#
+# COMO SE RECONHECE, SEM CHUTAR
+#   Os dois sinais abaixo são filtrados por `_PID` do painel EM EXECUÇÃO. Isso
+#   é o que os torna confiáveis: uma mensagem do painel anterior, ou de outro
+#   cliente Wayland qualquer, não conta. Foi assim que a versão original disto
+#   (na outra máquina da casa) errou o alvo pelo motivo certo uma vez e acertou
+#   por coincidência outra — o diagnóstico que autorizou a cura tinha vindo de
+#   outro cliente, 16m55s antes, e o painel desenhou normalmente os 17 minutos
+#   seguintes.
+#
+#     sinal A — o painel reclamou de RENDER no próprio PID:
+#               "Failed to render" ou "Erroneous EGL call". Sozinho não serve
+#               como prova em boot saudável, mas dentro do _PID e depois da
+#               carência, serve.
+#     sinal B — ERRO DE PROTOCOLO na conexão Wayland dele. Um erro de protocolo
+#               é fatal POR DEFINIÇÃO: o compositor derruba a conexão inteira do
+#               cliente. O cosmic-panel não morre — fica vivo e para de
+#               desenhar, que é exatamente a definição de fantasma. E como
+#               painel e dock são o MESMO processo, somem juntos.
+#
+# A CARÊNCIA É PARTE DA DETECÇÃO, NÃO UM ENFEITE
+#   Um painel recém-nascido ainda está montando as layer surfaces e pode
+#   perfeitamente ter emitido um erro no caminho. Sem os 20 s, a primeira
+#   passagem depois de cada reciclagem acharia fantasma e reciclaria de novo —
+#   o laço que o `COTA` existe para impedir, criado dentro do detector.
+meow_painel_fantasma() {        # 0 = há um painel vivo que não desenha
+  local pid vida
+  pid="$(pgrep -x cosmic-panel 2>/dev/null | head -1)"
+  [ -n "$pid" ] || return 1     # sem painel não é fantasma: é ausência, e o laço já trata
+
+  vida="$(ps -o etimes= -p "$pid" 2>/dev/null | tr -d ' ')"
+  case "$vida" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$vida" -ge 20 ] || return 1
+
+  journalctl --user -b --no-pager _PID="$pid" 2>/dev/null \
+    | grep -qiE 'failed to render|erroneous egl|protocol error|error 1 on object' \
+    && return 0
+  return 1
 }
 
 # --- de quem é o painel -----------------------------------------------------

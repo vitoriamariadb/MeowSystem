@@ -7,16 +7,11 @@
  * CONTROLE cada forma dessas merece. Chave nova no exemplo aparece sozinha.
  *
  * O QUE ACONTECE QUANDO ELA MEXE NUM CONTROLE
- *   A escrita é imediata — vai para o `meow.conf` pelo `meow_conf_definir`, e a
- *   página diz qual dos três aconteceu: "gravado", "já estava assim" (o código 0
- *   do projeto, que é uma resposta e não um silêncio) ou o erro.
- *
- *   Ela NÃO aplica na tela. Escrever a chave e aplicar o tema são coisas
- *   diferentes neste projeto desde sempre (é o que `meow configurar` faz, e o que
- *   o `meow.conf` diz na primeira linha: "Editou uma linha? Rode: meow aplicar").
- *   Fingir que um clique no `FLAVOR` repinta o COSMIC seria mentir — a etapa de
- *   tema copia árvore de arquivo e o painel precisa reciclar. Então a página
- *   acende um aviso contando quantas chaves esperam, com o botão que as aplica.
+ *   Clicar guarda a escolha na página (`MUDANCAS`), e ela atravessa abas, busca
+ *   e F5. O «Salvar e aplicar» do banner grava todas no `meow.conf` pelo
+ *   `meow_conf_definir` e, na mesma chamada, roda o instalador — que é o que faz
+ *   a escolha virar pixel. Gravar e aplicar continuam sendo duas coisas neste
+ *   projeto; o que deixou de existir foi a espera entre elas.
  */
 "use strict";
 
@@ -36,31 +31,13 @@ if (location.search) {
 const $ = (sel, raiz = document) => raiz.querySelector(sel);
 
 /* ===========================================================================
- * O ENSAIO É UM BOTÃO ACESO, E NÃO UMA CAIXA DE MARCAR — 06/09/2026
+ * O ENSAIO SAIU DA PÁGINA — 13/09/2026
  * ===========================================================================
- * Palavras dela: *"ele tá como box mas poderia ser um botão que fica ativo (cor
- * amarela fraca) algo assim"*. A REGRA não mudou, e é a que ela mesma escreveu:
- * *"uma box pra marcar se quero ensaiar sem gravar. Se ela tiver marcada, cada
- * executar faz isso. Caso contrário ele executa de fato."* — só o controle
- * mudou de forma.
- *
- * POR QUE ISTO É UMA FUNÇÃO, E NÃO UM `.checked` TROCADO EM SEIS LUGARES
- *   A conferência mediu NOVE pontos neste arquivo, não seis: seis leituras, uma
- *   ESCRITA (`$("#seco").checked = true`, que restaurava do `sessionStorage`) e
- *   um `addEventListener("change", …)` com uma leitura dentro. E num `<button>`
- *   as três últimas são veneno silencioso: `.checked` é propriedade morta
- *   (escrever nela não pinta nada, ler devolve `undefined`) e `change` NUNCA
- *   dispara. Trocar só as seis leituras deixaria o botão acendendo na tela e
- *   matando, sem uma linha de erro, o "o seco sobrevive ao F5" — que dois
- *   validadores independentes já pegaram quebrado uma vez.
- *
- * `aria-pressed` é o atributo que diz "ligado" num botão de dois estados, é o
- * que o leitor de tela anuncia, e é por onde o `estilo.css` acende o amarelo em
- * `.btn-ensaio[aria-pressed="true"]`. Uma verdade só, lida por três leitores. */
-function ensaiando() {
-  const botao = $("#seco");
-  return !!botao && botao.getAttribute("aria-pressed") === "true";
-}
+ * Pedido dela: *"eu tinha pedido pra tirar o app do modo sandbox"*. O botão
+ * «Ensaiar sem gravar» fazia cada clique só simular, e o que ela via era o
+ * efeito disso: *"nada tá aplicando de verdade"*. Nenhum pedido daqui leva mais
+ * `seco`, e o servidor também deixou de aceitá-lo. O modo seco continua na CLI
+ * (`MEOW_DRY_RUN=1`), onde auditar antes de rodar faz sentido. */
 
 async function api(rota, opcoes = {}) {
   /* O SERVIDOR PODE TER MORRIDO — e a página tem de dizer isso.
@@ -241,6 +218,7 @@ const ROTULO_DE_VALOR = {
   dock: "Dock", titulo: "Título", artista: "Artista", album: "Álbum",
   largura: "Largura", fonte: "Fonte", capa: "Capa", controles: "Controles",
   mocha: "Mocha", macchiato: "Macchiato", frappe: "Frappé", latte: "Latte",
+  dracula: "Drácula",
   coquinha: "Coquinha", mimir: "Mimir",
 };
 
@@ -435,8 +413,7 @@ function torrada(texto, classe = "") {
  * todas de uma vez e, em seguida, RODA O INSTALADOR — que é o que faz a
  * escolha virar pixel na tela. `Descartar` devolve tudo ao que está no disco.
  *
- * O modo seco continua valendo: com ele ligado, `Salvar` mostra o que faria
- * sem escrever nada. */
+ * Sem escolha esperando, `Salvar` aplica o que já está no disco. */
 const MUDANCAS = new Map();   // chave -> valor escolhido e ainda não salvo
 
 /* O valor sob o dedo, enquanto o dedo está no controle. Declarado aqui, e não
@@ -455,6 +432,19 @@ function valorEmVigor(item) {
    *   pelo `MEOW_PREVIAS` — ganhou tempo real sem uma linha própria. */
   if (PROVISORIO && PROVISORIO.chave === item.chave) return PROVISORIO.valor;
   return MUDANCAS.has(item.chave) ? MUDANCAS.get(item.chave) : (item.valor ?? "");
+}
+
+/** "0.9" e "0.90" são o mesmo número; o disco e a máquina não escrevem igual. */
+function mesmoValor(a, b) {
+  const numero = (x) => /^-?\d+(\.\d+)?$/.test(String(x));
+  return String(a) === String(b) || (numero(a) && numero(b) && Number(a) === Number(b));
+}
+
+/** O que a tela dela mostra agora: a máquina, quando o servidor sabe lê-la
+ *  (`valendo_agora`); senão, o que está no meow.conf. — 13/09/2026 */
+function valorNaTela(item) {
+  const agora = item.valendo_agora;
+  return agora != null && agora !== "" ? agora : (item.valor ?? "");
 }
 
 /** O flavor que vale agora — a escolha pendente dela, ou o que está no disco. */
@@ -535,8 +525,8 @@ function faixaSemServidor(mostrar) {
  * caído manda "feche esta aba e rode ./app/run.sh de novo" — ou seja, mandava
  * jogar fora o trabalho.
  *
- * O espelho vive no `sessionStorage`, como o `meow-seco`, e pelo mesmo motivo:
- * vale enquanto a aba viver, que é a vida do próprio servidor. Escreve-se num
+ * O espelho vive no `sessionStorage` porque vale enquanto a aba viver, que é a
+ * vida do próprio servidor. Escreve-se num
  * ponto só — aqui, porque TODA mutação da bandeja chama `atualizarBarraSalvar`
  * — e restaura-se no `iniciar`, filtrando pelo esquema: chave que deixou de
  * existir cai fora, valor igual ao do disco cai fora (o disco pode ter mudado
@@ -578,11 +568,22 @@ function restaurarBandeja() {
 
 function atualizarBarraSalvar() {
   guardarBandeja();
-  const barra = $("#barra-salvar");
   const n = MUDANCAS.size;
-  barra.hidden = n === 0;
+  /* A BARRA NÃO SOME MAIS — 13/09/2026. Ela nascia escondida e só aparecia com
+   * escolha pendente, e ela leu isso como o botão removido: *"removeu o botão
+   * Salvar, que salva e aplica"*. Agora o Salvar fica sempre; sem escolha ele
+   * aplica o que já está salvo. O que acende e apaga são as peças de dentro:
+   * o contador, o Descartar e o destaque do próprio botão. */
+  $("#barra-salvar").classList.toggle("vazia", n === 0);
+  $("#botao-descartar").hidden = n === 0;
+  const salvar = $("#botao-salvar");
+  salvar.classList.toggle("btn-accent", n > 0);
+  salvar.title = n
+    ? "Grava as escolhas no meow.conf e aplica na máquina"
+    : "Aplica na máquina o que já está salvo";
   const painel = document.getElementById("lista-pendentes");
   if (painel && (!n || painel.dataset.quantas !== String(n))) painel.remove();
+  $("#salvar-conta").hidden = n === 0;
   if (!n) return;
   /* O CONTADOR ABRE A LISTA — 07/09/2026
    * "14 escolhas" sem dizer QUAIS obrigava a caçar cartão marcado aba por aba;
@@ -664,40 +665,73 @@ async function descartarEscolhas() {
 /* SALVAR = GRAVAR + APLICAR, nessa ordem e sem meio-termo.
  * Se uma gravação falhar, o instalador NÃO roda: aplicar metade das escolhas
  * dela seria pior que não aplicar nenhuma, e o erro fica na tela dizendo qual
- * chave recusou. */
+ * chave recusou.
+ *
+ * UMA CHAMADA SÓ, E SEM A CAIXA DE "RODAR DE VERDADE" — 13/09/2026
+ *   Eram N gravações em fila (0,45 s cada) e depois `rodarAcao("instalar")`,
+ *   que abria o diálogo de confirmação do instalador. Clicar em «Salvar e
+ *   aplicar» já É a confirmação; a pergunta seguinte fazia o Salvar gravar e não
+ *   aplicar nada sempre que a caixa era fechada — uma das formas de "nada tá
+ *   aplicando de verdade". Agora o servidor grava tudo e começa o instalador na
+ *   mesma rota (`/api/salvar`), e a gaveta abre com a saída.
+ *
+ *   SEM ESCOLHA ESPERANDO, O BOTÃO APLICA O QUE JÁ ESTÁ SALVO: é o gesto de quem
+ *   editou o meow.conf à mão, ou de quem acabou de salvar um ícone. */
 async function salvarEscolhas() {
-  if (!MUDANCAS.size) return;
-  const seco = ensaiando();
+  if (TRABALHO && TRABALHO.timer !== null) {
+    torrada(`Espere «${TRABALHO.rotulo || "o trabalho"}» terminar`, "igual");
+    $("#gaveta").hidden = false;
+    pastilhaDeTrabalho(false);
+    return;
+  }
+  const quantas = MUDANCAS.size;
   const botao = $("#botao-salvar");
   botao.disabled = true;
   const anterior = botao.textContent;
-  botao.textContent = "Salvando…";
-
-  const falhou = [];
-  for (const [chave, valor] of MUDANCAS) {
-    const ok = await gravar(chave, valor, null);
-    if (!ok) falhou.push(chave);
-  }
+  botao.textContent = quantas ? "Salvando…" : "Aplicando…";
+  const r = await api("/api/salvar", {
+    method: "POST",
+    body: JSON.stringify({ mudancas: Object.fromEntries(MUDANCAS) }),
+  });
   botao.disabled = false;
   botao.textContent = anterior;
 
-  if (falhou.length) {
-    torrada(`Não consegui gravar: ${falhou.join(", ")} — o instalador não rodou`, "erro");
+  if (r.recusadas && r.recusadas.length) {
+    for (const rec of r.recusadas.slice(0, 4)) {
+      torrada(`${nomeVisivel(rec.chave)}: ${rec.erro}`, "erro");
+    }
+    torrada("Nada foi gravado, e nada foi aplicado", "erro");
     return;
   }
-  if (seco) {
-    /* AS ESCOLHAS FICAM — em seco, nada foi escrito, então não há o que
-     * confirmar. Limpá-las jogava fora o trabalho dela: a validação mediu
-     * "Salvar e aplicar com o modo seco ligado joga fora as escolhas
-     * pendentes". Ensaiar não pode custar o que se ensaiou. */
-    torrada("Ensaio: nada foi escrito, e as escolhas continuam esperando", "igual");
-    return;
+  if (!r.gravadas) { torrada(r.erro || "Não consegui salvar", "erro"); return; }
+
+  /* O DISCO MUDOU: o valor escolhido passa a ser o valor do cartão, e sai da
+   * bandeja. Sem isto o cartão voltaria a mostrar o valor antigo até um F5. Só
+   * sai o que o servidor disse que entrou: numa gravação que falhou no meio, o
+   * que não entrou continua esperando, e a torrada diz por quê. */
+  for (const chave of [...r.gravadas, ...(r.iguais || [])]) {
+    const item = ESQUEMA.chaves.find((i) => i.chave === chave);
+    if (item && MUDANCAS.has(chave)) item.valor = MUDANCAS.get(chave);
+    MUDANCAS.delete(chave);
   }
-  MUDANCAS.clear();
+  for (const f of (r.falhas || []).slice(0, 4)) {
+    torrada(`${nomeVisivel(f.chave)}: ${f.erro}`, "erro");
+  }
   atualizarBarraSalvar();
   render();
-  torrada("Escolhas gravadas no meow.conf. Aplicando…", "ok");
-  await rodarAcao("instalar");
+
+  if (!r.trabalho) {
+    /* Gravou e não aplicou: outro trabalho corria na hora. O aviso fica, com o
+     * botão que aplica, até um instalador passar. */
+    for (const c of r.gravadas) PENDENTES.add(c);
+    atualizarAviso();
+    torrada(r.erro || "Gravado, mas ainda não aplicado", "erro");
+    return;
+  }
+  torrada(quantas
+    ? `${quantas === 1 ? "1 escolha gravada" : `${quantas} escolhas gravadas`} — aplicando`
+    : "Aplicando o que está salvo", "ok");
+  abrirGaveta(r.trabalho);
 }
 
 /* ===========================================================================
@@ -715,8 +749,8 @@ async function salvarEscolhas() {
  *   o arquivo errado por engano.
  *
  *   E encenando ela GANHA o que a página já dá: vê o que veio antes de aceitar,
- *   o modo seco continua valendo no `Salvar`, o `Descartar` desfaz tudo com um
- *   clique, e o instalador roda em seguida como em qualquer outra mudança.
+ *   o `Descartar` desfaz tudo com um clique, e o instalador roda em seguida
+ *   como em qualquer outra mudança.
  */
 async function importarArquivo(arquivo) {
   if (!arquivo) return;
@@ -765,6 +799,37 @@ async function importarArquivo(arquivo) {
       torrada(`…e mais ${r.recusadas.length - 4} recusadas`, "erro");
     }
   }
+
+  /* AS DESCARTADAS TAMBÉM PRECISAM DE NOME. [2026-09-18]
+   *
+   * O contador acima dizia "1 fora do catálogo" e parava aí. Medido numa
+   * auditoria: exportar o conf por /api/exportar/conf e reimportar o MESMO
+   * arquivo descarta `MEOW_FAMILIA_PALETA` — uma chave que o projeto LÊ
+   * (os manifesto.sh de assets/temas-de-apps) — sem dizer qual foi. E o cabeçalho
+   * do arquivo exportado recomenda exatamente essa rota de volta.
+   *
+   * Um número sem nome não deixa consertar: ela não tem como saber o que
+   * perdeu nem onde procurar. O nome vai CRU pelo mesmo motivo já escrito no
+   * bloco das recusadas acima — é o texto que existe no arquivo dela. */
+  if (r.desconhecidas && r.desconhecidas.length) {
+    for (const chave of r.desconhecidas.slice(0, 4)) {
+      torrada(`${chave}: fora do catálogo — ficou como estava`, "igual");
+    }
+    if (r.desconhecidas.length > 4) {
+      torrada(`…e mais ${r.desconhecidas.length - 4} fora do catálogo`, "igual");
+    }
+  }
+
+  /* E AS AUSENTES, que o servidor já manda e ninguém mostrava.
+   * O comentário de app/servidor.py:3291-3293 promete: "ela tem de saber que
+   * elas ficaram como estavam, e não voltaram ao padrão". Promessa cumprida
+   * aqui — importar um conf antigo não devolve ajuste nenhum ao default, e
+   * quem não souber disso vai procurar o que não mudou. */
+  if (r.ausentes && r.ausentes.length) {
+    const nomes = r.ausentes.slice(0, 3).map(nomeVisivel).join(", ");
+    const resto = r.ausentes.length > 3 ? ` e mais ${r.ausentes.length - 3}` : "";
+    torrada(`o arquivo não trazia ${nomes}${resto} — ficaram como estavam`, "igual");
+  }
 }
 
 /* Roda uma acao pelo id — o `Salvar` precisa disparar o instalador sem que
@@ -793,44 +858,6 @@ async function rodarAcao(id, argumento) {
 function nomeVisivel(chave) {
   const item = ESQUEMA.chaves.find((i) => i.chave === chave);
   return (item && tituloDoCartao(item)) || chave;
-}
-
-async function gravar(chave, valor, cartao) {
-  const seco = ensaiando();
-  const nome = nomeVisivel(chave);
-  const r = await api("/api/definir", {
-    method: "POST",
-    body: JSON.stringify({ chave, valor, seco }),
-  });
-  if (r.erro || r.rc === 2) {
-    torrada(`${nome}: ${r.erro || r.saida || "não consegui gravar"}`, "erro");
-    return false;
-  }
-  /* Os três códigos do projeto, ditos com as palavras do projeto. O `0` não é
-   * "nada aconteceu": é "já estava certo", que é a resposta que a idempotência
-   * deste repositório existe para poder dar.
-   *
-   * "EM SECO" VIROU "ENSAIO" — 09/09/2026. O `index.html` já tinha decidido em
-   * 06/09 que a palavra do interruptor é ENSAIAR ("uma palavra por conceito, e
-   * é esta em todo lugar"), mas "em todo lugar" não valia: este arquivo dizia
-   * "Modo seco" em quatro torradas e "Rodar em seco" no diálogo. Quem ligava
-   * "Ensaiar sem gravar" recebia de volta uma palavra que não tinha lido em
-   * lugar nenhum. */
-  if (seco) {
-    torrada(`${nome}: ensaio — nada foi escrito`, "igual");
-  } else if (r.rc === 0) {
-    torrada(`${nome} já estava assim`, "igual");
-  } else {
-    torrada(`${nome}: ${rotuloDeValor(valor)}`, "ok");
-    PENDENTES.add(chave);
-    atualizarAviso();
-  }
-  const item = ESQUEMA.chaves.find((i) => i.chave === chave);
-  if (item && !seco) {
-    item.valor = valor;
-    if (cartao) cartao.classList.toggle("mexeu", valor !== item.padrao);
-  }
-  return true;
 }
 
 function atualizarAviso() {
@@ -987,14 +1014,20 @@ function montarControle(item, cartao) {
     const forcado = especial && valor === especial;
     const vazio = valor === "";
     const naRegua = !vazio && !forcado;
+    /* O "COMO ESTÁ" DIZ QUANTO — 13/09/2026. Vazio é "não toca", e o que fica é
+     * o número que a máquina já tem (`valendo_agora`); a alça travada para nele,
+     * e não no piso da régua, que desenhava 0 onde a dock dela tem 24. */
+    const agora = item.valendo_agora;
+    const agoraNaRegua = vazio && agora != null && /^-?\d+(\.\d+)?$/.test(agora);
     const slider = elemento("input", {
       type: "range", min: lo, max: hi, step: passo,
-      value: naRegua ? valor : lo,
+      value: naRegua ? valor : (agoraNaRegua ? agora : lo),
       "aria-label": rotuloAcessivel(item),
       disabled: !naRegua,
     });
     const saida = elemento("output", {
-      texto: vazio ? "como está" : (forcado ? rotuloDeValor(valor) : String(valor || lo)),
+      texto: vazio ? (agoraNaRegua ? `como está: ${agora}` : "como está")
+                   : (forcado ? rotuloDeValor(valor) : String(valor || lo)),
     });
     slider.addEventListener("input", () => {
       saida.textContent = slider.value;
@@ -1033,7 +1066,11 @@ function montarControle(item, cartao) {
        * cartão do "Automático".
        *   `lo` é o piso da faixa e é o número que o deslizante travado JÁ está
        * mostrando — soltar nele não faz a alça pular de lugar. */
-      const partida = naoNumero(String(item.padrao ?? "")) ? String(lo) : String(item.padrao || lo);
+      /* Do vazio, a partida é o número da máquina, preso na régua: destravar
+       * não pode mudar a barra dela só por destravar. — 13/09/2026 */
+      const partida = agoraNaRegua
+        ? String(Math.min(Number(hi), Math.max(Number(lo), Number(agora))))
+        : naoNumero(String(item.padrao ?? "")) ? String(lo) : String(item.padrao || lo);
       alternativas.append(elemento("button", {
         type: "button", class: "btn btn-mini",
         texto: "Usar número",
@@ -1071,7 +1108,7 @@ function montarControle(item, cartao) {
       }
       if (item.aceita_vazio) {
         caixa.append(elemento("button", {
-          type: "button", class: "vazio", "data-valor": "", texto: "Deixar como está",
+          type: "button", class: "vazio", "data-valor": "", texto: rotuloVazio(item),
           "aria-pressed": "false",
           title: "Quem decide passa a ser o COSMIC, ou você pelos Ajustes dele.",
           onclick: async () => { if (await aplica("")) pintar(""); },
@@ -1108,6 +1145,16 @@ function montarControle(item, cartao) {
   });
   caixa.append(campo);
   return caixa;
+}
+
+/* O «DEIXAR COMO ESTÁ» DIZ COMO ESTÁ — 13/09/2026. Vazio é "não toca", e o que
+ * fica é o que a máquina tem; quando o servidor sabe ler isso, o botão diz, e a
+ * escolha deixa de ser feita às cegas. */
+function rotuloVazio(item) {
+  const agora = item.valendo_agora;
+  return agora != null && agora !== ""
+    ? `Deixar como está (${rotuloDeValor(agora)})`
+    : "Deixar como está";
 }
 
 function botaoVazio(item, limpar, aplica) {
@@ -1170,11 +1217,27 @@ function barraDeFundos() {
 const PREVIAS = new Map();
 let RELOGIO_PREVIA = null;
 
+/* O "N MUDADOS POR VOCÊ" DO TOPO É CONTA CONTRA O DISCO — 13/09/2026
+ *   Era feito uma vez, ao abrir a página. Medido pela interface: o Salvar ligou
+ *   os segundos do relógio, o relógio mudou na tela dela, o cartão passou a
+ *   dizer «Deixar como está (Sim)» — e o topo seguia em 15, porque ninguém
+ *   refazia a conta. Quem relê o catálogo redesenha o resumo junto. */
+function pintarResumo() {
+  const mexidas = ESQUEMA.chaves.filter((i) => (i.valor ?? "") !== i.padrao).length;
+  $("#resumo").textContent =
+    /* O caminho do meow.conf saiu da linha e foi para o `title`: ele tem 44
+     * caracteres, aparece em toda tela e nunca muda. Fica o que muda. */
+    `${ESQUEMA.chaves.length} ajustes · ${mexidas} mudados por você`
+    + (ESQUEMA.conf_existe ? "" : " · o arquivo ainda não existe");
+  $("#resumo").title = ESQUEMA.conf;
+}
+
 /** Relê o catálogo do servidor sem perder as escolhas ainda não salvas. */
 async function recarregarEsquema() {
   const novo = await api("/api/esquema");
   if (novo && !novo.erro && novo.chaves) {
     ESQUEMA = novo;
+    pintarResumo();
     /* Uma etapa nova no install.sh no meio da sessão dela muda o desenho da
      * aba «Instalação» na releitura seguinte, sem F5. */
     publicarMedidas();
@@ -1336,15 +1399,11 @@ function controleImagem(item, tipo, aplica) {
  *     dele. O servidor manda o arquivo para um temporário e quem instala é o
  *     COMANDO DA CLI, o mesmo que ela rodaria no terminal.
  *
- * E a diferença muda duas coisas na tela, as duas medidas do lado do servidor:
- *   1. o `seco` VIAJA no corpo do pedido. Nos três de repositório a página
- *      recusa o envio antes de sair (ver abaixo); nos três de máquina o
- *      servidor conhece o ensaio e responde "não instalei", o que é melhor —
- *      ela vê a resposta do lado que de fato instalaria;
- *   2. eles devolvem `rc` e `log`. E `rc: 0` NÃO É ERRO: é o contrato de
- *      idempotência deste projeto — "já estava assim" — que é exatamente a
- *      resposta certa para quem enviou o mesmo `.zip` duas vezes. Mostrar isso
- *      como falha ensinaria a desconfiar de uma resposta correta. */
+ * E a diferença muda uma coisa na tela, medida do lado do servidor: os três de
+ * máquina devolvem `rc` e `log`. E `rc: 0` NÃO É ERRO: é o contrato de
+ * idempotência deste projeto — "já estava assim" — que é exatamente a resposta
+ * certa para quem enviou o mesmo `.zip` duas vezes. Mostrar isso como falha
+ * ensinaria a desconfiar de uma resposta correta. */
 const ACERVO_ACEITA = {
   /* "Adicionar logo", e não "Adicionar gato" — 06/09/2026. A aba passou a falar
    * de LOGO do sistema; a Coquinha e o Mimir continuam sendo o que vem de
@@ -1369,21 +1428,6 @@ function botaoAcervo(tipo, aoEntrar) {
       const arq = campo.files && campo.files[0];
       campo.value = "";
       if (!arq) return;
-      const seco = ensaiando();
-      /* O MODO SECO COBRE ISTO TAMBÉM — 02/09/2026.
-       *   A validação pegou: "o Modo seco NÃO cobre o botão Adicionar gato —
-       *   ele escreve no repositório mesmo com o seco ligado". O seco é a rede
-       *   de segurança desta página; uma escrita que passa por baixo dela é
-       *   pior que não ter rede, porque ela confia.
-       *
-       *   A RECUSA É AQUI SÓ PARA OS TRÊS DE REPOSITÓRIO. Nos três que
-       *   instalam na máquina o `seco` vai no corpo e o servidor responde por
-       *   si — ele conhece o ensaio e diz o que faria. Recusar dos dois lados
-       *   seria a página respondendo por um comando que ela não roda. */
-      if (seco && !conf.naMaquina) {
-        torrada(`Ensaio: ${arq.name} não foi enviado — desligue «Ensaiar sem gravar» para valer`, "igual");
-        return;
-      }
       botao.disabled = true;
       const antes = botao.textContent;
       botao.textContent = "Enviando…";
@@ -1396,14 +1440,14 @@ function botaoAcervo(tipo, aoEntrar) {
         });
         const r = await api("/api/acervo", {
           method: "POST",
-          body: JSON.stringify({ tipo, nome: arq.name, conteudo: b64, seco }),
+          body: JSON.stringify({ tipo, nome: arq.name, conteudo: b64 }),
         });
         if (r.erro) { torrada(r.erro, "erro"); return; }
         if (conf.naMaquina) {
           /* O `depois` do servidor já diz o que aconteceu na língua do projeto:
-           * "em ensaio: X não foi instalado", "X já estava instalado", ou o que
-           * fazer agora que entrou. A torrada é ele, e não uma frase nossa que
-           * teria de adivinhar qual dos três casos foi. */
+           * "X já estava instalado", ou o que fazer agora que entrou. A torrada
+           * é ele, e não uma frase nossa que teria de adivinhar qual dos casos
+           * foi. */
           torrada(r.depois || `${r.nome} instalado`, r.rc === 1 ? "ok" : "igual");
           /* A SAÍDA DO COMANDO VAI PARA A TELA, e não para o console: é a mesma
            * saída que ela leria no terminal, e é onde está o nome do tema que
@@ -1470,7 +1514,7 @@ function avisoDeCombinacao() {
   return elemento("p", { class: "frase dominada" }, [
     elemento("b", { texto: `Não há captura para ${c.par}. ` }),
     elemento("span", {
-      texto: `O instalador recusa a combinação sem captura. Existem: ${c.capturas.join(", ")}.`,
+      texto: `A etapa do tema vai ser pulada — o tema do COSMIC fica como está. Existem: ${c.capturas.join(", ")}.`,
     }),
   ]);
 }
@@ -1640,14 +1684,23 @@ const CHAVES_DO_MOCK = [
  * `2*recheio + o MAIOR applet que ela hospeda`. O desenho usa os mesmos cinco
  * números para que subir um segmento engorde a barra aqui como engorda lá — é
  * a consequência que o arquivo avisa e que nenhum controle mostrava. */
+/* A RÉGUA DE VERDADE VEM DO SERVIDOR — 13/09/2026: ele lê os cinco números do
+ * próprio `meow_painel_T` (`medidas.tamanho_applet`). Esta cópia fica só como
+ * reserva para uma leitura que falhe. */
 const TAMANHO_APPLET = { XS: 32, S: 40, M: 56, L: 64, XL: 80 };
+function reguaDeApplets() {
+  const lida = (ESQUEMA && ESQUEMA.medidas && ESQUEMA.medidas.tamanho_applet) || {};
+  return Object.keys(lida).length ? lida : TAMANHO_APPLET;
+}
 /* Um quarto: com `M` (56) o quadrado sai com 14 px, que era a medida fixa do
  * desenho antigo. O antigo vira o caso médio do novo, e nada encolhe de
  * surpresa na tela dela. */
 const ESCALA_APPLET = 0.25;
 /* Vazio herda o tamanho GERAL da barra, que não é chave do meow.conf: mora no
- * `size` do cosmic-panel. Lidos do disco em 26/08/2026 e escritos no
- * `scripts/forma.sh:205`: o painel é S e a dock é M. */
+ * `size` do cosmic-panel. Estava escrito aqui como "lidos do disco em
+ * 26/08/2026" — a foto de um dia, que envelhece no primeiro ajuste feito pela
+ * GUI do COSMIC. Desde 13/09/2026 o servidor lê o `size` a cada esquema
+ * (`medidas.barra`); a foto fica só como reserva. */
 const TAMANHO_GERAL = { painel: "S", dock: "M" };
 
 /* `opcoes.semLegenda` existe para o par de botões: dentro de um botão a legenda
@@ -1659,10 +1712,19 @@ function mockDaBarra(item, opcoes) {
    * acompanhar o controle e não acompanhava: a auditoria mediu — "nenhuma
    * mudança de controle mexe nele". Lia `k.valor`, que é o que está gravado;
    * agora lê `valorEmVigor`, que é o que ela acabou de escolher. */
+  let reserva = false;
   const val = (chave, padrao) => {
     const k = ESQUEMA.chaves.find((x) => x.chave === chave);
     const v = k ? valorEmVigor(k) : "";
-    return v === "" || v == null ? padrao : v;
+    if (v !== "" && v != null) return v;
+    /* VAZIO É "NÃO TOCA", E O QUE FICA É O QUE A MÁQUINA TEM — 13/09/2026
+     *   Os números de reserva de cada chamada (raio 16/8, margem 8/6…) eram o
+     *   desenho INTEIRO até hoje, porque as chaves de forma nascem vazias: a
+     *   dock dela, com raio 24 e opacidade 0,87, aparecia com 16 e 0,8. Agora o
+     *   vazio desenha o `valendo_agora`, que o servidor lê na máquina. */
+    if (k && k.valendo_agora != null && k.valendo_agora !== "") return k.valendo_agora;
+    if (padrao !== "") reserva = true;
+    return padrao;
   };
   const dock = item.chave.includes("DOCK");
   const suf = dock ? "DOCK" : "PAINEL";
@@ -1679,12 +1741,14 @@ function mockDaBarra(item, opcoes) {
   /* O DEGRAU DE CADA SEGMENTO, e o que "vazio" quer dizer. Vazio não é zero nem
    * é erro: é "herda o tamanho geral da barra", e o desenho tem de mostrar o
    * tamanho herdado — senão o cartão vazio pareceria não ter tamanho nenhum. */
-  const geral = TAMANHO_GERAL[dock ? "dock" : "painel"];
+  const regua = reguaDeApplets();
+  const lido = (ESQUEMA.medidas && ESQUEMA.medidas.barra) || {};
+  const geral = lido[dock ? "dock" : "painel"] || TAMANHO_GERAL[dock ? "dock" : "painel"];
   const degrau = (chave) => {
     const bruto = String(val(chave, "")).trim().toUpperCase();
-    const proprio = Object.prototype.hasOwnProperty.call(TAMANHO_APPLET, bruto);
+    const proprio = Object.prototype.hasOwnProperty.call(regua, bruto);
     const nome = proprio ? bruto : geral;
-    return { nome: nome, proprio: proprio, px: TAMANHO_APPLET[nome] * ESCALA_APPLET };
+    return { nome: nome, proprio: proprio, px: (regua[nome] || 0) * ESCALA_APPLET };
   };
   const segs = [
     { id: "inicial", chave: "FORMA_ALA_INICIAL_" + suf, quantos: 1 },
@@ -1731,7 +1795,11 @@ function mockDaBarra(item, opcoes) {
     ilha ? "em pastilha: encolhe até o conteúdo, e os três segmentos se juntam no meio"
          : "atravessando a tela, com os três segmentos separados",
     tamanhos,
-    `altura ${Math.round(altura / ESCALA_APPLET / 4) * 4} = 2×recheio + o maior segmento`,
+    /* A ALTURA DITA É A DA MÁQUINA, em unidades lógicas — 13/09/2026. A conta
+     * antiga dividia o desenho inteiro pela escala, recheio incluído, e dizia
+     * "altura 56" para o painel dela, que o `meow_painel_altura` mede em 44. */
+    `altura ${2 * (Number(recheio) || 0) + Math.max(...segs.map((s2) => regua[s2.nome] || 0))}`
+      + " = 2×recheio + o maior segmento",
   ];
 
   if (opcoes && opcoes.semLegenda) return mock;
@@ -1741,7 +1809,9 @@ function mockDaBarra(item, opcoes) {
       class: "sem-previa",
       texto: `desenho, não é a sua tela: ${dock ? "a dock" : "o painel"} `
            + notas.join("; ")
-           + ". Vazio no meow.conf significa que o COSMIC decide, e aqui aparece o padrão dele.",
+           + (reserva
+             ? ". Onde a máquina não pôde ser lida, o desenho usa medidas de exemplo."
+             : ". Vazio no meow.conf deixa o que a máquina tem, e é isso que aparece aqui."),
     }),
   ]);
 }
@@ -1762,12 +1832,17 @@ function corDeKelvin(k) {
 }
 
 function simulacaoLeitura(item) {
-  const temp = item.chave.includes("TEMPERATURA")
-    ? (valorEmVigor(item) || 6500)
-    : ((ESQUEMA.chaves.find((k) => k.chave === "LEITURA_TEMPERATURA") || {}).valor || 6500);
-  const textura = item.chave.includes("TEXTURA")
-    ? (valorEmVigor(item) || 0)
-    : ((ESQUEMA.chaves.find((k) => k.chave === "LEITURA_TEXTURA") || {}).valor || 0);
+  /* AS DUAS METADES LEEM A ESCOLHA — 13/09/2026
+   *   O cartão da temperatura lia a textura do DISCO (`.valor`) e o da textura
+   *   lia a temperatura do disco: mexer num e olhar o desenho do outro mostrava
+   *   metade escolha, metade arquivo. As duas passam por `valorEmVigor`, que é
+   *   o dedo, a bandeja e só então o disco. */
+  const emVigor = (chave) => {
+    const k = chave === item.chave ? item : ESQUEMA.chaves.find((x) => x.chave === chave);
+    return k ? valorEmVigor(k) : "";
+  };
+  const temp = emVigor("LEITURA_TEMPERATURA") || 6500;
+  const textura = emVigor("LEITURA_TEXTURA") || 0;
 
   /* A imagem de exemplo é um papel de parede DELA — o efeito sobre a foto que
    * ela de fato usa diz mais do que sobre um degradê inventado. */
@@ -1953,7 +2028,16 @@ function gradeDeApps(apps, filtro, recarregar) {
        *   — caíam todos em "nosso", sem cor. Duas telas com o mesmo estado
        *   parecendo estados diferentes é a página mentindo por omissão, que é o
        *   defeito que ela já apontou na contagem dos jogos. */
-      (a.mapa || a.traco)
+      /* O TERCEIRO ACERVO VEM PRIMEIRO — 16/09/2026.
+       *   O pack autoral Dracula escreve em `scalable/apps`, que vence o
+       *   `48x48/apps` do Arcticons no resolvedor. Sem esta linha a tela
+       *   mostrava a varinha do Dracula no Krita com `pink` embaixo, que é a
+       *   cor do Arcticons: o desenho de um acervo com a etiqueta do outro.
+       *   Ele não tem cor para dizer — cada desenho traz as suas, de 6 a 10 —,
+       *   então a etiqueta é o nome do acervo. */
+      a.dracula
+        ? elemento("span", { class: "app-marca app-dracula", texto: "Dracula" })
+        : (a.mapa || a.traco)
         ? elemento("span", { class: "app-marca", texto: (a.mapa || a.traco).cor })
         : elemento("span", { class: "app-marca app-fabrica",
                              texto: a.nosso ? "nosso" : "de fábrica" }),
@@ -1991,7 +2075,7 @@ function montarEscolhaDeIcone(app, recarregar) {
     "aria-label": "Buscar desenho",
     oninput: (e) => carregarGlifos(e.target.value.trim().toLowerCase()),
   });
-  painel.append(busca);
+  if (!app.trava) painel.append(busca);
 
   let escolhido = app.mapa ? app.mapa.glifo : null;
   /* A COR DE ABERTURA VEM DOS DOIS MAPAS, E ISSO SÓ APARECEU NA FOTO — 09/09/2026
@@ -2033,7 +2117,7 @@ function montarEscolhaDeIcone(app, recarregar) {
       elemento("span", { texto: g.glifo }),
     ]));
   }
-  painel.append(tiraGlifos);
+  if (!app.trava) painel.append(tiraGlifos);
 
   const cores = elemento("div", { class: "cores-grade" });
   /* `ordem` e não `ordem_canonica`: o nome errado deixava a fileira de cores
@@ -2065,19 +2149,22 @@ function montarEscolhaDeIcone(app, recarregar) {
   painel.append(cores);
 
   const acoes = elemento("div", { class: "escolha-botoes" });
-  acoes.append(elemento("button", {
+  /* O BOTÃO QUE NÃO PODE VALER NÃO APARECE — 13/09/2026
+   *   Medido pela interface no Hefesto: «Usar este ícone» gravou a linha, a
+   *   torrada disse "Hefesto: steam em green", a gaveta disse "os ícones novos
+   *   já estão na dock" — e a dock ficou igual, porque o script pula os
+   *   intocáveis sem uma palavra. Quem sabe se a escolha pode valer é o
+   *   servidor (`trava`); a página só não oferece o que ele recusaria. */
+  if (app.trava) painel.append(elemento("p", { class: "frase", texto: app.trava }));
+  if (!app.trava) acoes.append(elemento("button", {
     type: "button", class: "btn btn-accent", texto: "Usar este ícone",
     onclick: async () => {
       if (!escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }
       const r = await api("/api/app-icone", {
         method: "POST",
-        /* O ensaio viaja no corpo, e quem recusa é o servidor: o cliente
-         * também poderia parar aqui, mas a escrita mora lá, e é lá que a
-         * recusa tem de estar para valer contra um POST que não veio daqui. */
-        body: JSON.stringify({ app: app.id, glifo: escolhido, cor: corEscolhida, seco: ensaiando() }),
+        body: JSON.stringify({ app: app.id, glifo: escolhido, cor: corEscolhida }),
       });
       if (r.erro) { torrada(r.erro, "erro"); return; }
-      if (r.seco) { torrada(r.aviso, "igual"); return; }
       torrada(
         `${app.nome}: ${escolhido} em ${corEscolhida}`
         + (r.trouxe_do_acervo ? " — o desenho entrou no projeto" : "")
@@ -2088,6 +2175,14 @@ function montarEscolhaDeIcone(app, recarregar) {
          * o nome e deixar a explicação. */
         + (r.alias ? " (o desenho ou a cor já eram de outro programa)" : ""),
         "ok");
+      /* GRAVAR E PÔR NA TELA, NO MESMO CLIQUE — 13/09/2026
+       *   Pedido dela: *"as alterações que faço pela interface seja icones,
+       *   configs e afins nada tá aplicando de verdade"*. Este botão só gravava
+       *   a linha no mapa, e o ícone esperava um «Reconstruir o tema» — que nem
+       *   é quem põe desenho em traço na tela (ver o `icones_traco` no
+       *   servidor). Agora o clique grava e roda o passo certo: a gaveta abre
+       *   com a saída, e o script relê a dock e o menu no fim. */
+      await rodarAcao("icones_traco");
       APP_ABERTO = null;
       await relerLista();
     },
@@ -2102,29 +2197,30 @@ function montarEscolhaDeIcone(app, recarregar) {
       onclick: async () => {
         const r = await api("/api/app-icone", {
           method: "POST",
-          body: JSON.stringify({ app: app.id, remover: true, seco: ensaiando() }),
+          body: JSON.stringify({ app: app.id, remover: true }),
         });
         if (r.erro) { torrada(r.erro, "erro"); return; }
-        if (r.seco) { torrada(r.aviso, "igual"); return; }
         torrada(`${app.nome} voltou para o ícone de fábrica`, "ok");
+        /* O desenho que sobra na tela vira órfão, e é a varredura do mesmo
+         * script que o tira — o mesmo passo do «Usar este ícone». */
+        await rodarAcao("icones_traco");
         APP_ABERTO = null;
         await relerLista();
       },
     }));
   }
   acoes.append(botaoAcervo("icone", async () => { await relerLista(); }));
-  acoes.append(elemento("button", {
-    type: "button", class: "btn", texto: "Reconstruir o tema",
-    title: "A escolha só aparece na tela depois disto",
-    onclick: () => rodarAcao("icones_reconstruir"),
-  }));
+  /* O «RECONSTRUIR O TEMA» SAIU DAQUI — 13/09/2026. O título dele dizia "a
+   * escolha só aparece na tela depois disto", e não era verdade: quem põe na
+   * tela é o `icones_traco`, que os dois botões acima agora rodam sozinhos. Um
+   * terceiro botão prometendo o mesmo efeito era a tela pedindo desconfiança. */
   painel.append(acoes);
   /* O CAMINHO DO ARQUIVO SAIU DA FRASE — 09/09/2026. "assets/icones/
    * apps-arcticons.map, no repositório" respondia uma pergunta que ninguém
    * faz na frente desta grade ("onde isto é gravado?") e escondia a que ela
    * faz de fato: isto vale só aqui, ou em toda máquina? O caminho continua
    * escrito no comentário do bloco acima, para quem for editar à mão. */
-  painel.append(elemento("p", { class: "frase",
+  if (!app.trava) painel.append(elemento("p", { class: "frase",
     texto: "A escolha fica guardada no projeto: vale em toda máquina que instalar daqui." }));
   return painel;
 }
@@ -2737,18 +2833,16 @@ function oficinaDeDesenho(app, relerLista) {
    * (`app/LEIA-ME.md`). Esta função manda `acao: "editor"` e o desenho; QUEM
    * escolhe o arquivo e monta o comando é o servidor.
    *
-   * O ENSAIO VALE AQUI TAMBÉM: abrir uma janela é a coisa mais visível que este
-   * painel faz, e o ensaio existe justamente para ela poder clicar em tudo sem
-   * a máquina reagir. A recusa mora no servidor, como todas as outras. */
+   * UM PAINEL SUBIDO SEM JANELA NÃO ABRE O EDITOR (`r.sem_janela`): é o
+   * `run.sh --sem-abrir` dos testes, e a janela nasceria na tela dela. */
   async function abrirNoEditor() {
     const r = await api("/api/app-desenho", {
       method: "POST",
-      body: JSON.stringify({ app: OFICINA.app, acao: "editor",
-                             svg: OFICINA.svg, seco: ensaiando() }),
+      body: JSON.stringify({ app: OFICINA.app, acao: "editor", svg: OFICINA.svg }),
     });
     if (r.erro) { torrada(r.erro, "erro"); return; }
     OFICINA.editorMtime = r.mtime || 0;
-    if (r.seco) { torrada(r.aviso, "igual"); return; }
+    if (r.sem_janela) { torrada(r.aviso, "igual"); return; }
     /* O VIGIA COMEÇA AQUI E NÃO ANTES: só faz sentido perguntar "mudou?" depois
      * de haver arquivo e editor abertos. Ver o cabeçalho do `espiarEditor`. */
     vigiarEditor();
@@ -2756,14 +2850,12 @@ function oficinaDeDesenho(app, relerLista) {
   }
 
   async function usar() {
-    const seco = ensaiando();
     const r = await api("/api/app-desenho", {
       method: "POST", body: JSON.stringify({
         app: OFICINA.app, acao: "salvar", svg: OFICINA.svg, cor: OFICINA.cor,
-        seco, fonte: OFICINA.fonte, parametros: OFICINA.parametros }),
+        fonte: OFICINA.fonte, parametros: OFICINA.parametros }),
     });
     if (r.erro) { OFICINA.erro = r.erro; torrada(r.erro, "erro"); pintarLupa(); return; }
-    if (r.seco) { torrada(r.aviso, "igual"); return; }
     /* O NOME GRAVADO ENTRA NA TORRADA quando difere do aplicativo: num jogo da
      * Steam o `.desktop` é `meow-steam-1715980` e o desenho vai para
      * `steam_icon_1715980`, que é o que o `Icon=` pede. Sem dizer isso, ela
@@ -2880,16 +2972,27 @@ async function carregarJogos() {
 async function definirJogo(appid, acao, motivo, remover) {
   const r = await api("/api/jogo-fora", {
     method: "POST",
-    /* A linha que isto grava é uma RECEITA: quem apaga os gigabytes é o
-     * `jogos_steam.sh` na passagem seguinte. Escrevê-la em ensaio deixaria o
-     * apagamento armado sem que nada na tela tivesse dito que houve decisão. */
-    body: JSON.stringify({ appid, acao, motivo, remover: !!remover, seco: ensaiando() }),
+    body: JSON.stringify({ appid, acao, motivo, remover: !!remover }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  if (r.seco) { torrada(r.aviso, "igual"); return; }
-  torrada(remover ? "Voltou ao normal — vale depois de arrumar os jogos"
-                  : `Escolha gravada — ${r.depois}`);
+  torrada(remover ? "Voltou ao normal" : "Escolha gravada", "ok");
   JOGO_ABERTO = null;
+  /* ANOTAR E ARRUMAR, NO MESMO CLIQUE — 13/09/2026
+   *   A linha que a rota grava é uma RECEITA, e até hoje ela esperava alguém
+   *   achar «Arrumar os jogos no lançador»: a torrada dizia "vale depois de
+   *   arrumar os jogos", e o lançador continuava igual. É a queixa dela —
+   *   *"antes aplicava ao clicar em tudo"* — na tela de jogos.
+   *
+   *   O `confirmado` vai direto, sem uma segunda caixa: o que a tranca do
+   *   `jogos_aplicar` protege é o apagamento, e só se apaga jogo cuja decisão
+   *   foi perguntada no botão dele («Marcar para apagar»). É a regra do projeto
+   *   para automação que apaga: ela age por decisão escrita. */
+  const t = await api("/api/rodar", {
+    method: "POST",
+    body: JSON.stringify({ acao: "jogos_aplicar", argumento: "", confirmado: true }),
+  });
+  if (t.erro) torrada(t.erro, "erro");
+  else abrirGaveta(t);
   await carregarJogos();
 }
 
@@ -3121,9 +3224,9 @@ function montarEscolhaDeJogo(j) {
          * esta é a opção que leva gigabytes embora. */
         const sim = await perguntar({
           titulo: `Apagar os arquivos de ${j.nome}?`,
-          texto: "A pasta do jogo e o manifesto saem do disco na próxima vez que "
-               + "você arrumar os jogos, com a Steam fechada. Dispara uma vez só: "
-               + "se você reinstalar depois, nada é apagado.",
+          texto: "A pasta do jogo e o manifesto saem do disco agora — com a Steam "
+               + "aberta, na próxima passagem. Dispara uma vez só: se você "
+               + "reinstalar depois, nada é apagado.",
           /* A LINHA DE BAIXO DO DIÁLOGO ERA `4046520:apagar: → jogos-fora.map`
            * — 09/09/2026. Nos outros diálogos ali vai o comando que VAI RODAR,
            * e aqui não roda comando nenhum: o clique anota uma decisão. Três
@@ -3154,7 +3257,9 @@ function montarEscolhaDeJogo(j) {
    * É justamente a distinção que esta página inteira faz — escolher não é
    * gravar —, e ela fica mais clara dita com as palavras da página. */
   painel.append(elemento("p", { class: "frase nota-secao",
-    texto: "Escolher aqui só anota. Quem age é \u201cArrumar os jogos no lançador\u201d." }));
+    /* "SÓ ANOTA" DEIXOU DE SER VERDADE — 13/09/2026: cada botão acima grava a
+     * decisão e arruma o lançador na mesma hora (ver `definirJogo`). */
+    texto: "Cada escolha já arruma o lançador. Arquivo de jogo só sai com a Steam fechada." }));
   return painel;
 }
 
@@ -3202,7 +3307,7 @@ const GRUPOS_PAREDE = [
  * `subprocess` como um argumento só, e o `cmd_lado` receberia "arquivo dia"
  * como nome de arquivo. Então `wallpaper_dia`, `wallpaper_noite` e
  * `wallpaper_lado_auto`, medidos no `/api/esquema` de 06/09/2026, as três
- * `oculta` e as três aceitando ensaio.
+ * `oculta`.
  *
  * O DESFAZER SÓ APARECE ONDE HÁ O QUE DESFAZER — quando o item traz o lado
  * escrito. É a mesma disciplina do "Apagar os arquivos" na tela de jogos, que
@@ -3403,11 +3508,10 @@ function montarGaleria() {
 async function rodarDaSecao(acaoId, invalidar) {
   const acao = ESQUEMA.acoes.find((a) => a.id === acaoId);
   if (!acao) return;
-  const seco = ensaiando();
-  if (acao.confirma && !(await confirmar(acao, "", seco))) return;
+  if (acao.confirma && !(await confirmar(acao, ""))) return;
   const r = await api("/api/rodar", {
     method: "POST",
-    body: JSON.stringify({ acao: acaoId, argumento: "", seco, confirmado: true }),
+    body: JSON.stringify({ acao: acaoId, argumento: "", confirmado: true }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
   abrirGaveta(r);
@@ -3430,7 +3534,7 @@ async function rodarNaGaleria(acaoId, argumento) {
   if (!acao) { torrada(`Ação desconhecida: ${acaoId}`, "erro"); return; }
   const r = await api("/api/rodar", {
     method: "POST",
-    body: JSON.stringify({ acao: acaoId, argumento, seco: ensaiando() }),
+    body: JSON.stringify({ acao: acaoId, argumento }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
   abrirGaveta(r);
@@ -3487,11 +3591,40 @@ function montarCartao(item) {
     if (aviso) cartao.append(aviso);
   }
   /* O QUE ESTÁ VALENDO, quando não é o arquivo que manda. O cartão mostrava
-   * 3500 (o padrão de fábrica) com a máquina em 4700 — o número do applet. */
-  if (item.valendo_agora && item.valendo_agora !== valorEmVigor(item)) {
+   * 3500 (o padrão de fábrica) com a máquina em 4700 — o número do applet.
+   *
+   * VALE PARA TODA CHAVE QUE O SERVIDOR SABE LER NA MÁQUINA — 13/09/2026
+   *   Era só o modo de leitura. Agora o `valendo_agora` vem também da forma e
+   *   do vidro das barras, do relógio e do lado a lado (`NA_MAQUINA`, no
+   *   servidor). A frase aparece quando há um valor ESCOLHIDO que a máquina não
+   *   tem — escolha pendente, ou gravada e ainda não aplicada. O vazio não ganha
+   *   frase: nele "não toca" é a própria escolha, e o número da máquina aparece
+   *   dentro do controle (o deslizante diz "como está: 24"). */
+  const agora = item.valendo_agora;
+  const escolhido = valorEmVigor(item);
+  if (agora != null && escolhido !== "" && !mesmoValor(agora, escolhido)) {
     cartao.append(elemento("p", { class: "frase dominada" }, [
-      elemento("b", { texto: `Na máquina agora: ${rotuloDeValor(item.valendo_agora)}. ` }),
-      elemento("span", { texto: "Quem guarda esse valor é o controle do painel. Salvar faz este ajuste vencer." }),
+      elemento("b", { texto: `Na máquina agora: ${rotuloDeValor(agora)}. ` }),
+      elemento("span", {
+        texto: item.chave.startsWith("LEITURA_")
+          ? "Quem guarda esse valor é o controle do painel. Salvar e aplicar faz este ajuste vencer."
+          : "Salvar e aplicar faz este ajuste valer.",
+      }),
+    ]));
+  }
+  /* VESTÍGIO DE OUTRO PACK. [2026-09-18]
+   *
+   * Mesma régua do `dominada_por` logo abaixo: a regra é derivada e mora no
+   * servidor, a página só desenha. Mas a frase é outra, e a diferença importa:
+   * `dominada_por` diz que a chave está ANULADA; aqui ela está VALENDO, e é
+   * assim que deve ser — o meow.conf vence o pack. O aviso só conta que o valor
+   * vem de um pack que não é o adotado, porque foi isso que fazia o desktop sair
+   * metade Catppuccin, metade Dracula, sem nada na tela explicando. */
+  if (item.vestigio_de_pack) {
+    const v = item.vestigio_de_pack;
+    cartao.append(elemento("p", { class: "frase dominada" }, [
+      elemento("b", { texto: `Vestígio do pack «${v.pack}». ` }),
+      elemento("span", { texto: v.porque || "" }),
     ]));
   }
   if (item.dominada_por) {
@@ -3771,18 +3904,10 @@ function montarAcao(acao) {
   if (acao.rede) rodape.append(elemento("span", { class: "pastilha p-rede", texto: "baixa da internet" }));
   /* O SELO "PODE ENSAIAR" SAIU EM 06/09/2026, e a razão é dela: *"o botão Pode
    * ensaiar não faz sentido se temos o executar ali em todas as páginas — é pq
-   * o user quer arrumar só aquilo"*. O interruptor de ensaio é UM, global, e
-   * fica no alto da tela: aceso, cada `Executar` já ensaia; apagado, executa de
-   * verdade. Repetir por cartão o que o interruptor governa era trinta e quatro
-   * etiquetas amarelas dizendo a mesma coisa numa tela de oito ações — ruído
-   * que empurrava para baixo as duas pastilhas que de fato distinguem uma ação
-   * da vizinha (pede senha, desfaz o que foi feito).
-   *
-   * O `acao.seco` NÃO MORREU: ele continua decidindo, no `rodar()`, se o
-   * interruptor tem efeito sobre ESTA ação (`ensaiando() && acao.seco`) e se a
-   * caixa de confirmação promete "Rodar em seco" ou "Rodar de verdade". O que
-   * saiu foi só a etiqueta; a regra ficou. A regra `.p-seco` saiu do
-   * `estilo.css` na mesma passagem. */
+   * o user quer arrumar só aquilo"*. Em 13/09/2026 saiu também o interruptor
+   * global (*"eu tinha pedido pra tirar o app do modo sandbox"*): `Executar`
+   * executa, sempre. As pastilhas que ficam são as que de fato distinguem uma
+   * ação da vizinha — pede senha, desfaz o que foi feito, baixa da internet. */
 
   rodape.append(elemento("button", {
     type: "button",
@@ -3814,29 +3939,30 @@ function montarAcao(acao) {
 }
 
 async function rodar(acao, argumento) {
-  const seco = ensaiando() && acao.seco;
-  if (acao.confirma || acao.sudo || acao.destrutivo) {
-    const ok = await confirmar(acao, argumento, seco);
-    if (!ok) return;
-  }
+  const perguntou = !!(acao.confirma || acao.sudo || acao.destrutivo);
+  if (perguntou && !(await confirmar(acao, argumento))) return;
+  /* A RESPOSTA VIAJA NA PRIMEIRA IDA — 13/09/2026
+   *   A página perguntava, ouvia «Rodar de verdade» e mandava o pedido SEM o
+   *   `confirmado`. O servidor recusava (ver abaixo), e a MESMA caixa abria de
+   *   novo: toda ação com tranca pedia duas confirmações seguidas, e fechar a
+   *   segunda — que parece repetição por engano — cancelava o que ela tinha
+   *   acabado de mandar rodar. Mais uma forma de "nada tá aplicando". */
   let r = await api("/api/rodar", {
     method: "POST",
-    body: JSON.stringify({ acao: acao.id, argumento, seco }),
+    body: JSON.stringify({ acao: acao.id, argumento, confirmado: perguntou }),
   });
   /* O SERVIDOR PASSOU A TRANCAR AS AÇÕES QUE ESCREVEM — 02/09/2026.
-   *   Ele devolve 409 com `precisa_confirmar: true` e os fatos da ação
-   *   (o que escreve, se usa sudo, se aceita seco) em vez de rodar. Isso é uma
-   *   segunda tranca, depois da que a página já faz: se ela chegar aqui, é
-   *   porque a primeira não perguntou — e sem este tratamento as cinco ações
-   *   destrutivas simplesmente parariam de funcionar, com um erro seco na tela.
-   *   Aqui a recusa vira a pergunta que faltou, e o `confirmado` só é enviado
-   *   depois de ela responder. */
+   *   Ele devolve 409 com `precisa_confirmar: true` e os fatos da ação (o que
+   *   escreve, se usa sudo) em vez de rodar. Com a resposta indo na primeira
+   *   ida, chegar aqui quer dizer que a página não sabia da tranca — um esquema
+   *   lido antes de a ação ganhá-la. A recusa vira a pergunta que faltou, e o
+   *   `confirmado` só é enviado depois de ela responder. */
   if (r && r.precisa_confirmar) {
-    const ok = await confirmar(acao, argumento, seco);
+    const ok = await confirmar(acao, argumento);
     if (!ok) return;
     r = await api("/api/rodar", {
       method: "POST",
-      body: JSON.stringify({ acao: acao.id, argumento, seco, confirmado: true }),
+      body: JSON.stringify({ acao: acao.id, argumento, confirmado: true }),
     });
   }
   if (r.erro) { torrada(r.erro, "erro"); return; }
@@ -3862,8 +3988,8 @@ function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
    * que vira um buraco no meio da caixa quando a pergunta não tem comando. */
   $("#confirmar-comando").closest("p").hidden = !comando;
   $("#confirmar-ok").textContent = ok;
-  /* Três pesos, e o do meio existe: ensaiar não é compromisso nenhum, e pintar
-   * aquele botão com a cor de acento o faria parecer a ação principal. */
+  /* Três pesos, e o do meio existe: descartar escolhas não escreve nada, e
+   * pintar aquele botão com a cor de acento o faria parecer a ação principal. */
   $("#confirmar-ok").className =
     "btn " + (neutro ? "" : perigo ? "btn-perigo" : "btn-accent");
   dlg.showModal();
@@ -3872,15 +3998,16 @@ function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
   });
 }
 
-function confirmar(acao, argumento, seco) {
+function confirmar(acao, argumento) {
   return perguntar({
     titulo: acao.rotulo,
     texto: acao.ajuda,
-    comando: (seco ? "MEOW_DRY_RUN=1 " : "") + acao.argv.replace("@ARG@", argumento),
-    ok: seco ? "Ensaiar" : "Rodar de verdade",
+    comando: acao.argv.replace("@ARG@", argumento),
+    /* "Rodar de verdade" existia para contrastar com "Ensaiar"; sem o ensaio,
+     * o "de verdade" é palavra a mais. — 13/09/2026 */
+    ok: "Rodar",
     sudo: acao.sudo,
     perigo: acao.destrutivo,
-    neutro: seco,
   });
 }
 
@@ -3901,10 +4028,10 @@ function classeDaLinha(linha) {
 function abrirGaveta(trabalho) {
   if (TRABALHO?.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve,
-               rotulo: trabalho.rotulo };
+               rotulo: trabalho.rotulo, mudou: false };
   $("#gaveta").hidden = false;
   pastilhaDeTrabalho(false);
-  $("#gaveta-titulo").textContent = trabalho.rotulo + (trabalho.seco ? "  (ensaio)" : "");
+  $("#gaveta-titulo").textContent = trabalho.rotulo;
   $("#gaveta-comando").textContent = trabalho.comando;
   $("#saida").replaceChildren();
   $("#parar").disabled = false;
@@ -3931,6 +4058,7 @@ async function puxar() {
   const noFim = saida.scrollTop + saida.clientHeight >= saida.scrollHeight - 24;
   for (const linha of r.linhas) {
     saida.append(elemento("span", { class: classeDaLinha(linha), texto: linha + "\n" }));
+    if (linha.trimStart().startsWith("~~")) TRABALHO.mudou = true;
   }
   if (noFim) saida.scrollTop = saida.scrollHeight;
 
@@ -3947,7 +4075,14 @@ async function puxar() {
      * Visto em 01/09/2026. Para quem ESCREVE, 1 é "divergia e consertei"; para
      * quem só LÊ, o mesmo 1 é "achei divergência" — e ninguém consertou nada. */
     const rc = r.rc;
-    if (rc === 0) marcarEstado("ok", `já estava certo · ${r.segundos}s`);
+    /* O 0 DO INSTALADOR NÃO QUER DIZER "NADA MUDOU" — 13/09/2026. O `install.sh`
+     * sai 0 quando passa inteiro, tenha escrito ou não, e conta o que escreveu
+     * nas linhas `~~` ("~~ mexeu: icones_apps_arcticons logo"). Medido pelo
+     * Salvar: a pastilha dizia "já estava certo" em cima da passagem que tinha
+     * acabado de trocar ícones e o gato da dock — a tela escondendo justamente
+     * o que ela pediu para ver. */
+    if (rc === 0) marcarEstado("ok",
+      `${escreveu && TRABALHO.mudou ? "mexeu e aplicou" : "já estava certo"} · ${r.segundos}s`);
     else if (rc === 1) marcarEstado(escreveu ? "ok" : "correndo",
       `${escreveu ? "mexeu e consertou" : "há divergências"} · ${r.segundos}s`);
     else if (rc === 3 || rc === 4) marcarEstado("pula", `pulado · ${r.segundos}s`);
@@ -3957,6 +4092,21 @@ async function puxar() {
      * zera — um `meow status` bem-sucedido não aplicou chave nenhuma, e apagar
      * o aviso ali faria a página esquecer o que ainda está esperando. */
     if (escreveu && (rc === 0 || rc === 1)) { PENDENTES.clear(); atualizarAviso(); }
+    /* A TELA RELÊ A MÁQUINA QUANDO QUEM ESCREVE TERMINA — 13/09/2026
+     *   Queixa dela: *"o user não consegue ver nada se alterado de fato"*. O que
+     *   os cartões mostram da máquina (`valendo_agora`), os ícones da grade e os
+     *   jogos eram lidos uma vez e ficavam: um instalador que mudava a dock
+     *   terminava com a página ainda desenhando a dock de antes. Relê o esquema
+     *   e as listas que já tinham sido abertas; as outras se leem quando
+     *   forem abertas. */
+    if (escreveu) {
+      recarregarEsquema().then(() => {
+        PREVIAS.delete("icone/");
+        if (APPS) carregarApps();
+        if (JOGOS) carregarJogos();
+        render();
+      });
+    }
     if ($("#gaveta").hidden) {
       /* O desfecho não pode depender de a gaveta estar à vista: quem fechou
        * continua tendo direito de saber como acabou. A frase é a mesma da
@@ -4643,7 +4793,8 @@ function desenhoNoValor(item, valor) {
   const fn = mapa[nome];
   if (typeof fn !== "function") return null;
   const v = {};
-  for (const it of g.itens) v[it.chave] = it.valor ?? "";
+  /* A base é a tela dela, como no par do alto do bloco. — 13/09/2026 */
+  for (const it of g.itens) v[it.chave] = valorNaTela(it);
   let r;
   try {
     r = fn(v, { [item.chave]: valor });
@@ -4790,7 +4941,7 @@ function parDeBotoes(item, aplica) {
   if (item.aceita_vazio) {
     caixa.append(elemento("button", {
       type: "button", class: "vazio linha-inteira", "data-valor": "",
-      texto: "Deixar como está", "aria-pressed": "false",
+      texto: rotuloVazio(item), "aria-pressed": "false",
       title: "Quem decide passa a ser o COSMIC, ou você pelos Ajustes dele.",
       onclick: async () => { if (await aplica("")) pintar(""); },
     }));
@@ -4836,7 +4987,11 @@ function parDePrevias(g) {
   const v = {};
   const escolhido = {};
   for (const item of g.itens) {
-    v[item.chave] = item.valor ?? "";
+    /* "COMO ESTÁ" É A MÁQUINA, QUANDO O SERVIDOR SABE LÊ-LA — 13/09/2026. O
+     * meow.conf diz o que vai ser aplicado; a tela dela é o que o
+     * `valendo_agora` leu. Um ajuste vazio (não toca) ou ainda não aplicado
+     * desenhava a barra de um arquivo, e não a que está na frente dela. */
+    v[item.chave] = valorNaTela(item);
     if (MUDANCAS.has(item.chave)) escolhido[item.chave] = MUDANCAS.get(item.chave);
     /* O valor sob o dedo vence o que já estava escolhido, e vence o disco: é o
      * que ela está vendo no deslizante neste instante, e o desenho tem de
@@ -5249,7 +5404,40 @@ function render() {
    * só a aba escolhida. */
   const grupos = busca
     ? GRUPOS.filter((g) => g.tipo !== "home")
-        .map((g) => ({ ...g, itens: g.itens.filter((i) => casa(i, busca)) })).filter((g) => g.itens.length)
+        .map((g) => ({
+          ...g,
+          /* QUEM CASA NO QUE ESTÁ À VISTA VEM PRIMEIRO. [2026-09-18]
+           *
+           * O filtro achava certo e ordenava pelo arquivo, então buscar «som»
+           * devolvia 23 cartões com «Som ao mudar o volume» em ÚLTIMO — atrás
+           * de 22 que só citam a palavra na ajuda longa. Quem digita uma
+           * palavra procura o cartão que se chama assim.
+           *
+           * A régua não é nova: `ondeCasa` já devolve null exatamente quando
+           * todas as palavras aparecem em texto visível (título + frase +
+           * rótulo), e é o que a lupa usa para decidir se explica ONDE casou.
+           * Aqui o mesmo booleano vira chave de ordenação.
+           *
+           * `sort` é estável desde 2019 — o comentário de :5397 já se apoia
+           * nisso —, então dentro de cada faixa a ordem do arquivo se mantém. */
+          itens: g.itens.filter((i) => casa(i, busca))
+            .sort((a, b) => (ondeCasa(a, busca) === null ? 0 : 1)
+                          - (ondeCasa(b, busca) === null ? 0 : 1)),
+        })).filter((g) => g.itens.length)
+        /* E OS GRUPOS TAMBÉM, pelo mesmo critério. [2026-09-18]
+         *
+         * Ordenar só dentro do grupo não bastava: os grupos saem na ordem das
+         * páginas, e «Som ao mudar o volume» mora em Manutenção, que é das
+         * últimas. Medido depois de ordenar só por dentro: o cartão continuava
+         * em 27º de 37.
+         *
+         * Um grupo vale pelo melhor item que ele tem — se algum dos seus casa
+         * no texto à vista, o grupo inteiro sobe. `some` basta: não interessa
+         * QUANTOS casam, e sim se há um. */
+        .sort((a, b) => {
+          const visivel = (g) => g.itens.some((i) => ondeCasa(i, busca) === null);
+          return (visivel(a) ? 0 : 1) - (visivel(b) ? 0 : 1);
+        })
     : GRUPOS.filter((g) => chaveDeAba(g) === ABA);
 
   if (!grupos.length) {
@@ -5481,8 +5669,10 @@ function render() {
   if (!busca && GRUPOS.some((g) => g.nome === GRUPO_ICONES && assuntoDe(g) === ABA)) {
     alvo.append(elemento("p", {
       class: "frase",
-      texto: "O tema como está no disco agora. Trocar um ajuste acima só muda "
-           + "isto depois de «Reconstruir o tema de ícones».",
+      /* "SÓ MUDA DEPOIS DE «RECONSTRUIR»" SAIU — 13/09/2026: o «Salvar e
+       * aplicar» roda o instalador inteiro, que reconstrói o tema, e a grade
+       * é relida quando ele termina. */
+      texto: "O tema como está no disco agora.",
     }));
     alvo.append(gradeDeIcones());
   }
@@ -6096,6 +6286,27 @@ document.addEventListener("keydown", (ev) => {
   if (ev.key === "Escape" && document.activeElement === $("#busca")) {
     $("#busca").value = ""; render(); return;
   }
+  /* O ESC FECHA O BALÃO DO «?». [2026-09-18]
+   *
+   * WCAG 1.4.13 (Content on Hover or Focus) pede três coisas do conteúdo que
+   * aparece no hover: ser dispensável sem mover o ponteiro, sustentar o
+   * ponteiro por cima, e persistir até sair dali. O balão atendia a terceira e
+   * falhava na primeira — quem abrisse um sem querer só se livrava dele
+   * movendo o mouse para longe, e quem usa o painel por teclado não tinha saída
+   * nenhuma.
+   *
+   * O mecanismo aqui é o MESMO que o gatilho já usa em app.js:3808: marcar
+   * `data-fechei` no gatilho irmão faz o CSS esconder o balão, e o `mouseleave`
+   * (linha 3810) limpa a marca depois, então o próximo hover volta a abrir. */
+  if (ev.key === "Escape") {
+    let fechou = false;
+    for (const dica of document.querySelectorAll(".dica")) {
+      if (getComputedStyle(dica).display === "none") continue;
+      const gatilho = dica.previousElementSibling;
+      if (gatilho) { gatilho.setAttribute("data-fechei", ""); fechou = true; }
+    }
+    if (fechou) { ev.preventDefault(); return; }
+  }
   /* Setas percorrem o trilho quando o foco está nele — é o que um menu de
    * navegação deve fazer, e o Tab continua servindo para sair dele. */
   if ((ev.key === "ArrowDown" || ev.key === "ArrowUp") && document.activeElement.dataset?.grupo) {
@@ -6329,57 +6540,32 @@ async function iniciar() {
   restaurarBandeja();
   atualizarBarraSalvar();
 
-  /* O SECO SOBREVIVE AO F5.
-   *   Dois validadores independentes pegaram o mesmo: o interruptor voltava
-   *   DESLIGADO e calado depois de recarregar. Numa página cujo botão seguinte
-   *   pode rodar o instalador, a rede de segurança tem de ser a coisa que mais
-   *   lembra do estado. `sessionStorage` e não `localStorage`: vale enquanto a
-   *   aba viver, que é o tempo de vida do próprio servidor.
-   *
-   *   O ESTADO É O `aria-pressed`, E POR ISSO ESTAS DOZE LINHAS MUDARAM JUNTO
-   *   COM O CONTROLE. Com a caixa de marcar, restaurar era `.checked = true` e
-   *   ouvir era `change`. Num `<button>` as duas são mudas: `.checked` não
-   *   existe e `change` não dispara. A restauração escreve o atributo (que é o
-   *   que o `estilo.css` lê para acender o amarelo, e o que o `ensaiando()` lê
-   *   para decidir), e quem ouve é o `click`, que é o único evento que um botão
-   *   de dois estados tem. */
-  /* O ENSAIO SE ANUNCIA — 07/09/2026
-   * A conferência de primeira-vez mediu o feedback de ligar o ensaio: o fundo
-   * do próprio botão a 14% de alfa, e mais nada — zero texto novo na página,
-   * e o "Salvar e aplicar", a 193 px dali, continuava prometendo gravar. O
-   * modo que existe para dar coragem de explorar era o mais tímido da tela.
-   * Ligado, o botão passa a DIZER o estado ("Ensaiando — nada grava"), e o
-   * Salvar veste a mesma borda amarela com o título contando o que ele fará
-   * de verdade. Os ids não mudam; os testes seguram por eles. */
-  const pintarEnsaio = () => {
-    const ligado = ensaiando();
-    $("#seco").textContent = ligado ? "Ensaiando — nada grava" : "Ensaiar sem gravar";
-    const salvar = $("#botao-salvar");
-    salvar.classList.toggle("em-ensaio", ligado);
-    salvar.title = ligado
-      ? "Com o ensaio ligado: confere as escolhas e mostra o que faria, sem escrever."
-      : "";
-  };
-  try {
-    if (sessionStorage.getItem("meow-seco") === "1") {
-      $("#seco").setAttribute("aria-pressed", "true");
-    }
-  } catch (e) { /* aba sem armazenamento: o padrão desligado continua valendo */ }
-  pintarEnsaio();
-  $("#seco").addEventListener("click", () => {
-    /* Vira o estado ANTES de gravar: o clique é o gesto, e o atributo é a
-     * memória dele. Um `<button>` não vira sozinho como uma caixa de marcar
-     * virava — quem inverte é esta linha. */
-    const ligado = !ensaiando();
-    $("#seco").setAttribute("aria-pressed", String(ligado));
-    try {
-      sessionStorage.setItem("meow-seco", ligado ? "1" : "0");
-    } catch (e) { /* idem */ }
-    pintarEnsaio();
-  });
-
+  /* O INTERRUPTOR DO ENSAIO SAIU DAQUI — 13/09/2026, ver o cabeçalho deste
+   * arquivo. Uma aba que ainda guarde `meow-seco` no `sessionStorage` não muda
+   * nada: ninguém mais lê essa chave. */
   $("#botao-salvar").addEventListener("click", salvarEscolhas);
   $("#botao-descartar").addEventListener("click", descartarEscolhas);
+
+  /* FECHAR A JANELA COM ESCOLHAS PENDENTES PERGUNTA ANTES. [2026-09-18]
+   *
+   * O painel fica de pé enquanto a janela existe e sai junto com ela — o que é
+   * o desenho certo e está documentado em app/run.sh. O efeito colateral é que
+   * fechar a janela jogava fora as escolhas não salvas sem uma palavra, e a
+   * pessoa só descobria ao reabrir e ver tudo como antes.
+   *
+   * O LIMIAR É O MESMO DO `descartarEscolhas` (app.js:651), e pelo mesmo
+   * motivo já escrito lá: com UMA escolha, refazer é um clique, e a pergunta
+   * vira burocracia. A partir de duas, vale perguntar.
+   *
+   * O texto do diálogo é do navegador e não dá para escrever — por isso não há
+   * frase nossa aqui. Isto cobre fechar a janela e o Ctrl+W; o servidor cair
+   * por fora continua atendido pela faixa com «Baixar as escolhas (.conf)». */
+  window.addEventListener("beforeunload", (ev) => {
+    if (MUDANCAS.size >= 2) ev.preventDefault();
+  });
+  /* O botão do aviso é o mesmo Salvar: sem escolha esperando, ele aplica o que
+   * já está gravado — que é exatamente o que o aviso diz que falta. */
+  $("#aviso-aplicar-botao").addEventListener("click", salvarEscolhas);
   $("#salvar-conta").addEventListener("click", alternarListaPendentes);
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") document.getElementById("lista-pendentes")?.remove();
@@ -6422,14 +6608,7 @@ async function iniciar() {
     if (nova && nova !== ABA) { ABA = nova; render(); }
   });
 
-  const mexidas = ESQUEMA.chaves.filter((i) => (i.valor ?? "") !== i.padrao).length;
-  $("#resumo").textContent =
-    /* O caminho do meow.conf saiu da linha e foi para o `title`: ele tem 44
-     * caracteres, aparece em toda tela e nunca muda. Fica o que muda. */
-    `${ESQUEMA.chaves.length} ajustes · ${mexidas} mudados por você`
-    + (ESQUEMA.conf_existe ? "" : " · o arquivo ainda não existe");
-  $("#resumo").title = ESQUEMA.conf;
-
+  pintarResumo();
   render();
 }
 
@@ -6457,4 +6636,3 @@ try {
 }
 
 iniciar();
-

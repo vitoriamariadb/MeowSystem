@@ -257,7 +257,10 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/comum.sh"
 
 DIR="${TERMINAL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicTerm/v1}"
-PALETA="$RAIZ/assets/paleta/catppuccin.json"
+# A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
+# 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
+# Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
+PALETA="$(meow_paleta)"
 
 ESQUEMA="${TERMINAL_ESQUEMA:-sim}"
 _FLAVOR="${FLAVOR:-mocha}"
@@ -292,28 +295,75 @@ meow_seco && [ "$ACAO" = "aplicar" ] && ACAO="conferir"
 # `remover` acha o que apagar) E é o valor que vai para `syntax_theme_*`. Uma
 # função só para os dois usos: duas listas discordariam no dia em que alguém
 # corrigisse o acento de "Frappé" em uma delas.
+#
+# A LISTA SAIU DAQUI E FOI PARA A PALETA — 16/09/2026
+#   Era um `case` com quatro braços e uma string com os mesmos quatro nomes.
+#   Custou exatamente o que uma lista chumbada custa: entrando o `dracula` como
+#   quinta variante (15/09), o `_pronto` recusava o flavor e o instalador dizia
+#   `FLAVOR="dracula" não é um flavor do Catppuccin` — numa máquina onde TODO o
+#   resto do tema já estava em dracula, porque todo o resto lê a paleta.
+#   Agora estes nomes também leem: `assets/paleta/catppuccin.json` tem `nomes`
+#   ao lado de `flavors`, e a próxima variante entra escrevendo um par lá, em um
+#   arquivo só.
+NOMES_ESQUEMA="$(python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+nomes = d.get("nomes") or {}
+for f in d.get("flavors", {}):
+    n = nomes.get(f)
+    if isinstance(n, str) and n:
+        print("%s\t%s" % (f, n))
+' "$PALETA" 2>/dev/null)"
+
 _nome_esquema() {
-  case "$1" in
-    mocha)     printf 'Catppuccin Mocha' ;;
-    latte)     printf 'Catppuccin Latte' ;;
-    frappe)    printf 'Catppuccin Frappé' ;;
-    macchiato) printf 'Catppuccin Macchiato' ;;
-    *)         return 1 ;;
-  esac
+  local linha
+  linha="$(printf '%s\n' "$NOMES_ESQUEMA" | awk -F'\t' -v f="$1" '$1==f{print $2; exit}')"
+  [ -n "$linha" ] || return 1
+  printf '%s' "$linha"
 }
 
 # Tudo o que este módulo pode ter escrito algum dia, em qualquer flavor. É o
 # que o `remover` procura: se ela trocou o FLAVOR entre um `aplicar` e o
-# `remover`, apagar só o flavor de agora deixaria o antigo para trás.
-NOSSOS_NOMES='Catppuccin Mocha,Catppuccin Latte,Catppuccin Frappé,Catppuccin Macchiato'
+# `remover`, apagar só o flavor de agora deixaria o antigo para trás. Sai da
+# MESMA paleta pelo mesmo motivo: um nome que só o `remover` conhece é lixo que
+# ninguém apaga.
+NOSSOS_NOMES="$(printf '%s\n' "$NOMES_ESQUEMA" | cut -f2- | paste -sd, -)"
 
-# O slot escuro segue o FLAVOR; o claro é sempre o Latte, porque o Catppuccin
-# tem um flavor claro só (`"claros": ["latte"]` na paleta).
+# O slot escuro segue o FLAVOR; o claro sai da PALETA, não de um nome cravado.
+#
+# ERA `FLAVOR_CLARO="latte"`, E ISSO QUEBRAVA TODO PACK QUE NÃO FOSSE O
+# CATPPUCCIN [19/09/2026]
+#   O comentário anterior dizia, com todas as letras, "o claro é sempre o Latte,
+#   porque o Catppuccin tem um flavor claro só". Era verdade enquanto o
+#   Catppuccin ERA o projeto. Com o formato de pack, o claro é o que o pack
+#   declarar: o `dracula` declara `alucard`. Pedir `latte` a um pack que não o
+#   tem fazia o módulo morrer — e foi assim que este defeito apareceu, como um
+#   `erro terminal` sem mensagem no `meow doctor`.
+#
+#   A mesma lição que o bloco acima já contava sobre `NOMES_ESQUEMA`: uma lista
+#   de nomes chumbada custa exatamente o dia em que entra o quinto nome.
+_FLAVOR_CLARO_PALETA="$(python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+claros = [c for c in (d.get("claros") or []) if c in (d.get("flavors") or {})]
+print(claros[0] if claros else "")
+' "$PALETA" 2>/dev/null)"
+FLAVOR_CLARO="${_FLAVOR_CLARO_PALETA:-latte}"
+
+# E o escuro: se o FLAVOR escolhido for o claro, o par escuro é o primeiro
+# flavor que NÃO está em `claros`. Antes isto era `latte) FLAVOR_ESCURO="mocha"`,
+# com os dois nomes do Catppuccin escritos no código.
+_FLAVOR_ESCURO_PALETA="$(python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+claros = set(d.get("claros") or [])
+escuros = [f for f in (d.get("flavors") or {}) if f not in claros]
+print(escuros[0] if escuros else "")
+' "$PALETA" 2>/dev/null)"
 case "$_FLAVOR" in
-  latte) FLAVOR_ESCURO="mocha" ;;
-  *)     FLAVOR_ESCURO="$_FLAVOR" ;;
+  "$FLAVOR_CLARO") FLAVOR_ESCURO="${_FLAVOR_ESCURO_PALETA:-mocha}" ;;
+  *)               FLAVOR_ESCURO="$_FLAVOR" ;;
 esac
-FLAVOR_CLARO="latte"
 
 # --- o ajudante em python ---------------------------------------------------
 # Bash não lê RON, e um `sed` sobre um mapa aninhado com strings dentro é o
@@ -613,7 +663,20 @@ _slot_por() {
   local mapa="$DIR/color_schemes_$tipo" sel="$DIR/syntax_theme_$tipo"
   local nome entrada desejado hex rc mudou=0
 
-  nome="$(_nome_esquema "$flavor")" || return "$MEOW_ERRO"
+  # ERRO MUDO É PIOR QUE ERRO [19/09/2026]
+  #   Esta linha devolvia 2 sem imprimir uma palavra, e o `meow doctor`
+  #   mostrava `erro terminal` com a mensagem VAZIA — não havia como saber o
+  #   que faltava sem rodar o script com `bash -x`.
+  #   O caso real que expôs isso: um pack sem flavor claro. O módulo pede o
+  #   esquema claro, `_nome_esquema` não acha o nome, e tudo para. Agora ele
+  #   diz QUAL flavor faltou e ONDE se declara — que é a diferença entre um
+  #   minuto e uma hora para quem estiver escrevendo um pack.
+  if ! nome="$(_nome_esquema "$flavor")"; then
+    meow_erro "a paleta não nomeia o flavor '$flavor' (esquema $tipo do terminal)"
+    meow_info "  quem declara é a chave \"nomes\" da paleta: $(basename "$PALETA")"
+    [ "$tipo" = "light" ] && meow_info "  e o flavor claro sai de \"claros\" — um pack sem flavor claro não veste o modo claro"
+    return "$MEOW_ERRO"
+  fi
 
   hex="--"
   if [ "$_CURSOR" = "accent" ]; then

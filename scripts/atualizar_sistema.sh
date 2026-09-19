@@ -83,7 +83,7 @@ cmd_ver() {
     meow_pula "sem apt nesta máquina"
   fi
 
-  meow_passo "2/3 Caixas de Rust"
+  meow_passo "2/3 Programas em Rust"
   if _as_tem cargo-install-update; then
     cargo install-update --list 2>/dev/null | sed 's/^/      /' || true
   else
@@ -153,7 +153,7 @@ cmd_aplicar() {
     meow_pula "topgrade não está instalado"
   fi
 
-  meow_passo "3/4 Caixas de Rust"
+  meow_passo "3/4 Programas em Rust"
   if _as_tem cargo-install-update; then
     cargo install-update -a || meow_aviso "alguma caixa não atualizou — a saída acima diz qual"
   else
