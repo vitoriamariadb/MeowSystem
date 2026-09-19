@@ -133,3 +133,20 @@ CLAUDE.md
 # copiado para `assets/icones/resgatados/` e commitado de lá — aqui fica o
 # rascunho, que é grande e não interessa a ninguém depois.
 .trabalho-icones/
+
+# --- anti-IA (anonimato local) ---
+AGENTS.md
+GEMINI.md
+COPILOT.md
+HANDOFF-PROMPT.md
+HANDOFF.md
+HOW_TO_RESUME.md
+VALIDATOR_BRIEF.md
+STATE.md
+.cursorrules
+.windsurfrules
+.claude/
+.cursor/
+.agente*
+.continue/
+.github/copilot-instructions.md

@@ -2313,8 +2313,8 @@ etapa_logo() {
       fi
     fi
     meow_seco && [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
-    [ "$mudou" = "1" ] && { meow_ok "o gato segue o relógio: ${LOGO_DIA:-coquinha} de dia, ${LOGO_NOITE:-mimir} de noite"; return "$MEOW_DIVERGENTE"; }
-    meow_ok "o gato já segue o relógio (${LOGO_DIA:-coquinha} de dia, ${LOGO_NOITE:-mimir} de noite)"
+    [ "$mudou" = "1" ] && { meow_ok "o gato segue o relógio: ${LOGO_DIA:-mimir} de dia, ${LOGO_NOITE:-coquinha} de noite"; return "$MEOW_DIVERGENTE"; }
+    meow_ok "o gato já segue o relógio (${LOGO_DIA:-mimir} de dia, ${LOGO_NOITE:-coquinha} de noite)"
     return 0
   fi
 

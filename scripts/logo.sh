@@ -121,8 +121,8 @@ fi
 # Os nomes saem do acervo (`assets/gatos/<nome>.svg`). Um nome que não exista
 # não é erro fatal: o script avisa e cai no `LOGO`, porque um gato errado na
 # tela é melhor que um instalador que aborta por causa de um enfeite.
-LOGO_DIA="${LOGO_DIA:-coquinha}"
-LOGO_NOITE="${LOGO_NOITE:-mimir}"
+LOGO_DIA="${LOGO_DIA:-mimir}"
+LOGO_NOITE="${LOGO_NOITE:-coquinha}"
 # `nao` troca o arquivo e NÃO recicla o painel: o gato novo passa a valer no
 # próximo login. Existe para quem não quer o pisca de ~2s, e para o dia em que
 # ela estiver gravando a tela.

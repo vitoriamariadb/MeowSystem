@@ -70,8 +70,14 @@ FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
 #   projeto sem esses desenhos continua caindo no Catppuccin, sem erro, e quem
 #   desenhar os seus não precisa editar este script.
 ORIGEM="$RAIZ/assets/icones/catppuccin/$FLAVOR_ICONES"
-if [ "${FLAVOR:-}" = "dracula" ] && [ -d "$RAIZ/assets/icones/pastas-dracula" ]; then
-  ORIGEM="$RAIZ/assets/icones/pastas-dracula"
+# [2026-09-17] Era `if [ "${FLAVOR:-}" = "dracula" ]` — um NOME de tema cravado
+# no código, que um terceiro pack nunca satisfaria. Agora a pergunta é sobre o
+# que EXISTE, não sobre como o tema se chama: o pack ativo tem um acervo de
+# pastas? Então é ele. É o mesmo idioma que o comentário acima desta linha já
+# prometia — "quem desenhar os seus não precisa editar este script".
+_pastas_do_pack="$(meow_pack_arquivo icones/pastas assets/icones/pastas-dracula)"
+if [ -n "$_pastas_do_pack" ] && [ -d "$_pastas_do_pack" ]; then
+  ORIGEM="$_pastas_do_pack"
 fi
 MAPA="$RAIZ/assets/icones/pastas.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"

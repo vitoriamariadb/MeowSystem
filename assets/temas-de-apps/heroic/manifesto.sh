@@ -158,7 +158,10 @@ _HEROIC_FLAVOR="${FLAVOR:-mocha}"
 _HEROIC_ACENTO="${ACCENT:-mauve}"
 _HEROIC_ORIGEM="$RAIZ/assets/temas-de-apps/heroic/upstream/themes"
 
-_HEROIC_PALETA="$RAIZ/assets/paleta/catppuccin.json"
+# A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
+# 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
+# Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
+_HEROIC_PALETA="$(meow_paleta)"
 
 # A CLASSE do `body` — o nome do arquivo sem a extensão. É ela que abre o CSS do
 # upstream (`body.catppuccin-mocha-mauve { … }`) e é ela que abre o nosso bloco.

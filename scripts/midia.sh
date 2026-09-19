@@ -71,7 +71,10 @@ COR_TITULO="${MIDIA_COR_TITULO:-mauve}"
 COR_ARTISTA="${MIDIA_COR_ARTISTA:-green}"
 CONTROLES="${MIDIA_CONTROLES:-nao}"
 _FLAVOR="${FLAVOR:-mocha}"
-PALETA="$RAIZ/assets/paleta/catppuccin.json"
+# A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
+# 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
+# Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
+PALETA="$(meow_paleta)"
 
 CONFERIR=0; REVERTER=0
 case "${1:-}" in
@@ -192,7 +195,7 @@ _pronto() {
   for c in "$COR_TITULO" "$COR_ARTISTA"; do
     if ! _cor_nome_valido "$c"; then
       meow_aviso "a cor \"$c\" não existe na paleta $_FLAVOR — confira o meow.conf"
-      meow_info "  nomes válidos: os do assets/paleta/catppuccin.json (mauve, green, blue, peach…), ou auto"
+      meow_info "  nomes válidos: os do $(meow_paleta_nome) (mauve, green, blue, peach…), ou auto"
       return "$MEOW_SEM_DEPENDENCIA"
     fi
   done

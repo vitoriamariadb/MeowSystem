@@ -24,19 +24,43 @@
 #   uso: scripts/folha_proposta.py [saida.html]
 #        (padrão: ~/Documentos/meow-icones-proposta.html)
 
+# CORRIGIDO EM 2026-09-17 — caminhos de antes da tradução do projeto.
+# Este arquivo procurava `palette/` e `icons/` na raiz, nomes que deixaram de
+# existir quando os diretórios viraram `assets/paleta/` e `assets/icones/`. O
+# script falhava com FileNotFoundError e ninguém via, porque nada no instalador
+# o chama — ele é gerador de folha de conferência, rodado à mão. Medido com
+# `python3 scripts/<este arquivo>`: rc=1 antes, rc=0 depois.
+# A referência de caminho certo é `scripts/folha_conversor.py:82-83`.
+
 import base64
 import html
 import json
 import os
 import sys
 
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk  # noqa: E402
+# PyGObject/Gtk3 não é stdlib, e o badge do README promete "python 3 só stdlib".
+# A promessa vale para o INSTALADOR: nenhuma das folhas é chamada por install.sh,
+# bin/meow ou lib/ — elas são ferramentas de bancada, rodadas à mão por quem está
+# curando ícone. Ainda assim, quem clonasse o repositório e as rodasse recebia um
+# ModuleNotFoundError cru, sem dizer o que instalar. [2026-09-17]
+#
+# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única das
+# quatro que o instalador chama e que já tratava isso: mensagem que diz o que falta
+# e código de saída próprio, em vez de traceback.
+MEOW_SEM_DEPENDENCIA = 3
+try:
+    import gi
+
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk  # noqa: E402
+except (ImportError, ValueError) as erro:
+    print(f'  -- sem PyGObject/Gtk3 — é ele que resolve o ícone ({erro})')
+    print('     no Pop!_OS/Ubuntu:  sudo apt install python3-gi gir1.2-gtk-3.0')
+    sys.exit(MEOW_SEM_DEPENDENCIA)
 
 HOME = os.path.expanduser('~')
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PREVIA_DIR = os.path.join(RAIZ, 'icons', 'previa-arcticons')
+PREVIA_DIR = os.path.join(RAIZ, 'assets', 'icones', 'previa-arcticons')
 CONF_TK = os.path.join(HOME, '.config/cosmic/com.system76.CosmicTk/v1/icon_theme')
 
 # A cor sai da paleta, nunca de um hex escrito aqui — regra do
@@ -127,7 +151,10 @@ NO_PAPIRUS = [
 
 
 def paleta(flavor='mocha'):
-    with open(os.path.join(RAIZ, 'palette', 'catppuccin.json'), encoding='utf-8') as fh:
+    # precedência: ver meow_paleta() em lib/comum.sh
+    _paleta = os.environ.get('MEOW_PALETA') or os.path.join(
+        RAIZ, 'assets', 'paleta', os.environ.get('PALETA_ARQUIVO') or 'catppuccin.json')
+    with open(_paleta, encoding='utf-8') as fh:
         return json.load(fh)['flavors'][flavor]
 
 

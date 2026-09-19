@@ -48,9 +48,25 @@ import html
 import os
 import sys
 
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk  # noqa: E402
+# PyGObject/Gtk3 não é stdlib, e o badge do README promete "python 3 só stdlib".
+# A promessa vale para o INSTALADOR: nenhuma das folhas é chamada por install.sh,
+# bin/meow ou lib/ — elas são ferramentas de bancada, rodadas à mão por quem está
+# curando ícone. Ainda assim, quem clonasse o repositório e as rodasse recebia um
+# ModuleNotFoundError cru, sem dizer o que instalar. [2026-09-17]
+#
+# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única das
+# quatro que o instalador chama e que já tratava isso: mensagem que diz o que falta
+# e código de saída próprio, em vez de traceback.
+MEOW_SEM_DEPENDENCIA = 3
+try:
+    import gi
+
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk  # noqa: E402
+except (ImportError, ValueError) as erro:
+    print(f'  -- sem PyGObject/Gtk3 — é ele que resolve o ícone ({erro})')
+    print('     no Pop!_OS/Ubuntu:  sudo apt install python3-gi gir1.2-gtk-3.0')
+    sys.exit(MEOW_SEM_DEPENDENCIA)
 
 HOME = os.path.expanduser('~')
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

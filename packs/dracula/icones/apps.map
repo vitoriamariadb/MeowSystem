@@ -1,3 +1,12 @@
+# apps.map — quais aplicativos vestem um desenho deste pack.
+#
+# FORMATO   <nome-do-ícone-do-.desktop> : <caminho relativo a este diretório>
+#
+# O caminho mudou em 17/09/2026, quando o Dracula virou um theme pack de verdade
+# (ver docs/PACKS.md). Era `dracula-apps/<arquivo>.svg`, relativo a
+# assets/icones/; agora é `apps/<arquivo>.svg`, relativo a
+# packs/dracula/icones/. O conteúdo dos desenhos não mudou.
+#
 # apps-dracula.map — os aplicativos do LANÇADOR vestidos pelo tema autoral Dracula.
 #
 # Formato:  nome-de-icone-do-.desktop : caminho-relativo-a-assets/icones/   # app
@@ -38,39 +47,44 @@
 #   e os aplicativos que ele descreve continuavam com o ícone de fábrica na
 #   tela; (b) se algum lesse, quebraria na máquina dela.
 #
-#   Os 17 desenhos foram COPIADOS para `assets/icones/dracula-apps/`, cada um
+#   Os 17 desenhos foram COPIADOS para `assets/icones/apps/`, cada um
 #   com o nome do ícone que ele veste — é o que faz o `icones_apps_dracula.sh`
 #   poder conferir o mapa contra o disco sem sair do repositório. A procedência
 #   de cada um está em `PROCEDENCIA.md`.
 #
 #   A coluna continua sendo um CAMINHO, e não só um nome, porque nem todo
-#   desenho mora em `dracula-apps/`: a Câmera veste o `resgatados/guvcview.svg`,
+#   desenho mora em `apps/`: a Câmera veste o `resgatados/guvcview.svg`,
 #   que é desenho dele e já estava no repositório.
 # ============================================================================
 
-io.gitlab.theevilskeleton.Upscaler : dracula-apps/io.gitlab.theevilskeleton.Upscaler.svg   # Ampliar — telescópio
-io.github.dvlv.boxbuddyrs : dracula-apps/io.github.dvlv.boxbuddyrs.svg   # BoxBuddy — baú (variação)
-org.gnome.Calculator : dracula-apps/org.gnome.Calculator.svg   # Calculator [upstream]
-foundryvtt : dracula-apps/foundryvtt.svg   # Foundry VTT — dados
-google-chrome : dracula-apps/google-chrome.svg   # Google Chrome [alias-heuristico]
-com.system76.Popsicle : dracula-apps/com.system76.Popsicle.svg   # Gravador USB Popsicle — pirulito
-input-keyboard : dracula-apps/input-keyboard.svg   # Input Method [upstream]
-org.kde.krita : dracula-apps/org.kde.krita.svg   # Krita — varinha (variação)
-menulibre : dracula-apps/menulibre.svg   # Menu Editor — pergaminho
-nyx : dracula-apps/nyx.svg   # Nyx [arte-propria]
-md.obsidian.Obsidian : dracula-apps/md.obsidian.Obsidian.svg   # Obsidian [alias-heuristico]
-org.onlyoffice.desktopeditors : dracula-apps/org.onlyoffice.desktopeditors.svg   # ONLYOFFICE — livro
-org.qbittorrent.qBittorrent : dracula-apps/org.qbittorrent.qBittorrent.svg   # qBittorrent [alias-heuristico]
-rlogo_icon : dracula-apps/rlogo_icon.svg   # R — livro de feitiços
-steam : dracula-apps/steam.svg   # Steam [current-nome]
-org.telegram.desktop : dracula-apps/org.telegram.desktop.svg   # Telegram [alias-heuristico]
-io.github.flattool.Warehouse : dracula-apps/io.github.flattool.Warehouse.svg   # Warehouse — edifício
+io.gitlab.theevilskeleton.Upscaler : apps/io.gitlab.theevilskeleton.Upscaler.svg   # Ampliar — telescópio
+io.github.dvlv.boxbuddyrs : apps/io.github.dvlv.boxbuddyrs.svg   # BoxBuddy — baú (variação)
+org.gnome.Calculator : apps/org.gnome.Calculator.svg   # Calculator [upstream]
+foundryvtt : apps/foundryvtt.svg   # Foundry VTT — dados
+google-chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]
+com.system76.Popsicle : apps/com.system76.Popsicle.svg   # Gravador USB Popsicle — pirulito
+input-keyboard : apps/input-keyboard.svg   # Input Method [upstream]
+org.kde.krita : apps/org.kde.krita.svg   # Krita — varinha (variação)
+menulibre : apps/menulibre.svg   # Menu Editor — pergaminho
+nyx : apps/nyx.svg   # Nyx [arte-propria]
+md.obsidian.Obsidian : apps/md.obsidian.Obsidian.svg   # Obsidian [alias-heuristico]
+org.onlyoffice.desktopeditors : apps/org.onlyoffice.desktopeditors.svg   # ONLYOFFICE — livro
+org.qbittorrent.qBittorrent : apps/org.qbittorrent.qBittorrent.svg   # qBittorrent [alias-heuristico]
+rlogo_icon : apps/rlogo_icon.svg   # R — livro de feitiços
+steam : apps/steam.svg   # Steam [current-nome]
+org.telegram.desktop : apps/org.telegram.desktop.svg   # Telegram [alias-heuristico]
+io.github.flattool.Warehouse : apps/io.github.flattool.Warehouse.svg   # Warehouse — edifício
 
 # A CÂMERA VESTE O DESENHO DO guvcview, E ISSO É ESCOLHA DELE — 16/09/2026
 #   "a camera tem que ter o guvcview.svg". O guvcview saiu da máquina na
 #   limpeza de 15/09; o desenho resgatado dele ficou, sem app para vestir. A
 #   Camera do COSMIC estava de fábrica. Um desenho órfão e um app sem desenho.
-io.github.cosmic_utils.camera : resgatados/guvcview.svg   # Câmera — o desenho do guvcview
+io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do guvcview
+#   ^ COPIADO de assets/icones/resgatados/guvcview.svg em 17/09/2026. A entrada
+#     apontava para o acervo 'resgatados' do núcleo, de fora do pack — o que
+#     funcionava enquanto o Dracula morava dentro do repositório e deixa de
+#     funcionar no minuto em que alguém clona só o pack. Um pack precisa ser
+#     AUTOCONTIDO; reusar arte do núcleo é copiar, respeitando a licença dela.
 
 # --- já têm arte autoral no MeowSystem (não entram) -----------------------
 # com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
