@@ -22,11 +22,7 @@
       "red",
       "yellow"
     ],
-    "claro_de_reserva": {
-      "pack": "catppuccin",
-      "flavor": "latte"
-    },
-    "_nota_claro": "O Dracula não tem flavor claro: 'claros' é [] na paleta.json. Sem esta reserva, o modo claro do COSMIC ficaria com o tema ANTERIOR quando a pessoa alternasse. É remendo declarado, não solução — o certo seria um Dracula claro autoral."
+    "_nota_claro": "O pack tem flavor claro PROPRIO desde 19/09/2026: 'alucard', declarado em claros[] da paleta.json. Antes daqui havia um 'claro_de_reserva' apontando para o latte do catppuccin — remendo declarado, que o proprio campo chamava de 'nao solucao'. Ele saiu: o modo claro do COSMIC agora alterna para um Dracula, e nao para o tema de outro pack."
   },
   "cosmic": {
     "mapa": null,
