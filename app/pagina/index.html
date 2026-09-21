@@ -174,24 +174,49 @@
       </button>
     </div>
     <div id="conteudo"></div>
+
+    <!-- A gaveta de saída ao vivo. Nasce fechada e sobe quando um trabalho começa.
+
+         FILHA DO #principal, E NÃO IRMÃ DO .corpo — 21/09/2026
+         Queixa dela: *"a tela do terminal, quando clicamos em aplicar ou salvar,
+         toma até a tela do menu e cresce mais verticalmente"*. Enquanto esta
+         seção era irmã do `.corpo`, solta no `<body>`, ela crescia roubando
+         altura de QUEM ESTAVA AO LADO: medido em janela de 900 px, 414 px de
+         gaveta (46% da tela) e o menu lateral caindo de 841 px para 427.
+
+         O menu não tem nada a ver com o trabalho que está correndo. Dentro do
+         `#principal` a gaveta só pode comer a coluna do conteúdo, e o trilho
+         fica inteiro POR CONSTRUÇÃO — não por um número no CSS, que a próxima
+         mudança de layout voltaria a furar. -->
+    <section class="gaveta" id="gaveta" hidden aria-live="polite">
+      <!-- A ALÇA DO ARRASTO, E ELA É A BORDA DE CIMA — 21/09/2026
+           O item 3 da sprint pede que a pessoa cresça a gaveta *"arrastando a
+           borda de cima"*. O `resize: vertical` do CSS, que estava aqui antes,
+           desenha a alça do canto INFERIOR DIREITO — e com a gaveta presa no
+           rodapé da coluna esse canto é o último canto da janela. Medido em
+           1500x1000: a caixa ia de 750 a 1000, puxar o canto de baixo crescia,
+           e puxar a borda de cima não fazia nada. Então a borda de cima passa a
+           ser esta faixa, e quem a arrasta é o `app.js`.
+
+           `aria-hidden`: é uma pega de ponteiro, e não conteúdo. O leitor de
+           tela não ganha nada em anunciar uma faixa de 9 px — e o `resize`
+           nativo que ela substitui também nunca foi operável pelo teclado. -->
+      <div class="gaveta-alca" id="gaveta-alca" aria-hidden="true"></div>
+      <div class="gaveta-topo">
+        <div>
+          <strong id="gaveta-titulo"></strong>
+          <code id="gaveta-comando"></code>
+        </div>
+        <div class="gaveta-botoes">
+          <span id="gaveta-estado" class="pastilha"></span>
+          <button type="button" class="btn btn-perigo" id="parar">Parar</button>
+          <button type="button" class="btn" id="fechar-gaveta">Fechar</button>
+        </div>
+      </div>
+      <pre id="saida" tabindex="0"></pre>
+    </section>
   </main>
 </div>
-
-<!-- A gaveta de saída ao vivo. Nasce fechada e sobe quando um trabalho começa. -->
-<section class="gaveta" id="gaveta" hidden aria-live="polite">
-  <div class="gaveta-topo">
-    <div>
-      <strong id="gaveta-titulo"></strong>
-      <code id="gaveta-comando"></code>
-    </div>
-    <div class="gaveta-botoes">
-      <span id="gaveta-estado" class="pastilha"></span>
-      <button type="button" class="btn btn-perigo" id="parar">Parar</button>
-      <button type="button" class="btn" id="fechar-gaveta">Fechar</button>
-    </div>
-  </div>
-  <pre id="saida" tabindex="0"></pre>
-</section>
 
 <div id="torradas" class="torradas" aria-live="polite"></div>
 

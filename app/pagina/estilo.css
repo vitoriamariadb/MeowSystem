@@ -1365,13 +1365,118 @@ select { flex: 1 1 auto; }
 .aviso-sudo code { font-family: var(--mono); font-size: .95em; color: var(--subtext1); }
 
 /* --- gaveta de saída ------------------------------------------------------ */
+/* ELA MUDOU DE PAI EM 21/09/2026, e é isso que explica cada linha daqui.
+ * O `index.html` conta a medição; o que sobra para o CSS é a consequência:
+ *
+ *   - `position: sticky; bottom: 0` porque agora a gaveta divide o rolador com
+ *     o conteúdo. Sem isso o conteúdo passa POR BAIXO dela, e a gaveta só
+ *     aparece para quem rolar a coluna até o fim — que é o contrário de uma
+ *     saída ao vivo;
+ *   - `max-height: 25vh` no lugar dos `46vh` de antes: é o teto que ela pediu,
+ *     *"no máximo 25% (não afetando o menu lateral)"*;
+ *   - `min-height: 120px` para o cabeçalho — título, comando, pastilha de
+ *     estado, Parar e Fechar — nunca ser comprimido numa janela baixa, onde
+ *     25vh é menos que a linha dos botões;
+ *   - `overflow: hidden` para a saída não vazar por baixo da borda enquanto a
+ *     gaveta encolhe. Quem rola continua sendo o `#saida`.
+ *
+ * O `flex: 0 0 auto` saiu junto com a mudança de pai: ele só valia enquanto ela
+ * era filha do `<body>`, que é uma coluna flex. O `#principal` é bloco. */
 .gaveta {
-  flex: 0 0 auto;
-  max-height: 46vh;
+  position: sticky;
+  bottom: 0;
+  /* O desenho grudado do conteúdo (`.previa-bloco`) está em 3, e o que rola tem
+   * de passar por BAIXO da gaveta — senão a saída ao vivo fica atrás da prévia
+   * na metade das abas. */
+  z-index: 4;
+  /* O recheio lateral do `main` é cancelado de propósito: a gaveta é a borda
+   * de baixo da coluna do conteúdo, e não um cartão dentro dela. */
+  margin: 1rem -1.6rem 0;
+  max-height: 25vh;
+  min-height: 120px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--crust);
   border-top: 1px solid var(--surface1);
+}
+/* O RODAPÉ DO `main` SAI ENQUANTO A GAVETA ESTÁ NO AR.
+ * São 4rem de respiro no fim da coluna, e eles são do CONTEÚDO. Com a gaveta
+ * aberta, esse respiro viraria uma faixa vazia entre ela e a beira de baixo da
+ * janela assim que a pessoa rolasse até o fim — a gaveta deixaria de encostar
+ * no rodapé justamente no momento em que ela está sendo lida. O respiro do
+ * conteúdo não se perde: o `#conteudo` tem 3rem próprios, e a gaveta acrescenta
+ * 1rem de margem. */
+/* E A COLUNA VIRA UMA COLUNA FLEX, PELA CAUSA IRMÃ — 21/09/2026
+ * `position: sticky; bottom: 0` só sabe puxar a gaveta PARA CIMA: ele a segura
+ * na beira de baixo enquanto ainda há conteúdo a rolar, e não faz nada quando a
+ * posição natural dela já está acima dessa beira. É o que acontece na aba
+ * curta, onde `scrollHeight == clientHeight`: a gaveta fica no fluxo logo
+ * depois do conteúdo e sobra uma tira de `--base` debaixo de um painel
+ * `--crust`. Medido com a gaveta aberta nas 14 abas, janela de 1500x1000:
+ * "Terminal" parava em 958 de 1000 (vão de 42 px) e "Atualização" em 924
+ * (76 px) — a mesma faixa vazia que o `padding-bottom: 0` aqui de cima diz ter
+ * eliminado, com a outra causa.
+ *
+ * Então o `#conteudo` CRESCE para ocupar a sobra (`flex: 1 0 auto`) e empurra a
+ * gaveta até o rodapé; quando a aba é longa não há sobra, o `flex-grow` não faz
+ * nada, o `flex-shrink: 0` impede que o conteúdo seja espremido no lugar de
+ * rolar, e quem gruda a gaveta volta a ser o `sticky`. Os dois casos, um
+ * mecanismo cada.
+ *
+ * O `margin-bottom` do aviso zera porque coluna flex NÃO funde margem de
+ * irmãos: os 1,2rem dele mais os 1,4rem do `#conteudo` viravam 2,6rem de vão
+ * justamente na tela que tem aviso e gaveta ao mesmo tempo. Fundidos davam
+ * 1,4rem, e é 1,4rem que fica — ver o comentário do `#conteudo` lá em cima. */
+main:has(> .gaveta:not([hidden])) {
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+main:has(> .gaveta:not([hidden])) > * { flex: 0 0 auto; }
+main:has(> .gaveta:not([hidden])) > #conteudo { flex: 1 0 auto; }
+main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
+/* O TETO DO ARRASTO, E POR QUE ELE É UM ATRIBUTO PRÓPRIO — 21/09/2026
+ * Crescer a gaveta é para o momento, não é preferência gravada: ela nasce
+ * sempre em 25vh, e o `abrirGaveta` apaga a altura arrastada na abertura
+ * seguinte. Enquanto o arrasto dura, quem manda é o `height` que o `app.js`
+ * escreve no `style` do elemento — e um `max-height: 25vh` o cortaria no
+ * primeiro pixel. Então o teto de 60vh passa a valer só enquanto o arrasto
+ * marcou a gaveta com `data-esticada`.
+ *
+ * O SELETOR ERA `[style*="height"]`, E ISSO É UMA BUSCA DE SUBSTRING: ele casa
+ * com `min-height`, `max-height` e `line-height`. Qualquer estilo inline futuro
+ * nesta seção destravaria os 60vh sem que ninguém tivesse arrastado nada. Um
+ * atributo que só o arrasto escreve não tem como ser casado por engano. */
+.gaveta[data-esticada] { max-height: 60vh; }
+/* A faixa de 9 px logo abaixo da borda de cima: é ela que a pessoa arrasta, e o
+ * `pointerdown` mora no `app.js`. O risquinho existe para a pega ser VISTA —
+ * uma área de arrasto que não se anuncia é uma área de arrasto que ninguém
+ * descobre. `touch-action: none` porque sem ele o dedo rola a coluna no meio do
+ * gesto, em vez de crescer a gaveta. */
+.gaveta-alca {
+  flex: 0 0 auto;
+  height: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.gaveta-alca::before {
+  content: "";
+  width: 34px;
+  height: 2px;
+  border-radius: var(--r-max);
+  background: var(--surface1);
+}
+.gaveta-alca:hover::before { background: var(--overlay1); }
+/* O recheio da coluna encolhe para 1rem na tela estreita (lá embaixo, no bloco
+ * «telas estreitas»), e o cancelamento tem de acompanhar: com -1.6rem contra
+ * 1rem de recheio, a gaveta estoura a coluna 1,2rem para cada lado e o
+ * `#principal` ganha uma rolagem horizontal que ninguém pediu. */
+@media (max-width: 860px) {
+  .gaveta { margin-inline: -1rem; }
 }
 .gaveta-topo {
   display: flex;
@@ -1403,6 +1508,21 @@ select { flex: 1 1 auto; }
 #saida .l-erro { color: var(--red); }
 #saida .l-info { color: var(--blue); }
 #saida .l-tit  { color: var(--text); font-weight: 700; }
+
+/* A PASTILHA DE «MAIS N LINHAS ABAIXO» — 21/09/2026
+ * Flutua sobre o `#saida`, encostada no rodapé da gaveta, porque é de um lugar
+ * que ela fala: o fim, que está logo abaixo da beira. Fora do fluxo de
+ * propósito — uma linha a mais no rodapé empurraria a saída para cima toda vez
+ * que a pessoa rolasse. Quem a posiciona é a própria `.gaveta`, que virou
+ * `sticky` e com isso passou a ser bloco de contenção dos filhos absolutos.
+ * Ela só existe quando há o que dizer: o `app.js` a esconde com `hidden`. */
+#mais-abaixo {
+  position: absolute;
+  left: 50%;
+  bottom: .55rem;
+  transform: translateX(-50%);
+  z-index: 1;
+}
 
 /* --- torradas ------------------------------------------------------------- */
 /* Sem sombra: no latte ela seria um halo claro sobre fundo claro, e a borda já

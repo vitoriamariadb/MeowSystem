@@ -843,6 +843,184 @@ def main():
             checa("meow" in saida.lower() or "flavor" in saida.lower(),
                   "a saida e a do comando de verdade")
 
+            print("\n10b. A GAVETA CABE EM 25% E NÃO ENCOSTA NO MENU")
+            # Queixa dela, 21/09/2026: *"a tela do terminal, quando clicamos em
+            # aplicar ou salvar, toma até a tela do menu e cresce mais
+            # verticalmente — ocupa quase metade verticalmente da tela, ao invés
+            # de ser no máximo 25% (não afetando o menu lateral)"*.
+            #
+            # Medido antes da correção, em janela de 900 px: 414 px de gaveta
+            # (46% da tela) e o trilho caindo de 841 px para 427. A gaveta era
+            # IRMÃ do `.corpo`, e uma irmã que cresce rouba altura de quem está
+            # ao lado.
+            #
+            # A CONTA É DE RAZÃO, E NÃO DE PIXEL CRAVADO: este arquivo roda em
+            # 1500x1000 hoje e numa janela qualquer amanhã. 25% é a regra.
+            #
+            # E O «MENU INTEIRO» NÃO É `trilho == corpo`: antes da correção os
+            # dois já mediam o mesmo (427 px), porque quem encolhia era o
+            # `.corpo` INTEIRO, com o trilho dentro. O que separa o antes do
+            # depois é o `.corpo` chegar à beira de baixo da janela — tudo o que
+            # não é cabeçalho é dele.
+            #
+            # O `fundo` É O DA GAVETA, E NÃO O DO `.corpo` — 21/09/2026
+            # Aferir o `.corpo` chegando à beira de baixo confere o que o
+            # LAYOUT faz com a coluna, e isso o `trilho == corpo` logo abaixo já
+            # conta. O que a pessoa vê é a GAVETA: com o `.corpo` colado no
+            # rodapé, ela ainda podia flutuar acima dele — foi o que a revisão
+            # mediu, 958 de 1000 no "Terminal" e 924 em "Atualização", uma tira
+            # de `--base` debaixo de um painel `--crust`. Quem responde pela
+            # queixa é a beira de baixo da gaveta, então é ela que se mede.
+            gav = pag.evaluate("""() => {
+              const el = document.getElementById('gaveta');
+              const g = el.getBoundingClientRect();
+              const t = document.getElementById('trilho').getBoundingClientRect();
+              const c = document.querySelector('.corpo').getBoundingClientRect();
+              return { pct: Math.round(g.height / innerHeight * 100),
+                       trilho: Math.round(t.height), corpo: Math.round(c.height),
+                       fundo: Math.round(g.bottom), janela: innerHeight,
+                       pai: el.parentElement.id,
+                       presa: getComputedStyle(el).position };
+            }""")
+            checa(gav["pct"] <= 25,
+                  f"a gaveta ocupa {gav['pct']}% da altura da tela (o teto é 25%)")
+            checa(gav["fundo"] >= gav["janela"] - 1,
+                  f"e ela mesma desce até o rodapé da janela: "
+                  f"{gav['fundo']} px de {gav['janela']}")
+            checa(gav["trilho"] == gav["corpo"],
+                  f"e o menu ocupa a coluna dele inteira: {gav['trilho']} px de "
+                  f"trilho para {gav['corpo']} px de corpo")
+            # A CAUSA, E NÃO SÓ O SINTOMA. Um `max-height` menor consertaria o
+            # número e deixaria a gaveta irmã do `.corpo` — no dia em que ela
+            # voltasse a crescer, o menu encolheria de novo. Quem garante o
+            # trilho é o PAI, e é o pai que este passo confere.
+            checa(gav["pai"] == "principal",
+                  f"e ela é filha do #principal, não irmã do .corpo (pai: "
+                  f"{gav['pai'] or '<sem id>'})")
+            checa(gav["presa"] == "sticky",
+                  f"e está presa no rodapé da coluna ({gav['presa']}) — sem isso "
+                  "o conteúdo passa por baixo dela")
+            # ... E EM TODA ABA, E NÃO SÓ NUMA LONGA — 21/09/2026
+            # Este passo media a aba "Instalação", que é comprida, e ali o
+            # `sticky` tem o que fazer: a coluna rola, e ele segura a gaveta na
+            # beira de baixo. Numa aba CURTA (`scrollHeight == clientHeight`)
+            # não há o que rolar, o `sticky` não gruda em nada e a gaveta fica no
+            # fluxo logo depois do conteúdo — 42 px acima do rodapé no
+            # "Terminal", 76 px em "Atualização", medido em 1500x1000. A regra é
+            # sobre TODA aba; uma aba que encurtar amanhã nasce coberta.
+            grupos = pag.evaluate(
+                "() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
+                ".map(b => b.dataset.grupo)")
+            flutuando = []
+            for aba_ in grupos:
+                pag.locator(f'#trilho button[data-grupo="{aba_}"]').first.click()
+                pag.wait_for_timeout(380)
+                d = pag.evaluate("""() => {
+                  const g = document.getElementById('gaveta').getBoundingClientRect();
+                  return { fundo: Math.round(g.bottom), janela: innerHeight };
+                }""")
+                if d["janela"] - d["fundo"] > 1:
+                    flutuando.append(f"{aba_}: {d['fundo']} de {d['janela']}")
+            checa(not flutuando,
+                  f"e isso vale nas {len(grupos)} abas, curtas e longas"
+                  + (f" — {flutuando}" if flutuando else ""))
+            # A ALÇA É A BORDA DE CIMA, QUE É A QUE A SPRINT NOMEIA.
+            # O item 3 pede que a pessoa cresça a gaveta *"arrastando a borda de
+            # cima"*. O `resize: vertical` que estava aqui desenhava a alça no
+            # canto INFERIOR DIREITO — com a gaveta presa no rodapé, o último
+            # canto da janela — e a borda de cima ficava inerte: medido, puxá-la
+            # 150 px deixava a altura em 250, a mesma de antes.
+            antes_h, alvo = pag.evaluate("""() => {
+              const g = document.getElementById('gaveta').getBoundingClientRect();
+              return [Math.round(g.height), [g.left + g.width / 2, g.top + 4]];
+            }""")
+            pag.mouse.move(alvo[0], alvo[1])
+            pag.mouse.down()
+            pag.mouse.move(alvo[0], alvo[1] - 150, steps=12)
+            pag.mouse.up()
+            pag.wait_for_timeout(250)
+            depois_h = pag.evaluate(
+                "() => Math.round(document.getElementById('gaveta')"
+                ".getBoundingClientRect().height)")
+            checa(depois_h >= antes_h + 140,
+                  f"arrastar a borda de cima 150 px cresce a gaveta: {antes_h} px "
+                  f"-> {depois_h} px")
+            checa(depois_h <= round(0.6 * gav["janela"]) + 1,
+                  f"e o teto de 60vh segura: {depois_h} px de "
+                  f"{round(0.6 * gav['janela'])} px")
+            # O QUE O ARRASTO ESTICOU VOLTA, pela mesma porta que o `abrirGaveta`
+            # usa na abertura seguinte — esticar é para o momento. Sem desfazer,
+            # os passos daqui para baixo mediriam uma gaveta de 400 px que
+            # ninguém mais pediu.
+            pag.evaluate("""() => {
+              const g = document.getElementById('gaveta');
+              g.style.removeProperty('height');
+              g.removeAttribute('data-esticada');
+            }""")
+            pag.wait_for_timeout(200)
+            # O INDICADOR DE «ABAIXO». Com 25% de teto, quem sobe para reler um
+            # erro perde o fio do que continua chegando. A pastilha só tem o que
+            # dizer quando a saída não coube — então o passo só cobra quando ela
+            # de fato não coube.
+            rolavel = pag.evaluate("""() => {
+              const s = document.getElementById('saida');
+              s.scrollTop = 0;
+              s.dispatchEvent(new Event('scroll'));
+              return s.scrollHeight > s.clientHeight + 4;
+            }""")
+            pag.wait_for_timeout(250)
+            if rolavel:
+                aviso = pag.locator("#mais-abaixo")
+                visivel = aviso.count() == 1 and aviso.is_visible()
+                checa(visivel, "com a saída rolada para cima, a pastilha «mais N "
+                               "linhas abaixo» aparece")
+                texto_aviso = aviso.inner_text() if aviso.count() else ""
+                checa(bool(re.fullmatch(r"mais \d+ linhas? abaixo", texto_aviso)),
+                      f"e ela conta as linhas: «{texto_aviso}»")
+                if visivel:
+                    aviso.click()
+                    pag.wait_for_timeout(300)
+                    checa(not aviso.is_visible(),
+                          "e clicar nela devolve o fim da saída — a pastilha some")
+                # E ELA NÃO MENTE DE PORTAS FECHADAS — 21/09/2026
+                # Fechar com trabalho vivo deixa o `puxar` de pé (o fluxo de
+                # 07/09/2026), e o `puxar` remede a pastilha. Com a gaveta
+                # `hidden` ela é `display: none`: `offsetTop` e `clientHeight`
+                # valem 0 lá dentro, o limite da busca binária vira 0 e a conta
+                # devolve TODAS as linhas. Medido antes da correção: «mais 26
+                # linhas abaixo» virava «mais 36», sobre 36 linhas — e a mentira
+                # ficava colada, porque depois da última medição o timer morre e
+                # mais nada recalcula.
+                #
+                # O caminho é o do `puxar`, e não um atalho: quem remede é o
+                # mesmo ouvinte de rolagem do `#saida`. Reabrir é na mão porque
+                # a pastilha que reabre morre junto com o trabalho, e este já
+                # terminou; o que se confere é o que ficou ESCRITO enquanto a
+                # gaveta estava fechada.
+                fechada = pag.evaluate("""() => {
+                  const g = document.getElementById('gaveta');
+                  const s = document.getElementById('saida');
+                  s.scrollTop = 0;
+                  s.dispatchEvent(new Event('scroll'));
+                  const a = document.getElementById('mais-abaixo');
+                  const antes = a ? a.textContent : '';
+                  g.hidden = true;
+                  s.dispatchEvent(new Event('scroll'));
+                  g.hidden = false;
+                  const b = document.getElementById('mais-abaixo');
+                  return { antes, depois: b ? b.textContent : '',
+                           linhas: s.childElementCount };
+                }""")
+                checa(fechada["antes"] == fechada["depois"],
+                      f"fechar e reabrir não mexe na contagem: «{fechada['antes']}» "
+                      f"-> «{fechada['depois']}»")
+                abaixo = re.search(r"\d+", fechada["depois"])
+                checa(bool(abaixo) and int(abaixo.group()) < fechada["linhas"],
+                      f"e ela não conta a saída inteira: {abaixo.group() if abaixo else '?'} "
+                      f"de {fechada['linhas']} linhas")
+            else:
+                print("  -- a saída coube inteira na gaveta; nada a indicar abaixo")
+
             print("\n11. O ENSAIO SAIU DA PÁGINA")
             # Pedido dela em 13/09/2026: "eu tinha pedido pra tirar o app do
             # modo sandbox". O interruptor não pode voltar por engano, e a
