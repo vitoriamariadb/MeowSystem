@@ -1,6 +1,6 @@
 # Leva de 21/09/2026, eixo II — o pack vira a unidade do produto
 
-Doze sprints — **P13 a P16, P18 a P21 e P25 a P28** — que resolvem a queixa
+Treze sprints — **P13 a P16, P18 a P21 e P25 a P29** — que resolvem a queixa
 estrutural. Irmãs
 de [`2026-09-21-de-tema-a-produto.md`](2026-09-21-de-tema-a-produto.md), e
 **anteriores** a P10, P11 e P12 daquele arquivo: não dá para exportar um pack
@@ -40,6 +40,7 @@ e revelou que os **oito** módulos de `assets/temas-de-apps/` citam
 | **P26** | O acervo do pack é uma origem na oficina | os 18 SVG do Dracula estão instalados e invisíveis na tela | 3 dias |
 | **P27** | Todo ícone que veste alguém mora no pack | 25 de 3.566 SVG estão em `packs/`; 11 do Dracula moram em `assets/` | 4 dias |
 | **P28** | A fonte única: um desenho, todo o resto derivado | 23 linhas de mapa apontam para fora do repositório | 5 dias |
+| **P29** | O que é tema volta para casa | a série de patches, o spicetify e o construtor do Dracula moram no Spellbook | 4 dias |
 
 ---
 
@@ -1611,3 +1612,141 @@ meow doctor --consertar && meow icones fonte net.waterfox.waterfox   # a mesma l
   oferecer o mesmo nome (arcticons, convertidos, resgatados). Hoje vence o
   último que escreveu; depois, o mapa do pack decide e **a validação recusa o
   empate**. Isso vai expor conflitos que estavam escondidos — e expor é o ponto.
+
+---
+
+# P29 — O que é tema volta para casa
+
+**A fronteira, dele, 21/09/2026:**
+
+> *"O Spellbook é do meu PC, exclusivo para ele. Tudo que for relacionado a tema
+> é para ser do MeowSystem, tá bom? Temos que trazer tudo para cá."*
+
+Isso encerra a pergunta que P28 deixou aberta — não há upstream externo para
+sincronizar. **A origem passa a ser aqui.**
+
+### O que medi
+
+O `Spellbook-OS` tem 5.213 arquivos. A esmagadora maioria é da máquina dele
+— `aurora/` com thermal, GPU, wifi, `acer_wmi`, watchdogs; `venv/` com 4.712
+arquivos; `cca/`, `completions/`, `vault/`. Nada disso é tema e nada disso se
+move.
+
+**O que é tema e está do lado errado:**
+
+| item | onde | tamanho | por que é tema |
+|---|---|---|---|
+| `patches/patches.d/series` | Spellbook | ~60 linhas | **é quem sabe aplicar os patches** — classes `req`/`opt`, marcadores, ordem, e a análise de colisão de arquivos |
+| `patches/patches.d/cosmic-comp-sem-workspace-vazio.patch` | Spellbook | 12.243 B | o único `req` da série; o MeowSystem não o tem |
+| `scripts/spicetify-setup.sh` | Spellbook | 277 linhas | **é a pendência do Spotify** (P2 e P3) |
+| `functions/sistema.zsh:103` — `rebuild_dracula_theme()` | Spellbook | — | constrói o `Dracula-Icones` que P28 mandou parar de apontar |
+| `fastfetch/config.jsonc` | Spellbook | difere | o MeowSystem tem o seu; **são duas configurações do mesmo programa** |
+| `aurora/aurora-editor-apply.sh` | Spellbook | 41 linhas | tema de editor |
+| `ghostty/config` | Spellbook | — | tema de terminal |
+
+### Os patches já estão nos dois lugares, e são idênticos
+
+```
+MeowSystem patches/            Spellbook patches/patches.d/
+  blur-cache-textura.patch   =   blur-cache-textura.patch      IGUAL
+  menu-clique-curto.patch    =   menu-clique-curto.patch       IGUAL
+  modo-leitura.patch         =   modo-leitura.patch            IGUAL
+  raio-clampado.patch        =   raio-clampado.patch           IGUAL
+  files-wallpaper-menu.patch     (só aqui)
+                                 sem-workspace-vazio.patch     (só lá)
+                                 series                        (só lá)
+```
+
+Quatro cópias byte a byte. Não há duas verdades — há **uma verdade em dois
+lugares**, o que é pior: ninguém sabe qual editar.
+
+**E os cinco patches são features que o MeowSystem já expõe na tela:**
+
+| patch | a feature, aqui |
+|---|---|
+| `sem-workspace-vazio` | `scripts/areas.sh` — a aba «Áreas de trabalho» |
+| `raio-clampado` | `scripts/painel.sh` — «Canto arredondado», painel e dock |
+| `modo-leitura` | `scripts/leitura.sh` — a aba «Modo de leitura» |
+| `blur-cache-textura` | `scripts/vidro.sh` — o vidro |
+| `menu-clique-curto` | o menu do compositor |
+
+**O MeowSystem tem quatro dos cinco desenhos e não tem a planta.** Por isso o
+`compositor_patches.sh` só **confere** e nunca conserta, e por isso o `doctor`
+devolve divergência todo dia mandando rodar `aurora-cosmic-comp-ws.sh --build`
+— um script que **não existe nesta máquina** (P22, achado 2).
+
+### E o script fantasma do qBittorrent
+
+`assets/temas-de-apps/qbittorrent/manifesto.sh:110` exige
+`~/.config/zsh/scripts/aurora-qbittorrent-config.sh`. Procurado no Spellbook
+inteiro: **não existe lá também.** Não é "está no outro projeto" — é uma
+dependência de um arquivo que não existe em lugar nenhum. P2 mandava tirar; esta
+sprint confirma que não há de onde trazer.
+
+### O que fazer
+
+1. **A série de patches vem inteira**, para `patches/`: o `series`, o
+   `sem-workspace-vazio.patch` e o `LEIA-ME.txt`. As quatro cópias idênticas no
+   Spellbook **saem de lá** — uma verdade, um lugar.
+2. **O aplicador passa a ser deste projeto.** `scripts/compositor_patches.sh`
+   deixa de conferir contra `~/.config/zsh/patches/` e passa a **aplicar** a
+   série daqui. O `CP_COPIA`/`CP_COPIA_ALT` somem, e com eles a divergência
+   eterna do doctor.
+3. **O `spicetify-setup.sh` vira etapa**, e a pendência do Spotify (P2) ganha o
+   botão que faltava: o comando que resolve passa a existir dentro do projeto.
+4. **`rebuild_dracula_theme()` vira `meow pack construir dracula`**, que escreve
+   em `packs/dracula/icones/`, não em `~/.local/share/icons/Dracula-Icones/`.
+   A função sai do `sistema.zsh`.
+5. **O `fastfetch/config.jsonc` duplicado**: os dois são comparados linha a
+   linha, o que for tema fica aqui, e o do Spellbook vira um `include` ou some.
+   Duas configurações do mesmo programa é o defeito, não o conteúdo de nenhuma
+   delas.
+6. **O Spellbook ganha uma linha no `README`** dizendo o que saiu e para onde,
+   com a data. Quem procurar `rebuild_dracula_theme` lá em seis meses precisa
+   achar o caminho, não o silêncio.
+7. **A regra fica escrita, nos dois projetos:** *"tema é do MeowSystem; máquina
+   é do Spellbook"*. Um teste do MeowSystem recusa qualquer caminho
+   `~/.config/zsh/` em código — é a mesma regra de P28 (nada aponta para fora),
+   aplicada ao vizinho.
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `patches/series`, `patches/cosmic-comp-sem-workspace-vazio.patch` | **novos** — vêm do Spellbook |
+| `scripts/compositor_patches.sh` | passa a aplicar, não só conferir; `CP_COPIA` sai |
+| `scripts/spicetify_setup.sh` | **novo** — vem do Spellbook, vira etapa |
+| `assets/temas-de-apps/spotify/manifesto.sh` | a pendência ganha comando que existe |
+| `assets/temas-de-apps/qbittorrent/manifesto.sh` | a dependência fantasma sai |
+| `scripts/pack.py`, `bin/meow` | `meow pack construir <id>` |
+| `assets/fastfetch/config.jsonc` | recebe o que era tema no do Spellbook |
+| `tests/portabilidade.sh` | recusa `~/.config/zsh/` em código (regra 7) |
+| `docs/FRONTEIRA.md` | a fronteira entre os dois projetos |
+
+### Como conferir
+
+```sh
+# 1. nada mais aponta para o vizinho
+grep -rn "config/zsh" scripts/ lib/ assets/temas-de-apps/ install.sh | grep -v '^\s*#' | wc -l
+# antes: 4 (compositor_patches x2, qbittorrent, terminal) · depois: 0
+
+# 2. o doctor fica verde no compositor
+meow doctor | grep -i compositor
+# antes: divergencia todo dia, mandando rodar script que nao existe
+# depois: "ok  5 patches na serie, 5 aplicados" ou "-- nao aplicados (opcional)"
+
+# 3. o Spotify tem o comando que a pendencia promete
+meow pendencias | grep -i spicetify   # e o botao Resolver de fato resolve
+```
+
+### O que pode dar errado
+
+- **Compilar o `cosmic-comp` derruba a tela de login se der errado.** O próprio
+  `series` avisa: o greeter é o mesmo binário, e é por isso que o modo de
+  leitura e o blur são `opt` e vêm por último. **Trazer a série para cá não
+  muda esse risco — mas passa a ser risco deste projeto.** O `--uninstall`
+  precisa saber voltar ao binário do pacote.
+- **O `series` é documentação cara.** Sessenta linhas com medição de 30/08,
+  31/08 e 17/09, incluindo a correção de uma afirmação errada sobre arquivos
+  disjuntos. Vem **inteiro**, comentário por comentário. Reescrever para
+  "limpar" apagaria três medições que custaram um crash de sessão.
