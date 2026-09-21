@@ -1102,7 +1102,70 @@ select { flex: 1 1 auto; }
    casos, em vez de um que depende do comprimento da palavra. */
 .faixa { display: flex; align-items: center; gap: .6rem; width: 100%; flex-wrap: wrap; }
 .faixa input[type="range"] { flex: 1 1 auto; accent-color: var(--accent); min-width: 6rem; }
+/* `[disabled]` continua aqui e hoje não casa com nenhum deslizante de chave —
+   desde 21/09/2026 nenhum nasce travado (ver `.faixa-comoesta`, abaixo). Fica
+   porque a regra é do elemento, não daquele estado: um deslizante desabilitado
+   por outro motivo, um dia, não pode nascer sem tratamento. */
 .faixa input[disabled] { opacity: .45; }
+
+/* O TERCEIRO ESTADO SAIU DA TRAVA E FOI PARA A TRILHA — 21/09/2026
+   -------------------------------------------------------------------------
+   Até aqui, "vazio" (= não toca, quem decide é o COSMIC) era desenhado
+   DESABILITANDO o deslizante, e ao lado dele nascia um botão «Usar número» só
+   para destravá-lo. Eram 17 deslizantes travados na página, 11 numa aba só.
+
+   A trava saiu; o estado não pode sair junto. Um deslizante livre marcando 24
+   e um que ESCOLHEU 24 são coisas diferentes — o COSMIC se comporta diferente
+   nos dois — e se a diferença ficar sutil o problema só muda de lugar. Daí
+   três sinais no mesmo controle, e nenhum deles sozinho:
+
+     trilha .. em traço, não cheia. É o sinal que se vê de longe, e é a razão de
+               este estado precisar de `appearance: none`: a trilha nativa é
+               pintada pelo navegador e não aceita fundo. A régua ESCOLHIDA fica
+               nativa de propósito — a diferença entre as duas é parte do
+               recado, e não um acidente de estilo.
+     alça .... oca e em `--overlay1`. Accent nesta folha quer dizer ACESO, e
+               aqui não há nada aceso: ninguém escolheu ainda.
+     número .. `.como-esta`, apagado, dizendo "como está: 24" em vez de "24".
+
+   O quarto sinal é o `aria-valuetext`, e ele mora no app.js porque não é cor. */
+.faixa input[type="range"].faixa-comoesta {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 1.1rem;
+}
+.faixa input[type="range"].faixa-comoesta::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--r-max);
+  background: repeating-linear-gradient(90deg,
+    var(--overlay0) 0 5px, transparent 5px 10px);
+}
+.faixa input[type="range"].faixa-comoesta::-moz-range-track {
+  height: 4px;
+  border-radius: var(--r-max);
+  background: repeating-linear-gradient(90deg,
+    var(--overlay0) 0 5px, transparent 5px 10px);
+}
+.faixa input[type="range"].faixa-comoesta::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  /* metade da alça menos metade da trilha: é o que a centra na linha, e sem
+     isto o `appearance: none` do webkit encosta a alça no topo. */
+  margin-top: -5px;
+  border-radius: var(--r-max);
+  background: var(--base);
+  box-shadow: inset 0 0 0 2px var(--overlay1);
+}
+.faixa input[type="range"].faixa-comoesta::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--overlay1);
+  border-radius: var(--r-max);
+  background: var(--base);
+}
 .faixa output {
   font: 600 .82rem var(--mono);
   color: var(--text);
@@ -1113,6 +1176,16 @@ select { flex: 1 1 auto; }
      é o que fazia a fileira parecer quebrada. */
   white-space: nowrap;
 }
+/* O número do estado "como está" é uma LEITURA da máquina, não uma escolha
+   dela: fica apagado, e volta ao peso do texto no primeiro pixel de arrasto
+   (quem tira a classe é o `input` do deslizante, no app.js). */
+.faixa output.como-esta { color: var(--overlay2); font-weight: 500; }
+
+/* O «Aplicar» do cartão com escolha pendente. Linha própria, embaixo do
+   controle: ele é a conclusão do gesto, não mais uma alternativa dele — por
+   isso não entra na fileira de `.faixa-estados`, que é onde moram os estados
+   que disputam o mesmo valor. */
+.acao-cartao { display: flex; gap: .35rem; align-items: center; margin-top: .15rem; }
 /* Os estados que não moram na régua do deslizante. */
 .faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .1rem; flex: 0 0 100%; }
 .btn-mini { font-size: var(--t-legenda); padding: .18rem .45rem; }

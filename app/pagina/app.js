@@ -735,6 +735,80 @@ async function salvarEscolhas() {
 }
 
 /* ===========================================================================
+ * O «APLICAR» DO CARTÃO — 21/09/2026
+ * ===========================================================================
+ * Queixa dela: *"Deixa dois botões: «Restaurar ao Padrão» e «Aplicar» (que vai
+ * aplicar e salvar). o app tá extremamente confuso."*
+ *
+ * O MODELO NÃO MUDOU — clicar guarda, salvar grava. O que mudou é que ele
+ * DEIXOU DE SER INVISÍVEL: um cartão com escolha pendente já ganhava a borda de
+ * accent, e agora ganha também o gesto que fecha aquela escolha ali mesmo, sem
+ * obrigar ninguém a descobrir a regra lendo a frase da Home nem a subir até a
+ * barra do alto. O botão só existe enquanto há pendência naquele cartão, e some
+ * ao ser usado — porque depois de gravado não há mais nada para aplicar.
+ *
+ * ELE ROLA A CADEIA INTEIRA, E ISSO É DE PROPÓSITO
+ *   O risco que a sprint declarou: "«Aplicar» por cartão roda uma etapa
+ *   sozinha, e algumas etapas dependem de outras". A saída honesta, com o
+ *   `app/servidor.py` fora dos arquivos desta frente, é não inventar um
+ *   caminho novo de escrita: este botão usa o MESMO `/api/salvar` do «Salvar e
+ *   aplicar», mandando apenas a chave deste cartão. O servidor grava só ela e
+ *   dispara o instalador inteiro, que é a cadeia completa e não um pedaço dela
+ *   — numa máquina já pronta ele passa em ~18 s sem reescrever o que já está
+ *   certo. A diferença entre os dois botões é o que vai para o disco, não o que
+ *   roda depois: as outras escolhas continuam esperando, e o balão diz isso.
+ */
+async function aplicarCartao(item, botao) {
+  if (!MUDANCAS.has(item.chave)) return;
+  /* A MESMA GUARDA DO SALVAR: dois instaladores ao mesmo tempo é o 409 que o
+   * servidor recusa, e a resposta certa é mostrar o trabalho que já corre. */
+  if (TRABALHO && TRABALHO.timer !== null) {
+    torrada(`Espere «${TRABALHO.rotulo || "o trabalho"}» terminar`, "igual");
+    $("#gaveta").hidden = false;
+    pastilhaDeTrabalho(false);
+    return;
+  }
+  botao.disabled = true;
+  botao.textContent = "Aplicando…";
+  const r = await api("/api/salvar", {
+    method: "POST",
+    body: JSON.stringify({ mudancas: { [item.chave]: MUDANCAS.get(item.chave) } }),
+  });
+  botao.disabled = false;
+  botao.textContent = "Aplicar";
+
+  if (r.recusadas && r.recusadas.length) {
+    torrada(`${nomeVisivel(item.chave)}: ${r.recusadas[0].erro}`, "erro");
+    return;
+  }
+  if (!r.gravadas) { torrada(r.erro || "Não consegui salvar", "erro"); return; }
+  /* O disco mudou: o valor escolhido vira o valor do cartão e sai da bandeja.
+   * É o mesmo trecho do `salvarEscolhas`, e pelo mesmo motivo — sem ele o
+   * cartão voltaria a mostrar o valor antigo até um F5. */
+  for (const chave of [...r.gravadas, ...(r.iguais || [])]) {
+    const alvo = ESQUEMA.chaves.find((i) => i.chave === chave);
+    if (alvo && MUDANCAS.has(chave)) alvo.valor = MUDANCAS.get(chave);
+    MUDANCAS.delete(chave);
+  }
+  for (const f of (r.falhas || []).slice(0, 4)) {
+    torrada(`${nomeVisivel(f.chave)}: ${f.erro}`, "erro");
+  }
+  atualizarBarraSalvar();
+  render();
+
+  if (!r.trabalho) {
+    /* Gravou e não aplicou: outro trabalho corria na hora. O aviso do alto fica,
+     * com o botão que aplica, até um instalador passar. */
+    for (const c of r.gravadas) PENDENTES.add(c);
+    atualizarAviso();
+    torrada(r.erro || "Gravado, mas ainda não aplicado", "erro");
+    return;
+  }
+  torrada(`«${nomeVisivel(item.chave)}» gravado — aplicando`, "ok");
+  abrirGaveta(r.trabalho);
+}
+
+/* ===========================================================================
  * TRAZER DE VOLTA — 06/09/2026
  * ===========================================================================
  * O `Importar` NÃO GRAVA. Ele lê o arquivo, manda o texto para o servidor
@@ -1008,6 +1082,32 @@ function montarControle(item, cartao) {
     /* A palavra especial vem das opções OU do próprio padrão: `MIDIA_FONTE`
      * nasce `auto` e não declara lista nenhuma — a palavra está no valor de
      * fábrica, que é onde o arquivo a diz. */
+    /* O DESLIZANTE NASCE LIVRE — 21/09/2026
+     * -----------------------------------------------------------------------
+     * Queixa dela, literal: *"em qualquer canto que eu precise apertar em «usar
+     * número» pra poder usar o slicer, tá errado. ele tem que tá liberado por
+     * default."*
+     *
+     * MEDIDO ANTES DESTA MUDANÇA, no navegador, aba a aba: 17 dos 25
+     * deslizantes da página nasciam `disabled` — 11 deles só na aba «Painel e
+     * dock» — cada um com um botão «Usar número» ao lado cuja única função era
+     * destravar. Dois cliques antes do primeiro gesto.
+     *
+     * O QUE SAIU FOI A TRAVA, NÃO O TERCEIRO ESTADO, e a diferença é toda a
+     * sprint. Vazio continua querendo dizer "não toca, quem decide é o COSMIC",
+     * e continua PRECISANDO ser distinguível de um valor escolhido que por
+     * acaso é o mesmo número: o COSMIC se comporta de um jeito quando a chave
+     * está vazia e de outro quando ela traz 24 escrito. O que mudou é como esse
+     * estado se mostra — em vez de travar a alça, o deslizante é DESENHADO
+     * diferente, em quatro sinais que caem juntos:
+     *   · a trilha vai a traço (`.faixa-comoesta`, no estilo.css);
+     *   · a alça fica oca e fora do accent — accent aqui quer dizer "escolhido";
+     *   · a legenda diz `como está: 24` em vez de `24`;
+     *   · e o `aria-valuetext` diz a mesma frase para quem não vê nenhum dos
+     *     três. Sem ele, trocar a trava pelo traço PIORARIA a acessibilidade:
+     *     a trava, por pior que fosse, era anunciada pelo leitor de tela.
+     * Mexer na alça é o gesto que escolhe, e não é mais preciso pedir licença
+     * antes: no primeiro `input` os quatro sinais saem de uma vez. */
     const naoNumero = (v) => v && !/^[\d.,]+$/.test(v);
     const especial = (item.opcoes || []).find(naoNumero)
       || (naoNumero(item.padrao) ? item.padrao : null);
@@ -1015,22 +1115,46 @@ function montarControle(item, cartao) {
     const vazio = valor === "";
     const naRegua = !vazio && !forcado;
     /* O "COMO ESTÁ" DIZ QUANTO — 13/09/2026. Vazio é "não toca", e o que fica é
-     * o número que a máquina já tem (`valendo_agora`); a alça travada para nele,
-     * e não no piso da régua, que desenhava 0 onde a dock dela tem 24. */
+     * o número que a máquina já tem (`valendo_agora`); a alça para nele, e não
+     * no piso da régua, que desenhava 0 onde a dock dela tem 24. */
     const agora = item.valendo_agora;
-    const agoraNaRegua = vazio && agora != null && /^-?\d+(\.\d+)?$/.test(agora);
+    const agoraNaRegua = agora != null && /^-?\d+(\.\d+)?$/.test(String(agora));
+    /* O NÚMERO DE PARTIDA TEM DE CAIR NA RÉGUA — 07/09/2026
+     * Era `String(item.padrao || lo)`, e empacava sempre que o padrão da chave
+     * é uma PALAVRA (medido em `MIDIA_FONTE`, que nasce `auto`). Até 21/09/2026
+     * isto era o valor que o «Usar número» aplicava; com o botão fora, é a
+     * POSIÇÃO em que a alça livre nasce — e ela tem de ser o número da máquina,
+     * porque uma alça que nasce no piso da régua desenha 0 onde a dock dela
+     * tem 24. */
+    const partida = agoraNaRegua
+      ? String(Math.min(Number(hi), Math.max(Number(lo), Number(agora))))
+      : naoNumero(String(item.padrao ?? "")) ? String(lo) : String(item.padrao || lo);
+    const comoEsta = agoraNaRegua ? `como está: ${rotuloDeValor(agora)}` : "como está";
     const slider = elemento("input", {
       type: "range", min: lo, max: hi, step: passo,
-      value: naRegua ? valor : (agoraNaRegua ? agora : lo),
+      value: naRegua ? valor : partida,
+      class: naRegua ? "" : "faixa-comoesta",
       "aria-label": rotuloAcessivel(item),
-      disabled: !naRegua,
+      /* O leitor de tela lê o `aria-valuetext` NO LUGAR do número, e é por isso
+       * que ele é a peça obrigatória deste estado: é a única que não é visual. */
+      "aria-valuetext": naRegua ? false
+        : (forcado ? `${rotuloDeValor(valor)} — ninguém escolheu um número aqui`
+                   : `${comoEsta} — ninguém escolheu, quem decide é o COSMIC`),
     });
     const saida = elemento("output", {
-      texto: vazio ? (agoraNaRegua ? `como está: ${agora}` : "como está")
-                   : (forcado ? rotuloDeValor(valor) : String(valor || lo)),
+      class: naRegua ? "" : "como-esta",
+      texto: naRegua ? String(valor || lo)
+                     : (forcado ? rotuloDeValor(valor) : comoEsta),
     });
     slider.addEventListener("input", () => {
       saida.textContent = slider.value;
+      /* ARRASTAR É O GESTO QUE ESCOLHE — 21/09/2026. Os quatro sinais do
+       * terceiro estado caem no primeiro pixel de arrasto, antes mesmo do
+       * `change`: ver a trilha fechar e o número perder o "como está" é o que
+       * responde, na hora, que a alça passou a ser dela. */
+      slider.classList.remove("faixa-comoesta");
+      slider.removeAttribute("aria-valuetext");
+      saida.classList.remove("como-esta");
       /* Repintar aqui, e não no `change`: o `change` só dispara ao SOLTAR, e o
        * gesto inteiro de procurar um valor acontece antes disso. */
       repintarPrevia(item.chave, slider.value);
@@ -1040,11 +1164,18 @@ function montarControle(item, cartao) {
 
     const alternativas = elemento("div", { class: "faixa-estados" });
     if (item.aceita_vazio) {
+      /* «DEIXAR COMO ESTÁ» PROMETIA PRESERVAR E EXECUTAVA DESCARTAR — 21/09/2026
+       *   Queixa dela: *"deixar como está induz ao erro. vc muda o slicer e
+       *   quer que fique como está. clica e ele reseta."* O rótulo lia-se como
+       *   "mantenha o valor que eu acabei de escolher" e fazia o oposto:
+       *   `aplica("")` devolve a decisão ao COSMIC e recoloca a alça no número
+       *   da máquina. O gesto não mudou; o nome dele passou a ser o que ele
+       *   faz, e o balão diz a consequência em uma linha só. */
       alternativas.append(elemento("button", {
         type: "button", class: "btn btn-mini",
         "aria-pressed": String(vazio),
-        texto: "Deixar como está",
-        title: "Quem decide passa a ser o COSMIC, ou você pelos Ajustes dele.",
+        texto: rotuloVazio(item),
+        title: "Devolve a decisão ao COSMIC.",
         onclick: () => aplica(""),
       }));
     }
@@ -1056,28 +1187,9 @@ function montarControle(item, cartao) {
         onclick: () => aplica(especial),
       }));
     }
-    if (!naRegua) {
-      /* O NÚMERO DE PARTIDA TEM DE CAIR NA RÉGUA — 07/09/2026
-       * Era `String(item.padrao || lo)`, e ele empacava sempre que o padrão da
-       * chave é uma PALAVRA. Medido em "Tamanho da letra" (`MIDIA_FONTE`, que
-       * nasce `auto`): o botão reaplicava `auto`, ou seja, o valor que já estava
-       * valendo; `naRegua` continuava falso, o deslizante continuava travado e
-       * o botão continuava lá. Não havia gesto nenhum na tela que tirasse aquele
-       * cartão do "Automático".
-       *   `lo` é o piso da faixa e é o número que o deslizante travado JÁ está
-       * mostrando — soltar nele não faz a alça pular de lugar. */
-      /* Do vazio, a partida é o número da máquina, preso na régua: destravar
-       * não pode mudar a barra dela só por destravar. — 13/09/2026 */
-      const partida = agoraNaRegua
-        ? String(Math.min(Number(hi), Math.max(Number(lo), Number(agora))))
-        : naoNumero(String(item.padrao ?? "")) ? String(lo) : String(item.padrao || lo);
-      alternativas.append(elemento("button", {
-        type: "button", class: "btn btn-mini",
-        texto: "Usar número",
-        title: "Destrava o deslizante — o valor passa a ser escolhido aqui.",
-        onclick: () => aplica(partida),
-      }));
-    }
+    /* O «USAR NÚMERO» SAIU DAQUI — 21/09/2026. Eram 17 botões na página, e a
+     * única função de cada um era destravar o deslizante ao lado. Com a alça
+     * livre, o gesto que ele substituía virou o gesto natural: arrastar. */
     if (alternativas.childNodes.length) caixa.append(alternativas);
     return caixa;
   }
@@ -1110,7 +1222,7 @@ function montarControle(item, cartao) {
         caixa.append(elemento("button", {
           type: "button", class: "vazio", "data-valor": "", texto: rotuloVazio(item),
           "aria-pressed": "false",
-          title: "Quem decide passa a ser o COSMIC, ou você pelos Ajustes dele.",
+          title: "Devolve a decisão ao COSMIC.",
           onclick: async () => { if (await aplica("")) pintar(""); },
         }));
       }
@@ -1150,17 +1262,26 @@ function montarControle(item, cartao) {
 /* O «DEIXAR COMO ESTÁ» DIZ COMO ESTÁ — 13/09/2026. Vazio é "não toca", e o que
  * fica é o que a máquina tem; quando o servidor sabe ler isso, o botão diz, e a
  * escolha deixa de ser feita às cegas. */
+/* E PASSOU A SE CHAMAR «RESTAURAR AO PADRÃO» — 21/09/2026
+ *   Eram 31 botões na página com a palavra errada. «Deixar como está» lê-se
+ *   como "mantenha o valor que eu acabei de escolher" e faz o contrário:
+ *   esvazia a chave, devolve a decisão ao COSMIC e recoloca o controle no que a
+ *   máquina tem. Para as chaves que aceitam vazio, vazio É o valor de fábrica
+ *   (o meow.conf.exemplo as escreve `FORMA_RAIO_PAINEL=""`), então «restaurar
+ *   ao padrão» não é eufemismo: é a descrição do que o clique faz.
+ *   O número entre parênteses continua sendo o `valendo_agora` de 13/09 — o que
+ *   fica na tela depois do clique. */
 function rotuloVazio(item) {
   const agora = item.valendo_agora;
   return agora != null && agora !== ""
-    ? `Deixar como está (${rotuloDeValor(agora)})`
-    : "Deixar como está";
+    ? `Restaurar ao padrão (${rotuloDeValor(agora)})`
+    : "Restaurar ao padrão";
 }
 
 function botaoVazio(item, limpar, aplica) {
   return elemento("button", {
-    type: "button", class: "btn", texto: "Deixar como está",
-    title: "Quem decide passa a ser o COSMIC, ou você pelos Ajustes dele.",
+    type: "button", class: "btn", texto: rotuloVazio(item),
+    title: "Devolve a decisão ao COSMIC.",
     onclick: async () => { if (await aplica("")) limpar(); },
   });
 }
@@ -1382,7 +1503,7 @@ function controleImagem(item, tipo, aplica) {
     caixa.append(elemento("button", {
       type: "button", class: "vazio", "data-valor": "", "aria-pressed": "false",
       title: "Quem decide passa a ser o ajuste vizinho.",
-      texto: "Deixar como está",
+      texto: rotuloVazio(item),
       onclick: async () => { if (await aplica("")) pintar(""); },
     }));
   }
@@ -3692,6 +3813,29 @@ function montarCartao(item) {
   }
   cartao.append(montarControle(item, cartao));
 
+  /* O CARTÃO PENDENTE MOSTRA O QUE FAZER COM A PENDÊNCIA — 21/09/2026. A borda
+   * de accent já dizia "esperando"; faltava dizer esperando O QUÊ. Ver o bloco
+   * do `aplicarCartao`. */
+  if (naoSalvo) {
+    const aplicar = elemento("button", {
+      /* `btn-aplicar` não é estilo: é o gancho pelo qual o
+       * `tests/app-navegador.py` conta os botões, já que o lugar deles no
+       * cartão depende do controle. */
+      type: "button", class: "btn btn-mini btn-accent btn-aplicar",
+      texto: "Aplicar",
+      title: "Grava esta escolha e aplica. As outras continuam esperando.",
+    });
+    aplicar.addEventListener("click", () => aplicarCartao(item, aplicar));
+    /* AO LADO DO «RESTAURAR AO PADRÃO», E NÃO NUMA LINHA ABAIXO. O pedido dela
+     * é "deixa DOIS botões", e dois botões em duas fileiras separadas leem-se
+     * como duas coisas sem relação. Quando o controle já tem a fileira de
+     * estados (é o caso do deslizante, que é o cartão desta sprint), o
+     * «Aplicar» entra nela; nos outros controles ele abre a fileira dele. */
+    const fileira = cartao.querySelector(".faixa-estados");
+    if (fileira) fileira.append(aplicar);
+    else cartao.append(elemento("div", { class: "acao-cartao" }, [aplicar]));
+  }
+
   if (item.frase) {
     cartao.append(elemento("p", {
       /* `herdada` = o comentário veio de um bloco que descreve várias chaves.
@@ -5073,7 +5217,7 @@ function parDeBotoes(item, aplica) {
     caixa.append(elemento("button", {
       type: "button", class: "vazio linha-inteira", "data-valor": "",
       texto: rotuloVazio(item), "aria-pressed": "false",
-      title: "Quem decide passa a ser o COSMIC, ou você pelos Ajustes dele.",
+      title: "Devolve a decisão ao COSMIC.",
       onclick: async () => { if (await aplica("")) pintar(""); },
     }));
   }

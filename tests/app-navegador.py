@@ -1225,6 +1225,130 @@ def main():
             pag.reload()
             pag.wait_for_timeout(1500)
 
+            print("\n17b. O DESLIZANTE NASCE LIVRE, E OS DOIS BOTOES")
+            # Queixa dela em 21/09/2026: "em qualquer canto que eu precise
+            # apertar em «usar numero» pra poder usar o slicer, ta errado. ele
+            # tem que ta liberado por default." E: "deixar como esta induz ao
+            # erro. vc muda o slicer e quer que fique como esta. clica e ele
+            # reseta."
+            #
+            # MEDIDO ANTES DA MUDANCA, aba a aba: 25 deslizantes na pagina, 17
+            # nascendo `disabled` (11 so' na aba Painel e dock), 17 botoes «Usar
+            # numero» cuja unica funcao era destravar o vizinho, e 31 botoes
+            # «Deixar como esta».
+            #
+            # SAO QUATRO COBRANCAS, E A TERCEIRA E' A QUE IMPORTA MAIS.
+            #   Tirar a trava e' facil; tirar a trava SEM perder o terceiro
+            #   estado e' a sprint. Um deslizante livre marcando 24 e um que
+            #   ESCOLHEU 24 sao coisas diferentes — o COSMIC se comporta
+            #   diferente nos dois — e a unica coisa que os separa agora e' o
+            #   desenho. Entao o teste cobra os tres sinais por nome: a classe
+            #   da trilha em traco, o `aria-valuetext` (que e' o unico dos tres
+            #   que chega a quem nao ve) e o NUMERO NUNCA APARECENDO SOZINHO.
+            #   Este ultimo e' cobrado pela negativa de proposito: sao duas
+            #   redacoes legitimas — "como esta: 24" quando a chave esta' vazia
+            #   e "Automatico" quando ela guarda a palavra especial
+            #   (`MIDIA_FONTE="auto"`) — e o que as duas tem em comum, e o que
+            #   importa, e' que nenhuma delas se le como um valor escolhido.
+            if pag.locator("#botao-descartar").is_visible():
+                descartar_tudo(pag)
+                pag.wait_for_timeout(700)
+            travados = usar_numero = deixar = restaurar = 0
+            comoesta = {"classe": 0, "valuetext": 0, "palavra": 0}
+            nomes_abas = pag.locator("#trilho button").all_text_contents()
+            for i in range(len(nomes_abas)):
+                pag.locator("#trilho button").nth(i).click()
+                pag.wait_for_timeout(240)
+                conta = pag.evaluate(r"""() => {
+                  const faixas = [...document.querySelectorAll('#principal input[type=range]')];
+                  const btn = [...document.querySelectorAll('#principal button')];
+                  const texto = (b) => b.textContent.trim().replace(/\s+/g, ' ');
+                  const livres = faixas.filter(s => s.classList.contains('faixa-comoesta'));
+                  return {
+                    travados: faixas.filter(s => s.disabled).length,
+                    usar: btn.filter(b => /Usar n.mero/.test(texto(b))).length,
+                    deixar: btn.filter(b => /Deixar como est/.test(texto(b))).length,
+                    restaurar: btn.filter(b => /^Restaurar ao padr/.test(texto(b))).length,
+                    classe: livres.length,
+                    valuetext: livres.filter(s => (s.getAttribute('aria-valuetext') || '')
+                                                    .length > 0).length,
+                    palavra: livres.filter(s => !/^\s*-?[\d.,]+\s*$/.test(
+                      (s.parentNode.querySelector('output') || {}).textContent || '')).length,
+                  };
+                }""")
+                travados += conta["travados"]
+                usar_numero += conta["usar"]
+                deixar += conta["deixar"]
+                restaurar += conta["restaurar"]
+                for k in comoesta:
+                    comoesta[k] += conta[k]
+            checa(travados == 0,
+                  f"nenhum deslizante nasce travado nas {len(nomes_abas)} abas"
+                  f" ({travados}; antes de 21/09/2026 eram 17)")
+            checa(usar_numero == 0,
+                  f"nao ha botao «Usar numero» na pagina ({usar_numero}; antes 17)")
+            checa(deixar == 0 and restaurar > 0,
+                  f"«Deixar como esta» virou «Restaurar ao padrao»"
+                  f" ({deixar} contra {restaurar})")
+            # O TERCEIRO ESTADO CONTINUA NA TELA, E OS TRES SINAIS ANDAM JUNTOS.
+            #   Um deles faltando e' o defeito que a sprint chama de "o problema
+            #   so' mudou de lugar": a trava saiu e nada ocupou o lugar dela.
+            checa(comoesta["classe"] > 0
+                  and comoesta["valuetext"] == comoesta["classe"]
+                  and comoesta["palavra"] == comoesta["classe"],
+                  f"os {comoesta['classe']} deslizantes em «como esta» trazem os tres"
+                  f" sinais: trilha em traco, aria-valuetext ({comoesta['valuetext']})"
+                  f" e numero que nunca aparece sozinho ({comoesta['palavra']})")
+
+            # E O GESTO: arrastar escolhe, sem pedir licenca antes. A aba e' a
+            # que ele citou, e o cartao acende com o «Aplicar» que fecha aquela
+            # escolha ali mesmo. O botao NAO e' clicado aqui, e de proposito:
+            # clicar roda o instalador na maquina de quem testa, que e' a
+            # mesma razao de `Instalar` e `Desinstalar` ficarem de fora.
+            secao("Painel e dock")
+            pag.wait_for_timeout(600)
+            livre = pag.locator("#principal input[type=range].faixa-comoesta")
+            if livre.count():
+                antes_marcados = pag.locator("#principal .cartao.nao-salvo").count()
+                # UM PUNHO, E NAO UM SELETOR — o seletor tem `.faixa-comoesta`
+                # dentro, e a primeira coisa que o arrasto faz e' TIRAR essa
+                # classe: reavaliar o locator depois disso acharia o deslizante
+                # SEGUINTE, e o teste mediria um elemento que nao foi tocado.
+                # (Perdido uma vez aqui, em 21/09/2026.)
+                punho = livre.first.element_handle()
+                punho.evaluate("""(el) => {
+                  el.value = el.max;
+                  el.dispatchEvent(new Event('input', {bubbles: true}));
+                }""")
+                pag.wait_for_timeout(200)
+                sinais = punho.evaluate("""(el) => ({
+                  classe: el.classList.contains('faixa-comoesta'),
+                  valuetext: el.hasAttribute('aria-valuetext'),
+                  valor: el.value,
+                  saida: el.parentNode.querySelector('output').textContent,
+                })""")
+                checa(not sinais["classe"] and not sinais["valuetext"]
+                      and sinais["saida"] == sinais["valor"],
+                      f"o primeiro pixel de arrasto tira os sinais de «como esta»"
+                      f" e o numero passa a ser a escolha ({sinais['saida']})")
+                punho.dispatch_event("change")
+                pag.wait_for_timeout(500)
+                marcados = pag.locator("#principal .cartao.nao-salvo").count()
+                aplicar = pag.locator("#principal .cartao.nao-salvo .btn-aplicar")
+                checa(marcados == antes_marcados + 1,
+                      f"soltar a alca acende o cartao ({antes_marcados} -> {marcados})")
+                checa(aplicar.count() == marcados and aplicar.count() > 0,
+                      f"e todo cartao aceso ganha um «Aplicar» ({aplicar.count()})")
+                checa(pag.locator("#principal .cartao:not(.nao-salvo)"
+                                  " .btn-aplicar").count() == 0,
+                      "nenhum cartao sem pendencia mostra «Aplicar»")
+                descartar_tudo(pag)
+                pag.wait_for_timeout(500)
+                checa(pag.locator("#principal .btn-aplicar").count() == 0,
+                      "e o «Aplicar» some junto com a pendencia")
+            else:
+                checa(False, "nenhum deslizante em «como esta» na aba Painel e dock")
+
             print("\n18. O SALVAR RECUSA ANTES DE ESCREVER")
             # A ROTA NOVA DO SALVAR — 13/09/2026. Ela grava as escolhas e
             # comeca o instalador na mesma chamada, e a unica coisa entre ela e
