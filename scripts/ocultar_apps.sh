@@ -136,6 +136,42 @@ OCULTAR_DUPLICATA=(
 # Uma lista só para o laço — a divisão acima é para quem lê, não para o código.
 OCULTAR+=("${OCULTAR_DUPLICATA[@]}")
 
+# A LISTA DE FÁBRICA PASSA A TER UMA PORTA — 21/09/2026
+#   As 32 linhas acima são o gosto de UMA máquina, e o `meow.conf.exemplo` já
+#   dizia isso com todas as letras na chave `LANCADOR_SISTEMA`: "a lista de
+#   nomes em `scripts/ocultar_apps.sh` é o gosto de quem escreveu, não o seu".
+#   Dizer e não oferecer saída é a armadilha nº 3 do projeto — uma lista fechada
+#   que só se muda editando código versionado, num arquivo que o `git pull` do
+#   dia seguinte sobrescreve.
+#
+#   Quem NÃO tem aqueles aplicativos não perdia nada (o laço pula o `.desktop`
+#   que não existe); quem tem OUTROS é que não tinha como dizer. Agora tem.
+#
+#   A CHAVE SUBSTITUI, NÃO ACRESCENTA, e isso é deliberado: esconder aplicativo
+#   é mexer em `/usr/share` com sudo, e a única lista honesta é a que a pessoa
+#   consegue ler inteira numa linha do conf dela. Uma chave que só ACRESCENTA
+#   deixaria as 32 de fábrica invisíveis e impossíveis de tirar — e tirar uma é
+#   metade do motivo de a chave existir. O valor de fábrica está escrito no
+#   `meow.conf.exemplo`, então mexer nele é apagar um nome, não redigitar 32.
+#
+#   Vazia ou ausente, vale a lista daqui: um `meow.conf` escrito antes desta
+#   chave existir continua se comportando exatamente como se comportava.
+LANCADOR_OCULTAR="${LANCADOR_OCULTAR:-}"
+if [ -n "$LANCADOR_OCULTAR" ]; then
+  OCULTAR=()
+  while IFS= read -r _item; do
+    # Apara espaço dos dois lados: o conf é escrito à mão e `a, b` é a forma
+    # natural de escrever uma lista — o espaço colado no nome viraria um
+    # `.desktop` que não existe e um "não instalado" silencioso no placar.
+    _item="${_item#"${_item%%[![:space:]]*}"}"
+    _item="${_item%"${_item##*[![:space:]]}"}"
+    [ -n "$_item" ] && OCULTAR+=("$_item")
+  done < <(printf '%s\n' "$LANCADOR_OCULTAR" | tr ',' '\n')
+  LANCADOR_OCULTAR_FONTE="meow.conf"
+else
+  LANCADOR_OCULTAR_FONTE="fábrica"
+fi
+
 mudou=0
 ausentes=0
 sem_root=0
@@ -193,7 +229,7 @@ if [ "$sem_root" -gt 0 ]; then
 fi
 
 if [ "$mudou" = "0" ]; then
-  meow_ok "aplicativos de sistema já ocultos (${#OCULTAR[@]} na lista, $ausentes não instalados)"
+  meow_ok "aplicativos de sistema já ocultos (${#OCULTAR[@]} na lista de $LANCADOR_OCULTAR_FONTE, $ausentes não instalados)"
   exit "$MEOW_OK"
 fi
 

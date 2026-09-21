@@ -31,7 +31,7 @@ plus a local panel that changes all of it without opening a text file.
 ## Install
 
 ```bash
-git clone https://github.com/[REDACTED]/MeowSystem.git
+git clone https://github.com/vitoriamariadb/MeowSystem.git
 cd MeowSystem
 ./install.sh --wizard     # first run: asks four questions, then installs
 meow ativar               # every other run

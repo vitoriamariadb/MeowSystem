@@ -62,7 +62,7 @@ provisório; não são vetor e não são 4K.
 
 | | |
 |---|---|
-| Repositório | `[REDACTED]/tulip-orchid` (privado) |
+| Repositório | `tulip-orchid` (privado) |
 | O que é | gerador de papéis de parede; 13 desenhos em 4 categorias (catedral, cemitério, ornamento, noite) |
 | Exporta | SVG 4K (3840×2160), SVG ultrawide, SVG mobile e **PNG 4K** |
 | Licença | autoral — do dono do MeowSystem |
@@ -72,6 +72,15 @@ provisório; não são vetor e não são 4K.
 | Licença | **MIT** — do próprio dono |
 | Prefixo no acervo | `tulip-` |
 | O que entra | 13 PNG em **3840×2160**; `svg/` fica fora do rodízio |
+
+A linha de `Repositório` nomeia o repositório, e não a conta dele. A
+primeira versão trazia `<conta>/tulip-orchid`, e o sanitizador de identidade do
+Spellbook — que existe porque este é repositório de duas pessoas — trocou a conta
+por uma redação: a linha passou meses dizendo `[algo apagado]/tulip-orchid`, que
+não é endereço de nada. Medido em 21/09/2026: o sanitizador poupa a conta quando
+ela aparece dentro de uma URL `github.com/<conta>/...`, e só ali. Como o gerador
+é **privado** e ninguém de fora vai abri-lo, o nome do repositório basta para o
+crédito, e a linha deixa de depender de uma exceção para continuar legível.
 
 Três coisas impediam o gerador de ser semente, e as três foram resolvidas
 publicando o resultado em vez do código:

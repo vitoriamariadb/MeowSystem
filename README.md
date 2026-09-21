@@ -36,7 +36,7 @@ o que veio de onde. O contrato está em **[docs/PACKS.md](docs/PACKS.md)**.
 ## Instalar
 
 ```bash
-git clone https://github.com/[REDACTED]/MeowSystem.git
+git clone https://github.com/vitoriamariadb/MeowSystem.git
 cd MeowSystem
 ./install.sh --wizard     # a primeira vez: pergunta quatro coisas e instala
 meow ativar               # todas as outras
@@ -52,7 +52,7 @@ acontecer: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # ou o ícone MeowSystem no lançador
 ```
 
-121 ajustes e 50 ações em treze páginas — uma por assunto, e cada uma com tudo o que existe
+122 ajustes e 50 ações em treze páginas — uma por assunto, e cada uma com tudo o que existe
 sobre ele. O menu tem dois blocos: **Tópicos**, que é a sua tela, e **Sistema**, que é o que a
 máquina faz sozinha.
 

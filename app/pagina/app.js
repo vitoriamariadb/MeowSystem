@@ -4393,9 +4393,14 @@ function montarTrilho() {
  *   clone de terceiro, ou nenhum. Um link de menu que aponta para lugar
  *   diferente conforme a máquina é pior que um link só. */
 /* O ENDEREÇO VEM DO SERVIDOR, que o lê do `git remote` — nunca escrito aqui.
- * Escrito aqui ele não sobrevive ao commit: o hook troca o nome dela por
- * `[REDACTED]`, e o link vai para o ar apontando para uma URL morta. Foi o que
- * aconteceu no primeiro commit que tentou, em 07/09/2026. */
+ * Escrito aqui, o hook de commit trocava o nome dela por uma redação e o link
+ * ia para o ar apontando para uma URL morta. Foi o que aconteceu no primeiro
+ * commit que tentou, em 07/09/2026.
+ *
+ * ERRATA DE 21/09/2026: medido no sanitizador, ele poupa a conta na forma
+ * `github.com/<conta>/...` — então hoje a URL cravada sobreviveria. O endereço
+ * continua vindo do servidor pelo motivo do bloco acima, que é o do fork, e
+ * não por medo do hook. */
 function itensExternos() {
   const repo = (ESQUEMA && ESQUEMA.repositorio) || "";
   /* Sem remoto não há para onde ir, e um item que não abre é pior que um item a

@@ -141,10 +141,18 @@ passa a conferir esse arquivo todo dia.
 ### 3. A metade sua
 
 ```sh
+MEOW="$PWD"          # a raiz do clone, guardada ANTES do cd
 cd ~/.config/zsh
-patch -p1 --dry-run < /mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/aurora.patch
-patch -p1           < /mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/aurora.patch
+patch -p1 --dry-run < "$MEOW/assets/prompt/aurora.patch"
+patch -p1           < "$MEOW/assets/prompt/aurora.patch"
 ```
+
+O caminho sai da raiz do CLONE, e não de um disco. Até 21/09/2026 estas três
+linhas diziam `/mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/` — um ponto de
+montagem que existe numa máquina só, e um diretório que nem nela existe mais: o
+`src/prompt/` virou `assets/prompt/` e o texto ficou. O `MEOW="$PWD"` é
+necessário porque a linha seguinte é um `cd`: um caminho relativo cru deixaria
+de valer exatamente no comando em que ele é usado.
 
 O `--dry-run` não escreve nada e acusa antes se o `env.zsh` tiver mudado desde
 12/08/2026 (o patch foi gerado contra a versão de 181 linhas).
@@ -170,8 +178,9 @@ Vale no **próximo terminal**. Para ver na hora: `exec zsh`.
 Byte a byte, e está conferido (`cmp` devolve igualdade com o original):
 
 ```sh
+MEOW="$PWD"          # de novo a raiz do clone, antes do cd
 cd ~/.config/zsh
-patch -R -p1 < /mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/aurora.patch
+patch -R -p1 < "$MEOW/assets/prompt/aurora.patch"
 ```
 
 E, se quiser tirar também o nosso arquivo:

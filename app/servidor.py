@@ -4016,10 +4016,16 @@ TIPOS = {
 
 
 # O ENDEREÇO DO REPOSITÓRIO SAI DO `git remote`, E ISSO NÃO É ELEGÂNCIA
-#   Escrever `https://github.com/<usuária>/MeowSystem` num arquivo versionado
-#   não sobrevive a este repositório: o hook de commit troca o nome dela por
-#   `[REDACTED]` — é a mesma redação que o README carrega —, e o link ia para
-#   o ar apontando para uma URL morta. Medido no primeiro commit que tentou.
+#   A primeira versão escreveu `https://github.com/<usuária>/MeowSystem` aqui, e
+#   o hook de commit trocou o nome dela por uma redação — o link foi para o ar
+#   apontando para uma URL morta. Medido no primeiro commit que tentou.
+#
+#   ERRATA DE 21/09/2026, medida no sanitizador, não suposta: ele hoje POUPA a
+#   conta quando ela aparece como `github.com/<conta>/...`, e só nessa forma
+#   (o `git@github.com:<conta>/...` e a menção solta continuam sendo redigidos).
+#   Ou seja, cravar a URL aqui sobreviveria ao commit. A decisão de ler do
+#   remoto FICA assim mesmo, porque o motivo dela nunca foi o sanitizador — é o
+#   parágrafo abaixo.
 #
 #   Ler do remoto é mais certo, e não só mais seguro: num fork o item do menu
 #   passa a apontar para o fork de quem clonou, que é o repositório de quem

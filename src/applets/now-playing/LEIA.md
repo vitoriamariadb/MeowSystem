@@ -46,8 +46,8 @@ subida do applet passa `false`. Um `i.scdn.co` lento penduraria o applet — e,
 com ele, o painel inteiro. Na subida vale o que já está em cache; a thread do
 monitor busca o resto e o próximo snapshot carrega a capa.
 
-**Controles na barra.** ⏮ e ⏭ passam a ficar ao lado do ⏸, que já estava lá. A
-ordem do `Row` é `[capa][nome][⏮][⏸][⏭]`: a capa encosta no título porque as
+**Controles na barra.**  e  passam a ficar ao lado do , que já estava lá. A
+ordem do `Row` é `[capa][nome][][][]`: a capa encosta no título porque as
 duas falam da mesma música, e os botões vão para a ponta, longe do texto que
 trunca.
 
@@ -73,7 +73,7 @@ applet só lê `#rrggbb`. A paleta é do MeowSystem, e uma cópia dela dentro do
 Rust seria a segunda verdade que discorda no dia em que ela trocar de flavor.
 Escolha dela: roxo (`mauve`) na música, verde (`green`) na banda.
 
-**Os ⏮⏸⏭ da barra são opcionais (`MIDIA_CONTROLES`), e nascem DESLIGADOS.** O
+**Os  da barra são opcionais (`MIDIA_CONTROLES`), e nascem DESLIGADOS.** O
 applet de Som do COSMIC já desenha os dele no painel sempre que há player. Com o
 Now Playing colado nele — que é onde ela o pôs em 24/08/2026 — os dois pares
 ficam lado a lado e leem como defeito, não como recurso. Desligado, sobra
@@ -192,15 +192,24 @@ diferença que não é nossa.
 
 ## Como regenerar o patch quando o upstream mexer
 
+Rode da RAIZ DO CLONE: o `PATCH` abaixo é relativo a ela.
+
 ```sh
 ARV=~/.local/state/meowsystem/midia/src
+PATCH="$PWD/src/applets/now-playing/0001-meow-capa-cor-controles.patch"
 git -C "$ARV" checkout -- .                       # tira o patch antigo
 git -C "$ARV" checkout <commit-novo>              # se for mudar de base
-git -C "$ARV" apply /mnt/Apate/Desenvolvimento/MeowSystem/src/applets/now-playing/0001-meow-capa-cor-controles.patch
+git -C "$ARV" apply "$PATCH"
 # ... edite, compile, teste ...
-git -C "$ARV" diff | sed 's/[[:space:]]*$//' \
-  > /mnt/Apate/Desenvolvimento/MeowSystem/src/applets/now-playing/0001-meow-capa-cor-controles.patch
+git -C "$ARV" diff | sed 's/[[:space:]]*$//' > "$PATCH"
 ```
+
+O caminho virou variável em 21/09/2026. Antes as duas linhas traziam
+`/mnt/Apate/Desenvolvimento/MeowSystem/...` cravado — um ponto de montagem que
+só existe numa máquina, e a receita de regenerar o patch é justamente a que
+alguém de fora precisa quando o upstream mexe. O `$PWD` é resolvido uma vez, no
+começo, porque o `git -C` muda de diretório mas o `>` da última linha é do shell
+de quem chamou.
 
 O `sed` não é frescura: o `pre-commit` deste projeto roda
 `sed -i 's/[[:space:]]*$//'` em todo arquivo de texto staged, e um `.patch` é
