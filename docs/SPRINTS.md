@@ -4,11 +4,154 @@ Este arquivo é **autossuficiente**: quem for executar uma sprint não precisa d
 nenhum contexto de conversa anterior. Cada uma traz o que já foi medido, o que
 fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
-Última atualização: **09/09/2026**.
+Última atualização: **21/09/2026**.
 
 ---
 
-## AO VOLTAR, COMECE POR AQUI
+## A LEVA ABERTA: 21/09/2026 — vinte e quatro sprints, nenhuma executada
+
+**Esta é a leva em aberto. Comece por ela.** Ela não fecha nada: abre dezesseis
+sprints escritas a partir de uma sessão de queixas dele e de uma medição do app
+rodando (Playwright, as 14 abas, 21/09/2026). Nenhuma linha de código foi
+tocada.
+
+| eixo | arquivo | sprints |
+|---|---|---|
+| **I — produto e interface** | [`sprints/2026-09-21-de-tema-a-produto.md`](sprints/2026-09-21-de-tema-a-produto.md) | **P1 a P12, P17, e P22 a P24** |
+| **II — o pack como unidade** | [`sprints/2026-09-21-packs-modulares.md`](sprints/2026-09-21-packs-modulares.md) | **P13 a P16, e P18 a P21** |
+
+**A frase dele que dá o eixo:**
+
+> *"o programa original foi feito não pensando em um produto mas em aplicar o
+> tema catppuccin. porém eu quero transformar em produto pra ser usado por
+> qualquer um."*
+
+**A classe de falha que atravessa as dezesseis:** o app descobre o problema,
+sabe o conserto, e manda a pessoa consertar. Seis provas no log da máquina
+dele, de `areas.sh:1001` a `install.sh:2930`. A sprint P2 vira isso em regra
+com teste.
+
+**O que a medição achou, e não estava anotado em lugar nenhum:**
+
+- **17 dos 25 deslizantes da página nascem travados** — 11 só em Painel e dock.
+  O botão "Usar número" existe 17 vezes para destravar o que não devia ter
+  travado (P4).
+- **"Deixar como está" promete o oposto do que faz.** Lê como "mantenha o que
+  escolhi", executa `aplica("")`, que devolve ao COSMIC e reseta (P4).
+- **A gaveta de saída ocupa 46% da tela e encolhe o menu lateral de 842 px para
+  428 px** — porque é irmã de `.corpo`, não filha de `#principal`
+  (`index.html:181`). O pedido dele é 25% e menu intacto (P5).
+- **169 alvos de clique abaixo de 24x24 px**, 119 deles na aba Papel de parede,
+  a 38x22. E o que os cobre não é a imagem: é **o balão do próprio botão**, com
+  até 154 caracteres e um comando `meow` cru dentro (P6).
+- **56 botões com nome acessível acima de 40 caracteres.** O pior tem 144, para
+  um botão chamado "Sim": a descrição do desenho está dentro do `<button>` (P7).
+- **O ensaio foi removido da interface em 13/09** (`app.js:4006`), e o motor
+  continua sabendo ensaiar (`MEOW_SECO`, `comum.sh:25`). Ele descreveu isso sem
+  saber do comentário: *"nada da interface é aplicado em sandbox"* (P8).
+- **A mensagem mente.** O Spotify está instalado (`com.spotify.Client`,
+  1.2.95, flatpak de usuário) e o log diz "Spotify não instalado". A causa real
+  — falta o tema do spicetify — é descoberta na linha 462 do manifesto e
+  descartada na 556 (P3).
+- **O Catppuccin não é um pack: é `PACK_EMBUTIDO = "catppuccin"`**,
+  `scripts/pack.py:86`. E `assets/paleta/catppuccin.json` é citado por nome em
+  **dez arquivos de código** — dez lugares onde um pack de terceiro não chega
+  (P13).
+- **`packs/dracula/` inteiro tem 28 arquivos.** Os dois `.ron` dele, o tema
+  capturado e os papéis de parede moram fora do pack. E `assets/temas/` guarda
+  sete `.ron` de **dois packs diferentes** no mesmo diretório (P14).
+- **Os oito módulos de `assets/temas-de-apps/` citam "catppuccin" 446 vezes, e
+  ZERO leem o pack ativo.** Medido ao perseguir a pergunta dele sobre o Spotify:
+  o app está instalado, patchado e **já em Dracula** (`current_theme = Sleek`,
+  `color_scheme = Dracula`); o qBittorrent também (`CustomUIThemePath =
+  ~/.themes/dracula.qbtheme`, escrito por ele às 16:49 de 21/09). Os dois
+  módulos se declaram bloqueados. E o Obsidian, o único que "funcionou",
+  aplicou **Catppuccin** numa máquina vestida de Dracula (P18).
+- **A prévia do ponteiro:** `_temas_de_cursor()` devolve 4 e `_prev_cursores()`
+  devolve 1, porque a segunda monta o caminho só por convenção
+  (`servidor.py:2974`) e não acompanhou a irmã, corrigida em 15/09. O docstring
+  dela ainda descreve o mundo anterior. Segunda ocorrência do mesmo defeito no
+  mesmo par de funções (P17).
+- **O formato de pack é documentado e parcialmente não implementado.**
+  `cosmic.nome_da_paleta`, `cosmic.mapa`, `icones.*.herda`, `origens.cursores.*`
+  e `origens.wallpapers.*` são declarados pelo `packs/dracula/pack.json` e lidos
+  por **ninguém**. A consequência está no disco: os temas do Dracula se chamam
+  `catppuccin-dracula` e `catppuccin-alucard` — o defeito que aquele campo foi
+  declarado para impedir. E o `flavor` `dracula` está **dentro** do
+  `assets/paleta/catppuccin.json`, que é a única razão de o pack funcionar hoje.
+  A ponte shell→Python não existe: `MEOW_PALETA` não é exportado por ninguém, e
+  os seis consumidores Python caem sempre no `catppuccin.json` (P20).
+- **`assets/icones/upstream/` são 96 MB versionados** de acervo de terceiro que
+  `scripts/baixar_upstream.sh` já sabe baixar. O repositório cai de ~115 MB
+  para ~19 MB (P14).
+
+- **O primeiro comando do README não roda:** `git clone
+  https://github.com/[REDACTED]/MeowSystem.git`. O sanitizador de identidade
+  apagou a conta e ninguém repôs — 8 ocorrências de `[REDACTED]` no repositório.
+  Enquanto essa linha estiver lá, nenhum estranho chega às outras 21 sprints
+  (P22).
+- **Usar o app suja o repositório.** `app/servidor.py` e `wallpaper.sh` gravam
+  em cinco arquivos versionados e em 91 SVG. O `git status` desta sessão tem
+  `+47` no `BANIDOS.txt` porque ele baniu papéis de parede pela tela. E há dois
+  usuários reais com repositórios separados (`origin` e `maria`), então cada
+  `pull` entre eles é conflito em arquivo que ninguém editou de propósito. A
+  defesa (`merge=ours` no `.gitattributes`) é **inerte em clone novo**: nada no
+  repositório registra o driver (P21).
+
+- **A suíte está vermelha desde 18/09 e nada a roda.** `tests/numeros.sh` sai
+  com `rc=1` apontando **14 números fora do lugar** (o README diz 54 etapas; são
+  58). O README foi editado em **19/09**, um dia depois, sem ninguém rodar o
+  teste — porque o único workflow do repositório é o `anonymity-check.yml`, e
+  **nenhum CI executa `tests/`**. Os 13 testes cobrem 6 dos 83 scripts;
+  `pack.py`, que é o coração de P13 a P21, tem **zero** (P23).
+- **"O contrato do projeto" é citado por número 50 vezes em código** — regras 1,
+  4, 5, 7, 8 e 10 — **e a lista numerada não existe em lugar nenhum**. Cada
+  leitor inventa a sua (P23).
+
+- **O «Voltar ao tema de antes» restaura o desktop de OUTRA PESSOA.**
+  `assets/temas/capturados/original/captura.txt` registra
+  `origem: /home/vitoriamaria/.config/cosmic`, 121 arquivos, 04/08/2026. É o
+  que o `meow desfazer` devolve — nesta máquina, hoje. E o
+  `capturar_tema.sh:67` **recusa recapturá-lo**, então não se conserta sozinho
+  (P24).
+- **O wizard oferece 60 combinações de tema e existem 4 capturas** (5 flavors x
+  12 accents no `meow.conf.exemplo`; `capturados/` tem `mocha-mauve`,
+  `mocha-pink`, `latte-mauve`, `dracula-mauve`). Responder "macchiato" + "teal"
+  — opções que a pergunta ofereceu — deixa a pessoa sem tema **e sem
+  desinstalação**, porque o backup `-tema-PRIMEIRO-` nunca é criado (P24).
+- **O carrossel prometido nasce vazio:** `grep -c semear install.sh` devolve
+  **0**. O README promete 43 imagens duas vezes (P24).
+- **Sem rede, o instalador morre em vez de pular:** duas etapas devolvem 2 onde
+  as outras 56 devolvem 3 — e o remédio já existe em dois scripts do próprio
+  repositório (P24).
+
+**O que a medição DERRUBOU:**
+
+- *"O tema do ponteiro não aparece"* **não é defeito de configuração.**
+  `~/.icons/default/index.theme` herda `Dracula-Cursor`, o `gsettings` devolve
+  `'Dracula-Cursor'`, e o diretório existe. O que falta é a **prévia**: três dos
+  quatro cartões não têm desenho, porque só o `Dracula-Cursor` traz
+  `preview.png`. Virou item de P6, não sprint.
+- *"Botão impossível de clicar devido à largura da imagem"* — **a imagem é
+  inocente.** Quem cobre o botão é o `title` nativo do botão vizinho, que tem a
+  largura do próprio texto.
+- **O peso do repositório não é problema, e eu disse que era.** A primeira
+  versão de P14 media o disco: "96 MB de `upstream/` versionados", "o clone cai
+  de 115 MB para 19 MB". Medido com `git ls-files`: `upstream/` tem **0
+  arquivos no git** (ignorado desde `.gitignore:3`), `assets/icones/catppuccin/`
+  tem **413 KB** e não 13 MB, e o **clone inteiro tem 13,34 MiB**. O que sobra
+  em P14 é fronteira — quem é dono de qual arquivo —, não arrumação de espaço.
+- **Portar para GNOME ou KDE: não.** De 89 executáveis, 72 citam COSMIC, e ~3.000
+  linhas (painel, vidro, áreas, greeter, patches) não teriam para onde ir. O
+  "qualquer user" que ele pediu é quem quer criar um theme pack, não quem usa
+  outro desktop. Registrado para não ser reaberto sem medição nova.
+- **O código está limpo de identidade.** Zero e-mail, token, chave, UUID, MAC,
+  serial ou resolução cravada; e zero `/mnt/` **em código** — as 369 ocorrências
+  são todas comentário. O que está quebrado é a **documentação de instalação**.
+
+---
+
+## AO VOLTAR, COMECE POR AQUI  (leva de 09/09/2026 — FECHADA)
 
 **A leva de 09/09/2026 (tarde) fechou CINCO frentes.** As duas sprints que este
 arquivo listava como abertas — S e T de
@@ -3196,4 +3339,3 @@ mão seria repetir o ato que causou o problema.
 > A única regra desta seção que continua valendo: **ela está trabalhando na
 > própria máquina enquanto isto roda.** Nada de abrir janela na tela dela; para
 > ver resultado, renderize em headless ou peça que ela olhe.
-
