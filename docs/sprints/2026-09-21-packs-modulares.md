@@ -1,6 +1,6 @@
 # Leva de 21/09/2026, eixo II — o pack vira a unidade do produto
 
-Dez sprints — **P13 a P16 e P18 a P21, mais P25 e P26** — que resolvem a queixa
+Doze sprints — **P13 a P16, P18 a P21 e P25 a P28** — que resolvem a queixa
 estrutural. Irmãs
 de [`2026-09-21-de-tema-a-produto.md`](2026-09-21-de-tema-a-produto.md), e
 **anteriores** a P10, P11 e P12 daquele arquivo: não dá para exportar um pack
@@ -38,6 +38,8 @@ e revelou que os **oito** módulos de `assets/temas-de-apps/` citam
 | **P21** | Usar o programa não pode sujar o repositório | o painel grava em 5 arquivos e 91 SVG versionados | 3 dias |
 | **P25** | Cada pack tem um logo em SVG | tira de cor não é identidade; e o logo vira o ícone do lançador | 2 dias |
 | **P26** | O acervo do pack é uma origem na oficina | os 18 SVG do Dracula estão instalados e invisíveis na tela | 3 dias |
+| **P27** | Todo ícone que veste alguém mora no pack | 25 de 3.566 SVG estão em `packs/`; 11 do Dracula moram em `assets/` | 4 dias |
+| **P28** | A fonte única: um desenho, todo o resto derivado | 23 linhas de mapa apontam para fora do repositório | 5 dias |
 
 ---
 
@@ -1246,3 +1248,366 @@ cp meu-app.json packs/dracula/icones/autorais/ && meow icones traco
   Para os 18 aplicativos do Dracula, o desenho em vigor já é o do pack — então
   não muda nada nesta máquina. Numa máquina onde a conversão está valendo, muda
   — e isso precisa de aviso, não de troca calada.
+
+---
+
+# P27 — Todo ícone que veste alguém mora no pack
+
+**A queixa:** *"aproveitando, os ícones SVG, todos eles, e os mapeamentos que
+fizemos anteriormente, onde foram parar? Preciso que centralizemos todos eles
+dentro das pastas packs. Todos os ícones que podem fazer parte do theme pack,
+tudo tem que ficar lá."*
+
+Esta sprint é o inventário que P14 prometeu e não detalhou: **arquivo por
+arquivo, para onde vai e por quê.**
+
+### O número que resume
+
+```
+SVG versionados no projeto ......... 3.566
+dentro de packs/ ...................... 25   (0,7%)
+fora .................................. 3.541
+```
+
+**Vinte e cinco de três mil quinhentos e sessenta e seis.** O `packs/dracula/`
+tem 18 ícones de aplicativo e 7 de pasta; todo o resto do acervo do projeto
+mora em `assets/`.
+
+### E os SVG do Dracula estão em três lugares
+
+```
+packs/dracula/icones/apps/       18 SVG   <- os únicos que estão no lugar
+packs/dracula/icones/pastas/      7 SVG
+assets/icones/autorais/          11 SVG   <- *-dracula.svg, FORA do pack
+```
+
+Os onze de `assets/icones/autorais/` são, por nome:
+
+```
+cosmic-edit-dracula.svg        cosmic-store-dracula.svg
+cosmic-files-dracula.svg       cosmic-term-dracula.svg
+cosmic-monitor-dracula.svg     fogstripper-dracula.svg
+cosmic-player-dracula.svg      hefesto-dracula.svg
+cosmic-screenshot-dracula.svg  meowsystem-painel-dracula.svg
+cosmic-settings-dracula.svg
+```
+
+O mesmo diretório guarda **onze para cada flavor do Catppuccin** — `mocha`,
+`macchiato`, `frappe`, `latte` — 44 no total. São 55 desenhos de dois packs
+diferentes, num diretório que se chama `autorais` e não diz de quem.
+
+**E `alucard` tem ZERO.** O flavor claro do Dracula nasceu em 19/09 e nenhum dos
+onze foi gerado para ele. No modo claro do Dracula, esses onze ícones caem no
+`latte` — que é o claro **do outro pack**. É o mesmo defeito que o
+`packs/dracula/pack.json` já tinha corrigido para a paleta e que continua vivo
+para os ícones.
+
+### O inventário completo, e o destino de cada um
+
+**VAI PARA O PACK — muda quando você troca de pack:**
+
+| hoje | quantos | destino |
+|---|---|---|
+| `assets/icones/catppuccin/{mocha,macchiato,frappe,latte}/` | **2.624** SVG | `packs/catppuccin/icones/mimetypes/<flavor>/` |
+| `assets/icones/catppuccin/css-variables/` | **656** SVG | `packs/catppuccin/icones/mimetypes/css-variables/` |
+| `assets/icones/autorais/*-{mocha,macchiato,frappe,latte}.svg` | **44** | `packs/catppuccin/icones/autorais/` |
+| `assets/icones/autorais/*-dracula.svg` | **11** | `packs/dracula/icones/autorais/` |
+| `assets/icones/mimetypes.map` | 123 linhas | `packs/catppuccin/icones/mimetypes.map` |
+| `assets/icones/sistema.map` | 30 linhas | do pack — é *qual ícone do COSMIC veste o quê* |
+| `assets/icones/pastas.map` | 7 linhas | do pack |
+| `assets/icones/apps-convertidos.map` | 31 linhas | do pack — **o mapa é a decisão de tema** |
+| `assets/icones/apps-resgatados.map` | 22 linhas | do pack |
+| `assets/icones/apps-arcticons.map` | 16 linhas | do pack |
+| `assets/icones/apps-marca.map` | 13 linhas | do pack |
+
+**FICA NO MOTOR — é ferramenta e acervo de apoio, não muda com o pack:**
+
+| fica | quantos | por quê |
+|---|---|---|
+| `assets/icones/arcticons/` + `arcticons-apps/` + `previa-arcticons/` | **113** SVG | acervo de terceiro, base de conversão. Um pack *aponta* para ele; não o carrega |
+| `assets/icones/convertidos-apps/` + `retoques/` | **50** SVG | saída do conversor sobre o acervo acima, com retoque à mão |
+| `assets/icones/resgatados/` | **29** SVG | resgatados do PNG **desta máquina** — são da máquina, não do tema |
+| `assets/icones/autorais/leitura/` | 8 SVG | `e1..e4, r1, r2, r6, s3` — sem flavor no nome: são recoloridos em tempo de build |
+| `assets/gatos/` | 5 SVG | a marca MeowSystem. P12 abre a porta para o pack trazer os dele; estes continuam sendo os de casa |
+| `appid.map`, `wmclass.map`, `jogos-fora.map`, `apps-nomes.map` | 15 linhas | identidade técnica de aplicativo (id de janela, appid da Steam). Não é gosto, é fato da máquina |
+
+**A regra que separa as duas colunas, e ela cabe numa frase:**
+
+> **O mapa é do pack; o acervo pode ser do motor.** Um pack diz *"o Telegram
+> veste o desenho X"* — essa é uma decisão de tema, e vai para o pack. O
+> desenho X pode vir do acervo Arcticons, que é ferramenta compartilhada e
+> fica onde está. O que não pode é a decisão morar em `assets/`.
+
+**Os três mapas vazios ficam, e não são código morto:** `apps.map` (0 linhas,
+**9 leitores**), `apps-hicolor.map` (0, 3 leitores) e `bandeja.map` (0, 7
+leitores). Vazio-mas-vivo é diferente de morto — o `docs/SPRINTS.md` já registra
+que o `apps.map` está vazio desde 10/08 **de propósito**.
+
+### O que fazer
+
+1. **`packs/<id>/icones/` ganha a estrutura completa:**
+   ```
+   packs/<id>/icones/
+     apps.map          apps/         quais aplicativos, e os desenhos
+     pastas.map        pastas/
+     mimetypes.map     mimetypes/<flavor>/
+     sistema.map       sistema/      os ícones do próprio COSMIC
+     autorais.map      autorais/     os desenhos do projeto, por flavor
+   ```
+   Mesma forma para todo pack — o Catppuccin deixa de ser exceção (P13).
+
+2. **Os onze `-dracula.svg` vão para `packs/dracula/icones/autorais/`**, e o
+   `alucard` ganha os onze dele. Gerar, não copiar do latte: o gerador já sabe
+   derivar por papel, e é o que P26 generaliza.
+
+3. **Um mapa pode apontar para fora do pack**, com prefixo declarado:
+   ```
+   org.telegram.desktop : motor:arcticons/telegram.svg
+   io.github.flattool.Warehouse : apps/Warehouse.svg
+   ```
+   `motor:` resolve em `assets/icones/`; sem prefixo, dentro do pack. É o que
+   permite tirar a decisão de `assets/` **sem** duplicar 113 SVG em cada pack.
+
+4. **`meow pack info` passa a contar o acervo**: *"Dracula: 18 apps, 7 pastas,
+   11 autorais (2 flavors), mimetypes herdados do catppuccin"*. Hoje não há como
+   saber o tamanho de um pack sem `find`.
+
+5. **Nada é apagado de `assets/` antes de o pack ler do lugar novo.** A ordem é:
+   estrutura → resolvedor com `motor:` → mover → apagar. Inverter deixa a
+   máquina sem ícone entre dois passos.
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `packs/catppuccin/icones/` | **novo** — recebe 3.324 SVG e 5 mapas |
+| `packs/dracula/icones/autorais/` | **novo** — os 11, mais os 11 do alucard |
+| `scripts/pack.py` | a estrutura, o prefixo `motor:`, a contagem |
+| `scripts/icones_*.sh` (11 arquivos) | passam a ler pelo resolvedor |
+| `assets/icones/` | perde o que é tema; mantém acervo e mapas técnicos |
+| `docs/PACKS.md` | a seção "O acervo de ícones do pack" |
+| `tests/pack.sh` | conta 3.566 SVG antes e depois; nenhum some |
+
+### Como conferir
+
+```sh
+# 1. nenhum ícone de tema ficou em assets/
+git ls-files 'assets/icones/*/*.svg' | grep -cE '(mocha|macchiato|frappe|latte|dracula|alucard)'
+# antes: 3.324 · depois: 0
+
+# 2. nenhum SVG desapareceu no caminho
+git ls-files '*.svg' | wc -l      # 3.566 antes e depois
+
+# 3. o alucard deixa de cair no tema do outro pack
+ls packs/dracula/icones/autorais/ | grep -c alucard     # antes: 0 · depois: 11
+
+# 4. e a máquina continua vestida igual
+meow doctor    # 55 conferências, nenhuma divergente
+```
+
+### O que pode dar errado
+
+- **3.324 arquivos movidos num commit.** Use `git mv` e deixe o commit sozinho,
+  sem mais nada dentro, ou o histórico fica ilegível para sempre.
+- **O `css-variables` não é um flavor.** São 656 SVG que usam
+  `var(--vscode-ctp-text)` — é o acervo **para o VS Code**, com variável de CSS
+  em vez de cor. Tratá-lo como quinto flavor quebra o seletor de variante.
+- **Os 29 `resgatados/` são desta máquina.** Eles vieram de PNG que existiam
+  aqui. Mandá-los para o pack faria um pack carregar o resgate do desktop de
+  outra pessoa — que é a mesma classe de erro do `capturados/original/` (P24).
+
+---
+
+# P28 — A fonte única: um desenho no pack, todo o resto derivado
+
+**A diretriz, dele, 21/09/2026:**
+
+> *"Qual a ideia: unificando tudo em packs dentro do MeowSystem, centralizar os
+> SVGs — e alterando lá alteraremos o resto dos ícones que têm eles como base.
+> Vamos centralizar ao máximo tudo."*
+
+**E a decisão que a abriu:** o Waterfox passa a usar o **Firefox-Dracula**.
+
+Esta sprint é a espinha de P25, P26 e P27: as três movem arte para o pack; esta
+diz **como a arte vira todo o resto** depois que chega lá.
+
+### O que medi, e é o defeito que motivou a diretriz
+
+```
+assets/icones/apps-resgatados.map:54
+net.waterfox.waterfox : ~/.local/share/icons/Dracula-Icones/scalable/apps/net.waterfox.waterfox.png : terceiro
+```
+
+O mapa do projeto manda buscar a arte **num diretório da máquina, fora do
+repositório** — o `Dracula-Icones`, que é tema de terceiro e é reescrito de
+fora. Aconteceu em 21/09 às 16:52:33: os cinco tamanhos do Waterfox,
+reescritos. O auto-reparo das 5h então reinstala **o que o mapa manda**, e a
+arte do projeto nunca chega à tela.
+
+**Não é uma linha. São 23:**
+
+| destino fora do repositório | linhas |
+|---|---|
+| `~/.local/share/icons/Dracula-Icones/` | 10 |
+| `~/.local/share/icons/hicolor/` | 8 |
+| outras | 5 |
+| **marcadas `: terceiro`** | **9** |
+
+E `packs/dracula/icones/apps.map:120` guarda a pendência, comentada, com uma
+interrogação: `# net.waterfox.waterfox : ?   # Waterfox`.
+
+### Quem reescreve o `Dracula-Icones`, e por que isso fecha o caso
+
+`rebuild_dracula_theme()` — **`~/.config/zsh/functions/sistema.zsh:103`**, uma
+função do **Spellbook-OS**. Não é script do MeowSystem: é outro projeto dele,
+que reconstrói o tema a partir de `src/icons/upstream/dracula-icons-main/`.
+
+Então o ciclo completo, com nome em cada passo:
+
+```
+1. rebuild_dracula_theme()      reescreve ~/.local/share/icons/Dracula-Icones/
+   (Spellbook-OS, fora daqui)   -> 21/09 16:52:33, cinco tamanhos do Waterfox
+2. apps-resgatados.map:54       aponta para lá
+3. icones_resgatados.sh         instala o que o mapa manda
+4. meow doctor --consertar      reafirma, todo dia às 5h
+```
+
+**E a regra que isso viola já estava escrita — neste repositório.**
+`assets/icones/PROCEDENCIA.md`, linhas 403-408:
+
+> ***Por que copiar em vez de apontar.*** *A segunda coluna do
+> `apps-dracula.map` apontava para dentro do `Dracula_OS-Theme`. Aquele
+> repositório só existe na máquina dele — um script que o lesse funcionaria de
+> um lado e quebraria do outro, e este projeto é puxado dos dois. Cada arquivo
+> foi copiado com o **nome do ícone que ele veste**.*
+
+A regra estava certa, escrita, e no lugar certo. **Vinte e três linhas a
+violam.** É o padrão que o `docs/SPRINTS.md` já nomeou: *"a regra que só existe
+como comentário se repete"* — e desta vez ela nem era só comentário, era
+documentação com o porquê e o precedente.
+
+O mesmo arquivo também confirma, de passagem, a hipótese de resolução que eu
+não tinha como testar: *"o `scalable/apps` vence o `48x48/apps` no resolvedor"*.
+
+**A lição já estava paga, um projeto antes.** A memória do `Dracula-OS-Theme`,
+de 18/08/2026:
+
+> *"Arte em `src/icons/projects/` é **cópia** da arte-mestre — nunca uma segunda
+> arte-mestre. Se defasar, o tema sombreia o hicolor e regride o ícone. **Why:**
+> o tema copia arte em vez de referenciar, então divergência silenciosa é o modo
+> de falha natural."*
+
+Aqui é pior: a fonte não é uma cópia defasada, é **um diretório que outro
+programa reescreve**.
+
+### O desenho: uma fonte, derivados calculados
+
+```
+  packs/<id>/icones/apps/<nome>.svg          <- A FONTE. É isto que se edita.
+            │
+            ├─ scalable/apps/<nome>.svg       o vetor, como está
+            ├─ 48x48/apps/<nome>.png          rasterizado da fonte
+            ├─ 64x64 · 128x128 · 256x256      idem
+            ├─ bandeja/<nome>.png             o corte de bandeja, da mesma fonte
+            └─ <nome>-<flavor>.svg            recolorido por PAPEL, por flavor
+```
+
+**Oito regras, e elas são o contrato:**
+
+1. **Um nome, uma fonte.** Para cada `Icon=` existe **exatamente um** arquivo
+   fonte, e ele mora no pack. Duas fontes para o mesmo nome é erro de
+   validação, não escolha de precedência.
+2. **Derivado nunca é editado.** Todo PNG de tamanho, toda variante de flavor e
+   todo corte de bandeja são **calculados** da fonte, na instalação. Editar um
+   derivado é trabalho que a próxima instalação apaga — e é exatamente o que
+   vinha acontecendo.
+3. **Derivado não é versionado.** Ele nasce em
+   `~/.local/state/meowsystem/icones/` e vai para o tema. O que o git guarda é
+   a fonte.
+4. **Mapa não aponta para fora.** Um destino só pode ser: dentro do pack
+   (`apps/x.svg`), no acervo do motor com prefixo (`motor:arcticons/x.svg`), ou
+   em **outro pack** com prefixo (`pack:catppuccin:apps/x.svg`). Caminho
+   absoluto e `~/` são recusados pela validação.
+5. **Arte de terceiro entra por cópia, com procedência.** Querer o
+   Firefox-Dracula no Waterfox é legítimo — então o desenho é **copiado** para
+   `packs/dracula/icones/apps/` com uma linha em `PROCEDENCIA.md` dizendo de
+   onde veio, sob que licença, e em que data. O que não vale é *apontar* para
+   uma pasta que outro programa dono reescreve.
+6. **A recoloração é por papel, nunca por hex.** É a regra que o
+   `gerar_icones_autorais.py` já cumpre: cada forma declara `sujeito`, `tinta`,
+   `fundo`; o papel resolve na paleta do flavor. É o que faz o `alucard` nascer
+   sem redesenho — e P27 mediu que hoje ele nasce com **zero** dos onze.
+7. **Uma linha de comando fecha o ciclo:** `meow icones fonte <nome>` diz qual é
+   a fonte de um ícone e o que dela deriva. Hoje, responder isso exige ler três
+   mapas e dois scripts.
+
+Como a fonte de verdade do Dracula-Icones é **outro projeto**, copiar sem
+caminho de volta troca um problema por outro: a cópia congela, o upstream anda,
+e ninguém percebe.
+
+8. **`meow pack sincronizar <id>`** — relê as origens declaradas no
+   `PROCEDENCIA.md`, compara o `sha256` de cada arte copiada com a do upstream,
+   e **diz o que divergiu**. Não copia sozinho: mostra o par lado a lado e
+   espera o gesto. Uma arte que ele retocou depois de copiar **não pode** ser
+   sobrescrita por um `git pull` de outro repositório.
+   O `meow doctor` reporta a divergência como informação, **nunca** como
+   conserto automático — porque escolher entre a sua versão e a do upstream é
+   decisão de autor, não de programa.
+
+### O caso Waterfox, resolvido pelas oito regras
+
+```
+1. o desenho do Firefox-Dracula é COPIADO para
+     packs/dracula/icones/apps/net.waterfox.waterfox.svg
+2. PROCEDENCIA.md ganha a linha: origem, licença, data, sha256
+3. apps-resgatados.map:54 PERDE a linha que aponta para ~/.local/share/icons/
+4. packs/dracula/icones/apps.map:120 deixa de ser comentário e vira mapeamento
+5. os PNG de 32/48/64/128/256 passam a ser derivados dessa fonte
+6. a raposa roxa da lua continua existindo em assets/icones/resgatados/ —
+   vira uma ALTERNATIVA na oficina (P26), não o que vence calado
+```
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `scripts/pack.py` | os prefixos `motor:` e `pack:`; a recusa de caminho externo |
+| `lib/icones.sh` | `derivar(fonte)` — tamanhos, flavors, bandeja |
+| `scripts/icones_*.sh` (11) | passam a instalar de derivado, nunca de fonte externa |
+| `assets/icones/apps-resgatados.map` e os outros 5 | as 23 linhas externas saem |
+| `packs/dracula/icones/apps/net.waterfox.waterfox.svg` | **novo** — o Firefox-Dracula, copiado |
+| `packs/dracula/PROCEDENCIA.md` | **novo** — origem e licença de cada arte de terceiro |
+| `bin/meow` | `icones fonte <nome>`; `pack sincronizar <id>` (regra 8) |
+| `docs/PACKS.md` | a seção "Fonte e derivados" |
+| `tests/fonte-unica.sh` | **novo** (abaixo) |
+
+### Como conferir
+
+```sh
+# 1. nenhum mapa aponta para fora do repositório
+grep -rn "~/\.local\|^/home/" assets/icones/*.map packs/*/icones/*.map | grep -v '^\s*#' | wc -l
+# antes: 23 · depois: 0
+
+# 2. cada Icon= da máquina tem UMA fonte, e ela está no pack
+./tests/fonte-unica.sh      # falha se um nome tiver duas fontes, ou nenhuma
+
+# 3. o Waterfox mostra o Firefox-Dracula, e sobrevive ao doctor
+meow icones fonte net.waterfox.waterfox
+#   fonte: packs/dracula/icones/apps/net.waterfox.waterfox.svg
+#   deriva: scalable, 32, 48, 64, 128, 256, bandeja
+meow doctor --consertar && meow icones fonte net.waterfox.waterfox   # a mesma linha
+```
+
+### O que pode dar errado
+
+- **Copiar arte de terceiro tem limite de licença.** O `Dracula-Icones` é
+  GPL-compatível, mas cada acervo tem o seu. `PROCEDENCIA.md` não é burocracia:
+  é o que permite o `meow pack exportar` (P11) recusar empacotar o que não pode
+  ser redistribuído.
+- **Derivar na instalação custa tempo.** São ~180 ícones × 5 tamanhos. Vale
+  cachear por `sha256` da fonte e só refazer o que mudou — senão a primeira
+  regra (P1, o instalador que converge) fica lenta demais para rodar em laço.
+- **"Um nome, uma fonte" quebra o que hoje é precedência.** Três acervos podem
+  oferecer o mesmo nome (arcticons, convertidos, resgatados). Hoje vence o
+  último que escreveu; depois, o mapa do pack decide e **a validação recusa o
+  empate**. Isso vai expor conflitos que estavam escondidos — e expor é o ponto.

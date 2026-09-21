@@ -1297,9 +1297,40 @@ afirmativa, dentro dos comentários, onde nenhuma busca a encontra.
    ou vira verdade (o `grep` entra no `tests/estilo.sh`) ou sai do comentário.
 5. **A lista numerada de regras passa a existir**, em `docs/FRONTEIRA.md`, com
    as 6 que são citadas. As 50 citações passam a apontar para algo.
-6. **Os dois órfãos são mencionados, não apagados** — é a regra do projeto. O
-   `tests/orfaos.sh` entra e falha nos dois, com isenção comentada para os 11
-   casos legítimos. Apagar é decisão dele, numa linha de commit própria.
+6. **Os dois órfãos são mencionados, não apagados** — é a regra do projeto.
+   **CORREÇÃO DE 21/09, e a contradição era minha:** a primeira versão deste
+   item mandava o `tests/orfaos.sh` *falhar* nos órfãos conhecidos, enquanto a
+   conferência da sprint exigia `./tests/todos.sh` com `rc=0`. As duas não
+   podem valer juntas, e a execução bateu nisso.
+
+   A regra certa: **`orfaos.sh` sai 0 quando os órfãos encontrados são
+   exatamente os conhecidos, e 1 quando aparece um novo.** Ele imprime os
+   conhecidos como aviso — que é o "mencionar" da regra — e quebra só na
+   regressão, que é o que um teste serve para pegar. Uma dívida declarada não
+   pode pintar o CI de vermelho todo dia; vermelho que é normal deixa de ser
+   lido.
+
+   A lista de conhecidos nasce com **três**, não dois: a execução achou
+   `scripts/appid_dock.sh` — que **escreve no sistema** e não é chamado por
+   `bin/meow`, `install.sh` nem unidade do systemd — arrastando
+   `scripts/appid_sonda.py` junto. Os dois só se citam entre si, e é por isso
+   que uma varredura ingênua não os vê: **ciclo de duas pontas**.
+
+8. **`lib/desinstalar.sh` entra na lista de arquivos, e o motivo é um defeito
+   real achado na execução.** `tests/reversao.sh` já estava vermelho em `dev`:
+   `systemd/meow-heroic.path` e `systemd/meow-heroic.service` nasceram no
+   commit `9828f6f` e **nunca entraram no `systemctl --user disable --now`**
+   (`lib/desinstalar.sh:84`). É exatamente o defeito que aquele teste existe
+   para pegar — a regra *"toda unidade nova entra nas DUAS listas"*, que o
+   `docs/SPRINTS.md` registra como já violada três vezes. Esta é a quarta.
+   Conserto: uma linha.
+
+9. **Os glifos `U+23EE`/`U+23F8`/`U+23ED` não sobrevivem ao repositório.** O
+   sanitizador de commit os classifica como emoji e os apaga de todo arquivo
+   preparado — inclusive de linhas que ninguém tocou. Medido três vezes na
+   execução, em `docs/FRONTEIRA.md:152,160` e `docs/SPRINTS.md:2062`, e duas
+   frases ficaram sem sentido. **A solução não é replantá-los**: é reescrever
+   as três frases para descrever os botões por nome, que é texto que dura.
 7. **As sete etapas descobertas ganham conferência no doctor**, começando por
    `autoreparo`, que é a que faz o resto convergir (e é pré-requisito de P1).
 
@@ -1315,6 +1346,7 @@ afirmativa, dentro dos comentários, onde nenhuma busca a encontra.
 | `tests/estilo.sh` | o `grep` prometido |
 | `docs/FRONTEIRA.md` | a lista numerada |
 | `bin/meow` | as sete conferências novas do doctor |
+| `lib/desinstalar.sh` | as duas unidades do heroic no `disable --now` (item 8) |
 
 ### Como conferir
 
