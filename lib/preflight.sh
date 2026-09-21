@@ -88,17 +88,131 @@ meow_preflight() {
     meow_erro "preciso de bash 4.3+ (aqui: ${BASH_VERSION:-?})"; fatal=1
   fi
 
-  # 5. O básico, sem o qual nem começa.
-  local b
-  for b in flock sed awk find mktemp sha256sum; do
-    meow_tem "$b" || { meow_erro "falta o básico: $b"; fatal=1; }
+  # 5 e 6. A TABELA DOS COMANDOS, E POR QUE ELA VIROU TABELA — 21/09/2026
+  #
+  #   MEDIDO: o pré-voo conferia SEIS comandos (`flock sed awk find mktemp
+  #   sha256sum`) mais nove avisados, e o caminho de instalação usa 41 —
+  #   contados pela união dos nomes que passam por `meow_tem` em `install.sh`,
+  #   `lib/`, `scripts/` e `bin/meow`, mais os que são chamados direto
+  #   (`md5sum`, `fc-list`, `fc-match`, `tar`, `cmp`). Dois deles davam o pior
+  #   tipo de defeito, o SILENCIOSO E ETERNO:
+  #
+  #     · sem `md5sum`, a comparação da ponte root (`install.sh`, `$md5_quer`)
+  #       lê string vazia, nunca bate com o `regra_md5=` que a ponte devolve, e
+  #       a etapa REINSTALA a ponte — pedindo senha — em TODA passagem, para
+  #       sempre, sem nada acusar;
+  #     · sem `cmp`, o `cmp -s` falha e todo arquivo comparado por ele é dado
+  #       como divergente, com o mesmo efeito.
+  #
+  #   Por isso os dois são FATAIS aqui, e não avisos. Parar com uma frase limpa
+  #   é mais barato do que uma máquina que pede senha toda vez e não diz por
+  #   quê. Os dois moram em `coreutils` e `diffutils`: se faltam, falta mais
+  #   coisa do que este projeto.
+  #
+  #   A LINHA DE CONSERTO É GERADA, e não digitada. A que existia aqui tinha
+  #   oito pacotes escritos à mão numa string — e uma lista à mão envelhece
+  #   calada: bastava uma etapa nova precisar de `xz` para a linha mandar
+  #   instalar o conjunto errado. Agora ela sai da coluna `pacote` da tabela, e
+  #   só com os que faltam de verdade.
+  #
+  #   FORMATO: comando|nível|pacote|quem depende dele.
+  #     base  = sem isto nem começa (fatal)
+  #     etapa = a etapa que depende dele se pula sozinha (aviso)
+  #     extra = enfeite ou coisa de outra procedência (aviso manso)
+  #   Pacote `-` quer dizer "não se instala pelo apt" — vem com o COSMIC, com o
+  #   rustup ou do site do projeto —, e esse não entra na linha de conserto.
+  local -a COMANDOS=(
+    "flock|base|util-linux|o lock que impede duas execuções ao mesmo tempo"
+    "sed|base|sed|reescrita de arquivo em quase toda etapa"
+    "awk|base|gawk|as contas do painel e da escala"
+    "find|base|findutils|todo inventário de arquivo deste projeto"
+    "mktemp|base|coreutils|toda escrita atômica"
+    "sha256sum|base|coreutils|os manifestos de backup e o pino das fontes"
+    "md5sum|base|coreutils|a ponte root — sem ele a senha é pedida em toda passagem"
+    "cmp|base|diffutils|a comparação que decide se um arquivo mudou"
+    "curl|etapa|curl|fontes, agente e semeadura de papel de parede"
+    "tar|etapa|tar|a extração das faces Nerd"
+    "git|etapa|git|o upstream pinado do Papirus"
+    "python3|etapa|python3|a geração de temas, ícones e o migrar_conf"
+    "rsvg-convert|etapa|librsvg2-bin|todo SVG que vira PNG"
+    # O `magick` (ImageMagick 7) NÃO tem linha própria: ele é ALTERNATIVA a
+    # este `convert`, e não requisito — `wallpaper.sh:490` prefere um e cai no
+    # outro. Uma linha para ele mandaria instalar `imagemagick` numa máquina
+    # que já tem o ImageMagick 6, que é exatamente o aviso falso que faz
+    # pré-voo virar ruído.
+    "convert|etapa|imagemagick|as capas de jogo e as folhas de contato"
+    "gtk-update-icon-cache|etapa|libgtk-3-bin|o cache do tema de ícones"
+    "fc-cache|etapa|fontconfig|o registro das fontes instaladas"
+    "fc-list|etapa|fontconfig|descobrir se a face já veio de fora"
+    "fc-match|etapa|fontconfig|escolher a mono do terminal"
+    "unzip|etapa|unzip|o tema de agente"
+    "xz|etapa|xz-utils|o tarball das fontes"
+    "unxz|etapa|xz-utils|o tarball das fontes"
+    "diff|etapa|diffutils|o que a tela mostra antes de escrever"
+    "gsettings|etapa|libglib2.0-bin|as chaves de tema que o COSMIC ainda lê do GTK"
+    "busctl|etapa|systemd|falar com o cosmic-settings-daemon"
+    "systemctl|etapa|systemd|os relógios e gatilhos do carrossel e do gato"
+    "systemd-escape|etapa|systemd|o nome das unidades de caminho"
+    "systemd-run|etapa|systemd|as tarefas que não podem morrer com o terminal"
+    "pgrep|etapa|procps|saber se o cosmic-comp está vivo"
+    "fuser|etapa|psmisc|saber quem segura um arquivo antes de trocá-lo"
+    "update-desktop-database|etapa|desktop-file-utils|o menu reler os .desktop"
+    "notify-send|etapa|libnotify-bin|as notificações de fim de etapa"
+    "sudo|etapa|sudo|a ponte root e os .desktop de /usr/share"
+    "flatpak|extra|flatpak|o applet de mídia e a vigia dos flatpaks"
+    "fastfetch|extra|fastfetch|o gato no lugar do logo, no terminal"
+    "fzf|extra|fzf|a busca do Ritual no terminal"
+    "btop|extra|btop|monitor vestido pelo tema"
+    "batcat|extra|bat|o cat colorido vestido pelo tema"
+    "pw-play|extra|pipewire-bin|o som de fim de instalação"
+    "starship|extra|-|o prompt do terminal (instala-se pelo site do projeto)"
+    "cosmic-randr|extra|-|as telas e a escala (vem com o COSMIC)"
+    "cosmic-term|extra|-|o terminal que este projeto veste (vem com o COSMIC)"
+  )
+  local linha cmd nivel pacote para
+  local faltam_apt="" n_faltam=0
+  for linha in "${COMANDOS[@]}"; do
+    IFS='|' read -r cmd nivel pacote para <<< "$linha"
+    meow_tem "$cmd" && continue
+    n_faltam=$((n_faltam+1))
+    case "$nivel" in
+      base)  meow_erro "falta o básico: $cmd — $para"; fatal=1 ;;
+      etapa) meow_pula "sem $cmd — $para"; avisos=$((avisos+1)) ;;
+      extra) meow_info "sem $cmd — $para"; avisos=$((avisos+1)) ;;
+    esac
+    # Pacote repetido entra UMA vez: `fontconfig` cobre três comandos e
+    # `systemd` cobre quatro, e uma linha de conserto que repete pacote parece
+    # gerada por quem não conferiu.
+    case "$pacote" in
+      -) ;;
+      *) case " $faltam_apt " in *" $pacote "*) ;; *) faltam_apt="$faltam_apt$pacote " ;; esac ;;
+    esac
   done
+  if [ -n "$faltam_apt" ]; then
+    meow_info "  isto resolve os que vêm do apt:"
+    meow_info "      sudo apt install ${faltam_apt% }"
+  fi
+  [ "$n_faltam" = "0" ] && meow_ok "os ${#COMANDOS[@]} comandos do caminho de instalação estão aqui"
 
-  # 6. O que ETAPAS INTEIRAS usam e a etapa de pacotes não pede. Não é fatal —
-  #    cada uma se pula — mas tem de ser dito agora, não no meio de trinta.
-  for b in curl tar git python3 rsvg-convert convert gtk-update-icon-cache fc-cache unzip; do
-    meow_tem "$b" || { meow_pula "sem $b — a etapa que depende dele vai se pular"; avisos=$((avisos+1)); }
-  done
+  # 6c. REDE. O pré-voo NÃO ABRE REDE — o cabeçalho deste arquivo promete isso,
+  #     e um `curl` de teste numa fase de diagnóstico é a mesma quebra de
+  #     promessa que o `flatpak info` foi. O que dá para saber sem mandar um
+  #     pacote é se existe ROTA PADRÃO, e isso está num arquivo: a linha do
+  #     `/proc/net/route` cujo destino é `00000000`. Sem rota, não há para onde
+  #     mandar, e dizer isso agora poupa três etapas descobrindo sozinhas.
+  #
+  #     Rota não é garantia de internet (portal de hotel tem rota e não tem
+  #     saída), e por isso o texto diz "sem rota padrão", que é o que foi
+  #     medido, e não "sem internet", que seria um palpite. As duas etapas que
+  #     baixam devolvem 3 desde 21/09/2026 e caem em "pulados" — o instalador
+  #     termina em 0 de qualquer jeito.
+  if [ -r /proc/net/route ] && ! awk 'NR>1 && $2=="00000000" {achou=1} END {exit !achou}' /proc/net/route; then
+    meow_pula "sem rota padrão — as etapas que baixam vão se pular"
+    meow_info "  dependem de rede: fontes (faces Nerd), upstream (Papirus pinado),"
+    meow_info "  agente (tema do Dracula), midia (applet compilado) e a semeadura"
+    meow_info "  do carrossel. Todas devolvem \"pulado\", e o instalador termina em 0."
+    avisos=$((avisos+1))
+  fi
 
   # 6b. O CARGO, E ELE MERECE UMA LINHA SÓ PARA SI.
   #     Até 24/08/2026 este projeto NÃO COMPILAVA NADA: um grep por
@@ -117,9 +231,23 @@ meow_preflight() {
 
   # 7. Gerenciador de pacotes. Só AVISA: `etapa_pacotes` fala apt, e fingir que
   #    fala dnf/pacman sem escrever os comandos é pior do que não falar.
+  #
+  #    A LISTA AQUI TAMBÉM SAI DA TABELA — 21/09/2026. Eram oito pacotes
+  #    digitados na string (`librsvg2-bin imagemagick libgtk-3-bin python3 git
+  #    btop bat papirus-icon-theme`), e ela dizia para instalar os oito mesmo
+  #    numa máquina que já tinha sete. Agora manda instalar só o que FALTA, com
+  #    os nomes que o laço de cima já apurou, e diz quando não falta nada.
+  #    O Papirus entra à parte porque é o único que não tem binário para testar:
+  #    quem responde por ele é o diretório do tema.
   if ! meow_tem apt-get; then
     meow_aviso "sem apt-get — a etapa de pacotes vai se pular"
-    meow_info "  instale à mão: librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme"
+    local _falta_aqui="$faltam_apt"
+    [ -d /usr/share/icons/Papirus-Dark ] || _falta_aqui="${_falta_aqui}papirus-icon-theme "
+    if [ -n "$_falta_aqui" ]; then
+      meow_info "  instale à mão, pelo gerenciador desta distribuição: ${_falta_aqui% }"
+    else
+      meow_info "  não falta nada do que este projeto usa — a etapa se pula sem custo"
+    fi
     avisos=$((avisos+1))
   fi
 

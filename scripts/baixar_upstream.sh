@@ -51,9 +51,22 @@ for linha in "${FONTES[@]}"; do
   rm -rf "$alvo"
   # --depth grande o bastante para alcançar o commit pinado sem baixar a
   # história inteira. Se o commit for antigo demais, o fetch explícito resolve.
+  # SEM REDE É FALTA DE DEPENDÊNCIA, NÃO ERRO — 21/09/2026
+  #   Esta linha devolvia 2 e o instalador imprimia "falhou: upstream" numa
+  #   máquina que só estava offline. As outras etapas que baixam coisa já
+  #   tratavam o mesmo caso como 3: `midia_build.sh:144-146` ("não consegui
+  #   clonar $URL (sem rede?) — fica para o próximo ciclo") e `cursor.sh:376-384`
+  #   ("nada foi instalado — o cursor continua exatamente como estava"). Dois
+  #   comportamentos para a mesma causa faziam a primeira instalação de quem não
+  #   tem rede terminar em vermelho com `return 2`, quando o certo é terminar em
+  #   0 com a etapa em "pulados".
+  #   O `checkout` logo abaixo CONTINUA em 2, de propósito: ali o clone já veio,
+  #   então não é a rede — é o commit pinado que não existe mais, e isso é
+  #   problema do repositório, não da máquina de quem instala.
   if ! git clone -q --depth 50 "$url" "$alvo" 2>/dev/null; then
-    meow_erro "falhou o clone de $url"
-    exit "$MEOW_ERRO"
+    meow_aviso "não consegui clonar $url (sem rede?) — fica para o próximo ciclo"
+    meow_info "  as pastas coloridas do Papirus ficam como estão até haver rede"
+    exit "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! git -C "$alvo" checkout -q "$commit" 2>/dev/null; then
     git -C "$alvo" fetch -q --unshallow 2>/dev/null || true
