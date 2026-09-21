@@ -1423,6 +1423,39 @@ def _temas_de_icones():
 SUFIXO_CURSOR = "-cursors"
 
 
+# UMA REGRA, DUAS LEITORAS — 21/09/2026
+#   A pergunta "que pasta este valor abre?" estava escrita DUAS vezes neste
+#   arquivo, e as duas cópias envelheceram em datas diferentes:
+#   `_temas_de_cursor` aprendeu em 15/09 que o nome EXATO vence a convenção
+#   (foi o que trouxe o `Dracula-Cursor` para a lista) e `_prev_cursores`
+#   continuou montando `<valor>-cursors` sempre. O preço apareceu na tela:
+#   QUATRO ponteiros para escolher e UMA miniatura desenhada. É a segunda vez
+#   que o mesmo defeito acontece neste par de funções — a primeira está contada
+#   no docstring de `_temas_de_cursor`, com estas palavras: "A lista não
+#   acompanhou". Com uma função só, não há como uma acompanhar e a outra não.
+#
+#   A ORDEM ESPELHA O `scripts/cursor.sh:220-230` (`_cursor_dir_exato` e
+#   `_cursor_dir_tema`), porque é ela que decide qual pasta o `aplicar` vai de
+#   fato abrir:
+#     1. nome EXATO, procurado nas três raízes na ordem do XDG;
+#     2. só então a convenção `<valor>-cursors`, nas mesmas três.
+#   Exato ANTES de convenção, e as três raízes antes de trocar de regra: quem
+#   desenhasse a partir de outra pasta estaria mostrando um ponteiro e gravando
+#   outro.
+def _cursor_pasta_do_valor(valor):
+    """A pasta de tema que o `cursor.sh` abre para este valor — ou `None`."""
+    raizes = [os.path.expanduser(raiz) for raiz in RAIZES_ICONES]
+    for raiz in raizes:
+        exata = os.path.join(raiz, valor)
+        if os.path.isdir(exata):
+            return exata
+    for raiz in raizes:
+        convencao = os.path.join(raiz, valor + SUFIXO_CURSOR)
+        if os.path.isdir(convencao):
+            return convencao
+    return None
+
+
 def _temas_de_cursor():
     """Os valores que a chave `CURSOR` aceita — nem um a mais que isso.
 
@@ -1481,10 +1514,17 @@ def _temas_de_cursor():
         if nome.endswith(SUFIXO_CURSOR):
             # Convenção do Catppuccin: o valor é o nome menos o sufixo.
             fora.add(nome[: -len(SUFIXO_CURSOR)])
-        elif not os.path.isdir(os.path.join(caminho + SUFIXO_CURSOR, "cursors")):
-            # Nome exato: só entra se NÃO existir um irmão `<nome>-cursors`,
-            # senão a mesma pasta apareceria duas vezes com nomes diferentes —
-            # o defeito que esta função veio consertar.
+        elif _cursor_pasta_do_valor(nome):
+            # NOME EXATO: QUEM DECIDE É A REGRA ÚNICA — 21/09/2026
+            #   Aqui estava a segunda cópia da convenção (`caminho +
+            #   SUFIXO_CURSOR`), exigindo que NÃO existisse um irmão
+            #   `<nome>-cursors` na mesma raiz. Era a regra de antes de 15/09,
+            #   quando só a convenção resolvia. Hoje o nome exato VENCE, então
+            #   um diretório que existe sempre resolve — e a repetição que a
+            #   guarda perseguia continua impossível, porque o irmão `-cursors`
+            #   produz exatamente ESTE mesmo valor e o `set` o absorve.
+            #   Perguntar ao `_cursor_pasta_do_valor` é o que mantém esta lista
+            #   e a das prévias com uma regra só.
             fora.add(nome)
     return sorted(fora)
 
@@ -2965,25 +3005,44 @@ def _prev_cursores():
         que era o problema legítimo que ele veio resolver. O que ele deixa de
         ser é uma opção a mais para clicar.
 
-    Diretório que não termine em `-cursors` — Adwaita, Pop, breeze — fica de
-    fora da lista, e isso não é perda: escolhê-los NUNCA funcionou. O
-    `cursor.sh` procuraria `Adwaita-cursors`, não acharia, e tentaria baixar
-    `Adwaita-cursors.zip` do release do `catppuccin/cursors`, que não existe.
+    O PARÁGRAFO QUE ESTAVA AQUI DESCREVIA UM MUNDO DE 01/09 — 21/09/2026
+        Ele dizia: "diretório que não termine em `-cursors` — Adwaita, Pop,
+        breeze — fica de fora da lista, e isso não é perda: escolhê-los NUNCA
+        funcionou". Deixou de ser verdade em 15/09, quando o `cursor.sh` ganhou
+        o `_cursor_dir_exato` e o `_temas_de_cursor` passou a aceitar nome
+        exato. O texto seguia descrevendo o mundo que a irmã dele já tinha
+        mudado — e o código abaixo dele também: montava `<valor>-cursors`
+        sempre. Medido nesta máquina, em 21/09: `_temas_de_cursor` devolvia
+        QUATRO valores e esta função desenhava UM. `Adwaita`, `Pop` e
+        `Dracula-Cursor` viravam botão sem desenho.
+
+        E foi medido ANTES de mexer aqui que mostrá-los não promete um clique
+        que quebra: `_cursor_instalado` (cursor.sh:302) acha os três no disco
+        pelo nome exato, então escolher qualquer um deles aplica sem tocar a
+        rede. Prévia de ponteiro que quebrasse ao ser clicado seria pior que
+        prévia nenhuma.
+
+    A REGRA, HOJE, É A DO `_cursor_pasta_do_valor`
+        Nome exato primeiro, convenção `<valor>-cursors` depois — a mesma
+        função que o `_temas_de_cursor` consulta, para que a lista de botões e
+        a lista de desenhos não tenham mais como divergir. Um tema listado sem
+        ponteiro decodificável não vira item aqui; o cartão dele fica sem
+        prévia, e a página desenha a silhueta de um ponteiro em traço (o
+        `controleImagem`, em app.js), porque cartão vazio é indistinguível de
+        cartão quebrado.
     """
     fora = []
     for valor in _temas_de_cursor():
-        pasta_tema = valor + SUFIXO_CURSOR
+        pasta_tema = _cursor_pasta_do_valor(valor)
+        if pasta_tema is None:
+            continue
         alvo = None
-        for raiz in RAIZES_ICONES:
-            pasta = os.path.join(os.path.expanduser(raiz), pasta_tema, "cursors")
-            # `default` é o nome canônico e `left_ptr` o histórico; um costuma
-            # ser link simbólico para o outro, e qualquer um serve.
-            for cand in ("left_ptr", "default"):
-                caminho = os.path.join(pasta, cand)
-                if os.path.isfile(caminho):
-                    alvo = os.path.realpath(caminho)
-                    break
-            if alvo:
+        # `default` é o nome canônico e `left_ptr` o histórico; um costuma ser
+        # link simbólico para o outro, e qualquer um serve.
+        for cand in ("left_ptr", "default"):
+            caminho = os.path.join(pasta_tema, "cursors", cand)
+            if os.path.isfile(caminho):
+                alvo = os.path.realpath(caminho)
                 break
         if alvo:
             fora.append({"id": valor, "rotulo": valor, "origem": alvo,

@@ -1287,6 +1287,49 @@ function previasDe(tipo, grupo) {
  * e pelo mesmo motivo: o que vale para a página inteira aparece uma vez. */
 const ACERVO_DESENHADO = new Set();
 
+/* A SILHUETA DO PONTEIRO, PARA A OPÇÃO QUE NÃO TEM DESENHO — 21/09/2026
+ *   Um `.lugar` vazio no lugar da miniatura diz duas coisas ao mesmo tempo, e
+ *   nenhuma com clareza: "a imagem está vindo" e "esta opção está quebrada".
+ *   Até 21/09 era o que TRÊS dos quatro ponteiros mostravam, e a queixa foi
+ *   exatamente essa — *"por que os ícones dos outros cursores não aparecem no
+ *   preview?"*. A causa estava no servidor e foi corrigida lá (o
+ *   `_cursor_pasta_do_valor`, em servidor.py, que agora resolve a pasta por
+ *   nome exato antes da convenção). Isto aqui é o que sobra para o dia em que
+ *   um tema listado não tiver ponteiro decodificável: em vez do retângulo
+ *   mudo, a figura do que se está escolhendo, com o rótulo embaixo.
+ *
+ *   O caminho é, letra por letra, o do ponteiro que o desenho da área de
+ *   trabalho usa (`previas-tela.js`): a mesma coisa na tela desenha-se com a
+ *   mesma figura. Em traço e em `currentColor`, como manda a folha visual —
+ *   uma silhueta não pode disputar atenção com as miniaturas de verdade ao
+ *   lado. E `createElementNS` nó por nó, nunca marcação crua, que é a regra
+ *   desta casa para todo SVG. */
+const CAMINHO_PONTEIRO = "M0,0 L0,9.4 L2.5,7.2 L4.1,10.8 L5.8,10 L4.2,6.5 L7.2,6.3 Z";
+
+function silhuetaDePonteiro() {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 48 48");
+  svg.setAttribute("width", "48");
+  svg.setAttribute("height", "48");
+  /* O rótulo do botão já diz o nome do tema; a figura é decoração dele. */
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("style", "display:block;opacity:.55");
+  const traco = document.createElementNS(NS, "path");
+  traco.setAttribute("d", CAMINHO_PONTEIRO);
+  /* O caminho nasce num quadro de 7,2 x 10,8; o 3,6 o leva ao viewBox de 48
+   * sem encostar nas bordas, e o translate o centra. A espessura 0,6 vira 2,2
+   * depois da escala, que é o traço dos outros desenhos da página. */
+  traco.setAttribute("transform", "translate(14,4) scale(3.6)");
+  traco.setAttribute("fill", "none");
+  traco.setAttribute("stroke", "currentColor");
+  traco.setAttribute("stroke-width", "0.6");
+  traco.setAttribute("stroke-linejoin", "round");
+  traco.setAttribute("stroke-linecap", "round");
+  svg.append(traco);
+  return svg;
+}
+
 /* Gatos e cursores: a opção É o desenho. Um botão que diz "coquinha" obriga a
  * lembrar qual é a coquinha; um botão que mostra a coquinha, não. */
 function controleImagem(item, tipo, aplica) {
@@ -1309,6 +1352,11 @@ function controleImagem(item, tipo, aplica) {
     });
     if (p && p.pronta) {
       botao.append(elemento("img", { src: p.url, alt: "", loading: "lazy" }));
+    } else if (!p && tipo === "cursor") {
+      /* Sem item na lista de prévias não há miniatura a esperar: o `.lugar`
+       * ficaria ali para sempre, e um cartão vazio é indistinguível de um
+       * cartão quebrado. A silhueta diz o que é. */
+      botao.append(silhuetaDePonteiro());
     } else {
       botao.append(elemento("div", { class: "lugar", style: "width:48px;height:48px;border-radius:6px" }));
     }

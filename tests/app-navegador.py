@@ -475,6 +475,26 @@ def main():
                     break
                 pag.wait_for_timeout(400)
             checa(n_gatos >= 2, f"LOGO mostra os {n_gatos} gatos desenhados")
+
+            # AS DUAS LISTAS DO PONTEIRO TEM DE TER O MESMO TAMANHO — 21/09/2026
+            #   `_temas_de_cursor` diz o que a chave CURSOR aceita, e e' dela
+            #   que saem os BOTOES; `_prev_cursores` diz o que vira DESENHO. Em
+            #   15/09 a primeira passou a aceitar nome exato — foi assim que o
+            #   `Dracula-Cursor` entrou — e a segunda continuou montando
+            #   `<valor>-cursors` sempre. Medido em 21/09: quatro opcoes, UMA
+            #   previa, tres botoes com um retangulo vazio no lugar do ponteiro.
+            #   Divergencia entre as duas listas e', por definicao, defeito — e
+            #   esta e' a unica conferencia que teria pegado aquilo no dia.
+            #   Ela pergunta as duas fontes pela rede, e nao conta pixels: vale
+            #   com a pagina em qualquer aba.
+            n_opcoes, n_previas = pag.evaluate("""async () => {
+              const esq = await (await fetch('/api/esquema')).json();
+              const prev = await (await fetch('/api/previas?tipo=cursor')).json();
+              const k = (esq.chaves || []).find((c) => c.chave === 'CURSOR');
+              return [((k && k.opcoes) || []).length, (prev.itens || []).length];
+            }""")
+            checa(n_opcoes == n_previas,
+                  f"o ponteiro tem uma prévia por opção ({n_previas} de {n_opcoes})")
             secao("Ícones")
             # As miniaturas chegam por `/previa`, uma requisicao por icone: contar
             # no instante do clique media a rede, nao a pagina.
