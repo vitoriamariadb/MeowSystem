@@ -463,6 +463,35 @@ def main():
             checa(pag.locator("#conteudo .tira").count() >= 4, "FLAVOR mostra as paletas")
             checa(pag.locator("#conteudo .cores-grade button, #conteudo .amostras button").count() > 8,
                   "ACCENT mostra as cores da paleta")
+
+            # AS DUAS LISTAS DO PONTEIRO TEM DE TER O MESMO TAMANHO — 21/09/2026
+            #   `_temas_de_cursor` diz o que a chave CURSOR aceita, e e' dela
+            #   que saem os BOTOES; `_prev_cursores` diz o que vira DESENHO. Em
+            #   15/09 a primeira passou a aceitar nome exato — foi assim que o
+            #   `Dracula-Cursor` entrou — e a segunda continuou montando
+            #   `<valor>-cursors` sempre. Medido em 21/09: quatro opcoes, UMA
+            #   previa, tres botoes com um retangulo vazio no lugar do ponteiro.
+            #   Divergencia entre as duas listas e', por definicao, defeito — e
+            #   esta e' a unica conferencia que teria pegado aquilo no dia.
+            #   Ela pergunta as duas fontes pela rede, e nao conta pixels: vale
+            #   com a pagina em qualquer aba. Fica aqui, e nao entre os gatos,
+            #   porque o `CURSOR` mora na "Cor e tela" (meow.conf.exemplo:242) —
+            #   um relatorio que le em ordem nao pode dizer a secao errada.
+            n_opcoes, n_previas = pag.evaluate("""async () => {
+              const esq = await (await fetch('/api/esquema')).json();
+              const prev = await (await fetch('/api/previas?tipo=cursor')).json();
+              const k = (esq.chaves || []).find((c) => c.chave === 'CURSOR');
+              return [((k && k.opcoes) || []).length, (prev.itens || []).length];
+            }""")
+            # O `> 0` NAO E' CINTO E SUSPENSORIO — 21/09/2026
+            #   So' a igualdade passa em VERDE com `0 == 0`, e ha' dois jeitos
+            #   baratos de chegar la': a chave CURSOR sumir do esquema (`k` vem
+            #   undefined e o `|| []` devolve zero) ou `/api/previas` responder
+            #   `{erro: ...}` (o `prev.itens || []` tambem devolve zero). Nos
+            #   dois casos a pagina nao oferece ponteiro NENHUM, que e' pior do
+            #   que a divergencia que este passo veio pegar — e ele aprovaria.
+            checa(n_opcoes > 0 and n_opcoes == n_previas,
+                  f"o ponteiro tem uma prévia por opção ({n_previas} de {n_opcoes})")
             # O MESMO MOTIVO DA GRADE DE ICONES LOGO ABAIXO, e que aqui faltava:
             # os gatos chegam por `/previa`, uma requisicao por desenho. Medir no
             # instante do clique reprovou a pagina numa das rodadas de 02/09/2026
@@ -475,26 +504,6 @@ def main():
                     break
                 pag.wait_for_timeout(400)
             checa(n_gatos >= 2, f"LOGO mostra os {n_gatos} gatos desenhados")
-
-            # AS DUAS LISTAS DO PONTEIRO TEM DE TER O MESMO TAMANHO — 21/09/2026
-            #   `_temas_de_cursor` diz o que a chave CURSOR aceita, e e' dela
-            #   que saem os BOTOES; `_prev_cursores` diz o que vira DESENHO. Em
-            #   15/09 a primeira passou a aceitar nome exato — foi assim que o
-            #   `Dracula-Cursor` entrou — e a segunda continuou montando
-            #   `<valor>-cursors` sempre. Medido em 21/09: quatro opcoes, UMA
-            #   previa, tres botoes com um retangulo vazio no lugar do ponteiro.
-            #   Divergencia entre as duas listas e', por definicao, defeito — e
-            #   esta e' a unica conferencia que teria pegado aquilo no dia.
-            #   Ela pergunta as duas fontes pela rede, e nao conta pixels: vale
-            #   com a pagina em qualquer aba.
-            n_opcoes, n_previas = pag.evaluate("""async () => {
-              const esq = await (await fetch('/api/esquema')).json();
-              const prev = await (await fetch('/api/previas?tipo=cursor')).json();
-              const k = (esq.chaves || []).find((c) => c.chave === 'CURSOR');
-              return [((k && k.opcoes) || []).length, (prev.itens || []).length];
-            }""")
-            checa(n_opcoes == n_previas,
-                  f"o ponteiro tem uma prévia por opção ({n_previas} de {n_opcoes})")
             secao("Ícones")
             # As miniaturas chegam por `/previa`, uma requisicao por icone: contar
             # no instante do clique media a rede, nao a pagina.

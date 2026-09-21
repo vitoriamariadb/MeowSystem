@@ -1293,7 +1293,7 @@ const ACERVO_DESENHADO = new Set();
  *   Até 21/09 era o que TRÊS dos quatro ponteiros mostravam, e a queixa foi
  *   exatamente essa — *"por que os ícones dos outros cursores não aparecem no
  *   preview?"*. A causa estava no servidor e foi corrigida lá (o
- *   `_cursor_pasta_do_valor`, em servidor.py, que agora resolve a pasta por
+ *   `_cursor_pastas_do_valor`, em servidor.py, que agora resolve a pasta por
  *   nome exato antes da convenção). Isto aqui é o que sobra para o dia em que
  *   um tema listado não tiver ponteiro decodificável: em vez do retângulo
  *   mudo, a figura do que se está escolhendo, com o rótulo embaixo.
@@ -1317,10 +1317,15 @@ function silhuetaDePonteiro() {
   svg.setAttribute("style", "display:block;opacity:.55");
   const traco = document.createElementNS(NS, "path");
   traco.setAttribute("d", CAMINHO_PONTEIRO);
-  /* O caminho nasce num quadro de 7,2 x 10,8; o 3,6 o leva ao viewBox de 48
-   * sem encostar nas bordas, e o translate o centra. A espessura 0,6 vira 2,2
-   * depois da escala, que é o traço dos outros desenhos da página. */
-  traco.setAttribute("transform", "translate(14,4) scale(3.6)");
+  /* O caminho nasce num quadro de 7,2 x 10,8; o 3,6 o leva a 25,92 x 38,88
+   * dentro do viewBox de 48, e o translate o centra — com a conta feita, não
+   * no olho: (48 - 25,92)/2 = 11,04 e (48 - 38,88)/2 = 4,56. Estava
+   * `translate(14,4)`, que dava 14 de margem à esquerda contra 8,08 à direita
+   * e jogava a figura quase 3 px para a direita enquanto o comentário jurava
+   * que centrava; ao lado das miniaturas `<img>` de 48 px da mesma fileira,
+   * esse desencontro se vê. A espessura 0,6 vira 2,2 depois da escala, que é o
+   * traço dos outros desenhos da página. */
+  traco.setAttribute("transform", "translate(11.04,4.56) scale(3.6)");
   traco.setAttribute("fill", "none");
   traco.setAttribute("stroke", "currentColor");
   traco.setAttribute("stroke-width", "0.6");
