@@ -4388,10 +4388,15 @@ function montarTrilho() {
  *   e a origem `127.0.0.1:<porta aleatória>` não vaza no cabeçalho. Não há
  *   segredo nessa URL, mas o padrão certo custa dois atributos.
  *
- *   O ENDEREÇO É FIXO, e é o do repositório dela. Ele não sai do `git remote`:
- *   a página é servida a partir do disco e o remoto pode ser um espelho, um
- *   clone de terceiro, ou nenhum. Um link de menu que aponta para lugar
- *   diferente conforme a máquina é pior que um link só. */
+ *   O ENDEREÇO NÃO ESTÁ ESCRITO AQUI — ele vem do servidor, e o bloco logo
+ *   abaixo conta por quê. Até 21/09/2026 este parágrafo dizia o CONTRÁRIO
+ *   ("o endereço é fixo... ele não sai do `git remote`"), colado num código
+ *   que já lia `ESQUEMA.repositorio` — dois comentários vizinhos afirmando o
+ *   oposto um do outro, e o de baixo com a razão. Fica registrado em vez de
+ *   apagado porque o argumento dele era sério: "o remoto pode ser um espelho,
+ *   um clone de terceiro, ou nenhum". A resposta está no `app/servidor.py`, e
+ *   é de lá que a decisão veio: num fork, apontar para o fork de quem clonou
+ *   é o certo, e o `!repo` logo abaixo cobre o "ou nenhum". */
 /* O ENDEREÇO VEM DO SERVIDOR, que o lê do `git remote` — nunca escrito aqui.
  * Escrito aqui, o hook de commit trocava o nome dela por uma redação e o link
  * ia para o ar apontando para uma URL morta. Foi o que aconteceu no primeiro

@@ -159,6 +159,16 @@ confere README.en.md 'installer-[0-9]+%20steps'          "$ETAPAS"        "steps
 confere README.en.md '[0-9]+ steps\.'                    "$ETAPAS"        "steps"
 confere README.en.md 'doctor-[0-9]+%20checks'            "$CONFERENCIAS"  "checks (badge)"
 confere README.en.md '# [0-9]+ checks'                   "$CONFERENCIAS"  "checks"
+# A TRADUÇÃO TAMBÉM CONTA CHAVE, E FICOU SEM COBRADOR ATÉ 21/09/2026
+#   Neste dia a chave `LANCADOR_OCULTAR` levou a contagem de 121 para 122; o
+#   `README.md` e o `app/LEIA-ME.md` foram corrigidos porque as duas linhas que
+#   os cobram existiam, e o `README.en.md` — editado no MESMO commit — ficou
+#   dizendo 121, verde. É o defeito que o cabeçalho deste arquivo descreve, na
+#   forma clássica: um lado da tradução é atualizado e o outro não.
+#
+#   O `actions` entra no regex porque `[0-9]+ settings and` sozinho casa também
+#   com a linha do papel de parede, mais abaixo no mesmo arquivo.
+confere README.en.md '[0-9]+ settings and [0-9]+ actions' "$CHAVES"       "settings"
 
 confere app/LEIA-ME.md 'As [0-9]+ chaves'                "$CHAVES"        "chaves"
 
@@ -187,10 +197,62 @@ fi
 # arquivo são história e não entram aqui — ver o cabeçalho deste teste.
 confere docs/SPRINTS.md '\| `install.sh` \| [0-9]+ etapas' "$ETAPAS"       "etapas (estado de hoje)"
 confere docs/SPRINTS.md '\*\*[0-9]+\*\* conferências'      "$CONFERENCIAS" "conferências (estado de hoje)"
+# A linha do PAINEL do mesmo quadro. Ela envelheceu calada em 21/09/2026, pelo
+# mesmo motivo do `README.en.md` lá em cima: ninguém a cobrava. Só a contagem
+# de chaves entra aqui — ações e páginas da mesma linha continuam sem cobrador,
+# e está dito para ninguém procurar o que não existe.
+confere docs/SPRINTS.md '\| painel \| [0-9]+ chaves'      "$CHAVES"       "chaves (estado de hoje)"
 
 if [ -n "${ACOES:-}" ]; then
   confere README.md      '[0-9]+ ações em'   "$ACOES" "ações"
   confere app/LEIA-ME.md '[0-9]+ ações, com a saída' "$ACOES" "ações"
+fi
+
+# ---------------------------------------------------------------------------
+# 5. A lista de aplicativos ocultados existe em DOIS lugares
+# ---------------------------------------------------------------------------
+# NASCEU COM DUAS FONTES EM 21/09/2026, E NÃO É NÚMERO — É A MESMA ARMADILHA
+#   Naquele dia a lista de 32 nomes saiu do código para a chave
+#   `LANCADOR_OCULTAR` do `meow.conf.exemplo`, e o array de
+#   `scripts/ocultar_apps.sh` FICOU, como valor de fábrica de quem apagar a
+#   chave. Duas listas escritas à mão, e nada as comparando.
+#
+#   O desequilíbrio é pior do que parece: o `install.sh` semeia o `meow.conf`
+#   a partir do exemplo, então em máquina INSTALADA a chave sempre vence.
+#   Quem acrescentar um aplicativo só no array nunca veria efeito nenhum, e
+#   nada diria por quê. Comparar as duas é o cobrador que faltava — o array
+#   não é código morto, é o valor de fábrica, e por isso tem de continuar
+#   dizendo a mesma coisa que o exemplo.
+#
+#   Comparação por CONJUNTO, e não linha a linha: a ordem dos dois é a mesma
+#   hoje, mas ela não quer dizer nada para nenhum dos dois lados, e cobrar
+#   ordem transformaria um reagrupamento em falha. `LC_ALL=C` no `sort` pela
+#   mesma razão de sempre neste projeto: ordenação de pt_BR ignora pontuação e
+#   colocaria `org.gnome.eog` e `orgnome` no mesmo lugar.
+lista_do_script() {
+  awk '
+    /^OCULTAR=\(/           { dentro = 1; next }
+    /^OCULTAR_DUPLICATA=\(/ { dentro = 1; next }
+    dentro && /^\)/         { dentro = 0; next }
+    dentro { sub(/#.*/, ""); gsub(/[ \t]/, ""); if ($0 != "") print }
+  ' "$RAIZ/scripts/ocultar_apps.sh" | LC_ALL=C sort
+}
+lista_do_conf() {
+  sed -n 's/^LANCADOR_OCULTAR="\(.*\)"$/\1/p' "$RAIZ/meow.conf.exemplo" \
+    | tr ',' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+    | grep -v '^$' | LC_ALL=C sort
+}
+
+_script_n="$(lista_do_script | grep -c .)"
+_conf_n="$(lista_do_conf | grep -c .)"
+if [ "$_script_n" = "0" ] || [ "$_conf_n" = "0" ]; then
+  falhou "não achei uma das duas listas de aplicativos ocultados (script: $_script_n, conf: $_conf_n)"
+elif ! _diferenca="$(diff <(lista_do_script) <(lista_do_conf))"; then
+  falhou "a lista de ocultar_apps.sh e a chave LANCADOR_OCULTAR não batem:"
+  printf '%s\n' "$_diferenca" | sed 's/^/       /' >&2
+  printf '       (< só no script, > só no meow.conf.exemplo)\n' >&2
+else
+  passou "ocultar_apps.sh e LANCADOR_OCULTAR dizem os mesmos $_script_n aplicativos"
 fi
 
 # ---------------------------------------------------------------------------

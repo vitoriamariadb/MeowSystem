@@ -156,20 +156,35 @@ OCULTAR+=("${OCULTAR_DUPLICATA[@]}")
 #
 #   Vazia ou ausente, vale a lista daqui: um `meow.conf` escrito antes desta
 #   chave existir continua se comportando exatamente como se comportava.
+#
+#   "VAZIA" É DEPOIS DE APARAR, E NÃO ANTES — corrigido em 21/09/2026
+#   O primeiro desenho decidia pela lista de fábrica com um `[ -n ]` na chave
+#   CRUA. Bastava `LANCADOR_OCULTAR=" "` — um espaço, ou uma vírgula solta —
+#   para o teste dar verdadeiro, o laço descartar tudo o que aparou, e sobrar
+#   uma lista VAZIA: zero aplicativo escondido, com o placar dizendo "0 na
+#   lista de meow.conf" como se fosse escolha. O texto do conf promete que
+#   "apagar a linha inteira (ou deixá-la vazia) devolve a lista de fábrica", e
+#   uma linha com um espaço é uma linha vazia para qualquer pessoa que a leia.
+#
+#   Daí o array à parte: a lista da conf só SUBSTITUI a de fábrica depois de
+#   provar que sobrou nome nela. Enquanto o `OCULTAR=()` vinha antes do laço,
+#   não havia para onde voltar.
 LANCADOR_OCULTAR="${LANCADOR_OCULTAR:-}"
+LANCADOR_OCULTAR_FONTE="fábrica"
+_da_conf=()
 if [ -n "$LANCADOR_OCULTAR" ]; then
-  OCULTAR=()
   while IFS= read -r _item; do
     # Apara espaço dos dois lados: o conf é escrito à mão e `a, b` é a forma
     # natural de escrever uma lista — o espaço colado no nome viraria um
     # `.desktop` que não existe e um "não instalado" silencioso no placar.
     _item="${_item#"${_item%%[![:space:]]*}"}"
     _item="${_item%"${_item##*[![:space:]]}"}"
-    [ -n "$_item" ] && OCULTAR+=("$_item")
+    [ -n "$_item" ] && _da_conf+=("$_item")
   done < <(printf '%s\n' "$LANCADOR_OCULTAR" | tr ',' '\n')
-  LANCADOR_OCULTAR_FONTE="meow.conf"
-else
-  LANCADOR_OCULTAR_FONTE="fábrica"
+  if [ "${#_da_conf[@]}" -gt 0 ]; then
+    OCULTAR=("${_da_conf[@]}")
+    LANCADOR_OCULTAR_FONTE="meow.conf"
+  fi
 fi
 
 mudou=0

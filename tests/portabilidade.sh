@@ -93,6 +93,23 @@ ISENTAS=(
   # remédio é uma linha (`$HOME/.local/share/...`), mas o `docs/COSMIC-THEMING.md`
   # não está entre os arquivos que a sprint P22 autoriza tocar.
   'pw-play --media-role Notification /home/vitoriamaria/.local/share/sounds'
+
+  # --- regra 1: home DE NINGUÉM, dentro de teste de unidade -----------------
+  # As quatro linhas do `0001-meow-capa-cor-controles.patch` que casam a regra 1
+  # são fixtures de `#[test]` em Rust: `/home/user/` é o home-placeholder
+  # canônico, e o que está sendo testado é o PARSER de `file://`, não um
+  # caminho que alguém vai abrir. Trocar para `~/` faria o teste deixar de
+  # exercitar a forma absoluta, que é a única que aquele parser aceita.
+  'file:///home/user/'
+  'PathBuf::from("/home/user/Album Art.png")'
+
+  # --- regra 4: a MENSAGEM da leitura que já está isenta acima --------------
+  # Esta linha é o aviso que reporta o resultado do `[ -d "$HOME/.config/zsh/.git" ]`
+  # logo acima dela, no `bin/meow`. É o mesmo contrato e o mesmo diretório: se a
+  # leitura é legítima, dizer em voz alta o que ela achou também é. Ela só
+  # apareceu quando o `bin/meow` entrou nesta varredura, em 21/09/2026, pela
+  # porta do shebang.
+  'meow_aviso "$HOME/.config/zsh é um repositório git e não está protegido"'
 )
 
 # O ARQUIVO DE REGISTRO, que não é receita de ninguém
@@ -149,15 +166,48 @@ _so_comentario() {
   return 1
 }
 
+# Um `read` e nada mais: sem subprocesso, porque isto roda uma vez por arquivo
+# versionado e são milhares (3.566 só de `.svg`). Em arquivo binário o `read`
+# devolve lixo que simplesmente não começa com `#!`, e a resposta é "não".
+_tem_shebang() {
+  local primeira
+  IFS= read -r primeira < "$1" 2>/dev/null || return 1
+  case "$primeira" in '#!'*) return 0 ;; esac
+  return 1
+}
+
 for arq in "${ARQUIVOS[@]}"; do
   [ "$arq" = "$EU" ] && continue
   _arquivo_de_registro "$arq" && continue
   [ -f "$arq" ] || continue
 
+  # O QUE ENTRA, O QUE FICA DE FORA, E POR QUÊ — a lista foi revista em 21/09
+  #   `.patch` entra como código porque o preâmbulo de um patch é receita para
+  #   copiar e colar, e sem cerca de crases não há como um `.md` separar prosa de
+  #   comando ali dentro. Foi exatamente onde o defeito sobreviveu à primeira
+  #   passada desta sprint: o `assets/prompt/LEIAME.md` foi consertado e o
+  #   `assets/prompt/aurora.patch` ao lado, que manda o MESMO comando, não — e
+  #   este teste não o viu.
+  #
+  #   O SHEBANG É A TERCEIRA PORTA, e existe por um arquivo só: `bin/meow`, o
+  #   executável principal e o maior arquivo de código do projeto, é o único
+  #   script versionado sem extensão. Classificar por nome o deixava fora da
+  #   regra 1 justamente por ser o arquivo que mais gente vai ler. Medido em
+  #   21/09/2026: é o único versionado sem extensão que começa com `#!`.
+  #
+  #   FICAM DE FORA, e isto é escolha com número, não esquecimento. Varrendo os
+  #   quatro padrões em 21/09/2026: `.json` de `docs/pesquisas/` dá 348 linhas,
+  #   `.html` das folhas dá 32, `.txt` dá 6 (cinco são a `captura.txt`, que a
+  #   própria sprint registra como guarda de propósito) e `.service` dá 4. São
+  #   quase todos artefato gerado ou transcrição de medição — a mesma natureza
+  #   do `docs/sprints/` logo acima —, e abri-los pediria uma política de
+  #   isenção inteira, que é sprint própria e não linha de rodapé desta.
+  #   `.css`, `.rs`, `.ron` e `.toml` deram ZERO: entrariam de graça hoje, e
+  #   ficam de fora só porque nenhum deles é receita que alguém copia.
   case "$arq" in
-    *.sh|*.py|*.js) tipo="codigo" ;;
-    *.md)           tipo="prosa" ;;
-    *)              continue ;;
+    *.sh|*.py|*.js|*.patch) tipo="codigo" ;;
+    *.md)                   tipo="prosa" ;;
+    *) _tem_shebang "$arq" && tipo="codigo" || continue ;;
   esac
 
   # `cerca` marca se estamos DENTRO de um bloco cercado por três crases. Num
