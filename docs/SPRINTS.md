@@ -104,7 +104,7 @@ com teste.
   teste — porque o único workflow do repositório é o `anonymity-check.yml`, e
   **nenhum CI executa `tests/`**. Os 13 testes cobrem 6 dos 83 scripts;
   `pack.py`, que é o coração de P13 a P21, tem **zero** (P23).
-- **"O contrato do projeto" é citado por número 50 vezes em código** — regras 1,
+- **"O contrato do projeto" é citado por número em dezenas de linhas** — regras 1,
   4, 5, 7, 8 e 10 — **e a lista numerada não existe em lugar nenhum**. Cada
   leitor inventa a sua (P23).
 
@@ -244,10 +244,10 @@ porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio
 | | |
 |---|---|
 | `install.sh` | 58 etapas; rodar de novo não escreve um byte |
-| `meow doctor` | **55** conferências; a única divergência é a arte convertida, e ela espera a folha |
+| `meow doctor` | **62** conferências; a única divergência é a arte convertida, e ela espera a folha |
 | painel | 121 chaves · 50 ações · 13 páginas de assunto |
 | conferência do navegador | **123/123**, console limpo nas catorze páginas |
-| suítes de shell | `app`, `seco`, `reversao`, `um-cartao-por-jogo`, `convergencia`, `conversor`, `previa-cerca` — todas passam |
+| suítes de shell | 14 arquivos, e desde 21/09 a pergunta "a suíte passa?" se faz com `./tests/todos.sh`. O placar NÃO é copiado para cá de propósito: quadro de placar copiado à mão foi o que mentiu por três dias, e é o defeito que a P23 veio consertar. O `--portatil`, que é o que o CI roda, está verde; fora dele o `conversor` depende da versão do Papirus instalada na máquina |
 
 **O QUE ENVELHECEU NESTE ARQUIVO:** tudo abaixo da linha é registro de sprint
 **fechada**, e fica como está — é história medida, não plano. Duas coisas que a
@@ -2059,8 +2059,9 @@ foi fechada em 11/08**: a fronteira tem quatro casos e o carrossel está saudáv
 > Segundo, e é o que decide: **dos seis, cinco se defendem com medição.**
 > Bluetooth (dois controles DualSense em `/sys/class/power_supply/`, adaptador
 > batizado por ela), Rede (ela está em **Wi-Fi**, não em cabo — ícone de sinal é
-> informação), Som (desenha os ), Energia (único caminho de desligar pela
-> barra) e o NowPlaying (que **ela mesma** pôs ali em 24/08, à mão, com backup).
+> informação), Som (desenha os botões de faixa anterior, pausa e próxima faixa),
+> Energia (único caminho de desligar pela barra) e o NowPlaying (que **ela
+> mesma** pôs ali em 24/08, à mão, com backup).
 > O único corte defensável é o **clipboard**, e só depois de ela ganhar um atalho
 > de teclado para o histórico — hoje o applet é o único acesso a ele. **O ganho
 > que a sprint queria já existe de graça.**

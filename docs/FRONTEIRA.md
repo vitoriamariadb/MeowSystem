@@ -149,16 +149,24 @@ fazer, e o efeito é ela voltar sozinha ao flatpak que funciona.
 Em 24/08/2026, **a pedido dela e pela mão dela na decisão**, o applet saiu da asa
 direita da dock e foi para a asa direita da topbar, **imediatamente antes do
 `com.system76.CosmicAppletAudio`** — o applet de Som, que é quem já desenha os
- ali. O `plugins_wings` das duas barras foi editado **uma vez, à mão**, com
-backup em `~/.local/state/meowsystem/backups/painel-2026-08-24/`.
+botões de faixa anterior, pausa e próxima faixa ali. O `plugins_wings` das duas
+barras foi editado **uma vez, à mão**, com backup em
+`~/.local/state/meowsystem/backups/painel-2026-08-24/`.
 
 Isso **não** revoga a abstenção acima: o módulo `midia` continua sem escrever
 uma linha em `plugins_{wings,center}`, nem no `install.sh`, nem no doctor, nem
 no `--reverter`. Uma coisa é a pessoa mover o próprio applet; outra é um script
 que roda às 05:00 achar que sabe a ordem certa.
 
-Consequência registrada: com o Som ao lado, os  do próprio Now Playing viram
-duplicata visual. Por isso `MIDIA_CONTROLES` nasce `"nao"`.
+Consequência registrada: com o Som ao lado, os botões de faixa anterior, pausa e
+próxima faixa do próprio Now Playing viram duplicata visual. Por isso
+`MIDIA_CONTROLES` nasce `"nao"`.
+
+Os três botões estão escritos por extenso, e isso é decisão de 21/09/2026: os
+glifos `U+23EE`/`U+23F8`/`U+23ED` são lidos como emoji pelo sanitizador de
+commit e apagados de todo arquivo preparado — inclusive destas duas linhas, que
+ninguém tinha tocado. Medido três vezes; replantá-los é perder a frase na
+quarta. Nome por extenso é texto que dura.
 
 ### O que continua não sendo nosso
 
@@ -822,12 +830,25 @@ MeowSystem quer notificação diária sobre a issue #640. O mesmo vale para o qu
 
 ---
 
-## O contrato numerado, que era citado 50 vezes e não existia — 21/09/2026
+## O contrato numerado, que era citado em dezenas de linhas e não existia — 21/09/2026
 
-As palavras **"regra N"** e **"o contrato do projeto"** aparecem **50 vezes** em
-código, apontando para as regras **1, 4, 5, 7, 8 e 10**. A lista numerada **não
-existia** — nem em `docs/`, nem em `lib/`, nem em lugar nenhum. Cada leitor
-inventava a sua, e cinquenta comentários apontavam para o vazio.
+As palavras **"regra N"** e **"o contrato do projeto"** aparecem em dezenas de
+linhas de código, apontando para as regras **1, 4, 5, 7, 8 e 10**. A lista
+numerada **não existia** — nem em `docs/`, nem em `lib/`, nem em lugar nenhum.
+Cada leitor inventava a sua, e todos aqueles comentários apontavam para o vazio.
+
+**O número de hoje se conta, não se lembra.** Nenhum teste cobra um número
+escrito nesta seção, e número sem cobrador apodrece — é o mesmo motivo pelo qual
+o `lib/comum.sh:103` deixou de dizer "54 etapas, 46 ações" nesta mesma leva:
+
+```sh
+grep -rnE 'regra [0-9]|o contrato do projeto' --include='*.sh' --include='*.py' . | wc -l
+```
+
+Medido em 21/09/2026: **49 linhas** — 27 dizem "regra N" e 22 dizem "o contrato
+do projeto". A sprint que mandou escrever esta seção anotou **50**, e 50 nunca
+foi o número: a primeira versão deste parágrafo copiou o 50 da sprint e nasceu
+errada no mesmo dia. É por isso que a frase de cima não carrega mais um número.
 
 **Esta lista não inventa regra.** Cada linha abaixo é o que as próprias citações
 afirmam, com os arquivos que as afirmam ao lado. Onde nenhuma citação existe, a
@@ -879,8 +900,13 @@ README de que rodar de novo numa máquina pronta não escreve um byte.
 `0` = certo · `1` = divergente · `2` = erro de execução · `3` = falta
 dependência. A diferença entre **1** e **3** é o que permite ao auto-reparo
 ficar quieto quando o app simplesmente não está instalado, e gritar quando algo
-de fato quebrou. É a regra mais repetida em cabeçalho: 21 scripts abrem com a
-frase *"CÓDIGOS DE SAÍDA (o contrato do projeto)"*.
+de fato quebrou. É a regra mais repetida em cabeçalho: medido em 21/09/2026,
+**21 scripts** abrem com a frase *"CÓDIGOS DE SAÍDA (o contrato do projeto)"* —
+22 arquivos, contando este documento, que não é script:
+
+```sh
+grep -rl 'CÓDIGOS DE SAÍDA (o contrato do projeto)' --include='*.sh' --include='*.py' . | wc -l
+```
 
 > `lib/comum.sh:12`, e o mesmo cabeçalho em `scripts/icones_orfaos.py`,
 > `scripts/icones_pastas.sh`, `scripts/leitura_build.sh`, `scripts/appid_dock.sh`,

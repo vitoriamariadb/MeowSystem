@@ -106,10 +106,23 @@ conhecido() {
   return 1
 }
 
+# E A DESCOBERTA NÃO PODE SER POR EXTENSÃO — corrigido em 21/09/2026
+#   A primeira versão varria `tests/*.sh` e `tests/*.py`, e com isso a guarda
+#   tinha o buraco que ela diz fechar: um teste novo em `.bats`, `.expect` ou
+#   sem extensão nenhuma não era DESCOBERTO, não caía no `exit 2`, e o placar
+#   dizia verde sem ele — a armadilha nº 3 de novo, um nível abaixo. Agora entra
+#   todo arquivo de `tests/` que seja EXECUTÁVEL (que é o que um teste é aqui)
+#   ou que tenha as duas extensões de sempre. As duas extensões continuam na
+#   conta de propósito: um `.sh` a que alguém esqueceu de dar `chmod +x` tem de
+#   aparecer, e ele aparece — vermelho, no laço da corrida, por não ser
+#   executável. `-maxdepth 1` porque material de apoio mora em subdiretório.
+mapfile -t ENCONTRADOS < <(
+  find "$TESTES" -maxdepth 1 -type f \
+       \( -perm -u+x -o -name '*.sh' -o -name '*.py' \) -printf '%f\n' | sort
+)
 DESCONHECIDOS=()
-for arq in "$TESTES"/*.sh "$TESTES"/*.py; do
-  [ -f "$arq" ] || continue
-  nome="$(basename "$arq")"
+for nome in "${ENCONTRADOS[@]:-}"; do
+  [ -n "$nome" ] || continue
   [ "$nome" = "todos.sh" ] && continue
   conhecido "$nome" || DESCONHECIDOS+=("$nome")
 done
@@ -153,11 +166,32 @@ for nome in "${ALVOS[@]}"; do
   #   runner que esconde vermelho atrás de um pulado é o defeito que este
   #   arquivo veio matar, com o crachá de quem veio consertá-lo.
   #
+  # E O MESMO DEFEITO VOLTOU PELA PORTA DO NÚMERO — corrigido em 21/09/2026
+  #   A segunda versão aceitava `rc=3` sozinho como pulado, e cinco testes desta
+  #   suíte terminam em `exit "$falhas"`: `estilo.sh`, `app.sh`, `conversor.sh`,
+  #   `afinador.sh` e `previa-cerca.sh`. Com EXATAMENTE três falhas eles saem 3,
+  #   e o runner os carimbava *pulado* — fora do placar vermelho, sem imprimir a
+  #   saída vermelha, e a suíte inteira saindo 0. Dois deles (`estilo.sh` e
+  #   `app.sh`) estão no subconjunto do CI, e em `estilo.sh` chegar a três é
+  #   trivial: uma TRAVA mais os dois PISO que o cabeçalho dele já diz estarem
+  #   fora. Reproduzido com dois esboços em 21/09: o que imprime três `FALHOU:`
+  #   e sai 3 agora aparece vermelho, com as três linhas na tela.
+  #
+  #   Então o pulado passou a exigir as TRÊS coisas ao mesmo tempo: código 0 ou
+  #   3, a palavra `pulado` abrindo alguma linha, e NENHUM `FALHOU` na saída. A
+  #   palavra vermelha manda sobre as outras duas — um teste que falou em falha
+  #   nunca é pulado, seja qual for o número com que ele saiu.
+  #
   # E A BUSCA É CASAMENTO DE PADRÃO, NÃO UM CANO PARA `grep -q`
   #   Com `set -o pipefail`, o `-q` fecha o cano na primeira linha, o lado de
   #   cá morre de SIGPIPE e a condição inverte sozinha.
-  if [ "$rc" -eq 3 ] \
-     || { [ "$rc" -eq 0 ] && [[ $saida == pulado* || $saida == *$'\n'pulado* ]]; }; then
+  disse_pulado=0
+  [[ $saida == pulado* || $saida == *$'\n'pulado* ]] && disse_pulado=1
+  disse_falhou=0
+  [[ $saida == *FALHOU* ]] && disse_falhou=1
+
+  if [ "$disse_pulado" -eq 1 ] && [ "$disse_falhou" -eq 0 ] \
+     && { [ "$rc" -eq 0 ] || [ "$rc" -eq 3 ]; }; then
     estado="pulado"; PULADOS=$((PULADOS + 1))
   elif [ "$rc" -eq 0 ]; then
     estado="ok"; VERDES=$((VERDES + 1))

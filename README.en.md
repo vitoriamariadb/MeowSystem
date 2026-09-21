@@ -14,7 +14,7 @@
 ![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 
 [![installer](https://img.shields.io/badge/installer-58%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-55%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![doctor](https://img.shields.io/badge/doctor-62%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 [![browser suite](https://img.shields.io/badge/browser-123%2F123-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
 Theme, icons, panel, dock, terminal and wallpaper for Pop!_OS with COSMIC in a single installer,
@@ -130,7 +130,7 @@ run is still in the terminal: `./install.sh --dry-run`.
 ## Check and undo
 
 ```bash
-meow doctor                            # 55 checks. Writes nothing.
+meow doctor                            # 62 checks. Writes nothing.
 meow doctor --consertar                # applies only what is out of place
 ./scripts/aplicar_tema.sh original     # restores the previous theme
 meow desinstalar                       # removes theme, icons and timers

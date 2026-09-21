@@ -1344,6 +1344,205 @@ chk_autostart() {
   AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" "$RAIZ/scripts/autostart.sh" conferir 2>&1
 }
 
+
+# ===========================================================================
+# AS SETE ETAPAS QUE O INSTALADOR TINHA E O DOCTOR NÃO — 21/09/2026
+# ===========================================================================
+# A auditoria de pontas soltas contou sete etapas do `install.sh` sem uma linha
+# nesta tabela: `cli`, `pacotes`, `escala`, `upstream`, `fontes`, `logo` e
+# `autoreparo`. Uma etapa sem conferência é uma etapa que só se sabe torta
+# quando alguém reinstala tudo — e três delas (`pacotes`, `upstream`, `fontes`)
+# são as ÚNICAS do projeto que tocam rede ou `apt`, ou seja, as que mais têm
+# motivo de estar diferentes numa máquina que não é a de ontem.
+#
+# `autoreparo` VEM PRIMEIRO, E NÃO É ORDEM ALFABÉTICA
+#   É ele que põe o `meow-doctor.timer` de pé, e é o timer que faz o resto desta
+#   tabela convergir sozinho às 5h. Sem esta linha, a única conferência que o
+#   projeto não fazia era a do mecanismo que faz todas as outras acontecerem: o
+#   auto-reparo podia estar desarmado há semanas e o doctor diria "nada a
+#   consertar" na cara de quem o rodasse na mão.
+#
+# TODAS LEEM E NENHUMA ESCREVE, como o resto desta seção. As três que tocariam
+# rede ou `apt` não ganham conserto automático — ver `SEM_CONSERTO` mais abaixo,
+# com o motivo de cada uma escrito por nome.
+
+chk_autoreparo() {
+  local destino="$HOME/.config/systemd/user" u faltam=() difere=()
+
+  # Desligado por escolha dela é 3, não 1: o doctor não briga com o meow.conf.
+  # Mas desligado NO CONF e ligado NO DISCO é divergência de verdade — é o caso
+  # que o `etapa_autoreparo` chama de "desligar tem de DESLIGAR".
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    if [ -f "$destino/meow-doctor.timer" ] || [ -f "$destino/meow-doctor.service" ]; then
+      echo "AUTO_REPARO=\"${AUTO_REPARO:-}\" no meow.conf, mas o meow-doctor continua em $destino"
+      return "$MEOW_DIVERGENTE"
+    fi
+    echo "AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem reparo automático, por escolha sua"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    echo "não há systemd --user nesta sessão — rode 'meow doctor --consertar' na mão"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  for u in meow-doctor.service meow-doctor.timer; do
+    [ -f "$RAIZ/systemd/$u" ] || { echo "falta $RAIZ/systemd/$u — repositório incompleto"; return "$MEOW_ERRO"; }
+    if [ ! -f "$destino/$u" ]; then faltam+=("$u"); continue; fi
+    cmp -s "$RAIZ/systemd/$u" "$destino/$u" || difere+=("$u")
+  done
+
+  # INSTALADO NÃO É LIGADO, e o seco do instalador já aprendeu isso em 31/08:
+  # com as duas unidades iguais às do repositório e o timer DESARMADO, olhar só
+  # o arquivo daria um `ok` verde numa máquina onde o reparo não dispara nunca.
+  # `is-enabled`/`is-active` são leitura pura — cabem numa conferência.
+  local armado=1
+  [ "$(systemctl --user is-enabled meow-doctor.timer 2>/dev/null)" = "enabled" ] || armado=0
+  [ "$(systemctl --user is-active  meow-doctor.timer 2>/dev/null)" = "active"  ] || armado=0
+
+  if [ "${#faltam[@]}" -gt 0 ] || [ "${#difere[@]}" -gt 0 ] || [ "$armado" = "0" ]; then
+    [ "${#faltam[@]}" -gt 0 ] && echo "não estão instaladas: ${faltam[*]}"
+    [ "${#difere[@]}" -gt 0 ] && echo "diferentes das do repositório: ${difere[*]}"
+    [ "$armado" = "0" ] && echo "o meow-doctor.timer não está armado — o reparo das 5h não dispara"
+    return "$MEOW_DIVERGENTE"
+  fi
+  echo "auto-reparo ligado (meow-doctor.timer, todo dia às 5h, com até 20min de folga)"
+  return 0
+}
+
+# A CLI COPIADA CONTRA A DO CLONE. A cópia é de propósito (ver `etapa_cli`): um
+# symlink para o Ápate deixaria a CLI inútil justamente no dia em que o disco não
+# montasse. O preço da cópia é este: ela ENVELHECE, e nada avisava. Um `git pull`
+# no clone deixava a pessoa rodando a CLI da semana passada, com o doctor da
+# semana passada, sem uma linha na tela dizendo isso.
+#
+# O ponteiro da raiz entra junto porque é a outra metade da mesma etapa: sem ele
+# a CLI e a completion não acham o clone, e o sintoma ("não achei o repositório")
+# não diz qual dos dois arquivos está faltando.
+#
+# O `$PATH` sai como AVISO e não como divergência: ele é do shell dela, não do
+# disco, e nenhum conserto nosso o altera — é linha de `.zshrc`, que é dela.
+chk_cli() {
+  local alvo="$HOME/.local/bin/meow" ponteiro="$MEOW_ESTADO/raiz" ruins=() extra="" aponta
+  case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) extra="aviso: ~/.local/bin não está no \$PATH — o comando 'meow' não vai ser achado" ;;
+  esac
+
+  if [ ! -f "$alvo" ]; then
+    echo "~/.local/bin/meow não existe — quem instala a CLI é o ./install.sh"
+    [ -n "$extra" ] && echo "$extra"
+    return "$MEOW_DIVERGENTE"
+  fi
+  cmp -s "$alvo" "$RAIZ/bin/meow" || ruins+=("a CLI em ~/.local/bin/meow está diferente do bin/meow deste clone")
+  [ -x "$alvo" ] || ruins+=("~/.local/bin/meow está sem bit de execução — seria um 'command not found' inexplicável")
+  if [ ! -f "$ponteiro" ]; then
+    ruins+=("$ponteiro não existe — a CLI e a completion não acham o clone")
+  else
+    aponta="$(cat "$ponteiro" 2>/dev/null)"
+    [ "$aponta" = "$RAIZ" ] || ruins+=("$ponteiro aponta para '$aponta', e este clone é '$RAIZ'")
+  fi
+
+  if [ "${#ruins[@]}" -gt 0 ]; then
+    printf '%s\n' "${ruins[@]}"
+    [ -n "$extra" ] && echo "$extra"
+    return "$MEOW_DIVERGENTE"
+  fi
+  echo "a CLI instalada é byte a byte o bin/meow, e o ponteiro da raiz confere"
+  [ -n "$extra" ] && echo "$extra"
+  return 0
+}
+
+# OS PACOTES, E A LISTA VEM DO `install.sh` — NUNCA COPIADA PARA CÁ
+#   Copiar os sete pares `binário -> pacote` daria duas listas para a mesma
+#   verdade, e a segunda envelheceria no primeiro pacote novo: é a armadilha nº 3
+#   do projeto, que já custou seis chaves `FORMA_*` em 25/08. Aqui a lista é
+#   DERIVADA do `local -A NECESSARIOS=(…)` do `etapa_pacotes`, que continua sendo
+#   o dono único. Se o `sed` não achar nada, isto devolve erro em vez de dizer
+#   "está tudo certo" sem ter conferido — que é o pior jeito de errar.
+#
+#   AS DUAS QUE NÃO CABEM NO ARRAY estão repetidas aqui de propósito, e o motivo
+#   é que elas não têm binário para testar: o Papirus se confere pelo diretório
+#   do tema, e o numpy, por um `import` no `python3` do PATH (esta máquina tem
+#   pyenv, e quem roda os scripts é o `/usr/bin/python3`, não o do shell). São as
+#   duas únicas linhas duplicadas desta conferência, e se uma terceira nascer no
+#   `etapa_pacotes` fora do array, ela NÃO vai aparecer aqui — está dito.
+#
+#   Não tem conserto automático: instalar pacote é `sudo apt-get`, e o doctor
+#   nunca usa sudo nem baixa nada (ver o cabeçalho deste arquivo).
+chk_pacotes() {
+  local faltam=() par bin pac
+  while IFS= read -r par; do
+    [ -n "$par" ] || continue
+    bin="${par%%=*}"; bin="${bin#[}"; bin="${bin%]}"
+    pac="${par#*=}"
+    meow_tem "$bin" || faltam+=("$pac")
+  done < <(sed -n '/^etapa_pacotes()/,/^}/p' "$RAIZ/install.sh" \
+           | grep -oE '^[[:space:]]*\[[a-zA-Z0-9_.+-]+\]=[a-zA-Z0-9_.+-]+' \
+           | tr -d '[:blank:]')
+  [ "${#faltam[@]}" -gt 0 ] || {
+    # Zero faltando pode ser "está tudo instalado" ou "não li lista nenhuma", e
+    # os dois casos são indistinguíveis daqui sem esta pergunta.
+    local lidos
+    lidos="$(sed -n '/^etapa_pacotes()/,/^}/p' "$RAIZ/install.sh" \
+             | grep -cE '^[[:space:]]*\[[a-zA-Z0-9_.+-]+\]=[a-zA-Z0-9_.+-]+')"
+    [ "${lidos:-0}" -gt 0 ] || { echo "não consegui ler a lista de pacotes do install.sh"; return "$MEOW_ERRO"; }
+  }
+  [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
+  python3 -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
+
+  [ "${#faltam[@]}" -eq 0 ] && { echo "todos os pacotes necessários já estão instalados"; return 0; }
+  echo "faltam: ${faltam[*]}"
+  echo "  sudo apt-get install -y --no-install-recommends ${faltam[*]}"
+  return "$MEOW_DIVERGENTE"
+}
+
+# A escala da tela. O `--conferir` do próprio script, que só lê as saídas ligadas
+# — mesmo caminho do `chk_pastasxdg` e do `chk_atalho`. `ESCALA_TELA` vazio é
+# resposta legítima: "a escala é da GUI, não mexo".
+chk_escala() {
+  ESCALA_TELA="${ESCALA_TELA:-}" "$RAIZ/scripts/escala.sh" --conferir 2>&1
+}
+
+# O upstream pinado, EM SECO, e é o seco que mantém o doctor offline: o
+# `baixar_upstream.sh` sob `MEOW_DRY_RUN=1` só pergunta ao `git -C … rev-parse`
+# em que commit cada clone está, e diz "baixaria" se estiver fora do SHA pinado.
+# Nenhum `git clone` acontece nesse caminho — conferido linha a linha em 21/09.
+chk_upstream() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/baixar_upstream.sh" 2>&1
+}
+
+# As fontes. `--conferir` liga o `MEOW_SECO` do próprio script, e o `curl` da
+# release pinada mora do outro lado de um `elif meow_seco` — o conferidor para
+# em "baixaria o JetBrainsMono.tar.xz e instalaria as 16 faces". O doctor nunca
+# baixa, e por isso `fontes` também não tem conserto automático aqui.
+#
+#   E A SAÍDA PERDE AS LINHAS EM BRANCO DA FRENTE, que não é capricho: o
+#   `instalar_fontes.sh` abre com um `meow_passo`, e `meow_passo` começa por uma
+#   linha vazia. A coluna da direita desta tabela é a PRIMEIRA linha da saída —
+#   medido em 21/09/2026, a linha do `fontes` saía com a célula em branco, que é
+#   o mesmo buraco descrito no cabeçalho do `rodar_checks`. O `rc` é guardado
+#   antes do cano, senão quem responderia seria o `sed`.
+chk_fontes() {
+  local saida rc
+  saida="$("$RAIZ/scripts/instalar_fontes.sh" --conferir 2>&1)"; rc=$?
+  printf '%s\n' "$saida" | sed '/./,$!d'
+  return "$rc"
+}
+
+# O gato do painel. O `--conferir` do `logo.sh` responde pelo gato que está no ar
+# e pelo acervo — que é o que muda todo dia.
+#
+# O QUE ESTA LINHA NÃO CONFERE, e é melhor dizer do que prometer: a unidade
+# `meow-logo.service` da rotação por encerramento de sessão continua sendo
+# assunto do `etapa_logo`, porque o conserto dela é instalar e ligar unidade do
+# systemd, e o `logo.sh` não tem esse verbo. Acusá-la aqui daria uma divergência
+# que o `fix_logo` não sabe consertar — alarme diário que ninguém pode calar, que
+# é o defeito que o `SEM_CONSERTO` existe para evitar.
+chk_logo() {
+  FLAVOR="$FLAVOR" LOGO="$LOGO" "$RAIZ/scripts/logo.sh" --conferir 2>&1
+}
+
 # --- 5. os consertos --------------------------------------------------------
 # NENHUM deles força `MEOW_DRY_RUN=0`. Forçar seria transformar
 # `MEOW_DRY_RUN=1 meow doctor --consertar` — o jeito de auditar antes de deixar
@@ -1516,10 +1715,45 @@ fix_leitura()   { "$RAIZ/scripts/leitura.sh" aplicar 2>&1; }
 fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
                     "$RAIZ/scripts/autostart.sh" aplicar 2>&1; }
 
+fix_escala()    { ESCALA_TELA="${ESCALA_TELA:-}" "$RAIZ/scripts/escala.sh" 2>&1; }
+fix_logo()      { FLAVOR="$FLAVOR" LOGO="$LOGO" "$RAIZ/scripts/logo.sh" 2>&1; }
+
+# O par do `chk_autoreparo`, e o único desta leva de 21/09 que mexe em systemd.
+# Ele faz as DUAS coisas que a conferência sabe separar: põe as unidades no disco
+# e ARMA o timer. Uma só delas deixaria a máquina naquele estado de 31/08 em que
+# o arquivo está certo e o reparo não dispara nunca.
+#
+# `MEOW_DRY_RUN=1 meow doctor --consertar` continua sendo auditoria: o seco sai
+# antes de qualquer escrita, dizendo o que faria. O `mkdir` do estado vem junto
+# porque é ele que o `StandardOutput=append:` da unidade exige ANTES do primeiro
+# disparo — sem o diretório, a unidade morre em "Failed to set up standard
+# output", medido em 04/08/2026 e registrado no `etapa_autoreparo`.
+fix_autoreparo() {
+  local destino="$HOME/.config/systemd/user" u rc
+  if meow_seco; then
+    meow_muda "instalaria as unidades do auto-reparo e armaria o meow-doctor.timer"
+    return "$MEOW_DIVERGENTE"
+  fi
+  mkdir -p "$destino" "$MEOW_ESTADO" || { meow_erro "não consegui criar $destino"; return "$MEOW_ERRO"; }
+  for u in meow-doctor.service meow-doctor.timer; do
+    [ -f "$RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u — repositório incompleto"; return "$MEOW_ERRO"; }
+    meow_escrever "$destino/$u" "$(cat "$RAIZ/systemd/$u")" 644
+    rc=$?
+    [ "$rc" -ge 2 ] && { meow_erro "não consegui instalar $u"; return "$MEOW_ERRO"; }
+  done
+  systemctl --user daemon-reload >/dev/null 2>&1
+  if ! systemctl --user enable --now meow-doctor.timer >/dev/null 2>&1; then
+    meow_erro "não consegui armar o meow-doctor.timer"
+    return "$MEOW_ERRO"
+  fi
+  meow_ok "auto-reparo ligado (meow-doctor.timer, todo dia às 5h, com até 20min de folga)"
+  return "$MEOW_DIVERGENTE"
+}
+
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho)
+VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho autoreparo cli pacotes escala upstream fontes logo)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
@@ -1531,9 +1765,9 @@ VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relo
 #   escreve em `/etc/sudoers.d`, e um auto-reparo por relógio não escreve em
 #   `/etc/sudoers.d` — essa continua sendo uma decisão que passa por ela, no
 #   `./install.sh`, com a senha na mão.
-SEM_CONSERTO=" conf ponte convertidos heroictema midiabin leiturabin cursor patches "
+SEM_CONSERTO=" conf ponte convertidos heroictema midiabin leiturabin cursor patches cli pacotes upstream fontes "
 if ! meow_ponte_viva; then
-  SEM_CONSERTO=" conf ponte ocultar absolutos convertidos lancadorapt heroictema midiabin leiturabin cursor patches "
+  SEM_CONSERTO=" conf ponte ocultar absolutos convertidos lancadorapt heroictema midiabin leiturabin cursor patches cli pacotes upstream fontes "
 fi
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -1552,6 +1786,10 @@ declare -A SEM_CONSERTO_RAZAO=(
   [leiturabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
   [cursor]="o conserto BAIXA da rede, e o doctor não baixa — rode: ./scripts/cursor.sh aplicar"
   [patches]="o conserto RECOMPILA o cosmic-comp (~4 min), e o doctor não compila — rode: aurora-cosmic-comp-ws.sh --build"
+  [cli]="quem copia a CLI para ~/.local/bin é o instalador, e uma CLI que se reescreve no meio da própria execução é decisão sua — rode: ./install.sh"
+  [pacotes]="instalar pacote é sudo apt-get, e o doctor não usa sudo — rode a linha que ele imprime, ou ./install.sh"
+  [upstream]="o conserto CLONA da rede, e o doctor não baixa — rode: ./scripts/baixar_upstream.sh"
+  [fontes]="o conserto BAIXA a release pinada do Nerd Fonts, e o doctor não baixa — rode: ./scripts/instalar_fontes.sh"
 )
 
 # --- 6. o runner das conferências -------------------------------------------

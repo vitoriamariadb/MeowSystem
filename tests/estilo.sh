@@ -65,9 +65,34 @@ falha(){ printf 'FALHOU: %s\n' "$1" >&2; falhas=$((falhas+1)); }
 # `scripts/` e `app/` não existe neste projeto) e manda que eles repitam as três
 # linhas equivalentes. Cobrar Python aqui seria cobrar o que o contrato isenta.
 # O `lib/comum.sh` sai porque é a própria porta.
-fora_da_porta="$(grep -rn --include='*.sh' 'assets/paleta/[A-Za-z$_{]' "$RAIZ" \
+#
+# O PADRÃO TINHA UM DESVIO DE UM PASSO, E O DESVIO ERA O CAMINHO NATURAL
+#   A primeira versão exigia o `/` colado num nome — `assets/paleta/[A-Za-z$_{]`
+#   —, e por isso pegava quem COPIASSE o modelo do `lib/comum.sh:149` e deixava
+#   passar quem o ADAPTASSE. Medido em 21/09/2026 com uma isca de quatro linhas:
+#       PAL="$MEOW_RAIZ/assets/paleta"      -> o padrão antigo NÃO via
+#       cor=$(... < "$PAL/catppuccin.json") -> e a paleta estava cravada assim mesmo
+#   Cravar o diretório e juntar o nome na linha seguinte é a forma mais natural
+#   de fazê-lo, e era justamente a que escapava. Agora o padrão tem duas bocas:
+#   o caminho completo de sempre, e `$VAR/assets/paleta` — que é como o diretório
+#   aparece quando alguém o crava sozinho.
+#
+# E O FILTRO DE COMENTÁRIO SÓ TIRAVA A LINHA QUE COMEÇA COM `#`
+#   Na mesma isca, `eco=1  # ... assets/paleta/catppuccin.json` virava FALSO
+#   POSITIVO: prosa no fim da linha pintava o CI de vermelho. O filtro passa a
+#   tirar a citação que tem um `#` ANTES dela, onde quer que ele esteja — é a
+#   mesma regra do `tests/orfaos.sh`: conta chamada, nunca menção. O preço está
+#   dito: um `${#lista[@]}` na mesma linha de uma citação de paleta esconderia a
+#   citação. Nenhum dos 83 scripts faz isso hoje, e a troca vale — o risco que
+#   sobra é de um caso rebuscado, e o que saiu era o caso comum.
+#
+#   Ela também dispensa uma isenção que não existia: a linha 'assets/paleta/…'
+#   deste próprio arquivo, e a frase "regenerados a partir de assets/paleta/" do
+#   install.sh:537, não casam com nenhuma das duas bocas — medido.
+fora_da_porta="$(grep -rnE --include='*.sh' \
+                   '(\$\{?[A-Za-z_][A-Za-z_0-9]*\}?/assets/paleta|assets/paleta/[A-Za-z$_{])' "$RAIZ" \
                  | grep -v 'lib/comum\.sh:' \
-                 | grep -vE ':[0-9]+:[[:space:]]*#')"
+                 | grep -vE ':[0-9]+:[^#]*#.*assets/paleta')"
 if [ -n "$fora_da_porta" ]; then
   falha "script de shell resolvendo a paleta sozinho, em vez de chamar meow_paleta:"
   printf '%s\n' "$fora_da_porta" | sed "s#^$RAIZ/#  #" >&2

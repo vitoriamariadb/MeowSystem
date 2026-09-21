@@ -91,6 +91,7 @@ meow_desinstalar() {
       meow-qt.path meow-qt.service \
       meow-leitura.timer meow-leitura.service \
       meow-gato.timer meow-gato.service meow-ativos.path \
+      meow-heroic.path meow-heroic.service \
       meow-painel.service meow-painel-raio.path meow-painel-raio.service 2>/dev/null || true
     # A LISTA NOMEADA ACIMA NÃO É REDUNDANTE COM ESTE `find`, e quem acrescentar
     # unidade nova precisa saber: o `find` APAGA o arquivo, o `disable --now` é
@@ -103,6 +104,10 @@ meow_desinstalar() {
     #  nasceu só no `find`, e o comentário acima já dizia o que fazer. A regra
     #  que ninguém relê é a que quebra — por isso o `tests/reversao.sh` passou a
     #  cobrar as DUAS listas em vez de confiar nesta frase.)
+    # (QUARTA vez, em 21/09/2026: `meow-heroic.{path,service}` nasceram no
+    #  commit 9828f6f e ficaram só no `find`. O `tests/reversao.sh` acusava os
+    #  dois desde então e ninguém o rodava — que é o defeito que P23 veio
+    #  consertar, e a prova de que teste sem runner não é rede: é decoração.)
     find "$HOME/.config/systemd/user" -maxdepth 1 -name 'meow-*' \
       \( -name '*.service' -o -name '*.timer' -o -name '*.path' \) -delete 2>/dev/null || true
     # O CINTO DOS LINKS, e ele não é redundância da lista acima: é o caso em que
