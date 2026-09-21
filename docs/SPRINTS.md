@@ -243,9 +243,9 @@ porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio
 
 | | |
 |---|---|
-| `install.sh` | 54 etapas; rodar de novo não escreve um byte |
-| `meow doctor` | **50** conferências; a única divergência é a arte convertida, e ela espera a folha |
-| painel | 109 chaves · 46 ações · 13 páginas de assunto |
+| `install.sh` | 58 etapas; rodar de novo não escreve um byte |
+| `meow doctor` | **55** conferências; a única divergência é a arte convertida, e ela espera a folha |
+| painel | 121 chaves · 50 ações · 13 páginas de assunto |
 | conferência do navegador | **123/123**, console limpo nas catorze páginas |
 | suítes de shell | `app`, `seco`, `reversao`, `um-cartao-por-jogo`, `convergencia`, `conversor`, `previa-cerca` — todas passam |
 
@@ -2059,7 +2059,7 @@ foi fechada em 11/08**: a fronteira tem quatro casos e o carrossel está saudáv
 > Segundo, e é o que decide: **dos seis, cinco se defendem com medição.**
 > Bluetooth (dois controles DualSense em `/sys/class/power_supply/`, adaptador
 > batizado por ela), Rede (ela está em **Wi-Fi**, não em cabo — ícone de sinal é
-> informação), Som (desenha os ⏮⏸⏭), Energia (único caminho de desligar pela
+> informação), Som (desenha os ), Energia (único caminho de desligar pela
 > barra) e o NowPlaying (que **ela mesma** pôs ali em 24/08, à mão, com backup).
 > O único corte defensável é o **clipboard**, e só depois de ela ganhar um atalho
 > de teclado para o histórico — hoje o applet é o único acesso a ele. **O ganho

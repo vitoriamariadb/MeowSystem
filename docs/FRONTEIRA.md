@@ -149,7 +149,7 @@ fazer, e o efeito é ela voltar sozinha ao flatpak que funciona.
 Em 24/08/2026, **a pedido dela e pela mão dela na decisão**, o applet saiu da asa
 direita da dock e foi para a asa direita da topbar, **imediatamente antes do
 `com.system76.CosmicAppletAudio`** — o applet de Som, que é quem já desenha os
-⏮⏸⏭ ali. O `plugins_wings` das duas barras foi editado **uma vez, à mão**, com
+ ali. O `plugins_wings` das duas barras foi editado **uma vez, à mão**, com
 backup em `~/.local/state/meowsystem/backups/painel-2026-08-24/`.
 
 Isso **não** revoga a abstenção acima: o módulo `midia` continua sem escrever
@@ -157,7 +157,7 @@ uma linha em `plugins_{wings,center}`, nem no `install.sh`, nem no doctor, nem
 no `--reverter`. Uma coisa é a pessoa mover o próprio applet; outra é um script
 que roda às 05:00 achar que sabe a ordem certa.
 
-Consequência registrada: com o Som ao lado, os ⏮⏸⏭ do próprio Now Playing viram
+Consequência registrada: com o Som ao lado, os  do próprio Now Playing viram
 duplicata visual. Por isso `MIDIA_CONTROLES` nasce `"nao"`.
 
 ### O que continua não sendo nosso
@@ -819,3 +819,102 @@ issues do GitHub e notificam quando a System76 entregar. São ferramenta de
 acompanhamento de quem mantém o projeto, não produto: ninguém que instale o
 MeowSystem quer notificação diária sobre a issue #640. O mesmo vale para o que
 é automação pessoal — qBittorrent, Steam, torrent, hefesto.
+
+---
+
+## O contrato numerado, que era citado 50 vezes e não existia — 21/09/2026
+
+As palavras **"regra N"** e **"o contrato do projeto"** aparecem **50 vezes** em
+código, apontando para as regras **1, 4, 5, 7, 8 e 10**. A lista numerada **não
+existia** — nem em `docs/`, nem em `lib/`, nem em lugar nenhum. Cada leitor
+inventava a sua, e cinquenta comentários apontavam para o vazio.
+
+**Esta lista não inventa regra.** Cada linha abaixo é o que as próprias citações
+afirmam, com os arquivos que as afirmam ao lado. Onde nenhuma citação existe, a
+linha fica **vaga** — escrever uma regra que ninguém cita seria fundar contrato
+por decreto, e o primeiro código a contradizê-la já estaria escrito.
+
+### 1. Estado desejado é declarado, não imperativo — e cada estado tem um dono só
+
+Nenhum hex vive dentro de script: toda cor vem de `assets/paleta/`, e o destino
+de cada cor vem de um mapa. Trocar de flavor é trocar uma linha do `meow.conf`,
+nunca editar um tema à mão. A outra metade da mesma regra é a propriedade: duas
+rotinas mandando na mesma chave é defeito, e estoura em vez de passar.
+
+> `scripts/gerar_temas.py:5` · `scripts/appid_dock.sh:208`
+
+### 2. — vaga
+
+### 3. — vaga
+
+### 4. Antes de sobrescrever, guardar o original — sempre
+
+Falhar o backup aborta a escrita; não existe "escreveu e o backup não deu". A
+retenção falada é das **10 últimas** passagens, e a poda é de quem enxerga a
+fila inteira (o runner, o `meow desfazer`) — nunca do módulo, que só enxerga a
+própria pasta e apagaria o histórico dos vizinhos.
+
+> `assets/temas-de-apps/toolkits-gtk-qt/manifesto.sh:295,568` ·
+> `assets/temas-de-apps/vscode/manifesto.sh:481,514` ·
+> `assets/temas-de-apps/zapzap/manifesto.sh:243`
+
+### 5. Idempotência por CONTEÚDO, não por existência
+
+O arquivo já estar lá não é resposta: o que decide é ele já ser **igual ao que
+se ia escrever**. Idêntico não se reescreve, e quem não escreveu diz que não
+escreveu. É a regra mais citada do repositório, e é dela que sai a promessa do
+README de que rodar de novo numa máquina pronta não escreve um byte.
+
+> `lib/comum.sh:296` · `install.sh:1011,1172` · `scripts/aplicar_tema.sh:11` ·
+> `scripts/greeter.sh:219` · `scripts/som.sh:285` · `scripts/ocultar_apps.sh:147` ·
+> `scripts/fastfetch_logo.sh:729` · `scripts/importar_icones.sh:166` ·
+> `scripts/construir_icones.sh:114` · `scripts/ponte_root.sh:130` ·
+> `assets/temas-de-apps/obsidian/manifesto.sh:174` ·
+> `assets/temas-de-apps/heroic/manifesto.sh:448,505`
+
+### 6. — vaga
+
+### 7. Códigos de saída honestos
+
+`0` = certo · `1` = divergente · `2` = erro de execução · `3` = falta
+dependência. A diferença entre **1** e **3** é o que permite ao auto-reparo
+ficar quieto quando o app simplesmente não está instalado, e gritar quando algo
+de fato quebrou. É a regra mais repetida em cabeçalho: 21 scripts abrem com a
+frase *"CÓDIGOS DE SAÍDA (o contrato do projeto)"*.
+
+> `lib/comum.sh:12`, e o mesmo cabeçalho em `scripts/icones_orfaos.py`,
+> `scripts/icones_pastas.sh`, `scripts/leitura_build.sh`, `scripts/appid_dock.sh`,
+> `scripts/vigia_heroic.sh`, `scripts/icones_tray_steam.sh`, `scripts/midia.sh`,
+> `scripts/vigia_assets.sh`, `scripts/icones_tray_zapzap.sh`,
+> `scripts/icones_apps_arcticons.sh`, `scripts/icones_bandeja.sh`,
+> `scripts/icones_absolutos.sh`, `scripts/construir_convertidos.sh`,
+> `scripts/vigia_flatpak.sh`, `scripts/escala.sh`, `scripts/apos_flatpak.sh`,
+> `scripts/vigia_steam.sh`, `scripts/icones_sistema.sh`, `scripts/midia_build.sh`,
+> `scripts/icones_mimetypes.sh`, `scripts/nomes_apps.sh`
+
+### 8. Falha por unidade, nunca global
+
+Cada etapa é uma função que **retorna** código; nenhuma chama `exit`. Um app
+ausente vira "pulado" e o resto continua. É por isso que o `install.sh` **não**
+usa `set -e`: com ele, uma etapa que devolvesse != 0 abortaria tudo e deixaria a
+máquina em estado parcial — pior do que não ter começado.
+
+> `install.sh:30` · `scripts/aplicar_apps.sh:4`
+
+### 9. — vaga
+
+### 10. Uma passagem por vez: o lock
+
+O timer pode disparar enquanto ela roda na mão, e dois cliques rápidos no painel
+são a mesma corrida com outra roupa. Quem escreve pega
+`~/.local/state/meowsystem/lock` antes.
+
+> `lib/comum.sh:463` · `app/servidor.py:91`
+
+### As quatro vagas, e por que ficam vazias
+
+**2, 3, 6 e 9 não têm uma única citação em código.** Ou nunca existiram, ou
+existiram e morreram sem deixar rastro no comentário de ninguém. Preenchê-las
+hoje seria escrever contrato de trás para frente: a regra nasceria da lista, e
+não do defeito que a exigiu. Quem precisar da regra 2 escreve a regra 2 — e
+escreve junto o código que a cita, que é o que prova que ela existe.

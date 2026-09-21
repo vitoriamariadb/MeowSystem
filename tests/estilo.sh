@@ -48,6 +48,33 @@ falhas=0
 ok()   { printf 'ok: %s\n' "$1"; }
 falha(){ printf 'FALHOU: %s\n' "$1" >&2; falhas=$((falhas+1)); }
 
+# ------------------------------------------------- a porta única da paleta
+# O `lib/comum.sh` promete, no cabeçalho do `meow_paleta`, que "quem esquecer
+# de usá-la aparece no grep de tests/estilo.sh". Até 21/09/2026 esse grep NÃO
+# EXISTIA: o comentário descrevia uma cobrança imaginária, e um arquivo novo
+# podia cravar o caminho da paleta sem nada acusar. A promessa passa a ser
+# verdade aqui.
+#
+# ELE VEM ANTES DAS GUARDAS DE DEPENDÊNCIA, E ISSO É DE PROPÓSITO: as três
+# linhas abaixo saem com `pulado` em máquina sem numpy ou sem o acervo, e uma
+# cobrança que some justamente onde a máquina é mais pobre — o CI — não é
+# cobrança. Esta não depende de nada além do grep.
+#
+# O RECORTE É `*.sh`, e também é medido: o cabeçalho do `meow_paleta` nomeia os
+# cinco consumidores em Python que NÃO podem chamá-lo (o `sys.path` entre
+# `scripts/` e `app/` não existe neste projeto) e manda que eles repitam as três
+# linhas equivalentes. Cobrar Python aqui seria cobrar o que o contrato isenta.
+# O `lib/comum.sh` sai porque é a própria porta.
+fora_da_porta="$(grep -rn --include='*.sh' 'assets/paleta/[A-Za-z$_{]' "$RAIZ" \
+                 | grep -v 'lib/comum\.sh:' \
+                 | grep -vE ':[0-9]+:[[:space:]]*#')"
+if [ -n "$fora_da_porta" ]; then
+  falha "script de shell resolvendo a paleta sozinho, em vez de chamar meow_paleta:"
+  printf '%s\n' "$fora_da_porta" | sed "s#^$RAIZ/#  #" >&2
+  exit 1
+fi
+ok "nenhum .sh crava o caminho da paleta — todos passam pelo meow_paleta"
+
 command -v python3 >/dev/null || { printf 'pulado: falta python3\n'; exit 0; }
 python3 -c 'import numpy' 2>/dev/null || { printf 'pulado: falta numpy\n'; exit 0; }
 [ -d "$ACERVO" ] || { printf 'pulado: o acervo Arcticons não está aqui\n'; exit 0; }
