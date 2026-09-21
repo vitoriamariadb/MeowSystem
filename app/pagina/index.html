@@ -189,6 +189,19 @@
          fica inteiro POR CONSTRUÇÃO — não por um número no CSS, que a próxima
          mudança de layout voltaria a furar. -->
     <section class="gaveta" id="gaveta" hidden aria-live="polite">
+      <!-- A ALÇA DO ARRASTO, E ELA É A BORDA DE CIMA — 21/09/2026
+           O item 3 da sprint pede que a pessoa cresça a gaveta *"arrastando a
+           borda de cima"*. O `resize: vertical` do CSS, que estava aqui antes,
+           desenha a alça do canto INFERIOR DIREITO — e com a gaveta presa no
+           rodapé da coluna esse canto é o último canto da janela. Medido em
+           1500x1000: a caixa ia de 750 a 1000, puxar o canto de baixo crescia,
+           e puxar a borda de cima não fazia nada. Então a borda de cima passa a
+           ser esta faixa, e quem a arrasta é o `app.js`.
+
+           `aria-hidden`: é uma pega de ponteiro, e não conteúdo. O leitor de
+           tela não ganha nada em anunciar uma faixa de 9 px — e o `resize`
+           nativo que ela substitui também nunca foi operável pelo teclado. -->
+      <div class="gaveta-alca" id="gaveta-alca" aria-hidden="true"></div>
       <div class="gaveta-topo">
         <div>
           <strong id="gaveta-titulo"></strong>

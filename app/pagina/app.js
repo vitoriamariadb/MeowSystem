@@ -4032,11 +4032,13 @@ function abrirGaveta(trabalho) {
   const gaveta = $("#gaveta");
   gaveta.hidden = false;
   /* O ARRASTO É PARA O MOMENTO, E NÃO PREFERÊNCIA GRAVADA — 21/09/2026
-   * Crescer a gaveta pela alça escreve um `height` no `style` do elemento, e é
-   * esse `height` que destrava o teto de 60vh no CSS. Apagá-lo na abertura faz
-   * a gaveta seguinte voltar aos 25% de sempre: quem esticou para ler um erro
-   * não pediu que toda saída futura comesse 60% da tela. */
+   * Crescer a gaveta pela alça escreve um `height` no `style` do elemento e o
+   * marca com `data-esticada`, que é o que destrava o teto de 60vh no CSS.
+   * Apagar os dois na abertura faz a gaveta seguinte voltar aos 25% de sempre:
+   * quem esticou para ler um erro não pediu que toda saída futura comesse 60%
+   * da tela. */
   gaveta.style.removeProperty("height");
+  gaveta.removeAttribute("data-esticada");
   pastilhaDeTrabalho(false);
   $("#gaveta-titulo").textContent = trabalho.rotulo;
   $("#gaveta-comando").textContent = trabalho.comando;
@@ -4083,6 +4085,18 @@ function linhasAbaixo(saida) {
 
 function marcarLinhasAbaixo() {
   const saida = $("#saida");
+  /* GAVETA FECHADA NÃO SE MEDE — 21/09/2026
+   * Com `hidden`, a gaveta é `display: none`: o `offsetParent` do `#saida` é
+   * null e todo `offsetTop`/`clientHeight` lá dentro vale 0. O `fim` da busca
+   * binária vira 0, o primeiro filho já o alcança, e a conta devolve TODAS as
+   * linhas. Não é hipótese: fechar com trabalho vivo deixa o `puxar` de pé (o
+   * fluxo de 07/09/2026), e a última passada de portas fechadas escrevia «mais
+   * 36 linhas abaixo» sobre as mesmas 36 linhas quando o certo eram 26. Depois
+   * dela o timer morre e mais nada recalcula — a pastilha fica mentindo até a
+   * próxima abertura.
+   * Fechada, ela não tem quem leia. A medida certa é a da reabertura, e quem
+   * reabre chama esta função (ver a pastilha de trabalho, lá embaixo). */
+  if (saida.offsetParent === null) return;
   let aviso = document.getElementById("mais-abaixo");
   if (!aviso) {
     /* Nasce do JavaScript, e não do `index.html`: enquanto não há linha
@@ -4093,6 +4107,13 @@ function marcarLinhasAbaixo() {
       id: "mais-abaixo",
       class: "btn btn-mini",
       hidden: true,
+      /* FORA DA REGIÃO VIVA DA GAVETA — 21/09/2026
+       * A `<section class="gaveta">` é `aria-live="polite"`, e o texto daqui é
+       * reescrito a cada 400 ms enquanto um trabalho longo corre com a saída
+       * rolada para cima. Sem este `off`, o leitor de tela reanuncia a contagem
+       * junto com cada leva de saída. Quem precisa saber o número clica no
+       * botão, ou lê o rótulo dele quando chega nele. */
+      "aria-live": "off",
       onclick: () => { saida.scrollTop = saida.scrollHeight; marcarLinhasAbaixo(); },
     });
     $("#gaveta").append(aviso);
@@ -6379,6 +6400,45 @@ $("#busca").addEventListener("input", render);
 /* Subir no meio de um trabalho tem de acender o «mais N linhas abaixo» NA HORA,
  * e não no puxão seguinte, 400 ms depois: quem rolou está olhando para a tela. */
 $("#saida").addEventListener("scroll", marcarLinhasAbaixo);
+/* A GAVETA CRESCE PELA BORDA DE CIMA — 21/09/2026
+ * O item 3 da sprint pede que a pessoa cresça a gaveta *"arrastando a borda de
+ * cima"*, e `resize: vertical` não sabe fazer isso: a alça que o navegador
+ * desenha é sempre a do canto INFERIOR DIREITO, que aqui — gaveta presa no
+ * rodapé da coluna — cai no último canto da janela. Medido em 1500x1000: a
+ * caixa ia de (750, 232) a (1000, 1500); puxar o canto de baixo 200 px crescia
+ * para 454, e puxar a borda de cima 150 px não mexia em nada. Quem cresce a
+ * gaveta passa a ser este arrasto, na faixa que o `index.html` chama de alça.
+ *
+ * A gaveta cresce PARA CIMA porque está presa no rodapé: subir a borda de cima
+ * é somar o que o ponteiro subiu. O piso e o teto não são contados aqui — são o
+ * `min-height: 120px` e o `max-height: 60vh` do CSS, e repetir o vh em
+ * JavaScript seria criar o número que discorda do outro na primeira mudança.
+ * A altura é sempre medida a partir da caixa de quando o gesto começou, e não
+ * da anterior: arrastar para baixo e voltar devolve exatamente a altura de
+ * partida, sem o acúmulo de erro de quem soma incremento. */
+$("#gaveta-alca").addEventListener("pointerdown", (ev) => {
+  const gaveta = $("#gaveta");
+  const alca = ev.currentTarget;
+  const y0 = ev.clientY;
+  const h0 = gaveta.getBoundingClientRect().height;
+  /* Sem isto o gesto vira seleção do texto do cabeçalho da gaveta. */
+  ev.preventDefault();
+  alca.setPointerCapture(ev.pointerId);
+  const arrastar = (e) => {
+    /* A marca só nasce no primeiro movimento: um clique seco na alça não é
+     * arrasto, e não deveria destravar os 60vh. */
+    gaveta.dataset.esticada = "";
+    gaveta.style.height = Math.round(h0 + (y0 - e.clientY)) + "px";
+  };
+  const soltar = () => {
+    alca.removeEventListener("pointermove", arrastar);
+    alca.removeEventListener("pointerup", soltar);
+    alca.removeEventListener("pointercancel", soltar);
+  };
+  alca.addEventListener("pointermove", arrastar);
+  alca.addEventListener("pointerup", soltar);
+  alca.addEventListener("pointercancel", soltar);
+});
 $("#fechar-gaveta").addEventListener("click", () => {
   $("#gaveta").hidden = true;
   /* FECHAR NÃO É PERDER DE VISTA — 07/09/2026
@@ -6403,7 +6463,15 @@ function pastilhaDeTrabalho(mostrar) {
     id: "pastilha-trabalho",
     class: "btn btn-mini",
     texto: `${TRABALHO.rotulo || "trabalho"} rodando… — reabrir`,
-    onclick: () => { $("#gaveta").hidden = false; pastilhaDeTrabalho(false); },
+    /* O `marcarLinhasAbaixo` na reabertura não é zelo: de portas fechadas a
+     * pastilha não pôde ser medida (ver a guarda lá em cima), então o número
+     * que está nela é o do instante em que a gaveta sumiu. Medir aqui evita o
+     * piscar de contagem velha até o puxão seguinte, 400 ms depois. */
+    onclick: () => {
+      $("#gaveta").hidden = false;
+      pastilhaDeTrabalho(false);
+      marcarLinhasAbaixo();
+    },
   });
   $("#barra-salvar").before(p);
 }
