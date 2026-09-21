@@ -2981,6 +2981,11 @@ cmd_configurar() {
         [ "${_c##*/}" = "original" ] && continue
         _caps="$_caps${_c##*/} "
       done
+      # O acumulador acima deixa um espaço no fim, e ele ia para a tela: a linha
+      # saía "... mocha-pink " e o branco sobrando aparece em qualquer terminal
+      # que sublinhe ou selecione a linha. Cortado aqui, uma vez, para o
+      # `:-nenhuma` continuar respondendo à lista vazia sem ter de saber disso.
+      _caps="${_caps% }"
       printf '\n'
       meow_info "o par \"$_par\" não tem captura de referência no repositório"
       meow_info "  as que há: ${_caps:-nenhuma}"

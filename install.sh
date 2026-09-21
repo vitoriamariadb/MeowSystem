@@ -181,6 +181,31 @@ etapa_conf_ler() {
 #   do único estado que o projeto promete devolver — o mesmo motivo pelo qual o
 #   `capturar_tema.sh` recusa recapturar a referência.
 #
+#   E A RÉGUA DE "JÁ RODOU AQUI" É A DO `aplicar_tema.sh`, NÃO UMA MAIS ESTREITA
+#   [corrigido em 21/09/2026, no mesmo dia em que esta etapa nasceu]
+#     A guarda abaixo olhava só `*-tema-PRIMEIRO-*`. O `garantir_backup`
+#     (scripts/aplicar_tema.sh) mede outra coisa, e a explicação está escrita
+#     lá por extenso: «"PRIMEIRO" é medido, não presumido: se já existe QUALQUER
+#     backup de tema aqui, este script já rodou antes e o que estiver no disco
+#     agora já é obra nossa — chamar isso de "antes do MeowSystem" seria uma
+#     mentira gravada no nome do arquivo». O mesmo comentário diz que numa
+#     máquina assim «nenhum PRIMEIRO nasce» — ou seja, a régua estreita daqui
+#     nunca encontrava nada justamente nas máquinas que já rodam o projeto.
+#
+#     MEDIDO: HOME com `backups/2026-08-04T10-00-00-tema-mocha-mauve` (o "antes"
+#     de verdade) e o accent do COSMIC já vestido pelo MeowSystem, sem nenhum
+#     PRIMEIRO. Esta etapa criava `<carimbo>-tema-PRIMEIRO-pre-instalacao` com
+#     `captura: pre-instalacao` contendo O TEMA DO MEOWSYSTEM, e em seguida
+#     `meow desfazer` achava esse backup, imprimia "devolvendo o COSMIC ao
+#     estado de <carimbo>" / "pronto" e devolvia o mesmo tema que já estava na
+#     tela: um no-op que reporta sucesso. Pior, ele passava NA FRENTE da captura
+#     `original`, que era quem de fato respondia pelo desfazer ali — numa
+#     máquina desta casa o botão funcionava antes e deixava de funcionar depois.
+#
+#     Então a pergunta passa a ser "já há QUALQUER cópia do COSMIC daqui?", e
+#     não "já há um PRIMEIRO?". O laço abaixo é o do `aplicar_tema.sh` — mesmo
+#     glob, mesmo `[ -d ]` — com UMA exclusão a mais, que está explicada nele.
+#
 #   O NOME SEGUE O GLOB DE QUEM RESTAURA, e não é enfeite: `cmd_desfazer`
 #   (bin/meow) e a fase 3 do `lib/desinstalar.sh` procuram literalmente
 #   `"$MEOW_ESTADO"/backups/*-tema-PRIMEIRO-*`. Um sufixo diferente aqui seria
@@ -188,17 +213,42 @@ etapa_conf_ler() {
 etapa_backup_tema() {
   passo "Backup do tema de antes"
   local cosmic="$HOME/.config/cosmic"
-  local velho
-  for velho in "$MEOW_ESTADO"/backups/*-tema-PRIMEIRO-*; do
-    if [ -d "$velho" ]; then
-      meow_ok "já há backup de antes da instalação em $(basename "$velho")"
-      return 0
-    fi
+  local velho primeiro="" mais_velho=""
+  for velho in "$MEOW_ESTADO"/backups/*-tema-*; do
+    [ -d "$velho" ] || continue
+    case "$velho" in *-tema-PRIMEIRO-*) primeiro="$velho"; break ;; esac
+    # `<carimbo>-tema-v1` é do `gerar_tema_v1.py` e guarda as CAPTURAS DO
+    # REPOSITÓRIO, não o `~/.config/cosmic` desta pessoa — a poda do
+    # aplicar_tema.sh já tinha se queimado com ele em 10/08/2026, e o comentário
+    # de lá conta a história. Aqui a pergunta é "já existe cópia do COSMIC
+    # daqui?", e essa pasta não é uma: contá-la deixaria sem ponto de volta quem
+    # rodasse `meow doctor --consertar` antes do primeiro `./install.sh`.
+    case "$velho" in *-tema-v1) continue ;; esac
+    # O glob sai ordenado, e o nome começa pelo carimbo: o primeiro que cai aqui
+    # é o mais antigo, que é o que mais perto está do "antes" desta máquina.
+    [ -n "$mais_velho" ] || mais_velho="$velho"
   done
+  if [ -n "$primeiro" ]; then
+    meow_ok "já há backup de antes da instalação em $(basename "$primeiro")"
+    return 0
+  fi
+  if [ -n "$mais_velho" ]; then
+    meow_ok "esta máquina já rodou o MeowSystem — não há estado 'de antes' a gravar"
+    meow_info "  o tema que está no disco agora já é obra nossa; chamá-lo de"
+    meow_info "  \"pre-instalacao\" seria uma mentira no nome do arquivo."
+    meow_info "  o mais antigo em backups/ é $(basename "$mais_velho") —"
+    meow_info "  o COMO-RESTAURAR.txt dentro dele diz como voltar à mão."
+    return 0
+  fi
 
   # Sem árvore de tema no disco não há o que guardar, e inventar uma pasta vazia
-  # chamada "antes" seria pior do que não ter nenhuma: o `desfazer` a encontraria
-  # e restauraria nada, em silêncio.
+  # chamada "antes" seria pior do que não ter nenhuma: o `cp -a
+  # "$primeiro"/com.system76.CosmicTheme.*` do `cmd_desfazer` (bin/meow) não tem
+  # `nullglob`, então numa pasta sem árvore nenhuma o glob fica literal, o `cp`
+  # reclama de arquivo inexistente e a função devolve MEOW_ERRO. Não é silêncio:
+  # é o botão passando a FALHAR em vez de restaurar. (O `garantir_backup` do
+  # scripts/aplicar_tema.sh ainda cria essa pasta vazia numa máquina sem árvore
+  # de tema; é de fora desta sprint, e fica anotado.)
   local -a arvores=()
   local a
   for a in "$cosmic"/com.system76.CosmicTheme.*; do

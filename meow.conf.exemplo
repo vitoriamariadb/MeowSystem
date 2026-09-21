@@ -49,9 +49,30 @@
 #   uma sem a irmã apaga a explicação das duas sem nada acusar.
 
 # @ Variante do tema
-# > Catppuccin em três escuros e um claro, ou Dracula. Só valem as combinações que já têm captura pronta.
-# [essencial] Qual variante de cor. Só vale o que tem captura em
-# assets/temas/capturados/ — o pré-voo avisa antes de instalar se a combinação não existir.
+# > Catppuccin em três escuros e um claro, ou Dracula. Vale com qualquer cor de destaque.
+# [essencial] Qual variante de cor. Vale qualquer par com o ACCENT: o tema sai
+# por DERIVAÇÃO da paleta, e a captura em assets/temas/capturados/ é
+# refinamento, não requisito. O pré-voo diz se este par ainda não tem a dele.
+#
+# "SÓ VALE O QUE TEM CAPTURA" ERA MENTIRA, E ELA SAÍA DUAS VEZES NA MESMA TELA
+# [corrigido em 21/09/2026]
+#   Este bloco dizia "só valem as combinações que já têm captura pronta". Na
+#   MESMA execução do `meow configurar`, cinco perguntas adiante, o wizard
+#   imprime «isto NÃO fecha a porta: o tema deste par sai por DERIVAÇÃO da
+#   paleta, e a captura é refinamento, não requisito» — duas frases do mesmo
+#   programa se contradizendo. E a linha `# > ` daqui é também o subtítulo do
+#   cartão no painel (`_frase_curta`, app/servidor.py), então a versão errada
+#   aparecia nas duas interfaces.
+#
+#   QUEM ESTÁ CERTO É A FRASE NOVA, e foi medido: `scripts/gerar_temas.py
+#   --saida <tmp> macchiato-teal dracula-sky latte-red frappe-yellow` escreveu
+#   os quatro `.ron`, rc=0 — nenhum dos quatro pares tem captura.
+#
+#   O QUE A CAPTURA MUDA é um passo a mais, não uma porta fechada: ela fixa o
+#   que o COSMIC desenhou na tela. Sem ela a etapa `tema` do install.sh se pula
+#   e as cores da janela ficam como estavam, até você importar
+#   `assets/temas/meowsystem-<flavor>-<accent>.ron` em Configurações >
+#   Aparência > Importar e rodar `meow tema capturar <flavor>-<accent>`.
 #
 # O DRACULA ENTROU COMO VARIANTE, NÃO COMO OUTRO TEMA — 15/09/2026
 #   A paleta dele tem as mesmas 26 cores nomeadas dos quatro flavors do

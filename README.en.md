@@ -144,9 +144,11 @@ not by good intentions — to write anywhere it doesn't know.
 This repository was born for one machine: **Pop!_OS 24.04 LTS with COSMIC**, `apt`, an RTX 4060
 and her Steam `.desktop` files. That coupling is allowed and written down — absolute paths, the
 `cosmic-greeter` uid, the list of programs the launcher hides. What you get in return is the
-opposite of the usual: `--wizard` asks only the five essential keys, `doctor` tells you what is
-out of place before the screen does, and nothing is applied without a copy of what was there
-before. If your machine looks like this one, install it. If it doesn't, read `doctor` — it talks.
+opposite of the usual: `--wizard` asks only the five essential keys — `FLAVOR`, `ACCENT`, `MODO`,
+`LANCADOR_SISTEMA` and `PONTE_ROOT` —, `doctor` tells you what is out of place before the screen
+does, and nothing is applied without a copy of what was there before. `LOGO`, which the installer
+also requires, comes filled in from `meow.conf.exemplo` and needs no answer. If your machine looks
+like this one, install it. If it doesn't, read `doctor` — it talks.
 
 ## Requirements
 

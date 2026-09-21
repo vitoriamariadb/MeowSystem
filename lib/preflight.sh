@@ -194,26 +194,6 @@ meow_preflight() {
   fi
   [ "$n_faltam" = "0" ] && meow_ok "os ${#COMANDOS[@]} comandos do caminho de instalação estão aqui"
 
-  # 6c. REDE. O pré-voo NÃO ABRE REDE — o cabeçalho deste arquivo promete isso,
-  #     e um `curl` de teste numa fase de diagnóstico é a mesma quebra de
-  #     promessa que o `flatpak info` foi. O que dá para saber sem mandar um
-  #     pacote é se existe ROTA PADRÃO, e isso está num arquivo: a linha do
-  #     `/proc/net/route` cujo destino é `00000000`. Sem rota, não há para onde
-  #     mandar, e dizer isso agora poupa três etapas descobrindo sozinhas.
-  #
-  #     Rota não é garantia de internet (portal de hotel tem rota e não tem
-  #     saída), e por isso o texto diz "sem rota padrão", que é o que foi
-  #     medido, e não "sem internet", que seria um palpite. As duas etapas que
-  #     baixam devolvem 3 desde 21/09/2026 e caem em "pulados" — o instalador
-  #     termina em 0 de qualquer jeito.
-  if [ -r /proc/net/route ] && ! awk 'NR>1 && $2=="00000000" {achou=1} END {exit !achou}' /proc/net/route; then
-    meow_pula "sem rota padrão — as etapas que baixam vão se pular"
-    meow_info "  dependem de rede: fontes (faces Nerd), upstream (Papirus pinado),"
-    meow_info "  agente (tema do Dracula), midia (applet compilado) e a semeadura"
-    meow_info "  do carrossel. Todas devolvem \"pulado\", e o instalador termina em 0."
-    avisos=$((avisos+1))
-  fi
-
   # 6b. O CARGO, E ELE MERECE UMA LINHA SÓ PARA SI.
   #     Até 24/08/2026 este projeto NÃO COMPILAVA NADA: um grep por
   #     `cargo|rustc|make|gcc|meson|cmake` em install.sh, scripts/, lib/ e
@@ -226,6 +206,53 @@ meow_preflight() {
   if ! meow_tem cargo; then
     meow_pula "sem cargo — o applet de mídia não é compilado (fica o do flatpak)"
     meow_info "  se quiser: rustup toolchain install stable, e rode o install.sh de novo"
+    avisos=$((avisos+1))
+  fi
+
+  # 6c. REDE. O pré-voo NÃO ABRE REDE — o cabeçalho deste arquivo promete isso,
+  #     e um `curl` de teste numa fase de diagnóstico é a mesma quebra de
+  #     promessa que o `flatpak info` foi. O que dá para saber sem mandar um
+  #     pacote é se existe ROTA PADRÃO, e isso está em arquivo.
+  #
+  #     Rota não é garantia de internet (portal de hotel tem rota e não tem
+  #     saída), e por isso o texto diz "sem rota padrão", que é o que foi
+  #     medido, e não "sem internet", que seria um palpite. As duas etapas que
+  #     baixam devolvem 3 desde 21/09/2026 e caem em "pulados" — o instalador
+  #     termina em 0 de qualquer jeito.
+  #
+  #     O IPv6 TAMBÉM É REDE — 21/09/2026
+  #       A primeira versão desta guarda lia só `/proc/net/route`, que é a
+  #       tabela IPv4. Numa máquina IPv6-only ela não acha destino `00000000`
+  #       nenhum e o pré-voo dizia "sem rota padrão" com a rota funcionando —
+  #       um aviso falso é exatamente o que faz pré-voo virar ruído. O segundo
+  #       arquivo é `/proc/net/ipv6_route`, e ali a rota padrão é destino todo
+  #       zero com prefixo `00`.
+  #
+  #       O `$10 != "lo"` NÃO É ENFEITE. Toda máquina com IPv6 ligado carrega
+  #       uma rota padrão de REJEIÇÃO no `lo` — conferida no disco em
+  #       21/09/2026, a linha
+  #           00000000000000000000000000000000 00 ... 00200200 lo
+  #       existe mesmo sem nenhuma interface configurada. Sem excluí-la, o teste
+  #       responderia "há rota" em TODA máquina, que é o oposto do defeito que
+  #       ele veio consertar. Medido com arquivos sintéticos: só essa linha do
+  #       `lo` -> "sem rota padrão"; com a default de uma interface -> silêncio.
+  local rota_lida=0 tem_rota=0
+  if [ -r /proc/net/route ]; then
+    rota_lida=1
+    awk 'NR>1 && $2=="00000000" {achou=1} END {exit !achou}' /proc/net/route && tem_rota=1
+  fi
+  if [ "$tem_rota" = "0" ] && [ -r /proc/net/ipv6_route ]; then
+    rota_lida=1
+    awk '$1 ~ /^0+$/ && $2=="00" && $10 != "lo" {achou=1} END {exit !achou}' \
+      /proc/net/ipv6_route && tem_rota=1
+  fi
+  # Sem nenhum dos dois arquivos legíveis não há medição, e um palpite aqui
+  # seria o mesmo aviso falso com outra causa: melhor calar.
+  if [ "$rota_lida" = "1" ] && [ "$tem_rota" = "0" ]; then
+    meow_pula "sem rota padrão (IPv4 nem IPv6) — as etapas que baixam vão se pular"
+    meow_info "  dependem de rede: fontes (faces Nerd), upstream (Papirus pinado),"
+    meow_info "  agente (tema do Dracula), midia (applet compilado) e a semeadura"
+    meow_info "  do carrossel. Todas devolvem \"pulado\", e o instalador termina em 0."
     avisos=$((avisos+1))
   fi
 
