@@ -4029,7 +4029,14 @@ function abrirGaveta(trabalho) {
   if (TRABALHO?.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve,
                rotulo: trabalho.rotulo, mudou: false };
-  $("#gaveta").hidden = false;
+  const gaveta = $("#gaveta");
+  gaveta.hidden = false;
+  /* O ARRASTO É PARA O MOMENTO, E NÃO PREFERÊNCIA GRAVADA — 21/09/2026
+   * Crescer a gaveta pela alça escreve um `height` no `style` do elemento, e é
+   * esse `height` que destrava o teto de 60vh no CSS. Apagá-lo na abertura faz
+   * a gaveta seguinte voltar aos 25% de sempre: quem esticou para ler um erro
+   * não pediu que toda saída futura comesse 60% da tela. */
+  gaveta.style.removeProperty("height");
   pastilhaDeTrabalho(false);
   $("#gaveta-titulo").textContent = trabalho.rotulo;
   $("#gaveta-comando").textContent = trabalho.comando;
@@ -4044,6 +4051,55 @@ function marcarEstado(classe, texto) {
   const el = $("#gaveta-estado");
   el.className = "pastilha p-" + classe;
   el.textContent = texto;
+}
+
+/* O QUE FICOU ABAIXO DO QUE ESTÁ À VISTA — 21/09/2026
+ * A gaveta cabe em 25% da tela desde hoje, e um instalador despeja centenas de
+ * linhas. Quem sobe para reler um erro perde o fio: a saída continua correndo,
+ * o `puxar` deixa de rolar sozinho de propósito (ver o `noFim`), e nada na tela
+ * diz quanto ficou para trás. Esta pastilha diz — e é um botão, porque quem
+ * quer o fim de volta não deveria ter de arrastar até lá.
+ *
+ * A conta é uma BUSCA BINÁRIA, e não um laço pelos filhos: os `<span>` nascem
+ * em ordem crescente de `offsetTop`, ler `offsetTop` força recálculo de layout,
+ * e um trabalho longo passa de mil linhas — a cada 400 ms.
+ *
+ * O `saida.offsetTop` na conta do limite não é enfeite, e custou duas linhas de
+ * erro na medição: `offsetTop` de uma linha é contado a partir do `offsetParent`
+ * — a `.gaveta`, que virou posicionada —, e não do `#saida`. Sem somar onde o
+ * `#saida` começa dentro dela, o limite fica alto demais pela altura do
+ * cabeçalho da gaveta, e a pastilha nunca chega a zero no fim do rolo. */
+function linhasAbaixo(saida) {
+  const fim = saida.offsetTop + saida.scrollTop + saida.clientHeight;
+  const n = saida.childElementCount;
+  let baixo = 0, alto = n;
+  while (baixo < alto) {
+    const meio = (baixo + alto) >> 1;
+    if (saida.children[meio].offsetTop >= fim) alto = meio;
+    else baixo = meio + 1;
+  }
+  return n - baixo;
+}
+
+function marcarLinhasAbaixo() {
+  const saida = $("#saida");
+  let aviso = document.getElementById("mais-abaixo");
+  if (!aviso) {
+    /* Nasce do JavaScript, e não do `index.html`: enquanto não há linha
+     * escondida ela não tem o que dizer, e um elemento vazio no HTML é um
+     * elemento que alguém um dia estiliza por engano. */
+    aviso = elemento("button", {
+      type: "button",
+      id: "mais-abaixo",
+      class: "btn btn-mini",
+      hidden: true,
+      onclick: () => { saida.scrollTop = saida.scrollHeight; marcarLinhasAbaixo(); },
+    });
+    $("#gaveta").append(aviso);
+  }
+  const n = linhasAbaixo(saida);
+  aviso.hidden = n === 0;
+  if (n) aviso.textContent = `mais ${n} ${n === 1 ? "linha" : "linhas"} abaixo`;
 }
 
 async function puxar() {
@@ -4061,6 +4117,7 @@ async function puxar() {
     if (linha.trimStart().startsWith("~~")) TRABALHO.mudou = true;
   }
   if (noFim) saida.scrollTop = saida.scrollHeight;
+  marcarLinhasAbaixo();
 
   if (!r.vivo) {
     clearInterval(TRABALHO.timer);
@@ -6319,6 +6376,9 @@ document.addEventListener("keydown", (ev) => {
 });
 
 $("#busca").addEventListener("input", render);
+/* Subir no meio de um trabalho tem de acender o «mais N linhas abaixo» NA HORA,
+ * e não no puxão seguinte, 400 ms depois: quem rolou está olhando para a tela. */
+$("#saida").addEventListener("scroll", marcarLinhasAbaixo);
 $("#fechar-gaveta").addEventListener("click", () => {
   $("#gaveta").hidden = true;
   /* FECHAR NÃO É PERDER DE VISTA — 07/09/2026

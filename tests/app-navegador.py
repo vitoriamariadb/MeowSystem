@@ -814,6 +814,81 @@ def main():
             checa("meow" in saida.lower() or "flavor" in saida.lower(),
                   "a saida e a do comando de verdade")
 
+            print("\n10b. A GAVETA CABE EM 25% E NÃO ENCOSTA NO MENU")
+            # Queixa dela, 21/09/2026: *"a tela do terminal, quando clicamos em
+            # aplicar ou salvar, toma até a tela do menu e cresce mais
+            # verticalmente — ocupa quase metade verticalmente da tela, ao invés
+            # de ser no máximo 25% (não afetando o menu lateral)"*.
+            #
+            # Medido antes da correção, em janela de 900 px: 414 px de gaveta
+            # (46% da tela) e o trilho caindo de 841 px para 427. A gaveta era
+            # IRMÃ do `.corpo`, e uma irmã que cresce rouba altura de quem está
+            # ao lado.
+            #
+            # A CONTA É DE RAZÃO, E NÃO DE PIXEL CRAVADO: este arquivo roda em
+            # 1500x1000 hoje e numa janela qualquer amanhã. 25% é a regra.
+            #
+            # E O «MENU INTEIRO» NÃO É `trilho == corpo`: antes da correção os
+            # dois já mediam o mesmo (427 px), porque quem encolhia era o
+            # `.corpo` INTEIRO, com o trilho dentro. O que separa o antes do
+            # depois é o `.corpo` chegar à beira de baixo da janela — tudo o que
+            # não é cabeçalho é dele.
+            gav = pag.evaluate("""() => {
+              const el = document.getElementById('gaveta');
+              const g = el.getBoundingClientRect();
+              const t = document.getElementById('trilho').getBoundingClientRect();
+              const c = document.querySelector('.corpo').getBoundingClientRect();
+              return { pct: Math.round(g.height / innerHeight * 100),
+                       trilho: Math.round(t.height), corpo: Math.round(c.height),
+                       fundo: Math.round(c.bottom), janela: innerHeight,
+                       pai: el.parentElement.id,
+                       presa: getComputedStyle(el).position };
+            }""")
+            checa(gav["pct"] <= 25,
+                  f"a gaveta ocupa {gav['pct']}% da altura da tela (o teto é 25%)")
+            checa(gav["fundo"] >= gav["janela"] - 1,
+                  f"e o corpo continua descendo até o rodapé da janela: "
+                  f"{gav['fundo']} px de {gav['janela']}")
+            checa(gav["trilho"] == gav["corpo"],
+                  f"e o menu ocupa a coluna dele inteira: {gav['trilho']} px de "
+                  f"trilho para {gav['corpo']} px de corpo")
+            # A CAUSA, E NÃO SÓ O SINTOMA. Um `max-height` menor consertaria o
+            # número e deixaria a gaveta irmã do `.corpo` — no dia em que ela
+            # voltasse a crescer, o menu encolheria de novo. Quem garante o
+            # trilho é o PAI, e é o pai que este passo confere.
+            checa(gav["pai"] == "principal",
+                  f"e ela é filha do #principal, não irmã do .corpo (pai: "
+                  f"{gav['pai'] or '<sem id>'})")
+            checa(gav["presa"] == "sticky",
+                  f"e está presa no rodapé da coluna ({gav['presa']}) — sem isso "
+                  "o conteúdo passa por baixo dela")
+            # O INDICADOR DE «ABAIXO». Com 25% de teto, quem sobe para reler um
+            # erro perde o fio do que continua chegando. A pastilha só tem o que
+            # dizer quando a saída não coube — então o passo só cobra quando ela
+            # de fato não coube.
+            rolavel = pag.evaluate("""() => {
+              const s = document.getElementById('saida');
+              s.scrollTop = 0;
+              s.dispatchEvent(new Event('scroll'));
+              return s.scrollHeight > s.clientHeight + 4;
+            }""")
+            pag.wait_for_timeout(250)
+            if rolavel:
+                aviso = pag.locator("#mais-abaixo")
+                visivel = aviso.count() == 1 and aviso.is_visible()
+                checa(visivel, "com a saída rolada para cima, a pastilha «mais N "
+                               "linhas abaixo» aparece")
+                texto_aviso = aviso.inner_text() if aviso.count() else ""
+                checa(bool(re.fullmatch(r"mais \d+ linhas? abaixo", texto_aviso)),
+                      f"e ela conta as linhas: «{texto_aviso}»")
+                if visivel:
+                    aviso.click()
+                    pag.wait_for_timeout(300)
+                    checa(not aviso.is_visible(),
+                          "e clicar nela devolve o fim da saída — a pastilha some")
+            else:
+                print("  -- a saída coube inteira na gaveta; nada a indicar abaixo")
+
             print("\n11. O ENSAIO SAIU DA PÁGINA")
             # Pedido dela em 13/09/2026: "eu tinha pedido pra tirar o app do
             # modo sandbox". O interruptor não pode voltar por engano, e a
