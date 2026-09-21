@@ -1,9 +1,9 @@
 # `app/` — o painel de configuração visual
 
 Uma página local que configura **tudo o que hoje só se configura editando o
-`~/.config/meow/meow.conf` ou digitando comandos do `meow`**. As 109 chaves, com
+`~/.config/meow/meow.conf` ou digitando comandos do `meow`**. As 121 chaves, com
 o valor que você escolheu, o que vinha de fábrica e a explicação de cada uma; e
-46 ações, com a saída aparecendo ao vivo enquanto rodam.
+50 ações, com a saída aparecendo ao vivo enquanto rodam.
 
 ```bash
 ./app/run.sh

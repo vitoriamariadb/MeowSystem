@@ -104,7 +104,7 @@ com teste.
   teste — porque o único workflow do repositório é o `anonymity-check.yml`, e
   **nenhum CI executa `tests/`**. Os 13 testes cobrem 6 dos 83 scripts;
   `pack.py`, que é o coração de P13 a P21, tem **zero** (P23).
-- **"O contrato do projeto" é citado por número 50 vezes em código** — regras 1,
+- **"O contrato do projeto" é citado por número em dezenas de linhas** — regras 1,
   4, 5, 7, 8 e 10 — **e a lista numerada não existe em lugar nenhum**. Cada
   leitor inventa a sua (P23).
 
@@ -124,6 +124,17 @@ com teste.
 - **Sem rede, o instalador morre em vez de pular:** duas etapas devolvem 2 onde
   as outras 56 devolvem 3 — e o remédio já existe em dois scripts do próprio
   repositório (P24).
+
+- **O `tests/conversor.sh` vermelho é REGRESSÃO, não ambiente.** Medido em
+  21/09 com o mesmo arquivo e a mesma máquina, trocando só a versão do
+  conversor: o commit `1e85809` de 16/09 (*"o conversor deixa de depender da
+  versão do numpy"*) trocou `np.argsort(-cont)` por `kind='stable'`. O
+  desempate passou a escolher outras cores no top-k, nasce uma fronteira de
+  contraste 55,7 — abaixo do limiar de 70 — e o `org.telegram.desktop.svg` sai
+  com 2 traços em vez de 4. **A trava da Sprint T está funcionando:** ela existe
+  para acusar arte aprovada que mudou, e é isso que está fazendo. O conserto é
+  decisão de ARTE, não de código — ou o limiar muda, ou o desenho novo do
+  Telegram passa a ser o aprovado. **Não entra em nenhuma sprint desta leva.**
 
 **O que a medição DERRUBOU:**
 
@@ -243,17 +254,18 @@ porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio
 
 | | |
 |---|---|
-| `install.sh` | 54 etapas; rodar de novo não escreve um byte |
-| `meow doctor` | **50** conferências; a única divergência é a arte convertida, e ela espera a folha |
-| painel | 109 chaves · 46 ações · 13 páginas de assunto |
+| `install.sh` | 58 etapas; rodar de novo não escreve um byte |
+| `meow doctor` | **62** conferências; a única divergência é a arte convertida, e ela espera a folha |
+| painel | 121 chaves · 50 ações · 13 páginas de assunto |
 | conferência do navegador | **123/123**, console limpo nas catorze páginas |
-| suítes de shell | `app`, `seco`, `reversao`, `um-cartao-por-jogo`, `convergencia`, `conversor`, `previa-cerca` — todas passam |
+| suítes de shell | 14 arquivos, e desde 21/09 a pergunta "a suíte passa?" se faz com `./tests/todos.sh`. O placar NÃO é copiado para cá de propósito: quadro de placar copiado à mão foi o que mentiu por três dias, e é o defeito que a P23 veio consertar. O `--portatil`, que é o que o CI roda, está verde; fora dele o `conversor` está vermelho por uma regressão medida em 21/09, não por ambiente — ver abaixo |
 
 **O QUE ENVELHECEU NESTE ARQUIVO:** tudo abaixo da linha é registro de sprint
 **fechada**, e fica como está — é história medida, não plano. Duas coisas que a
 leitura de hoje contradiz, e por isso ficam ditas aqui em cima:
 
-- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **50 conferências**;
+- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **62 conferências**
+  (eram 55 até 21/09; a P23 acrescentou as sete que faltavam);
 - o *"falta um logout"* daquela mesma leva **já aconteceu**: o doctor diz
   *"4 marcadores de pé no disco e na sessão"* e o pipewire está em 1.6.8.
 
@@ -2059,8 +2071,9 @@ foi fechada em 11/08**: a fronteira tem quatro casos e o carrossel está saudáv
 > Segundo, e é o que decide: **dos seis, cinco se defendem com medição.**
 > Bluetooth (dois controles DualSense em `/sys/class/power_supply/`, adaptador
 > batizado por ela), Rede (ela está em **Wi-Fi**, não em cabo — ícone de sinal é
-> informação), Som (desenha os ⏮⏸⏭), Energia (único caminho de desligar pela
-> barra) e o NowPlaying (que **ela mesma** pôs ali em 24/08, à mão, com backup).
+> informação), Som (desenha os botões de faixa anterior, pausa e próxima faixa),
+> Energia (único caminho de desligar pela barra) e o NowPlaying (que **ela
+> mesma** pôs ali em 24/08, à mão, com backup).
 > O único corte defensável é o **clipboard**, e só depois de ela ganhar um atalho
 > de teclado para o histórico — hoje o applet é o único acesso a ele. **O ganho
 > que a sprint queria já existe de graça.**

@@ -99,10 +99,25 @@ meow_seco()   { [ "$MEOW_SECO" = "1" ]; }
 #   esta função generaliza aquele comportamento, não inventa outro.
 #
 # POR QUE UMA FUNÇÃO, E NÃO UMA VARIÁVEL EXPORTADA
-#   Uma variável precisaria ser exportada em todo ponto de entrada (install.sh
-#   tem 54 etapas, bin/meow tem 46 ações) e esquecer um ponto daria o mesmo
-#   defeito de novo, calado. Uma função resolve na hora da chamada, e quem
-#   esquecer de usá-la aparece no grep de tests/estilo.sh.
+#   Uma variável precisaria ser exportada em TODO ponto de entrada — as etapas
+#   do install.sh e as ações do bin/meow, que são dezenas — e esquecer um ponto
+#   daria o mesmo defeito de novo, calado. Uma função resolve na hora da
+#   chamada, e quem esquecer de usá-la aparece no grep de tests/estilo.sh.
+#
+#   O NÚMERO EXATO SAIU DAQUI EM 21/09/2026, E NÃO FOI ATUALIZADO
+#     Esta linha dizia "54 etapas, 46 ações". Eram 58 e 50 desde o commit que
+#     as mudou, e este arquivo foi editado DEPOIS dele sem que ninguém notasse:
+#     o `tests/numeros.sh` cobra README, LEIA-ME e SPRINTS, e não cobra
+#     comentário de biblioteca. Um número sem cobrador apodrece — a armadilha
+#     nº 3 do projeto num único inteiro. Quem conta de verdade é o
+#     `_medidas_do_projeto()` do `app/servidor.py`; aqui o que vale é a ordem
+#     de grandeza, e ela não muda.
+#
+#   E O `grep` DO tests/estilo.sh PASSOU A EXISTIR NO MESMO DIA
+#     Até 21/09/2026 a frase acima descrevia uma cobrança que não estava
+#     escrita em lugar nenhum: o `tests/estilo.sh` mede a caneta do conversor e
+#     não olhava uma linha de código. Agora ele abre com essa varredura, antes
+#     das guardas de dependência, e ela morde de verdade.
 #
 # QUEM NÃO PODE USAR ESTA FUNÇÃO
 #   Os cinco consumidores em Python. Eles repetem as três linhas equivalentes,
