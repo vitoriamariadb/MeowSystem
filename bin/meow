@@ -336,11 +336,27 @@ chk_conf() {
 # projeto. Enquanto ele estivesse aqui, o `--consertar` das 5h regeraria os gatos
 # excluídos toda madrugada.
 chk_gerar() {
-  local rc=0 msg=""
-  python3 "$RAIZ/scripts/gerar_temas.py" --conferir >/dev/null 2>&1 \
-    || { rc=1; msg="algum .ron saiu da paleta"; }
+  local rc=0 msg="" rc_ron=0
+  # AUSENTE NÃO É DIVERGENTE, E A DIFERENÇA NASCEU COM A P14 — 22/09/2026
+  #   Os `.ron` saíram do git (são produto de `gerar_temas.py`) e passaram a
+  #   nascer em `$MEOW_ESTADO/temas/`. Numa máquina que ainda não rodou o
+  #   instalador eles simplesmente NÃO EXISTEM — e chamar isso de "saiu da
+  #   paleta" faria o doctor abrir amarelo, na primeira execução de todo mundo,
+  #   por algo que ninguém fez de errado. O `gerar_temas.py --conferir` passou a
+  #   separar os dois casos: 3 = falta gerar, 1 = existe e está diferente.
+  #   Devolver 3 aqui faz a linha sair como "pulado", que é a verdade.
+  python3 "$RAIZ/scripts/gerar_temas.py" --conferir >/dev/null 2>&1; rc_ron=$?
+  case "$rc_ron" in
+    0) ;;
+    "$MEOW_SEM_DEPENDENCIA") ;;
+    *) rc=1; msg="algum .ron saiu da paleta" ;;
+  esac
   python3 "$RAIZ/scripts/gerar_tema_v1.py" --conferir >/dev/null 2>&1 \
     || { rc=1; msg="${msg:+$msg; }a v1 das capturas saiu da paleta"; }
+  if [ "$rc" = "0" ] && [ "$rc_ron" = "$MEOW_SEM_DEPENDENCIA" ]; then
+    echo "os .ron ainda não foram gerados nesta máquina — 'meow doctor --consertar' os escreve em $MEOW_ESTADO/temas/"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
   # QUEM NOMEIA O ARQUIVO É O `meow_paleta_nome` — 22/09/2026
   #   Esta linha dizia "conferem com assets/paleta/", e a P13 esvaziou esse
   #   diretório: só o `cosmic-map.json`, que é do MOTOR, ficou lá. A paleta

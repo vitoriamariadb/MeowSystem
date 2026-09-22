@@ -300,7 +300,17 @@ def main() -> int:
     combos = args.combos or _combos_do_conf(paleta)
 
     args.saida.mkdir(parents=True, exist_ok=True)
+    # AUSENTE E DIVERGENTE NÃO SÃO A MESMA NOTÍCIA — 22/09/2026
+    #     Enquanto os `.ron` eram versionados, "ausente" só acontecia se alguém
+    #     os apagasse: os dois casos podiam sair pelo mesmo rc=1. Desde que eles
+    #     saíram do git, AUSENTE é o estado normal de uma máquina que ainda não
+    #     rodou o instalador — e chamá-lo de divergência faria o `meow doctor`
+    #     abrir amarelo, na primeira execução de todo mundo, por algo que
+    #     ninguém fez de errado. Divergente continua sendo divergente: ali o
+    #     arquivo EXISTE e não é o que a paleta diz, que é o defeito que esta
+    #     conferência veio pegar.
     divergentes = []
+    ausentes = []
     for combo in combos:
         if "-" not in combo:
             sys.exit(f"ERRO: '{combo}' não está no formato flavor-accent.")
@@ -311,7 +321,9 @@ def main() -> int:
         if args.conferir:
             atual = destino.read_text() if destino.is_file() else None
             estado = "ok" if atual == conteudo else ("ausente" if atual is None else "divergente")
-            if estado != "ok":
+            if estado == "ausente":
+                ausentes.append(destino.name)
+            elif estado == "divergente":
                 divergentes.append(destino.name)
             print(f"  {estado:11s} {destino.name}")
             continue
@@ -326,6 +338,12 @@ def main() -> int:
     if args.conferir and divergentes:
         print(f"\n{len(divergentes)} arquivo(s) fora do esperado. Rode sem --conferir para regerar.")
         return 1
+    if args.conferir and ausentes:
+        # 3 é o `MEOW_SEM_DEPENDENCIA` do projeto: "não dá para conferir, falta
+        # o produto". O `install.sh:821` faz `|| rc=1` e regenera do mesmo jeito;
+        # quem lê os três códigos separados é o `chk_gerar` do bin/meow.
+        print(f"\n{len(ausentes)} arquivo(s) ainda não gerados nesta máquina.")
+        return 3
     return 0
 
 
