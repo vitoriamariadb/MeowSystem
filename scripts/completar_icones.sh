@@ -301,18 +301,39 @@ if ! grep -q '^Directories=.*scalable/apps' "$TEMA_DIR/index.theme"; then
   meow_info "sem essa declaração o ícone é ignorado mesmo estando no lugar certo"
   exit "$MEOW_ERRO"
 fi
-# O python3 desenha os SVGs a partir da paleta — mas os oito SVGs prontos ESTÃO
-# VERSIONADOS no `icones/autorais/` do pack. Sair 3 aqui recusaria um trabalho que dá
-# para fazer: numa máquina sem python3 os ícones já existem no clone e só faltava
-# copiá-los. Então falta de python3 vira AVISO, e só vira dependência ausente
-# (código 3) lá embaixo, se o flavor pedido de fato não estiver no repositório —
-# aí sim ninguém consegue produzi-lo. Mesma disciplina do Papirus ausente.
+# O PYTHON3 DEIXOU DE SER SÓ O DESENHISTA — 22/09/2026
+#   O parágrafo que estava aqui dizia que sem python3 "os ícones já existem no
+#   clone e só faltava copiá-los", e isso foi verdade enquanto o acervo autoral
+#   tinha endereço fixo (`assets/icones/autorais/`). Deixou de ser nesta mesma
+#   sprint: o `AUTORAIS` lá em cima passou a SAIR de `pack.py onde`, e sem
+#   python3 ele sai vazio.
+#
+#   MEDIDO com um PATH sem python3, antes do conserto: `_pack_ref=[]`,
+#   `AUTORAIS=[]`, e a fonte do primeiro ícone virava `/cosmic-edit-mocha.svg`
+#   — um caminho na RAIZ DO SISTEMA, que é exatamente o defeito que o
+#   `meow_pack_padrao_dir` descreve em lib/comum.sh ("o que sai do meow_paleta
+#   vira /paleta.json: um caminho que não existe e que mandaria a pessoa
+#   procurar a paleta na raiz do sistema").
+#
+#   Então o aviso continua sendo aviso — o que se perde por falta de python3 é
+#   a CONFERÊNCIA contra a paleta, e isso não justifica sair 3. Quem manda parar
+#   é o endereço vazio, na guarda logo abaixo, e ela é melhor que a antiga
+#   porque cobre também o pack cujo `onde` recusa por outro motivo.
 SEM_PYTHON=0
 if ! meow_tem python3; then
   meow_aviso "python3 ausente — não dá para conferir os SVGs contra a paleta"
-  meow_info "  os autorais já versionados no pack continuam entrando"
   SEM_PYTHON=1
   avisos=1
+fi
+# SEM ENDEREÇO NÃO SE INSTALA NADA, E O ERRO TEM DE NOMEAR A CAUSA
+#   Vale no seco também: um `--conferir` que não sabe de que diretório sairiam
+#   os ícones não tem nada de verdadeiro para relatar — ele imprimiria
+#   "instalaria X.svg" dezoito vezes sobre um caminho que começa em `/`.
+if [ -z "$AUTORAIS" ]; then
+  meow_erro "não sei onde mora o acervo autoral do pack ativo"
+  meow_info "  quem responde esse endereço é 'scripts/pack.py onde', e ele precisa de python3"
+  meow_info "  (ou o pack recusou: rode 'meow pack validar' para ver o motivo)"
+  exit "$MEOW_SEM_DEPENDENCIA"
 fi
 
 meow_destino_permitido "$ALVO" || exit "$MEOW_ERRO"
@@ -360,6 +381,14 @@ for nome in "${!AUTORAL[@]}"; do
     if [ "$SEM_PYTHON" = "1" ]; then
       # Aqui, e SÓ aqui, a falta de python3 vira dependência ausente: o SVG deste
       # flavor não está no repositório e não há com que desenhá-lo.
+      #
+      # NÃO SE CHEGA MAIS AQUI POR FALTA DE PYTHON3 — 22/09/2026, e fica escrito
+      # em vez de apagado. Desde que o `AUTORAIS` passou a sair de `pack.py
+      # onde`, `SEM_PYTHON=1` implica `AUTORAIS` vazio, e a guarda lá em cima já
+      # saiu com o mesmo código, nomeando a causa certa. O ramo continua de pé
+      # porque a condição dele ainda é a verdadeira (falta o SVG e não há com
+      # que desenhá-lo) e porque apagá-lo esconderia a pergunta de quem um dia
+      # der ao resolvedor uma porta que não precise de python3.
       meow_erro "falta $fonte e não há python3 para desenhá-lo"
       meow_info "  instale python3 ou rode com um FLAVOR já versionado no acervo do pack"
       exit "$MEOW_SEM_DEPENDENCIA"

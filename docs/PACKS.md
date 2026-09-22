@@ -407,6 +407,31 @@ troca de pack:
 | `gatos/` | a marca MeowSystem. O seu pack pode trazer os dele; estes são os de casa |
 | `appid.map`, `wmclass.map`, `apps-nomes.map` | identidade técnica de aplicativo. Não é gosto, é fato da máquina |
 
+### O que ainda **não** desceu, e ninguém deve ler isto como pronto
+
+A regra lá em cima — *o mapa é do pack* — está escrita e o resolvedor está de
+pé. Cinco mapas que são **decisão de tema** continuam em `assets/icones/`, e
+estão listados aqui porque uma migração pela metade que não se declara é pior
+que a de antes: quem lê a regra e não vê a exceção escreve um pack contando com
+o que não existe.
+
+A ordem que a P27 manda é `estrutura -> resolvedor -> mover -> apagar`. O que
+falta a estes cinco é o **terceiro** passo, e para quatro deles falta antes uma
+decisão de formato.
+
+| ainda em `assets/icones/` | quem lê | o que falta |
+|---|---|---|
+| `sistema.map` (30 linhas) | `icones_sistema.sh` | o formato do pack tem **quatro** categorias (`apps`, `pastas`, `mimetypes`, `autorais`) e `sistema` não é uma delas. Descer o mapa é abrir a quinta — em `validar`, no `pack.json` e aqui |
+| `apps-arcticons.map` (16) | `icones_apps_arcticons.sh` | os quatro caem no **mesmo** `icones.apps.mapa`, que já tem dono e formato: `nome : caminho`, duas colunas. Estes quatro têm três e quatro colunas, e cada um as suas — `nome:glifo:cor:tipo`, `nome:caminho:cor`, `nome:cor:nota`, `nome:caminho:dono`. Juntá-los não é renomear arquivo: é decidir um formato de mapa de aplicativo que caiba nos cinco, e reescrever os leitores que recolorem por categoria |
+| `apps-convertidos.map` (31) | `icones_apps_arcticons.sh` | o mesmo da linha acima |
+| `apps-marca.map` (13) | `icones_apps_arcticons.sh` | o mesmo da linha acima |
+| `apps-resgatados.map` (22) | `icones_resgatados.sh` | o mesmo da linha acima |
+
+`pastas.map` **não** está nesta lista: o leitor dele já pergunta ao pack
+(`icones.pastas.mapa`) e só cai em `assets/` quando nenhum pack declara o seu.
+O arquivo continua lá porque o quarto passo é apagar, e apagar antes de algum
+pack trazer o seu deixaria as sete pastas sem ícone.
+
 ---
 
 ## Quem vence: o pack ou o `meow.conf`

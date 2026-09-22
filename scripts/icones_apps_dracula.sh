@@ -106,9 +106,30 @@ ICONES_BASE_MAPA="$(dirname "$MAPA")"
 _dracula_pares() {
   [ -f "$MAPA" ] || return 1
   local cru
+  # O CAMINHO É TUDO DEPOIS DO PRIMEIRO `:`, E NÃO O CAMPO 2 — 22/09/2026
+  #   Era `caminho=$2`, e com `-F:` isso significa "até o PRÓXIMO dois-pontos".
+  #   A linha que esta sprint dá como exemplo tem dois:
+  #
+  #       org.telegram.desktop : motor:arcticons/telegram.svg
+  #
+  #   São três campos para o `awk`, e `$2` valia ` motor` — o alvo resolvido
+  #   virava `<pack>/icones/motor`, um diretório. Medido antes do conserto: a
+  #   saída era `org.telegram.desktop<TAB>motor`, e o recurso inteiro que a P27
+  #   veio entregar ficava inerte no único ponto de integração que existe. Pior:
+  #   o `pack.py alvo` nunca via o prefixo, então a guarda de caminho dele não
+  #   recusava `motor:../../../etc/passwd` — ela recusa `motor:`, e o que
+  #   chegava lá era `motor`.
+  #
+  #   É o MESMO defeito que o parágrafo acima já contava ter previsto para o
+  #   `#`: "uma linha com `#` no meio viraria três campos e o caminho sairia
+  #   truncado no `#`". A previsão estava certa e o remédio só cobriu metade dos
+  #   casos — o `sed` corta o comentário, mas o prefixo do próprio formato de
+  #   mapa continuava partindo a linha. `substr` a partir do primeiro `:` não
+  #   conta campos: ele diz "nome é o que vem antes, caminho é o resto", que é o
+  #   formato escrito em docs/PACKS.md.
   cru="$(sed -e 's/#.*//' "$MAPA" | awk -F: '
     NF>=2 {
-      nome=$1; caminho=$2
+      nome=$1; caminho=substr($0, index($0, ":") + 1)
       gsub(/^[ \t]+|[ \t]+$/, "", nome)
       gsub(/^[ \t]+|[ \t]+$/, "", caminho)
       if (nome != "" && caminho != "") print nome "\t" caminho
@@ -201,7 +222,29 @@ _dracula_remover() {
     # do mesmo jeito: é comparando o conteúdo da origem com o que está no tema
     # que o `_dracula_remover` decide se o arquivo é nosso.
     origem="$caminho"
-    if [ -f "$origem" ] && [ "$(cat "$origem")" != "$(cat "$ALVO/$nome.svg")" ]; then
+    # SEM ORIGEM NÃO SE PROVA POSSE, E SEM PROVA NÃO SE APAGA — 22/09/2026
+    #   Era `[ -f "$origem" ] && [ conteúdo difere ]` numa condição só: com a
+    #   origem ausente o `&&` curto-circuitava, o `continue` não acontecia, e o
+    #   fluxo caía direto no `rm -f` lá embaixo. A guarda que o cabeçalho deste
+    #   bloco descreve — "só apaga o que é nosso, conferindo o conteúdo" — ficava
+    #   DESLIGADA exatamente quando não dá para conferir.
+    #
+    #   E o `pack.py alvo` criou um segundo jeito de cair aqui: a linha recusada
+    #   sai VAZIA, de propósito, para não quebrar o alinhamento do `paste`. Vazio
+    #   não casa com arquivo nenhum na instalação (vira o aviso "no mapa mas sem
+    #   desenho no disco"), mas aqui virava `origem=""`, `[ -f "" ]` falso, e o
+    #   `rm -f` sem conferência nenhuma. Um mapa de pack de terceiro com
+    #   `motor:../../../etc/passwd` era recusado pela guarda do resolvedor e a
+    #   recusa APAGAVA o `$ALVO/$nome.svg` de quem quer que fosse o dono.
+    #
+    #   Não conferir é motivo para deixar quieto, nunca para apagar: a linha na
+    #   tela diz qual arquivo ficou e por quê, que é o contrário de "se perde o
+    #   trabalho de outra pessoa sem nada na tela dizendo que se perdeu".
+    if [ ! -f "$origem" ]; then
+      meow_info "  $nome.svg: sem a origem não dá para conferir se é nosso — fica como está"
+      continue
+    fi
+    if [ "$(cat "$origem")" != "$(cat "$ALVO/$nome.svg")" ]; then
       meow_info "  $nome.svg não é o desenho do acervo — fica como está"
       continue
     fi

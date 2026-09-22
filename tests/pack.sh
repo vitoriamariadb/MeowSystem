@@ -565,12 +565,12 @@ for pid in sorted(os.listdir(base) if os.path.isdir(base) else []):
         continue
     svgs = [a for a in os.listdir(acv) if a.endswith(".svg")]
     conta = {f: sum(1 for a in svgs if a.endswith("-%s.svg" % f)) for f in flavors}
-    # Acervo autoral inteiro vazio é outra coisa — é um pack que nao desenha,
-    # e isso e legitimo. O achado e o flavor vazio ao lado de um irmao cheio.
+    # Acervo autoral inteiro vazio é outra coisa — é um pack que não desenha,
+    # e isso é legítimo. O achado é o flavor vazio ao lado de um irmão cheio.
     if any(conta.values()):
         for f, n in sorted(conta.items()):
             if n == 0:
-                print("%s: o flavor %r nao tem nenhum autoral, e os irmaos tem" % (pid, f))
+                print("%s: o flavor %r não tem nenhum autoral, e os irmãos têm" % (pid, f))
 PY
 )"
 [ -z "$vazios" ] \
@@ -612,6 +612,36 @@ fugas="$(printf '%s\n' "$entrada" \
 [ -z "$fugas" ] \
   && ok "alvo que sai da raiz é recusado, e a linha volta vazia" \
   || falha "o resolvedor deixou um alvo escapar da raiz:" "$fugas"
+
+# --- 16b. e o PARSER do mapa tem de entregar o prefixo inteiro --------------
+#
+#   O teste 16 acima alimenta o `pack.py alvo` pelo STDIN, e por isso ele passava
+#   com o único ponto de integração que existe quebrado: o `_dracula_pares` do
+#   `icones_apps_dracula.sh` cortava a linha com `awk -F:` e pegava `$2`, que
+#   para `nome : motor:caminho` vale ` motor`. O alvo virava `<pack>/icones/motor`
+#   e o prefixo nunca chegava ao resolvedor — nem para resolver, nem para ser
+#   recusado. Um teste que pula o parser não mede o recurso; mede metade dele.
+#
+#   Então este mede a linha do mapa até o caminho no disco, com a função
+#   VERBATIM do script — e o `sed` que a extrai é de propósito: copiar o `awk`
+#   para cá criaria uma segunda cópia do parser, e seria ela que passaria no dia
+#   em que a primeira quebrasse.
+mapa_t="$T/apps-parser.map"
+printf '%s\n' \
+  'um.motor : motor:arcticons/telegram.svg' \
+  'dois.pack : apps/Warehouse.svg' \
+  'tres.comentario : apps/Warehouse.svg # a procedência não entra em nada' \
+  > "$mapa_t"
+pares="$(MAPA="$mapa_t" ICONES_BASE_MAPA="$base_mapa" RAIZ="$RAIZ" bash -c '
+  set -uo pipefail
+  eval "$(sed -n "/^_dracula_pares() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
+  _dracula_pares' 2>/dev/null)"
+esperado_p="um.motor	$RAIZ/assets/icones/arcticons/telegram.svg
+dois.pack	$base_mapa/apps/Warehouse.svg
+tres.comentario	$base_mapa/apps/Warehouse.svg"
+[ "$pares" = "$esperado_p" ] \
+  && ok "o parser do mapa entrega o prefixo 'motor:' inteiro ao resolvedor" \
+  || falha "o parser do mapa truncou o caminho — o 'motor:' não chega ao resolvedor" "$pares"
 
 # --- 17. a porta de quem ESCREVE responde antes de o diretório existir -------
 #   O `acervo` só responde o que já está no disco, e essa é a resposta certa

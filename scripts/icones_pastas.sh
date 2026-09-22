@@ -99,7 +99,26 @@ _pastas_do_pack="$(meow_pack_arquivo icones/pastas assets/icones/pastas-dracula)
 if [ -n "$_pastas_do_pack" ] && [ -d "$_pastas_do_pack" ]; then
   ORIGEM="$_pastas_do_pack"
 fi
-MAPA="$RAIZ/assets/icones/pastas.map"
+# O MAPA VEM DA DECLARAÇÃO DO PACK, COM QUEDA PARA O NÚCLEO — 22/09/2026
+#   Era `$RAIZ/assets/icones/pastas.map`, cravado. A docs/PACKS.md desta mesma
+#   sprint documenta `pastas.map` como parte da forma do pack e diz que "cada
+#   categoria declara os dois no pack.json" — e o `validar` passou a cobrar a
+#   existência do que se declara. Com o caminho cravado aqui, um pack que
+#   declarasse `icones.pastas.mapa` passava no validador e a declaração não
+#   vestia um único ícone: é a DECLARAÇÃO MORTA que o bloco `CAMPOS_COM_LEITOR`
+#   do pack.py existe para caçar, entrando pela porta da documentação. O
+#   wildcard `icones.*.mapa` a isenta do aviso, então ninguém a acusaria.
+#
+#   Mesma porta do `ORIGEM` acima (`acervo`, que SOBE A HERANÇA), e o mesmo
+#   `|| MAPA=""` pelo mesmo motivo.
+#
+#   A QUEDA NÃO É DECORAÇÃO: nenhum pack declara `icones.pastas.mapa` hoje, e
+#   sem ela este script pararia de vestir as sete pastas na primeira execução
+#   depois deste commit. A ordem que a P27 manda é "estrutura -> resolvedor ->
+#   mover -> apagar"; aqui está o resolvedor, e o arquivo do núcleo só sai
+#   quando algum pack trouxer o dele.
+MAPA="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.pastas.mapa)" || MAPA=""
+[ -n "$MAPA" ] || MAPA="$RAIZ/assets/icones/pastas.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 DESTINO="$HOME/.local/share/icons/$TEMA/scalable/places"
 
