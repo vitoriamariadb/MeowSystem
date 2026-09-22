@@ -1139,12 +1139,34 @@ um bom motivo, e o `packs/dracula/pack.json` explica qual — apagou a conta e
 |---|---|---|
 | `assets/prompt/LEIAME.md:145-174` e `aurora.patch:14-20` | `patch -p1 < /mnt/Apate/.../src/prompt/aurora.patch` | o disco não existe **e** `src/prompt/` virou `assets/prompt/` |
 | `src/applets/now-playing/LEIA.md:199,202` | regenerar o patch do applet gravando em `/mnt/Apate` | idem |
-| `scripts/compositor_patches.sh:137-145` | sem o "Ritual da Aurora", `conferir` devolve divergência e manda rodar `aurora-cosmic-comp-ws.sh --build` | o script não existe nesta máquina, nem no repositório |
+| `scripts/compositor_patches.sh:137-145` | a linha de conserto manda rodar `aurora-cosmic-comp-ws.sh --build`, **sem caminho** | o script **existe** (`~/.config/zsh/scripts/`, 53 KB, 18/09) mas não está no `PATH` — ver a correção abaixo |
 
-**O `compositor_patches.sh` é o pior dos três**, porque não é doc: ele faz o
-`meow doctor` devolver divergência **todo dia, para sempre**, apontando para um
-script de outro projeto. Um doctor que nunca fica verde é um doctor que a pessoa
-aprende a ignorar — e aí ele para de servir para qualquer coisa.
+> **CORREÇÃO DE 21/09, e ela inverte o item 4 desta sprint.** Eu afirmei que
+> `aurora-cosmic-comp-ws.sh` *"não existe nesta máquina, nem no repositório"*.
+> **Existe:** `/home/andrefarias/.config/zsh/scripts/aurora-cosmic-comp-ws.sh`,
+> 53.285 bytes, 18/09. Procurei em `Spellbook-OS/` — o repositório — e ele mora
+> no Spellbook **instalado**, que é outro caminho.
+>
+> **E a divergência que o doctor mostra é VERDADEIRA, não ruído.** Medido:
+>
+> ```
+> /usr/bin/cosmic-comp          reescrito em 21/09 08:17:44
+> grep -a 'AURORA-' no binário  VAZIO
+> /var/lib/aurora/…estado       versão a557859, de 17/09, com os 5 "presente"
+> ```
+>
+> **O apt atualizou o compositor hoje de manhã e levou os cinco patches
+> junto, calado.** O doctor é o único alarme que pegou isso. **Silenciá-lo,
+> que era o item 4, apagaria o alarme** — e o item 4 sai da sprint por isso.
+>
+> O defeito real ali é muito menor: a linha de conserto não imprime o caminho
+> do script. Ela passa a imprimir o caminho absoluto quando ele existe no
+> disco, e uma frase diferente quando não existe.
+
+**O `compositor_patches.sh` não é doc**, e é o caso em que a divergência diária
+tem valor: ela é o que avisa quando uma atualização de pacote desfaz o
+compositor. O que estava errado não era conferir — era mandar rodar um comando
+que a pessoa não consegue achar.
 
 ### O que a mesma varredura achou de CERTO, e que não se deve mexer
 
