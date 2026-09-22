@@ -1736,6 +1736,36 @@ def conf_exportada():
 
       None quer dizer "não consegui ler", e aí o trabalho NÃO roda: rodar com as
       chaves no padrão é exatamente o defeito que esta função existe para curar.
+
+    A PONTE VEM JUNTO, E PELO MESMO MOTIVO — 22/09/2026
+      O `app/run.sh` chama o `meow_ponte_python` na SUBIDA do servidor, e o
+      `_ambiente_do_painel` é `dict(os.environ, ...)`: sem as linhas abaixo, todo
+      trabalho herdava o `MEOW_PALETA` do INSTANTE DA SUBIDA. Esta função já
+      relia FLAVOR e PACK do conf fresco e não mexia na paleta — então trocar o
+      FLAVOR na tela e clicar «Instalar tudo» mandava o `install.sh` com FLAVOR
+      novo e paleta velha. Medido no dia: a paleta saindo do `catppuccin.json`
+      embutido com o `MEOW_PACK_DIR` apontando para `packs/dracula`, o
+      `gerar_temas.py` morrendo em "flavor 'dracula' desconhecido", o
+      `etapa_gerar` caindo em FALHOS e o instalador seguindo — a «metade Nord,
+      metade Catppuccin» que a P20 existe para matar, entrando pela porta do
+      painel.
+
+      QUEM RESOLVE É A MESMA FUNÇÃO DE SEMPRE, e não uma segunda cópia em
+      Python: o bash abaixo carrega o `lib/comum.sh` DEPOIS do `.` do conf, de
+      modo que a ponte vê o PACK/FLAVOR recém-lidos. Uma resolução escrita aqui
+      seria a armadilha nº 3 de novo — duas versões da mesma regra, e a que
+      discordasse não daria erro.
+
+      QUANDO A PONTE RECUSA, O QUE SAI VAZIO É SÓ O QUE ELA MESMA PÔS — e o
+      trabalho RODA assim mesmo. Vazio é o mesmo sinal que "ninguém exportou": o
+      shell cai no `meow_paleta` e o Python no embutido. Devolver None aqui
+      travaria o painel inteiro — inclusive o «Desfazer» e o «Conferir a
+      máquina» — por causa de um arquivo de cor, que é o oposto do que o
+      `install.sh` decidiu ao pôr a ponte depois do desinstalar.
+
+      Um `MEOW_PALETA` que seja DA PESSOA atravessa intacto, mesmo quebrado: ele
+      é a escolha dela, e quem tem de recusá-lo, nomeando o arquivo, é o
+      `install.sh` — no log que ela está olhando, e não aqui, calado.
     """
     fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
     nomes = []
@@ -1756,12 +1786,24 @@ def conf_exportada():
         'set +a\n'
         'FLAVOR="${FLAVOR:-mocha}"; ACCENT="${ACCENT:-mauve}"\n'
         'MODO="${MODO:-escuro}"; LOGO="${LOGO:-$FLAVOR}"\n'
-        'shift\n'
+        'export MEOW_RAIZ="$2"\n'
+        '. "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1 || true\n'
+        'if ! meow_ponte_python >/dev/null 2>&1; then\n'
+        '  if [ "${MEOW_PALETA:-}" = "${MEOW_PALETA_DA_PONTE:-}" ]; then\n'
+        '    MEOW_PALETA=""; MEOW_PACK_DIR=""; MEOW_PALETA_DA_PONTE=""\n'
+        '  fi\n'
+        'fi\n'
+        'shift 2\n'
         'for k in "$@"; do printf "%s=%s\\0" "$k" "${!k-}"; done\n'
     )
+    # As três da ponte vão na MESMA lista de nomes: o `${!k-}` do laço acima as
+    # colhe como colhe qualquer chave do conf, e o chamador as recebe já prontas
+    # para o `ambiente.update(conf)`.
+    da_ponte = ["MEOW_PALETA", "MEOW_PACK_DIR", "MEOW_PALETA_DA_PONTE"]
     try:
         feito = subprocess.run(
-            ["bash", "-c", programa, "_", fonte, *nomes, "FLAVOR", "ACCENT", "MODO", "LOGO"],
+            ["bash", "-c", programa, "_", fonte, RAIZ,
+             *nomes, "FLAVOR", "ACCENT", "MODO", "LOGO", *da_ponte],
             capture_output=True, timeout=20,
         )
     except (OSError, subprocess.SubprocessError):
@@ -5043,9 +5085,17 @@ class Manipulador(BaseHTTPRequestHandler):
         #   Quem resolve agora é o `acervo` do scripts/pack.py, que sobe pack ->
         #   herança -> motor e enxerga as três raízes (ver `modulo_pack`).
         #
-        #   A QUEDA PARA `assets/icones/apps-dracula.map` CONTINUA, e continua
-        #   sendo o `motor`: quem ainda não migrou o acervo para dentro de um
-        #   pack precisa dela. É o mesmo contrato do `meow_pack_arquivo`.
+        #   A QUEDA PARA `assets/icones/apps-dracula.map` CONTINUA — E O ARQUIVO
+        #   NÃO EXISTE MAIS. Conferido em 22/09/2026: ele nasceu em 75a7b25 e
+        #   saiu da árvore em e0243c4 (18/09), quando o acervo do Dracula virou
+        #   `packs/dracula/icones/apps.map`. Ela fica porque é o MESMO par que a
+        #   linha `MAPA=` do `scripts/icones_apps_dracula.sh` passa ao
+        #   `meow_pack_arquivo`, e duas resoluções da mesma coisa com quedas
+        #   diferentes é como elas passam a discordar — mas ela é um caminho
+        #   morto, não um contrato vivo: hoje não há ninguém "que ainda não
+        #   migrou". A regra da casa é apontar o código morto, não apagá-lo;
+        #   quando o `packs/catppuccin/` nascer (P13), o `motor` deixa de ter
+        #   razão de ser e sai junto.
         caminho = ""
         mod = modulo_pack()
         if mod:

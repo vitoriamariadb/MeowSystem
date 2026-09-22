@@ -146,6 +146,8 @@ meow_app_pendente() {
 #
 # O CONTRATO, em ordem de precedência
 #   1. $MEOW_PALETA       caminho completo. É a porta de teste e a que um pack usa.
+#                         Só vale quando foi a PESSOA que a pôs — ver o bloco
+#                         "O ECO DA PONTE NÃO É ESCOLHA DE NINGUÉM", abaixo.
 #   2. $PALETA_ARQUIVO    só o nome, resolvido dentro de assets/paleta/.
 #   3. catppuccin.json    o embutido, que continua sendo o default de sempre.
 #   A ordem é EXATAMENTE a de scripts/gerar_temas.py:52-54, que já funcionava —
@@ -177,8 +179,44 @@ meow_app_pendente() {
 #   com um comentário apontando para cá — é o idioma que gerar_temas.py já usava,
 #   e acrescentar um módulo importável entre `scripts/` e `app/` traria um
 #   problema de sys.path que este projeto não tem hoje.
+#
+# O ECO DA PONTE NÃO É ESCOLHA DE NINGUÉM [22/09/2026]
+#   O curto-circuito abaixo lia `$MEOW_PALETA` e devolvia sem olhar o pack. Isso
+#   estava certo enquanto a variável só podia vir da PESSOA — e deixou de estar
+#   no dia em que o `meow_ponte_python` passou a EXPORTÁ-LA. A partir dali o
+#   valor virava pegajoso: o filho herdava a resolução do pai e nunca
+#   reresolvia, mesmo com o meow.conf reescrito no meio do caminho.
+#
+#   MEDIDO EM 22/09/2026, com a cadeia real do `meow configurar` (os elos vão
+#   por NOME, e não por número de linha: o cabeçalho acima já conta o que
+#   acontece com um número que ninguém cobra):
+#     `carregar_conf` chama esta ponte e exporta o resultado
+#       -> `cmd_configurar` chama o `carregar_conf` no topo
+#       -> o wizard reescreve o meow.conf (FLAVOR=dracula)
+#       -> `cmd_aplicar` chama o `"$RAIZ/install.sh"` como FILHO
+#     PAI   MEOW_PALETA=.../assets/paleta/catppuccin.json
+#     FILHO MEOW_PALETA=.../assets/paleta/catppuccin.json   <- o valor velho
+#     FILHO MEOW_PACK_DIR=.../packs/dracula                 <- o par incoerente
+#     ERRO: flavor 'dracula' desconhecido. Há: latte, frappe, macchiato, mocha
+#   O `MEOW_PACK_DIR` reresolvia (ele nasce de PACK/FLAVOR a cada chamada) e a
+#   paleta não: a ponte exportava um par que não fecha — o diretório de um pack
+#   com a paleta de outro. Enquanto o `dracula` morava dentro do
+#   `catppuccin.json` isto era divergência muda; com ele fora, virou falha dura.
+#
+#   O CONSERTO É SABER DE QUEM É A VARIÁVEL, e é para isso que existe o
+#   `MEOW_PALETA_DA_PONTE`: a ponte grava nele o mesmo caminho que exportou.
+#   Ler os dois iguais quer dizer "fui eu, um andar acima" — e aí a resolução
+#   recomeça do pack. Ler diferentes (ou o marcador vazio) quer dizer "foi a
+#   pessoa", e a escolha dela continua vencendo tudo, que é o que a conferência
+#   nº 1 da P20 cobra (`MEOW_PALETA=/tmp/nao-existe.json ./install.sh` tem de
+#   morrer nomeando o arquivo).
+#
+#   POR QUE UM MARCADOR, E NÃO COMPARAR COM O QUE O PACK DARIA
+#     Porque a pessoa pode apontar para a paleta DO PRÓPRIO pack ativo — os dois
+#     caminhos seriam iguais e a intenção dela sumiria na comparação. Quem
+#     responde "de quem é isto" é a procedência, não o valor.
 meow_paleta() {
-  if [ -n "${MEOW_PALETA:-}" ]; then
+  if [ -n "${MEOW_PALETA:-}" ] && [ "$MEOW_PALETA" != "${MEOW_PALETA_DA_PONTE:-}" ]; then
     printf '%s' "$MEOW_PALETA"
     return 0
   fi
@@ -352,9 +390,14 @@ meow_paleta_nome() {
 #   Elas só preenchem o que FALTA. Quem já leu o conf continua mandando, e o
 #   valor lido aqui nunca é exportado: ele serve a esta resolução e morre nela.
 meow_ponte_python() {
-  local paleta pack_dir
+  local paleta pack_dir da_pessoa=0
   local PACK="${PACK:-$(meow_conf_valor PACK || true)}"
   local FLAVOR="${FLAVOR:-$(meow_conf_valor FLAVOR || true)}"
+  # DE QUEM É O `MEOW_PALETA` QUE CHEGOU AQUI — ver o bloco "O ECO DA PONTE NÃO
+  # É ESCOLHA DE NINGUÉM", no `meow_paleta`. A pergunta é feita ANTES de
+  # qualquer coisa porque o `meow_paleta` logo abaixo já responde por ela; o que
+  # se guarda aqui é só o que o FILHO precisa saber para repetir a conta.
+  [ -n "${MEOW_PALETA:-}" ] && [ "$MEOW_PALETA" != "${MEOW_PALETA_DA_PONTE:-}" ] && da_pessoa=1
   # AQUECE O CACHE DAS RAÍZES NESTE SHELL, E NÃO DENTRO DE UM `$( )`
   #   O `meow_paleta` logo abaixo é chamado por substituição de comando, que roda
   #   num SUBSHELL: o `export MEOW_PACK_RAIZES` feito lá dentro morre com ele, e
@@ -365,7 +408,7 @@ meow_ponte_python() {
   paleta="$(meow_paleta)"
   if [ ! -f "$paleta" ]; then
     meow_erro "a paleta apontada não existe: $paleta"
-    if [ -n "${MEOW_PALETA:-}" ]; then
+    if [ "$da_pessoa" = "1" ]; then
       meow_info "  ela veio de MEOW_PALETA — aponte para um arquivo que exista, ou tire a variável."
     else
       meow_info "  ela veio do pack ativo (PACK/FLAVOR do meow.conf) ou do embutido."
@@ -377,7 +420,15 @@ meow_ponte_python() {
   pack_dir="$(meow_pack_dir)"
   MEOW_PALETA="$paleta"
   MEOW_PACK_DIR="$pack_dir"
-  export MEOW_PALETA MEOW_PACK_DIR
+  # O MARCADOR VAI JUNTO, SEMPRE, E VAZIO TAMBÉM É RESPOSTA
+  #   Cheio, e igual ao `MEOW_PALETA`, quer dizer "este valor é meu": o filho
+  #   pode jogá-lo fora e reresolver do pack. Vazio quer dizer "quem mandou foi a
+  #   pessoa": o filho honra o que ela escolheu, sem reresolver nada. Exportar o
+  #   vazio é tão importante quanto exportar o cheio — sem isso, um `meow
+  #   configurar` com `MEOW_PALETA` da pessoa passaria o marcador VELHO para o
+  #   `install.sh`, e o filho decidiria pela procedência errada.
+  if [ "$da_pessoa" = "1" ]; then MEOW_PALETA_DA_PONTE=""; else MEOW_PALETA_DA_PONTE="$paleta"; fi
+  export MEOW_PALETA MEOW_PACK_DIR MEOW_PALETA_DA_PONTE
   return 0
 }
 

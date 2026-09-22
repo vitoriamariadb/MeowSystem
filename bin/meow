@@ -150,6 +150,33 @@ rodar_forma() {
 }
 
 carregar_conf() {
+  # `--ponte-opcional`: A PALETA NÃO PODE TRANCAR A PORTA DE SAÍDA [22/09/2026]
+  #   O `install.sh` põe a ponte DEPOIS do desinstalar e escreve o porquê no
+  #   bloco "O LUGAR É ESTE, E É ORDEM, NÃO GOSTO", do `main()`: "quem está indo
+  #   embora não deve nada à paleta" — citado por nome, e não por linha, porque
+  #   número de linha em comentário apodrece sem cobrador. Pendurar a
+  #   ponte no `carregar_conf` — que é o que o resto deste arquivo ganhou de
+  #   graça — contradisse esse argumento sem querer: o `cmd_desfazer` chama o
+  #   `carregar_conf`, então a ESCOTILHA DE EMERGÊNCIA passou a depender de um
+  #   arquivo de cor. Medido no dia, com `MEOW_PALETA` torta: `meow status`
+  #   rc=2, `meow doctor` rc=2, e o `desfazer` junto — três comandos que não
+  #   escrevem tema nenhum, recusando por causa de uma paleta.
+  #
+  #   A cerca é estreita (só morde com `PALETA_ARQUIVO`/`MEOW_PALETA` apontando
+  #   para o nada, porque pack ausente cai no embutido), e mesmo assim é do lado
+  #   errado: o dia em que ela morde é exatamente o dia em que a pessoa quer
+  #   desfazer. O `meow pack` já tinha se protegido com `carregar_conf
+  #   2>/dev/null || true`; aqui o pedido é NOMEADO, e a mensagem da ponte
+  #   continua na tela — quem lê fica sabendo do defeito sem ser impedido de
+  #   sair.
+  #
+  #   QUEM PEDE ISTO SÃO TRÊS, e a conta é a mesma nos três: `cmd_desfazer`
+  #   (remove), `cmd_status` e `cmd_doctor` (só leem e relatam). O `doctor`
+  #   continua conferindo os geradores — e, sem paleta, eles aparecem como
+  #   DIVERGENTES na lista dele, que é o lugar certo para esse recado. Toda
+  #   ação que ESCREVE tema segue exigindo a ponte, sem argumento nenhum.
+  local ponte_exigida=1
+  [ "${1:-}" = "--ponte-opcional" ] && ponte_exigida=0
   local fonte="$CONF"
   [ -f "$fonte" ] || fonte="$CONF_PADRAO"
   [ -f "$fonte" ] || { meow_erro "não achei nem $CONF nem $CONF_PADRAO"; return "$MEOW_ERRO"; }
@@ -192,8 +219,11 @@ carregar_conf() {
   #
   #   O `return` é PROPOSITAL: uma paleta que não existe faz a ação parar antes
   #   de escrever, e o código é o mesmo `MEOW_ERRO` que o resto do `carregar_conf`
-  #   devolve.
-  meow_ponte_python || return "$MEOW_ERRO"
+  #   devolve. As três exceções estão no `--ponte-opcional`, lá em cima.
+  if ! meow_ponte_python; then
+    [ "$ponte_exigida" = "1" ] && return "$MEOW_ERRO"
+    meow_aviso "sigo assim mesmo: esta ação não escreve tema nenhum"
+  fi
   return 0
 }
 
@@ -1943,7 +1973,7 @@ pior_de() {
 campo() { printf '    %s%s%s %s\n' "$C_DIM" "$(pad "$1" 12)" "$C_ZERO" "$2"; }
 
 cmd_status() {
-  carregar_conf || return "$MEOW_ERRO"
+  carregar_conf --ponte-opcional || return "$MEOW_ERRO"
   meow_titulo "MeowSystem — estado"
 
   meow_passo "Configuração"
@@ -2020,7 +2050,7 @@ cmd_doctor() {
     esac
     shift
   done
-  carregar_conf || return "$MEOW_ERRO"
+  carregar_conf --ponte-opcional || return "$MEOW_ERRO"
 
   meow_titulo "MeowSystem — doctor"
   meow_seco && meow_aviso "MEOW_DRY_RUN=1 — nada será escrito"
@@ -3134,7 +3164,7 @@ desfazer_lancador() {
 
 cmd_desfazer() {
   case "${1:-}" in --lancador) shift; desfazer_lancador; return $? ;; esac
-  carregar_conf || return "$MEOW_ERRO"
+  carregar_conf --ponte-opcional || return "$MEOW_ERRO"
 
   # O TEMA ANTERIOR DE QUEM INSTALOU NÃO É A CAPTURA 'original'
   #   `assets/temas/capturados/original/captura.txt` diz, na terceira linha, de qual home ela

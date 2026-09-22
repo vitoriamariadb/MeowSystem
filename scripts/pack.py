@@ -277,9 +277,38 @@ def acervo(categoria, arquivo="", motor=None, ref=None):
             break
         declarado = campo(ref, categoria)
         if isinstance(declarado, str):
+            # O CAMINHO DECLARADO TEM DE CAIR DENTRO DO PACK [22/09/2026]
+            #   `validar` já aplica o `_dentro` em `icones.*.mapa`, `desenhos` e
+            #   `cosmic.mapa` — e esta função NÃO valida nada antes de ler, como
+            #   o `campo` explica duas telas acima. As duas coisas juntas abriam
+            #   a porta: um pack de terceiro com `"mapa": "../../../etc/algo"`
+            #   era aberto e lido, porque aqui só se perguntava `os.path.exists`.
+            #   O impacto é baixo (lê-se um mapa de ícone), mas a P20 é
+            #   exatamente a sprint do pack de terceiro — e a guarda que o
+            #   validador já escreveu custa três linhas aqui.
+            #
+            #   Sair do pack é IGNORAR aquela camada, e não levantar: quem chama
+            #   o `acervo` espera "achei" ou "não achei", e a herança logo abaixo
+            #   ainda pode ter a resposta certa. O que não pode é passar calado —
+            #   o aviso vai para o stderr com o nome do campo, como o do campo
+            #   sem leitor.
+            #
+            #   O `_dentro` é usado como GUARDA, e não como resolvedor: o que
+            #   volta continua sendo o `join` de sempre. O `_dentro` devolve
+            #   realpath, e trocar a resposta por ele mudaria o caminho que o
+            #   chamador imprime quando a raiz do pack passa por um link — um
+            #   efeito que este conserto não precisa ter.
+            dentro = True
+            try:
+                _dentro(dir_pack,
+                        os.path.join(declarado, arquivo) if arquivo else declarado,
+                        categoria)
+            except Recusa as e:
+                print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
+                dentro = False
             alvo = os.path.join(dir_pack, declarado, arquivo) if arquivo \
                 else os.path.join(dir_pack, declarado)
-            if os.path.exists(alvo):
+            if dentro and os.path.exists(alvo):
                 return alvo
         # A HERANÇA DO BLOCO VENCE A DO PACK INTEIRO. O Dracula declara
         # `heranca: "catppuccin"` no topo E `icones.mimetypes.herda:
@@ -518,8 +547,18 @@ def validar(ref, silencioso=False):
                   file=sys.stderr)
             for trilha in mortos:
                 print(f"          {trilha}", file=sys.stderr)
-            print("        Eles não quebram nada — e também não fazem nada. "
-                  "Ver docs/PACKS.md.", file=sys.stderr)
+            # A MENSAGEM MANDAVA "Ver docs/PACKS.md" E PROMETIA DEMAIS [22/09/2026]
+            #   O docs/PACKS.md descreve cada CAMPO, e é para isso que ele serve
+            #   aqui. O que ele não descreve — conferido no dia — é a ideia de
+            #   campo sem leitor nem o verbo `acervo`, que nasceram nesta sprint.
+            #   Mandar a pessoa procurar lá por uma explicação que não está
+            #   escrita é a mesma promessa vazia que este aviso veio caçar.
+            #   `docs/` está fora da tabela de arquivos da P20; então quem se
+            #   ajusta é a frase, não o documento.
+            print("        Eles não quebram nada — e também não fazem nada: "
+                  "nenhuma linha deste projeto os consulta.\n"
+                  "        O que cada campo deveria significar está em docs/PACKS.md.",
+                  file=sys.stderr)
         n_fl = len(dados["flavors"])
         print(f"  ok   {p['nome']} ({p['id']}) — formato {p['formato']}, "
               f"{n_fl} flavor(s), 26 slots conferidos")

@@ -269,6 +269,104 @@ dir_shell="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; PACK="$ID" meow_pack_dir'
   && ok "o shell acha o pack pela mesma lista de raízes" \
   || falha "meow_pack_dir não achou o pack em \$MEOW_PACKS" "$dir_shell"
 
+# --- 11. o valor da ponte NÃO gruda no filho --------------------------------
+# O defeito que a revisão de 22/09 mediu: a ponte exportava `MEOW_PALETA` e o
+# `meow_paleta` devolvia essa variável em curto-circuito, ANTES de olhar o pack.
+# Num processo de vida longa — `meow configurar`, que reescreve o meow.conf e
+# depois chama o `install.sh` como filho — o filho herdava a resolução do PAI e
+# nunca reresolvia: paleta do Catppuccin com `MEOW_PACK_DIR` do pack, um par que
+# não fecha, e `flavor desconhecido` no gerador.
+cat > "$T/filho.sh" <<'FILHO'
+#!/usr/bin/env bash
+. "$MEOW_RAIZ/lib/comum.sh"
+meow_ponte_python >/dev/null 2>&1 || exit 9
+printf '%s\n%s\n' "$MEOW_PALETA" "$MEOW_PACK_DIR"
+FILHO
+chmod +x "$T/filho.sh"
+saida="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"
+  PACK=catppuccin FLAVOR=mocha meow_ponte_python >/dev/null 2>&1 || exit 9
+  export PACK="$ID" FLAVOR="$ID"
+  exec "'"$T"'/filho.sh"')"; rc=$?
+if [ "$rc" != "0" ]; then
+  falha "a ponte do filho falhou depois de o pai ter resolvido o embutido (rc=$rc)" "$saida"
+else
+  case "$saida" in
+    "$PACK_DIR/paleta.json"*) ok "o filho reresolve a paleta com o conf novo, e não herda a do pai" ;;
+    *) falha "o filho herdou a paleta do pai — o eco da ponte voltou a grudar" "$saida" ;;
+  esac
+  # O PAR TEM DE FECHAR. Era esta a assinatura do defeito: o diretório de um
+  # pack ao lado da paleta de outro, e nenhuma das duas partes errada sozinha.
+  case "$saida" in
+    *"$PACK_DIR") ok "a paleta e o diretório do pack saem do MESMO pack" ;;
+    *) falha "a ponte exportou um par incoerente (paleta de um pack, diretório de outro)" "$saida" ;;
+  esac
+fi
+
+# --- 12. a variável da PESSOA continua vencendo, inclusive no filho ---------
+# A outra metade do mesmo conserto, e a que a conferência nº 1 da P20 cobra: o
+# marcador distingue "eu mesmo exportei isto" de "a pessoa escolheu isto". Se ele
+# passasse a jogar fora os dois casos, `MEOW_PALETA=... ./install.sh` deixaria de
+# valer — e esse é o jeito de testar uma paleta sem editar o meow.conf.
+#
+# O caminho do embutido é PERGUNTADO ao `meow_paleta`, e não digitado aqui: o
+# `tests/estilo.sh` recusa shell que resolva a paleta sozinho, e ele tem razão
+# até dentro de um teste — foi um caminho digitado à mão que abriu a divergência
+# que a P20 inteira veio fechar.
+embutida="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; PACK=catppuccin meow_paleta')"
+saida="$(amb bash -c 'export MEOW_PALETA="'"$embutida"'"
+  . "$MEOW_RAIZ/lib/comum.sh"
+  PACK="$ID" FLAVOR="$ID" meow_ponte_python >/dev/null 2>&1 || exit 9
+  export PACK="$ID" FLAVOR="$ID"
+  exec "'"$T"'/filho.sh"')"; rc=$?
+case "$saida" in
+  "$embutida"*) ok "o MEOW_PALETA da pessoa atravessa o filho sem ser reresolvido" ;;
+  *) falha "a escolha da pessoa foi descartada pelo filho (rc=$rc)" "$saida" ;;
+esac
+
+# --- 13. o acervo não lê fora do pack ---------------------------------------
+# O `validar` aplica o `_dentro` em `icones.*.mapa` e `desenhos`; o `acervo` só
+# olhava `os.path.exists`, e ele é chamado SEM validação antes (o painel o chama
+# direto). Um pack de terceiro com `"mapa": "../../algo"` era lido.
+printf 'isto esta fora do pack\n' > "$T/fora-do-pack.map"
+python3 - "$PACK_DIR" <<'PY' || exit 2
+import json, os, sys
+alvo = os.path.join(sys.argv[1], "pack.json")
+p = json.load(open(alvo))
+p["icones"]["apps"]["mapa"] = "../../fora-do-pack.map"
+json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
+PY
+saida="$(amb python3 "$RAIZ/scripts/pack.py" acervo "$ID" icones.apps.mapa 2>&1)"; rc=$?
+case "$saida" in
+  *fora-do-pack.map*"sai de dentro do pack"*) ok "o acervo recusa o caminho que sai do pack, e o NOMEIA" ;;
+  *) falha "o acervo leu (ou calou) um caminho que sai de dentro do pack (rc=$rc)" "$saida" ;;
+esac
+python3 - "$PACK_DIR" <<'PY' || exit 2
+import json, os, sys
+alvo = os.path.join(sys.argv[1], "pack.json")
+p = json.load(open(alvo))
+p["icones"]["apps"]["mapa"] = "icones/apps.map"
+json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
+PY
+
+# --- 14. a paleta não tranca a porta de saída -------------------------------
+# O `install.sh` põe a ponte DEPOIS do desinstalar de propósito — "quem está indo
+# embora não deve nada à paleta". No `bin/meow` a ponte ficou pendurada no
+# `carregar_conf`, e com isso o `desfazer`, o `status` e o `doctor` passaram a
+# recusar por causa de um arquivo de cor. Conferido no FONTE, como o teste 4: os
+# três não escrevem tema nenhum e pedem a ponte como opcional.
+#
+# O corpo vai para uma VARIÁVEL antes do grep, e não por um cano: com
+# `set -o pipefail`, um `grep -q` que acha no começo fecha o cano e mata o `sed`
+# com SIGPIPE — a busca teria achado e o teste falharia mesmo assim.
+for verbo in cmd_status cmd_doctor cmd_desfazer; do
+  corpo="$(sed -n "/^$verbo()/,/^}/p" "$RAIZ/bin/meow")"
+  if printf '%s\n' "$corpo" | grep -q 'carregar_conf --ponte-opcional'; then
+    ok "$verbo não é trancado pela paleta"
+  else
+    falha "$verbo voltou a depender da paleta para rodar"
+  fi
+done
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"
