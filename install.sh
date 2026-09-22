@@ -2580,8 +2580,31 @@ _logo_relogio() {
     case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
   done
 
+  # O SECO TAMBÉM TEM DE ENXERGAR O TIMER SOLTO, E NÃO ENXERGAVA — 22/09/2026
+  #   É a dívida 6 do `docs/SPRINTS.md`, que estava lá como "HIPÓTESE, não
+  #   medida" desde 31/08. MEDIDA hoje, num HOME de brinquedo com as unidades do
+  #   repositório JÁ no disco (`mudou=0`) e um `systemctl` de mentira que só
+  #   responde `disabled`/`inactive`: o ensaio inteiro saía sem UMA linha sobre o
+  #   `meow-gato.timer`, e a passagem real, dez linhas abaixo, o arma. O ensaio
+  #   não escrevia — ele CALAVA, que é a outra metade de "ensaio que mente é pior
+  #   que nada". `is-enabled`/`is-active` são leitura pura, então o
+  #   `tests/seco.sh` segue verde com elas aqui; quem cobre este caminho é a
+  #   rodada 3 daquele teste.
+  #
+  #   A cura é a MESMA do `etapa_leitura` e do `etapa_autoreparo` (31/08): duas
+  #   divergências diferentes, duas linhas. Juntá-las num `mudou` só faria a
+  #   auditoria dizer "instalaria as unidades" numa máquina onde elas já estão no
+  #   disco e só o timer está solto — e o contrário, na máquina em que os dois
+  #   arquivos são novos e o timer já está armado.
   if meow_seco; then
-    [ "$mudou" = "1" ] && { meow_muda "ligaria o relógio do gato (tique de 5 min)"; return "$MEOW_DIVERGENTE"; }
+    local armaria=0
+    if [ "$(systemctl --user is-enabled meow-gato.timer 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  meow-gato.timer 2>/dev/null)" != "active" ]; then
+      armaria=1
+    fi
+    [ "$mudou"   = "1" ] && meow_muda "instalaria/atualizaria as unidades do relógio do gato"
+    [ "$armaria" = "1" ] && meow_muda "armaria o relógio do gato (meow-gato.timer, tique de 5 min)"
+    { [ "$mudou" = "1" ] || [ "$armaria" = "1" ]; } && return "$MEOW_DIVERGENTE"
     return 0
   fi
 
@@ -2593,6 +2616,11 @@ _logo_relogio() {
      [ "$(systemctl --user is-active  meow-gato.timer 2>/dev/null)" != "active" ]; then
     systemctl --user enable --now meow-gato.timer >/dev/null 2>&1 \
       || { meow_erro "não consegui ligar o meow-gato.timer"; return "$MEOW_ERRO"; }
+    # O SUBSTANTIVO É O MESMO DOS DOIS LADOS, e a unidade vai junto: é a regra
+    # que o `etapa_leitura` e o `etapa_painel` já seguem. Sem esta linha o seco
+    # diria "armaria o relógio do gato" e a execução que ela aprovou não diria
+    # nada — ela veria a promessa e não veria o cumprimento.
+    meow_muda "relógio do gato armado (meow-gato.timer, tique de 5 min)"
     mudou=1
   fi
   [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
@@ -3052,7 +3080,26 @@ etapa_wallpaper() {
     # frase fala em "instalar/atualizar", e não em "ligar". Dizer "ligaria o
     # relógio" num arquivo que já está ligado é a mentirinha que faz a pessoa
     # procurar problema onde não há.
-    [ "$mudou_t" = "1" ] && { meow_muda "instalaria/atualizaria o relógio (15 min) e o gatilho do carrossel"; return "$MEOW_DIVERGENTE"; }
+    #
+    # E O TIMER SOLTO TAMBÉM TEM DE APARECER — 22/09/2026
+    #   A outra metade da dívida 6 do `docs/SPRINTS.md`, medida junto com a do
+    #   `_logo_relogio`: com as quatro unidades já idênticas no disco o
+    #   `mudou_t` fica em 0, este ramo saía calado, e o laço lá embaixo — o da
+    #   execução real que ela aprova logo em seguida — arma as TRÊS. Aqui as
+    #   soltas são NOMEADAS uma a uma em vez de viverem num "algo falta": o
+    #   `.timer`, o `.path` da config e o `.path` do acervo falham por motivos
+    #   diferentes, e saber qual é qual é o que separa "o carrossel não gira" de
+    #   "o carrossel gira mas volta para a pasta de fábrica".
+    local soltas=()
+    for u in meow-wallpaper.timer meow-fundo.path meow-ativos.path; do
+      if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+         [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+        soltas+=("$u")
+      fi
+    done
+    [ "$mudou_t" = "1" ] && meow_muda "instalaria/atualizaria o relógio (15 min) e o gatilho do carrossel"
+    [ "${#soltas[@]}" -gt 0 ] && meow_muda "armaria o carrossel (${soltas[*]})"
+    { [ "$mudou_t" = "1" ] || [ "${#soltas[@]}" -gt 0 ]; } && return "$MEOW_DIVERGENTE"
     return "$rc"
   fi
   [ "$mudou_t" = "1" ] && systemctl --user daemon-reload

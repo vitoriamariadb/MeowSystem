@@ -37,7 +37,27 @@ const $ = (sel, raiz = document) => raiz.querySelector(sel);
  * «Ensaiar sem gravar» fazia cada clique só simular, e o que ela via era o
  * efeito disso: *"nada tá aplicando de verdade"*. Nenhum pedido daqui leva mais
  * `seco`, e o servidor também deixou de aceitá-lo. O modo seco continua na CLI
- * (`MEOW_DRY_RUN=1`), onde auditar antes de rodar faz sentido. */
+ * (`MEOW_DRY_RUN=1`), onde auditar antes de rodar faz sentido.
+ *
+ * E ELE VOLTOU EM 22/09/2026 — SPRINT P8, E NÃO COMO AQUILO
+ * ===========================================================================
+ * A outra metade da mesma queixa: *"nada da interface é aplicado em sandbox.
+ * Tudo é aplicado na máquina da pessoa"*. As duas frases não se contradizem —
+ * elas descrevem os dois extremos entre os quais faltava um meio.
+ *
+ * O QUE SAIU E NÃO VOLTA: o INTERRUPTOR. Um estado guardado que fazia todo
+ * clique seguinte fingir, até ela desligá-lo; era o que produzia "nada tá
+ * aplicando de verdade", porque a tela mentia em silêncio sobre o gesto
+ * seguinte, e o seguinte, e o seguinte.
+ *
+ * O QUE VOLTOU: um BOTÃO, ao lado do que age, no gesto que assusta. Um clique,
+ * um ensaio, uma saída — e o «Rodar de verdade» ali mesmo, ao lado da saída.
+ * Não há nada guardado entre um clique e o outro, e é essa ausência que faz a
+ * diferença entre os dois desenhos. Quem pede seco é sempre o CORPO de um
+ * pedido, nunca um estado desta página (ver `confirmar()` e `salvarEscolhas`).
+ *
+ * `sessionStorage` continua fora: uma aba que ainda guarde a chave `meow-seco`
+ * de setembro não muda nada, porque ninguém mais a lê. */
 
 async function api(rota, opcoes = {}) {
   /* O SERVIDOR PODE TER MORRIDO — e a página tem de dizer isso.
@@ -1064,7 +1084,20 @@ async function descartarEscolhas() {
  *
  *   SEM ESCOLHA ESPERANDO, O BOTÃO APLICA O QUE JÁ ESTÁ SALVO: é o gesto de quem
  *   editou o meow.conf à mão, ou de quem acabou de salvar um ícone. */
-async function salvarEscolhas() {
+/* E ELE GANHOU O PAR — 22/09/2026, sprint P8
+ *   A sprint: *"Com 17 escolhas pendentes, «ver o que isto vai fazer» é a
+ *   pergunta óbvia, e hoje ela não tem resposta"*. O `seco` é a mesma função
+ *   com uma decisão a menos: ela manda o pedido, abre a gaveta e PARA — não
+ *   grava, não tira nada da bandeja, não repinta cartão nenhum. Quem responde
+ *   "o que estas escolhas fariam" é o `/api/salvar` com `seco: true`, que
+ *   passa as escolhas ao instalador como ambiente, sem tocar no meow.conf (o
+ *   porquê está lá).
+ *
+ *   NÃO HÁ CAIXA DE CONFIRMAÇÃO NOS DOIS LADOS, e não é esquecimento: clicar
+ *   em «Salvar e aplicar» já É a confirmação desde 13/09 (ver logo acima), e um
+ *   ensaio que não escreve nada tem ainda menos o que confirmar. O par aqui é
+ *   de BOTÕES na barra, e não de botões dentro de um diálogo. */
+async function salvarEscolhas(seco = false) {
   if (TRABALHO && TRABALHO.timer !== null) {
     torrada(`Espere «${TRABALHO.rotulo || "o trabalho"}» terminar`, "igual");
     $("#gaveta").hidden = false;
@@ -1072,13 +1105,13 @@ async function salvarEscolhas() {
     return;
   }
   const quantas = MUDANCAS.size;
-  const botao = $("#botao-salvar");
+  const botao = $(seco ? "#botao-ensaiar" : "#botao-salvar");
   botao.disabled = true;
   const anterior = botao.textContent;
-  botao.textContent = quantas ? "Salvando…" : "Aplicando…";
+  botao.textContent = seco ? "Ensaiando…" : quantas ? "Salvando…" : "Aplicando…";
   const r = await api("/api/salvar", {
     method: "POST",
-    body: JSON.stringify({ mudancas: Object.fromEntries(MUDANCAS) }),
+    body: JSON.stringify({ mudancas: Object.fromEntries(MUDANCAS), seco }),
   });
   botao.disabled = false;
   botao.textContent = anterior;
@@ -1088,6 +1121,18 @@ async function salvarEscolhas() {
       torrada(`${nomeVisivel(rec.chave)}: ${rec.erro}`, "erro");
     }
     torrada("Nada foi gravado, e nada foi aplicado", "erro");
+    return;
+  }
+  /* O ENSAIO SAI POR AQUI, e é o caminho mais curto de propósito: tudo o que
+   * vem abaixo é consequência de ter gravado — tirar chave da bandeja, repintar
+   * cartão, limpar o aviso do alto. Nada disso aconteceu. O gesto guardado para
+   * a gaveta é esta mesma função sem o `seco`: vejo, aprovo, rodo. */
+  if (seco) {
+    if (!r.trabalho) { torrada(r.erro || "Não consegui ensaiar", "erro"); return; }
+    torrada(quantas
+      ? `Ensaio de ${quantas === 1 ? "1 escolha" : `${quantas} escolhas`} — nada será escrito`
+      : "Ensaio do que já está salvo — nada será escrito", "igual");
+    abrirGaveta(r.trabalho, () => salvarEscolhas(false));
     return;
   }
   if (!r.gravadas) { torrada(r.erro || "Não consegui salvar", "erro"); return; }
@@ -4630,7 +4675,12 @@ function montarAcao(acao) {
 
 async function rodar(acao, argumento) {
   const perguntou = !!(acao.confirma || acao.sudo || acao.destrutivo);
-  if (perguntou && !(await confirmar(acao, argumento))) return;
+  let seco = false;
+  if (perguntou) {
+    const resposta = await confirmar(acao, argumento);
+    if (resposta === "nao") return;
+    seco = resposta === "ensaio";
+  }
   /* A RESPOSTA VIAJA NA PRIMEIRA IDA — 13/09/2026
    *   A página perguntava, ouvia «Rodar de verdade» e mandava o pedido SEM o
    *   `confirmado`. O servidor recusava (ver abaixo), e a MESMA caixa abria de
@@ -4639,7 +4689,7 @@ async function rodar(acao, argumento) {
    *   acabado de mandar rodar. Mais uma forma de "nada tá aplicando". */
   let r = await api("/api/rodar", {
     method: "POST",
-    body: JSON.stringify({ acao: acao.id, argumento, confirmado: perguntou }),
+    body: JSON.stringify({ acao: acao.id, argumento, confirmado: perguntou, seco }),
   });
   /* O SERVIDOR PASSOU A TRANCAR AS AÇÕES QUE ESCREVEM — 02/09/2026.
    *   Ele devolve 409 com `precisa_confirmar: true` e os fatos da ação (o que
@@ -4648,13 +4698,37 @@ async function rodar(acao, argumento) {
    *   lido antes de a ação ganhá-la. A recusa vira a pergunta que faltou, e o
    *   `confirmado` só é enviado depois de ela responder. */
   if (r && r.precisa_confirmar) {
-    const ok = await confirmar(acao, argumento);
-    if (!ok) return;
+    const resposta = await confirmar(acao, argumento);
+    if (resposta === "nao") return;
+    seco = resposta === "ensaio";
     r = await api("/api/rodar", {
       method: "POST",
-      body: JSON.stringify({ acao: acao.id, argumento, confirmado: true }),
+      body: JSON.stringify({ acao: acao.id, argumento, confirmado: true, seco }),
     });
   }
+  if (r.erro) { torrada(r.erro, "erro"); return; }
+  /* VEJO, APROVO, RODO — 22/09/2026, sprint P8
+   *   O ensaio entrega à gaveta o MESMO gesto, fechado num `function`: é ele
+   *   que o botão «Rodar de verdade» dispara quando a saída termina. Guardar a
+   *   ação e o argumento em variável global para remontar o pedido depois seria
+   *   um segundo lugar onde mora "o que está para rodar", e o primeiro a
+   *   envelhecer no dia em que o pedido ganhar mais um campo. */
+  abrirGaveta(r, seco ? () => rodarDeVerdade(acao, argumento) : null);
+}
+
+/* O SEGUNDO TEMPO DO ENSAIO — 22/09/2026, sprint P8
+ *   A caixa já foi respondida uma vez (é de lá que o ensaio saiu), e a saída na
+ *   tela é uma resposta melhor do que qualquer texto que a caixa repetiria.
+ *   Reabri-la aqui seria pedir a mesma autorização duas vezes — o defeito de
+ *   13/09 que o comentário do `rodar()` acima narra, voltando por outra porta.
+ *   Por isso `confirmado: true` sem perguntar de novo: quem apertou «Rodar de
+ *   verdade» com o ensaio inteiro à vista acabou de dar a resposta mais
+ *   informada que este painel sabe pedir. */
+async function rodarDeVerdade(acao, argumento) {
+  const r = await api("/api/rodar", {
+    method: "POST",
+    body: JSON.stringify({ acao: acao.id, argumento, confirmado: true, seco: false }),
+  });
   if (r.erro) { torrada(r.erro, "erro"); return; }
   abrirGaveta(r);
 }
@@ -4667,8 +4741,42 @@ async function rodar(acao, argumento) {
  *   diferente de todas as outras confirmações da página. O `<dialog>` já existia
  *   e já sabia mostrar "isto usa sudo" e "isto é destrutivo"; o que faltava era
  *   ele aceitar uma pergunta que não fosse uma ação do servidor. */
+/* E O SEGUNDO BOTÃO NASCE AQUI, NÃO NO index.html — 22/09/2026, sprint P8
+ *   O `<menu>` do diálogo tem dois botões escritos no HTML (Cancelar e o de
+ *   `id="confirmar-ok"`), e o terceiro entra por JavaScript porque o
+ *   `app/pagina/index.html` está fora dos arquivos desta frente. Ele é criado
+ *   UMA vez e reaproveitado: o `<dialog>` é um só na página, e recriá-lo a
+ *   cada pergunta trocaria o elemento debaixo do foco do teclado.
+ *
+ *   `value="seco"` é o que faz o `returnValue` dizer qual botão foi apertado —
+ *   é o mecanismo nativo do `<form method="dialog">`, o mesmo do "sim"/"nao"
+ *   que já existia, e não um estado paralelo em variável. */
+function botaoDeEnsaio() {
+  let b = document.getElementById("confirmar-ensaio");
+  if (!b) {
+    b = elemento("button", {
+      value: "seco", class: "btn btn-ensaio", id: "confirmar-ensaio",
+      texto: "Ver o que faria",
+      title: "Roda em ensaio (MEOW_DRY_RUN=1): mostra tudo e não escreve nada",
+    });
+    /* ANTES do gatilho, e não depois: a ordem de leitura da caixa termina no
+     * botão que age, do mesmo jeito que a do rodapé dos cartões de ação (ver o
+     * `estilo.css`). O ensaio é o caminho de fuga, e caminho de fuga se lê
+     * antes de decidir. */
+    $("#confirmar-ok").before(b);
+  }
+  return b;
+}
+
+/* `ensaio: true` acende o botão «Ver o que faria» E MUDA O QUE ESTA FUNÇÃO
+ * DEVOLVE: com ele, a resposta é a PALAVRA do botão apertado ("sim", "seco" ou
+ * "nao"), porque uma pergunta de três saídas não cabe num booleano. Sem ele,
+ * nada muda para os três outros lugares que já chamavam daqui — e foi de
+ * propósito: trocar a resposta deles também seria mexer em três caminhos que
+ * esta sprint não tem por que tocar. Quem traduz as palavras para o resto da
+ * página é o `confirmar()`, logo abaixo. */
 function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
-                     perigo = false, neutro = false }) {
+                     perigo = false, neutro = false, ensaio = false }) {
   const dlg = $("#confirmar");
   $("#confirmar-titulo").textContent = titulo;
   $("#confirmar-texto").textContent = texto;
@@ -4682,23 +4790,47 @@ function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
    * pintar aquele botão com a cor de acento o faria parecer a ação principal. */
   $("#confirmar-ok").className =
     "btn " + (neutro ? "" : perigo ? "btn-perigo" : "btn-accent");
+  botaoDeEnsaio().hidden = !ensaio;
   dlg.showModal();
   return new Promise((resolve) => {
-    dlg.addEventListener("close", () => resolve(dlg.returnValue === "sim"), { once: true });
+    dlg.addEventListener("close", () => resolve(
+      ensaio ? dlg.returnValue : dlg.returnValue === "sim"), { once: true });
   });
 }
 
-function confirmar(acao, argumento) {
-  return perguntar({
+/* O ENSAIO É O PADRÃO DO GESTO ARRISCADO — 22/09/2026, sprint P8
+ *   Queixa dela: *"nada da interface é aplicado em sandbox. Tudo é aplicado na
+ *   máquina da pessoa"*. Esta caixa era a descrição exata do que sobrou: um
+ *   botão só, e ele escreve.
+ *
+ *   QUEM GANHA O PAR: `destrutivo` ou `sudo`. Não é toda ação com `confirma` —
+ *   há ações que escrevem e não desfazem nada de ninguém (instalar um tema,
+ *   pôr um ícone), e um segundo botão em toda caixa transformaria a escolha
+ *   entre ver e fazer em burocracia de dois cliques para sempre. O corte é o
+ *   mesmo que o servidor já usa para pintar o cartão de perigo, e não uma
+ *   terceira lista: uma lista nova aqui seria a armadilha nº 3 do projeto.
+ *
+ *   DEVOLVE PALAVRA, E NÃO BOOLEANO: "rodar", "ensaio" ou "nao". A tradução
+ *   mora aqui, num lugar só, para o `rodar()` nunca ter de saber se a caixa
+ *   tinha dois ou três botões. */
+async function confirmar(acao, argumento) {
+  const oferece = !!(acao.destrutivo || acao.sudo);
+  const r = await perguntar({
     titulo: acao.rotulo,
     texto: acao.ajuda,
     comando: acao.argv.replace("@ARG@", argumento),
     /* "Rodar de verdade" existia para contrastar com "Ensaiar"; sem o ensaio,
-     * o "de verdade" é palavra a mais. — 13/09/2026 */
+     * o "de verdade" é palavra a mais. — 13/09/2026
+     * E continua sendo aqui: nesta caixa o contraste está no BOTÃO AO LADO, que
+     * diz "Ver o que faria" com todas as letras. O "de verdade" só volta lá na
+     * gaveta, depois do ensaio, onde não há outra frase segurando o sentido. */
     ok: "Rodar",
     sudo: acao.sudo,
     perigo: acao.destrutivo,
+    ensaio: oferece,
   });
+  if (!oferece) return r ? "rodar" : "nao";
+  return r === "seco" ? "ensaio" : r === "sim" ? "rodar" : "nao";
 }
 
 /* --- a gaveta de saída ---------------------------------------------------- */
@@ -4715,12 +4847,79 @@ function classeDaLinha(linha) {
   return "";
 }
 
-function abrirGaveta(trabalho) {
+/* A FAIXA AMARELA DO ENSAIO — 22/09/2026, sprint P8
+ * ===========================================================================
+ * A sprint pede: *"a gaveta de saída ganha um cabeçalho distinto no ensaio —
+ * «ENSAIO · nada foi escrito», em amarelo — para que ninguém confunda as duas
+ * saídas"*. E o risco é real: as duas saídas são o MESMO texto do mesmo
+ * instalador. A única diferença entre "instalei isto" e "instalaria isto" são
+ * os verbos dentro das linhas, no meio de centenas delas.
+ *
+ * O AMARELO NÃO É ESCOLHA DE GOSTO: é a cor que o projeto já usa para "mudou /
+ * mudaria" — o glifo `~~` do `lib/comum.sh`, que nesta mesma gaveta já sai em
+ * `--yellow` (`#saida .l-muda`). A faixa e as linhas que ela explica ficam da
+ * mesma cor, que é o que faz a explicação parecer explicação.
+ *
+ * ELA É CRIADA E DESTRUÍDA, e não escondida com `hidden`: a gaveta de um
+ * trabalho de verdade não pode ter uma faixa de ensaio adormecida dentro de si
+ * esperando um `hidden` esquecido. O botão «Rodar de verdade» vem junto, e o
+ * mesmo `remove` leva os dois. */
+function faixaDeEnsaio(ligada) {
+  const velha = document.getElementById("faixa-ensaio");
+  if (velha) velha.remove();
+  if (!ligada) return;
+  $(".gaveta-topo").after(elemento("div", { class: "faixa-ensaio", id: "faixa-ensaio" }, [
+    elemento("strong", { texto: "ENSAIO · nada foi escrito" }),
+    elemento("span", { texto: "Cada linha «~~» é uma mudança que ficou só na tela." }),
+  ]));
+}
+
+/* O BOTÃO QUE FECHA O FLUXO: vejo, aprovo, rodo. Ele só aparece quando o
+ * ensaio TERMINA — oferecer "rodar" no meio de uma saída que ainda corre é
+ * convidar a pessoa a decidir com meia página lida. E ele some ao ser apertado,
+ * porque a gaveta seguinte é a do trabalho de verdade: dois botões de aplicar
+ * empilhados na mesma faixa seriam dois donos do mesmo gesto. */
+function oferecerRodarDeVerdade(aplicar) {
+  const faixa = document.getElementById("faixa-ensaio");
+  if (!faixa || !aplicar) return;
+  faixa.append(elemento("button", {
+    type: "button", class: "btn btn-accent", id: "ensaio-rodar",
+    /* "De verdade" foi palavra a mais entre 13/09 e hoje, e volta a ganhar o
+     * lugar aqui: ela está a dois centímetros da faixa que diz "nada foi
+     * escrito", e é exatamente o contraste que ela existe para marcar. */
+    texto: "Rodar de verdade",
+    title: "Roda o mesmo comando escrevendo na máquina",
+    /* DOIS CLIQUES RÁPIDOS MANDAVAM DOIS PEDIDOS, e o segundo voltava como
+     * torrada vermelha «já há um trabalho correndo» — uma recusa do servidor
+     * mostrada a quem não fez nada de errado. É o mesmo remédio que o
+     * `salvarEscolhas` já usa: o botão se desabilita entre o clique e a
+     * resposta. Ele volta a viver no fim porque o pedido pode ter FALHADO (a
+     * torrada de erro do `rodarDeVerdade`) — e aí ela precisa poder tentar de
+     * novo. No caminho feliz quem o remove é a `faixaDeEnsaio(false)` da gaveta
+     * seguinte, e escrever num nó já retirado da página não faz nada. */
+    onclick: async (ev) => {
+      const botao = ev.currentTarget;
+      const anterior = botao.textContent;
+      botao.disabled = true;
+      botao.textContent = "Rodando…";
+      try {
+        await aplicar();
+      } finally {
+        botao.disabled = false;
+        botao.textContent = anterior;
+      }
+    },
+  }));
+}
+
+function abrirGaveta(trabalho, aplicar = null) {
   if (TRABALHO?.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve,
-               rotulo: trabalho.rotulo, mudou: false };
+               rotulo: trabalho.rotulo, mudou: false,
+               seco: !!trabalho.seco, aplicar };
   const gaveta = $("#gaveta");
   gaveta.hidden = false;
+  faixaDeEnsaio(!!trabalho.seco);
   /* O ARRASTO É PARA O MOMENTO, E NÃO PREFERÊNCIA GRAVADA — 21/09/2026
    * Crescer a gaveta pela alça escreve um `height` no `style` do elemento e o
    * marca com `data-esticada`, que é o que destrava o teto de 60vh no CSS.
@@ -4833,7 +5032,21 @@ async function puxar() {
   if (!r.vivo) {
     clearInterval(TRABALHO.timer);
     $("#parar").disabled = true;
-    const escreveu = TRABALHO.escreve;
+    /* NO ENSAIO NINGUÉM ESCREVEU, E É ESTA LINHA QUE CONTA ISSO PARA O RESTO
+     * DA FUNÇÃO — 22/09/2026, sprint P8
+     *   `escreve` é da AÇÃO (o instalador escreve, sempre) e `seco` é desta
+     *   EXECUÇÃO; o que as quatro decisões abaixo precisam saber é o `e`
+     *   lógico das duas. Sem esta linha, um ensaio do instalador terminaria
+     *   dizendo "mexeu e aplicou", esvaziaria a bandeja de escolhas pendentes
+     *   e mandaria a página reler a máquina atrás de mudanças que não
+     *   aconteceram — a tela inteira mentindo junto, que é o defeito que esta
+     *   sprint veio matar e não repetir com outra cara.
+     *
+     *   E O QUE SOBRA JÁ ESTÁ CERTO DE GRAÇA: com `escreveu` falso, o código 1
+     *   é traduzido como "há divergências" em vez de "mexeu e consertou", que é
+     *   a frase exata de um ensaio. A regra de 01/09 ("o 1 depende de quem
+     *   rodou") já valia para quem só LÊ; quem só ENSAIA está do mesmo lado. */
+    const escreveu = TRABALHO.escreve && !TRABALHO.seco;
     /* Os códigos de saída do projeto, traduzidos com as palavras dele: 0 já
      * estava certo, 3 falta dependência, o resto é erro. Um "exit 1" cru
      * pareceria falha, e aqui ele é a boa notícia.
@@ -4886,6 +5099,25 @@ async function puxar() {
       const fim = $("#gaveta-estado").textContent;
       torrada(`${TRABALHO.rotulo || "O trabalho"}: ${fim}`, rc === 0 || rc === 1 ? "ok" : "erro");
     }
+    /* O ensaio acabou: o botão que o transforma em execução entra agora. Antes
+     * do `TRABALHO = null`, que é quem guarda o gesto.
+     *
+     * ENSAIO INTERROMPIDO NÃO É ENSAIO TERMINADO — 22/09/2026
+     *   Este ramo (`!r.vivo`) é o mesmo a que se chega quando ela aperta
+     *   «Parar», e o botão aparecia igual: meia página lida virava permissão
+     *   para escrever na máquina, que é exatamente o que o comentário do
+     *   `oferecerRodarDeVerdade` promete não fazer. Quem responde "acabou ou
+     *   foi cortado" é o próprio código de saída — MEDIDO em 22/09: um trabalho
+     *   morto pelo `#parar` volta com `rc = -15`, o SIGTERM que o `parar()`
+     *   manda ao grupo. Negativo, ou sem número nenhum, quer dizer "não chegou
+     *   ao fim sozinho" — e aí ela ensaia de novo, que custa 18 segundos.
+     *
+     *   A marca é o `rc`, e não uma bandeira posta no clique do «Parar»,
+     *   porque o pedido de parada pode vir de outra aba do painel (ou o
+     *   processo pode morrer por qualquer outro motivo): a bandeira só saberia
+     *   dos cliques desta aba, o `rc` sabe de todos. */
+    const interrompido = typeof rc !== "number" || rc < 0;
+    if (TRABALHO.seco && !interrompido) oferecerRodarDeVerdade(TRABALHO.aplicar);
     pastilhaDeTrabalho(false);
     TRABALHO = null;
   }
@@ -7649,8 +7881,28 @@ async function iniciar() {
 
   /* O INTERRUPTOR DO ENSAIO SAIU DAQUI — 13/09/2026, ver o cabeçalho deste
    * arquivo. Uma aba que ainda guarde `meow-seco` no `sessionStorage` não muda
-   * nada: ninguém mais lê essa chave. */
-  $("#botao-salvar").addEventListener("click", salvarEscolhas);
+   * nada: ninguém mais lê essa chave.
+   *
+   * E O QUE VOLTOU EM 22/09/2026 NÃO É AQUELE INTERRUPTOR — sprint P8. Aquele
+   * era um estado GUARDADO que fazia todo clique seguinte fingir, e é o que ela
+   * pediu para tirar. Este é um BOTÃO IRMÃO do Salvar: um gesto, uma pergunta,
+   * uma resposta. Não há nada para guardar entre um clique e o outro, e é
+   * justamente por isso que ele pode existir de novo.
+   *
+   * ELE NASCE AQUI porque o `app/pagina/index.html` está fora dos arquivos
+   * desta frente; o lugar dele na barra é ANTES do Salvar, que é a ordem de
+   * leitura de quem ainda não decidiu — vejo, depois aplico. */
+  $("#botao-salvar").before(elemento("button", {
+    type: "button", class: "btn btn-ensaio", id: "botao-ensaiar",
+    texto: "Ver o que faria",
+    title: "Ensaia as escolhas sem gravar: o meow.conf não é tocado",
+    onclick: () => salvarEscolhas(true),
+  }));
+  /* O `() =>` não é enfeite: passado direto, o `addEventListener` entrega o
+   * MouseEvent como primeiro argumento, e o parâmetro `seco` do
+   * `salvarEscolhas` nasceria valendo um evento — que é verdadeiro. Todo
+   * «Salvar e aplicar» viraria um ensaio, e nada seria gravado nunca mais. */
+  $("#botao-salvar").addEventListener("click", () => salvarEscolhas());
   $("#botao-descartar").addEventListener("click", descartarEscolhas);
 
   /* FECHAR A JANELA COM ESCOLHAS PENDENTES PERGUNTA ANTES. [2026-09-18]
@@ -7672,7 +7924,9 @@ async function iniciar() {
   });
   /* O botão do aviso é o mesmo Salvar: sem escolha esperando, ele aplica o que
    * já está gravado — que é exatamente o que o aviso diz que falta. */
-  $("#aviso-aplicar-botao").addEventListener("click", salvarEscolhas);
+  /* Embrulhado pelo mesmo motivo do Salvar, dez linhas acima: este botão aplica
+   * de verdade, e o MouseEvent entrando pelo `seco` o transformaria em ensaio. */
+  $("#aviso-aplicar-botao").addEventListener("click", () => salvarEscolhas());
   $("#salvar-conta").addEventListener("click", alternarListaPendentes);
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") document.getElementById("lista-pendentes")?.remove();

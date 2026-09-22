@@ -258,24 +258,125 @@ else:
     print("ok: as %d chaves que o painel lê da máquina saem de arquivos que os scripts gravam"
           % len(servidor.NA_MAQUINA))
 
-# --- 9. O PAINEL NÃO ENSAIA — 13/09/2026 -------------------------------------
-#   Pedido dela: *"eu tinha pedido pra tirar o app do modo sandbox"*. Nenhum
-#   pedido da página leva `seco`, nenhuma rota o lê, e nenhum ambiente que o
-#   servidor monta liga `MEOW_DRY_RUN`. Olha só o CÓDIGO: os comentários contam
-#   a história do ensaio, e têm de poder continuar contando.
+# --- 9. O PAINEL NÃO TEM INTERRUPTOR DE ENSAIO -------------------------------
+#   NASCEU EM 13/09/2026 DIZENDO OUTRA COISA, E A SPRINT P8 A REESCREVEU EM
+#   22/09. A trava de 13/09 era "nenhum pedido da página leva `seco`, nenhuma
+#   rota o lê, nenhum ambiente liga `MEOW_DRY_RUN`" — a leitura larga de
+#   *"eu tinha pedido pra tirar o app do modo sandbox"*. A outra metade da
+#   mesma queixa dela é *"nada da interface é aplicado em sandbox; tudo é
+#   aplicado na máquina da pessoa"*, e o meio que faltava entre os dois
+#   extremos é o que a P8 entregou: um botão «Ver o que faria» por gesto.
+#
+#   O QUE ELA PEDIU PARA TIRAR CONTINUA PROIBIDO, e é isso que esta trava
+#   guarda agora — o INTERRUPTOR. Um estado guardado que fazia todo clique
+#   seguinte fingir, até alguém desligá-lo; era ele que produzia "nada tá
+#   aplicando de verdade", porque a tela mentia em silêncio sobre o gesto
+#   seguinte, e o seguinte. A diferença entre os dois desenhos é exatamente
+#   ESTA: um botão não guarda nada entre um clique e o outro.
+#
+#   Então a pergunta que este bloco faz mudou de "o ensaio existe?" para "o
+#   ensaio é pedido, ou é lembrado?". Uma trava que só dissesse "não pode
+#   existir" seria uma trava contra a decisão de hoje, e não contra o defeito.
 _js = re.sub(r"/\*.*?\*/", "", open(os.path.join(raiz, "app/pagina/app.js"),
                                     encoding="utf-8").read(), flags=re.S)
 _js = "\n".join(l for l in _js.splitlines() if not l.lstrip().startswith("//"))
-_restos = re.findall(r"\bseco\b|ensaiando|#seco\b", _js)
+#   9a. NADA DE SECO GUARDADO NA PÁGINA. A chave `meow-seco` do `sessionStorage`
+#       era o interruptor; qualquer armazenamento na mesma linha de um `seco` é
+#       a mesma ideia voltando com outro nome.
+_guardado = re.findall(r"meow-seco", _js)
+_guardado += [l.strip() for l in _js.splitlines()
+              if re.search(r"(session|local)Storage", l) and re.search(r"\bseco\b", l)]
+#   9b. NO SERVIDOR, `MEOW_DRY_RUN` SÓ PODE SER LIGADO EM UM LUGAR, e esse lugar
+#       é o `_ambiente_do_painel`, atrás do parâmetro `seco`. Duas ligações
+#       querem dizer dois donos do modo — e o segundo é sempre o que alguém
+#       esquece de consultar. A conta é de ATRIBUIÇÕES, e não do nome: o nome
+#       aparece no `pop` que arranca a herança do terminal, que é o oposto disto
+#       e tem de continuar existindo.
 _py = "\n".join(l for l in open(os.path.join(raiz, "app/servidor.py"), encoding="utf-8")
                 .read().splitlines() if not l.lstrip().startswith("#"))
-_restos += re.findall(r"""get\(["']seco["']\)|\[["']MEOW_DRY_RUN["']\]\s*=""", _py)
-if _restos:
-    print("FALHOU: o ensaio voltou ao painel: %s" % ", ".join(sorted(set(_restos))),
+_ligam = re.findall(r"""\[["']MEOW_DRY_RUN["']\]\s*=""", _py)
+if _guardado or len(_ligam) != 1 or "_ambiente_do_painel(seco=False)" not in _py:
+    print("FALHOU: o interruptor de ensaio voltou ao painel: guardado=%s, "
+          "ligações de MEOW_DRY_RUN=%d (espera 1), assinatura do ambiente=%s"
+          % (sorted(set(_guardado)) or "—", len(_ligam),
+             "ok" if "_ambiente_do_painel(seco=False)" in _py else "mudou"),
           file=sys.stderr)
     falhou = 1
 else:
-    print("ok: nem a página nem o servidor falam em ensaio fora dos comentários")
+    print("ok: o ensaio é pedido por gesto, e não guardado num interruptor")
+
+#   9c. E O ENSAIO PRECISA CONTINUAR EXISTINDO. Esta metade é nova em 22/09 e é
+#       a que a P8 realmente comprou: sem ela, um refactor que apagasse o botão
+#       deixaria a suíte verde — que é como o ensaio sumiu da tela da primeira
+#       vez, sem nenhum teste dizendo nada. As três peças da sprint, pelo nome
+#       que elas têm no código.
+_pecas = [("o botão do diálogo", "confirmar-ensaio", _js),
+          ("o botão da barra do alto", "botao-ensaiar", _js),
+          ("a faixa da gaveta", "faixa-ensaio", _js),
+          ("o «Rodar de verdade» pós-ensaio", "ensaio-rodar", _js),
+          #   A cópia descartável do meow.conf é a peça que faz o ensaio do
+          #   «Salvar e aplicar» responder sobre AS ESCOLHAS. A primeira versão
+          #   desta sprint as mandava por ambiente e o `install.sh` as engolia
+          #   no `set -a; . "$fonte"` — ensaio do conf antigo, aprovado como se
+          #   fosse o novo. Se alguém voltar ao ambiente, esta linha fica
+          #   vermelha antes de a pessoa descobrir sozinha.
+          ("a cópia descartável do ensaio", "_conf_de_ensaio", _py),
+          ("o MEOW_CONF do ensaio", 'ambiente["MEOW_CONF"]', _py),
+          ("o seco no /api/rodar", 'corpo.get("seco")', _py),
+          ("o seco no /api/salvar", 'corpo.get("seco")', _py)]
+_faltam = ["%s (%s)" % (nome, marca) for nome, marca, onde in _pecas if marca not in onde]
+if _faltam:
+    print("FALHOU: o ensaio da sprint P8 sumiu da tela: %s" % ", ".join(_faltam),
+          file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: o «Ver o que faria» está no diálogo, na barra e na gaveta")
+
+#   9d. E O ENSAIO TEM DE RESPONDER SOBRE AS ESCOLHAS, SEM TOCAR NO ARQUIVO
+#       DELA. As duas metades da mesma pergunta, e a checagem de texto acima não
+#       alcança nenhuma: um `_conf_de_ensaio` que copiasse e esquecesse de
+#       gravar passaria por ela. A escolha entra na CÓPIA (é o que o
+#       `install.sh` vai sourcear), o sha256 do arquivo dela não se move, e a
+#       `conf_exportada` da cópia devolve o valor NOVO — que é de onde sai a
+#       ponte da paleta do trabalho.
+import hashlib as _hl
+import shutil as _sh
+import tempfile as _tf9
+_d9 = _tf9.mkdtemp()
+_dela = os.path.join(_d9, "meow.conf")
+_sh.copyfile(os.path.join(raiz, "meow.conf.exemplo"), _dela)
+_antes9 = _hl.sha256(open(_dela, "rb").read()).hexdigest()
+_conf_dela9 = servidor.CONF
+_erros9 = []
+#       A ausência da função já é gritada pelo 9c acima; aqui ela vira um pulo
+#       em vez de um traceback, senão um único refactor derruba o resto do
+#       arquivo e esconde as travas que vêm depois.
+_faz_ensaio = getattr(servidor, "_conf_de_ensaio", None)
+if _faz_ensaio is None:
+    _pasta9, _queixa9 = None, "o _conf_de_ensaio não existe (ver a trava acima)"
+else:
+    try:
+        servidor.CONF = _dela
+        _pasta9, _queixa9 = _faz_ensaio([("FLAVOR", "frappe")])
+    finally:
+        servidor.CONF = _conf_dela9
+if _queixa9:
+    _erros9.append("o ensaio não conseguiu preparar a cópia: %s" % _queixa9)
+else:
+    _copia9 = os.path.join(_pasta9, "meow.conf")
+    if 'FLAVOR="frappe"' not in open(_copia9, encoding="utf-8").read():
+        _erros9.append("a escolha não entrou na cópia que o install.sh vai ler")
+    if (servidor.conf_exportada(_copia9) or {}).get("FLAVOR") != "frappe":
+        _erros9.append("a conf exportada da cópia ainda diz o FLAVOR do disco")
+    _sh.rmtree(_pasta9, ignore_errors=True)
+if _hl.sha256(open(_dela, "rb").read()).hexdigest() != _antes9:
+    _erros9.append("o ensaio mexeu no meow.conf dela — é a promessa inteira da palavra")
+_sh.rmtree(_d9, ignore_errors=True)
+if _erros9:
+    print("FALHOU: o ensaio do «Salvar e aplicar»: " + "; ".join(_erros9), file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: o ensaio lê as escolhas numa cópia e não toca no meow.conf dela")
 
 # --- 10. O TRABALHO LEVA A CONF, E O ÍCONE QUE NÃO VALE NÃO É OFERECIDO — 13/09 --
 #   Medido pela interface: «Usar este ícone» rodou o `icones_apps_arcticons.sh`
@@ -310,7 +411,11 @@ for _k, _v in (("ICONES_COR_MARCA", "sim"), ("FLAVOR", "latte"), ("ICONES_PASTAS
 if _exp_quebrado is not None:
     _erros10.append("um conf com erro de sintaxe virou ambiente em vez de recusa")
 _ini = _inspect.getsource(servidor.iniciar)
-if "conf_exportada()" not in _ini or "ambiente.update(conf)" not in _ini:
+# `conf_exportada(` e não `conf_exportada()`: desde 22/09 ela recebe a fonte, que
+# no ensaio é a CÓPIA com as escolhas dentro — e tem de ser o MESMO arquivo que o
+# `install.sh` vai sourcear, senão a ponte resolve a paleta por um FLAVOR e o
+# instalador lê outro.
+if "conf_exportada(" not in _ini or "ambiente.update(conf)" not in _ini:
     _erros10.append("o iniciar não põe a conf no ambiente do trabalho")
 _m = servidor.Manipulador.__new__(servidor.Manipulador)
 _tr = _m._travas_do_arcticons()

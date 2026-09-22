@@ -186,7 +186,12 @@ a:hover { color: var(--accent); text-decoration: underline; }
 
 /* O botão amarelo do ensaio morava aqui até 13/09/2026, quando ela pediu o app
  * fora do "modo sandbox". A regra saiu junto com o botão: estilo de um controle
- * que não existe é convite para alguém desenhá-lo de volta. */
+ * que não existe é convite para alguém desenhá-lo de volta.
+ *
+ * O AMARELO VOLTOU EM 22/09/2026 (sprint P8) E NÃO VOLTOU PARA CÁ: o que morava
+ * neste bloco era o INTERRUPTOR de sandbox, um irmão do `#busca` na barra do
+ * alto, e ele continua morto. O que existe hoje é o `.btn-ensaio`, junto dos
+ * outros botões — ver o bloco dele, ao lado do `.btn-perigo`. */
 
 /* --- levar embora e trazer de volta ---------------------------------------
  * O menu é um `<details>`: o navegador já abre, fecha, faz o Enter e o Espaço
@@ -1410,6 +1415,26 @@ select { flex: 1 1 auto; }
   color: var(--red);
 }
 .btn-perigo:hover { background: color-mix(in srgb, var(--red) 15%, transparent); border-color: var(--red); }
+/* O BOTÃO DO ENSAIO — 22/09/2026, sprint P8
+ * Ele é o irmão do `.btn-perigo`, e o desenho é o mesmo de propósito: contorno
+ * e letra coloridos, fundo transparente. Os dois falam do MESMO gesto, e o que
+ * muda entre eles é só a cor — vermelho para "isto apaga", amarelo para "isto
+ * só mostra". Um botão cheio (como o `.btn-accent`) roubaria a ação principal
+ * da caixa, que é o «Rodar» ao lado: ver o que faria é o caminho prudente, e
+ * não o caminho que a tela empurra.
+ *
+ * O AMARELO É O DO PROJETO, E NÃO UMA COR NOVA: `--yellow` é o que o
+ * `lib/comum.sh` usa no glifo `~~` («mudaria»), que é exatamente o que este
+ * botão produz na tela. A mesma cor da causa e do efeito. */
+.btn-ensaio {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--yellow) 38%, var(--surface1));
+  color: var(--yellow);
+}
+.btn-ensaio:hover {
+  background: color-mix(in srgb, var(--yellow) 15%, transparent);
+  border-color: var(--yellow);
+}
 .btn:disabled {
   /* Cores explícitas em vez de `opacity`. [2026-09-18]
    * O esmaecimento global apagava texto E fundo juntos e derrubava o
@@ -1633,6 +1658,45 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
 .gaveta-topo strong { font-size: .82rem; color: var(--text); }
 .gaveta-topo code { display: block; font: .68rem var(--mono); color: var(--overlay1); }
 .gaveta-botoes { margin-left: auto; display: flex; align-items: center; gap: .45rem; }
+
+/* A FAIXA DO ENSAIO — 22/09/2026, sprint P8
+ * ===========================================================================
+ * "ENSAIO · nada foi escrito", e ela existe porque as duas saídas da gaveta são
+ * o MESMO texto do mesmo instalador: a diferença entre "mudei isto" e "mudaria
+ * isto" são os verbos no meio de centenas de linhas. Quem abre a gaveta no
+ * meio da corrida não lê verbo nenhum — lê a faixa.
+ *
+ * ELA FICA ENTRE O TOPO E A SAÍDA, e não dentro do `.gaveta-topo`: o topo é a
+ * linha do título, do comando e dos botões, e tem largura disputada. Uma faixa
+ * de largura inteira, logo acima da primeira linha de log, é o cabeçalho de uma
+ * saída — que é o que a sprint pede — e não mais um enfeite na barra.
+ *
+ * `flex: 0 0 auto` pelo mesmo motivo que o `.gaveta-alca`: a `.gaveta` é uma
+ * coluna flex com o `#saida` rolando dentro, e sem isto a faixa encolheria
+ * junto com o resto quando a saída ficasse longa. */
+.faixa-ensaio {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .4rem .9rem;
+  background: color-mix(in srgb, var(--yellow) 12%, var(--crust));
+  border-bottom: 1px solid color-mix(in srgb, var(--yellow) 35%, transparent);
+}
+.faixa-ensaio strong {
+  font-size: .76rem;
+  letter-spacing: .06em;
+  color: var(--yellow);
+  white-space: nowrap;
+}
+/* A frase explica a faixa e cede a vez: some na tela estreita, onde a disputa
+ * é com o botão que AGE. A faixa em amarelo e a palavra ENSAIO ficam — elas são
+ * o aviso; a frase é o comentário do aviso. */
+.faixa-ensaio span { font-size: .72rem; color: var(--subtext0); }
+#ensaio-rodar { margin-left: auto; }
+@media (max-width: 860px) {
+  .faixa-ensaio span { display: none; }
+}
 
 #saida {
   margin: 0;
