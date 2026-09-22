@@ -554,34 +554,78 @@ semear_estado_do_usuario() {
 #   combinações, porque parece protegido e não está.
 #
 #   ELE É CINTO, E NÃO A DEFESA. A defesa é o arquivo ter saído do git nesta
-#   mesma sprint; o que sobra para o driver cobrir é a travessia — o clone de
-#   quem ainda tem o arquivo antigo rastreado, de um lado do `pull`, e o novo do
-#   outro. Registrar é barato e a falta custou conflito de verdade entre as duas
-#   máquinas.
+#   mesma sprint.
+#
+#   E O CINTO NÃO ALCANÇA A TRAVESSIA — MEDIDO EM 22/09/2026. Este comentário
+#   afirmava que o que sobrava para o driver cobrir era o `pull` entre o clone
+#   com o arquivo antigo rastreado e o novo. Não é. Num clone de teste parado no
+#   commit anterior, com a curadoria COMMITADA, o merge da migração foi rodado
+#   DUAS vezes — com e sem `merge.ours.driver` registrado — e o resultado foi o
+#   mesmo nas duas: `BANIDOS.txt` resolvido por DETECÇÃO DE RENAME do `ort`
+#   (as linhas foram para o `.padrao`) e `lado.tsv` em `CONFLICT
+#   (modify/delete)`. Driver de merge só é chamado quando os DOIS lados têm
+#   conteúdo para o caminho, e deste lado `assets/papeis-de-parede/BANIDOS.txt`
+#   foi APAGADO: rename/delete não passa por driver nenhum.
+#
+#   O QUE ELE COBRE, E POR ISSO CONTINUA AQUI: as duas máquinas enquanto ambas
+#   estiverem ANTES da migração. Aí os dois lados têm o `BANIDOS.txt`
+#   rastreado, o `merge=ours` do `.gitattributes` vale, e sem o driver ele é
+#   inerte — que é exatamente o conflito real que originou a sprint. Depois que
+#   as duas migrarem, o driver fica de cinto para a próxima declaração
+#   `merge=ours` que alguém escrever, e a declaração de hoje fica órfã (ela
+#   nomeia um caminho que saiu do índice). Mexer no `.gitattributes` está fora
+#   da tabela desta sprint, e apontá-lo para o `.padrao` seria ERRADO: o
+#   `.padrao` é receita de fábrica e PRECISA mesclar de três vias entre as duas
+#   máquinas — `merge=ours` ali engoliria, calado, toda atualização da lista de
+#   fábrica que viesse do outro lado.
 #
 #   `--local` de propósito: a configuração é DESTE clone. Mexer no `--global`
 #   seria o instalador de um projeto opinando sobre todo repositório da pessoa.
 registrar_driver_de_merge() {
-  local dentro
   command -v git >/dev/null 2>&1 || return 0
-  # `--git-dir` e não `--is-inside-work-tree`: o segundo responde "true" também
-  # quando o `install.sh` é rodado de dentro de OUTRO repositório que por acaso
-  # contenha este diretório, e aí gravaríamos a configuração no repo errado.
-  dentro="$(git -C "$MEOW_RAIZ" rev-parse --git-dir 2>/dev/null)" || return 0
-  [ -n "$dentro" ] || return 0
+  # ESTE DIRETÓRIO TEM DE SER A RAIZ, E NÃO "ter algum repositório acima" —
+  # MEDIDO EM 22/09/2026, e o comentário que estava aqui afirmava uma distinção
+  # FALSA: dizia que `--git-dir` não sobe a árvore e que
+  # `--is-inside-work-tree` sobe. OS DOIS SOBEM IGUAL. Com o MeowSystem
+  # extraído dentro do clone de OUTRA pessoa (o zip do GitHub solto numa pasta
+  # como `~/repo-dela/vendor/meowsystem`, sem `.git` próprio),
+  # `rev-parse --git-dir` respondia `~/repo-dela/.git`, a guarda passava, e o
+  # `config --local` gravava `[merge "ours"]` no `.git/config` DELA.
+  #
+  # É o mesmo pecado que o parágrafo acima recusa ao não mexer no `--global`, e
+  # com consequência PIOR: registrar o driver no repositório de terceiro muda,
+  # calado, o merge de todo caminho que o `.gitattributes` DELE marque
+  # `merge=ours` — passa a tomar "ours" em vez de merge de três vias.
+  #
+  # `--show-toplevel` responde certo nos dois casos, inclusive em WORKTREE
+  # (onde `.git` é ARQUIVO e não diretório), que é como esta sprint foi medida.
+  # O `pwd -P` do outro lado é o mesmo que o `MEOW_RAIZ` já usa na linha 63:
+  # sem resolver o link simbólico, um clone alcançado por atalho não casaria.
+  [ "$(git -C "$MEOW_RAIZ" rev-parse --show-toplevel 2>/dev/null)" = "$(cd "$MEOW_RAIZ" && pwd -P)" ] || return 0
   [ "$(git -C "$MEOW_RAIZ" config --local --get merge.ours.driver 2>/dev/null)" = "true" ] && return 0
+
+  # ELA CONTA DIVERGÊNCIA, E A `semear_estado_do_usuario` LOGO ACIMA NÃO —
+  # a assimetria não estava escrita em lugar nenhum, e é esta: o que aquela
+  # função toca é `$MEOW_ESTADO`, nossa própria casa; o que esta toca é o
+  # `.git/config` do clone DELA. Mudança na máquina de quem instala é o que o
+  # `--conferir` existe para anunciar. MEDIDO em 22/09/2026, antes do conserto:
+  # num clone convergente em todo o resto e sem o driver, o `--conferir`
+  # imprimia `~~ registraria merge.ours.driver` e a `etapa_cli` devolvia 0 —
+  # a tela dizia "há o que fazer" e o código de saída dizia "nada a fazer".
   if meow_seco; then
     meow_muda "registraria merge.ours.driver neste clone (o .gitattributes já o declara)"
-    return 0
+    return "$MEOW_DIVERGENTE"
   fi
   if git -C "$MEOW_RAIZ" config --local merge.ours.driver true 2>/dev/null; then
     meow_ok "driver de merge 'ours' registrado neste clone"
-  else
-    # Não é falha da etapa: um clone somente-leitura, ou um `.git` de que a
-    # pessoa não é dona, continua instalando o resto perfeitamente. O que se
-    # perde é um cinto de segurança, e dizer isso em voz alta é o conserto.
-    meow_aviso "não consegui registrar merge.ours.driver — o merge=ours do .gitattributes fica inerte neste clone"
+    return "$MEOW_DIVERGENTE"
   fi
+  # Não é falha da etapa: um clone somente-leitura, ou um `.git` de que a
+  # pessoa não é dona, continua instalando o resto perfeitamente. O que se
+  # perde é um cinto de segurança, e dizer isso em voz alta é o conserto.
+  # Também não é divergência: nada mudou, e insistir todo `--conferir` num
+  # clone onde a escrita nunca vai passar seria ruído permanente.
+  meow_aviso "não consegui registrar merge.ours.driver — o merge=ours do .gitattributes fica inerte neste clone"
   return 0
 }
 
@@ -616,6 +660,8 @@ etapa_cli() {
 
   semear_estado_do_usuario
   registrar_driver_de_merge
+  rc=$?
+  [ "$rc" = "1" ] && mudou=1
 
   # 3 AQUI É "NÃO HÁ ONDE PÔR", E ISSO NÃO É FALHA DESTA ETAPA
   #   A `instalar_completion` devolve 3 quando o diretório de completions não

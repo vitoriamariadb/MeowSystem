@@ -3,22 +3,34 @@
 # ~/.local/share/backgrounds/meowsystem/ativos/, e o 'semear' nao repoe o que
 # estiver listado.
 #
-# ESTE ARQUIVO E SEMENTE, E NINGUEM ESCREVE NELE -- 21/09/2026
-#   Ate esta data o arquivo se chamava `BANIDOS.txt`, era versionado, e o botao
-#   "Tirar" do painel gravava AQUI DENTRO. Usar o programa virava commit
+# CONFIRA O CAMINHO ANTES DE EDITAR -- 21/09/2026, revisto em 22/09
+#   Ate 21/09/2026 este arquivo se chamava `BANIDOS.txt`, era versionado, e o
+#   botao "Tirar" do painel gravava AQUI DENTRO. Usar o programa virava commit
 #   pendente: no clone dele o `git status` daquele dia trazia `+47` linhas neste
 #   arquivo, das 17h09, sem ninguem ter programado nada. Com dois usuarios reais
 #   e tres remotos entre eles, cada `git pull` era conflito de merge num arquivo
 #   que nenhum dos dois editou de proposito.
 #
-#   O que o painel escreve agora e a COPIA em
-#   `~/.local/state/meowsystem/papeis-de-parede/BANIDOS.txt`, semeada deste
-#   arquivo uma unica vez. O contrato inteiro esta em `meow_estado_com_padrao`
-#   (`lib/comum.sh`), inclusive o porque de ser semente e nao sobreposicao.
+#   DESDE ENTAO EXISTEM DOIS ARQUIVOS, e este cabecalho esta nos DOIS: a
+#   semeadura copia byte a byte, o `cmd_banir` so faz APPEND, e por isso estas
+#   linhas continuam intactas na copia depois de anos de uso. A primeira versao
+#   deste texto dizia "ESTE ARQUIVO E SEMENTE, E NINGUEM ESCREVE NELE" e
+#   apontava a copia como sendo outro arquivo -- o que, lido de dentro da
+#   propria copia, e o contrario da verdade. Conferido com `head -22` num estado
+#   de brinquedo, depois de um banir de verdade.
 #
-#   O que se edita a mao AQUI e a lista de FABRICA: o que nenhuma maquina nova
-#   deve baixar de volta. Uma linha acrescentada aqui so alcanca quem ainda nao
-#   tem o estado semeado.
+#     assets/papeis-de-parede/BANIDOS.txt.padrao  -- no clone, VERSIONADO
+#         A lista de FABRICA: o que nenhuma maquina nova deve baixar de volta.
+#         Ninguem escreve nela em tempo de execucao. Uma linha acrescentada
+#         aqui so alcanca quem AINDA NAO tem o estado semeado.
+#
+#     ~/.local/state/meowsystem/papeis-de-parede/BANIDOS.txt  -- fora do clone
+#         A lista VIVA desta maquina, semeada do `.padrao` uma unica vez. E
+#         nela que o painel escreve, e e ela que vale agora. Editar a mao aqui
+#         e o jeito de mudar o que ja esta em uso.
+#
+#   O contrato inteiro esta em `meow_estado_com_padrao` (`lib/comum.sh`),
+#   inclusive o porque de ser semente e nao sobreposicao.
 #
 # SO NOMES ASCII ENTRAM NESTA LISTA, E ISSO E DE PROPOSITO
 #   O pre-commit dela (ADR-011) reprova emoji em arquivo versionado, e um

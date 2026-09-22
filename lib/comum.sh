@@ -578,11 +578,26 @@ MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 # O DESENHO É SEMENTE, E NÃO SOBREPOSIÇÃO
 #   O `.padrao` versionado é o conteúdo de FÁBRICA, e ele é copiado para
 #   `$MEOW_ESTADO` UMA vez. Não é uma camada lida por baixo do estado, e a
-#   diferença é exatamente o que faz o desfazer funcionar: o `cmd_desbanir`
-#   reescreve o `BANIDOS.txt` SEM um nome e o `gravar_lado` reescreve o
-#   `lado.tsv` inteiro — com sobreposição, o que ela acabou de tirar voltaria na
-#   leitura seguinte, vindo da camada de baixo. Um desfazer que não desfaz é
+#   diferença está no `gravar_lado`: ele reescreve o `lado.tsv` INTEIRO a cada
+#   escolha, então com sobreposição o lado que ela acabou de desfazer voltaria
+#   na leitura seguinte, vindo da camada de baixo. Um desfazer que não desfaz é
 #   pior que não ter o botão.
+#
+#   O `cmd_desbanir` NÃO SERVE DE EXEMPLO AQUI, e a versão anterior deste
+#   comentário o usava como se servisse. Ele de fato reescreve o `BANIDOS.txt`
+#   sem o nome (`grep -vxF`, `wallpaper.sh`), mas o desfazer não chega a
+#   acontecer nem hoje, sem sobreposição nenhuma: ele copia com `cp` em vez de
+#   `mv`, a imagem FICA em `banidos/`, e o `cmd_aplicar` que ele chama no fim
+#   roda a `reconciliar_banidos_pasta` — que reescreve no `BANIDOS.txt` todo
+#   nome presente em `banidos/` e ausente da lista. MEDIDO em 22/09/2026, em
+#   acervo de brinquedo: `banir a.jpg` deixa uma ocorrência, `desbanir a.jpg`
+#   imprime "devolvida" e deixa a MESMA uma ocorrência. Conferido idêntico no
+#   commit anterior a esta sprint, com o `BANIDOS.txt` apontado para uma cópia:
+#   a causa é ANTERIOR e não nasceu aqui.
+#
+#   Fica NOMEADO e não consertado, que é a regra da casa: mexer no `cmd_desbanir`
+#   é escolher entre `mv` e uma exceção na reconciliação, e as duas decidem o
+#   que `banidos/` significa — assunto de outra sprint, fora da tabela desta.
 #
 # O MARCADOR É O DIRETÓRIO, E NÃO O ARQUIVO
 #   O `gravar_lado` APAGA o `lado.tsv` quando ela desfaz a última escolha —
@@ -632,6 +647,14 @@ MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 #   semente; o `.padrao` atende quem clona hoje. A conta se fecha sozinha: o
 #   `.gitignore` barra o arquivo velho, ele nunca mais é recriado, e quem apagar
 #   o dele à mão passa a cair no `.padrao` como qualquer clone novo.
+#
+#   O "ENQUANTO ESTIVER LÁ" TEM PRAZO, E O PRAZO É O `git pull` DA MIGRAÇÃO.
+#   Medido em 22/09/2026: com a curadoria não commitada o merge RECUSA e o pull
+#   não completa; com ela commitada ou descartada, o git APAGA o arquivo antigo
+#   do disco. Ou seja, esta função só alcança o arquivo velho se rodar ANTES do
+#   pull — e é por isso que a `etapa_cli` a chama em toda passagem, em vez de
+#   deixar para a primeira escrita do painel. Os três caminhos estão medidos um
+#   a um no bloco da curadoria em `.gitignore`.
 #
 # A ORIGEM É SEMPRE `assets/<pasta>` e o destino `$MEOW_ESTADO/<pasta>`: um
 # acervo do repositório tem um espelho de estado com o mesmo nome, e não há

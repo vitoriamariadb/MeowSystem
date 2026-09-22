@@ -146,10 +146,39 @@ assets/papeis-de-parede/originais/
 # `~/.local/state/meowsystem/papeis-de-parede/`. O contrato está em
 # `meow_estado_com_padrao` (`lib/comum.sh`).
 #
-# ESTAS DUAS LINHAS SÃO TAMBÉM A MIGRAÇÃO: no clone de quem já usava, o arquivo
-# antigo continua no disco depois do `git pull` — é dele que a semeadura copia,
-# para não apagar a curadoria de ninguém —, e é esta regra que impede que ele
-# volte ao índice por um `git add -A` distraído.
+# ESTAS DUAS LINHAS SÃO O CINTO DO `git add -A` DISTRAÍDO, e só isso. Elas
+# impedem que o arquivo antigo volte ao índice; elas NÃO o seguram no disco.
+#
+# O QUE O `git pull` DA MIGRAÇÃO FAZ DE VERDADE — medido em 22/09/2026, em
+# clone de teste parado no commit anterior, porque a versão anterior deste
+# parágrafo prometia que "o arquivo antigo continua no disco depois do `git
+# pull`" e isso não se confirma em nenhum dos três caminhos:
+#
+#   · CURADORIA NÃO COMMITADA (é o caso dele, `+47` linhas): o merge RECUSA —
+#     "Your local changes to the following files would be overwritten by merge
+#     ... Aborting". É fail-safe, nada some calado, mas O PULL NÃO COMPLETA.
+#     É o item 3 do "o que pode dar errado" da sprint, e a resposta é esta:
+#     commitar ou descartar ANTES, e saber o que cada escolha custa.
+#   · COMMITADA ANTES: o merge acontece. `BANIDOS.txt` é detectado como rename
+#     (`R083` contra o commit anterior à migração) e o `ort` leva as linhas
+#     dela para DENTRO do
+#     `BANIDOS.txt.padrao` VERSIONADO — o arquivo antigo some do disco e a
+#     curadoria privada dela vira conteúdo rastreado, pronto para ser empurrado
+#     no próximo push. `lado.tsv` NÃO é detectado (o cabeçalho novo afoga as 6
+#     linhas de dado) e para em `CONFLICT (modify/delete)`, deixando o arquivo
+#     antigo no disco.
+#   · DESCARTADA ANTES: fast-forward, e o git APAGA os dois arquivos do disco.
+#     A semeadura cai no `.padrao`, que é o certo — e é o caminho em que as 47
+#     linhas dela somem. Por isso a ordem importa.
+#
+# O `merge.ours.driver` que o `install.sh` registra não muda nenhuma dessas
+# contas: o merge foi rodado com e sem ele e o resultado foi o mesmo, porque
+# rename/delete não passa por driver de merge. O porquê está no `install.sh`.
+#
+# ENTÃO O QUE PRESERVA A CURADORIA é a semeadura acontecer ANTES do pull —
+# `meow_estado_com_padrao` copia o arquivo antigo enquanto ele existe — ou o
+# `.padrao` já ter recebido as linhas pelo merge. As duas coisas estão escritas
+# em `lib/comum.sh`.
 assets/papeis-de-parede/BANIDOS.txt
 assets/papeis-de-parede/lado.tsv
 
