@@ -2949,6 +2949,58 @@ cmd_configurar() {
     wiz_perguntar "$chave" "$fonte" || { saiu=1; break; }
   done
 
+  # O PAR ESCOLHIDO EXISTE NO DISCO? — 21/09/2026
+  #   MEDIDO: o comentário do `FLAVOR` oferece 5 variantes e o do `ACCENT`
+  #   oferece 12. São 60 pares apresentados como escolha, e
+  #   `assets/temas/capturados/` tem QUATRO (dracula-mauve, latte-mauve,
+  #   mocha-mauve, mocha-pink). Quem respondesse "macchiato" + "teal" — duas
+  #   opções que a própria pergunta ofereceu — via a etapa `tema` do install.sh
+  #   se pular e não entendia por quê.
+  #
+  #   POR QUE A LISTA NÃO ENCOLHEU PARA QUATRO. Encolher fecharia 56 pares que
+  #   FUNCIONAM: o tema sai por derivação da paleta (`scripts/gerar_temas.py`
+  #   escreve o `.ron` de qualquer par), e a captura é refinamento — ela fixa o
+  #   que o COSMIC desenhou na tela, não autoriza o par a existir. Trocar uma
+  #   promessa falsa por uma porta fechada seria trocar um defeito por outro.
+  #   O que faltava era a frase, e ela vem aqui: depois das respostas, uma vez,
+  #   sem cinza e sem opção escondida.
+  #
+  #   A LISTA VEM DO DISCO, e não daqui: uma captura nova entra na frase no dia
+  #   em que alguém a tirar, sem ninguém editar esta função.
+  if [ -z "$so_uma" ] && [ "$saiu" = "0" ]; then
+    local _fl _ac _par _caps="" _c
+    _fl="${WIZ_NOVO[FLAVOR]:-$(wiz_bruto FLAVOR "$fonte")}"
+    _ac="${WIZ_NOVO[ACCENT]:-$(wiz_bruto ACCENT "$fonte")}"
+    _par="$_fl-$_ac"
+    if [ -n "$_fl" ] && [ -n "$_ac" ] && [ ! -d "$RAIZ/assets/temas/capturados/$_par" ]; then
+      for _c in "$RAIZ/assets/temas/capturados"/*; do
+        [ -d "$_c" ] || continue
+        # A `original` é a captura de referência do projeto, tirada de uma
+        # máquina só — não é um par que alguém escolheria aqui. Mesma exclusão
+        # que o `lib/preflight.sh` faz, pelo mesmo motivo.
+        [ "${_c##*/}" = "original" ] && continue
+        _caps="$_caps${_c##*/} "
+      done
+      # O acumulador acima deixa um espaço no fim, e ele ia para a tela: a linha
+      # saía "... mocha-pink " e o branco sobrando aparece em qualquer terminal
+      # que sublinhe ou selecione a linha. Cortado aqui, uma vez, para o
+      # `:-nenhuma` continuar respondendo à lista vazia sem ter de saber disso.
+      _caps="${_caps% }"
+      printf '\n'
+      meow_info "o par \"$_par\" não tem captura de referência no repositório"
+      meow_info "  as que há: ${_caps:-nenhuma}"
+      meow_info "  isto NÃO fecha a porta: o tema deste par sai por DERIVAÇÃO da"
+      meow_info "  paleta, e a captura é refinamento, não requisito."
+      meow_info "  o que muda: a etapa \"tema\" do install.sh se pula e o COSMIC fica"
+      meow_info "  com as cores que já estava usando. O backup de \"voltar ao tema de"
+      meow_info "  antes\" é feito de qualquer jeito, na primeira passagem."
+      meow_info "  para fixar este par na tela, uma vez:"
+      meow_info "      importe assets/temas/meowsystem-$_par.ron em"
+      meow_info "      Configurações > Aparência > Importar, e depois:"
+      meow_info "      meow tema capturar $_par"
+    fi
+  fi
+
   # A porta que fica aberta. Sem esta frase, o wizard curto vira um wizard que
   # ESCONDE — e a pessoa não tem como saber que as outras chaves existem.
   if [ -z "$so_uma" ] && [ "$todas" = "0" ] && [ "$saiu" = "0" ]; then
@@ -3107,13 +3159,30 @@ cmd_desfazer() {
     meow_info "  isso quer dizer que o MeowSystem nunca escreveu tema aqui — nada a desfazer"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  # `MEOW_SIM` NÃO DESLIGA ESTA GUARDA — E DESLIGAVA, ATÉ 21/09/2026
+  #   `MEOW_SIM=1` quer dizer "não pergunte", e era o que a condição abaixo lia
+  #   como "pode aplicar o tema de outra pessoa". Os dois sentidos vinham
+  #   colados, e quem os separava era o acaso de ninguém usar a variável — até
+  #   que o painel passou a usar: `app/servidor.py` dispara o botão «Voltar ao
+  #   tema de antes» com `ambiente: {"MEOW_SIM": "1"}`, porque a página já
+  #   perguntou e o `read` daqui ficaria pendurado sem tty. O efeito colateral
+  #   era o botão restaurar, sem avisar nada, o desktop de fábrica de
+  #   `/home/vitoriamaria` — que é o que a captura versionada tem gravado.
+  #
+  #   A guarda passa a ser incondicional, e a porta de fuga ganha nome próprio:
+  #   quem quer mesmo o tema de fábrica de outra máquina tem de dizer isso, e
+  #   não "não me pergunte". Nenhum caminho automático a digita por engano.
   local origem_cap
   origem_cap="$(sed -n 's/^origem: //p' "$RAIZ/assets/temas/capturados/original/captura.txt" 2>/dev/null | head -n1)"
-  if [ -n "$origem_cap" ] && [ "$origem_cap" != "$HOME/.config/cosmic" ] && [ "${MEOW_SIM:-0}" != "1" ]; then
+  if [ -n "$origem_cap" ] && [ "$origem_cap" != "$HOME/.config/cosmic" ] \
+     && [ "${MEOW_TEMA_DE_OUTRA_MAQUINA:-0}" != "1" ]; then
     meow_erro "a captura 'original' foi tirada de OUTRA máquina ($origem_cap)"
     meow_info "  aplicá-la aqui instalaria o tema de fábrica de outra pessoa e"
     meow_info "  apagaria as chaves que ela não tem."
-    meow_info "  se é isso mesmo que você quer:  MEOW_SIM=1 meow desfazer"
+    meow_info "  o ponto de volta DESTA máquina nasce na primeira passagem do"
+    meow_info "  ./install.sh (etapa 'backup_tema') — rode-o uma vez e tente de novo."
+    meow_info "  se é mesmo o tema de fábrica de outra máquina que você quer:"
+    meow_info "      MEOW_TEMA_DE_OUTRA_MAQUINA=1 meow desfazer"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   # Pergunta só quando há alguém para responder. Em automação (`| meow`, timer,
@@ -3333,6 +3402,8 @@ Variáveis:
   MEOW_RAIZ_EXTRA   um lugar a mais onde procurar o clone (ex.: outro disco)
   MEOW_CONF         outro meow.conf
   MEOW_SIM=1        não pergunta nada (o desfazer, e o "aplicar agora?" do wizard)
+  MEOW_TEMA_DE_OUTRA_MAQUINA=1
+                    deixa o desfazer aplicar uma captura tirada de outro home
   MEOW_TIMEOUT      segundos de espera em cada pergunta (300 no wizard)
 
 Códigos de saída: 0 certo · 1 divergente · 2 erro · 3 falta dependência.

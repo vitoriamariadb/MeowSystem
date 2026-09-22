@@ -13,7 +13,7 @@
 [![languages](https://img.shields.io/badge/bash%204.3+-python%203%20stdlib%20only-A6E3A1?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 ![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 
-[![installer](https://img.shields.io/badge/installer-58%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![installer](https://img.shields.io/badge/installer-59%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 [![doctor](https://img.shields.io/badge/doctor-62%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 [![browser suite](https://img.shields.io/badge/browser-123%2F123-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
@@ -33,11 +33,11 @@ plus a local panel that changes all of it without opening a text file.
 ```bash
 git clone https://github.com/vitoriamariadb/MeowSystem.git
 cd MeowSystem
-./install.sh --wizard     # first run: asks four questions, then installs
+./install.sh --wizard     # first run: asks five questions, then installs
 meow ativar               # every other run
 ```
 
-58 steps. Running it again on a machine that is already set up **writes nothing** — and says so,
+59 steps. Running it again on a machine that is already set up **writes nothing** — and says so,
 instead of listing the steps as if it had redone them. To see what would happen before letting it
 happen: `MEOW_DRY_RUN=1 ./install.sh`.
 
@@ -71,7 +71,7 @@ drawn.
 
 <img src="docs/capturas/painel-areas.png" width="920" alt="The workspaces tab, with a drawing of the bar and the two screens above its three settings">
 
-- **Papel de parede** (wallpaper) — the 46-image collection, its 9 settings and 13 actions, on one
+- **Papel de parede** (wallpaper) — the collection, its 9 settings and 13 actions, on one
   screen. Dropping a file here says right away whether it landed in the day or the night group,
   and why — and you can disagree: **Dia** and **Noite** send an image to whichever side you want,
   and **Medir** hands the decision back to the luminance.
@@ -110,7 +110,7 @@ run is still in the terminal: `./install.sh --dry-run`.
 | **The workspaces** | Name, order and tiling for each one. The order of the list is the order of the bar, and it is the only way to decide which area is born first. |
 | **The icons** | Papirus as the base, folders tinted by the accent colour, and Arcticons glyphs per program — swappable one by one, from the panel. |
 | **The terminal** | All sixteen colours, the cursor, the `starship` prompt, and the cat replacing the `fastfetch` logo, redrawn in characters on every build. |
-| **The wallpaper** | A carousel of 43 curated images, day and night folders split by luminance, next/previous on right-click, and favourites. |
+| **The wallpaper** | A carousel with day and night folders split by luminance, next/previous on right-click, and favourites. The collection starts empty: `meow wallpaper semear` downloads the curated set, `meow wallpaper adicionar` uses images you already have. |
 | **Day and night** | One schedule rules everything that asks "is it night?": the dock cat, the terminal cat, the background, and reading mode — which warms the screen and gives it paper texture, on a ramp. |
 | **Programs** | Spotify, VS Code and friends themed from the inside; Steam and Heroic games with one launcher entry each, cover art included, removed when the game is. |
 
@@ -132,7 +132,7 @@ run is still in the terminal: `./install.sh --dry-run`.
 ```bash
 meow doctor                            # 62 checks. Writes nothing.
 meow doctor --consertar                # applies only what is out of place
-./scripts/aplicar_tema.sh original     # restores the previous theme
+meow desfazer                          # restores this machine's previous theme
 meow desinstalar                       # removes theme, icons and timers
 ```
 
@@ -144,9 +144,11 @@ not by good intentions — to write anywhere it doesn't know.
 This repository was born for one machine: **Pop!_OS 24.04 LTS with COSMIC**, `apt`, an RTX 4060
 and her Steam `.desktop` files. That coupling is allowed and written down — absolute paths, the
 `cosmic-greeter` uid, the list of programs the launcher hides. What you get in return is the
-opposite of the usual: `--wizard` asks only the four essential keys, `doctor` tells you what is
-out of place before the screen does, and nothing is applied without a copy of what was there
-before. If your machine looks like this one, install it. If it doesn't, read `doctor` — it talks.
+opposite of the usual: `--wizard` asks only the five essential keys — `FLAVOR`, `ACCENT`, `MODO`,
+`LANCADOR_SISTEMA` and `PONTE_ROOT` —, `doctor` tells you what is out of place before the screen
+does, and nothing is applied without a copy of what was there before. `LOGO`, which the installer
+also requires, comes filled in from `meow.conf.exemplo` and needs no answer. If your machine looks
+like this one, install it. If it doesn't, read `doctor` — it talks.
 
 ## Requirements
 

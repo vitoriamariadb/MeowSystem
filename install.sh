@@ -150,6 +150,168 @@ etapa_conf_ler() {
   return 0
 }
 
+# ---------------------------------------------------------------------------
+# O BACKUP QUE O "VOLTAR AO TEMA DE ANTES" DEVOLVE É DESTA MÁQUINA — 21/09/2026
+#
+#   MEDIDO, simulando por leitura quem acabou de clonar o repositório:
+#   `assets/temas/capturados/original/captura.txt` diz, na terceira linha,
+#   `origem: /home/vitoriamaria/.config/cosmic` — 121 arquivos, 04/08/2026.
+#   Numa máquina onde o `aplicar_tema.sh` ainda não tinha rodado, aquela captura
+#   era a ÚNICA rede embaixo do botão «Voltar ao tema de antes», e o painel
+#   chama o `meow desfazer` com `MEOW_SIM=1` (app/servidor.py) — que era
+#   exatamente o que desligava a guarda de "esta captura é de outra máquina" no
+#   `cmd_desfazer`. Num estranho, o botão instalava o desktop de fábrica de
+#   OUTRA PESSOA e apagava as chaves que ela não tivesse.
+#
+#   O backup certo já existia, mas só nascia DE CARONA: quem o cria é o
+#   `aplicar_tema.sh` (o `-tema-PRIMEIRO-`), e ele só roda se houver captura
+#   para o par `FLAVOR-ACCENT` escolhido. O `meow.conf.exemplo` oferece 5
+#   flavors × 12 accents e existem 4 capturas: quem respondesse "macchiato" +
+#   "teal" no wizard — duas opções que a própria pergunta oferecia — caía no
+#   `return 3` do `etapa_tema` e ficava sem tema E sem desfazer.
+#
+#   Por isso esta etapa é a PRIMEIRA da lista e não depende de configuração
+#   nenhuma: ela olha `~/.config/cosmic`, copia as árvores de tema que
+#   estiverem lá e escreve um `captura.txt` ao lado, com a `origem:` DESTA
+#   máquina. É o arquivo que a conferência procura, e é o que separa "o COSMIC
+#   de antes daqui" de "o COSMIC de antes de outra pessoa".
+#
+#   NÃO RECAPTURA, E ISSO É A METADE IMPORTANTE. Se já existe um
+#   `*-tema-PRIMEIRO-*`, aquele é o de antes; sobrescrever seria gravar por cima
+#   do único estado que o projeto promete devolver — o mesmo motivo pelo qual o
+#   `capturar_tema.sh` recusa recapturar a referência.
+#
+#   E A RÉGUA DE "JÁ RODOU AQUI" É A DO `aplicar_tema.sh`, NÃO UMA MAIS ESTREITA
+#   [corrigido em 21/09/2026, no mesmo dia em que esta etapa nasceu]
+#     A guarda abaixo olhava só `*-tema-PRIMEIRO-*`. O `garantir_backup`
+#     (scripts/aplicar_tema.sh) mede outra coisa, e a explicação está escrita
+#     lá por extenso: «"PRIMEIRO" é medido, não presumido: se já existe QUALQUER
+#     backup de tema aqui, este script já rodou antes e o que estiver no disco
+#     agora já é obra nossa — chamar isso de "antes do MeowSystem" seria uma
+#     mentira gravada no nome do arquivo». O mesmo comentário diz que numa
+#     máquina assim «nenhum PRIMEIRO nasce» — ou seja, a régua estreita daqui
+#     nunca encontrava nada justamente nas máquinas que já rodam o projeto.
+#
+#     MEDIDO: HOME com `backups/2026-08-04T10-00-00-tema-mocha-mauve` (o "antes"
+#     de verdade) e o accent do COSMIC já vestido pelo MeowSystem, sem nenhum
+#     PRIMEIRO. Esta etapa criava `<carimbo>-tema-PRIMEIRO-pre-instalacao` com
+#     `captura: pre-instalacao` contendo O TEMA DO MEOWSYSTEM, e em seguida
+#     `meow desfazer` achava esse backup, imprimia "devolvendo o COSMIC ao
+#     estado de <carimbo>" / "pronto" e devolvia o mesmo tema que já estava na
+#     tela: um no-op que reporta sucesso. Pior, ele passava NA FRENTE da captura
+#     `original`, que era quem de fato respondia pelo desfazer ali — numa
+#     máquina desta casa o botão funcionava antes e deixava de funcionar depois.
+#
+#     Então a pergunta passa a ser "já há QUALQUER cópia do COSMIC daqui?", e
+#     não "já há um PRIMEIRO?". O laço abaixo é o do `aplicar_tema.sh` — mesmo
+#     glob, mesmo `[ -d ]` — com UMA exclusão a mais, que está explicada nele.
+#
+#   O NOME SEGUE O GLOB DE QUEM RESTAURA, e não é enfeite: `cmd_desfazer`
+#   (bin/meow) e a fase 3 do `lib/desinstalar.sh` procuram literalmente
+#   `"$MEOW_ESTADO"/backups/*-tema-PRIMEIRO-*`. Um sufixo diferente aqui seria
+#   um backup que ninguém acha.
+etapa_backup_tema() {
+  passo "Backup do tema de antes"
+  local cosmic="$HOME/.config/cosmic"
+  local velho primeiro="" mais_velho=""
+  for velho in "$MEOW_ESTADO"/backups/*-tema-*; do
+    [ -d "$velho" ] || continue
+    case "$velho" in *-tema-PRIMEIRO-*) primeiro="$velho"; break ;; esac
+    # `<carimbo>-tema-v1` é do `gerar_tema_v1.py` e guarda as CAPTURAS DO
+    # REPOSITÓRIO, não o `~/.config/cosmic` desta pessoa — a poda do
+    # aplicar_tema.sh já tinha se queimado com ele em 10/08/2026, e o comentário
+    # de lá conta a história. Aqui a pergunta é "já existe cópia do COSMIC
+    # daqui?", e essa pasta não é uma: contá-la deixaria sem ponto de volta quem
+    # rodasse `meow doctor --consertar` antes do primeiro `./install.sh`.
+    case "$velho" in *-tema-v1) continue ;; esac
+    # O glob sai ordenado, e o nome começa pelo carimbo: o primeiro que cai aqui
+    # é o mais antigo, que é o que mais perto está do "antes" desta máquina.
+    [ -n "$mais_velho" ] || mais_velho="$velho"
+  done
+  if [ -n "$primeiro" ]; then
+    meow_ok "já há backup de antes da instalação em $(basename "$primeiro")"
+    return 0
+  fi
+  if [ -n "$mais_velho" ]; then
+    meow_ok "esta máquina já rodou o MeowSystem — não há estado 'de antes' a gravar"
+    meow_info "  o tema que está no disco agora já é obra nossa; chamá-lo de"
+    meow_info "  \"pre-instalacao\" seria uma mentira no nome do arquivo."
+    meow_info "  o mais antigo em backups/ é $(basename "$mais_velho") —"
+    meow_info "  o COMO-RESTAURAR.txt dentro dele diz como voltar à mão."
+    return 0
+  fi
+
+  # Sem árvore de tema no disco não há o que guardar, e inventar uma pasta vazia
+  # chamada "antes" seria pior do que não ter nenhuma: o `cp -a
+  # "$primeiro"/com.system76.CosmicTheme.*` do `cmd_desfazer` (bin/meow) não tem
+  # `nullglob`, então numa pasta sem árvore nenhuma o glob fica literal, o `cp`
+  # reclama de arquivo inexistente e a função devolve MEOW_ERRO. Não é silêncio:
+  # é o botão passando a FALHAR em vez de restaurar. (O `garantir_backup` do
+  # scripts/aplicar_tema.sh ainda cria essa pasta vazia numa máquina sem árvore
+  # de tema; é de fora desta sprint, e fica anotado.)
+  local -a arvores=()
+  local a
+  for a in "$cosmic"/com.system76.CosmicTheme.*; do
+    [ -d "$a" ] && arvores+=("$a")
+  done
+  if [ "${#arvores[@]}" = "0" ]; then
+    meow_pula "o COSMIC ainda não escreveu tema aqui — não há estado anterior a guardar"
+    meow_info "  o primeiro 'meow tema' desta máquina vira o ponto de volta"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  local destino="$MEOW_ESTADO/backups/$(date +%Y-%m-%dT%H-%M-%S)-tema-PRIMEIRO-pre-instalacao"
+  if meow_seco; then
+    meow_muda "guardaria ${#arvores[@]} árvore(s) de tema de $cosmic em backups/*-tema-PRIMEIRO-pre-instalacao"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  mkdir -p "$destino" || { meow_erro "não consegui criar $destino"; return "$MEOW_ERRO"; }
+  for a in "${arvores[@]}"; do
+    cp -a "$a" "$destino/" || { meow_erro "não consegui copiar $(basename "$a")"; return "$MEOW_ERRO"; }
+  done
+
+  # Manifesto com caminhos RELATIVOS, como o do `capturar_tema.sh`: o backup
+  # precisa ser conferível depois de a pasta mudar de lugar.
+  ( cd "$destino" && find . -type f ! -name manifesto.sha256 -print0 \
+      | sort -z | xargs -0 sha256sum > manifesto.sha256 ) 2>/dev/null || true
+
+  # O `captura.txt` tem o MESMO formato do das capturas versionadas
+  # (`assets/temas/capturados/*/captura.txt`), e de propósito: a pergunta
+  # "de qual home isto saiu?" se responde com o mesmo `grep origem` dos dois
+  # lados, e foi a ausência dessa linha aqui que deixou o `desfazer` sem como
+  # distinguir esta máquina da de outra pessoa.
+  local total
+  total="$(find "$destino" -type f ! -name manifesto.sha256 ! -name captura.txt 2>/dev/null | wc -l)"
+  {
+    echo "captura: pre-instalacao"
+    echo "quando: $(date -Iseconds)"
+    echo "origem: $cosmic"
+    echo "arquivos: $total"
+  } > "$destino/captura.txt"
+
+  cat > "$destino/COMO-RESTAURAR.txt" <<FIM
+Estado de ~/.config/cosmic (só as árvores de tema) de ANTES do MeowSystem nesta
+máquina, guardado em $(date '+%d/%m/%Y %H:%M:%S').
+
+É o que o "Voltar ao tema de antes" do painel e o "meow desfazer" devolvem.
+
+Para voltar exatamente a este estado, à mão:
+
+    cp -a $destino/com.system76.CosmicTheme.* ~/.config/cosmic/
+
+Para conferir que nada se corrompeu aqui dentro:
+
+    cd $destino && sha256sum -c manifesto.sha256
+
+O COSMIC relê por inotify: a interface acompanha em segundos, sem relogar.
+FIM
+
+  meow_muda "$total arquivo(s) guardados em $(basename "$destino")"
+  meow_info "  é o que o 'meow desfazer' devolve — e é desta máquina"
+  return "$MEOW_DIVERGENTE"
+}
+
 etapa_conf() {
   passo "Configuração"
   local fonte="$CONF" mudou=0
@@ -532,8 +694,28 @@ etapa_gerar() {
     meow_muda "regeraria os temas"
     return "$MEOW_DIVERGENTE"
   fi
-  python3 "$MEOW_RAIZ/scripts/gerar_temas.py" | sed 's/^/  /' || return "$MEOW_ERRO"
-  python3 "$MEOW_RAIZ/scripts/gerar_tema_v1.py" | sed 's/^/  /' || return "$MEOW_ERRO"
+  # O CÓDIGO DE SAÍDA VEM DO `PIPESTATUS[0]`, E NÃO DO PIPE — 21/09/2026
+  #   Estas duas linhas eram `... | sed ... || return "$MEOW_ERRO"`. Com o
+  #   `pipefail` do lib/comum.sh:16, o status do pipe é o do PRIMEIRO comando
+  #   que falha — mas o `||` não sabe QUAL foi, e transformava todo não-zero em
+  #   2. O `gerar_tema_v1.py:441` sai 3 DE PROPÓSITO quando falta dependência, e
+  #   o comentário dele (linhas 424-430) diz com todas as letras que sair 2 ali
+  #   seria mentira: a tela imprimia "falhou: gerar" onde a resposta honesta era
+  #   "pulado: gerar". Três linhas adiante, o `etapa_tema` já fazia certo — é
+  #   daquela linha que esta cura foi copiada.
+  #
+  #   SÓ O 3 PASSA DIRETO, e o resto continua virando 2. Não é preciosismo: o
+  #   `sys.exit("ERRO: ...")` do Python sai com código 1, e 1 aqui é
+  #   `MEOW_DIVERGENTE` — devolvê-lo cru faria um erro de verdade do
+  #   `gerar_temas.py` (paleta ausente, flavor desconhecido) ser contado como
+  #   "mexeu". Trocar uma mentira por outra não é conserto.
+  local rc_gt
+  python3 "$MEOW_RAIZ/scripts/gerar_temas.py" | sed 's/^/  /'
+  rc_gt="${PIPESTATUS[0]}"
+  case "$rc_gt" in 0) ;; "$MEOW_SEM_DEPENDENCIA") return "$MEOW_SEM_DEPENDENCIA" ;; *) return "$MEOW_ERRO" ;; esac
+  python3 "$MEOW_RAIZ/scripts/gerar_tema_v1.py" | sed 's/^/  /'
+  rc_gt="${PIPESTATUS[0]}"
+  case "$rc_gt" in 0) ;; "$MEOW_SEM_DEPENDENCIA") return "$MEOW_SEM_DEPENDENCIA" ;; *) return "$MEOW_ERRO" ;; esac
   meow_ok "regenerados a partir de assets/paleta/"
   return "$MEOW_DIVERGENTE"
 }
@@ -2645,6 +2827,29 @@ etapa_wallpaper() {
   [ "$rc" = "1" ] && [ "${WALLPAPER_NOTIFICAR:-sim}" = "sim" ] \
     && meow_notificar "MeowSystem" "Carrossel de papéis de parede ligado."
 
+  # O CARROSSEL NASCIA VAZIO E NÃO DIZIA O QUE O ENCHE — 21/09/2026
+  #   Numa máquina nova o `aplicar` sai 3 com "só 0 imagem(ns) em ... — o
+  #   carrossel precisa de 2 ou mais" e manda `meow wallpaper adicionar
+  #   <arquivo|pasta>`, que pressupõe que a pessoa já tenha imagens. Quem enche
+  #   o acervo do zero é `meow wallpaper semear` — e `grep -c semear install.sh`
+  #   devolvia 0: o instalador nunca o nomeava, em lugar nenhum. O README
+  #   prometia "43 imagens curadas" duas vezes, e o estranho ficava com zero,
+  #   sem nenhuma frase ligando as duas coisas.
+  #
+  #   POR QUE A ETAPA NÃO SEMEIA SOZINHA. O `scripts/wallpaper.sh` (cabeçalho
+  #   do `semear_das_dela`) grava a regra da casa: "não baixamos nada da
+  #   internet sem ela pedir: o carrossel tem de funcionar no primeiro
+  #   install.sh, offline". Baixar dezenas de imagens do GitHub sem perguntar
+  #   quebraria essa regra e ainda faria a primeira instalação depender de
+  #   rede. O que faltava não era a semeadura automática: era a FRASE. Um
+  #   comando que ninguém sabe que existe é um comando que não existe.
+  if [ "$rc" = "3" ]; then
+    meow_info "para encher o acervo de uma vez, com as imagens curadas:"
+    meow_info "    meow wallpaper semear        # baixa o acervo (precisa de rede)"
+    meow_info "  ou aponte para imagens que você já tem:"
+    meow_info "    meow wallpaper adicionar ~/Imagens"
+  fi
+
   # O RELÓGIO CURTO DO CARROSSEL — por que ele nasceu em 08/08/2026
   #   Algum processo do COSMIC devolveu o `output.DP-1` para a pasta de fábrica
   #   duas vezes em 48 h. Com o reparo só no doctor diário, o estrago das 14:35
@@ -2860,7 +3065,13 @@ main() {
   # instalação e "consertaria" o que ainda estava sendo escrito.
   # A CLI vem em segundo, logo depois da configuração: se qualquer etapa daqui
   # para baixo falhar, ela fica com o `meow doctor` na mão para descobrir por quê.
-  local etapas=(etapa_conf etapa_cli etapa_ponte_root etapa_atalho etapa_pacotes etapa_gerar etapa_tema
+  # O `etapa_backup_tema` ABRE A LISTA, e a posição é o recurso: ele guarda o
+  # COSMIC de antes ANTES de a primeira etapa escrever qualquer coisa. Posto
+  # depois do `etapa_conf`, ele ainda funcionaria — o conf não mexe no tema —,
+  # mas a promessa da tela é "o backup feito antes da instalação", e uma
+  # promessa que depende de qual etapa escreve o quê envelhece na primeira
+  # etapa nova. Ver o cabeçalho da função.
+  local etapas=(etapa_backup_tema etapa_conf etapa_cli etapa_ponte_root etapa_atalho etapa_pacotes etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_apps_dracula etapa_icones_sistema etapa_icones_bandeja

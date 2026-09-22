@@ -49,9 +49,30 @@
 #   uma sem a irmã apaga a explicação das duas sem nada acusar.
 
 # @ Variante do tema
-# > Catppuccin em três escuros e um claro, ou Dracula. Só valem as combinações que já têm captura pronta.
-# [essencial] Qual variante de cor. Só vale o que tem captura em
-# assets/temas/capturados/ — o pré-voo avisa antes de instalar se a combinação não existir.
+# > Catppuccin em três escuros e um claro, ou Dracula. Vale com qualquer cor de destaque.
+# [essencial] Qual variante de cor. Vale qualquer par com o ACCENT: o tema sai
+# por DERIVAÇÃO da paleta, e a captura em assets/temas/capturados/ é
+# refinamento, não requisito. O pré-voo diz se este par ainda não tem a dele.
+#
+# "SÓ VALE O QUE TEM CAPTURA" ERA MENTIRA, E ELA SAÍA DUAS VEZES NA MESMA TELA
+# [corrigido em 21/09/2026]
+#   Este bloco dizia "só valem as combinações que já têm captura pronta". Na
+#   MESMA execução do `meow configurar`, cinco perguntas adiante, o wizard
+#   imprime «isto NÃO fecha a porta: o tema deste par sai por DERIVAÇÃO da
+#   paleta, e a captura é refinamento, não requisito» — duas frases do mesmo
+#   programa se contradizendo. E a linha `# > ` daqui é também o subtítulo do
+#   cartão no painel (`_frase_curta`, app/servidor.py), então a versão errada
+#   aparecia nas duas interfaces.
+#
+#   QUEM ESTÁ CERTO É A FRASE NOVA, e foi medido: `scripts/gerar_temas.py
+#   --saida <tmp> macchiato-teal dracula-sky latte-red frappe-yellow` escreveu
+#   os quatro `.ron`, rc=0 — nenhum dos quatro pares tem captura.
+#
+#   O QUE A CAPTURA MUDA é um passo a mais, não uma porta fechada: ela fixa o
+#   que o COSMIC desenhou na tela. Sem ela a etapa `tema` do install.sh se pula
+#   e as cores da janela ficam como estavam, até você importar
+#   `assets/temas/meowsystem-<flavor>-<accent>.ron` em Configurações >
+#   Aparência > Importar e rodar `meow tema capturar <flavor>-<accent>`.
 #
 # O DRACULA ENTROU COMO VARIANTE, NÃO COMO OUTRO TEMA — 15/09/2026
 #   A paleta dele tem as mesmas 26 cores nomeadas dos quatro flavors do
@@ -293,7 +314,18 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 # já existe. Um nome a MENOS é recusado: faltar um nome aqui apagaria uma área.
 # Não cabem aspas, contrabarra, parênteses nem `#` — os três primeiros quebram o
 # formato do arquivo do COSMIC e o `#` corta a linha deste arquivo aqui.
-AREAS_NOMES="Meow, OS"
+#
+# NASCE VAZIO, E ATÉ 21/09/2026 NASCIA COM "Meow, OS" — 21/09/2026
+#   "Meow" e "OS" são os nomes das áreas DESTA casa. Num estranho, a primeira
+#   passagem do instalador renomeava as áreas de trabalho dele para os nossos
+#   dois nomes, sem perguntar — e o comentário acima diz, com todas as letras,
+#   que um nome a mais aqui CRIA área. Era a chave deste arquivo com o efeito
+#   mais visível e menos pedido.
+#   Vazio já era caso tratado no código desde antes: `scripts/areas.sh:980`
+#   responde `AREAS_NOMES vazio — as áreas de trabalho são suas` e se pula.
+#   Para assumir as áreas, escreva os nomes na ordem em que você os quer na
+#   barra; `meow areas` imprime a linha pronta a partir do que está no disco.
+AREAS_NOMES=""
 
 # @ Folga invisível no nome
 # > Quais áreas ganham um espaço fantasma dos dois lados, para o nome não encostar na borda.
@@ -531,7 +563,18 @@ ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 # é a ordem dos botões, e a mesma lista em duas abas com ordens diferentes lê
 # como duas listas. Era alfabética aqui e mocha-primeiro lá.
 #   mocha | macchiato | frappe | latte
-ICONES_FLAVOR="macchiato"
+#
+# HERDA O `FLAVOR` DE FÁBRICA — 21/09/2026
+#   Estava `macchiato` cravado, com o `FLAVOR` da linha 63 em `mocha`: duas
+#   linhas do MESMO arquivo discordando, e a divergência era o pedido DELA
+#   (ícones em macchiato, interface em mocha), não um padrão. Num estranho, os
+#   ícones de tipo de arquivo nasciam de um flavor que ele não escolheu.
+#   `$FLAVOR` aqui não é truque: este arquivo é lido com `.` pelo shell e a
+#   linha 63 vem antes, então a expansão vale. É o mesmo recurso do
+#   `ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"` da linha 519, e o wizard já sabe
+#   mostrar as duas coisas (`$FLAVOR  ->  mocha`).
+#   Quem quiser a divergência de propósito escreve o nome do flavor aqui.
+ICONES_FLAVOR="$FLAVOR"
 
 # @ Cor pela marca do programa
 # > Em vez da cor da categoria: Firefox laranja, Telegram azul.
@@ -881,7 +924,16 @@ MIDIA="sim"
 #   próprio: uma largura de 5000 voltaria ao padrão em silêncio, e a conferência
 #   passaria a acusar divergência para sempre, sem ninguém entender por quê.
 # 80..900
-MIDIA_LARGURA="440"
+#
+# NASCE VAZIO PORQUE 440 FOI MEDIDO NUMA TELA SÓ — 21/09/2026
+#   Os ~215 px de folga do parágrafo acima são da asa direita da dock DESTA
+#   casa, com a Área de status do lado. Noutra tela, noutra dock, o número é
+#   outro — e cravá-lo aqui fazia o exemplo parecer um padrão universal.
+#   Vazio NÃO muda nada hoje: `scripts/midia.sh:66` já tem `${MIDIA_LARGURA:-440}`,
+#   o mesmo número. O que muda é o que o arquivo DIZ: que isto se mede.
+#   Para medir a sua: deixe tocar uma música de nome longo e suba o número até
+#   o "…" sumir sem empurrar a Área de status.
+MIDIA_LARGURA=""
 
 # @ Como a cor da capa entra
 # > Tingindo só o traço, ou chapando o fundo.
@@ -1565,7 +1617,17 @@ FASTFETCH_LOGO_RECUO="3"
 # colunas em linhas quando `FASTFETCH_LOGO_LINHAS` está vazio. Quem trocar de
 # fonte muda este número uma vez, e o gato volta a sair redondo.
 # Faixa: de 1.0 a 4.0.
-FASTFETCH_LOGO_CELULA="2.556"
+#
+# NASCE VAZIO PORQUE 2.556 É DE UMA FONTE E DE UM TAMANHO — 21/09/2026
+#   23,00 / 9,00 px é a célula do cosmic-term DESTA casa, com a JetBrainsMono
+#   Nerd Font Mono em 16 px. Quem instala tudo deste projeto cai nessa mesma
+#   fonte e o número serve; quem mantém a fonte dele tem outra célula, e o gato
+#   sai achatado sem nada acusar.
+#   Vazio NÃO muda nada hoje: `scripts/fastfetch_logo.sh:231` já tem
+#   `${FASTFETCH_LOGO_CELULA:-2.556}`, o mesmo número. O que muda é o convite a
+#   medir: `meow fastfetch logo` diz quantas linhas dá para as colunas atuais, e
+#   é por aí que se descobre a proporção desta tela.
+FASTFETCH_LOGO_CELULA=""
 
 # @ Detalhe do desenho
 # > Quanto detalhe cabe em cada célula. Depende do que a sua fonte desenha.
@@ -1608,6 +1670,18 @@ FASTFETCH_LOGO_CONF="sim"
 # @ Programas que o MeowSystem veste
 # > Um por ficha. Só os que estiverem instalados são tocados.
 # Vírgula-separado. `meow apps` lista o que está instalado e o que falta.
+#
+# ESTA LISTA FICA, E O MOTIVO FOI MEDIDO — 21/09/2026
+#   Ela parece "os 24 programas DESTA casa", e a sprint P24 a tratava assim.
+#   Medido antes de mexer: dos 24 slugs, só 11 têm módulo em
+#   `assets/temas-de-apps/` (são 8 pastas: btop-bat, heroic, obsidian,
+#   qbittorrent, spotify, toolkits-gtk-qt, vscode, zapzap). Os outros 13 caem
+#   no `return 4` do `rodar_modulo` (`scripts/aplicar_apps.sh`) — "não temos
+#   módulo para esse app ainda" —, e os que têm módulo mas não estão
+#   instalados viram "pendente" e NUNCA falham.
+#   Ou seja: num estranho esta lista não veste nada que ele não tenha, e não
+#   quebra nada. Esvaziá-la desligaria o recurso para todo mundo para corrigir
+#   um problema que não existe. Fica, e fica dito por quê.
 APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,heroic,qt5ct"
 
 # App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
@@ -1683,7 +1757,17 @@ LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,inf
 # lugares desde 11/08 — a Aurora desligou o próprio bloco de autostart, e o mask
 # está no disco desde 11/08 09:59. O nome fica aqui para virar política
 # declarada e conferível, em vez de um link para /dev/null sem dono.
-AUTOSTART_BLOQUEADOS="org.qbittorrent.qBittorrent"
+#
+# NASCE VAZIO — 21/09/2026
+#   Estava `org.qbittorrent.qBittorrent`, que é o cliente de torrent DESTA
+#   casa. Num estranho, o instalador mascarava o autostart de um programa que
+#   ele escolheu deixar subindo no login — e o comentário acima avisa que tirar
+#   o nome daqui depois NÃO desmascara sozinho. Um padrão que é fácil de ligar
+#   e difícil de desligar não pode vir ligado de fábrica.
+#   Vazio já era caso tratado: `scripts/autostart.sh:243`.
+#   Para bloquear algum, use o ID do `.desktop` (sem `.desktop`), separado por
+#   vírgula. `meow autostart` lista o que sobe no login desta máquina.
+AUTOSTART_BLOQUEADOS=""
 
 # --- Manutenção -------------------------------------------------------------
 

@@ -461,20 +461,35 @@ else
     # Temporário DENTRO do cache: o mv final é no mesmo sistema de arquivos, e
     # um Ctrl-C no meio nunca deixa um .tar.xz pela metade com o nome definitivo.
     tmp_tar="$(mktemp -p "$CACHE" ".baixando.XXXXXX")" || exit "$MEOW_ERRO"
+    # SEM REDE É FALTA DE DEPENDÊNCIA, NÃO ERRO — 21/09/2026
+    #   Estas duas saídas devolviam 2, e o instalador de quem estava offline
+    #   terminava com "falhou: fontes" e `return 2`. O remédio já estava no
+    #   próprio repositório: `cursor.sh:376-384` faz exatamente este download e
+    #   devolve 3, dizendo "nada foi instalado — o cursor continua exatamente
+    #   como estava". Aqui vale o mesmo: sem as faces Nerd, o terminal fica com
+    #   a fonte que já tinha, que é degradação limpa e não falha.
+    #   O sha256 logo abaixo CONTINUA em 2: ali o arquivo chegou inteiro e não
+    #   é o que foi pinado — isso é o repositório mudando debaixo do pino, e
+    #   tem de acordar alguém.
     if ! curl -fL --retry 3 --retry-delay 2 -o "$tmp_tar" "$NERD_URL"; then
       rm -f "$tmp_tar"
-      meow_erro "falhou o download de $NERD_URL"
-      exit "$MEOW_ERRO"
+      meow_aviso "não consegui baixar $NERD_URL (sem rede?) — fica para o próximo ciclo"
+      meow_info "  nada foi instalado — o terminal continua com a fonte que já tinha"
+      exit "$MEOW_SEM_DEPENDENCIA"
     fi
     # Um portal de rede ou uma página de erro do GitHub também chegam com HTTP
     # 200 e passam pelo `curl -f`. O tamanho separa "veio outra coisa" de "veio
     # corrompido" e dá uma mensagem que se entende sem abrir o arquivo.
     baixado="$(stat -c%s "$tmp_tar")"
     if [ "$baixado" != "$NERD_TAR_BYTES" ]; then
-      meow_erro "o download tem $baixado bytes, esperava $NERD_TAR_BYTES ($NERD_TAG)"
+      # Também 3, e pelo motivo que a própria linha de baixo já dizia: portal de
+      # rede é rede que não chegou, não arquivo corrompido. Quem cai aqui está
+      # num hotel ou numa rede corporativa, e a resposta certa é pular a etapa.
+      meow_aviso "o download tem $baixado bytes, esperava $NERD_TAR_BYTES ($NERD_TAG)"
       meow_info "  quase sempre é portal de rede ou proxy respondendo no lugar do GitHub"
+      meow_info "  nada foi instalado — o terminal continua com a fonte que já tinha"
       rm -f "$tmp_tar"
-      exit "$MEOW_ERRO"
+      exit "$MEOW_SEM_DEPENDENCIA"
     fi
     if ! echo "$NERD_TAR_SHA256  $tmp_tar" | sha256sum --status -c - 2>/dev/null; then
       meow_erro "sha256 do $NERD_ATIVO não bate com o pinado ($NERD_TAG)"
