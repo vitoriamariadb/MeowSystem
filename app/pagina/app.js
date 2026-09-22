@@ -345,16 +345,271 @@ function humanizar(txt) {
 
 function elemento(tag, props = {}, filhos = []) {
   const el = document.createElement(tag);
+  let ajuda = null;
   for (const [k, v] of Object.entries(props || {})) {
     if (k === "class") el.className = v;
     else if (k === "texto") el.textContent = v;
     else if (k === "html") el.innerHTML = v;
+    /* O `title` NÃO VIRA ATRIBUTO — 21/09/2026, ver o bloco do balão logo
+     * abaixo. Ele fica guardado e só é aplicado DEPOIS dos filhos, porque duas
+     * das decisões do `porBalao` dependem do que o elemento escreve na tela: o
+     * balão que repete o texto visível não nasce, e o elemento sem texto
+     * nenhum precisa do balão como nome acessível. */
+    else if (k === "title") ajuda = v;
     else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
     else if (v === true) el.setAttribute(k, "");
     else if (v !== false && v != null) el.setAttribute(k, v);
   }
   for (const f of [].concat(filhos)) if (f) el.append(f);
+  if (ajuda) porBalao(el, ajuda);
   return el;
+}
+
+/* ===========================================================================
+ * O BALÃO É NOSSO, E ELE CABE EM 80 CARACTERES — 21/09/2026
+ * ===========================================================================
+ * Queixa dela: *"botão impossível de clicar devido à largura da imagem"*. A
+ * medição, com o painel no ar e as 14 abas percorridas uma a uma, mostrou que
+ * a culpa não é da imagem — é do balão do botão do lado. Eram 1005 elementos
+ * com `title` na página, 301 deles acima de 60 caracteres, o maior com 154:
+ *
+ *   "Ela passa a girar só de noite, mesmo que a medição a ache clara. (meow
+ *    wallpaper lado drac-illustrations-trees-and-mountains-night.png noite)"
+ *
+ * O balão NATIVO tem a largura do próprio texto — perto de 600 px aqui —,
+ * nasce sob o cursor e cobre os três botões vizinhos, que têm 22 px de altura.
+ * Nada disso se conserta por CSS: largura, posição, atraso e fonte do `title`
+ * são do navegador. Então ele sai, e no lugar entram três regras:
+ *
+ *   1. TETO DE 80 CARACTERES. O balão é a legenda de um botão, não a
+ *      documentação dele; o que não cabe em 80 não é balão, é parágrafo, e
+ *      parágrafo tem lugar no cartão. `tests/app-acessibilidade.py` reprova
+ *      acima disso — e reprova para que a frase seja encurtada NA FONTE, não
+ *      aparada aqui.
+ *   2. O COMANDO SAI. 119 balões carregavam um `(meow wallpaper …)` cru dentro
+ *      dos parênteses — quase três quartos do texto, para quem talvez nunca
+ *      abra um terminal. Ele passa a morar no «ver comando» do cartão, com um
+ *      Copiar. Quem quer o comando continua tendo; quem não quer para de
+ *      esbarrar nele.
+ *   3. NASCE FORA DA FILEIRA DE BOTÕES. A âncora não é o botão apertado, é o
+ *      CARTÃO que o contém — acima dele, e por isso nunca sobre os irmãos.
+ *
+ * E O TECLADO, QUE É A RAZÃO DISTO PODER DAR ERRADO: o `title` nativo, por
+ * pior que seja, aparece no foco. Um substituto que só responda ao rato PIORA
+ * a acessibilidade em vez de melhorar. Por isso o balão nasce também em
+ * `:focus-visible` — e ali sem os 400 ms de espera, porque quem chegou pelo
+ * Tab já pediu; a espera existe só para o rato que passa de raspão.
+ * ------------------------------------------------------------------------ */
+const BALAO_LIMITE = 80;
+const BALAO_ESPERA = 400;   // ms, e só para o rato
+
+/* O que é comando e não frase: `meow …`, ou o caminho até o `bin/meow` e até
+ * um script do projeto. Reconhecer isto é o que separa a ajuda (vai para o
+ * balão) do comando (vai para o «ver comando»).
+ *   O `(?=\s|$)` NÃO É ZELO: sem ele, o executável podia casar no MEIO de um
+ * caminho, e `~/.config/meow/meow.conf` — o caminho do arquivo dela, que o
+ * resumo do cabeçalho mostra de propósito — era lido como comando e sumia do
+ * balão. O executável tem de ser o último pedaço do caminho, com argumento
+ * depois ou nada. */
+const BALAO_COMANDO = /^(?:meow\s+[a-z]|[/~]\S*\/(?:meow|[\w.-]+\.sh)(?=\s|$))/;
+
+/* Um caminho absoluto não é frase: cortá-lo pelo fim apagaria justamente o
+ * nome do arquivo, que é a única parte que identifica alguma coisa. Ele
+ * encolhe pela ESQUERDA, que é o lado que se repete em todas as linhas.
+ * Reduzir o caminho a um nome que se leia é da P7; aqui ele só para de ser
+ * uma tarja de 147 caracteres sobre a grade. */
+function encurtarCaminho(txt) {
+  const partes = txt.split("/").filter(Boolean);
+  let fim = partes[partes.length - 1] || txt;
+  for (let i = partes.length - 2; i >= 0; i--) {
+    const maior = partes[i] + "/" + fim;
+    if (maior.length + 2 > BALAO_LIMITE) break;
+    fim = maior;
+  }
+  return fim === txt.replace(/^\/+/, "") ? txt : "…/" + fim;
+}
+
+/* Separa uma ajuda em «o que cabe no balão» e «o que é comando». É a única
+ * porta: `elemento()` e o `porBalao()` passam por aqui, e o teste de
+ * acessibilidade mede o resultado. */
+function partirAjuda(txt) {
+  let balao = String(txt == null ? "" : txt).trim();
+  let comando = "";
+  if (!balao) return { balao, comando };
+  /* O comando entre parênteses, no fim da frase — a forma que os 119 balões da
+   * galeria usavam. */
+  balao = balao.replace(/\s*\(\s*(meow\s[^()]*)\)\s*$/, (m, cmd) => {
+    comando = cmd.trim();
+    return "";
+  }).trim();
+  /* O título que É um comando, sem frase à volta: nada se perde mandando-o
+   * inteiro para o «ver comando», e o botão continua dizendo o que faz pelo
+   * próprio rótulo. */
+  if (!comando && BALAO_COMANDO.test(balao)) { comando = balao; balao = ""; }
+  if (balao.includes("/") && !/\s/.test(balao)) balao = encurtarCaminho(balao);
+  if (balao.length > BALAO_LIMITE) {
+    /* A REDE, E ELA NÃO DEVERIA PEGAR NINGUÉM. Toda frase fixa da página cabe
+     * em 80; o que chega aqui é texto montado com dado de fora (um nome de
+     * arquivo, um valor de chave) que estourou. Aparar é melhor que a tarja de
+     * 154 caracteres que estava aí antes, e pior que escrever curto na fonte —
+     * então o teste continua reprovando quem depender disto. */
+    const corte = balao.lastIndexOf(" ", BALAO_LIMITE - 1);
+    balao = balao.slice(0, corte > 40 ? corte : BALAO_LIMITE - 1).trimEnd() + "…";
+  }
+  return { balao, comando };
+}
+
+function balaoFocavel(el) {
+  return el.matches("a[href], button, input, select, textarea, summary, [tabindex]");
+}
+
+/* Põe (ou tira) o balão de um elemento. Substitui o `el.title = …` em toda a
+ * página; o atributo nativo sai aqui, e não sobra em lugar nenhum. */
+function porBalao(el, texto) {
+  const { balao, comando } = partirAjuda(texto);
+  el.removeAttribute("title");
+  if (comando) el.dataset.comando = comando;
+  else delete el.dataset.comando;
+  /* BALÃO QUE REPETE O QUE JÁ ESTÁ ESCRITO NÃO NASCE. Eram 42 na página: a
+   * linha `<code class="cmd">` de cada cartão de ação levava no `title` o
+   * mesmo comando que ela imprime dois centímetros abaixo. */
+  const visivel = (el.textContent || "").trim();
+  if (balao && balao !== visivel) el.setAttribute("data-balao", balao);
+  else el.removeAttribute("data-balao");
+  /* O NOME ACESSÍVEL NÃO PODE IR JUNTO COM O `title`. Num botão SEM texto — a
+   * bolinha de cor, o glifo — era o `title` que dava nome ao botão para o
+   * leitor de tela. Tirá-lo sem repor deixaria o botão mudo, que é o oposto
+   * do que esta sprint existe para fazer. */
+  if (balao && !visivel && !el.getAttribute("aria-label") && balaoFocavel(el))
+    el.setAttribute("aria-label", balao);
+}
+
+/* --- o balão na tela ------------------------------------------------------ */
+/* É UM SÓ na página, e isso é parte do conserto: dois balões ao mesmo tempo é
+ * defeito do nativo, não recurso dele. */
+let BALAO_EL = null;
+let BALAO_DONO = null;
+let BALAO_RELOGIO = null;
+
+function esconderBalao() {
+  clearTimeout(BALAO_RELOGIO);
+  BALAO_RELOGIO = null;
+  if (BALAO_DONO) BALAO_DONO.removeAttribute("aria-describedby");
+  BALAO_DONO = null;
+  if (BALAO_EL) BALAO_EL.hidden = true;
+}
+
+function mostrarBalao(alvo) {
+  const texto = alvo.getAttribute("data-balao");
+  if (!texto || !alvo.isConnected) return;
+  if (!BALAO_EL) {
+    BALAO_EL = elemento("div", { id: "balao", class: "balao", role: "tooltip" });
+    document.body.append(BALAO_EL);
+  }
+  BALAO_EL.textContent = texto;
+  BALAO_EL.hidden = false;
+  /* A ÂNCORA É O CARTÃO, NÃO O BOTÃO — é daqui que sai a promessa de nunca
+   * cobrir os irmãos. Sem cartão à vista (o botão solto do cabeçalho, uma
+   * ficha), o próprio elemento serve. */
+  const ancora = alvo.closest("figure, article.cartao, .acao, .bloco-acao, .ficha") || alvo;
+  const r = ancora.getBoundingClientRect();
+  const cx = BALAO_EL.getBoundingClientRect();
+  const esq = Math.max(8, Math.min(r.left, innerWidth - cx.width - 8));
+  const acima = r.top - cx.height - 8;
+  const abaixo = acima < 8;
+  BALAO_EL.classList.toggle("abaixo", abaixo);
+  BALAO_EL.style.left = `${Math.round(esq)}px`;
+  BALAO_EL.style.top = `${Math.round(abaixo ? r.bottom + 8 : acima)}px`;
+  alvo.setAttribute("aria-describedby", "balao");
+  BALAO_DONO = alvo;
+}
+
+/* Um ouvinte por botão seriam setecentos jogados fora a cada pintura da grade;
+ * delegado no documento, o balão sobrevive ao `render()` sem saber dele. */
+function ligarBalao() {
+  document.addEventListener("mouseover", (e) => {
+    const alvo = e.target.closest && e.target.closest("[data-balao]");
+    if (!alvo || alvo === BALAO_DONO) return;
+    esconderBalao();
+    BALAO_RELOGIO = setTimeout(() => mostrarBalao(alvo), BALAO_ESPERA);
+  });
+  document.addEventListener("mouseout", (e) => {
+    const saiu = e.target.closest && e.target.closest("[data-balao]");
+    if (!saiu) return;
+    if (e.relatedTarget && saiu.contains(e.relatedTarget)) return;
+    clearTimeout(BALAO_RELOGIO);
+    if (saiu === BALAO_DONO) esconderBalao();
+  });
+  /* O FOCO NÃO ESPERA, e é ele que faz esta troca não piorar o teclado. Só o
+   * `:focus-visible` — clicar num botão também o foca, e ali o balão seria um
+   * estorvo em cima do gesto que a pessoa acabou de fazer. */
+  document.addEventListener("focusin", (e) => {
+    const alvo = e.target.closest && e.target.closest("[data-balao]");
+    clearTimeout(BALAO_RELOGIO);
+    if (!alvo || !alvo.matches(":focus-visible")) return;
+    esconderBalao();
+    mostrarBalao(alvo);
+  });
+  document.addEventListener("focusout", (e) => {
+    if (e.target === BALAO_DONO) esconderBalao();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") esconderBalao();
+  });
+  /* Rolar move o cartão e deixaria o balão parado no meio da tela. O `true`
+   * é para ouvir a rolagem dos contêineres internos, não só a da janela. */
+  addEventListener("scroll", esconderBalao, true);
+  addEventListener("resize", esconderBalao);
+  /* OS DOIS `title` QUE NÃO NASCEM NO `elemento()` moram no `index.html`
+   * (Exportar e Importar). Esta varredura os adota na partida, e é também a
+   * rede para qualquer `title` que apareça por fora daqui. */
+  for (const el of document.querySelectorAll("[title]")) porBalao(el, el.getAttribute("title"));
+}
+
+/* --- o comando, fora do balão --------------------------------------------- */
+async function copiarComando(texto) {
+  try {
+    await navigator.clipboard.writeText(texto);
+    torrada("Comando copiado.", "ok");
+  } catch (e) {
+    /* Sem permissão de área de transferência não há segundo caminho que não
+     * seja pior: o truque do `<textarea>` escondido rouba o foco e é obsoleto.
+     * Dizer que não deu é mais honesto que fingir que deu — e o comando
+     * continua na tela, selecionável. */
+    torrada("O navegador não deixou copiar. O comando está na tela.", "erro");
+  }
+}
+
+/* Recolhe os comandos que o `partirAjuda` tirou dos balões de uma fileira de
+ * botões e devolve o par «ver comando» + a linha que ele abre. Devolve `null`
+ * quando não há comando nenhum — um botão que não abre nada é ruído. */
+function verComando(acoes) {
+  const linhas = [...acoes.children]
+    .filter((b) => b.dataset && b.dataset.comando)
+    .map((b) => [(b.textContent || "").trim(), b.dataset.comando]);
+  if (!linhas.length) return null;
+  const bloco = elemento("div", { class: "comandos", hidden: true });
+  for (const [rotulo, cmd] of linhas) {
+    bloco.append(elemento("div", { class: "comando" }, [
+      elemento("code", { texto: cmd }),
+      elemento("button", {
+        type: "button", class: "btn btn-mini",
+        texto: "Copiar",
+        "aria-label": rotulo ? `Copiar o comando de ${rotulo}` : "Copiar o comando",
+        onclick: () => copiarComando(cmd),
+      }),
+    ]));
+  }
+  const botao = elemento("button", {
+    type: "button", class: "btn btn-mini ver-comando",
+    texto: "ver comando",
+    "aria-expanded": "false",
+    onclick: () => {
+      bloco.hidden = !bloco.hidden;
+      botao.setAttribute("aria-expanded", String(!bloco.hidden));
+    },
+  });
+  return { botao, bloco };
 }
 
 function torrada(texto, classe = "") {
@@ -578,9 +833,9 @@ function atualizarBarraSalvar() {
   $("#botao-descartar").hidden = n === 0;
   const salvar = $("#botao-salvar");
   salvar.classList.toggle("btn-accent", n > 0);
-  salvar.title = n
+  porBalao(salvar, n
     ? "Grava as escolhas no meow.conf e aplica na máquina"
-    : "Aplica na máquina o que já está salvo";
+    : "Aplica na máquina o que já está salvo");
   const painel = document.getElementById("lista-pendentes");
   if (painel && (!n || painel.dataset.quantas !== String(n))) painel.remove();
   $("#salvar-conta").hidden = n === 0;
@@ -593,7 +848,7 @@ function atualizarBarraSalvar() {
    * pelos rótulos que os botões usam, e clicar nela leva à aba da chave. */
   const conta = $("#salvar-conta");
   conta.textContent = n === 1 ? "1 escolha" : `${n} escolhas`;
-  conta.title = "Clique para ver quais são";
+  porBalao(conta, "Clique para ver quais são");
 }
 
 function abaDaChave(chave) {
@@ -1350,7 +1605,7 @@ function pintarResumo() {
      * caracteres, aparece em toda tela e nunca muda. Fica o que muda. */
     `${ESQUEMA.chaves.length} ajustes · ${mexidas} mudados por você`
     + (ESQUEMA.conf_existe ? "" : " · o arquivo ainda não existe");
-  $("#resumo").title = ESQUEMA.conf;
+  porBalao($("#resumo"), ESQUEMA.conf);
 }
 
 /** Relê o catálogo do servidor sem perder as escolhas ainda não salvas. */
@@ -3302,8 +3557,10 @@ function montarJogos() {
         elemento("button", {
           type: "button", class: "btn btn-mini",
           texto: "Tirar da lista",
-          title: "Tira esta decisão da lista. Nenhum arquivo é tocado, e o "
-               + "jogo não volta — ele não está no disco.",
+          /* 96 -> 62 caracteres, pelo teto do balão (21/09/2026). A segunda
+           * metade dizia duas vezes a mesma coisa: se nenhum arquivo é tocado,
+           * o jogo que não está no disco continua não estando. */
+          title: "Tira a decisão da lista. Nenhum arquivo é tocado.",
           onclick: () => definirJogo(j.appid, "", "", true),
         }),
       ]));
@@ -3512,13 +3769,18 @@ function botoesDeLado(imagem) {
    * que a fonte acrescenta, em vez de só o `banir`. */
   if (imagem.lado) {
     /* A MESMA FRASE DO `wallpaper_lado_auto` NO `servidor.py`, E ELA TEM DE
-     * SER A MESMA — 09/09/2026. Aqui a ajuda é reescrita porque a ficha da
-     * galeria acrescenta o "Hoje está escrita como X"; quando "luminância"
-     * saiu do servidor, esta cópia ficou com a palavra velha e as duas
-     * telas passaram a discordar. Ver o comentário lá. */
+     * SER A MESMA — 09/09/2026. Aqui a ajuda era REESCRITA porque a ficha da
+     * galeria acrescentava um "Hoje está escrita como X" na frente; quando
+     * "luminância" saiu do servidor, esta cópia ficou com a palavra velha e as
+     * duas telas passaram a discordar. Ver o comentário lá.
+     *   O ACRÉSCIMO SAIU EM 21/09/2026, com o teto de 80 do balão: era ele que
+     * levava a frase a 87 caracteres, e era ele que obrigava a reescrita. Sem
+     * ele a frase volta a ser LITERALMENTE a do servidor, e o desencontro de
+     * 09/09 deixa de ter por onde acontecer. O lado escrito, que a frase
+     * anunciava, não cabe num balão de 80 — ele pede um selo na própria ficha,
+     * e isso é desenho novo, não o conserto desta sprint. */
     botoes.push(["wallpaper_lado_auto", "Medir",
-      `Hoje está escrita como ${rotuloDeValor(imagem.lado)}. Tira a escolha e `
-      + "deixa o brilho medido da imagem decidir."]);
+      "Tira a escolha e deixa o brilho medido da imagem decidir."]);
   }
   return botoes.map(([id, rotulo, ajuda]) => elemento("button", {
     type: "button", class: "btn btn-mini",
@@ -3650,10 +3912,25 @@ function montarGaleria() {
         onclick: () => rodarNaGaleria("wallpaper_banir", i.banir || i.origem),
       }));
     }
+    /* O COMANDO SAI DO BALÃO E VIRA BOTÃO — 21/09/2026. Os quatro balões desta
+     * ficha carregavam um `(meow wallpaper …)` cru dentro dos parênteses — 119
+     * na aba inteira, e era a metade comprida do texto que cobria os botões
+     * vizinhos. Aqui ele vira UM «ver comando» por ficha, que abre a linha com
+     * o comando de cada botão e um Copiar. Quem quer o comando continua tendo;
+     * quem não quer para de esbarrar nele. */
+    const cmds = verComando(acoes);
+    if (cmds) acoes.append(cmds.botao);
     fig.append(elemento("figcaption", {}, [
       elemento("span", { class: "nome", texto: i.rotulo }),
       acoes.children.length ? acoes : null,
     ]));
+    /* A LISTA DE COMANDOS FICA FORA DA LEGENDA, e isso é medida, não gosto: a
+     * legenda é um véu ancorado no pé da imagem, e os quatro comandos desta
+     * ficha não cabem nos 132 px do cartão — dentro dela a lista nascia
+     * cortada pela moldura. Aqui ela entra na coluna da figura e o que ganha
+     * altura é a LINHA DA GRADE, que é o lado certo da troca (ver a
+     * `.galeria` no estilo.css). */
+    if (cmds) fig.append(cmds.bloco);
     grade.append(fig);
   }
   caixa.append(pulaGrade("apos-galeria", "Pular a galeria"));
@@ -3850,8 +4127,14 @@ function montarCartao(item) {
        * era metáfora de quem desenhou o parser — quem lê a tela vê cartões
        * um ao lado do outro, e o nome disso é vizinho. "Explicação do bloco"
        * saiu inteiro: "bloco" é a unidade do arquivo, não da tela. */
+      /* O TÍTULO DO BLOCO DONO SAIU DO BALÃO — 21/09/2026. Ele entrava aqui
+       * inteiro, e com um dono de nome comprido («Devolver os ícones depois de
+       * atualizar flatpak») a frase chegava a 88 caracteres, acima do teto de
+       * 80. O nome do dono não se perdeu: ele está, por extenso, na linha «De
+       * «X», que explica este ajuste e os vizinhos de uma vez» que o `?` do
+       * cartão abre — ali há espaço para ele. */
       title: item.ajuda_herdada
-        ? `«${tituloDaDona(item)}» explica este ajuste e os vizinhos dele.`
+        ? "A explicação vale para este ajuste e para os vizinhos dele."
         : "",
     }));
   }
@@ -4083,7 +4366,7 @@ function montarAcao(acao) {
     if (chaveDoEstado) {
       const atual = valorEmVigor(chaveDoEstado);
       if (atual && acao.opcoes.includes(atual)) sel.value = atual;
-      sel.title = `Agora: ${rotuloDeValor(atual)} (${chaveDoEstado.chave})`;
+      porBalao(sel, `Agora: ${rotuloDeValor(atual)} (${chaveDoEstado.chave})`);
     }
     bloco.append(sel);
     escolha = sel;
@@ -4127,7 +4410,10 @@ function montarAcao(acao) {
   const pintarCmd = () => {
     const texto = acao.argv.replace("@ARG@", escolha ? escolha.value : "");
     linhaCmd.textContent = texto;
-    linhaCmd.title = texto;
+    /* O `title` QUE REPETIA ESTA MESMA LINHA SAIU — 21/09/2026. Eram 42 na
+     * página: o balão imprimia, sob o cursor, o comando que a linha já mostra
+     * por extenso dois centímetros acima. Balão que repete o texto visível não
+     * informa nada e ainda tapa o botão «Executar» ao lado. */
   };
   pintarCmd();
   if (escolha) escolha.addEventListener("change", pintarCmd);
@@ -4566,9 +4852,14 @@ function itensExternos() {
    * no meio da página; o GitHub ainda a resolveria, mas ela deixaria a leitora no
    * lugar mais pobre dos dois. */
   const LINKS_EXTERNOS = [
+    /* A FRASE ENCOLHEU DE 111 PARA 66 — 21/09/2026, o teto de 80 do balão.
+     * O que saiu foi o inventário ("a paleta, os glifos, as fontes e a base de
+     * ícones"): num balão de item de menu ele é uma lista que ninguém lê de
+     * passagem, e a página inteira do GitHub a mostra melhor do que um balão
+     * poderia. O que ficou é o que decide o clique: é o projeto, e lá estão as
+     * licenças. */
     { nome: "Créditos", href: repo,
-      titulo: "O projeto no GitHub: a paleta, os glifos, as fontes e a base "
-            + "de ícones que ele veste — com a licença de cada um" },
+      titulo: "O projeto no GitHub, com a licença de cada acervo que ele veste" },
   ];
   return LINKS_EXTERNOS.map((l) => elemento("a", {
     class: "item-externo",
@@ -6472,7 +6763,12 @@ function montarHome() {
       const grupo = GRUPOS.find((g) => (g.itens || []).some((x) => x.chave === i.chave));
       fichas.append(elemento("button", {
         type: "button", class: "home-ficha",
-        title: `${i.chave} · de fábrica: ${rotuloDeValor(i.padrao) || "nada"} · agora: ${rotuloDeValor(i.valor) || "nada"}`,
+        /* O NOME CRU DA CHAVE SAIU DO BALÃO — 21/09/2026. Com ele, um valor
+         * comprido (um commit de 40 caracteres, um repositório) levava a frase
+         * a 94 caracteres, acima do teto de 80. E o botão já diz de que ajuste
+         * se trata pelo rótulo que a página usa: repetir a variável ao lado era
+         * gastar o balão com a única parte que ela não precisa saber. */
+        title: `De fábrica: ${rotuloDeValor(i.padrao) || "nada"} · agora: ${rotuloDeValor(i.valor) || "nada"}`,
         texto: tituloDoCartao(i) || i.chave,
         onclick: grupo ? () => { ABA = chaveDeAba(grupo); gravarHash(); render(); } : null,
       }));
@@ -6870,6 +7166,8 @@ async function iniciar() {
   /* O ouvinte de gesto é UM só, e nasce aqui: o `main` sobrevive a toda
    * pintura, então registrá-lo dentro do `render()` vazaria um por clique. */
   ouvirGestoDeRolagem();
+  /* O balão próprio, pelo mesmo motivo: delegado no documento, uma vez. */
+  ligarBalao();
   /* A bandeja volta ANTES da primeira pintura: restaurar depois do `render`
    * faria a página nascer limpa e piscar para o estado pendente. */
   restaurarBandeja();

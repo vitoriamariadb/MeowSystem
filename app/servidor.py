@@ -2450,8 +2450,13 @@ ACOES = {
         "grupo": "Papel de parede",
         "argv": _meow("wallpaper", "proximo"),
         "escreve": True, "sudo": False, "confirma": False,
-        "ajuda": "Avança e fixa a imagem pelo tempo definido em \"Quanto "
-                 "tempo dura a imagem escolhida\".",
+        # 85 -> 76 CARACTERES — 21/09/2026, o teto de 80 do balão da P6. Esta
+        # ação é uma das quatro que o cabeçalho da Início oferece como botão, e
+        # ali a ajuda vira balão. O que saiu foi "definido em", que só liga uma
+        # metade da frase à outra; o nome do ajuste, que é o que se procura,
+        # ficou. O cartão da ação mostra a mesma frase, e lucra igual.
+        "ajuda": "Avança e fixa a imagem pelo tempo de "
+                 "\"Quanto tempo dura a imagem escolhida\".",
     },
     "wallpaper_anterior": {
         "rotulo": "Imagem anterior",
@@ -2654,8 +2659,12 @@ ACOES = {
         "grupo": "Painel e dock",
         "argv": _meow("painel", "reciclar"),
         "escreve": True, "sudo": False, "confirma": False,
-        "ajuda": "O painel pisca uns 2 s. É o que faz um gato novo aparecer "
-                 "sem esperar o próximo login.",
+        # 86 -> 66 CARACTERES — 21/09/2026, o mesmo teto e o mesmo motivo do
+        # "wallpaper_proximo" acima: esta ação também é botão do cabeçalho.
+        # "sem esperar o próximo login" virou "na hora" — a espera que se evita
+        # é a do login, mas quem lê o balão quer saber é quando vê o gato.
+        "ajuda": "O painel pisca uns 2 s. É o que faz um gato novo "
+                 "aparecer na hora.",
     },
     "leitura": {
         "rotulo": "Modo de leitura agora",
