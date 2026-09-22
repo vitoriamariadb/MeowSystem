@@ -59,6 +59,7 @@ PORTATIL=(
   numeros.sh             # lê o repositório e conta; nada mais
   orfaos.sh              # idem
   portabilidade.sh       # grep no que está versionado; nada além de git e bash
+  git-limpo.sh           # acervo, HOME e estado de brinquedo; só git e bash
   app.sh                 # compara o esquema do painel com o do wizard; python3
   estilo.sh              # régua da caneta contra o acervo Arcticons DAQUI (pede numpy)
   reversao.sh            # grep no desinstalador + install.sh com MEOW_IGNORA_DESKTOP=1

@@ -515,6 +515,76 @@ instalar_completion() {
   return "$MEOW_DIVERGENTE"
 }
 
+# --- O ESTADO DO USUÁRIO NASCE AQUI, E NÃO NA PRIMEIRA ESCRITA — 21/09/2026 --
+#
+#   Até esta data o painel gravava a curadoria DENTRO do clone: `BANIDOS.txt` e
+#   `lado.tsv` eram versionados, e clicar em "Tirar" deixava diff pendente
+#   (`+47` linhas no clone dele, às 17h09 daquele dia). Agora eles moram em
+#   `$MEOW_ESTADO/papeis-de-parede/`, semeados do `.padrao` versionado.
+#
+#   O `meow_estado_com_padrao` semeia sozinho na primeira leitura, então esta
+#   chamada é redundante POR DESENHO — e ainda assim vale: sem ela, o estado só
+#   nasceria no dia em que ela clicasse em "Tirar", e um `meow wallpaper semear`
+#   rodado antes disso em máquina recém-instalada não teria a lista de fábrica
+#   na mão para saber o que NÃO baixar. É a mesma razão pela qual o ponteiro da
+#   raiz é escrito aqui em vez de na primeira vez que a CLI precisa dele.
+#
+#   Não há `meow_muda` nem contagem de divergência: `$MEOW_ESTADO` é a nossa
+#   casa, não a máquina dela, e é o mesmo acordo que o `meow_travar` e o
+#   `meow_log` já têm com o `--seco`. O que esta função pode criar é uma cópia
+#   de um arquivo versionado dentro do nosso próprio diretório de estado.
+#
+#   UMA CHAMADA POR PASTA, E NÃO UMA POR ARQUIVO: o `meow_estado_com_padrao`
+#   semeia todo `*.padrao` da pasta de origem de uma vez. Listar os arquivos
+#   aqui seria a armadilha nº 3 do projeto — um `.padrao` novo ficaria de fora
+#   desta lista e só nasceria na primeira escrita, calado.
+semear_estado_do_usuario() {
+  meow_estado_com_padrao papeis-de-parede BANIDOS.txt >/dev/null
+  return 0
+}
+
+# --- O `merge=ours` DO `.gitattributes` ERA INERTE EM CLONE NOVO ------------
+#
+#   `.gitattributes` declara `assets/papeis-de-parede/BANIDOS.txt merge=ours`
+#   desde sempre. Um `merge=ours` sem o DRIVER registrado não faz nada: o git
+#   procura `merge.ours.driver` na configuração e, não achando, cai no merge de
+#   três vias normal. Medido em 21/09/2026: o driver existia só no `.git/config`
+#   DELE, e `grep -rn "merge.ours.driver" install.sh lib/ scripts/` voltava
+#   vazio. Quem clonasse recebia a declaração sem o mecanismo — que é a pior das
+#   combinações, porque parece protegido e não está.
+#
+#   ELE É CINTO, E NÃO A DEFESA. A defesa é o arquivo ter saído do git nesta
+#   mesma sprint; o que sobra para o driver cobrir é a travessia — o clone de
+#   quem ainda tem o arquivo antigo rastreado, de um lado do `pull`, e o novo do
+#   outro. Registrar é barato e a falta custou conflito de verdade entre as duas
+#   máquinas.
+#
+#   `--local` de propósito: a configuração é DESTE clone. Mexer no `--global`
+#   seria o instalador de um projeto opinando sobre todo repositório da pessoa.
+registrar_driver_de_merge() {
+  local dentro
+  command -v git >/dev/null 2>&1 || return 0
+  # `--git-dir` e não `--is-inside-work-tree`: o segundo responde "true" também
+  # quando o `install.sh` é rodado de dentro de OUTRO repositório que por acaso
+  # contenha este diretório, e aí gravaríamos a configuração no repo errado.
+  dentro="$(git -C "$MEOW_RAIZ" rev-parse --git-dir 2>/dev/null)" || return 0
+  [ -n "$dentro" ] || return 0
+  [ "$(git -C "$MEOW_RAIZ" config --local --get merge.ours.driver 2>/dev/null)" = "true" ] && return 0
+  if meow_seco; then
+    meow_muda "registraria merge.ours.driver neste clone (o .gitattributes já o declara)"
+    return 0
+  fi
+  if git -C "$MEOW_RAIZ" config --local merge.ours.driver true 2>/dev/null; then
+    meow_ok "driver de merge 'ours' registrado neste clone"
+  else
+    # Não é falha da etapa: um clone somente-leitura, ou um `.git` de que a
+    # pessoa não é dona, continua instalando o resto perfeitamente. O que se
+    # perde é um cinto de segurança, e dizer isso em voz alta é o conserto.
+    meow_aviso "não consegui registrar merge.ours.driver — o merge=ours do .gitattributes fica inerte neste clone"
+  fi
+  return 0
+}
+
 etapa_cli() {
   passo "CLI meow e completions"
   local mudou=0 rc
@@ -543,6 +613,9 @@ etapa_cli() {
   rc=$?
   [ "$rc" -ge 2 ] && { meow_erro "não consegui gravar $MEOW_ESTADO/raiz"; return "$MEOW_ERRO"; }
   [ "$rc" = "1" ] && mudou=1
+
+  semear_estado_do_usuario
+  registrar_driver_de_merge
 
   # 3 AQUI É "NÃO HÁ ONDE PÔR", E ISSO NÃO É FALHA DESTA ETAPA
   #   A `instalar_completion` devolve 3 quando o diretório de completions não

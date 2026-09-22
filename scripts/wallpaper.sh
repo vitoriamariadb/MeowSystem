@@ -759,7 +759,21 @@ soltar_derivadas() {
 #   segundos de remedir e nada mais. Este aqui é RECEITA, como o `BANIDOS.txt` e
 #   o `FONTES.tsv` — é uma escolha dela que nenhuma máquina refaz sozinha, e as
 #   imagens não vão para o git. Some daqui e a decisão morre com a formatação.
-LADO_TSV="${WALLPAPER_LADO:-$RAIZ/assets/papeis-de-parede/lado.tsv}"
+#
+# ELE CONTINUA SENDO RECEITA, E MESMO ASSIM SAIU DO GIT — 21/09/2026
+#   O parágrafo acima defende que a escolha dela precisa sobreviver a uma
+#   reformatação, e continua inteiro. O que ele não previu é que o arquivo é
+#   ESCRITO ENQUANTO ELA USA O PROGRAMA: no clone dele, os cliques em
+#   "Dia"/"Noite" das 17h10 de 21/09 deixaram `-3` linhas de diff pendente. Com
+#   dois usuários reais e três remotos entre eles, receita versionada que o
+#   próprio programa reescreve é conflito de merge a cada `git pull`.
+#
+#   A receita agora é o `lado.tsv.padrao`, versionado e que ninguém escreve; a
+#   escolha viva mora em `$MEOW_ESTADO`. Continua sendo texto pequeno e continua
+#   sobrevivendo à formatação — pelo `.padrao` para quem clona, e pelos backups
+#   de `$MEOW_ESTADO` para quem já usa. O contrato está em
+#   `meow_estado_com_padrao` (`lib/comum.sh`).
+LADO_TSV="${WALLPAPER_LADO:-$(meow_estado_com_padrao papeis-de-parede lado.tsv)}"
 
 # nome do arquivo -> dia|noite. Só quem discorda da medição; preenchido por
 # `ler_lado`, e vazio quer dizer "ninguém discordou de nada".
@@ -2296,11 +2310,24 @@ SEMENTE_QUANTAS="${WALLPAPER_SEMENTE_QUANTAS:-0}"
 # resolve a PRÓXIMA: numa instalação nova, `banidos/` nasce vazio, e o `semear`
 # baixaria de volta as 231 imagens que ela tirou em 24/08/2026, uma por uma.
 #
-# `assets/papeis-de-parede/BANIDOS.txt` é a lista de nomes recusados — texto, pequeno, vai
-# para o git (a regra do `.gitignore` barra imagem, não lista). É o par do
+# `BANIDOS.txt` é a lista de nomes recusados — texto, pequeno. É o par do
 # `FONTES.tsv` abaixo: um diz o que ela quer, o outro diz o que ela não quer, e
 # juntos os dois reproduzem a escolha dela em qualquer máquina.
-BANIDOS_TXT="${WALLPAPER_BANIDOS:-$RAIZ/assets/papeis-de-parede/BANIDOS.txt}"
+#
+# O QUE VAI PARA O GIT É O `.padrao`, E NÃO ESTE ARQUIVO — 21/09/2026
+#   Ele era versionado em `assets/papeis-de-parede/BANIDOS.txt`, e este script
+#   acrescentava linha nele a cada "Tirar". Medido no clone dele naquele dia:
+#   `+47` linhas de diff pendente às 17h09, ninguém tendo programado nada — e,
+#   entre os dois usuários reais, conflito de merge a cada `git pull` num
+#   arquivo que nenhum dos dois editou de propósito.
+#
+#   A lista de FÁBRICA continua no git, como `BANIDOS.txt.padrao`, e é ela que
+#   impede o `semear` de baixar de volta as 231 imagens que ela tirou em
+#   24/08/2026 numa instalação nova. O que ESTE script escreve é a cópia em
+#   `$MEOW_ESTADO`, semeada daquela uma única vez — e semeada do arquivo velho,
+#   se ele ainda estiver no clone, para não apagar a curadoria de quem já usava.
+#   O contrato está em `meow_estado_com_padrao` (`lib/comum.sh`).
+BANIDOS_TXT="${WALLPAPER_BANIDOS:-$(meow_estado_com_padrao papeis-de-parede BANIDOS.txt)}"
 
 esta_banida() {
   local nome="$1"

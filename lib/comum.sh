@@ -558,6 +558,106 @@ meow_conf_definir() {
 # --- lock: o timer pode disparar enquanto ela roda na mão (regra 10) --------
 MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 
+# --- O ESTADO DO USUÁRIO SAI DO REPOSITÓRIO, E O `.padrao` FICA — 21/09/2026 -
+#
+# Até hoje a CURADORIA dela era gravada DENTRO do clone: `BANIDOS.txt` e
+# `lado.tsv` moravam em `assets/papeis-de-parede/` e eram versionados. Usar o
+# painel virava commit pendente. Está medido no `git status` daquele dia: `+47`
+# linhas em `BANIDOS.txt` e `-3` em `lado.tsv`, gravadas às 17h09 por ela clicar
+# em "Tirar" e em "Dia"/"Noite". Ninguém programou nada.
+#
+# E SÃO DOIS USUÁRIOS REAIS, com três remotos entre si — `origin`, `fork` e um
+# caminho local para a máquina dela. Cada `git pull` entre os dois era conflito
+# de merge num arquivo que nenhum dos dois editou de propósito. O `merge=ours`
+# do `.gitattributes` prometia resolver isso e não resolvia: o driver só existia
+# no `.git/config` DELE, e nada no repositório o registrava — quem clonasse
+# recebia a declaração sem o mecanismo, que é a pior das combinações porque
+# parece protegido. Quem registra agora é a `etapa_cli` do `install.sh`, e ela é
+# cinto de segurança, não a defesa principal: a defesa é este arquivo sair.
+#
+# O DESENHO É SEMENTE, E NÃO SOBREPOSIÇÃO
+#   O `.padrao` versionado é o conteúdo de FÁBRICA, e ele é copiado para
+#   `$MEOW_ESTADO` UMA vez. Não é uma camada lida por baixo do estado, e a
+#   diferença é exatamente o que faz o desfazer funcionar: o `cmd_desbanir`
+#   reescreve o `BANIDOS.txt` SEM um nome e o `gravar_lado` reescreve o
+#   `lado.tsv` inteiro — com sobreposição, o que ela acabou de tirar voltaria na
+#   leitura seguinte, vindo da camada de baixo. Um desfazer que não desfaz é
+#   pior que não ter o botão.
+#
+# O MARCADOR É O DIRETÓRIO, E NÃO O ARQUIVO
+#   O `gravar_lado` APAGA o `lado.tsv` quando ela desfaz a última escolha —
+#   "sem escolha" e "sem arquivo" são o mesmo estado, de propósito, para o
+#   registro não virar uma segunda verdade que ninguém sabe apagar. Semear pela
+#   ausência do ARQUIVO faria as escolhas de fábrica ressuscitarem nesse exato
+#   instante, calado. Por isso quem responde "já semeei" é o DIRETÓRIO: ele
+#   nasce na semeadura e não some mais.
+#
+# E POR ISSO A SEMEADURA É DO DIRETÓRIO INTEIRO, E NÃO DE UM ARQUIVO
+#   Custou uma passagem do `tests/git-limpo.sh` para aparecer: com o diretório
+#   servindo de marca, semear UM arquivo por chamada faz o segundo chamador
+#   achar a pasta já de pé e não semear nada. No `wallpaper.sh` isso é literal —
+#   o `LADO_TSV` resolve na linha 776 e o `BANIDOS_TXT` na 2331, e o primeiro
+#   criava a pasta para o segundo. O `BANIDOS.txt` nascia SÓ com o nome que ela
+#   acabara de banir, e as 231 imagens da curadoria de 24/08/2026 voltariam no
+#   `semear` seguinte.
+#
+#   Então quem semeia varre TODO `*.padrao` da pasta de origem. Isso também
+#   desarma a armadilha nº 3 do projeto (toda lista fixa é uma lista que alguém
+#   vai esquecer): um `.padrao` novo passa a ser semeado sem ninguém precisar
+#   lembrar de acrescentá-lo a uma lista aqui.
+#
+# O SECO NÃO SEMEIA, E A PROMESSA É MAIS FORTE QUE A CONVENIÊNCIA
+#   A primeira versão disto semeava mesmo sob `--seco`, com o argumento de que
+#   `$MEOW_ESTADO` é a nossa casa e não a máquina dela. O `tests/seco.sh`
+#   reprovou na hora, e está certo: o contrato dele é "o seco não escreve NADA
+#   fora do próprio lock", e é a única promessa que o README faz sobre
+#   auditoria. Promessa com exceção não é promessa — a exceção é o que a próxima
+#   pessoa copia.
+#
+#   O QUE SE PERDE, DITO EM VOZ ALTA: numa máquina onde o instalador nunca
+#   rodou de verdade, um `--conferir` lê um estado que ainda não existe e
+#   enxerga a lista de banidos vazia. É o único caso, ele some na primeira
+#   passagem não-seca, e o `esta_banida` tem a pasta `banidos/` como primeira
+#   defesa de qualquer jeito. O caminho devolvido continua sendo o do ESTADO,
+#   e não o da semente, porque é ele que as mensagens de prévia nomeiam: um
+#   `meow_muda` dizendo "entraria em BANIDOS.txt.padrao" apontaria para um
+#   arquivo em que nada nunca vai ser escrito.
+#
+# O ARQUIVO ANTIGO, DE DENTRO DO CLONE, VENCE O `.padrao` NA SEMEADURA
+#   Quem já usava o projeto tem, no clone, um `BANIDOS.txt` mais rico que o de
+#   fábrica — no dele eram 47 linhas a mais que o commit, gravadas pelo painel e
+#   nunca commitadas. Semear do `.padrao` ignorando esse arquivo apagaria a
+#   curadoria dele no dia da migração, e apagaria calado, que é o jeito de
+#   apagar do qual não se volta. Enquanto o arquivo velho estiver lá, é ELE a
+#   semente; o `.padrao` atende quem clona hoje. A conta se fecha sozinha: o
+#   `.gitignore` barra o arquivo velho, ele nunca mais é recriado, e quem apagar
+#   o dele à mão passa a cair no `.padrao` como qualquer clone novo.
+#
+# A ORIGEM É SEMPRE `assets/<pasta>` e o destino `$MEOW_ESTADO/<pasta>`: um
+# acervo do repositório tem um espelho de estado com o mesmo nome, e não há
+# terceiro caminho a inventar. Dois argumentos em vez de quatro, e nenhuma
+# chamada que possa cruzar as pastas por engano.
+#
+# Uso:  caminho="$(meow_estado_com_padrao papeis-de-parede BANIDOS.txt)"
+meow_estado_com_padrao() {
+  local pasta="$1" arquivo="$2" origem="$MEOW_RAIZ/assets/$1" dir="$MEOW_ESTADO/$1"
+  local padrao semente
+  if [ ! -d "$dir" ] && ! meow_seco; then
+    # Se o `mkdir` falhar, ecoamos o caminho do estado do mesmo jeito: quem
+    # chamou trata "não consegui escrever" como sempre tratou, e devolver vazio
+    # aqui faria o chamador operar sobre o caminho "" sem entender por quê.
+    if mkdir -p "$dir" 2>/dev/null; then
+      for padrao in "$origem"/*.padrao; do
+        [ -f "$padrao" ] || continue          # a pasta sem nenhum `.padrao`
+        semente="${padrao%.padrao}"           # o arquivo velho, de dentro do clone
+        [ -f "$semente" ] || semente="$padrao"
+        cp -p -- "$semente" "$dir/$(basename "${padrao%.padrao}")" 2>/dev/null
+      done
+    fi
+  fi
+  printf '%s' "$dir/$arquivo"
+}
+
 # --- UMA PASSAGEM, UMA PASTA DE BACKUP --------------------------------------
 # Quatro arquivos LIAM `MEOW_CARIMBO` (`hicolor.sh` e os módulos do VS Code, do
 # btop/bat e dos toolkits), todos com o mesmo `${MEOW_CARIMBO:-$(date ...)}` —

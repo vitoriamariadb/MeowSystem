@@ -1,7 +1,24 @@
-# BANIDOS.txt -- os papeis de parede que ela recusou, por nome de arquivo.
-# Curadoria de 24/08/2026. Uma linha por nome, como ele aparece em
-# ~/.local/share/backgrounds/meowsystem/ativos/. O 'meow wallpaper banir'
-# acrescenta aqui, e o 'semear' nao repoe o que estiver listado.
+# BANIDOS.txt.padrao -- os papeis de parede recusados DE FABRICA, por nome de
+# arquivo. Curadoria de 24/08/2026. Uma linha por nome, como ele aparece em
+# ~/.local/share/backgrounds/meowsystem/ativos/, e o 'semear' nao repoe o que
+# estiver listado.
+#
+# ESTE ARQUIVO E SEMENTE, E NINGUEM ESCREVE NELE -- 21/09/2026
+#   Ate esta data o arquivo se chamava `BANIDOS.txt`, era versionado, e o botao
+#   "Tirar" do painel gravava AQUI DENTRO. Usar o programa virava commit
+#   pendente: no clone dele o `git status` daquele dia trazia `+47` linhas neste
+#   arquivo, das 17h09, sem ninguem ter programado nada. Com dois usuarios reais
+#   e tres remotos entre eles, cada `git pull` era conflito de merge num arquivo
+#   que nenhum dos dois editou de proposito.
+#
+#   O que o painel escreve agora e a COPIA em
+#   `~/.local/state/meowsystem/papeis-de-parede/BANIDOS.txt`, semeada deste
+#   arquivo uma unica vez. O contrato inteiro esta em `meow_estado_com_padrao`
+#   (`lib/comum.sh`), inclusive o porque de ser semente e nao sobreposicao.
+#
+#   O que se edita a mao AQUI e a lista de FABRICA: o que nenhuma maquina nova
+#   deve baixar de volta. Uma linha acrescentada aqui so alcanca quem ainda nao
+#   tem o estado semeado.
 #
 # SO NOMES ASCII ENTRAM NESTA LISTA, E ISSO E DE PROPOSITO
 #   O pre-commit dela (ADR-011) reprova emoji em arquivo versionado, e um
