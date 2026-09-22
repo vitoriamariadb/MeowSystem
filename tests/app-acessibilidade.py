@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""app-acessibilidade.py — os tres numeros da P6, medidos na pagina em pe.
+"""app-acessibilidade.py — os numeros da P6 e da P7, medidos na pagina em pe.
 
     tests/app-acessibilidade.py             roda a conferencia
     tests/app-acessibilidade.py --detalhe   lista quem reprovou, um por linha
@@ -54,6 +54,57 @@ O QUE ELE MEDE, E POR QUE ASSIM
     PEGADA da apara (`data-balao-aparado`), que cobre a frase montada com dado
     de fora. O porque' de cada um esta' junto do codigo de cada um.
 
+E OS QUATRO TETOS DA P7 — 22/09/2026
+  A sprint seguinte e' sobre a mesma tela, e por isso mora no mesmo arquivo em
+  vez de num irmao ao lado: o passeio pelas 14 abas ja' custa alguns segundos,
+  e medir duas vezes a mesma pagina para responder a duas sprints seria
+  cobra-lo duas vezes. O que ela cobra, e o numero de antes de cada um, medido
+  com o painel no ar em 21 e 22/09:
+
+      caminhos absolutos na tela .............. 43 -> 0
+                                                (42 na linha de comando do
+                                                 cartao de acao, 1 no
+                                                 «vale como» do papel de parede)
+      nomes acessiveis com caminho dentro ..... 34 -> 0
+                                                (32 botoes de gato e 2 de
+                                                 ponteiro; o maior anunciava 67
+                                                 caracteres de caminho no lugar
+                                                 do nome)
+      ajudas do servidor acima de 220 ......... 1 -> 0   (de 50 medidas)
+      ajudas com trecho repetido colado ....... 1 -> 0
+                                                ("Nao escreve, nao escreve e
+                                                 nao pede senha")
+      paragrafos de ajuda em minuscula ........ 21 -> 0
+                                                (12 legendas de desenho, 8
+                                                 «vale como» e 1 ajuda de acao)
+
+  A CONTA DO CAMINHO NAO PODE SER SOBRE `/home/`, e isto e' o achado que fez
+  este bloco ser escrito. A conferencia que a P7 propos era
+  `innerText.match(/\\/home\\/[a-z]+\\//g)`, e rodada num worktree em `/tmp` ela
+  devolvia 1 onde havia 43: os caminhos estavam todos la', escritos com o
+  prefixo do lugar de onde o painel subiu. Uma rede presa a `/home/` fica verde
+  por estar olhando para o lugar errado, que e' o pior jeito de ficar verde.
+  Aqui a raiz vem do processo que subiu o painel, e o `/home/<nome>/` entra ao
+  lado dela porque e' a CASA, que tambem nao tem o que fazer na tela.
+
+  E DOIS TETOS QUE A P7 PEDIU E ESTE ARQUIVO NAO COBRA, com a medida na mao:
+    · «zero botao com nome acessivel acima de 40 caracteres». Os 56 que a
+      sprint contou foram medidos por `textContent`, que nao e' nome acessivel:
+      54 deles sao o par Sim/Nao, cujo desenho e' `aria-hidden` desde
+      07/09/2026 — o Chrome ja' anuncia "Sim". Medido o nome COMPUTADO, sobram
+      19, e todos sao o botao `?`, que anuncia "O que e' <titulo do cartao>"
+      entre 41 e 60 caracteres. Encurta-lo deixaria trinta `?` indistinguiveis
+      na mesma aba, que e' pior que o teto estourado. O teto de 40 e' regua
+      certa para um botao de escolha e errada para um `?`; cobrar os dois com
+      a mesma nao mediria nenhum.
+    · «teto de 220 por paragrafo de ajuda» na TELA. Dos 122 paragrafos acima
+      de 220, 110 sao o `.motivo` dentro do balao do `?` — que e' a rede para
+      onde o texto que nao cabe deve ir, e a propria P7 diz que sem ela a
+      sprint troca "longo demais" por "curto e incompreensivel". Dos 12 que
+      sobram, todos sao legenda de desenho vinda dos `previas-*.js`, e sao a
+      enumeracao dos numeros que o desenho mostra. O teto vale onde ha o que
+      apertar, e e' por isso que ele e' cobrado na FONTE do `servidor.py`.
+
 O QUE ELE NAO FAZ
   Nao clica em nada que escreva: nenhuma acao e' executada, nenhuma chave e'
   gravada, nem o Salvar e' apertado. A conferencia e' de medida, e medir a
@@ -92,7 +143,7 @@ except ImportError:
 #   enquanto a aba esta' na tela custa um `evaluate` por aba, e nao uma segunda
 #   volta pela pagina inteira.
 CENSO_JS = """
-() => {
+(raiz) => {
   const SELETOR_ALVO = 'button, a[href], input:not([type=hidden]), select,'
                      + ' textarea, summary, [role=button],'
                      + ' [tabindex]:not([tabindex="-1"])';
@@ -130,7 +181,69 @@ CENSO_JS = """
     tag: el.tagName.toLowerCase(),
     classe: (el.className || '').toString().slice(0, 40),
   }));
-  return { alvos, medidos, baloes };
+
+  /* ------------------------------------------------------------------
+     OS TETOS DA P7, colhidos no mesmo passeio pelas abas — 22/09/2026.
+     ------------------------------------------------------------------ */
+  const pr = document.getElementById('principal');
+
+  /* 1. CAMINHO ABSOLUTO NA TELA. A raiz vem de FORA (é a do processo que subiu
+     o painel), e não de uma expressão sobre `/home/`: o painel roda de onde o
+     repositório estiver, e uma rede presa ao `/home/` devolve zero numa cópia
+     em `/tmp` — verde por estar olhando para o lugar errado. O `/home/<nome>/`
+     entra ao lado dela porque é o caminho da CASA, que não é a raiz e também
+     não tem o que fazer na tela. */
+  const texto = pr.innerText;
+  const daRaiz = raiz ? texto.split(raiz).length - 1 : 0;
+  const daCasa = (texto.match(/\\/home\\/[^/\\s]+\\//g) || []).length;
+  const amostraCaminho = [];
+  for (const el of pr.querySelectorAll('*')) {
+    if (el.children.length || el.offsetParent === null) continue;
+    const t = (el.textContent || '');
+    if ((raiz && t.includes(raiz)) || /\\/home\\/[^/\\s]+\\//.test(t)) {
+      amostraCaminho.push({ tag: el.tagName.toLowerCase(),
+                            classe: (el.className || '').toString().slice(0, 30),
+                            texto: t.trim().slice(0, 80) });
+    }
+  }
+
+  /* 2. O CAMINHO NO NOME ACESSÍVEL. Um `aria-label` É o nome do botão para
+     quem usa leitor de tela, e o `porBalao` o escreve sozinho quando o botão
+     não tem texto. Eram 34 botões anunciando um caminho de arquivo no lugar
+     do nome do gato ou do ponteiro. O `data-balao` NÃO entra nesta conta: ele é legenda,
+     e uma legenda que diga de onde a imagem veio é legítima.
+
+     O `…/` CONTA COMO COMEÇO DE CAMINHO, e não contar era um buraco medido:
+     o `encurtarCaminho` da P6 corta o caminho pela esquerda e põe reticências
+     na frente, então o que o leitor de tela anunciava era
+     `…/scratchpad/wt/p7/assets/gatos/coquinha.svg` — um caminho que não começa
+     com `/`. A primeira versão desta rede pedia `/` ou `~` no início e devolvia
+     3 onde havia 32: ela passava por cima justamente dos botões pelos quais a
+     P7 existe. Caminho encurtado continua sendo caminho. */
+  const nomeComCaminho = [];
+  for (const el of pr.querySelectorAll('[aria-label]')) {
+    const nome = el.getAttribute('aria-label') || '';
+    if (/(?:^|[\\s(«])(?:…|\\.\\.\\.|~)?\\/(?:[^\\s/]+\\/)+[^\\s/]/.test(nome))
+      nomeComCaminho.push({ tag: el.tagName.toLowerCase(), nome: nome.slice(0, 80) });
+  }
+
+  /* 3. PARÁGRAFO DE AJUDA ABRINDO EM MINÚSCULA. Só o que está PINTADO: o texto
+     do balão do `?` (a `.dica`) fica de fora porque ele é o comentário do
+     `meow.conf.exemplo` copiado cru, e reescrever a pontuação do autor dentro
+     do balão é outra sprint — ver o bloco da P7 no cabeçalho. */
+  const minusculas = [];
+  for (const p of pr.querySelectorAll('p')) {
+    if (p.offsetParent === null || p.closest('.dica')) continue;
+    const t = (p.textContent || '').trim().replace(/\\s+/g, ' ');
+    if (!t) continue;
+    const c = t[0];
+    if (c.toLocaleLowerCase('pt-BR') === c && c.toLocaleUpperCase('pt-BR') !== c)
+      minusculas.push({ classe: (p.className || '').toString().slice(0, 30),
+                        texto: t.slice(0, 80) });
+  }
+
+  return { alvos, medidos, baloes,
+           daRaiz, daCasa, amostraCaminho, nomeComCaminho, minusculas };
 }
 """
 
@@ -216,6 +329,79 @@ def frases_fixas():
     return medidas, compridas
 
 
+# O TETO DE 220 E A PALAVRA REPETIDA, LIDOS NA FONTE DO `servidor.py`
+# ---------------------------------------------------------------------------
+# Os dois medem a mesma coisa que a tela mostraria, e medem ANTES: uma ajuda
+# comprida ou com uma palavra duplicada já está errada no arquivo, e esperar a
+# varredura pintá-la é esperar que a aba dela seja aberta. O `ast` é quem lê, e
+# não uma expressão regular: as ajudas são literais concatenados em várias
+# linhas, e juntar as partes é exatamente o que o `literal_eval` faz sem errar.
+#
+# POR QUE SÓ O `servidor.py`, DITO EM VOZ ALTA
+#   É onde mora a ajuda de ação — a prosa que o cartão imprime embaixo do
+#   título. As outras duas fontes de parágrafo da página NÃO entram, e cada uma
+#   por uma razão diferente, medida em 22/09/2026:
+#     · o `.motivo` do balão do `?` (110 dos 122 parágrafos acima de 220) é o
+#       comentário do `meow.conf.exemplo` copiado cru, e é ele a REDE que
+#       justifica encurtar o resto. Aplicar o teto nele seria cortar justamente
+#       o texto para onde o que não cabe deve ir;
+#     · a legenda de desenho (12) vem dos `previas-*.js` e é a enumeração dos
+#       números que o desenho mostra — `raio 0, espaço 2, recheio 0, margem 0…`.
+#       Ela não tem gordura: cortá-la deixa metade dos números do desenho sem
+#       explicação, que é o risco que a P7 declara.
+#   O que esta leitura cobra é o que esta sprint pode manter honestamente.
+TETO_AJUDA = 220
+CHAVES_DE_AJUDA = ("ajuda", "frase", "nota", "texto")
+
+# TRECHO REPETIDO COLADO. A P7 achou um em produção: *"Não escreve, não
+# escreve e não pede senha"* — duas vezes a mesma metade, e a outra metade
+# perdida. O separador entre as duas é vírgula ou só espaço; com ponto no meio
+# são duas frases, e repetir palavras em frases vizinhas é legítimo.
+#
+# E O QUE SE REPETE NÃO É UMA PALAVRA, É UM TRECHO — medido em 22/09/2026
+#   A primeira versão desta rede pedia uma palavra colada nela mesma
+#   (`\b(\w+)\b\s*,?\s+\1\b`) e devolvia ZERO contra a frase que a motivou:
+#   em "Não escreve, não escreve", nenhuma palavra encosta na sua igual —
+#   "escreve," é seguido de "não". O que se duplicou foi o par. O grupo agora
+#   vai de uma a quatro palavras, que é o tamanho de uma oração curta; medido
+#   contra as 50 ajudas deste arquivo, ele pega exatamente aquela e mais
+#   nenhuma.
+#   O lado falso-positivo fica como está, de propósito: um trecho legitimamente
+#   repetido REPROVA e alguém lê a frase; um duplicado que passe calado é o que
+#   esta rede veio matar. É a mesma escolha que o `COMANDO_NO_BALAO` já fez.
+TRECHO_REPETIDO = re.compile(r"\b(\w{2,}(?:\s+\w+){0,3})\b\s*,?\s+\1\b",
+                             re.IGNORECASE)
+
+
+def frases_do_servidor():
+    """(quantas medidas, as acima do teto, as com trecho repetido)."""
+    import ast
+    caminho = os.path.join(RAIZ, "app", "servidor.py")
+    with open(caminho, encoding="utf-8") as f:
+        arvore = ast.parse(f.read())
+    medidas, compridas, repetidas = 0, [], []
+    for no in ast.walk(arvore):
+        if not isinstance(no, ast.Dict):
+            continue
+        for chave, valor in zip(no.keys, no.values):
+            if not (isinstance(chave, ast.Constant)
+                    and chave.value in CHAVES_DE_AJUDA):
+                continue
+            try:
+                txt = ast.literal_eval(valor)
+            except Exception:
+                continue
+            if not isinstance(txt, str) or not txt:
+                continue
+            medidas += 1
+            if len(txt) > TETO_AJUDA:
+                compridas.append((valor.lineno, len(txt), txt))
+            m = TRECHO_REPETIDO.search(txt)
+            if m:
+                repetidas.append((valor.lineno, m.group(0), txt))
+    return medidas, compridas, repetidas
+
+
 def sobe_servidor():
     """Sobe o painel e devolve (processo, url). A URL sai na PRIMEIRA linha do
     `--sem-abrir` — e e' a unica forma de saber a porta, que o kernel escolhe."""
@@ -236,12 +422,16 @@ def sobe_servidor():
 
 
 def percorrer(pag):
-    """Abre as abas uma a uma e devolve (pequenos, medidos, baloes) da pagina.
+    """Abre as abas uma a uma e devolve (pequenos, medidos, baloes, p7) da
+    pagina.
 
     `pequenos` sao os alvos que reprovaram; `medidos` e' quantos foram olhados,
     e ele e' o denominador — sem ele um "0 reprovado" tambem e' o que um
-    seletor quebrado devolve."""
+    seletor quebrado devolve. `p7` traz os tres tetos que a P7 mede na tela."""
     pequenos, medidos, baloes = [], 0, []
+    # A RAIZ VAI DAQUI PARA DENTRO DA PAGINA, e nao e' lida la': quem sabe de
+    # onde o painel subiu e' este processo, que o subiu. Ver o censo.
+    p7 = {"caminhos": 0, "onde": [], "nomes": [], "minusculas": []}
     nomes = pag.locator("#trilho button").all_text_contents()
     for i in range(len(nomes)):
         pag.locator("#trilho button").nth(i).click()
@@ -249,18 +439,23 @@ def percorrer(pag):
         # O nome do botao do trilho traz a contagem colada no fim ("Painel e
         # dock12"); no relatorio isso vira um numero sem dono, entao ele sai.
         aba = re.sub(r"\s*\d+$", "", nomes[i].strip())
-        d = pag.evaluate(CENSO_JS)
-        for x in d["alvos"]:
-            x["aba"] = aba
-        for x in d["baloes"]:
-            x["aba"] = aba
+        d = pag.evaluate(CENSO_JS, RAIZ)
+        for chave in ("alvos", "baloes", "amostraCaminho",
+                      "nomeComCaminho", "minusculas"):
+            for x in d[chave]:
+                x["aba"] = aba
         pequenos += d["alvos"]
         medidos += d["medidos"]
         baloes += d["baloes"]
+        p7["caminhos"] += d["daRaiz"] + d["daCasa"]
+        p7["onde"] += d["amostraCaminho"]
+        p7["nomes"] += d["nomeComCaminho"]
+        p7["minusculas"] += d["minusculas"]
         print(f"  {aba[:34]:36s} alvos={d['medidos']:4d}"
               f"  abaixo de {PISO_PX} px={len(d['alvos']):4d}"
-              f"  baloes={len(d['baloes']):4d}")
-    return pequenos, medidos, baloes
+              f"  baloes={len(d['baloes']):4d}"
+              f"  caminhos={d['daRaiz'] + d['daCasa']:3d}")
+    return pequenos, medidos, baloes, p7
 
 
 # O BALAO NO TECLADO — o risco declarado da sprint.
@@ -317,6 +512,27 @@ def main():
         falhas.append("nenhuma frase fixa foi encontrada na fonte — "
                       "a leitura quebrou, e um zero assim nao e' verde")
 
+    # Tambem sem navegador, e pela mesma razao: uma ajuda comprida ou com uma
+    # palavra duplicada ja' esta' errada no arquivo.
+    print(f"\n1b. AS AJUDAS DO `servidor.py` (teto de {TETO_AJUDA}, "
+          f"e o trecho repetido)")
+    quantas, compridas_ajuda, repetidas = frases_do_servidor()
+    for linha, tam, txt in compridas_ajuda:
+        print(f"  XX app/servidor.py:{linha}  {tam} caracteres  {txt[:64]!r}")
+    for linha, trecho, txt in repetidas:
+        print(f"  XX app/servidor.py:{linha}  repete {trecho!r}  em {txt[:56]!r}")
+    print(f"  {len(compridas_ajuda)} acima de {TETO_AJUDA} e "
+          f"{len(repetidas)} com trecho repetido, de {quantas} ajudas medidas")
+    if compridas_ajuda:
+        falhas.append(f"{len(compridas_ajuda)} ajudas do servidor acima de "
+                      f"{TETO_AJUDA} caracteres")
+    if repetidas:
+        falhas.append(f"{len(repetidas)} ajudas do servidor com trecho "
+                      f"repetido colado")
+    if not quantas:
+        falhas.append("nenhuma ajuda foi encontrada no `servidor.py` — "
+                      "a leitura quebrou, e um zero assim nao e' verde")
+
     proc, url = sobe_servidor()
     if not url:
         print("XX o app/run.sh nao imprimiu a URL — nada a medir")
@@ -333,7 +549,7 @@ def main():
             pag.wait_for_timeout(3000)
 
             print("\n2. AS ABAS, UMA A UMA")
-            pequenos, medidos, baloes = percorrer(pag)
+            pequenos, medidos, baloes, p7 = percorrer(pag)
 
             print("\n3. O BALAO NO TECLADO (o risco declarado da sprint)")
             # A ficha de imagem e' onde a queixa nasceu: quatro botoes lado a
@@ -396,6 +612,21 @@ def main():
     print(f"\n({medidos} alvos e {len(baloes)} baloes medidos nas 14 abas; "
           f"{len(nativos)} baloes ainda sao `title` nativo)")
 
+    print("\n5. OS TETOS DA P7, NA TELA")
+    print(f"caminhos absolutos na tela .............. "
+          f"{p7['caminhos']}   (antes da P7: 43)")
+    print(f"nomes acessiveis com caminho dentro ..... "
+          f"{len(p7['nomes'])}   (antes da P7: 34)")
+    print(f"paragrafos de ajuda em minuscula ........ "
+          f"{len(p7['minusculas'])}   (antes da P7: 21)")
+    if p7["caminhos"]:
+        falhas.append(f"{p7['caminhos']} caminhos absolutos visiveis na tela")
+    if p7["nomes"]:
+        falhas.append(f"{len(p7['nomes'])} nomes acessiveis com caminho dentro")
+    if p7["minusculas"]:
+        falhas.append(f"{len(p7['minusculas'])} paragrafos de ajuda comecando "
+                      f"em minuscula")
+
     if DETALHE:
         print("\n--- quem reprovou -------------------------------------------")
         for a in pequenos:
@@ -409,6 +640,14 @@ def main():
         for b in aparados:
             print(f"  aparado {b['aparado']:4d} car na fonte "
                   f"[{b['aba'][:16]:16s}] {b['texto'][:70]!r}")
+        for x in p7["onde"]:
+            print(f"  caminho    [{x['aba'][:16]:16s}] {x['tag']}.{x['classe'][:20]}"
+                  f" {x['texto']!r}")
+        for x in p7["nomes"]:
+            print(f"  nome       [{x['aba'][:16]:16s}] {x['tag']} {x['nome']!r}")
+        for x in p7["minusculas"]:
+            print(f"  minuscula  [{x['aba'][:16]:16s}] {x['classe'][:20]:22s}"
+                  f" {x['texto']!r}")
 
     if pequenos:
         falhas.append(f"{len(pequenos)} alvos abaixo de {PISO_PX} px")
@@ -429,8 +668,13 @@ def main():
             print("XX " + f)
         print(f"\n{len(falhas)} reprovacoes.")
         return 1
-    print("ok  os tres numeros estao em zero, o teto de 80 se sustenta na fonte")
-    print("    e na tela, e o balao responde ao teclado.")
+    print("ok  os tres numeros da P6 estao em zero, o teto de 80 se sustenta na")
+    print("    fonte e na tela, e o balao responde ao teclado.")
+    print("ok  os quatro tetos da P7 estao em zero: nenhum caminho absoluto na")
+    print("    tela nem em nome acessivel, nenhuma ajuda acima de "
+          f"{TETO_AJUDA} na fonte")
+    print("    do servidor, nenhuma com trecho repetido, e nenhum paragrafo")
+    print("    de ajuda abrindo em minuscula.")
     return 0
 
 

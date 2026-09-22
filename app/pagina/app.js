@@ -437,6 +437,61 @@ function encurtarCaminho(txt) {
   return fim === txt.replace(/^\/+/, "").replace(/\/+$/, "") ? txt : "…/" + fim;
 }
 
+/* O COMANDO COMO ELA O DIGITARIA — 22/09/2026
+ * ---------------------------------------------------------------------------
+ * A linha embaixo de cada cartão de ação imprimia o `argv` inteiro, com o
+ * caminho absoluto na frente: `/home/andrefarias/…/bin/meow doctor`. Medido com
+ * o painel no ar e as 14 abas percorridas: 42 dessas linhas, e mais uma no
+ * «vale como:» de `WALLPAPER_BASE` — 43 caminhos absolutos na tela, quase todos
+ * repetindo o MESMO prefixo, que é a parte que não identifica nada.
+ *
+ * O prefixo não é adivinhado nem escrito à mão: ele é o `ESQUEMA.raiz`, que o
+ * servidor já manda porque é ele quem sabe de onde o painel está rodando. Numa
+ * cópia do repositório em outro lugar a troca continua valendo, e é por isso
+ * que ela não pode ser uma expressão sobre `/home/`.
+ *
+ * DUAS TROCAS, E A DIFERENÇA ENTRE ELAS IMPORTA
+ *   1. `<raiz>/bin/meow …` vira `meow …`. Este é o comando que ela digita de
+ *      verdade: o `install.sh` põe o `meow` no PATH, e `meow doctor` é como o
+ *      README e a documentação inteira o escrevem.
+ *   2. `<raiz>/qualquer/outro.sh …` vira `qualquer/outro.sh …`, relativo à
+ *      raiz. Estes NÃO ganham nome curto porque não têm: o que se perde é só o
+ *      prefixo repetido, e o que fica ainda diz qual script é.
+ *
+ * E O CAMINHO INTEIRO NÃO SE PERDE: ele vai para o «ver comando» da P6, que é
+ * onde o comando exato mora desde ontem, com o Copiar ao lado. Um segundo
+ * lugar para a mesma coisa seria duas verdades para conferir. */
+function semRaiz(caminho) {
+  const raiz = String((ESQUEMA && ESQUEMA.raiz) || "").replace(/\/+$/, "");
+  const txt = String(caminho == null ? "" : caminho);
+  return raiz && txt.startsWith(raiz + "/") ? txt.slice(raiz.length + 1) : txt;
+}
+
+function comandoCurto(cmd) {
+  const curto = semRaiz(cmd);
+  return curto.startsWith("bin/meow") ? "meow" + curto.slice("bin/meow".length)
+                                      : curto;
+}
+
+/* O 43º CAMINHO DA TELA, que não é comando — 22/09/2026
+ * A linha «vale como:» do cartão existe para mostrar o valor com `$HOME` já
+ * trocado, e era ela que imprimia `/home/andrefarias/.local/share/…` por
+ * extenso. A casa da pessoa NÃO vem de uma expressão sobre `/home/`: ela é
+ * DERIVADA do par que o cartão já tem na mão — o valor cru começa em `$HOME`,
+ * o efetivo termina no mesmo resto, logo o que sobra na frente do efetivo é a
+ * casa dela, seja ela `/home/andrefarias` ou qualquer outro lugar.
+ *   O QUE SE PERDE, DITO EM VOZ ALTA: com o `~` no lugar, a frase passa a
+ * diferir do valor cru quase só pelo símbolo. Ela continua porque a decisão de
+ * 09/09 é mostrar os dois lados, e porque `~` é o que a pessoa vê no
+ * gerenciador de arquivos; o nome de usuário na tela é que não servia a
+ * ninguém. */
+function semCasa(cru, efetivo) {
+  const m = /^\$(?:HOME\b|\{HOME\})/.exec(String(cru || ""));
+  if (!m) return efetivo;
+  const resto = String(cru).slice(m[0].length);
+  return efetivo.endsWith(resto) ? "~" + resto : efetivo;
+}
+
 /* Separa uma ajuda em «o que cabe no balão» e «o que é comando». É a única
  * porta: `elemento()` e o `porBalao()` passam por aqui, e o teste de
  * acessibilidade mede o resultado. */
@@ -625,12 +680,21 @@ async function copiarComando(texto) {
  * botões e devolve o par «ver comando» + a linha que ele abre. Devolve `null`
  * quando não há comando nenhum — um botão que não abre nada é ruído. */
 function verComando(acoes) {
-  const linhas = [...acoes.children]
-    .filter((b) => b.dataset && b.dataset.comando)
-    .map((b) => [(b.textContent || "").trim(), b.dataset.comando]);
-  if (!linhas.length) return null;
+  const donos = [...acoes.children].filter((b) => b.dataset && b.dataset.comando);
+  if (!donos.length) return null;
   const bloco = elemento("div", { class: "comandos", hidden: true });
-  for (const [rotulo, cmd] of linhas) {
+  /* Cada `<code>` fica preso ao BOTÃO dono, e não a uma cópia do texto —
+   * 22/09/2026. Os botões da ficha de imagem têm comando fixo e para eles tanto
+   * faz; o cartão de ação, que passou a usar esta mesma porta, reescreve o
+   * comando quando o `<select>` muda o argumento. Uma cópia tirada aqui
+   * envelheceria calada, e a lista passaria a oferecer «Copiar» de um comando
+   * que já não é o que o «Executar» vai rodar — a forma mais silenciosa de
+   * errar que esta lista tem. */
+  const repintar = [];
+  for (const dono of donos) {
+    const rotulo = (dono.textContent || "").trim();
+    const linha = elemento("code", { texto: dono.dataset.comando });
+    repintar.push(() => { linha.textContent = dono.dataset.comando; });
     bloco.append(elemento("div", { class: "comando" }, [
       /* O RÓTULO DO BOTÃO ENTRA VISÍVEL — 21/09/2026
        *   Medido na ficha de imagem: o `<code>` rola de lado em 180 px e as
@@ -643,14 +707,20 @@ function verComando(acoes) {
        * o olho que estava sem essa informação. Ele custa uns 24 px da largura
        * do `<code>`, que já estava cortado — e cortado com dono é legível,
        * cortado anônimo não. A rolagem de lado fica como está (quebrar o nome
-       * do arquivo em três linhas comeria o cartão, ver o estilo.css). */
-      rotulo ? elemento("span", { class: "comando-de", texto: rotulo }) : null,
-      elemento("code", { texto: cmd }),
+       * do arquivo em três linhas comeria o cartão, ver o estilo.css).
+       *   E ELE SÓ APARECE QUANDO HÁ MAIS DE UMA LINHA — 22/09/2026. O que o
+       * rótulo resolve é a ambiguidade ENTRE linhas; com uma linha só não há
+       * par a desfazer, e ele passa a custar largura de um `<code>` que já vem
+       * cortado — foi o que aconteceu no cartão de ação, onde a única linha
+       * dizia «Executar» e mostrava vinte caracteres a menos do caminho. */
+      rotulo && donos.length > 1
+        ? elemento("span", { class: "comando-de", texto: rotulo }) : null,
+      linha,
       elemento("button", {
         type: "button", class: "btn btn-mini",
         texto: "Copiar",
         "aria-label": rotulo ? `Copiar o comando de ${rotulo}` : "Copiar o comando",
-        onclick: () => copiarComando(cmd),
+        onclick: () => copiarComando(dono.dataset.comando),
       }),
     ]));
   }
@@ -659,6 +729,8 @@ function verComando(acoes) {
     texto: "ver comando",
     "aria-expanded": "false",
     onclick: () => {
+      /* Repinta ao ABRIR, que é o único instante em que alguém vai ler. */
+      if (bloco.hidden) for (const f of repintar) f();
       bloco.hidden = !bloco.hidden;
       botao.setAttribute("aria-expanded", String(!bloco.hidden));
     },
@@ -1780,22 +1852,34 @@ function controleImagem(item, tipo, aplica) {
   };
   for (const opcao of opcoes) {
     const p = porId.get(opcao);
-    const botao = elemento("button", {
-      type: "button", "data-valor": opcao, "aria-pressed": "false",
-      title: p ? p.origem : opcao,
-      onclick: async () => { if (await aplica(opcao)) pintar(opcao); },
-    });
-    if (p && p.pronta) {
-      botao.append(elemento("img", { src: p.url, alt: "", loading: "lazy" }));
-    } else if (!p && tipo === "cursor") {
+    /* A MINIATURA NASCE ANTES DO BOTÃO, E ISSO É CONSERTO — 22/09/2026
+     *   O botão era criado vazio e só depois recebia `append` da imagem e do
+     * rótulo. Mas o `elemento()` chama o `porBalao` no fim da própria criação,
+     * e o `porBalao` decide pelo que o elemento ESCREVE NA TELA: achando um
+     * botão sem texto nenhum, ele fazia do balão o nome acessível. Resultado
+     * medido em 21/09, com o painel no ar: 32 botões desta grade anunciavam
+     * «/home/andrefarias/.local/share/icons/…/default» — o caminho do arquivo
+     * no lugar do nome do gato, e 67 caracteres onde cabia «Coquinha».
+     *   Entregando os filhos ao `elemento()` o `porBalao` vê o rótulo, não põe
+     * `aria-label` nenhum, e o nome acessível volta a ser o que está escrito
+     * no botão. O caminho continua no balão, que é onde ele informa. */
+    const miniatura = p && p.pronta
+      ? elemento("img", { src: p.url, alt: "", loading: "lazy" })
       /* Sem item na lista de prévias não há miniatura a esperar: o `.lugar`
        * ficaria ali para sempre, e um cartão vazio é indistinguível de um
        * cartão quebrado. A silhueta diz o que é. */
-      botao.append(silhuetaDePonteiro());
-    } else {
-      botao.append(elemento("div", { class: "lugar", style: "width:48px;height:48px;border-radius:6px" }));
-    }
-    botao.append(elemento("span", { texto: rotuloDeValor(opcao) }));
+      : !p && tipo === "cursor"
+        ? silhuetaDePonteiro()
+        : elemento("div", { class: "lugar", style: "width:48px;height:48px;border-radius:6px" });
+    const botao = elemento("button", {
+      type: "button", "data-valor": opcao, "aria-pressed": "false",
+      /* O CAMINHO PERDE O PREFIXO DA RAIZ — 22/09/2026. O balão da P6 já o
+       * encurtava pela esquerda para caber em 80; o que a P6 deixou marcado
+       * para cá («reduzir o caminho a um nome que se leia é da P7») é tirar o
+       * pedaço que se repete em todos eles. O que fica identifica o arquivo. */
+      title: p ? semRaiz(p.origem) : opcao,
+      onclick: async () => { if (await aplica(opcao)) pintar(opcao); },
+    }, [miniatura, elemento("span", { texto: rotuloDeValor(opcao) })]);
     caixa.append(botao);
   }
   /* O TERCEIRO ESTADO TAMBÉM APARECE AQUI — 07/09/2026
@@ -2290,7 +2374,11 @@ function mockDaBarra(item, opcoes) {
     mock,
     elemento("p", {
       class: "sem-previa",
-      texto: `desenho, não é a sua tela: ${dock ? "a dock" : "o painel"} `
+      /* Maiúscula inicial, como as outras onze legendas de desenho da página —
+       * 22/09/2026. Esta é a única montada aqui (a FORMA não passa pelo
+       * `parDePrevias`), então a maiúscula que o `parDePrevias` aplica não a
+       * alcançava, e ela ficou sendo a única em minúscula das doze. */
+      texto: `Desenho, não é a sua tela: ${dock ? "a dock" : "o painel"} `
            + notas.join("; ")
            + (reserva
              ? ". Onde a máquina não pôde ser lida, o desenho usa medidas de exemplo."
@@ -4199,7 +4287,10 @@ function montarCartao(item) {
   if (item.efetivo && item.efetivo !== (item.valor ?? "")) {
     cartao.append(elemento("p", {
       class: "frase",
-      texto: `vale como: ${item.efetivo}`,
+      /* «Vale como», com maiúscula: é uma frase da tela, e não a continuação
+       * de um rótulo — era um dos cinco parágrafos visíveis que abriam em
+       * minúscula. — 22/09/2026 */
+      texto: `Vale como: ${semCasa(item.valor, item.efetivo)}`,
       /* "DEPOIS DE O SHELL EXPANDIR AS VARIÁVEIS" SAIU — 09/09/2026. Shell e
        * expandir são as palavras de quem escreveu o `bin/meow`; o comentário
        * logo acima já diz quais são os dois casos reais, e é o que a frase
@@ -4443,12 +4534,17 @@ function montarAcao(acao) {
    * executa, sempre. As pastilhas que ficam são as que de fato distinguem uma
    * ação da vizinha — pede senha, desfaz o que foi feito, baixa da internet. */
 
-  rodape.append(elemento("button", {
+  /* O BOTÃO É O DONO DO COMANDO, e é do `dataset.comando` dele que o
+   * «ver comando» da P6 se serve — a mesma porta que os botões da ficha de
+   * imagem usam. O `pintarCmd`, logo abaixo, é quem o mantém em dia quando o
+   * `<select>` muda o argumento. — 22/09/2026 */
+  const executar = elemento("button", {
     type: "button",
     class: "btn " + (acao.destrutivo ? "btn-perigo" : "btn-accent"),
     texto: "Executar",
     onclick: () => rodar(acao, escolha ? escolha.value : ""),
-  }));
+  });
+  rodape.append(executar);
   bloco.append(rodape);
   /* O COMANDO NA TELA É O COMANDO QUE VAI RODAR — 07/09/2026
    * A conferência de uso: *"a ação «Pôr um gato no dock» mostra na tela o
@@ -4460,10 +4556,18 @@ function montarAcao(acao) {
    *   O `rodar()` faz esta mesma troca na hora de executar (ver `confirmar`),
    * então as duas leituras passam a concordar; e como o valor vem de um
    * `<select>`, a linha se reescreve quando ele muda. */
+  /* E O CAMINHO ABSOLUTO SAI DESTA LINHA — 22/09/2026
+   *   Ela imprimia o `argv` inteiro, com `/home/andrefarias/…` na frente: 42
+   * das 43 tarjas de caminho que a página mostrava. O que a linha existe para
+   * dizer é O QUE VAI RODAR, e para isso `meow doctor` diz mais que o caminho
+   * completo do executável — é assim que o README escreve e é assim que ela
+   * digitaria. O caminho exato não some da página: ele é o `dataset.comando`
+   * do «Executar», que o «ver comando» logo abaixo abre com um Copiar. */
   const linhaCmd = elemento("code", { class: "cmd" });
   const pintarCmd = () => {
     const texto = acao.argv.replace("@ARG@", escolha ? escolha.value : "");
-    linhaCmd.textContent = texto;
+    executar.dataset.comando = texto;
+    linhaCmd.textContent = comandoCurto(texto);
     /* O `title` QUE REPETIA ESTA MESMA LINHA SAIU — 21/09/2026. Eram 42 na
      * página: o balão imprimia, sob o cursor, o comando que a linha já mostra
      * por extenso dois centímetros acima. Balão que repete o texto visível não
@@ -4472,6 +4576,18 @@ function montarAcao(acao) {
   pintarCmd();
   if (escolha) escolha.addEventListener("change", pintarCmd);
   bloco.append(linhaCmd);
+  /* O «ver comando» nasce DEPOIS do `pintarCmd`, porque é o `dataset.comando`
+   * que ele procura na fileira. Ele repinta ao abrir (ver `verComando`), então
+   * trocar o `<select>` com a lista aberta não a deixa mentindo. */
+  const cmds = verComando(rodape);
+  if (cmds) {
+    /* ANTES DO «EXECUTAR», e não depois: o `.rodape` põe as etiquetas de risco
+     * à esquerda e o gatilho à direita justamente para que a última coisa lida
+     * antes de apertar seja o risco (ver o `estilo.css`). Um botão secundário
+     * depois do «Executar» quebraria essa ordem de leitura. */
+    rodape.insertBefore(cmds.botao, executar);
+    bloco.append(cmds.bloco);
+  }
   return bloco;
 }
 
@@ -5601,7 +5717,10 @@ function desenhoDaSecaoSemChaves(assunto) {
   const par = elemento("div", { class: "par-previa" });
   par.append(elemento("div", {}, [r.antes]));
   caixa.append(par);
-  if (r.legenda) caixa.append(elemento("p", { class: "sem-previa", texto: r.legenda }));
+  /* A legenda começa com letra maiúscula — ver o bloco do `parDePrevias`. */
+  if (r.legenda) {
+    caixa.append(elemento("p", { class: "sem-previa", texto: maiuscula(r.legenda) }));
+  }
   return caixa;
 }
 
@@ -5723,12 +5842,22 @@ function parDePrevias(g) {
      * mocha, sem nada dizendo a qual dos dois ela se referia. O aviso existia,
      * mas escrito dentro de UM dos dois arquivos de prévia; aqui ele vale para
      * os dez desenhos. */
+    /* A LEGENDA COMEÇA COM MAIÚSCULA — 22/09/2026
+     *   As doze legendas de desenho da página abriam em minúscula («desenho,
+     * não é a sua tela: …»), porque os arquivos de prévia as escrevem como
+     * continuação de um rótulo que a tela não mostra mais. Um parágrafo que
+     * começa em minúscula lê-se como pedaço de outra frase, e é o único texto
+     * corrido da página que fazia isso.
+     *   A maiúscula é posta AQUI, no desenho, e não nos arquivos de prévia:
+     * quem decide como a legenda aparece na página é a página. Nenhum caractere
+     * além do primeiro é tocado — as legendas carregam `${FLAVOR}`, números e
+     * nomes de tema que não são para ser mexidos. */
     r.legenda
       ? elemento("p", {
           class: "sem-previa",
-          texto: temEscolha
+          texto: maiuscula(temEscolha
             ? r.legenda.replace(/\.$/, "") + " — à direita, o mesmo desenho com a escolha que ainda não foi salva."
-            : r.legenda,
+            : r.legenda),
         })
       : null,
   ]);
@@ -6729,14 +6858,33 @@ function montarHome() {
   caixa.append(grade);
   for (const [destino, nome, conta, frase] of portas) {
     if (!destino) continue;
+    /* O NOME ACESSÍVEL DA PORTA É O NOME DO BLOCO — 22/09/2026
+     *   Medido em 21/09, com o painel no ar: estes dois botões anunciavam 113
+     * e 114 caracteres — «Tópicos 105 AJUSTES E 38 AÇÕES EM 10 ASSUNTOS Cada
+     * assunto numa página: a coleção, os ajustes e as ações, juntos.» —, que é
+     * o cartão inteiro lido de uma vez para dizer «Tópicos». A conta e a frase
+     * não são o nome da porta: são o que ela explica DEPOIS do nome, e é isso
+     * que `aria-describedby` quer dizer. Nada sai da tela; o que muda é a
+     * ordem em que o leitor de tela diz as três coisas, e que agora dá para
+     * parar depois da primeira.
+     *   O id sai do nome do bloco, e não de um contador, pela mesma razão do
+     * `dica-<chave>`: a home se redesenha a cada clique, e um contador deixaria
+     * `aria-describedby` apontando para números que já não existem. */
+    const base = "porta-" + semAcento(nome).replace(/[^a-z0-9]+/g, "-");
+    const elConta = elemento("span", { class: "porta-conta", id: base + "-conta", texto: conta });
+    const elFrase = elemento("span", { class: "porta-frase", id: base + "-frase", texto: frase });
     grade.append(elemento("button", {
       type: "button", class: "porta",
+      "aria-label": nome,
+      /* A frase é opcional (`FRASE_DO_BLOCO` não cobre todo bloco); apontar
+       * para um id vazio faria o leitor anunciar uma descrição em branco. */
+      "aria-describedby": frase ? `${base}-conta ${base}-frase` : `${base}-conta`,
       title: `Ir para ${destino}`,
       onclick: () => { ABA = destino; gravarHash(); render(); },
     }, [
       elemento("b", { texto: nome }),
-      elemento("span", { class: "porta-conta", texto: conta }),
-      elemento("span", { class: "porta-frase", texto: frase }),
+      elConta,
+      elFrase,
     ]));
   }
 
