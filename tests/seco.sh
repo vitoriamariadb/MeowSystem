@@ -54,10 +54,24 @@ falhas=0
 # terminal. Ele fica de fora das duas rodadas, pelo caminho exato.
 LOCK='./.local/state/meowsystem/lock'
 
-_rodar_seco() {   # $1 = o HOME de brinquedo
-  env -i PATH="$PATH" HOME="$1" USER="${USER:-t}" \
+_rodar_seco() {   # $1 = o HOME de brinquedo · $2 = onde despejar a saída (opcional)
+  env -i PATH="${MEOW_TESTE_PATH:-$PATH}" HOME="$1" USER="${USER:-t}" \
     MEOW_DRY_RUN=1 MEOW_IGNORA_DESKTOP=1 NO_COLOR=1 \
-    bash "$RAIZ/install.sh" >/dev/null 2>&1
+    bash "$RAIZ/install.sh" > "${2:-/dev/null}" 2>&1
+}
+
+# As unidades do repositório no disco do HOME de brinquedo, com os dois `@…@`
+# resolvidos — é isso que faz o `meow_escrever` concluir "já está certo" e o ramo
+# `meow_seco` seguir para a pergunta seguinte. Usada pelas rodadas 2 e 3.
+_plantar_unidades() {   # $1 = o HOME de brinquedo
+  local u nome destino="$1/.config/systemd/user"
+  mkdir -p "$destino"
+  for u in "$RAIZ"/systemd/*; do
+    nome="$(basename "$u")"
+    sed -e "s|@ATIVOS@|$1/.local/share/backgrounds/meowsystem/ativos|g" \
+        -e "s|@ACERVO@|$RAIZ/assets/gatos|g" "$u" > "$destino/$nome"
+    chmod 644 "$destino/$nome"
+  done
 }
 
 # O retrato é CAMINHO + sha256 de cada arquivo, e não só a lista de nomes: um
@@ -94,16 +108,11 @@ mkdir -p "$UNIDADES" "$ESTADO"
 # As unidades vão para o disco com o MESMO texto que o instalador gravaria — é
 # isso que faz o `meow_escrever` concluir "já está certo" e o ramo `meow_seco`
 # seguir para a pergunta seguinte, que é o pedaço que a rodada 1 não alcança.
-# Os dois `@…@` são substituídos aqui pela mesma razão que o `install.sh` e o
+# Os dois `@…@` são substituídos pela mesma razão que o `install.sh` e o
 # `vigia_assets.sh` os substituem lá: eles guardam um caminho que depende do
 # HOME e do clone, e deixá-los crus faria o texto divergir por um motivo que
 # não tem nada a ver com o que se está medindo.
-for u in "$RAIZ"/systemd/*; do
-  nome="$(basename "$u")"
-  sed -e "s|@ATIVOS@|$H2/.local/share/backgrounds/meowsystem/ativos|g" \
-      -e "s|@ACERVO@|$RAIZ/assets/gatos|g" "$u" > "$UNIDADES/$nome"
-  chmod 644 "$UNIDADES/$nome"
-done
+_plantar_unidades "$H2"
 
 # O manifesto com uma linha plausível: caminho, carimbo de tempo e sha256, que é
 # a forma que a `meow_manifesto_registrar` escreve. O conteúdo não importa — o
@@ -138,5 +147,70 @@ if [ "$antes" != "$depois" ]; then
 else
   printf 'ok: o seco não mexeu em nada num HOME já instalado\n'
 fi
+
+# ---------------------------------------------------------------------------
+# Rodada 3 — o seco não pode CALAR sobre a unidade que o real vai armar
+# ---------------------------------------------------------------------------
+# ENSAIO QUE OMITE É ENSAIO QUE MENTE, e as duas rodadas acima não o pegam: elas
+# vigiam byte escrito, e aqui ninguém escreve — o ramo `meow_seco` simplesmente
+# voltava calado. Era a dívida 6 do `docs/SPRINTS.md`, aberta em 31/08 como
+# "HIPÓTESE, não medida", e medida em 22/09/2026 com exatamente este arranjo:
+# com as unidades JÁ idênticas no disco (`mudou=0`), o `_logo_relogio` e o
+# `etapa_wallpaper` devolviam 0 sem perguntar `is-enabled`/`is-active`, e a
+# passagem real logo em seguida armava `meow-gato.timer`,
+# `meow-wallpaper.timer`, `meow-fundo.path` e `meow-ativos.path`. Ela aprovava
+# um ensaio que não falava das quatro.
+#
+# O `systemctl` É DE MENTIRA, E É ELE QUE TORNA ESTE TESTE POSSÍVEL
+#   Sem ele a resposta dependeria da máquina de quem roda: numa que já tenha as
+#   unidades armadas não haveria frase nenhuma para procurar, e o teste ficaria
+#   verde por acaso. O stub responde `disabled`/`inactive` sempre — e GRITA se
+#   alguém tentar `enable`, `start` ou `disable`, que é a rede contra um conserto
+#   que "ensine" o seco a armar de verdade para poder anunciar. Nada aqui toca o
+#   systemd de quem roda o teste.
+H3="$(mktemp -d)"; trap 'rm -rf "$H" "${H2:-}" "${H3:-}" "${STUB3:-}"' EXIT
+STUB3="$(mktemp -d)"
+cat > "$STUB3/systemctl" <<'FIM'
+#!/usr/bin/env bash
+case "$*" in
+  *is-enabled*) echo disabled; exit 1 ;;
+  *is-active*)  echo inactive; exit 3 ;;
+  *is-failed*)  echo inactive; exit 1 ;;
+  *enable*|*disable*|*start*|*stop*|*reset-failed*)
+     echo "MEOW-TESTE-ESCREVERIA: systemctl $*" >&2; exit 0 ;;
+esac
+exit 0
+FIM
+chmod +x "$STUB3/systemctl"
+_plantar_unidades "$H3"
+mkdir -p "$H3/.local/state/meowsystem"
+
+SAIDA3="$H3.saida"
+MEOW_TESTE_PATH="$STUB3:$PATH" _rodar_seco "$H3" "$SAIDA3"
+
+# As quatro unidades que as duas etapas cegas armavam sem avisar. A frase é
+# procurada pelo NOME DA UNIDADE, e não pelo texto humano em volta: o texto pode
+# ser reescrito amanhã sem que a promessa mude, e o nome não.
+faltou3=""
+for u in meow-gato.timer meow-wallpaper.timer meow-fundo.path meow-ativos.path; do
+  grep -q "$u" "$SAIDA3" || faltou3="$faltou3 $u"
+done
+if [ -n "$faltou3" ]; then
+  printf 'FALHOU: o ensaio calou sobre unidade(s) que a execução real vai armar:%s\n' \
+    "$faltou3" >&2
+  printf '  é a dívida 6 do docs/SPRINTS.md voltando: ver o ramo `meow_seco` das etapas.\n' >&2
+  falhas=$((falhas + 1))
+else
+  printf 'ok: o ensaio nomeia as quatro unidades que o real armaria\n'
+fi
+
+if grep -q 'MEOW-TESTE-ESCREVERIA' "$SAIDA3"; then
+  printf 'FALHOU: o seco chamou o systemctl para ESCREVER:\n' >&2
+  grep 'MEOW-TESTE-ESCREVERIA' "$SAIDA3" >&2
+  falhas=$((falhas + 1))
+else
+  printf 'ok: o seco só PERGUNTOU ao systemd — nenhuma unidade foi armada\n'
+fi
+rm -f "$SAIDA3"
 
 exit "$([ "$falhas" = 0 ] && echo 0 || echo 1)"

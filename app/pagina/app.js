@@ -4872,7 +4872,26 @@ function oferecerRodarDeVerdade(aplicar) {
      * escrito", e é exatamente o contraste que ela existe para marcar. */
     texto: "Rodar de verdade",
     title: "Roda o mesmo comando escrevendo na máquina",
-    onclick: () => aplicar(),
+    /* DOIS CLIQUES RÁPIDOS MANDAVAM DOIS PEDIDOS, e o segundo voltava como
+     * torrada vermelha «já há um trabalho correndo» — uma recusa do servidor
+     * mostrada a quem não fez nada de errado. É o mesmo remédio que o
+     * `salvarEscolhas` já usa: o botão se desabilita entre o clique e a
+     * resposta. Ele volta a viver no fim porque o pedido pode ter FALHADO (a
+     * torrada de erro do `rodarDeVerdade`) — e aí ela precisa poder tentar de
+     * novo. No caminho feliz quem o remove é a `faixaDeEnsaio(false)` da gaveta
+     * seguinte, e escrever num nó já retirado da página não faz nada. */
+    onclick: async (ev) => {
+      const botao = ev.currentTarget;
+      const anterior = botao.textContent;
+      botao.disabled = true;
+      botao.textContent = "Rodando…";
+      try {
+        await aplicar();
+      } finally {
+        botao.disabled = false;
+        botao.textContent = anterior;
+      }
+    },
   }));
 }
 
@@ -5064,8 +5083,24 @@ async function puxar() {
       torrada(`${TRABALHO.rotulo || "O trabalho"}: ${fim}`, rc === 0 || rc === 1 ? "ok" : "erro");
     }
     /* O ensaio acabou: o botão que o transforma em execução entra agora. Antes
-     * do `TRABALHO = null`, que é quem guarda o gesto. */
-    if (TRABALHO.seco) oferecerRodarDeVerdade(TRABALHO.aplicar);
+     * do `TRABALHO = null`, que é quem guarda o gesto.
+     *
+     * ENSAIO INTERROMPIDO NÃO É ENSAIO TERMINADO — 22/09/2026
+     *   Este ramo (`!r.vivo`) é o mesmo a que se chega quando ela aperta
+     *   «Parar», e o botão aparecia igual: meia página lida virava permissão
+     *   para escrever na máquina, que é exatamente o que o comentário do
+     *   `oferecerRodarDeVerdade` promete não fazer. Quem responde "acabou ou
+     *   foi cortado" é o próprio código de saída — MEDIDO em 22/09: um trabalho
+     *   morto pelo `#parar` volta com `rc = -15`, o SIGTERM que o `parar()`
+     *   manda ao grupo. Negativo, ou sem número nenhum, quer dizer "não chegou
+     *   ao fim sozinho" — e aí ela ensaia de novo, que custa 18 segundos.
+     *
+     *   A marca é o `rc`, e não uma bandeira posta no clique do «Parar»,
+     *   porque o pedido de parada pode vir de outra aba do painel (ou o
+     *   processo pode morrer por qualquer outro motivo): a bandeira só saberia
+     *   dos cliques desta aba, o `rc` sabe de todos. */
+    const interrompido = typeof rc !== "number" || rc < 0;
+    if (TRABALHO.seco && !interrompido) oferecerRodarDeVerdade(TRABALHO.aplicar);
     pastilhaDeTrabalho(false);
     TRABALHO = null;
   }

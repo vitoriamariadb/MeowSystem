@@ -314,6 +314,14 @@ _pecas = [("o botão do diálogo", "confirmar-ensaio", _js),
           ("o botão da barra do alto", "botao-ensaiar", _js),
           ("a faixa da gaveta", "faixa-ensaio", _js),
           ("o «Rodar de verdade» pós-ensaio", "ensaio-rodar", _js),
+          #   A cópia descartável do meow.conf é a peça que faz o ensaio do
+          #   «Salvar e aplicar» responder sobre AS ESCOLHAS. A primeira versão
+          #   desta sprint as mandava por ambiente e o `install.sh` as engolia
+          #   no `set -a; . "$fonte"` — ensaio do conf antigo, aprovado como se
+          #   fosse o novo. Se alguém voltar ao ambiente, esta linha fica
+          #   vermelha antes de a pessoa descobrir sozinha.
+          ("a cópia descartável do ensaio", "_conf_de_ensaio", _py),
+          ("o MEOW_CONF do ensaio", 'ambiente["MEOW_CONF"]', _py),
           ("o seco no /api/rodar", 'corpo.get("seco")', _py),
           ("o seco no /api/salvar", 'corpo.get("seco")', _py)]
 _faltam = ["%s (%s)" % (nome, marca) for nome, marca, onde in _pecas if marca not in onde]
@@ -323,6 +331,52 @@ if _faltam:
     falhou = 1
 else:
     print("ok: o «Ver o que faria» está no diálogo, na barra e na gaveta")
+
+#   9d. E O ENSAIO TEM DE RESPONDER SOBRE AS ESCOLHAS, SEM TOCAR NO ARQUIVO
+#       DELA. As duas metades da mesma pergunta, e a checagem de texto acima não
+#       alcança nenhuma: um `_conf_de_ensaio` que copiasse e esquecesse de
+#       gravar passaria por ela. A escolha entra na CÓPIA (é o que o
+#       `install.sh` vai sourcear), o sha256 do arquivo dela não se move, e a
+#       `conf_exportada` da cópia devolve o valor NOVO — que é de onde sai a
+#       ponte da paleta do trabalho.
+import hashlib as _hl
+import shutil as _sh
+import tempfile as _tf9
+_d9 = _tf9.mkdtemp()
+_dela = os.path.join(_d9, "meow.conf")
+_sh.copyfile(os.path.join(raiz, "meow.conf.exemplo"), _dela)
+_antes9 = _hl.sha256(open(_dela, "rb").read()).hexdigest()
+_conf_dela9 = servidor.CONF
+_erros9 = []
+#       A ausência da função já é gritada pelo 9c acima; aqui ela vira um pulo
+#       em vez de um traceback, senão um único refactor derruba o resto do
+#       arquivo e esconde as travas que vêm depois.
+_faz_ensaio = getattr(servidor, "_conf_de_ensaio", None)
+if _faz_ensaio is None:
+    _pasta9, _queixa9 = None, "o _conf_de_ensaio não existe (ver a trava acima)"
+else:
+    try:
+        servidor.CONF = _dela
+        _pasta9, _queixa9 = _faz_ensaio([("FLAVOR", "frappe")])
+    finally:
+        servidor.CONF = _conf_dela9
+if _queixa9:
+    _erros9.append("o ensaio não conseguiu preparar a cópia: %s" % _queixa9)
+else:
+    _copia9 = os.path.join(_pasta9, "meow.conf")
+    if 'FLAVOR="frappe"' not in open(_copia9, encoding="utf-8").read():
+        _erros9.append("a escolha não entrou na cópia que o install.sh vai ler")
+    if (servidor.conf_exportada(_copia9) or {}).get("FLAVOR") != "frappe":
+        _erros9.append("a conf exportada da cópia ainda diz o FLAVOR do disco")
+    _sh.rmtree(_pasta9, ignore_errors=True)
+if _hl.sha256(open(_dela, "rb").read()).hexdigest() != _antes9:
+    _erros9.append("o ensaio mexeu no meow.conf dela — é a promessa inteira da palavra")
+_sh.rmtree(_d9, ignore_errors=True)
+if _erros9:
+    print("FALHOU: o ensaio do «Salvar e aplicar»: " + "; ".join(_erros9), file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: o ensaio lê as escolhas numa cópia e não toca no meow.conf dela")
 
 # --- 10. O TRABALHO LEVA A CONF, E O ÍCONE QUE NÃO VALE NÃO É OFERECIDO — 13/09 --
 #   Medido pela interface: «Usar este ícone» rodou o `icones_apps_arcticons.sh`
@@ -357,7 +411,11 @@ for _k, _v in (("ICONES_COR_MARCA", "sim"), ("FLAVOR", "latte"), ("ICONES_PASTAS
 if _exp_quebrado is not None:
     _erros10.append("um conf com erro de sintaxe virou ambiente em vez de recusa")
 _ini = _inspect.getsource(servidor.iniciar)
-if "conf_exportada()" not in _ini or "ambiente.update(conf)" not in _ini:
+# `conf_exportada(` e não `conf_exportada()`: desde 22/09 ela recebe a fonte, que
+# no ensaio é a CÓPIA com as escolhas dentro — e tem de ser o MESMO arquivo que o
+# `install.sh` vai sourcear, senão a ponte resolve a paleta por um FLAVOR e o
+# instalador lê outro.
+if "conf_exportada(" not in _ini or "ambiente.update(conf)" not in _ini:
     _erros10.append("o iniciar não põe a conf no ambiente do trabalho")
 _m = servidor.Manipulador.__new__(servidor.Manipulador)
 _tr = _m._travas_do_arcticons()

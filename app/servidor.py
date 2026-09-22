@@ -1716,8 +1716,16 @@ def valores_efetivos(chaves):
     return fora
 
 
-def conf_exportada():
+def conf_exportada(fonte=None):
     """As chaves do meow.conf como um script as recebe do `bin/meow`, ou None.
+
+    `fonte` é o arquivo a ler; vazio quer dizer "o dela, ou o exemplo quando ela
+    ainda não tem um". Quem passa outro é o ensaio do «Salvar e aplicar», que lê
+    a CÓPIA descartável com as escolhas pendentes dentro (ver `_conf_de_ensaio`).
+    Sem este parâmetro o ensaio resolveria a ponte (MEOW_PALETA/MEOW_PACK_DIR) a
+    partir do PACK/FLAVOR do disco enquanto o `install.sh` lia os da cópia — o
+    par incoerente que o bloco "A PONTE VEM JUNTO" abaixo existe para matar,
+    entrando de novo pela porta do ensaio.
 
     A CONF VAI JUNTO COM O TRABALHO — 13/09/2026
       Os trabalhos do painel herdavam o ambiente do servidor e mais nada. Para o
@@ -1767,7 +1775,7 @@ def conf_exportada():
       é a escolha dela, e quem tem de recusá-lo, nomeando o arquivo, é o
       `install.sh` — no log que ela está olhando, e não aqui, calado.
     """
-    fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
+    fonte = fonte or (CONF if os.path.isfile(CONF) else CONF_PADRAO)
     nomes = []
     try:
         with open(fonte, "r", encoding="utf-8") as fh:
@@ -1992,12 +2000,20 @@ def _ambiente_do_painel(seco=False):
     return ambiente
 
 
-def definir_varias(pares):
+def definir_varias(pares, conf=None):
     """Grava várias chaves pelo `meow_conf_definir`, num processo só.
 
     Devolve `[(chave, rc, saída)]` na ordem pedida: 0 já estava · 1 escreveu ·
     2 falhou. Um nome ou um valor recusado não chega ao bash — e aí NADA é
     gravado: metade das escolhas no disco seria pior que nenhuma.
+
+    `conf` é um meow.conf OUTRO que não o dela, e vira `MEOW_CONF` para o bash —
+    o mesmo override que o `lib/comum.sh:608` e o `install.sh:70` já respeitam.
+    Quem usa é o ensaio do «Salvar e aplicar», que grava as escolhas numa CÓPIA
+    descartável. A gravação é feita POR AQUI, e não por um `printf` no fim do
+    arquivo, justamente porque é a mesma função que o Salvar de verdade vai
+    chamar depois: um ensaio que escrevesse a chave de um jeito e a gravação de
+    outro responderia sobre um arquivo que nunca vai existir.
 
     UM BASH PARA TODAS, E NÃO UM POR CHAVE — 13/09/2026
       Cada gravação custava 0,45 s (medido em 06/09: sobe um bash, carrega o
@@ -2033,9 +2049,12 @@ def definir_varias(pares):
     argv = ["bash", "-c", programa, "_", RAIZ]
     for chave, valor in pares:
         argv += [chave, valor]
+    ambiente = _ambiente_do_painel()
+    if conf:
+        ambiente["MEOW_CONF"] = conf
     try:
         proc = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              timeout=30 + 5 * len(pares), env=_ambiente_do_painel())
+                              timeout=30 + 5 * len(pares), env=ambiente)
     except (OSError, subprocess.SubprocessError) as erro:
         return [(chave, 2, str(erro)) for chave, _valor in pares]
     saida = proc.stdout.decode("utf-8", "replace")
@@ -2055,6 +2074,67 @@ def definir(chave, valor):
     """Grava UMA chave pelo `meow_conf_definir` do projeto. 0 já estava · 1 escreveu."""
     _chave, rc, saida = definir_varias([(chave, valor)])[0]
     return (rc, saida)
+
+
+# ============================================================================
+# O MEOW.CONF DESCARTÁVEL DO ENSAIO — 22/09/2026, sprint P8
+# ============================================================================
+# O ENSAIO POR AMBIENTE NÃO FUNCIONAVA, E ISTO FOI MEDIDO (22/09/2026)
+#   A primeira versão desta sprint mandava as escolhas pendentes como AMBIENTE
+#   (um `extras` que entrava no `env` do trabalho) e um comentário jurava que
+#   era "por cima do conf do disco, do mesmo jeito que o `install.sh` já lê toda
+#   chave". Falso, e o contrário do que acontece. A primeira coisa que o
+#   `install.sh` faz é `etapa_conf_ler` (install.sh:142), que é `set -a;
+#   . "$fonte"` sobre o meow.conf — e o meow.conf usa atribuição CRUA
+#   (`FLAVOR="mocha"`, meow.conf.exemplo:84), não `${FLAVOR:-mocha}`. O `source`
+#   SOBRESCREVE o ambiente:
+#
+#       $ printf 'FLAVOR="mocha"\n' > c.conf
+#       $ FLAVOR=frappe bash -c 'set -a; . c.conf; echo "$FLAVOR"'
+#       mocha
+#
+#   Medido no install.sh de verdade também, num HOME de brinquedo com
+#   `FLAVOR=frappe` no ambiente: zero ocorrência de `frappe` nas 428 linhas do
+#   ensaio, e `aplicaria o tema 'mocha-mauve'` na linha 11. Todo `extras` era
+#   engolido, e não em parte: o `migrar_conf.py` (install.sh:334) mantém o conf
+#   dela COMPLETO contra o exemplo, então não há chave de esquema que escape.
+#   A pessoa lia a faixa "ENSAIO · nada foi escrito", aprovava, e recebia outra
+#   coisa — a resposta errada vendida como a certa, que é pior que a ausência de
+#   resposta que esta sprint veio curar.
+#
+# O QUE FUNCIONA É DAR AO INSTALADOR OUTRO ARQUIVO PARA LER
+#   `MEOW_CONF` é o override de sempre, e ele já é respeitado em todo lugar que
+#   importa: `install.sh:70`, `lib/comum.sh:608` (e por tabela todo script de
+#   `scripts/` que sourceia a lib), `bin/meow:116` e o `scripts/gerar_temas.py`.
+#   Então o ensaio ganha uma CÓPIA descartável do conf dela, com as escolhas
+#   pendentes gravadas dentro pela MESMA `meow_conf_definir` que o Salvar de
+#   verdade vai chamar depois, e o `install.sh` lê essa cópia. O arquivo dela
+#   não é aberto para escrita uma única vez — que é a promessa inteira da
+#   palavra "ensaio".
+#
+#   A CÓPIA MORA NUM DIRETÓRIO 0700, e é o DIRETÓRIO que a protege: o
+#   `shutil.copyfile` copia conteúdo, não modo, e o arquivo nasce 0644 pelo
+#   umask (medido: dir 0o700, cópia 0o644). O meow.conf é o retrato da máquina
+#   dela — um `/tmp/xxx.conf` legível por qualquer conta seria um vazamento novo
+#   criado por um botão que promete não escrever nada.
+def _conf_de_ensaio(pares):
+    """Uma cópia descartável do meow.conf com `pares` dentro. Devolve (dir, erro).
+
+    Quem apaga o diretório é o `Trabalho` quando o ensaio termina (o
+    `ao_terminar` do `iniciar`) — deixá-lo para o fim do processo faria o painel
+    acumular um retrato da máquina dela por clique em «Ver o que faria»."""
+    fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
+    try:
+        pasta = tempfile.mkdtemp(prefix="meow-ensaio-")
+        destino = os.path.join(pasta, "meow.conf")
+        shutil.copyfile(fonte, destino)
+    except OSError as erro:
+        return (None, "não consegui preparar o ensaio: %s" % erro)
+    for chave, rc, saida in definir_varias(pares, conf=destino):
+        if rc == 2:
+            shutil.rmtree(pasta, ignore_errors=True)
+            return (None, "%s: %s" % (chave, saida or "não consegui gravar no ensaio"))
+    return (pasta, None)
 
 
 # --- 4. a paleta vira CSS ----------------------------------------------------
@@ -4055,13 +4135,18 @@ class Trabalho:
     _seq = 0
     _trava = threading.Lock()
 
-    def __init__(self, acao_id, argv, ambiente, rotulo):
+    def __init__(self, acao_id, argv, ambiente, rotulo, ao_terminar=None):
         with Trabalho._trava:
             Trabalho._seq += 1
             self.id = Trabalho._seq
         self.acao = acao_id
         self.rotulo = rotulo
         self.argv = argv
+        # O que fazer quando o processo morrer, de qualquer jeito — fim normal,
+        # `#parar`, ou o pai morrendo junto. Existe por causa do meow.conf
+        # descartável do ensaio (ver `_conf_de_ensaio`): quem o criou não pode
+        # apagá-lo, porque o trabalho ainda vai lê-lo por 18 segundos.
+        self._ao_terminar = ao_terminar
         self.linhas = []
         self.rc = None
         self.comeco = time.time()
@@ -4091,6 +4176,14 @@ class Trabalho:
             pass
         self.rc = self.proc.wait()
         self.fim = time.time()
+        # DEPOIS do `rc` e do `fim`: a página pergunta "acabou?" pelo `vivo()`, e
+        # a limpeza não pode atrasar a resposta nem falhar a ponto de o trabalho
+        # ficar eternamente sem desfecho.
+        if self._ao_terminar is not None:
+            try:
+                self._ao_terminar()
+            except Exception:
+                pass
 
     def desde(self, n):
         with self._lock:
@@ -4239,20 +4332,19 @@ def _trabalho_json(trabalho, acao_id, seco=False):
             "seco": bool(seco)}
 
 
-def iniciar(acao_id, argumento, confirmado=False, seco=False, extras=None):
+def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None):
     """Começa uma ação. Devolve (trabalho, erro) — o erro pode ser um dicionário.
 
     `seco` roda com `MEOW_DRY_RUN=1` (ver `_ambiente_do_painel`): o motor já
     sabe ensaiar desde sempre (`meow_seco` em lib/comum.sh), e o que faltava
     era a tela poder pedir.
 
-    `extras` são chaves do meow.conf que valem SÓ NESTA EXECUÇÃO, por cima do
-    que está no disco. Existe por causa do ensaio do «Salvar e aplicar»: com
-    escolhas na bandeja, "ver o que isto vai fazer" tem de mostrar o que as
-    ESCOLHAS fariam, e um ensaio não pode gravá-las antes para o instalador
-    lê-las. Quem chama já passou cada par pela mesma peneira do `/api/salvar`
-    (esquema + `validar_valor`), que é a única porta por onde valor de chave
-    entra neste arquivo."""
+    `pasta_de_ensaio` é o diretório do `_conf_de_ensaio`: dentro dele mora um
+    meow.conf DESCARTÁVEL, cópia do dela com as escolhas ainda não gravadas
+    dentro. Ele vira `MEOW_CONF` para este trabalho e é apagado quando o
+    trabalho termina. Existe porque o ensaio do «Salvar e aplicar» tem de
+    responder sobre AS ESCOLHAS, e não sobre o conf do disco — ver o cabeçalho
+    do `_conf_de_ensaio` para a medição de por que ambiente não servia."""
     global TRABALHO_ATUAL
     acao = ACOES.get(acao_id)
     if acao is None:
@@ -4294,18 +4386,28 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, extras=None):
 
     # A CONF VAI JUNTO COM O TRABALHO — ver `conf_exportada`. Sem ela, a ação
     # que chama um script de `scripts/` direto roda com cada chave no padrão.
-    conf = conf_exportada()
+    #
+    # No ensaio das escolhas quem é lido é a CÓPIA, e não o arquivo dela: tem de
+    # ser o mesmo arquivo que o `install.sh` vai sourcear (`MEOW_CONF`, abaixo),
+    # senão a ponte resolveria a paleta pelo PACK/FLAVOR do disco enquanto o
+    # instalador lê os da cópia — o par incoerente que o bloco "A PONTE VEM
+    # JUNTO" do `conf_exportada` descreve, entrando pela porta do ensaio.
+    conf_do_ensaio = os.path.join(pasta_de_ensaio, "meow.conf") if pasta_de_ensaio else None
+    conf = conf_exportada(conf_do_ensaio)
     if conf is None:
         return (None, "não consegui ler o meow.conf — sem ele o trabalho rodaria "
                       "com cada chave no padrão, e por isso não roda")
     ambiente = _ambiente_do_painel(seco)
     ambiente.update(conf)
-    # DEPOIS do conf e ANTES do ambiente da ação: as escolhas que ainda não
-    # foram gravadas vencem o disco (é o que o ensaio do Salvar existe para
-    # mostrar), e o ambiente que a própria ação declara continua sendo a última
-    # palavra — ele é código deste arquivo, não entrada de fora.
-    ambiente.update(extras or {})
     ambiente.update(acao.get("ambiente", {}))
+    # DEPOIS do `ambiente` da ação, e de propósito: `MEOW_CONF` não é uma chave
+    # do conf, é o ENDEREÇO dele. Quem o lê é o `CONF=` do `install.sh` (linha
+    # 70), que o `etapa_conf_ler` sourceia com `set -a`, e o
+    # `MEOW_CONF_ARQUIVO` do `lib/comum.sh` (linha 608), que todo script de
+    # `scripts/` herda. Deixá-lo antes seria deixar uma ação futura apontar o
+    # ensaio para outro arquivo sem querer.
+    if conf_do_ensaio:
+        ambiente["MEOW_CONF"] = conf_do_ensaio
     # O `install.sh` cala o progresso quando NÃO há terminal (`[ ! -t 1 ]`), e é
     # a decisão certa lá — quase 600 linhas num journal não têm leitor. Aqui há
     # leitora, e ela está olhando: sem esta linha a página mostraria um retângulo
@@ -4322,7 +4424,14 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, extras=None):
         if TRABALHO_ATUAL is not None and TRABALHO_ATUAL.vivo():
             return (None, "já há um trabalho correndo: %s" % TRABALHO_ATUAL.rotulo)
         try:
-            trabalho = Trabalho(acao_id, argv, ambiente, acao["rotulo"])
+            # A CÓPIA DO ENSAIO MORRE COM O TRABALHO, e não aqui: ele acabou de
+            # nascer e vai sourcear aquele arquivo pelos próximos segundos. Nos
+            # caminhos em que trabalho nenhum nasce, quem apaga é quem criou a
+            # pasta — ver o `/api/salvar`.
+            trabalho = Trabalho(
+                acao_id, argv, ambiente, acao["rotulo"],
+                ao_terminar=(lambda: shutil.rmtree(pasta_de_ensaio, ignore_errors=True))
+                if pasta_de_ensaio else None)
         except OSError as erro:
             return (None, str(erro))
         TRABALHOS[trabalho.id] = trabalho
@@ -7271,17 +7380,35 @@ class Manipulador(BaseHTTPRequestHandler):
             #   DISCO, que é justamente o que ainda não tem as 17 escolhas
             #   dentro: um ensaio que responde outra pergunta.
             #
-            #   E ELE NÃO GRAVA NADA, nem "só para ensaiar e desfazer depois":
-            #   as escolhas vão como AMBIENTE (o `extras` do `iniciar`), por
-            #   cima do conf do disco, do mesmo jeito que o `install.sh` já lê
-            #   toda chave. O arquivo dela não é tocado — o que é a promessa
-            #   inteira da palavra "ensaio". A peneira acima vale igual: uma
-            #   escolha recusada derruba o ensaio antes daqui, como derruba a
-            #   gravação.
+            #   E ELE NÃO TOCA NO ARQUIVO DELA, nem "só para ensaiar e desfazer
+            #   depois": as escolhas são gravadas numa CÓPIA descartável do
+            #   meow.conf e o instalador lê essa cópia, pelo `MEOW_CONF` — que é
+            #   o override de sempre, o mesmo que o `install.sh:70` e o
+            #   `lib/comum.sh:608` já respeitam. A promessa inteira da palavra
+            #   "ensaio" é essa, e ela vale byte a byte: o `tests/seco.sh` e a
+            #   conferência da sprint medem o arquivo dela antes e depois.
+            #
+            #   POR QUE NÃO POR AMBIENTE, QUE FOI A PRIMEIRA VERSÃO DESTA SPRINT
+            #   Porque não funciona, e o cabeçalho do `_conf_de_ensaio` traz a
+            #   medição: o `install.sh` SOURCEIA o meow.conf (`set -a; . "$fonte"`)
+            #   como primeira coisa que faz, e atribuição crua de arquivo
+            #   sourceado sobrescreve o ambiente. Todo `extras` era engolido, e
+            #   a pessoa aprovava um ensaio do conf ANTIGO.
+            #
+            #   A peneira acima vale igual: uma escolha recusada derruba o
+            #   ensaio antes daqui, como derruba a gravação.
             if corpo.get("seco"):
+                pasta, queixa = _conf_de_ensaio(pares)
+                if queixa:
+                    return self._json({"erro": queixa}, 500)
                 trabalho, erro = iniciar("instalar", "", confirmado=True,
-                                         seco=True, extras=dict(pares))
+                                         seco=True, pasta_de_ensaio=pasta)
                 if erro:
+                    # Trabalho nenhum nasceu, então ninguém vai apagar a cópia
+                    # depois: quem criou limpa. Um «já há um trabalho correndo»
+                    # a cada clique deixaria um retrato do meow.conf dela em
+                    # `/tmp` por clique.
+                    shutil.rmtree(pasta, ignore_errors=True)
                     return self._json(
                         {"erro": erro["erro"] if isinstance(erro, dict) else erro}, 409)
                 return self._json({"trabalho": _trabalho_json(trabalho, "instalar", seco=True)})

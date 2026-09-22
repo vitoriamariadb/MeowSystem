@@ -3277,10 +3277,17 @@ como concluída — que é onde ninguém procura.
 5. **O atalho do histórico de clipboard** (Sprint T): o corte do applet só é
    defensável depois que ela tiver o atalho. Ele não virou item em lugar nenhum.
 6. **`etapa_logo` e `etapa_wallpaper` com o modo seco cego** (Sprint V) —
-   **HIPÓTESE, não medida**: o ramo `meow_seco` não pergunta
-   `is-enabled`/`is-active`, então o `--dry-run` diria "já ligada" onde a execução
-   real armaria a unidade. É o defeito que o `etapa_leitura` e o `etapa_autoreparo`
-   consertaram em 31/08. Conferir antes de consertar.
+   **MEDIDA E FECHADA · 22/09, sprint P8**. A hipótese de 31/08 se confirmou
+   inteira: com as unidades do repositório já idênticas no disco (`mudou=0`), o
+   `_logo_relogio` (install.sh) devolvia 0 **calado**, sem perguntar
+   `is-enabled`/`is-active`, e a passagem real armava o `meow-gato.timer`; o
+   mesmo em `etapa_wallpaper` para `meow-wallpaper.timer`, `meow-fundo.path` e
+   `meow-ativos.path`. Medido num HOME de brinquedo com um `systemctl` de
+   mentira que só responde `disabled`/`inactive`: **zero** menção às quatro
+   unidades nas 428 linhas do ensaio. Não era ensaio que escreve — era ensaio
+   que **omite**, e por isso nenhuma trava de byte escrito o pegava. A cura é a
+   mesma do `etapa_leitura`/`etapa_autoreparo` (duas divergências, duas linhas),
+   e a rodada 3 do `tests/seco.sh` passa a vigiá-la pelo nome de cada unidade.
 7. **`fix_leiturabin` não existe** (Sprint V): com o caminho sem-`cargo` novo do
    `leitura_build.sh`, o doctor **poderia** repor binário e sombra sem compilar, mas
    o laço de conserto dá `continue` pelo NOME antes de olhar o código de saída.
