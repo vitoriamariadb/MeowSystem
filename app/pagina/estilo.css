@@ -1101,7 +1101,16 @@ select { flex: 1 1 auto; }
    valor ficam em cima, os botões embaixo, sempre. Um arranjo só para os dois
    casos, em vez de um que depende do comprimento da palavra. */
 .faixa { display: flex; align-items: center; gap: .6rem; width: 100%; flex-wrap: wrap; }
-.faixa input[type="range"] { flex: 1 1 auto; accent-color: var(--accent); min-width: 6rem; }
+/* A ALÇA TAMBÉM É ALVO — 21/09/2026. Os 24 deslizantes da página mediam 16 e
+   18 px de altura; o piso de 24 px vale para eles como vale para os botões, e
+   aqui ele não custa largura nenhuma. A alça continua do mesmo tamanho: o que
+   cresce é a faixa sensível ao redor dela. */
+.faixa input[type="range"] {
+  flex: 1 1 auto;
+  accent-color: var(--accent);
+  min-width: 6rem;
+  height: 1.5rem;
+}
 /* `[disabled]` continua aqui e hoje não casa com nenhum deslizante de chave —
    desde 21/09/2026 nenhum nasce travado (ver `.faixa-comoesta`, abaixo). Fica
    porque a regra é do elemento, não daquele estado: um deslizante desabilitado
@@ -1133,7 +1142,10 @@ select { flex: 1 1 auto; }
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
-  height: 1.1rem;
+  /* 1.1rem até 21/09/2026, quando o piso de alvo de 24 px passou a valer para
+     a alça também. A trilha e a alça não mudaram de tamanho — o `margin-top`
+     negativo da alça é medido contra a TRILHA, não contra a caixa. */
+  height: 1.5rem;
 }
 .faixa input[type="range"].faixa-comoesta::-webkit-slider-runnable-track {
   height: 4px;
@@ -1188,7 +1200,36 @@ select { flex: 1 1 auto; }
 .acao-cartao { display: flex; gap: .35rem; align-items: center; margin-top: .15rem; }
 /* Os estados que não moram na régua do deslizante. */
 .faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .1rem; flex: 0 0 100%; }
-.btn-mini { font-size: var(--t-legenda); padding: .18rem .45rem; }
+/* O PISO DE 24 PX — 21/09/2026, WCAG 2.2 critério 2.5.8
+   -------------------------------------------------------------------------
+   Medido com o painel no ar, as 14 abas percorridas uma a uma: 176 botões
+   abaixo de 24 px de altura, 119 deles numa aba só. Na ficha de imagem os
+   quatro mediam 38x22, 32x22, 42x22 e 38x22 — e a queixa dela ("botão
+   impossível de clicar") nasce daí, não da imagem.
+
+   `min-height` e não `height`: o botão que já é maior continua como está. E
+   `inline-flex`, porque com `min-height` sozinho a sobra de altura cai toda
+   embaixo do rótulo e ele fica encostado no topo da moldura.
+
+   Onde isto apertar a grade, a grade ganha coluna — o botão não perde altura.
+   Ver a `.galeria .acoes`, que subiu para 28 px pelo mesmo motivo.
+
+   O `.btn` MORA COM O `.btn` — corrigido em 21/09/2026, no mesmo dia
+   -------------------------------------------------------------------------
+   A primeira versão desta seção trazia um `.btn { min-height: 24px }` aqui
+   dentro, 147 linhas antes do bloco `.btn` de verdade. Funcionava, porque o
+   bloco de baixo não mexe em `min-height` — e era uma armadilha: um
+   `min-height` escrito lá, que é onde se escreve `.btn`, apagaria o piso sem
+   aviso e sem ninguém passar por este comentário. O piso do `.btn` está no
+   bloco "botões", com um ponteiro para cá. */
+.btn-mini {
+  font-size: var(--t-legenda);
+  padding: .18rem .45rem;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .btn-mini[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
 /* As listas separadas por vírgula viram fichas. Sem isso, tirar um app de
@@ -1205,6 +1246,10 @@ select { flex: 1 1 auto; }
   font-size: .74rem;
   color: var(--subtext1);
 }
+/* O x DA FICHA MEDIA 13x14 PX — 21/09/2026. Eram 57 deles numa aba só
+   ("Lançadores e jogos"), e são o único jeito de tirar um app da lista. Um
+   alvo de 13 px é um alvo que se erra, e errar aqui apaga a ficha errada.
+   O 24x24 engorda a ficha em uns 6 px de altura; é o lado certo da troca. */
 .ficha button {
   border: 0;
   background: transparent;
@@ -1214,6 +1259,11 @@ select { flex: 1 1 auto; }
   line-height: 1;
   padding: 0 .15rem;
   border-radius: var(--r-max);
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .ficha button:hover { color: var(--red); background: color-mix(in srgb, var(--red) 18%, transparent); }
 .fichas .nova { flex: 1 1 8ch; min-width: 7rem; }
@@ -1328,6 +1378,10 @@ select { flex: 1 1 auto; }
   font-size: .8rem;
   cursor: pointer;
   white-space: nowrap;
+  /* O PISO DE 24 PX (WCAG 2.2, critério 2.5.8) — 21/09/2026. O porquê inteiro,
+     com a medição das 14 abas, está no bloco "O PISO DE 24 PX" junto ao
+     `.btn-mini`; aqui fica a regra, que é onde se procura por ela. */
+  min-height: 24px;
 }
 .btn:hover { border-color: var(--overlay0); background: var(--surface1); }
 .btn-accent { background: var(--accent); border-color: var(--accent); color: var(--crust); font-weight: 600; }
@@ -1663,6 +1717,94 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
 .torrada.erro  { border-left-color: var(--red); color: var(--red); }
 @keyframes entra { from { opacity: 0; transform: translateY(6px); } }
 
+/* --- o balão -------------------------------------------------------------- */
+/* O BALÃO NATIVO SAIU — 21/09/2026, e o porquê inteiro está no `app.js`, no
+   bloco "O BALÃO É NOSSO". Aqui ficam as quatro medidas que o nativo não
+   deixava escolher, e que são a razão de ele ter saído:
+
+     largura .. 28rem de teto. O nativo tem a largura do texto: 154 caracteres
+                davam perto de 600 px, uma tarja atravessando três cartões.
+     lugar .... `fixed`, com o topo e a esquerda escritos pelo `mostrarBalao`
+                a partir do CARTÃO, não do cursor. É o que faz ele nascer
+                ACIMA da fileira e nunca sobre os botões irmãos.
+     camada ... 60, acima das torradas (50) e abaixo do diálogo (100): ele
+                acompanha um elemento da página, e some antes de qualquer
+                pergunta modal.
+     rato ..... `pointer-events: none`, porque o balão nasce ao lado do botão
+                que o abriu e não pode ficar entre o dedo e ele.
+
+   Fundo `--mantle` e borda `--surface1` são os mesmos do diálogo: o balão é
+   voz da página, e no latte um cinza-escuro de tema de navegador seria a
+   única mancha preta da tela. */
+.balao {
+  position: fixed;
+  z-index: 60;
+  max-width: 28rem;
+  padding: .4rem .6rem;
+  background: var(--mantle);
+  border: 1px solid var(--surface1);
+  border-radius: var(--r-2);
+  color: var(--text);
+  font-size: .78rem;
+  line-height: 1.4;
+  /* A MESMA SOMBRA DO DIÁLOGO E DO MENU, e pela mesma razão: `--crust` é a
+     cor mais escura do sabor no mocha e a mais clara no latte, então a sombra
+     acompanha o tema em vez de ser um borrão preto sobre fundo claro. */
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--crust) 45%, transparent);
+  pointer-events: none;
+  animation: entra .12s ease-out;
+}
+.balao[hidden] { display: none; }
+/* A seta aponta para o cartão: para baixo quando o balão está acima dele,
+   para cima quando não coube e ele desceu. */
+.balao::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 14px;
+  border: 5px solid transparent;
+  border-top-color: var(--surface1);
+}
+.balao.abaixo::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: var(--surface1);
+}
+
+/* --- o comando, fora do balão --------------------------------------------- */
+/* A lista que o «ver comando» abre: uma linha por comando, cada uma com o seu
+   Copiar. Na galeria ela entra na COLUNA da figura, depois da legenda — ver o
+   bloco "O CARTÃO CRESCE" mais abaixo, que explica por que não dentro dela.
+   O `<code>` rola de lado: um nome de arquivo de papel de parede não cabe em
+   180 px e quebrá-lo em três linhas comeria o cartão inteiro. */
+.comandos { display: flex; flex-direction: column; gap: .25rem; }
+.galeria .comandos { background: var(--surface0); padding: 0 .4rem .45rem; }
+.comando {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  background: color-mix(in srgb, var(--crust) 70%, transparent);
+  border-radius: var(--r-2);
+  padding: .15rem .25rem;
+}
+/* De qual botão é esta linha. Não encolhe: são quatro rótulos de uma palavra
+   ("Usar", "Dia", "Noite", "Tirar"), e é o que separa duas linhas que o
+   `<code>` cortado mostra iguais. */
+.comando-de {
+  flex: 0 0 auto;
+  font-size: var(--t-legenda);
+  color: var(--subtext0);
+}
+.comando code {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  font: 400 var(--t-legenda)/1.5 var(--mono);
+  color: var(--subtext1);
+}
+
 /* --- diálogo -------------------------------------------------------------- */
 dialog {
   background: var(--mantle);
@@ -1794,6 +1936,22 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 }
 .galeria figure:hover figcaption,
 .galeria figure:focus-within figcaption { opacity: 1; pointer-events: auto; }
+/* O CARTÃO CRESCE, O BOTÃO NÃO ENCOLHE — 21/09/2026, com o «ver comando».
+   Com a lista aberta a legenda sai do véu e entra na coluna: a ficha passa a
+   ser imagem + legenda + comandos, e quem ganha altura é a LINHA DA GRADE.
+   Medido antes de escolher: a alternativa era manter a legenda flutuando e
+   rolar os quatro comandos dentro dos 132 px do cartão — cabia uma linha e
+   meia, e uma lista que nasce cortada lê-se como defeito, não como lista.
+   E a legenda tem de FICAR: é nela que mora o «ver comando» que fecha isto, e
+   uma lista que só se fecha levando o rato de volta ao lugar certo é uma lista
+   que fica aberta. */
+.galeria { align-items: start; }
+.galeria figure:has(.comandos:not([hidden])) figcaption {
+  position: static;
+  opacity: 1;
+  pointer-events: auto;
+  background: var(--surface0);
+}
 .galeria .nome {
   flex: 1 1 auto;
   min-width: 0;
@@ -1803,8 +1961,23 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.galeria .acoes { display: flex; gap: .3rem; flex: 0 0 auto; }
-.galeria .acoes .btn { padding: .12rem .45rem; font-size: var(--t-legenda); }
+.galeria .acoes { display: flex; gap: .3rem; flex: 0 0 auto; flex-wrap: wrap; }
+/* 22 PX VIRARAM 28 — 21/09/2026. São os quatro botões da queixa dela, e a
+   ficha inteira já nasce escondida (aparece no hover e no foco — ver a
+   `figcaption` acima, que é assim desde 07/09/2026): a altura que eles ganham
+   não é altura que a imagem perde. 28 e não 24 porque aqui o alvo está sobre
+   uma foto, onde a borda do botão compete com o que estiver embaixo dela.
+   O `flex-wrap` é a consequência: com o «ver comando», cinco botões de 28 px
+   não cabem nos 180 px da coluna, e ele desce para a segunda linha em vez de
+   espremer os quatro verbos de volta ao tamanho de onde saíram. */
+.galeria .acoes .btn {
+  padding: .2rem .5rem;
+  font-size: var(--t-legenda);
+  min-height: 28px;
+}
+/* O «ver comando» é o último da fileira e não disputa com os verbos: ele
+   mostra, não faz. Encostado à direita, na cor do texto apagado. */
+.galeria .acoes .ver-comando { margin-left: auto; color: var(--subtext0); }
 /* Fora do hover o vermelho não existe; no hover ele volta a valer. */
 .galeria .acoes .btn-perigo { border-color: transparent; background: color-mix(in srgb, var(--surface1) 70%, transparent); color: var(--subtext1); }
 .galeria .acoes .btn-perigo:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 55%, transparent); background: color-mix(in srgb, var(--red) 18%, transparent); }
