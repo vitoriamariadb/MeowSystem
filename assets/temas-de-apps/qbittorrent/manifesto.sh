@@ -149,11 +149,38 @@ _meow_qbt_avisar_nativo() {
   return 0
 }
 
+# A FRASE PAROU DE CITAR O SCRIPT DO VIZINHO — 22/09/2026, sprint P2
+#   Ela dizia, com o caminho por extenso: "sem
+#   ~/.config/zsh/scripts/aurora-qbittorrent-config.sh não há quem escreva o
+#   qBittorrent.conf". Três defeitos numa linha só, e os três medidos:
+#
+#   1. mandava a pessoa arranjar um arquivo que NÃO É DESTE PROJETO. Quem clona
+#      este repositório nunca terá aquele caminho, e a frase não dizia isso;
+#   2. o arquivo tem origem conhecida e ALCANCE INSTÁVEL. Medido em
+#      22/09/2026: ele está em `Remotos/Andromeda-OS/usr/local/bin/`, 27.253
+#      bytes, e aquele caminho é um `sshfs` da outra máquina
+#      (`vitoriamaria@meowsystem.local:/`, fuse.sshfs, 58 G). Estava montado na
+#      hora da medição — e é justamente por isso que ele não serve de conserto:
+#      um botão que depende de a rede e o host do outro lado estarem de pé
+#      promete o que não entrega na metade das vezes;
+#   3. era receita sem conserto, que é exatamente a classe de falha que a P2
+#      está apagando do projeto inteiro.
+#
+#   A saída é a TERCEIRA da sprint: quando nem o botão é possível, a mensagem
+#   diz A DECISÃO, não a receita. A decisão é esta — este módulo instala o
+#   `.qbtheme`, e escrever o `qBittorrent.conf` não é escopo dele. A pendência
+#   nasce SEM comando de propósito, e o painel a desenha sem botão.
+#
+#   O QUE NÃO MUDOU, e vale dizer: o resto deste arquivo continua delegando o
+#   conf ao script do vizinho quando ele ESTÁ presente (ver o cabeçalho e o
+#   `_meow_qbt_aurora_destravado`). Tirar a delegação inteira é outra mudança,
+#   maior, e não é a que esta sprint pediu.
 _meow_qbt_avisar_sem_aurora() {
   [ "$MEOW_QBT_AVISOU_SEM_AURORA" = "1" ] && return 0
   MEOW_QBT_AVISOU_SEM_AURORA=1
-  meow_aviso "sem $MEOW_QBT_AURORA_FONTE não há quem escreva o qBittorrent.conf"
-  meow_info  "(este módulo instala o tema e delega o conf ao Aurora — ver cabeçalho)"
+  meow_pendencia_acionavel qbittorrent-conf-fora-de-escopo \
+    "O tema do qBittorrent é instalado por aqui; escrever o qBittorrent.conf não é escopo deste módulo, e não há comando meu que resolva" \
+    ""
   return 0
 }
 

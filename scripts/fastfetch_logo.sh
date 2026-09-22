@@ -216,11 +216,16 @@ FASTFETCH_LOGO_COLUNAS="${FASTFETCH_LOGO_COLUNAS:-40}"
 #   Vazio (o padrão) continua sendo o comportamento de sempre: a altura sai de
 #   `colunas / FASTFETCH_LOGO_CELULA`, e o gato sai redondo.
 #
-#   Com número, ela manda. Isso permite um gato mais alto numa tela que tem
-#   altura sobrando — mas sair da proporção da célula DEFORMA o desenho, porque
-#   o `-resize LxA!` do conversor (linha ~419) estica sem perguntar. Então o
-#   `aplicar` mede a distância da proporção e AVISA quando ela passa de 12%. Um
-#   gato oval por escolha dela é escolha; um gato oval calado é defeito.
+#   Com número, ela manda ATÉ 12% fora da proporção. Isso permite um gato mais
+#   alto numa tela que tem altura sobrando — mas sair da proporção da célula
+#   DEFORMA o desenho, porque o `-resize LxA!` do conversor (linha ~419) estica
+#   sem perguntar. Um gato oval por escolha dela é escolha; um gato oval calado
+#   é defeito.
+#
+#   ACIMA DE 12% A ALTURA É APARADA, DESDE 22/09/2026 (sprint P2). Até essa data
+#   o `aplicar` AVISAVA e mandava editar o conf — "use 37 linhas para 95
+#   colunas" —, com a conta já feita na frase. Agora ele faz a conta e diz o que
+#   aparou. Ver `_ffl_linhas` para o porquê e para onde mora o limite.
 FASTFETCH_LOGO_LINHAS="${FASTFETCH_LOGO_LINHAS:-}"
 
 # PROPORÇÃO ALTURA/LARGURA DA CÉLULA — 23,00 / 9,00 px, medido no cosmic-term
@@ -337,24 +342,68 @@ _ffl_svg() {
 # dizendo "já está certo" sobre um arquivo que não corresponde ao conf — e o
 # `meow-gato.timer`, que roda de cinco em cinco minutos, repetiria a mentira
 # para sempre.
-_ffl_linhas() {
+# A ALTURA DA PROPORÇÃO — a conta da célula, sem opinião de ninguém.
+_ffl_linhas_da_proporcao() {
+  awk -v c="$FASTFETCH_LOGO_COLUNAS" -v r="$FASTFETCH_LOGO_CELULA" \
+      'BEGIN { n = int(c / r + 0.5); if (n < 1) n = 1; print n }'
+}
+
+# A ALTURA PEDIDA: a chave, quando ela diz um número; vazia, a proporção.
+_ffl_linhas_pedida() {
   case "$FASTFETCH_LOGO_LINHAS" in
-    ''|*[!0-9]*)
-      awk -v c="$FASTFETCH_LOGO_COLUNAS" -v r="$FASTFETCH_LOGO_CELULA" \
-          'BEGIN { n = int(c / r + 0.5); if (n < 1) n = 1; print n }' ;;
+    ''|*[!0-9]*) _ffl_linhas_da_proporcao ;;
     *) [ "$FASTFETCH_LOGO_LINHAS" -ge 1 ] 2>/dev/null \
          && printf '%s' "$FASTFETCH_LOGO_LINHAS" || printf '1' ;;
   esac
 }
 
-# Quanto o tamanho pedido se afasta da proporção da célula, em por cento. É o
-# número que o `aplicar` usa para decidir se avisa — ver o bloco de
-# `FASTFETCH_LOGO_LINHAS` lá em cima.
-_ffl_desvio() {
-  awk -v c="$FASTFETCH_LOGO_COLUNAS" -v r="$FASTFETCH_LOGO_CELULA" -v l="$(_ffl_linhas)" \
+# A ALTURA QUE VALE, E ELA É CALCULADA — 22/09/2026, sprint P2
+#
+#   O QUE ELA ERA: a chave mandava sempre, e o `aplicar` AVISAVA quando o
+#   resultado passava de 12% fora da proporção da célula. A frase era
+#   "o gato vai sair 68% fora da proporção da célula (esticado) ... para o
+#   desenho redondo: deixe FASTFETCH_LOGO_LINHAS vazio, ou use 37 linhas para
+#   95 colunas". Diagnóstico certo, conta já feita, conserto conhecido — e
+#   mandando a pessoa editar o conf. É a sexta das seis falhas que a P2 mediu.
+#
+#   O QUE ELA É: acima do limite a altura é a da PROPORÇÃO, e o `aplicar` diz o
+#   que ajustou e por quê. Não é ignorar a chave — é apará-la ao que cabe, o
+#   mesmo que o `meow painel` faz com o raio das barras (scripts/painel.sh:168).
+#
+#   O LIMITE CONTINUA SENDO 12%, e não um número novo: ele já estava medido
+#   neste arquivo ("comparando 25 e 28 linhas para 64 colunas") como o ponto em
+#   que a deformação se vê na tela. Abaixo dele, a chave manda e nada muda —
+#   um gato levemente oval por escolha dela continua sendo escolha.
+#
+#   E ELA É O ÚNICO CAMINHO DA ALTURA, como já era: o carimbo
+#   (`_ffl_carimbo_texto`) sai daqui, então o `conferir` e o `meow-gato.timer`
+#   comparam contra o desenho que de fato foi gerado.
+FASTFETCH_LOGO_DESVIO_TETO=12
+
+_ffl_linhas() {
+  local pedida; pedida="$(_ffl_linhas_pedida)"
+  local desvio; desvio="$(_ffl_desvio_de "$pedida")"
+  if [ "${desvio:-0}" -gt "$FASTFETCH_LOGO_DESVIO_TETO" ] 2>/dev/null; then
+    _ffl_linhas_da_proporcao
+  else
+    printf '%s' "$pedida"
+  fi
+}
+
+# Quanto UMA altura se afasta da proporção da célula, em por cento.
+#
+# ELE RECEBE O NÚMERO EM VEZ DE CHAMAR `_ffl_linhas`, e isso deixou de ser
+# detalhe em 22/09/2026: agora é a `_ffl_linhas` que consulta o desvio para
+# decidir se apara. As duas chamando uma à outra seria recursão infinita — e a
+# pergunta certa é sobre a altura PEDIDA, não sobre a que já foi aparada.
+_ffl_desvio_de() {
+  awk -v c="$FASTFETCH_LOGO_COLUNAS" -v r="$FASTFETCH_LOGO_CELULA" -v l="$1" \
       'BEGIN { ideal = c / r; if (ideal <= 0) { print 0; exit }
                d = (l - ideal) / ideal * 100; if (d < 0) d = -d; printf "%d", d + 0.5 }'
 }
+
+# O desvio da altura PEDIDA — é o número que a frase do `aplicar` cita.
+_ffl_desvio() { _ffl_desvio_de "$(_ffl_linhas_pedida)"; }
 
 # O CARIMBO, EM UM LUGAR SÓ. Ele era montado por `printf` em três pontos deste
 # arquivo, e cada campo novo tinha de ser lembrado nos três — a receita para o
@@ -1263,15 +1312,22 @@ cmd_aplicar() {
     meow_ok "o logo ANSI já estava gerado (${FASTFETCH_LOGO_GATO}${FFL_PORQUE:+ — $FFL_PORQUE})"
   fi
 
-  # O GATO OVAL É AVISADO, NÃO IMPEDIDO. A altura virou chave dela em
-  # 06/09/2026, e o conversor estica com `-resize LxA!` sem perguntar: fora da
-  # proporção da célula o círculo vira elipse. Doze por cento é onde isso começa
-  # a se ver na tela (medido, comparando 25 e 28 linhas para 64 colunas).
+  # O GATO OVAL É APARADO, E O QUE FOI APARADO É DITO — 22/09/2026, sprint P2.
+  # A altura virou chave dela em 06/09/2026, e o conversor estica com
+  # `-resize LxA!` sem perguntar: fora da proporção da célula o círculo vira
+  # elipse. Doze por cento é onde isso começa a se ver na tela (medido,
+  # comparando 25 e 28 linhas para 64 colunas). Até hoje a etapa avisava e
+  # mandava editar o conf; agora ela calcula e diz a conta que fez.
   _dv="$(_ffl_desvio)"
-  if [ "${_dv:-0}" -gt 12 ] 2>/dev/null; then
-    meow_aviso "o gato vai sair ${_dv}% fora da proporção da célula (esticado)"
-    meow_info  "  para o desenho redondo: deixe FASTFETCH_LOGO_LINHAS vazio,"
-    meow_info  "  ou use $(awk -v c=$FASTFETCH_LOGO_COLUNAS -v r=$FASTFETCH_LOGO_CELULA 'BEGIN{printf "%d", c/r + 0.5}') linhas para $FASTFETCH_LOGO_COLUNAS colunas"
+  if [ "${_dv:-0}" -gt "$FASTFETCH_LOGO_DESVIO_TETO" ] 2>/dev/null; then
+    # `meow_aviso` E NÃO `meow_muda`, e a diferença não é de gosto: o `~~` do
+    # `meow_muda` é o que o painel lê para dizer "mexeu e aplicou" (app.js, o
+    # `TRABALHO.mudou`), e aparar a altura não escreve byte nenhum a mais — o
+    # desenho já nasce na medida certa. É o mesmo verbo que o `painel.sh` usa
+    # para o raio que não cabe, pelo mesmo motivo.
+    meow_aviso "altura aparada: $(_ffl_linhas_pedida) linhas sairiam ${_dv}% fora da proporção da célula (esticado)"
+    meow_info  "  usei $(_ffl_linhas) linhas para $FASTFETCH_LOGO_COLUNAS colunas, que é a proporção desta fonte"
+    meow_info  "  guardei o seu $(_ffl_linhas_pedida): ele volta a valer se você mudar as colunas, ou baixar de ${FASTFETCH_LOGO_DESVIO_TETO}% de desvio"
   fi
   unset _dv
 

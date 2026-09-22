@@ -462,16 +462,36 @@ meow_app_detectar() {
   MEOW_APP_MOTIVO=""
   _spot_instalado || { meow_app_sem "Spotify: não está instalado como flatpak de usuário"; return; }
 
+  # AS DUAS RECEITAS DE TERMINAL SAIRAM DAQUI — 22/09/2026, sprint P2
+  #   Ficavam dois `meow_info` com o conserto pronto: um `curl | sh` para
+  #   instalar o spicetify e um `git clone` para baixar o tema. Diagnóstico
+  #   certo, conserto conhecido, nenhum botão — é a falha que a P2 persegue.
+  #
+  #   E ELAS NÃO VIRARAM BOTÃO AGORA, DE PROPÓSITO. O que resolve as duas é o
+  #   `spicetify-setup.sh` (277 linhas), que existe — mas em
+  #   `~/.config/zsh/scripts/`, que é do Ritual da Aurora. Apontar a pendência
+  #   para lá repetiria, no mesmo commit, o erro que esta sprint está tirando
+  #   do `qbittorrent/manifesto.sh` cinco arquivos adiante: um módulo deste
+  #   projeto não pode depender de um script de outro projeto do autor, e quem
+  #   clonar este repositório não teria aquele arquivo. A P29 traz o script
+  #   para cá; até lá a pendência é HONESTA — diz o que falta e diz que o
+  #   comando ainda não existe deste lado, em vez de mandar rodar `curl | sh`.
   if ! _spot_cli >/dev/null; then
-    meow_info "instale: curl -fsSL https://raw.githubusercontent.com/spicetify/cli/main/install.sh | sh"
+    meow_pendencia_acionavel spicetify-ausente \
+      "O Spotify está instalado, mas falta o spicetify — é ele que pinta o app, e o MeowSystem ainda não sabe instalá-lo (vem na P29)" \
+      ""
     meow_app_sem "Spotify: falta o spicetify — é ele que tematiza o app desde 10/08/2026"
     return
   fi
+  meow_pendencia_resolvida spicetify-ausente
   if [ ! -f "$_SPOT_COLOR_INI" ]; then
-    meow_info "instale: git clone --depth 1 https://github.com/catppuccin/spicetify /tmp/cat-spice && cp -r /tmp/cat-spice/catppuccin $_SPOT_CONFIG_DIR/Themes/"
+    meow_pendencia_acionavel spicetify-tema-ausente \
+      "Falta o tema catppuccin do spicetify em $_SPOT_TEMA — o MeowSystem ainda não sabe baixá-lo (vem na P29)" \
+      ""
     meow_app_sem "Spotify: falta o tema catppuccin do spicetify em $_SPOT_TEMA"
     return
   fi
+  meow_pendencia_resolvida spicetify-tema-ausente
   meow_tem python3 || { meow_app_sem "Spotify: falta python3, que lê a paleta"; return; }
   [ -f "$_SPOT_ACENTO_PY" ] || { meow_app_sem "Spotify: falta $_SPOT_ACENTO_PY, que escreve o acento no color.ini"; return; }
   # O `meow_aviso` que ficava aqui saiu: ele dizia a mesma frase que agora é o

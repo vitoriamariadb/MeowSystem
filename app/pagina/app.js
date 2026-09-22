@@ -4715,6 +4715,10 @@ async function puxar() {
      *   e as listas que já tinham sido abertas; as outras se leem quando
      *   forem abertas. */
     if (escreveu) {
+      /* Uma etapa que escreveu pode ter RESOLVIDO uma pendência (ou criado
+       * outra): quem apaga a linha do TSV é o próprio script, no caminho feliz.
+       * Reler aqui é o que faz o bloco sumir da Home sem F5. */
+      recarregarPendencias();
       recarregarEsquema().then(() => {
         PREVIAS.delete("icone/");
         if (APPS) carregarApps();
@@ -6594,6 +6598,130 @@ function casa(item, busca) {
  * caminhos absolutos, nada clicável. Um caminho que ela precisa selecionar,
  * copiar e colar num gerenciador de arquivos é a interface pedindo para ser
  * contornada. Agora cada folha é um link que o servidor serve. */
+
+/* ===========================================================================
+ * AS PENDÊNCIAS ACIONÁVEIS — 22/09/2026, sprint P2
+ * ===========================================================================
+ * Ele mediu a mesma falha seis vezes, em seis arquivos: o programa descobre o
+ * problema, sabe o conserto, e manda a pessoa consertar. "Um engenheiro lê isso
+ * como cortesia; um designer leigo lê como «o programa desistiu»."
+ *
+ * Agora cada uma dessas etapas registra uma linha em `pendencias.tsv`, e esta
+ * lista é o que a Home mostra delas. TRÊS DESFECHOS, E A TELA MOSTRA OS TRÊS:
+ *   com `acao`       um botão «Resolver», que roda na gaveta como qualquer ação
+ *   com `recusavel`  mais um «Não, obrigado», que grava a recusa e não volta
+ *   sem nenhum dos dois  só a frase: a decisão está dita, e não há botão que
+ *                        a cumpra — inventar um seria prometer e sumir
+ *
+ * VAZIO NÃO DESENHA NADA. A página já tem uma caixa que fala sem pendência
+ * ("Nada esperando"), e ela basta: duas caixas dizendo "está tudo bem" é a
+ * tela pedindo para ser ignorada.
+ *
+ * NA PÁGINA EXPORTADA A LISTA NASCE VAZIA, e de propósito: o `standalone.js`
+ * responde 409 a toda rota que ele não congelou, o `api()` devolve o erro, e o
+ * `|| []` daqui vira silêncio. Um "Resolver" numa fotografia não resolveria
+ * nada. */
+let PENDENCIAS = [];
+
+async function recarregarPendencias() {
+  const r = await api("/api/pendencias");
+  PENDENCIAS = (r && !r.erro && Array.isArray(r.pendencias)) ? r.pendencias : [];
+}
+
+/* O «Resolver» NÃO executa a string do arquivo — ele roda a AÇÃO que o servidor
+ * casou com o id da pendência (`ACAO_DA_PENDENCIA`, servidor.py). Por isso o
+ * caminho daqui para baixo é o mesmo de qualquer botão de ação da página: a
+ * mesma confirmação, a mesma gaveta, o mesmo desfecho. Uma segunda estrada
+ * para rodar coisas seria a segunda tranca a manter em dia. */
+async function resolverPendencia(p) {
+  const acao = (ESQUEMA.acoes || []).find((a) => a.id === p.acao);
+  if (!acao) { torrada("esta pendência não tem conserto registrado", "erro"); return; }
+  await rodar(acao, "");
+  await recarregarPendencias();
+  render();
+}
+
+async function recusarPendencia(p) {
+  const ok = await perguntar({
+    titulo: "Não perguntar de novo?",
+    /* A frase vem do log de um script e NÃO termina em ponto — as mensagens do
+     * projeto não pontuam o fim. Emendar as duas direto dava "…do Pop!_OS
+     * Dizendo não…", visto na tela em 22/09/2026. O ponto entra aqui, que é
+     * onde a emenda acontece; pontuar o log para caber num diálogo seria
+     * mudar o lado errado. */
+    texto: p.frase + ". Dizendo não, o MeowSystem para de oferecer isto — "
+         + "e a etapa passa a se pular, sem escrever nada.",
+    ok: "Não, obrigado",
+    neutro: true,
+  });
+  if (!ok) return;
+  const r = await api("/api/pendencia-recusar", {
+    method: "POST", body: JSON.stringify({ id: p.id }),
+  });
+  if (r.erro) { torrada(r.erro, "erro"); return; }
+  await recarregarPendencias();
+  render();
+}
+
+/* A seção, ou nada. Devolve `null` sem pendência — quem chama usa isso para
+ * não pôr um `<section>` vazio no meio da coluna. */
+function montarPendencias() {
+  if (!PENDENCIAS.length) return null;
+  const n = PENDENCIAS.length;
+  const caixa = elemento("section", { class: "home-pendencias" });
+  caixa.append(elemento("h3", {}, [
+    elemento("strong", { texto: String(n) }),
+    /* "coisa" e não "pendência": a palavra do produto é a que ela usaria em voz
+     * alta. O verbo diz o que fazer, e é ele que separa este bloco do "Nada
+     * esperando" logo abaixo — lá o que espera é escolha DELA, aqui é conserto
+     * NOSSO. */
+    elemento("span", { texto: n === 1 ? " coisa espera um clique" : " coisas esperam um clique" }),
+  ]));
+
+  for (const p of PENDENCIAS) {
+    const linha = elemento("div", { class: "pendencia" });
+    linha.append(elemento("p", { class: "pendencia-frase", texto: p.frase }));
+    const botoes = elemento("div", { class: "pendencia-botoes" });
+    if (p.acao) {
+      botoes.append(elemento("button", {
+        type: "button", class: "btn btn-mini btn-accent",
+        texto: "Resolver",
+        /* O balão diz o COMANDO, que é o que um botão "Resolver" esconde. O
+         * `porBalao` reconhece uma linha que é SÓ comando e a desenha como
+         * comando (21/09/2026) — por isso a pegada da rede vai na pastilha ao
+         * lado, e não aqui: juntando as duas, a linha vira prosa e perde o
+         * desenho. */
+        title: p.comando,
+        onclick: () => resolverPendencia(p),
+      }));
+    }
+    if (p.recusavel) {
+      botoes.append(elemento("button", {
+        type: "button", class: "btn btn-mini",
+        texto: "Não, obrigado",
+        title: "Grava a recusa; isto não volta a ser oferecido.",
+        onclick: () => recusarPendencia(p),
+      }));
+    }
+    /* A PASTILHA VEM DEPOIS DOS BOTÕES, e não entre eles: dois botões separados
+     * por um selo leem-se como dois grupos, e eles são um. Ela sai do MESMO
+     * campo (`acao.rede`, servidor.py) que os cartões de ação leem — a sprint
+     * pede que todo comando de pendência que baixe algo herde o rótulo que a
+     * página já usa, e uma segunda marca para o mesmo fato seria a segunda a
+     * manter em dia. */
+    if (p.acao && p.rede) botoes.append(elemento("span", {
+      class: "pastilha p-rede", texto: "baixa da internet" }));
+    /* SEM BOTÃO, A ORIGEM. Uma linha que não oferece nada precisa dizer de onde
+     * veio, ou vira uma reclamação sem endereço. O nome da etapa é o endereço. */
+    if (!p.acao && !p.recusavel) {
+      botoes.append(elemento("span", { class: "pendencia-origem", texto: p.etapa }));
+    }
+    linha.append(botoes);
+    caixa.append(linha);
+  }
+  return caixa;
+}
+
 /* ===========================================================================
  * A HOME — "o que está no ar, o que espera por mim, e por onde entro"
  * ===========================================================================
@@ -6810,6 +6938,11 @@ function montarHome() {
 
   /* --- 4. a coluna da direita -------------------------------------------- */
   const lado = elemento("aside", { class: "home-lado" });
+  /* ACIMA DO "Nada esperando", e a ordem é o argumento: o que o programa sabe
+   * consertar vem antes do que ele está esperando que ela decida. Sem pendência
+   * o bloco não nasce, e a coluna fica exatamente como era. */
+  const pendencias = montarPendencias();
+  if (pendencias) lado.append(pendencias);
   lado.append(atencao);
 
   /* ONDE VOCÊ MEXEU — o único número da tela que não poderia existir em outro
@@ -7229,6 +7362,9 @@ async function iniciar() {
   }
 
   montarGrupos();
+  /* As pendências entram ANTES da primeira pintura, pelo mesmo motivo que a
+   * bandeja: lê-las depois faria a Home nascer sem o bloco e piscar com ele. */
+  await recarregarPendencias();
   /* O ouvinte de gesto é UM só, e nasce aqui: o `main` sobrevive a toda
    * pintura, então registrá-lo dentro do `render()` vazaria um por clique. */
   ouvirGestoDeRolagem();
