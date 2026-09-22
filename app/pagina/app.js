@@ -4525,6 +4525,23 @@ function montarAcao(acao) {
 
   const rodape = elemento("div", { class: "rodape" });
   if (acao.sudo) rodape.append(elemento("span", { class: "pastilha p-sudo", texto: "pede senha" }));
+  /* A OUTRA METADE DE "PEDE SENHA", DITA EM VOZ ALTA — 21/09/2026
+   *   Desde 08/09 a pastilha de senha SOME quando a ponte root está no ar
+   * (`servidor.py`, campo `sudo`), e sumir estava certo: avisar de um custo que
+   * não vai acontecer gasta a confiança do aviso que importa. Só que a ausência
+   * não se lê. O cartão sem pastilha nenhuma é, na tela, idêntico ao «Conferir
+   * (doctor)», que nunca pediu senha na vida — então quem ligou a ponte não
+   * tem como ver que ligá-la mudou alguma coisa, e quem não ligou não tem como
+   * descobrir que existe o que ligar.
+   *   `pela_ponte` é o complemento exato de `sudo`, e vem medido do servidor
+   * (`sudo -n` na ponte, não uma suposição sobre ela) pela mesma razão que o
+   * `acao.rede` existe: a página não adivinha o que a ação faz.
+   *   Verde, e não pêssego: `.p-ok` é a cor de "está como deveria" nesta folha,
+   * e — o que importa mais — ela não casa o `.acao:has(.p-sudo)` do CSS, que
+   * põe caixa e fio pêssego de "atenção" em volta do cartão. Um cartão que não
+   * pede mais senha não deve ganhar a moldura de quem pede. */
+  else if (acao.pela_ponte) rodape.append(elemento("span", {
+    class: "pastilha p-ok", texto: "sem senha (perfil registrado)" }));
   if (acao.destrutivo) rodape.append(elemento("span", { class: "pastilha p-perigo", texto: "desfaz o que foi feito" }));
   /* `rede` é DECLARADA pela ação, nunca adivinhada do texto dela. A primeira
    * versão fazia `/rede|baixa/i.test(acao.ajuda)` e o resultado apareceu na
@@ -6993,6 +7010,60 @@ function montarHome() {
       elemento("span", { texto: "Escolher aqui não muda a máquina: clicar guarda, e «Salvar e aplicar» é o que grava e aplica." }),
     ]));
   }
+
+  /* --- 2b. os consertos sem senha, aqui e não no 17º ajuste — 21/09/2026 ---
+   * O interruptor da ponte root existe desde 08/09/2026 e mora na aba
+   * «Manutenção», primeiro de dezessete ajustes. Quem instala nunca passa por
+   * ali: não há, em nenhuma tela antes daquela, uma palavra dizendo que a
+   * ponte existe — nem, para quem já a ligou, que ela está de pé. Uma linha na
+   * home é o que falta, e é tudo o que falta.
+   *
+   * ELA DIZ O ESTADO MEDIDO, NÃO O VALOR DA CHAVE. `ESQUEMA.ponte` vem de um
+   * `sudo -n` na ponte de verdade, do lado do servidor; `PONTE_ROOT` é o que a
+   * pessoa PEDIU. Os dois discordam justamente no estado que mais engana —
+   * `PONTE_ROOT="sim"` numa máquina onde o instalador nunca teve terminal para
+   * pedir a senha uma vez —, e é por isso que o caminho oferecido muda com a
+   * chave: mandar alguém a um interruptor que já está em «sim» seria oferecer
+   * um botão que não conserta o que a frase ao lado reclama. */
+  const ponteLinha = elemento("p", {}, [
+    elemento("strong", { texto: ESQUEMA.ponte
+      ? "Consertos de sistema sem senha: ligado. "
+      : "Consertos de sistema sem senha: desligado. " }),
+  ]);
+  if (ESQUEMA.ponte) {
+    ponteLinha.append(elemento("span", { texto:
+      "Um perfil registrado no sudo faz o que precisa de root — atualizar o sistema, "
+      + "repor o hook do apt, vestir a tela de login — sem voltar a pedir senha." }));
+  } else if ((vale("PONTE_ROOT") || "sim") === "sim") {
+    ponteLinha.append(elemento("span", { texto:
+      "O ajuste já está em «sim», e a ponte não está instalada: quem a instala é o "
+      + "instalador, e ele precisa da senha uma vez. Rode no terminal: ./install.sh" }));
+  } else {
+    ponteLinha.append(elemento("span", { texto:
+      "Cada conserto de sistema volta a pedir senha no terminal — e este painel, que "
+      + "não tem terminal, não tem como pedir. " }));
+    ponteLinha.append(elemento("button", {
+      type: "button", class: "btn btn-mini", texto: "Ligar",
+      title: "Ir ao ajuste «Consertos de sistema sem pedir senha»",
+      /* O MESMO GESTO DA LISTA DE PENDENTES: troca de aba, pinta, e só então
+       * rola até o cartão — antes da pintura não há a quem rolar. Escrito aqui
+       * em vez de extraído para uma função porque a regra da casa manda mexer
+       * só no que esta sprint nomeia, e `alternarListaPendentes` não é dela. */
+      onclick: () => {
+        const aba = abaDaChave("PONTE_ROOT");
+        if (!aba) return;
+        $("#busca").value = "";
+        ABA = aba;
+        gravarHash();
+        render();
+        requestAnimationFrame(() => {
+          const alvo = document.querySelector('#conteudo .cartao[data-chave="PONTE_ROOT"]');
+          if (alvo && alvo.scrollIntoView) alvo.scrollIntoView({ block: "center" });
+        });
+      },
+    }));
+  }
+  atencao.append(ponteLinha);
 
   /* --- 3. as portas: uma por bloco do menu, sempre ------------------------
    * Elas saem do MESMO `blocoDoAssunto` que desenha o menu: bloco novo aparece

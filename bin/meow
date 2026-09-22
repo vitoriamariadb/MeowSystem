@@ -2069,6 +2069,39 @@ cmd_doctor() {
     meow_info "  há um modelo em $RAIZ/vizinhos.conf.exemplo"
   fi
 
+  # O `NOPASSWD: ALL` DA MÁQUINA, QUE ESVAZIA A PONTE — 21/09/2026
+  #   Medido ao investigar um resíduo de sessão: `/etc/sudoers.d/andrefarias`,
+  #   de 14/04/2026, tem `andrefarias ALL=(ALL) NOPASSWD: ALL`. Com essa linha
+  #   no ar, a ponte root do `chk_ponte` não protege nada: a regra estreita que
+  #   ela instala — caminho absoluto, nove verbos nomeados, nenhum curinga — é
+  #   um subconjunto de uma regra que já libera tudo. E a frase que o projeto
+  #   diz na tela, "consertos de sistema sem pedir senha", passa a descrever a
+  #   máquina inteira em vez de descrever o projeto.
+  #
+  #   ELE AVISA E NÃO CONSERTA, e isso é decisão, não preguiça. Apagar a regra
+  #   de sudo de alguém sem perguntar é o tipo de ato que este projeto não faz
+  #   — e seria o auto-reparo das 5h tirando, todo dia, um acesso que a pessoa
+  #   pôs de propósito para outra coisa. O que cabe aqui é dizer que ela está
+  #   lá, porque quem lê o `ok` da ponte acima merece saber o que ele vale.
+  #
+  #   NÃO É UM CHECK, E POR ISSO NÃO ENTRA EM `VERIFICAVEIS`: não há divergência
+  #   a relatar (a máquina está como a dona a deixou) nem conserto a oferecer.
+  #   É um aviso ao lado da tabela, no mesmo molde do repositório desprotegido
+  #   logo acima.
+  #
+  #   `sudo -n -l` NÃO PEDE SENHA — é o que o doctor das 5h exige de qualquer
+  #   coisa que ele rode. Numa máquina onde o sudo pede senha o comando falha
+  #   calado, nada casa, e o aviso simplesmente não aparece: o certo, porque ali
+  #   não há `NOPASSWD: ALL` nenhum a denunciar. O padrão casa a regra que
+  #   termina em `ALL` e não a da ponte, que termina no nome de um verbo.
+  if sudo -n -l 2>/dev/null | grep -Eq 'NOPASSWD:[[:space:]]*ALL[[:space:]]*$'; then
+    meow_aviso "o sudo desta máquina libera TUDO sem senha para você (NOPASSWD: ALL)"
+    meow_info "  enquanto essa regra existir, a ponte root não restringe nada —"
+    meow_info "  ela é que permitirá tirá-la, e não o contrário"
+    meow_info "  veja de onde vem:  sudo -l   e   ls /etc/sudoers.d"
+    meow_info "  o MeowSystem não mexe nela: regra de sudo é sua, não nossa"
+  fi
+
   local pior; pior="$(pior_rc)"
   if [ "$consertar" = "0" ]; then
     printf '\n'
