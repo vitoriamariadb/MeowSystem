@@ -1971,9 +1971,24 @@ def validar_valor(item, valor):
 #   quem grava e de quem roda. O ensaio saiu da tela e sai daqui: um
 #   `MEOW_DRY_RUN` herdado do terminal que subiu o painel é arrancado do
 #   ambiente, para nada que o painel rode voltar a fingir que gravou.
-def _ambiente_do_painel():
+#
+# E O ENSAIO VOLTOU — 22/09/2026, sprint P8. O QUE ELE NÃO DESFAZ:
+#   A queixa que o trouxe de volta é a outra ponta da mesma frase: "nada da
+#   interface é aplicado em sandbox. Tudo é aplicado na máquina da pessoa". O
+#   que ela pediu em 13/09 era não ter um INTERRUPTOR GLOBAL de sandbox, que
+#   fazia todo clique fingir; o que falta desde então é poder ver UM gesto
+#   antes de mandá-lo valer.
+#
+#   Por isso o `pop` continua onde está, e a linha nova vem DEPOIS dele: o
+#   `MEOW_DRY_RUN` que o terminal deixou no ambiente do servidor continua sendo
+#   arrancado — o modo de uma execução nunca é herdado, ele é PEDIDO, um pedido
+#   por vez, pelo corpo do POST. Ler esta função é ler as duas decisões na
+#   ordem em que elas acontecem, e nenhuma cancela a outra.
+def _ambiente_do_painel(seco=False):
     ambiente = dict(os.environ, MEOW_RAIZ=RAIZ)
     ambiente.pop("MEOW_DRY_RUN", None)
+    if seco:
+        ambiente["MEOW_DRY_RUN"] = "1"
     return ambiente
 
 
@@ -4202,18 +4217,42 @@ def pendencias():
         return []
     return fora
 
-def _trabalho_json(trabalho, acao_id):
+def _trabalho_json(trabalho, acao_id, seco=False):
     """O que a página precisa para abrir a gaveta de um trabalho que começou.
 
     `escreve` vai junto porque o CÓDIGO 1 QUER DIZER DUAS COISAS, e a página
-    precisa saber qual — ver o comentário no `/api/rodar`."""
+    precisa saber qual — ver o comentário no `/api/rodar`.
+
+    `seco` É UM CAMPO À PARTE, E NÃO UM `escreve: False` — 22/09/2026, P8
+      A tentação era dizer que um ensaio "não escreve" e reaproveitar o campo
+      que já existe. Seriam duas verdades diferentes no mesmo lugar: `escreve`
+      fala da AÇÃO (o `instalar` escreve, sempre), e `seco` fala desta
+      EXECUÇÃO. A página precisa das duas — a primeira para traduzir o código
+      de saída (ver o `/api/rodar`), a segunda para pintar o cabeçalho amarelo
+      e para NÃO limpar a bandeja de pendentes no fim. Fundi-las faria um
+      ensaio do instalador terminar com a pastilha "já estava certo" e a
+      bandeja vazia, que é a mentira que esta sprint veio matar.
+    """
     return {"id": trabalho.id, "rotulo": trabalho.rotulo,
             "comando": " ".join(shlex.quote(p) for p in trabalho.argv),
-            "escreve": escreve(ACOES[acao_id])}
+            "escreve": escreve(ACOES[acao_id]),
+            "seco": bool(seco)}
 
 
-def iniciar(acao_id, argumento, confirmado=False):
-    """Começa uma ação. Devolve (trabalho, erro) — o erro pode ser um dicionário."""
+def iniciar(acao_id, argumento, confirmado=False, seco=False, extras=None):
+    """Começa uma ação. Devolve (trabalho, erro) — o erro pode ser um dicionário.
+
+    `seco` roda com `MEOW_DRY_RUN=1` (ver `_ambiente_do_painel`): o motor já
+    sabe ensaiar desde sempre (`meow_seco` em lib/comum.sh), e o que faltava
+    era a tela poder pedir.
+
+    `extras` são chaves do meow.conf que valem SÓ NESTA EXECUÇÃO, por cima do
+    que está no disco. Existe por causa do ensaio do «Salvar e aplicar»: com
+    escolhas na bandeja, "ver o que isto vai fazer" tem de mostrar o que as
+    ESCOLHAS fariam, e um ensaio não pode gravá-las antes para o instalador
+    lê-las. Quem chama já passou cada par pela mesma peneira do `/api/salvar`
+    (esquema + `validar_valor`), que é a única porta por onde valor de chave
+    entra neste arquivo."""
     global TRABALHO_ATUAL
     acao = ACOES.get(acao_id)
     if acao is None:
@@ -4259,8 +4298,13 @@ def iniciar(acao_id, argumento, confirmado=False):
     if conf is None:
         return (None, "não consegui ler o meow.conf — sem ele o trabalho rodaria "
                       "com cada chave no padrão, e por isso não roda")
-    ambiente = _ambiente_do_painel()
+    ambiente = _ambiente_do_painel(seco)
     ambiente.update(conf)
+    # DEPOIS do conf e ANTES do ambiente da ação: as escolhas que ainda não
+    # foram gravadas vencem o disco (é o que o ensaio do Salvar existe para
+    # mostrar), e o ambiente que a própria ação declara continua sendo a última
+    # palavra — ele é código deste arquivo, não entrada de fora.
+    ambiente.update(extras or {})
     ambiente.update(acao.get("ambiente", {}))
     # O `install.sh` cala o progresso quando NÃO há terminal (`[ ! -t 1 ]`), e é
     # a decisão certa lá — quase 600 linhas num journal não têm leitor. Aqui há
@@ -7217,6 +7261,31 @@ class Manipulador(BaseHTTPRequestHandler):
             if recusadas:
                 return self._json({"recusadas": recusadas}, 400)
 
+            # O ENSAIO DO «SALVAR E APLICAR» — 22/09/2026, sprint P8
+            #   A sprint: "Com 17 escolhas pendentes, «ver o que isto vai
+            #   fazer» é a pergunta óbvia, e hoje ela não tem resposta".
+            #
+            #   ELE SAI DAQUI, E NÃO DO `/api/rodar`, porque a pergunta é sobre
+            #   AS ESCOLHAS — e elas só existem neste pedido. Mandar a página
+            #   chamar `rodar: instalar, seco` responderia sobre o meow.conf do
+            #   DISCO, que é justamente o que ainda não tem as 17 escolhas
+            #   dentro: um ensaio que responde outra pergunta.
+            #
+            #   E ELE NÃO GRAVA NADA, nem "só para ensaiar e desfazer depois":
+            #   as escolhas vão como AMBIENTE (o `extras` do `iniciar`), por
+            #   cima do conf do disco, do mesmo jeito que o `install.sh` já lê
+            #   toda chave. O arquivo dela não é tocado — o que é a promessa
+            #   inteira da palavra "ensaio". A peneira acima vale igual: uma
+            #   escolha recusada derruba o ensaio antes daqui, como derruba a
+            #   gravação.
+            if corpo.get("seco"):
+                trabalho, erro = iniciar("instalar", "", confirmado=True,
+                                         seco=True, extras=dict(pares))
+                if erro:
+                    return self._json(
+                        {"erro": erro["erro"] if isinstance(erro, dict) else erro}, 409)
+                return self._json({"trabalho": _trabalho_json(trabalho, "instalar", seco=True)})
+
             gravadas, iguais, falhas = [], [], []
             for chave, rc, saida in definir_varias(pares):
                 if rc == 0:
@@ -7258,8 +7327,16 @@ class Manipulador(BaseHTTPRequestHandler):
             # sozinho. Ele não vem de um cabeçalho nem de um parâmetro de URL,
             # e sim do corpo do POST: é a página que tem de dizer, com todas as
             # letras, que perguntou e ouviu sim.
+            # `seco` É O ENSAIO DE UM GESTO SÓ — 22/09/2026, sprint P8.
+            #   Ele vem no corpo do POST pelo mesmo motivo do `confirmado`: é
+            #   uma decisão DESTE clique, e não um estado guardado em lugar
+            #   nenhum. Não existe "o painel está em modo seco" — existe "esta
+            #   execução foi pedida como ensaio", e a resposta devolve isso
+            #   para a página poder dizê-lo na tela.
+            seco = bool(corpo.get("seco"))
             trabalho, erro = iniciar(acao, argumento,
-                                     confirmado=bool(corpo.get("confirmado")))
+                                     confirmado=bool(corpo.get("confirmado")),
+                                     seco=seco)
             if erro:
                 # O erro estruturado (a confirmação que falta) passa inteiro; o
                 # erro de sempre continua sendo uma frase, como a página espera.
@@ -7271,7 +7348,7 @@ class Manipulador(BaseHTTPRequestHandler):
             # quem ESCREVE; para quem só olha — `status`, `doctor` sem
             # `--consertar`, `tema`, `apps`, `leitura` — o mesmo 1 quer dizer "há
             # divergências", e nada foi consertado.
-            return self._json(_trabalho_json(trabalho, acao))
+            return self._json(_trabalho_json(trabalho, acao, seco=seco))
 
         # TRAZER DE VOLTA — só analisa e devolve o que mudaria; quem grava é o
         # `Salvar e aplicar` de sempre. O porquê está em `importar_conf`.

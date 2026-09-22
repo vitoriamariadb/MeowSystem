@@ -258,24 +258,71 @@ else:
     print("ok: as %d chaves que o painel lê da máquina saem de arquivos que os scripts gravam"
           % len(servidor.NA_MAQUINA))
 
-# --- 9. O PAINEL NÃO ENSAIA — 13/09/2026 -------------------------------------
-#   Pedido dela: *"eu tinha pedido pra tirar o app do modo sandbox"*. Nenhum
-#   pedido da página leva `seco`, nenhuma rota o lê, e nenhum ambiente que o
-#   servidor monta liga `MEOW_DRY_RUN`. Olha só o CÓDIGO: os comentários contam
-#   a história do ensaio, e têm de poder continuar contando.
+# --- 9. O PAINEL NÃO TEM INTERRUPTOR DE ENSAIO -------------------------------
+#   NASCEU EM 13/09/2026 DIZENDO OUTRA COISA, E A SPRINT P8 A REESCREVEU EM
+#   22/09. A trava de 13/09 era "nenhum pedido da página leva `seco`, nenhuma
+#   rota o lê, nenhum ambiente liga `MEOW_DRY_RUN`" — a leitura larga de
+#   *"eu tinha pedido pra tirar o app do modo sandbox"*. A outra metade da
+#   mesma queixa dela é *"nada da interface é aplicado em sandbox; tudo é
+#   aplicado na máquina da pessoa"*, e o meio que faltava entre os dois
+#   extremos é o que a P8 entregou: um botão «Ver o que faria» por gesto.
+#
+#   O QUE ELA PEDIU PARA TIRAR CONTINUA PROIBIDO, e é isso que esta trava
+#   guarda agora — o INTERRUPTOR. Um estado guardado que fazia todo clique
+#   seguinte fingir, até alguém desligá-lo; era ele que produzia "nada tá
+#   aplicando de verdade", porque a tela mentia em silêncio sobre o gesto
+#   seguinte, e o seguinte. A diferença entre os dois desenhos é exatamente
+#   ESTA: um botão não guarda nada entre um clique e o outro.
+#
+#   Então a pergunta que este bloco faz mudou de "o ensaio existe?" para "o
+#   ensaio é pedido, ou é lembrado?". Uma trava que só dissesse "não pode
+#   existir" seria uma trava contra a decisão de hoje, e não contra o defeito.
 _js = re.sub(r"/\*.*?\*/", "", open(os.path.join(raiz, "app/pagina/app.js"),
                                     encoding="utf-8").read(), flags=re.S)
 _js = "\n".join(l for l in _js.splitlines() if not l.lstrip().startswith("//"))
-_restos = re.findall(r"\bseco\b|ensaiando|#seco\b", _js)
+#   9a. NADA DE SECO GUARDADO NA PÁGINA. A chave `meow-seco` do `sessionStorage`
+#       era o interruptor; qualquer armazenamento na mesma linha de um `seco` é
+#       a mesma ideia voltando com outro nome.
+_guardado = re.findall(r"meow-seco", _js)
+_guardado += [l.strip() for l in _js.splitlines()
+              if re.search(r"(session|local)Storage", l) and re.search(r"\bseco\b", l)]
+#   9b. NO SERVIDOR, `MEOW_DRY_RUN` SÓ PODE SER LIGADO EM UM LUGAR, e esse lugar
+#       é o `_ambiente_do_painel`, atrás do parâmetro `seco`. Duas ligações
+#       querem dizer dois donos do modo — e o segundo é sempre o que alguém
+#       esquece de consultar. A conta é de ATRIBUIÇÕES, e não do nome: o nome
+#       aparece no `pop` que arranca a herança do terminal, que é o oposto disto
+#       e tem de continuar existindo.
 _py = "\n".join(l for l in open(os.path.join(raiz, "app/servidor.py"), encoding="utf-8")
                 .read().splitlines() if not l.lstrip().startswith("#"))
-_restos += re.findall(r"""get\(["']seco["']\)|\[["']MEOW_DRY_RUN["']\]\s*=""", _py)
-if _restos:
-    print("FALHOU: o ensaio voltou ao painel: %s" % ", ".join(sorted(set(_restos))),
+_ligam = re.findall(r"""\[["']MEOW_DRY_RUN["']\]\s*=""", _py)
+if _guardado or len(_ligam) != 1 or "_ambiente_do_painel(seco=False)" not in _py:
+    print("FALHOU: o interruptor de ensaio voltou ao painel: guardado=%s, "
+          "ligações de MEOW_DRY_RUN=%d (espera 1), assinatura do ambiente=%s"
+          % (sorted(set(_guardado)) or "—", len(_ligam),
+             "ok" if "_ambiente_do_painel(seco=False)" in _py else "mudou"),
           file=sys.stderr)
     falhou = 1
 else:
-    print("ok: nem a página nem o servidor falam em ensaio fora dos comentários")
+    print("ok: o ensaio é pedido por gesto, e não guardado num interruptor")
+
+#   9c. E O ENSAIO PRECISA CONTINUAR EXISTINDO. Esta metade é nova em 22/09 e é
+#       a que a P8 realmente comprou: sem ela, um refactor que apagasse o botão
+#       deixaria a suíte verde — que é como o ensaio sumiu da tela da primeira
+#       vez, sem nenhum teste dizendo nada. As três peças da sprint, pelo nome
+#       que elas têm no código.
+_pecas = [("o botão do diálogo", "confirmar-ensaio", _js),
+          ("o botão da barra do alto", "botao-ensaiar", _js),
+          ("a faixa da gaveta", "faixa-ensaio", _js),
+          ("o «Rodar de verdade» pós-ensaio", "ensaio-rodar", _js),
+          ("o seco no /api/rodar", 'corpo.get("seco")', _py),
+          ("o seco no /api/salvar", 'corpo.get("seco")', _py)]
+_faltam = ["%s (%s)" % (nome, marca) for nome, marca, onde in _pecas if marca not in onde]
+if _faltam:
+    print("FALHOU: o ensaio da sprint P8 sumiu da tela: %s" % ", ".join(_faltam),
+          file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: o «Ver o que faria» está no diálogo, na barra e na gaveta")
 
 # --- 10. O TRABALHO LEVA A CONF, E O ÍCONE QUE NÃO VALE NÃO É OFERECIDO — 13/09 --
 #   Medido pela interface: «Usar este ícone» rodou o `icones_apps_arcticons.sh`
