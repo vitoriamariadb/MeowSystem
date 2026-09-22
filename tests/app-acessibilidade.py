@@ -243,10 +243,24 @@ CENSO_JS = """
   /* 3. PARÁGRAFO DE AJUDA ABRINDO EM MINÚSCULA. Só o que está PINTADO: o texto
      do balão do `?` (a `.dica`) fica de fora porque ele é o comentário do
      `meow.conf.exemplo` copiado cru, e reescrever a pontuação do autor dentro
-     do balão é outra sprint — ver o bloco da P7 no cabeçalho. */
+     do balão é outra sprint — ver o bloco da P7 no cabeçalho.
+
+     E A `.sem-previa` TAMBÉM FICA DE FORA, por um motivo diferente e medido em
+     22/09/2026: ela não é ajuda, é ESTADO DE CARREGAMENTO — `<p
+     class="sem-previa">lendo o tema instalado…</p>` (app.js:2450), que existe
+     desde antes desta sprint. Contra os 700 ms fixos que este teste espera por
+     aba, contá-la fazia a conferência sair VERMELHA sem defeito nenhum na
+     tela: medido, 1 vermelho em 8 corridas, e reproduzido de forma
+     determinística com 1,5 s de latência via CDP.
+
+     Um teste que falha por latência ensina a ignorar vermelho — que é
+     exatamente o defeito que a P23 veio consertar. Antes desta rede, uma aba
+     sub-renderizada só media menos coisa e seguia verde; o falso-vermelho
+     seria criação desta sprint, e por isso morre aqui. */
   const minusculas = [];
   for (const p of pr.querySelectorAll('p')) {
     if (p.offsetParent === null || p.closest('.dica')) continue;
+    if (p.classList.contains('sem-previa')) continue;
     const t = (p.textContent || '').trim().replace(/\\s+/g, ' ');
     if (!t) continue;
     const c = t[0];
