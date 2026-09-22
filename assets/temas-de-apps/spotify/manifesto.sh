@@ -179,30 +179,50 @@ _SPOT_ACENTO="${ACCENT:-mauve}"
 
 _SPOT_CONFIG_DIR="$HOME/.config/spicetify"
 _SPOT_INI="$_SPOT_CONFIG_DIR/config-xpui.ini"
-_SPOT_TEMA="$_SPOT_CONFIG_DIR/Themes/catppuccin"
-_SPOT_COLOR_INI="$_SPOT_TEMA/color.ini"
 
-# DE ONDE O TEMA DESCE — 22/09/2026, sprint P2
-#   A sprint mandou, palavra por palavra: «o comando é uma função do próprio
-#   projeto que baixa o tema para ~/.config/spicetify/Themes/ — repositório
-#   público fixado por tag, a mesma disciplina que o pack já usa para cursores».
+# O QUE APLICAR VEM DO PACK — 22/09/2026, sprint P18
+#   Até esta linha, este arquivo sabia de cor o nome do tema
+#   (`Themes/catppuccin`), o nome do esquema de cor, e o endereço do tarball de
+#   onde ele desce. Eram 39 citações da palavra `catppuccin` num módulo só, e
+#   nenhuma consulta ao pack ativo — o que tornava este arquivo um aplicador de
+#   Catppuccin, e não um aplicador do tema da casa.
 #
-#   A TAG NÃO EXISTE, E ISSO FOI MEDIDO, não suposto (22/09/2026):
-#     GET /repos/catppuccin/spicetify/tags            -> []  (lista vazia)
-#     GET /repos/catppuccin/spicetify/releases/latest -> 404
-#   O repositório nunca marcou tag nem publicou release. Pinar "por tag" ali
-#   seria pinar em nada e cair no ramo `main` — que é justamente o que a
-#   disciplina do `scripts/cursor.sh` existe para proibir: no dia em que o
-#   upstream mexesse no `color.ini`, a máquina dela mudaria sozinha.
+#   O QUE ISSO CUSTOU, MEDIDO NESTA MÁQUINA EM 21/09/2026
+#     ~/.config/spicetify/config-xpui.ini    current_theme = Sleek
+#                                            color_scheme  = Dracula
+#     …/flatpak/…/spotify/Apps/xpui          existe: o app ESTÁ patchado
+#     ~/.config/spicetify/Themes/            20 temas, e nenhum "catppuccin"
 #
-#   Então o pino é o COMMIT, que é a mesma disciplina um grau mais forte: uma
-#   tag se reescreve (`git tag -f`), um sha de árvore não. O número não foi
-#   inventado aqui — é o `1ec645c4` que o item 1 deste cabeçalho já registrava
-#   como a procedência do tema que estava na máquina em 10/08/2026, e ele segue
-#   sendo o HEAD do `main` (conferido: commit de 2025-10-22T13:33:39Z, e o
-#   `pushed_at` do repositório é 2025-10-22T13:33:40Z).
-_SPOT_TEMA_COMMIT="1ec645c4cf7f42f9792b9eeb1bb7930f94593277"
-_SPOT_TEMA_TAR="https://github.com/catppuccin/spicetify/archive/$_SPOT_TEMA_COMMIT.tar.gz"
+#   O pack ativo era o Dracula, o Spotify já estava vestido de Dracula, e este
+#   módulo exigia o tema catppuccin como pré-condição, não achava, e devolvia 3.
+#   A camada de cima imprimia «Spotify não instalado (ou não é o flatpak de
+#   usuário)» para um Spotify instalado, patchado e tematizado.
+#
+#   AS TRÊS PERGUNTAS, E ELAS SÃO DO PACK, NÃO DAQUI
+#     spicetify_tema       qual pasta de ~/.config/spicetify/Themes usar
+#     esquema              qual seção do color.ini daquele tema
+#     acento_no_color_ini  se dá para escrever o acento da casa lá dentro
+#
+#   `MEOW_APP_TEMA_PACK` guarda QUEM respondeu, e é por isso que ele é lido uma
+#   vez só, logo depois da primeira pergunta: a herança do formato é POR
+#   APLICATIVO, então as três respostas vêm sempre do mesmo pack. Guardá-lo
+#   depois de cada chamada daria a impressão de que elas podem divergir.
+#
+#   RESOLVIDO NO `source`, COMO OS VIZINHOS. `_SPOT_PALETA` logo acima faz o
+#   mesmo, e o runner (`scripts/aplicar_apps.sh`) carrega cada manifesto num
+#   SUBSHELL, depois de PACK e FLAVOR já estarem no ambiente.
+_SPOT_TEMA_NOME="$(meow_app_tema_do_pack spotify.spicetify_tema)"
+_SPOT_TEMA_DE="$MEOW_APP_TEMA_PACK"
+_SPOT_ESQUEMA="$(meow_app_tema_do_pack spotify.esquema)"
+_SPOT_ACENTO_NO_INI="$(meow_app_tema_do_pack spotify.acento_no_color_ini)"
+
+# Vazio quando o pack não declara o Spotify: o `detectar` transforma isso num 3
+# com motivo, e NÃO num caminho `Themes/` que nomearia uma pasta chamada nada.
+_SPOT_TEMA=""; _SPOT_COLOR_INI=""
+if [ -n "$_SPOT_TEMA_NOME" ]; then
+  _SPOT_TEMA="$_SPOT_CONFIG_DIR/Themes/$_SPOT_TEMA_NOME"
+  _SPOT_COLOR_INI="$_SPOT_TEMA/color.ini"
+fi
 
 # O Marketplace é um CustomApp do spicetify — uma PÁGINA dentro do Spotify, de
 # onde se instalam extensões, snippets e outros apps. Ele NÃO vem no binário: o
@@ -472,16 +492,48 @@ _spot_mp_registrar() {
 # o que mora em `~/.config/spicetify` é insumo do spicetify, não arquivo nosso
 # plantado no sistema dela.
 #
-#   0 já estava lá · 1 baixei · 2 erro · 3 falta dependência (ou rede)
+# O ENDEREÇO TAMBÉM VEM DO PACK — 22/09/2026, sprint P18
+#   O `_SPOT_TEMA_TAR` que morava no topo deste arquivo era
+#   `https://github.com/catppuccin/spicetify/archive/<commit>.tar.gz`, cravado.
+#   Um módulo que sabe de cor o endereço de UM tema é o aplicador daquele tema —
+#   e era essa linha, mais que qualquer outra, que fazia deste arquivo um
+#   aplicador de Catppuccin.
+#
+#   O PINO POR COMMIT NÃO SE PERDEU, MUDOU DE DONO. A disciplina continua a
+#   mesma do `scripts/cursor.sh` e o motivo continua medido (22/09/2026:
+#   `/repos/catppuccin/spicetify/tags` devolve lista vazia e
+#   `/releases/latest` devolve 404 — pinar "por tag" ali seria cair no `main`).
+#   O que mudou é que o número agora é DECLARAÇÃO do pack, em
+#   `apps.spotify.origem.commit`, onde quem publica o pack o escreve e o
+#   `pack.py validar` o lê.
+#
+#   PACK SEM `origem` NÃO É DEFEITO, É RESPOSTA. O pack Dracula pede o tema
+#   `Sleek`, que não é arte deste projeto e não tem tarball que se possa pinar:
+#   ele declara o nome e mais nada. Aqui isso vira "não sei de onde baixar", com
+#   a frase dizendo qual pack pediu o quê — e nunca um download do tema de OUTRO
+#   pack, que é exatamente o defeito que a sprint veio matar.
+#
+#   0 já estava lá · 1 baixei · 2 erro · 3 falta dependência (ou rede, ou origem)
 _spot_tema_baixar() {
-  local tmp origem
+  local tmp origem repo commit pasta tar
+  [ -n "$_SPOT_COLOR_INI" ] || return "$MEOW_SEM_DEPENDENCIA"
   [ -f "$_SPOT_COLOR_INI" ] && return "$MEOW_OK"
+
+  repo="$(meow_app_tema_do_pack spotify.origem.repo)"
+  commit="$(meow_app_tema_do_pack spotify.origem.commit)"
+  pasta="$(meow_app_tema_do_pack spotify.origem.pasta)"
+  if [ -z "$repo" ] || [ -z "$commit" ] || [ -z "$pasta" ]; then
+    meow_pula "o pack pede o tema '$_SPOT_TEMA_NOME' do spicetify e não diz de onde ele desce"
+    meow_info "instale-o em $_SPOT_TEMA, ou escolha um pack que traga a origem do tema"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  tar="https://github.com/$repo/archive/$commit.tar.gz"
 
   meow_tem curl || { meow_pula "sem curl — o tema do spicetify fica de fora"; return "$MEOW_SEM_DEPENDENCIA"; }
   meow_tem tar  || { meow_pula "sem tar — o tema do spicetify fica de fora";  return "$MEOW_SEM_DEPENDENCIA"; }
 
   if meow_seco; then
-    meow_muda "baixaria o tema catppuccin do spicetify para $_SPOT_TEMA"
+    meow_muda "baixaria o tema '$_SPOT_TEMA_NOME' do spicetify para $_SPOT_TEMA"
     return "$MEOW_DIVERGENTE"
   fi
 
@@ -493,9 +545,9 @@ _spot_tema_baixar() {
   # é a única coisa que separa "sem rede" de "pendurado para sempre" num módulo
   # que o instalador carrega desatendido. Mesmos números do `_cursor_curl`.
   if ! curl -sSL --fail --connect-timeout 15 --max-time 300 \
-         -o "$tmp/tema.tar.gz" "$_SPOT_TEMA_TAR" 2>/dev/null; then
+         -o "$tmp/tema.tar.gz" "$tar" 2>/dev/null; then
     rm -rf "$tmp"
-    meow_aviso "não deu para baixar o tema catppuccin do spicetify (sem rede?) — fica para o próximo ciclo"
+    meow_aviso "não deu para baixar o tema '$_SPOT_TEMA_NOME' do spicetify (sem rede?) — fica para o próximo ciclo"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! tar -xzf "$tmp/tema.tar.gz" -C "$tmp" 2>/dev/null; then
@@ -504,15 +556,15 @@ _spot_tema_baixar() {
     return "$MEOW_ERRO"
   fi
 
-  # O GitHub empacota tudo sob `<repo>-<commit>/`, e o tema é a pasta
-  # `catppuccin/` lá dentro (o resto do repositório é README e prints).
-  # Conferir o caminho é o que faz esta função quebrar COM MENSAGEM no dia em
-  # que o upstream reorganizar as pastas, em vez de instalar um diretório que o
-  # `detectar` aprovaria sem ter o que aplicar.
-  origem="$tmp/spicetify-$_SPOT_TEMA_COMMIT/catppuccin"
+  # O GitHub empacota tudo sob `<nome-do-repo>-<commit>/`, e o tema é a pasta
+  # que o pack nomeia em `origem.pasta` lá dentro (o resto do repositório é
+  # README e prints). Conferir o caminho é o que faz esta função quebrar COM
+  # MENSAGEM no dia em que o upstream reorganizar as pastas, em vez de instalar
+  # um diretório que o `detectar` aprovaria sem ter o que aplicar.
+  origem="$tmp/${repo##*/}-$commit/$pasta"
   if [ ! -f "$origem/color.ini" ]; then
     rm -rf "$tmp"
-    meow_erro "o tarball do tema mudou de formato (sem catppuccin/color.ini)"
+    meow_erro "o tarball do tema mudou de formato (sem $pasta/color.ini)"
     return "$MEOW_ERRO"
   fi
 
@@ -526,11 +578,11 @@ _spot_tema_baixar() {
   # A PROCEDÊNCIA FICA AO LADO DO QUE ELA DESCREVE. É o mesmo `PROCEDENCIA.txt`
   # que o item 1 deste cabeçalho já citava, e é o que permite saber, meses
   # depois, de que árvore aquele `color.ini` veio.
-  printf 'catppuccin/spicetify @ %s\nbaixado pelo MeowSystem em %s\n' \
-         "$_SPOT_TEMA_COMMIT" "$(date -Iseconds)" \
+  printf '%s @ %s\npedido pelo pack %s\nbaixado pelo MeowSystem em %s\n' \
+         "$repo" "$commit" "${_SPOT_TEMA_DE:-?}" "$(date -Iseconds)" \
     > "$_SPOT_TEMA/PROCEDENCIA.txt" 2>/dev/null
   rm -rf "$tmp"
-  meow_ok "tema catppuccin do spicetify baixado em $_SPOT_TEMA"
+  meow_ok "tema '$_SPOT_TEMA_NOME' do spicetify baixado em $_SPOT_TEMA"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -541,6 +593,10 @@ _spot_rodando() {
   fi
   pgrep -x spotify >/dev/null 2>&1
 }
+
+# O pack pediu o acento da casa dentro do color.ini deste tema? Ver o bloco
+# "O ACENTO É OPCIONAL", no `meow_app_detectar`.
+_spot_quer_acento() { [ "$_SPOT_ACENTO_NO_INI" = "sim" ]; }
 
 _spot_receita_valida() {
   python3 -c 'import json,sys; json.load(open(sys.argv[1]))["flavors"][sys.argv[2]][sys.argv[3]]' \
@@ -558,6 +614,16 @@ meow_app_detectar() {
   # Motivo velho mente com cara de medida: zerar antes de medir é do contrato.
   MEOW_APP_MOTIVO=""
   _spot_instalado || { meow_app_sem "Spotify: não está instalado como flatpak de usuário"; return; }
+
+  # O PACK PRECISA TER PEDIDO ALGUMA COISA — 22/09/2026, sprint P18
+  #   Pack que não declara `apps.spotify` (nem herda de quem declare) não tem
+  #   tema para este app, e isto é AUSÊNCIA DECLARADA, não erro: a alternativa
+  #   seria escolher um tema em nome dele, que é o defeito que a sprint mediu no
+  #   Obsidian — aplicar o tema de outro pack e chamar de sucesso.
+  if [ -z "$_SPOT_TEMA_NOME" ] || [ -z "$_SPOT_ESQUEMA" ]; then
+    meow_app_sem "Spotify: o pack ativo não declara tema para este app (apps.spotify no pack.json)"
+    return
+  fi
 
   # AS DUAS RECEITAS DE TERMINAL SAIRAM DAQUI — 22/09/2026, sprint P2
   #   Ficavam dois `meow_info` com o conserto pronto: um `curl | sh` para
@@ -591,18 +657,28 @@ meow_app_detectar() {
   meow_pendencia_resolvida spicetify-ausente
   if [ ! -f "$_SPOT_COLOR_INI" ]; then
     meow_pendencia_acionavel spicetify-tema-ausente \
-      "Falta o tema catppuccin do Spotify — posso baixá-lo para $_SPOT_TEMA" \
+      "Falta o tema '$_SPOT_TEMA_NOME' do Spotify, que o pack ${_SPOT_TEMA_DE:-ativo} pede — posso baixá-lo para $_SPOT_TEMA" \
       "meow apps aplicar spotify"
-    meow_app_sem "Spotify: falta o tema catppuccin do spicetify em $_SPOT_TEMA"
+    meow_app_sem "Spotify: falta o tema '$_SPOT_TEMA_NOME' do spicetify em $_SPOT_TEMA"
     return
   fi
   meow_pendencia_resolvida spicetify-tema-ausente
   meow_tem python3 || { meow_app_sem "Spotify: falta python3, que lê a paleta"; return; }
-  [ -f "$_SPOT_ACENTO_PY" ] || { meow_app_sem "Spotify: falta $_SPOT_ACENTO_PY, que escreve o acento no color.ini"; return; }
+  # O ACENTO É OPCIONAL DESDE 22/09/2026, E QUEM DECIDE É O PACK
+  #   Escrever o acento da casa dentro do color.ini só funciona num tema que
+  #   nomeie as 26 cores da paleta como CHAVES — o do pack padrão faz isso. O
+  #   `Sleek`, que o pack Dracula pede, define a seção [Dracula] com vinte e
+  #   duas chaves e nenhuma chamada `mauve`: insistir ali daria erro 2 do
+  #   `acento.py` e o módulo inteiro se declararia quebrado por causa de um
+  #   passo que aquele tema não suporta. Por isso o pack declara
+  #   `acento_no_color_ini`, e sem a declaração o passo simplesmente não existe.
+  if _spot_quer_acento; then
+    [ -f "$_SPOT_ACENTO_PY" ] || { meow_app_sem "Spotify: falta $_SPOT_ACENTO_PY, que escreve o acento no color.ini"; return; }
+  fi
   # O `meow_aviso` que ficava aqui saiu: ele dizia a mesma frase que agora é o
   # motivo, e o `conferir` logo abaixo já repete o aviso por conta própria —
   # ele é quem precisa, porque engole de propósito a saída deste `detectar`.
-  if ! _spot_receita_valida; then
+  if _spot_quer_acento && ! _spot_receita_valida; then
     meow_app_sem "Spotify: flavor/acento inexistentes na paleta ($_SPOT_FLAVOR/$_SPOT_ACENTO) — confira o meow.conf"
     return
   fi
@@ -623,8 +699,9 @@ meow_app_detectar() {
 # e é justamente o passo (3) que pega a atualização do Spotify que apagou tudo.
 meow_app_conferir() {
   meow_app_detectar >/dev/null 2>&1 || {
-    _spot_receita_valida || \
+    if _spot_quer_acento && ! _spot_receita_valida; then
       meow_aviso "flavor/acento inexistentes na paleta: $_SPOT_FLAVOR/$_SPOT_ACENTO — confira o meow.conf"
+    fi
     return "$MEOW_SEM_DEPENDENCIA"
   }
 
@@ -632,16 +709,25 @@ meow_app_conferir() {
   tema="$(_spot_ini_ler current_theme)"
   esquema="$(_spot_ini_ler color_scheme)"
 
-  [ "$tema" = "catppuccin" ] || return "$MEOW_DIVERGENTE"
-  [ "$esquema" = "$_SPOT_FLAVOR" ] || return "$MEOW_DIVERGENTE"
+  # O QUE O PACK PEDIU, E NÃO UM NOME CRAVADO — 22/09/2026, sprint P18
+  #   Estas duas linhas eram `[ "$tema" = "catppuccin" ]` e
+  #   `[ "$esquema" = "$_SPOT_FLAVOR" ]`. Elas conferiam a RECEITA DE UM TEMA,
+  #   não o tema do pack no ar — e era por elas que um Spotify corretamente
+  #   vestido de Dracula aparecia como divergente para sempre.
+  [ "$tema" = "$_SPOT_TEMA_NOME" ] || return "$MEOW_DIVERGENTE"
+  [ "$esquema" = "$_SPOT_ESQUEMA" ] || return "$MEOW_DIVERGENTE"
 
-  acento_ok="$(python3 "$_SPOT_ACENTO_PY" estado "$_SPOT_COLOR_INI" \
-                 --flavor "$_SPOT_FLAVOR" --acento "$_SPOT_ACENTO" 2>/dev/null)" || {
-    meow_erro "não consegui ler o color.ini do tema catppuccin"
-    return "$MEOW_ERRO"
-  }
-  hex="$(printf '%s\n' "$acento_ok" | sed -n 's/^desejado=//p')"
-  printf '%s\n' "$acento_ok" | grep -qx 'ok=sim' || return "$MEOW_DIVERGENTE"
+  # (2) O ACENTO, SÓ QUANDO O PACK PEDE. Ver "O ACENTO É OPCIONAL", no detectar.
+  hex=""
+  if _spot_quer_acento; then
+    acento_ok="$(python3 "$_SPOT_ACENTO_PY" estado "$_SPOT_COLOR_INI" \
+                   --flavor "$_SPOT_ESQUEMA" --acento "$_SPOT_ACENTO" 2>/dev/null)" || {
+      meow_erro "não consegui ler o color.ini do tema '$_SPOT_TEMA_NOME'"
+      return "$MEOW_ERRO"
+    }
+    hex="$(printf '%s\n' "$acento_ok" | sed -n 's/^desejado=//p')"
+    printf '%s\n' "$acento_ok" | grep -qx 'ok=sim' || return "$MEOW_DIVERGENTE"
+  fi
 
   # (3) O RESULTADO NO DISCO. Sem esta parte o doctor aprovaria uma intenção
   # perfeita num Spotify que voltou ao normal depois de um `flatpak update`.
@@ -650,7 +736,15 @@ meow_app_conferir() {
     meow_aviso "o Spotify no disco não tem o tema aplicado (o spicetify foi desfeito, ou o app atualizou)"
     return "$MEOW_DIVERGENTE"
   fi
-  grep -qi -- "--spice-text: *#\?${hex}" "$colors" || return "$MEOW_DIVERGENTE"
+  # SEM ACENTO NOSSO, O QUE PROVA O PASSO 3 É O ARQUIVO EXISTIR
+  #   O `--spice-text` é a cor que o `acento.py` escreveu; num tema em que não
+  #   escrevemos nada não há o que casar, e inventar outra prova aqui seria
+  #   adivinhar o que o tema de terceiro gera. O `colors.css` existir já
+  #   distingue "o spicetify aplicou" de "o app atualizou e apagou tudo", que é
+  #   a pergunta deste passo.
+  if [ -n "$hex" ]; then
+    grep -qi -- "--spice-text: *#\?${hex}" "$colors" || return "$MEOW_DIVERGENTE"
+  fi
 
   if _spot_mp_quer; then
     if ! _spot_mp_baixado; then
@@ -684,7 +778,7 @@ meow_app_conferir() {
     meow_aviso "o backup do spicetify é da versão $vb e o Spotify é a $vi — veja assets/temas-de-apps/spotify/RECUPERACAO.md"
   fi
 
-  meow_ok "Spotify em Catppuccin $_SPOT_FLAVOR/$_SPOT_ACENTO (via spicetify)"
+  meow_ok "Spotify em $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} (via spicetify)"
   return "$MEOW_OK"
 }
 
@@ -698,7 +792,7 @@ meow_app_aplicar() {
   #
   #   Sem spicetify não adianta baixar tema: o binário é quem o lê. Por isso a
   #   guarda tem as três condições, e não só a do arquivo ausente.
-  if _spot_instalado && _spot_cli >/dev/null && [ ! -f "$_SPOT_COLOR_INI" ]; then
+  if _spot_instalado && _spot_cli >/dev/null && [ -n "$_SPOT_COLOR_INI" ] && [ ! -f "$_SPOT_COLOR_INI" ]; then
     _spot_tema_baixar
     case $? in
       2) return "$MEOW_ERRO" ;;
@@ -748,13 +842,37 @@ meow_app_aplicar() {
 
   meow_app_conferir >/dev/null 2>&1
   case $? in
-    0) [ "$mexi" = "1" ] && return "$MEOW_DIVERGENTE"
-       meow_ok "Spotify já está em Catppuccin $_SPOT_FLAVOR/$_SPOT_ACENTO — nada a fazer"
+    0) # A IRMÃ DO CAMINHO FELIZ. Chegar aqui exige `current_theme` igual ao que
+       # o pack pede, então a pendência de "tema de terceiro" (se houver uma da
+       # passagem anterior) deixou de ser verdade — e pendência que sobrevive ao
+       # problema é a caixa de entrada que ninguém lê. O id é o do contrato:
+       # `<app>-tema-de-terceiro`, ver `meow_app_tema_no_ar` em lib/comum.sh.
+       meow_pendencia_resolvida spotify-tema-de-terceiro
+       [ "$mexi" = "1" ] && return "$MEOW_DIVERGENTE"
+       meow_ok "Spotify já está em $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} — nada a fazer"
        return "$MEOW_OK" ;;
     3) meow_pula "Spotify: nada a fazer (veja o aviso do conferir)"
        return "$MEOW_SEM_DEPENDENCIA" ;;
     2) return "$MEOW_ERRO" ;;
   esac
+
+  # --- LER O QUE ESTÁ NO AR ANTES DE ESCREVER — 22/09/2026, sprint P18 -------
+  #   Daqui para baixo o módulo escreve. A pergunta que faltava a todos os oito
+  #   módulos é ESTA: o que o app está vestindo agora?
+  #
+  #   O DISCRIMINADOR É O TEMA, E NÃO O PAR TEMA/ESQUEMA, e a diferença é real.
+  #   Um `current_theme` que já é o do pack com o esquema errado é NOSSO tema com
+  #   o flavor trocado no meow.conf — consertar aquilo é o trabalho deste módulo,
+  #   e perguntar "posso?" a cada troca de flavor seria pedir licença para fazer
+  #   o que ela acabou de mandar fazer. Já um `current_theme` que o pack não
+  #   conhece é trabalho que ELA fez à mão, e aí a pergunta é obrigatória.
+  #
+  #   Depois do `conferir` de propósito: quando tudo já está certo não há
+  #   escrita nenhuma à frente, e anunciar "já está no tema do pack" ali em cima
+  #   seria a mesma frase duas vezes na mesma passagem.
+  meow_app_tema_no_ar spotify "$(_spot_ini_ler current_theme)" \
+                      "$_SPOT_TEMA_NOME" "$_SPOT_TEMA_DE"
+  [ $? = "$MEOW_SEM_DEPENDENCIA" ] && return "$MEOW_SEM_DEPENDENCIA"
 
   if _spot_rodando; then
     meow_pula "Spotify está ABERTO — não mexo no app dela no meio do uso; tento no próximo ciclo"
@@ -779,21 +897,24 @@ meow_app_aplicar() {
   local cli; cli="$(_spot_cli)"
 
   if meow_seco; then
-    meow_muda "mudaria o Spotify para Catppuccin $_SPOT_FLAVOR/$_SPOT_ACENTO (spicetify config + apply)"
+    meow_muda "mudaria o Spotify para $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} (spicetify config + apply)"
     return "$MEOW_DIVERGENTE"
   fi
 
   # O acento é NOSSO e vai antes: o `apply` lê o color.ini já corrigido, então
-  # não há um ciclo em que o app fique com o acento velho.
-  meow_destino_permitido "$_SPOT_COLOR_INI" || return "$MEOW_ERRO"
-  if ! python3 "$_SPOT_ACENTO_PY" aplicar "$_SPOT_COLOR_INI" \
-        --flavor "$_SPOT_FLAVOR" --acento "$_SPOT_ACENTO" >/dev/null; then
-    meow_erro "não consegui pôr o acento $_SPOT_ACENTO no color.ini do tema"
-    return "$MEOW_ERRO"
+  # não há um ciclo em que o app fique com o acento velho. Só que ele só é nosso
+  # quando o pack pediu — ver "O ACENTO É OPCIONAL", no `meow_app_detectar`.
+  if _spot_quer_acento; then
+    meow_destino_permitido "$_SPOT_COLOR_INI" || return "$MEOW_ERRO"
+    if ! python3 "$_SPOT_ACENTO_PY" aplicar "$_SPOT_COLOR_INI" \
+          --flavor "$_SPOT_ESQUEMA" --acento "$_SPOT_ACENTO" >/dev/null; then
+      meow_erro "não consegui pôr o acento $_SPOT_ACENTO no color.ini do tema '$_SPOT_TEMA_NOME'"
+      return "$MEOW_ERRO"
+    fi
   fi
 
-  "$cli" config current_theme catppuccin >/dev/null 2>&1
-  "$cli" config color_scheme "$_SPOT_FLAVOR" >/dev/null 2>&1
+  "$cli" config current_theme "$_SPOT_TEMA_NOME" >/dev/null 2>&1
+  "$cli" config color_scheme "$_SPOT_ESQUEMA" >/dev/null 2>&1
   # Os quatro que o README do tema exige. `overwrite_assets` é o que faz o
   # spicetify tocar também o `login.spa` — ver item 2.
   "$cli" config inject_css 1 inject_theme_js 1 replace_colors 1 overwrite_assets 1 >/dev/null 2>&1
@@ -803,7 +924,7 @@ meow_app_aplicar() {
     return "$MEOW_ERRO"
   fi
 
-  meow_ok "Spotify em Catppuccin $_SPOT_FLAVOR/$_SPOT_ACENTO (vale no próximo início do app)"
+  meow_ok "Spotify em $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} (vale no próximo início do app)"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -817,7 +938,7 @@ meow_app_reverter() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if meow_seco; then
-    meow_muda "desfaria o Catppuccin no Spotify (spicetify restore)"
+    meow_muda "desfaria o tema '$_SPOT_TEMA_NOME' no Spotify (spicetify restore)"
     return "$MEOW_DIVERGENTE"
   fi
 
@@ -850,7 +971,7 @@ meow_app_reverter() {
     return "$MEOW_ERRO"
   fi
 
-  meow_ok "Spotify sem o Catppuccin (vale no próximo início do app)"
+  meow_ok "Spotify sem o tema do pack (vale no próximo início do app)"
   meow_info "tire 'spotify' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
   return "$MEOW_DIVERGENTE"
 }

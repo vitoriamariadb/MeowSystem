@@ -122,6 +122,156 @@ meow_app_pendente() {
   return "$MEOW_SEM_DEPENDENCIA"
 }
 
+# --- O TEMA DE APLICATIVO VEM DO PACK ---------------------------------------
+#
+# O DEFEITO QUE ISTO MATA, CONTADO EM 21/09/2026
+#   Uma varredura mediu 446 citações da palavra `catppuccin` dentro de
+#   `assets/temas-de-apps/`, em oito módulos, e a segunda coluna era sempre a
+#   mesma:
+#
+#     módulo            citações   lê o pack ativo?
+#     btop-bat              58            não
+#     heroic               246            não
+#     obsidian              48            não
+#     qbittorrent           28            não
+#     spotify               39            não
+#     toolkits-gtk-qt        5            não
+#     vscode                19            não
+#     zapzap                 3            não
+#                        -----        --------
+#                          446         0 de 8
+#
+#   Aquele acervo é ANTERIOR ao formato de pack e nunca soube que ele existe: os
+#   oito eram, na prática, aplicadores de Catppuccin. O preço estava na tela
+#   desta máquina no mesmo dia — o pack ativo é o Dracula e o módulo do Obsidian
+#   anunciou «Catppuccin Mocha já estava aplicado». O único dos oito que "deu
+#   certo" foi o que aplicou o tema do OUTRO pack e chamou de sucesso.
+#
+# O CONTRATO, EM DUAS FUNÇÕES, E ELAS SÃO IRMÃS
+#   `meow_app_tema_do_pack <app>.<chave>`  O QUE aplicar. O módulo pergunta em
+#                                          vez de saber, e deixa de conhecer o
+#                                          nome de qualquer tema.
+#   `meow_app_tema_no_ar <app> <no-ar> <do-pack>`
+#                                          SE aplicar. Lê o que está no ar antes
+#                                          de escrever, e tem três saídas.
+#
+#   Usar a primeira sem a segunda troca um defeito por outro: o módulo passaria
+#   a aplicar o tema certo por cima do que a pessoa escolheu à mão.
+MEOW_APP_TEMA_PACK=""
+
+# Devolve o que o pack ATIVO declara para aquele aplicativo, ou o que ele herda,
+# e guarda em `MEOW_APP_TEMA_PACK` o id de QUEM respondeu — que é como o log diz
+# "herdado do catppuccin" em vez de fingir que o tema é do pack no ar. Sem
+# declaração em cadeia nenhuma, devolve 1 e não imprime nada: ausência é
+# resposta, e quem chama decide se ela é problema.
+#
+#   meow_app_tema_do_pack spotify.spicetify_tema   -> Sleek       (pack dracula)
+#   meow_app_tema_do_pack qbittorrent.arquivo      -> /…/x.qbtheme (herdado)
+#
+# QUEM RESOLVE O FORMATO CONTINUA SENDO UM SÓ. Esta função não abre `pack.json`
+# — ela pergunta ao `scripts/pack.py`, pela mesma porta que o `meow_pack_arquivo`
+# e o `meow_paleta` usam. Um segundo interpretador do formato seria a
+# divergência silenciosa de volta, num andar novo.
+#
+# O `FLAVOR` VAI EXPLÍCITO NO AMBIENTE DO COMANDO, e não por `export`: ele é
+# variável de shell em quem chama (install.sh, bin/meow), e um `export` aqui
+# mudaria o ambiente de todo processo filho daquele ponto em diante por causa de
+# uma consulta de leitura.
+meow_app_tema_do_pack() {
+  local trilha="$1" saida
+  MEOW_APP_TEMA_PACK=""
+  meow_tem python3 || return 1
+  saida="$(FLAVOR="${FLAVOR:-}" python3 "$MEOW_RAIZ/scripts/pack.py" \
+             app "$(meow_pack_dir)" "apps.$trilha" 2>/dev/null)" || return 1
+  MEOW_APP_TEMA_PACK="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
+  printf '%s' "$(printf '%s\n' "$saida" | sed -n 's/^valor=//p')"
+  return 0
+}
+
+# --- LER O QUE ESTÁ NO AR ANTES DE ESCREVER ---------------------------------
+#
+# AS TRÊS SAÍDAS, E AS TRÊS APARECEM NA TELA
+#   0  MEOW_OK              já está no tema do pack -> nada a fazer, e diz qual
+#   1  MEOW_DIVERGENTE      está sem tema           -> aplica
+#   3  MEOW_SEM_DEPENDENCIA está num tema que não veio daqui -> PERGUNTA
+#
+#   Em 21/09/2026 nenhum dos oito módulos fazia a terceira, e é por isso que o
+#   trabalho que ele já tinha feito à mão ficou invisível para o programa: o
+#   qBittorrent estava em `~/.themes/dracula.qbtheme` desde as 16:49 daquele
+#   dia, com o `qBittorrent.conf` apontando para lá, e o módulo se declarava
+#   bloqueado dizendo que "não há quem escreva o qBittorrent.conf" — enquanto o
+#   conf já estava escrito, com um tema que o MeowSystem não conhecia.
+#
+# SOBRESCREVER CALADO SERIA TROCAR UM DEFEITO POR UM PIOR
+#   O tema que ela escolheu à mão é uma decisão dela. Um instalador que o apaga
+#   sem avisar não conserta a divergência: ele apaga a pessoa do processo.
+#
+# A PERGUNTA NÃO PODE TRAVAR O TIMER, E É POR ISSO QUE ELA TEM DUAS FORMAS
+#   O instalador roda desatendido, de hora em hora. Um `read` sem dono na frente
+#   penduraria o ciclo para sempre, e o sintoma seria um timer que nunca termina
+#   — o tipo de defeito que ninguém liga ao tema do qBittorrent.
+#
+#   Por isso a pergunta só acontece quando há ALGUÉM: as duas pontas precisam
+#   ser terminal. Fora da tela o caso vira PENDÊNCIA ACIONÁVEL, o arquivo dele
+#   fica intocado, e a linha espera na Home. E mesmo com terminal a espera tem
+#   teto de 30 segundos: um `install.sh` chamado por um script a partir de um
+#   tty herdado ainda é uma corrida desatendida, e silêncio conta como "não".
+#
+#   A PENDÊNCIA NASCE SEM COMANDO, e não é esquecimento: nenhum botão daqui
+#   resolve isto. A decisão é dela — ou o tema que está no ar fica, ou ela roda
+#   o `aplicar` de um terminal e responde. Publicar um comando que o painel
+#   rodaria sem tty seria oferecer um botão que não faz nada, que é a classe de
+#   falha que a P2 apagou do projeto inteiro.
+#
+#   `<app>` É O ID DO MÓDULO, e ele vira o id da pendência (`<app>-tema-de-
+#   terceiro`). A irmã do caminho feliz está nas duas primeiras saídas: uma
+#   pendência que sobrevive ao problema é a caixa de entrada que ninguém lê.
+meow_app_tema_no_ar() {
+  local app="$1" no_ar="$2" do_pack="$3" de_quem="${4:-$MEOW_APP_TEMA_PACK}" resp=""
+  local id="$app-tema-de-terceiro" fonte=""
+  # "herdado do catppuccin" só quando for herança MESMO. Dizer a origem quando
+  # ela é o próprio pack no ar é ruído numa linha que já é longa.
+  [ -n "$de_quem" ] && fonte=" (do pack $de_quem)"
+
+  if [ -z "$no_ar" ]; then
+    meow_pendencia_resolvida "$id"
+    meow_info "$app: está sem tema — aplico o do pack$fonte"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if [ "$no_ar" = "$do_pack" ]; then
+    meow_pendencia_resolvida "$id"
+    meow_ok "$app: já está no tema do pack$fonte — $no_ar"
+    return "$MEOW_OK"
+  fi
+
+  meow_aviso "$app: está em '$no_ar', que não veio daqui"
+  meow_info  "o pack$fonte traz '$do_pack'"
+
+  # O seco promete não tocar em arquivo nenhum, e perguntar é o começo de tocar.
+  if meow_seco; then
+    meow_pula "perguntaria se troco pelo tema do pack (e não trocaria sozinho)"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  if [ -t 0 ] && [ -t 1 ]; then
+    printf '  %s??%s   trocar pelo tema do pack? [s/N] ' "$C_AMARELO" "$C_ZERO"
+    IFS= read -r -t 30 resp || resp=""
+    printf '\n'
+    case "$resp" in
+      [sS]|[sS][iI][mM])
+        meow_pendencia_resolvida "$id"
+        meow_muda "$app: trocando pelo tema do pack a pedido dela"
+        return "$MEOW_DIVERGENTE" ;;
+    esac
+  fi
+
+  meow_pendencia_acionavel "$id" \
+    "O $app está no tema '$no_ar', que não veio do MeowSystem — deixei como está. Trocar pelo tema do pack é decisão sua, e ela se toma rodando o aplicar deste app de um terminal" \
+    ""
+  return "$MEOW_SEM_DEPENDENCIA"
+}
+
 # --- A PORTA ÚNICA DA PALETA -------------------------------------------------
 #
 # POR QUE ISTO EXISTE [2026-09-17]

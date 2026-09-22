@@ -34,6 +34,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [A estrutura do pack](#a-estrutura-do-pack)
 - [`pack.json`, campo a campo](#packjson-campo-a-campo)
 - [De onde sai um acervo: pack, herança, motor](#de-onde-sai-um-acervo-pack-herança-motor)
+- [Temas de aplicativo](#temas-de-aplicativo)
 - [Quem vence: o pack ou o `meow.conf`](#quem-vence-o-pack-ou-o-meowconf)
 - [O tema do COSMIC, e o único passo manual que existe](#o-tema-do-cosmic-e-o-único-passo-manual-que-existe)
 - [O som](#o-som)
@@ -136,6 +137,9 @@ packs/<id>/
     apps/                   os desenhos referidos pelo mapa
     pastas/                 folder-documents.svg, folder-download.svg…
     mimetypes/<flavor>/     o acervo por tipo de arquivo (é grande: ~656 por flavor)
+  apps/
+    <tema>.qbtheme                   os temas de DENTRO dos aplicativos — ver a seção própria
+    PROCEDENCIA.md                   obrigatória quando a arte é de terceiro
   temas/
     capturados/<flavor>-<accent>/    o tema do COSMIC já fotografado — ver a seção própria
   LEIAME.md                 opcional
@@ -208,6 +212,11 @@ suportado é recusado com o número na mensagem.
                     "repo_do_conf": "WALLPAPER_SEMENTE_REPO",
                     "commit_do_conf": "WALLPAPER_SEMENTE_COMMIT",
                     "se_vazio": "herdar" }
+  },
+
+  "apps": {
+    "spotify":     { "spicetify_tema": "Sleek", "esquema": "Dracula" },
+    "qbittorrent": { "arquivo": "apps/meu-tema.qbtheme", "sha256": "…" }
   }
 }
 ```
@@ -276,6 +285,130 @@ ninguém herda devolve nada, e quem chamou decide se isso é problema.
 > sonda de existência para o shell (`lib/comum.sh` joga a saída dele fora e olha
 > o código de retorno). Reaproveitar aquele nome para esta semântica faria todo
 > script de shell deixar de enxergar o pack, sem erro nenhum na tela.
+
+---
+
+## Temas de aplicativo
+
+O pack veste o COSMIC, os ícones e o terminal — e, desde 22/09/2026, também o
+**tema de dentro dos aplicativos**: o esquema de cor do Spotify, o `.qbtheme` do
+qBittorrent, o tema do Obsidian.
+
+> **`apps` não é `icones.apps`.** `icones.apps` são os **ícones** dos
+> aplicativos. `apps` é o **tema de dentro** deles. As trilhas não colidem; quem
+> lê o `pack.json` de cima para baixo, sim.
+
+### Por que este bloco existe
+
+`assets/temas-de-apps/` é **anterior** ao formato de pack e nunca soube que ele
+existe. Contado em 21/09/2026: **446 citações** da palavra `catppuccin` em oito
+módulos, e **zero** consultas ao pack ativo. Na prática, os oito eram aplicadores
+de um tema só.
+
+O preço estava na tela: numa máquina cujo pack ativo é o **Dracula**, o módulo do
+Obsidian anunciou *"Catppuccin Mocha já estava aplicado"*. O único dos oito que
+"deu certo" foi o que aplicou o tema do **outro** pack e chamou de sucesso.
+
+### O que se declara
+
+```json
+"apps": {
+  "spotify":     { "spicetify_tema": "Sleek", "esquema": "Dracula" },
+  "qbittorrent": { "arquivo": "apps/dracula.qbtheme", "sha256": "27948d…" },
+  "obsidian":    { "herda": "catppuccin" }
+}
+```
+
+| Campo | O que é |
+|---|---|
+| `arquivo` | caminho **dentro do pack** para a arte do tema. Volta resolvido em caminho absoluto |
+| `sha256` | a integridade daquele arquivo. O `validar` a confere **na publicação** |
+| `herda` | *"este aplicativo eu pego emprestado daquele pack"*. Vence a `heranca` do topo |
+| o resto | nomes que o módulo daquele app entende — veja a tabela abaixo |
+
+Os campos que cada módulo entende hoje:
+
+| App | Campo | O que é |
+|---|---|---|
+| `spotify` | `spicetify_tema` | a pasta de `~/.config/spicetify/Themes` a usar |
+| | `esquema` | a seção do `color.ini` daquele tema. Aceita `<flavor>` |
+| | `acento_no_color_ini` | `true` só se o tema nomear as 26 cores como chaves |
+| | `origem` | de onde o tema desce: `tipo`, `repo`, `commit`, `pasta` |
+| `qbittorrent` | `arquivo`, `sha256` | o `.qbtheme`, e a integridade dele |
+
+`<flavor>` é expandido com o `FLAVOR` da máquina e, na falta dele, com o
+`paleta.flavor_padrao` do pack ativo. É o mesmo marcador de
+`cosmic.nome_da_paleta`.
+
+Um campo que você declare e nenhum módulo leia aparece no aviso de **campo sem
+leitor** do `validar`. É de propósito: o formato não aceita declaração morta em
+silêncio.
+
+### A herança é por aplicativo, não por campo
+
+Quem responde é o **primeiro pack da cadeia que declara o bloco `apps.<app>`
+inteiro**. Um campo que falte **dentro** de um bloco declarado é ausência — não
+motivo para descer mais um degrau.
+
+Se fosse por campo, um pack que declarasse `spicetify_tema` sem `esquema`
+herdaria o esquema do vizinho, e o Spotify sairia com o tema de um pack e o
+esquema de cor de outro. Divergência silenciosa é o que este formato inteiro
+existe para evitar.
+
+```bash
+python3 scripts/pack.py app dracula apps.spotify.spicetify_tema
+#   pack=dracula
+#   valor=Sleek
+
+python3 scripts/pack.py app dracula apps.qbittorrent.arquivo
+#   pack=catppuccin            <- subiu pela herança, e a linha diz de quem
+#   valor=…/packs/catppuccin/apps/catppuccin-mocha.qbtheme
+```
+
+### Ler o que está no ar antes de escrever
+
+Esta é a metade que importa. **Antes de aplicar, o módulo lê o que o aplicativo
+está vestindo agora.** Três saídas, e as três aparecem na tela:
+
+| O que está no ar | O que acontece |
+|---|---|
+| **o tema do pack** | nada a fazer, e o log diz qual |
+| **nada** | aplica |
+| **um tema que não veio daqui** | **pergunta. Não sobrescreve** |
+
+A terceira é a que faltava a todos os oito módulos, e é por isso que o trabalho
+que a pessoa já tinha feito à mão era invisível para o programa. Medido em
+21/09/2026: o `qBittorrent.conf` apontava para `~/.themes/dracula.qbtheme` desde
+as 16:49 daquele dia, e o módulo dizia *"não há quem escreva o
+qBittorrent.conf"* — com o conf já escrito.
+
+**A pergunta não pode travar o timer.** O instalador roda desatendido, de hora em
+hora. Então ela só acontece quando há alguém: as duas pontas precisam ser
+terminal, e mesmo assim a espera tem teto de 30 segundos. Fora da tela o caso
+vira **pendência acionável** (`<app>-tema-de-terceiro`), o arquivo dele fica
+intocado, e a linha espera na Home.
+
+Sobrescrever calado o tema que alguém escolheu à mão não conserta a divergência:
+apaga a pessoa do processo.
+
+### Para quem escreve um módulo
+
+```bash
+tema="$(meow_app_tema_do_pack spotify.spicetify_tema)"   # o QUE aplicar
+echo "$MEOW_APP_TEMA_PACK"                               # QUEM respondeu
+
+meow_app_tema_no_ar spotify "$no_ar" "$tema" "$MEOW_APP_TEMA_PACK"
+case $? in
+  0) : ;;                       # já está no tema do pack
+  1) : ;;                       # está sem tema: pode aplicar
+  3) return 3 ;;                # tema de terceiro: não toque
+esac
+```
+
+As duas andam juntas. Usar a primeira sem a segunda troca um defeito por outro:
+o módulo passaria a aplicar o tema certo por cima do que a pessoa escolheu.
+
+O teto de citações por módulo está em `tests/temas-de-apps.sh`, e ele só desce.
 
 ---
 

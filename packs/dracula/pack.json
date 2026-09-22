@@ -67,6 +67,17 @@
       "_nota": "As duas chaves nomeiam ENTRADAS DO MEOW.CONF, não valores: 'dono/repo' nomeia a conta de uma pessoa e este arquivo é versionado. Quem instala põe o repositório no próprio meow.conf."
     }
   },
+  "apps": {
+    "_nota": "Os TEMAS DE DENTRO dos aplicativos — `icones.apps`, acima, são os ÍCONES deles, e a coincidência de nome é a primeira pedra do caminho. O bloco nasceu em 22/09/2026 (sprint P18), e o Dracula é a razão de ele existir: até aqui o pack declarava som, paleta e dois acervos de ícone, e NENHUM tema de aplicativo — então os oito módulos de `assets/temas-de-apps/` continuavam aplicando Catppuccin numa máquina vestida de Dracula, sem que nada na tela dissesse isso.",
+    "spotify": {
+      "spicetify_tema": "Sleek",
+      "esquema": "Dracula",
+      "_nota": "MEDIDO nesta máquina em 21/09/2026, e não escolhido: o `~/.config/spicetify/config-xpui.ini` já dizia `current_theme = Sleek` e `color_scheme = Dracula`, com o app patchado. O tema Sleek traz dezoito esquemas de cor e um deles é o Dracula oficial (o color.ini do Sleek credita draculatheme.com na própria seção). Declarar aqui o que já está no ar é o que faz o módulo dizer 'já está no tema do pack' em vez de sobrescrever o que ela escolheu.",
+      "_nota_sem_origem": "Sem bloco `origem` DE PROPÓSITO: o Sleek não é arte deste projeto nem tem um tarball que este pack saiba pinar por commit. Se um dia ele não estiver em `~/.config/spicetify/Themes/`, o módulo diz que o pack pede um tema que não está instalado e NÃO inventa um download — é o contrário de baixar o tema do outro pack e chamar de sucesso.",
+      "_nota_sem_acento": "Sem `acento_no_color_ini` porque a seção [Dracula] do color.ini do Sleek define vinte e duas chaves e nenhuma delas se chama `mauve`: escrever o acento da casa ali só daria erro. O acento do Dracula já está na arte do próprio esquema."
+    },
+    "_nota_qbittorrent": "O `apps/dracula.qbtheme` NÃO entrou, e a ausência é declarada. O arquivo existe nesta máquina — `~/.themes/dracula.qbtheme`, 4.468 bytes, sha256 27948d8a…, `qres` de verdade, escrito em 21/09/2026 16:49 — e o `qBittorrent.conf` dela já aponta para ele. O que falta é PROCEDÊNCIA: não há aqui repositório, release, commit nem licença que digam de onde aquele .rcc veio, e a regra da casa para arte de terceiro é a que está na `apps/PROCEDENCIA.md` do pack padrão. Copiar o binário para dentro de um pack versionado com a procedência em branco seria publicar arte de alguém sem crédito. Enquanto ele não entrar, o qbittorrent deste pack HERDA do catppuccin (a `heranca` do topo) — e é justamente por isso que o módulo lê o que está no ar antes de escrever: ele vê o dracula.qbtheme, vê que não veio daqui, e PERGUNTA em vez de trocar."
+  },
   "som": {
     "_nota": "O sino do Dracula. O pack embutido usa 880 Hz + a quinta justa acima (1320), que soa resolvida e clara. Aqui a escolha é outra: sol (784) com a TERÇA MENOR acima (si bemol, 932.3). Terça menor é o intervalo que a música ocidental lê como sombrio — é o que faz o mesmo gesto de mexer no volume soar noturno em vez de alegre, sem virar alarme. O decaimento é mais lento (38 contra 46) porque a terça menor precisa de um instante a mais para ser reconhecida como intervalo; abaixo disso as duas notas viram um clique só. Duração e ganho ficam nos defaults: a primeira é presa ao debounce de 125 ms do cosmic-osd, e o segundo é calibrado contra o arquivo de fábrica — mexer neles muda o susto, não o timbre.",
     "fundamental": 784.0,
