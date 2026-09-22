@@ -1212,8 +1212,16 @@ select { flex: 1 1 auto; }
    embaixo do rótulo e ele fica encostado no topo da moldura.
 
    Onde isto apertar a grade, a grade ganha coluna — o botão não perde altura.
-   Ver a `.galeria .acoes`, que subiu para 28 px pelo mesmo motivo. */
-.btn { min-height: 24px; }
+   Ver a `.galeria .acoes`, que subiu para 28 px pelo mesmo motivo.
+
+   O `.btn` MORA COM O `.btn` — corrigido em 21/09/2026, no mesmo dia
+   -------------------------------------------------------------------------
+   A primeira versão desta seção trazia um `.btn { min-height: 24px }` aqui
+   dentro, 147 linhas antes do bloco `.btn` de verdade. Funcionava, porque o
+   bloco de baixo não mexe em `min-height` — e era uma armadilha: um
+   `min-height` escrito lá, que é onde se escreve `.btn`, apagaria o piso sem
+   aviso e sem ninguém passar por este comentário. O piso do `.btn` está no
+   bloco "botões", com um ponteiro para cá. */
 .btn-mini {
   font-size: var(--t-legenda);
   padding: .18rem .45rem;
@@ -1370,6 +1378,10 @@ select { flex: 1 1 auto; }
   font-size: .8rem;
   cursor: pointer;
   white-space: nowrap;
+  /* O PISO DE 24 PX (WCAG 2.2, critério 2.5.8) — 21/09/2026. O porquê inteiro,
+     com a medição das 14 abas, está no bloco "O PISO DE 24 PX" junto ao
+     `.btn-mini`; aqui fica a regra, que é onde se procura por ela. */
+  min-height: 24px;
 }
 .btn:hover { border-color: var(--overlay0); background: var(--surface1); }
 .btn-accent { background: var(--accent); border-color: var(--accent); color: var(--crust); font-weight: 600; }
@@ -1775,6 +1787,14 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
   background: color-mix(in srgb, var(--crust) 70%, transparent);
   border-radius: var(--r-2);
   padding: .15rem .25rem;
+}
+/* De qual botão é esta linha. Não encolhe: são quatro rótulos de uma palavra
+   ("Usar", "Dia", "Noite", "Tirar"), e é o que separa duas linhas que o
+   `<code>` cortado mostra iguais. */
+.comando-de {
+  flex: 0 0 auto;
+  font-size: var(--t-legenda);
+  color: var(--subtext0);
 }
 .comando code {
   flex: 1 1 auto;

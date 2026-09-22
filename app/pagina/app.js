@@ -426,7 +426,15 @@ function encurtarCaminho(txt) {
     if (maior.length + 2 > BALAO_LIMITE) break;
     fim = maior;
   }
-  return fim === txt.replace(/^\/+/, "") ? txt : "…/" + fim;
+  /* A BARRA DO FIM TAMBÉM SAI DA COMPARAÇÃO — 21/09/2026
+   *   O `filter(Boolean)` acima come a barra final, então um caminho de
+   * DIRETÓRIO nunca era igual ao original e ganhava um "…/" que mentia:
+   * `/home/andrefarias/Imagens/` voltava como `…/home/andrefarias/Imagens`,
+   * 26 caracteres, nada cortado, e a reticência anunciando que havia mais
+   * acima de `/home`. Nenhum balão de hoje passa diretório por aqui (os oito
+   * que carregam caminho terminam em nome de arquivo), mas a mentira estava a
+   * uma barra de distância. */
+  return fim === txt.replace(/^\/+/, "").replace(/\/+$/, "") ? txt : "…/" + fim;
 }
 
 /* Separa uma ajuda em «o que cabe no balão» e «o que é comando». É a única
@@ -435,7 +443,11 @@ function encurtarCaminho(txt) {
 function partirAjuda(txt) {
   let balao = String(txt == null ? "" : txt).trim();
   let comando = "";
-  if (!balao) return { balao, comando };
+  /* Quantos caracteres a rede teve de aparar, ou 0. É este número que o
+   * `porBalao` pendura no elemento para o teste poder reprovar a apara — ver a
+   * REDE, logo abaixo. */
+  let aparado = 0;
+  if (!balao) return { balao, comando, aparado };
   /* O comando entre parênteses, no fim da frase — a forma que os 119 balões da
    * galeria usavam. */
   balao = balao.replace(/\s*\(\s*(meow\s[^()]*)\)\s*$/, (m, cmd) => {
@@ -452,11 +464,24 @@ function partirAjuda(txt) {
      * em 80; o que chega aqui é texto montado com dado de fora (um nome de
      * arquivo, um valor de chave) que estourou. Aparar é melhor que a tarja de
      * 154 caracteres que estava aí antes, e pior que escrever curto na fonte —
-     * então o teste continua reprovando quem depender disto. */
+     * então o teste continua reprovando quem depender disto.
+     *
+     * E ELE SÓ REPROVA PORQUE A APARA DEIXA MARCA — 21/09/2026
+     *   A primeira versão desta função aparava e ia embora, e com isso a
+     * promessa da linha acima era falsa: o teste media o `data-balao` DEPOIS
+     * da apara, uma frase de 200 caracteres devolvia 80 e passava. A rede
+     * apagava a própria pegada. Medido no caso que escapou: a frase de 83
+     * caracteres do «Desfazer N escolhas» saía mutilada na tela e verde no
+     * teste.
+     *   Agora o comprimento ORIGINAL sobe junto, o `porBalao` o pendura em
+     * `data-balao-aparado` e o teste conta quantos existem. Zero é o único
+     * número aceito: a rede existe para não pegar ninguém, e quem ela pegar
+     * tem de aparecer vermelho com o tamanho que tinha na fonte. */
+    aparado = balao.length;
     const corte = balao.lastIndexOf(" ", BALAO_LIMITE - 1);
     balao = balao.slice(0, corte > 40 ? corte : BALAO_LIMITE - 1).trimEnd() + "…";
   }
-  return { balao, comando };
+  return { balao, comando, aparado };
 }
 
 function balaoFocavel(el) {
@@ -466,10 +491,14 @@ function balaoFocavel(el) {
 /* Põe (ou tira) o balão de um elemento. Substitui o `el.title = …` em toda a
  * página; o atributo nativo sai aqui, e não sobra em lugar nenhum. */
 function porBalao(el, texto) {
-  const { balao, comando } = partirAjuda(texto);
+  const { balao, comando, aparado } = partirAjuda(texto);
   el.removeAttribute("title");
   if (comando) el.dataset.comando = comando;
   else delete el.dataset.comando;
+  /* A PEGADA DA REDE, para o teste ter o que reprovar. Não muda nada na tela:
+   * é atributo de dado, e o balão já saiu aparado daqui. */
+  if (aparado) el.dataset.balaoAparado = String(aparado);
+  else delete el.dataset.balaoAparado;
   /* BALÃO QUE REPETE O QUE JÁ ESTÁ ESCRITO NÃO NASCE. Eram 42 na página: a
    * linha `<code class="cmd">` de cada cartão de ação levava no `title` o
    * mesmo comando que ela imprime dois centímetros abaixo. */
@@ -513,6 +542,18 @@ function mostrarBalao(alvo) {
    * ficha), o próprio elemento serve. */
   const ancora = alvo.closest("figure, article.cartao, .acao, .bloco-acao, .ficha") || alvo;
   const r = ancora.getBoundingClientRect();
+  /* MEDIR DE VOLTA AO CANTO — 21/09/2026
+   *   A caixa é medida antes de ser posicionada, e com `position: fixed` e só
+   * o `left` escrito a largura disponível é `innerWidth - left`: medir sem
+   * zerar media o balão NA POSIÇÃO ANTERIOR. Um balão curto num cartão da
+   * direita seguido de um longo na esquerda dava altura maior que a real, e o
+   * longo nascia alguns px acima do cartão — ou descia quando ainda cabia
+   * acima. Medido: não chegava a cobrir irmão (o piso `Math.max(8, …)` segura
+   * o resto), mas a conta estava errada de propósito nenhum.
+   *   Zerar os dois antes de medir dá sempre a mesma caixa: a natural, até o
+   * `max-width: 28rem` do estilo. */
+  BALAO_EL.style.left = "0px";
+  BALAO_EL.style.top = "0px";
   const cx = BALAO_EL.getBoundingClientRect();
   const esq = Math.max(8, Math.min(r.left, innerWidth - cx.width - 8));
   const acima = r.top - cx.height - 8;
@@ -591,6 +632,19 @@ function verComando(acoes) {
   const bloco = elemento("div", { class: "comandos", hidden: true });
   for (const [rotulo, cmd] of linhas) {
     bloco.append(elemento("div", { class: "comando" }, [
+      /* O RÓTULO DO BOTÃO ENTRA VISÍVEL — 21/09/2026
+       *   Medido na ficha de imagem: o `<code>` rola de lado em 180 px e as
+       * quatro linhas apareciam como "meow wallpaper usar", "meow wallpaper
+       * lado", "meow wallpaper lado" e "meow wallpaper bani" — as duas de
+       * `lado` IDÊNTICAS, porque o que as separa (`dia`/`noite`) e o nome do
+       * arquivo ficam fora da vista. Duas linhas iguais numa lista leem-se
+       * como defeito, e o Copiar certo passa a ser adivinhação.
+       *   O `aria-label` do Copiar já dizia de qual botão era cada linha; era
+       * o olho que estava sem essa informação. Ele custa uns 24 px da largura
+       * do `<code>`, que já estava cortado — e cortado com dono é legível,
+       * cortado anônimo não. A rolagem de lado fica como está (quebrar o nome
+       * do arquivo em três linhas comeria o cartão, ver o estilo.css). */
+      rotulo ? elemento("span", { class: "comando-de", texto: rotulo }) : null,
       elemento("code", { texto: cmd }),
       elemento("button", {
         type: "button", class: "btn btn-mini",
@@ -3557,7 +3611,7 @@ function montarJogos() {
         elemento("button", {
           type: "button", class: "btn btn-mini",
           texto: "Tirar da lista",
-          /* 96 -> 62 caracteres, pelo teto do balão (21/09/2026). A segunda
+          /* 96 -> 49 caracteres, pelo teto do balão (21/09/2026). A segunda
            * metade dizia duas vezes a mesma coisa: se nenhum arquivo é tocado,
            * o jogo que não está no disco continua não estando. */
           title: "Tira a decisão da lista. Nenhum arquivo é tocado.",
@@ -4852,7 +4906,7 @@ function itensExternos() {
    * no meio da página; o GitHub ainda a resolveria, mas ela deixaria a leitora no
    * lugar mais pobre dos dois. */
   const LINKS_EXTERNOS = [
-    /* A FRASE ENCOLHEU DE 111 PARA 66 — 21/09/2026, o teto de 80 do balão.
+    /* A FRASE ENCOLHEU DE 111 PARA 63 — 21/09/2026, o teto de 80 do balão.
      * O que saiu foi o inventário ("a paleta, os glifos, as fontes e a base de
      * ícones"): num balão de item de menu ele é uma lista que ninguém lê de
      * passagem, e a página inteira do GitHub a mostra melhor do que um balão
@@ -6174,7 +6228,19 @@ function render() {
           type: "button",
           class: "btn btn-mini desfazer-forma",
           texto: pendentes.length === 1 ? "Desfazer 1 escolha" : `Desfazer ${pendentes.length} escolhas`,
-          title: "Devolve a forma do painel e da dock ao que está no disco. O meow.conf não é tocado.",
+          /* 83 -> 63 CARACTERES — 21/09/2026, e esta foi a OITAVA, não a sétima.
+           * A primeira passagem desta sprint contou sete frases acima do teto
+           * de 80 e deixou esta de fora, porque o botão só existe quando há
+           * escolha pendente no bloco e a varredura das 14 abas nunca o pinta.
+           * O preço de passar batido estava medido: a rede do `partirAjuda`
+           * cortava em «O meow.conf não é…», e a garantia virava uma negação
+           * pendurada que diz o OPOSTO do que a frase existe para dizer.
+           *   O que saiu foi "do painel e da dock": este botão nasce dentro do
+           * bloco da forma, na aba que se chama "Painel e dock", e a palavra
+           * «forma» é a da casa aqui (ver a classe `desfazer-forma` e o irmão
+           * de um bloco só, acima). A garantia ficou inteira, que é a metade
+           * que não podia encolher. */
+          title: "Devolve a forma ao que está no disco. O meow.conf não é tocado.",
           onclick: () => {
             for (const c of pendentes) MUDANCAS.delete(c);
             atualizarBarraSalvar();

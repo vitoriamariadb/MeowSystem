@@ -76,6 +76,7 @@ MAQUINA=(
   afinador.sh            # precisa de rsvg-convert e do `compare` do ImageMagick
   previa-cerca.sh        # sobe o painel e planta uma isca no ~/.local/share/icons de verdade
   app-navegador.py       # Playwright com Chromium, a página usada como ela usaria
+  app-acessibilidade.py  # Playwright com Chromium; sobe o painel
 )
 
 # ---------------------------------------------------------------------------

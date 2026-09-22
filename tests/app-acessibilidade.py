@@ -42,8 +42,17 @@ O QUE ELE MEDE, E POR QUE ASSIM
   E UM QUARTO, QUE NAO E' NUMERO E IMPORTA TANTO QUANTO: o balao tem de
   aparecer no FOCO. O `title` nativo, por pior que seja, aparecia; um
   substituto que so' responda ao rato piora a acessibilidade em vez de
-  melhorar. O passo 4 exercita o Tab e confere que o balao nasce, que ele fica
+  melhorar. O passo 3 exercita o Tab e confere que o balao nasce, que ele fica
   FORA da fileira de botoes, e que o Escape o fecha.
+
+  E O TETO DE 80 E' MEDIDO DUAS VEZES — 21/09/2026
+    Porque medi-lo uma so' vez, na tela, nao o media. O `partirAjuda` apara
+    antes de escrever o atributo, entao o `data-balao` devolve 80 mesmo para
+    uma frase de 200 na fonte; e o elemento de um botao que so' nasce em certo
+    estado nunca e' pintado para ser medido. As duas metades estao fechadas: o
+    passo 1 le' a FONTE (e nao depende de pintar nada) e o passo 4 conta a
+    PEGADA da apara (`data-balao-aparado`), que cobre a frase montada com dado
+    de fora. O porque' de cada um esta' junto do codigo de cada um.
 
 O QUE ELE NAO FAZ
   Nao clica em nada que escreva: nenhuma acao e' executada, nenhuma chave e'
@@ -109,9 +118,15 @@ CENSO_JS = """
   /* O `title` entra no MESMO censo do `data-balao`, e nao num censo ao lado:
      um `title` que volte e' um balao nativo de volta, e tem de reprovar aqui
      em vez de sumir da conta. */
-  const baloes = [...document.querySelectorAll('[data-balao], [title]')].map((el) => ({
+  const baloes = [...document.querySelectorAll(
+    '[data-balao], [title], [data-balao-aparado]')].map((el) => ({
     texto: el.getAttribute('data-balao') || el.getAttribute('title') || '',
     nativo: el.hasAttribute('title'),
+    /* O COMPRIMENTO QUE A FRASE TINHA NA FONTE, quando a rede do `partirAjuda`
+       teve de apara-la. Medir so' o `data-balao` mede DEPOIS da apara, e ai'
+       uma frase de 200 caracteres devolve 80 e passa — a rede apagando a
+       propria pegada. Aqui ele vem junto, e o passo 4 exige zero. */
+    aparado: Number(el.getAttribute('data-balao-aparado') || 0),
     tag: el.tagName.toLowerCase(),
     classe: (el.className || '').toString().slice(0, 40),
   }));
@@ -124,7 +139,81 @@ CENSO_JS = """
 #   forma dos 119 —, e tambem o caminho absoluto do `bin/meow` ou de um script
 #   do projeto, que e' a mesma coisa escrita por extenso. `meow.conf` NAO casa:
 #   e' o nome de um arquivo, e falar dele em portugues e' legitimo.
-COMANDO_NO_BALAO = re.compile(r"(?:^|[(\s/])meow\s+[a-z]|\S+\.sh\s")
+#
+#   O `.sh` NO FIM DO BALAO TAMBEM CONTA — corrigido em 21/09/2026
+#     A primeira versao pedia `\S+\.sh\s`, com espaco OBRIGATORIO depois, e com
+#     isso um balao que TERMINASSE no nome do script escapava da conta inteira:
+#     "roda o ~/bin/meow-pack.sh" passava. Buraco numa rede e' pior que rede
+#     nenhuma, porque ela declara cobrir o que nao cobre. Agora o fim da frase
+#     fecha o casamento como um espaco fecharia.
+#
+#   E O LADO FALSO-POSITIVO FICA COMO ESTA, de proposito: `meow\s+[a-z]` pega
+#   tambem uma frase legitima que comece com "meow " mais minuscula ("o meow le
+#   o arquivo"). Distinguir exigiria a lista dos verbos do `meow`, que e' a
+#   armadilha nº 3 do projeto — lista fixa que alguem vai esquecer de crescer. E
+#   o erro cai para o lado seguro: um falso positivo REPROVA e alguem le a
+#   frase; um falso negativo passa calado, que e' o que esta rede veio matar.
+COMANDO_NO_BALAO = re.compile(r"(?:^|[(\s/])meow\s+[a-z]|\S+\.sh(?:\s|$)")
+
+
+# O TETO DE 80 MEDIDO NA FONTE, E NAO SO' NA TELA — 21/09/2026
+#   A sprint pede "limite duro de 80 caracteres — o teste falha acima disso", e
+#   a primeira versao deste arquivo nao cumpria isso por dois motivos somados:
+#   o `partirAjuda` APARA antes de escrever o `data-balao`, e a varredura das 14
+#   abas so' ve' o que a pagina pinta. O caso que escapou tinha as duas coisas:
+#   a frase de 83 caracteres do «Desfazer N escolhas» saia mutilada na tela
+#   ("O meow.conf nao e'…", que diz o oposto do que a frase existe para dizer) e
+#   o botao so' nasce quando ha escolha pendente no bloco — estado que a
+#   varredura nunca alcanca. Verde por duas ausencias.
+#
+#   A apara agora deixa marca (`data-balao-aparado`, contada no passo 4). Esta
+#   leitura da FONTE cobre a outra metade: a frase escrita a mao acima do teto
+#   aparece mesmo que o elemento dela nunca seja pintado. Rodada contra o
+#   commit que a introduziu, ela devolve exatamente aquela linha.
+#
+# POR QUE SO' `app.js` E `index.html`
+#   E' onde o balao e' AUTORADO. As ajudas do `servidor.py` sao, na quase
+#   totalidade, prosa VISIVEL do cartao de acao — medi-las por este teto
+#   reprovaria vinte frases que nunca viram balao. As quatro que viram (os
+#   botoes do cabecalho da Inicio) passam pelo `porBalao` na aba Inicio, que a
+#   varredura percorre, e caem na marca da apara se estourarem.
+#
+# O QUE FICA DE FORA, DITO EM VOZ ALTA
+#   Frase MONTADA (`${…}`) nao entra: o comprimento dela depende do dado, e e'
+#   exatamente para ela que a rede do `partirAjuda` existe — quem cuida desse
+#   caso e' a marca da apara. E o denominador ("N frases fixas medidas") sai na
+#   tela de proposito: um "0 reprovado" tambem e' o que uma expressao quebrada
+#   devolve, e sem o denominador os dois se parecem.
+LITERAL = r'"(?:[^"\\\n]|\\.)*"|\'(?:[^\'\\\n]|\\.)*\'|`(?:[^`\\]|\\.)*`'
+_VALOR = r'((?:' + LITERAL + r')(?:\s*\+\s*(?:' + LITERAL + r'))*)'
+# A ANCORA DE POSICAO NAO E' ZELO: sem exigir inicio de linha, `{` ou `,` antes
+# da chave, o `title` CITADO num comentario casa, e o literal de crase que vem
+# depois dele engole o comentario inteiro — um achado de 1195 caracteres que
+# nao existe na tela. A chave tem de estar em posicao de propriedade.
+AJUDA_NA_FONTE = {
+    "app/pagina/app.js": re.compile(
+        r'(?:^[ \t]*|[{,][ \t]*)(?:title|titulo):\s*' + _VALOR, re.M),
+    "app/pagina/index.html": re.compile(r'\stitle=\s*' + _VALOR),
+}
+
+
+def frases_fixas():
+    """Devolve (quantas foram medidas, as que passam do teto na FONTE)."""
+    medidas, compridas = 0, []
+    for rel, padrao in AJUDA_NA_FONTE.items():
+        with open(os.path.join(RAIZ, rel), encoding="utf-8") as f:
+            src = f.read()
+        for m in padrao.finditer(src):
+            pecas = re.findall(LITERAL, m.group(1))
+            txt = "".join(p[1:-1] for p in pecas)
+            if "${" in txt:
+                continue
+            txt = txt.replace('\\"', '"').replace("\\'", "'")
+            medidas += 1
+            if len(txt) > TETO_BALAO:
+                compridas.append((rel, src.count("\n", 0, m.start()) + 1,
+                                  len(txt), txt))
+    return medidas, compridas
 
 
 def sobe_servidor():
@@ -211,13 +300,29 @@ FOCO_JS = """
 
 
 def main():
+    falhas = []
+
+    # Este passo nao precisa de navegador nem de painel no ar, e vem primeiro
+    # por isso: se a frase esta comprida na fonte, nao ha o que medir na tela.
+    print("1. O TETO DE 80 NA FONTE (antes da apara, e mesmo sem pintar)")
+    medidas, compridas = frases_fixas()
+    for rel, linha, tam, txt in compridas:
+        print(f"  XX {rel}:{linha}  {tam} caracteres  {txt[:70]!r}")
+    print(f"  {len(compridas)} acima de {TETO_BALAO}, "
+          f"de {medidas} frases fixas medidas")
+    if compridas:
+        falhas.append(f"{len(compridas)} frases fixas acima de "
+                      f"{TETO_BALAO} caracteres na fonte")
+    if not medidas:
+        falhas.append("nenhuma frase fixa foi encontrada na fonte — "
+                      "a leitura quebrou, e um zero assim nao e' verde")
+
     proc, url = sobe_servidor()
     if not url:
         print("XX o app/run.sh nao imprimiu a URL — nada a medir")
         proc.terminate()
         return 2
 
-    falhas = []
     try:
         with sync_playwright() as p:
             nav = p.chromium.launch()
@@ -227,10 +332,10 @@ def main():
             pag.goto(url, wait_until="domcontentloaded")
             pag.wait_for_timeout(3000)
 
-            print("\n1. AS ABAS, UMA A UMA")
+            print("\n2. AS ABAS, UMA A UMA")
             pequenos, medidos, baloes = percorrer(pag)
 
-            print("\n2. O BALAO NO TECLADO (o risco declarado da sprint)")
+            print("\n3. O BALAO NO TECLADO (o risco declarado da sprint)")
             # A ficha de imagem e' onde a queixa nasceu: quatro botoes lado a
             # lado, e o balao de um cobria os outros tres.
             pag.locator('#trilho button:has-text("Papel de parede")').first.click()
@@ -274,14 +379,20 @@ def main():
     compridos = [b for b in baloes if len(b["texto"]) > TETO_BALAO]
     com_comando = [b for b in baloes if COMANDO_NO_BALAO.search(b["texto"])]
     nativos = [b for b in baloes if b["nativo"]]
+    aparados = [b for b in baloes if b["aparado"]]
 
-    print("\n3. OS TRES NUMEROS")
+    print("\n4. OS TRES NUMEROS, E A PEGADA DA REDE")
     print(f"alvos com menos de {PISO_PX} px ................. "
           f"{len(pequenos)}   (antes da P6: 200)")
     print(f"baloes com mais de {TETO_BALAO} caracteres ......... "
           f"{len(compridos)}   (antes da P6: 243)")
     print(f"baloes com comando meow dentro ........... "
           f"{len(com_comando)}   (antes da P6: 159)")
+    # A REDE EXISTE PARA NAO PEGAR NINGUEM, e por isso ela aparece no placar:
+    # um balao aparado e' uma frase que estourou o teto na fonte e chegou a' tela
+    # mutilada. Zero e' o unico numero aceito aqui.
+    print(f"baloes que a rede teve de aparar ......... "
+          f"{len(aparados)}   (o teto nao e' para chegar aqui)")
     print(f"\n({medidos} alvos e {len(baloes)} baloes medidos nas 14 abas; "
           f"{len(nativos)} baloes ainda sao `title` nativo)")
 
@@ -295,6 +406,9 @@ def main():
                   f" {b['texto'][:90]!r}")
         for b in com_comando:
             print(f"  cmd        [{b['aba'][:16]:16s}] {b['texto'][:90]!r}")
+        for b in aparados:
+            print(f"  aparado {b['aparado']:4d} car na fonte "
+                  f"[{b['aba'][:16]:16s}] {b['texto'][:70]!r}")
 
     if pequenos:
         falhas.append(f"{len(pequenos)} alvos abaixo de {PISO_PX} px")
@@ -302,6 +416,10 @@ def main():
         falhas.append(f"{len(compridos)} baloes acima de {TETO_BALAO} caracteres")
     if com_comando:
         falhas.append(f"{len(com_comando)} baloes com comando meow dentro")
+    if aparados:
+        falhas.append(f"{len(aparados)} baloes que a rede teve de aparar "
+                      f"(o maior tinha {max(b['aparado'] for b in aparados)} "
+                      f"caracteres na fonte)")
     if nativos:
         falhas.append(f"{len(nativos)} baloes ainda sao `title` nativo")
 
@@ -311,7 +429,8 @@ def main():
             print("XX " + f)
         print(f"\n{len(falhas)} reprovacoes.")
         return 1
-    print("ok  os tres numeros estao em zero, e o balao responde ao teclado.")
+    print("ok  os tres numeros estao em zero, o teto de 80 se sustenta na fonte")
+    print("    e na tela, e o balao responde ao teclado.")
     return 0
 
 
