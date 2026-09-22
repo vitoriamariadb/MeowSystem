@@ -52,7 +52,7 @@ acontecer: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # ou o ícone MeowSystem no lançador
 ```
 
-122 ajustes e 52 ações em treze páginas — uma por assunto, e cada uma com tudo o que existe
+122 ajustes e 54 ações em treze páginas — uma por assunto, e cada uma com tudo o que existe
 sobre ele. O menu tem dois blocos: **Tópicos**, que é a sua tela, e **Sistema**, que é o que a
 máquina faz sozinha.
 

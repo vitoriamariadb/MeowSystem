@@ -182,6 +182,28 @@ _SPOT_INI="$_SPOT_CONFIG_DIR/config-xpui.ini"
 _SPOT_TEMA="$_SPOT_CONFIG_DIR/Themes/catppuccin"
 _SPOT_COLOR_INI="$_SPOT_TEMA/color.ini"
 
+# DE ONDE O TEMA DESCE — 22/09/2026, sprint P2
+#   A sprint mandou, palavra por palavra: «o comando é uma função do próprio
+#   projeto que baixa o tema para ~/.config/spicetify/Themes/ — repositório
+#   público fixado por tag, a mesma disciplina que o pack já usa para cursores».
+#
+#   A TAG NÃO EXISTE, E ISSO FOI MEDIDO, não suposto (22/09/2026):
+#     GET /repos/catppuccin/spicetify/tags            -> []  (lista vazia)
+#     GET /repos/catppuccin/spicetify/releases/latest -> 404
+#   O repositório nunca marcou tag nem publicou release. Pinar "por tag" ali
+#   seria pinar em nada e cair no ramo `main` — que é justamente o que a
+#   disciplina do `scripts/cursor.sh` existe para proibir: no dia em que o
+#   upstream mexesse no `color.ini`, a máquina dela mudaria sozinha.
+#
+#   Então o pino é o COMMIT, que é a mesma disciplina um grau mais forte: uma
+#   tag se reescreve (`git tag -f`), um sha de árvore não. O número não foi
+#   inventado aqui — é o `1ec645c4` que o item 1 deste cabeçalho já registrava
+#   como a procedência do tema que estava na máquina em 10/08/2026, e ele segue
+#   sendo o HEAD do `main` (conferido: commit de 2025-10-22T13:33:39Z, e o
+#   `pushed_at` do repositório é 2025-10-22T13:33:40Z).
+_SPOT_TEMA_COMMIT="1ec645c4cf7f42f9792b9eeb1bb7930f94593277"
+_SPOT_TEMA_TAR="https://github.com/catppuccin/spicetify/archive/$_SPOT_TEMA_COMMIT.tar.gz"
+
 # O Marketplace é um CustomApp do spicetify — uma PÁGINA dentro do Spotify, de
 # onde se instalam extensões, snippets e outros apps. Ele NÃO vem no binário: o
 # instalador oficial pergunta "Do you also want to install spicetify
@@ -437,6 +459,81 @@ _spot_mp_registrar() {
   return "$MEOW_DIVERGENTE"
 }
 
+# TUDO OU NADA — o mesmo desenho do `_cursor_baixar_instalar` (scripts/cursor.sh),
+# e pelo mesmo motivo: o tema são dezenas de arquivos, e um download cortado no
+# meio deixaria um `color.ini` sem os assets ao lado. O `detectar` daria o tema
+# por presente (ele testa o `color.ini`) e o Spotify abriria com metade do
+# estilo — o tipo de defeito que ninguém liga ao instalador. Por isso o tarball
+# desce inteiro para um temporário, é conferido, e só então entra no lugar com
+# um `mv` único.
+#
+# O DIRETÓRIO NÃO VAI PARA O MANIFESTO, e é a mesma escolha do Marketplace logo
+# acima: quem desfaz o Spotify é o `meow_app_reverter` (`spicetify restore`), e
+# o que mora em `~/.config/spicetify` é insumo do spicetify, não arquivo nosso
+# plantado no sistema dela.
+#
+#   0 já estava lá · 1 baixei · 2 erro · 3 falta dependência (ou rede)
+_spot_tema_baixar() {
+  local tmp origem
+  [ -f "$_SPOT_COLOR_INI" ] && return "$MEOW_OK"
+
+  meow_tem curl || { meow_pula "sem curl — o tema do spicetify fica de fora"; return "$MEOW_SEM_DEPENDENCIA"; }
+  meow_tem tar  || { meow_pula "sem tar — o tema do spicetify fica de fora";  return "$MEOW_SEM_DEPENDENCIA"; }
+
+  if meow_seco; then
+    meow_muda "baixaria o tema catppuccin do spicetify para $_SPOT_TEMA"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  meow_destino_permitido "$_SPOT_TEMA" || return "$MEOW_ERRO"
+  tmp="$(mktemp -d -p "${TMPDIR:-/tmp}" ".meow-spot-tema.XXXXXX")" || return "$MEOW_ERRO"
+
+  # `--fail` para que uma página de erro do GitHub (404 com corpo HTML) não vire
+  # "tarball corrompido" três linhas abaixo; `--max-time` porque um temporizador
+  # é a única coisa que separa "sem rede" de "pendurado para sempre" num módulo
+  # que o instalador carrega desatendido. Mesmos números do `_cursor_curl`.
+  if ! curl -sSL --fail --connect-timeout 15 --max-time 300 \
+         -o "$tmp/tema.tar.gz" "$_SPOT_TEMA_TAR" 2>/dev/null; then
+    rm -rf "$tmp"
+    meow_aviso "não deu para baixar o tema catppuccin do spicetify (sem rede?) — fica para o próximo ciclo"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if ! tar -xzf "$tmp/tema.tar.gz" -C "$tmp" 2>/dev/null; then
+    rm -rf "$tmp"
+    meow_erro "o tarball do tema veio corrompido — nada instalado"
+    return "$MEOW_ERRO"
+  fi
+
+  # O GitHub empacota tudo sob `<repo>-<commit>/`, e o tema é a pasta
+  # `catppuccin/` lá dentro (o resto do repositório é README e prints).
+  # Conferir o caminho é o que faz esta função quebrar COM MENSAGEM no dia em
+  # que o upstream reorganizar as pastas, em vez de instalar um diretório que o
+  # `detectar` aprovaria sem ter o que aplicar.
+  origem="$tmp/spicetify-$_SPOT_TEMA_COMMIT/catppuccin"
+  if [ ! -f "$origem/color.ini" ]; then
+    rm -rf "$tmp"
+    meow_erro "o tarball do tema mudou de formato (sem catppuccin/color.ini)"
+    return "$MEOW_ERRO"
+  fi
+
+  mkdir -p "$(dirname -- "$_SPOT_TEMA")" || { rm -rf "$tmp"; return "$MEOW_ERRO"; }
+  rm -rf "$_SPOT_TEMA"
+  if ! mv -f "$origem" "$_SPOT_TEMA"; then
+    rm -rf "$tmp"
+    meow_erro "não consegui mover o tema para $_SPOT_TEMA"
+    return "$MEOW_ERRO"
+  fi
+  # A PROCEDÊNCIA FICA AO LADO DO QUE ELA DESCREVE. É o mesmo `PROCEDENCIA.txt`
+  # que o item 1 deste cabeçalho já citava, e é o que permite saber, meses
+  # depois, de que árvore aquele `color.ini` veio.
+  printf 'catppuccin/spicetify @ %s\nbaixado pelo MeowSystem em %s\n' \
+         "$_SPOT_TEMA_COMMIT" "$(date -Iseconds)" \
+    > "$_SPOT_TEMA/PROCEDENCIA.txt" 2>/dev/null
+  rm -rf "$tmp"
+  meow_ok "tema catppuccin do spicetify baixado em $_SPOT_TEMA"
+  return "$MEOW_DIVERGENTE"
+}
+
 _spot_rodando() {
   if meow_tem flatpak && \
      flatpak ps --columns=application 2>/dev/null | grep -qx 'com.spotify.Client'; then
@@ -467,18 +564,26 @@ meow_app_detectar() {
   #   instalar o spicetify e um `git clone` para baixar o tema. Diagnóstico
   #   certo, conserto conhecido, nenhum botão — é a falha que a P2 persegue.
   #
-  #   E ELAS NÃO VIRARAM BOTÃO AGORA, DE PROPÓSITO. O que resolve as duas é o
-  #   `spicetify-setup.sh` (277 linhas), que existe — mas em
-  #   `~/.config/zsh/scripts/`, que é do Ritual da Aurora. Apontar a pendência
-  #   para lá repetiria, no mesmo commit, o erro que esta sprint está tirando
-  #   do `qbittorrent/manifesto.sh` cinco arquivos adiante: um módulo deste
-  #   projeto não pode depender de um script de outro projeto do autor, e quem
-  #   clonar este repositório não teria aquele arquivo. A P29 traz o script
-  #   para cá; até lá a pendência é HONESTA — diz o que falta e diz que o
-  #   comando ainda não existe deste lado, em vez de mandar rodar `curl | sh`.
+  #   AS DUAS TERMINAM DIFERENTE, E A DIFERENÇA É REAL:
+  #
+  #   O BINÁRIO continua sem botão. O instalador oficial do spicetify é um
+  #   `curl | sh` que, nesta máquina, escreveria no `~/.config/zsh/.zshrc` do
+  #   Ritual da Aurora (item 4 deste cabeçalho); e o script que resolveria
+  #   direito — `spicetify-setup.sh`, 277 linhas — mora naquele outro
+  #   repositório, que quem clonar ESTE não terá. Pôr um botão nisso seria
+  #   repetir a dependência que a mesma sprint está tirando do
+  #   `qbittorrent/manifesto.sh`. Então a mensagem diz A DECISÃO, sem receita.
+  #
+  #   O TEMA GANHOU BOTÃO, e era o deliverable nomeado da sprint. Não há nada
+  #   de outro projeto aqui: é um repositório público, baixado por uma função
+  #   deste arquivo (`_spot_tema_baixar`), pinada por commit, com a mesma
+  #   disciplina do `scripts/cursor.sh`. O comando que a pendência publica é
+  #   `meow apps aplicar spotify` — o verbo que já existia —, porque é o
+  #   `meow_app_aplicar` logo abaixo quem chama a função. Um verbo novo só para
+  #   isto seria uma segunda porta para o mesmo passo.
   if ! _spot_cli >/dev/null; then
     meow_pendencia_acionavel spicetify-ausente \
-      "O Spotify está instalado, mas falta o spicetify — é ele que pinta o app, e o MeowSystem ainda não sabe instalá-lo (vem na P29)" \
+      "O Spotify está instalado, mas falta o spicetify — é ele que pinta o app, e instalá-lo é decisão sua: o instalador dele mexe na configuração do seu terminal, e o MeowSystem não faz isso sem você pedir" \
       ""
     meow_app_sem "Spotify: falta o spicetify — é ele que tematiza o app desde 10/08/2026"
     return
@@ -486,8 +591,8 @@ meow_app_detectar() {
   meow_pendencia_resolvida spicetify-ausente
   if [ ! -f "$_SPOT_COLOR_INI" ]; then
     meow_pendencia_acionavel spicetify-tema-ausente \
-      "Falta o tema catppuccin do spicetify em $_SPOT_TEMA — o MeowSystem ainda não sabe baixá-lo (vem na P29)" \
-      ""
+      "Falta o tema catppuccin do Spotify — posso baixá-lo para $_SPOT_TEMA" \
+      "meow apps aplicar spotify"
     meow_app_sem "Spotify: falta o tema catppuccin do spicetify em $_SPOT_TEMA"
     return
   fi
@@ -584,6 +689,23 @@ meow_app_conferir() {
 }
 
 meow_app_aplicar() {
+  # O TEMA É INSUMO NOSSO, E INSUMO NOSSO SE BAIXA — 22/09/2026, sprint P2
+  #   Isto vem ANTES do `detectar`, e a ordem é o ponto: é o `detectar` que
+  #   reprova a falta do tema (e registra a pendência), então deixá-lo falar
+  #   primeiro faria o `aplicar` desistir do único problema daquela lista que
+  #   ele agora sabe resolver sozinho. O botão «Resolver» da Home aponta para
+  #   `meow apps aplicar spotify`; é aqui que aquele clique vira arquivo.
+  #
+  #   Sem spicetify não adianta baixar tema: o binário é quem o lê. Por isso a
+  #   guarda tem as três condições, e não só a do arquivo ausente.
+  if _spot_instalado && _spot_cli >/dev/null && [ ! -f "$_SPOT_COLOR_INI" ]; then
+    _spot_tema_baixar
+    case $? in
+      2) return "$MEOW_ERRO" ;;
+      # 3 é "sem rede, sem curl ou sem tar": segue em frente e deixa o
+      # `detectar` logo abaixo registrar a pendência de novo, que é a verdade.
+    esac
+  fi
   # A FRASE QUE ESTAVA AQUI ERA A MENTIRA DE 21/09/2026: ela dizia "Spotify não
   # instalado" para um Spotify instalado, porque era a PRIMEIRA causa de uma
   # lista e o `detectar` só devolvia o número. Agora quem fala é o motivo.

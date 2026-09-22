@@ -175,6 +175,12 @@ cmd_aplicar() {
     return 4
   fi
 
+  # O ARTEFATO EXISTE: seja lá quem o construiu, a pendência do auto-build
+  # deixou de ser verdade. A irmã no caminho feliz é obrigatória (lib/comum.sh),
+  # e ela precisa estar AQUI e não só no fim do `build`: um `construindo`
+  # gravado antes de um reinício sobreviveria à unit que o apagaria.
+  meow_pendencia_resolvida files-menu-build
+
   mkdir -p "$DESTINO" 2>/dev/null || { meow_erro "não consegui criar $DESTINO"; return "$MEOW_ERRO"; }
   for b in "${BINS[@]}"; do
     [ -f "$dir/$b" ] || { meow_erro "artefato incompleto: falta $dir/$b"; return "$MEOW_ERRO"; }
@@ -270,8 +276,13 @@ disparar_autobuild() {
 
   f="$(tentativa_de "$ver")"; n=0; [ -f "$f" ] && n="$(wc -l < "$f")"
   if [ "$n" -ge "$MAX_TENTATIVAS" ]; then
-    meow_aviso "  auto-build esgotado: $n tentativas para $ver falharam — precisa de olho humano"
-    meow_info  "  o log de cada uma: journalctl --user -u meow-files-menu-build"
+    # O `journalctl` que ficava aqui saiu — 22/09/2026, sprint P2. Ele era
+    # receita de terminal dentro de mensagem, e pior: a receita que a pessoa
+    # não pode usar, porque ler o journal não conserta nada. Agora a pendência
+    # carrega o estado E o comando que de fato tenta de novo.
+    meow_pendencia_acionavel files-menu-build \
+      "O menu de contexto de papel de parede não compilou em $n tentativas e parei de tentar sozinha" \
+      "meow files-menu build"
     return 0
   fi
   mkdir -p "$GUARDA"; printf '%s tentativa %s/%s\n' "$(date -Is)" "$((n+1))" "$MAX_TENTATIVAS" >> "$f"
@@ -286,6 +297,28 @@ disparar_autobuild() {
   # projeto é "estava divergente e eu consertei". Uma unit que fica `failed`
   # depois de um sucesso ensina a ignorar `failed` — é o mesmo motivo pelo qual
   # o `meow-logo.service` tem esta linha.
+  # O AUTO-BUILD DEIXOU DE DISPARAR E SUMIR — 22/09/2026, sprint P2
+  #   A sprint atribuiu esta linha ao `compositor_patches.sh`; ela mora aqui (o
+  #   irmão do cosmic-comp não tem auto-build — `grep -n DISPARADO` em
+  #   scripts/ devolve só este arquivo). O deliverable é o mesmo: o estado fica
+  #   visível, e tem três valores. `construindo` é este; `pronto` e `falhou`
+  #   saem do `case` do fim do arquivo, quando o `build` que esta unit dispara
+  #   termina; e o caminho feliz do `cmd_aplicar` apaga a linha quando o
+  #   artefato aparece, que é a irmã obrigatória do lib/comum.sh.
+  #
+  #   A ESCRITA VEM ANTES DO `systemd-run`, E A ORDEM É O CONTRATO. A unit
+  #   escreve `pronto` quando termina; registrar `construindo` DEPOIS de
+  #   dispará-la abriria a janela em que um build que acaba rápido (artefato já
+  #   pronto para a versão) é sobrescrito por um `construindo` que ninguém mais
+  #   apaga — a caixa de entrada que não esvazia.
+  #
+  #   SEM COMANDO de propósito: enquanto a unit trabalha não há o que clicar, e
+  #   um botão que dispara um segundo build sobre o primeiro promete conserto e
+  #   entrega briga por diretório.
+  meow_pendencia_acionavel files-menu-build \
+    "Construindo o menu de contexto de papel de parede em segundo plano (tentativa $((n+1)) de $MAX_TENTATIVAS) — leva alguns minutos e não precisa de você" \
+    ""
+
   if systemd-run --user --unit=meow-files-menu-build --collect \
        --description="build do cosmic-files patchado ($ver)" \
        --property=SuccessExitStatus="1 3" \
@@ -294,7 +327,6 @@ disparar_autobuild() {
        --setenv=MEOW_RAIZ="$MEOW_RAIZ" \
        "$MEOW_RAIZ/scripts/files_menu.sh" build >/dev/null 2>&1; then
     meow_info "  auto-build DISPARADO em background (tentativa $((n+1))/$MAX_TENTATIVAS)"
-    meow_info "  acompanhar: journalctl --user -fu meow-files-menu-build"
   else
     meow_info "  auto-build já em andamento"
   fi
@@ -322,7 +354,31 @@ cmd_estado() {
 case "${1:-aplicar}" in
   aplicar)             cmd_aplicar ;;
   --conferir|conferir) MEOW_SECO=1; cmd_aplicar ;;
-  build)               cmd_build ;;
+  # O `build` É QUEM FECHA O ESTADO DO AUTO-BUILD — 22/09/2026, sprint P2.
+  # Esta é a ponta `pronto`/`falhou` da pendência que o `disparar_autobuild`
+  # abre como `construindo`: a unit do systemd roda exatamente esta linha, e
+  # sem ela o `construindo` ficaria na Home para sempre.
+  #
+  # 0 e 1 são os dois sucessos do projeto ("já estava" e "construí"). 2 e 3
+  # falham, e falham DIFERENTE — por isso não dividem a mesma linha:
+  #   2 é erro do build (rede, patch que não aplicou, cargo que quebrou), e
+  #     tentar de novo é conserto plausível: ganha o botão.
+  #   3 é dependência faltando (sem cargo, sem apt-get). O botão aqui seria o
+  #     de sempre e falharia igual — instalar compilador é decisão dela, e
+  #     `apt install` não cabe nos oito verbos da ponte root. Então a mensagem
+  #     diz A DECISÃO e a linha nasce sem botão, que é a terceira saída da
+  #     sprint.
+  build)               cmd_build; rc_build=$?
+                       case "$rc_build" in
+                         0|1) meow_pendencia_resolvida files-menu-build ;;
+                         3)   meow_pendencia_acionavel files-menu-build \
+                                "Não dá para construir o menu de contexto de papel de parede nesta máquina: falta uma ferramenta de compilação que eu não instalo sozinha" \
+                                "" ;;
+                         *)   meow_pendencia_acionavel files-menu-build \
+                                "A construção do menu de contexto de papel de parede falhou — posso tentar de novo" \
+                                "meow files-menu build" ;;
+                       esac
+                       exit "$rc_build" ;;
   estado)              cmd_estado ;;
   remover)             remover_nossos
                        if [ "$?" = "1" ]; then

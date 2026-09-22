@@ -1218,11 +1218,34 @@ cmd_aplicar() {
     # há de onde herdar. Quem cria é o `alfinetar-primeira`, que desde
     # 22/09/2026 MEDE o EDID do conector em vez de inventá-lo — e é para ele
     # que a pendência aponta. A divisão fica: quem herda herda, quem mede mede.
-    meow_pendencia_acionavel areas-sem-alfinete \
-      "Nenhuma área de trabalho está fixada; sem isso não sei em que monitor escrever" \
-      "meow areas alfinetar-primeira"
+    #
+    # O BOTÃO SÓ NASCE SE HOUVER NOME — 22/09/2026, na revisão da P2
+    #   A guarda do começo desta função deixa passar `AREAS_NOMES=""` quando
+    #   `AREAS_ENCAIXE` está preenchido. Nesse caso o `alfinetar-primeira` não
+    #   tem o que escrever — ele recusa inventar "Área 1", e a razão está no
+    #   comentário dele —, então o «Resolver» sairia 0 sem criar nada e sem
+    #   apagar a linha: botão que não resolve e pendência que não sai. Sem
+    #   nome, a saída é a TERCEIRA da sprint: a mensagem diz A DECISÃO, e a
+    #   Home desenha a linha sem botão, porque a decisão é dela.
+    if [ -z "$(_areas_partir "$AREAS_NOMES" | head -1)" ]; then
+      meow_pendencia_acionavel areas-sem-alfinete \
+        "Nenhuma área de trabalho está fixada, e o nome da primeira é escolha sua: escreva-o em AREAS_NOMES (no painel ou no meow.conf) e eu crio a área" \
+        ""
+    else
+      meow_pendencia_acionavel areas-sem-alfinete \
+        "Nenhuma área de trabalho está fixada; sem isso não sei em que monitor escrever" \
+        "meow areas alfinetar-primeira"
+    fi
     return "$AREAS_PENDENCIA"
   fi
+
+  # A IRMÃ NO CAMINHO FELIZ — 22/09/2026, na revisão da P2
+  #   Passou daqui: existe área alfinetada, e a pendência acima deixou de ser
+  #   verdade. Quem registra é obrigado a apagar (lib/comum.sh), e faltando
+  #   isto quem alfinetasse pelo COSMIC — que é exatamente o que a frase velha
+  #   mandava fazer — ficaria com a linha na Home para sempre: só o «Resolver»
+  #   a apagava, e ele respondia "já há N área(s) alfinetada(s)".
+  meow_pendencia_resolvida areas-sem-alfinete
 
   local rc_plano; _areas_planejar; rc_plano=$?
   [ "$rc_plano" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
@@ -1428,6 +1451,6 @@ case "${1:-estado}" in
   alfinetar-primeira) cmd_alfinetar_primeira ;;
   reverter)      cmd_reverter ;;
   desalfinetar)  shift; cmd_desalfinetar "${1:-}" ;;
-  *) meow_erro "uso: areas.sh {estado|conferir|aplicar|reverter|desalfinetar <nome>}"
+  *) meow_erro "uso: areas.sh {estado|conferir|aplicar|alfinetar-primeira|reverter|desalfinetar <nome>}"
      exit "$MEOW_ERRO" ;;
 esac

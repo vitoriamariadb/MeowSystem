@@ -856,6 +856,14 @@ forma: **diagnóstico certo, conserto conhecido, nenhum botão.**
 Um engenheiro lê isso como cortesia. Um designer leigo lê como **"o programa
 desistiu"**.
 
+**CORREÇÃO DE 22/09/2026, medida na revisão.** No qBittorrent a sprint anotou a
+frase curta, e a curta não era a pior: ao lado dela vivia um tutorial de vinte
+linhas (`_meow_qbt_receita`) que imprimia o caminho do script do outro projeto,
+o número da linha resolvido ao vivo e as duas edições para copiar e colar. Era
+a mais crua das seis. As duas saíram da tela; a receita virou comentário no
+arquivo, onde quem abre o código a lê e quem só usa o programa não tropeça
+nela.
+
 ### A regra, e ela vale para toda feature futura
 
 > Uma etapa que sabe o conserto ou **faz**, ou oferece **um botão que faz**.
@@ -867,8 +875,22 @@ As três saídas, e o projeto usa as três hoje:
 | saída | quando | onde ela está |
 |---|---|---|
 | **faz** | o conserto é inteiramente nosso e não tem escolha dentro | `fastfetch_logo.sh` apara a altura à proporção da célula e diz o que aparou |
-| **botão** | o conserto é nosso, mas a hora é dela | `areas.sh alfinetar-primeira`, `prompt.sh instalar-starship` — pendência com comando, e um «Resolver» na Home |
-| **a decisão** | não há conserto que este projeto alcance | o `spicetify` (o script que resolve não é deste repositório) e o `qBittorrent.conf` (não é escopo do módulo) — pendência **sem** comando, e a Home desenha a linha sem botão |
+| **botão** | o conserto é nosso, mas a hora é dela | `areas.sh alfinetar-primeira`, `prompt.sh instalar-starship`, o tema do Spotify (`_spot_tema_baixar`) e a reconstrução do menu de contexto — pendência com comando, e um «Resolver» na Home |
+| **a decisão** | não há conserto que este projeto alcance | o BINÁRIO do `spicetify` (o instalador oficial mexe na configuração do terminal dela) e o `qBittorrent.conf` (o app é configurado por outro projeto, com lista de temas fechada) — pendência **sem** comando, e a Home desenha a linha sem botão |
+
+**BAIXAR DE REPOSITÓRIO PÚBLICO É "FAZER", NÃO "DEPENDER" — 22/09/2026.** A
+diferença entre o tema do Spotify (botão) e o binário do spicetify (decisão) não
+é o tamanho: é de quem é o arquivo. O tema é um repositório público que qualquer
+clone deste projeto alcança, pinado por commit, baixado por uma função daqui —
+a mesma disciplina do `scripts/cursor.sh`. O binário só se instala rodando o
+instalador de terceiro, que escreve no `~/.config/zsh` dela.
+
+**O ESTADO PODE MUDAR O BOTÃO DA MESMA PENDÊNCIA.** O `files-menu-build` nasce
+`construindo` (sem comando: não há o que clicar enquanto a unit compila), vira
+`pronto` (a linha some) ou `falhou` (com comando: tentar de novo). Por isso o
+painel decide o botão pelas DUAS pontas — a linha precisa ter comando **e** o id
+precisa estar em `ACAO_DA_PENDENCIA`. Ler só a tabela poria um «Resolver» que
+dispara um segundo build sobre o primeiro.
 
 ### Onde a regra mora no código
 
@@ -890,10 +912,13 @@ outro lado da casa.
 
 ### O que a regra NÃO autoriza
 
-- **Abrir a ponte root para caber um botão.** Cinco mensagens deste projeto
-  dizem `sudo apt install <pacote>`. Instalar pacote arbitrário não é um dos
-  oito verbos da ponte (ver "A ponte root, e por que ela não é `NOPASSWD: ALL`"),
-  e trocar aquele desenho por um botão seria trocar um incômodo por um buraco.
+- **Abrir a ponte root para caber um botão.** Oito mensagens deste projeto
+  dizem `sudo apt install <pacote>` (cinco com `apt`, três com `apt-get` — e
+  estas três só apareceram em 22/09/2026, quando o cobrador passou a casar as
+  duas grafias; antes disso estavam verdes por omissão do detector, que é pior
+  que estarem vermelhas). Instalar pacote arbitrário não é um dos oito verbos
+  da ponte (ver "A ponte root, e por que ela não é `NOPASSWD: ALL`"), e trocar
+  aquele desenho por um botão seria trocar um incômodo por um buraco.
   Elas ficam, isentas e com o motivo escrito, em `tests/sem-receita-no-log.sh`.
 - **Apontar o botão para script de outro projeto.** O `spicetify-setup.sh`
   existe e resolve — em `~/.config/zsh/scripts/`, que é da Aurora. Um botão que
@@ -906,7 +931,8 @@ outro lado da casa.
 ### O cobrador
 
 `tests/sem-receita-no-log.sh` varre `scripts/`, `lib/` e `assets/temas-de-apps/`
-atrás de `meow_info`/`meow_aviso` com `curl | sh`, `git clone` ou `apt install`
+atrás de `meow_info`/`meow_aviso` com `curl | sh`, `git clone` ou
+`apt[-get] install`
 dentro. As isenções casam pelo **conteúdo** da linha, nunca pelo número — mesma
 disciplina do `tests/portabilidade.sh`, e pelo mesmo motivo: isenção presa a
 número apodrece no primeiro rebase.

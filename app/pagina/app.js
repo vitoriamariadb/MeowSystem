@@ -6667,16 +6667,49 @@ async function recusarPendencia(p) {
  * não pôr um `<section>` vazio no meio da coluna. */
 function montarPendencias() {
   if (!PENDENCIAS.length) return null;
-  const n = PENDENCIAS.length;
+  /* O TÍTULO CONTA O QUE TEM BOTÃO, E SÓ — 22/09/2026, na revisão da P2
+   *   Ele contava `PENDENCIAS.length` inteiro e escrevia "N coisas esperam um
+   *   clique". Uma linha sem `acao` e sem `recusavel` não ganha botão nenhum —
+   *   ela existe para dizer a DECISÃO, que é a terceira saída da sprint —,
+   *   então o título prometia um clique que não havia em lugar nenhum da
+   *   caixa. Numa Home com uma pendência só, sem botão, ele dizia "1 coisa
+   *   espera um clique" sobre uma linha em que não há o que clicar.
+   *
+   *   Agora são duas contas e duas frases. A do clique é a da sprint, palavra
+   *   por palavra; a outra nomeia o que aquelas linhas são: coisas que o
+   *   programa achou e não conserta sozinho. Quando só existe uma das duas
+   *   espécies, só a frase dela aparece. */
+  const comClique = PENDENCIAS.filter((p) => p.acao || p.recusavel).length;
+  const semClique = PENDENCIAS.length - comClique;
   const caixa = elemento("section", { class: "home-pendencias" });
-  caixa.append(elemento("h3", {}, [
-    elemento("strong", { texto: String(n) }),
+  /* TUDO DENTRO DE UM <span> SÓ, e isto não é capricho: o `h3` é `display:
+   * flex` com `gap`, então cada filho vira um item e ganha folga dos dois
+   * lados. Com dois filhos (número + frase) aquilo era o espaço entre eles;
+   * com cinco, a vírgula do "…, e mais" virava uma coluna sozinha e o título
+   * quebrava em três blocos desalinhados — visto na tela em 22/09/2026. Um
+   * item só devolve o texto ao fluxo normal, onde vírgula cola na palavra e o
+   * número grande alinha pela linha de base como qualquer outro trecho. */
+  const frase = elemento("span");
+  if (comClique) {
+    frase.append(elemento("strong", { texto: String(comClique) }));
     /* "coisa" e não "pendência": a palavra do produto é a que ela usaria em voz
      * alta. O verbo diz o que fazer, e é ele que separa este bloco do "Nada
      * esperando" logo abaixo — lá o que espera é escolha DELA, aqui é conserto
      * NOSSO. */
-    elemento("span", { texto: n === 1 ? " coisa espera um clique" : " coisas esperam um clique" }),
-  ]));
+    frase.append(document.createTextNode(
+      comClique === 1 ? " coisa espera um clique" : " coisas esperam um clique"));
+  }
+  if (semClique) {
+    /* Com as duas espécies na tela a segunda entra como continuação da
+     * primeira ("…, e mais 1 que…"), e aí o substantivo já foi dito. Sozinha,
+     * ela precisa dele. */
+    if (comClique) frase.append(document.createTextNode(", e mais "));
+    frase.append(elemento("strong", { texto: String(semClique) }));
+    frase.append(document.createTextNode(
+      (comClique ? "" : (semClique === 1 ? " coisa" : " coisas"))
+      + " que eu não conserto sozinha"));
+  }
+  caixa.append(elemento("h3", {}, [frase]));
 
   for (const p of PENDENCIAS) {
     const linha = elemento("div", { class: "pendencia" });

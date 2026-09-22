@@ -2717,6 +2717,19 @@ ACOES = {
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Os dois itens de papel de parede no botão direito.",
     },
+    # CONSTRUIR O MENU À MÃO — 22/09/2026, sprint P2. É para onde aponta a
+    # pendência `files-menu-build` quando o auto-build esgota as tentativas ou
+    # a última falha: antes disso a linha só carrega o estado (`construindo`) e
+    # não tem botão, porque não há o que clicar enquanto a unit trabalha.
+    # `rede` está ligado porque o `apt-get source` baixa o fonte inteiro.
+    "files_menu_build": {
+        "rotulo": "Construir o menu da área de trabalho",
+        "grupo": "Papel de parede",
+        "argv": _meow("files-menu", "build"),
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "ajuda": "Compila a versão instalada do cosmic-files com os dois itens "
+                 "de papel de parede. Baixa o fonte e leva minutos.",
+    },
     # --- aplicativos ---------------------------------------------------------
     "apps": {
         # "MÓDULO" SAIU — 09/09/2026. Módulo é como o `bin/meow` organiza o
@@ -2737,6 +2750,20 @@ ACOES = {
         "ajuda": "Aplica o tema em todos os programas marcados que estiverem "
                  "instalados. Programa ausente fica pendente, e nunca "
                  "derruba o resto.",
+    },
+    # O TEMA DO SPOTIFY — 22/09/2026, sprint P2. É a ação para onde a pendência
+    # `spicetify-tema-ausente` aponta. O argv é o verbo que já existia (`apps
+    # aplicar <nome>`) e não um verbo novo: quem baixa o tema é o
+    # `meow_app_aplicar` do módulo, e uma segunda porta para o mesmo passo é
+    # como se ganha duas verdades sobre o mesmo botão. `rede` está ligado
+    # porque ele BAIXA DA INTERNET, e é esse campo que põe o rótulo na tela.
+    "spotify_baixar_tema": {
+        "rotulo": "Baixar o tema do Spotify",
+        "grupo": "Lançadores e jogos",
+        "argv": _meow("apps", "aplicar", "spotify"),
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "ajuda": "Baixa o tema catppuccin do spicetify de um commit fixo do "
+                 "repositório público e veste o Spotify em seguida.",
     },
     # --- os jogos da Steam ---------------------------------------------------
     # `confirma` é True no aplicar porque uma linha `apagar` no mapa manda o
@@ -3975,6 +4002,8 @@ def escreve(acao):
 ACAO_DA_PENDENCIA = {
     "areas-sem-alfinete": "areas_alfinetar_primeira",
     "starship-ausente": "prompt_instalar_starship",
+    "spicetify-tema-ausente": "spotify_baixar_tema",
+    "files-menu-build": "files_menu_build",
 }
 
 # AS PENDÊNCIAS QUE ACEITAM "NÃO, OBRIGADO"
@@ -4008,16 +4037,25 @@ def pendencias():
                 if len(campos) != 5 or not campos[0]:
                     continue
                 ident, etapa, frase, comando, quando = campos
+                # O BOTÃO PRECISA DAS DUAS PONTAS — 22/09/2026
+                #   A tabela acima diz o que o "Resolver" dispara; o campo
+                #   `comando` da LINHA diz se aquela passagem tinha conserto.
+                #   Quem manda é a linha, porque um mesmo id pode ser gravado
+                #   com comando ou sem ele conforme o estado: o
+                #   `files-menu-build` nasce sem comando enquanto a unit
+                #   compila (não há o que clicar) e com comando quando ela
+                #   falha. Lendo só a tabela, a Home poria um "Resolver" que
+                #   dispararia um segundo build em cima do primeiro.
+                acao = ACAO_DA_PENDENCIA.get(ident, "") if comando else ""
                 fora.append({
                     "id": ident, "etapa": etapa, "frase": frase,
                     "comando": comando, "quando": quando,
-                    "acao": ACAO_DA_PENDENCIA.get(ident, ""),
+                    "acao": acao,
                     "recusavel": ident in RECUSA_DA_PENDENCIA,
                     # O rótulo que os cartões de ação já usam. Sai da própria
                     # ação, e não de uma segunda lista aqui: duas verdades sobre
                     # o mesmo botão é como a pastilha "ACEITA SECO" mentiu antes.
-                    "rede": bool(ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""), {})
-                                 .get("rede")),
+                    "rede": bool(ACOES.get(acao, {}).get("rede")),
                 })
     except OSError:
         return []

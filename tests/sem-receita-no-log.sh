@@ -23,9 +23,22 @@
 #   não a receita.
 #
 #   Na prática, o que o teste procura é a receita: uma linha de `meow_info` ou
-#   `meow_aviso` que carregue `curl | sh`, `git clone` ou `apt install`. Esses
-#   três são o formato de uma instalação copiável — o sinal mais barato e mais
-#   confiável de que a frase virou tutorial.
+#   `meow_aviso` que carregue `curl | sh`, `git clone` ou `apt install` (em
+#   qualquer das duas grafias, `apt` e `apt-get`). Esses três são o formato de
+#   uma instalação copiável — o sinal mais barato e mais confiável de que a
+#   frase virou tutorial.
+#
+# O `apt-get` ENTROU NA REVISÃO DE 22/09/2026, E COM UM CASO VIVO NO REPO
+#   A primeira versão casava só a substring `apt install`, e por isso
+#   `scripts/instalar_fontes.sh:380` — `sudo apt-get install curl tar …` —
+#   passava VERDE: mesma classe das cinco isentas, mesmo motivo, e nenhuma
+#   isenção escrita. Um teste que aprova por omissão do detector é pior que um
+#   teste ausente, porque quem lê o verde acha que a classe inteira foi olhada.
+#
+#   A revisão apontou UMA linha; o detector corrigido achou TRÊS, todas no
+#   mesmo arquivo (`instalar_fontes.sh`, linhas 292, 380 e 412). São OITO dessa
+#   classe, não cinco nem seis, e agora as oito estão na lista abaixo com o
+#   motivo ao lado — que é o ponto da isenção explícita: ela conta quantas são.
 #
 # POR QUE SÓ ESSES TRÊS, E NÃO UMA GRAMÁTICA DE RECEITA
 #   Porque um detector esperto de "isto parece um comando" acusaria toda frase
@@ -64,7 +77,7 @@ acusa() {
 # Cada entrada é um trecho LITERAL da linha isenta (comparação por substring,
 # sem regex). Tudo o que não estiver aqui é achado.
 #
-# AS CINCO ISENÇÕES DE HOJE SÃO A MESMA, CINCO VEZES: `sudo apt install`.
+# AS OITO ISENÇÕES DE HOJE SÃO A MESMA, OITO VEZES: `sudo apt[-get] install`.
 #   Instalar pacote do sistema precisa de root, e a ponte root deste projeto não
 #   é um curinga — são OITO verbos fechados (docs/FRONTEIRA.md, "A ponte root, e
 #   por que ela não é NOPASSWD: ALL"), e instalar pacote arbitrário não é
@@ -74,7 +87,7 @@ acusa() {
 #   Então elas ficam como estão, e a regra da sprint continua respeitada: a
 #   mensagem diz A DECISÃO ("falta este pacote, instalá-lo é sua escolha"), e o
 #   comando é o endereço da decisão, não um tutorial disfarçado de cortesia.
-#   O dia em que a ponte ganhar um verbo de pacote, estas cinco viram botão e a
+#   O dia em que a ponte ganhar um verbo de pacote, estas oito viram botão e a
 #   isenção para de casar sozinha.
 ISENTAS=(
   'meow_info "  instale com: sudo apt install imagemagick"'
@@ -82,6 +95,12 @@ ISENTAS=(
   'meow_info "instale com: sudo apt install papirus-icon-theme"'
   'meow_info "  sudo apt install papirus-icon-theme"'
   'meow_info "se quiser: sudo apt install qt5ct qt6ct"'
+  # As três do `apt-get`, achadas em 22/09/2026 quando o detector passou a
+  # casar as duas grafias. Estavam verdes por omissão do detector, não por
+  # decisão — e as três são a mesma frase das cinco acima, com outro binário.
+  'meow_info "  sudo apt-get install diffutils fontconfig unzip"'
+  'meow_info "  sudo apt-get install curl tar coreutils diffutils fontconfig xz-utils"'
+  'meow_info "  sudo apt-get install pop-fonts    # ou fonts-firacode/fonts-fira"'
 )
 
 isenta() {
@@ -120,7 +139,11 @@ while IFS= read -r -d '' arq; do
     case "$linha" in
       *'curl'*'| sh'*|*'curl'*'|sh'*)  motivo="receita de \`curl | sh\` dentro de uma mensagem" ;;
       *'git clone'*)                   motivo="receita de \`git clone\` dentro de uma mensagem" ;;
-      *'apt install'*)                 motivo="receita de \`apt install\` dentro de uma mensagem" ;;
+      # As duas grafias do mesmo comando. `apt-get` é a que os scripts usam
+      # quando querem a interface estável; `apt`, a que a pessoa digita. Casar
+      # só uma deixa a outra passar, e foi o que aconteceu até 22/09/2026.
+      *'apt install'*|*'apt-get install'*)
+                                       motivo="receita de \`apt install\` dentro de uma mensagem" ;;
     esac
     [ -n "$motivo" ] || continue
 

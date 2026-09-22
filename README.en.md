@@ -47,7 +47,7 @@ happen: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # or the MeowSystem icon in the launcher
 ```
 
-122 settings and 52 actions across thirteen pages — one per subject, each holding everything
+122 settings and 54 actions across thirteen pages — one per subject, each holding everything
 there is about it. The menu has two blocks: **Tópicos** (topics), which is your screen, and
 **Sistema** (system), which is what the machine does on its own.
 
