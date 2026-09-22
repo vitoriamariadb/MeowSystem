@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # install.sh — instala o MeowSystem inteiro. Sem flag nenhuma.
 #
-#   ./install.sh              faz tudo
-#   ./install.sh --dry-run    mostra o que faria, sem escrever nada
-#   ./install.sh --wizard     pergunta o meow.conf antes, e então faz tudo
-#   ./install.sh --uninstall  tira o MeowSystem desta máquina
+#   ./install.sh                 faz tudo, e repete a fila até ninguém escrever
+#   ./install.sh --dry-run       mostra o que faria, sem escrever nada
+#   ./install.sh --uma-passagem  roda a fila uma vez só (depuração)
+#   ./install.sh --wizard        pergunta o meow.conf antes, e então faz tudo
+#   ./install.sh --uninstall     tira o MeowSystem desta máquina
 #
 # POR QUE QUASE NÃO TEM FLAG
 #   A §5.1 do RELATORIO propunha 14 flags (--tema, --icones, --logo, --all...).
@@ -2944,14 +2945,21 @@ uso() {
 
 install.sh — instala o MeowSystem inteiro.
 
-  ./install.sh              faz tudo, sem perguntar nada
+  ./install.sh              faz tudo, sem perguntar nada, e repete a fila até
+                            nenhuma etapa precisar escrever (no máximo 5 vezes)
   ./install.sh --dry-run    mostra o que faria, sem escrever nada
+  ./install.sh --uma-passagem
+                            roda a fila UMA vez e para, mesmo que alguma etapa
+                            dependa do resultado da anterior (depuração)
   ./install.sh --wizard     roda `meow configurar` antes (pergunta as chaves do
                             meow.conf, grava lá) e então instala como sempre
   ./install.sh --uninstall  tira o MeowSystem desta máquina
   ./install.sh --help       isto aqui
 
   MEOW_DRY_RUN=1 ./install.sh   o mesmo que --dry-run, para script e timer
+
+O ensaio é sempre de uma passagem só: no seco nada é escrito, então a etapa que
+diverge hoje divergiria igual na passagem seguinte.
 
 As flags acima dizem COMO esta execução se comporta. QUAIS etapas rodam é
 decisão do meow.conf — nunca da linha de comando.
@@ -2982,10 +2990,17 @@ main() {
     return 2
   fi
 
-  local wizard=0 desinstalar=0
+  local wizard=0 desinstalar=0 uma_passagem=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --wizard|-w) wizard=1 ;;
+      # --uma-passagem: o comportamento de ANTES de 21/09/2026, preservado de
+      # propósito. Ele não escolhe etapa nenhuma (continua valendo a regra do
+      # cabeçalho): diz que esta execução roda a fila UMA vez e termina, mesmo
+      # que alguma etapa dependa do resultado da anterior. É a flag de quem está
+      # depurando uma etapa e quer ver a primeira passagem sozinha, sem as
+      # outras duas por cima no terminal.
+      --uma-passagem) uma_passagem=1 ;;
       # MODOS DE EXECUÇÃO, não escolhas de etapa. A regra do cabeçalho recusa
       # flag que seja SEGUNDA FONTE DE VERDADE sobre o que instalar; estas duas
       # não escolhem nada — dizem COMO esta execução se comporta.
@@ -2999,7 +3014,7 @@ main() {
       -h|--help)   uso; return 0 ;;
       "")          ;;
       *) meow_erro "opção desconhecida: $1"
-         meow_info "o que existe: --dry-run, --wizard, --uninstall, --help."
+         meow_info "o que existe: --dry-run, --uma-passagem, --wizard, --uninstall, --help."
          meow_info "QUAIS etapas rodam é decisão do meow.conf, não da linha de comando."
          return 2 ;;
     esac
@@ -3082,67 +3097,190 @@ main() {
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
-  for e in "${etapas[@]}"; do
-    "$e"; local rc=$?
-    concluir "${e#etapa_}" "$rc"
-    # A configuração é a única etapa que não é opcional: sem FLAVOR e ACCENT as
-    # seguintes não têm o que aplicar. Parar aqui é honesto; seguir seria morrer
-    # com "variável não associada" três etapas adiante, escondendo a causa.
-    if [ "$e" = "etapa_conf" ] && [ "$rc" -ge 2 ]; then
-      meow_erro "sem configuração válida não há o que instalar — parando"
-      break
+  # ---------------------------------------------------------------------------
+  # O LAÇO DAS PASSAGENS — 21/09/2026
+  #
+  #   Até hoje este `for` rodava UMA vez e o rodapé terminava com "N etapa(s)
+  #   mudaram nesta passagem. Rode mais uma vez" — enquanto o README admitia, no
+  #   parágrafo 4, que numa máquina nova são TRÊS passagens até o silêncio.
+  #
+  #   O diagnóstico daquele comentário estava certo e a conclusão estava errada.
+  #   A dependência é real e não é bug: o `index.theme` descreve os diretórios
+  #   que EXISTEM, e as pastas coloridas nascem na etapa seguinte — é ordem de
+  #   construção. O que estava errado era terceirizar o laço. Se quem tem de
+  #   saber disso é o instalador, é o instalador quem tem de rodar de novo; a
+  #   pessoa não deve nada a esta cadeia.
+  #
+  # O TETO DE 5 NÃO É ENFEITE
+  #   Uma etapa que escreve em TODA passagem é defeito de idempotência, e
+  #   escondê-la num laço sem fim seria pior que a frase de ontem: 59 etapas
+  #   correndo para sempre, sem ninguém dizendo por quê. Estourar o teto aqui é
+  #   um relatório com o nome das culpadas, nunca um silêncio.
+  #
+  # O ENSAIO É UMA PASSAGEM POR DEFINIÇÃO
+  #   No seco nada é escrito, então toda etapa divergente continua divergente na
+  #   passagem seguinte: o laço bateria no teto SEMPRE e acusaria defeito de
+  #   idempotência onde não há defeito nenhum. O ensaio mostra o que a PRIMEIRA
+  #   passagem faria, que é tudo o que ele pode honestamente mostrar.
+  local teto=5
+  { [ "$uma_passagem" = "1" ] || meow_seco; } && teto=1
+
+  local passagem=0 ainda=0 parar_conf=0 oscilou=0
+  local assinatura="" assinatura_anterior=""
+  while :; do
+    passagem=$((passagem + 1))
+
+    # CADA PASSAGEM TEM O SEU PRÓPRIO PLACAR. Somar as quatro listas entre
+    # passagens poria a mesma etapa em `mexeu:` e em `confere:` ao mesmo tempo —
+    # a mentira de relatório que o `concluir()` lá em cima veio matar, de volta
+    # pela porta da passagem em vez da porta da execução.
+    FEITOS=(); CONFEREM=(); PULADOS=(); FALHOS=(); PULADOS_OPTIN=()
+    PASSO=0
+
+    # A TELA PRECISA DIZER EM QUAL PASSAGEM ESTÁ. Três passagens de 59 etapas
+    # numa máquina fria são quase quatrocentas linhas; sem esta linha a segunda
+    # passagem parece o instalador recomeçando do zero — ou travado. O número
+    # que ela carrega é o da passagem ANTERIOR, que é justamente a razão de esta
+    # aqui existir.
+    if [ "$teto" -gt 1 ]; then
+      local cabeca="passagem $passagem de até $teto"
+      if [ "$passagem" -gt 1 ]; then
+        if [ "$ainda" = "1" ]; then
+          cabeca="$cabeca · 1 etapa ainda muda"
+        else
+          cabeca="$cabeca · $ainda etapas ainda mudam"
+        fi
+      fi
+      # E ELA ATRAVESSA O `silencioso`, sozinha entre as linhas deste laço.
+      #   Sem tty — o timer, e o `meow aplicar` que a gaveta do painel mostra —
+      #   o instalador esconde o progresso e deixa passar só o que mudou. Com
+      #   três passagens isso vira três blocos de `~~` iguais, sem nada dizendo
+      #   que são passagens da MESMA execução: exatamente o silêncio que parece
+      #   travamento. São no máximo cinco linhas no journal, e sem a régua do
+      #   `meow_passo`, que ali seria enfeite.
+      if meow_quieto; then
+        printf '\n  %s%s%s\n' "$C_MAUVE$C_FORTE" "$cabeca" "$C_ZERO"
+      else
+        meow_passo "$cabeca"
+      fi
     fi
-  done
 
-  meow_passo "Resultado"
-  [ ${#FEITOS[@]}   -gt 0 ] && meow_muda  "mexeu:  ${FEITOS[*]}"
-  [ ${#CONFEREM[@]} -gt 0 ] && meow_ok    "confere: ${CONFEREM[*]}"
-  [ ${#PULADOS[@]}  -gt 0 ] && meow_pula  "pulado: ${PULADOS[*]}"
-  [ ${#FALHOS[@]}   -gt 0 ] && meow_erro  "falhou: ${FALHOS[*]}"
-
-  # Um `pulado:` mudo não diz o que fazer — mas dizer a coisa ERRADA é pior que
-  # o silêncio. As quatro etapas do `/usr/share` podem se pular por dois motivos
-  # (falta de root, ou `LANCADOR_SISTEMA="nao"`, que é opt-in e é o padrão), e
-  # cada um tem um conserto diferente. Quem se pulou por opt-in já se anunciou em
-  # PULADOS_OPTIN; o que sobrar é que de fato depende de sudo.
-  if [ ${#PULADOS[@]} -gt 0 ]; then
-    local p por_root=0
-    for p in "${PULADOS[@]}"; do
-      case " ${PULADOS_OPTIN[*]:-} " in *" $p "*) continue ;; esac
-      case "$p" in greeter|ocultar|nomes|absolutos) por_root=1 ;; esac
+    for e in "${etapas[@]}"; do
+      "$e"; local rc=$?
+      concluir "${e#etapa_}" "$rc"
+      # A configuração é a única etapa que não é opcional: sem FLAVOR e ACCENT as
+      # seguintes não têm o que aplicar. Parar aqui é honesto; seguir seria morrer
+      # com "variável não associada" três etapas adiante, escondendo a causa.
+      if [ "$e" = "etapa_conf" ] && [ "$rc" -ge 2 ]; then
+        meow_erro "sem configuração válida não há o que instalar — parando"
+        parar_conf=1
+        break
+      fi
     done
-    [ "$por_root" = "1" ] && \
-      meow_info "algumas dessas precisavam de root. Para completá-las:  sudo -v && ./install.sh"
-    [ ${#PULADOS_OPTIN[@]} -gt 0 ] && \
-      meow_info "${PULADOS_OPTIN[*]}: é opt-in, não é falta de root — LANCADOR_SISTEMA=\"sim\" no meow.conf liga"
-  fi
 
-  meow_registrar "install.sh mexeu=${#FEITOS[@]} conferem=${#CONFEREM[@]} pulados=${#PULADOS[@]} falhos=${#FALHOS[@]}"
+    meow_passo "Resultado"
+    [ ${#FEITOS[@]}   -gt 0 ] && meow_muda  "mexeu:  ${FEITOS[*]}"
+    [ ${#CONFEREM[@]} -gt 0 ] && meow_ok    "confere: ${CONFEREM[*]}"
+    [ ${#PULADOS[@]}  -gt 0 ] && meow_pula  "pulado: ${PULADOS[*]}"
+    [ ${#FALHOS[@]}   -gt 0 ] && meow_erro  "falhou: ${FALHOS[*]}"
+
+    # Um `pulado:` mudo não diz o que fazer — mas dizer a coisa ERRADA é pior que
+    # o silêncio. As quatro etapas do `/usr/share` podem se pular por dois motivos
+    # (falta de root, ou `LANCADOR_SISTEMA="nao"`, que é opt-in e é o padrão), e
+    # cada um tem um conserto diferente. Quem se pulou por opt-in já se anunciou em
+    # PULADOS_OPTIN; o que sobrar é que de fato depende de sudo.
+    if [ ${#PULADOS[@]} -gt 0 ]; then
+      local p por_root=0
+      for p in "${PULADOS[@]}"; do
+        case " ${PULADOS_OPTIN[*]:-} " in *" $p "*) continue ;; esac
+        case "$p" in greeter|ocultar|nomes|absolutos) por_root=1 ;; esac
+      done
+      [ "$por_root" = "1" ] && \
+        meow_info "algumas dessas precisavam de root. Para completá-las:  sudo -v && ./install.sh"
+      [ ${#PULADOS_OPTIN[@]} -gt 0 ] && \
+        meow_info "${PULADOS_OPTIN[*]}: é opt-in, não é falta de root — LANCADOR_SISTEMA=\"sim\" no meow.conf liga"
+    fi
+
+    # O `passagem=` entrou na linha do log no mesmo dia do laço: sem ele, três
+    # linhas idênticas de uma execução só ficariam indistinguíveis de três
+    # execuções que alguém rodou à mão — que é a leitura que este laço aposentou.
+    meow_registrar "install.sh passagem=$passagem mexeu=${#FEITOS[@]} conferem=${#CONFEREM[@]} pulados=${#PULADOS[@]} falhos=${#FALHOS[@]}"
+
+    ainda=${#FEITOS[@]}
+
+    # CONVERGIU: a passagem inteira passou sem escrever um byte. É a prova da
+    # promessa do README, medida em vez de pedida, e a única saída boa daqui.
+    [ "$ainda" -eq 0 ] && break
+    [ "$parar_conf" = "1" ] && break
+    [ "$passagem" -ge "$teto" ] && break
+
+    # O DETECTOR DE OSCILAÇÃO, E O QUE DÁ PARA MEDIR DAQUI DE DENTRO
+    #   O ideal seria comparar o CONTEÚDO que cada etapa escreve. O instalador
+    #   não o enxerga: ele enxerga QUAIS etapas escreveram. Duas passagens
+    #   seguidas com exatamente o mesmo conjunto em `mexeu:` é a assinatura que
+    #   sobra — e ela basta, porque uma passagem que mexeu no mesmo conjunto da
+    #   anterior não destravou dependência nenhuma; seguir até o teto seria
+    #   repetir mais três vezes um resultado já conhecido.
+    #
+    #   E o teste é o CONJUNTO, nunca a etapa isolada. A etapa que reaparece na
+    #   passagem seguinte é o caso NORMAL desta cadeia: medido em 21/09/2026 num
+    #   HOME de brinquedo (tests/convergencia.sh), `fontes` e `icones` escrevem
+    #   na passagem 1 e de novo na 2 — a 1 criou os diretórios que a 2 descreve —
+    #   e na 3 as duas calam. Cobrar "a mesma etapa duas vezes" acusaria de
+    #   defeito justamente o caso que este laço existe para atender.
+    assinatura="$(printf '%s\n' "${FEITOS[@]}" | sort | tr '\n' ' ')"
+    if [ "$assinatura" = "$assinatura_anterior" ]; then oscilou=1; break; fi
+    assinatura_anterior="$assinatura"
+  done
 
   if [ ${#FALHOS[@]} -gt 0 ]; then
     printf '\n  %sAlgumas etapas falharam. Nada foi deixado pela metade —%s\n' "$C_AMARELO" "$C_ZERO"
     printf '  %scada etapa é independente, e o resto foi aplicado.%s\n\n' "$C_AMARELO" "$C_ZERO"
     return 2
   fi
-  # A frase muda conforme o que de fato aconteceu. "Nada é escrito duas vezes" é
-  # uma promessa; dizer que NENHUMA etapa mexeu em nada é a prova dela, na tela,
-  # sem ela precisar contar linha nenhuma.
-  if [ ${#FEITOS[@]} -eq 0 ]; then
-    printf '\n  %sPronto.%s Nenhuma etapa precisou escrever nada — já estava tudo no lugar.\n\n' \
-      "$C_VERDE$C_FORTE" "$C_ZERO"
+
+  # As mesmas etapas, duas passagens seguidas. Nomeá-las é o serviço: "rode mais
+  # uma vez" mandava a pessoa descobrir sozinha o que este laço já sabe.
+  if [ "$oscilou" = "1" ]; then
+    meow_erro "as mesmas etapas escreveram em duas passagens seguidas:  ${FEITOS[*]}"
+    meow_aviso "isto não é a cadeia de dependências — é defeito de idempotência:"
+    meow_aviso "alguma delas escreve toda vez, e passagem nenhuma vai calá-la."
+    meow_aviso "o que olhar primeiro:  meow doctor"
+    printf '\n'
+    return 2
+  fi
+
+  # O TETO. Chegar aqui com etapas escrevendo é o cenário que ele existe para
+  # expor — e hoje isso ficava escondido atrás de "rode mais uma vez", que a
+  # pessoa roda, roda de novo, e desiste sem nunca saber de quem era a culpa.
+  if [ "$ainda" -gt 0 ] && [ "$teto" -gt 1 ]; then
+    meow_erro "$teto passagens, e estas etapas ainda escrevem:  ${FEITOS[*]}"
+    meow_aviso "parei no teto de propósito: um laço sem fim esconderia o defeito."
+    meow_aviso "o que olhar primeiro:  meow doctor"
+    printf '\n'
+    return 2
+  fi
+
+  # UMA PASSAGEM SÓ (--uma-passagem, ou o ensaio): o rodapé de antes, preservado
+  # inteiro. A diferença é a linha do meio — quem fecha o laço agora é o
+  # instalador, e a pessoa não precisa mais contar passagem nenhuma.
+  if [ "$ainda" -gt 0 ]; then
+    printf '\n  %s%d etapa(s) mudaram nesta passagem.%s\n' \
+      "$C_AMARELO$C_FORTE" "$ainda" "$C_ZERO"
+    printf '  Esta execução teve uma passagem só. Algumas etapas dependem do\n'
+    printf '  resultado da anterior; sem --uma-passagem (e fora do ensaio) o\n'
+    printf '  instalador repete sozinho até ninguém mais escrever:\n\n'
+    printf '      ./install.sh\n\n'
     return 0
   fi
 
-  # "Rode de novo QUANDO QUISER" era a frase mais cara da tela, porque o README
-  # diz o contrário logo no parágrafo 4: numa máquina nova são TRÊS passagens até
-  # o silêncio. Não é defeito — o `index.theme` descreve os diretórios que
-  # EXISTEM, e as pastas coloridas nascem na etapa seguinte. Quem tem de saber
-  # disso é o instalador, não quem leu o parágrafo 4.
-  printf '\n  %s%d etapa(s) mudaram nesta passagem.%s\n' \
-    "$C_AMARELO$C_FORTE" "${#FEITOS[@]}" "$C_ZERO"
-  printf '  Algumas etapas dependem do resultado da anterior. Rode mais uma vez,\n'
-  printf '  até a tela dizer "nenhuma etapa precisou escrever nada":\n\n'
-  printf '      ./install.sh\n\n'
+  # UMA FRASE SÓ, E ELA DIZ QUANTO CUSTOU. "Nada é escrito duas vezes" é a
+  # promessa; o número de passagens é a prova dela na tela, sem ela precisar
+  # contar linha nenhuma — e sem ninguém pedir que ela rode de novo para saber.
+  local plural="passagens"
+  [ "$passagem" = "1" ] && plural="passagem"
+  printf '\n  %sPronto.%s %d %s, %d etapas, nada mais a escrever.\n\n' \
+    "$C_VERDE$C_FORTE" "$C_ZERO" "$passagem" "$plural" "$TOTAL"
   return 0
 }
 

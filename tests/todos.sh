@@ -64,6 +64,7 @@ PORTATIL=(
   reversao.sh            # grep no desinstalador + install.sh com MEOW_IGNORA_DESKTOP=1
   seco.sh                # o cabeçalho dele exige rodar "inclusive num CI sem sessão gráfica"
   convergencia.sh        # instalador em HOME de brinquedo, tres passagens (~55s)
+  instalacao.sh          # o laço das passagens, com etapas falsas; não toca em nada
   midia.sh               # HOME de brinquedo com binário falso; nunca compila
   jogos-heroic.sh        # HOME de brinquedo com biblioteca falsa do Heroic
   um-cartao-por-jogo.sh  # HOME de brinquedo com manifesto falso da Steam
