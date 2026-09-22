@@ -2259,7 +2259,7 @@
     /* A volta da máquina para o começo da fila, apagada de propósito: ela é a
      * promessa que a página inteira faz e que nenhum botão mostra. Na segunda
      * passagem as cinco linhas ficam verdes e o instalador termina dizendo, com
-     * essas palavras, que nenhuma etapa precisou escrever nada. */
+     * essas palavras, que não há "nada mais a escrever". */
     svg.appendChild(caminho("M 88,44 L 88,54 L 19,54 L 19,50", {
       "stroke-width": 1.2, opacity: 0.5,
     }));

@@ -237,5 +237,39 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 7. A conf que quebra depois de alguém já ter escrito: o teto NÃO fala
+# ---------------------------------------------------------------------------
+# Medido em 21/09/2026, e é regressão do laço: a guarda do teto cobrava apenas
+# "ainda escreve" e "teto > 1", e a saída pelo `parar_conf` satisfaz as duas.
+# Como o `etapa_backup_tema` ABRE a fila — ele guarda o COSMIC de antes antes de
+# qualquer etapa escrever —, quando a conf quebra já existe alguém em `mexeu:`,
+# e a tela dizia "5 passagens, e estas etapas ainda escrevem: backup_tema"
+# depois de UMA passagem: acusava de defeito de idempotência a etapa mais
+# inocente da lista e mandava ao `meow doctor` por um problema que não existe.
+# O caminho na máquina de verdade é um `~/.config/meow` de dono root, herdado de
+# um `sudo ./install.sh`. Quem conta esse caso é o `falhou:`, e só ele.
+cenario conf_quebrada 'etapa_falsa_escreve etapa_conf etapa_falsa_depois' '
+etapa_falsa_escreve() { passo "etapa falsa que abre a fila e escreve"; meow_muda "escrevi"; return 1; }
+etapa_conf() { passo "a conf de brinquedo, que não consegue escrever"; meow_erro "não consegui criar o meow.conf"; return 2; }
+etapa_falsa_depois() { passo "etapa falsa que não deve rodar"; meow_muda "eu não devia estar aqui"; return 1; }
+'
+confere conf_quebrada
+if [ "$RC" != "2" ]; then
+  falhou "conf quebrada: saiu $RC — sem configuração válida não há instalação, e isso sai 2"
+elif ! contem 'sem configuração válida não há o que instalar'; then
+  falhou "conf quebrada: parou sem dizer que era a conf"
+elif contem 'ainda escrevem'; then
+  falhou "conf quebrada: o relatório do teto falou numa passagem só, e culpou etapa inocente"
+elif [ "$(passagens)" != "1" ]; then
+  falhou "conf quebrada: $(passagens) passagens — sem conf a segunda não tem o que tentar"
+elif ! contem 'Algumas etapas falharam'; then
+  falhou "conf quebrada: perdeu o único relatório que cabe neste caso"
+elif contem 'não devia estar aqui'; then
+  falhou "conf quebrada: a fila seguiu depois da conf, que é o que o break existe para impedir"
+else
+  passou "conf quebrada: para na conf, sai 2, e o teto não acusa ninguém"
+fi
+
+# ---------------------------------------------------------------------------
 [ "$FALHAS" = "0" ] || exit 1
 printf 'ok: o laço das passagens fecha sozinho, e as duas guardas disparam\n'

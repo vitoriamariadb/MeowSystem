@@ -3101,8 +3101,12 @@ main() {
   # O LAÇO DAS PASSAGENS — 21/09/2026
   #
   #   Até hoje este `for` rodava UMA vez e o rodapé terminava com "N etapa(s)
-  #   mudaram nesta passagem. Rode mais uma vez" — enquanto o README admitia, no
-  #   parágrafo 4, que numa máquina nova são TRÊS passagens até o silêncio.
+  #   mudaram nesta passagem. Rode mais uma vez" — enquanto o comentário logo
+  #   acima dele já sabia que numa máquina nova são TRÊS passagens até o
+  #   silêncio. (Aquele comentário, e a spec desta sprint depois dele, punham a
+  #   frase no parágrafo 4 do README. Ela nunca esteve lá: `git log -S` não acha
+  #   "três passagens" em README.md em ponto nenhum da história, e o parágrafo 4
+  #   diz apenas "não escreve um byte". Conferido em 21/09/2026.)
   #
   #   O diagnóstico daquele comentário estava certo e a conclusão estava errada.
   #   A dependência é real e não é bug: o `index.theme` descreve os diretórios
@@ -3254,7 +3258,20 @@ main() {
   # O TETO. Chegar aqui com etapas escrevendo é o cenário que ele existe para
   # expor — e hoje isso ficava escondido atrás de "rode mais uma vez", que a
   # pessoa roda, roda de novo, e desiste sem nunca saber de quem era a culpa.
-  elif [ "$ainda" -gt 0 ] && [ "$teto" -gt 1 ]; then
+  #
+  # E O `parar_conf` NÃO É CHEGAR AO TETO. O laço tem três saídas com `ainda`
+  # ainda positivo: o teto, a oscilação e a conf que não pôde ser lida. Sem esta
+  # terceira condição, a saída pela conf caía aqui e a tela dizia "5 passagens,
+  # e estas etapas ainda escrevem: backup_tema" depois de UMA passagem — o
+  # `etapa_backup_tema` abre a fila e já escreveu quando a conf quebra, então a
+  # frase acusava de defeito de idempotência a etapa mais inocente da lista e
+  # mandava ao `meow doctor` caçar um problema inexistente. Medido em
+  # 21/09/2026 num HOME de brinquedo; na máquina de verdade o caminho é um
+  # `~/.config/meow` de dono root depois de um `sudo ./install.sh`. O relatório
+  # honesto desse caso é o do `falhou:`, logo abaixo, e ele já estava certo.
+  # (A frase continua contando `$teto` e não `$passagem` de propósito: com esta
+  # guarda no lugar, a única entrada que sobra é `passagem -ge teto`.)
+  elif [ "$ainda" -gt 0 ] && [ "$teto" -gt 1 ] && [ "$parar_conf" != "1" ]; then
     meow_erro "$teto passagens, e estas etapas ainda escrevem:  ${FEITOS[*]}"
     meow_aviso "parei no teto de propósito: um laço sem fim esconderia o defeito."
     meow_aviso "o que olhar primeiro:  meow doctor"

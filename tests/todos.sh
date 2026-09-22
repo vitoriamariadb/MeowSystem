@@ -63,7 +63,7 @@ PORTATIL=(
   estilo.sh              # régua da caneta contra o acervo Arcticons DAQUI (pede numpy)
   reversao.sh            # grep no desinstalador + install.sh com MEOW_IGNORA_DESKTOP=1
   seco.sh                # o cabeçalho dele exige rodar "inclusive num CI sem sessão gráfica"
-  convergencia.sh        # instalador em HOME de brinquedo, tres passagens (~55s)
+  convergencia.sh        # instalador em HOME de brinquedo, cinco passagens (~70s)
   instalacao.sh          # o laço das passagens, com etapas falsas; não toca em nada
   midia.sh               # HOME de brinquedo com binário falso; nunca compila
   jogos-heroic.sh        # HOME de brinquedo com biblioteca falsa do Heroic

@@ -12,9 +12,10 @@
 #
 # POR QUE ELE OLHA `mexeu:` E NÃO A FRASE FINAL
 #   Medido: num HOME de brinquedo sem barramento de sessão, `systemctl --user`
-#   falha, o instalador sai 2 e a frase "nenhuma etapa precisou escrever nada"
-#   nem chega a ser impressa. Isso é o ambiente, não o defeito que caçamos. O
-#   `mexeu:` some do mesmo jeito, e é o que importa.
+#   falha, o instalador sai 2 e a frase final — "Pronto. 3 passagens, 59 etapas,
+#   nada mais a escrever.", que em 21/09/2026 tomou o lugar de "nenhuma etapa
+#   precisou escrever nada" — nem chega a ser impressa. Isso é o ambiente, não o
+#   defeito que caçamos. O `mexeu:` some do mesmo jeito, e é o que importa.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 H="$(mktemp -d)"; trap 'rm -rf "$H"' EXIT
