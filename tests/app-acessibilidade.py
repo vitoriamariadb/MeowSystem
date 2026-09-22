@@ -97,13 +97,26 @@ E OS QUATRO TETOS DA P7 — 22/09/2026
       na mesma aba, que e' pior que o teto estourado. O teto de 40 e' regua
       certa para um botao de escolha e errada para um `?`; cobrar os dois com
       a mesma nao mediria nenhum.
-    · «teto de 220 por paragrafo de ajuda» na TELA. Dos 122 paragrafos acima
-      de 220, 110 sao o `.motivo` dentro do balao do `?` — que e' a rede para
-      onde o texto que nao cabe deve ir, e a propria P7 diz que sem ela a
-      sprint troca "longo demais" por "curto e incompreensivel". Dos 12 que
-      sobram, todos sao legenda de desenho vinda dos `previas-*.js`, e sao a
-      enumeracao dos numeros que o desenho mostra. O teto vale onde ha o que
-      apertar, e e' por isso que ele e' cobrado na FONTE do `servidor.py`.
+    · «teto de 220 por paragrafo de ajuda» na TELA. Medido com o painel no ar
+      e as 14 abas percorridas, e nao copiado da sprint: 124 paragrafos acima
+      de 220 ANTES deste commit, dos quais 110 sao o `.motivo` dentro do balao
+      do `?` — que e' a rede para onde o texto que nao cabe deve ir, e a
+      propria P7 diz que sem ela a sprint troca "longo demais" por "curto e
+      incompreensivel". (A sprint contou 122 no total; a diferenca e' de
+      medida, nao de tela, e a conta daqui esta' aberta linha a linha.)
+      Dos 14 que sobravam, 13 sobram agora, e eles NAO sao todos legenda:
+        · 12 sao legenda de desenho vinda dos `previas-*.js` (231 a 545
+          caracteres), e sao a enumeracao dos numeros que o desenho mostra;
+        · 1 era a ajuda de acao do `servidor.py` — 230 caracteres, e e' a que
+          este commit encurtou. E' o unico dos 14 que o teto COBRADO alcanca,
+          e por isso ele e' cobrado na FONTE do `servidor.py`;
+        · 1 nao e' nem uma coisa nem outra e continua la': a `.nota-secao` de
+          299 caracteres da aba «Logo do sistema» (o `fecho` do
+          `NOTA_DO_ASSUNTO`, em `app.js`). Ela e' PRE-EXISTENTE e esta sprint
+          nao a tocou; fica escrita aqui para nao voltar a ser contada como
+          legenda de desenho, que era o que esta linha dizia antes — 22/09/2026.
+      O teto vale onde ha o que apertar, e e' por isso que ele e' cobrado na
+      FONTE do `servidor.py`, e nao na tela.
 
 O QUE ELE NAO FAZ
   Nao clica em nada que escreva: nenhuma acao e' executada, nenhuma chave e'

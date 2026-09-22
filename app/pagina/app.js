@@ -724,18 +724,24 @@ function verComando(acoes) {
       }),
     ]));
   }
+  /* E O REPINTAR SAI DAQUI PARA QUEM MUDA O COMANDO — 22/09/2026
+   *   Repintar só ao ABRIR fechava metade da porta que o comentário lá em cima
+   * mandou fechar: com a lista JÁ aberta ninguém tornava a abri-la, e o
+   * `<code>` envelhecia na tela do mesmo jeito. Quem sabe que o comando mudou
+   * é quem o reescreve, então é a ele que esta porta é entregue. */
+  const repintarTudo = () => { for (const f of repintar) f(); };
   const botao = elemento("button", {
     type: "button", class: "btn btn-mini ver-comando",
     texto: "ver comando",
     "aria-expanded": "false",
     onclick: () => {
-      /* Repinta ao ABRIR, que é o único instante em que alguém vai ler. */
-      if (bloco.hidden) for (const f of repintar) f();
+      /* Repinta ao ABRIR, que é o instante em que alguém começa a ler. */
+      if (bloco.hidden) repintarTudo();
       bloco.hidden = !bloco.hidden;
       botao.setAttribute("aria-expanded", String(!bloco.hidden));
     },
   });
-  return { botao, bloco };
+  return { botao, bloco, repintar: repintarTudo };
 }
 
 function torrada(texto, classe = "") {
@@ -4577,8 +4583,7 @@ function montarAcao(acao) {
   if (escolha) escolha.addEventListener("change", pintarCmd);
   bloco.append(linhaCmd);
   /* O «ver comando» nasce DEPOIS do `pintarCmd`, porque é o `dataset.comando`
-   * que ele procura na fileira. Ele repinta ao abrir (ver `verComando`), então
-   * trocar o `<select>` com a lista aberta não a deixa mentindo. */
+   * que ele procura na fileira. */
   const cmds = verComando(rodape);
   if (cmds) {
     /* ANTES DO «EXECUTAR», e não depois: o `.rodape` põe as etiquetas de risco
@@ -4587,6 +4592,21 @@ function montarAcao(acao) {
      * depois do «Executar» quebraria essa ordem de leitura. */
     rodape.insertBefore(cmds.botao, executar);
     bloco.append(cmds.bloco);
+    /* E A LISTA ABERTA REPINTA NO `change` — 22/09/2026
+     *   Esta linha nasceu de uma conferência com cliques de verdade em «Pôr um
+     * gato no dock»: com a lista aberta, escolher «Mimir» punha DOIS comandos
+     * contraditórios na mesma tela — a linha de cima já dizia `meow logo mimir`
+     * e o `<code>` da lista, duas linhas abaixo, continuava em
+     * `…/bin/meow logo coquinha`. O «Copiar» estava certo (lê o
+     * `dataset.comando` na hora da cópia); quem mentia era o TEXTO, que é
+     * justamente o que esta lista existe para mostrar. É a regra de 07/09/2026
+     * logo acima, e vale para a lista também: O COMANDO NA TELA É O COMANDO
+     * QUE VAI RODAR.
+     *   A ORDEM É O CONSERTO: pendurado depois do `pintarCmd`, o `change`
+     * chama primeiro quem reescreve o `dataset.comando` e só então quem o lê.
+     * Repintar a lista fechada não custa nada — são dois `<code>` no pior
+     * caso — e evita ter de lembrar de repintá-la ao abrir. */
+    if (escolha) escolha.addEventListener("change", cmds.repintar);
   }
   return bloco;
 }
