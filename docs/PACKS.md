@@ -14,7 +14,17 @@ packs/meu-tema/
 
 Com isso você já ganha tema do COSMIC, esquema do terminal, cores do painel, dos
 ícones autorais e dos temas de aplicativo. Tudo o que você não declarar é
-herdado do pack embutido, e o `meow pack info` diz exatamente o que veio de onde.
+herdado do **pack padrão** — o `catppuccin`, que acompanha o projeto e **pode
+ser trocado** —, e o `meow pack info` diz exatamente o que veio de onde.
+
+**"Padrão" e não "embutido", e a palavra mudou com o código.** Até 22/09/2026 o
+Catppuccin não era um pack: era uma constante no `scripts/pack.py` apontando
+para um arquivo dentro de `assets/`. Ele não tinha `pack.json`, não aparecia na
+varredura do `meow pack listar` (havia uma linha de código só para ele aparecer)
+e não tinha onde declarar nada — e por isso o `dracula` herdava sete categorias
+de um lugar que não podia declará-las. Hoje ele é `packs/catppuccin/`, com
+`pack.json`, e passa pelas mesmas regras que o seu pack vai passar. É essa a
+promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 
 ---
 
@@ -23,6 +33,7 @@ herdado do pack embutido, e o `meow pack info` diz exatamente o que veio de onde
 - [As 26 cores](#as-26-cores)
 - [A estrutura do pack](#a-estrutura-do-pack)
 - [`pack.json`, campo a campo](#packjson-campo-a-campo)
+- [De onde sai um acervo: pack, herança, motor](#de-onde-sai-um-acervo-pack-herança-motor)
 - [Quem vence: o pack ou o `meow.conf`](#quem-vence-o-pack-ou-o-meowconf)
 - [O tema do COSMIC, e o único passo manual que existe](#o-tema-do-cosmic-e-o-único-passo-manual-que-existe)
 - [O som](#o-som)
@@ -34,7 +45,7 @@ herdado do pack embutido, e o `meow pack info` diz exatamente o que veio de onde
 
 ## As 26 cores
 
-A paleta é um JSON com os mesmos campos de `assets/paleta/catppuccin.json`:
+A paleta é um JSON com os mesmos campos de `packs/catppuccin/paleta.json`:
 
 ```json
 {
@@ -62,8 +73,8 @@ partir deles.
 
 Você não fornece "as suas cores". Você fornece **um mapeamento das suas cores
 para esses 26 nomes**. Se o seu tema tem 12 cores, as outras 14 são derivadas —
-é exatamente o que o Dracula faz, e o `_comentario` de `catppuccin.json` registra
-quais foram derivadas e como.
+é exatamente o que o Dracula faz, e o `_comentario` da `paleta.json` dele
+registra quais foram derivadas e como.
 
 O que cada nome quer dizer, na prática:
 
@@ -224,6 +235,50 @@ está vazia.
 
 ---
 
+## De onde sai um acervo: pack, herança, motor
+
+Um **acervo** é um diretório ou um arquivo de arte que o pack declara: o mapa de
+ícones de aplicativo, os desenhos, os glifos de tipo de arquivo. Quem responde
+"onde está este acervo" é **um lugar só** — o verbo `acervo` do
+`scripts/pack.py` —, e ele sobe três degraus, nesta ordem:
+
+| | degrau | o que é |
+|---|---|---|
+| 1 | **o pack ativo** | o que o `pack.json` dele declara naquela categoria |
+| 2 | **a herança** | o pack nomeado em `<categoria>.herda`, ou em `heranca` |
+| 3 | **o motor** | o acervo de `assets/`, para quem ainda não migrou |
+
+```bash
+python3 scripts/pack.py acervo dracula icones.apps.mapa
+#   packs/dracula/icones/apps.map
+
+python3 scripts/pack.py acervo dracula icones.mimetypes.desenhos
+#   packs/catppuccin/icones/mimetypes/   <- subiu pela herança
+```
+
+**A herança do bloco vence a do pack inteiro.** O Dracula declara
+`heranca: "catppuccin"` no topo **e** `icones.mimetypes.herda: "catppuccin"` no
+bloco — a do bloco é a que fala daquela categoria, e um pack que herde só uma
+categoria de outro lugar precisa dela.
+
+**Herança circular não trava.** Dois packs que herdem um do outro devolvem "não
+achei", e não um laço infinito.
+
+**O caminho declarado tem de cair dentro do pack.** Um `"mapa":
+"../../../etc/algo"` é ignorado naquele degrau, com um aviso no stderr que
+nomeia o campo — e a herança logo abaixo ainda pode ter a resposta certa. É a
+mesma regra do `realpath` que o validador aplica.
+
+**Ausência é resposta**, e não erro: uma categoria que o pack não declara e que
+ninguém herda devolve nada, e quem chamou decide se isso é problema.
+
+> **`acervo` não é `caminho`.** O verbo `caminho` olha **só** o pack e serve de
+> sonda de existência para o shell (`lib/comum.sh` joga a saída dele fora e olha
+> o código de retorno). Reaproveitar aquele nome para esta semântica faria todo
+> script de shell deixar de enxergar o pack, sem erro nenhum na tela.
+
+---
+
 ## Quem vence: o pack ou o `meow.conf`
 
 **O `meow.conf` da máquina sempre vence.** Sem exceção.
@@ -350,14 +405,14 @@ O que dá caráter ao som não é a nota: é a distância entre as duas.
 
 | Intervalo | `harmonico` para `fundamental` 880 | Como soa |
 |---|---|---|
-| Quinta justa | 1320 | resolvido, claro — é o do pack embutido |
+| Quinta justa | 1320 | resolvido, claro — é o do pack padrão |
 | Terça maior | 1100 | alegre |
 | Terça menor | 1046.5 | sombrio |
 | Oitava | 1760 | neutro, quase um bipe |
 
 O pack Dracula usa sol (784) com a terça menor acima (si bemol, 932.3): o mesmo
 gesto de mexer no volume soa noturno, sem virar alarme. E o decaimento dele é
-mais lento que o do embutido (38 contra 46) porque a terça menor precisa de um
+mais lento que o do padrão (38 contra 46) porque a terça menor precisa de um
 instante a mais para ser reconhecida como intervalo — abaixo disso as duas notas
 viram um clique só.
 
@@ -399,6 +454,23 @@ Um pack é **dado**. Nunca é código.
 meow pack validar ~/.local/share/meowsystem/packs/meu-tema
 ```
 
+Os verbos, todos em `scripts/pack.py` — o **único** arquivo deste projeto que
+abre um `pack.json`:
+
+| verbo | o que responde |
+|---|---|
+| `validar <id-ou-caminho>` | confere o pack inteiro. 0 = ok, 1 = recusado |
+| `info <id>` | o que é próprio, o que é herdado, categoria a categoria |
+| `caminho <id> <categoria>` | o caminho que aquela categoria resolve **no pack** |
+| `acervo <id> <categoria> [arquivo]` | o mesmo, subindo pack → herança → motor |
+| `paleta <id>` | o arquivo de paleta daquele pack |
+| `som <id>` | o timbre do pack, como `CHAVE=valor` para o shell |
+| `raizes` | as três raízes de busca, na ordem |
+| `padrao` | o diretório do pack **padrão** |
+
+`padrao` existe para que o nome do pack padrão more num lugar só. Antes de
+22/09/2026 ele estava cravado em nove pontos de código.
+
 Ele confere, nesta ordem, e **para no primeiro erro**:
 
 1. `pack.json` é JSON válido e tem os campos obrigatórios
@@ -409,14 +481,55 @@ Ele confere, nesta ordem, e **para no primeiro erro**:
    uma vez, não um por vez
 6. todo hex é `#RRGGBB`
 7. `flavor_padrao` existe na paleta
-8. todo caminho declarado existe e está dentro do pack
-9. todo `herda` aponta para um pack que existe
-10. nenhuma URL fora de `https://`
-11. **contraste**: `text` sobre `base` precisa passar em WCAG AA (4.5:1) — 26
+8. **todo arquivo prometido existe.** São cinco campos que nomeiam arquivo —
+   `paleta.arquivo`, `icones.*.mapa`, `icones.*.desenhos`, `cosmic.mapa` e
+   `creditos` —, e todos são abertos, não só olhados. O `creditos` entrou em
+   21/09/2026: o `packs/dracula/pack.json` prometia um `CREDITOS.md` desde que
+   nasceu, o arquivo nunca esteve lá, e `meow pack validar dracula` saía 0. Um
+   validador que aprova um pack que promete e não entrega não está validando o
+   formato: está carimbando. Ou crie o arquivo, ou tire o campo
+9. todo caminho declarado está dentro do pack (resolvido com `realpath`)
+10. todo `herda` aponta para um pack que existe
+11. nenhuma URL fora de `https://`
+12. **contraste**: `text` sobre `base` precisa passar em WCAG AA (4.5:1) — 26
     hexes aleatórios passam em tudo acima e produzem uma interface ilegível
 
 A validação roda de novo dentro do `meow_preflight`, **antes** de o instalador
 escrever qualquer coisa. Um pack quebrado não chega a tocar no seu desktop.
+
+### O campo que ninguém lê: aviso, nunca silêncio
+
+Antes do `ok`, o validador imprime **quais campos aquele `pack.json` declara e
+nenhuma linha deste projeto consulta**:
+
+```
+  aviso 15 campo(s) que este pack declara e NENHUM código lê:
+          icones.apps.camada
+          origens.wallpapers.tipo
+          …
+        Eles não quebram nada — e também não fazem nada: nenhuma linha deste
+        projeto os consulta.
+```
+
+**Por que existe.** Uma varredura em 21/09/2026 mediu que metade do que o
+`packs/dracula/` declarava não tinha um único leitor em código. O caso que dói:
+ele declarava `cosmic.nome_da_paleta` **exatamente** para impedir que o tema
+aparecesse como `catppuccin-dracula` na GUI do COSMIC — e era assim que ele
+aparecia, porque o conserto não tinha leitor. Um formato que aceita declaração
+morta ensina a escrever declaração morta: quem copia um `pack.json` repete os
+campos mortos acreditando que eles fazem alguma coisa.
+
+**É aviso, e não recusa.** Um campo sem leitor hoje pode ser o campo que a
+versão seguinte vai ler, e recusar por causa dele quebraria packs que já
+funcionam. O que não pode é o silêncio.
+
+**Campo que comece com `_` não é cobrado** — `_nota`, `_comentario`,
+`_nota_heranca` são prosa do autor do pack, e cobrá-las seria punir quem
+documentou.
+
+O `packs/catppuccin/` sai **limpo** deste aviso, de propósito: ele é o primeiro
+`pack.json` que alguém copia, e declarar ali um campo sem leitor ensinaria a
+promessa vazia antes de ela ter conserto.
 
 ---
 
@@ -449,6 +562,14 @@ Depois, `meow ativar`.
 - [ ] `heranca` está escrita, mesmo sendo o default
 - [ ] nenhum caminho absoluto, nenhum `~`, nenhum nome de usuário
 
-O `packs/dracula/` deste repositório é um exemplo completo e funcional: uma
-paleta, dois acervos de ícone, um acervo de papel de parede declarado por chave
-de conf, e tudo o mais herdado — com cada herança dita na cara.
+Este repositório traz **dois** packs, e eles ensinam coisas diferentes:
+
+- **`packs/catppuccin/`** é o pack **padrão** — o mínimo honesto. Só campos com
+  leitor, a paleta de quatro flavors e um acervo de glifos. É o que todo pack
+  herda quando não declara.
+- **`packs/dracula/`** é o exemplo completo: uma paleta, dois acervos de ícone,
+  um acervo de papel de parede declarado por chave de conf, e tudo o mais
+  herdado — com cada herança dita na cara.
+
+Se for copiar um para começar o seu, copie o **catppuccin**: o do Dracula
+declara quinze campos que ainda não têm leitor, e o `validar` diz quais são.

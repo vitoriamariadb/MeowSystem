@@ -67,7 +67,16 @@ def com_luminancia(hexa, alvo, sat_extra=0.0):
 
 
 def main():
-    cat = json.load(open(f"{RAIZ}/assets/paleta/catppuccin.json"))
+    # AQUI O `catppuccin` É NOMEADO DE PROPÓSITO, E NÃO É A PALETA ATIVA
+    #   Este script deriva UM flavor claro a partir de outro escuro, e a régua
+    #   de saturação e luminância é o Latte do Catppuccin — é o que o bloco "A
+    #   CALIBRAÇÃO VEM DO LATTE" abaixo explica. Trocar por
+    #   `pack.paleta_do_pack_ativo()` mudaria a régua junto com o pack ativo e o
+    #   resultado deixaria de ser reprodutível. Os dois arquivos são nomeados
+    #   pelo pack a que pertencem, lado a lado, e é assim que se lê.
+    #   O caminho mudou em 22/09/2026 (era `assets/paleta/catppuccin.json`)
+    #   porque o pack padrão passou a morar em `packs/`, como os outros.
+    cat = json.load(open(f"{RAIZ}/packs/catppuccin/paleta.json"))
     pack = json.load(open(f"{RAIZ}/packs/dracula/paleta.json"))
     escuro = pack["flavors"]["dracula"]
     latte = cat["flavors"]["latte"]

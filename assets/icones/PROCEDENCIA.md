@@ -15,7 +15,7 @@ lado da regra.
 
 | acervo | onde | licença | pode modificar? | pode redistribuir? |
 |---|---|---|---|---|
-| `catppuccin/vscode-icons` | `assets/icones/catppuccin/<flavor>/` | MIT | sim | sim, com o aviso de copyright |
+| `catppuccin/vscode-icons` | `packs/catppuccin/icones/mimetypes/<flavor>/` | MIT | sim | sim, com o aviso de copyright |
 | `Daveedmee/catppuccin-icons` | `assets/icones/catppuccin-apps/<flavor>/` | **não declarada** | indefinido | **não** — uso local apenas |
 | Arcticons (sistema) | `assets/icones/arcticons/` — **39** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
 | Arcticons (aplicativo) | `assets/icones/arcticons-apps/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
@@ -33,7 +33,7 @@ Já confundiram uma análise inteira. A diferença não é de organização, é 
 *script* (`scripts/construir_pastas.sh`) em vez de apontar para o acervo, o que
 ajudava a confusão. Corrigido em 10/08/2026.
 
-| | `assets/icones/catppuccin/<flavor>/` | `assets/icones/upstream/papirus-folders/` |
+| | `packs/catppuccin/icones/mimetypes/<flavor>/` | `assets/icones/upstream/papirus-folders/` |
 |---|---|---|
 | upstream | `catppuccin/vscode-icons` | `catppuccin/papirus-folders` |
 | forma | `fill="none"` + `stroke`, `viewBox="0 0 16 16"` — **traço** de árvore de arquivos do VS Code | pasta **cheia**, com dobra, sombra e símbolo interno, 22..64 px |

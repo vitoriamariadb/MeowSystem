@@ -139,7 +139,7 @@
 #   repinta raster: o simbólico do Hefesto tem `#bebebe` em disco e sai `#FFFFFF`
 #   na tela; este PNG saía `#DEDEDE`, a cor exata do disco. Como aqui o formato é
 #   raster, a cor tem de estar no arquivo — e ela não sai de
-#   `assets/paleta/catppuccin.json` de propósito: os vizinhos desta barra são cinzas
+#   `packs/catppuccin/paleta.json` de propósito: os vizinhos desta barra são cinzas
 #   (`#FFFFFF` repintado nos simbólicos, `#dfdfdf` nos painéis do Papirus), e um
 #   mauve aqui seria a única coisa colorida de uma barra monocromática. `#DEDEDE`
 #   é o que foi medido na tela dela em 08/08.

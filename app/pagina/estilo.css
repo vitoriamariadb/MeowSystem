@@ -19,8 +19,12 @@
  * era o degrau das legendas desta folha.
  *
  * NENHUM HEX AQUI DENTRO, E ISSO É A REGRA DO README, NÃO UM CAPRICHO
- *   Toda cor sai de `assets/paleta/catppuccin.json` pelas variáveis que o
- *   `<style id="paleta-do-painel">` define. Trocar `FLAVOR="latte"` veste a
+ *   Toda cor sai de `/paleta.css` — a folha que o `app/servidor.py` gera do
+ *   pack ativo, no flavor que o meow.conf manda — pelas variáveis que o
+ *   `<style id="paleta-do-painel">` define. O caminho do arquivo de paleta NÃO
+ *   é nomeado aqui de propósito desde 22/09/2026: ele mudou de casa na P13, e
+ *   uma folha de estilo que crava o caminho da paleta é a mesma divergência
+ *   silenciosa de sempre, com outra extensão. Trocar `FLAVOR="latte"` veste a
  *   página inteira de claro sem uma linha a mais aqui — e por isso não há
  *   sombra que só funcione no escuro, nem `invert()` cravado (ver a tira de
  *   glifos, que agora inverte por `light-dark()`).

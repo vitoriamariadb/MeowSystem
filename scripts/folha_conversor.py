@@ -91,16 +91,16 @@ ARCTICONS = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
 #   Por isso a coluna lê o acervo primeiro e só converte quando não há arquivo.
 ACERVO = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
 
-# A paleta vem da mesma ordem de precedência de toda a casa, e a fonte canônica
-# do contrato é `meow_paleta()` em lib/comum.sh:
-#   1. $MEOW_PALETA     caminho completo (é a porta que um theme pack usa)
-#   2. $PALETA_ARQUIVO  só o nome, resolvido dentro de assets/paleta/
-#   3. catppuccin.json  o embutido
-# São três linhas repetidas em vez de um módulo importável porque os consumidores
-# vivem em `scripts/` e em `app/`, e um import entre os dois traria um problema de
-# sys.path que este projeto não tem hoje. É o mesmo idioma de scripts/gerar_temas.py:52.
-_PALETA = os.environ.get("MEOW_PALETA") or os.path.join(
-    RAIZ, "assets", "paleta", os.environ.get("PALETA_ARQUIVO") or "catppuccin.json")
+# A PALETA VEM DA PORTA ÚNICA DO LADO PYTHON — 22/09/2026
+# Eram três linhas repetidas em seis arquivos, e as seis terminavam no mesmo
+# literal: `assets/paleta/catppuccin.json`. A P13 mudou esse arquivo de casa (é
+# `packs/catppuccin/paleta.json`) e derrubou a isenção que o cabeçalho do
+# `meow_paleta` dava a quem é Python: `pack.py` é VIZINHO deste arquivo, e
+# `scripts/` já é o `sys.path[0]` de quem o roda — não há sys.path a atravessar.
+# A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
+import pack  # noqa: E402  — vizinho de arquivo, e o RAIZ acima precede
+
+_PALETA = pack.paleta_do_pack_ativo()
 with open(_PALETA, encoding="utf-8") as fh:
     PALETA = json.load(fh)["flavors"]["mocha"]
 

@@ -39,9 +39,15 @@
 #     Gradia usa, e o porquê está na seção 3 abaixo.
 #
 # A COR É UMA CHAVE DA PALETA, NUNCA UM HEX — a mesma regra do mapa irmão.
-#   `assets/paleta/catppuccin.json` é a fonte única de cor deste projeto. O que se
+#   A PALETA DO PACK ATIVO é a fonte única de cor deste projeto. O que se
 #   grava aqui é o NOME (`sapphire`, `peach`, ...); o script resolve para o hex
 #   do `$FLAVOR` em uso, e por isso este caminho serve os QUATRO flavors.
+#
+#   O CAMINHO SAIU DAQUI EM 22/09/2026. Este mapa dizia
+#   `assets/paleta/catppuccin.json`, e a P13 mudou esse arquivo de casa. Um mapa
+#   de dados que nomeia o caminho de outro arquivo envelhece sem ninguém cobrar
+#   — quem resolve a paleta é o `meow_paleta` (lib/comum.sh) e o
+#   `pack.paleta_do_pack_ativo()` (scripts/pack.py), e é a eles que se pergunta.
 #
 # `#!cor-por-categoria` vale aqui pelo mesmo motivo que vale lá: desde 10/08/2026
 # a cor é POR CATEGORIA, e cor repetida é o DESENHO, não o acidente. Os três

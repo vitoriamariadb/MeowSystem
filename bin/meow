@@ -342,7 +342,13 @@ chk_gerar() {
     || { rc=1; msg="algum .ron saiu da paleta"; }
   python3 "$RAIZ/scripts/gerar_tema_v1.py" --conferir >/dev/null 2>&1 \
     || { rc=1; msg="${msg:+$msg; }a v1 das capturas saiu da paleta"; }
-  [ "$rc" = "0" ] && { echo "os temas e a v1 das capturas conferem com assets/paleta/"; return 0; }
+  # QUEM NOMEIA O ARQUIVO É O `meow_paleta_nome` — 22/09/2026
+  #   Esta linha dizia "conferem com assets/paleta/", e a P13 esvaziou esse
+  #   diretório: só o `cosmic-map.json`, que é do MOTOR, ficou lá. A paleta
+  #   mora no pack agora. O irmão desta frase, no `install.sh`, passou pela
+  #   porta no mesmo commit; este ficou para trás e saía em TODA rodada verde
+  #   do doctor, apontando uma pasta onde a cor já não está.
+  [ "$rc" = "0" ] && { echo "os temas e a v1 das capturas conferem com $(meow_paleta_nome)"; return 0; }
   echo "$msg — 'meow doctor --consertar' regenera"
   return "$MEOW_DIVERGENTE"
 }
@@ -3591,7 +3597,9 @@ cmd_pack() {
       local alvo="${1:-${PACK:-}}"
       if [ -z "$alvo" ]; then
         carregar_conf 2>/dev/null || true
-        alvo="${PACK:-catppuccin}"
+        # Sem PACK no conf, o alvo é o pack PADRÃO — perguntado, não digitado.
+        # O nome dele mora em scripts/pack.py:PACK_PADRAO, e só lá. [22/09/2026]
+        alvo="${PACK:-$(meow_pack_padrao_dir)}"
       fi
       python3 "$RAIZ/scripts/pack.py" info "$alvo"
       ;;
@@ -3616,10 +3624,16 @@ cmd_pack() {
           printf '       %s\n' "${d%/}"
         done
       done < <(python3 "$RAIZ/scripts/pack.py" raizes)
-      # O embutido não tem pack.json e não aparece na varredura — mas existe, e
-      # esconder isso faria a lista mentir por omissão.
-      meow_info "catppuccin — Catppuccin (embutido, em assets/paleta/)"
-      [ "$achou" = 1 ] || meow_pula "nenhum pack instalado além do embutido"
+      # A LINHA ESPECIAL SAIU EM 22/09/2026, E A LISTA FICOU MAIS HONESTA
+      #   Havia aqui um `meow_info "catppuccin — Catppuccin (embutido, em
+      #   assets/paleta/)"`, com um comentário dizendo que "o embutido não tem
+      #   pack.json e não aparece na varredura — mas existe, e esconder isso
+      #   faria a lista mentir por omissão". Era verdade, e era o sintoma: o
+      #   pack padrão precisava de uma linha de código para aparecer numa lista
+      #   que sai do DISCO. A P13 lhe deu um `pack.json`; agora ele aparece pela
+      #   varredura, como qualquer outro, e a lista deixa de ter dois tipos de
+      #   pack. Ver `PACK_PADRAO`, em scripts/pack.py.
+      [ "$achou" = 1 ] || meow_pula "nenhum pack instalado"
       ;;
     raizes|raízes)
       meow_info "onde o MeowSystem procura um pack, nesta ordem:"

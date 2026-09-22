@@ -155,16 +155,38 @@ PAGINA = os.path.join(RAIZ, "app", "pagina")
 MAPA_JOGOS = os.path.join(RAIZ, "assets", "icones", "jogos-fora.map")
 CONF_PADRAO = os.environ.get("MEOW_CONF_PADRAO") or os.path.join(RAIZ, "meow.conf.exemplo")
 CONF = os.environ.get("MEOW_CONF") or os.path.expanduser("~/.config/meow/meow.conf")
-# A paleta vem da mesma ordem de precedência de toda a casa, e a fonte canônica
-# do contrato é `meow_paleta()` em lib/comum.sh:
-#   1. $MEOW_PALETA     caminho completo (é a porta que um theme pack usa)
-#   2. $PALETA_ARQUIVO  só o nome, resolvido dentro de assets/paleta/
-#   3. catppuccin.json  o embutido
-# São três linhas repetidas em vez de um módulo importável porque os consumidores
-# vivem em `scripts/` e em `app/`, e um import entre os dois traria um problema de
-# sys.path que este projeto não tem hoje. É o mesmo idioma de scripts/gerar_temas.py:52.
-PALETA = os.environ.get("MEOW_PALETA") or os.path.join(
-    RAIZ, "assets", "paleta", os.environ.get("PALETA_ARQUIVO") or "catppuccin.json")
+# A PALETA VIROU FUNÇÃO, E O LITERAL SAIU DAQUI — 22/09/2026
+#   Era uma constante de módulo que terminava em `assets/paleta/catppuccin.json`,
+#   uma das sete cópias da mesma escada de precedência. A P13 mudou esse arquivo
+#   de casa e pôs a escada num lugar só: `pack.paleta_do_pack_ativo()`.
+#
+#   POR QUE FUNÇÃO E NÃO CONSTANTE: quem sabe resolver é o `scripts/pack.py`, e
+#   quem o carrega aqui é o `modulo_pack()` — que está definido umas telas
+#   abaixo. Constante de módulo é calculada na ordem do arquivo; função é
+#   calculada na hora da chamada, e aí o `modulo_pack` já existe. Mover o
+#   `modulo_pack` para cá em vez disso mexeria em código que não é desta sprint.
+_PALETA = None
+
+
+def paleta_canonica():
+    """O arquivo de paleta que vale agora, ou '' quando não dá para saber.
+
+    VAZIO É RESPOSTA, E ELA JÁ TEM TRATAMENTO
+        Sem `scripts/pack.py` o painel não sabe qual é o pack padrão — e
+        inventar `packs/catppuccin/` aqui seria a segunda verdade sobre o nome
+        do pack padrão, que é exatamente o que a P13 veio acabar. O `''` cai no
+        `except OSError` do `_paleta_dados`, que já devolve `flavors: {}`, e a
+        página sai com "paleta ilegível — a página cai no tema do navegador".
+        É a mesma degradação que ela já tinha quando o arquivo não existia.
+    """
+    global _PALETA
+    if _PALETA is None:
+        mod = modulo_pack()
+        _PALETA = (mod.paleta_do_pack_ativo() if mod
+                   else os.environ.get("MEOW_PALETA") or "")
+    return _PALETA
+
+
 FOLHAS = os.path.join(RAIZ, "docs", "folhas")
 # O mesmo diretório que `MEOW_ESTADO` do `lib/comum.sh` — e ele vem por ambiente
 # quando o `run.sh` é quem chama, para as duas metades nunca discordarem sobre
@@ -800,16 +822,118 @@ def _vestigio_de_pack(chave):
     # adoção por convenção de meow_pack_dir() em lib/comum.sh.
     vals = valores_efetivos(["PACK", "FLAVOR"])
     adotado = (vals.get("PACK") or vals.get("FLAVOR") or "").strip().lower()
+    # E SE O QUE CHEGOU FOI UM SABOR, TRADUZA PARA O PACK — 22/09/2026.
+    #   A linha acima é `PACK or FLAVOR`, e com o meow.conf DE FÁBRICA
+    #   (`PACK=""`, `FLAVOR="mocha"`) o `adotado` vira "mocha". Nenhum pack se
+    #   chama mocha, então `pack == adotado` nunca casava, e o laço abaixo
+    #   acusava `CURSOR="catppuccin-mocha-light"` de ser "do pack «catppuccin»"
+    #   enquanto "o adotado é «mocha»" — prometendo tela misturada onde mocha
+    #   É o sabor do catppuccin, que é justamente o pack adotado.
+    #
+    #   Medido em 22/09: o aviso nascia para latte, frappe, macchiato e mocha,
+    #   ou seja, para o usuário PADRÃO. O conserto anterior tratava só o ramo
+    #   do Dracula, que é o caso raro.
+    if adotado and adotado not in packs:
+        mod = modulo_pack()
+        dir_sabor = _pack_do_sabor(mod, adotado) if mod else None
+        if dir_sabor:
+            adotado = os.path.basename(dir_sabor.rstrip("/")).lower()
     alvo = valor.strip().lower()
     for pack in packs:
         if pack == adotado:
             continue
         if pack in alvo:
-            return {"pack": pack, "adotado": adotado or "(o embutido)",
+            # O PACK ADOTADO TAMBÉM RECEITA VALORES DE OUTRO PACK — 22/09/2026
+            #   Quando o Catppuccin virou pack (P13), `_packs_no_disco` passou
+            #   de {dracula} para {dracula, catppuccin} e este aviso começou a
+            #   disparar no `CURSOR="catppuccin-mocha-light"` que o
+            #   meow.conf.exemplo traz de fábrica — para quem usa Dracula.
+            #   E o aviso era FALSO: esse valor é o que o
+            #   `packs/dracula/pack.json` PRESCREVE, em
+            #   `origens.cursores.tema`, porque "não há pack de agente Dracula
+            #   com release fixável por tag". Mandar a pessoa desconfiar do
+            #   valor certo, e prometer tela misturada onde não há mistura, é
+            #   pior que não avisar nada.
+            if _declarado_pelo_pack(adotado, alvo):
+                return None
+            return {"pack": pack, "adotado": adotado or "(o padrão)",
                     "porque": ("Este valor é do pack «%s», e o adotado agora é «%s». "
                                "Ele continua valendo — o seu meow.conf vence o pack —, "
-                               "mas o resultado na tela fica misturado." % (pack, adotado or "embutido"))}
+                               "mas o resultado na tela fica misturado." % (pack, adotado or "o padrão"))}
     return None
+
+
+def _pack_do_sabor(mod, sabor):
+    """O diretório do pack que declara este SABOR na paleta — ou `None`.
+
+    Existe por causa de uma linha do chamador: `adotado = PACK or FLAVOR`. Com
+    a chave `PACK` vazia — que é o padrão de fábrica — o que chega aqui é o
+    nome do sabor, e nenhum pack se chama "mocha". Ver o bloco de 22/09/2026
+    em `_declarado_pelo_pack`.
+    """
+    alvo = (sabor or "").strip().lower()
+    if not alvo:
+        return None
+    for raiz in (mod.raizes() if hasattr(mod, "raizes") else []):
+        try:
+            nomes = sorted(os.listdir(raiz))
+        except OSError:
+            continue
+        for nome in nomes:
+            d = os.path.join(raiz, nome)
+            pj = os.path.join(d, "pack.json")
+            if not os.path.isfile(pj):
+                continue
+            try:
+                with open(pj, encoding="utf-8") as fh:
+                    no = json.load(fh)
+                arq = (no.get("paleta") or {}).get("arquivo") or "paleta.json"
+                with open(os.path.join(d, arq), encoding="utf-8") as fh:
+                    pal = json.load(fh)
+            except (OSError, ValueError):
+                continue
+            if alvo in {f.lower() for f in (pal.get("flavors") or {})}:
+                return d
+    return None
+
+
+def _declarado_pelo_pack(adotado, alvo):
+    """True quando o PRÓPRIO pack adotado declara este valor no pack.json.
+
+    POR QUE A COMPARAÇÃO É POR IGUALDADE, E NÃO POR SUBSTRING
+        O laço acima pergunta "o nome de outro pack aparece dentro do valor?",
+        que é uma rede larga de propósito — `ICONES_BASE="Dracula-Icones"` tem
+        de cair nela. Aqui a pergunta é o oposto: "este valor, inteiro, é uma
+        receita do pack adotado?". Substring devolveria verdadeiro para
+        qualquer valor que por acaso aparecesse dentro de uma prosa do
+        pack.json, e o aviso sumiria onde deve aparecer.
+
+    AS CHAVES `_` FICAM DE FORA PORQUE SÃO COMENTÁRIO
+        `_nota`, `_nota_heranca` e companhia são a prosa do formato (ver
+        docs/PACKS.md). Um valor citado dentro de uma nota não é declaração —
+        é explicação de por que ele NÃO se usa, às vezes.
+    """
+    mod = modulo_pack()
+    if not mod or not adotado:
+        return False
+    dir_pack = mod.achar(adotado)
+    if not dir_pack:
+        return False
+    try:
+        with open(os.path.join(dir_pack, "pack.json"), encoding="utf-8") as fh:
+            no = json.load(fh)
+    except (OSError, ValueError):
+        return False
+    pilha = [no]
+    while pilha:
+        atual = pilha.pop()
+        if isinstance(atual, dict):
+            pilha.extend(v for k, v in atual.items() if not k.startswith("_"))
+        elif isinstance(atual, list):
+            pilha.extend(atual)
+        elif isinstance(atual, str) and atual.strip().lower() == alvo:
+            return True
+    return False
 
 
 def _dominada_por(chave):
@@ -2046,9 +2170,12 @@ def definir(chave, valor):
 # NENHUM HEX VIVE DENTRO DE SCRIPT — é a regra do README, e ela vale para uma
 # folha de estilo tanto quanto para um `.sh`. O `estilo.css` desta página não tem
 # uma única cor escrita: ele consome `var(--base)`, `var(--accent)` e companhia,
-# e quem as define é este endpoint, lendo `assets/paleta/catppuccin.json` no
-# flavor que o meow.conf dela manda. Trocar `FLAVOR="latte"` e recarregar veste a
-# página inteira de claro, sem uma linha de CSS a mais.
+# e quem as define é este endpoint, lendo a paleta DO PACK ATIVO no flavor que o
+# meow.conf dela manda. Trocar `FLAVOR="latte"` e recarregar veste a página
+# inteira de claro, sem uma linha de CSS a mais.
+#
+# O caminho não é nomeado aqui desde 22/09/2026: quem responde é
+# `paleta_canonica()`, e o cabeçalho dela conta por quê.
 _PALETA_CACHE = {}
 
 
@@ -2056,7 +2183,7 @@ def _paleta_dados():
     """A paleta inteira, lida uma vez. É a fonte de verdade de cor do projeto."""
     if not _PALETA_CACHE:
         try:
-            with open(PALETA, "r", encoding="utf-8") as fh:
+            with open(paleta_canonica(), "r", encoding="utf-8") as fh:
                 _PALETA_CACHE.update(json.load(fh))
         except (OSError, ValueError):
             _PALETA_CACHE["flavors"] = {}
@@ -2136,7 +2263,10 @@ def paleta_css(flavor, accent):
     linhas = [
         # O CSS diz de ONDE a cor veio. Com a paleta trocável, cravar o nome aqui faria
         # o arquivo gerado mentir sobre a própria procedência. [2026-09-17]
-        f"/* Gerado por app/servidor.py a partir de {os.path.relpath(PALETA, RAIZ)}.",
+        # `paleta_canonica()` não é '' aqui: o `return` de "paleta ilegível",
+        # três linhas acima, já cobriu o caso em que ela não resolveu.
+        f"/* Gerado por app/servidor.py a partir de "
+        f"{os.path.relpath(paleta_canonica(), RAIZ)}.",
         "   Não edite: a fonte é a paleta, e ela é a única verdade de cor. */",
         ":root {",
         f"  color-scheme: {'light' if claro else 'dark'};",

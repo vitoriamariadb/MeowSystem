@@ -38,6 +38,13 @@ import json
 import os
 import sys
 
+# A PALETA VEM DA PORTA ÚNICA DO LADO PYTHON — 22/09/2026
+# `pack.py` é vizinho de arquivo deste script, e `scripts/` já é o `sys.path[0]`
+# de quem o roda: não há sys.path a atravessar, que era a isenção que o cabeçalho
+# do `meow_paleta` (lib/comum.sh) dava a quem é Python. A ordem de precedência
+# inteira mora em `pack.paleta_do_pack_ativo()`.
+import pack
+
 # PyGObject/Gtk3 não é stdlib, e o badge do README promete "python 3 só stdlib".
 # A promessa vale para o INSTALADOR: nenhuma das folhas é chamada por install.sh,
 # bin/meow ou lib/ — elas são ferramentas de bancada, rodadas à mão por quem está
@@ -63,8 +70,8 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PREVIA_DIR = os.path.join(RAIZ, 'assets', 'icones', 'previa-arcticons')
 CONF_TK = os.path.join(HOME, '.config/cosmic/com.system76.CosmicTk/v1/icon_theme')
 
-# A cor sai da paleta, nunca de um hex escrito aqui — regra do
-# `assets/paleta/catppuccin.json` ("nenhum hex pode ser hardcoded em script").
+# A cor sai da paleta do PACK ATIVO, nunca de um hex escrito aqui — é a regra
+# que toda paleta do projeto carrega ("nenhum hex pode ser hardcoded em script").
 CATEGORIAS = [
     ('navegador', 'blue',     'Navegadores'),
     ('rede',      'sky',      'Conversa e rede'),
@@ -151,9 +158,9 @@ NO_PAPIRUS = [
 
 
 def paleta(flavor='mocha'):
-    # precedência: ver meow_paleta() em lib/comum.sh
-    _paleta = os.environ.get('MEOW_PALETA') or os.path.join(
-        RAIZ, 'assets', 'paleta', os.environ.get('PALETA_ARQUIVO') or 'catppuccin.json')
+    # precedência: ver `pack.paleta_do_pack_ativo()`, a porta única do lado
+    # Python desde a P13 — era o literal `catppuccin.json` até 22/09/2026.
+    _paleta = pack.paleta_do_pack_ativo()
     with open(_paleta, encoding='utf-8') as fh:
         return json.load(fh)['flavors'][flavor]
 

@@ -7,7 +7,7 @@
 #   nas linhas ia facilitar nossa vida"*.
 #
 #   O pedido é só de COR. O traço continua traço, `fill:none` continua
-#   `fill:none`, e a paleta continua sendo `assets/paleta/catppuccin.json` — nenhum hex
+#   `fill:none`, e a paleta continua sendo a DO PACK ATIVO — nenhum hex
 #   de fora entra no tema. O que muda é QUAL cor da paleta cada aplicativo veste.
 #
 # POR QUE ELA PRECISA DECIDIR, E NÃO EU
@@ -48,6 +48,13 @@ import json
 import os
 import sys
 
+# A PALETA VEM DA PORTA ÚNICA DO LADO PYTHON — 22/09/2026
+# `pack.py` é vizinho de arquivo deste script, e `scripts/` já é o `sys.path[0]`
+# de quem o roda: não há sys.path a atravessar, que era a isenção que o cabeçalho
+# do `meow_paleta` (lib/comum.sh) dava a quem é Python. A ordem de precedência
+# inteira mora em `pack.paleta_do_pack_ativo()`.
+import pack
+
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOME = os.path.expanduser('~')
 
@@ -56,8 +63,8 @@ HOME = os.path.expanduser('~')
 # ============================================================================
 #
 # Estes hexes são de FORA e existem só para comparação visual nesta folha. A
-# regra "nenhum hex hardcoded" vale para a cor do TEMA, que continua saindo de
-# `assets/paleta/catppuccin.json` — aqui não há cor de tema nenhuma.
+# regra "nenhum hex hardcoded" vale para a cor do TEMA, que continua saindo da
+# paleta do PACK ATIVO — aqui não há cor de tema nenhuma.
 #
 # `medido`  = a arte instalada NESTA máquina, rasterizada a 128 px e medida em
 #             Oklab (bin de matiz de 30°, cor do bin dominante). Sempre a arte
@@ -163,9 +170,9 @@ SEM_MARCA = [
 
 
 def paleta(flavor='mocha'):
-    # precedência: ver meow_paleta() em lib/comum.sh
-    _paleta = os.environ.get('MEOW_PALETA') or os.path.join(
-        RAIZ, 'assets', 'paleta', os.environ.get('PALETA_ARQUIVO') or 'catppuccin.json')
+    # precedência: ver `pack.paleta_do_pack_ativo()`, a porta única do lado
+    # Python desde a P13 — era o literal `catppuccin.json` até 22/09/2026.
+    _paleta = pack.paleta_do_pack_ativo()
     with open(_paleta, encoding='utf-8') as fh:
         return json.load(fh)['flavors'][flavor]
 

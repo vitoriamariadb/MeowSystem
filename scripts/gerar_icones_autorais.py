@@ -31,7 +31,9 @@ OS PAPÉIS SÃO SENSÍVEIS A FLAVOR CLARO, E ISSO NÃO É DETALHE
     corpo dá 7,06 no Latte e 12,97 no Mocha, e contra o próprio mauve dá 4,79 e
     9,23. No Mocha ele vira a moldura escura do touchpad real, no Latte a borda
     clara que o separa do corpo. Uma forma a mais que resolve os dois flavors de
-    uma vez. Os números saem de `assets/paleta/catppuccin.json`, fórmula WCAG 2.x.
+    uma vez. Os números foram medidos no Latte e no Mocha do Catppuccin, que é
+    o pack padrão, com a fórmula WCAG 2.x; a cor que o script usa vem da paleta
+    do PACK ATIVO, e não de um caminho escrito aqui.
 
 AS DUAS DECISÕES DE DESENHO QUE FORAM MEDIDAS A 48px, NÃO IMAGINADAS
     Os ícones são vistos a ~48px no lançador. Nesse tamanho:
@@ -121,16 +123,16 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-# A paleta vem da mesma ordem de precedência de toda a casa, e a fonte canônica
-# do contrato é `meow_paleta()` em lib/comum.sh:
-#   1. $MEOW_PALETA     caminho completo (é a porta que um theme pack usa)
-#   2. $PALETA_ARQUIVO  só o nome, resolvido dentro de assets/paleta/
-#   3. catppuccin.json  o embutido
-# São três linhas repetidas em vez de um módulo importável porque os consumidores
-# vivem em `scripts/` e em `app/`, e um import entre os dois traria um problema de
-# sys.path que este projeto não tem hoje. É o mesmo idioma de scripts/gerar_temas.py:52.
-PALETA = (Path(os.environ["MEOW_PALETA"]) if os.environ.get("MEOW_PALETA")
-          else RAIZ / "assets" / "paleta" / (os.environ.get("PALETA_ARQUIVO") or "catppuccin.json"))
+# A PALETA VEM DA PORTA ÚNICA DO LADO PYTHON — 22/09/2026
+# Eram três linhas repetidas em seis arquivos, e as seis terminavam no mesmo
+# literal: `assets/paleta/catppuccin.json`. A P13 mudou esse arquivo de casa (é
+# `packs/catppuccin/paleta.json`) e derrubou a isenção que o cabeçalho do
+# `meow_paleta` dava a quem é Python: `pack.py` é VIZINHO deste arquivo, e
+# `scripts/` já é o `sys.path[0]` de quem o roda — não há sys.path a atravessar.
+# A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
+import pack  # noqa: E402  — vizinho de arquivo, e o RAIZ acima precede
+
+PALETA = Path(pack.paleta_do_pack_ativo())
 DESTINO = RAIZ / "assets" / "icones" / "autorais"
 
 # Papel -> (nome Catppuccin em flavor escuro, nome em flavor claro).

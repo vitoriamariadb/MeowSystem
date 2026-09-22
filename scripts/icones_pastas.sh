@@ -69,7 +69,27 @@ FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
 #   A condição é o DIRETÓRIO EXISTIR, não o nome do flavor: assim quem copiar o
 #   projeto sem esses desenhos continua caindo no Catppuccin, sem erro, e quem
 #   desenhar os seus não precisa editar este script.
-ORIGEM="$RAIZ/assets/icones/catppuccin/$FLAVOR_ICONES"
+# O ACERVO MUDOU DE CASA EM 22/09/2026 — ver o bloco gêmeo em icones_mimetypes.sh.
+#   Os glifos de pasta vêm do MESMO diretório dos de tipo de arquivo: o
+#   `catppuccin/vscode-icons` publica os 230 `folder-*.svg` junto com os de tipo
+#   de arquivo, e é por isso que o `packs/catppuccin/pack.json` aponta
+#   `icones.pastas` e `icones.mimetypes` para o mesmo lugar. A categoria
+#   perguntada aqui é a `mimetypes` de propósito: é a que é por FLAVOR, e o
+#   acervo próprio de pastas do pack entra logo abaixo, por cima desta base.
+#
+#   A QUEDA PARA VAZIO É O QUE MANTÉM AS LINHAS ABAIXO VIVAS — 22/09/2026
+#     Ver o bloco gêmeo em icones_mimetypes.sh, que conta o caso inteiro. Aqui o
+#     estrago era maior: sob `set -e` a morte acontecia ANTES do override de
+#     `_pastas_do_pack`, três linhas abaixo, e as sete pastas próprias do Dracula
+#     — que existem, em packs/dracula/icones/pastas/ — sumiam da tela. Medido:
+#     o `pastasxdg` do doctor regredia de `ok N pasta(s) especiais já vestidas`
+#     para uma divergência SEM mensagem nenhuma, e com o `--consertar` morrendo
+#     no mesmo ponto. É o mesmo tombo que o `_ler_mapa` daqui já documenta ("com
+#     `set -e` uma última linha que não case mataria o script calado").
+_pack_ref="$(meow_pack_dir)"
+[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
+ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
+            icones.mimetypes.desenhos "$FLAVOR_ICONES")" || ORIGEM=""
 # [2026-09-17] Era `if [ "${FLAVOR:-}" = "dracula" ]` — um NOME de tema cravado
 # no código, que um terceiro pack nunca satisfaria. Agora a pergunta é sobre o
 # que EXISTE, não sobre como o tema se chama: o pack ativo tem um acervo de
@@ -102,7 +122,7 @@ _ler_mapa() {
 # --- dependências -------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o pack Catppuccin não está em assets/icones/catppuccin/$FLAVOR_ICONES — nada a vestir"
+    meow_pula "não há acervo de pasta para o flavor '$FLAVOR_ICONES' — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then

@@ -224,8 +224,8 @@ ação → *"argumento fora da lista do disco"*.
 ## A cor não mora no CSS
 
 `estilo.css` não tem **um hex**. Ele consome `var(--base)`, `var(--accent)` e
-companhia; quem as define é `/paleta.css`, que o `servidor.py` gera a partir de
-`assets/paleta/catppuccin.json` no **flavor que o seu `meow.conf` manda**.
+companhia; quem as define é `/paleta.css`, que o `servidor.py` gera a partir da
+**paleta do pack ativo** no **flavor que o seu `meow.conf` manda**.
 
 É a regra do README (*"nenhum hex vive dentro de script"*) aplicada ao lugar mais
 provável do mundo para alguém digitar um `#1e1e2e` de memória. E tem efeito

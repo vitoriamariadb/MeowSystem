@@ -367,6 +367,127 @@ for verbo in cmd_status cmd_doctor cmd_desfazer; do
   fi
 done
 
+
+# --- 15. o pack PADRÃO é um pack, e não uma exceção no código ---------------
+# A P13, em 22/09/2026. Até ela, `PACK_PADRAO` chamava-se `PACK_EMBUTIDO`, não
+# havia `packs/catppuccin/`, e `pack.py validar catppuccin` estourava um
+# FileNotFoundError em `RAIZ/pack.json` — porque o `achar` devolvia a RAIZ para
+# ele, e lá não há `pack.json`.
+#
+# O NOME DO PADRÃO É PERGUNTADO, NUNCA DIGITADO, pelo mesmo motivo que o `ID`
+# deste teste vem por argumento: um teste que só passa com `catppuccin` teria o
+# defeito que veio caçar. Quem responde é o verbo `padrao`.
+padrao="$(amb python3 "$RAIZ/scripts/pack.py" padrao 2>/dev/null)"
+if [ -z "$padrao" ] || [ ! -f "$padrao/pack.json" ]; then
+  falha "o pack padrão não é um diretório com pack.json" "padrao=$padrao"
+else
+  ok "o pack padrão tem pack.json, como qualquer outro"
+  saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$padrao" 2>&1)"; rc=$?
+  [ "$rc" = "0" ] \
+    && ok "o pack padrão valida com as MESMAS regras do pack de terceiro" \
+    || falha "o pack padrão não valida (rc=$rc)" "$saida"
+  # Ele é o primeiro `pack.json` que alguém copia. Um campo sem leitor aqui
+  # ensina a promessa vazia antes de ela ter conserto — ver o teste 7.
+  case "$saida" in
+    *"NENHUM código lê"*) falha "o pack padrão declara campo sem leitor" "$saida" ;;
+    *) ok "o pack padrão sai limpo do aviso de campo sem leitor" ;;
+  esac
+fi
+
+# --- 16. o padrão aparece na varredura, e não por linha especial ------------
+# O `bin/meow:cmd_pack listar` tinha um `meow_info "catppuccin — Catppuccin
+# (embutido, em assets/paleta/)"` com um comentário admitindo o defeito:
+# "o embutido não tem pack.json e não aparece na varredura — mas existe, e
+# esconder isso faria a lista mentir por omissão". A lista sai do DISCO; um pack
+# que precisa de código para aparecer nela não é um pack.
+corpo="$(sed -n '/^cmd_pack()/,/^}/p' "$RAIZ/bin/meow")"
+if printf '%s\n' "$corpo" | grep -vE '^\s*#' | grep -q 'catppuccin'; then
+  falha "cmd_pack voltou a cravar o nome de um pack em código" \
+        "$(printf '%s\n' "$corpo" | grep -vE '^\s*#' | grep -n 'catppuccin')"
+else
+  ok "o cmd_pack não nomeia pack nenhum — a lista sai do disco"
+fi
+saida="$(env MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" MEOW_ESTADO="$T/estado" \
+         "$RAIZ/bin/meow" pack listar 2>&1)"
+linha_padrao="$(printf '%s\n' "$saida" | grep -F "$padrao" || true)"
+[ -n "$linha_padrao" ] \
+  && ok "o pack padrão aparece no 'meow pack listar' com o diretório dele" \
+  || falha "o pack padrão sumiu da lista, ou entrou sem vir da varredura" "$saida"
+
+# --- 17. nenhum código volta a cravar o caminho da paleta do padrão ---------
+# A P13 tirou o literal `assets/paleta/catppuccin.json` de nove pontos de código.
+# Sobrou UM, e ele está isentado abaixo com nome e motivo: são 9 -> 1, e não
+# 9 -> 0. Fora dele, todo o resto pergunta: `pack.paleta_do_pack_ativo()` no
+# Python, `meow_paleta`/`meow_pack_padrao_dir` no shell, e o nome do pack padrão
+# mora em `scripts/pack.py:PACK_PADRAO`.
+#
+# COMENTÁRIO CONTINUA LIVRE, e o filtro é o MESMO do `tests/estilo.sh`: a
+# citação que tem um `#` antes dela não conta. Reescrever a prosa para agradar um
+# grep apagaria o porquê e não consertaria nada — e o histórico desta casa ("era
+# `assets/paleta/catppuccin.json` cravado até a porta única") é exatamente o que
+# explica por que a porta existe.
+#
+#   ELE SÓ PASSOU A SER O MESMO EM 22/09/2026. Estava escrito `[^#]*#`, sem o
+#   resto: isso descarta QUALQUER linha que tenha um `#`, esteja ele onde
+#   estiver. Um `PAL = "assets/paleta/catppuccin.json"  # nota` — código de
+#   verdade, com prosa no fim — saía verde. O `.*` que veio depois é o que
+#   exige que o `#` venha ANTES da citação, e é a forma que o
+#   `tests/estilo.sh:94` já usava.
+#
+# `scripts/pack.py` SAI DA VARREDURA PORQUE É A PRÓPRIA PORTA — é a mesma
+# isenção que o `tests/estilo.sh` dá ao `lib/comum.sh`, e pelo mesmo motivo: é
+# ali que o nome do pack padrão tem o direito de morar. O preço está dito: uma
+# docstring dele (prosa indentada, sem `#` na frente) escapa dos dois filtros
+# acima, e por isso a isenção é por ARQUIVO e não por linha.
+#
+# O PADRÃO É MONTADO EM DUAS METADES, E NÃO É CAPRICHO
+#   O `tests/estilo.sh` cobra qualquer `.sh` que escreva `assets/paleta` seguido
+#   de uma barra e um nome — e esta linha, escrita inteira, casaria com a régua
+#   dele: o teste que procura o defeito seria acusado de tê-lo. Partir a palavra
+#   é o que diz "isto é um padrão de busca, não uma resolução de paleta". Quem
+#   juntar as duas metades de volta pinta o CI de vermelho sem nada ter
+#   acontecido.
+_velho='assets/paleta'"/catppuccin\.json"
+
+# O ENDEREÇO NOVO CONTA TANTO QUANTO O VELHO — 22/09/2026
+#   A primeira versão desta conferência procurava SÓ o literal velho, e por isso
+#   dava verde para um caminho cravado no endereço novo — o mesmo defeito com
+#   outro CEP. Medido: `scripts/derivar_claro.py:79` atravessou a P13 trocando
+#   `assets/paleta/catppuccin.json` por `packs/catppuccin/paleta.json`, e este
+#   teste não viu. Um grep que só conhece o passado promete para sempre uma
+#   coisa que deixou de conferir no dia em que a casa mudou.
+#   Partido em duas metades por SIMETRIA com o `_velho`, e não por obrigação:
+#   nenhuma régua de hoje procura `packs/<pack>/paleta.json` dentro de um teste.
+#   Custa nada e tira a pergunta de quem ler os dois lado a lado.
+_novo='packs/catppuccin'"/paleta\.json"
+
+# `bin/` ENTRA PORQUE A CONFERÊNCIA DA SPRINT O INCLUI — e o `--include` precisa
+# do nome inteiro: `bin/meow` não tem extensão, e `*.sh`/`*.py` o deixavam de
+# fora sem uma palavra. Era um diretório inteiro fora da varredura.
+#
+# `scripts/derivar_claro.py` É ISENTO, E A ISENÇÃO TEM MOTIVO ESCRITO
+#   Ele não resolve a paleta ATIVA: ele nomeia, lado a lado, as duas paletas de
+#   que precisa — a do Dracula, que é a identidade, e a do Catppuccin, que é a
+#   RÉGUA de luminância do Latte. Trocar a régua junto com o pack ativo faria a
+#   saída dele deixar de ser reprodutível, e o cabeçalho da função diz isso com
+#   todas as letras. É um gerador de tiro único, registrado como órfão em
+#   `tests/orfaos.sh:119`, cuja saída já está colada em
+#   `packs/dracula/paleta.json`. A isenção é por ARQUIVO, como a do `pack.py`, e
+#   o preço é o mesmo: uma cravação NOVA dentro dele passaria verde. Está dito.
+cravado="$(grep -rnE --include='*.sh' --include='*.py' --include='meow' \
+             "($_velho|$_novo)" "$RAIZ/install.sh" "$RAIZ/lib" \
+             "$RAIZ/scripts" "$RAIZ/app" "$RAIZ/bin" 2>/dev/null \
+           | grep -v 'scripts/pack\.py:' \
+           | grep -v 'scripts/derivar_claro\.py:' \
+           | grep -vE ":[0-9]+:[^#]*#.*($_velho|$_novo)" \
+           | grep -vE ':[0-9]+:\s*("""|#)' || true)"
+if [ -n "$cravado" ]; then
+  falha "código cravando o caminho da paleta do pack padrão:"
+  printf '%s\n' "$cravado" | sed "s#^$RAIZ/#  #" >&2
+else
+  ok "nenhum código crava a paleta do pack padrão — todos passam pela porta"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"
