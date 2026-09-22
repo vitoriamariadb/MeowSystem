@@ -1,5 +1,5 @@
 {
-  "_comentario": "Fonte unica de verdade de cor do MeowSystem. Nenhum hex pode ser hardcoded em script.  O flavor 'dracula' foi acrescentado em 2026-09-11: mesmos 26 slots, cores do draculatheme.com onde ele as nomeia e derivados declarados onde não.",
+  "_comentario": "Fonte unica de verdade de cor do MeowSystem. Nenhum hex pode ser hardcoded em script.  O flavor 'dracula' morou aqui de 2026-09-11 a 2026-09-21 e SAIU: ele nunca foi um flavor do Catppuccin, era uma cópia enfiada no arquivo do outro pack, e era só por causa dela que o pack Dracula 'funcionava'. O lugar dele é packs/dracula/paleta.json, onde já estava, idêntico nos 26 slots. Tirar daqui só foi seguro depois que install.sh, bin/meow e app/run.sh passaram a exportar MEOW_PALETA (a ponte shell para Python, P20): antes disso todo consumidor em Python caía neste arquivo, e o Dracula sumiria da máquina, calado. O flavor claro 'alucard' nunca esteve aqui, e é a prova de que a fronteira já estava rompida.",
   "fonte": "https://github.com/catppuccin/catppuccin (paleta oficial, 26 cores por flavor)",
   "verificado_em": "2026-08-04",
   "ordem_canonica": [
@@ -37,8 +37,7 @@
     "latte": "Catppuccin Latte",
     "frappe": "Catppuccin Frappé",
     "macchiato": "Catppuccin Macchiato",
-    "mocha": "Catppuccin Mocha",
-    "dracula": "Dracula"
+    "mocha": "Catppuccin Mocha"
   },
   "flavors": {
     "latte": {
@@ -152,34 +151,6 @@
       "base": "#1E1E2E",
       "mantle": "#181825",
       "crust": "#11111B"
-    },
-    "dracula": {
-      "rosewater": "#F8F0EC",
-      "flamingo": "#FFB8D1",
-      "pink": "#FF79C6",
-      "mauve": "#BD93F9",
-      "red": "#FF5555",
-      "maroon": "#FF6E6E",
-      "peach": "#FFB86C",
-      "yellow": "#F1FA8C",
-      "green": "#50FA7B",
-      "teal": "#7FE9DE",
-      "sky": "#8BE9FD",
-      "sapphire": "#62D6E8",
-      "blue": "#6272A4",
-      "lavender": "#D6ACFF",
-      "text": "#F8F8F2",
-      "subtext1": "#E0E0DA",
-      "subtext0": "#C8C8C2",
-      "overlay2": "#A4A6B8",
-      "overlay1": "#8B8DA0",
-      "overlay0": "#6272A4",
-      "surface2": "#565A72",
-      "surface1": "#44475A",
-      "surface0": "#383A4C",
-      "base": "#282A36",
-      "mantle": "#21222C",
-      "crust": "#191A21"
     }
   }
 }

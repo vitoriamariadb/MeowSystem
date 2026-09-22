@@ -215,8 +215,49 @@ meow_paleta() {
 # O resolvedor de verdade é scripts/pack.py (ver docs/PACKS.md). Esta função só
 # pergunta a ele, e o faz sem sair do lugar quando não há pack: um fork de
 # python por script, num instalador de 54 etapas, custaria caro à toa.
+
+# AS RAÍZES DE BUSCA VINHAM DIGITADAS EM QUATRO LUGARES [21/09/2026]
+#   A mesma lista de três diretórios — `$MEOW_PACKS`, o XDG e `$MEOW_RAIZ/packs`
+#   — estava escrita à mão em `scripts/pack.py:raizes()`, DUAS vezes aqui dentro
+#   do `meow_pack_dir` e em `app/servidor.py:_packs_no_disco`. Uma quinta, no
+#   mesmo `servidor.py`, só conhecia `RAIZ/packs` e por isso ignorava o XDG e a
+#   variável. É a armadilha nº 3 do projeto no formato mais caro: o dia em que
+#   uma raiz nova entrar, quatro arquivos precisam concordar, e o que discordar
+#   não dá erro — some um pack da tela, calado.
+#
+#   Quem manda é o `scripts/pack.py:raizes()`, porque é ele quem abre o
+#   `pack.json`. Esta função só pergunta.
+#
+# POR QUE A RESPOSTA É GUARDADA NUMA VARIÁVEL EXPORTADA
+#   Sem cache seria um fork de python por consulta, e o `meow_paleta` consulta a
+#   cada chamada — o cabeçalho logo acima explica por que isso custa caro num
+#   instalador de dezenas de etapas. Exportada, a lista é calculada UMA vez por
+#   árvore de processos e herdada pelos filhos.
+#
+#   O PREÇO ESTÁ DITO: quem mudar `MEOW_PACKS` ou `XDG_DATA_HOME` no MEIO de uma
+#   execução continua vendo a lista antiga. Quem monta ambiente de teste tem de
+#   pôr as duas variáveis no lugar ANTES da primeira consulta — que é o que os
+#   testes já fazem, por rodarem num `env` próprio.
+meow_pack_raizes() {
+  if [ -z "${MEOW_PACK_RAIZES:-}" ]; then
+    MEOW_PACK_RAIZES="$(python3 "$MEOW_RAIZ/scripts/pack.py" raizes 2>/dev/null)"
+    export MEOW_PACK_RAIZES
+  fi
+  if [ -z "$MEOW_PACK_RAIZES" ]; then
+    # SEM RESPOSTA É AVISO, NUNCA SILÊNCIO. Devolver vazio calado faria todo
+    # pack desaparecer da máquina com cara de "não há pack instalado" — e o
+    # `meow_pack_dir` cairia no embutido sem dizer por quê.
+    [ "${MEOW_PACK_RAIZES_AVISADO:-0}" = "1" ] || {
+      MEOW_PACK_RAIZES_AVISADO=1
+      meow_aviso "scripts/pack.py não respondeu as raízes — nenhum pack será enxergado"
+    }
+    return 1
+  fi
+  printf '%s\n' "$MEOW_PACK_RAIZES"
+}
+
 meow_pack_dir() {
-  local PACK="${PACK:-}"
+  local PACK="${PACK:-}" base
   # ADOÇÃO POR CONVENÇÃO [2026-09-17]
   #   Sem a chave PACK, um FLAVOR que nomeie um pack existente adota esse pack.
   #   É o que faz um meow.conf escrito ANTES do formato existir continuar
@@ -225,11 +266,10 @@ meow_pack_dir() {
   #   ativar` depois da atualização — calado, que é o pior jeito.
   #   A chave explícita continua vencendo; isto é só o default.
   if [ -z "$PACK" ] && [ -n "${FLAVOR:-}" ]; then
-    local base
-    for base in "${MEOW_PACKS:-}" "${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/packs" "$MEOW_RAIZ/packs"; do
+    while IFS= read -r base; do
       [ -n "$base" ] || continue
       [ -f "$base/$FLAVOR/pack.json" ] && { PACK="$FLAVOR"; break; }
-    done
+    done <<< "$(meow_pack_raizes)"
   fi
   [ -n "$PACK" ] || return 0
   [ "$PACK" = "catppuccin" ] && return 0
@@ -238,11 +278,11 @@ meow_pack_dir() {
     return 0
   }
   local d
-  for base in "${MEOW_PACKS:-}" "${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/packs" "$MEOW_RAIZ/packs"; do
+  while IFS= read -r base; do
     [ -n "$base" ] || continue
     d="$base/$PACK"
     [ -f "$d/pack.json" ] && { printf '%s' "$d"; return 0; }
-  done
+  done <<< "$(meow_pack_raizes)"
   return 0
 }
 
@@ -264,6 +304,81 @@ meow_pack_arquivo() {
 meow_paleta_nome() {
   local p; p="$(meow_paleta)"
   printf '%s' "${p#"$MEOW_RAIZ"/}"
+}
+
+# --- A PONTE SHELL -> PYTHON ------------------------------------------------
+#
+# POR QUE ELA EXISTE [21/09/2026]
+#   O cabeçalho do `meow_paleta`, logo acima, diz "POR QUE UMA FUNÇÃO, E NÃO UMA
+#   VARIÁVEL EXPORTADA" — e o argumento continua certo PARA O SHELL. Ele só não
+#   cobre metade dos consumidores.
+#
+#   Medido no dia: sete consumidores de paleta são Python (`gerar_temas.py`,
+#   `gerar_icones_autorais.py`, `app/servidor.py`, `folha_conversor.py`,
+#   `folha_marcas.py`, `folha_proposta.py`, `gerar_tema_v1.py`). Nenhum deles
+#   pode chamar uma função de shell. Os sete resolvem sozinhos por
+#   `$MEOW_PALETA` -> `$PALETA_ARQUIVO` -> `catppuccin.json`, e `MEOW_PALETA`
+#   NÃO ERA EXPORTADA POR NINGUÉM: nem pelo install.sh, nem pelo bin/meow, nem
+#   pelo app/run.sh. Ou seja, todo consumidor Python caía no fallback SEMPRE — o
+#   pack ativo mandava no shell e não mandava no Python, e a divergência era
+#   muda.
+#
+#   Então a ponte é isto: nos TRÊS pontos de entrada que chamam Python, a função
+#   é resolvida uma vez e o resultado vira ambiente. Não são "dezenas de pontos"
+#   como o parágrafo acima teme, são três — e o esquecimento de um deles aparece
+#   na conferência da P20, não em silêncio.
+#
+# POR QUE ELA RECUSA, E NÃO SÓ EXPORTA
+#   Exportar um caminho que não existe seria pior que não exportar nada: cada
+#   consumidor Python falharia à sua maneira (um `sys.exit`, um `KeyError`, um
+#   traceback) no meio da fila de etapas, e o instalador seguiria contra um tema
+#   meio construído. É o defeito que a spec desta sprint descreve como "metade
+#   Nord, metade Catppuccin". Recusar aqui custa uma linha e para antes da
+#   primeira escrita.
+#
+# MEOW_PACK_DIR VAI JUNTO, E VAZIO É RESPOSTA
+#   Vazio quer dizer "o pack é o embutido" — o mesmo sinal que o `meow_pack_dir`
+#   já dá ao shell. Quem lê do lado Python trata vazio como ausência, nunca como
+#   erro.
+#
+# QUEM NÃO LEU O meow.conf TAMBÉM PRECISA SABER QUAL É O PACK
+#   O `install.sh` e o `bin/meow` chegam aqui com PACK/FLAVOR já no ambiente. O
+#   `app/run.sh` NÃO: ele nunca leu o conf, e é exatamente isso que o comentário
+#   do `app/servidor.py` registra ao dizer que "o processo do servidor NÃO tem
+#   FLAVOR nem PACK no environ". Sem as duas linhas abaixo, a ponte do painel
+#   resolveria sempre o embutido — o mesmo defeito que esta função veio matar,
+#   um andar acima.
+#
+#   Elas só preenchem o que FALTA. Quem já leu o conf continua mandando, e o
+#   valor lido aqui nunca é exportado: ele serve a esta resolução e morre nela.
+meow_ponte_python() {
+  local paleta pack_dir
+  local PACK="${PACK:-$(meow_conf_valor PACK || true)}"
+  local FLAVOR="${FLAVOR:-$(meow_conf_valor FLAVOR || true)}"
+  # AQUECE O CACHE DAS RAÍZES NESTE SHELL, E NÃO DENTRO DE UM `$( )`
+  #   O `meow_paleta` logo abaixo é chamado por substituição de comando, que roda
+  #   num SUBSHELL: o `export MEOW_PACK_RAIZES` feito lá dentro morre com ele, e
+  #   a lista seria refeita a cada consulta. Chamado aqui, o valor fica NESTE
+  #   shell e é herdado por todo filho — que é o ponto do cache.
+  #   A saída vai para o nada de propósito: o que interessa é o efeito colateral.
+  meow_pack_raizes >/dev/null || true
+  paleta="$(meow_paleta)"
+  if [ ! -f "$paleta" ]; then
+    meow_erro "a paleta apontada não existe: $paleta"
+    if [ -n "${MEOW_PALETA:-}" ]; then
+      meow_info "  ela veio de MEOW_PALETA — aponte para um arquivo que exista, ou tire a variável."
+    else
+      meow_info "  ela veio do pack ativo (PACK/FLAVOR do meow.conf) ou do embutido."
+    fi
+    meow_info "  sem ela nenhum gerador em Python tem cor para trabalhar, e parar aqui é"
+    meow_info "  mais barato do que descobrir isso etapa por etapa."
+    return "$MEOW_ERRO"
+  fi
+  pack_dir="$(meow_pack_dir)"
+  MEOW_PALETA="$paleta"
+  MEOW_PACK_DIR="$pack_dir"
+  export MEOW_PALETA MEOW_PACK_DIR
+  return 0
 }
 
 # --- A RAIZ DO COSMIC: UM LUGAR SÓ PARA DIZER ONDE ELA É --------------------
@@ -514,14 +629,34 @@ meow_conf_texto_definir() {
 #
 # Esta função lê o ARQUIVO, não a variável: devolve 0 só quando a chave está lá,
 # escrita, com o valor pedido. Sem arquivo, ou sem a chave, devolve 1.
-meow_conf_diz() {
-  local chave="$1" quer="$2" linha
+# O VALOR de uma chave do meow.conf, ou saída 1 quando ela não está escrita lá.
+#
+# POR QUE ELE NASCEU EM 21/09/2026
+#   A leitura estava inteira dentro do `meow_conf_diz`, que responde SIM/NÃO. A
+#   ponte shell->Python do `app/run.sh` precisa do VALOR de PACK e de FLAVOR, e
+#   não de uma comparação — e escrever o mesmo `sed`/`tr` lá seria a segunda
+#   cópia da regra de como este arquivo é escrito (aspas, comentário de fim de
+#   linha). O `meow_conf_diz` passa a chamar este; o comportamento dele não
+#   mudou em nada.
+#
+#   ESTA FUNÇÃO NÃO É A LEITURA CANÔNICA DO CONF, e não pretende ser: quem
+#   precisa de TODAS as chaves com os defaults aplicados usa o `set -a; . conf`
+#   do `etapa_conf_ler`/`carregar_conf`. Esta aqui serve a quem quer UMA chave
+#   sem subir o arquivo inteiro para dentro do próprio shell.
+meow_conf_valor() {
+  local chave="$1" linha
   [ -f "$MEOW_CONF_ARQUIVO" ] || return 1
   linha="$(sed -n "s/^[[:space:]]*$chave=//p" "$MEOW_CONF_ARQUIVO" | tail -1)"
   [ -n "$linha" ] || return 1
   # Tira as aspas e o comentário de fim de linha, que é como o arquivo é escrito.
   linha="${linha%%#*}"
   linha="$(printf '%s' "$linha" | tr -d '"'"'"' \t\r')"
+  printf '%s' "$linha"
+}
+
+meow_conf_diz() {
+  local chave="$1" quer="$2" linha
+  linha="$(meow_conf_valor "$chave")" || return 1
   [ "$linha" = "$quer" ]
 }
 

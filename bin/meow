@@ -181,6 +181,19 @@ carregar_conf() {
   FLAVOR="${FLAVOR:-mocha}"; ACCENT="${ACCENT:-mauve}"
   MODO="${MODO:-escuro}";    LOGO="${LOGO:-$FLAVOR}"
   export FLAVOR ACCENT MODO LOGO
+  # A PONTE SHELL -> PYTHON, AQUI PORQUE AQUI É ONDE PACK/FLAVOR NASCEM
+  #   `meow gerar` chama `gerar_temas.py` e `gerar_tema_v1.py`; `meow doctor`
+  #   chama os dois com `--conferir`. Nenhum deles enxergava o pack ativo, porque
+  #   `MEOW_PALETA` não era exportada por ninguém (ver `meow_ponte_python`, em
+  #   lib/comum.sh). Pendurar a ponte no `carregar_conf` é o que evita repeti-la
+  #   nas quatorze ações que chamam esta função — e uma ação nova a ganha de
+  #   graça, que é justamente o oposto da lista fixa que o comentário lá em cima
+  #   passou 25/08 explicando por que não ter.
+  #
+  #   O `return` é PROPOSITAL: uma paleta que não existe faz a ação parar antes
+  #   de escrever, e o código é o mesmo `MEOW_ERRO` que o resto do `carregar_conf`
+  #   devolve.
+  meow_ponte_python || return "$MEOW_ERRO"
   return 0
 }
 

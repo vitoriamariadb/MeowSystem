@@ -3087,6 +3087,26 @@ main() {
     meow_desinstalar; return $?
   fi
 
+  # A PONTE SHELL -> PYTHON [21/09/2026]
+  #   `etapa_gerar` chama `gerar_temas.py` e `gerar_icones_autorais.py`, e os
+  #   dois resolvem a paleta por `$MEOW_PALETA`. A variável não era exportada
+  #   por ninguém — então os geradores caíam no `catppuccin.json` embutido
+  #   SEMPRE, mesmo com um pack ativo. O tema saía do pack no shell e do
+  #   embutido no Python, sem uma palavra na tela. O porquê inteiro está no
+  #   cabeçalho do `meow_ponte_python`, em lib/comum.sh.
+  #
+  #   O LUGAR É ESTE, E É ORDEM, NÃO GOSTO:
+  #     - DEPOIS do `etapa_conf_ler`, porque a ponte precisa de PACK/FLAVOR para
+  #       saber qual pack está ativo;
+  #     - DEPOIS do desinstalar, porque quem está indo embora não deve nada à
+  #       paleta: recusar a saída por causa de um arquivo de cor seria a pior
+  #       recusa que este arquivo poderia dar — o mesmo argumento do bloco acima;
+  #     - ANTES do pré-voo e do `meow_travar`, porque quando ela recusa nada foi
+  #       escrito ainda, nem o lock foi tomado, nem a senha foi pedida. Uma
+  #       paleta que não existe é uma instalação que não pode COMEÇAR, e não uma
+  #       que para no meio.
+  meow_ponte_python || return 2
+
   meow_preflight; local rc_pf=$?
   [ "$rc_pf" = "2" ] && return 2
 

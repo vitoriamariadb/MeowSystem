@@ -134,6 +134,17 @@ meow_tem python3 || {
 SERVIDOR="$RAIZ/app/servidor.py"
 [ -f "$SERVIDOR" ] || { meow_erro "não achei $SERVIDOR"; exit "$MEOW_ERRO"; }
 
+# A PONTE SHELL -> PYTHON [21/09/2026]
+#   O `servidor.py` resolve a paleta por `$MEOW_PALETA`, e ninguém exportava a
+#   variável — nem este arquivo. O painel pintava a si mesmo e desenhava as
+#   prévias com o Catppuccin embutido, mesmo com o Dracula ativo, sem nada na
+#   tela dizendo por quê. O porquê inteiro está no cabeçalho do
+#   `meow_ponte_python`, em lib/comum.sh.
+#
+#   Ela vem ANTES de subir o backend porque o que ela exporta é herdado pelo
+#   processo do Python; posta depois, não valeria nada.
+meow_ponte_python || exit "$MEOW_ERRO"
+
 # --- SEM TERMINAL, A SAÍDA PRECISA DE UM LUGAR ------------------------------
 # O `.desktop` deixou de ser `Terminal=true` em 02/09/2026 (o cabeçalho de
 # `scripts/atalho.sh` conta o que aquilo virou nesta máquina). O ganho é grande e

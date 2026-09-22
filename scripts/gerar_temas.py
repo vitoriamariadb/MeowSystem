@@ -55,6 +55,40 @@ PALETA = Path(os.environ["MEOW_PALETA"]) if os.environ.get("MEOW_PALETA") \
 MAPA = RAIZ / "assets" / "paleta" / "cosmic-map.json"
 DESTINO = RAIZ / "assets" / "temas"
 
+# O NOME DO TEMA NA GUI DO COSMIC PODE VIR DO PACK — 2026-09-21
+#     O `packs/dracula/pack.json` declara `cosmic.nome_da_paleta` desde que
+#     nasceu, e o comentário ao lado diz por quê: sem ele o molde do
+#     `cosmic-map.json` crava `catppuccin-<flavor>`, e o tema Dracula aparece na
+#     GUI chamado `catppuccin-dracula`. Era o que estava gravado no disco, em
+#     `meowsystem-dracula-mauve.ron:8` — o pack previu o defeito, declarou o
+#     conserto, e o conserto não tinha leitor. Este é o leitor.
+#
+#     QUAL PACK: o que a ponte shell->Python exportou em `MEOW_PACK_DIR` (ver
+#     `meow_ponte_python`, em lib/comum.sh). Vazio quer dizer pack embutido, e aí
+#     manda o molde do mapa, como sempre mandou.
+#
+#     O `import pack` É DIRETO, E SÓ AQUI ELE PODE SER
+#     O cabeçalho do `meow_paleta` isenta os consumidores em Python de chamar a
+#     porta única "porque um import entre `scripts/` e `app/` traria um problema
+#     de sys.path". Este import não atravessa nada: `pack.py` é vizinho de
+#     arquivo deste script, e `scripts/` já é o `sys.path[0]` de quem o roda. O
+#     `try` cobre quem importar este módulo de outro lugar — nesse caso o molde
+#     do mapa continua valendo, que é o comportamento de antes.
+PACK_DIR = os.environ.get("MEOW_PACK_DIR") or ""
+
+
+def _nome_da_paleta():
+    if not PACK_DIR:
+        return None
+    try:
+        import pack
+    except ImportError:
+        return None
+    return pack.campo(PACK_DIR, "cosmic.nome_da_paleta")
+
+
+NOME_DA_PALETA = _nome_da_paleta()
+
 # A ordem em que os slots aparecem no arquivo exportado pelo COSMIC. O parser RON
 # não se importa com ordem, mas manter a do export deixa o `diff` legível contra o
 # que a GUI grava de volta — e é assim que se descobre o que ela mudou.
@@ -130,7 +164,11 @@ def gerar(flavor: str, accent: str, paleta: dict, mapa: dict) -> str:
             #     desde sempre, e este script montava a string na mão, ignorando-o.
             #     Duas verdades sobre a mesma coisa: mudar o mapa não mudava nada,
             #     e só se descobria isso lendo o .ron gerado. Agora o mapa manda.
-            modelo = mapa["palette"].get("name", "catppuccin-<flavor>")
+            # O PACK VEM ANTES DO MAPA — 2026-09-21. Ver `NOME_DA_PALETA`, lá em
+            # cima: o molde do mapa é do núcleo e crava `catppuccin-<flavor>`;
+            # quem declarou `cosmic.nome_da_paleta` no pack.json fez isso
+            # justamente para não herdar o nome do outro tema.
+            modelo = NOME_DA_PALETA or mapa["palette"].get("name", "catppuccin-<flavor>")
             linhas.append(f'        name: "{modelo.replace("<flavor>", flavor)}",')
         else:
             linhas.append(f'        {slot}: "{cor(paleta, flavor, nome)}",')

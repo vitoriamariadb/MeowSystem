@@ -698,19 +698,70 @@ def _titulo_de(chave):
     return chave
 
 
+# --- o scripts/pack.py, carregado por caminho --------------------------------
+#
+# POR QUE ESTE CARREGADOR EXISTE [21/09/2026]
+#   A lista das raízes de busca de pack estava digitada em QUATRO lugares —
+#   `scripts/pack.py:raizes()`, duas vezes no `lib/comum.sh` e uma aqui. E havia
+#   uma quinta, no `_mapa_dracula` lá embaixo, que só conhecia `RAIZ/packs` e por
+#   isso ignorava o XDG e o `$MEOW_PACKS`: um pack instalado em
+#   `~/.local/share/meowsystem/packs` simplesmente não existia para o painel.
+#   Nenhuma dessas divergências dá erro — elas somem um pack da tela, caladas.
+#
+#   Quem manda é o `scripts/pack.py`, porque é ele quem abre o `pack.json`. A
+#   docstring dele diz, desde que nasceu, que "o shell consulta por
+#   `python3 scripts/pack.py <verbo>`; o Python IMPORTA ou consulta igual" — o
+#   import é o caminho previsto, não um atalho.
+#
+# POR QUE POR CAMINHO, E NÃO COM `sys.path.insert`
+#   Pôr `scripts/` no `sys.path` deste processo colocaria os outros 40 módulos de
+#   lá na frente da biblioteca padrão para sempre, por causa de um. O cabeçalho
+#   do `meow_paleta` (lib/comum.sh) isenta os consumidores em Python de importar
+#   uns aos outros citando exatamente "um problema de sys.path que este projeto
+#   não tem hoje" — e continuar não tendo custa estas seis linhas.
+#
+# POR QUE O SUBPROCESSO NÃO SERVIA
+#   `_mapa_dracula` roda por requisição da página de ícones. Um fork de python
+#   por requisição é caro, e a resposta não muda entre elas.
+_PACK_MOD = None
+
+
+def modulo_pack():
+    """O `scripts/pack.py` como módulo, ou None se ele não puder ser carregado.
+
+    None é resposta, não exceção: o painel tem de subir numa árvore onde alguém
+    apagou o `scripts/`, e cada chamador decide o que fazer sem o pack.
+    """
+    global _PACK_MOD
+    if _PACK_MOD is None:
+        import importlib.util
+        alvo = os.path.join(RAIZ, "scripts", "pack.py")
+        try:
+            spec = importlib.util.spec_from_file_location("meow_pack", alvo)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            _PACK_MOD = mod
+        except Exception:
+            _PACK_MOD = False
+    return _PACK_MOD or None
+
+
 def _packs_no_disco():
     """Os ids de theme pack que existem, lidos do disco. [2026-09-18]
 
     Do DISCO e não de uma lista escrita aqui: uma lista de nomes envelhece no dia
     em que alguém publicar o terceiro pack, e é exatamente o defeito que o
     formato de pack existe para não ter (ver docs/PACKS.md).
+
+    AS RAÍZES SAEM DO `pack.py` DESDE 21/09/2026 — ver `modulo_pack`, acima. A
+    lista de três diretórios estava digitada aqui também, e uma cópia que
+    discorda some um pack da tela sem dizer nada.
     """
     achados = set()
-    for base in (os.environ.get("MEOW_PACKS"),
-                 os.path.join(os.environ.get("XDG_DATA_HOME")
-                              or os.path.join(os.path.expanduser("~"), ".local", "share"),
-                              "meowsystem", "packs"),
-                 os.path.join(RAIZ, "packs")):
+    mod = modulo_pack()
+    if not mod:
+        return achados
+    for base in mod.raizes():
         if not base or not os.path.isdir(base):
             continue
         for nome in os.listdir(base):
@@ -4984,13 +5035,24 @@ class Manipulador(BaseHTTPRequestHandler):
         # valor de uma chave.
         _v = valores_efetivos(["PACK", "FLAVOR"])
         _pack = _v.get("PACK") or _v.get("FLAVOR") or ""
+        # A RESOLUÇÃO SAIU DAQUI EM 21/09/2026, E ELA ERA A PIOR DAS CINCO
+        #   Estas linhas montavam `RAIZ/packs/<pack>/icones/apps.map` à mão. Era
+        #   a QUINTA cópia da lista de raízes e a única que conhecia UMA só: um
+        #   pack instalado em `~/.local/share/meowsystem/packs` ou apontado por
+        #   `$MEOW_PACKS` não existia para esta página, sem erro nenhum na tela.
+        #   Quem resolve agora é o `acervo` do scripts/pack.py, que sobe pack ->
+        #   herança -> motor e enxerga as três raízes (ver `modulo_pack`).
+        #
+        #   A QUEDA PARA `assets/icones/apps-dracula.map` CONTINUA, e continua
+        #   sendo o `motor`: quem ainda não migrou o acervo para dentro de um
+        #   pack precisa dela. É o mesmo contrato do `meow_pack_arquivo`.
         caminho = ""
-        if _pack:
-            cand = os.path.join(RAIZ, "packs", _pack, "icones", "apps.map")
-            if os.path.isfile(cand):
-                caminho = cand
+        mod = modulo_pack()
+        if mod:
+            caminho = mod.acervo("icones.apps.mapa",
+                                 motor=os.path.join("assets", "icones", "apps-dracula.map"),
+                                 ref=_pack or None) or ""
         if not caminho:
-            # queda para o lugar antigo, para quem ainda não migrou o acervo
             caminho = os.path.join(RAIZ, "assets", "icones", "apps-dracula.map")
         try:
             with open(caminho, "r", encoding="utf-8") as fh:

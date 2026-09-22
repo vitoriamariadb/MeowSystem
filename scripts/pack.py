@@ -19,6 +19,10 @@ POR QUE PYTHON, E NÃO SHELL
 VERBOS
     validar <caminho-ou-id>      confere o pack inteiro. 0 = ok, 1 = recusado.
     caminho <id> <categoria>     imprime o caminho que aquela categoria resolve
+    acervo  <id> <categoria> [arquivo]
+                                 resolve um acervo PACK -> HERANÇA -> nada.
+                                 NÃO é o `caminho`: aquele olha só o pack, este
+                                 sobe a cadeia de herança. Ver a função `acervo`.
     paleta  <id>                 imprime o caminho da paleta do pack
     som     <id>                 o timbre do pack, como CHAVE=valor para o shell
     info    <id>                 o que é próprio, o que é herdado, o que falta
@@ -53,6 +57,84 @@ RE_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 RE_HEX = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 OK, RECUSADO, ERRO_USO = 0, 1, 2
+
+# OS CAMPOS QUE O PROJETO DE FATO LÊ — 21/09/2026
+#
+# POR QUE ESTA LISTA EXISTE
+#   Uma varredura de acoplamento mediu que metade do que o `packs/dracula/`
+#   declara NÃO TEM UM ÚNICO LEITOR em código: o `grep -rn nome_da_paleta`
+#   devolvia a spec em docs/PACKS.md, a declaração no pack.json, e mais nada.
+#   O pack previu um defeito, declarou o conserto, e o conserto era decorativo —
+#   o tema Dracula aparecia na GUI do COSMIC chamado `catppuccin-dracula`.
+#
+#   Um formato que aceita declaração morta ENSINA a escrever declaração morta.
+#   Quem escreve um pack novo copia o do Dracula e repete os campos mortos,
+#   acreditando que eles fazem alguma coisa. Por isso o `validar` passa a dizer,
+#   em voz alta, quais campos daquele pack ninguém vai ler.
+#
+# É AVISO, E NÃO RECUSA
+#   Um campo sem leitor hoje pode ser o campo que a sprint seguinte vai ler, e
+#   recusar o pack por causa dele quebraria packs que já funcionam. O que não
+#   pode é o silêncio.
+#
+# ESCRITA À MÃO, E O PORQUÊ ESTÁ MEDIDO
+#   Derivar esta lista de um `grep` seria mais bonito e estaria errado: nomes
+#   como `mapa`, `tipo`, `tema`, `arquivo` e `versao` aparecem às dezenas em
+#   código que não tem nada a ver com pack — medido no dia, `mapa` dá 13 linhas
+#   e nenhuma delas lê um pack.json. Uma lista que mente por excesso é pior que
+#   nenhuma: ela cala justamente o campo morto.
+#
+#   O PREÇO: quem der leitor a um campo precisa escrever o nome aqui. O
+#   `tests/pack.sh` cobra a lista contra o `packs/dracula/`, que é o pack mais
+#   completo que existe — então um campo novo sem entrada aqui aparece lá.
+#
+# O `*` CASA UM SEGMENTO INTEIRO. `icones.*.herda` vale para apps, pastas,
+# mimetypes e autorais; `som.*` vale para as sete chaves que os LIMITES conhecem.
+CAMPOS_COM_LEITOR = {
+    "formato", "id", "nome",            # identidade — validar
+    "heranca",                          # validar, cmd_info, acervo
+    "creditos",                         # validar cobra a existência do arquivo
+    "paleta", "paleta.arquivo",         # validar, verbo `paleta`, cmd_info
+    "paleta.flavor_padrao",             # validar
+    "cosmic.mapa",                      # validar cobra a existência
+    "cosmic.nome_da_paleta",            # scripts/gerar_temas.py
+    "icones.*.mapa",                    # validar, app/servidor.py via `acervo`
+    "icones.*.desenhos",                # validar, `acervo`
+    # `*.*.herda` e não `icones.*.herda`: o bloco de heranças do `validar` varre
+    # `icones` E `origens` juntos, e o `acervo` sobe a cadeia de qualquer
+    # categoria. Restringir a `icones` faria o aviso acusar de morto o
+    # `origens.cursores.herda`, que é lido — e um aviso que mente por excesso
+    # ensina a ignorar o aviso.
+    "*.*.herda",                        # validar, `acervo`
+    "som.*",                            # validar, cmd_som
+}
+
+
+def _tem_leitor(trilha):
+    partes = trilha.split(".")
+    for mascara in range(1 << len(partes)):
+        cand = ".".join("*" if (mascara >> i) & 1 else p
+                        for i, p in enumerate(partes))
+        if cand in CAMPOS_COM_LEITOR:
+            return True
+    return False
+
+
+def campos_sem_leitor(no, trilha=""):
+    """As trilhas declaradas neste pack.json que nenhum código lê. Ordenadas."""
+    achados = []
+    for chave, valor in (no or {}).items():
+        # `_nota`, `_nota_heranca`, `_comentario`: prosa do autor do pack, e ela
+        # é para ler com os olhos. Cobrá-la como campo morto seria punir quem
+        # documentou.
+        if str(chave).startswith("_"):
+            continue
+        aqui = f"{trilha}.{chave}" if trilha else str(chave)
+        if isinstance(valor, dict):
+            achados += campos_sem_leitor(valor, aqui)
+        elif not _tem_leitor(aqui):
+            achados.append(aqui)
+    return sorted(achados)
 
 
 def raizes():
@@ -105,6 +187,110 @@ def achar(ref):
             return os.path.abspath(cand)
     if eh_embutido(ref):
         return RAIZ
+    return None
+
+
+def campo(ref, trilha, padrao=None):
+    """Um campo declarado no pack.json, pela trilha pontuada: 'cosmic.nome_da_paleta'.
+
+    POR QUE ELA NASCEU [21/09/2026]
+        Uma varredura de acoplamento mediu que `cosmic.nome_da_paleta`,
+        `cosmic.mapa`, `icones.*.herda`, `icones.apps.camada`, `origens.*` e
+        `claro_de_reserva` eram DECLARAÇÕES SEM LEITOR: o `grep` achava a spec em
+        docs/PACKS.md, a declaração no pack.json, e nenhum arquivo de código.
+        O `packs/dracula/pack.json` declarava `nome_da_paleta` EXATAMENTE para
+        impedir que o tema aparecesse como `catppuccin-dracula` na GUI do COSMIC
+        — e era assim que ele aparecia, porque o conserto não tinha leitor.
+
+        Um formato que aceita declaração morta ensina a escrever declaração
+        morta. Esta função é a porta por onde um campo passa a ser lido.
+
+    ELA NÃO VALIDA, E ISSO É DE PROPÓSITO
+        `validar` abre a paleta inteira, confere 26 slots por flavor e mede
+        contraste. Quem quer UM campo não deve pagar por isso — e um pack que
+        está sendo usado já passou pela validação em outro lugar. Pack ausente,
+        pack.json ilegível ou campo não declarado devolvem `padrao`, sem levantar:
+        o chamador trata a ausência como "o pack não pediu nada".
+    """
+    dir_pack = achar(ref)
+    if not dir_pack:
+        return padrao
+    try:
+        with open(os.path.join(dir_pack, "pack.json"), encoding="utf-8") as fh:
+            no = json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return padrao
+    for parte in trilha.split("."):
+        if not isinstance(no, dict) or parte not in no:
+            return padrao
+        no = no[parte]
+    # `null` declarado é ausência dita em voz alta — o `cosmic.mapa: null` do
+    # Dracula quer dizer "use o mapa do núcleo inteiro". Devolver None aqui e
+    # `padrao` seria a mesma resposta em duas palavras.
+    return padrao if no is None else no
+
+
+def acervo(categoria, arquivo="", motor=None, ref=None):
+    """Um arquivo de acervo, resolvido PACK ATIVO -> HERANÇA -> MOTOR.
+
+    O NOME NÃO É `caminho`, E O MOTIVO FOI MEDIDO [21/09/2026]
+        `caminho` já está tomado: o `meow_pack_dir` do lib/comum.sh chama
+        `pack.py caminho "$PACK" id` como SONDA DE EXISTÊNCIA — ele joga a saída
+        fora e só olha o código de retorno. Reaproveitar o nome para outra
+        semântica faria todo script de shell deixar de enxergar o pack, sem erro
+        nenhum na tela. É o tipo de defeito que só se descobre depois de quebrar,
+        e por isso o verbo novo é `acervo`.
+
+    AS SETE FORMAS VIRAM UMA
+        A mesma varredura de 21/09 contou SETE padrões distintos de achar um
+        arquivo de acervo neste projeto. O `meow_pack_arquivo` (o certo) tinha
+        dois usuários; o caminho cravado sob `$RAIZ/assets/` tinha doze. Esta é a
+        forma em Python, e ela segue a MESMA ordem do `meow_pack_arquivo`.
+
+    OS ARGUMENTOS
+        categoria  a trilha que o pack.json usa para declarar onde o acervo mora
+                   — 'icones.apps.mapa', 'icones.pastas.desenhos'.
+        arquivo    o nome de dentro daquele acervo. Vazio quando a declaração JÁ
+                   é o arquivo, que é o caso do `icones.apps.mapa`.
+        motor      o caminho relativo à RAIZ para quem ainda não migrou o acervo
+                   para dentro de um pack. Vem do CHAMADOR, e não de uma tabela
+                   aqui dentro, porque o motor não tem manifesto que diga onde
+                   cada categoria mora — é exatamente o que o `packs/catppuccin/`
+                   vai resolver quando existir (P13). Até lá, inventar a tabela
+                   aqui seria a oitava forma, não a primeira.
+        ref        qual pack. O padrão é o que a ponte shell->Python exportou em
+                   `MEOW_PACK_DIR`; vazio quer dizer pack embutido.
+
+    Devolve None quando não existe em lugar nenhum: ausência é resposta, e quem
+    chama decide se ela é erro.
+    """
+    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_EMBUTIDO)
+    # A HERANÇA PODE SER CIRCULAR, E UM PACK DE TERCEIRO PODE ESCREVÊ-LA ASSIM
+    #   Dois packs que herdam um do outro pendurariam o painel num laço infinito.
+    #   O conjunto de vistos custa uma linha e transforma o travamento em "não
+    #   achei", que é uma resposta que a pessoa consegue ler.
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        dir_pack = achar(ref)
+        if not dir_pack:
+            break
+        declarado = campo(ref, categoria)
+        if isinstance(declarado, str):
+            alvo = os.path.join(dir_pack, declarado, arquivo) if arquivo \
+                else os.path.join(dir_pack, declarado)
+            if os.path.exists(alvo):
+                return alvo
+        # A HERANÇA DO BLOCO VENCE A DO PACK INTEIRO. O Dracula declara
+        # `heranca: "catppuccin"` no topo E `icones.mimetypes.herda:
+        # "catppuccin"` no bloco — a do bloco é a que fala daquela categoria, e
+        # um pack que herde só uma categoria de outro lugar precisa dela.
+        bloco = categoria.rsplit(".", 1)[0]
+        ref = campo(ref, bloco + ".herda") or campo(ref, "heranca")
+    if motor:
+        alvo = os.path.join(RAIZ, motor, arquivo) if arquivo else os.path.join(RAIZ, motor)
+        if os.path.exists(alvo):
+            return alvo
     return None
 
 
@@ -247,6 +433,25 @@ def validar(ref, silencioso=False):
         alvo = _dentro(dir_pack, p["cosmic"]["mapa"], "cosmic.mapa")
         _exigir(os.path.isfile(alvo), f"cosmic.mapa: {p['cosmic']['mapa']!r} não existe")
 
+    # O ARQUIVO PROMETIDO E AUSENTE PASSAVA — 21/09/2026
+    #   O `packs/dracula/pack.json` declara `"creditos": "CREDITOS.md"` desde que
+    #   nasceu, o arquivo NUNCA esteve no pack, e `meow pack validar dracula`
+    #   saía 0. Um validador que aprova um pack que promete um arquivo que não
+    #   entrega não está validando o formato: está carimbando.
+    #
+    #   `creditos` É O ÚNICO CAMPO DE ARQUIVO QUE FALTAVA AQUI. Os outros
+    #   quatro — `paleta.arquivo`, `icones.*.mapa`, `icones.*.desenhos` e
+    #   `cosmic.mapa` — já são cobrados acima. Campo de arquivo novo entra nesta
+    #   vizinhança, e não numa tabela à parte: uma segunda lista de "campos que
+    #   nomeiam arquivo" seria a próxima que alguém esquece de atualizar.
+    if p.get("creditos"):
+        alvo = _dentro(dir_pack, p["creditos"], "creditos")
+        _exigir(os.path.isfile(alvo),
+                f"creditos: {p['creditos']!r} está declarado e NÃO existe no pack.\n"
+                f"    Ou crie o arquivo, ou tire o campo. Um pack que promete\n"
+                f"    crédito de arte e não entrega ensina a promessa vazia —\n"
+                f"    e quem copiar este pack.json vai repetir a promessa.")
+
     # --- som ----------------------------------------------------------------
     # O timbre é opcional. Quando existe, precisa ser NÚMERO e precisa caber nos
     # limites que o som.sh documenta — um pack não pode assustar quem o instala.
@@ -302,6 +507,19 @@ def validar(ref, silencioso=False):
         _exigir(u.startswith("https://"), f"{trilha}: {u!r} — só https é aceito")
 
     if not silencioso:
+        # O AVISO VEM ANTES DO `ok`, E NÃO MUDA O CÓDIGO DE SAÍDA
+        #   Depois do `ok` ninguém lê: a linha verde é a que encerra a leitura.
+        #   E ele não recusa porque um campo sem leitor hoje pode ser o campo que
+        #   a sprint seguinte vai ler — o que não pode é o silêncio. Ver
+        #   `CAMPOS_COM_LEITOR`, no topo.
+        mortos = campos_sem_leitor(p)
+        if mortos:
+            print(f"  aviso {len(mortos)} campo(s) que este pack declara e NENHUM código lê:",
+                  file=sys.stderr)
+            for trilha in mortos:
+                print(f"          {trilha}", file=sys.stderr)
+            print("        Eles não quebram nada — e também não fazem nada. "
+                  "Ver docs/PACKS.md.", file=sys.stderr)
         n_fl = len(dados["flavors"])
         print(f"  ok   {p['nome']} ({p['id']}) — formato {p['formato']}, "
               f"{n_fl} flavor(s), 26 slots conferidos")
@@ -397,6 +615,15 @@ def main(argv):
             return cmd_info(argv[2])
         if verbo == "caminho" and len(argv) == 4:
             return cmd_caminho(argv[2], argv[3])
+        if verbo == "acervo" and len(argv) in (4, 5):
+            # Sem `motor` de propósito: quem chama do shell tem o
+            # `meow_pack_arquivo` para a queda no núcleo, e passar o caminho do
+            # motor por linha de comando seria a segunda declaração dele.
+            achado = acervo(argv[3], argv[4] if len(argv) == 5 else "", ref=argv[2])
+            if not achado:
+                return RECUSADO
+            print(achado)
+            return OK
     except Recusa as e:
         print(f"  erro pack recusado: {e}", file=sys.stderr)
         return RECUSADO
