@@ -60,10 +60,25 @@ FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
 #   não ter nenhuma.
 #
 #   SEM PACK NO CONF, O ALVO É O PADRÃO — perguntado, nunca digitado.
+#
+#   O `|| VAZIO` NÃO É ENFEITE: ELE É O QUE DEIXA O `_pronto` FALAR — 22/09/2026
+#     Este arquivo roda sob `set -euo pipefail`, e uma atribuição HERDA o status
+#     do comando substituído. O `pack.py acervo` sai com 1 quando nada resolve
+#     (RECUSADO), que é exatamente o caso do flavor sem acervo — `dracula`, com
+#     o `ICONES_FLAVOR="$FLAVOR"` que o meow.conf.exemplo traz de fábrica. Sem a
+#     queda explícita o script MORRIA nesta linha, calado: `--conferir` saía com
+#     rc=1 e zero linha na tela, o doctor acusava divergência sem motivo (1 é
+#     MEOW_DIVERGENTE, lib/comum.sh) e o `--consertar` morria no mesmo ponto, em
+#     laço. Medido em 22/09/2026, com `bash -x` parando em `+ ORIGEM=`.
+#     Vazio é RESPOSTA, e o `_pronto` logo abaixo é quem a conta em português.
+#
+#   E O `2>/dev/null` SAIU JUNTO: quando o `acervo` recusa por pack.json
+#   quebrado ele DIZ por quê em stderr, e engolir essa linha deixaria o
+#   `_pronto` culpar o flavor por um defeito que é do pack.
 _pack_ref="$(meow_pack_dir)"
-[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir)"
+[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
-            icones.mimetypes.desenhos "$FLAVOR_ICONES" 2>/dev/null)"
+            icones.mimetypes.desenhos "$FLAVOR_ICONES")" || ORIGEM=""
 MAPA="$RAIZ/assets/icones/mimetypes.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 DESTINO="$HOME/.local/share/icons/$TEMA/scalable/mimetypes"

@@ -827,11 +827,63 @@ def _vestigio_de_pack(chave):
         if pack == adotado:
             continue
         if pack in alvo:
-            return {"pack": pack, "adotado": adotado or "(o embutido)",
+            # O PACK ADOTADO TAMBÉM RECEITA VALORES DE OUTRO PACK — 22/09/2026
+            #   Quando o Catppuccin virou pack (P13), `_packs_no_disco` passou
+            #   de {dracula} para {dracula, catppuccin} e este aviso começou a
+            #   disparar no `CURSOR="catppuccin-mocha-light"` que o
+            #   meow.conf.exemplo traz de fábrica — para quem usa Dracula.
+            #   E o aviso era FALSO: esse valor é o que o
+            #   `packs/dracula/pack.json` PRESCREVE, em
+            #   `origens.cursores.tema`, porque "não há pack de agente Dracula
+            #   com release fixável por tag". Mandar a pessoa desconfiar do
+            #   valor certo, e prometer tela misturada onde não há mistura, é
+            #   pior que não avisar nada.
+            if _declarado_pelo_pack(adotado, alvo):
+                return None
+            return {"pack": pack, "adotado": adotado or "(o padrão)",
                     "porque": ("Este valor é do pack «%s», e o adotado agora é «%s». "
                                "Ele continua valendo — o seu meow.conf vence o pack —, "
-                               "mas o resultado na tela fica misturado." % (pack, adotado or "embutido"))}
+                               "mas o resultado na tela fica misturado." % (pack, adotado or "o padrão"))}
     return None
+
+
+def _declarado_pelo_pack(adotado, alvo):
+    """True quando o PRÓPRIO pack adotado declara este valor no pack.json.
+
+    POR QUE A COMPARAÇÃO É POR IGUALDADE, E NÃO POR SUBSTRING
+        O laço acima pergunta "o nome de outro pack aparece dentro do valor?",
+        que é uma rede larga de propósito — `ICONES_BASE="Dracula-Icones"` tem
+        de cair nela. Aqui a pergunta é o oposto: "este valor, inteiro, é uma
+        receita do pack adotado?". Substring devolveria verdadeiro para
+        qualquer valor que por acaso aparecesse dentro de uma prosa do
+        pack.json, e o aviso sumiria onde deve aparecer.
+
+    AS CHAVES `_` FICAM DE FORA PORQUE SÃO COMENTÁRIO
+        `_nota`, `_nota_heranca` e companhia são a prosa do formato (ver
+        docs/PACKS.md). Um valor citado dentro de uma nota não é declaração —
+        é explicação de por que ele NÃO se usa, às vezes.
+    """
+    mod = modulo_pack()
+    if not mod or not adotado:
+        return False
+    dir_pack = mod.achar(adotado)
+    if not dir_pack:
+        return False
+    try:
+        with open(os.path.join(dir_pack, "pack.json"), encoding="utf-8") as fh:
+            no = json.load(fh)
+    except (OSError, ValueError):
+        return False
+    pilha = [no]
+    while pilha:
+        atual = pilha.pop()
+        if isinstance(atual, dict):
+            pilha.extend(v for k, v in atual.items() if not k.startswith("_"))
+        elif isinstance(atual, list):
+            pilha.extend(atual)
+        elif isinstance(atual, str) and atual.strip().lower() == alvo:
+            return True
+    return False
 
 
 def _dominada_por(chave):

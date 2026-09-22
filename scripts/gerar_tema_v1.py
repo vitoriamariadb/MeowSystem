@@ -25,7 +25,7 @@ POR QUE ESTA ÁRVORE EXISTE E NINGUÉM A VESTIA
 NÃO SE ESCREVE A V1 À MÃO — E TAMBÉM NÃO SE RECALCULA A DERIVAÇÃO
     O `docs/COSMIC-THEMING.md` §1 proíbe escrever chave por chave: as duas
     árvores discordam e reproduzir uma à mão gera um híbrido que *quase*
-    funciona. Mas gerar a v1 a partir de `packs/catppuccin/paleta.json` sozinho seria
+    funciona. Mas gerar a v1 a partir da paleta do pack ativo sozinha seria
     PIOR: a paleta e o `cosmic-map.json` só declaram os slots de TOPO do `.ron`
     (accent, bg_color, ...). Os 209 campos derivados da v1 (hover, pressed,
     component.*, on_disabled, divider...) saem de um algoritmo de contraste que
@@ -33,7 +33,7 @@ NÃO SE ESCREVE A V1 À MÃO — E TAMBÉM NÃO SE RECALCULA A DERIVAÇÃO
 
     Então a fonte de cor é a `v2` DA PRÓPRIA CAPTURA — que é o produto que o
     COSMIC derivou do `.ron` que o `gerar_temas.py` gerou da paleta. A cor
-    continua vindo de `packs/catppuccin/paleta.json`; só o caminho é transitivo.
+    continua vindo da paleta do pack ativo; só o caminho é transitivo.
 
 O QUE ESTE SCRIPT FAZ, LITERALMENTE
     Pega o texto do arquivo v1 do FÓSSIL (`assets/temas/capturados/original/.../v1/<chave>`,

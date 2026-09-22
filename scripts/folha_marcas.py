@@ -7,7 +7,7 @@
 #   nas linhas ia facilitar nossa vida"*.
 #
 #   O pedido é só de COR. O traço continua traço, `fill:none` continua
-#   `fill:none`, e a paleta continua sendo `packs/catppuccin/paleta.json` — nenhum hex
+#   `fill:none`, e a paleta continua sendo a DO PACK ATIVO — nenhum hex
 #   de fora entra no tema. O que muda é QUAL cor da paleta cada aplicativo veste.
 #
 # POR QUE ELA PRECISA DECIDIR, E NÃO EU
@@ -63,8 +63,8 @@ HOME = os.path.expanduser('~')
 # ============================================================================
 #
 # Estes hexes são de FORA e existem só para comparação visual nesta folha. A
-# regra "nenhum hex hardcoded" vale para a cor do TEMA, que continua saindo de
-# `packs/catppuccin/paleta.json` — aqui não há cor de tema nenhuma.
+# regra "nenhum hex hardcoded" vale para a cor do TEMA, que continua saindo da
+# paleta do PACK ATIVO — aqui não há cor de tema nenhuma.
 #
 # `medido`  = a arte instalada NESTA máquina, rasterizada a 128 px e medida em
 #             Oklab (bin de matiz de 30°, cor do bin dominante). Sempre a arte

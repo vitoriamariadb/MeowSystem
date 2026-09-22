@@ -658,7 +658,15 @@ def cmd_info(ref):
                        ("icones.mimetypes", ic.get("mimetypes")), ("icones.autorais", ic.get("autorais")),
                        ("cursores", org.get("cursores")), ("wallpapers", org.get("wallpapers"))]:
         if bloco is None:
-            estado = f"HERDADO de {base}"
+            # SEM HERANÇA DECLARADA NÃO EXISTE "HERDADO DE" — 22/09/2026
+            #   O pack PADRÃO não herda de ninguém, e esta coluna imprimia
+            #   `HERDADO de (nenhuma)` em cinco das oito categorias dele — uma
+            #   frase que diz o contrário do que acontece. Categoria que um
+            #   pack sem herança não declara vem do MOTOR (o
+            #   `assets/paleta/cosmic-map.json`, os acervos de `assets/`) ou
+            #   não existe para aquele pack. O `acervo()` já resolve assim; era
+            #   só a tela que discordava dele.
+            estado = f"HERDADO de {base}" if p.get("heranca") else "DO MOTOR, ou inexistente"
         elif isinstance(bloco, dict) and bloco.get("herda"):
             estado = f"HERDADO de {bloco['herda']}"
         else:

@@ -70,8 +70,8 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PREVIA_DIR = os.path.join(RAIZ, 'assets', 'icones', 'previa-arcticons')
 CONF_TK = os.path.join(HOME, '.config/cosmic/com.system76.CosmicTk/v1/icon_theme')
 
-# A cor sai da paleta, nunca de um hex escrito aqui — regra do
-# `packs/catppuccin/paleta.json` ("nenhum hex pode ser hardcoded em script").
+# A cor sai da paleta do PACK ATIVO, nunca de um hex escrito aqui — é a regra
+# que toda paleta do projeto carrega ("nenhum hex pode ser hardcoded em script").
 CATEGORIAS = [
     ('navegador', 'blue',     'Navegadores'),
     ('rede',      'sky',      'Conversa e rede'),

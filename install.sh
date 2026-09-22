@@ -1610,8 +1610,8 @@ etapa_prompt() {
 # coisas são verdade e não se implicam — o arquivo do port é o MIOLO de uma
 # entrada, e o de config é o MAPA inteiro (`BTreeMap<ColorSchemeId, ColorScheme>`).
 # Escrever o port cru falha com `Expected opening '{'`. Por isso o esquema é
-# derivado da `packs/catppuccin/paleta.json` daqui, e confere campo a campo com o
-# port nos quatro flavors.
+# derivado da paleta DO PACK ATIVO (`meow_paleta`), e confere campo a campo com
+# o port nos quatro flavors.
 etapa_terminal() {
   passo "Cores do terminal"
   FLAVOR="$FLAVOR" ACCENT="$ACCENT" \

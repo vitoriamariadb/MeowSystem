@@ -3,7 +3,8 @@
 
 POR QUE ESTE SCRIPT EXISTE
     Nenhum hex pode viver dentro de script (regra 1 do contrato: estado desejado é
-    declarado, não imperativo). Toda cor vem de `packs/catppuccin/paleta.json`, e o
+    declarado, não imperativo). Toda cor vem da PALETA DO PACK ATIVO — quem a
+    resolve é `pack.paleta_do_pack_ativo()`, e não um caminho escrito aqui —, e o
     destino de cada cor vem de `assets/paleta/cosmic-map.json`. Trocar de flavor é
     trocar uma linha do meow.conf, nunca editar um tema à mão.
 

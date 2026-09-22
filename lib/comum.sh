@@ -375,7 +375,7 @@ meow_pack_dir() {
   fi
   [ -n "$PACK" ] || return 0
   python3 "$MEOW_RAIZ/scripts/pack.py" caminho "$PACK" id >/dev/null 2>&1 || {
-    meow_aviso "pack '$PACK' não resolve — usando o embutido"
+    meow_aviso "pack '$PACK' não resolve — usando o padrão"
     return 0
   }
   local d
@@ -474,7 +474,7 @@ meow_ponte_python() {
     if [ "$da_pessoa" = "1" ]; then
       meow_info "  ela veio de MEOW_PALETA — aponte para um arquivo que exista, ou tire a variável."
     else
-      meow_info "  ela veio do pack ativo (PACK/FLAVOR do meow.conf) ou do embutido."
+      meow_info "  ela veio do pack ativo (PACK/FLAVOR do meow.conf) ou do pack padrão."
     fi
     meow_info "  sem ela nenhum gerador em Python tem cor para trabalhar, e parar aqui é"
     meow_info "  mais barato do que descobrir isso etapa por etapa."

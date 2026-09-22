@@ -342,7 +342,13 @@ chk_gerar() {
     || { rc=1; msg="algum .ron saiu da paleta"; }
   python3 "$RAIZ/scripts/gerar_tema_v1.py" --conferir >/dev/null 2>&1 \
     || { rc=1; msg="${msg:+$msg; }a v1 das capturas saiu da paleta"; }
-  [ "$rc" = "0" ] && { echo "os temas e a v1 das capturas conferem com assets/paleta/"; return 0; }
+  # QUEM NOMEIA O ARQUIVO É O `meow_paleta_nome` — 22/09/2026
+  #   Esta linha dizia "conferem com assets/paleta/", e a P13 esvaziou esse
+  #   diretório: só o `cosmic-map.json`, que é do MOTOR, ficou lá. A paleta
+  #   mora no pack agora. O irmão desta frase, no `install.sh`, passou pela
+  #   porta no mesmo commit; este ficou para trás e saía em TODA rodada verde
+  #   do doctor, apontando uma pasta onde a cor já não está.
+  [ "$rc" = "0" ] && { echo "os temas e a v1 das capturas conferem com $(meow_paleta_nome)"; return 0; }
   echo "$msg — 'meow doctor --consertar' regenera"
   return "$MEOW_DIVERGENTE"
 }

@@ -18,7 +18,7 @@ acervo — [`assets/icones/PROCEDENCIA.md`](../assets/icones/PROCEDENCIA.md),
 
 | projeto | o que dá | licença |
 |---|---|---|
-| [catppuccin/catppuccin](https://github.com/catppuccin/catppuccin) | as quatro flavors e os 14 accents — **toda** cor deste repositório sai daqui, via `assets/paleta/catppuccin.json` | MIT |
+| [catppuccin/catppuccin](https://github.com/catppuccin/catppuccin) | as quatro flavors e os 14 accents do pack padrão — **toda** cor que este repositório desenha sai de uma paleta, e a de fábrica é `packs/catppuccin/paleta.json` | MIT |
 
 Não existe cor inventada no MeowSystem. Quando um desenho precisa de um tom, ele
 pede o nome (`mauve`, `peach`, `sky`) e a paleta responde com o hex daquela

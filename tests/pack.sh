@@ -416,15 +416,23 @@ linha_padrao="$(printf '%s\n' "$saida" | grep -F "$padrao" || true)"
 
 # --- 17. nenhum código volta a cravar o caminho da paleta do padrão ---------
 # A P13 tirou o literal `assets/paleta/catppuccin.json` de nove pontos de código.
-# O nome do pack padrão mora em UM lugar — `scripts/pack.py:PACK_PADRAO` — e
-# todo o resto pergunta: `pack.paleta_do_pack_ativo()` no Python,
-# `meow_paleta`/`meow_pack_padrao_dir` no shell.
+# Sobrou UM, e ele está isentado abaixo com nome e motivo: são 9 -> 1, e não
+# 9 -> 0. Fora dele, todo o resto pergunta: `pack.paleta_do_pack_ativo()` no
+# Python, `meow_paleta`/`meow_pack_padrao_dir` no shell, e o nome do pack padrão
+# mora em `scripts/pack.py:PACK_PADRAO`.
 #
 # COMENTÁRIO CONTINUA LIVRE, e o filtro é o MESMO do `tests/estilo.sh`: a
 # citação que tem um `#` antes dela não conta. Reescrever a prosa para agradar um
 # grep apagaria o porquê e não consertaria nada — e o histórico desta casa ("era
 # `assets/paleta/catppuccin.json` cravado até a porta única") é exatamente o que
 # explica por que a porta existe.
+#
+#   ELE SÓ PASSOU A SER O MESMO EM 22/09/2026. Estava escrito `[^#]*#`, sem o
+#   resto: isso descarta QUALQUER linha que tenha um `#`, esteja ele onde
+#   estiver. Um `PAL = "assets/paleta/catppuccin.json"  # nota` — código de
+#   verdade, com prosa no fim — saía verde. O `.*` que veio depois é o que
+#   exige que o `#` venha ANTES da citação, e é a forma que o
+#   `tests/estilo.sh:94` já usava.
 #
 # `scripts/pack.py` SAI DA VARREDURA PORQUE É A PRÓPRIA PORTA — é a mesma
 # isenção que o `tests/estilo.sh` dá ao `lib/comum.sh`, e pelo mesmo motivo: é
@@ -440,11 +448,38 @@ linha_padrao="$(printf '%s\n' "$saida" | grep -F "$padrao" || true)"
 #   juntar as duas metades de volta pinta o CI de vermelho sem nada ter
 #   acontecido.
 _velho='assets/paleta'"/catppuccin\.json"
-cravado="$(grep -rnE --include='*.sh' --include='*.py' \
-             "$_velho" "$RAIZ/install.sh" "$RAIZ/lib" \
-             "$RAIZ/scripts" "$RAIZ/app" 2>/dev/null \
+
+# O ENDEREÇO NOVO CONTA TANTO QUANTO O VELHO — 22/09/2026
+#   A primeira versão desta conferência procurava SÓ o literal velho, e por isso
+#   dava verde para um caminho cravado no endereço novo — o mesmo defeito com
+#   outro CEP. Medido: `scripts/derivar_claro.py:79` atravessou a P13 trocando
+#   `assets/paleta/catppuccin.json` por `packs/catppuccin/paleta.json`, e este
+#   teste não viu. Um grep que só conhece o passado promete para sempre uma
+#   coisa que deixou de conferir no dia em que a casa mudou.
+#   Partido em duas metades por SIMETRIA com o `_velho`, e não por obrigação:
+#   nenhuma régua de hoje procura `packs/<pack>/paleta.json` dentro de um teste.
+#   Custa nada e tira a pergunta de quem ler os dois lado a lado.
+_novo='packs/catppuccin'"/paleta\.json"
+
+# `bin/` ENTRA PORQUE A CONFERÊNCIA DA SPRINT O INCLUI — e o `--include` precisa
+# do nome inteiro: `bin/meow` não tem extensão, e `*.sh`/`*.py` o deixavam de
+# fora sem uma palavra. Era um diretório inteiro fora da varredura.
+#
+# `scripts/derivar_claro.py` É ISENTO, E A ISENÇÃO TEM MOTIVO ESCRITO
+#   Ele não resolve a paleta ATIVA: ele nomeia, lado a lado, as duas paletas de
+#   que precisa — a do Dracula, que é a identidade, e a do Catppuccin, que é a
+#   RÉGUA de luminância do Latte. Trocar a régua junto com o pack ativo faria a
+#   saída dele deixar de ser reprodutível, e o cabeçalho da função diz isso com
+#   todas as letras. É um gerador de tiro único, registrado como órfão em
+#   `tests/orfaos.sh:119`, cuja saída já está colada em
+#   `packs/dracula/paleta.json`. A isenção é por ARQUIVO, como a do `pack.py`, e
+#   o preço é o mesmo: uma cravação NOVA dentro dele passaria verde. Está dito.
+cravado="$(grep -rnE --include='*.sh' --include='*.py' --include='meow' \
+             "($_velho|$_novo)" "$RAIZ/install.sh" "$RAIZ/lib" \
+             "$RAIZ/scripts" "$RAIZ/app" "$RAIZ/bin" 2>/dev/null \
            | grep -v 'scripts/pack\.py:' \
-           | grep -vE ':[0-9]+:[^#]*#' \
+           | grep -v 'scripts/derivar_claro\.py:' \
+           | grep -vE ":[0-9]+:[^#]*#.*($_velho|$_novo)" \
            | grep -vE ':[0-9]+:\s*("""|#)' || true)"
 if [ -n "$cravado" ]; then
   falha "código cravando o caminho da paleta do pack padrão:"
