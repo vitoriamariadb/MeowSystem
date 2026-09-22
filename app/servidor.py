@@ -2328,10 +2328,15 @@ ACOES = {
         "grupo": "Manutenção",
         "argv": [os.path.join(RAIZ, "scripts", "som.sh"), "aplicar"],
         "escreve": True, "sudo": False, "confirma": False,
-        "ajuda": "Gera o som de novo a partir do timbre do pack ativo e do seu "
+        # A ÚNICA AJUDA DESTE ARQUIVO ACIMA DE 220 CARACTERES — 22/09/2026.
+        # Medidas as 50 frases fixas daqui, esta era a só que passava (230). As
+        # duas palavras que saíram não carregavam nada: «do SEU meow.conf» (o
+        # arquivo é dela em toda a página) e «tira o nosso som E devolve o de
+        # fábrica», que são a mesma troca dita duas vezes. Fica em 211.
+        "ajuda": "Gera o som de novo a partir do timbre do pack ativo e do "
                  "meow.conf. Vale na próxima mudança de volume — nada a reiniciar. "
                  "Com «Som ao mudar o volume» em não, este botão faz o contrário: "
-                 "tira o nosso som e devolve o de fábrica.",
+                 "devolve o som de fábrica.",
     },
     "doctor": {
         "rotulo": "Conferir a máquina",
@@ -2398,8 +2403,14 @@ ACOES = {
         # letra, e a tradução é pior que o original: quem não programa lê
         # "caixas" e procura uma caixa. O que o `cargo` lista são PROGRAMAS
         # escritos em Rust instalados nesta máquina, e é isso que a linha diz.
+        # "NÃO ESCREVE, NÃO ESCREVE" — 22/09/2026. A frase dizia duas vezes a
+        # mesma coisa e deixava de dizer a outra: o par que interessa a quem lê
+        # é «não escreve» E «não pede senha», que são os dois campos declarados
+        # logo acima (`escreve` e `sudo`). O duplicado veio de uma edição que
+        # trocou metade da frase e esqueceu a outra metade no lugar.
         "ajuda": "Os pacotes com versão nova e os programas em Rust "
-                 "desatualizados. Não escreve, não escreve e não pede senha, mas consulta o índice do crates.io para saber o que está velho.",
+                 "desatualizados. Não escreve e não pede senha, mas consulta "
+                 "o índice do crates.io para saber o que está velho.",
     },
     "sistema_atualizar": {
         "rotulo": "Atualizar a máquina inteira",
@@ -2412,9 +2423,13 @@ ACOES = {
         # e ter dois nomes para um botão é a tela pedindo desconfiança. `apt`,
         # `flatpak` e `cargo` FICAM: são os nomes próprios dos três programas que
         # baixam, e trocá-los por paráfrase esconderia o que está sendo rodado.
-        "ajuda": "apt, flatpak e cargo, e logo depois a conferência — que diz o "
-                 "que a atualização desfez do MeowSystem. Demora, e o apt mantém "
-                 "os arquivos de configuração que já estão no disco.",
+        # COMEÇAVA EM MINÚSCULA, e era a única ajuda daqui que fazia isso —
+        # 22/09/2026. «Apt» com maiúscula estaria errado (é o nome do programa,
+        # e ele se escreve em minúscula), então quem abre a frase passa a ser o
+        # verbo, que é como as outras 49 ajudas deste arquivo abrem.
+        "ajuda": "Atualiza apt, flatpak e cargo, e logo depois faz a conferência "
+                 "— que diz o que a atualização desfez do MeowSystem. Demora, e o "
+                 "apt mantém os arquivos de configuração que já estão no disco.",
     },
     "sistema_limpar": {
         "rotulo": "Limpar o que sobrou",

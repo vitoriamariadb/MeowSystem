@@ -1346,10 +1346,24 @@ select { flex: 1 1 auto; }
 }
 /* As etiquetas à esquerda, o gatilho à direita: lê-se o risco entrando no botão. */
 .acao .rodape .btn { margin-left: auto; }
+/* SÓ O PRIMEIRO BOTÃO EMPURRA — 22/09/2026. Com o «ver comando» na fileira são
+   dois `.btn`, e dois `margin-left: auto` dividem a folga entre si: os botões
+   nasciam separados por meia largura de cartão, como se fossem de assuntos
+   diferentes. O primeiro empurra o par inteiro para a direita; do espaço entre
+   eles cuida o `gap`. */
+.acao .rodape .btn ~ .btn { margin-left: 0; }
 /* O `margin-top: auto` que empurra o rodapé para o fundo do cartão mora no
  * `code.cmd`. Quando a ação não tem comando para mostrar, não havia quem
  * empurrasse, e o botão parava logo abaixo da própria frase. */
 .acao:not(:has(code.cmd)) .rodape { margin-top: auto; }
+/* A LISTA DO «VER COMANDO» É A ÚLTIMA COISA DO CARTÃO — 22/09/2026
+ * A regra genérica `.acao > * { order: 2 }`, acima, é quem decide o lugar de
+ * qualquer filho sem ordem própria — e o bloco de comandos, que o cartão de
+ * ação passou a ter quando o caminho absoluto saiu da linha visível, caía com
+ * ela ENTRE a explicação e o comando: a lista abria ACIMA do botão que a abre,
+ * empurrando o «Executar» para baixo a cada clique. Ela pertence ao fim, depois
+ * do rodapé, porque é o que se lê depois de decidir olhar. */
+.acao > .comandos { order: 5; padding-top: .15rem; }
 
 /* OS «EXECUTAR» DA MESMA FILEIRA EM TRÊS ALTURAS — 07/09/2026
  * Quatro dos cinco relatos da conferência de uso trouxeram este mesmo defeito,
