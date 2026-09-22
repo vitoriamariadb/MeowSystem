@@ -5,7 +5,7 @@
 // Importar em: Configurações > Área de trabalho > Aparência > Importar
 (
     palette: Light((
-        name: "catppuccin-alucard",
+        name: "dracula-alucard",
         bright_red: "#E84545FF",
         bright_green: "#169486FF",
         bright_orange: "#E37A0AFF",
