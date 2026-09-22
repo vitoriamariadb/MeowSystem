@@ -450,28 +450,40 @@ _spot_receita_valida() {
     "$_SPOT_PALETA" "$_SPOT_FLAVOR" "$_SPOT_ACENTO" 2>/dev/null
 }
 
+# CADA SAÍDA-3 DAQUI DECLARA A CAUSA [21/09/2026]
+#   As sete linhas abaixo saíam com o mesmo número e nenhuma palavra, e quem
+#   recebia o número — o `aplicar` — chutava a primeira causa da lista. O
+#   contrato agora é o do `meow_app_sem` (ver lib/comum.sh): a causa viaja junto
+#   com o 3. As frases que estavam em `meow_pula` aqui NÃO foram perdidas: elas
+#   viraram o motivo, e quem as imprime agora é o `aplicar`. Os `meow_info`
+#   ficam, porque são o CONSERTO, não a causa — e conserto se diz uma vez só.
 meow_app_detectar() {
-  _spot_instalado || return "$MEOW_SEM_DEPENDENCIA"
+  # Motivo velho mente com cara de medida: zerar antes de medir é do contrato.
+  MEOW_APP_MOTIVO=""
+  _spot_instalado || { meow_app_sem "Spotify: não está instalado como flatpak de usuário"; return; }
 
   if ! _spot_cli >/dev/null; then
-    meow_pula "spicetify não encontrado — o Spotify é tematizado por ele desde 10/08/2026"
     meow_info "instale: curl -fsSL https://raw.githubusercontent.com/spicetify/cli/main/install.sh | sh"
-    return "$MEOW_SEM_DEPENDENCIA"
+    meow_app_sem "Spotify: falta o spicetify — é ele que tematiza o app desde 10/08/2026"
+    return
   fi
   if [ ! -f "$_SPOT_COLOR_INI" ]; then
-    meow_pula "o tema catppuccin não está em $_SPOT_TEMA"
     meow_info "instale: git clone --depth 1 https://github.com/catppuccin/spicetify /tmp/cat-spice && cp -r /tmp/cat-spice/catppuccin $_SPOT_CONFIG_DIR/Themes/"
-    return "$MEOW_SEM_DEPENDENCIA"
+    meow_app_sem "Spotify: falta o tema catppuccin do spicetify em $_SPOT_TEMA"
+    return
   fi
-  meow_tem python3 || return "$MEOW_SEM_DEPENDENCIA"
-  [ -f "$_SPOT_ACENTO_PY" ] || return "$MEOW_SEM_DEPENDENCIA"
+  meow_tem python3 || { meow_app_sem "Spotify: falta python3, que lê a paleta"; return; }
+  [ -f "$_SPOT_ACENTO_PY" ] || { meow_app_sem "Spotify: falta $_SPOT_ACENTO_PY, que escreve o acento no color.ini"; return; }
+  # O `meow_aviso` que ficava aqui saiu: ele dizia a mesma frase que agora é o
+  # motivo, e o `conferir` logo abaixo já repete o aviso por conta própria —
+  # ele é quem precisa, porque engole de propósito a saída deste `detectar`.
   if ! _spot_receita_valida; then
-    meow_aviso "flavor/acento inexistentes na paleta: $_SPOT_FLAVOR/$_SPOT_ACENTO — confira o meow.conf"
-    return "$MEOW_SEM_DEPENDENCIA"
+    meow_app_sem "Spotify: flavor/acento inexistentes na paleta ($_SPOT_FLAVOR/$_SPOT_ACENTO) — confira o meow.conf"
+    return
   fi
   # O spicetify precisa escrever no corpo do app. Se um dia isto virar
   # somente-leitura, o módulo tem de virar "pendente", não "erro".
-  [ -w "$(_spot_dir)/Apps" ] || return "$MEOW_SEM_DEPENDENCIA"
+  [ -w "$(_spot_dir)/Apps" ] || { meow_app_sem "Spotify: o corpo do app não está gravável em $(_spot_dir)/Apps"; return; }
   return "$MEOW_OK"
 }
 
@@ -552,10 +564,10 @@ meow_app_conferir() {
 }
 
 meow_app_aplicar() {
-  meow_app_detectar || {
-    meow_pula "Spotify não instalado (ou não é o flatpak de usuário)"
-    return "$MEOW_SEM_DEPENDENCIA"
-  }
+  # A FRASE QUE ESTAVA AQUI ERA A MENTIRA DE 21/09/2026: ela dizia "Spotify não
+  # instalado" para um Spotify instalado, porque era a PRIMEIRA causa de uma
+  # lista e o `detectar` só devolvia o número. Agora quem fala é o motivo.
+  meow_app_detectar || { meow_app_pendente spotify; return; }
   # O CARIMBO VEM ANTES DE TUDO, E PODE ACONTECER COM O SPOTIFY ABERTO.
   # Ele não toca num byte do app — corrige uma linha do config-xpui.ini. É a
   # única parte deste módulo que a guarda "não mexo no app dela no meio do uso"
@@ -656,10 +668,8 @@ meow_app_aplicar() {
 # DESFAZER É DECISÃO DELA, DIGITADA — nada aqui é chamado pelo doctor das 05:00.
 # `meow apps reverter spotify` chega aqui (bin/meow:1063 → aplicar_apps.sh:73).
 meow_app_reverter() {
-  meow_app_detectar || {
-    meow_pula "Spotify não instalado (ou não é o flatpak de usuário)"
-    return "$MEOW_SEM_DEPENDENCIA"
-  }
+  # Mesma mentira do `aplicar`, mesmo conserto: o motivo vem de quem mediu.
+  meow_app_detectar || { meow_app_pendente spotify; return; }
   if _spot_rodando; then
     meow_pula "Spotify está ABERTO — não mexo no app dela no meio do uso"
     return "$MEOW_SEM_DEPENDENCIA"

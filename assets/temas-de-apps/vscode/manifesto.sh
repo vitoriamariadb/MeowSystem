@@ -529,9 +529,17 @@ _meow_vscode_backup() {
 # ETERNA — medido: `conferir` devolvia 1 (não conseguia ler a chave) e `aplicar`
 # devolvia 0 ("nada a fazer"), de hora em hora, para sempre. 3 é o código que faz
 # o auto-reparo ficar quieto quando não há nada a consertar do nosso lado.
+#
+# E CADA SAÍDA-3 DECLARA A CAUSA [21/09/2026]
+#   As duas linhas abaixo devolviam só o número, e quem recebia o número tinha
+#   de ADIVINHAR qual das duas foi — o `aplicar` chegou a repetir o `meow_tem`
+#   num if/else para chutar menos. Agora a causa viaja junto, pelo
+#   `meow_app_sem` do lib/comum.sh, e ninguém mede duas vezes.
 meow_app_detectar() {
-  meow_tem "$MEOW_VSCODE_BIN" || return "$MEOW_SEM_DEPENDENCIA"
-  meow_tem python3 || return "$MEOW_SEM_DEPENDENCIA"
+  # Motivo velho mente com cara de medida: zerar antes de medir é do contrato.
+  MEOW_APP_MOTIVO=""
+  meow_tem "$MEOW_VSCODE_BIN" || { meow_app_sem "VS Code: '$MEOW_VSCODE_BIN' não está no PATH"; return; }
+  meow_tem python3 || { meow_app_sem "VS Code: falta python3, que é o varredor de JSONC deste módulo"; return; }
   return "$MEOW_OK"
 }
 
@@ -572,14 +580,10 @@ meow_app_conferir() {
 
 # 0 = nada a fazer · 1 = aplicou · 2 = erro · 3 = app ausente.
 meow_app_aplicar() {
-  meow_app_detectar || {
-    if meow_tem "$MEOW_VSCODE_BIN"; then
-      meow_pula "falta python3 (o varredor de JSONC é ele) — pulando (não é erro)"
-    else
-      meow_pula "VS Code não instalado — pulando (não é erro)"
-    fi
-    return "$MEOW_SEM_DEPENDENCIA"
-  }
+  # O if/else que MEDIA DE NOVO para adivinhar a causa saiu em 21/09/2026: com
+  # duas dependências ele acertava, com a terceira teria virado o chute do
+  # módulo do Spotify. Quem mediu foi o `detectar`, e é a palavra dele que sai.
+  meow_app_detectar || { meow_app_pendente vscode; return; }
 
   # NOMES DE RETORNO SEPARADOS, E ISSO CUSTOU UM TESTE
   #   A primeira versão reaproveitava um único `rc` para a divergência do
@@ -728,10 +732,8 @@ _MEOW_VSCODE_TEMA_FABRICA="${MEOW_VSCODE_TEMA_FABRICA:-Default Dark Modern}"
 _MEOW_VSCODE_ICONES_FABRICA="${MEOW_VSCODE_ICONES_FABRICA:-vs-seti}"
 
 meow_app_reverter() {
-  meow_app_detectar || {
-    meow_pula "VS Code não instalado (ou falta python3)"
-    return "$MEOW_SEM_DEPENDENCIA"
-  }
+  # A lista de causas possíveis que estava aqui virou a causa medida.
+  meow_app_detectar || { meow_app_pendente vscode; return; }
 
   local ext instaladas=() mudou=0 rc_set novo
   for ext in "$MEOW_VSCODE_EXT_TEMA" "$MEOW_VSCODE_EXT_ICONES"; do
