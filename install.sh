@@ -278,7 +278,7 @@ etapa_backup_tema() {
       | sort -z | xargs -0 sha256sum > manifesto.sha256 ) 2>/dev/null || true
 
   # O `captura.txt` tem o MESMO formato do das capturas versionadas
-  # (`assets/temas/capturados/*/captura.txt`), e de propósito: a pergunta
+  # (o `captura.txt` de cada captura do pack), e de propósito: a pergunta
   # "de qual home isto saiu?" se responde com o mesmo `grep origem` dos dois
   # lados, e foi a ausência dessa linha aqui que deixou o `desfazer` sem como
   # distinguir esta máquina da de outra pessoa.
@@ -873,9 +873,13 @@ etapa_gerar() {
 etapa_tema() {
   passo "Tema"
   local alvo="${FLAVOR}-${ACCENT}"
-  local captura="$MEOW_RAIZ/assets/temas/capturados/$alvo"
+  # A CAPTURA MORA NO PACK DESDE 22/09/2026, e quem sabe onde é o `pack.py`.
+  # Cravar o caminho aqui faria a etapa "tema" se pular calada em toda máquina
+  # que usasse um pack que não o padrão — e "se pulou" é a mensagem mais cara
+  # deste instalador, porque ela parece normal.
+  local captura; captura="$(meow_captura "$alvo")"
 
-  if [ ! -d "$captura" ]; then
+  if [ -z "$captura" ]; then
     meow_aviso "ainda não há captura para '$alvo'"
     meow_info "importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez em"
     meow_info "  Configurações > Área de trabalho > Aparência > Importar"

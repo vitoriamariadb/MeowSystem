@@ -493,6 +493,28 @@ meow_desinstalar() {
     rm -f "$MEOW_ESTADO/raiz"
     meow_ok "CLI removida"
   fi
+  # --- OS .ron GERADOS SAEM, PORQUE SÃO PRODUTO E NÃO ESCOLHA — 22/09/2026 ---
+  # Eles eram versionados em `assets/temas/` e passaram para `$MEOW_ESTADO/temas/`
+  # na P14: são saída de `scripts/gerar_temas.py`, regeráveis em um segundo a
+  # partir da paleta do pack. Por isso NÃO seguem a regra da curadoria logo
+  # acima — ali o que se preserva é escolha dela, que nada repõe; aqui é produto,
+  # que a receita repõe inteiro.
+  #
+  # E POR QUE NÃO BASTA O "apague à mão" DO PASSO 6: aquela frase agora nomeia um
+  # diretório que guarda coisas de três naturezas diferentes — backup, curadoria
+  # e produto. Deixar o produto lá dentro obriga a pessoa a saber qual é qual
+  # antes de apagar qualquer coisa, e o passo 5 acabou de lhe dizer que apagar à
+  # mão ali tem preço. Tirar o que é nosso e regenerável é o que torna a frase
+  # do passo 6 verdadeira de novo.
+  local temas_gerados="$MEOW_ESTADO/temas"
+  if [ -d "$temas_gerados" ]; then
+    if meow_seco; then
+      meow_muda "removeria $temas_gerados/ (.ron gerados, regeráveis pela paleta)"
+    else
+      rm -rf "$temas_gerados"; meow_ok "removido $temas_gerados/ (.ron gerados)"
+    fi
+  fi
+
   # "APAGUE À MÃO SE QUISER" PASSOU A TER UM PREÇO — 21/09/2026
   #   Desde que a curadoria de papel de parede saiu do clone, `$MEOW_ESTADO` não
   #   guarda só backup e log: guarda `papeis-de-parede/BANIDOS.txt` e

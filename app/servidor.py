@@ -1223,7 +1223,23 @@ def _capturas_no_disco():
     as capturadas instalam. Sem isto ela escolhia, salvava, rodava o instalador
     e só então levava o não. (E o `bin/meow` lia isso de `state/tema/`, um
     caminho que a reorganização deixou para trás — corrigido no mesmo dia.)
+
+    QUEM DIZ ONDE ELAS MORAM É O `pack.py` — 22/09/2026
+        A P14 desceu cada captura para dentro do pack dono dela e deixou só a
+        `original` no motor. Este `listdir` cravado devolveria UMA captura num
+        repositório inteiro, e a página avisaria "não há captura para
+        mocha-mauve" com a captura no disco — o mesmo defeito de `state/tema/`
+        que o parágrafo acima conta, três casas de mudança depois.
+
+        Sem o `pack.py` (o painel tem de subir numa árvore quebrada, ver
+        `modulo_pack`), cai no motor: é pouco, e é honesto.
     """
+    mod = modulo_pack()
+    if mod is not None:
+        try:
+            return mod.capturas()
+        except Exception:
+            pass
     pasta = os.path.join(RAIZ, "assets", "temas", "capturados")
     try:
         return sorted(n for n in os.listdir(pasta)

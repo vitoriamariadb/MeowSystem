@@ -51,8 +51,9 @@
 # @ Variante do tema
 # > Catppuccin em três escuros e um claro, ou Dracula. Vale com qualquer cor de destaque.
 # [essencial] Qual variante de cor. Vale qualquer par com o ACCENT: o tema sai
-# por DERIVAÇÃO da paleta, e a captura em assets/temas/capturados/ é
-# refinamento, não requisito. O pré-voo diz se este par ainda não tem a dele.
+# por DERIVAÇÃO da paleta, e a captura que o pack traz
+# (`packs/<id>/temas/capturados/`) é refinamento, não requisito. O pré-voo diz
+# se este par ainda não tem a dele.
 #
 # "SÓ VALE O QUE TEM CAPTURA" ERA MENTIRA, E ELA SAÍA DUAS VEZES NA MESMA TELA
 # [corrigido em 21/09/2026]

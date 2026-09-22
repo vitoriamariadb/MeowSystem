@@ -23,6 +23,11 @@ VERBOS
                                  resolve um acervo PACK -> HERANÇA -> nada.
                                  NÃO é o `caminho`: aquele olha só o pack, este
                                  sobe a cadeia de herança. Ver a função `acervo`.
+    captura <par>                onde ESTÁ a captura <flavor>-<accent>, subindo
+                                 pack -> herança -> motor. 1 = não existe.
+    captura-destino <par>        onde uma captura NOVA deve ser escrita. Nunca
+                                 sobe pela herança: escrita é no pack ATIVO.
+    capturas                     os nomes das capturas alcançáveis, uma por linha
     paleta  <id>                 imprime o caminho da paleta do pack
     som     <id>                 o timbre do pack, como CHAVE=valor para o shell
     info    <id>                 o que é próprio, o que é herdado, o que falta
@@ -101,6 +106,7 @@ CAMPOS_COM_LEITOR = {
     "paleta.flavor_padrao",             # validar
     "cosmic.mapa",                      # validar cobra a existência
     "cosmic.nome_da_paleta",            # scripts/gerar_temas.py
+    "temas.capturados",                 # `captura`, `captura_destino`, `capturas`
     "icones.*.mapa",                    # validar, app/servidor.py via `acervo`
     "icones.*.desenhos",                # validar, `acervo`
     # `*.*.herda` e não `icones.*.herda`: o bloco de heranças do `validar` varre
@@ -393,6 +399,146 @@ def acervo(categoria, arquivo="", motor=None, ref=None):
         if os.path.exists(alvo):
             return alvo
     return None
+
+
+# --- A CAPTURA DE TEMA, E DE QUEM ELA É -------------------------------------
+#
+# A FRONTEIRA, EM UMA FRASE [22/09/2026]
+#   `assets/` é o que o MeowSystem É; `packs/` é o que ele VESTE. Uma captura de
+#   tema é a fotografia de um tema — ela veste. Até esta data as cinco moravam
+#   juntas em `assets/temas/capturados/`, e o `docs/PACKS.md` prometia, desde
+#   que nasceu, `packs/<id>/temas/capturados/<flavor>-<accent>/`. Era promessa
+#   sem lastro: nenhum pack conseguia trazer a própria captura pronta, porque
+#   nada sabia procurá-la lá dentro.
+#
+# A `original` FICA NO MOTOR, E NÃO É ESQUECIMENTO
+#   Ela não é tema de pack nenhum: é o MOLDE do esquema v1 que o COSMIC de
+#   04/2026 escrevia (`gerar_tema_v1.py` deriva dela, chave por chave) e o reset
+#   de fábrica DESTA máquina. O `capturar_tema.sh` recusa recapturá-la, então
+#   fora do git ela é irrecuperável. Quem vai mexer no destino dela é a P24 —
+#   ela já a chama de `referencia/` — e antecipar aquilo aqui seria decidir por
+#   uma sprint que ainda não rodou.
+#
+# POR QUE UMA FUNÇÃO, E NÃO UM CAMINHO CRAVADO EM CADA LEITOR
+#   Eram NOVE lugares montando `$RAIZ/assets/temas/capturados/$par` à mão — o
+#   `bin/meow` em quatro, o `install.sh`, o `lib/preflight.sh`, o `vidro.sh`, o
+#   `greeter.sh`, o `aplicar_tema.sh`. Com a captura dentro do pack, nove
+#   caminhos cravados viram nove jeitos de não achar o mesmo arquivo. É o
+#   mesmo argumento que fez nascer o `acervo`, três telas acima.
+CAPTURAS_DO_MOTOR = os.path.join("assets", "temas", "capturados")
+CAPTURAS_NO_PACK = os.path.join("temas", "capturados")
+CATEGORIA_CAPTURA = "temas.capturados"
+
+# O nome do molde mora aqui e no `gerar_tema_v1.py`, que o chama de `MOLDE`. São
+# dois porque aquele script é o ÚNICO que precisa dele como molde; aqui ele é só
+# "a captura que não é de pack nenhum".
+CAPTURA_DO_MOTOR = "original"
+
+
+def _cadeia(ref):
+    """O pack ativo e os que ele herda, na ordem. Devolve (id, diretório).
+
+    A mesma travessia do `acervo`, com o mesmo conjunto de vistos contra
+    herança circular — um pack de terceiro pode escrevê-la, e um laço infinito
+    penduraria o painel em vez de dizer "não achei".
+    """
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        dir_pack = achar(ref)
+        if not dir_pack:
+            break
+        yield ref, dir_pack
+        ref = campo(ref, "temas.herda") or campo(ref, "heranca")
+
+
+def _dir_capturas(ref, dir_pack):
+    """Onde as capturas daquele pack moram. `None` se a declaração sai do pack.
+
+    A CONVENÇÃO VENCE O SILÊNCIO, E NÃO O CONTRÁRIO
+        `temas/capturados/` é convenção publicada em docs/PACKS.md, como
+        `pack.json` e `CREDITOS.md` — um pack não precisa declarar nada para
+        que a captura dele seja encontrada. Declarar `temas.capturados` continua
+        valendo e vence a convenção, para quem organiza o pack de outro jeito.
+    """
+    rel = campo(ref, CATEGORIA_CAPTURA, CAPTURAS_NO_PACK)
+    if not isinstance(rel, str):
+        rel = CAPTURAS_NO_PACK
+    try:
+        _dentro(dir_pack, rel, CATEGORIA_CAPTURA)
+    except Recusa as e:
+        print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
+        return None
+    return os.path.join(dir_pack, rel)
+
+
+def _ref_ativa(ref):
+    return ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
+
+
+def captura(par, ref=None):
+    """Onde ESTÁ a captura `<flavor>-<accent>`: pack ativo -> herança -> motor.
+
+    Os mesmos três degraus do `acervo`, e de propósito: uma segunda ordem de
+    resolução é como o tema do COSMIC vem de um pack e o vidro da janela de
+    outro, sem erro nenhum na tela.
+
+    Devolve None quando não existe em lugar nenhum — ausência é resposta, e quem
+    chama decide se ela é erro.
+    """
+    for ident, dir_pack in _cadeia(_ref_ativa(ref)):
+        base = _dir_capturas(ident, dir_pack)
+        if base and os.path.isdir(os.path.join(base, par)):
+            return os.path.join(base, par)
+    alvo = os.path.join(RAIZ, CAPTURAS_DO_MOTOR, par)
+    return alvo if os.path.isdir(alvo) else None
+
+
+def captura_destino(par, ref=None):
+    """Onde uma captura NOVA deve ser ESCRITA. Nunca sobe pela herança.
+
+    LER E ESCREVER NÃO PODEM TER A MESMA RESPOSTA
+        Ler sobe a cadeia: o Dracula enxerga o `mocha-mauve` do Catppuccin, de
+        quem herda. Escrever ali gravaria a foto do Dracula DENTRO do pack do
+        Catppuccin, e a próxima pessoa a instalar o Catppuccin receberia um tema
+        que não é dele. Escrita é sempre no pack ativo.
+
+    A EXCEÇÃO É A `original`, e ela é do motor: ver o bloco no topo desta seção.
+    """
+    if par == CAPTURA_DO_MOTOR:
+        return os.path.join(RAIZ, CAPTURAS_DO_MOTOR, par)
+    ref = _ref_ativa(ref)
+    dir_pack = achar(ref)
+    if not dir_pack:
+        return None
+    base = _dir_capturas(ref, dir_pack)
+    return os.path.join(base, par) if base else None
+
+
+def capturas(ref=None):
+    """Os nomes das capturas ALCANÇÁVEIS daqui, sem repetir, em ordem.
+
+    Alcançável quer dizer o que o `captura()` acharia: o pack ativo, os que ele
+    herda, e o motor. Não é "tudo o que existe no disco" — com o Dracula no ar,
+    o `dracula-mauve` de um terceiro pack instalado ao lado não é uma captura
+    que este desktop possa aplicar, e listá-la seria oferecer o que não se
+    entrega.
+
+    O pack mais próximo vence: um `mocha-mauve` próprio esconde o herdado, que
+    é a mesma regra do `acervo`.
+    """
+    vistos, saida = set(), []
+    bases = [_dir_capturas(i, d) for i, d in _cadeia(_ref_ativa(ref))]
+    bases.append(os.path.join(RAIZ, CAPTURAS_DO_MOTOR))
+    for base in bases:
+        if not base or not os.path.isdir(base):
+            continue
+        for nome in sorted(os.listdir(base)):
+            if nome in vistos or not os.path.isdir(os.path.join(base, nome)):
+                continue
+            vistos.add(nome)
+            saida.append(nome)
+    return saida
 
 
 def _luminancia(hexcor):
@@ -726,6 +872,29 @@ def main(argv):
             return OK
         if verbo == "padrao":
             print(dir_padrao())
+            return OK
+        # OS TRÊS VERBOS DA CAPTURA NÃO RECEBEM `<id>`, e os outros recebem.
+        #   Quem pergunta por uma captura é sempre o desktop VIVO — o
+        #   `aplicar_tema.sh`, o `meow tema`, o pré-voo. O pack ativo dele já
+        #   chegou aqui por `MEOW_PACK_DIR`, que é a ponte do `lib/comum.sh`.
+        #   Pedir o id de novo na linha de comando seria uma segunda declaração
+        #   do pack ativo, e duas declarações divergem no dia em que uma delas
+        #   for esquecida.
+        if verbo == "capturas" and len(argv) == 2:
+            for nome in capturas():
+                print(nome)
+            return OK
+        if verbo == "captura" and len(argv) == 3:
+            achado = captura(argv[2])
+            if not achado:
+                return RECUSADO
+            print(achado)
+            return OK
+        if verbo == "captura-destino" and len(argv) == 3:
+            alvo = captura_destino(argv[2])
+            if not alvo:
+                return RECUSADO
+            print(alvo)
             return OK
         if verbo == "validar" and len(argv) == 3:
             validar(argv[2])

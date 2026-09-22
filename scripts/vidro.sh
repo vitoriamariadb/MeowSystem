@@ -626,7 +626,7 @@ FIM
     # derivação velha da GUI, de quando a máquina ainda era mocha. Quando existe
     # captura do alvo, reimpô-la conserta os dois de uma vez e é uma linha.
     if [ -n "${FLAVOR:-}" ] && [ -n "${ACCENT:-}" ] \
-       && [ -d "$RAIZ/assets/temas/capturados/$FLAVOR-$ACCENT" ]; then
+       && [ -n "$(meow_captura "$FLAVOR-$ACCENT")" ]; then
       meow_info "a captura '$FLAVOR-$ACCENT' existe e traz os dois coerentes:  meow tema $FLAVOR-$ACCENT"
     else
       meow_info "abra Aparência e mova o slider de opacidade uma vez — só a GUI deriva a cor corretamente"

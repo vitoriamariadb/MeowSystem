@@ -185,7 +185,7 @@ uso() {
   cat <<'FIM'
 uso: aplicar_tema.sh <nome> [--conferir]
 
-Restaura no COSMIC a captura assets/temas/capturados/<nome>/.
+Restaura no COSMIC a captura <nome>, resolvida pelo pack ativo.
 
   <nome>       qual captura aplicar. Ex.: original, mocha-mauve.
   --conferir   não escreve; sai 0 se já está aplicado, 1 se divergente.
@@ -213,8 +213,19 @@ done
 [ "$SECO" = "1" ] && CONFERIR=1
 
 case "$NOME" in ''|*/*|.*) echo "ERRO: nome inválido: '$NOME'" >&2; exit 2 ;; esac
-ORIGEM="$RAIZ/assets/temas/capturados/$NOME"
-[ -d "$ORIGEM" ] || { echo "ERRO: captura '$NOME' não existe em assets/temas/capturados/" >&2; exit 3; }
+# ONDE A CAPTURA MORA É PERGUNTA DO `pack.py` — 22/09/2026
+#   Ela desceu para dentro do pack dono (`packs/<id>/temas/capturados/`), e a
+#   `original` ficou no motor porque não é tema de pack nenhum. São duas casas;
+#   cravar uma delas aqui faria este script achar metade das capturas.
+#   Este arquivo NÃO carrega o lib/comum.sh (é proposital: ele roda no caminho
+#   de restauração, onde quanto menos se carrega, melhor), então a pergunta vai
+#   direto ao Python. `MEOW_PACK_DIR` chega pelo ambiente quando quem chamou
+#   passou pela ponte; sem ela, cai no pack padrão, como todo consumidor Python.
+ORIGEM="$(python3 "$RAIZ/scripts/pack.py" captura "$NOME" 2>/dev/null)"
+[ -n "$ORIGEM" ] && [ -d "$ORIGEM" ] || {
+  echo "ERRO: captura '$NOME' não existe no pack ativo, no que ele herda, nem em assets/temas/capturados/" >&2
+  exit 3
+}
 
 # Zera os dois dígitos de alpha do `base:` de primeiro nível, para comparar só o
 # que é nosso. O `base:` raiz é o que vem com 4 espaços de indentação — os

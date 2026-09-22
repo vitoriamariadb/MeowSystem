@@ -402,6 +402,38 @@ meow_pack_arquivo() {
   return 0
 }
 
+# --- A CAPTURA DE TEMA: UMA PERGUNTA, UM LUGAR QUE RESPONDE -----------------
+#
+# POR QUE ELAS NASCERAM [22/09/2026]
+#   As capturas desceram para dentro do pack dono (`packs/<id>/temas/capturados/`),
+#   e a `original` ficou no motor porque não é tema de pack nenhum — é o molde do
+#   esquema v1 e o reset de fábrica desta máquina. Com duas casas possíveis, os
+#   NOVE lugares que montavam `$MEOW_RAIZ/assets/temas/capturados/$par` à mão
+#   viravam nove jeitos de não achar o mesmo arquivo.
+#
+#   Quem responde é o `scripts/pack.py`, e só ele: é lá que a subida pack ->
+#   herança -> motor já mora, para os acervos de ícone. Uma segunda escada em
+#   shell divergiria da primeira no dia em que alguém mexesse numa só.
+#
+# POR QUE A PONTE É REFEITA AQUI DENTRO
+#   `MEOW_PACK_DIR` é exportada pelo `meow_ponte_python`, e os três pontos de
+#   entrada que chamam Python o fazem. Mas o `vidro.sh` e o `greeter.sh` também
+#   rodam sozinhos, pelo timer e pelo hook — e aí a variável não chegou. A queda
+#   para `meow_pack_dir` custa uma linha e evita que o pack ativo valha na CLI e
+#   não valha no timer, que é a divergência silenciosa de sempre.
+meow_captura() {
+  MEOW_PACK_DIR="${MEOW_PACK_DIR:-$(meow_pack_dir)}" \
+    python3 "$MEOW_RAIZ/scripts/pack.py" captura "$1" 2>/dev/null
+}
+
+# Os nomes das capturas ALCANÇÁVEIS daqui — o pack ativo, os que ele herda e o
+# motor. Uma por linha. Não é "tudo o que existe no disco": uma captura de um
+# pack que este desktop não usa não é uma captura que ele possa aplicar.
+meow_capturas() {
+  MEOW_PACK_DIR="${MEOW_PACK_DIR:-$(meow_pack_dir)}" \
+    python3 "$MEOW_RAIZ/scripts/pack.py" capturas 2>/dev/null
+}
+
 meow_paleta_nome() {
   local p; p="$(meow_paleta)"
   printf '%s' "${p#"$MEOW_RAIZ"/}"

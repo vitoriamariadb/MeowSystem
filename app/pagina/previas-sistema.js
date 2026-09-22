@@ -75,7 +75,8 @@
    * três palavras: em português "captura" lê-se primeiro como VERBO, e a
    * legenda abria parecendo dizer que o desenho *não captura* alguma coisa; e
    * "captura" já era o nome de outra coisa desta mesma página — os temas
-   * prontos de `assets/temas/capturados/`, que a aba "Cor e tela" oferece.
+   * prontos dos packs (`packs/<id>/temas/capturados/`), que a aba "Cor e
+   * tela" oferece.
    * Uma palavra, dois conceitos, e o mais visível dos dois num fragmento sem
    * verbo. A pergunta que a legenda existe para responder é "isto é a minha
    * máquina?", e agora ela responde com essas palavras.

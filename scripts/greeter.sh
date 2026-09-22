@@ -54,7 +54,10 @@ alvo_tema() {
 }
 
 ALVO="$(alvo_tema)"
-CAPTURA="$RAIZ/assets/temas/capturados/$ALVO"
+# A captura mora dentro do pack dono desde 22/09/2026, e este script roda pelo
+# hook e pelo timer — sem a ponte do `meow_ponte_python`. O `meow_captura` refaz
+# a ponte sozinho; ver o cabeçalho dele em lib/comum.sh.
+CAPTURA="$(meow_captura "$ALVO")"
 
 # ---------------------------------------------------------------------------
 # FASE 1 — O AVATAR, QUE NÃO PRECISA DE sudo E POR ISSO VEM ANTES DE TUDO
