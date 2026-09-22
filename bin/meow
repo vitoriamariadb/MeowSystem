@@ -356,7 +356,7 @@ chk_gerar() {
 chk_tema() {
   local alvo; alvo="$(alvo_tema)"
   [ -d "$RAIZ/assets/temas/capturados/$alvo" ] || {
-    echo "não há captura para '$alvo' — importe assets/temas/meowsystem-$alvo.ron uma vez pela GUI"
+    echo "não há captura para '$alvo' — importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez pela GUI"
     echo "e rode: meow tema capturar $alvo"
     return "$MEOW_SEM_DEPENDENCIA"
   }
@@ -3089,7 +3089,7 @@ cmd_configurar() {
       meow_info "  com as cores que já estava usando. O backup de \"voltar ao tema de"
       meow_info "  antes\" é feito de qualquer jeito, na primeira passagem."
       meow_info "  para fixar este par na tela, uma vez:"
-      meow_info "      importe assets/temas/meowsystem-$_par.ron em"
+      meow_info "      importe $MEOW_ESTADO/temas/meowsystem-$_par.ron em"
       meow_info "      Configurações > Aparência > Importar, e depois:"
       meow_info "      meow tema capturar $_par"
     fi

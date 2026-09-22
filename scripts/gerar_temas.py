@@ -64,7 +64,27 @@ import pack  # noqa: E402  — depois do RAIZ de propósito, para ler junto
 #         daquela função agora.
 PALETA = Path(pack.paleta_do_pack_ativo())
 MAPA = RAIZ / "assets" / "paleta" / "cosmic-map.json"
-DESTINO = RAIZ / "assets" / "temas"
+
+# O .ron É PRODUTO, E PRODUTO NÃO MORA NO GIT — 22/09/2026
+#     Os sete `assets/temas/meowsystem-*.ron` eram VERSIONADOS, e eles são saída
+#     deste script: paleta do pack + `cosmic-map.json` entram, `.ron` sai. O
+#     `docs/SPRINTS.md` já tinha nome para o defeito que isso cria — *"o doctor
+#     enxerga receita diferente de produto"*: bastava alguém mexer na paleta e
+#     não regerar para o disco e a receita divergirem, com o arquivo errado
+#     commitado por cima.
+#
+#     Agora o destino é `$MEOW_ESTADO/temas/`, que é a mesma casa dos backups,
+#     do log e do estado que a P21 tirou do repositório. O `--conferir` do
+#     `meow doctor` passa a comparar a receita com o produto NA MÁQUINA, que é
+#     a pergunta que ele sempre quis fazer.
+#
+#     `MEOW_ESTADO` vem do ambiente com o MESMO padrão do `lib/comum.sh:808`,
+#     porque este script roda sozinho na linha de comando e não carrega o shell.
+#     `--saida` continua vencendo — é o que o `tests/pack.sh` usa para gerar num
+#     diretório descartável.
+ESTADO = Path(os.environ.get("MEOW_ESTADO")
+              or Path.home() / ".local" / "state" / "meowsystem")
+DESTINO = ESTADO / "temas"
 
 # O NOME DO TEMA NA GUI DO COSMIC PODE VIR DO PACK — 2026-09-21
 #     O `packs/dracula/pack.json` declara `cosmic.nome_da_paleta` desde que

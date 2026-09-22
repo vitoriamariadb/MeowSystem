@@ -877,7 +877,7 @@ etapa_tema() {
 
   if [ ! -d "$captura" ]; then
     meow_aviso "ainda não há captura para '$alvo'"
-    meow_info "importe assets/temas/meowsystem-$alvo.ron uma vez em"
+    meow_info "importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez em"
     meow_info "  Configurações > Área de trabalho > Aparência > Importar"
     meow_info "e depois rode: ./scripts/capturar_tema.sh $alvo"
     return "$MEOW_SEM_DEPENDENCIA"
