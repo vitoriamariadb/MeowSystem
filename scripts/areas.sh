@@ -147,6 +147,7 @@
 #   areas.sh estado        lista as áreas alfinetadas, na ordem, com nome e id
 #   areas.sh conferir      0 = conforme · 1 = divergente · 2 = erro · 3 = sem comp
 #   areas.sh aplicar       põe o arquivo de acordo com as chaves do meow.conf
+#   areas.sh alfinetar-primeira  CRIA o primeiro alfinete no monitor em uso
 #   areas.sh reverter      devolve o arquivo como estava antes da nossa 1ª escrita
 #   areas.sh desalfinetar <nome>   TIRA uma área (destrutivo; exige MEOW_SIM=1)
 set -uo pipefail
@@ -236,6 +237,7 @@ _areas_dependencia() {
 # defeito que o cabeçalho do `lib/comum.sh` conta por extenso.
 _areas_motor() {
   python3 - "$@" <<'PY'
+import glob
 import random
 import re
 import sys
@@ -539,6 +541,99 @@ def tirar(caminho, indice):
     sys.stdout.write(cabeca + emenda.join(crus) + rabo)
 
 
+# ---------------------------------------------------------------------------
+# O PRIMEIRO ALFINETE, NUMA MAQUINA QUE NÃO TEM NENHUM — 22/09/2026
+#
+# Ate hoje este arquivo recusava criar o `pinned_workspaces` do zero, e a razao
+# escrita no `cmd_aplicar` era honesta: "criar do zero exigiria inventar um
+# bloco `output:` com EDID, e um EDID inventado poe a area num monitor que não
+# existe". O que mudou não foi a razao — foi a medicao. O EDID NÃO PRECISA SER
+# INVENTADO: ele esta no disco, em /sys/class/drm/<card>-<conector>/edid, e o
+# próprio compositor o le dali.
+#
+# O ALGORITMO E O DO COMPOSITOR, NÃO UM PARECIDO. Conferido linha a linha em
+# 22/09/2026 contra as duas pontas que ele atravessa:
+#   libdisplay-info 0.1.1, edid.c:82-122   (`parse_vendor_product`)
+#   libdisplay-info-rs, edid.rs:179-189    (`#[optional(0)]` -> None)
+# Sao os campos exatos do `EdidProduct` de cosmic-comp-config/src/lib.rs:15-22,
+# na ordem em que o RON os serializa. Errar um deles não da erro: da uma area
+# que o compositor nunca casa com o monitor, e ninguem descobre por que.
+#
+# E O QUE ACONTECE SE ERRAR, MEDIDO NO FONTE (src/shell/mod.rs:905-918): na
+# PRIMEIRA saida que entra, o compositor cria TODA area alfinetada do conf,
+# case o OutputMatch ou não. Numa maquina de um monitor so, o alfinete nasce de
+# qualquer jeito. O EDID certo e o que faz a area voltar para o monitor CERTO
+# quando ha dois — e e por isso que ele e medido em vez de omitido.
+def edid_do_conector(nome):
+    """O EdidProduct do conector, em RON, ou None se não houver EDID no disco."""
+    achados = glob.glob("/sys/class/drm/*-%s/edid" % nome)
+    if not achados:
+        return None
+    try:
+        with open(achados[0], "rb") as fh:
+            dados = fh.read()
+    except OSError:
+        return None
+    # Menos que um bloco base não e EDID: monitor desligado devolve zero byte.
+    if len(dados) < 128 or dados[:8] != b"\x00\xff\xff\xff\xff\xff\xff\x00":
+        return None
+
+    man = (dados[0x08] << 8) | dados[0x09]
+    letras = [chr(((man >> 10) & 0x1F) + 0x40),
+              chr(((man >> 5) & 0x1F) + 0x40),
+              chr((man & 0x1F) + 0x40)]
+    produto = dados[0x0A] | (dados[0x0B] << 8)
+    serie = (dados[0x0C] | (dados[0x0D] << 8)
+             | (dados[0x0E] << 16) | (dados[0x0F] << 24))
+    semana, ano_cru, revisao = dados[0x10], dados[0x11], dados[0x13]
+    # edid.c:104 — o ano so vale se o byte passar de 0x10 ou a revisao for < 4.
+    ano = ano_cru + 1990 if (ano_cru >= 0x10 or revisao < 4) else 0
+    semana_fab, ano_fab, ano_modelo = 0, 0, 0
+    if semana == 0xFF:
+        ano_modelo = ano                      # o 0xFF e a bandeira de "ano do modelo"
+    else:
+        ano_fab = ano
+        if 0 < semana <= 54:
+            semana_fab = semana               # acima de 54 e semana inválida: fica 0
+
+    def opcional(v):
+        return "None" if v == 0 else "Some(%d)" % v
+
+    return (
+        "Some((\n"
+        "                manufacturer: ('%s', '%s', '%s'),\n"
+        "                product: %d,\n"
+        "                serial: %s,\n"
+        "                manufacture_week: %d,\n"
+        "                manufacture_year: %d,\n"
+        "                model_year: %s,\n"
+        "            ))" % (letras[0], letras[1], letras[2], produto,
+                            opcional(serie), semana_fab, ano_fab,
+                            opcional(ano_modelo))
+    )
+
+
+def primeira(saida, encaixe, nome):
+    """O texto de um `pinned_workspaces` com UMA area, no stdout."""
+    if not saida:
+        raise ValueError("sem nome de conector não ha como amarrar a area a um monitor")
+    edid = edid_do_conector(saida) or "None"
+    return sys.stdout.write(
+        "[\n"
+        "    (\n"
+        "        output: (\n"
+        '            name: "%s",\n'
+        "            edid: %s,\n"
+        "        ),\n"
+        "        tiling_enabled: %s,\n"
+        '        id: Some("%s"),\n'
+        '        name: Some("%s"),\n'
+        "    ),\n"
+        "]\n" % (escapa(saida), edid, encaixe or "false",
+                  id_novo(set()), escapa(nome))
+    )
+
+
 try:
     verbo = sys.argv[1]
     if verbo == "ler":
@@ -550,6 +645,9 @@ try:
         lista = encaixes_csv.split(",") if encaixes_csv else []
         lista += [""] * (len(alvos) - len(lista))
         montar(sys.argv[2], lista, alvos)
+    elif verbo == "primeira":
+        # argv: primeira <conector> <encaixe> <nome>
+        primeira(sys.argv[2], sys.argv[3], sys.argv[4])
     elif verbo == "tirar":
         tirar(sys.argv[2], int(sys.argv[3]))
     else:
@@ -974,6 +1072,127 @@ _areas_dizer_bloqueadas() {
 }
 
 # ============================================================================
+# alfinetar-primeira
+# ============================================================================
+# POR QUE ESTE VERBO EXISTE [2026-09-22]
+#   A sprint P2 mediu seis mensagens do projeto que descobrem o problema, sabem
+#   o conserto e mandam a pessoa consertar. Esta era a primeira da lista:
+#
+#     "alfinete uma área pelo COSMIC (visão geral, botão direito) e rode de novo"
+#
+#   Para um designer leigo isso não é cortesia, é o programa desistindo — e o
+#   pior é que o conserto era conhecido. Agora ele é um verbo, e o painel o
+#   oferece como botão.
+#
+# O MONITOR SAI DO ESTADO REAL, NUNCA DE UMA LISTA DE NOMES
+#   O conector vem do `cosmic-randr list`, que fala com o compositor vivo, e o
+#   EDID vem de /sys/class/drm/<card>-<conector>/edid, que é a mesma fonte que
+#   o cosmic-comp lê. Nada aqui é cravado: numa máquina com outra placa, outro
+#   conector e outra TV, o alfinete nasce amarrado ao que estiver ligado.
+#
+# ELE CRIA UMA ÁREA SÓ, E O `aplicar` FAZ O RESTO
+#   A primeira é a difícil: sem nenhuma, não há bloco `output:` de onde herdar.
+#   Com uma, o `montar` de sempre acrescenta as outras herdando os bytes dela —
+#   conferido em caixa de areia antes de este verbo entrar.
+#
+# E ELE NÃO ESCREVE POR CIMA DE ALFINETE NENHUM
+#   Se já houver área alfinetada, ele diz e sai em 0. Um verbo que reescreve o
+#   `pinned_workspaces` de quem já tem áreas apagaria as áreas dela, que é o
+#   estrago que o `_areas_recusar_vazio` existe para impedir do outro lado.
+# A SAÍDA "EM USO", E COM DUAS LIGADAS ELA NÃO É "A PRIMEIRA DA LISTA"
+#   A primeira versão desta função pegava a primeira `(enabled)` do
+#   `cosmic-randr list`. Medido em 22/09/2026, nesta máquina de DOIS monitores
+#   (`HDMI-A-1` e `eDP-1`, as duas ligadas): duas chamadas seguidas devolveram
+#   saídas DIFERENTES. A ordem daquela listagem não é contrato, e um alfinete
+#   que cai num monitor por sorteio é pior que nenhum.
+#
+#   O desempate sai do próprio compositor: `Xwayland primary: true` é como ele
+#   responde "qual é a principal". É a mesma disciplina do resto do projeto —
+#   perguntar ao estado real em vez de escolher por uma lista de nomes. Sem
+#   nenhuma marcada (é campo opcional), cai na primeira ligada, que continua
+#   sendo melhor que desistir.
+#
+#   A limpeza de escape e o `^[^ ]` são os do `escala.sh`, que lê esta mesma
+#   saída desde 17/08/2026.
+_areas_saida_em_uso() {
+  meow_tem cosmic-randr || return 1
+  cosmic-randr list 2>/dev/null \
+    | sed -E 's/\x1b\[[0-9;]*m//g' \
+    | LC_ALL=C awk '
+        /^[^ ]/ { nome = (index($0, "(enabled)") > 0) ? $1 : ""
+                  if (nome != "" && primeira == "") primeira = nome
+                  next }
+        nome != "" && /^  Xwayland primary:/ && $3 == "true" { print nome; achou = 1; exit }
+        END { if (!achou && primeira != "") print primeira }'
+}
+
+cmd_alfinetar_primeira() {
+  _areas_dependencia || return $?
+
+  _areas_ler || return $?
+  if [ "${#AREAS_NOME[@]}" -gt 0 ]; then
+    meow_ok "já há ${#AREAS_NOME[@]} área(s) alfinetada(s) — nada a criar"
+    meow_info "para nomeá-las como o meow.conf pede:  meow areas aplicar"
+    meow_pendencia_resolvida areas-sem-alfinete
+    return "$MEOW_OK"
+  fi
+
+  # O NOME DA ÁREA É DELA, E VEM DO CONF. Sem `AREAS_NOMES` este verbo não tem
+  # o que escrever — e inventar "Área 1" seria plantar na barra dela um nome
+  # que ninguém pediu, no arquivo que o COSMIC não deixa renomear sem login.
+  local primeiro
+  primeiro="$(_areas_partir "$AREAS_NOMES" | head -1)"
+  if [ -z "$primeiro" ]; then
+    meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"
+    meow_info "diga o nome da primeira no meow.conf (ou no painel) e rode de novo"
+    return "$MEOW_OK"
+  fi
+  _areas_nome_seguro "$primeiro" || return "$MEOW_ERRO"
+
+  local saida
+  saida="$(_areas_saida_em_uso)"
+  if [ -z "$saida" ]; then
+    meow_erro "nenhuma saída de vídeo ligada segundo o cosmic-randr"
+    meow_aviso "sem conector não há a que amarrar a área — e um monitor inventado"
+    meow_aviso "poria a área numa saída que não existe."
+    return "$MEOW_ERRO"
+  fi
+
+  # O encaixe é o da PRIMEIRA da lista, quando ela diz; vazio vira `false`, que
+  # é o padrão do COSMIC. O `janelas.sh` continua sendo o outro dono deste
+  # campo (docs/FRONTEIRA.md) — aqui ele só nasce, não é reforçado.
+  local encaixe=""
+  if [ -n "$AREAS_ENCAIXE" ]; then
+    encaixe="$(_areas_bool "$(_areas_partir "$AREAS_ENCAIXE" | head -1)")" || encaixe=""
+  fi
+
+  _areas_montar_texto primeira "$saida" "$encaixe" "$primeiro" || {
+    meow_erro "não consegui montar o pinned_workspaces"; return "$MEOW_ERRO"; }
+  _areas_recusar_vazio "$AREAS_TEXTO" || return "$MEOW_ERRO"
+
+  if meow_seco; then
+    meow_muda "criaria o primeiro alfinete «$primeiro» em $saida"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  # A posse vem antes da escrita pelo mesmo motivo que no `aplicar`: com o
+  # reparador do vizinho armado, o que escrevermos volta atrás em até uma hora.
+  _areas_assumir_posse
+  _areas_guardar || return "$MEOW_ERRO"
+  mkdir -p "$AREAS_BASE" 2>/dev/null || {
+    meow_erro "não consegui criar $AREAS_BASE"; return "$MEOW_ERRO"; }
+  meow_escrever "$AREAS_ALVO" "$AREAS_TEXTO" 644
+  case $? in
+    "$MEOW_ERRO") meow_erro "não consegui escrever $AREAS_ALVO"; return "$MEOW_ERRO" ;;
+  esac
+  meow_muda "primeiro alfinete criado: «$primeiro» em $saida"
+  meow_pendencia_resolvida areas-sem-alfinete
+  _areas_so_no_login
+  meow_info "depois do próximo login:  meow areas aplicar  escreve o resto da lista"
+  return "$MEOW_DIVERGENTE"
+}
+
+# ============================================================================
 # aplicar
 # ============================================================================
 cmd_aplicar() {
@@ -994,14 +1213,39 @@ cmd_aplicar() {
   _areas_ler || return $?
 
   if [ ! -f "$AREAS_ALVO" ] || [ "${#AREAS_NOME[@]}" -eq 0 ]; then
-    # Criar o arquivo do zero exigiria inventar um bloco `output:` com EDID, e
-    # um EDID inventado põe a área num monitor que não existe. Quem sabe criar
-    # do nada é o COSMIC (ao alfinetar pela primeira vez) e o reparador do
-    # Ritual da Aurora, que tem o fallback medido desta TV.
-    meow_aviso "não há área alfinetada em $AREAS_ALVO — não tenho de onde herdar o monitor"
-    meow_aviso "alfinete uma área pelo COSMIC (visão geral, botão direito) e rode de novo."
+    # O `aplicar` continua sem criar o arquivo do zero, e isso é de propósito:
+    # ele herda o bloco `output:` de uma área que já existe, e sem nenhuma não
+    # há de onde herdar. Quem cria é o `alfinetar-primeira`, que desde
+    # 22/09/2026 MEDE o EDID do conector em vez de inventá-lo — e é para ele
+    # que a pendência aponta. A divisão fica: quem herda herda, quem mede mede.
+    #
+    # O BOTÃO SÓ NASCE SE HOUVER NOME — 22/09/2026, na revisão da P2
+    #   A guarda do começo desta função deixa passar `AREAS_NOMES=""` quando
+    #   `AREAS_ENCAIXE` está preenchido. Nesse caso o `alfinetar-primeira` não
+    #   tem o que escrever — ele recusa inventar "Área 1", e a razão está no
+    #   comentário dele —, então o «Resolver» sairia 0 sem criar nada e sem
+    #   apagar a linha: botão que não resolve e pendência que não sai. Sem
+    #   nome, a saída é a TERCEIRA da sprint: a mensagem diz A DECISÃO, e a
+    #   Home desenha a linha sem botão, porque a decisão é dela.
+    if [ -z "$(_areas_partir "$AREAS_NOMES" | head -1)" ]; then
+      meow_pendencia_acionavel areas-sem-alfinete \
+        "Nenhuma área de trabalho está fixada, e o nome da primeira é escolha sua: escreva-o em AREAS_NOMES (no painel ou no meow.conf) e eu crio a área" \
+        ""
+    else
+      meow_pendencia_acionavel areas-sem-alfinete \
+        "Nenhuma área de trabalho está fixada; sem isso não sei em que monitor escrever" \
+        "meow areas alfinetar-primeira"
+    fi
     return "$AREAS_PENDENCIA"
   fi
+
+  # A IRMÃ NO CAMINHO FELIZ — 22/09/2026, na revisão da P2
+  #   Passou daqui: existe área alfinetada, e a pendência acima deixou de ser
+  #   verdade. Quem registra é obrigado a apagar (lib/comum.sh), e faltando
+  #   isto quem alfinetasse pelo COSMIC — que é exatamente o que a frase velha
+  #   mandava fazer — ficaria com a linha na Home para sempre: só o «Resolver»
+  #   a apagava, e ele respondia "já há N área(s) alfinetada(s)".
+  meow_pendencia_resolvida areas-sem-alfinete
 
   local rc_plano; _areas_planejar; rc_plano=$?
   [ "$rc_plano" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
@@ -1204,8 +1448,9 @@ case "${1:-estado}" in
   estado)        cmd_estado ;;
   conferir)      cmd_conferir ;;
   aplicar)       cmd_aplicar ;;
+  alfinetar-primeira) cmd_alfinetar_primeira ;;
   reverter)      cmd_reverter ;;
   desalfinetar)  shift; cmd_desalfinetar "${1:-}" ;;
-  *) meow_erro "uso: areas.sh {estado|conferir|aplicar|reverter|desalfinetar <nome>}"
+  *) meow_erro "uso: areas.sh {estado|conferir|aplicar|alfinetar-primeira|reverter|desalfinetar <nome>}"
      exit "$MEOW_ERRO" ;;
 esac

@@ -896,6 +896,109 @@ meow_registrar() {
   printf '%s %s\n' "$(date -Iseconds)" "$*" >> "$MEOW_ESTADO/meow.log"
 }
 
+# --- A PENDÊNCIA ACIONÁVEL: a etapa que sabe o conserto não manda consertar ---
+#
+# POR QUE ISTO EXISTE [2026-09-22]
+#   Ele mediu a mesma falha seis vezes, em seis arquivos diferentes: o programa
+#   descobre o problema, SABE o conserto, e imprime a receita de terminal para
+#   a pessoa rodar. "Um engenheiro lê isso como cortesia; um designer leigo lê
+#   como «o programa desistiu»." As seis estão listadas na sprint P2 de
+#   21/09/2026 (docs/sprints/2026-09-21-de-tema-a-produto.md).
+#
+#   A regra que entra com esta função, e que vale para toda etapa futura:
+#
+#     Uma etapa que sabe o conserto ou FAZ, ou oferece UM BOTÃO que faz.
+#     Quando nem o botão é possível — porque o que falta é decisão humana
+#     genuína —, a mensagem diz A DECISÃO, não a receita.
+#
+# AS DUAS SAÍDAS DESTA FUNÇÃO, E ELAS SÃO DE PROPÓSITO
+#   `<comando>` CHEIO  a pendência tem conserto conhecido. O log diz a frase e
+#                      o comando; o painel desenha um botão "Resolver".
+#   `<comando>` VAZIO  a pendência tem origem conhecida e NENHUM conserto que
+#                      este projeto alcance (o script que resolveria mora em
+#                      outra máquina, ou o que falta é uma escolha dela). O log
+#                      diz a decisão; o painel desenha a linha SEM botão.
+#                      Inventar um botão que não resolve é pior que não ter
+#                      botão: ele promete e some.
+#
+# O TSV É ESTADO, E ESTADO SE APAGA QUANDO DEIXA DE SER VERDADE
+#   Por isso a função tem uma irmã, `meow_pendencia_resolvida`, e quem registra
+#   é obrigado a chamá-la no caminho feliz. Uma lista de pendências que só
+#   cresce vira a caixa de entrada que ninguém lê — o mesmo defeito do doctor
+#   que nunca fica verde, e que a P22 acabou de consertar do outro lado.
+#
+# UMA LINHA POR ID: a nova substitui a velha, pelo mesmo `awk -F'\t'` de campo
+# inteiro que o `meow_manifesto_registrar` usa logo acima. `grep "^$id"` seria
+# expressão regular sobre um identificador, e um `.` no id casaria o vizinho.
+#
+# O CAMINHO SE RESOLVE NA HORA DA CHAMADA, E ISSO É O CONSERTO DE 22/09/2026
+#   Até esta revisão o arquivo era fixado aqui, no `source`. Quem quisesse rodar
+#   uma DETECÇÃO sem sujar o estado da máquina — um teste, ou a tabela do
+#   `meow apps`, que se anuncia como leitura — não tinha como: mover
+#   `MEOW_ESTADO` não movia isto, porque isto já tinha sido calculado.
+#
+#   Medido nesta máquina: `./tests/reversao.sh` roda o `meow_app_detectar` de
+#   todo módulo de verdade, e desde que o `detectar` do Spotify registra
+#   pendência (a própria P2), a suíte passou a escrever
+#   `~/.local/state/meowsystem/pendencias.tsv` no HOME real de quem roda o
+#   teste. É a mesma classe de defeito que o `flatpak info` e o `gsettings get`
+#   já custaram a este projeto: DETECÇÃO COM EFEITO COLATERAL.
+#
+#   Agora quem só olha aponta `MEOW_ESTADO` para um diretório descartável e
+#   pronto — sem variável nova, sem modo novo, e sem que o `detectar` precise
+#   saber quem o chamou. `MEOW_PENDENCIAS` fica como o nome público do arquivo
+#   (é ele que o `app/servidor.py` lê do outro lado).
+MEOW_PENDENCIAS="$MEOW_ESTADO/pendencias.tsv"
+
+_meow_pendencias_arquivo() { printf '%s/pendencias.tsv' "$MEOW_ESTADO"; }
+
+_meow_pendencia_tirar() {
+  local id="$1" arq
+  arq="$(_meow_pendencias_arquivo)"
+  [ -f "$arq" ] || return 0
+  awk -F'\t' -v a="$id" '$1 != a' "$arq" > "$arq.tmp" 2>/dev/null \
+    && mv -f "$arq.tmp" "$arq" 2>/dev/null
+  rm -f "$arq.tmp" 2>/dev/null
+  return 0
+}
+
+# A ETAPA SAI DO ARQUIVO QUE CHAMOU, e não de um argumento a mais: um argumento
+# é uma string que alguém digita errado uma vez e ninguém confere depois. O
+# `BASH_SOURCE[1]` é o estado real de quem chamou — a mesma disciplina que o
+# resto do projeto aplica a monitor, biblioteca de jogos e vizinho.
+meow_pendencia_acionavel() {
+  local id="$1" frase="$2" comando="${3:-}"
+  local etapa; etapa="$(basename "${BASH_SOURCE[1]:-desconhecida}")"
+
+  meow_aviso "$frase"
+  if [ -n "$comando" ]; then
+    meow_info "resolve: $comando  (ou o botão «Resolver» no painel)"
+  fi
+
+  # O seco não escreve o TSV pelo mesmo motivo que não escreve o meow.log: ele
+  # promete não tocar em arquivo nenhum, e uma pendência gravada por uma
+  # auditoria em seco apareceria na Home dela sem que nada tivesse rodado.
+  meow_seco && return 0
+  mkdir -p "$MEOW_ESTADO" || return 0
+  _meow_pendencia_tirar "$id"
+  # Tabulação e quebra de linha são os dois bytes que quebrariam o TSV, e a
+  # frase vem de código nosso — então a defesa é barata e fica aqui, no único
+  # ponto por onde toda pendência passa.
+  frase="${frase//$'\t'/ }"; frase="${frase//$'\n'/ }"
+  comando="${comando//$'\t'/ }"; comando="${comando//$'\n'/ }"
+  printf '%s\t%s\t%s\t%s\t%s\n' \
+    "$id" "$etapa" "$frase" "$comando" "$(date -Iseconds)" >> "$(_meow_pendencias_arquivo)"
+  return 0
+}
+
+# A irmã. Chamada no caminho feliz de quem registrou — sem ela a linha fica na
+# Home depois de o problema ter sumido, que é a mentira que a P3 desta mesma
+# leva persegue.
+meow_pendencia_resolvida() {
+  meow_seco && return 0
+  _meow_pendencia_tirar "$1"
+}
+
 meow_tem() { command -v "$1" >/dev/null 2>&1; }
 
 # Um flatpak instalado deixa DIRETÓRIO no disco; `flatpak info` deixa um repo

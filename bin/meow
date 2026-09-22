@@ -2439,6 +2439,15 @@ cmd_areas() {
     aplicar)
       meow_travar || return "$MEOW_ERRO"
       "$RAIZ/scripts/areas.sh" aplicar; return $? ;;
+    # O PRIMEIRO ALFINETE — 22/09/2026, sprint P2. Ele é o que destrava o
+    # `aplicar` numa máquina que nunca alfinetou nada: sem nenhuma área, o
+    # `aplicar` não tem bloco `output:` de onde herdar o monitor, e até hoje
+    # respondia mandando alfinetar à mão pelo COSMIC. Entra aqui, e não em
+    # `VERIFICAVEIS`, pelo mesmo motivo que o `aplicar`: criar área de trabalho
+    # é decisão de quem usa, e decisão de quem usa não se toma por timer.
+    alfinetar-primeira)
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/areas.sh" alfinetar-primeira; return $? ;;
     reverter)
       meow_travar || return "$MEOW_ERRO"
       "$RAIZ/scripts/areas.sh" reverter; return $? ;;
@@ -2447,7 +2456,7 @@ cmd_areas() {
       [ -n "${1:-}" ] || { meow_erro "uso: meow areas desalfinetar <nome>"; return "$MEOW_ERRO"; }
       meow_travar || return "$MEOW_ERRO"
       "$RAIZ/scripts/areas.sh" desalfinetar "$1"; return $? ;;
-    *) meow_erro "uso: meow areas [estado|conferir|aplicar|reverter|desalfinetar <nome>]"
+    *) meow_erro "uso: meow areas [estado|conferir|aplicar|alfinetar-primeira|reverter|desalfinetar <nome>]"
        return "$MEOW_ERRO" ;;
   esac
 }

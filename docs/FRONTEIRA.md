@@ -830,6 +830,115 @@ MeowSystem quer notificação diária sobre a issue #640. O mesmo vale para o qu
 
 ---
 
+## A fronteira do conserto: nenhuma etapa termina em "faça você mesmo" — 22/09/2026
+
+Esta seção não separa o Meow da Aurora. Separa **o que este projeto conserta**
+do **que ele apenas relata** — e existe porque a linha entre os dois estava
+sendo cruzada para o lado errado, calada, em seis lugares.
+
+Ele, em 21/09/2026: *"nenhuma feature do MeowSystem pode ter esse tipo de
+problema, temos que corrigir essa falha de produto na origem."*
+
+### O que foi medido
+
+Seis mensagens, colhidas no log da própria máquina dele. Todas com a mesma
+forma: **diagnóstico certo, conserto conhecido, nenhum botão.**
+
+| onde | o que dizia |
+|---|---|
+| `scripts/areas.sh:1001` | *"alfinete uma área pelo COSMIC (visão geral, botão direito) e rode de novo"* |
+| `assets/temas-de-apps/spotify/manifesto.sh` | um `curl \| sh` e um `git clone` dentro de dois `meow_info` |
+| `scripts/prompt.sh` (o bloco do starship) | *"instalar é decisão sua. Sem sudo, em ~/.local/bin: …"* |
+| `assets/temas-de-apps/qbittorrent/manifesto.sh` | *"sem `~/.config/zsh/scripts/aurora-qbittorrent-config.sh` não há quem escreva o qBittorrent.conf"* |
+| `scripts/fastfetch_logo.sh` | *"o gato vai sair 68% fora da proporção … use 37 linhas para 95 colunas"* — a conta já feita, o conserto por fazer |
+| `install.sh:2930` | *"Rode mais uma vez, até a tela dizer «nenhuma etapa precisou escrever nada»"* (é a P1, e ela já foi) |
+
+Um engenheiro lê isso como cortesia. Um designer leigo lê como **"o programa
+desistiu"**.
+
+**CORREÇÃO DE 22/09/2026, medida na revisão.** No qBittorrent a sprint anotou a
+frase curta, e a curta não era a pior: ao lado dela vivia um tutorial de vinte
+linhas (`_meow_qbt_receita`) que imprimia o caminho do script do outro projeto,
+o número da linha resolvido ao vivo e as duas edições para copiar e colar. Era
+a mais crua das seis. As duas saíram da tela; a receita virou comentário no
+arquivo, onde quem abre o código a lê e quem só usa o programa não tropeça
+nela.
+
+### A regra, e ela vale para toda feature futura
+
+> Uma etapa que sabe o conserto ou **faz**, ou oferece **um botão que faz**.
+> Quando nem o botão é possível — porque o que falta é decisão humana genuína —,
+> a mensagem diz **a decisão**, não a receita.
+
+As três saídas, e o projeto usa as três hoje:
+
+| saída | quando | onde ela está |
+|---|---|---|
+| **faz** | o conserto é inteiramente nosso e não tem escolha dentro | `fastfetch_logo.sh` apara a altura à proporção da célula e diz o que aparou |
+| **botão** | o conserto é nosso, mas a hora é dela | `areas.sh alfinetar-primeira`, `prompt.sh instalar-starship`, o tema do Spotify (`_spot_tema_baixar`) e a reconstrução do menu de contexto — pendência com comando, e um «Resolver» na Home |
+| **a decisão** | não há conserto que este projeto alcance | o BINÁRIO do `spicetify` (o instalador oficial mexe na configuração do terminal dela) e o `qBittorrent.conf` (o app é configurado por outro projeto, com lista de temas fechada) — pendência **sem** comando, e a Home desenha a linha sem botão |
+
+**BAIXAR DE REPOSITÓRIO PÚBLICO É "FAZER", NÃO "DEPENDER" — 22/09/2026.** A
+diferença entre o tema do Spotify (botão) e o binário do spicetify (decisão) não
+é o tamanho: é de quem é o arquivo. O tema é um repositório público que qualquer
+clone deste projeto alcança, pinado por commit, baixado por uma função daqui —
+a mesma disciplina do `scripts/cursor.sh`. O binário só se instala rodando o
+instalador de terceiro, que escreve no `~/.config/zsh` dela.
+
+**O ESTADO PODE MUDAR O BOTÃO DA MESMA PENDÊNCIA.** O `files-menu-build` nasce
+`construindo` (sem comando: não há o que clicar enquanto a unit compila), vira
+`pronto` (a linha some) ou `falhou` (com comando: tentar de novo). Por isso o
+painel decide o botão pelas DUAS pontas — a linha precisa ter comando **e** o id
+precisa estar em `ACAO_DA_PENDENCIA`. Ler só a tabela poria um «Resolver» que
+dispara um segundo build sobre o primeiro.
+
+### Onde a regra mora no código
+
+`lib/comum.sh` ganhou `meow_pendencia_acionavel <id> "<frase>" "<comando>"`, e a
+irmã `meow_pendencia_resolvida <id>`. O verbo escreve a linha no log **e**
+registra a pendência em `$MEOW_ESTADO/pendencias.tsv` (`id`, `etapa`, `frase`,
+`comando`, `iso8601`); o painel a lê por `/api/pendencias` e a desenha na Home,
+acima do "Nada esperando".
+
+**O comando do TSV não é executado pelo painel.** O «Resolver» dispara uma ação
+da tabela `ACOES`, casada pelo `id` em `ACAO_DA_PENDENCIA` (`app/servidor.py`).
+Rodar a string do arquivo seria abrir uma porta de shell no painel para ganhar
+exatamente nada — o arquivo é escrito por scripts nossos, não pela pessoa.
+
+**A pendência que se resolve sai da lista.** Quem registra chama a irmã no
+caminho feliz. Uma lista que só cresce vira a caixa de entrada que ninguém lê —
+o mesmo defeito do doctor que nunca fica verde, que a P22 acabou de consertar do
+outro lado da casa.
+
+### O que a regra NÃO autoriza
+
+- **Abrir a ponte root para caber um botão.** Oito mensagens deste projeto
+  dizem `sudo apt install <pacote>` (cinco com `apt`, três com `apt-get` — e
+  estas três só apareceram em 22/09/2026, quando o cobrador passou a casar as
+  duas grafias; antes disso estavam verdes por omissão do detector, que é pior
+  que estarem vermelhas). Instalar pacote arbitrário não é um dos oito verbos
+  da ponte (ver "A ponte root, e por que ela não é `NOPASSWD: ALL`"), e trocar
+  aquele desenho por um botão seria trocar um incômodo por um buraco.
+  Elas ficam, isentas e com o motivo escrito, em `tests/sem-receita-no-log.sh`.
+- **Apontar o botão para script de outro projeto.** O `spicetify-setup.sh`
+  existe e resolve — em `~/.config/zsh/scripts/`, que é da Aurora. Um botão que
+  depende dele quebra na máquina de quem clonou este repositório, que é o
+  defeito que a P22 passou uma sprint inteira tirando daqui.
+- **Prometer o que a rede decide.** O `aurora-qbittorrent-config.sh` está
+  alcançável pelo espelho `sshfs` da outra máquina — quando ela está de pé. Um
+  botão que funciona metade das vezes é pior que nenhum.
+
+### O cobrador
+
+`tests/sem-receita-no-log.sh` varre `scripts/`, `lib/` e `assets/temas-de-apps/`
+atrás de `meow_info`/`meow_aviso` com `curl | sh`, `git clone` ou
+`apt[-get] install`
+dentro. As isenções casam pelo **conteúdo** da linha, nunca pelo número — mesma
+disciplina do `tests/portabilidade.sh`, e pelo mesmo motivo: isenção presa a
+número apodrece no primeiro rebase.
+
+---
+
 ## O contrato numerado, que era citado em dezenas de linhas e não existia — 21/09/2026
 
 As palavras **"regra N"** e **"o contrato do projeto"** aparecem em dezenas de

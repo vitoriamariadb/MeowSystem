@@ -153,10 +153,20 @@ for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
     falhou=1
   fi
 
-  # A dinâmica. `detectar` é leitura pura por contrato (lib/comum.sh), então
-  # rodá-lo num teste não escreve um byte na máquina de ninguém.
+  # A dinâmica, e O ESTADO VAI PARA UM DESCARTÁVEL — corrigido em 22/09/2026.
+  #   Este comentário dizia que `detectar` é leitura pura e que rodá-lo "não
+  #   escreve um byte na máquina de ninguém". Deixou de ser verdade na sprint
+  #   P2: o `detectar` do Spotify registra pendência (é o desenho dela), e a
+  #   pendência mora em `$MEOW_ESTADO/pendencias.tsv`. Medido: a suíte criava
+  #   aquele arquivo no HOME REAL de quem rodasse o teste.
+  #
+  #   O conserto é apontar `MEOW_ESTADO` para um temporário, e não desligar a
+  #   medição: o que este bloco quer saber é se o `detectar` declara o motivo
+  #   AQUI E AGORA, na máquina de verdade. Só o efeito colateral se desvia.
   medida="$(
     set +u
+    MEOW_ESTADO="$(mktemp -d -p "${TMPDIR:-/tmp}" .meow-reversao.XXXXXX)"
+    trap 'rm -rf "$MEOW_ESTADO"' EXIT
     MEOW_IGNORA_DESKTOP=1 NO_COLOR=1
     # shellcheck source=../lib/comum.sh
     . "$RAIZ/lib/comum.sh" >/dev/null 2>&1

@@ -149,11 +149,61 @@ _meow_qbt_avisar_nativo() {
   return 0
 }
 
+# A FRASE PAROU DE CITAR O SCRIPT DO VIZINHO — 22/09/2026, sprint P2
+#   Ela dizia, com o caminho por extenso: "sem
+#   ~/.config/zsh/scripts/aurora-qbittorrent-config.sh não há quem escreva o
+#   qBittorrent.conf". Três defeitos numa linha só, e os três medidos:
+#
+#   1. mandava a pessoa arranjar um arquivo que NÃO É DESTE PROJETO. Quem clona
+#      este repositório nunca terá aquele caminho, e a frase não dizia isso;
+#   2. o arquivo tem origem conhecida e ALCANCE INSTÁVEL. Medido em
+#      22/09/2026: ele está em `Remotos/Andromeda-OS/usr/local/bin/`, 27.253
+#      bytes, e aquele caminho é um `sshfs` da outra máquina
+#      (`vitoriamaria@meowsystem.local:/`, fuse.sshfs, 58 G). Estava montado na
+#      hora da medição — e é justamente por isso que ele não serve de conserto:
+#      um botão que depende de a rede e o host do outro lado estarem de pé
+#      promete o que não entrega na metade das vezes;
+#   3. era receita sem conserto, que é exatamente a classe de falha que a P2
+#      está apagando do projeto inteiro.
+#
+#   A saída é a TERCEIRA da sprint: quando nem o botão é possível, a mensagem
+#   diz A DECISÃO, não a receita. A decisão é esta — este módulo instala o
+#   `.qbtheme`, e escrever o `qBittorrent.conf` não é escopo dele. A pendência
+#   nasce SEM comando de propósito, e o painel a desenha sem botão.
+#
+#   O QUE NÃO MUDOU, E POR QUE — MEDIDO EM 22/09/2026, na revisão da P2
+#   A revisão cobrou o resto: tirar também as duas chamadas a
+#   `bash "$MEOW_QBT_AURORA_FONTE"` (no `aplicar` e no `reverter`). A do
+#   `aplicar` até dá; a do `reverter` NÃO, e o motivo está três passos abaixo,
+#   no passo 3 do próprio `meow_app_reverter`:
+#
+#     Quem escreve o `qBittorrent.conf` é o script do vizinho, a partir do
+#     estado `~/.local/state/aurora/qbittorrent-tema`. Se o `reverter` parar
+#     de rodá-lo (e de virar aquele estado, que também é dele), o self-heal
+#     continua reescrevendo o conf apontando para o NOSSO `.qbtheme`. O passo
+#     3 então se recusa a remover o arquivo — e se recusa com razão, porque um
+#     `CustomUIThemePath` apontando para arquivo inexistente abre o app sem
+#     interface. Resultado: `meow apps reverter qbittorrent` e o passo 2/6 do
+#     `--uninstall` passariam a dizer "o conf ainda aponta, rode de novo com o
+#     app ocioso" PARA SEMPRE, porque nada mais faria o conf deixar de apontar.
+#
+#   A sprint escreveu a disjunção olhando para o `aplicar` ("ou o conf é
+#   escrito aqui, ou a etapa declara que o conf não é escopo dela"); ela não
+#   alcançou o `reverter`, e é no `reverter` que a delegação deixa de ser
+#   preferência e vira a única saída que não quebra a máquina dela. Tirar a
+#   delegação inteira exige primeiro decidir quem desfaz, e isso é uma sprint,
+#   não uma linha.
+#
+#   O que a P2 pediu de verdade — que nenhuma MENSAGEM termine em "faça você
+#   mesmo" — está feito: o tutorial de 20 linhas que ficava logo abaixo virou
+#   pendência sem comando, e nenhum caminho deste arquivo imprime mais um
+#   endereço de `~/.config/zsh` como lição de casa.
 _meow_qbt_avisar_sem_aurora() {
   [ "$MEOW_QBT_AVISOU_SEM_AURORA" = "1" ] && return 0
   MEOW_QBT_AVISOU_SEM_AURORA=1
-  meow_aviso "sem $MEOW_QBT_AURORA_FONTE não há quem escreva o qBittorrent.conf"
-  meow_info  "(este módulo instala o tema e delega o conf ao Aurora — ver cabeçalho)"
+  meow_pendencia_acionavel qbittorrent-conf-fora-de-escopo \
+    "O tema do qBittorrent é instalado por aqui; escrever o qBittorrent.conf não é escopo deste módulo, e não há comando meu que resolva" \
+    ""
   return 0
 }
 
@@ -174,42 +224,45 @@ _meow_qbt_aurora_destravado() {
   grep -qE "^[[:space:]]*${MEOW_QBT_NOME_AURORA}\)" "$MEOW_QBT_AURORA_FONTE"
 }
 
-# A receita de destravamento, com o número de linha resolvido AO VIVO. Hardcodar
-# "linha 68" envelheceria mal: qualquer edição no script do Aurora empurra tudo
-# para baixo e a instrução passaria a apontar para o lugar errado.
+# O TUTORIAL DE 20 LINHAS SAIU DA TELA — 22/09/2026, sprint P2
+#   Esta função imprimia, com `meow_info`, a receita inteira de destravamento:
+#   o caminho por extenso do script do outro projeto, o número da linha
+#   resolvido ao vivo, as duas edições para copiar e colar, e um parágrafo
+#   explicando em qual das duas cópias editar. Era a mais longa das seis
+#   mensagens que a sprint P2 veio apagar, e a mais crua: o programa descobre o
+#   problema, sabe o conserto até o número da linha, e manda a pessoa consertar.
+#
+#   O QUE FICA NA TELA É A DECISÃO, que é a terceira saída da sprint. A decisão
+#   é genuinamente dela e genuinamente humana: o qBittorrent é configurado por
+#   OUTRO projeto seu, cuja lista de temas é fechada; enquanto o `catppuccin`
+#   não entrar naquela lista, este módulo não tem o que aplicar. Nenhum botão
+#   daqui pode resolver isso — a `meow_destino_permitido` recusa escrever em
+#   `~/.config/zsh`, e com razão: é um repositório com auto-commit em 10
+#   minutos, e um conserto nosso lá dentro viraria um commit que ela não fez.
+#
+#   A RECEITA NÃO SE PERDEU, MUDOU DE LUGAR: ela é isto aqui, comentário, onde
+#   quem abre o arquivo a lê e quem só usa o programa não tropeça nela. São
+#   duas edições no `aurora-qbittorrent-config.sh`:
+#
+#     1) um case novo, logo depois da linha do `andromeda)` (achável com
+#        `grep -nE '^[[:space:]]*andromeda\)'`):
+#              catppuccin) TEMA_PATH="$TEMAS_DIR/catppuccin-mocha.qbtheme" ;;
+#     2) o texto de uso, de `[--tema dracula|andromeda|nenhum]` para
+#        `[--tema dracula|andromeda|catppuccin|nenhum]`.
+#
+#   E edite a FONTE em `~/.config/zsh/scripts/`, não a cópia em
+#   `/usr/local/bin`: o self-heal roda a fonte e reinstala a cópia por cima.
+#
+#   O guarda de "uma vez por processo" continua: o runner chama
+#   detectar+conferir+aplicar em sequência, e três cópias da mesma linha viram
+#   ruído — a pendência já é uma linha por id, mas o `meow_aviso` que ela
+#   imprime no log não é.
 _meow_qbt_receita() {
   [ "$MEOW_QBT_JA_AVISOU" = "1" ] && return 0
   MEOW_QBT_JA_AVISOU=1
-
-  local linha_case linha_uso
-  linha_case="$(grep -nE '^[[:space:]]*andromeda\)' "$MEOW_QBT_AURORA_FONTE" 2>/dev/null | head -1 | cut -d: -f1)"
-  linha_uso="$(grep -nF 'dracula|andromeda|nenhum' "$MEOW_QBT_AURORA_FONTE" 2>/dev/null | head -1 | cut -d: -f1)"
-
-  meow_aviso "qBittorrent TRAVADO pelo Ritual da Aurora — o tema não pode ser aplicado ainda."
-  meow_info  "O Aurora resolve o tema por uma allowlist fechada (dracula|andromeda|nenhum) e"
-  meow_info  "REBAIXA para dracula qualquer valor desconhecido, a cada ciclo do self-heal."
-  meow_info  ""
-  meow_info  "Para destravar, DUAS edições no lado do Andromeda:"
-  meow_info  ""
-  meow_info  "  arquivo: $MEOW_QBT_AURORA_FONTE"
-  meow_info  ""
-  meow_info  "  1) ACRESCENTAR um case, logo depois da linha ${linha_case:-<a do 'andromeda)'>}:"
-  meow_info  ""
-  # shellcheck disable=SC2016  # o $TEMAS_DIR é LITERAL de propósito: esta linha é
-  # para ser copiada e colada dentro do script do Aurora, onde a variável existe.
-  printf '       %scatppuccin) TEMA_PATH="$TEMAS_DIR/%s" ;;%s\n' \
-         "$C_MAUVE" "$MEOW_QBT_ARQUIVO" "$C_ZERO"
-  meow_info  ""
-  # shellcheck disable=SC2016  # idem: "uso: $0" é o texto que está no arquivo dela.
-  meow_info  "  2) ATUALIZAR o texto de uso na linha ${linha_uso:-<a do 'uso: \$0'>}, de:"
-  meow_info  "       [--tema dracula|andromeda|nenhum]"
-  meow_info  "     para:"
-  printf '       %s[--tema dracula|andromeda|catppuccin|nenhum]%s\n' "$C_MAUVE" "$C_ZERO"
-  meow_info  ""
-  meow_info  "Edite a FONTE (o caminho acima), não /usr/local/bin: o self-heal roda a fonte"
-  meow_info  "e reinstala a cópia. Este módulo não edita esse arquivo — ele está em"
-  # shellcheck disable=SC2088  # o til aqui é prosa para ela ler, não caminho a expandir.
-  meow_info  "~/.config/zsh, o repo com auto-commit em 10 minutos, e a escrita é recusada."
+  meow_pendencia_acionavel qbittorrent-tema-fora-da-lista \
+    "O qBittorrent é configurado por outro projeto seu, que só conhece três temas — enquanto o catppuccin não estiver na lista dele, não há como eu vestir o app" \
+    ""
   return 0
 }
 
@@ -277,10 +330,15 @@ _meow_qbt_pronto() {
     _meow_qbt_avisar_sem_aurora
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  meow_pendencia_resolvida qbittorrent-conf-fora-de-escopo
   if ! _meow_qbt_aurora_destravado; then
     _meow_qbt_receita
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  # AS IRMÃS DO CAMINHO FELIZ (lib/comum.sh, 22/09/2026): daqui para baixo
+  # nenhuma das duas pendências deste módulo continua sendo verdade, e pendência
+  # que sobrevive ao problema é a caixa de entrada que ninguém lê.
+  meow_pendencia_resolvida qbittorrent-tema-fora-da-lista
   return "$MEOW_OK"
 }
 

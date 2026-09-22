@@ -3050,6 +3050,80 @@ a.folha:hover b { color: var(--text); }
 .home-ficha:hover { border-color: var(--peach); color: var(--text); }
 .home-nota { margin: 0; font-size: var(--t-frase); color: var(--overlay2); }
 
+/* --- as pendências acionáveis -------------------------------------------- */
+/* [2026-09-22, sprint P2] Uma linha por coisa que o programa sabe consertar,
+ * com o botão que conserta. Ele mora acima do "Nada esperando" porque conserto
+ * NOSSO vem antes de escolha DELA.
+ *
+ * NADA NOVO NA LINGUAGEM DA PÁGINA, de propósito. É o mesmo traço na borda
+ * esquerda do `.home-atencao` e o mesmo cabeçalho de número do `.home-mexeu` —
+ * só a cor muda, e ela não é escolhida: `--yellow` é a cor que o projeto usa
+ * para "mexeu/atenção" desde sempre, no `~~` do terminal (`lib/comum.sh`), na
+ * pastilha de trabalho correndo e nas linhas `l-muda` da gaveta. Um terceiro
+ * idioma de alerta nesta página seria a terceira coisa a manter em dia.
+ *
+ * SEM PENDÊNCIA NÃO HÁ REGRA QUE VALHA: o `montarPendencias()` devolve `null` e
+ * o elemento nem nasce. Não há estado vazio a desenhar aqui. */
+.home-pendencias {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  min-width: 0;
+  padding: .9rem 1.05rem;
+  border-left: 3px solid var(--yellow);
+  border-radius: 0 var(--r-2) var(--r-2) 0;
+  background: color-mix(in srgb, var(--yellow) 9%, transparent);
+}
+.home-pendencias h3 {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: .35rem;
+  font-size: var(--t-legenda);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--overlay2);
+}
+.home-pendencias h3 strong {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  text-transform: none;
+  color: var(--yellow);
+  font-variant-numeric: tabular-nums;
+}
+/* A frase em cima, os botões embaixo: a coluna da direita é estreita, e pôr o
+ * botão ao lado de uma frase de duas linhas espremeria as duas. */
+.pendencia {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  min-width: 0;
+}
+.pendencia + .pendencia {
+  padding-top: .55rem;
+  border-top: 1px solid color-mix(in srgb, var(--yellow) 22%, transparent);
+}
+.pendencia-frase {
+  margin: 0;
+  font-size: var(--t-frase);
+  line-height: 1.55;
+  color: var(--subtext0);
+  text-wrap: pretty;
+  /* A frase vem do log de um script e pode trazer um caminho longo sem espaço.
+   * Sem isto, ele empurra a coluna e a página ganha rolagem horizontal. */
+  overflow-wrap: anywhere;
+}
+.pendencia-botoes { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+/* A origem, onde não há botão: a etapa que registrou. Fica discreta — é
+ * endereço, não recado. */
+.pendencia-origem {
+  font-size: var(--t-legenda);
+  color: var(--overlay2);
+  font-family: var(--mono);
+}
+
 /* --- o retrato ----------------------------------------------------------- */
 .home-retrato {
   display: grid;

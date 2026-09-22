@@ -2688,6 +2688,17 @@ ACOES = {
         "ajuda": "Vale no próximo início de sessão: o cosmic-comp lê esse arquivo "
                  "uma vez, ao iniciar. Nada muda no painel agora, e isso não é defeito.",
     },
+    # O PRIMEIRO ALFINETE — 22/09/2026, sprint P2. É a ação para onde a
+    # pendência `areas-sem-alfinete` aponta: sem nenhuma área fixada o
+    # `Gravar as áreas` não tinha de onde herdar o monitor e parava.
+    "areas_alfinetar_primeira": {
+        "rotulo": "Criar a primeira área",
+        "grupo": "Áreas de trabalho",
+        "argv": _meow("areas", "alfinetar-primeira"),
+        "escreve": True, "sudo": False, "confirma": True,
+        "ajuda": "Cria a primeira área fixada no monitor que está ligado agora, "
+                 "com o primeiro nome da sua lista. Vale no próximo início de sessão.",
+    },
     "areas_reverter": {
         "rotulo": "Voltar as áreas de antes",
         "grupo": "Áreas de trabalho",
@@ -2759,6 +2770,17 @@ ACOES = {
         "ajuda": "O painel pisca uns 2 s. É o que faz um gato novo "
                  "aparecer na hora.",
     },
+    # O STARSHIP — 22/09/2026, sprint P2. A receita `curl | sh` que o
+    # `scripts/prompt.sh` imprimia virou este botão. `rede` está ligado porque
+    # ele BAIXA DA INTERNET, e é esse campo que põe o rótulo na confirmação.
+    "prompt_instalar_starship": {
+        "rotulo": "Instalar o starship",
+        "grupo": "Manutenção",
+        "argv": [os.path.join(RAIZ, "scripts", "prompt.sh"), "instalar-starship"],
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "ajuda": "Baixa o starship de starship.rs para ~/.local/bin, sem sudo. "
+                 "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
+    },
     "leitura": {
         "rotulo": "Modo de leitura agora",
         "grupo": "Modo de leitura",
@@ -2788,6 +2810,19 @@ ACOES = {
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Os dois itens de papel de parede no botão direito.",
     },
+    # CONSTRUIR O MENU À MÃO — 22/09/2026, sprint P2. É para onde aponta a
+    # pendência `files-menu-build` quando o auto-build esgota as tentativas ou
+    # a última falha: antes disso a linha só carrega o estado (`construindo`) e
+    # não tem botão, porque não há o que clicar enquanto a unit trabalha.
+    # `rede` está ligado porque o `apt-get source` baixa o fonte inteiro.
+    "files_menu_build": {
+        "rotulo": "Construir o menu da área de trabalho",
+        "grupo": "Papel de parede",
+        "argv": _meow("files-menu", "build"),
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "ajuda": "Compila a versão instalada do cosmic-files com os dois itens "
+                 "de papel de parede. Baixa o fonte e leva minutos.",
+    },
     # --- aplicativos ---------------------------------------------------------
     "apps": {
         # "MÓDULO" SAIU — 09/09/2026. Módulo é como o `bin/meow` organiza o
@@ -2808,6 +2843,20 @@ ACOES = {
         "ajuda": "Aplica o tema em todos os programas marcados que estiverem "
                  "instalados. Programa ausente fica pendente, e nunca "
                  "derruba o resto.",
+    },
+    # O TEMA DO SPOTIFY — 22/09/2026, sprint P2. É a ação para onde a pendência
+    # `spicetify-tema-ausente` aponta. O argv é o verbo que já existia (`apps
+    # aplicar <nome>`) e não um verbo novo: quem baixa o tema é o
+    # `meow_app_aplicar` do módulo, e uma segunda porta para o mesmo passo é
+    # como se ganha duas verdades sobre o mesmo botão. `rede` está ligado
+    # porque ele BAIXA DA INTERNET, e é esse campo que põe o rótulo na tela.
+    "spotify_baixar_tema": {
+        "rotulo": "Baixar o tema do Spotify",
+        "grupo": "Lançadores e jogos",
+        "argv": _meow("apps", "aplicar", "spotify"),
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "ajuda": "Baixa o tema catppuccin do spicetify de um commit fixo do "
+                 "repositório público e veste o Spotify em seguida.",
     },
     # --- os jogos da Steam ---------------------------------------------------
     # `confirma` é True no aplicar porque uma linha `apagar` no mapa manda o
@@ -4022,6 +4071,88 @@ def escreve(acao):
     """
     return bool(acao.get("escreve"))
 
+
+
+# ============================================================================
+# AS PENDÊNCIAS ACIONÁVEIS — 22/09/2026, sprint P2
+# ============================================================================
+# O `lib/comum.sh` ganhou o verbo `meow_pendencia_acionavel`: toda etapa que
+# descobre um problema e sabe o conserto registra uma linha em
+# `$MEOW_ESTADO/pendencias.tsv` em vez de imprimir uma receita de terminal.
+# Esta é a ponta que lê aquele arquivo.
+#
+# O COMANDO DO TSV NÃO É EXECUTADO, E ISSO É O DESENHO
+#   A linha guarda o comando como TEXTO, para a pessoa ver o que vai rodar. O
+#   que o botão "Resolver" dispara é uma AÇÃO da tabela `ACOES`, casada pelo
+#   `id` da pendência na tabela abaixo. Executar a string do arquivo seria abrir
+#   uma porta de shell no painel — e o arquivo é escrito por scripts, não pela
+#   pessoa, então nem sequer haveria ganho.
+#
+#   Pendência sem entrada aqui é pendência SEM BOTÃO, e é assim que as três
+#   saídas da sprint convivem na mesma tela: a que tem conserto ganha botão, a
+#   que depende de decisão dela ganha a decisão escrita, e a que não tem
+#   conserto neste projeto ganha a frase e mais nada.
+ACAO_DA_PENDENCIA = {
+    "areas-sem-alfinete": "areas_alfinetar_primeira",
+    "starship-ausente": "prompt_instalar_starship",
+    "spicetify-tema-ausente": "spotify_baixar_tema",
+    "files-menu-build": "files_menu_build",
+}
+
+# AS PENDÊNCIAS QUE ACEITAM "NÃO, OBRIGADO"
+#   A sprint pede, para o starship: "a tela pergunta UMA vez; a recusa fica
+#   gravada e não volta a perguntar". Quem grava é o próprio script, por um
+#   verbo dele — o painel não escreve arquivo de estado de outro módulo.
+RECUSA_DA_PENDENCIA = {
+    "starship-ausente": [os.path.join(RAIZ, "scripts", "prompt.sh"),
+                         "nao-quero-starship"],
+}
+
+PENDENCIAS = os.path.join(ESTADO, "pendencias.tsv")
+
+
+def pendencias():
+    """As linhas do pendencias.tsv, na ordem em que foram registradas.
+
+    ARQUIVO AUSENTE É LISTA VAZIA, e não erro: numa máquina onde nada pendeu
+    ele nunca foi criado. A Home não desenha o bloco quando a lista é vazia —
+    um bloco "3 coisas esperam um clique" com zero linhas é a caixa vazia que
+    a auditoria de 01/09 já tinha cobrado em outra aba.
+    """
+    fora = []
+    try:
+        with open(PENDENCIAS, "r", encoding="utf-8") as fh:
+            for linha in fh:
+                # `split` com limite: a frase e o comando podem ter qualquer
+                # coisa MENOS tabulação, que o `meow_pendencia_acionavel` já
+                # troca por espaço na hora de escrever.
+                campos = linha.rstrip("\n").split("\t")
+                if len(campos) != 5 or not campos[0]:
+                    continue
+                ident, etapa, frase, comando, quando = campos
+                # O BOTÃO PRECISA DAS DUAS PONTAS — 22/09/2026
+                #   A tabela acima diz o que o "Resolver" dispara; o campo
+                #   `comando` da LINHA diz se aquela passagem tinha conserto.
+                #   Quem manda é a linha, porque um mesmo id pode ser gravado
+                #   com comando ou sem ele conforme o estado: o
+                #   `files-menu-build` nasce sem comando enquanto a unit
+                #   compila (não há o que clicar) e com comando quando ela
+                #   falha. Lendo só a tabela, a Home poria um "Resolver" que
+                #   dispararia um segundo build em cima do primeiro.
+                acao = ACAO_DA_PENDENCIA.get(ident, "") if comando else ""
+                fora.append({
+                    "id": ident, "etapa": etapa, "frase": frase,
+                    "comando": comando, "quando": quando,
+                    "acao": acao,
+                    "recusavel": ident in RECUSA_DA_PENDENCIA,
+                    # O rótulo que os cartões de ação já usam. Sai da própria
+                    # ação, e não de uma segunda lista aqui: duas verdades sobre
+                    # o mesmo botão é como a pastilha "ACEITA SECO" mentiu antes.
+                    "rede": bool(ACOES.get(acao, {}).get("rede")),
+                })
+    except OSError:
+        return []
+    return fora
 
 def _trabalho_json(trabalho, acao_id):
     """O que a página precisa para abrir a gaveta de um trabalho que começou.
@@ -6620,6 +6751,9 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/esquema":
             return self._json(self._dados_esquema())
 
+        if caminho == "/api/pendencias":
+            return self._json({"pendencias": pendencias()})
+
         if caminho == "/api/apps":
             return self._api_apps(consulta)
 
@@ -7098,6 +7232,29 @@ class Manipulador(BaseHTTPRequestHandler):
             if not texto.strip():
                 return self._json({"erro": "o arquivo veio vazio"}, 400)
             return self._json(importar_conf(texto))
+
+        # A RECUSA, e ela é a outra metade da pergunta — 22/09/2026, sprint P2.
+        #   Sem ela o "não quero" não existiria na tela, e a pendência voltaria
+        #   amanhã: a notificação que volta todo dia é a que se aprende a
+        #   ignorar. O painel NÃO escreve o arquivo de estado — ele chama o
+        #   verbo do módulo dono, que é quem sabe onde a recusa mora e o que ela
+        #   significa. A tabela `RECUSA_DA_PENDENCIA` é a cerca: id que não está
+        #   nela não tem recusa, e um POST forjado não vira execução de nada.
+        if caminho == "/api/pendencia-recusar":
+            ident = str(corpo.get("id", ""))
+            argv = RECUSA_DA_PENDENCIA.get(ident)
+            if argv is None:
+                return self._json({"erro": "esta pendência não aceita recusa"}, 404)
+            # Sem o `meow.conf` de propósito: gravar a recusa não lê chave
+            # nenhuma, só escreve um arquivo em `MEOW_ESTADO` — que já vem no
+            # ambiente do painel. Carregar a conf aqui daria ao verbo mais
+            # poder do que ele precisa para o que faz.
+            try:
+                fim = subprocess.run(argv, capture_output=True, timeout=30,
+                                     env=_ambiente_do_painel())
+            except (OSError, subprocess.SubprocessError) as erro:
+                return self._json({"erro": "não consegui gravar a recusa: %s" % erro}, 500)
+            return self._json({"recusada": ident, "rc": fim.returncode})
 
         if caminho == "/api/parar":
             try:
