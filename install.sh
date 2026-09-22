@@ -290,15 +290,22 @@ etapa_backup_tema() {
     echo "arquivos: $total"
   } > "$destino/captura.txt"
 
+  # A RAIZ AQUI É A DINÂMICA, IGUAL À DO `captura.txt` [21/09/2026]
+  # Esta função lê de `$(meow_cosmic_dir)` e já grava `origem: $cosmic` no
+  # captura.txt ao lado. Com o `~/.config/cosmic` literal que estava escrito
+  # aqui, um backup tirado com `MEOW_COSMIC_DIR` apontando para outra árvore
+  # dizia DUAS raízes diferentes na mesma pasta — e a instrução mandava o
+  # humano restaurar na errada. (O par idêntico do `scripts/aplicar_tema.sh`,
+  # linhas 324 e 329, tem o mesmo literal e é de fora desta sprint: anotado.)
   cat > "$destino/COMO-RESTAURAR.txt" <<FIM
-Estado de ~/.config/cosmic (só as árvores de tema) de ANTES do MeowSystem nesta
+Estado de $cosmic (só as árvores de tema) de ANTES do MeowSystem nesta
 máquina, guardado em $(date '+%d/%m/%Y %H:%M:%S').
 
 É o que o "Voltar ao tema de antes" do painel e o "meow desfazer" devolvem.
 
 Para voltar exatamente a este estado, à mão:
 
-    cp -a $destino/com.system76.CosmicTheme.* ~/.config/cosmic/
+    cp -a $destino/com.system76.CosmicTheme.* $cosmic/
 
 Para conferir que nada se corrompeu aqui dentro:
 

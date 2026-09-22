@@ -124,7 +124,11 @@ run 'flatpak — overrides globais' flatpak override --show
 run 'snap' snap list
 
 # --- 3. Configuração do COSMIC (o coração) ---------------------------------
-sec '3. ~/.config/cosmic — configuração completa'
+# O título sai da MESMA variável que o `find` logo abaixo, e abrevia o HOME do
+# mesmo jeito que o `dump_tree` faz (`${f/#$HOME/~}`): com a raiz de sempre o
+# relatório continua dizendo `~/.config/cosmic`, e com `MEOW_COSMIC_DIR` setada
+# ele deixa de mentir sobre o que foi inventariado. [21/09/2026]
+sec "3. ${COSMIC_DIR/#$HOME/~} — configuração completa"
 note 'Cada arquivo é um valor RON isolado. Isto é a fonte da verdade do seu rice.'
 open_fence
 find "$COSMIC_DIR" -type f 2>/dev/null | wc -l >> "$OUT"

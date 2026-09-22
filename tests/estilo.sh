@@ -116,22 +116,47 @@ ok "nenhum .sh crava o caminho da paleta — todos passam pelo meow_paleta"
 # o comum.sh de propósito. Dizer o nome da variável é dizer que a raiz é
 # configurável — que é a única coisa cobrada aqui.
 #
-# COMENTÁRIO CONTINUA LIVRE, E ISSO NÃO É DESCUIDO
-#   Medido hoje nestes quatro caminhos: 35 citações da raiz moram em comentário
-#   (30 na linha inteira, 5 no fim de uma linha de código) e explicam o que o
-#   COSMIC faz com aquele diretório. Reescrevê-las para agradar um grep apagaria
-#   o porquê e não consertaria uma linha de código. Por causa das 5 do fim de
-#   linha o filtro NÃO pode ser só "a linha começa com #": ele tira a citação
-#   que tem um `#` antes dela, onde quer que ele esteja — a mesma regra do
-#   `tests/orfaos.sh`, que conta chamada e nunca menção.
+# COMENTÁRIO CONTINUA LIVRE, E O FILTRO É "A LINHA COMEÇA COM #"
+#   Reescrever a prosa para agradar um grep apagaria o porquê e não consertaria
+#   uma linha de código — isso continua valendo. Mas o filtro que a isenta é o
+#   ESTRITO, e os números que a primeira versão desta régua usou para afrouxar
+#   não existem.
+#
+#   MEDIDO EM 21/09/2026, nestes quatro caminhos e para o padrão DESTA régua
+#   (`$HOME/.config/cosmic`): ZERO citações em comentário — nem de linha
+#   inteira, nem no fim de linha de código. Quem cita a raiz em prosa escreve
+#   `~/.config/cosmic`, e o `~` não casa com `$HOME`: são 30 linhas, todas de
+#   comentário inteiro, e nenhuma chega a este grep. As 35 que o padrão casava
+#   antes do commit eram TODAS código — 24 cravadas e 11 honrando a variável.
+#
+#   E O AFROUXAMENTO TINHA PREÇO. O filtro largo era
+#   `:[0-9]+:[^#]*#.*\$HOME/\.config/cosmic` — "ignore a citação que tenha um
+#   `#` em qualquer lugar antes dela" — e num projeto Catppuccin um `#` antes do
+#   caminho é uma cor hexadecimal de distância: `printf %s "#1e1e2e" >
+#   "$HOME/.config/cosmic/.../bg"` passava VERDE pela régua que existe
+#   justamente para impedir a 25ª. Reproduzido em 21/09/2026, numa cópia da
+#   árvore. Com o filtro estrito a árvore limpa devolve zero: o rigor não custa
+#   um falso positivo sequer. É também o filtro do `tests/orfaos.sh:186`
+#   (`:[0-9]+:[[:space:]]*(#|//|\*)`), que conta chamada e nunca menção. A
+#   régua da paleta, logo acima, ficou com a forma larga; é de fora desta
+#   sprint e fica anotado, não consertado aqui.
 #
 # O RECORTE É O DA CONFERÊNCIA DA P19: `scripts/`, `lib/`, `bin/meow` e
 # `install.sh`. O `tests/` fica fora porque é ele quem desvia a raiz, e o
 # `app/servidor.py` porque Python não alcança o `lib/comum.sh` neste projeto —
 # a mesma isenção que o cabeçalho do `meow_paleta` já concede.
+#
+# `assets/` TAMBÉM FICA FORA, E É LACUNA CONHECIDA — NÃO COBERTURA
+#   `assets/temas-de-apps/toolkits-gtk-qt/manifesto.sh:215` crava a raiz no
+#   `MEOW_TK_TK_DIR` e ALCANÇA o verbo: o `scripts/aplicar_apps.sh` carrega o
+#   `lib/comum.sh` (linha 23) e depois faz `. "$mod"` do manifesto num subshell
+#   (linha 55). É a ÚNICA linha de shell do repositório que o recorte deixa
+#   passar — medido em 21/09/2026. Fica para a P18, que é a sprint dona daquela
+#   árvore; alargar o recorte aqui deixaria esta régua vermelha antes de a P18
+#   passar, e régua que nasce vermelha ninguém acredita.
 raiz_cravada="$(grep -rn '\$HOME/\.config/cosmic' \
                   "$RAIZ/scripts" "$RAIZ/lib" "$RAIZ/bin/meow" "$RAIZ/install.sh" \
-                | grep -vE ':[0-9]+:[^#]*#.*\$HOME/\.config/cosmic' \
+                | grep -vE ':[0-9]+:[[:space:]]*#' \
                 | grep -v 'MEOW_COSMIC_DIR')"
 if [ -n "$raiz_cravada" ]; then
   falha "raiz do COSMIC cravada em código, em vez de chamar meow_cosmic_dir:"

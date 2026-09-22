@@ -238,6 +238,16 @@ meow_paleta_nome() {
 #   fecha uma divergência que existe; um `case` com um ramo só mentiria dizendo
 #   que existe alternativa.
 #
+# O QUE MUDA SOB `set -u` COM HOME INDEFINIDO, E POR QUE PASSA
+#   Medido em 21/09/2026: a expansão inline morria na hora (`HOME: variável não
+#   associada`, rc 127). O verbo morre no SUBSHELL do `$( )`, então quem o chama
+#   sem `set -e` SEGUE com a raiz VAZIA — e os caminhos viram
+#   `/com.system76...`. Nenhum caminho do projeto roda assim: os oito `env -i`
+#   do repositório são todos de `tests/` e passam `HOME=`, e o único de
+#   produção (`scripts/painel.sh:390`) lança o `cosmic-panel`, não um script
+#   meow. Fica registrado porque o sintoma, no dia em que houver um, será um
+#   caminho absoluto esquisito e não uma mensagem de erro.
+#
 # Quem esquecer de chamá-lo aparece no grep do `tests/estilo.sh`. Lá a cobrança
 # é só para CÓDIGO: comentário continua livre, porque é onde a explicação mora
 # e reescrevê-la apagaria o porquê.

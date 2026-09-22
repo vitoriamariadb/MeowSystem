@@ -105,11 +105,14 @@ MEOW_RAIZ="$RAIZ"; export MEOW_RAIZ
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-# Os dois caminhos saem do `lib/comum.sh` desde 11/08/2026 — lá é onde mora
-# agora a única rotina que escreve neste arquivo (`meow_conf_definir`), e o
-# `wallpaper.sh permitir` da Sprint M precisa dela também. Repetir o
+# Os dois caminhos DO CONF saem do `lib/comum.sh` desde 11/08/2026 — lá é onde
+# mora agora a única rotina que escreve naquele arquivo (`meow_conf_definir`), e
+# o `wallpaper.sh permitir` da Sprint M precisa dela também. Repetir o
 # `${MEOW_CONF:-...}` aqui daria dois lugares para o override valer, e um dia
 # eles discordariam.
+#
+# A RAIZ DO COSMIC entrou no mesmo bloco em 21/09/2026 (P19) pelo mesmo motivo:
+# três linhas, uma regra só — quem resolve o caminho é o `lib/comum.sh`.
 CONF="$MEOW_CONF_ARQUIVO"
 CONF_PADRAO="$MEOW_CONF_PADRAO"
 COSMIC="$(meow_cosmic_dir)"
