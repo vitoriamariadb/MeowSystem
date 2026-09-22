@@ -883,7 +883,18 @@ etapa_tema() {
     meow_aviso "ainda não há captura para '$alvo'"
     meow_info "importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez em"
     meow_info "  Configurações > Área de trabalho > Aparência > Importar"
-    meow_info "e depois rode: ./scripts/capturar_tema.sh $alvo"
+    # O COMANDO OFERECIDO TEM DE CARREGAR A PONTE — 22/09/2026
+    #   Esta linha dizia `./scripts/capturar_tema.sh $alvo`, cru. Aquele script
+    #   não carrega o `lib/comum.sh` (de propósito) e pergunta direto ao
+    #   `pack.py`, que só conhece `MEOW_PACK_DIR` — variável que o
+    #   `meow_ponte_python` exportou AQUI DENTRO, no `main`, e que não existe no
+    #   terminal dela depois. Colada no shell dela, a linha crua gravaria a foto
+    #   do pack ATIVO dentro do `packs/catppuccin/` do clone, que é o defeito
+    #   que o `captura-destino` nasceu para impedir. O `meow` monta a mesma
+    #   ponte sozinho na entrada, e a `etapa_cli` é a terceira da lista contra a
+    #   oitava desta — ele já está no PATH quando esta mensagem aparece. É o
+    #   mesmo comando que o `chk_tema` e a linha do rc=4, logo abaixo, ofereciam.
+    meow_info "e depois rode: meow tema capturar $alvo"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 

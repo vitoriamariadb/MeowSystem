@@ -1616,6 +1616,27 @@ chk_logo() {
 # rodar — num comando que escreve de verdade. Aqui a variável é herdada, e cada
 # script chamado já sabe respeitá-la.
 fix_gerar() {
+  # O `gerar_temas.py` NÃO CONHECE `MEOW_DRY_RUN` — 22/09/2026
+  #   A frase do bloco acima ("cada script chamado já sabe respeitá-la") não
+  #   vale para ele: `grep MEOW_DRY_RUN scripts/gerar_temas.py` não casa nada, e
+  #   ele escreve os três `.ron` de verdade. O irmão dele, o `gerar_tema_v1.py`,
+  #   sabe (`conferir = args.conferir or seco`) — por isso só este lado precisa
+  #   da recusa. MEDIDO em 22/09/2026, com um `.ron` adulterado de propósito e
+  #   `MEOW_DRY_RUN=1 meow doctor --consertar`: o md5 do arquivo MUDOU. O
+  #   defeito é anterior a hoje, pelo caminho do rc=1; a linha logo abaixo, que
+  #   passa a chamar o `fix_gerar` também quando os `.ron` ainda não nasceram,
+  #   o poria no caminho de TODA máquina recém-clonada — e `MEOW_DRY_RUN=1` é
+  #   justamente o jeito de auditar antes de deixar rodar.
+  #   É a mesma recusa do `meow tema capturar` no seco (`cmd_tema`), pelo mesmo
+  #   motivo e com a mesma frase: a promessa "no seco não se escreve nada" é do
+  #   `meow`, e quem a mantém é quem chama, quando o chamado não sabe.
+  #   A outra metade — o `gerar_tema_v1.py` — não é chamada aqui no seco porque
+  #   no seco ela vira `--conferir`, e o `chk_gerar` já a conferiu uma linha
+  #   antes: chamá-la de novo só repetiria a mesma frase na tela.
+  meow_seco && {
+    meow_muda "geraria os .ron da paleta em $MEOW_ESTADO/temas/ e a v1 das capturas"
+    return "$MEOW_DIVERGENTE"
+  }
   python3 "$RAIZ/scripts/gerar_temas.py" 2>&1 || return "$MEOW_ERRO"
   python3 "$RAIZ/scripts/gerar_tema_v1.py" 2>&1 || return "$MEOW_ERRO"
   return "$MEOW_DIVERGENTE"
@@ -1858,6 +1879,28 @@ declare -A SEM_CONSERTO_RAZAO=(
   [upstream]="o conserto CLONA da rede, e o doctor não baixa — rode: ./scripts/baixar_upstream.sh"
   [fontes]="o conserto BAIXA a release pinada do Nerd Fonts, e o doctor não baixa — rode: ./scripts/instalar_fontes.sh"
 )
+
+# O 3 QUE É NOSSO — 22/09/2026
+#   `3` quer dizer "falta uma dependência", e o laço do `--consertar` pula todo
+#   `3` com "o conserto não é nosso". A frase era verdadeira enquanto 3 fosse
+#   sempre papirus, systemd, rede ou cargo. A P14 criou a exceção: os `.ron`
+#   saíram do git e passaram a NASCER em `$MEOW_ESTADO/temas/`, então numa
+#   máquina que ainda não os gerou o `chk_gerar` devolve 3 — e ali a coisa que
+#   falta é PRODUTO NOSSO, o `fix_gerar` existe, funciona, e é exatamente o que
+#   a mensagem do check manda rodar.
+#
+#   MEDIDO ANTES DESTA LINHA, na mesma rodada de `meow doctor --consertar`:
+#     --   gerar       os .ron ainda não foram gerados nesta máquina — 'meow
+#                      doctor --consertar' os escreve em .../temas/
+#     --   gerar: falta dependência — o conserto não é nosso
+#   A tela mandava rodar um comando que respondia que não ia fazer nada. Numa
+#   máquina recém-clonada essa é a PRIMEIRA linha do doctor, e a saída oferecida
+#   era uma porta fechada.
+#
+#   É LISTA, E NÃO UM `if` NO LAÇO, pelo mesmo motivo do `SEM_CONSERTO` logo
+#   acima: a decisão "este check tem conserto automático" mora num lugar só, por
+#   nome, onde se lê de cima a baixo quem está de fora e por quê.
+FALTA_NOSSA=" gerar "
 
 # --- 6. o runner das conferências -------------------------------------------
 declare -a CHK_NOME=() CHK_RC=() CHK_SAIDA=()
@@ -2148,9 +2191,15 @@ cmd_doctor() {
       meow_pula "$nome: sem conserto automático (${SEM_CONSERTO_RAZAO[$nome]:-é o install.sh que cria})"
       continue ;;
     esac
+    # O `FALTA_NOSSA` abre a única porta: ver o bloco dele, ao lado do
+    # SEM_CONSERTO. Sem essa linha o `gerar` era pulado por "o conserto não é
+    # nosso" — e ali ele é.
     if [ "${CHK_RC[$i]}" = "3" ]; then
-      meow_pula "$nome: falta dependência — o conserto não é nosso"
-      continue
+      case "$FALTA_NOSSA" in
+        *" $nome "*) ;;
+        *) meow_pula "$nome: falta dependência — o conserto não é nosso"
+           continue ;;
+      esac
     fi
     # 4: divergente POR ESCOLHA DELA. Consertar aqui seria desfazer o ajuste que
     # ela acabou de fazer na GUI — e, como o timer roda todo dia, seria desfazer

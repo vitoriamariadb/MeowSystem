@@ -395,17 +395,38 @@ MEOW_PALETA=~/.local/share/meowsystem/packs/meu-tema/paleta.json \
 # 2. importe UMA vez:
 #    Configurações > Área de trabalho > Aparência > Importar
 
-# 3. fotografe — desde 22/09/2026 ele grava DENTRO do pack ativo, sozinho
-PACK=meu-tema ./scripts/capturar_tema.sh meu-tema-mauve
+# 3. fotografe — desde 22/09/2026 ele grava DENTRO do pack ATIVO, sozinho
+MEOW_PACK_DIR=~/.local/share/meowsystem/packs/meu-tema \
+  ./scripts/capturar_tema.sh meu-tema-mauve
 #   ~/.local/share/meowsystem/packs/meu-tema/temas/capturados/meu-tema-mauve/
 
 # 4. confira que o resolvedor a acha, e publique
-python3 scripts/pack.py captura meu-tema-mauve
+MEOW_PACK_DIR=~/.local/share/meowsystem/packs/meu-tema \
+  python3 scripts/pack.py captura meu-tema-mauve
 ```
 
 **O `.ron` do passo 1 não vem no clone de ninguém**, e isso mudou em 22/09/2026:
 ele é produto de `gerar_temas.py`, e produto gerado saiu do git. Sem `--saida`
 ele nasce em `~/.local/state/meowsystem/temas/`.
+
+**Quem diz qual é o pack ativo é `MEOW_PACK_DIR`, e não `PACK`.** A chave `PACK`
+é do `meow.conf` e quem a lê é o shell (`meow_pack_dir`, em `lib/comum.sh`); o
+`capturar_tema.sh` **não** carrega o `lib/comum.sh` — de propósito, está escrito
+no cabeçalho dele — e fala direto com o `pack.py`, que só conhece
+`MEOW_PACK_DIR`. Uma receita com `PACK=` na frente **não erra: ela acerta o
+alvo errado**, grava a sua foto dentro de `packs/catppuccin/` do clone, e é
+exatamente o *"pôr a foto do Dracula dentro do pack do Catppuccin"* que o
+`pack.py` passou a impedir. Medido em 22/09/2026:
+
+```
+$ env -u MEOW_PACK_DIR PACK=dracula python3 scripts/pack.py captura-destino meu-tema-mauve
+<clone>/packs/catppuccin/temas/capturados/meu-tema-mauve
+```
+
+**Com o pack já ativo no `meow.conf`** (`PACK=meu-tema`, ou um `FLAVOR` com o
+mesmo nome), a ponte já está montada e as duas linhas acima viram uma:
+`meow tema capturar meu-tema-mauve` — o `bin/meow` chama o `meow_ponte_python`
+na entrada e exporta o `MEOW_PACK_DIR` para você.
 
 A captura é **portátil**: são ~176 arquivos de texto com caminhos relativos. O
 único arquivo com caminho de máquina é o `captura.txt`, que é metadado de

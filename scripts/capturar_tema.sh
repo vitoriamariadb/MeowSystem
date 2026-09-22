@@ -81,7 +81,20 @@ fi
 #   receberia um tema que não é dele. Por isso o verbo de escrita é outro:
 #   `captura-destino`, que responde sempre o pack ATIVO — e, para a `original`,
 #   o motor. As duas regras moram no pack.py, não aqui.
-DESTINO="$(python3 "$RAIZ/scripts/pack.py" captura-destino "$NOME" 2>/dev/null)"
+#
+# O `|| DESTINO=""` NÃO É CINTO E SUSPENSÓRIO — 22/09/2026
+#   Com o `set -euo pipefail` da linha 25, uma atribuição por substituição de
+#   comando que FALHA aborta o script ali mesmo. O `pack.py captura-destino`
+#   sai 1 quando o pack ativo não resolve (e também quando o pack declara
+#   `temas.capturados` para fora de si — o `_dir_capturas` devolve None), então
+#   as quatro linhas escritas logo abaixo, que existem exatamente para esse
+#   caso, NUNCA rodavam. MEDIDO:
+#     MEOW_PACK_DIR=/bogus/nao-existe bash scripts/capturar_tema.sh teste-x
+#     -> RC=1, zero linhas de saída
+#   Prometido: 3 (MEOW_SEM_DEPENDENCIA) e a frase que diz onde olhar. Saía 1
+#   (MEOW_DIVERGENTE) e calado — e falhar calado é o defeito que metade dos
+#   cabeçalhos deste repositório existe para nomear.
+DESTINO="$(python3 "$RAIZ/scripts/pack.py" captura-destino "$NOME" 2>/dev/null)" || DESTINO=""
 if [ -z "$DESTINO" ]; then
   echo "ERRO: não sei onde gravar a captura '$NOME' — o pack ativo não resolve." >&2
   echo "      confira com: meow pack listar" >&2
