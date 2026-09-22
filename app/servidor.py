@@ -155,16 +155,38 @@ PAGINA = os.path.join(RAIZ, "app", "pagina")
 MAPA_JOGOS = os.path.join(RAIZ, "assets", "icones", "jogos-fora.map")
 CONF_PADRAO = os.environ.get("MEOW_CONF_PADRAO") or os.path.join(RAIZ, "meow.conf.exemplo")
 CONF = os.environ.get("MEOW_CONF") or os.path.expanduser("~/.config/meow/meow.conf")
-# A paleta vem da mesma ordem de precedência de toda a casa, e a fonte canônica
-# do contrato é `meow_paleta()` em lib/comum.sh:
-#   1. $MEOW_PALETA     caminho completo (é a porta que um theme pack usa)
-#   2. $PALETA_ARQUIVO  só o nome, resolvido dentro de assets/paleta/
-#   3. catppuccin.json  o embutido
-# São três linhas repetidas em vez de um módulo importável porque os consumidores
-# vivem em `scripts/` e em `app/`, e um import entre os dois traria um problema de
-# sys.path que este projeto não tem hoje. É o mesmo idioma de scripts/gerar_temas.py:52.
-PALETA = os.environ.get("MEOW_PALETA") or os.path.join(
-    RAIZ, "assets", "paleta", os.environ.get("PALETA_ARQUIVO") or "catppuccin.json")
+# A PALETA VIROU FUNÇÃO, E O LITERAL SAIU DAQUI — 22/09/2026
+#   Era uma constante de módulo que terminava em `assets/paleta/catppuccin.json`,
+#   uma das sete cópias da mesma escada de precedência. A P13 mudou esse arquivo
+#   de casa e pôs a escada num lugar só: `pack.paleta_do_pack_ativo()`.
+#
+#   POR QUE FUNÇÃO E NÃO CONSTANTE: quem sabe resolver é o `scripts/pack.py`, e
+#   quem o carrega aqui é o `modulo_pack()` — que está definido umas telas
+#   abaixo. Constante de módulo é calculada na ordem do arquivo; função é
+#   calculada na hora da chamada, e aí o `modulo_pack` já existe. Mover o
+#   `modulo_pack` para cá em vez disso mexeria em código que não é desta sprint.
+_PALETA = None
+
+
+def paleta_canonica():
+    """O arquivo de paleta que vale agora, ou '' quando não dá para saber.
+
+    VAZIO É RESPOSTA, E ELA JÁ TEM TRATAMENTO
+        Sem `scripts/pack.py` o painel não sabe qual é o pack padrão — e
+        inventar `packs/catppuccin/` aqui seria a segunda verdade sobre o nome
+        do pack padrão, que é exatamente o que a P13 veio acabar. O `''` cai no
+        `except OSError` do `_paleta_dados`, que já devolve `flavors: {}`, e a
+        página sai com "paleta ilegível — a página cai no tema do navegador".
+        É a mesma degradação que ela já tinha quando o arquivo não existia.
+    """
+    global _PALETA
+    if _PALETA is None:
+        mod = modulo_pack()
+        _PALETA = (mod.paleta_do_pack_ativo() if mod
+                   else os.environ.get("MEOW_PALETA") or "")
+    return _PALETA
+
+
 FOLHAS = os.path.join(RAIZ, "docs", "folhas")
 # O mesmo diretório que `MEOW_ESTADO` do `lib/comum.sh` — e ele vem por ambiente
 # quando o `run.sh` é quem chama, para as duas metades nunca discordarem sobre
@@ -2046,9 +2068,12 @@ def definir(chave, valor):
 # NENHUM HEX VIVE DENTRO DE SCRIPT — é a regra do README, e ela vale para uma
 # folha de estilo tanto quanto para um `.sh`. O `estilo.css` desta página não tem
 # uma única cor escrita: ele consome `var(--base)`, `var(--accent)` e companhia,
-# e quem as define é este endpoint, lendo `assets/paleta/catppuccin.json` no
-# flavor que o meow.conf dela manda. Trocar `FLAVOR="latte"` e recarregar veste a
-# página inteira de claro, sem uma linha de CSS a mais.
+# e quem as define é este endpoint, lendo a paleta DO PACK ATIVO no flavor que o
+# meow.conf dela manda. Trocar `FLAVOR="latte"` e recarregar veste a página
+# inteira de claro, sem uma linha de CSS a mais.
+#
+# O caminho não é nomeado aqui desde 22/09/2026: quem responde é
+# `paleta_canonica()`, e o cabeçalho dela conta por quê.
 _PALETA_CACHE = {}
 
 
@@ -2056,7 +2081,7 @@ def _paleta_dados():
     """A paleta inteira, lida uma vez. É a fonte de verdade de cor do projeto."""
     if not _PALETA_CACHE:
         try:
-            with open(PALETA, "r", encoding="utf-8") as fh:
+            with open(paleta_canonica(), "r", encoding="utf-8") as fh:
                 _PALETA_CACHE.update(json.load(fh))
         except (OSError, ValueError):
             _PALETA_CACHE["flavors"] = {}
@@ -2136,7 +2161,10 @@ def paleta_css(flavor, accent):
     linhas = [
         # O CSS diz de ONDE a cor veio. Com a paleta trocável, cravar o nome aqui faria
         # o arquivo gerado mentir sobre a própria procedência. [2026-09-17]
-        f"/* Gerado por app/servidor.py a partir de {os.path.relpath(PALETA, RAIZ)}.",
+        # `paleta_canonica()` não é '' aqui: o `return` de "paleta ilegível",
+        # três linhas acima, já cobriu o caso em que ela não resolveu.
+        f"/* Gerado por app/servidor.py a partir de "
+        f"{os.path.relpath(paleta_canonica(), RAIZ)}.",
         "   Não edite: a fonte é a paleta, e ela é a única verdade de cor. */",
         ":root {",
         f"  color-scheme: {'light' if claro else 'dark'};",

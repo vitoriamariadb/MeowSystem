@@ -5,7 +5,7 @@
 # ESTE ARQUIVO É `source`, NÃO EXECUTADO.
 #
 # AS CORES SAEM DA PALETA, COMO TUDO AQUI
-#   São os mesmos hex de `assets/paleta/catppuccin.json`, convertidos para o truecolor
+#   São os mesmos hex de `packs/catppuccin/paleta.json`, convertidos para o truecolor
 #   do terminal. Se um dia a paleta mudar, muda aqui também — mas continua sem
 #   inventar cor nova no meio do caminho.
 #
@@ -148,10 +148,26 @@ meow_app_pendente() {
 #   1. $MEOW_PALETA       caminho completo. É a porta de teste e a que um pack usa.
 #                         Só vale quando foi a PESSOA que a pôs — ver o bloco
 #                         "O ECO DA PONTE NÃO É ESCOLHA DE NINGUÉM", abaixo.
-#   2. $PALETA_ARQUIVO    só o nome, resolvido dentro de assets/paleta/.
-#   3. catppuccin.json    o embutido, que continua sendo o default de sempre.
+#   2. o pack ATIVO       `meow_pack_dir`/paleta.json — ver o bloco logo abaixo.
+#   3. $PALETA_ARQUIVO    só o nome, resolvido dentro de assets/paleta/.
+#   4. o pack PADRÃO      que hoje é um pack como os outros.
 #   A ordem é EXATAMENTE a de scripts/gerar_temas.py:52-54, que já funcionava —
 #   esta função generaliza aquele comportamento, não inventa outro.
+#
+#   O DEGRAU 4 DIZIA `catppuccin.json`, E DEIXOU DE PODER DIZER [22/09/2026]
+#     A paleta do pack padrão morava em `assets/paleta/catppuccin.json`, e o
+#     nome dela estava cravado aqui. A P13 mudou o arquivo de casa: ele é
+#     `packs/catppuccin/paleta.json`, e o nome do pack padrão mora em UM lugar,
+#     `scripts/pack.py:PACK_PADRAO`. Esta função pergunta por
+#     `meow_pack_padrao_dir` em vez de repetir o nome — repetir é como as duas
+#     respostas passam a divergir no dia em que o padrão mudar.
+#
+#     O DEGRAU 3 FICOU, E FICOU VAZIO. `PALETA_ARQUIVO` nasceu em 11/09/2026,
+#     antes de o formato de pack existir, e nunca chegou ao `meow.conf.exemplo`.
+#     Hoje `assets/paleta/` só guarda o `cosmic-map.json`, que é do MOTOR — a
+#     chave não aponta para nada que venha de fábrica. Ela fica porque alguém
+#     pode ter posto a paleta dele ali, e tirá-la quebraria essa máquina calada.
+#     O jeito certo de trocar de paleta é um pack, e é o que docs/PACKS.md ensina.
 #
 # POR QUE UMA FUNÇÃO, E NÃO UMA VARIÁVEL EXPORTADA
 #   Uma variável precisaria ser exportada em TODO ponto de entrada — as etapas
@@ -237,18 +253,30 @@ meow_paleta() {
     printf '%s' "$_pack_dir/paleta.json"
     return 0
   fi
-  printf '%s' "$MEOW_RAIZ/assets/paleta/${PALETA_ARQUIVO:-catppuccin.json}"
+  if [ -n "${PALETA_ARQUIVO:-}" ]; then
+    printf '%s' "$MEOW_RAIZ/assets/paleta/$PALETA_ARQUIVO"
+    return 0
+  fi
+  printf '%s' "$(meow_pack_padrao_dir)/paleta.json"
 }
 
 # O nome do arquivo, sem o caminho — para MENSAGEM, nunca para abrir.
 # Existe porque as mensagens de erro também cravavam "assets/paleta/catppuccin.json"
 # (icones_apps_arcticons.sh:394 e :489, midia.sh:195), e uma mensagem que nomeia
 # o arquivo errado manda a pessoa procurar defeito onde não há.
-# O diretório do pack ativo, ou vazio se for o embutido.
+# O diretório do pack ativo, ou vazio quando não há pack nenhum resolvido.
 #
-# Quem decide qual pack é o ativo: a chave PACK do meow.conf. Sem ela, o pack é
-# o embutido (Catppuccin) e esta função devolve vazio — que é o sinal para o
-# chamador usar os caminhos de sempre em assets/.
+# Quem decide qual pack é o ativo: a chave PACK do meow.conf, ou o FLAVOR quando
+# ela não existe (a adoção por convenção, logo abaixo). Sem os dois, esta função
+# devolve vazio — que é o sinal para o chamador cair no degrau seguinte dele.
+#
+# O `catppuccin` DEIXOU DE SER DESVIO AQUI [22/09/2026]
+#   Havia uma linha `[ "$PACK" = "catppuccin" ] && return 0` logo abaixo: o pack
+#   padrão não tinha `pack.json`, então perguntar ao `pack.py` por ele estourava
+#   um FileNotFoundError, e o desvio existia para não perguntar. A P13 deu
+#   `pack.json` a ele; o desvio saiu, e o traceback morreu junto. Agora
+#   `PACK=catppuccin` resolve `packs/catppuccin` pelas mesmas três raízes que
+#   todo pack usa — que é o ponto inteiro da sprint.
 #
 # O resolvedor de verdade é scripts/pack.py (ver docs/PACKS.md). Esta função só
 # pergunta a ele, e o faz sem sair do lugar quando não há pack: um fork de
@@ -294,6 +322,42 @@ meow_pack_raizes() {
   printf '%s\n' "$MEOW_PACK_RAIZES"
 }
 
+# O diretório do pack PADRÃO — o que acompanha o projeto e de quem todo mundo
+# herda o que não declarou.
+#
+# POR QUE PERGUNTAR, EM VEZ DE ESCREVER `packs/catppuccin` [22/09/2026]
+#   Até a P13 o nome do pack padrão estava cravado em NOVE pontos de código
+#   (contados em 22/09/2026, seis deles em Python), e o `meow_paleta` era um
+#   deles. Agora ele mora em UM: `scripts/pack.py`, constante
+#   `PACK_PADRAO`. O dia em que o padrão mudar, muda ali e só ali — e
+#   um segundo lugar que o repita é exatamente a divergência silenciosa que a
+#   porta única da paleta veio matar, por outra porta.
+#
+# O CACHE É O MESMO DO `meow_pack_raizes`, E PELO MESMO MOTIVO: sem ele seria um
+# fork de python por chamada, e o `meow_paleta` chama a cada consulta, num
+# instalador de dezenas de etapas. Exportada, a resposta é calculada UMA vez por
+# árvore de processos. O preço também é o mesmo: quem mudar `MEOW_PACKS` no MEIO
+# de uma execução continua vendo a resposta antiga.
+meow_pack_padrao_dir() {
+  if [ -z "${MEOW_PACK_PADRAO_DIR:-}" ]; then
+    MEOW_PACK_PADRAO_DIR="$(python3 "$MEOW_RAIZ/scripts/pack.py" padrao 2>/dev/null)"
+    export MEOW_PACK_PADRAO_DIR
+  fi
+  # SEM RESPOSTA É AVISO, NUNCA SILÊNCIO — a mesma regra do `meow_pack_raizes`.
+  # Quem cai aqui está numa árvore sem `scripts/pack.py` ou sem python3, e o que
+  # sai do `meow_paleta` vira `/paleta.json`: um caminho que não existe e que
+  # mandaria a pessoa procurar a paleta na raiz do sistema. O aviso é o que liga
+  # o caminho torto à causa.
+  if [ -z "$MEOW_PACK_PADRAO_DIR" ]; then
+    [ "${MEOW_PACK_PADRAO_AVISADO:-0}" = "1" ] || {
+      MEOW_PACK_PADRAO_AVISADO=1
+      meow_aviso "scripts/pack.py não disse qual é o pack padrão — a paleta não resolve"
+    }
+    return 1
+  fi
+  printf '%s' "$MEOW_PACK_PADRAO_DIR"
+}
+
 meow_pack_dir() {
   local PACK="${PACK:-}" base
   # ADOÇÃO POR CONVENÇÃO [2026-09-17]
@@ -310,7 +374,6 @@ meow_pack_dir() {
     done <<< "$(meow_pack_raizes)"
   fi
   [ -n "$PACK" ] || return 0
-  [ "$PACK" = "catppuccin" ] && return 0
   python3 "$MEOW_RAIZ/scripts/pack.py" caminho "$PACK" id >/dev/null 2>&1 || {
     meow_aviso "pack '$PACK' não resolve — usando o embutido"
     return 0

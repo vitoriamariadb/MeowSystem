@@ -853,7 +853,11 @@ etapa_gerar() {
   python3 "$MEOW_RAIZ/scripts/gerar_tema_v1.py" | sed 's/^/  /'
   rc_gt="${PIPESTATUS[0]}"
   case "$rc_gt" in 0) ;; "$MEOW_SEM_DEPENDENCIA") return "$MEOW_SEM_DEPENDENCIA" ;; *) return "$MEOW_ERRO" ;; esac
-  meow_ok "regenerados a partir de assets/paleta/"
+  # A mensagem dizia "a partir de assets/paleta/", e aquele diretório deixou de
+  # ter paleta em 22/09/2026 — ele ficou só com o `cosmic-map.json`, que é do
+  # motor. Quem nomeia o arquivo é o `meow_paleta_nome`, que é a mesma porta que
+  # o resto do instalador usa para NOMEAR sem abrir.
+  meow_ok "regenerados a partir de $(meow_paleta_nome)"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -1606,7 +1610,7 @@ etapa_prompt() {
 # coisas são verdade e não se implicam — o arquivo do port é o MIOLO de uma
 # entrada, e o de config é o MAPA inteiro (`BTreeMap<ColorSchemeId, ColorScheme>`).
 # Escrever o port cru falha com `Expected opening '{'`. Por isso o esquema é
-# derivado da `assets/paleta/catppuccin.json` daqui, e confere campo a campo com o
+# derivado da `packs/catppuccin/paleta.json` daqui, e confere campo a campo com o
 # port nos quatro flavors.
 etapa_terminal() {
   passo "Cores do terminal"

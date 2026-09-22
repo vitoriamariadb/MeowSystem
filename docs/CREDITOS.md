@@ -31,7 +31,7 @@ flavor. É o que permite trocar Mocha por Latte sem reescrever um arquivo.
 | [Arcticons](https://github.com/Donnnno/Arcticons) — Donno e colaboradores | **78** glifos de traço (39 de sistema + 39 de aplicativo), recoloridos pela paleta | **CC BY-SA 4.0** | `assets/icones/arcticons/`, `assets/icones/arcticons-apps/` |
 | [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) | a base sobre a qual o tema é montado, e a arte de origem dos **33** SVGs convertidos para traço | GPL-3.0 | pacote do sistema, `assets/icones/convertidos-apps/` |
 | [catppuccin/papirus-folders](https://github.com/catppuccin/papirus-folders) | as pastas mauve, com o símbolo interno de cada uma — pinado em `f83671d1` | GPL-3.0 | `assets/icones/upstream/papirus-folders/` |
-| [catppuccin/vscode-icons](https://github.com/catppuccin/vscode-icons) | glifos de arquivo do editor (recurso desligado — ver a procedência) | MIT | `assets/icones/catppuccin/` |
+| [catppuccin/vscode-icons](https://github.com/catppuccin/vscode-icons) | glifos de arquivo do editor (recurso desligado — ver a procedência) | MIT | `packs/catppuccin/icones/mimetypes/` |
 
 O **Arcticons é o que define o estilo do tema**, e a obrigação da CC BY-SA 4.0 é
 levada a sério aqui porque o repositório é público: atribuição (esta página, e a

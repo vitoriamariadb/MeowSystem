@@ -27,6 +27,9 @@ VERBOS
     som     <id>                 o timbre do pack, como CHAVE=valor para o shell
     info    <id>                 o que é próprio, o que é herdado, o que falta
     raizes                       imprime as raízes de busca, na ordem
+    padrao                       o diretório do pack PADRÃO, resolvido pelas
+                                 raízes como qualquer outro. É o que o shell
+                                 pergunta em vez de cravar o nome dele.
 
     Sem argumento, imprime esta ajuda.
 
@@ -149,45 +152,107 @@ def raizes():
     return saida
 
 
-# O pack EMBUTIDO. Ele não mora em packs/ e não tem pack.json — é o núcleo, e a
-# paleta dele é assets/paleta/catppuccin.json.
+# O PACK PADRÃO, E ELE É UM PACK COMO OS OUTROS DESDE 22/09/2026
 #
-# POR QUE ELE É EXCEÇÃO, E POR QUANTO TEMPO [2026-09-17]
-#   O desenho para onde este formato aponta é o Catppuccin virar um pack como
-#   qualquer outro, sem privilégio nenhum. Mas isso significa mover 3.280 SVGs de
-#   mimetype (13 MB, quatro flavors de 656 arquivos) e a paleta que onze
-#   consumidores leem — numa máquina em uso, com o desktop de duas pessoas
-#   dependendo dela.
+# O QUE ESTAVA ESCRITO AQUI ATÉ ONTEM, E POR QUE SAIU
+#   Era `PACK_EMBUTIDO = "catppuccin"`, com uma função `eh_embutido` ao lado e um
+#   `achar` que devolvia a RAIZ do projeto para ele: o pack padrão não morava em
+#   `packs/`, não tinha `pack.json`, e a paleta dele era um arquivo dentro de
+#   `assets/`. O comentário de 17/09/2026 dizia, com todas as letras, que aquilo
+#   era exceção temporária e que "quando a mudança acontecer, esta constante e a
+#   função `eh_embutido` somem". A mudança aconteceu; elas sumiram.
 #
-#   Então a ordem é: primeiro o formato existe e o Dracula prova que funciona;
-#   depois o Catppuccin se muda. Reconhecer o embutido aqui é o que permite essa
-#   ordem — e é UMA linha de exceção, num lugar só, com data.
+#   O PREÇO DA EXCEÇÃO ERA MEDIDO: enquanto o padrão fosse código, todo pack de
+#   terceiro era cidadão de segunda classe. O Dracula é a prova — ele herda sete
+#   categorias de um "embutido" que não tinha `pack.json` onde declarar nenhuma
+#   delas, e o `meow pack listar` precisava de uma linha especial para que a
+#   lista não mentisse por omissão.
 #
-#   Quando a mudança acontecer, esta constante e a função `eh_embutido` somem, e
-#   nada mais no arquivo muda.
-PACK_EMBUTIDO = "catppuccin"
-
-
-def eh_embutido(ref):
-    return ref == PACK_EMBUTIDO and os.path.isfile(
-        os.path.join(RAIZ, "assets", "paleta", "catppuccin.json"))
+#   E O QUE FALHAVA CALADO: `pack.py validar catppuccin` estourava um
+#   FileNotFoundError em `RAIZ/pack.json`, porque o `achar` devolvia a RAIZ e lá
+#   não há `pack.json`. O `meow_pack_dir` desviava antes com uma linha que
+#   comparava o nome do pack com "catppuccin". As duas saíram juntas.
+#
+# O NOME MORA AQUI E SÓ AQUI. Quem precisa dele — o shell, os sete consumidores
+# de paleta em Python, o painel — pergunta, e a pergunta é `dir_padrao()` ou o
+# verbo `padrao`. Um segundo lugar que crave "catppuccin" é a divergência
+# silenciosa de volta, por outra porta.
+PACK_PADRAO = "catppuccin"
 
 
 def achar(ref):
-    """Aceita um id ou um caminho. Devolve o diretório do pack, ou None.
-
-    O pack embutido devolve a RAIZ do projeto: a paleta dele está em
-    assets/paleta/, não num diretório próprio.
-    """
+    """Aceita um id ou um caminho. Devolve o diretório do pack, ou None."""
     if os.path.isdir(ref) and os.path.isfile(os.path.join(ref, "pack.json")):
         return os.path.abspath(ref)
     for base in raizes():
         cand = os.path.join(base, ref)
         if os.path.isfile(os.path.join(cand, "pack.json")):
             return os.path.abspath(cand)
-    if eh_embutido(ref):
-        return RAIZ
     return None
+
+
+def dir_padrao():
+    """O diretório do pack padrão.
+
+    A QUEDA PARA `RAIZ/packs/<padrao>` NÃO É REDUNDÂNCIA
+        `achar` procura nas três raízes, e a terceira é exatamente essa — então
+        num repositório inteiro as duas respostas são a mesma. Elas divergem
+        quando o pack padrão foi APAGADO: aí o `achar` devolve None e quem
+        chamou receberia um caminho vazio, que vira `open("")` lá adiante e uma
+        mensagem que não nomeia arquivo nenhum. Devolver o caminho onde ele
+        DEVERIA estar faz o erro dizer o que falta.
+    """
+    return achar(PACK_PADRAO) or os.path.join(RAIZ, "packs", PACK_PADRAO)
+
+
+def paleta_do_pack_ativo():
+    """O arquivo de paleta que vale AGORA. É a porta única do lado Python.
+
+    POR QUE ELA NASCEU [22/09/2026]
+        Estas três linhas estavam repetidas em SEIS arquivos — `gerar_temas.py`,
+        `gerar_icones_autorais.py`, `folha_conversor.py`, `folha_marcas.py`,
+        `folha_proposta.py` e `app/servidor.py` —, e as seis terminavam no mesmo
+        literal: `assets/paleta/catppuccin.json`. Contados em 22/09/2026; com o
+        `lib/comum.sh`, o próprio `pack.py` e o `derivar_claro.py`, davam NOVE
+        pontos de código cravando aquele caminho. O cabeçalho do `meow_paleta`
+        (lib/comum.sh) isentava esses consumidores de chamar a porta única
+        "porque um import entre `scripts/` e `app/` traria um problema de
+        sys.path que este projeto não tem hoje".
+
+        A isenção deixou de ser necessária em 21/09/2026, e por duas portas que
+        já existem: `scripts/*.py` importam este arquivo como VIZINHO (é o que o
+        `gerar_temas.py` já faz para ler `cosmic.nome_da_paleta`), e o painel
+        carrega este arquivo por caminho no `modulo_pack()` do `app/servidor.py`,
+        sem tocar no `sys.path` de ninguém.
+
+    A ORDEM É A MESMA DO `meow_paleta`, E ISSO É O CONTRATO
+        1. $MEOW_PALETA      caminho completo — a ponte, ou a escolha da pessoa
+        2. $MEOW_PACK_DIR    o pack ativo, que a ponte shell->Python exportou
+        3. $PALETA_ARQUIVO   só o nome, dentro de assets/paleta/ (chave legada)
+        4. o pack PADRÃO
+        Duas resoluções da mesma coisa em ordens diferentes é como o tema do
+        COSMIC vem de uma paleta e o terminal de outra, sem erro nenhum na tela.
+
+    O PASSO 3 SOBREVIVEU À MUDANÇA, E SOBREVIVEU VAZIO
+        `PALETA_ARQUIVO` nasceu em 11/09/2026, antes de o formato de pack
+        existir, e nunca chegou ao `meow.conf.exemplo`. Hoje `assets/paleta/`
+        só tem o `cosmic-map.json`, que é do motor — então a chave não aponta
+        para nada que venha de fábrica. Ela fica porque alguém pode ter posto a
+        paleta dele ali, e tirá-la quebraria essa máquina calada. O jeito certo
+        de trocar de paleta é um pack, e é o que docs/PACKS.md ensina.
+    """
+    da_pessoa = os.environ.get("MEOW_PALETA")
+    if da_pessoa:
+        return da_pessoa
+    pack_dir = os.environ.get("MEOW_PACK_DIR")
+    if pack_dir:
+        alvo = os.path.join(pack_dir, "paleta.json")
+        if os.path.isfile(alvo):
+            return alvo
+    nome = os.environ.get("PALETA_ARQUIVO")
+    if nome:
+        return os.path.join(RAIZ, "assets", "paleta", nome)
+    return os.path.join(dir_padrao(), "paleta.json")
 
 
 def campo(ref, trilha, padrao=None):
@@ -255,16 +320,23 @@ def acervo(categoria, arquivo="", motor=None, ref=None):
         motor      o caminho relativo à RAIZ para quem ainda não migrou o acervo
                    para dentro de um pack. Vem do CHAMADOR, e não de uma tabela
                    aqui dentro, porque o motor não tem manifesto que diga onde
-                   cada categoria mora — é exatamente o que o `packs/catppuccin/`
-                   vai resolver quando existir (P13). Até lá, inventar a tabela
-                   aqui seria a oitava forma, não a primeira.
+                   cada categoria mora.
+
+                   ELE PERDEU A RAZÃO DE SER EM 22/09/2026, e não foi apagado
+                   junto. O `packs/catppuccin/` nasceu, e com ele o manifesto que
+                   faltava: hoje toda categoria do pack padrão está declarada num
+                   `pack.json`, e a herança resolve o que o `motor` resolvia. Ele
+                   fica porque um pack de terceiro instalado fora daqui pode
+                   apontar para um acervo do núcleo, e porque a regra da casa é
+                   apontar o código morto, não apagá-lo — quem o tirar tira junto
+                   as quedas que os chamadores ainda passam.
         ref        qual pack. O padrão é o que a ponte shell->Python exportou em
-                   `MEOW_PACK_DIR`; vazio quer dizer pack embutido.
+                   `MEOW_PACK_DIR`; vazio cai no pack PADRÃO.
 
     Devolve None quando não existe em lugar nenhum: ausência é resposta, e quem
     chama decide se ela é erro.
     """
-    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_EMBUTIDO)
+    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
     # A HERANÇA PODE SER CIRCULAR, E UM PACK DE TERCEIRO PODE ESCREVÊ-LA ASSIM
     #   Dois packs que herdam um do outro pendurariam o painel num laço infinito.
     #   O conjunto de vistos custa uma linha e transforma o travamento em "não
@@ -519,9 +591,12 @@ def validar(ref, silencioso=False):
         if isinstance(bloco, dict) and bloco.get("herda"):
             herancas.append(bloco["herda"])
     for h in set(herancas):
-        _exigir(achar(h) or eh_embutido(h),
-                f"herança {h!r}: esse pack não existe em nenhuma das raízes nem é o embutido "
-                f"({PACK_EMBUTIDO})")
+        # O `or eh_embutido(h)` SAIU EM 22/09/2026, e com ele a última exceção:
+        # `catppuccin` agora é um diretório com pack.json como qualquer outro, e
+        # o `achar` o encontra pelas mesmas três raízes. Ver `PACK_PADRAO`.
+        _exigir(achar(h),
+                f"herança {h!r}: esse pack não existe em nenhuma das raízes:\n      "
+                + "\n      ".join(raizes()))
 
     def urls(no, trilha="pack.json"):
         if isinstance(no, dict):
@@ -640,6 +715,9 @@ def main(argv):
         if verbo == "raizes":
             for r in raizes():
                 print(r)
+            return OK
+        if verbo == "padrao":
+            print(dir_padrao())
             return OK
         if verbo == "validar" and len(argv) == 3:
             validar(argv[2])

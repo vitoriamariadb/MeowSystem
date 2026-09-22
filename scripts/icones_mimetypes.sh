@@ -46,7 +46,24 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # é o que torna isso possível sem partir o significado de FLAVOR no resto do repo.
 FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
 
-ORIGEM="$RAIZ/assets/icones/catppuccin/$FLAVOR_ICONES"
+# O ACERVO MUDOU DE CASA EM 22/09/2026 — ele é do PACK, e não do motor
+#   Era `$RAIZ/assets/icones/catppuccin/$FLAVOR_ICONES`: 3.281 arquivos do
+#   `catppuccin/vscode-icons` morando em `assets/`, ao lado dos acervos que são
+#   de fato do motor. A P13 os desceu para `packs/catppuccin/icones/mimetypes/`.
+#
+#   QUEM DIZ ONDE ELES ESTÃO É O `pack.json`, E NÃO ESTE SCRIPT. O verbo `acervo`
+#   lê a declaração `icones.mimetypes.desenhos` do pack ativo e sobe a cadeia de
+#   herança quando ele não a declara — que é o caso do Dracula, cujo `pack.json`
+#   diz `icones.mimetypes.herda: "catppuccin"` justamente porque não existe
+#   acervo de mimetype Dracula. Escrever `packs/catppuccin/...` aqui seria a
+#   segunda verdade sobre onde mora o acervo do pack padrão, e a P13 existe para
+#   não ter nenhuma.
+#
+#   SEM PACK NO CONF, O ALVO É O PADRÃO — perguntado, nunca digitado.
+_pack_ref="$(meow_pack_dir)"
+[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir)"
+ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
+            icones.mimetypes.desenhos "$FLAVOR_ICONES" 2>/dev/null)"
 MAPA="$RAIZ/assets/icones/mimetypes.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 DESTINO="$HOME/.local/share/icons/$TEMA/scalable/mimetypes"
@@ -67,7 +84,7 @@ _ler_mapa() {
 # --- dependências -------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o pack Catppuccin não está em assets/icones/catppuccin/$FLAVOR_ICONES — nada a vestir"
+    meow_pula "não há acervo de mimetype para o flavor '$FLAVOR_ICONES' — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then

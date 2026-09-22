@@ -50,13 +50,13 @@
 #   (`src/main.rs`, `Message::ColorSchemeImportResult`).
 #
 #   Por isso este script NÃO baixa o port: ele reproduz o port a partir de
-#   `assets/paleta/catppuccin.json`, que é a fonte de cor deste projeto, e faz o
+#   `packs/catppuccin/paleta.json`, que é a fonte de cor deste projeto, e faz o
 #   `insert` que a GUI faria.
 #
 # O PORT OFICIAL SAI INTEIRO DA NOSSA PALETA — E ISSO FOI CONFERIDO, NÃO SUPOSTO
 #   Os quatro arquivos de `assets/temas/cosmic-term/` foram baixados em 25/08/2026 e
 #   comparados campo a campo com o que a regra abaixo deriva de
-#   `assets/paleta/catppuccin.json`. Os QUATRO bateram: mocha, latte, frappé e
+#   `packs/catppuccin/paleta.json`. Os QUATRO bateram: mocha, latte, frappé e
 #   macchiato, todos os 29 hex de cada um. A regra é:
 #
 #       foreground = text          cursor            = rosewater
@@ -126,7 +126,7 @@
 #   slot escuro vestido devolveria o terminal ao "COSMIC Light" de fábrica no
 #   meio do dia. Escrever os dois custa quatro arquivos e fecha o buraco.
 #
-#   O flavor claro NÃO é escolha: `assets/paleta/catppuccin.json` grava
+#   O flavor claro NÃO é escolha: `packs/catppuccin/paleta.json` grava
 #   `"claros": ["latte"]` — o Catppuccin tem exatamente UM flavor claro. O
 #   slot claro é sempre o Latte, e o slot escuro é o `FLAVOR` do meow.conf
 #   (ou mocha, se `FLAVOR` for latte).
@@ -302,7 +302,7 @@ meow_seco && [ "$ACAO" = "aplicar" ] && ACAO="conferir"
 #   quinta variante (15/09), o `_pronto` recusava o flavor e o instalador dizia
 #   `FLAVOR="dracula" não é um flavor do Catppuccin` — numa máquina onde TODO o
 #   resto do tema já estava em dracula, porque todo o resto lê a paleta.
-#   Agora estes nomes também leem: `assets/paleta/catppuccin.json` tem `nomes`
+#   Agora estes nomes também leem: `packs/catppuccin/paleta.json` tem `nomes`
 #   ao lado de `flavors`, e a próxima variante entra escrevendo um par lá, em um
 #   arquivo só.
 NOMES_ESQUEMA="$(python3 -c '

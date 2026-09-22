@@ -125,7 +125,7 @@ _controles_valido() { [ "$CONTROLES" = "sim" ] || [ "$CONTROLES" = "nao" ]; }
 _capa_valor() { [ "$CAPA" = "sim" ] && printf 'true' || printf 'false'; }
 
 # NOME DA PALETA -> HEX. Quem traduz é AQUI, não o applet: a paleta
-# (`assets/paleta/catppuccin.json`) é do MeowSystem, e embutir uma cópia dela no Rust
+# (`packs/catppuccin/paleta.json`) é do MeowSystem, e embutir uma cópia dela no Rust
 # criaria a segunda verdade que discorda no dia em que ela trocar de flavor.
 # `auto` viaja como a palavra `auto`, e o applet a rejeita no teste de hex —
 # então "auto" quer dizer "não pinte", sem precisar apagar arquivo nenhum.

@@ -3,7 +3,7 @@
 
 POR QUE ESTE SCRIPT EXISTE
     Nenhum hex pode viver dentro de script (regra 1 do contrato: estado desejado é
-    declarado, não imperativo). Toda cor vem de `assets/paleta/catppuccin.json`, e o
+    declarado, não imperativo). Toda cor vem de `packs/catppuccin/paleta.json`, e o
     destino de cada cor vem de `assets/paleta/cosmic-map.json`. Trocar de flavor é
     trocar uma linha do meow.conf, nunca editar um tema à mão.
 
@@ -41,6 +41,10 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
+# `pack.py` é vizinho de arquivo, e `scripts/` é o `sys.path[0]` de quem roda
+# este script. Ver o bloco `NOME_DA_PALETA`, mais abaixo, sobre o import direto.
+import pack  # noqa: E402  — depois do RAIZ de propósito, para ler junto
+
 # O ARQUIVO DE PALETA NÃO É MAIS FIXO — 2026-09-11
 #     Ele era `catppuccin.json` cravado aqui, e a docstring acima já prometia que
 #     "trocar de flavor é trocar uma linha do meow.conf". Só que uma paleta que
@@ -49,9 +53,15 @@ RAIZ = Path(__file__).resolve().parent.parent
 #     default continua sendo o de sempre — quem não mexer em nada não vê
 #     diferença. `MEOW_PALETA` (caminho completo) continua valendo por cima,
 #     para teste.
-PALETA_ARQUIVO = os.environ.get("PALETA_ARQUIVO") or "catppuccin.json"
-PALETA = Path(os.environ["MEOW_PALETA"]) if os.environ.get("MEOW_PALETA") \
-    else RAIZ / "assets" / "paleta" / PALETA_ARQUIVO
+#
+#     E A RESOLUÇÃO INTEIRA SAIU DAQUI EM 22/09/2026
+#         As três linhas que moravam aqui eram uma das SETE cópias da mesma
+#         escada, e as sete terminavam no literal `catppuccin.json`. A P13 mudou
+#         esse arquivo de casa e a escada virou uma função só,
+#         `pack.paleta_do_pack_ativo()` — que é a mesma ordem, na mesma ordem,
+#         num lugar só. O `PALETA_ARQUIVO` continua valendo; ele é um degrau
+#         daquela função agora.
+PALETA = Path(pack.paleta_do_pack_ativo())
 MAPA = RAIZ / "assets" / "paleta" / "cosmic-map.json"
 DESTINO = RAIZ / "assets" / "temas"
 
@@ -67,22 +77,24 @@ DESTINO = RAIZ / "assets" / "temas"
 #     `meow_ponte_python`, em lib/comum.sh). Vazio quer dizer pack embutido, e aí
 #     manda o molde do mapa, como sempre mandou.
 #
-#     O `import pack` É DIRETO, E SÓ AQUI ELE PODE SER
-#     O cabeçalho do `meow_paleta` isenta os consumidores em Python de chamar a
+#     O `import pack` É DIRETO, E DESDE 22/09/2026 ELE É DO MÓDULO INTEIRO
+#     O cabeçalho do `meow_paleta` isentava os consumidores em Python de chamar a
 #     porta única "porque um import entre `scripts/` e `app/` traria um problema
 #     de sys.path". Este import não atravessa nada: `pack.py` é vizinho de
-#     arquivo deste script, e `scripts/` já é o `sys.path[0]` de quem o roda. O
-#     `try` cobre quem importar este módulo de outro lugar — nesse caso o molde
-#     do mapa continua valendo, que é o comportamento de antes.
+#     arquivo deste script, e `scripts/` já é o `sys.path[0]` de quem o roda.
+#
+#     O `try: import pack / except ImportError: return None` que ficava aqui
+#     dentro saiu junto com a P13. Ele cobria quem importasse este módulo de
+#     outro lugar, e a queda era "o molde do mapa continua valendo" — uma queda
+#     que fazia sentido enquanto só o NOME do tema dependia do pack. Agora a
+#     PALETA também depende, e cair calado significaria gerar um tema inteiro com
+#     as cores do pack errado. Sem `pack.py` este script não tem o que fazer, e
+#     dizê-lo alto, no import, é melhor que descobrir na cor.
 PACK_DIR = os.environ.get("MEOW_PACK_DIR") or ""
 
 
 def _nome_da_paleta():
     if not PACK_DIR:
-        return None
-    try:
-        import pack
-    except ImportError:
         return None
     return pack.campo(PACK_DIR, "cosmic.nome_da_paleta")
 
