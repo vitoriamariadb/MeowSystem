@@ -63,7 +63,7 @@ meow_preflight() {
   #    docs/COSMIC-THEMING.md §4 e §4h). Um esquema que não reconhecemos tem de
   #    ser dito ANTES de copiar mais de cem arquivos por cima dele.
   local esquemas="" _v
-  for _v in "$HOME/.config/cosmic/com.system76.CosmicTheme.Dark/"v*; do
+  for _v in "$(meow_cosmic_dir)/com.system76.CosmicTheme.Dark/"v*; do
     [ -d "$_v" ] && esquemas="$esquemas${_v##*/} "
   done
   case " $esquemas " in

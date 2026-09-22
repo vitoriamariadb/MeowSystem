@@ -105,14 +105,17 @@ MEOW_RAIZ="$RAIZ"; export MEOW_RAIZ
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-# Os dois caminhos saem do `lib/comum.sh` desde 11/08/2026 — lá é onde mora
-# agora a única rotina que escreve neste arquivo (`meow_conf_definir`), e o
-# `wallpaper.sh permitir` da Sprint M precisa dela também. Repetir o
+# Os dois caminhos DO CONF saem do `lib/comum.sh` desde 11/08/2026 — lá é onde
+# mora agora a única rotina que escreve naquele arquivo (`meow_conf_definir`), e
+# o `wallpaper.sh permitir` da Sprint M precisa dela também. Repetir o
 # `${MEOW_CONF:-...}` aqui daria dois lugares para o override valer, e um dia
 # eles discordariam.
+#
+# A RAIZ DO COSMIC entrou no mesmo bloco em 21/09/2026 (P19) pelo mesmo motivo:
+# três linhas, uma regra só — quem resolve o caminho é o `lib/comum.sh`.
 CONF="$MEOW_CONF_ARQUIVO"
 CONF_PADRAO="$MEOW_CONF_PADRAO"
-COSMIC="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
+COSMIC="$(meow_cosmic_dir)"
 IS_DARK="$COSMIC/com.system76.CosmicTheme.Mode/v1/is_dark"
 
 # --- 2. configuração --------------------------------------------------------
@@ -3142,10 +3145,10 @@ cmd_desfazer() {
     fi
     meow_travar || return "$MEOW_ERRO"
     if meow_seco; then
-      meow_muda "copiaria $primeiro/com.system76.CosmicTheme.* para $HOME/.config/cosmic/"
+      meow_muda "copiaria $primeiro/com.system76.CosmicTheme.* para $COSMIC/"
       return "$MEOW_DIVERGENTE"
     fi
-    cp -a "$primeiro"/com.system76.CosmicTheme.* "$HOME/.config/cosmic/" || return "$MEOW_ERRO"
+    cp -a "$primeiro"/com.system76.CosmicTheme.* "$COSMIC/" || return "$MEOW_ERRO"
     registrar "desfazer -> $primeiro"
     notificar "MeowSystem" "Tema devolvido ao estado de antes da instalação."
     meow_ok "pronto — o COSMIC relê por inotify, sem relogar"
@@ -3174,7 +3177,7 @@ cmd_desfazer() {
   #   não "não me pergunte". Nenhum caminho automático a digita por engano.
   local origem_cap
   origem_cap="$(sed -n 's/^origem: //p' "$RAIZ/assets/temas/capturados/original/captura.txt" 2>/dev/null | head -n1)"
-  if [ -n "$origem_cap" ] && [ "$origem_cap" != "$HOME/.config/cosmic" ] \
+  if [ -n "$origem_cap" ] && [ "$origem_cap" != "$COSMIC" ] \
      && [ "${MEOW_TEMA_DE_OUTRA_MAQUINA:-0}" != "1" ]; then
     meow_erro "a captura 'original' foi tirada de OUTRA máquina ($origem_cap)"
     meow_info "  aplicá-la aqui instalaria o tema de fábrica de outra pessoa e"

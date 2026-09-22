@@ -180,8 +180,9 @@ DESTINO="$FONTES_BASE/MeowSystem"
 ACERVO_LOCAL="$RAIZ/assets/fontes/locais"
 DESTINO_LOCAL="$DESTINO/locais"
 
-TK="$HOME/.config/cosmic/com.system76.CosmicTk/v1"
-TERM_DIR="$HOME/.config/cosmic/com.system76.CosmicTerm/v1"
+COSMIC="$(meow_cosmic_dir)"
+TK="$COSMIC/com.system76.CosmicTk/v1"
+TERM_DIR="$COSMIC/com.system76.CosmicTerm/v1"
 
 # ---------------------------------------------------------------------------
 # `adicionar <arquivo>` — a fonte que ela escolheu, sem abrir terminal

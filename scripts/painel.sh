@@ -79,7 +79,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/painel.sh
 . "$RAIZ/lib/painel.sh"
 
-BASE="${MEOW_PAINEL_BASE:-$HOME/.config/cosmic}"
+BASE="${MEOW_PAINEL_BASE:-$(meow_cosmic_dir)}"
 ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/painel"
 
 # ANTI-LAÇO — os números saem da medição, não de cautela vaga.

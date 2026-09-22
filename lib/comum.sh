@@ -266,6 +266,48 @@ meow_paleta_nome() {
   printf '%s' "${p#"$MEOW_RAIZ"/}"
 }
 
+# --- A RAIZ DO COSMIC: UM LUGAR SÓ PARA DIZER ONDE ELA É --------------------
+# Onde mora a configuração do COSMIC desta pessoa.
+#
+# HAVIA DOIS IDIOMAS, E SÓ UM DELES ERA HONRADO [21/09/2026]
+#   Medido no dia: 11 pontos em shell liam `${MEOW_COSMIC_DIR:-$HOME/...}` e 24
+#   cravavam o caminho direto — entre eles o `lib/preflight.sh`, que é o
+#   GUARDIÃO e roda antes da primeira escrita. Uma costura meio construída é
+#   pior que nenhuma: quem lê o código vê a variável e supõe que ela vale,
+#   quando ela valia em pouco mais de um terço dos lugares.
+#
+#   A divergência ainda não mordeu ninguém, e o motivo é um acaso: NADA neste
+#   repositório atribui `MEOW_COSMIC_DIR` — conferido em 21/09/2026, zero
+#   atribuições. Quem desvia a raiz nos testes desvia o `HOME` inteiro
+#   (`tests/convergencia.sh` roda o instalador com `env -i HOME=<temporário>`),
+#   e mover o HOME move os dois idiomas de uma vez. O dia em que alguém usar a
+#   variável para valer é o dia em que metade do projeto olha para o lugar
+#   errado, calada. Fechar a costura agora é mais barato que depurar aquilo.
+#
+# ISTO NÃO É UMA CAMADA DE DESKTOP, E A RECUSA ESTÁ MEDIDA
+#   Também em 21/09/2026: de 89 arquivos executáveis do projeto, 72 citam o
+#   COSMIC. Portar para GNOME/KDE foi recusado com esse número na mesa, e o
+#   `meow_preflight` já recusa instalar fora do COSMIC. Um verbo com um ramo só
+#   fecha uma divergência que existe; um `case` com um ramo só mentiria dizendo
+#   que existe alternativa.
+#
+# O QUE MUDA SOB `set -u` COM HOME INDEFINIDO, E POR QUE PASSA
+#   Medido em 21/09/2026: a expansão inline morria na hora (`HOME: variável não
+#   associada`, rc 127). O verbo morre no SUBSHELL do `$( )`, então quem o chama
+#   sem `set -e` SEGUE com a raiz VAZIA — e os caminhos viram
+#   `/com.system76...`. Nenhum caminho do projeto roda assim: os oito `env -i`
+#   do repositório são todos de `tests/` e passam `HOME=`, e o único de
+#   produção (`scripts/painel.sh:390`) lança o `cosmic-panel`, não um script
+#   meow. Fica registrado porque o sintoma, no dia em que houver um, será um
+#   caminho absoluto esquisito e não uma mensagem de erro.
+#
+# Quem esquecer de chamá-lo aparece no grep do `tests/estilo.sh`. Lá a cobrança
+# é só para CÓDIGO: comentário continua livre, porque é onde a explicação mora
+# e reescrevê-la apagaria o porquê.
+meow_cosmic_dir() {
+  printf '%s' "${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
+}
+
 # --- TRAVA 1: territórios proibidos ----------------------------------------
 # Uma escrita fora de lugar aqui não dá erro: dá um sintoma bizarro dias depois.
 #

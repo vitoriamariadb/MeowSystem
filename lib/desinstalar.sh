@@ -293,10 +293,11 @@ meow_desinstalar() {
   done
   if [ -n "$primeiro" ]; then
     meow_info "devolvendo o COSMIC ao estado de $(basename "$primeiro" | cut -c1-19)"
+    local destino; destino="$(meow_cosmic_dir)"
     if meow_seco; then
-      meow_muda "copiaria $primeiro/com.system76.CosmicTheme.* para ~/.config/cosmic/"
+      meow_muda "copiaria $primeiro/com.system76.CosmicTheme.* para $destino/"
     else
-      cp -a "$primeiro"/com.system76.CosmicTheme.* "$HOME/.config/cosmic/" 2>/dev/null || true
+      cp -a "$primeiro"/com.system76.CosmicTheme.* "$destino/" 2>/dev/null || true
       meow_ok "tema devolvido"
     fi
   else

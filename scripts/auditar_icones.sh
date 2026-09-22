@@ -195,7 +195,7 @@ AMBIENTE="${XDG_CURRENT_DESKTOP:-COSMIC}"
 # ==============================================================================
 # O valor é RON: uma string entre aspas, sem newline no fim. `tr -d` em vez de
 # `sed` porque o arquivo pode legitimamente não ter quebra de linha nenhuma.
-TK="$HOME/.config/cosmic/com.system76.CosmicTk/v1/icon_theme"
+TK="$(meow_cosmic_dir)/com.system76.CosmicTk/v1/icon_theme"
 if [ -n "$TEMA_FORCADO" ]; then
   TEMA="$TEMA_FORCADO"; FONTE_TEMA="--tema (simulação)"
 elif [ -r "$TK" ]; then
