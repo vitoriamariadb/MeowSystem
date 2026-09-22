@@ -69,6 +69,59 @@ meow_aviso()  { printf '  %s!!%s   %s\n' "$C_AMARELO" "$C_ZERO" "$*" >&2; }
 meow_erro()   { printf '  %serro%s %s\n' "$C_VERM" "$C_ZERO" "$*" >&2; }
 meow_seco()   { [ "$MEOW_SECO" = "1" ]; }
 
+# --- O MOTIVO DA PENDÊNCIA: quem mede é o `detectar`, quem fala é o `aplicar` -
+#
+# O DEFEITO QUE ISTO MATA, MEDIDO EM 21/09/2026
+#   O Spotify dela ESTÁ instalado: `flatpak list --app` devolve
+#   `com.spotify.Client 1.2.95.453.g0eeebbed stable user`, com o `Apps/xpui`
+#   patchado e o spicetify já pintando o app de Dracula. E o log do install.sh
+#   do mesmo dia dizia, com todas as letras:
+#
+#     --   Spotify não instalado (ou não é o flatpak de usuário)
+#
+#   A causa verdadeira era outra, e o módulo a conhecia: falta o tema catppuccin
+#   em ~/.config/spicetify/Themes. O `meow_app_detectar` mediu isso e devolveu
+#   3; o `meow_app_aplicar` recebeu só o NÚMERO e imprimiu a primeira frase de
+#   uma lista de causas possíveis. O código de saída sobreviveu à viagem, o
+#   motivo não — e frase chutada é pior que silêncio: ela manda a pessoa
+#   procurar defeito onde não há. O mesmo desenho estava em quatro módulos.
+#
+# O CONTRATO, EM DUAS FUNÇÕES
+#   `meow_app_sem "<motivo>"`      guarda a causa e devolve 3. É a ÚNICA porta
+#                                  por onde um `detectar` sai pendente.
+#   `meow_app_pendente <módulo>`   diz a causa guardada e devolve 3. É a ÚNICA
+#                                  forma de `aplicar`/`conferir`/`reverter`
+#                                  anunciarem a pendência.
+#
+#   O IDIOMA É `... || { meow_app_sem "..."; return; }`, E O `return` NU É DE
+#   PROPÓSITO: sem argumento ele devolve o status do último comando, que é o 3
+#   da própria `meow_app_sem`. Motivo e código saem do mesmo lugar, então não há
+#   como um ficar para trás quando o outro mudar.
+#
+#   TODO `detectar` COMEÇA ZERANDO O MOTIVO. Um motivo velho, deixado por uma
+#   chamada anterior que falhou por outra razão, mente igual ao chute — e mente
+#   com cara de coisa medida, que é pior.
+#
+# MOTIVO VAZIO É DEFEITO DO MÓDULO, NÃO CASO A COBRIR COM FRASE GENÉRICA
+#   Uma frase guarda-chuva ("não deu para agir agora") é exatamente como o
+#   defeito acima nasceu: ela cala o buraco em vez de mostrá-lo. Por isso o
+#   motivo vazio aparece na tela como erro de programação E quebra o
+#   `tests/reversao.sh`. É a única forma de a próxima saída-3 sem motivo não
+#   nascer muda.
+MEOW_APP_MOTIVO=""
+
+meow_app_sem() { MEOW_APP_MOTIVO="$*"; return "$MEOW_SEM_DEPENDENCIA"; }
+
+meow_app_pendente() {
+  local modulo="${1:-sem nome}"
+  if [ -n "$MEOW_APP_MOTIVO" ]; then
+    meow_pula "$MEOW_APP_MOTIVO"
+  else
+    meow_erro "sem motivo declarado — defeito no módulo $modulo"
+  fi
+  return "$MEOW_SEM_DEPENDENCIA"
+}
+
 # --- A PORTA ÚNICA DA PALETA -------------------------------------------------
 #
 # POR QUE ISTO EXISTE [2026-09-17]

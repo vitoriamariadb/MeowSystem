@@ -192,17 +192,24 @@ sys.stdout.write('\n'.join(saida))
 PY
 }
 
+# CADA SAÍDA-3 DAQUI DECLARA A CAUSA [21/09/2026]
+#   As quatro linhas abaixo devolviam o mesmo 3 sem uma palavra, e o `aplicar`
+#   traduzia todas elas por "ZapZap não instalado (ou falta python3)" — que
+#   acerta em duas e erra em duas. Agora a causa viaja com o número, pelo
+#   `meow_app_sem` do lib/comum.sh.
 meow_app_detectar() {
-  meow_tem flatpak || return "$MEOW_SEM_DEPENDENCIA"
+  # Motivo velho mente com cara de medida: zerar antes de medir é do contrato.
+  MEOW_APP_MOTIVO=""
+  meow_tem flatpak || { meow_app_sem "ZapZap: o flatpak não está instalado"; return; }
   # por diretório, não por `flatpak info`: aquele cria o repositório ostree no
   # home só por ser perguntado, e detecção não pode escrever (ver lib/comum.sh).
-  meow_flatpak_tem "$_ZZ_APP" || return "$MEOW_SEM_DEPENDENCIA"
-  [ -f "$_ZZ_ORIGEM" ] || return "$MEOW_SEM_DEPENDENCIA"
+  meow_flatpak_tem "$_ZZ_APP" || { meow_app_sem "ZapZap: $_ZZ_APP não está instalado"; return; }
+  [ -f "$_ZZ_ORIGEM" ] || { meow_app_sem "ZapZap: não achei o .desktop do flatpak em $_ZZ_ORIGEM"; return; }
   # O python3 continua sendo dependência por causa do `ZapZap.conf` (a chave da
   # bandeja). O `whatsapp-desktop` do Papirus saiu da lista em 11/08/2026: ele
   # era a fonte do balão verde, e o balão não é mais instalado — cobrar um
   # arquivo que ninguém lê faria o módulo se declarar sem dependência à toa.
-  meow_tem python3 || return "$MEOW_SEM_DEPENDENCIA"
+  meow_tem python3 || { meow_app_sem "ZapZap: falta python3, que escreve a chave da bandeja no ZapZap.conf"; return; }
   return "$MEOW_OK"
 }
 
@@ -228,10 +235,10 @@ meow_app_conferir() {
 }
 
 meow_app_aplicar() {
-  meow_app_detectar || {
-    meow_pula "ZapZap não instalado (ou falta python3)"
-    return "$MEOW_SEM_DEPENDENCIA"
-  }
+  # A frase que estava aqui listava DUAS causas possíveis e imprimia as duas
+  # sempre, inclusive quando a verdadeira era uma terceira (o `.desktop` do
+  # flatpak sumido). Quem mede é o `detectar`; quem fala é ele, por aqui.
+  meow_app_detectar || { meow_app_pendente zapzap; return; }
   meow_app_conferir >/dev/null 2>&1 && {
     meow_ok "ZapZap já aparece como '$_ZZ_NOME_NOVO' — nada a fazer"
     return "$MEOW_OK"
@@ -318,10 +325,8 @@ meow_app_aplicar() {
 #   revogou. O ícone do lançador volta a ser o do flatpak assim que o `Icon=`
 #   original está de volta, que é o que importa.
 meow_app_reverter() {
-  meow_app_detectar || {
-    meow_pula "ZapZap não instalado (ou falta python3)"
-    return "$MEOW_SEM_DEPENDENCIA"
-  }
+  # Mesma lista de causas possíveis do `aplicar`, mesmo conserto.
+  meow_app_detectar || { meow_app_pendente zapzap; return; }
 
   # Sem o original guardado não há o que devolver — e INVENTAR um `.desktop` de
   # flatpak à mão é a receita para um app que não abre. O caminho de volta existe

@@ -229,10 +229,21 @@ PYFIM
 
 # --- 1. detectar ------------------------------------------------------------
 # Nunca falha: 0 = tem, 3 = não tem. App ausente não é erro.
+#
+# E A CAUSA SAI DAQUI COM O NÚMERO [21/09/2026]
+#   Os `meow_pula` deste bloco diziam a causa CERTA, só que de dentro de quem
+#   mede: ela saía onde ninguém a pediu (o modo `tabela` do aplicar_apps.sh
+#   joga a saída daqui fora) e faltava onde importava — o `reverter` chutava
+#   uma frase própria, "Obsidian não instalado (ou o vault não está onde eu
+#   procuro)", que podia não ser nenhuma das cinco causas daqui. As frases não
+#   se perderam: viraram o motivo do `meow_app_sem` (lib/comum.sh), e quem as
+#   diz agora é quem foi barrado por elas, uma vez só.
 meow_app_detectar() {
+  # Motivo velho mente com cara de medida: zerar antes de medir é do contrato.
+  MEOW_APP_MOTIVO=""
   if ! meow_tem flatpak; then
-    meow_pula "obsidian: flatpak não está instalado"
-    return "$MEOW_SEM_DEPENDENCIA"
+    meow_app_sem "obsidian: flatpak não está instalado"
+    return
   fi
   # python3 faz o merge do appearance.json e pgrep é o guarda do app aberto.
   # Sem eles não há como trabalhar — e isso é dependência faltando (3), não erro
@@ -245,8 +256,8 @@ meow_app_detectar() {
   local falta
   for falta in python3 pgrep; do
     if ! meow_tem "$falta"; then
-      meow_pula "obsidian: falta '$falta' (sem ele não dá para aplicar com segurança)"
-      return "$MEOW_SEM_DEPENDENCIA"
+      meow_app_sem "obsidian: falta '$falta' (sem ele não dá para aplicar com segurança)"
+      return
     fi
   done
   # O teste por DIRETÓRIO cobre usuário, sistema e ~/.var/app — e não cria um
@@ -254,17 +265,21 @@ meow_app_detectar() {
   # fazia num HOME sem flatpak nenhum (medido em 10/08/2026). Detecção com
   # efeito colateral faz o MEOW_DRY_RUN=1 mentir.
   if ! meow_flatpak_tem "$MEOW_OBSIDIAN_APP_ID"; then
-    meow_pula "obsidian: $MEOW_OBSIDIAN_APP_ID não instalado"
-    return "$MEOW_SEM_DEPENDENCIA"
+    meow_app_sem "obsidian: $MEOW_OBSIDIAN_APP_ID não instalado"
+    return
   fi
   # Sem vault não há o que tematizar — também não é erro.
   if [ ! -d "$MEOW_OBSIDIAN_VAULT/.obsidian" ]; then
-    meow_pula "obsidian: vault '$MEOW_OBSIDIAN_VAULT' não encontrado"
-    return "$MEOW_SEM_DEPENDENCIA"
+    meow_app_sem "obsidian: vault '$MEOW_OBSIDIAN_VAULT' não encontrado"
+    return
   fi
+  # ESTE É O ÚNICO MOTIVO DAQUI QUE NÃO É DA MÁQUINA DELA: é o repositório que
+  # chegou incompleto. Continua saindo 3 (do lado dela não há o que consertar),
+  # e o `meow_erro` saiu junto com os outros para o motivo não ser dito duas
+  # vezes — o texto passou a dizer de quem é a falta.
   if [ ! -f "$MEOW_OBSIDIAN_VENDOR/theme.css" ] || [ ! -f "$MEOW_OBSIDIAN_VENDOR/manifest.json" ]; then
-    meow_erro "obsidian: falta o tema vendorado em $MEOW_OBSIDIAN_VENDOR"
-    return "$MEOW_SEM_DEPENDENCIA"
+    meow_app_sem "obsidian: falta o tema vendorado em $MEOW_OBSIDIAN_VENDOR (o repositório veio incompleto)"
+    return
   fi
   return "$MEOW_OK"
 }
@@ -273,7 +288,7 @@ meow_app_detectar() {
 # 0 = já aplicado · 1 = divergente · 3 = app ausente.
 # Ler é inofensivo mesmo com o app aberto, então aqui não se recusa nada.
 meow_app_conferir() {
-  meow_app_detectar || return "$MEOW_SEM_DEPENDENCIA"
+  meow_app_detectar || { meow_app_pendente obsidian; return; }
 
   local tema_dir divergente=0
   tema_dir="$(_meow_obsidian_tema_dir)"
@@ -304,7 +319,7 @@ meow_app_conferir() {
 # --- 3. aplicar -------------------------------------------------------------
 # 0 = nada a fazer · 1 = aplicou · 2 = erro · 3 = app ausente (ou aberto).
 meow_app_aplicar() {
-  meow_app_detectar || return "$MEOW_SEM_DEPENDENCIA"
+  meow_app_detectar || { meow_app_pendente obsidian; return; }
 
   local tema_dir appearance mudou=0 rc
   tema_dir="$(_meow_obsidian_tema_dir)"
@@ -419,10 +434,9 @@ meow_app_aplicar() {
 # clique na interface, e adivinhar por ela seria repor uma escolha que não é
 # nossa. A mensagem diz onde está.
 meow_app_reverter() {
-  meow_app_detectar || {
-    meow_pula "Obsidian não instalado (ou o vault não está onde eu procuro)"
-    return "$MEOW_SEM_DEPENDENCIA"
-  }
+  # A frase que estava aqui era um chute entre duas das cinco causas que o
+  # `detectar` mede. Agora é a medida que fala.
+  meow_app_detectar || { meow_app_pendente obsidian; return; }
 
   local tema_dir appearance mudou=0 arquivo rc
   tema_dir="$(_meow_obsidian_tema_dir)"

@@ -15,7 +15,7 @@
 #   O buraco não deu erro em lugar nenhum. Foi preciso alguém perguntar "o
 #   install e o uninstall estão pareados?" para ele aparecer.
 #
-# SÃO TRÊS AFIRMAÇÕES, E AS DUAS ÚLTIMAS SÃO AS QUE ENVELHECEM
+# SÃO QUATRO AFIRMAÇÕES, E AS TRÊS ÚLTIMAS SÃO AS QUE ENVELHECEM
 #   1. o desinstalador chama o `reverter` — uma linha, quebra alto se sumir;
 #   2. TODO módulo em `assets/temas-de-apps/` define `meow_app_reverter` — esta é a que
 #      apodrece sozinha: um módulo novo nasce com `detectar/conferir/aplicar`
@@ -36,6 +36,11 @@
 #      unidade que continua ATIVA, e sobra processo rodando sem arquivo. No
 #      `meow-painel.service` isso é um supervisor com `Restart=on-failure`
 #      batendo num binário que o passo seguinte apagou.
+#   4. TODO módulo que já usa `meow_app_sem` declara o motivo em CADA saída de
+#      pendência do `detectar` — acrescentada em 21/09/2026, quando o log disse
+#      "Spotify não instalado" para um Spotify instalado. O bloco 4 lá embaixo
+#      explica as duas cobranças; esta é a que nasce velha se alguém migrar um
+#      módulo pela metade, e o custo de falhar nela é o log mentir de novo.
 #
 # POR QUE `declare -F` NUM SUBSHELL, E NÃO UM `grep`
 #   `grep -q meow_app_reverter` passaria com a palavra dentro de um comentário —
@@ -102,8 +107,94 @@ else
   done
 fi
 
+# --- 4. o motivo da pendência viaja junto com o código 3 --------------------
+# POR QUE ESTA AFIRMAÇÃO MORA AQUI
+#   Este arquivo já é o teste do CONTRATO dos módulos de aplicativo — do verbo
+#   que um módulo novo esquece de escrever. O motivo é a segunda cláusula do
+#   mesmo contrato, e esquecê-la custa o mesmo: em 21/09/2026 o log do
+#   install.sh dizia "Spotify não instalado" para um Spotify instalado,
+#   patchado e tematizado, porque o `meow_app_detectar` sabia a causa (faltava o
+#   tema catppuccin do spicetify) e devolvia só o número 3.
+#
+# SÃO DUAS COBRANÇAS, E NENHUMA DAS DUAS SOZINHA BASTA
+#   A ESTÁTICA pega o caminho que esta máquina não percorre hoje: num módulo
+#   migrado, NENHUMA saída-3 do `detectar` pode escapar do `meow_app_sem` — é
+#   ele que guarda o motivo, e sair por outra porta é sair mudo. É a cobrança
+#   que o risco da sprint nomeia: um módulo com vários `return 3` precisa do
+#   motivo em CADA um, e só o grep vê todos.
+#   A DINÂMICA pega o que o grep não vê: roda o `detectar` de verdade e, se ele
+#   disser 3 aqui e agora, cobra o motivo. Foi por este caminho que o Spotify
+#   mentiu, e é ele que passaria batido numa conferência só de texto.
+#
+#   MÓDULO NÃO MIGRADO PASSA BATIDO DE PROPÓSITO. Quem se declara sujeito ao
+#   contrato é o próprio arquivo, por usar `meow_app_sem` — uma lista de
+#   migrados escrita aqui seria a armadilha nº 3 do projeto de novo.
+migrados=0
+for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
+  nome="$(basename "$(dirname "$mod")")"
+  grep -q 'meow_app_sem' "$mod" || continue
+  migrados=$((migrados + 1))
+
+  corpo="$(sed -n '/^meow_app_detectar() {/,/^}/p' "$mod")"
+  if [ -z "$corpo" ]; then
+    printf 'FALHOU: não achei o meow_app_detectar de %s para conferir\n' "$nome" >&2
+    printf '        (a função mudou de forma? esta afirmação precisa ser reescrita)\n' >&2
+    falhou=1
+    continue
+  fi
+  if printf '%s\n' "$corpo" | grep -q 'MEOW_SEM_DEPENDENCIA'; then
+    printf 'FALHOU: o meow_app_detectar de %s sai com 3 por fora do meow_app_sem\n' "$nome" >&2
+    printf '        essa saída não guarda motivo, e o aplicar imprimiria a causa errada\n' >&2
+    falhou=1
+  fi
+  if ! printf '%s\n' "$corpo" | grep -q 'MEOW_APP_MOTIVO=""'; then
+    printf 'FALHOU: o meow_app_detectar de %s não zera o MEOW_APP_MOTIVO ao começar\n' "$nome" >&2
+    printf '        um motivo velho de outra chamada seria impresso como se fosse medido agora\n' >&2
+    falhou=1
+  fi
+
+  # A dinâmica. `detectar` é leitura pura por contrato (lib/comum.sh), então
+  # rodá-lo num teste não escreve um byte na máquina de ninguém.
+  medida="$(
+    set +u
+    MEOW_IGNORA_DESKTOP=1 NO_COLOR=1
+    # shellcheck source=../lib/comum.sh
+    . "$RAIZ/lib/comum.sh" >/dev/null 2>&1
+    # shellcheck disable=SC1090
+    . "$mod" >/dev/null 2>&1
+    meow_app_detectar >/dev/null 2>&1
+    printf '%s\t%s' "$?" "${MEOW_APP_MOTIVO:-}"
+  )"
+  rc_det="${medida%%$'\t'*}"
+  motivo="${medida#*$'\t'}"
+  if [ "$rc_det" = "3" ] && [ -z "$motivo" ]; then
+    printf 'FALHOU: o meow_app_detectar de %s devolveu 3 sem declarar motivo\n' "$nome" >&2
+    printf '        nesta máquina, agora — é o caso exato do Spotify de 21/09/2026\n' >&2
+    falhou=1
+  fi
+done
+
+# E A GUARDA MORDE. Sem esta conferência o `meow_app_pendente` poderia degenerar
+# numa frase genérica sem ninguém notar, que é o defeito voltando pela porta de
+# trás: motivo vazio tem de GRITAR "defeito no módulo", não virar silêncio bonito.
+guarda="$(
+  set +u
+  NO_COLOR=1
+  # shellcheck source=../lib/comum.sh
+  . "$RAIZ/lib/comum.sh" >/dev/null 2>&1
+  MEOW_APP_MOTIVO=""
+  meow_app_pendente modulo-de-mentira 2>&1
+)"
+case "$guarda" in
+  *"sem motivo declarado"*"modulo-de-mentira"*) : ;;
+  *) printf 'FALHOU: meow_app_pendente com motivo vazio não acusou o defeito do módulo\n' >&2
+     printf '        saiu: %s\n' "$guarda" >&2
+     falhou=1 ;;
+esac
+
 [ "$falhou" = "0" ] || exit 1
 printf 'ok: o --uninstall desfaz os %s módulos de aplicativo\n' \
   "$(find "$RAIZ/assets/temas-de-apps" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+printf 'ok: os %s módulos migrados declaram o motivo em toda saída de pendência\n' "$migrados"
 printf 'ok: as %s unidades de systemd/ estão nas duas listas do desinstalador\n' \
   "$(find "$RAIZ/systemd" -maxdepth 1 -name 'meow-*' -type f | wc -l)"
