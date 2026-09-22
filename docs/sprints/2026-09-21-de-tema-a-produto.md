@@ -707,10 +707,46 @@ sha256sum -c /tmp/antes    # espera: OK
 esse perfil poder fazer sempre as aplicações do software, sem voltar a pedir
 sudo."*
 
+> **CORREÇÃO DE 21/09, e ela derruba a premissa desta sprint.** Medido ao
+> investigar um resíduo que um agente deixou no sistema:
+>
+> ```
+> /etc/sudoers.d/andrefarias:1:  andrefarias ALL=(ALL) NOPASSWD: ALL
+> ```
+>
+> Arquivo de **14/04/2026**. **Nesta máquina não existe senha de sudo a
+> pedir** — nem no install, nem em conserto nenhum. A sprint prometia "pedir a
+> senha uma vez e não pedir mais"; o que ela de fato faria é registrar um
+> perfil para um problema que aquele arquivo já eliminou em abril.
+>
+> **O que muda, e a pergunta nova:** a ponte root continua sendo o desenho
+> certo — um programa de root pequeno, auditável, com uma regra sem curinga —
+> **e é o que permitirá tirar o `NOPASSWD: ALL`**. A sprint inverte de sentido:
+> em vez de "pedir senha uma vez", ela passa a ser *"o projeto deixa de
+> depender de sudo aberto"*.
+>
+> **O item 1 sai** (não há senha para aproveitar no install; `etapa_ponte_root`
+> já roda sem pedir nada). **Os itens 2, 3 e 4 ficam**, e ganham um quinto:
+>
+> 5. **O `meow doctor` passa a AVISAR quando acha `NOPASSWD: ALL`** para o
+>    usuário. Não conserta — apagar a regra de sudo de alguém sem pedir é
+>    exatamente o tipo de ato que este projeto não faz. Mas dizer que ela está
+>    lá é serviço: com ela, a ponte root não protege nada, e a frase "consertos
+>    de sistema sem pedir senha" descreve a máquina inteira, não o projeto.
+>
+> **E há uma consequência prática que custou caro hoje:** com `NOPASSWD: ALL`,
+> um teste que chama `sudo` **não falha** — ele escreve no sistema real. O
+> `tests/convergencia.sh` roda o `install.sh` de verdade, e nesta sessão dois
+> agentes contaminaram `/usr/local/lib/meowsystem/perfil` e a unidade
+> `meow-assets.path`, que passaram a apontar para um worktree em `/tmp`.
+> Restaurados à mão. **O `tests/convergencia.sh` precisa de um `sudo` falso no
+> PATH**, e isso entra aqui como item 6 — é a mesma classe do incidente de
+> 08/09/2026 que o cabeçalho daquele teste já narra, por outra porta.
+
 ### O que medi
 
-**Já existe, e está escondido.** `scripts/ponte_root.sh` é o braço root do
-projeto: um programa em `/usr/local/lib/meowsystem/`, `root:root`, com uma
+**A ponte já existe, e está escondida.** `scripts/ponte_root.sh` é o braço root
+do projeto: um programa em `/usr/local/lib/meowsystem/`, `root:root`, com uma
 regra em `/etc/sudoers.d/49-meowsystem-ponte` sem um único curinga. O
 cabeçalho cita a decisão de 08/09/2026, nas palavras dela: *"não conseguimos de
 alguma forma usar sudo só na instalação?"*.
@@ -747,7 +783,8 @@ O que falta é o **fluxo**:
 | `scripts/ponte_root.sh` | nada de novo — só passa a ser chamado no momento certo |
 | `app/pagina/app.js` | a linha na Home; o rótulo condicional |
 | `app/servidor.py` | o estado da ponte no esquema |
-| `bin/meow` | `cmd_doctor` confere a ponte |
+| `bin/meow` | `cmd_doctor` confere a ponte, e avisa do `NOPASSWD: ALL` (item 5) |
+| `tests/convergencia.sh` | o `sudo` falso no PATH (item 6) |
 
 ### Como conferir
 
