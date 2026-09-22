@@ -186,7 +186,33 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 5. --uma-passagem: o comportamento de antes, preservado
+# 5. Oscilação E falha na mesma execução: a tela mostra as duas
+# ---------------------------------------------------------------------------
+# Medido em 21/09/2026: na primeira versão do laço o bloco do `falhou:` devolvia
+# 2 antes de qualquer outra coisa, e num HOME de brinquedo — onde sete etapas
+# falham por não haver barramento de sessão — o relatório da oscilação nunca
+# chegava à tela. São dois defeitos diferentes, e quem tem os dois lê os dois.
+cenario teimosa_com_falha 'etapa_falsa_teimosa etapa_falsa_quebrada' '
+etapa_falsa_teimosa() {
+  passo "etapa falsa que escreve toda passagem"
+  meow_muda "escrevi de novo"
+  return 1
+}
+etapa_falsa_quebrada() { passo "etapa falsa que falha"; meow_erro "quebrei"; return 2; }
+'
+confere teimosa_com_falha
+if [ "$RC" != "2" ]; then
+  falhou "teimosa+falha: saiu $RC em vez de 2"
+elif ! contem 'as mesmas etapas escreveram em duas passagens seguidas'; then
+  falhou "teimosa+falha: o 'falhou:' engoliu o relatório da oscilação"
+elif ! contem 'Algumas etapas falharam'; then
+  falhou "teimosa+falha: a oscilação engoliu o relatório das falhas"
+else
+  passou "oscilação e falha juntas: a tela conta as duas histórias"
+fi
+
+# ---------------------------------------------------------------------------
+# 6. --uma-passagem: o comportamento de antes, preservado
 # ---------------------------------------------------------------------------
 # É a flag do timer e da depuração. Ela não conserta nada: ela mostra a primeira
 # passagem sozinha, com o rodapé de sempre.

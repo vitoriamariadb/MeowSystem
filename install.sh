@@ -3233,11 +3233,14 @@ main() {
     assinatura_anterior="$assinatura"
   done
 
-  if [ ${#FALHOS[@]} -gt 0 ]; then
-    printf '\n  %sAlgumas etapas falharam. Nada foi deixado pela metade —%s\n' "$C_AMARELO" "$C_ZERO"
-    printf '  %scada etapa é independente, e o resto foi aplicado.%s\n\n' "$C_AMARELO" "$C_ZERO"
-    return 2
-  fi
+  # AS DUAS GUARDAS FALAM ANTES DO BLOCO DAS FALHAS, e a ordem custou uma
+  # medição: na primeira versão o `falhou:` devolvia 2 primeiro, e num HOME de
+  # brinquedo — onde `systemctl --user` não tem barramento e sete etapas falham
+  # por isso — o relatório da oscilação NUNCA chegava à tela. São dois defeitos
+  # diferentes: uma etapa que falhou, e um laço que não fechou. Quem tem os dois
+  # precisa ler os dois, e o segundo é o que explica por que o instalador parou
+  # antes do teto. (21/09/2026)
+  local laco_quebrado=0
 
   # As mesmas etapas, duas passagens seguidas. Nomeá-las é o serviço: "rode mais
   # uma vez" mandava a pessoa descobrir sozinha o que este laço já sabe.
@@ -3247,19 +3250,24 @@ main() {
     meow_aviso "alguma delas escreve toda vez, e passagem nenhuma vai calá-la."
     meow_aviso "o que olhar primeiro:  meow doctor"
     printf '\n'
-    return 2
-  fi
-
+    laco_quebrado=1
   # O TETO. Chegar aqui com etapas escrevendo é o cenário que ele existe para
   # expor — e hoje isso ficava escondido atrás de "rode mais uma vez", que a
   # pessoa roda, roda de novo, e desiste sem nunca saber de quem era a culpa.
-  if [ "$ainda" -gt 0 ] && [ "$teto" -gt 1 ]; then
+  elif [ "$ainda" -gt 0 ] && [ "$teto" -gt 1 ]; then
     meow_erro "$teto passagens, e estas etapas ainda escrevem:  ${FEITOS[*]}"
     meow_aviso "parei no teto de propósito: um laço sem fim esconderia o defeito."
     meow_aviso "o que olhar primeiro:  meow doctor"
     printf '\n'
+    laco_quebrado=1
+  fi
+
+  if [ ${#FALHOS[@]} -gt 0 ]; then
+    printf '\n  %sAlgumas etapas falharam. Nada foi deixado pela metade —%s\n' "$C_AMARELO" "$C_ZERO"
+    printf '  %scada etapa é independente, e o resto foi aplicado.%s\n\n' "$C_AMARELO" "$C_ZERO"
     return 2
   fi
+  [ "$laco_quebrado" = "1" ] && return 2
 
   # UMA PASSAGEM SÓ (--uma-passagem, ou o ensaio): o rodapé de antes, preservado
   # inteiro. A diferença é a linha do meio — quem fecha o laço agora é o
