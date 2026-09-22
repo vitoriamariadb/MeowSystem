@@ -71,14 +71,29 @@ ISENTAS=(
   '"$HOME/.config/zsh"/*)'
 
   # --- regra 4: ISENÇÃO COM DÍVIDA ANOTADA ----------------------------------
-  # As duas linhas abaixo cravam a árvore da vizinha SEM variável de troca, ao
-  # contrário do `compositor_patches.sh`, que oferece `CP_COPIA` e
-  # `CP_SERIE_ALT` para as mesmas leituras. Não são falso positivo: são dívida.
-  # Ficam isentas porque a sprint P22 não autoriza tocar nestes dois arquivos, e
-  # apagar o achado calado seria pior que registrá-lo. Quem for consertar: o
-  # remédio é uma linha, `${MEOW_...:-$HOME/.config/zsh/...}`, e aí a isenção
-  # para de casar sozinha.
-  'MEOW_QBT_AURORA_FONTE="$HOME/.config/zsh/scripts/aurora-qbittorrent-config.sh"'
+  # ERAM DUAS. UMA FOI PAGA EM 22/09/2026 (sprint P29), E A OUTRA CONTINUA AQUI.
+  #
+  # A QUE SAIU:
+  #     'MEOW_QBT_AURORA_FONTE="$HOME/.config/zsh/scripts/aurora-qbittorrent-config.sh"'
+  #   A P29 foi buscar o arquivo no Spellbook para trazê-lo, e mediu que ele
+  #   NÃO EXISTE lá — `find ~/.config/zsh -name '*qbittorrent*'` devolve zero
+  #   linha. Não era "está no outro projeto": era dependência de um arquivo que
+  #   não existe em lugar nenhum. A linha do manifesto virou
+  #   `${MEOW_QBT_AURORA_FONTE:-}` — padrão vazio —, e a isenção saiu junto.
+  #
+  #   E ESTE É O MOTIVO DE A ISENÇÃO TER DE SAIR NO MESMO COMMIT que o conserto:
+  #   enquanto ela estivesse aqui, este teste passaria VERDE sobre o defeito que
+  #   veio pegar, e passaria verde igual depois de consertado — o que faz dele
+  #   um teste que não mede nada. Uma isenção que sobrevive ao seu motivo é pior
+  #   que nenhuma isenção.
+  #
+  # A QUE FICA, e agora é a única: o `scripts/areas.sh` crava a árvore da
+  # vizinha sem variável de troca. Continua sendo dívida, não falso positivo. O
+  # remédio é uma linha — `${MEOW_AREAS_VIZINHO_FONTE:-$HOME/.config/zsh/...}`,
+  # ou o padrão vazio que o qbittorrent acabou de adotar — e o `areas.sh` NÃO
+  # está entre os arquivos que a P29 autoriza tocar ("Arquivos, e só estes").
+  # Apagar o achado calado seria pior que registrá-lo. No dia em que a linha
+  # mudar, esta isenção para de casar sozinha, que é a hora de reler isto.
   'AREAS_VIZINHO_FONTE="$HOME/.config/zsh/scripts/aurora-cosmic-workspaces.py"'
 
   # --- regra 1: o CONTEÚDO de um arquivo dela, citado como medida -----------

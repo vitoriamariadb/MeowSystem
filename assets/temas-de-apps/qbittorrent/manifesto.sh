@@ -104,10 +104,38 @@ MEOW_QBT_SHA256="f6ddf59ed881ea4a423e8d48a73f6f507c594a560f398097891fcb70bc8255e
 MEOW_QBT_DIR_MODULO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MEOW_QBT_ORIGEM="$MEOW_QBT_DIR_MODULO/$MEOW_QBT_ARQUIVO"
 
-# O script do Aurora: a FONTE é que manda. O self-heal roda a cópia de
-# `~/.config/zsh/scripts/` (linha do `bash "$SRC/..."`) e só depois a instala em
-# /usr/local/bin — patchar só o /usr/local/bin seria revertido no ciclo seguinte.
-MEOW_QBT_AURORA_FONTE="$HOME/.config/zsh/scripts/aurora-qbittorrent-config.sh"
+# A DEPENDÊNCIA FANTASMA SAIU DO CÓDIGO — 22/09/2026, sprint P29
+#   A linha era, cravada:
+#
+#       MEOW_QBT_AURORA_FONTE="$HOME/.config/zsh/scripts/aurora-qbittorrent-config.sh"
+#
+#   e o comentário ao lado explicava que o self-heal do Aurora roda a cópia de
+#   `~/.config/zsh/scripts/` antes de instalar em `/usr/local/bin`. A P2 já
+#   tinha tirado o caminho das MENSAGENS de tela; o que sobrou foi esta linha,
+#   que é a última a apontar para a árvore da vizinha em código deste módulo.
+#
+#   E ELA NÃO APONTAVA PARA LUGAR NENHUM. Medido em 22/09/2026, arquivo por
+#   arquivo: `aurora-qbittorrent-config.sh` não existe em `~/.config/zsh` —
+#   um `find ~/.config/zsh -name '*qbittorrent*'` devolve ZERO linha. Não é
+#   "está no outro projeto": é uma dependência de um arquivo que não existe em
+#   lugar nenhum, e a P29 foi buscá-lo para confirmar que não há de onde trazer.
+#   O alcance instável que a P2 mediu (uma cópia num `sshfs` da outra máquina)
+#   continua não servindo de conserto, pelo motivo dela.
+#
+#   O PADRÃO É VAZIO, E O VAZIO É A RESPOSTA CERTA
+#     Sem escritor do `qBittorrent.conf` o módulo já fazia a coisa certa —
+#     devolver `MEOW_SEM_DEPENDENCIA` (3) e registrar a pendência sem botão.
+#     Com o padrão vazio, `[ -f "" ]` falha e é exatamente esse caminho que se
+#     percorre; nada no comportamento muda, porque o arquivo já não existia. O
+#     que muda é a honestidade do código: ele deixa de afirmar que sabe onde
+#     está um escritor que ninguém tem.
+#
+#     Quem TIVER um escritor aponta a variável para ele. É a mesma porta de
+#     escape do `CP_SERIE` e do `MEOW_ZSH_ENV`, e é o que faz este módulo
+#     obedecer à regra 7 da P29 sem inventar um segundo dono para o
+#     `qBittorrent.conf` — que é o começo de toda guerra de idempotência, como
+#     o cabeçalho deste arquivo diz desde 25/08/2026.
+MEOW_QBT_AURORA_FONTE="${MEOW_QBT_AURORA_FONTE:-}"
 MEOW_QBT_AURORA_ESTADO="$HOME/.local/state/aurora/qbittorrent-tema"
 
 # Todo aviso estrutural sai UMA vez por processo: o runner chama
