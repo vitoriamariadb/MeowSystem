@@ -822,6 +822,22 @@ def _vestigio_de_pack(chave):
     # adoção por convenção de meow_pack_dir() em lib/comum.sh.
     vals = valores_efetivos(["PACK", "FLAVOR"])
     adotado = (vals.get("PACK") or vals.get("FLAVOR") or "").strip().lower()
+    # E SE O QUE CHEGOU FOI UM SABOR, TRADUZA PARA O PACK — 22/09/2026.
+    #   A linha acima é `PACK or FLAVOR`, e com o meow.conf DE FÁBRICA
+    #   (`PACK=""`, `FLAVOR="mocha"`) o `adotado` vira "mocha". Nenhum pack se
+    #   chama mocha, então `pack == adotado` nunca casava, e o laço abaixo
+    #   acusava `CURSOR="catppuccin-mocha-light"` de ser "do pack «catppuccin»"
+    #   enquanto "o adotado é «mocha»" — prometendo tela misturada onde mocha
+    #   É o sabor do catppuccin, que é justamente o pack adotado.
+    #
+    #   Medido em 22/09: o aviso nascia para latte, frappe, macchiato e mocha,
+    #   ou seja, para o usuário PADRÃO. O conserto anterior tratava só o ramo
+    #   do Dracula, que é o caso raro.
+    if adotado and adotado not in packs:
+        mod = modulo_pack()
+        dir_sabor = _pack_do_sabor(mod, adotado) if mod else None
+        if dir_sabor:
+            adotado = os.path.basename(dir_sabor.rstrip("/")).lower()
     alvo = valor.strip().lower()
     for pack in packs:
         if pack == adotado:
@@ -844,6 +860,40 @@ def _vestigio_de_pack(chave):
                     "porque": ("Este valor é do pack «%s», e o adotado agora é «%s». "
                                "Ele continua valendo — o seu meow.conf vence o pack —, "
                                "mas o resultado na tela fica misturado." % (pack, adotado or "o padrão"))}
+    return None
+
+
+def _pack_do_sabor(mod, sabor):
+    """O diretório do pack que declara este SABOR na paleta — ou `None`.
+
+    Existe por causa de uma linha do chamador: `adotado = PACK or FLAVOR`. Com
+    a chave `PACK` vazia — que é o padrão de fábrica — o que chega aqui é o
+    nome do sabor, e nenhum pack se chama "mocha". Ver o bloco de 22/09/2026
+    em `_declarado_pelo_pack`.
+    """
+    alvo = (sabor or "").strip().lower()
+    if not alvo:
+        return None
+    for raiz in (mod.raizes() if hasattr(mod, "raizes") else []):
+        try:
+            nomes = sorted(os.listdir(raiz))
+        except OSError:
+            continue
+        for nome in nomes:
+            d = os.path.join(raiz, nome)
+            pj = os.path.join(d, "pack.json")
+            if not os.path.isfile(pj):
+                continue
+            try:
+                with open(pj, encoding="utf-8") as fh:
+                    no = json.load(fh)
+                arq = (no.get("paleta") or {}).get("arquivo") or "paleta.json"
+                with open(os.path.join(d, arq), encoding="utf-8") as fh:
+                    pal = json.load(fh)
+            except (OSError, ValueError):
+                continue
+            if alvo in {f.lower() for f in (pal.get("flavors") or {})}:
+                return d
     return None
 
 
