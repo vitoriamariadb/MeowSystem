@@ -515,6 +515,120 @@ instalar_completion() {
   return "$MEOW_DIVERGENTE"
 }
 
+# --- O ESTADO DO USUÁRIO NASCE AQUI, E NÃO NA PRIMEIRA ESCRITA — 21/09/2026 --
+#
+#   Até esta data o painel gravava a curadoria DENTRO do clone: `BANIDOS.txt` e
+#   `lado.tsv` eram versionados, e clicar em "Tirar" deixava diff pendente
+#   (`+47` linhas no clone dele, às 17h09 daquele dia). Agora eles moram em
+#   `$MEOW_ESTADO/papeis-de-parede/`, semeados do `.padrao` versionado.
+#
+#   O `meow_estado_com_padrao` semeia sozinho na primeira leitura, então esta
+#   chamada é redundante POR DESENHO — e ainda assim vale: sem ela, o estado só
+#   nasceria no dia em que ela clicasse em "Tirar", e um `meow wallpaper semear`
+#   rodado antes disso em máquina recém-instalada não teria a lista de fábrica
+#   na mão para saber o que NÃO baixar. É a mesma razão pela qual o ponteiro da
+#   raiz é escrito aqui em vez de na primeira vez que a CLI precisa dele.
+#
+#   Não há `meow_muda` nem contagem de divergência: `$MEOW_ESTADO` é a nossa
+#   casa, não a máquina dela, e é o mesmo acordo que o `meow_travar` e o
+#   `meow_log` já têm com o `--seco`. O que esta função pode criar é uma cópia
+#   de um arquivo versionado dentro do nosso próprio diretório de estado.
+#
+#   UMA CHAMADA POR PASTA, E NÃO UMA POR ARQUIVO: o `meow_estado_com_padrao`
+#   semeia todo `*.padrao` da pasta de origem de uma vez. Listar os arquivos
+#   aqui seria a armadilha nº 3 do projeto — um `.padrao` novo ficaria de fora
+#   desta lista e só nasceria na primeira escrita, calado.
+semear_estado_do_usuario() {
+  meow_estado_com_padrao papeis-de-parede BANIDOS.txt >/dev/null
+  return 0
+}
+
+# --- O `merge=ours` DO `.gitattributes` ERA INERTE EM CLONE NOVO ------------
+#
+#   `.gitattributes` declara `assets/papeis-de-parede/BANIDOS.txt merge=ours`
+#   desde sempre. Um `merge=ours` sem o DRIVER registrado não faz nada: o git
+#   procura `merge.ours.driver` na configuração e, não achando, cai no merge de
+#   três vias normal. Medido em 21/09/2026: o driver existia só no `.git/config`
+#   DELE, e `grep -rn "merge.ours.driver" install.sh lib/ scripts/` voltava
+#   vazio. Quem clonasse recebia a declaração sem o mecanismo — que é a pior das
+#   combinações, porque parece protegido e não está.
+#
+#   ELE É CINTO, E NÃO A DEFESA. A defesa é o arquivo ter saído do git nesta
+#   mesma sprint.
+#
+#   E O CINTO NÃO ALCANÇA A TRAVESSIA — MEDIDO EM 22/09/2026. Este comentário
+#   afirmava que o que sobrava para o driver cobrir era o `pull` entre o clone
+#   com o arquivo antigo rastreado e o novo. Não é. Num clone de teste parado no
+#   commit anterior, com a curadoria COMMITADA, o merge da migração foi rodado
+#   DUAS vezes — com e sem `merge.ours.driver` registrado — e o resultado foi o
+#   mesmo nas duas: `BANIDOS.txt` resolvido por DETECÇÃO DE RENAME do `ort`
+#   (as linhas foram para o `.padrao`) e `lado.tsv` em `CONFLICT
+#   (modify/delete)`. Driver de merge só é chamado quando os DOIS lados têm
+#   conteúdo para o caminho, e deste lado `assets/papeis-de-parede/BANIDOS.txt`
+#   foi APAGADO: rename/delete não passa por driver nenhum.
+#
+#   O QUE ELE COBRE, E POR ISSO CONTINUA AQUI: as duas máquinas enquanto ambas
+#   estiverem ANTES da migração. Aí os dois lados têm o `BANIDOS.txt`
+#   rastreado, o `merge=ours` do `.gitattributes` vale, e sem o driver ele é
+#   inerte — que é exatamente o conflito real que originou a sprint. Depois que
+#   as duas migrarem, o driver fica de cinto para a próxima declaração
+#   `merge=ours` que alguém escrever, e a declaração de hoje fica órfã (ela
+#   nomeia um caminho que saiu do índice). Mexer no `.gitattributes` está fora
+#   da tabela desta sprint, e apontá-lo para o `.padrao` seria ERRADO: o
+#   `.padrao` é receita de fábrica e PRECISA mesclar de três vias entre as duas
+#   máquinas — `merge=ours` ali engoliria, calado, toda atualização da lista de
+#   fábrica que viesse do outro lado.
+#
+#   `--local` de propósito: a configuração é DESTE clone. Mexer no `--global`
+#   seria o instalador de um projeto opinando sobre todo repositório da pessoa.
+registrar_driver_de_merge() {
+  command -v git >/dev/null 2>&1 || return 0
+  # ESTE DIRETÓRIO TEM DE SER A RAIZ, E NÃO "ter algum repositório acima" —
+  # MEDIDO EM 22/09/2026, e o comentário que estava aqui afirmava uma distinção
+  # FALSA: dizia que `--git-dir` não sobe a árvore e que
+  # `--is-inside-work-tree` sobe. OS DOIS SOBEM IGUAL. Com o MeowSystem
+  # extraído dentro do clone de OUTRA pessoa (o zip do GitHub solto numa pasta
+  # como `~/repo-dela/vendor/meowsystem`, sem `.git` próprio),
+  # `rev-parse --git-dir` respondia `~/repo-dela/.git`, a guarda passava, e o
+  # `config --local` gravava `[merge "ours"]` no `.git/config` DELA.
+  #
+  # É o mesmo pecado que o parágrafo acima recusa ao não mexer no `--global`, e
+  # com consequência PIOR: registrar o driver no repositório de terceiro muda,
+  # calado, o merge de todo caminho que o `.gitattributes` DELE marque
+  # `merge=ours` — passa a tomar "ours" em vez de merge de três vias.
+  #
+  # `--show-toplevel` responde certo nos dois casos, inclusive em WORKTREE
+  # (onde `.git` é ARQUIVO e não diretório), que é como esta sprint foi medida.
+  # O `pwd -P` do outro lado é o mesmo que o `MEOW_RAIZ` já usa na linha 63:
+  # sem resolver o link simbólico, um clone alcançado por atalho não casaria.
+  [ "$(git -C "$MEOW_RAIZ" rev-parse --show-toplevel 2>/dev/null)" = "$(cd "$MEOW_RAIZ" && pwd -P)" ] || return 0
+  [ "$(git -C "$MEOW_RAIZ" config --local --get merge.ours.driver 2>/dev/null)" = "true" ] && return 0
+
+  # ELA CONTA DIVERGÊNCIA, E A `semear_estado_do_usuario` LOGO ACIMA NÃO —
+  # a assimetria não estava escrita em lugar nenhum, e é esta: o que aquela
+  # função toca é `$MEOW_ESTADO`, nossa própria casa; o que esta toca é o
+  # `.git/config` do clone DELA. Mudança na máquina de quem instala é o que o
+  # `--conferir` existe para anunciar. MEDIDO em 22/09/2026, antes do conserto:
+  # num clone convergente em todo o resto e sem o driver, o `--conferir`
+  # imprimia `~~ registraria merge.ours.driver` e a `etapa_cli` devolvia 0 —
+  # a tela dizia "há o que fazer" e o código de saída dizia "nada a fazer".
+  if meow_seco; then
+    meow_muda "registraria merge.ours.driver neste clone (o .gitattributes já o declara)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if git -C "$MEOW_RAIZ" config --local merge.ours.driver true 2>/dev/null; then
+    meow_ok "driver de merge 'ours' registrado neste clone"
+    return "$MEOW_DIVERGENTE"
+  fi
+  # Não é falha da etapa: um clone somente-leitura, ou um `.git` de que a
+  # pessoa não é dona, continua instalando o resto perfeitamente. O que se
+  # perde é um cinto de segurança, e dizer isso em voz alta é o conserto.
+  # Também não é divergência: nada mudou, e insistir todo `--conferir` num
+  # clone onde a escrita nunca vai passar seria ruído permanente.
+  meow_aviso "não consegui registrar merge.ours.driver — o merge=ours do .gitattributes fica inerte neste clone"
+  return 0
+}
+
 etapa_cli() {
   passo "CLI meow e completions"
   local mudou=0 rc
@@ -542,6 +656,11 @@ etapa_cli() {
   meow_escrever "$MEOW_ESTADO/raiz" "$MEOW_RAIZ" 644
   rc=$?
   [ "$rc" -ge 2 ] && { meow_erro "não consegui gravar $MEOW_ESTADO/raiz"; return "$MEOW_ERRO"; }
+  [ "$rc" = "1" ] && mudou=1
+
+  semear_estado_do_usuario
+  registrar_driver_de_merge
+  rc=$?
   [ "$rc" = "1" ] && mudou=1
 
   # 3 AQUI É "NÃO HÁ ONDE PÔR", E ISSO NÃO É FALHA DESTA ETAPA

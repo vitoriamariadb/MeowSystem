@@ -390,11 +390,16 @@ meow_desinstalar() {
   # curadoria de 24/08/2026, que foi ela quem fez, imagem por imagem.
   #
   # "MAS É REPRODUZÍVEL PELA RECEITA" — e é justamente por isso que a diferença
-  # importa. O `assets/papeis-de-parede/FONTES.tsv` e o `assets/papeis-de-parede/BANIDOS.txt` estão no git
-  # e reconstroem a escolha dela, sim; mas o `semear` reconstrói **baixando da
+  # importa. O `assets/papeis-de-parede/FONTES.tsv` e a lista de banidos
+  # reconstroem a escolha dela, sim; mas o `semear` reconstrói **baixando da
   # internet**, uma URL por imagem. Isso depende de rede e de as URLs
   # continuarem vivas — e link rot não avisa. Uma receita que precisa da
   # internet não é a mesma coisa que um script que só precisa do disco.
+  #
+  # E DESDE 21/09/2026 A RECEITA ESTÁ EM DOIS LUGARES, o que só reforça o
+  # parágrafo acima: no git está o `BANIDOS.txt.padrao`, a lista de FÁBRICA;
+  # o que ela acrescentou usando o painel está em `$MEOW_ESTADO`, e é tratado
+  # logo abaixo com a mesma regra que o acervo de imagens.
   #
   # A primeira regra deste projeto é **não destruir dado dela**
   # (`docs/SPRINTS.md`, "Como este projeto trabalha"). Desinstalar um tema não é
@@ -419,6 +424,36 @@ meow_desinstalar() {
       meow_pula "acervo de papel de parede PRESERVADO — é curadoria sua, não arquivo nosso"
       meow_info "  $acervo/  ($tamanho: $n_ativos ativos, $n_banidos banidos)"
       meow_info "  para apagar mesmo assim:  MEOW_APAGAR_ACERVO=1 ./install.sh --uninstall"
+    fi
+  fi
+
+  # --- A CURADORIA GANHOU UM SEGUNDO ENDEREÇO EM 21/09/2026 ------------------
+  # `BANIDOS.txt` e `lado.tsv` eram versionados dentro do clone, e o painel os
+  # reescrevia enquanto ela usava a interface — usar o programa virava commit
+  # pendente, e conflito de merge entre as duas máquinas a cada `git pull`. Eles
+  # passaram para `$MEOW_ESTADO/papeis-de-parede/`.
+  #
+  # ISSO OS COLOCOU DENTRO DE UM DIRETÓRIO QUE O PASSO 6 MANDA APAGAR À MÃO, e
+  # é por isso que eles aparecem aqui: são a MESMA curadoria do acervo logo
+  # acima — a lista do que ela recusou e o lado que ela escolheu —, só que em
+  # texto. O acervo é 320 MB de imagem e se vê; estas duas listas são 300 linhas
+  # e somem sem ninguém notar. Elas seguem a regra do acervo: preservadas por
+  # padrão, apagadas só por pedido explícito, e nomeadas nos dois casos.
+  #
+  # O `.padrao` versionado repõe a lista de FÁBRICA num clone novo — não repõe o
+  # que ela acrescentou depois. É essa diferença que esta mensagem protege.
+  local curadoria="$MEOW_ESTADO/papeis-de-parede"
+  if [ -d "$curadoria" ]; then
+    if [ "${MEOW_APAGAR_ACERVO:-0}" = "1" ]; then
+      if meow_seco; then
+        meow_muda "removeria $curadoria/ (MEOW_APAGAR_ACERVO=1)"
+      else
+        rm -rf "$curadoria"; meow_ok "removido $curadoria/ (você pediu com MEOW_APAGAR_ACERVO=1)"
+      fi
+    else
+      meow_pula "listas de curadoria de papel de parede PRESERVADAS — é escolha sua, não arquivo nosso"
+      meow_info "  $curadoria/  (BANIDOS.txt e lado.tsv)"
+      meow_info "  o .padrao do repositório repõe a lista de fábrica, não o que você acrescentou"
     fi
   fi
 
@@ -458,7 +493,17 @@ meow_desinstalar() {
     rm -f "$MEOW_ESTADO/raiz"
     meow_ok "CLI removida"
   fi
+  # "APAGUE À MÃO SE QUISER" PASSOU A TER UM PREÇO — 21/09/2026
+  #   Desde que a curadoria de papel de parede saiu do clone, `$MEOW_ESTADO` não
+  #   guarda só backup e log: guarda `papeis-de-parede/BANIDOS.txt` e
+  #   `papeis-de-parede/lado.tsv`, que são escolha dela. Um `rm -rf` naquele
+  #   diretório, convidado por esta linha, apagaria junto — e o passo 5 acabou
+  #   de dizer, com todas as letras, que aquilo é preservado. Duas frases do
+  #   mesmo programa se contradizendo é como se perde dado sem ninguém mentir.
   meow_info "o estado e os backups ficam em $MEOW_ESTADO — apague à mão se quiser"
+  if [ -d "$MEOW_ESTADO/papeis-de-parede" ]; then
+    meow_info "  menos $MEOW_ESTADO/papeis-de-parede/ — é a sua curadoria de papel de parede"
+  fi
   meow_info "se LANCADOR_SISTEMA era \"sim\": rode antes  meow desfazer --lancador"
   return 0
 }

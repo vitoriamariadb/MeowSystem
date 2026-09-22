@@ -3081,8 +3081,8 @@ GRUPOS_PAREDE = (("ativos", "ativos"), ("noite", "ativos-noite"),
 
 
 # O LADO ESCRITO, PARA A FICHA SABER O QUE JÁ FOI DECIDIDO — 06/09/2026
-#   `assets/papeis-de-parede/lado.tsv` guarda a ESCOLHA: quem não está lá é
-#   separado pela luminância. O arquivo nem existe enquanto ninguém escolheu
+#   O `lado.tsv` guarda a ESCOLHA: quem não está lá é separado pela
+#   luminância. O arquivo nem existe enquanto ninguém escolheu
 #   nada — "sem escolha" e "sem arquivo" são o mesmo estado, de propósito, para
 #   o registro não virar uma segunda verdade que ninguém sabe apagar.
 #
@@ -3106,13 +3106,46 @@ GRUPOS_PAREDE = (("ativos", "ativos"), ("noite", "ativos-noite"),
 _LADO_CACHE = {"mapa": {}, "marca": None}
 
 
+# O ARQUIVO SAIU DO REPOSITÓRIO EM 21/09/2026, E A LEITURA AQUI É SÓ LEITURA
+#   Ele era `assets/papeis-de-parede/lado.tsv`, versionado, e os botões
+#   "Dia"/"Noite" desta mesma página o reescreviam dentro do clone: `-3` linhas
+#   de diff pendente às 17h10 daquele dia, e conflito de merge entre os dois
+#   usuários reais a cada `git pull`. A escolha viva mora agora em
+#   `$MEOW_ESTADO/papeis-de-parede/lado.tsv`, semeada do `.padrao` versionado.
+#
+#   A FONTE CANÔNICA DO CONTRATO É `meow_estado_com_padrao` (`lib/comum.sh`) —
+#   é a mesma regra da paleta lá em cima: o shell tem o contrato, o Python
+#   repete a resolução porque não sourceia shell. O que ele NÃO repete é a
+#   semeadura: quem semeia é quem escreve (o `wallpaper.sh`, pelo botão), e uma
+#   rota GET que materializasse estado como efeito colateral criaria o arquivo
+#   por abrir a galeria. Aqui, sem estado, lê-se o `.padrao` — que é o que um
+#   clone recém-instalado tem para mostrar.
+#
+#   O marcador de "já semeei" é o DIRETÓRIO, e não o arquivo, pelo motivo que o
+#   `comum.sh` documenta: o `gravar_lado` APAGA o arquivo de estado quando ela
+#   desfaz a última escolha, e cair no `.padrao` nesse instante ressuscitaria as
+#   escolhas de fábrica na tela.
+def _lado_caminho():
+    estado = os.path.join(
+        os.environ.get("MEOW_ESTADO")
+        or os.path.join(os.path.expanduser("~"), ".local", "state", "meowsystem"),
+        "papeis-de-parede")
+    if os.path.isdir(estado):
+        return os.path.join(estado, "lado.tsv")
+    return os.path.join(RAIZ, "assets", "papeis-de-parede", "lado.tsv.padrao")
+
+
 def _lado_escrito():
-    caminho = os.path.join(RAIZ, "assets", "papeis-de-parede", "lado.tsv")
+    caminho = _lado_caminho()
     try:
         marca = os.path.getmtime(caminho)
     except OSError:
         _LADO_CACHE["mapa"], _LADO_CACHE["marca"] = {}, None
         return {}
+    # O CAMINHO ENTRA NA MARCA porque ele passou a variar (estado ou `.padrao`),
+    # e o `cp -p` da semeadura PRESERVA o mtime: sem o caminho, a troca de um
+    # pelo outro seria invisível para este cache.
+    marca = (caminho, marca)
     if _LADO_CACHE["marca"] == marca:
         return _LADO_CACHE["mapa"]
     mapa = {}

@@ -1,0 +1,23 @@
+# lado.tsv.padrao — de que lado cada papel de parede fica POR ESCOLHA DELA, de
+# fábrica. nome-do-arquivo<TAB>dia|noite. Quem não está aqui é separado pela
+# luminância.
+#
+# ESTE ARQUIVO É SEMENTE, E NINGUÉM ESCREVE NELE — 21/09/2026
+#   Até esta data o arquivo se chamava `lado.tsv`, era versionado, e os botões
+#   "Dia"/"Noite" do painel reescreviam AQUI DENTRO. No clone dele, o `git
+#   status` daquele dia trazia `-3` linhas neste arquivo, das 17h10. Usar o
+#   programa era um commit pendente, e entre os dois usuários reais era conflito
+#   de merge a cada `git pull`.
+#
+#   O que o painel reescreve agora é a cópia em
+#   `~/.local/state/meowsystem/papeis-de-parede/lado.tsv`, semeada deste arquivo
+#   uma única vez. O contrato está em `meow_estado_com_padrao` (`lib/comum.sh`)
+#   — inclusive o porquê de o marcador de "já semeei" ser o DIRETÓRIO e não este
+#   arquivo: o `gravar_lado` apaga o de estado quando ela desfaz a última
+#   escolha, e semear pela ausência traria estas linhas de volta calado.
+cat-landscapes-tropic_island_night.jpg	noite
+meow-lofi-lofi-m31l2y.jpg	noite
+meow-pixel-pixel-4gmmge.jpg	noite
+meow-pixel-pixel-lm6jpq.jpg	dia
+meow-pixel-pixel-lqyjzq.png	noite
+meow-pixel-pixel-x6ydjo.png	dia
