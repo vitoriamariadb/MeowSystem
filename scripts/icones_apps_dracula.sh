@@ -73,15 +73,50 @@ ICONES_BASE_MAPA="$(dirname "$MAPA")"
 #
 # O `awk` corta o comentário ANTES de contar os campos: sem isso, uma linha com
 # `#` no meio viraria três campos e o caminho sairia truncado no `#`.
+#
+# O ALVO PASSA PELO `pack.py alvo`, E É O QUE FAZ O PREFIXO `motor:` EXISTIR
+#   [22/09/2026] Um mapa de pack diz *"o Telegram veste o desenho X"* — decisão
+#   de TEMA, e por isso a linha mora no pack. Mas o desenho X pode vir do acervo
+#   Arcticons: 113 SVG de terceiro, base de conversão, ferramenta compartilhada
+#   que não muda quando se troca de pack. Sem prefixo só havia duas saídas, e as
+#   duas eram ruins: ou a decisão fica em `assets/` (e trocar de pack não troca
+#   a escolha), ou cada pack carrega uma CÓPIA dos 113 — e a segunda cópia
+#   defasa da primeira calado.
+#
+#     org.telegram.desktop          : motor:arcticons/telegram.svg
+#     io.github.flattool.Warehouse  : apps/Warehouse.svg
+#
+#   O `packs/dracula/icones/apps.map` de hoje NÃO usa o prefixo: os dezoito
+#   apontam para `apps/`, dentro do pack. Ele entra aqui porque é o resolvedor
+#   que a P27 pede, e porque um mapa que o use precisa achar quem o entenda no
+#   dia em que for escrito — não depois.
+#
+# EM LOTE, E O MOTIVO FOI MEDIDO
+#   Uma chamada de `python3` por linha custou 1,1 s para as dezoito deste mapa,
+#   e este laço roda dentro do `meow doctor` — o comando das 5h. Um mapa de cem
+#   aplicativos custaria seis segundos, e a regressão apareceria como "o doctor
+#   ficou lento", longe da causa. O `alvo` lê o STDIN inteiro e devolve UMA
+#   linha por linha de entrada, então o mapa custa uma partida só.
+#
+#   O `paste` depende desse alinhamento: uma linha a mais ou a menos vestiria
+#   cada aplicativo com o ícone do vizinho, sem erro nenhum na tela. Por isso a
+#   linha recusada volta VAZIA em vez de voltar fora — e vazia não casa com
+#   arquivo nenhum, caindo no aviso "no mapa mas sem desenho no disco" que o
+#   `_dracula_instalar` já tem.
 _dracula_pares() {
   [ -f "$MAPA" ] || return 1
-  sed -e 's/#.*//' "$MAPA" | awk -F: '
+  local cru
+  cru="$(sed -e 's/#.*//' "$MAPA" | awk -F: '
     NF>=2 {
       nome=$1; caminho=$2
       gsub(/^[ \t]+|[ \t]+$/, "", nome)
       gsub(/^[ \t]+|[ \t]+$/, "", caminho)
       if (nome != "" && caminho != "") print nome "\t" caminho
-    }'
+    }')"
+  [ -n "$cru" ] || return 0
+  paste <(printf '%s\n' "$cru" | cut -f1) \
+        <(printf '%s\n' "$cru" | cut -f2 \
+            | python3 "$RAIZ/scripts/pack.py" alvo "$ICONES_BASE_MAPA")
 }
 
 # --- instalar -----------------------------------------------------------------
@@ -91,10 +126,13 @@ _dracula_instalar() {
 
   while IFS=$'\t' read -r nome caminho; do
     [ -n "$nome" ] || continue
-    # A raiz é a do MAPA, não uma constante: o mesmo mapa serve ao pack
-    # (packs/dracula/icones/) e ao lugar antigo (assets/icones/), e o script
-    # não precisa saber em qual dos dois está. [2026-09-17]
-    origem="$ICONES_BASE_MAPA/$caminho"
+    # JÁ VEM RESOLVIDO do `_dracula_pares`, desde 22/09/2026. Era
+    # `"$ICONES_BASE_MAPA/$caminho"` aqui e de novo no `_dracula_remover` — duas
+    # junções da mesma coisa, e o prefixo `motor:` teria de ser entendido nas
+    # duas. Uma delas esqueceria, e o ramo que apaga passaria a não reconhecer
+    # como "nosso" o arquivo que o ramo que instala pôs lá: o desligar deixaria
+    # ícone para trás, calado. Quem junta agora é o `pack.py alvo`, uma vez só.
+    origem="$caminho"
     if [ ! -f "$origem" ]; then
       # Nome no mapa sem desenho no disco: é falha de quem editou o mapa, e
       # dizer QUAL é vale mais que um total. Não aborta — os outros dezessete
@@ -158,10 +196,11 @@ _dracula_remover() {
   while IFS=$'\t' read -r nome caminho; do
     [ -n "$nome" ] || continue
     [ -f "$ALVO/$nome.svg" ] || continue
-    # A raiz é a do MAPA, não uma constante: o mesmo mapa serve ao pack
-    # (packs/dracula/icones/) e ao lugar antigo (assets/icones/), e o script
-    # não precisa saber em qual dos dois está. [2026-09-17]
-    origem="$ICONES_BASE_MAPA/$caminho"
+    # JÁ VEM RESOLVIDO do `_dracula_pares` — ver o comentário gêmeo no
+    # `_dracula_instalar`. As duas metades deste script PRECISAM resolver o alvo
+    # do mesmo jeito: é comparando o conteúdo da origem com o que está no tema
+    # que o `_dracula_remover` decide se o arquivo é nosso.
+    origem="$caminho"
     if [ -f "$origem" ] && [ "$(cat "$origem")" != "$(cat "$ALVO/$nome.svg")" ]; then
       meow_info "  $nome.svg não é o desenho do acervo — fica como está"
       continue

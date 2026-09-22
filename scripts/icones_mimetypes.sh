@@ -79,7 +79,20 @@ _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
             icones.mimetypes.desenhos "$FLAVOR_ICONES")" || ORIGEM=""
-MAPA="$RAIZ/assets/icones/mimetypes.map"
+# O MAPA SEGUIU O ACERVO PARA DENTRO DO PACK — 22/09/2026
+#   A P13 desceu os 3.280 glifos para `packs/catppuccin/icones/mimetypes/` e
+#   deixou o mapa em `assets/icones/mimetypes.map`. Meio caminho: O MAPA É A
+#   DECISÃO. Ele diz QUAL glifo veste cada tipo de arquivo, e isso é escolha de
+#   tema, não fato desta máquina — um pack que traga outro acervo traz outro
+#   pareamento junto. Acervo num endereço e decisão noutro é o defeito que esta
+#   família de sprints existe para acabar: quem troca de pack levava os desenhos
+#   e não levava a escolha.
+#
+#   Mesma porta do `ORIGEM` logo acima, e o mesmo `|| MAPA=""` pelo mesmo motivo
+#   que o bloco anterior explica em detalhe: `acervo` sai 1 quando nada resolve,
+#   e vazio é RESPOSTA — quem a conta em português é o `_pronto`.
+MAPA="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
+          icones.mimetypes.mapa)" || MAPA=""
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 DESTINO="$HOME/.local/share/icons/$TEMA/scalable/mimetypes"
 
@@ -103,7 +116,7 @@ _pronto() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem assets/icones/mimetypes.map — nada a vestir"
+    meow_pula "o pack não traz mapa de mimetype (icones.mimetypes.mapa) — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"

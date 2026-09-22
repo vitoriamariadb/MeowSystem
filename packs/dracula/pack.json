@@ -47,7 +47,9 @@
       "_nota": "Não existe acervo de mimetype Dracula. O do Catppuccin tem quatro flavors (frappe, latte, macchiato, mocha), 656 arquivos cada; o macchiato é o vizinho mais próximo em luminosidade."
     },
     "autorais": {
-      "gerar": true
+      "gerar": true,
+      "desenhos": "icones/autorais/",
+      "_nota": "Os onze desenhos do projeto, nos DOIS flavors do pack — 22 arquivos. Até 22/09/2026 os onze do `dracula` moravam em assets/icones/autorais/, ao lado dos 44 do Catppuccin, e o `alucard` tinha ZERO: no modo claro do Dracula estes onze ícones caíam no `latte`, que é o flavor claro do OUTRO pack. É o mesmo defeito que o campo `paleta._nota_claro` aqui em cima conta ter consertado para a PALETA em 19/09 — ele continuou vivo para os ÍCONES mais três dias, porque a paleta morava no pack e os desenhos não. Os onze do alucard foram GERADOS, nunca copiados do latte: o gerador deriva por PAPEL, então o `contorno` do alucard sai do `text` do alucard e não do `text` de um pack vizinho."
     }
   },
   "origens": {

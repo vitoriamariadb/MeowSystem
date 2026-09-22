@@ -112,7 +112,7 @@
 #     nome com ninguém. A decisão sobre esses dois é dela e está numa folha.
 #
 #   COMO SE DESFAZ
-#     Os oito SVGs continuam VERSIONADOS em `assets/icones/autorais/` e o gerador
+#     Os oito SVGs continuam VERSIONADOS no `icones/autorais/` do pack e o gerador
 #     continua produzindo-os: desfazer é mover os oito nomes de `RETIRADOS` de
 #     volta para `AUTORAL` e tirar as oito linhas do `assets/icones/apps-arcticons.map`.
 #     Nada foi apagado do repositório.
@@ -150,7 +150,26 @@ BASE="${ICONES_BASE:-Papirus-Dark}"
 BASE_DIR="/usr/share/icons/$BASE"
 FLAVOR="${FLAVOR:-mocha}"
 ACCENT="${ACCENT:-mauve}"
-AUTORAIS="$RAIZ/assets/icones/autorais"
+# OS DESENHOS AUTORAIS SÃO DO PACK, E NÃO DO MOTOR — 22/09/2026
+#   Era `$RAIZ/assets/icones/autorais`. Aquele diretório guardava 55 arquivos de
+#   DOIS packs no mesmo monte — 44 do Catppuccin e 11 do Dracula — e o nome não
+#   dizia de quem era nenhum deles. Quem trocava de pack levava os dois.
+#
+#   QUEM RESOLVE É O `pack.py onde`, E É DE PROPÓSITO QUE NÃO É O `acervo`.
+#   O passo 1 lá embaixo GERA os desenhos antes de o passo 2 os instalar, e o
+#   `acervo` só responde o que já está no disco: num pack cujo `icones/autorais/`
+#   ainda não nasceu ele devolveria vazio, e o passo 2 procuraria a fonte num
+#   caminho em branco depois de o passo 1 a ter escrito no lugar certo. O `onde`
+#   responde o endereço exista ele ou não — é a MESMA porta que o
+#   `gerar_icones_autorais.py` usa para o `DESTINO` dele, e é essa igualdade que
+#   garante que os dois passos falem do mesmo diretório.
+#
+#   O `padrao` fecha o caso do pack que não declara a categoria: ele escreve em
+#   casa, nunca dentro do pack de quem herda.
+_pack_ref="$(meow_pack_dir)"
+[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
+AUTORAIS="$(python3 "$RAIZ/scripts/pack.py" onde "$_pack_ref" \
+              icones.autorais.desenhos icones/autorais/)" || AUTORAIS=""
 
 # --- os dois aplicativos dela: nome pedido pelo .desktop -> desenho autoral ----
 # O Hefesto aparece com DOIS nomes de ícone na máquina, e os dois precisam do
@@ -283,7 +302,7 @@ if ! grep -q '^Directories=.*scalable/apps' "$TEMA_DIR/index.theme"; then
   exit "$MEOW_ERRO"
 fi
 # O python3 desenha os SVGs a partir da paleta — mas os oito SVGs prontos ESTÃO
-# VERSIONADOS em `assets/icones/autorais/`. Sair 3 aqui recusaria um trabalho que dá
+# VERSIONADOS no `icones/autorais/` do pack. Sair 3 aqui recusaria um trabalho que dá
 # para fazer: numa máquina sem python3 os ícones já existem no clone e só faltava
 # copiá-los. Então falta de python3 vira AVISO, e só vira dependência ausente
 # (código 3) lá embaixo, se o flavor pedido de fato não estiver no repositório —
@@ -291,7 +310,7 @@ fi
 SEM_PYTHON=0
 if ! meow_tem python3; then
   meow_aviso "python3 ausente — não dá para conferir os SVGs contra a paleta"
-  meow_info "  os autorais já versionados em assets/icones/autorais/ continuam entrando"
+  meow_info "  os autorais já versionados no pack continuam entrando"
   SEM_PYTHON=1
   avisos=1
 fi
@@ -305,7 +324,7 @@ meow_seco || mkdir -p "$ALVO" || { meow_erro "não consegui criar $ALVO"; exit "
 if [ "$SEM_PYTHON" = "0" ] &&
    ! python3 "$RAIZ/scripts/gerar_icones_autorais.py" --accent "$ACCENT" --conferir >/dev/null 2>&1; then
   if meow_seco; then
-    meow_muda "regeraria os SVGs autorais em assets/icones/autorais/"
+    meow_muda "regeraria os SVGs autorais em $AUTORAIS"
     mudou=1
   else
     if ! python3 "$RAIZ/scripts/gerar_icones_autorais.py" --accent "$ACCENT" | sed 's/^/  /'; then
@@ -342,7 +361,7 @@ for nome in "${!AUTORAL[@]}"; do
       # Aqui, e SÓ aqui, a falta de python3 vira dependência ausente: o SVG deste
       # flavor não está no repositório e não há com que desenhá-lo.
       meow_erro "falta $fonte e não há python3 para desenhá-lo"
-      meow_info "  instale python3 ou rode com um FLAVOR já versionado em assets/icones/autorais/"
+      meow_info "  instale python3 ou rode com um FLAVOR já versionado no acervo do pack"
       exit "$MEOW_SEM_DEPENDENCIA"
     fi
     meow_erro "falta $fonte — o gerador não produziu o flavor '$FLAVOR'"

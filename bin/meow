@@ -1207,6 +1207,16 @@ chk_svg() {
   for p in assets/gatos assets/icones/autorais assets/icones/overrides; do
     [ -d "$RAIZ/$p" ] && pastas+=("$RAIZ/$p")
   done
+  # OS AUTORAIS DE CADA PACK ENTRAM JUNTO — 22/09/2026
+  #   A P27 desceu os 55 desenhos de `assets/icones/autorais/` para dentro dos
+  #   packs. Sem estas linhas o vigia continuaria verde conferindo só os oito de
+  #   `autorais/leitura/` que sobraram — e o `transform-origin` achatado que ele
+  #   existe para caçar passaria despercebido justamente nos desenhos dela.
+  #   O porquê de ser SÓ `autorais/`, e por glob em vez de lista de nomes, está
+  #   no gêmeo desta linha em `install.sh`, na `etapa_svg`.
+  for p in "$RAIZ"/packs/*/icones/autorais; do
+    [ -d "$p" ] && pastas+=("$p")
+  done
   [ "${#pastas[@]}" -gt 0 ] || return 0
   local saida rc
   saida="$(python3 "$RAIZ/scripts/normalizar_svg.py" --conferir "${pastas[@]}" 2>&1)"; rc=$?
@@ -1739,6 +1749,12 @@ fix_svg()       { local pastas=() p
                   meow_tem python3 || return 0
                   for p in assets/gatos assets/icones/autorais assets/icones/overrides; do
                     [ -d "$RAIZ/$p" ] && pastas+=("$RAIZ/$p")
+                  done
+                  # Os autorais de cada pack, como no `chk_svg` — o conserto
+                  # tem de alcançar tudo o que a conferência alcança, ou o
+                  # doctor aponta um defeito que o `--consertar` não conserta.
+                  for p in "$RAIZ"/packs/*/icones/autorais; do
+                    [ -d "$p" ] && pastas+=("$p")
                   done
                   [ "${#pastas[@]}" -gt 0 ] || return 0
                   python3 "$RAIZ/scripts/normalizar_svg.py" "${pastas[@]}" 2>&1; }

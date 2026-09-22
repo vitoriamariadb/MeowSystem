@@ -34,6 +34,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [A estrutura do pack](#a-estrutura-do-pack)
 - [`pack.json`, campo a campo](#packjson-campo-a-campo)
 - [De onde sai um acervo: pack, herança, motor](#de-onde-sai-um-acervo-pack-herança-motor)
+- [O acervo de ícones do pack](#o-acervo-de-ícones-do-pack)
 - [Quem vence: o pack ou o `meow.conf`](#quem-vence-o-pack-ou-o-meowconf)
 - [O tema do COSMIC, e o único passo manual que existe](#o-tema-do-cosmic-e-o-único-passo-manual-que-existe)
 - [O som](#o-som)
@@ -131,11 +132,14 @@ packs/<id>/
   paleta.json               OBRIGATÓRIO (o nome vem de paleta.arquivo)
   CREDITOS.md               a procedência de cada acervo — obrigatório se houver arte de terceiro
   cosmic-map.json           opcional: substitui o molde do tema do COSMIC
-  icones/
+  icones/                   MESMA FORMA para as quatro categorias — ver a seção própria
     apps.map                "nome-do-ícone : caminho/relativo.svg"
     apps/                   os desenhos referidos pelo mapa
+    pastas.map              pastas/
     pastas/                 folder-documents.svg, folder-download.svg…
+    mimetypes.map           "nome-freedesktop : glifo"
     mimetypes/<flavor>/     o acervo por tipo de arquivo (é grande: ~656 por flavor)
+    autorais/               <nome>-<flavor>.svg — sem mapa: o nome É o pareamento
   temas/
     capturados/<flavor>-<accent>/    o tema do COSMIC já fotografado — ver a seção própria
   LEIAME.md                 opcional
@@ -276,6 +280,132 @@ ninguém herda devolve nada, e quem chamou decide se isso é problema.
 > sonda de existência para o shell (`lib/comum.sh` joga a saída dele fora e olha
 > o código de retorno). Reaproveitar aquele nome para esta semântica faria todo
 > script de shell deixar de enxergar o pack, sem erro nenhum na tela.
+
+---
+
+## O acervo de ícones do pack
+
+**A regra cabe numa frase: o mapa é do pack; o acervo pode ser do motor.**
+
+Um pack diz *"o Telegram veste o desenho X"* — isso é **decisão de tema**, e vai
+para o pack. O desenho X pode vir do acervo Arcticons, que é ferramenta
+compartilhada e fica onde está. O que não pode é a decisão morar em `assets/`.
+
+### A forma é a mesma para as quatro categorias
+
+```
+packs/<id>/icones/
+  apps.map          apps/         quais aplicativos, e os desenhos
+  pastas.map        pastas/
+  mimetypes.map     mimetypes/<flavor>/
+                    autorais/     os desenhos do projeto, por flavor
+```
+
+**`autorais/` não tem mapa, e é de propósito:** o nome do arquivo *é* o
+pareamento. `cosmic-term-mocha.svg` diz, sozinho, qual ícone e qual flavor — um
+mapa ao lado seria uma segunda verdade sobre a mesma coisa, e ela divergiria na
+primeira renomeação. As outras três precisam de mapa porque o nome que o sistema
+pede (`application-x-cd-image`) não é o nome do desenho (`cd`).
+
+Cada categoria declara os dois no `pack.json`, e nenhuma é obrigatória:
+
+```json
+"icones": {
+  "apps":      { "mapa": "icones/apps.map", "desenhos": "icones/apps/" },
+  "mimetypes": { "mapa": "icones/mimetypes.map", "desenhos": "icones/mimetypes/" },
+  "autorais":  { "desenhos": "icones/autorais/" }
+}
+```
+
+O `validar` cobra a existência de tudo o que estiver declarado, nas quatro. Um
+pack que promete um acervo e não entrega é recusado — pelo mesmo motivo que o
+`creditos` é cobrado: um validador que carimba a promessa vazia ensina a
+escrevê-la.
+
+### `motor:` — apontar para o acervo do motor sem copiá-lo
+
+Um alvo de mapa pode sair do pack, **com prefixo declarado**:
+
+```
+org.telegram.desktop          : motor:arcticons/telegram.svg
+io.github.flattool.Warehouse  : apps/Warehouse.svg
+```
+
+| forma | resolve em |
+|---|---|
+| `motor:<caminho>` | `assets/icones/<caminho>` — o acervo do motor |
+| sem prefixo | dentro do pack, contra o diretório do próprio mapa |
+
+**É isto que permite tirar a decisão de `assets/` sem duplicar o acervo.** Sem o
+prefixo só havia duas saídas, e as duas eram ruins: ou a escolha fica em
+`assets/` (e trocar de pack não troca a escolha), ou cada pack carrega uma
+**cópia** dos 113 SVG do Arcticons — e a segunda cópia defasa da primeira
+calado, que é a lição que este projeto já pagou uma vez.
+
+Os dois lados têm guarda: um alvo que **saia** da raiz dele é recusado, com o
+motivo no stderr. Um mapa é dado, e um pack de terceiro escreve o dado dele.
+
+```bash
+printf 'motor:arcticons/telegram.svg\n' \
+  | python3 scripts/pack.py alvo packs/dracula/icones
+#   <raiz>/assets/icones/arcticons/telegram.svg
+```
+
+O verbo lê a entrada padrão e devolve **uma linha por linha de entrada** — a
+recusada volta vazia. Quem chama junta essa saída com os nomes do mapa lado a
+lado, e uma linha a mais ou a menos vestiria cada aplicativo com o ícone do
+vizinho, sem erro nenhum na tela.
+
+### Ler e escrever são portas diferentes
+
+| verbo | responde | para quem |
+|---|---|---|
+| `acervo <id> <categoria> [arquivo]` | o arquivo, **se ele existe**; sobe a herança | quem vai **ler** |
+| `onde <id> <categoria> [padrão]` | o diretório, **exista ele ou não**; não sobe a herança | quem vai **escrever** |
+
+O `onde` não sobe a herança de propósito: herdar é dizer *"leia do vizinho"*, e
+escrever no acervo do vizinho seria um pack gravando dentro de outro. Um pack
+que não declara a categoria escreve **em casa**.
+
+```bash
+python3 scripts/pack.py onde dracula icones.autorais.desenhos
+#   packs/dracula/icones/autorais/     — mesmo antes de o diretório existir
+```
+
+### Os autorais, e o flavor que caía no pack do vizinho
+
+Os desenhos de `icones/autorais/` nascem **por papel**, nunca por hex digitado:
+cada forma declara `sujeito`, `tinta`, `fundo`, e o papel resolve na paleta
+**daquele flavor**. É o que faz um flavor novo nascer sem redesenho.
+
+> **Todo flavor da sua paleta precisa dos seus.** Um flavor declarado que não
+> tem desenho nenhum no acervo cai, calado, no acervo de quem o pack herda — e
+> aí o modo claro do seu tema mostra o claro **de outro pack**. Foi o que
+> aconteceu com o `alucard` entre 19 e 22/09/2026: ele tinha zero dos onze, e os
+> onze do modo claro do Dracula vinham do `latte` do Catppuccin.
+>
+> `tests/pack.sh` trava isso: um flavor vazio ao lado de um irmão cheio é
+> achado, em qualquer pack.
+
+Gerar os de um pack é uma linha:
+
+```bash
+MEOW_PACK_DIR=packs/dracula python3 scripts/gerar_icones_autorais.py
+```
+
+### O que **não** vai para o pack
+
+Nem todo SVG do repositório é tema. Fica no motor o que não muda quando você
+troca de pack:
+
+| fica em `assets/` | por quê |
+|---|---|
+| `icones/arcticons/`, `arcticons-apps/` | acervo de terceiro, base de conversão. Um pack **aponta** para ele com `motor:` |
+| `icones/convertidos-apps/`, `retoques/` | saída do conversor sobre o acervo acima |
+| `icones/resgatados/` | resgatados do PNG **desta máquina** — são da máquina, não do tema |
+| `icones/autorais/leitura/` | sem flavor no nome: são recoloridos em tempo de build |
+| `gatos/` | a marca MeowSystem. O seu pack pode trazer os dele; estes são os de casa |
+| `appid.map`, `wmclass.map`, `apps-nomes.map` | identidade técnica de aplicativo. Não é gosto, é fato da máquina |
 
 ---
 
