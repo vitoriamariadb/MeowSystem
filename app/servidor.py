@@ -2052,6 +2052,22 @@ def definir_varias(pares, conf=None):
     ambiente = _ambiente_do_painel()
     if conf:
         ambiente["MEOW_CONF"] = conf
+        # E O ESTADO VAI JUNTO — 22/09/2026, e sem isto o ENSAIO ESCREVE.
+        #   `conf` só existe no caminho do ensaio: é a cópia descartável de
+        #   `_conf_de_ensaio`. Mas gravar nela passa por `meow_escrever`, que
+        #   registra CAMINHO e sha256 no manifesto — e o manifesto continuava
+        #   sendo o REAL, em `~/.local/state/meowsystem/`.
+        #
+        #   Medido: onze linhas `/tmp/meow-ensaio-*/meow.conf` entraram no
+        #   manifesto dela entre 17:41 e 18:06 de 22/09, uma por clique no
+        #   «Ver o que faria», todas apontando para um `/tmp` já apagado.
+        #   Nenhuma rede pegava: a conferência da sprint e o `tests/seco.sh`
+        #   medem só a janela do `install.sh`, e o vazamento é do painel.
+        #
+        #   A sprint que este botão serve abre dizendo "um ensaio que escreve é
+        #   pior que nenhum ensaio". Era o caso, e a cura é esta linha: o estado
+        #   vai para a MESMA pasta descartável, e morre com ela.
+        ambiente["MEOW_ESTADO"] = os.path.dirname(conf)
     try:
         proc = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                               timeout=30 + 5 * len(pares), env=ambiente)
