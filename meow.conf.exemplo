@@ -1646,6 +1646,25 @@ SPOTIFY_MARKETPLACE="sim"
 # sim | nao
 LANCADOR_SISTEMA="nao"
 
+# @ Quais programas o lançador esconde
+# > Um por ficha. Só vale com a chave acima ligada, e só esconde o que estiver instalado.
+# [avancado] O ID do `.desktop` sem a extensão, vírgula-separado.
+#
+# ESTA LISTA ERA CÓDIGO ATÉ 21/09/2026, E ISSO ERA O DEFEITO
+#   Os 32 nomes abaixo viviam cravados em `scripts/ocultar_apps.sh`. A chave
+#   de cima já avisava que eles são "o gosto de quem escreveu, não o seu" —
+#   mas avisar sem oferecer saída deixa uma opção só: editar um arquivo
+#   versionado, que o próximo `git pull` desfaz. Quem tem OUTROS programas a
+#   esconder passa a dizer aqui.
+#
+#   ELA SUBSTITUI a lista de fábrica, não acrescenta — então tirar um nome é
+#   apagá-lo desta linha, e não procurar onde ele estava escondido no código.
+#   Apagar a linha inteira (ou deixá-la vazia) devolve a lista de fábrica.
+#
+#   Programa que não está instalado é pulado em silêncio: sobra na lista sem
+#   custo nenhum, e o placar do doctor diz quantos foram.
+LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,info,im-config,ibus-setup,org.freedesktop.IBus.Setup,org.gnome.font-viewer,gnome-language-selector,system-config-printer,org.gnome.eog,org.gnome.Evince,org.gnome.baobab,org.gnome.PowerStats,org.gnome.seahorse.Application,org.gnome.DiskUtility,simple-scan,yelp,gucharmap,nm-connection-editor,repoman,com.system76.Popsicle,gparted,nvidia-settings,syncthing-start,syncthing-ui,google-chrome,steam,github-desktop"
+
 # @ Programas bloqueados no início
 # > Um por ficha. Impede que iniciem junto com a sessão.
 # APPS QUE NÃO PODEM SUBIR SOZINHOS NO LOGIN.

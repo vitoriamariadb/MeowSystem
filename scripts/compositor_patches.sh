@@ -123,6 +123,10 @@
 # USO
 #   compositor_patches.sh conferir   0 = tudo de pé · 1 = divergente · 3 = sem cosmic-comp
 #   compositor_patches.sh aplicar    recusa, e diz por quê (o conserto é compilar)
+#
+#   O 0 cobre DOIS estados desde 21/09/2026: os patches de pé, e os patches
+#   nunca aplicados nesta máquina — sem `.estado` não houve promessa, e sem
+#   promessa não há o que divergir. O porquê está no bloco 1 do `cmd_conferir`.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -241,12 +245,41 @@ cmd_conferir() {
   fi
 
   # --- 1. o .estado, que é o que a Aurora promete gravar --------------------
-  local estado_ok=0 versao_estado="" gravado=""
+  # SEM `.estado`, NADA FOI PROMETIDO — E ISSO DEIXOU DE SER DIVERGÊNCIA EM 21/09/2026
+  #   Até esta data a ausência do `.estado` entrava em `problemas` e ligava o
+  #   `precisa_build`. Numa máquina que fez o Ritual da Aurora isso está certo:
+  #   o `.estado` sumir depois de existir é notícia. Numa máquina que NUNCA o
+  #   fez — qualquer pessoa que clone este projeto — era outra coisa: o doctor
+  #   nascia vermelho no primeiro dia e ficava vermelho para sempre, mandando
+  #   rodar `aurora-cosmic-comp-ws.sh --build`, um script que não está neste
+  #   repositório e que ela não tem como obter. Medido em 21/09/2026 com os
+  #   overrides deste próprio arquivo (CP_BIN sem marcador, CP_ESTADO e CP_SERIE
+  #   inexistentes): rc=1, todo dia, apontando para projeto alheio.
+  #
+  #   Um doctor que nunca fica verde é um doctor que a pessoa aprende a ignorar,
+  #   e aí ele para de servir para as outras 61 conferências. Divergência é
+  #   para o que o projeto sabe consertar; o resto é informação.
+  #
+  #   O ALARME QUE IMPORTA NÃO SE PERDE, e é por isso que a divisão cai aqui e
+  #   não num silenciador geral: quem tem `.estado` continua com TUDO o que este
+  #   arquivo media — versao= contra o dpkg, marcador a marcador no disco e na
+  #   sessão, série, md5 das duas cópias. O caso que pegou o `apt` de 21/09/2026
+  #   às 08:17 é exatamente esse, e continua vermelho. O que muda é só o outro
+  #   lado da mesma porta, que a variável `estado_ok` já separava.
+  #
+  #   E POR QUE VERDE, E NÃO O CINZA DO `MEOW_SEM_DEPENDENCIA`: o 3 diz "não há
+  #   assunto", e aqui há — o `cosmic-comp` está instalado, a leitura rodou
+  #   inteira e o estado que ela achou é um estado correto. O 3 fica reservado
+  #   para a máquina sem compositor nenhum, que é onde ele já estava.
+  local estado_ok=0 ritual_ausente=0 versao_estado="" gravado=""
   local -a linhas=()
   if [ ! -e "$CP_ESTADO" ]; then
-    problemas+=("o .estado da Aurora não existe"); precisa_build=1
-    _cp_diz muda "$CP_ESTADO não existe — o build com a série ainda não rodou"
-    _cp_diz info "quem o grava é o aurora-cosmic-comp-ws.sh, a cada escrita em $CP_BIN"
+    ritual_ausente=1
+    _cp_diz info "quem aplica os patches do compositor é o Ritual da Aurora (aurora-cosmic-comp-ws.sh), que não vem neste repositório"
+    _cp_diz info "sem $CP_ESTADO não há o que conferir: nada foi prometido, nada está faltando"
+    # Sem crase: dentro de aspas duplas ela vira substituição de comando, e
+    # esta frase nomeia um comando de verdade.
+    _cp_diz info "o que muda sem eles: o meow painel apara o raio das barras ao que cabe na altura — o resto do tema é igual"
   elif [ ! -r "$CP_ESTADO" ]; then
     # O contrato pede 644. Se chegou aqui, o modo saiu do combinado — e o doctor
     # não usa sudo para contornar, ele relata.
@@ -388,10 +421,20 @@ cmd_conferir() {
   if [ "${#repo[@]}" = "0" ]; then
     _cp_diz info "nenhum .patch em $CP_REPO — nada a comparar com a série"
   elif [ -z "$serie" ]; then
-    problemas+=("a série da Aurora não existe"); precisa_build=1
-    _cp_diz muda "não achei a série ($CP_SERIE, nem $CP_SERIE_ALT)"
-    _cp_diz info "  sem ela o build aplica um patch só, por caminho literal — e ${#repo[@]} .patch daqui não entram em binário nenhum"
-    _cp_diz info "  é o passo 1 da Sprint U, do lado da Aurora"
+    # A OUTRA METADE DA MESMA PORTA (21/09/2026). A série é artefato do Ritual:
+    # numa máquina que nunca o fez ela falta pelo mesmo motivo que o `.estado`, e
+    # cobrar aqui traria de volta, por esta linha, o vermelho eterno que o bloco
+    # 1 acabou de tirar. Com `.estado` presente a cobrança fica de pé: aí a
+    # série sumiu de uma máquina onde ela existia, e isso é notícia.
+    if [ "$ritual_ausente" = "1" ]; then
+      _cp_diz info "não achei a série ($CP_SERIE, nem $CP_SERIE_ALT) — é do lado da Aurora, e o Ritual não rodou aqui"
+      _cp_diz info "  os ${#repo[@]} .patch de patches/ ficam como fonte, para quem um dia quiser compilar"
+    else
+      problemas+=("a série da Aurora não existe"); precisa_build=1
+      _cp_diz muda "não achei a série ($CP_SERIE, nem $CP_SERIE_ALT)"
+      _cp_diz info "  sem ela o build aplica um patch só, por caminho literal — e ${#repo[@]} .patch daqui não entram em binário nenhum"
+      _cp_diz info "  é o passo 1 da Sprint U, do lado da Aurora"
+    fi
   else
     _cp_diz info "série lida: $serie"
     local fora=0 p declarado
@@ -460,7 +503,12 @@ cmd_conferir() {
   # --- 6. o resumo, que é a linha da tabela ---------------------------------
   if [ "${#problemas[@]}" = "0" ]; then
     local resumo
-    if [ "$conferidos" -gt 0 ]; then
+    # A frase da tabela precisa dizer O QUE FOI VISTO, e "série conforme" seria
+    # mentira numa máquina onde a série nem existe. Esta é a linha que a pessoa
+    # lê todo dia; ela tem de explicar o verde sozinha.
+    if [ "$ritual_ausente" = "1" ]; then
+      resumo="os patches do compositor não estão aplicados — são opcionais, e o painel se ajusta sem eles"
+    elif [ "$conferidos" -gt 0 ]; then
       resumo="$(_cp_plural "$conferidos" 'marcador de pé' 'marcadores de pé') no disco e na sessão; série conforme"
     else
       resumo="nenhum patch declarado; série conforme"

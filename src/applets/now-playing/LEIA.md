@@ -46,10 +46,22 @@ subida do applet passa `false`. Um `i.scdn.co` lento penduraria o applet — e,
 com ele, o painel inteiro. Na subida vale o que já está em cache; a thread do
 monitor busca o resto e o próximo snapshot carrega a capa.
 
-**Controles na barra.** ⏮ e ⏭ passam a ficar ao lado do ⏸, que já estava lá. A
-ordem do `Row` é `[capa][nome][⏮][⏸][⏭]`: a capa encosta no título porque as
-duas falam da mesma música, e os botões vão para a ponta, longe do texto que
-trunca.
+**Controles na barra.** Anterior e próxima passam a ficar ao lado de pausa, que
+já estava lá. A ordem do `Row` é `[capa][nome][anterior][pausa][próxima]`: a
+capa encosta no título porque as duas falam da mesma música, e os botões vão
+para a ponta, longe do texto que trunca.
+
+*Por extenso, e não com os glifos de mídia — 21/09/2026.* Eles estavam aqui, e
+sumiram na primeira passada desta sprint deixando três frases sem dizer nada.
+Não foi descuido de quem editou: a SEGUNDA camada do hook de commit desta
+máquina, o `universal-sanitizer.py`, apaga `U+23E9`–`U+23F3` e
+`U+23F8`–`U+23FA` em toda linha que o commit TOCA, e os três controles caem
+nessas faixas sem estar na allowlist dele. Medido em 21/09/2026: ao repor os
+glifos e submeter, o hook relatou "9 emojis removidos" e devolveu as frases
+vazias de novo. Eles sobrevivem em `meow.conf.exemplo` e em `scripts/midia.sh`
+só porque nenhum commit mexeu naquelas linhas desde que foram escritas — e a
+primeira edição que mexer as esvazia igual. Escrito por extenso, a frase para
+de depender de um caractere que esta máquina não deixa reescrever.
 
 **Largura configurável.** O upstream crava `260.0` em `src/ui.rs`. Na tela dela
 isso corta em `This City's Tryna Br…`. O padrão daqui é 440 — medi ~215px de
@@ -73,7 +85,8 @@ applet só lê `#rrggbb`. A paleta é do MeowSystem, e uma cópia dela dentro do
 Rust seria a segunda verdade que discorda no dia em que ela trocar de flavor.
 Escolha dela: roxo (`mauve`) na música, verde (`green`) na banda.
 
-**Os ⏮⏸⏭ da barra são opcionais (`MIDIA_CONTROLES`), e nascem DESLIGADOS.** O
+**Os três controles da barra são opcionais (`MIDIA_CONTROLES`), e nascem
+DESLIGADOS.** O
 applet de Som do COSMIC já desenha os dele no painel sempre que há player. Com o
 Now Playing colado nele — que é onde ela o pôs em 24/08/2026 — os dois pares
 ficam lado a lado e leem como defeito, não como recurso. Desligado, sobra
@@ -192,15 +205,24 @@ diferença que não é nossa.
 
 ## Como regenerar o patch quando o upstream mexer
 
+Rode da RAIZ DO CLONE: o `PATCH` abaixo é relativo a ela.
+
 ```sh
 ARV=~/.local/state/meowsystem/midia/src
+PATCH="$PWD/src/applets/now-playing/0001-meow-capa-cor-controles.patch"
 git -C "$ARV" checkout -- .                       # tira o patch antigo
 git -C "$ARV" checkout <commit-novo>              # se for mudar de base
-git -C "$ARV" apply /mnt/Apate/Desenvolvimento/MeowSystem/src/applets/now-playing/0001-meow-capa-cor-controles.patch
+git -C "$ARV" apply "$PATCH"
 # ... edite, compile, teste ...
-git -C "$ARV" diff | sed 's/[[:space:]]*$//' \
-  > /mnt/Apate/Desenvolvimento/MeowSystem/src/applets/now-playing/0001-meow-capa-cor-controles.patch
+git -C "$ARV" diff | sed 's/[[:space:]]*$//' > "$PATCH"
 ```
+
+O caminho virou variável em 21/09/2026. Antes as duas linhas traziam
+`/mnt/Apate/Desenvolvimento/MeowSystem/...` cravado — um ponto de montagem que
+só existe numa máquina, e a receita de regenerar o patch é justamente a que
+alguém de fora precisa quando o upstream mexe. O `$PWD` é resolvido uma vez, no
+começo, porque o `git -C` muda de diretório mas o `>` da última linha é do shell
+de quem chamou.
 
 O `sed` não é frescura: o `pre-commit` deste projeto roda
 `sed -i 's/[[:space:]]*$//'` em todo arquivo de texto staged, e um `.patch` é

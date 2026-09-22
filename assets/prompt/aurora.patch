@@ -10,14 +10,35 @@ O que ele faz, em `~/.config/zsh/env.zsh`:
 
 Como aplicar (é ELA quem roda, e é decisão consciente — leia o LEIAME ao lado):
 
+    MEOW="$PWD"          # a raiz do clone, guardada ANTES do cd
     cd ~/.config/zsh
-    patch -p1 --dry-run < /mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/aurora.patch
-    patch -p1           < /mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/aurora.patch
+    patch -p1 --dry-run < "$MEOW/assets/prompt/aurora.patch"
+    patch -p1           < "$MEOW/assets/prompt/aurora.patch"
 
 Como desfazer, byte a byte (conferido: o arquivo volta idêntico ao original):
 
+    MEOW="$PWD"          # de novo a raiz do clone, antes do cd
     cd ~/.config/zsh
-    patch -R -p1 < /mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/aurora.patch
+    patch -R -p1 < "$MEOW/assets/prompt/aurora.patch"
+
+O CAMINHO SAI DA RAIZ DO CLONE, E ATÉ 21/09/2026 NÃO SAIA
+  As três linhas acima traziam um caminho absoluto dentro do disco Apate, num
+  `.../MeowSystem/src/prompt/`: um ponto de montagem que existe numa máquina
+  só, e um diretório que nem nela existe mais — `src/prompt/` virou
+  `assets/prompt/`. O `LEIAME.md` ao lado foi consertado naquele dia e este
+  arquivo ficou para trás, de modo que os dois irmãos passaram a mandar
+  caminhos diferentes para o mesmo comando. Corrigir aqui não quebra nada:
+  tudo isto é preâmbulo em prosa, e o `patch` só começa a ler no
+  `--- a/env.zsh` mais abaixo.
+
+  O caminho velho não fica transcrito aqui de propósito. Num `.patch` não há
+  cerca de crases separando o que se lê do que se copia: uma linha de prosa com
+  o caminho inteiro seria indistinguível de uma receita para quem varre o
+  arquivo procurando o comando — e para o `tests/portabilidade.sh`, que passou
+  a varrer `.patch` nesta mesma data.
+
+  O `MEOW="$PWD"` é necessário porque a linha seguinte é um `cd`: um caminho
+  relativo cru deixaria de valer exatamente no comando em que ele é usado.
 
 AVISO QUE NÃO PODE SER PULADO
   `~/.config/zsh` é o repositório privado dela, com auto-commit a cada 10
