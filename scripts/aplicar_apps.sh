@@ -97,6 +97,23 @@ rodar_modulo() {
 # Sai antes do laço normal porque a saída é para ser lida por outro programa:
 # uma linha de log misturada no TSV viraria uma coluna fantasma na tela dela.
 if [ "$ACAO" = "tabela" ]; then
+  # A TABELA É LEITURA, E LEITURA NÃO PODE ESCREVER — 22/09/2026
+  #   O painel oferece esta saída como "Quais programas estão vestidos", com
+  #   `escreve: False` na tabela `ACOES` (app/servidor.py). Desde a sprint P2 o
+  #   `meow_app_detectar` de alguns módulos REGISTRA pendência, e pendência é
+  #   arquivo em `$MEOW_ESTADO`: medido nesta máquina, um `aplicar_apps.sh
+  #   tabela` criava `~/.local/state/meowsystem/pendencias.tsv` do nada. O
+  #   botão mentia, e a mentira era do tipo que a P3 persegue.
+  #
+  #   O conserto NÃO é tirar o registro do `detectar` — ele está certo onde
+  #   está, e é o que faz a Home saber do problema numa passagem de verdade. É
+  #   mandar o estado desta passagem para um descartável: aqui ninguém está
+  #   consertando nada, está lendo uma coluna. Mesma classe do `flatpak info` e
+  #   do `gsettings get` que já sujaram HOME virgem neste projeto.
+  MEOW_ESTADO="$(mktemp -d -p "${TMPDIR:-/tmp}" .meow-tabela.XXXXXX)" || exit "$MEOW_ERRO"
+  export MEOW_ESTADO
+  trap 'rm -rf "$MEOW_ESTADO"' EXIT
+
   vistos=""
   declare -A SLUGS_DE=()
   declare -a ORDEM=()

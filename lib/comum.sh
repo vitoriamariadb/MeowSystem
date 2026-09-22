@@ -744,14 +744,35 @@ meow_registrar() {
 # UMA LINHA POR ID: a nova substitui a velha, pelo mesmo `awk -F'\t'` de campo
 # inteiro que o `meow_manifesto_registrar` usa logo acima. `grep "^$id"` seria
 # expressão regular sobre um identificador, e um `.` no id casaria o vizinho.
+#
+# O CAMINHO SE RESOLVE NA HORA DA CHAMADA, E ISSO É O CONSERTO DE 22/09/2026
+#   Até esta revisão o arquivo era fixado aqui, no `source`. Quem quisesse rodar
+#   uma DETECÇÃO sem sujar o estado da máquina — um teste, ou a tabela do
+#   `meow apps`, que se anuncia como leitura — não tinha como: mover
+#   `MEOW_ESTADO` não movia isto, porque isto já tinha sido calculado.
+#
+#   Medido nesta máquina: `./tests/reversao.sh` roda o `meow_app_detectar` de
+#   todo módulo de verdade, e desde que o `detectar` do Spotify registra
+#   pendência (a própria P2), a suíte passou a escrever
+#   `~/.local/state/meowsystem/pendencias.tsv` no HOME real de quem roda o
+#   teste. É a mesma classe de defeito que o `flatpak info` e o `gsettings get`
+#   já custaram a este projeto: DETECÇÃO COM EFEITO COLATERAL.
+#
+#   Agora quem só olha aponta `MEOW_ESTADO` para um diretório descartável e
+#   pronto — sem variável nova, sem modo novo, e sem que o `detectar` precise
+#   saber quem o chamou. `MEOW_PENDENCIAS` fica como o nome público do arquivo
+#   (é ele que o `app/servidor.py` lê do outro lado).
 MEOW_PENDENCIAS="$MEOW_ESTADO/pendencias.tsv"
 
+_meow_pendencias_arquivo() { printf '%s/pendencias.tsv' "$MEOW_ESTADO"; }
+
 _meow_pendencia_tirar() {
-  local id="$1"
-  [ -f "$MEOW_PENDENCIAS" ] || return 0
-  awk -F'\t' -v a="$id" '$1 != a' "$MEOW_PENDENCIAS" > "$MEOW_PENDENCIAS.tmp" 2>/dev/null \
-    && mv -f "$MEOW_PENDENCIAS.tmp" "$MEOW_PENDENCIAS" 2>/dev/null
-  rm -f "$MEOW_PENDENCIAS.tmp" 2>/dev/null
+  local id="$1" arq
+  arq="$(_meow_pendencias_arquivo)"
+  [ -f "$arq" ] || return 0
+  awk -F'\t' -v a="$id" '$1 != a' "$arq" > "$arq.tmp" 2>/dev/null \
+    && mv -f "$arq.tmp" "$arq" 2>/dev/null
+  rm -f "$arq.tmp" 2>/dev/null
   return 0
 }
 
@@ -780,7 +801,7 @@ meow_pendencia_acionavel() {
   frase="${frase//$'\t'/ }"; frase="${frase//$'\n'/ }"
   comando="${comando//$'\t'/ }"; comando="${comando//$'\n'/ }"
   printf '%s\t%s\t%s\t%s\t%s\n' \
-    "$id" "$etapa" "$frase" "$comando" "$(date -Iseconds)" >> "$MEOW_PENDENCIAS"
+    "$id" "$etapa" "$frase" "$comando" "$(date -Iseconds)" >> "$(_meow_pendencias_arquivo)"
   return 0
 }
 
