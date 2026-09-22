@@ -1,6 +1,11 @@
-# assets/icones/mimetypes.map — que glifo do pack Catppuccin veste cada tipo de arquivo.
+# packs/catppuccin/icones/mimetypes.map — que glifo deste pack veste cada tipo
+# de arquivo. Veio de `assets/icones/mimetypes.map` em 22/09/2026: a P13 desceu
+# os 3.280 glifos para `icones/mimetypes/` e deixou este arquivo para trás, e o
+# MAPA É A DECISÃO — dizer qual glifo veste qual tipo é escolha de tema, não
+# fato da máquina. Acervo num endereço e decisão noutro é como quem troca de
+# pack leva os desenhos e não leva a escolha.
 #
-# FORMATO      nome-de-icone-freedesktop : glifo-em-icons/catppuccin/<flavor>/
+# FORMATO      nome-de-icone-freedesktop : glifo-em-icones/mimetypes/<flavor>/
 # COMENTÁRIO   linha começando com # ; linha vazia é ignorada
 #
 # COMO ESTA LISTA NASCEU (05/08/2026)
