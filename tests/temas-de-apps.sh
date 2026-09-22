@@ -161,7 +161,11 @@ else
 fi
 
 # c) está num tema que não veio daqui — PERGUNTA, não sobrescreve
-saida="$(tres_saidas "/home/dela/.themes/outro.qbtheme" "/x/tema-do-pack")"
+#    O caminho sai do `$T` e não de um `/home/<nome>/…` escrito à mão: o
+#    `tests/portabilidade.sh` cobra home cravado até em valor de brinquedo, e
+#    cobra com razão — é assim que uma receita presa à máquina de quem escreveu
+#    entra no repositório sem ninguém notar.
+saida="$(tres_saidas "$T/themes/outro.qbtheme" "/x/tema-do-pack")"
 if printf '%s' "$saida" | grep -q 'rc=3' && printf '%s' "$saida" | grep -q 'que não veio daqui'; then
   ok "saída 3: tema de terceiro -> 3, e o arquivo dele fica intocado"
 else
