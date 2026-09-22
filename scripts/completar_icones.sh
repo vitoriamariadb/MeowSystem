@@ -442,7 +442,7 @@ fi
 # mais engana: o tema pode estar montado e perfeito e mesmo assim não ser o
 # SELECIONADO — e aí nada disto aparece, porque o nome do tema é o laço externo
 # da busca (docs/COSMIC-THEMING.md §2). Quem seleciona é o `construir_icones.sh`.
-TK="$HOME/.config/cosmic/com.system76.CosmicTk/v1/icon_theme"
+TK="$(meow_cosmic_dir)/com.system76.CosmicTk/v1/icon_theme"
 if [ -f "$TK" ] && ! grep -q "\"$TEMA_NOME\"" "$TK"; then
   meow_aviso "'$TEMA_NOME' NÃO é o tema de ícones selecionado — nada disto vai aparecer"
   meow_info "  rode: scripts/construir_icones.sh"

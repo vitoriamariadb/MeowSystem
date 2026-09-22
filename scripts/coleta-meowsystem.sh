@@ -13,6 +13,16 @@ set -uo pipefail
 OUT="${1:-$HOME/meowsystem-inventario-$(date +%Y%m%d-%H%M).md}"
 : > "$OUT"
 
+# A RAIZ DO COSMIC, REPETIDA AQUI EM VEZ DE VIR DO `meow_cosmic_dir` [21/09/2026]
+#   Este script é o único do repositório feito para viajar SOZINHO: o cabeçalho
+#   manda rodá-lo com `bash coleta-meowsystem.sh` e anexar o .md na conversa, e
+#   ele não carrega o `lib/comum.sh` de propósito — quem o recebe pode não ter
+#   clone nenhum. Puxar a porta única aqui trocaria um inventário que qualquer
+#   estranho roda por um que só roda dentro do repo. A expressão é a MESMA do
+#   verbo, palavra por palavra, e é a isenção que o `tests/estilo.sh` concede a
+#   quem cita `MEOW_COSMIC_DIR`.
+COSMIC_DIR="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
+
 sec()  { printf '\n\n## %s\n' "$*" >> "$OUT"; }
 sub()  { printf '\n### %s\n' "$*" >> "$OUT"; }
 note() { printf '%s\n' "$*" >> "$OUT"; }
@@ -117,9 +127,9 @@ run 'snap' snap list
 sec '3. ~/.config/cosmic — configuração completa'
 note 'Cada arquivo é um valor RON isolado. Isto é a fonte da verdade do seu rice.'
 open_fence
-find "$HOME/.config/cosmic" -type f 2>/dev/null | wc -l >> "$OUT"
+find "$COSMIC_DIR" -type f 2>/dev/null | wc -l >> "$OUT"
 close_fence
-dump_tree "$HOME/.config/cosmic"
+dump_tree "$COSMIC_DIR"
 
 sec '4. /usr/share/cosmic — defaults do sistema (só nomes)'
 open_fence

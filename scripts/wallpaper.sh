@@ -167,7 +167,7 @@ BASE="${WALLPAPER_BASE:-$HOME/.local/share/backgrounds/meowsystem}"
 ATIVOS="$BASE/ativos"
 NOITE_DIR="$BASE/ativos-noite"
 DIA_DIR="$BASE/ativos-dia"
-BG="$HOME/.config/cosmic/com.system76.CosmicBackground/v1"
+BG="$(meow_cosmic_dir)/com.system76.CosmicBackground/v1"
 ORDEM="${WALLPAPER_ORDEM:-aleatoria}"
 INTERVALO="${WALLPAPER_INTERVALO:-5m}"
 

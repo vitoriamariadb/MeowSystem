@@ -81,7 +81,7 @@ meow_minutos_de_hora() {
 
 # Lê uma chave do CosmicComp sem explodir quando o diretório não existe.
 _meow_noite_cosmic() {
-  local f="$HOME/.config/cosmic/com.system76.CosmicComp/v1/$1"
+  local f; f="$(meow_cosmic_dir)/com.system76.CosmicComp/v1/$1"
   [ -f "$f" ] || return 1
   local v; v="$(cat "$f" 2>/dev/null)" || return 1
   [ -n "$v" ] || return 1

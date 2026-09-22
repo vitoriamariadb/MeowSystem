@@ -100,6 +100,46 @@ if [ -n "$fora_da_porta" ]; then
 fi
 ok "nenhum .sh crava o caminho da paleta — todos passam pelo meow_paleta"
 
+# ----------------------------------------------- a raiz única do COSMIC
+# A MESMA PROMESSA, PARA A OUTRA PORTA ÚNICA [21/09/2026]
+#   Até este dia havia DOIS jeitos de dizer onde mora a configuração do COSMIC,
+#   e os dois estavam vivos: 11 linhas de shell liam
+#   `${MEOW_COSMIC_DIR:-$HOME/...}` e 24 cravavam o caminho. O `lib/preflight.sh`
+#   — o guardião, o que roda antes da primeira escrita — estava do lado que
+#   cravava. A P19 pôs as 24 para chamar o `meow_cosmic_dir` do `lib/comum.sh`;
+#   esta régua é o que impede a 25ª. Sem ela o conserto dura até o próximo
+#   arquivo novo, que é o prazo de validade de todo conserto sem cobrança.
+#
+# A ISENÇÃO É CITAR `MEOW_COSMIC_DIR` NA PRÓPRIA LINHA, e ela tem exatamente
+# dois moradores legítimos: o corpo do verbo, no `lib/comum.sh`, e o
+# `scripts/coleta-meowsystem.sh`, que é feito para viajar sozinho e não carrega
+# o comum.sh de propósito. Dizer o nome da variável é dizer que a raiz é
+# configurável — que é a única coisa cobrada aqui.
+#
+# COMENTÁRIO CONTINUA LIVRE, E ISSO NÃO É DESCUIDO
+#   Medido hoje nestes quatro caminhos: 35 citações da raiz moram em comentário
+#   (30 na linha inteira, 5 no fim de uma linha de código) e explicam o que o
+#   COSMIC faz com aquele diretório. Reescrevê-las para agradar um grep apagaria
+#   o porquê e não consertaria uma linha de código. Por causa das 5 do fim de
+#   linha o filtro NÃO pode ser só "a linha começa com #": ele tira a citação
+#   que tem um `#` antes dela, onde quer que ele esteja — a mesma regra do
+#   `tests/orfaos.sh`, que conta chamada e nunca menção.
+#
+# O RECORTE É O DA CONFERÊNCIA DA P19: `scripts/`, `lib/`, `bin/meow` e
+# `install.sh`. O `tests/` fica fora porque é ele quem desvia a raiz, e o
+# `app/servidor.py` porque Python não alcança o `lib/comum.sh` neste projeto —
+# a mesma isenção que o cabeçalho do `meow_paleta` já concede.
+raiz_cravada="$(grep -rn '\$HOME/\.config/cosmic' \
+                  "$RAIZ/scripts" "$RAIZ/lib" "$RAIZ/bin/meow" "$RAIZ/install.sh" \
+                | grep -vE ':[0-9]+:[^#]*#.*\$HOME/\.config/cosmic' \
+                | grep -v 'MEOW_COSMIC_DIR')"
+if [ -n "$raiz_cravada" ]; then
+  falha "raiz do COSMIC cravada em código, em vez de chamar meow_cosmic_dir:"
+  printf '%s\n' "$raiz_cravada" | sed "s#^$RAIZ/#  #" >&2
+  exit 1
+fi
+ok "nenhum código crava a raiz do COSMIC — todos passam pelo meow_cosmic_dir"
+
 command -v python3 >/dev/null || { printf 'pulado: falta python3\n'; exit 0; }
 python3 -c 'import numpy' 2>/dev/null || { printf 'pulado: falta numpy\n'; exit 0; }
 [ -d "$ACERVO" ] || { printf 'pulado: o acervo Arcticons não está aqui\n'; exit 0; }

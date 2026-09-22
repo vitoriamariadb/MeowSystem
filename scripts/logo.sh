@@ -90,8 +90,9 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/noite.sh"
 
 ACERVO="$RAIZ/assets/gatos"
-LOGOS_DIR="$HOME/.config/cosmic/logos"
-APPLET="$HOME/.config/cosmic/dev.cappsy.CosmicExtAppletLogoMenu/v1"
+COSMIC="$(meow_cosmic_dir)"
+LOGOS_DIR="$COSMIC/logos"
+APPLET="$COSMIC/dev.cappsy.CosmicExtAppletLogoMenu/v1"
 ESTADO="$MEOW_ESTADO/logo-atual"
 
 FLAVOR="${FLAVOR:-mocha}"
@@ -374,7 +375,7 @@ fi
 #   pior do que um recurso que falta: ela testaria, não veria efeito, e não teria
 #   como saber de quem é a culpa.
 applet_montado() {
-  local barras="$HOME/.config/cosmic/com.system76.CosmicPanel"
+  local barras="$COSMIC/com.system76.CosmicPanel"
   grep -qs 'LogoMenu' "$barras.Panel/v1/plugins_wings" "$barras.Panel/v1/plugins_center" \
                       "$barras.Dock/v1/plugins_wings"  "$barras.Dock/v1/plugins_center"
 }

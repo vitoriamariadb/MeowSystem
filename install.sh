@@ -212,7 +212,7 @@ etapa_conf_ler() {
 #   um backup que ninguém acha.
 etapa_backup_tema() {
   passo "Backup do tema de antes"
-  local cosmic="$HOME/.config/cosmic"
+  local cosmic; cosmic="$(meow_cosmic_dir)"
   local velho primeiro="" mais_velho=""
   for velho in "$MEOW_ESTADO"/backups/*-tema-*; do
     [ -d "$velho" ] || continue
@@ -376,12 +376,22 @@ etapa_conf() {
   # alguém lembrar de criar à mão.
   local viz="${MEOW_VIZINHOS:-$HOME/.config/meow/vizinhos.conf}"
   if [ ! -f "$viz" ] && [ -d "$HOME/.config/zsh/.git" ]; then
-    local rc_viz
+    local rc_viz raiz_cosmic
+    raiz_cosmic="$(meow_cosmic_dir)"
+    # A LINHA DO COSMIC SAI EXPANDIDA, A DO ZSH NÃO — a diferença é de propósito.
+    #   Quem lê o vizinhos.conf é o laço do `lib/comum.sh`, e ele expande UM nome
+    #   só: `$HOME`. Isso também é de propósito — passar as linhas por `eval`
+    #   transformaria um arquivo de configuração em execução de código. Logo
+    #   `$MEOW_COSMIC_DIR` não teria como chegar lá escrito, e a trava ficaria
+    #   guardando a raiz de sempre enquanto o resto do projeto passou a escrever
+    #   na que o `meow_cosmic_dir` devolve [21/09/2026]. Resolver aqui e gravar o
+    #   caminho absoluto é o que mantém as duas pontas medindo a mesma raiz — e
+    #   caminho absoluto é o que o próprio leitor pede.
     meow_escrever "$viz" \
 "# Criado automaticamente: achei um repositório git em ~/.config/zsh.
 # O MeowSystem não escreve nos caminhos abaixo. Um por linha, absoluto.
 \$HOME/.config/zsh
-\$HOME/.config/cosmic/com.system76.CosmicSettings.Shortcuts" 644 >/dev/null
+$raiz_cosmic/com.system76.CosmicSettings.Shortcuts" 644 >/dev/null
     rc_viz=$?
     if [ "$rc_viz" = "1" ]; then
       mudou=1
@@ -769,7 +779,7 @@ etapa_tema() {
 # ---------------------------------------------------------------------------
 etapa_modo() {
   passo "Modo claro/escuro"
-  local arq="$HOME/.config/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark"
+  local arq; arq="$(meow_cosmic_dir)/com.system76.CosmicTheme.Mode/v1/is_dark"
   local desejado
   case "$MODO" in
     escuro) desejado=true ;;

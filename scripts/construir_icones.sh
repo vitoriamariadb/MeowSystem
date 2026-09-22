@@ -37,8 +37,9 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
-LOGOS_DIR="$HOME/.config/cosmic/logos"
-TK="$HOME/.config/cosmic/com.system76.CosmicTk/v1"
+COSMIC="$(meow_cosmic_dir)"
+LOGOS_DIR="$COSMIC/logos"
+TK="$COSMIC/com.system76.CosmicTk/v1"
 # (o diretório do applet LogoMenu não é mais tocado aqui — ver o bloco 3)
 
 # Os dois nomes que o COSMIC pede para o botão de aplicativos. São dois porque o
