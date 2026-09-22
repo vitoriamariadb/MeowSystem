@@ -394,10 +394,13 @@ apaga a pessoa do processo.
 ### Para quem escreve um módulo
 
 ```bash
-tema="$(meow_app_tema_do_pack spotify.spicetify_tema)"   # o QUE aplicar
-echo "$MEOW_APP_TEMA_PACK"                               # QUEM respondeu
+meow_app_tema_do_pack spotify.spicetify_tema   # SEM $( ) — veja abaixo
+tema="$MEOW_APP_TEMA"                          # o QUE aplicar
+de_quem="$MEOW_APP_TEMA_PACK"                  # QUEM respondeu
 
-meow_app_tema_no_ar spotify "$no_ar" "$tema" "$MEOW_APP_TEMA_PACK"
+# O 5º argumento só entra no caminho que ESCREVE (o seu `meow_app_aplicar`).
+# Sem ele a função nunca pergunta: diz o fato, registra a pendência e devolve 3.
+meow_app_tema_no_ar spotify "$no_ar" "$tema" "$de_quem" pergunte
 case $? in
   0) : ;;                       # já está no tema do pack
   1) : ;;                       # está sem tema: pode aplicar
@@ -405,8 +408,18 @@ case $? in
 esac
 ```
 
-As duas andam juntas. Usar a primeira sem a segunda troca um defeito por outro:
-o módulo passaria a aplicar o tema certo por cima do que a pessoa escolheu.
+**`meow_app_tema_do_pack` não imprime nada, e chamá-la dentro de `$( )` devolve
+vazio.** Ela responde duas coisas — o valor e a procedência —, e `$( )` é
+subshell: a variável seria atribuída num processo que morre na mesma linha. Foi
+exatamente o que aconteceu na primeira versão desta seção, em 22/09/2026: os
+dois módulos migrados recebiam o tema certo com a procedência vazia, e o log
+dizia "do pack ativo" onde devia dizer de quem herdou. O stdout ficou mudo de
+propósito, para que o erro apareça na hora em vez de virar um `''` silencioso.
+O `tests/temas-de-apps.sh` recusa o `$( )` num módulo migrado.
+
+As duas funções andam juntas. Usar a primeira sem a segunda troca um defeito por
+outro: o módulo passaria a aplicar o tema certo por cima do que a pessoa
+escolheu.
 
 O teto de citações por módulo está em `tests/temas-de-apps.sh`, e ele só desce.
 

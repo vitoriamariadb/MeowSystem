@@ -150,23 +150,49 @@ meow_app_pendente() {
 # O CONTRATO, EM DUAS FUNÇÕES, E ELAS SÃO IRMÃS
 #   `meow_app_tema_do_pack <app>.<chave>`  O QUE aplicar. O módulo pergunta em
 #                                          vez de saber, e deixa de conhecer o
-#                                          nome de qualquer tema.
-#   `meow_app_tema_no_ar <app> <no-ar> <do-pack>`
+#                                          nome de qualquer tema. A resposta sai
+#                                          em `MEOW_APP_TEMA` e em
+#                                          `MEOW_APP_TEMA_PACK`, NÃO no stdout.
+#   `meow_app_tema_no_ar <app> <no-ar> <do-pack> [de-quem] [pergunte]`
 #                                          SE aplicar. Lê o que está no ar antes
 #                                          de escrever, e tem três saídas.
 #
 #   Usar a primeira sem a segunda troca um defeito por outro: o módulo passaria
 #   a aplicar o tema certo por cima do que a pessoa escolheu à mão.
+MEOW_APP_TEMA=""
 MEOW_APP_TEMA_PACK=""
 
 # Devolve o que o pack ATIVO declara para aquele aplicativo, ou o que ele herda,
-# e guarda em `MEOW_APP_TEMA_PACK` o id de QUEM respondeu — que é como o log diz
-# "herdado do catppuccin" em vez de fingir que o tema é do pack no ar. Sem
-# declaração em cadeia nenhuma, devolve 1 e não imprime nada: ausência é
-# resposta, e quem chama decide se ela é problema.
+# em `MEOW_APP_TEMA`, e o id de QUEM respondeu em `MEOW_APP_TEMA_PACK` — que é
+# como o log diz "herdado do catppuccin" em vez de fingir que o tema é do pack no
+# ar. Sem declaração em cadeia nenhuma, devolve 1 e deixa as duas vazias:
+# ausência é resposta, e quem chama decide se ela é problema.
 #
-#   meow_app_tema_do_pack spotify.spicetify_tema   -> Sleek       (pack dracula)
-#   meow_app_tema_do_pack qbittorrent.arquivo      -> /…/x.qbtheme (herdado)
+#   meow_app_tema_do_pack spotify.spicetify_tema
+#     MEOW_APP_TEMA=Sleek          MEOW_APP_TEMA_PACK=dracula
+#   meow_app_tema_do_pack qbittorrent.arquivo
+#     MEOW_APP_TEMA=/…/x.qbtheme   MEOW_APP_TEMA_PACK=catppuccin  (herdado)
+#
+# ELA NÃO IMPRIME NADA, E ISSO É O CONSERTO — 22/09/2026, na revisão da P18
+#   A primeira versão fazia as duas coisas: imprimia o valor E guardava o id em
+#   `MEOW_APP_TEMA_PACK`. Todo módulo a chamou do jeito natural em shell —
+#   `tema="$(meow_app_tema_do_pack spotify.spicetify_tema)"` — e `$( )` é
+#   SUBSHELL: a variável era atribuída num processo que morria na mesma linha.
+#   Medido com o sourcing real dos dois manifestos, com PACK=catppuccin:
+#
+#     _SPOT_TEMA_NOME=[catppuccin]  _SPOT_TEMA_DE=[]   <- sempre vazio
+#     MEOW_QBT_ORIGEM=[/…/catppuccin-mocha.qbtheme]  MEOW_QBT_NOME_AURORA=[]
+#
+#   O valor chegava; o "quem respondeu" se perdia, calado — e um `""` calado é
+#   pior que um erro, porque ele vira `--tema ''` e `grep -qE "^[[:space:]]*\)"`
+#   lá na frente. Um canal de saída que não sobrevive ao `$( )` não é contrato,
+#   é armadilha: quem escrever o nono módulo escreveria o mesmo `$( )`.
+#
+#   Por isso o stdout ficou MUDO. Quem insistir no `$( )` recebe string vazia na
+#   hora, não um valor certo com a procedência faltando — o defeito fica alto em
+#   vez de ficar escondido. É o mesmo desenho do `meow_app_sem`/`MEOW_APP_MOTIVO`
+#   logo acima: função que precisa devolver duas coisas devolve pelas duas
+#   variáveis, e é chamada DIRETO. O `tests/temas-de-apps.sh` recusa o `$( )`.
 #
 # QUEM RESOLVE O FORMATO CONTINUA SENDO UM SÓ. Esta função não abre `pack.json`
 # — ela pergunta ao `scripts/pack.py`, pela mesma porta que o `meow_pack_arquivo`
@@ -179,12 +205,13 @@ MEOW_APP_TEMA_PACK=""
 # uma consulta de leitura.
 meow_app_tema_do_pack() {
   local trilha="$1" saida
+  MEOW_APP_TEMA=""
   MEOW_APP_TEMA_PACK=""
   meow_tem python3 || return 1
   saida="$(FLAVOR="${FLAVOR:-}" python3 "$MEOW_RAIZ/scripts/pack.py" \
              app "$(meow_pack_dir)" "apps.$trilha" 2>/dev/null)" || return 1
   MEOW_APP_TEMA_PACK="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
-  printf '%s' "$(printf '%s\n' "$saida" | sed -n 's/^valor=//p')"
+  MEOW_APP_TEMA="$(printf '%s\n' "$saida" | sed -n 's/^valor=//p')"
   return 0
 }
 
@@ -226,11 +253,32 @@ meow_app_tema_do_pack() {
 #   `<app>` É O ID DO MÓDULO, e ele vira o id da pendência (`<app>-tema-de-
 #   terceiro`). A irmã do caminho feliz está nas duas primeiras saídas: uma
 #   pendência que sobrevive ao problema é a caixa de entrada que ninguém lê.
+#
+# E A PERGUNTA SÓ EXISTE NO CAMINHO QUE ESCREVE — 22/09/2026, revisão da P18
+#   O 5º argumento é a palavra `pergunte`, e sem ela esta função NUNCA pergunta:
+#   diz o fato, registra a pendência e devolve 3. O padrão é o silêncio porque o
+#   erro de esquecer tem de ser o inofensivo.
+#
+#   O que custou a lição: o módulo do qBittorrent chama a leitura de dentro do
+#   `_meow_qbt_pronto`, que é o núcleo COMUM dos três verbos. Um `meow apps
+#   conferir qbittorrent` — uma LEITURA, com `escreve: False` na tabela do
+#   painel — parava num «trocar pelo tema do pack? [s/N]»; respondido `s`, a
+#   tela imprimia "trocando pelo tema do pack a pedido dela" e o `conferir`
+#   voltava sem escrever nada. A resposta dela nem sobrevivia ao processo: o
+#   `aplicar_apps.sh` roda cada ação num subshell próprio. Prometer escrita
+#   dentro de uma leitura é a mesma classe de falha que esta sprint veio matar.
+#
+#   Quem passa `pergunte` é o `meow_app_aplicar` de cada módulo, e só ele.
 meow_app_tema_no_ar() {
   local app="$1" no_ar="$2" do_pack="$3" de_quem="${4:-$MEOW_APP_TEMA_PACK}" resp=""
+  local pode_perguntar="${5:-}"
   local id="$app-tema-de-terceiro" fonte=""
-  # "herdado do catppuccin" só quando for herança MESMO. Dizer a origem quando
-  # ela é o próprio pack no ar é ruído numa linha que já é longa.
+  # A ORIGEM VAI SEMPRE QUE HOUVER UMA, inclusive quando ela é o pack no ar.
+  # Dizê-la só na herança pouparia uma repetição e criaria uma ambiguidade pior:
+  # a linha sem sufixo passaria a significar duas coisas — "é o pack que você
+  # escolheu" e "ninguém respondeu por este app" —, e é justamente a segunda que
+  # a pessoa precisa enxergar. Com o sufixo, "(do pack catppuccin)" numa máquina
+  # vestida de Dracula É a herança aparecendo, que é o que a sprint pediu.
   [ -n "$de_quem" ] && fonte=" (do pack $de_quem)"
 
   if [ -z "$no_ar" ]; then
@@ -254,7 +302,7 @@ meow_app_tema_no_ar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  if [ -t 0 ] && [ -t 1 ]; then
+  if [ "$pode_perguntar" = "pergunte" ] && [ -t 0 ] && [ -t 1 ]; then
     printf '  %s??%s   trocar pelo tema do pack? [s/N] ' "$C_AMARELO" "$C_ZERO"
     IFS= read -r -t 30 resp || resp=""
     printf '\n'

@@ -119,6 +119,22 @@ for mod in "${MIGRADOS[@]}"; do
     falha "$mod: está na lista de migrados e não chama meow_app_tema_no_ar" \
           "  Aplicar sem ler é sobrescrever calado o que a pessoa fez à mão."
   fi
+  # O `$( )` É PROIBIDO, E FOI UM DEFEITO MEDIDO — 22/09/2026, revisão da P18
+  #   `tema="$(meow_app_tema_do_pack …)"` é o jeito natural de escrever isto em
+  #   shell, e é o jeito errado: `$( )` é subshell, e o `MEOW_APP_TEMA_PACK` que
+  #   a função atribui morre com ele. Os dois módulos migrados nasceram assim, e
+  #   a procedência chegava vazia em todas as telas deles. Esta linha é o que
+  #   impede o nono módulo de copiar a mesma armadilha do documento.
+  #
+  #   Só CÓDIGO, pela mesma régua da seção 1: a linha que conta é a que não
+  #   começa por `#`. O padrão errado tem de continuar escrito nos comentários
+  #   dos dois módulos — é lá que mora a história do defeito.
+  if grep -n '\$(meow_app_tema_do_pack' "$arq" | grep -qv '^[0-9]*: *#'; then
+    falha "$mod: chama meow_app_tema_do_pack dentro de \$( )" \
+          "  \$( ) é subshell: MEOW_APP_TEMA_PACK morre lá dentro e a procedência some."
+  else
+    ok "$mod: chama meow_app_tema_do_pack direto, sem \$( )"
+  fi
 done
 
 # ---------------------------------------------------------------------------
@@ -208,6 +224,81 @@ if python3 "$RAIZ/scripts/pack.py" app dracula apps.spotify.acento_no_color_ini 
         "  Tema de um pack com esquema de outro é a divergência silenciosa de volta."
 else
   ok "pack: chave ausente num bloco declarado é ausência, não herança"
+fi
+
+# ---------------------------------------------------------------------------
+# 5. A PROCEDÊNCIA CHEGA AO MÓDULO — E É O CAMINHO QUE O MÓDULO USA
+# ---------------------------------------------------------------------------
+# POR QUE ESTA SEÇÃO NASCEU — 22/09/2026, na revisão da P18
+#   A seção 3 acima passa "pack-de-teste" como 4º argumento, à mão. Ela exercita
+#   a função e NUNCA o caminho que os módulos usam: perguntar ao pack e deixar a
+#   resposta chegar sozinha. E era exatamente ali que estava o defeito — a
+#   pergunta era feita dentro de `$( )`, o `MEOW_APP_TEMA_PACK` morria no
+#   subshell, e o sufixo "(do pack …)" nunca aparecia na tela. Teste que só
+#   chama a função pela porta de teste não vê a porta da frente.
+prova_da_procedencia() {
+  (
+    export MEOW_RAIZ="$RAIZ"
+    export MEOW_ESTADO="$T/estado5"
+    export PACK=dracula
+    # shellcheck disable=SC1091
+    . "$RAIZ/lib/comum.sh" || exit 2
+    # O caminho do módulo, inteiro: pergunta, guarda, e deixa o 4º argumento
+    # cair no padrão (que é o `MEOW_APP_TEMA_PACK`).
+    meow_app_tema_do_pack spotify.spicetify_tema || exit 3
+    printf 'tema=%s\n' "$MEOW_APP_TEMA"
+    meow_app_tema_no_ar spotify "$MEOW_APP_TEMA" "$MEOW_APP_TEMA" 2>&1
+  )
+}
+saida="$(prova_da_procedencia)"
+if printf '%s' "$saida" | grep -q 'tema=Sleek'; then
+  ok "procedência: o valor chega ao módulo sem \$( )"
+else
+  falha "procedência: meow_app_tema_do_pack não devolveu o tema em MEOW_APP_TEMA" "$saida"
+fi
+if printf '%s' "$saida" | grep -q '(do pack dracula)'; then
+  ok "procedência: o 4º argumento cai no padrão e a tela diz de quem veio o tema"
+else
+  falha "procedência: a linha da tela não diz de qual pack veio o tema" \
+        "$saida
+  Sem isto o item 2 da sprint não se cumpre em produção: o log cala a origem."
+fi
+
+# ---------------------------------------------------------------------------
+# 6. PACK SEM TEMA PARA O APP NÃO DESTRAVA O qBITTORRENT
+# ---------------------------------------------------------------------------
+# A trava do módulo do qBittorrent é um `grep` pelo NOME do pack dentro do
+# script do Aurora. Com o nome vazio o padrão vira `^[[:space:]]*\)`, que casa
+# qualquer fechamento de subshell indentado — medidos 32 dos `.sh` deste
+# repositório. O módulo se daria por destravado sozinho e chamaria o script de
+# terceiro com `--tema ''`. Vazio tem de ser NÃO-destravado.
+cat > "$T/aurora-de-brinquedo.sh" <<'FIM'
+#!/usr/bin/env bash
+case "$1" in
+  dracula) echo dracula ;;
+esac
+(
+  echo subshell
+)
+FIM
+destrava_com_nome_vazio() {
+  (
+    export MEOW_RAIZ="$RAIZ"
+    export MEOW_ESTADO="$T/estado6"
+    # shellcheck disable=SC1091
+    . "$RAIZ/lib/comum.sh" || exit 2
+    # shellcheck disable=SC1091
+    . "$ACERVO/qbittorrent/manifesto.sh" >/dev/null 2>&1 || exit 2
+    MEOW_QBT_NOME_AURORA=""
+    MEOW_QBT_AURORA_FONTE="$T/aurora-de-brinquedo.sh"
+    _meow_qbt_aurora_destravado
+  )
+}
+if destrava_com_nome_vazio; then
+  falha "qbittorrent: pack sem tema para o app passou por 'Aurora destravado'" \
+        "  O grep casou um ')' indentado. Seria --tema '' num script de terceiro."
+else
+  ok "qbittorrent: nome de pack vazio não destrava (o ')' indentado não conta)"
 fi
 
 # ---------------------------------------------------------------------------

@@ -133,10 +133,21 @@ MEOW_QBT_APP_ID="org.qbittorrent.qBittorrent"
 #   que não declara `apps.qbittorrent` (nem herda de quem declare) não tem tema
 #   para este app, e inventar um seria aplicar o tema de outro pack e chamar de
 #   sucesso — que é exatamente o defeito medido no módulo do Obsidian.
-MEOW_QBT_ORIGEM="$(meow_app_tema_do_pack qbittorrent.arquivo)"
+#
+#   SEM `$( )` AQUI, E O MOTIVO CUSTOU UM DEFEITO — 22/09/2026, revisão da P18
+#     Estas linhas eram `X="$(meow_app_tema_do_pack …)"`, com o
+#     `MEOW_QBT_NOME_AURORA` lido logo abaixo. `$( )` é subshell: a função
+#     atribuía a variável num processo que morria na mesma linha, e o nome do
+#     pack chegava VAZIO — medido, com PACK=catppuccin, `MEOW_QBT_NOME_AURORA=[]`.
+#     Hoje a função não imprime nada e responde pelas duas variáveis; chamá-la
+#     dentro de `$( )` devolveria string vazia na hora, que é o defeito alto em
+#     vez de escondido.
+meow_app_tema_do_pack qbittorrent.arquivo
+MEOW_QBT_ORIGEM="$MEOW_APP_TEMA"
 MEOW_QBT_NOME_AURORA="$MEOW_APP_TEMA_PACK"
 MEOW_QBT_ARQUIVO="$(basename -- "${MEOW_QBT_ORIGEM:-sem-tema}")"
-MEOW_QBT_SHA256="$(meow_app_tema_do_pack qbittorrent.sha256)"
+meow_app_tema_do_pack qbittorrent.sha256
+MEOW_QBT_SHA256="$MEOW_APP_TEMA"
 
 # O script do Aurora: a FONTE é que manda. O self-heal roda a cópia de
 # `~/.config/zsh/scripts/` (linha do `bash "$SRC/..."`) e só depois a instala em
@@ -253,7 +264,17 @@ _meow_qbt_avisar_sem_aurora() {
 # não escrever o conf e, na segunda rodada, devolver 0 ("nada a fazer") enquanto
 # a `meow_app_conferir` devolvia 1 — dois códigos contraditórios para o mesmo
 # estado (reproduzido em sandbox).
+#
+# NOME VAZIO É NÃO-DESTRAVADO, E A GUARDA NÃO É PARANOIA — 22/09/2026, revisão
+# da P18. Sem ela o regexp vira `^[[:space:]]*\)`, que casa QUALQUER linha cujo
+# primeiro caractere não-branco seja `)` — fechamento de subshell indentado, que
+# é padrão comum em shell: medidos 32 dos próprios `.sh` deste repositório
+# casariam. Numa máquina que tenha o script do Aurora, isso destravava o módulo
+# sozinho, gravava estado vazio em `~/.local/state/aurora/qbittorrent-tema` e
+# chamava o script de terceiro com `--tema ''`. Pack sem tema para este app tem
+# de parar no 3 explicado do `_meow_qbt_pronto`, não passar por destravado.
 _meow_qbt_aurora_destravado() {
+  [ -n "$MEOW_QBT_NOME_AURORA" ] || return 1
   [ -f "$MEOW_QBT_AURORA_FONTE" ] || return 1
   grep -qE "^[[:space:]]*${MEOW_QBT_NOME_AURORA}\)" "$MEOW_QBT_AURORA_FONTE"
 }
@@ -395,11 +416,30 @@ _meow_qbt_alvo() {
 #   O QUE É GUARDADO É O VEREDITO, NÃO O "JÁ PERGUNTEI": o código de saída
 #   precisa continuar chegando igual a cada chamada, senão o `conferir` que vem
 #   depois do `detectar` acharia que está tudo bem.
+#
+# A PERGUNTA SÓ VALE DENTRO DO `aplicar` — 22/09/2026, revisão da P18
+#   Este veredito é lido pelos TRÊS verbos, porque o `_meow_qbt_pronto` é o
+#   núcleo comum deles. Mas `detectar` e `conferir` são LEITURA (o painel serve
+#   a tabela com `escreve: False`), e um `meow apps conferir qbittorrent`
+#   parava num «trocar pelo tema do pack? [s/N]» que, respondido `s`, imprimia
+#   "trocando … a pedido dela" e não trocava nada — cada ação roda num subshell
+#   próprio do `aplicar_apps.sh`, então a resposta morria ali. Prometer escrita
+#   dentro de uma leitura é a classe de falha que esta sprint veio matar.
+#
+#   Por isso o `pergunte` é ligado pelo `meow_app_aplicar`, e só por ele. O
+#   `reverter` também escreve e mesmo assim fica de fora: ele está DESFAZENDO o
+#   nosso tema, e oferecer "trocar pelo tema do pack?" no meio disso seria
+#   perguntar o contrário do que ela mandou fazer.
+#
+#   O cache continua fazendo o serviço dele: dentro do `aplicar` a pergunta
+#   acontece na primeira passagem, com o interruptor já ligado, e as duas
+#   releituras do `conferir` interno caem no veredito guardado.
 MEOW_QBT_VEREDITO_AR=""
+MEOW_QBT_PODE_PERGUNTAR=""
 _meow_qbt_ar_ok() {
   if [ -z "$MEOW_QBT_VEREDITO_AR" ]; then
     meow_app_tema_no_ar qbittorrent "$(_meow_qbt_no_ar)" "$(_meow_qbt_alvo)" \
-                        "$MEOW_QBT_NOME_AURORA"
+                        "$MEOW_QBT_NOME_AURORA" "$MEOW_QBT_PODE_PERGUNTAR"
     MEOW_QBT_VEREDITO_AR=$?
   fi
   return "$MEOW_QBT_VEREDITO_AR"
@@ -553,6 +593,10 @@ meow_app_conferir() {
 # meow_app_aplicar — 0 nada a fazer, 1 aplicou, 2 erro, 3 ausente/travado.
 # ─────────────────────────────────────────────────────────────────────────────
 meow_app_aplicar() {
+  # O interruptor da pergunta, e ele mora AQUI porque é daqui para baixo que se
+  # escreve — ver o bloco do `_meow_qbt_ar_ok`. Antes do `_meow_qbt_pronto` de
+  # propósito: é ele quem faz a leitura, na primeira das três passagens.
+  MEOW_QBT_PODE_PERGUNTAR="pergunte"
   _meow_qbt_pronto || return "$MEOW_SEM_DEPENDENCIA"
 
   meow_app_conferir >/dev/null 2>&1 && {

@@ -208,13 +208,25 @@ _SPOT_INI="$_SPOT_CONFIG_DIR/config-xpui.ini"
 #   APLICATIVO, então as três respostas vêm sempre do mesmo pack. Guardá-lo
 #   depois de cada chamada daria a impressão de que elas podem divergir.
 #
+#   A CHAMADA É DIRETA, SEM `$( )` — 22/09/2026, revisão da P18
+#     Estas quatro linhas eram `X="$(meow_app_tema_do_pack …)"`. `$( )` é
+#     SUBSHELL, e o `MEOW_APP_TEMA_PACK` que a função atribui morria com ele:
+#     medido, com PACK=catppuccin, `_SPOT_TEMA_NOME=[catppuccin]` e
+#     `_SPOT_TEMA_DE=[]`. O valor chegava, a procedência não — e era ela que
+#     fazia o log dizer "do pack ativo" em toda linha desta tela, e o
+#     PROCEDENCIA.txt do tema baixado gravar "pedido pelo pack ?". A função
+#     hoje responde pelas duas variáveis e não imprime nada.
+#
 #   RESOLVIDO NO `source`, COMO OS VIZINHOS. `_SPOT_PALETA` logo acima faz o
 #   mesmo, e o runner (`scripts/aplicar_apps.sh`) carrega cada manifesto num
 #   SUBSHELL, depois de PACK e FLAVOR já estarem no ambiente.
-_SPOT_TEMA_NOME="$(meow_app_tema_do_pack spotify.spicetify_tema)"
+meow_app_tema_do_pack spotify.spicetify_tema
+_SPOT_TEMA_NOME="$MEOW_APP_TEMA"
 _SPOT_TEMA_DE="$MEOW_APP_TEMA_PACK"
-_SPOT_ESQUEMA="$(meow_app_tema_do_pack spotify.esquema)"
-_SPOT_ACENTO_NO_INI="$(meow_app_tema_do_pack spotify.acento_no_color_ini)"
+meow_app_tema_do_pack spotify.esquema
+_SPOT_ESQUEMA="$MEOW_APP_TEMA"
+meow_app_tema_do_pack spotify.acento_no_color_ini
+_SPOT_ACENTO_NO_INI="$MEOW_APP_TEMA"
 
 # Vazio quando o pack não declara o Spotify: o `detectar` transforma isso num 3
 # com motivo, e NÃO num caminho `Themes/` que nomearia uma pasta chamada nada.
@@ -519,9 +531,11 @@ _spot_tema_baixar() {
   [ -n "$_SPOT_COLOR_INI" ] || return "$MEOW_SEM_DEPENDENCIA"
   [ -f "$_SPOT_COLOR_INI" ] && return "$MEOW_OK"
 
-  repo="$(meow_app_tema_do_pack spotify.origem.repo)"
-  commit="$(meow_app_tema_do_pack spotify.origem.commit)"
-  pasta="$(meow_app_tema_do_pack spotify.origem.pasta)"
+  # Direto, sem `$( )`: a função responde por `MEOW_APP_TEMA`, e um subshell
+  # devolveria string vazia — ver o bloco da identidade, lá em cima.
+  meow_app_tema_do_pack spotify.origem.repo;   repo="$MEOW_APP_TEMA"
+  meow_app_tema_do_pack spotify.origem.commit; commit="$MEOW_APP_TEMA"
+  meow_app_tema_do_pack spotify.origem.pasta;  pasta="$MEOW_APP_TEMA"
   if [ -z "$repo" ] || [ -z "$commit" ] || [ -z "$pasta" ]; then
     meow_pula "o pack pede o tema '$_SPOT_TEMA_NOME' do spicetify e não diz de onde ele desce"
     meow_info "instale-o em $_SPOT_TEMA, ou escolha um pack que traga a origem do tema"
@@ -870,8 +884,12 @@ meow_app_aplicar() {
   #   Depois do `conferir` de propósito: quando tudo já está certo não há
   #   escrita nenhuma à frente, e anunciar "já está no tema do pack" ali em cima
   #   seria a mesma frase duas vezes na mesma passagem.
+  #   O `pergunte` é o 5º argumento, e ele só existe neste caminho: a função
+  #   não pergunta nada sem ele. É o que impede a pergunta de aparecer dentro de
+  #   um `conferir`, que é leitura e não teria como cumprir o "sim" — ver o
+  #   bloco do `meow_app_tema_no_ar` em lib/comum.sh.
   meow_app_tema_no_ar spotify "$(_spot_ini_ler current_theme)" \
-                      "$_SPOT_TEMA_NOME" "$_SPOT_TEMA_DE"
+                      "$_SPOT_TEMA_NOME" "$_SPOT_TEMA_DE" pergunte
   [ $? = "$MEOW_SEM_DEPENDENCIA" ] && return "$MEOW_SEM_DEPENDENCIA"
 
   if _spot_rodando; then
