@@ -573,7 +573,22 @@ meow_app_aplicar() {
   # Integridade antes de instalar: um download que virou página de erro HTTP
   # tem o tamanho e o nome certos e só falha lá na frente, dentro do app, com um
   # "Failed to load UI theme" que não diz nada. Conferimos o sha256 pinado.
-  if meow_tem sha256sum; then
+  #
+  # SHA VAZIO É "O PACK NÃO DECLAROU", E NÃO "NÃO CONFERE" — 22/09/2026
+  #   O número saiu daqui para o `apps.qbittorrent.sha256` do pack.json, e o
+  #   formato o faz OPCIONAL. Sem esta guarda, um pack que traga o `.qbtheme` e
+  #   não declare o sha cairia direto no `[ "$soma" != "" ]`, que é sempre
+  #   verdade: o módulo recusaria para sempre um arquivo perfeito, com uma
+  #   mensagem dizendo "esperado , veio f6ddf5…". Errar assim é pior do que não
+  #   conferir, porque a frase acusa o arquivo em vez de acusar a declaração.
+  #
+  #   E a ausência não passa calada: quem instala um tema sem procedência
+  #   conferível merece saber disso na hora, e não descobrir depois. O aviso sai
+  #   só neste caminho, que é o da instalação de verdade — e não a cada
+  #   conferência, que seria ruído sobre algo que ninguém vai consertar hoje.
+  if [ -z "$MEOW_QBT_SHA256" ]; then
+    meow_aviso "o pack ${MEOW_QBT_NOME_AURORA:-ativo} não declara sha256 para este .qbtheme — instalando sem conferir integridade"
+  elif meow_tem sha256sum; then
     local soma
     soma="$(sha256sum -- "$MEOW_QBT_ORIGEM" 2>/dev/null | cut -d' ' -f1)"
     if [ "$soma" != "$MEOW_QBT_SHA256" ]; then
