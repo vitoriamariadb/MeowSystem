@@ -7136,6 +7136,18 @@ class Manipulador(BaseHTTPRequestHandler):
             #   avisar do que não vai acontecer gasta a confiança do aviso que
             #   importa. `instalar` mantém a pastilha em qualquer caso: é ele
             #   que escreve em `/etc/sudoers.d`, e essa é a senha que existe.
+            #
+            #   E SUMIR NÃO É A MESMA COISA QUE DIZER — 21/09/2026
+            #     A ausência da pastilha é indistinguível, para quem olha, da
+            #     ausência de uma ação que nunca pediu senha: o cartão fica
+            #     igual ao «Conferir (doctor)», que é quieto por natureza.
+            #     Quem acabou de ligar a ponte não tem, na tela, nenhuma prova
+            #     de que ligá-la serviu para alguma coisa. `pela_ponte` é esse
+            #     fato dito em voz alta — "esta ação pediria senha, e não vai
+            #     pedir porque existe um perfil registrado" —, e é o campo que
+            #     a pastilha verde do `app.js` lê. Ele é o COMPLEMENTO exato de
+            #     `sudo` acima: quando um é verdadeiro o outro é falso, e os
+            #     dois só podem nascer das mesmas duas condições, aqui.
             # OS NÚMEROS QUE A PÁGINA DIZ EM VOZ ALTA SÃO CONTADOS AQUI —
             # 09/09/2026. Ver `_medidas_do_projeto`: eles iam para o desenho da
             # aba «Instalação» e para a ajuda de dois botões, e estavam escritos
@@ -7147,6 +7159,8 @@ class Manipulador(BaseHTTPRequestHandler):
                      argv=" ".join(shlex.quote(p) for p in v["argv"]),
                      escreve=escreve(v),
                      sudo=bool(v.get("sudo")) and not (
+                         k in _PELA_PONTE and _ponte_viva()),
+                     pela_ponte=bool(v.get("sudo")) and (
                          k in _PELA_PONTE and _ponte_viva()),
                      opcoes=([] if v.get("oculta")
                              else PROVEDORES[v["arg"]]() if "arg" in v else []))
