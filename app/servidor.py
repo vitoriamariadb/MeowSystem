@@ -1814,8 +1814,22 @@ SUFIXO_CURSOR = "-cursors"
 #   `~/.local/share/icons/X-cursors/cursors/` vazio e o ponteiro em
 #   `/usr/share/icons/X-cursors/cursors/left_ptr`, perguntar uma vez e desistir
 #   apagava a miniatura de um tema que o `aplicar` instala sem tocar a rede.
-def _cursor_pastas_do_valor(valor):
-    """As pastas que o `cursor.sh` aceita para este valor, na ordem do XDG."""
+#
+# A TERCEIRA LINHA, E ELA MUDOU NOS DOIS LADOS NO MESMO COMMIT — 23/09/2026, P12
+#   Um pack pode trazer o próprio ponteiro (`origens.cursores.proprio`), e o
+#   `cursor.sh` o instala do pack, sem rede, quando a chave CURSOR o nomeia.
+#   Então "o que o script resolve sem baixar" ganhou uma linha: 3. o pack traz
+#   `<valor>` — e só quando a linha 1 não sequestra o nome, porque aí as duas
+#   alavancas apontariam para o diretório de nome exato, e não para o do pack.
+#   O `_cursor_do_pack` do `cursor.sh` faz a mesma conta, com a mesma condição.
+#   O pack vem por ÚLTIMO na lista: já instalado, o que a prévia desenha é o que
+#   está no disco, que é o que o compositor lê.
+def _cursor_pastas_do_valor(valor, do_pack=None):
+    """As pastas que o `cursor.sh` aceita para este valor, na ordem do XDG.
+
+    `do_pack` é o `_ponteiro_do_pack()` já perguntado: quem percorre muitos
+    valores pergunta UMA vez e passa, porque a pergunta roda o `bash` do conf.
+    """
     raizes = [os.path.expanduser(raiz) for raiz in RAIZES_ICONES]
     # `_cursor_nome_tema`: o nome exato vence a convenção, e para vencer basta
     # o diretório existir — quem cobra o `cursors/` dentro é o passo seguinte.
@@ -1824,8 +1838,47 @@ def _cursor_pastas_do_valor(valor):
     else:
         nome = valor + SUFIXO_CURSOR
     # `_cursor_instalado`: a raiz que serve é a que tem `<nome>/cursors`.
-    return [os.path.join(raiz, nome) for raiz in raizes
-            if os.path.isdir(os.path.join(raiz, nome, "cursors"))]
+    pastas = [os.path.join(raiz, nome) for raiz in raizes
+              if os.path.isdir(os.path.join(raiz, nome, "cursors"))]
+    # `_cursor_do_pack`: o valor é o do pack, e o nome não foi sequestrado.
+    if (do_pack and do_pack.get("valor") == valor and nome == valor + SUFIXO_CURSOR
+            and os.path.isdir(os.path.join(do_pack.get("dir") or "", "cursors"))):
+        pastas.append(do_pack["dir"])
+    return pastas
+
+
+def _ponteiro_do_pack():
+    """O ponteiro próprio do pack no ar, COMO O `cursor.sh` O VÊ — dict ou None.
+
+    POR QUE NÃO É O `_pack_adotado()`, LÁ EM CIMA
+        O `cursor.sh` pergunta pelo pack com `meow_pack_dir` (lib/comum.sh):
+        a chave PACK; sem ela, o FLAVOR quando existe um pack com esse NOME;
+        e o pack que não passa na sonda (`pack.py caminho`) vira o padrão. O
+        `_pack_adotado` traduz o sabor para o pack que o declara — com
+        `FLAVOR="alucard"` e `PACK=""` ele responde `dracula`, e o shell,
+        `catppuccin`. Para a oficina a tradução é o certo; aqui ela ofereceria
+        na tela um ponteiro que o script não acha, e o clique sairia baixando
+        da rede. A lista do painel tem de ser a do script, e por isso esta
+        função repete a conta dele, e não a do vizinho.
+    """
+    mod = modulo_pack()
+    if not mod or not hasattr(mod, "ponteiro"):
+        return None
+    vals = valores_efetivos(["PACK", "FLAVOR"])
+    pack = (vals.get("PACK") or "").strip()
+    sabor = (vals.get("FLAVOR") or "").strip()
+    if not pack and sabor and any(os.path.isfile(os.path.join(r, sabor, "pack.json"))
+                                  for r in mod.raizes()):
+        pack = sabor
+    if pack:
+        try:
+            mod.validar(pack, silencioso=True)
+        except Exception:
+            pack = ""
+    try:
+        return mod.ponteiro(pack or mod.dir_padrao())
+    except Exception:
+        return None
 
 
 def _temas_de_cursor():
@@ -1891,6 +1944,12 @@ def _temas_de_cursor():
         com `cursors/` dentro — rodado com as funções do próprio script.
     """
     fora = set()
+    do_pack = _ponteiro_do_pack()
+    # O PONTEIRO DO PACK PROPÕE O VALOR DELE, ANTES DE ESTAR NO DISCO — P12,
+    # 23/09/2026. Ele não está em diretório de ícone nenhum até a primeira
+    # instalação, e a varredura abaixo nunca o veria. A peneira é a mesma.
+    if do_pack and _cursor_pastas_do_valor(do_pack["valor"], do_pack):
+        fora.add(do_pack["valor"])
     for nome, caminho in _dirs_de_icones():
         if not os.path.isdir(os.path.join(caminho, "cursors")):
             continue
@@ -1912,7 +1971,7 @@ def _temas_de_cursor():
         #   por isso que a peneira fica aqui, na LISTA, e não na prévia: tirar
         #   só a miniatura deixaria o botão quebrado na tela.
         valor = nome[: -len(SUFIXO_CURSOR)] if nome.endswith(SUFIXO_CURSOR) else nome
-        if _cursor_pastas_do_valor(valor):
+        if _cursor_pastas_do_valor(valor, do_pack):
             fora.add(valor)
     return sorted(fora)
 
@@ -3708,6 +3767,7 @@ def _prev_cursores():
         vazio é indistinguível de cartão quebrado.
     """
     fora = []
+    do_pack = _ponteiro_do_pack()
     for valor in _temas_de_cursor():
         alvo = None
         # AS TRÊS RAÍZES, ATÉ ACHAR — 21/09/2026
@@ -3718,7 +3778,7 @@ def _prev_cursores():
         #   apagava a miniatura de um tema que o `_cursor_instalado` dá por
         #   INSTALADO e o `aplicar` resolve sem tocar a rede. O script percorre
         #   as três raízes; esta função também percorre.
-        for pasta_tema in _cursor_pastas_do_valor(valor):
+        for pasta_tema in _cursor_pastas_do_valor(valor, do_pack):
             # `default` é o nome canônico e `left_ptr` o histórico; um costuma
             # ser link simbólico para o outro, e qualquer um serve.
             for cand in ("left_ptr", "default"):

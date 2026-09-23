@@ -237,6 +237,58 @@ _cursor_url() {
          "$CURSOR_VERSAO" "$1"
 }
 
+# O PONTEIRO QUE O PACK TRAZ — 23/09/2026, sprint P12
+#   Até aqui este script não perguntava nada ao pack: o `packs/dracula/pack.json`
+#   declarava `origens.cursores.herda` e o `meow pack info` dizia "HERDADO", mas
+#   o ponteiro saía da chave CURSOR e, sem ela no disco, do release pinado do
+#   `catppuccin/cursors` — o mesmo para todo pack. Agora um pack pode trazer o
+#   dele em `cursores/<nome>/cursors/` (`origens.cursores.proprio`), e é aqui
+#   que ele entra, ANTES da rede.
+#
+#   QUEM ESCOLHE CONTINUA SENDO A CHAVE CURSOR. O pack oferece; `CURSOR` vazio
+#   continua não tocando em nada, e um CURSOR que nomeia outro tema continua
+#   valendo — "o meow.conf vence o pack" (docs/PACKS.md).
+#
+#   QUEM RESOLVE O FORMATO É O `pack.py`, e ele responde uma vez por execução:
+#   `ponteiro` sobe o pack ativo e a herança, confere o tema (nome, `cursors/`,
+#   nenhum link para fora) e devolve o diretório e o VALOR que a chave escreve.
+#
+#   A TERCEIRA LINHA DA REGRA, E O PAINEL TEM A MESMA
+#     1. nome EXATO numa das raízes (`_cursor_dir_exato`)
+#     2. `<valor>-cursors` numa das raízes (`_cursor_instalado`)
+#     3. o pack traz `<valor>` — e só quando a linha 1 não sequestra o nome
+#   A condição da linha 3 é o `_cursor_nome_tema` dar `<valor>-cursors`, que é
+#   onde o `_cursor_instalar_pasta` põe o tema. Com um diretório de nome exato
+#   em alguma raiz, as duas alavancas apontariam para ELE, e o tema do pack
+#   ficaria instalado sem ninguém usá-lo. A irmã desta regra no painel é o
+#   `_cursor_pastas_do_valor` do `app/servidor.py`: mudar uma sem a outra é o
+#   defeito que a P17 pegou duas vezes ("a lista não acompanhou").
+CURSOR_PACK_LIDO=0
+CURSOR_PACK_ID=""
+CURSOR_PACK_DIR=""
+CURSOR_PACK_VALOR=""
+
+_cursor_ler_pack() {
+  [ "$CURSOR_PACK_LIDO" = "1" ] && return 0
+  CURSOR_PACK_LIDO=1
+  meow_tem python3 || return 0
+  local saida
+  # `"$(meow_pack_dir)"` vazio é o pack padrão: o verbo trata o vazio como "o
+  # pack ativo", a mesma porta do `meow_app_tema_do_pack`.
+  saida="$(python3 "$MEOW_RAIZ/scripts/pack.py" ponteiro "$(meow_pack_dir)" 2>/dev/null)" || return 0
+  CURSOR_PACK_ID="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
+  CURSOR_PACK_DIR="$(printf '%s\n' "$saida" | sed -n 's/^dir=//p')"
+  CURSOR_PACK_VALOR="$(printf '%s\n' "$saida" | sed -n 's/^valor=//p')"
+}
+
+# 0 = este valor é o ponteiro que o pack traz, e é o pack que o resolve.
+_cursor_do_pack() {
+  _cursor_ler_pack
+  [ -n "$CURSOR_PACK_VALOR" ] && [ -d "$CURSOR_PACK_DIR/cursors" ] || return 1
+  [ "$1" = "$CURSOR_PACK_VALOR" ] || return 1
+  [ "$(_cursor_nome_tema "$1")" = "$1-cursors" ]
+}
+
 # O `index.theme` que faz o compositor obedecer. O `Comment=` não é enfeite: é a
 # assinatura que o `remover` usa para saber se este arquivo é nosso. Sem ela,
 # apagar um `~/.icons/default/index.theme` que ela mesma tenha escrito um dia
@@ -653,7 +705,20 @@ cmd_aplicar() {
   nome="$(_cursor_nome_tema "$CURSOR")"
 
   # 1. o tema no disco
-  if _cursor_instalado "$CURSOR"; then
+  #
+  # O DO PACK VEM PRIMEIRO, E É REFEITO DO PACK A CADA PASSAGEM — 23/09/2026
+  #   Não é "instala se faltar": o `_cursor_instalar_pasta` compara por
+  #   conteúdo (`diff -rq`) e diz "já está instalado e idêntico" quando nada
+  #   mudou. Se o autor do pack redesenhar o ponteiro, a próxima passagem traz
+  #   o novo; um "instala se faltar" congelaria a primeira cópia para sempre,
+  #   que é a defasagem calada que a P28 escreveu para a arte copiada.
+  if _cursor_do_pack "$CURSOR"; then
+    meow_info "o ponteiro '$CURSOR' vem do pack $CURSOR_PACK_ID — sem rede"
+    _cursor_instalar_pasta "$CURSOR_PACK_DIR"; rc=$?
+    [ "$rc" -ge 2 ] && return "$rc"
+    [ "$rc" = "1" ] && mudou=1
+    rc=0
+  elif _cursor_instalado "$CURSOR"; then
     meow_ok "tema de cursor '$nome' já está instalado"
   else
     if meow_seco; then
@@ -738,6 +803,13 @@ cmd_conferir() {
 
   if ! _cursor_instalado "$CURSOR"; then
     meow_muda "tema de cursor '$nome' não está instalado"; rc="$MEOW_DIVERGENTE"
+  # A cópia instalada de um ponteiro do pack tem de ser a do pack: é o mesmo
+  # `diff -rq` que o `aplicar` usa para decidir se refaz — conferir por uma
+  # régua e aplicar por outra faria o doctor e o instalador discordarem.
+  elif _cursor_do_pack "$CURSOR" && meow_tem diff \
+       && ! diff -rq -- "$CURSOR_PACK_DIR" "$CURSOR_ICONES/$nome" >/dev/null 2>&1; then
+    meow_muda "tema '$nome' instalado difere do que o pack $CURSOR_PACK_ID traz"
+    rc="$MEOW_DIVERGENTE"
   else
     meow_ok "tema '$nome' instalado"
   fi
@@ -793,8 +865,17 @@ cmd_estado() {
 #   aparência, que é o acoplamento mais frágil que existe entre dois programas.
 #   Aqui não se imprime mais nada: lista vazia é uma resposta legítima, e o
 #   código de saída continua 0 porque LER não muda nada.
+#
+# O PONTEIRO DO PACK ENTRA NA LISTA ANTES DE ESTAR NO DISCO — 23/09/2026, P12.
+#   A lista é "o que a chave aceita sem tocar a rede", e o do pack é isso: o
+#   `aplicar` o instala do próprio pack. Deixá-lo de fora até a primeira
+#   instalação seria esconder, na tela, justamente o ponteiro que o tema traz —
+#   e ele só seria instalado se alguém o escrevesse à mão no meow.conf.
 cmd_listar() {
-  _cursor_temas_instalados
+  { _cursor_temas_instalados
+    _cursor_ler_pack
+    _cursor_do_pack "$CURSOR_PACK_VALOR" && printf '%s\n' "$CURSOR_PACK_VALOR"
+  } | sort -u
   return "$MEOW_OK"
 }
 

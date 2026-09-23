@@ -83,6 +83,7 @@
 #
 #   Fontes:  ~/.local/share/fonts/MeowSystem/   (nunca /usr/share — é do apt e do
 #            Ritual da Aurora, e um `apt` apaga o que largarmos lá)
+#            .../MeowSystem/pack/   as que o pack ativo traz (2c-ter, P12)
 #   Config:  ~/.config/cosmic/com.system76.CosmicTk/v1/monospace_font
 #            ~/.config/cosmic/com.system76.CosmicTerm/v1/font_name
 #
@@ -658,6 +659,123 @@ if [ -d "$ACERVO_LOCAL" ]; then
     [ "${n_l:-0}" -gt 0 ] && meow_ok "$n_l fonte(s) do acervo local já em $DESTINO_LOCAL"
   else
     meow_info "acervo local: $locais_postas instalada(s), $locais_tiradas removida(s)"
+  fi
+fi
+
+# --- 2c-ter. AS FONTES DO PACK — 23/09/2026, sprint P12 ----------------------
+# ATÉ AQUI UM PACK NÃO TINHA COMO TRAZER FONTE
+#   Tudo neste script vinha do motor — a JetBrainsMono pinada e o acervo local
+#   dela —, igual para todo pack, e o `packs/dracula/pack.json` escrevia
+#   "fontes vêm do pack base" sobre um pack base que não declarava fonte
+#   nenhuma. Agora um pack declara `fontes.proprio`, e é aqui que ela entra.
+#   O que o motor faz continua igual: estas são fontes A MAIS.
+#
+# O DIRETÓRIO É DE DONO ÚNICO, COMO O `locais/`
+#   `$DESTINO/pack/` só recebe o que o pack ativo declara, e é por isso que a
+#   limpeza de órfão aqui é segura pelo mesmo motivo da 2c-bis: trocar de pack
+#   tira as fontes do anterior. Nenhuma das outras duas limpezas deste script
+#   encosta nesta pasta — a da 2c olha só `JetBrainsMono*.ttf` na raiz do
+#   `$DESTINO`, a da 2c-bis só `locais/` —, e esta não encosta nas delas.
+#
+# QUEM LÊ O pack.json É O pack.py
+#   O verbo `tipografia` sobe o pack ativo e a herança e confere cada entrada:
+#   o `https://`, o sha256, o `realpath`, a assinatura do arquivo. Aqui só se
+#   instala o que ele respondeu. Recusado (saída diferente de 0) quer dizer
+#   "não mexa em nada": as fontes que já estão no disco ficam, porque
+#   apagá-las por um pack.json quebrado seria punir a máquina pelo erro do pack.
+#
+# A FONTE DE FORA É CONFERIDA PELO CONTEÚDO, COMO A NERD FONT
+#   Instalada quer dizer: o arquivo do destino tem o sha256 que o pack pinou.
+#   Senão ela desce para um temporário DENTRO do destino (o `mv` final é no
+#   mesmo disco — TRAVA 2), é conferida, e só então entra. Sem rede é aviso e
+#   fica para o próximo ciclo, como a 2a; sha256 que não bate é erro, pelo
+#   motivo que a 2a escreve: é o arquivo mudando debaixo do pino.
+DESTINO_PACK="$DESTINO/pack"
+lista_pack=""; rc_pack=0
+if meow_tem python3; then
+  # `"$(meow_pack_dir)"` vazio é o pack padrão: o verbo trata o vazio como o
+  # pack ativo, a mesma porta do `meow_app_tema_do_pack` e do `cursor.sh`.
+  lista_pack="$(python3 "$RAIZ/scripts/pack.py" tipografia "$(meow_pack_dir)")"; rc_pack=$?
+else
+  rc_pack="$MEOW_SEM_DEPENDENCIA"
+fi
+
+if [ "$rc_pack" != "0" ]; then
+  meow_aviso "não deu para ler as fontes do pack — as que ele já trouxe ficam como estão"
+else
+  meow_destino_permitido "$DESTINO_PACK" || exit "$MEOW_ERRO"
+  pack_postas=0; pack_tiradas=0; desejadas_pack=""; quem_pack=""
+  while IFS=$'\t' read -r quem_f nome_f origem_f soma_f; do
+    [ -n "$nome_f" ] || continue
+    quem_pack="$quem_f"
+    desejadas_pack="$desejadas_pack$nome_f
+"
+    alvo_f="$DESTINO_PACK/$nome_f"
+    case "$origem_f" in
+      https://*)
+        if [ -f "$alvo_f" ] && echo "$soma_f  $alvo_f" | sha256sum --status -c - 2>/dev/null; then
+          continue
+        fi
+        if meow_seco; then
+          meow_muda "baixaria a fonte $nome_f do pack $quem_f em $DESTINO_PACK"
+          mudou=1; pack_postas=$((pack_postas + 1)); continue
+        fi
+        mkdir -p "$DESTINO_PACK" || { meow_erro "não consegui criar $DESTINO_PACK"; exit "$MEOW_ERRO"; }
+        tmp_f="$(mktemp -p "$DESTINO_PACK" ".meow.XXXXXX")" || exit "$MEOW_ERRO"
+        # `--proto =https` nos dois sentidos: o `pack.py` só deixa passar URL em
+        # https, e um redirecionamento para http seria a mesma porta por trás.
+        if ! curl -sSfL --proto '=https' --proto-redir '=https' --connect-timeout 15 \
+             --max-time 300 --retry 3 --retry-delay 2 -o "$tmp_f" "$origem_f" 2>/dev/null; then
+          rm -f "$tmp_f"
+          meow_aviso "não consegui baixar a fonte $nome_f do pack $quem_f (sem rede?) — fica para o próximo ciclo"
+          continue
+        fi
+        if ! echo "$soma_f  $tmp_f" | sha256sum --status -c - 2>/dev/null; then
+          meow_erro "sha256 da fonte $nome_f não bate com o que o pack $quem_f pinou"
+          meow_info "  esperado $soma_f"
+          meow_info "  obtido   $(sha256sum "$tmp_f" | cut -d' ' -f1)"
+          rm -f "$tmp_f"
+          exit "$MEOW_ERRO"
+        fi
+        ;;
+      *)
+        if [ -f "$alvo_f" ] && cmp -s -- "$origem_f" "$alvo_f"; then
+          continue
+        fi
+        if meow_seco; then
+          meow_muda "instalaria a fonte $nome_f do pack $quem_f em $DESTINO_PACK"
+          mudou=1; pack_postas=$((pack_postas + 1)); continue
+        fi
+        mkdir -p "$DESTINO_PACK" || { meow_erro "não consegui criar $DESTINO_PACK"; exit "$MEOW_ERRO"; }
+        tmp_f="$(mktemp -p "$DESTINO_PACK" ".meow.XXXXXX")" || exit "$MEOW_ERRO"
+        cp -- "$origem_f" "$tmp_f" || { rm -f "$tmp_f"; meow_erro "não consegui copiar $nome_f"; exit "$MEOW_ERRO"; }
+        ;;
+    esac
+    chmod 644 "$tmp_f"
+    mv -f "$tmp_f" "$alvo_f" || { rm -f "$tmp_f"; meow_erro "falhou instalar $nome_f"; exit "$MEOW_ERRO"; }
+    mudou=1; refazer_cache=1; pack_postas=$((pack_postas + 1))
+  done <<< "$lista_pack"
+
+  # Órfã: estava no pack de ontem, não está no de hoje. Só fonte, pelo motivo
+  # que a 2c-bis mediu em 13/09 — o `.uuid` do fontconfig não é nosso.
+  if [ -d "$DESTINO_PACK" ]; then
+    while IFS= read -r -d '' arq; do
+      nome_l="$(basename "$arq")"
+      printf '%s' "$desejadas_pack" | grep -qxF "$nome_l" && continue
+      if meow_seco; then
+        meow_muda "removeria $nome_l (o pack ativo não a traz)"
+      else
+        rm -f "$arq"; refazer_cache=1
+      fi
+      mudou=1; pack_tiradas=$((pack_tiradas + 1))
+    done < <(find "$DESTINO_PACK" -maxdepth 1 -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print0 2>/dev/null)
+  fi
+
+  if [ "$pack_postas" = 0 ] && [ "$pack_tiradas" = 0 ]; then
+    n_p="$(printf '%s' "$desejadas_pack" | grep -c . || true)"
+    [ "${n_p:-0}" -gt 0 ] && meow_ok "$n_p fonte(s) do pack $quem_pack já em $DESTINO_PACK"
+  else
+    meow_info "fontes do pack${quem_pack:+ $quem_pack}: $pack_postas instalada(s), $pack_tiradas removida(s)"
   fi
 fi
 

@@ -878,6 +878,215 @@ else
   falha "o cartão de pack deixou de pôr a história num <pre> por texto"
 fi
 
+# --- 19. o pack cobre o resto: ponteiro, fontes, e a tabela inteira — P12 ----
+#
+#   A P12 pediu "um pack de teste com as onze categorias próprias". Medido em
+#   23/09/2026: são QUINZE linhas no `info`, e onze delas são declaráveis —
+#   paleta, mapa do COSMIC, quatro de ícone, ponteiro, papéis de parede, temas
+#   de aplicativo, som e fontes. As outras quatro (o traço do gerador, prompt,
+#   fastfetch, gatos) não têm campo no formato, e o `info` tem de dizer isso
+#   em vez de sumir com elas. Então: as onze declaráveis PRÓPRIAS, as quatro
+#   ditas "não declarável", e nenhuma a mais nem a menos.
+#
+#   `wallpapers` entra com campos que ainda não têm leitor, e de propósito: a
+#   tabela diz PRÓPRIO para ele e o docs/PACKS.md registra que isso é a exceção
+#   a consertar. O aviso de campo morto é o que conta a verdade — e ele é
+#   cobrado aqui, para a exceção não virar silêncio no dia em que alguém mexer.
+#
+#   O PONTEIRO É DE MENTIRA POR DENTRO, e basta: o formato confere nome, a pasta
+#   `cursors/`, o ponteiro de repouso e os links, e não decodifica Xcursor. A
+#   FONTE também — só os quatro bytes de assinatura que o `pack.py` olha.
+mexer_pack() {  # $1 = diretório do pack, $2 = JSON a fundir (null apaga a chave)
+  python3 - "$1" "$2" <<'PY' || exit 2
+import json, os, sys
+alvo = os.path.join(sys.argv[1], "pack.json")
+p = json.load(open(alvo))
+def fundir(a, b):
+    for k, v in b.items():
+        if v is None:
+            a.pop(k, None)
+        elif isinstance(v, dict) and isinstance(a.get(k), dict):
+            fundir(a[k], v)
+        else:
+            a[k] = v
+fundir(p, json.loads(sys.argv[2]))
+json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
+PY
+}
+TEMA="$PACK_DIR/cursores/$ID-roxo"
+mkdir -p "$TEMA/cursors" "$PACK_DIR/fontes" "$PACK_DIR/icones/pastas" \
+         "$PACK_DIR/icones/mimetypes" "$PACK_DIR/icones/autorais"
+printf 'Xcur de mentira' > "$TEMA/cursors/default"
+ln -sf default "$TEMA/cursors/left_ptr"
+printf '[Icon Theme]\nName=%s-roxo\n' "$ID" > "$TEMA/index.theme"
+printf '\x00\x01\x00\x00fonte de mentira' > "$PACK_DIR/fontes/Mentira-Regular.ttf"
+# O mapa do COSMIC também é de mentira: o `validar` cobra que o arquivo
+# declarado exista, e o gerador de temas já rodou no passo 5. Copiar o do motor
+# poria um caminho de `assets/paleta/` num script, que o `tests/estilo.sh` recusa.
+printf '{}\n' > "$PACK_DIR/cosmic-map.json"
+mexer_pack "$PACK_DIR" '{
+  "cosmic": {"mapa": "cosmic-map.json"},
+  "icones": {"pastas": {"desenhos": "icones/pastas/"},
+             "mimetypes": {"desenhos": "icones/mimetypes/"},
+             "autorais": {"desenhos": "icones/autorais/"}},
+  "origens": {"cursores": {"proprio": "cursores/'"$ID"'-roxo"},
+              "wallpapers": {"tipo": "github-arvore", "repo_do_conf": "WALLPAPER_SEMENTE_REPO"}},
+  "apps": {"spotify": {"spicetify_tema": "Mentira", "esquema": "Mentira"}},
+  "som": {"fundamental": 440.0},
+  "fontes": {"proprio": [{"arquivo": "fontes/Mentira-Regular.ttf"}]}}'
+
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "o pack com ponteiro e fontes próprios valida" \
+  || falha "o pack com ponteiro e fontes próprios foi recusado (rc=$rc)" "$saida"
+case "$saida" in
+  *origens.wallpapers.tipo*) ok "os campos de wallpapers seguem nomeados como campo morto — a exceção da tabela está dita" ;;
+  *) falha "o aviso de campo morto parou de nomear origens.wallpapers — o PRÓPRIO dele na tabela ficou sem contrapeso" "$saida" ;;
+esac
+
+info="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID" 2>&1)"
+tabela="$(printf '%s\n' "$info" | sed -n '/^  ----/,$p' | tail -n +2)"
+nao_proprias=""
+for cat in paleta cosmic.mapa icones.apps icones.pastas icones.mimetypes icones.autorais \
+           cursores wallpapers apps som fontes; do
+  printf '%s\n' "$tabela" | grep -qE "^  $cat +PRÓPRIO" || nao_proprias="$nao_proprias $cat"
+done
+[ -z "$nao_proprias" ] \
+  && ok "as onze categorias declaráveis saem PRÓPRIO no info" \
+  || falha "categorias declaradas que o info não chama de PRÓPRIO:$nao_proprias" "$tabela"
+n_fixas="$(printf '%s\n' "$tabela" | grep -cE '^  (gerador|prompt|fastfetch|gatos) +DO MOTOR — não declarável')"
+n_linhas="$(printf '%s\n' "$tabela" | grep -c .)"
+[ "$n_fixas" = "4" ] && [ "$n_linhas" = "15" ] \
+  && ok "gerador, prompt, fastfetch e gatos aparecem como não declaráveis, e a tabela tem as 15 linhas" \
+  || falha "a tabela do info não tem as 15 linhas, ou as 4 fixas no motor (linhas=$n_linhas, fixas=$n_fixas)" "$tabela"
+case "$tabela" in
+  *"CURSOR=\"$ID-roxo\", do pack $ID"*"1 fonte(s), do pack $ID"*)
+    ok "o info diz o valor de CURSOR e quantas fontes, e de quem" ;;
+  *) falha "a coluna do info não diz o ponteiro e as fontes que a cadeia acha" "$tabela" ;;
+esac
+
+saida="$(amb python3 "$RAIZ/scripts/pack.py" ponteiro "$ID" 2>&1)"
+[ "$saida" = "pack=$ID
+dir=$TEMA
+valor=$ID-roxo" ] \
+  && ok "o verbo 'ponteiro' devolve o pack, o tema e o valor da chave" \
+  || falha "o verbo 'ponteiro' não respondeu o que o cursor.sh lê" "$saida"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" tipografia "$ID" 2>&1)"
+[ "$saida" = "$(printf '%s\tMentira-Regular.ttf\t%s\t-' "$ID" "$PACK_DIR/fontes/Mentira-Regular.ttf")" ] \
+  && ok "o verbo 'tipografia' devolve a fonte, de onde ela sai e de quem" \
+  || falha "o verbo 'tipografia' não respondeu o que o instalar_fontes.sh lê" "$saida"
+
+# A HERANÇA: um filho sem ponteiro, sem fontes e sem som. Os dois primeiros
+# sobem até o pai e a tabela diz de quem; o som NÃO sobe — o `som.sh` lê só o
+# pack ativo —, e a tabela não pode dizer "HERDADO" para ele.
+FILHO="$PACKS/$ID-filho"; mkdir -p "$FILHO"
+cp "$PACK_DIR/paleta.json" "$PACK_DIR/logo.svg" "$FILHO/"
+printf '{"formato": 1, "id": "%s-filho", "nome": "Filho", "heranca": "%s",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "%s"}, "vitrine": {"capa": "logo.svg"}}\n' \
+  "$ID" "$ID" "$ID" > "$FILHO/pack.json"
+tabela="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID-filho" 2>&1 | sed -n '/^  ----/,$p')"
+if printf '%s\n' "$tabela" | grep -qE "^  cursores +HERDADO de $ID +CURSOR=\"$ID-roxo\", do pack $ID" \
+   && printf '%s\n' "$tabela" | grep -qE "^  fontes +HERDADO de $ID +1 fonte\(s\), do pack $ID" \
+   && printf '%s\n' "$tabela" | grep -qE "^  som +DO MOTOR"; then
+  ok "o filho herda ponteiro e fontes do pai, e o som dele é o do motor"
+else
+  falha "a herança de ponteiro, fontes ou som não saiu como o código resolve" "$tabela"
+fi
+
+# AS RECUSAS, cada uma numa cópia do pack, e cada uma dizendo o campo.
+recusa() {  # $1 = o que é, $2 = trecho esperado na mensagem
+  local R="$T/recusa"
+  saida="$(env MEOW_PACKS="$R" MEOW_RAIZ="$RAIZ" python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
+  if [ "$rc" != "0" ] && [[ "$saida" == *"$2"* ]]; then
+    ok "recusa $1 (rc=$rc)"
+  else
+    falha "não recusou $1, ou não disse por quê (rc=$rc)" "$saida"
+  fi
+}
+copia() { rm -rf "$T/recusa"; mkdir -p "$T/recusa"; cp -a "$PACK_DIR" "$T/recusa/$ID"; C="$T/recusa/$ID"; }
+SHA_A="$(printf 'a%.0s' $(seq 64))"
+copia; ln -s /etc/hostname "$C/cursores/$ID-roxo/cursors/fora"
+recusa "o ponteiro com link para fora do tema" "aponta para fora do tema"
+copia; rm -f "$C/cursores/$ID-roxo/cursors/default" "$C/cursores/$ID-roxo/cursors/left_ptr"
+recusa "o ponteiro sem default nem left_ptr" "não tem default nem left_ptr"
+copia; mv "$C/cursores/$ID-roxo" "$C/cursores/$ID roxo"; mexer_pack "$C" "{\"origens\": {\"cursores\": {\"proprio\": \"cursores/$ID roxo\"}}}"
+recusa "o ponteiro com espaço no nome" "o tema chama-se"
+copia; mexer_pack "$C" '{"origens": {"cursores": {"herda": "catppuccin"}}}'
+recusa "proprio e herda juntos no ponteiro" "'proprio' e 'herda' ao mesmo tempo"
+copia; mexer_pack "$C" '{"origens": {"cursores": {"proprio": "cursores/nao-existe"}}}'
+recusa "o ponteiro declarado e ausente" "NÃO existe no pack"
+copia; printf '\x89PNG\r\n' > "$C/fontes/Mentira-Regular.ttf"
+recusa "a fonte que não é fonte por dentro" "não é TrueType nem OpenType"
+copia; mexer_pack "$C" "{\"fontes\": {\"proprio\": [{\"nome\": \"X.ttf\", \"url\": \"http://exemplo.org/X.ttf\", \"sha256\": \"$SHA_A\"}]}}"
+recusa "a fonte em http" "só https"
+copia; mexer_pack "$C" '{"fontes": {"proprio": [{"nome": "X.ttf", "url": "https://exemplo.org/X.ttf"}]}}'
+recusa "a fonte de fora sem sha256" "declara as três"
+copia; mexer_pack "$C" '{"fontes": {"proprio": [{"arquivo": "fontes/Mentira-Regular.ttf"}, {"arquivo": "fontes/Mentira-Regular.ttf"}]}}'
+recusa "duas fontes com o mesmo nome" "um nome, um arquivo no disco"
+copia; mexer_pack "$C" '{"fontes": {"proprio": [{"arquivo": "../fora.ttf"}]}}'
+recusa "a fonte fora do pack" "sai de dentro do pack"
+copia; mexer_pack "$C" '{"fontes": {"proprio": null, "herda": "pack-que-nao-existe"}}'
+recusa "as fontes herdadas de um pack que não existe" "pack-que-nao-existe"
+rm -rf "$T/recusa"
+
+# O SCRIPT E O PAINEL RESOLVEM A MESMA REGRA — a lição da P17, cobrada aqui.
+#   Num HOME de brinquedo, com o filho no ar: o ponteiro do pai entra na lista
+#   dos dois lados ANTES de estar instalado, com uma prévia por opção; com um
+#   diretório de nome exato sequestrando o valor, ele sai dos dois lados. E o
+#   `aplicar` em seco diz que instalaria do pack, sem baixar e sem escrever.
+H="$T/casa"; mkdir -p "$H"
+printf 'PACK="%s-filho"\nCURSOR="%s-roxo"\n' "$ID" "$ID" > "$T/meow-p12.conf"
+painel_cursor() {
+  env -i PATH="$PATH" HOME="$H" MEOW_RAIZ="$RAIZ" MEOW_PACKS="$PACKS" \
+    MEOW_CONF="$T/meow-p12.conf" python3 - "$RAIZ" <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+t, p = servidor._temas_de_cursor(), servidor._prev_cursores()
+print(len(t), len(p), " ".join(t))
+PY
+}
+script_cursor() {
+  env -i PATH="$PATH" HOME="$H" MEOW_RAIZ="$RAIZ" MEOW_PACKS="$PACKS" NO_COLOR=1 \
+    PACK="$ID-filho" CURSOR="$ID-roxo" "$@" bash "$RAIZ/scripts/cursor.sh" "${ACAO:-listar}" 2>&1
+}
+read -r n_t n_p nomes <<< "$(painel_cursor)"
+if [ "$n_t" = "$n_p" ] && [[ " $nomes " == *" $ID-roxo "* ]] && [[ "$(script_cursor)" == *"$ID-roxo"* ]]; then
+  ok "o ponteiro do pack está nas duas listas antes de instalar, com uma prévia por opção ($n_p de $n_t)"
+else
+  falha "o painel e o script não oferecem o ponteiro do pack juntos" "painel: $n_t $n_p $nomes
+script: $(script_cursor)"
+fi
+saida="$(ACAO=aplicar script_cursor MEOW_DRY_RUN=1)"
+if [[ "$saida" == *"vem do pack $ID"*"instalaria o ponteiro"* ]] && [[ "$saida" != *baixaria* ]] \
+   && [ -z "$(find "$H" -mindepth 1 2>/dev/null)" ]; then
+  ok "o aplicar em seco instala do pack, sem rede, e não escreve nada"
+else
+  falha "o aplicar em seco não veio do pack, baixaria da rede, ou escreveu" "$saida
+$(find "$H" -mindepth 1 2>/dev/null | head -5)"
+fi
+mkdir -p "$H/.local/share/icons/$ID-roxo"
+read -r n_t n_p nomes <<< "$(painel_cursor)"
+if [ "$n_t" = "$n_p" ] && [[ " $nomes " != *" $ID-roxo "* ]] && [[ "$(script_cursor)" != *"$ID-roxo"* ]]; then
+  ok "com o nome sequestrado por um diretório exato, o ponteiro do pack sai das duas listas"
+else
+  falha "o nome sequestrado deixou o ponteiro do pack numa das listas" "painel: $n_t $n_p $nomes
+script: $(script_cursor)"
+fi
+rm -rf "$H/.local"
+
+# E AS FONTES CHEGAM AO INSTALADOR, em seco: sem as ferramentas dele (saída 3)
+# a conferência é pulada, e dito — o formato já foi cobrado acima.
+saida="$(env -i PATH="$PATH" HOME="$H" MEOW_RAIZ="$RAIZ" MEOW_PACKS="$PACKS" NO_COLOR=1 \
+  PACK="$ID-filho" MEOW_DRY_RUN=1 bash "$RAIZ/scripts/instalar_fontes.sh" 2>&1)"; rc=$?
+if [ "$rc" = "3" ]; then
+  printf 'pulado: o instalar_fontes.sh não tem as ferramentas dele nesta máquina\n'
+elif [[ "$saida" == *"instalaria a fonte Mentira-Regular.ttf do pack $ID"* ]]; then
+  ok "o instalar_fontes.sh lê as fontes que o pack herda, e diz de quem"
+else
+  falha "o instalar_fontes.sh não leu as fontes do pack (rc=$rc)" "$saida"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

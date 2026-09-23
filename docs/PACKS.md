@@ -45,6 +45,10 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [Quem vence: o pack ou o `meow.conf`](#quem-vence-o-pack-ou-o-meowconf)
 - [O tema do COSMIC, e o único passo manual que existe](#o-tema-do-cosmic-e-o-único-passo-manual-que-existe)
 - [O som](#o-som)
+- [O ponteiro](#o-ponteiro)
+- [As fontes](#as-fontes)
+- [O que ainda não é do pack](#o-que-ainda-não-é-do-pack)
+- [As categorias, uma por linha](#as-categorias-uma-por-linha)
 - [O logo do pack](#o-logo-do-pack)
 - [O que um pack não pode fazer](#o-que-um-pack-não-pode-fazer)
 - [Validar antes de publicar](#validar-antes-de-publicar)
@@ -198,6 +202,8 @@ packs/<id>/
   apps/
     <tema>.qbtheme                   os temas de DENTRO dos aplicativos — ver a seção própria
     PROCEDENCIA.md                   obrigatória quando a arte é de terceiro
+  cursores/<nome>/cursors/  o ponteiro do pack (origens.cursores.proprio) — ver "O ponteiro"
+  fontes/                   .ttf/.otf que o pack traz (fontes.proprio) — ver "As fontes"
   temas/
     capturados/<flavor>-<accent>/    o tema do COSMIC já fotografado — ver a seção própria
                                      (é convenção: não precisa declarar nada)
@@ -275,7 +281,7 @@ suportado é recusado com o número na mensagem.
   },
 
   "origens": {
-    "cursores":   { "herda": "catppuccin", "tema": "catppuccin-mocha-light" },
+    "cursores":   { "proprio": "cursores/meu-tema-roxo" },
     "wallpapers": { "tipo": "github-arvore",
                     "repo_do_conf": "WALLPAPER_SEMENTE_REPO",
                     "commit_do_conf": "WALLPAPER_SEMENTE_COMMIT",
@@ -285,9 +291,18 @@ suportado é recusado com o número na mensagem.
   "apps": {
     "spotify":     { "spicetify_tema": "Sleek", "esquema": "Dracula" },
     "qbittorrent": { "arquivo": "apps/meu-tema.qbtheme", "sha256": "…" }
+  },
+
+  "fontes": {
+    "proprio": [ { "arquivo": "fontes/MinhaFonte-Regular.otf" } ]
   }
 }
 ```
+
+**`origens.cursores`** é `{"proprio": "cursores/<nome>"}` para o pack que traz
+o ponteiro, ou `{"herda": "<id>"}` para o que pega o de outro — ver [O
+ponteiro](#o-ponteiro). **`fontes`** tem a mesma forma, com uma lista — ver [As
+fontes](#as-fontes).
 
 **`autor`, `versao` e `licenca`** aparecem no alto do `meow pack info`, e o
 `autor` também no cartão do painel. Até 23/09/2026 nenhum código lia os três, e
@@ -1000,6 +1015,15 @@ Quando o conf está **vazio**, o valor do pack entra. Quando os dois existem e
 discordam, o `meow pack info` mostra os dois e diz qual está valendo — silêncio
 aqui seria a divergência silenciosa de volta, por outra porta.
 
+**`CURSOR` é a exceção, e o parágrafo acima mentia sobre ela até 23/09/2026.**
+`CURSOR` vazio **não toca no ponteiro** — é o jeito de desistir do tema sem
+desinstalar nada ("Vazio = NÃO TOCA", no `scripts/cursor.sh`) —, e o `tema` de
+`origens.cursores` nunca foi lido para aplicar coisa nenhuma: o único leitor
+dele é o painel, que o usa para não acusar de "outro pack" o `CURSOR` que o
+próprio pack receita. O que o pack faz
+pelo ponteiro é **trazê-lo** (`origens.cursores.proprio`); quem o escolhe é
+sempre a chave. Ver [O ponteiro](#o-ponteiro).
+
 ---
 
 ## O tema do COSMIC, e o único passo manual que existe
@@ -1154,6 +1178,217 @@ No painel: **Manutenção → Som de evento**, com o botão «Ouvir».
 
 E lembre da precedência: um `SOM_*` no `meow.conf` da máquina vence o do pack,
 como qualquer outra chave.
+
+## O ponteiro
+
+Um pack pode trazer o próprio ponteiro: um tema Xcursor comum, dentro dele.
+
+```
+packs/meu-tema/
+  cursores/
+    meu-tema-roxo/
+      index.theme
+      LICENSE               a licença de quem desenhou — ver "Licença", abaixo
+      cursors/              default, left_ptr, pointer… (link vale, se ficar dentro)
+```
+
+```json
+"origens": {
+  "cursores": { "proprio": "cursores/meu-tema-roxo" }
+}
+```
+
+**Quem escolhe continua sendo a chave `CURSOR`.** O pack oferece; o
+`meow.conf` decide. Com `CURSOR="meu-tema-roxo"`, o `scripts/cursor.sh` instala
+o tema do pack em `~/.local/share/icons/meu-tema-roxo-cursors/` **sem tocar a
+rede**, e a cada passagem compara o instalado com o do pack (`diff -rq`): se
+você redesenhar o ponteiro, a passagem seguinte traz o novo. `CURSOR` vazio
+continua não tocando em nada, e um `CURSOR` que nomeia outro tema continua
+valendo.
+
+**O valor é o nome do diretório, sem `-cursors`.** `cursores/meu-tema-roxo/` e
+`cursores/meu-tema-roxo-cursors/` são escolhidos pelo mesmo
+`CURSOR="meu-tema-roxo"` — é a regra do `cursor.sh` para todo tema.
+
+**Ele aparece no painel antes de estar instalado.** A lista de ponteiros é "o
+que a chave aceita sem baixar nada", e o do pack é isso; a prévia sai do próprio
+pack. A lista do painel (`_cursor_pastas_do_valor`, `app/servidor.py`) e a do
+script (`_cursor_do_pack`, `scripts/cursor.sh`) fazem a mesma conta, e mudam
+juntas — a P17 pegou duas vezes uma delas andando sozinha.
+
+**Um diretório de nome exato vence o pack.** Se `meu-tema-roxo/` existir em
+`~/.local/share/icons/`, `~/.icons/` ou `/usr/share/icons/`, as duas alavancas
+do `cursor.sh` apontam para ele — é a regra de 15/09/2026 que fez o
+`Dracula-Cursor` funcionar. Nesse caso o ponteiro do pack sai da lista, em vez de
+virar um botão que baixa da rede.
+
+| o `validar` cobra | por quê |
+|---|---|
+| o caminho cai dentro do pack, e existe | o `realpath` de todo campo |
+| o nome só tem `[A-Za-z0-9._-]`, sem começar por `.` ou `-` | é o nome que vira diretório. O `cursor.sh` trocaria qualquer outro caractere, e o painel ofereceria um nome que o script instala com outro |
+| `cursors/` existe e tem `default` ou `left_ptr` | é o ponteiro de repouso: sem ele não há o que ver, nem de onde tirar a prévia |
+| nenhum arquivo ou link do tema aponta para fora dele | o tema é copiado inteiro (`cp -a`), e o link iria junto para `~/.local/share/icons/` |
+| `proprio` e `herda` não aparecem juntos | um bloco que diz "o meu" e "o do vizinho" não disse qual |
+
+**Herdar é pelo bloco.** `origens.cursores.herda: "outro"` sobe para o pack
+`outro`; sem `proprio` nem `herda`, vale a `heranca` do pack. O `meow pack info`
+diz até onde a subida chega — `CURSOR="x", do pack y`, ou "a cadeia não traz
+ponteiro", que é o caso do Dracula hoje (o motivo está no `pack.json` dele:
+procedência).
+
+```bash
+python3 scripts/pack.py ponteiro meu-tema
+#   pack=meu-tema
+#   dir=/…/packs/meu-tema/cursores/meu-tema-roxo
+#   valor=meu-tema-roxo
+```
+
+**Licença.** Tema de ponteiro é arte de terceiro quase sempre. O `LICENSE` e o
+`AUTHORS` vão dentro do diretório do tema — o `cursor.sh` os copia junto, e a
+auditoria funciona na máquina de quem instalou —, e o `CREDITOS.md` do pack diz
+de onde ele veio. Sem procedência, não entra: é por isso que o Dracula continua
+com `herda`.
+
+## As fontes
+
+Um pack pode trazer fontes de texto. Elas **somam** às do motor: a
+JetBrainsMono Nerd Font pinada continua sendo instalada, e continua sendo a do
+terminal, para todo pack.
+
+```json
+"fontes": {
+  "proprio": [
+    { "arquivo": "fontes/MinhaFonte-Regular.otf" },
+    { "nome": "OutraFonte-Bold.ttf",
+      "url": "https://exemplo.org/releases/v1.2/OutraFonte-Bold.ttf",
+      "sha256": "…os 64 hex do arquivo…" }
+  ]
+}
+```
+
+- **`arquivo`** mora dentro do pack. O `realpath` cai dentro dele, e os quatro
+  primeiros bytes têm de ser TrueType ou OpenType: extensão não é conteúdo.
+- **`nome` + `url` + `sha256`** vêm de fora, e sempre os três. Só `https://`, e o
+  conteúdo é pinado, como o da Nerd Font. A URL aponta para **um arquivo de
+  fonte**, e não para um `.zip`: pacote se abre pelas mãos de quem instala
+  (`meow fontes adicionar`); um pack instala sozinho, e o que entra sozinho é o
+  que se confere byte a byte.
+- O nome vira arquivo em `~/.local/share/fonts/MeowSystem/pack/`: termina em
+  `.ttf` ou `.otf`, sem barra, sem começar por `.` ou `-`. Dois iguais na lista
+  são recusa.
+
+**Trocar de pack leva as fontes junto.** `MeowSystem/pack/` é de dono único: o
+`scripts/instalar_fontes.sh` deixa ali só o que o pack ativo declara, e tira o
+resto. Uma lista que não valida não apaga nada — o erro do pack não é culpa da
+máquina. Sem rede, a fonte de fora fica para o próximo ciclo; com o `sha256`
+errado, o instalador para e diz os dois números.
+
+**Herdar é pelo bloco inteiro.** Responde o primeiro pack da cadeia que declara
+`fontes.proprio`, e a lista dele é a lista — uma fonte não "falta" e desce ao
+vizinho. `fontes.herda` vence a `heranca`. `"proprio": []` é "este pack não traz
+fonte, e não herda".
+
+**Escolher a fonte do terminal não é isto.** O pack põe a fonte no sistema; o
+terminal e o `monospace_font` do COSMIC continuam apontando para a Nerd Font do
+motor. Um campo "a fonte do terminal é esta" é outra decisão, e não existe.
+
+```bash
+python3 scripts/pack.py tipografia meu-tema
+#   meu-tema  MinhaFonte-Regular.otf  /…/packs/meu-tema/fontes/MinhaFonte-Regular.otf  -
+#   meu-tema  OutraFonte-Bold.ttf     https://exemplo.org/…/OutraFonte-Bold.ttf      <sha256>
+```
+
+> **`tipografia`, e não `fontes`.** O verbo `fontes` do `pack.py` é o de ícone
+> — "de onde sai cada ícone", ver [Fonte e derivados](#fonte-e-derivados). A
+> chave do `pack.json` é `fontes`, que é como quem escreve um pack procura; o
+> verbo não podia ser.
+
+## O que ainda não é do pack
+
+Quatro coisas continuam do **motor**, iguais para todo pack, e o formato **não
+tem campo** para elas. Estão escritas aqui porque uma lista que omite o que
+falta é lida como pronta — e a nota de herança do Dracula dizia, até
+23/09/2026, que prompt, fastfetch e gatos "vêm do pack base".
+
+| categoria | de onde sai | quem teria de perguntar ao pack |
+|---|---|---|
+| **traço do gerador de ícone** | `scripts/converter_icone.py` e as réguas da oficina | ver abaixo |
+| **prompt** | `assets/prompt/` | `scripts/prompt.sh` |
+| **fastfetch** | `assets/fastfetch/` | `scripts/fastfetch_logo.sh` |
+| **gatos** | `assets/gatos/` | seis leitores da pasta: `greeter.sh`, `logo.sh`, `construir_icones.sh`, `fastfetch_logo.sh`, `vigia_assets.sh` e o `bin/meow` (contados em 23/09/2026) |
+
+**Declarar sem leitor não serve.** Um `"prompt": {"proprio": …}` que nenhum
+script lê é o campo morto que o `validar` avisa em voz alta: o pack prometeria
+um prompt, e a tela mostraria o de sempre. Cada uma destas entra no dia em que
+o leitor dela perguntar ao pack, e não antes.
+
+**O traço do gerador não é o `icones.autorais`.** A P26 tornou declarável **o
+que** o gerador de autorais desenha (os `.json` de [Desenhos
+autorais](#desenhos-autorais)). O **traço** da conversão — espessura, fusão,
+aparo, cantos, se preenche área — continua nos padrões do `converter_icone.py`
+e nas réguas da oficina, e medido em 23/09/2026 há dois motivos para ele não
+virar campo só com esses dois arquivos na mão (o `estilo_icone.py`, que a P12
+também nomeava, só MEDE a caneta; ele não tem parâmetro nenhum):
+
+- os padrões do conversor produzem `assets/icones/convertidos-apps/`, que é
+  **versionado no motor** — contadas em 23/09/2026, 28 das 31 linhas do
+  `apps-convertidos.map` deixam o campo de parâmetros vazio, e usam o padrão.
+  Um padrão vindo do pack ativo faria o acervo do git depender de qual pack
+  estava no ar quando alguém o reconstruiu;
+- a oficina grava no mapa a string exata dos parâmetros
+  (`--k 8 --funde 52 --tol 1`) e conta com "régua em zero = bandeira ausente =
+  a saída de ontem" para que a linha reproduza o desenho gravado ao lado dela.
+  Um padrão vindo do pack mudaria o que a ausência significa.
+
+Fazer direito é levar o acervo convertido para dentro do pack e fazer a oficina
+começar as réguas do perfil do pack — sprint própria, com o
+`construir_convertidos.sh` e o `app/servidor.py` na mesa. O limite continua o da
+P12: **só os parâmetros que a oficina já aceita, com nome**. Nada de expressão,
+nada de condicional.
+
+## As categorias, uma por linha
+
+`meow pack info <id>` imprime **todas** as categorias, e cada uma diz o que é
+naquele pack:
+
+| origem | quer dizer |
+|---|---|
+| `PRÓPRIO` | o pack declara o bloco |
+| `HERDADO de X` | o bloco diz `herda: X`, ou o pack não declara e a `heranca` dele é X |
+| `DO MOTOR, ou inexistente` | o pack não declara e não herda: vale o que o motor faz, se faz |
+| `DO MOTOR — não declarável` | o formato não tem campo — ver [O que ainda não é do pack](#o-que-ainda-não-é-do-pack) |
+
+A coluna da direita diz até onde a subida chega: as categorias de ícone contam
+desenhos, o ponteiro diz o valor de `CURSOR` e o pack que o traz, as fontes
+dizem quantas e de quem, e as não declaráveis dizem de onde saem. `HERDADO` com
+"a cadeia não traz" ao lado é a herança vazia, dita em voz alta.
+
+```
+  cursores          HERDADO de catppuccin        a cadeia não traz ponteiro
+  wallpapers        PRÓPRIO
+  apps              PRÓPRIO
+  som               PRÓPRIO
+  fontes            HERDADO de catppuccin        a cadeia não traz fonte
+  gerador           DO MOTOR — não declarável    scripts/converter_icone.py
+```
+
+**O som não sobe a herança.** O `scripts/som.sh` lê só o `som` do pack ativo e
+põe os padrões dele no que faltar; um pack que herda do Dracula e não declara
+`som` toca o sino do motor. A tabela diz `DO MOTOR` para ele, e não `HERDADO`.
+
+**`wallpapers` diz PRÓPRIO no Dracula, e é a exceção que falta consertar.** Os
+campos de `origens.wallpapers` ainda não têm leitor — o `validar` os lista como
+campo morto —, e o papel de parede do Dracula vem de `WALLPAPER_DRACULA_REPO`
+no `meow.conf`, que o `wallpaper.sh` lê pelo nome do flavor. A linha fica como
+está até a sprint que der leitor ao bloco; o aviso de campo morto já conta a
+verdade sobre ela.
+
+**Eram onze, e são quinze linhas.** A tabela da P12 (21/09/2026) contava onze:
+paleta, tema do COSMIC, ícones de aplicativo, de pasta, mimetypes, papéis de
+parede, som, ponteiro, fontes, gerador de ícone e "prompt, fastfetch, gatos"
+numa linha só. A P18 e a P27 acrescentaram duas que ela não contava (temas de
+aplicativo e ícones autorais), e a última linha dela são três coisas com três
+leitores diferentes, que viram três linhas aqui.
 
 ## O logo do pack
 
