@@ -1192,6 +1192,94 @@ capturas="$(zstd -d -c -q "$T/sem.meowpack" 2>/dev/null | tar -xOf - "$ID/pack.j
   || falha "o --sem-imagens levou a imagem, ou a vitrine ficou prometendo (rc=$rc)" "$saida
 capturas: $capturas"
 
+# O DESTINO QUE NÃO EXISTE. A revisão de 23/09/2026 mediu o traceback cru do
+# `open` saindo daqui. Tem de ser uma linha de erro, código 2, e nada escrito.
+saida="$(viaja "$RAIZ/bin/meow" pack exportar "$ID" "$T/nao-existe/x.meowpack" 2>&1)"; rc=$?
+[ "$rc" = "2" ] && [[ "$saida" == *"esse diretório não existe"* ]] \
+  && [[ "$saida" != *"Traceback"* ]] && [ ! -e "$T/nao-existe" ] \
+  && ok "o exportar para um diretório que não existe diz isso numa linha (rc=$rc)" \
+  || falha "o exportar para um diretório que não existe não saiu limpo (rc=$rc)" "$saida"
+
+# --- 20b. a página e as rotas falam a MESMA língua — revisão de 23/09/2026 ---
+#
+#   A revisão provou pelo HTTP que as duas metades divergiam: os botões da P10
+#   mandavam `confirmado` e esperavam `precisa_confirmar`, a rota lia
+#   `confirmar`, e o primeiro clique terminava em "entrou" sem nada instalado.
+#   Aqui as rotas são chamadas pelo método do servidor, sem subir o painel —
+#   com o `_json` e o `_baixar` trocados por quem só anota —, e a página é
+#   conferida pelas palavras que ela manda e lê. Um lado que mude sozinho
+#   quebra este teste, e não a tela dela.
+#
+#   O script vai para um ARQUIVO, e não para o stdin: o `viaja` fecha o stdin
+#   (`</dev/null`, pelo `exportar` que pergunta), e um `python3 -` ali leria um
+#   programa vazio e sairia 0 sem conferir nada — medido, com a rota trocada
+#   de volta para `confirmar`, o teste passava.
+cat > "$T/contrato.py" <<'PY'
+import base64, os, sys
+sys.path.insert(0, os.path.join(os.environ["MEOW_RAIZ"], "app"))
+import servidor
+arquivo, destino, dir_id = sys.argv[1:]
+ident = os.path.basename(dir_id)
+h = servidor.Manipulador.__new__(servidor.Manipulador)
+h._json = lambda dados, status=200: (status, dados)
+h._baixar = lambda corpo, nome, tipo: (200, {"arquivo": nome, "cabeca": corpo[:4]})
+erros = []
+pedido = {"nome": os.path.basename(arquivo),
+          "conteudo": base64.b64encode(open(arquivo, "rb").read()).decode()}
+
+st, r = h._api_pack_importar(dict(pedido))
+if not (st == 200 and r.get("precisa_confirmar") is True and isinstance(r.get("resumo"), str)
+        and r.get("titulo") and len(next(iter((r.get("pack") or {}).get("paleta", {}).values()), [])) == 26):
+    erros.append(f"o ensaio do importar não pediu confirmação com resumo e paleta: {st} {r}")
+if os.path.exists(destino):
+    erros.append("o ensaio do importar escreveu o pack")
+st, r = h._api_pack_importar(dict(pedido, confirmar=True))
+if os.path.exists(destino) or r.get("instalado"):
+    erros.append("`confirmar`, a palavra que a página não manda, instalou o pack")
+st, r = h._api_pack_importar(dict(pedido, confirmado=True))
+if not (st == 200 and r.get("instalado") is True and r.get("frase") and os.path.isdir(destino)):
+    erros.append(f"com `confirmado: true` o importar não instalou: {st} {r}")
+
+st, r = h._api_pack_exportar({"id": [ident], "medir": ["1"]})
+if not (st == 200 and r.get("imagens") == 1 and isinstance(r.get("tamanho_sem_imagens"), str)):
+    erros.append(f"o medir não disse as imagens e o tamanho: {st} {r}")
+st, r = h._api_pack_exportar({"id": [ident], "imagens": ["nao"]})
+if not (st == 200 and r.get("cabeca") == b"\x28\xb5\x2f\xfd"):
+    erros.append(f"o exportar não devolveu o .meowpack: {st} {r}")
+creditos = os.path.join(dir_id, "CREDITOS.md")
+os.rename(creditos, creditos + ".fora")
+try:
+    for consulta in ({"id": [ident], "medir": ["1"]}, {"id": [ident]}):
+        st, r = h._api_pack_exportar(consulta)
+        if not (st == 400 and "CREDITOS.md" in r.get("erro", "")):
+            erros.append(f"o pack que o exportar recusa não voltou como erro ({consulta}): {st} {r}")
+finally:
+    os.rename(creditos + ".fora", creditos)
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+saida="$(viaja python3 "$T/contrato.py" "$T/$NOVO.meowpack" "$DA_PESSOA/$NOVO" "$PACKS/$ID" 2>&1)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "as rotas falam o contrato dos botões: ensaio, confirmado, medir, e a recusa como erro" \
+  || falha "as rotas do .meowpack não falam o contrato da página" "$saida"
+rm -rf "${DA_PESSOA:?}/$NOVO"
+
+corpo="$(sed -n '/^async function importarPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+exporta="$(sed -n '/^async function exportarPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+packs="$(sed -n '/^function montarPacks(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+faltam=""
+for palavra in "confirmado: true" "r.precisa_confirmar" "corpo: r.pack ? telaDoPack(r.pack)" "!r.instalado"; do
+  [[ "$corpo" == *"$palavra"* ]] || faltam+=" importarPack:'$palavra'"
+done
+for palavra in '"&medir=1"' '"&imagens=nao"' "resposta.ok" "perguntar("; do
+  [[ "$exporta" == *"$palavra"* ]] || faltam+=" exportarPack:'$palavra'"
+done
+[[ "$packs" == *"exportarPack(noAr)"* && "$packs" != *'href: `/api/pack-exportar'* ]] \
+  || faltam+=" montarPacks: o exportar voltou a ser um link"
+[ -z "$faltam" ] \
+  && ok "a página manda confirmado, desenha o pack, só diz 'entrou' com instalado, e pergunta antes de baixar" \
+  || falha "a página deixou de falar o contrato das rotas:$faltam"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

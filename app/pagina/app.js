@@ -5231,6 +5231,26 @@ function botaoDeEnsaio() {
   return b;
 }
 
+/* `corpo` É O QUE NÃO CABE NUMA FRASE — 23/09/2026, sprint P11
+ *   A caixa só sabia dizer texto, e a sprint pede que o importar mostre o que
+ *   o pack traz "antes de confirmar: paleta desenhada, quantos ícones…". Uma
+ *   paleta escrita como 26 códigos não é paleta desenhada. `corpo` é um nó que
+ *   entra entre a frase e o comando; o lugar dele nasce aqui, e uma vez só,
+ *   pelo motivo do `botaoDeEnsaio` (o `index.html` não é arquivo desta
+ *   sprint). Sem `corpo`, o lugar fica vazio e escondido — as outras
+ *   perguntas da página não mudam em nada. */
+function lugarDoCorpo() {
+  let lugar = document.getElementById("confirmar-corpo");
+  if (!lugar) {
+    lugar = elemento("div", {
+      id: "confirmar-corpo",
+      style: "display:flex;flex-direction:column;gap:.55rem;margin:.6rem 0 0",
+    });
+    $("#confirmar-texto").after(lugar);
+  }
+  return lugar;
+}
+
 /* `ensaio: true` acende o botão «Ver o que faria» E MUDA O QUE ESTA FUNÇÃO
  * DEVOLVE: com ele, a resposta é a PALAVRA do botão apertado ("sim", "seco" ou
  * "nao"), porque uma pergunta de três saídas não cabe num booleano. Sem ele,
@@ -5239,10 +5259,13 @@ function botaoDeEnsaio() {
  * esta sprint não tem por que tocar. Quem traduz as palavras para o resto da
  * página é o `confirmar()`, logo abaixo. */
 function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
-                     perigo = false, neutro = false, ensaio = false }) {
+                     perigo = false, neutro = false, ensaio = false, corpo = null }) {
   const dlg = $("#confirmar");
   $("#confirmar-titulo").textContent = titulo;
   $("#confirmar-texto").textContent = texto;
+  const lugar = lugarDoCorpo();
+  lugar.replaceChildren(...(corpo ? [corpo] : []));
+  lugar.hidden = !corpo;
   $("#confirmar-sudo").hidden = !sudo;
   $("#confirmar-comando").textContent = comando;
   /* Esconder o <code> deixaria o <p> que o embrulha ocupando espaço vazio — o
@@ -7858,8 +7881,8 @@ async function usarPack(p) {
  * duas metades tem de fechar:
  *
  *   EXPORTAR  GET /api/pack-exportar?id=<pack no ar> devolve o `.meowpack` como
- *             download — o mesmo `<a download>` do «Exportar» de ajustes, que o
- *             cookie de sessão autentica sem repor o token na URL.
+ *             download. [Até a P11 era um `<a download>`, como o «Exportar» de
+ *             ajustes; ver "O QUE A P11 FECHOU", abaixo.]
  *   IMPORTAR  POST /api/pack-importar com {nome, conteudo} (o arquivo em base64,
  *             como o `/api/acervo` recebe). A resposta pode pedir confirmação
  *             com `precisa_confirmar` e um `resumo` do que o pack traz — a P11
@@ -7868,7 +7891,20 @@ async function usarPack(p) {
  *             torrada vermelha; o resto, a frase do servidor.
  *
  * Enquanto a rota não existe, o servidor responde 404 "não existe aqui", e a
- * torrada diz isso em português em vez de repetir o texto cru. */
+ * torrada diz isso em português em vez de repetir o texto cru.
+ *
+ * O QUE A P11 FECHOU — 23/09/2026. A revisão mediu as duas metades pelo HTTP:
+ * a rota lia `confirmar` e devolvia outra coisa, o primeiro pedido voltava 200
+ * sem `precisa_confirmar` nem `erro`, e a torrada dizia "entrou" sem nada
+ * instalado. A rota passou a falar este contrato, palavra por palavra, e três
+ * coisas mudaram deste lado:
+ *   - a caixa de confirmar DESENHA o que o pack traz (`telaDoPack`), abaixo do
+ *     `resumo` — a sprint pede "paleta desenhada", e uma frase não desenha;
+ *   - a torrada de sucesso só sai com `instalado: true`. Sem ele, "entrou" é a
+ *     frase que mente (regra da P3), e foi ela que a revisão viu na tela;
+ *   - o «Exportar o meu» virou botão (`exportarPack`): o `<a download>` não
+ *     perguntava pelas imagens nem dizia o tamanho, e quando o exportar
+ *     recusava ele SALVAVA o JSON do erro com cara de pack. */
 function lerComoBase64(arquivo) {
   return new Promise((ok, falha) => {
     const leitor = new FileReader();
@@ -7888,6 +7924,7 @@ async function importarPack(arquivo) {
       const ok = await perguntar({
         titulo: r.titulo || `Importar ${arquivo.name}?`,
         texto: r.resumo || "",
+        corpo: r.pack ? telaDoPack(r.pack) : null,
         ok: "Importar",
       });
       if (!ok) return;
@@ -7903,9 +7940,135 @@ async function importarPack(arquivo) {
       ? "Importar um pack ainda não chegou a este painel." : r.erro, "erro");
     return;
   }
+  if (!r.instalado) {
+    torrada(`${arquivo.name} não foi instalado — o servidor não confirmou a instalação.`, "erro");
+    return;
+  }
   torrada(r.frase || `${arquivo.name} entrou — ele aparece entre os packs, e usar é outro clique.`, "ok");
   await recarregarPacks();
   render();
+}
+
+/* A TELA DO QUE O PACK TRAZ — 23/09/2026, sprint P11
+ *   A sprint: "o importar mostra o que o pack traz antes de confirmar: paleta
+ *   desenhada, quantos ícones, quantos papéis de parede, se traz ponteiro e
+ *   som". Cada linha sai do `pack` que a rota devolveu, que é o `o_que_traz`
+ *   do pack.py — a mesma conta que o `meow pack importar` imprime no terminal,
+ *   e não uma segunda. As classes são as do «Mais sobre este pack» do cartão:
+ *   a paleta que se vê antes de importar é desenhada igual à de depois.
+ *
+ *   AS CORES VÊM DE UM ARQUIVO DE TERCEIRO, e entram por `style.background`
+ *   só depois de o `validar` — que o `importar --seco` rodou sobre estes mesmos
+ *   bytes — ter conferido o `#RRGGBB` de cada uma. Nenhum texto do pack entra
+ *   por HTML: tudo é `texto`.
+ *
+ *   PAPEL DE PAREDE E PONTEIRO NÃO VIAJAM DENTRO DO ARQUIVO: o formato não tem
+ *   onde guardá-los (o `meow pack novo` diz isso ao criar). A linha deles diz
+ *   de onde virão, que é o que a pessoa vai ver; o número é o dos ícones, que
+ *   são o que viaja — o mesmo corte do terminal. */
+function telaDoPack(pack) {
+  const tela = elemento("div", { style: "display:flex;flex-direction:column;gap:.55rem" });
+  const claros = new Set(pack.claros || []);
+  for (const [flavor, cores] of Object.entries(pack.paleta || {})) {
+    const marcas = [flavor === pack.flavor_padrao ? "padrão" : "", claros.has(flavor) ? "claro" : ""];
+    const tira = elemento("div", { class: "pack-amostra", "aria-hidden": "true" });
+    for (const cor of cores) {
+      const s = elemento("span");
+      s.style.background = cor;
+      tira.append(s);
+    }
+    tela.append(elemento("div", { class: "pack-flavor" }, [
+      elemento("span", { texto: [maiuscula(flavor), ...marcas.filter(Boolean)].join(" · ") }),
+      tira,
+    ]));
+  }
+  const icones = pack.icones === 1 ? "1 ícone" : `${pack.icones} ícones`;
+  const linhas = [
+    ["Ícones", `${icones} no pacote · os de aplicativo: ${pack.icones_de_aplicativo}`],
+    ["Papéis de parede", pack.papeis_de_parede],
+    ["Ponteiro", pack.ponteiro],
+    ["Som", pack.som],
+  ];
+  if (pack.imagens) linhas.push(["Imagens", `${pack.imagens} no pacote`]);
+  const lista = elemento("dl", { class: "pack-categorias" });
+  for (const [rotulo, valor] of linhas) {
+    lista.append(elemento("dt", { texto: rotulo }), elemento("dd", { texto: valor }));
+  }
+  tela.append(lista);
+  return tela;
+}
+
+/* EXPORTAR PERGUNTA ANTES, E BAIXA POR `fetch` — 23/09/2026, sprint P11
+ *   O risco que a sprint escreveu: "um pack com 91 papéis de parede é grande. O
+ *   exportar precisa perguntar se as imagens vão junto, e dizer quantos MB
+ *   antes." No terminal o `meow pack exportar` já fazia isso; aqui o botão era
+ *   um `<a download>`, que não pergunta nada.
+ *
+ *   A ORDEM: o `medir` primeiro, que é o exportar em ENSAIO — a licença, o
+ *   CREDITOS.md e o `validar` já são conferidos ali, e um pack que seria
+ *   recusado recebe a recusa antes da pergunta, não depois. A pergunta só vem
+ *   quando há imagem, como no terminal ("a pergunta só vem se há o que
+ *   perguntar"); a caixa marcada é o mesmo `[S/n]` de lá.
+ *
+ *   `fetch`, E NÃO NAVEGAÇÃO: o download por link salva o que vier, e quando o
+ *   exportar recusa o que vem é o JSON do erro — com o nome de um pack. Lido
+ *   aqui, erro vira torrada; só um 200 vira arquivo. O `api()` não serve porque
+ *   ele lê a resposta como texto, e um `.meowpack` é binário; por isso a queda
+ *   do servidor é tratada aqui do mesmo jeito que ele a trata. */
+async function exportarPack(p) {
+  const rota = `/api/pack-exportar?id=${encodeURIComponent(p.id)}`;
+  const m = await api(rota + "&medir=1");
+  if (m.erro) {
+    torrada(m.erro, "erro");
+    return;
+  }
+  const contar = (n) => `${Number(n).toLocaleString("pt-BR")} arquivo(s)`;
+  let semImagens = false;
+  if (m.imagens) {
+    const levar = elemento("input", { type: "checkbox", checked: true });
+    const ok = await perguntar({
+      titulo: `Exportar o ${p.nome}?`,
+      texto: `${contar(m.arquivos)}, ${m.tamanho} antes de comprimir — `
+        + `${m.imagens === 1 ? "1 imagem soma" : `${m.imagens} imagens somam`} ${m.tamanho_imagens} disso.`,
+      corpo: elemento("label", { style: "display:flex;gap:.5rem;align-items:baseline" }, [
+        levar,
+        elemento("span", {
+          texto: `Levar as imagens junto. Sem elas, o pack fica com ${m.tamanho_sem_imagens}, `
+            + "e a vitrine da cópia deixa de citá-las.",
+        }),
+      ]),
+      ok: "Exportar",
+    });
+    if (!ok) return;
+    semImagens = !levar.checked;
+  }
+  let resposta;
+  try {
+    resposta = await fetch(rota + (semImagens ? "&imagens=nao" : ""),
+                           { headers: { "X-Meow-Token": TOKEN } });
+  } catch {
+    faixaSemServidor(true);
+    torrada("O painel perdeu o servidor — veja a faixa no alto.", "erro");
+    return;
+  }
+  faixaSemServidor(false);
+  if (!resposta.ok) {
+    let erro = "";
+    try { erro = (await resposta.json()).erro || ""; } catch { /* resposta que não é JSON */ }
+    torrada(erro || `O exportar falhou (HTTP ${resposta.status}).`, "erro");
+    return;
+  }
+  const nome = (/filename="([^"]+)"/.exec(resposta.headers.get("Content-Disposition") || "") || [])[1]
+    || `${p.id}.meowpack`;
+  const url = URL.createObjectURL(await resposta.blob());
+  elemento("a", { href: url, download: nome }).click();
+  /* Um minuto, e não na hora: revogar logo depois do clique cancela o
+   * download em navegador que ainda não começou a ler o blob. */
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  const peso = semImagens
+    ? `${contar(m.arquivos - m.imagens)}, ${m.tamanho_sem_imagens} antes de comprimir, sem as imagens`
+    : `${contar(m.arquivos)}, ${m.tamanho} antes de comprimir`;
+  torrada(`${nome} baixado — ${peso}.`, "ok");
 }
 
 /* A seção, ou nada — o mesmo contrato do `montarPendencias`. */
@@ -7915,10 +8078,11 @@ function montarPacks() {
   const noAr = PACKS.find((p) => p.no_ar);
   const acoes = elemento("div", { class: "home-packs-acoes" });
   if (noAr) {
-    acoes.append(elemento("a", {
-      class: "btn", href: `/api/pack-exportar?id=${encodeURIComponent(noAr.id)}`, download: true,
+    acoes.append(elemento("button", {
+      type: "button", class: "btn",
       texto: "Exportar o meu",
       title: `Empacota o ${noAr.nome} num .meowpack, para mandar a alguém`,
+      onclick: () => exportarPack(noAr),
     }));
   }
   const campo = elemento("input", {

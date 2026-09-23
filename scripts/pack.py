@@ -2915,8 +2915,15 @@ MEOWPACK = 1
 MANIFESTO = "MANIFESTO"
 # O TETO É DO ARQUIVO ABERTO, E NÃO DO COMPRIMIDO. O zstd reduz uma fila de
 # zeros a quase nada: um `.meowpack` de um megabyte pode abrir em gigabytes e
-# derrubar quem o lê. O maior pack daqui, o catppuccin, abre em 2,4 MB e 3.902
-# arquivos (medido em 23/09/2026); os dois tetos são cem e cinco vezes isso.
+# derrubar quem o lê. O maior pack daqui, o catppuccin, sai em 338 KB e abre
+# num tar de 5.980.160 bytes com 3.903 entradas (medido em 23/09/2026). Os
+# 2,4 MB que o `exportar` anuncia são a soma dos arquivos; o tar aberto pesa
+# mais que o dobro porque cada um dos 3.902 arquivos (3.325 deles SVG, de 654
+# bytes em média) ganha um cabeçalho de 512 bytes e é completado até o bloco
+# seguinte — e é o aberto que este teto mede. Os dois tetos ficam em umas 45
+# e cinco vezes isso. Os 256 MB não saem do catppuccin, e sim do teto de
+# envio do painel (64 MB, `servidor.py`): um pack de capturas é raster, que
+# o zstd não encolhe, então o aberto tem de caber folgado acima do enviado.
 TETO_MEOWPACK = 256 << 20
 TETO_ARQUIVOS_MEOWPACK = 20000
 # "As imagens" da pergunta do exportar: o que é raster. Ícone, logo e capa são
@@ -3194,6 +3201,16 @@ def cmd_exportar(ref, opcoes):
     _exigir(not saida.startswith(os.path.realpath(exp["dir"]) + os.sep),
             f"{saida}: o .meowpack não pode nascer dentro do próprio pack — a próxima\n"
             f"    exportação o levaria junto")
+    # O DESTINO É CONFERIDO ANTES DA PERGUNTA, E NÃO NA HORA DE ESCREVER — a
+    #   revisão de 23/09/2026 mediu `exportar meu-tema <dir-inexistente>/x.meowpack`
+    #   saindo com o traceback do `open`, depois de a pessoa já ter respondido
+    #   pelas imagens. Não é recusa do pack (o pack está bom), então não passa
+    #   pela `Recusa`: é o endereço que ela deu, e sai como erro de uso.
+    pasta = os.path.dirname(saida)
+    if not os.path.isdir(pasta):
+        print(f"  erro {pasta}: esse diretório não existe — o exportar não cria pasta;\n"
+              f"       crie-a antes, ou diga outro lugar", file=sys.stderr)
+        return ERRO_USO
 
     # O TAMANHO É DITO ANTES, E A PERGUNTA SÓ VEM SE HÁ O QUE PERGUNTAR. É o
     # risco que a sprint escreveu: "um pack com 91 papéis de parede é grande".
@@ -3222,9 +3239,17 @@ def cmd_exportar(ref, opcoes):
     # Atômico: um `.meowpack` pela metade no lugar do nome pedido seria mandado
     # adiante e recusado do outro lado como "não é zstd", longe de quem errou.
     parcial = saida + ".parcial"
-    with open(parcial, "wb") as fh:
-        fh.write(dados)
-    os.replace(parcial, saida)
+    # E o que a conferência do destino não prevê — pasta sem permissão, disco
+    # cheio — também sai numa linha, e sem deixar o `.parcial` para trás.
+    try:
+        with open(parcial, "wb") as fh:
+            fh.write(dados)
+        os.replace(parcial, saida)
+    except OSError as e:
+        if os.path.exists(parcial):
+            os.remove(parcial)
+        print(f"  erro não consegui escrever {saida}: {e.strerror or e}", file=sys.stderr)
+        return ERRO_USO
     fora = " (sem as imagens)" if sem_imagens and exp["imagens"] else ""
     print(f"  ok   {saida} — {_mb(len(dados))}{fora}")
     return OK

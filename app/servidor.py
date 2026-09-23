@@ -8101,17 +8101,31 @@ class Manipulador(BaseHTTPRequestHandler):
     #   no `scripts/pack.py`, num lugar só. Ler o tarball aqui seria a segunda
     #   porta — e é pela porta que ninguém conferiu que o `.sh` entra.
     #
-    # OS BOTÕES SÃO DA P10, que faz da Home o lugar dos packs. O que eles chamam:
-    #     GET  /api/pack-exportar?id=<id>        o .meowpack, para baixar
+    # O CONTRATO É O QUE OS BOTÕES DA P10 ESPERAM — e ele foi fechado depois de
+    #   a revisão de 23/09/2026 medir as duas metades falando línguas
+    #   diferentes: a página mandava `confirmado` e esperava `precisa_confirmar`,
+    #   esta rota lia `confirmar` e devolvia outra coisa, e o primeiro clique
+    #   terminava em "entrou" sem ter instalado nada. `confirmado` é a palavra
+    #   que o `/api/rodar` já usa para "perguntei e ela disse sim".
+    #     GET  /api/pack-exportar?id=<id>        o .meowpack, para baixar; se
+    #                                            o exportar recusa, JSON com
+    #                                            `erro` e 400 — a página baixa
+    #                                            por `fetch` e diz o erro, em
+    #                                            vez de salvar o JSON como pack
     #              &imagens=nao                  sem as imagens raster
-    #              &medir=1                      só o tamanho, em JSON — a pergunta
-    #                                            "as imagens vão junto? são X MB"
-    #                                            vem ANTES de pedir o arquivo
-    #     POST /api/pack-importar  {conteudo: base64, confirmar: bool}
-    #              sem `confirmar` é o ensaio: confere, valida num temporário e
-    #              devolve o que o pack traz (a paleta, quantos ícones, ponteiro,
-    #              som) sem escrever nada — é a tela de confirmar. Com
-    #              `confirmar: true`, instala. Nas duas, nada é aplicado.
+    #              &medir=1                      sem arquivo: o tamanho e as
+    #                                            imagens, em JSON, DEPOIS do
+    #                                            ensaio do exportar — a pergunta
+    #                                            "as imagens vão junto? são X
+    #                                            MB" não vem para um pack que
+    #                                            seria recusado
+    #     POST /api/pack-importar  {nome, conteudo: base64, confirmado?: true}
+    #              sem `confirmado` é o ensaio: confere, valida num temporário e
+    #              devolve `precisa_confirmar`, o `titulo`, o `resumo` em uma
+    #              frase e o `pack` (a paleta, os ícones, o ponteiro, os papéis
+    #              de parede, o som) — é o que a tela de confirmar desenha. Com
+    #              `confirmado: true`, instala e devolve `instalado` e a
+    #              `frase`. Nas duas, nada é aplicado.
     def _api_pack_exportar(self, consulta):
         ident = consulta.get("id", [""])[0]
         mod = modulo_pack()
@@ -8120,26 +8134,33 @@ class Manipulador(BaseHTTPRequestHandler):
         # para empacotar um diretório qualquer do disco.
         if not mod or ident not in _packs_no_disco():
             return self._json({"erro": "não conheço esse pack"}, 404)
-        if consulta.get("medir", [""])[0] == "1":
-            try:
-                return self._json(mod.medir_exportacao(ident))
-            except Exception as erro:
-                return self._json({"erro": str(erro)}, 400)
+        medir = consulta.get("medir", [""])[0] == "1"
         extra = ["--sem-imagens"] if consulta.get("imagens", [""])[0] == "nao" else []
         with tempfile.TemporaryDirectory(prefix="meow-exporta-") as pasta:
             saida = os.path.join(pasta, ident + ".meowpack")
             try:
                 # `stdin` fechado: sem terminal do outro lado, o `exportar` não
                 # pergunta — quem pergunta é a tela, pelo `medir`, e manda a
-                # resposta no `imagens`.
+                # resposta no `imagens`. O `medir` é o MESMO comando em ensaio:
+                # a licença, o CREDITOS.md e o `validar` são conferidos antes
+                # de a tela perguntar qualquer coisa.
                 r = subprocess.run(_meow("pack", "exportar", ident, saida, *extra),
                                    capture_output=True, text=True, timeout=120,
-                                   stdin=subprocess.DEVNULL, env=_ambiente_do_painel())
+                                   stdin=subprocess.DEVNULL,
+                                   env=_ambiente_do_painel(seco=medir))
             except (OSError, subprocess.SubprocessError) as erro:
                 return self._json({"erro": "não consegui rodar: %s" % erro}, 500)
-            texto = ((r.stdout or "") + (r.stderr or "")).strip()
-            if r.returncode != 0 or not os.path.isfile(saida):
+            if r.returncode != 0 or not (medir or os.path.isfile(saida)):
+                texto = (r.stderr or "").strip() or (r.stdout or "").strip()
                 return self._json({"erro": texto or "o exportar falhou", "rc": r.returncode}, 400)
+            if medir:
+                # Os números saem da `medida` e o texto do `_mb`, os mesmos do
+                # terminal: a tela e o `meow pack exportar` dizem o mesmo MB.
+                m = mod.medir_exportacao(ident)
+                m.update(tamanho=mod._mb(m["bytes"]),
+                         tamanho_imagens=mod._mb(m["bytes_imagens"]),
+                         tamanho_sem_imagens=mod._mb(m["bytes"] - m["bytes_imagens"]))
+                return self._json(m)
             with open(saida, "rb") as fh:
                 corpo = fh.read()
         return self._baixar(corpo, ident + ".meowpack", "application/zstd")
@@ -8154,10 +8175,11 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "conteúdo não é base64"}, 400)
         if not dados:
             return self._json({"erro": "o arquivo veio vazio"}, 400)
-        confirmar = corpo.get("confirmar") is True
+        confirmado = corpo.get("confirmado") is True
         with tempfile.TemporaryDirectory(prefix="meow-importa-") as pasta:
             # O NOME É NOSSO, E NÃO O DO ENVIO: o id do pack sai de dentro do
-            # tarball, conferido, e o nome do arquivo não decide nada.
+            # tarball, conferido, e o nome do arquivo não decide nada — o
+            # `nome` do pedido só existe para a página, que o mostra.
             caminho = os.path.join(pasta, "envio.meowpack")
             with open(caminho, "wb") as fh:
                 fh.write(dados)
@@ -8168,19 +8190,35 @@ class Manipulador(BaseHTTPRequestHandler):
                 r = subprocess.run(_meow("pack", "importar", caminho),
                                    capture_output=True, text=True, timeout=120,
                                    stdin=subprocess.DEVNULL,
-                                   env=_ambiente_do_painel(seco=not confirmar))
+                                   env=_ambiente_do_painel(seco=not confirmado))
             except (OSError, subprocess.SubprocessError) as erro:
                 return self._json({"erro": "não consegui rodar: %s" % erro}, 500)
-            texto = ((r.stdout or "") + (r.stderr or "")).strip()
             if r.returncode != 0:
+                # A recusa é o stderr: o stdout tem o `ok` da validação, e a
+                # torrada que leva os dois diz "ok" e "recusado" na mesma frase.
+                texto = (r.stderr or "").strip() or (r.stdout or "").strip()
                 return self._json({"erro": texto or "o importar falhou", "rc": r.returncode}, 400)
-            # Depois do `importar` ter validado, e não antes: o `resumo` confia
-            # no que acabou de passar pela conferência inteira.
-            try:
-                resumo = mod.resumo_meowpack(caminho)
-            except Exception:
-                resumo = None
-        return self._json({"instalado": confirmar, "resumo": resumo, "saida": texto})
+            # Depois do `importar` ter validado, e não antes: o `pack` confia no
+            # que acabou de passar pela conferência inteira.
+            pack = mod.resumo_meowpack(caminho)
+        nome = pack["nome"]
+        if not confirmado:
+            # O `resumo` é a frase de cima da caixa; o que o pack traz, item a
+            # item, a página desenha do `pack` — a paleta não cabe numa frase.
+            quantos = "{:,}".format(pack["arquivos"]).replace(",", ".")
+            por = "Por %s. " % pack["autor"] if pack["autor"] else ""
+            return self._json({
+                "precisa_confirmar": True,
+                "titulo": "Importar o %s?" % nome,
+                "resumo": "%s%s arquivo(s), %s. Ele entra como opção entre os packs — "
+                          "nada do seu tema muda até você escolher usá-lo."
+                          % (por, quantos, mod._mb(pack["bytes"])),
+                "pack": pack,
+            })
+        return self._json({
+            "instalado": True, "id": pack["id"], "pack": pack,
+            "frase": "O %s entrou — ele aparece entre os packs, e usar é outro clique." % nome,
+        })
 
     def _baixar(self, corpo, nome, tipo):
         """Uma resposta que o navegador GRAVA em vez de mostrar.
@@ -8686,12 +8724,14 @@ class Manipulador(BaseHTTPRequestHandler):
             # divergências", e nada foi consertado.
             return self._json(_trabalho_json(trabalho, acao, seco=seco))
 
-        # TRAZER DE VOLTA — só analisa e devolve o que mudaria; quem grava é o
-        # `Salvar e aplicar` de sempre. O porquê está em `importar_conf`.
-        # O `.meowpack` — ver `_api_pack_exportar`. [23/09/2026, P11]
+        # O `.meowpack` — ver `_api_pack_exportar`. [23/09/2026, P11] Fora do
+        # "trazer de volta" logo abaixo, e é de propósito: aquele só analisa, e
+        # este, com `confirmado: true`, instala.
         if caminho == "/api/pack-importar":
             return self._api_pack_importar(corpo)
 
+        # TRAZER DE VOLTA — só analisa e devolve o que mudaria; quem grava é o
+        # `Salvar e aplicar` de sempre. O porquê está em `importar_conf`.
         if caminho == "/api/importar":
             texto = str(corpo.get("texto", ""))
             if not texto.strip():

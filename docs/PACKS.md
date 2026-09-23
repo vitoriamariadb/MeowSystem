@@ -1644,12 +1644,21 @@ confirmar do painel mostra.
 
 ### No painel
 
-Duas rotas, para os botões da Home (P10):
+Os botões **Exportar o meu** e **Importar um pack** do bloco "Theme packs" da
+Home (P10), e as duas rotas que eles chamam:
 
 | rota | o que faz |
 |---|---|
-| `GET /api/pack-exportar?id=<id>` | o `.meowpack`, para baixar. `&imagens=nao` deixa as imagens; `&medir=1` devolve só o tamanho, em JSON — a pergunta "as imagens vão junto?" vem antes |
-| `POST /api/pack-importar` | `{conteudo, confirmar}`. Sem `confirmar`, é o `--seco`: devolve o que o pack traz. Com `confirmar: true`, instala. Nas duas, nada é aplicado |
+| `GET /api/pack-exportar?id=<id>` | o `.meowpack`, para baixar. `&imagens=nao` deixa as imagens; `&medir=1` roda o exportar em ensaio e devolve o tamanho e as imagens, em JSON. Recusa volta como `{erro}` e 400, nunca como arquivo |
+| `POST /api/pack-importar` | `{nome, conteudo}` em base64. Sem `confirmado`, é o `--seco`: devolve `precisa_confirmar`, `titulo`, `resumo` (uma frase) e `pack` (o que ele traz). Com `confirmado: true`, instala e devolve `instalado` e `frase`. Nas duas, nada é aplicado |
+
+**Exportar o meu** pede o `medir` primeiro: a recusa (licença, `CREDITOS.md`,
+`validar`) aparece antes de qualquer pergunta, e quando o pack tem imagem a
+caixa diz quantos MB ele tem com e sem elas, com "levar as imagens junto"
+marcado — o `[S/n]` do terminal. Só então baixa. **Importar um pack** abre a
+caixa de confirmar com a paleta desenhada, cada flavor com as 26 cores, e uma
+linha para ícones, papéis de parede, ponteiro e som; a mensagem de que entrou
+só aparece quando a rota diz `instalado`.
 
 Quem confere e quem instala é o **mesmo** `meow pack exportar`/`importar` do
 terminal — as rotas só levam o arquivo de um lado para o outro. Uma segunda
