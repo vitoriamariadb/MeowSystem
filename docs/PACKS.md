@@ -42,6 +42,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [O acervo de ícones do pack](#o-acervo-de-ícones-do-pack)
 - [Fonte e derivados](#fonte-e-derivados)
 - [Temas de aplicativo](#temas-de-aplicativo)
+- [Trocar de pack: `meow pack usar`](#trocar-de-pack-meow-pack-usar)
 - [Quem vence: o pack ou o `meow.conf`](#quem-vence-o-pack-ou-o-meowconf)
 - [O tema do COSMIC, e o único passo manual que existe](#o-tema-do-cosmic-e-o-único-passo-manual-que-existe)
 - [O som](#o-som)
@@ -996,6 +997,57 @@ O teto de citações por módulo está em `tests/temas-de-apps.sh`, e ele só de
 
 ---
 
+## Trocar de pack: `meow pack usar`
+
+```bash
+meow pack usar dracula            # grava PACK e FLAVOR no meow.conf, e aplica
+meow pack usar catppuccin latte   # com o flavor escolhido
+meow pack usar meu-tema --sem-aplicar
+```
+
+Até 23/09/2026 trocar de pack era editar `PACK=` no `meow.conf` à mão: os
+verbos de `meow pack` liam, validavam e construíam, e nenhum dizia à máquina
+"use este". Agora há o verbo, e ele é o mesmo que o botão **Usar este** dos
+cartões da Home do painel chama.
+
+**O que ele faz, nesta ordem:**
+
+1. **Valida o pack com a régua do motor** — a mesma que o instalador aplica. Um
+   pack que ela reprova seria trocado pelo padrão em silêncio (o
+   `meow_pack_dir` cai no Catppuccin e só avisa), então o verbo recusa **antes
+   de escrever**: pack que não existe, pack fora das [raízes](#onde-um-pack-mora),
+   flavor que o pack não tem. Capa e logo ausentes não impedem: o motor usa o
+   pack sem eles.
+2. **Escolhe o flavor.** O que você pediu; senão o que já está no ar, se ele
+   for do pack (voltar ao Catppuccin estando no Latte não te joga no Mocha);
+   senão o `paleta.flavor_padrao` do pack.
+3. **Grava `PACK` e `FLAVOR`, e só as duas.** O resto do `meow.conf` fica
+   intacto, comentários inclusive.
+4. **Diz o que ficou do pack de antes.** O `meow.conf` vence o pack (ver a seção
+   seguinte), então um `ICONES_BASE="Dracula-Icones"` escrito por você continua
+   valendo depois de `usar catppuccin`. O verbo não decide por você o que é
+   gosto e o que é resto: ele lista as chaves cujo valor cita o pack de antes, e
+   o painel marca cada uma como «Vestígio do pack».
+5. **Aplica** — o instalador inteiro, porque trocar de pack mexe em quase todas
+   as etapas. `--sem-aplicar` grava e para.
+
+**O ensaio ensaia a troca.** Com `MEOW_DRY_RUN=1` (ou o «Ver o que faria» do
+painel), o `meow.conf` não é tocado: as duas chaves vão para uma cópia
+descartável, e o instalador seco lê a cópia. Um ensaio que lesse o conf do disco
+mostraria o pack que **já** está no ar, com cara de ensaio da troca.
+
+**Na tela**, a Home abre com um cartão por pack instalado — o logo, a paleta
+embaixo, o que ele traz de próprio e o que herda de quem —, e o que está no ar
+tem o anel de acento. Com escolhas ainda não salvas na página, **Usar este**
+pergunta antes: elas foram feitas olhando o pack de agora, e são descartadas
+se a troca começar. E a aba Ícones passa a falar com as palavras do pack no ar:
+a «Variante dos ícones de arquivo» de um pack que herda o acervo de mimetype
+oferece o flavor que **ele** escolheu em `icones.mimetypes.flavor`, com o nome
+do dono ao lado — `Macchiato (herdado do Catppuccin)` —, e não os quatro
+sabores do Catppuccin soltos numa máquina vestida de Dracula.
+
+---
+
 ## Quem vence: o pack ou o `meow.conf`
 
 **O `meow.conf` da máquina sempre vence.** Sem exceção.
@@ -1594,6 +1646,7 @@ abre um `pack.json`:
 |---|---|
 | `validar <id-ou-caminho>` | confere o pack inteiro. 0 = ok, 1 = recusado |
 | `info <id>` | a vitrine no alto; depois o que é próprio, o que é herdado, categoria a categoria |
+| `usar <id> [flavor]` | o `PACK` e o `FLAVOR` que o `meow pack usar` vai gravar — **não escreve**; recusa antes |
 | `caminho <id> <categoria>` | o caminho que aquela categoria resolve **no pack** |
 | `acervo <id> <categoria> [arquivo]` | o mesmo, subindo pack → herança → motor |
 | `paleta <id>` | o arquivo de paleta daquele pack |
@@ -1650,7 +1703,7 @@ Antes do `ok`, o validador imprime **quais campos aquele `pack.json` declara e
 nenhuma linha deste projeto consulta**:
 
 ```
-  aviso 12 campo(s) que este pack declara e NENHUM código lê:
+  aviso 11 campo(s) que este pack declara e NENHUM código lê:
           icones.apps.camada
           origens.wallpapers.tipo
           …
@@ -1682,23 +1735,172 @@ promessa vazia antes de ela ter conserto.
 
 ## Publicar
 
-Um pack é um diretório. Publique como quiser: um repositório git, um tarball,
-uma pasta compartilhada. Quem instala faz:
+Um pack é um diretório, e o jeito de mandá-lo a alguém é **um arquivo só**, o
+`.meowpack`:
 
 ```bash
-git clone https://exemplo/meu-tema ~/.local/share/meowsystem/packs/meu-tema
-meow pack validar meu-tema
+meow pack novo meu-tema                     # um pack seu, a partir do que está no ar
+meow pack exportar meu-tema                 # escreve meu-tema.meowpack aqui mesmo
 ```
 
-e põe no `meow.conf`:
+E quem recebe:
+
+```bash
+meow pack importar meu-tema.meowpack        # confere tudo, e só então instala
+```
+
+O pack importado vai para `~/.local/share/meowsystem/packs/<id>/` — a raiz 2,
+"o seu". **Importar não troca o tema:** é ganhar uma opção. O `importar`
+termina dizendo o que pôr no `meow.conf` para vestir o pack:
 
 ```bash
 PACK="meu-tema"
-FLAVOR="meu-tema"
+FLAVOR="dracula"          # o flavor_padrao do pack — uma palavra só, sem hífen
 ACCENT="mauve"
 ```
 
 Depois, `meow ativar`.
+
+Um repositório git continua valendo — `git clone https://exemplo/meu-tema
+~/.local/share/meowsystem/packs/meu-tema` e `meow pack validar meu-tema`. O
+que o `.meowpack` dá a mais é **a conferência do outro lado**: um clone chega
+como veio; um `.meowpack` só chega se passar por tudo o que está abaixo.
+
+### `meow pack novo`: o pack que começa pelo que está no ar
+
+```
+$ meow pack novo meu-tema
+  ok   Meu Tema (meu-tema) — formato 1, 2 flavor(s), 26 slots conferidos
+  ok   <raiz>/packs/meu-tema/
+       a partir do 'dracula': a paleta (2 flavor(s), padrão dracula), o timbre, um logo gerado e os créditos
+  --   o resto vem do 'dracula' pela herança — meow pack info meu-tema diz o quê
+  --   papel de parede e ponteiro não entram: o formato ainda não tem onde guardá-los dentro de um pack
+```
+
+| o que entra | de onde |
+|---|---|
+| `paleta.json` | a paleta que vale **agora** — o arquivo inteiro, cada flavor com as 26 cores. O `flavor_padrao` é o flavor em uso. Inteiro, e não só o flavor em uso, porque o claro é o par dele: sem ele, o modo claro cairia no pack anterior |
+| `som` no `pack.json` | o timbre do pack no ar, com os `SOM_*` do `meow.conf` por cima — o que se ouve. Ele é copiado porque o `som` não é herdado |
+| `logo.svg` | gerado: a inicial do nome sobre o `base` (ver [O logo do pack](#o-logo-do-pack)) |
+| `CREDITOS.md` | escrito pelo verbo, dizendo de que pack tudo veio |
+| `heranca` | o pack no ar, **por id**. Ícones, capturas do tema, temas de aplicativo, ponteiro: tudo o que não está declarado vem dele. Nenhum caminho absoluto, e nenhuma segunda cópia do mesmo acervo para defasar calada |
+
+Ele escreve em `packs/<id>/` do projeto — onde a sprint o pôs, e de onde um pack
+se publica por commit —, ou em `$MEOW_PACKS/<id>/` quando essa variável existe
+(a raiz de teste). **Recusa** um id que já exista em qualquer raiz: escrever por
+cima é o erro que não se desfaz com Ctrl+C.
+
+**O que ele não leva, e por quê.** A P11 pedia também "os acervos que a pessoa
+adicionou — ícones, papéis de parede, ponteiro — copiados". Medido em
+23/09/2026: o formato não tem onde guardar papel de parede nem ponteiro
+**dentro** do pack — o `wallpaper.sh` e o `cursor.sh` não abrem pack nenhum, e
+o ponteiro próprio é a P12. Copiá-los seria criar arquivo sem leitor, que é o
+que o `validar` existe para denunciar. O verbo diz isso na tela em vez de fingir.
+
+### O `.meowpack`
+
+Um `.tar.zst` com o diretório do pack e, ao lado, um `MANIFESTO`:
+
+```
+MANIFESTO
+meu-tema/pack.json
+meu-tema/paleta.json
+meu-tema/…
+```
+
+```
+meowpack 1
+formato 1
+pack meu-tema
+b29515d8…  CREDITOS.md
+4af4db0d…  logo.svg
+…
+```
+
+`meowpack` é a versão do **arquivo**; `formato` é a do `pack.json` (a do topo
+deste documento). Os dois mudam por motivos diferentes. As linhas de `sha256`
+têm a forma do `sha256sum`, relativas ao diretório do pack — dentro dele,
+`sed 1,3d ../MANIFESTO | sha256sum -c` confere tudo sem o MeowSystem.
+
+O tar não carrega dono (`uname` vazio): o nome de quem exportou é nome de
+pessoa, e nenhum nome de usuário vai junto.
+
+### O que o `exportar` cobra
+
+Exportar é publicar, e ele recusa — dizendo o arquivo — antes de escrever:
+
+1. **o pack que não valida**, pelo `meow pack validar` de sempre, inteiro, com
+   vitrine e logo. Um segundo validador aqui aprovaria o que o primeiro
+   recusa, e o arquivo seria recusado na máquina de quem o recebe;
+2. **o pack sem `CREDITOS.md`** (ou sem o arquivo que o campo `creditos`
+   nomeia). Arte de terceiro não é reempacotada sem dizer de onde veio; se
+   tudo é seu, ele diz isso;
+3. **a arte do `PROCEDENCIA.md` sem licença.** O exportar lê a mesma tabela que
+   o `sincronizar` (ver [Fonte e derivados](#fonte-e-derivados)), e a coluna
+   `licença` vazia, `?` ou `—` é arte que ninguém disse que pode sair;
+4. **script e link simbólico** — `.sh`, arquivo que abra com `#!`, link. As
+   entradas ocultas (o `.git/` de um clone, que é uma pasta de scripts) ficam
+   de fora, e a saída diz quantas.
+
+**O tamanho vem dito antes**, e as imagens raster (`.png`, `.jpg`, `.webp`) em
+separado. Se há imagem e há terminal, ele pergunta se elas vão junto — com o
+teto de 30 segundos da casa; sem terminal, elas vão, e a saída diz que
+`--sem-imagens` as deixa. Sem as imagens, a `vitrine.capturas` **da cópia** as
+esquece e a cópia passa pelo `validar` de novo: um pack que declara uma captura
+que não traz é recusado do outro lado. O pack de origem não muda um byte.
+
+Se o pack herda de outro que **não** vem com o MeowSystem, o exportar avisa:
+quem importar precisa ter aquele também.
+
+### O que o `importar` recusa
+
+Um `.meowpack` vem de fora, e fora é onde mora quem não leu este documento.
+**Um pack é dado, nunca é código** — e na importação isso é conferido, não
+prometido. Tudo acontece na memória; o disco só é tocado depois:
+
+| recusa | por quê |
+|---|---|
+| **um `.sh`, ou qualquer arquivo que comece com `#!`** | é script, seja qual for o nome. O pacote inteiro é recusado, com uma linha por arquivo |
+| caminho absoluto, `..`, entrada fora de `<id>/`, dois packs num arquivo | um tar escreve onde o nome manda |
+| link simbólico, dispositivo, tudo o que não é arquivo comum | um pack é feito de arquivos |
+| entrada oculta | o `exportar` não as gera |
+| o `MANIFESTO` que não bate — arquivo a mais, a menos, ou `sha256` diferente | o arquivo mudou depois de exportado |
+| `meowpack` ou `formato` maiores que os deste MeowSystem | um pack novo num MeowSystem velho falha dizendo o número |
+| mais de 256 MB **aberto**, ou mais de 20.000 arquivos | o zstd reduz zeros a quase nada: o teto é do que abre, não do que chega |
+| o pack que não passa no `validar` inteiro | as 26 cores, `https://` em toda URL, todo caminho dentro do pack, a herança existindo nesta máquina |
+| um id que já existe em **qualquer** raiz | por cima trocaria o que está lá sem perguntar; noutra raiz, um dos dois sumiria da vista |
+
+E o que passa **nasce 0644**, seja qual for o modo que o tar peça: nada do que
+chega ganha bit de execução. O pack é montado num diretório oculto ao lado,
+validado, e só então renomeado para o lugar — não existe instante com meio
+pack na raiz.
+
+`meow pack importar arquivo.meowpack --seco` (ou `MEOW_DRY_RUN=1`) faz tudo
+isso num temporário e diz o que o pack traz — a paleta, quantos ícones, de onde
+vêm ponteiro, papel de parede e som — sem escrever nada. É o que a tela de
+confirmar do painel mostra.
+
+### No painel
+
+Os botões **Exportar o meu** e **Importar um pack** do bloco "Theme packs" da
+Home (P10), e as duas rotas que eles chamam:
+
+| rota | o que faz |
+|---|---|
+| `GET /api/pack-exportar?id=<id>` | o `.meowpack`, para baixar. `&imagens=nao` deixa as imagens; `&medir=1` roda o exportar em ensaio e devolve o tamanho e as imagens, em JSON. Recusa volta como `{erro}` e 400, nunca como arquivo |
+| `POST /api/pack-importar` | `{nome, conteudo}` em base64. Sem `confirmado`, é o `--seco`: devolve `precisa_confirmar`, `titulo`, `resumo` (uma frase) e `pack` (o que ele traz). Com `confirmado: true`, instala e devolve `instalado` e `frase`. Nas duas, nada é aplicado |
+
+**Exportar o meu** pede o `medir` primeiro: a recusa (licença, `CREDITOS.md`,
+`validar`) aparece antes de qualquer pergunta, e quando o pack tem imagem a
+caixa diz quantos MB ele tem com e sem elas, com "levar as imagens junto"
+marcado — o `[S/n]` do terminal. Só então baixa. **Importar um pack** abre a
+caixa de confirmar com a paleta desenhada, cada flavor com as 26 cores, e uma
+linha para ícones, papéis de parede, ponteiro e som; a mensagem de que entrou
+só aparece quando a rota diz `instalado`.
+
+Quem confere e quem instala é o **mesmo** `meow pack exportar`/`importar` do
+terminal — as rotas só levam o arquivo de um lado para o outro. Uma segunda
+leitura do tarball no servidor seria a porta que ninguém conferiu.
 
 ### Antes de publicar, confira
 
@@ -1720,5 +1922,6 @@ Este repositório traz **dois** packs, e eles ensinam coisas diferentes:
   herdado — com cada herança dita na cara.
 
 Se for copiar um para começar o seu, copie o **catppuccin**: o do Dracula
-declara doze campos que ainda não têm leitor, e o `validar` diz quais são. Eram
-quinze até a P15 dar leitor a `autor`, `versao` e `licenca`.
+declara onze campos que ainda não têm leitor, e o `validar` diz quais são. Eram
+quinze até a P15 dar leitor a `autor`, `versao` e `licenca`, e doze até a P10
+dar leitor a `icones.mimetypes.flavor` — ver [Trocar de pack](#trocar-de-pack-meow-pack-usar).

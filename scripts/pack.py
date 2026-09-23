@@ -75,7 +75,24 @@ VERBOS
                                  linha: `pack<TAB>nome<TAB>origem<TAB>sha256`.
                                  Não é o verbo `fontes`, que é de ícone (P28).
                                  Ver `tipografia`.
+    novo    <id> [--seco]        cria o pack <id> a partir do que está no ar: a
+                                 paleta, o timbre, um logo gerado e os créditos,
+                                 herdando o resto do pack ativo. Em $MEOW_PACKS
+                                 quando ela existe; senão, em packs/ do projeto.
+    exportar <id> [arquivo] [--sem-imagens] [--seco]
+                                 o pack num `.meowpack` (um .tar.zst com um
+                                 MANIFESTO de sha256). Recusa o que não valida,
+                                 o que não tem CREDITOS.md e a arte de terceiro
+                                 sem licença no PROCEDENCIA.md.
+    importar <arquivo> [--seco]  confere o `.meowpack` inteiro, valida, e só então
+                                 instala em ~/.local/share/meowsystem/packs/.
+                                 Recusa qualquer script. NÃO APLICA nada.
     info    <id>                 o que é próprio, o que é herdado, o que falta
+    usar    <id> [flavor]        o PACK e o FLAVOR que o `meow pack usar` grava,
+                                 como três linhas `PACK=`/`FLAVOR=`/`PORQUE=`.
+                                 Não escreve: recusa (1) antes de o shell
+                                 escrever. O flavor que já está no ar vem por
+                                 `$FLAVOR`. Ver `plano_de_uso`.
     raizes                       imprime as raízes de busca, na ordem
     padrao                       o diretório do pack PADRÃO, resolvido pelas
                                  raízes como qualquer outro. É o que o shell
@@ -202,6 +219,15 @@ CAMPOS_COM_LEITOR = {
     "origens.cursores.proprio",
     "fontes.proprio",
     "fontes.herda",
+    # O FLAVOR DOS ÍCONES DE ARQUIVO HERDADOS — 23/09/2026, sprint P10. O Dracula
+    # o declarava desde que nasceu ("o macchiato é o vizinho mais próximo em
+    # luminosidade") e ele estava na lista de mortos do aviso. Quem lê agora é o
+    # `vocabulario`, e por ele o painel: a «Variante dos ícones de arquivo» de um
+    # pack que herda mimetypes oferece o flavor que ESTE pack escolheu, com o nome
+    # do dono ao lado — e não os quatro sabores do Catppuccin soltos numa máquina
+    # vestida de Dracula. O shell ainda não o lê: o `ICONES_FLAVOR` do meow.conf
+    # continua mandando, que é o "Quem vence" do docs/PACKS.md.
+    "icones.mimetypes.flavor",
 }
 
 
@@ -232,14 +258,26 @@ def campos_sem_leitor(no, trilha=""):
     return sorted(achados)
 
 
+def raiz_da_pessoa():
+    """A raiz 2 — `~/.local/share/meowsystem/packs/`, "o seu" do docs/PACKS.md.
+
+    SAIU DE DENTRO DO `raizes()` EM 23/09/2026 (P11), e sem mudar uma letra do
+    que ele devolve: o `importar` precisa saber ONDE ESCREVER, e a resposta é
+    esta raiz e nenhuma outra. Recalcular o XDG lá seria a segunda cópia da
+    lista que o `raizes()` existe para ser a única — o comentário do
+    `meow_pack_raizes` (lib/comum.sh) conta o que custaram as quatro cópias.
+    """
+    xdg = os.environ.get("XDG_DATA_HOME") or os.path.join(
+        os.path.expanduser("~"), ".local", "share")
+    return os.path.join(xdg, "meowsystem", "packs")
+
+
 def raizes():
     """As três raízes de busca, na ordem de precedência de docs/PACKS.md."""
     saida = []
     if os.environ.get("MEOW_PACKS"):
         saida.append(os.environ["MEOW_PACKS"])
-    xdg = os.environ.get("XDG_DATA_HOME") or os.path.join(
-        os.path.expanduser("~"), ".local", "share")
-    saida.append(os.path.join(xdg, "meowsystem", "packs"))
+    saida.append(raiz_da_pessoa())
     saida.append(os.path.join(RAIZ, "packs"))
     return saida
 
@@ -1588,7 +1626,9 @@ def tipografia(ref=None):
 
 
 def _luminancia(hexcor):
-    """Luminância relativa de WCAG 2.x. Usada só para o teste de contraste."""
+    """Luminância relativa de WCAG 2.x. Usada no teste de contraste e, desde a
+    P10 (23/09/2026), pelo `paleta_css` do painel, para achar o escuro mais
+    escuro e o claro mais claro do pack — a mesma régua nos dois lugares."""
     r, g, b = (int(hexcor[i:i + 2], 16) / 255 for i in (1, 3, 5))
     def canal(c):
         return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
@@ -2922,6 +2962,167 @@ def cmd_info(ref):
     return OK
 
 
+# A chave do `som` no pack.json e a do meow.conf que a vence. Saiu de dentro do
+# `cmd_som` em 23/09/2026 (P11): o `novo` lê o mesmo par no sentido contrário —
+# o timbre que está NO AR é o do pack com o meow.conf por cima —, e duas cópias
+# da tabela discordariam na primeira chave nova.
+SOM_NO_CONF = {
+    "fundamental": "SOM_FUNDAMENTAL",
+    "harmonico": "SOM_HARMONICO",
+    "peso_fundamental": "SOM_PESO_FUNDAMENTAL",
+    "peso_harmonico": "SOM_PESO_HARMONICO",
+    "decaimento": "SOM_DECAIMENTO",
+    "duracao": "SOM_DURACAO",
+    "ganho": "SOM_GANHO",
+}
+
+
+# TROCAR DE PACK, E A TELA FALAR COM AS PALAVRAS DELE — 23/09/2026, sprint P10
+#
+# A QUEIXA
+#   "o programa original foi feito não pensando em um produto mas em aplicar o
+#   tema catppuccin." Trocar de pack era editar `PACK=` no meow.conf à mão: os
+#   verbos daqui liam, validavam e construíam, e nenhum dizia à máquina "use
+#   este". E a tela, com o Dracula no ar, oferecia `Mocha`, `Frappé` e
+#   `cat-${FLAVOR}-${ACCENT}` — o vocabulário de um pack vestindo a máquina de
+#   outro.
+#
+# AQUI MORA A DECISÃO, E NÃO A ESCRITA
+#   Quem grava o meow.conf é o `meow pack usar` (bin/meow), pela
+#   `meow_conf_definir` — a única rotina deste projeto que escreve naquele
+#   arquivo, e o cabeçalho dela conta o que custou ter duas. Este arquivo decide
+#   QUAL id e QUAL flavor, e recusa antes da primeira escrita: é a mesma
+#   fronteira do resto do `pack.py`, que nunca escreve fora do pack.
+RE_FLAVOR_CONF = re.compile(r"^[a-z0-9_]+$")
+
+
+def plano_de_uso(ref, flavor=None, flavor_atual=None):
+    """(id, flavor, porquê) que o `meow pack usar` vai gravar. Levanta Recusa.
+
+    O flavor, nesta ordem: o PEDIDO, que tem de ser do pack; o que JÁ ESTÁ no ar,
+    se for do pack — voltar ao Catppuccin estando no Latte não pode jogar a
+    pessoa no Mocha; e o `flavor_padrao` do pack. O terceiro campo diz qual dos
+    três venceu, para a tela dizer por quê.
+    """
+    # A VALIDAÇÃO É A DO MOTOR (`silencioso=True`), e não a de quem publica. É a
+    #   que o `meow_pack_dir` (lib/comum.sh) aplica por baixo de tudo: um pack que
+    #   a reprova vira "pack não resolve — usando o padrão", e o desktop sai
+    #   Catppuccin com `PACK="meu"` escrito no conf. Recusar aqui o que lá seria
+    #   trocado em silêncio é o ponto do verbo. Capa e logo ausentes não entram:
+    #   o motor usa o pack sem eles, e o `validar` diz a quem publica.
+    p, dados, dir_pack = validar(ref, silencioso=True)
+    ident = p["id"]
+    # O ID TEM DE LEVAR DE VOLTA A ESTE DIRETÓRIO. O meow.conf nomeia pack por
+    #   id, e quem acha o id são as três raízes. Um caminho de fora delas (ou um
+    #   id que uma raiz de cima esconde) validaria aqui e resolveria OUTRA coisa
+    #   no `meow_pack_dir` — o conf diria um pack e a máquina vestiria outro.
+    _exigir(achar(ident) == dir_pack,
+            f"o pack em {dir_pack} não é o que o id {ident!r} encontra.\n"
+            f"    O meow.conf nomeia pack por id, procurado nesta ordem:\n      "
+            + "\n      ".join(raizes())
+            + f"\n    Ponha o diretório em {os.path.join(raizes()[-2], ident)}/ e rode de novo.")
+    flavors = list(dados["flavors"])
+    if flavor:
+        _exigir(flavor in dados["flavors"],
+                f"o pack {ident!r} não tem o flavor {flavor!r}.\n"
+                f"    Os que ele tem: {', '.join(flavors)}")
+        escolhido, porque = flavor, "pedido"
+    elif flavor_atual and flavor_atual in dados["flavors"]:
+        escolhido, porque = flavor_atual, "mantido"
+    else:
+        escolhido = (p.get("paleta") or {}).get("flavor_padrao") or flavors[0]
+        porque = "padrão do pack"
+    # O FLAVOR VAI PARA UM ARQUIVO QUE O SHELL SOURCEIA. O `validar` só proíbe o
+    #   hífen; um nome de flavor com aspas ou `$(` numa paleta de terceiro viraria
+    #   comando no próximo `meow ativar`. Minúsculas, dígitos e sublinhado são o
+    #   que os dois packs daqui usam, e o que o gerador de tema já espera.
+    _exigir(RE_FLAVOR_CONF.match(escolhido),
+            f"o flavor {escolhido!r} do pack {ident!r} não pode ir para o meow.conf:\n"
+            f"    só minúsculas, dígitos e sublinhado — ele é sourceado pelo shell.")
+    return ident, escolhido, porque
+
+
+def _nomes_curtos(p, dados):
+    """{flavor: nome de tela}, sem o nome do pack na frente.
+
+    A paleta do Catppuccin chama o flavor de "Catppuccin Mocha"; num cartão que
+    já diz "Catppuccin", o nome dele é "Mocha". O Dracula chama os dele de
+    "Dracula" e "Alucard", e ficam como estão.
+    """
+    nomes = dados.get("nomes") if isinstance(dados.get("nomes"), dict) else {}
+    prefixo = f"{p.get('nome') or p['id']} "
+    saida = {}
+    for f in dados["flavors"]:
+        n = str(nomes.get(f) or f)
+        saida[f] = n[len(prefixo):] if n.startswith(prefixo) and len(n) > len(prefixo) else n
+    return saida
+
+
+def vocabulario(ref):
+    """O que a tela precisa para falar com as palavras DESTE pack. Levanta Recusa.
+
+    É o `meow pack info` virado dado: os flavors com nome e as 26 cores de cada
+    um, a origem de cada categoria, e — para a aba Ícones — de QUEM vêm os
+    ícones de arquivo e os de aplicativo. Tudo sai do disco e do `pack.json`;
+    nenhuma lista de nomes de pack mora aqui.
+
+    OS ÍCONES DE ARQUIVO OFERECEM O QUE O PACK ESCOLHEU, QUANDO ELE HERDA
+      O acervo de mimetype do Catppuccin tem quatro flavors, e o Dracula herda
+      esse acervo declarando `icones.mimetypes.flavor: "macchiato"`. Oferecer os
+      quatro numa máquina vestida de Dracula é pôr "Mocha" e "Frappé" na tela de
+      quem nunca escolheu o Catppuccin; oferecer o que o pack escolheu, com o
+      nome do dono ao lado, explica o nome estranho em vez de deixá-lo solto. Um
+      pack que herda e NÃO escolhe recebe os flavors do dono, todos marcados
+      como herdados. Os flavors saem dos diretórios que existem no acervo, e não
+      da paleta: o `css-variables/` e o `LICENSE` que moram ali não são flavor, e
+      um flavor da paleta sem diretório não tem ícone para vestir.
+    """
+    p, dados, _dir = validar(ref, silencioso=True)
+    ident = p["id"]
+    curtos = _nomes_curtos(p, dados)
+
+    def nome_do_pack(outro):
+        return campo(outro, "nome") or outro
+
+    saida = {
+        "id": ident,
+        "nome": p.get("nome") or ident,
+        "flavor_padrao": (p.get("paleta") or {}).get("flavor_padrao") or next(iter(dados["flavors"])),
+        "flavors": [{"id": f, "nome": curtos[f], "claro": f in (dados.get("claros") or []),
+                     "cores": [dados["flavors"][f][s] for s in SLOTS]}
+                    for f in dados["flavors"]],
+        "categorias": [{"categoria": ROTULO_DA_CATEGORIA[c], "tipo": t, "de": q,
+                        "nome_de": nome_do_pack(q) if q else ""}
+                       for c, t, q in origens(p)],
+        "mimetypes": None,
+        "apps": None,
+    }
+
+    base = acervo("icones.mimetypes.desenhos", ref=ident)
+    if base and os.path.isdir(base):
+        dono = _pack_de(base)
+        if dono == ident:
+            dados_dono, curtos_dono = dados, curtos
+        else:
+            p_dono, dados_dono, _d = validar(dono, silencioso=True)
+            curtos_dono = _nomes_curtos(p_dono, dados_dono)
+        existem = [f for f in dados_dono["flavors"] if os.path.isdir(os.path.join(base, f))]
+        escolhido = campo(ident, "icones.mimetypes.flavor") if dono != ident else None
+        saida["mimetypes"] = {
+            "de": dono,
+            "nome_de": nome_do_pack(dono),
+            "herdado": dono != ident,
+            "flavors": [escolhido] if escolhido in existem else existem,
+            "nomes": {f: curtos_dono[f] for f in existem},
+        }
+
+    mapa = acervo("icones.apps.mapa", ref=ident)
+    if mapa:
+        dono = _pack_de(mapa)
+        saida["apps"] = {"de": dono, "nome_de": nome_do_pack(dono), "herdado": dono != ident}
+    return saida
+
+
 def cmd_som(ref):
     """Imprime o timbre do pack como CHAVE=valor, para o shell avaliar.
 
@@ -2932,16 +3133,7 @@ def cmd_som(ref):
     """
     p, _, _ = validar(ref, silencioso=True)
     som = p.get("som") or {}
-    mapa = {
-        "fundamental": "SOM_FUNDAMENTAL",
-        "harmonico": "SOM_HARMONICO",
-        "peso_fundamental": "SOM_PESO_FUNDAMENTAL",
-        "peso_harmonico": "SOM_PESO_HARMONICO",
-        "decaimento": "SOM_DECAIMENTO",
-        "duracao": "SOM_DURACAO",
-        "ganho": "SOM_GANHO",
-    }
-    for chave, var in mapa.items():
+    for chave, var in SOM_NO_CONF.items():
         if chave in som:
             print(f"{var}={som[chave]}")
     return OK
@@ -3041,6 +3233,782 @@ def cmd_construir(ref, seco=False):
     if r.returncode != 0:
         raise Recusa(f"o gerador de ícones autorais saiu {r.returncode}")
     print(f"  ok   {ident}: construído")
+    return OK
+
+
+# --- O PACK QUE VIAJA: novo, exportar, importar — 23/09/2026, sprint P11 -----
+#
+# A QUEIXA, NAS PALAVRAS DELE
+#   *"que qualquer um possa exportar o próprio tema e importar outros pro seu
+#   sistema operacional."* Os botões Exportar e Importar do alto da página
+#   existiam e funcionavam — mas eram de AJUSTES: levavam o meow.conf. Não havia
+#   caminho, nem na tela nem aqui, para empacotar um pack e mandá-lo a alguém. O
+#   docs/PACKS.md mandava publicar "como quiser: um git, um tarball", cada jeito
+#   de quem publicava, e nada conferia do outro lado o que tinha chegado.
+#
+# TRÊS VERBOS, E NENHUM DELES APLICA TEMA
+#   `novo` escreve um pack onde pack se escreve (packs/ do projeto, ou a raiz de
+#   teste). `exportar` escreve o arquivo que a pessoa nomeou, e nada mais.
+#   `importar` escreve em ~/.local/share/meowsystem/packs/, e só depois de
+#   conferir tudo. Importar é GANHAR UMA OPÇÃO, não trocar de tema: quem troca é
+#   o PACK do meow.conf, e ninguém aqui o toca.
+#
+# UM PACK É DADO, NUNCA É CÓDIGO — E A REGRA PASSA A SER CONFERIDA
+#   Ela está no docs/PACKS.md desde o primeiro dia, e até aqui dependia de quem
+#   escrevia o pack ter lido. Um `.meowpack` vem de fora, e fora é onde mora
+#   quem não leu. Então um `.sh` — ou qualquer arquivo que comece com `#!`, que
+#   é script seja qual for o nome — recusa o pacote INTEIRO, com uma linha por
+#   arquivo. O `#!` é a mesma regra medida pelo conteúdo em vez do nome: um
+#   `ganchos.txt` que abre com `#!/bin/sh` é o mesmo código com outra roupa. E
+#   nada do que entra ganha bit de execução — todo arquivo nasce 0644, seja
+#   qual for o modo que o tar diga.
+#
+# A LICENÇA, QUE A P28 JÁ TINHA DEIXADO ESCRITA
+#   "PROCEDENCIA.md não é burocracia: é o que permite o `meow pack exportar`
+#   recusar empacotar o que não pode ser redistribuído." Então o exportar recusa
+#   pack sem CREDITOS.md, e lê a tabela do PROCEDENCIA.md: arte de terceiro sem
+#   licença escrita na linha dela não sai daqui.
+#
+# O ARQUIVO
+#       MANIFESTO        "meowpack 1", "formato <n>", "pack <id>", e uma linha
+#                        "<sha256>  <caminho>" por arquivo — a forma do
+#                        `sha256sum`, relativa ao diretório do pack
+#       <id>/…           o diretório do pack, e nada fora dele
+#   passado pelo zstd. `meowpack` é a versão DESTE contêiner e `formato` é a do
+#   pack.json (a do docs/PACKS.md, "a versão do formato, não do seu pack"): os
+#   dois mudam por motivos diferentes, e um número só obrigaria a subir os dois
+#   quando só um mudou.
+MEOWPACK = 1
+MANIFESTO = "MANIFESTO"
+# O TETO É DO ARQUIVO ABERTO, E NÃO DO COMPRIMIDO. O zstd reduz uma fila de
+# zeros a quase nada: um `.meowpack` de um megabyte pode abrir em gigabytes e
+# derrubar quem o lê. O maior pack daqui, o catppuccin, sai em 338 KB e abre
+# num tar de 5.980.160 bytes com 3.903 entradas (medido em 23/09/2026). Os
+# 2,4 MB que o `exportar` anuncia são a soma dos arquivos; o tar aberto pesa
+# mais que o dobro porque cada um dos 3.902 arquivos (3.325 deles SVG, de 654
+# bytes em média) ganha um cabeçalho de 512 bytes e é completado até o bloco
+# seguinte — e é o aberto que este teto mede. Os dois tetos ficam em umas 45
+# e cinco vezes isso. Os 256 MB não saem do catppuccin, e sim do teto de
+# envio do painel (64 MB, `servidor.py`): um pack de capturas é raster, que
+# o zstd não encolhe, então o aberto tem de caber folgado acima do enviado.
+TETO_MEOWPACK = 256 << 20
+TETO_ARQUIVOS_MEOWPACK = 20000
+# "As imagens" da pergunta do exportar: o que é raster. Ícone, logo e capa são
+# SVG — texto, que comprime a quase nada —, e é o raster que faz um pack pesar.
+EXT_IMAGEM = (".png", ".jpg", ".jpeg", ".webp")
+ZSTD_MAGICO = b"\x28\xb5\x2f\xfd"
+SEM_DEPENDENCIA = 3                 # o mesmo 3 do MEOW_SEM_DEPENDENCIA do shell
+
+
+class Falta(Exception):
+    """Uma ferramenta que falta nesta máquina — não é defeito de pack nenhum."""
+
+
+def _zstd():
+    import shutil
+    exe = shutil.which("zstd")
+    if not exe:
+        raise Falta("sem o `zstd` não há .meowpack — ele é o compressor do formato,\n"
+                    "    e nesta máquina não está no PATH. Ele vem no pacote `zstd`.")
+    return exe
+
+
+def _mb(n):
+    """Tamanho para gente ler. Abaixo de um mega, em KB: "0,0 MB" diz que o pack
+    está vazio, e um pack de quatro arquivos pesa 8 KB, não nada."""
+    if n < 1 << 20:
+        return f"{max(1, round(n / 1024))} KB"
+    return f"{n / (1 << 20):.1f} MB".replace(".", ",")
+
+
+def _proibido(rel, cabeca):
+    """Por que este arquivo não pode viajar dentro de um pack — ou None."""
+    if rel.lower().endswith(".sh"):
+        return "é script de shell"
+    if cabeca.startswith(b"#!"):
+        return "começa com #!, e isso é script, seja qual for o nome"
+    return None
+
+
+def _pack_existente(ident):
+    """O caminho `ident` em QUALQUER raiz, seja pack ou não — ou None.
+
+    Em qualquer raiz, e não só na de destino: um pack com o mesmo id noutra raiz
+    esconderia um dos dois (a primeira raiz vence), e a pessoa veria o pack
+    errado sem erro nenhum. E pack ou não: um diretório com esse nome é de
+    alguém, e escrever por cima dele é o erro que não se desfaz com Ctrl+C.
+    """
+    for base in raizes():
+        cand = os.path.join(base, ident)
+        if os.path.lexists(cand):
+            return cand
+    return None
+
+
+def _arquivos_do_pack(dir_pack):
+    """(o que viaja, quantas entradas ocultas ficaram, problemas).
+
+    O OCULTO FICA DE FORA, E É DE PROPÓSITO: o docs/PACKS.md ensina a publicar
+    um pack por `git clone`, e o `.git/hooks/` de um clone é uma pasta de
+    scripts. Nenhum arquivo do formato começa com ponto.
+    """
+    saida, ocultos, problemas = [], 0, []
+    for base, dirs, arquivos in os.walk(dir_pack):
+        ficam = []
+        for d in sorted(dirs):
+            if d.startswith("."):
+                ocultos += 1
+            elif os.path.islink(os.path.join(base, d)):
+                problemas.append(f"{os.path.relpath(os.path.join(base, d), dir_pack)}: é "
+                                 f"link simbólico — um pack viaja com cópias, e o link "
+                                 f"apontaria para a máquina de quem exportou")
+            else:
+                ficam.append(d)
+        dirs[:] = ficam
+        for nome in arquivos:
+            cheio = os.path.join(base, nome)
+            rel = os.path.relpath(cheio, dir_pack)
+            if nome.startswith("."):
+                ocultos += 1
+            elif os.path.islink(cheio) or not os.path.isfile(cheio):
+                problemas.append(f"{rel}: não é arquivo comum — um pack viaja com cópias, "
+                                 f"e um link apontaria para a máquina de quem exportou")
+            elif "\n" in rel or "\r" in rel:
+                problemas.append(f"{rel!r}: nome com quebra de linha não cabe no MANIFESTO")
+            else:
+                with open(cheio, "rb") as fh:
+                    motivo = _proibido(rel, fh.read(2))
+                if motivo:
+                    problemas.append(f"{rel}: {motivo} — um pack é dado, nunca é código")
+                else:
+                    saida.append(rel)
+    return sorted(saida), ocultos, problemas
+
+
+def medida(dir_pack, arquivos):
+    """Quanto o pack pesa, e quanto disso é imagem. Só lê o disco."""
+    def tam(rel):
+        return os.path.getsize(os.path.join(dir_pack, rel))
+    imagens = [r for r in arquivos if r.lower().endswith(EXT_IMAGEM)]
+    return {"arquivos": len(arquivos), "bytes": sum(map(tam, arquivos)),
+            "imagens": len(imagens), "bytes_imagens": sum(map(tam, imagens))}
+
+
+def medir_exportacao(ref):
+    """A `medida` do que o exportar levaria, sem conferir nada — é a pergunta
+    "quantos MB?" que a tela faz ANTES de pedir o arquivo. Quem confere é o
+    próprio `exportar`, que recusa com o motivo."""
+    dir_pack = achar(ref)
+    _exigir(dir_pack, f"não achei o pack {ref!r}")
+    arquivos, _ocultos, _problemas = _arquivos_do_pack(dir_pack)
+    return medida(dir_pack, arquivos)
+
+
+def _licencas(dir_pack):
+    """As linhas do PROCEDENCIA.md que não deixam a arte sair. Vazia = pode.
+
+    A TABELA É A DA P28, lida pelo mesmo `_tabela_procedencia` do `sincronizar`:
+    uma segunda leitura do mesmo arquivo discordaria da primeira no dia em que
+    alguém mudasse a ordem das colunas. A coluna que importa aqui é `licença` —
+    vazia, `?` ou `—` quer dizer que ninguém escreveu, e o que ninguém escreveu
+    não se reempacota.
+    """
+    proc = os.path.join(dir_pack, "PROCEDENCIA.md")
+    if not os.path.isfile(proc):
+        return []
+    linhas = _tabela_procedencia(proc)
+    if not linhas:
+        return ["PROCEDENCIA.md: não achei a tabela que diz de onde veio cada arte "
+                f"(as colunas {', '.join(COLUNAS_PROCEDENCIA)} e licença) — sem ela, "
+                "não há como saber o que pode sair"]
+    problemas = []
+    for lin in linhas:
+        licenca = lin.get("licença", lin.get("licenca", ""))
+        if not re.search(r"\w", licenca):
+            problemas.append(f"PROCEDENCIA.md: {lin.get('arquivo') or '(linha sem arquivo)'} "
+                             f"não diz a licença — arte de terceiro sem licença escrita não "
+                             f"é reempacotada")
+    return problemas
+
+
+def _herdados_de_fora(p):
+    """Os packs de quem este herda e que NÃO vêm com o MeowSystem.
+
+    É aviso, e não recusa: herdar de um pack de terceiro é legítimo, e o
+    `validar` de quem importar recusa com o nome dele se faltar. O aviso existe
+    para quem exporta saber disso antes de mandar.
+    """
+    nomes = {p.get("heranca")}
+    for bloco in (list((p.get("icones") or {}).values()) + list((p.get("origens") or {}).values())
+                  + list((p.get("apps") or {}).values())):
+        if isinstance(bloco, dict):
+            nomes.add(bloco.get("herda"))
+    return sorted(h for h in nomes
+                  if h and not os.path.isfile(os.path.join(RAIZ, "packs", str(h), "pack.json")))
+
+
+def exportacao(ref):
+    """Tudo o que o `exportar` confere, e o que ele levaria. Levanta Recusa.
+
+    O `validar` é o de sempre, o do `meow pack validar` — inteiro, com a vitrine
+    e o logo, porque exportar é publicar. Um segundo validador aqui aprovaria o
+    que o primeiro recusa, e o `.meowpack` sairia daqui para ser recusado na
+    máquina de quem o recebe.
+    """
+    p, _dados, dir_pack = validar(ref)
+    creditos = p.get("creditos") or "CREDITOS.md"
+    _exigir(os.path.isfile(_dentro(dir_pack, creditos, "creditos")),
+            f"sem o {creditos}, o pack não sai daqui.\n"
+            f"    Arte de terceiro não é reempacotada sem dizer de onde veio e sob que\n"
+            f"    licença — e é o {creditos} que diz, para quem receber. Se tudo é seu,\n"
+            f"    ele diz isso.")
+    arquivos, ocultos, problemas = _arquivos_do_pack(dir_pack)
+    problemas = _licencas(dir_pack) + problemas
+    _exigir(not problemas, "\n  erro ".join(problemas))
+    exp = {"p": p, "dir": dir_pack, "lista": arquivos, "ocultos": ocultos,
+           "de_fora": _herdados_de_fora(p)}
+    exp.update(medida(dir_pack, arquivos))
+    return exp
+
+
+def _sem_capturas_raster(texto):
+    """O pack.json com a `vitrine.capturas` sem as imagens raster que ficaram."""
+    p = json.loads(texto)
+    vit = p.get("vitrine")
+    if isinstance(vit, dict) and isinstance(vit.get("capturas"), list):
+        vit["capturas"] = [c for c in vit["capturas"]
+                           if not str(c).lower().endswith(EXT_IMAGEM)]
+    return (json.dumps(p, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def meowpack(exp, sem_imagens=False):
+    """Os bytes do `.meowpack` que a `exportacao` conferiu.
+
+    SEM AS IMAGENS, o pack.json da CÓPIA perde as capturas raster, e a cópia
+    passa pelo `validar` de novo: um pack que declara uma captura e não a traz é
+    exatamente o que o `validar` recusa, e seria a pessoa do outro lado quem
+    descobriria. O pack de origem não muda um byte — o MeowSystem não escreve
+    dentro de pack.
+    """
+    import contextlib
+    import io
+    import subprocess
+    import tarfile
+    import time
+
+    ident, dir_pack = exp["p"]["id"], exp["dir"]
+    conteudo = {}
+    for rel in exp["lista"]:
+        if sem_imagens and rel.lower().endswith(EXT_IMAGEM):
+            continue
+        with open(os.path.join(dir_pack, rel), "rb") as fh:
+            conteudo[rel] = fh.read()
+    if sem_imagens and exp["imagens"]:
+        conteudo["pack.json"] = _sem_capturas_raster(conteudo["pack.json"])
+        # Calado: o `ok` desta segunda conferência repetiria o da primeira, e a
+        # pessoa leria duas validações onde pediu uma. A recusa não é calada.
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            _instalar_pack(conteudo, None, ident, seco=True)
+
+    linhas = [f"meowpack {MEOWPACK}", f"formato {exp['p']['formato']}", f"pack {ident}"]
+    linhas += [f"{hashlib.sha256(c).hexdigest()}  {rel}" for rel, c in sorted(conteudo.items())]
+    entradas = [(MANIFESTO, ("\n".join(linhas) + "\n").encode("utf-8"))]
+    entradas += [(f"{ident}/{rel}", c) for rel, c in sorted(conteudo.items())]
+    agora = int(time.time())
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w", format=tarfile.PAX_FORMAT) as tar:
+        for nome, dado in entradas:
+            info = tarfile.TarInfo(nome)
+            # Sem dono: o `uname` de quem exportou é nome de pessoa, e o
+            # docs/PACKS.md pede, para publicar, "nenhum nome de usuário".
+            info.size, info.mode, info.mtime = len(dado), 0o644, agora
+            info.uid = info.gid = 0
+            info.uname = info.gname = ""
+            tar.addfile(info, io.BytesIO(dado))
+    r = subprocess.run([_zstd(), "-q", "-10", "-c"], input=buf.getvalue(), capture_output=True)
+    if r.returncode != 0:
+        raise Falta(f"o zstd não conseguiu comprimir: "
+                    f"{r.stderr.decode('utf-8', 'replace').strip() or r.returncode}")
+    return r.stdout
+
+
+def _perguntar(pergunta, teto=30):
+    """A resposta, ou None se não há ninguém para responder.
+
+    A regra da casa para pergunta (docs/PACKS.md, "Temas de aplicativo"): só
+    quando as duas pontas são terminal, e a espera tem teto de 30 segundos.
+    """
+    import select
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return None
+    print(f"  ??   {pergunta} ", end="", flush=True)
+    pronto, _, _ = select.select([sys.stdin], [], [], teto)
+    if not pronto:
+        print()
+        return None
+    return sys.stdin.readline().strip()
+
+
+def cmd_exportar(ref, opcoes):
+    saida, sem_imagens, seco = None, False, False
+    for op in opcoes:
+        if op == "--sem-imagens":
+            sem_imagens = True
+        elif op in ("--seco", "--dry-run"):
+            seco = True
+        elif op.startswith("-") or saida is not None:
+            print(f"  erro não entendi {op!r} — uso: exportar <id> [arquivo.meowpack] "
+                  f"[--sem-imagens] [--seco]", file=sys.stderr)
+            return ERRO_USO
+        else:
+            saida = op
+    exp = exportacao(ref)
+    ident = exp["p"]["id"]
+    saida = os.path.abspath(saida or f"{ident}.meowpack")
+    _exigir(not saida.startswith(os.path.realpath(exp["dir"]) + os.sep),
+            f"{saida}: o .meowpack não pode nascer dentro do próprio pack — a próxima\n"
+            f"    exportação o levaria junto")
+    # O DESTINO É CONFERIDO ANTES DA PERGUNTA, E NÃO NA HORA DE ESCREVER — a
+    #   revisão de 23/09/2026 mediu `exportar meu-tema <dir-inexistente>/x.meowpack`
+    #   saindo com o traceback do `open`, depois de a pessoa já ter respondido
+    #   pelas imagens. Não é recusa do pack (o pack está bom), então não passa
+    #   pela `Recusa`: é o endereço que ela deu, e sai como erro de uso.
+    pasta = os.path.dirname(saida)
+    if not os.path.isdir(pasta):
+        print(f"  erro {pasta}: esse diretório não existe — o exportar não cria pasta;\n"
+              f"       crie-a antes, ou diga outro lugar", file=sys.stderr)
+        return ERRO_USO
+
+    # O TAMANHO É DITO ANTES, E A PERGUNTA SÓ VEM SE HÁ O QUE PERGUNTAR. É o
+    # risco que a sprint escreveu: "um pack com 91 papéis de parede é grande".
+    imagens = (f" — {exp['imagens']} imagem(ns), {_mb(exp['bytes_imagens'])}"
+               if exp["imagens"] else "")
+    quantos = f"{exp['arquivos']:,}".replace(",", ".")
+    print(f"  >>   {ident}: {quantos} arquivo(s), {_mb(exp['bytes'])}{imagens}")
+    if exp["ocultos"]:
+        print(f"  --   {exp['ocultos']} entrada(s) oculta(s) ficam de fora (.git e afins)")
+    for h in exp["de_fora"]:
+        print(f"  !!   ele herda do pack {h!r}, que não vem com o MeowSystem: "
+              f"quem importar precisa tê-lo", file=sys.stderr)
+    if exp["imagens"] and not sem_imagens:
+        resposta = _perguntar(f"as {exp['imagens']} imagem(ns), {_mb(exp['bytes_imagens'])}, "
+                              f"vão junto? [S/n]")
+        if resposta is None:
+            print("  --   ninguém para perguntar: as imagens vão junto "
+                  "(--sem-imagens as deixa de fora)")
+        elif resposta.lower().startswith("n"):
+            sem_imagens = True
+    if seco:
+        print(f"  ~~   escreveria {saida} — nada foi escrito")
+        return OK
+
+    dados = meowpack(exp, sem_imagens)
+    # Atômico: um `.meowpack` pela metade no lugar do nome pedido seria mandado
+    # adiante e recusado do outro lado como "não é zstd", longe de quem errou.
+    parcial = saida + ".parcial"
+    # E o que a conferência do destino não prevê — pasta sem permissão, disco
+    # cheio — também sai numa linha, e sem deixar o `.parcial` para trás.
+    try:
+        with open(parcial, "wb") as fh:
+            fh.write(dados)
+        os.replace(parcial, saida)
+    except OSError as e:
+        if os.path.exists(parcial):
+            os.remove(parcial)
+        print(f"  erro não consegui escrever {saida}: {e.strerror or e}", file=sys.stderr)
+        return ERRO_USO
+    fora = " (sem as imagens)" if sem_imagens and exp["imagens"] else ""
+    print(f"  ok   {saida} — {_mb(len(dados))}{fora}")
+    return OK
+
+
+def _descomprimir(caminho):
+    """O tar de dentro do `.meowpack`, com o teto do arquivo ABERTO."""
+    import subprocess
+    proc = subprocess.Popen([_zstd(), "-d", "-c", "-q", "--", caminho],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    partes, total = [], 0
+    try:
+        while True:
+            bloco = proc.stdout.read(1 << 20)
+            if not bloco:
+                break
+            total += len(bloco)
+            if total > TETO_MEOWPACK:
+                proc.kill()
+                raise Recusa(f"aberto, ele passa de {TETO_MEOWPACK >> 20} MB — maior que "
+                             f"qualquer pack; parei de ler antes de encher a memória")
+            partes.append(bloco)
+    finally:
+        proc.stdout.close()
+        erro = proc.stderr.read().decode("utf-8", "replace").strip()
+        proc.stderr.close()
+        proc.wait()
+    _exigir(proc.returncode == 0, f"o zstd não conseguiu abri-lo: {erro or proc.returncode}")
+    return b"".join(partes)
+
+
+def _conferir_manifesto(texto, ident, membros):
+    try:
+        linhas = texto.decode("utf-8").splitlines()
+    except UnicodeDecodeError:
+        raise Recusa("o MANIFESTO não é texto")
+    cab, somas = {}, {}
+    for n, linha in enumerate(linhas, 1):
+        if not linha.strip():
+            continue
+        soma, sep, rel = linha.partition("  ")
+        if sep and RE_SHA256.match(soma):
+            _exigir(rel not in somas, f"MANIFESTO, linha {n}: {rel!r} aparece duas vezes")
+            somas[rel] = soma
+            continue
+        chave, _, valor = linha.partition(" ")
+        _exigir(chave in ("meowpack", "formato", "pack"),
+                f"MANIFESTO, linha {n}: não entendo {linha[:80]!r}")
+        cab[chave] = valor.strip()
+    for chave, teto in (("meowpack", MEOWPACK), ("formato", FORMATO_MAX)):
+        v = cab.get(chave, "")
+        _exigir(v.isdigit() and 1 <= int(v) <= teto,
+                f"MANIFESTO: {chave} {v!r} — este MeowSystem entende até {teto}.\n"
+                f"    Um .meowpack mais novo pede um MeowSystem mais novo.")
+    _exigir(cab.get("pack") == ident,
+            f"MANIFESTO: diz que o pack é {cab.get('pack')!r}, e o diretório é {ident!r}")
+    faltam = sorted(set(somas) - set(membros))
+    sobram = sorted(set(membros) - set(somas))
+    _exigir(not faltam, "o MANIFESTO promete e não veio:\n      " + "\n      ".join(faltam))
+    _exigir(not sobram, "veio sem estar no MANIFESTO:\n      " + "\n      ".join(sobram))
+    trocados = [rel for rel in sorted(somas)
+                if hashlib.sha256(membros[rel]).hexdigest() != somas[rel]]
+    _exigir(not trocados, "o sha256 não confere — o arquivo mudou depois de exportado:\n      "
+                          + "\n      ".join(trocados))
+
+
+def ler_meowpack(caminho):
+    """(id, {caminho relativo: bytes}) de um `.meowpack`, conferido INTEIRO.
+
+    NADA É ESCRITO AQUI — tudo acontece na memória, e é por isso que o teto
+    existe. Recusa, dizendo qual entrada: o que não for zstd; caminho absoluto,
+    com `..` ou fora do diretório do pack; link, dispositivo e tudo o que não
+    for arquivo comum; entrada oculta; dois packs num arquivo só; o que o
+    MANIFESTO não bate. E, juntos numa recusa só, com uma linha por arquivo,
+    todos os scripts.
+    """
+    import io
+    import tarfile
+    with open(caminho, "rb") as fh:
+        _exigir(fh.read(4) == ZSTD_MAGICO,
+                f"{caminho}: não é um .meowpack — ele é um .tar.zst, e este arquivo "
+                f"não começa como zstd")
+    bruto = _descomprimir(caminho)
+    try:
+        tar = tarfile.open(fileobj=io.BytesIO(bruto), mode="r:")
+    except tarfile.TarError as e:
+        raise Recusa(f"{caminho}: por dentro não é um tar ({e})")
+    ident, membros, manifesto, scripts = None, {}, None, []
+    with tar:
+        for i, m in enumerate(tar):
+            _exigir(i < TETO_ARQUIVOS_MEOWPACK,
+                    f"mais de {TETO_ARQUIVOS_MEOWPACK} entradas — maior que qualquer pack")
+            nome = m.name.rstrip("/") if m.isdir() else m.name
+            partes = nome.split("/")
+            _exigir(nome and not nome.startswith("/") and "\\" not in nome
+                    and all(x not in ("", ".", "..") for x in partes),
+                    f"{m.name!r}: caminho que sai do pack — recusado inteiro")
+            if nome == MANIFESTO and m.isfile():
+                _exigir(manifesto is None, "dois MANIFESTO num arquivo só")
+                manifesto = tar.extractfile(m).read()
+                continue
+            _exigir(RE_ID.match(partes[0]),
+                    f"{m.name!r}: tudo mora dentro de <id>/, e {partes[0]!r} não é um id")
+            if ident is None:
+                ident = partes[0]
+            _exigir(partes[0] == ident, f"{m.name!r}: dois packs num arquivo só "
+                                        f"({ident!r} e {partes[0]!r})")
+            _exigir(not any(x.startswith(".") for x in partes[1:]),
+                    f"{m.name!r}: entrada oculta — o exportar não as gera")
+            if m.isdir():
+                continue
+            _exigir(m.isfile(), f"{m.name!r}: não é arquivo comum (link, dispositivo) — "
+                                f"um pack é feito de arquivos")
+            _exigir(len(partes) > 1, f"{m.name!r}: arquivo solto fora do diretório do pack")
+            rel = "/".join(partes[1:])
+            _exigir(rel not in membros, f"{m.name!r} aparece duas vezes")
+            dado = tar.extractfile(m).read()
+            motivo = _proibido(rel, dado[:2])
+            if motivo:
+                scripts.append(f"{m.name}: {motivo}")
+            membros[rel] = dado
+    _exigir(not scripts, "um pack é dado, nunca é código — este traz script:\n      "
+                         + "\n      ".join(scripts))
+    _exigir(ident and membros, f"{caminho}: não há pack nenhum aqui dentro")
+    _exigir(manifesto is not None, f"{caminho}: sem o MANIFESTO, não há como conferir "
+                                   f"o que chegou")
+    _conferir_manifesto(manifesto, ident, membros)
+    return ident, membros
+
+
+def _instalar_pack(arquivos, base, ident, seco=False):
+    """Grava `arquivos` como o pack `ident` em `base` — e ele só aparece VALIDADO.
+
+    Monta tudo num diretório ao lado, passa o `validar` inteiro, e só então
+    renomeia para o lugar: nenhum instante em que exista meio pack na raiz, nem
+    um pack que não valida. `seco` monta num temporário do sistema, valida, e
+    apaga — é o ensaio, e é a prévia da tela.
+
+    AO LADO É DENTRO DA RAIZ, COM NOME OCULTO, e as duas coisas têm motivo: o
+    `rename` só é atômico no mesmo sistema de arquivos, e o `.chegando-…` não é
+    visto por ninguém que procura pack — o `pack.json` dele está um nível mais
+    fundo do que qualquer varredura olha, e o shell não expande ponto.
+    """
+    import shutil
+    import tempfile
+    if seco:
+        parede = tempfile.mkdtemp(prefix="meow-pack-")
+    else:
+        os.makedirs(base, exist_ok=True)
+        parede = tempfile.mkdtemp(prefix=".chegando-", dir=base)
+    try:
+        dir_novo = os.path.join(parede, ident)
+        os.makedirs(dir_novo)
+        for rel, conteudo in sorted(arquivos.items()):
+            alvo = _dentro(dir_novo, rel, rel)
+            os.makedirs(os.path.dirname(alvo), exist_ok=True)
+            with open(alvo, "wb") as fh:
+                fh.write(conteudo)
+            os.chmod(alvo, 0o644)
+        p, dados, _ = validar(dir_novo)
+        if seco:
+            return p, dados, None
+        destino = os.path.join(base, ident)
+        _exigir(not os.path.lexists(destino), f"{destino} apareceu enquanto eu conferia")
+        os.rename(dir_novo, destino)
+        return p, dados, destino
+    finally:
+        shutil.rmtree(parede, ignore_errors=True)
+
+
+def o_que_traz(p, dados, membros):
+    """O que o pack traz, para a tela de confirmar e para o terminal.
+
+    O "próprio / herdado de" sai do `origens`, a mesma conta do `meow pack info`
+    e do cartão — três telas que não podem contar três packs diferentes.
+    """
+    org = {cat: (tipo, quem) for cat, tipo, quem in origens(p)}
+
+    def dito(cat):
+        tipo, quem = org[cat]
+        return {"próprio": "próprio", "herdado": f"herdado de {quem}",
+                "motor": "do MeowSystem"}[tipo]
+    som = [k for k in (p.get("som") or {}) if not str(k).startswith("_")]
+    return {
+        "id": p["id"], "nome": p.get("nome") or p["id"], "autor": p.get("autor") or "",
+        "heranca": p.get("heranca") or "",
+        "flavor_padrao": (p.get("paleta") or {}).get("flavor_padrao") or "",
+        "paleta": {f: [c[s] for s in SLOTS] for f, c in dados["flavors"].items()},
+        "claros": list(dados.get("claros") or []),
+        "icones": sum(1 for r in membros if r.startswith("icones/") and r.lower().endswith(".svg")),
+        "icones_de_aplicativo": dito("icones.apps"),
+        "imagens": sum(1 for r in membros if r.lower().endswith(EXT_IMAGEM)),
+        "ponteiro": dito("cursores"),
+        "papeis_de_parede": dito("wallpapers"),
+        "som": "próprio" if som else "não traz — vale o do MeowSystem",
+        "arquivos": len(membros),
+        "bytes": sum(len(c) for c in membros.values()),
+    }
+
+
+def resumo_meowpack(caminho):
+    """O `o_que_traz` de um `.meowpack`, sem escrever nada.
+
+    É a porta da tela de confirmar, e ela confia no que o `importar --seco`
+    acabou de validar: quem chama esta função sem aquele passo recebe um
+    KeyError de um pack torto, e não um resumo.
+    """
+    _ident, membros = ler_meowpack(caminho)
+    p = json.loads(membros["pack.json"])
+    arq = os.path.normpath((p.get("paleta") or {}).get("arquivo", "paleta.json"))
+    return o_que_traz(p, json.loads(membros[arq]), membros)
+
+
+def _imprimir_o_que_traz(r):
+    # "0 desenho(s)" sozinho diria que o pack não tem ícone, e um pack que herda
+    # mostra na tela os ícones de quem ele herda. A contagem é do que VEIO; a
+    # origem é do que a pessoa vai VER.
+    print(f"  >>   o que o pack {r['nome']} traz:")
+    print(f"         paleta            : {', '.join(r['paleta'])} — 26 cores cada, "
+          f"padrão {r['flavor_padrao']}")
+    print(f"         ícones            : {r['icones']} desenho(s) no pacote · os de "
+          f"aplicativo: {r['icones_de_aplicativo']}")
+    print(f"         ponteiro          : {r['ponteiro']}")
+    print(f"         papéis de parede  : {r['papeis_de_parede']}")
+    print(f"         som               : {r['som']}")
+    if r["imagens"]:
+        print(f"         imagens           : {r['imagens']}")
+    quantos = f"{r['arquivos']:,}".replace(",", ".")
+    print(f"         tamanho           : {quantos} arquivo(s), {_mb(r['bytes'])}")
+
+
+def cmd_importar(caminho, opcoes):
+    seco = False
+    for op in opcoes:
+        if op in ("--seco", "--dry-run"):
+            seco = True
+        else:
+            print(f"  erro não entendi {op!r} — uso: importar <arquivo.meowpack> [--seco]",
+                  file=sys.stderr)
+            return ERRO_USO
+    _exigir(os.path.isfile(caminho), f"não achei o arquivo {caminho!r}")
+    ident, membros = ler_meowpack(caminho)
+    existe = _pack_existente(ident)
+    _exigir(not existe, f"já existe {existe}.\n"
+                        f"    Importar por cima trocaria o que está lá sem perguntar, e um pack\n"
+                        f"    com o mesmo nome noutra raiz esconderia um dos dois. Para trocar,\n"
+                        f"    tire o que está lá primeiro.")
+    p, dados, destino = _instalar_pack(membros, raiz_da_pessoa(), ident, seco)
+    r = o_que_traz(p, dados, membros)
+    _imprimir_o_que_traz(r)
+    if seco:
+        print(f"  ~~   instalaria em {os.path.join(raiz_da_pessoa(), ident)} — nada foi escrito")
+    else:
+        print(f"  ok   instalado em {destino}")
+    print("  --   nada foi aplicado: importar é ganhar uma opção, não trocar de tema.")
+    print(f"       Para vestir: PACK=\"{ident}\" e FLAVOR=\"{r['flavor_padrao']}\" no meow.conf.")
+    return OK
+
+
+def cmd_novo(ident, opcoes):
+    """Cria o pack `ident` a partir do que está no ar.
+
+    O QUE ESTÁ NO AR, E COMO CADA PEDAÇO ENTRA
+        · a paleta — a que vale AGORA, pela porta de sempre
+          (`paleta_do_pack_ativo`): o arquivo inteiro, cada flavor com as 26
+          cores, e o `flavor_padrao` é o flavor em uso. Inteiro, e não só o
+          flavor em uso, porque o claro é o par dele: sem ele, o modo claro
+          cairia no pack anterior (docs/PACKS.md, "claros");
+        · o timbre — o `som` do pack no ar com os `SOM_*` do meow.conf por cima,
+          que é o que se ouve. Ele entra declarado porque o `som` não é herdado:
+          sem a cópia, o pack novo tocaria o sino padrão;
+        · o logo — gerado, a inicial sobre o `base` (P15 e P25: "feio e honesto
+          é melhor que ausente"), e os créditos, dizendo de onde tudo veio;
+        · o RESTO — ícones, capturas do tema, temas de aplicativo, ponteiro —
+          vem do pack no ar pela `heranca`, por id. Nenhum caminho absoluto,
+          nenhuma segunda cópia do mesmo acervo que defasaria calada.
+
+    O QUE A SPRINT PEDIA E O FORMATO AINDA NÃO GUARDA
+        "Os acervos que a pessoa adicionou (ícones, papéis de parede, ponteiro)
+        copiados." Medido em 23/09/2026: o formato não tem onde guardar papel de
+        parede nem ponteiro DENTRO do pack — nenhum leitor, nem o
+        `wallpaper.sh`, nem o `cursor.sh`, abre um pack; o ponteiro próprio é a
+        P12. E a porta de ícone avulso (`assets/icones/overrides/`) não tem
+        instalador. Copiar para lá seria o arquivo sem leitor que o `validar`
+        existe para denunciar. O verbo diz isso na tela, em vez de fingir.
+
+    ONDE ELE ESCREVE
+        Em `$MEOW_PACKS` quando ela existe — a raiz de teste, "sem instalar
+        nada" —, e senão em `packs/` do projeto, onde a sprint o põe e de onde
+        um pack se publica por commit. Por ser gesto explícito, e com nome, não
+        é a sujeira de uso que a P21 tirou do repositório.
+    """
+    seco = False
+    it = iter(opcoes)
+    for op in it:
+        if op in ("--seco", "--dry-run"):
+            seco = True
+        # A P16 ENTRA AQUI: `--de-csv <arquivo>` é mais um ramo, com `next(it)`
+        # para o caminho, e troca só a leitura da paleta lá embaixo — o único
+        # ponto deste verbo que abre uma paleta.
+        else:
+            print(f"  erro não entendi {op!r} — uso: novo <id> [--seco]", file=sys.stderr)
+            return ERRO_USO
+    _exigir(RE_ID.match(ident), f"id {ident!r} — só minúsculas, dígitos e hífen")
+    existe = _pack_existente(ident)
+    _exigir(not existe, f"já existe {existe} — escolha outro nome")
+
+    pf, _, _dir_fonte = validar(os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO, silencioso=True)
+    arq_paleta = paleta_do_pack_ativo()
+    try:
+        with open(arq_paleta, "rb") as fh:
+            bruto_paleta = fh.read()
+        paleta = json.loads(bruto_paleta)
+        _exigir(isinstance(paleta.get("flavors"), dict) and paleta["flavors"], "sem flavors")
+    except (OSError, ValueError, AttributeError, Recusa) as e:
+        raise Recusa(f"a paleta no ar ({arq_paleta}) não serve de ponto de partida: {e}")
+    flavor, accent = _flavor_e_accent(pf, paleta)
+
+    som = {k: v for k, v in (pf.get("som") or {}).items() if not str(k).startswith("_")}
+    for chave, var in SOM_NO_CONF.items():
+        bruto = (os.environ.get(var) or "").strip()
+        if bruto:
+            try:
+                som[chave] = float(bruto)
+            except ValueError:
+                raise Recusa(f"{var}={bruto!r} no meow.conf não é número — o timbre no ar "
+                             f"não tem como virar pack")
+
+    import time
+    nome = " ".join(parte.capitalize() for parte in ident.split("-"))
+    data = time.strftime("%d/%m/%Y")
+    novo = {
+        "_nota": (f"Nasceu de `meow pack novo` em {data}, a partir do pack {pf['id']!r}, "
+                  f"que estava no ar. O que este arquivo não declara vem dele, pela "
+                  f"herança — `meow pack info {ident}` diz o quê, categoria a categoria."),
+        "formato": FORMATO_MAX,
+        "id": ident,
+        "nome": nome,
+        "creditos": "CREDITOS.md",
+        "heranca": pf["id"],
+        "vitrine": {"capa": LOGO},
+        "paleta": {"arquivo": "paleta.json", "flavor_padrao": flavor},
+        "cosmic": {"nome_da_paleta": f"{ident}-<flavor>"},
+    }
+    frase = f"Nasceu do {pf.get('nome') or pf['id']}, com as cores que estavam no ar."
+    if len(frase) <= TETO_DESCRICAO_CURTA:
+        novo["vitrine"]["descricao_curta"] = frase
+    if som:
+        novo["som"] = som
+
+    svg = logo_gerado(nome, ident)
+    svg = _aplicar_papeis(svg, ET.fromstring(svg), _cores_do_logo(paleta, flavor, accent))
+    origem = ", ".join(x for x in (f"autor {pf['autor']}" if pf.get("autor") else "",
+                                   f"licença {pf['licenca']}" if pf.get("licenca") else "",
+                                   (pf.get("vitrine") or {}).get("site") or "") if x)
+    creditos = (
+        f"# Créditos do pack {nome}\n\n"
+        f"Este pack nasceu em {data} de `meow pack novo`, a partir do pack "
+        f"**{pf.get('nome') or pf['id']}** (`{pf['id']}`), que estava no ar.\n\n"
+        f"## A paleta\n\n"
+        f"`paleta.json` é a do `{pf['id']}`, copiada como estava"
+        + (f" ({origem})" if origem else "") + ". De onde vieram aquelas cores, o "
+        f"CREDITOS.md do `{pf['id']}` conta.\n\n"
+        f"## O logo\n\n"
+        f"`logo.svg` foi gerado pelo MeowSystem: a inicial do nome sobre o `base` da "
+        f"paleta. É seu para redesenhar — mantenha as `class`, que são o papel de "
+        f"cada forma.\n\n"
+        f"## O resto\n\n"
+        f"Tudo o que o `pack.json` não declara vem do `{pf['id']}`, pela herança, e "
+        f"é dele a procedência. `meow pack info {ident}` diz o que é próprio e o que "
+        f"é herdado.\n\n"
+        f"## Se entrar arte de terceiro\n\n"
+        f"Copie-a para dentro do pack e ponha uma linha no `PROCEDENCIA.md` — de "
+        f"onde veio, sob que licença, em que data (ver docs/PACKS.md, \"Fonte e "
+        f"derivados\"). O `meow pack exportar` recusa arte sem licença escrita ali.\n")
+    arquivos = {
+        "pack.json": (json.dumps(novo, indent=2, ensure_ascii=False) + "\n").encode("utf-8"),
+        "paleta.json": bruto_paleta,
+        LOGO: svg.encode("utf-8"),
+        "CREDITOS.md": creditos.encode("utf-8"),
+    }
+    base = os.environ.get("MEOW_PACKS") or os.path.join(RAIZ, "packs")
+    _p, _dados, destino = _instalar_pack(arquivos, base, ident, seco)
+    if seco:
+        print(f"  ~~   criaria {os.path.join(base, ident)}/ — nada foi escrito")
+    else:
+        print(f"  ok   {destino}/")
+    print(f"       a partir do {pf['id']!r}: a paleta ({len(paleta['flavors'])} flavor(s), "
+          f"padrão {flavor}), " + ("o timbre, " if som else "") + "um logo gerado e os créditos")
+    print(f"  --   o resto vem do {pf['id']!r} pela herança — meow pack info {ident} diz o quê")
+    print("  --   papel de parede e ponteiro não entram: o formato ainda não tem onde "
+          "guardá-los dentro de um pack")
     return OK
 
 
@@ -3152,11 +4120,32 @@ def main(argv):
             return OK
         if verbo == "info" and len(argv) == 3:
             return cmd_info(argv[2])
+        if verbo == "usar" and len(argv) in (3, 4):
+            # A saída é lida pelo shell com `sed`, linha a linha, e NUNCA com
+            # `eval`: o id passou pelo RE_ID e o flavor pelo RE_FLAVOR_CONF, e
+            # ainda assim avaliar texto vindo de um pack de terceiro seria dar a
+            # ele uma porta que o formato inteiro existe para não abrir.
+            ident, flavor, porque = plano_de_uso(
+                argv[2], argv[3] if len(argv) == 4 else None,
+                os.environ.get("FLAVOR") or None)
+            print(f"PACK={ident}")
+            print(f"FLAVOR={flavor}")
+            print(f"PORQUE={porque}")
+            return OK
         if verbo == "construir" and len(argv) in (3, 4):
             # O `--seco` é a mesma promessa do `MEOW_DRY_RUN` do lado shell: diz
             # o que faria e não escreve. Aceito pelos dois nomes porque quem
             # chama daqui é o `bin/meow`, que já traduz o ambiente em flag.
             return cmd_construir(argv[2], seco=(len(argv) == 4 and argv[3] in ("--seco", "--dry-run")))
+        # OS TRÊS DA P11. As opções seguem cruas para o verbo, e é de propósito:
+        # a P16 acrescenta `novo <id> --de-csv <arquivo>` como mais um ramo
+        # dentro do `cmd_novo`, sem precisar mexer nesta linha.
+        if verbo == "novo" and len(argv) >= 3:
+            return cmd_novo(argv[2], argv[3:])
+        if verbo == "exportar" and len(argv) >= 3:
+            return cmd_exportar(argv[2], argv[3:])
+        if verbo == "importar" and len(argv) >= 3:
+            return cmd_importar(argv[2], argv[3:])
         if verbo == "caminho" and len(argv) == 4:
             return cmd_caminho(argv[2], argv[3])
         if verbo == "app" and len(argv) == 4:
@@ -3188,6 +4177,9 @@ def main(argv):
     except Recusa as e:
         print(f"  erro pack recusado: {e}", file=sys.stderr)
         return RECUSADO
+    except Falta as e:
+        print(f"  erro {e}", file=sys.stderr)
+        return SEM_DEPENDENCIA
     print(__doc__.strip(), file=sys.stderr)
     return ERRO_USO
 

@@ -180,11 +180,66 @@ def paleta_canonica():
         É a mesma degradação que ela já tinha quando o arquivo não existia.
     """
     global _PALETA
+    _ponte_em_dia()
     if _PALETA is None:
         mod = modulo_pack()
         _PALETA = (mod.paleta_do_pack_ativo() if mod
                    else os.environ.get("MEOW_PALETA") or "")
     return _PALETA
+
+
+# A PONTE DO PAINEL ACOMPANHA O meow.conf — 23/09/2026, sprint P10
+#
+# O QUE ESTAVA PARADO NO TEMPO
+#   A ponte shell->Python (`meow_ponte_python`, lib/comum.sh) roda UMA vez, no
+#   `app/run.sh`, e exporta `MEOW_PALETA`/`MEOW_PACK_DIR` para este processo. Os
+#   trabalhos já reliam a ponte a cada execução (o bloco "A PONTE VEM JUNTO", no
+#   `conf_exportada`); o painel, não. Enquanto trocar de pack era editar o conf à
+#   mão e reabrir tudo, isso não aparecia. Com o «Usar este» da Home, aparece no
+#   primeiro clique: o instalador veste a máquina de Catppuccin, e a página
+#   continua pintada, e desenhando prévias, com a paleta do Dracula — o painel
+#   discordando da máquina que ele acabou de vestir.
+#
+# A PERGUNTA É O RELÓGIO DO ARQUIVO, E A RESPOSTA É A MESMA PONTE DE SEMPRE
+#   Um `stat` por consulta é o preço; o `conf_exportada` (a ponte em bash, a
+#   mesma do `run.sh`) só roda quando o meow.conf mudou desde a última vez. A
+#   primeira consulta só anota o relógio: a ponte que o `run.sh` exportou na
+#   subida é deste mesmo arquivo. Um `MEOW_PALETA` que seja DA PESSOA atravessa
+#   intacto — é o marcador `MEOW_PALETA_DA_PONTE` que diz de quem ele é, como no
+#   `meow_paleta`.
+_PONTE_TRAVA = threading.Lock()
+_PONTE_VISTA = {"iniciada": False, "relogio": None}
+
+
+def _ponte_em_dia():
+    # A TRAVA FICA FECHADA DURANTE A RELEITURA, e não só na conta do relógio: a
+    # página pede `/api/packs` e `/api/esquema` juntas logo depois de um
+    # trabalho, e a segunda, achando o relógio já anotado pela primeira, leria a
+    # ponte VELHA enquanto a nova ainda estava a caminho — o cartão diria um
+    # pack no ar e a aba Ícones outro. Esperar os décimos de segundo do bash é
+    # o preço de as duas respostas falarem do mesmo meow.conf.
+    global _PALETA
+    try:
+        relogio = os.stat(CONF).st_mtime_ns
+    except OSError:
+        relogio = None
+    with _PONTE_TRAVA:
+        if _PONTE_VISTA["iniciada"] and relogio == _PONTE_VISTA["relogio"]:
+            return
+        primeira = not _PONTE_VISTA["iniciada"]
+        _PONTE_VISTA.update(iniciada=True, relogio=relogio)
+        if primeira:
+            return
+        conf = conf_exportada()
+        if conf is None:
+            return
+        for nome in ("MEOW_PALETA", "MEOW_PACK_DIR", "MEOW_PALETA_DA_PONTE"):
+            if conf.get(nome):
+                os.environ[nome] = conf[nome]
+            else:
+                os.environ.pop(nome, None)
+        _PALETA = None
+        _PALETA_CACHE.clear()
 
 
 FOLHAS = os.path.join(RAIZ, "docs", "folhas")
@@ -815,19 +870,65 @@ def _packs_no_disco():
 #   Recusa). Um pack desses aparece com o erro dele no lugar da vitrine; os
 #   outros aparecem inteiros. Sumir com a lista por causa de um seria a tela
 #   inteira quebrada por um arquivo que ela nem escolheu.
+# QUAL PACK ESTÁ NO AR — 23/09/2026, sprint P10
+#
+#   A resposta é a da PONTE, e não uma leitura do PACK/FLAVOR daqui: o
+#   `meow_pack_dir` (lib/comum.sh) tem regras — a adoção pelo FLAVOR, o pack que
+#   não valida e cai no padrão — e uma segunda cópia delas em Python discordaria
+#   no primeiro caso esquisito. A ponte já as aplicou e deixou o resultado em
+#   `MEOW_PACK_DIR`; o `_ponte_em_dia` a mantém fiel ao meow.conf de agora.
+#   Vazio quer dizer "nenhum pack resolvido", e aí o que veste a máquina é o
+#   padrão — a mesma queda do `meow_paleta`.
+def _pack_no_ar():
+    """O id do pack que veste a máquina agora, ou '' sem `scripts/pack.py`."""
+    _ponte_em_dia()
+    dir_pack = os.environ.get("MEOW_PACK_DIR") or ""
+    if dir_pack:
+        return os.path.basename(dir_pack.rstrip("/"))
+    mod = modulo_pack()
+    return mod.PACK_PADRAO if mod else ""
+
+
+def vocabulario_do_pack():
+    """O `vocabulario` do pack no ar (scripts/pack.py), ou None. [P10]
+
+    None é resposta: sem ele a aba Ícones volta a desenhar os controles como o
+    `meow.conf.exemplo` os descreve, e um pack que não valida não derruba a
+    página que existe justamente para consertá-lo."""
+    mod = modulo_pack()
+    ident = _pack_no_ar()
+    if not mod or not ident:
+        return None
+    try:
+        return mod.vocabulario(ident)
+    except Exception:
+        return None
+
+
 def packs_com_vitrine():
     """Os packs no disco, cada um com a vitrine que declara — o `/api/packs`."""
     mod = modulo_pack()
     if not mod:
         return []
+    no_ar = _pack_no_ar()
     saida = []
     for ident in sorted(_packs_no_disco()):
         try:
             p, dados, dir_pack = mod.validar(ident, silencioso=True)
         except Exception as erro:
-            saida.append({"id": ident, "nome": ident, "problemas": [str(erro)]})
+            # `valido` falso tira o «Usar este» do cartão: o `meow pack usar`
+            # recusaria este pack pelo mesmo motivo, e um botão que só leva a
+            # uma recusa ensina a desconfiar dos outros. [P10]
+            saida.append({"id": ident, "nome": ident, "problemas": [str(erro)],
+                          "no_ar": ident == no_ar, "valido": False})
             continue
         vit, problemas = mod.vitrine(p, dir_pack)
+        # O `vocabulario` sobe a herança e valida o dono dela; um dono quebrado
+        # não pode sumir com o cartão deste pack — ele perde só o `info`.
+        try:
+            vocab = mod.vocabulario(ident)
+        except Exception:
+            vocab = {"flavors": [], "categorias": []}
         # A CAPA SÓ ENTRA NO CARTÃO SE O `logo()` A ENTREGAR [23/09/2026, junção
         #   com a P25]. Desde a a3ee4a6 o motor não confere o logo, e a vitrine só
         #   confere o campo: um logo com `<script>` passaria pelas duas. Quem
@@ -867,6 +968,16 @@ def packs_com_vitrine():
             "origem": mod.resumo_de_origem(p),
             "amostra": [cores[s] for s in mod.SLOTS if s in cores],
             "problemas": problemas,
+            # O PACK VIRA ESCOLHA, E O `meow pack info` VIRA TELA — P10
+            #   `no_ar` é o anel de acento do cartão e o que tira dele o «Usar
+            #   este». `flavors` e `categorias` são o `info` inteiro: as 26 cores
+            #   de cada flavor e, categoria a categoria, o que é próprio e o que
+            #   é herdado de quem. Saem do `vocabulario`, a mesma conta que a aba
+            #   Ícones usa — o cartão e a aba não podem contar dois packs.
+            "no_ar": ident == no_ar,
+            "valido": True,
+            "flavors": vocab["flavors"],
+            "categorias": vocab["categorias"],
         })
     return saida
 
@@ -918,6 +1029,138 @@ def arte_da_vitrine(ident, arte):
             return fh.read(), tipo
     except OSError:
         return None
+
+
+# O VOCABULÁRIO DA ABA ÍCONES SAI DO PACK NO AR — 23/09/2026, sprint P10
+#
+# O QUE A TELA DIZIA, MEDIDO COM O DRACULA NO AR
+#   Na aba Ícones, contado pelo texto visível: `Mocha` x2, `Macchiato`, `Frappé`,
+#   `Latte` x2, `${FLAVOR}` x2, `${ACCENT}` x2, `cat-` x2, e um cartão chamado
+#   «Pack de ícones Dracula nos aplicativos». Os nomes de flavor são do
+#   Catppuccin, numa máquina vestida de Dracula; o molde é sintaxe de shell
+#   pedida a quem não sabe o que é shell; e o nome de um pack estava cravado no
+#   rótulo de um ajuste que serve a qualquer pack.
+#
+# POR QUE AQUI, E NÃO NO `meow.conf.exemplo`
+#   O exemplo é a fonte única do texto de cada chave — e continua sendo: o balão
+#   `?` mostra o comentário inteiro, com o molde cru, para quem precisar dele. O
+#   que muda de pack para pack não cabe num arquivo de texto estático: quais
+#   flavors existem, de quem vêm os ícones de arquivo, se o papirus-folders tem
+#   pasta para a variante no ar. Isso é leitura de disco, e quem lê o disco para
+#   a página é este arquivo.
+#
+# SÃO TRÊS CHAVES, NOMEADAS, E O PORQUÊ DE CADA UMA ESTÁ NO BLOCO DELA, ABAIXO
+#   Não é regra derivada do comentário, e é de propósito: as três dizem coisas
+#   diferentes (uma lista de flavors de um acervo, um rótulo, um molde de dois
+#   campos), e uma regra que as juntasse precisaria de três exceções.
+#
+# O QUE NÃO MUDA: a cerca do `validar_valor`. Ela continua sendo a lista do
+# `meow.conf.exemplo` — o meow.conf vence o pack (docs/PACKS.md, "Quem vence"),
+# e quem escreveu `ICONES_FLAVOR="mocha"` à mão com o Dracula no ar continua
+# podendo; a página só não OFERECE o que o pack não escolheu, e mostra o valor
+# de agora quando ele estiver fora da lista.
+
+# Onde o `construir_pastas.sh` procura as cores do papirus-folders, com o mesmo
+# `MEOW_CAT_FOLDERS` por cima. As duas pontas leem o mesmo diretório; o que a
+# página oferece é o que aquele script vai achar.
+_PAPIRUS_FOLDERS = os.environ.get("MEOW_CAT_FOLDERS") or os.path.join(
+    RAIZ, "assets", "icones", "upstream", "papirus-folders")
+_RE_COR_DE_PASTA = re.compile(r"^folder-cat-([a-z0-9]+)-([a-z0-9]+)-documents\.svg$")
+
+
+def _cores_de_pasta():
+    """{variante: {cores}} que o papirus-folders deste disco traz."""
+    achadas = {}
+    try:
+        nomes = os.listdir(os.path.join(_PAPIRUS_FOLDERS, "src", "64x64", "places"))
+    except OSError:
+        return achadas
+    for nome in nomes:
+        m = _RE_COR_DE_PASTA.match(nome)
+        if m:
+            achadas.setdefault(m.group(1), set()).add(m.group(2))
+    return achadas
+
+
+def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
+    """Reescreve, no esquema QUE VAI PARA A PÁGINA, o que é vocabulário do pack."""
+    if not vocab:
+        return
+    por_chave = {i["chave"]: i for i in esquema}
+    nome_pack = vocab["nome"]
+
+    # 1. «Variante dos ícones de arquivo» — os flavors do acervo de mimetype que
+    #    o pack no ar alcança, com o nome do dono quando é herdado. Ver o
+    #    `vocabulario` do scripts/pack.py para o porquê de o Dracula oferecer um
+    #    só: é o que ele declara em `icones.mimetypes.flavor`.
+    item = por_chave.get("ICONES_FLAVOR")
+    mt = vocab.get("mimetypes")
+    if item and mt:
+        herdado = (" (herdado do %s)" % mt["nome_de"]) if mt["herdado"] else ""
+        oferta = [o for o in item["opcoes"] if o in mt["flavors"]]
+        oferta += [f for f in mt["flavors"] if f not in oferta]
+        agora = item.get("valor") or ""
+        if agora and "$" not in agora and agora not in oferta:
+            oferta.append(agora)
+        item["opcoes"] = oferta
+        item["rotulos"] = {f: (mt["nomes"].get(f) or f) + herdado for f in oferta}
+
+    # 2. «Pack de ícones Dracula nos aplicativos» — o ajuste liga os desenhos de
+    #    aplicativo DO PACK NO AR (`icones.apps`), seja ele qual for. O nome de
+    #    um pack no rótulo mentia para todos os outros; a frase diz de qual pack
+    #    eles vêm hoje.
+    item = por_chave.get("ICONES_DRACULA")
+    if item:
+        item["titulo"] = "Ícones do pack nos aplicativos"
+        ap = vocab.get("apps")
+        if ap and ap["herdado"]:
+            item["frase"] = ("Os desenhos de aplicativo que o pack «%s» herda do «%s», "
+                             "vestindo o lançador." % (nome_pack, ap["nome_de"]))
+        elif ap:
+            item["frase"] = ("Os desenhos de aplicativo do pack «%s», vestindo o lançador."
+                             % nome_pack)
+        else:
+            item["frase"] = ("O pack «%s» não traz desenhos de aplicativo: com ele no ar, "
+                             "este ajuste não tem o que vestir." % nome_pack)
+
+    # 3. «Cor das pastas» — o molde `cat-<variante>-<cor>` vira dois seletores
+    #    na página. Aqui sai o que cada um oferece: as variantes do pack no ar
+    #    que o papirus-folders tem, e as cores que ele tem. A primeira opção de
+    #    cada um é o molde que acompanha o tema, que é o valor de fábrica.
+    item = por_chave.get("ICONES_PASTAS")
+    if item:
+        cores_de = _cores_de_pasta()
+        nomes = {f["id"]: f["nome"] for f in vocab["flavors"]}
+        # DO ESCURO PARA O CLARO, pela luminância do `base` de cada flavor: é a
+        # ordem de «Cor e tela» e da variante dos ícones de arquivo logo ao
+        # lado, e a paleta.json guarda os flavors na ordem de quem a escreveu.
+        mod = modulo_pack()
+        ibase = mod.SLOTS.index("base") if mod else 0
+        luz = (lambda f: mod._luminancia(f["cores"][ibase])) if mod else (lambda f: 0.0)
+        variantes = [{"valor": "${FLAVOR}", "rotulo": "Acompanha o tema"}]
+        variantes += [{"valor": f["id"], "rotulo": f["nome"]}
+                      for f in sorted(vocab["flavors"], key=luz) if f["id"] in cores_de]
+        todas = set().union(*cores_de.values()) if cores_de else set()
+        # Sem o papirus-folders no disco a lista de cores são os catorze slots
+        # cromáticos da paleta, que é exatamente o que ele traz quando chega; a
+        # etapa das pastas se pula sozinha até lá, e a página diz isso.
+        ordem = [s for s in (_paleta_dados().get("ordem_canonica") or [])[:14]]
+        cores = [{"valor": "${ACCENT}", "rotulo": "Acompanha o destaque"}]
+        cores += [{"valor": c, "rotulo": c.capitalize()}
+                  for c in ordem if (c in todas or not todas)]
+        flavor_no_ar = efetivos.get("FLAVOR") or ""
+        item["frase"] = ("A variante e a cor das pastas comuns. «Acompanha» repinta "
+                         "sozinho quando o tema ou o destaque mudam.")
+        item["molde_pastas"] = {
+            "variantes": variantes,
+            "cores": cores,
+            "sem_upstream": not cores_de,
+            # A VARIANTE NO AR QUE O PAPIRUS-FOLDERS NÃO TEM. O
+            # `construir_pastas.sh` cai na variante escura que ele tem e avisa
+            # no log; a página diz o mesmo antes, com o nome do flavor do pack.
+            "fora_do_papirus": (nomes.get(flavor_no_ar) or flavor_no_ar)
+                               if cores_de and flavor_no_ar not in cores_de else "",
+        }
 
 
 def _vestigio_de_pack(chave):
@@ -2520,7 +2763,12 @@ _PALETA_CACHE = {}
 
 
 def _paleta_dados():
-    """A paleta inteira, lida uma vez. É a fonte de verdade de cor do projeto."""
+    """A paleta inteira, lida uma vez. É a fonte de verdade de cor do projeto.
+
+    "Uma vez" POR meow.conf, desde 23/09/2026: o `_ponte_em_dia` esvazia este
+    cache quando o conf muda — é o que faz o «Usar este» da Home repintar a
+    página com o pack novo em vez de manter a paleta da subida."""
+    _ponte_em_dia()
     if not _PALETA_CACHE:
         try:
             with open(paleta_canonica(), "r", encoding="utf-8") as fh:
@@ -2619,7 +2867,10 @@ def paleta_css(flavor, accent):
     flavors = dados.get("flavors", {})
     if not flavors:
         return "/* paleta ilegível — a página cai no tema do navegador */\n"
-    cores = flavors.get(flavor) or flavors.get("mocha") or {}
+    # SEM FLAVOR CONHECIDO, O PRIMEIRO DO PACK NO AR — e não o "mocha", que é
+    # nome de flavor do Catppuccin: com o Dracula no ar ele não existe, e a
+    # página saía sem cor nenhuma. [23/09/2026, P10]
+    cores = flavors.get(flavor) or next(iter(flavors.values()), {})
     if accent not in cores:
         accent = "mauve" if "mauve" in cores else next(iter(cores), "")
     claro = flavor in dados.get("claros", [])
@@ -2649,8 +2900,45 @@ def paleta_css(flavor, accent):
     # reproduz o valor medido nas folhas com erro de 2/255; o claro é uma
     # aproximação da dock sobre papel de parede claro, e está declarado como
     # aproximação porque é isso que ele é.
-    linhas.append("  --fundo-mocha: %s;" % (flavors.get("mocha", {}).get("base", "")))
-    linhas.append("  --fundo-latte: %s;" % (flavors.get("latte", {}).get("base", "")))
+    #
+    # O ESCURO E O CLARO SÃO DO PACK NO AR, E TÊM NOME DE FUNÇÃO — 23/09/2026, P10
+    #   Eram `--fundo-mocha` e `--fundo-latte`, lidos por NOME de flavor. Com o
+    #   Dracula no ar a paleta não tem nem um nem outro: os dois saíam vazios, e
+    #   a barra «Fundo» da aba Ícones oferecia "Mocha" e "Latte" — botões com o
+    #   vocabulário de outro pack, pintando o fundo de nada.
+    #
+    #   A REGRA É A QUE OS DOIS NOMES JÁ CUMPRIAM NO CATPPUCCIN, dita sem nome: o
+    #   `base` do escuro mais escuro e o do claro mais claro que o pack declara,
+    #   medidos pela luminância que o `pack.py` já usa no contraste. Fixos, e não
+    #   o flavor salvo — é o que o `previas-tela.js` espera deles ("o escuro mais
+    #   escuro e o claro mais claro da paleta, independentes do que está
+    #   salvo"). No Catppuccin isso dá mocha e latte, os mesmos hex de antes; no
+    #   Dracula, dracula e alucard.
+    #
+    #   PACK SEM CLARO AINDA TEM FUNDO CLARO: o `text` do escuro. Quem testa um
+    #   ícone contra fundo claro quer saber se ele some no papel de parede claro
+    #   da dock — pergunta que existe mesmo para o pack que não desenhou um
+    #   flavor claro, e o `text` é a cor mais clara que ele declara.
+    #
+    #   OS DOIS NOMES ANTIGOS FICAM, COMO APELIDO. O `previas-tela.js` lê
+    #   `--fundo-mocha`/`--fundo-latte` para montar os degraus de claridade dos
+    #   desenhos, e ele não é arquivo desta sprint; sem os apelidos, os desenhos
+    #   cairiam no `crust`/`surface2` de reserva e mudariam de tom sem ninguém
+    #   ter pedido. Quem os renomear lá apaga as duas linhas aqui.
+    mod = modulo_pack()
+    luz = (lambda h: mod._luminancia(h)) if mod and hasattr(mod, "_luminancia") else (lambda h: 0.0)
+    claros_do_pack = [f for f in (dados.get("claros", []) or []) if f in flavors]
+    escuros = [f for f in flavors if f not in claros_do_pack]
+    escuro = min(escuros, key=lambda f: luz(flavors[f].get("base", "#000000"))) if escuros else None
+    claro_do_pack = max(claros_do_pack, key=lambda f: luz(flavors[f].get("base", "#000000"))) \
+        if claros_do_pack else None
+    base_escura = (flavors[escuro] if escuro else cores).get("base", "")
+    base_clara = (flavors[claro_do_pack].get("base", "") if claro_do_pack
+                  else (flavors[escuro] if escuro else cores).get("text", ""))
+    linhas.append("  --fundo-escuro: %s;" % base_escura)
+    linhas.append("  --fundo-claro: %s;" % base_clara)
+    linhas.append("  --fundo-mocha: var(--fundo-escuro);")
+    linhas.append("  --fundo-latte: var(--fundo-claro);")
     linhas.append("  --fundo-vidro-escuro: color-mix(in srgb, var(--base) 83%, var(--text));")
     linhas.append("  --fundo-vidro-claro: color-mix(in srgb, var(--surface1) 55%, var(--mauve));")
     linhas.append(f"  --accent-nome: '{accent}';")
@@ -2684,6 +2972,10 @@ PROVEDORES = {
     "areas": _areas_alfinetadas,
     "paredes_ativas": _paredes_ativas,
     "paredes_banidas": _paredes_banidas,
+    # Os theme packs do disco — o argumento do «Usar este» da Home. A varredura
+    # é a mesma do `/api/packs`, então o cartão só oferece o que esta cerca
+    # aceita. [P10]
+    "packs": lambda: sorted(_packs_no_disco()),
 }
 
 
@@ -2718,7 +3010,9 @@ DESCRICAO_SECAO = {
     #   A chave é o NOME DO ASSUNTO, e não um id: quem nomeia os assuntos é o
     #   `meow.conf.exemplo`, e inventar um segundo identificador aqui seria a
     #   segunda lista, a que discorda da primeira quando alguém renomear lá.
-    "Cor e tela": "A variante do Catppuccin, a cor de destaque, o lado a lado e o ponteiro.",
+    # "do pack", e não "do Catppuccin" — 23/09/2026, P10: com o Dracula no ar,
+    # a primeira linha da aba chamava de Catppuccin a variante de outro pack.
+    "Cor e tela": "A variante do pack, a cor de destaque, o lado a lado e o ponteiro.",
     "Áreas de trabalho": "O nome e a ordem das áreas, e o encaixe de janelas em cada uma.",
     "Logo do sistema": "A logo que aparece no menu de lançamento, na dock e no terminal.",
     "Ícones": "O tema de ícones que o projeto constrói, e o desenho de cada programa.",
@@ -2796,6 +3090,25 @@ def _ponte_viva():
 
 ACOES = {
     # --- o ciclo de vida -----------------------------------------------------
+    # TROCAR DE PACK — 23/09/2026, sprint P10
+    #   O «Usar este» dos cartões da Home. É o `meow pack usar`, e não um
+    #   `/api/definir` de PACK e FLAVOR seguido do instalador, por dois motivos:
+    #   quem decide o flavor e recusa um pack que não valida é o `pack.py`, e o
+    #   ensaio precisa ser o da TROCA — o verbo grava as duas chaves numa cópia do
+    #   conf quando roda seco (ver o `usar` do bin/meow).
+    #
+    #   `oculta` porque não é cartão na aba de ações: o argumento é um pack, e
+    #   escolher pack é o que o cartão da Home já faz com logo, paleta e nome. Os
+    #   outros campos são os do `instalar`, porque é ele que roda depois de gravar.
+    "pack_usar": {
+        "rotulo": "Usar este pack",
+        "grupo": "Instalação",
+        "argv": _meow("pack", "usar", "@ARG@"), "arg": "packs",
+        "escreve": True, "sudo": True, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Grava o pack e a variante dele no meow.conf e roda o "
+                 "instalador: a máquina inteira troca de tema.",
+    },
     "instalar": {
         "rotulo": "Instalar tudo",
         "grupo": "Instalação",
@@ -5160,7 +5473,9 @@ class Manipulador(BaseHTTPRequestHandler):
         valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
         flavor = valores.get("FLAVOR") or "mocha"
         if valores.get("MODO") == "claro":
-            flavor = "latte"
+            # O claro do PACK NO AR, pela mesma razão do `/paleta.css`. [P10]
+            claros = _paleta_dados().get("claros") or []
+            flavor = claros[0] if claros else flavor
         return logo_do_painel(flavor, valores.get("ACCENT") or "mauve")
 
     def do_GET(self):
@@ -5439,8 +5754,13 @@ class Manipulador(BaseHTTPRequestHandler):
             # MODO="claro" veste a página de Latte mesmo com FLAVOR escuro: o que
             # ela vê na tela é o tema CLARO, e um painel escuro no meio disso
             # seria a única janela fora do lugar.
+            #   O CLARO É O DO PACK NO AR — 23/09/2026, P10. Era "latte" cravado:
+            #   com o Dracula no ar e o modo claro, o painel pedia um flavor que
+            #   a paleta dele não tem e saía sem cor. O primeiro claro que o
+            #   pack declara é o que o COSMIC veste nesse modo.
             if valores.get("MODO") == "claro":
-                flavor = "latte"
+                claros = _paleta_dados().get("claros") or []
+                flavor = claros[0] if claros else flavor
             return self._responder(paleta_css(flavor, valores.get("ACCENT") or "mauve"),
                                    tipo="text/css; charset=utf-8")
 
@@ -7738,7 +8058,14 @@ class Manipulador(BaseHTTPRequestHandler):
         # MB de teto recusavam metade do que ela tentaria enviar. O limite de
         # DADOS continua menor e mora em cada acervo — este aqui só impede que o
         # servidor leia da rede mais do que jamais aceitaria.
-        teto = (96 << 20) if alvo.path == "/api/acervo" else (1 << 20)
+        #
+        # 64 MB PARA O `.meowpack` — 23/09/2026, sprint P11. O maior pack daqui,
+        # o catppuccin inteiro, sai em 338 KB; o teto é para o pack que traz
+        # capturas de tela, que são raster e não comprimem. O limite do que o
+        # arquivo pode ABRIR mora no `scripts/pack.py` (TETO_MEOWPACK), que é
+        # quem abre.
+        teto = {"/api/acervo": 96 << 20,
+                "/api/pack-importar": 64 << 20}.get(alvo.path, 1 << 20)
         if tamanho > teto:
             return self._recusar(413, "corpo grande demais")
         try:
@@ -7819,7 +8146,139 @@ class Manipulador(BaseHTTPRequestHandler):
             texto, nome = self._exportar_pagina()
             return self._baixar(texto, nome, TIPOS[".html"])
 
+        # O PACK QUE VIAJA — ver `_api_pack_exportar`. [23/09/2026, P11]
+        if caminho == "/api/pack-exportar":
+            return self._api_pack_exportar(consulta)
+
         return self._recusar(404, "não existe aqui")
+
+    # O PACK QUE VIAJA — 23/09/2026, sprint P11
+    #
+    # QUEM EMPACOTA E QUEM INSTALA É O COMANDO DA CLI, pela regra do
+    #   `_acervo_por_comando`: "a capacidade não nasce presa ao navegador". Estas
+    #   rotas levam o arquivo de um lado para o outro e devolvem o que o `meow
+    #   pack` disse; a conferência, as recusas e o "importar não aplica" moram
+    #   no `scripts/pack.py`, num lugar só. Ler o tarball aqui seria a segunda
+    #   porta — e é pela porta que ninguém conferiu que o `.sh` entra.
+    #
+    # O CONTRATO É O QUE OS BOTÕES DA P10 ESPERAM — e ele foi fechado depois de
+    #   a revisão de 23/09/2026 medir as duas metades falando línguas
+    #   diferentes: a página mandava `confirmado` e esperava `precisa_confirmar`,
+    #   esta rota lia `confirmar` e devolvia outra coisa, e o primeiro clique
+    #   terminava em "entrou" sem ter instalado nada. `confirmado` é a palavra
+    #   que o `/api/rodar` já usa para "perguntei e ela disse sim".
+    #     GET  /api/pack-exportar?id=<id>        o .meowpack, para baixar; se
+    #                                            o exportar recusa, JSON com
+    #                                            `erro` e 400 — a página baixa
+    #                                            por `fetch` e diz o erro, em
+    #                                            vez de salvar o JSON como pack
+    #              &imagens=nao                  sem as imagens raster
+    #              &medir=1                      sem arquivo: o tamanho e as
+    #                                            imagens, em JSON, DEPOIS do
+    #                                            ensaio do exportar — a pergunta
+    #                                            "as imagens vão junto? são X
+    #                                            MB" não vem para um pack que
+    #                                            seria recusado
+    #     POST /api/pack-importar  {nome, conteudo: base64, confirmado?: true}
+    #              sem `confirmado` é o ensaio: confere, valida num temporário e
+    #              devolve `precisa_confirmar`, o `titulo`, o `resumo` em uma
+    #              frase e o `pack` (a paleta, os ícones, o ponteiro, os papéis
+    #              de parede, o som) — é o que a tela de confirmar desenha. Com
+    #              `confirmado: true`, instala e devolve `instalado` e a
+    #              `frase`. Nas duas, nada é aplicado.
+    def _api_pack_exportar(self, consulta):
+        ident = consulta.get("id", [""])[0]
+        mod = modulo_pack()
+        # O `id` só vale se a varredura o achou — a cerca do `arte_da_vitrine`:
+        # o `achar` do pack.py também aceita CAMINHO, e esta rota não é porta
+        # para empacotar um diretório qualquer do disco.
+        if not mod or ident not in _packs_no_disco():
+            return self._json({"erro": "não conheço esse pack"}, 404)
+        medir = consulta.get("medir", [""])[0] == "1"
+        extra = ["--sem-imagens"] if consulta.get("imagens", [""])[0] == "nao" else []
+        with tempfile.TemporaryDirectory(prefix="meow-exporta-") as pasta:
+            saida = os.path.join(pasta, ident + ".meowpack")
+            try:
+                # `stdin` fechado: sem terminal do outro lado, o `exportar` não
+                # pergunta — quem pergunta é a tela, pelo `medir`, e manda a
+                # resposta no `imagens`. O `medir` é o MESMO comando em ensaio:
+                # a licença, o CREDITOS.md e o `validar` são conferidos antes
+                # de a tela perguntar qualquer coisa.
+                r = subprocess.run(_meow("pack", "exportar", ident, saida, *extra),
+                                   capture_output=True, text=True, timeout=120,
+                                   stdin=subprocess.DEVNULL,
+                                   env=_ambiente_do_painel(seco=medir))
+            except (OSError, subprocess.SubprocessError) as erro:
+                return self._json({"erro": "não consegui rodar: %s" % erro}, 500)
+            if r.returncode != 0 or not (medir or os.path.isfile(saida)):
+                texto = (r.stderr or "").strip() or (r.stdout or "").strip()
+                return self._json({"erro": texto or "o exportar falhou", "rc": r.returncode}, 400)
+            if medir:
+                # Os números saem da `medida` e o texto do `_mb`, os mesmos do
+                # terminal: a tela e o `meow pack exportar` dizem o mesmo MB.
+                m = mod.medir_exportacao(ident)
+                m.update(tamanho=mod._mb(m["bytes"]),
+                         tamanho_imagens=mod._mb(m["bytes_imagens"]),
+                         tamanho_sem_imagens=mod._mb(m["bytes"] - m["bytes_imagens"]))
+                return self._json(m)
+            with open(saida, "rb") as fh:
+                corpo = fh.read()
+        return self._baixar(corpo, ident + ".meowpack", "application/zstd")
+
+    def _api_pack_importar(self, corpo):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "scripts/pack.py não carregou"}, 500)
+        try:
+            dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+        except Exception:
+            return self._json({"erro": "conteúdo não é base64"}, 400)
+        if not dados:
+            return self._json({"erro": "o arquivo veio vazio"}, 400)
+        confirmado = corpo.get("confirmado") is True
+        with tempfile.TemporaryDirectory(prefix="meow-importa-") as pasta:
+            # O NOME É NOSSO, E NÃO O DO ENVIO: o id do pack sai de dentro do
+            # tarball, conferido, e o nome do arquivo não decide nada — o
+            # `nome` do pedido só existe para a página, que o mostra.
+            caminho = os.path.join(pasta, "envio.meowpack")
+            with open(caminho, "wb") as fh:
+                fh.write(dados)
+            try:
+                # O ensaio é o `MEOW_DRY_RUN` de sempre, que o `bin/meow` traduz
+                # em `--seco`: a prévia e a instalação são o MESMO comando, e a
+                # tela não tem como mostrar um pack que o terminal recusaria.
+                r = subprocess.run(_meow("pack", "importar", caminho),
+                                   capture_output=True, text=True, timeout=120,
+                                   stdin=subprocess.DEVNULL,
+                                   env=_ambiente_do_painel(seco=not confirmado))
+            except (OSError, subprocess.SubprocessError) as erro:
+                return self._json({"erro": "não consegui rodar: %s" % erro}, 500)
+            if r.returncode != 0:
+                # A recusa é o stderr: o stdout tem o `ok` da validação, e a
+                # torrada que leva os dois diz "ok" e "recusado" na mesma frase.
+                texto = (r.stderr or "").strip() or (r.stdout or "").strip()
+                return self._json({"erro": texto or "o importar falhou", "rc": r.returncode}, 400)
+            # Depois do `importar` ter validado, e não antes: o `pack` confia no
+            # que acabou de passar pela conferência inteira.
+            pack = mod.resumo_meowpack(caminho)
+        nome = pack["nome"]
+        if not confirmado:
+            # O `resumo` é a frase de cima da caixa; o que o pack traz, item a
+            # item, a página desenha do `pack` — a paleta não cabe numa frase.
+            quantos = "{:,}".format(pack["arquivos"]).replace(",", ".")
+            por = "Por %s. " % pack["autor"] if pack["autor"] else ""
+            return self._json({
+                "precisa_confirmar": True,
+                "titulo": "Importar o %s?" % nome,
+                "resumo": "%s%s arquivo(s), %s. Ele entra como opção entre os packs — "
+                          "nada do seu tema muda até você escolher usá-lo."
+                          % (por, quantos, mod._mb(pack["bytes"])),
+                "pack": pack,
+            })
+        return self._json({
+            "instalado": True, "id": pack["id"], "pack": pack,
+            "frase": "O %s entrou — ele aparece entre os packs, e usar é outro clique." % nome,
+        })
 
     def _baixar(self, corpo, nome, tipo):
         """Uma resposta que o navegador GRAVA em vez de mostrar.
@@ -7979,7 +8438,9 @@ class Manipulador(BaseHTTPRequestHandler):
         valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
         flavor = valores.get("FLAVOR") or "mocha"
         if valores.get("MODO") == "claro":
-            flavor = "latte"
+            # O claro do PACK NO AR, pela mesma razão do `/paleta.css`. [P10]
+            claros = _paleta_dados().get("claros") or []
+            flavor = claros[0] if claros else flavor
         paleta = paleta_css(flavor, valores.get("ACCENT") or "mauve")
 
         def ler(nome):
@@ -8085,6 +8546,11 @@ class Manipulador(BaseHTTPRequestHandler):
         for item in esquema:
             item["valor"] = brutos.get(item["chave"], "")
             item["efetivo"] = efetivos.get(item["chave"], "")
+        # O VOCABULÁRIO DO PACK NO AR — P10. Depois dos valores, porque a
+        # «Variante dos ícones de arquivo» mostra o de agora quando ele está
+        # fora do que o pack oferece.
+        vocab = vocabulario_do_pack()
+        _com_o_vocabulario_do_pack(esquema, vocab, efetivos)
         medidas = dict(_medidas_do_projeto(), **_medidas_da_tela())
         return {
             "conf": CONF,
@@ -8140,6 +8606,10 @@ class Manipulador(BaseHTTPRequestHandler):
                 for k, v in ACOES.items()
             ],
             "ponte": _ponte_viva(),
+            # O pack no ar, com as palavras dele: os flavors e os nomes que a
+            # barra «Fundo» e os seletores da aba Ícones usam. Ver
+            # `vocabulario_do_pack`. [P10]
+            "pack": vocab,
             "folhas": self._folhas(),
             "descricoes": DESCRICAO_SECAO,
             "blocos": BLOCO_DA_SECAO,
@@ -8313,6 +8783,12 @@ class Manipulador(BaseHTTPRequestHandler):
             # `--consertar`, `tema`, `apps`, `leitura` — o mesmo 1 quer dizer "há
             # divergências", e nada foi consertado.
             return self._json(_trabalho_json(trabalho, acao, seco=seco))
+
+        # O `.meowpack` — ver `_api_pack_exportar`. [23/09/2026, P11] Fora do
+        # "trazer de volta" logo abaixo, e é de propósito: aquele só analisa, e
+        # este, com `confirmado: true`, instala.
+        if caminho == "/api/pack-importar":
+            return self._api_pack_importar(corpo)
 
         # TRAZER DE VOLTA — só analisa e devolve o que mudaria; quem grava é o
         # `Salvar e aplicar` de sempre. O porquê está em `importar_conf`.
