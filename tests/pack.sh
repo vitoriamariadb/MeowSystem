@@ -679,19 +679,22 @@ onde="$(amb python3 "$RAIZ/scripts/pack.py" onde "$ID" icones.autorais.desenhos 
 #   `javascript:` não tem `://`, e o `site` é o único campo que vira link.
 #
 #   QUAL PORTA COBRA O QUÊ, e isto também é cobrado aqui, porque o texto já
-#   mentiu uma vez [23/09/2026, revisão da P15]: o `pack.py` e o docs/PACKS.md
-#   diziam que a capa ausente não tirava o pack do motor, e com a P25 tira — a
-#   capa é o `logo.svg`, e o logo é cobrado em toda porta. O resto da vitrine é
-#   só de quem PUBLICA: uma frase acima do teto não pode derrubar o `caminho`,
-#   a sonda de existência do `meow_pack_dir`. As três afirmações do documento
-#   viram três conferências abaixo, para a próxima divergência aparecer aqui.
+#   mentiu uma vez [23/09/2026, revisão da P15]. A vitrine é da porta de quem
+#   PUBLICA: sem a capa, ou com a frase acima do teto, o `caminho` — a sonda de
+#   existência do `meow_pack_dir` — continua vendo o pack, e o logo da P25 está
+#   na mesma fronteira desde a a3ee4a6. A exceção é a URL fora de https, que é
+#   regra do pack inteiro e roda no motor; o `pack.py` e o docs/PACKS.md diziam
+#   que não. Cada afirmação do documento vira uma conferência abaixo, para a
+#   próxima divergência aparecer aqui, e não numa revisão.
 mkdir -p "$PACK_DIR/capturas"
 printf '# %s\n\nHistória com <script>alert(1)</script> e **negrito**.\n' "$ID" > "$PACK_DIR/LEIA-ME.md"
 printf '\x89PNG\r\n\x1a\n' > "$PACK_DIR/capturas/tela.png"
 cp "$PACK_DIR/logo.svg" "$T/logo-guardado.svg"
-# Um SVG são, dentro do pack, que NÃO é o logo: a capa que aponta para ele
-# tem de ser recusada mesmo passando em extensão, cerca e existência.
-cp "$PACK_DIR/logo.svg" "$PACK_DIR/outra-capa.svg"
+# Uma capa que NÃO é o `logo.svg`, com `<script>` dentro. O logo é o arquivo
+# que `vitrine.capa` nomeia (P25, a3ee4a6), então ela tem de passar pela
+# conferência do logo — no `validar` e na porta do painel —, e não escapar dela
+# por ter outro nome. É o achado 5.3 da revisão, medido do lado de cá.
+sed 's#</svg>#<script>alert(1)</script></svg>#' "$PACK_DIR/logo.svg" > "$PACK_DIR/outra-capa.svg"
 por_vitrine() {
   python3 - "$PACK_DIR" "$1" <<'PY' || exit 2
 import json, os, sys
@@ -724,23 +727,22 @@ case "$cabeca" in
   *) falha "as seis primeiras linhas do info não são a vitrine" "$cabeca" ;;
 esac
 
-# A capa ausente é o logo ausente: a recusa é a do logo, e ela nomeia o arquivo.
 rm -f "$PACK_DIR/logo.svg"
 saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
 if [ "$rc" = "0" ]; then
   falha "sem a capa, o pack validou" "$saida"
 else
   case "$saida" in
-    *logo.svg*) ok "sem a capa, validar recusa (rc=$rc) e nomeia o arquivo que falta" ;;
+    *vitrine.capa*logo.svg*) ok "sem a capa, validar recusa (rc=$rc) e nomeia o arquivo que falta" ;;
     *) falha "a recusa sem capa não nomeou o arquivo" "$saida" ;;
   esac
 fi
-# E NO MOTOR TAMBÉM — é o que o docs/PACKS.md diz agora ("a capa ausente tira o
-# pack do desktop"). Se um dia o logo sair da porta do motor, esta linha cai e
+# O docs/PACKS.md diz que a capa ausente não tira o tema do desktop. Se um dia a
+# capa, ou o logo, voltar a ser cobrada na porta do motor, esta linha cai e
 # manda corrigir o documento junto.
 amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id >/dev/null 2>&1 \
-  && falha "sem a capa o motor ainda vê o pack — o docs/PACKS.md diz o contrário" \
-  || ok "sem a capa o motor deixa de ver o pack: a capa é o logo, e o logo é estrutura"
+  && ok "sem a capa o motor continua vendo o pack — a vitrine não tranca o tema" \
+  || falha "a capa ausente fez o pack sumir da sonda do meow_pack_dir"
 cp "$T/logo-guardado.svg" "$PACK_DIR/logo.svg"
 
 # O RESTO DA VITRINE NÃO TRANCA O MOTOR: com a frase acima do teto, `validar`
@@ -779,7 +781,7 @@ done <<'CASOS'
 {"descricao_curta": "sem capa"}|vitrine.capa: é obrigatória|a vitrine sem capa declarada
 {"capa": "capturas/tela.png"}|não é .svg|a capa que não é SVG
 {"capa": "../fora.svg"}|sai de dentro do pack|a capa fora do pack
-{"capa": "outra-capa.svg"}|não é o logo.svg do pack|a capa que é outro SVG, e não o logo
+{"capa": "outra-capa.svg"}|outra-capa.svg: tem <script>|a capa que é outro SVG, com script: ela é o logo, e passa pela conferência dele
 {"capa": "logo.svg", "descricao_curta": "12345678901234567890123456789012345678901234567890123456789012345678901234567890X"}|81 caracteres, e o teto é 80|a frase curta acima de 80
 {"capa": "logo.svg", "site": "http://exemplo.org"}|só https|o site em http
 {"capa": "logo.svg", "site": "javascript:alert(1)"}|vitrine.site|o site em javascript:
@@ -814,6 +816,10 @@ if "próprio: " not in p["origem"] or len(p["amostra"]) != 26:
 capa = servidor.arte_da_vitrine(ident, "capa")
 if not capa or capa[1] != "image/svg+xml":
     erros.append("a capa não é servida como SVG: %r" % (capa and capa[1]))
+# A capa sai do `logo()` no flavor padrão do pack (o `nord` de mentira usa o
+# próprio id), e não dos bytes crus do arquivo — ver `arte_da_vitrine`.
+elif capa[0].decode("utf-8") != servidor.modulo_pack().logo(ident, ident):
+    erros.append("a capa servida não é o que o logo() responde no flavor padrão")
 if not servidor.arte_da_vitrine(ident, "0"):
     erros.append("a captura declarada não é servida")
 for arte in ("1", "../pack.json", "../../../etc/passwd", "-1", ""):
@@ -828,6 +834,33 @@ PY
 [ "$rc" = "0" ] \
   && ok "o /api/packs leva a história crua, e a rota de arte só serve o que o pack declarou" \
   || falha "o painel não honra a vitrine" "$saida"
+
+# A CAPA COM SCRIPT NÃO CHEGA AO PAINEL, e o cartão diz por quê. O motor não
+# confere o logo desde a a3ee4a6 da P25, então quem segura aqui é o `logo()`,
+# pelo qual o servidor passa a capa. O `info` também tem de dizer o motivo, em
+# vez de listar a capa como boa enquanto o `validar` a recusa.
+por_vitrine '{"capa": "outra-capa.svg"}'
+saida="$(amb python3 - "$RAIZ" "$ID" <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+ident = sys.argv[2]
+p = [p for p in servidor.packs_com_vitrine() if p["id"] == ident][0]
+erros = []
+if servidor.arte_da_vitrine(ident, "capa") is not None:
+    erros.append("a rota de arte serviu a capa com <script>")
+if p["capa"] or not any("<script>" in x for x in p["problemas"]):
+    erros.append("o cartão levou a capa, ou não disse o motivo: %r %r" % (p["capa"], p["problemas"]))
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+info="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID" 2>&1)"
+[ "$rc" = "0" ] && [[ "$info" == *"NÃO VALIDA"*"outra-capa.svg: tem <script>"* ]] \
+  && ok "a capa com script não é servida, e o cartão e o info dizem por quê" \
+  || falha "a capa com script chegou ao painel, ou ninguém disse por quê" "$saida
+$info"
+por_vitrine "$VIT_BOA"
 
 # A REGRA DE SEGURANÇA, NO CÓDIGO DA PÁGINA. A história entra num `<pre>` por
 # `texto` (textContent). Um `html:` ou um `innerHTML` dentro do cartão é o

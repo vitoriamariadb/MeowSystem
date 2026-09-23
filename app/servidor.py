@@ -828,6 +828,19 @@ def packs_com_vitrine():
             saida.append({"id": ident, "nome": ident, "problemas": [str(erro)]})
             continue
         vit, problemas = mod.vitrine(p, dir_pack)
+        # A CAPA SÓ ENTRA NO CARTÃO SE O `logo()` A ENTREGAR [23/09/2026, junção
+        #   com a P25]. Desde a a3ee4a6 o motor não confere o logo, e a vitrine só
+        #   confere o campo: um logo com `<script>` passaria pelas duas. Quem
+        #   confere o conteúdo é o `logo()`, a porta de quem mostra — a mesma que
+        #   o `/pack-vitrine` usa. O que ele recusa vira problema do cartão, em
+        #   vez de um <img> quebrado sem motivo.
+        flavor = (p.get("paleta") or {}).get("flavor_padrao") or next(iter(dados["flavors"]))
+        if vit["capa"]:
+            try:
+                mod.logo(ident, flavor)
+            except Exception as erro:
+                problemas.append(str(erro))
+                vit["capa"] = None
         texto = ""
         if vit["descricao"]:
             try:
@@ -839,7 +852,6 @@ def packs_com_vitrine():
         # embaixo da capa: amostra da paleta, e não identidade — a correção que
         # a P25 fez no mockup de 21/09. Os hex já passaram pelo `#RRGGBB` do
         # `validar`, então vão direto para o `style` sem outra peneira.
-        flavor = (p.get("paleta") or {}).get("flavor_padrao") or next(iter(dados["flavors"]))
         cores = dados["flavors"].get(flavor) or {}
         base_url = "/pack-vitrine?id=" + quote(ident, safe="")
         saida.append({
@@ -874,12 +886,25 @@ def arte_da_vitrine(ident, arte):
     if not mod or ident not in _packs_no_disco():
         return None
     try:
-        p, _dados, dir_pack = mod.validar(ident, silencioso=True)
+        p, dados, dir_pack = mod.validar(ident, silencioso=True)
     except Exception:
         return None
     vit, _problemas = mod.vitrine(p, dir_pack)
     if arte == "capa":
-        alvo = vit["capa"]
+        # A CAPA SAI DO `logo()`, E NÃO DOS BYTES CRUS [23/09/2026, junção com a
+        #   P25]. O cru traz a prévia do `flavor_padrao` e não passou por
+        #   conferência nenhuma desde que o motor deixou de cobrar o logo; o
+        #   `logo()` confere o arquivo e reescreve as cores por papel. O flavor é
+        #   o padrão do pack, o mesmo da tira fina que o cartão põe embaixo: a
+        #   cara e a amostra falam do mesmo flavor. Trocar para o flavor que está
+        #   no ar é da P10, que faz da Home o lugar de trocar de pack.
+        if not vit["capa"]:
+            return None
+        flavor = (p.get("paleta") or {}).get("flavor_padrao") or next(iter(dados["flavors"]))
+        try:
+            return mod.logo(ident, flavor).encode("utf-8"), "image/svg+xml"
+        except Exception:
+            return None
     elif re.fullmatch(r"[0-9]+", arte or "") and int(arte) < len(vit["capturas"]):
         alvo = vit["capturas"][int(arte)]
     else:
@@ -5187,9 +5212,9 @@ class Manipulador(BaseHTTPRequestHandler):
         #   A CSP É PARA O SVG DE TERCEIRO. Dentro de um `<img>` o navegador não
         #   roda script de SVG; aberto direto, na aba, rodaria — e na MESMA
         #   origem do painel, com o cookie do token. `default-src 'none'` corta
-        #   script, rede e iframe e deixa o desenho desenhar. A P25 recusa
-        #   `<script>` no logo na validação; esta linha é o cinto de quem não
-        #   passou por ela.
+        #   script, rede e iframe e deixa o desenho desenhar. A capa sai do
+        #   `logo()`, que recusa `<script>` (P25); esta linha é o cinto das
+        #   capturas em SVG, que não passam por conferência de conteúdo nenhuma.
         if caminho == "/pack-vitrine":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")

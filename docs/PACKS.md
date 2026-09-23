@@ -227,7 +227,7 @@ longe das duas listas de destino proibido de `lib/comum.sh`.
 | `nome` | texto | como aparece na tela |
 | `paleta.arquivo` | caminho | relativo ao pack |
 | `paleta.flavor_padrao` | texto | um flavor que exista na paleta |
-| `vitrine.capa` | caminho | sempre `logo.svg`: a capa é o logo, e o `validar` recusa outro arquivo. Ver [A vitrine](#a-vitrine) |
+| `vitrine.capa` | caminho | um SVG dentro do pack — por convenção `logo.svg` —, e ele é o logo do pack. Cobrado só por quem publica: ver [A vitrine](#a-vitrine) |
 
 `formato` existe para que um pack antigo num MeowSystem novo **falhe dizendo o
 que falta**, em vez de pintar errado. Um pack com `formato` maior que o
@@ -333,7 +333,7 @@ hexadecimais, e a tela que escolhe um pack não tinha o que desenhar. O bloco
 
 | Campo | Regra | Por quê |
 |---|---|---|
-| `capa` | **obrigatória**, e é o `logo.svg` do pack — nenhum outro arquivo | é o logo: o mesmo SVG serve ao cartão e ao lançador, e passa pelas regras de [O logo do pack](#o-logo-do-pack) |
+| `capa` | **obrigatória**; SVG; dentro do pack; o arquivo existe — e o arquivo é o logo, com as regras de [O logo do pack](#o-logo-do-pack) | vetor porque o cartão aparece em vários tamanhos, e um PNG de capa envelhece junto com a resolução |
 | `descricao_curta` | uma linha, **até 80 caracteres** | é o que cabe numa linha do cartão — o mesmo teto dos balões do painel |
 | `descricao` | um `.md` dentro do pack, até 64 KiB | a história inteira, para quem abrir o cartão |
 | `tags` | lista de textos | as etiquetas do cartão |
@@ -346,9 +346,10 @@ paleta parecida ficariam iguais no cartão. A capa é o `logo.svg` do pack, o
 mesmo arquivo que vira o ícone do lançador; a tira continua no cartão, fina,
 embaixo dele, como amostra da paleta. Por isso o campo é um só: um
 `vitrine.logo` ao lado de um `vitrine.capa` seriam duas verdades para a mesma
-figura. E pelo mesmo motivo o `validar` recusa uma capa que aponte para outro
-SVG do pack: ela escaparia das regras do logo — sem script, `viewBox` quadrado,
-nada apontando para fora — e seria a segunda verdade por outra porta.
+figura. E o campo manda: se a capa apontar para outro arquivo que não o
+`logo.svg`, é **esse** arquivo que o `validar` e o verbo `logo` conferem como
+logo — sem script, `viewBox` quadrado, nada apontando para fora. Não sobra uma
+segunda figura que escape das regras do logo.
 
 **A descrição é mostrada como texto, nunca como HTML.** O painel põe o
 Markdown do `LEIA-ME.md` num bloco de texto puro, sem interpretar nada — nem
@@ -357,25 +358,22 @@ terceiro numa página que carrega o token de sessão seria dar a um arquivo
 baixado da internet a chance de virar código dentro do painel. Quem quiser
 formatação escreve no site, que o cartão linka.
 
-**Quase toda ela é cobrada só de quem publica.** `meow pack validar` recusa a
-vitrine quebrada — e diz todos os problemas de uma vez. O instalador, o
-`meow pack info` e o painel **não** recusam por ela: um pack com a frase
-comprida, uma tag vazia ou uma captura que falta continua funcionando no
-desktop, e o `info` e o cartão o mostram dizendo o que falta. Uma frase de 81
-caracteres não é motivo para trocar o tema inteiro pelo padrão.
+**Ela é cobrada de quem publica, e nunca de quem usa.** `meow pack validar`
+recusa a vitrine quebrada — e diz todos os problemas de uma vez. O instalador,
+o `meow pack info` e o painel **não**: o tema de um pack sem capa continua
+funcionando no desktop, e o `info` e o cartão mostram o pack dizendo o que
+falta. Se a capa ausente trancasse o motor, o tema inteiro seria trocado pelo
+padrão por causa de uma figura que só a tela de escolha mostra. O logo segue a
+mesma fronteira (ver [O logo do pack](#o-logo-do-pack)), e a capa é o logo.
 
-Duas regras valem também para quem **usa**, e nenhuma nasceu na vitrine:
-
-- **a capa ausente tira o pack do desktop**, porque a capa é o `logo.svg`, e o
-  logo é obrigatório para o pack validar em qualquer porta — ver
-  [O logo do pack](#o-logo-do-pack). É o mesmo tratamento do `CREDITOS.md`
-  declarado e ausente;
-- **uma URL fora de `https://`, em qualquer campo** — um `site` em `http://`,
-  ou uma `descricao_curta` que cite um endereço `http://` — cai no item 11 do
-  `validar`, que vale para o `pack.json` inteiro desde antes da vitrine.
-
-Nos dois casos o `meow pack info` também recusa, com a mesma mensagem do
-`validar`, e o cartão do painel mostra o pack só com o motivo.
+**Com uma exceção, que não nasceu na vitrine: a URL fora de `https://`.** Ela
+é o item 11 do `validar`, vale para **qualquer** campo do `pack.json` e roda
+também para quem usa. Um `site` em `http://`, ou uma `descricao_curta` que cite
+um endereço `http://`, tira o pack do desktop como tiraria em qualquer outro
+campo: o `meow pack info` recusa com a mesma mensagem do `validar`, e o cartão
+do painel mostra o pack só com o motivo. O `site` em `javascript:`, que não tem
+`://`, é da vitrine — só o `validar` o recusa, e o cartão simplesmente não o
+transforma em link.
 
 No terminal, a vitrine é o alto do `meow pack info`:
 
@@ -1085,10 +1083,12 @@ de quem mostra.
   passo vier, a porta é o verbo `logo`, e ele vem com o `meow_lancador_reler`: o
   lançador do COSMIC cacheia ícone (`lancador-cosmic-cacheia-icones`, 11/08), e
   trocar só o arquivo faz parecer que a troca de pack não funcionou.
-- **O cartão do pack na Home** ainda não existe (P10). Quando existir, ele mostra
-  o que `logo <id>` responde — não o arquivo cru, que traz a prévia do flavor
-  padrão e não passou pela conferência, e não a tira, que desce para baixo do
-  logo como amostra.
+- **O cartão do pack na Home** nasceu com a P15 (ver [A vitrine](#a-vitrine)),
+  e mostra o que `logo <id> <flavor_padrao>` responde — não o arquivo cru, que
+  não passou pela conferência, e não a tira, que desce para baixo do logo como
+  amostra do mesmo flavor. Um logo que o verbo recusa não vira imagem: o cartão
+  diz o motivo. Mostrar o logo no flavor que está no ar fica para a P10, que faz
+  da Home o lugar de trocar de pack.
 - **`logo-mono.svg`**, a versão de traço único para barra e bandeja, não entrou:
   nada no projeto o leria, e um arquivo declarado sem leitor é a promessa vazia
   que o `validar` avisa em voz alta.
@@ -1160,17 +1160,18 @@ Ele confere, nesta ordem, e **para no primeiro erro**:
 11. nenhuma URL fora de `https://`
 12. **contraste**: `text` sobre `base` precisa passar em WCAG AA (4.5:1) — 26
     hexes aleatórios passam em tudo acima e produzem uma interface ilegível
-13. **o logo**: `logo.svg` existe, é SVG quadrado, sem script, sem imagem
+13. **a vitrine** — a capa existe, é SVG e está dentro do pack; a frase curta
+    cabe em 80 caracteres; a descrição é um `.md` do pack; o `site` é
+    `https://`. Cobrado só pelo verbo `validar`, como o 14: o instalador e o
+    painel usam um pack de vitrine quebrada assim mesmo. A exceção é o `site`
+    em `http://`, que já caiu no 11 — e o 11 vale para o motor. Ver
+    [A vitrine](#a-vitrine)
+14. **o logo**: `logo.svg` existe, é SVG quadrado, sem script, sem imagem
     embutida e sem nada que aponte para fora dele. Cobrado só pelo verbo
     `validar`: o instalador usa o pack sem logo assim mesmo — ver
-    [O logo do pack](#o-logo-do-pack), que diz cada regra e o porquê
-14. **a vitrine** — a capa é o `logo.svg`; a frase curta cabe em 80
-    caracteres; a descrição é um `.md` do pack; o `site` é `https://`. Este
-    item, e só este, é cobrado apenas pelo verbo `validar`: o instalador e o
-    painel usam assim mesmo um pack de frase comprida ou de `site` em
-    `javascript:`. O que da vitrine vale também para eles vem de outros itens —
-    a capa ausente é o logo ausente (13), e o `site` em `http://` é uma URL fora
-    de `https://` (11). Ver [A vitrine](#a-vitrine)
+    [O logo do pack](#o-logo-do-pack), que diz cada regra e o porquê. Depois
+    da vitrine, e de propósito: o logo é o arquivo que `vitrine.capa` nomeia, e
+    é o 13 que diz, antes, se o campo aponta para um SVG que existe
 
 A validação roda de novo dentro do `meow_preflight`, **antes** de o instalador
 escrever qualquer coisa. Um pack quebrado não chega a tocar no seu desktop.

@@ -134,7 +134,6 @@ CAMPOS_COM_LEITOR = {
     "creditos",                         # validar cobra a existência do arquivo
     "paleta", "paleta.arquivo",         # validar, verbo `paleta`, cmd_info
     "paleta.flavor_padrao",             # validar
-    "vitrine.capa",                     # `logo()` e o validar do logo (P25): a capa É o logo
     "cosmic.mapa",                      # validar cobra a existência
     "cosmic.nome_da_paleta",            # scripts/gerar_temas.py
     "temas.capturados",                 # `captura`, `captura_destino`, `capturas`
@@ -167,7 +166,7 @@ CAMPOS_COM_LEITOR = {
     # calaria o erro de digitação — um `vitrine.descricao_curto` passaria por
     # lido, e é exatamente o campo morto que este aviso existe para nomear.
     "autor", "versao", "licenca",       # cmd_info; `autor` também no /api/packs
-    "vitrine.capa",                     # `vitrine`: validar, cmd_info, /api/packs
+    "vitrine.capa",                     # `vitrine` e `logo()` (P25): a capa É o logo
     "vitrine.descricao_curta",
     "vitrine.descricao",
     "vitrine.tags",
@@ -1321,51 +1320,50 @@ def cmd_logo_gerado(ref, flavor=None, accent=None):
 # A CAPA É O LOGO, E É UM CAMPO SÓ
 #   A P25 corrigiu o mockup de 21/09, que desenhava a capa como uma tira de
 #   cores: tira é paleta, não identidade — dois packs de paleta parecida ficam
-#   iguais no cartão. `vitrine.capa` aponta para o `logo.svg` que a P25 desenha,
-#   o mesmo arquivo que vira o ícone do lançador. Um `vitrine.logo` ao lado
-#   seriam duas verdades para a mesma figura, e a segunda envelhece calada.
-#   Aqui mora o CAMPO — declarado, SVG pelo nome, dentro do pack, existindo. O
-#   que vai DENTRO do arquivo (viewBox quadrado, sem script, sem imagem
-#   embutida) é conferência da P25, no `_validar_logo`, acima.
+#   iguais no cartão. `vitrine.capa` aponta para o logo que a P25 desenha, o
+#   mesmo arquivo que vira o ícone do lançador; por convenção, `logo.svg`. Um
+#   `vitrine.logo` ao lado seriam duas verdades para a mesma figura, e a segunda
+#   envelhece calada. Aqui mora o CAMPO — declarado, SVG pelo nome, dentro do
+#   pack, existindo. O que vai DENTRO do arquivo (viewBox quadrado, sem script,
+#   nada apontando para fora) é o `_validar_logo` da P25, acima.
 #
-#   E A CAPA TEM DE SER ELE, NÃO SÓ POR CONVENÇÃO [23/09/2026, revisão da P15]
-#   Até a revisão, `vitrine.capa` aceitava qualquer `.svg` do pack, e o
-#   "capa = logo.svg" era só costume. Uma `capa.svg` ao lado do logo passaria
-#   por fora da conferência de conteúdo da P25 — script, viewBox, referência
-#   para fora — e recriaria as duas verdades que o parágrafo acima proíbe.
-#   Então o valor precisa resolver (realpath) para o `logo.svg` do pack.
+#   E NENHUMA CAPA ESCAPA DA CONFERÊNCIA DO LOGO [23/09/2026, revisão da P15]
+#   A revisão pegou que uma `capa.svg` ao lado do `logo.svg` passaria por fora
+#   da conferência de conteúdo e recriaria as duas verdades. Quem fechou foi a
+#   P25 (a3ee4a6): o logo É o arquivo que `vitrine.capa` nomeia (`_nome_do_logo`),
+#   e `logo.svg` só na falta do campo. Então a capa, qualquer que seja o nome,
+#   passa pelo `_validar_logo` no verbo `validar` e no `logo()`, que é a porta
+#   de quem mostra — e o `/pack-vitrine` do painel serve a capa por ela.
 #
-# O RESTO DELA É COBRADO DE QUEM PUBLICA; A CAPA, DE TODO MUNDO
+# ELA É COBRADA DE QUEM PUBLICA, E NUNCA DE QUEM USA
 #   `validar(silencioso=True)` é a porta do MOTOR: o `caminho` que o
 #   `meow_pack_dir` (lib/comum.sh) usa como sonda de existência, a `paleta`, o
-#   `som`, o `construir`. A frase, a história, as tags, as capturas e a regra
-#   própria do `site` não entram ali: uma frase de 81 caracteres não tira o tema
-#   do desktop. Quem cobra essas é o verbo `validar`, que é a pergunta de quem
-#   publica (e o `meow pack listar`, que o chama para dizer "não valida").
+#   `som`, o `construir`. Se a vitrine entrasse ali, uma capa ausente faria o
+#   pack SUMIR do desktop — o tema inteiro trocado pelo padrão, com um aviso de
+#   "não resolve", por causa de uma figura que só a tela de escolha mostra.
+#   Então quem cobra é o verbo `validar`, que é a pergunta de quem publica (e o
+#   `meow pack listar`, que o chama para dizer "não valida"). A P25 pôs o logo
+#   na mesma fronteira (a3ee4a6), e a capa ausente — que é o logo ausente — não
+#   tira o tema do desktop por nenhuma das duas portas.
 #
-#   DUAS REGRAS VALEM TAMBÉM NO MOTOR, e nenhuma é desta função:
-#   - A CAPA AUSENTE TIRA O PACK DO DESKTOP, porque a capa é o logo e o logo é
-#     estrutura desde a P25: o `_validar_logo` roda em toda porta, como o
-#     `creditos` declarado e ausente da P20. Até a revisão, este bloco dizia o
-#     contrário. A revisão ofereceu pôr o `_validar_logo` só na porta de quem
-#     publica, e a P15 cedeu em vez disso, medido: o `logo()` da P25 confere o
-#     SVG pela porta do motor (`validar(silencioso=True)`) antes de servi-lo, e
-#     com a troca simulada ele serviu um `logo.svg` com `<script>` sem reclamar.
-#   - UMA URL QUE NÃO SEJA https:// EM QUALQUER CAMPO do `pack.json` — o
-#     `vitrine.site`, ou uma `descricao_curta` que cite `http://` — cai na
-#     varredura de URL do `validar`, que é anterior à vitrine e vale para o pack
-#     inteiro. O que só esta função pega é o esquema sem `://`, que a varredura
-#     não vê (`javascript:alert(1)`, lá embaixo).
+#   COM UMA EXCEÇÃO, QUE NÃO É DESTA FUNÇÃO [23/09/2026, revisão da P15]: uma
+#   URL que não seja https:// em QUALQUER campo do `pack.json` — o
+#   `vitrine.site`, ou uma `descricao_curta` que cite `http://` — cai na
+#   varredura de URL do `validar`, que é anterior à vitrine, vale para o pack
+#   inteiro e roda também no motor. Medido: com `"site": "http://..."` o
+#   `caminho` e o `info` recusam o pack. Este bloco dizia o contrário. O que só
+#   esta função pega é o esquema sem `://`, que a varredura não vê
+#   (`javascript:alert(1)`, lá embaixo).
 #
 # ELA NÃO LEVANTA: DEVOLVE O QUE VALE, E A LISTA DO QUE NÃO VALE
 #   Quem a lê são três — o `validar`, o `cmd_info` e o `/api/packs` do painel —,
 #   e só o primeiro recusa por ela. Os outros dois mostram o pack assim mesmo,
-#   dizendo o que falta — desde que o pack tenha passado pela porta do motor,
-#   que eles também atravessam (ver as duas regras logo acima). O valor que não
-#   passa na regra SAI da resposta em vez de ir junto com o aviso: a URL que
-#   não é https não vira link, o caminho que sai do pack não é servido. É isso
-#   que deixa o painel usar a vitrine de um pack de terceiro sem repetir regra
-#   nenhuma do lado de lá.
+#   dizendo o que falta — desde que ele tenha passado pela porta do motor, que
+#   eles também atravessam (ver a exceção logo acima). O valor que não passa na
+#   regra SAI da resposta em vez de ir junto com o aviso: a URL que não é https
+#   não vira link, o caminho que sai do pack não é servido. É isso que deixa o
+#   painel usar a vitrine de um pack de terceiro sem repetir regra nenhuma do
+#   lado de lá.
 #
 # O TETO DE 80 É O DOS BALÕES DA P6, pelo mesmo motivo: é o que cabe numa linha
 #   do cartão sem virar parágrafo. O da descrição longa não é estética — o texto
@@ -1419,22 +1417,13 @@ def vitrine(p, dir_pack):
         return alvo
 
     if "capa" not in v:
-        problemas.append(f"vitrine.capa: é obrigatória — o cartão do pack é a capa, "
-                         f"e ela é o \"{LOGO}\"")
+        problemas.append("vitrine.capa: é obrigatória — o cartão do pack é a capa. "
+                         "Por convenção, \"logo.svg\"")
     else:
-        capa = arquivo(
+        saida["capa"] = arquivo(
             "vitrine.capa", v["capa"], (".svg",),
             "Vetor porque a mesma capa serve ao cartão e ao lançador,\n"
             "    em vários tamanhos, e um PNG envelhece junto com a resolução.")
-        # A CAPA É O LOGO, E NENHUM OUTRO ARQUIVO — ver "E A CAPA TEM DE SER ELE".
-        # Comparado pelo realpath, e não pelo texto: "./logo.svg" é o mesmo arquivo.
-        if capa and capa != os.path.realpath(os.path.join(dir_pack, LOGO)):
-            problemas.append(
-                f"vitrine.capa: {v['capa']!r} não é o {LOGO} do pack. A capa É o logo:\n"
-                f"    uma segunda figura escaparia da conferência do logo (sem script,\n"
-                f"    viewBox quadrado) e seriam duas verdades para a mesma cara.")
-        else:
-            saida["capa"] = capa
 
     curta = v.get("descricao_curta", "")
     if not isinstance(curta, str):
@@ -1741,6 +1730,26 @@ def validar(ref, silencioso=False):
     for trilha, u in urls(p):
         _exigir(u.startswith("https://"), f"{trilha}: {u!r} — só https é aceito")
 
+    # --- vitrine ------------------------------------------------------------
+    # Só na porta de quem PUBLICA — ver `vitrine`, acima, "ELA É COBRADA DE QUEM
+    # PUBLICA". O `silencioso` é exatamente essa fronteira hoje: todo chamador
+    # do motor (`caminho`, `paleta`, `som`, `info`, `construir`) passa True, e só
+    # o verbo `validar` passa False. Todos os problemas de uma vez, como os slots
+    # que faltam: consertar um por rodada é o que faz alguém desistir de publicar.
+    # Cada um na própria linha de `erro`, porque as mensagens já trazem linha de
+    # continuação indentada e, emendadas no mesmo recuo, não se sabe onde uma
+    # acaba e a outra começa.
+    #
+    # ANTES DO LOGO, E DE PROPÓSITO [23/09/2026, junção com a P25]: o logo é o
+    # arquivo que `vitrine.capa` nomeia, e é a vitrine que confere o CAMPO — um
+    # `.svg`, dentro do pack, existindo. Na ordem inversa, uma capa `.png` seria
+    # recusada pelo `_validar_logo` como "não é texto", e a mensagem certa é
+    # "não é .svg"; uma capa ausente, como "o pack não tem logo", sem dizer que
+    # o campo aponta para um arquivo que não existe.
+    if not silencioso:
+        _, problemas = vitrine(p, dir_pack)
+        _exigir(not problemas, "\n  erro ".join(problemas))
+
     # --- o logo -------------------------------------------------------------
     # POR ÚLTIMO, E DE PROPÓSITO: um pack de formato errado ou paleta quebrada
     # deve ouvir primeiro sobre isso, que é o que impede qualquer tela de sair.
@@ -1758,22 +1767,6 @@ def validar(ref, silencioso=False):
     #   depende daqui: o `logo()` confere o arquivo por conta própria.
     if not silencioso:
         _validar_logo(dir_pack, p)
-
-    # --- vitrine ------------------------------------------------------------
-    # Só na porta de quem PUBLICA — ver `vitrine`, acima, "O RESTO DELA É
-    # COBRADO DE QUEM PUBLICA". O `silencioso` é exatamente essa fronteira hoje:
-    # todo chamador do motor (`caminho`, `paleta`, `som`, `info`, `construir`)
-    # passa True, e só o verbo `validar` passa False. Depois do logo, e não
-    # antes: a capa ausente é o logo ausente, e ela já foi recusada ali em cima,
-    # com a mesma mensagem nas duas portas. Todos os problemas de uma vez, como
-    # os slots que faltam: consertar um por rodada é o que faz alguém desistir
-    # de publicar.
-    # Cada um na própria linha de `erro`, porque as mensagens já trazem linha de
-    # continuação indentada e, emendadas no mesmo recuo, não se sabe onde uma
-    # acaba e a outra começa.
-    if not silencioso:
-        _, problemas = vitrine(p, dir_pack)
-        _exigir(not problemas, "\n  erro ".join(problemas))
 
     if not silencioso:
         # O AVISO VEM ANTES DO `ok`, E NÃO MUDA O CÓDIGO DE SAÍDA
@@ -1917,6 +1910,15 @@ def resumo_de_origem(p):
 def cmd_info(ref):
     p, dados, dir_pack = validar(ref, silencioso=True)
     vit, problemas = vitrine(p, dir_pack)
+    # O QUE VAI DENTRO DA CAPA TAMBÉM ENTRA NA CONTA [23/09/2026, junção com a
+    #   P25]. Desde a a3ee4a6 o motor não confere o logo, e a vitrine só confere o
+    #   campo; sem esta linha, um logo com `<script>` sairia aqui como "capa
+    #   logo.svg", tudo certo, e o `validar` o recusaria logo depois.
+    if vit["capa"]:
+        try:
+            _validar_logo(dir_pack, p)
+        except Recusa as e:
+            problemas.append(str(e))
     base = p.get("heranca") or "(nenhuma)"
     # AS SEIS PRIMEIRAS LINHAS SÃO A VITRINE — 23/09/2026, P15
     #   A conferência da sprint é `meow pack info dracula | head -6`, e ela é o
@@ -1934,13 +1936,13 @@ def cmd_info(ref):
     print(f"  herança   : {base}")
     print(f"  flavors   : {', '.join(sorted(dados['flavors']))}")
     print(f"  claros    : {', '.join(dados['claros']) or '(nenhum)'}")
-    # O `info` MOSTRA O PACK COM O RESTO DA VITRINE QUEBRADO, e diz o que falta:
-    # ele é a pergunta de quem está consertando, e esconder o pack inteiro atrás
-    # de uma frase comprida não ajudaria ninguém a encurtá-la. A capa ausente e
-    # a URL fora de https não chegam aqui: o `validar(silencioso=True)` da
-    # primeira linha já as recusou, porque as duas são regra do motor (ver
-    # `vitrine`, "DUAS REGRAS VALEM TAMBÉM NO MOTOR"). A recusa sai com o que
-    # consertar, e é a mesma do `validar`.
+    # O `info` MOSTRA O PACK MESMO COM A VITRINE QUEBRADA, e diz o que falta: ele
+    # é a pergunta de quem está consertando, e esconder o pack inteiro atrás de
+    # uma capa ausente não ajudaria ninguém a achar a capa.
+    #   MENOS A URL FORA DE https:// [23/09/2026, revisão da P15]: essa é regra
+    #   do pack inteiro, e o `validar(silencioso=True)` da primeira linha já a
+    #   recusou — um `vitrine.site` em `http://` faz o `info` sair 1, com a
+    #   mesma mensagem do `validar`. Ver `vitrine`, "COM UMA EXCEÇÃO".
     if problemas:
         print(f"  vitrine   : NÃO VALIDA — `meow pack validar {p['id']}` recusa por isto:")
         for linha in problemas:
