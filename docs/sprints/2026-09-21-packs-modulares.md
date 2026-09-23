@@ -631,9 +631,20 @@ meow pack usar dracula && ./install.sh --uma-passagem 2>&1 | grep -ci catppuccin
 # espera, para cada um: ou "já está no tema do pack", ou "está em <x>, que não
 # veio daqui — trocar?", ou "apliquei". Nunca "não instalado" para um app instalado.
 
-# 3. o teto
-grep -ri catppuccin assets/temas-de-apps/ --include=manifesto.sh | grep -v '^\s*#' | wc -l   # 0
+# 3. o teto, e ele vale para CÓDIGO, não para a história
+#    O `grep -r` prefixa `arquivo:`, então o filtro `grep -v '^\s*#'` é inerte:
+#    ele nunca casa. Medido em 22/09: o pipeline literal devolve 124, das quais
+#    97 são comentário — que o item 6 desta mesma sprint manda PRESERVAR.
+#    A régua certa tira o prefixo antes de julgar:
+grep -rn catppuccin assets/temas-de-apps/ --include=manifesto.sh \
+  | sed 's/^[^:]*:[0-9]*://' | grep -vE '^\s*(#|$)' | wc -l
+# antes: 27 linhas de código nos seis módulos não migrados · depois: 0
 ```
+
+> **CORREÇÃO DE 22/09, e o erro era meu.** A conferência original pedia `0` do
+> pipeline com `grep -v '^\s*#'`. Esse filtro **nunca dispara** num `grep -r`,
+> porque a linha começa com o nome do arquivo. O número não chegaria a zero nem
+> com os oito módulos migrados: ele conta a prosa que a sprint protege.
 
 ### O que pode dar errado
 
@@ -1726,9 +1737,10 @@ sprint confirma que não há de onde trazer.
 ### Como conferir
 
 ```sh
-# 1. nada mais aponta para o vizinho
-grep -rn "config/zsh" scripts/ lib/ assets/temas-de-apps/ install.sh | grep -v '^\s*#' | wc -l
-# antes: 4 (compositor_patches x2, qbittorrent, terminal) · depois: 0
+# 1. nada mais aponta para o vizinho — NOS ARQUIVOS QUE ESTA SPRINT AUTORIZA
+grep -rn "config/zsh" scripts/compositor_patches.sh assets/temas-de-apps/qbittorrent/ \
+  | sed 's/^[^:]*:[0-9]*://' | grep -vE '^\s*(#|$)' | wc -l
+# antes: 4 · depois: 0
 
 # 2. o doctor fica verde no compositor
 meow doctor | grep -i compositor
@@ -1738,6 +1750,15 @@ meow doctor | grep -i compositor
 # 3. o Spotify tem o comando que a pendencia promete
 meow pendencias | grep -i spicetify   # e o botao Resolver de fato resolve
 ```
+
+> **CORREÇÃO DE 22/09, e o erro era meu.** A conferência original varria
+> `scripts/ lib/ install.sh` inteiros e exigia `0`. Medido: sobram **15
+> linhas**, todas em arquivos que a tabela "Arquivos, e só estes" **não
+> autoriza** — `install.sh` (×5), `fastfetch_logo.sh` (×2), `areas.sh`,
+> `prompt.sh`, `coleta-meowsystem.sh`, `btop-bat/manifesto.sh` (×2) e três
+> `.md`. E duas delas usam `${ZDOTDIR:-...}`, que **é** a variável de escape
+> que o teste cobra. Pedir zero de uma varredura mais larga que o escopo é
+> pedir o impossível; a régua passou a medir só o que a sprint pode tocar.
 
 ### O que pode dar errado
 
