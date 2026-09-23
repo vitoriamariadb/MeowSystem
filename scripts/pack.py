@@ -65,6 +65,16 @@ VERBOS
                                  o accent de contorno). Não escreve: quem o põe
                                  no pack é a pessoa, com `>`.
     som     <id>                 o timbre do pack, como CHAVE=valor para o shell
+    ponteiro [id]                o ponteiro PRÓPRIO que o pack alcança — o dele,
+                                 ou o de quem ele herda. Imprime, para o shell:
+                                     pack=<quem traz>
+                                     dir=<o tema, dentro do pack>
+                                     valor=<o que a chave CURSOR escreve>
+                                 1 = ninguém na cadeia traz. Ver `ponteiro`.
+    tipografia [id]              as FONTES de texto que o pack alcança, uma por
+                                 linha: `pack<TAB>nome<TAB>origem<TAB>sha256`.
+                                 Não é o verbo `fontes`, que é de ícone (P28).
+                                 Ver `tipografia`.
     info    <id>                 o que é próprio, o que é herdado, o que falta
     raizes                       imprime as raízes de busca, na ordem
     padrao                       o diretório do pack PADRÃO, resolvido pelas
@@ -183,6 +193,15 @@ CAMPOS_COM_LEITOR = {
     "vitrine.tags",
     "vitrine.capturas",
     "vitrine.site",
+    # O PONTEIRO E AS FONTES — 23/09/2026, sprint P12. Os dois nasceram com
+    # leitor no mesmo commit: o `proprio` do ponteiro é lido pelo `cursor.sh`
+    # (antes de baixar) e pelo painel (`_cursor_pastas_do_valor`); a lista de
+    # fontes, pelo `instalar_fontes.sh`, pelo verbo `tipografia`. O `herda` das
+    # fontes vai escrito por extenso porque a trilha tem DOIS segmentos, e a
+    # máscara `*.*.herda` pede três.
+    "origens.cursores.proprio",
+    "fontes.proprio",
+    "fontes.herda",
 }
 
 
@@ -1350,6 +1369,224 @@ def tema_de_app(categoria, ref=None):
     return None, None
 
 
+# --- O PONTEIRO PRÓPRIO — 23/09/2026, sprint P12 ----------------------------
+#
+# O "HERDADO" DO PONTEIRO ERA FOLCLORE, E FOI MEDIDO
+#   `origens.cursores` só aceitava `herda`. O Dracula declara `herda:
+#   "catppuccin"`, o `meow pack info` imprimia "HERDADO de catppuccin" — e o
+#   `packs/catppuccin/pack.json` não declara ponteiro nenhum. Mais: NENHUMA
+#   linha do `scripts/cursor.sh` perguntava ao pack. O ponteiro saía da chave
+#   CURSOR do meow.conf e, sem ele no disco, do release pinado do
+#   `catppuccin/cursors`, o mesmo para todo pack. A herança existia só na tela.
+#
+# `proprio` É UM TEMA XCURSOR DENTRO DO PACK, E ENTRA COMO QUALQUER OUTRO
+#   `cursores/<nome>/cursors/` — a forma de todo tema de ponteiro, a mesma que o
+#   `cursor.sh adicionar` já instala. O `cursor.sh` pergunta AQUI antes de
+#   baixar: se a chave CURSOR nomeia o ponteiro do pack, ele entra do pack, sem
+#   rede, pelo mesmo `_cursor_instalar_pasta` de um tema de terceiro. Quem
+#   ESCOLHE continua sendo a chave — "o meow.conf vence" (docs/PACKS.md).
+#
+# O NOME TEM O ALFABETO DA PENEIRA DO `cursor.sh`, E SÓ ELE
+#   O `_cursor_nome_seguro` troca por `-` o que estiver fora de [A-Za-z0-9._-] e
+#   come o `.`/`-` da frente antes de o nome virar diretório. Um nome que ele
+#   MUDASSE seria instalado com um nome e oferecido pelo painel com outro — o
+#   clique que sai baixando da rede, que a P17 tirou da tela duas vezes. Então o
+#   formato só aceita o nome que aquela peneira deixa como está.
+#
+# O VALOR PERDE O `-cursors`, PELA REGRA DO `cursor.sh`
+#   O `_cursor_instalar_pasta` instala `<nome>` como `<nome>-cursors` e anuncia
+#   o valor sem o sufixo; o `_cursor_nome_tema` o põe de volta. É o que faz
+#   `cursores/dracula-roxo/` ser escolhido por `CURSOR="dracula-roxo"`.
+#
+# TODO ARQUIVO DO TEMA CAI DENTRO DELE
+#   Um tema Xcursor é feito de links (`left_ptr -> default`, dezenas deles). O
+#   `cursor.sh` copia o diretório inteiro com `cp -a`, que copia o LINK, e um
+#   `cursors/x -> /etc/algo` iria parar em `~/.local/share/icons/` apontando
+#   para fora. É a regra do `realpath` que o formato aplica a todo caminho
+#   declarado, levada para dentro do diretório declarado.
+CATEGORIA_PONTEIRO = "origens.cursores.proprio"
+SUFIXO_PONTEIRO = "-cursors"
+RE_NOME_PONTEIRO = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,79}$")
+# `default` é o nome canônico do ponteiro de repouso, `left_ptr` o histórico. Um
+# tema sem nenhum dos dois não tem o ponteiro que aparece primeiro na tela, e o
+# painel não tem de onde tirar a prévia (`_prev_cursores` procura os mesmos).
+PONTEIROS_DE_REPOUSO = ("default", "left_ptr")
+
+
+def valor_do_ponteiro(nome):
+    """O valor da chave CURSOR que escolhe o tema `nome` — sem o `-cursors`."""
+    return nome[:-len(SUFIXO_PONTEIRO)] if nome.endswith(SUFIXO_PONTEIRO) else nome
+
+
+def conferir_ponteiro(tema, campo=CATEGORIA_PONTEIRO):
+    """Levanta Recusa se `tema` não é um tema Xcursor que se copia inteiro."""
+    nome = os.path.basename(os.path.normpath(tema))
+    _exigir(RE_NOME_PONTEIRO.match(nome) and valor_do_ponteiro(nome),
+            f"{campo}: o tema chama-se {nome!r}, e o nome dele é o que a chave CURSOR\n"
+            f"    escreve. Só letras, dígitos, '.', '_' e '-', sem começar por '.' ou '-':\n"
+            f"    é o que o scripts/cursor.sh aceita como nome de diretório sem mudá-lo.")
+    _exigir(os.path.isdir(os.path.join(tema, "cursors")),
+            f"{campo}: {nome}/ não tem a pasta cursors/ — sem ela não é tema de ponteiro")
+    _exigir(any(os.path.isfile(os.path.join(tema, "cursors", c)) for c in PONTEIROS_DE_REPOUSO),
+            f"{campo}: {nome}/cursors/ não tem {' nem '.join(PONTEIROS_DE_REPOUSO)} —\n"
+            f"    é o ponteiro de repouso, o primeiro que aparece na tela.")
+    # O LINK QUE NÃO LEVA A NADA — achado da revisão da P12, 23/09/2026.
+    #   `cursors/hand -> hand2` sem o `hand2` cai DENTRO do tema pelo `realpath`
+    #   e passava. Medido num HOME de brinquedo: `validar` saía 0, e o `aplicar`
+    #   reinstalava o tema em toda passagem, sem convergir. O ponteiro que o link
+    #   promete não existe, e o autor do pack é quem tem de saber — aqui, e não
+    #   na máquina de quem instalou. (O `cursor.sh` compara o link como link
+    #   desde o mesmo dia; ver `_cursor_instalar_pasta`.)
+    for base, dirs, arqs in os.walk(tema):
+        for n in dirs + arqs:
+            rel = os.path.relpath(os.path.join(base, n), tema)
+            try:
+                cheio = _dentro(tema, rel, campo)
+            except Recusa:
+                raise Recusa(f"{campo}: {nome}/{rel} aponta para fora do tema. O tema é\n"
+                             f"    copiado inteiro para ~/.local/share/icons/, e o link iria junto.") from None
+            _exigir(os.path.exists(cheio),
+                    f"{campo}: {nome}/{rel} é um link que não leva a arquivo nenhum —\n"
+                    f"    o ponteiro que ele promete não existe. Aponte-o para um que exista,\n"
+                    f"    ou tire-o.")
+
+
+def ponteiro(ref=None):
+    """O ponteiro próprio que a cadeia alcança: {'pack', 'dir', 'valor'}, ou None.
+
+    A subida é a do `acervo` — `proprio` do pack; senão `origens.cursores.herda`,
+    senão `heranca` —, e por isso esta função a pede a ele em vez de refazê-la.
+    Um tema que o `acervo` acha e que não passa em `conferir_ponteiro` é
+    ignorado com aviso: o `validar` já o recusa na publicação, e quem pergunta
+    aqui é o `cursor.sh`, que vai COPIAR o diretório.
+    """
+    tema = acervo(CATEGORIA_PONTEIRO, ref=_ref_ativa(ref))
+    if not tema or not os.path.isdir(tema):
+        return None
+    tema = os.path.normpath(tema)
+    try:
+        conferir_ponteiro(tema)
+    except Recusa as e:
+        print(f"  aviso {e} — o ponteiro do pack foi ignorado", file=sys.stderr)
+        return None
+    return {"pack": _pack_de(tema), "dir": tema,
+            "valor": valor_do_ponteiro(os.path.basename(tema))}
+
+
+# --- AS FONTES DE TEXTO — 23/09/2026, sprint P12 ----------------------------
+#
+# POR QUE `tipografia`, E NÃO `fontes`
+#   Em português "fonte" é a tipografia e é a origem. A P28 tomou o verbo
+#   `fontes` para "de onde sai cada ícone"; reaproveitar o nome aqui faria o
+#   `tests/fonte-unica.sh` e quem chama `pack.py fontes` receberem outra coisa,
+#   calados. A CHAVE do pack.json é `fontes` — é como quem escreve um pack
+#   procura —; o VERBO é `tipografia`.
+#
+# O QUE O MOTOR JÁ FAZ, E O QUE O PACK ACRESCENTA
+#   O `instalar_fontes.sh` instala a JetBrainsMono Nerd Font pinada e aponta o
+#   terminal para ela, para todo pack — isso continua do motor. O que era
+#   impossível era um pack TRAZER fontes. Agora ele declara uma lista, e ela
+#   entra em `~/.local/share/fonts/MeowSystem/pack/`, um diretório de dono
+#   único: trocar de pack tira as fontes do pack anterior, que é o que "a
+#   fonte é do pack" quer dizer.
+#
+# DUAS FORMAS, E CADA UMA COM A REGRA QUE O FORMATO JÁ TEM
+#   {"arquivo": "fontes/X.otf"}                 dentro do pack — o `realpath`
+#   {"nome": "X.ttf", "url": "https://…",       fora dele — o `https://` e o
+#    "sha256": "<64 hex>"}                      conteúdo pinado, como a Nerd Font
+#   A URL aponta para UM arquivo de fonte, e não para um pacote: abrir .zip ou
+#   .tar é o que o `adicionar` do mesmo script faz pelas mãos dela, com ela
+#   olhando. Um pack instala sozinho, e o que entra sozinho é o que se confere
+#   byte a byte.
+#
+# A HERANÇA É DO BLOCO INTEIRO, COMO NOS TEMAS DE APLICATIVO
+#   O primeiro pack da cadeia que declara `fontes.proprio` responde, e a lista
+#   dele é a lista — uma fonte não "falta" e desce ao vizinho. `[]` é "este pack
+#   não traz fonte, e não herda": é como um pack diz isso.
+CATEGORIA_FONTES = "fontes"
+EXT_FONTE = (".ttf", ".otf")
+# O nome vira nome de arquivo em `~/.local/share/fonts/` e viaja numa linha
+# separada por TAB até o shell. Espaço é norma em fonte (`zrnic rg.otf`, contado
+# no cabeçalho do `instalar_fontes.sh`); barra, TAB e quebra de linha, nunca.
+RE_NOME_FONTE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9 ._+-]{0,119}$")
+# Os quatro primeiros bytes de um TrueType ou OpenType. É a mesma pergunta que
+# o logo faz ao PNG renomeado: extensão não é conteúdo.
+ASSINATURAS_DE_FONTE = (b"\x00\x01\x00\x00", b"true", b"OTTO")
+
+
+def _fontes_declaradas(dir_pack, lista, trilha="fontes.proprio"):
+    """[(nome, origem, sha256)] de uma lista `fontes.proprio`. Levanta Recusa.
+
+    `origem` é o caminho dentro do pack ou a URL; `sha256` vem vazio para o
+    arquivo de dentro do pack, que é conferido pelo próprio conteúdo.
+    """
+    _exigir(isinstance(lista, list), f"{trilha}: precisa ser uma lista")
+    saida, vistos = [], {}
+    for i, fonte in enumerate(lista):
+        aqui = f"{trilha}[{i}]"
+        _exigir(isinstance(fonte, dict),
+                f"{aqui}: cada fonte é um objeto — {{\"arquivo\": …}} ou {{\"nome\", \"url\", \"sha256\"}}")
+        chaves = {k for k in fonte if not str(k).startswith("_")}
+        if "arquivo" in chaves:
+            _exigir(chaves == {"arquivo"},
+                    f"{aqui}: 'arquivo' vem sozinho. A fonte de dentro do pack é o próprio\n"
+                    f"    arquivo; 'url' e 'sha256' são da fonte que vem de fora.")
+            arq = fonte["arquivo"]
+            _exigir(isinstance(arq, str) and arq, f"{aqui}.arquivo: precisa ser um caminho")
+            alvo = _dentro(dir_pack, arq, f"{aqui}.arquivo")
+            _exigir(os.path.isfile(alvo),
+                    f"{aqui}.arquivo: {arq!r} está declarado e NÃO existe no pack")
+            with open(alvo, "rb") as fh:
+                cabeca = fh.read(4)
+            _exigir(cabeca in ASSINATURAS_DE_FONTE,
+                    f"{aqui}.arquivo: {arq!r} não é TrueType nem OpenType por dentro —\n"
+                    f"    a extensão diz fonte, os primeiros bytes não.")
+            nome, origem, soma = os.path.basename(arq), os.path.join(dir_pack, arq), ""
+        else:
+            _exigir(chaves == {"nome", "url", "sha256"},
+                    f"{aqui}: a fonte de fora do pack declara as três — nome, url e sha256.\n"
+                    f"    Veio: {', '.join(sorted(chaves)) or '(nada)'}")
+            nome, origem, soma = fonte["nome"], fonte["url"], fonte["sha256"]
+            _exigir(isinstance(origem, str) and origem.startswith("https://"),
+                    f"{aqui}.url: {origem!r} — só https:// é aceito")
+            _exigir(isinstance(soma, str) and RE_SHA256.match(soma),
+                    f"{aqui}.sha256: {soma!r} não é um sha256 (64 hex minúsculos).\n"
+                    f"    O conteúdo é pinado: sem ele, a URL entrega o que quiser.")
+        _exigir(isinstance(nome, str) and RE_NOME_FONTE.match(nome)
+                and nome.lower().endswith(EXT_FONTE),
+                f"{aqui}: o nome {nome!r} vira arquivo em ~/.local/share/fonts/ —\n"
+                f"    termina em {' ou '.join(EXT_FONTE)}, sem barra, sem começar por '.' ou '-'.")
+        _exigir(nome not in vistos,
+                f"{aqui}: {nome!r} já está em {trilha}[{vistos.get(nome)}] — um nome, um arquivo no disco")
+        vistos[nome] = i
+        saida.append((nome, origem, soma))
+    return saida
+
+
+def tipografia(ref=None):
+    """(id de quem responde, [(nome, origem, sha256)]), ou (None, []).
+
+    A travessia é a do `tema_de_app`: responde o primeiro pack da cadeia que
+    declara `fontes.proprio`; `fontes.herda` vence a `heranca` do pack; o
+    conjunto de vistos corta a herança circular. Levanta Recusa se a lista de
+    quem responde não passa — quem pergunta vai instalar o que ela diz.
+    """
+    ref = _ref_ativa(ref)
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        dir_pack = achar(ref)
+        if not dir_pack:
+            break
+        bloco = campo(ref, CATEGORIA_FONTES)
+        if isinstance(bloco, dict) and not bloco.get("herda") and "proprio" in bloco:
+            quem = campo(ref, "id") or os.path.basename(dir_pack)
+            return quem, _fontes_declaradas(dir_pack, bloco["proprio"])
+        prox = bloco.get("herda") if isinstance(bloco, dict) else None
+        ref = prox or campo(ref, "heranca")
+    return None, []
+
+
 def _luminancia(hexcor):
     """Luminância relativa de WCAG 2.x. Usada só para o teste de contraste."""
     r, g, b = (int(hexcor[i:i + 2], 16) / 255 for i in (1, 3, 5))
@@ -2249,6 +2486,42 @@ def validar(ref, silencioso=False):
                     f"    declarado: {soma_app}\n"
                     f"    medido   : {medido}")
 
+    # --- o ponteiro e as fontes — 23/09/2026, sprint P12 ---------------------
+    #   Os dois são campos de arquivo, e entram na vizinhança do `creditos` e
+    #   do `apps.*.arquivo` pelo motivo que aqueles dois já contam: o pack que
+    #   promete e não entrega só falharia dentro do instalador, na máquina de
+    #   quem instalou. E pelas duas portas, como aqueles: o `cursor.sh` COPIA o
+    #   tema para `~/.local/share/icons/`, e um link para fora não pode passar
+    #   por nenhuma delas.
+    #
+    #   `proprio` E `herda` JUNTOS É RECUSA, e não precedência: um bloco que diz
+    #   "o meu" e "o do vizinho" ao mesmo tempo não disse nada, e escolher um
+    #   dos dois por quem o escreveu é o default escondido que o formato evita.
+    cur = (p.get("origens") or {}).get("cursores")
+    if isinstance(cur, dict) and "proprio" in cur:
+        prop = cur["proprio"]
+        _exigir(isinstance(prop, str) and prop,
+                "origens.cursores.proprio: precisa ser o caminho de um tema dentro do pack —\n"
+                "    por convenção, cursores/<nome>/")
+        _exigir(not cur.get("herda"),
+                "origens.cursores: 'proprio' e 'herda' ao mesmo tempo. Ou o pack traz o\n"
+                "    ponteiro, ou herda o de outro — os dois juntos não dizem qual.")
+        tema = _dentro(dir_pack, prop, CATEGORIA_PONTEIRO)
+        _exigir(os.path.isdir(tema),
+                f"origens.cursores.proprio: {prop!r} está declarado e NÃO existe no pack.\n"
+                f"    Ou crie o tema, ou tire o campo.")
+        conferir_ponteiro(tema)
+
+    fo = p.get(CATEGORIA_FONTES)
+    if fo is not None:
+        _exigir(isinstance(fo, dict),
+                "pack.json: 'fontes' precisa ser um objeto — {\"proprio\": [...]} ou {\"herda\": \"<id>\"}")
+        _exigir(not ("proprio" in fo and fo.get("herda")),
+                "fontes: 'proprio' e 'herda' ao mesmo tempo. Ou o pack traz as fontes, ou\n"
+                "    herda as de outro — a lista de um não se soma à do outro.")
+        if "proprio" in fo:
+            _fontes_declaradas(dir_pack, fo["proprio"])
+
     # --- som ----------------------------------------------------------------
     # O timbre é opcional. Quando existe, precisa ser NÚMERO e precisa caber nos
     # limites que o som.sh documenta — um pack não pode assustar quem o instala.
@@ -2287,8 +2560,11 @@ def validar(ref, silencioso=False):
     # é lido pelo `tema_de_app` exatamente como `icones.*.herda` é lido pelo
     # `acervo` — e uma herança que aponta para um pack inexistente precisa ser
     # recusada na publicação, não descoberta na hora de aplicar.
+    # `fontes` entrou em 23/09/2026 (P12) pelo mesmo motivo: o `tipografia` lê o
+    # `fontes.herda` como o `acervo` lê o `icones.*.herda`.
     for cat, bloco in (list(ic.items()) + list((p.get("origens") or {}).items())
-                       + list((p.get("apps") or {}).items())):
+                       + list((p.get("apps") or {}).items())
+                       + [(CATEGORIA_FONTES, p.get(CATEGORIA_FONTES))]):
         if isinstance(bloco, dict) and bloco.get("herda"):
             herancas.append(bloco["herda"])
     for h in set(herancas):
@@ -2440,13 +2716,48 @@ ROTULO_DA_CATEGORIA = {
     "cursores": "ponteiro",
     "wallpapers": "papéis de parede",
     "apps": "temas de aplicativo",
+    "som": "som",
+    "fontes": "fontes",
+    "gerador": "traço do gerador de ícone",
+    "prompt": "prompt",
+    "fastfetch": "fastfetch",
+    "gatos": "gatos",
+}
+
+
+# AS QUE O FORMATO AINDA NÃO DECLARA, DITAS NA TABELA — 23/09/2026, sprint P12
+#
+#   A tabela da P12 contou onze categorias, e o `info` imprimia nove linhas:
+#   som, fontes, o traço do gerador de ícone, prompt, fastfetch e gatos não
+#   apareciam — e a P18 e a P27 tinham acrescentado duas que a tabela não
+#   contava (temas de aplicativo, ícones autorais). Uma categoria que some da
+#   tela é lida como "o pack cuida disso", e a nota de herança do Dracula dizia
+#   que prompt, fastfetch e gatos "vêm do pack base". Não vêm: vêm de `assets/`,
+#   iguais para todo pack, e nenhum pack tem campo onde declarar outros.
+#
+#   Então elas entram na tabela com o nome do que são — DO MOTOR, não
+#   declaráveis — e o lugar de onde saem na coluna ao lado. Quando uma sprint
+#   der campo e leitor a uma delas, ela sai DESTA tabela e passa a ser
+#   classificada como as outras; enquanto estiver aqui, o `info` diz a verdade.
+#
+#   O TRAÇO DO GERADOR NÃO É O `icones.autorais`. A P26 tornou declarável O QUE
+#   o gerador de autorais desenha (os `.json` do pack). O traço da conversão —
+#   espessura, fusão, aparo, cantos, preenchimento — continua nos padrões do
+#   `converter_icone.py` e nas réguas da oficina, e é a mesma saída para todo
+#   pack. Ver a seção "O que ainda não é do pack" do docs/PACKS.md.
+FIXAS_NO_MOTOR = {
+    "gerador": "scripts/converter_icone.py",
+    "prompt": "assets/prompt/",
+    "fastfetch": "assets/fastfetch/",
+    "gatos": "assets/gatos/",
 }
 
 
 def origens(p):
     """[(categoria, tipo, de_quem)] na ordem da tabela do `info`.
 
-    `tipo` é 'próprio', 'herdado' ou 'motor'; `de_quem` só vem no 'herdado'.
+    `tipo` é 'próprio', 'herdado', 'motor' ou 'fixo' (do motor, e sem campo no
+    formato); `de_quem` só vem no 'herdado'.
     """
     ic = p.get("icones") or {}
     org = p.get("origens") or {}
@@ -2459,7 +2770,29 @@ def origens(p):
                        # estava na tabela de P12 porque não existia: até aqui
                        # `assets/temas-de-apps/` era anterior ao formato de pack
                        # e nenhum pack tinha onde declarar tema de aplicativo.
-                       ("apps", p.get("apps"))]:
+                       ("apps", p.get("apps")),
+                       ("som", p.get("som")), (CATEGORIA_FONTES, p.get(CATEGORIA_FONTES))] \
+            + [(cat, None) for cat in FIXAS_NO_MOTOR]:
+        if cat in FIXAS_NO_MOTOR:
+            tipo, quem = "fixo", ""
+            saida.append((cat, tipo, quem))
+            continue
+        # O SOM NÃO SOBE A HERANÇA, E A TABELA NÃO PODE DIZER QUE SOBE: o
+        # `cmd_som` lê só o `som` do próprio pack, e o `som.sh` põe os padrões
+        # dele no que faltar. Um pack que herda do Dracula e não declara `som`
+        # toca o sino do motor, e não o do Dracula.
+        if cat == "som":
+            declarou = isinstance(bloco, dict) and any(not str(k).startswith("_") for k in bloco)
+            saida.append((cat, "próprio" if declarou else "motor", ""))
+            continue
+        # PONTEIRO E FONTES SÃO PRÓPRIOS SÓ COM `proprio`. Um bloco com só o
+        # `tema` do ponteiro (o nome que a chave CURSOR recebe) não traz tema
+        # nenhum, e a tabela dizia PRÓPRIO para ele; sem `proprio` e sem
+        # `herda`, a categoria cai na `heranca`, que é o que o `ponteiro` e o
+        # `tipografia` fazem de verdade.
+        if (cat in ("cursores", CATEGORIA_FONTES) and isinstance(bloco, dict)
+                and "proprio" not in bloco and not bloco.get("herda")):
+            bloco = None
         if bloco is None:
             # SEM HERANÇA DECLARADA NÃO EXISTE "HERDADO DE" — 22/09/2026
             #   O pack PADRÃO não herda de ninguém, e esta coluna imprimia
@@ -2479,9 +2812,20 @@ def origens(p):
 
 
 def resumo_de_origem(p):
-    """A tabela do `info` numa linha: 'próprio: … · herdado de X: …'."""
+    """A tabela do `info` numa linha: 'próprio: … · herdado de X: …'.
+
+    SEM AS CATEGORIAS QUE NENHUM PACK DECLARA — achado da revisão da P12,
+    23/09/2026. Esta linha é o `p.origem` que o cartão de pack da Home imprime
+    cru, e com o grupo "do motor, sem campo no pack" ela passou de 170 para 266
+    caracteres no Dracula e de 169 para 265 no Catppuccin, acima dos 220 por
+    parágrafo da P7. O grupo era o MESMO em todo cartão, então não distinguia
+    pack nenhum: ocupava a tela de quem escolhe para não dizer nada sobre a
+    escolha. A tabela do `info` continua mostrando as quatro, com a origem.
+    """
     grupos = {}
     for cat, tipo, quem in origens(p):
+        if tipo == "fixo":
+            continue
         chave = {"próprio": "próprio", "herdado": f"herdado de {quem}",
                  "motor": "do motor, ou ausente"}[tipo]
         grupos.setdefault(chave, []).append(ROTULO_DA_CATEGORIA[cat])
@@ -2541,7 +2885,8 @@ def cmd_info(ref):
     print("  ----------------  ---------------------------  -----------------------")
     for cat, tipo, quem in origens(p):
         estado = {"próprio": "PRÓPRIO", "herdado": f"HERDADO de {quem}",
-                  "motor": "DO MOTOR, ou inexistente"}[tipo]
+                  "motor": "DO MOTOR, ou inexistente",
+                  "fixo": "DO MOTOR — não declarável"}[tipo]
         # SÓ AS CATEGORIAS DE ÍCONE TÊM ACERVO PARA CONTAR. `paleta` é um
         # arquivo, `cosmic.mapa` é um arquivo, e cursores e wallpapers são
         # origens que este pack nem baixou ainda — contar SVG em qualquer uma
@@ -2551,6 +2896,28 @@ def cmd_info(ref):
         if cat.startswith("icones."):
             quantos, fl = _contar_acervo(ref, cat, dados["flavors"])
             conta = f"{quantos}, {fl}" if quantos and fl else quantos
+        # PONTEIRO E FONTES DIZEM ONDE A CADEIA TERMINA — 23/09/2026, P12.
+        #   "HERDADO de catppuccin" era tudo o que o Dracula mostrava para o
+        #   ponteiro, e o catppuccin não traz ponteiro nenhum. A coluna ao lado
+        #   diz o que a subida de fato acha — o valor da chave CURSOR e o pack
+        #   que o traz —, ou que ela não acha nada. É o mesmo papel do
+        #   `0 desenho(s)` das categorias de ícone.
+        elif cat == "cursores":
+            pt = ponteiro(ref)
+            conta = (f"CURSOR=\"{pt['valor']}\", do pack {pt['pack']}" if pt
+                     else "" if tipo == "motor" else "a cadeia não traz ponteiro")
+        elif cat == CATEGORIA_FONTES:
+            # Um pack BASE com a lista quebrada não derruba o `info` de quem o
+            # herda: o `validar` deste pack não confere a lista do outro, e o
+            # que se quer aqui é ver a tabela inteira, dizendo o que falhou.
+            try:
+                quem_f, lista = tipografia(ref)
+                conta = (f"{len(lista)} fonte(s), do pack {quem_f}" if quem_f
+                         else "" if tipo == "motor" else "a cadeia não traz fonte")
+            except Recusa:
+                conta = "a lista herdada não valida — rode o `validar` do pack base"
+        elif cat in FIXAS_NO_MOTOR:
+            conta = FIXAS_NO_MOTOR[cat]
         print(f"  {cat:<16}  {estado:<27}  {conta}")
     return OK
 
@@ -2762,6 +3129,27 @@ def main(argv):
             return cmd_logo_gerado(argv[2], *argv[3:])
         if verbo == "som" and len(argv) == 3:
             return cmd_som(argv[2])
+        # O `[id]` VAZIO É O PACK ATIVO, como no verbo `app`: o shell passa
+        # `"$(meow_pack_dir)"`, que é vazio quando o pack no ar é o padrão, e
+        # uma string vazia não é pack nenhum — ela cai em `MEOW_PACK_DIR` e, sem
+        # ele, no padrão, pela mesma `_ref_ativa` de todo o resto.
+        if verbo == "ponteiro" and len(argv) in (2, 3):
+            pt = ponteiro((argv[2] if len(argv) == 3 else "") or None)
+            if not pt:
+                return RECUSADO
+            print(f"pack={pt['pack']}")
+            print(f"dir={pt['dir']}")
+            print(f"valor={pt['valor']}")
+            return OK
+        if verbo == "tipografia" and len(argv) in (2, 3):
+            # SAI 0 COM A LISTA VAZIA, e 1 só na recusa. Para quem instala, "o
+            # pack não traz fonte" é uma resposta que manda LIMPAR as do pack
+            # anterior; "a lista não valida" manda não tocar em nada. Os dois
+            # não podem ter o mesmo código.
+            quem, lista = tipografia((argv[2] if len(argv) == 3 else "") or None)
+            for nome, origem, soma in lista:
+                print(f"{quem}\t{nome}\t{origem}\t{soma or '-'}")
+            return OK
         if verbo == "info" and len(argv) == 3:
             return cmd_info(argv[2])
         if verbo == "construir" and len(argv) in (3, 4):

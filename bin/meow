@@ -1878,6 +1878,15 @@ fi
 # fixa "é o install.sh que cria" servia; com o `ocultar` ela passaria a mentir —
 # o motivo dele é outro (sudo), e um motivo errado na tela é pior que nenhum,
 # porque manda a pessoa procurar no lugar errado.
+#
+# `cursor` E `fontes` DEIXARAM DE BAIXAR SEMPRE — 23/09/2026, revisão da P12.
+#   Desde a P12 o pack pode trazer o ponteiro e as fontes dentro dele, e o
+#   conserto de parte das divergências (o "difere do que o pack traz", a fonte
+#   que mora dentro do pack) é uma cópia local, sem rede. A frase dizia "o
+#   conserto BAIXA", e com o ponteiro do pack ela mandava a pessoa rodar o
+#   comando pelo motivo errado. O que continua verdade é mais estreito: o
+#   conserto PODE baixar — e o doctor, que não sabe de antemão qual dos casos
+#   é, não roda o que pode baixar.
 declare -A SEM_CONSERTO_RAZAO=(
   [conf]="é o install.sh que cria"
   [ponte]="escrever em /etc/sudoers.d é decisão sua, com a senha na mão — rode: ./install.sh"
@@ -1888,12 +1897,12 @@ declare -A SEM_CONSERTO_RAZAO=(
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
   [midiabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: MIDIA_COMPILAR=1 ./scripts/midia_build.sh"
   [leiturabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
-  [cursor]="o conserto BAIXA da rede, e o doctor não baixa — rode: ./scripts/cursor.sh aplicar"
+  [cursor]="o conserto pode BAIXAR o ponteiro que nem o disco nem o pack trazem, e o doctor não roda o que pode baixar — rode: ./scripts/cursor.sh aplicar"
   [patches]="o conserto RECOMPILA o cosmic-comp (~4 min), e o doctor não compila — rode: aurora-cosmic-comp-ws.sh --build"
   [cli]="quem copia a CLI para ~/.local/bin é o instalador, e uma CLI que se reescreve no meio da própria execução é decisão sua — rode: ./install.sh"
   [pacotes]="instalar pacote é sudo apt-get, e o doctor não usa sudo — rode a linha que ele imprime, ou ./install.sh"
   [upstream]="o conserto CLONA da rede, e o doctor não baixa — rode: ./scripts/baixar_upstream.sh"
-  [fontes]="o conserto BAIXA a release pinada do Nerd Fonts, e o doctor não baixa — rode: ./scripts/instalar_fontes.sh"
+  [fontes]="o conserto pode BAIXAR a Nerd Font pinada, ou uma fonte que o pack pina por URL, e o doctor não roda o que pode baixar — rode: ./scripts/instalar_fontes.sh"
 )
 
 # O 3 QUE É NOSSO — 22/09/2026
