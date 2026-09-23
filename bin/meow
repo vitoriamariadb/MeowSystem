@@ -2182,6 +2182,28 @@ cmd_doctor() {
     meow_info "  o MeowSystem não mexe nela: regra de sudo é sua, não nossa"
   fi
 
+  # A ARTE COPIADA QUE DIVERGIU DA ORIGEM — regra 8 da P28, 23/09/2026
+  #   O pack ativo pode trazer arte de terceiro copiada, com a origem no
+  #   `PROCEDENCIA.md`. Quando a cópia e a origem se separam, o doctor diz — e
+  #   pelo mesmo molde do aviso do sudo logo acima: NÃO É UM CHECK, não entra
+  #   em `VERIFICAVEIS` e não passa pelo `--consertar`. Não há conserto
+  #   automático possível: escolher entre o retoque daqui e o upstream de lá é
+  #   decisão de autor, e um auto-reparo das 5h que escolhesse sozinho
+  #   apagaria, um dia, o retoque de alguém.
+  #
+  #   Silêncio quando está em dia e quando a origem não está nesta máquina — a
+  #   dela não tem o `Dracula_OS-Theme`, e "não há com o que comparar" não é
+  #   notícia. Só o código 1 (algum lado andou) vira linha.
+  local pack_proc; pack_proc="$(meow_pack_dir)"
+  if [ -n "$pack_proc" ] && [ -f "$pack_proc/PROCEDENCIA.md" ]; then
+    python3 "$RAIZ/scripts/pack.py" sincronizar "$pack_proc" >/dev/null 2>&1
+    if [ "$?" = "1" ]; then
+      meow_info "o pack $(basename "$pack_proc") tem arte copiada que se separou da origem"
+      meow_info "  é informação, não conserto — qual versão fica é decisão sua"
+      meow_info "  veja o par lado a lado:  meow pack sincronizar $(basename "$pack_proc")"
+    fi
+  fi
+
   local pior; pior="$(pior_rc)"
   if [ "$consertar" = "0" ]; then
     printf '\n'
@@ -2524,6 +2546,55 @@ cmd_icones() {
           return "$rc" ;;
         *) meow_erro "uso: meow icones resgatados [estado|folha|sim|nao]"; return "$MEOW_ERRO" ;;
       esac ;;
+    fonte)
+      # DE ONDE SAI UM ÍCONE, E O QUE SAI DELE — 23/09/2026, P28 (regra 7)
+      #   Antes disto, "de onde vem o ícone do Waterfox?" pedia ler três mapas e
+      #   dois scripts: o `apps.map` do pack, o `apps-resgatados.map` do motor, e
+      #   os dois instaladores que escrevem no mesmo `scalable/apps`. A resposta
+      #   agora vem de quem já sabe: o `pack.py fonte` diz o arquivo (é ele que
+      #   lê os mapas e recusa o empate), e o `meow_icones_derivados` diz o que
+      #   sai dele — a MESMA função que os dois instaladores chamam para
+      #   escrever. Esta tela não calcula nada por conta própria, e é por isso
+      #   que ela não pode prometer um derivado que o instalador não faz.
+      #
+      #   As duas primeiras linhas saem sem enfeite, `fonte: …` e `deriva: …`,
+      #   porque são as que se conferem de olho e com `grep` depois de um
+      #   `meow doctor --consertar`: a fonte vem do repositório, e o conserto
+      #   não tem como mudá-la.
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow icones fonte <nome-do-ícone>"; return "$MEOW_ERRO"; }
+      # shellcheck source=../lib/icones.sh
+      . "$RAIZ/lib/icones.sh"
+      local nome_f="$1" linhas rc_f tema_f
+      tema_f="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+      linhas="$(MEOW_PACK_DIR="$(meow_pack_dir)" python3 "$RAIZ/scripts/pack.py" fonte "$nome_f")"; rc_f=$?
+      [ -n "$linhas" ] || return "$MEOW_DIVERGENTE"
+      local n_f fonte_f camada_f abs_f tipo destino chave valor estado tipos
+      while IFS=$'\t' read -r n_f fonte_f camada_f; do
+        abs_f="$fonte_f"; case "$abs_f" in /*) ;; *) abs_f="$RAIZ/$abs_f" ;; esac
+        tipos="$(meow_icones_derivados "$abs_f" "$nome_f" "$tema_f" 2>/dev/null | cut -f1 | paste -sd, - | sed 's/,/, /g')"
+        printf 'fonte: %s\n' "$fonte_f"
+        printf 'deriva: %s\n' "${tipos:-nada (a fonte não é SVG)}"
+        # QUEM LIGA E DESLIGA ESTA CAMADA. O `pack:` é instalado pelo
+        # `icones_apps_dracula.sh`, que lê o mapa do pack ATIVO e obedece ao
+        # `ICONES_DRACULA` (o nome é de antes de o mapa virar do pack); os
+        # resgatados, pelo `icones_resgatados.sh` e o `ICONES_RESGATADOS`. Os
+        # padrões são os mesmos dos scripts — um padrão diferente aqui diria
+        # "ligado" para o que o instalador deixa desligado.
+        case "$camada_f" in
+          resgatados) chave=ICONES_RESGATADOS; valor="${ICONES_RESGATADOS:-sim}" ;;
+          *)          chave=ICONES_DRACULA;    valor="${ICONES_DRACULA:-nao}" ;;
+        esac
+        printf '       %-9s %s  (%s="%s")\n' "camada" "$camada_f" "$chave" "$valor"
+        while IFS=$'\t' read -r tipo destino; do
+          [ -n "$destino" ] || continue
+          if [ ! -f "$destino" ]; then estado="ausente no tema"
+          elif [ "$(cat "$abs_f")" = "$(cat "$destino")" ]; then estado="igual à fonte"
+          else estado="DIFERE da fonte"; fi
+          printf '       %-9s %s — %s\n' "$tipo" "${destino/#$HOME/\~}" "$estado"
+        done < <(meow_icones_derivados "$abs_f" "$nome_f" "$tema_f" 2>/dev/null)
+      done <<< "$linhas"
+      return "$rc_f" ;;
     adicionar|remover)
       # UM TEMA DE ÍCONES DE FORA, PELO PAINEL — 06/09/2026
       #   Pedido dela: "na pasta dos ícones não aparece a opção de adicionar
@@ -2540,7 +2611,7 @@ cmd_icones() {
       [ -n "${1:-}" ] || { meow_erro "uso: meow icones $sub <pasta-ou-zip>"; return "$MEOW_ERRO"; }
       meow_travar || return "$MEOW_ERRO"
       "$RAIZ/scripts/construir_icones.sh" "$sub" "$1"; return $? ;;
-    *) meow_erro "uso: meow icones [estado|reconstruir|resgatados [sim|nao]|importar <json>|adicionar <pasta-ou-zip>|remover <nome>]"; return "$MEOW_ERRO" ;;
+    *) meow_erro "uso: meow icones [estado|reconstruir|resgatados [sim|nao]|fonte <nome>|importar <json>|adicionar <pasta-ou-zip>|remover <nome>]"; return "$MEOW_ERRO" ;;
   esac
 }
 
@@ -3537,6 +3608,7 @@ meow — Catppuccin para o COSMIC
 
   meow icones                  estado do tema de ícones
   meow icones reconstruir      remonta o tema e as pastas coloridas
+  meow icones fonte <nome>     de onde sai aquele ícone, e o que deriva dele
 
   meow wallpaper               estado do carrossel
   meow wallpaper aplicar       liga/reafirma a rotação nativa do COSMIC
@@ -3557,6 +3629,7 @@ meow — Catppuccin para o COSMIC
   meow pack                    os theme packs instalados, e se cada um valida
   meow pack info <id>          o que é próprio e o que é herdado no pack
   meow pack construir <id>     refaz o que o pack deriva, dentro do próprio pack
+  meow pack sincronizar <id>   compara a arte copiada com a origem; só lê
                                (o --help do subcomando tem a lista inteira)
 
   meow leitura                 que degrau o modo de leitura pede agora
@@ -3743,12 +3816,35 @@ cmd_pack() {
       meow_info "onde o MeowSystem procura um pack, nesta ordem:"
       python3 "$RAIZ/scripts/pack.py" raizes | sed 's/^/       /'
       ;;
+    # `sincronizar` — a regra 8 da P28, 23/09/2026
+    #   A arte de terceiro entra no pack por CÓPIA, com a origem no
+    #   `PROCEDENCIA.md` dele, e a cópia congela enquanto a origem anda — o
+    #   `Dracula-Icones` é reconstruído pelo `rebuild_dracula_theme()` do
+    #   Spellbook-OS, a partir de outro repositório. Este verbo relê as origens
+    #   declaradas e diz qual lado andou.
+    #
+    #   ELE NÃO COPIA, e não tem opção que copie. Uma arte retocada aqui depois
+    #   da cópia não pode ser apagada por um `git pull` de outro repositório;
+    #   escolher entre o retoque e o upstream é decisão de autor. A saída
+    #   imprime o `cp` e para ali. Por só LER, ele assume o pack ativo quando
+    #   ninguém diz qual, como o `info` — é o `construir`, que escreve, que
+    #   exige o nome.
+    sincronizar|sync)
+      local alvo="${1:-}"
+      if [ -z "$alvo" ]; then
+        carregar_conf 2>/dev/null || true
+        alvo="$(meow_pack_dir)"
+        [ -n "$alvo" ] || alvo="$(meow_pack_padrao_dir)"
+      fi
+      python3 "$RAIZ/scripts/pack.py" sincronizar "$alvo"
+      ;;
     -h|--help|ajuda)
-      printf 'uso: meow pack [listar|validar <id>|info <id>|construir <id>|raizes]\n\n'
+      printf 'uso: meow pack [listar|validar <id>|info <id>|construir <id>|sincronizar <id>|raizes]\n\n'
       printf '  listar           os packs instalados, e se cada um valida\n'
       printf '  validar <id>     confere o pack inteiro; 0 = ok\n'
       printf '  info <id>        o que é próprio e o que é herdado, categoria a categoria\n'
       printf '  construir <id>   refaz o que o pack deriva, escrevendo só dentro dele\n'
+      printf '  sincronizar <id> compara a arte copiada com a origem; só lê, nunca copia\n'
       printf '  raizes           onde o MeowSystem procura\n\n'
       printf 'A especificação do formato está em docs/PACKS.md.\n'
       ;;

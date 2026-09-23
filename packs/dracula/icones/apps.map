@@ -86,6 +86,19 @@ io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do g
 #     funcionar no minuto em que alguém clona só o pack. Um pack precisa ser
 #     AUTOCONTIDO; reusar arte do núcleo é copiar, respeitando a licença dela.
 
+# O WATERFOX VESTE O FIREFOX-DRACULA — 23/09/2026, P28
+#   A linha estava lá embaixo, em "sem desenho ainda", como
+#   `# net.waterfox.waterfox : ?`. O ícone que aparecia era a raposa roxa da
+#   lua, instalada pelo `apps-resgatados.map` do motor — e a decisão que abriu a
+#   P28 foi trocá-la pelo Firefox do upstream Dracula. O desenho foi COPIADO
+#   para `apps/` (regra 5) e a origem, a licença, a data e o sha256 estão no
+#   `PROCEDENCIA.md` deste pack; por que o ramo `circle` e não o `main`, também.
+#   A linha saiu do `apps-resgatados.map` no mesmo commit: os dois escrevem em
+#   `scalable/apps`, e um nome com duas fontes ali é o último instalador que
+#   rodar vencendo calado — o que a regra 1 ("um nome, uma fonte") proíbe.
+#   A raposa continua em `assets/icones/resgatados/`, como alternativa.
+net.waterfox.waterfox : apps/net.waterfox.waterfox.svg   # Waterfox — o Firefox do dracula-icons (circle)
+
 # --- já têm arte autoral no MeowSystem (não entram) -----------------------
 # com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
 # com.system76.CosmicEdit                    -> autorais/cosmic-edit-dracula.svg   # Editor de Texto
@@ -117,5 +130,4 @@ io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do g
 # thunderbird : ?   # Thunderbird
 # uad-ng : ?   # Universal Android Debloater
 # qrcode-void-generator : ?   # VOID | QRcode
-# net.waterfox.waterfox : ?   # Waterfox
 # whatsapp-linux-app : ?   # WhatsApp

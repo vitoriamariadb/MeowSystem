@@ -203,3 +203,90 @@ meow_hicolor_reindexar() {
   meow_debug "cache do hicolor reindexada"
   return 0
 }
+
+# ============================================================================
+# DERIVAR: O QUE SAI DE UMA FONTE, E PARA ONDE — P28, 23/09/2026
+# ============================================================================
+#   A diretriz: "centralizar os SVGs — e alterando lá alteraremos o resto dos
+#   ícones que têm eles como base". Para isso valer, a pergunta "o que deriva
+#   desta fonte?" precisa de UMA resposta, e ela mora aqui: o instalador
+#   escreve o que o `meow_icones_derivados` diz, e o `meow icones fonte` mostra
+#   o mesmo plano. Se as duas coisas fossem escritas em dois lugares, a tela
+#   poderia prometer um derivado que o instalador nunca faz.
+#
+#   ESTE BLOCO ESCREVE, e o cabeçalho lá em cima diz "não escreve arquivo
+#   nenhum". A frase já não era inteira desde 10/09 (o `meow_hicolor_reindexar`
+#   reindexa uma cache); valia para a escada, e continua valendo para ela. O
+#   `meow_icones_derivados` só calcula e imprime; quem escreve é o
+#   `meow_icones_derivar`, e só pelo `meow_escrever`.
+#
+# UMA FONTE SVG DERIVA `scalable`, E SÓ ELE — o que a P28 pedia a mais, medido
+#   A sprint desenhou quatro famílias de derivado: o vetor em `scalable/apps`,
+#   os PNG de 32 a 256, as variantes de flavor e o corte de bandeja. Medido em
+#   23/09/2026, só a primeira tem para onde ir:
+#
+#   · TAMANHOS. O `index.theme` do MeowSystem-Icons declara dois diretórios de
+#     aplicativo, `48x48/apps` e `scalable/apps`, e os dois têm ZERO arquivo
+#     `.png`. Os PNG de 16 a 256 do Waterfox existem — no `Dracula-Icones`, que
+#     é tema de OUTRO projeto, herdado pelo nosso e sombreado por ele: o
+#     resolvedor acha o `scalable/apps` daqui antes de subir a herança. Gerar a
+#     escada de um vetor seria o "trabalho inventado" que o cabeçalho deste
+#     arquivo já nomeou em 27/08 (o COSMIC rasteriza o vetor no tamanho
+#     pedido; `Type=Fixed` contra `Type=Scalable` deu zero pixel de
+#     diferença). E pôr PNG no `48x48/apps` seria disputar arquivo com o
+#     `icones_apps_arcticons.sh`, que é o dono único dele. A escada continua
+#     sendo a resposta para fonte RASTER (as capas de jogo) — e fonte raster
+#     não é fonte única de pack: ver o `*)` abaixo.
+#   · FLAVORS. Recolorir por papel é o `gerar_icones_autorais.py`, e ele já o
+#     faz para `icones/autorais/` (a regra 6 já é cumprida lá: foi derivando
+#     por papel que o `alucard` ganhou os onze dele na P27). Os desenhos de
+#     `icones/apps/` do Dracula declaram `recolorir: false` no pack.json — de
+#     6 a 10 cores próprias cada, e recolorir seria destruí-los.
+#   · BANDEJA. A bandeja tem mapa e instalador próprios (`bandeja.map`,
+#     `icones_bandeja.sh`), veste glifo Arcticons e não arte de pack, e o mapa
+#     está vazio de propósito — o `chk_bandeja` do `bin/meow` diz por quê.
+#
+#   Quando uma dessas famílias ganhar um consumidor de verdade, é aqui que ela
+#   entra — uma linha no `case` — e o `meow icones fonte` passa a mostrá-la sem
+#   ninguém lembrar de mexer nele.
+
+# meow_icones_derivados <fonte> <nome> [dir-do-tema]
+#   O PLANO. Imprime "tipo<TAB>destino", uma linha por derivado. Não escreve.
+#   2 = a fonte não é o que uma fonte pode ser.
+meow_icones_derivados() {
+  local fonte="$1" nome="$2"
+  local tema="${3:-$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
+  case "$fonte" in
+    *.svg) printf 'scalable\t%s/scalable/apps/%s.svg\n' "$tema" "$nome" ;;
+    # RASTER NÃO É FONTE — é derivado. De um PNG não se tira vetor, nem outro
+    # flavor, nem um tamanho maior que ele sem borrar: aceitar PNG como fonte
+    # única seria aceitar que "alterando lá" não altera o resto.
+    *) printf 'fonte não é SVG, e raster não é fonte: %s\n' "$fonte" >&2; return 2 ;;
+  esac
+}
+
+# meow_icones_derivar <fonte> <nome> [dir-do-tema]
+#   Escreve cada derivado do plano. O código é o do `meow_escrever`, somado:
+#   0 = já estava tudo igual, 1 = escreveu (ou escreveria, no seco), 2 = erro.
+#   Comparar por conteúdo é o cache: fonte que não mudou não reescreve nada, e
+#   é por isso que o doctor das 5h pode chamar isto sem virar divergência eterna.
+meow_icones_derivar() {
+  local fonte="$1" nome="$2" tema="${3:-}" plano tipo destino conteudo rc=0 r
+  plano="$(meow_icones_derivados "$fonte" "$nome" ${tema:+"$tema"})" || return 2
+  conteudo="$(cat "$fonte" 2>/dev/null)" || { meow_erro "não consegui ler $fonte"; return 2; }
+  while IFS=$'\t' read -r tipo destino; do
+    [ -n "$destino" ] || continue
+    # Um tipo novo no plano sem linha aqui é o defeito que o bloco acima veio
+    # evitar — a tela prometendo o que o instalador não faz. Erro, e alto.
+    case "$tipo" in
+      scalable) meow_escrever "$destino" "$conteudo" 644; r=$? ;;
+      *) meow_erro "derivado sem escritor: $tipo"; r=2 ;;
+    esac
+    case "$r" in
+      0) : ;;
+      1) [ "$rc" = "0" ] && rc=1 ;;
+      *) rc=2 ;;
+    esac
+  done <<< "$plano"
+  return "$rc"
+}

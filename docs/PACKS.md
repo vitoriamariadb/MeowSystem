@@ -36,6 +36,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [`pack.json`, campo a campo](#packjson-campo-a-campo)
 - [De onde sai um acervo: pack, herança, motor](#de-onde-sai-um-acervo-pack-herança-motor)
 - [O acervo de ícones do pack](#o-acervo-de-ícones-do-pack)
+- [Fonte e derivados](#fonte-e-derivados)
 - [Temas de aplicativo](#temas-de-aplicativo)
 - [Quem vence: o pack ou o `meow.conf`](#quem-vence-o-pack-ou-o-meowconf)
 - [O tema do COSMIC, e o único passo manual que existe](#o-tema-do-cosmic-e-o-único-passo-manual-que-existe)
@@ -413,7 +414,11 @@ io.github.flattool.Warehouse  : apps/Warehouse.svg
 | forma | resolve em |
 |---|---|
 | `motor:<caminho>` | `assets/icones/<caminho>` — o acervo do motor |
+| `pack:<id>:<caminho>` | `<pack id>/icones/<caminho>` — o acervo de **outro** pack (desde 23/09/2026) |
 | sem prefixo | dentro do pack, contra o diretório do próprio mapa |
+
+São três casas, e só três. `~/…` e caminho absoluto são **recusados** pelo
+`validar`, com a frase que diz por quê — ver [Fonte e derivados](#fonte-e-derivados).
 
 **É isto que permite tirar a decisão de `assets/` sem duplicar o acervo.** Sem o
 prefixo só havia duas saídas, e as duas eram ruins: ou a escolha fica em
@@ -504,12 +509,142 @@ decisão de formato.
 | `apps-arcticons.map` (16) | `icones_apps_arcticons.sh` | os quatro caem no **mesmo** `icones.apps.mapa`, que já tem dono e formato: `nome : caminho`, duas colunas. Estes quatro têm três e quatro colunas, e cada um as suas — `nome:glifo:cor:tipo`, `nome:caminho:cor`, `nome:cor:nota`, `nome:caminho:dono`. Juntá-los não é renomear arquivo: é decidir um formato de mapa de aplicativo que caiba nos cinco, e reescrever os leitores que recolorem por categoria |
 | `apps-convertidos.map` (31) | `icones_apps_arcticons.sh` | o mesmo da linha acima |
 | `apps-marca.map` (13) | `icones_apps_arcticons.sh` | o mesmo da linha acima |
-| `apps-resgatados.map` (22) | `icones_resgatados.sh` | o mesmo da linha acima |
+| `apps-resgatados.map` (21) | `icones_resgatados.sh` | o mesmo da linha acima. Eram 22: o Waterfox saiu em 23/09/2026 para o `apps.map` do Dracula (ver [Fonte e derivados](#fonte-e-derivados)) |
 
 `pastas.map` **não** está nesta lista: o leitor dele já pergunta ao pack
 (`icones.pastas.mapa`) e só cai em `assets/` quando nenhum pack declara o seu.
 O arquivo continua lá porque o quarto passo é apagar, e apagar antes de algum
 pack trazer o seu deixaria as sete pastas sem ícone.
+
+---
+
+## Fonte e derivados
+
+> *"Centralizar os SVGs — e alterando lá alteraremos o resto dos ícones que
+> têm eles como base."* — a diretriz que abriu a P28, em 21/09/2026.
+
+Para isso valer, cada ícone precisa de **uma** fonte, e ela precisa morar no
+repositório. O resto — o que o instalador põe no tema — é **derivado** dela, e
+derivado não se edita: a próxima instalação apaga o retoque.
+
+```
+  packs/<id>/icones/apps/<nome>.svg     <- A FONTE. É isto que se edita.
+            │
+            └─ ~/.local/share/icons/MeowSystem-Icons/scalable/apps/<nome>.svg
+                                           o vetor, como está
+```
+
+### As regras, e onde cada uma é cobrada
+
+| regra | o que diz | quem cobra |
+|---|---|---|
+| 1. um nome, uma fonte | um nome de ícone tem **um** arquivo de onde sai. Duas fontes é erro, não precedência | `validar` (nome repetido no mapa), `pack.py fonte`, `tests/fonte-unica.sh` |
+| 2. derivado não se edita | o que está no tema é calculado da fonte, na instalação | `meow_icones_derivar`, em `lib/icones.sh` |
+| 3. derivado não se versiona | o git guarda a fonte; o derivado nasce no tema | a própria forma: nenhum derivado mora no repositório |
+| 4. mapa não aponta para fora | alvo é pack, `motor:` ou `pack:` — `~/` e absoluto são recusados | `validar`, `pack.py alvo` |
+| 5. arte de terceiro entra por cópia | copiada para dentro do pack, com uma linha no `PROCEDENCIA.md` | `tests/fonte-unica.sh` (o Waterfox) |
+| 6. recolorir é por papel | `sujeito`, `tinta`, `fundo` resolvidos na paleta do flavor | `gerar_icones_autorais.py` — é por papel que o `alucard` ganhou os seus na P27 |
+| 7. uma linha responde | `meow icones fonte <nome>` diz a fonte e o que deriva dela | `bin/meow` |
+| 8. a cópia tem caminho de volta | `meow pack sincronizar <id>` compara cópia e origem, e **não copia** | `pack.py sincronizar` |
+
+**A camada da regra 1 é `scalable/apps`.** É o diretório onde dois donos
+disputam o mesmo arquivo: o mapa de aplicativos do pack ativo e o
+`apps-resgatados.map` do motor escrevem lá, e um nome nos dois é o instalador
+que rodar por último vencendo calado — e o `meow doctor` trocando um pelo outro
+todo dia. O Arcticons e os convertidos moram no `48x48/apps`: um nome que
+exista lá e aqui não é empate, é a precedência *"Dracula vence tudo"* que foi
+escolhida em 16/09/2026, com um interruptor (`ICONES_DRACULA`) que devolve o
+Arcticons sem apagar nada.
+
+### `meow icones fonte`
+
+```
+$ meow icones fonte net.waterfox.waterfox
+fonte: packs/dracula/icones/apps/net.waterfox.waterfox.svg
+deriva: scalable
+       camada    pack:dracula  (ICONES_DRACULA="sim")
+       scalable  ~/.local/share/icons/MeowSystem-Icons/scalable/apps/net.waterfox.waterfox.svg — igual à fonte
+```
+
+A fonte vem do `pack.py fonte`, que lê os mapas e recusa o empate. O `deriva`
+vem do `meow_icones_derivados`, a mesma função que os dois instaladores da
+camada chamam para escrever — então a tela não tem como prometer um derivado
+que o instalador não faz. Sai 1 quando o nome não tem fonte em mapa nenhum, ou
+tem mais de uma.
+
+### Uma fonte SVG deriva `scalable`, e só ele
+
+A P28 desenhou quatro famílias de derivado: o vetor, os PNG de 32 a 256, as
+variantes de flavor e o corte de bandeja. **Medido em 23/09/2026, só a primeira
+tem para onde ir:**
+
+- **Tamanhos.** O `index.theme` do MeowSystem-Icons declara dois diretórios de
+  aplicativo, `48x48/apps` e `scalable/apps`, e os dois têm **zero** `.png`. O
+  COSMIC rasteriza o vetor no tamanho pedido — medido em 27/08, e registrado no
+  cabeçalho do `lib/icones.sh`: `Type=Fixed` contra `Type=Scalable` deu zero
+  pixel de diferença. Os PNG de 16 a 256 do Waterfox existem, mas no
+  `Dracula-Icones`, que é tema de outro projeto, herdado pelo nosso e sombreado
+  por ele. Pôr PNG no `48x48/apps` seria disputar arquivo com o
+  `icones_apps_arcticons.sh`, que é o dono único daquele diretório.
+- **Flavors.** Recolorir por papel é o `gerar_icones_autorais.py`, para
+  `icones/autorais/`. Os desenhos de `icones/apps/` do Dracula declaram
+  `recolorir: false`: cada um tem de 6 a 10 cores próprias.
+- **Bandeja.** Tem mapa e instalador próprios (`bandeja.map`,
+  `icones_bandeja.sh`), veste glifo Arcticons, e o mapa está vazio de propósito.
+
+Quando uma dessas famílias ganhar consumidor, ela entra como uma linha no
+`meow_icones_derivados` — e aparece no `meow icones fonte` sem ninguém lembrar
+de mexer nele. **Raster não é fonte:** um PNG passado ao `derivar` é recusado
+com 2, porque de um PNG não sai vetor, nem outro flavor, nem tamanho maior sem
+borrar.
+
+### O `PROCEDENCIA.md` do pack, e o `sincronizar`
+
+Arte de terceiro entra no pack **copiada**, e não apontada. Apontar para
+`~/.local/share/icons/Dracula-Icones/` seria depender de um diretório que o
+`rebuild_dracula_theme()` do Spellbook-OS reescreve do zero — aconteceu em
+21/09/2026, às 16:52:33. A regra já estava escrita em
+`assets/icones/PROCEDENCIA.md` desde 16/09 (*"por que copiar em vez de
+apontar"*); a P28 a levou ao pack inteiro.
+
+Cada cópia ganha uma linha no `packs/<id>/PROCEDENCIA.md`:
+
+```
+| arquivo | de onde | lido de | licença | copiado em | sha256 |
+|---|---|---|---|---|---|
+| `icones/apps/net.waterfox.waterfox.svg` | `m4thewz/dracula-icons`, ramo `circle` — … | `~/Desenvolvimento/Dracula_OS-Theme/src/icons/upstream/…/firefox.svg` | GPL-3.0 | 2026-09-23 | `a13118bd…` |
+```
+
+`lido de` aceita `~/…`, `motor:…` ou caminho absoluto, e é só **lido**. O
+`sha256` é o da cópia no dia da cópia — o terceiro ponto que permite dizer qual
+lado andou:
+
+| a cópia | a origem | o `sincronizar` diz |
+|---|---|---|
+| = registro | = registro | em dia |
+| = registro | mudou | a **origem** andou — imprime o `cp` e para |
+| mudou | = registro | **retocada** aqui — a origem não a sobrescreve |
+| = origem | ≠ registro | as duas iguais; só o registro ficou velho |
+| mudou | mudou | as **duas** andaram |
+| — | não está na máquina | fora de alcance; não é divergência |
+
+**Ele não copia, e não tem opção que copie.** Uma arte retocada aqui depois da
+cópia é trabalho de alguém, e um `git pull` de outro repositório não pode
+apagá-la. Trazer a versão da origem é o gesto de quem decide: o `cp` que o
+comando imprime, e o `sha256` da linha trocado. O `meow doctor` diz o mesmo como
+**informação**, ao lado da tabela, e nunca como conserto — escolher entre o
+retoque e o upstream é decisão de autor.
+
+```bash
+meow pack sincronizar dracula
+#   ok   icones/apps/net.waterfox.waterfox.svg
+#   …
+#   19 de 19 em dia com a origem
+```
+
+A coluna `lido de` precisa ter a mesma extensão do `arquivo`: ela é dado de
+quem escreveu o pack, e um pack de terceiro que apontasse para
+`~/.ssh/id_ed25519` teria o `sha256` dele impresso na tela.
 
 ---
 

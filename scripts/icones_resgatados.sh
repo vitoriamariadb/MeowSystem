@@ -67,6 +67,9 @@ set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+# O `meow_icones_derivar` mora lá — ver o comentário do `_resgatados_instalar`.
+# shellcheck source=../lib/icones.sh
+. "$RAIZ/lib/icones.sh"
 
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
@@ -93,7 +96,7 @@ _resgatados_nomes() {
 
 # --- instalar -----------------------------------------------------------------
 _resgatados_instalar() {
-  local rc=0 nome origem svg
+  local rc=0 nome origem
   local postos=0 faltando=()
 
   while read -r nome; do
@@ -105,8 +108,11 @@ _resgatados_instalar() {
       # culpa de um nome digitado errado.
       faltando+=("$nome"); continue
     fi
-    svg="$(cat "$origem")" || { meow_erro "não consegui ler $origem"; rc=2; continue; }
-    meow_escrever "$ALVO/$nome.svg" "$svg" 644
+    # PELO `derivar`, E NÃO POR UM `meow_escrever` PRÓPRIO — 23/09/2026, P28.
+    # É o mesmo motivo do `_dracula_instalar`: o `meow icones fonte` diz o que
+    # deriva de cada desenho perguntando ao `lib/icones.sh`, e o instalador
+    # precisa escrever exatamente aquilo. O byte no tema não muda.
+    meow_icones_derivar "$origem" "$nome" "$TEMA_DIR"
     case $? in
       0) : ;;
       1) postos=$((postos+1)) ;;

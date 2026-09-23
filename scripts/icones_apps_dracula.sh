@@ -50,6 +50,10 @@ set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+# O `meow_icones_derivar` mora lá — ver o bloco "DERIVAR" daquele arquivo e o
+# comentário do `_dracula_instalar` abaixo.
+# shellcheck source=../lib/icones.sh
+. "$RAIZ/lib/icones.sh"
 
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
@@ -142,7 +146,7 @@ _dracula_pares() {
 
 # --- instalar -----------------------------------------------------------------
 _dracula_instalar() {
-  local rc=0 nome caminho origem svg
+  local rc=0 nome caminho origem
   local postos=0 faltando=()
 
   while IFS=$'\t' read -r nome caminho; do
@@ -160,8 +164,15 @@ _dracula_instalar() {
       # não têm culpa de um caminho digitado errado.
       faltando+=("$nome -> $caminho"); continue
     fi
-    svg="$(cat "$origem")" || { meow_erro "não consegui ler $origem"; rc=2; continue; }
-    meow_escrever "$ALVO/$nome.svg" "$svg" 644
+    # O QUE VAI PARA O TEMA É O QUE O `derivar` DIZ — 23/09/2026, P28
+    #   Era `meow_escrever "$ALVO/$nome.svg" "$(cat "$origem")"` aqui, e o
+    #   `meow icones fonte` precisaria repetir a mesma conta para dizer o que
+    #   deriva de cada desenho. Duas contas da mesma coisa divergem na primeira
+    #   vez que uma mudar. Agora as duas perguntam ao `lib/icones.sh`. O byte
+    #   que chega ao tema é o mesmo de antes: o vetor, como está, em
+    #   `scalable/apps/<nome>.svg` — e é esse o endereço que o
+    #   `_dracula_remover` confere lá embaixo.
+    meow_icones_derivar "$origem" "$nome" "$TEMA_DIR"
     case $? in
       0) : ;;
       1) postos=$((postos+1)) ;;

@@ -31,8 +31,19 @@ VERBOS
                                  acima é a de quem lê. Ver `dir_acervo`.
     alvo    <base>               resolve os alvos de mapa que chegam pelo STDIN,
                                  um por linha: `motor:x` cai em assets/icones/,
-                                 sem prefixo cai na <base>. Uma linha de saída
-                                 por linha de entrada; vazia = recusada.
+                                 `pack:<id>:x` em <aquele pack>/icones/, sem
+                                 prefixo cai na <base>. `~/` e caminho absoluto
+                                 são recusados. Uma linha de saída por linha de
+                                 entrada; vazia = recusada.
+    fontes  [id]                 cada nome de ícone de `scalable/apps` e o
+                                 arquivo de onde ele sai, um por linha:
+                                 `nome<TAB>fonte<TAB>camada`. Um nome com duas
+                                 linhas é empate. Ver `fontes`.
+    fonte   <nome> [id]          as linhas de `fontes` daquele nome. 0 = uma
+                                 fonte só; 1 = nenhuma, ou mais de uma.
+    sincronizar <id>             compara cada arte copiada do PROCEDENCIA.md com
+                                 a origem dela. SÓ LÊ. 0 = em dia, 1 = algum
+                                 lado andou. Ver `cmd_sincronizar`.
     captura <par>                onde ESTÁ a captura <flavor>-<accent>, subindo
                                  pack -> herança -> motor. 1 = não existe.
     captura-destino <par>        onde uma captura NOVA deve ser escrita. Nunca
@@ -504,23 +515,77 @@ def dir_acervo(categoria, ref=None, padrao=None):
 MOTOR = "motor:"
 ACERVO_DO_MOTOR = os.path.join("assets", "icones")
 
+# O PREFIXO `pack:` — A TERCEIRA FORMA DE UM ALVO, E A ÚLTIMA — 23/09/2026
+#
+#   A P28 fecha a lista de onde um alvo de mapa pode estar, e ela tem três
+#   casas e só três: dentro do próprio pack (sem prefixo), no acervo do motor
+#   (`motor:`) ou dentro de OUTRO pack (`pack:<id>:<caminho>`). É a mesma razão
+#   do `motor:`, um nível ao lado: um pack que queira o Obsidian do Catppuccin
+#   escreve a linha que diz isso, em vez de carregar uma cópia que defasa.
+#
+#     md.obsidian.Obsidian : pack:catppuccin:apps/obsidian.svg
+#
+#   O `<caminho>` é relativo a `<outro pack>/icones/`, que é onde mora o mapa
+#   de todo pack (a forma de `packs/<id>/icones/` é a mesma para todos, P27). O
+#   `<id>` passa pelo `RE_ID` antes de ir ao `achar`: o `achar` também aceita
+#   CAMINHO, e sem essa guarda `pack:/qualquer/lugar:x` viraria uma quarta
+#   forma de sair da raiz, pela porta que existe para não sair.
+OUTRO_PACK = "pack:"
+
+
+def _caminho_da_maquina(resto):
+    """`~/…` ou caminho absoluto: um endereço desta máquina, e não do pack."""
+    return resto.startswith("~") or os.path.isabs(resto)
+
 
 def resolver_alvo(valor, base):
     """O arquivo que uma linha de mapa nomeia. Recusa o que sai da raiz.
 
-    `motor:x` resolve em `assets/icones/x`; sem prefixo, contra a `base` que o
-    chamador passa. Devolve o caminho EXISTA ELE OU NÃO: quem chama é que sabe
-    se um alvo ausente é erro (nome no mapa sem desenho no disco) ou não.
+    `motor:x` resolve em `assets/icones/x`; `pack:<id>:x` em
+    `<pack id>/icones/x`; sem prefixo, contra a `base` que o chamador passa.
+    Devolve o caminho EXISTA ELE OU NÃO: quem chama é que sabe se um alvo
+    ausente é erro (nome no mapa sem desenho no disco) ou não.
     """
     valor = (valor or "").strip()
     if not valor:
         return ""
     if valor.startswith(MOTOR):
         raiz, resto = os.path.join(RAIZ, ACERVO_DO_MOTOR), valor[len(MOTOR):].strip()
+    elif valor.startswith(OUTRO_PACK):
+        id_outro, sep, resto = valor[len(OUTRO_PACK):].partition(":")
+        id_outro, resto = id_outro.strip(), resto.strip()
+        if not sep or not RE_ID.match(id_outro):
+            raise Recusa(f"{valor!r}: a forma é 'pack:<id>:<caminho>', "
+                         f"e o id só tem minúsculas, dígitos e hífen")
+        dir_outro = achar(id_outro)
+        if not dir_outro:
+            raise Recusa(f"{valor!r}: o pack {id_outro!r} não existe em nenhuma das raízes")
+        raiz = os.path.join(dir_outro, "icones")
     else:
         raiz, resto = base, valor
     if not resto:
         raise Recusa(f"{valor!r} não nomeia arquivo nenhum")
+    # `~/` E CAMINHO ABSOLUTO SÃO RECUSADOS COM O NOME DELES — 23/09/2026
+    #   Um absoluto já caía na guarda do `_dentro` logo abaixo, mas com a frase
+    #   "sai de <raiz>", que manda procurar um `../` que não existe. E o `~/`
+    #   NÃO caía em guarda nenhuma: o `join` o tratava como um diretório
+    #   chamado `~` dentro da base, e a linha passava como alvo ausente — o
+    #   aviso "no mapa mas sem desenho no disco", que manda procurar um desenho
+    #   esquecido e não um mapa apontando para a máquina.
+    #
+    #   A P28 achou a forma escrita em 23 linhas de `assets/icones/*.map`, com
+    #   `~/.local/share/icons/...` — o `Dracula-Icones` que o
+    #   `rebuild_dracula_theme()` do Spellbook-OS reescreve (21/09 16:52:33).
+    #   Medido no dia: ali ela era PROCEDÊNCIA (a coluna do meio do
+    #   `apps-resgatados.map`, que o instalador não lê), e não alvo. Mas nada a
+    #   recusava num mapa de pack, onde ela SERIA alvo: a arte passaria a vir
+    #   de um diretório que outro programa reescreve. Um mapa aponta para o
+    #   pack, para o motor ou para outro pack; arte da máquina entra por CÓPIA,
+    #   com uma linha no PROCEDENCIA.md — é a regra 5, e a frase diz isso.
+    if _caminho_da_maquina(resto):
+        raise Recusa(f"{valor!r} é um endereço desta máquina, e não do pack. "
+                     f"Copie a arte para dentro do pack e registre a origem no "
+                     f"PROCEDENCIA.md — ver docs/PACKS.md, 'Fonte e derivados'")
     # A CHECAGEM É A DO `_dentro`; SÓ A FRASE MUDA
     #   O `_dentro` diz "sai de dentro do pack", que é a frase certa para ele:
     #   os cinco campos que ele guarda no `validar` são todos do pack.json. Aqui
@@ -564,6 +629,272 @@ def cmd_alvo(base):
             print(f"  aviso {e} — linha ignorada", file=sys.stderr)
             print()
     return OK
+
+
+# --- A FONTE ÚNICA: um nome, um arquivo — P28, 23/09/2026 ------------------
+#
+# A PERGUNTA QUE ISTO RESPONDE
+#   "De onde sai o ícone do Waterfox?" Até hoje responder exigia ler três
+#   mapas e dois scripts: o `apps.map` do pack, o `apps-resgatados.map` do
+#   motor, e os dois instaladores que escrevem no MESMO `scalable/apps/` — cada
+#   um com o seu parser. Dois acervos oferecendo o mesmo nome ali não davam
+#   erro: davam o último que escreveu, e o `meow doctor` "consertando" um para o
+#   outro todo dia.
+#
+# A CAMADA É `scalable/apps`, E SÓ ELA, DE PROPÓSITO
+#   É o diretório onde dois donos disputam o MESMO arquivo. O Arcticons e os
+#   convertidos moram no `48x48/apps`, e um nome que exista lá e aqui não é
+#   empate: é a precedência que ele escolheu com os dois lados na mesa em
+#   16/09/2026 ("Dracula vence tudo", registrado no `icones_apps_dracula.sh`),
+#   com um interruptor que devolve o Arcticons sem apagar nada. Contar aquilo
+#   como "duas fontes" transformaria uma escolha documentada em erro.
+#
+# O PARSER É O MESMO DO SHELL, LINHA A LINHA
+#   `nome` é o que vem antes do PRIMEIRO `:`, `alvo` é o resto, e o comentário
+#   é cortado ANTES — o formato de docs/PACKS.md, e o que o `_dracula_pares`
+#   faz com `sed` + `awk` desde 22/09/2026 (o cabeçalho dele conta o dia em que
+#   o `$2` do `awk` truncava o `motor:`). São duas cópias do parser, uma em cada
+#   língua, porque o shell não pode importar esta e esta não pode chamar aquela
+#   sem pagar uma partida de `bash` por mapa. O `tests/fonte-unica.sh` confere
+#   as duas contra o mesmo mapa.
+
+# O mapa do motor que também escreve em `scalable/apps`. A coluna do meio dele
+# é PROCEDÊNCIA (onde o PNG foi achado em 11/09/2026) e ninguém a instala — o
+# desenho é sempre `assets/icones/resgatados/<nome>.svg`, e é só o NOME que se
+# lê daqui, como o `icones_resgatados.sh` faz (`NF>=3`, primeiro campo).
+MAPA_RESGATADOS = os.path.join("assets", "icones", "apps-resgatados.map")
+ACERVO_RESGATADOS = os.path.join("assets", "icones", "resgatados")
+
+
+def ler_mapa(caminho):
+    """(linha, nome, alvo) de cada linha útil de um mapa `nome : alvo`."""
+    with open(caminho, encoding="utf-8") as fh:
+        for num, linha in enumerate(fh, 1):
+            util = linha.split("#", 1)[0]
+            nome, sep, alvo = util.partition(":")
+            nome, alvo = nome.strip(), alvo.strip()
+            if sep and nome and alvo:
+                yield num, nome, alvo
+
+
+def _relativo(caminho):
+    """O caminho como a pessoa o reconhece: relativo à raiz, quando mora nela."""
+    if caminho.startswith(RAIZ + os.sep):
+        return os.path.relpath(caminho, RAIZ)
+    return caminho
+
+
+def _pack_de(caminho):
+    """O id do pack que contém `caminho` — o diretório com pack.json acima dele."""
+    d = os.path.dirname(os.path.abspath(caminho))
+    while d and d != os.path.dirname(d):
+        if os.path.isfile(os.path.join(d, "pack.json")):
+            return os.path.basename(d)
+        d = os.path.dirname(d)
+    return "?"
+
+
+def fontes(ref=None):
+    """Cada (nome, fonte, camada) da camada `scalable/apps`, na ordem dos mapas.
+
+    Um nome que aparece duas vezes é EMPATE — a regra 1 da P28, "um nome, uma
+    fonte". Esta função não decide o empate nem o esconde: devolve as duas
+    linhas, e quem chama diz o que fazer com elas (o `fonte` recusa, o
+    `tests/fonte-unica.sh` falha). A fonte vem como está no disco, exista ela
+    ou não: "nome no mapa sem desenho" é a outra metade da regra, e também é
+    de quem chama.
+
+    Linha que o `resolver_alvo` recusa não vira fonte — o motivo vai para o
+    stderr, e o `validar` recusa o pack inteiro por ela.
+    """
+    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
+    saida = []
+    mapa = acervo("icones.apps.mapa", ref=ref)
+    if mapa:
+        base, camada = os.path.dirname(mapa), OUTRO_PACK + _pack_de(mapa)
+        for num, nome, alvo in ler_mapa(mapa):
+            try:
+                saida.append((nome, _relativo(resolver_alvo(alvo, base)), camada))
+            except Recusa as e:
+                print(f"  aviso {_relativo(mapa)}:{num}: {e}", file=sys.stderr)
+    resg = os.path.join(RAIZ, MAPA_RESGATADOS)
+    if os.path.isfile(resg):
+        with open(resg, encoding="utf-8") as fh:
+            for linha in fh:
+                campos = linha.split("#", 1)[0].split(":")
+                nome = campos[0].strip()
+                if len(campos) >= 3 and nome:
+                    saida.append((nome, os.path.join(ACERVO_RESGATADOS, nome + ".svg"),
+                                  "resgatados"))
+    return saida
+
+
+def cmd_fontes(ref):
+    for nome, fonte, camada in fontes(ref):
+        print(f"{nome}\t{fonte}\t{camada}")
+    return OK
+
+
+def cmd_fonte(nome, ref):
+    """As fontes de UM nome. 0 = exatamente uma, e ela existe no disco."""
+    achadas = [(f, c) for n, f, c in fontes(ref) if n == nome]
+    for fonte, camada in achadas:
+        print(f"{nome}\t{fonte}\t{camada}")
+    if not achadas:
+        print(f"  aviso nenhum mapa de scalable/apps nomeia {nome!r} — o ícone "
+              f"vem do tema herdado ou do próprio aplicativo", file=sys.stderr)
+        return RECUSADO
+    if len(achadas) > 1:
+        print(f"  aviso {nome!r} tem {len(achadas)} fontes — um nome, uma fonte "
+              f"(regra 1 da P28). O instalador que rodar por último vence, e o "
+              f"doctor os troca um pelo outro todo dia.", file=sys.stderr)
+        return RECUSADO
+    fonte = achadas[0][0]
+    if not os.path.isfile(fonte if os.path.isabs(fonte) else os.path.join(RAIZ, fonte)):
+        print(f"  aviso {nome!r} está no mapa e {fonte} não existe", file=sys.stderr)
+        return RECUSADO
+    return OK
+
+
+# --- SINCRONIZAR: a cópia e a origem, lado a lado — regra 8 da P28 ----------
+#
+# POR QUE ELE SÓ LÊ, E ISSO NÃO É CAUTELA DE ENFEITE [23/09/2026]
+#   A regra 5 manda COPIAR arte de terceiro para dentro do pack, e a cópia
+#   congela: o `Dracula-Icones` é reconstruído pelo `rebuild_dracula_theme()`
+#   do Spellbook-OS a partir de outro repositório, que continua andando. Sem
+#   caminho de volta, a cópia defasa e ninguém percebe.
+#
+#   Mas o caminho de volta não pode copiar sozinho. Uma arte retocada AQUI
+#   depois da cópia é trabalho de alguém, e um `git pull` do outro repositório
+#   não pode apagá-la — é a frase da P28, e é o motivo de este verbo não ter
+#   um ramo que escreva. Ele diz qual lado andou e imprime o `cp` para quem
+#   decidir; o gesto é da pessoa.
+#
+# QUAL LADO ANDOU: o registro decide
+#   Só com a cópia e a origem na mão não dá para saber quem mudou — as duas
+#   diferem, e é tudo. O `sha256` do PROCEDENCIA.md é o terceiro ponto: é a
+#   cópia no dia da cópia. Com ele, "a cópia mudou e a origem não" é retoque
+#   daqui, e "a origem mudou e a cópia não" é o upstream.
+COLUNAS_PROCEDENCIA = ("arquivo", "lido de", "sha256")
+
+
+def _tabela_procedencia(caminho):
+    """As linhas da primeira tabela que tenha as três colunas. Lista de dicts."""
+    cab, linhas = None, []
+    with open(caminho, encoding="utf-8") as fh:
+        for linha in fh:
+            s = linha.strip()
+            if not s.startswith("|"):
+                if cab is not None:
+                    break
+                continue
+            celulas = [c.strip().strip("`").strip() for c in s.strip("|").split("|")]
+            if cab is None:
+                nomes = [c.lower() for c in celulas]
+                if all(col in nomes for col in COLUNAS_PROCEDENCIA):
+                    cab = nomes
+                continue
+            if all(c and set(c) <= set("-: ") for c in celulas):
+                continue
+            linhas.append(dict(zip(cab, celulas)))
+    return linhas
+
+
+def _origem(valor):
+    """O arquivo que a coluna `lido de` nomeia. Só é LIDO, nunca escrito."""
+    if valor.startswith(MOTOR):
+        return resolver_alvo(valor, RAIZ)
+    if valor.startswith("~"):
+        return os.path.expanduser(valor)
+    if os.path.isabs(valor):
+        return valor
+    raise Recusa(f"lido de {valor!r}: use '~/…', 'motor:…' ou um caminho absoluto")
+
+
+def _sha(caminho):
+    with open(caminho, "rb") as fh:
+        return hashlib.sha256(fh.read()).hexdigest()
+
+
+def cmd_sincronizar(ref):
+    dir_pack = achar(ref)
+    if not dir_pack:
+        print(f"  erro não achei o pack {ref!r}", file=sys.stderr)
+        return ERRO_USO
+    proc = os.path.join(dir_pack, "PROCEDENCIA.md")
+    if not os.path.isfile(proc):
+        print(f"  --   {os.path.basename(dir_pack)} não tem PROCEDENCIA.md — "
+              f"nenhuma arte copiada a comparar")
+        return OK
+    linhas = _tabela_procedencia(proc)
+    if not linhas:
+        print(f"  erro {_relativo(proc)}: nenhuma tabela com as colunas "
+              f"{', '.join(COLUNAS_PROCEDENCIA)}", file=sys.stderr)
+        return ERRO_USO
+
+    em_dia = fora = andou = 0
+    for lin in linhas:
+        arquivo, lido, reg = lin.get("arquivo", ""), lin.get("lido de", ""), lin.get("sha256", "").lower()
+        rotulo = arquivo or "(linha sem arquivo)"
+        try:
+            aqui = _dentro(dir_pack, arquivo, "PROCEDENCIA.md")
+            origem = _origem(lido)
+            _exigir(RE_SHA256.match(reg), f"sha256 {reg!r} não tem 64 hex")
+            # A MESMA EXTENSÃO NOS DOIS LADOS. A coluna `lido de` é dado de
+            # quem escreveu o pack, e um pack de terceiro escreve o dele: sem
+            # esta linha, `~/.ssh/id_ed25519` seria aberto e teria o sha256
+            # impresso na tela. Comparar um `.svg` com outra coisa não é
+            # sincronizar arte — então não se abre.
+            _exigir(os.path.splitext(origem)[1].lower() == os.path.splitext(aqui)[1].lower(),
+                    f"lido de {lido!r} não é o mesmo tipo de arquivo que {arquivo!r}")
+        except Recusa as e:
+            print(f"  ~~   {rotulo} — a linha do PROCEDENCIA.md não serve: {e}")
+            andou += 1
+            continue
+        if not os.path.isfile(aqui):
+            print(f"  ~~   {rotulo} — está no PROCEDENCIA.md e não existe no pack")
+            andou += 1
+            continue
+        s_aqui = _sha(aqui)
+        try:
+            s_origem = _sha(origem)
+        except OSError:
+            print(f"  --   {rotulo} — a origem não está nesta máquina; nada a comparar")
+            fora += 1
+            continue
+        if s_aqui == reg and s_origem == reg:
+            print(f"  ok   {rotulo}")
+            em_dia += 1
+            continue
+        andou += 1
+        if s_aqui == reg:
+            motivo = "a ORIGEM andou depois da cópia"
+        elif s_origem == reg:
+            motivo = "RETOCADA aqui depois da cópia — a origem não a sobrescreve"
+        elif s_aqui == s_origem:
+            motivo = "a cópia e a origem são iguais; só o registro ficou velho"
+        else:
+            motivo = "as DUAS andaram desde a cópia"
+        print(f"  ~~   {rotulo} — {motivo}")
+        print(f"         aqui      {s_aqui[:12]}…  {_relativo(aqui)}")
+        print(f"         origem    {s_origem[:12]}…  {lido}")
+        print(f"         registro  {reg[:12]}…  copiado em {lin.get('copiado em', '?')}")
+        if s_aqui != s_origem:
+            print("         o gesto é seu. Para trazer a versão da origem:")
+            print(f"           cp '{origem}' '{aqui}'")
+            print("         e troque o sha256 da linha no PROCEDENCIA.md. Para ficar")
+            print(f"         com a daqui, o sha256 passa a ser {s_aqui}.")
+        else:
+            print(f"         troque o sha256 da linha no PROCEDENCIA.md por {s_aqui}.")
+
+    total = len(linhas)
+    resumo = f"{em_dia} de {total} em dia com a origem"
+    if fora:
+        resumo += f" · {fora} com a origem fora desta máquina"
+    if andou:
+        resumo += f" · {andou} divergente(s) — nada foi copiado"
+    print(f"\n  {resumo}")
+    return RECUSADO if andou else OK
 
 
 # --- A CAPTURA DE TEMA, E DE QUEM ELA É -------------------------------------
@@ -957,6 +1288,46 @@ def validar(ref, silencioso=False):
                 alvo = _dentro(dir_pack, bloco[chave], f"icones.{cat}.{chave}")
                 _exigir(os.path.exists(alvo),
                         f"icones.{cat}.{chave}: {bloco[chave]!r} não existe no pack")
+
+    # AS LINHAS DO MAPA DE APLICATIVOS — regras 1 e 4 da P28, 23/09/2026
+    #   Até aqui o `validar` conferia que o MAPA existe, e não o que ele diz. Um
+    #   pack com `waterfox : ~/.local/share/icons/Dracula-Icones/...` saía 0: a
+    #   linha só virava problema dentro do instalador, na máquina de quem
+    #   instalou, e como aviso de "desenho ausente" — nunca como "este mapa
+    #   aponta para a máquina". E dois `steam :` no mesmo mapa passavam também,
+    #   com o segundo vencendo calado.
+    #
+    #   Duas recusas, e cada uma diz a linha:
+    #     · alvo fora das três casas (pack, `motor:`, `pack:`) — regra 4;
+    #     · o mesmo nome duas vezes — regra 1, "um nome, uma fonte". É erro de
+    #       validação, e não escolha de precedência.
+    #   Só o `apps`: é o único mapa de pack cujo formato é `nome : alvo`. O
+    #   `mimetypes.map` casa tipo de arquivo com glifo, e outro formato pede
+    #   outro leitor.
+    #
+    #   ALVO AUSENTE NÃO É RECUSA AQUI, e foi medido: o `validar` é também a
+    #   sonda de existência do `meow_pack_dir` (via `caminho`), e um pack
+    #   recusado é um pack IGNORADO inteiro — "usando o padrão". Recusar por
+    #   um desenho que falta trocaria o tema da pessoa por causa de um ícone; o
+    #   `tests/pack.sh` pegou isso na primeira rodada (o pack de brinquedo dele
+    #   mapeia um `firefox` sem desenho). Nome sem desenho continua dito, onde
+    #   ele é notícia: o instalador avisa "no mapa mas sem desenho no disco", o
+    #   `pack.py fonte` sai 1 e o `tests/fonte-unica.sh` falha para os packs
+    #   do repositório.
+    mapa_apps = (ic.get("apps") or {}).get("mapa")
+    if mapa_apps:
+        caminho_mapa = _dentro(dir_pack, mapa_apps, "icones.apps.mapa")
+        base_mapa, vistos = os.path.dirname(caminho_mapa), {}
+        for num, nome, alvo in ler_mapa(caminho_mapa):
+            _exigir(nome not in vistos,
+                    f"{mapa_apps}:{num}: {nome!r} já está na linha {vistos.get(nome)}.\n"
+                    f"    Um nome, uma fonte: com duas, quem vence é o que o\n"
+                    f"    instalador ler por último, e ninguém escolheu isso.")
+            vistos[nome] = num
+            try:
+                resolver_alvo(alvo, base_mapa)
+            except Recusa as e:
+                raise Recusa(f"{mapa_apps}:{num}: {e}") from None
 
     if (p.get("cosmic") or {}).get("mapa"):
         alvo = _dentro(dir_pack, p["cosmic"]["mapa"], "cosmic.mapa")
@@ -1395,6 +1766,15 @@ def main(argv):
             return OK
         if verbo == "alvo" and len(argv) == 3:
             return cmd_alvo(argv[2])
+        # `fontes` e `fonte` aceitam o id por argumento e caem no pack ativo
+        # (`MEOW_PACK_DIR`) sem ele — a mesma ponte do `acervo`, pelo mesmo
+        # motivo: quem pergunta do shell já resolveu o pack ativo por ela.
+        if verbo == "fontes" and len(argv) in (2, 3):
+            return cmd_fontes(argv[2] if len(argv) == 3 else None)
+        if verbo == "fonte" and len(argv) in (3, 4):
+            return cmd_fonte(argv[2], argv[3] if len(argv) == 4 else None)
+        if verbo == "sincronizar" and len(argv) == 3:
+            return cmd_sincronizar(argv[2])
         if verbo == "som" and len(argv) == 3:
             return cmd_som(argv[2])
         if verbo == "info" and len(argv) == 3:

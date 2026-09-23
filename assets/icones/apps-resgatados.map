@@ -51,7 +51,14 @@ extase-em-4r73               : ~/.local/share/icons/Dracula-Icones/scalable/apps
 
 # --- logos de terceiro que ela customizou -------------------------------------
 com.microsoft.Edge           : ~/.local/share/icons/Dracula-Icones/scalable/apps/com.microsoft.Edge.png  : terceiro
-net.waterfox.waterfox        : ~/.local/share/icons/Dracula-Icones/scalable/apps/net.waterfox.waterfox.png : terceiro
+# O WATERFOX SAIU DAQUI EM 23/09/2026 (P28), E O DESENHO DELE FICOU
+#   A decisão foi vestir o Waterfox com o Firefox do upstream Dracula, e o
+#   desenho novo mora no pack: `packs/dracula/icones/apps.map`, com a origem no
+#   `packs/dracula/PROCEDENCIA.md`. Esta linha e aquela escreveriam o MESMO
+#   `scalable/apps/net.waterfox.waterfox.svg` — dois donos de um arquivo, e o
+#   instalador que rodasse por último vencendo calado. Um nome, uma fonte.
+#   O resgate (a raposa roxa da lua) continua em `resgatados/`, intacto: sai do
+#   que vence, não do repositório. Eram 22 linhas; são 21.
 whatsapp-linux-app           : ~/.local/share/icons/Dracula-Icones/scalable/apps/whatsapp-linux-app.png  : terceiro
 org.gnome.Nautilus           : ~/.local/share/icons/Dracula-Icones/scalable/apps/org.gnome.Nautilus.png  : terceiro
 photogimp                    : ~/.local/share/icons/Dracula-Icones/scalable/apps/photogimp.png           : terceiro
