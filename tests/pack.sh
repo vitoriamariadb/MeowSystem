@@ -91,6 +91,13 @@ json.dump({"formato": 1, "id": ident, "nome": ident.capitalize(),
            "cosmic": {"nome_da_paleta": ident + "-<flavor>"}},
           open(os.path.join(dir_pack, "pack.json"), "w"), indent=2, ensure_ascii=False)
 PY
+# O PACK DE MENTIRA TAMBÉM PRECISA DE CARA — 23/09/2026, sprint P25. Desde ela o
+# `logo.svg` é obrigatório, e sem ele o `validar` recusa o `nord` e dez
+# conferências abaixo caem juntas (medido: a sonda `caminho` deixa de ver o
+# pack, e a ponte cai no padrão). Ele sai do GERADOR, e não de um SVG escrito
+# aqui: é o que um pack novo de verdade recebe, e assim o gerador roda a cada
+# rodada contra uma paleta que não é nenhuma das duas do repositório.
+python3 "$RAIZ/scripts/pack.py" logo-gerado "$PACK_DIR" > "$PACK_DIR/logo.svg" || exit 2
 
 # O ambiente de um pack de terceiro: ele mora onde `$MEOW_PACKS` aponta, e NÃO
 # em `RAIZ/packs`. É aí que a quinta cópia da lista de raízes morria.
