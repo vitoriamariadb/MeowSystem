@@ -167,18 +167,19 @@ else
   #     no nosso. A árvore-alvo da P14 diz, com todas as letras, "contrato
   #     próprio, fica".
   #
-  #   assets/icones/autorais/ — É DÍVIDA, E ELA TEM DONO E DATA. São os ícones
-  #     desenhados aqui em cinco sabores (`cosmic-edit-mocha.svg`,
-  #     `cosmic-edit-dracula.svg`…). Eles vestem alguém, então pela frase desta
-  #     fronteira pertencem ao pack — e quem os move, arquivo por arquivo, é a
-  #     P27, que é o inventário que a P14 prometeu e não detalhou.
+  #   assets/icones/autorais/ — MORREU EM 22/09/2026, e do jeito que este
+  #     comentário prometia. Era dívida com dono e data: os ícones desenhados
+  #     aqui em cinco sabores (`cosmic-edit-mocha.svg`, `cosmic-edit-dracula.svg`
+  #     …), que vestem alguém e por isso pertencem ao pack. A P27 os moveu — 44
+  #     para packs/catppuccin/icones/autorais/ e 11 para o Dracula, mais os 11
+  #     do alucard que ela gerou — e no mesmo dia esta isenção parou de casar
+  #     e foi apagada, que é a regra escrita logo abaixo.
   #
   # A ISENÇÃO MORRE SOZINHA quando o diretório esvaziar: este laço exige que
   # cada uma ainda CASE alguma coisa. Uma isenção que não protege mais nada é um
   # comentário que mente, e o dia de apagá-la é o dia em que ela para de casar.
   ISENTOS=(
     "assets/temas-de-apps/"
-    "assets/icones/autorais/"
   )
   soltos=$(versionados assets | grep -Ei "($flavors)" || true)
   restantes="$soltos"
@@ -189,9 +190,8 @@ else
     fi
     restantes=$(printf '%s\n' "$restantes" | grep -v "^$isento" || true)
   done
-  n_divida=$(printf '%s\n' "$soltos" | grep -c "^assets/icones/autorais/" || true)
   if [ -z "$restantes" ]; then
-    ok "nenhum arquivo de tema solto em assets/ (2 isenções; $n_divida ícones autorais esperam a P27)"
+    ok "nenhum arquivo de tema solto em assets/ (1 isenção: os temas de aplicativo)"
   else
     falha "há arquivo com nome de flavor em assets/, fora das isenções — ele veste alguém, logo é de um pack"
     printf '%s\n' "$restantes" | amostra

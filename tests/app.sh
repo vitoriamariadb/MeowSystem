@@ -202,7 +202,15 @@ _NAO_E_AJUSTE = {
                         # painel oferece separadas — duas portas para o mesmo
                         # valor seriam duas respostas para a mesma pergunta
 }
-_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
+# SPICE_ entrou em 22/09/2026, com a P29, e é da mesma família de FFL_ e CP_:
+# são as variáveis internas do scripts/spicetify_setup.sh, trazido do
+# Spellbook-OS. As quatro que o teste apontou — SPICE_VERSAO (2.45.1),
+# SPICE_DIR (~/.spicetify), SPICE_RELEASES (a URL do GitHub) e
+# SPICE_PREFS_FLATPAK (o prefs dentro do ~/.var/app) — são endereço e versão de
+# um programa de terceiro, com padrão embutido e override só para teste.
+# Nenhuma delas é escolha de tema, e pô-las na tela seria oferecer à pessoa uma
+# pergunta que ela não tem como responder.
+_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
 
 _catalogo = {i["chave"] for i in servidor.ler_esquema()}
 _lidas = {}
