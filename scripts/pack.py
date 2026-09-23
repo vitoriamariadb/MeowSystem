@@ -134,6 +134,7 @@ CAMPOS_COM_LEITOR = {
     "creditos",                         # validar cobra a existência do arquivo
     "paleta", "paleta.arquivo",         # validar, verbo `paleta`, cmd_info
     "paleta.flavor_padrao",             # validar
+    "vitrine.capa",                     # `logo()` e o validar do logo (P25): a capa É o logo
     "cosmic.mapa",                      # validar cobra a existência
     "cosmic.nome_da_paleta",            # scripts/gerar_temas.py
     "temas.capturados",                 # `captura`, `captura_destino`, `capturas`
@@ -856,11 +857,16 @@ def _dentro(base, alvo, campo):
 #   capa do cartão como uma TIRA DE CORES — e tira de cor é paleta, não
 #   identidade: dois packs de paleta parecida ficam indistinguíveis no cartão.
 #
-# O NOME É FIXO, E NÃO UM CAMPO DO pack.json
-#   `packs/<id>/logo.svg`, por convenção, como `pack.json` e `CREDITOS.md`. A
-#   P15 nomeia a capa da vitrine em `vitrine.capa`, e a capa É este arquivo —
-#   dois campos para a mesma coisa seriam duas verdades que divergem no dia em
-#   que alguém atualizar só uma. Quem precisa do logo pergunta a `logo()`.
+# O ARQUIVO É O QUE A `vitrine.capa` NOMEIA, E `logo.svg` NA FALTA DELA
+#   A P15 dá à vitrine o campo `capa`, e a capa É o logo — P25 faz o logo, P15
+#   faz o resto da vitrine, e o campo é um só. A primeira versão desta seção
+#   dizia "o nome é fixo, não há campo", e a revisão de 23/09 mediu o conflito:
+#   um pack com `"capa": "cara.svg"` teria a capa num arquivo e o logo cobrado
+#   noutro, duas verdades para a mesma figura. Então o campo manda quando existe;
+#   sem ele (os packs de antes da P15), vale `packs/<id>/logo.svg`, a convenção
+#   que o próprio campo recomenda. Quem precisa do logo pergunta a `logo()`.
+#
+# COBRADO DE QUEM PUBLICA, NUNCA DE QUEM USA — ver o bloco "o logo" do `validar`.
 #
 # AS CORES SAEM DA PALETA, POR PAPEL — NENHUM HEX É DIGITADO NO DESENHO
 #   É a regra que o `gerar_icones_autorais.py` cumpre no cabeçalho dele, levada
@@ -898,9 +904,22 @@ PAPEIS_DO_LOGO = {
 # O MESMO PADRÃO DO RESTO DO PROJETO, E NÃO UMA ESCOLHA NOVA: `${ACCENT:-mauve}`
 # no `completar_icones.sh`, `--accent default="mauve"` no gerador de autorais.
 ACCENT_PADRAO_DO_LOGO = "mauve"
-RE_ESTILO_PAPEIS = re.compile(r'\s*<style\b[^>]*\bid="meow-papeis"[^>]*>.*?</style>', re.S)
+# ASPAS DOS DOIS TIPOS, E O BLOCO AUTOFECHADO — revisão de 23/09/2026. A primeira
+# versão só casava `id="meow-papeis"`: um `id='meow-papeis'` (XML válido, e o que
+# alguns editores escrevem) passava batido, o bloco novo entrava ANTES do velho, o
+# velho vencia a cascata e o logo ficava preso nas cores do `flavor_padrao` em
+# todo flavor, com o id repetido. E um `<style id="meow-papeis"/>` vazio fazia o
+# `.*?</style>` correr até o `</style>` do bloco SEGUINTE e apagá-lo junto.
+RE_ESTILO_PAPEIS = re.compile(
+    r"""\s*<style\b[^>]*?\bid\s*=\s*(["'])meow-papeis\1[^>]*?(?:/>|>.*?</style>)""", re.S)
 RE_RAIZ_SVG = re.compile(r"<svg\b[^>]*>")
 RE_URL_CSS = re.compile(r"""url\(\s*['"]?\s*([^)'"\s]*)""", re.I)
+# O ESCAPE DE CSS: `\69` é `i`, `\72` é `r`, e `\x` é `x`. O CSS desfaz o escape
+# ANTES de reconhecer a regra, então `@\69mport` É um `@import` e `u\72l(` É um
+# `url(` — medido no Chromium em 23/09/2026: os dois buscaram o arquivo remoto.
+# Quem confere o texto tem de ler o que o navegador lê.
+RE_ESCAPE_CSS = re.compile(r"\\(?:([0-9a-fA-F]{1,6})[ \t\n\r\f]?|(.))", re.S)
+XHTML_NS = "{http://www.w3.org/1999/xhtml}"
 
 # O QUE UM LOGO NÃO PODE CARREGAR, e as regras são as que o docs/PACKS.md já
 # declara para o pack inteiro ("um pack é dado, nunca é código"), aplicadas ao
@@ -915,8 +934,8 @@ ELEMENTOS_RECUSADOS_NO_LOGO = {
 }
 
 
-def _ler_logo(caminho):
-    """(texto, raiz) de um SVG, ou Recusa dizendo por que ele não é um SVG."""
+def _ler_logo(caminho, nome):
+    """(texto, raiz, instruções) de um SVG, ou Recusa dizendo por que ele não é um SVG."""
     with open(caminho, "rb") as fh:
         bruto = fh.read()
     # PNG RENOMEADO É O CASO QUE A SPRINT NOMEIA, e ele não passa daqui: bytes
@@ -924,36 +943,71 @@ def _ler_logo(caminho):
     try:
         texto = bruto.decode("utf-8")
     except UnicodeDecodeError:
-        raise Recusa(f"{LOGO}: não é texto — é um SVG de verdade, ou uma imagem "
+        raise Recusa(f"{nome}: não é texto — é um SVG de verdade, ou uma imagem "
                      f"renomeada?\n    Um PNG com nome de .svg não vira vetor.") from None
     # ENTIDADE DECLARADA É RECUSADA ANTES DE O PARSER VÊ-LA. Um `<!ENTITY>` que
     # se expande em si mesmo mil vezes (o "bilhão de risadas") trava quem valida,
-    # e este validador roda na sonda `caminho` de todo script do projeto. Nenhum
-    # desenho precisa de entidade.
+    # e quem valida é também quem MOSTRA: o `logo()` confere o arquivo antes de
+    # devolvê-lo à tela que pediu. Nenhum desenho precisa de entidade.
     _exigir("<!ENTITY" not in texto,
-            f"{LOGO}: declara <!ENTITY> — um logo não precisa de entidade, e ela "
+            f"{nome}: declara <!ENTITY> — um logo não precisa de entidade, e ela "
             f"pode travar quem o lê")
     try:
         raiz = ET.fromstring(bruto)
     except ET.ParseError as e:
-        raise Recusa(f"{LOGO}: não é XML válido — {e}") from None
-    return texto, raiz
+        raise Recusa(f"{nome}: não é XML válido — {e}") from None
+    # AS INSTRUÇÕES DE PROCESSAMENTO SÓ APARECEM POR EVENTO — revisão de 23/09.
+    #   O `fromstring` joga fora todo `<?...?>`, e o validador nunca via um
+    #   `<?xml-stylesheet href="https://..."?>` — que o navegador SEGUE, e que o
+    #   `logo()` devolvia intacto. Uma segunda leitura, só pelos eventos `pi`,
+    #   pega as do prólogo, as de dentro e as do fim; a declaração `<?xml ...?>`
+    #   não é instrução e não aparece, e um `<?` dentro de comentário também não.
+    leitor = ET.XMLPullParser(events=("pi",))
+    leitor.feed(bruto)
+    leitor.close()
+    instrucoes = [el.text or "" for _evento, el in leitor.read_events()]
+    return texto, raiz, instrucoes
 
 
-def _validar_logo(dir_pack):
-    """Confere o `logo.svg`. Levanta Recusa na primeira falha, com o conserto."""
-    # `_dentro` com o nome fixo não é enfeite: ele segue link simbólico. Um
-    # `logo.svg -> /etc/algo` sairia do pack por baixo do nome certo.
-    caminho = _dentro(dir_pack, LOGO, "logo")
+def _nome_do_logo(p):
+    """O arquivo do logo: o que `vitrine.capa` nomeia, ou `logo.svg` na falta dele."""
+    v = p.get("vitrine")
+    capa = v.get("capa") if isinstance(v, dict) else None
+    return capa if isinstance(capa, str) and capa else LOGO
+
+
+def _css_sem_escape(t):
+    """O texto com os escapes de CSS desfeitos — o que o navegador lê. Ver RE_ESCAPE_CSS."""
+    def um(m):
+        if m.group(1) is None:
+            return m.group(2)
+        n = int(m.group(1), 16)
+        return chr(n) if 0 < n <= 0x10FFFF and not 0xD800 <= n <= 0xDFFF else "\ufffd"
+    return RE_ESCAPE_CSS.sub(um, t)
+
+
+def _validar_logo(dir_pack, p):
+    """Confere o logo e devolve (texto, raiz). Levanta Recusa na primeira falha, com o conserto."""
+    arq = _nome_do_logo(p)
+    # `_dentro` não é enfeite nem com o nome de convenção: ele segue link
+    # simbólico. Um `logo.svg -> /etc/algo` sairia do pack por baixo do nome certo.
+    caminho = _dentro(dir_pack, arq, "logo")
     _exigir(os.path.isfile(caminho),
-            f"{LOGO}: o pack não tem logo — e desde 23/09/2026 todo pack tem cara.\n"
+            f"{arq}: o pack não tem logo — e desde 23/09/2026 todo pack publicado tem cara.\n"
             f"    Desenhe um SVG quadrado (viewBox 0 0 128 128), ou comece do gerado:\n"
             f"      python3 scripts/pack.py logo-gerado <id> > <pack>/{LOGO}\n"
             f"    Ver docs/PACKS.md, 'O logo do pack'.")
-    _texto, raiz = _ler_logo(caminho)
+    texto, raiz, instrucoes = _ler_logo(caminho, arq)
     _exigir(raiz.tag == SVG_NS + "svg",
-            f"{LOGO}: a raiz é <{raiz.tag}>, e não <svg> no namespace do SVG.\n"
+            f"{arq}: a raiz é <{raiz.tag}>, e não <svg> no namespace do SVG.\n"
             f"    Sem xmlns=\"http://www.w3.org/2000/svg\" o navegador não o desenha.")
+    # NENHUMA, e não só a `xml-stylesheet`: um logo não precisa de instrução para
+    # programa nenhum, e a lista das que um leitor segue não é nossa para manter.
+    alvo_pi = instrucoes[0].split(None, 1)[0] if instrucoes else ""
+    _exigir(not instrucoes,
+            f"{arq}: tem <?{alvo_pi} ...?> — uma instrução de\n"
+            f"    processamento. A <?xml-stylesheet?> busca folha de fora, e o navegador a segue.\n"
+            f"    Um logo se basta: só a declaração <?xml ...?> do topo é aceita.")
 
     # QUADRADO, E COM viewBox: o mesmo arquivo serve ao cartão em quatro
     # tamanhos e ao lançador, que pede 48, 64, 128 e 256. Sem `viewBox` ele não
@@ -963,9 +1017,9 @@ def _validar_logo(dir_pack):
     try:
         _x, _y, larg, alt = (float(x) for x in partes)
     except ValueError:
-        raise Recusa(f"{LOGO}: precisa de viewBox com quatro números, veio {vb!r}") from None
+        raise Recusa(f"{arq}: precisa de viewBox com quatro números, veio {vb!r}") from None
     _exigir(larg > 0 and larg == alt,
-            f"{LOGO}: o viewBox {vb!r} não é quadrado.\n"
+            f"{arq}: o viewBox {vb!r} não é quadrado.\n"
             f"    O lançador pede o ícone em 48, 64, 128 e 256 — todos quadrados.")
 
     # SEM DISTINGUIR MAIÚSCULA, e o motivo é o cartão: o XML distingue, e um
@@ -976,32 +1030,66 @@ def _validar_logo(dir_pack):
     for el in raiz.iter():
         nome = str(el.tag).rsplit("}", 1)[-1]
         _exigir(nome.lower() not in recusados,
-                f"{LOGO}: tem <{nome}>, que {recusados.get(nome.lower())}. "
+                f"{arq}: tem <{nome}>, que {recusados.get(nome.lower())}. "
                 f"Um pack é dado, nunca código.")
+        # HTML DENTRO DO SVG, fora de um `foreignObject` — revisão de 23/09/2026.
+        #   Ele não desenha nada ali, mas o navegador CRIA o elemento, e um `<img>`
+        #   criado busca a imagem mesmo sem aparecer. Medido no Chromium:
+        #   `<img xmlns="http://www.w3.org/1999/xhtml" src="https://...">` buscou,
+        #   e passava por aqui porque a regra do `href` não olha `src`. Sai o
+        #   namespace inteiro, e não uma lista de nomes (img, iframe, audio,
+        #   video, object, link...) que envelhece a cada elemento novo do HTML.
+        _exigir(not str(el.tag).startswith(XHTML_NS),
+                f"{arq}: tem <{nome}> do HTML dentro do SVG. Ele não desenha nada ali, e o\n"
+                f"    navegador o cria assim mesmo — um <img src> busca a imagem. Um logo é vetor.")
         textos = [el.text or ""] if nome.lower() == "style" else []
         for chave, valor in el.attrib.items():
             local = chave.rsplit("}", 1)[-1].lower()
             # `onload`, `onclick`... é `<script>` com outra roupa. A regra é
             # "sem script", e ela vale para a porta dos atributos também.
             _exigir(not local.startswith("on"),
-                    f"{LOGO}: o atributo {local!r} executa código. Um pack é dado, nunca código.")
+                    f"{arq}: o atributo {local!r} executa código. Um pack é dado, nunca código.")
             # O LOGO É COPIADO PARA FORA DO PACK — para o tema de ícones, para o
             # cartão —, e é por isso que ele não pode apontar nem para o vizinho
             # de pasta: depois da cópia, `apps/x.svg` é um caminho quebrado. Só
             # referência interna (`#id`) sobrevive à viagem.
             if local == "href":
                 _exigir(valor.strip().startswith("#"),
-                        f"{LOGO}: href={valor!r} aponta para fora do arquivo.\n"
+                        f"{arq}: href={valor!r} aponta para fora do arquivo.\n"
                         f"    Só referência interna (#id): o logo é copiado para o tema de\n"
                         f"    ícones, e lá fora nenhum outro caminho existe.")
+            # O `href` TAMBÉM MUDA POR ANIMAÇÃO — revisão de 23/09/2026. Um
+            #   `<a href="#a"><set attributeName="href" to="https://...">` passa na
+            #   regra de cima com o `#a` e troca o destino depois de carregado; o
+            #   `to`, o `from`, o `by` e o `values` são o `href` com outro nome.
+            #   Animar o destino de um link não é desenho: recusa-se o alvo, e
+            #   não cada um dos quatro atributos que o carregam. `xlink:href`
+            #   termina em `href` também.
+            if local == "attributename":
+                _exigir(not valor.strip().lower().endswith("href"),
+                        f"{arq}: <{nome} attributeName={valor!r}> troca o destino de um link\n"
+                        f"    depois de carregado — é o href apontando para fora por outra porta.")
             textos.append(valor)
         for t in textos:
-            _exigir("@import" not in t,
-                    f"{LOGO}: <style> com @import busca folha de fora. Um logo se basta.")
-            for alvo in RE_URL_CSS.findall(t):
+            # O QUE O CSS LÊ, E NÃO O QUE ESTÁ ESCRITO — revisão de 23/09/2026.
+            #   `@IMPORT` passava porque o teste era `"@import" not in t`, e
+            #   at-rule de CSS não distingue maiúscula; `@\69mport` e `u\72l(`
+            #   passavam porque o escape só é desfeito pelo navegador. Os três
+            #   buscaram o arquivo remoto no Chromium, medido. É o mesmo motivo do
+            #   `lower` nos elementos, lá em cima, aplicado ao CSS.
+            plano = _css_sem_escape(t)
+            _exigir("@import" not in plano.lower(),
+                    f"{arq}: <style> com @import busca folha de fora. Um logo se basta.")
+            # `image-set("https://...")` aceita a URL como TEXTO, sem `url(` —
+            # medido no Chromium: buscou. Um logo não troca de imagem por
+            # densidade de tela; ele é vetor.
+            _exigir("image-set(" not in plano.lower(),
+                    f"{arq}: image-set() carrega imagem de fora. Um logo é vetor, e se basta.")
+            for alvo in RE_URL_CSS.findall(plano):
                 _exigir(alvo.startswith("#"),
-                        f"{LOGO}: url({alvo}) aponta para fora do arquivo — URL remota\n"
+                        f"{arq}: url({alvo}) aponta para fora do arquivo — URL remota\n"
                         f"    ou caminho, não importa: só url(#id) sobrevive à cópia.")
+    return texto, raiz
 
 
 def _cores_do_logo(dados, flavor, accent):
@@ -1031,7 +1119,10 @@ def _aplicar_papeis(texto, raiz, cores):
         if papel in cores:
             prop = "stroke" if classe != papel else "fill"
             regras.append(f".{classe}{{{prop}:{cores[papel]}}}")
-    sem_bloco = RE_ESTILO_PAPEIS.sub("", texto, count=1)
+    # TODOS os blocos saem, e não só o primeiro: um arquivo que já tem dois (o
+    # defeito do `id='meow-papeis'` produzia exatamente isso) se conserta na
+    # primeira resolução, em vez de carregar o velho vencendo a cascata.
+    sem_bloco = RE_ESTILO_PAPEIS.sub("", texto)
     abertura = RE_RAIZ_SVG.search(sem_bloco)
     if not regras or not abertura or abertura.group(0).endswith("/>"):
         return sem_bloco
@@ -1067,9 +1158,16 @@ def logo(ref, flavor=None, accent=None):
     Quem mostra o logo — o cartão do pack, o ícone do lançador — pergunta aqui,
     e não abre o arquivo cru: o cru traz a prévia do `flavor_padrao`, e a
     máquina pode estar no flavor claro.
+
+    E ESTA PORTA CONFERE O ARQUIVO POR CONTA PRÓPRIA. O `validar` do motor
+    (`silencioso=True`) não cobra o logo — ver o bloco "o logo" dele —, então é
+    aqui que um logo com `<script>` ou `<?xml-stylesheet?>` deixa de chegar a
+    quem mostra, mesmo vindo de um pack que nunca passou pelo `meow pack
+    validar`. Sem logo, ou com um logo recusado, levanta Recusa: não há o que
+    mostrar, e o tema do pack continua no ar do mesmo jeito.
     """
     p, dados, dir_pack = validar(ref, silencioso=True)
-    texto, raiz = _ler_logo(os.path.join(dir_pack, LOGO))
+    texto, raiz = _validar_logo(dir_pack, p)
     flavor, accent = _flavor_e_accent(p, dados, flavor, accent)
     return _aplicar_papeis(texto, raiz, _cores_do_logo(dados, flavor, accent))
 
@@ -1152,11 +1250,18 @@ def logo_gerado(nome, ident):
     import unicodedata
     from xml.sax.saxutils import escape, quoteattr
 
-    # A INICIAL SAI DO NOME E, NA FALTA, DO ID. `Árvore` vira `a` pela
-    # decomposição do acento; um nome que comece por símbolo cai no id, que o
-    # `validar` já garante começar por [a-z0-9].
-    inicial = next((c for c in unicodedata.normalize("NFKD", f"{nome}{ident}").lower()
-                    if c in _GLIFOS_DO_LOGO), "o")
+    # A INICIAL É A PRIMEIRA LETRA OU ALGARISMO DO NOME, E SÓ ELA — revisão de
+    # 23/09/2026. Símbolo e espaço na frente não são letra e são pulados (`* Nord`
+    # dá `n`); o acento cai na letra base pela decomposição (`Árvore` dá `a`).
+    # Se ESSA letra não tem glifo na grade — `Ωmega`, `日本` —, a inicial vem do
+    # id, que o `validar` garante começar por [a-z0-9]. A primeira versão varria o
+    # nome inteiro atrás de qualquer caractere com glifo, e `Ωmega` saía `m`:
+    # uma letra do meio, que ninguém lê como a inicial do pack.
+    def inicial_de(texto):
+        c = next((c for c in texto if c.isalnum()), "")
+        base = unicodedata.normalize("NFKD", c)[:1].lower()
+        return base if base in _GLIFOS_DO_LOGO else None
+    inicial = inicial_de(nome) or inicial_de(ident) or "o"
     # A letra ocupa 36 x 54 no centro do quadro de 128: grande o bastante para
     # ler a 48px (o traço de 10 vira ~3,75px), com a placa respirando em volta.
     letra = _glifo_no_quadro(_GLIFOS_DO_LOGO[inicial], 46, 37, 9)
@@ -1178,17 +1283,18 @@ def cmd_logo_gerado(ref, flavor=None, accent=None):
     um logo que alguém desenhou para "consertar" um pack é o erro que não se
     desfaz com Ctrl+C.
 
-    `validar` sem cobrar o logo, e só isso: o resto do pack precisa estar são,
-    porque o gerado nasce da paleta dele.
+    O `validar` do motor, que não cobra o logo: o resto do pack precisa estar
+    são, porque o gerado nasce da paleta dele — e o logo é justamente o que
+    este verbo existe para dar a quem ainda não tem.
     """
-    p, dados, dir_pack = validar(ref, silencioso=True, cobrar_logo=False)
+    p, dados, dir_pack = validar(ref, silencioso=True)
     svg = logo_gerado(str(p.get("nome") or p["id"]), str(p["id"]))
     flavor, accent = _flavor_e_accent(p, dados, flavor, accent)
     sys.stdout.write(_aplicar_papeis(svg, ET.fromstring(svg), _cores_do_logo(dados, flavor, accent)))
     return OK
 
 
-def validar(ref, silencioso=False, cobrar_logo=True):
+def validar(ref, silencioso=False):
     """Confere o pack. Levanta Recusa na primeira falha, com o que consertar."""
     dir_pack = achar(ref)
     _exigir(dir_pack, f"não achei o pack {ref!r}.\n"
@@ -1444,10 +1550,20 @@ def validar(ref, silencioso=False, cobrar_logo=True):
     # --- o logo -------------------------------------------------------------
     # POR ÚLTIMO, E DE PROPÓSITO: um pack de formato errado ou paleta quebrada
     # deve ouvir primeiro sobre isso, que é o que impede qualquer tela de sair.
-    # `cobrar_logo=False` existe para UM chamador, o `logo-gerado`, que é
-    # justamente quem dá a cara ao pack que ainda não tem. Ver `_validar_logo`.
-    if cobrar_logo:
-        _validar_logo(dir_pack)
+    #
+    # SÓ NA PORTA DE QUEM PUBLICA — revisão de 23/09/2026. A primeira versão
+    #   cobrava o logo aqui de todo chamador, e o `silencioso=True` é a porta do
+    #   MOTOR: o `caminho` que o `meow_pack_dir` (lib/comum.sh) usa como sonda de
+    #   existência, a `paleta`, o `som`, o `construir`. Medido na revisão: um
+    #   pack íntegro em tudo menos o logo saía com "pack 'meu' não resolve —
+    #   usando o padrão", sem dizer que era o logo, e o desktop inteiro voltava
+    #   ao Catppuccin por causa de uma figura que só o cartão e o lançador
+    #   mostram. E um pack `formato` 1 de antes de 23/09 pintaria errado depois
+    #   de atualizar — o contrário do que o `formato` promete. É a fronteira que
+    #   a P15 traçou para a capa, e a capa É este arquivo. Quem MOSTRA o logo não
+    #   depende daqui: o `logo()` confere o arquivo por conta própria.
+    if not silencioso:
+        _validar_logo(dir_pack, p)
 
     if not silencioso:
         # O AVISO VEM ANTES DO `ok`, E NÃO MUDA O CÓDIGO DE SAÍDA
