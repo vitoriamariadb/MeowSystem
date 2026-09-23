@@ -33,6 +33,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 
 ## Sumário
 
+- [Começar por um CSV](#começar-por-um-csv)
 - [As 26 cores](#as-26-cores)
 - [A fronteira: `assets/` contra `packs/`](#a-fronteira-assets-contra-packs)
 - [A estrutura do pack](#a-estrutura-do-pack)
@@ -49,6 +50,91 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [O que um pack não pode fazer](#o-que-um-pack-não-pode-fazer)
 - [Validar antes de publicar](#validar-antes-de-publicar)
 - [Publicar](#publicar)
+
+---
+
+## Começar por um CSV
+
+Se as suas cores estão numa coluna do Figma ou numa planilha, você não precisa
+escrever o JSON da próxima seção: 26 linhas bastam.
+
+```csv
+slot,flavor,hex
+base,meutema,#282A36
+text,meutema,#F8F8F2
+mauve,meutema,#BD93F9
+…
+```
+
+- **As colunas são fixas**, e a primeira linha é esse cabeçalho. Uma linha por
+  cor; os 26 nomes de `slot` são os da seção abaixo, em minúsculas. Um CSV
+  exportado com BOM (o Excel e o LibreOffice fazem isso) é lido igual.
+- **O erro diz a linha.** Slot desconhecido sai com o número da linha e o nome;
+  slot faltando sai com a lista do que falta, por flavor; hex fora de
+  `#RRGGBB` e slot repetido também. Tudo de uma vez, não um por rodada.
+- **O CSV é entrada; o `paleta.json` continua sendo a forma canônica.** Nenhum
+  leitor do projeto entende CSV: ele é traduzido uma vez para o JSON
+  equivalente, e dali em diante quem manda é o JSON.
+
+```bash
+meow pack de-csv minhas-cores.csv > ~/.local/share/meowsystem/packs/meu-tema/paleta.json
+```
+
+O verbo **só imprime**, como o `logo-gerado`: quem põe o arquivo no pack é você,
+com o `>`. Aponte o `>` para um arquivo novo — um CSV recusado não imprime JSON
+nenhum, e o `>` já terá esvaziado o destino. Montar o pack inteiro a partir do
+CSV é o `meow pack novo --de-csv` (sprint P11), que chama esta mesma tradução;
+até ele chegar, o pack se monta à mão, com os três arquivos do fim desta seção.
+
+**Se o CSV traz só flavors escuros, o claro é derivado** — do primeiro flavor
+do CSV, que é o que vira o `flavor_padrao` —, pelo método da subseção [Se o seu
+tema não tem um claro](#se-o-seu-tema-não-tem-um-claro), e não por outro. Ele se
+chama `<flavor>claro` (uma palavra só: nome de flavor não tem hífen) e **diz que
+foi derivado**: a paleta ganha o campo
+
+```json
+"derivados": { "meutemaclaro": "meutema" }
+```
+
+e o `meow pack info` e o cartão do pack no painel mostram isso na cara:
+
+```
+  claros    : meutemaclaro — claro: derivado do escuro pelo método do Latte (não é próprio), a partir de 'meutema'
+```
+
+É o mesmo algoritmo que fez o `alucard`, e isso é conferido: dadas as 26 cores
+do `dracula`, ele devolve o `alucard` versionado, 26 de 26 iguais. Derivar
+continua sendo opinativo — para usar o seu claro, traga as 26 linhas dele no
+CSV. Um flavor é claro quando o `base` dele é mais luminoso que o `text`: a
+medida decide, e não o nome.
+
+**A régua de contraste roda na tradução, e avisa sem bloquear.** `text` sobre
+`base` ≥ 7:1, e cada slot não abaixo de 95% do que o Latte faz no mesmo slot —
+a régua que gerou o `alucard`. (Ao pé da letra, "não pior que o Latte" reprova
+o próprio `alucard` em 21 slots por um centésimo: a derivação mira a luminância
+do Latte, e o arredondamento para hexa cai logo abaixo.) Ela vale para todo
+flavor, escuro ou claro, e as cores oficiais do Dracula reprovam em três
+(`red`, `blue`, `surface0`). A régua é do projeto; a decisão é de quem fez o
+tema. O que bloqueia continua sendo o `validar`: `text` sobre `base` abaixo de
+4,5:1.
+
+**Um pack feito de CSV tem paleta e nada mais**, e isso é legítimo — é o que o
+Dracula faz com sete categorias. O resto vem por herança, e só vem se o
+`pack.json` disser de quem:
+
+```json
+{
+  "formato": 1, "id": "meu-tema", "nome": "Meu Tema",
+  "heranca": "catppuccin",
+  "paleta":  { "arquivo": "paleta.json", "flavor_padrao": "meutema" },
+  "vitrine": { "capa": "logo.svg" }
+}
+```
+
+Sem `heranca`, ícones, ponteiro e papéis de parede não sobem para pack nenhum.
+Com ela, o `meow pack info` e o cartão dizem categoria a categoria o que veio de
+onde — `próprio: paleta · herdado de catppuccin: …` —, para ninguém achar que
+ganhou menos do que ganhou. O `logo.svg` sai do [`logo-gerado`](#pack-sem-logo-não-fica-sem-cara).
 
 ---
 
@@ -1361,6 +1447,7 @@ abre um `pack.json`:
 | `paleta <id>` | o arquivo de paleta daquele pack |
 | `logo <id> [flavor] [accent]` | o `logo.svg`, com as cores resolvidas por papel para aquele flavor |
 | `logo-gerado <id> [flavor] [accent]` | o logo gerado, para o pack que ainda não tem — **só imprime** |
+| `de-csv <arquivo.csv>` | o `paleta.json` de um CSV `slot,flavor,hex`, com o claro derivado se faltar — **só imprime**. Ver [Começar por um CSV](#começar-por-um-csv) |
 | `som <id>` | o timbre do pack, como `CHAVE=valor` para o shell |
 | `raizes` | as três raízes de busca, na ordem |
 | `padrao` | o diretório do pack **padrão** |

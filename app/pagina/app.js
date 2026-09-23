@@ -7572,6 +7572,16 @@ function cartaoDePack(p) {
   if (p.descricao_curta) cartao.append(elemento("p", { class: "home-linha", texto: p.descricao_curta }));
   if ((p.tags || []).length) cartao.append(elemento("p", { class: "home-rotulo", texto: p.tags.join(" · ") }));
   if (p.origem) cartao.append(elemento("p", { class: "home-nota", texto: p.origem }));
+  /* O CLARO DERIVADO SE DECLARA — 23/09/2026, P16. Um pack feito de CSV tem
+   * paleta e nada mais, e o claro dele pode ter nascido do escuro pelo método
+   * do Latte, sem ninguém desenhá-lo. A linha de cima diz o que veio por
+   * herança; esta diz o que veio por derivação, e como trocar — derivar é
+   * opinativo, e quem fez o tema tem a última palavra. */
+  for (const d of (p.claros_derivados || [])) {
+    cartao.append(elemento("p", { class: "home-nota",
+      texto: `Claro «${d.flavor}»: derivado de «${d.de}» pelo método do Latte, não desenhado. `
+           + "Para usar o seu, traga as 26 linhas dele no CSV." }));
+  }
   /* O pack que não valida aparece assim mesmo, dizendo por quê — como no
    * `meow pack info`. Esconder o cartão esconderia também o motivo. */
   for (const problema of (p.problemas || [])) {
