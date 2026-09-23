@@ -2314,12 +2314,35 @@ def logo_do_painel(flavor, accent):
         accent = "mauve" if "mauve" in cores else next(iter(cores), "")
     tinta = cores.get(accent) or ""
 
-    arquivo = os.path.join(RAIZ, "assets", "icones", "autorais",
-                           "meowsystem-painel-%s.svg" % flavor)
-    if not os.path.isfile(arquivo):
-        arquivo = os.path.join(RAIZ, "assets", "icones", "autorais",
-                               "meowsystem-painel-mocha.svg")
-    if not os.path.isfile(arquivo):
+    # A MARCA MUDOU DE CASA EM 22/09/2026 — ELA É DO PACK
+    #   Eram dois `os.path.join(RAIZ, "assets", "icones", "autorais", ...)`
+    #   cravados. A P27 desceu os 55 desenhos autorais para dentro dos packs
+    #   (44 do Catppuccin, 11 do Dracula), porque `autorais` era um nome que
+    #   dizia "do projeto" e não dizia DE QUEM — e quem trocava de pack levava
+    #   os dois montes junto.
+    #
+    #   Quem resolve é o `acervo` do scripts/pack.py, pela mesma porta que a
+    #   etiqueta de pack desta página já usa (ver `modulo_pack`): ele sobe pack
+    #   -> herança -> motor e enxerga as três raízes. Montar o caminho aqui
+    #   seria a segunda verdade sobre onde mora a marca, e ela sumiria da página
+    #   calada no dia em que um pack declarasse outro diretório.
+    #
+    # A QUEDA PARA O MOCHA CONTINUA, E O PORQUÊ MUDOU DE TAMANHO
+    #   Antes ela cobria o flavor sem desenho dentro de um acervo só. Agora ela
+    #   cobre também o pack cujo `icones/autorais/` não tem a marca: o Dracula
+    #   entrega `meowsystem-painel-dracula.svg` e `-alucard.svg`, e uma página
+    #   pedida em `mocha` com o pack Dracula ativo não acha nenhum dos dois. Cair
+    #   no mocha do acervo HERDADO é o que mantém a marca na tela — e é o que o
+    #   `acervo` já faz sozinho ao subir a herança.
+    def _marca(nome_flavor):
+        mod = modulo_pack()
+        if not mod:
+            return ""
+        return mod.acervo("icones.autorais.desenhos",
+                          "meowsystem-painel-%s.svg" % nome_flavor) or ""
+
+    arquivo = _marca(flavor) or _marca("mocha")
+    if not arquivo or not os.path.isfile(arquivo):
         return None
     with open(arquivo, "r", encoding="utf-8") as fh:
         bruto = fh.read()
@@ -5004,7 +5027,7 @@ class Manipulador(BaseHTTPRequestHandler):
         #   de fábrica na aba "Logo do sistema", que é onde gato É o assunto.
         #
         # O `stroke` É TROCADO AQUI, e não no gerador.
-        #   Os quatro SVG de `assets/icones/autorais/` cravam o mauve de cada
+        #   Os quatro SVG de `icones/autorais/` do pack cravam o mauve de cada
         #   sabor, porque é isso que o ícone do `.desktop` tem de ser: o
         #   lançador não lê o meow.conf e não tem paleta para seguir. A PÁGINA
         #   tem. Medido: com `ACCENT="peach"` o banner seria a única coisa roxa

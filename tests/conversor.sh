@@ -41,8 +41,16 @@ done
 
 # As três origens são de procedências diferentes DE PROPÓSITO: o que decide a
 # conversão não é PNG contra SVG, é o desenho ser geométrico ou orgânico.
+#
+# OS AUTORAIS MUDARAM DE CASA EM 22/09/2026 — a P27 os desceu de
+# `assets/icones/autorais/` para `packs/catppuccin/icones/autorais/`, porque
+# aquele diretório guardava 55 desenhos de dois packs no mesmo monte. O caminho
+# aqui é CRAVADO e não resolvido pelo `pack.py` de propósito: estes cinco
+# arquivos são FIXTURE, e uma fixture que muda com o pack ativo mediria coisas
+# diferentes em máquinas diferentes — que é justamente o que uma trava de
+# regressão não pode fazer. O `[ -f ]` de cada laço já pula o que não existir.
 ORIGENS=(
-  "$RAIZ/assets/icones/autorais/cosmic-edit-mocha.svg"          # autoral, já tem contorno (a fita colapsa)
+  "$RAIZ/packs/catppuccin/icones/autorais/cosmic-edit-mocha.svg"          # autoral, já tem contorno (a fita colapsa)
   "/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg"       # Papirus, orgânico, com gradiente e sombra
   "$RAIZ/assets/icones/catppuccin-apps/macchiato/spotify.png"   # PNG chapado do acervo Catppuccin
 )
@@ -109,7 +117,7 @@ done
 # --------------------------------------------------------------------------
 # A RÉGUA DOS DOIS NÚMEROS — o `>_` do terminal e o `B` do btop
 # --------------------------------------------------------------------------
-TERM="$RAIZ/assets/icones/autorais/cosmic-term-mocha.svg"
+TERM="$RAIZ/packs/catppuccin/icones/autorais/cosmic-term-mocha.svg"
 if [ -f "$TERM" ]; then
   python3 "$CONV" "$TERM" "$T/t.svg" --json >"$T/t.json" 2>/dev/null
   cantos=$(metrica "$T/t.json" cantos)
@@ -239,8 +247,8 @@ TRAVA=(
   "/usr/share/icons/Papirus/64x64/apps/org.gnome.Calculator.svg"   # fiel, mín. 204,6
   "/usr/share/icons/Papirus/64x64/apps/org.telegram.desktop.svg"   # fiel, mín. 78,4 <- quem manda
   "/usr/share/icons/Papirus/64x64/apps/org.videolan.VLC.svg"       # fiel, mín. 281,3
-  "$RAIZ/assets/icones/autorais/cosmic-edit-mocha.svg"             # canário: a folha em branco
-  "$RAIZ/assets/icones/autorais/cosmic-term-mocha.svg"             # canário: o quadrado
+  "$RAIZ/packs/catppuccin/icones/autorais/cosmic-edit-mocha.svg"             # canário: a folha em branco
+  "$RAIZ/packs/catppuccin/icones/autorais/cosmic-term-mocha.svg"             # canário: o quadrado
 )
 for origem in "${TRAVA[@]}"; do
   [ -f "$origem" ] || { printf 'pulado: %s não existe\n' "$origem"; continue; }

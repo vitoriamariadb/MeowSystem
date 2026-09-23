@@ -26,7 +26,7 @@
 # A LISTA NÃO MORA AQUI, DE PROPÓSITO
 #   Ela está em `assets/icones/apps-nomes.map`, com o motivo de cada corte ao lado. Lista
 #   cravada dentro de script envelhece e ninguém acha — é a mesma razão que põe os
-#   ícones em `assets/icones/apps.map` e os mimetypes em `assets/icones/mimetypes.map`.
+#   ícones em `assets/icones/apps.map` e os mimetypes no `icones/mimetypes.map` do pack.
 #
 # POR QUE ESCREVER NO ARQUIVO EXISTENTE, E NÃO NUMA CÓPIA NO HOME
 #   Porque o `cosmic-app-library` NÃO DEDUPLICA POR ID — medido em 04/08/2026 e

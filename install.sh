@@ -956,7 +956,7 @@ etapa_modo() {
 #   dentes que ela desenhou nos dois gatos, e custou uma tarde para achar,
 #   porque a pipeline inteira devolvia sucesso.
 #
-#   Vem ANTES do `etapa_icones` porque `assets/icones/autorais/` alimenta o tema
+#   Vem ANTES do `etapa_icones` porque o acervo autoral do pack alimenta o tema
 #   de ícones: normalizar depois seria consertar a fonte e instalar a cópia
 #   quebrada. Os gatos têm o conserto no próprio `logo.sh` (o vigia do acervo
 #   dispara aquele script, não este arquivo), e este passo os cobre de novo por
@@ -971,6 +971,27 @@ etapa_svg() {
   local pastas=() p
   for p in assets/gatos assets/icones/autorais assets/icones/overrides; do
     [ -d "$MEOW_RAIZ/$p" ] && pastas+=("$MEOW_RAIZ/$p")
+  done
+  # OS AUTORAIS DE CADA PACK ENTRAM JUNTO — 22/09/2026
+  #   A P27 desceu os 55 desenhos autorais de `assets/icones/autorais/` para
+  #   dentro dos packs (44 no Catppuccin, 11 no Dracula, mais os 11 do alucard
+  #   que nasceram nela). Sem estas linhas a etapa continuaria passando, calada,
+  #   conferindo os oito de `autorais/leitura/` que sobraram — e o defeito do
+  #   `transform-box` que ela existe para caçar voltaria a passar despercebido
+  #   exatamente nos desenhos que ela desenha aqui.
+  #
+  #   POR GLOB, E NÃO POR LISTA DE NOMES: um pack de terceiro instalado em
+  #   `~/.local/share/meowsystem/packs` não está nesta árvore, mas um pack que
+  #   ALGUÉM adicionar a `packs/` estaria — e uma lista com "catppuccin dracula"
+  #   digitado envelheceria no dia do terceiro pack.
+  #
+  #   SÓ `autorais/`, e é de propósito: é o único acervo de pack desenhado aqui.
+  #   O `icones/mimetypes/` do Catppuccin são 3.280 arquivos de terceiro e o
+  #   `icones/apps/` do Dracula é arte de upstream — os dois caem na mesma regra
+  #   que o parágrafo acima já dá ao `arcticons/`: ninguém os edita aqui, e
+  #   varrê-los seria segundos por rodada para conferir o que não muda.
+  for p in "$MEOW_RAIZ"/packs/*/icones/autorais; do
+    [ -d "$p" ] && pastas+=("$p")
   done
   [ "${#pastas[@]}" -gt 0 ] || return 0
   local rc

@@ -133,7 +133,28 @@ RAIZ = Path(__file__).resolve().parent.parent
 import pack  # noqa: E402  — vizinho de arquivo, e o RAIZ acima precede
 
 PALETA = Path(pack.paleta_do_pack_ativo())
-DESTINO = RAIZ / "assets" / "icones" / "autorais"
+
+# ONDE OS DESENHOS NASCEM — QUEM DIZ É O PACK, DESDE 22/09/2026
+#   Era `RAIZ / "assets" / "icones" / "autorais"`, e o preço dessa linha foi
+#   medido: aquele diretório guardava 55 desenhos de DOIS packs misturados — 44
+#   do Catppuccin e 11 do Dracula —, num nome (`autorais`) que diz que são do
+#   projeto e não diz de QUEM. A paleta já vinha do pack ativo desde a linha
+#   acima; só o destino é que continuava cravado, e por isso o Dracula regerava
+#   os desenhos dele dentro do acervo do vizinho.
+#
+#   E O QUE ISSO DEIXAVA QUEBRADO ERA O FLAVOR CLARO. O `alucard` nasceu em
+#   19/09/2026 e ficou com ZERO dos onze: no modo claro do Dracula estes ícones
+#   caíam no `latte`, que é o claro do OUTRO pack. O laço lá embaixo sempre
+#   soube gerá-los — ele varre `paleta["flavors"]`, e a paleta do Dracula
+#   declara os dois — mas ninguém rodava o gerador com a paleta do Dracula
+#   porque o destino era o mesmo monte para todo mundo.
+#
+#   `dir_acervo` e não `acervo`: quem ESCREVE precisa do caminho mesmo quando o
+#   diretório ainda não existe, e num pack novo ele não existe. O `padrao`
+#   cobre o pack que não declarou a categoria — ele escreve em casa, nunca no
+#   acervo de quem ele herda.
+DESTINO = Path(pack.dir_acervo("icones.autorais.desenhos",
+                               padrao="icones/autorais/"))
 
 # Papel -> (nome Catppuccin em flavor escuro, nome em flavor claro).
 PAPEIS = {

@@ -23,6 +23,14 @@ VERBOS
                                  resolve um acervo PACK -> HERANÇA -> nada.
                                  NÃO é o `caminho`: aquele olha só o pack, este
                                  sobe a cadeia de herança. Ver a função `acervo`.
+    onde    <id> <categoria> [padrao]
+                                 o diretório onde aquele acervo MORA, exista ele
+                                 ou não. É a porta de quem ESCREVE; o `acervo`
+                                 acima é a de quem lê. Ver `dir_acervo`.
+    alvo    <base>               resolve os alvos de mapa que chegam pelo STDIN,
+                                 um por linha: `motor:x` cai em assets/icones/,
+                                 sem prefixo cai na <base>. Uma linha de saída
+                                 por linha de entrada; vazia = recusada.
     paleta  <id>                 imprime o caminho da paleta do pack
     som     <id>                 o timbre do pack, como CHAVE=valor para o shell
     info    <id>                 o que é próprio, o que é herdado, o que falta
@@ -394,6 +402,143 @@ def acervo(categoria, arquivo="", motor=None, ref=None):
             return alvo
     return None
 
+# O ACERVO ONDE ELE **DEVE** MORAR, EXISTA OU NÃO — 22/09/2026
+#
+# POR QUE ELA NÃO É O `acervo` ACIMA
+#   O `acervo` é a porta de quem LÊ: ele devolve None quando o arquivo não
+#   existe, e isso é a resposta certa para quem vai abrir. Quem ESCREVE precisa
+#   do contrário — o diretório onde o acervo deve nascer, justamente quando ele
+#   ainda não existe. O `gerar_icones_autorais.py` é o caso: num pack novo, o
+#   `icones/autorais/` só passa a existir depois que ele escreve o primeiro
+#   arquivo lá dentro.
+#
+#   Sem esta função, cada escritor montaria `<dir do pack>/<declarado>` à mão —
+#   que é a mesma divergência silenciosa que o `acervo` veio matar do lado da
+#   leitura, entrando de volta pela porta da escrita.
+#
+# ELA NÃO SOBE A HERANÇA, E ISSO É DE PROPÓSITO
+#   Herdar é dizer "leia do vizinho". Escrever no acervo do vizinho seria um
+#   pack gravando dentro de outro — o Dracula regeraria os autorais dentro do
+#   `packs/catppuccin/`, e o dono do pack base veria arquivo aparecendo sem ter
+#   pedido. Um pack que não declara a categoria recebe o `padrao` e escreve em
+#   casa.
+def dir_acervo(categoria, ref=None, padrao=None):
+    """O diretório de um acervo do pack, para quem vai ESCREVER nele.
+
+    Devolve o caminho mesmo que ele ainda não exista — é o contrário do
+    `acervo`, que só responde o que já está no disco. Sem declaração no
+    pack.json, cai no `padrao` relativo à raiz do pack.
+    """
+    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
+    dir_pack = achar(ref) or dir_padrao()
+    declarado = campo(ref, categoria)
+    if not isinstance(declarado, str) or not declarado:
+        if not padrao:
+            return None
+        declarado = padrao
+    # A MESMA GUARDA DO `acervo`, E PELO MESMO MOTIVO: um pack de terceiro com
+    # `"desenhos": "../../../algum/lugar"` faria o gerador ESCREVER fora do
+    # pack. Do lado da leitura o estrago é ler um mapa; do lado da escrita é
+    # criar arquivo no disco de quem instalou. Aqui a recusa sobe — quem escreve
+    # não tem uma "próxima camada da herança" para tentar.
+    _dentro(dir_pack, declarado, categoria)
+    return os.path.join(dir_pack, declarado)
+
+
+# O PREFIXO `motor:` — A DECISÃO SAI DE `assets/` SEM O ACERVO SAIR JUNTO
+#
+# O QUE ELE RESOLVE [22/09/2026]
+#   Um mapa de pack diz *"o Telegram veste o desenho X"*. Essa frase é decisão
+#   de TEMA, e o lugar dela é o pack. Mas o desenho X pode vir do acervo
+#   Arcticons — 113 SVG de terceiro que são base de conversão, ferramenta
+#   compartilhada, e que não mudam quando se troca de pack.
+#
+#   Sem prefixo havia só duas saídas, e as duas eram ruins: ou a decisão fica em
+#   `assets/` (e trocar de pack não troca a escolha), ou cada pack carrega uma
+#   CÓPIA dos 113 SVG (e a segunda cópia defasa da primeira calado — é a lição
+#   que a memória do Dracula-OS-Theme já tinha pago em 18/08/2026).
+#
+#   O prefixo é a terceira saída: a linha mora no pack, o arquivo mora no motor.
+#
+#     org.telegram.desktop          : motor:arcticons/telegram.svg
+#     io.github.flattool.Warehouse  : apps/Warehouse.svg
+#
+# A BASE VEM DE QUEM CHAMA, E NÃO DE UMA CONSTANTE AQUI
+#   O `icones_apps_dracula.sh` resolve os caminhos sem prefixo contra o
+#   DIRETÓRIO DO MAPA, e o cabeçalho dele explica por quê: assim o mesmo mapa
+#   serve ao pack e ao endereço antigo sem o script saber em qual dos dois está.
+#   Cravar `<dir do pack>/icones` aqui seria uma segunda verdade sobre essa
+#   raiz, e ela divergiria na primeira vez que um mapa mudasse de pasta.
+#
+# OS DOIS LADOS TÊM GUARDA, E O MOTIVO É O MESMO DO `acervo`
+#   Sem prefixo, o alvo tem de cair dentro da base; com `motor:`, dentro de
+#   `assets/icones/`. Um mapa é DADO, e um pack de terceiro escreve o dado dele:
+#   `motor:../../../etc/algo` seria lido e copiado para o tema de quem instalou.
+#   Três linhas de guarda contra isso é barato.
+MOTOR = "motor:"
+ACERVO_DO_MOTOR = os.path.join("assets", "icones")
+
+
+def resolver_alvo(valor, base):
+    """O arquivo que uma linha de mapa nomeia. Recusa o que sai da raiz.
+
+    `motor:x` resolve em `assets/icones/x`; sem prefixo, contra a `base` que o
+    chamador passa. Devolve o caminho EXISTA ELE OU NÃO: quem chama é que sabe
+    se um alvo ausente é erro (nome no mapa sem desenho no disco) ou não.
+    """
+    valor = (valor or "").strip()
+    if not valor:
+        return ""
+    if valor.startswith(MOTOR):
+        raiz, resto = os.path.join(RAIZ, ACERVO_DO_MOTOR), valor[len(MOTOR):].strip()
+    else:
+        raiz, resto = base, valor
+    if not resto:
+        raise Recusa(f"{valor!r} não nomeia arquivo nenhum")
+    # A CHECAGEM É A DO `_dentro`; SÓ A FRASE MUDA
+    #   O `_dentro` diz "sai de dentro do pack", que é a frase certa para ele:
+    #   os cinco campos que ele guarda no `validar` são todos do pack.json. Aqui
+    #   a raiz é o PACK numa metade dos casos e `assets/icones/` na outra, e
+    #   dizer "do pack" sobre um alvo `motor:` mandaria procurar no lugar errado.
+    #   Reimplementar a comparação para trocar a frase seria a segunda definição
+    #   de "está contido", e ela divergiria da primeira — então a conta continua
+    #   sendo dele e só a mensagem é reescrita aqui.
+    try:
+        _dentro(raiz, resto, "alvo")
+    except Recusa:
+        raise Recusa(f"{valor!r} sai de {raiz}") from None
+    return os.path.join(raiz, resto)
+
+
+def cmd_alvo(base):
+    """Resolve os alvos que chegam pela ENTRADA PADRÃO, um por linha.
+
+    POR QUE PELO STDIN, E NÃO UM POR CHAMADA [22/09/2026]
+        O chamador natural é um laço de shell sobre um mapa, e o do
+        `icones_apps_dracula.sh` tem 18 linhas hoje. Medido aqui no dia: 18
+        partidas de `python3` custam 1,1 s — e esse laço roda dentro do
+        `meow doctor`, que é o comando das 5h. Um mapa de 100 aplicativos
+        custaria seis segundos, e a regressão apareceria como "o doctor ficou
+        lento", longe da causa.
+
+        Em lote é UMA partida para o mapa inteiro.
+
+    O CONTRATO É UMA LINHA DE SAÍDA POR LINHA DE ENTRADA, E ELE IMPORTA
+        Quem chama junta esta saída com os NOMES do mapa, lado a lado — e um
+        `paste` que perde o alinhamento veste cada aplicativo com o ícone do
+        vizinho, sem erro nenhum na tela. Por isso a linha recusada sai VAZIA em
+        vez de sair fora: vazio não casa com arquivo nenhum e cai no aviso "no
+        mapa mas sem desenho no disco" que o chamador já tem. O porquê da recusa
+        vai para o stderr, com o valor que a causou.
+    """
+    for linha in sys.stdin:
+        try:
+            print(resolver_alvo(linha.rstrip("\n"), base))
+        except Recusa as e:
+            print(f"  aviso {e} — linha ignorada", file=sys.stderr)
+            print()
+    return OK
+
 
 def _luminancia(hexcor):
     """Luminância relativa de WCAG 2.x. Usada só para o teste de contraste."""
@@ -522,7 +667,27 @@ def validar(ref, silencioso=False):
 
     # --- caminhos declarados ------------------------------------------------
     ic = p.get("icones") or {}
-    for cat, chaves in (("apps", ("mapa", "desenhos")), ("pastas", ("desenhos",))):
+    # AS QUATRO CATEGORIAS, E NÃO DUAS — 22/09/2026
+    #   Eram `apps` e `pastas`. `mimetypes` e `autorais` não eram cobradas, e o
+    #   silêncio era o de sempre: um pack que declarasse
+    #   `icones.autorais.desenhos` apontando para um diretório inexistente saía
+    #   0 aqui e falhava lá adiante, no gerador, com um traceback que fala de
+    #   Path e não de pack.json. A P27 deu acervo próprio às duas — o
+    #   `icones/autorais/` dos dois packs e o `icones/mimetypes.map` do
+    #   Catppuccin —, então a validação que já existia para as outras duas passa
+    #   a valer para elas pelo mesmo motivo que o comentário do `creditos`
+    #   explica algumas linhas abaixo: um pack que promete arquivo e não entrega
+    #   não está sendo validado, está sendo carimbado.
+    #
+    #   `mapa` E `desenhos` NAS QUATRO, e não um par diferente para cada: a
+    #   forma de `packs/<id>/icones/` é a MESMA para toda categoria e para todo
+    #   pack (é o que a P27 chama de "a estrutura completa"). Uma tabela com
+    #   exceção por categoria seria a próxima que alguém esquece de atualizar —
+    #   e a chave que a categoria não declara simplesmente não é cobrada.
+    for cat, chaves in (("apps", ("mapa", "desenhos")),
+                        ("pastas", ("mapa", "desenhos")),
+                        ("mimetypes", ("mapa", "desenhos")),
+                        ("autorais", ("mapa", "desenhos"))):
         bloco = ic.get(cat) or {}
         for chave in chaves:
             if bloco.get(chave):
@@ -640,6 +805,46 @@ def validar(ref, silencioso=False):
     return p, dados, dir_pack
 
 
+# O TAMANHO DE UM PACK, EM VOZ ALTA — 22/09/2026
+#
+#   Até aqui não havia como saber o tamanho de um pack sem `find`. O `meow pack
+#   info` dizia de ONDE vem cada categoria — próprio, herdado, do motor — e não
+#   dizia QUANTO vem. As duas perguntas que a pessoa faz ao instalar um pack de
+#   terceiro são exatamente essas, e ele respondia meia.
+#
+#   E a metade que faltava é a que denuncia o pack vazio: um `pack.json` que
+#   declara `icones.apps.desenhos` apontando para um diretório com zero arquivo
+#   passa no `validar` (o diretório existe) e imprime `PRÓPRIO` aqui. Com a
+#   contagem ao lado, `PRÓPRIO` com `0 desenho(s)` conta a história inteira.
+#
+# A CONTAGEM SEGUE A HERANÇA, PORQUE É ASSIM QUE O ACERVO CHEGA À TELA
+#   O Dracula não tem mimetype nenhum e mostra os 3.280 do Catppuccin — então
+#   `mimetypes  HERDADO de catppuccin  3.280` é a verdade do que a pessoa vai
+#   ver. Contar só o que é próprio imprimiria zero para uma categoria que
+#   funciona, e a pessoa iria procurar defeito onde não há.
+def _contar_acervo(ref, categoria, flavors):
+    """Quantos SVG aquela categoria entrega, e em quantos flavors do pack.
+
+    Devolve ('', '') quando a categoria não resolve acervo nenhum — que é
+    diferente de resolver um diretório vazio, e a tela mostra os dois.
+    """
+    dir_acv = acervo(categoria + ".desenhos", ref=ref)
+    if not dir_acv or not os.path.isdir(dir_acv):
+        return "", ""
+    svgs = []
+    for base, _dirs, arquivos in os.walk(dir_acv):
+        svgs += [a for a in arquivos if a.endswith(".svg")]
+    # O FLAVOR SAI DO NOME DO ARQUIVO, E SÓ CONTA O QUE O PACK DECLARA
+    #   Os autorais nascem como `<nome>-<flavor>.svg`. Casar o sufixo contra os
+    #   flavors da paleta DESTE pack é o que impede um `cosmic-term-latte.svg`
+    #   perdido no acervo do Dracula de ser contado como um terceiro flavor
+    #   dele — e é justamente esse arquivo perdido que esta sprint foi tirar de
+    #   `assets/icones/autorais/`.
+    achados = {f for f in flavors for a in svgs if a.endswith(f"-{f}.svg")}
+    quantos = f"{len(svgs):,} desenho(s)".replace(",", ".")
+    return quantos, (f"{len(achados)} flavor(s)" if achados else "")
+
+
 def cmd_info(ref):
     p, dados, dir_pack = validar(ref, silencioso=True)
     base = p.get("heranca") or "(nenhuma)"
@@ -649,8 +854,8 @@ def cmd_info(ref):
     print(f"  flavors   : {', '.join(sorted(dados['flavors']))}")
     print(f"  claros    : {', '.join(dados['claros']) or '(nenhum)'}")
     print()
-    print("  categoria         origem")
-    print("  ----------------  ------------------------------------------")
+    print("  categoria         origem                       acervo")
+    print("  ----------------  ---------------------------  -----------------------")
     ic = p.get("icones") or {}
     org = p.get("origens") or {}
     for cat, bloco in [("paleta", p.get("paleta")), ("cosmic.mapa", (p.get("cosmic") or {}).get("mapa")),
@@ -671,7 +876,16 @@ def cmd_info(ref):
             estado = f"HERDADO de {bloco['herda']}"
         else:
             estado = "PRÓPRIO"
-        print(f"  {cat:<16}  {estado}")
+        # SÓ AS CATEGORIAS DE ÍCONE TÊM ACERVO PARA CONTAR. `paleta` é um
+        # arquivo, `cosmic.mapa` é um arquivo, e cursores e wallpapers são
+        # origens que este pack nem baixou ainda — contar SVG em qualquer uma
+        # das quatro imprimiria uma coluna vazia que faz a pessoa procurar o que
+        # deu errado.
+        conta = ""
+        if cat.startswith("icones."):
+            quantos, fl = _contar_acervo(ref, cat, dados["flavors"])
+            conta = f"{quantos}, {fl}" if quantos and fl else quantos
+        print(f"  {cat:<16}  {estado:<27}  {conta}")
     return OK
 
 
@@ -734,6 +948,15 @@ def main(argv):
             p, _, dir_pack = validar(argv[2], silencioso=True)
             print(os.path.join(dir_pack, (p.get("paleta") or {}).get("arquivo", "paleta.json")))
             return OK
+        if verbo == "onde" and len(argv) in (4, 5):
+            achado = dir_acervo(argv[3], ref=argv[2],
+                                padrao=argv[4] if len(argv) == 5 else None)
+            if not achado:
+                return RECUSADO
+            print(achado)
+            return OK
+        if verbo == "alvo" and len(argv) == 3:
+            return cmd_alvo(argv[2])
         if verbo == "som" and len(argv) == 3:
             return cmd_som(argv[2])
         if verbo == "info" and len(argv) == 3:

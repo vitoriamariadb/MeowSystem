@@ -17,7 +17,13 @@
   "icones": {
     "mimetypes": {
       "desenhos": "icones/mimetypes/",
+      "mapa": "icones/mimetypes.map",
+      "_nota_mapa": "Veio de assets/icones/mimetypes.map em 22/09/2026. A P13 desceu os 3.280 glifos para dentro do pack e deixou o mapa para trás — e o mapa É A DECISÃO: ele diz QUAL glifo veste cada tipo de arquivo, que é escolha de tema, não fato da máquina. Acervo num endereço e decisão noutro é a divergência silenciosa de sempre: quem troca de pack leva os desenhos e não leva a escolha.",
       "_nota": "656 glifos por sabor, em quatro sabores, mais o `css-variables` que o upstream publica junto. Veio de assets/icones/catppuccin/ em 22/09/2026."
+    },
+    "autorais": {
+      "desenhos": "icones/autorais/",
+      "_nota": "Os 44 desenhos do projeto em quatro flavors — 11 ícones x mocha, macchiato, frappe, latte. Vieram de assets/icones/autorais/ em 22/09/2026. Aquele diretório se chamava `autorais` e não dizia DE QUEM: guardava, lado a lado, 44 do Catppuccin e 11 do Dracula, dois packs diferentes num monte só. Quem trocava de pack levava os dois. O `leitura/` continuou em assets/ porque aqueles oito não têm flavor no nome — são recoloridos em tempo de build, e por isso são do motor."
     },
     "pastas": {
       "desenhos": "icones/mimetypes/",

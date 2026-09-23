@@ -488,6 +488,173 @@ else
   ok "nenhum código crava a paleta do pack padrão — todos passam pela porta"
 fi
 
+# --- 15. o acervo de ícone mora no pack, e nenhum desenho some no caminho ----
+#
+# A P27 DESCEU 55 DESENHOS DE `assets/icones/autorais/` PARA DENTRO DOS PACKS
+#   Aquele diretório se chamava `autorais` e não dizia DE QUEM: guardava, lado a
+#   lado, 44 do Catppuccin e 11 do Dracula. Quem trocava de pack levava os dois
+#   montes. As três conferências abaixo são a trava dessa mudança.
+#
+# POR QUE NÃO UM NÚMERO CRAVADO
+#   A spec manda "conta 3.566 SVG antes e depois". Um teste com esse número
+#   dentro falharia na próxima sprint que desenhar um ícone — e o que ele
+#   protege não é o total, é a IDENTIDADE: nenhum arquivo versionado pode deixar
+#   de existir no disco. É isso que um `git mv` errado quebra, e é isso que se
+#   mede sem número mágico.
+# `-e` E NÃO `-d`: num WORKTREE o `.git` é um ARQUIVO que aponta para o
+# repositório de verdade, não um diretório. Com `-d` as duas conferências abaixo
+# se pulavam caladas justamente onde toda sprint deste projeto é desenvolvida —
+# medido aqui em 22/09/2026, com o bloco inteiro sem imprimir uma linha. O
+# `rev-parse` é o que decide de fato: ele responde pelos dois casos e também por
+# quem rodar o teste de um tarball sem git nenhum.
+if command -v git >/dev/null 2>&1 \
+   && git -C "$RAIZ" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  sumidos="$(git -C "$RAIZ" ls-files '*.svg' | while IFS= read -r f; do
+               [ -e "$RAIZ/$f" ] || printf '%s\n' "$f"
+             done)"
+  [ -z "$sumidos" ] \
+    && ok "todo SVG versionado existe no disco — nenhum sumiu numa mudança de casa" \
+    || falha "SVG versionado que não está no disco:" "$sumidos"
+
+  # A conferência 1 da spec: nenhum desenho DE TEMA sobrou em assets/icones/.
+  # O `*/*.svg` é de propósito — pega um nível de subdiretório, que é onde os
+  # acervos por flavor moravam. O `autorais/leitura/` sobrevive a ela porque
+  # aqueles oito não têm flavor no nome: são recoloridos em tempo de build, e
+  # por isso são do MOTOR e não de pack nenhum.
+  restos="$(git -C "$RAIZ" ls-files 'assets/icones/*/*.svg' \
+              | grep -E '(mocha|macchiato|frappe|latte|dracula|alucard)' || true)"
+  [ -z "$restos" ] \
+    && ok "nenhum desenho de tema ficou em assets/icones/ — todo ícone que veste alguém mora no pack" \
+    || falha "desenho de flavor ainda em assets/icones/:" "$restos"
+fi
+
+# O BURACO DO ALUCARD, E ELE ERA ESTE — 22/09/2026
+#   O flavor claro do Dracula nasceu em 19/09 e ficou com ZERO dos onze
+#   autorais. No modo claro do Dracula esses ícones caíam no `latte`, que é o
+#   claro do OUTRO pack — o mesmo defeito que o `packs/dracula/pack.json` já
+#   tinha consertado para a PALETA e que continuou vivo para os ÍCONES mais três
+#   dias, porque a paleta morava no pack e os desenhos não.
+#
+#   A TRAVA É POR FLAVOR VAZIO, E NÃO POR "TEM 11 DO ALUCARD"
+#     Contar onze do alucard protegeria este caso e só ele. O defeito de verdade
+#     é ESTRUTURAL: um flavor declarado na paleta que não tem desenho nenhum no
+#     acervo cai, calado, no acervo de quem o pack herda — e num pack de
+#     terceiro isso é a cara de outro tema. A pergunta certa é "algum flavor
+#     deste pack está vazio enquanto um irmão dele não está?", e ela vale para o
+#     pack que ainda nem foi escrito.
+vazios="$(python3 - "$RAIZ" <<'PY'
+import json, os, sys
+raiz = sys.argv[1]
+base = os.path.join(raiz, "packs")
+for pid in sorted(os.listdir(base) if os.path.isdir(base) else []):
+    dir_pack = os.path.join(base, pid)
+    manifesto = os.path.join(dir_pack, "pack.json")
+    if not os.path.isfile(manifesto):
+        continue
+    try:
+        p = json.load(open(manifesto, encoding="utf-8"))
+        declarado = ((p.get("icones") or {}).get("autorais") or {}).get("desenhos")
+        if not declarado:
+            continue
+        acv = os.path.join(dir_pack, declarado)
+        if not os.path.isdir(acv):
+            continue
+        arq = os.path.join(dir_pack, (p.get("paleta") or {}).get("arquivo", "paleta.json"))
+        flavors = json.load(open(arq, encoding="utf-8")).get("flavors", {})
+    except (OSError, ValueError):
+        continue
+    svgs = [a for a in os.listdir(acv) if a.endswith(".svg")]
+    conta = {f: sum(1 for a in svgs if a.endswith("-%s.svg" % f)) for f in flavors}
+    # Acervo autoral inteiro vazio é outra coisa — é um pack que não desenha,
+    # e isso é legítimo. O achado é o flavor vazio ao lado de um irmão cheio.
+    if any(conta.values()):
+        for f, n in sorted(conta.items()):
+            if n == 0:
+                print("%s: o flavor %r não tem nenhum autoral, e os irmãos têm" % (pid, f))
+PY
+)"
+[ -z "$vazios" ] \
+  && ok "nenhum flavor cai no acervo autoral do vizinho — o claro de cada pack é dele" \
+  || falha "flavor sem desenho autoral próprio (ele cai no acervo herdado, calado):" "$vazios"
+
+# --- 16. o prefixo `motor:` tira a DECISÃO de assets/ sem duplicar o acervo --
+#
+#   Um mapa de pack diz "o Telegram veste o desenho X". A frase é decisão de
+#   TEMA e mora no pack; o desenho X pode vir do acervo Arcticons, que são 113
+#   SVG de terceiro e ferramenta compartilhada. Sem o prefixo só havia duas
+#   saídas ruins: a decisão fica em `assets/`, ou cada pack carrega uma CÓPIA
+#   dos 113 — e a segunda cópia defasa da primeira calado.
+base_mapa="$PACK_DIR/icones"
+saida="$(printf 'apps/x.svg\nmotor:arcticons/y.svg\n' \
+           | amb python3 "$RAIZ/scripts/pack.py" alvo "$base_mapa" 2>/dev/null)"
+esperado="$base_mapa/apps/x.svg
+$RAIZ/assets/icones/arcticons/y.svg"
+[ "$saida" = "$esperado" ] \
+  && ok "'motor:' resolve em assets/icones/ e o resto cai dentro do pack" \
+  || falha "o prefixo motor: não resolveu como o contrato manda" "$saida"
+
+# UMA LINHA DE SAÍDA POR LINHA DE ENTRADA, E ISSO NÃO É DETALHE
+#   Quem chama junta esta saída com os NOMES do mapa, lado a lado, com `paste`.
+#   Uma linha a mais ou a menos veste cada aplicativo com o ícone do vizinho, e
+#   não há erro nenhum na tela para dizer isso. Por isso a linha recusada sai
+#   VAZIA em vez de sair fora.
+entrada="$(printf 'apps/a.svg\n../../fora.svg\nmotor:../../../etc/passwd\napps/b.svg\n')"
+n_ent=$(printf '%s\n' "$entrada" | wc -l)
+n_sai=$(printf '%s\n' "$entrada" \
+          | amb python3 "$RAIZ/scripts/pack.py" alvo "$base_mapa" 2>/dev/null | wc -l)
+[ "$n_ent" = "$n_sai" ] \
+  && ok "o resolvedor de alvo devolve uma linha por linha, mesmo recusando ($n_sai/$n_ent)" \
+  || falha "o alvo perdeu o alinhamento entrada/saída — o paste vestiria o app errado" \
+           "entrada=$n_ent saída=$n_sai"
+fugas="$(printf '%s\n' "$entrada" \
+           | amb python3 "$RAIZ/scripts/pack.py" alvo "$base_mapa" 2>/dev/null \
+           | grep -v "^$base_mapa/" | grep -v "^$RAIZ/assets/icones/" | grep -v '^$' || true)"
+[ -z "$fugas" ] \
+  && ok "alvo que sai da raiz é recusado, e a linha volta vazia" \
+  || falha "o resolvedor deixou um alvo escapar da raiz:" "$fugas"
+
+# --- 16b. e o PARSER do mapa tem de entregar o prefixo inteiro --------------
+#
+#   O teste 16 acima alimenta o `pack.py alvo` pelo STDIN, e por isso ele passava
+#   com o único ponto de integração que existe quebrado: o `_dracula_pares` do
+#   `icones_apps_dracula.sh` cortava a linha com `awk -F:` e pegava `$2`, que
+#   para `nome : motor:caminho` vale ` motor`. O alvo virava `<pack>/icones/motor`
+#   e o prefixo nunca chegava ao resolvedor — nem para resolver, nem para ser
+#   recusado. Um teste que pula o parser não mede o recurso; mede metade dele.
+#
+#   Então este mede a linha do mapa até o caminho no disco, com a função
+#   VERBATIM do script — e o `sed` que a extrai é de propósito: copiar o `awk`
+#   para cá criaria uma segunda cópia do parser, e seria ela que passaria no dia
+#   em que a primeira quebrasse.
+mapa_t="$T/apps-parser.map"
+printf '%s\n' \
+  'um.motor : motor:arcticons/telegram.svg' \
+  'dois.pack : apps/Warehouse.svg' \
+  'tres.comentario : apps/Warehouse.svg # a procedência não entra em nada' \
+  > "$mapa_t"
+pares="$(MAPA="$mapa_t" ICONES_BASE_MAPA="$base_mapa" RAIZ="$RAIZ" bash -c '
+  set -uo pipefail
+  eval "$(sed -n "/^_dracula_pares() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
+  _dracula_pares' 2>/dev/null)"
+esperado_p="um.motor	$RAIZ/assets/icones/arcticons/telegram.svg
+dois.pack	$base_mapa/apps/Warehouse.svg
+tres.comentario	$base_mapa/apps/Warehouse.svg"
+[ "$pares" = "$esperado_p" ] \
+  && ok "o parser do mapa entrega o prefixo 'motor:' inteiro ao resolvedor" \
+  || falha "o parser do mapa truncou o caminho — o 'motor:' não chega ao resolvedor" "$pares"
+
+# --- 17. a porta de quem ESCREVE responde antes de o diretório existir -------
+#   O `acervo` só responde o que já está no disco, e essa é a resposta certa
+#   para quem vai abrir. O gerador precisa do contrário: num pack novo o
+#   `icones/autorais/` só passa a existir depois que ele escreve lá dentro. Se
+#   as duas portas discordassem, o `completar_icones.sh` instalaria de um
+#   diretório e o `gerar_icones_autorais.py` escreveria noutro — e o passo 2
+#   procuraria a fonte que o passo 1 acabara de gravar.
+onde="$(amb python3 "$RAIZ/scripts/pack.py" onde "$ID" icones.autorais.desenhos icones/autorais/ 2>&1)"; rc=$?
+[ "$rc" = "0" ] && [ "$onde" = "$PACK_DIR/icones/autorais/" ] && [ ! -d "$onde" ] \
+  && ok "o 'onde' responde o endereço do acervo antes de ele existir" \
+  || falha "o 'onde' não respondeu o acervo de um pack que ainda não o criou (rc=$rc)" "$onde"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"
