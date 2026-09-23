@@ -56,6 +56,14 @@ VERBOS
                                      valor=<o nome, ou o caminho se for arquivo>
                                  1 = ninguém na cadeia declara. Ver `tema_de_app`.
     paleta  <id>                 imprime o caminho da paleta do pack
+    logo    <id> [flavor] [accent]
+                                 imprime o logo.svg do pack com as cores
+                                 resolvidas por PAPEL para aquele flavor. É a
+                                 porta de quem MOSTRA o logo. Ver `logo()`.
+    logo-gerado <id> [flavor] [accent]
+                                 imprime o logo gerado (a inicial sobre o base,
+                                 o accent de contorno). Não escreve: quem o põe
+                                 no pack é a pessoa, com `>`.
     som     <id>                 o timbre do pack, como CHAVE=valor para o shell
     info    <id>                 o que é próprio, o que é herdado, o que falta
     raizes                       imprime as raízes de busca, na ordem
@@ -74,6 +82,10 @@ import json
 import os
 import re
 import sys
+# `defusedxml` não, e o motivo é o "Só stdlib" do topo: a proteção que ele daria
+# contra entidade maliciosa é feita à mão no `_ler_logo`, que recusa `<!ENTITY`
+# antes de o parser ver o arquivo. O expat do Python não busca DTD externo.
+import xml.etree.ElementTree as ET
 
 FORMATO_MIN = 1
 FORMATO_MAX = 1
@@ -133,6 +145,7 @@ CAMPOS_COM_LEITOR = {
     "creditos",                         # validar cobra a existência do arquivo
     "paleta", "paleta.arquivo",         # validar, verbo `paleta`, cmd_info
     "paleta.flavor_padrao",             # validar
+    "vitrine.capa",                     # `logo()` e o validar do logo (P25): a capa É o logo
     "cosmic.mapa",                      # validar cobra a existência
     "cosmic.nome_da_paleta",            # scripts/gerar_temas.py
     "temas.capturados",                 # `captura`, `captura_destino`, `capturas`
@@ -1166,6 +1179,452 @@ def _dentro(base, alvo, campo):
     return cheio
 
 
+# --- O LOGO DO PACK — 23/09/2026, sprint P25 --------------------------------
+#
+# O PEDIDO, NAS PALAVRAS DELE
+#   *"precisa usar um svg pra cada logo do theme pack, o icon do menu de
+#   lançamento."* Até aqui um pack era um `id` e 26 hexadecimais: nenhum dos
+#   dois tinha um único SVG que o representasse. O mockup de 21/09 desenhou a
+#   capa do cartão como uma TIRA DE CORES — e tira de cor é paleta, não
+#   identidade: dois packs de paleta parecida ficam indistinguíveis no cartão.
+#
+# O ARQUIVO É O QUE A `vitrine.capa` NOMEIA, E `logo.svg` NA FALTA DELA
+#   A P15 dá à vitrine o campo `capa`, e a capa É o logo — P25 faz o logo, P15
+#   faz o resto da vitrine, e o campo é um só. A primeira versão desta seção
+#   dizia "o nome é fixo, não há campo", e a revisão de 23/09 mediu o conflito:
+#   um pack com `"capa": "cara.svg"` teria a capa num arquivo e o logo cobrado
+#   noutro, duas verdades para a mesma figura. Então o campo manda quando existe;
+#   sem ele (os packs de antes da P15), vale `packs/<id>/logo.svg`, a convenção
+#   que o próprio campo recomenda. Quem precisa do logo pergunta a `logo()`.
+#
+# COBRADO DE QUEM PUBLICA, NUNCA DE QUEM USA — ver o bloco "o logo" do `validar`.
+#
+# AS CORES SAEM DA PALETA, POR PAPEL — NENHUM HEX É DIGITADO NO DESENHO
+#   É a regra que o `gerar_icones_autorais.py` cumpre no cabeçalho dele, levada
+#   para um arquivo que é DADO, e não código: cada forma do logo declara, na
+#   `class`, o PAPEL que ela cumpre, e o papel resolve para um dos 26 nomes.
+#
+#       class="fundo"           fill   <- base
+#       class="tinta"           fill   <- text
+#       class="sujeito"         fill   <- o accent (ACCENT; mauve na falta)
+#       class="traco-<papel>"   stroke <- o mesmo papel, no traço
+#       class="<um dos 26>"     fill   <- o nome direto, para quem precisar de
+#                                         uma quarta cor sem cravar hex
+#
+#   É o que faz o logo acompanhar o flavor claro SEM REDESENHO: no Latte o
+#   `text` escurece e o `base` clareia sozinhos, e um logo descrito por papel
+#   se inverte junto. A P27 mediu a mesma coisa nos onze autorais do alucard —
+#   as três cores do `cosmic-term-alucard.svg` não coincidem com nenhuma do
+#   latte, porque o desenho nasceu da paleta e não de uma cópia.
+#
+# O BLOCO `<style id="meow-papeis">` É SAÍDA, E ESTÁ NO ARQUIVO POR UM MOTIVO
+#   Sem ele o logo aberto cru — num editor de SVG, na prévia do git, num `<img>`
+#   — é um quadrado preto: toda forma sem `fill` é preta. Quem desenha precisa
+#   VER as cores enquanto desenha. Então o arquivo versionado leva o bloco
+#   resolvido para o `flavor_padrao`, e `logo()` o REESCREVE a cada resolução.
+#   O que manda é a `class`; o bloco é só a prévia. Um logo de terceiro sem
+#   papel nenhum, com hex fixo, não é recusado: ele só não acompanha o flavor.
+LOGO = "logo.svg"
+SVG_NS = "{http://www.w3.org/2000/svg}"
+ACCENT_NO_LOGO = "__ACCENT__"
+PAPEIS_DO_LOGO = {
+    "fundo":   "base",          # a placa; é o que separa o logo de qualquer fundo
+    "tinta":   "text",          # o que se lê por cima da placa
+    "sujeito": ACCENT_NO_LOGO,  # a cor do pack na cara dele — a mesma do accent
+}
+# O MESMO PADRÃO DO RESTO DO PROJETO, E NÃO UMA ESCOLHA NOVA: `${ACCENT:-mauve}`
+# no `completar_icones.sh`, `--accent default="mauve"` no gerador de autorais.
+ACCENT_PADRAO_DO_LOGO = "mauve"
+# ASPAS DOS DOIS TIPOS, E O BLOCO AUTOFECHADO — revisão de 23/09/2026. A primeira
+# versão só casava `id="meow-papeis"`: um `id='meow-papeis'` (XML válido, e o que
+# alguns editores escrevem) passava batido, o bloco novo entrava ANTES do velho, o
+# velho vencia a cascata e o logo ficava preso nas cores do `flavor_padrao` em
+# todo flavor, com o id repetido. E um `<style id="meow-papeis"/>` vazio fazia o
+# `.*?</style>` correr até o `</style>` do bloco SEGUINTE e apagá-lo junto.
+RE_ESTILO_PAPEIS = re.compile(
+    r"""\s*<style\b[^>]*?\bid\s*=\s*(["'])meow-papeis\1[^>]*?(?:/>|>.*?</style>)""", re.S)
+RE_RAIZ_SVG = re.compile(r"<svg\b[^>]*>")
+RE_URL_CSS = re.compile(r"""url\(\s*['"]?\s*([^)'"\s]*)""", re.I)
+# O ESCAPE DE CSS: `\69` é `i`, `\72` é `r`, e `\x` é `x`. O CSS desfaz o escape
+# ANTES de reconhecer a regra, então `@\69mport` É um `@import` e `u\72l(` É um
+# `url(` — medido no Chromium em 23/09/2026: os dois buscaram o arquivo remoto.
+# Quem confere o texto tem de ler o que o navegador lê.
+RE_ESCAPE_CSS = re.compile(r"\\(?:([0-9a-fA-F]{1,6})[ \t\n\r\f]?|(.))", re.S)
+XHTML_NS = "{http://www.w3.org/1999/xhtml}"
+
+# O QUE UM LOGO NÃO PODE CARREGAR, e as regras são as que o docs/PACKS.md já
+# declara para o pack inteiro ("um pack é dado, nunca é código"), aplicadas ao
+# arquivo novo. `feImage` e `foreignObject` entram junto de `image` porque são a
+# mesma porta com outro nome: o primeiro carrega imagem num filtro, o segundo
+# carrega HTML inteiro dentro do SVG.
+ELEMENTOS_RECUSADOS_NO_LOGO = {
+    "script": "executa código",
+    "image": "embute imagem (um logo é vetor, não uma foto dentro de um SVG)",
+    "feImage": "embute imagem por dentro de um filtro",
+    "foreignObject": "embute HTML dentro do SVG",
+}
+
+
+def _ler_logo(caminho, nome):
+    """(texto, raiz, instruções) de um SVG, ou Recusa dizendo por que ele não é um SVG."""
+    with open(caminho, "rb") as fh:
+        bruto = fh.read()
+    # PNG RENOMEADO É O CASO QUE A SPRINT NOMEIA, e ele não passa daqui: bytes
+    # de imagem não decodificam como UTF-8 e, se decodificassem, não seriam XML.
+    try:
+        texto = bruto.decode("utf-8")
+    except UnicodeDecodeError:
+        raise Recusa(f"{nome}: não é texto — é um SVG de verdade, ou uma imagem "
+                     f"renomeada?\n    Um PNG com nome de .svg não vira vetor.") from None
+    # ENTIDADE DECLARADA É RECUSADA ANTES DE O PARSER VÊ-LA. Um `<!ENTITY>` que
+    # se expande em si mesmo mil vezes (o "bilhão de risadas") trava quem valida,
+    # e quem valida é também quem MOSTRA: o `logo()` confere o arquivo antes de
+    # devolvê-lo à tela que pediu. Nenhum desenho precisa de entidade.
+    _exigir("<!ENTITY" not in texto,
+            f"{nome}: declara <!ENTITY> — um logo não precisa de entidade, e ela "
+            f"pode travar quem o lê")
+    try:
+        raiz = ET.fromstring(bruto)
+    except ET.ParseError as e:
+        raise Recusa(f"{nome}: não é XML válido — {e}") from None
+    # AS INSTRUÇÕES DE PROCESSAMENTO SÓ APARECEM POR EVENTO — revisão de 23/09.
+    #   O `fromstring` joga fora todo `<?...?>`, e o validador nunca via um
+    #   `<?xml-stylesheet href="https://..."?>` — que o navegador SEGUE, e que o
+    #   `logo()` devolvia intacto. Uma segunda leitura, só pelos eventos `pi`,
+    #   pega as do prólogo, as de dentro e as do fim; a declaração `<?xml ...?>`
+    #   não é instrução e não aparece, e um `<?` dentro de comentário também não.
+    leitor = ET.XMLPullParser(events=("pi",))
+    leitor.feed(bruto)
+    leitor.close()
+    instrucoes = [el.text or "" for _evento, el in leitor.read_events()]
+    return texto, raiz, instrucoes
+
+
+def _nome_do_logo(p):
+    """O arquivo do logo: o que `vitrine.capa` nomeia, ou `logo.svg` na falta dele."""
+    v = p.get("vitrine")
+    capa = v.get("capa") if isinstance(v, dict) else None
+    return capa if isinstance(capa, str) and capa else LOGO
+
+
+def _css_sem_escape(t):
+    """O texto com os escapes de CSS desfeitos — o que o navegador lê. Ver RE_ESCAPE_CSS."""
+    def um(m):
+        if m.group(1) is None:
+            return m.group(2)
+        n = int(m.group(1), 16)
+        return chr(n) if 0 < n <= 0x10FFFF and not 0xD800 <= n <= 0xDFFF else "\ufffd"
+    return RE_ESCAPE_CSS.sub(um, t)
+
+
+def _validar_logo(dir_pack, p):
+    """Confere o logo e devolve (texto, raiz). Levanta Recusa na primeira falha, com o conserto."""
+    arq = _nome_do_logo(p)
+    # `_dentro` não é enfeite nem com o nome de convenção: ele segue link
+    # simbólico. Um `logo.svg -> /etc/algo` sairia do pack por baixo do nome certo.
+    caminho = _dentro(dir_pack, arq, "logo")
+    _exigir(os.path.isfile(caminho),
+            f"{arq}: o pack não tem logo — e desde 23/09/2026 todo pack publicado tem cara.\n"
+            f"    Desenhe um SVG quadrado (viewBox 0 0 128 128), ou comece do gerado:\n"
+            f"      python3 scripts/pack.py logo-gerado <id> > <pack>/{LOGO}\n"
+            f"    Ver docs/PACKS.md, 'O logo do pack'.")
+    texto, raiz, instrucoes = _ler_logo(caminho, arq)
+    _exigir(raiz.tag == SVG_NS + "svg",
+            f"{arq}: a raiz é <{raiz.tag}>, e não <svg> no namespace do SVG.\n"
+            f"    Sem xmlns=\"http://www.w3.org/2000/svg\" o navegador não o desenha.")
+    # NENHUMA, e não só a `xml-stylesheet`: um logo não precisa de instrução para
+    # programa nenhum, e a lista das que um leitor segue não é nossa para manter.
+    alvo_pi = instrucoes[0].split(None, 1)[0] if instrucoes else ""
+    _exigir(not instrucoes,
+            f"{arq}: tem <?{alvo_pi} ...?> — uma instrução de\n"
+            f"    processamento. A <?xml-stylesheet?> busca folha de fora, e o navegador a segue.\n"
+            f"    Um logo se basta: só a declaração <?xml ...?> do topo é aceita.")
+
+    # QUADRADO, E COM viewBox: o mesmo arquivo serve ao cartão em quatro
+    # tamanhos e ao lançador, que pede 48, 64, 128 e 256. Sem `viewBox` ele não
+    # escala; retangular, ele é esticado ou ganha tarja.
+    vb = (raiz.get("viewBox") or "").strip()
+    partes = [x for x in re.split(r"[\s,]+", vb) if x]
+    try:
+        _x, _y, larg, alt = (float(x) for x in partes)
+    except ValueError:
+        raise Recusa(f"{arq}: precisa de viewBox com quatro números, veio {vb!r}") from None
+    _exigir(larg > 0 and larg == alt,
+            f"{arq}: o viewBox {vb!r} não é quadrado.\n"
+            f"    O lançador pede o ícone em 48, 64, 128 e 256 — todos quadrados.")
+
+    # SEM DISTINGUIR MAIÚSCULA, e o motivo é o cartão: o XML distingue, e um
+    # `<Script>` não executa num SVG aberto como arquivo — mas se alguém um dia
+    # colar este texto dentro de HTML, o parser do HTML baixa tudo para
+    # minúscula e o `<SCRIPT>` roda. Recusar pelos dois leitores custa um `lower`.
+    recusados = {k.lower(): v for k, v in ELEMENTOS_RECUSADOS_NO_LOGO.items()}
+    for el in raiz.iter():
+        nome = str(el.tag).rsplit("}", 1)[-1]
+        _exigir(nome.lower() not in recusados,
+                f"{arq}: tem <{nome}>, que {recusados.get(nome.lower())}. "
+                f"Um pack é dado, nunca código.")
+        # HTML DENTRO DO SVG, fora de um `foreignObject` — revisão de 23/09/2026.
+        #   Ele não desenha nada ali, mas o navegador CRIA o elemento, e um `<img>`
+        #   criado busca a imagem mesmo sem aparecer. Medido no Chromium:
+        #   `<img xmlns="http://www.w3.org/1999/xhtml" src="https://...">` buscou,
+        #   e passava por aqui porque a regra do `href` não olha `src`. Sai o
+        #   namespace inteiro, e não uma lista de nomes (img, iframe, audio,
+        #   video, object, link...) que envelhece a cada elemento novo do HTML.
+        _exigir(not str(el.tag).startswith(XHTML_NS),
+                f"{arq}: tem <{nome}> do HTML dentro do SVG. Ele não desenha nada ali, e o\n"
+                f"    navegador o cria assim mesmo — um <img src> busca a imagem. Um logo é vetor.")
+        textos = [el.text or ""] if nome.lower() == "style" else []
+        for chave, valor in el.attrib.items():
+            local = chave.rsplit("}", 1)[-1].lower()
+            # `onload`, `onclick`... é `<script>` com outra roupa. A regra é
+            # "sem script", e ela vale para a porta dos atributos também.
+            _exigir(not local.startswith("on"),
+                    f"{arq}: o atributo {local!r} executa código. Um pack é dado, nunca código.")
+            # O LOGO É COPIADO PARA FORA DO PACK — para o tema de ícones, para o
+            # cartão —, e é por isso que ele não pode apontar nem para o vizinho
+            # de pasta: depois da cópia, `apps/x.svg` é um caminho quebrado. Só
+            # referência interna (`#id`) sobrevive à viagem.
+            if local == "href":
+                _exigir(valor.strip().startswith("#"),
+                        f"{arq}: href={valor!r} aponta para fora do arquivo.\n"
+                        f"    Só referência interna (#id): o logo é copiado para o tema de\n"
+                        f"    ícones, e lá fora nenhum outro caminho existe.")
+            # O `href` TAMBÉM MUDA POR ANIMAÇÃO — revisão de 23/09/2026. Um
+            #   `<a href="#a"><set attributeName="href" to="https://...">` passa na
+            #   regra de cima com o `#a` e troca o destino depois de carregado; o
+            #   `to`, o `from`, o `by` e o `values` são o `href` com outro nome.
+            #   Animar o destino de um link não é desenho: recusa-se o alvo, e
+            #   não cada um dos quatro atributos que o carregam. `xlink:href`
+            #   termina em `href` também.
+            if local == "attributename":
+                _exigir(not valor.strip().lower().endswith("href"),
+                        f"{arq}: <{nome} attributeName={valor!r}> troca o destino de um link\n"
+                        f"    depois de carregado — é o href apontando para fora por outra porta.")
+            textos.append(valor)
+        for t in textos:
+            # O QUE O CSS LÊ, E NÃO O QUE ESTÁ ESCRITO — revisão de 23/09/2026.
+            #   `@IMPORT` passava porque o teste era `"@import" not in t`, e
+            #   at-rule de CSS não distingue maiúscula; `@\69mport` e `u\72l(`
+            #   passavam porque o escape só é desfeito pelo navegador. Os três
+            #   buscaram o arquivo remoto no Chromium, medido. É o mesmo motivo do
+            #   `lower` nos elementos, lá em cima, aplicado ao CSS.
+            plano = _css_sem_escape(t)
+            _exigir("@import" not in plano.lower(),
+                    f"{arq}: <style> com @import busca folha de fora. Um logo se basta.")
+            # `image-set("https://...")` aceita a URL como TEXTO, sem `url(` —
+            # medido no Chromium: buscou. Um logo não troca de imagem por
+            # densidade de tela; ele é vetor.
+            _exigir("image-set(" not in plano.lower(),
+                    f"{arq}: image-set() carrega imagem de fora. Um logo é vetor, e se basta.")
+            for alvo in RE_URL_CSS.findall(plano):
+                _exigir(alvo.startswith("#"),
+                        f"{arq}: url({alvo}) aponta para fora do arquivo — URL remota\n"
+                        f"    ou caminho, não importa: só url(#id) sobrevive à cópia.")
+    return texto, raiz
+
+
+def _cores_do_logo(dados, flavor, accent):
+    """Papel ou nome -> hex, para um flavor e um accent daquela paleta."""
+    cores = dados["flavors"][flavor]
+    tabela = {s: cores[s] for s in SLOTS}
+    for papel, slot in PAPEIS_DO_LOGO.items():
+        tabela[papel] = cores[accent if slot == ACCENT_NO_LOGO else slot]
+    return tabela
+
+
+def _aplicar_papeis(texto, raiz, cores):
+    """O texto do SVG com o bloco `meow-papeis` reescrito para essas cores.
+
+    SÓ ENTRA REGRA PARA A CLASSE QUE O DESENHO USA. As 29 regras em todo logo
+    fariam a prévia dizer que ele usa cores que ele não usa — e o arquivo é o
+    lugar onde um autor de pack aprende o formato olhando.
+
+    O TEXTO É EDITADO, NÃO RESERIALIZADO. O `ElementTree` reescreveria os
+    prefixos de namespace (`ns0:`) e comeria os metadados do editor de quem
+    desenhou — que é o arquivo que ela reabre no Boxy depois.
+    """
+    usadas = sorted({c for el in raiz.iter() for c in (el.get("class") or "").split()})
+    regras = []
+    for classe in usadas:
+        papel = classe[len("traco-"):] if classe.startswith("traco-") else classe
+        if papel in cores:
+            prop = "stroke" if classe != papel else "fill"
+            regras.append(f".{classe}{{{prop}:{cores[papel]}}}")
+    # TODOS os blocos saem, e não só o primeiro: um arquivo que já tem dois (o
+    # defeito do `id='meow-papeis'` produzia exatamente isso) se conserta na
+    # primeira resolução, em vez de carregar o velho vencendo a cascata.
+    sem_bloco = RE_ESTILO_PAPEIS.sub("", texto)
+    abertura = RE_RAIZ_SVG.search(sem_bloco)
+    if not regras or not abertura or abertura.group(0).endswith("/>"):
+        return sem_bloco
+    bloco = f'\n  <style id="meow-papeis">{"".join(regras)}</style>'
+    return sem_bloco[:abertura.end()] + bloco + sem_bloco[abertura.end():]
+
+
+def _flavor_e_accent(p, dados, flavor=None, accent=None):
+    """Qual flavor e qual accent resolvem o logo, e a mesma precedência de sempre.
+
+    O argumento vence; depois o ambiente (`FLAVOR` e `ACCENT`, que chegam do
+    meow.conf); depois o `flavor_padrao` do pack. Um `FLAVOR` que não é deste
+    pack — `dracula` perguntando pelo logo do catppuccin — cai no padrão dele, e
+    não é erro: o cartão mostra todos os packs, e só um deles está no ar.
+    """
+    flavors = dados["flavors"]
+    if flavor is not None:
+        _exigir(flavor in flavors,
+                f"o flavor {flavor!r} não existe neste pack — os que existem: "
+                f"{', '.join(sorted(flavors))}")
+    else:
+        do_ambiente = os.environ.get("FLAVOR")
+        flavor = do_ambiente if do_ambiente in flavors else (
+            (p.get("paleta") or {}).get("flavor_padrao") or next(iter(flavors)))
+    accent = accent or os.environ.get("ACCENT") or ACCENT_PADRAO_DO_LOGO
+    _exigir(accent in SLOTS, f"o accent {accent!r} não é um dos 26 nomes da paleta")
+    return flavor, accent
+
+
+def logo(ref, flavor=None, accent=None):
+    """O `logo.svg` do pack, com as cores resolvidas por papel. É a porta de LEITURA.
+
+    Quem mostra o logo — o cartão do pack, o ícone do lançador — pergunta aqui,
+    e não abre o arquivo cru: o cru traz a prévia do `flavor_padrao`, e a
+    máquina pode estar no flavor claro.
+
+    E ESTA PORTA CONFERE O ARQUIVO POR CONTA PRÓPRIA. O `validar` do motor
+    (`silencioso=True`) não cobra o logo — ver o bloco "o logo" dele —, então é
+    aqui que um logo com `<script>` ou `<?xml-stylesheet?>` deixa de chegar a
+    quem mostra, mesmo vindo de um pack que nunca passou pelo `meow pack
+    validar`. Sem logo, ou com um logo recusado, levanta Recusa: não há o que
+    mostrar, e o tema do pack continua no ar do mesmo jeito.
+    """
+    p, dados, dir_pack = validar(ref, silencioso=True)
+    texto, raiz = _validar_logo(dir_pack, p)
+    flavor, accent = _flavor_e_accent(p, dados, flavor, accent)
+    return _aplicar_papeis(texto, raiz, _cores_do_logo(dados, flavor, accent))
+
+
+# --- o logo gerado, para o pack que ainda não tem cara -----------------------
+#
+# FEIO E HONESTO É MELHOR QUE AUSENTE — a regra que a P15 escreveu para a capa.
+# A inicial do nome sobre o `base` do pack, com o accent como contorno. É o que o
+# `meow pack novo` (P11) põe num pack recém-nascido, e é o ponto de partida de
+# quem vai desenhar o seu: `pack.py logo-gerado <id> > <pack>/logo.svg`.
+#
+# A LETRA É TRAÇO, E NÃO `<text>`
+#   `<text>` depende de fonte, e quem desenha ícone de tema no COSMIC é o resvg,
+#   que só desenha texto quando alguém lhe entrega um banco de fontes. Uma inicial
+#   que some em UM renderizador é o logo vazio que esta regra veio proibir. Então
+#   a letra é caminho: uma grade de 4 x 6, pontas redondas, um glifo por
+#   caractere que um `id` pode começar — `[a-z0-9]`, e mais nenhum.
+_GLIFOS_DO_LOGO = {
+    "a": "M0 6 L2 0 L4 6 M0.7 4 H3.3",
+    "b": "M0 3 H2.5 Q4 3 4 4.5 Q4 6 2.5 6 H0 V0 H2.2 Q3.6 0 3.6 1.5 Q3.6 3 2.2 3",
+    "c": "M4 1 Q3.3 0 2 0 Q0 0 0 3 Q0 6 2 6 Q3.3 6 4 5",
+    "d": "M0 0 V6 H1.6 Q4 6 4 3 Q4 0 1.6 0 Z",
+    "e": "M4 0 H0 V6 H4 M0 3 H3",
+    "f": "M4 0 H0 V6 M0 3 H3",
+    "g": "M4 1 Q3.3 0 2 0 Q0 0 0 3 Q0 6 2 6 Q4 6 4 3.6 H2.2",
+    "h": "M0 0 V6 M4 0 V6 M0 3 H4",
+    "i": "M1 0 H3 M2 0 V6 M1 6 H3",
+    "j": "M4 0 V4.2 Q4 6 2 6 Q0 6 0 4.2",
+    "k": "M0 0 V6 M4 0 L0 3.8 M1.3 2.6 L4 6",
+    "l": "M0 0 V6 H4",
+    "m": "M0 6 V0 L2 3.6 L4 0 V6",
+    "n": "M0 6 V0 L4 6 V0",
+    "o": "M2 0 Q0 0 0 3 Q0 6 2 6 Q4 6 4 3 Q4 0 2 0 Z",
+    "p": "M0 6 V0 H2.3 Q4 0 4 1.7 Q4 3.4 2.3 3.4 H0",
+    "q": "M2 0 Q0 0 0 3 Q0 6 2 6 Q4 6 4 3 Q4 0 2 0 Z M2.6 4.4 L4 6",
+    "r": "M0 6 V0 H2.3 Q4 0 4 1.7 Q4 3.4 2.3 3.4 H0 M2 3.4 L4 6",
+    "s": "M4 0.9 Q3.3 0 2 0 Q0 0 0 1.6 Q0 3 2 3 Q4 3 4 4.4 Q4 6 2 6 Q0.7 6 0 5.1",
+    "t": "M0 0 H4 M2 0 V6",
+    "u": "M0 0 V4 Q0 6 2 6 Q4 6 4 4 V0",
+    "v": "M0 0 L2 6 L4 0",
+    "w": "M0 0 L1 6 L2 2.4 L3 6 L4 0",
+    "x": "M0 0 L4 6 M4 0 L0 6",
+    "y": "M0 0 L2 3 L4 0 M2 3 V6",
+    "z": "M0 0 H4 L0 6 H4",
+    "0": "M2 0 Q0 0 0 3 Q0 6 2 6 Q4 6 4 3 Q4 0 2 0 Z M3.3 1.2 L0.7 4.8",
+    "1": "M0.8 1.2 L2.2 0 V6 M0.8 6 H3.6",
+    "2": "M0 1.2 Q0.6 0 2 0 Q4 0 4 1.8 Q4 3 2.4 4 L0 6 H4",
+    "3": "M0 0.8 Q0.8 0 2 0 Q3.8 0 3.8 1.5 Q3.8 3 2 3 Q4 3 4 4.5 Q4 6 2 6 Q0.8 6 0 5.2",
+    "4": "M3 6 V0 L0 4.2 H4",
+    "5": "M3.8 0 H0.4 L0 3 Q0.8 2.4 2 2.4 Q4 2.4 4 4.2 Q4 6 2 6 Q0.8 6 0 5.2",
+    "6": "M3.6 0.6 Q3 0 2 0 Q0 0 0 3.4 V4 Q0 6 2 6 Q4 6 4 4.1 Q4 2.4 2 2.4 Q0.6 2.4 0 3.6",
+    "7": "M0 0 H4 L1.4 6",
+    "8": ("M2 3 Q0.2 3 0.2 1.5 Q0.2 0 2 0 Q3.8 0 3.8 1.5 Q3.8 3 2 3 "
+          "Q0 3 0 4.5 Q0 6 2 6 Q4 6 4 4.5 Q4 3 2 3 Z"),
+    "9": "M0.4 5.4 Q1 6 2 6 Q4 6 4 2.6 V2 Q4 0 2 0 Q0 0 0 1.9 Q0 3.6 2 3.6 Q3.4 3.6 4 2.4",
+}
+
+
+def _glifo_no_quadro(d, x0, y0, escala):
+    """O glifo da grade 4 x 6, levado para o quadro de 128 por conta, sem `transform`.
+
+    Sem `transform` porque ele escalaria o TRAÇO junto — e a espessura tem de
+    ser a mesma em todo glifo, que é o que faz o gerado parecer uma letra só.
+    """
+    saida, comando, n = [], "", 0
+    for ficha in re.findall(r"[A-Z]|-?\d+(?:\.\d+)?", d):
+        if ficha.isalpha():
+            comando, n = ficha, 0
+            saida.append(ficha)
+            continue
+        eixo_x = comando == "H" or (comando != "V" and n % 2 == 0)
+        v = (x0 if eixo_x else y0) + float(ficha) * escala
+        saida.append(f"{v:.2f}".rstrip("0").rstrip("."))
+        n += 1
+    return " ".join(saida)
+
+
+def logo_gerado(nome, ident):
+    """O SVG do logo gerado, com as formas declaradas por papel e SEM o bloco de cores."""
+    import unicodedata
+    from xml.sax.saxutils import escape, quoteattr
+
+    # A INICIAL É A PRIMEIRA LETRA OU ALGARISMO DO NOME, E SÓ ELA — revisão de
+    # 23/09/2026. Símbolo e espaço na frente não são letra e são pulados (`* Nord`
+    # dá `n`); o acento cai na letra base pela decomposição (`Árvore` dá `a`).
+    # Se ESSA letra não tem glifo na grade — `Ωmega`, `日本` —, a inicial vem do
+    # id, que o `validar` garante começar por [a-z0-9]. A primeira versão varria o
+    # nome inteiro atrás de qualquer caractere com glifo, e `Ωmega` saía `m`:
+    # uma letra do meio, que ninguém lê como a inicial do pack.
+    def inicial_de(texto):
+        c = next((c for c in texto if c.isalnum()), "")
+        base = unicodedata.normalize("NFKD", c)[:1].lower()
+        return base if base in _GLIFOS_DO_LOGO else None
+    inicial = inicial_de(nome) or inicial_de(ident) or "o"
+    # A letra ocupa 36 x 54 no centro do quadro de 128: grande o bastante para
+    # ler a 48px (o traço de 10 vira ~3,75px), com a placa respirando em volta.
+    letra = _glifo_no_quadro(_GLIFOS_DO_LOGO[inicial], 46, 37, 9)
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" '
+            f'width="128" height="128" role="img" aria-label={quoteattr(nome)}>\n'
+            f'  <title>{escape(nome)} — logo gerado pelo MeowSystem</title>\n'
+            f'  <rect class="fundo traco-sujeito" x="8" y="8" width="112" height="112" '
+            f'rx="26" stroke-width="8"/>\n'
+            f'  <path class="traco-tinta" d="{letra}" fill="none" stroke-width="10" '
+            f'stroke-linecap="round" stroke-linejoin="round"/>\n'
+            f'</svg>\n')
+
+
+def cmd_logo_gerado(ref, flavor=None, accent=None):
+    """Imprime o logo gerado do pack, resolvido. NÃO ESCREVE NADA.
+
+    O docs/PACKS.md promete que o MeowSystem nunca escreve dentro de um pack, e
+    quem decide pôr este desenho no lugar do dela é ela, com um `>`. Sobrescrever
+    um logo que alguém desenhou para "consertar" um pack é o erro que não se
+    desfaz com Ctrl+C.
+
+    O `validar` do motor, que não cobra o logo: o resto do pack precisa estar
+    são, porque o gerado nasce da paleta dele — e o logo é justamente o que
+    este verbo existe para dar a quem ainda não tem.
+    """
+    p, dados, dir_pack = validar(ref, silencioso=True)
+    svg = logo_gerado(str(p.get("nome") or p["id"]), str(p["id"]))
+    flavor, accent = _flavor_e_accent(p, dados, flavor, accent)
+    sys.stdout.write(_aplicar_papeis(svg, ET.fromstring(svg), _cores_do_logo(dados, flavor, accent)))
+    return OK
+
+
 def validar(ref, silencioso=False):
     """Confere o pack. Levanta Recusa na primeira falha, com o que consertar."""
     dir_pack = achar(ref)
@@ -1458,6 +1917,24 @@ def validar(ref, silencioso=False):
             yield trilha, no
     for trilha, u in urls(p):
         _exigir(u.startswith("https://"), f"{trilha}: {u!r} — só https é aceito")
+
+    # --- o logo -------------------------------------------------------------
+    # POR ÚLTIMO, E DE PROPÓSITO: um pack de formato errado ou paleta quebrada
+    # deve ouvir primeiro sobre isso, que é o que impede qualquer tela de sair.
+    #
+    # SÓ NA PORTA DE QUEM PUBLICA — revisão de 23/09/2026. A primeira versão
+    #   cobrava o logo aqui de todo chamador, e o `silencioso=True` é a porta do
+    #   MOTOR: o `caminho` que o `meow_pack_dir` (lib/comum.sh) usa como sonda de
+    #   existência, a `paleta`, o `som`, o `construir`. Medido na revisão: um
+    #   pack íntegro em tudo menos o logo saía com "pack 'meu' não resolve —
+    #   usando o padrão", sem dizer que era o logo, e o desktop inteiro voltava
+    #   ao Catppuccin por causa de uma figura que só o cartão e o lançador
+    #   mostram. E um pack `formato` 1 de antes de 23/09 pintaria errado depois
+    #   de atualizar — o contrário do que o `formato` promete. É a fronteira que
+    #   a P15 traçou para a capa, e a capa É este arquivo. Quem MOSTRA o logo não
+    #   depende daqui: o `logo()` confere o arquivo por conta própria.
+    if not silencioso:
+        _validar_logo(dir_pack, p)
 
     if not silencioso:
         # O AVISO VEM ANTES DO `ok`, E NÃO MUDA O CÓDIGO DE SAÍDA
@@ -1775,6 +2252,14 @@ def main(argv):
             return cmd_fonte(argv[2], argv[3] if len(argv) == 4 else None)
         if verbo == "sincronizar" and len(argv) == 3:
             return cmd_sincronizar(argv[2])
+        # O LOGO SAI PELO STDOUT NOS DOIS VERBOS: quem instala no tema de ícones
+        # ou serve no cartão redireciona para onde precisa, e o pack.py continua
+        # sem escrever uma linha fora de `construir`. Ver o bloco "O LOGO DO PACK".
+        if verbo == "logo" and 3 <= len(argv) <= 5:
+            sys.stdout.write(logo(argv[2], *argv[3:]))
+            return OK
+        if verbo == "logo-gerado" and 3 <= len(argv) <= 5:
+            return cmd_logo_gerado(argv[2], *argv[3:])
         if verbo == "som" and len(argv) == 3:
             return cmd_som(argv[2])
         if verbo == "info" and len(argv) == 3:
