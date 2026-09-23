@@ -936,6 +936,32 @@ def _declarado_pelo_pack(adotado, alvo):
     return False
 
 
+def _pack_adotado():
+    """O id do pack no ar, ou '' quando nenhum pack responde. [23/09/2026]
+
+    A MESMA ADOÇÃO DO `_vestigio_de_pack`, lá em cima: a chave PACK, ou o FLAVOR
+    quando ela está vazia — e o FLAVOR traduzido para o pack que o declara,
+    porque nenhum pack se chama `mocha`. Aquela função faz a conta no meio de
+    outra pergunta e não a devolve; a oficina (sprint P26) precisa só dela, para
+    dizer se o desenho de um pack é do pack que está no ar.
+    """
+    vals = valores_efetivos(["PACK", "FLAVOR"])
+    adotado = (vals.get("PACK") or vals.get("FLAVOR") or "").strip().lower()
+    mod = modulo_pack()
+    if not mod or not adotado or mod.achar(adotado):
+        return adotado
+    dir_sabor = _pack_do_sabor(mod, adotado)
+    return os.path.basename(dir_sabor.rstrip("/")).lower() if dir_sabor else ""
+
+
+def _enumerar(itens):
+    """'a', 'a e b', 'a, b e c' — a enumeração do português, para frase de tela."""
+    itens = [i for i in itens if i]
+    if len(itens) <= 1:
+        return "".join(itens)
+    return ", ".join(itens[:-1]) + " e " + itens[-1]
+
+
 def _dominada_por(chave):
     regra = DOMINIOS.get(chave)
     if not regra:
@@ -5634,6 +5660,154 @@ class Manipulador(BaseHTTPRequestHandler):
             pass
         return fora
 
+    # ========================================================================
+    # O ACERVO DO PACK É UMA ORIGEM NA OFICINA — 23/09/2026, sprint P26
+    # ========================================================================
+    # Ele, 21/09: *"você viu que os ícones do Dracula, todos os SVGs meus, não
+    # aparecem lá, né?"* Os 18 desenhos de `packs/dracula/icones/apps/` estavam
+    # instalados — 18 de 18 no tema — e nenhum aparecia na oficina. Aberta a do
+    # Warehouse, que tem desenho feito à mão no pack, a tela oferecia converter
+    # e gerar em traço e dizia "já tem desenho convertido do projeto". Ela não
+    # sabia que o pack existia: o `_mapa_dracula` acima só serve à ETIQUETA da
+    # grade, e só para o pack no ar.
+    #
+    # POR QUE TODO PACK DO DISCO, E NÃO SÓ O ATIVO
+    #   A oficina é onde se escolhe entre origens, e um desenho do Dracula é uma
+    #   origem para o Warehouse mesmo numa máquina vestida de Catppuccin — é a
+    #   pergunta "existe um desenho feito para este programa?". O cartão diz de
+    #   que pack ele é e se esse pack está no ar; a tela decide o que dizer.
+    #
+    # O QUE CASA É O QUE O PACK DECLARA, EM DUAS FORMAS
+    #   o nome do arquivo em `icones.apps.desenhos` (o `Warehouse` veste
+    #   `io.github.flattool.Warehouse.svg`), e cada linha do `icones.apps.mapa`,
+    #   resolvida pelo `resolver_alvo` do pack.py — é o que põe o `guvcview.svg`
+    #   na Câmera, e o `motor:` no acervo do motor sem cópia. O índice é montado
+    #   uma vez por pedido: a grade inteira são ~60 perguntas a ele.
+    def _desenhos_de_pack(self):
+        """nome-de-ícone -> [{pack, nome_pack, arquivo, ativo}] de todo pack no disco."""
+        mod = modulo_pack()
+        if not mod:
+            return {}
+        adotado = _pack_adotado()
+        indice, vistos = {}, set()
+        for base in mod.raizes():
+            try:
+                ids = sorted(os.listdir(base))
+            except OSError:
+                continue
+            for pid in ids:
+                dir_pack = os.path.join(base, pid)
+                # A PRIMEIRA RAIZ VENCE, como no `achar`: um pack de mesmo id em
+                # `~/.local/share/meowsystem/packs` esconde o do repositório.
+                if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
+                    continue
+                vistos.add(pid)
+                nome_pack = str(mod.campo(dir_pack, "nome", pid) or pid)
+                pares = []
+                desenhos = mod.campo(dir_pack, "icones.apps.desenhos")
+                if isinstance(desenhos, str) and desenhos:
+                    try:
+                        pasta = mod.resolver_alvo(desenhos, dir_pack)
+                    except mod.Recusa:
+                        pasta = ""
+                    if pasta and os.path.isdir(pasta):
+                        pares += [(a[:-len(".svg")], os.path.join(pasta, a))
+                                  for a in sorted(os.listdir(pasta)) if a.endswith(".svg")]
+                mapa = mod.campo(dir_pack, "icones.apps.mapa")
+                linhas = []
+                if isinstance(mapa, str) and mapa:
+                    try:
+                        caminho_mapa = mod.resolver_alvo(mapa, dir_pack)
+                        with open(caminho_mapa, "r", encoding="utf-8") as fh:
+                            linhas = fh.read().splitlines()
+                    except (mod.Recusa, OSError):
+                        linhas = []
+                for linha in linhas:
+                    # O `#` é cortado ANTES do `:`, pela mesma razão do
+                    # `icones_apps_dracula.sh`: o comentário de procedência
+                    # depois do caminho não pode virar parte dele.
+                    corte = linha.split("#", 1)[0].strip()
+                    if ":" not in corte:
+                        continue
+                    nome, alvo = (c.strip() for c in corte.split(":", 1))
+                    if not nome or not alvo:
+                        continue
+                    try:
+                        pares.append((nome, mod.resolver_alvo(alvo, os.path.dirname(caminho_mapa))))
+                    except mod.Recusa:
+                        continue
+                for nome, caminho in pares:
+                    if not caminho.endswith(".svg") or not os.path.isfile(caminho):
+                        continue
+                    lista = indice.setdefault(nome, [])
+                    if not any(c["arquivo"] == caminho for c in lista):
+                        lista.append({"pack": pid, "nome_pack": nome_pack,
+                                      "arquivo": caminho, "ativo": pid == adotado})
+        return indice
+
+    def _cartoes_do_pack(self, d, indice, atual, com_svg=False):
+        """Os desenhos de pack deste aplicativo, e qual deles está NA TELA.
+
+        "EM VIGOR" É MEDIDO, NÃO DEDUZIDO: o arquivo que o resolvedor acha hoje
+        é comparado com o do pack. Deduzir de "o pack está no ar e a chave está
+        ligada" responderia sobre o que DEVERIA estar lá, e a queixa de 21/09
+        era justamente a tela não dizer o que ESTÁ. A comparação ignora a
+        quebra de linha do fim porque o `meow_escrever` a normaliza ao
+        instalar — é a mesma régua do `_dracula_remover`.
+        """
+        cartoes, vistos = [], set()
+        for nome in (d.get("icone"), d.get("id")):
+            for c in indice.get(nome or "", []):
+                if c["arquivo"] not in vistos:
+                    vistos.add(c["arquivo"])
+                    cartoes.append(dict(c))
+        if not cartoes:
+            return []
+        na_tela = None
+        if atual and atual.endswith(".svg"):
+            try:
+                with open(atual, "r", encoding="utf-8", errors="replace") as fh:
+                    na_tela = fh.read(400000).rstrip()
+            except OSError:
+                na_tela = None
+        for c in cartoes:
+            try:
+                with open(c["arquivo"], "r", encoding="utf-8", errors="replace") as fh:
+                    texto = fh.read(400000)
+            except OSError:
+                texto = ""
+            c["em_vigor"] = bool(na_tela) and texto.rstrip() == na_tela
+            if com_svg:
+                c["svg"] = texto
+        # O que está na tela primeiro, depois o do pack no ar: é a ordem em que a
+        # oficina os mostra, e o primeiro é o que ela marca ao abrir.
+        cartoes.sort(key=lambda c: (not c["em_vigor"], not c["ativo"], c["nome_pack"].lower()))
+        return cartoes
+
+    def _quem_veste(self, atual, nosso, cartoes, traco, mapa):
+        """Quem está NA TELA deste aplicativo: {"tipo", "frase"}.
+
+        A frase é o complemento de "<aplicativo> veste …", e é a mesma na trava
+        da grade e no aviso da oficina — duas telas que dissessem coisas
+        diferentes sobre o mesmo ícone seriam a página discordando de si mesma.
+        `48x48/apps` é o diretório do traço (dono único: o
+        `icones_apps_arcticons.sh`), e por isso é ele que separa a conversão e o
+        glifo do Arcticons do resto do que é nosso.
+        """
+        for c in cartoes:
+            if c.get("em_vigor"):
+                return {"tipo": "pack", "frase": "o desenho do pack «%s»" % c["nome_pack"]}
+        if not atual:
+            return {"tipo": "nenhum", "frase": "nenhum ícone"}
+        if nosso:
+            if os.path.basename(os.path.dirname(os.path.dirname(atual))) == "48x48":
+                if traco:
+                    return {"tipo": "conversao", "frase": "a conversão em traço do projeto"}
+                if mapa:
+                    return {"tipo": "arcticons", "frase": "o glifo do Arcticons, em traço"}
+            return {"tipo": "projeto", "frase": "um desenho do projeto"}
+        return {"tipo": "fabrica", "frase": "o ícone de fábrica"}
+
     def _mapa_arcticons(self):
         """As linhas ativas de `apps-arcticons.map`, por id de aplicativo.
 
@@ -5767,6 +5941,9 @@ class Manipulador(BaseHTTPRequestHandler):
         fora = []
         jogos = 0
         travas = self._travas_do_arcticons()
+        # Os desenhos de TODO pack, por nome de ícone — é o que deixa a trava
+        # dizer quem veste o aplicativo e que o pack é uma das alternativas.
+        indice_pack = self._desenhos_de_pack()
         for d in self._desktops():
             if d["oculto"]:
                 continue
@@ -5783,6 +5960,10 @@ class Manipulador(BaseHTTPRequestHandler):
             # "está instalado?" e "está na tela dela?" são perguntas diferentes,
             # e esta página tem de responder a segunda.
             atual, nosso = self._icone_na_tela(d, base_tema)
+            do_pack = self._cartoes_do_pack(d, indice_pack, atual)
+            traco_app = traco.get(d["id"]) or traco.get(d["icone"])
+            vigor = self._quem_veste(atual, nosso, do_pack, traco_app,
+                                     mapa.get(d["id"]) or mapa.get(d["icone"]))
             fora.append({
                 "id": d["id"], "nome": d["nome"], "icone": d["icone"],
                 "origem": d["origem"], "nosso": nosso,
@@ -5803,8 +5984,12 @@ class Manipulador(BaseHTTPRequestHandler):
                 # 11/08.
                 "traco": traco.get(d["id"]) or traco.get(d["icone"]) or None,
                 # A frase de por que um glifo do Arcticons não valeria aqui, ou
-                # None — ver `_travas_do_arcticons`.
-                "trava": self._motivo_da_trava(travas, [d["id"], d["icone"]], d["nome"]),
+                # None — ver `_travas_do_arcticons`. Desde 23/09/2026 ela sabe
+                # quem está na tela e que desenhos de pack existem para o app.
+                "trava": self._motivo_da_trava(
+                    travas, [d["id"], d["icone"]], d["nome"], vigor,
+                    ["o desenho do pack «%s»" % c["nome_pack"]
+                     for c in do_pack if not c["em_vigor"]]),
             })
         return {"apps": fora, "total": len(fora), "jogos": jogos}
 
@@ -6759,11 +6944,32 @@ class Manipulador(BaseHTTPRequestHandler):
                             cartao["svg"] = svg
                             cartao["nota"] = nota
                         variacoes.append(cartao)
+            # O DESENHO DO PACK É UMA ORIGEM, E VEM ANTES DAS CONVERSÕES
+            #   — 23/09/2026, sprint P26. Ver `_desenhos_de_pack`. O SVG vai no
+            #   cartão, inteiro: é arte acabada, de 6 a 10 cores, e a página a
+            #   desenha como IMAGEM, nunca pelo `desenhar()` do traço, que
+            #   poria `stroke-width` e `currentColor` por cima dela.
+            #
+            #   `em_vigor` é o que a oficina precisa para não trocar calada: ela
+            #   marca o cartão do pack ao abrir, e quando ele NÃO é o que está
+            #   na tela, diz quem está (`em_vigor`, abaixo) antes de qualquer
+            #   clique. Escolher continua não gravando nada.
+            tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
+            atual, nosso = self._icone_na_tela(
+                d, os.path.expanduser("~/.local/share/icons/%s" % tema))
+            do_pack = self._cartoes_do_pack(d, self._desenhos_de_pack(), atual, com_svg=True)
+            traco = self._mapa_convertidos()
+            arcticons = self._mapa_arcticons()
+            vigor = self._quem_veste(atual, nosso, do_pack,
+                                     traco.get(d["id"]) or traco.get(d["icone"]),
+                                     arcticons.get(d["id"]) or arcticons.get(d["icone"]))
             return self._json({
                 "ok": True, "nome": nome, "origem": origem,
                 "original": ("/previa?tipo=arquivo&id=" + quote(origem, safe="")) if origem else "",
                 "capa": ("/previa?tipo=arquivo&id=" + quote(capa, safe="")) if capa else "",
                 "salvo": self._salvo_do_app(nome),
+                "pack": do_pack,
+                "em_vigor": vigor,
                 "variacoes": variacoes,
                 "vizinhos": self._vizinhos_do_dock(),
                 # Quem abre um SVG aqui — para a página saber se desenha o botão
@@ -6994,6 +7200,196 @@ class Manipulador(BaseHTTPRequestHandler):
             return "não consegui gravar o mapa: %s" % e
         return ""
 
+    # ========================================================================
+    # A OFICINA DE AUTORAL: O GERADOR QUE JÁ EXISTE, COM TELA — 23/09/2026
+    # ========================================================================
+    # Sprint P26, item 5: *"escolher os papéis, ver a prévia nos quatro fundos,
+    # salvar no pack. É o gerador que já existe, com tela."*
+    #
+    # O FORMATO NÃO MORA AQUI. Ler, conferir e desenhar uma declaração é do
+    # `scripts/pack.py` (`ler_autoral`, `desenhar_autoral`, `autorais`), e é a
+    # mesma porta que o `gerar_icones_autorais.py` usa — a prévia desta tela e o
+    # arquivo que o gerador escreve saem da mesma função, e por isso não podem
+    # discordar.
+    #
+    # O PACK É O QUE ESTÁ NO AR (`_pack_adotado`). Ele alcança as declarações
+    # dele e as que herda — o Dracula mostra o FogStripper e o Hefesto do
+    # Catppuccin —, e SALVAR ESCREVE SEMPRE NELE: uma declaração herdada vira
+    # uma cópia no pack ativo, que dali em diante vence a de origem. É a regra
+    # do `onde`/`dir_acervo`: herdar é ler do vizinho; escrever é em casa.
+    #
+    # SALVAR É GESTO, E É O ÚNICO QUE ESCREVE. Escolher um papel repinta a
+    # prévia e não grava nada. A P21 já separou "o que o uso suja" de "o desenho
+    # que a pessoa adota, que vai para o pack dela por gesto explícito" — este
+    # botão é o segundo caso. O `.json` é gravado e o gerador roda para o pack,
+    # na paleta dele. Se o ícone chega à tela, a resposta diz MEDINDO — ver o
+    # `na_tela`, no fim.
+    def _api_autorais(self, corpo):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "o painel não carregou o scripts/pack.py"}, 500)
+        adotado = _pack_adotado()
+        dir_pack = (mod.achar(adotado) if adotado else None) or mod.dir_padrao()
+        id_pack = os.path.basename(dir_pack.rstrip("/"))
+        nome_pack = str(mod.campo(dir_pack, "nome", id_pack) or id_pack)
+        try:
+            with open(os.path.join(dir_pack, mod.campo(dir_pack, "paleta.arquivo", "paleta.json")),
+                      encoding="utf-8") as fh:
+                paleta = json.load(fh)
+        except (OSError, ValueError) as e:
+            return self._json({"erro": "não consegui ler a paleta do pack: %s" % e}, 500)
+        accent = (valores_efetivos(["ACCENT"]).get("ACCENT") or "mauve").strip()
+        declarados = mod.autorais(dir_pack)
+        acao = str(corpo.get("acao", "listar")).strip()
+
+        if acao == "listar":
+            desenhos = []
+            for nome, (caminho, dono) in sorted(declarados.items()):
+                item = {"nome": nome, "pack": dono, "herdado": dono != id_pack,
+                        "nome_origem": str(mod.campo(dono, "nome", dono) or dono)}
+                try:
+                    item["papeis"] = mod.ler_autoral(caminho)["papeis"]
+                except mod.Recusa as e:
+                    # Uma declaração recusada APARECE, com o motivo: some-la da
+                    # lista seria a tela dizendo que o desenho não existe.
+                    item["erro"] = str(e)
+                desenhos.append(item)
+            return self._json({"ok": True, "pack": id_pack, "nome_pack": nome_pack,
+                               "desenhos": desenhos, "accent": accent,
+                               "cores": list(mod.SLOTS) + [mod.MARCA_ACCENT]})
+
+        nome = str(corpo.get("nome", "")).strip()
+        if nome not in declarados:
+            return self._json({"erro": "o pack não declara um desenho chamado %s" % nome}, 404)
+        caminho, dono = declarados[nome]
+        try:
+            decl = mod.ler_autoral(caminho)
+        except mod.Recusa as e:
+            return self._json({"erro": str(e)}, 422)
+
+        # OS PAPÉIS QUE CHEGAM DA PÁGINA SÃO CONFERIDOS PELA MESMA CERCA: o mesmo
+        # conjunto de papéis da declaração (nem um a mais, nem um a menos) e,
+        # em cada lado, um nome da paleta ou `<accent>`.
+        papeis = corpo.get("papeis")
+        if papeis is not None:
+            if not isinstance(papeis, dict) or set(papeis) != set(decl["papeis"]):
+                return self._json({"erro": "os papéis têm de ser os do desenho: %s"
+                                           % ", ".join(sorted(decl["papeis"]))}, 400)
+            novos = {}
+            for papel, par in papeis.items():
+                par = par if isinstance(par, dict) else {}
+                lados = {lado: str(par.get(lado, "")) for lado in ("escuro", "claro")}
+                if any(v not in mod.SLOTS and v != mod.MARCA_ACCENT for v in lados.values()):
+                    return self._json({"erro": "%s: a cor tem de ser um nome da paleta" % papel}, 400)
+                novos[papel] = lados
+            decl = dict(decl, papeis=novos)
+
+        if acao == "previa":
+            # OS QUATRO FUNDOS SÃO DA PALETA DE CADA FLAVOR, e não uma cor
+            # escrita aqui: `crust` e `base` são o lançador, `overlay0` o
+            # meio-tom — o pior caso que o cabeçalho do gerador mediu — e
+            # `text` a claridade de um papel de parede claro, que foi onde o
+            # Gestor de Arquivos sumiu na tela dela.
+            previas = []
+            for flavor, cores in (paleta.get("flavors") or {}).items():
+                try:
+                    svg = mod.desenhar_autoral(decl, cores, flavor in (paleta.get("claros") or []),
+                                               accent, {"titulo": nome})
+                except mod.Recusa as e:
+                    return self._json({"erro": str(e)}, 422)
+                previas.append({"flavor": flavor, "svg": svg,
+                                "fundos": [{"nome": k, "cor": cores.get(k, "")}
+                                           for k in ("crust", "base", "overlay0", "text")]})
+            return self._json({"ok": True, "previas": previas})
+
+        if acao != "salvar":
+            return self._json({"erro": "ação desconhecida: %s" % acao}, 400)
+
+        try:
+            pasta = mod.dir_acervo("icones.autorais.desenhos", ref=dir_pack,
+                                   padrao=mod.PASTA_AUTORAIS)
+        except mod.Recusa as e:
+            return self._json({"erro": str(e)}, 422)
+        # O ARQUIVO INTEIRO SOBREVIVE, e só o `papeis` muda — a mesma regra do
+        # `_api_app_icone` para o mapa: as `_nota` são a história do desenho, e
+        # editar a cor de alguém não é reescrever o porquê dele.
+        try:
+            with open(caminho, encoding="utf-8") as fh:
+                bruto = json.load(fh)
+        except (OSError, ValueError) as e:
+            return self._json({"erro": "não consegui reler a declaração: %s" % e}, 500)
+        bruto["papeis"] = decl["papeis"]
+        destino = os.path.join(pasta, nome + ".json")
+        try:
+            os.makedirs(pasta, exist_ok=True)
+            tmp = destino + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as fh:
+                fh.write(json.dumps(bruto, ensure_ascii=False, indent=2) + "\n")
+            os.replace(tmp, destino)
+        except OSError as e:
+            return self._json({"erro": "não consegui gravar no pack: %s" % e}, 500)
+
+        # O GERADOR RODA PARA O PACK, NA PALETA DELE — como o `pack construir`.
+        #   `MEOW_PACK_DIR` é o que faz ele desenhar em Dracula e escrever em
+        #   `packs/dracula/`; `MEOW_PALETA` sai porque é o passo 1 da
+        #   precedência e venceria o pack. Sem `shell`, argv em lista.
+        ambiente = dict(os.environ)
+        ambiente["MEOW_PACK_DIR"] = dir_pack
+        ambiente.pop("MEOW_PALETA", None)
+        try:
+            r = subprocess.run([sys.executable, os.path.join(RAIZ, "scripts", "gerar_icones_autorais.py"),
+                                "--accent", accent, "--saida", pasta],
+                               env=ambiente, capture_output=True, text=True, timeout=60)
+        except (OSError, subprocess.SubprocessError) as e:
+            return self._json({"erro": "gravei o desenho, e o gerador não rodou: %s" % e}, 500)
+        if r.returncode != 0:
+            return self._json({"erro": "gravei o desenho, e o gerador recusou: %s"
+                                       % (r.stderr or r.stdout).strip()[-400:]}, 500)
+
+        # A TELA É MEDIDA, E NÃO PROMETIDA — 23/09/2026, revisão da P26
+        #   A torrada dizia sempre "chega à tela na próxima passagem dos
+        #   ícones", e nesta máquina isso só era verdade para o FogStripper. O
+        #   Hefesto veste a logo que ela desenhou (`__LOGO_DELA__` no
+        #   `completar_icones.sh`; o `hefesto.json` conta por quê), e um
+        #   desenho declarado sem linha na tabela `AUTORAL` de lá nasce no pack
+        #   e não veste ícone nenhum. Copiar aquela tabela para cá seria a
+        #   segunda verdade sobre ela; o que esta rota pode é MEDIR o tema.
+        #
+        #   A pergunta é "algum SVG do tema tem a FORMA deste desenho?". Cor e
+        #   <title> saem da comparação: cor é justamente o que salvar muda, e o
+        #   título carrega o flavor de quem gerou — o que está na tela pode ser
+        #   de outro acento, de um salvar anterior ou do pack de antes, e
+        #   continua sendo este desenho. Achou: a próxima passagem troca aquele
+        #   arquivo pelo novo. Não achou: o pack mudou e a tela não, e a página
+        #   diz isso em vez de prometer.
+        def _forma(texto):
+            texto = re.sub(r"<title>.*?</title>", "", texto, flags=re.S)
+            return re.sub(r"#[0-9A-Fa-f]{3,8}\b", "#", texto).strip()
+        formas = set()
+        for flavor in (paleta.get("flavors") or {}):
+            try:
+                with open(os.path.join(pasta, "%s-%s.svg" % (nome, flavor)), encoding="utf-8") as fh:
+                    formas.add(_forma(fh.read()))
+            except OSError:
+                continue
+        tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
+        alvo = os.path.expanduser("~/.local/share/icons/%s/scalable/apps" % tema)
+        na_tela = []
+        try:
+            instalados = sorted(a for a in os.listdir(alvo) if a.endswith(".svg"))
+        except OSError:
+            instalados = []
+        for arq in instalados:
+            try:
+                with open(os.path.join(alvo, arq), encoding="utf-8", errors="replace") as fh:
+                    if _forma(fh.read(400000)) in formas:
+                        na_tela.append(arq[:-len(".svg")])
+            except OSError:
+                continue
+        return self._json({"ok": True, "pack": id_pack, "nome_pack": nome_pack,
+                           "copiou": dono != id_pack, "na_tela": na_tela,
+                           "arquivo": os.path.relpath(destino, dir_pack)})
+
     def _travas_do_arcticons(self):
         """O que faria o `icones_apps_arcticons.sh` pular uma linha nova do mapa.
 
@@ -7042,8 +7438,23 @@ class Manipulador(BaseHTTPRequestHandler):
             pass
         return intocaveis, prefixos, curados, self._mapa_convertidos()
 
-    def _motivo_da_trava(self, travas, nomes, rotulo):
-        """A frase que diz por que um glifo do Arcticons não vale neste app, ou None."""
+    def _motivo_da_trava(self, travas, nomes, rotulo, vigor=None, do_pack=()):
+        """A frase que diz por que um glifo do Arcticons não vale neste app, ou None.
+
+        A FRASE DO CONVERTIDO MENTIA POR OMISSÃO — 23/09/2026, sprint P26
+          Era "Warehouse já tem desenho convertido do projeto. O traço dele se
+          troca na oficina «Gerar ícone», acima." Verdade sobre o MAPA, e falsa
+          sobre a TELA: o Warehouse estava vestindo o desenho do pack Dracula,
+          feito à mão — o `scalable/apps` vence o `48x48/apps` do traço —, e a
+          frase não dizia isso nem que o desenho do pack era uma escolha.
+          Agora ela diz quem veste o aplicativo (`vigor`, medido por
+          `_quem_veste`) e quais são as alternativas, com os desenhos de pack
+          que não estão na tela (`do_pack`) entre elas.
+
+          SEM `vigor` A FRASE ANTIGA CONTINUA, e é de propósito: é o caso da
+          recusa do `_api_app_icone`, que não mede a tela — e sobre o mapa ela
+          continua sendo verdade.
+        """
         intocaveis, prefixos, curados, convertidos = travas
         nomes = [n for n in nomes if n]
         if any(n in intocaveis or (prefixos and n.startswith(prefixos)) for n in nomes):
@@ -7053,8 +7464,17 @@ class Manipulador(BaseHTTPRequestHandler):
             return ("%s usa a arte que você escolheu na curadoria, e ela vence "
                     "este acervo." % rotulo)
         if any(n in convertidos for n in nomes):
-            return ("%s já tem desenho convertido do projeto. O traço dele se "
-                    "troca na oficina «Gerar ícone», acima." % rotulo)
+            if not vigor:
+                return ("%s já tem desenho convertido do projeto. O traço dele se "
+                        "troca na oficina «Gerar ícone», acima." % rotulo)
+            alternativas = list(do_pack)
+            if vigor.get("tipo") != "conversao":
+                alternativas.append("a conversão em traço do projeto")
+            alternativas.append("novas variações a partir do original")
+            return ("%s veste %s. %s na oficina «Gerar ícone», acima: %s."
+                    % (rotulo, vigor["frase"],
+                       "As alternativas estão" if len(alternativas) > 1 else "A alternativa está",
+                       _enumerar(alternativas)))
         return None
 
     def _tirar_do_mapa_arcticons(self, app):
@@ -7642,6 +8062,9 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/app-desenho":
             return self._api_app_desenho(corpo)
+
+        if caminho == "/api/autorais":
+            return self._api_autorais(corpo)
 
         if caminho == "/api/jogo-fora":
             return self._api_jogo_fora(corpo)

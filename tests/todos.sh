@@ -84,6 +84,7 @@ MAQUINA=(
   previa-cerca.sh        # sobe o painel e planta uma isca no ~/.local/share/icons de verdade
   app-navegador.py       # Playwright com Chromium, a página usada como ela usaria
   app-acessibilidade.py  # Playwright com Chromium; sobe o painel
+  oficina.sh             # lê os .desktop da máquina: o desenho de pack que veste um deles tem cartão
 )
 
 # ---------------------------------------------------------------------------
