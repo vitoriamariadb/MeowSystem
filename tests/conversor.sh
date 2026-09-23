@@ -245,7 +245,17 @@ done
 #   os alcançar, e qualquer mudança aqui é mudança de arte aprovada.
 TRAVA=(
   "/usr/share/icons/Papirus/64x64/apps/org.gnome.Calculator.svg"   # fiel, mín. 204,6
-  "/usr/share/icons/Papirus/64x64/apps/org.telegram.desktop.svg"   # fiel, mín. 78,4 <- quem manda
+  # O TELEGRAM SAIU DA TRAVA — 23/09/2026, decidido com as cinco à vista.
+  #   Ele era o sentinela mais justo (78,4, rente ao limiar de 70), e o
+  #   1e85809 (16/09) o derrubou: o `argsort` estável escolhe outras cores nos
+  #   empates, e com elas o `--peso-fronteira` passa a fundir uma fronteira
+  #   dele. Voltar ao quicksort poria a arte a depender da versão do numpy da
+  #   máquina, que é o defeito que aquele commit consertou. E a arte dele na
+  #   tela não passa pelo conversor: é `retoques/org.telegram.desktop.svg`,
+  #   desenhada à mão. Comparadas lado a lado (origem, antes, hoje, hoje com a
+  #   chave, retoque), a decisão foi tirá-lo daqui. O que se perde: o vizinho
+  #   mais próximo do limiar agora é a Calculadora, a 204,6 — subir o limiar
+  #   até 78 já não derruba esta linha.
   "/usr/share/icons/Papirus/64x64/apps/org.videolan.VLC.svg"       # fiel, mín. 281,3
   "$RAIZ/packs/catppuccin/icones/autorais/cosmic-edit-mocha.svg"             # canário: a folha em branco
   "$RAIZ/packs/catppuccin/icones/autorais/cosmic-term-mocha.svg"             # canário: o quadrado
