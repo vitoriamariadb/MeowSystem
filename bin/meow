@@ -3841,9 +3841,12 @@ cmd_pack() {
     # `de-csv` — a paleta entra por CSV, 23/09/2026, sprint P16
     #   Imprime o `paleta.json` equivalente a um CSV `slot,flavor,hex`, com o
     #   claro derivado quando o CSV não traz um. SÓ IMPRIME, como o
-    #   `logo-gerado`: quem põe o arquivo num pack é a pessoa, com `>`. Quem
-    #   grava é o `meow pack novo --de-csv` da P11, que chama a mesma função —
-    #   as duas sprints correram em paralelo, e o `novo` é dela.
+    #   `logo-gerado`: quem põe o arquivo num pack é a pessoa, com `>`.
+    #   Gravar o pack inteiro é o `meow pack novo <id> --de-csv <arquivo>`, e ele
+    #   é PENDÊNCIA DA P16 [revisão, 23/09/2026]: o `novo` nasce na P11, que não
+    #   tinha entrado no dev, e aqui não se escreve um segundo `novo` em paralelo.
+    #   Quando ela entrar, o `--de-csv` vira um ramo do `cmd_novo` dela — o que
+    #   falta está em "A PALETA ENTRA POR CSV", no scripts/pack.py.
     de-csv|csv)
       local arq="${1:-}"
       [ -n "$arq" ] || { meow_erro "diga qual CSV: meow pack de-csv <cores.csv> > paleta.json"; return "$MEOW_ERRO"; }

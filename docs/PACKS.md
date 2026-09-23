@@ -82,9 +82,11 @@ meow pack de-csv minhas-cores.csv > ~/.local/share/meowsystem/packs/meu-tema/pal
 
 O verbo **só imprime**, como o `logo-gerado`: quem põe o arquivo no pack é você,
 com o `>`. Aponte o `>` para um arquivo novo — um CSV recusado não imprime JSON
-nenhum, e o `>` já terá esvaziado o destino. Montar o pack inteiro a partir do
-CSV é o `meow pack novo --de-csv` (sprint P11), que chama esta mesma tradução;
-até ele chegar, o pack se monta à mão, com os três arquivos do fim desta seção.
+nenhum, e o `>` já terá esvaziado o destino. Montar o pack inteiro de uma vez,
+`meow pack novo <id> --de-csv <arquivo>`, **ainda não existe**: o `novo` nasce
+na sprint P11, e ligar o `--de-csv` nele — e o `.csv` na tela de importar — é
+pendência da P16, que fez esta tradução. Até lá, o pack se monta à mão, com os
+três arquivos do fim desta seção.
 
 **Se o CSV traz só flavors escuros, o claro é derivado** — do primeiro flavor
 do CSV, que é o que vira o `flavor_padrao` —, pelo método da subseção [Se o seu
@@ -107,6 +109,12 @@ do `dracula`, ele devolve o `alucard` versionado, 26 de 26 iguais. Derivar
 continua sendo opinativo — para usar o seu claro, traga as 26 linhas dele no
 CSV. Um flavor é claro quando o `base` dele é mais luminoso que o `text`: a
 medida decide, e não o nome.
+
+**Onde o método erra, e se sabe: tema em cinza puro.** A regra 3 empresta o
+matiz do `base`, e cinza não tem matiz — a conta devolve 0, que é vermelho, e a
+saturação do Latte o acende: um escuro todo cinza deriva `text` `#664A4A` sobre
+`base` `#F6F0F0`, um claro rosado que o tema não tem. Nesse caso, traga o claro
+no CSV.
 
 **A régua de contraste roda na tradução, e avisa sem bloquear.** `text` sobre
 `base` ≥ 7:1, e cada slot não abaixo de 95% do que o Latte faz no mesmo slot —
@@ -210,9 +218,13 @@ Derive um, e confira contra o Latte. Foi o que o pack `dracula` fez em
    tema não tem.
 
 E confira com uma régua que a referência cumpra: `text` sobre `base` ≥ 7:1
-(AAA), e **cada slot não pior que o Latte no mesmo slot**. Exigir 4,5:1 de todo
-acento reprova 12 slots — e reprova o próprio Latte, onde `rosewater` sobre
-`base` dá 2,32. Esses slots são decoração, não texto.
+(AAA), e **cada slot não abaixo de 95% do que o Latte faz no mesmo slot** — a
+régua do `scripts/derivar_claro.py`, que gerou o `alucard`; "não pior" ao pé da
+letra reprova o próprio `alucard` em 21 slots por um centésimo, porque a
+derivação mira a luminância do Latte e o arredondamento para hexa cai logo
+abaixo. Exigir 4,5:1 de todo acento reprova 12 slots — e reprova o próprio
+Latte, onde `rosewater` sobre `base` dá 2,32. Esses slots são decoração, não
+texto.
 
 ---
 

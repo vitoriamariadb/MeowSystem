@@ -890,8 +890,10 @@ fi
 #   "melhorar" a derivação, este teste diz que ela deixou de ser a do projeto.
 #
 #   O PACK É MONTADO À MÃO, e não pelo `meow pack novo --de-csv`, porque o
-#   `novo` é da P11, que correu em paralelo: aqui se confere a TRADUÇÃO (o
-#   verbo `de-csv`) e que o resultado passa pela mesma porta de todo pack.
+#   `novo` nasce na P11, que ainda não entrou: aqui se confere a TRADUÇÃO (o
+#   verbo `de-csv`) e que o resultado passa pela mesma porta de todo pack. O
+#   `--de-csv` é pendência DA P16 — ver "A PALETA ENTRA POR CSV" no pack.py —,
+#   e quando ele for ligado, este bloco passa a chamá-lo.
 CSV_ID="$ID-csv"; CSV_DIR="$PACKS/$CSV_ID"; mkdir -p "$CSV_DIR"
 python3 - "$RAIZ" "$T/cores.csv" "$T/duas.csv" <<'PY' || exit 2
 import json, sys
@@ -998,6 +1000,28 @@ info="$(amb python3 "$RAIZ/scripts/pack.py" info "$CSV_ID" 2>&1)"
   && ok "o derivados torto é recusado no validar, sem tirar o pack do motor" \
   || falha "o derivados torto passou, ou tirou o pack do motor (validar=$rc caminho=$rc_motor)" "$saida
 $info"
+# `claros: null` passa no `validar` (ele cobra a chave, não o tipo) e chega ao
+# cartão. Com um `derivados` que pareceria bom, o `claros_derivados` levantava
+# TypeError fora do try do `packs_com_vitrine`, e o /api/packs INTEIRO caía —
+# medido na revisão da P16, 23/09/2026. Quem só mostra não derruba a lista.
+python3 - "$CSV_DIR/paleta.json" "$T/paleta-boa.json" <<'PY' || exit 2
+import json, sys
+d = json.load(open(sys.argv[2], encoding="utf-8"))
+d["claros"] = None
+json.dump(d, open(sys.argv[1], "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+PY
+saida="$(amb python3 - "$RAIZ" "$CSV_ID" <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+p = [p for p in servidor.packs_com_vitrine() if p["id"] == sys.argv[2]][0]
+print(p.get("claros_derivados"))
+sys.exit(0 if p.get("claros_derivados") == [] else 1)
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "claros: null não derruba o /api/packs, e o cartão não inventa derivado" \
+  || falha "claros: null derrubou o /api/packs (rc=$rc)" "$saida"
 cp "$T/paleta-boa.json" "$CSV_DIR/paleta.json"
 
 corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
@@ -1015,21 +1039,32 @@ saida="$(amb python3 "$RAIZ/scripts/pack.py" de-csv "$T/duas.csv" 2>/dev/null)";
 # AS RECUSAS DIZEM A LINHA. Slot desconhecido com o número e o nome; slot
 # faltando com a lista; hex torto; slot repetido; cabeçalho ausente. E o STDOUT
 # fica vazio: quem redirecionou para um paleta.json não recebe meio arquivo.
+# E o prefixo é do CSV, não de pack: "pack recusado" com pack nenhum envolvido
+# mandava a pessoa procurar o defeito num pack.json que ela nem escreveu.
+#
+# O CSV ENTRA POR `< <(...)`, E NÃO POR PIPE [23/09/2026, revisão da P16]. Do
+# lado direito de um `|` a função roda num subshell, e o `falhas` que ela soma
+# morre com ele: as seis recusas imprimiam FALHOU e a suíte saía 0 — medido ao
+# escrever o teste do prefixo, com seis FALHOU e "1 achado(s)" no rodapé.
 recusa_csv() {  # <rótulo> <texto esperado na mensagem> — o CSV vem do stdin
   cat > "$T/ruim.csv"
   local out err rc
   out="$(amb python3 "$RAIZ/scripts/pack.py" de-csv "$T/ruim.csv" 2> "$T/ruim.err")"; rc=$?
   err="$(cat "$T/ruim.err")"
   [ "$rc" = "1" ] && [ -z "$out" ] && [[ "$err" == *"$2"* ]] \
+    && [[ "$err" == "  erro o CSV não virou paleta: "* ]] \
     && ok "recusa $1 (rc=1): $2" \
     || falha "não recusou $1 como devia (rc=$rc)" "$err"
 }
-sed 's/^mauve,/mauv,/' "$T/cores.csv" | recusa_csv "o slot desconhecido" "ruim.csv:5: slot desconhecido 'mauv'"
-sed '/^crust,/d; /^teal,/d' "$T/cores.csv" | recusa_csv "o slot faltando" "não tem 2 slot(s):
-      teal, crust"
-sed 's/^text,tinta,#/text,tinta,/' "$T/cores.csv" | recusa_csv "o hex sem #" "ruim.csv:16: text = 'F8F8F2' não é #RRGGBB"
-{ cat "$T/cores.csv"; printf 'base,tinta,#000000\n'; } | recusa_csv "o slot repetido" "já veio na linha 25"
-tail -n +2 "$T/cores.csv" | recusa_csv "o CSV sem cabeçalho" "ruim.csv:1: a primeira linha tem de ser o cabeçalho"
+recusa_csv "o slot desconhecido" "ruim.csv:5: slot desconhecido 'mauv'" < <(sed 's/^mauve,/mauv,/' "$T/cores.csv")
+recusa_csv "o slot faltando" "não tem 2 slot(s):
+      teal, crust" < <(sed '/^crust,/d; /^teal,/d' "$T/cores.csv")
+recusa_csv "o hex sem #" "ruim.csv:16: text = 'F8F8F2' não é #RRGGBB" < <(sed 's/^text,tinta,#/text,tinta,/' "$T/cores.csv")
+recusa_csv "o slot repetido" "já veio na linha 25" < <(cat "$T/cores.csv"; printf 'base,tinta,#000000\n')
+recusa_csv "o CSV sem cabeçalho" "ruim.csv:1: a primeira linha tem de ser o cabeçalho" < <(tail -n +2 "$T/cores.csv")
+# A mensagem diz "uma palavra só", e 'Meu Tema' passava: o flavor com espaço
+# vira FLAVOR="Meu Tema" no meow.conf e "Meu Tema-mauve" no nome do tema.
+recusa_csv "o flavor com espaço" "ruim.csv:2: flavor 'Meu Tema' — uma palavra só" < <(sed 's/,tinta,/,Meu Tema,/' "$T/cores.csv")
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then

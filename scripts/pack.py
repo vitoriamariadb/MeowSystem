@@ -1407,10 +1407,23 @@ def _dentro(base, alvo, campo):
 # FUNÇÃO PURA, E O VERBO SÓ IMPRIME
 #   `paleta_de_csv` lê o CSV e a régua, e devolve o dicionário: não escreve em
 #   lugar nenhum. O verbo `de-csv` o imprime no STDOUT, como o `logo-gerado`, e
-#   quem põe o arquivo num pack é a pessoa, com `>`. O `meow pack novo
-#   --de-csv` da P11 é quem grava — dentro do pack que ele acabou de criar — e
-#   chama esta mesma função: a P11 corre em paralelo e cria o `novo`, e duas
-#   sprints escrevendo o mesmo verbo ao mesmo tempo produzem dois `novo`.
+#   quem põe o arquivo num pack é a pessoa, com `>`.
+#
+# O `novo --de-csv` É PENDÊNCIA DA P16, E NÃO DA P11 [revisão, 23/09/2026]
+#   A sprint pede `meow pack novo <id> --de-csv <arquivo>` (item 2) e a tela
+#   de importar aceitando `.csv` (item 5), e os dois ficaram por fazer AQUI. O
+#   `novo`, o `/api/pack-importar` e a tela de importar nascem na P11, e ela
+#   não tinha entrado no dev quando esta foi escrita (medido: zero `novo` no
+#   `bin/meow`, zero `pack-importar` no servidor e no app.js do dev 249d60a).
+#   A spec da P11 não fala de CSV; quem deve o `--de-csv` é a P16. Não há um
+#   segundo `novo` em paralelo: dois `novo` escritos ao mesmo tempo, em duas
+#   sprints, é o conflito que ninguém resolveria igual duas vezes.
+#   O QUE FALTA, quando a P11 entrar: no `cmd_novo` dela, o ramo `--de-csv`
+#   troca a leitura da paleta no ar por `paleta_de_csv(arquivo)`, o
+#   `flavor_padrao` passa a ser o primeiro flavor do CSV, e a régua e a
+#   notícia do claro derivado saem como no `cmd_de_csv`; o importar da tela
+#   aceita o `.csv` e mostra o claro derivado com o jeito de trocá-lo (o risco
+#   que a sprint declara: "a tela precisa deixar trocar").
 #
 # O CLARO DERIVADO É O MÉTODO DO ALUCARD, E NÃO UM SEGUNDO
 #   As três regras de docs/PACKS.md, "Se o seu tema não tem um claro", viraram
@@ -1554,11 +1567,16 @@ def claros_derivados(dados):
     causa de uma etiqueta; quem recusa é o `validar`, na porta de quem publica.
     """
     deriv = dados.get("derivados")
-    if not isinstance(deriv, dict):
+    # O `claros` também: o `validar` cobra a chave e não o tipo, e um
+    # `claros: null` levantava TypeError aqui — fora do try do
+    # `packs_com_vitrine`, derrubando o /api/packs de TODOS os packs por causa
+    # da etiqueta de um só. Medido na revisão da P16, 23/09/2026.
+    claros = dados.get("claros")
+    if not isinstance(deriv, dict) or not isinstance(claros, list):
         return {}
     return {c: e for c, e in deriv.items()
             if isinstance(c, str) and isinstance(e, str)
-            and c in dados.get("claros", []) and e in dados["flavors"]}
+            and c in claros and e in dados["flavors"]}
 
 
 def paleta_de_csv(caminho):
@@ -1605,7 +1623,10 @@ def paleta_de_csv(caminho):
             erros.append(f"{nome}:{num}: slot desconhecido {slot!r}. Os 26 nomes estão\n"
                          f"    em docs/PACKS.md, 'As 26 cores', e são minúsculos.")
             continue
-        if not flavor or "-" in flavor:
+        # "Uma palavra só" é o que a mensagem promete, e o espaço passava:
+        # 'Meu Tema' saía aceito [revisão da P16, 23/09/2026]. O `validar` tem a
+        # mesma folga desde antes e ela fica lá — é dele, e não desta porta.
+        if not flavor or "-" in flavor or any(c.isspace() for c in flavor):
             erros.append(f"{nome}:{num}: flavor {flavor!r} — uma palavra só, sem hífen:\n"
                          f"    o tema é gravado como '<flavor>-<accent>'.")
             continue
@@ -1664,7 +1685,17 @@ def paleta_de_csv(caminho):
 
 def cmd_de_csv(caminho):
     """Imprime o `paleta.json` do CSV. O que é notícia vai no STDERR."""
-    dados = paleta_de_csv(caminho)
+    # O PREFIXO É DO CSV, E NÃO DE PACK [revisão da P16, 23/09/2026]. Pela porta
+    #   geral do `main`, um CSV torto saía "erro pack recusado: cores.csv:1: …",
+    #   sem pack nenhum envolvido — e quem lê "pack" vai procurar num pack.json.
+    #   A régua entra no mesmo try porque ela também lê o Latte do pack padrão,
+    #   e a falta dele é o mesmo "o CSV não virou paleta", não outra notícia.
+    try:
+        dados = paleta_de_csv(caminho)
+        reprovados = regua_de_contraste(dados, _referencia_clara())
+    except Recusa as e:
+        print(f"  erro o CSV não virou paleta: {e}", file=sys.stderr)
+        return RECUSADO
     derivados = claros_derivados(dados)
     lidos = [f for f in dados["flavors"] if f not in derivados]
     print(f"  ok   {os.path.basename(caminho)}: {len(lidos)} flavor(s), "
@@ -1679,7 +1710,6 @@ def cmd_de_csv(caminho):
     #   três slots contra o Latte (`blue` 3,03 contra 4,34, `red` e `surface0`),
     #   e bloquear aqui recusaria o tema que o próprio projeto já veste. O que
     #   não pode é o silêncio: a lista inteira sai, e antes do JSON.
-    reprovados = regua_de_contraste(dados, _referencia_clara())
     if reprovados:
         print(f"  aviso {len(reprovados)} abaixo da régua de contraste (docs/PACKS.md) — "
               f"não bloqueia, a decisão é sua:", file=sys.stderr)
