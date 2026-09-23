@@ -1633,7 +1633,7 @@ def paleta_de_csv(caminho):
             f"{','.join(COLUNAS_CSV)} — veio {','.join(cab)!r}.\n"
             f"    As colunas são fixas: é o que deixa o erro dizer a linha certa.{dica}")
 
-    erros, flavors, onde = [], {}, {}
+    erros, flavors, onde, flavor_recusado = [], {}, {}, set()
     for num, cel in corpo[1:]:
         if len(cel) != len(COLUNAS_CSV):
             erros.append(f"{nome}:{num}: {len(cel)} coluna(s) — são três: {','.join(COLUNAS_CSV)}")
@@ -1655,10 +1655,14 @@ def paleta_de_csv(caminho):
         #   flavor para um e dois para o outro. Minúsculas, como os seis
         #   flavors versionados. Esta porta é a do CSV, e é ela que fecha aqui;
         #   o `validar` tem a mesma folga desde antes, e ela fica dita, não mexida.
+        # Uma vez por flavor, na primeira linha dele: o nome se repete nas 26
+        # linhas, e 26 cópias da mesma recusa enterravam os outros erros.
         if not RE_FLAVOR_CSV.match(flavor):
-            erros.append(f"{nome}:{num}: flavor {flavor!r} — uma palavra só, em minúsculas,\n"
-                         f"    de letras a-z e dígitos: o tema é gravado como '<flavor>-<accent>',\n"
-                         f"    e o nome vai para o FLAVOR= do meow.conf.")
+            if flavor not in flavor_recusado:
+                flavor_recusado.add(flavor)
+                erros.append(f"{nome}:{num}: flavor {flavor!r} — uma palavra só, em minúsculas,\n"
+                             f"    de letras a-z e dígitos: o tema é gravado como '<flavor>-<accent>',\n"
+                             f"    e o nome vai para o FLAVOR= do meow.conf.")
             continue
         if (flavor, slot) in onde:
             erros.append(f"{nome}:{num}: {slot} do flavor {flavor!r} já veio na linha "

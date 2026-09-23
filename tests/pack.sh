@@ -1076,6 +1076,11 @@ recusa_csv "o flavor com espaço" "ruim.csv:2: flavor 'Meu Tema' — uma palavra
 # para ESTE shell não rodá-lo ao montar a expectativa.
 recusa_csv "o flavor com \$(…)" "ruim.csv:2: flavor 'x\$(id)' — uma palavra só, em minúsculas" < <(sed 's/,tinta,/,x$(id),/' "$T/cores.csv")
 recusa_csv "o flavor com maiúscula" "ruim.csv:2: flavor 'Tinta' — uma palavra só" < <(sed 's/,tinta,/,Tinta,/' "$T/cores.csv")
+# E UMA VEZ SÓ: o nome está nas 26 linhas, e 26 recusas iguais enterravam o resto.
+n="$(grep -c "flavor 'Tinta'" "$T/ruim.err")"
+[ "$n" = "1" ] \
+  && ok "o flavor recusado sai uma vez, na primeira linha dele" \
+  || falha "o flavor recusado saiu $n vez(es), uma por linha" "$(head -6 "$T/ruim.err")"
 # O CSV mais provável de chegar é o do Excel em português, com ';'. Ele é
 # recusado — adivinhar separador seria um segundo formato —, mas dizendo qual.
 recusa_csv "o CSV com ';', dizendo qual é o defeito" "este arquivo usa ';'" < <(sed 's/,/;/g' "$T/cores.csv")
