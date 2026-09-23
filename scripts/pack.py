@@ -566,6 +566,181 @@ def cmd_alvo(base):
     return OK
 
 
+# --- OS DESENHOS AUTORAIS, DECLARADOS — 23/09/2026, sprint P26 --------------
+#
+# O QUE ESTAVA ESCRITO ANTES, E POR QUE NÃO SERVIA
+#   O `gerar_icones_autorais.py` abria dizendo "Desenha os ícones dos DOIS
+#   aplicativos da Vitória: FogStripper, Hefesto". Um gerador bom — nasce da
+#   paleta, por papel, e sobrevive ao flavor claro — que servia dois
+#   aplicativos NOMEADOS NO PYTHON. Um terceiro não entrava sem editar código,
+#   e um pack de terceiro não tinha como trazer desenho nenhum.
+#
+# O DESENHO VIRA DADO, E O DADO MORA NO PACK
+#   Cada `icones/autorais/<nome>.json` descreve UM desenho, no vocabulário que o
+#   gerador já usava por dentro: papéis (`sujeito`, `tinta`, `fundo`...) que
+#   resolvem na paleta do flavor, e o SVG com uma lacuna `{papel}` onde a cor
+#   entra. Os SVG gerados nascem AO LADO, como `<nome>-<flavor>.svg` — a mesma
+#   pasta que o `icones.autorais.desenhos` já declara.
+#
+#   `desenhos` CONTINUA SENDO UM DIRETÓRIO, e a spec da P26 pedia outra coisa:
+#   `"desenhos": "icones/autorais/*.json"`. Ela foi escrita em 21/09, antes de
+#   a P27 dar a esse campo, no dia seguinte, o sentido de "a pasta onde os
+#   autorais deste pack moram" — é por ele que o gerador sabe onde ESCREVER. Um
+#   glob ali quebraria o `dir_acervo` do gerador, o `onde` do
+#   `completar_icones.sh` e o `_contar_acervo` do `info`, e os quatro `desenhos`
+#   do formato deixariam de ser a mesma coisa. As declarações são os `.json`
+#   daquela pasta; nenhum campo novo foi preciso.
+#
+# AS REGRAS, E CADA UMA É UMA RECUSA COM O QUE CONSERTAR
+#   · o nome do arquivo é o nome do desenho, com a regra do id de pack;
+#   · cada papel diz a cor no flavor `escuro` e no `claro`, por NOME da paleta —
+#     um dos 26 que todo pack é obrigado a ter, ou `<accent>`, o acento que a
+#     pessoa escolheu. Por isso uma declaração serve a QUALQUER pack: o alucard
+#     do Dracula nasce dela sem redesenho, como nasceu em 22/09;
+#   · nenhum hex no SVG. É a regra que o gerador cumpre desde que nasceu, pelo
+#     mesmo motivo: SVG escrito à mão sai fora da paleta sem ninguém notar;
+#   · toda lacuna tem papel, e todo papel tem lacuna. Um papel declarado e não
+#     usado é a promessa vazia que o `CAMPOS_COM_LEITOR` caça no pack.json;
+#   · nada de script, `foreignObject`, `on*=` ou `href` para fora. Um pack de
+#     terceiro escreve o dado dele, e este SVG vai para o tema de quem instala.
+MARCA_ACCENT = "<accent>"
+LACUNAS_DO_GERADOR = ("titulo",)
+RE_PAPEL = re.compile(r"^[a-z][a-z0-9_]*$")
+RE_LACUNA = re.compile(r"\{([^{}]*)\}")
+_COR_DIGITADA = re.compile(r"#[0-9A-Fa-f]{3,8}\b|rgba?\s*\(|hsla?\s*\(")
+_AUTORAL_PROIBIDO = re.compile(
+    r"<script|<foreignObject|\son[a-z]+\s*=|javascript:|href\s*=\s*[\"'](?!#)", re.I)
+CAMPOS_DO_AUTORAL = ("papeis", "svg")
+
+
+def ler_autoral(caminho):
+    """Lê e confere UMA declaração de desenho autoral. Levanta Recusa.
+
+    Devolve {"nome", "papeis", "svg", "arquivo"}, com o `svg` já montado como
+    texto — as linhas do `.json` juntas por quebra de linha, e a última quebra
+    posta de volta, que é como o gerador sempre escreveu o arquivo.
+    """
+    arq = os.path.basename(caminho)
+    nome = arq[:-len(".json")] if arq.endswith(".json") else arq
+    _exigir(RE_ID.match(nome),
+            f"{arq}: o nome do desenho vem do arquivo, e {nome!r} não serve —\n"
+            f"    só minúsculas, dígitos e hífen, como o id de um pack.")
+    try:
+        with open(caminho, encoding="utf-8") as fh:
+            dados = json.load(fh)
+    except json.JSONDecodeError as e:
+        raise Recusa(f"{arq}: não é JSON válido: linha {e.lineno}, coluna {e.colno} — {e.msg}")
+    except OSError as e:
+        raise Recusa(f"{arq}: não consegui ler — {e}")
+    _exigir(isinstance(dados, dict), f"{arq}: precisa ser um objeto JSON")
+
+    # O CAMPO DESCONHECIDO É RECUSA, E NÃO AVISO como no pack.json: aqui não há
+    # "a sprint seguinte vai ler" — um `papel` no lugar de `papeis` é erro de
+    # digitação, e aceitá-lo calado geraria o desenho sem cor nenhuma.
+    estranhos = [k for k in dados if not str(k).startswith("_") and k not in CAMPOS_DO_AUTORAL]
+    _exigir(not estranhos,
+            f"{arq}: campo(s) que uma declaração não tem: {', '.join(sorted(estranhos))}.\n"
+            f"    Os que existem: {', '.join(CAMPOS_DO_AUTORAL)} (e notas em `_...`).")
+
+    papeis = dados.get("papeis")
+    _exigir(isinstance(papeis, dict) and papeis,
+            f"{arq}: 'papeis' precisa ser um objeto com pelo menos um papel")
+    for papel, par in papeis.items():
+        _exigir(RE_PAPEL.match(str(papel)) and papel not in LACUNAS_DO_GERADOR,
+                f"{arq}: papel {papel!r} — minúsculas, dígitos e _, começando por letra"
+                + (f"; {papel!r} é reservado ao gerador" if papel in LACUNAS_DO_GERADOR else ""))
+        _exigir(isinstance(par, dict) and {"escuro", "claro"} <= set(par),
+                f"{arq}: o papel {papel!r} precisa dizer a cor no 'escuro' e no 'claro'")
+        for lado in ("escuro", "claro"):
+            _exigir(par[lado] in SLOTS or par[lado] == MARCA_ACCENT,
+                    f"{arq}: papéis.{papel}.{lado} é {par[lado]!r}, que não é cor da paleta.\n"
+                    f"    Use um dos 26 nomes (text, crust, mauve...) ou {MARCA_ACCENT!r}.")
+
+    linhas = dados.get("svg")
+    _exigir(isinstance(linhas, list) and linhas and all(isinstance(l, str) for l in linhas),
+            f"{arq}: 'svg' precisa ser uma lista de linhas de texto")
+    texto = "\n".join(linhas) + "\n"
+    _exigir(texto.lstrip().startswith("<svg") and texto.rstrip().endswith("</svg>"),
+            f"{arq}: o SVG tem de começar em <svg e terminar em </svg>")
+
+    lacunas = set(RE_LACUNA.findall(texto))
+    sem_papel = sorted(lacunas - set(papeis) - set(LACUNAS_DO_GERADOR))
+    _exigir(not sem_papel,
+            f"{arq}: lacuna sem papel declarado: {', '.join('{%s}' % x for x in sem_papel)}")
+    sem_uso = sorted(set(papeis) - lacunas)
+    _exigir(not sem_uso,
+            f"{arq}: papel declarado que o SVG não usa: {', '.join(sem_uso)}")
+    achado = _COR_DIGITADA.search(texto)
+    _exigir(not achado,
+            f"{arq}: o SVG traz a cor {achado.group(0) if achado else ''!r} digitada.\n"
+            f"    A cor vem da paleta, por papel — é isso que faz o flavor claro nascer sozinho.")
+    achado = _AUTORAL_PROIBIDO.search(texto)
+    _exigir(not achado,
+            f"{arq}: o SVG traz {achado.group(0) if achado else ''!r}, que não entra num ícone")
+    return {"nome": nome, "papeis": papeis, "svg": texto, "arquivo": caminho}
+
+
+def desenhar_autoral(decl, cores, claro, accent, extras=None):
+    """O SVG de uma declaração num flavor: cada lacuna recebe o hex do papel.
+
+    `cores` é o flavor da paleta (nome -> hex); `claro` escolhe o lado do
+    papel; `accent` é o nome que `<accent>` vira. `extras` traz as lacunas que
+    são do gerador e não do desenho — hoje só o `titulo`.
+    """
+    lado = "claro" if claro else "escuro"
+    valores = dict(extras or {})
+    for papel, par in decl["papeis"].items():
+        nome_cor = accent if par[lado] == MARCA_ACCENT else par[lado]
+        _exigir(nome_cor in cores,
+                f"{decl['nome']}: o papel {papel!r} pede {nome_cor!r}, que não está na paleta")
+        valores[papel] = cores[nome_cor]
+
+    def trocar(m):
+        _exigir(m.group(1) in valores,
+                f"{decl['nome']}: a lacuna {{{m.group(1)}}} ficou sem valor")
+        return valores[m.group(1)]
+    return RE_LACUNA.sub(trocar, decl["svg"])
+
+
+def autorais(ref=None):
+    """As declarações que este pack alcança: as dele, e as que ele herda.
+
+    Devolve {nome: (caminho do .json, id do pack de onde veio)}. A do pack vence
+    a herdada de mesmo nome — é a mesma travessia do `acervo`, com o mesmo
+    conjunto de vistos contra herança circular.
+
+    O DRACULA NÃO TEM FOGSTRIPPER.JSON, E GERA OS DOIS MESMO ASSIM
+        As duas declarações moram no Catppuccin, que é o pack do projeto; o
+        Dracula herda dele. Herdar é "leia do vizinho", e ler uma declaração
+        é exatamente isso. Quem ESCREVE continua sendo cada pack em casa: o
+        `fogstripper-alucard.svg` nasce em `packs/dracula/icones/autorais/`,
+        da paleta do Dracula, a partir do `.json` do Catppuccin.
+    """
+    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
+    achados = {}
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        dir_pack = achar(ref)
+        if not dir_pack:
+            break
+        declarado = campo(ref, "icones.autorais.desenhos")
+        if isinstance(declarado, str) and declarado:
+            try:
+                _dentro(dir_pack, declarado, "icones.autorais.desenhos")
+                pasta = os.path.join(dir_pack, declarado)
+            except Recusa as e:
+                print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
+                pasta = ""
+            if pasta and os.path.isdir(pasta):
+                for arq in sorted(os.listdir(pasta)):
+                    if arq.endswith(".json"):
+                        achados.setdefault(arq[:-len(".json")],
+                                           (os.path.join(pasta, arq), os.path.basename(dir_pack)))
+        ref = campo(ref, "icones.autorais.herda") or campo(ref, "heranca")
+    return achados
+
+
 # --- A CAPTURA DE TEMA, E DE QUEM ELA É -------------------------------------
 #
 # A FRONTEIRA, EM UMA FRASE [22/09/2026]
@@ -957,6 +1132,22 @@ def validar(ref, silencioso=False):
                 alvo = _dentro(dir_pack, bloco[chave], f"icones.{cat}.{chave}")
                 _exigir(os.path.exists(alvo),
                         f"icones.{cat}.{chave}: {bloco[chave]!r} não existe no pack")
+
+    # AS DECLARAÇÕES DE DESENHO AUTORAL — 23/09/2026, sprint P26
+    #   Os `.json` da pasta `icones.autorais.desenhos` viraram a entrada do
+    #   gerador: um terceiro desenho entra copiando um arquivo, sem tocar em
+    #   Python. Sem esta conferência, um papel com a cor escrita errado passava
+    #   aqui e morria no gerador, dentro do instalador, longe de quem publicou o
+    #   pack. As regras são as do `ler_autoral`, e só ele as conhece.
+    #
+    #   SÓ AS DO PRÓPRIO PACK: a declaração herdada é validada no pack de onde
+    #   ela vem. E a paleta não precisa ser consultada de novo — uma declaração
+    #   só aceita os 26 nomes que todo pack é obrigado a ter, conferidos acima.
+    pasta_aut = (ic.get("autorais") or {}).get("desenhos")
+    if pasta_aut and os.path.isdir(os.path.join(dir_pack, pasta_aut)):
+        for arq in sorted(os.listdir(os.path.join(dir_pack, pasta_aut))):
+            if arq.endswith(".json"):
+                ler_autoral(os.path.join(dir_pack, pasta_aut, arq))
 
     if (p.get("cosmic") or {}).get("mapa"):
         alvo = _dentro(dir_pack, p["cosmic"]["mapa"], "cosmic.mapa")

@@ -184,6 +184,7 @@ packs/<id>/
     mimetypes.map           "nome-freedesktop : glifo"
     mimetypes/<flavor>/     o acervo por tipo de arquivo (é grande: ~656 por flavor)
     autorais/               <nome>-<flavor>.svg — sem mapa: o nome É o pareamento
+                            <nome>.json — a declaração de um desenho (ver "Desenhos autorais")
   apps/
     <tema>.qbtheme                   os temas de DENTRO dos aplicativos — ver a seção própria
     PROCEDENCIA.md                   obrigatória quando a arte é de terceiro
@@ -471,6 +472,94 @@ Gerar os de um pack é uma linha:
 ```bash
 MEOW_PACK_DIR=packs/dracula python3 scripts/gerar_icones_autorais.py
 ```
+
+### Desenhos autorais
+
+Até 23/09/2026 o gerador abria dizendo *"Desenha os ícones dos DOIS aplicativos
+da Vitória: FogStripper, Hefesto"*. Um gerador bom — nasce da paleta, por papel,
+e sobrevive ao flavor claro — que servia dois aplicativos **nomeados no Python**.
+Um terceiro não entrava sem editar código, e um pack de terceiro não tinha como
+trazer desenho nenhum.
+
+Agora **o desenho é um arquivo do pack.** Cada `icones/autorais/<nome>.json` é
+um desenho, no vocabulário que o gerador já usava por dentro:
+
+```json
+{
+  "_nota": "a história do desenho: por que esta forma, o que foi medido a 48px",
+  "papeis": {
+    "corpo":    { "escuro": "text",     "claro": "text" },
+    "tinta":    { "escuro": "crust",    "claro": "base" },
+    "touchpad": { "escuro": "<accent>", "claro": "<accent>" }
+  },
+  "svg": [
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 48 48\" …>",
+    "  <title>{titulo}</title>",
+    "  <path d=\"…\" fill=\"{corpo}\"/>",
+    "</svg>"
+  ]
+}
+```
+
+- **O nome vem do arquivo.** `hefesto.json` gera `hefesto-<flavor>.svg`, um por
+  flavor da paleta, **na mesma pasta**. Não há campo `nome`: seria a segunda
+  verdade sobre a mesma coisa.
+- **Cada papel diz a cor no flavor escuro e no claro, por nome da paleta** — um
+  dos 26 que todo pack tem, ou `<accent>`, o acento que a pessoa escolheu. Por
+  isso uma declaração serve a qualquer pack: o `alucard` do Dracula nasce dela
+  sem redesenho.
+- **O SVG é uma lista de linhas**, com uma lacuna `{papel}` onde a cor entra.
+  `{titulo}` é do gerador. Toda lacuna tem papel, e todo papel tem lacuna.
+- **Nenhum hex no SVG**, nada de `script`, `foreignObject`, `on*=` ou `href`
+  para fora. O `validar` recusa, e diz o arquivo e o que consertar.
+
+**A herança vale para ler.** O Dracula não tem `fogstripper.json`: as duas
+declarações moram no Catppuccin, e o Dracula as alcança pela `heranca`. Quem
+escreve é sempre o pack em casa — o `fogstripper-alucard.svg` nasce em
+`packs/dracula/icones/autorais/`, da paleta do Dracula. Uma declaração no pack
+vence a herdada de mesmo nome.
+
+**`desenhos` continua sendo um diretório**, e a spec da P26 pedia um glob
+(`"icones/autorais/*.json"`). Ela foi escrita antes de a P27 dar a esse campo o
+sentido de "a pasta onde os autorais do pack moram" — que é por onde o gerador
+sabe onde escrever. As declarações são os `.json` daquela pasta.
+
+Um terceiro desenho entra **sem tocar em Python**:
+
+```bash
+cp meu-app.json packs/dracula/icones/autorais/
+python3 scripts/pack.py validar dracula       # confere a declaração
+python3 scripts/pack.py construir dracula     # gera meu-app-dracula.svg e -alucard.svg
+```
+
+> **O que ainda é código:** os nove desenhos do próprio sistema (o painel do
+> MeowSystem e os oito `com.system76.Cosmic*`) continuam funções no gerador, e
+> a tabela de *qual `Icon=` veste qual desenho* continua no `AUTORAL` do
+> `completar_icones.sh`. O desenho novo **nasce** no pack; pô-lo na tela de um
+> aplicativo ainda pede uma linha naquela tabela.
+
+**No painel**, a aba «Ícones» termina na seção **Desenhos autorais do pack**: o
+desenho, os papéis dele com a cor em cada flavor, e a prévia — cada flavor sobre
+quatro fundos da paleta dele (`crust`, `base`, `overlay0`, `text`). Escolher
+uma cor repinta a prévia; só **Salvar no pack** grava, no pack que está no ar, e
+roda o gerador para ele.
+
+### O acervo do pack é uma origem na oficina
+
+A oficina «Gerar ícone» de cada aplicativo mostra **todas** as origens que
+existem para ele, lado a lado: *Original, Do pack, Salvo* e as variações em
+traço. O cartão **Do pack** é o desenho de `icones/apps/` que casa com o
+`Icon=` do aplicativo — pelo nome do arquivo ou por uma linha do `apps.map` —,
+de **qualquer** pack no disco, com o nome do pack e se ele está no ar.
+
+**Do pack vence por padrão:** é o cartão marcado quando a oficina abre, porque é
+o desenho que alguém fez à mão para aquele aplicativo. Marcar não grava nada, e
+quando o cartão do pack **não** é o que está na tela, a oficina diz quem está.
+O «Usar» não grava arte de pack — ele escreve no acervo de traço; quem põe o
+desenho do pack na tela é o próprio pack.
+
+`tests/oficina.sh` trava a regra: todo SVG de `packs/<id>/icones/apps/` que veste
+um `Icon=` da máquina tem cartão na oficina daquele aplicativo. O teto é zero.
 
 ### O que **não** vai para o pack
 

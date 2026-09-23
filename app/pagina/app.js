@@ -2588,6 +2588,10 @@ function montarApps() {
   caixa.append(pulaGrade("apos-apps", "Pular a lista de aplicativos"));
   caixa.append(gradeDeApps(APPS.apps || [], APPS_BUSCA, carregarApps));
   caixa.append(alvoDoPulo("apos-apps"));
+  /* Os desenhos autorais do pack — o gerador, com tela (sprint P26). Ficam
+   * DEPOIS da grade: a pergunta desta aba é "que ícone veste cada programa?",
+   * e desenhar um novo é o passo seguinte, não o primeiro. */
+  caixa.append(oficinaAutoral());
   return caixa;
 }
 
@@ -2912,7 +2916,10 @@ function oficinaZerada(id) {
                           // em diante quem manda é a fileira de amostras daqui
     origem: "", original: "", capa: "", nome: "",
     variacoes: [], vizinhos: [], salvo: null,
-    escolhida: null,      // "salvo" | "fiel" | … | "editado" | null
+    pack: [],             // os desenhos de pack deste aplicativo (sprint P26)
+    emVigor: null,        // {tipo, frase}: quem está NA TELA, medido no servidor
+    arte: false,          // o desenho vivo é arte acabada de pack, e não traço
+    escolhida: null,      // "pack:<id>" | "salvo" | "fiel" | … | "editado" | null
     escolhidaAntes: null, // o cartão de onde o desenho veio, para o Desfazer
                           // devolver a marca quando a última mão for desfeita
     base: "",             // o desenho do cartão escolhido, como veio
@@ -2978,6 +2985,29 @@ function desenhar(texto, px, cor, opcoes = {}) {
     });
   }
   return no;
+}
+
+/* A ARTE DE PACK ENTRA COMO IMAGEM, E NUNCA PELO `desenhar()` — 23/09/2026.
+ *   Os desenhos de `packs/<id>/icones/apps/` são arte acabada, de 6 a 10 cores
+ *   próprias. O `desenhar()` acima foi feito para o TRAÇO: ele põe
+ *   `stroke-width` e `currentColor` na raiz, e numa arte de pack isso engrossa
+ *   o contorno que ela tem e pinta o que ela deixou sem cor. E o desenho
+ *   importado para dentro da página divide o espaço de `id` com o resto:
+ *   medido em 23/09, doze dos dezoito do Dracula têm `id="Capa_1"`, e o
+ *   guvcview e o Nyx apontam degradê por `id` — o 48 e o 96 do mesmo cartão
+ *   já seriam dois donos do mesmo nome.
+ *
+ *   `<img>` com `data:` resolve os dois: cada desenho num documento só dele, e
+ *   imagem SVG não roda script nem busca nada fora. O texto é o mesmo que o
+ *   servidor leu do pack — nenhuma rota nova de arquivo, nenhuma cerca a mais
+ *   no `/previa`. */
+function desenharArte(texto, px) {
+  const t = String(texto || "").trim();
+  if (!t.includes("<svg")) return null;
+  return elemento("img", {
+    src: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t),
+    alt: "", width: String(px), height: String(px),
+  });
 }
 
 function tirar(i) {
@@ -3048,6 +3078,10 @@ async function espiarEditor(pedido) {
   if (OFICINA.historico.length > 30) OFICINA.historico.shift();
   OFICINA.editorMtime = r.mtime;
   OFICINA.svg = r.svg || "";
+  /* O que volta do editor é o rascunho de TRAÇO que foi para lá — o botão de
+   * abrir não existe para arte de pack —, então a lupa volta a ser de traço
+   * mesmo que o cartão do pack tenha sido marcado no meio da espera. */
+  OFICINA.arte = false;
   OFICINA.erro = "";
   /* Voltou de fora: já não é o desenho do cartão, é dela. O «editado» é o mesmo
    * estado em que a lupa e a caixa de texto deixam o desenho, e o servidor
@@ -3107,6 +3141,13 @@ function oficinaDeDesenho(app, relerLista) {
   /* --- os lugares fixos: o estado pinta neles, nunca lê deles ------------- */
   const caixaFolha = elemento("div", { class: "oficina-folha", role: "group",
                                        "aria-label": "Variações" });
+  /* A LINHA QUE IMPEDE A TROCA CALADA — 23/09/2026, sprint P26. O cartão «Do
+   * pack» abre marcado, e numa máquina onde a tela mostra OUTRA coisa (a
+   * conversão em traço, com o pack desligado) uma marca sem palavra seria a
+   * oficina dizendo que o trabalho dela foi trocado. Esta linha diz o que está
+   * na tela e que marcar não troca nada. `role="status"` para que um leitor de
+   * tela anuncie a troca de cartão. */
+  const aviso = elemento("p", { class: "frase", role: "status" });
   const caixaDock = elemento("div", { class: "oficina-dock-caixa" });
   const caixaLupa = elemento("div", { class: "oficina-lupa" });
   const dica = elemento("p", { class: "oficina-lupa-dica" });
@@ -3122,7 +3163,7 @@ function oficinaDeDesenho(app, relerLista) {
       OFICINA.svg = area.value;
       OFICINA.erro = "";
       if (houveMao()) OFICINA.escolhida = "editado";
-      pintarLupa(); pintarDock(); pintarFolha(); sincronizarReguas();
+      pintarLupa(); pintarDock(); pintarFolha(); pintarAviso(); sincronizarReguas();
     },
   });
   area.value = OFICINA.svg;
@@ -3224,7 +3265,7 @@ function oficinaDeDesenho(app, relerLista) {
     elemento("summary", { texto: "Editar o SVG" }), botoesEditor, area,
   ]);
 
-  caixa.append(caixaFolha, caixaDock,
+  caixa.append(caixaFolha, aviso, caixaDock,
                elemento("div", { class: "oficina-par" }, [
                  elemento("div", {}, [caixaLupa, dica]), caixaReguas,
                ]),
@@ -3239,6 +3280,33 @@ function oficinaDeDesenho(app, relerLista) {
         elemento("img", { src: OFICINA.original, alt: "", width: "96", height: "96" }),
         elemento("figcaption", { class: "oficina-rotulo", texto: "Original" }),
       ]));
+    }
+    /* «DO PACK» VEM LOGO DEPOIS DO ORIGINAL — 23/09/2026, sprint P26.
+     *   Ele: *"você viu que os ícones do Dracula, todos os SVGs meus, não
+     *   aparecem lá, né?"* Os 18 estavam instalados e nenhum era cartão aqui:
+     *   a folha só conhecia o que ela mesma converte. Agora o desenho que
+     *   alguém fez à mão para este aplicativo é uma origem, na ordem da folha
+     *   que a Sprint R desenhou — Original, Do pack, Salvo, e as variações.
+     *
+     *   A BORDA DUPLA diz que ele é de outra espécie antes de ela clicar, como
+     *   a tracejada do Original diz "régua": não é traço desta oficina, é arte
+     *   acabada, e o «Usar» não a grava — quem a põe na tela é o pack. */
+    for (const p of OFICINA.pack) {
+      const id = `pack:${p.pack}`;
+      const b = elemento("button", {
+        type: "button", class: "oficina-cartao", "data-id": id,
+        "aria-pressed": String(OFICINA.escolhida === id),
+        style: "border-style:double;border-width:3px",
+        title: `Desenho do pack «${p.nome_pack}»` + (p.em_vigor ? " — é o que está na tela" : ""),
+        onclick: () => escolher(id),
+      });
+      const a48 = desenharArte(p.svg, 48);
+      const a96 = desenharArte(p.svg, 96);
+      if (a48 && a96) b.append(a48, a96);
+      else b.append(elemento("span", { class: "oficina-lugar", style: "width:96px;height:96px" }));
+      b.append(elemento("span", { class: "oficina-rotulo",
+        texto: OFICINA.pack.length > 1 ? `Do pack ${p.nome_pack}` : "Do pack" }));
+      caixaFolha.append(b);
     }
     const cartoes = [];
     if (OFICINA.salvo && OFICINA.salvo.tem) {
@@ -3283,7 +3351,7 @@ function oficinaDeDesenho(app, relerLista) {
 
   function pintarDock() {
     caixaDock.replaceChildren();
-    const eu = desenhar(OFICINA.svg, 48, OFICINA.cor);
+    const eu = OFICINA.arte ? desenharArte(OFICINA.svg, 48) : desenhar(OFICINA.svg, 48, OFICINA.cor);
     if (!eu) return;
     /* A TIRA MOSTRA O JUÍZO, E O JUÍZO É A 48 PX ENTRE VIZINHOS. Um desenho lido
      * sozinho a 200 px engana: metade dos convertidos de 08/2026 foi refeita
@@ -3308,6 +3376,17 @@ function oficinaDeDesenho(app, relerLista) {
       caixaLupa.append(elemento("p", { class: "oficina-lupa-dica", texto: "Desenhando…" }));
       return;
     }
+    /* A ARTE DE PACK NÃO SE EDITA POR TRAÇO: ela é chapada, e "clique num
+     * traço para tirar" num desenho de dez cores tiraria uma mancha, não uma
+     * linha. A lupa mostra, e a dica diz por que não responde ao clique. */
+    if (OFICINA.arte) {
+      const img = desenharArte(OFICINA.svg, 200);
+      if (img) {
+        caixaLupa.append(img);
+        dica.textContent = "Arte acabada do pack — ela não se edita por traço";
+      }
+      return;
+    }
     const no = desenhar(OFICINA.svg, 200, OFICINA.cor, { clicavel: true });
     if (!no) {
       /* A FRASE DA FOLHA NÃO SE REPETE AQUI. Sem arte de fábrica quem explica é
@@ -3322,6 +3401,33 @@ function oficinaDeDesenho(app, relerLista) {
     }
     caixaLupa.append(no);
     dica.textContent = "Clique num traço para tirar";
+  }
+
+  /* O que a linha de aviso diz, a partir do cartão escolhido — ver `aviso`. */
+  function cartaoDoPack(id) {
+    return OFICINA.pack.find((p) => `pack:${p.pack}` === id) || null;
+  }
+
+  function pintarAviso() {
+    aviso.textContent = "";
+    const p = cartaoDoPack(OFICINA.escolhida);
+    const vigor = OFICINA.emVigor;
+    if (p && p.em_vigor) {
+      aviso.textContent = `Na tela está este desenho, do pack «${p.nome_pack}». `
+        + "As variações ao lado são as alternativas em traço.";
+    } else if (p) {
+      aviso.textContent = `Este é o desenho do pack «${p.nome_pack}», e não o que está na tela`
+        + (vigor ? ` — lá está ${vigor.frase}` : "") + ". Marcar o cartão não troca nada"
+        + (p.ativo ? "." : `: ele vale com o pack «${p.nome_pack}» no ar.`);
+    } else if (OFICINA.arte) {
+      /* Mexeram no texto de uma arte de pack pela caixa «Editar o SVG». A
+       * oficina de traço não tem onde gravar isso: o `salvar` do servidor só
+       * aceita traço em `currentColor`, e retocar arte de pack é trabalho no
+       * arquivo do próprio pack. Dizer agora é melhor que o «Usar» recusar
+       * depois com uma frase sobre cor. */
+      aviso.textContent = "Isto é arte de pack: a oficina de traço não a grava. "
+        + "O retoque se faz no arquivo do pack.";
+    }
   }
 
   function pintarEditor() {
@@ -3353,16 +3459,24 @@ function oficinaDeDesenho(app, relerLista) {
     reguaMinimo.querySelector("input").value = String(OFICINA.minimo);
     pintarCores();
     botaoDesfazer.disabled = !OFICINA.historico.length;
-    botaoUsar.disabled = !String(OFICINA.svg || "").trim() || OFICINA.ocupada;
+    /* O «USAR» NÃO GRAVA ARTE DE PACK — 23/09/2026. Ele escreve no acervo de
+     * TRAÇO (`apps-convertidos.map` e `retoques/`), e um desenho de dez cores
+     * ali seria recusado pelo `_conferir_dialeto` com uma frase sobre cor que
+     * não explica nada. Quem põe o desenho do pack na tela é o próprio pack; a
+     * linha de aviso diz isso, e o botão só volta quando um cartão de traço é
+     * escolhido. */
+    botaoUsar.disabled = !String(OFICINA.svg || "").trim() || OFICINA.ocupada || OFICINA.arte;
     /* O «Abrir no …» segue o mesmo juízo do «Usar»: sem desenho não há o que
      * levar para fora. O «Reler» NÃO: ele é justamente o que traz desenho
      * quando não há nenhum aqui. */
     const abrir = botoesEditor.querySelector("button");
-    if (abrir) abrir.disabled = !String(OFICINA.svg || "").trim();
+    if (abrir) abrir.disabled = !String(OFICINA.svg || "").trim() || OFICINA.arte;
     if (area.value !== OFICINA.svg) area.value = OFICINA.svg;
   }
 
-  function pintarTudo() { pintarFolha(); pintarDock(); pintarLupa(); pintarEditor(); sincronizarReguas(); }
+  function pintarTudo() {
+    pintarFolha(); pintarAviso(); pintarDock(); pintarLupa(); pintarEditor(); sincronizarReguas();
+  }
   redesenharOficina = pintarTudo;
 
   /* --- carregar: a folha inteira numa chamada ----------------------------- */
@@ -3380,6 +3494,8 @@ function oficinaDeDesenho(app, relerLista) {
     OFICINA.variacoes = r.variacoes || [];
     OFICINA.vizinhos = r.vizinhos || [];
     OFICINA.salvo = r.salvo || null;
+    OFICINA.pack = r.pack || [];
+    OFICINA.emVigor = r.em_vigor || null;
     OFICINA.editor = r.editor || null;
     /* O NOME DO ÍCONE, que nem sempre é o id do `.desktop` — num jogo da Steam
      * o `.desktop` é `meow-steam-1715980` e o arquivo é `steam_icon_1715980`.
@@ -3387,8 +3503,17 @@ function oficinaDeDesenho(app, relerLista) {
     OFICINA.nome = r.nome || "";
     /* O CARTÃO INICIAL É O «SALVO» QUANDO HÁ UM: abrir a ficha de um aplicativo
      * que já tem desenho e ver uma variação nova marcada seria a tela dizendo
-     * que o trabalho dela foi trocado. Sem salvo, a primeira que desenhou. */
-    const inicial = (OFICINA.salvo && OFICINA.salvo.tem)
+     * que o trabalho dela foi trocado. Sem salvo, a primeira que desenhou.
+     *
+     * «DO PACK» VENCE OS DOIS DESDE 23/09/2026 (sprint P26): é o desenho que
+     * alguém fez à mão para este aplicativo, e a conversão automática é o plano
+     * B, não o A. O servidor já manda primeiro o que está NA TELA, e depois o
+     * do pack no ar. A razão acima continua de pé, e por isso a linha de
+     * `aviso` existe: quando o cartão do pack não é o que está na tela, ela diz
+     * quem está e que marcar não troca nada — e o «Usar» não grava arte de
+     * pack. Aviso, e não troca calada. */
+    const inicial = OFICINA.pack.length ? `pack:${OFICINA.pack[0].pack}`
+      : (OFICINA.salvo && OFICINA.salvo.tem)
       ? "salvo" : ((OFICINA.variacoes.find((v) => !v.erro) || {}).id || null);
     if (inicial) escolher(inicial); else pintarTudo();
   }
@@ -3399,12 +3524,18 @@ function oficinaDeDesenho(app, relerLista) {
       /* O salvo não traz parâmetros: ele é o que é. Gravá-lo de volta vira
        * retoque à mão, que é a verdade — o servidor decide isso medindo. */
       c = { id: "salvo", svg: OFICINA.salvo.svg, parametros: "", fonte: "icone" };
+    } else if (id.startsWith("pack:")) {
+      /* O do pack também não traz parâmetros, e traz `arte`: é o que muda a
+       * lupa, a tira do dock e o «Usar» para o modo de arte acabada. */
+      const p = cartaoDoPack(id);
+      c = p ? { id, svg: p.svg, parametros: "", fonte: "icone", arte: true } : null;
     } else {
       c = OFICINA.variacoes.find((v) => v.id === id);
     }
     if (!c || c.erro) return;
     OFICINA.escolhida = id;
     OFICINA.escolhidaAntes = id;
+    OFICINA.arte = !!c.arte;
     OFICINA.base = OFICINA.svg = c.svg || "";
     OFICINA.parametros = c.parametros || "";
     OFICINA.fonte = c.fonte || "icone";
@@ -3439,6 +3570,9 @@ function oficinaDeDesenho(app, relerLista) {
       OFICINA.ocupada = false;
       if (r.erro) { OFICINA.erro = r.erro; pintarTudo(); return; }
       OFICINA.base = OFICINA.svg = r.svg || "";
+      /* A régua vetoriza a arte de FÁBRICA, e o que volta é traço — mesmo que
+       * o cartão marcado antes fosse o do pack. */
+      OFICINA.arte = false;
       OFICINA.parametros = r.parametros || "";
       OFICINA.historico = [];
       /* NENHUM CARTÃO FICA MARCADO depois da régua, porque o desenho já não é o
@@ -3559,6 +3693,201 @@ function corDaOficina(app) {
   const marcada = document.querySelector(".escolha-icone .cores-grade button[aria-pressed=\"true\"]");
   if (marcada && marcada.dataset.cor) return marcada.dataset.cor;
   return (ESQUEMA.paleta.ordem || [])[0] || "mauve";
+}
+
+/* ===========================================================================
+ * A OFICINA DE AUTORAL: O GERADOR QUE JÁ EXISTE, COM TELA — 23/09/2026
+ * ===========================================================================
+ * Sprint P26, item 5: *"escolher os papéis, ver a prévia nos quatro fundos,
+ * salvar no pack. É o gerador que já existe, com tela."*
+ *
+ * O `gerar_icones_autorais.py` desenhava dois aplicativos cravados no Python.
+ * Desde hoje cada desenho é um `.json` do pack — papéis e o SVG com lacunas —,
+ * e esta seção é a tela desse arquivo: o desenho, os papéis dele, e cada papel
+ * com a cor no flavor escuro e no claro, por NOME da paleta. Nenhum hex é
+ * escolhido aqui, pelo mesmo motivo que o gerador não aceita um: o flavor
+ * claro tem de nascer sozinho, e só nasce se a cor for um papel.
+ *
+ * A PRÉVIA É A DO GERADOR, NÃO UMA IMITAÇÃO. Quem desenha é o `pack.py`, pela
+ * mesma função que escreve o arquivo; a página só pede e mostra. Cada flavor
+ * do pack numa fileira, sobre quatro fundos da paleta DELE — `crust` e `base`
+ * (o lançador), `overlay0` (o meio-tom, o pior caso que o gerador mediu) e
+ * `text` (a claridade de um papel de parede claro, onde o Gestor de Arquivos
+ * sumiu na tela dela em 08/2026).
+ *
+ * ESCOLHER NÃO É GRAVAR, a regra dela de 01/09. Trocar uma cor repinta a
+ * prévia; só «Salvar no pack» escreve — no pack que está no ar, mesmo quando o
+ * desenho foi herdado de outro. O estado mora fora do `render()`, como o da
+ * oficina de ícone, e pelo mesmo motivo: a página se repinta a cada clique. */
+let AUTORAL = { carregou: false, ocupada: false, erro: "", pack: "", nomePack: "",
+                desenhos: [], cores: [], nome: null, papeis: null, herdadoDe: "",
+                previas: [], temporizador: null };
+let redesenharAutoral = () => {};
+
+async function carregarAutoral() {
+  AUTORAL.ocupada = true;
+  const r = await api("/api/autorais", { method: "POST", body: JSON.stringify({ acao: "listar" }) });
+  AUTORAL.ocupada = false;
+  AUTORAL.carregou = true;
+  AUTORAL.erro = r.erro || "";
+  if (!r.erro) {
+    AUTORAL.pack = r.pack || "";
+    AUTORAL.nomePack = r.nome_pack || "";
+    AUTORAL.desenhos = r.desenhos || [];
+    AUTORAL.cores = r.cores || [];
+    /* Depois de salvar, o desenho aberto passa a ser do pack no ar: o que diz
+     * de onde ele vem é a lista nova, não a lembrança de antes do clique. */
+    const aberto = AUTORAL.desenhos.find((d) => d.nome === AUTORAL.nome);
+    if (aberto) AUTORAL.herdadoDe = aberto.herdado ? (aberto.nome_origem || aberto.pack) : "";
+  }
+  render();
+}
+
+function previaAutoral() {
+  clearTimeout(AUTORAL.temporizador);
+  /* A mesma espera das réguas da oficina: trocar três selects seguidos não
+   * precisa de três desenhos, só do último. */
+  AUTORAL.temporizador = setTimeout(async () => {
+    const r = await api("/api/autorais", {
+      method: "POST",
+      body: JSON.stringify({ acao: "previa", nome: AUTORAL.nome, papeis: AUTORAL.papeis }),
+    });
+    AUTORAL.erro = r.erro || "";
+    AUTORAL.previas = r.erro ? [] : (r.previas || []);
+    redesenharAutoral();
+  }, 200);
+}
+
+async function salvarAutoral() {
+  if (!AUTORAL.nome) return;
+  AUTORAL.ocupada = true;
+  redesenharAutoral();
+  const r = await api("/api/autorais", {
+    method: "POST",
+    body: JSON.stringify({ acao: "salvar", nome: AUTORAL.nome, papeis: AUTORAL.papeis }),
+  });
+  AUTORAL.ocupada = false;
+  if (r.erro) { AUTORAL.erro = r.erro; torrada(r.erro, "erro"); redesenharAutoral(); return; }
+  /* A TORRADA DIZ ONDE GRAVOU E QUANDO APARECE. Onde, porque um desenho
+   * herdado vira cópia no pack no ar, e ela precisa saber que o do pack de
+   * origem continua como estava. Quando, porque salvar escreve o pack e roda o
+   * gerador — quem instala no tema é a passagem dos ícones. */
+  torrada(`${AUTORAL.nome}: salvo no pack «${r.nome_pack}»`
+          + (r.copiou && AUTORAL.herdadoDe ? `, e o do «${AUTORAL.herdadoDe}» fica como estava` : "")
+          + " — chega à tela na próxima passagem dos ícones", "ok");
+  AUTORAL.carregou = false;
+  render();
+}
+
+function oficinaAutoral() {
+  const caixa = elemento("section", {
+    class: "oficina-autoral",
+    style: "display:flex;flex-direction:column;gap:.7rem;margin:1.2rem 0;padding:1.1rem;"
+         + "border:1px solid var(--surface1);border-radius:var(--r-3);background:var(--mantle)",
+  });
+  caixa.append(elemento("h3", { class: "titulo-cartao",
+    texto: AUTORAL.nomePack ? `Desenhos autorais do pack «${AUTORAL.nomePack}»`
+                            : "Desenhos autorais do pack" }));
+  if (!AUTORAL.carregou) {
+    if (!AUTORAL.ocupada) carregarAutoral();
+    caixa.append(elemento("p", { class: "sem-previa", texto: "Lendo os desenhos do pack…" }));
+    return caixa;
+  }
+  caixa.append(elemento("p", { class: "frase",
+    texto: "Desenhos que nascem da paleta, por papel. Trocar uma cor repinta a prévia; "
+         + "só «Salvar no pack» grava." }));
+
+  const escolha = elemento("div", { class: "escolha-botoes", role: "group", "aria-label": "Desenho" });
+  for (const d of AUTORAL.desenhos) {
+    escolha.append(elemento("button", {
+      type: "button", class: "btn btn-mini", texto: d.nome,
+      "aria-pressed": String(AUTORAL.nome === d.nome),
+      disabled: !!d.erro,
+      title: d.erro ? "A declaração foi recusada — rode meow pack validar"
+                    : (d.herdado ? `Herdado do pack ${d.nome_origem || d.pack}` : ""),
+      onclick: () => {
+        AUTORAL.nome = d.nome;
+        AUTORAL.herdadoDe = d.herdado ? (d.nome_origem || d.pack) : "";
+        /* Cópia, e não referência: mexer num select não pode mudar a lista
+         * que veio do servidor — é ela que diz o que está gravado. */
+        AUTORAL.papeis = JSON.parse(JSON.stringify(d.papeis || {}));
+        AUTORAL.previas = [];
+        AUTORAL.erro = "";
+        previaAutoral();
+        render();
+      },
+    }));
+  }
+  if (!AUTORAL.desenhos.length) {
+    escolha.append(elemento("p", { class: "sem-previa",
+      texto: "Este pack não declara nenhum desenho autoral." }));
+  }
+  caixa.append(escolha);
+
+  const papeis = elemento("div", { role: "group", "aria-label": "Papéis",
+    style: "display:grid;grid-template-columns:auto 1fr 1fr;gap:.4rem .6rem;align-items:center" });
+  const previas = elemento("div", { style: "display:flex;flex-direction:column;gap:.5rem" });
+  const nota = elemento("p", { class: "frase", role: "status" });
+  const botaoSalvar = elemento("button", {
+    type: "button", class: "btn btn-accent", texto: "Salvar no pack", onclick: salvarAutoral,
+  });
+  caixa.append(papeis, previas, nota, elemento("div", { class: "escolha-botoes" }, [botaoSalvar]));
+
+  function pintarPapeis() {
+    papeis.replaceChildren();
+    if (!AUTORAL.nome || !AUTORAL.papeis) return;
+    papeis.append(elemento("span", { class: "rotulo-mini", texto: "Papel" }),
+                  elemento("span", { class: "rotulo-mini", texto: "Escuro" }),
+                  elemento("span", { class: "rotulo-mini", texto: "Claro" }));
+    for (const [papel, par] of Object.entries(AUTORAL.papeis)) {
+      papeis.append(elemento("span", { texto: papel }));
+      for (const lado of ["escuro", "claro"]) {
+        const sel = elemento("select", {
+          "aria-label": `${papel}, flavor ${lado}`, "data-foco": `autoral-${papel}-${lado}`,
+          onchange: (e) => { par[lado] = e.target.value; previaAutoral(); },
+        });
+        for (const cor of AUTORAL.cores) {
+          /* `<accent>` é o marcador do formato — na tela, a palavra. */
+          const opcao = elemento("option", { value: cor, texto: cor === "<accent>" ? "acento" : cor });
+          if (cor === par[lado]) opcao.selected = true;
+          sel.append(opcao);
+        }
+        papeis.append(sel);
+      }
+    }
+  }
+
+  function pintarPrevias() {
+    previas.replaceChildren();
+    for (const p of AUTORAL.previas) {
+      const fileira = elemento("div", { style: "display:flex;align-items:center;gap:.5rem;flex-wrap:wrap" },
+        [elemento("span", { class: "rotulo-mini", style: "min-width:6rem", texto: p.flavor })]);
+      for (const f of p.fundos || []) {
+        fileira.append(elemento("span", {
+          title: `Sobre ${f.nome}`,
+          style: "display:grid;place-items:center;width:64px;height:64px;"
+               + `border-radius:var(--r-2);background:${f.cor}`,
+        }, [desenharArte(p.svg, 48)]));
+      }
+      previas.append(fileira);
+    }
+  }
+
+  /* OS SELECTS NASCEM UMA VEZ POR MONTAGEM, e a volta da prévia não os refaz:
+   * refazê-los tiraria o foco do select que ela acabou de mudar pelo teclado,
+   * e a próxima seta cairia no vazio. A prévia, a nota e o botão, sim. */
+  function pintar() {
+    pintarPrevias();
+    nota.textContent = AUTORAL.erro
+      || (AUTORAL.nome && AUTORAL.herdadoDe
+          ? `Este desenho vem do pack «${AUTORAL.herdadoDe}». Salvar grava uma cópia no «${AUTORAL.nomePack}».`
+          : "");
+    botaoSalvar.disabled = !AUTORAL.nome || AUTORAL.ocupada;
+  }
+  redesenharAutoral = pintar;
+  pintarPapeis();
+  pintar();
+  return caixa;
 }
 
 /* --- os jogos da Steam ----------------------------------------------------- */
