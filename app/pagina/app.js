@@ -7845,7 +7845,20 @@ function cartaoDePack(p) {
  * bandeja depois da troca, e o próximo «Salvar e aplicar» gravaria no Catppuccin
  * o que foi escolhido olhando o Dracula. A pergunta vem antes; o descarte, só
  * se a troca de fato começar — cancelar a caixa seguinte devolve tudo como
- * estava. */
+ * estava.
+ *
+ * E O ENSAIO NÃO É TROCA — 23/09/2026, revisão da P10
+ *   A primeira versão descartava sempre que um trabalho novo abria, e o «Ver o
+ *   que faria» também abre um, só que seco. Reproduzido pela revisão: uma
+ *   escolha na bandeja, «Usar este», «Descartar e seguir», «Ver o que faria» —
+ *   e a bandeja vazia, a máquina ainda no pack de antes, a gaveta dizendo
+ *   «ENSAIO · nada foi escrito». A escolha se perdia sem troca nenhuma.
+ *   Agora o que decide é o trabalho ser de verdade (`!TRABALHO.seco`). No
+ *   ensaio as escolhas ficam, e o descarte viaja no GESTO que a gaveta guarda
+ *   para o «Rodar de verdade» (`TRABALHO.aplicar`, que a gaveta só lê quando o
+ *   ensaio termina — ver o `oferecerRodarDeVerdade`): é ali que a troca começa,
+ *   e o «Descartar e seguir» já respondido vale para ela. Um ensaio que acaba
+ *   sem esse clique deixa a bandeja como estava. */
 async function usarPack(p) {
   const acao = (ESQUEMA.acoes || []).find((a) => a.id === "pack_usar");
   if (!acao) { torrada("Trocar de pack não está disponível nesta página.", "erro"); return; }
@@ -7862,15 +7875,25 @@ async function usarPack(p) {
     });
     if (!ok) return;
   }
-  const antes = TRABALHO && TRABALHO.id;
-  await rodar(acao, p.id);
-  const comecou = TRABALHO && TRABALHO.id !== antes;
-  if (esperando && comecou) {
+  const descartar = () => {
+    if (!MUDANCAS.size) return;
     MUDANCAS.clear();
     atualizarBarraSalvar();
     render();
     torrada("As escolhas que esperavam foram descartadas — o meow.conf não foi tocado", "igual");
-  }
+  };
+  const antes = TRABALHO && TRABALHO.id;
+  await rodar(acao, p.id);
+  const comecou = TRABALHO && TRABALHO.id !== antes;
+  if (!esperando || !comecou) return;
+  if (!TRABALHO.seco) { descartar(); return; }
+  const deVerdade = TRABALHO.aplicar;
+  if (!deVerdade) return;
+  TRABALHO.aplicar = async () => {
+    const doEnsaio = TRABALHO && TRABALHO.id;
+    await deVerdade();
+    if (TRABALHO && TRABALHO.id !== doEnsaio && !TRABALHO.seco) descartar();
+  };
 }
 
 /* EXPORTAR E IMPORTAR — OS BOTÕES SÃO DESTA SPRINT, AS ROTAS SÃO DA P11

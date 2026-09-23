@@ -1023,11 +1023,16 @@ cartões da Home do painel chama.
    senão o `paleta.flavor_padrao` do pack.
 3. **Grava `PACK` e `FLAVOR`, e só as duas.** O resto do `meow.conf` fica
    intacto, comentários inclusive.
-4. **Diz o que ficou do pack de antes.** O `meow.conf` vence o pack (ver a seção
+4. **Diz o que ficou de outro pack.** O `meow.conf` vence o pack (ver a seção
    seguinte), então um `ICONES_BASE="Dracula-Icones"` escrito por você continua
    valendo depois de `usar catppuccin`. O verbo não decide por você o que é
-   gosto e o que é resto: ele lista as chaves cujo valor cita o pack de antes, e
-   o painel marca cada uma como «Vestígio do pack».
+   gosto e o que é resto: ele lista as chaves que o painel marcaria como
+   «Vestígio do pack» depois da troca — e é a **mesma** pergunta, feita à mesma
+   função do painel, não uma cópia dela. Por isso um valor que o pack novo
+   receita não entra: o `CURSOR="catppuccin-mocha-light"` de fábrica, com o
+   Dracula no ar, é o que o `packs/dracula/pack.json` pede. Uma chave que o
+   `meow.conf.exemplo` não tem, e que por isso não tem cartão no painel, entra
+   na lista com esse aviso.
 5. **Aplica** — o instalador inteiro, porque trocar de pack mexe em quase todas
    as etapas. `--sem-aplicar` grava e para.
 
@@ -1040,7 +1045,8 @@ mostraria o pack que **já** está no ar, com cara de ensaio da troca.
 embaixo, o que ele traz de próprio e o que herda de quem —, e o que está no ar
 tem o anel de acento. Com escolhas ainda não salvas na página, **Usar este**
 pergunta antes: elas foram feitas olhando o pack de agora, e são descartadas
-se a troca começar. E a aba Ícones passa a falar com as palavras do pack no ar:
+quando a troca de verdade começa — um «Ver o que faria» não troca nada, e as
+deixa como estavam até o «Rodar de verdade» da gaveta. E a aba Ícones passa a falar com as palavras do pack no ar:
 a «Variante dos ícones de arquivo» de um pack que herda o acervo de mimetype
 oferece o flavor que **ele** escolheu em `icones.mimetypes.flavor`, com o nome
 do dono ao lado — `Macchiato (herdado do Catppuccin)` —, e não os quatro
