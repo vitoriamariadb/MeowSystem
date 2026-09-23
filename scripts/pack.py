@@ -145,7 +145,6 @@ CAMPOS_COM_LEITOR = {
     "creditos",                         # validar cobra a existência do arquivo
     "paleta", "paleta.arquivo",         # validar, verbo `paleta`, cmd_info
     "paleta.flavor_padrao",             # validar
-    "vitrine.capa",                     # `logo()` e o validar do logo (P25): a capa É o logo
     "cosmic.mapa",                      # validar cobra a existência
     "cosmic.nome_da_paleta",            # scripts/gerar_temas.py
     "temas.capturados",                 # `captura`, `captura_destino`, `capturas`
@@ -168,6 +167,22 @@ CAMPOS_COM_LEITOR = {
     "apps.*.esquema",                   # spotify
     "apps.*.acento_no_color_ini",       # spotify
     "apps.*.origem.*",                  # spotify (de onde o tema desce)
+    # OS METADADOS E A VITRINE — 23/09/2026, sprint P15. `autor`, `versao` e
+    # `licenca` estavam no aviso de campo morto do Dracula desde a P20, e o
+    # `packs/catppuccin/pack.json` deixou de declará-los justamente por isso
+    # ("quando a P15 der leitor a eles, eles entram"). Deu: o `cmd_info` imprime
+    # os três, e o `autor` vai para o cartão do painel.
+    #
+    # A vitrine vai campo a campo, e NÃO como `vitrine.*`: a máscara larga
+    # calaria o erro de digitação — um `vitrine.descricao_curto` passaria por
+    # lido, e é exatamente o campo morto que este aviso existe para nomear.
+    "autor", "versao", "licenca",       # cmd_info; `autor` também no /api/packs
+    "vitrine.capa",                     # `vitrine` e `logo()` (P25): a capa É o logo
+    "vitrine.descricao_curta",
+    "vitrine.descricao",
+    "vitrine.tags",
+    "vitrine.capturas",
+    "vitrine.site",
 }
 
 
@@ -1813,6 +1828,174 @@ def cmd_logo_gerado(ref, flavor=None, accent=None):
     return OK
 
 
+# A VITRINE — 23/09/2026, sprint P15
+#
+# POR QUE ELA EXISTE
+#   Até aqui um pack era um `id` e 26 hexadecimais. A tela que escolhe um pack
+#   não tinha o que desenhar, e ninguém escolhe um tema por um `id`. O bloco
+#   `vitrine` é o que o pack diz de si para quem vai escolher: a capa, uma frase,
+#   a história inteira, as etiquetas, as fotos e o endereço de casa.
+#
+# A CAPA É O LOGO, E É UM CAMPO SÓ
+#   A P25 corrigiu o mockup de 21/09, que desenhava a capa como uma tira de
+#   cores: tira é paleta, não identidade — dois packs de paleta parecida ficam
+#   iguais no cartão. `vitrine.capa` aponta para o logo que a P25 desenha, o
+#   mesmo arquivo que vira o ícone do lançador; por convenção, `logo.svg`. Um
+#   `vitrine.logo` ao lado seriam duas verdades para a mesma figura, e a segunda
+#   envelhece calada. Aqui mora o CAMPO — declarado, SVG pelo nome, dentro do
+#   pack, existindo. O que vai DENTRO do arquivo (viewBox quadrado, sem script,
+#   nada apontando para fora) é o `_validar_logo` da P25, acima.
+#
+#   E NENHUMA CAPA ESCAPA DA CONFERÊNCIA DO LOGO [23/09/2026, revisão da P15]
+#   A revisão pegou que uma `capa.svg` ao lado do `logo.svg` passaria por fora
+#   da conferência de conteúdo e recriaria as duas verdades. Quem fechou foi a
+#   P25 (a3ee4a6): o logo É o arquivo que `vitrine.capa` nomeia (`_nome_do_logo`),
+#   e `logo.svg` só na falta do campo. Então a capa, qualquer que seja o nome,
+#   passa pelo `_validar_logo` no verbo `validar` e no `logo()`, que é a porta
+#   de quem mostra — e o `/pack-vitrine` do painel serve a capa por ela.
+#
+# ELA É COBRADA DE QUEM PUBLICA, E NUNCA DE QUEM USA
+#   `validar(silencioso=True)` é a porta do MOTOR: o `caminho` que o
+#   `meow_pack_dir` (lib/comum.sh) usa como sonda de existência, a `paleta`, o
+#   `som`, o `construir`. Se a vitrine entrasse ali, uma capa ausente faria o
+#   pack SUMIR do desktop — o tema inteiro trocado pelo padrão, com um aviso de
+#   "não resolve", por causa de uma figura que só a tela de escolha mostra.
+#   Então quem cobra é o verbo `validar`, que é a pergunta de quem publica (e o
+#   `meow pack listar`, que o chama para dizer "não valida"). A P25 pôs o logo
+#   na mesma fronteira (a3ee4a6), e a capa ausente — que é o logo ausente — não
+#   tira o tema do desktop por nenhuma das duas portas.
+#
+#   COM UMA EXCEÇÃO, QUE NÃO É DESTA FUNÇÃO [23/09/2026, revisão da P15]: uma
+#   URL que não seja https:// em QUALQUER campo do `pack.json` — o
+#   `vitrine.site`, ou uma `descricao_curta` que cite `http://` — cai na
+#   varredura de URL do `validar`, que é anterior à vitrine, vale para o pack
+#   inteiro e roda também no motor. Medido: com `"site": "http://..."` o
+#   `caminho` e o `info` recusam o pack. Este bloco dizia o contrário. O que só
+#   esta função pega é o esquema sem `://`, que a varredura não vê
+#   (`javascript:alert(1)`, lá embaixo).
+#
+# ELA NÃO LEVANTA: DEVOLVE O QUE VALE, E A LISTA DO QUE NÃO VALE
+#   Quem a lê são três — o `validar`, o `cmd_info` e o `/api/packs` do painel —,
+#   e só o primeiro recusa por ela. Os outros dois mostram o pack assim mesmo,
+#   dizendo o que falta — desde que ele tenha passado pela porta do motor, que
+#   eles também atravessam (ver a exceção logo acima). O valor que não passa na
+#   regra SAI da resposta em vez de ir junto com o aviso: a URL que não é https
+#   não vira link, o caminho que sai do pack não é servido. É isso que deixa o
+#   painel usar a vitrine de um pack de terceiro sem repetir regra nenhuma do
+#   lado de lá.
+#
+# O TETO DE 80 É O DOS BALÕES DA P6, pelo mesmo motivo: é o que cabe numa linha
+#   do cartão sem virar parágrafo. O da descrição longa não é estética — o texto
+#   viaja inteiro no `/api/packs`, e um LEIA-ME de pack é uma página, não um
+#   livro.
+TETO_DESCRICAO_CURTA = 80
+TETO_DESCRICAO = 64 * 1024
+# As mesmas quatro que a rota `/previa` do painel já serve. Uma quinta aqui
+# seria uma captura que valida e não aparece.
+EXT_CAPTURA = (".png", ".jpg", ".jpeg", ".svg")
+
+
+def vitrine(p, dir_pack):
+    """(vitrine conferida, problemas). Nunca levanta — ver o bloco acima.
+
+    Os caminhos da resposta já vêm resolvidos (realpath, dentro do pack,
+    existindo); o que não passou numa regra volta vazio e vira uma linha em
+    `problemas`, nomeando o campo.
+    """
+    saida = {"capa": None, "descricao_curta": "", "descricao": None,
+             "tags": [], "capturas": [], "site": None}
+    v = p.get("vitrine")
+    if not isinstance(v, dict):
+        return saida, [
+            "pack.json: falta o bloco 'vitrine', e a capa dele é obrigatória.\n"
+            "    O mínimo é  \"vitrine\": {\"capa\": \"logo.svg\"}  — ver docs/PACKS.md,\n"
+            "    'A vitrine'. O tema funciona sem ela; quem escolhe um pack é que não\n"
+            "    tem o que ver."]
+    problemas = []
+
+    def arquivo(campo, valor, extensoes, porque):
+        # O MESMO MECANISMO DO `creditos` DA P20, lá embaixo no `validar`: o
+        # caminho declarado passa pelo `_dentro` e é aberto, não só olhado. Um
+        # pack que promete a capa e não entrega é o pack que "promete e não
+        # entrega" que aquele comentário descreve.
+        if not isinstance(valor, str) or not valor:
+            problemas.append(f"{campo}: precisa ser o caminho de um arquivo dentro do pack")
+            return None
+        if not valor.lower().endswith(extensoes):
+            problemas.append(f"{campo}: {valor!r} não é {' nem '.join(extensoes)}. {porque}")
+            return None
+        try:
+            alvo = _dentro(dir_pack, valor, campo)
+        except Recusa as e:
+            problemas.append(str(e))
+            return None
+        if not os.path.isfile(alvo):
+            problemas.append(f"{campo}: {valor!r} está declarado e NÃO existe no pack.\n"
+                             f"    Ou crie o arquivo, ou tire o campo.")
+            return None
+        return alvo
+
+    if "capa" not in v:
+        problemas.append("vitrine.capa: é obrigatória — o cartão do pack é a capa. "
+                         "Por convenção, \"logo.svg\"")
+    else:
+        saida["capa"] = arquivo(
+            "vitrine.capa", v["capa"], (".svg",),
+            "Vetor porque a mesma capa serve ao cartão e ao lançador,\n"
+            "    em vários tamanhos, e um PNG envelhece junto com a resolução.")
+
+    curta = v.get("descricao_curta", "")
+    if not isinstance(curta, str):
+        problemas.append("vitrine.descricao_curta: precisa ser texto")
+    elif "\n" in curta:
+        problemas.append("vitrine.descricao_curta: é UMA linha — a história inteira vai "
+                         "no arquivo de vitrine.descricao")
+    elif len(curta) > TETO_DESCRICAO_CURTA:
+        problemas.append(f"vitrine.descricao_curta tem {len(curta)} caracteres, e o teto é "
+                         f"{TETO_DESCRICAO_CURTA}.\n"
+                         f"    É o que cabe numa linha do cartão. O resto vai em vitrine.descricao.")
+    else:
+        saida["descricao_curta"] = curta
+
+    if v.get("descricao") is not None:
+        alvo = arquivo("vitrine.descricao", v["descricao"], (".md",),
+                       "A história do pack é um Markdown dentro dele.")
+        if alvo and os.path.getsize(alvo) > TETO_DESCRICAO:
+            problemas.append(f"vitrine.descricao: {v['descricao']!r} passa de "
+                             f"{TETO_DESCRICAO // 1024} KiB — ela viaja inteira até o painel")
+        elif alvo:
+            saida["descricao"] = alvo
+
+    tags = v.get("tags", [])
+    if not isinstance(tags, list) or not all(isinstance(t, str) and t.strip() for t in tags):
+        problemas.append("vitrine.tags: precisa ser uma lista de textos não vazios")
+    else:
+        saida["tags"] = [t.strip() for t in tags]
+
+    capturas = v.get("capturas", [])
+    if not isinstance(capturas, list):
+        problemas.append("vitrine.capturas: precisa ser uma lista de caminhos")
+    else:
+        for i, c in enumerate(capturas):
+            alvo = arquivo(f"vitrine.capturas[{i}]", c, EXT_CAPTURA,
+                           "São as quatro que o painel sabe mostrar.")
+            if alvo:
+                saida["capturas"].append(alvo)
+
+    # O `https://` É COBRADO AQUI DE NOVO, E NÃO É REDUNDÂNCIA
+    #   A varredura de URLs do `validar` só olha texto que tenha `://` — e
+    #   `javascript:alert(1)` não tem. O `site` é o único campo do formato que
+    #   vira LINK clicável numa página com token de sessão; um esquema que não
+    #   seja https ali é código de terceiro rodando no painel.
+    site = v.get("site")
+    if site is not None:
+        if isinstance(site, str) and site.startswith("https://"):
+            saida["site"] = site
+        else:
+            problemas.append(f"vitrine.site: {site!r} — só https:// vira link no cartão")
+    return saida, problemas
+
+
 def validar(ref, silencioso=False):
     """Confere o pack. Levanta Recusa na primeira falha, com o que consertar."""
     dir_pack = achar(ref)
@@ -2128,6 +2311,26 @@ def validar(ref, silencioso=False):
     for trilha, u in urls(p):
         _exigir(u.startswith("https://"), f"{trilha}: {u!r} — só https é aceito")
 
+    # --- vitrine ------------------------------------------------------------
+    # Só na porta de quem PUBLICA — ver `vitrine`, acima, "ELA É COBRADA DE QUEM
+    # PUBLICA". O `silencioso` é exatamente essa fronteira hoje: todo chamador
+    # do motor (`caminho`, `paleta`, `som`, `info`, `construir`) passa True, e só
+    # o verbo `validar` passa False. Todos os problemas de uma vez, como os slots
+    # que faltam: consertar um por rodada é o que faz alguém desistir de publicar.
+    # Cada um na própria linha de `erro`, porque as mensagens já trazem linha de
+    # continuação indentada e, emendadas no mesmo recuo, não se sabe onde uma
+    # acaba e a outra começa.
+    #
+    # ANTES DO LOGO, E DE PROPÓSITO [23/09/2026, junção com a P25]: o logo é o
+    # arquivo que `vitrine.capa` nomeia, e é a vitrine que confere o CAMPO — um
+    # `.svg`, dentro do pack, existindo. Na ordem inversa, uma capa `.png` seria
+    # recusada pelo `_validar_logo` como "não é texto", e a mensagem certa é
+    # "não é .svg"; uma capa ausente, como "o pack não tem logo", sem dizer que
+    # o campo aponta para um arquivo que não existe.
+    if not silencioso:
+        _, problemas = vitrine(p, dir_pack)
+        _exigir(not problemas, "\n  erro ".join(problemas))
+
     # --- o logo -------------------------------------------------------------
     # POR ÚLTIMO, E DE PROPÓSITO: um pack de formato errado ou paleta quebrada
     # deve ouvir primeiro sobre isso, que é o que impede qualquer tela de sair.
@@ -2216,19 +2419,38 @@ def _contar_acervo(ref, categoria, flavors):
     return quantos, (f"{len(achados)} flavor(s)" if achados else "")
 
 
-def cmd_info(ref):
-    p, dados, dir_pack = validar(ref, silencioso=True)
-    base = p.get("heranca") or "(nenhuma)"
-    print(f"{p['nome']}  [{p['id']}]  formato {p['formato']}")
-    print(f"  diretório : {dir_pack}")
-    print(f"  herança   : {base}")
-    print(f"  flavors   : {', '.join(sorted(dados['flavors']))}")
-    print(f"  claros    : {', '.join(dados['claros']) or '(nenhum)'}")
-    print()
-    print("  categoria         origem                       acervo")
-    print("  ----------------  ---------------------------  -----------------------")
+# A TABELA DO `info` E A LINHA DO CARTÃO SAEM DA MESMA CONTA — 23/09/2026, P15
+#
+#   A P15 pediu, no cartão do painel e no alto do `info`, a linha "próprio:
+#   paleta, ícones · herdado do catppuccin: ponteiro, mimetypes" — que é esta
+#   tabela virada frase. A classificação morava dentro do laço do `cmd_info`;
+#   ela saiu para cá porque uma tabela e uma frase calculadas cada uma por si
+#   discordariam no primeiro pack que declarasse uma categoria nova, e a tela
+#   mostraria "herdado" onde o terminal diz "próprio".
+#
+#   O NOME DE GENTE mora ao lado, e só é usado pela frase: a tabela continua
+#   com a trilha do pack.json, que é o que quem escreve um pack procura.
+ROTULO_DA_CATEGORIA = {
+    "paleta": "paleta",
+    "cosmic.mapa": "mapa do COSMIC",
+    "icones.apps": "ícones de aplicativo",
+    "icones.pastas": "pastas",
+    "icones.mimetypes": "ícones de arquivo",
+    "icones.autorais": "ícones autorais",
+    "cursores": "ponteiro",
+    "wallpapers": "papéis de parede",
+    "apps": "temas de aplicativo",
+}
+
+
+def origens(p):
+    """[(categoria, tipo, de_quem)] na ordem da tabela do `info`.
+
+    `tipo` é 'próprio', 'herdado' ou 'motor'; `de_quem` só vem no 'herdado'.
+    """
     ic = p.get("icones") or {}
     org = p.get("origens") or {}
+    saida = []
     for cat, bloco in [("paleta", p.get("paleta")), ("cosmic.mapa", (p.get("cosmic") or {}).get("mapa")),
                        ("icones.apps", ic.get("apps")), ("icones.pastas", ic.get("pastas")),
                        ("icones.mimetypes", ic.get("mimetypes")), ("icones.autorais", ic.get("autorais")),
@@ -2247,11 +2469,79 @@ def cmd_info(ref):
             #   `assets/paleta/cosmic-map.json`, os acervos de `assets/`) ou
             #   não existe para aquele pack. O `acervo()` já resolve assim; era
             #   só a tela que discordava dele.
-            estado = f"HERDADO de {base}" if p.get("heranca") else "DO MOTOR, ou inexistente"
+            tipo, quem = ("herdado", p["heranca"]) if p.get("heranca") else ("motor", "")
         elif isinstance(bloco, dict) and bloco.get("herda"):
-            estado = f"HERDADO de {bloco['herda']}"
+            tipo, quem = "herdado", bloco["herda"]
         else:
-            estado = "PRÓPRIO"
+            tipo, quem = "próprio", ""
+        saida.append((cat, tipo, quem))
+    return saida
+
+
+def resumo_de_origem(p):
+    """A tabela do `info` numa linha: 'próprio: … · herdado de X: …'."""
+    grupos = {}
+    for cat, tipo, quem in origens(p):
+        chave = {"próprio": "próprio", "herdado": f"herdado de {quem}",
+                 "motor": "do motor, ou ausente"}[tipo]
+        grupos.setdefault(chave, []).append(ROTULO_DA_CATEGORIA[cat])
+    return " · ".join(f"{k}: {', '.join(v)}" for k, v in grupos.items())
+
+
+def cmd_info(ref):
+    p, dados, dir_pack = validar(ref, silencioso=True)
+    vit, problemas = vitrine(p, dir_pack)
+    # O QUE VAI DENTRO DA CAPA TAMBÉM ENTRA NA CONTA [23/09/2026, junção com a
+    #   P25]. Desde a a3ee4a6 o motor não confere o logo, e a vitrine só confere o
+    #   campo; sem esta linha, um logo com `<script>` sairia aqui como "capa
+    #   logo.svg", tudo certo, e o `validar` o recusaria logo depois.
+    if vit["capa"]:
+        try:
+            _validar_logo(dir_pack, p)
+        except Recusa as e:
+            problemas.append(str(e))
+    base = p.get("heranca") or "(nenhuma)"
+    # AS SEIS PRIMEIRAS LINHAS SÃO A VITRINE — 23/09/2026, P15
+    #   A conferência da sprint é `meow pack info dracula | head -6`, e ela é o
+    #   retrato certo da pergunta: quem é, de quem é, o que diz de si, e o que é
+    #   dele. O diretório e a herança descem uma linha porque respondem outra
+    #   pergunta — a de quem está consertando, não a de quem está escolhendo.
+    versao = f"versão {p['versao']} · " if p.get("versao") else ""
+    print(f"{p['nome']}  [{p['id']}]  {versao}formato {p['formato']}")
+    licenca = f" · licença {p['licenca']}" if p.get("licenca") else ""
+    print(f"  autor     : {p.get('autor') or '(não declarado)'}{licenca}")
+    print(f"  descrição : {vit['descricao_curta'] or '(nenhuma)'}")
+    print(f"  tags      : {', '.join(vit['tags']) or '(nenhuma)'}")
+    print(f"  origem    : {resumo_de_origem(p)}")
+    print(f"  diretório : {dir_pack}")
+    print(f"  herança   : {base}")
+    print(f"  flavors   : {', '.join(sorted(dados['flavors']))}")
+    print(f"  claros    : {', '.join(dados['claros']) or '(nenhum)'}")
+    # O `info` MOSTRA O PACK MESMO COM A VITRINE QUEBRADA, e diz o que falta: ele
+    # é a pergunta de quem está consertando, e esconder o pack inteiro atrás de
+    # uma capa ausente não ajudaria ninguém a achar a capa.
+    #   MENOS A URL FORA DE https:// [23/09/2026, revisão da P15]: essa é regra
+    #   do pack inteiro, e o `validar(silencioso=True)` da primeira linha já a
+    #   recusou — um `vitrine.site` em `http://` faz o `info` sair 1, com a
+    #   mesma mensagem do `validar`. Ver `vitrine`, "COM UMA EXCEÇÃO".
+    if problemas:
+        print(f"  vitrine   : NÃO VALIDA — `meow pack validar {p['id']}` recusa por isto:")
+        for linha in problemas:
+            print("      " + linha.replace("\n", "\n      "))
+    else:
+        partes = [f"capa {os.path.relpath(vit['capa'], dir_pack)}"]
+        if vit["descricao"]:
+            partes.append(f"história em {os.path.relpath(vit['descricao'], dir_pack)}")
+        partes.append(f"{len(vit['capturas'])} captura(s)")
+        if vit["site"]:
+            partes.append(vit["site"])
+        print(f"  vitrine   : {' · '.join(partes)}")
+    print()
+    print("  categoria         origem                       acervo")
+    print("  ----------------  ---------------------------  -----------------------")
+    for cat, tipo, quem in origens(p):
+        estado = {"próprio": "PRÓPRIO", "herdado": f"HERDADO de {quem}",
+                  "motor": "DO MOTOR, ou inexistente"}[tipo]
         # SÓ AS CATEGORIAS DE ÍCONE TÊM ACERVO PARA CONTAR. `paleta` é um
         # arquivo, `cosmic.mapa` é um arquivo, e cursores e wallpapers são
         # origens que este pack nem baixou ainda — contar SVG em qualquer uma

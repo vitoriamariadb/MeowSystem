@@ -10,7 +10,7 @@ O pack mais simples que se publica tem três arquivos e nenhuma linha de código
 packs/meu-tema/
   pack.json      quem é o pack e o que ele fornece
   paleta.json    as 26 cores
-  logo.svg       a cara do pack — ver "O logo do pack"
+  logo.svg       a cara do pack, e a capa do cartão onde ele é escolhido — ver "O logo do pack"
 ```
 
 Com os dois primeiros o tema já **funciona**; o `logo.svg` é o que faz o pack
@@ -37,6 +37,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [A fronteira: `assets/` contra `packs/`](#a-fronteira-assets-contra-packs)
 - [A estrutura do pack](#a-estrutura-do-pack)
 - [`pack.json`, campo a campo](#packjson-campo-a-campo)
+- [A vitrine](#a-vitrine)
 - [De onde sai um acervo: pack, herança, motor](#de-onde-sai-um-acervo-pack-herança-motor)
 - [O acervo de ícones do pack](#o-acervo-de-ícones-do-pack)
 - [Fonte e derivados](#fonte-e-derivados)
@@ -181,6 +182,8 @@ packs/<id>/
   pack.json                 OBRIGATÓRIO
   paleta.json               OBRIGATÓRIO (o nome vem de paleta.arquivo)
   logo.svg                  OBRIGATÓRIO para publicar, desde 23/09/2026 — quadrado, cores por papel
+  LEIA-ME.md                a história do pack, em texto (vitrine.descricao)
+  capturas/                 fotos de tela, se quiser (vitrine.capturas)
   CREDITOS.md               a procedência de cada acervo — obrigatório se houver arte de terceiro
   cosmic-map.json           opcional: substitui o molde do tema do COSMIC
   icones/                   MESMA FORMA para as quatro categorias — ver a seção própria
@@ -198,7 +201,6 @@ packs/<id>/
   temas/
     capturados/<flavor>-<accent>/    o tema do COSMIC já fotografado — ver a seção própria
                                      (é convenção: não precisa declarar nada)
-  LEIAME.md                 opcional
 ```
 
 ### Onde um pack mora
@@ -227,6 +229,7 @@ longe das duas listas de destino proibido de `lib/comum.sh`.
 | `nome` | texto | como aparece na tela |
 | `paleta.arquivo` | caminho | relativo ao pack |
 | `paleta.flavor_padrao` | texto | um flavor que exista na paleta |
+| `vitrine.capa` | caminho | um SVG dentro do pack — por convenção `logo.svg` —, e ele é o logo do pack. Cobrado só por quem publica: ver [A vitrine](#a-vitrine) |
 
 `formato` existe para que um pack antigo num MeowSystem novo **falhe dizendo o
 que falta**, em vez de pintar errado. Um pack com `formato` maior que o
@@ -241,6 +244,15 @@ suportado é recusado com o número na mensagem.
   "licenca": "MIT",
   "creditos": "CREDITOS.md",
   "heranca": "catppuccin",
+
+  "vitrine": {
+    "capa": "logo.svg",
+    "descricao_curta": "Uma linha, até 80 caracteres.",
+    "descricao": "LEIA-ME.md",
+    "tags": ["escuro", "verde"],
+    "capturas": ["capturas/area-de-trabalho.png"],
+    "site": "https://exemplo.org/meu-tema"
+  },
 
   "paleta": {
     "arquivo": "paleta.json",
@@ -277,6 +289,10 @@ suportado é recusado com o número na mensagem.
 }
 ```
 
+**`autor`, `versao` e `licenca`** aparecem no alto do `meow pack info`, e o
+`autor` também no cartão do painel. Até 23/09/2026 nenhum código lia os três, e
+o `validar` os listava como campo morto.
+
 **`heranca`** nomeia o pack de onde vem tudo o que você não declarou. Ela é
 obrigatória de escrever mesmo quando é o default: um pack que herda 18 de 21
 categorias **é o pack base com outra paleta**, e isso precisa estar na cara de
@@ -297,6 +313,85 @@ valores. É de propósito: `dono/repo` nomeia a conta de uma pessoa, e este arqu
 é versionado. Quem instala o pack põe o repositório no próprio `meow.conf`, que
 não vai para commit nenhum. `se_vazio: "herdar"` diz o que fazer quando a chave
 está vazia.
+
+---
+
+## A vitrine
+
+Ninguém escolhe um tema por um `id`. Até 23/09/2026 um pack era isso e 26
+hexadecimais, e a tela que escolhe um pack não tinha o que desenhar. O bloco
+`vitrine` é o que o pack diz de si para quem vai escolher:
+
+```json
+"vitrine": {
+  "capa": "logo.svg",
+  "descricao_curta": "O roxo do Dracula, com o gato do MeowSystem.",
+  "descricao": "LEIA-ME.md",
+  "tags": ["escuro", "claro", "roxo", "alto contraste"],
+  "capturas": ["capturas/area-de-trabalho.png"],
+  "site": "https://draculatheme.com"
+}
+```
+
+| Campo | Regra | Por quê |
+|---|---|---|
+| `capa` | **obrigatória**; SVG; dentro do pack; o arquivo existe — e o arquivo é o logo, com as regras de [O logo do pack](#o-logo-do-pack) | vetor porque o cartão aparece em vários tamanhos, e um PNG de capa envelhece junto com a resolução |
+| `descricao_curta` | uma linha, **até 80 caracteres** | é o que cabe numa linha do cartão — o mesmo teto dos balões do painel |
+| `descricao` | um `.md` dentro do pack, até 64 KiB | a história inteira, para quem abrir o cartão |
+| `tags` | lista de textos | as etiquetas do cartão |
+| `capturas` | lista de `.png`, `.jpg`, `.jpeg` ou `.svg` dentro do pack | fotos de tela; as quatro extensões que o painel sabe mostrar |
+| `site` | **só `https://`** | é o único campo do pack que vira link clicável |
+
+**A capa é o logo.** O mockup de 21/09/2026 desenhava a capa como uma tira de
+cores, e isso foi corrigido: tira é paleta, não identidade — dois packs de
+paleta parecida ficariam iguais no cartão. A capa é o `logo.svg` do pack, o
+mesmo arquivo que vira o ícone do lançador; a tira continua no cartão, fina,
+embaixo dele, como amostra da paleta. Por isso o campo é um só: um
+`vitrine.logo` ao lado de um `vitrine.capa` seriam duas verdades para a mesma
+figura. E o campo manda: se a capa apontar para outro arquivo que não o
+`logo.svg`, é **esse** arquivo que o `validar` e o verbo `logo` conferem como
+logo — sem script, `viewBox` quadrado, nada apontando para fora. Não sobra uma
+segunda figura que escape das regras do logo.
+
+**A descrição é mostrada como texto, nunca como HTML.** O painel põe o
+Markdown do `LEIA-ME.md` num bloco de texto puro, sem interpretar nada — nem
+negrito, nem link. Um pack é dado, e dado não injeta: renderizar Markdown de
+terceiro numa página que carrega o token de sessão seria dar a um arquivo
+baixado da internet a chance de virar código dentro do painel. Quem quiser
+formatação escreve no site, que o cartão linka.
+
+**Ela é cobrada de quem publica, e nunca de quem usa.** `meow pack validar`
+recusa a vitrine quebrada — e diz todos os problemas de uma vez. O instalador,
+o `meow pack info` e o painel **não**: o tema de um pack sem capa continua
+funcionando no desktop, e o `info` e o cartão mostram o pack dizendo o que
+falta. Se a capa ausente trancasse o motor, o tema inteiro seria trocado pelo
+padrão por causa de uma figura que só a tela de escolha mostra. O logo segue a
+mesma fronteira (ver [O logo do pack](#o-logo-do-pack)), e a capa é o logo.
+
+**Com uma exceção, que não nasceu na vitrine: a URL fora de `https://`.** Ela
+é o item 11 do `validar`, vale para **qualquer** campo do `pack.json` e roda
+também para quem usa. Um `site` em `http://`, ou uma `descricao_curta` que cite
+um endereço `http://`, tira o pack do desktop como tiraria em qualquer outro
+campo: o `meow pack info` recusa com a mesma mensagem do `validar`, e o cartão
+do painel mostra o pack só com o motivo. O `site` em `javascript:`, que não tem
+`://`, é da vitrine — só o `validar` o recusa, e o cartão simplesmente não o
+transforma em link.
+
+No terminal, a vitrine é o alto do `meow pack info`:
+
+```
+$ meow pack info dracula | head -6
+Dracula  [dracula]  versão 1.0.0 · formato 1
+  autor     : MeowSystem · licença GPL-3.0-or-later
+  descrição : O roxo do Dracula, com o gato do MeowSystem.
+  tags      : escuro, claro, roxo, alto contraste
+  origem    : próprio: paleta, ícones de aplicativo, pastas, … · herdado de catppuccin: …
+  diretório : …
+```
+
+A linha `origem` é a tabela de categorias do mesmo comando virada frase, e o
+cartão do painel mostra exatamente ela — as duas saem da mesma função do
+`scripts/pack.py`.
 
 ---
 
@@ -1218,10 +1313,12 @@ de quem mostra.
   passo vier, a porta é o verbo `logo`, e ele vem com o `meow_lancador_reler`: o
   lançador do COSMIC cacheia ícone (`lancador-cosmic-cacheia-icones`, 11/08), e
   trocar só o arquivo faz parecer que a troca de pack não funcionou.
-- **O cartão do pack na Home** ainda não existe (P10). Quando existir, ele mostra
-  o que `logo <id>` responde — não o arquivo cru, que traz a prévia do flavor
-  padrão e não passou pela conferência, e não a tira, que desce para baixo do
-  logo como amostra.
+- **O cartão do pack na Home** nasceu com a P15 (ver [A vitrine](#a-vitrine)),
+  e mostra o que `logo <id> <flavor_padrao>` responde — não o arquivo cru, que
+  não passou pela conferência, e não a tira, que desce para baixo do logo como
+  amostra do mesmo flavor. Um logo que o verbo recusa não vira imagem: o cartão
+  diz o motivo. Mostrar o logo no flavor que está no ar fica para a P10, que faz
+  da Home o lugar de trocar de pack.
 - **`logo-mono.svg`**, a versão de traço único para barra e bandeja, não entrou:
   nada no projeto o leria, e um arquivo declarado sem leitor é a promessa vazia
   que o `validar` avisa em voz alta.
@@ -1258,7 +1355,7 @@ abre um `pack.json`:
 | verbo | o que responde |
 |---|---|
 | `validar <id-ou-caminho>` | confere o pack inteiro. 0 = ok, 1 = recusado |
-| `info <id>` | o que é próprio, o que é herdado, categoria a categoria |
+| `info <id>` | a vitrine no alto; depois o que é próprio, o que é herdado, categoria a categoria |
 | `caminho <id> <categoria>` | o caminho que aquela categoria resolve **no pack** |
 | `acervo <id> <categoria> [arquivo]` | o mesmo, subindo pack → herança → motor |
 | `paleta <id>` | o arquivo de paleta daquele pack |
@@ -1293,10 +1390,18 @@ Ele confere, nesta ordem, e **para no primeiro erro**:
 11. nenhuma URL fora de `https://`
 12. **contraste**: `text` sobre `base` precisa passar em WCAG AA (4.5:1) — 26
     hexes aleatórios passam em tudo acima e produzem uma interface ilegível
-13. **o logo**: `logo.svg` existe, é SVG quadrado, sem script, sem imagem
+13. **a vitrine** — a capa existe, é SVG e está dentro do pack; a frase curta
+    cabe em 80 caracteres; a descrição é um `.md` do pack; o `site` é
+    `https://`. Cobrado só pelo verbo `validar`, como o 14: o instalador e o
+    painel usam um pack de vitrine quebrada assim mesmo. A exceção é o `site`
+    em `http://`, que já caiu no 11 — e o 11 vale para o motor. Ver
+    [A vitrine](#a-vitrine)
+14. **o logo**: `logo.svg` existe, é SVG quadrado, sem script, sem imagem
     embutida e sem nada que aponte para fora dele. Cobrado só pelo verbo
     `validar`: o instalador usa o pack sem logo assim mesmo — ver
-    [O logo do pack](#o-logo-do-pack), que diz cada regra e o porquê
+    [O logo do pack](#o-logo-do-pack), que diz cada regra e o porquê. Depois
+    da vitrine, e de propósito: o logo é o arquivo que `vitrine.capa` nomeia, e
+    é o 13 que diz, antes, se o campo aponta para um SVG que existe
 
 A validação roda de novo dentro do `meow_preflight`, **antes** de o instalador
 escrever qualquer coisa. Um pack quebrado não chega a tocar no seu desktop.
@@ -1307,7 +1412,7 @@ Antes do `ok`, o validador imprime **quais campos aquele `pack.json` declara e
 nenhuma linha deste projeto consulta**:
 
 ```
-  aviso 15 campo(s) que este pack declara e NENHUM código lê:
+  aviso 12 campo(s) que este pack declara e NENHUM código lê:
           icones.apps.camada
           origens.wallpapers.tipo
           …
@@ -1362,7 +1467,7 @@ Depois, `meow ativar`.
 - [ ] `meow pack validar` passa
 - [ ] `CREDITOS.md` nomeia a origem e a licença de cada acervo de terceiro
 - [ ] `licenca` no `pack.json` é compatível com a de tudo que você empacotou
-- [ ] a captura do tema está no pack (senão, diga no `LEIAME.md` que não está)
+- [ ] a captura do tema está no pack (senão, diga no `LEIA-ME.md` que não está)
 - [ ] `heranca` está escrita, mesmo sendo o default
 - [ ] nenhum caminho absoluto, nenhum `~`, nenhum nome de usuário
 - [ ] o `logo.svg` é seu, e as formas declaram papel na `class` em vez de hex
@@ -1377,4 +1482,5 @@ Este repositório traz **dois** packs, e eles ensinam coisas diferentes:
   herdado — com cada herança dita na cara.
 
 Se for copiar um para começar o seu, copie o **catppuccin**: o do Dracula
-declara quinze campos que ainda não têm leitor, e o `validar` diz quais são.
+declara doze campos que ainda não têm leitor, e o `validar` diz quais são. Eram
+quinze até a P15 dar leitor a `autor`, `versao` e `licenca`.

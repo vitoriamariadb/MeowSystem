@@ -3,8 +3,22 @@
   "formato": 1,
   "id": "catppuccin",
   "nome": "Catppuccin",
+  "autor": "MeowSystem",
+  "licenca": "GPL-3.0-or-later",
   "creditos": "CREDITOS.md",
-  "_nota_campos": "Só campos COM LEITOR, de propósito. O `validar` avisa em voz alta quais campos um pack declara e nenhum código lê, e o pack que acompanha o projeto é o primeiro que alguém copia: declarar `versao`, `autor` ou `licenca` aqui ensinaria a promessa vazia antes de a P15 dar leitor a eles. Quando der, eles entram.",
+  "vitrine": {
+    "capa": "logo.svg",
+    "descricao_curta": "O pack padrão. Quatro flavors, do Latte ao Mocha.",
+    "descricao": "LEIA-ME.md",
+    "tags": [
+      "pastel",
+      "claro",
+      "escuro"
+    ],
+    "site": "https://github.com/catppuccin/catppuccin",
+    "_nota": "O que o cartão de escolher pack mostra (P15, 23/09/2026). A capa É o logo.svg que a P25 desenha — o mesmo arquivo que vira o ícone do lançador. O site é o mesmo endereço que o CREDITOS.md já cita como fonte da paleta."
+  },
+  "_nota_campos": "Só campos COM LEITOR, de propósito. O `validar` avisa em voz alta quais campos um pack declara e nenhum código lê, e o pack que acompanha o projeto é o primeiro que alguém copia. `autor` e `licenca` entraram em 23/09/2026, quando a P15 lhes deu leitor (o `meow pack info` imprime os dois, e o cartão do painel mostra o autor); os valores são os do CREDITOS.md — o que este repositório escreve é GPL-3.0-or-later, e a arte de terceiro guarda a licença dela. `versao` continua fora: não há número de versão deste pack em lugar nenhum, e inventar um seria declarar por declarar.",
   "paleta": {
     "arquivo": "paleta.json",
     "flavor_padrao": "mocha"
