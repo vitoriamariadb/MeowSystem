@@ -36,6 +36,12 @@ VERBOS
     captura-destino <par>        onde uma captura NOVA deve ser escrita. Nunca
                                  sobe pela herança: escrita é no pack ATIVO.
     capturas                     os nomes das capturas alcançáveis, uma por linha
+    app     <id> apps.<app>.<chave>
+                                 o que o pack declara para um APLICATIVO, ou o
+                                 que ele herda. Imprime, para o shell avaliar:
+                                     pack=<quem respondeu>
+                                     valor=<o nome, ou o caminho se for arquivo>
+                                 1 = ninguém na cadeia declara. Ver `tema_de_app`.
     paleta  <id>                 imprime o caminho da paleta do pack
     som     <id>                 o timbre do pack, como CHAVE=valor para o shell
     info    <id>                 o que é próprio, o que é herdado, o que falta
@@ -50,6 +56,7 @@ O CONTRATO ESTÁ EM docs/PACKS.md, e ele manda. Se este arquivo e aquele
 documento discordarem, o documento está certo e este arquivo tem um defeito.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -71,6 +78,7 @@ SLOTS = [
 
 RE_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 RE_HEX = re.compile(r"^#[0-9A-Fa-f]{6}$")
+RE_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 OK, RECUSADO, ERRO_USO = 0, 1, 2
 
@@ -124,6 +132,16 @@ CAMPOS_COM_LEITOR = {
     # ensina a ignorar o aviso.
     "*.*.herda",                        # validar, `acervo`
     "som.*",                            # validar, cmd_som
+    # O BLOCO `apps` — 22/09/2026, sprint P18. Só as chaves que JÁ têm leitor:
+    # `apps.*.tema` (obsidian) e as dos outros cinco módulos entram no dia em
+    # que aqueles módulos passarem a perguntar ao pack. Declará-las antes seria
+    # ensinar a promessa vazia que este bloco inteiro veio caçar.
+    "apps.*.arquivo",                   # validar, `tema_de_app`, qbittorrent
+    "apps.*.sha256",                    # validar, qbittorrent
+    "apps.*.spicetify_tema",            # spotify
+    "apps.*.esquema",                   # spotify
+    "apps.*.acento_no_color_ini",       # spotify
+    "apps.*.origem.*",                  # spotify (de onde o tema desce)
 }
 
 
@@ -686,6 +704,103 @@ def capturas(ref=None):
     return saida
 
 
+def tema_de_app(categoria, ref=None):
+    """O que o pack declara para um APLICATIVO: 'apps.<app>.<chave>'.
+
+    POR QUE ELA NASCEU [22/09/2026, sprint P18]
+        Uma contagem mediu 446 citações da palavra `catppuccin` dentro de
+        `assets/temas-de-apps/`, espalhadas por oito módulos, e ZERO deles
+        perguntava qual era o pack ativo. Aquele acervo é anterior ao formato de
+        pack e nunca soube que ele existe: os oito eram, na prática,
+        "aplicadores de Catppuccin".
+
+        O preço estava na tela desta máquina em 21/09/2026. O pack ativo é o
+        Dracula, e o módulo do Obsidian anunciou «Catppuccin Mocha já estava
+        aplicado» — o único dos oito que "deu certo" foi o que aplicou o tema do
+        OUTRO pack e chamou de sucesso. Esta função é a porta por onde o módulo
+        pergunta em vez de saber.
+
+    A HERANÇA É POR APLICATIVO, E NÃO POR CHAVE — E A DIFERENÇA É O DEFEITO
+        Quem responde é o PRIMEIRO pack da cadeia que declara o bloco
+        `apps.<app>` inteiro. Uma chave que falte DENTRO de um bloco declarado é
+        ausência, e não motivo para descer mais um degrau.
+
+        Se fosse por chave, um pack que declarasse `spicetify_tema: "Sleek"` sem
+        `esquema` herdaria o `esquema` do vizinho e o Spotify sairia com o tema
+        de um pack e o esquema de cor de outro — a mesma divergência silenciosa
+        que o `meow_paleta` (lib/comum.sh) existe para matar, um andar acima.
+
+        `apps.<app>.herda` continua valendo e vence a herança do pack inteiro,
+        igual a `icones.*.herda`: é como um pack diz "este aplicativo eu pego
+        emprestado daquele ali".
+
+    `arquivo` É CAMINHO, O RESTO É NOME
+        A chave `arquivo` nomeia arte dentro do pack (`apps/dracula.qbtheme`) e
+        volta resolvida em caminho absoluto, com a mesma guarda de `_dentro` que
+        o `acervo` aplica — um pack de terceiro com `"../../../etc/algo"` é
+        ignorado naquele degrau, com aviso. Toda outra chave é NOME, e volta
+        como veio.
+
+    `<flavor>` É EXPANDIDO AQUI, E PELO MOTIVO DO `cosmic.nome_da_paleta`
+        O pack padrão declara `"esquema": "<flavor>"` porque no tema catppuccin
+        do spicetify a seção do color.ini chama-se como o flavor. É o mesmo
+        marcador que o `gerar_temas.py` já expande em `cosmic.nome_da_paleta`, e
+        repeti-lo aqui é o que evita um segundo dialeto de marcador no formato.
+        O valor vem do `FLAVOR` do ambiente (o meow.conf vence, como sempre) e,
+        na falta dele, do `paleta.flavor_padrao` do pack ATIVO.
+
+    Devolve `(id_do_pack_que_respondeu, valor)`, ou `(None, None)` quando nenhum
+    pack da cadeia declara aquele aplicativo ou aquela chave. Ausência é
+    resposta: quem chama decide se ela é problema.
+    """
+    partes = categoria.split(".")
+    if len(partes) < 3 or partes[0] != "apps":
+        raise Recusa(f"tema_de_app: {categoria!r} não é 'apps.<app>.<chave>'")
+    # A CHAVE PODE SER UMA TRILHA DENTRO DO BLOCO — `apps.spotify.origem.repo`.
+    # É o mesmo desenho do `campo`, e existe porque o bloco de um aplicativo tem
+    # sub-blocos: `origem` descreve de onde o tema desce, com quatro campos.
+    alvo, chave = partes[1], partes[2:]
+
+    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
+    # O flavor do pack ATIVO, e não do que respondeu: quem manda no sabor é a
+    # máquina (FLAVOR) e, na falta dela, o pack que está no ar.
+    flavor = os.environ.get("FLAVOR") or campo(ref, "paleta.flavor_padrao") or ""
+
+    # A mesma guarda de laço do `acervo`, e pelo mesmo motivo: dois packs que
+    # herdem um do outro pendurariam o instalador para sempre.
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        dir_pack = achar(ref)
+        if not dir_pack:
+            break
+        bloco = campo(ref, f"apps.{alvo}")
+        if isinstance(bloco, dict) and not bloco.get("herda"):
+            quem = campo(ref, "id") or os.path.basename(dir_pack)
+            valor = bloco
+            for parte in chave:
+                if not isinstance(valor, dict) or parte not in valor:
+                    valor = None
+                    break
+                valor = valor[parte]
+            if valor is None:
+                return None, None
+            if chave == ["arquivo"]:
+                try:
+                    _dentro(dir_pack, str(valor), categoria)
+                except Recusa as e:
+                    print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
+                    return None, None
+                cheio = os.path.join(dir_pack, str(valor))
+                return (quem, cheio) if os.path.exists(cheio) else (None, None)
+            if isinstance(valor, str):
+                valor = valor.replace("<flavor>", flavor)
+            return quem, valor
+        prox = bloco.get("herda") if isinstance(bloco, dict) else None
+        ref = prox or campo(ref, "heranca")
+    return None, None
+
+
 def _luminancia(hexcor):
     """Luminância relativa de WCAG 2.x. Usada só para o teste de contraste."""
     r, g, b = (int(hexcor[i:i + 2], 16) / 255 for i in (1, 3, 5))
@@ -864,6 +979,51 @@ def validar(ref, silencioso=False):
                 f"    crédito de arte e não entrega ensina a promessa vazia —\n"
                 f"    e quem copiar este pack.json vai repetir a promessa.")
 
+    # --- apps ---------------------------------------------------------------
+    # OS TEMAS DE APLICATIVO — 22/09/2026, sprint P18
+    #   `apps` NÃO é `icones.apps`, e a coincidência de nome é a primeira pedra
+    #   do caminho: `icones.apps` são os ÍCONES dos aplicativos, este bloco é o
+    #   TEMA de dentro deles (o esquema do spicetify, o `.qbtheme`). As trilhas
+    #   não colidem, mas quem lê o pack.json de cima para baixo colide.
+    #
+    #   A VALIDAÇÃO É A MESMA DO `creditos`, TRÊS LINHAS ACIMA, E DE PROPÓSITO:
+    #   um pack que declara `arquivo` e não entrega o arquivo é um pack que
+    #   promete tema e não tem tema — e o módulo só descobriria na hora de
+    #   aplicar, dentro do instalador, longe de quem publicou o pack.
+    apps = p.get("apps") or {}
+    _exigir(isinstance(apps, dict), "pack.json: 'apps' precisa ser um objeto")
+    for nome_app, bloco in apps.items():
+        if str(nome_app).startswith("_"):
+            continue
+        _exigir(RE_ID.match(str(nome_app)),
+                f"apps: {nome_app!r} — só minúsculas, dígitos e hífen, como todo id")
+        _exigir(isinstance(bloco, dict),
+                f"apps.{nome_app}: precisa ser um objeto, veio {type(bloco).__name__}")
+        arq_app = bloco.get("arquivo")
+        if arq_app:
+            alvo_app = _dentro(dir_pack, str(arq_app), f"apps.{nome_app}.arquivo")
+            _exigir(os.path.isfile(alvo_app),
+                    f"apps.{nome_app}.arquivo: {arq_app!r} está declarado e NÃO\n"
+                    f"    existe no pack. Um pack que promete tema e não entrega\n"
+                    f"    só falha dentro do instalador, na máquina de quem instalou.")
+        soma_app = bloco.get("sha256")
+        if soma_app:
+            _exigir(RE_SHA256.match(str(soma_app)),
+                    f"apps.{nome_app}.sha256: {soma_app!r} não é um sha256 (64 hex)")
+            _exigir(arq_app,
+                    f"apps.{nome_app}.sha256: declarado sem `arquivo` — não há o que conferir")
+            with open(alvo_app, "rb") as fh:
+                medido = hashlib.sha256(fh.read()).hexdigest()
+            # O SHA VEM DO PACK, E NÃO DO MÓDULO [22/09/2026]
+            #   Até hoje o número morava no `qbittorrent/manifesto.sh`, cravado
+            #   ao lado do nome do arquivo. Um módulo que confere o sha de UM
+            #   arquivo específico é um módulo que só sabe aplicar aquele tema —
+            #   é a mesma amarra que esta sprint veio cortar, escrita em hex.
+            _exigir(medido == str(soma_app).lower(),
+                    f"apps.{nome_app}.sha256 não confere com o arquivo.\n"
+                    f"    declarado: {soma_app}\n"
+                    f"    medido   : {medido}")
+
     # --- som ----------------------------------------------------------------
     # O timbre é opcional. Quando existe, precisa ser NÚMERO e precisa caber nos
     # limites que o som.sh documenta — um pack não pode assustar quem o instala.
@@ -898,7 +1058,12 @@ def validar(ref, silencioso=False):
 
     # --- heranças e URLs ----------------------------------------------------
     herancas = [p["heranca"]] if p.get("heranca") else []
-    for cat, bloco in list(ic.items()) + list((p.get("origens") or {}).items()):
+    # `apps` entra aqui junto com `icones` e `origens` porque `apps.<app>.herda`
+    # é lido pelo `tema_de_app` exatamente como `icones.*.herda` é lido pelo
+    # `acervo` — e uma herança que aponta para um pack inexistente precisa ser
+    # recusada na publicação, não descoberta na hora de aplicar.
+    for cat, bloco in (list(ic.items()) + list((p.get("origens") or {}).items())
+                       + list((p.get("apps") or {}).items())):
         if isinstance(bloco, dict) and bloco.get("herda"):
             herancas.append(bloco["herda"])
     for h in set(herancas):
@@ -1007,7 +1172,12 @@ def cmd_info(ref):
     for cat, bloco in [("paleta", p.get("paleta")), ("cosmic.mapa", (p.get("cosmic") or {}).get("mapa")),
                        ("icones.apps", ic.get("apps")), ("icones.pastas", ic.get("pastas")),
                        ("icones.mimetypes", ic.get("mimetypes")), ("icones.autorais", ic.get("autorais")),
-                       ("cursores", org.get("cursores")), ("wallpapers", org.get("wallpapers"))]:
+                       ("cursores", org.get("cursores")), ("wallpapers", org.get("wallpapers")),
+                       # A NONA CATEGORIA — 22/09/2026, sprint P18. Ela não
+                       # estava na tabela de P12 porque não existia: até aqui
+                       # `assets/temas-de-apps/` era anterior ao formato de pack
+                       # e nenhum pack tinha onde declarar tema de aplicativo.
+                       ("apps", p.get("apps"))]:
         if bloco is None:
             # SEM HERANÇA DECLARADA NÃO EXISTE "HERDADO DE" — 22/09/2026
             #   O pack PADRÃO não herda de ninguém, e esta coluna imprimia
@@ -1132,6 +1302,23 @@ def main(argv):
             return cmd_info(argv[2])
         if verbo == "caminho" and len(argv) == 4:
             return cmd_caminho(argv[2], argv[3])
+        if verbo == "app" and len(argv) == 4:
+            # O `ref` vem por argumento e não do ambiente: quem chama do shell é
+            # o `meow_app_tema_do_pack`, que já resolveu o pack ativo pela mesma
+            # porta que todo o resto (`meow_pack_dir`). Duas resoluções do pack
+            # ativo em ordens diferentes é a divergência silenciosa de volta.
+            quem, valor = tema_de_app(argv[3], ref=argv[2] or None)
+            if quem is None or valor is None:
+                return RECUSADO
+            # BOOLEANO SAI COMO `sim`/`nao`, e não como o `True` do Python: quem
+            # lê é um `case` de shell, e `[ "$x" = "True" ]` seria o idioma de
+            # outra linguagem vazando para dentro deste. É o mesmo `sim`/`nao`
+            # que o `acento.py` já imprime em `ok=`.
+            if isinstance(valor, bool):
+                valor = "sim" if valor else "nao"
+            print(f"pack={quem}")
+            print(f"valor={valor}")
+            return OK
         if verbo == "acervo" and len(argv) in (4, 5):
             # Sem `motor` de propósito: quem chama do shell tem o
             # `meow_pack_arquivo` para a queda no núcleo, e passar o caminho do

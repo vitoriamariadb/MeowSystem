@@ -62,6 +62,7 @@ PORTATIL=(
   arvore.sh              # pergunta ao `git ls-files` quem é dono de qual arquivo
   pack.sh                # pack de terceiro num MEOW_PACKS temporário; não instala nada
   sem-receita-no-log.sh  # grep nos .sh versionados; nada além de bash
+  temas-de-apps.sh       # grep nos manifestos + pack.py; estado de brinquedo
   git-limpo.sh           # acervo, HOME e estado de brinquedo; só git e bash
   app.sh                 # compara o esquema do painel com o do wizard; python3
   estilo.sh              # régua da caneta contra o acervo Arcticons DAQUI (pede numpy)

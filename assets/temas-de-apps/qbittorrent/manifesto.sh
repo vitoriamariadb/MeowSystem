@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# assets/temas-de-apps/qbittorrent/manifesto.sh — Catppuccin Mocha no qBittorrent.
+# assets/temas-de-apps/qbittorrent/manifesto.sh — o tema do pack no qBittorrent.
+#
+# ATÉ 22/09/2026 A PRIMEIRA LINHA DIZIA "Catppuccin Mocha no qBittorrent", e ela
+# era honesta sobre o que o arquivo fazia: 28 citações daquele nome, e nenhuma
+# pergunta ao pack ativo. Quem escolhe o tema agora é o `apps.qbittorrent` do
+# pack.json — ver o bloco da identidade, logo abaixo do cabeçalho.
 #
 # ESTE ARQUIVO É `source`, NÃO EXECUTADO. Nada de `exit`, nada de `set -e`:
 # um `exit` aqui derrubaria o runner inteiro no meio do catálogo.
@@ -90,19 +95,59 @@
 #      flatpak-only; o caminho nativo levava ao mesmo laço eterno do item 1.
 #      Agora é 3 declarado, não meia-boca silenciosa.
 #
-# Procedência do arquivo, commit pinado e sha256: veja `PROCEDENCIA.md`.
+# Procedência do arquivo, commit pinado e sha256: veja a `PROCEDENCIA.md` que
+# mora ao lado da arte, dentro do pack — para o pack padrão,
+# `packs/catppuccin/apps/PROCEDENCIA.md`. Ela saiu daqui em 22/09/2026 junto com
+# o `.qbtheme`: a procedência viaja com a arte, e a arte agora é do pack.
 # Lá também está registrado que o acento upstream é AZUL (#89b4fa), não o mauve
 # da casa — medido descomprimindo o `config.json` de dentro do `.rcc`.
 
 # --- identidade do módulo ---------------------------------------------------
 MEOW_QBT_APP_ID="org.qbittorrent.qBittorrent"
-MEOW_QBT_NOME_AURORA="catppuccin"          # o nome que o Aurora precisa conhecer
-MEOW_QBT_ARQUIVO="catppuccin-mocha.qbtheme"
-MEOW_QBT_SHA256="f6ddf59ed881ea4a423e8d48a73f6f507c594a560f398097891fcb70bc8255e1"
 
-# A fonte mora ao lado deste manifesto, dê onde der o `source`.
-MEOW_QBT_DIR_MODULO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MEOW_QBT_ORIGEM="$MEOW_QBT_DIR_MODULO/$MEOW_QBT_ARQUIVO"
+# O TEMA VEM DO PACK — 22/09/2026, sprint P18
+#   As três linhas que estavam aqui cravavam o nome do tema, o nome do arquivo e
+#   o sha256 dele. Um módulo que sabe de cor essas três coisas é o aplicador
+#   DAQUELE tema, e não o aplicador do tema da casa — e a conta do dia mediu o
+#   mesmo desenho em oito módulos, com 446 citações da palavra `catppuccin` e
+#   zero consultas ao pack ativo.
+#
+#   O QUE ELAS VIRARAM
+#     MEOW_QBT_ORIGEM       `apps.qbittorrent.arquivo`, já resolvido em caminho
+#                           absoluto pelo pack.py (pack -> herança).
+#     MEOW_QBT_ARQUIVO      o basename daquele caminho. Ele continua existindo
+#                           porque é o nome DO DESTINO dentro de `themes/`, e o
+#                           conf do qBittorrent aponta para lá.
+#     MEOW_QBT_SHA256       `apps.qbittorrent.sha256`. Quem confere o número na
+#                           publicação agora é o `pack.py validar`; aqui ele
+#                           segue sendo conferido antes de instalar, que é a
+#                           defesa contra o download que virou página de erro.
+#     MEOW_QBT_NOME_AURORA  o ID DO PACK QUE RESPONDEU, e a coincidência não é
+#                           coincidência: a allowlist do script do Aurora é
+#                           `dracula|andromeda|catppuccin|nenhum`, e dois desses
+#                           quatro nomes são ids de pack deste projeto. Um tema
+#                           que venha do pack `catppuccin` entra no estado do
+#                           Aurora como `catppuccin`, como sempre entrou.
+#
+#   VAZIO É RESPOSTA, E O `_meow_qbt_pronto` a transforma num 3 com motivo: pack
+#   que não declara `apps.qbittorrent` (nem herda de quem declare) não tem tema
+#   para este app, e inventar um seria aplicar o tema de outro pack e chamar de
+#   sucesso — que é exatamente o defeito medido no módulo do Obsidian.
+#
+#   SEM `$( )` AQUI, E O MOTIVO CUSTOU UM DEFEITO — 22/09/2026, revisão da P18
+#     Estas linhas eram `X="$(meow_app_tema_do_pack …)"`, com o
+#     `MEOW_QBT_NOME_AURORA` lido logo abaixo. `$( )` é subshell: a função
+#     atribuía a variável num processo que morria na mesma linha, e o nome do
+#     pack chegava VAZIO — medido, com PACK=catppuccin, `MEOW_QBT_NOME_AURORA=[]`.
+#     Hoje a função não imprime nada e responde pelas duas variáveis; chamá-la
+#     dentro de `$( )` devolveria string vazia na hora, que é o defeito alto em
+#     vez de escondido.
+meow_app_tema_do_pack qbittorrent.arquivo
+MEOW_QBT_ORIGEM="$MEOW_APP_TEMA"
+MEOW_QBT_NOME_AURORA="$MEOW_APP_TEMA_PACK"
+MEOW_QBT_ARQUIVO="$(basename -- "${MEOW_QBT_ORIGEM:-sem-tema}")"
+meow_app_tema_do_pack qbittorrent.sha256
+MEOW_QBT_SHA256="$MEOW_APP_TEMA"
 
 # O script do Aurora: a FONTE é que manda. O self-heal roda a cópia de
 # `~/.config/zsh/scripts/` (linha do `bash "$SRC/..."`) e só depois a instala em
@@ -219,7 +264,17 @@ _meow_qbt_avisar_sem_aurora() {
 # não escrever o conf e, na segunda rodada, devolver 0 ("nada a fazer") enquanto
 # a `meow_app_conferir` devolvia 1 — dois códigos contraditórios para o mesmo
 # estado (reproduzido em sandbox).
+#
+# NOME VAZIO É NÃO-DESTRAVADO, E A GUARDA NÃO É PARANOIA — 22/09/2026, revisão
+# da P18. Sem ela o regexp vira `^[[:space:]]*\)`, que casa QUALQUER linha cujo
+# primeiro caractere não-branco seja `)` — fechamento de subshell indentado, que
+# é padrão comum em shell: medidos 32 dos próprios `.sh` deste repositório
+# casariam. Numa máquina que tenha o script do Aurora, isso destravava o módulo
+# sozinho, gravava estado vazio em `~/.local/state/aurora/qbittorrent-tema` e
+# chamava o script de terceiro com `--tema ''`. Pack sem tema para este app tem
+# de parar no 3 explicado do `_meow_qbt_pronto`, não passar por destravado.
 _meow_qbt_aurora_destravado() {
+  [ -n "$MEOW_QBT_NOME_AURORA" ] || return 1
   [ -f "$MEOW_QBT_AURORA_FONTE" ] || return 1
   grep -qE "^[[:space:]]*${MEOW_QBT_NOME_AURORA}\)" "$MEOW_QBT_AURORA_FONTE"
 }
@@ -261,7 +316,7 @@ _meow_qbt_receita() {
   [ "$MEOW_QBT_JA_AVISOU" = "1" ] && return 0
   MEOW_QBT_JA_AVISOU=1
   meow_pendencia_acionavel qbittorrent-tema-fora-da-lista \
-    "O qBittorrent é configurado por outro projeto seu, que só conhece três temas — enquanto o catppuccin não estiver na lista dele, não há como eu vestir o app" \
+    "O qBittorrent é configurado por outro projeto seu, cuja lista de temas é fechada — enquanto o tema '$MEOW_QBT_NOME_AURORA' não estiver na lista dele, não há como eu vestir o app" \
     ""
   return 0
 }
@@ -304,6 +359,105 @@ _meow_qbt_instalar_tema() {
   return "$MEOW_DIVERGENTE"
 }
 
+# --- O QUE O APP ESTÁ VESTINDO AGORA — 22/09/2026, sprint P18 ---------------
+#
+# A MEDIÇÃO QUE FALTAVA, E ELA ESTAVA NO DISCO O TEMPO TODO
+#   Em 21/09/2026, nesta máquina:
+#     ~/.var/app/…/qBittorrent/qBittorrent.conf
+#         General\UseCustomUITheme    = true
+#         General\CustomUIThemePath   = /home/andrefarias/.themes/dracula.qbtheme
+#     ~/.themes/dracula.qbtheme        4.468 bytes, escrito às 16:49 do mesmo dia
+#
+#   E o módulo dizia «não há quem escreva o qBittorrent.conf» — enquanto o conf
+#   JÁ ESTAVA ESCRITO, com um tema que o MeowSystem não conhecia. Ele conferia a
+#   própria receita e nunca o estado da máquina, então o trabalho que ele tinha
+#   feito à mão era invisível para o programa.
+#
+#   Estas duas funções são a leitura que faltava. Elas NÃO decidem nada: quem
+#   decide é o `meow_app_tema_no_ar` (lib/comum.sh), com as três saídas.
+_meow_qbt_no_ar() {
+  local conf_dir conf
+  conf_dir="$(_meow_qbt_conf_dir)" || return 0
+  conf="$conf_dir/qBittorrent.conf"
+  [ -f "$conf" ] || return 0
+  # `grep -F` e não regex: a chave tem uma barra invertida no nome, que num grep
+  # comum é escape — é a mesma pedra em que o `meow_app_conferir` tropeçou e
+  # documentou trinta linhas abaixo. `UseCustomUITheme=false` é "sem tema", e
+  # não "tema vazio": o caminho pode continuar escrito e desligado.
+  grep -qxF 'General\UseCustomUITheme=true' "$conf" || return 0
+  grep -F 'General\CustomUIThemePath=' "$conf" | head -1 | cut -d= -f2-
+  return 0
+}
+
+# Onde o nosso `.qbtheme` fica depois de instalado. É o valor que o conf tem de
+# apontar para o tema ser considerado "o do pack".
+_meow_qbt_alvo() {
+  local conf_dir
+  conf_dir="$(_meow_qbt_conf_dir)" || return 1
+  printf '%s' "$conf_dir/themes/$MEOW_QBT_ARQUIVO"
+}
+
+# QUANDO NÃO DÁ PARA ESCREVER, A MEDIÇÃO É DITA SEM PERGUNTA
+#   Perguntar "trocar pelo tema do pack?" num caminho em que ninguém escreve o
+#   conf seria oferecer o que não se entrega — a classe de falha que a P2 apagou
+#   do projeto inteiro. Então, nos dois caminhos travados abaixo, o que vai para
+#   a tela é o FATO: o app está vestido, e não por nós. A pergunta fica para
+#   quando houver escritor, no fim do `_meow_qbt_pronto`.
+#
+#   Uma vez por processo, como os outros três avisos deste arquivo: o runner
+#   chama detectar+conferir+aplicar em sequência.
+# O VEREDITO SAI UMA VEZ POR AÇÃO, E FICA GUARDADO
+#   Dentro de um `meow_app_aplicar` o `_meow_qbt_pronto` roda três vezes (ele
+#   mesmo, e mais duas pelo `meow_app_conferir` que o `aplicar` chama). Sem o
+#   cache, a pergunta "trocar pelo tema do pack?" apareceria três vezes na
+#   mesma passagem — e duas delas de dentro de um `>/dev/null 2>&1`, onde a
+#   pessoa veria um cursor parado sem saber o que ele espera.
+#
+#   O QUE É GUARDADO É O VEREDITO, NÃO O "JÁ PERGUNTEI": o código de saída
+#   precisa continuar chegando igual a cada chamada, senão o `conferir` que vem
+#   depois do `detectar` acharia que está tudo bem.
+#
+# A PERGUNTA SÓ VALE DENTRO DO `aplicar` — 22/09/2026, revisão da P18
+#   Este veredito é lido pelos TRÊS verbos, porque o `_meow_qbt_pronto` é o
+#   núcleo comum deles. Mas `detectar` e `conferir` são LEITURA (o painel serve
+#   a tabela com `escreve: False`), e um `meow apps conferir qbittorrent`
+#   parava num «trocar pelo tema do pack? [s/N]» que, respondido `s`, imprimia
+#   "trocando … a pedido dela" e não trocava nada — cada ação roda num subshell
+#   próprio do `aplicar_apps.sh`, então a resposta morria ali. Prometer escrita
+#   dentro de uma leitura é a classe de falha que esta sprint veio matar.
+#
+#   Por isso o `pergunte` é ligado pelo `meow_app_aplicar`, e só por ele. O
+#   `reverter` também escreve e mesmo assim fica de fora: ele está DESFAZENDO o
+#   nosso tema, e oferecer "trocar pelo tema do pack?" no meio disso seria
+#   perguntar o contrário do que ela mandou fazer.
+#
+#   O cache continua fazendo o serviço dele: dentro do `aplicar` a pergunta
+#   acontece na primeira passagem, com o interruptor já ligado, e as duas
+#   releituras do `conferir` interno caem no veredito guardado.
+MEOW_QBT_VEREDITO_AR=""
+MEOW_QBT_PODE_PERGUNTAR=""
+_meow_qbt_ar_ok() {
+  if [ -z "$MEOW_QBT_VEREDITO_AR" ]; then
+    meow_app_tema_no_ar qbittorrent "$(_meow_qbt_no_ar)" "$(_meow_qbt_alvo)" \
+                        "$MEOW_QBT_NOME_AURORA" "$MEOW_QBT_PODE_PERGUNTAR"
+    MEOW_QBT_VEREDITO_AR=$?
+  fi
+  return "$MEOW_QBT_VEREDITO_AR"
+}
+
+MEOW_QBT_DISSE_O_AR=0
+_meow_qbt_dizer_o_ar() {
+  local no_ar
+  [ "$MEOW_QBT_DISSE_O_AR" = "1" ] && return 0
+  MEOW_QBT_DISSE_O_AR=1
+  no_ar="$(_meow_qbt_no_ar)"
+  [ -n "$no_ar" ] || return 0
+  [ "$no_ar" = "$(_meow_qbt_alvo)" ] && return 0
+  meow_aviso "o qBittorrent já está vestido: $no_ar"
+  meow_info  "não veio daqui, e fica como está — o tema do pack não é escrito por cima"
+  return 0
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # núcleo comum das três funções: dá para trabalhar? (0 = sim, 3 = não)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -320,18 +474,31 @@ _meow_qbt_pronto() {
     fi
     return "$MEOW_SEM_DEPENDENCIA"
   }
+  # O PACK PRECISA TER PEDIDO ALGUMA COISA — 22/09/2026, sprint P18.
+  # Ausência declarada, e não escolha nossa: ver o bloco da identidade, no topo.
+  if [ -z "$MEOW_QBT_ORIGEM" ]; then
+    meow_pula "o pack ativo não declara tema para o qBittorrent (apps.qbittorrent no pack.json)"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
   if [ ! -s "$MEOW_QBT_ORIGEM" ]; then
-    meow_aviso "falta o tema em $MEOW_QBT_ORIGEM (veja PROCEDENCIA.md para rebaixar)"
+    meow_aviso "falta o tema em $MEOW_QBT_ORIGEM (veja a PROCEDENCIA.md do pack para rebaixar)"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   # Sem o script do Aurora não há escritor para o conf: dependência faltando (3),
   # nunca um "apliquei" pela metade.
   if [ ! -f "$MEOW_QBT_AURORA_FONTE" ]; then
+    # A MEDIÇÃO VEM ANTES DA TRAVA — 22/09/2026, sprint P18.
+    #   Era aqui que o módulo dizia "não há quem escreva o qBittorrent.conf"
+    #   com o conf já escrito, e com um tema que ele não conhecia. Os dois
+    #   fatos são verdadeiros e os dois vão para a tela, nesta ordem: primeiro
+    #   o que o app está vestindo, depois por que não mexemos nisso.
+    _meow_qbt_dizer_o_ar
     _meow_qbt_avisar_sem_aurora
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   meow_pendencia_resolvida qbittorrent-conf-fora-de-escopo
   if ! _meow_qbt_aurora_destravado; then
+    _meow_qbt_dizer_o_ar
     _meow_qbt_receita
     return "$MEOW_SEM_DEPENDENCIA"
   fi
@@ -339,6 +506,19 @@ _meow_qbt_pronto() {
   # nenhuma das duas pendências deste módulo continua sendo verdade, e pendência
   # que sobrevive ao problema é a caixa de entrada que ninguém lê.
   meow_pendencia_resolvida qbittorrent-tema-fora-da-lista
+  # --- LER O QUE ESTÁ NO AR ANTES DE ESCREVER — 22/09/2026, sprint P18 -------
+  #   Só chega aqui quem PODE escrever, e é por isso que a pergunta mora neste
+  #   ponto: perguntar "trocar?" antes de saber que há escritor seria oferecer o
+  #   que não se entrega. As três saídas estão em `meow_app_tema_no_ar`; a
+  #   terceira — tema de terceiro no lugar — devolve 3 e o arquivo dele fica
+  #   intocado, que é a diferença entre consertar um defeito e trocá-lo por um
+  #   pior.
+  #
+  #   No `_pronto` e não no `aplicar` de propósito: o `conferir` também precisa
+  #   dizer a verdade sobre um app vestido por fora, e ele nunca passa pelo
+  #   `aplicar`.
+  _meow_qbt_ar_ok
+  [ $? = "$MEOW_SEM_DEPENDENCIA" ] && return "$MEOW_SEM_DEPENDENCIA"
   return "$MEOW_OK"
 }
 
@@ -403,7 +583,7 @@ meow_app_conferir() {
   }
 
   if [ "$divergiu" = "0" ]; then
-    meow_ok "qBittorrent com Catppuccin Mocha aplicado"
+    meow_ok "qBittorrent com o tema do pack $MEOW_QBT_NOME_AURORA aplicado"
     return "$MEOW_OK"
   fi
   return "$MEOW_DIVERGENTE"
@@ -413,10 +593,14 @@ meow_app_conferir() {
 # meow_app_aplicar — 0 nada a fazer, 1 aplicou, 2 erro, 3 ausente/travado.
 # ─────────────────────────────────────────────────────────────────────────────
 meow_app_aplicar() {
+  # O interruptor da pergunta, e ele mora AQUI porque é daqui para baixo que se
+  # escreve — ver o bloco do `_meow_qbt_ar_ok`. Antes do `_meow_qbt_pronto` de
+  # propósito: é ele quem faz a leitura, na primeira das três passagens.
+  MEOW_QBT_PODE_PERGUNTAR="pergunte"
   _meow_qbt_pronto || return "$MEOW_SEM_DEPENDENCIA"
 
   meow_app_conferir >/dev/null 2>&1 && {
-    meow_ok "qBittorrent já está com o Catppuccin Mocha — nada a fazer"
+    meow_ok "qBittorrent já está com o tema do pack $MEOW_QBT_NOME_AURORA — nada a fazer"
     return "$MEOW_OK"
   }
 
@@ -433,7 +617,22 @@ meow_app_aplicar() {
   # Integridade antes de instalar: um download que virou página de erro HTTP
   # tem o tamanho e o nome certos e só falha lá na frente, dentro do app, com um
   # "Failed to load UI theme" que não diz nada. Conferimos o sha256 pinado.
-  if meow_tem sha256sum; then
+  #
+  # SHA VAZIO É "O PACK NÃO DECLAROU", E NÃO "NÃO CONFERE" — 22/09/2026
+  #   O número saiu daqui para o `apps.qbittorrent.sha256` do pack.json, e o
+  #   formato o faz OPCIONAL. Sem esta guarda, um pack que traga o `.qbtheme` e
+  #   não declare o sha cairia direto no `[ "$soma" != "" ]`, que é sempre
+  #   verdade: o módulo recusaria para sempre um arquivo perfeito, com uma
+  #   mensagem dizendo "esperado , veio f6ddf5…". Errar assim é pior do que não
+  #   conferir, porque a frase acusa o arquivo em vez de acusar a declaração.
+  #
+  #   E a ausência não passa calada: quem instala um tema sem procedência
+  #   conferível merece saber disso na hora, e não descobrir depois. O aviso sai
+  #   só neste caminho, que é o da instalação de verdade — e não a cada
+  #   conferência, que seria ruído sobre algo que ninguém vai consertar hoje.
+  if [ -z "$MEOW_QBT_SHA256" ]; then
+    meow_aviso "o pack ${MEOW_QBT_NOME_AURORA:-ativo} não declara sha256 para este .qbtheme — instalando sem conferir integridade"
+  elif meow_tem sha256sum; then
     local soma
     soma="$(sha256sum -- "$MEOW_QBT_ORIGEM" 2>/dev/null | cut -d' ' -f1)"
     if [ "$soma" != "$MEOW_QBT_SHA256" ]; then
@@ -497,11 +696,17 @@ meow_app_aplicar() {
   # de mentir. Só chegamos até aqui porque a conferência inicial acusou
   # divergência, então nenhum caminho daqui para baixo pode devolver 0.
   if meow_app_conferir >/dev/null 2>&1; then
-    meow_ok "qBittorrent com Catppuccin Mocha aplicado"
+    meow_ok "qBittorrent com o tema do pack $MEOW_QBT_NOME_AURORA aplicado"
     # O aviso do acento sai só quando o tema de fato ficou vivo — repeti-lo a
     # cada ciclo em que o Aurora adiou seria ruído sobre algo que ela ainda nem
     # viu na tela. Honestidade sobre o visual, medido em PROCEDENCIA.md.
-    meow_aviso "atenção: o acento deste tema upstream é AZUL (#89b4fa), não o mauve #CBA6F7 da casa"
+    # O AVISO DO ACENTO MUDOU DE DONO — 22/09/2026, sprint P18
+    #   A frase cravava as duas cores porque o módulo cravava o tema. Hoje o
+    #   arquivo vem do pack, e o que se pode afirmar aqui é o que é verdade para
+    #   QUALQUER `.qbtheme` de terceiro: ele traz as cores dele, e o acento da
+    #   casa não entra num `.rcc` sem reempacotar o binário. O inventário do que
+    #   é azul no tema do pack padrão está na `apps/PROCEDENCIA.md` dele.
+    meow_aviso "atenção: o acento deste .qbtheme é o do tema upstream, e não o da paleta — ver a PROCEDENCIA.md do pack"
     return "$MEOW_DIVERGENTE"
   fi
   meow_aviso "o Aurora rodou mas o conf ainda não reflete o tema — ele adia a gravação"
@@ -536,7 +741,7 @@ meow_app_reverter() {
   estado="$(cat "$MEOW_QBT_AURORA_ESTADO" 2>/dev/null)"
 
   if [ ! -f "$destino" ] && [ "$estado" != "$MEOW_QBT_NOME_AURORA" ]; then
-    meow_ok "qBittorrent já estava sem o Catppuccin"
+    meow_ok "qBittorrent já estava sem o tema do pack"
     return "$MEOW_OK"
   fi
 
@@ -582,7 +787,7 @@ meow_app_reverter() {
     fi
   fi
 
-  [ "$mudou" = "0" ] && { meow_ok "qBittorrent já estava sem o Catppuccin"; return "$MEOW_OK"; }
+  [ "$mudou" = "0" ] && { meow_ok "qBittorrent já estava sem o tema do pack"; return "$MEOW_OK"; }
   meow_ok "qBittorrent de volta ao tema $_MEOW_QBT_TEMA_AURORA_PADRAO do Aurora"
   meow_info "tire 'qbittorrent' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
   return "$MEOW_DIVERGENTE"
