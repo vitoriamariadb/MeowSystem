@@ -956,6 +956,47 @@ saida="$(usar_amb env MEOW_PACKS="$PACKS" "$RAIZ/bin/meow" pack usar "$ID" --sem
   && ok "o pack de terceiro também se usa pelo verbo, com o flavor padrão dele" \
   || falha "meow pack usar $ID não gravou o pack de terceiro (rc=$rc)" "$saida"
 
+# O QUE FICOU DE OUTRO PACK É O QUE O PAINEL DIRIA — 23/09/2026, revisão da P10
+#   A primeira versão do verbo refazia em `awk` a regra do «Vestígio do pack» e
+#   perdia as duas exceções que o `_vestigio_de_pack` (app/servidor.py) já
+#   tinha aprendido. Medido pela revisão, com o conf de fábrica e o Catppuccin no
+#   ar: `usar dracula` acusava `CURSOR` de ser resto do Catppuccin — o valor que
+#   o próprio `packs/dracula/pack.json` receita —, e prometia que o painel o
+#   marcaria, enquanto o painel respondia `None`. No sentido inverso, com
+#   `PACK=""` e um sabor no FLAVOR, o verbo calava o que o painel marca.
+#   Os três casos abaixo são esses dois e o vestígio de verdade, e em cada um a
+#   lista do terminal tem de ser a do painel lida no conf que a troca deixou.
+vestigios_do_painel() {
+  usar_amb env MEOW_CONF="$1" python3 - "$RAIZ" <<'PY' 2>/dev/null
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+print(" ".join(sorted(k for k in servidor.valores_brutos() if servidor._vestigio_de_pack(k))))
+PY
+}
+vest_caso() {   # $1 rótulo · $2 pack a usar · $3 a chave que o caso exige ("" = nenhuma) · $4 sed do conf
+  local conf="$T/vest.conf" saida painel k faltou=""
+  sed "$4" "$RAIZ/meow.conf.exemplo" > "$conf"
+  saida="$(usar_amb env MEOW_CONF="$conf" "$RAIZ/bin/meow" pack usar "$2" --sem-aplicar 2>&1)"
+  painel="$(vestigios_do_painel "$conf")"
+  for k in $painel; do grep -qw -- "$k" <<< "$saida" || faltou="$faltou $k"; done
+  if [ -n "$3" ] && ! grep -qw -- "$3" <<< "$painel"; then
+    falha "$1: o caso deixou de montar o que mede (o painel marca '$painel', esperava $3)"
+  elif [ -z "$3" ] && { [ -n "$painel" ] || grep -q 'CURSOR' <<< "$saida"; }; then
+    falha "$1: o terminal ou o painel acusam um vestígio que não existe (painel: '$painel')" "$saida"
+  elif [ -n "$faltou" ]; then
+    falha "$1: o painel marca$faltou e o terminal não disse" "$saida"
+  else
+    ok "$1 (painel: '${painel:-nenhum}')"
+  fi
+}
+vest_caso "Catppuccin -> Dracula: o CURSOR que o Dracula receita não é vestígio" \
+  dracula "" 's/^PACK=.*/PACK="catppuccin"/'
+vest_caso "Dracula -> Catppuccin: o ICONES_BASE do Dracula é vestígio, e o terminal diz" \
+  catppuccin ICONES_BASE 's/^PACK=.*/PACK="dracula"/; s/^FLAVOR=.*/FLAVOR="dracula"/; s/^ICONES_BASE=.*/ICONES_BASE="Dracula-Icones"/'
+vest_caso "sabor sem PACK -> Dracula: o CURSOR do Latte é vestígio, e o terminal diz" \
+  dracula CURSOR 's/^FLAVOR=.*/FLAVOR="latte"/; s/^CURSOR=.*/CURSOR="catppuccin-latte-dark"/'
+
 # A ABA ÍCONES FALA COM AS PALAVRAS DO PACK NO AR. É a conferência da sprint no
 # nível do dado que a página desenha: com o Dracula no ar, nenhuma opção
 # oferecida carrega "Mocha" nem "Frappé", e o molde `${FLAVOR}` não é rótulo de

@@ -3884,7 +3884,17 @@ cmd_pack() {
       campo "pack"   "${agora_pack:-(nenhum escrito — valia a adoção pelo FLAVOR)}  ->  $novo_pack"
       campo "flavor" "${agora_flavor:-(nenhum)}  ->  $novo_flavor ($porque)"
 
-      # O QUE FICA DO PACK DE ANTES, DITO ANTES DE APLICAR
+      # A TROCA, ESCRITA NUMA CÓPIA DO CONF ANTES DE TUDO. É o conf que a troca
+      # vai deixar, e duas perguntas o leem antes de o de verdade ser tocado: o
+      # que fica de outro pack (logo abaixo) e, no ensaio, o instalador seco.
+      local copia texto
+      copia="$(mktemp -d)" || return "$MEOW_ERRO"
+      if [ -f "$CONF" ]; then texto="$(cat "$CONF")"; else texto="$(cat "$CONF_PADRAO")"; fi
+      texto="$(meow_conf_texto_definir "$texto" PACK "$novo_pack")"
+      texto="$(meow_conf_texto_definir "$texto" FLAVOR "$novo_flavor")"
+      printf '%s\n' "$texto" > "$copia/meow.conf"
+
+      # O QUE FICA DE OUTRO PACK, DITO ANTES DE APLICAR
       #   O verbo grava PACK e FLAVOR, e só: o meow.conf vence o pack
       #   (docs/PACKS.md, "Quem vence"), e um `ICONES_BASE="Dracula-Icones"`
       #   escrito por ela continua valendo depois da troca. Medido na primeira
@@ -3892,23 +3902,52 @@ cmd_pack() {
       #   `usar catppuccin` e o `btop-bat` foi procurar "Dracula Mocha", porque
       #   `MEOW_FAMILIA_PALETA="dracula"` ficou. Mudar essas chaves por ela seria
       #   decidir o que é gosto dela e o que é resto; calar seria deixar a
-      #   máquina metade de cada pack sem uma palavra. Fica a lista — o painel
-      #   marca cada uma como «Vestígio do pack», que é onde se decide.
-      #   Só o VALOR conta, sem o comentário da linha, e só quando o pack de
-      #   antes é mesmo um pack (FLAVOR="mocha" sem PACK não nomeia pack nenhum).
-      local antigo="${agora_pack:-$agora_flavor}" restos=""
-      if [ -n "$antigo" ] && [ "$antigo" != "$novo_pack" ] && [ -f "$CONF" ] \
-         && python3 "$RAIZ/scripts/pack.py" caminho "$antigo" id >/dev/null 2>&1; then
-        restos="$(awk -v p="$antigo" '
-          /^[A-Za-z_][A-Za-z0-9_]*=/ {
-            k = $0; sub(/=.*/, "", k)
-            v = $0; sub(/^[^=]*=/, "", v); sub(/#.*/, "", v)
-            if (k != "PACK" && k != "FLAVOR" && index(tolower(v), tolower(p))) print k
-          }' "$CONF" | sort -u | paste -sd' ')"
-      fi
+      #   máquina metade de cada pack sem uma palavra. Fica a lista.
+      #
+      #   A LISTA É A DO PAINEL, E NÃO UMA CÓPIA DA REGRA — 23/09/2026
+      #     A primeira versão refazia a regra em `awk` ("o valor cita o pack de
+      #     antes?") e perdia as duas exceções que o `_vestigio_de_pack`
+      #     (app/servidor.py) aprendeu em 22/09. Medido pela revisão, com o conf
+      #     de fábrica e o Catppuccin no ar: `usar dracula` imprimia "citando o
+      #     pack «catppuccin»: CURSOR" e prometia a marca no painel, enquanto o
+      #     painel respondia `None` — o `packs/dracula/pack.json` RECEITA
+      #     `"tema": "catppuccin-mocha-light"`, e é o alarme falso que o
+      #     `_declarado_pelo_pack` já tinha matado. E no sentido inverso, com
+      #     `PACK=""` e um sabor no FLAVOR, o `awk` calava o que o painel marca,
+      #     porque o `_pack_do_sabor` só existe lá.
+      #     Duas cópias da mesma regra discordam no primeiro caso esquisito,
+      #     então esta pergunta vai à função do painel — importada, como os
+      #     testes já a importam —, lendo a CÓPIA acima: o painel julga contra o
+      #     pack adotado AGORA, e o adotado de depois da troca é o novo.
+      #     O painel só tem cartão para as chaves do meow.conf.exemplo; uma
+      #     chave fora dele (a `MEOW_FAMILIA_PALETA` de cima é uma) é julgada
+      #     pela mesma função, e a frase diz que ela não tem onde aparecer lá.
+      local restos="" fora="" linha chave dono onde
+      linha="$(MEOW_RAIZ="$RAIZ" MEOW_CONF="$copia/meow.conf" MEOW_CONF_PADRAO="$CONF_PADRAO" \
+        python3 - "$RAIZ" 2>/dev/null <<'PY'
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+com_cartao = set()
+for item in servidor.ler_esquema():
+    com_cartao.add(item["chave"])
+    if item.get("vestigio_de_pack"):
+        print("%s\t%s\tcartao" % (item["chave"], item["vestigio_de_pack"]["pack"]))
+for chave in sorted(servidor.valores_brutos()):
+    v = None if chave in com_cartao else servidor._vestigio_de_pack(chave)
+    if v:
+        print("%s\t%s\tfora" % (chave, v["pack"]))
+PY
+      )" || meow_info "não consegui perguntar ao painel o que fica de outro pack — confira lá, depois da troca"
+      while IFS=$'\t' read -r chave dono onde; do
+        [ -n "$chave" ] || continue
+        restos="${restos:+$restos, }$chave («$dono»)"
+        [ "$onde" = "fora" ] && fora="${fora:+$fora, }$chave"
+      done <<< "$linha"
       if [ -n "$restos" ]; then
-        meow_aviso "continuam no meow.conf, citando o pack «$antigo»: $restos"
-        meow_info "  o meow.conf vence o pack, então eles seguem valendo; no painel, cada um aparece como «Vestígio do pack»"
+        meow_aviso "continuam valendo, citando outro pack que não o «$novo_pack»: $restos"
+        meow_info "  o meow.conf vence o pack, então elas seguem valendo; no painel, cada uma com cartão aparece como «Vestígio do pack»"
+        [ -z "$fora" ] || meow_info "  sem cartão no painel, só no meow.conf: $fora"
       fi
 
       # O TEMA DO COSMIC ENTRA COMO DECISÃO, E NÃO COMO MANUTENÇÃO
@@ -3945,12 +3984,7 @@ cmd_pack() {
       }
 
       if meow_seco; then
-        local copia texto rc_ensaio
-        copia="$(mktemp -d)" || return "$MEOW_ERRO"
-        if [ -f "$CONF" ]; then texto="$(cat "$CONF")"; else texto="$(cat "$CONF_PADRAO")"; fi
-        texto="$(meow_conf_texto_definir "$texto" PACK "$novo_pack")"
-        texto="$(meow_conf_texto_definir "$texto" FLAVOR "$novo_flavor")"
-        printf '%s\n' "$texto" > "$copia/meow.conf"
+        local rc_ensaio
         meow_muda "gravaria PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\" em $CONF — ensaio: o arquivo não é tocado"
         if [ "$aplicar" = "1" ]; then
           meow_info "o tema '$par' e o ensaio do instalador olham a troca, e não o conf do disco"
@@ -3962,6 +3996,7 @@ cmd_pack() {
         rm -rf "$copia"
         return "$rc_ensaio"
       fi
+      rm -rf "$copia"
 
       local rc_pack rc_flavor
       conf_definir PACK "$novo_pack"; rc_pack=$?
