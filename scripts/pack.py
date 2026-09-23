@@ -1430,14 +1430,25 @@ def conferir_ponteiro(tema, campo=CATEGORIA_PONTEIRO):
     _exigir(any(os.path.isfile(os.path.join(tema, "cursors", c)) for c in PONTEIROS_DE_REPOUSO),
             f"{campo}: {nome}/cursors/ não tem {' nem '.join(PONTEIROS_DE_REPOUSO)} —\n"
             f"    é o ponteiro de repouso, o primeiro que aparece na tela.")
+    # O LINK QUE NÃO LEVA A NADA — achado da revisão da P12, 23/09/2026.
+    #   `cursors/hand -> hand2` sem o `hand2` cai DENTRO do tema pelo `realpath`
+    #   e passava. Medido num HOME de brinquedo: `validar` saía 0, e o `aplicar`
+    #   reinstalava o tema em toda passagem, sem convergir. O ponteiro que o link
+    #   promete não existe, e o autor do pack é quem tem de saber — aqui, e não
+    #   na máquina de quem instalou. (O `cursor.sh` compara o link como link
+    #   desde o mesmo dia; ver `_cursor_instalar_pasta`.)
     for base, dirs, arqs in os.walk(tema):
         for n in dirs + arqs:
             rel = os.path.relpath(os.path.join(base, n), tema)
             try:
-                _dentro(tema, rel, campo)
+                cheio = _dentro(tema, rel, campo)
             except Recusa:
                 raise Recusa(f"{campo}: {nome}/{rel} aponta para fora do tema. O tema é\n"
                              f"    copiado inteiro para ~/.local/share/icons/, e o link iria junto.") from None
+            _exigir(os.path.exists(cheio),
+                    f"{campo}: {nome}/{rel} é um link que não leva a arquivo nenhum —\n"
+                    f"    o ponteiro que ele promete não existe. Aponte-o para um que exista,\n"
+                    f"    ou tire-o.")
 
 
 def ponteiro(ref=None):
@@ -2801,12 +2812,22 @@ def origens(p):
 
 
 def resumo_de_origem(p):
-    """A tabela do `info` numa linha: 'próprio: … · herdado de X: …'."""
+    """A tabela do `info` numa linha: 'próprio: … · herdado de X: …'.
+
+    SEM AS CATEGORIAS QUE NENHUM PACK DECLARA — achado da revisão da P12,
+    23/09/2026. Esta linha é o `p.origem` que o cartão de pack da Home imprime
+    cru, e com o grupo "do motor, sem campo no pack" ela passou de 170 para 266
+    caracteres no Dracula e de 169 para 265 no Catppuccin, acima dos 220 por
+    parágrafo da P7. O grupo era o MESMO em todo cartão, então não distinguia
+    pack nenhum: ocupava a tela de quem escolhe para não dizer nada sobre a
+    escolha. A tabela do `info` continua mostrando as quatro, com a origem.
+    """
     grupos = {}
     for cat, tipo, quem in origens(p):
+        if tipo == "fixo":
+            continue
         chave = {"próprio": "próprio", "herdado": f"herdado de {quem}",
-                 "motor": "do motor, ou ausente",
-                 "fixo": "do motor, sem campo no pack"}[tipo]
+                 "motor": "do motor, ou ausente"}[tipo]
         grupos.setdefault(chave, []).append(ROTULO_DA_CATEGORIA[cat])
     return " · ".join(f"{k}: {', '.join(v)}" for k, v in grupos.items())
 

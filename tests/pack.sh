@@ -965,6 +965,37 @@ case "$tabela" in
   *) falha "a coluna do info não diz o ponteiro e as fontes que a cadeia acha" "$tabela" ;;
 esac
 
+# O CARTÃO DA HOME CABE NO TETO DA P7 — achado da revisão da P12, 23/09/2026.
+#   O `resumo_de_origem` é a linha que o cartão de pack imprime crua (`p.origem`
+#   num `<p class="home-nota">`, no app.js), e a primeira versão da P12 a fez
+#   crescer de 170 para 266 caracteres no Dracula, pendurando em todo cartão as
+#   quatro categorias que nenhum pack declara. O `tests/app-acessibilidade.py`
+#   não pega: ele cobra os 220 nos literais de ajuda do `servidor.py`, e esta
+#   frase é montada no `pack.py`. Então ela é medida aqui, na fonte, para os
+#   packs do repositório e para o de mentira, que declara as onze.
+saida="$(amb python3 - "$RAIZ" "$ID" <<'PY' 2>&1
+import json, os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "scripts"))
+import pack
+TETO = 220
+base = os.path.join(sys.argv[1], "packs")
+refs = [sys.argv[2]] + sorted(n for n in os.listdir(base)
+                              if os.path.isfile(os.path.join(base, n, "pack.json")))
+medidas, longos = [], []
+for ref in refs:
+    with open(os.path.join(pack.achar(ref), "pack.json"), encoding="utf-8") as fh:
+        linha = pack.resumo_de_origem(json.load(fh))
+    medidas.append("%s %d" % (ref, len(linha)))
+    if len(linha) > TETO:
+        longos.append("%s: %d caracteres — %s" % (ref, len(linha), linha))
+print("\n".join(longos) if longos else ", ".join(medidas))
+sys.exit(1 if longos else 0)
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "a linha de origem do cartão cabe nos 220 da P7 ($saida)" \
+  || falha "a linha de origem do cartão passou dos 220 caracteres da P7" "$saida"
+
 saida="$(amb python3 "$RAIZ/scripts/pack.py" ponteiro "$ID" 2>&1)"
 [ "$saida" = "pack=$ID
 dir=$TEMA
@@ -1007,6 +1038,10 @@ copia() { rm -rf "$T/recusa"; mkdir -p "$T/recusa"; cp -a "$PACK_DIR" "$T/recusa
 SHA_A="$(printf 'a%.0s' $(seq 64))"
 copia; ln -s /etc/hostname "$C/cursores/$ID-roxo/cursors/fora"
 recusa "o ponteiro com link para fora do tema" "aponta para fora do tema"
+# O link que não leva a nada passava — achado da revisão da P12, 23/09/2026: um
+# `cursors/hand -> hand2` sem o `hand2` validava, e o `aplicar` nunca convergia.
+copia; ln -s hand2 "$C/cursores/$ID-roxo/cursors/hand"
+recusa "o ponteiro com link que não leva a nada" "não leva a arquivo nenhum"
 copia; rm -f "$C/cursores/$ID-roxo/cursors/default" "$C/cursores/$ID-roxo/cursors/left_ptr"
 recusa "o ponteiro sem default nem left_ptr" "não tem default nem left_ptr"
 copia; mv "$C/cursores/$ID-roxo" "$C/cursores/$ID roxo"; mexer_pack "$C" "{\"origens\": {\"cursores\": {\"proprio\": \"cursores/$ID roxo\"}}}"
@@ -1074,6 +1109,54 @@ else
 script: $(script_cursor)"
 fi
 rm -rf "$H/.local"
+
+# E O `aplicar` DE VERDADE CONVERGE — achado da revisão da P12, 23/09/2026.
+#   Medido pela revisão num HOME de brinquedo: com `cursors/hand -> hand2` e sem
+#   o `hand2`, as passagens 2, 3 e 4 saíam 1 dizendo "difere do pacote —
+#   substituindo", e o `conferir` também. O `diff -rq` seguia o link dos dois
+#   lados, não achava o alvo e saía 2, lido como "difere". O `validar` agora
+#   recusa esse link (a recusa está acima), e a comparação olha o link COMO
+#   link (`--no-dereference`), que é o que o `cp -a` copia.
+#   O link daqui é o que o formato ACEITA e faz o mesmo estrago: `aqui -> .`
+#   cai dentro do tema e existe, e o `diff` que segue link sai 2 com "loop de
+#   diretório recursivo". Sem o `--no-dereference`, este teste cai.
+#   O `gsettings` é de mentira e guarda no HOME de brinquedo: o teste não
+#   encosta no dconf de quem o roda.
+mkdir -p "$T/bin"
+cat > "$T/bin/gsettings" <<'G'
+#!/bin/sh
+f="$HOME/.gsettings-de-mentira-$3"   # uma por chave: a do tamanho não é a do tema
+case "$1" in
+  get) if [ -f "$f" ]; then printf "'%s'\n" "$(cat "$f")"; else printf "'Adwaita'\n"; fi ;;
+  set) printf '%s' "$4" > "$f" ;;
+esac
+G
+chmod +x "$T/bin/gsettings"
+ln -s . "$TEMA/cursors/aqui"
+ACAO=aplicar PATH="$T/bin:$PATH" script_cursor >/dev/null
+saida="$(ACAO=aplicar PATH="$T/bin:$PATH" script_cursor)"; rc_a=$?
+saida_c="$(ACAO=conferir PATH="$T/bin:$PATH" script_cursor)"; rc_c=$?
+if [ "$rc_a" = "0" ] && [[ "$saida" == *"já está instalado e idêntico"* ]] && [ "$rc_c" = "0" ]; then
+  ok "o ponteiro do pack instalado converge: a segunda passagem diz idêntico, e o conferir concorda"
+else
+  falha "o ponteiro do pack não convergiu (aplicar rc=$rc_a, conferir rc=$rc_c)" "$saida
+$saida_c"
+fi
+rm -f "$TEMA/cursors/aqui"; rm -rf "$H"; mkdir -p "$H"
+
+# O TEMA RECUSADO É IGNORADO EM VOZ ALTA. Com o link que não leva a nada o
+# `pack.py ponteiro` ignora o tema e diz por quê no stderr; o `cursor.sh` o
+# calava, e o que sobrava na tela era "não deu para baixar (sem rede, ou release
+# mudou)" — o motivo errado para um pack quebrado.
+ln -s hand2 "$TEMA/cursors/hand"
+saida="$(ACAO=aplicar script_cursor MEOW_DRY_RUN=1)"
+if [[ "$saida" == *"não leva a arquivo nenhum"*"o ponteiro do pack foi ignorado"* ]] \
+   && [[ "$saida" != *"vem do pack"* ]]; then
+  ok "o ponteiro do pack com link que não leva a nada é ignorado, e o cursor.sh diz por quê"
+else
+  falha "o cursor.sh usou o ponteiro recusado, ou calou o motivo" "$saida"
+fi
+rm -f "$TEMA/cursors/hand"
 
 # E AS FONTES CHEGAM AO INSTALADOR, em seco: sem as ferramentas dele (saída 3)
 # a conferência é pulada, e dito — o formato já foi cobrado acima.

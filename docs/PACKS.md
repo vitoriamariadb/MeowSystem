@@ -1201,10 +1201,11 @@ packs/meu-tema/
 **Quem escolhe continua sendo a chave `CURSOR`.** O pack oferece; o
 `meow.conf` decide. Com `CURSOR="meu-tema-roxo"`, o `scripts/cursor.sh` instala
 o tema do pack em `~/.local/share/icons/meu-tema-roxo-cursors/` **sem tocar a
-rede**, e a cada passagem compara o instalado com o do pack (`diff -rq`): se
-você redesenhar o ponteiro, a passagem seguinte traz o novo. `CURSOR` vazio
-continua não tocando em nada, e um `CURSOR` que nomeia outro tema continua
-valendo.
+rede**, e a cada passagem compara o instalado com o do pack (`diff -rq
+--no-dereference`: o link é comparado como link, que é o que a cópia leva): se
+você redesenhar o ponteiro, a passagem seguinte traz o novo; se nada mudou, ela
+diz "idêntico" e não mexe. `CURSOR` vazio continua não tocando em nada, e um
+`CURSOR` que nomeia outro tema continua valendo.
 
 **O valor é o nome do diretório, sem `-cursors`.** `cursores/meu-tema-roxo/` e
 `cursores/meu-tema-roxo-cursors/` são escolhidos pelo mesmo
@@ -1228,6 +1229,7 @@ virar um botão que baixa da rede.
 | o nome só tem `[A-Za-z0-9._-]`, sem começar por `.` ou `-` | é o nome que vira diretório. O `cursor.sh` trocaria qualquer outro caractere, e o painel ofereceria um nome que o script instala com outro |
 | `cursors/` existe e tem `default` ou `left_ptr` | é o ponteiro de repouso: sem ele não há o que ver, nem de onde tirar a prévia |
 | nenhum arquivo ou link do tema aponta para fora dele | o tema é copiado inteiro (`cp -a`), e o link iria junto para `~/.local/share/icons/` |
+| todo link do tema leva a um arquivo que existe | o ponteiro que o link promete não existe. Até a revisão de 23/09/2026 ele passava, e o instalador reinstalava o tema em toda passagem, sem convergir |
 | `proprio` e `herda` não aparecem juntos | um bloco que diz "o meu" e "o do vizinho" não disse qual |
 
 **Herdar é pelo bloco.** `origens.cursores.herda: "outro"` sobe para o pack
@@ -1341,10 +1343,11 @@ também nomeava, só MEDE a caneta; ele não tem parâmetro nenhum):
   Um padrão vindo do pack mudaria o que a ausência significa.
 
 Fazer direito é levar o acervo convertido para dentro do pack e fazer a oficina
-começar as réguas do perfil do pack — sprint própria, com o
-`construir_convertidos.sh` e o `app/servidor.py` na mesa. O limite continua o da
-P12: **só os parâmetros que a oficina já aceita, com nome**. Nada de expressão,
-nada de condicional.
+começar as réguas do perfil do pack. O que segura o item são essas duas
+decisões de desenho — onde mora o acervo que hoje é do git, e o que a régua em
+zero passa a significar —, e elas pedem sprint própria, aberta por quem é dono
+do projeto. O limite continua o da P12: **só os parâmetros que a oficina já
+aceita, com nome**. Nada de expressão, nada de condicional.
 
 ## As categorias, uma por linha
 

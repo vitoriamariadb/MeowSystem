@@ -275,7 +275,14 @@ _cursor_ler_pack() {
   local saida
   # `"$(meow_pack_dir)"` vazio é o pack padrão: o verbo trata o vazio como "o
   # pack ativo", a mesma porta do `meow_app_tema_do_pack`.
-  saida="$(python3 "$MEOW_RAIZ/scripts/pack.py" ponteiro "$(meow_pack_dir)" 2>/dev/null)" || return 0
+  #
+  # O STDERR PASSA — revisão da P12, 23/09/2026. O verbo só escreve nele quando
+  # o pack declara um ponteiro que não passa na conferência, e aí diz o porquê
+  # ("... é um link que não leva a arquivo nenhum — o ponteiro do pack foi
+  # ignorado"). Calado, o que sobrava na tela era a linha seguinte do
+  # `aplicar`: "não deu para baixar (sem rede, ou release mudou)", o motivo
+  # errado para um pack quebrado.
+  saida="$(python3 "$MEOW_RAIZ/scripts/pack.py" ponteiro "$(meow_pack_dir)")" || return 0
   CURSOR_PACK_ID="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
   CURSOR_PACK_DIR="$(printf '%s\n' "$saida" | sed -n 's/^dir=//p')"
   CURSOR_PACK_VALOR="$(printf '%s\n' "$saida" | sed -n 's/^valor=//p')"
@@ -517,6 +524,17 @@ _cursor_nome_do_argumento() {
 #   tema, arquivo a arquivo? Sem o `diff` no PATH a pergunta não tem resposta
 #   honesta, e aí a presença do diretório é o melhor que se pode dizer — dito em
 #   voz alta, não escondido.
+#
+# O LINK É COMPARADO COMO LINK — achado da revisão da P12, 23/09/2026
+#   O `cp -a` lá embaixo copia o link, e não o arquivo para onde ele aponta;
+#   então a pergunta "o instalado é a cópia do pacote?" é sobre o link. O `diff`
+#   que segue link responde outra, e às vezes nem responde: medido num HOME de
+#   brinquedo, um `cursors/hand -> hand2` sem o `hand2` fazia o GNU diff 3.10
+#   imprimir "Arquivo ou diretório inexistente" e sair 2, e um `aqui -> .` sai 2
+#   com "loop de diretório recursivo". O 2 caía no "difere", e o ponteiro do
+#   pack era reinstalado em TODA passagem — o instalador que nunca converge. Com
+#   `--no-dereference` (GNU diffutils 3.3 em diante) os dois lados comparam o
+#   texto do link. O `cmd_conferir` usa a mesma régua.
 _cursor_instalar_pasta() {
   local origem="$1" nome destino
   nome="$(_cursor_nome_seguro "$(basename -- "$origem")")"
@@ -528,7 +546,7 @@ _cursor_instalar_pasta() {
 
   if [ -d "$destino" ]; then
     if meow_tem diff; then
-      if diff -rq -- "$origem" "$destino" >/dev/null 2>&1; then
+      if diff -rq --no-dereference -- "$origem" "$destino" >/dev/null 2>&1; then
         meow_ok "'$nome' já está instalado e idêntico"
         CURSOR_ADICIONADO="${nome%-cursors}"
         return "$MEOW_OK"
@@ -708,10 +726,11 @@ cmd_aplicar() {
   #
   # O DO PACK VEM PRIMEIRO, E É REFEITO DO PACK A CADA PASSAGEM — 23/09/2026
   #   Não é "instala se faltar": o `_cursor_instalar_pasta` compara por
-  #   conteúdo (`diff -rq`) e diz "já está instalado e idêntico" quando nada
-  #   mudou. Se o autor do pack redesenhar o ponteiro, a próxima passagem traz
-  #   o novo; um "instala se faltar" congelaria a primeira cópia para sempre,
-  #   que é a defasagem calada que a P28 escreveu para a arte copiada.
+  #   conteúdo (`diff -rq --no-dereference`) e diz "já está instalado e
+  #   idêntico" quando nada mudou. Se o autor do pack redesenhar o ponteiro, a
+  #   próxima passagem traz o novo; um "instala se faltar" congelaria a
+  #   primeira cópia para sempre, que é a defasagem calada que a P28 escreveu
+  #   para a arte copiada.
   if _cursor_do_pack "$CURSOR"; then
     meow_info "o ponteiro '$CURSOR' vem do pack $CURSOR_PACK_ID — sem rede"
     _cursor_instalar_pasta "$CURSOR_PACK_DIR"; rc=$?
@@ -804,10 +823,11 @@ cmd_conferir() {
   if ! _cursor_instalado "$CURSOR"; then
     meow_muda "tema de cursor '$nome' não está instalado"; rc="$MEOW_DIVERGENTE"
   # A cópia instalada de um ponteiro do pack tem de ser a do pack: é o mesmo
-  # `diff -rq` que o `aplicar` usa para decidir se refaz — conferir por uma
-  # régua e aplicar por outra faria o doctor e o instalador discordarem.
+  # `diff -rq --no-dereference` que o `aplicar` usa para decidir se refaz —
+  # conferir por uma régua e aplicar por outra faria o doctor e o instalador
+  # discordarem.
   elif _cursor_do_pack "$CURSOR" && meow_tem diff \
-       && ! diff -rq -- "$CURSOR_PACK_DIR" "$CURSOR_ICONES/$nome" >/dev/null 2>&1; then
+       && ! diff -rq --no-dereference -- "$CURSOR_PACK_DIR" "$CURSOR_ICONES/$nome" >/dev/null 2>&1; then
     meow_muda "tema '$nome' instalado difere do que o pack $CURSOR_PACK_ID traz"
     rc="$MEOW_DIVERGENTE"
   else
