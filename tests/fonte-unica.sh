@@ -58,9 +58,20 @@ pack_de_brinquedo() {
   local id="$1" d="$T/packs/$1"
   mkdir -p "$d/icones/apps"
   cp "$RAIZ/packs/dracula/paleta.json" "$d/paleta.json"
-  printf '{"formato": 1, "id": "%s", "nome": "%s", "paleta": {"arquivo": "paleta.json"}, "icones": {"apps": {"mapa": "icones/apps.map"}}}\n' \
+  printf '{"formato": 1, "id": "%s", "nome": "%s", "paleta": {"arquivo": "paleta.json"}, "icones": {"apps": {"mapa": "icones/apps.map"}}, "vitrine": {"capa": "logo.svg"}}\n' \
     "$id" "$id" > "$d/pack.json"
+  # A VITRINE ENTROU NO PACK MÍNIMO EM 23/09/2026 — e este teste foi escrito
+  #   em paralelo, pela P28, na mesma leva em que a P15 a tornou obrigatória.
+  #   Sem ela o `validar` recusava o pack de brinquedo por "falta o bloco
+  #   'vitrine'", e a conferência do prefixo `pack:` falhava por um motivo que
+  #   não é o que ela pergunta — medido depois do merge das quatro. O logo sai
+  #   do GERADOR da P25, igual ao tests/pack.sh, e não de um SVG escrito aqui:
+  #   é o que um pack novo de verdade recebe.
+  #   A ORDEM IMPORTA: o `logo-gerado` VALIDA o pack antes de desenhar, e
+  #   recusa um `icones.apps.mapa` declarado que ainda não existe. O mapa
+  #   nasce vazio primeiro; o logo vem depois.
   : > "$d/icones/apps.map"
+  amb python3 "$RAIZ/scripts/pack.py" logo-gerado "$d" > "$d/logo.svg" || return 2
   printf '%s' "$d"
 }
 
