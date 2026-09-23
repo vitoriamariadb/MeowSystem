@@ -4,7 +4,7 @@ Um **theme pack** é um diretório que diz ao MeowSystem que cores usar — e, s
 quiser, que ícones, que papéis de parede e que agente. O MeowSystem lê o pack e
 escreve no seu desktop; **ele nunca escreve dentro do pack.**
 
-O pack mais simples que funciona tem três arquivos e nenhuma linha de código.
+O pack mais simples que se publica tem três arquivos e nenhuma linha de código.
 
 ```
 packs/meu-tema/
@@ -13,12 +13,11 @@ packs/meu-tema/
   logo.svg       a cara do pack, e a capa do cartão onde ele é escolhido — ver "O logo do pack"
 ```
 
-Os três contam para o tema **funcionar**, e não só para o pack ser publicado:
-sem o `logo.svg` o pack não valida, e quem o adotou volta ao padrão. O logo é
-também a capa do cartão onde o pack é escolhido (ver [A vitrine](#a-vitrine)).
-Com isso você já ganha tema do COSMIC, esquema do terminal, cores do painel,
-dos ícones autorais e dos temas de aplicativo. Tudo
-o que você não declarar é herdado do **pack padrão** — o `catppuccin`, que acompanha o projeto e **pode
+Com os dois primeiros o tema já **funciona**; o `logo.svg` é o que faz o pack
+**passar** no `meow pack validar`. Com isso você já ganha tema do COSMIC,
+esquema do terminal, cores do painel, dos ícones autorais e dos temas de
+aplicativo. Tudo o que você não declarar é
+herdado do **pack padrão** — o `catppuccin`, que acompanha o projeto e **pode
 ser trocado** —, e o `meow pack info` diz exatamente o que veio de onde.
 
 **"Padrão" e não "embutido", e a palavra mudou com o código.** Até 22/09/2026 o
@@ -174,13 +173,14 @@ fora do git ela é irrecuperável.
 
 ## A estrutura do pack
 
-`pack.json`, a paleta e o `logo.svg` são obrigatórios. Todo o resto é opcional.
+`pack.json` e a paleta são obrigatórios para o tema funcionar; o `logo.svg`, para
+o pack se publicar. Todo o resto é opcional.
 
 ```
 packs/<id>/
   pack.json                 OBRIGATÓRIO
   paleta.json               OBRIGATÓRIO (o nome vem de paleta.arquivo)
-  logo.svg                  OBRIGATÓRIO desde 23/09/2026 — quadrado, cores por papel
+  logo.svg                  OBRIGATÓRIO para publicar, desde 23/09/2026 — quadrado, cores por papel
   LEIA-ME.md                a história do pack, em texto (vitrine.descricao)
   capturas/                 fotos de tela, se quiser (vitrine.capturas)
   CREDITOS.md               a procedência de cada acervo — obrigatório se houver arte de terceiro
@@ -930,8 +930,17 @@ como qualquer outra chave.
 ## O logo do pack
 
 Todo pack tem um `logo.svg` na raiz, e ele é **a cara do pack** — o que o
-separa de outro pack de paleta parecida. É obrigatório desde 23/09/2026 (P25):
-o `validar` recusa pack sem ele.
+separa de outro pack de paleta parecida. É obrigatório para publicar desde
+23/09/2026 (P25): o `meow pack validar` recusa pack sem ele.
+
+**Cobrado de quem publica, nunca de quem usa.** O tema de um pack sem logo, ou
+com um logo recusado, continua no ar: o instalador, a paleta, o som e a sonda
+que diz se o pack existe não olham o logo. Se olhassem, um pack de antes de
+23/09 — íntegro em todo o resto — faria o desktop inteiro voltar ao padrão
+depois de uma atualização, com um "não resolve" que nem diria que o motivo é o
+logo, e por causa de uma figura que só o cartão e o lançador mostram. Quem
+cobra é o `meow pack validar` (e o `meow pack listar`, que o chama); quem
+mostra o logo confere o arquivo por conta própria — ver abaixo.
 
 **Por que um logo, e não a tira de cores.** O mockup de 21/09 desenhava a capa
 do cartão de pack como uma tira com as cores da paleta. Tira de cor é paleta,
@@ -939,10 +948,11 @@ não identidade: dois packs de paleta parecida ficam indistinguíveis. O logo é
 cara; a tira continua existindo — embaixo dele, fina, como **amostra** da
 paleta.
 
-**O nome é fixo, e não há campo no `pack.json` para ele.** `packs/<id>/logo.svg`,
-por convenção, como `pack.json` e `CREDITOS.md`. A capa da vitrine (P15) é este
-arquivo: dois campos para a mesma coisa seriam duas verdades, e elas divergem no
-dia em que alguém atualiza só uma.
+**A capa da vitrine é este arquivo, e o campo é um só.** Quando o `pack.json`
+tem `vitrine.capa` (P15), é ele que diz onde o logo mora; sem o campo, vale
+`packs/<id>/logo.svg` — que é também o valor que o campo recomenda. Um
+`vitrine.logo` ao lado de um `vitrine.capa` seriam duas verdades para a mesma
+figura, e elas divergem no dia em que alguém atualiza só uma.
 
 **Quadrado, com `viewBox`** — `viewBox="0 0 128 128"` é o que os dois packs
 daqui usam. O mesmo arquivo serve ao cartão em vários tamanhos e ao lançador,
@@ -992,7 +1002,8 @@ o arquivo leva o bloco resolvido para o `flavor_padrao`, e o MeowSystem o
 **reescreve** a cada resolução. O que vale é a `class`; mudar a cor dentro do
 bloco não muda nada fora do seu editor.
 
-Por isso quem **mostra** o logo não abre o arquivo cru — pergunta:
+Por isso quem **mostra** o logo — o cartão do pack, o ícone do lançador — não
+abre o arquivo cru nem o serve direto a um `<img>`. Pergunta:
 
 ```bash
 python3 scripts/pack.py logo dracula                  # o FLAVOR do ambiente, ou o padrão do pack
@@ -1000,7 +1011,12 @@ python3 scripts/pack.py logo dracula alucard          # um flavor dado
 python3 scripts/pack.py logo dracula alucard pink     # e um accent dado
 ```
 
-A resposta sai pelo stdout, e resolver duas vezes não muda um byte.
+A resposta sai pelo stdout, e resolver duas vezes não muda um byte. O verbo
+**confere o arquivo antes de devolvê-lo**, com as mesmas regras do `validar`
+(abaixo): como o motor não cobra o logo, é essa conferência que impede um logo
+com `<script>` de chegar à tela vindo de um pack que nunca passou pelo
+`meow pack validar`. Sem logo, ou com um recusado, ele sai 1 — não há o que
+mostrar, e o tema segue no ar.
 
 ### Pack sem logo não fica sem cara
 
@@ -1019,9 +1035,16 @@ mantenha as `class`.
   ícone de tema no COSMIC é o resvg, que só desenha texto quando recebe um banco
   de fontes. Uma inicial que some em um renderizador é o logo vazio que esta
   regra veio proibir. Há um glifo por caractere com que um `id` pode começar —
-  `[a-z0-9]` —, e o acento de um nome (`Árvore`) cai na letra base.
+  `[a-z0-9]`.
+- **A inicial é a primeira letra ou algarismo do nome.** Símbolo na frente é
+  pulado (`* Nord` dá `N`), e o acento cai na letra base (`Árvore` dá `A`). Se
+  essa letra não tem glifo — `Ωmega`, `日本` —, a inicial vem do `id`, e não da
+  segunda letra do nome: `m` não é a inicial de `Ωmega`.
 
 ### O que o `validar` cobra do logo
+
+As mesmas regras valem no `meow pack validar` e no verbo `logo`, que é a porta
+de quem mostra.
 
 - **existe, e mora no pack** — um link simbólico para fora é recusado;
 - **é SVG de verdade**: texto, XML, raiz `<svg>` no namespace do SVG. PNG
@@ -1033,10 +1056,22 @@ mantenha as `class`.
   três são portas para imagem ou HTML dentro dele;
 - **nenhuma referência para fora dele**: `href` e `url(…)` só como `#id`, e nada
   de `@import`. Não é só a URL remota: o logo é **copiado** para fora do pack —
-  para o tema de ícones, para o cartão —, e lá um caminho relativo quebra;
+  para o tema de ícones, para o cartão —, e lá um caminho relativo quebra. E as
+  portas laterais da mesma coisa — nas três primeiras, medido no Chromium em
+  23/09/2026, o navegador buscou o arquivo remoto:
+  - o CSS é lido **como o navegador o lê**: `@IMPORT` em maiúscula e os escapes
+    (`@\69mport`, `u\72l(`) contam como `@import` e `url(`, e `image-set()`,
+    que aceita a URL como texto, é recusado;
+  - **nenhuma instrução de processamento** — `<?xml-stylesheet href="…"?>` busca
+    folha de fora, e o navegador a segue. Só a declaração `<?xml …?>` do topo;
+  - **nenhum elemento do HTML** dentro do SVG: fora de um `<foreignObject>` ele
+    não desenha nada, e ainda assim um `<img src>` busca a imagem;
+  - **nenhuma animação do `href`** (`<set attributeName="href" to="…">`): ela
+    não busca nada sozinha, mas é o link trocando de destino depois de
+    conferido;
 - **sem `<!ENTITY>`** — nenhum desenho precisa, e uma entidade que se expande
-  em si mesma trava quem lê. O validador roda na sonda de todo script do
-  projeto; ele não pode travar.
+  em si mesma trava quem lê. Quem lê é também o verbo `logo`, a porta de quem
+  mostra; ele não pode travar.
 
 ### O que ainda não existe, e ninguém deve ler como pronto
 
@@ -1050,13 +1085,10 @@ mantenha as `class`.
   passo vier, a porta é o verbo `logo`, e ele vem com o `meow_lancador_reler`: o
   lançador do COSMIC cacheia ícone (`lancador-cosmic-cacheia-icones`, 11/08), e
   trocar só o arquivo faz parecer que a troca de pack não funcionou.
-- **O cartão do pack na Home** nasceu com a P15 (ver [A vitrine](#a-vitrine)) e
-  mostra o logo, com a tira embaixo, fina, como amostra. Ele serve o `logo.svg`
-  como está no arquivo — a prévia do `flavor_padrao` com o accent `mauve`, o
-  mesmo flavor da tira; medido em 23/09/2026, nos dois packs daqui ela é byte a
-  byte o que `logo <id> <flavor_padrao> mauve` responde. Pedir o `logo <id>` no
-  flavor que está no ar fica para a P10, que faz da Home o lugar de trocar de
-  pack.
+- **O cartão do pack na Home** ainda não existe (P10). Quando existir, ele mostra
+  o que `logo <id>` responde — não o arquivo cru, que traz a prévia do flavor
+  padrão e não passou pela conferência, e não a tira, que desce para baixo do
+  logo como amostra.
 - **`logo-mono.svg`**, a versão de traço único para barra e bandeja, não entrou:
   nada no projeto o leria, e um arquivo declarado sem leitor é a promessa vazia
   que o `validar` avisa em voz alta.
@@ -1129,7 +1161,8 @@ Ele confere, nesta ordem, e **para no primeiro erro**:
 12. **contraste**: `text` sobre `base` precisa passar em WCAG AA (4.5:1) — 26
     hexes aleatórios passam em tudo acima e produzem uma interface ilegível
 13. **o logo**: `logo.svg` existe, é SVG quadrado, sem script, sem imagem
-    embutida e sem nada que aponte para fora dele — ver
+    embutida e sem nada que aponte para fora dele. Cobrado só pelo verbo
+    `validar`: o instalador usa o pack sem logo assim mesmo — ver
     [O logo do pack](#o-logo-do-pack), que diz cada regra e o porquê
 14. **a vitrine** — a capa é o `logo.svg`; a frase curta cabe em 80
     caracteres; a descrição é um `.md` do pack; o `site` é `https://`. Este

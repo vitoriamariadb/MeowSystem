@@ -98,11 +98,12 @@ json.dump({"formato": 1, "id": ident, "nome": ident.capitalize(),
           open(os.path.join(dir_pack, "pack.json"), "w"), indent=2, ensure_ascii=False)
 PY
 # O PACK DE MENTIRA TAMBÉM PRECISA DE CARA — 23/09/2026, sprint P25. Desde ela o
-# `logo.svg` é obrigatório, e sem ele o `validar` recusa o `nord` e dez
-# conferências abaixo caem juntas (medido: a sonda `caminho` deixa de ver o
-# pack, e a ponte cai no padrão). Ele sai do GERADOR, e não de um SVG escrito
-# aqui: é o que um pack novo de verdade recebe, e assim o gerador roda a cada
-# rodada contra uma paleta que não é nenhuma das duas do repositório.
+# `logo.svg` é obrigatório para PUBLICAR, e sem ele o verbo `validar` recusa o
+# `nord`: medido na revisão, caem as três conferências que pedem `validar` com
+# saída 0 (a 1 e as duas da 7). O motor não cobra o logo, então a sonda
+# `caminho` e a ponte seguem vendo o pack. Ele sai do GERADOR, e não de um SVG
+# escrito aqui: é o que um pack novo de verdade recebe, e assim o gerador roda a
+# cada rodada contra uma paleta que não é nenhuma das duas do repositório.
 python3 "$RAIZ/scripts/pack.py" logo-gerado "$PACK_DIR" > "$PACK_DIR/logo.svg" || exit 2
 
 # O ambiente de um pack de terceiro: ele mora onde `$MEOW_PACKS` aponta, e NÃO
