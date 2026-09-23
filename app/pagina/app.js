@@ -3768,13 +3768,25 @@ async function salvarAutoral() {
   });
   AUTORAL.ocupada = false;
   if (r.erro) { AUTORAL.erro = r.erro; torrada(r.erro, "erro"); redesenharAutoral(); return; }
-  /* A TORRADA DIZ ONDE GRAVOU E QUANDO APARECE. Onde, porque um desenho
-   * herdado vira cópia no pack no ar, e ela precisa saber que o do pack de
-   * origem continua como estava. Quando, porque salvar escreve o pack e roda o
-   * gerador — quem instala no tema é a passagem dos ícones. */
-  torrada(`${AUTORAL.nome}: salvo no pack «${r.nome_pack}»`
-          + (r.copiou && AUTORAL.herdadoDe ? `, e o do «${AUTORAL.herdadoDe}» fica como estava` : "")
-          + " — chega à tela na próxima passagem dos ícones", "ok");
+  /* A TORRADA DIZ ONDE GRAVOU E SE APARECE. Onde, porque um desenho herdado
+   * vira cópia no pack no ar, e ela precisa saber que o do pack de origem
+   * continua como estava. Se aparece, porque salvar escreve o pack e roda o
+   * gerador — quem instala no tema é a passagem dos ícones, e ela só instala o
+   * que a tabela dela manda.
+   *
+   * ATÉ A REVISÃO DE 23/09/2026 A SEGUNDA METADE ERA SEMPRE A MESMA: "chega à
+   * tela na próxima passagem dos ícones". Era falso para o Hefesto desta
+   * máquina, que veste a logo dela, e para todo desenho declarado sem linha no
+   * `completar_icones.sh`. O `na_tela` vem medido do tema pelo servidor (ver
+   * o fim do `_api_autorais`): vazio quer dizer que nenhum ícone na tela é este
+   * desenho, e salvar não muda o que se vê. */
+  const onde = `${AUTORAL.nome}: salvo no pack «${r.nome_pack}»`
+             + (r.copiou && AUTORAL.herdadoDe ? `, e o do «${AUTORAL.herdadoDe}» fica como estava` : "");
+  if ((r.na_tela || []).length) {
+    torrada(onde + " — chega à tela na próxima passagem dos ícones", "ok");
+  } else {
+    torrada(onde + ". Nenhum ícone na tela usa este desenho hoje: o pack mudou, a tela não", "igual");
+  }
   AUTORAL.carregou = false;
   render();
 }

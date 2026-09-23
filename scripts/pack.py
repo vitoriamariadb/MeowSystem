@@ -604,6 +604,18 @@ def cmd_alvo(base):
 #   · nada de script, `foreignObject`, `on*=` ou `href` para fora. Um pack de
 #     terceiro escreve o dado dele, e este SVG vai para o tema de quem instala.
 MARCA_ACCENT = "<accent>"
+# A PASTA DE QUEM NÃO DECLARA `desenhos` — 23/09/2026, revisão da P26
+#   O modelo de pack do docs/PACKS.md declara só `"autorais": { "gerar": true }`.
+#   Para esse pack o `dir_acervo` do gerador e do «Salvar no pack» cai no
+#   padrão e ESCREVE em `icones/autorais/`, e o `autorais()` lia só a pasta
+#   DECLARADA — então não lia nada ali. Medido na revisão, numa cópia
+#   descartável: `validar` ok, `construir` ok com 22 SVG e nenhum do desenho
+#   novo; e pelo painel, «salvo no pack» com `foto` em red, e o SVG regerado
+#   saindo em overlay0 — a declaração herdada vencia a cópia que acabara de ser
+#   gravada. Leitura e escrita perguntam agora ao mesmo `dir_acervo`, com este
+#   padrão; o `DESTINO` do gerador e o `onde` do `completar_icones.sh` passam o
+#   mesmo texto, e os três têm de continuar iguais.
+PASTA_AUTORAIS = "icones/autorais/"
 LACUNAS_DO_GERADOR = ("titulo",)
 RE_PAPEL = re.compile(r"^[a-z][a-z0-9_]*$")
 RE_LACUNA = re.compile(r"\{([^{}]*)\}")
@@ -724,19 +736,21 @@ def autorais(ref=None):
         dir_pack = achar(ref)
         if not dir_pack:
             break
-        declarado = campo(ref, "icones.autorais.desenhos")
-        if isinstance(declarado, str) and declarado:
-            try:
-                _dentro(dir_pack, declarado, "icones.autorais.desenhos")
-                pasta = os.path.join(dir_pack, declarado)
-            except Recusa as e:
-                print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
-                pasta = ""
-            if pasta and os.path.isdir(pasta):
-                for arq in sorted(os.listdir(pasta)):
-                    if arq.endswith(".json"):
-                        achados.setdefault(arq[:-len(".json")],
-                                           (os.path.join(pasta, arq), os.path.basename(dir_pack)))
+        # A PASTA É A DO `dir_acervo`, COM O MESMO PADRÃO — ver `PASTA_AUTORAIS`.
+        #   Vale em toda camada, e não só na do próprio pack: um pack base sem
+        #   `desenhos` lê as declarações dele em `icones/autorais/`, e quem o
+        #   herda tem de ver o mesmo conjunto que ele vê.
+        try:
+            pasta = dir_acervo("icones.autorais.desenhos", ref=dir_pack,
+                               padrao=PASTA_AUTORAIS)
+        except Recusa as e:
+            print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
+            pasta = ""
+        if pasta and os.path.isdir(pasta):
+            for arq in sorted(os.listdir(pasta)):
+                if arq.endswith(".json"):
+                    achados.setdefault(arq[:-len(".json")],
+                                       (os.path.join(pasta, arq), os.path.basename(dir_pack)))
         ref = campo(ref, "icones.autorais.herda") or campo(ref, "heranca")
     return achados
 
@@ -1143,11 +1157,17 @@ def validar(ref, silencioso=False):
     #   SÓ AS DO PRÓPRIO PACK: a declaração herdada é validada no pack de onde
     #   ela vem. E a paleta não precisa ser consultada de novo — uma declaração
     #   só aceita os 26 nomes que todo pack é obrigado a ter, conferidos acima.
-    pasta_aut = (ic.get("autorais") or {}).get("desenhos")
-    if pasta_aut and os.path.isdir(os.path.join(dir_pack, pasta_aut)):
-        for arq in sorted(os.listdir(os.path.join(dir_pack, pasta_aut))):
+    #
+    #   A PASTA É A MESMA QUE O GERADOR LÊ (revisão, 23/09/2026): a declarada ou,
+    #   sem `desenhos`, a `PASTA_AUTORAIS`. Conferir só a declarada, com o
+    #   `autorais()` já lendo a padrão, deixaria o pack do modelo do PACKS.md
+    #   passar aqui com qualquer `.json` naquela pasta, e a recusa só sairia no
+    #   `construir`, dentro do instalador.
+    pasta_aut = dir_acervo("icones.autorais.desenhos", ref=dir_pack, padrao=PASTA_AUTORAIS)
+    if os.path.isdir(pasta_aut):
+        for arq in sorted(os.listdir(pasta_aut)):
             if arq.endswith(".json"):
-                ler_autoral(os.path.join(dir_pack, pasta_aut, arq))
+                ler_autoral(os.path.join(pasta_aut, arq))
 
     if (p.get("cosmic") or {}).get("mapa"):
         alvo = _dentro(dir_pack, p["cosmic"]["mapa"], "cosmic.mapa")

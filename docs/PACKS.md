@@ -522,7 +522,10 @@ vence a herdada de mesmo nome.
 **`desenhos` continua sendo um diretório**, e a spec da P26 pedia um glob
 (`"icones/autorais/*.json"`). Ela foi escrita antes de a P27 dar a esse campo o
 sentido de "a pasta onde os autorais do pack moram" — que é por onde o gerador
-sabe onde escrever. As declarações são os `.json` daquela pasta.
+sabe onde escrever. As declarações são os `.json` daquela pasta. **Sem
+`desenhos`** — é o caso do modelo lá em cima, que declara só `"gerar": true` —
+a pasta é `icones/autorais/`, para ler e para escrever: até a revisão de
+23/09/2026 o gerador escrevia ali e não lia dali, e o desenho novo sumia calado.
 
 Um terceiro desenho entra **sem tocar em Python**:
 
@@ -542,7 +545,10 @@ python3 scripts/pack.py construir dracula     # gera meu-app-dracula.svg e -aluc
 desenho, os papéis dele com a cor em cada flavor, e a prévia — cada flavor sobre
 quatro fundos da paleta dele (`crust`, `base`, `overlay0`, `text`). Escolher
 uma cor repinta a prévia; só **Salvar no pack** grava, no pack que está no ar, e
-roda o gerador para ele.
+roda o gerador para ele. A torrada diz se o desenho chega à tela, **medindo** o
+tema: se algum ícone instalado tem a forma dele, a próxima passagem dos ícones o
+troca; se nenhum tem (o Hefesto que veste a logo dela, ou o desenho sem linha no
+`AUTORAL`), ela diz que o pack mudou e a tela não.
 
 ### O acervo do pack é uma origem na oficina
 

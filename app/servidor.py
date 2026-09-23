@@ -7222,7 +7222,8 @@ class Manipulador(BaseHTTPRequestHandler):
     # prévia e não grava nada. A P21 já separou "o que o uso suja" de "o desenho
     # que a pessoa adota, que vai para o pack dela por gesto explícito" — este
     # botão é o segundo caso. O `.json` é gravado e o gerador roda para o pack,
-    # na paleta dele; o ícone chega à tela na próxima passagem dos ícones.
+    # na paleta dele. Se o ícone chega à tela, a resposta diz MEDINDO — ver o
+    # `na_tela`, no fim.
     def _api_autorais(self, corpo):
         mod = modulo_pack()
         if not mod:
@@ -7306,7 +7307,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
         try:
             pasta = mod.dir_acervo("icones.autorais.desenhos", ref=dir_pack,
-                                   padrao="icones/autorais/")
+                                   padrao=mod.PASTA_AUTORAIS)
         except mod.Recusa as e:
             return self._json({"erro": str(e)}, 422)
         # O ARQUIVO INTEIRO SOBREVIVE, e só o `papeis` muda — a mesma regra do
@@ -7344,8 +7345,49 @@ class Manipulador(BaseHTTPRequestHandler):
         if r.returncode != 0:
             return self._json({"erro": "gravei o desenho, e o gerador recusou: %s"
                                        % (r.stderr or r.stdout).strip()[-400:]}, 500)
+
+        # A TELA É MEDIDA, E NÃO PROMETIDA — 23/09/2026, revisão da P26
+        #   A torrada dizia sempre "chega à tela na próxima passagem dos
+        #   ícones", e nesta máquina isso só era verdade para o FogStripper. O
+        #   Hefesto veste a logo que ela desenhou (`__LOGO_DELA__` no
+        #   `completar_icones.sh`; o `hefesto.json` conta por quê), e um
+        #   desenho declarado sem linha na tabela `AUTORAL` de lá nasce no pack
+        #   e não veste ícone nenhum. Copiar aquela tabela para cá seria a
+        #   segunda verdade sobre ela; o que esta rota pode é MEDIR o tema.
+        #
+        #   A pergunta é "algum SVG do tema tem a FORMA deste desenho?". Cor e
+        #   <title> saem da comparação: cor é justamente o que salvar muda, e o
+        #   título carrega o flavor de quem gerou — o que está na tela pode ser
+        #   de outro acento, de um salvar anterior ou do pack de antes, e
+        #   continua sendo este desenho. Achou: a próxima passagem troca aquele
+        #   arquivo pelo novo. Não achou: o pack mudou e a tela não, e a página
+        #   diz isso em vez de prometer.
+        def _forma(texto):
+            texto = re.sub(r"<title>.*?</title>", "", texto, flags=re.S)
+            return re.sub(r"#[0-9A-Fa-f]{3,8}\b", "#", texto).strip()
+        formas = set()
+        for flavor in (paleta.get("flavors") or {}):
+            try:
+                with open(os.path.join(pasta, "%s-%s.svg" % (nome, flavor)), encoding="utf-8") as fh:
+                    formas.add(_forma(fh.read()))
+            except OSError:
+                continue
+        tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
+        alvo = os.path.expanduser("~/.local/share/icons/%s/scalable/apps" % tema)
+        na_tela = []
+        try:
+            instalados = sorted(a for a in os.listdir(alvo) if a.endswith(".svg"))
+        except OSError:
+            instalados = []
+        for arq in instalados:
+            try:
+                with open(os.path.join(alvo, arq), encoding="utf-8", errors="replace") as fh:
+                    if _forma(fh.read(400000)) in formas:
+                        na_tela.append(arq[:-len(".svg")])
+            except OSError:
+                continue
         return self._json({"ok": True, "pack": id_pack, "nome_pack": nome_pack,
-                           "copiou": dono != id_pack,
+                           "copiou": dono != id_pack, "na_tela": na_tela,
                            "arquivo": os.path.relpath(destino, dir_pack)})
 
     def _travas_do_arcticons(self):
