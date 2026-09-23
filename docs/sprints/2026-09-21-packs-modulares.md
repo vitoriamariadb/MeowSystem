@@ -1432,6 +1432,27 @@ meow doctor    # 55 conferências, nenhuma divergente
 
 # P28 — A fonte única: um desenho no pack, todo o resto derivado
 
+> **CORREÇÃO DE 23/09, e ela derruba o diagnóstico desta sprint — não a
+> decisão.** O que está escrito abaixo em "O que medi" afirma que o
+> `apps-resgatados.map` *"manda buscar a arte fora do repositório"* e que *"o
+> auto-reparo reinstala o arquivo de terceiro"*. **Os dois são falsos.** A
+> coluna do meio daquele mapa é PROCEDÊNCIA — onde o PNG foi achado em 11/09 —
+> e o próprio cabeçalho dele diz isso nas linhas 34-40. O
+> `icones_resgatados.sh` lê só o nome e instala sempre
+> `assets/icones/resgatados/<nome>.svg`, que é arte do projeto.
+>
+> O agente que executou a sprint mediu, bloqueou, e avisou que seguir a
+> tabela ao pé da letra teria tirado 17 desenhos do tema, 8 deles dela. A
+> implementação que entrou (commit `ae9696b`) tirou do mapa **só** o
+> `net.waterfox.waterfox` — que é o que devia sair, porque ele passou a vir do
+> pack — e manteve os outros 21.
+>
+> **O que continua de pé, e foi entregue:** a decisão dele (o Waterfox veste o
+> Firefox-Dracula, do ramo `circle`, copiado com procedência), a regra 8
+> (`meow pack sincronizar`), o `meow icones fonte` e a seção "Fonte e
+> derivados" do `docs/PACKS.md`. O resto do texto abaixo fica como registro do
+> que eu pensava em 21/09.
+
 **A diretriz, dele, 21/09/2026:**
 
 > *"Qual a ideia: unificando tudo em packs dentro do MeowSystem, centralizar os
