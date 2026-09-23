@@ -4096,8 +4096,28 @@ PY
       meow_seco && seco=(--seco)
       python3 "$RAIZ/scripts/pack.py" importar "$arquivo" "$@" ${seco[@]+"${seco[@]}"}
       ;;
+    # `de-csv` — a paleta entra por CSV, 23/09/2026, sprint P16
+    #   Imprime o `paleta.json` equivalente a um CSV `slot,flavor,hex`, com o
+    #   claro derivado quando o CSV não traz um. SÓ IMPRIME, como o
+    #   `logo-gerado`: quem põe o arquivo num pack é a pessoa, com `>`.
+    #   Gravar o pack inteiro é o `meow pack novo <id> --de-csv <arquivo>`, e ele
+    #   é PENDÊNCIA DA P16 [revisão, 23/09/2026]: o `novo` nasce na P11, que não
+    #   tinha entrado no dev, e aqui não se escreve um segundo `novo` em paralelo.
+    #   Quando ela entrar, o `--de-csv` vira um ramo do `cmd_novo` dela — o que
+    #   falta está em "A PALETA ENTRA POR CSV", no scripts/pack.py.
+    #
+    #   UM ARGUMENTO SÓ, E O SEGUNDO É RECUSADO [revisão da P16, 23/09/2026].
+    #   Os outros verbos ignoram o que sobra; este não pode, porque o segundo
+    #   argumento de um conversor tem cara de destino: `de-csv cores.csv
+    #   paleta.json` imprimia no terminal, e o paleta.json ficava como estava.
+    de-csv|csv)
+      local arq="${1:-}"
+      [ -n "$arq" ] || { meow_erro "diga qual CSV: meow pack de-csv <cores.csv> > paleta.json"; return "$MEOW_ERRO"; }
+      [ $# -eq 1 ] || { meow_erro "um CSV só, e o destino vai pelo '>': meow pack de-csv $arq > paleta.json"; return "$MEOW_ERRO"; }
+      python3 "$RAIZ/scripts/pack.py" de-csv "$arq"
+      ;;
     -h|--help|ajuda)
-      printf 'uso: meow pack [listar|usar <id>|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|importar <arquivo>|raizes]\n\n'
+      printf 'uso: meow pack [listar|usar <id>|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|importar <arquivo>|de-csv <arq>|raizes]\n\n'
       printf '  listar           os packs instalados, e se cada um valida\n'
       printf '  usar <id> [fl]   troca o pack da máquina: grava PACK e FLAVOR e aplica\n'
       printf '  validar <id>     confere o pack inteiro; 0 = ok\n'
@@ -4109,6 +4129,7 @@ PY
       printf '                   o pack num arquivo só, para mandar a alguém\n'
       printf '  importar <arquivo.meowpack>\n'
       printf '                   confere, e instala como opção — não troca o seu tema\n'
+      printf '  de-csv <arq>     a paleta.json de um CSV slot,flavor,hex; só imprime\n'
       printf '  raizes           onde o MeowSystem procura\n\n'
       printf 'A especificação do formato está em docs/PACKS.md.\n'
       ;;

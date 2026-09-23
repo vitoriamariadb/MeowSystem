@@ -1616,6 +1616,237 @@ else
   falha "o instalar_fontes.sh não leu as fontes do pack (rc=$rc)" "$saida"
 fi
 
+# --- 22. a paleta entra por CSV — 23/09/2026, P16 ----------------------------
+#
+#   "a ideia é darmos via json ou csv um theme completo." Um CSV de 26 linhas,
+#   um flavor escuro e nada mais, vira um pack que VALIDA — e o claro que ele
+#   não trouxe nasce derivado e diz que é derivado.
+#
+#   AS CORES SÃO AS DO `dracula` ESCURO, E ISSO É A PROVA DO MÉTODO. O claro
+#   derivado tem de sair igual ao `alucard` versionado, 26 de 26: a sprint
+#   manda usar o método que gerou o alucard, e não inventar outro. Se alguém
+#   "melhorar" a derivação, este teste diz que ela deixou de ser a do projeto.
+#
+#   O PACK É MONTADO À MÃO, e não pelo `meow pack novo --de-csv`, porque o
+#   `novo` nasce na P11, que ainda não entrou: aqui se confere a TRADUÇÃO (o
+#   verbo `de-csv`) e que o resultado passa pela mesma porta de todo pack. O
+#   `--de-csv` é pendência DA P16 — ver "A PALETA ENTRA POR CSV" no pack.py —,
+#   e quando ele for ligado, este bloco passa a chamá-lo.
+CSV_ID="$ID-csv"; CSV_DIR="$PACKS/$CSV_ID"; mkdir -p "$CSV_DIR"
+python3 - "$RAIZ" "$T/cores.csv" "$T/duas.csv" <<'PY' || exit 2
+import json, sys
+d = json.load(open(sys.argv[1] + "/packs/dracula/paleta.json", encoding="utf-8"))
+with open(sys.argv[2], "w", encoding="utf-8") as fh:
+    fh.write("slot,flavor,hex\n")
+    for s in d["ordem_canonica"]:
+        fh.write(f"{s},tinta,{d['flavors']['dracula'][s]}\n")
+# O mesmo, com o claro trazido pela pessoa: aí nada se deriva.
+with open(sys.argv[3], "w", encoding="utf-8") as fh:
+    fh.write("slot,flavor,hex\n")
+    for f, nome in (("dracula", "tinta"), ("alucard", "papel")):
+        for s in d["ordem_canonica"]:
+            fh.write(f"{s},{nome},{d['flavors'][f][s]}\n")
+PY
+[ "$(wc -l < "$T/cores.csv")" = "27" ] || falha "o CSV de teste não tem cabeçalho + 26 linhas"
+
+amb python3 "$RAIZ/scripts/pack.py" de-csv "$T/cores.csv" > "$CSV_DIR/paleta.json" 2> "$T/csv.err"; rc=$?
+aviso_csv="$(cat "$T/csv.err")"
+[ "$rc" = "0" ] \
+  && ok "o CSV de 26 linhas vira paleta.json (rc=0)" \
+  || falha "o de-csv recusou um CSV certo (rc=$rc)" "$aviso_csv"
+# A RÉGUA AVISA E NÃO BLOQUEIA. As cores oficiais do Dracula reprovam em
+# `blue` contra o Latte — então o aviso TEM de aparecer, com o slot, e o rc
+# acima TEM de ser 0. As duas coisas juntas são a regra da sprint.
+[[ "$aviso_csv" == *"aviso"*"régua de contraste"*"tinta: blue/base"* ]] \
+  && ok "a régua de contraste avisa com a lista do que reprovou, sem bloquear" \
+  || falha "a régua de contraste não disse o que reprovou" "$aviso_csv"
+
+saida="$(amb python3 - "$RAIZ" "$CSV_DIR/paleta.json" <<'PY' 2>&1
+import json, sys
+d = json.load(open(sys.argv[1] + "/packs/dracula/paleta.json", encoding="utf-8"))
+o = json.load(open(sys.argv[2], encoding="utf-8"))
+erros = []
+if o.get("claros") != ["tintaclaro"] or o.get("derivados") != {"tintaclaro": "tinta"}:
+    erros.append("claros/derivados: %r %r" % (o.get("claros"), o.get("derivados")))
+else:
+    dif = [s for s in d["ordem_canonica"]
+           if o["flavors"]["tintaclaro"][s].upper() != d["flavors"]["alucard"][s].upper()]
+    if dif:
+        erros.append("o claro derivado difere do alucard em %d slot(s): %s" % (len(dif), ", ".join(dif)))
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "o claro derivado é o alucard, 26 de 26 — o método é o do projeto, não um segundo" \
+  || falha "a derivação do claro deixou de ser a que gerou o alucard" "$saida"
+
+python3 - "$CSV_DIR" "$CSV_ID" "$(basename "$padrao")" <<'PY' || exit 2
+import json, os, sys
+dir_pack, ident, padrao = sys.argv[1:4]
+json.dump({"formato": 1, "id": ident, "nome": "Tinta", "heranca": padrao,
+           "paleta": {"arquivo": "paleta.json", "flavor_padrao": "tinta"},
+           "vitrine": {"capa": "logo.svg"}},
+          open(os.path.join(dir_pack, "pack.json"), "w"), indent=2, ensure_ascii=False)
+PY
+amb python3 "$RAIZ/scripts/pack.py" logo-gerado "$CSV_ID" > "$CSV_DIR/logo.svg" || exit 2
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$CSV_ID" 2>&1)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "o pack feito de CSV valida (rc=0)" \
+  || falha "o pack feito de CSV não valida (rc=$rc)" "$saida"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" info "$CSV_ID" 2>&1)"
+[[ "$saida" == *"claro: derivado do escuro pelo método do Latte (não é próprio)"* ]] \
+  && ok "o info diz que o claro é derivado, e não próprio" \
+  || falha "o info não diz que o claro foi derivado" "$saida"
+
+# A TELA MOSTRA O QUE VEIO POR HERANÇA E O QUE VEIO POR DERIVAÇÃO. É o risco
+# que a sprint declara: um pack de CSV tem paleta e nada mais, e sem isto a
+# pessoa acha que ganhou menos do que ganhou.
+saida="$(amb python3 - "$RAIZ" "$CSV_ID" <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+p = [p for p in servidor.packs_com_vitrine() if p["id"] == sys.argv[2]][0]
+erros = []
+if "herdado de" not in p.get("origem", ""):
+    erros.append("o cartão não diz o que veio por herança: %r" % p.get("origem"))
+if p.get("claros_derivados") != [{"flavor": "tintaclaro", "de": "tinta"}]:
+    erros.append("o cartão não diz que o claro é derivado: %r" % p.get("claros_derivados"))
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "o /api/packs leva a herança e o claro derivado para o cartão" \
+  || falha "o cartão do pack de CSV esconde de onde vieram as coisas" "$saida"
+# A ETIQUETA TORTA É COBRADA DE QUEM PUBLICA, E NÃO TIRA O TEMA DO DESKTOP. Um
+# `derivados` apontando para um flavor que não existe: o `validar` recusa, a
+# sonda `caminho` do motor continua vendo o pack, e o `info` não inventa a
+# frase de derivado a partir de uma etiqueta que não confere.
+cp "$CSV_DIR/paleta.json" "$T/paleta-boa.json"
+python3 - "$CSV_DIR/paleta.json" <<'PY' || exit 2
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+d["derivados"] = {"tintaclaro": "nenhum"}
+json.dump(d, open(sys.argv[1], "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+PY
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$CSV_ID" 2>&1)"; rc=$?
+amb python3 "$RAIZ/scripts/pack.py" caminho "$CSV_ID" id >/dev/null 2>&1; rc_motor=$?
+info="$(amb python3 "$RAIZ/scripts/pack.py" info "$CSV_ID" 2>&1)"
+[ "$rc" = "1" ] && [[ "$saida" == *"'derivados'"*"tintaclaro"* ]] && [ "$rc_motor" = "0" ] \
+  && [[ "$info" != *"derivado do escuro"* ]] \
+  && ok "o derivados torto é recusado no validar, sem tirar o pack do motor" \
+  || falha "o derivados torto passou, ou tirou o pack do motor (validar=$rc caminho=$rc_motor)" "$saida
+$info"
+# `claros: null` passa no `validar` (ele cobra a chave, não o tipo) e chega ao
+# cartão. Com um `derivados` que pareceria bom, o `claros_derivados` levantava
+# TypeError fora do try do `packs_com_vitrine`, e o /api/packs INTEIRO caía —
+# medido na revisão da P16, 23/09/2026. Quem só mostra não derruba a lista.
+python3 - "$CSV_DIR/paleta.json" "$T/paleta-boa.json" <<'PY' || exit 2
+import json, sys
+d = json.load(open(sys.argv[2], encoding="utf-8"))
+d["claros"] = None
+json.dump(d, open(sys.argv[1], "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+PY
+saida="$(amb python3 - "$RAIZ" "$CSV_ID" <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+p = [p for p in servidor.packs_com_vitrine() if p["id"] == sys.argv[2]][0]
+print(p.get("claros_derivados"))
+sys.exit(0 if p.get("claros_derivados") == [] else 1)
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "claros: null não derruba o /api/packs, e o cartão não inventa derivado" \
+  || falha "claros: null derrubou o /api/packs (rc=$rc)" "$saida"
+cp "$T/paleta-boa.json" "$CSV_DIR/paleta.json"
+
+corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+printf '%s\n' "$corpo" | grep -q 'p.claros_derivados' \
+  && ok "o cartão de pack desenha a linha do claro derivado" \
+  || falha "o cartão de pack não lê claros_derivados"
+# "Traga as 26 linhas no CSV" não dizia para onde, e a tela não tem onde: o
+# importar que aceitaria o .csv é pendência da P16 sobre a P11. Até ele
+# existir, o cartão aponta o único caminho que existe [revisão, 23/09/2026].
+printf '%s\n' "$corpo" | grep -q 'meow pack de-csv' \
+  && ok "o cartão diz onde trocar o claro derivado: meow pack de-csv" \
+  || falha "o cartão manda trocar o claro sem dizer onde"
+
+# Com o claro trazido no CSV, nada se deriva: a medida (base mais luminoso que
+# text) acha o claro, e o `derivados` não aparece.
+saida="$(amb python3 "$RAIZ/scripts/pack.py" de-csv "$T/duas.csv" 2>/dev/null)"; rc=$?
+[ "$rc" = "0" ] && [[ "$saida" == *'"claros": ['*'"papel"'* ]] && [[ "$saida" != *'"derivados"'* ]] \
+  && ok "com o claro no CSV, ele é reconhecido pela medida e nada é derivado" \
+  || falha "o CSV com claro próprio foi derivado mesmo assim (rc=$rc)" "$saida"
+
+# AS RECUSAS DIZEM A LINHA. Slot desconhecido com o número e o nome; slot
+# faltando com a lista; hex torto; slot repetido; cabeçalho ausente. E o STDOUT
+# fica vazio: quem redirecionou para um paleta.json não recebe meio arquivo.
+# E o prefixo é do CSV, não de pack: "pack recusado" com pack nenhum envolvido
+# mandava a pessoa procurar o defeito num pack.json que ela nem escreveu.
+#
+# O CSV ENTRA POR `< <(...)`, E NÃO POR PIPE [23/09/2026, revisão da P16]. Do
+# lado direito de um `|` a função roda num subshell, e o `falhas` que ela soma
+# morre com ele: as seis recusas imprimiam FALHOU e a suíte saía 0 — medido ao
+# escrever o teste do prefixo, com seis FALHOU e "1 achado(s)" no rodapé.
+recusa_csv() {  # <rótulo> <texto esperado na mensagem> — o CSV vem do stdin
+  cat > "$T/ruim.csv"
+  local out err rc
+  out="$(amb python3 "$RAIZ/scripts/pack.py" de-csv "$T/ruim.csv" 2> "$T/ruim.err")"; rc=$?
+  err="$(cat "$T/ruim.err")"
+  [ "$rc" = "1" ] && [ -z "$out" ] && [[ "$err" == *"$2"* ]] \
+    && [[ "$err" == "  erro o CSV não virou paleta: "* ]] \
+    && ok "recusa $1 (rc=1): $2" \
+    || falha "não recusou $1 como devia (rc=$rc)" "$err"
+}
+recusa_csv "o slot desconhecido" "ruim.csv:5: slot desconhecido 'mauv'" < <(sed 's/^mauve,/mauv,/' "$T/cores.csv")
+recusa_csv "o slot faltando" "não tem 2 slot(s):
+      teal, crust" < <(sed '/^crust,/d; /^teal,/d' "$T/cores.csv")
+recusa_csv "o hex sem #" "ruim.csv:16: text = 'F8F8F2' não é #RRGGBB" < <(sed 's/^text,tinta,#/text,tinta,/' "$T/cores.csv")
+recusa_csv "o slot repetido" "já veio na linha 25" < <(cat "$T/cores.csv"; printf 'base,tinta,#000000\n')
+recusa_csv "o CSV sem cabeçalho" "ruim.csv:1: a primeira linha tem de ser o cabeçalho" < <(tail -n +2 "$T/cores.csv")
+# A mensagem diz "uma palavra só", e 'Meu Tema' passava: o flavor com espaço
+# vira FLAVOR="Meu Tema" no meow.conf e "Meu Tema-mauve" no nome do tema.
+recusa_csv "o flavor com espaço" "ruim.csv:2: flavor 'Meu Tema' — uma palavra só" < <(sed 's/,tinta,/,Meu Tema,/' "$T/cores.csv")
+# E "sem espaço" não bastava [revisão da P16, 23/09/2026]: 'x$(id)' passava, e
+# o meow.conf é lido com `.` — no FLAVOR=, o '$(id)' é comando. O `\$` abaixo é
+# para ESTE shell não rodá-lo ao montar a expectativa.
+recusa_csv "o flavor com \$(…)" "ruim.csv:2: flavor 'x\$(id)' — uma palavra só, em minúsculas" < <(sed 's/,tinta,/,x$(id),/' "$T/cores.csv")
+recusa_csv "o flavor com maiúscula" "ruim.csv:2: flavor 'Tinta' — uma palavra só" < <(sed 's/,tinta,/,Tinta,/' "$T/cores.csv")
+# E UMA VEZ SÓ: o nome está nas 26 linhas, e 26 recusas iguais enterravam o resto.
+n="$(grep -c "flavor 'Tinta'" "$T/ruim.err")"
+[ "$n" = "1" ] \
+  && ok "o flavor recusado sai uma vez, na primeira linha dele" \
+  || falha "o flavor recusado saiu $n vez(es), uma por linha" "$(head -6 "$T/ruim.err")"
+# O CSV mais provável de chegar é o do Excel em português, com ';'. Ele é
+# recusado — adivinhar separador seria um segundo formato —, mas dizendo qual.
+recusa_csv "o CSV com ';', dizendo qual é o defeito" "este arquivo usa ';'" < <(sed 's/,/;/g' "$T/cores.csv")
+
+# O HEX SAI EM MAIÚSCULAS, E O `text` REPROVADO SAI UMA VEZ SÓ. Um CSV todo
+# minúsculo, com o `text` quase da cor do `base`: reprova na régua absoluta
+# (AAA) e na relativa (95% do Latte), e aparecia duas vezes no aviso, com a
+# contagem de reprovações uma a mais [revisão da P16, 23/09/2026].
+sed 's/#\(.*\)$/#\L\1/; s/^text,tinta,.*/text,tinta,#303240/' "$T/cores.csv" > "$T/minusc.csv"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" de-csv "$T/minusc.csv" 2> "$T/minusc.err")"; rc=$?
+aviso_csv="$(cat "$T/minusc.err")"
+n_text="$(grep -c 'tinta: text/base' "$T/minusc.err")"
+[ "$rc" = "0" ] && [ "$n_text" = "1" ] && [[ "$aviso_csv" == *"o \`validar\` recusa o pack"* ]] \
+  && ok "o text reprovado nas duas réguas sai uma vez só, dizendo que o validar recusa" \
+  || falha "o text reprovado saiu $n_text vez(es) no aviso (rc=$rc)" "$aviso_csv"
+[ "$rc" = "0" ] && [[ "$saida" == *'"base": "#282A36"'* ]] && ! grep -q '"#[0-9A-F]*[a-f]' <<< "$saida" \
+  && ok "o hex minúsculo do CSV sai em maiúsculas, como nas paletas daqui" \
+  || falha "o hex do CSV não saiu em maiúsculas" "$(grep -n '"#[0-9A-F]*[a-f]' <<< "$saida" | head -3)"
+
+# UM CSV SÓ, E O SEGUNDO ARGUMENTO É RECUSADO. `de-csv cores.csv paleta.json`
+# tem cara de "converta para lá", e imprimia no terminal deixando o paleta.json
+# como estava [revisão da P16, 23/09/2026].
+saida="$(env MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" MEOW_ESTADO="$T/estado" \
+         "$RAIZ/bin/meow" pack de-csv "$T/cores.csv" "$T/destino.json" 2>&1)"; rc=$?
+[ "$rc" != "0" ] && [[ "$saida" == *"um CSV só"* ]] && [ ! -e "$T/destino.json" ] \
+  && ok "meow pack de-csv com dois argumentos recusa, e diz que o destino vai pelo '>'" \
+  || falha "meow pack de-csv aceitou um segundo argumento (rc=$rc)" "$saida"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

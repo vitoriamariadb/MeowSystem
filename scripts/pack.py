@@ -64,6 +64,11 @@ VERBOS
                                  imprime o logo gerado (a inicial sobre o base,
                                  o accent de contorno). Não escreve: quem o põe
                                  no pack é a pessoa, com `>`.
+    de-csv  <arquivo.csv>        a paleta.json equivalente a um CSV de três
+                                 colunas (slot,flavor,hex), no STDOUT. O claro
+                                 que faltar sai derivado pelo método do Latte,
+                                 e a régua de contraste avisa no STDERR sem
+                                 bloquear. Não escreve. Ver `paleta_de_csv`.
     som     <id>                 o timbre do pack, como CHAVE=valor para o shell
     ponteiro [id]                o ponteiro PRÓPRIO que o pack alcança — o dele,
                                  ou o de quem ele herda. Imprime, para o shell:
@@ -1625,11 +1630,19 @@ def tipografia(ref=None):
     return None, []
 
 
+def _rgb(hexcor):
+    """'#RRGGBB' em (r, g, b) de 0 a 1. O parse é um só [revisão da P16, 23/09/2026]:
+    a derivação do claro precisa dele solto, e duas cópias do mesmo fatiamento
+    divergem no dia em que uma aceitar '#RGB' e a outra não."""
+    return tuple(int(hexcor[i:i + 2], 16) / 255 for i in (1, 3, 5))
+
+
 def _luminancia(hexcor):
-    """Luminância relativa de WCAG 2.x. Usada no teste de contraste e, desde a
+    """Luminância relativa de WCAG 2.x. Usada no teste de contraste; desde a
     P10 (23/09/2026), pelo `paleta_css` do painel, para achar o escuro mais
-    escuro e o claro mais claro do pack — a mesma régua nos dois lugares."""
-    r, g, b = (int(hexcor[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    escuro e o claro mais claro do pack; e, desde a P16, pela derivação do
+    claro — a mesma régua nos três lugares."""
+    r, g, b = _rgb(hexcor)
     def canal(c):
         return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
     r, g, b = canal(r), canal(g), canal(b)
@@ -1657,6 +1670,372 @@ def _dentro(base, alvo, campo):
     if not cheio.startswith(os.path.realpath(base) + os.sep):
         raise Recusa(f"{campo}: {alvo!r} sai de dentro do pack")
     return cheio
+
+
+# --- A PALETA ENTRA POR CSV — 23/09/2026, sprint P16 ------------------------
+#
+# O PEDIDO, NAS PALAVRAS DELE
+#   *"a ideia é darmos via json ou csv um theme completo."* O `paleta.json` tem
+#   `ordem_canonica`, `claros`, `nomes` e `flavors` — natural para quem
+#   programa. O designer que ele descreve tem outra coisa na mão: 26 cores numa
+#   coluna do Figma. Vinte e seis linhas `slot,flavor,hex` é o que ele já sabe
+#   fazer, e é a única coisa que este bloco pede.
+#
+# O CSV É ENTRADA; O JSON CONTINUA SENDO A FORMA CANÔNICA
+#   Nenhum leitor do projeto passa a entender CSV. Este bloco o traduz UMA vez
+#   para o `paleta.json` equivalente, e dali em diante é o JSON que manda — um
+#   formato de leitura e um de escrita. Dois formatos aceitos em todo leitor
+#   seriam cada consumidor de paleta escolhendo, por conta própria, qual dos
+#   dois vence quando os dois estão no pack: a divergência silenciosa do
+#   cabeçalho deste arquivo.
+#
+# FUNÇÃO PURA, E O VERBO SÓ IMPRIME
+#   `paleta_de_csv` lê o CSV e a régua, e devolve o dicionário: não escreve em
+#   lugar nenhum. O verbo `de-csv` o imprime no STDOUT, como o `logo-gerado`, e
+#   quem põe o arquivo num pack é a pessoa, com `>`.
+#
+# O `novo --de-csv` É PENDÊNCIA DA P16, E NÃO DA P11 [revisão, 23/09/2026]
+#   A sprint pede `meow pack novo <id> --de-csv <arquivo>` (item 2) e a tela
+#   de importar aceitando `.csv` (item 5), e os dois ficaram por fazer AQUI. O
+#   `novo`, o `/api/pack-importar` e a tela de importar nascem na P11, e ela
+#   não tinha entrado no dev quando esta foi escrita (medido: zero `novo` no
+#   `bin/meow`, zero `pack-importar` no servidor e no app.js do dev 249d60a).
+#   A spec da P11 não fala de CSV; quem deve o `--de-csv` é a P16. Não há um
+#   segundo `novo` em paralelo: dois `novo` escritos ao mesmo tempo, em duas
+#   sprints, é o conflito que ninguém resolveria igual duas vezes.
+#   O QUE FALTA, quando a P11 entrar: no `cmd_novo` dela, o ramo `--de-csv`
+#   troca a leitura da paleta no ar por `paleta_de_csv(arquivo)`, o
+#   `flavor_padrao` passa a ser o primeiro flavor do CSV, e a régua e a
+#   notícia do claro derivado saem como no `cmd_de_csv`; o importar da tela
+#   aceita o `.csv` e mostra o claro derivado com o jeito de trocá-lo (o risco
+#   que a sprint declara: "a tela precisa deixar trocar").
+#
+# O CLARO DERIVADO É O MÉTODO DO ALUCARD, E NÃO UM SEGUNDO
+#   As três regras de docs/PACKS.md, "Se o seu tema não tem um claro", viraram
+#   código uma vez só: `scripts/derivar_claro.py`, em 19/09/2026, que gerou o
+#   `alucard`. Aquele script crava o `dracula` na leitura e grava num arquivo de
+#   /tmp, então não serve de biblioteca, e ele não está entre os arquivos da
+#   P16. O `derivar_claro` abaixo é o MESMO algoritmo, passo a passo e com os
+#   mesmos números (S < 0,10, 12 tentativas de -0,07 em S, 40 passos de busca,
+#   o ajuste do `text` até 7,02). A prova de que não é um método novo é medida,
+#   e o `tests/pack.sh` a cobra: dadas as 26 cores do `dracula`, ele devolve o
+#   `alucard` versionado — 26 de 26 iguais. Os dois agora são duas cópias do
+#   mesmo algoritmo; unificá-las é mexer no `derivar_claro.py`, e fica dito.
+#
+# A RÉGUA É O LATTE DO PACK PADRÃO, NOMEADO
+#   O método se chama "do Latte" porque a calibração É o Latte, e o
+#   `derivar_claro.py` explica por que ela não acompanha o pack ativo: a régua
+#   mudaria junto com o tema e o resultado deixaria de ser reprodutível. O
+#   arquivo sai do `dir_padrao()`, que é a porta do nome do pack padrão; o
+#   flavor, desta constante. Um padrão futuro sem `latte` faz a derivação parar
+#   com o nome do que falta, e não inventar outra régua calada.
+REFERENCIA_CLARA = "latte"
+COLUNAS_CSV = ("slot", "flavor", "hex")
+RE_FLAVOR_CSV = re.compile(r"^[a-z0-9]+$")   # ver "O FLAVOR É [a-z0-9]", abaixo
+# O nome do claro derivado é o do escuro com `claro` colado. Colado porque
+# nome de flavor não tem hífen (ver o `validar`, 19/09/2026), e com o nome do
+# escuro na frente porque o `.ron` do COSMIC é gravado por flavor: dois packs
+# feitos de CSV com um flavor chamado só `claro` disputariam o mesmo arquivo.
+SUFIXO_DO_CLARO = "claro"
+
+# NÃO PIOR QUE O LATTE É "NÃO ABAIXO DE 95% DELE", E ISTO FOI MEDIDO
+#   O docs/PACKS.md diz "cada slot não pior que o Latte no mesmo slot". Lido ao
+#   pé da letra, o próprio `alucard` reprova em 21 dos 26 slots — `rosewater`
+#   2,32 contra 2,34, `mauve` 4,76 contra 4,79 —, porque a derivação MIRA a
+#   luminância do Latte e o arredondamento para hexa cai um centésimo abaixo.
+#   A régua que o gerou é 95% (`derivar_claro.py`, e o `_comentario` da paleta
+#   do Dracula diz o mesmo com todas as letras). É ela que vale aqui: uma régua
+#   que reprova o precedente que a define é uma régua errada.
+TOLERANCIA_DA_REGUA = 0.95
+MINIMO_TEXTO = 7.0     # `text` sobre `base`, WCAG AAA — é onde a pessoa lê
+# Abaixo disto o `validar` RECUSA; a régua só avisa. É ESTA constante que o
+# `validar` lê [revisão da P16, 23/09/2026]: com o 4.5 escrito nos dois lugares,
+# mudar o piso de um deixaria o aviso da régua prometendo uma recusa que não vem.
+MINIMO_VALIDAR = 4.5
+
+
+def _hexa(r, g, b):
+    return "#%02X%02X%02X" % tuple(max(0, min(255, round(c * 255))) for c in (r, g, b))
+
+
+def _referencia_clara():
+    """As 26 cores do Latte, lidas do pack padrão. Recusa dizendo o que falta."""
+    caminho = os.path.join(dir_padrao(), "paleta.json")
+    try:
+        with open(caminho, encoding="utf-8") as fh:
+            return json.load(fh)["flavors"][REFERENCIA_CLARA]
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        raise Recusa(f"a régua do claro é o flavor {REFERENCIA_CLARA!r} de {caminho}, "
+                     f"e ele não pôde ser lido ({e.__class__.__name__}: {e}).\n"
+                     f"    Sem ela o claro não se deriva — ver docs/PACKS.md,\n"
+                     f"    'Se o seu tema não tem um claro'.")
+
+
+def derivar_claro(escuro, referencia):
+    """O flavor claro de um escuro: matiz do tema, (S, luminância) da referência.
+
+    As três regras de docs/PACKS.md, na ordem em que o `derivar_claro.py` as
+    aprendeu — o porquê de cada uma está lá, com a tentativa que falhou antes.
+    """
+    import colorsys
+    h_base = colorsys.rgb_to_hsv(*_rgb(escuro["base"]))[0]
+    claro = {}
+    for k in SLOTS:
+        # Regra 3: o matiz de um quase-neutro é ruído, e o que define a família
+        # do tema é o matiz do `base`. O `text` #F8F8F2 do Dracula, saturado
+        # pelo matiz dele mesmo, virou um oliva que o tema não tem.
+        h_d, s_d, _ = colorsys.rgb_to_hsv(*_rgb(escuro[k]))
+        if s_d < 0.10:
+            h_d = h_base
+        # Regras 1 e 2: a saturação e a LUMINÂNCIA vêm da referência. Mirar a
+        # luminância, e não o V, é o que faz o amarelo e o azul chegarem ao
+        # mesmo brilho percebido — com S e V copiados o `yellow` saía a 1,30.
+        s_l = colorsys.rgb_to_hsv(*_rgb(referencia[k]))[1]
+        alvo = _luminancia(referencia[k])
+        for tentativa in range(12):
+            # Se nem V=1 alcança o alvo com aquela saturação (o azul, com S
+            # alto, não chega a claro nenhum), afrouxa S e tenta de novo.
+            s = max(0.0, s_l - tentativa * 0.07)
+            lo, hi = 0.0, 1.0
+            for _ in range(40):
+                mid = (lo + hi) / 2
+                if _luminancia(_hexa(*colorsys.hsv_to_rgb(h_d, s, mid))) < alvo:
+                    lo = mid
+                else:
+                    hi = mid
+            cand = _hexa(*colorsys.hsv_to_rgb(h_d, s, (lo + hi) / 2))
+            if abs(_luminancia(cand) - alvo) < 0.01:
+                break
+        claro[k] = cand
+    # O `text` é o único slot com exigência ABSOLUTA, e mirar a luminância do
+    # Latte o deixa a 6,99 — o arredondamento, não o método. Ele desce V aos
+    # poucos até passar; os outros são comparados com o Latte, e lá é relativo.
+    while contraste(claro["text"], claro["base"]) < MINIMO_TEXTO + 0.02:
+        h, sv, vv = colorsys.rgb_to_hsv(*_rgb(claro["text"]))
+        vv -= 0.004
+        if vv <= 0:
+            break
+        claro["text"] = _hexa(*colorsys.hsv_to_rgb(h, sv, vv))
+    return claro
+
+
+def regua_de_contraste(dados, referencia):
+    """As linhas que reprovam na régua do docs/PACKS.md. NÃO levanta: avisa.
+
+    A régua vale para TODO flavor, escuro ou claro, e é simétrica: contraste
+    não tem direção, e o Latte é o piso que as quatro variantes do Catppuccin
+    cumprem — medido em 23/09/2026, mocha, frappe e macchiato passam nela. A
+    decisão de publicar abaixo dela é de quem fez o tema; a régua é do projeto.
+    """
+    saida = []
+    for flavor, cores in dados["flavors"].items():
+        r_text = contraste(cores["text"], cores["base"])
+        if r_text < MINIMO_TEXTO:
+            saida.append(f"{flavor}: text/base {r_text:.2f} — AAA pede {MINIMO_TEXTO:.1f}"
+                         + (f"; abaixo de {MINIMO_VALIDAR} o `validar` recusa o pack"
+                            if r_text < MINIMO_VALIDAR else ""))
+        for s in SLOTS:
+            # O `text` que já saiu pela régua absoluta não sai de novo pela
+            # relativa [revisão da P16, 23/09/2026]: reprovado nas duas, ele
+            # aparecia duas vezes na lista, e a contagem do aviso dizia uma
+            # reprovação a mais do que as que existem.
+            if s == "text" and r_text < MINIMO_TEXTO:
+                continue
+            r = contraste(cores[s], cores["base"])
+            ref = contraste(referencia[s], referencia["base"])
+            if r < ref * TOLERANCIA_DA_REGUA:
+                saida.append(f"{flavor}: {s}/base {r:.2f} — o {REFERENCIA_CLARA.capitalize()} faz "
+                             f"{ref:.2f} no mesmo slot")
+    return saida
+
+
+def claros_derivados(dados):
+    """{claro: escuro de onde ele saiu}, só das entradas que fazem sentido.
+
+    O campo `derivados` do `paleta.json` é o que faz o claro derivado DIZER que
+    é derivado, no `info` e no cartão. Ele é lido com tolerância — um pack de
+    terceiro pode tê-lo escrito torto, e quem só MOSTRA não derruba o pack por
+    causa de uma etiqueta; quem recusa é o `validar`, na porta de quem publica.
+    """
+    deriv = dados.get("derivados")
+    # O `claros` também: o `validar` cobra a chave e não o tipo, e um
+    # `claros: null` levantava TypeError aqui — fora do try do
+    # `packs_com_vitrine`, derrubando o /api/packs de TODOS os packs por causa
+    # da etiqueta de um só. Medido na revisão da P16, 23/09/2026.
+    claros = dados.get("claros")
+    if not isinstance(deriv, dict) or not isinstance(claros, list):
+        return {}
+    return {c: e for c, e in deriv.items()
+            if isinstance(c, str) and isinstance(e, str)
+            and c in claros and e in dados["flavors"]}
+
+
+def paleta_de_csv(caminho):
+    """O dicionário do `paleta.json` equivalente a um CSV `slot,flavor,hex`.
+
+    Recusa com TODOS os problemas de uma vez, cada um com a linha: consertar um
+    por rodada é o que faz alguém desistir. Slot desconhecido diz a linha e o
+    nome; slot faltando diz a lista do que falta, por flavor.
+
+    Um flavor é CLARO quando o `base` dele é mais luminoso que o `text` — a
+    medida, e não o nome. Se o CSV não traz nenhum claro, o primeiro flavor
+    (o que vira o `flavor_padrao`) ganha um derivado, e o `derivados` da saída
+    diz de onde ele saiu. Não escreve nada.
+    """
+    import csv
+    nome = os.path.basename(caminho)
+    # `utf-8-sig` porque é assim que planilha exporta: o Excel e o LibreOffice
+    # põem um BOM no início, e sem isto o cabeçalho lido é "﻿slot" — um
+    # CSV certo recusado por um caractere que ninguém vê.
+    try:
+        with open(caminho, encoding="utf-8-sig", newline="") as fh:
+            linhas = list(csv.reader(fh))
+    except OSError as e:
+        raise Recusa(f"{caminho}: não consegui ler — {e.strerror}")
+    except UnicodeDecodeError:
+        raise Recusa(f"{caminho}: não é texto UTF-8. Exporte o CSV como UTF-8.")
+    corpo = [(n, [c.strip() for c in lin]) for n, lin in enumerate(linhas, 1)
+             if any(c.strip() for c in lin)]
+    _exigir(corpo, f"{nome}: está vazio. A primeira linha é o cabeçalho "
+                   f"{','.join(COLUNAS_CSV)}, e depois uma linha por cor.")
+    n_cab, cab = corpo[0]
+    # O PONTO E VÍRGULA GANHA DICA, E NÃO ACEITAÇÃO [revisão da P16, 23/09/2026]
+    #   O Excel em português salva "CSV" com ';', porque a vírgula é o decimal
+    #   daqui — é o CSV mais provável de chegar. Adivinhar o separador seria um
+    #   segundo formato de entrada; dizer o que houve custa uma linha.
+    dica = ("\n    O separador é a vírgula, e este arquivo usa ';' — é como o Excel em\n"
+            "    português salva. Troque os ';' por ',' e rode de novo."
+            if len(cab) == 1 and ";" in cab[0] else "")
+    _exigir(tuple(c.lower() for c in cab) == COLUNAS_CSV,
+            f"{nome}:{n_cab}: a primeira linha tem de ser o cabeçalho "
+            f"{','.join(COLUNAS_CSV)} — veio {','.join(cab)!r}.\n"
+            f"    As colunas são fixas: é o que deixa o erro dizer a linha certa.{dica}")
+
+    erros, flavors, onde, flavor_recusado = [], {}, {}, set()
+    for num, cel in corpo[1:]:
+        if len(cel) != len(COLUNAS_CSV):
+            erros.append(f"{nome}:{num}: {len(cel)} coluna(s) — são três: {','.join(COLUNAS_CSV)}")
+            continue
+        slot, flavor, hexcor = cel
+        if slot not in SLOTS:
+            erros.append(f"{nome}:{num}: slot desconhecido {slot!r}. Os 26 nomes estão\n"
+                         f"    em docs/PACKS.md, 'As 26 cores', e são minúsculos.")
+            continue
+        # O FLAVOR É [a-z0-9], E NÃO "QUALQUER COISA SEM HÍFEN" [revisão da P16,
+        #   23/09/2026]. Medido na revisão: 'a/b', 'Tinta' e 'x$(id)' passavam,
+        #   como 'Meu Tema' antes do 5dd3c32. O nome vai para três lugares que
+        #   não o aguentam: o
+        #   '<flavor>-<accent>' do arquivo de tema (a barra vira diretório), o
+        #   `FLAVOR=` do meow.conf, que o `bin/meow` lê com `.` (o '$(id)' é
+        #   comando), e o painel, que compara flavor SEM caixa (o
+        #   `_pack_do_sabor`, em app/servidor.py, baixa os dois lados) enquanto
+        #   o arquivo de tema é gravado COM caixa — 'Tinta' e 'tinta' seriam um
+        #   flavor para um e dois para o outro. Minúsculas, como os seis
+        #   flavors versionados. Esta porta é a do CSV, e é ela que fecha aqui;
+        #   o `validar` tem a mesma folga desde antes, e ela fica dita, não mexida.
+        # Uma vez por flavor, na primeira linha dele: o nome se repete nas 26
+        # linhas, e 26 cópias da mesma recusa enterravam os outros erros.
+        if not RE_FLAVOR_CSV.match(flavor):
+            if flavor not in flavor_recusado:
+                flavor_recusado.add(flavor)
+                erros.append(f"{nome}:{num}: flavor {flavor!r} — uma palavra só, em minúsculas,\n"
+                             f"    de letras a-z e dígitos: o tema é gravado como '<flavor>-<accent>',\n"
+                             f"    e o nome vai para o FLAVOR= do meow.conf.")
+            continue
+        if (flavor, slot) in onde:
+            erros.append(f"{nome}:{num}: {slot} do flavor {flavor!r} já veio na linha "
+                         f"{onde[(flavor, slot)]}. Uma cor por slot: com duas, quem\n"
+                         f"    venceria é a última lida, e ninguém escolheu isso.")
+            continue
+        # O slot com hex torto CONTA COMO VISTO: ele já é um erro com a linha
+        # dele, e aparecer de novo na lista dos que faltam mandaria a pessoa
+        # procurar uma linha que ela escreveu.
+        onde[(flavor, slot)] = num
+        if not RE_HEX.match(hexcor):
+            erros.append(f"{nome}:{num}: {slot} = {hexcor!r} não é #RRGGBB")
+            continue
+        # MAIÚSCULAS, PORQUE É A FORMA CANÔNICA [revisão da P16, 23/09/2026]:
+        # as 146 cores com letra das duas paletas versionadas são todas
+        # maiúsculas, e o claro derivado sai do `_hexa` assim. Um CSV minúsculo
+        # dava uma paleta com as duas caixas, o escuro de um jeito e o claro do outro.
+        flavors.setdefault(flavor, {})[slot] = hexcor.upper()
+    for flavor in dict.fromkeys(f for f, _ in onde):
+        faltam = [s for s in SLOTS if (flavor, s) not in onde]
+        if faltam:
+            erros.append(f"{nome}: o flavor {flavor!r} não tem {len(faltam)} slot(s):\n"
+                         f"      {', '.join(faltam)}")
+    _exigir(flavors or erros, f"{nome}: tem o cabeçalho e nenhuma cor.")
+    _exigir(not erros, "\n  erro ".join(erros))
+
+    ordem = list(flavors)
+    claros = [f for f in ordem if _luminancia(flavors[f]["base"]) > _luminancia(flavors[f]["text"])]
+    nomes = {f: f.capitalize() for f in ordem}
+    derivados = {}
+    if not claros:
+        escuro = ordem[0]
+        novo = escuro + SUFIXO_DO_CLARO
+        _exigir(novo not in flavors,
+                f"{nome}: o claro derivado de {escuro!r} se chamaria {novo!r}, e esse\n"
+                f"    flavor já está no CSV — e é escuro. Renomeie um dos dois.")
+        flavors[novo] = derivar_claro(flavors[escuro], _referencia_clara())
+        nomes[novo] = f"{nomes[escuro]} claro"
+        claros, derivados[novo] = [novo], escuro
+
+    # Sem sprint e sem data [revisão da P16, 23/09/2026]: a paleta é de quem a
+    # gerou, e um "(P16, 23/09/2026)" cravado em toda saída se lia como a data
+    # da geração, que é outra. A história do verbo mora neste arquivo.
+    comentario = (f"Gerada de {nome} pelo `meow pack de-csv`. O CSV foi a "
+                  f"ENTRADA; esta paleta.json é a forma canônica, e é ela que o MeowSystem "
+                  f"lê: edite aqui, ou gere de novo a partir do CSV.")
+    for claro, escuro in derivados.items():
+        comentario += (f" O flavor '{claro}' NÃO foi desenhado: foi derivado de '{escuro}' "
+                       f"pelo método do Latte (docs/PACKS.md, 'Se o seu tema não tem um "
+                       f"claro') — é o que o campo `derivados` registra. Para ter o seu, "
+                       f"traga as 26 linhas dele no CSV.")
+    dados = {"_comentario": comentario,
+             "ordem_canonica": list(SLOTS),
+             "claros": claros,
+             "nomes": nomes,
+             "flavors": {f: {s: flavors[f][s] for s in SLOTS} for f in flavors}}
+    if derivados:
+        dados["derivados"] = derivados
+    return dados
+
+
+def cmd_de_csv(caminho):
+    """Imprime o `paleta.json` do CSV. O que é notícia vai no STDERR."""
+    # O PREFIXO É DO CSV, E NÃO DE PACK [revisão da P16, 23/09/2026]. Pela porta
+    #   geral do `main`, um CSV torto saía "erro pack recusado: cores.csv:1: …",
+    #   sem pack nenhum envolvido — e quem lê "pack" vai procurar num pack.json.
+    #   A régua entra no mesmo try porque ela também lê o Latte do pack padrão,
+    #   e a falta dele é o mesmo "o CSV não virou paleta", não outra notícia.
+    try:
+        dados = paleta_de_csv(caminho)
+        reprovados = regua_de_contraste(dados, _referencia_clara())
+    except Recusa as e:
+        print(f"  erro o CSV não virou paleta: {e}", file=sys.stderr)
+        return RECUSADO
+    derivados = claros_derivados(dados)
+    lidos = [f for f in dados["flavors"] if f not in derivados]
+    print(f"  ok   {os.path.basename(caminho)}: {len(lidos)} flavor(s), "
+          f"26 slots conferidos — {', '.join(lidos)}", file=sys.stderr)
+    for claro, escuro in derivados.items():
+        print(f"  --   {claro}: claro derivado de {escuro!r} pelo método do Latte — "
+              f"não é próprio.\n"
+              f"       Para ter o seu, traga as 26 linhas dele no CSV.", file=sys.stderr)
+    # A RÉGUA AVISA E NÃO BLOQUEIA, E O CÓDIGO DE SAÍDA CONTINUA 0
+    #   A sprint é explícita: "a régua é do projeto; a decisão é de quem fez o
+    #   tema". Medido em 23/09/2026: as cores oficiais do Dracula reprovam em
+    #   três slots contra o Latte (`blue` 3,03 contra 4,34, `red` e `surface0`),
+    #   e bloquear aqui recusaria o tema que o próprio projeto já veste. O que
+    #   não pode é o silêncio: a lista inteira sai, e antes do JSON.
+    if reprovados:
+        print(f"  aviso {len(reprovados)} abaixo da régua de contraste (docs/PACKS.md) — "
+              f"não bloqueia, a decisão é sua:", file=sys.stderr)
+        for linha in reprovados:
+            print(f"          {linha}", file=sys.stderr)
+    sys.stdout.write(json.dumps(dados, indent=2, ensure_ascii=False) + "\n")
+    return OK
 
 
 # --- O LOGO DO PACK — 23/09/2026, sprint P25 --------------------------------
@@ -2359,9 +2738,9 @@ def validar(ref, silencioso=False):
     # 26 hexes aleatórios passam em tudo acima e produzem interface ilegível.
     for flavor, cores in dados["flavors"].items():
         r = contraste(cores["text"], cores["base"])
-        _exigir(r >= 4.5,
+        _exigir(r >= MINIMO_VALIDAR,
                 f"{arq}: no flavor {flavor!r}, 'text' sobre 'base' tem contraste "
-                f"{r:.2f}:1 — WCAG AA pede 4.5:1.\n"
+                f"{r:.2f}:1 — WCAG AA pede {MINIMO_VALIDAR}:1.\n"
                 f"      text={cores['text']}  base={cores['base']}\n"
                 f"    Com esse contraste a interface fica ilegível. Escureça o fundo\n"
                 f"    ou clareie o texto.")
@@ -2626,6 +3005,21 @@ def validar(ref, silencioso=False):
             yield trilha, no
     for trilha, u in urls(p):
         _exigir(u.startswith("https://"), f"{trilha}: {u!r} — só https é aceito")
+
+    # --- o claro derivado ---------------------------------------------------
+    # O `derivados` da paleta é a etiqueta que faz um claro derivado DIZER que é
+    # derivado [23/09/2026, P16]. Só na porta de quem publica, como a vitrine
+    # logo abaixo: uma etiqueta torta não pode tirar o tema do desktop, e quem
+    # só mostra (`info`, `/api/packs`) a lê pelo `claros_derivados`, que ignora
+    # o que não faz sentido. Quem publica ouve o que está torto.
+    if not silencioso and "derivados" in dados:
+        bons = claros_derivados(dados)
+        deriv = dados["derivados"]
+        tortos = sorted(set(deriv) - set(bons)) if isinstance(deriv, dict) else ["(não é um objeto)"]
+        _exigir(not tortos,
+                f"{arq}: 'derivados' é {{claro: escuro de onde ele saiu}} — o claro\n"
+                f"    listado em 'claros', o escuro em 'flavors'. Não confere: "
+                f"{', '.join(map(str, tortos))}")
 
     # --- vitrine ------------------------------------------------------------
     # Só na porta de quem PUBLICA — ver `vitrine`, acima, "ELA É COBRADA DE QUEM
@@ -2900,7 +3294,17 @@ def cmd_info(ref):
     print(f"  diretório : {dir_pack}")
     print(f"  herança   : {base}")
     print(f"  flavors   : {', '.join(sorted(dados['flavors']))}")
-    print(f"  claros    : {', '.join(dados['claros']) or '(nenhum)'}")
+    # O CLARO DERIVADO DIZ NA CARA QUE É DERIVADO [23/09/2026, P16]. A sprint
+    #   registra o risco com as palavras certas: derivar é opinativo, e o
+    #   `alucard` de 19/09 só saiu depois de três correções do método (o
+    #   `derivar_claro.py` conta as três). Um claro que nasceu do
+    #   CSV sem ninguém desenhá-lo aparecendo aqui igual a um desenhado seria o
+    #   "fingido" que ela proíbe.
+    derivados = claros_derivados(dados)
+    claros = [f"{c} — claro: derivado do escuro pelo método do Latte (não é próprio), "
+              f"a partir de {derivados[c]!r}" if c in derivados else c
+              for c in dados["claros"]]
+    print(f"  claros    : {', '.join(claros) or '(nenhum)'}")
     # O `info` MOSTRA O PACK MESMO COM A VITRINE QUEBRADA, e diz o que falta: ele
     # é a pergunta de quem está consertando, e esconder o pack inteiro atrás de
     # uma capa ausente não ajudaria ninguém a achar a capa.
@@ -4095,6 +4499,10 @@ def main(argv):
             return OK
         if verbo == "logo-gerado" and 3 <= len(argv) <= 5:
             return cmd_logo_gerado(argv[2], *argv[3:])
+        # A PALETA DO CSV TAMBÉM SAI PELO STDOUT, pelo motivo do logo acima: o
+        # `pack.py` não escreve dentro de pack. Ver "A PALETA ENTRA POR CSV".
+        if verbo == "de-csv" and len(argv) == 3:
+            return cmd_de_csv(argv[2])
         if verbo == "som" and len(argv) == 3:
             return cmd_som(argv[2])
         # O `[id]` VAZIO É O PACK ATIVO, como no verbo `app`: o shell passa

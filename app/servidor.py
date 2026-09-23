@@ -966,6 +966,12 @@ def packs_com_vitrine():
             "capturas": [base_url + "&arte=%d" % i for i in range(len(vit["capturas"]))],
             "site": vit["site"] or "",
             "origem": mod.resumo_de_origem(p),
+            # O CLARO QUE NINGUÉM DESENHOU [23/09/2026, P16]. Um pack feito de
+            # CSV pode ter o flavor claro DERIVADO, e o cartão tem de dizer —
+            # ao lado da linha de herança, que já diz que o resto vem de outro
+            # pack. Sai do mesmo `claros_derivados` do `meow pack info`.
+            "claros_derivados": [{"flavor": c, "de": e}
+                                 for c, e in mod.claros_derivados(dados).items()],
             "amostra": [cores[s] for s in mod.SLOTS if s in cores],
             "problemas": problemas,
             # O PACK VIRA ESCOLHA, E O `meow pack info` VIRA TELA — P10
