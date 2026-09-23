@@ -4,13 +4,13 @@ Um **theme pack** é um diretório que diz ao MeowSystem que cores usar — e, s
 quiser, que ícones, que papéis de parede e que agente. O MeowSystem lê o pack e
 escreve no seu desktop; **ele nunca escreve dentro do pack.**
 
-O pack mais simples que se publica tem três arquivos e nenhuma linha de código.
+O pack mais simples que funciona tem três arquivos e nenhuma linha de código.
 
 ```
 packs/meu-tema/
   pack.json      quem é o pack e o que ele fornece
   paleta.json    as 26 cores
-  logo.svg       a cara do pack — a capa do cartão onde ele é escolhido
+  logo.svg       a cara do pack, e a capa do cartão onde ele é escolhido — ver "O logo do pack"
 ```
 
 Com os dois primeiros o tema já **funciona**; o terceiro é o que faz o pack
@@ -44,6 +44,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [Quem vence: o pack ou o `meow.conf`](#quem-vence-o-pack-ou-o-meowconf)
 - [O tema do COSMIC, e o único passo manual que existe](#o-tema-do-cosmic-e-o-único-passo-manual-que-existe)
 - [O som](#o-som)
+- [O logo do pack](#o-logo-do-pack)
 - [O que um pack não pode fazer](#o-que-um-pack-não-pode-fazer)
 - [Validar antes de publicar](#validar-antes-de-publicar)
 - [Publicar](#publicar)
@@ -172,13 +173,13 @@ fora do git ela é irrecuperável.
 
 ## A estrutura do pack
 
-`pack.json`, a paleta e a capa são obrigatórios. Todo o resto é opcional.
+`pack.json`, a paleta e o `logo.svg` são obrigatórios. Todo o resto é opcional.
 
 ```
 packs/<id>/
   pack.json                 OBRIGATÓRIO
   paleta.json               OBRIGATÓRIO (o nome vem de paleta.arquivo)
-  logo.svg                  OBRIGATÓRIO para publicar: a capa (vitrine.capa) — ver "A vitrine"
+  logo.svg                  OBRIGATÓRIO desde 23/09/2026 — quadrado, cores por papel
   LEIA-ME.md                a história do pack, em texto (vitrine.descricao)
   capturas/                 fotos de tela, se quiser (vitrine.capturas)
   CREDITOS.md               a procedência de cada acervo — obrigatório se houver arte de terceiro
@@ -910,6 +911,136 @@ No painel: **Manutenção → Som de evento**, com o botão «Ouvir».
 E lembre da precedência: um `SOM_*` no `meow.conf` da máquina vence o do pack,
 como qualquer outra chave.
 
+## O logo do pack
+
+Todo pack tem um `logo.svg` na raiz, e ele é **a cara do pack** — o que o
+separa de outro pack de paleta parecida. É obrigatório desde 23/09/2026 (P25):
+o `validar` recusa pack sem ele.
+
+**Por que um logo, e não a tira de cores.** O mockup de 21/09 desenhava a capa
+do cartão de pack como uma tira com as cores da paleta. Tira de cor é paleta,
+não identidade: dois packs de paleta parecida ficam indistinguíveis. O logo é a
+cara; a tira continua existindo — embaixo dele, fina, como **amostra** da
+paleta.
+
+**O nome é fixo, e não há campo no `pack.json` para ele.** `packs/<id>/logo.svg`,
+por convenção, como `pack.json` e `CREDITOS.md`. A capa da vitrine (P15) é este
+arquivo: dois campos para a mesma coisa seriam duas verdades, e elas divergem no
+dia em que alguém atualiza só uma.
+
+**Quadrado, com `viewBox`** — `viewBox="0 0 128 128"` é o que os dois packs
+daqui usam. O mesmo arquivo serve ao cartão em vários tamanhos e ao lançador,
+que pede 48, 64, 128 e 256. Desenhe pensando em **48 px**: é o tamanho em que
+ele mais aparece, e ali um detalhe de 1 px some.
+
+### As cores vêm da paleta, por papel
+
+Nenhuma forma do logo precisa de hex. Cada forma diz, na `class`, o **papel**
+que cumpre, e o MeowSystem resolve o papel para uma cor da paleta do pack — a
+mesma regra que o `scripts/gerar_icones_autorais.py` cumpre no cabeçalho dele
+(*"o desenho nasce da paleta — nenhum hex é digitado aqui"*), levada para um
+arquivo que é dado:
+
+| `class` | pinta | com |
+|---|---|---|
+| `fundo` | `fill` | `base` |
+| `tinta` | `fill` | `text` |
+| `sujeito` | `fill` | o accent (`ACCENT`; `mauve` na falta) |
+| `traco-fundo`, `traco-tinta`, `traco-sujeito` | `stroke` | o mesmo papel, no traço |
+| um dos 26 nomes (`pink`, `surface1`…), e `traco-<nome>` | `fill` / `stroke` | aquela cor, para quem precisar de uma quarta |
+
+É isso que faz o logo **acompanhar o flavor claro sem redesenho**: no claro o
+`text` escurece e o `base` clareia, e o logo descrito por papel se inverte junto.
+Medido em 23/09/2026 nos dois logos daqui: o do Dracula resolvido no `alucard`
+sai com `#4A4F67`, `#853AF2` e `#F0F0F6` — as três da paleta do alucard,
+**nenhuma** do latte —, e o `sujeito` fica acima de 4,5:1 contra o `fundo` nos
+quatro flavors conferidos (5,90 no dracula, 4,76 no alucard, 8,07 no mocha,
+4,79 no latte).
+
+Um logo sem papel nenhum, com hex fixo, **não é recusado**. Ele só fica igual em
+todo flavor.
+
+### O bloco `meow-papeis` é prévia, não fonte
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <style id="meow-papeis">.fundo{fill:#282A36}.sujeito{fill:#BD93F9}</style>
+  <rect class="fundo" x="4" y="4" width="120" height="120" rx="28"/>
+  <path class="sujeito" d="…"/>
+</svg>
+```
+
+Sem ele, o arquivo aberto cru — no editor de SVG, na prévia do git — é um
+quadrado preto: forma sem `fill` é preta, e quem desenha precisa ver cor. Então
+o arquivo leva o bloco resolvido para o `flavor_padrao`, e o MeowSystem o
+**reescreve** a cada resolução. O que vale é a `class`; mudar a cor dentro do
+bloco não muda nada fora do seu editor.
+
+Por isso quem **mostra** o logo não abre o arquivo cru — pergunta:
+
+```bash
+python3 scripts/pack.py logo dracula                  # o FLAVOR do ambiente, ou o padrão do pack
+python3 scripts/pack.py logo dracula alucard          # um flavor dado
+python3 scripts/pack.py logo dracula alucard pink     # e um accent dado
+```
+
+A resposta sai pelo stdout, e resolver duas vezes não muda um byte.
+
+### Pack sem logo não fica sem cara
+
+```bash
+python3 scripts/pack.py logo-gerado meu-tema > ~/.local/share/meowsystem/packs/meu-tema/logo.svg
+```
+
+A inicial do nome, em traço, sobre o `base` do pack, com o accent de contorno.
+Feio e honesto é melhor que ausente — e é ponto de partida: abra, redesenhe,
+mantenha as `class`.
+
+- **O verbo só imprime.** Quem põe o arquivo no pack é você, com o `>`: o
+  MeowSystem não escreve dentro de pack, e sobrescrever um logo que alguém
+  desenhou seria o erro que não se desfaz com Ctrl+C.
+- **A letra é caminho, e não `<text>`.** Texto depende de fonte, e quem desenha
+  ícone de tema no COSMIC é o resvg, que só desenha texto quando recebe um banco
+  de fontes. Uma inicial que some em um renderizador é o logo vazio que esta
+  regra veio proibir. Há um glifo por caractere com que um `id` pode começar —
+  `[a-z0-9]` —, e o acento de um nome (`Árvore`) cai na letra base.
+
+### O que o `validar` cobra do logo
+
+- **existe, e mora no pack** — um link simbólico para fora é recusado;
+- **é SVG de verdade**: texto, XML, raiz `<svg>` no namespace do SVG. PNG
+  renomeado não passa;
+- **`viewBox` quadrado**;
+- **sem `<script>`, e sem atributo `on…`** (`onload`, `onclick`) — é script com
+  outra roupa;
+- **sem `<image>`, `<feImage>` ou `<foreignObject>`** — um logo é vetor, e os
+  três são portas para imagem ou HTML dentro dele;
+- **nenhuma referência para fora dele**: `href` e `url(…)` só como `#id`, e nada
+  de `@import`. Não é só a URL remota: o logo é **copiado** para fora do pack —
+  para o tema de ícones, para o cartão —, e lá um caminho relativo quebra;
+- **sem `<!ENTITY>`** — nenhum desenho precisa, e uma entidade que se expande
+  em si mesma trava quem lê. O validador roda na sonda de todo script do
+  projeto; ele não pode travar.
+
+### O que ainda não existe, e ninguém deve ler como pronto
+
+- **O ícone do lançador ainda não é o logo.** A P25 pediu que o `.desktop` do
+  MeowSystem apontasse para o logo do pack ativo. Medido em 23/09/2026: quem
+  escreve aquele `.desktop` é o `scripts/atalho.sh` (`Icon=com.meowsystem.Painel`,
+  um nome de tema, pelos motivos escritos lá), e quem instala o ícone com esse
+  nome é o `scripts/completar_icones.sh`, a partir do autoral
+  `meowsystem-painel-<flavor>.svg`. Os dois ficaram fora da sprint, que nomeava o
+  `scripts/logo.sh` — e esse é dono dos gatos do dock, não do `.desktop`. Quando o
+  passo vier, a porta é o verbo `logo`, e ele vem com o `meow_lancador_reler`: o
+  lançador do COSMIC cacheia ícone (`lancador-cosmic-cacheia-icones`, 11/08), e
+  trocar só o arquivo faz parecer que a troca de pack não funcionou.
+- **O cartão do pack na Home** ainda não existe (P10). Quando existir, ele mostra
+  o que `logo <id>` responde — não a tira, que desce para baixo do logo como
+  amostra.
+- **`logo-mono.svg`**, a versão de traço único para barra e bandeja, não entrou:
+  nada no projeto o leria, e um arquivo declarado sem leitor é a promessa vazia
+  que o `validar` avisa em voz alta.
+
 ## O que um pack não pode fazer
 
 Um pack é **dado**. Nunca é código.
@@ -946,6 +1077,8 @@ abre um `pack.json`:
 | `caminho <id> <categoria>` | o caminho que aquela categoria resolve **no pack** |
 | `acervo <id> <categoria> [arquivo]` | o mesmo, subindo pack → herança → motor |
 | `paleta <id>` | o arquivo de paleta daquele pack |
+| `logo <id> [flavor] [accent]` | o `logo.svg`, com as cores resolvidas por papel para aquele flavor |
+| `logo-gerado <id> [flavor] [accent]` | o logo gerado, para o pack que ainda não tem — **só imprime** |
 | `som <id>` | o timbre do pack, como `CHAVE=valor` para o shell |
 | `raizes` | as três raízes de busca, na ordem |
 | `padrao` | o diretório do pack **padrão** |
@@ -975,7 +1108,10 @@ Ele confere, nesta ordem, e **para no primeiro erro**:
 11. nenhuma URL fora de `https://`
 12. **contraste**: `text` sobre `base` precisa passar em WCAG AA (4.5:1) — 26
     hexes aleatórios passam em tudo acima e produzem uma interface ilegível
-13. **a vitrine** — a capa existe, é SVG e está dentro do pack; a frase curta
+13. **o logo**: `logo.svg` existe, é SVG quadrado, sem script, sem imagem
+    embutida e sem nada que aponte para fora dele — ver
+    [O logo do pack](#o-logo-do-pack), que diz cada regra e o porquê
+14. **a vitrine** — a capa existe, é SVG e está dentro do pack; a frase curta
     cabe em 80 caracteres; a descrição é um `.md` do pack; o `site` é
     `https://`. Este item, e só este, é cobrado apenas pelo verbo `validar`: o
     instalador e o painel usam um pack de vitrine quebrada assim mesmo. Ver
@@ -1048,6 +1184,7 @@ Depois, `meow ativar`.
 - [ ] a captura do tema está no pack (senão, diga no `LEIA-ME.md` que não está)
 - [ ] `heranca` está escrita, mesmo sendo o default
 - [ ] nenhum caminho absoluto, nenhum `~`, nenhum nome de usuário
+- [ ] o `logo.svg` é seu, e as formas declaram papel na `class` em vez de hex
 
 Este repositório traz **dois** packs, e eles ensinam coisas diferentes:
 
