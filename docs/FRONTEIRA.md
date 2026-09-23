@@ -116,9 +116,10 @@ versionado, e nenhuma linha daquela seção fala de território de vizinho.
 | `/usr/local/bin/*` (wrappers de execução) | Aurora | **Aurora** |
 | `/usr/local/share/zsh/site-functions/_meow` | Aurora | **Aurora instala, Meow fornece** |
 | binário `cosmic-comp` (patches de workspace e night light) | Aurora | **Aurora** |
-| `/usr/local/share/aurora/patches.d/` (a `series` e os `.patch`; cópia canônica em `~/.config/zsh/patches/patches.d/`) | Aurora | **Aurora escreve, Meow lê e diz** — desde 30/08/2026, ver abaixo |
+| ~~`/usr/local/share/aurora/patches.d/` (a `series` e os `.patch`; cópia canônica em `~/.config/zsh/patches/patches.d/`)~~ | ~~Aurora~~ | **MUDOU DE LADO** — desde 22/09/2026 a série é `patches/series`, deste repositório, e os cinco `.patch` moram todos aqui. Ver «O que é tema volta para casa», no fim |
+| `patches/series` (a série: classe, ordem, marcador-base) | Meow | **Meow** — desde 22/09/2026; era da Aurora. É quem sabe APLICAR os patches, e isso é tema |
 | `/var/lib/aurora/cosmic-comp-patches.estado` | Aurora | **Aurora escreve, Meow lê e diz** — 644, dono root, legível por ela sem sudo; é o contrato do `meow doctor` |
-| `patches/*.patch` deste repositório | Meow | **Meow** — é onde o patch nasce e é revisado; quem o APLICA é a Aurora, e por isso o doctor confere se ele está na `series` |
+| `patches/*.patch` deste repositório | Meow | **Meow** — é onde o patch nasce e é revisado. Desde 22/09/2026 é também onde ele é APLICADO (`compositor_patches.sh aplicar`); compilar e instalar seguem sendo passo dela |
 | ciclo de vida do processo `cosmic-panel` | Aurora | **Meow desde 26/08/2026** — o `systemd/meow-painel.service` é o supervisor; o lado da Aurora segue desarmado. A tabela dizia "Aurora" até 29/08 |
 | tema do qBittorrent | Aurora | **Aurora** — o `meow` chama o script de lá |
 | `~/.config/fastfetch/config.jsonc`, chave `logo.source` | Aurora | **Meow escreve, cirurgicamente, desde 01/09/2026** — ver abaixo |
@@ -956,6 +957,181 @@ atrás de `meow_info`/`meow_aviso` com `curl | sh`, `git clone` ou
 dentro. As isenções casam pelo **conteúdo** da linha, nunca pelo número — mesma
 disciplina do `tests/portabilidade.sh`, e pelo mesmo motivo: isenção presa a
 número apodrece no primeiro rebase.
+
+---
+
+## O que é tema volta para casa — 22/09/2026
+
+> *"O Spellbook é do meu PC, exclusivo para ele. Tudo que for relacionado a tema
+> é para ser do MeowSystem, tá bom? Temos que trazer tudo para cá."* — ela,
+> 21/09/2026
+
+Esta é a frase que encerra a pergunta que a P28 deixou aberta. **Não há upstream
+externo para sincronizar: a origem passa a ser aqui.** E é também a primeira vez
+que a fronteira anda para o nosso lado em vez de ser só descrita.
+
+### A regra, em uma linha
+
+**Tema é do MeowSystem; máquina é do Spellbook.**
+
+O Spellbook tem 5.213 arquivos e a esmagadora maioria é daquele computador —
+thermal, GPU, wifi, `acer_wmi`, watchdogs, um `venv/` com 4.712 arquivos. Nada
+disso é tema e nada disso se move. O que se move é o que responde *"com que cara
+o sistema está"*.
+
+### O que atravessou, e o que ficou
+
+| item | para onde | por que é tema |
+|---|---|---|
+| `patches/patches.d/series` | `patches/series` | é **quem sabe aplicar** os patches: classe `req`/`opt`, ordem, marcador-base, análise de colisão |
+| `cosmic-comp-sem-workspace-vazio.patch` | `patches/` | o único `req` da série, e o único que este repositório não tinha |
+| `scripts/spicetify-setup.sh` | `scripts/spicetify_setup.sh` | é a pendência do Spotify (P2 e P3) — o botão que faltava |
+| `fastfetch/config.jsonc` | duas linhas, para `assets/fastfetch/` | `wmtheme` e `font`: as duas perguntas de tema que faltavam aqui |
+
+Ficaram lá, e é a metade que importa: `battery`, `host`, o `nvidia-smi`, o
+status do Spellbook, o `sshfs` do Andromeda, as dez extensões de Spotify, o
+`TEMA="Sleek"`. São daquele PC.
+
+### Os patches já estavam nos dois lugares, e eram idênticos
+
+Quatro dos cinco `.patch` viviam nas duas árvores. Conferido por `md5sum` em
+22/09/2026: **byte a byte iguais, os quatro**. Não havia duas verdades — havia
+uma verdade em dois lugares, que é pior, porque ninguém sabe qual editar.
+
+O quinto, `cosmic-comp-sem-workspace-vazio.patch`, vivia só do lado dela. Era
+o `req` da série. **O MeowSystem tinha quatro dos cinco desenhos e não tinha a
+planta** — e é exatamente por isso que o `compositor_patches.sh` só conferia e
+nunca consertava.
+
+### O que o `scripts/compositor_patches.sh` deixou de fazer
+
+Saiu o bloco inteiro que comparava `patches/` contra
+`~/.config/zsh/patches/patches.d/` por `md5sum`, e com ele as duas linhas que o
+doctor repetia todo dia:
+
+```
+patches/ está em dia com ~/.config/zsh/patches/patches.d (4 arquivo, md5 igual)
+só do lado da Aurora (este repo não carrega): cosmic-comp-sem-workspace-vazio.patch
+```
+
+Saíram também `CP_COPIA` e `CP_COPIA_ALT`, e o conselho que mandava rodar
+`aurora-cosmic-comp-ws.sh --build` — um script que a P22 mediu **não existir
+nesta máquina nem neste repositório**. O doctor mandava, todo dia, rodar um
+comando inexistente.
+
+**O bloco sai inteiro em vez de virar "compara se existir"**, e isso é decisão:
+enquanto o código souber olhar para a árvore dela, alguém volta a sincronizar as
+duas cópias, e as duas verdades renascem.
+
+### O que ele passou a fazer, e onde a linha cai
+
+`compositor_patches.sh aplicar <dir-do-fonte>` põe a série numa árvore de fonte
+do `cosmic-comp`. Ele **não** baixa o fonte, **não** roda `cargo`, **não** usa
+sudo e **não** escreve em `/usr/bin`.
+
+A linha cai aí de propósito. O `install.sh` roda todo módulo em sequência, de
+hora em hora e no timer das 05:00; um `aplicar` que compilasse e instalasse
+poria uma troca de `/usr/bin/cosmic-comp` dentro de uma passagem automática — e
+**este binário é também a tela de login**. A própria `series` avisa: é por isso
+que o modo de leitura e o blur são `opt` e vêm por último. Trazer a série para
+cá mudou o dono do risco; não mudou o risco.
+
+Duas garantias foram medidas em 22/09/2026, antes de o verbo ir ao ar:
+
+1. **Dry-run de tudo antes de escrever um byte.** Um `req` que não aplica aborta
+   com a árvore intacta — conferido por `md5sum` antes e depois: idênticos, e
+   zero `.rej`/`.orig` deixados para trás.
+2. **Fuzz zero.** O `patch` do GNU aceita por padrão até duas linhas de contexto
+   erradas. Numa árvore de teste onde o hunk pedia `println!("oi")` e o arquivo
+   tinha `println!("outra coisa")`, o dry-run devolveu **rc=0** e a aplicação
+   enfiou o marcador no lugar errado, em silêncio. Para quase todo projeto isso
+   é conveniência; para o binário que é a tela de login, é um compositor que
+   compila e sobe quebrado — pior que não aplicar, porque não aplicar deixa o
+   binário do pacote de pé. Daí `-F0` e `--no-backup-if-mismatch`.
+
+E `compositor_patches.sh reverter` é o `--uninstall` que o item de risco da
+sprint pedia: ele **sabe** voltar ao binário do pacote
+(`apt install --reinstall cosmic-comp`) e **não roda o comando**, porque trocar
+`/usr/bin` pede root e a ponte root deste projeto tem oito verbos, nenhum deles
+"reinstalar pacote".
+
+### A dependência fantasma do qBittorrent
+
+`assets/temas-de-apps/qbittorrent/manifesto.sh` exigia
+`~/.config/zsh/scripts/aurora-qbittorrent-config.sh`. A P29 foi buscá-lo para
+trazê-lo e mediu, em 22/09/2026, que **ele não existe lá**: um
+`find ~/.config/zsh -name '*qbittorrent*'` devolve zero linha. Não era "está no
+outro projeto" — era dependência de um arquivo que não existe em lugar nenhum.
+A P2 mandava tirar; esta sprint confirma que não há de onde trazer.
+
+A linha virou `${MEOW_QBT_AURORA_FONTE:-}`, com padrão **vazio**. O
+comportamento não muda — sem escritor do `qBittorrent.conf` o módulo já devolvia
+`MEOW_SEM_DEPENDENCIA` (3) e registrava a pendência sem botão, porque o arquivo
+já não existia. O que muda é a honestidade do código: ele deixa de afirmar que
+sabe onde está um escritor que ninguém tem. **Não se inventou um segundo dono
+para o `qBittorrent.conf`** — dois donos no mesmo arquivo é o começo de toda
+guerra de idempotência, como o cabeçalho daquele módulo diz desde 25/08/2026.
+
+### O Spotify ganhou o botão que faltava
+
+O manifesto do Spotify dizia, desde a P2, por que aquela pendência nascia sem
+conserto: *"o script que resolveria direito — `spicetify-setup.sh`, 277 linhas —
+mora naquele outro repositório, que quem clonar ESTE não terá."* Agora tem.
+
+Do script de lá vieram **duas** das oito coisas que ele faz: instalar o binário
+e apontar o `prefs_path` do Spotify flatpak. As outras seis não vieram, e cada
+recusa tem medição — a mais importante é `spicetify restore` + `clear` +
+`backup apply`, que **fotografa o que está no disco**: rodado com o Catppuccin
+já aplicado, congela o tema do Meow como se fosse o "vanilla" de fábrica, e aí
+`spicetify restore` nunca mais devolve o original.
+
+E o nosso instalador **não é o `curl | sh` oficial**: baixa o tarball do release
+pinado por versão e não escreve em arquivo de shell nenhum. Os dois motivos que
+a P2 usou para recusar o botão caíram junto — o oficial honra `ZDOTDIR` e
+escreveria no `~/.config/zsh/.zshrc` dela, e pergunta pelo Marketplace lendo de
+`/dev/tty`, instalando-o sem ninguém ter pedido quando não há terminal.
+
+### A regra fica escrita, e o teste a cobra
+
+`tests/portabilidade.sh` já recusava `$HOME/.config/zsh` sem variável de escape.
+O que mudou é que ele **deixou de isentar nominalmente a linha que esta sprint
+extingue**. A isenção do `MEOW_QBT_AURORA_FONTE` saiu no mesmo commit que o
+conserto — e tinha de sair, porque enquanto ela estivesse lá o teste passaria
+verde sobre o defeito que veio pegar, e passaria verde igual depois de
+consertado. **Uma isenção que sobrevive ao seu motivo é pior que nenhuma
+isenção.**
+
+Conferido: reintroduzindo a linha antiga, o teste falha
+(`manifesto.sh:138 caminho do zsh cravado sem variável de escape`); com ela
+consertada, passa.
+
+### O que esta sprint NÃO fez, e é preciso dizer
+
+Três itens do plano ficaram de fora, e nenhum por esquecimento:
+
+1. **As quatro cópias não saíram do Spellbook.** Apagá-las é escrever em
+   `~/.config/zsh`, que é o repositório dela — com auto-commit a cada 10 minutos
+   e a TRAVA 1 do `lib/comum.sh` recusando escrita ali. O mesmo vale para a
+   linha no `README` de lá e para o `fastfetch/config.jsonc` dela virar um
+   `include`. **Este repositório não escreve no do vizinho**, que é a própria
+   regra que a sprint veio reforçar. Fazê-lo agora contradiria o item 7 no
+   mesmo commit que o cria. Quem tiver a árvore dela aberta: sobra apagar
+   `~/.config/zsh/patches/patches.d/` inteiro, que agora é cópia morta.
+2. **`rebuild_dracula_theme()` não virou `meow pack construir dracula`.** O
+   verbo existe e escreve só dentro do pack — mas aquela função não constrói o
+   conteúdo de um pack: ela entra num **terceiro** repositório,
+   `~/Desenvolvimento/Dracula_OS-Theme`, e roda o `build.sh`, o `install.sh
+   --user` e o `extrair_mapeamento.py` dele. Medido em 22/09/2026: 1.379 linhas
+   de pipeline e 32.370 arquivos em `src/`. Aquilo não cabe no `pack.py` nem no
+   `bin/meow`, que são os dois arquivos que esta sprint autoriza tocar.
+3. **O doctor não ficou verde no compositor, e não é por falta de código.** O
+   `.estado` desta máquina declara os cinco patches `presente` na versão
+   `0.1~1788962084~24.04~a557859`; o `dpkg-query` responde
+   `0.1~1789989464~24.04~cd881a4`; e o binário em `/usr/bin/cosmic-comp` não tem
+   **um** marcador `AURORA-*`. Um `apt` trocou o compositor e levou os cinco
+   patches junto, calado — que é exatamente o sintoma que este arquivo existe
+   para pegar. O vermelho está certo. O que a P29 mudou é que ele deixou de
+   apontar para um script que não existe: agora nomeia `aplicar`, que é daqui.
 
 ---
 

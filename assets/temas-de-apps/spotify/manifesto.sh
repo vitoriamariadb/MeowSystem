@@ -654,6 +654,24 @@ meow_app_detectar() {
   #   repetir a dependência que a mesma sprint está tirando do
   #   `qbittorrent/manifesto.sh`. Então a mensagem diz A DECISÃO, sem receita.
   #
+  #   O BINÁRIO GANHOU BOTÃO EM 22/09/2026 — sprint P29
+  #     O parágrafo acima descreve o passado, e a frase que o encerra é a
+  #     condição que ele mesmo impunha: "o script que resolveria direito mora
+  #     naquele outro repositório". Não mora mais. A P29 o trouxe para
+  #     `scripts/spicetify_setup.sh`, e os dois motivos da recusa caíram junto:
+  #
+  #       1. ele NÃO é o `curl | sh` oficial. Baixa o tarball do release
+  #          PINADO por versão e o abre em `~/.spicetify` — a mesma disciplina
+  #          do tema catppuccin (pinado por commit) e do Marketplace (por tag);
+  #       2. ele NÃO escreve em arquivo de shell nenhum. Nem `.zshrc`, nem
+  #          `.bashrc`, nem `env.zsh`. O repositório dela segue intocado, e a
+  #          TRAVA 1 nem chega a ser consultada porque nada aponta para lá.
+  #
+  #     A frase na tela deixa de ser "instalá-lo é decisão sua, e o instalador
+  #     mexe no seu terminal" — que era verdade sobre o instalador OFICIAL e
+  #     deixou de ser sobre o nosso. Continua sendo decisão dela: o que muda é
+  #     que agora a decisão cabe num clique, em vez de numa tarde.
+  #
   #   O TEMA GANHOU BOTÃO, e era o deliverable nomeado da sprint. Não há nada
   #   de outro projeto aqui: é um repositório público, baixado por uma função
   #   deste arquivo (`_spot_tema_baixar`), pinada por commit, com a mesma
@@ -663,8 +681,8 @@ meow_app_detectar() {
   #   isto seria uma segunda porta para o mesmo passo.
   if ! _spot_cli >/dev/null; then
     meow_pendencia_acionavel spicetify-ausente \
-      "O Spotify está instalado, mas falta o spicetify — é ele que pinta o app, e instalá-lo é decisão sua: o instalador dele mexe na configuração do seu terminal, e o MeowSystem não faz isso sem você pedir" \
-      ""
+      "O Spotify está instalado, mas falta o spicetify — é ele que pinta o app. Posso baixá-lo (versão pinada) para ~/.spicetify, sem tocar na configuração do seu terminal" \
+      "scripts/spicetify_setup.sh instalar"
     meow_app_sem "Spotify: falta o spicetify — é ele que tematiza o app desde 10/08/2026"
     return
   fi

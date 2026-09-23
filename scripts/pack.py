@@ -18,6 +18,8 @@ POR QUE PYTHON, E NÃO SHELL
 
 VERBOS
     validar <caminho-ou-id>      confere o pack inteiro. 0 = ok, 1 = recusado.
+    construir <id> [--seco]      refaz o que o pack declara como derivado,
+                                 escrevendo SÓ dentro do pack. Ver cmd_construir.
     caminho <id> <categoria>     imprime o caminho que aquela categoria resolve
     acervo  <id> <categoria> [arquivo]
                                  resolve um acervo PACK -> HERANÇA -> nada.
@@ -1230,6 +1232,103 @@ def cmd_som(ref):
     return OK
 
 
+def cmd_construir(ref, seco=False):
+    """Refaz, DENTRO do pack, tudo o que o pack declara como derivado.
+
+    POR QUE ESTE VERBO NASCEU [22/09/2026, sprint P29]
+        A sprint pediu: "`rebuild_dracula_theme()` vira `meow pack construir
+        dracula`, que escreve em `packs/dracula/icones/`, não em
+        `~/.local/share/icons/Dracula-Icones/`".
+
+        A METADE DO PEDIDO QUE ESTE VERBO NÃO É, dita aqui para não virar
+        promessa. O `rebuild_dracula_theme()` do `functions/sistema.zsh` NÃO
+        constrói o conteúdo de um pack: ele entra num TERCEIRO repositório,
+        `~/Desenvolvimento/Dracula_OS-Theme`, e roda o `baixar_upstreams.sh`, o
+        `extrair_mapeamento.py`, o `build.sh` e o `install.sh --user` DELE.
+        Medido em 22/09/2026: 1.379 linhas de pipeline e 32.370 arquivos em
+        `src/`, dos quais dois acervos upstream inteiros (`dracula-icons-main`
+        e `dracula-icons-circle`). Aquilo não cabe neste arquivo nem no
+        `bin/meow`, que são os dois que a P29 autoriza tocar — e não precisa
+        caber: os desenhos que o MeowSystem usa já foram para dentro do pack em
+        17/09/2026 (`packs/dracula/icones/apps/`, 18 desenhos, e `apps.map`,
+        com o casamento herdado da SPRINT 32 daquele repositório).
+
+        O QUE ESTE VERBO É, E É O QUE A FRASE DA SPRINT COBRA: a porta que
+        constrói um pack ESCREVENDO SÓ DENTRO DELE. A regra é a do `_dentro`,
+        que este arquivo já aplica a todo caminho declarado, agora aplicada
+        também ao que a construção PRODUZ. Nenhum `meow pack construir` pode
+        tocar `~/.local/share/icons/` — nem o de hoje, nem o que alguém
+        acrescentar depois.
+
+    O QUE ELE CONSTRÓI HOJE
+        Uma coisa só, porque é uma só a que os packs declaram: os ícones
+        autorais, quando `icones.autorais.gerar` é verdadeiro. Um pack que não
+        declara nada derivado não tem o que construir, e dizer isso é a
+        resposta certa — não um erro.
+
+        E ELES NASCEM DA PALETA DO PRÓPRIO PACK. O `gerar_icones_autorais.py`
+        resolve a paleta por `paleta_do_pack_ativo()`, cujo passo 2 é a
+        variável `MEOW_PACK_DIR`. Exportá-la aqui é o que faz `construir
+        dracula` desenhar em Dracula, e não em Catppuccin com outro nome.
+        Conferido em 22/09/2026: o `hefesto-dracula.svg` que sai daqui traz
+        `#BD93F9`, o roxo do Dracula, e não o `#CBA6F7` do mauve Catppuccin.
+
+    A DÍVIDA QUE ESTE VERBO NÃO PAGA, E QUE PRECISA ESTAR ESCRITA
+        A saída deste verbo SE SOBREPÕE a `assets/icones/autorais/`, que é
+        versionado (63 arquivos) e é de onde o `completar_icones.sh` lê de
+        verdade. Medido em 22/09/2026, logo depois da primeira construção:
+        `packs/dracula/icones/autorais/cosmic-edit-dracula.svg` e
+        `assets/icones/autorais/cosmic-edit-dracula.svg` são BYTE A BYTE
+        iguais; só o flavor `alucard`, que nasceu depois da última geração,
+        existe de um lado só.
+
+        Ou seja: hoje há dois lugares possíveis para o mesmo desenho gerado, e
+        isso é exatamente a classe de defeito que a P29 veio extinguir — uma
+        verdade em dois lugares, que é pior que uma verdade errada porque
+        ninguém sabe qual editar. A P29 nomeia `packs/<id>/icones/` como o
+        destino e não toca em `assets/icones/autorais/`, que não está entre os
+        arquivos que ela autoriza; unificar os dois é sprint própria, com o
+        `completar_icones.sh` e o `gerar_icones_autorais.py` na mesa.
+
+        Enquanto ela não vem: a saída daqui NÃO é versionada de propósito. Ela
+        se refaz com um comando, e versioná-la seria congelar a segunda cópia.
+    """
+    import subprocess
+
+    p, _, dir_pack = validar(ref, silencioso=True)
+    ident = p.get("id", os.path.basename(dir_pack))
+
+    gerar = ((p.get("icones") or {}).get("autorais") or {}).get("gerar")
+    if not gerar:
+        print(f"  --   {ident}: não declara nada derivado — nada a construir")
+        return OK
+
+    # `_dentro` com o caminho que VAMOS ESCREVER: se um dia a saída vier do
+    # pack.json em vez de ser fixa, esta linha já barra o `../..`.
+    saida = _dentro(dir_pack, os.path.join("icones", "autorais"), "icones.autorais")
+
+    gerador = os.path.join(RAIZ, "scripts", "gerar_icones_autorais.py")
+    if not os.path.isfile(gerador):
+        raise Recusa(f"o gerador não está aqui: {gerador}")
+
+    if seco:
+        print(f"  ~~   {ident}: geraria os ícones autorais em {saida}")
+        return OK
+
+    ambiente = dict(os.environ)
+    ambiente["MEOW_PACK_DIR"] = dir_pack
+    # `MEOW_PALETA` sai do ambiente de propósito: ela é o passo 1 da precedência
+    # e venceria o pack que a pessoa acabou de nomear na linha de comando.
+    ambiente.pop("MEOW_PALETA", None)
+
+    print(f"  >>   {ident}: ícones autorais, da paleta do pack, em {saida}")
+    r = subprocess.run([sys.executable, gerador, "--saida", saida], env=ambiente)
+    if r.returncode != 0:
+        raise Recusa(f"o gerador de ícones autorais saiu {r.returncode}")
+    print(f"  ok   {ident}: construído")
+    return OK
+
+
 def cmd_caminho(ref, categoria):
     p, _, dir_pack = validar(ref, silencioso=True)
     trilha = categoria.split(".")
@@ -1300,6 +1399,11 @@ def main(argv):
             return cmd_som(argv[2])
         if verbo == "info" and len(argv) == 3:
             return cmd_info(argv[2])
+        if verbo == "construir" and len(argv) in (3, 4):
+            # O `--seco` é a mesma promessa do `MEOW_DRY_RUN` do lado shell: diz
+            # o que faria e não escreve. Aceito pelos dois nomes porque quem
+            # chama daqui é o `bin/meow`, que já traduz o ambiente em flag.
+            return cmd_construir(argv[2], seco=(len(argv) == 4 and argv[3] in ("--seco", "--dry-run")))
         if verbo == "caminho" and len(argv) == 4:
             return cmd_caminho(argv[2], argv[3])
         if verbo == "app" and len(argv) == 4:

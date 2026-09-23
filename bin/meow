@@ -3554,6 +3554,11 @@ meow — Catppuccin para o COSMIC
   meow apps aplicar [slug]     tematiza um app, ou todos
   meow apps reverter <slug>    desfaz num app (só o spotify sabe hoje; slug obrigatório)
 
+  meow pack                    os theme packs instalados, e se cada um valida
+  meow pack info <id>          o que é próprio e o que é herdado no pack
+  meow pack construir <id>     refaz o que o pack deriva, dentro do próprio pack
+                               (o --help do subcomando tem a lista inteira)
+
   meow leitura                 que degrau o modo de leitura pede agora
   meow leitura aplicar         põe o degrau da hora (o timer já faz sozinho)
   meow leitura remover         zera temperatura e textura, e desarma o timer
@@ -3716,16 +3721,35 @@ cmd_pack() {
       #   pack. Ver `PACK_PADRAO`, em scripts/pack.py.
       [ "$achou" = 1 ] || meow_pula "nenhum pack instalado"
       ;;
+    # `construir` — o verbo que a P29 pediu, 22/09/2026
+    #   Ele NÃO pega o `meow_travar`, e isso é escolha: o lock deste projeto
+    #   guarda o que escreve na CONFIGURAÇÃO DELA (o ~/.config/cosmic, o tema, o
+    #   lançador). `construir` escreve dentro de `packs/<id>/`, que é o
+    #   repositório — o mesmo lugar onde um `git checkout` mexe sem pedir
+    #   cadeado a ninguém. Segurar o lock aqui faria o timer das 05:00 esbarrar
+    #   numa construção de ícone.
+    #
+    #   O ALVO É OBRIGATÓRIO, sem cair no PACK do conf. `validar` e `info` podem
+    #   assumir o pack ativo porque só LEEM; este escreve, e "construí o que
+    #   estava no meow.conf" é a surpresa que não se desfaz com um Ctrl+C.
+    construir|build)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga qual pack construir: meow pack construir <id>"; return "$MEOW_ERRO"; }
+      local -a seco=()
+      meow_seco && seco=(--seco)
+      python3 "$RAIZ/scripts/pack.py" construir "$alvo" ${seco[@]+"${seco[@]}"}
+      ;;
     raizes|raízes)
       meow_info "onde o MeowSystem procura um pack, nesta ordem:"
       python3 "$RAIZ/scripts/pack.py" raizes | sed 's/^/       /'
       ;;
     -h|--help|ajuda)
-      printf 'uso: meow pack [listar|validar <id>|info <id>|raizes]\n\n'
-      printf '  listar          os packs instalados, e se cada um valida\n'
-      printf '  validar <id>    confere o pack inteiro; 0 = ok\n'
-      printf '  info <id>       o que é próprio e o que é herdado, categoria a categoria\n'
-      printf '  raizes          onde o MeowSystem procura\n\n'
+      printf 'uso: meow pack [listar|validar <id>|info <id>|construir <id>|raizes]\n\n'
+      printf '  listar           os packs instalados, e se cada um valida\n'
+      printf '  validar <id>     confere o pack inteiro; 0 = ok\n'
+      printf '  info <id>        o que é próprio e o que é herdado, categoria a categoria\n'
+      printf '  construir <id>   refaz o que o pack deriva, escrevendo só dentro dele\n'
+      printf '  raizes           onde o MeowSystem procura\n\n'
       printf 'A especificação do formato está em docs/PACKS.md.\n'
       ;;
     *) meow_erro "verbo desconhecido: $acao"; meow_info "veja: meow pack --help"; return "$MEOW_ERRO" ;;
