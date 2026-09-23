@@ -3812,6 +3812,179 @@ cmd_pack() {
       meow_seco && seco=(--seco)
       python3 "$RAIZ/scripts/pack.py" construir "$alvo" ${seco[@]+"${seco[@]}"}
       ;;
+    # `usar` — o verbo que faltava para o formato ser produto, P10, 23/09/2026
+    #   Os verbos de cima leem, validam e constroem; nenhum dizia à máquina "use
+    #   este". Trocar de pack era editar `PACK=` no meow.conf à mão — e o painel,
+    #   que é onde uma pessoa leiga troca de tema, não tinha como fazer isso.
+    #
+    #   QUEM DECIDE É O `pack.py usar`, QUEM ESCREVE É A `meow_conf_definir`
+    #     O id e o flavor saem do `plano_de_uso` (scripts/pack.py), que valida o
+    #     pack com a régua do MOTOR antes de qualquer escrita — a mesma que o
+    #     `meow_pack_dir` aplica, e que, reprovando, veste a máquina com o padrão
+    #     em silêncio. A saída dele é lida com `sed`, e nunca com `eval`.
+    #
+    #   ELE APLICA, PORQUE "USAR" QUE NÃO VESTE A MÁQUINA É SÓ EDITAR UM ARQUIVO
+    #     Depois de gravar, roda o `install.sh` inteiro (o `cmd_aplicar`): quais
+    #     etapas rodam é decisão do meow.conf, e trocar de pack mexe em quase
+    #     todas. `--sem-aplicar` grava e para — é o que o `tests/pack.sh` usa, e
+    #     o que quem quer trocar mais coisas antes de aplicar precisa.
+    #
+    #   O ENSAIO ENSAIA A TROCA, E NÃO O PACK DE ANTES
+    #     Com `MEOW_DRY_RUN=1` o meow.conf não é tocado — e um `install.sh` seco
+    #     lendo o conf do disco ensaiaria o pack que JÁ está no ar, com cara de
+    #     ensaio da troca. É o defeito que o `_conf_de_ensaio` do painel conta ter
+    #     tido. O conserto é o mesmo de lá: as duas chaves vão para uma CÓPIA
+    #     descartável do conf, e o instalador seco lê a cópia pelo `MEOW_CONF`.
+    #
+    #   SEM O CADEADO, E PELA MESMA RAZÃO DO `cmd_aplicar`: quem trava é o
+    #     `install.sh`, e um `flock` aqui em cima faria o filho achar "outro meow
+    #     rodando" — este processo. A gravação no conf também não o pega, como
+    #     não pega no `meow tema claro`.
+    usar|use)
+      local alvo="" pedido="" aplicar=1 arg
+      for arg in "$@"; do
+        case "$arg" in
+          --sem-aplicar) aplicar=0 ;;
+          -h|--help)
+            printf 'uso: meow pack usar <id> [flavor] [--sem-aplicar]\n\n'
+            printf '  Grava PACK e FLAVOR no meow.conf e aplica. Sem flavor, fica o que\n'
+            printf '  está no ar se ele for do pack; senão, o padrão do pack.\n'
+            return 0 ;;
+          -*) meow_erro "opção desconhecida: $arg"; meow_info "veja: meow pack usar --help"; return "$MEOW_ERRO" ;;
+          *)
+            if [ -z "$alvo" ]; then alvo="$arg"
+            elif [ -z "$pedido" ]; then pedido="$arg"
+            else meow_erro "sobrou um argumento: $arg"; return "$MEOW_ERRO"
+            fi ;;
+        esac
+      done
+      [ -n "$alvo" ] || {
+        meow_erro "diga qual pack usar: meow pack usar <id> [flavor]"
+        meow_info "os que existem: meow pack listar"
+        return "$MEOW_ERRO"
+      }
+      # O FLAVOR DE AGORA VEM DO ARQUIVO, e não do `carregar_conf`: ele só serve
+      # para decidir se fica, e subir o conf inteiro para dentro deste shell
+      # exportaria as chaves de ANTES para o `install.sh` filho — que as
+      # sobrescreve ao sourcear o conf novo, mas não sem motivo para desconfiar.
+      local agora_pack agora_flavor plano novo_pack novo_flavor porque
+      agora_pack="$(meow_conf_valor PACK || true)"
+      agora_flavor="$(meow_conf_valor FLAVOR || true)"
+      plano="$(FLAVOR="$agora_flavor" python3 "$RAIZ/scripts/pack.py" usar "$alvo" ${pedido:+"$pedido"})" \
+        || { meow_info "nada foi gravado — o meow.conf continua como estava"; return "$MEOW_ERRO"; }
+      novo_pack="$(sed -n 's/^PACK=//p' <<< "$plano")"
+      novo_flavor="$(sed -n 's/^FLAVOR=//p' <<< "$plano")"
+      porque="$(sed -n 's/^PORQUE=//p' <<< "$plano")"
+      [ -n "$novo_pack" ] && [ -n "$novo_flavor" ] || {
+        meow_erro "o scripts/pack.py não disse qual pack e qual flavor gravar"
+        return "$MEOW_ERRO"
+      }
+
+      meow_titulo "Trocar de pack"
+      campo "pack"   "${agora_pack:-(nenhum escrito — valia a adoção pelo FLAVOR)}  ->  $novo_pack"
+      campo "flavor" "${agora_flavor:-(nenhum)}  ->  $novo_flavor ($porque)"
+
+      # O QUE FICA DO PACK DE ANTES, DITO ANTES DE APLICAR
+      #   O verbo grava PACK e FLAVOR, e só: o meow.conf vence o pack
+      #   (docs/PACKS.md, "Quem vence"), e um `ICONES_BASE="Dracula-Icones"`
+      #   escrito por ela continua valendo depois da troca. Medido na primeira
+      #   passagem desta sprint, num HOME de brinquedo com o conf desta máquina:
+      #   `usar catppuccin` e o `btop-bat` foi procurar "Dracula Mocha", porque
+      #   `MEOW_FAMILIA_PALETA="dracula"` ficou. Mudar essas chaves por ela seria
+      #   decidir o que é gosto dela e o que é resto; calar seria deixar a
+      #   máquina metade de cada pack sem uma palavra. Fica a lista — o painel
+      #   marca cada uma como «Vestígio do pack», que é onde se decide.
+      #   Só o VALOR conta, sem o comentário da linha, e só quando o pack de
+      #   antes é mesmo um pack (FLAVOR="mocha" sem PACK não nomeia pack nenhum).
+      local antigo="${agora_pack:-$agora_flavor}" restos=""
+      if [ -n "$antigo" ] && [ "$antigo" != "$novo_pack" ] && [ -f "$CONF" ] \
+         && python3 "$RAIZ/scripts/pack.py" caminho "$antigo" id >/dev/null 2>&1; then
+        restos="$(awk -v p="$antigo" '
+          /^[A-Za-z_][A-Za-z0-9_]*=/ {
+            k = $0; sub(/=.*/, "", k)
+            v = $0; sub(/^[^=]*=/, "", v); sub(/#.*/, "", v)
+            if (k != "PACK" && k != "FLAVOR" && index(tolower(v), tolower(p))) print k
+          }' "$CONF" | sort -u | paste -sd' ')"
+      fi
+      if [ -n "$restos" ]; then
+        meow_aviso "continuam no meow.conf, citando o pack «$antigo»: $restos"
+        meow_info "  o meow.conf vence o pack, então eles seguem valendo; no painel, cada um aparece como «Vestígio do pack»"
+      fi
+
+      # O TEMA DO COSMIC ENTRA COMO DECISÃO, E NÃO COMO MANUTENÇÃO
+      #   O `install.sh` aplica a captura com `--respeitar-gui`: na manutenção,
+      #   o que a GUI derivou vence a foto, e é o certo. Numa TROCA DE PACK é o
+      #   contrário, e o `aplicar_tema.sh` já diz isso com todas as letras ("numa
+      #   DECISÃO dela ... a captura tem de vencer"). Medido na primeira versão
+      #   deste verbo, num HOME de brinquedo, trocando Catppuccin por Dracula só
+      #   pelo instalador: "tema 'dracula-mauve' aplicado: 103 escritos, 18 já
+      #   estavam certos, 68 preservados da sua GUI" — os 68 eram o Catppuccin de
+      #   antes, e o `meow status` terminava em "nenhum tema pronto confere".
+      #   Aqui a captura do pack novo vai primeiro, sem a flag, como no `meow
+      #   tema <nome>`; o instalador vem depois e a encontra aplicada.
+      #   O cadeado é pego num SUBSHELL e morre com ele, antes do `install.sh`,
+      #   que pega o dele.
+      local par
+      par="$novo_flavor-$(meow_conf_valor ACCENT || printf 'mauve')"
+      aplicar_tema_da_troca() {
+        (
+          # O PAR NOVO VAI NO AMBIENTE, e não pelo conf: no painel este processo
+          # herda o FLAVOR de ANTES (o `conf_exportada` exporta o conf inteiro),
+          # a ponte preferiria o que veio no ambiente — e no ensaio o conf do
+          # disco nem tem a troca.
+          export PACK="$novo_pack" FLAVOR="$novo_flavor"
+          meow_seco || meow_travar || exit "$MEOW_ERRO"
+          meow_ponte_python >/dev/null || exit "$MEOW_ERRO"
+          "$RAIZ/scripts/aplicar_tema.sh" "$par"
+        )
+        case "$?" in
+          0|1) ;;
+          3) meow_aviso "o pack «$novo_pack» não tem captura para '$par' — o tema do COSMIC não troca, e o instalador abaixo diz o que falta" ;;
+          *) meow_aviso "o tema do COSMIC não trocou para '$par' — o instalador abaixo tenta de novo, do jeito dele" ;;
+        esac
+      }
+
+      if meow_seco; then
+        local copia texto rc_ensaio
+        copia="$(mktemp -d)" || return "$MEOW_ERRO"
+        if [ -f "$CONF" ]; then texto="$(cat "$CONF")"; else texto="$(cat "$CONF_PADRAO")"; fi
+        texto="$(meow_conf_texto_definir "$texto" PACK "$novo_pack")"
+        texto="$(meow_conf_texto_definir "$texto" FLAVOR "$novo_flavor")"
+        printf '%s\n' "$texto" > "$copia/meow.conf"
+        meow_muda "gravaria PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\" em $CONF — ensaio: o arquivo não é tocado"
+        if [ "$aplicar" = "1" ]; then
+          meow_info "o tema '$par' e o ensaio do instalador olham a troca, e não o conf do disco"
+          aplicar_tema_da_troca
+          MEOW_CONF="$copia/meow.conf" MEOW_DRY_RUN=1 "$RAIZ/install.sh"; rc_ensaio=$?
+        else
+          rc_ensaio="$MEOW_DIVERGENTE"
+        fi
+        rm -rf "$copia"
+        return "$rc_ensaio"
+      fi
+
+      local rc_pack rc_flavor
+      conf_definir PACK "$novo_pack"; rc_pack=$?
+      conf_definir FLAVOR "$novo_flavor"; rc_flavor=$?
+      if [ "$rc_pack" -ge 2 ] || [ "$rc_flavor" -ge 2 ]; then
+        meow_erro "não consegui gravar em $CONF"
+        return "$MEOW_ERRO"
+      fi
+      if [ "$rc_pack" = "0" ] && [ "$rc_flavor" = "0" ]; then
+        meow_ok "o meow.conf já dizia PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\""
+      else
+        meow_muda "gravado em $CONF: PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\""
+        registrar "pack usar $novo_pack flavor=$novo_flavor"
+      fi
+      if [ "$aplicar" = "0" ]; then
+        meow_info "aplicar fica para depois: meow aplicar"
+        return 0
+      fi
+      meow_info "o tema do COSMIC primeiro, como decisão: '$par'"
+      aplicar_tema_da_troca
+      meow_info "agora o instalador inteiro, porque trocar de pack mexe em quase todas as etapas"
+      cmd_aplicar
+      ;;
     raizes|raízes)
       meow_info "onde o MeowSystem procura um pack, nesta ordem:"
       python3 "$RAIZ/scripts/pack.py" raizes | sed 's/^/       /'
@@ -3880,8 +4053,9 @@ cmd_pack() {
       python3 "$RAIZ/scripts/pack.py" importar "$arquivo" "$@" ${seco[@]+"${seco[@]}"}
       ;;
     -h|--help|ajuda)
-      printf 'uso: meow pack [listar|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|importar <arquivo>|raizes]\n\n'
+      printf 'uso: meow pack [listar|usar <id>|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|importar <arquivo>|raizes]\n\n'
       printf '  listar           os packs instalados, e se cada um valida\n'
+      printf '  usar <id> [fl]   troca o pack da máquina: grava PACK e FLAVOR e aplica\n'
       printf '  validar <id>     confere o pack inteiro; 0 = ok\n'
       printf '  info <id>        o que é próprio e o que é herdado, categoria a categoria\n'
       printf '  construir <id>   refaz o que o pack deriva, escrevendo só dentro dele\n'

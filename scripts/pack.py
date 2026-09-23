@@ -78,6 +78,11 @@ VERBOS
                                  instala em ~/.local/share/meowsystem/packs/.
                                  Recusa qualquer script. NÃO APLICA nada.
     info    <id>                 o que é próprio, o que é herdado, o que falta
+    usar    <id> [flavor]        o PACK e o FLAVOR que o `meow pack usar` grava,
+                                 como três linhas `PACK=`/`FLAVOR=`/`PORQUE=`.
+                                 Não escreve: recusa (1) antes de o shell
+                                 escrever. O flavor que já está no ar vem por
+                                 `$FLAVOR`. Ver `plano_de_uso`.
     raizes                       imprime as raízes de busca, na ordem
     padrao                       o diretório do pack PADRÃO, resolvido pelas
                                  raízes como qualquer outro. É o que o shell
@@ -195,6 +200,15 @@ CAMPOS_COM_LEITOR = {
     "vitrine.tags",
     "vitrine.capturas",
     "vitrine.site",
+    # O FLAVOR DOS ÍCONES DE ARQUIVO HERDADOS — 23/09/2026, sprint P10. O Dracula
+    # o declarava desde que nasceu ("o macchiato é o vizinho mais próximo em
+    # luminosidade") e ele estava na lista de mortos do aviso. Quem lê agora é o
+    # `vocabulario`, e por ele o painel: a «Variante dos ícones de arquivo» de um
+    # pack que herda mimetypes oferece o flavor que ESTE pack escolheu, com o nome
+    # do dono ao lado — e não os quatro sabores do Catppuccin soltos numa máquina
+    # vestida de Dracula. O shell ainda não o lê: o `ICONES_FLAVOR` do meow.conf
+    # continua mandando, que é o "Quem vence" do docs/PACKS.md.
+    "icones.mimetypes.flavor",
 }
 
 
@@ -1375,7 +1389,9 @@ def tema_de_app(categoria, ref=None):
 
 
 def _luminancia(hexcor):
-    """Luminância relativa de WCAG 2.x. Usada só para o teste de contraste."""
+    """Luminância relativa de WCAG 2.x. Usada no teste de contraste e, desde a
+    P10 (23/09/2026), pelo `paleta_css` do painel, para achar o escuro mais
+    escuro e o claro mais claro do pack — a mesma régua nos dois lugares."""
     r, g, b = (int(hexcor[i:i + 2], 16) / 255 for i in (1, 3, 5))
     def canal(c):
         return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
@@ -2594,6 +2610,152 @@ SOM_NO_CONF = {
 }
 
 
+# TROCAR DE PACK, E A TELA FALAR COM AS PALAVRAS DELE — 23/09/2026, sprint P10
+#
+# A QUEIXA
+#   "o programa original foi feito não pensando em um produto mas em aplicar o
+#   tema catppuccin." Trocar de pack era editar `PACK=` no meow.conf à mão: os
+#   verbos daqui liam, validavam e construíam, e nenhum dizia à máquina "use
+#   este". E a tela, com o Dracula no ar, oferecia `Mocha`, `Frappé` e
+#   `cat-${FLAVOR}-${ACCENT}` — o vocabulário de um pack vestindo a máquina de
+#   outro.
+#
+# AQUI MORA A DECISÃO, E NÃO A ESCRITA
+#   Quem grava o meow.conf é o `meow pack usar` (bin/meow), pela
+#   `meow_conf_definir` — a única rotina deste projeto que escreve naquele
+#   arquivo, e o cabeçalho dela conta o que custou ter duas. Este arquivo decide
+#   QUAL id e QUAL flavor, e recusa antes da primeira escrita: é a mesma
+#   fronteira do resto do `pack.py`, que nunca escreve fora do pack.
+RE_FLAVOR_CONF = re.compile(r"^[a-z0-9_]+$")
+
+
+def plano_de_uso(ref, flavor=None, flavor_atual=None):
+    """(id, flavor, porquê) que o `meow pack usar` vai gravar. Levanta Recusa.
+
+    O flavor, nesta ordem: o PEDIDO, que tem de ser do pack; o que JÁ ESTÁ no ar,
+    se for do pack — voltar ao Catppuccin estando no Latte não pode jogar a
+    pessoa no Mocha; e o `flavor_padrao` do pack. O terceiro campo diz qual dos
+    três venceu, para a tela dizer por quê.
+    """
+    # A VALIDAÇÃO É A DO MOTOR (`silencioso=True`), e não a de quem publica. É a
+    #   que o `meow_pack_dir` (lib/comum.sh) aplica por baixo de tudo: um pack que
+    #   a reprova vira "pack não resolve — usando o padrão", e o desktop sai
+    #   Catppuccin com `PACK="meu"` escrito no conf. Recusar aqui o que lá seria
+    #   trocado em silêncio é o ponto do verbo. Capa e logo ausentes não entram:
+    #   o motor usa o pack sem eles, e o `validar` diz a quem publica.
+    p, dados, dir_pack = validar(ref, silencioso=True)
+    ident = p["id"]
+    # O ID TEM DE LEVAR DE VOLTA A ESTE DIRETÓRIO. O meow.conf nomeia pack por
+    #   id, e quem acha o id são as três raízes. Um caminho de fora delas (ou um
+    #   id que uma raiz de cima esconde) validaria aqui e resolveria OUTRA coisa
+    #   no `meow_pack_dir` — o conf diria um pack e a máquina vestiria outro.
+    _exigir(achar(ident) == dir_pack,
+            f"o pack em {dir_pack} não é o que o id {ident!r} encontra.\n"
+            f"    O meow.conf nomeia pack por id, procurado nesta ordem:\n      "
+            + "\n      ".join(raizes())
+            + f"\n    Ponha o diretório em {os.path.join(raizes()[-2], ident)}/ e rode de novo.")
+    flavors = list(dados["flavors"])
+    if flavor:
+        _exigir(flavor in dados["flavors"],
+                f"o pack {ident!r} não tem o flavor {flavor!r}.\n"
+                f"    Os que ele tem: {', '.join(flavors)}")
+        escolhido, porque = flavor, "pedido"
+    elif flavor_atual and flavor_atual in dados["flavors"]:
+        escolhido, porque = flavor_atual, "mantido"
+    else:
+        escolhido = (p.get("paleta") or {}).get("flavor_padrao") or flavors[0]
+        porque = "padrão do pack"
+    # O FLAVOR VAI PARA UM ARQUIVO QUE O SHELL SOURCEIA. O `validar` só proíbe o
+    #   hífen; um nome de flavor com aspas ou `$(` numa paleta de terceiro viraria
+    #   comando no próximo `meow ativar`. Minúsculas, dígitos e sublinhado são o
+    #   que os dois packs daqui usam, e o que o gerador de tema já espera.
+    _exigir(RE_FLAVOR_CONF.match(escolhido),
+            f"o flavor {escolhido!r} do pack {ident!r} não pode ir para o meow.conf:\n"
+            f"    só minúsculas, dígitos e sublinhado — ele é sourceado pelo shell.")
+    return ident, escolhido, porque
+
+
+def _nomes_curtos(p, dados):
+    """{flavor: nome de tela}, sem o nome do pack na frente.
+
+    A paleta do Catppuccin chama o flavor de "Catppuccin Mocha"; num cartão que
+    já diz "Catppuccin", o nome dele é "Mocha". O Dracula chama os dele de
+    "Dracula" e "Alucard", e ficam como estão.
+    """
+    nomes = dados.get("nomes") if isinstance(dados.get("nomes"), dict) else {}
+    prefixo = f"{p.get('nome') or p['id']} "
+    saida = {}
+    for f in dados["flavors"]:
+        n = str(nomes.get(f) or f)
+        saida[f] = n[len(prefixo):] if n.startswith(prefixo) and len(n) > len(prefixo) else n
+    return saida
+
+
+def vocabulario(ref):
+    """O que a tela precisa para falar com as palavras DESTE pack. Levanta Recusa.
+
+    É o `meow pack info` virado dado: os flavors com nome e as 26 cores de cada
+    um, a origem de cada categoria, e — para a aba Ícones — de QUEM vêm os
+    ícones de arquivo e os de aplicativo. Tudo sai do disco e do `pack.json`;
+    nenhuma lista de nomes de pack mora aqui.
+
+    OS ÍCONES DE ARQUIVO OFERECEM O QUE O PACK ESCOLHEU, QUANDO ELE HERDA
+      O acervo de mimetype do Catppuccin tem quatro flavors, e o Dracula herda
+      esse acervo declarando `icones.mimetypes.flavor: "macchiato"`. Oferecer os
+      quatro numa máquina vestida de Dracula é pôr "Mocha" e "Frappé" na tela de
+      quem nunca escolheu o Catppuccin; oferecer o que o pack escolheu, com o
+      nome do dono ao lado, explica o nome estranho em vez de deixá-lo solto. Um
+      pack que herda e NÃO escolhe recebe os flavors do dono, todos marcados
+      como herdados. Os flavors saem dos diretórios que existem no acervo, e não
+      da paleta: o `css-variables/` e o `LICENSE` que moram ali não são flavor, e
+      um flavor da paleta sem diretório não tem ícone para vestir.
+    """
+    p, dados, _dir = validar(ref, silencioso=True)
+    ident = p["id"]
+    curtos = _nomes_curtos(p, dados)
+
+    def nome_do_pack(outro):
+        return campo(outro, "nome") or outro
+
+    saida = {
+        "id": ident,
+        "nome": p.get("nome") or ident,
+        "flavor_padrao": (p.get("paleta") or {}).get("flavor_padrao") or next(iter(dados["flavors"])),
+        "flavors": [{"id": f, "nome": curtos[f], "claro": f in (dados.get("claros") or []),
+                     "cores": [dados["flavors"][f][s] for s in SLOTS]}
+                    for f in dados["flavors"]],
+        "categorias": [{"categoria": ROTULO_DA_CATEGORIA[c], "tipo": t, "de": q,
+                        "nome_de": nome_do_pack(q) if q else ""}
+                       for c, t, q in origens(p)],
+        "mimetypes": None,
+        "apps": None,
+    }
+
+    base = acervo("icones.mimetypes.desenhos", ref=ident)
+    if base and os.path.isdir(base):
+        dono = _pack_de(base)
+        if dono == ident:
+            dados_dono, curtos_dono = dados, curtos
+        else:
+            p_dono, dados_dono, _d = validar(dono, silencioso=True)
+            curtos_dono = _nomes_curtos(p_dono, dados_dono)
+        existem = [f for f in dados_dono["flavors"] if os.path.isdir(os.path.join(base, f))]
+        escolhido = campo(ident, "icones.mimetypes.flavor") if dono != ident else None
+        saida["mimetypes"] = {
+            "de": dono,
+            "nome_de": nome_do_pack(dono),
+            "herdado": dono != ident,
+            "flavors": [escolhido] if escolhido in existem else existem,
+            "nomes": {f: curtos_dono[f] for f in existem},
+        }
+
+    mapa = acervo("icones.apps.mapa", ref=ident)
+    if mapa:
+        dono = _pack_de(mapa)
+        saida["apps"] = {"de": dono, "nome_de": nome_do_pack(dono), "herdado": dono != ident}
+    return saida
+
+
 def cmd_som(ref):
     """Imprime o timbre do pack como CHAVE=valor, para o shell avaliar.
 
@@ -3545,6 +3707,18 @@ def main(argv):
             return cmd_som(argv[2])
         if verbo == "info" and len(argv) == 3:
             return cmd_info(argv[2])
+        if verbo == "usar" and len(argv) in (3, 4):
+            # A saída é lida pelo shell com `sed`, linha a linha, e NUNCA com
+            # `eval`: o id passou pelo RE_ID e o flavor pelo RE_FLAVOR_CONF, e
+            # ainda assim avaliar texto vindo de um pack de terceiro seria dar a
+            # ele uma porta que o formato inteiro existe para não abrir.
+            ident, flavor, porque = plano_de_uso(
+                argv[2], argv[3] if len(argv) == 4 else None,
+                os.environ.get("FLAVOR") or None)
+            print(f"PACK={ident}")
+            print(f"FLAVOR={flavor}")
+            print(f"PORQUE={porque}")
+            return OK
         if verbo == "construir" and len(argv) in (3, 4):
             # O `--seco` é a mesma promessa do `MEOW_DRY_RUN` do lado shell: diz
             # o que faria e não escreve. Aceito pelos dois nomes porque quem

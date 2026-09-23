@@ -1403,6 +1403,102 @@ function rotuloAcessivel(item) {
   return tituloDoCartao(item) || item.chave;
 }
 
+/* ===========================================================================
+ * A COR DAS PASTAS, EM DOIS SELETORES — 23/09/2026, sprint P10
+ * ===========================================================================
+ * O cartão era uma caixa de texto com `cat-${FLAVOR}-${ACCENT}` dentro, a frase
+ * «Deixe escrito com ${FLAVOR} e ${ACCENT}» embaixo e «Vale como:
+ * cat-dracula-mauve» no pé — três linhas de sintaxe de shell pedidas a quem só
+ * queria escolher uma cor. E a última mentia: o papirus-folders não tem pasta
+ * Dracula, e o `construir_pastas.sh` pinta a variante escura dele no lugar.
+ *
+ * O valor gravado NÃO MUDA DE FORMA: continua `cat-<variante>-<cor>`, e as
+ * duas primeiras opções continuam sendo o molde que acompanha o tema, que é o
+ * de fábrica. O que sai da tela é a sintaxe. Quem precisar dela — para copiar
+ * para outra máquina, para escrever à mão — acha a linha inteira no «ver
+ * comando» do cartão, que é a porta da P6 para o texto cru.
+ *
+ * AS OPÇÕES SAEM DO SERVIDOR (`molde_pastas`), e ele as tira do DISCO: as
+ * variantes do pack no ar que o papirus-folders tem, e as cores que ele tem.
+ * Um valor que não é `cat-<variante>-<cor>` foi escrito à mão, e o molde não o
+ * descreve: aí o controle devolve null e o cartão cai no campo de texto de
+ * sempre — escolher por ela o que ela escreveu seria pior que mostrar o texto. */
+function partirMoldeDasPastas(valor) {
+  const m = /^cat-(.+)-([^-]+)$/.exec(valor || "");
+  return m ? { variante: m[1], cor: m[2] } : null;
+}
+
+/* O que as pastas vestem, em português — é o que o «Vale como» dizia em shell,
+ * e o que a legenda do desenho da seção passa a dizer no lugar do molde. */
+function descreverPastas(valor) {
+  const item = ESQUEMA.chaves.find((k) => k.chave === "ICONES_PASTAS");
+  const molde = item && item.molde_pastas;
+  const partes = partirMoldeDasPastas(valor);
+  if (!molde || !partes) return "";
+  const nome = (lista, v) => ((lista.find((o) => o.valor === v) || {}).rotulo || v);
+  const cor = partes.cor === "${ACCENT}" ? "na cor de destaque" : `em ${nome(molde.cores, partes.cor).toLowerCase()}`;
+  const variante = partes.variante === "${FLAVOR}" ? "do tema" : nome(molde.variantes, partes.variante);
+  return `pastas ${cor}, variante ${variante}`;
+}
+
+function controlePastas(item, aplica) {
+  const molde = item.molde_pastas;
+  const valor = valorEmVigor(item);
+  const partes = partirMoldeDasPastas(valor);
+  if (!partes) return null;
+  /* O valor de agora entra na lista quando está fora dela — escrito à mão, ou
+   * uma variante de outro pack. Esconder a opção faria o seletor mostrar outra
+   * coisa como escolhida, e o próximo clique gravaria o que ela não pediu. */
+  const opcoes = (lista, atual) => (lista.some((o) => o.valor === atual)
+    ? lista : [...lista, { valor: atual, rotulo: maiuscula(atual) }]);
+  const seletor = (rotulo, lista, atual) => {
+    const sel = elemento("select", { "aria-label": `${rotulo} das pastas` });
+    for (const o of opcoes(lista, atual)) sel.append(elemento("option", { value: o.valor, texto: o.rotulo }));
+    sel.value = atual;
+    return sel;
+  };
+  const selVariante = seletor("Variante", molde.variantes, partes.variante);
+  const selCor = seletor("Cor", molde.cores, partes.cor);
+  /* A amostra é a cor DA PALETA NO AR, pelo mesmo `var(--<slot>)` do desenho da
+   * seção: o papirus-folders pinta com a paleta dele, e a diferença entre as
+   * duas é de tom, não de cor. O desenho em cima diz o resto. */
+  const amostra = elemento("span", { class: "pastas-amostra", "aria-hidden": "true" });
+  const nota = elemento("p", { class: "frase" });
+  /* O «ver comando» mostra a LINHA do meow.conf, que é o texto cru que saiu da
+   * tela. A fonte dela é um elemento só, e o `dataset.comando` é reescrito a
+   * cada troca — o mesmo contrato do cartão de ação (ver `verComando`). */
+  const fonte = elemento("div", { hidden: true }, [
+    elemento("span", { "data-comando": `ICONES_PASTAS="${valor}"`, texto: "Linha do meow.conf" }),
+  ]);
+  const cmd = verComando(fonte);
+  const atualizar = () => {
+    const cor = selCor.value;
+    amostra.style.background = cor === "${ACCENT}" ? "var(--accent)" : `var(--${cor})`;
+    fonte.firstChild.dataset.comando = `ICONES_PASTAS="cat-${selVariante.value}-${cor}"`;
+    if (cmd) cmd.repintar();
+    const avisos = [];
+    if (molde.sem_upstream) {
+      avisos.push("O papirus-folders ainda não está nesta máquina: as pastas ganham esta cor quando o instalador baixá-lo.");
+    } else if (selVariante.value === "${FLAVOR}" && molde.fora_do_papirus) {
+      avisos.push(`O papirus-folders não tem pastas «${molde.fora_do_papirus}»: elas saem na variante escura dele, na mesma cor.`);
+    }
+    nota.textContent = avisos.join(" ");
+    nota.hidden = !avisos.length;
+  };
+  const mudar = () => { atualizar(); aplica(`cat-${selVariante.value}-${selCor.value}`); };
+  selVariante.addEventListener("change", mudar);
+  selCor.addEventListener("change", mudar);
+  atualizar();
+  return elemento("div", { class: "pastas-molde" }, [
+    elemento("div", { class: "pastas-seletores" }, [
+      elemento("label", {}, [elemento("span", { texto: "Variante" }), selVariante]),
+      elemento("label", {}, [elemento("span", { texto: "Cor" }), selCor, amostra]),
+    ]),
+    nota,
+    cmd ? elemento("div", { class: "pastas-cru" }, [cmd.botao, cmd.bloco]) : null,
+  ]);
+}
+
 /* --- os controles, um por forma de chave ---------------------------------- */
 /* A ordem dos testes é a ordem da especificidade, e ela importa: uma chave de
  * horário TAMBÉM é texto, e uma de lista TAMBÉM tem opções às vezes. */
@@ -1412,6 +1508,13 @@ function montarControle(item, cartao) {
    * da tela o que ela acabou de escolher. */
   const valor = valorEmVigor(item);
   const aplica = (v) => escolher(item.chave, v, cartao);
+
+  /* O MOLDE DAS PASTAS VEM ANTES DE TUDO, porque ele é texto para o esquema e
+   * dois seletores para quem olha — ver `controlePastas`. [P10] */
+  if (item.molde_pastas) {
+    const c = controlePastas(item, aplica);
+    if (c) return c;
+  }
 
   /* 0. A PRÉVIA VEM PRIMEIRO, quando existe — porque quando a opção PODE ser
    *    uma imagem, ela deve ser a imagem, e não um botão com o nome dela ao
@@ -1646,7 +1749,13 @@ function montarControle(item, cartao) {
       };
       for (const opcao of item.opcoes) {
         caixa.append(elemento("button", {
-          type: "button", "data-valor": opcao, texto: rotuloDeValor(opcao), "aria-pressed": "false",
+          /* `item.rotulos` é o nome que o PACK NO AR dá à opção — «Macchiato
+           * (herdado do Catppuccin)» na variante dos ícones de arquivo com o
+           * Dracula no ar. Quem o escreve é o servidor (`_com_o_vocabulario_do_
+           * pack`); sem ele, o rótulo de sempre. [P10] */
+          type: "button", "data-valor": opcao,
+          texto: (item.rotulos && item.rotulos[opcao]) || rotuloDeValor(opcao),
+          "aria-pressed": "false",
           onclick: async () => { if (await aplica(opcao)) pintar(opcao); },
         }));
       }
@@ -1664,7 +1773,10 @@ function montarControle(item, cartao) {
     const caixa = elemento("div", { class: "controle" });
     const sel = elemento("select", { "aria-label": rotuloAcessivel(item) });
     if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— deixar como está —" }));
-    for (const opcao of item.opcoes) sel.append(elemento("option", { value: opcao, texto: rotuloDeValor(opcao) }));
+    for (const opcao of item.opcoes) {
+      sel.append(elemento("option", {
+        value: opcao, texto: (item.rotulos && item.rotulos[opcao]) || rotuloDeValor(opcao) }));
+    }
     sel.value = valor;
     sel.addEventListener("change", () => aplica(sel.value));
     caixa.append(sel);
@@ -1735,12 +1847,18 @@ function botaoVazio(item, limpar, aplica) {
 /* O fundo de teste vale para a página inteira e é lembrado — é o mesmo gesto
  * das folhas visuais, onde quatro pílulas repintam todos os cartões de uma vez.
  * Os quatro são os fundos REAIS sobre os quais um ícone aparece nesta máquina;
- * quem os define é `/paleta.css`, a partir da paleta. */
+ * quem os define é `/paleta.css`, a partir da paleta.
+ *
+ * OS NOMES SÃO DE FUNÇÃO, E NÃO DE FLAVOR — 23/09/2026, sprint P10. Eram
+ * «Mocha» e «Latte»: com o Dracula no ar a barra oferecia dois flavors do
+ * Catppuccin, e os dois pintavam o fundo de nada, porque a paleta no ar não os
+ * tem. Escuro e claro servem a qualquer pack, inclusive ao que não tem claro —
+ * o `paleta_css` do servidor diz de onde cada um sai. */
 const FUNDOS = [
-  { id: "mocha", rotulo: "Mocha", varr: "--fundo-mocha" },
+  { id: "escuro", rotulo: "Escuro", varr: "--fundo-escuro" },
   { id: "vidro-escuro", rotulo: "Vidro escuro", varr: "--fundo-vidro-escuro" },
   { id: "vidro-claro", rotulo: "Vidro claro", varr: "--fundo-vidro-claro" },
-  { id: "latte", rotulo: "Latte", varr: "--fundo-latte" },
+  { id: "claro", rotulo: "Claro", varr: "--fundo-claro" },
 ];
 let FUNDO = FUNDOS[0];
 
@@ -4676,7 +4794,11 @@ function montarCartao(item) {
   /* O valor EFETIVO só aparece quando difere do cru — é o caso das chaves que
    * usam `$HOME` ou `${FLAVOR}`, onde o que está escrito e o que vale são
    * textos diferentes, e esconder um dos dois confunde. */
-  if (item.efetivo && item.efetivo !== (item.valor ?? "")) {
+  /* O MOLDE DAS PASTAS NÃO GANHA O «Vale como» — ele dizia `cat-dracula-mauve`,
+   * um nome que o papirus-folders não tem. Os dois seletores e a nota deles
+   * dizem o que as pastas vestem, em português (ver `controlePastas`). [P10] */
+  if (item.efetivo && item.efetivo !== (item.valor ?? "")
+      && !(item.molde_pastas && partirMoldeDasPastas(valorEmVigor(item)))) {
     cartao.append(elemento("p", {
       class: "frase",
       /* «Vale como», com maiúscula: é uma frase da tela, e não a continuação
@@ -5426,6 +5548,16 @@ async function puxar() {
        * outra): quem apaga a linha do TSV é o próprio script, no caminho feliz.
        * Reler aqui é o que faz o bloco sumir da Home sem F5. */
       recarregarPendencias();
+      /* A PÁGINA SE VESTE DE NOVO — 23/09/2026, sprint P10. Um trabalho que
+       * escreveu pode ter trocado o pack (o «Usar este» da Home), o flavor ou
+       * o acento — e a página continuava pintada com a paleta que ela tinha
+       * ao abrir. O servidor já relê a ponte quando o meow.conf muda (o
+       * `_ponte_em_dia`); daqui sai o pedido de uma `/paleta.css` nova, com um
+       * número na URL para o navegador não devolver a de antes, e a lista de
+       * packs, que é quem sabe qual está no ar. */
+      const folha = document.querySelector('link[rel="stylesheet"][href^="/paleta.css"]');
+      if (folha) folha.href = `/paleta.css?v=${Date.now()}`;
+      recarregarPacks().then(render);
       recarregarEsquema().then(() => {
         PREVIAS.delete("icone/");
         if (APPS) carregarApps();
@@ -6373,6 +6505,18 @@ function parDePrevias(g) {
     return null;
   }
   if (!r || !r.antes) return null;
+
+  /* A LEGENDA NÃO REPETE O MOLDE DAS PASTAS — 23/09/2026, sprint P10. O desenho
+   * da aba Ícones escreve o valor cru («pastas em cat-${FLAVOR}-${ACCENT}»), e é
+   * certo que escreva: o arquivo de prévia não sabe o que é um pack. Quem sabe é
+   * a página, que tirou o molde do cartão e não pode devolvê-lo pela legenda. A
+   * troca é por texto EXATO, do valor que a própria página passou ao desenho;
+   * legenda que não o contenha passa intacta. */
+  for (const item of g.itens) {
+    if (!item.molde_pastas || !r.legenda || !v[item.chave]) continue;
+    const humano = descreverPastas(v[item.chave]);
+    if (humano) r.legenda = r.legenda.split(`pastas em ${v[item.chave]}`).join(humano);
+  }
 
   /* O PAR NÃO É ILUSTRAÇÃO: ELE É O CONTROLE — 06/09/2026
    *   Pedido dela, literal: *"como teremos o antes e depois nessa seção ao
@@ -7515,11 +7659,15 @@ function montarPendencias() {
  * código de `cartaoDePack`. E o site só vira link se for https, conferido lá
  * no `pack.py` e de novo aqui: é o único campo do pack que vira `href`.
  *
- * O QUE ESTE BLOCO NÃO É. A P10 faz da Home o lugar de TROCAR de pack: o
- * «Usar este», o anel no que está no ar, o Exportar e o Importar. Aqui é só o
- * cartão. E ele cai no fim da coluna da esquerda (`grid-column: 1`, sem área
- * nomeada) porque o `estilo.css` não é arquivo desta sprint — o desenho é por
- * `style` e pelas classes que a Home já tem. A P10 o põe em cima.
+ * O QUE ESTE BLOCO NÃO ERA. A P10 faz da Home o lugar de TROCAR de pack: o
+ * «Usar este», o anel no que está no ar, o Exportar e o Importar. Aqui era só o
+ * cartão. E ele caía no fim da coluna da esquerda (`grid-column: 1`, sem área
+ * nomeada) porque o `estilo.css` não era arquivo da P15 — o desenho era por
+ * `style` e pelas classes que a Home já tinha.
+ *
+ * A P10 FEZ, EM 23/09/2026: o bloco tem área nomeada (`packs`) no alto da
+ * Home, nas duas larguras; o cartão tem classes no `estilo.css`; e os três
+ * verbos — usar, exportar, importar — moram nele. Ver `usarPack`.
  *
  * NA PÁGINA EXPORTADA A LISTA NASCE VAZIA, como a das pendências: o
  * `standalone.js` responde 409 a `/api/packs`, e o bloco não nasce. */
@@ -7531,36 +7679,37 @@ async function recarregarPacks() {
 }
 
 function cartaoDePack(p) {
+  /* O CARTÃO GANHOU CLASSES, E O DESENHO FOI PARA O `estilo.css` — 23/09/2026,
+   * sprint P10. A P15 o escreveu por `style` porque a folha de estilo não era
+   * arquivo dela; aqui é, e o mockup aprovado (docs/folhas/folha-sprints-
+   * 2026-09-21.html, #p10) vira o cartão: o logo como capa, a tira fina embaixo
+   * como amostra, e o corpo com nome, estado, frase, etiquetas e a linha
+   * próprio/herdado.
+   *
+   * O PACK NO AR TEM O ANEL DE ACENTO, E NÃO TEM BOTÃO. É a mesma regra do resto
+   * da página — accent quer dizer "aceso" — e um «Usar este» no pack que já
+   * está em uso seria um botão que não faz nada. Os outros ganham o botão; o
+   * que não valida para o motor não ganha, porque o `meow pack usar` o recusaria
+   * pelo mesmo motivo que a linha amarela abaixo já diz. */
   const cartao = elemento("article", {
-    class: "pack",
-    style: "display:flex;flex-direction:column;gap:.55rem;min-width:0;"
-         + "padding:1rem 1.05rem;border:1px solid var(--surface0);"
-         + "border-radius:var(--r-3);background:var(--mantle)",
+    class: "pack" + (p.no_ar ? " no-ar" : ""),
+    "aria-label": p.no_ar ? `${p.nome}, o pack no ar` : p.nome,
   });
 
-  /* A capa ao lado do nome, e não em cima dele: é o desenho de um ícone de
-   * lançador, quadrado, e esticá-lo na largura do cartão seria voltar à tira.
-   * Sem capa não nasce um quadrado quebrado — a linha de problema abaixo diz
-   * qual arquivo falta. `alt` vazio porque o nome está do lado: ler "Dracula"
-   * duas vezes não informa nada. */
-  const topo = elemento("div", { style: "display:flex;align-items:center;gap:.85rem;min-width:0" });
-  if (p.capa) {
-    topo.append(elemento("img", { src: p.capa, alt: "", width: "56", height: "56",
-                                  style: "flex:0 0 auto;display:block" }));
-  }
-  const quem = elemento("div", { style: "display:flex;flex-direction:column;gap:.1rem;min-width:0" }, [
-    elemento("b", { class: "titulo-cartao", texto: p.nome }),
-  ]);
-  if (p.autor) quem.append(elemento("span", { class: "home-nota", texto: `por ${p.autor}` }));
-  topo.append(quem);
-  cartao.append(topo);
+  /* A capa é o logo do pack (P25), e ela fica EM CIMA: o cartão é a escolha de
+   * uma identidade, e a identidade é o desenho. `alt` vazio porque o nome está
+   * logo abaixo: ler "Dracula" duas vezes não informa nada. Sem capa não nasce
+   * um quadrado quebrado — a linha de problema diz qual arquivo falta. */
+  const capa = elemento("div", { class: "pack-capa" });
+  if (p.capa) capa.append(elemento("img", { src: p.capa, alt: "", width: "64", height: "64" }));
+  cartao.append(capa);
 
-  /* A mesma `.home-tira` do retrato, mais fina e sem o anel do acento: aqui ela
-   * é amostra do pack, e não a cor que está no ar. As cores já passaram pelo
-   * `#RRGGBB` do `validar` antes de sair do servidor. */
+  /* A TIRA É AMOSTRA, NÃO IDENTIDADE — a correção da P25 sobre o mockup de
+   * 21/09. Fina, colada na capa, com as 26 cores do flavor padrão na ordem dos
+   * slots. As cores já passaram pelo `#RRGGBB` do `validar` antes de sair do
+   * servidor. */
   if ((p.amostra || []).length) {
-    const tira = elemento("div", { class: "home-tira", style: "height:6px",
-                                   title: "A paleta do flavor padrão deste pack" });
+    const tira = elemento("div", { class: "pack-amostra", "aria-hidden": "true" });
     for (const cor of p.amostra) {
       const s = elemento("span");
       s.style.background = cor;
@@ -7569,53 +7718,227 @@ function cartaoDePack(p) {
     cartao.append(tira);
   }
 
-  if (p.descricao_curta) cartao.append(elemento("p", { class: "home-linha", texto: p.descricao_curta }));
-  if ((p.tags || []).length) cartao.append(elemento("p", { class: "home-rotulo", texto: p.tags.join(" · ") }));
-  if (p.origem) cartao.append(elemento("p", { class: "home-nota", texto: p.origem }));
+  const corpo = elemento("div", { class: "pack-corpo" });
+  const variantes = (p.flavors || []).length;
+  corpo.append(elemento("div", { class: "pack-nome" }, [
+    elemento("b", { texto: p.nome }),
+    elemento("span", {
+      class: "pack-estado",
+      texto: p.no_ar ? "no ar" : variantes ? `${variantes} ${variantes === 1 ? "variante" : "variantes"}` : "",
+    }),
+  ]));
+  /* "Por", e não "por": é o começo de um parágrafo da tela, e a P7 mediu os
+   * que abriam em minúscula — eles se leem como pedaço de outra frase. */
+  if (p.autor) corpo.append(elemento("p", { class: "pack-autor", texto: `Por ${p.autor}` }));
+  if (p.descricao_curta) corpo.append(elemento("p", { class: "pack-desc", texto: p.descricao_curta }));
+  if ((p.tags || []).length) {
+    const tags = elemento("ul", { class: "pack-tags", "aria-label": "Etiquetas" });
+    for (const tag of p.tags) tags.append(elemento("li", { texto: tag }));
+    corpo.append(tags);
+  }
+  if (p.origem) corpo.append(elemento("p", { class: "pack-herda", texto: maiuscula(p.origem) }));
   /* O pack que não valida aparece assim mesmo, dizendo por quê — como no
    * `meow pack info`. Esconder o cartão esconderia também o motivo. */
   for (const problema of (p.problemas || [])) {
-    cartao.append(elemento("p", { class: "home-nota", style: "color:var(--yellow)",
-                                  texto: "Não valida: " + problema }));
+    corpo.append(elemento("p", { class: "pack-problema", texto: "Não valida: " + problema }));
   }
 
+  /* O `meow pack info` VIRA TELA — P10, item 4. Dentro do «Mais sobre», que é
+   * onde a P15 já pôs a história: quem escolhe lê o cartão; quem quer saber o
+   * que vem de onde abre. As categorias saem da mesma conta da linha
+   * próprio/herdado (o `origens` do pack.py), e as 26 cores de cada flavor, das
+   * mesmas cores que o `validar` conferiu. */
   const site = (p.site || "").startsWith("https://") ? p.site : "";
-  if (p.descricao || (p.capturas || []).length || site) {
-    const mais = elemento("details", {}, [
-      elemento("summary", { class: "home-nota", style: "cursor:pointer", texto: "Mais sobre este pack" }),
+  const categorias = p.categorias || [];
+  const flavors = p.flavors || [];
+  if (p.descricao || (p.capturas || []).length || site || categorias.length || flavors.length) {
+    const mais = elemento("details", { class: "pack-mais" }, [
+      elemento("summary", { texto: "Mais sobre este pack" }),
     ]);
     if (p.descricao) {
-      mais.append(elemento("pre", {
-        texto: p.descricao,
-        style: "margin:.5rem 0 0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:20rem;"
-             + "overflow:auto;font-family:var(--mono);font-size:var(--t-frase);line-height:1.5;"
-             + "color:var(--subtext0)",
-      }));
+      mais.append(elemento("pre", { class: "pack-historia", texto: p.descricao }));
+    }
+    if (categorias.length) {
+      const lista = elemento("dl", { class: "pack-categorias" });
+      for (const c of categorias) {
+        const de = c.tipo === "herdado" ? `herdado do ${c.nome_de || c.de}`
+          : c.tipo === "motor" ? "do motor, ou ausente" : "próprio";
+        lista.append(elemento("dt", { texto: c.categoria }), elemento("dd", { texto: de }));
+      }
+      mais.append(lista);
+    }
+    for (const f of flavors) {
+      const linha = elemento("div", { class: "pack-flavor" }, [
+        elemento("span", { texto: f.nome + (f.claro ? " · claro" : "") }),
+      ]);
+      const tira = elemento("div", { class: "pack-amostra", "aria-hidden": "true" });
+      for (const cor of f.cores || []) {
+        const s = elemento("span");
+        s.style.background = cor;
+        tira.append(s);
+      }
+      linha.append(tira);
+      mais.append(linha);
     }
     if ((p.capturas || []).length) {
-      const fotos = elemento("div", { class: "home-fotos", style: "margin-top:.5rem" });
+      const fotos = elemento("div", { class: "home-fotos" });
       for (const url of p.capturas) fotos.append(elemento("img", { src: url, alt: "" }));
       mais.append(fotos);
     }
     if (site) {
-      mais.append(elemento("p", { class: "home-nota", style: "margin-top:.5rem" }, [
+      mais.append(elemento("p", { class: "pack-autor" }, [
+        "Site: ",
         elemento("a", { href: site, target: "_blank", rel: "noopener noreferrer",
                         texto: site.replace(/^https:\/\//, "") }),
       ]));
     }
-    cartao.append(mais);
+    corpo.append(mais);
   }
+
+  if (!p.no_ar && p.valido !== false) {
+    corpo.append(elemento("div", { class: "pack-acoes" }, [
+      elemento("button", {
+        type: "button", class: "btn",
+        texto: "Usar este",
+        title: `Veste a máquina inteira com o ${p.nome}`,
+        onclick: () => usarPack(p),
+      }),
+    ]));
+  }
+  cartao.append(corpo);
   return cartao;
+}
+
+/* TROCAR DE PACK A PARTIR DO CARTÃO — 23/09/2026, sprint P10
+ *
+ * É o `meow pack usar`, pela ação `pack_usar` do servidor, e com a mesma caixa
+ * de confirmação de todo gesto que escreve na máquina — inclusive o «Ver o que
+ * faria», que ensaia a TROCA (o verbo grava numa cópia do conf quando roda
+ * seco).
+ *
+ * AS ESCOLHAS QUE ESPERAM SÃO DO PACK DE AGORA. "Trocar de pack com 17
+ * escolhas pendentes", diz a sprint, "tem de avisar e oferecer descartar — ou
+ * uma escolha de outro pack vaza para dentro deste": elas continuariam na
+ * bandeja depois da troca, e o próximo «Salvar e aplicar» gravaria no Catppuccin
+ * o que foi escolhido olhando o Dracula. A pergunta vem antes; o descarte, só
+ * se a troca de fato começar — cancelar a caixa seguinte devolve tudo como
+ * estava. */
+async function usarPack(p) {
+  const acao = (ESQUEMA.acoes || []).find((a) => a.id === "pack_usar");
+  if (!acao) { torrada("Trocar de pack não está disponível nesta página.", "erro"); return; }
+  const esperando = MUDANCAS.size;
+  if (esperando) {
+    const ok = await perguntar({
+      titulo: `Trocar para o ${p.nome}?`,
+      texto: esperando === 1
+        ? `1 escolha ainda não salva foi feita olhando o pack de agora. Trocando para o ${p.nome}, `
+          + "ela é descartada — o meow.conf não é tocado por ela."
+        : `${esperando} escolhas ainda não salvas foram feitas olhando o pack de agora. Trocando `
+          + `para o ${p.nome}, elas são descartadas — o meow.conf não é tocado por elas.`,
+      ok: "Descartar e seguir", neutro: true,
+    });
+    if (!ok) return;
+  }
+  const antes = TRABALHO && TRABALHO.id;
+  await rodar(acao, p.id);
+  const comecou = TRABALHO && TRABALHO.id !== antes;
+  if (esperando && comecou) {
+    MUDANCAS.clear();
+    atualizarBarraSalvar();
+    render();
+    torrada("As escolhas que esperavam foram descartadas — o meow.conf não foi tocado", "igual");
+  }
+}
+
+/* EXPORTAR E IMPORTAR — OS BOTÕES SÃO DESTA SPRINT, AS ROTAS SÃO DA P11
+ *
+ * A divisão de 23/09/2026: a P10 põe os dois botões no bloco da Home, a P11 faz
+ * o `meow pack exportar/importar` e as rotas `/api/pack-exportar` e
+ * `/api/pack-importar`. O contrato que estes botões esperam, e que o merge das
+ * duas metades tem de fechar:
+ *
+ *   EXPORTAR  GET /api/pack-exportar?id=<pack no ar> devolve o `.meowpack` como
+ *             download — o mesmo `<a download>` do «Exportar» de ajustes, que o
+ *             cookie de sessão autentica sem repor o token na URL.
+ *   IMPORTAR  POST /api/pack-importar com {nome, conteudo} (o arquivo em base64,
+ *             como o `/api/acervo` recebe). A resposta pode pedir confirmação
+ *             com `precisa_confirmar` e um `resumo` do que o pack traz — a P11
+ *             diz: "o importar mostra o que o pack traz antes de confirmar" —, e
+ *             aí o mesmo pedido volta com `confirmado: true`. `erro` vira
+ *             torrada vermelha; o resto, a frase do servidor.
+ *
+ * Enquanto a rota não existe, o servidor responde 404 "não existe aqui", e a
+ * torrada diz isso em português em vez de repetir o texto cru. */
+function lerComoBase64(arquivo) {
+  return new Promise((ok, falha) => {
+    const leitor = new FileReader();
+    leitor.onerror = () => falha(new Error("não consegui ler o arquivo"));
+    leitor.onload = () => ok(String(leitor.result).split(",")[1] || "");
+    leitor.readAsDataURL(arquivo);
+  });
+}
+
+async function importarPack(arquivo) {
+  if (!arquivo) return;
+  let r;
+  try {
+    const pedido = { nome: arquivo.name, conteudo: await lerComoBase64(arquivo) };
+    r = await api("/api/pack-importar", { method: "POST", body: JSON.stringify(pedido) });
+    if (r && r.precisa_confirmar) {
+      const ok = await perguntar({
+        titulo: r.titulo || `Importar ${arquivo.name}?`,
+        texto: r.resumo || "",
+        ok: "Importar",
+      });
+      if (!ok) return;
+      r = await api("/api/pack-importar", {
+        method: "POST", body: JSON.stringify({ ...pedido, confirmado: true }) });
+    }
+  } catch (e) {
+    torrada(String(e.message || e), "erro");
+    return;
+  }
+  if (r.erro) {
+    torrada(r.erro === "não existe aqui"
+      ? "Importar um pack ainda não chegou a este painel." : r.erro, "erro");
+    return;
+  }
+  torrada(r.frase || `${arquivo.name} entrou — ele aparece entre os packs, e usar é outro clique.`, "ok");
+  await recarregarPacks();
+  render();
 }
 
 /* A seção, ou nada — o mesmo contrato do `montarPendencias`. */
 function montarPacks() {
   if (!PACKS.length) return null;
-  const secao = elemento("section", { class: "home-packs",
-    style: "grid-column:1;display:flex;flex-direction:column;gap:.7rem;min-width:0" });
-  secao.append(elemento("h3", { class: "home-rotulo", texto: "Theme packs" }));
-  const grade = elemento("div", {
-    style: "display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:.9rem" });
+  const secao = elemento("section", { class: "home-packs", "aria-labelledby": "titulo-packs" });
+  const noAr = PACKS.find((p) => p.no_ar);
+  const acoes = elemento("div", { class: "home-packs-acoes" });
+  if (noAr) {
+    acoes.append(elemento("a", {
+      class: "btn", href: `/api/pack-exportar?id=${encodeURIComponent(noAr.id)}`, download: true,
+      texto: "Exportar o meu",
+      title: `Empacota o ${noAr.nome} num .meowpack, para mandar a alguém`,
+    }));
+  }
+  const campo = elemento("input", {
+    type: "file", accept: ".meowpack", hidden: true,
+    onchange: async () => {
+      const arquivo = campo.files && campo.files[0];
+      campo.value = "";
+      await importarPack(arquivo);
+    },
+  });
+  acoes.append(campo, elemento("button", {
+    type: "button", class: "btn", texto: "Importar um pack",
+    title: "Um .meowpack de outra pessoa: ele entra como opção, sem trocar nada",
+    onclick: () => campo.click(),
+  }));
+  secao.append(elemento("div", { class: "home-packs-topo" }, [
+    elemento("h2", { class: "home-rotulo", id: "titulo-packs", texto: "Theme packs" }),
+    acoes,
+  ]));
+  const grade = elemento("div", { class: "packs" });
   for (const p of PACKS) grade.append(cartaoDePack(p));
   secao.append(grade);
   return secao;
@@ -7644,6 +7967,22 @@ function montarHome() {
   const chave = (c) => ESQUEMA.chaves.find((k) => k.chave === c);
   const vale = (c) => { const k = chave(c); return k ? (k.efetivo || k.valor || k.padrao || "") : ""; };
   const caixa = elemento("div", { class: "home" });
+
+  /* --- 0. os theme packs, EM CIMA — 23/09/2026, sprint P10 ----------------
+   * "o que eu quero nessa aba de home: tenhamos o theme pack Catppuccin e o
+   * theme pack Dracula e que qualquer um possa exportar o proprio tema e
+   * importar outros pro seu sistema operacional. disso em diante o app se
+   * modifica pra apresentar ao user o que ele pede."
+   *
+   * O pack é o centro, então ele vem primeiro — no documento E na tela. Até
+   * aqui ele nascia depois da noite e caía onde a grade tivesse espaço: a
+   * P15 mediu, a 1101px, os packs a 1398px do topo, abaixo até do lado, e
+   * deixou escrito que o conserto era uma área nomeada no `estilo.css`. Agora
+   * é a área `packs`, na primeira linha das duas larguras, e a ordem de
+   * leitura é a mesma do olho. O retrato de baixo continua dizendo a variante
+   * e a cor que estão no ar; o cartão com o anel diz de qual PACK elas são. */
+  const packs = montarPacks();
+  if (packs) caixa.append(packs);
 
   /* --- 1. o retrato ------------------------------------------------------- */
   const retrato = elemento("section", { class: "home-retrato" });
@@ -7907,23 +8246,6 @@ function montarHome() {
     }));
   }
   caixa.append(noite);
-
-  /* --- 3c. os theme packs, com cara — 23/09/2026, P15 --------------------
-   * Ver `montarPacks`. Nasce DEPOIS da noite na ordem do documento porque é
-   * ali que ele aparece na tela LARGA: sem área nomeada, a grade o põe no fim
-   * da coluna da esquerda, e leitor de tela e olho leem na mesma ordem.
-   *
-   * ABAIXO DE 1200px ISSO NÃO VALE, e a revisão pegou: o `estilo.css` empilha
-   * as áreas nomeadas ("retrato" "portas" "noite" "lado"), e este bloco, que
-   * não tem área, cai numa linha depois de todas, enquanto o documento o põe
-   * antes do lado. Medido em 23/09/2026, topo de cada bloco: a 1101px, noite
-   * 475, lado 645, packs 1398; a 1400px, packs 1339 abaixo da noite (937), na
-   * mesma coluna, com o lado na outra. Mudar a ordem aqui só trocaria qual das
-   * duas telas discorda. O conserto é uma área nomeada para ele no
-   * `estilo.css`, que não é arquivo da P15; fica para a P10, que traz os packs
-   * para o alto da Home. */
-  const packs = montarPacks();
-  if (packs) caixa.append(packs);
 
   /* --- 4. a coluna da direita -------------------------------------------- */
   const lado = elemento("aside", { class: "home-lado" });
