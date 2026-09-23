@@ -7569,8 +7569,18 @@ function montarHome() {
 
   /* --- 3c. os theme packs, com cara — 23/09/2026, P15 --------------------
    * Ver `montarPacks`. Nasce DEPOIS da noite na ordem do documento porque é
-   * ali que ele aparece na tela (sem área nomeada, a grade o põe no fim da
-   * coluna da esquerda) — leitor de tela e olho lendo na mesma ordem. */
+   * ali que ele aparece na tela LARGA: sem área nomeada, a grade o põe no fim
+   * da coluna da esquerda, e leitor de tela e olho leem na mesma ordem.
+   *
+   * ABAIXO DE 1200px ISSO NÃO VALE, e a revisão pegou: o `estilo.css` empilha
+   * as áreas nomeadas ("retrato" "portas" "noite" "lado"), e este bloco, que
+   * não tem área, cai numa linha depois de todas, enquanto o documento o põe
+   * antes do lado. Medido em 23/09/2026, topo de cada bloco: a 1101px, noite
+   * 475, lado 645, packs 1398; a 1400px, packs 1339 abaixo da noite (937), na
+   * mesma coluna, com o lado na outra. Mudar a ordem aqui só trocaria qual das
+   * duas telas discorda. O conserto é uma área nomeada para ele no
+   * `estilo.css`, que não é arquivo da P15; fica para a P10, que traz os packs
+   * para o alto da Home. */
   const packs = montarPacks();
   if (packs) caixa.append(packs);
 

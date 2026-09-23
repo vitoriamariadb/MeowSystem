@@ -88,16 +88,14 @@ json.dump({"_comentario": "Pack de mentira do tests/pack.sh. Nao e o Nord de ver
           open(os.path.join(dir_pack, "paleta.json"), "w"), indent=2, ensure_ascii=False)
 # A VITRINE ENTROU NO PACK MÍNIMO EM 23/09/2026 (P15): o `validar` cobra a
 # capa, e um pack de mentira sem ela deixaria de validar no teste 1 por um
-# motivo que não é o que o teste 1 pergunta. O SVG é o menor que passa nas
-# regras do logo da P25 — quadrado, com viewBox, sem script e sem imagem.
+# motivo que não é o que o teste 1 pergunta. A capa é o `logo.svg`, e quem o
+# escreve é o gerador da P25, logo abaixo. Até a revisão da P15 havia aqui
+# também um SVG escrito à mão, que o gerador sobrescrevia na linha seguinte.
 json.dump({"formato": 1, "id": ident, "nome": ident.capitalize(),
            "paleta": {"arquivo": "paleta.json", "flavor_padrao": ident},
            "cosmic": {"nome_da_paleta": ident + "-<flavor>"},
            "vitrine": {"capa": "logo.svg"}},
           open(os.path.join(dir_pack, "pack.json"), "w"), indent=2, ensure_ascii=False)
-open(os.path.join(dir_pack, "logo.svg"), "w").write(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">'
-    '<rect width="128" height="128" rx="24" fill="#2E3440"/></svg>\n')
 PY
 # O PACK DE MENTIRA TAMBÉM PRECISA DE CARA — 23/09/2026, sprint P25. Desde ela o
 # `logo.svg` é obrigatório, e sem ele o `validar` recusa o `nord` e dez
@@ -679,14 +677,20 @@ onde="$(amb python3 "$RAIZ/scripts/pack.py" onde "$ID" icones.autorais.desenhos 
 #   URL que não é https —, mais a que a varredura genérica de URL não pega:
 #   `javascript:` não tem `://`, e o `site` é o único campo que vira link.
 #
-#   O PACK CONTINUA USÁVEL SEM A VITRINE, e isso também é cobrado aqui: a
-#   vitrine é da porta de quem PUBLICA. Se a capa ausente derrubasse o `caminho`
-#   — a sonda de existência do `meow_pack_dir` —, o tema inteiro sairia do
-#   desktop por causa de uma figura que só a tela de escolha mostra.
+#   QUAL PORTA COBRA O QUÊ, e isto também é cobrado aqui, porque o texto já
+#   mentiu uma vez [23/09/2026, revisão da P15]: o `pack.py` e o docs/PACKS.md
+#   diziam que a capa ausente não tirava o pack do motor, e com a P25 tira — a
+#   capa é o `logo.svg`, e o logo é cobrado em toda porta. O resto da vitrine é
+#   só de quem PUBLICA: uma frase acima do teto não pode derrubar o `caminho`,
+#   a sonda de existência do `meow_pack_dir`. As três afirmações do documento
+#   viram três conferências abaixo, para a próxima divergência aparecer aqui.
 mkdir -p "$PACK_DIR/capturas"
 printf '# %s\n\nHistória com <script>alert(1)</script> e **negrito**.\n' "$ID" > "$PACK_DIR/LEIA-ME.md"
 printf '\x89PNG\r\n\x1a\n' > "$PACK_DIR/capturas/tela.png"
 cp "$PACK_DIR/logo.svg" "$T/logo-guardado.svg"
+# Um SVG são, dentro do pack, que NÃO é o logo: a capa que aponta para ele
+# tem de ser recusada mesmo passando em extensão, cerca e existência.
+cp "$PACK_DIR/logo.svg" "$PACK_DIR/outra-capa.svg"
 por_vitrine() {
   python3 - "$PACK_DIR" "$1" <<'PY' || exit 2
 import json, os, sys
@@ -719,20 +723,45 @@ case "$cabeca" in
   *) falha "as seis primeiras linhas do info não são a vitrine" "$cabeca" ;;
 esac
 
+# A capa ausente é o logo ausente: a recusa é a do logo, e ela nomeia o arquivo.
 rm -f "$PACK_DIR/logo.svg"
 saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
 if [ "$rc" = "0" ]; then
   falha "sem a capa, o pack validou" "$saida"
 else
   case "$saida" in
-    *vitrine.capa*logo.svg*) ok "sem a capa, validar recusa (rc=$rc) e nomeia o arquivo que falta" ;;
+    *logo.svg*) ok "sem a capa, validar recusa (rc=$rc) e nomeia o arquivo que falta" ;;
     *) falha "a recusa sem capa não nomeou o arquivo" "$saida" ;;
   esac
 fi
+# E NO MOTOR TAMBÉM — é o que o docs/PACKS.md diz agora ("a capa ausente tira o
+# pack do desktop"). Se um dia o logo sair da porta do motor, esta linha cai e
+# manda corrigir o documento junto.
 amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id >/dev/null 2>&1 \
-  && ok "sem a capa o motor continua vendo o pack — a vitrine não tranca o tema" \
-  || falha "a capa ausente fez o pack sumir da sonda do meow_pack_dir"
+  && falha "sem a capa o motor ainda vê o pack — o docs/PACKS.md diz o contrário" \
+  || ok "sem a capa o motor deixa de ver o pack: a capa é o logo, e o logo é estrutura"
 cp "$T/logo-guardado.svg" "$PACK_DIR/logo.svg"
+
+# O RESTO DA VITRINE NÃO TRANCA O MOTOR: com a frase acima do teto, `validar`
+# recusa, e o `caminho` e o `info` continuam vendo o pack — o `info` dizendo o
+# que falta.
+por_vitrine '{"capa": "logo.svg", "descricao_curta": "12345678901234567890123456789012345678901234567890123456789012345678901234567890X"}'
+amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id >/dev/null 2>&1 \
+  && ok "a frase acima do teto não tira o pack do motor" \
+  || falha "a frase acima do teto fez o pack sumir da sonda do meow_pack_dir"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID" 2>&1)"; rc=$?
+[ "$rc" = "0" ] && [[ "$saida" == *"NÃO VALIDA"*"81 caracteres"* ]] \
+  && ok "o info mostra o pack de frase comprida, e diz o que falta" \
+  || falha "o info escondeu o pack de frase comprida, ou não disse por quê (rc=$rc)" "$saida"
+
+# A URL FORA DE https:// É REGRA DO PACK INTEIRO (item 11), e vale no motor
+# desde antes da vitrine. Cobrado para o documento não voltar a dizer que só o
+# verbo `validar` a vê.
+por_vitrine '{"capa": "logo.svg", "site": "http://exemplo.org"}'
+amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id >/dev/null 2>&1 \
+  && falha "o site em http:// não tirou o pack do motor — o docs/PACKS.md diz que tira" \
+  || ok "o site em http:// tira o pack do motor, como toda URL fora de https"
+por_vitrine "$VIT_BOA"
 
 # As recusas uma a uma. Cada linha: o bloco vitrine, e o trecho que a mensagem
 # precisa ter — a recusa que não diz o campo manda procurar no lugar errado.
@@ -749,6 +778,7 @@ done <<'CASOS'
 {"descricao_curta": "sem capa"}|vitrine.capa: é obrigatória|a vitrine sem capa declarada
 {"capa": "capturas/tela.png"}|não é .svg|a capa que não é SVG
 {"capa": "../fora.svg"}|sai de dentro do pack|a capa fora do pack
+{"capa": "outra-capa.svg"}|não é o logo.svg do pack|a capa que é outro SVG, e não o logo
 {"capa": "logo.svg", "descricao_curta": "12345678901234567890123456789012345678901234567890123456789012345678901234567890X"}|81 caracteres, e o teto é 80|a frase curta acima de 80
 {"capa": "logo.svg", "site": "http://exemplo.org"}|só https|o site em http
 {"capa": "logo.svg", "site": "javascript:alert(1)"}|vitrine.site|o site em javascript:

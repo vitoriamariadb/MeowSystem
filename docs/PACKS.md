@@ -13,10 +13,11 @@ packs/meu-tema/
   logo.svg       a cara do pack, e a capa do cartão onde ele é escolhido — ver "O logo do pack"
 ```
 
-Com os dois primeiros o tema já **funciona**; o terceiro é o que faz o pack
-**passar** no `meow pack validar`, porque ninguém escolhe um tema por um `id`
-(ver [A vitrine](#a-vitrine)). Com isso você já ganha tema do COSMIC, esquema do
-terminal, cores do painel, dos ícones autorais e dos temas de aplicativo. Tudo
+Os três contam para o tema **funcionar**, e não só para o pack ser publicado:
+sem o `logo.svg` o pack não valida, e quem o adotou volta ao padrão. O logo é
+também a capa do cartão onde o pack é escolhido (ver [A vitrine](#a-vitrine)).
+Com isso você já ganha tema do COSMIC, esquema do terminal, cores do painel,
+dos ícones autorais e dos temas de aplicativo. Tudo
 o que você não declarar é herdado do **pack padrão** — o `catppuccin`, que acompanha o projeto e **pode
 ser trocado** —, e o `meow pack info` diz exatamente o que veio de onde.
 
@@ -226,7 +227,7 @@ longe das duas listas de destino proibido de `lib/comum.sh`.
 | `nome` | texto | como aparece na tela |
 | `paleta.arquivo` | caminho | relativo ao pack |
 | `paleta.flavor_padrao` | texto | um flavor que exista na paleta |
-| `vitrine.capa` | caminho | um SVG dentro do pack — por convenção `logo.svg`. Cobrado só por quem publica: ver [A vitrine](#a-vitrine) |
+| `vitrine.capa` | caminho | sempre `logo.svg`: a capa é o logo, e o `validar` recusa outro arquivo. Ver [A vitrine](#a-vitrine) |
 
 `formato` existe para que um pack antigo num MeowSystem novo **falhe dizendo o
 que falta**, em vez de pintar errado. Um pack com `formato` maior que o
@@ -332,7 +333,7 @@ hexadecimais, e a tela que escolhe um pack não tinha o que desenhar. O bloco
 
 | Campo | Regra | Por quê |
 |---|---|---|
-| `capa` | **obrigatória**; SVG; dentro do pack; o arquivo existe | vetor porque o cartão aparece em vários tamanhos, e um PNG de capa envelhece junto com a resolução |
+| `capa` | **obrigatória**, e é o `logo.svg` do pack — nenhum outro arquivo | é o logo: o mesmo SVG serve ao cartão e ao lançador, e passa pelas regras de [O logo do pack](#o-logo-do-pack) |
 | `descricao_curta` | uma linha, **até 80 caracteres** | é o que cabe numa linha do cartão — o mesmo teto dos balões do painel |
 | `descricao` | um `.md` dentro do pack, até 64 KiB | a história inteira, para quem abrir o cartão |
 | `tags` | lista de textos | as etiquetas do cartão |
@@ -345,7 +346,9 @@ paleta parecida ficariam iguais no cartão. A capa é o `logo.svg` do pack, o
 mesmo arquivo que vira o ícone do lançador; a tira continua no cartão, fina,
 embaixo dele, como amostra da paleta. Por isso o campo é um só: um
 `vitrine.logo` ao lado de um `vitrine.capa` seriam duas verdades para a mesma
-figura.
+figura. E pelo mesmo motivo o `validar` recusa uma capa que aponte para outro
+SVG do pack: ela escaparia das regras do logo — sem script, `viewBox` quadrado,
+nada apontando para fora — e seria a segunda verdade por outra porta.
 
 **A descrição é mostrada como texto, nunca como HTML.** O painel põe o
 Markdown do `LEIA-ME.md` num bloco de texto puro, sem interpretar nada — nem
@@ -354,12 +357,25 @@ terceiro numa página que carrega o token de sessão seria dar a um arquivo
 baixado da internet a chance de virar código dentro do painel. Quem quiser
 formatação escreve no site, que o cartão linka.
 
-**Ela é cobrada de quem publica, e nunca de quem usa.** `meow pack validar`
-recusa a vitrine quebrada — e diz todos os problemas de uma vez. O instalador,
-o `meow pack info` e o painel **não**: o tema de um pack sem capa continua
-funcionando no desktop, e o `info` e o cartão mostram o pack dizendo o que
-falta. Se a capa ausente trancasse o motor, o tema inteiro seria trocado pelo
-padrão por causa de uma figura que só a tela de escolha mostra.
+**Quase toda ela é cobrada só de quem publica.** `meow pack validar` recusa a
+vitrine quebrada — e diz todos os problemas de uma vez. O instalador, o
+`meow pack info` e o painel **não** recusam por ela: um pack com a frase
+comprida, uma tag vazia ou uma captura que falta continua funcionando no
+desktop, e o `info` e o cartão o mostram dizendo o que falta. Uma frase de 81
+caracteres não é motivo para trocar o tema inteiro pelo padrão.
+
+Duas regras valem também para quem **usa**, e nenhuma nasceu na vitrine:
+
+- **a capa ausente tira o pack do desktop**, porque a capa é o `logo.svg`, e o
+  logo é obrigatório para o pack validar em qualquer porta — ver
+  [O logo do pack](#o-logo-do-pack). É o mesmo tratamento do `CREDITOS.md`
+  declarado e ausente;
+- **uma URL fora de `https://`, em qualquer campo** — um `site` em `http://`,
+  ou uma `descricao_curta` que cite um endereço `http://` — cai no item 11 do
+  `validar`, que vale para o `pack.json` inteiro desde antes da vitrine.
+
+Nos dois casos o `meow pack info` também recusa, com a mesma mensagem do
+`validar`, e o cartão do painel mostra o pack só com o motivo.
 
 No terminal, a vitrine é o alto do `meow pack info`:
 
@@ -1034,9 +1050,13 @@ mantenha as `class`.
   passo vier, a porta é o verbo `logo`, e ele vem com o `meow_lancador_reler`: o
   lançador do COSMIC cacheia ícone (`lancador-cosmic-cacheia-icones`, 11/08), e
   trocar só o arquivo faz parecer que a troca de pack não funcionou.
-- **O cartão do pack na Home** ainda não existe (P10). Quando existir, ele mostra
-  o que `logo <id>` responde — não a tira, que desce para baixo do logo como
-  amostra.
+- **O cartão do pack na Home** nasceu com a P15 (ver [A vitrine](#a-vitrine)) e
+  mostra o logo, com a tira embaixo, fina, como amostra. Ele serve o `logo.svg`
+  como está no arquivo — a prévia do `flavor_padrao` com o accent `mauve`, o
+  mesmo flavor da tira; medido em 23/09/2026, nos dois packs daqui ela é byte a
+  byte o que `logo <id> <flavor_padrao> mauve` responde. Pedir o `logo <id>` no
+  flavor que está no ar fica para a P10, que faz da Home o lugar de trocar de
+  pack.
 - **`logo-mono.svg`**, a versão de traço único para barra e bandeja, não entrou:
   nada no projeto o leria, e um arquivo declarado sem leitor é a promessa vazia
   que o `validar` avisa em voz alta.
@@ -1111,11 +1131,13 @@ Ele confere, nesta ordem, e **para no primeiro erro**:
 13. **o logo**: `logo.svg` existe, é SVG quadrado, sem script, sem imagem
     embutida e sem nada que aponte para fora dele — ver
     [O logo do pack](#o-logo-do-pack), que diz cada regra e o porquê
-14. **a vitrine** — a capa existe, é SVG e está dentro do pack; a frase curta
-    cabe em 80 caracteres; a descrição é um `.md` do pack; o `site` é
-    `https://`. Este item, e só este, é cobrado apenas pelo verbo `validar`: o
-    instalador e o painel usam um pack de vitrine quebrada assim mesmo. Ver
-    [A vitrine](#a-vitrine)
+14. **a vitrine** — a capa é o `logo.svg`; a frase curta cabe em 80
+    caracteres; a descrição é um `.md` do pack; o `site` é `https://`. Este
+    item, e só este, é cobrado apenas pelo verbo `validar`: o instalador e o
+    painel usam assim mesmo um pack de frase comprida ou de `site` em
+    `javascript:`. O que da vitrine vale também para eles vem de outros itens —
+    a capa ausente é o logo ausente (13), e o `site` em `http://` é uma URL fora
+    de `https://` (11). Ver [A vitrine](#a-vitrine)
 
 A validação roda de novo dentro do `meow_preflight`, **antes** de o instalador
 escrever qualquer coisa. Um pack quebrado não chega a tocar no seu desktop.
