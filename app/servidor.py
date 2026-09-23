@@ -7678,7 +7678,14 @@ class Manipulador(BaseHTTPRequestHandler):
         # MB de teto recusavam metade do que ela tentaria enviar. O limite de
         # DADOS continua menor e mora em cada acervo — este aqui só impede que o
         # servidor leia da rede mais do que jamais aceitaria.
-        teto = (96 << 20) if alvo.path == "/api/acervo" else (1 << 20)
+        #
+        # 64 MB PARA O `.meowpack` — 23/09/2026, sprint P11. O maior pack daqui,
+        # o catppuccin inteiro, sai em 338 KB; o teto é para o pack que traz
+        # capturas de tela, que são raster e não comprimem. O limite do que o
+        # arquivo pode ABRIR mora no `scripts/pack.py` (TETO_MEOWPACK), que é
+        # quem abre.
+        teto = {"/api/acervo": 96 << 20,
+                "/api/pack-importar": 64 << 20}.get(alvo.path, 1 << 20)
         if tamanho > teto:
             return self._recusar(413, "corpo grande demais")
         try:
@@ -7759,7 +7766,101 @@ class Manipulador(BaseHTTPRequestHandler):
             texto, nome = self._exportar_pagina()
             return self._baixar(texto, nome, TIPOS[".html"])
 
+        # O PACK QUE VIAJA — ver `_api_pack_exportar`. [23/09/2026, P11]
+        if caminho == "/api/pack-exportar":
+            return self._api_pack_exportar(consulta)
+
         return self._recusar(404, "não existe aqui")
+
+    # O PACK QUE VIAJA — 23/09/2026, sprint P11
+    #
+    # QUEM EMPACOTA E QUEM INSTALA É O COMANDO DA CLI, pela regra do
+    #   `_acervo_por_comando`: "a capacidade não nasce presa ao navegador". Estas
+    #   rotas levam o arquivo de um lado para o outro e devolvem o que o `meow
+    #   pack` disse; a conferência, as recusas e o "importar não aplica" moram
+    #   no `scripts/pack.py`, num lugar só. Ler o tarball aqui seria a segunda
+    #   porta — e é pela porta que ninguém conferiu que o `.sh` entra.
+    #
+    # OS BOTÕES SÃO DA P10, que faz da Home o lugar dos packs. O que eles chamam:
+    #     GET  /api/pack-exportar?id=<id>        o .meowpack, para baixar
+    #              &imagens=nao                  sem as imagens raster
+    #              &medir=1                      só o tamanho, em JSON — a pergunta
+    #                                            "as imagens vão junto? são X MB"
+    #                                            vem ANTES de pedir o arquivo
+    #     POST /api/pack-importar  {conteudo: base64, confirmar: bool}
+    #              sem `confirmar` é o ensaio: confere, valida num temporário e
+    #              devolve o que o pack traz (a paleta, quantos ícones, ponteiro,
+    #              som) sem escrever nada — é a tela de confirmar. Com
+    #              `confirmar: true`, instala. Nas duas, nada é aplicado.
+    def _api_pack_exportar(self, consulta):
+        ident = consulta.get("id", [""])[0]
+        mod = modulo_pack()
+        # O `id` só vale se a varredura o achou — a cerca do `arte_da_vitrine`:
+        # o `achar` do pack.py também aceita CAMINHO, e esta rota não é porta
+        # para empacotar um diretório qualquer do disco.
+        if not mod or ident not in _packs_no_disco():
+            return self._json({"erro": "não conheço esse pack"}, 404)
+        if consulta.get("medir", [""])[0] == "1":
+            try:
+                return self._json(mod.medir_exportacao(ident))
+            except Exception as erro:
+                return self._json({"erro": str(erro)}, 400)
+        extra = ["--sem-imagens"] if consulta.get("imagens", [""])[0] == "nao" else []
+        with tempfile.TemporaryDirectory(prefix="meow-exporta-") as pasta:
+            saida = os.path.join(pasta, ident + ".meowpack")
+            try:
+                # `stdin` fechado: sem terminal do outro lado, o `exportar` não
+                # pergunta — quem pergunta é a tela, pelo `medir`, e manda a
+                # resposta no `imagens`.
+                r = subprocess.run(_meow("pack", "exportar", ident, saida, *extra),
+                                   capture_output=True, text=True, timeout=120,
+                                   stdin=subprocess.DEVNULL, env=_ambiente_do_painel())
+            except (OSError, subprocess.SubprocessError) as erro:
+                return self._json({"erro": "não consegui rodar: %s" % erro}, 500)
+            texto = ((r.stdout or "") + (r.stderr or "")).strip()
+            if r.returncode != 0 or not os.path.isfile(saida):
+                return self._json({"erro": texto or "o exportar falhou", "rc": r.returncode}, 400)
+            with open(saida, "rb") as fh:
+                corpo = fh.read()
+        return self._baixar(corpo, ident + ".meowpack", "application/zstd")
+
+    def _api_pack_importar(self, corpo):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "scripts/pack.py não carregou"}, 500)
+        try:
+            dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+        except Exception:
+            return self._json({"erro": "conteúdo não é base64"}, 400)
+        if not dados:
+            return self._json({"erro": "o arquivo veio vazio"}, 400)
+        confirmar = corpo.get("confirmar") is True
+        with tempfile.TemporaryDirectory(prefix="meow-importa-") as pasta:
+            # O NOME É NOSSO, E NÃO O DO ENVIO: o id do pack sai de dentro do
+            # tarball, conferido, e o nome do arquivo não decide nada.
+            caminho = os.path.join(pasta, "envio.meowpack")
+            with open(caminho, "wb") as fh:
+                fh.write(dados)
+            try:
+                # O ensaio é o `MEOW_DRY_RUN` de sempre, que o `bin/meow` traduz
+                # em `--seco`: a prévia e a instalação são o MESMO comando, e a
+                # tela não tem como mostrar um pack que o terminal recusaria.
+                r = subprocess.run(_meow("pack", "importar", caminho),
+                                   capture_output=True, text=True, timeout=120,
+                                   stdin=subprocess.DEVNULL,
+                                   env=_ambiente_do_painel(seco=not confirmar))
+            except (OSError, subprocess.SubprocessError) as erro:
+                return self._json({"erro": "não consegui rodar: %s" % erro}, 500)
+            texto = ((r.stdout or "") + (r.stderr or "")).strip()
+            if r.returncode != 0:
+                return self._json({"erro": texto or "o importar falhou", "rc": r.returncode}, 400)
+            # Depois do `importar` ter validado, e não antes: o `resumo` confia
+            # no que acabou de passar pela conferência inteira.
+            try:
+                resumo = mod.resumo_meowpack(caminho)
+            except Exception:
+                resumo = None
+        return self._json({"instalado": confirmar, "resumo": resumo, "saida": texto})
 
     def _baixar(self, corpo, nome, tipo):
         """Uma resposta que o navegador GRAVA em vez de mostrar.
@@ -8256,6 +8357,10 @@ class Manipulador(BaseHTTPRequestHandler):
 
         # TRAZER DE VOLTA — só analisa e devolve o que mudaria; quem grava é o
         # `Salvar e aplicar` de sempre. O porquê está em `importar_conf`.
+        # O `.meowpack` — ver `_api_pack_exportar`. [23/09/2026, P11]
+        if caminho == "/api/pack-importar":
+            return self._api_pack_importar(corpo)
+
         if caminho == "/api/importar":
             texto = str(corpo.get("texto", ""))
             if not texto.strip():

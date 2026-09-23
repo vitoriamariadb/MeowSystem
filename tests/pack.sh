@@ -878,6 +878,210 @@ else
   falha "o cartão de pack deixou de pôr a história num <pre> por texto"
 fi
 
+# --- 19. o pack que viaja: novo, exportar, apagar, importar — 23/09/2026, P11 --
+#
+#   A conferência da sprint, em pequeno: `meow pack novo` a partir do que está
+#   no ar (aqui, o pack de mentira), `exportar`, apagar, `importar` — e cada
+#   arquivo que chegou com o MESMO sha256 com que saiu. Depois, as recusas que
+#   são a regra dura da sprint, "um pack é dado, nunca é código", e a da
+#   licença: cada uma tem de dizer QUAL arquivo, e nenhuma pode deixar nada
+#   escrito para trás.
+#
+#   NADA SAI DO TEMPORÁRIO. O `novo` escreve em `$MEOW_PACKS`, a raiz de teste,
+#   e o `importar` na raiz da pessoa — que aqui é um `XDG_DATA_HOME` de
+#   brinquedo. Um teste de importação que escrevesse no ~/.local/share de quem
+#   o roda instalaria um pack de mentira na máquina dela.
+#
+#   O `stdin` vem fechado: o `exportar` pergunta se as imagens vão junto quando
+#   há terminal, e um teste não é alguém para responder.
+viaja() { amb env XDG_DATA_HOME="$T/xdg" MEOW_ESTADO="$T/estado" "$@" </dev/null; }
+somas() { ( cd "$1" && find . -type f -printf '%P\n' | LC_ALL=C sort | xargs -d '\n' sha256sum ); }
+NOVO="$ID-viaja"
+DA_PESSOA="$T/xdg/meowsystem/packs"
+conf_antes="$(sha256sum < "$T/meow.conf")"
+
+saida="$(viaja "$RAIZ/bin/meow" pack novo "$NOVO" 2>&1)"; rc=$?
+if [ "$rc" != "0" ] || [ ! -f "$PACKS/$NOVO/pack.json" ]; then
+  falha "meow pack novo não criou o pack (rc=$rc)" "$saida"
+else
+  ok "meow pack novo cria o pack a partir do que está no ar"
+  cmp -s "$PACKS/$NOVO/paleta.json" "$PACK_DIR/paleta.json" \
+    && ok "a paleta do pack novo é a que está no ar, byte a byte" \
+    || falha "a paleta do pack novo não é a do pack no ar"
+  # "Nunca referenciados por caminho absoluto": o resto vem por id, pela
+  # herança, e nenhum valor do pack.json aponta para a máquina de quem criou.
+  achado="$(python3 - "$PACKS/$NOVO/pack.json" "$ID" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+def andar(n, t=""):
+    if isinstance(n, dict):
+        for k, v in n.items():
+            yield from andar(v, f"{t}.{k}")
+    elif isinstance(n, list):
+        for i, v in enumerate(n):
+            yield from andar(v, f"{t}[{i}]")
+    elif isinstance(n, str) and n.startswith(("/", "~")):
+        yield f"{t} = {n}"
+erros = list(andar(p))
+if p.get("heranca") != sys.argv[2]:
+    erros.append(f"heranca = {p.get('heranca')!r}, e o pack no ar é {sys.argv[2]!r}")
+print("\n".join(erros))
+PY
+)"
+  [ -z "$achado" ] \
+    && ok "o resto vem do pack no ar pela herança, por id, sem caminho absoluto" \
+    || falha "o pack.json novo aponta para a máquina, ou não herda do pack no ar:" "$achado"
+fi
+saida="$(viaja "$RAIZ/bin/meow" pack novo "$NOVO" 2>&1)"; rc=$?
+[ "$rc" != "0" ] && [[ "$saida" == *"já existe"* ]] \
+  && ok "o novo não escreve por cima de um pack que já existe (rc=$rc)" \
+  || falha "o novo aceitou um id que já existe (rc=$rc)" "$saida"
+
+somas "$PACKS/$NOVO" > "$T/saiu.sha"
+saida="$(viaja "$RAIZ/bin/meow" pack exportar "$NOVO" "$T/$NOVO.meowpack" 2>&1)"; rc=$?
+[ "$rc" = "0" ] && [ -s "$T/$NOVO.meowpack" ] \
+  && ok "meow pack exportar escreve o .meowpack" \
+  || falha "o exportar falhou (rc=$rc)" "$saida"
+rm -rf "${PACKS:?}/$NOVO"
+importou="$(viaja "$RAIZ/bin/meow" pack importar "$T/$NOVO.meowpack" 2>&1)"; rc=$?
+if [ "$rc" != "0" ] || [ ! -d "$DA_PESSOA/$NOVO" ]; then
+  falha "o importar não instalou o pack exportado (rc=$rc)" "$importou"
+else
+  ok "meow pack importar instala na raiz da pessoa"
+  saida="$(viaja "$RAIZ/bin/meow" pack validar "$NOVO" 2>&1)"; rc=$?
+  [ "$rc" = "0" ] \
+    && ok "o pack importado valida (rc=0)" \
+    || falha "o pack importado não valida (rc=$rc)" "$saida"
+  chegou="$(somas "$DA_PESSOA/$NOVO")"
+  [ "$chegou" = "$(cat "$T/saiu.sha")" ] \
+    && ok "cada arquivo chegou com o sha256 com que saiu ($(wc -l < "$T/saiu.sha") arquivos)" \
+    || falha "o que chegou não é o que saiu" "$(diff <(printf '%s\n' "$chegou") "$T/saiu.sha")"
+fi
+# IMPORTAR NÃO APLICA. O meow.conf é onde se troca de tema, e ele não pode ter
+# mudado um byte; e a tela tem de dizer isso, para ninguém esperar a troca.
+[ "$(sha256sum < "$T/meow.conf")" = "$conf_antes" ] && [[ "$importou" == *"nada foi aplicado"* ]] \
+  && ok "importar não aplica: o meow.conf não mudou, e a saída diz isso" \
+  || falha "o importar mexeu no meow.conf, ou não disse que não aplicou" "$importou"
+rm -rf "${DA_PESSOA:?}/$NOVO"
+
+# AS RECUSAS DA IMPORTAÇÃO. O `.meowpack` forjado sai do bom, com UMA coisa
+# errada — e o MANIFESTO acertado quando a coisa errada é o conteúdo, para que a
+# recusa seja pelo motivo que o caso pergunta, e não por um sha que não bate.
+cat > "$T/forja.py" <<'PY'
+import hashlib, io, subprocess, sys, tarfile
+origem, saida, modo, *resto = sys.argv[1:]
+bruto = subprocess.run(["zstd", "-d", "-c", "-q", origem], capture_output=True, check=True).stdout
+velho = tarfile.open(fileobj=io.BytesIO(bruto))
+arquivos = {m.name: velho.extractfile(m).read() for m in velho if m.isfile()}
+ident = next(n.split("/")[0] for n in arquivos if "/" in n)
+links = []
+if modo == "extra":      # um arquivo a mais, e o MANIFESTO certinho
+    rel, dado = resto[0], resto[1].encode().decode("unicode_escape").encode()
+    arquivos[f"{ident}/{rel}"] = dado
+    arquivos["MANIFESTO"] += f"{hashlib.sha256(dado).hexdigest()}  {rel}\n".encode()
+elif modo == "troca":    # o conteúdo muda, o MANIFESTO não
+    arquivos[f"{ident}/{resto[0]}"] = resto[1].encode()
+elif modo == "fuga":
+    arquivos["../fora.txt"] = b"fora"
+elif modo == "link":
+    links.append(resto[0])
+buf = io.BytesIO()
+with tarfile.open(fileobj=buf, mode="w") as tar:
+    for nome, dado in arquivos.items():
+        info = tarfile.TarInfo(nome)
+        info.size, info.mode = len(dado), 0o755   # o tar pede execução; ninguém dá
+        tar.addfile(info, io.BytesIO(dado))
+    for rel in links:
+        info = tarfile.TarInfo(f"{ident}/{rel}")
+        info.type, info.linkname = tarfile.SYMTYPE, "/etc/passwd"
+        tar.addfile(info)
+comprimido = subprocess.run(["zstd", "-q", "-c"], input=buf.getvalue(), capture_output=True, check=True)
+open(saida, "wb").write(comprimido.stdout)
+PY
+printf 'isto nao e zstd\n' > "$T/texto.meowpack"
+while IFS='|' read -r modo rel dado espera nome; do
+  if [ "$modo" = "texto" ]; then
+    forjado="$T/texto.meowpack"
+  else
+    forjado="$T/forjado.meowpack"
+    python3 "$T/forja.py" "$T/$NOVO.meowpack" "$forjado" "$modo" "$rel" "$dado" || exit 2
+  fi
+  saida="$(viaja "$RAIZ/bin/meow" pack importar "$forjado" 2>&1)"; rc=$?
+  restos="$(ls -A "$DA_PESSOA" 2>/dev/null)"
+  if [ "$rc" != "0" ] && [[ "$saida" == *"$espera"* ]] && [ -z "$restos" ]; then
+    ok "recusa $nome (rc=$rc), e nada foi escrito"
+  else
+    falha "não recusou $nome, não disse qual arquivo, ou deixou rastro (rc=$rc)" "$saida
+restos: $restos"
+  fi
+done <<CASOS
+extra|ganchos.sh|#!/bin/sh\necho oi|$NOVO/ganchos.sh: é script de shell|o .sh dentro do tarball, dizendo qual arquivo
+extra|icones/leia.txt|#!/usr/bin/env python3|$NOVO/icones/leia.txt: começa com #!|o script com outro nome, pelo #!
+troca|pack.json|{}|sha256 não confere|o arquivo que mudou depois de exportado
+fuga|||sai do pack|a entrada que sai do diretório do pack
+link|icones/senha.svg||não é arquivo comum|o link simbólico
+texto|||não é um .meowpack|o arquivo que não é zstd
+CASOS
+# E o que o tar pede de modo não chega ao disco: todo arquivo forjado acima vem
+# 0755, e o que se instala nasce 0644.
+python3 "$T/forja.py" "$T/$NOVO.meowpack" "$T/forjado.meowpack" extra nota.md "oi" || exit 2
+saida="$(viaja "$RAIZ/bin/meow" pack importar "$T/forjado.meowpack" 2>&1)"; rc=$?
+execs="$(find "$DA_PESSOA/$NOVO" -type f -perm /111 2>/dev/null)"
+[ "$rc" = "0" ] && [ -f "$DA_PESSOA/$NOVO/nota.md" ] && [ -z "$execs" ] \
+  && ok "o bit de execução do tar não chega ao disco — tudo nasce 0644" \
+  || falha "o importado ganhou bit de execução, ou não foi importado (rc=$rc)" "$saida
+$execs"
+rm -rf "${DA_PESSOA:?}/$NOVO"
+
+# AS RECUSAS DO EXPORTAR. A licença (P28): sem CREDITOS.md não sai, e a arte do
+# PROCEDENCIA.md sem licença escrita também não. E o pack que não valida — o
+# `validar` é o de sempre, e um segundo validador aqui aprovaria o que ele recusa.
+LIC="$ID-licenca"
+viaja "$RAIZ/bin/meow" pack novo "$LIC" >/dev/null 2>&1 || falha "o novo não criou $LIC"
+exporta_recusa() {  # <o que a mensagem tem de dizer> <nome do caso>
+  rm -f "$T/lic.meowpack"
+  saida="$(viaja "$RAIZ/bin/meow" pack exportar "$LIC" "$T/lic.meowpack" 2>&1)"; rc=$?
+  if [ "$rc" != "0" ] && [[ "$saida" == *"$1"* ]] && [ ! -e "$T/lic.meowpack" ]; then
+    ok "o exportar recusa $2 (rc=$rc), e não escreve o arquivo"
+  else
+    falha "o exportar não recusou $2, ou não disse por quê (rc=$rc)" "$saida"
+  fi
+}
+printf '| arquivo | lido de | licença | sha256 |\n|---|---|---|---|\n| `logo.svg` | `~/x/logo.svg` |  | `%064d` |\n' 0 \
+  > "$PACKS/$LIC/PROCEDENCIA.md"
+exporta_recusa "logo.svg não diz a licença" "a arte de terceiro sem licença no PROCEDENCIA.md"
+rm -f "$PACKS/$LIC/PROCEDENCIA.md"
+python3 - "$PACKS/$LIC/pack.json" <<'PY' || exit 2
+import json, sys
+p = json.load(open(sys.argv[1])); p.pop("creditos", None)
+json.dump(p, open(sys.argv[1], "w"), indent=2, ensure_ascii=False)
+PY
+mv "$PACKS/$LIC/CREDITOS.md" "$T/creditos-guardado.md"
+exporta_recusa "sem o CREDITOS.md" "o pack sem CREDITOS.md"
+mv "$T/creditos-guardado.md" "$PACKS/$LIC/CREDITOS.md"
+rm -f "$PACKS/$LIC/logo.svg"
+exporta_recusa "vitrine.capa" "o pack que não valida"
+rm -rf "${PACKS:?}/$LIC"
+
+# O TAMANHO, E A PERGUNTA DAS IMAGENS. O pack de mentira tem uma captura em PNG
+# (o teste 18 a pôs lá). Sem terminal, as imagens vão junto e a saída diz como
+# deixá-las; com `--sem-imagens`, o PNG fica e a vitrine da cópia o esquece —
+# senão o pack que chega declararia uma captura que não trouxe.
+saida="$(viaja "$RAIZ/bin/meow" pack exportar "$ID" "$T/com.meowpack" 2>&1)"; rc=$?
+lista="$(zstd -d -c -q "$T/com.meowpack" 2>/dev/null | tar -tf - 2>/dev/null)"
+[ "$rc" = "0" ] && [[ "$saida" == *"1 imagem(ns)"*"ninguém para perguntar"* ]] \
+  && [[ "$lista" == *"$ID/capturas/tela.png"* ]] \
+  && ok "o exportar diz quanto pesam as imagens, e sem terminal elas vão junto" \
+  || falha "o exportar não disse o tamanho das imagens, ou as deixou de fora (rc=$rc)" "$saida"
+saida="$(viaja "$RAIZ/bin/meow" pack exportar "$ID" "$T/sem.meowpack" --sem-imagens 2>&1)"; rc=$?
+lista="$(zstd -d -c -q "$T/sem.meowpack" 2>/dev/null | tar -tf - 2>/dev/null)"
+capturas="$(zstd -d -c -q "$T/sem.meowpack" 2>/dev/null | tar -xOf - "$ID/pack.json" 2>/dev/null \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["vitrine"].get("capturas"))' 2>&1)"
+[ "$rc" = "0" ] && [[ "$lista" != *"tela.png"* ]] && [ "$capturas" = "[]" ] \
+  && ok "--sem-imagens deixa o PNG de fora, e a vitrine da cópia não o promete" \
+  || falha "o --sem-imagens levou a imagem, ou a vitrine ficou prometendo (rc=$rc)" "$saida
+capturas: $capturas"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

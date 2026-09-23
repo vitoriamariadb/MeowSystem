@@ -3838,13 +3838,59 @@ cmd_pack() {
       fi
       python3 "$RAIZ/scripts/pack.py" sincronizar "$alvo"
       ;;
+    # `novo`, `exportar`, `importar` — o pack que viaja, P11, 23/09/2026
+    #   A queixa: "que qualquer um possa exportar o próprio tema e importar
+    #   outros". Os três moram no `scripts/pack.py`, pelo motivo do topo desta
+    #   função; aqui só se põe o rosto e se traduz o `MEOW_DRY_RUN` em `--seco`,
+    #   como o `construir` faz.
+    #
+    #   SÓ O `novo` LÊ O meow.conf, e com a ponte exigida: "o que está no ar" é
+    #   o PACK/FLAVOR/ACCENT/SOM_* de lá, e sem a paleta resolvida não há do que
+    #   partir. `exportar` e `importar` não dependem da máquina — um pack
+    #   exporta igual em qualquer uma, e importar não troca o tema de ninguém.
+    #
+    #   AS OPÇÕES SEGUEM CRUAS ("$@") para o pack.py: a P16 acrescenta
+    #   `novo <id> --de-csv <arquivo>` lá dentro, sem tocar nestas linhas.
+    #
+    #   Sem `meow_travar`, pelo motivo do `construir`: nenhum dos três escreve
+    #   na configuração dela.
+    novo|criar)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga o nome do pack novo: meow pack novo <id>"; return "$MEOW_ERRO"; }
+      shift
+      carregar_conf || return "$MEOW_ERRO"
+      local -a seco=()
+      meow_seco && seco=(--seco)
+      python3 "$RAIZ/scripts/pack.py" novo "$alvo" "$@" ${seco[@]+"${seco[@]}"}
+      ;;
+    exportar|export)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga qual pack exportar: meow pack exportar <id> [arquivo.meowpack]"; return "$MEOW_ERRO"; }
+      shift
+      local -a seco=()
+      meow_seco && seco=(--seco)
+      python3 "$RAIZ/scripts/pack.py" exportar "$alvo" "$@" ${seco[@]+"${seco[@]}"}
+      ;;
+    importar|import)
+      local arquivo="${1:-}"
+      [ -n "$arquivo" ] || { meow_erro "diga qual arquivo: meow pack importar <arquivo.meowpack>"; return "$MEOW_ERRO"; }
+      shift
+      local -a seco=()
+      meow_seco && seco=(--seco)
+      python3 "$RAIZ/scripts/pack.py" importar "$arquivo" "$@" ${seco[@]+"${seco[@]}"}
+      ;;
     -h|--help|ajuda)
-      printf 'uso: meow pack [listar|validar <id>|info <id>|construir <id>|sincronizar <id>|raizes]\n\n'
+      printf 'uso: meow pack [listar|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|importar <arquivo>|raizes]\n\n'
       printf '  listar           os packs instalados, e se cada um valida\n'
       printf '  validar <id>     confere o pack inteiro; 0 = ok\n'
       printf '  info <id>        o que é próprio e o que é herdado, categoria a categoria\n'
       printf '  construir <id>   refaz o que o pack deriva, escrevendo só dentro dele\n'
       printf '  sincronizar <id> compara a arte copiada com a origem; só lê, nunca copia\n'
+      printf '  novo <id>        um pack seu, a partir do que está no ar; o resto ele herda\n'
+      printf '  exportar <id> [arquivo.meowpack] [--sem-imagens]\n'
+      printf '                   o pack num arquivo só, para mandar a alguém\n'
+      printf '  importar <arquivo.meowpack>\n'
+      printf '                   confere, e instala como opção — não troca o seu tema\n'
       printf '  raizes           onde o MeowSystem procura\n\n'
       printf 'A especificação do formato está em docs/PACKS.md.\n'
       ;;
