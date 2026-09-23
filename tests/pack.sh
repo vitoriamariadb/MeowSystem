@@ -878,6 +878,116 @@ else
   falha "o cartão de pack deixou de pôr a história num <pre> por texto"
 fi
 
+# --- 19. trocar de pack e voltar, conferindo o tema no disco — 23/09/2026, P10
+#
+#   A sprint: "`meow pack usar <id>` — escreve PACK= e FLAVOR= no meow.conf,
+#   valida antes, e roda a aplicação". A aplicação é o `install.sh` inteiro, e
+#   este arquivo não o roda (ver o cabeçalho). O que se confere é a CADEIA que
+#   ele percorre: o verbo grava as duas chaves e mais nada; um shell novo,
+#   lendo aquele conf, resolve o pack pela ponte; e o tema do COSMIC que esse
+#   pack captura é o que vai para o disco — escrito aqui num COSMIC de
+#   brinquedo, pelo mesmo `aplicar_tema.sh` que o instalador chama. Ida e volta,
+#   porque a volta é o que prova que nada ficou grudado no primeiro.
+#
+#   TUDO DENTRO DO TEMPORÁRIO. `env -i` com HOME, conf e COSMIC próprios: o
+#   `aplicar_tema.sh` escreve de verdade, e o endereço dele tem de ser o
+#   brinquedo, nunca o `~/.config/cosmic` de quem roda o teste.
+CASA="$T/casa"; mkdir -p "$CASA"
+cp "$RAIZ/meow.conf.exemplo" "$T/usar.conf"
+usar_amb() {
+  env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/usar.conf" \
+    MEOW_COSMIC_DIR="$CASA/cosmic" NO_COLOR=1 "$@"
+}
+# O tema que o conf de agora pediria: a ponte num shell NOVO, e o `aplicar_tema.sh`
+# com o que ela exportou. Devolve o pack resolvido e o código do `--conferir`.
+tema_do_conf() {
+  usar_amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"
+    set -a; . "$MEOW_CONF"; set +a
+    meow_ponte_python >/dev/null 2>&1 || exit 9
+    par="$FLAVOR-$ACCENT"
+    "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$par" >/dev/null 2>&1 || exit 8
+    "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$par" --conferir >/dev/null 2>&1; rc=$?
+    printf "%s %s %s\n" "$(basename "$MEOW_PACK_DIR")" "$par" "$rc"'
+}
+sem_as_duas() { grep -vE '^(PACK|FLAVOR)=' "$1"; }
+
+antes="$(sem_as_duas "$T/usar.conf")"
+saida="$(usar_amb "$RAIZ/bin/meow" pack usar dracula --sem-aplicar 2>&1)"; rc=$?
+if [ "$rc" = "0" ] && grep -qx 'PACK="dracula"' "$T/usar.conf" \
+   && grep -q '^FLAVOR="dracula"' "$T/usar.conf" \
+   && [ "$(sem_as_duas "$T/usar.conf")" = "$antes" ]; then
+  ok "meow pack usar grava PACK e FLAVOR, e nenhuma outra linha do conf"
+else
+  falha "meow pack usar dracula não gravou só as duas chaves (rc=$rc)" "$saida"
+fi
+ida="$(tema_do_conf)"
+[ "$ida" = "dracula dracula-mauve 0" ] \
+  && ok "depois da troca, o tema no disco é o do Dracula ($ida)" \
+  || falha "o tema no disco não é o do pack escolhido" "esperava 'dracula dracula-mauve 0', veio '$ida'"
+
+saida="$(usar_amb "$RAIZ/bin/meow" pack usar catppuccin --sem-aplicar 2>&1)"; rc=$?
+volta="$(tema_do_conf)"
+if [ "$rc" = "0" ] && grep -qx 'PACK="catppuccin"' "$T/usar.conf" \
+   && [ "$volta" = "catppuccin mocha-mauve 0" ]; then
+  ok "e a volta: o flavor que não é do pack cai no padrão dele, e o tema no disco acompanha ($volta)"
+else
+  falha "a volta ao Catppuccin não levou o tema junto (rc=$rc, veio '$volta')" "$saida"
+fi
+residuo="$(usar_amb "$RAIZ/scripts/aplicar_tema.sh" dracula-mauve --conferir >/dev/null 2>&1; echo $?)"
+[ "$residuo" != "0" ] \
+  && ok "o tema do pack de antes deixou de conferir: nada dele ficou no disco" \
+  || falha "o COSMIC de brinquedo ainda confere com o Dracula depois da volta"
+
+# A RECUSA VEM ANTES DA ESCRITA: um flavor que o pack não tem, um pack que não
+# existe, e o ensaio — os três saem sem tocar um byte do conf.
+copia="$(cat "$T/usar.conf")"
+usar_amb "$RAIZ/bin/meow" pack usar dracula mocha --sem-aplicar >/dev/null 2>&1; r1=$?
+usar_amb "$RAIZ/bin/meow" pack usar nao-existe --sem-aplicar >/dev/null 2>&1; r2=$?
+usar_amb env MEOW_DRY_RUN=1 "$RAIZ/bin/meow" pack usar dracula --sem-aplicar >/dev/null 2>&1; r3=$?
+if [ "$r1" != "0" ] && [ "$r2" != "0" ] && [ "$r3" = "1" ] && [ "$(cat "$T/usar.conf")" = "$copia" ]; then
+  ok "flavor de outro pack, pack inexistente e ensaio saem sem escrever (rc=$r1 $r2 $r3)"
+else
+  falha "meow pack usar escreveu onde devia recusar (rc=$r1 $r2 $r3)" "$(diff <(printf '%s\n' "$copia") "$T/usar.conf")"
+fi
+
+# O NOME DO PACK NÃO IMPORTA: o de mentira, fora de RAIZ/packs, troca igual.
+saida="$(usar_amb env MEOW_PACKS="$PACKS" "$RAIZ/bin/meow" pack usar "$ID" --sem-aplicar 2>&1)"; rc=$?
+[ "$rc" = "0" ] && grep -qx "PACK=\"$ID\"" "$T/usar.conf" && grep -q "^FLAVOR=\"$ID\"" "$T/usar.conf" \
+  && ok "o pack de terceiro também se usa pelo verbo, com o flavor padrão dele" \
+  || falha "meow pack usar $ID não gravou o pack de terceiro (rc=$rc)" "$saida"
+
+# A ABA ÍCONES FALA COM AS PALAVRAS DO PACK NO AR. É a conferência da sprint no
+# nível do dado que a página desenha: com o Dracula no ar, nenhuma opção
+# oferecida carrega "Mocha" nem "Frappé", e o molde `${FLAVOR}` não é rótulo de
+# nada — ele só existe como VALOR da primeira opção das pastas.
+saida="$(env MEOW_RAIZ="$RAIZ" MEOW_PACK_DIR="$RAIZ/packs/dracula" python3 - "$RAIZ" <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+esquema = servidor.ler_esquema()
+vocab = servidor.modulo_pack().vocabulario("dracula")
+servidor._com_o_vocabulario_do_pack(esquema, vocab, {"FLAVOR": "dracula"})
+item = {i["chave"]: i for i in esquema}
+erros = []
+fl = item["ICONES_FLAVOR"]
+if fl["opcoes"] != ["macchiato"] or fl["rotulos"].get("macchiato") != "Macchiato (herdado do Catppuccin)":
+    erros.append("variante dos ícones de arquivo: %r %r" % (fl["opcoes"], fl.get("rotulos")))
+if item["ICONES_DRACULA"]["titulo"] != "Ícones do pack nos aplicativos" \
+        or "«Dracula»" not in item["ICONES_DRACULA"]["frase"]:
+    erros.append("o ajuste dos ícones de aplicativo ainda nomeia um pack no rótulo")
+molde = item["ICONES_PASTAS"]["molde_pastas"]
+rotulos = [o["rotulo"] for o in molde["variantes"] + molde["cores"]]
+for palavra in ("Mocha", "Frappé", "Latte", "${FLAVOR}", "${ACCENT}", "cat-"):
+    if any(palavra in r for r in rotulos) or palavra in item["ICONES_PASTAS"]["frase"]:
+        erros.append("as pastas ainda mostram %r" % palavra)
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "com o Dracula no ar, a aba Ícones oferece o vocabulário dele, e não o do Catppuccin" \
+  || falha "a aba Ícones ainda fala Catppuccin com o Dracula no ar" "$saida"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

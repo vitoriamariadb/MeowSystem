@@ -3047,7 +3047,11 @@ a.folha:hover b { color: var(--text); }
 .home {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 21rem);
-  grid-template-areas: "retrato lado" "portas lado" "noite lado";
+  /* OS PACKS NA PRIMEIRA LINHA, DE PONTA A PONTA — 23/09/2026, sprint P10.
+   * "O pack é o centro": o bloco ganha área nomeada e vem antes do retrato,
+   * atravessando as duas colunas. Sem área, a P15 mediu o bloco caindo onde a
+   * grade tivesse espaço — a 1398px do topo a 1101px de largura. */
+  grid-template-areas: "packs packs" "retrato lado" "portas lado" "noite lado";
   align-content: start;
   align-items: start;
   gap: 1.1rem;
@@ -3056,6 +3060,153 @@ a.folha:hover b { color: var(--text); }
 .home-retrato { grid-area: retrato; }
 .home-portas { grid-area: portas; }
 .home-noite { grid-area: noite; }
+.home-packs { grid-area: packs; }
+
+/* --- os theme packs — 23/09/2026, sprint P10 ------------------------------
+ * O desenho é o do mockup aprovado (docs/folhas/folha-sprints-2026-09-21.html,
+ * seção #p10), com a correção da P25: a capa é o LOGO do pack, e a tira de
+ * cores fica embaixo dele, fina, como amostra. Nenhuma cor nova: o anel do pack
+ * no ar é o accent (o mesmo "aceso" do resto da página), o estado "no ar" é o
+ * verde do `ok`, e o problema é o amarelo do aviso. */
+.home-packs { display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
+.home-packs-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem .9rem;
+}
+.home-packs-topo h2 { margin: 0; }
+.home-packs-acoes { display: flex; flex-wrap: wrap; gap: .4rem; }
+/* O «Exportar o meu» é um `<a download>`, como os do menu Exportar: sem o
+ * sublinhado de link, ele se lê como o botão que é. */
+.home-packs-acoes a.btn { text-decoration: none; display: inline-flex; align-items: center; }
+.packs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+  gap: .9rem;
+}
+.pack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--mantle);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+}
+.pack.no-ar { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+/* O logo sobre o `crust`, que é o fundo mais fundo da paleta no ar: o desenho
+ * traz o fundo dele mesmo (o `base` do pack), e o contraste entre os dois é o
+ * que recorta o quadrado. */
+.pack-capa {
+  display: grid;
+  place-items: center;
+  min-height: 6.5rem;
+  padding: 1rem 0;
+  background: var(--crust);
+}
+.pack-capa img { width: 64px; height: 64px; display: block; }
+.pack-amostra { display: flex; height: 5px; min-width: 0; }
+.pack-amostra span { flex: 1 1 auto; min-width: 0; }
+.pack-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  padding: .8rem .95rem .95rem;
+  min-width: 0;
+}
+.pack-nome { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.pack-nome b { font-size: 1.05rem; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
+.pack-estado {
+  font: var(--t-legenda) var(--mono);
+  color: var(--overlay2);
+  white-space: nowrap;
+}
+.pack.no-ar .pack-estado { color: var(--green); font-weight: 600; }
+.pack-autor, .pack-herda { margin: 0; font-size: var(--t-legenda); color: var(--overlay2); }
+.pack-herda { font-family: var(--mono); line-height: 1.5; overflow-wrap: anywhere; }
+.pack-desc { margin: 0; font-size: var(--t-frase); line-height: 1.5; color: var(--subtext0); text-wrap: pretty; }
+.pack-problema { margin: 0; font-size: var(--t-legenda); color: var(--yellow); overflow-wrap: anywhere; }
+.pack-tags { display: flex; flex-wrap: wrap; gap: .25rem; margin: 0; padding: 0; list-style: none; }
+.pack-tags li {
+  font-size: var(--t-legenda);
+  color: var(--subtext1);
+  background: var(--surface0);
+  border-radius: var(--r-max);
+  padding: .08rem .5rem;
+}
+.pack-mais summary {
+  cursor: pointer;
+  font-size: var(--t-legenda);
+  color: var(--overlay2);
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+.pack-mais summary:hover { color: var(--text); }
+.pack-mais[open] { display: flex; flex-direction: column; gap: .55rem; }
+/* O link do site também é alvo de clique, e o piso de 24 px da P6 vale para
+ * ele: em letra de legenda ele tinha 14 px de altura, medido pelo
+ * `tests/app-acessibilidade.py`. */
+.pack-mais a { display: inline-flex; align-items: center; min-height: 24px; }
+/* A HISTÓRIA É TEXTO PURO NUM <pre> — a regra de segurança da P15. Quebra de
+ * linha e rolagem ficam aqui para ela nunca empurrar o cartão de lado. */
+.pack-historia {
+  margin: 0;
+  /* O fio embaixo é o fim da caixa que rola: sem ele, a linha cortada pela
+   * altura máxima encostava na lista de categorias e parecia sobreposta. */
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--surface0);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 16rem;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: var(--t-frase);
+  line-height: 1.5;
+  color: var(--subtext0);
+}
+/* O `meow pack info`, virado tela: categoria à esquerda, de onde vem à
+ * direita, em duas colunas que não empurram a largura do cartão. */
+.pack-categorias {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: .15rem .7rem;
+  margin: 0;
+  font-size: var(--t-legenda);
+}
+.pack-categorias dt { color: var(--subtext1); }
+.pack-categorias dd { margin: 0; color: var(--overlay2); font-family: var(--mono); overflow-wrap: anywhere; }
+.pack-flavor { display: flex; flex-direction: column; gap: .2rem; font-size: var(--t-legenda); color: var(--subtext1); }
+.pack-flavor .pack-amostra { height: 12px; border-radius: var(--r-1); overflow: hidden; }
+.pack-acoes { display: flex; justify-content: flex-end; margin-top: .2rem; }
+
+/* --- a cor das pastas em dois seletores — P10 ------------------------------
+ * O molde `cat-${FLAVOR}-${ACCENT}` saiu da tela: variante e cor, lado a lado,
+ * com a amostra da cor ao lado do seletor dela. */
+.pastas-molde { display: flex; flex-direction: column; gap: .45rem; min-width: 0; }
+/* Um seletor por linha: lado a lado, num cartão de terço de tela, os dois
+ * cortavam o próprio texto («Acompanha o ter»), medido a 1600px. */
+.pastas-seletores { display: flex; flex-direction: column; gap: .4rem; }
+.pastas-seletores label {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+  font-size: var(--t-legenda);
+  color: var(--overlay2);
+}
+.pastas-seletores label > span:first-child { flex: 0 0 4.2rem; }
+.pastas-amostra {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-1);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent);
+}
+.pastas-molde .frase { margin: 0; }
+.pastas-cru { display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; }
 
 /* --- a noite ------------------------------------------------------------- */
 /* A home dizia como a máquina está vestida AGORA e não dizia a única coisa que
@@ -3367,7 +3518,7 @@ a.folha:hover b { color: var(--text); }
 @media (max-width: 1200px) {
   .home {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "retrato" "portas" "noite" "lado";
+    grid-template-areas: "packs" "retrato" "portas" "noite" "lado";
     gap: 1.6rem;
   }
   .home-lado { max-width: var(--medida); }

@@ -42,6 +42,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [O acervo de ícones do pack](#o-acervo-de-ícones-do-pack)
 - [Fonte e derivados](#fonte-e-derivados)
 - [Temas de aplicativo](#temas-de-aplicativo)
+- [Trocar de pack: `meow pack usar`](#trocar-de-pack-meow-pack-usar)
 - [Quem vence: o pack ou o `meow.conf`](#quem-vence-o-pack-ou-o-meowconf)
 - [O tema do COSMIC, e o único passo manual que existe](#o-tema-do-cosmic-e-o-único-passo-manual-que-existe)
 - [O som](#o-som)
@@ -981,6 +982,57 @@ O teto de citações por módulo está em `tests/temas-de-apps.sh`, e ele só de
 
 ---
 
+## Trocar de pack: `meow pack usar`
+
+```bash
+meow pack usar dracula            # grava PACK e FLAVOR no meow.conf, e aplica
+meow pack usar catppuccin latte   # com o flavor escolhido
+meow pack usar meu-tema --sem-aplicar
+```
+
+Até 23/09/2026 trocar de pack era editar `PACK=` no `meow.conf` à mão: os
+verbos de `meow pack` liam, validavam e construíam, e nenhum dizia à máquina
+"use este". Agora há o verbo, e ele é o mesmo que o botão **Usar este** dos
+cartões da Home do painel chama.
+
+**O que ele faz, nesta ordem:**
+
+1. **Valida o pack com a régua do motor** — a mesma que o instalador aplica. Um
+   pack que ela reprova seria trocado pelo padrão em silêncio (o
+   `meow_pack_dir` cai no Catppuccin e só avisa), então o verbo recusa **antes
+   de escrever**: pack que não existe, pack fora das [raízes](#onde-um-pack-mora),
+   flavor que o pack não tem. Capa e logo ausentes não impedem: o motor usa o
+   pack sem eles.
+2. **Escolhe o flavor.** O que você pediu; senão o que já está no ar, se ele
+   for do pack (voltar ao Catppuccin estando no Latte não te joga no Mocha);
+   senão o `paleta.flavor_padrao` do pack.
+3. **Grava `PACK` e `FLAVOR`, e só as duas.** O resto do `meow.conf` fica
+   intacto, comentários inclusive.
+4. **Diz o que ficou do pack de antes.** O `meow.conf` vence o pack (ver a seção
+   seguinte), então um `ICONES_BASE="Dracula-Icones"` escrito por você continua
+   valendo depois de `usar catppuccin`. O verbo não decide por você o que é
+   gosto e o que é resto: ele lista as chaves cujo valor cita o pack de antes, e
+   o painel marca cada uma como «Vestígio do pack».
+5. **Aplica** — o instalador inteiro, porque trocar de pack mexe em quase todas
+   as etapas. `--sem-aplicar` grava e para.
+
+**O ensaio ensaia a troca.** Com `MEOW_DRY_RUN=1` (ou o «Ver o que faria» do
+painel), o `meow.conf` não é tocado: as duas chaves vão para uma cópia
+descartável, e o instalador seco lê a cópia. Um ensaio que lesse o conf do disco
+mostraria o pack que **já** está no ar, com cara de ensaio da troca.
+
+**Na tela**, a Home abre com um cartão por pack instalado — o logo, a paleta
+embaixo, o que ele traz de próprio e o que herda de quem —, e o que está no ar
+tem o anel de acento. Com escolhas ainda não salvas na página, **Usar este**
+pergunta antes: elas foram feitas olhando o pack de agora, e são descartadas
+se a troca começar. E a aba Ícones passa a falar com as palavras do pack no ar:
+a «Variante dos ícones de arquivo» de um pack que herda o acervo de mimetype
+oferece o flavor que **ele** escolheu em `icones.mimetypes.flavor`, com o nome
+do dono ao lado — `Macchiato (herdado do Catppuccin)` —, e não os quatro
+sabores do Catppuccin soltos numa máquina vestida de Dracula.
+
+---
+
 ## Quem vence: o pack ou o `meow.conf`
 
 **O `meow.conf` da máquina sempre vence.** Sem exceção.
@@ -1356,6 +1408,7 @@ abre um `pack.json`:
 |---|---|
 | `validar <id-ou-caminho>` | confere o pack inteiro. 0 = ok, 1 = recusado |
 | `info <id>` | a vitrine no alto; depois o que é próprio, o que é herdado, categoria a categoria |
+| `usar <id> [flavor]` | o `PACK` e o `FLAVOR` que o `meow pack usar` vai gravar — **não escreve**; recusa antes |
 | `caminho <id> <categoria>` | o caminho que aquela categoria resolve **no pack** |
 | `acervo <id> <categoria> [arquivo]` | o mesmo, subindo pack → herança → motor |
 | `paleta <id>` | o arquivo de paleta daquele pack |
@@ -1412,7 +1465,7 @@ Antes do `ok`, o validador imprime **quais campos aquele `pack.json` declara e
 nenhuma linha deste projeto consulta**:
 
 ```
-  aviso 12 campo(s) que este pack declara e NENHUM código lê:
+  aviso 11 campo(s) que este pack declara e NENHUM código lê:
           icones.apps.camada
           origens.wallpapers.tipo
           …
@@ -1482,5 +1535,6 @@ Este repositório traz **dois** packs, e eles ensinam coisas diferentes:
   herdado — com cada herança dita na cara.
 
 Se for copiar um para começar o seu, copie o **catppuccin**: o do Dracula
-declara doze campos que ainda não têm leitor, e o `validar` diz quais são. Eram
-quinze até a P15 dar leitor a `autor`, `versao` e `licenca`.
+declara onze campos que ainda não têm leitor, e o `validar` diz quais são. Eram
+quinze até a P15 dar leitor a `autor`, `versao` e `licenca`, e doze até a P10
+dar leitor a `icones.mimetypes.flavor` — ver [Trocar de pack](#trocar-de-pack-meow-pack-usar).

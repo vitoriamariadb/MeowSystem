@@ -3,7 +3,7 @@
 Uma página local que configura **tudo o que hoje só se configura editando o
 `~/.config/meow/meow.conf` ou digitando comandos do `meow`**. As 122 chaves, com
 o valor que você escolheu, o que vinha de fábrica e a explicação de cada uma; e
-54 ações, com a saída aparecendo ao vivo enquanto rodam.
+55 ações, com a saída aparecendo ao vivo enquanto rodam.
 
 ```bash
 ./app/run.sh
