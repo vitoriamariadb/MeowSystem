@@ -78,8 +78,25 @@ assets/fontes/fonts/locais/*.TTF
 !assets/icones/resgatados/*.png
 
 # Estado local da máquina: backups e log ficam fora, em ~/.local/state/meowsystem.
-# assets/temas/capturados/ E VERSIONADO: sao as capturas que fazem o "3 cliques uma vez na vida"
+# As CAPTURAS continuam versionadas — sao as que fazem o "3 cliques uma vez na vida"
 # continuarem valendo mesmo se esta maquina for reformatada. Sao texto pequeno.
+# Desde 22/09/2026 cada uma mora no PACK dono dela (`packs/<id>/temas/capturados/`);
+# o que ficou em `assets/temas/capturados/` e so a `original`, que nao e tema de
+# pack nenhum: e o molde do esquema v1 e o reset de fabrica desta maquina.
+
+# O PRODUTO GERADO SAI DO GIT — 22/09/2026
+#   Os sete `assets/temas/meowsystem-<flavor>-<accent>.ron` eram versionados, e
+#   sao SAIDA de `scripts/gerar_temas.py` (paleta do pack + cosmic-map.json).
+#   Versionar saida gerada e o que permite que o disco e a receita divirjam, e o
+#   `docs/SPRINTS.md` ja tinha nome para o defeito: "o doctor enxerga receita
+#   diferente de produto". Agora eles nascem em `$MEOW_ESTADO/temas/`, junto dos
+#   backups e do log, e o `meow doctor` confere receita contra produto NA
+#   MAQUINA em vez de confiar num arquivo commitado.
+#
+#   ESTA LINHA E O CINTO, e so isso: o caminho normal ja nao escreve aqui. Ela
+#   existe para quem rodar `gerar_temas.py --saida assets/temas` a mao — o mesmo
+#   papel que a linha do `target/` do applet de midia faz, tres blocos abaixo.
+assets/temas/*.ron
 
 *.tmp
 *.bak

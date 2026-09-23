@@ -51,8 +51,9 @@
 # @ Variante do tema
 # > Catppuccin em três escuros e um claro, ou Dracula. Vale com qualquer cor de destaque.
 # [essencial] Qual variante de cor. Vale qualquer par com o ACCENT: o tema sai
-# por DERIVAÇÃO da paleta, e a captura em assets/temas/capturados/ é
-# refinamento, não requisito. O pré-voo diz se este par ainda não tem a dele.
+# por DERIVAÇÃO da paleta, e a captura que o pack traz
+# (`packs/<id>/temas/capturados/`) é refinamento, não requisito. O pré-voo diz
+# se este par ainda não tem a dele.
 #
 # "SÓ VALE O QUE TEM CAPTURA" ERA MENTIRA, E ELA SAÍA DUAS VEZES NA MESMA TELA
 # [corrigido em 21/09/2026]
@@ -71,8 +72,14 @@
 #   O QUE A CAPTURA MUDA é um passo a mais, não uma porta fechada: ela fixa o
 #   que o COSMIC desenhou na tela. Sem ela a etapa `tema` do install.sh se pula
 #   e as cores da janela ficam como estavam, até você importar
-#   `assets/temas/meowsystem-<flavor>-<accent>.ron` em Configurações >
-#   Aparência > Importar e rodar `meow tema capturar <flavor>-<accent>`.
+#   `~/.local/state/meowsystem/temas/meowsystem-<flavor>-<accent>.ron` em
+#   Configurações > Aparência > Importar e rodar
+#   `meow tema capturar <flavor>-<accent>`.
+#
+#   O `.ron` NASCE NA MÁQUINA, e não vem no clone [22/09/2026]: ele é produto
+#   de `scripts/gerar_temas.py`, e produto gerado saiu do git. Quem o escreve é
+#   a etapa `gerar` do `./install.sh`, que roda antes da etapa `tema`. Para
+#   tê-lo sem instalar nada: `python3 scripts/gerar_temas.py <flavor>-<accent>`.
 #
 # O DRACULA ENTROU COMO VARIANTE, NÃO COMO OUTRO TEMA — 15/09/2026
 #   A paleta dele tem as mesmas 26 cores nomeadas dos quatro flavors do
@@ -155,9 +162,10 @@ MODO="escuro"
 #   Até 08/08/2026 este arquivo oferecia seis chaves para eles (RAIO,
 #   GAP_EXTERNO, GAP_INTERNO, DICA_ATIVA, VIDRO, ALPHA_FUNDO) e NENHUM script as
 #   lia — o `meow configurar` perguntava, dizia "gravado", e nada mudava.
-#   Implementá-las seria pior que removê-las: elas alimentariam os `assets/temas/*.ron`,
-#   que servem só para o import manual na GUI (o tema aplicado vem por CÓPIA de
-#   `assets/temas/capturados/`). A chave pareceria funcionar e só valeria depois de três
+#   Implementá-las seria pior que removê-las: elas alimentariam os `.ron` de
+#   `~/.local/state/meowsystem/temas/`, que servem só para o import manual na
+#   GUI (o tema aplicado vem por CÓPIA da captura do pack, ver `meow pack`).
+#   A chave pareceria funcionar e só valeria depois de três
 #   cliques em Aparência — que é o defeito de "prometer o que não se cumpre".
 #
 #   Para mudar de verdade: edite `assets/paleta/cosmic-map.json`, rode

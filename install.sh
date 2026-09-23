@@ -278,7 +278,7 @@ etapa_backup_tema() {
       | sort -z | xargs -0 sha256sum > manifesto.sha256 ) 2>/dev/null || true
 
   # O `captura.txt` tem o MESMO formato do das capturas versionadas
-  # (`assets/temas/capturados/*/captura.txt`), e de propósito: a pergunta
+  # (o `captura.txt` de cada captura do pack), e de propósito: a pergunta
   # "de qual home isto saiu?" se responde com o mesmo `grep origem` dos dois
   # lados, e foi a ausência dessa linha aqui que deixou o `desfazer` sem como
   # distinguir esta máquina da de outra pessoa.
@@ -873,13 +873,28 @@ etapa_gerar() {
 etapa_tema() {
   passo "Tema"
   local alvo="${FLAVOR}-${ACCENT}"
-  local captura="$MEOW_RAIZ/assets/temas/capturados/$alvo"
+  # A CAPTURA MORA NO PACK DESDE 22/09/2026, e quem sabe onde é o `pack.py`.
+  # Cravar o caminho aqui faria a etapa "tema" se pular calada em toda máquina
+  # que usasse um pack que não o padrão — e "se pulou" é a mensagem mais cara
+  # deste instalador, porque ela parece normal.
+  local captura; captura="$(meow_captura "$alvo")"
 
-  if [ ! -d "$captura" ]; then
+  if [ -z "$captura" ]; then
     meow_aviso "ainda não há captura para '$alvo'"
-    meow_info "importe assets/temas/meowsystem-$alvo.ron uma vez em"
+    meow_info "importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez em"
     meow_info "  Configurações > Área de trabalho > Aparência > Importar"
-    meow_info "e depois rode: ./scripts/capturar_tema.sh $alvo"
+    # O COMANDO OFERECIDO TEM DE CARREGAR A PONTE — 22/09/2026
+    #   Esta linha dizia `./scripts/capturar_tema.sh $alvo`, cru. Aquele script
+    #   não carrega o `lib/comum.sh` (de propósito) e pergunta direto ao
+    #   `pack.py`, que só conhece `MEOW_PACK_DIR` — variável que o
+    #   `meow_ponte_python` exportou AQUI DENTRO, no `main`, e que não existe no
+    #   terminal dela depois. Colada no shell dela, a linha crua gravaria a foto
+    #   do pack ATIVO dentro do `packs/catppuccin/` do clone, que é o defeito
+    #   que o `captura-destino` nasceu para impedir. O `meow` monta a mesma
+    #   ponte sozinho na entrada, e a `etapa_cli` é a terceira da lista contra a
+    #   oitava desta — ele já está no PATH quando esta mensagem aparece. É o
+    #   mesmo comando que o `chk_tema` e a linha do rc=4, logo abaixo, ofereciam.
+    meow_info "e depois rode: meow tema capturar $alvo"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 

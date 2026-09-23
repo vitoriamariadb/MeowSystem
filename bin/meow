@@ -254,21 +254,20 @@ notificar() { meow_seco || meow_notificar "$@"; }
 # --- 3. leituras de estado --------------------------------------------------
 alvo_tema() { printf '%s-%s' "$FLAVOR" "$ACCENT"; }
 
-# AS CAPTURAS MORAM EM `assets/temas/capturados/` — 02/09/2026.
-#   Esta função lia `state/tema/`, um caminho que a reorganização de pastas
-#   deixou para trás: o diretório não existe mais, então o laço não achava nada
-#   e `meow tema` imprimia "capturas disponíveis" seguido de NADA, com quatro
-#   capturas no disco. Ninguém percebeu porque o comando não errava — ele
-#   listava o vazio, calado.
-#   Quem pegou foi a validação da página, que mostra a saída deste comando num
-#   cartão: "mostra ZERO capturas e jura que nenhuma confere".
-#   O caminho certo é o que o `aplicar_tema.sh:204` e o `bin/meow:297` já usam.
+# AS CAPTURAS MORAM DENTRO DO PACK DONO — 22/09/2026.
+#   Esta função já mudou de casa duas vezes. Ela lia `state/tema/`, um caminho
+#   que a reorganização de pastas deixou para trás: o diretório não existia
+#   mais, o laço não achava nada, e `meow tema` imprimia "capturas disponíveis"
+#   seguido de NADA, com quatro capturas no disco. Ninguém percebeu porque o
+#   comando não errava — ele listava o vazio, calado. Quem pegou foi a validação
+#   da página, que mostra a saída deste comando num cartão: "mostra ZERO
+#   capturas e jura que nenhuma confere".
+#   Em 02/09/2026 o conserto foi cravar `assets/temas/capturados/` aqui. Hoje a
+#   captura mora no pack dono dela e a `original` ficou no motor — são duas
+#   casas, e cravar uma delas repetiria o defeito de 02/09 com outra roupa. Quem
+#   responde é o `meow_capturas` (lib/comum.sh), que pergunta ao `pack.py`.
 capturas() {
-  local d
-  for d in "$RAIZ"/assets/temas/capturados/*/; do
-    [ -d "$d" ] || continue
-    printf '%s\n' "$(basename "$d")"
-  done
+  meow_capturas
 }
 
 # Qual captura está de fato aplicada agora. Devolve o nome, ou nada.
@@ -337,11 +336,27 @@ chk_conf() {
 # projeto. Enquanto ele estivesse aqui, o `--consertar` das 5h regeraria os gatos
 # excluídos toda madrugada.
 chk_gerar() {
-  local rc=0 msg=""
-  python3 "$RAIZ/scripts/gerar_temas.py" --conferir >/dev/null 2>&1 \
-    || { rc=1; msg="algum .ron saiu da paleta"; }
+  local rc=0 msg="" rc_ron=0
+  # AUSENTE NÃO É DIVERGENTE, E A DIFERENÇA NASCEU COM A P14 — 22/09/2026
+  #   Os `.ron` saíram do git (são produto de `gerar_temas.py`) e passaram a
+  #   nascer em `$MEOW_ESTADO/temas/`. Numa máquina que ainda não rodou o
+  #   instalador eles simplesmente NÃO EXISTEM — e chamar isso de "saiu da
+  #   paleta" faria o doctor abrir amarelo, na primeira execução de todo mundo,
+  #   por algo que ninguém fez de errado. O `gerar_temas.py --conferir` passou a
+  #   separar os dois casos: 3 = falta gerar, 1 = existe e está diferente.
+  #   Devolver 3 aqui faz a linha sair como "pulado", que é a verdade.
+  python3 "$RAIZ/scripts/gerar_temas.py" --conferir >/dev/null 2>&1; rc_ron=$?
+  case "$rc_ron" in
+    0) ;;
+    "$MEOW_SEM_DEPENDENCIA") ;;
+    *) rc=1; msg="algum .ron saiu da paleta" ;;
+  esac
   python3 "$RAIZ/scripts/gerar_tema_v1.py" --conferir >/dev/null 2>&1 \
     || { rc=1; msg="${msg:+$msg; }a v1 das capturas saiu da paleta"; }
+  if [ "$rc" = "0" ] && [ "$rc_ron" = "$MEOW_SEM_DEPENDENCIA" ]; then
+    echo "os .ron ainda não foram gerados nesta máquina — 'meow doctor --consertar' os escreve em $MEOW_ESTADO/temas/"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
   # QUEM NOMEIA O ARQUIVO É O `meow_paleta_nome` — 22/09/2026
   #   Esta linha dizia "conferem com assets/paleta/", e a P13 esvaziou esse
   #   diretório: só o `cosmic-map.json`, que é do MOTOR, ficou lá. A paleta
@@ -355,8 +370,8 @@ chk_gerar() {
 
 chk_tema() {
   local alvo; alvo="$(alvo_tema)"
-  [ -d "$RAIZ/assets/temas/capturados/$alvo" ] || {
-    echo "não há captura para '$alvo' — importe assets/temas/meowsystem-$alvo.ron uma vez pela GUI"
+  [ -n "$(meow_captura "$alvo")" ] || {
+    echo "não há captura para '$alvo' — importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez pela GUI"
     echo "e rode: meow tema capturar $alvo"
     return "$MEOW_SEM_DEPENDENCIA"
   }
@@ -1611,6 +1626,27 @@ chk_logo() {
 # rodar — num comando que escreve de verdade. Aqui a variável é herdada, e cada
 # script chamado já sabe respeitá-la.
 fix_gerar() {
+  # O `gerar_temas.py` NÃO CONHECE `MEOW_DRY_RUN` — 22/09/2026
+  #   A frase do bloco acima ("cada script chamado já sabe respeitá-la") não
+  #   vale para ele: `grep MEOW_DRY_RUN scripts/gerar_temas.py` não casa nada, e
+  #   ele escreve os três `.ron` de verdade. O irmão dele, o `gerar_tema_v1.py`,
+  #   sabe (`conferir = args.conferir or seco`) — por isso só este lado precisa
+  #   da recusa. MEDIDO em 22/09/2026, com um `.ron` adulterado de propósito e
+  #   `MEOW_DRY_RUN=1 meow doctor --consertar`: o md5 do arquivo MUDOU. O
+  #   defeito é anterior a hoje, pelo caminho do rc=1; a linha logo abaixo, que
+  #   passa a chamar o `fix_gerar` também quando os `.ron` ainda não nasceram,
+  #   o poria no caminho de TODA máquina recém-clonada — e `MEOW_DRY_RUN=1` é
+  #   justamente o jeito de auditar antes de deixar rodar.
+  #   É a mesma recusa do `meow tema capturar` no seco (`cmd_tema`), pelo mesmo
+  #   motivo e com a mesma frase: a promessa "no seco não se escreve nada" é do
+  #   `meow`, e quem a mantém é quem chama, quando o chamado não sabe.
+  #   A outra metade — o `gerar_tema_v1.py` — não é chamada aqui no seco porque
+  #   no seco ela vira `--conferir`, e o `chk_gerar` já a conferiu uma linha
+  #   antes: chamá-la de novo só repetiria a mesma frase na tela.
+  meow_seco && {
+    meow_muda "geraria os .ron da paleta em $MEOW_ESTADO/temas/ e a v1 das capturas"
+    return "$MEOW_DIVERGENTE"
+  }
   python3 "$RAIZ/scripts/gerar_temas.py" 2>&1 || return "$MEOW_ERRO"
   python3 "$RAIZ/scripts/gerar_tema_v1.py" 2>&1 || return "$MEOW_ERRO"
   return "$MEOW_DIVERGENTE"
@@ -1859,6 +1895,28 @@ declare -A SEM_CONSERTO_RAZAO=(
   [upstream]="o conserto CLONA da rede, e o doctor não baixa — rode: ./scripts/baixar_upstream.sh"
   [fontes]="o conserto BAIXA a release pinada do Nerd Fonts, e o doctor não baixa — rode: ./scripts/instalar_fontes.sh"
 )
+
+# O 3 QUE É NOSSO — 22/09/2026
+#   `3` quer dizer "falta uma dependência", e o laço do `--consertar` pula todo
+#   `3` com "o conserto não é nosso". A frase era verdadeira enquanto 3 fosse
+#   sempre papirus, systemd, rede ou cargo. A P14 criou a exceção: os `.ron`
+#   saíram do git e passaram a NASCER em `$MEOW_ESTADO/temas/`, então numa
+#   máquina que ainda não os gerou o `chk_gerar` devolve 3 — e ali a coisa que
+#   falta é PRODUTO NOSSO, o `fix_gerar` existe, funciona, e é exatamente o que
+#   a mensagem do check manda rodar.
+#
+#   MEDIDO ANTES DESTA LINHA, na mesma rodada de `meow doctor --consertar`:
+#     --   gerar       os .ron ainda não foram gerados nesta máquina — 'meow
+#                      doctor --consertar' os escreve em .../temas/
+#     --   gerar: falta dependência — o conserto não é nosso
+#   A tela mandava rodar um comando que respondia que não ia fazer nada. Numa
+#   máquina recém-clonada essa é a PRIMEIRA linha do doctor, e a saída oferecida
+#   era uma porta fechada.
+#
+#   É LISTA, E NÃO UM `if` NO LAÇO, pelo mesmo motivo do `SEM_CONSERTO` logo
+#   acima: a decisão "este check tem conserto automático" mora num lugar só, por
+#   nome, onde se lê de cima a baixo quem está de fora e por quê.
+FALTA_NOSSA=" gerar "
 
 # --- 6. o runner das conferências -------------------------------------------
 declare -a CHK_NOME=() CHK_RC=() CHK_SAIDA=()
@@ -2149,9 +2207,15 @@ cmd_doctor() {
       meow_pula "$nome: sem conserto automático (${SEM_CONSERTO_RAZAO[$nome]:-é o install.sh que cria})"
       continue ;;
     esac
+    # O `FALTA_NOSSA` abre a única porta: ver o bloco dele, ao lado do
+    # SEM_CONSERTO. Sem essa linha o `gerar` era pulado por "o conserto não é
+    # nosso" — e ali ele é.
     if [ "${CHK_RC[$i]}" = "3" ]; then
-      meow_pula "$nome: falta dependência — o conserto não é nosso"
-      continue
+      case "$FALTA_NOSSA" in
+        *" $nome "*) ;;
+        *) meow_pula "$nome: falta dependência — o conserto não é nosso"
+           continue ;;
+      esac
     fi
     # 4: divergente POR ESCOLHA DELA. Consertar aqui seria desfazer o ajuste que
     # ela acabou de fazer na GUI — e, como o timer roda todo dia, seria desfazer
@@ -2251,7 +2315,7 @@ cmd_tema() {
       # O capturar_tema.sh não conhece MEOW_DRY_RUN — ele escreve em state/ do
       # repo, não na configuração dela. Recusar no seco é o que mantém a promessa
       # "MEOW_DRY_RUN=1 não escreve nada" verdadeira também aqui.
-      meow_seco && { meow_muda "capturaria assets/temas/capturados/$1"; return "$MEOW_DIVERGENTE"; }
+      meow_seco && { meow_muda "capturaria $(python3 "$RAIZ/scripts/pack.py" captura-destino "$1" 2>/dev/null || printf '%s' "$1")"; return "$MEOW_DIVERGENTE"; }
       meow_travar || return "$MEOW_ERRO"
       "$RAIZ/scripts/capturar_tema.sh" "$1"; local rc=$?
       [ "$rc" = "0" ] && registrar "tema capturar $1"
@@ -2263,7 +2327,7 @@ cmd_tema() {
       printf 'uso: meow tema [<tema>|claro|escuro|auto|capturar <nome>|desfazer]\n'; return 0 ;;
 
     *)
-      if [ ! -d "$RAIZ/assets/temas/capturados/$arg" ]; then
+      if [ -z "$(meow_captura "$arg")" ]; then
         meow_erro "não existe captura '$arg'"
         meow_info "disponíveis: $(capturas | em_linha)"
         return "$MEOW_SEM_DEPENDENCIA"
@@ -3061,9 +3125,10 @@ cmd_configurar() {
 
   # O PAR ESCOLHIDO EXISTE NO DISCO? — 21/09/2026
   #   MEDIDO: o comentário do `FLAVOR` oferece 5 variantes e o do `ACCENT`
-  #   oferece 12. São 60 pares apresentados como escolha, e
-  #   `assets/temas/capturados/` tem QUATRO (dracula-mauve, latte-mauve,
-  #   mocha-mauve, mocha-pink). Quem respondesse "macchiato" + "teal" — duas
+  #   oferece 12. São 60 pares apresentados como escolha, e os packs de fábrica
+  #   trazem QUATRO capturas (dracula-mauve no pack Dracula; latte-mauve,
+  #   mocha-mauve e mocha-pink no Catppuccin — desde 22/09/2026 cada uma mora
+  #   dentro do pack dono). Quem respondesse "macchiato" + "teal" — duas
   #   opções que a própria pergunta ofereceu — via a etapa `tema` do install.sh
   #   se pular e não entendia por quê.
   #
@@ -3082,15 +3147,15 @@ cmd_configurar() {
     _fl="${WIZ_NOVO[FLAVOR]:-$(wiz_bruto FLAVOR "$fonte")}"
     _ac="${WIZ_NOVO[ACCENT]:-$(wiz_bruto ACCENT "$fonte")}"
     _par="$_fl-$_ac"
-    if [ -n "$_fl" ] && [ -n "$_ac" ] && [ ! -d "$RAIZ/assets/temas/capturados/$_par" ]; then
-      for _c in "$RAIZ/assets/temas/capturados"/*; do
-        [ -d "$_c" ] || continue
+    if [ -n "$_fl" ] && [ -n "$_ac" ] && [ -z "$(meow_captura "$_par")" ]; then
+      while IFS= read -r _c; do
+        [ -n "$_c" ] || continue
         # A `original` é a captura de referência do projeto, tirada de uma
         # máquina só — não é um par que alguém escolheria aqui. Mesma exclusão
         # que o `lib/preflight.sh` faz, pelo mesmo motivo.
-        [ "${_c##*/}" = "original" ] && continue
-        _caps="$_caps${_c##*/} "
-      done
+        [ "$_c" = "original" ] && continue
+        _caps="$_caps$_c "
+      done < <(meow_capturas)
       # O acumulador acima deixa um espaço no fim, e ele ia para a tela: a linha
       # saía "... mocha-pink " e o branco sobrando aparece em qualquer terminal
       # que sublinhe ou selecione a linha. Cortado aqui, uma vez, para o
@@ -3105,7 +3170,7 @@ cmd_configurar() {
       meow_info "  com as cores que já estava usando. O backup de \"voltar ao tema de"
       meow_info "  antes\" é feito de qualquer jeito, na primeira passagem."
       meow_info "  para fixar este par na tela, uma vez:"
-      meow_info "      importe assets/temas/meowsystem-$_par.ron em"
+      meow_info "      importe $MEOW_ESTADO/temas/meowsystem-$_par.ron em"
       meow_info "      Configurações > Aparência > Importar, e depois:"
       meow_info "      meow tema capturar $_par"
     fi

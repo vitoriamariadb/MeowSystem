@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# capturar_tema.sh — fotografa as árvores de tema do COSMIC para assets/temas/capturados/<nome>/.
+# capturar_tema.sh — fotografa as árvores de tema do COSMIC para dentro do pack ativo.
 #
 # POR QUE ISTO EXISTE
 #   O COSMIC não tem CLI de tema: a derivação que transforma o que a GUI edita
@@ -39,7 +39,7 @@ uso() {
   cat <<'FIM'
 uso: capturar_tema.sh <nome>
 
-Fotografa as árvores de tema do COSMIC para assets/temas/capturados/<nome>/.
+Fotografa as árvores de tema do COSMIC para packs/<pack ativo>/temas/capturados/<nome>/.
 
   <nome>   como a captura se chama. Ex.: original, mocha-mauve, latte-mauve.
 
@@ -64,6 +64,8 @@ esac
 #   (`assets/temas/capturados/original` está versionado e limpo no git, então um
 #   `git checkout assets/temas/capturados/original` ainda salva — mas o script não pode
 #   depender disso, porque ele saía 0 dizendo "capturado".)
+#   ELA CONTINUA EM `assets/` DEPOIS DE 22/09/2026, quando as outras quatro
+#   desceram para dentro do pack dono: a `original` não é tema de pack nenhum.
 if [ "$NOME" = "original" ] && [ "${MEOW_RECAPTURAR_ORIGINAL:-0}" != "1" ]; then
   echo "ERRO: 'original' é o reset de fábrica e não se recaptura." >&2
   echo "      É o que 'meow desfazer' restaura e o molde do gerar_tema_v1.py." >&2
@@ -72,7 +74,32 @@ if [ "$NOME" = "original" ] && [ "${MEOW_RECAPTURAR_ORIGINAL:-0}" != "1" ]; then
   exit 2
 fi
 
-DESTINO="$RAIZ/assets/temas/capturados/$NOME"
+# ESCREVER NÃO SOBE PELA HERANÇA, E LER SOBE — 22/09/2026
+#   O `pack.py captura` acha o `mocha-mauve` do Catppuccin mesmo com o Dracula
+#   no ar, porque o Dracula herda dele. Gravar ali seria pôr a foto do Dracula
+#   DENTRO do pack do Catppuccin, e quem instalasse o Catppuccin depois
+#   receberia um tema que não é dele. Por isso o verbo de escrita é outro:
+#   `captura-destino`, que responde sempre o pack ATIVO — e, para a `original`,
+#   o motor. As duas regras moram no pack.py, não aqui.
+#
+# O `|| DESTINO=""` NÃO É CINTO E SUSPENSÓRIO — 22/09/2026
+#   Com o `set -euo pipefail` da linha 25, uma atribuição por substituição de
+#   comando que FALHA aborta o script ali mesmo. O `pack.py captura-destino`
+#   sai 1 quando o pack ativo não resolve (e também quando o pack declara
+#   `temas.capturados` para fora de si — o `_dir_capturas` devolve None), então
+#   as quatro linhas escritas logo abaixo, que existem exatamente para esse
+#   caso, NUNCA rodavam. MEDIDO:
+#     MEOW_PACK_DIR=/bogus/nao-existe bash scripts/capturar_tema.sh teste-x
+#     -> RC=1, zero linhas de saída
+#   Prometido: 3 (MEOW_SEM_DEPENDENCIA) e a frase que diz onde olhar. Saía 1
+#   (MEOW_DIVERGENTE) e calado — e falhar calado é o defeito que metade dos
+#   cabeçalhos deste repositório existe para nomear.
+DESTINO="$(python3 "$RAIZ/scripts/pack.py" captura-destino "$NOME" 2>/dev/null)" || DESTINO=""
+if [ -z "$DESTINO" ]; then
+  echo "ERRO: não sei onde gravar a captura '$NOME' — o pack ativo não resolve." >&2
+  echo "      confira com: meow pack listar" >&2
+  exit 3
+fi
 
 if [ ! -d "$COSMIC" ]; then
   echo "ERRO: $COSMIC não existe — isto é um COSMIC?" >&2
@@ -146,6 +173,6 @@ mv "$TMP" "$DESTINO"
 trap - EXIT
 
 echo
-echo "capturado: assets/temas/capturados/$NOME/  ($total arquivos)"
+echo "capturado: ${DESTINO#"$RAIZ"/}/  ($total arquivos)"
 [ ${#ausentes[@]} -gt 0 ] && echo "aviso: árvores ausentes nesta máquina: ${ausentes[*]}"
 exit 0

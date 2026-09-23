@@ -103,6 +103,15 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(RAIZ / "scripts"))
+import pack  # noqa: E402  — depois do RAIZ de propósito, como no gerar_temas.py
+
+# ONDE O MOLDE MORA, E ONDE AS CAPTURAS MORAM, SÃO DUAS PERGUNTAS — 22/09/2026
+#   Eram a mesma: tudo vivia em `assets/temas/capturados/`. Desde a P14 cada
+#   captura mora dentro do pack dono dela e só a `original` ficou aqui, porque
+#   ela não é tema de pack nenhum — é o MOLDE do esquema v1 e o reset de fábrica
+#   desta máquina. Esta constante passa a nomear só o molde; quem acha uma
+#   captura é o `pack.captura()`, que sobe pack -> herança -> motor.
 CAPTURAS = RAIZ / "assets" / "temas" / "capturados"
 # `original` tem DOIS empregos, e só um deles é portátil:
 #   (a) MOLDE do esquema v1 — o conjunto de chaves e a forma dos arquivos que o
@@ -348,7 +357,7 @@ class Backup:
     """A v1 vigente é de TERCEIRO (é o `cosmic-dark` de fábrica). Ela já está no
     git em quatro cópias byte a byte idênticas, e o `aplicar_tema.sh` guarda a
     árvore viva antes de escrever em ~/.config. Este backup cobre o terceiro
-    caso: as capturas em `assets/temas/capturados/` que este script reescreve.
+    caso: as capturas dentro dos packs que este script reescreve.
 
     Preguiçoso de propósito: só nasce se algo for mesmo escrito. Uma rodada
     conforme — a maioria — não cria pasta nenhuma."""
@@ -366,7 +375,38 @@ class Backup:
                 "MEOW_ESTADO", Path.home() / ".local/state/meowsystem"))
             self.dir = estado / "backups" / f"{carimbo()}-tema-v1"
             self.dir.mkdir(parents=True, exist_ok=True)
-        rel = arq.relative_to(CAPTURAS)
+        # RELATIVO À RAIZ, E NÃO À PASTA DE CAPTURAS — 22/09/2026
+        #   Com as capturas dentro dos packs, `relative_to(CAPTURAS)` levantaria
+        #   ValueError em toda captura que não fosse a `original`, e o backup —
+        #   que é a rede embaixo da escrita — morreria com traceback ANTES de
+        #   escrever. Relativo à raiz o caminho continua único e agora diz de
+        #   qual pack a cópia veio, que é o que `origens.txt` precisa dizer.
+        #
+        # E A RAIZ TAMBÉM NÃO É A ÚNICA CASA — CORREÇÃO DO MESMO DIA
+        #   A frase acima só vale para o pack que mora em `RAIZ/packs/`, e essa
+        #   é a TERCEIRA e última raiz do `pack.raizes()`. As outras duas —
+        #   `$MEOW_PACKS` e `$XDG_DATA_HOME/meowsystem/packs` — ficam FORA da
+        #   RAIZ e ainda VENCEM a de dentro. Com um pack de terceiro instalado
+        #   ali, o `relative_to(RAIZ)` estourava o MESMO ValueError que a troca
+        #   acima achou que tinha matado: ele só mudou de linha, e continuava
+        #   matando a rede ANTES de a escrita acontecer. E era alcançável
+        #   sozinho: basta esse pack trazer um dos nomes do `PADRAO`
+        #   (mocha-mauve, mocha-pink, latte-mauve) para o `install.sh` e o
+        #   `doctor --consertar` das 5h morrerem com traceback.
+        #   MEDIDO em 22/09/2026, com um pack em `$MEOW_PACKS/dracula`:
+        #     ValueError: '.../packs/dracula/temas/capturados/dracula-mauve/
+        #     com.system76.CosmicTheme.Dark/v1/accent' is not in the subpath of
+        #     '.../MeowSystem'
+        #   Quem vem de fora entra sob `fora-da-raiz/<o absoluto sem a barra>`:
+        #   caminho absoluto é único, então o backup continua sem colidir, e
+        #   continua dizendo de qual pack a cópia veio. O prefixo só colidiria
+        #   com um diretório `fora-da-raiz/` na raiz do projeto — que não
+        #   existe, e cujo nome ninguém escolheria sem querer.
+        absoluto = arq.resolve()
+        try:
+            rel = absoluto.relative_to(RAIZ)
+        except ValueError:
+            rel = Path("fora-da-raiz") / absoluto.relative_to(absoluto.anchor)
         dest = self.dir / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         if arq.is_file() and not dest.exists():
@@ -377,10 +417,13 @@ class Backup:
         if self.dir is None:
             return
         (self.dir / "origens.txt").write_text(
-            "Cópia do que havia em assets/temas/capturados/<captura>/**/v1 antes de o\n"
-            "gerar_tema_v1.py escrever. A v1 é o tema de fábrica do COSMIC\n"
-            "(`cosmic-dark`), anterior a este projeto.\n\n"
-            "Para voltar:  cp -a <arquivo> " + str(CAPTURAS) + "/<mesmo caminho>\n"
+            "Cópia do que havia em <captura>/**/v1 antes de o gerar_tema_v1.py\n"
+            "escrever. A v1 é o tema de fábrica do COSMIC (`cosmic-dark`),\n"
+            "anterior a este projeto. Os caminhos abaixo são relativos à raiz do\n"
+            "MeowSystem, e desde 22/09/2026 cada captura mora dentro do pack dela.\n"
+            "O que veio de um pack instalado FORA da raiz (em $MEOW_PACKS ou em\n"
+            "$XDG_DATA_HOME/meowsystem/packs) entra sob `fora-da-raiz/`.\n\n"
+            "Para voltar:  cp -a <arquivo> <o caminho à direita da seta, na lista abaixo>\n"
             "Conferir:     cd " + str(self.dir) + " && sha256sum -c manifesto.sha256\n\n"
             + "\n".join(self.origens) + "\n")
         subprocess.run(
@@ -444,9 +487,11 @@ def main() -> int:
     divergentes = escritos = iguais = pulados = 0
 
     for nome in alvos:
-        captura = CAPTURAS / nome
+        achado = pack.captura(nome)
+        captura = Path(achado) if achado else CAPTURAS / nome
         if not captura.is_dir():
-            sys.exit(f"ERRO: captura '{nome}' não existe em assets/temas/capturados/.")
+            sys.exit(f"ERRO: captura '{nome}' não existe no pack ativo, "
+                     f"no que ele herda, nem em assets/temas/capturados/.")
         mexeu_captura = False
         for arv in ARVORES:
             molde_d = CAPTURAS / MOLDE / f"com.system76.CosmicTheme.{arv}" / "v1"

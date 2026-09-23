@@ -50,6 +50,26 @@ há empate para desempatar e nada muda.
 
 ---
 
+## HÁ UMA SEGUNDA FRONTEIRA, E ELA NÃO É ESTA — 22/09/2026
+
+Este documento trata da fronteira entre **dois programas** que escrevem na mesma
+máquina: o MeowSystem e o Ritual da Aurora. Desde 22/09/2026 o projeto tem uma
+segunda linha, **dentro do próprio repositório**, e confundir as duas custa
+tempo de quem procura a regra:
+
+> **`assets/` é o que o MeowSystem É; `packs/` é o que ele VESTE; e
+> `~/.local/state/meowsystem/` é o que a máquina GEROU.**
+
+Ela responde "de quem é este arquivo" e não "quem escreve nesta chave". Mora em
+**`docs/PACKS.md`, seção «A fronteira: `assets/` contra `packs/`»**, que é o
+documento do formato de pack — é lá que quem escreve um pack vai procurar. Quem
+a cobra é `tests/arvore.sh`.
+
+As duas não se sobrepõem: nenhuma linha da tabela abaixo fala de arquivo
+versionado, e nenhuma linha daquela seção fala de território de vizinho.
+
+---
+
 ## A tabela
 
 | alvo | quem escreve hoje | dono |

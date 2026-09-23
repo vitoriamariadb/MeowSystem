@@ -59,6 +59,7 @@ PORTATIL=(
   numeros.sh             # lê o repositório e conta; nada mais
   orfaos.sh              # idem
   portabilidade.sh       # grep no que está versionado; nada além de git e bash
+  arvore.sh              # pergunta ao `git ls-files` quem é dono de qual arquivo
   pack.sh                # pack de terceiro num MEOW_PACKS temporário; não instala nada
   sem-receita-no-log.sh  # grep nos .sh versionados; nada além de bash
   git-limpo.sh           # acervo, HOME e estado de brinquedo; só git e bash

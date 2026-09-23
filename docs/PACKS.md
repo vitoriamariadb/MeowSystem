@@ -31,6 +31,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 ## Sumário
 
 - [As 26 cores](#as-26-cores)
+- [A fronteira: `assets/` contra `packs/`](#a-fronteira-assets-contra-packs)
 - [A estrutura do pack](#a-estrutura-do-pack)
 - [`pack.json`, campo a campo](#packjson-campo-a-campo)
 - [De onde sai um acervo: pack, herança, motor](#de-onde-sai-um-acervo-pack-herança-motor)
@@ -122,6 +123,48 @@ acento reprova 12 slots — e reprova o próprio Latte, onde `rosewater` sobre
 
 ---
 
+## A fronteira: `assets/` contra `packs/`
+
+Esta é a regra que decide, para **todo arquivo novo**, onde ele mora. Ela cabe
+em três linhas:
+
+| diretório | o que guarda | exemplo |
+|---|---|---|
+| `assets/` | **o que o MeowSystem É** — o motor | `assets/paleta/cosmic-map.json`, `assets/icones/autorais/`, `assets/gatos/` |
+| `packs/` | **o que ele VESTE** — o tema | `packs/dracula/paleta.json`, `packs/catppuccin/icones/mimetypes/` |
+| `~/.local/state/meowsystem/` | **o que a máquina GEROU** — e não volta para o git | os `.ron` do COSMIC, os backups, o log |
+
+**A pergunta que separa as duas primeiras:** *este arquivo continuaria fazendo
+sentido se o tema fosse outro?* O `cosmic-map.json` sim — ele é o molde, e não
+tem um hex dentro. A paleta do Catppuccin não — ela **é** o tema.
+
+**O par mais fácil de errar** morava no mesmo diretório até 22/09/2026:
+`assets/paleta/cosmic-map.json` é motor e `assets/paleta/catppuccin.json` era
+tema. Eram irmãos de pasta e foram para lados opostos da linha — o segundo é
+hoje `packs/catppuccin/paleta.json`.
+
+**Quem cobra a regra é `tests/arvore.sh`**, e ele pergunta ao `git ls-files`, e
+não ao disco. Medir o disco já custou caro: o `du` disse que o acervo de ícones
+do Catppuccin tinha 13 MB (são 413 KB — o bloco de 4 KB mentindo sobre milhares
+de SVG minúsculos) e que `assets/icones/upstream/` tinha 96 MB versionados,
+quando ele tem **zero** arquivos no git.
+
+### As duas exceções, e elas são escritas
+
+**`assets/temas-de-apps/`** tem nome de flavor dentro e **fica**: são os temas
+que os *outros* aplicativos publicam — o `dracula.css` do Heroic, o
+`catppuccin-mocha.theme` do btop —, baixados do upstream deles e conferidos por
+SHA256. O nome do tema está no arquivo do terceiro, não num arquivo nosso. É
+contrato próprio, com manifesto próprio.
+
+**`assets/temas/capturados/original/`** é a única captura que não mora num pack,
+e ela não é tema de pack nenhum: é o **molde** do esquema `v1` que o COSMIC de
+04/2026 escrevia (o `scripts/gerar_tema_v1.py` deriva dela, chave por chave) e o
+reset de fábrica daquela máquina. O `capturar_tema.sh` **recusa** recapturá-la —
+fora do git ela é irrecuperável.
+
+---
+
 ## A estrutura do pack
 
 Só `pack.json` e a paleta são obrigatórios. Todo o resto é opcional.
@@ -142,6 +185,7 @@ packs/<id>/
     autorais/               <nome>-<flavor>.svg — sem mapa: o nome É o pareamento
   temas/
     capturados/<flavor>-<accent>/    o tema do COSMIC já fotografado — ver a seção própria
+                                     (é convenção: não precisa declarar nada)
   LEIAME.md                 opcional
 ```
 
@@ -280,6 +324,32 @@ ninguém herda devolve nada, e quem chamou decide se isso é problema.
 > sonda de existência para o shell (`lib/comum.sh` joga a saída dele fora e olha
 > o código de retorno). Reaproveitar aquele nome para esta semântica faria todo
 > script de shell deixar de enxergar o pack, sem erro nenhum na tela.
+
+### A captura de tema tem verbos próprios, e ler não é escrever
+
+```bash
+python3 scripts/pack.py captura mocha-mauve
+#   onde ESTÁ: sobe pack ativo -> herança -> motor, como o `acervo`
+
+python3 scripts/pack.py captura-destino dracula-sky
+#   onde ESCREVER: o pack ATIVO, sempre. Nunca sobe pela herança.
+
+python3 scripts/pack.py capturas
+#   os nomes alcançáveis daqui, um por linha
+```
+
+**Por que a escrita não sobe pela herança.** Com o Dracula no ar, ler
+`mocha-mauve` acha a captura do Catppuccin, de quem ele herda — e isso é o certo.
+**Gravar** ali poria a foto do Dracula *dentro* do pack do Catppuccin, e a
+próxima pessoa a instalar o Catppuccin receberia um tema que não é dele.
+
+**Não é preciso declarar nada.** `temas/capturados/` é convenção, como
+`pack.json` e `CREDITOS.md`. Declarar `temas.capturados` no `pack.json` continua
+valendo e vence a convenção, para quem organiza o pack de outro jeito.
+
+Do lado do shell, as mesmas perguntas são `meow_captura` e `meow_capturas`
+(`lib/comum.sh`), que refazem a ponte `MEOW_PACK_DIR` sozinhas — o `vidro.sh` e
+o `greeter.sh` rodam pelo timer e pelo hook, sem passar por ela.
 
 ---
 
@@ -480,13 +550,38 @@ MEOW_PALETA=~/.local/share/meowsystem/packs/meu-tema/paleta.json \
 # 2. importe UMA vez:
 #    Configurações > Área de trabalho > Aparência > Importar
 
-# 3. fotografe
-./scripts/capturar_tema.sh meu-tema-mauve
+# 3. fotografe — desde 22/09/2026 ele grava DENTRO do pack ATIVO, sozinho
+MEOW_PACK_DIR=~/.local/share/meowsystem/packs/meu-tema \
+  ./scripts/capturar_tema.sh meu-tema-mauve
+#   ~/.local/share/meowsystem/packs/meu-tema/temas/capturados/meu-tema-mauve/
 
-# 4. mova a captura para dentro do pack e publique
-mv assets/temas/capturados/meu-tema-mauve \
-   ~/.local/share/meowsystem/packs/meu-tema/temas/capturados/
+# 4. confira que o resolvedor a acha, e publique
+MEOW_PACK_DIR=~/.local/share/meowsystem/packs/meu-tema \
+  python3 scripts/pack.py captura meu-tema-mauve
 ```
+
+**O `.ron` do passo 1 não vem no clone de ninguém**, e isso mudou em 22/09/2026:
+ele é produto de `gerar_temas.py`, e produto gerado saiu do git. Sem `--saida`
+ele nasce em `~/.local/state/meowsystem/temas/`.
+
+**Quem diz qual é o pack ativo é `MEOW_PACK_DIR`, e não `PACK`.** A chave `PACK`
+é do `meow.conf` e quem a lê é o shell (`meow_pack_dir`, em `lib/comum.sh`); o
+`capturar_tema.sh` **não** carrega o `lib/comum.sh` — de propósito, está escrito
+no cabeçalho dele — e fala direto com o `pack.py`, que só conhece
+`MEOW_PACK_DIR`. Uma receita com `PACK=` na frente **não erra: ela acerta o
+alvo errado**, grava a sua foto dentro de `packs/catppuccin/` do clone, e é
+exatamente o *"pôr a foto do Dracula dentro do pack do Catppuccin"* que o
+`pack.py` passou a impedir. Medido em 22/09/2026:
+
+```
+$ env -u MEOW_PACK_DIR PACK=dracula python3 scripts/pack.py captura-destino meu-tema-mauve
+<clone>/packs/catppuccin/temas/capturados/meu-tema-mauve
+```
+
+**Com o pack já ativo no `meow.conf`** (`PACK=meu-tema`, ou um `FLAVOR` com o
+mesmo nome), a ponte já está montada e as duas linhas acima viram uma:
+`meow tema capturar meu-tema-mauve` — o `bin/meow` chama o `meow_ponte_python`
+na entrada e exporta o `MEOW_PACK_DIR` para você.
 
 A captura é **portátil**: são ~176 arquivos de texto com caminhos relativos. O
 único arquivo com caminho de máquina é o `captura.txt`, que é metadado de
