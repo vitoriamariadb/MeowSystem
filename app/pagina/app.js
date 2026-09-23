@@ -7576,11 +7576,17 @@ function cartaoDePack(p) {
    * paleta e nada mais, e o claro dele pode ter nascido do escuro pelo método
    * do Latte, sem ninguém desenhá-lo. A linha de cima diz o que veio por
    * herança; esta diz o que veio por derivação, e como trocar — derivar é
-   * opinativo, e quem fez o tema tem a última palavra. */
+   * opinativo, e quem fez o tema tem a última palavra.
+   * O COMO TROCAR APONTA PARA O TERMINAL [revisão da P16, 23/09/2026]: "traga
+   * as 26 linhas no CSV" não dizia trazer para onde, e a tela não tem onde —
+   * o importar que aceitaria o .csv é pendência da P16 sobre a P11 (ver "A
+   * PALETA ENTRA POR CSV", em scripts/pack.py). Quando ele existir, esta frase
+   * aponta para ele; até lá, aponta para o único caminho que existe. */
   for (const d of (p.claros_derivados || [])) {
     cartao.append(elemento("p", { class: "home-nota",
       texto: `Claro «${d.flavor}»: derivado de «${d.de}» pelo método do Latte, não desenhado. `
-           + "Para usar o seu, traga as 26 linhas dele no CSV." }));
+           + "Para usar o seu, acrescente as 26 linhas dele ao CSV e, no terminal, "
+           + "rode de novo meow pack de-csv." }));
   }
   /* O pack que não valida aparece assim mesmo, dizendo por quê — como no
    * `meow pack info`. Esconder o cartão esconderia também o motivo. */

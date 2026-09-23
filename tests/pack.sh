@@ -1028,6 +1028,12 @@ corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
 printf '%s\n' "$corpo" | grep -q 'p.claros_derivados' \
   && ok "o cartão de pack desenha a linha do claro derivado" \
   || falha "o cartão de pack não lê claros_derivados"
+# "Traga as 26 linhas no CSV" não dizia para onde, e a tela não tem onde: o
+# importar que aceitaria o .csv é pendência da P16 sobre a P11. Até ele
+# existir, o cartão aponta o único caminho que existe [revisão, 23/09/2026].
+printf '%s\n' "$corpo" | grep -q 'meow pack de-csv' \
+  && ok "o cartão diz onde trocar o claro derivado: meow pack de-csv" \
+  || falha "o cartão manda trocar o claro sem dizer onde"
 
 # Com o claro trazido no CSV, nada se deriva: a medida (base mais luminoso que
 # text) acha o claro, e o `derivados` não aparece.
@@ -1065,6 +1071,38 @@ recusa_csv "o CSV sem cabeçalho" "ruim.csv:1: a primeira linha tem de ser o cab
 # A mensagem diz "uma palavra só", e 'Meu Tema' passava: o flavor com espaço
 # vira FLAVOR="Meu Tema" no meow.conf e "Meu Tema-mauve" no nome do tema.
 recusa_csv "o flavor com espaço" "ruim.csv:2: flavor 'Meu Tema' — uma palavra só" < <(sed 's/,tinta,/,Meu Tema,/' "$T/cores.csv")
+# E "sem espaço" não bastava [revisão da P16, 23/09/2026]: 'x$(id)' passava, e
+# o meow.conf é lido com `.` — no FLAVOR=, o '$(id)' é comando. O `\$` abaixo é
+# para ESTE shell não rodá-lo ao montar a expectativa.
+recusa_csv "o flavor com \$(…)" "ruim.csv:2: flavor 'x\$(id)' — uma palavra só, em minúsculas" < <(sed 's/,tinta,/,x$(id),/' "$T/cores.csv")
+recusa_csv "o flavor com maiúscula" "ruim.csv:2: flavor 'Tinta' — uma palavra só" < <(sed 's/,tinta,/,Tinta,/' "$T/cores.csv")
+# O CSV mais provável de chegar é o do Excel em português, com ';'. Ele é
+# recusado — adivinhar separador seria um segundo formato —, mas dizendo qual.
+recusa_csv "o CSV com ';', dizendo qual é o defeito" "este arquivo usa ';'" < <(sed 's/,/;/g' "$T/cores.csv")
+
+# O HEX SAI EM MAIÚSCULAS, E O `text` REPROVADO SAI UMA VEZ SÓ. Um CSV todo
+# minúsculo, com o `text` quase da cor do `base`: reprova na régua absoluta
+# (AAA) e na relativa (95% do Latte), e aparecia duas vezes no aviso, com a
+# contagem de reprovações uma a mais [revisão da P16, 23/09/2026].
+sed 's/#\(.*\)$/#\L\1/; s/^text,tinta,.*/text,tinta,#303240/' "$T/cores.csv" > "$T/minusc.csv"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" de-csv "$T/minusc.csv" 2> "$T/minusc.err")"; rc=$?
+aviso_csv="$(cat "$T/minusc.err")"
+n_text="$(grep -c 'tinta: text/base' "$T/minusc.err")"
+[ "$rc" = "0" ] && [ "$n_text" = "1" ] && [[ "$aviso_csv" == *"o \`validar\` recusa o pack"* ]] \
+  && ok "o text reprovado nas duas réguas sai uma vez só, dizendo que o validar recusa" \
+  || falha "o text reprovado saiu $n_text vez(es) no aviso (rc=$rc)" "$aviso_csv"
+[ "$rc" = "0" ] && [[ "$saida" == *'"base": "#282A36"'* ]] && ! grep -q '"#[0-9A-F]*[a-f]' <<< "$saida" \
+  && ok "o hex minúsculo do CSV sai em maiúsculas, como nas paletas daqui" \
+  || falha "o hex do CSV não saiu em maiúsculas" "$(grep -n '"#[0-9A-F]*[a-f]' <<< "$saida" | head -3)"
+
+# UM CSV SÓ, E O SEGUNDO ARGUMENTO É RECUSADO. `de-csv cores.csv paleta.json`
+# tem cara de "converta para lá", e imprimia no terminal deixando o paleta.json
+# como estava [revisão da P16, 23/09/2026].
+saida="$(env MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" MEOW_ESTADO="$T/estado" \
+         "$RAIZ/bin/meow" pack de-csv "$T/cores.csv" "$T/destino.json" 2>&1)"; rc=$?
+[ "$rc" != "0" ] && [[ "$saida" == *"um CSV só"* ]] && [ ! -e "$T/destino.json" ] \
+  && ok "meow pack de-csv com dois argumentos recusa, e diz que o destino vai pelo '>'" \
+  || falha "meow pack de-csv aceitou um segundo argumento (rc=$rc)" "$saida"
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then

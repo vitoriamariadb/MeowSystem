@@ -3847,9 +3847,15 @@ cmd_pack() {
     #   tinha entrado no dev, e aqui não se escreve um segundo `novo` em paralelo.
     #   Quando ela entrar, o `--de-csv` vira um ramo do `cmd_novo` dela — o que
     #   falta está em "A PALETA ENTRA POR CSV", no scripts/pack.py.
+    #
+    #   UM ARGUMENTO SÓ, E O SEGUNDO É RECUSADO [revisão da P16, 23/09/2026].
+    #   Os outros verbos ignoram o que sobra; este não pode, porque o segundo
+    #   argumento de um conversor tem cara de destino: `de-csv cores.csv
+    #   paleta.json` imprimia no terminal, e o paleta.json ficava como estava.
     de-csv|csv)
       local arq="${1:-}"
       [ -n "$arq" ] || { meow_erro "diga qual CSV: meow pack de-csv <cores.csv> > paleta.json"; return "$MEOW_ERRO"; }
+      [ $# -eq 1 ] || { meow_erro "um CSV só, e o destino vai pelo '>': meow pack de-csv $arq > paleta.json"; return "$MEOW_ERRO"; }
       python3 "$RAIZ/scripts/pack.py" de-csv "$arq"
       ;;
     -h|--help|ajuda)

@@ -66,15 +66,22 @@ mauve,meutema,#BD93F9
 …
 ```
 
-- **As colunas são fixas**, e a primeira linha é esse cabeçalho. Uma linha por
-  cor; os 26 nomes de `slot` são os da seção abaixo, em minúsculas. Um CSV
-  exportado com BOM (o Excel e o LibreOffice fazem isso) é lido igual.
+- **As colunas são fixas**, separadas por vírgula, e a primeira linha é esse
+  cabeçalho. Uma linha por cor; os 26 nomes de `slot` são os da seção abaixo,
+  em minúsculas. Um CSV exportado com BOM (o Excel e o LibreOffice fazem isso)
+  é lido igual. O Excel em português salva com `;`: o erro avisa, e é trocar
+  os `;` por `,`.
+- **O `flavor` é uma palavra só, em minúsculas, de letras `a-z` e dígitos** —
+  como `mocha` e `alucard`. O nome vira arquivo de tema (`<flavor>-<accent>`) e
+  vai para o `FLAVOR=` do `meow.conf`, e nenhum dos dois aguenta espaço, barra
+  ou `$(…)`.
 - **O erro diz a linha.** Slot desconhecido sai com o número da linha e o nome;
   slot faltando sai com a lista do que falta, por flavor; hex fora de
   `#RRGGBB` e slot repetido também. Tudo de uma vez, não um por rodada.
 - **O CSV é entrada; o `paleta.json` continua sendo a forma canônica.** Nenhum
   leitor do projeto entende CSV: ele é traduzido uma vez para o JSON
-  equivalente, e dali em diante quem manda é o JSON.
+  equivalente, com o hex em maiúsculas como nas paletas daqui, e dali em diante
+  quem manda é o JSON.
 
 ```bash
 meow pack de-csv minhas-cores.csv > ~/.local/share/meowsystem/packs/meu-tema/paleta.json

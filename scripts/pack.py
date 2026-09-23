@@ -1355,9 +1355,16 @@ def tema_de_app(categoria, ref=None):
     return None, None
 
 
+def _rgb(hexcor):
+    """'#RRGGBB' em (r, g, b) de 0 a 1. O parse é um só [revisão da P16, 23/09/2026]:
+    a derivação do claro precisa dele solto, e duas cópias do mesmo fatiamento
+    divergem no dia em que uma aceitar '#RGB' e a outra não."""
+    return tuple(int(hexcor[i:i + 2], 16) / 255 for i in (1, 3, 5))
+
+
 def _luminancia(hexcor):
-    """Luminância relativa de WCAG 2.x. Usada só para o teste de contraste."""
-    r, g, b = (int(hexcor[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    """Luminância relativa de WCAG 2.x: o contraste, e a derivação do claro (P16)."""
+    r, g, b = _rgb(hexcor)
     def canal(c):
         return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
     r, g, b = canal(r), canal(g), canal(b)
@@ -1446,6 +1453,7 @@ def _dentro(base, alvo, campo):
 #   com o nome do que falta, e não inventar outra régua calada.
 REFERENCIA_CLARA = "latte"
 COLUNAS_CSV = ("slot", "flavor", "hex")
+RE_FLAVOR_CSV = re.compile(r"^[a-z0-9]+$")   # ver "O FLAVOR É [a-z0-9]", abaixo
 # O nome do claro derivado é o do escuro com `claro` colado. Colado porque
 # nome de flavor não tem hífen (ver o `validar`, 19/09/2026), e com o nome do
 # escuro na frente porque o `.ron` do COSMIC é gravado por flavor: dois packs
@@ -1462,11 +1470,10 @@ SUFIXO_DO_CLARO = "claro"
 #   que reprova o precedente que a define é uma régua errada.
 TOLERANCIA_DA_REGUA = 0.95
 MINIMO_TEXTO = 7.0     # `text` sobre `base`, WCAG AAA — é onde a pessoa lê
-MINIMO_VALIDAR = 4.5   # abaixo disto o `validar` RECUSA; a régua só avisa
-
-
-def _rgb(hexcor):
-    return tuple(int(hexcor[i:i + 2], 16) / 255 for i in (1, 3, 5))
+# Abaixo disto o `validar` RECUSA; a régua só avisa. É ESTA constante que o
+# `validar` lê [revisão da P16, 23/09/2026]: com o 4.5 escrito nos dois lugares,
+# mudar o piso de um deixaria o aviso da régua prometendo uma recusa que não vem.
+MINIMO_VALIDAR = 4.5
 
 
 def _hexa(r, g, b):
@@ -1544,12 +1551,18 @@ def regua_de_contraste(dados, referencia):
     """
     saida = []
     for flavor, cores in dados["flavors"].items():
-        r = contraste(cores["text"], cores["base"])
-        if r < MINIMO_TEXTO:
-            saida.append(f"{flavor}: text/base {r:.2f} — AAA pede {MINIMO_TEXTO:.1f}"
+        r_text = contraste(cores["text"], cores["base"])
+        if r_text < MINIMO_TEXTO:
+            saida.append(f"{flavor}: text/base {r_text:.2f} — AAA pede {MINIMO_TEXTO:.1f}"
                          + (f"; abaixo de {MINIMO_VALIDAR} o `validar` recusa o pack"
-                            if r < MINIMO_VALIDAR else ""))
+                            if r_text < MINIMO_VALIDAR else ""))
         for s in SLOTS:
+            # O `text` que já saiu pela régua absoluta não sai de novo pela
+            # relativa [revisão da P16, 23/09/2026]: reprovado nas duas, ele
+            # aparecia duas vezes na lista, e a contagem do aviso dizia uma
+            # reprovação a mais do que as que existem.
+            if s == "text" and r_text < MINIMO_TEXTO:
+                continue
             r = contraste(cores[s], cores["base"])
             ref = contraste(referencia[s], referencia["base"])
             if r < ref * TOLERANCIA_DA_REGUA:
@@ -1608,10 +1621,17 @@ def paleta_de_csv(caminho):
     _exigir(corpo, f"{nome}: está vazio. A primeira linha é o cabeçalho "
                    f"{','.join(COLUNAS_CSV)}, e depois uma linha por cor.")
     n_cab, cab = corpo[0]
+    # O PONTO E VÍRGULA GANHA DICA, E NÃO ACEITAÇÃO [revisão da P16, 23/09/2026]
+    #   O Excel em português salva "CSV" com ';', porque a vírgula é o decimal
+    #   daqui — é o CSV mais provável de chegar. Adivinhar o separador seria um
+    #   segundo formato de entrada; dizer o que houve custa uma linha.
+    dica = ("\n    O separador é a vírgula, e este arquivo usa ';' — é como o Excel em\n"
+            "    português salva. Troque os ';' por ',' e rode de novo."
+            if len(cab) == 1 and ";" in cab[0] else "")
     _exigir(tuple(c.lower() for c in cab) == COLUNAS_CSV,
             f"{nome}:{n_cab}: a primeira linha tem de ser o cabeçalho "
             f"{','.join(COLUNAS_CSV)} — veio {','.join(cab)!r}.\n"
-            f"    As colunas são fixas: é o que deixa o erro dizer a linha certa.")
+            f"    As colunas são fixas: é o que deixa o erro dizer a linha certa.{dica}")
 
     erros, flavors, onde = [], {}, {}
     for num, cel in corpo[1:]:
@@ -1623,12 +1643,22 @@ def paleta_de_csv(caminho):
             erros.append(f"{nome}:{num}: slot desconhecido {slot!r}. Os 26 nomes estão\n"
                          f"    em docs/PACKS.md, 'As 26 cores', e são minúsculos.")
             continue
-        # "Uma palavra só" é o que a mensagem promete, e o espaço passava:
-        # 'Meu Tema' saía aceito [revisão da P16, 23/09/2026]. O `validar` tem a
-        # mesma folga desde antes e ela fica lá — é dele, e não desta porta.
-        if not flavor or "-" in flavor or any(c.isspace() for c in flavor):
-            erros.append(f"{nome}:{num}: flavor {flavor!r} — uma palavra só, sem hífen:\n"
-                         f"    o tema é gravado como '<flavor>-<accent>'.")
+        # O FLAVOR É [a-z0-9], E NÃO "QUALQUER COISA SEM HÍFEN" [revisão da P16,
+        #   23/09/2026]. Medido na revisão: 'a/b', 'Tinta' e 'x$(id)' passavam,
+        #   como 'Meu Tema' antes do 5dd3c32. O nome vai para três lugares que
+        #   não o aguentam: o
+        #   '<flavor>-<accent>' do arquivo de tema (a barra vira diretório), o
+        #   `FLAVOR=` do meow.conf, que o `bin/meow` lê com `.` (o '$(id)' é
+        #   comando), e o painel, que compara flavor SEM caixa (o
+        #   `_pack_do_sabor`, em app/servidor.py, baixa os dois lados) enquanto
+        #   o arquivo de tema é gravado COM caixa — 'Tinta' e 'tinta' seriam um
+        #   flavor para um e dois para o outro. Minúsculas, como os seis
+        #   flavors versionados. Esta porta é a do CSV, e é ela que fecha aqui;
+        #   o `validar` tem a mesma folga desde antes, e ela fica dita, não mexida.
+        if not RE_FLAVOR_CSV.match(flavor):
+            erros.append(f"{nome}:{num}: flavor {flavor!r} — uma palavra só, em minúsculas,\n"
+                         f"    de letras a-z e dígitos: o tema é gravado como '<flavor>-<accent>',\n"
+                         f"    e o nome vai para o FLAVOR= do meow.conf.")
             continue
         if (flavor, slot) in onde:
             erros.append(f"{nome}:{num}: {slot} do flavor {flavor!r} já veio na linha "
@@ -1642,7 +1672,11 @@ def paleta_de_csv(caminho):
         if not RE_HEX.match(hexcor):
             erros.append(f"{nome}:{num}: {slot} = {hexcor!r} não é #RRGGBB")
             continue
-        flavors.setdefault(flavor, {})[slot] = hexcor
+        # MAIÚSCULAS, PORQUE É A FORMA CANÔNICA [revisão da P16, 23/09/2026]:
+        # as 146 cores com letra das duas paletas versionadas são todas
+        # maiúsculas, e o claro derivado sai do `_hexa` assim. Um CSV minúsculo
+        # dava uma paleta com as duas caixas, o escuro de um jeito e o claro do outro.
+        flavors.setdefault(flavor, {})[slot] = hexcor.upper()
     for flavor in dict.fromkeys(f for f, _ in onde):
         faltam = [s for s in SLOTS if (flavor, s) not in onde]
         if faltam:
@@ -1665,7 +1699,10 @@ def paleta_de_csv(caminho):
         nomes[novo] = f"{nomes[escuro]} claro"
         claros, derivados[novo] = [novo], escuro
 
-    comentario = (f"Gerada de {nome} pelo `pack.py de-csv` (P16, 23/09/2026). O CSV foi a "
+    # Sem sprint e sem data [revisão da P16, 23/09/2026]: a paleta é de quem a
+    # gerou, e um "(P16, 23/09/2026)" cravado em toda saída se lia como a data
+    # da geração, que é outra. A história do verbo mora neste arquivo.
+    comentario = (f"Gerada de {nome} pelo `meow pack de-csv`. O CSV foi a "
                   f"ENTRADA; esta paleta.json é a forma canônica, e é ela que o MeowSystem "
                   f"lê: edite aqui, ou gere de novo a partir do CSV.")
     for claro, escuro in derivados.items():
@@ -2419,9 +2456,9 @@ def validar(ref, silencioso=False):
     # 26 hexes aleatórios passam em tudo acima e produzem interface ilegível.
     for flavor, cores in dados["flavors"].items():
         r = contraste(cores["text"], cores["base"])
-        _exigir(r >= 4.5,
+        _exigir(r >= MINIMO_VALIDAR,
                 f"{arq}: no flavor {flavor!r}, 'text' sobre 'base' tem contraste "
-                f"{r:.2f}:1 — WCAG AA pede 4.5:1.\n"
+                f"{r:.2f}:1 — WCAG AA pede {MINIMO_VALIDAR}:1.\n"
                 f"      text={cores['text']}  base={cores['base']}\n"
                 f"    Com esse contraste a interface fica ilegível. Escureça o fundo\n"
                 f"    ou clareie o texto.")
