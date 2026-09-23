@@ -7154,6 +7154,133 @@ function montarPendencias() {
 }
 
 /* ===========================================================================
+ * OS THEME PACKS, COM CARA — 23/09/2026, sprint P15
+ * ===========================================================================
+ * "Ninguém escolhe um tema por um `id`." Até aqui um pack era isso e 26
+ * hexadecimais, e esta página não tinha o que desenhar. O cartão mostra o que
+ * o pack diz de si no bloco `vitrine` do `pack.json` — a capa, o nome, o autor,
+ * a frase curta, as etiquetas — e a linha "próprio / herdado", que é o
+ * `meow pack info` virado uma linha, calculada pelo mesmo `pack.py`.
+ *
+ * A CAPA É O LOGO, E A TIRA FICA EMBAIXO, FINA. O mockup de 21/09 desenhava a
+ * capa como uma tira de cores, e a P25 corrigiu: tira é paleta, não
+ * identidade, e dois packs de paleta parecida ficariam iguais. A capa é o
+ * `logo.svg` do pack; a tira continua, de 6 px, como amostra.
+ *
+ * A HISTÓRIA É TEXTO PURO, NUM <pre>, E ISTO É REGRA DE SEGURANÇA. O
+ * `vitrine.descricao` é um Markdown de quem publicou o pack, e esta página
+ * carrega o token de sessão. Ele entra por `texto` (textContent), nunca por
+ * `html` — nem um negrito é interpretado. O `tests/pack.sh` cobra isto no
+ * código de `cartaoDePack`. E o site só vira link se for https, conferido lá
+ * no `pack.py` e de novo aqui: é o único campo do pack que vira `href`.
+ *
+ * O QUE ESTE BLOCO NÃO É. A P10 faz da Home o lugar de TROCAR de pack: o
+ * «Usar este», o anel no que está no ar, o Exportar e o Importar. Aqui é só o
+ * cartão. E ele cai no fim da coluna da esquerda (`grid-column: 1`, sem área
+ * nomeada) porque o `estilo.css` não é arquivo desta sprint — o desenho é por
+ * `style` e pelas classes que a Home já tem. A P10 o põe em cima.
+ *
+ * NA PÁGINA EXPORTADA A LISTA NASCE VAZIA, como a das pendências: o
+ * `standalone.js` responde 409 a `/api/packs`, e o bloco não nasce. */
+let PACKS = [];
+
+async function recarregarPacks() {
+  const r = await api("/api/packs");
+  PACKS = (r && !r.erro && Array.isArray(r.packs)) ? r.packs : [];
+}
+
+function cartaoDePack(p) {
+  const cartao = elemento("article", {
+    class: "pack",
+    style: "display:flex;flex-direction:column;gap:.55rem;min-width:0;"
+         + "padding:1rem 1.05rem;border:1px solid var(--surface0);"
+         + "border-radius:var(--r-3);background:var(--mantle)",
+  });
+
+  /* A capa ao lado do nome, e não em cima dele: é o desenho de um ícone de
+   * lançador, quadrado, e esticá-lo na largura do cartão seria voltar à tira.
+   * Sem capa não nasce um quadrado quebrado — a linha de problema abaixo diz
+   * qual arquivo falta. `alt` vazio porque o nome está do lado: ler "Dracula"
+   * duas vezes não informa nada. */
+  const topo = elemento("div", { style: "display:flex;align-items:center;gap:.85rem;min-width:0" });
+  if (p.capa) {
+    topo.append(elemento("img", { src: p.capa, alt: "", width: "56", height: "56",
+                                  style: "flex:0 0 auto;display:block" }));
+  }
+  const quem = elemento("div", { style: "display:flex;flex-direction:column;gap:.1rem;min-width:0" }, [
+    elemento("b", { class: "titulo-cartao", texto: p.nome }),
+  ]);
+  if (p.autor) quem.append(elemento("span", { class: "home-nota", texto: `por ${p.autor}` }));
+  topo.append(quem);
+  cartao.append(topo);
+
+  /* A mesma `.home-tira` do retrato, mais fina e sem o anel do acento: aqui ela
+   * é amostra do pack, e não a cor que está no ar. As cores já passaram pelo
+   * `#RRGGBB` do `validar` antes de sair do servidor. */
+  if ((p.amostra || []).length) {
+    const tira = elemento("div", { class: "home-tira", style: "height:6px",
+                                   title: "A paleta do flavor padrão deste pack" });
+    for (const cor of p.amostra) {
+      const s = elemento("span");
+      s.style.background = cor;
+      tira.append(s);
+    }
+    cartao.append(tira);
+  }
+
+  if (p.descricao_curta) cartao.append(elemento("p", { class: "home-linha", texto: p.descricao_curta }));
+  if ((p.tags || []).length) cartao.append(elemento("p", { class: "home-rotulo", texto: p.tags.join(" · ") }));
+  if (p.origem) cartao.append(elemento("p", { class: "home-nota", texto: p.origem }));
+  /* O pack que não valida aparece assim mesmo, dizendo por quê — como no
+   * `meow pack info`. Esconder o cartão esconderia também o motivo. */
+  for (const problema of (p.problemas || [])) {
+    cartao.append(elemento("p", { class: "home-nota", style: "color:var(--yellow)",
+                                  texto: "Não valida: " + problema }));
+  }
+
+  const site = (p.site || "").startsWith("https://") ? p.site : "";
+  if (p.descricao || (p.capturas || []).length || site) {
+    const mais = elemento("details", {}, [
+      elemento("summary", { class: "home-nota", style: "cursor:pointer", texto: "Mais sobre este pack" }),
+    ]);
+    if (p.descricao) {
+      mais.append(elemento("pre", {
+        texto: p.descricao,
+        style: "margin:.5rem 0 0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:20rem;"
+             + "overflow:auto;font-family:var(--mono);font-size:var(--t-frase);line-height:1.5;"
+             + "color:var(--subtext0)",
+      }));
+    }
+    if ((p.capturas || []).length) {
+      const fotos = elemento("div", { class: "home-fotos", style: "margin-top:.5rem" });
+      for (const url of p.capturas) fotos.append(elemento("img", { src: url, alt: "" }));
+      mais.append(fotos);
+    }
+    if (site) {
+      mais.append(elemento("p", { class: "home-nota", style: "margin-top:.5rem" }, [
+        elemento("a", { href: site, target: "_blank", rel: "noopener noreferrer",
+                        texto: site.replace(/^https:\/\//, "") }),
+      ]));
+    }
+    cartao.append(mais);
+  }
+  return cartao;
+}
+
+/* A seção, ou nada — o mesmo contrato do `montarPendencias`. */
+function montarPacks() {
+  if (!PACKS.length) return null;
+  const secao = elemento("section", { class: "home-packs",
+    style: "grid-column:1;display:flex;flex-direction:column;gap:.7rem;min-width:0" });
+  secao.append(elemento("h3", { class: "home-rotulo", texto: "Theme packs" }));
+  const grade = elemento("div", {
+    style: "display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:.9rem" });
+  for (const p of PACKS) grade.append(cartaoDePack(p));
+  secao.append(grade);
+  return secao;
+}
+
+/* ===========================================================================
  * A HOME — "o que está no ar, o que espera por mim, e por onde entro"
  * ===========================================================================
  * A página abria na galeria: 46 fotos e nenhuma resposta. Quem chega uma vez
@@ -7439,6 +7566,13 @@ function montarHome() {
     }));
   }
   caixa.append(noite);
+
+  /* --- 3c. os theme packs, com cara — 23/09/2026, P15 --------------------
+   * Ver `montarPacks`. Nasce DEPOIS da noite na ordem do documento porque é
+   * ali que ele aparece na tela (sem área nomeada, a grade o põe no fim da
+   * coluna da esquerda) — leitor de tela e olho lendo na mesma ordem. */
+  const packs = montarPacks();
+  if (packs) caixa.append(packs);
 
   /* --- 4. a coluna da direita -------------------------------------------- */
   const lado = elemento("aside", { class: "home-lado" });
@@ -7869,6 +8003,9 @@ async function iniciar() {
   /* As pendências entram ANTES da primeira pintura, pelo mesmo motivo que a
    * bandeja: lê-las depois faria a Home nascer sem o bloco e piscar com ele. */
   await recarregarPendencias();
+  /* Os packs pelo mesmo motivo, e a espera é pequena: medido em 23/09/2026, o
+   * `packs_com_vitrine` do servidor responde os dois packs em 9 ms. [P15] */
+  await recarregarPacks();
   /* O ouvinte de gesto é UM só, e nasce aqui: o `main` sobrevive a toda
    * pintura, então registrá-lo dentro do `render()` vazaria um por clique. */
   ouvirGestoDeRolagem();

@@ -792,6 +792,109 @@ def _packs_no_disco():
     return achados
 
 
+# A VITRINE DOS PACKS — 23/09/2026, sprint P15
+#
+# O QUE ELA SERVE
+#   O cartão de pack da Home: capa, nome, autor, a frase curta, as etiquetas, a
+#   linha "próprio / herdado" e, para quem abrir, a história inteira. Tudo sai
+#   do `pack.vitrine()` e do `pack.resumo_de_origem()`, que são os mesmos que o
+#   `meow pack info` imprime — a tela e o terminal não podem contar dois packs
+#   diferentes.
+#
+# A HISTÓRIA VAI COMO TEXTO, E A REGRA É DURA
+#   O `vitrine.descricao` é um Markdown escrito por quem publicou o pack, e esta
+#   página carrega o token de sessão. Renderizar Markdown de terceiro aqui é dar
+#   a um arquivo baixado da internet a chance de virar HTML dentro do painel.
+#   Então o texto viaja CRU no JSON e a página o põe num `<pre>` por
+#   `textContent` — nada é interpretado, nem do lado de cá nem do de lá. Quem
+#   quiser negrito escreve no site dele, que o cartão linka.
+#
+# UM PACK QUEBRADO NÃO DERRUBA A LISTA
+#   Um `pack.json` de terceiro pode estar malformado de jeitos que o `validar`
+#   não previu (um `"paleta": "x"` estoura AttributeError antes de virar
+#   Recusa). Um pack desses aparece com o erro dele no lugar da vitrine; os
+#   outros aparecem inteiros. Sumir com a lista por causa de um seria a tela
+#   inteira quebrada por um arquivo que ela nem escolheu.
+def packs_com_vitrine():
+    """Os packs no disco, cada um com a vitrine que declara — o `/api/packs`."""
+    mod = modulo_pack()
+    if not mod:
+        return []
+    saida = []
+    for ident in sorted(_packs_no_disco()):
+        try:
+            p, dados, dir_pack = mod.validar(ident, silencioso=True)
+        except Exception as erro:
+            saida.append({"id": ident, "nome": ident, "problemas": [str(erro)]})
+            continue
+        vit, problemas = mod.vitrine(p, dir_pack)
+        texto = ""
+        if vit["descricao"]:
+            try:
+                with open(vit["descricao"], encoding="utf-8", errors="replace") as fh:
+                    texto = fh.read()
+            except OSError:
+                texto = ""
+        # A AMOSTRA É O FLAVOR PADRÃO, NA ORDEM DOS 26. É a tira fina que fica
+        # embaixo da capa: amostra da paleta, e não identidade — a correção que
+        # a P25 fez no mockup de 21/09. Os hex já passaram pelo `#RRGGBB` do
+        # `validar`, então vão direto para o `style` sem outra peneira.
+        flavor = (p.get("paleta") or {}).get("flavor_padrao") or next(iter(dados["flavors"]))
+        cores = dados["flavors"].get(flavor) or {}
+        base_url = "/pack-vitrine?id=" + quote(ident, safe="")
+        saida.append({
+            "id": ident,
+            "nome": p.get("nome") or ident,
+            "autor": p.get("autor") or "",
+            "capa": (base_url + "&arte=capa") if vit["capa"] else "",
+            "descricao_curta": vit["descricao_curta"],
+            "descricao": texto,
+            "tags": vit["tags"],
+            "capturas": [base_url + "&arte=%d" % i for i in range(len(vit["capturas"]))],
+            "site": vit["site"] or "",
+            "origem": mod.resumo_de_origem(p),
+            "amostra": [cores[s] for s in mod.SLOTS if s in cores],
+            "problemas": problemas,
+        })
+    return saida
+
+
+def arte_da_vitrine(ident, arte):
+    """(bytes, tipo) da capa ou de uma captura que o pack DECLAROU — ou None.
+
+    O PEDIDO NÃO TRAZ CAMINHO NENHUM. `arte` é `capa` ou o número de uma
+    captura; quem transforma isso em arquivo é a vitrine que o próprio pack
+    declarou, já conferida pelo `pack.vitrine()` (dentro do pack pelo
+    `realpath`, extensão certa, arquivo existindo). A rota `/previa?tipo=
+    arquivo` precisou de uma cerca de pastas porque recebe caminho; esta não
+    tem porta para cercar. E o `ident` só vale se for um pack que a varredura
+    achou — o `achar` também aceita CAMINHO, e esta rota não é lugar para isso.
+    """
+    mod = modulo_pack()
+    if not mod or ident not in _packs_no_disco():
+        return None
+    try:
+        p, _dados, dir_pack = mod.validar(ident, silencioso=True)
+    except Exception:
+        return None
+    vit, _problemas = mod.vitrine(p, dir_pack)
+    if arte == "capa":
+        alvo = vit["capa"]
+    elif re.fullmatch(r"[0-9]+", arte or "") and int(arte) < len(vit["capturas"]):
+        alvo = vit["capturas"][int(arte)]
+    else:
+        return None
+    if not alvo:
+        return None
+    tipo = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg"}.get(os.path.splitext(alvo)[1].lower())
+    try:
+        with open(alvo, "rb") as fh:
+            return fh.read(), tipo
+    except OSError:
+        return None
+
+
 def _vestigio_de_pack(chave):
     """None, ou o aviso de que o valor cita um pack que já não é o adotado.
 
@@ -5075,6 +5178,29 @@ class Manipulador(BaseHTTPRequestHandler):
             with open(arquivo, "rb") as fh:
                 return self._responder(fh.read(), tipo=TIPOS[".svg"])
 
+        # A CAPA E AS CAPTURAS DE UM PACK — 23/09/2026, sprint P15
+        #   Quem resolve o arquivo é `arte_da_vitrine`: o pedido nomeia o pack e
+        #   "capa" ou um número, nunca um caminho. 404 igual para "não existe" e
+        #   "não é seu", pela mesma razão da `/previa`: resposta diferente vira
+        #   sonda de existência de arquivo.
+        #
+        #   A CSP É PARA O SVG DE TERCEIRO. Dentro de um `<img>` o navegador não
+        #   roda script de SVG; aberto direto, na aba, rodaria — e na MESMA
+        #   origem do painel, com o cookie do token. `default-src 'none'` corta
+        #   script, rede e iframe e deixa o desenho desenhar. A P25 recusa
+        #   `<script>` no logo na validação; esta linha é o cinto de quem não
+        #   passou por ela.
+        if caminho == "/pack-vitrine":
+            if not self._token_confere(consulta):
+                return self._recusar(403, "token de sessão ausente ou errado")
+            achado = arte_da_vitrine(consulta.get("id", [""])[0],
+                                     consulta.get("arte", [""])[0])
+            if achado is None:
+                return self._recusar(404, "não achei")
+            corpo, tipo_mime = achado
+            return self._responder(corpo, tipo=tipo_mime, extras={
+                "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'"})
+
         if caminho == "/previa" and consulta.get("tipo", [""])[0] == "arquivo":
             # O TOKEN FALTAVA AQUI, e só aqui. [2026-09-18]
             #   Este era o único dos dezoito caminhos servidos que não conferia o
@@ -7139,6 +7265,10 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/pendencias":
             return self._json({"pendencias": pendencias()})
+
+        # Os packs com a vitrine — ver `packs_com_vitrine`. [23/09/2026, P15]
+        if caminho == "/api/packs":
+            return self._json({"packs": packs_com_vitrine()})
 
         if caminho == "/api/apps":
             return self._api_apps(consulta)

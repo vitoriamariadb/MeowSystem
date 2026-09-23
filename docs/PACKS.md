@@ -4,17 +4,20 @@ Um **theme pack** é um diretório que diz ao MeowSystem que cores usar — e, s
 quiser, que ícones, que papéis de parede e que agente. O MeowSystem lê o pack e
 escreve no seu desktop; **ele nunca escreve dentro do pack.**
 
-O pack mais simples que funciona tem dois arquivos e nenhuma linha de código.
+O pack mais simples que se publica tem três arquivos e nenhuma linha de código.
 
 ```
 packs/meu-tema/
   pack.json      quem é o pack e o que ele fornece
   paleta.json    as 26 cores
+  logo.svg       a cara do pack — a capa do cartão onde ele é escolhido
 ```
 
-Com isso você já ganha tema do COSMIC, esquema do terminal, cores do painel, dos
-ícones autorais e dos temas de aplicativo. Tudo o que você não declarar é
-herdado do **pack padrão** — o `catppuccin`, que acompanha o projeto e **pode
+Com os dois primeiros o tema já **funciona**; o terceiro é o que faz o pack
+**passar** no `meow pack validar`, porque ninguém escolhe um tema por um `id`
+(ver [A vitrine](#a-vitrine)). Com isso você já ganha tema do COSMIC, esquema do
+terminal, cores do painel, dos ícones autorais e dos temas de aplicativo. Tudo
+o que você não declarar é herdado do **pack padrão** — o `catppuccin`, que acompanha o projeto e **pode
 ser trocado** —, e o `meow pack info` diz exatamente o que veio de onde.
 
 **"Padrão" e não "embutido", e a palavra mudou com o código.** Até 22/09/2026 o
@@ -34,6 +37,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [A fronteira: `assets/` contra `packs/`](#a-fronteira-assets-contra-packs)
 - [A estrutura do pack](#a-estrutura-do-pack)
 - [`pack.json`, campo a campo](#packjson-campo-a-campo)
+- [A vitrine](#a-vitrine)
 - [De onde sai um acervo: pack, herança, motor](#de-onde-sai-um-acervo-pack-herança-motor)
 - [O acervo de ícones do pack](#o-acervo-de-ícones-do-pack)
 - [Temas de aplicativo](#temas-de-aplicativo)
@@ -168,12 +172,15 @@ fora do git ela é irrecuperável.
 
 ## A estrutura do pack
 
-Só `pack.json` e a paleta são obrigatórios. Todo o resto é opcional.
+`pack.json`, a paleta e a capa são obrigatórios. Todo o resto é opcional.
 
 ```
 packs/<id>/
   pack.json                 OBRIGATÓRIO
   paleta.json               OBRIGATÓRIO (o nome vem de paleta.arquivo)
+  logo.svg                  OBRIGATÓRIO para publicar: a capa (vitrine.capa) — ver "A vitrine"
+  LEIA-ME.md                a história do pack, em texto (vitrine.descricao)
+  capturas/                 fotos de tela, se quiser (vitrine.capturas)
   CREDITOS.md               a procedência de cada acervo — obrigatório se houver arte de terceiro
   cosmic-map.json           opcional: substitui o molde do tema do COSMIC
   icones/                   MESMA FORMA para as quatro categorias — ver a seção própria
@@ -190,7 +197,6 @@ packs/<id>/
   temas/
     capturados/<flavor>-<accent>/    o tema do COSMIC já fotografado — ver a seção própria
                                      (é convenção: não precisa declarar nada)
-  LEIAME.md                 opcional
 ```
 
 ### Onde um pack mora
@@ -219,6 +225,7 @@ longe das duas listas de destino proibido de `lib/comum.sh`.
 | `nome` | texto | como aparece na tela |
 | `paleta.arquivo` | caminho | relativo ao pack |
 | `paleta.flavor_padrao` | texto | um flavor que exista na paleta |
+| `vitrine.capa` | caminho | um SVG dentro do pack — por convenção `logo.svg`. Cobrado só por quem publica: ver [A vitrine](#a-vitrine) |
 
 `formato` existe para que um pack antigo num MeowSystem novo **falhe dizendo o
 que falta**, em vez de pintar errado. Um pack com `formato` maior que o
@@ -233,6 +240,15 @@ suportado é recusado com o número na mensagem.
   "licenca": "MIT",
   "creditos": "CREDITOS.md",
   "heranca": "catppuccin",
+
+  "vitrine": {
+    "capa": "logo.svg",
+    "descricao_curta": "Uma linha, até 80 caracteres.",
+    "descricao": "LEIA-ME.md",
+    "tags": ["escuro", "verde"],
+    "capturas": ["capturas/area-de-trabalho.png"],
+    "site": "https://exemplo.org/meu-tema"
+  },
 
   "paleta": {
     "arquivo": "paleta.json",
@@ -269,6 +285,10 @@ suportado é recusado com o número na mensagem.
 }
 ```
 
+**`autor`, `versao` e `licenca`** aparecem no alto do `meow pack info`, e o
+`autor` também no cartão do painel. Até 23/09/2026 nenhum código lia os três, e
+o `validar` os listava como campo morto.
+
 **`heranca`** nomeia o pack de onde vem tudo o que você não declarou. Ela é
 obrigatória de escrever mesmo quando é o default: um pack que herda 18 de 21
 categorias **é o pack base com outra paleta**, e isso precisa estar na cara de
@@ -289,6 +309,72 @@ valores. É de propósito: `dono/repo` nomeia a conta de uma pessoa, e este arqu
 é versionado. Quem instala o pack põe o repositório no próprio `meow.conf`, que
 não vai para commit nenhum. `se_vazio: "herdar"` diz o que fazer quando a chave
 está vazia.
+
+---
+
+## A vitrine
+
+Ninguém escolhe um tema por um `id`. Até 23/09/2026 um pack era isso e 26
+hexadecimais, e a tela que escolhe um pack não tinha o que desenhar. O bloco
+`vitrine` é o que o pack diz de si para quem vai escolher:
+
+```json
+"vitrine": {
+  "capa": "logo.svg",
+  "descricao_curta": "O roxo do Dracula, com o gato do MeowSystem.",
+  "descricao": "LEIA-ME.md",
+  "tags": ["escuro", "claro", "roxo", "alto contraste"],
+  "capturas": ["capturas/area-de-trabalho.png"],
+  "site": "https://draculatheme.com"
+}
+```
+
+| Campo | Regra | Por quê |
+|---|---|---|
+| `capa` | **obrigatória**; SVG; dentro do pack; o arquivo existe | vetor porque o cartão aparece em vários tamanhos, e um PNG de capa envelhece junto com a resolução |
+| `descricao_curta` | uma linha, **até 80 caracteres** | é o que cabe numa linha do cartão — o mesmo teto dos balões do painel |
+| `descricao` | um `.md` dentro do pack, até 64 KiB | a história inteira, para quem abrir o cartão |
+| `tags` | lista de textos | as etiquetas do cartão |
+| `capturas` | lista de `.png`, `.jpg`, `.jpeg` ou `.svg` dentro do pack | fotos de tela; as quatro extensões que o painel sabe mostrar |
+| `site` | **só `https://`** | é o único campo do pack que vira link clicável |
+
+**A capa é o logo.** O mockup de 21/09/2026 desenhava a capa como uma tira de
+cores, e isso foi corrigido: tira é paleta, não identidade — dois packs de
+paleta parecida ficariam iguais no cartão. A capa é o `logo.svg` do pack, o
+mesmo arquivo que vira o ícone do lançador; a tira continua no cartão, fina,
+embaixo dele, como amostra da paleta. Por isso o campo é um só: um
+`vitrine.logo` ao lado de um `vitrine.capa` seriam duas verdades para a mesma
+figura.
+
+**A descrição é mostrada como texto, nunca como HTML.** O painel põe o
+Markdown do `LEIA-ME.md` num bloco de texto puro, sem interpretar nada — nem
+negrito, nem link. Um pack é dado, e dado não injeta: renderizar Markdown de
+terceiro numa página que carrega o token de sessão seria dar a um arquivo
+baixado da internet a chance de virar código dentro do painel. Quem quiser
+formatação escreve no site, que o cartão linka.
+
+**Ela é cobrada de quem publica, e nunca de quem usa.** `meow pack validar`
+recusa a vitrine quebrada — e diz todos os problemas de uma vez. O instalador,
+o `meow pack info` e o painel **não**: o tema de um pack sem capa continua
+funcionando no desktop, e o `info` e o cartão mostram o pack dizendo o que
+falta. Se a capa ausente trancasse o motor, o tema inteiro seria trocado pelo
+padrão por causa de uma figura que só a tela de escolha mostra.
+
+No terminal, a vitrine é o alto do `meow pack info`:
+
+```
+$ meow pack info dracula | head -6
+Dracula  [dracula]  versão 1.0.0 · formato 1
+  autor     : MeowSystem · licença GPL-3.0-or-later
+  descrição : O roxo do Dracula, com o gato do MeowSystem.
+  tags      : escuro, claro, roxo, alto contraste
+  origem    : próprio: paleta, ícones de aplicativo, pastas, … · herdado de catppuccin: …
+  diretório : …
+```
+
+A linha `origem` é a tabela de categorias do mesmo comando virada frase, e o
+cartão do painel mostra exatamente ela — as duas saem da mesma função do
+`scripts/pack.py`.
 
 ---
 
@@ -856,7 +942,7 @@ abre um `pack.json`:
 | verbo | o que responde |
 |---|---|
 | `validar <id-ou-caminho>` | confere o pack inteiro. 0 = ok, 1 = recusado |
-| `info <id>` | o que é próprio, o que é herdado, categoria a categoria |
+| `info <id>` | a vitrine no alto; depois o que é próprio, o que é herdado, categoria a categoria |
 | `caminho <id> <categoria>` | o caminho que aquela categoria resolve **no pack** |
 | `acervo <id> <categoria> [arquivo]` | o mesmo, subindo pack → herança → motor |
 | `paleta <id>` | o arquivo de paleta daquele pack |
@@ -889,6 +975,11 @@ Ele confere, nesta ordem, e **para no primeiro erro**:
 11. nenhuma URL fora de `https://`
 12. **contraste**: `text` sobre `base` precisa passar em WCAG AA (4.5:1) — 26
     hexes aleatórios passam em tudo acima e produzem uma interface ilegível
+13. **a vitrine** — a capa existe, é SVG e está dentro do pack; a frase curta
+    cabe em 80 caracteres; a descrição é um `.md` do pack; o `site` é
+    `https://`. Este item, e só este, é cobrado apenas pelo verbo `validar`: o
+    instalador e o painel usam um pack de vitrine quebrada assim mesmo. Ver
+    [A vitrine](#a-vitrine)
 
 A validação roda de novo dentro do `meow_preflight`, **antes** de o instalador
 escrever qualquer coisa. Um pack quebrado não chega a tocar no seu desktop.
@@ -899,7 +990,7 @@ Antes do `ok`, o validador imprime **quais campos aquele `pack.json` declara e
 nenhuma linha deste projeto consulta**:
 
 ```
-  aviso 15 campo(s) que este pack declara e NENHUM código lê:
+  aviso 12 campo(s) que este pack declara e NENHUM código lê:
           icones.apps.camada
           origens.wallpapers.tipo
           …
@@ -954,7 +1045,7 @@ Depois, `meow ativar`.
 - [ ] `meow pack validar` passa
 - [ ] `CREDITOS.md` nomeia a origem e a licença de cada acervo de terceiro
 - [ ] `licenca` no `pack.json` é compatível com a de tudo que você empacotou
-- [ ] a captura do tema está no pack (senão, diga no `LEIAME.md` que não está)
+- [ ] a captura do tema está no pack (senão, diga no `LEIA-ME.md` que não está)
 - [ ] `heranca` está escrita, mesmo sendo o default
 - [ ] nenhum caminho absoluto, nenhum `~`, nenhum nome de usuário
 
@@ -968,4 +1059,5 @@ Este repositório traz **dois** packs, e eles ensinam coisas diferentes:
   herdado — com cada herança dita na cara.
 
 Se for copiar um para começar o seu, copie o **catppuccin**: o do Dracula
-declara quinze campos que ainda não têm leitor, e o `validar` diz quais são.
+declara doze campos que ainda não têm leitor, e o `validar` diz quais são. Eram
+quinze até a P15 dar leitor a `autor`, `versao` e `licenca`.
