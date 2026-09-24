@@ -44,6 +44,46 @@ def chaves_de(texto: str) -> set[str]:
     return {m.group(1) for l in texto.splitlines() if (m := CHAVE.match(l))}
 
 
+# AS CHAVES QUE MUDARAM DE NOME — 24/09/2026, P52 (achado 13)
+#   `WALLPAPER_FONTES_DELA` era o nome de uma chave que a tela mostra («casa
+#   pelo nome no arquivo»), herança de quando o projeto era de uma pessoa só.
+#   O produto vai para qualquer pessoa, e o nome passou a dizer o que a lista
+#   É: as fontes que o carrossel está PERMITIDO a deixar em paz — a mesma
+#   palavra do verbo que a preenche, `meow wallpaper permitir`.
+#
+#   A REGRA DO NOME ANTIGO, e ela é uma só em todo o projeto: o nome novo vence
+#   quando está no arquivo, mesmo vazio; o antigo só vale quando o novo não
+#   está. Quem já tem o `meow.conf` com o nome antigo continua funcionando sem
+#   passar por aqui — o `scripts/wallpaper.sh`, o painel e o importar leem o
+#   antigo como sinônimo —, e este script só arruma o arquivo: troca o NOME na
+#   própria linha, com o valor e o comentário dela intactos, antes de conferir
+#   as chaves faltando. A ordem importa: acrescentar primeiro poria a chave
+#   nova VAZIA no fim do arquivo, e pela regra acima ela venceria o valor que a
+#   linha antiga carregava.
+#
+#   O painel (`app/servidor.py`) lê esta tabela daqui, por caminho — uma
+#   segunda tabela lá seria a armadilha nº 3 deste repositório.
+RENOMEADAS = {"WALLPAPER_FONTES_DELA": "WALLPAPER_FONTES_PERMITIDAS"}
+
+
+def renomear(texto: str) -> tuple[str, list[str]]:
+    """(texto, ["ANTIGO -> NOVO"]) — o nome antigo trocado pelo novo, na linha.
+
+    Só quando o arquivo ainda NÃO tem o nome novo: com os dois presentes o novo
+    já vence (ver `RENOMEADAS`), e renomear o antigo daria duas linhas da mesma
+    chave, onde a última atribuição — talvez a velha — passaria a mandar.
+    """
+    atuais = chaves_de(texto)
+    feitas = []
+    for antigo, novo in RENOMEADAS.items():
+        if antigo not in atuais or novo in atuais:
+            continue
+        linha = re.compile(r"^(\s*(?:export\s+)?)" + re.escape(antigo) + "=", re.M)
+        texto = linha.sub(lambda m, n=novo: m.group(1) + n + "=", texto)
+        feitas.append(f"{antigo} -> {novo}")
+    return texto, feitas
+
+
 def blocos_faltando(exemplo: str, atuais: set[str]) -> list[tuple[str, str]]:
     """Devolve [(nome, bloco)] das chaves do exemplo que faltam no arquivo dela.
 
@@ -84,34 +124,49 @@ def main() -> int:
     exemplo = args.exemplo.read_text(encoding="utf-8")
     atual = args.conf.read_text(encoding="utf-8")
 
+    # O nome antigo vira o novo ANTES da conta do que falta — ver `RENOMEADAS`.
+    atual, renomeadas = renomear(atual)
     faltando = blocos_faltando(exemplo, chaves_de(atual))
-    if not faltando:
+    if not faltando and not renomeadas:
         return 0
 
     nomes = ", ".join(n for n, _ in faltando)
     if args.conferir:
-        print(f"faltam no meow.conf: {nomes}")
+        if renomeadas:
+            print(f"com o nome antigo no meow.conf: {', '.join(renomeadas)}")
+        if faltando:
+            print(f"faltam no meow.conf: {nomes}")
         return 1
 
     # Vão para o FIM, numa seção que se identifica. Tentar encaixar cada chave na
     # seção "certa" exigiria casar os cabeçalhos do exemplo com os dela — e o
     # arquivo dela pode ter sido reorganizado à mão. Acrescentar no fim é o único
     # jeito que não depende de adivinhar a estrutura do arquivo de outra pessoa.
-    corpo = "\n\n".join(bloco for _, bloco in faltando)
-    novo = atual.rstrip("\n") + (
-        "\n\n"
-        "# --- Acrescentado pelo install.sh -----------------------------------------\n"
-        "# Chaves que o projeto ganhou depois que este arquivo foi criado. Os valores\n"
-        "# são os padrões; mexa à vontade. Nada acima desta linha foi alterado.\n"
-        f"{corpo}\n"
-    )
+    novo = atual
+    if faltando:
+        corpo = "\n\n".join(bloco for _, bloco in faltando)
+        # A frase do cabeçalho não pode mentir quando um nome foi trocado acima.
+        intacto = ("# são os padrões; mexa à vontade. Nada acima desta linha foi alterado.\n"
+                   if not renomeadas else
+                   "# são os padrões; mexa à vontade. Acima desta linha, só o NOME de\n"
+                   f"# {', '.join(renomeadas)} mudou; o valor é o de antes.\n")
+        novo = atual.rstrip("\n") + (
+            "\n\n"
+            "# --- Acrescentado pelo install.sh -----------------------------------------\n"
+            "# Chaves que o projeto ganhou depois que este arquivo foi criado. Os valores\n"
+            f"{intacto}"
+            f"{corpo}\n"
+        )
 
     # Temporário no MESMO diretório: `replace` só é atômico dentro de um sistema
     # de arquivos, e uma queda no meio deixaria ela sem configuração nenhuma.
     tmp = args.conf.with_suffix(args.conf.suffix + ".tmp")
     tmp.write_text(novo, encoding="utf-8")
     tmp.replace(args.conf)
-    print(f"acrescentadas ao meow.conf: {nomes}")
+    if renomeadas:
+        print(f"renomeadas no meow.conf, com o valor de antes: {', '.join(renomeadas)}")
+    if faltando:
+        print(f"acrescentadas ao meow.conf: {nomes}")
     return 0
 
 

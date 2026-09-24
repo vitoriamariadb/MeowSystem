@@ -439,10 +439,13 @@ chk_pastas() {
     "$RAIZ/scripts/construir_pastas.sh" 2>&1
 }
 
+# A lista das fontes permitidas vai pelo nome novo com o antigo como sinônimo
+# (P52, 24/09/2026): `${NOVO-${ANTIGO:-}}` — o novo vence quando existe, mesmo
+# vazio. A regra inteira está no `scripts/wallpaper.sh`, no `FONTES_PERMITIDAS`.
 chk_wallpaper() {
   MEOW_DRY_RUN=1 WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
-    WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
+    WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
     WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
     WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
     WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
@@ -1746,7 +1749,7 @@ fix_pastas()    { ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
                     "$RAIZ/scripts/construir_pastas.sh" 2>&1; }
 fix_wallpaper() { WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
                     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
-                    WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
+                    WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
                     WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
                     WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
                     WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
@@ -2176,7 +2179,7 @@ cmd_status() {
     campo "${l%%:*}" "$(printf '%s' "${l#*:}" | sed 's/^ *//')"
   done < <(MEOW_DRY_RUN=1 WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
              WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
-             WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
+             WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
              WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
              WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
              WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
@@ -2874,7 +2877,7 @@ cmd_wallpaper() {
       shift || true
       WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
         WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
-        WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
+        WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
         WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
         WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
         WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
@@ -3849,7 +3852,7 @@ cmd_leitura() {
       printf '  leitura_hora_inicio/fim de com.system76.CosmicComp. O applet só as\n'
       printf '  escreve quando você mexe nele; até lá vale o padrão do meow.conf —\n'
       printf '  e o estado diz na cara qual das duas fontes está mandando.\n\n'
-      printf '  Quem PINTA é o cosmic-comp recompilado (etapa 1). Até ela deslogar\n'
+      printf '  Quem PINTA é o cosmic-comp recompilado (etapa 1). Até você deslogar\n'
       printf '  depois desse build, escrever aqui é inofensivo e não muda um pixel.\n'
       ;;
     *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow leitura --help"; return "$MEOW_ERRO" ;;

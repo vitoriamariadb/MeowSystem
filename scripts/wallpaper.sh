@@ -309,10 +309,18 @@ modo_de_ajuste() {
 # uma a uma. Uma chave nova que não entre naquela lista de `export` chega aqui
 # vazia — e o timer passaria a desfazer, a cada quinze minutos, exatamente a
 # escolha que ela acabou de autorizar.
-FONTES_DELA="${WALLPAPER_FONTES_DELA:-}"
+#
+# O NOME DA CHAVE MUDOU EM 24/09/2026 (P52): `WALLPAPER_FONTES_DELA` virou
+# `WALLPAPER_FONTES_PERMITIDAS`, a palavra do verbo que a preenche. O nome
+# antigo continua lido, pela regra que o `scripts/migrar_conf.py` escreve em
+# `RENOMEADAS`: o novo vence quando existe, MESMO VAZIO — por isso o `-` sem
+# dois-pontos no primeiro nível. Com `:-`, esvaziar a lista pelo nome novo
+# ressuscitaria a do nome antigo, que fica na linha velha de quem ainda não
+# passou pelo `install.sh`.
+FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}"
 
 fonte_autorizada() {
-  local fonte="$1" texto="${2-$FONTES_DELA}" p
+  local fonte="$1" texto="${2-$FONTES_PERMITIDAS}" p
   [ -n "$fonte" ] && [ -n "$texto" ] || return 1
   # Array, e não `for p in $texto` com IFS=: — a expansão sem aspas também faz
   # *globbing*, e um caminho com `*` ou `[` no nome (a pasta dela tem emoji e
@@ -1379,7 +1387,7 @@ reconciliar_sumicos() {
 
   if [ "$n_antes" -gt 4 ] && [ "${#sumidas[@]}" -gt $(( n_antes / 2 )) ]; then
     meow_aviso "${#sumidas[@]} de $n_antes imagens sumiram de ativos/ de uma vez — não vou banir nada"
-    meow_info  "  se foi você mesma, bana uma a uma: meow wallpaper banir <nome>"
+    meow_info  "  se foi você, bana uma a uma: meow wallpaper banir <nome>"
     return 0                                   # guarda 3
   fi
 
@@ -1417,7 +1425,7 @@ reconciliar_sumicos() {
 
   mkdir -p "$(dirname "$BANIDOS_TXT")" 2>/dev/null
   [ -f "$BANIDOS_TXT" ] || printf '%s\n' \
-    "# BANIDOS.txt — os papéis de parede que ela recusou, por nome de arquivo." \
+    "# BANIDOS.txt — os papéis de parede que você recusou, por nome de arquivo." \
     "# O 'semear' não repõe nada que esteja aqui." > "$BANIDOS_TXT"
   for nome in "${novas[@]}"; do
     grep -qxF -- "$nome" "$BANIDOS_TXT" || printf '%s\n' "$nome" >> "$BANIDOS_TXT"
@@ -1486,7 +1494,7 @@ reconciliar_banidos_pasta() {
 
   mkdir -p "$(dirname "$BANIDOS_TXT")" 2>/dev/null
   [ -f "$BANIDOS_TXT" ] || printf '%s\n' \
-    "# BANIDOS.txt — os papéis de parede que ela recusou, por nome de arquivo." \
+    "# BANIDOS.txt — os papéis de parede que você recusou, por nome de arquivo." \
     "# O 'semear' não repõe nada que esteja aqui." > "$BANIDOS_TXT"
   for nome in "${novas[@]}"; do
     printf '%s\n' "$nome" >> "$BANIDOS_TXT"
@@ -1659,7 +1667,7 @@ cmd_aplicar() {
         "$FABRICA"|"$FABRICA"/*) ;;                   # reset de fábrica: conserta
         *)
           if fonte_autorizada "$fonte_atual"; then
-            meow_pula "$alvo aponta para $fonte_atual — está na WALLPAPER_FONTES_DELA, não mexo"
+            meow_pula "$alvo aponta para $fonte_atual — está na WALLPAPER_FONTES_PERMITIDAS, não mexo"
             escolha_dela=1
             continue
           fi
@@ -1821,7 +1829,7 @@ cmd_estado() {
 
 # --- permitir: a única forma de a escolha dela virar regra -------------------
 # O VALOR VEM DO ARQUIVO, NÃO DO AMBIENTE, E ISSO NÃO É PREFERÊNCIA
-#   O `FONTES_DELA` lá de cima chega pelo ambiente, e chega VAZIO quando alguém
+#   O `FONTES_PERMITIDAS` lá de cima chega pelo ambiente, e chega VAZIO quando alguém
 #   roda `./scripts/wallpaper.sh permitir …` na mão, sem passar pela CLI. Se a
 #   gravação usasse aquilo como base, o segundo `permitir` apagaria o primeiro —
 #   uma autorização anterior dela sumindo em silêncio, que é o pior defeito
@@ -1841,7 +1849,20 @@ cmd_estado() {
 # a mesma frase que o `lib/comum.sh` escreveu ao trazer a `meow_conf_definir`
 # para cá, pelo mesmo motivo). O que estava documentado acima continua valendo
 # palavra por palavra; só o endereço mudou.
-fontes_no_conf() { conf_bruto WALLPAPER_FONTES_DELA; }
+#
+# O NOME ANTIGO SÓ VALE SEM O NOVO NO ARQUIVO — 24/09/2026, P52. É a regra do
+# `FONTES_PERMITIDAS` lá de cima, lida do arquivo em vez do ambiente: sem ela, o
+# primeiro `permitir` de quem ainda tem a linha velha partiria de uma lista
+# vazia e apagaria as autorizações de antes — o defeito que este bloco inteiro
+# existe para não ter.
+fontes_no_conf() {
+  if grep -qE -- "^[[:space:]]*(export[[:space:]]+)?WALLPAPER_FONTES_PERMITIDAS=" \
+       "$MEOW_CONF_ARQUIVO" 2>/dev/null; then
+    conf_bruto WALLPAPER_FONTES_PERMITIDAS
+  else
+    conf_bruto WALLPAPER_FONTES_DELA
+  fi
+}
 
 cmd_permitir() {
   local caminho="${1:-}"
@@ -1875,7 +1896,7 @@ cmd_permitir() {
   bruto="$(fontes_no_conf)"
   expandido="${bruto//\$\{HOME\}/$HOME}"; expandido="${expandido//\$HOME/$HOME}"
   if fonte_autorizada "$caminho" "$expandido"; then
-    meow_ok "$caminho já está autorizado em WALLPAPER_FONTES_DELA"
+    meow_ok "$caminho já está autorizado em WALLPAPER_FONTES_PERMITIDAS"
     return "$MEOW_OK"
   fi
 
@@ -1884,12 +1905,12 @@ cmd_permitir() {
   local novo="$caminho"
   [ -n "$bruto" ] && novo="$bruto:$caminho"
 
-  meow_conf_definir WALLPAPER_FONTES_DELA "$novo"
+  meow_conf_definir WALLPAPER_FONTES_PERMITIDAS "$novo"
   case $? in
     0) meow_ok "$MEOW_CONF_ARQUIVO já estava assim — nada foi escrito"
        return "$MEOW_OK" ;;
     1) if meow_seco; then
-         meow_muda "gravaria WALLPAPER_FONTES_DELA=\"$novo\""
+         meow_muda "gravaria WALLPAPER_FONTES_PERMITIDAS=\"$novo\""
          return "$MEOW_DIVERGENTE"
        fi
        meow_ok "autorizado: $caminho"
@@ -1933,7 +1954,7 @@ cmd_banir() {
   local pasta_lista; pasta_lista="$(dirname "$BANIDOS_TXT")"
   if [ -d "$pasta_lista" ]; then
     [ -f "$BANIDOS_TXT" ] || printf '%s\n' \
-      "# BANIDOS.txt — os papéis de parede que ela recusou, por nome de arquivo." \
+      "# BANIDOS.txt — os papéis de parede que você recusou, por nome de arquivo." \
       "# O 'meow wallpaper banir' acrescenta aqui; o 'semear' não repõe o que está listado." \
       > "$BANIDOS_TXT"
     grep -qxF -- "$nome" "$BANIDOS_TXT" || printf '%s\n' "$nome" >> "$BANIDOS_TXT"
@@ -2480,9 +2501,9 @@ _semear_de_pasta() {
   semear_da_curadoria
   if [ "$CURADORIA_N" -gt 0 ]; then
     if meow_seco; then
-      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria dela (assets/papeis-de-parede/FONTES.tsv)"
+      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria (assets/papeis-de-parede/FONTES.tsv)"
     else
-      meow_ok "$CURADORIA_N imagem(ns) da curadoria dela reproduzidas (assets/papeis-de-parede/FONTES.tsv)"
+      meow_ok "$CURADORIA_N imagem(ns) da curadoria reproduzidas (assets/papeis-de-parede/FONTES.tsv)"
     fi
     n=$((n + CURADORIA_N))
   fi
@@ -2617,9 +2638,9 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
     # passado, é a mesma mentira que este arquivo já documenta duas linhas abaixo
     # — e que a auditoria de 24/08/2026 pegou nesta função, recém-escrita.
     if meow_seco; then
-      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria dela (assets/papeis-de-parede/FONTES.tsv)"
+      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria (assets/papeis-de-parede/FONTES.tsv)"
     else
-      meow_ok "$CURADORIA_N imagem(ns) da curadoria dela reproduzidas (assets/papeis-de-parede/FONTES.tsv)"
+      meow_ok "$CURADORIA_N imagem(ns) da curadoria reproduzidas (assets/papeis-de-parede/FONTES.tsv)"
     fi
     n=$((n + CURADORIA_N))
   fi

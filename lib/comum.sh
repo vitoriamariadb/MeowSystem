@@ -309,7 +309,7 @@ meow_app_tema_no_ar() {
     case "$resp" in
       [sS]|[sS][iI][mM])
         meow_pendencia_resolvida "$id"
-        meow_muda "$app: trocando pelo tema do pack a pedido dela"
+        meow_muda "$app: trocando pelo tema do pack a seu pedido"
         return "$MEOW_DIVERGENTE" ;;
     esac
   fi

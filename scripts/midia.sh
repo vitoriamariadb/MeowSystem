@@ -236,7 +236,7 @@ _conferir() {
 
   # (4) A escolha dela sobre a cor, migrada uma vez do sandbox do flatpak.
   if [ -f "$SANDBOX/album-color-enabled" ] && [ ! -f "$CONFIG/album-color-enabled" ]; then
-    meow_muda "a preferência de cor de álbum dela ainda está dentro do sandbox do flatpak"
+    meow_muda "a sua preferência de cor de álbum ainda está dentro do sandbox do flatpak"
     return "$MEOW_DIVERGENTE"
   fi
 
@@ -293,7 +293,7 @@ _aplicar() {
   if [ -f "$SANDBOX/album-color-enabled" ] && [ ! -f "$CONFIG/album-color-enabled" ]; then
     meow_escrever "$CONFIG/album-color-enabled" "$(cat "$SANDBOX/album-color-enabled")" 644
     case $? in
-      1) mudou=1; meow_seco || meow_info "a preferência de cor de álbum dela veio do sandbox do flatpak" ;;
+      1) mudou=1; meow_seco || meow_info "a sua preferência de cor de álbum veio do sandbox do flatpak" ;;
       2) meow_erro "não consegui migrar album-color-enabled"; return "$MEOW_ERRO" ;;
     esac
   fi

@@ -79,6 +79,7 @@ import sys
 import tempfile
 import time
 import zlib
+from urllib.parse import quote
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -727,6 +728,37 @@ TEXTO_RUIM_JS = r"""
 }
 """
 
+# A CASA E O CLONE NÃO APARECEM NA TELA — 24/09/2026, P52 (achados 10 e 13).
+#   A varredura das 14 abas achou o caminho absoluto na caixa de confirmar, no
+#   «ver comando», no topo da gaveta e em três balões de ícone. Aqui a régua é
+#   a página inteira, e não só o que está visível agora: o balão `?` e o «ver
+#   comando» estão no DOM fechados, e abrem com um clique. Os atributos que
+#   viram texto (o balão, o nome acessível, o que o «Copiar» copia) contam
+#   junto. Na saída da gaveta vale só a casa: um clone fora dela (`/opt`) não
+#   diz o nome de ninguém, e é assim que o `servidor.py` a trata.
+CAMINHO_JS = r"""
+([casa, raiz]) => {
+  const achados = [];
+  const olhar = (texto, onde, soCasa) => {
+    if (!texto) return;
+    if (texto.includes(casa) || (!soCasa && texto.includes(raiz)))
+      achados.push(texto.trim().slice(0, 80) + '  (em ' + onde + ')');
+  };
+  const andar = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = andar.nextNode())) {
+    const pai = n.parentElement;
+    if (!pai || pai.closest('script, style, template')) continue;
+    olhar(n.textContent, pai.tagName.toLowerCase() + (pai.id ? '#' + pai.id : ''),
+          !!pai.closest('#saida'));
+  }
+  const nomes = ['title', 'aria-label', 'data-comando', 'placeholder'];
+  for (const el of document.querySelectorAll('[title], [aria-label], [data-comando], [placeholder]'))
+    for (const a of nomes) olhar(el.getAttribute(a), el.tagName.toLowerCase() + '[' + a + ']', false);
+  return achados;
+}
+"""
+
 # A PÁGINA PARADA: nenhuma mutação por `quieto` ms (a marca do censo não
 # conta), com um teto — a gaveta de um trabalho vivo muda a cada 400 ms e
 # nunca para sozinha.
@@ -969,6 +1001,8 @@ class Percurso:
     def texto_ruim(self):
         for achado in self.js(TEXTO_RUIM_JS):
             self.falha(f"texto de defeito na tela: {achado!r}")
+        for achado in self.js(CAMINHO_JS, [CASA, RAIZ_B]):
+            self.falha(f"a casa ou o caminho do clone na tela: {achado!r}")
 
     # ======================================================================
     # AS AÇÕES: o protocolo das três respostas
@@ -1051,6 +1085,12 @@ class Percurso:
         oferece = self.pag.locator("#confirmar-ensaio").is_visible()
         self.checa(self.pag.locator("#confirmar-comando").inner_text().strip(),
                    f"a caixa de «{titulo}» mostra o comando que vai rodar")
+        # O COMANDO DA CAIXA COLA EM QUALQUER MÁQUINA — P52, achado 10. Sem a
+        # casa e sem o caminho do clone: `meow …`, `./script.sh …` ou `~/…`.
+        cmd = self.pag.locator("#confirmar-comando").inner_text()
+        self.checa(CASA not in cmd and RAIZ_B not in cmd,
+                   f"a caixa de «{titulo}» mostra o comando sem a casa nem o "
+                   f"caminho do clone ({cmd.strip()[:60]!r})")
         self.checa(oferece == (acao["sudo"] or acao["destrutivo"]),
                    f"a caixa de «{titulo}» oferece o «Ver o que faria» "
                    "exatamente quando a ação pede senha ou desfaz algo")
@@ -1163,6 +1203,14 @@ class Percurso:
         estado, saida = fim
         self.acionados.add("gaveta · #gaveta-estado")
         self.checa(saida.strip(), f"«{rot}» mostrou a saída na gaveta")
+        # A GAVETA NÃO TRAZ A CASA DE NINGUÉM — P52. O comando do topo sai como
+        # a pessoa o digitaria, e as linhas trocam a casa por `~`.
+        topo = self.pag.locator("#gaveta-comando").inner_text()
+        self.checa(CASA not in topo and RAIZ_B not in topo,
+                   f"a gaveta de «{rot}» mostra o comando sem a casa nem o caminho "
+                   f"do clone ({topo.strip()[:60]!r})")
+        self.checa(CASA not in saida,
+                   f"a saída de «{rot}» na gaveta troca a casa por ~")
         for linha in saida.splitlines():
             if self.QUEBRA.search(linha):
                 self.falha(f"«{rot}» quebrou: {linha.strip()[:140]}")
@@ -1919,6 +1967,17 @@ class Percurso:
         self.checa(marca in corpo,
                    f"«{nome.split(' · ')[-1]}» baixa {baixa.value.suggested_filename} com "
                    f"{marca!r} dentro ({len(corpo)} caracteres)")
+        # O QUE SE EXPORTA NÃO LEVA A CASA NEM O CLONE — P52, achados 21 e 22.
+        #   Do `.conf` só o CABEÇALHO: o corpo é o arquivo da pessoa, byte a
+        #   byte, e um caminho que ela mesma escreveu nele é dela para levar. A
+        #   página vai inteira, e também na forma de URL (`%2F…`), que é como a
+        #   casa aparecia nas prévias embutidas.
+        rotulo = nome.split(" · ")[-1]
+        olhado = corpo.split("\n\n", 1)[0] if rotulo == "#baixar-conf" else corpo
+        vazou = [c for c in (CASA, RAIZ_B, quote(CASA, safe=""), quote(RAIZ_B, safe=""))
+                 if c in olhado]
+        self.checa(not vazou, f"«{rotulo}» não leva a casa nem o caminho do clone"
+                   + (f" — achei {len(vazou)} forma(s)" if vazou else ""))
 
     def h_importar_conf(self, nome):
         arquivo = os.path.join(BRINQUEDO, "envios", "meus-ajustes.conf")
@@ -3017,8 +3076,8 @@ INVENTARIO = {
         ajuste WALLPAPER_BASE · campo
         ajuste WALLPAPER_FIXO_TTL · ?
         ajuste WALLPAPER_FIXO_TTL · campo
-        ajuste WALLPAPER_FONTES_DELA · ?
-        ajuste WALLPAPER_FONTES_DELA · nova ficha
+        ajuste WALLPAPER_FONTES_PERMITIDAS · ?
+        ajuste WALLPAPER_FONTES_PERMITIDAS · nova ficha
         ajuste WALLPAPER_INTERVALO · ?
         ajuste WALLPAPER_INTERVALO · opção
         ajuste WALLPAPER_NOTIFICAR · ?

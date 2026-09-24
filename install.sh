@@ -3168,11 +3168,14 @@ etapa_vigia_qt() {
   return "$rc"
 }
 
+# A lista das fontes permitidas vai pelo nome novo com o antigo como sinônimo
+# (P52, 24/09/2026): `${NOVO-${ANTIGO:-}}` — o novo vence quando existe, mesmo
+# vazio. A regra inteira está no `scripts/wallpaper.sh`, no `FONTES_PERMITIDAS`.
 etapa_wallpaper() {
   passo "Papéis de parede"
   WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
-    WALLPAPER_FONTES_DELA="${WALLPAPER_FONTES_DELA:-}" \
+    WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
     WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
     WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
     WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
@@ -3358,7 +3361,7 @@ main() {
     fi
     meow_info "  o sudo é pedido por dentro, só onde precisa, e diz o que vai rodar antes."
     meow_info "  instalar em nome de outra pessoa não funciona por sudo -u: as etapas"
-    meow_info "  de systemd --user precisam do DBUS/XDG_RUNTIME_DIR da sessão dela."
+    meow_info "  de systemd --user precisam do DBUS/XDG_RUNTIME_DIR da sua sessão."
     return 2
   fi
 

@@ -418,7 +418,7 @@ done
 if [ "$_forma_veio_do_ambiente" = "0" ] &&
    grep -qE '^[[:space:]]*(export[[:space:]]+)?FORMA_' "$MEOW_CONF_ARQUIVO" 2>/dev/null; then
   meow_aviso "o $MEOW_CONF_ARQUIVO tem geometria e nada dela chegou aqui — vou gravar os padrões DESTE arquivo por cima"
-  meow_info "quem lê o conf é 'meow doctor --consertar' (ou o ./install.sh); rodar este script na mão desfaz a escolha dela"
+  meow_info "quem lê o conf é 'meow doctor --consertar' (ou o ./install.sh); rodar este script na mão desfaz a sua escolha"
 fi
 
 # O RON destas chaves é booleano ou inteiro, sem aspas. Normalizar aqui evita um

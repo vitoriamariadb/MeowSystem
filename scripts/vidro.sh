@@ -408,7 +408,7 @@ faixa_alpha() {
   awk -v f="$fator" -v n="$frosted" -v hi="$hi" \
     'BEGIN{printf "    o TETO com frosted=%s é %.0f%% (mesmo com opacity=1,00). Para subir o teto\n", n, f*100;
            printf "    é \"Espessura do efeito fosco\" em Aparência: no outro extremo o teto vira %.0f%%.\n", hi*100}'
-  printf '    E o que ela VÊ depende do que está atrás: a cor da barra (#313244) some\n'
+  printf '    E o que você VÊ depende do que está atrás: a cor da barra (#313244) some\n'
   printf '    contra uma janela escura e salta contra o papel de parede — medido em 23/08.\n'
 }
 
