@@ -2782,6 +2782,35 @@ saida="$(amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id 2>&1)"; rc=$?
   || falha "um arquivo solto na biblioteca derrubou a sonda do motor (rc=$rc)" "$saida"
 rm -rf "$PACK_DIR/icones/biblioteca"
 
+# OS TEMAS DE APLICATIVO DO DRACULA MORAM NO PACK — 24/09/2026, sprint P42
+#   Kitty, GNOME Terminal, Telegram, Discord e OnlyOffice eram temas que o
+#   Dracula de antes aplicava de fora do MeowSystem. Agora o pack os declara
+#   (`apps.<app>.arquivo`), e o que esta seção prova é o lado do FORMATO: cada
+#   um responde pelo Dracula, cai dentro de `packs/dracula/apps/`, e tem a
+#   linha dele no PROCEDENCIA.md. Se aplicam, conferem e desfazem é o
+#   `tests/temas-de-apps.sh`, numa casa de brinquedo.
+for app in kitty gnome-terminal telegram discord onlyoffice; do
+  saida="$(amb python3 "$RAIZ/scripts/pack.py" app dracula "apps.$app.arquivo" 2>&1)"; rc=$?
+  valor="$(printf '%s\n' "$saida" | sed -n 's/^valor=//p')"
+  if [ "$rc" = 0 ] && printf '%s\n' "$saida" | grep -qx 'pack=dracula' \
+     && [ -f "$valor" ] && [ "${valor#"$RAIZ/packs/dracula/apps/"}" != "$valor" ]; then
+    ok "o Dracula declara o tema do $app, e ele mora no pack ($(basename "$valor"))"
+  else
+    falha "apps.$app.arquivo do Dracula não resolveu para um arquivo do pack (rc=$rc)" "$saida"
+  fi
+  grep -qF "| \`apps/$(basename "$valor")\` |" "$RAIZ/packs/dracula/PROCEDENCIA.md" \
+    && ok "o modelo do $app tem a linha dele no PROCEDENCIA.md" \
+    || falha "o modelo do $app está no pack sem procedência escrita"
+done
+# A HERANÇA NÃO LEVA O TEMA ESCURO PARA QUEM NÃO O PEDIU. O Dracula herda do
+#   Catppuccin, e não o contrário: um Catppuccin no ar não tem tema de kitty, e
+#   o módulo sai pendente em vez de vestir o terminal de roxo.
+if amb python3 "$RAIZ/scripts/pack.py" app catppuccin apps.kitty.arquivo >/dev/null 2>&1; then
+  falha "o pack padrão respondeu por um tema de kitty que ele não declara"
+else
+  ok "o pack padrão não declara os temas de aplicativo da P42 — ausência, e não empréstimo"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"
