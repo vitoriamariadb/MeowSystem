@@ -131,11 +131,16 @@ DEPENDENCIA, E A DEGRADACAO QUANDO ELA FALTA
       ~/.local/share/meowsystem/venv-testes/bin/pip install playwright
       ~/.local/share/meowsystem/venv-testes/bin/playwright install chromium
 """
+import ast
 import os
 import re
+import shutil
+import struct
 import subprocess
 import sys
+import tempfile
 import time
+import zlib
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DETALHE = "--detalhe" in sys.argv
@@ -149,6 +154,100 @@ except ImportError:
     print("  " + sys.executable)
     print("  receita no cabecalho de tests/app-acessibilidade.py")
     sys.exit(3)
+
+
+# O PAINEL SOBE NUM HOME DE BRINQUEDO, E NUNCA CONTRA A CASA DELA —
+# 23/09/2026, sprint P33
+#   Ate' hoje este arquivo subia o `app/run.sh` com o ambiente de quem o
+#   chamava: o `meow.conf` de verdade, o estado de verdade e o `sudo` da
+#   maquina. Ele nao clica em nada que escreva, mas o painel que ele sobe e' o
+#   de verdade, e a regra do projeto e' que nada da interface e' aplicado em
+#   sandbox — tudo e' aplicado na maquina da pessoa. Por isso quem vai para a
+#   sandbox e' o TESTE. E a P33 tornou isto urgente: o `tests/todos.sh`
+#   passou a achar o python com Playwright, e este arquivo, que saia "pulado"
+#   nos terminais sem o pyenv, agora roda de fato a cada `./tests/todos.sh`.
+#
+#   O servidor recebe um ambiente limpo, o `env -i` do `tests/convergencia.sh`:
+#   HOME e `MEOW_CONF` num diretorio temporario, `MEOW_PONTE` para o vazio e um
+#   `sudo` falso na frente do PATH — numa maquina com `NOPASSWD: ALL` o
+#   `sudo -n` de verdade PASSA, e um teste cujo alcance depende disso e' roleta.
+#
+#   E A CASA NAO FICA VAZIA, porque vazia ela mediria menos e seguiria verde —
+#   o jeito errado de ficar verde que o cabecalho inteiro combate. Duas coisas
+#   que a casa dela tinha e o brinquedo nao teria sao plantadas, e cada uma
+#   por uma conferencia que sem ela nao mediria nada:
+#     · UMA PENDENCIA POR CONSERTO QUE O SERVIDOR CONHECE (`ACAO_DA_PENDENCIA`,
+#       lido da fonte, e nao uma lista escrita aqui). Sem elas a Home nao
+#       desenha nenhum «Resolver», e o balao dele — o que a P33 conserta —
+#       sairia da conta calado. O comando plantado tem a forma crua do que o
+#       `meow_pendencia_acionavel` grava, `./scripts/<x>.sh <verbo>`: se o
+#       balao voltar a ser o comando, o passo 4 reprova.
+#     · UMA IMAGEM NA GALERIA. O passo 3 mede o balao no foco do teclado sobre
+#       os botoes da ficha de imagem; sem ficha, ele reprova por "nao achei".
+BRINQUEDO = tempfile.mkdtemp(prefix="meow-acessibilidade-")
+
+
+def pendencias_com_conserto():
+    """Os ids de pendencia que ganham «Resolver», lidos do `servidor.py`."""
+    caminho = os.path.join(RAIZ, "app", "servidor.py")
+    with open(caminho, encoding="utf-8") as f:
+        arvore = ast.parse(f.read())
+    for no in arvore.body:
+        if (isinstance(no, ast.Assign)
+                and any(isinstance(a, ast.Name) and a.id == "ACAO_DA_PENDENCIA"
+                        for a in no.targets)):
+            return sorted(ast.literal_eval(no.value))
+    return []
+
+
+def png_liso(caminho, larg=64, alt=40, rgb=(0x28, 0x2A, 0x36)):
+    """Um PNG de uma cor so', escrito a mao para nao depender de biblioteca."""
+    def pedaco(tipo, corpo):
+        return (struct.pack(">I", len(corpo)) + tipo + corpo
+                + struct.pack(">I", zlib.crc32(tipo + corpo) & 0xFFFFFFFF))
+    linhas = (b"\x00" + bytes(rgb) * larg) * alt
+    with open(caminho, "wb") as fh:
+        fh.write(b"\x89PNG\r\n\x1a\n"
+                 + pedaco(b"IHDR", struct.pack(">IIBBBBB", larg, alt, 8, 2, 0, 0, 0))
+                 + pedaco(b"IDAT", zlib.compress(linhas))
+                 + pedaco(b"IEND", b""))
+
+
+def montar_casa():
+    """Semeia o HOME de brinquedo e devolve o ambiente do servidor."""
+    casa = os.path.join(BRINQUEDO, "casa")
+    conf = os.path.join(casa, ".config", "meow", "meow.conf")
+    estado = os.path.join(casa, ".local", "state", "meowsystem")
+    os.makedirs(os.path.dirname(conf))
+    os.makedirs(estado)
+    exemplo = os.path.join(RAIZ, "meow.conf.exemplo")
+    shutil.copyfile(exemplo, conf)
+
+    with open(os.path.join(estado, "pendencias.tsv"), "w", encoding="utf-8") as fh:
+        for ident in pendencias_com_conserto():
+            fh.write(f"{ident}\tteste\tPendência plantada pelo teste ({ident})"
+                     f"\t./scripts/teste.sh {ident}\t2026-09-23T00:00:00-03:00\n")
+
+    # A pasta da galeria sai do proprio `meow.conf` do brinquedo, e `ativos/`
+    # e' a canonica — a unica cuja ficha ganha a fileira inteira de botoes.
+    with open(exemplo, encoding="utf-8") as fh:
+        base = re.search(r'^WALLPAPER_BASE="([^"]*)"', fh.read(), re.M).group(1)
+    ativos = os.path.join(base.replace("$HOME", casa), "ativos")
+    os.makedirs(ativos)
+    png_liso(os.path.join(ativos, "brinquedo.png"))
+
+    falso = os.path.join(BRINQUEDO, "falso")
+    os.makedirs(falso)
+    with open(os.path.join(falso, "sudo"), "w", encoding="utf-8") as fh:
+        fh.write("#!/bin/sh\n"
+                 "printf 'sudo: recusado pelo tests/app-acessibilidade.py\\n' >&2\n"
+                 "exit 1\n")
+    os.chmod(os.path.join(falso, "sudo"), 0o755)
+    return {"PATH": falso + os.pathsep + os.environ.get("PATH", ""),
+            "HOME": casa, "USER": os.environ.get("USER", "meow"),
+            "LANG": os.environ.get("LANG", "C.UTF-8"),
+            "MEOW_CONF": conf, "MEOW_ESTADO": estado,
+            "MEOW_PONTE": "/nao/existe"}
 
 
 # O CENSO DE UMA ABA, COLHIDO DE UMA VEZ.
@@ -429,12 +528,15 @@ def frases_do_servidor():
     return medidas, compridas, repetidas
 
 
-def sobe_servidor():
+def sobe_servidor(ambiente):
     """Sobe o painel e devolve (processo, url). A URL sai na PRIMEIRA linha do
-    `--sem-abrir` — e e' a unica forma de saber a porta, que o kernel escolhe."""
+    `--sem-abrir` — e e' a unica forma de saber a porta, que o kernel escolhe.
+    `ambiente` e' o do HOME de brinquedo (`montar_casa`), e SO' ele: nada do
+    ambiente de quem chamou chega ao servidor."""
     proc = subprocess.Popen(
         [os.path.join(RAIZ, "app", "run.sh"), "--sem-abrir"],
-        cwd=RAIZ, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        cwd=RAIZ, env=ambiente,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     url = None
     inicio = time.time()
     while time.time() - inicio < 40:
@@ -559,8 +661,13 @@ def main():
     if not quantas:
         falhas.append("nenhuma ajuda foi encontrada no `servidor.py` — "
                       "a leitura quebrou, e um zero assim nao e' verde")
+    # Sem pendencia plantada a Home nao desenha «Resolver», e o balao dele sai
+    # da conta calado — o mesmo zero que nao e' verde, pelo lado da casa.
+    if not pendencias_com_conserto():
+        falhas.append("nenhuma pendencia com conserto foi lida do `servidor.py` "
+                      "— o balao do «Resolver» ficaria fora da conta")
 
-    proc, url = sobe_servidor()
+    proc, url = sobe_servidor(montar_casa())
     if not url:
         print("XX o app/run.sh nao imprimiu a URL — nada a medir")
         proc.terminate()
@@ -706,4 +813,9 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # O brinquedo sai sempre, inclusive quando o teste morre no meio: ele e'
+    # uma casa inteira em /tmp, com um `sudo` falso dentro.
+    try:
+        sys.exit(main())
+    finally:
+        shutil.rmtree(BRINQUEDO, ignore_errors=True)

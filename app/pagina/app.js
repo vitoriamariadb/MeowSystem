@@ -7631,15 +7631,27 @@ function montarPendencias() {
     linha.append(elemento("p", { class: "pendencia-frase", texto: p.frase }));
     const botoes = elemento("div", { class: "pendencia-botoes" });
     if (p.acao) {
+      /* O BALÃO DIZ O QUE O BOTÃO FAZ, E NÃO O COMANDO — 23/09/2026, sprint P33
+       *   Ele era `p.comando`, o texto cru do TSV, e a aposta era que o
+       * `porBalao` reconheceria a linha como comando e a tiraria do balão. Não
+       * reconhecia: o `BALAO_COMANDO` só casa o que começa em `meow`, `/` ou
+       * `~`, e o `meow_pendencia_acionavel` grava `./scripts/prompt.sh
+       * instalar-starship`. O balão do «Resolver» ficou sendo uma linha de
+       * terminal — a tela mandando a pessoa consertar à mão ao lado do botão
+       * que conserta —, e o `tests/app-acessibilidade.py` reprovava 1 balão
+       * com comando dentro, medido com a pendência do starship na Home.
+       *
+       *   O que entra é o RÓTULO da ação que o botão dispara, lida do MESMO
+       * `ESQUEMA.acoes` que o `resolverPendencia` roda: «Instalar o starship».
+       * O rótulo e não a ajuda porque a ajuda dessa ação tem 122 caracteres, e
+       * a rede do `partirAjuda` a aparia. O comando não sumiu: a caixa de
+       * confirmação e a gaveta mostram o `argv` inteiro, que é onde ele é
+       * lido na hora de decidir. */
+      const acao = (ESQUEMA.acoes || []).find((a) => a.id === p.acao);
       botoes.append(elemento("button", {
         type: "button", class: "btn btn-mini btn-accent",
         texto: "Resolver",
-        /* O balão diz o COMANDO, que é o que um botão "Resolver" esconde. O
-         * `porBalao` reconhece uma linha que é SÓ comando e a desenha como
-         * comando (21/09/2026) — por isso a pegada da rede vai na pastilha ao
-         * lado, e não aqui: juntando as duas, a linha vira prosa e perde o
-         * desenho. */
-        title: p.comando,
+        title: acao ? acao.rotulo : "",
         onclick: () => resolverPendencia(p),
       }));
     }

@@ -152,7 +152,46 @@ case "$MODO" in
   maquina)  ALVOS=("${MAQUINA[@]}");                  QUAL="os ${#MAQUINA[@]} que exigem a máquina dela" ;;
 esac
 
-printf '== suíte MeowSystem: %s ==\n\n' "$QUAL"
+printf '== suíte MeowSystem: %s ==\n' "$QUAL"
+
+# ---------------------------------------------------------------------------
+# O PYTHON QUE TEM O PLAYWRIGHT — 23/09/2026, sprint P33
+# ---------------------------------------------------------------------------
+#   Os dois testes de navegador são `#!/usr/bin/env python3`, e o `env` pega o
+#   PRIMEIRO python3 do PATH. Numa bancada com pyenv esse costuma ser o do
+#   sistema (/usr/bin/python3), sem Playwright; quem tem é o do pyenv, e os
+#   shims dele só entram no PATH quando o shell os carrega — há configuração
+#   de shell que só carrega o pyenv na primeira chamada ao `python3`, e um
+#   `./tests/todos.sh` aberto antes disso herda o PATH sem eles. Medido em
+#   23/09/2026 numa bancada assim: a suíte marcava os dois como *pulados* com
+#   Playwright e Chromium instalados — e pulado não é verde, é o placar sem os
+#   dois testes que mais olham a tela.
+#
+#   Então o runner PERGUNTA a cada candidato se ele importa o Playwright, em vez
+#   de aceitar o primeiro que o PATH oferece: todo python3 do PATH, na ordem
+#   dele; o que o `pyenv` resolve, se o comando existe; e o venv que a receita
+#   no cabeçalho dos dois testes manda criar. O primeiro que responder roda os
+#   `.py`. Nenhum respondeu: eles rodam como sempre e dizem "pulado" com a
+#   receita na tela — agora sim porque falta, e não porque ninguém procurou.
+PY_NAVEGADOR=""
+TEM_PY=0
+for nome in "${ALVOS[@]}"; do [[ $nome == *.py ]] && TEM_PY=1; done
+if [ "$TEM_PY" -eq 1 ]; then
+  mapfile -t CANDIDATOS < <(
+    type -ap python3
+    command -v pyenv >/dev/null 2>&1 && pyenv which python3 2>/dev/null
+    printf '%s\n' "$HOME/.local/share/meowsystem/venv-testes/bin/python3"
+  )
+  for py in "${CANDIDATOS[@]}"; do
+    [ -x "$py" ] || continue
+    "$py" -c 'import playwright.sync_api' >/dev/null 2>&1 && { PY_NAVEGADOR="$py"; break; }
+  done
+  # A tela diz qual interpretador rodou os `.py`, pelo mesmo motivo de dizer
+  # qual subconjunto: um "ok" que não diz com quê não se reproduz.
+  printf 'python dos testes de navegador: %s\n' \
+         "${PY_NAVEGADOR:-nenhum python3 com Playwright nesta máquina}"
+fi
+printf '\n'
 
 VERDES=0; PULADOS=0; VERMELHOS=()
 for nome in "${ALVOS[@]}"; do
@@ -163,7 +202,11 @@ for nome in "${ALVOS[@]}"; do
     continue
   fi
   inicio="$(date +%s)"
-  saida="$("$arq" 2>&1)"; rc=$?
+  if [[ $nome == *.py ]] && [ -n "$PY_NAVEGADOR" ]; then
+    saida="$("$PY_NAVEGADOR" "$arq" 2>&1)"; rc=$?
+  else
+    saida="$("$arq" 2>&1)"; rc=$?
+  fi
   seg=$(( $(date +%s) - inicio ))
 
   # `pulado` no começo de uma linha é o idioma da casa para "não dava para
@@ -218,8 +261,24 @@ for nome in "${ALVOS[@]}"; do
   # única que interessa no meio do verde, que é a forma mais boba de um log
   # ilegível. Se o teste falhou sem usar a palavra, aí sim vai tudo: melhor
   # ruído que silêncio.
+  #
+  # OS `.py` FALAM OUTRO IDIOMA, E O FILTRO NÃO O CONHECIA — 23/09/2026, P33
+  #   Os dois testes de navegador marcam reprovação com `  XX ` no começo da
+  #   linha, e não com `FALHOU`. Enquanto eles saíam *pulados* isso não
+  #   aparecia; quando a P33 os fez rodar, o vermelho do `app-navegador.py`
+  #   chegou à tela como UMA linha, `| Traceback (most recent call last):` —
+  #   sem as quatro `XX` que vieram antes e sem a exceção que veio depois.
+  #   Agora sai a linha `XX`, e do traceback só o que diz onde e o quê: o
+  #   cabeçalho, os quadros que moram em `tests/` (arquivo, linha e o código
+  #   daquela linha) e a primeira linha sem recuo depois deles, que é a
+  #   exceção. Os quadros de dentro do Playwright ficam de fora — são quinze
+  #   linhas que dizem o mesmo que a exceção.
   if [ "$estado" = "FALHOU" ]; then
-    vermelho="$(printf '%s\n' "$saida" | grep -E 'FALHOU|^Erro|Traceback')"
+    vermelho="$(printf '%s\n' "$saida" | awk '
+      /FALHOU|^Erro|^ *XX / { print; next }
+      /^Traceback/           { tb = 1; print; next }
+      tb && /^  File ".*\/tests\// { print; if ((getline l) > 0) print l; next }
+      tb && /^[^ \t]/        { print; tb = 0 }')"
     [ -n "$vermelho" ] || vermelho="$saida"
     printf '%s\n' "$vermelho" | sed 's/^/        | /'
   fi
