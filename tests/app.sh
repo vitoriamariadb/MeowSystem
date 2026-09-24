@@ -465,7 +465,9 @@ PY
 #   11b. A página exportada levava o valor de uma chave com caminho fora da
 #        casa: `/run/media/<usuário>/…` saía duas vezes, no `valor` e no
 #        `efetivo`. O nome de usuário aqui é inventado e único, para que achá-lo
-#        em qualquer canto da página seja prova e não coincidência.
+#        em qualquer canto da página seja prova e não coincidência. E o
+#        `WALLPAPER_BASE` num disco de fora, com uma foto no acervo: a pasta
+#        voltava pela `origem` e pelo `banir` de cada foto da galeria.
 #   A casa e o `meow.conf` são de brinquedo, e chegam pelo ambiente ANTES do
 #   `import`: o `servidor.CONF` é lido uma vez, na carga do módulo.
 _tmp11="$(mktemp -d)"
@@ -483,9 +485,21 @@ if vazia not in exemplo:
     print("FALHOU: o meow.conf.exemplo não tem mais a linha %s" % vazia, file=sys.stderr)
     sys.exit(1)
 sentinela = "meow-teste-sentinela"
+base_velha = 'WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"'
+if base_velha not in exemplo:
+    print("FALHOU: o meow.conf.exemplo não tem mais a linha %s" % base_velha, file=sys.stderr)
+    sys.exit(1)
+fora = os.path.join(os.path.dirname(casa), "disco", sentinela, "wallpapers")
+os.makedirs(os.path.join(fora, "ativos"))
+# Um PNG de 1x1: o acervo só lista arquivo com extensão de imagem.
+with open(os.path.join(fora, "ativos", "gato.png"), "wb") as fh:
+    fh.write(bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+                           "1f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4"
+                           "8f0000000049454e44ae426082"))
 with open(conf, "w", encoding="utf-8") as fh:
     fh.write(exemplo.replace(vazia, 'WALLPAPER_FONTES_PERMITIDAS="$HOME/Imagens:/run/media/%s/HD"'
-                             % sentinela))
+                             % sentinela)
+             .replace(base_velha, 'WALLPAPER_BASE="%s"' % fora))
 sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor
 
@@ -515,6 +529,8 @@ if sentinela in html:
                  "%d vez(es)" % html.count(sentinela))
 if casa in html:
     erros.append("a página exportada leva a casa %d vez(es)" % html.count(casa))
+if "$WALLPAPER_BASE/ativos/gato.png" not in html:
+    erros.append("a foto do acervo de fora sumiu da página, em vez de sair sem a pasta")
 
 if erros:
     print("FALHOU: " + "; ".join(erros), file=sys.stderr)

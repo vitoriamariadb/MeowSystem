@@ -3263,7 +3263,7 @@ def texto_na_tela(texto):
     return texto
 
 
-def sem_casa_nem_raiz(valor):
+def sem_casa_nem_raiz(valor, outras=()):
     """Os dados da página exportada sem a casa e sem o caminho do clone.
 
     POR QUE — 24/09/2026, P52 (achado 22). «Esta tela num arquivo» embute o
@@ -3283,11 +3283,16 @@ def sem_casa_nem_raiz(valor):
 
     `data:` fica como está: é imagem em base64, e um acaso de bytes que
     parecesse caminho seria corrompido, não protegido.
+
+    `outras` são pares (caminho, rótulo) de pastas fora da casa e do clone que
+    o próprio `meow.conf` aponta — ver `_exportar_pagina`. Cada uma vira o
+    rótulo, com a mesma borda da casa.
     """
     if isinstance(valor, dict):
-        return {sem_casa_nem_raiz(k): sem_casa_nem_raiz(v) for k, v in valor.items()}
+        return {sem_casa_nem_raiz(k, outras): sem_casa_nem_raiz(v, outras)
+                for k, v in valor.items()}
     if isinstance(valor, list):
-        return [sem_casa_nem_raiz(v) for v in valor]
+        return [sem_casa_nem_raiz(v, outras) for v in valor]
     if not isinstance(valor, str) or valor.startswith("data:"):
         return valor
     for forma in (str, lambda s: quote(s, safe="")):
@@ -3296,6 +3301,9 @@ def sem_casa_nem_raiz(valor):
         for casa in _casas():
             valor = re.sub(r"(?<![\w/.~-])" + re.escape(forma(casa)) + r"(?![\w.-])",
                            "~", valor)
+        for caminho, rotulo in outras:
+            valor = re.sub(r"(?<![\w/.~-])" + re.escape(forma(caminho)) + r"(?![\w.-])",
+                           lambda _m, r=forma(rotulo): r, valor)
     return valor
 
 
@@ -8944,14 +8952,38 @@ class Manipulador(BaseHTTPRequestHandler):
         #   O QUE SE PERDE: a página não mostra as fontes nem a pasta-mãe de quem
         #   a exportou — e é esse o ponto, porque ela é feita para ir a outra
         #   pessoa.
+        # A PASTA QUE A CHAVE APONTA TAMBÉM SAI DO RESTO DA PÁGINA — 24/09/2026,
+        # reconferência da P52.
+        #   Zerar a chave não bastava: o mesmo caminho voltava pelas prévias. Com
+        #   `WALLPAPER_BASE` num disco em `/run/media/<usuário>/…`, cada foto do
+        #   acervo levava a pasta inteira em `origem` e em `banir` — e a galeria
+        #   mostra a `origem` no balão da foto. As pastas saem do valor efetivo
+        #   das próprias chaves com caminho (as que moram fora da casa e do
+        #   clone; as de dentro o `sem_casa_nem_raiz` já cobre), e cada uma vira
+        #   `$CHAVE` onde aparecer: `$WALLPAPER_BASE/ativos/x.jpg` ainda diz o
+        #   que é, sem dizer de quem. A troca vale nos dois lados do mapa
+        #   `imagens`, como a da casa, e a foto continua achando a sua URL.
+        outras = []
         for item in esquema.get("chaves", []):
             if any(re.search(r"(?:^|[\s:=,])(?:/(?!/)|~(?:/|$)|\$\{?HOME\b)",
                              item.get(campo) or "")
                    for campo in ("valor", "efetivo")):
+                efetivo = item.get("efetivo") or os.path.expandvars(item.get("valor") or "")
+                for pedaco in efetivo.split(":"):
+                    pedaco = os.path.expanduser(pedaco.strip()).rstrip(os.sep)
+                    if not pedaco.startswith(os.sep) or pedaco.startswith("//"):
+                        continue
+                    for forma in dict.fromkeys((pedaco, os.path.realpath(pedaco))):
+                        if forma != RAIZ and not _na_casa(forma) \
+                                and not forma.startswith(RAIZ + os.sep):
+                            outras.append((forma, "$" + item["chave"]))
                 item["valor"] = item.get("padrao", "")
                 item["efetivo"] = ""
+        # A mais longa primeiro: uma pasta dentro de outra não pode ser comida
+        # pela de fora antes de ter a vez.
+        outras.sort(key=lambda par: -len(par[0]))
         # Sem a casa e sem o caminho do clone — ver `sem_casa_nem_raiz` (P52).
-        dados = sem_casa_nem_raiz(dados)
+        dados = sem_casa_nem_raiz(dados, outras)
 
         partes = [
             "<!DOCTYPE html>",
