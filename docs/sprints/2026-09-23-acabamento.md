@@ -308,6 +308,10 @@ que faz o código mentir devagar.
    não diz nada à pessoa — diga o nome do arquivo que ela escolheu; e o aviso
    "este pack herda de um pack que não vem com o MeowSystem" aparece no CLI e
    não no painel — apareça nos dois.
+6. **O título dos autorais** (P16b, 23/09): o `gerar_icones_autorais.py` grava
+   `<title>… — Catppuccin <Flavor></title>` em todo desenho, e por isso o
+   Dracula sai «Catppuccin Dracula» e um pack de CSV sai «Catppuccin Meutema».
+   O título diz o nome do pack dono do flavor.
 
 ### Arquivos, e só estes
 
@@ -317,6 +321,7 @@ que faz o código mentir devagar.
 | `docs/PACKS.md`, `tests/pack.sh` | item 2 |
 | `app/servidor.py` | itens 3 e 5 |
 | `app/pagina/app.js` | itens 4 e 5 |
+| `scripts/gerar_icones_autorais.py` | item 6 (e os autorais regenerados, se o título mudar o arquivo) |
 
 ### Como conferir
 
