@@ -1522,7 +1522,7 @@ chk_autoreparo() {
   for u in meow-doctor.service meow-doctor.timer; do
     [ -f "$RAIZ/systemd/$u" ] || { echo "falta $RAIZ/systemd/$u — repositório incompleto"; return "$MEOW_ERRO"; }
     if [ ! -f "$destino/$u" ]; then faltam+=("$u"); continue; fi
-    cmp -s "$RAIZ/systemd/$u" "$destino/$u" || difere+=("$u")
+    meow_mesmo_conteudo "$RAIZ/systemd/$u" "$destino/$u" || difere+=("$u")   # a régua de quem as grava
   done
 
   # INSTALADO NÃO É LIGADO, e o seco do instalador já aprendeu isso em 31/08:
@@ -1567,7 +1567,8 @@ chk_cli() {
     [ -n "$extra" ] && echo "$extra"
     return "$MEOW_DIVERGENTE"
   fi
-  cmp -s "$alvo" "$RAIZ/bin/meow" || ruins+=("a CLI em ~/.local/bin/meow está diferente do bin/meow deste clone")
+  # A régua do `meow_escrever`, que é quem instala a CLI (ver meow_mesmo_conteudo).
+  meow_mesmo_conteudo "$alvo" "$RAIZ/bin/meow" || ruins+=("a CLI em ~/.local/bin/meow está diferente do bin/meow deste clone")
   [ -x "$alvo" ] || ruins+=("~/.local/bin/meow está sem bit de execução — seria um 'command not found' inexplicável")
   if [ ! -f "$ponteiro" ]; then
     ruins+=("$ponteiro não existe — a CLI e a completion não acham o clone")

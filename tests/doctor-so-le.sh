@@ -198,6 +198,28 @@ if [ -n "$ANTES" ]; then
   fi
 fi
 
+# --- o doctor confere pela régua de quem grava — 24/09/2026 --------------------
+#   O instalador grava a CLI e as unidades do autoreparo pelo `meow_escrever`,
+#   que normaliza a newline final. O doctor as comparava com `cmp`, e a máquina
+#   recém-instalada saía acusada: "a CLI está diferente", "diferentes das do
+#   repositório: meow-doctor.service meow-doctor.timer". Aqui a casa recebe os
+#   três arquivos do jeito que o instalador os escreve, e o doctor não pode
+#   acusá-los.
+printf '\n--- o doctor confere pela régua de quem grava ---\n'
+CASA2="$TMP/casa-instalada"; mkdir -p "$CASA2/.local/bin" "$CASA2/.config/systemd/user"
+printf '%s' "$(cat "$RAIZ/bin/meow")" > "$CASA2/.local/bin/meow"; chmod 755 "$CASA2/.local/bin/meow"
+for u in meow-doctor.service meow-doctor.timer; do
+  printf '%s' "$(cat "$RAIZ/systemd/$u")" > "$CASA2/.config/systemd/user/$u"
+done
+env PATH="$FALSO:$PATH_DOCTOR" HOME="$CASA2" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  "$RAIZ/bin/meow" doctor > "$TMP/saida2" 2>&1
+if grep -qE 'está diferente do bin/meow|diferentes das do repositório: .*meow-doctor' "$TMP/saida2"; then
+  falha "o doctor acusou como diferente o que o instalador gravou — as duas réguas voltaram a divergir"
+  grep -E 'está diferente do bin/meow|diferentes das do repositório' "$TMP/saida2" | sed 's/^/       /' >&2
+else
+  ok "a CLI e as unidades gravadas pelo instalador passam no doctor"
+fi
+
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2

@@ -848,6 +848,18 @@ meow_destino_permitido() {
 # O repo mora em /mnt/Apate e os destinos em /home: `mv` entre eles NÃO é
 # atômico, e um corte no meio deixaria arquivo de config pela metade. O
 # temporário nasce sempre dentro do diretório de DESTINO.
+#
+# `meow_mesmo_conteudo <a> <b>` é a MESMA régua que o `meow_escrever` usa para
+# decidir "já está certo": o conteúdo, com a newline final normalizada — o
+# `$(cat)` a come dos dois lados. Quem confere um arquivo que o `meow_escrever`
+# gravou tem de conferir por ela. Em 24/09/2026 o doctor comparava a CLI e as
+# unidades do autoreparo com `cmp` (byte a byte), o instalador as gravava por
+# aqui (sem a newline final), e cada um dizia uma coisa: o install saía com
+# "nada mais a escrever" e o doctor acusava a CLI e as unidades como diferentes.
+meow_mesmo_conteudo() {
+  [ -f "$1" ] && [ -f "$2" ] && [ "$(cat "$1" 2>/dev/null)" = "$(cat "$2" 2>/dev/null)" ]
+}
+
 meow_escrever() {
   local destino="$1" conteudo="$2" modo="${3:-644}" tmp dir
   meow_destino_permitido "$destino" || return "$MEOW_ERRO"
