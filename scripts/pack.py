@@ -4434,6 +4434,17 @@ def vocabulario(ref):
             "herdado": dono != ident,
             "flavors": [escolhido] if escolhido in existem else existem,
             "nomes": {f: curtos_dono[f] for f in existem},
+            # O CLARO E A LUZ SÃO OS DO DONO DO ACERVO — 24/09/2026, P51, na
+            #   revisão. O desenho da aba Ícones pinta o fundo pelo sabor dos
+            #   ícones de arquivo, e esse sabor é um flavor do DONO: com o
+            #   Dracula no ar e `ICONES_FLAVOR="latte"`, a régua de claro e
+            #   escuro dos flavors do pack no ar não conhecia o latte, o fundo
+            #   saía escuro e a tinta, pedida escura para o latte, sumia nele.
+            #   A mesma conta dos `flavors` acima (os `claros` da paleta, a
+            #   luminância do `base`), feita na paleta de quem traz os desenhos.
+            "claros": [f for f in existem if f in (mt["dados_dono"].get("claros") or [])],
+            "luz": {f: round(_luminancia(mt["dados_dono"]["flavors"][f]["base"]), 4)
+                    for f in existem},
         }
 
     mapa = acervo("icones.apps.mapa", ref=ident)

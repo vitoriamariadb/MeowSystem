@@ -3354,6 +3354,52 @@ else
   falha "TERMINAL_ESQUEMA=\"nao\" deixou o esquema do Dracula no terminal" "$saida"
 fi
 
+# --- 31. o que a revisão da P51 reprovou — 24/09/2026 ------------------------
+#
+#   Três dados que a página desenha, conferidos no nível do dado:
+#   - o desenho da aba Ícones pinta pelo sabor dos ícones de arquivo, que é um
+#     flavor do DONO do acervo (o latte do Catppuccin, com o Dracula no ar): o
+#     vocabulário tem de trazer o claro e a luz desse dono, senão o latte cai no
+#     escuro e a tinta pedida para o claro some nele;
+#   - de dia a máquina guarda 0.00 na textura do modo de leitura, e isso é
+#     "desligado", como o 0 da temperatura, e não um valor que salvar faz vencer;
+#   - as doze cores neutras têm nome em português, como as catorze cromáticas.
+#   Numa pasta do COSMIC de brinquedo (`MEOW_COSMIC_DIR`): nada da máquina.
+C51="$T/cosmic-p51/com.system76.CosmicComp/v1"; mkdir -p "$C51"
+printf '0' > "$C51/leitura_temperatura"; printf '0.00' > "$C51/leitura_textura"
+saida="$(env MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" MEOW_COSMIC_DIR="$T/cosmic-p51" \
+  MEOW_PACK_DIR="$RAIZ/packs/dracula" python3 - "$RAIZ" <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+erros = []
+mod = servidor.modulo_pack()
+mt = mod.vocabulario("dracula")["mimetypes"]
+if mt.get("claros") != ["latte"]:
+    erros.append("os claros do acervo herdado: %r" % mt.get("claros"))
+luz = mt.get("luz") or {}
+if sorted(luz, key=luz.get) != ["mocha", "macchiato", "frappe", "latte"]:
+    erros.append("a luz do acervo herdado fora de ordem: %r" % luz)
+item = {i["chave"]: i for i in servidor.ler_esquema()}
+for chave in ("LEITURA_TEMPERATURA", "LEITURA_TEXTURA"):
+    if item[chave]["valendo_agora"] is not None or item[chave]["desligado_agora"] is not True:
+        erros.append("%s com 0 na máquina: valendo_agora=%r desligado_agora=%r"
+                     % (chave, item[chave]["valendo_agora"], item[chave]["desligado_agora"]))
+esquema = servidor.ler_esquema()
+vocab = mod.vocabulario("dracula")
+servidor._com_o_vocabulario_do_pack(esquema, vocab, {"FLAVOR": "dracula"})
+for f in vocab["flavors"]:
+    sem = [s for s in mod.SLOTS if (f["nomes_de_cor"].get(s) or s) == s]
+    if sem:
+        erros.append("%s: cores sem nome em português: %s" % (f["id"], ", ".join(sem)))
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "o latte herdado tem a régua do dono, a textura zerada é desligado, e as 26 cores têm nome" \
+  || falha "o que a revisão da P51 reprovou voltou" "$saida"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

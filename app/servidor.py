@@ -761,8 +761,27 @@ for _suf, _pasta in _BARRAS:
 #   com 3500 no conf. De dia a máquina não tem temperatura nenhuma para
 #   mostrar: o cartão diz «desligado» (o campo `desligado_agora` do esquema de
 #   cada chave) e o desenho volta ao valor escolhido.
+#
+# E A TEXTURA TAMBÉM — 24/09/2026, P51, na revisão. O mesmo tique grava
+#   `leitura_textura = 0.00` fora do horário (o `tex = f * alvo_x` com f = 0,
+#   pelo `printf "%.2f"`), e o zero da textura é, do mesmo jeito, o passe que
+#   não roda. Só a temperatura era reconhecida, e o cartão irmão dizia «Na
+#   máquina agora: 0.00. [...] Salvar e aplicar faz este ajuste vencer.» de
+#   dia, com 0.35 no conf — e salvar de dia não faz 0.35 vencer: o tique do
+#   minuto seguinte grava 0.00 de novo. O zero é lido como NÚMERO, e não pelos
+#   bytes, porque cada chave o escreve de um jeito (`0`, `0.00`).
+#   São as duas chaves que o `leitura.sh` zera para desligar; as outras cinco
+#   do modo de leitura não têm estado de "desligado agora".
+_LEITURA_ZERO_DESLIGA = ("LEITURA_TEMPERATURA", "LEITURA_TEXTURA")
+
+
 def _leitura_desligada(chave, valor):
-    return chave == "LEITURA_TEMPERATURA" and valor.strip() in ("0", "0.0")
+    if chave not in _LEITURA_ZERO_DESLIGA:
+        return False
+    try:
+        return float(valor.strip()) == 0
+    except ValueError:
+        return False
 
 
 def _valendo_agora(chave):
@@ -1367,7 +1386,8 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
     if mod:
         ibase = mod.SLOTS.index("base")
         for f in vocab["flavors"]:
-            f["nomes_de_cor"] = _nomes_de_cor(dict(zip(mod.SLOTS[:14], f["cores"])))
+            f["nomes_de_cor"] = dict(_nomes_de_cor(dict(zip(mod.SLOTS[:14], f["cores"]))),
+                                     **_NOMES_DAS_NEUTRAS)
             f["luz"] = round(mod._luminancia(f["cores"][ibase]), 4)
 
     # E O DESENHO DOS ÍCONES VÊ O FLAVOR QUE VALE — o «Vale como» do bloco 1.
@@ -1390,6 +1410,21 @@ _MATIZES = ((15, "vermelho"), (40, "laranja"), (70, "amarelo"), (160, "verde"),
             (185, "verde-água"), (200, "ciano"), (250, "azul"), (290, "roxo"),
             (335, "rosa"), (361, "vermelho"))
 _MAIS_CLARO = ("", " claro", " mais claro")
+
+# AS DOZE NEUTRAS SE CHAMAM PELO PAPEL — 24/09/2026, P51, na revisão.
+#   O `_nomes_de_cor` nomeia só as catorze cromáticas, e as doze neutras ficavam
+#   com o slot: a grade das cores da música, no Painel e dock, lia «Roxo» e
+#   «Verde» e, logo ao lado, «Surface2», «Overlay0», «Mantle», «Crust». Pelo
+#   matiz elas seriam doze cinzas numerados, que não distinguem nada; o que as
+#   distingue é o PAPEL que a paleta de todo pack dá a cada uma (o texto, o
+#   fundo, as camadas entre os dois), e é ele que o nome diz. O número é o do
+#   slot, para o nome e o valor gravado continuarem se achando.
+_NOMES_DAS_NEUTRAS = {
+    "text": "texto", "subtext1": "texto secundário 1", "subtext0": "texto secundário 0",
+    "overlay2": "sobreposição 2", "overlay1": "sobreposição 1", "overlay0": "sobreposição 0",
+    "surface2": "superfície 2", "surface1": "superfície 1", "surface0": "superfície 0",
+    "base": "fundo", "mantle": "fundo secundário", "crust": "fundo terciário",
+}
 
 
 def _nomes_de_cor(cores):
@@ -2104,8 +2139,8 @@ def ler_esquema():
             #   conf diz 3500, a máquina está em 4700.
             "valendo_agora": _valendo_agora(chave),
             # E QUANDO A MÁQUINA DIZ "DESLIGADO" — ver `_leitura_desligada`.
-            "desligado_agora": chave == "LEITURA_TEMPERATURA" and _leitura_desligada(
-                chave, (_cosmic_ler("com.system76.CosmicComp/v1/leitura_temperatura")
+            "desligado_agora": chave in _LEITURA_ZERO_DESLIGA and _leitura_desligada(
+                chave, (_cosmic_ler("com.system76.CosmicComp/v1/" + chave.lower())
                         or "").strip('"')),
             "ajuda_herdada": herdada,
             # A CHAVE dona do bloco, não o título dela: quem sabe titular um

@@ -129,6 +129,12 @@ function publicarMedidas() {
    * `vocabulario` do scripts/pack.py) já vinha para a página; agora chega a
    * eles também, na hora de desenhar. */
   window.MEOW_PACK = (ESQUEMA && ESQUEMA.pack) || null;
+  /* E O NOME DE UMA COR, no flavor em vigor — P51, na revisão. Os botões da
+   * música no painel passaram a dizer «Roxo» e «Verde» (`controleCor`), e a
+   * legenda do desenho logo acima continuava dizendo «o nome em mauve e a
+   * banda em green»: a mesma cor com dois nomes na mesma tela. A legenda
+   * pergunta aqui, pela mesma função e pelo mesmo flavor dos botões. */
+  window.MEOW_NOME_DA_COR = (slot) => nomeDaCor(slot, flavorEmVigor());
 }
 let GRUPOS = [];             // [{nome, chaves:[...]}] + as abas de ação e folhas
 let ABA = null;              // qual grupo está aberto
@@ -2892,10 +2898,16 @@ function gradeDeApps(apps, filtro, recarregar) {
        *   cor do Arcticons: o desenho de um acervo com a etiqueta do outro.
        *   Ele não tem cor para dizer — cada desenho traz as suas, de 6 a 10 —,
        *   então a etiqueta é o nome do acervo. */
+      /* A COR PELO NOME DA COR, E NÃO DO SLOT — P51, na revisão. A etiqueta
+       * dizia `lavender`, `maroon` com o Dracula no ar; o traço é pintado com o
+       * hex desse slot na paleta do pack no ar (o `icones_apps_arcticons.sh`
+       * lê o `meow_paleta` no FLAVOR), e o nome sai do mesmo hex (`nomeDaCor`),
+       * como nos botões da «Cor de destaque». */
       a.dracula
         ? elemento("span", { class: "app-marca app-dracula", texto: "Dracula" })
         : (a.mapa || a.traco)
-        ? elemento("span", { class: "app-marca", texto: (a.mapa || a.traco).cor })
+        ? elemento("span", { class: "app-marca",
+                             texto: nomeDaCor((a.mapa || a.traco).cor, flavorEmVigor()) })
         : elemento("span", { class: "app-marca app-fabrica",
                              texto: a.nosso ? "nosso" : "de fábrica" }),
     ]);
@@ -4838,11 +4850,17 @@ function montarCartao(item) {
   /* DESLIGADO NÃO É UM NÚMERO — 24/09/2026, P51 (achado 39). De dia a máquina
    * guarda 0 na temperatura do modo de leitura, e o cartão dizia «Na máquina
    * agora: 0» — que não é temperatura nenhuma. O servidor já não o manda como
-   * valor (`_leitura_desligada`), e diz que está desligado. */
+   * valor (`_leitura_desligada`), e diz que está desligado.
+   * A TEXTURA TAMBÉM, na revisão da P51: fora do horário a máquina guarda
+   * 0.00 nela, e o cartão dizia «Na máquina agora: 0.00» e que salvar faria
+   * o ajuste vencer — e de dia não faz. A segunda frase diz o que cada uma das
+   * duas deixa de fazer. */
   if (item.desligado_agora && escolhido !== "") {
     cartao.append(elemento("p", { class: "frase" }, [
       elemento("b", { texto: "Na máquina agora: desligado. " }),
-      elemento("span", { texto: "O modo de leitura não está esquentando a tela neste momento." }),
+      elemento("span", { texto: item.chave === "LEITURA_TEXTURA"
+        ? "O modo de leitura não está pondo a textura de papel na tela neste momento."
+        : "O modo de leitura não está esquentando a tela neste momento." }),
     ]));
   }
   if (agora != null && escolhido !== "" && !mesmoValor(agora, escolhido)) {

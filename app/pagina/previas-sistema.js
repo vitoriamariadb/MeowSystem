@@ -978,9 +978,12 @@
     if (!d.ligada) {
       corpo = "a barra sem a pastilha da música — desligar não deixa de instalar, reverte: o botão de música do flatpak volta no próximo login";
     } else {
+      /* O nome que a tela diz é o dos botões ao lado, e não o slot — P51, na
+       * revisão (ver `MEOW_NOME_DA_COR`, no app.js). Sem o app, o slot. */
+      const dizer = (typeof window !== "undefined" && window.MEOW_NOME_DA_COR) || ((s) => s);
       const nomeDeCor = (bruta, padrao) => {
         const s = achatar(bruta) || padrao;
-        return (s === "auto" || NOMES_DA_PALETA.indexOf(s) < 0) ? "cor padrão do painel" : s;
+        return (s === "auto" || NOMES_DA_PALETA.indexOf(s) < 0) ? "cor padrão do painel" : dizer(s);
       };
       corpo = "a barra em cima e a pastilha da música ampliada embaixo, "
         + (d.capa

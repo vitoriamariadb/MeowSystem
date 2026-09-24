@@ -121,26 +121,49 @@
    *   A CLAREZA CONTINUA SENDO A ORDEM, e não a luminância: os escuros do mais
    * escuro ao mais claro, pela `luz` do `base` que o servidor manda (a régua da
    * «Variante do tema»), um degrau de 9,5 cada, e os claros no topo. Com o
-   * Catppuccin isso dá os mesmos 0, 9,5 e 19 de antes. As constantes ficam como
+   * Catppuccin isso dá 0, 9,5 e 19 (o macchiato era 9, e o meio ponto não se
+   * vê). As constantes ficam como
    * a resposta de quando o pack não respondeu. */
   function packNoAr() {
     var p = typeof window !== "undefined" ? window.MEOW_PACK : null;
     return p && p.flavors && p.flavors.length ? p : null;
   }
 
-  function flavorsDoPack() {
-    var p = packNoAr();
-    if (!p) return { lista: FLAVORS, clareza: CLAREZA, claros: ["latte"], nome: {} };
+  /* A régua de uma lista de `{id, nome, claro, luz}`: a ordem de cima. */
+  function reguaDe(flavors) {
     var saida = { lista: [], clareza: {}, claros: [], nome: {} };
-    var escuros = p.flavors.filter(function (f) { return !f.claro; })
+    var escuros = flavors.filter(function (f) { return !f.claro; })
       .sort(function (a, b) { return (a.luz || 0) - (b.luz || 0); });
     escuros.forEach(function (f, i) { saida.clareza[f.id] = i * 9.5; });
-    p.flavors.forEach(function (f) {
+    flavors.forEach(function (f) {
       saida.lista.push(f.id);
       saida.nome[f.id] = f.nome || f.id;
       if (f.claro) { saida.claros.push(f.id); saida.clareza[f.id] = 100; }
     });
     return saida;
+  }
+
+  function flavorsDoPack() {
+    var p = packNoAr();
+    if (!p) return { lista: FLAVORS, clareza: CLAREZA, claros: ["latte"], nome: {} };
+    return reguaDe(p.flavors);
+  }
+
+  /* OS ÍCONES DE ARQUIVO TÊM A RÉGUA DO DONO DO ACERVO — 24/09/2026, P51, na
+   * revisão. O sabor deles é um flavor de quem traz os desenhos, e não do pack
+   * no ar: com o Dracula no ar e ICONES_FLAVOR="latte", a régua do Dracula não
+   * conhecia o latte, o fundo saía escuro, a tinta pedida para o claro saía
+   * escura também, e o desenho sumia (medido: fundo e traço na mesma cor). O
+   * servidor manda os claros e a luz do dono (`mimetypes.claros`/`.luz`, no
+   * `vocabulario` do scripts/pack.py). */
+  function flavorsDosIcones() {
+    var p = packNoAr();
+    var mt = p && p.mimetypes;
+    if (!mt || !mt.luz) return { lista: FLAVORS, clareza: CLAREZA, claros: ["latte"], nome: {} };
+    return reguaDe(Object.keys(mt.nomes || {}).map(function (id) {
+      return { id: id, nome: mt.nomes[id], luz: mt.luz[id],
+               claro: (mt.claros || []).indexOf(id) >= 0 };
+    }));
   }
 
   /* O nome que o servidor dá à cor, pelo hex do flavor (ver `nomeDaCor` no
@@ -161,8 +184,9 @@
     return "color-mix(in srgb, " + a + " " + n2(pct) + "%, " + b + ")";
   }
 
-  function tomDoFlavor(flavor) {
-    var p = flavorsDoPack().clareza[flavor];
+  /* `regua` é a de quem é dono do flavor; sem ela, a do pack no ar. */
+  function tomDoFlavor(flavor, regua) {
+    var p = (regua || flavorsDoPack()).clareza[flavor];
     if (p === undefined || p === 0) return ESCURO;
     if (p >= 100) return CLARO;
     return mistura(CLARO, ESCURO, p);
@@ -1378,8 +1402,11 @@
     },
 
     desenho: function (m) {
-      var tom = tomDoFlavor(m.flavor);
-      var claro = m.flavor === "latte";
+      /* O tom e o claro pela MESMA régua, a do dono do acervo — ver
+       * `flavorsDosIcones`. [P51] */
+      var regua = flavorsDosIcones();
+      var tom = tomDoFlavor(m.flavor, regua);
+      var claro = regua.claros.indexOf(m.flavor) >= 0;
       var tinta = claro ? ESCURO : CLARO;
       var fraco = mistura(tinta, tom, 55);
       var s = quadro("Quatro pastas e quatro programas no tema " + m.tema
