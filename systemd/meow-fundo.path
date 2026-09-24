@@ -92,10 +92,10 @@
 # Este é o custo real do gatilho, e ele precisa estar escrito, não subentendido.
 # O `meow-wallpaper.timer` chegou a dizer, com razão, que um `.path` "impediria
 # ela de trocar o papel de parede pela GUI". A fronteira da Sprint M
-# (`WALLPAPER_FONTES_DELA`) é o que torna isso aceitável: um caminho autorizado
-# faz o `wallpaper.sh` devolver 4 e não tocar em nada, para sempre.
+# (`WALLPAPER_FONTES_PERMITIDAS`) é o que torna isso aceitável: um caminho
+# autorizado faz o `wallpaper.sh` devolver 4 e não tocar em nada, para sempre.
 #
-# SÓ QUE A LISTA ESTÁ VAZIA NESTA MÁQUINA HOJE (`WALLPAPER_FONTES_DELA=""`).
+# SÓ QUE A LISTA ESTÁ VAZIA NESTA MÁQUINA HOJE (`WALLPAPER_FONTES_PERMITIDAS=""`).
 # Medido no mesmo experimento, na saída desconectada: uma fonte fora do acervo
 # foi revertida 2,1 s depois de escrita, e a única explicação foi para o
 # `wallpaper.log` —

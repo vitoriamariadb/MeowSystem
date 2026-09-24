@@ -452,4 +452,76 @@ else:
 sys.exit(falhou)
 PY
 
+# --- 11. O COMANDO DA TELA COLA, E O QUE SE EXPORTA NÃO LEVA NOME — 24/09/2026 --
+#   Revisão da P52. Dois defeitos que o `tests/app-completo.py` não via, porque a
+#   casa de brinquedo dele não tem caminho entre aspas na gaveta nem fonte de
+#   papel de parede fora do home:
+#   11a. A gaveta trocava a casa por `~` DENTRO das aspas. O `wallpaper.sh`
+#        imprime `meow wallpaper permitir "$fonte_atual"`, a gaveta mostrava
+#        `permitir "~/Imagens/…"`, e colado o `~` não expandia: o `readlink -m`
+#        gravava `/tmp/~/Imagens/…`, uma autorização que nunca casa. Aqui o texto
+#        da tela é COLADO num bash de verdade, com a mesma casa, e o argumento
+#        que chega tem de ser o caminho absoluto.
+#   11b. A página exportada levava o valor de uma chave com caminho fora da
+#        casa: `/run/media/<usuário>/…` saía duas vezes, no `valor` e no
+#        `efetivo`. O nome de usuário aqui é inventado e único, para que achá-lo
+#        em qualquer canto da página seja prova e não coincidência.
+#   A casa e o `meow.conf` são de brinquedo, e chegam pelo ambiente ANTES do
+#   `import`: o `servidor.CONF` é lido uma vez, na carga do módulo.
+_tmp11="$(mktemp -d)"
+HOME="$_tmp11/casa" MEOW_CONF="$_tmp11/casa/.config/meow/meow.conf" MEOW_RAIZ="$RAIZ" \
+  python3 - "$RAIZ" <<'PY' || falhas=$((falhas+1))
+import os, subprocess, sys
+raiz = sys.argv[1]
+casa = os.environ["HOME"]
+conf = os.environ["MEOW_CONF"]
+os.makedirs(os.path.dirname(conf))
+with open(os.path.join(raiz, "meow.conf.exemplo"), encoding="utf-8") as fh:
+    exemplo = fh.read()
+vazia = 'WALLPAPER_FONTES_PERMITIDAS=""'
+if vazia not in exemplo:
+    print("FALHOU: o meow.conf.exemplo não tem mais a linha %s" % vazia, file=sys.stderr)
+    sys.exit(1)
+sentinela = "meow-teste-sentinela"
+with open(conf, "w", encoding="utf-8") as fh:
+    fh.write(exemplo.replace(vazia, 'WALLPAPER_FONTES_PERMITIDAS="$HOME/Imagens:/run/media/%s/HD"'
+                             % sentinela))
+sys.path.insert(0, os.path.join(raiz, "app"))
+import servidor
+
+erros = []
+imagem = os.path.join(casa, "Imagens", "Parede_papel", "Cyberpunk Neon Cat.jpeg")
+cache = os.path.join(casa, ".local", "share", "icons", "Meow", "icon-theme.cache")
+for impresso, corte, alvo in (
+        ('  meow wallpaper permitir "%s"' % imagem, " permitir ", imagem),
+        ("  apague o arquivo: rm '%s'" % cache, " rm ", cache),
+        ('  meow wallpaper permitir "%s"' % casa, " permitir ", casa)):
+    tela = servidor.texto_na_tela(impresso)
+    if casa in tela:
+        erros.append("a casa ficou na tela: %r" % tela)
+        continue
+    colado = subprocess.run(["bash", "-c", 'printf "%s\\n" ' + tela.split(corte, 1)[1]],
+                            capture_output=True, text=True, cwd="/").stdout
+    if colado != alvo + "\n":
+        erros.append("%r colado vira %r, e não o caminho da casa" % (tela.strip(), colado))
+for vizinho in (casa + "zinho/x", "'%szinho/x'" % casa):
+    if servidor.texto_na_tela(vizinho) != vizinho:
+        erros.append("a casa comeu o vizinho: %r virou %r"
+                     % (vizinho, servidor.texto_na_tela(vizinho)))
+
+html, _ = servidor.Manipulador.__new__(servidor.Manipulador)._exportar_pagina()
+if sentinela in html:
+    erros.append("a página exportada leva o nome de usuário de uma fonte fora da casa "
+                 "%d vez(es)" % html.count(sentinela))
+if casa in html:
+    erros.append("a página exportada leva a casa %d vez(es)" % html.count(casa))
+
+if erros:
+    print("FALHOU: " + "; ".join(erros), file=sys.stderr)
+    sys.exit(1)
+print("ok: o comando da gaveta cola com a casa entre aspas, e a página exportada não "
+      "leva caminho de fora da casa")
+PY
+rm -rf "$_tmp11"
+
 exit "$falhas"

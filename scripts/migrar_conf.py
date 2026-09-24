@@ -19,8 +19,14 @@ O QUE NUNCA FAZ
     - Não toca em valor que já existe. O `ACCENT="mauve"` dela continua dela,
       mesmo que o exemplo diga outra coisa. Só entram chaves AUSENTES.
     - Não remove nada. Chave que ela inventou, comentário que ela escreveu e
-      chave que saiu do exemplo ficam onde estão. Este script só acrescenta.
+      chave que saiu do exemplo ficam onde estão.
     - Não reordena e não reformata o arquivo dela.
+
+A ÚNICA LINHA QUE JÁ EXISTIA E MUDA — 24/09/2026, P52
+    Uma chave que trocou de nome no projeto (`RENOMEADAS`, mais abaixo) tem o
+    NOME reescrito na própria linha, com o valor e o comentário intactos — sem
+    isso a linha velha e a nova, vazia, disputariam a mesma chave. Fora esse
+    caso, este script só acrescenta.
 
 O COMENTÁRIO VEM JUNTO, E NÃO É ENFEITE
     Uma chave sozinha (`VIDRO_AO_MAXIMIZAR="sim"`) no fim do arquivo é um enigma:
@@ -110,7 +116,8 @@ def main() -> int:
     p.add_argument("conf", type=Path, help="o meow.conf dela")
     p.add_argument("exemplo", type=Path, help="o meow.conf.exemplo do repositório")
     p.add_argument("--conferir", action="store_true",
-                   help="não escreve; sai 1 se houver chave faltando")
+                   help="não escreve; sai 1 se houver chave faltando ou chave "
+                        "ainda com o nome antigo")
     args = p.parse_args()
 
     if not args.exemplo.is_file():

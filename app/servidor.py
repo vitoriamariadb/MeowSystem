@@ -1911,9 +1911,10 @@ def ler_esquema():
             "essencial": "[essencial]" in ajuda,
             # Lista separada por vírgula: a regra é o que o comentário DIZ, não uma
             # lista de nomes de chave. `APPS_ATIVOS` e `AUTOSTART_BLOQUEADOS` dizem
-            # "vírgula-separado"/"separada por vírgula"; a `WALLPAPER_FONTES_DELA`
-            # diz "separados por `:`", e por isso ela não cai aqui — o separador
-            # dela é outro, e tratá-los como um só corromperia caminho com vírgula.
+            # "vírgula-separado"/"separada por vírgula"; a
+            # `WALLPAPER_FONTES_PERMITIDAS` diz "separados por `:`", e por isso ela
+            # não cai aqui — o separador dela é outro, e tratá-los como um só
+            # corromperia caminho com vírgula.
             "lista": bool(re.search(r"separad[ao]s? por v[ií]rgula|v[ií]rgula[- ]separad", ajuda, re.I)),
             "lista_pathsep": bool(re.search(r"separados por `?:`?", ajuda)),
             # Horário: o comentário declara `HH:MM`, OU o valor já é um horário.
@@ -3237,9 +3238,28 @@ def texto_na_tela(texto):
     A borda dos dois lados é o que impede a casa `/home/<nome>` de comer o
     começo de `/home/<nome>zinho`, e um `x/home/<nome>` de virar `x~`: a casa
     só casa inteira.
+
+    ENTRE ASPAS, O `~` SAI PARA FORA DELAS — 24/09/2026, revisão da P52. O
+    shell só expande o `~` que não está citado, e os scripts imprimem comando
+    para colar com o caminho entre aspas: o `wallpaper.sh` imprime
+    `meow wallpaper permitir "$fonte_atual"`, e três scripts de ícone imprimem
+    `rm '$cache'`. Com a troca crua, a gaveta passou a mostrar
+    `permitir "~/Imagens/…"`; colado, o argumento chegava como `~/Imagens/…`
+    literal, o `readlink -m` do `cmd_permitir` o resolvia contra a pasta de onde
+    se colou (`/tmp/~/Imagens/…`), a autorização gravada nunca casava com nada,
+    e o carrossel seguia desfazendo o papel de parede — o comando funcionava
+    antes da P52. Então a aspa que abre colada na casa pula para depois do
+    `~/`: `"<casa>/Imagens/x y.jpeg"` vira `~/"Imagens/x y.jpeg"`, a mesma
+    forma do `comando_na_tela` logo acima, e a casa citada inteira (`"<casa>"`)
+    vira `~` sem aspas. Uma frase com o caminho entre aspas lê um pouco torto
+    (`não achei ~/'x.zip'`) e continua certa; o contrário — um comando que lê
+    bonito e não cola — era o defeito.
     """
     for casa in _casas():
-        texto = re.sub(r"(?<![\w/.~-])" + re.escape(casa) + r"(?![\w.-])", "~", texto)
+        borda = r"(?<![\w/.~-])"
+        texto = re.sub(borda + r"([\"'])" + re.escape(casa) + r"(?:(/)|\1)",
+                       lambda m: "~/" + m.group(1) if m.group(2) else "~", texto)
+        texto = re.sub(borda + re.escape(casa) + r"(?![\w.-])", "~", texto)
     return texto
 
 
@@ -8903,6 +8923,33 @@ class Manipulador(BaseHTTPRequestHandler):
                         "modo": valores.get("MODO") or ""},
             "amostra": {"imagens": len(imagens), "bytes": gasto},
         }
+        # A CHAVE QUE GUARDA CAMINHO SAI COM O VALOR DE FÁBRICA — 24/09/2026,
+        # revisão da P52 (achado 22).
+        #   O `sem_casa_nem_raiz` logo abaixo só sabe da casa e do clone, e o
+        #   valor de uma chave com caminho aponta para onde a pessoa quiser.
+        #   Medido numa casa falsa com `WALLPAPER_FONTES_PERMITIDAS=
+        #   "$HOME/Imagens/Parede_papel:/run/media/fulana/HD/fotos"`: a página
+        #   exportada levava `fulana` duas vezes, no `valor` e no `efetivo`. Um
+        #   disco externo em `/media/<usuário>` ou `/run/media/<usuário>` é o
+        #   lugar comum de uma fonte de papel de parede, e o nome de usuário é
+        #   justamente o que a P52 veio tirar. A sprint pede a página sem caminho
+        #   absoluto e sem o valor efetivo dessas chaves, então os dois saem
+        #   juntos: o `valor` vira o de fábrica — que é do exemplo do
+        #   repositório, e não de ninguém —, e o `efetivo` some, levando junto a
+        #   linha «Vale como» do cartão.
+        #   QUAL CHAVE É "COM CAMINHO" SAI DO VALOR, e não de uma lista de nomes:
+        #   um pedaço (depois de `:`, espaço, `=` ou `,`) que começa em `/`, em
+        #   `~` ou em `$HOME`. O `dono/nome` de um repositório e o `//` de uma URL
+        #   não contam.
+        #   O QUE SE PERDE: a página não mostra as fontes nem a pasta-mãe de quem
+        #   a exportou — e é esse o ponto, porque ela é feita para ir a outra
+        #   pessoa.
+        for item in esquema.get("chaves", []):
+            if any(re.search(r"(?:^|[\s:=,])(?:/(?!/)|~(?:/|$)|\$\{?HOME\b)",
+                             item.get(campo) or "")
+                   for campo in ("valor", "efetivo")):
+                item["valor"] = item.get("padrao", "")
+                item["efetivo"] = ""
         # Sem a casa e sem o caminho do clone — ver `sem_casa_nem_raiz` (P52).
         dados = sem_casa_nem_raiz(dados)
 

@@ -111,9 +111,10 @@
 #   "lista de imagens" na configuração dele, e o `filter_by_theme` que ele tem é
 #   o que este arquivo já desliga de propósito, logo abaixo. Separar claro de
 #   escuro exige, portanto, DUAS pastas — e mover arquivo entre elas está fora
-#   de questão: `ativos/` é o caminho que a `WALLPAPER_FONTES_DELA` conhece, que
-#   o README manda ela usar para arrastar imagem, e sobre o qual `banir`,
-#   `adicionar` e `semear` operam. O acervo tem de continuar sendo um só.
+#   de questão: `ativos/` é o caminho que a `WALLPAPER_FONTES_PERMITIDAS`
+#   conhece, que o README manda ela usar para arrastar imagem, e sobre o
+#   qual `banir`, `adicionar` e `semear` operam. O acervo tem de continuar
+#   sendo um só.
 #
 #   Então as pastas derivadas são feitas de LINK DURO (`ln`, sem `-s`). Como
 #   aponta para o mesmo inode, ele não custa disco nem duplica imagem — e exige
@@ -183,9 +184,9 @@ DIA_N=0
 # --- LER O MEOW.CONF DIRETO, E POR QUE ISSO PRECISOU EXISTIR AQUI ------------
 # As chaves antigas de wallpaper chegam pelo AMBIENTE: o `install.sh`, o
 # `bin/meow` e o `meow-wallpaper.service` exportam uma a uma, e o cabeçalho da
-# `WALLPAPER_FONTES_DELA`, mais abaixo, explica por que uma chave fora daquelas
-# listas chega vazia e o relógio de 15 minutos passa a desfazer a escolha dela
-# quatro vezes por hora.
+# `WALLPAPER_FONTES_PERMITIDAS`, mais abaixo, explica por que uma chave fora
+# daquelas listas chega vazia e o relógio de 15 minutos passa a desfazer a
+# escolha dela quatro vezes por hora.
 #
 # As quatro chaves da noite nasceram DEPOIS daquelas listas, e mudá-las é mudar
 # `install.sh`, `bin/meow` e a unit — três arquivos, de três donos diferentes,
@@ -1627,7 +1628,7 @@ cmd_aplicar() {
   #
   #     aponta para o nosso acervo        -> confere, nada a fazer
   #     aponta para a pasta de FÁBRICA    -> é o reset; conserta (código 1)
-  #     aponta para a WALLPAPER_FONTES_DELA -> é ela; não se toca (código 4)
+  #     aponta para a FONTES_PERMITIDAS   -> é ela; não se toca (código 4)
   #     aponta para QUALQUER outro lugar  -> é reversão; conserta (código 1)
   #
   #   O TERCEIRO CASO ERA "QUALQUER OUTRO LUGAR" ATÉ 11/08/2026, E ISSO CUSTOU O
@@ -1643,8 +1644,9 @@ cmd_aplicar() {
   #   "escolha dela de agora" de "onde o wallpaper dela estava antes". E não há
   #   como ler essa diferença do disco: o COSMIC grava o MESMO arquivo nos dois
   #   casos, e não existe carimbo de quem escreveu. Então a decisão passou a ser
-  #   DITA uma vez, em vez de adivinhada toda vez — é a `WALLPAPER_FONTES_DELA`,
-  #   preenchida por `meow wallpaper permitir <caminho>`.
+  #   DITA uma vez, em vez de adivinhada toda vez — é a
+  #   `WALLPAPER_FONTES_PERMITIDAS`, preenchida por
+  #   `meow wallpaper permitir <caminho>`.
   #
   #   O que este script NÃO faz: adivinhar. Quando conserta, ele diz no log qual
   #   caminho substituiu e imprime o comando exato que o autoriza. Se a reversão

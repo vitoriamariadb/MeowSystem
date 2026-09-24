@@ -1309,7 +1309,7 @@ TXT
 
 cmd_patch() {
   meow_info "cole isto NO LUGAR do bloco \"logo\" de $FFL_CONF_DELA"
-  meow_info "(é o arquivo do fastfetch, de quem usa: com FASTFETCH_LOGO_CONF=\"nao\""
+  meow_info "(é o seu arquivo do fastfetch: com FASTFETCH_LOGO_CONF=\"nao\""
   meow_info " este script só mostra o bloco, e não escreve nele)"
   printf '\n'
   _ffl_patch_texto

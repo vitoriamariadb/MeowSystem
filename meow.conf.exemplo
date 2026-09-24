@@ -328,8 +328,8 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 # formato do arquivo do COSMIC e o `#` corta a linha deste arquivo aqui.
 #
 # NASCE VAZIO, E ATÉ 21/09/2026 NASCIA COM "Meow, OS" — 21/09/2026
-#   "Meow" e "OS" são os nomes das áreas DESTA casa. Num estranho, a primeira
-#   passagem do instalador renomeava as áreas de trabalho dele para os nossos
+#   "Meow" e "OS" são os nomes das áreas DESTA casa. Na sua máquina, a primeira
+#   passagem do instalador renomeava as suas áreas de trabalho para os nossos
 #   dois nomes, sem perguntar — e o comentário acima diz, com todas as letras,
 #   que um nome a mais aqui CRIA área. Era a chave deste arquivo com o efeito
 #   mais visível e menos pedido.
@@ -537,7 +537,7 @@ ICONES_RESGATADOS="sim"           # sim | nao
 #   de 08/08/2026, no cabeçalho do `completar_icones.sh`), então ligar troca os
 #   onze de uma vez. Os outros sete estavam de fábrica e só ganham.
 #
-#   Ele escolheu "Dracula vence tudo" em 16/09/2026, com os dois lados na mesa.
+#   "Dracula vence tudo" foi escolhido em 16/09/2026, com os dois lados na mesa.
 #   O padrão continua "nao" porque o padrão é o que vale numa máquina que não
 #   participou dessa decisão — a sua, ou uma recém-formatada.
 #
@@ -606,8 +606,8 @@ ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 # HERDA O `FLAVOR` DE FÁBRICA — 21/09/2026
 #   Estava `macchiato` cravado, com o `FLAVOR` da linha 63 em `mocha`: duas
 #   linhas do MESMO arquivo discordando, e a divergência era um pedido PESSOAL
-#   (ícones em macchiato, interface em mocha), não um padrão. Num estranho, os
-#   ícones de tipo de arquivo nasciam de um flavor que ele não escolheu.
+#   (ícones em macchiato, interface em mocha), não um padrão. Na sua máquina, os
+#   ícones de tipo de arquivo nasciam de um flavor que você não escolheu.
 #   `$FLAVOR` aqui não é truque: este arquivo é lido com `.` pelo shell e a
 #   linha 63 vem antes, então a expansão vale. É o mesmo recurso do
 #   `ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"` da linha 519, e o wizard já sabe
@@ -1491,7 +1491,7 @@ TERMINAL_ESQUEMA="sim"      # sim | nao
 # O port oficial pinta o cursor de `rosewater` e não usa `mauve` em lugar nenhum
 # (o magenta do ANSI no Catppuccin é o `pink`, #F5C2E7, não o mauve). "accent"
 # troca o cursor pela cor de ACCENT — com mocha/mauve, #CBA6F7, a assinatura
-# dela no resto da máquina. "port" devolve exatamente o arquivo oficial.
+# do resto da sua máquina. "port" devolve exatamente o arquivo oficial.
 TERMINAL_CURSOR="accent"    # accent | port
 
 # @ Prompt do zsh
@@ -1532,7 +1532,7 @@ PROMPT_STARSHIP="sim"
 # O DESENHO É NOSSO, A CHAVE NÃO É. O arquivo nasce em
 # ~/.local/share/meowsystem/fastfetch/<gato>.ansi, que é território do
 # MeowSystem. Quem manda o fastfetch usá-lo é `logo.source`, no config.jsonc de
-# ~/.config/fastfetch — que é o arquivo do fastfetch de quem usa, e não nosso.
+# ~/.config/fastfetch — que é o seu arquivo do fastfetch, e não nosso.
 # Com FASTFETCH_LOGO_CONF="sim" o módulo troca ali as chaves do logo; com "nao"
 # ele GERA e CONFERE, e o patch para colar sai em
 # `scripts/fastfetch_logo.sh patch`. Enquanto ninguém colar, o `meow doctor`
@@ -1677,8 +1677,8 @@ FASTFETCH_LOGO_RECUO="3"
 #
 # NASCE VAZIO PORQUE 2.556 É DE UMA FONTE E DE UM TAMANHO — 21/09/2026
 #   23,00 / 9,00 px é a célula do cosmic-term DESTA casa, com a JetBrainsMono
-#   Nerd Font Mono em 16 px. Quem instala tudo deste projeto cai nessa mesma
-#   fonte e o número serve; quem mantém a fonte dele tem outra célula, e o gato
+#   Nerd Font Mono em 16 px. Se você instala tudo deste projeto, cai nessa mesma
+#   fonte e o número serve; se mantém a sua fonte, tem outra célula, e o gato
 #   sai achatado sem nada acusar.
 #   Vazio NÃO muda nada hoje: `scripts/fastfetch_logo.sh:231` já tem
 #   `${FASTFETCH_LOGO_CELULA:-2.556}`, o mesmo número. O que muda é o convite a
@@ -1705,7 +1705,7 @@ FASTFETCH_LOGO_BLOCOS="auto"
 # @ Corrigir a configuração do fastfetch
 # > Deixa o MeowSystem manter a linha do logo em dia sozinho.
 # Deixar o MeowSystem corrigir sozinho a linha `logo.source` do config.jsonc do
-# fastfetch — que é o arquivo do fastfetch de quem usa, e não nosso.
+# fastfetch — que é o seu arquivo do fastfetch, e não nosso.
 # A escrita é CIRÚRGICA (duas chaves, o resto do arquivo intacto), guarda backup
 # antes em ~/.local/state/meowsystem/backups/ e diz em voz alta o que tocou.
 # Com "nao", o script volta a só imprimir o patch e sair 4.
@@ -1736,7 +1736,7 @@ FASTFETCH_LOGO_CONF="sim"
 #   no `return 4` do `rodar_modulo` (`scripts/aplicar_apps.sh`) — "não temos
 #   módulo para esse app ainda" —, e os que têm módulo mas não estão
 #   instalados viram "pendente" e NUNCA falham.
-#   Ou seja: num estranho esta lista não veste nada que ele não tenha, e não
+#   Ou seja: na sua máquina esta lista não veste nada que você não tenha, e não
 #   quebra nada. Esvaziá-la desligaria o recurso para todo mundo para corrigir
 #   um problema que não existe. Fica, e fica dito por quê.
 #
@@ -1744,8 +1744,8 @@ FASTFETCH_LOGO_CONF="sim"
 #   `kitty`, `gnome-terminal` e `onlyoffice` têm módulo em
 #   `assets/temas-de-apps/` desde a P42, e nenhum estava aqui: numa instalação
 #   nova eles nunca rodavam. Entram pelo mesmo motivo do parágrafo acima — cada
-#   módulo se pula sozinho quando o programa não existe. O `meow.conf` de quem
-#   já instalou não muda: este arquivo é o de FÁBRICA, e o seu conf é seu.
+#   módulo se pula sozinho quando o programa não existe. O seu `meow.conf`, se
+#   você já instalou, não muda: este arquivo é o de FÁBRICA, e o seu conf é seu.
 APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,heroic,qt5ct,kitty,gnome-terminal,onlyoffice"
 
 # App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
@@ -1824,8 +1824,8 @@ LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,inf
 #
 # NASCE VAZIO — 21/09/2026
 #   Estava `org.qbittorrent.qBittorrent`, que é o cliente de torrent DESTA
-#   casa. Num estranho, o instalador mascarava o autostart de um programa que
-#   ele escolheu deixar subindo no login — e o comentário acima avisa que tirar
+#   casa. Na sua máquina, o instalador mascarava o autostart de um programa que
+#   você escolheu deixar subindo no login — e o comentário acima avisa que tirar
 #   o nome daqui depois NÃO desmascara sozinho. Um padrão que é fácil de ligar
 #   e difícil de desligar não pode vir ligado de fábrica.
 #   Vazio já era caso tratado: `scripts/autostart.sh:243`.

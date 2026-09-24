@@ -239,9 +239,10 @@ carregar_conf() {
 #   por que troca TODAS as ocorrências da chave.
 #
 #   O motivo da mudança: o `scripts/wallpaper.sh permitir` precisa gravar a
-#   `WALLPAPER_FONTES_DELA`, e ele roda como processo filho — não enxerga função
-#   definida aqui dentro. Reimplementar lá seria a segunda rotina de escrita na
-#   mesma chave, e é assim que duas versões da mesma regra passam a discordar.
+#   `WALLPAPER_FONTES_PERMITIDAS`, e ele roda como processo filho — não
+#   enxerga função definida aqui dentro. Reimplementar lá seria a segunda
+#   rotina de escrita na mesma chave, e é assim que duas versões da mesma regra
+#   passam a discordar.
 #
 #   Estes dois aliases existem para os pontos desta CLI que chamavam pelos nomes
 #   antigos continuarem legíveis; quem lê `conf_definir MODO claro` não precisa

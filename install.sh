@@ -3214,8 +3214,9 @@ etapa_wallpaper() {
   #   imagens da NASA enquanto o `estado` dizia "carrossel ATIVO". Um tique de
   #   15 minutos fecha a janela, e só é seguro porque o `wallpaper.sh` distingue
   #   reversão (conserta) de escolha dela (código 4, não toca) — e desde
-  #   11/08/2026 "escolha dela" é o que está na `WALLPAPER_FONTES_DELA`, dito por
-  #   `meow wallpaper permitir`, e não todo caminho que não seja o de fábrica.
+  #   11/08/2026 "escolha dela" é o que está na `WALLPAPER_FONTES_PERMITIDAS`,
+  #   dito por `meow wallpaper permitir`, e não todo caminho que não seja o de
+  #   fábrica.
   #
   #   Anda de carona no `AUTO_REPARO`: quem desliga o auto-reparo está dizendo
   #   "não mexa sozinho na minha máquina", e isto é mexer sozinho.
