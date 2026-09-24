@@ -326,7 +326,7 @@ if [ "$ACAO" = "listar" ]; then
     _instalado="$(destino_de "${NOMES[$i]}")"
     [ -f "$_instalado" ] || _instalado="${POOL[$i]}"
     if [ -f "$_no_dock" ] && cmp -s "$_instalado" "$_no_dock"; then
-      _marca="$_marca  <- NO DOCK (é o que ela vê)"
+      _marca="$_marca  <- NO DOCK (é o que você vê)"
     fi
     if [ -n "$_marca" ]; then meow_ok "${NOMES[$i]}$_marca"; else meow_info "${NOMES[$i]}"; fi
   done
@@ -409,7 +409,7 @@ applet_montado() {
 if [ "${LOGO_ROTACAO:-nao}" = "sim" ] && ! applet_montado; then
   meow_aviso "o applet da logo não está em nenhuma das barras — girar não muda nada na tela"
   meow_info "  para usá-lo: Ajustes → Área de trabalho → Painel → Applets, e acrescente"
-  meow_info "  \"Logo Menu\". A ordem dos applets é dela; este script não mexe nisso."
+  meow_info "  \"Logo Menu\". A ordem dos applets é sua; este script não mexe nisso."
 fi
 
 mudou=0

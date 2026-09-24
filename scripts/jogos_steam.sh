@@ -896,7 +896,7 @@ meow_hicolor_reindexar
 #   mudou de verdade.
 meow_lancador_reler
 
-[ "$escritos" -gt 0 ] && meow_ok "$escritos jogo(s) da Steam no lançador (ícone natural, como ela pediu)"
+[ "$escritos" -gt 0 ] && meow_ok "$escritos jogo(s) da Steam no lançador (ícone natural, o do próprio jogo)"
 [ "$removidos" -gt 0 ] && meow_ok "$removidos atalho(s) de jogo desinstalado removidos"
 # A MENSAGEM NÃO PODE MENTIR: degrau órfão não é jogo desinstalado. Os dois
 # contadores existem separados porque a primeira versão somava tudo em

@@ -687,7 +687,7 @@ _slot_por() {
 
   entrada="$(_py gerar "$flavor" "$nome" "$hex")" || return "$MEOW_ERRO"
   desejado="$(ENTRADA="$entrada" _py por "$mapa" "$nome")" || {
-    meow_erro "não escrevi nada em $mapa — o mapa de esquemas dela está num formato que eu não sei reescrever com segurança"
+    meow_erro "não escrevi nada em $mapa — o seu mapa de esquemas está num formato que eu não sei reescrever com segurança"
     return "$MEOW_ERRO"
   }
   [ "$desejado" = "__VAZIO__" ] && { meow_erro "o mapa desejado saiu vazio — isto é bug"; return "$MEOW_ERRO"; }
@@ -772,7 +772,7 @@ _slot_tirar() {
           2) return "$MEOW_ERRO" ;;
         esac ;;
       *)
-        [ -n "$atual" ] && meow_pula "syntax_theme_$tipo está em \"$atual\" — escolha dela, fica" ;;
+        [ -n "$atual" ] && meow_pula "syntax_theme_$tipo está em \"$atual\" — escolha sua, fica" ;;
     esac
   fi
 

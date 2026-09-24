@@ -487,6 +487,13 @@ function semRaiz(caminho) {
   return raiz && txt.startsWith(raiz + "/") ? txt.slice(raiz.length + 1) : txt;
 }
 
+/* DESDE 24/09/2026 (P52) O SERVIDOR JÁ MANDA O COMANDO PRONTO para a tela —
+ * `meow …`, `./script.sh …` e `~/…`, ver `comando_na_tela` no servidor.py —,
+ * porque a caixa de confirmar, o «ver comando» e a gaveta ainda levavam o
+ * caminho absoluto, com o nome de usuário, e o que se copiava dali só colava
+ * nesta máquina. O `acao.argv` que chega aqui já não começa pela raiz, e as
+ * duas trocas abaixo não acham mais o que trocar nele. Elas ficam, e a nota
+ * fica junto: é a regra da casa mencionar o que deixou de agir, não apagar. */
 function comandoCurto(cmd) {
   const curto = semRaiz(cmd);
   return curto.startsWith("bin/meow") ? "meow" + curto.slice("bin/meow".length)
@@ -512,6 +519,15 @@ function semCasa(cru, efetivo) {
   return efetivo.endsWith(resto) ? "~" + resto : efetivo;
 }
 
+/* Um caminho com a casa trocada por `~`, como o gerenciador de arquivos mostra.
+ * Só a casa INTEIRA: `/home/<nome>` não come o começo de `/home/<nome>zinho`. */
+function comTil(caminho) {
+  const casa = String((ESQUEMA && ESQUEMA.casa) || "").replace(/\/+$/, "");
+  if (!casa || casa === "~") return caminho;
+  return caminho === casa ? "~"
+       : caminho.startsWith(casa + "/") ? "~" + caminho.slice(casa.length) : caminho;
+}
+
 /* Separa uma ajuda em «o que cabe no balão» e «o que é comando». É a única
  * porta: `elemento()` e o `porBalao()` passam por aqui, e o teste de
  * acessibilidade mede o resultado. */
@@ -533,7 +549,13 @@ function partirAjuda(txt) {
    * inteiro para o «ver comando», e o botão continua dizendo o que faz pelo
    * próprio rótulo. */
   if (!comando && BALAO_COMANDO.test(balao)) { comando = balao; balao = ""; }
-  if (balao.includes("/") && !/\s/.test(balao)) balao = encurtarCaminho(balao);
+  /* A CASA VIRA `~` ANTES DE O CAMINHO ENCOLHER — 24/09/2026, P52. Os balões
+   * de ícone e de ponteiro são a origem do arquivo, e os curtos cabiam inteiros
+   * em 80: `/home/<usuário>/.local/share/icons/…/btop.svg`, com o nome de
+   * usuário, que a varredura das 14 abas achou em três deles. A casa vem do
+   * servidor (`ESQUEMA.casa`), e não de uma expressão sobre `/home/` — pela
+   * mesma razão do `semRaiz`, logo acima. */
+  if (balao.includes("/") && !/\s/.test(balao)) balao = encurtarCaminho(comTil(balao));
   if (balao.length > BALAO_LIMITE) {
     /* A REDE, E ELA NÃO DEVERIA PEGAR NINGUÉM. Toda frase fixa da página cabe
      * em 80; o que chega aqui é texto montado com dado de fora (um nome de
@@ -5174,7 +5196,10 @@ function montarAcao(acao) {
    * dizer é O QUE VAI RODAR, e para isso `meow doctor` diz mais que o caminho
    * completo do executável — é assim que o README escreve e é assim que ela
    * digitaria. O caminho exato não some da página: ele é o `dataset.comando`
-   * do «Executar», que o «ver comando» logo abaixo abre com um Copiar. */
+   * do «Executar», que o «ver comando» logo abaixo abre com um Copiar.
+   *   24/09/2026, P52: o «ver comando» também deixou de levar o caminho
+   * absoluto. O que se copia dali é o que cola em qualquer máquina com o meow
+   * instalado — o mesmo texto desta linha, vindo pronto do servidor. */
   const linhaCmd = elemento("code", { class: "cmd" });
   const pintarCmd = () => {
     const texto = acao.argv.replace("@ARG@", escolha ? escolha.value : "");

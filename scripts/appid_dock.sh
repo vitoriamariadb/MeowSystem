@@ -512,7 +512,7 @@ _reverter() {
   [ -d "$APPS" ] || { meow_ok "nada a reverter"; return "$MEOW_OK"; }
   for arq in "$APPS/$PREFIXO"*.desktop; do
     [ -e "$arq" ] || continue
-    grep -qxF "$MARCA" "$arq" || { meow_pula "$(basename "$arq") não tem a nossa marca — é dela, fica"; continue; }
+    grep -qxF "$MARCA" "$arq" || { meow_pula "$(basename "$arq") não tem a nossa marca — é sua, fica"; continue; }
     if meow_seco; then
       meow_muda "removeria $arq"
     else

@@ -268,7 +268,7 @@ _conferir() {
   [ "$divergentes" -gt 0 ] && meow_info "  desatualizado:  ${n_divergentes[*]}"
   [ "$orfaos"      -gt 0 ] && meow_info "  a remover:      ${n_orfaos[*]}"
   meow_info "  desatualizado = a arte do Papirus mudou. NÃO conserte no automático:"
-  meow_info "  gere a folha e mostre a ela antes — arte aprovada não se troca em silêncio"
+  meow_info "  gere a folha e confira antes — arte aprovada não se troca em silêncio"
   return "$MEOW_DIVERGENTE"
 }
 

@@ -222,7 +222,7 @@ _ler_mapa() {
     IFS=':' read -r nome glifo marca <<<"$linha"
     [ -n "$nome" ] && [ -n "$glifo" ] || continue
     if intocavel "$nome"; then
-      meow_aviso "'$nome' está nos INTOCÁVEIS: é desenho dela — a linha do mapa foi ignorada"
+      meow_aviso "'$nome' está nos INTOCÁVEIS: é desenho autoral — a linha do mapa foi ignorada"
       continue
     fi
     MAPA_LIDO["$nome"]="$glifo"

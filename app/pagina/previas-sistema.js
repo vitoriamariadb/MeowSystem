@@ -1062,7 +1062,7 @@
       ordem: escolha(val.WALLPAPER_ORDEM, ["aleatoria", "alfabetica"], "aleatoria"),
       avisa: ligado(val.WALLPAPER_NOTIFICAR, true),
       menu: ligado(val.FILES_MENU, true),
-      fontes: lista(val.WALLPAPER_FONTES_DELA, ":"),
+      fontes: lista(val.WALLPAPER_FONTES_PERMITIDAS, ":"),
     };
   }
 

@@ -403,7 +403,7 @@ cmd_estado() {
                    || meow_aviso "cosmic-osd MORTO — nada toca"
   _som_daemon_vivo && meow_ok "cosmic-settings-daemon vivo (o gatilho da tecla)" \
                    || meow_aviso "cosmic-settings-daemon MORTO — teclas de volume e brilho mudas"
-  meow_info "para ver ao vivo qual arquivo tocou, com a tecla de volume na mão dela:"
+  meow_info "para ver ao vivo qual arquivo tocou, com a tecla de volume à mão:"
   meow_info "  while :; do pgrep -af '(^|/)pw-play '; done   # e aperte a tecla"
   return "$MEOW_OK"
 }

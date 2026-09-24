@@ -79,6 +79,7 @@ import sys
 import tempfile
 import time
 import zlib
+from urllib.parse import quote
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -727,6 +728,54 @@ TEXTO_RUIM_JS = r"""
 }
 """
 
+# A CASA E O CLONE NÃO APARECEM NA TELA — 24/09/2026, P52 (achados 10 e 13).
+#   A varredura das 14 abas achou o caminho absoluto na caixa de confirmar, no
+#   «ver comando», no topo da gaveta e em três balões de ícone. Aqui a régua é
+#   a página inteira, e não só o que está visível agora: o balão `?` e o «ver
+#   comando» estão no DOM fechados, e abrem com um clique. Os atributos que
+#   viram texto (o balão, o nome acessível, o que o «Copiar» copia) contam
+#   junto. Na saída da gaveta vale só a casa: um clone fora dela (`/opt`) não
+#   diz o nome de ninguém, e é assim que o `servidor.py` a trata.
+CAMINHO_JS = r"""
+([casa, raiz]) => {
+  const achados = [];
+  const olhar = (texto, onde, soCasa) => {
+    if (!texto) return;
+    if (texto.includes(casa) || (!soCasa && texto.includes(raiz)))
+      achados.push(texto.trim().slice(0, 80) + '  (em ' + onde + ')');
+  };
+  const andar = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = andar.nextNode())) {
+    const pai = n.parentElement;
+    if (!pai || pai.closest('script, style, template')) continue;
+    olhar(n.textContent, pai.tagName.toLowerCase() + (pai.id ? '#' + pai.id : ''),
+          !!pai.closest('#saida'));
+  }
+  const nomes = ['title', 'aria-label', 'data-comando', 'placeholder'];
+  for (const el of document.querySelectorAll('[title], [aria-label], [data-comando], [placeholder]'))
+    for (const a of nomes) olhar(el.getAttribute(a), el.tagName.toLowerCase() + '[' + a + ']', false);
+  return achados;
+}
+"""
+
+# AS TORRADAS QUE NASCEM A PARTIR DE AGORA, com a classe e o texto — ver o
+# `h_acervo`, que é quem precisa delas: a torrada some antes de a página parar.
+TORRADAS_VISTAS_JS = r"""
+() => {
+  window.__torradasVistas = [];
+  if (window.__torradasVigia) window.__torradasVigia.disconnect();
+  window.__torradasVigia = new MutationObserver((ms) => {
+    for (const m of ms) for (const n of m.addedNodes) {
+      if (!n.classList || !n.classList.contains('torrada')) continue;
+      const classe = ['ok', 'igual', 'erro'].find((c) => n.classList.contains(c)) || '';
+      window.__torradasVistas.push({ classe, texto: n.textContent || '' });
+    }
+  });
+  window.__torradasVigia.observe(document.getElementById('torradas'), { childList: true });
+}
+"""
+
 # A PÁGINA PARADA: nenhuma mutação por `quieto` ms (a marca do censo não
 # conta), com um teto — a gaveta de um trabalho vivo muda a cada 400 ms e
 # nunca para sozinha.
@@ -969,6 +1018,8 @@ class Percurso:
     def texto_ruim(self):
         for achado in self.js(TEXTO_RUIM_JS):
             self.falha(f"texto de defeito na tela: {achado!r}")
+        for achado in self.js(CAMINHO_JS, [CASA, RAIZ_B]):
+            self.falha(f"a casa ou o caminho do clone na tela: {achado!r}")
 
     # ======================================================================
     # AS AÇÕES: o protocolo das três respostas
@@ -1051,6 +1102,12 @@ class Percurso:
         oferece = self.pag.locator("#confirmar-ensaio").is_visible()
         self.checa(self.pag.locator("#confirmar-comando").inner_text().strip(),
                    f"a caixa de «{titulo}» mostra o comando que vai rodar")
+        # O COMANDO DA CAIXA COLA EM QUALQUER MÁQUINA — P52, achado 10. Sem a
+        # casa e sem o caminho do clone: `meow …`, `./script.sh …` ou `~/…`.
+        cmd = self.pag.locator("#confirmar-comando").inner_text()
+        self.checa(CASA not in cmd and RAIZ_B not in cmd,
+                   f"a caixa de «{titulo}» mostra o comando sem a casa nem o "
+                   f"caminho do clone ({cmd.strip()[:60]!r})")
         self.checa(oferece == (acao["sudo"] or acao["destrutivo"]),
                    f"a caixa de «{titulo}» oferece o «Ver o que faria» "
                    "exatamente quando a ação pede senha ou desfaz algo")
@@ -1163,6 +1220,14 @@ class Percurso:
         estado, saida = fim
         self.acionados.add("gaveta · #gaveta-estado")
         self.checa(saida.strip(), f"«{rot}» mostrou a saída na gaveta")
+        # A GAVETA NÃO TRAZ A CASA DE NINGUÉM — P52. O comando do topo sai como
+        # a pessoa o digitaria, e as linhas trocam a casa por `~`.
+        topo = self.pag.locator("#gaveta-comando").inner_text()
+        self.checa(CASA not in topo and RAIZ_B not in topo,
+                   f"a gaveta de «{rot}» mostra o comando sem a casa nem o caminho "
+                   f"do clone ({topo.strip()[:60]!r})")
+        self.checa(CASA not in saida,
+                   f"a saída de «{rot}» na gaveta troca a casa por ~")
         for linha in saida.splitlines():
             if self.QUEBRA.search(linha):
                 self.falha(f"«{rot}» quebrou: {linha.strip()[:140]}")
@@ -1783,6 +1848,18 @@ class Percurso:
         if not self.checa(arquivo, f"há um arquivo de teste para «{rotulo}»"):
             return
         antes, n0 = retrato(), len(self.posts)
+        # A TORRADA É CONTADA QUANDO NASCE, E NÃO SÓ NO FIM — 24/09/2026, P52
+        #   Ela vive 2,6 s (`torrada()`, no app.js), e depois de um «Adicionar» a
+        #   página repinta por uns 2,5 s. O `assentar` espera 300 ms de silêncio,
+        #   e a própria torrada saindo é uma mutação que empurra a espera para
+        #   depois dela. Medido na árvore de `dev` (92e7c09), só a aba «Logo do
+        #   sistema»: a torrada `ok` nasceu em 101 ms, a conta foi feita em 3,0 s,
+        #   e a reprovação saiu sem defeito nenhum na página. Na corrida inteira
+        #   as quatro «Adicionar» reprovaram assim, e em outra da mesma árvore só
+        #   uma: a conta dependia de quanto a máquina estava ocupada. A conta do
+        #   fim continua valendo: uma frase repetida não nasce de novo (a que
+        #   existe só ganha sobrevida), e aí quem a vê é a conta do fim.
+        self.js(TORRADAS_VISTAS_JS)
         with self.pag.expect_file_chooser(timeout=5000) as escolha:
             self.achar(nome).click()
         escolha.value.set_files(arquivo)
@@ -1791,11 +1868,15 @@ class Percurso:
             self.pag.wait_for_timeout(100)
         self.assentar(quieto=300, teto=120000)
         self.esperar_trabalho()
-        ok = self.pag.locator("#torradas .torrada.ok, #torradas .torrada.igual").count()
+        vistas = self.js("() => window.__torradasVistas || []")
+        ok = (self.pag.locator("#torradas .torrada.ok, #torradas .torrada.igual").count()
+              or any(v["classe"] in ("ok", "igual") for v in vistas))
         erro = self.pag.locator("#torradas .torrada.erro")
-        self.checa(ok and not erro.count(),
+        disse = ([erro.first.inner_text()] if erro.count() else []) + \
+            [v["texto"] for v in vistas if v["classe"] == "erro"]
+        self.checa(ok and not disse,
                    f"«{rotulo}» aceita {os.path.basename(arquivo)} e diz que entrou"
-                   + (f" — disse {erro.first.inner_text()[:120]!r}" if erro.count() else ""))
+                   + (f" — disse {disse[0][:120]!r}" if disse else ""))
         self.checa(diferenca(antes, retrato()), f"«{rotulo}» escreveu na casa de brinquedo")
 
     def h_exportar_pack(self, nome):
@@ -1952,6 +2033,17 @@ class Percurso:
         self.checa(marca in corpo,
                    f"«{nome.split(' · ')[-1]}» baixa {baixa.value.suggested_filename} com "
                    f"{marca!r} dentro ({len(corpo)} caracteres)")
+        # O QUE SE EXPORTA NÃO LEVA A CASA NEM O CLONE — P52, achados 21 e 22.
+        #   Do `.conf` só o CABEÇALHO: o corpo é o arquivo da pessoa, byte a
+        #   byte, e um caminho que ela mesma escreveu nele é dela para levar. A
+        #   página vai inteira, e também na forma de URL (`%2F…`), que é como a
+        #   casa aparecia nas prévias embutidas.
+        rotulo = nome.split(" · ")[-1]
+        olhado = corpo.split("\n\n", 1)[0] if rotulo == "#baixar-conf" else corpo
+        vazou = [c for c in (CASA, RAIZ_B, quote(CASA, safe=""), quote(RAIZ_B, safe=""))
+                 if c in olhado]
+        self.checa(not vazou, f"«{rotulo}» não leva a casa nem o caminho do clone"
+                   + (f" — achei {len(vazou)} forma(s)" if vazou else ""))
 
     def h_importar_conf(self, nome):
         arquivo = os.path.join(BRINQUEDO, "envios", "meus-ajustes.conf")
@@ -3050,8 +3142,8 @@ INVENTARIO = {
         ajuste WALLPAPER_BASE · campo
         ajuste WALLPAPER_FIXO_TTL · ?
         ajuste WALLPAPER_FIXO_TTL · campo
-        ajuste WALLPAPER_FONTES_DELA · ?
-        ajuste WALLPAPER_FONTES_DELA · nova ficha
+        ajuste WALLPAPER_FONTES_PERMITIDAS · ?
+        ajuste WALLPAPER_FONTES_PERMITIDAS · nova ficha
         ajuste WALLPAPER_INTERVALO · ?
         ajuste WALLPAPER_INTERVALO · opção
         ajuste WALLPAPER_NOTIFICAR · ?

@@ -1004,7 +1004,7 @@ _ffl_escrever_conf() {
   python3 "$MEOW_RAIZ/scripts/fastfetch_conf.py" escrever-logo \
     "$FFL_CONF_DELA" "$alvo_rel" "$(_ffl_quebras)" "$FASTFETCH_LOGO_RECUO"
   case "$?" in
-    0) meow_ok "o config.jsonc dela já estava como o meow.conf pede"
+    0) meow_ok "o seu config.jsonc já estava como o meow.conf pede"
        return "$MEOW_OK" ;;
     2) meow_erro "não consegui escrever em $FFL_CONF_DELA"
        meow_info  "  backup intacto: $bkp/config.jsonc"
@@ -1034,11 +1034,11 @@ _ffl_fronteira() {
   pad_topo="$(printf '%s' "$dados"  | sed -n '4p')"
   pad_recuo="$(printf '%s' "$dados" | sed -n '5p')"
   case "$tipo" in
-    erro*) meow_aviso "não consegui interpretar o config.jsonc dela: $tipo"
+    erro*) meow_aviso "não consegui interpretar o seu config.jsonc: $tipo"
            return 2 ;;
   esac
 
-  meow_info "config.jsonc dela: logo.type=\"$tipo\" logo.source=\"${fonte:-<vazio>}\""
+  meow_info "seu config.jsonc: logo.type=\"$tipo\" logo.source=\"${fonte:-<vazio>}\""
   # A LINHA SÓ SE MONTA SE ALGUÉM FOR LER. O `$(_ffl_quebras)` roda um
   # `fastfetch` inteiro quando as quebras estão em `auto`, e a substituição de
   # comando acontece na expansão do argumento — antes de o `meow_info` poder
@@ -1068,7 +1068,7 @@ _ffl_fronteira() {
       return 1
     fi
   fi
-  meow_ok "o config.jsonc dela já aponta para $(basename "$FFL_ALVO")"
+  meow_ok "o seu config.jsonc já aponta para $(basename "$FFL_ALVO")"
   return 0
 }
 
@@ -1309,7 +1309,7 @@ TXT
 
 cmd_patch() {
   meow_info "cole isto NO LUGAR do bloco \"logo\" de $FFL_CONF_DELA"
-  meow_info "(é o arquivo do fastfetch, de quem usa: com FASTFETCH_LOGO_CONF=\"nao\""
+  meow_info "(é o seu arquivo do fastfetch: com FASTFETCH_LOGO_CONF=\"nao\""
   meow_info " este script só mostra o bloco, e não escreve nele)"
   printf '\n'
   _ffl_patch_texto
@@ -1510,7 +1510,7 @@ cmd_ver() {
   cat "$FFL_ALVO"
   printf '\n'
   meow_info "$FFL_ALVO — $FASTFETCH_LOGO_COLUNAS colunas x $(_ffl_linhas) linhas"
-  meow_info "no lugar, com os módulos dela: fastfetch --logo-type file-raw --logo $FFL_ALVO"
+  meow_info "no lugar, com os seus módulos: fastfetch --logo-type file-raw --logo $FFL_ALVO"
   return "$MEOW_OK"
 }
 
@@ -1522,7 +1522,7 @@ cmd_remover() {
   # `~/.local/share/meowsystem` pode hospedar outra coisa amanhã.
   rmdir "$FFL_BASE" 2>/dev/null
   meow_muda "logo ANSI removido — o fastfetch volta ao logo padrão dele"
-  meow_aviso "o config.jsonc dela continua como está: se ele aponta para este"
+  meow_aviso "o seu config.jsonc continua como está: se ele aponta para este"
   meow_aviso "  arquivo, o fastfetch cai no logo da distribuição (não quebra nada)"
   meow_registrar "fastfetch_logo.sh remover"
   return "$MEOW_DIVERGENTE"

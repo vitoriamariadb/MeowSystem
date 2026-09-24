@@ -243,7 +243,7 @@ cmd_estado() {
     fi
   done
   meow_info "as duas 'ausente' que o binário conhece — show_weekday e"
-  meow_info "show_date_in_top_panel — são decisão dela, e este script não as escreve."
+  meow_info "show_date_in_top_panel — são decisão sua, e este script não as escreve."
   local pid; pid="$(pgrep -f 'cosmic-applet-time' 2>/dev/null | head -1)"
   if [ -n "$pid" ]; then
     meow_ok "cosmic-applet-time vivo (PID $pid) — ele relê a chave sozinho, em ~2 s"

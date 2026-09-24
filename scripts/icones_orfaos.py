@@ -165,7 +165,7 @@ def main():
     else:
         print(f'  >> {len(ordem)} aplicativos visíveis · {dentro} dentro de '
               f'{TEMA} · {len(orfaos)} fora · {poupados} intocáveis (jogos da '
-              f'Steam e os dois dela)')
+              f'Steam e os dois autorais)')
         for o in orfaos:
             print(f"     {o['icone'] or '(sem Icon=)':40s} -> {o['atual']}")
         if orfaos:

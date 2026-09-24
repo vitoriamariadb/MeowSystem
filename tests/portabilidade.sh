@@ -131,8 +131,8 @@ ISENTAS=(
   # serve de troca.
   #   O `meow.conf.exemplo` mostra o comando que o `scripts/wallpaper.sh`
   # imprime ao consertar uma saída: o caminho vai entre aspas, onde `~` não
-  # expande, e a chave `WALLPAPER_FONTES_DELA` guarda caminho absoluto. A forma
-  # da casa desde a P38 seria `/home/<usuário>/`; o arquivo não era desta
+  # expande, e a chave `WALLPAPER_FONTES_PERMITIDAS` guarda caminho absoluto. A
+  # forma da casa desde a P38 seria `/home/<usuário>/`; o arquivo não era desta
   # sprint, e a isenção para de casar sozinha no dia em que a linha mudar.
   'meow wallpaper permitir "/home/voce/Imagens/aquela-pasta"'
   #   A pesquisa de 01/09 conferiu que o validador do painel NÃO recusa um

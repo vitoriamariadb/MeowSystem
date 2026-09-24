@@ -1911,9 +1911,10 @@ def ler_esquema():
             "essencial": "[essencial]" in ajuda,
             # Lista separada por vírgula: a regra é o que o comentário DIZ, não uma
             # lista de nomes de chave. `APPS_ATIVOS` e `AUTOSTART_BLOQUEADOS` dizem
-            # "vírgula-separado"/"separada por vírgula"; a `WALLPAPER_FONTES_DELA`
-            # diz "separados por `:`", e por isso ela não cai aqui — o separador
-            # dela é outro, e tratá-los como um só corromperia caminho com vírgula.
+            # "vírgula-separado"/"separada por vírgula"; a
+            # `WALLPAPER_FONTES_PERMITIDAS` diz "separados por `:`", e por isso ela
+            # não cai aqui — o separador dela é outro, e tratá-los como um só
+            # corromperia caminho com vírgula.
             "lista": bool(re.search(r"separad[ao]s? por v[ií]rgula|v[ií]rgula[- ]separad", ajuda, re.I)),
             "lista_pathsep": bool(re.search(r"separados por `?:`?", ajuda)),
             # Horário: o comentário declara `HH:MM`, OU o valor já é um horário.
@@ -2404,6 +2405,51 @@ def _paredes_banidas():
             and os.path.isfile(os.path.join(base, n))]
 
 
+# O NOME ANTIGO DE UMA CHAVE — 24/09/2026, P52 (achado 13)
+#   A tabela é a do `scripts/migrar_conf.py` (`RENOMEADAS`), lida de lá por
+#   caminho, pelo mesmo motivo e do mesmo jeito que o `modulo_pack`: uma
+#   segunda tabela aqui discordaria da primeira no dia da segunda troca. A
+#   regra também é a de lá, e é uma só: o nome novo vence quando está no
+#   arquivo, mesmo vazio; o antigo só vale quando o novo não está. É ela que
+#   faz o painel mostrar pelo nome novo o valor de quem ainda não passou pelo
+#   `install.sh` que renomeia a linha.
+_MIGRAR_MOD = None
+
+
+def chaves_renomeadas():
+    """{antigo: novo}, ou {} se o `migrar_conf.py` não puder ser carregado."""
+    global _MIGRAR_MOD
+    if _MIGRAR_MOD is None:
+        import importlib.util
+        alvo = os.path.join(RAIZ, "scripts", "migrar_conf.py")
+        try:
+            spec = importlib.util.spec_from_file_location("meow_migrar_conf", alvo)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            _MIGRAR_MOD = mod
+        except Exception:
+            _MIGRAR_MOD = False
+    return dict(getattr(_MIGRAR_MOD, "RENOMEADAS", None) or {})
+
+
+def _nome_antigo_valendo():
+    """{novo: antigo} das chaves que o meow.conf só tem pelo nome antigo."""
+    nomes = set()
+    try:
+        with open(CONF, "r", encoding="utf-8") as fh:
+            for linha in fh:
+                linha = linha.strip()
+                if linha.startswith("export "):
+                    linha = linha[len("export "):]
+                achado = RE_CHAVE.match(linha)
+                if achado:
+                    nomes.add(achado.group(1))
+    except OSError:
+        return {}
+    return {novo: antigo for antigo, novo in chaves_renomeadas().items()
+            if antigo in nomes and novo not in nomes}
+
+
 def valores_brutos():
     """O valor CRU de cada chave no meow.conf dela, caindo no exemplo quando falta.
 
@@ -2425,6 +2471,9 @@ def valores_brutos():
                         valores[achado.group(1)] = _valor_da_linha(linha)
         except OSError:
             continue
+    # O valor de quem só tem o nome antigo aparece pelo novo — ver acima.
+    for novo, antigo in _nome_antigo_valendo().items():
+        valores[novo] = valores.get(antigo, "")
     return valores
 
 
@@ -2438,6 +2487,9 @@ def valores_efetivos(chaves):
     """
     if not chaves:
         return {}
+    # O nome antigo vai junto na pergunta, e a resposta dele volta pelo novo —
+    # mesma regra do `valores_brutos` (P52).
+    antigos = {n: a for n, a in _nome_antigo_valendo().items() if n in chaves}
     programa = (
         'set -a\n'
         '[ -f "$1" ] && . "$1"\n'
@@ -2448,7 +2500,7 @@ def valores_efetivos(chaves):
     )
     try:
         saida = subprocess.run(
-            ["bash", "-c", programa, "_", CONF_PADRAO, CONF, *chaves],
+            ["bash", "-c", programa, "_", CONF_PADRAO, CONF, *chaves, *antigos.values()],
             capture_output=True, timeout=20,
         ).stdout.decode("utf-8", "replace")
     except (OSError, subprocess.SubprocessError):
@@ -2458,6 +2510,8 @@ def valores_efetivos(chaves):
         if "=" in pedaco:
             k, v = pedaco.split("=", 1)
             fora[k] = v
+    for novo, antigo in antigos.items():
+        fora[novo] = fora.pop(antigo, fora.get(novo, ""))
     return fora
 
 
@@ -3173,6 +3227,144 @@ PROVEDORES = {
 
 def _meow(*args):
     return [os.path.join(RAIZ, "bin", "meow"), *args]
+
+
+# ============================================================================
+# O QUE A TELA MOSTRA NÃO TRAZ NOME NEM CASA DE NINGUÉM — 24/09/2026, P52
+# ============================================================================
+# A caixa de confirmar, o «ver comando» e o topo da gaveta imprimiam o `argv`
+# com o caminho absoluto do clone na frente: «Usar este pack» mostrava
+# `/home/<usuário>/Desenvolvimento/MeowSystem/bin/meow pack usar catppuccin`
+# (achado 10). Medido com o painel no ar, as 14 abas: 55 de 55 ações com o
+# caminho absoluto na caixa, e 46 linhas do «ver comando» com ele. O produto
+# vai para qualquer pessoa, e o que ela copia tem de colar em qualquer máquina
+# com o meow instalado — não só nesta, nesta pasta.
+#
+# AS TROCAS SAEM DE `RAIZ` E DA CASA DE QUEM RODA, e nunca de uma expressão
+# sobre `/home/`: um clone em `/opt` ou uma casa em `/var/home` (Silverblue)
+# continuam cobertos, e é por isso que o teste sobre `/home/` não serve.
+#   1. `<raiz>/bin/meow` vira `meow` — é o que o `install.sh` põe no PATH, e é
+#      como o README escreve.
+#   2. `<raiz>/um/script.sh` vira `./um/script.sh` — o script que não tem
+#      verbo no meow roda de dentro do clone, que é como o README manda rodar o
+#      `./install.sh`. O caminho do clone é da máquina, não do comando.
+#   3. o que mora na casa vira `~/…` — um argumento que é caminho, como a
+#      imagem que o «Tirar» da galeria manda banir.
+# O `argv` de verdade não muda: quem RODA continua sendo o caminho absoluto
+# (ver `iniciar`). Isto é o texto da tela, e só ele.
+def _casas():
+    """A casa de quem roda, como o ambiente a diz e como o disco a resolve.
+
+    As duas, porque um caminho pode chegar por qualquer uma delas: o `RAIZ`
+    deste arquivo passa pelo `realpath`, e o `$HOME` que os scripts expandem
+    não. Uma casa `/` não é casa: trocá-la por `~` comeria o sistema inteiro.
+    """
+    casa = os.path.expanduser("~")
+    return [c for c in dict.fromkeys((casa, os.path.realpath(casa)))
+            if c and c != os.sep]
+
+
+def _na_casa(caminho):
+    """(casa, resto) quando `caminho` é a casa ou mora nela; senão None."""
+    for casa in _casas():
+        if caminho == casa or caminho.startswith(casa + os.sep):
+            return casa, caminho[len(casa):]
+    return None
+
+
+def comando_na_tela(argv):
+    """O comando como a pessoa o digitaria num terminal — ver o bloco acima."""
+    meow = os.path.join(RAIZ, "bin", "meow")
+    partes = []
+    for p in argv:
+        casa = _na_casa(p)
+        if p == meow:
+            partes.append("meow")
+        elif p.startswith(RAIZ + os.sep):
+            partes.append(shlex.quote("./" + p[len(RAIZ) + 1:]))
+        elif casa:
+            # O `~` fica FORA das aspas, senão o shell não o expande; só o
+            # resto é citado, e `~/'Minhas Imagens'/x.jpg` é um caminho válido.
+            resto = casa[1].lstrip(os.sep)
+            partes.append("~/" + shlex.quote(resto) if resto else "~")
+        else:
+            partes.append(shlex.quote(p))
+    return " ".join(partes)
+
+
+def texto_na_tela(texto):
+    """Um texto qualquer (uma linha da gaveta) com a casa trocada por `~`.
+
+    A borda dos dois lados é o que impede a casa `/home/<nome>` de comer o
+    começo de `/home/<nome>zinho`, e um `x/home/<nome>` de virar `x~`: a casa
+    só casa inteira.
+
+    ENTRE ASPAS, O `~` SAI PARA FORA DELAS — 24/09/2026, revisão da P52. O
+    shell só expande o `~` que não está citado, e os scripts imprimem comando
+    para colar com o caminho entre aspas: o `wallpaper.sh` imprime
+    `meow wallpaper permitir "$fonte_atual"`, e três scripts de ícone imprimem
+    `rm '$cache'`. Com a troca crua, a gaveta passou a mostrar
+    `permitir "~/Imagens/…"`; colado, o argumento chegava como `~/Imagens/…`
+    literal, o `readlink -m` do `cmd_permitir` o resolvia contra a pasta de onde
+    se colou (`/tmp/~/Imagens/…`), a autorização gravada nunca casava com nada,
+    e o carrossel seguia desfazendo o papel de parede — o comando funcionava
+    antes da P52. Então a aspa que abre colada na casa pula para depois do
+    `~/`: `"<casa>/Imagens/x y.jpeg"` vira `~/"Imagens/x y.jpeg"`, a mesma
+    forma do `comando_na_tela` logo acima, e a casa citada inteira (`"<casa>"`)
+    vira `~` sem aspas. Uma frase com o caminho entre aspas lê um pouco torto
+    (`não achei ~/'x.zip'`) e continua certa; o contrário — um comando que lê
+    bonito e não cola — era o defeito.
+    """
+    for casa in _casas():
+        borda = r"(?<![\w/.~-])"
+        texto = re.sub(borda + r"([\"'])" + re.escape(casa) + r"(?:(/)|\1)",
+                       lambda m: "~/" + m.group(1) if m.group(2) else "~", texto)
+        texto = re.sub(borda + re.escape(casa) + r"(?![\w.-])", "~", texto)
+    return texto
+
+
+def sem_casa_nem_raiz(valor, outras=()):
+    """Os dados da página exportada sem a casa e sem o caminho do clone.
+
+    POR QUE — 24/09/2026, P52 (achado 22). «Esta tela num arquivo» embute o
+    esquema inteiro em JSON, e ele saía com 709 textos carregando caminho
+    absoluto: o `meow.conf`, a raiz do repositório, o valor efetivo de cada
+    chave com `$HOME`, a origem de cada imagem do acervo — e mais 83 URLs de
+    prévia com o mesmo caminho, só que em `%2Fhome%2F<usuário>`. Uma página
+    feita para mandar a quem vai redesenhar levava o nome de usuário e o mapa
+    da máquina.
+
+    O QUE VIRA O QUÊ: o que mora no clone fica relativo a ele
+    (`docs/folhas/…`, `meow.conf.exemplo`), e a raiz sozinha fica vazia — o
+    `semRaiz` do `app.js` lê vazio como "não há o que tirar". O que mora na
+    casa vira `~/…`. As duas trocas valem também na forma de URL, e nas CHAVES
+    dos dicionários: o mapa `imagens` é indexado pela mesma URL que a ficha do
+    aplicativo carrega, e trocar só um dos lados apagaria a imagem da página.
+
+    `data:` fica como está: é imagem em base64, e um acaso de bytes que
+    parecesse caminho seria corrompido, não protegido.
+
+    `outras` são pares (caminho, rótulo) de pastas fora da casa e do clone que
+    o próprio `meow.conf` aponta — ver `_exportar_pagina`. Cada uma vira o
+    rótulo, com a mesma borda da casa.
+    """
+    if isinstance(valor, dict):
+        return {sem_casa_nem_raiz(k, outras): sem_casa_nem_raiz(v, outras)
+                for k, v in valor.items()}
+    if isinstance(valor, list):
+        return [sem_casa_nem_raiz(v, outras) for v in valor]
+    if not isinstance(valor, str) or valor.startswith("data:"):
+        return valor
+    for forma in (str, lambda s: quote(s, safe="")):
+        raiz = forma(RAIZ)
+        valor = "" if valor == raiz else valor.replace(forma(RAIZ + "/"), "")
+        for casa in _casas():
+            valor = re.sub(r"(?<![\w/.~-])" + re.escape(forma(casa)) + r"(?![\w.-])",
+                           "~", valor)
+        for caminho, rotulo in outras:
+            valor = re.sub(r"(?<![\w/.~-])" + re.escape(forma(caminho)) + r"(?![\w.-])",
+                           lambda _m, r=forma(rotulo): r, valor)
+    return valor
 
 
 # ============================================================================
@@ -4659,7 +4851,13 @@ def exportar_conf():
     try:
         with open(CONF, "r", encoding="utf-8") as fh:
             corpo = fh.read()
-        linhas_cabecalho.append("# Origem: %s" % CONF)
+        # A ORIGEM SAI COM `~` — 24/09/2026, P52 (achado 21). O arquivo é feito
+        # para ir a outra máquina, e a primeira linha útil dele era
+        # `# Origem: /home/<usuário>/.config/meow/meow.conf`: o nome de usuário
+        # viajando junto, a mesma classe que a P30 fechou no pack exportado. O
+        # corpo continua byte a byte — ele é o arquivo da pessoa, e o que ela
+        # escreveu nele é dela para levar.
+        linhas_cabecalho.append("# Origem: %s" % texto_na_tela(CONF))
     except OSError:
         # Sem arquivo dela ainda: o conteúdo sai do esquema, na ordem do exemplo.
         esquema = ler_esquema()
@@ -4672,7 +4870,8 @@ def exportar_conf():
             partes.append('%s="%s"' % (item["chave"], brutos.get(item["chave"], "")))
         corpo = "\n".join(partes) + "\n"
         linhas_cabecalho.append(
-            "# Origem: o catálogo (%s ainda não existia nesta máquina)" % CONF)
+            "# Origem: o catálogo (%s ainda não existia nesta máquina)"
+            % texto_na_tela(CONF))
     return ("\n".join(linhas_cabecalho) + "\n\n" + corpo,
             "meow-%s.conf" % _carimbo())
 
@@ -4726,6 +4925,13 @@ def importar_conf(texto):
         achado = RE_CHAVE.match(crua)
         if achado:
             pares[achado.group(1)] = _valor_da_linha(crua)
+    # UM .conf EXPORTADO ANTES DE UMA TROCA DE NOME traz a chave pelo nome
+    # antigo, e ela entra pelo novo — sem isso ela cairia em "desconhecidas" e o
+    # valor ficaria para trás. Com os dois no arquivo, o novo vence (P52).
+    for antigo, novo in chaves_renomeadas().items():
+        if antigo in pares:
+            valor = pares.pop(antigo)
+            pares.setdefault(novo, valor)
 
     for chave, valor in pares.items():
         item = esquema.get(chave)
@@ -5260,8 +5466,10 @@ def _trabalho_json(trabalho, acao_id, seco=False):
       ensaio do instalador terminar com a pastilha "já estava certo" e a
       bandeja vazia, que é a mentira que esta sprint veio matar.
     """
+    # O topo da gaveta mostra o comando como a pessoa o digitaria, e não o
+    # `argv` cru com o caminho do clone — ver `comando_na_tela` (P52).
     return {"id": trabalho.id, "rotulo": trabalho.rotulo,
-            "comando": " ".join(shlex.quote(p) for p in trabalho.argv),
+            "comando": comando_na_tela(trabalho.argv),
             "escreve": escreve(ACOES[acao_id]),
             "seco": bool(seco)}
 
@@ -6096,7 +6304,9 @@ class Manipulador(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json({"erro": "não consegui rodar: %s" % e}, 500)
 
-        saida = ((r.stdout or "") + (r.stderr or "")).strip()
+        # A saída do comando vai para uma torrada, que é tela: a casa sai como
+        # `~`, pela mesma porta da gaveta — ver `texto_na_tela` (P52).
+        saida = texto_na_tela(((r.stdout or "") + (r.stderr or "")).strip())
         # O CONTRATO DE IDEMPOTÊNCIA CHEGA INTEIRO À TELA: 0 é "já estava
         # assim", e isso não é erro nem é novidade — é a resposta certa para
         # quem enviou duas vezes o mesmo arquivo. Só 2 para cima é falha.
@@ -8357,6 +8567,16 @@ class Manipulador(BaseHTTPRequestHandler):
             except (KeyError, ValueError):
                 return self._json({"erro": "trabalho desconhecido"}, 404)
             linhas, total = trabalho.desde(inicio)
+            # A CASA SAI DA GAVETA NA IDA PARA A PÁGINA — 24/09/2026, P52
+            #   Os scripts imprimem o caminho expandido, e alguns imprimem
+            #   COMANDO para colar ("rode: LEITURA_COMPILAR=1 /home/<usuário>/
+            #   …/leitura_build.sh", "meow wallpaper permitir /home/<usuário>/
+            #   …"). A troca é aqui, e não nas dezenas de `meow_info` que
+            #   imprimem caminho: é o único cano entre a saída e a tela. As
+            #   linhas guardadas no trabalho seguem cruas — quem as lê é só
+            #   esta rota, e o terminal e o `meow log` continuam com o caminho
+            #   inteiro, que lá é da própria máquina.
+            linhas = [texto_na_tela(l) for l in linhas]
             return self._json({
                 "id": trabalho.id, "rotulo": trabalho.rotulo,
                 "linhas": linhas, "proximo": total,
@@ -8771,6 +8991,59 @@ class Manipulador(BaseHTTPRequestHandler):
                         "modo": valores.get("MODO") or ""},
             "amostra": {"imagens": len(imagens), "bytes": gasto},
         }
+        # A CHAVE QUE GUARDA CAMINHO SAI COM O VALOR DE FÁBRICA — 24/09/2026,
+        # revisão da P52 (achado 22).
+        #   O `sem_casa_nem_raiz` logo abaixo só sabe da casa e do clone, e o
+        #   valor de uma chave com caminho aponta para onde a pessoa quiser.
+        #   Medido numa casa falsa com `WALLPAPER_FONTES_PERMITIDAS=
+        #   "$HOME/Imagens/Parede_papel:/run/media/fulana/HD/fotos"`: a página
+        #   exportada levava `fulana` duas vezes, no `valor` e no `efetivo`. Um
+        #   disco externo em `/media/<usuário>` ou `/run/media/<usuário>` é o
+        #   lugar comum de uma fonte de papel de parede, e o nome de usuário é
+        #   justamente o que a P52 veio tirar. A sprint pede a página sem caminho
+        #   absoluto e sem o valor efetivo dessas chaves, então os dois saem
+        #   juntos: o `valor` vira o de fábrica — que é do exemplo do
+        #   repositório, e não de ninguém —, e o `efetivo` some, levando junto a
+        #   linha «Vale como» do cartão.
+        #   QUAL CHAVE É "COM CAMINHO" SAI DO VALOR, e não de uma lista de nomes:
+        #   um pedaço (depois de `:`, espaço, `=` ou `,`) que começa em `/`, em
+        #   `~` ou em `$HOME`. O `dono/nome` de um repositório e o `//` de uma URL
+        #   não contam.
+        #   O QUE SE PERDE: a página não mostra as fontes nem a pasta-mãe de quem
+        #   a exportou — e é esse o ponto, porque ela é feita para ir a outra
+        #   pessoa.
+        # A PASTA QUE A CHAVE APONTA TAMBÉM SAI DO RESTO DA PÁGINA — 24/09/2026,
+        # reconferência da P52.
+        #   Zerar a chave não bastava: o mesmo caminho voltava pelas prévias. Com
+        #   `WALLPAPER_BASE` num disco em `/run/media/<usuário>/…`, cada foto do
+        #   acervo levava a pasta inteira em `origem` e em `banir` — e a galeria
+        #   mostra a `origem` no balão da foto. As pastas saem do valor efetivo
+        #   das próprias chaves com caminho (as que moram fora da casa e do
+        #   clone; as de dentro o `sem_casa_nem_raiz` já cobre), e cada uma vira
+        #   `$CHAVE` onde aparecer: `$WALLPAPER_BASE/ativos/x.jpg` ainda diz o
+        #   que é, sem dizer de quem. A troca vale nos dois lados do mapa
+        #   `imagens`, como a da casa, e a foto continua achando a sua URL.
+        outras = []
+        for item in esquema.get("chaves", []):
+            if any(re.search(r"(?:^|[\s:=,])(?:/(?!/)|~(?:/|$)|\$\{?HOME\b)",
+                             item.get(campo) or "")
+                   for campo in ("valor", "efetivo")):
+                efetivo = item.get("efetivo") or os.path.expandvars(item.get("valor") or "")
+                for pedaco in efetivo.split(":"):
+                    pedaco = os.path.expanduser(pedaco.strip()).rstrip(os.sep)
+                    if not pedaco.startswith(os.sep) or pedaco.startswith("//"):
+                        continue
+                    for forma in dict.fromkeys((pedaco, os.path.realpath(pedaco))):
+                        if forma != RAIZ and not _na_casa(forma) \
+                                and not forma.startswith(RAIZ + os.sep):
+                            outras.append((forma, "$" + item["chave"]))
+                item["valor"] = item.get("padrao", "")
+                item["efetivo"] = ""
+        # A mais longa primeiro: uma pasta dentro de outra não pode ser comida
+        # pela de fora antes de ter a vez.
+        outras.sort(key=lambda par: -len(par[0]))
+        # Sem a casa e sem o caminho do clone — ver `sem_casa_nem_raiz` (P52).
+        dados = sem_casa_nem_raiz(dados, outras)
 
         partes = [
             "<!DOCTYPE html>",
@@ -8842,7 +9115,13 @@ class Manipulador(BaseHTTPRequestHandler):
         _com_o_vocabulario_do_pack(esquema, vocab, efetivos)
         medidas = dict(_medidas_do_projeto(), **_medidas_da_tela())
         return {
-            "conf": CONF,
+            # `~/.config/meow/meow.conf`, e não o caminho com o nome de usuário:
+            # a página só o mostra, no balão do resumo do topo (P52).
+            "conf": texto_na_tela(CONF),
+            # A casa, para a página trocá-la por `~` nos balões de caminho — o
+            # `comTil` do `app.js`. Na página exportada ela já sai como `~`
+            # (ver `sem_casa_nem_raiz`), e o `comTil` não tem o que trocar.
+            "casa": os.path.expanduser("~"),
             "conf_existe": os.path.isfile(CONF),
             "exemplo": CONF_PADRAO,
             "raiz": RAIZ,
@@ -8887,7 +9166,11 @@ class Manipulador(BaseHTTPRequestHandler):
             "acoes": [
                 dict(v, id=k,
                      ajuda=_com_medidas(v.get("ajuda", ""), medidas),
-                     argv=" ".join(shlex.quote(p) for p in v["argv"]),
+                     # O comando da TELA, e não o que roda: a página só o
+                     # mostra (a linha do cartão, o «ver comando», a caixa de
+                     # confirmar) e pede a ação pelo `id`. Ver
+                     # `comando_na_tela` — P52, achado 10.
+                     argv=comando_na_tela(v["argv"]),
                      escreve=escreve(v),
                      sudo=bool(v.get("sudo")) and not (
                          k in _PELA_PONTE and _ponte_viva()),
@@ -8932,7 +9215,9 @@ class Manipulador(BaseHTTPRequestHandler):
             if queixa:
                 return self._json({"erro": queixa, "chave": chave, "valor": valor}, 400)
             rc, saida = definir(chave, valor)
-            return self._json({"rc": rc, "saida": saida, "chave": chave, "valor": valor})
+            # A frase do `meow_conf_definir` vira torrada: a casa sai como `~` (P52).
+            return self._json({"rc": rc, "saida": texto_na_tela(saida),
+                               "chave": chave, "valor": valor})
 
         # SALVAR E APLICAR, NUMA ROTA SÓ — 13/09/2026
         #   Pedido dela: "removeu o botão Salvar, que salva e aplica" e "antes
@@ -9016,7 +9301,8 @@ class Manipulador(BaseHTTPRequestHandler):
                 elif rc == 1:
                     gravadas.append(chave)
                 else:
-                    falhas.append({"chave": chave, "erro": saida or "não consegui gravar"})
+                    falhas.append({"chave": chave,
+                                   "erro": texto_na_tela(saida) or "não consegui gravar"})
             if falhas:
                 # Metade gravada é o pior estado, e ele não é escondido: a página
                 # recebe o que entrou e o que não entrou, e o instalador NÃO roda.
