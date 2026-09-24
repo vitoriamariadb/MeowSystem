@@ -888,3 +888,77 @@ que a P37 envelheceu.
 | `scripts/pack.py`, `bin/meow` | itens 4 e 7 |
 | `assets/temas-de-apps/obsidian/manifesto.sh`, `systemd/*.timer`, `docs/COSMIC-THEMING.md`, `scripts/ponte_root.sh` e o que o grep achar | item 5 |
 | `tests/portabilidade.sh` | item 6 |
+
+---
+
+# P44 — O doctor só lê, e o que é tema termina de sair do Spellbook
+
+A P39 (24/09) deixou um defeito anterior a ela e os restos da migração.
+
+### 1. O `meow doctor` sem `--consertar` escreve — e mata o painel de verdade
+
+Medido pela revisão da P39: `HOME=$(mktemp -d) meow doctor` grava logos e o
+`meow-fetch` na casa de brinquedo e manda **SIGTERM ao `cosmic-panel` real**
+(a checagem de logo vê o gato trocado e recicla o painel). Existe desde antes
+da P39 (dev 1e7afaa). Duas regras quebradas de uma vez:
+
+- **o doctor sem `--consertar` só lê.** Toda escrita e todo sinal ficam atrás
+  do `--consertar` (ou do `fix_*` correspondente). Um teste roda o doctor numa
+  casa de brinquedo e prova: nenhum arquivo novo, nenhum `pkill`/`kill`.
+- **um sinal nunca sai da casa de quem pediu.** O reciclar do painel só mira o
+  processo da sessão cujo `$HOME` é o do chamador — medir como o painel é
+  achado hoje (`pkill -x cosmic-panel`?) e restringir ao usuário e à sessão.
+
+### 2. Os restos da migração da P39
+
+- `scripts/painel.sh`: as 6 chamadas a `meow_painel_carencia_aurora`, que ficou
+  vazia — saem.
+- `docs/FRONTEIRA.md` ainda dá o build do compositor à Aurora — passa a dizer
+  `meow compositor`.
+- a completion `assets/zsh/_meow` não conhece `compositor` — passa a conhecer;
+  e a `_meow` instalada em `/usr/local/share/zsh/site-functions` vinha do
+  auto-reparo do Ritual: o MeowSystem instala a própria completion num lugar
+  do usuário (`~/.local/share/zsh/site-functions`, no `fpath`), sem ponte root.
+- as mensagens do manifesto do btop-bat que citam `~/.config/zsh`;
+  `scripts/leitura_build.sh:433`; o comentário do `chk_patches`
+  (`bin/meow` ~1376) que diz que `.estado`/`series` são "do lado da Aurora";
+  o comentário do `tests/portabilidade.sh` que conta "quatro trechos" onde
+  são cinco.
+
+### 3. O que é tema e ainda mora no Spellbook (a regra de 23/09)
+
+- **As cores do fzf:** o `~/.config/zsh/env.zsh` crava a paleta Catppuccin no
+  `FZF_DEFAULT_OPTS`. É tema: o MeowSystem ganha a etapa que escreve as cores
+  do fzf **a partir da paleta do pack no ar** (num arquivo que o shell lê, por
+  exemplo `~/.config/meowsystem/fzf.sh` — medir como o prompt/starship já faz
+  isso), e o `env.zsh` do Spellbook para de cravar cor (desativado, com
+  comentário apontando para o `meow`).
+- **O fastfetch:** `~/.config/fastfetch` é um symlink para
+  `~/.config/zsh/fastfetch/`, versionado pelo Spellbook, e o MeowSystem escreve
+  4 chaves nele. O MeowSystem passa a ser o dono do `~/.config/fastfetch`: a
+  config vira um diretório de verdade (conteúdo migrado, com backup), e o
+  Spellbook para de versioná-la. Numa máquina sem Spellbook, nada muda.
+
+O Spellbook (`~/.config/zsh`): sem worktree, `git add` por nome, o autosync
+empurra sozinho. Só o que é tema e afins — o resto dele fica intocado (limite
+de 24/09).
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `bin/meow` (o doctor e os `chk_*` que escrevem ou sinalizam) | item 1 |
+| `lib/painel.sh`, `scripts/painel.sh` | itens 1 e 2 |
+| `docs/FRONTEIRA.md`, `assets/zsh/_meow`, o instalador da completion | item 2 |
+| `assets/temas-de-apps/btop-bat/`, `scripts/leitura_build.sh`, `tests/portabilidade.sh` | item 2 |
+| a etapa nova do fzf, `scripts/fastfetch_logo.sh` | item 3 |
+| Spellbook: `env.zsh`, `fastfetch/` | item 3 |
+| `tests/` | o doctor não escreve nem sinaliza; o fzf sai da paleta |
+
+### Como conferir
+
+```sh
+H=$(mktemp -d); HOME=$H meow doctor; find $H -newer /proc/self -type f | wc -l   # 0
+# e nenhum SIGTERM: o pid do cosmic-panel real é o mesmo antes e depois
+meow aplicar (seco) | grep -i fzf     # escreveria as cores do fzf a partir da paleta
+```
