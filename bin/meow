@@ -2826,8 +2826,10 @@ cmd_wallpaper() {
   carregar_conf || return "$MEOW_ERRO"
   local acao="${1:-estado}"
   case "$acao" in
-    estado|aplicar|adicionar|banir|desbanir|semear|permitir|proximo|anterior|carrossel|lado)
-      # Só passa adiante o que o scripts/wallpaper.sh tem de verdade. Os
+    estado|aplicar|usar|adicionar|banir|desbanir|semear|permitir|proximo|anterior|carrossel|lado)
+      # Só passa adiante o que o scripts/wallpaper.sh tem de verdade. O `usar`
+      # faltava até 24/09/2026: o «Usar» da galeria do painel saía 2 com a
+      # mensagem de uso, e o script o tinha desde a 28173e2 (achado da P46). Os
       # comandos `fixar`, `favoritar` e `recolorir` do contrato NÃO existem ainda.
       #
       # O ENCAMINHAMENTO PASSA `"$@"`, E NÃO UM ARGUMENTO SÓ — 06/09/2026
@@ -3487,6 +3489,18 @@ cmd_desfazer() {
     [ -d "$d" ] && { primeiro="$d"; break; }
   done
   if [ -n "$primeiro" ]; then
+    # O BACKUP DE ANTES PODE NÃO TER TEMA NENHUM — 24/09/2026, achado da P46.
+    #   Numa máquina que nunca gravou tema do COSMIC, o primeiro backup nasce sem
+    #   `com.system76.CosmicTheme.*`, e o `cp` de um glob vazio saía 2 com
+    #   "Arquivo ou diretório inexistente". Antes do MeowSystem, aqui valia o
+    #   tema de fábrica, sem nada gravado — é isso que se diz.
+    local tem_tema=0 f
+    for f in "$primeiro"/com.system76.CosmicTheme.*; do [ -e "$f" ] && { tem_tema=1; break; }; done
+    if [ "$tem_tema" = "0" ]; then
+      meow_info "o backup de antes ($(basename "$primeiro" | cut -c1-19)) não tem tema do COSMIC:"
+      meow_info "  antes do MeowSystem esta máquina usava o tema de fábrica, sem nada gravado"
+      return "$MEOW_OK"
+    fi
     meow_info "devolvendo o COSMIC ao estado de $(basename "$primeiro" | cut -c1-19)"
     if [ -t 0 ] && [ "${MEOW_SIM:-0}" != "1" ]; then
       printf '  %sisto devolve o tema do COSMIC para antes do MeowSystem.%s\n' "$C_AMARELO" "$C_ZERO"

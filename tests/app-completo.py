@@ -2693,21 +2693,10 @@ EXCECOES = {
 #   Cada entrada: padrão da reprovação -> (endereço do conserto, se ele aparece
 # em TODA corrida).
 DEFEITOS_CONHECIDOS = {
-    r"mandou sinal para fora da casa: pkill\(função\) -f cosmic-(launcher|app-library)$": (
-        "o `meow_lancador_reler` (lib/comum.sh) recarrega o lançador por "
-        "`pkill -f cosmic-launcher`, pelo nome, na máquina inteira. Na sessão "
-        "dela é o que se quer; numa casa de brinquedo acertaria o lançador da "
-        "sessão de verdade — é a regra da P44 (o sinal não sai da casa), e o "
-        "conserto é o mesmo do `meow_painel_desta_casa`. Só aparece quando o "
-        "lançador da sessão está vivo (o `pgrep` vem antes do `pkill`): medido, "
-        "numa corrida da suíte ele não estava, e a linha não apareceu.",
-        False),
-    r"^«Usar» muda a imagem da casa": (
-        "o «Usar» da galeria roda `meow wallpaper usar <imagem>`, e o `cmd_wallpaper` "
-        "do bin/meow não tem `usar` na lista do que repassa ao scripts/wallpaper.sh "
-        "(que tem, desde a 28173e2): sai 2 com a mensagem de uso. O conserto é uma "
-        "palavra na lista do bin/meow.",
-        True),
+    # Vazio desde 24/09/2026: os dois que a P46 achou (o `usar` que o
+    # `cmd_wallpaper` não repassava e o `meow_lancador_reler` que mirava o
+    # lançador da máquina inteira) foram consertados na origem, e o percurso
+    # passou a cobrar que o «Usar» da galeria termine bem.
 }
 
 

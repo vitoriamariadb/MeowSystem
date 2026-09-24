@@ -1478,10 +1478,18 @@ meow_lancador_reler() {
   local matou=0
   # `cosmic-launcher` primeiro: é o mais barato de repor e o que ela usa por
   # atalho de teclado, então a janela de indisponibilidade fica no menor.
+  # SÓ OS DESTA CASA — 24/09/2026, achado da P46. Era `pkill -f`, pelo nome, na
+  #   máquina inteira: um `meow` rodado com outro HOME (a casa de brinquedo dos
+  #   testes) fechava a grade da sessão de verdade. A regra é a da P44 para o
+  #   painel (`meow_painel_desta_casa`, lib/painel.sh): deste usuário e deste
+  #   HOME. Na sessão dela nada muda — o lançador tem o HOME dela.
+  local p casa eu="${HOME%/}"
   for alvo in cosmic-launcher cosmic-app-library; do
-    if pgrep -f "$alvo" >/dev/null 2>&1; then
-      pkill -f "$alvo" 2>/dev/null && matou=1
-    fi
+    for p in $(pgrep -u "$(id -u)" -f "$alvo" 2>/dev/null); do
+      casa="$(tr '\0' '\n' < "/proc/$p/environ" 2>/dev/null | sed -n 's/^HOME=//p' | head -n1)"
+      [ -n "$casa" ] && [ "${casa%/}" = "$eu" ] || continue
+      kill "$p" 2>/dev/null && matou=1
+    done
   done
   [ "$matou" = "1" ] && meow_debug "lançador chacoalhado — o cosmic-session repõe em segundos"
   return 0
