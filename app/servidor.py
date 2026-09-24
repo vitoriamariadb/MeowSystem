@@ -1058,13 +1058,16 @@ def arte_da_vitrine(ident, arte):
 # SÃO TRÊS CHAVES, NOMEADAS, E O PORQUÊ DE CADA UMA ESTÁ NO BLOCO DELA, ABAIXO
 #   Não é regra derivada do comentário, e é de propósito: as três dizem coisas
 #   diferentes (uma lista de flavors de um acervo, um rótulo, um molde de dois
-#   campos), e uma regra que as juntasse precisaria de três exceções.
+#   campos), e uma regra que as juntasse precisaria de três exceções. A P31
+#   (23/09/2026) acrescentou a quarta, a «Variante do tema», com o bloco dela.
 #
 # O QUE NÃO MUDA: a cerca do `validar_valor`. Ela continua sendo a lista do
 # `meow.conf.exemplo` — o meow.conf vence o pack (docs/PACKS.md, "Quem vence"),
 # e quem escreveu `ICONES_FLAVOR="mocha"` à mão com o Dracula no ar continua
 # podendo; a página só não OFERECE o que o pack não escolheu, e mostra o valor
-# de agora quando ele estiver fora da lista.
+# de agora quando ele estiver fora da lista. A exceção é a da P31: a «Variante
+# do tema» cerca pelos flavors dos packs do disco (`_flavors_dos_packs`), porque
+# a linha do exemplo recusava o alucard que a página passou a oferecer.
 
 # Onde o `construir_pastas.sh` procura as cores do papirus-folders, com o mesmo
 # `MEOW_CAT_FOLDERS` por cima. As duas pontas leem o mesmo diretório; o que a
@@ -1110,6 +1113,17 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
             oferta.append(agora)
         item["opcoes"] = oferta
         item["rotulos"] = {f: (mt["nomes"].get(f) or f) + herdado for f in oferta}
+        # O «VALE COMO» É A RESPOSTA DA REGRA, E NÃO A EXPANSÃO DO SHELL — P31
+        #   Com o conf de fábrica e o Dracula no ar o cartão dizia «Vale como:
+        #   dracula» — o `"$FLAVOR"` expandido —, e o `icones_mimetypes.sh` não
+        #   vestia nada, porque dracula não tem acervo. Os dois agora perguntam ao
+        #   `flavor_de_icones` do scripts/pack.py, e o `tests/pack.sh` confere
+        #   que a resposta daqui é a que o script instala.
+        try:
+            item["efetivo"] = modulo_pack().flavor_de_icones(
+                vocab["id"], efetivos.get("ICONES_FLAVOR"), efetivos.get("FLAVOR"))
+        except Exception:
+            pass
 
     # 2. «Pack de ícones Dracula nos aplicativos» — o ajuste liga os desenhos de
     #    aplicativo DO PACK NO AR (`icones.apps`), seja ele qual for. O nome de
@@ -1167,6 +1181,57 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
             "fora_do_papirus": (nomes.get(flavor_no_ar) or flavor_no_ar)
                                if cores_de and flavor_no_ar not in cores_de else "",
         }
+
+    # 4. «Variante do tema» — os flavors do PACK NO AR, e não a cerca do
+    #    exemplo. [P31, 23/09/2026] A linha `mocha | macchiato | frappe | latte |
+    #    dracula` do `meow.conf.exemplo` oferecia, com o Dracula no ar, quatro
+    #    sabores do Catppuccin e nenhum alucard — que é o claro do próprio
+    #    Dracula, e que a cerca recusava com 400. As opções saem do
+    #    `paleta.json` do pack (pelo `vocabulario`), do escuro para o claro pela
+    #    luminância do `base` como as variantes das pastas acima, com o nome que
+    #    o pack dá; o claro que o método do Latte derivou diz "derivado". O valor
+    #    de agora, se estiver fora, continua oferecido, como no bloco 1. A frase
+    #    do exemplo ("Catppuccin em três escuros e um claro, ou Dracula") dava o
+    #    inventário de dois packs cravado em texto; a daqui diz de qual pack são.
+    #    A cerca da escrita é a do `_flavors_dos_packs`, logo abaixo.
+    item = por_chave.get("FLAVOR")
+    mod = modulo_pack()
+    if item and mod and vocab["flavors"]:
+        ibase = mod.SLOTS.index("base")
+        flavors = sorted(vocab["flavors"], key=lambda f: mod._luminancia(f["cores"][ibase]))
+        oferta = [f["id"] for f in flavors]
+        agora = item.get("valor") or ""
+        if agora and "$" not in agora and agora not in oferta:
+            oferta.append(agora)
+        item["opcoes"] = oferta
+        item["rotulos"] = {f["id"]: f["nome"] + (" (derivado)" if f.get("derivado") else "")
+                           for f in flavors}
+        item["frase"] = ("As variantes do pack «%s», do escuro ao claro. Vale com "
+                         "qualquer cor de destaque." % nome_pack)
+
+
+def _flavors_dos_packs():
+    """Os flavors que algum pack deste disco tem — a cerca da «Variante do tema». [P31]
+
+    A OFERTA É O PACK NO AR; A CERCA É O DISCO INTEIRO, e a diferença é de
+    propósito. Cercar pelo pack no ar faria o `/api/definir` recusar
+    `FLAVOR="dracula"` com o Catppuccin no ar — e um `.conf` importado com
+    `PACK="dracula"` e `FLAVOR="dracula"` entraria pela metade, o pack trocado e
+    o flavor recusado. O que o shell não saberia ler é um flavor que NENHUM pack
+    tem; é esse que a cerca recusa. Um pack quebrado não entra na conta, e não
+    derruba a dos outros.
+    """
+    mod = modulo_pack()
+    saida = []
+    if not mod:
+        return saida
+    for ident in sorted(_packs_no_disco()):
+        try:
+            _p, dados, _d = mod.validar(ident, silencioso=True)
+        except Exception:
+            continue
+        saida += [f for f in dados["flavors"] if f not in saida]
+    return saida
 
 
 def _vestigio_de_pack(chave):
@@ -2512,6 +2577,13 @@ def validar_valor(item, valor):
 
     fechadas = _opcoes_fechadas(item["chave"], item["ajuda"], item["inline"],
                                 item["padrao"])
+    # A «VARIANTE DO TEMA» CERCA PELOS PACKS DO DISCO, e não pela linha do
+    # exemplo — P31. A página passou a oferecer o alucard com o Dracula no ar, e
+    # esta cerca o recusava ("FLAVOR aceita mocha | ... | dracula"): a página
+    # propondo o que a escrita nega, que é o desencontro que a regra do topo
+    # desta função existe para não ter. Ver `_flavors_dos_packs`.
+    if item["chave"] == "FLAVOR" and fechadas:
+        fechadas = _flavors_dos_packs() or fechadas
     if fechadas and valor not in fechadas:
         return "%s aceita %s" % (item["chave"], " | ".join(fechadas))
 
@@ -2792,7 +2864,18 @@ def logo_do_painel(flavor, accent):
     erro: a página inteira funciona sem a marca."""
     dados = _paleta_dados()
     flavors = dados.get("flavors", {})
-    cores = flavors.get(flavor) or flavors.get("mocha") or {}
+    # A QUEDA É O PADRÃO DO PACK NO AR, E NÃO O MOCHA — 23/09/2026, P31
+    #   Era `flavors.get("mocha")`: um flavor do Catppuccin cravado na queda de
+    #   uma função que lê a paleta do pack no ar. Com o Dracula no ar e um
+    #   FLAVOR que ele não tem, a busca não achava nada nas cores DESTE pack e
+    #   caía em `{}` — a marca saía sem tinta. O `flavor_padrao` que o pack
+    #   declara é o flavor que ele garante ter; sem a declaração, o primeiro da
+    #   paleta, como o `vocabulario` faz.
+    mod = modulo_pack()
+    no_ar = _pack_no_ar()
+    padrao = ((mod.campo(no_ar, "paleta.flavor_padrao") if mod and no_ar else "")
+              or next(iter(flavors), ""))
+    cores = flavors.get(flavor) or flavors.get(padrao) or {}
     if accent not in cores:
         accent = "mauve" if "mauve" in cores else next(iter(cores), "")
     tinta = cores.get(accent) or ""
@@ -2817,14 +2900,20 @@ def logo_do_painel(flavor, accent):
     #   pedida em `mocha` com o pack Dracula ativo não acha nenhum dos dois. Cair
     #   no mocha do acervo HERDADO é o que mantém a marca na tela — e é o que o
     #   `acervo` já faz sozinho ao subir a herança.
+    #
+    #   O MOCHA SAIU DO CÓDIGO NA P31, E A COBERTURA FICOU. A queda passou a ser
+    #   o `padrao` do pack no ar (acima), e depois o `flavor_padrao` do pack
+    #   PADRÃO, perguntado ao scripts/pack.py — que hoje é o mesmo mocha, só que
+    #   dito por quem o declara. O terceiro degrau é o de antes com outro nome:
+    #   um pack cujos autorais não trazem a marca continua herdando a do padrão.
     def _marca(nome_flavor):
-        mod = modulo_pack()
-        if not mod:
+        if not mod or not nome_flavor:
             return ""
         return mod.acervo("icones.autorais.desenhos",
                           "meowsystem-painel-%s.svg" % nome_flavor) or ""
 
-    arquivo = _marca(flavor) or _marca("mocha")
+    arquivo = (_marca(flavor) or _marca(padrao)
+               or _marca(mod.campo(mod.PACK_PADRAO, "paleta.flavor_padrao") if mod else ""))
     if not arquivo or not os.path.isfile(arquivo):
         return None
     with open(arquivo, "r", encoding="utf-8") as fh:

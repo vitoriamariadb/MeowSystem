@@ -104,6 +104,11 @@ VERBOS
                                  Não escreve: recusa (1) antes de o shell
                                  escrever. O flavor que já está no ar vem por
                                  `$FLAVOR`. Ver `plano_de_uso`.
+    flavor-icones [id]           o flavor dos ícones de arquivo que vale agora,
+                                 lendo `$ICONES_FLAVOR` e `$FLAVOR` do
+                                 ambiente. É a regra única que os três
+                                 `icones_*.sh` e o painel perguntam. 1 = sem
+                                 resposta. Ver `flavor_de_icones`.
     raizes                       imprime as raízes de busca, na ordem
     padrao                       o diretório do pack PADRÃO, resolvido pelas
                                  raízes como qualquer outro. É o que o shell
@@ -236,8 +241,8 @@ CAMPOS_COM_LEITOR = {
     # `vocabulario`, e por ele o painel: a «Variante dos ícones de arquivo» de um
     # pack que herda mimetypes oferece o flavor que ESTE pack escolheu, com o nome
     # do dono ao lado — e não os quatro sabores do Catppuccin soltos numa máquina
-    # vestida de Dracula. O shell ainda não o lê: o `ICONES_FLAVOR` do meow.conf
-    # continua mandando, que é o "Quem vence" do docs/PACKS.md.
+    # vestida de Dracula. O shell passou a lê-lo na P31 (23/09/2026), pela mesma
+    # regra do painel: o `flavor_de_icones`, logo acima do `vocabulario`.
     "icones.mimetypes.flavor",
     # O `gerar` DOS AUTORAIS TINHA LEITOR, E O AVISO DIZIA QUE NÃO — 23/09/2026,
     # sprint P16. O `cmd_construir` o lê desde a P29 (é o único "derivado" que um
@@ -3519,6 +3524,96 @@ def _nomes_curtos(p, dados):
     return saida
 
 
+# O FLAVOR DOS ÍCONES DE ARQUIVO HERDADOS: UMA REGRA, CHAMADA PELOS DOIS LADOS
+# — 23/09/2026, sprint P31
+#
+# O DEFEITO, MEDIDO
+#   A P10 ensinou o painel a ler `icones.mimetypes.flavor` (o `vocabulario`,
+#   logo abaixo) e o shell ficou para trás: os três `icones_*.sh` seguiam em
+#   `${ICONES_FLAVOR:-macchiato}`. Com o conf de fábrica (`ICONES_FLAVOR="$FLAVOR"`)
+#   e o Dracula no ar o valor chegava `dracula`, que não tem acervo de mimetype,
+#   e o `icones_mimetypes.sh` saía com "não há acervo de mimetype para o flavor
+#   'dracula' — nada a vestir" (rc=3, num HOME de brinquedo) — enquanto a aba
+#   Ícones oferecia o macchiato que o pack escolheu e dizia «Vale como:
+#   dracula». É o "a lista não acompanhou a irmã" que a P17 pegou duas vezes, e
+#   a P10 foi reprovada por refazer em `awk` uma regra que o painel tinha. Por
+#   isso a regra mora AQUI, uma vez: o shell a pergunta pelo verbo
+#   `flavor-icones` e o painel pelo `_com_o_vocabulario_do_pack` do servidor.
+#
+# A ORDEM É A DO "Quem vence" DO docs/PACKS.md
+#   1. `ICONES_FLAVOR` escrito à mão — diferente do `FLAVOR` — vence, exista ou
+#      não no acervo. Quem escreveu `latte` com o Dracula no ar escolheu isso; se
+#      não houver o que vestir, o script diz em português, como sempre disse.
+#   2. O de fábrica (`"$FLAVOR"`, ou vazio, que vale o mesmo) que EXISTE no
+#      acervo alcançado vale como está: o Catppuccin no Latte veste Latte.
+#   3. O de fábrica que NÃO existe cai no `icones.mimetypes.flavor` do pack que
+#      herda o acervo, se ele declarou um e esse um existe lá.
+#   4. Sem nada disso, o de fábrica volta como veio — e o script diz que não há
+#      acervo para ele, que é a resposta de antes. A regra não inventa um flavor
+#      que ninguém escolheu.
+#
+# `ICONES_FLAVOR` IGUAL AO `FLAVOR` É TRATADO COMO O DE FÁBRICA
+#   Depois do `.` do meow.conf a regra só vê o valor expandido, e não tem como
+#   distinguir `"$FLAVOR"` de `"dracula"` escrito à mão com `FLAVOR="dracula"`.
+#   Não precisa: nos dois casos o pedido é um flavor que o acervo não tem, e
+#   vestir o que o pack escolheu é melhor que não vestir nada.
+#
+# O VAZIO DEIXOU DE SER MACCHIATO. Era `${ICONES_FLAVOR:-macchiato}` — um nome
+#   do Catppuccin cravado em três scripts, e a escolha pessoal de ícones em
+#   macchiato com a interface em mocha, de antes de 21/09/2026, quando a chave
+#   passou a herdar o `FLAVOR` de fábrica. Vazio agora é "acompanha o tema",
+#   como a chave de fábrica.
+def _mimetypes_de(ident, p, dados):
+    """O acervo de mimetype que o pack `ident` alcança, ou None.
+
+    Um dicionário com `base` (o diretório), `dono` (o id de quem o traz),
+    `p_dono`/`dados_dono` (o pack.json e a paleta desse dono), `existem` (os
+    flavors do dono que têm diretório ali, na ordem da paleta dele) e
+    `escolhido` (o `icones.mimetypes.flavor` que `ident` declara quando HERDA o
+    acervo, ou None).
+
+    É a conta que o `vocabulario` fazia sozinho desde a P10. Saiu para cá para a
+    oferta da aba Ícones e a regra do `flavor_de_icones` lerem o MESMO
+    `existem` e o MESMO `escolhido`: duas contas deles divergiriam no primeiro
+    acervo com um diretório a mais.
+    """
+    base = acervo("icones.mimetypes.desenhos", ref=ident)
+    if not base or not os.path.isdir(base):
+        return None
+    dono = _pack_de(base)
+    if dono == ident:
+        p_dono, dados_dono = p, dados
+    else:
+        p_dono, dados_dono, _d = validar(dono, silencioso=True)
+    return {
+        "base": base,
+        "dono": dono,
+        "p_dono": p_dono,
+        "dados_dono": dados_dono,
+        "existem": [f for f in dados_dono["flavors"] if os.path.isdir(os.path.join(base, f))],
+        "escolhido": campo(ident, "icones.mimetypes.flavor") if dono != ident else None,
+    }
+
+
+def flavor_de_icones(ref, pedido, flavor):
+    """O flavor dos ícones de arquivo que vale agora. Levanta Recusa.
+
+    `pedido` é o `ICONES_FLAVOR` e `flavor` é o `FLAVOR`, os dois já expandidos
+    pelo shell; `ref` é o pack no ar (None = o ativo). A ordem e o porquê estão
+    no bloco logo acima. Pode devolver '' — só quando o conf não traz nem um nem
+    outro e o pack não escolheu nada.
+    """
+    pedido, flavor = (pedido or "").strip(), (flavor or "").strip()
+    if pedido and pedido != flavor:
+        return pedido
+    p, dados, _dir = validar(_ref_ativa(ref), silencioso=True)
+    mt = _mimetypes_de(p["id"], p, dados)
+    fabrica = pedido or flavor
+    if mt and fabrica not in mt["existem"] and mt["escolhido"] in mt["existem"]:
+        return mt["escolhido"]
+    return fabrica
+
+
 def vocabulario(ref):
     """O que a tela precisa para falar com as palavras DESTE pack. Levanta Recusa.
 
@@ -3545,11 +3640,17 @@ def vocabulario(ref):
     def nome_do_pack(outro):
         return campo(outro, "nome") or outro
 
+    # `derivado` É O CLARO QUE NINGUÉM DESENHOU [P31, 23/09/2026]. A «Variante
+    # do tema» passou a oferecer os flavors DESTE pack, e o claro de um pack
+    # feito de CSV pode ter saído do método do Latte: a opção diz isso ao lado
+    # do nome, pela mesma conta do `meow pack info` e do cartão (P16).
+    derivados = claros_derivados(dados)
     saida = {
         "id": ident,
         "nome": p.get("nome") or ident,
         "flavor_padrao": (p.get("paleta") or {}).get("flavor_padrao") or next(iter(dados["flavors"])),
         "flavors": [{"id": f, "nome": curtos[f], "claro": f in (dados.get("claros") or []),
+                     "derivado": f in derivados,
                      "cores": [dados["flavors"][f][s] for s in SLOTS]}
                     for f in dados["flavors"]],
         "categorias": [{"categoria": ROTULO_DA_CATEGORIA[c], "tipo": t, "de": q,
@@ -3559,16 +3660,10 @@ def vocabulario(ref):
         "apps": None,
     }
 
-    base = acervo("icones.mimetypes.desenhos", ref=ident)
-    if base and os.path.isdir(base):
-        dono = _pack_de(base)
-        if dono == ident:
-            dados_dono, curtos_dono = dados, curtos
-        else:
-            p_dono, dados_dono, _d = validar(dono, silencioso=True)
-            curtos_dono = _nomes_curtos(p_dono, dados_dono)
-        existem = [f for f in dados_dono["flavors"] if os.path.isdir(os.path.join(base, f))]
-        escolhido = campo(ident, "icones.mimetypes.flavor") if dono != ident else None
+    mt = _mimetypes_de(ident, p, dados)
+    if mt:
+        dono, existem, escolhido = mt["dono"], mt["existem"], mt["escolhido"]
+        curtos_dono = curtos if dono == ident else _nomes_curtos(mt["p_dono"], mt["dados_dono"])
         saida["mimetypes"] = {
             "de": dono,
             "nome_de": nome_do_pack(dono),
@@ -4792,6 +4887,22 @@ def main(argv):
             print(f"PACK={ident}")
             print(f"FLAVOR={flavor}")
             print(f"PORQUE={porque}")
+            return OK
+        if verbo == "flavor-icones" and len(argv) in (2, 3):
+            # OS DOIS VALORES VÊM DO AMBIENTE, como o `$FLAVOR` do `usar`: é de
+            # lá que os `icones_*.sh` os recebem (o `install.sh` e o `bin/meow`
+            # passam o `ICONES_FLAVOR` e exportam o conf), e repeti-los na linha
+            # de comando seria uma segunda declaração do mesmo par. O `[id]`
+            # vazio é o pack ativo, pela `_ref_ativa`, como no `ponteiro`.
+            # VAZIO SAI 1, e não uma linha em branco: `acervo ... ""` devolve a
+            # pasta-mãe do acervo, e um script que a tomasse por flavor diria
+            # "0 já vestidos" com nada vestido.
+            achado = flavor_de_icones((argv[2] if len(argv) == 3 else "") or None,
+                                      os.environ.get("ICONES_FLAVOR"),
+                                      os.environ.get("FLAVOR"))
+            if not achado:
+                return RECUSADO
+            print(achado)
             return OK
         if verbo == "construir" and len(argv) in (3, 4):
             # O `--seco` é a mesma promessa do `MEOW_DRY_RUN` do lado shell: diz

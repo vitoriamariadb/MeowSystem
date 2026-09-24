@@ -1975,6 +1975,149 @@ saida="$(env MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" MEOW_ESTADO="$T/estado" 
   && ok "meow pack de-csv com dois argumentos recusa, e diz que o destino vai pelo '>'" \
   || falha "meow pack de-csv aceitou um segundo argumento (rc=$rc)" "$saida"
 
+# --- 23. o flavor dos ícones herdados: o shell e o painel dizem o mesmo — P31 --
+#
+#   A P10 ensinou o painel a ler `icones.mimetypes.flavor`, e os três
+#   `icones_*.sh` seguiram no `${ICONES_FLAVOR:-macchiato}`: com o Dracula no ar
+#   e o conf de fábrica, a aba Ícones dizia «Vale como: dracula» e o
+#   `icones_mimetypes.sh` saía com "nada a vestir". A regra passou a morar no
+#   `flavor_de_icones` do pack.py, e cada lado a pergunta. Este teste não
+#   pergunta à regra: pergunta aos DOIS LADOS, cada um pela porta que ele usa de
+#   verdade —
+#     o painel   o `_dados_esquema` (o que o `/api/esquema` manda para a página),
+#                com a ponte que o `app/run.sh` exporta;
+#     o shell    os três scripts em ensaio (`MEOW_DRY_RUN=1`), com o conf
+#                carregado como o `bin/meow` carrega, e o flavor lido do que
+#                eles DIZEM.
+#   Um lado que volte a decidir sozinho discorda do outro, e o teste cai. E cada
+#   caso tem a resposta que o "Quem vence" do docs/PACKS.md manda, para que uma
+#   regra errada dos dois lados também caia.
+#
+#   O CASO DO VAZIO É O QUE SEGURA O `icones_apps.sh`. O acervo de aplicativo só
+#   tem latte e macchiato, e o `:-macchiato` antigo dava a mesma variante que a
+#   regra em todo caso de fábrica — menos com o `ICONES_FLAVOR` vazio e o
+#   FLAVOR em latte, onde o antigo vestia macchiato.
+#
+#   NADA SAI DO TEMPORÁRIO: HOME, MEOW_CONF e o conf são de brinquedo, a ponte
+#   root aponta para um caminho que não existe, e os scripts rodam secos.
+P31_CASA="$T/p31casa"; P31_CONF="$T/p31.conf"; mkdir -p "$P31_CASA"
+p31_amb() {
+  env -i PATH="$PATH" HOME="$P31_CASA" LANG=C.UTF-8 NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+    MEOW_CONF="$P31_CONF" MEOW_PONTE=/nao/existe "$@"
+}
+cat > "$T/p31painel.py" <<'PY'
+import os, sys
+sys.path.insert(0, os.path.join(os.environ["MEOW_RAIZ"], "app"))
+import servidor
+h = servidor.Manipulador.__new__(servidor.Manipulador)
+item = next(i for i in h._dados_esquema()["chaves"] if i["chave"] == "ICONES_FLAVOR")
+print(item.get("efetivo") or "")
+PY
+p31_flavor_do_script() {   # o flavor que a saída de um icones_*.sh diz ter usado
+  sed -n -e "s/.* — flavor \([a-z0-9_]*\)$/\1/p" \
+         -e "s/.* vestid[oa]s de Catppuccin \([a-z0-9_]*\)$/\1/p" \
+         -e "s/.*para o flavor '\([a-z0-9_]*\)'.*/\1/p" \
+         -e "s|.*catppuccin-apps/\([a-z0-9_]*\)$|\1|p" \
+         -e "s/.* — Catppuccin \([a-z0-9_]*\)$/\1/p" | tail -1
+}
+p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR ("" = a de fábrica) · $5 o que a regra manda
+  sed -e "s/^PACK=.*/PACK=\"$2\"/" -e "s/^FLAVOR=.*/FLAVOR=\"$3\"/" "$RAIZ/meow.conf.exemplo" > "$P31_CONF"
+  [ -z "$4" ] || sed -i "s/^ICONES_FLAVOR=.*/$4/" "$P31_CONF"
+  local painel script saida visto apps divergiu=""
+  painel="$(p31_amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_ponte_python >/dev/null 2>&1 || exit 9
+    exec python3 "$1"' _ "$T/p31painel.py" 2>/dev/null | tail -1)"
+  for script in icones_mimetypes icones_pastas icones_apps; do
+    saida="$(p31_amb bash -c 'set -a; . "$MEOW_CONF"; set +a
+      PASTAS_XDG=sim MEOW_DRY_RUN=1 "$MEOW_RAIZ/scripts/$1.sh" --aplicar 2>&1' _ "$script")"
+    visto="$(p31_flavor_do_script <<< "$saida")"
+    # O acervo de aplicativo só publica latte e macchiato, e o próprio script
+    # aproxima o resto para o macchiato — é o `case` dele, e não outra regra.
+    apps="$5"; [ "$apps" = "latte" ] || apps="macchiato"
+    if [ "$script" = "icones_apps" ]; then
+      [ "$visto" = "$apps" ] || divergiu+=" $script='$visto' (esperava $apps)"
+    else
+      [ "$visto" = "$painel" ] || divergiu+=" $script='$visto'"
+    fi
+  done
+  if [ "$painel" != "$5" ]; then
+    falha "$1: o painel diz '$painel', e a regra manda '$5'"
+  elif [ -n "$divergiu" ]; then
+    falha "$1: o painel diz '$painel' e o shell discorda:$divergiu"
+  else
+    ok "$1: painel e os três icones_*.sh dizem '$painel'"
+  fi
+}
+p31_caso "Dracula no ar, conf de fábrica: o macchiato que o pack escolheu" \
+  dracula dracula "" macchiato
+p31_caso "Catppuccin no Latte, conf de fábrica: o latte do próprio tema" \
+  catppuccin latte "" latte
+p31_caso "Dracula no ar, ICONES_FLAVOR=\"latte\" escrito à mão: o conf vence" \
+  dracula dracula 'ICONES_FLAVOR="latte"' latte
+p31_caso "Catppuccin no Latte, ICONES_FLAVOR vazio: vazio acompanha o tema" \
+  catppuccin latte 'ICONES_FLAVOR=""' latte
+
+# O VERBO É O QUE A CONFERÊNCIA DA SPRINT RODA À MÃO, e ele sai 1 — e não uma
+# linha vazia — quando não há resposta: `acervo ... ""` devolve a pasta-mãe do
+# acervo, e um script que a tomasse por flavor diria "0 já vestidos".
+saida="$(env -u MEOW_PACK_DIR MEOW_RAIZ="$RAIZ" PACK=dracula FLAVOR=dracula ICONES_FLAVOR=dracula \
+         python3 "$RAIZ/scripts/pack.py" flavor-icones dracula 2>&1)"; rc=$?
+env -u MEOW_PACK_DIR MEOW_RAIZ="$RAIZ" FLAVOR= ICONES_FLAVOR= \
+  python3 "$RAIZ/scripts/pack.py" flavor-icones catppuccin >/dev/null 2>&1; rc_vazio=$?
+[ "$rc" = "0" ] && [ "$saida" = "macchiato" ] && [ "$rc_vazio" = "1" ] \
+  && ok "pack.py flavor-icones dracula responde macchiato, e sem conf nenhum sai 1" \
+  || falha "o verbo flavor-icones não responde como a regra (rc=$rc/$rc_vazio)" "$saida"
+
+# A «VARIANTE DO TEMA» OFERECE O PACK NO AR, E A CERCA ACEITA O QUE ELA OFERECE.
+# Com o Dracula no ar a página oferecia os quatro sabores do Catppuccin e
+# recusava o alucard com 400. O claro derivado de um pack de CSV diz que é.
+cat > "$T/p31variante.py" <<'PY'
+import os, sys
+sys.path.insert(0, os.path.join(os.environ["MEOW_RAIZ"], "app"))
+import servidor
+pack, deriva = sys.argv[1], sys.argv[2] == "deriva"
+esquema = servidor.ler_esquema()
+vocab = servidor.modulo_pack().vocabulario(pack)
+servidor._com_o_vocabulario_do_pack(esquema, vocab, {"FLAVOR": vocab["flavor_padrao"]})
+item = next(i for i in esquema if i["chave"] == "FLAVOR")
+cru = next(i for i in servidor.ler_esquema() if i["chave"] == "FLAVOR")
+erros = []
+ids = [f["id"] for f in vocab["flavors"]]
+if sorted(item["opcoes"]) != sorted(ids):
+    erros.append("oferece %r, e o pack tem %r" % (item["opcoes"], ids))
+for f in vocab["flavors"]:
+    rot = item["rotulos"].get(f["id"], "")
+    if not rot.startswith(f["nome"]) or (f.get("derivado") != rot.endswith("(derivado)")):
+        erros.append("rótulo de %s: %r" % (f["id"], rot))
+    q = servidor.validar_valor(cru, f["id"])
+    if q:
+        erros.append("a cerca recusa %s: %s" % (f["id"], q))
+if deriva and not any(r.endswith(" (derivado)") for r in item["rotulos"].values()):
+    erros.append("o claro derivado do pack de CSV não diz que é derivado: %r" % item["rotulos"])
+if not servidor.validar_valor(cru, "nao-existe-em-pack-nenhum"):
+    erros.append("a cerca aceitou um flavor que nenhum pack tem")
+for palavra in ("Mocha", "Frappé", "Latte", "Macchiato", "Catppuccin"):
+    if any(palavra in r for r in item["rotulos"].values()) or palavra in item.get("frase", ""):
+        erros.append("a «Variante do tema» ainda diz %r" % palavra)
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+for caso in "dracula desenhado" "$ID-csv deriva"; do
+  pack="${caso% *}"
+  saida="$(amb python3 "$T/p31variante.py" $caso 2>&1)"; rc=$?
+  [ "$rc" = "0" ] \
+    && ok "a «Variante do tema» com o $pack no ar: os flavors dele, e a cerca aceita todos" \
+    || falha "a «Variante do tema» com o $pack no ar não fala o pack" "$saida"
+done
+
+# O BALÃO DA TIRA E A QUEDA DA MARCA NÃO NOMEIAM MAIS UM PACK NO CÓDIGO. Só o
+# código conta: os comentários contam a história, e ela cita o que saiu.
+tira="$(grep -c 'class: "home-tira", title: "[^"]*Catppuccin' "$RAIZ/app/pagina/app.js")"
+queda="$(sed -n '/^def logo_do_painel(/,/^def /p' "$RAIZ/app/servidor.py" \
+         | grep -v '^[[:space:]]*#' | grep -c '"mocha"')"
+[ "$tira" = "0" ] && [ "$queda" = "0" ] \
+  && ok "o balão da tira e a queda do logo_do_painel não cravam o Catppuccin" \
+  || falha "sobrou nome de pack cravado: tira=$tira, \"mocha\" no logo_do_painel=$queda"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

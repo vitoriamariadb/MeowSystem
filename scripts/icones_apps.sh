@@ -54,7 +54,20 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   cima num acervo de terceiro cuja licença o `assets/icones/PROCEDENCIA.md` registra
 #   como não declarada. Se um dia ela pedir mocha no lançador, a saída limpa é
 #   SEPARAR a chave (`APPS_FLAVOR`), e o acervo só publica latte e macchiato.
-FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
+#
+# O VALOR SAI DA MESMA REGRA DAS IRMÃS — 23/09/2026, P31
+#   Era `${ICONES_FLAVOR:-macchiato}`, a mesma linha das duas etapas de ícone
+#   de arquivo. As três passam a perguntar ao `flavor-icones` do pack.py, que é
+#   também o que a aba Ícones pergunta; o porquê está no bloco gêmeo do
+#   `icones_mimetypes.sh`. Com o Dracula no ar e o conf de fábrica, a resposta é
+#   o macchiato que o pack declara — e o `case` abaixo deixa de dizer "dracula
+#   aproximado para macchiato", porque ninguém pediu dracula aqui: pediu-se o
+#   tema, e o pack disse qual flavor de ícone o acompanha. O `_pack_ref` é o
+#   das irmãs, com a mesma queda para o pack padrão. Resposta vazia cai no `*)`
+#   do `case` — o macchiato, que era o que o vazio dava antes da regra.
+_pack_ref="$(meow_pack_dir)"
+[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
+FLAVOR_ICONES="$(python3 "$RAIZ/scripts/pack.py" flavor-icones "$_pack_ref")" || FLAVOR_ICONES=""
 # O acervo só tem duas variantes: dark=Macchiato, light=Latte. Frappé e Mocha
 # caem no vizinho mais próximo em claridade, e o script DIZ que fez isso.
 case "$FLAVOR_ICONES" in
