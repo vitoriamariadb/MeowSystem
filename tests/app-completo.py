@@ -1132,8 +1132,14 @@ class Percurso:
         # provou o que tinha de provar (pediu a ação certa, abriu a gaveta);
         # esperar o trabalho inteiro de novo mediria a ação duas vezes. Aqui o
         # «Parar» ganha a vez, que é também onde ele é conferido.
+        #   SÓ PARA QUEM NÃO ESCREVE, OU PARA O ENSAIO: uma ação que escreve,
+        # repetida, costuma vir com outro argumento (outra imagem, outro lado),
+        # e o gesto que a chamou confere o efeito dela depois — interrompida,
+        # ela não o teria. Medido numa corrida da suíte: o «Medir» da aba Noite
+        # parado antes de gravar o `lado.tsv`.
         chave = (acao["id"], seco)
-        if chave in self.rodadas and self.js("() => TRABALHO !== null"):
+        if (chave in self.rodadas and (seco or not acao["escreve"])
+                and self.js("() => TRABALHO !== null")):
             parar = self.pag.locator("#parar")
             try:
                 # O trabalho pode acabar entre a pergunta e o clique — aí o
