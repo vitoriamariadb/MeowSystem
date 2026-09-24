@@ -466,6 +466,26 @@ def main() -> int:
     if MOLDE in alvos:
         sys.exit(f"ERRO: '{MOLDE}' é o molde e o reset de fábrica — não se gera nela.")
 
+    # O ACENTO DO meow.conf GANHA CAPTURA AQUI — 24/09/2026, sprint P48
+    #   Sem argumento este script é a etapa `gerar` do instalador (e o conserto
+    #   do `chk_gerar`), que roda ANTES da etapa `tema`. É o lugar em que a
+    #   captura do acento escolhido tem de passar a existir: a etapa `tema` a
+    #   procura pelo `meow_captura`, e sem ela mandava importar o `.ron` na GUI e
+    #   rodar `meow tema capturar` — o passo manual do achado 31. Quem deriva é
+    #   o irmão `derivar_acento.py`; aqui só se pergunta a ele, e o `--conferir`
+    #   sai 1 quando há o que derivar, que é o que faz o instalador rodar esta
+    #   geração. Um par que não se deriva (flavor sem captura nenhuma) sai 3 lá
+    #   e é só informação aqui: quem avisa é a etapa `tema`.
+    #   Antes da checagem do esquema v1, de propósito: a derivação copia a v1 da
+    #   própria base, não gera nada por cima do molde de 04/2026.
+    rc_acento = 0
+    if not args.capturas:
+        import derivar_acento
+        par = derivar_acento.par_ativo()
+        if par:
+            rc_acento, frase = derivar_acento.derivar(par, conferir)
+            print(f"  {frase}")
+
     # O MOLDE É DE UM COSMIC DE 04/2026, E ISSO NÃO É UMA GARANTIA
     #   Se o COSMIC desta máquina escreve outro conjunto de chaves na Dark/v1,
     #   gerar por cima produz o tema híbrido que docs/COSMIC-THEMING.md §4 manda
@@ -568,6 +588,8 @@ def main() -> int:
         if divergentes:
             print(f"\n{divergentes} arquivo(s) de v1 com campo divergente "
                   f"({iguais} conferem). Rode sem --conferir para gerar.")
+            return 1
+        if rc_acento == 1:
             return 1
         print(f"v1 das capturas já derivada da paleta ({iguais} arquivos conferem"
               f"{f', {pulados} sem par no fóssil' if pulados else ''})")

@@ -1457,11 +1457,14 @@ class Percurso:
         atual = el.input_value()
         linha = el.locator("xpath=ancestor::article[1]").locator("code.cmd")
         c0 = linha.inner_text()
-        outros = [o for o in el.locator("option").evaluate_all(
-            "(os) => os.map((o) => o.value)") if o != atual]
+        opcoes = el.locator("option").evaluate_all("(os) => os.map((o) => o.value)")
+        if nome.startswith("ação «Trocar de tema» "):
+            self.conferir_temas_prontos(opcoes, atual)
+        outros = [o for o in opcoes if o != atual]
         if not outros:
-            # Uma opção só (a casa de brinquedo tem UM tema pronto): não há o
-            # que trocar, e o que se confere é o comando dizer essa opção.
+            # Uma opção só: não há o que trocar, e o que se confere é o
+            # comando dizer essa opção. (Era o caso de «Trocar de tema», com
+            # a `original` sozinha, até a P48 — ver `conferir_temas_prontos`.)
             self.checa(atual in c0, f"o comando na tela leva a única opção ({c0!r})")
             return
         el.select_option(outros[0])
@@ -1469,6 +1472,36 @@ class Percurso:
                    f"trocar o seletor reescreve o comando na tela ({c0!r} → "
                    f"{linha.inner_text()!r})")
         el.select_option(atual)
+
+    # OS TEMAS PRONTOS SÃO OS DOS PACKS, E A `original` NÃO É UM DELES
+    # — 24/09/2026, sprint P48 (achado 30)
+    #   A validação no painel de verdade achou «Trocar de tema» com UMA opção,
+    #   `original`, pré-selecionada: o servidor listava `assets/temas/capturados/`
+    #   e as capturas tinham descido para dentro dos packs (P27). E um clique em
+    #   «Executar» aplicaria o tema de fábrica de OUTRA máquina. Este percurso
+    #   não via nada disso: o seletor de uma opção só caía no ramo "não há o que
+    #   trocar" do `h_seletor_acao`, e passava.
+    #   A régua é a do `meow tema` — o `pack.py capturas` da raiz de brinquedo,
+    #   com o pack padrão, que é o que o `PACK=""` do conf de brinquedo pede —
+    #   menos a `original`. E a régua não pode estar vazia nem ser só a
+    #   `original`: aí as duas listas concordariam no defeito.
+    def conferir_temas_prontos(self, opcoes, atual):
+        ambiente = {k: v for k, v in os.environ.items() if not k.startswith("MEOW_")}
+        ambiente["HOME"] = CASA
+        r = subprocess.run([sys.executable, os.path.join(RAIZ_B, "scripts", "pack.py"),
+                            "capturas"], env=ambiente, capture_output=True, text=True)
+        regua = [n for n in r.stdout.split() if n != "original"]
+        par = f"{valor_de('FLAVOR')}-{valor_de('ACCENT')}"
+        if not self.checa(r.returncode == 0 and par in regua,
+                          f"a régua dos temas prontos (pack.py capturas) traz {par}: "
+                          f"rc={r.returncode} {r.stdout.split()}"):
+            return
+        self.checa(opcoes == regua,
+                   f"«Trocar de tema» oferece os temas prontos dos packs ({regua}), "
+                   f"e oferece {opcoes}")
+        self.checa("original" not in opcoes and atual != "original",
+                   f"«Trocar de tema» não oferece a `original`, o tema de fábrica de "
+                   f"outra máquina (oferece {opcoes}, escolhida {atual!r})")
 
     def h_ver_comando(self, nome):
         el = self.achar(nome)

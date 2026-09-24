@@ -356,8 +356,19 @@ chk_gerar() {
     "$MEOW_SEM_DEPENDENCIA") ;;
     *) rc=1; msg="algum .ron saiu da paleta" ;;
   esac
-  python3 "$RAIZ/scripts/gerar_tema_v1.py" --conferir >/dev/null 2>&1 \
-    || { rc=1; msg="${msg:+$msg; }a v1 das capturas saiu da paleta"; }
+  # Desde a P48 (24/09/2026) o `gerar_tema_v1.py` sem argumento também
+  # confere a captura do acento do meow.conf, e sai 1 quando ela ainda não foi
+  # derivada. A frase tem de dizer qual das duas coisas faltou.
+  local v1_saida
+  v1_saida="$(python3 "$RAIZ/scripts/gerar_tema_v1.py" --conferir 2>&1)" || {
+    rc=1
+    if [[ "$v1_saida" == *": derivaria de "* ]]; then
+      msg="${msg:+$msg; }a captura de $(alvo_tema) ainda não foi derivada"
+    fi
+    if [[ "$v1_saida" == *"divergente  "* || "$v1_saida" != *": derivaria de "* ]]; then
+      msg="${msg:+$msg; }a v1 das capturas saiu da paleta"
+    fi
+  }
   if [ "$rc" = "0" ] && [ "$rc_ron" = "$MEOW_SEM_DEPENDENCIA" ]; then
     echo "os .ron ainda não foram gerados nesta máquina — 'meow doctor --consertar' os escreve em $MEOW_ESTADO/temas/"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -376,8 +387,20 @@ chk_gerar() {
 chk_tema() {
   local alvo; alvo="$(alvo_tema)"
   [ -n "$(meow_captura "$alvo")" ] || {
-    echo "não há captura para '$alvo' — importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez pela GUI"
-    echo "e rode: meow tema capturar $alvo"
+    # O ACENTO QUE SE DERIVA NÃO É PASSO MANUAL — 24/09/2026, sprint P48
+    #   Esta linha mandava importar o `.ron` na GUI para QUALQUER par sem
+    #   captura. O par que se deriva (`derivar_acento.py`) é divergência com
+    #   conserto: o `fix_gerar`, que roda antes deste na mesma lista, o deriva,
+    #   e o `fix_tema` o aplica — um `--consertar` só. A GUI fica para o flavor
+    #   que nunca foi fotografado, que é o único caso sem outro caminho.
+    local deriva
+    deriva="$(python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$alvo" 2>&1)"
+    if [ "$?" = "1" ]; then
+      echo "${deriva#  } — 'meow doctor --consertar' deriva e aplica"
+      return "$MEOW_DIVERGENTE"
+    fi
+    echo "não há captura para '$alvo' (${deriva#*não se deriva — })"
+    echo "importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez pela GUI e rode: meow tema capturar $alvo"
     return "$MEOW_SEM_DEPENDENCIA"
   }
   # O doctor é MANUTENÇÃO: ele confere com `--respeitar-gui` e pode devolver 4,
@@ -2441,12 +2464,39 @@ cmd_tema() {
       printf 'uso: meow tema [<tema>|claro|escuro|auto|capturar <nome>|desfazer]\n'; return 0 ;;
 
     *)
-      if [ -z "$(meow_captura "$arg")" ]; then
-        meow_erro "não existe captura '$arg'"
-        meow_info "disponíveis: $(capturas | em_linha)"
-        return "$MEOW_SEM_DEPENDENCIA"
+      if [ "$arg" = "original" ]; then
+        guarda_original "meow tema original" \
+          "o tema de antes DESTA máquina é o que o 'meow desfazer' devolve." \
+          || return "$MEOW_SEM_DEPENDENCIA"
       fi
+      # O ACENTO QUE NÃO FOI FOTOGRAFADO SE DERIVA — 24/09/2026, sprint P48
+      #   `meow tema dracula-pink` respondia "não existe captura" com o par
+      #   escolhido no meow.conf, e o caminho era o passo manual da GUI. O
+      #   `derivar_acento.py` escreve a captura a partir da do mesmo flavor
+      #   (ver o cabeçalho dele), e aqui ela nasce na hora, antes de aplicar.
+      #   No seco ele só diz o que faria, como o resto deste comando.
+      if [ -z "$(meow_captura "$arg")" ]; then
+        local deriva rc_d
+        deriva="$(python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$arg" 2>&1)"; rc_d=$?
+        if [ "$rc_d" != "1" ]; then
+          meow_erro "não existe captura '$arg'"
+          [ -n "$deriva" ] && meow_info "${deriva#  }"
+          meow_info "disponíveis: $(capturas | em_linha)"
+          return "$MEOW_SEM_DEPENDENCIA"
+        fi
+        if meow_seco; then
+          meow_muda "${deriva#  }, e aplicaria"
+          return "$MEOW_DIVERGENTE"
+        fi
+      fi
+      # UM `meow_travar` SÓ: o `flock` é por descritor aberto, e um segundo
+      # `meow_travar` neste mesmo shell abriria outro e se trancaria do lado de
+      # fora do próprio lock. A derivação escreve, então ela vem depois dele.
       meow_travar || return "$MEOW_ERRO"
+      if [ -z "$(meow_captura "$arg")" ]; then
+        python3 "$RAIZ/scripts/derivar_acento.py" "$arg"
+        [ -n "$(meow_captura "$arg")" ] || { meow_erro "a derivação de '$arg' não deixou captura"; return "$MEOW_ERRO"; }
+      fi
       "$RAIZ/scripts/aplicar_tema.sh" "$arg"; local rc=$?
       # No seco o aplicar_tema.sh vira --conferir e devolve 0 quando o tema JÁ
       # está aplicado. Notificar aí anunciaria uma troca que não houve.
@@ -3329,7 +3379,15 @@ cmd_configurar() {
     _fl="${WIZ_NOVO[FLAVOR]:-$(wiz_bruto FLAVOR "$fonte")}"
     _ac="${WIZ_NOVO[ACCENT]:-$(wiz_bruto ACCENT "$fonte")}"
     _par="$_fl-$_ac"
-    if [ -n "$_fl" ] && [ -n "$_ac" ] && [ -z "$(meow_captura "$_par")" ]; then
+    # O PAR QUE SE DERIVA NÃO GANHA A RECEITA DA GUI — 24/09/2026, sprint P48.
+    #   Desde a P48 o `derivar_acento.py` escreve a captura do acento a partir
+    #   da do mesmo flavor, e o instalador a aplica sozinho. Mandar importar o
+    #   `.ron` na GUI para esse par seria o passo manual do achado 31, dito
+    #   agora por outra porta. O `--conferir` sai 1 quando derivaria; a frase
+    #   abaixo fica para o flavor que nunca foi fotografado (saída 3).
+    if [ -n "$_fl" ] && [ -n "$_ac" ] && [ -z "$(meow_captura "$_par")" ] \
+       && { python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$_par" >/dev/null 2>&1
+            [ "$?" != "1" ]; }; then
       while IFS= read -r _c; do
         [ -n "$_c" ] || continue
         # A `original` é a captura de referência do projeto, tirada de uma
@@ -3473,6 +3531,38 @@ desfazer_lancador() {
   return "$MEOW_DIVERGENTE"
 }
 
+# --- A CAPTURA 'original' SÓ SE APLICA NA MÁQUINA DE ONDE ELA SAIU ---------
+# UMA GUARDA, DUAS PORTAS — 24/09/2026, sprint P48 (achado 30)
+#   A guarda nasceu dentro do `cmd_desfazer` (ver o bloco "`MEOW_SIM` NÃO
+#   DESLIGA ESTA GUARDA", lá embaixo) e só ele a tinha. O `meow tema original`
+#   chegava ao MESMO `aplicar_tema.sh original` por outra porta, sem pergunta
+#   nenhuma: medido numa casa de brinquedo com o Dracula no ar, o ensaio dele
+#   dizia "53 de 121 arquivos divergentes e 68 sobrando" — 68 chaves que o
+#   script apagaria, porque ele remove o que a captura não tem. E o painel
+#   oferecia essa porta num clique («Trocar de tema» › `original` › Executar).
+#   Agora as duas portas perguntam a esta função, e a regra é uma só: a linha
+#   `origem:` do captura.txt diz de qual COSMIC ela saiu (o capturar_tema.sh a
+#   grava por extenso para a `original`, e só para ela), e ela tem de ser o
+#   COSMIC daqui. A porta de fuga continua tendo nome próprio.
+#   $1 = o comando que a pessoa digitaria; $2 e $3 = o caminho de volta DESTA
+#   máquina, que cada porta conhece do seu jeito. 0 = pode seguir.
+guarda_original() {
+  local origem_cap
+  origem_cap="$(sed -n 's/^origem: //p' "$RAIZ/assets/temas/capturados/original/captura.txt" 2>/dev/null | head -n1)"
+  if [ -n "$origem_cap" ] && [ "$origem_cap" != "$COSMIC" ] \
+     && [ "${MEOW_TEMA_DE_OUTRA_MAQUINA:-0}" != "1" ]; then
+    meow_erro "a captura 'original' foi tirada de OUTRA máquina ($origem_cap)"
+    meow_info "  aplicá-la aqui instalaria o tema de fábrica de outra pessoa e"
+    meow_info "  apagaria as chaves que ela não tem."
+    meow_info "  $2"
+    [ -n "${3:-}" ] && meow_info "  $3"
+    meow_info "  se é mesmo o tema de fábrica de outra máquina que você quer:"
+    meow_info "      MEOW_TEMA_DE_OUTRA_MAQUINA=1 $1"
+    return 1
+  fi
+  return 0
+}
+
 cmd_desfazer() {
   case "${1:-}" in --lancador) shift; desfazer_lancador; return $? ;; esac
   carregar_conf --ponte-opcional || return "$MEOW_ERRO"
@@ -3541,19 +3631,10 @@ cmd_desfazer() {
   #   A guarda passa a ser incondicional, e a porta de fuga ganha nome próprio:
   #   quem quer mesmo o tema de fábrica de outra máquina tem de dizer isso, e
   #   não "não me pergunte". Nenhum caminho automático a digita por engano.
-  local origem_cap
-  origem_cap="$(sed -n 's/^origem: //p' "$RAIZ/assets/temas/capturados/original/captura.txt" 2>/dev/null | head -n1)"
-  if [ -n "$origem_cap" ] && [ "$origem_cap" != "$COSMIC" ] \
-     && [ "${MEOW_TEMA_DE_OUTRA_MAQUINA:-0}" != "1" ]; then
-    meow_erro "a captura 'original' foi tirada de OUTRA máquina ($origem_cap)"
-    meow_info "  aplicá-la aqui instalaria o tema de fábrica de outra pessoa e"
-    meow_info "  apagaria as chaves que ela não tem."
-    meow_info "  o ponto de volta DESTA máquina nasce na primeira passagem do"
-    meow_info "  ./install.sh (etapa 'backup_tema') — rode-o uma vez e tente de novo."
-    meow_info "  se é mesmo o tema de fábrica de outra máquina que você quer:"
-    meow_info "      MEOW_TEMA_DE_OUTRA_MAQUINA=1 meow desfazer"
-    return "$MEOW_SEM_DEPENDENCIA"
-  fi
+  guarda_original "meow desfazer" \
+    "o ponto de volta DESTA máquina nasce na primeira passagem do" \
+    "./install.sh (etapa 'backup_tema') — rode-o uma vez e tente de novo." \
+    || return "$MEOW_SEM_DEPENDENCIA"
   # Pergunta só quando há alguém para responder. Em automação (`| meow`, timer,
   # hook) segue sem perguntar — é a regra "zero pergunta em modo automático".
   if [ -t 0 ] && [ "${MEOW_SIM:-0}" != "1" ]; then

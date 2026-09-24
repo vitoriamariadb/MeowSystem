@@ -1979,13 +1979,73 @@ def _gatos():
 
 
 def _capturas():
-    """As capturas de tema que EXISTEM — é o que `meow tema <x>` aceita."""
-    pasta = os.path.join(RAIZ, "assets", "temas", "capturados")
+    """Os temas prontos que «Trocar de tema» oferece — e o servidor aceita.
+
+    A MESMA FONTE DO `meow tema` — 24/09/2026, sprint P48 (achado 30)
+        Esta função listava `assets/temas/capturados/` direto, e desde que as
+        capturas desceram para dentro dos packs (P14/P27) ali só sobrou a
+        `original`: a ação oferecia UMA opção, pré-selecionada, e era
+        justamente a que não devia. Quem sabe quais capturas o pack no ar
+        alcança é o `pack.py capturas`, que o `meow tema` já usa — é o
+        `_capturas_no_disco`, logo acima, que o aviso do FLAVOR × ACCENT já
+        consultava. Uma regra só, dos dois lados.
+
+    A `original` FICA DE FORA, E É A SEGUNDA METADE DO ACHADO
+        Ela é o tema de fábrica da máquina onde foi tirada (a linha `origem:`
+        do captura.txt dela diz de qual casa), não um tema de pack. Aplicada
+        noutra máquina, troca o tema da pessoa pelo de outra e apaga as chaves
+        que não tem. O `meow tema original` recusa numa máquina estranha pela
+        mesma guarda do `meow desfazer` (`guarda_original`, no bin/meow); aqui
+        ela nem aparece: o caminho de volta do painel é o «Voltar ao tema de
+        antes», que passa por aquela guarda.
+    """
+    _ponte_em_dia()
+    return [n for n in _capturas_no_disco() if n != "original"]
+
+
+# O QUE O CARTÃO DA COR DE DESTAQUE PRECISA — 24/09/2026, sprint P48 (achado 31)
+#   O aviso do FLAVOR × ACCENT só conhecia as capturas FOTOGRAFADAS, e com o
+#   Dracula isso é uma: o `dracula-mauve`. Desde a P48 um acento sem fotografia
+#   se deriva da captura do mesmo flavor (`scripts/derivar_acento.py`), e a
+#   pergunta do cartão passou a ser outra — "este acento APLICA com este
+#   flavor?". Quem responde é o próprio derivador, pela mesma conta que o
+#   instalador faz, e por um processo filho: ele põe `scripts/` no `sys.path`,
+#   e este processo não (ver `modulo_pack`).
+#   A conta custa uns décimos de segundo e só muda quando muda o pack no ar, a
+#   paleta, ou uma captura. É isso que a chave do cache olha.
+_APLICAM_CACHE = {}
+
+
+def _acentos_que_aplicam(esquema):
+    item = next((i for i in esquema if i.get("chave") == "ACCENT"), None)
+    acentos = [str(a) for a in (item or {}).get("opcoes") or []]
+    mod = modulo_pack()
+    if mod is None:
+        return {}
+    chave = [os.environ.get("MEOW_PACK_DIR", ""), os.environ.get("MEOW_PALETA", ""),
+             ",".join(acentos)]
     try:
-        return sorted(d for d in os.listdir(pasta)
-                      if os.path.isdir(os.path.join(pasta, d)))
-    except OSError:
-        return []
+        chave.append(os.stat(mod.paleta_do_pack_ativo()).st_mtime_ns)
+        for nome in mod.capturas():
+            dir_cap = mod.captura(nome) or ""
+            chave.append((nome, os.stat(os.path.join(dir_cap, "captura.txt")).st_mtime_ns
+                          if os.path.isfile(os.path.join(dir_cap, "captura.txt")) else 0))
+    except Exception:
+        # Um pack de terceiro malformado não derruba o esquema inteiro: sem a
+        # resposta, o cartão cai no aviso de antes (só as fotografadas).
+        return {}
+    chave = repr(chave)
+    if chave not in _APLICAM_CACHE:
+        try:
+            r = subprocess.run(
+                [sys.executable, os.path.join(RAIZ, "scripts", "derivar_acento.py"),
+                 "--aplicam", ",".join(acentos)],
+                cwd=RAIZ, capture_output=True, text=True, timeout=60)
+            _APLICAM_CACHE.clear()
+            _APLICAM_CACHE[chave] = json.loads(r.stdout) if r.returncode == 0 else {}
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return {}
+    return _APLICAM_CACHE[chave]
 
 
 # --- 3b. os acervos que moram no DISCO, e não no texto -----------------------
@@ -8792,6 +8852,9 @@ class Manipulador(BaseHTTPRequestHandler):
             # Quais combinações de FLAVOR × ACCENT existem de verdade: a
             # página avisa ANTES de ela salvar uma que o instalador recusa.
             "capturas": _capturas_no_disco(),
+            # E quais APLICAM, contando as que se derivam (P48): é esta que o
+            # cartão da cor de destaque consulta. Ver `_acentos_que_aplicam`.
+            "acentos_que_aplicam": _acentos_que_aplicam(esquema),
             # `escreve` é DERIVADO (ver a função de mesmo nome), nunca
             # digitado por ação. E as opções da ação `oculta` não vão: o
             # argumento dela é uma imagem escolhida na galeria, e mandar os

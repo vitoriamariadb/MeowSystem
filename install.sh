@@ -1007,8 +1007,37 @@ etapa_tema() {
   # deste instalador, porque ela parece normal.
   local captura; captura="$(meow_captura "$alvo")"
 
+  # O ACENTO SEM FOTOGRAFIA SE DERIVA — 24/09/2026, sprint P48 (achado 31)
+  #   Quem escreve a captura do acento a partir da do mesmo flavor é o
+  #   `derivar_acento.py`, e a etapa `gerar` (que vem antes desta) já o chama.
+  #   Chamá-lo de novo aqui não é redundância: o `gerar` sai antes de chegar a
+  #   ele quando o `gerar_temas.py` falha, e a etapa do tema não pode depender
+  #   disso para saber se há tema. Quando já está derivada, ele só confere.
   if [ -z "$captura" ]; then
-    meow_aviso "ainda não há captura para '$alvo'"
+    local deriva rc_d
+    deriva="$(python3 "$MEOW_RAIZ/scripts/derivar_acento.py" --conferir "$alvo" 2>&1)"; rc_d=$?
+    if [ "$rc_d" = "1" ]; then
+      if meow_seco; then
+        meow_muda "derivaria a captura de '$alvo' e a aplicaria"
+        return "$MEOW_DIVERGENTE"
+      fi
+      python3 "$MEOW_RAIZ/scripts/derivar_acento.py" "$alvo" | sed 's/^/  /'
+      captura="$(meow_captura "$alvo")"
+    fi
+  fi
+
+  # Ver o fim do `main`: é por esta variável que o instalador não termina em
+  # «Pronto» quando o tema pedido não chegou ao COSMIC. Zerada a cada passagem,
+  # porque cada passagem roda esta etapa de novo e só a última diz o que ficou.
+  TEMA_NAO_APLICADO=""
+
+  if [ -z "$captura" ]; then
+    # Sem captura DEPOIS da derivação, o par não se deriva (um flavor que nunca
+    # foi fotografado) e o tema NÃO foi aplicado. Isso vira pendência na
+    # Início: antes a tela dizia «aplicou» com o desktop na cor de antes.
+    deriva="${deriva#*não se deriva — }"
+    TEMA_NAO_APLICADO="O tema do COSMIC não foi aplicado: não há captura para '$alvo' (${deriva#  })."
+    meow_pendencia_acionavel tema-sem-captura "$TEMA_NAO_APLICADO"
     meow_info "importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez em"
     meow_info "  Configurações > Área de trabalho > Aparência > Importar"
     # O COMANDO OFERECIDO TEM DE CARREGAR A PONTE — 22/09/2026
@@ -1033,6 +1062,8 @@ etapa_tema() {
   local rc
   MEOW_DRY_RUN=0 "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$alvo" --respeitar-gui --conferir >/dev/null 2>&1
   rc=$?
+  # Havendo captura, a pendência de uma passagem anterior (ver acima) acabou.
+  meow_pendencia_resolvida tema-sem-captura
   case "$rc" in
     0) meow_ok "tema '$alvo' já aplicado"; return 0 ;;
     4) meow_pula "tema '$alvo': a captura está velha — você mexeu em Aparência"
@@ -3677,6 +3708,21 @@ main() {
     return 2
   fi
   [ "$laco_quebrado" = "1" ] && return 2
+
+  # O TEMA QUE NÃO CHEGOU AO COSMIC NÃO TERMINA EM «Pronto» — 24/09/2026, P48
+  #   Achado 31 da validação: com o acento sem captura, a etapa `tema` se pulava,
+  #   o instalador saía 0 com "Pronto. [...] nada mais a escrever", e o painel
+  #   pintava «MEXEU E APLICOU» com o desktop na cor de antes. Desde a P48 o
+  #   acento se deriva e isso só sobra para o flavor que nunca foi fotografado
+  #   — e, nesse caso, o que a pessoa pediu no meow.conf e o que a tela mostra
+  #   DIVERGEM: é o 1 do projeto, e a última linha diz qual é a divergência. A
+  #   pendência (`tema-sem-captura`, na etapa) é a outra metade, na Início.
+  #   No ensaio a etapa já disse o que faria, e o rodapé dele segue o de sempre.
+  if [ -n "${TEMA_NAO_APLICADO:-}" ] && ! meow_seco; then
+    printf '\n  %s%s%s\n' "$C_AMARELO$C_FORTE" "$TEMA_NAO_APLICADO" "$C_ZERO"
+    printf '  O resto do instalador seguiu; a pendência fica na aba Início do painel.\n\n'
+    return "$MEOW_DIVERGENTE"
+  fi
 
   # UMA PASSAGEM SÓ (--uma-passagem, ou o ensaio): o rodapé de antes, preservado
   # inteiro. A diferença é a linha do meio — quem fecha o laço agora é o
