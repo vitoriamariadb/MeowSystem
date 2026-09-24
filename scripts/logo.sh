@@ -5,6 +5,7 @@
 #   ./logo.sh girar        passa para o próximo gato (só no modo `rotacao`)
 #   ./logo.sh --conferir   não escreve; 1 se algo divergir
 #   ./logo.sh listar       mostra o acervo, quem está no ar e por quê
+#   ./logo.sh no-dock      imprime o gato que está no botão do dock (1 = nenhum)
 #
 # ============================================================================
 # O QUE MUDOU EM 01/09/2026, E O QUE FOI MEDIDO PARA PODER MUDAR
@@ -153,8 +154,14 @@ case "${1:-}" in
   # acima: dois donos da mesma regra é o defeito que este projeto mais persegue,
   # e a etapa de lá precisa saber qual unidade do systemd instalar.
   modo)          printf '%s\n' "$LOGO_MODO"; exit "$MEOW_OK" ;;
+  # `no-dock` IMPRIME O GATO DO BOTÃO DO DOCK E SAI — revisão da P54, pelo
+  # mesmo motivo do `modo`: o `meow status` tinha escrito de novo a pergunta
+  # «qual gato está no dock», e a cópia dele já divergia desta (sem o `.svg`
+  # cru de reserva). A regra é o `_esta_no_dock`, lá embaixo, que o `listar`
+  # também usa.
+  no-dock)       ACAO="no-dock" ;;
   aplicar|"") ;;
-  *) meow_erro "uso: logo.sh [aplicar|girar|girar-vencido|listar|modo|--conferir]"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: logo.sh [aplicar|girar|girar-vencido|listar|no-dock|modo|--conferir]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && CONFERIR=1
 
@@ -267,7 +274,9 @@ fi
 #   não escreve, sai. Um disparo a mais por edição dela, contra o
 #   `StartLimitBurst=20` — folga de sobra, e o disjuntor continua lá para o dia
 #   em que alguém quebrar a idempotência.
-if [ -d "$ACERVO" ] && meow_tem python3 && [ -f "$RAIZ/scripts/normalizar_svg.py" ]; then
+# O `no-dock` só pergunta: quem o chama é o `meow status`, que não escreve.
+if [ "$ACAO" != "no-dock" ] && [ -d "$ACERVO" ] && meow_tem python3 \
+   && [ -f "$RAIZ/scripts/normalizar_svg.py" ]; then
   if meow_seco; then
     python3 "$RAIZ/scripts/normalizar_svg.py" --conferir "$ACERVO" || true
   else
@@ -303,29 +312,44 @@ fi
 
 destino_de() { printf '%s/meow-%s.svg' "$LOGOS_DIR" "$1"; }
 
+# O que ela VÊ é o botão do dock, não a chave do applet Logo Menu (que não
+# está montado nesta máquina). Perguntar só a chave responderia a pergunta errada.
+_tema="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+_no_dock="$HOME/.local/share/icons/$_tema/scalable/apps/com.system76.CosmicPanelAppButton.svg"
+
+# 0 = o gato de índice $1 é o do botão do dock.
+# COMPARAR COM O ARQUIVO INSTALADO, NÃO COM O DO ACERVO — 16/09/2026
+#   O que vai para o botão do dock é a cópia PROCESSADA em
+#   `~/.config/cosmic/logos/meow-<nome>.svg`, e não o `.svg` cru de
+#   `assets/gatos/`: os dois têm md5 diferente. Comparar com o cru só
+#   casava enquanto quem escrevia o botão era o `construir_icones.sh`, que
+#   copiava o asset direto. Depois que este script passou a ser o dono, o
+#   `listar` deixou de marcar QUALQUER gato — dizia que nenhum está no dock,
+#   com o gato certo na tela. O cru fica de reserva para a máquina onde a
+#   cópia ainda não nasceu.
+_esta_no_dock() {
+  local instalado
+  instalado="$(destino_de "${NOMES[$1]}")"
+  [ -f "$instalado" ] || instalado="${POOL[$1]}"
+  [ -f "$_no_dock" ] && cmp -s "$instalado" "$_no_dock"
+}
+
+# --- no-dock ----------------------------------------------------------------
+if [ "$ACAO" = "no-dock" ]; then
+  for i in "${!NOMES[@]}"; do
+    _esta_no_dock "$i" && { printf '%s\n' "${NOMES[$i]}"; exit "$MEOW_OK"; }
+  done
+  exit "$MEOW_DIVERGENTE"
+fi
+
 # --- listar -----------------------------------------------------------------
 if [ "$ACAO" = "listar" ]; then
   atual="$(cat "$APPLET/custom_logo_path" 2>/dev/null | tr -d '"')"
-  # O que ela VÊ é o botão do dock, não a chave do applet Logo Menu (que não
-  # está montado nesta máquina). Listar só a chave responderia a pergunta errada.
-  _tema="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
-  _no_dock="$HOME/.local/share/icons/$_tema/scalable/apps/com.system76.CosmicPanelAppButton.svg"
   meow_titulo "Gatos do painel (${#POOL[@]})"
   for i in "${!NOMES[@]}"; do
     _marca=""
     [ "$(destino_de "${NOMES[$i]}")" = "$atual" ] && _marca="  <- na chave do applet"
-    # COMPARAR COM O ARQUIVO INSTALADO, NÃO COM O DO ACERVO — 16/09/2026
-    #   O que vai para o botão do dock é a cópia PROCESSADA em
-    #   `~/.config/cosmic/logos/meow-<nome>.svg`, e não o `.svg` cru de
-    #   `assets/gatos/`: os dois têm md5 diferente. Comparar com o cru só
-    #   casava enquanto quem escrevia o botão era o `construir_icones.sh`, que
-    #   copiava o asset direto. Depois que este script passou a ser o dono, o
-    #   `listar` deixou de marcar QUALQUER gato — dizia que nenhum está no dock,
-    #   com o gato certo na tela. O cru fica de reserva para a máquina onde a
-    #   cópia ainda não nasceu.
-    _instalado="$(destino_de "${NOMES[$i]}")"
-    [ -f "$_instalado" ] || _instalado="${POOL[$i]}"
-    if [ -f "$_no_dock" ] && cmp -s "$_instalado" "$_no_dock"; then
+    if _esta_no_dock "$i"; then
       _marca="$_marca  <- NO DOCK (é o que você vê)"
     fi
     if [ -n "$_marca" ]; then meow_ok "${NOMES[$i]}$_marca"; else meow_info "${NOMES[$i]}"; fi

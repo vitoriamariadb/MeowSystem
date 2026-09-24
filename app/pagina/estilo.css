@@ -1006,6 +1006,19 @@ button.porque:focus-visible:not([data-fechei]) + .dica[hidden] {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 .cartao[data-sem-previa] { border-left: 0; }
+/* O CARTÃO A QUE A FICHA DA INÍCIO LEVOU — 24/09/2026, sprint P54 (achado 18).
+ * Um contorno de acento que se apaga sozinho: é o "está aqui" de quem acabou de
+ * chegar rolando, e não um estado — por isso contorno, que não mexe no layout
+ * nem briga com a aresta de «mexeu» e «não salvo». Com movimento reduzido a
+ * animação sai (a regra do fim deste arquivo), e o contorno fica parado até a
+ * ficha o tirar, dois segundos e meio depois. */
+.cartao.chegou {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--r-3);
+  animation: chegou 2.6s ease-out forwards;
+}
+@keyframes chegou { 0%, 55% { outline-color: var(--accent); } 100% { outline-color: transparent; } }
 
 /* A EXPLICAÇÃO CURTA, CORTADA EM TRÊS LINHAS; o resto vive na dica, atrás do `?`.
  * Os comentários do meow.conf.exemplo variam de seis palavras a seis linhas. */
@@ -1288,6 +1301,11 @@ select { flex: 1 1 auto; }
 }
 .ficha button:hover { color: var(--red); background: color-mix(in srgb, var(--red) 18%, transparent); }
 .fichas .nova { flex: 1 1 8ch; min-width: 7rem; }
+/* A FICHA DE PROGRAMA — 24/09/2026, sprint P54 (achado 41): o ícone do
+   `.desktop` antes do nome, no tamanho da letra, e a ficha abre um pouco mais
+   perto dele do que do texto (o desenho já tem respiro próprio). */
+.ficha-programa { padding-left: .35rem; }
+.ficha-programa img { width: 16px; height: 16px; flex: none; object-fit: contain; }
 
 /* O BLOCO DO `details.porque` — o "▸ Por quê" que era a sexta camada do cartão —
  * saiu daqui em 06/09/2026. O comentário inteiro do `meow.conf.exemplo` não se

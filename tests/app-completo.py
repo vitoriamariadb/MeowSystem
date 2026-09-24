@@ -156,6 +156,13 @@ CONF = os.path.join(CASA, ".config", "meow", "meow.conf")
 ESTADO = os.path.join(CASA, ".local", "state", "meowsystem")
 PAREDES = 6
 APPID = "1715980"
+# O PROGRAMA DE BRINQUEDO QUE O LANÇADOR ESCONDE (P54, achado 41): um id da
+# lista de fábrica do `LANCADOR_OCULTAR`, com um `.desktop` da casa que lhe dá
+# outro nome — a ficha tem de dizer o nome, e não o id.
+PROGRAMA = ("org.gnome.Evince", "Leitor de Brinquedo")
+# O NOME QUE SÓ O CACHE DA STEAM SABE (P54, achado 44): o da decisão sem
+# manifesto, que a linha das «Decisões já executadas» tem de mostrar.
+NOME_NA_STEAM = "Demo de Brinquedo"
 # A tag que a história de um pack traz e que tem de sair como TEXTO (P53).
 HOSTIL = '<img src=x onerror="window.__meow_xss=1">'
 
@@ -190,6 +197,26 @@ def xcursor_liso(caminho, lado=24, argb=0xFFCDD6F4):
                  + struct.pack("<III", 0xFFFD0002, lado, 28)
                  + struct.pack("<9I", 36, 0xFFFD0002, lado, 1, lado, lado, 0, 0, 0)
                  + pixels)
+
+
+def appinfo_vdf(caminho, nomes):
+    """Um `appinfo.vdf` da Steam, versão 29, com `appinfo › common › name` de
+    cada appid de `nomes` — o molde que o `_nome_no_appinfo` do servidor lê
+    (P54). Só o que ele precisa: a tabela de nomes de chave no fim, e o resto
+    de cada entrada zerado."""
+    chaves = ["appinfo", "common", "name"]
+    entradas = b""
+    for appid, nome in nomes.items():
+        kv = (bytes([0]) + struct.pack("<I", 0) + bytes([0]) + struct.pack("<I", 1)
+              + bytes([1]) + struct.pack("<I", 2) + nome.encode("utf-8") + bytes([0])
+              + bytes([8, 8, 8]))
+        resto = struct.pack("<IIQ", 2, 0, 0) + bytes(20) + struct.pack("<I", 0) + bytes(20) + kv
+        entradas += struct.pack("<II", int(appid), len(resto)) + resto
+    entradas += struct.pack("<I", 0)
+    tabela = struct.pack("<I", len(chaves)) + b"".join(c.encode() + bytes([0]) for c in chaves)
+    os.makedirs(os.path.dirname(caminho), exist_ok=True)
+    with open(caminho, "wb") as fh:
+        fh.write(struct.pack("<IIq", 0x07564429, 1, 16 + len(entradas)) + entradas + tabela)
 
 
 def copiar_raiz():
@@ -410,6 +437,24 @@ def montar_casa():
         fh.write("[Desktop Entry]\nName=Jogo de Brinquedo\n"
                  f"Exec=steam steam://rungameid/{APPID}\nIcon=steam_icon_{APPID}\n"
                  "Terminal=false\nType=Application\nCategories=Game;\n")
+    # A DECISÃO SEM MANIFESTO GANHA NOME NO CACHE DA STEAM (P54, achado 44). As
+    # linhas do mapa da raiz de brinquedo cujo jogo não está aqui são as
+    # «Decisões já executadas»; o nome da primeira mora só no `appinfo.vdf`.
+    with open(os.path.join(RAIZ_B, "assets", "icones", "jogos-fora.map"),
+              encoding="utf-8") as fh:
+        orfas = [l.split(":")[0].strip() for l in fh
+                 if l.strip() and not l.lstrip().startswith("#")
+                 and l.split(":")[0].strip().isdigit() and l.split(":")[0].strip() != APPID]
+    if orfas:
+        appinfo_vdf(os.path.join(CASA, ".steam", "steam", "appcache", "appinfo.vdf"),
+                    {orfas[0]: NOME_NA_STEAM})
+    # E O PROGRAMA QUE O LANÇADOR ESCONDE (P54, achado 41), com nome e ícone
+    # próprios: o `.desktop` da casa vence o do sistema, como no lançador.
+    png_liso(os.path.join(hicolor, "leitor-de-brinquedo.png"), (0xCC, 0x88, 0x44))
+    with open(os.path.join(aplicativos, PROGRAMA[0] + ".desktop"), "w",
+              encoding="utf-8") as fh:
+        fh.write(f"[Desktop Entry]\nName={PROGRAMA[1]}\nExec=true\n"
+                 "Icon=leitor-de-brinquedo\nTerminal=false\nType=Application\n")
 
     # DUAS ÁREAS ALFINETADAS, no formato que o `areas.sh` escreve: sem área o
     # «Tirar uma área» não tem o que oferecer, e com uma só ele recusa — com
@@ -1530,8 +1575,29 @@ class Percurso:
             self.acionados.add(f"ajuste {chave} › ficha da lista · tirar")
         self.desfazer()
 
+    # A FICHA DE PROGRAMA DIZ O PROGRAMA (P54, achado 41): o nome e o ícone do
+    # `.desktop`, e o id no balão. Lido da tela, contra o que a casa plantou.
+    FICHA_PROGRAMA_JS = r"""
+    ([k, id]) => {
+      const c = document.querySelector(`#conteudo article.cartao[data-chave="${k}"]`);
+      if (!c) return null;
+      const fichas = [...c.querySelectorAll('.ficha')];
+      const f = fichas.find((x) => x.getAttribute('data-balao') === id);
+      return { rotulos: fichas.map((x) => (x.querySelector(':scope > span') || {}).textContent),
+               achou: !!f, texto: f ? f.querySelector(':scope > span').textContent : '',
+               icone: !!(f && f.querySelector('img')) };
+    }
+    """
+
     def h_tirar_ficha(self, nome):
         chave = self.chave_de(nome)
+        if chave == "LANCADOR_OCULTAR":
+            f = self.js(self.FICHA_PROGRAMA_JS, [chave, PROGRAMA[0]]) or {}
+            self.checa(f.get("achou") and f.get("texto") == PROGRAMA[1] and f.get("icone"),
+                       f"{chave}: a ficha de {PROGRAMA[0]} mostra «{PROGRAMA[1]}» e o "
+                       f"ícone do .desktop, com o id no balão ({f})")
+            self.checa(PROGRAMA[0] not in (f.get("rotulos") or []),
+                       f"{chave}: o id cru {PROGRAMA[0]} não aparece como rótulo de ficha")
         n0 = self.quantos(nome)
         self.achar(nome).click()
         self.assentar(quieto=100, teto=3000)
@@ -2151,9 +2217,77 @@ class Percurso:
         self.checa(any(c.endswith("jogos-fora.map") for c in diferenca(antes, retrato())),
                    f"{frase} muda o mapa de jogos (de brinquedo)")
 
+    def decisao_com_caixa(self, clicar, frase, reabrir=lambda: None):
+        """A decisão de jogo que arruma o lançador pergunta antes (P54, a decisão
+        dos jogos de 24/09): a caixa diz o que sai e o que entra, e dá as três
+        respostas. A conferência que enche a caixa é o `jogo-fora` com
+        `previa`, que não grava; o «Ver o que faria» é o mesmo pedido com
+        `seco`, e roda a passagem em ensaio na gaveta; só o «sim» grava."""
+        acao = self.acoes().get("jogos_aplicar")
+        antes, n0 = retrato(), len(self.posts)
+        clicar()
+        if not self.checa(self.caixa_aberta(), f"{frase} pergunta antes de arrumar o lançador"):
+            return
+        # A caixa fala a língua do botão clicado (revisão da P54): o «Voltar ao
+        # normal» numa caixa «Tirar da lista» leria como tirar o jogo do lançador.
+        ok = (self.pag.locator("#confirmar-ok").text_content() or "").strip()
+        self.checa(ok == frase.strip("«»"), f"a caixa de {frase} confirma com o mesmo nome ({ok!r})")
+        efeito = self.pag.locator("#confirmar .efeito-jogos [data-efeito]")
+        fim = time.time() + 60
+        while not efeito.count() and time.time() < fim:
+            self.pag.wait_for_timeout(100)
+        self.checa(efeito.count(), f"a caixa de {frase} diz o que sai e o que entra no lançador")
+        self.checa(all(d != "jogo-fora" or c.get("previa") for d, c in self.posts[n0:]),
+                   f"a conferência da caixa de {frase} não grava nada")
+        self.pag.locator("#confirmar button[value=nao]").click()
+        self.acionados.add("caixa · Cancelar")
+        self.assentar(quieto=150)
+        mudou = diferenca(antes, retrato())
+        self.checa(not mudou, f"Cancelar em {frase} não muda a casa — mudou {mudou[:4]}")
+
+        reabrir()
+        n1, reg1, antes1 = len(self.posts), len(registro()), retrato()
+        clicar()
+        if self.checa(self.caixa_aberta(), f"{frase} pergunta de novo, e oferece o «Ver o que faria»"):
+            self.pag.locator("#confirmar-ensaio").click()
+            self.acionados.add("caixa · #confirmar-ensaio")
+            fim = time.time() + 10
+            while (not any(c.get("seco") for _, c in self.posts[n1:])
+                   and time.time() < fim):
+                self.pag.wait_for_timeout(50)
+            self.checa(any(d == "jogo-fora" and c.get("seco") is True for d, c in self.posts[n1:]),
+                       f"«Ver o que faria» em {frase} pede o ensaio ao servidor")
+            if acao:
+                self.conferir_trabalho(acao, True, antes1, reg1)
+
+        reabrir()
+        clicar()
+        if not self.checa(self.caixa_aberta(), f"{frase} pergunta de novo no último clique"):
+            return
+        n3 = len(self.posts)
+        antes3 = retrato()
+        self.pag.locator("#confirmar-ok").click()
+        self.acionados.add("caixa · #confirmar-ok")
+        fim = time.time() + 10
+        while (not any(d == "jogo-fora" and not c.get("previa") and not c.get("seco")
+                       for d, c in self.posts[n3:]) and time.time() < fim):
+            self.pag.wait_for_timeout(50)
+        self.checa(any(d == "jogo-fora" and not c.get("previa") and not c.get("seco")
+                       for d, c in self.posts[n3:]), f"o «sim» de {frase} grava a decisão")
+        self.assentar(quieto=300)
+        self.esperar_trabalho()
+        self.checa(any(c.endswith("jogos-fora.map") for c in diferenca(antes3, retrato())),
+                   f"{frase} muda o mapa de jogos (de brinquedo)")
+
     def h_orfa(self, nome):
         n0 = self.quantos(nome)
-        self.decisao_de_jogo(lambda: self.achar(nome).click(), "«Tirar da lista»")
+        # A DECISÃO SEM MANIFESTO DIZ O NOME DO JOGO (P54, achado 44): o da
+        # casa só existe no `appinfo.vdf` de brinquedo, e não o número.
+        linhas = self.pag.locator("#conteudo .linha-orfa .orfa-nome").all_inner_texts()
+        self.checa(NOME_NA_STEAM in linhas,
+                   f"a decisão sem manifesto mostra o nome do cache da Steam ({linhas})")
+        self.decisao_com_caixa(lambda: self.achar(nome).click(), "«Tirar da lista»")
+        self.assentar(quieto=300)
         self.checa(self.quantos(nome) == n0 - 1, "e o órfão sai da lista")
 
     def h_escolher(self, nome):
@@ -2530,6 +2664,19 @@ class Percurso:
         if not self.checa(self.pag.locator("#conteudo .escolha-jogo").count(),
                           "clicar no jogo abre a decisão dele"):
             return
+        # TODA CONTAGEM DA ABA CONCORDA COM O NÚMERO (P54, achado 43, e a
+        # revisão, que achou a segunda: «1 jogos têm atalho», na grade de
+        # ícones). A contagem de atalhos é da MÁQUINA — o `.desktop` da Steam
+        # do sistema entra nela —, então o 1 é posto na página, e não esperado
+        # da casa: medido nesta bancada, com a Steam instalada, a conferência
+        # passava vazia contra o código de antes.
+        self.js("() => { JOGOS.total_apps = 1; render(); }")
+        texto = self.pag.locator("#conteudo").inner_text()
+        self.js("() => carregarJogos()")
+        self.assentar(quieto=300)
+        solto = re.findall(r"\b1 jogos\b[^.]*", texto)
+        self.checa(not solto and "1 jogo tem atalho" in texto,
+                   f"a aba não diz «1 jogos», e diz «1 jogo tem atalho» ({solto})")
         motivo = self.achar("decisão do jogo · campo «Por que este jogo sai do lançador»")
         if self.checa(motivo is not None, "a decisão tem o campo do motivo"):
             motivo.fill("teste do percurso")
@@ -2538,7 +2685,13 @@ class Percurso:
             abrir()
             botao = f"decisão do jogo · {rotulo}"
             if self.checa(self.achar(botao) is not None, f"a decisão oferece «{rotulo}»"):
-                self.decisao_de_jogo(lambda b=botao: self.achar(b).click(), f"«{rotulo}»")
+                # Os dois perguntam antes desde a P54: a decisão de 24/09 nomeia
+                # a CLASSE («as ações de jogos que aplicam todas as marcas
+                # pendentes»), e o «Voltar ao normal» também grava a linha e
+                # roda a passagem inteira — ele ficou de fora na primeira
+                # versão, e a revisão o pegou.
+                self.decisao_com_caixa(lambda b=botao: self.achar(b).click(),
+                                       f"«{rotulo}»", abrir)
                 self.acionados.add(botao)
         abrir()
         apagar = "decisão do jogo · Apagar os arquivos"
@@ -2567,11 +2720,36 @@ class Percurso:
             self.checa(orfa.count() and "apagados" in orfa.first.inner_text(),
                        "e o jogo passa às «Decisões já executadas», com os arquivos apagados")
 
+    # O CARTÃO A QUE A FICHA LEVOU: existe, está na janela e está aceso.
+    CHEGADA_JS = r"""
+    (k) => {
+      const c = document.querySelector(`#conteudo article.cartao[data-chave="${k}"]`);
+      if (!c) return null;
+      const r = c.getBoundingClientRect();
+      return { visivel: r.top >= 0 && r.bottom <= innerHeight + 1,
+               aceso: c.classList.contains('chegou') };
+    }
+    """
+
     def h_ficha_mudada(self, nome):
-        """A ficha de ajuste mudado da Início leva à aba do cartão."""
-        self.achar(nome).click()
-        self.assentar(quieto=200)
+        """A ficha de ajuste mudado da Início leva ao CARTÃO, e não só à aba: a
+        aba troca, a página rola até ele, e ele fica aceso (P54, achado 18).
+        O aceso dura segundos, então ele é conferido assim que o cartão nasce,
+        antes do `assentar` — que numa aba de prévias pode passar do prazo."""
+        el = self.achar(nome)
+        chave = el.get_attribute("data-leva")
+        el.click()
+        onde, fim = None, time.time() + 2.2
+        while time.time() < fim:
+            onde = self.js(self.CHEGADA_JS, chave)
+            if onde and onde["visivel"] and onde["aceso"]:
+                break
+            self.pag.wait_for_timeout(50)
         self.checa(self.aba_atual() != "Início", f"a ficha leva à aba do ajuste ({self.aba_atual()})")
+        self.checa(onde and onde["visivel"],
+                   f"a ficha rola até o cartão {chave}, e ele fica inteiro na janela")
+        self.checa(onde and onde["aceso"], f"e o cartão {chave} chega aceso")
+        self.assentar(quieto=200)
         self.abrir_aba(self.aba)
 
     def h_usar_icone(self, nome):

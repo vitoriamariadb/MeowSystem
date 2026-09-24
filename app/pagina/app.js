@@ -1631,10 +1631,24 @@ function montarControle(item, cartao) {
       caixa.replaceChildren();
       const itens = (valorEmVigor(item) || "").split(sep).map((s) => s.trim()).filter(Boolean);
       for (const nome of itens) {
-        caixa.append(elemento("span", { class: "ficha" }, [
-          elemento("span", { texto: nome }),
+        /* A FICHA DE PROGRAMA DIZ O PROGRAMA — 24/09/2026, sprint P54 (achado
+         * 41). Quando o servidor achou o `.desktop` do id (`item.programas`,
+         * ver o `_dados_esquema`), a ficha mostra o ícone e o nome que o
+         * lançador mostra, e o id vai para o balão: é ele que a linha do
+         * meow.conf guarda, e é por ele que se procura no arquivo. Id que a
+         * máquina não tem continua escrito como está. */
+        const programa = (item.programas || {})[nome];
+        const rotulo = programa ? programa.nome : nome;
+        caixa.append(elemento("span", {
+          class: "ficha" + (programa ? " ficha-programa" : ""),
+          title: programa ? nome : null,
+        }, [
+          programa && programa.icone
+            ? elemento("img", { src: programa.icone, alt: "", width: "16", height: "16" })
+            : null,
+          elemento("span", { texto: rotulo }),
           elemento("button", {
-            type: "button", "aria-label": `Tirar ${nome}`, texto: "×",
+            type: "button", "aria-label": `Tirar ${rotulo}`, texto: "×",
             onclick: async () => {
               const novos = itens.filter((x) => x !== nome);
               if (await aplica(novos.join(sep))) desenhar();
@@ -4226,6 +4240,83 @@ async function definirJogo(appid, acao, motivo, remover) {
   await carregarJogos();
 }
 
+/* A DECISÃO DE JOGO PERGUNTA ANTES, E A CAIXA DIZ O QUE SAI E O QUE ENTRA —
+ * 24/09/2026, sprint P54 (a decisão dos jogos, de 24/09)
+ *   «Tirar do lançador» e «Tirar da lista» gravavam a linha e rodavam a
+ *   arrumação no mesmo clique (o `definirJogo`, logo abaixo, e o porquê dele
+ *   ser assim está lá). Só que a arrumação é a passagem INTEIRA do
+ *   `jogos_steam.sh`: ela aplica toda marca que estiver esperando no mapa —
+ *   inclusive um «Marcar para apagar» de outro dia —, e o clique num jogo
+ *   disparava tudo sem dizer. A decisão foi: pergunta antes, e a caixa diz
+ *   quais atalhos saem e quais entram, com o «Ver o que faria».
+ *
+ *   QUEM RESPONDE É A PRÓPRIA PASSAGEM, em ensaio, sobre uma cópia do mapa com
+ *   a decisão dentro (`previa: true` no mesmo POST de gravar — ver o
+ *   `_api_jogo_fora`). A caixa abre na hora, com «Conferindo…», e a lista
+ *   chega quando o ensaio termina: esperar em branco antes de abrir pareceria
+ *   clique perdido.
+ *
+ *   O «Ver o que faria» roda a passagem seca na gaveta (`seco: true`), e o
+ *   «Rodar de verdade» de lá é o mesmo `definirJogo` do «sim» daqui. */
+function pintarEfeitoDosJogos(caixa, r) {
+  if (r.erro) {
+    caixa.replaceChildren(elemento("p", {
+      texto: `Não deu para conferir antes: ${r.erro}. O «Ver o que faria» mostra a passagem inteira.`,
+    }));
+    return;
+  }
+  const partes = [];
+  /* `repetem` desde a revisão da P54: a mesma passagem tira do lançador os
+   * cartões duplicados de um jogo e os de geradores antigos, e a caixa que só
+   * falava dos nossos dizia «nenhum atalho sai» com um deles saindo. */
+  for (const [campo, rotulo] of [
+    ["saem", "Saem do lançador"],
+    ["entram", "Entram no lançador"],
+    ["repetem", "Cartões duplicados ou antigos que saem"],
+    ["apagam", "Têm os arquivos apagados"],
+  ]) {
+    const itens = r[campo] || [];
+    if (!itens.length) continue;
+    partes.push(elemento("p", { "data-efeito": campo }, [
+      elemento("strong", { texto: `${rotulo}: ` }),
+      itens.map((x) => x.nome).join(", "),
+    ]));
+  }
+  if (!partes.length) {
+    partes.push(elemento("p", { "data-efeito": "nada",
+      texto: "Nenhum atalho entra nem sai do lançador, e nenhum arquivo é apagado." }));
+  }
+  caixa.replaceChildren(...partes);
+}
+
+/* `rotulos` ({titulo, ok}) é de quem chama com outro gesto que não os dois de
+ * cima: o «Voltar ao normal» remove a linha como o «Tirar da lista», e a caixa
+ * tem de falar a língua do botão que ela clicou. */
+async function confirmarJogo(j, acao, motivo, remover, rotulos = {}) {
+  const pedido = { appid: j.appid, acao, motivo, remover: !!remover };
+  const efeito = elemento("div", { class: "efeito-jogos" }, [
+    elemento("p", { texto: "Conferindo o que a arrumação faria…" }),
+  ]);
+  const resposta = perguntar({
+    titulo: rotulos.titulo
+         || (remover ? `Tirar ${j.nome} da lista?` : `Tirar ${j.nome} do lançador?`),
+    texto: (remover ? "A linha sai da lista" : "A decisão fica anotada")
+         + " e o lançador é arrumado agora — com todas as marcas que estiverem "
+         + "esperando, e não só esta.",
+    corpo: efeito,
+    ok: rotulos.ok || (remover ? "Tirar da lista" : "Tirar do lançador"),
+    ensaio: true,
+  });
+  api("/api/jogo-fora", { method: "POST", body: JSON.stringify({ ...pedido, previa: true }) })
+    .then((r) => pintarEfeitoDosJogos(efeito, r));
+  const escolha = await resposta;
+  if (escolha === "sim") { await definirJogo(j.appid, acao, motivo, remover); return; }
+  if (escolha !== "seco") return;
+  const t = await api("/api/jogo-fora", { method: "POST", body: JSON.stringify({ ...pedido, seco: true }) });
+  if (t.erro) { torrada(t.erro, "erro"); return; }
+  abrirGaveta(t, () => definirJogo(j.appid, acao, motivo, remover));
+}
+
 function etiquetaDoJogo(j) {
   if (j.gasto) return { texto: "apagado", classe: "jogo-gasto" };
   if (j.acao === "apagar") return { texto: "apagar", classe: "jogo-apagar" };
@@ -4241,6 +4332,13 @@ function montarJogos() {
     return caixa;
   }
 
+  /* O NÚMERO É O DE JOGOS, E CONCORDA COM ELE — 24/09/2026, sprint P54 (achado
+   * 43). Era o `JOGOS.total`, que o servidor conta com as DECISÕES sem jogo
+   * junto (as linhas de «Decisões já executadas»): medido no painel de
+   * verdade, uma máquina sem jogo nenhum — só o Proton e os runtimes — e com a
+   * linha do Mad King dizia «1 jogos instalados na Steam», sobre uma grade
+   * vazia. Conta o que tem manifesto, que é o que a grade desenha. */
+  const instalados = (JOGOS.jogos || []).filter((j) => !j.sem_manifesto).length;
   caixa.append(elemento("div", { class: "linha-filtro" }, [
     elemento("input", {
       type: "search", class: "busca-apps", value: JOGOS_BUSCA, "data-foco": "jogos",
@@ -4248,7 +4346,9 @@ function montarJogos() {
       oninput: (e) => { JOGOS_BUSCA = e.target.value; render(); },
     }),
     elemento("span", { class: "frase nota-secao",
-      texto: `${JOGOS.total} jogos instalados na Steam.` }),
+      texto: instalados === 0 ? "Nenhum jogo instalado na Steam."
+        : instalados === 1 ? "1 jogo instalado na Steam."
+        : `${instalados} jogos instalados na Steam.` }),
   ]));
 
   /* OS DOIS BOTÕES MORAM AQUI, e não numa aba "Fazer" separada.
@@ -4299,9 +4399,24 @@ function montarJogos() {
   if (termo && !lista.length) {
     caixa.append(elemento("p", {
       class: "sem-previa",
-      texto: `Nenhum dos ${JOGOS.total} jogos casa com “${JOGOS_BUSCA.trim()}”.`,
+      /* Sem o número desde a P54: «Nenhum dos 1 jogos» era o mesmo defeito de
+       * concordância do topo, e o total contava as decisões sem jogo. */
+      texto: `Nenhum jogo casa com “${JOGOS_BUSCA.trim()}”.`,
     }));
     return caixa;
+  }
+
+  /* A GRADE VAZIA DIZ POR QUÊ — mesma sprint, mesmo achado. Sem jogo instalado
+   * ela nascia como um retângulo sem nada, com o «Pular os jogos» apontando
+   * para ele; agora é uma frase. As ferramentas da Steam são citadas porque são
+   * o que a pessoa vê na biblioteca e não vê aqui — é a regra do
+   * `jogos_steam.sh`, e não um palpite sobre esta máquina. */
+  if (!termo && !comJogo.length) {
+    caixa.append(elemento("p", {
+      class: "sem-previa",
+      texto: "Nenhum jogo da Steam para mostrar. O Proton e os runtimes são "
+           + "ferramentas, e não vão para o lançador.",
+    }));
   }
 
   const grade = elemento("div", { class: "grade-jogos" });
@@ -4328,9 +4443,11 @@ function montarJogos() {
     ]));
     if (JOGO_ABERTO === j.appid) grade.append(montarEscolhaDeJogo(j));
   }
-  caixa.append(pulaGrade("apos-jogos", "Pular os jogos"));
-  caixa.append(grade);
-  caixa.append(alvoDoPulo("apos-jogos"));
+  if (comJogo.length) {
+    caixa.append(pulaGrade("apos-jogos", "Pular os jogos"));
+    caixa.append(grade);
+    caixa.append(alvoDoPulo("apos-jogos"));
+  }
 
   if (orfas.length) {
     caixa.append(elemento("h3", { class: "subsecao-titulo", texto: "Decisões já executadas" }));
@@ -4361,8 +4478,8 @@ function montarJogos() {
           /* 96 -> 49 caracteres, pelo teto do balão (21/09/2026). A segunda
            * metade dizia duas vezes a mesma coisa: se nenhum arquivo é tocado,
            * o jogo que não está no disco continua não estando. */
-          title: "Tira a decisão da lista. Nenhum arquivo é tocado.",
-          onclick: () => definirJogo(j.appid, "", "", true),
+          title: "Tira a decisão da lista. Pergunta antes de arrumar.",
+          onclick: () => confirmarJogo(j, "", "", true),
         }),
       ]));
     }
@@ -4395,8 +4512,11 @@ function montarJogos() {
    * lá quando ela é enviada, e o total é o número da máquina. */
   if ((JOGOS.apps || []).length) {
     caixa.append(elemento("h3", { class: "subsecao-titulo", texto: "O ícone de cada jogo" }));
+    /* «1 jogos têm atalho» — revisão da P54, a mesma concordância do achado 43
+     * e a mesma forma da nota de jogos da aba Ícones. */
+    const comAtalho = JOGOS.total_apps ?? JOGOS.apps.length;
     caixa.append(elemento("p", { class: "nota-secao",
-      texto: `${JOGOS.total_apps ?? JOGOS.apps.length} jogos têm atalho nesta `
+      texto: `${comAtalho} ${comAtalho === 1 ? "jogo tem" : "jogos têm"} atalho nesta `
            + "máquina. A capa acima decide se ele aparece no lançador; aqui se "
            + "escolhe o desenho com que ele aparece." }));
     caixa.append(pulaGrade("apos-apps-jogos", "Pular a lista"));
@@ -4437,8 +4557,8 @@ function montarEscolhaDeJogo(j) {
     linha.append(elemento("button", {
       type: "button", class: "btn",
       texto: "Tirar do lançador",
-      title: "Some da lista de aplicativos. Nenhum arquivo é tocado.",
-      onclick: () => definirJogo(j.appid, "esconder", motivo.value),
+      title: "Some da lista de aplicativos. Pergunta antes de arrumar.",
+      onclick: () => confirmarJogo(j, "esconder", motivo.value, false),
     }));
   }
 
@@ -4473,11 +4593,22 @@ function montarEscolhaDeJogo(j) {
   }
 
   if (j.acao || j.gasto) {
+    /* PERGUNTA ANTES, COMO OS OUTROS DOIS — 24/09/2026, revisão da P54. A
+     * decisão de 24/09 nomeia a CLASSE («as ações de jogos que aplicam todas as
+     * marcas pendentes»), e não dois botões: este também grava a linha e roda a
+     * passagem inteira, e um «Marcar para apagar» de outro jogo, esperando a
+     * Steam fechar, saía no clique daqui sem caixa nenhuma. O título e o botão
+     * da caixa dizem o gesto deste botão; «Tirar da lista» leria como tirar o
+     * jogo do lançador, que é o contrário do que ele faz. */
+    const rotulo = j.gasto ? "Tirar a linha gasta" : "Voltar ao normal";
     linha.append(elemento("button", {
       type: "button", class: "btn",
-      texto: j.gasto ? "Tirar a linha gasta" : "Voltar ao normal",
+      texto: rotulo,
       title: "Tira esta decisão da lista. O cartão volta na próxima passagem.",
-      onclick: () => definirJogo(j.appid, "", "", true),
+      onclick: () => confirmarJogo(j, "", "", true, {
+        titulo: j.gasto ? `Tirar a linha gasta de ${j.nome}?` : `Voltar ${j.nome} ao normal?`,
+        ok: rotulo,
+      }),
     }));
   }
 
@@ -4819,12 +4950,22 @@ async function rodarNaGaleria(acaoId, argumento) {
 }
 
 /* --- os cartões ----------------------------------------------------------- */
+/* O CARTÃO A QUE UMA FICHA DA INÍCIO ACABOU DE LEVAR — 24/09/2026, sprint P54
+ * (achado 18). `{chave, ate}`, ou null. Mora aqui, e não só numa classe posta
+ * depois da pintura, porque a aba de destino costuma pintar de novo quando as
+ * prévias dela chegam: o `render` refaz os cartões, e o aceso sumiria no meio
+ * do olhar. Quem o põe e quem o tira é a ficha, no `montarHome`. */
+let CARTAO_CHEGADA = null;
+
 function montarCartao(item) {
   const emVigor = valorEmVigor(item);
   const mexeu = emVigor !== item.padrao;
   const naoSalvo = MUDANCAS.has(item.chave);
+  const chegou = CARTAO_CHEGADA && CARTAO_CHEGADA.chave === item.chave
+                 && Date.now() < CARTAO_CHEGADA.ate;
   const cartao = elemento("article", {
-    class: "cartao" + (mexeu ? " mexeu" : "") + (naoSalvo ? " nao-salvo" : ""),
+    class: "cartao" + (mexeu ? " mexeu" : "") + (naoSalvo ? " nao-salvo" : "")
+           + (chegou ? " chegou" : ""),
     "data-chave": item.chave,
   });
 
@@ -6999,11 +7140,16 @@ function notaDoAssunto(assunto) {
  * terminal, e o `FASTFETCH_LOGO_PROPORCAO` existe justamente para converter
  * pixel em célula "na sua fonte". Medido no `meow.conf.exemplo`: nenhuma chave
  * nomeia uma família de fonte, então não há cartão a que ela pertença. */
+/* «ACIMA» ERA MENTIRA DE LUGAR — 24/09/2026, sprint P54 (achado 35). Esta nota
+ * nasce no TOPO da aba (o `render` a põe logo depois da frase da seção, antes
+ * de qualquer cartão), e o cartão «Tema de onde herdar» vem depois dela: quem
+ * procurava «acima» subia para o título e não achava nada. Na busca a nota não
+ * nasce, então «abaixo» vale em todo lugar onde ela aparece. */
 const ACERVO_DO_ASSUNTO = {
   "Ícones": {
     tipo: "tema-icones",
     nota: "Um tema de ícones de base, em .zip. Ele entra na máquina, e o "
-        + "«Tema de onde herdar» acima passa a poder escolhê-lo.",
+        + "«Tema de onde herdar», abaixo, passa a poder escolhê-lo.",
   },
   "Terminal": {
     tipo: "fonte",
@@ -8908,15 +9054,21 @@ function montarHome() {
    * única que dá para confundir com defeito quando a tela não esquenta. */
   const liga = (c) => ["sim", "true", "1"].includes(String(vale(c)).toLowerCase());
   const noite = elemento("section", { class: "home-noite" });
-  /* `NOITE_INICIO` vazio não é "não há noite": é "quem decide a hora é o
-   * horário do modo de leitura", que é o que os comentários das duas chaves
-   * dizem. A home mostra a hora que de fato vale, e não a célula vazia. */
-  const comecaAs = vale("NOITE_INICIO") || vale("LEITURA_HORARIO_INICIO");
-  const terminaAs = vale("NOITE_FIM") || vale("LEITURA_HORARIO_FIM");
+  /* A HORA DE CADA UM — 24/09/2026, reconferência da P54.
+   *   O título mostra a janela geral, a do gato do dock e do terminal, na
+   *   ordem do `lib/noite.sh`: as `NOITE_*`; vazias, as do papel de parede;
+   *   vazias as quatro, 18:00–07:00 (a janela que se arrasta no applet a
+   *   página não lê). Até aqui o título caía no horário do modo de leitura, e
+   *   o carrossel aparecia debaixo dele — mas o papel de parede e o modo de
+   *   leitura têm hora própria. Quando a deles não é a do título, a frase
+   *   deles diz a sua. */
+  const comecaAs = vale("NOITE_INICIO") || vale("WALLPAPER_NOITE_INICIO") || "18:00";
+  const terminaAs = vale("NOITE_FIM") || vale("WALLPAPER_NOITE_FIM") || "07:00";
+  const horaPropria = (ini, fim) => (ini && fim && (ini !== comecaAs || fim !== terminaAs))
+    ? `, das ${ini} às ${fim}` : "";
   noite.append(elemento("h3", {}, [
     iconeDeMenu("Dia e noite", "ajustar"),
-    elemento("span", { texto: comecaAs && terminaAs
-      ? `À noite, das ${comecaAs} às ${terminaAs}` : "À noite" }),
+    elemento("span", { texto: `À noite, das ${comecaAs} às ${terminaAs}` }),
   ]));
   const frases = [];
   if (vale("LOGO_MODO") === "hora" && vale("LOGO_NOITE")) {
@@ -8928,12 +9080,15 @@ function montarHome() {
          ? `, e a do terminal, ${maiuscula(vale("LOGO_DIA"))}.` : "."));
   }
   if (liga("WALLPAPER_NOITE")) {
-    frases.push("O carrossel sorteia só entre as imagens escuras.");
+    frases.push("O carrossel sorteia só entre as imagens escuras"
+      + horaPropria(vale("WALLPAPER_NOITE_INICIO") || "18:00",
+                    vale("WALLPAPER_NOITE_FIM") || "07:00") + ".");
   }
   if (liga("LEITURA_AGENDA")) {
     const textura = Number(vale("LEITURA_TEXTURA") || 0);
     const rampa = Number(vale("LEITURA_RAMPA_MIN") || 0);
     frases.push(`A tela esquenta até ${vale("LEITURA_TEMPERATURA")} K`
+      + horaPropria(vale("LEITURA_HORARIO_INICIO"), vale("LEITURA_HORARIO_FIM"))
       + (textura > 0 ? ` e ganha ${Math.round(textura * 100)}% de textura de papel` : "")
       + (rampa > 0 ? `, em ${rampa} min de rampa.` : "."));
   } else {
@@ -9002,7 +9157,35 @@ function montarHome() {
          * gastar o balão com a única parte que ela não precisa saber. */
         title: `De fábrica: ${rotuloDeValor(i.padrao) || "nada"} · agora: ${rotuloDeValor(i.valor) || "nada"}`,
         texto: tituloDoCartao(i) || i.chave,
-        onclick: grupo ? () => { ABA = chaveDeAba(grupo); gravarHash(); render(); } : null,
+        /* A FICHA LEVA AO CARTÃO, E NÃO SÓ À ABA — 24/09/2026, sprint P54
+         * (achado 18). Medido no painel de verdade: a ficha do ponteiro abria
+         * «Cor e tela» no topo, e o cartão dela ficava a 1084 px, fora da
+         * tela — a pessoa clicava num nome e tinha de procurá-lo de novo. O
+         * gesto agora é o da lista de escolhas pendentes: troca de aba, pinta,
+         * e só então rola até o cartão, que fica aceso uns segundos
+         * (`CARTAO_CHEGADA`, lido pelo `montarCartao`: uma prévia que chegue
+         * nesse meio repinta a aba, e o aceso tem de sobreviver a ela).
+         * `data-leva` é a chave do cartão de destino, para quem confere. */
+        "data-leva": i.chave,
+        onclick: grupo ? () => {
+          ABA = chaveDeAba(grupo);
+          gravarHash();
+          const chegada = { chave: i.chave, ate: Date.now() + 2600 };
+          CARTAO_CHEGADA = chegada;
+          render();
+          requestAnimationFrame(() => {
+            const alvo = document.querySelector(`#conteudo .cartao[data-chave="${CSS.escape(i.chave)}"]`);
+            if (alvo && alvo.scrollIntoView) alvo.scrollIntoView({ block: "center" });
+          });
+          /* Só apaga o aceso que ELA acendeu: um segundo clique noutra ficha
+           * antes do prazo já trocou o `CARTAO_CHEGADA`, e é dele a vez. */
+          setTimeout(() => {
+            if (CARTAO_CHEGADA !== chegada) return;
+            CARTAO_CHEGADA = null;
+            document.querySelectorAll("#conteudo .cartao.chegou")
+              .forEach((c) => c.classList.remove("chegou"));
+          }, 2600);
+        } : null,
       }));
     }
     bloco.append(fichas);

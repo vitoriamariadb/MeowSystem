@@ -111,7 +111,7 @@ run is still in the terminal: `./install.sh --dry-run`.
 | **The icons** | Papirus as the base, folders tinted by the accent colour, and Arcticons glyphs per program — swappable one by one, from the panel. |
 | **The terminal** | All sixteen colours, the cursor, the `starship` prompt, and the cat replacing the `fastfetch` logo, redrawn in characters on every build. |
 | **The wallpaper** | A carousel with day and night folders split by luminance, next/previous on right-click, and favourites. The collection starts empty: `meow wallpaper semear` downloads the curated set, `meow wallpaper adicionar` uses images you already have. |
-| **Day and night** | One schedule rules everything that asks "is it night?": the dock cat, the terminal cat, the background, and reading mode — which warms the screen and gives it paper texture, on a ramp. |
+| **Day and night** | At night the dock cat and the terminal cat change faces, the background switches to the dark images, and reading mode warms the screen and gives it paper texture, on a ramp — each on its own schedule, all 18:00 to 07:00 by default. |
 | **Programs** | Spotify, VS Code and friends themed from the inside; Steam and Heroic games with one launcher entry each, cover art included, removed when the game is. |
 
 ## The machine
