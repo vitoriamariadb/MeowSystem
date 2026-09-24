@@ -4067,7 +4067,10 @@ PY
     #   exporta igual em qualquer uma, e importar não troca o tema de ninguém.
     #
     #   AS OPÇÕES SEGUEM CRUAS ("$@") para o pack.py: a P16 acrescenta
-    #   `novo <id> --de-csv <arquivo>` lá dentro, sem tocar nestas linhas.
+    #   `novo <id> --de-csv <arquivo>` lá dentro, sem tocar nestas linhas. Com
+    #   ele, o conf continua carregado e nada dele é usado — o pack de CSV não
+    #   depende da máquina (ver `montar_novo`, no scripts/pack.py); separar os
+    #   dois casos aqui seria ler as opções duas vezes, em duas linguagens.
     #
     #   Sem `meow_travar`, pelo motivo do `construir`: nenhum dos três escreve
     #   na configuração dela.
@@ -4090,7 +4093,7 @@ PY
       ;;
     importar|import)
       local arquivo="${1:-}"
-      [ -n "$arquivo" ] || { meow_erro "diga qual arquivo: meow pack importar <arquivo.meowpack>"; return "$MEOW_ERRO"; }
+      [ -n "$arquivo" ] || { meow_erro "diga qual arquivo: meow pack importar <arquivo.meowpack|arquivo.csv>"; return "$MEOW_ERRO"; }
       shift
       local -a seco=()
       meow_seco && seco=(--seco)
@@ -4100,11 +4103,11 @@ PY
     #   Imprime o `paleta.json` equivalente a um CSV `slot,flavor,hex`, com o
     #   claro derivado quando o CSV não traz um. SÓ IMPRIME, como o
     #   `logo-gerado`: quem põe o arquivo num pack é a pessoa, com `>`.
-    #   Gravar o pack inteiro é o `meow pack novo <id> --de-csv <arquivo>`, e ele
-    #   é PENDÊNCIA DA P16 [revisão, 23/09/2026]: o `novo` nasce na P11, que não
-    #   tinha entrado no dev, e aqui não se escreve um segundo `novo` em paralelo.
-    #   Quando ela entrar, o `--de-csv` vira um ramo do `cmd_novo` dela — o que
-    #   falta está em "A PALETA ENTRA POR CSV", no scripts/pack.py.
+    #   Gravar o pack inteiro é o `meow pack novo <id> --de-csv <arquivo>`, ou o
+    #   `meow pack importar <arquivo.csv>`, que é por onde a tela chega. Os dois
+    #   entraram na segunda metade da P16 [23/09/2026], depois da P11 que trouxe
+    #   o `novo` e o `importar`: são ramos DELES, no scripts/pack.py, e passam as
+    #   opções cruas pelas linhas acima sem que elas mudassem.
     #
     #   UM ARGUMENTO SÓ, E O SEGUNDO É RECUSADO [revisão da P16, 23/09/2026].
     #   Os outros verbos ignoram o que sobra; este não pode, porque o segundo
@@ -4125,9 +4128,10 @@ PY
       printf '  construir <id>   refaz o que o pack deriva, escrevendo só dentro dele\n'
       printf '  sincronizar <id> compara a arte copiada com a origem; só lê, nunca copia\n'
       printf '  novo <id>        um pack seu, a partir do que está no ar; o resto ele herda\n'
+      printf '    --de-csv <arq> a paleta vem do CSV slot,flavor,hex; o resto, do pack padrão\n'
       printf '  exportar <id> [arquivo.meowpack] [--sem-imagens]\n'
       printf '                   o pack num arquivo só, para mandar a alguém\n'
-      printf '  importar <arquivo.meowpack>\n'
+      printf '  importar <arquivo.meowpack|arquivo.csv>\n'
       printf '                   confere, e instala como opção — não troca o seu tema\n'
       printf '  de-csv <arq>     a paleta.json de um CSV slot,flavor,hex; só imprime\n'
       printf '  raizes           onde o MeowSystem procura\n\n'

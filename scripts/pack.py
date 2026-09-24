@@ -80,10 +80,13 @@ VERBOS
                                  linha: `pack<TAB>nome<TAB>origem<TAB>sha256`.
                                  Não é o verbo `fontes`, que é de ícone (P28).
                                  Ver `tipografia`.
-    novo    <id> [--seco]        cria o pack <id> a partir do que está no ar: a
+    novo    <id> [--de-csv <arquivo.csv>] [--seco]
+                                 cria o pack <id> a partir do que está no ar: a
                                  paleta, o timbre, um logo gerado e os créditos,
                                  herdando o resto do pack ativo. Em $MEOW_PACKS
                                  quando ela existe; senão, em packs/ do projeto.
+                                 Com `--de-csv`, a paleta é a do CSV e o resto
+                                 vem do pack PADRÃO. Ver `montar_novo`.
     exportar <id> [arquivo] [--sem-imagens] [--seco]
                                  o pack num `.meowpack` (um .tar.zst com um
                                  MANIFESTO de sha256). Recusa o que não valida,
@@ -91,7 +94,10 @@ VERBOS
                                  sem licença no PROCEDENCIA.md.
     importar <arquivo> [--seco]  confere o `.meowpack` inteiro, valida, e só então
                                  instala em ~/.local/share/meowsystem/packs/.
-                                 Recusa qualquer script. NÃO APLICA nada.
+                                 Recusa qualquer script. NÃO APLICA nada. Um
+                                 `.csv` solto vira pack pelo mesmo `montar_novo`
+                                 do `novo --de-csv`, com o id tirado do nome do
+                                 arquivo.
     info    <id>                 o que é próprio, o que é herdado, o que falta
     usar    <id> [flavor]        o PACK e o FLAVOR que o `meow pack usar` grava,
                                  como três linhas `PACK=`/`FLAVOR=`/`PORQUE=`.
@@ -233,6 +239,13 @@ CAMPOS_COM_LEITOR = {
     # vestida de Dracula. O shell ainda não o lê: o `ICONES_FLAVOR` do meow.conf
     # continua mandando, que é o "Quem vence" do docs/PACKS.md.
     "icones.mimetypes.flavor",
+    # O `gerar` DOS AUTORAIS TINHA LEITOR, E O AVISO DIZIA QUE NÃO — 23/09/2026,
+    # sprint P16. O `cmd_construir` o lê desde a P29 (é o único "derivado" que um
+    # pack declara), e ele seguia na lista de mortos do Dracula. Passou a doer
+    # quando o `novo --de-csv` nasceu declarando-o: o `validar` do pack que o
+    # próprio MeowSystem acabou de escrever dizia "não faz nada" de um campo que
+    # é o motivo de os ícones dele estarem nas cores dele.
+    "icones.autorais.gerar",
 }
 
 
@@ -1694,21 +1707,27 @@ def _dentro(base, alvo, campo):
 #   lugar nenhum. O verbo `de-csv` o imprime no STDOUT, como o `logo-gerado`, e
 #   quem põe o arquivo num pack é a pessoa, com `>`.
 #
-# O `novo --de-csv` É PENDÊNCIA DA P16, E NÃO DA P11 [revisão, 23/09/2026]
+# O `novo --de-csv` E O `.csv` DA TELA ENTRARAM DEPOIS DA P11 [23/09/2026]
 #   A sprint pede `meow pack novo <id> --de-csv <arquivo>` (item 2) e a tela
-#   de importar aceitando `.csv` (item 5), e os dois ficaram por fazer AQUI. O
-#   `novo`, o `/api/pack-importar` e a tela de importar nascem na P11, e ela
-#   não tinha entrado no dev quando esta foi escrita (medido: zero `novo` no
+#   de importar aceitando `.csv` (item 5). A primeira metade da P16 os deixou
+#   por fazer, porque o `novo`, o `/api/pack-importar` e a tela de importar
+#   nascem na P11, que não tinha entrado no dev (medido então: zero `novo` no
 #   `bin/meow`, zero `pack-importar` no servidor e no app.js do dev 249d60a).
-#   A spec da P11 não fala de CSV; quem deve o `--de-csv` é a P16. Não há um
-#   segundo `novo` em paralelo: dois `novo` escritos ao mesmo tempo, em duas
-#   sprints, é o conflito que ninguém resolveria igual duas vezes.
-#   O QUE FALTA, quando a P11 entrar: no `cmd_novo` dela, o ramo `--de-csv`
-#   troca a leitura da paleta no ar por `paleta_de_csv(arquivo)`, o
-#   `flavor_padrao` passa a ser o primeiro flavor do CSV, e a régua e a
-#   notícia do claro derivado saem como no `cmd_de_csv`; o importar da tela
-#   aceita o `.csv` e mostra o claro derivado com o jeito de trocá-lo (o risco
-#   que a sprint declara: "a tela precisa deixar trocar").
+#   Um segundo `novo` escrito em paralelo seria o conflito que ninguém
+#   resolveria igual duas vezes. A P11 entrou (8f50bd8), e a segunda metade
+#   ligou os dois — ver `montar_novo`, onde o CSV vira PACK, e não só paleta:
+#     · a paleta vem desta seção (`paleta_de_csv`), e a régua e a notícia do
+#       claro derivado saem pela `_noticiar_csv`, a mesma do `cmd_de_csv`;
+#     · o `flavor_padrao` é o primeiro flavor do CSV, o mesmo de onde o claro
+#       se deriva;
+#     · a `heranca` é o pack PADRÃO, sem a qual ícones, ponteiro e papéis de
+#       parede não subiriam para pack nenhum;
+#     · os ícones AUTORAIS nascem construídos, nas cores do CSV — ver
+#       `_autorais_construidos`, que diz por que o CSV precisa e o `novo` do
+#       pack no ar não.
+#   O `importar` de um `.csv` solto — a porta da tela — chama o MESMO
+#   `montar_novo`: uma regra só para "este CSV vira este pack", e os dois
+#   verbos diferem só em ONDE escrevem, cada um pelo motivo do seu cabeçalho.
 #
 # O CLARO DERIVADO É O MÉTODO DO ALUCARD, E NÃO UM SEGUNDO
 #   As três regras de docs/PACKS.md, "Se o seu tema não tem um claro", viraram
@@ -2015,14 +2034,28 @@ def cmd_de_csv(caminho):
     except Recusa as e:
         print(f"  erro o CSV não virou paleta: {e}", file=sys.stderr)
         return RECUSADO
+    _noticiar_csv(caminho, dados, reprovados, sys.stderr)
+    sys.stdout.write(json.dumps(dados, indent=2, ensure_ascii=False) + "\n")
+    return OK
+
+
+def _noticiar_csv(caminho, dados, reprovados, arq):
+    """O que o CSV deu, o claro que se derivou e o que reprovou na régua.
+
+    SAIU DE DENTRO DO `cmd_de_csv` NA SEGUNDA METADE DA P16 [23/09/2026], sem
+    mudar uma letra: o `novo --de-csv` e o `importar` de um `.csv` dizem a
+    mesma notícia, e três cópias dela discordariam na primeira frase trocada.
+    `arq` é o STDERR no `de-csv`, cujo STDOUT é o JSON; nos outros dois, o
+    STDOUT, que é onde o resto da saída deles já está.
+    """
     derivados = claros_derivados(dados)
     lidos = [f for f in dados["flavors"] if f not in derivados]
     print(f"  ok   {os.path.basename(caminho)}: {len(lidos)} flavor(s), "
-          f"26 slots conferidos — {', '.join(lidos)}", file=sys.stderr)
+          f"26 slots conferidos — {', '.join(lidos)}", file=arq)
     for claro, escuro in derivados.items():
         print(f"  --   {claro}: claro derivado de {escuro!r} pelo método do Latte — "
               f"não é próprio.\n"
-              f"       Para ter o seu, traga as 26 linhas dele no CSV.", file=sys.stderr)
+              f"       Para ter o seu, traga as 26 linhas dele no CSV.", file=arq)
     # A RÉGUA AVISA E NÃO BLOQUEIA, E O CÓDIGO DE SAÍDA CONTINUA 0
     #   A sprint é explícita: "a régua é do projeto; a decisão é de quem fez o
     #   tema". Medido em 23/09/2026: as cores oficiais do Dracula reprovam em
@@ -2031,11 +2064,35 @@ def cmd_de_csv(caminho):
     #   não pode é o silêncio: a lista inteira sai, e antes do JSON.
     if reprovados:
         print(f"  aviso {len(reprovados)} abaixo da régua de contraste (docs/PACKS.md) — "
-              f"não bloqueia, a decisão é sua:", file=sys.stderr)
+              f"não bloqueia, a decisão é sua:", file=arq)
         for linha in reprovados:
-            print(f"          {linha}", file=sys.stderr)
-    sys.stdout.write(json.dumps(dados, indent=2, ensure_ascii=False) + "\n")
-    return OK
+            print(f"          {linha}", file=arq)
+
+
+def id_do_csv(caminho):
+    """O id do pack que um `.csv` solto vira no `importar`: o nome do arquivo.
+
+    O CSV NÃO TEM ONDE DIZER O ID, E O NOME DO ARQUIVO É O QUE A PESSOA ESCOLHEU
+    [23/09/2026, P16]. O `.meowpack` traz o id dentro, conferido; as três
+    colunas do CSV não têm lugar para ele, e o `novo` o recebe na linha de
+    comando. Pela tela não há linha de comando: sobra o nome que ela deu ao
+    arquivo, que é também o que ela reconhece na caixa de confirmar. O primeiro
+    flavor seria a outra escolha, e pior — as cores do Dracula com o flavor
+    `dracula` esbarrariam no pack que já existe, e ela não teria como mudar o
+    id sem editar as 26 linhas; um arquivo, ela renomeia.
+    O nome vira id do jeito que um nome de arquivo precisa virar: sem acento,
+    minúsculo, e o que não for letra ou dígito vira hífen — "Minhas Cores.csv"
+    é o pack `minhas-cores`.
+    """
+    import unicodedata
+    base = os.path.splitext(os.path.basename(caminho))[0]
+    sem_acento = unicodedata.normalize("NFKD", base).encode("ascii", "ignore").decode("ascii")
+    ident = re.sub(r"[^a-z0-9]+", "-", sem_acento.lower()).strip("-")
+    _exigir(RE_ID.match(ident),
+            f"{os.path.basename(caminho)}: o id do pack sai do nome do arquivo, e deste\n"
+            f"    não sai nenhum. Renomeie-o com letras ou dígitos — 'minhas-cores.csv'\n"
+            f"    vira o pack minhas-cores.")
+    return ident
 
 
 # --- O LOGO DO PACK — 23/09/2026, sprint P25 --------------------------------
@@ -4218,7 +4275,25 @@ def o_que_traz(p, dados, membros):
         "som": "próprio" if som else "não traz — vale o do MeowSystem",
         "arquivos": len(membros),
         "bytes": sum(len(c) for c in membros.values()),
+        # O claro que ninguém desenhou se declara também ANTES de entrar
+        # [23/09/2026, P16]: o `info` e o cartão já dizem, e a caixa de
+        # confirmar mostrava "claro" igual para o derivado e para o desenhado.
+        "derivados": claros_derivados(dados),
     }
+
+
+def resumo_csv(caminho):
+    """O `o_que_traz` do pack que um `.csv` solto vira, sem escrever nada.
+
+    O par do `resumo_meowpack`, para a mesma tela de confirmar, e com a mesma
+    confiança: o `importar --seco` acabou de montar e validar este pack pelo
+    MESMO `montar_novo`. Leva a régua de contraste junto, porque a sprint a pede
+    "na importação", e a tela é a importação de quem não abre o terminal.
+    """
+    arquivos, dados, reprovados = montar_novo(id_do_csv(caminho), caminho)
+    r = o_que_traz(json.loads(arquivos["pack.json"]), dados, arquivos)
+    r["regua"] = reprovados
+    return r
 
 
 def resumo_meowpack(caminho):
@@ -4241,6 +4316,9 @@ def _imprimir_o_que_traz(r):
     print(f"  >>   o que o pack {r['nome']} traz:")
     print(f"         paleta            : {', '.join(r['paleta'])} — 26 cores cada, "
           f"padrão {r['flavor_padrao']}")
+    for claro, escuro in r["derivados"].items():
+        print(f"         claro derivado    : {claro}, de {escuro!r} pelo método do Latte — "
+              f"não é próprio")
     print(f"         ícones            : {r['icones']} desenho(s) no pacote · os de "
           f"aplicativo: {r['icones_de_aplicativo']}")
     print(f"         ponteiro          : {r['ponteiro']}")
@@ -4258,16 +4336,36 @@ def cmd_importar(caminho, opcoes):
         if op in ("--seco", "--dry-run"):
             seco = True
         else:
-            print(f"  erro não entendi {op!r} — uso: importar <arquivo.meowpack> [--seco]",
-                  file=sys.stderr)
+            print(f"  erro não entendi {op!r} — uso: importar <arquivo.meowpack|arquivo.csv> "
+                  f"[--seco]", file=sys.stderr)
             return ERRO_USO
     _exigir(os.path.isfile(caminho), f"não achei o arquivo {caminho!r}")
-    ident, membros = ler_meowpack(caminho)
+    # O `.csv` SOLTO TAMBÉM SE IMPORTA — 23/09/2026, P16, item 5
+    #   "O 'Importar um pack' de P11 aceita um .csv solto, não só um .meowpack."
+    #   Ele não é lido como tarball: vira pack pelo `montar_novo`, o mesmo do
+    #   `novo --de-csv`, e daí para baixo é o importar de sempre — o mesmo
+    #   `_instalar_pack`, na mesma raiz da pessoa, com o mesmo "não aplica". É
+    #   aqui que a tela chega, e não ao `novo`: o `novo` escreve em `packs/` do
+    #   projeto, que é onde se publica por commit, e um clique no painel que
+    #   deixasse um diretório no `git status` é a sujeira que a P21 tirou do
+    #   repositório. A extensão decide, como decide para quem escolhe o arquivo.
+    de_csv = caminho.lower().endswith(".csv")
+    if de_csv:
+        ident = id_do_csv(caminho)
+    else:
+        ident, membros = ler_meowpack(caminho)
     existe = _pack_existente(ident)
     _exigir(not existe, f"já existe {existe}.\n"
                         f"    Importar por cima trocaria o que está lá sem perguntar, e um pack\n"
                         f"    com o mesmo nome noutra raiz esconderia um dos dois. Para trocar,\n"
-                        f"    tire o que está lá primeiro.")
+                        f"    tire o que está lá primeiro."
+                        + ("\n    O id sai do nome do CSV: com outro nome, ele vira outro pack."
+                           if de_csv else ""))
+    # Depois da conferência do id, e não antes: montar desenha os autorais, e
+    # desenhar 22 ícones para então recusar pelo nome seria trabalho jogado fora.
+    if de_csv:
+        membros, paleta, reprovados = montar_novo(ident, caminho)
+        _noticiar_csv(caminho, paleta, reprovados, sys.stdout)
     p, dados, destino = _instalar_pack(membros, raiz_da_pessoa(), ident, seco)
     r = o_que_traz(p, dados, membros)
     _imprimir_o_que_traz(r)
@@ -4281,7 +4379,7 @@ def cmd_importar(caminho, opcoes):
 
 
 def cmd_novo(ident, opcoes):
-    """Cria o pack `ident` a partir do que está no ar.
+    """Cria o pack `ident` a partir do que está no ar — ou de um CSV.
 
     O QUE ESTÁ NO AR, E COMO CADA PEDAÇO ENTRA
         · a paleta — a que vale AGORA, pela porta de sempre
@@ -4298,6 +4396,12 @@ def cmd_novo(ident, opcoes):
           vem do pack no ar pela `heranca`, por id. Nenhum caminho absoluto,
           nenhuma segunda cópia do mesmo acervo que defasaria calada.
 
+    COM `--de-csv <arquivo>` — 23/09/2026, P16, item 2
+        "Monta o pack a partir disso: valida, deriva o que puder, e escreve o
+        `paleta.json` equivalente." A paleta é a do CSV, e NADA vem do ar: nem o
+        timbre, nem a herança. O que muda, e por quê, mora em `montar_novo`,
+        que é também o que o `importar` de um `.csv` chama.
+
     O QUE A SPRINT PEDIA E O FORMATO AINDA NÃO GUARDA
         "Os acervos que a pessoa adicionou (ícones, papéis de parede, ponteiro)
         copiados." Medido em 23/09/2026: o formato não tem onde guardar papel de
@@ -4313,49 +4417,135 @@ def cmd_novo(ident, opcoes):
         um pack se publica por commit. Por ser gesto explícito, e com nome, não
         é a sujeira de uso que a P21 tirou do repositório.
     """
-    seco = False
+    seco, csv = False, None
     it = iter(opcoes)
     for op in it:
         if op in ("--seco", "--dry-run"):
             seco = True
-        # A P16 ENTRA AQUI: `--de-csv <arquivo>` é mais um ramo, com `next(it)`
-        # para o caminho, e troca só a leitura da paleta lá embaixo — o único
-        # ponto deste verbo que abre uma paleta.
+        # `--de-csv <arquivo>` É MAIS UM RAMO, no lugar que a P11 deixou marcado,
+        # com `next(it)` para o caminho. Sem o arquivo, ou com um segundo
+        # `--de-csv`, é erro de uso: dois CSV não viram uma paleta, e um
+        # `--seco` no lugar do arquivo seria lido como um CSV chamado `--seco`.
+        elif op == "--de-csv" and csv is None:
+            csv = next(it, None)
+            if not csv or csv.startswith("-"):
+                print("  erro o --de-csv pede o arquivo — uso: novo <id> --de-csv <cores.csv>",
+                      file=sys.stderr)
+                return ERRO_USO
         else:
-            print(f"  erro não entendi {op!r} — uso: novo <id> [--seco]", file=sys.stderr)
+            print(f"  erro não entendi {op!r} — uso: novo <id> [--de-csv <arquivo.csv>] [--seco]",
+                  file=sys.stderr)
             return ERRO_USO
     _exigir(RE_ID.match(ident), f"id {ident!r} — só minúsculas, dígitos e hífen")
     existe = _pack_existente(ident)
     _exigir(not existe, f"já existe {existe} — escolha outro nome")
 
-    pf, _, _dir_fonte = validar(os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO, silencioso=True)
-    arq_paleta = paleta_do_pack_ativo()
-    try:
-        with open(arq_paleta, "rb") as fh:
-            bruto_paleta = fh.read()
-        paleta = json.loads(bruto_paleta)
-        _exigir(isinstance(paleta.get("flavors"), dict) and paleta["flavors"], "sem flavors")
-    except (OSError, ValueError, AttributeError, Recusa) as e:
-        raise Recusa(f"a paleta no ar ({arq_paleta}) não serve de ponto de partida: {e}")
-    flavor, accent = _flavor_e_accent(pf, paleta)
+    arquivos, paleta, reprovados = montar_novo(ident, csv)
+    if csv:
+        _noticiar_csv(csv, paleta, reprovados, sys.stdout)
+    base = os.environ.get("MEOW_PACKS") or os.path.join(RAIZ, "packs")
+    p, _dados, destino = _instalar_pack(arquivos, base, ident, seco)
+    if seco:
+        print(f"  ~~   criaria {os.path.join(base, ident)}/ — nada foi escrito")
+    else:
+        print(f"  ok   {destino}/")
+    de, flavor = p["heranca"], p["paleta"]["flavor_padrao"]
+    if csv:
+        print(f"       de {os.path.basename(csv)}: a paleta ({len(paleta['flavors'])} flavor(s), "
+              f"padrão {flavor}), os ícones autorais nas cores dela, um logo gerado e os créditos")
+        print(f"  --   o resto vem do {de!r}, o pack padrão, pela herança — "
+              f"meow pack info {ident} diz o quê")
+        return OK
+    print(f"       a partir do {de!r}: a paleta ({len(paleta['flavors'])} flavor(s), "
+          f"padrão {flavor}), " + ("o timbre, " if "som" in p else "") + "um logo gerado e os créditos")
+    print(f"  --   o resto vem do {de!r} pela herança — meow pack info {ident} diz o quê")
+    print("  --   papel de parede e ponteiro não entram: o formato ainda não tem onde "
+          "guardá-los dentro de um pack")
+    return OK
 
-    som = {k: v for k, v in (pf.get("som") or {}).items() if not str(k).startswith("_")}
-    for chave, var in SOM_NO_CONF.items():
-        bruto = (os.environ.get(var) or "").strip()
-        if bruto:
-            try:
-                som[chave] = float(bruto)
-            except ValueError:
-                raise Recusa(f"{var}={bruto!r} no meow.conf não é número — o timbre no ar "
-                             f"não tem como virar pack")
 
+def montar_novo(ident, csv=None):
+    """(arquivos, paleta, reprovados) do pack que o `novo` escreve. Não grava nada.
+
+    `arquivos` é {caminho no pack: bytes}, pronto para o `_instalar_pack`, que é
+    quem grava e valida; `reprovados` é a régua de contraste, vazia sem CSV.
+
+    SAIU DE DENTRO DO `cmd_novo` NA SEGUNDA METADE DA P16 [23/09/2026]
+        A sprint pede o `.csv` também na tela, e a tela importa. Duas montagens
+        do mesmo "CSV vira pack", uma no `novo` e outra no `importar`, é o
+        defeito que custou a primeira revisão da P10: uma regra que o painel já
+        tinha, refeita em awk, divergindo calada. Aqui a regra é uma, e os dois
+        verbos a chamam; eles diferem só no lugar onde gravam.
+
+    COM `csv`, O QUE MUDA E POR QUÊ
+        · a paleta é `paleta_de_csv` — as recusas com a linha, o claro derivado
+          quando o CSV não traz um —, e o `flavor_padrao` é o primeiro flavor
+          do CSV, o mesmo de onde o claro se deriva;
+        · a HERANÇA É O PACK PADRÃO, e não o no ar. Sem `heranca`, ícones,
+          ponteiro e papéis de parede não sobem para pack nenhum. E o pack no ar
+          não serve: o mesmo CSV daria um pack numa máquina vestida de Dracula
+          e outro numa de Catppuccin, e o `importar` — que é por onde a tela
+          chega aqui — não depende da máquina. O padrão é o único pack que toda
+          instalação tem;
+        · NADA DO AR: nem o timbre do meow.conf, nem o accent dele no logo (é o
+          `mauve` de sempre, o mesmo dos autorais). O CSV é a declaração
+          inteira de quem o fez;
+        · os ícones autorais nascem construídos nas cores do CSV — ver
+          `_autorais_construidos`.
+    """
     import time
     nome = " ".join(parte.capitalize() for parte in ident.split("-"))
     data = time.strftime("%d/%m/%Y")
+    som, reprovados = {}, []
+    if csv:
+        pf, _, _dir_fonte = validar(PACK_PADRAO, silencioso=True)
+        # O prefixo diz que a recusa é do CSV: sem ele, a porta geral do `main`
+        # imprimiria só "pack recusado: cores.csv:5: …", e quem lê "pack" vai
+        # procurar o defeito num pack.json que ainda nem existe.
+        try:
+            paleta = paleta_de_csv(csv)
+            reprovados = regua_de_contraste(paleta, _referencia_clara())
+        except Recusa as e:
+            raise Recusa(f"o CSV não virou paleta: {e}")
+        bruto_paleta = (json.dumps(paleta, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+        flavor, accent = next(iter(paleta["flavors"])), ACCENT_PADRAO_DO_LOGO
+    else:
+        pf, _, _dir_fonte = validar(os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO,
+                                    silencioso=True)
+        arq_paleta = paleta_do_pack_ativo()
+        try:
+            with open(arq_paleta, "rb") as fh:
+                bruto_paleta = fh.read()
+            paleta = json.loads(bruto_paleta)
+            _exigir(isinstance(paleta.get("flavors"), dict) and paleta["flavors"], "sem flavors")
+        except (OSError, ValueError, AttributeError, Recusa) as e:
+            raise Recusa(f"a paleta no ar ({arq_paleta}) não serve de ponto de partida: {e}")
+        flavor, accent = _flavor_e_accent(pf, paleta)
+
+        som = {k: v for k, v in (pf.get("som") or {}).items() if not str(k).startswith("_")}
+        for chave, var in SOM_NO_CONF.items():
+            bruto = (os.environ.get(var) or "").strip()
+            if bruto:
+                try:
+                    som[chave] = float(bruto)
+                except ValueError:
+                    raise Recusa(f"{var}={bruto!r} no meow.conf não é número — o timbre no ar "
+                                 f"não tem como virar pack")
+
+    de_quem = pf.get("nome") or pf["id"]
+    if csv:
+        nome_csv = os.path.basename(csv)
+        nota = (f"Nasceu em {data} de {nome_csv}, um CSV de cores: a paleta é a dele. O que "
+                f"este arquivo não declara vem do pack padrão, {pf['id']!r}, pela herança — "
+                f"`meow pack info {ident}` diz o quê, categoria a categoria.")
+        frase = f"Feito de {nome_csv}; o resto vem do {de_quem}."
+    else:
+        nota = (f"Nasceu de `meow pack novo` em {data}, a partir do pack {pf['id']!r}, "
+                f"que estava no ar. O que este arquivo não declara vem dele, pela "
+                f"herança — `meow pack info {ident}` diz o quê, categoria a categoria.")
+        frase = f"Nasceu do {de_quem}, com as cores que estavam no ar."
     novo = {
-        "_nota": (f"Nasceu de `meow pack novo` em {data}, a partir do pack {pf['id']!r}, "
-                  f"que estava no ar. O que este arquivo não declara vem dele, pela "
-                  f"herança — `meow pack info {ident}` diz o quê, categoria a categoria."),
+        "_nota": nota,
         "formato": FORMATO_MAX,
         "id": ident,
         "nome": nome,
@@ -4365,7 +4555,8 @@ def cmd_novo(ident, opcoes):
         "paleta": {"arquivo": "paleta.json", "flavor_padrao": flavor},
         "cosmic": {"nome_da_paleta": f"{ident}-<flavor>"},
     }
-    frase = f"Nasceu do {pf.get('nome') or pf['id']}, com as cores que estavam no ar."
+    if csv:
+        novo["icones"] = {"autorais": {"gerar": True, "desenhos": PASTA_AUTORAIS}}
     if len(frase) <= TETO_DESCRICAO_CURTA:
         novo["vitrine"]["descricao_curta"] = frase
     if som:
@@ -4373,22 +4564,41 @@ def cmd_novo(ident, opcoes):
 
     svg = logo_gerado(nome, ident)
     svg = _aplicar_papeis(svg, ET.fromstring(svg), _cores_do_logo(paleta, flavor, accent))
-    origem = ", ".join(x for x in (f"autor {pf['autor']}" if pf.get("autor") else "",
-                                   f"licença {pf['licenca']}" if pf.get("licenca") else "",
-                                   (pf.get("vitrine") or {}).get("site") or "") if x)
+    if csv:
+        abertura = (f"Este pack nasceu em {data} de `{nome_csv}`, um CSV de cores, e herda o "
+                    f"resto do pack padrão, **{de_quem}** (`{pf['id']}`).\n\n")
+        sobre_paleta = (f"`paleta.json` é a tradução de `{nome_csv}` (o mesmo `meow pack "
+                        f"de-csv`): as cores são de quem fez o CSV.")
+        for claro, escuro in claros_derivados(paleta).items():
+            sobre_paleta += (f" O flavor `{claro}` não foi desenhado: foi derivado de "
+                             f"`{escuro}` pelo método do Latte (docs/PACKS.md, \"Se o seu tema "
+                             f"não tem um claro\").")
+        sobre_paleta += "\n\n"
+        autorais = (f"## Os ícones autorais\n\n"
+                    f"`icones/autorais/` foi desenhado pelo `meow pack construir`, nas cores "
+                    f"desta paleta: os desenhos são os do MeowSystem. Mudou a paleta? Rode-o "
+                    f"de novo.\n\n")
+    else:
+        origem = ", ".join(x for x in (f"autor {pf['autor']}" if pf.get("autor") else "",
+                                       f"licença {pf['licenca']}" if pf.get("licenca") else "",
+                                       (pf.get("vitrine") or {}).get("site") or "") if x)
+        abertura = (f"Este pack nasceu em {data} de `meow pack novo`, a partir do pack "
+                    f"**{de_quem}** (`{pf['id']}`), que estava no ar.\n\n")
+        sobre_paleta = (f"`paleta.json` é a do `{pf['id']}`, copiada como estava"
+                        + (f" ({origem})" if origem else "") + ". De onde vieram aquelas cores, o "
+                        f"CREDITOS.md do `{pf['id']}` conta.\n\n")
+        autorais = ""
     creditos = (
         f"# Créditos do pack {nome}\n\n"
-        f"Este pack nasceu em {data} de `meow pack novo`, a partir do pack "
-        f"**{pf.get('nome') or pf['id']}** (`{pf['id']}`), que estava no ar.\n\n"
-        f"## A paleta\n\n"
-        f"`paleta.json` é a do `{pf['id']}`, copiada como estava"
-        + (f" ({origem})" if origem else "") + ". De onde vieram aquelas cores, o "
-        f"CREDITOS.md do `{pf['id']}` conta.\n\n"
-        f"## O logo\n\n"
+        + abertura
+        + "## A paleta\n\n"
+        + sobre_paleta
+        + f"## O logo\n\n"
         f"`logo.svg` foi gerado pelo MeowSystem: a inicial do nome sobre o `base` da "
         f"paleta. É seu para redesenhar — mantenha as `class`, que são o papel de "
         f"cada forma.\n\n"
-        f"## O resto\n\n"
+        + autorais
+        + f"## O resto\n\n"
         f"Tudo o que o `pack.json` não declara vem do `{pf['id']}`, pela herança, e "
         f"é dele a procedência. `meow pack info {ident}` diz o que é próprio e o que "
         f"é herdado.\n\n"
@@ -4402,18 +4612,61 @@ def cmd_novo(ident, opcoes):
         LOGO: svg.encode("utf-8"),
         "CREDITOS.md": creditos.encode("utf-8"),
     }
-    base = os.environ.get("MEOW_PACKS") or os.path.join(RAIZ, "packs")
-    _p, _dados, destino = _instalar_pack(arquivos, base, ident, seco)
-    if seco:
-        print(f"  ~~   criaria {os.path.join(base, ident)}/ — nada foi escrito")
-    else:
-        print(f"  ok   {destino}/")
-    print(f"       a partir do {pf['id']!r}: a paleta ({len(paleta['flavors'])} flavor(s), "
-          f"padrão {flavor}), " + ("o timbre, " if som else "") + "um logo gerado e os créditos")
-    print(f"  --   o resto vem do {pf['id']!r} pela herança — meow pack info {ident} diz o quê")
-    print("  --   papel de parede e ponteiro não entram: o formato ainda não tem onde "
-          "guardá-los dentro de um pack")
-    return OK
+    if csv:
+        arquivos.update(_autorais_construidos(ident, arquivos))
+    return arquivos, paleta, reprovados
+
+
+def _autorais_construidos(ident, arquivos):
+    """{icones/autorais/<nome>-<flavor>.svg: bytes} do pack que `arquivos` descreve.
+
+    POR QUE O PACK DE CSV PRECISA, E O DO AR NÃO [23/09/2026, P16]
+        O `novo` sem CSV copia a paleta no ar e herda do pack no ar: os flavors
+        são os MESMOS, e os autorais herdados (`cosmic-term-mocha.svg`…) casam
+        com eles. O CSV traz flavors que ninguém desenhou. Medido num pack de
+        CSV montado à mão, com a `heranca` e nada mais: o `info` dizia
+        `icones.autorais  HERDADO de catppuccin  44 desenho(s)` e nenhum flavor
+        dele, porque os 44 são mocha, macchiato, frappe e latte. A tela contava
+        como herdados ícones que não vestem flavor nenhum do pack.
+    O CONSERTO É O VERBO QUE JÁ EXISTE, E NÃO UM SEGUNDO GERADOR
+        `icones.autorais.gerar` + `meow pack construir` é como o Dracula tem os
+        onze dele nos dois flavors. Medido antes de ligar: no mesmo pack de CSV
+        com o `gerar`, o `construir` escreveu 22 SVG (11 desenhos x 2 flavors,
+        o claro derivado incluído) SÓ em `<pack>/icones/autorais/`, com a rede
+        cortada (`unshare --net`), e o `info` passou a `PRÓPRIO, 22
+        desenho(s), 2 flavor(s)`. Então o pack de CSV nasce assim: o verbo roda
+        num temporário, com o pack montado lá, e os SVG voltam para o
+        dicionário que o `_instalar_pack` grava e valida — o pack não existe um
+        instante declarando uma pasta vazia.
+    COMO PROCESSO, E NÃO CHAMADO DAQUI
+        O `construir` imprime uma linha por desenho, o gerador escreve no
+        STDOUT dele, e quem chega aqui pela tela é o servidor, cujo STDOUT é o
+        terminal do `run.sh`. Capturado, o que ele disse só aparece na recusa.
+    """
+    import subprocess
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="meow-novo-") as tmp:
+        dir_pack = os.path.join(tmp, ident)
+        for rel, conteudo in arquivos.items():
+            alvo = _dentro(dir_pack, rel, rel)
+            os.makedirs(os.path.dirname(alvo), exist_ok=True)
+            with open(alvo, "wb") as fh:
+                fh.write(conteudo)
+        # A pasta nasce vazia para o `validar` do `construir` não recusar o
+        # `desenhos` que ainda não tem nada — é ele que vai enchê-la.
+        pasta = os.path.join(dir_pack, PASTA_AUTORAIS)
+        os.makedirs(pasta)
+        r = subprocess.run([sys.executable, os.path.abspath(__file__), "construir", dir_pack],
+                           capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        if r.returncode != 0:
+            raise Recusa("os ícones autorais nas cores do CSV não nasceram — o `construir` "
+                         "disse:\n    " + ((r.stderr or r.stdout).strip() or f"saída {r.returncode}"))
+        saida = {}
+        for nome in sorted(os.listdir(pasta)):
+            if nome.endswith(".svg"):
+                with open(os.path.join(pasta, nome), "rb") as fh:
+                    saida[PASTA_AUTORAIS + nome] = fh.read()
+        return saida
 
 
 def cmd_caminho(ref, categoria):

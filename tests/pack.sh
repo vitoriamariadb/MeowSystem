@@ -1627,12 +1627,12 @@ fi
 #   manda usar o método que gerou o alucard, e não inventar outro. Se alguém
 #   "melhorar" a derivação, este teste diz que ela deixou de ser a do projeto.
 #
-#   O PACK É MONTADO À MÃO, e não pelo `meow pack novo --de-csv`, porque o
-#   `novo` nasce na P11, que ainda não entrou: aqui se confere a TRADUÇÃO (o
-#   verbo `de-csv`) e que o resultado passa pela mesma porta de todo pack. O
-#   `--de-csv` é pendência DA P16 — ver "A PALETA ENTRA POR CSV" no pack.py —,
-#   e quando ele for ligado, este bloco passa a chamá-lo.
-CSV_ID="$ID-csv"; CSV_DIR="$PACKS/$CSV_ID"; mkdir -p "$CSV_DIR"
+#   O PACK SAI DO `meow pack novo --de-csv` [segunda metade da P16, 23/09/2026].
+#   Até a P11 entrar ele era montado à mão aqui, e o bloco dizia que passaria a
+#   chamar o `--de-csv` quando ele fosse ligado. Foi: a TRADUÇÃO continua
+#   conferida pelo verbo `de-csv`, e o pack pelo `novo`, que tem de escrever o
+#   MESMO `paleta.json` que o `de-csv` imprime — uma regra só.
+CSV_ID="$ID-csv"; CSV_DIR="$PACKS/$CSV_ID"
 python3 - "$RAIZ" "$T/cores.csv" "$T/duas.csv" <<'PY' || exit 2
 import json, sys
 d = json.load(open(sys.argv[1] + "/packs/dracula/paleta.json", encoding="utf-8"))
@@ -1649,7 +1649,7 @@ with open(sys.argv[3], "w", encoding="utf-8") as fh:
 PY
 [ "$(wc -l < "$T/cores.csv")" = "27" ] || falha "o CSV de teste não tem cabeçalho + 26 linhas"
 
-amb python3 "$RAIZ/scripts/pack.py" de-csv "$T/cores.csv" > "$CSV_DIR/paleta.json" 2> "$T/csv.err"; rc=$?
+amb python3 "$RAIZ/scripts/pack.py" de-csv "$T/cores.csv" > "$T/csv-paleta.json" 2> "$T/csv.err"; rc=$?
 aviso_csv="$(cat "$T/csv.err")"
 [ "$rc" = "0" ] \
   && ok "o CSV de 26 linhas vira paleta.json (rc=0)" \
@@ -1661,7 +1661,7 @@ aviso_csv="$(cat "$T/csv.err")"
   && ok "a régua de contraste avisa com a lista do que reprovou, sem bloquear" \
   || falha "a régua de contraste não disse o que reprovou" "$aviso_csv"
 
-saida="$(amb python3 - "$RAIZ" "$CSV_DIR/paleta.json" <<'PY' 2>&1
+saida="$(amb python3 - "$RAIZ" "$T/csv-paleta.json" <<'PY' 2>&1
 import json, sys
 d = json.load(open(sys.argv[1] + "/packs/dracula/paleta.json", encoding="utf-8"))
 o = json.load(open(sys.argv[2], encoding="utf-8"))
@@ -1681,23 +1681,69 @@ PY
   && ok "o claro derivado é o alucard, 26 de 26 — o método é o do projeto, não um segundo" \
   || falha "a derivação do claro deixou de ser a que gerou o alucard" "$saida"
 
-python3 - "$CSV_DIR" "$CSV_ID" "$(basename "$padrao")" <<'PY' || exit 2
-import json, os, sys
-dir_pack, ident, padrao = sys.argv[1:4]
-json.dump({"formato": 1, "id": ident, "nome": "Tinta", "heranca": padrao,
-           "paleta": {"arquivo": "paleta.json", "flavor_padrao": "tinta"},
-           "vitrine": {"capa": "logo.svg"}},
-          open(os.path.join(dir_pack, "pack.json"), "w"), indent=2, ensure_ascii=False)
+# A CONFERÊNCIA DA SPRINT, AO PÉ DA LETRA, pelo `bin/meow`: `novo --de-csv`,
+# `validar` saindo 0, e o `info` com a linha do claro. O meow.conf de teste
+# está no pack de mentira — o pack no ar —, e o pack de CSV tem de herdar do
+# PADRÃO assim mesmo: o mesmo CSV dá o mesmo pack em qualquer máquina.
+novo_csv="$(amb env MEOW_ESTADO="$T/estado" "$RAIZ/bin/meow" pack novo "$CSV_ID" --de-csv "$T/cores.csv" 2>&1)"; rc=$?
+if [ "$rc" != "0" ] || [ ! -f "$CSV_DIR/pack.json" ]; then
+  falha "meow pack novo --de-csv não criou o pack (rc=$rc)" "$novo_csv"
+else
+  ok "meow pack novo --de-csv cria o pack a partir do CSV"
+  cmp -s "$T/csv-paleta.json" "$CSV_DIR/paleta.json" \
+    && ok "o paleta.json do novo é o que o de-csv imprime, byte a byte — uma tradução só" \
+    || falha "o novo --de-csv escreveu uma paleta diferente da do de-csv" \
+             "$(diff "$T/csv-paleta.json" "$CSV_DIR/paleta.json" | head -8)"
+  [[ "$novo_csv" == *"aviso"*"régua de contraste"*"tinta: blue/base"* ]] \
+    && ok "o novo --de-csv roda a régua de contraste e avisa, sem bloquear" \
+    || falha "o novo --de-csv não disse o que reprovou na régua" "$novo_csv"
+fi
+achado="$(python3 - "$CSV_DIR/pack.json" "$(basename "$padrao")" "$ID" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1], encoding="utf-8"))
+padrao, no_ar = sys.argv[2], sys.argv[3]
+erros = []
+if p.get("heranca") != padrao:
+    erros.append(f"heranca = {p.get('heranca')!r}: é o pack padrão ({padrao!r}), e não o no ar ({no_ar!r})")
+if (p.get("paleta") or {}).get("flavor_padrao") != "tinta":
+    erros.append(f"flavor_padrao = {(p.get('paleta') or {}).get('flavor_padrao')!r}; o primeiro do CSV é 'tinta'")
+if "som" in p:
+    erros.append("o timbre do ar entrou num pack de CSV")
+if ((p.get("icones") or {}).get("autorais") or {}).get("gerar") is not True:
+    erros.append("sem icones.autorais.gerar, os autorais ficam nos flavors do pai")
+print("\n".join(erros))
 PY
-amb python3 "$RAIZ/scripts/pack.py" logo-gerado "$CSV_ID" > "$CSV_DIR/logo.svg" || exit 2
-saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$CSV_ID" 2>&1)"; rc=$?
-[ "$rc" = "0" ] \
-  && ok "o pack feito de CSV valida (rc=0)" \
-  || falha "o pack feito de CSV não valida (rc=$rc)" "$saida"
-saida="$(amb python3 "$RAIZ/scripts/pack.py" info "$CSV_ID" 2>&1)"
-[[ "$saida" == *"claro: derivado do escuro pelo método do Latte (não é próprio)"* ]] \
+)"
+[ -z "$achado" ] \
+  && ok "o pack de CSV herda do padrão, e o flavor_padrao é o primeiro do CSV" \
+  || falha "o pack.json do novo --de-csv não é o que a sprint pede" "$achado"
+saida="$(amb "$RAIZ/bin/meow" pack validar "$CSV_ID" 2>&1)"; rc=$?
+[ "$rc" = "0" ] && [[ "$saida" != *"NENHUM código lê"* ]] \
+  && ok "o pack feito de CSV valida (rc=0), sem campo que ninguém lê" \
+  || falha "o pack feito de CSV não valida, ou declara campo morto (rc=$rc)" "$saida"
+saida="$(amb "$RAIZ/bin/meow" pack info "$CSV_ID" 2>&1)"
+[[ "$(grep claro <<< "$saida")" == *"claro: derivado do escuro pelo método do Latte (não é próprio)"* ]] \
   && ok "o info diz que o claro é derivado, e não próprio" \
   || falha "o info não diz que o claro foi derivado" "$saida"
+# OS AUTORAIS NAS CORES DO CSV, E NÃO NOS FLAVORS DO PAI. Herdados, eles eram
+# os 44 do Catppuccin — mocha, macchiato, frappe, latte —, e nenhum vestia o
+# `tinta`. O `novo` os entrega construídos: 11 desenhos x 2 flavors, próprios.
+linha_autorais="$(grep '^  icones.autorais ' <<< "$saida")"
+[[ "$linha_autorais" == *"PRÓPRIO"*"22 desenho(s), 2 flavor(s)"* ]] \
+  && ok "os ícones autorais nascem próprios, nas cores do CSV: 22 desenhos, 2 flavors" \
+  || falha "os ícones autorais do pack de CSV não são dele" "$linha_autorais"
+# O id tem hífen e o flavor não pode ter: um CSV com o flavor escrito como o id
+# é recusado com a linha, e nada é escrito.
+sed 's/,tinta,/,meu-tema,/' "$T/cores.csv" > "$T/hifen.csv"
+saida="$(amb "$RAIZ/bin/meow" pack novo "$CSV_ID-hifen" --de-csv "$T/hifen.csv" 2>&1)"; rc=$?
+[ "$rc" = "1" ] && [[ "$saida" == *"o CSV não virou paleta"*"flavor 'meu-tema' — uma palavra só"* ]] \
+  && [ ! -e "$PACKS/$CSV_ID-hifen" ] \
+  && ok "o flavor com hífen no CSV é recusado pelo novo, com a linha, e nada é escrito" \
+  || falha "o novo --de-csv aceitou o flavor com hífen, ou deixou rastro (rc=$rc)" "$saida"
+saida="$(amb "$RAIZ/bin/meow" pack novo "$CSV_ID-sem" --de-csv 2>&1)"; rc=$?
+[ "$rc" = "2" ] && [[ "$saida" == *"pede o arquivo"* ]] \
+  && ok "o --de-csv sem arquivo é erro de uso (rc=2)" \
+  || falha "o --de-csv sem arquivo não foi erro de uso (rc=$rc)" "$saida"
 
 # A TELA MOSTRA O QUE VEIO POR HERANÇA E O QUE VEIO POR DERIVAÇÃO. É o risco
 # que a sprint declara: um pack de CSV tem paleta e nada mais, e sem isto a
@@ -1766,12 +1812,94 @@ corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
 printf '%s\n' "$corpo" | grep -q 'p.claros_derivados' \
   && ok "o cartão de pack desenha a linha do claro derivado" \
   || falha "o cartão de pack não lê claros_derivados"
-# "Traga as 26 linhas no CSV" não dizia para onde, e a tela não tem onde: o
-# importar que aceitaria o .csv é pendência da P16 sobre a P11. Até ele
-# existir, o cartão aponta o único caminho que existe [revisão, 23/09/2026].
-printf '%s\n' "$corpo" | grep -q 'meow pack de-csv' \
-  && ok "o cartão diz onde trocar o claro derivado: meow pack de-csv" \
-  || falha "o cartão manda trocar o claro sem dizer onde"
+# "Traga as 26 linhas no CSV" não dizia para onde. Até a segunda metade da
+# P16 a tela não tinha onde, e o cartão mandava ao terminal (`meow pack
+# de-csv`); agora o «Importar um pack» aceita o .csv, e a frase aponta para ele.
+printf '%s\n' "$corpo" | grep -q '«Importar um pack», com outro nome de arquivo' \
+  && ok "o cartão diz onde trocar o claro derivado: o «Importar um pack» da tela" \
+  || falha "o cartão manda trocar o claro sem apontar o importar da tela"
+
+# O `.csv` PELA PORTA DO IMPORTAR — P16, item 5. No terminal primeiro: o id
+# sai do nome do arquivo, o pack vai para a raiz da pessoa, o meow.conf não
+# muda, e o mesmo nome de novo é recusado dizendo por quê.
+cp "$T/cores.csv" "$T/Minha Tinta.csv"
+conf_antes="$(sha256sum < "$T/meow.conf")"
+importou="$(viaja "$RAIZ/bin/meow" pack importar "$T/Minha Tinta.csv" 2>&1)"; rc=$?
+if [ "$rc" != "0" ] || [ ! -d "$DA_PESSOA/minha-tinta" ]; then
+  falha "o importar não instalou o .csv (rc=$rc)" "$importou"
+else
+  ok "meow pack importar aceita um .csv solto, e o id sai do nome do arquivo"
+  saida="$(viaja "$RAIZ/bin/meow" pack validar minha-tinta 2>&1)"; rc=$?
+  n_autorais="$(find "$DA_PESSOA/minha-tinta/icones/autorais" -name '*.svg' | wc -l)"
+  # Igual MENOS o `_comentario`, que diz o nome do CSV de onde a paleta saiu —
+  # e aqui o CSV se chama outra coisa, de propósito, porque é ele que faz o id.
+  mesma="$(python3 -c 'import json, sys
+a, b = (json.load(open(x, encoding="utf-8")) for x in sys.argv[1:])
+for d in (a, b): d.pop("_comentario", None)
+print("sim" if a == b else "nao")' "$T/csv-paleta.json" "$DA_PESSOA/minha-tinta/paleta.json")"
+  [ "$rc" = "0" ] && [ "$mesma" = "sim" ] && [ "$n_autorais" = "22" ] \
+    && ok "o pack importado do .csv valida, com a paleta e os autorais do novo --de-csv" \
+    || falha "o .csv importado não é o pack que o novo --de-csv monta (rc=$rc, $n_autorais autorais)" "$saida"
+fi
+[ "$(sha256sum < "$T/meow.conf")" = "$conf_antes" ] && [[ "$importou" == *"nada foi aplicado"* ]] \
+  && [[ "$importou" == *"claro derivado    : tintaclaro"* ]] \
+  && ok "importar o .csv não aplica, e a saída diz o claro derivado" \
+  || falha "o importar do .csv mexeu no meow.conf, ou calou o claro derivado" "$importou"
+saida="$(viaja "$RAIZ/bin/meow" pack importar "$T/Minha Tinta.csv" 2>&1)"; rc=$?
+[ "$rc" = "1" ] && [[ "$saida" == *"já existe"*"com outro nome, ele vira outro pack"* ]] \
+  && ok "o mesmo .csv de novo é recusado, dizendo que o nome do arquivo faz o id" \
+  || falha "o .csv importado duas vezes não foi recusado como devia (rc=$rc)" "$saida"
+rm -rf "${DA_PESSOA:?}/minha-tinta"
+
+# E PELA ROTA, com o contrato da 20b: o ensaio pede confirmação e desenha o
+# pack sem escrever, o `confirmado` instala, e o `pack` traz a régua e o claro
+# derivado para a caixa de confirmar. O script vai para um arquivo pelo motivo
+# da 20b: o `viaja` fecha o stdin.
+cat > "$T/contrato-csv.py" <<'PY'
+import base64, os, sys
+sys.path.insert(0, os.path.join(os.environ["MEOW_RAIZ"], "app"))
+import servidor
+arquivo, destino = sys.argv[1:]
+h = servidor.Manipulador.__new__(servidor.Manipulador)
+h._json = lambda dados, status=200: (status, dados)
+erros = []
+pedido = {"nome": "Minha Tinta.csv",
+          "conteudo": base64.b64encode(open(arquivo, "rb").read()).decode()}
+st, r = h._api_pack_importar(dict(pedido))
+pack = r.get("pack") or {}
+if not (st == 200 and r.get("precisa_confirmar") is True and "minha-tinta" in r.get("resumo", "")
+        and len(pack.get("paleta", {}).get("tinta", [])) == 26):
+    erros.append(f"o ensaio do .csv não pediu confirmação com o pack desenhado: {st} {r}")
+if pack.get("derivados") != {"tintaclaro": "tinta"} or not any("blue/base" in l for l in pack.get("regua", [])):
+    erros.append(f"o pack do ensaio não traz o claro derivado e a régua: {pack.get('derivados')} {pack.get('regua')}")
+if pack.get("icones") != 22 or "herdado de" not in pack.get("ponteiro", ""):
+    erros.append(f"o pack do ensaio não diz os autorais próprios e o que é herdado: {pack}")
+if os.path.exists(destino):
+    erros.append("o ensaio do .csv escreveu o pack")
+st, r = h._api_pack_importar(dict(pedido, confirmado=True))
+if not (st == 200 and r.get("instalado") is True and os.path.isdir(destino)):
+    erros.append(f"com `confirmado: true` o .csv não foi instalado: {st} {r}")
+st, r = h._api_pack_importar(dict(pedido, nome="???.csv"))
+if not (st == 400 and "nome do arquivo" in r.get("erro", "")):
+    erros.append(f"o .csv sem nome que vire id não voltou como erro: {st} {r}")
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+saida="$(viaja python3 "$T/contrato-csv.py" "$T/cores.csv" "$DA_PESSOA/minha-tinta" 2>&1)"; rc=$?
+[ "$rc" = "0" ] && [ "$(sha256sum < "$T/meow.conf")" = "$conf_antes" ] \
+  && ok "a rota do importar aceita o .csv com o contrato da tela, e não aplica" \
+  || falha "a rota do importar não fala o contrato para o .csv, ou mexeu no meow.conf" "$saida"
+rm -rf "${DA_PESSOA:?}/minha-tinta"
+packs_js="$(sed -n '/^function montarPacks(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+tela_js="$(sed -n '/^function telaDoPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+faltam=""
+[[ "$packs_js" == *'accept: ".meowpack,.csv"'* ]] || faltam+=" montarPacks:'accept .csv'"
+for palavra in "pack.derivados" "pack.regua"; do
+  [[ "$tela_js" == *"$palavra"* ]] || faltam+=" telaDoPack:'$palavra'"
+done
+[ -z "$faltam" ] \
+  && ok "a página aceita o .csv no seletor, e a caixa de confirmar lê o derivado e a régua" \
+  || falha "a página não fala o .csv:$faltam"
 
 # Com o claro trazido no CSV, nada se deriva: a medida (base mais luminoso que
 # text) acha o claro, e o `derivados` não aparece.

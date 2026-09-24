@@ -7765,16 +7765,19 @@ function cartaoDePack(p) {
    * do Latte, sem ninguém desenhá-lo. A linha de cima diz o que veio por
    * herança; esta diz o que veio por derivação, e como trocar — derivar é
    * opinativo, e quem fez o tema tem a última palavra.
-   * O COMO TROCAR APONTA PARA O TERMINAL [revisão da P16, 23/09/2026]: "traga
-   * as 26 linhas no CSV" não dizia trazer para onde, e a tela não tem onde —
-   * o importar que aceitaria o .csv é pendência da P16 sobre a P11 (ver "A
-   * PALETA ENTRA POR CSV", em scripts/pack.py). Quando ele existir, esta frase
-   * aponta para ele; até lá, aponta para o único caminho que existe. */
+   * O COMO TROCAR APONTAVA PARA O TERMINAL [revisão da P16, 23/09/2026]:
+   * "traga as 26 linhas no CSV" não dizia trazer para onde, e a tela não tinha
+   * onde — o importar ainda não aceitava .csv, e a frase mandava rodar o
+   * `meow pack de-csv`. A segunda metade da P16 deu o .csv ao «Importar um
+   * pack», e a frase aponta para ele, como este comentário prometia.
+   * "COM OUTRO NOME DE ARQUIVO" NÃO É ENFEITE: o id do pack sai do nome do
+   * CSV, e importar não escreve por cima de um pack que já existe — o mesmo
+   * nome seria recusado, e a frase mandaria a pessoa a uma parede. */
   for (const d of (p.claros_derivados || [])) {
     corpo.append(elemento("p", { class: "pack-herda",
       texto: `Claro «${d.flavor}»: derivado de «${d.de}» pelo método do Latte, não desenhado. `
-           + "Para usar o seu, acrescente as 26 linhas dele ao CSV e, no terminal, "
-           + "rode de novo meow pack de-csv." }));
+           + "Para usar o seu, ponha as 26 linhas dele no CSV e importe-o de novo em "
+           + "«Importar um pack», com outro nome de arquivo." }));
   }
   /* O pack que não valida aparece assim mesmo, dizendo por quê — como no
    * `meow pack info`. Esconder o cartão esconderia também o motivo. */
@@ -7923,7 +7926,9 @@ async function usarPack(p) {
  *             download. [Até a P11 era um `<a download>`, como o «Exportar» de
  *             ajustes; ver "O QUE A P11 FECHOU", abaixo.]
  *   IMPORTAR  POST /api/pack-importar com {nome, conteudo} (o arquivo em base64,
- *             como o `/api/acervo` recebe). A resposta pode pedir confirmação
+ *             como o `/api/acervo` recebe; um `.meowpack`, ou, desde a P16, um
+ *             `.csv` de cores, que a rota reconhece pelo `nome`). A resposta
+ *             pode pedir confirmação
  *             com `precisa_confirmar` e um `resumo` do que o pack traz — a P11
  *             diz: "o importar mostra o que o pack traz antes de confirmar" —, e
  *             aí o mesmo pedido volta com `confirmado: true`. `erro` vira
@@ -8008,8 +8013,17 @@ async function importarPack(arquivo) {
 function telaDoPack(pack) {
   const tela = elemento("div", { style: "display:flex;flex-direction:column;gap:.55rem" });
   const claros = new Set(pack.claros || []);
+  /* O CLARO DERIVADO, E A RÉGUA — 23/09/2026, P16. Um CSV com um escuro só
+   * chega com o claro derivado pelo método do Latte, e a caixa o marcava
+   * "claro", igual a um desenhado: é o "fingido" que a sprint proíbe. A marca
+   * diz de onde ele saiu, e uma linha abaixo diz como trocar. A `regua` só vem
+   * do CSV (é a conferência de contraste "na importação", item 4): avisa com a
+   * lista, e não bloqueia — o botão de importar continua ali. */
+  const derivados = pack.derivados || {};
   for (const [flavor, cores] of Object.entries(pack.paleta || {})) {
-    const marcas = [flavor === pack.flavor_padrao ? "padrão" : "", claros.has(flavor) ? "claro" : ""];
+    const claro = !claros.has(flavor) ? ""
+      : derivados[flavor] ? `claro derivado de ${maiuscula(derivados[flavor])}` : "claro";
+    const marcas = [flavor === pack.flavor_padrao ? "padrão" : "", claro];
     const tira = elemento("div", { class: "pack-amostra", "aria-hidden": "true" });
     for (const cor of cores) {
       const s = elemento("span");
@@ -8029,9 +8043,23 @@ function telaDoPack(pack) {
     ["Som", pack.som],
   ];
   if (pack.imagens) linhas.push(["Imagens", `${pack.imagens} no pacote`]);
+  for (const [claro, escuro] of Object.entries(derivados)) {
+    linhas.push(["Claro", `«${claro}» saiu de «${escuro}» pelo método do Latte, sem ninguém `
+      + "desenhá-lo. Para usar o seu, ponha as 26 linhas dele no CSV."]);
+  }
   const lista = elemento("dl", { class: "pack-categorias" });
   for (const [rotulo, valor] of linhas) {
     lista.append(elemento("dt", { texto: rotulo }), elemento("dd", { texto: valor }));
+  }
+  /* A régua vai em lista, uma reprovação por linha, e não colada numa frase:
+   * as três do Dracula oficial já passam dos 220 caracteres da P7 juntas, e um
+   * CSV pior reprova em mais. É a mesma lista que o terminal imprime. */
+  const regua = pack.regua || [];
+  if (regua.length) {
+    lista.append(elemento("dt", { texto: "Contraste" }), elemento("dd", {}, [
+      `${regua.length} abaixo da régua do projeto — não bloqueia, a decisão é sua:`,
+      elemento("ul", {}, regua.map((linha) => elemento("li", { texto: linha }))),
+    ]));
   }
   tela.append(lista);
   return tela;
@@ -8124,8 +8152,12 @@ function montarPacks() {
       onclick: () => exportarPack(noAr),
     }));
   }
+  /* O `.csv` ENTRA PELO MESMO BOTÃO — 23/09/2026, P16: "Vinte e seis linhas e
+   * o tema existe." Não é um segundo botão porque não é um segundo gesto:
+   * nos dois casos um arquivo vira um pack a mais, com a mesma caixa de
+   * confirmar, e nada do tema no ar muda. A rota separa os dois pela extensão. */
   const campo = elemento("input", {
-    type: "file", accept: ".meowpack", hidden: true,
+    type: "file", accept: ".meowpack,.csv", hidden: true,
     onchange: async () => {
       const arquivo = campo.files && campo.files[0];
       campo.value = "";
@@ -8134,7 +8166,7 @@ function montarPacks() {
   });
   acoes.append(campo, elemento("button", {
     type: "button", class: "btn", texto: "Importar um pack",
-    title: "Um .meowpack de outra pessoa: ele entra como opção, sem trocar nada",
+    title: "Um .meowpack, ou um .csv de 26 cores: ele entra como opção, sem trocar nada",
     onclick: () => campo.click(),
   }));
   secao.append(elemento("div", { class: "home-packs-topo" }, [

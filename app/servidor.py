@@ -8192,6 +8192,10 @@ class Manipulador(BaseHTTPRequestHandler):
     #              de parede, o som) — é o que a tela de confirmar desenha. Com
     #              `confirmado: true`, instala e devolve `instalado` e a
     #              `frase`. Nas duas, nada é aplicado.
+    #              Um `nome` terminado em `.csv` é um CSV de cores (P16): o
+    #              contrato é o mesmo, e o `pack` traz também a `regua` de
+    #              contraste. Os `derivados` — o claro que ninguém desenhou —
+    #              vêm no `pack` dos dois.
     def _api_pack_exportar(self, consulta):
         ident = consulta.get("id", [""])[0]
         mod = modulo_pack()
@@ -8242,13 +8246,42 @@ class Manipulador(BaseHTTPRequestHandler):
         if not dados:
             return self._json({"erro": "o arquivo veio vazio"}, 400)
         confirmado = corpo.get("confirmado") is True
+        # O `.csv` SOLTO — 23/09/2026, sprint P16, item 5. "O 'Importar um pack'
+        #   aceita um .csv solto, não só um .meowpack." A extensão do `nome`
+        #   decide, como decidiu para quem o escolheu no seletor. Daqui para
+        #   baixo é a MESMA rota: o mesmo `meow pack importar`, que monta o pack
+        #   pelo `montar_novo` do `novo --de-csv` — nenhuma segunda leitura do
+        #   CSV aqui, pelo motivo do cabeçalho destas rotas.
+        envio = os.path.basename(str(corpo.get("nome") or ""))
+        de_csv = envio.lower().endswith(".csv")
         with tempfile.TemporaryDirectory(prefix="meow-importa-") as pasta:
             # O NOME É NOSSO, E NÃO O DO ENVIO: o id do pack sai de dentro do
             # tarball, conferido, e o nome do arquivo não decide nada — o
             # `nome` do pedido só existe para a página, que o mostra.
-            caminho = os.path.join(pasta, "envio.meowpack")
-            with open(caminho, "wb") as fh:
-                fh.write(dados)
+            #   MENOS NO CSV, que não tem onde trazer o id: ele sai do nome do
+            #   arquivo, pela `id_do_csv` do pack.py — a mesma que o `importar`
+            #   aplica. Por isso o temporário leva o nome DELA: é dele que o
+            #   `importar` tira o id, e é ele que as recusas citam com a linha
+            #   ("Minha Tinta.csv:5: slot desconhecido"). Com o id na frente, a
+            #   mensagem citaria um arquivo que ela nunca viu. O `basename` já
+            #   tirou as barras, e um nome terminado em `.csv` não é `.` nem
+            #   `..`: ele não sai da pasta. O id é conferido aqui antes, para a
+            #   recusa do nome não custar um processo.
+            if de_csv:
+                try:
+                    mod.id_do_csv(envio)
+                except mod.Recusa as erro:
+                    return self._json({"erro": str(erro)}, 400)
+                caminho = os.path.join(pasta, envio)
+            else:
+                caminho = os.path.join(pasta, "envio.meowpack")
+            # O nome é de fora, e o disco pode recusá-lo (um NUL, 256 bytes):
+            # isso é o arquivo dela, e volta como erro dela, não como 500.
+            try:
+                with open(caminho, "wb") as fh:
+                    fh.write(dados)
+            except (OSError, ValueError) as erro:
+                return self._json({"erro": "não consegui receber %s: %s" % (envio, erro)}, 400)
             try:
                 # O ensaio é o `MEOW_DRY_RUN` de sempre, que o `bin/meow` traduz
                 # em `--seco`: a prévia e a instalação são o MESMO comando, e a
@@ -8266,19 +8299,30 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": texto or "o importar falhou", "rc": r.returncode}, 400)
             # Depois do `importar` ter validado, e não antes: o `pack` confia no
             # que acabou de passar pela conferência inteira.
-            pack = mod.resumo_meowpack(caminho)
+            pack = mod.resumo_csv(caminho) if de_csv else mod.resumo_meowpack(caminho)
         nome = pack["nome"]
         if not confirmado:
             # O `resumo` é a frase de cima da caixa; o que o pack traz, item a
             # item, a página desenha do `pack` — a paleta não cabe numa frase.
-            quantos = "{:,}".format(pack["arquivos"]).replace(",", ".")
-            por = "Por %s. " % pack["autor"] if pack["autor"] else ""
+            if de_csv:
+                # O CSV traz só a paleta, e a frase diz de onde vem o resto — é o
+                # risco que a P16 escreveu: "a pessoa acha que ganhou menos do
+                # que ganhou". O id vai junto porque saiu do nome do arquivo, e
+                # é por ele que o pack aparece no meow.conf.
+                resumo = ("Um pack novo, «%s», feito de %s: a paleta é a do CSV, e o resto "
+                          "vem do %s pela herança. Ele entra como opção entre os packs — "
+                          "nada do seu tema muda até você escolher usá-lo."
+                          % (pack["id"], envio, pack["heranca"]))
+            else:
+                quantos = "{:,}".format(pack["arquivos"]).replace(",", ".")
+                por = "Por %s. " % pack["autor"] if pack["autor"] else ""
+                resumo = ("%s%s arquivo(s), %s. Ele entra como opção entre os packs — "
+                          "nada do seu tema muda até você escolher usá-lo."
+                          % (por, quantos, mod._mb(pack["bytes"])))
             return self._json({
                 "precisa_confirmar": True,
                 "titulo": "Importar o %s?" % nome,
-                "resumo": "%s%s arquivo(s), %s. Ele entra como opção entre os packs — "
-                          "nada do seu tema muda até você escolher usá-lo."
-                          % (por, quantos, mod._mb(pack["bytes"])),
+                "resumo": resumo,
                 "pack": pack,
             })
         return self._json({
