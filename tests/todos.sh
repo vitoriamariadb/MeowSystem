@@ -268,10 +268,12 @@ for nome in "${ALVOS[@]}"; do
     # Sem python com Playwright o teste nem chega a subir o painel: é aqui que
     # a receita aparece, e não num "pulado" que o placar esconderia.
     estado="FALHOU"; VERMELHOS+=("$nome")
+    # A receita vai em linhas com FALHOU porque é o que o filtro do vermelho,
+    # lá embaixo, deixa passar: uma instrução que some da tela não instrui.
     saida="FALHOU: $nome é gate de merge e nenhum python3 desta máquina tem o Playwright.
-  python3 -m venv ~/.local/share/meowsystem/venv-testes
-  ~/.local/share/meowsystem/venv-testes/bin/pip install playwright
-  ~/.local/share/meowsystem/venv-testes/bin/playwright install chromium
+FALHOU: instale:  python3 -m venv ~/.local/share/meowsystem/venv-testes
+FALHOU:           ~/.local/share/meowsystem/venv-testes/bin/pip install playwright
+FALHOU:           ~/.local/share/meowsystem/venv-testes/bin/playwright install chromium
 $saida"
   elif [ "$sem_pulo" -eq 1 ] && [ "$disse_pulado" -eq 1 ]; then
     estado="FALHOU"; VERMELHOS+=("$nome")

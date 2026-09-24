@@ -2674,19 +2674,26 @@ EXCECOES = {
 # do conserto: a linha aparece em toda corrida como `~~ conhecido`, e o gate
 # não fica vermelho por uma coisa que esta sprint não pode tocar. E a lista não
 # esconde nada por muito tempo: um defeito daqui que parou de aparecer reprova
-# ("saia da lista"), para ela nunca guardar um conserto que já aconteceu.
+# ("saia da lista"), para ela nunca guardar um conserto que já aconteceu —
+# menos o que depende do estado da sessão, que é dito na linha dele.
+#   Cada entrada: padrão da reprovação -> (endereço do conserto, se ele aparece
+# em TODA corrida).
 DEFEITOS_CONHECIDOS = {
-    r"mandou sinal para fora da casa: pkill\(função\) -f cosmic-(launcher|app-library)$":
+    r"mandou sinal para fora da casa: pkill\(função\) -f cosmic-(launcher|app-library)$": (
         "o `meow_lancador_reler` (lib/comum.sh) recarrega o lançador por "
         "`pkill -f cosmic-launcher`, pelo nome, na máquina inteira. Na sessão "
         "dela é o que se quer; numa casa de brinquedo acertaria o lançador da "
         "sessão de verdade — é a regra da P44 (o sinal não sai da casa), e o "
-        "conserto é o mesmo do `meow_painel_desta_casa`.",
-    r"^«Usar» muda a imagem da casa":
+        "conserto é o mesmo do `meow_painel_desta_casa`. Só aparece quando o "
+        "lançador da sessão está vivo (o `pgrep` vem antes do `pkill`): medido, "
+        "numa corrida da suíte ele não estava, e a linha não apareceu.",
+        False),
+    r"^«Usar» muda a imagem da casa": (
         "o «Usar» da galeria roda `meow wallpaper usar <imagem>`, e o `cmd_wallpaper` "
         "do bin/meow não tem `usar` na lista do que repassa ao scripts/wallpaper.sh "
         "(que tem, desde a 28173e2): sai 2 com a mensagem de uso. O conserto é uma "
         "palavra na lista do bin/meow.",
+        True),
 }
 
 
@@ -3331,8 +3338,9 @@ def main():
             v.aba = "(fim)"
             if not SO_ABA:
                 for padrao in sorted(set(DEFEITOS_CONHECIDOS) - v.conhecidos_vistos):
-                    v.falha(f"o defeito conhecido {padrao!r} não apareceu nesta corrida: "
-                            "se foi consertado, ele sai de DEFEITOS_CONHECIDOS")
+                    if DEFEITOS_CONHECIDOS[padrao][1]:
+                        v.falha(f"o defeito conhecido {padrao!r} não apareceu nesta "
+                                "corrida: se foi consertado, ele sai de DEFEITOS_CONHECIDOS")
 
             v.aba = "exceções"
             if not SO_ABA:
