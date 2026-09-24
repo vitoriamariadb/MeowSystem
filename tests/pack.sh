@@ -241,6 +241,34 @@ esac
   && ok "o campo sem leitor é aviso, e não recusa" \
   || falha "o aviso de campo sem leitor recusou o pack (rc=$rc)" "$saida"
 
+# E O AVISO NÃO CHAMA DE MORTO O QUE ESTÁ VIVO — 23/09/2026, P32. Ele acusava
+# `icones.autorais.gerar` (lido pelo `cmd_construir`) e `origens.cursores.tema`
+# (lido pelo `_declarado_pelo_pack` do painel). Um aviso que mente por excesso
+# ensina a ignorar o aviso. Os dois entram e saem daqui, para não mudar o pack
+# que os passos seguintes montam.
+python3 - "$PACK_DIR" <<'PY' || exit 2
+import json, os, sys
+alvo = os.path.join(sys.argv[1], "pack.json")
+p = json.load(open(alvo))
+p["icones"] = {"autorais": {"gerar": False}}
+p["origens"] = {"cursores": {"tema": "um-ponteiro-qualquer"}}
+json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
+PY
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
+if [ "$rc" = "0" ] && [[ "$saida" == *campo_que_ninguem_le* ]] \
+   && [[ "$saida" != *icones.autorais.gerar* ]] && [[ "$saida" != *origens.cursores.tema* ]]; then
+  ok "o aviso não chama de morto icones.autorais.gerar nem origens.cursores.tema, que têm leitor"
+else
+  falha "o aviso de campo morto acusou um campo que tem leitor (rc=$rc)" "$saida"
+fi
+python3 - "$PACK_DIR" <<'PY' || exit 2
+import json, os, sys
+alvo = os.path.join(sys.argv[1], "pack.json")
+p = json.load(open(alvo))
+p.pop("icones"); p.pop("origens")
+json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
+PY
+
 # --- 8. `caminho` continua sendo a sonda de existência -----------------------
 # A ARMADILHA MEDIDA DA P20, e ela mata em silêncio: `lib/comum.sh` chama
 # `pack.py caminho "$PACK" id`, joga a saída fora e só olha o código de retorno.
@@ -1328,13 +1356,15 @@ done
 #   paleta, mapa do COSMIC, quatro de ícone, ponteiro, papéis de parede, temas
 #   de aplicativo, som e fontes. As outras quatro (o traço do gerador, prompt,
 #   fastfetch, gatos) não têm campo no formato, e o `info` tem de dizer isso
-#   em vez de sumir com elas. Então: as onze declaráveis PRÓPRIAS, as quatro
-#   ditas "não declarável", e nenhuma a mais nem a menos.
+#   em vez de sumir com elas. Então: as declaráveis PRÓPRIAS (menos uma, dita
+#   logo abaixo), as quatro ditas "não declarável", e nenhuma a mais nem a menos.
 #
-#   `wallpapers` entra com campos que ainda não têm leitor, e de propósito: a
-#   tabela diz PRÓPRIO para ele e o docs/PACKS.md registra que isso é a exceção
-#   a consertar. O aviso de campo morto é o que conta a verdade — e ele é
-#   cobrado aqui, para a exceção não virar silêncio no dia em que alguém mexer.
+#   `wallpapers` entra com campos que ainda não têm leitor, e de propósito. Até
+#   a P32 (23/09/2026) a tabela dizia PRÓPRIO para ele, e o docs/PACKS.md
+#   registrava isso como a exceção a consertar; agora ela diz DO MOTOR, porque
+#   o `wallpaper.sh` não abre pack nenhum. São DEZ as que saem PRÓPRIO. O aviso
+#   de campo morto continua cobrado aqui: é ele que diz a quem declarou o bloco
+#   que declarar não fez nada.
 #
 #   O PONTEIRO É DE MENTIRA POR DENTRO, e basta: o formato confere nome, a pasta
 #   `cursors/`, o ponteiro de repouso e os links, e não decodifica Xcursor. A
@@ -1383,20 +1413,23 @@ saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
   && ok "o pack com ponteiro e fontes próprios valida" \
   || falha "o pack com ponteiro e fontes próprios foi recusado (rc=$rc)" "$saida"
 case "$saida" in
-  *origens.wallpapers.tipo*) ok "os campos de wallpapers seguem nomeados como campo morto — a exceção da tabela está dita" ;;
-  *) falha "o aviso de campo morto parou de nomear origens.wallpapers — o PRÓPRIO dele na tabela ficou sem contrapeso" "$saida" ;;
+  *origens.wallpapers.tipo*) ok "os campos de wallpapers seguem nomeados como campo morto" ;;
+  *) falha "o aviso de campo morto parou de nomear origens.wallpapers — o bloco sem leitor ficou calado" "$saida" ;;
 esac
 
 info="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID" 2>&1)"
 tabela="$(printf '%s\n' "$info" | sed -n '/^  ----/,$p' | tail -n +2)"
 nao_proprias=""
 for cat in paleta cosmic.mapa icones.apps icones.pastas icones.mimetypes icones.autorais \
-           cursores wallpapers apps som fontes; do
+           cursores apps som fontes; do
   printf '%s\n' "$tabela" | grep -qE "^  $cat +PRÓPRIO" || nao_proprias="$nao_proprias $cat"
 done
 [ -z "$nao_proprias" ] \
-  && ok "as onze categorias declaráveis saem PRÓPRIO no info" \
+  && ok "as dez categorias declaradas e lidas saem PRÓPRIO no info" \
   || falha "categorias declaradas que o info não chama de PRÓPRIO:$nao_proprias" "$tabela"
+printf '%s\n' "$tabela" | grep -qE '^  wallpapers +DO MOTOR, ou inexistente +scripts/wallpaper\.sh' \
+  && ok "wallpapers declarado sai DO MOTOR, e diz de onde — o info não diz PRÓPRIO sem leitor" \
+  || falha "o info voltou a classificar wallpapers pelo bloco que ninguém lê" "$tabela"
 n_fixas="$(printf '%s\n' "$tabela" | grep -cE '^  (gerador|prompt|fastfetch|gatos) +DO MOTOR — não declarável')"
 n_linhas="$(printf '%s\n' "$tabela" | grep -c .)"
 [ "$n_fixas" = "4" ] && [ "$n_linhas" = "15" ] \
