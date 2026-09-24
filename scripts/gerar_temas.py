@@ -299,7 +299,15 @@ def main() -> int:
     #     continua vencendo, como antes.
     combos = args.combos or _combos_do_conf(paleta)
 
-    args.saida.mkdir(parents=True, exist_ok=True)
+    # CONFERIR É LEITURA, E CRIAR A PASTA É ESCRITA — 24/09/2026 (P47)
+    #     O `mkdir` rodava antes de saber se era conferência, e o `chk_gerar`
+    #     do doctor deixava `$MEOW_ESTADO/temas/` (e os pais) criados numa
+    #     casa onde nada mais seria gravado — medido com
+    #     `MEOW_ESTADO=<casa de brinquedo> gerar_temas.py --conferir`. A
+    #     conferência não precisa da pasta: um destino que não existe já cai
+    #     em "ausente" pelo `is_file()` lá embaixo.
+    if not args.conferir:
+        args.saida.mkdir(parents=True, exist_ok=True)
     # AUSENTE E DIVERGENTE NÃO SÃO A MESMA NOTÍCIA — 22/09/2026
     #     Enquanto os `.ron` eram versionados, "ausente" só acontecia se alguém
     #     os apagasse: os dois casos podiam sair pelo mesmo rc=1. Desde que eles

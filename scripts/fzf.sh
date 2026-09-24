@@ -55,6 +55,19 @@
 #   nasce uma vez por shell e não acompanha a troca do tema no meio da sessão.
 #   É o mesmo que a linha cravada fazia — ela era escura sempre.
 #
+# E O LARANJA DOS RÓTULOS DO TERMINAL — 24/09/2026 (P47)
+#   A P44 deixou anotado um terceiro cravado no `env.zsh` do Spellbook: o
+#   `sed` que traduz os rótulos do fastfetch na abertura do terminal
+#   (`[Discrete]` vira `(Dedicada)`, `[AC Connected]` vira `(Conectado)`…) os
+#   pinta com `\e[38;2;255;184;108m`, sete vezes — o laranja do Dracula, com
+#   qualquer pack no ar. É tema, e sai pelo mesmo arquivo: ele passa a exportar
+#   também `MEOW_SGR_LARANJA`, o slot `peach` da paleta (o laranja dos dois
+#   packs) já no formato de cor de 24 bits do terminal, e a linha de lá o usa.
+#   Sem o slot — uma paleta que não o tenha —, a variável não nasce e os
+#   rótulos saem sem cor: inventar um laranja aqui seria o cravado de volta.
+#   Ele não é do fzf; mora aqui porque é a mesma pergunta ("que cor o shell usa
+#   para este papel?") e o mesmo arquivo que o shell já lê.
+#
 # USO
 #   fzf.sh aplicar    escreve ~/.config/meowsystem/fzf.sh (idempotente)
 #   fzf.sh conferir   0 = conforme · 1 = divergente · 3 = a paleta não tem o flavor
@@ -142,13 +155,33 @@ print("--color=" + ",".join(partes))
 PY
 }
 
-_fzf_texto() {   # $1 = as opções de cor
+# O laranja (slot `peach`) como o terminal o pede: `38;2;R;G;B`. Vazio quando a
+# paleta não tem o slot — ver "E O LARANJA DOS RÓTULOS", no cabeçalho.
+_fzf_laranja() {
+  python3 - "$PALETA" "$_FLAVOR" <<'PY'
+import json, re, sys
+try:
+    v = json.load(open(sys.argv[1], encoding="utf-8"))["flavors"][sys.argv[2]].get("peach")
+except Exception:
+    sys.exit(0)
+if isinstance(v, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", v):
+    print("38;2;%d;%d;%d" % tuple(int(v[i:i + 2], 16) for i in (1, 3, 5)))
+PY
+}
+
+_fzf_texto() {   # $1 = as opções de cor · $2 = o laranja em SGR (pode ser vazio)
   cat <<FIM
 # Gerado pelo MeowSystem (scripts/fzf.sh) a partir da paleta do pack no ar:
 #   $(meow_paleta_nome) · flavor $_FLAVOR · acento $_ACCENT
 # Editar aqui não adianta: o próximo \`meow aplicar\` reescreve. Para outras
 # opções do fzf, acrescente DEPOIS da linha que carrega este arquivo.
 export FZF_DEFAULT_OPTS="$1"
+FIM
+  [ -n "$2" ] || return 0
+  cat <<FIM
+# O laranja da paleta (slot peach), para quem pinta texto no terminal:
+#   printf '\\e[%sm' "\$MEOW_SGR_LARANJA"
+export MEOW_SGR_LARANJA="$2"
 FIM
 }
 
@@ -163,7 +196,7 @@ case "$rc" in
   *) meow_erro "não consegui montar as cores do fzf a partir de $(meow_paleta_nome)"
      exit "$MEOW_ERRO" ;;
 esac
-TEXTO="$(_fzf_texto "$CORES")"
+TEXTO="$(_fzf_texto "$CORES" "$(_fzf_laranja)")"
 
 if [ "$ACAO" = "conferir" ]; then
   if [ -f "$FZF_ALVO" ] && [ "$TEXTO" = "$(cat "$FZF_ALVO" 2>/dev/null)" ]; then

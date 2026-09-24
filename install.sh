@@ -460,7 +460,23 @@ etapa_conf() {
 #   shell. Ela sai só quando o arquivo é escrito, e só se o fpath de fábrica
 #   do zsh não tiver o diretório — dizer a mesma coisa em toda passagem é
 #   ensinar a ignorar.
+#
+# E O TAB CONTINUAVA SEM FUNCIONAR — O QUE A P47 FEZ (24/09/2026)
+#   A linha dita não é linha escrita: medido no zsh interativo dela depois da
+#   P44, `whence -w _meow` dava `none` e `$_comps[meow]` vinha vazio. O que
+#   faltava era o verbo que o bloco da P39 anotou, e ele existe agora: a ponte
+#   root ganhou `completion-instalar`, que copia o `_meow` do clone registrado
+#   no perfil para `/usr/local/share/zsh/site-functions` — o PRIMEIRO
+#   diretório do fpath de fábrica (`zsh -f -c 'print -l $fpath'`, medido no
+#   dia). Sem senha, porque a senha foi a do instalador, uma vez; sem editar o
+#   shell de ninguém. A casa do usuário da P44 passou a ser o caminho de quem
+#   não tem a ponte, e não o de todo mundo — ver `completion_no_sistema`.
 COMPLETIONS_DIR="${MEOW_COMPLETIONS_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions}"
+# O destino da ponte, e ele é literal lá dentro (`COMPLETION=` em
+# scripts/ponte_root.sh): esta cópia existe só para PERGUNTAR se o zsh procura
+# ali e se o que está lá já é o do clone. Mudar um sem o outro é a ponte
+# escrevendo num lugar e esta etapa conferindo outro.
+COMPLETIONS_SISTEMA=/usr/local/share/zsh/site-functions
 
 # Escrita atômica igual à da `meow_escrever`, e por fora da trava de território
 # de propósito — que continua valendo, agora pelo outro lado: apontar o
@@ -474,13 +490,19 @@ COMPLETIONS_DIR="${MEOW_COMPLETIONS_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/zs
 # /mnt/Apate e o destino em /home ou /usr, e `mv` entre sistemas de arquivos não
 # é atômico.
 instalar_completion() {
-  local origem="$MEOW_RAIZ/assets/zsh/_meow" destino="$COMPLETIONS_DIR/_meow" tmp
+  local origem="$MEOW_RAIZ/assets/zsh/_meow" destino="$COMPLETIONS_DIR/_meow" tmp rc
 
   if [ "${MEOW_SEM_COMPLETIONS:-0}" = "1" ]; then
     meow_pula "completions do zsh puladas (MEOW_SEM_COMPLETIONS=1)"
     return "$MEOW_OK"
   fi
   [ -f "$origem" ] || { meow_erro "falta $origem"; return "$MEOW_ERRO"; }
+  # Onde o zsh já procura, primeiro — e só quando ninguém escolheu outro
+  # diretório: um `MEOW_COMPLETIONS_DIR` escrito continua mandando, como antes.
+  if [ -z "${MEOW_COMPLETIONS_DIR:-}" ]; then
+    completion_no_sistema; rc=$?
+    [ "$rc" = "$MEOW_SEM_DEPENDENCIA" ] || return "$rc"
+  fi
   # O diretório do usuário nasce aqui; um que a pessoa apontou e não existe
   # continua sendo "não há onde pôr" — criar caminho alheio não é nosso.
   if [ ! -d "$COMPLETIONS_DIR" ] && [ -z "${MEOW_COMPLETIONS_DIR:-}" ]; then
@@ -548,6 +570,73 @@ instalar_completion() {
     meow_info "  fpath=(\"$COMPLETIONS_DIR\" \$fpath)"
   fi
   return "$MEOW_DIVERGENTE"
+}
+
+# A COMPLETION NO `fpath` DE FÁBRICA, PELA PONTE ROOT — 24/09/2026 (P47)
+#
+#   0 o `_meow` do sistema já é o do clone (e a cópia da P44 já não existe)
+#   1 mudou algo (ou, no seco, mudaria)
+#   3 este caminho não vale aqui — a `instalar_completion` segue para a casa
+#     do usuário, que é o caminho da P44
+#
+# A ORDEM DAS PERGUNTAS
+#   1. o zsh procura em `$COMPLETIONS_SISTEMA` sem arquivo de inicialização
+#      nenhum? Numa distribuição cujo zsh foi compilado com outro fpath, a
+#      ponte escreveria num lugar que ninguém lê: 3.
+#   2. o `_meow` de lá já é o do clone? Então está feito — venha de onde vier
+#      (da ponte, ou do Ritual numa casa que o tem). Isto é só LER: o arquivo é
+#      0644, e perguntar não pede sudo.
+#   3. a ponte está no ar E conhece o verbo? A ponte instalada é lida (0755,
+#      legível) antes de ser chamada. Uma ponte anterior à P47 não tem o verbo,
+#      e a regra de sudo dela não o libera: chamá-la seria um `sudo -n` negado
+#      no `auth.log` a cada passagem, até a `etapa_ponte_root` — que vem logo
+#      depois desta — regravar as duas. O `meow_ponte_viva` ainda confere que o
+#      `$HOME` é o do perfil: uma casa de brinquedo nunca usa a ponte de verdade.
+#
+# A CÓPIA DA P44 SAI quando o sistema tem a certa: ela não se atualiza mais, e
+#   quem seguiu o conselho da P44 — `fpath=(~/.local/share/zsh/site-functions
+#   $fpath)`, NA FRENTE — carregaria a velha no lugar da nova para sempre. Ela
+#   está no destino padrão desta etapa, com o nome dela, e o `--uninstall` já
+#   a apagava pelo mesmo caminho: é nossa.
+#
+# NA PRIMEIRA INSTALAÇÃO a ponte nasce DEPOIS desta etapa (a `etapa_ponte_root`
+#   vem logo atrás da `etapa_cli`): a primeira passagem cai na casa do usuário e
+#   a segunda — o laço das passagens roda sozinho — vem para cá. O mesmo vale
+#   para a ponte velha de quem atualiza.
+completion_no_sistema() {
+  local origem="$MEOW_RAIZ/assets/zsh/_meow" sistema="$COMPLETIONS_SISTEMA/_meow"
+  local velha="$COMPLETIONS_DIR/_meow" mudou=0
+
+  meow_tem zsh || return "$MEOW_SEM_DEPENDENCIA"
+  zsh -f -c 'print -l -- $fpath' 2>/dev/null | grep -qxF -- "$COMPLETIONS_SISTEMA" \
+    || return "$MEOW_SEM_DEPENDENCIA"
+
+  if cmp -s "$origem" "$sistema"; then
+    meow_ok "completion do zsh já instalada em $sistema, onde o zsh procura"
+  else
+    meow_ponte_viva && grep -qxF 'completion-instalar)' "$MEOW_PONTE" 2>/dev/null \
+      || return "$MEOW_SEM_DEPENDENCIA"
+    if meow_seco; then
+      meow_muda "instalaria a completion em $sistema, pela ponte root"
+    elif meow_ponte completion-instalar </dev/null >/dev/null 2>&1 && cmp -s "$origem" "$sistema"; then
+      meow_muda "completion do zsh instalada em $sistema, pela ponte root — o TAB vale no próximo terminal"
+    else
+      meow_aviso "a ponte root não instalou a completion em $sistema — fica na casa do usuário"
+      return "$MEOW_SEM_DEPENDENCIA"
+    fi
+    mudou=1
+  fi
+
+  if [ -e "$velha" ]; then
+    if meow_seco; then
+      meow_muda "removeria $velha — a cópia da P44, que o sistema já não precisa"
+    else
+      rm -f "$velha" && meow_muda "removida $velha — a cópia da P44; vale a de $sistema"
+    fi
+    mudou=1
+  fi
+  [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
+  return "$MEOW_OK"
 }
 
 # --- O ESTADO DO USUÁRIO NASCE AQUI, E NÃO NA PRIMEIRA ESCRITA — 21/09/2026 --

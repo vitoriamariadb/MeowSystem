@@ -2,9 +2,12 @@
 # OVERRIDE — escrito à mão; não gerar por scripts/gerar-completions.py.
 #
 # Este arquivo nasce no repo MeowSystem e o install.sh dele instala uma cópia em
-# ~/.local/share/zsh/site-functions/_meow — um lugar do usuário, sem root e sem
-# repositório de ninguém (P44, 24/09/2026; o porquê e o que falta para o zsh
-# enxergá-lo estão no `instalar_completion` do install.sh).
+# /usr/local/share/zsh/site-functions/_meow, o primeiro diretório do fpath de
+# fábrica do zsh, pela ponte root — o zsh a acha sem ninguém editar shell
+# nenhum (P47, 24/09/2026). Sem a ponte, a cópia vai para
+# ~/.local/share/zsh/site-functions/_meow, e o instalador diz a linha do fpath
+# que falta (P44). O porquê dos dois está no `instalar_completion` e no
+# `completion_no_sistema` do install.sh.
 #
 # POR QUE O MARCADOR ESTÁ NA SEGUNDA LINHA, E NÃO NA PRIMEIRA
 #   O gerador de completions do Andromeda (scripts/gerar-completions.py) procura
