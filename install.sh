@@ -3440,7 +3440,19 @@ main() {
     MEOW_LOG_NIVEL=silencioso
   fi
 
-  meow_titulo "MeowSystem — Catppuccin para o COSMIC"
+  # O CABEÇALHO DIZ O PACK NO AR — 24/09/2026, P51 (achado 24)
+  #   Era «MeowSystem — Catppuccin para o COSMIC», o slogan de quando o projeto
+  #   era um tema só, e a gaveta do painel o mostrava com o Dracula no ar. O
+  #   nome sai da mesma adoção do `meow_pack_dir` (o `adocao` do pack.py), com
+  #   o PACK e o FLAVOR do meow.conf, lidos aqui porque o `etapa_conf_ler` vem
+  #   depois do wizard. Sem resposta, o cabeçalho perde o nome, e não ganha um
+  #   de reserva.
+  local nome_pack
+  nome_pack="$(python3 "$MEOW_RAIZ/scripts/pack.py" adocao \
+                 "${PACK:-$(meow_conf_valor PACK || true)}" \
+                 "${FLAVOR:-$(meow_conf_valor FLAVOR || true)}" 2>/dev/null \
+               | sed -n 's/^nome=//p')"
+  meow_titulo "MeowSystem${nome_pack:+ — $nome_pack} para o COSMIC"
   meow_seco && meow_aviso "ensaio (MEOW_DRY_RUN=1) — nada será escrito"
 
   # O WIZARD VEM ANTES DO LOCK, E É UM PROCESSO À PARTE

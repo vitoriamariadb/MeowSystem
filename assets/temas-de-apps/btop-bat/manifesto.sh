@@ -867,8 +867,19 @@ meow_app_reverter() {
 
   if [ "$bat_rc" = "3" ] && [ "$btop_rc" = "3" ]; then return "$MEOW_SEM_DEPENDENCIA"; fi
   local rotulo; rotulo="$(_bb_rotulo "$bat_rc" "$btop_rc")"
+  # O NOME É O DO TEMA DO FLAVOR, E NÃO «o Catppuccin» — 24/09/2026, P51
+  #   A P49 tirou a família cravada do conferir e do aplicar, e esta frase
+  #   ficou para trás: com o `alucard`, flavor sem tema vendorizado, o reverter
+  #   dizia «já estavam sem o Catppuccin». Com tema, o nome é o dele (o mesmo
+  #   `_bb_bat_tema_nome` do conferir); sem tema, é o nome que a paleta do pack
+  #   dá ao flavor — perguntado ao `modelo.py --nome`, que já é quem diz esse
+  #   nome na tela dos módulos da P42.
+  local sem
+  if _bb_tem_tema; then sem="$(_bb_bat_tema_nome)"
+  else sem="$(python3 "$MEOW_BB_DIR/../modelo.py" --nome "$(meow_paleta)" "$(_bb_flavor)" 2>/dev/null)"
+  fi
   case "$pior" in
-    0) meow_ok "$rotulo: já estavam sem o Catppuccin" ;;
+    0) meow_ok "$rotulo: já estavam sem o tema ${sem:-$(_bb_flavor)}" ;;
     1) meow_seco || meow_info "tire 'bat'/'btop' de APPS_ATIVOS, ou o doctor das 05:00 reaplica" ;;
   esac
   return "$pior"

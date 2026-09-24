@@ -141,6 +141,7 @@ VERBOS
                                      pack=<o id que veste, o padrão incluído>
                                      dir=<o diretório; vazio = ninguém escolheu>
                                      recusado=<o id que não validou, ou vazio>
+                                     nome=<o nome de tela do pack que veste>
                                  Ver `adocao`.
 
     Sem argumento, imprime esta ajuda.
@@ -4433,6 +4434,17 @@ def vocabulario(ref):
             "herdado": dono != ident,
             "flavors": [escolhido] if escolhido in existem else existem,
             "nomes": {f: curtos_dono[f] for f in existem},
+            # O CLARO E A LUZ SÃO OS DO DONO DO ACERVO — 24/09/2026, P51, na
+            #   revisão. O desenho da aba Ícones pinta o fundo pelo sabor dos
+            #   ícones de arquivo, e esse sabor é um flavor do DONO: com o
+            #   Dracula no ar e `ICONES_FLAVOR="latte"`, a régua de claro e
+            #   escuro dos flavors do pack no ar não conhecia o latte, o fundo
+            #   saía escuro e a tinta, pedida escura para o latte, sumia nele.
+            #   A mesma conta dos `flavors` acima (os `claros` da paleta, a
+            #   luminância do `base`), feita na paleta de quem traz os desenhos.
+            "claros": [f for f in existem if f in (mt["dados_dono"].get("claros") or [])],
+            "luz": {f: round(_luminancia(mt["dados_dono"]["flavors"][f]["base"]), 4)
+                    for f in existem},
         }
 
     mapa = acervo("icones.apps.mapa", ref=ident)
@@ -5733,6 +5745,10 @@ def main(argv):
             print(f"pack={ident}")
             print(f"dir={dir_pack}")
             print(f"recusado={recusado}")
+            # O NOME DE TELA VAI JUNTO — 24/09/2026, P51 (achado 24): o
+            # cabeçalho do `install.sh` dizia «Catppuccin» com qualquer pack no
+            # ar, e o nome é o que o `pack.json` declara, lido aqui uma vez.
+            print(f"nome={campo(ident, 'nome') or ident}")
             return OK
         # OS TRÊS VERBOS DA CAPTURA NÃO RECEBEM `<id>`, e os outros recebem.
         #   Quem pergunta por uma captura é sempre o desktop VIVO — o

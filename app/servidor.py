@@ -638,6 +638,22 @@ DOMINIOS = {
                   "\u201chora\u201d o terminal segue o gato do dock; em "
                   "\u201cespelho\u201d ele mostra o OUTRO gato.",
     },
+    # A VERSÃO SÓ MANDA NO PONTEIRO QUE SE BAIXA POR ELA — 24/09/2026, P51
+    #   (achado 20). O `CURSOR_VERSAO` é o release que o `cursor.sh` pede no
+    #   ÚLTIMO degrau dele, quando baixa o tema pelo nome (`_cursor_url`). O
+    #   ponteiro que o pack no ar traz — próprio, ou pinado por url e sha256
+    #   (`origens.cursores.origem`, P41) — entra antes, e nunca passa por esse
+    #   número. Com o Dracula no ar o cartão oferecia a v2.0.0 como se ela
+    #   mandasse no ponteiro do Dracula. Quem responde "este valor é o ponteiro
+    #   do pack" é o `_ponteiro_do_pack`, a mesma pergunta que a lista do
+    #   ponteiro faz ao `cursor.sh`.
+    "CURSOR_VERSAO": {
+        "chave": "CURSOR",
+        "quando": lambda v: _ponteiro_vem_do_pack(v),
+        "porque": "O ponteiro escolhido vem do pack no ar, que fixa a origem "
+                  "dele: esta versão só vale para o ponteiro que o MeowSystem "
+                  "baixa pelo nome.",
+    },
 }
 
 
@@ -734,12 +750,48 @@ for _suf, _pasta in _BARRAS:
     })
 
 
+# O ZERO DA TEMPERATURA É "DESLIGADO", E NÃO UMA TEMPERATURA — 24/09/2026, P51
+#   (achado 39). O `leitura.sh` escreve `leitura_temperatura = 0` quando o modo
+#   de leitura não está esquentando a tela — fora do horário, ou com o
+#   deslizante no neutro —, e nunca o 6500, porque o `is_noop()` do
+#   compositor só pula o passe do shader com o zero (o bloco da conta, no
+#   `leitura.sh`). Lido como valor, o zero aparecia no cartão como «Na máquina
+#   agora: 0», e o desenho do Modo de leitura o recebia como a temperatura
+#   escolhida e acusava «LEITURA_TEMPERATURA tem valor que o ajuste não aceita»,
+#   com 3500 no conf. De dia a máquina não tem temperatura nenhuma para
+#   mostrar: o cartão diz «desligado» (o campo `desligado_agora` do esquema de
+#   cada chave) e o desenho volta ao valor escolhido.
+#
+# E A TEXTURA TAMBÉM — 24/09/2026, P51, na revisão. O mesmo tique grava
+#   `leitura_textura = 0.00` fora do horário (o `tex = f * alvo_x` com f = 0,
+#   pelo `printf "%.2f"`), e o zero da textura é, do mesmo jeito, o passe que
+#   não roda. Só a temperatura era reconhecida, e o cartão irmão dizia «Na
+#   máquina agora: 0.00. [...] Salvar e aplicar faz este ajuste vencer.» de
+#   dia, com 0.35 no conf — e salvar de dia não faz 0.35 vencer: o tique do
+#   minuto seguinte grava 0.00 de novo. O zero é lido como NÚMERO, e não pelos
+#   bytes, porque cada chave o escreve de um jeito (`0`, `0.00`).
+#   São as duas chaves que o `leitura.sh` zera para desligar; as outras cinco
+#   do modo de leitura não têm estado de "desligado agora".
+_LEITURA_ZERO_DESLIGA = ("LEITURA_TEMPERATURA", "LEITURA_TEXTURA")
+
+
+def _leitura_desligada(chave, valor):
+    if chave not in _LEITURA_ZERO_DESLIGA:
+        return False
+    try:
+        return float(valor.strip()) == 0
+    except ValueError:
+        return False
+
+
 def _valendo_agora(chave):
     if chave.startswith("LEITURA_"):
         valor = (_cosmic_ler("com.system76.CosmicComp/v1/" + chave.lower()) or "").strip('"')
         # O applet grava booleano em RON (`true`), e o conf diz `sim`. Sem esta
         # tradução o cartão acusava "Na máquina agora: Sim" com o próprio cartão
         # marcado em Sim — visto clicando no painel em 13/09/2026.
+        if _leitura_desligada(chave, valor):
+            return None
         return _sim_nao(valor) or valor or None
     if chave == "VIDRO_AO_MAXIMIZAR":
         # Uma chave para as duas barras (o `vidro.sh` grava as duas): só há
@@ -1279,6 +1331,133 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
             oferta.append(agora)
         item["opcoes"] = oferta
         item["rotulos"] = {i: (mod.campo(i, "nome") or i) for i in oferta}
+
+    # 6. A COR DO TERMINAL_CURSOR É DO PACK NO AR — 24/09/2026, P51 (achados 19
+    #    e 40). O cartão dizia «Do Catppuccin» e «a que o Catppuccin escolheu»
+    #    com o Dracula no ar. O `port` é o `rosewater` da paleta do pack ATIVO
+    #    (o `terminal.sh` a lê pelo `meow_paleta`), então quem se nomeia é o
+    #    pack. O `meow.conf.exemplo` continua sendo o texto do `?`.
+    item = por_chave.get("TERMINAL_CURSOR")
+    if item:
+        item["frase"] = "A cor de destaque, ou a que o tema «%s» escolhe." % nome_pack
+        item["rotulos"] = {"accent": "Cor de destaque", "port": "Do tema «%s»" % nome_pack}
+
+    # 7. «Tema de onde herdar» DIZ A BASE QUE VALE — 24/09/2026, P51 (achado 34).
+    #    Com o Dracula no ar o cartão mostrava `Papirus-Dark`, e o desenho dizia
+    #    «o que faltar vem do Papirus-Dark»: desde a P41 o pack declara a base
+    #    dele (`icones.base.origem`), e o valor de fábrica CEDE a ela. Quem
+    #    responde é o `base_que_vale` do scripts/pack.py, o mesmo que o
+    #    `construir_icones.sh` pergunta. O «Vale como» do cartão ganha o nome da
+    #    base e o do pack; o desenho recebe, pelo `vocab`, a mesma resposta e os
+    #    valores que cedem — perguntados à regra opção a opção (`_base_escolhida`),
+    #    e não copiados dela.
+    item = por_chave.get("ICONES_BASE")
+    if item and mod:
+        try:
+            quem, tema, decl = mod.base_que_vale(vocab["id"], efetivos.get("ICONES_BASE"))
+            nossa = (efetivos.get("NOME_TEMA_ICONES") or "MeowSystem-Icons") + "-Base"
+            candidatos = [""] + list(item.get("opcoes") or []) + [item.get("valor") or ""]
+            cede = sorted({c for c in candidatos if not mod._base_escolhida(c)})
+            _q, tema_cedido, decl_cedida = mod.base_que_vale(vocab["id"], "")
+        except Exception:
+            quem = None
+        if quem:
+            dono = mod.campo(decl_cedida["pack"], "nome") if decl_cedida else ""
+            vocab["base_de_icones"] = {"vale": nossa if decl_cedida else tema_cedido,
+                                       "de": dono or "", "cede": cede}
+        if quem == "pack":
+            dono = mod.campo(decl["pack"], "nome") or decl["pack"]
+            item["efetivo"] = nossa
+            item["rotulos"] = dict(item.get("rotulos") or {},
+                                   **{nossa: "%s, a base do pack «%s»" % (nossa, dono)})
+
+    # 8. O NOME DE UMA COR É O DA COR, E NÃO O DO SLOT — 24/09/2026, P51
+    #    (achado 26). Os botões da «Cor de destaque» se apresentavam ao leitor de
+    #    tela como `mauve`, `sapphire`, `maroon` — os nomes que o Catppuccin dá
+    #    às cores DELE —, com o Dracula no ar, onde o `maroon` é um vermelho
+    #    claro (#FF6E6E) e o `blue` um azul acinzentado. O slot é o vocabulário
+    #    com que o MeowSystem fala de cor e continua sendo o VALOR gravado; o
+    #    nome que a tela lê sai do hex daquele flavor (`_nomes_de_cor`), então
+    #    acompanha o pack sem que pack nenhum precise declarar nada.
+    #    As catorze primeiras do `SLOTS` são as cromáticas, como no bloco 3.
+    #    A `luz` vai junto pelo mesmo caminho: é a luminância do `base`, a régua
+    #    com que o bloco 4 ordena as variantes, e é com ela que o desenho de Cor
+    #    e tela põe cada flavor do pack no seu degrau do escuro ao claro.
+    if mod:
+        ibase = mod.SLOTS.index("base")
+        for f in vocab["flavors"]:
+            f["nomes_de_cor"] = dict(_nomes_de_cor(dict(zip(mod.SLOTS[:14], f["cores"]))),
+                                     **_NOMES_DAS_NEUTRAS)
+            f["luz"] = round(mod._luminancia(f["cores"][ibase]), 4)
+
+    # E O DESENHO DOS ÍCONES VÊ O FLAVOR QUE VALE — o «Vale como» do bloco 1.
+    #   O desenho lia `ICONES_FLAVOR` cru, e o de fábrica é `"$FLAVOR"`: fora da
+    #   lista, a legenda dizia «o valor de ICONES_FLAVOR não é um dos aceitos»
+    #   com qualquer pack no ar. A resposta da regra vai junto do vocabulário.
+    it_flavor = por_chave.get("ICONES_FLAVOR")
+    if vocab.get("mimetypes") and it_flavor and it_flavor.get("efetivo"):
+        vocab["mimetypes"]["efetivo"] = it_flavor["efetivo"]
+
+
+# OS MATIZES, EM PORTUGUÊS, DE 0 A 360 GRAUS — 24/09/2026, P51 (achado 26)
+#   O teto de cada faixa. As faixas são as do círculo cromático que qualquer
+#   pessoa nomeia sem pensar (o que o olho chama de roxo, e não o que um tema
+#   chama de lavanda), e o vermelho aparece nas duas pontas porque o círculo
+#   fecha nele. As exceções são três, e as três são de língua: a cor quase
+#   branca é «quase branco», a quase sem saturação é cinza, e o vermelho muito
+#   claro é o que se chama de rosa.
+_MATIZES = ((15, "vermelho"), (40, "laranja"), (70, "amarelo"), (160, "verde"),
+            (185, "verde-água"), (200, "ciano"), (250, "azul"), (290, "roxo"),
+            (335, "rosa"), (361, "vermelho"))
+_MAIS_CLARO = ("", " claro", " mais claro")
+
+# AS DOZE NEUTRAS SE CHAMAM PELO PAPEL — 24/09/2026, P51, na revisão.
+#   O `_nomes_de_cor` nomeia só as catorze cromáticas, e as doze neutras ficavam
+#   com o slot: a grade das cores da música, no Painel e dock, lia «Roxo» e
+#   «Verde» e, logo ao lado, «Surface2», «Overlay0», «Mantle», «Crust». Pelo
+#   matiz elas seriam doze cinzas numerados, que não distinguem nada; o que as
+#   distingue é o PAPEL que a paleta de todo pack dá a cada uma (o texto, o
+#   fundo, as camadas entre os dois), e é ele que o nome diz. O número é o do
+#   slot, para o nome e o valor gravado continuarem se achando.
+_NOMES_DAS_NEUTRAS = {
+    "text": "texto", "subtext1": "texto secundário 1", "subtext0": "texto secundário 0",
+    "overlay2": "sobreposição 2", "overlay1": "sobreposição 1", "overlay0": "sobreposição 0",
+    "surface2": "superfície 2", "surface1": "superfície 1", "surface0": "superfície 0",
+    "base": "fundo", "mantle": "fundo secundário", "crust": "fundo terciário",
+}
+
+
+def _nomes_de_cor(cores):
+    """{slot: nome em português} para as cores de UM flavor, sem repetir nome.
+
+    Duas cores do mesmo matiz — o `red` e o `maroon` do Dracula, o `blue` e o
+    `lavender` do Catppuccin — ganham o mesmo nome de faixa, e o leitor de tela
+    leria dois «vermelho» lado a lado. Dentro de uma faixa elas se distinguem
+    pela claridade, da mais escura para a mais clara; a partir da quarta, pela
+    ordem. O resultado é o mesmo para a mesma paleta, sempre.
+    """
+    import colorsys
+    faixas = {}
+    for slot, hexcor in cores.items():
+        try:
+            r, g, b = (int(hexcor[i:i + 2], 16) / 255 for i in (1, 3, 5))
+        except (TypeError, ValueError):
+            continue
+        h, luz, sat = colorsys.rgb_to_hls(r, g, b)
+        if luz >= 0.9:
+            nome = "quase branco"
+        elif sat < 0.2:
+            nome = "cinza"
+        else:
+            nome = next(n for teto, n in _MATIZES if h * 360 < teto)
+            if nome == "vermelho" and luz >= 0.8:
+                nome = "rosa"
+        faixas.setdefault(nome, []).append((luz, slot))
+    saida = {}
+    for nome, lista in faixas.items():
+        for i, (_luz, slot) in enumerate(sorted(lista)):
+            saida[slot] = nome + (_MAIS_CLARO[i] if i < len(_MAIS_CLARO) else " %d" % (i + 1))
+    return saida
 
 
 def _flavors_dos_packs():
@@ -1959,6 +2138,10 @@ def ler_esquema():
             #   o número do arquivo como se ele mandasse. A validação mediu:
             #   conf diz 3500, a máquina está em 4700.
             "valendo_agora": _valendo_agora(chave),
+            # E QUANDO A MÁQUINA DIZ "DESLIGADO" — ver `_leitura_desligada`.
+            "desligado_agora": chave in _LEITURA_ZERO_DESLIGA and _leitura_desligada(
+                chave, (_cosmic_ler("com.system76.CosmicComp/v1/" + chave.lower())
+                        or "").strip('"')),
             "ajuda_herdada": herdada,
             # A CHAVE dona do bloco, não o título dela: quem sabe titular um
             # cartão é a página (`tituloDoCartao`), que já deriva o título de
@@ -2318,6 +2501,12 @@ def _ponteiro_do_pack():
         return mod.ponteiro(_pack_adotado() or mod.dir_padrao())
     except Exception:
         return None
+
+
+def _ponteiro_vem_do_pack(valor):
+    """True quando o CURSOR escolhido é o ponteiro que o pack no ar traz. [P51]"""
+    do_pack = _ponteiro_do_pack() if valor else None
+    return bool(do_pack) and do_pack.get("valor") == valor
 
 
 def _temas_de_cursor():
@@ -6049,7 +6238,7 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
             "precisa_confirmar": True,
             "acao": acao_id,
             "rotulo": acao["rotulo"],
-            "ajuda": acao.get("ajuda", ""),
+            "ajuda": _ajuda_do_pack(acao_id) or acao.get("ajuda", ""),
             "escreve": escreve(acao),
             "sudo": bool(acao.get("sudo")),
             "rede": bool(acao.get("rede")),
@@ -6266,6 +6455,39 @@ def _com_medidas(texto, medidas):
     n = (medidas or {}).get("conferencias")
     return texto.replace("{as_conferencias}",
                          "as %d conferências" % n if n else "as conferências")
+
+
+def _ajuda_do_pack(acao_id):
+    """A ajuda de uma ação cujo texto depende do pack no ar, ou ''.
+
+    O TEMA DO SPOTIFY É O QUE O PACK DECLARA — 24/09/2026, P51 (achado 42)
+        A ajuda dizia «Baixa o tema catppuccin do spicetify» com o Dracula no ar,
+        e o Spotify já em Sleek/Dracula. Quem decide o tema e se há de onde
+        baixá-lo é o `apps.spotify` do pack (o `_spot_tema_baixar` do módulo
+        pergunta o mesmo ao `tema_de_app`): com `origem` o tema desce pinado;
+        sem ela nada é baixado, e o módulo veste o Spotify com o tema que já
+        estiver no spicetify. A frase diz qual dos dois, e de qual pack.
+    """
+    if acao_id != "spotify_baixar_tema":
+        return ""
+    mod = modulo_pack()
+    ref = _pack_no_ar()
+    if not mod or not ref:
+        return ""
+    try:
+        _q, tema = mod.tema_de_app("apps.spotify.spicetify_tema", ref=ref)
+        _q, repo = mod.tema_de_app("apps.spotify.origem.repo", ref=ref)
+        nome = mod.campo(ref, "nome") or ref
+    except Exception:
+        return ""
+    if not tema:
+        return ""
+    if repo:
+        return ("Baixa o tema «%s» do spicetify de um commit fixo de %s e veste "
+                "o Spotify em seguida." % (tema, repo))
+    return ("O pack «%s» pede o tema «%s» do spicetify e não diz de onde baixá-lo: "
+            "nada desce da internet, e o Spotify é vestido com o tema que já "
+            "estiver no spicetify." % (nome, tema))
 
 
 def _repositorio_no_ar():
@@ -9714,7 +9936,8 @@ class Manipulador(BaseHTTPRequestHandler):
             "medidas": medidas,
             "acoes": [
                 dict(v, id=k,
-                     ajuda=_com_medidas(v.get("ajuda", ""), medidas),
+                     ajuda=_com_medidas(_ajuda_do_pack(k) or v.get("ajuda", ""),
+                                        medidas),
                      # O comando da TELA, e não o que roda: a página só o
                      # mostra (a linha do cartão, o «ver comando», a caixa de
                      # confirmar) e pede a ação pelo `id`. Ver

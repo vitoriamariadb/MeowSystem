@@ -1497,7 +1497,7 @@ TERMINAL_ESQUEMA="sim"      # sim | nao
 TERMINAL_CURSOR="accent"    # accent | port
 
 # @ Prompt do zsh
-# > O prompt oficial do Catppuccin, pelo starship.
+# > O prompt do starship que vem com o MeowSystem, o mesmo com qualquer pack.
 # O prompt do zsh, pelo starship, com o preset OFICIAL catppuccin-powerline no
 # flavor mocha e accent mauve.
 #
