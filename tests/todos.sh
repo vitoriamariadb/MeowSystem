@@ -82,7 +82,7 @@ PORTATIL=(
 MAQUINA=(
   conversor.sh           # traça a partir de /usr/share/icons/Papirus; muda com a versão do pacote
   afinador.sh            # precisa de rsvg-convert e do `compare` do ImageMagick
-  previa-cerca.sh        # sobe o painel e planta uma isca no ~/.local/share/icons de verdade
+  previa-cerca.sh        # painel numa casa de brinquedo (P40); serve um .svg do Papirus da máquina
   app-navegador.py       # Playwright com Chromium, a página usada como ela usaria
   app-acessibilidade.py  # Playwright com Chromium; sobe o painel
   oficina.sh             # lê os .desktop da máquina: o desenho de pack que veste um deles tem cartão

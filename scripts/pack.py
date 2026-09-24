@@ -3847,11 +3847,13 @@ def origens(p):
         # 23/09/2026, sprint P32.
         #   A tabela dizia PRÓPRIO para o Dracula porque ele declara
         #   `origens.wallpapers`, e nenhum código lê esse bloco: o
-        #   `scripts/wallpaper.sh` não abre pack nenhum. Quem escolhe a semente é
-        #   o `_semente_do_flavor` de lá, pelo NOME do flavor — `dracula` lê
-        #   `WALLPAPER_DRACULA_REPO` do meow.conf, todo o resto cai no acervo do
-        #   Catppuccin —, com `WALLPAPER_SEMENTE_REPO` vencendo por cima. Quem
-        #   lia "próprio" acreditava que o pack trazia os papéis de parede dele.
+        #   `scripts/wallpaper.sh` não o abre. Quem escolhe a semente é o
+        #   `_semente_do_flavor` de lá, pelo ID do pack dono do flavor — desde a
+        #   P40 (24/09/2026) ele pergunta ao `adocao` de quem é o flavor, e não
+        #   olha mais o nome dele; `dracula` lê `WALLPAPER_DRACULA_REPO` do
+        #   meow.conf, todo o resto cai no acervo do Catppuccin —, com
+        #   `WALLPAPER_SEMENTE_REPO` vencendo por cima. Quem lia "próprio"
+        #   acreditava que o pack trazia os papéis de parede dele.
         #   Nem HERDADO serve: ninguém sobe a herança desta categoria.
         #
         #   POR QUE MUDA A TELA, E NÃO O SEMEADOR. Dar leitor ao bloco seria um
@@ -3861,7 +3863,7 @@ def origens(p):
         #   e ninguém pediu por ele. O menor passo verdadeiro é a tabela dizer de
         #   onde a imagem sai. Os campos seguem no aviso de campo morto, que conta
         #   que declará-los não faz nada; no dia em que o `wallpaper.sh`
-        #   perguntar ao pack, este bloco sai e a categoria volta à regra geral.
+        #   ler o bloco do pack, este sai e a categoria volta à regra geral.
         if cat == "wallpapers":
             saida.append((cat, "motor", ""))
             continue

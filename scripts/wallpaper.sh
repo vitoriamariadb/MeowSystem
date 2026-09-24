@@ -2313,6 +2313,21 @@ _semente_do_flavor() {
       ;;
   esac
 }
+
+# `/`, `~` ou `./` no começo: é caminho, não `dono/repo`.
+# MORA ANTES DA CHAMADA DE BAIXO, E NÃO AO LADO DO `_semear_de_pasta` — 24/09/2026,
+# sprint P45. O `_semente_do_flavor` roda no carregamento do script, e o ramo
+# `dracula)` dele pergunta a esta função; o bash só conhece a função depois de
+# ler a definição. Ela morava 120 linhas abaixo: medido numa casa de brinquedo,
+# `WALLPAPER_DRACULA_REPO` apontando para uma pasta e sem COMMIT imprimia
+# `_semente_e_pasta: command not found` e o aviso "sem pino não há receita",
+# que para pasta é falso — pasta não tem commit para pinar.
+_semente_e_pasta() {
+  case "$1" in
+    /*|'~'/*|./*|../*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 _semente_do_flavor
 
 SEMENTE_REPO="${WALLPAPER_SEMENTE_REPO:-$SEMENTE_REPO_PADRAO}"
@@ -2414,14 +2429,6 @@ semear_da_curadoria() {
   done <<< "$validas"
   [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) da curadoria não baixaram — rode de novo"
   return 0
-}
-
-# `/`, `~` ou `./` no começo: é caminho, não `dono/repo`.
-_semente_e_pasta() {
-  case "$1" in
-    /*|'~'/*|./*|../*) return 0 ;;
-    *) return 1 ;;
-  esac
 }
 
 # Copia as imagens de uma pasta para `ativos/`, com as mesmas regras do ramo que

@@ -2473,12 +2473,29 @@ cmd_icones() {
       [ "$pior" = "1" ] && registrar "icones reconstruir"
       return "$pior" ;;
     ""|estado)
-      local dir n_apps n_pastas
+      local dir n_apps n_pastas base resp
       dir="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+      # A BASE É A QUE VALE, E NÃO A CHAVE — 24/09/2026, sprint P45
+      #   Esta linha imprimia `${ICONES_BASE:-Papirus-Dark}` cru. Desde a P41 o
+      #   pack pode trazer a própria base, e o de fábrica cede a ela: medido numa
+      #   casa de brinquedo com o Dracula no ar, a tela dizia "Papirus-Dark"
+      #   enquanto o `construir_icones.sh`, logo abaixo, dizia que baixaria a
+      #   base do pack. Quem decide é o `_base_escolhida` do `scripts/pack.py`,
+      #   uma vez; aqui se pergunta ao mesmo verbo que o construtor pergunta, com
+      #   os mesmos três valores. Sem python, fica a chave, como antes.
+      resp="$(ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+              NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+              python3 "$RAIZ/scripts/pack.py" base-icones "$(meow_pack_dir)" 2>/dev/null)"
+      case "$(printf '%s\n' "$resp" | sed -n 's/^quem=//p')" in
+        pack) base="${NOME_TEMA_ICONES:-MeowSystem-Icons}-Base, a do pack $(printf '%s\n' "$resp" | sed -n 's/^pack=//p')" ;;
+        conf) base="$(printf '%s\n' "$resp" | sed -n 's/^tema=//p'), do meow.conf" ;;
+        motor) base="$(printf '%s\n' "$resp" | sed -n 's/^tema=//p')" ;;
+        *) base="${ICONES_BASE:-Papirus-Dark}" ;;
+      esac
       meow_titulo "Ícones"
       campo "tema"      "$(cat "$COSMIC/com.system76.CosmicTk/v1/icon_theme" 2>/dev/null || printf '(nenhum)')"
       campo "diretório" "$dir"
-      campo "base"      "${ICONES_BASE:-Papirus-Dark}"
+      campo "base"      "$base"
       campo "pastas"    "${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}"
       n_apps="$(find "$dir/scalable/apps" -type f 2>/dev/null | wc -l)"
       n_pastas="$(find "$dir" -path '*/places/*' \( -type f -o -type l \) 2>/dev/null | wc -l)"
@@ -3826,7 +3843,14 @@ cmd_pack() {
         carregar_conf 2>/dev/null || true
         # Sem PACK no conf, o alvo é o pack PADRÃO — perguntado, não digitado.
         # O nome dele mora em scripts/pack.py:PACK_PADRAO, e só lá. [22/09/2026]
-        alvo="${PACK:-$(meow_pack_padrao_dir)}"
+        # SEM PACK, QUEM RESPONDE É A ADOÇÃO — 24/09/2026, sprint P45
+        #   O `FLAVOR` também escolhe pack (a regra da P35, `adocao` do
+        #   `scripts/pack.py`), e esta linha pulava direto para o padrão: com
+        #   `PACK=""` e `FLAVOR="dracula"` a máquina vestia o Dracula e o `info`
+        #   mostrava o Catppuccin. O `meow_pack_dir` é a porta do shell para
+        #   aquela regra; vazio quer dizer "o padrão", e aí vale a linha de cima.
+        alvo="${PACK:-$(meow_pack_dir)}"
+        alvo="${alvo:-$(meow_pack_padrao_dir)}"
       fi
       python3 "$RAIZ/scripts/pack.py" info "$alvo"
       ;;

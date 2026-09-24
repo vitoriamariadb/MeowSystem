@@ -1733,7 +1733,14 @@ FASTFETCH_LOGO_CONF="sim"
 #   Ou seja: num estranho esta lista não veste nada que ele não tenha, e não
 #   quebra nada. Esvaziá-la desligaria o recurso para todo mundo para corrigir
 #   um problema que não existe. Fica, e fica dito por quê.
-APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,heroic,qt5ct"
+#
+# E GANHA OS TRÊS MÓDULOS QUE A P42 TROUXE — decisão de 24/09/2026, sprint P45
+#   `kitty`, `gnome-terminal` e `onlyoffice` têm módulo em
+#   `assets/temas-de-apps/` desde a P42, e nenhum estava aqui: numa instalação
+#   nova eles nunca rodavam. Entram pelo mesmo motivo do parágrafo acima — cada
+#   módulo se pula sozinho quando o programa não existe. O `meow.conf` de quem
+#   já instalou não muda: este arquivo é o de FÁBRICA, e o conf dela é dela.
+APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,heroic,qt5ct,kitty,gnome-terminal,onlyoffice"
 
 # App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
 # aplica o tema sozinho quando ele aparecer. Nunca falha por app ausente.
