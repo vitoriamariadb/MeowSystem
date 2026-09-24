@@ -709,3 +709,182 @@ meow compositor --seco             # (ou o verbo escolhido) diz o que recompilar
   sabendo.
 - **Os patches são contra uma versão do cosmic-comp.** Registre a versão, e o
   verbo recusa aplicar sobre outra sem dizer por quê.
+
+---
+
+# P40 — O que a onda deixou para trás
+
+Defeitos que as sprints P31–P36 acharam e não eram delas, mais a decisão das
+fontes (23/09).
+
+1. **O `app-navegador.py` segue vermelho** (P33): o `_tipo_de_previa` do
+   `app/servidor.py` calcula a prévia do FLAVOR contra as paletas ANTES de a
+   P31 reescrever as opções da «Variante do tema». Com o FLAVOR corrigido numa
+   cópia, o teste passa 145/145. É continuação da P31.
+2. **O `tests/previa-cerca.sh` escreve no sistema real** (P33): sobe o painel
+   contra o HOME de verdade e planta (e tira) uma isca em
+   `~/.local/share/icons`. Vai para a casa de brinquedo, como os dois testes de
+   navegador foram.
+3. **O `_semente_do_flavor` do `wallpaper.sh` só conhece `dracula)`** (P32): o
+   `alucard` cai no `*` e recebe a semente do Catppuccin. A semente sai do pack
+   dono do flavor, derivada do estado real (a diretriz do PC autoadaptável),
+   e não de mais um `case`.
+4. **As fontes locais — decisão de 23/09: fica `assets/fontes/locais/`**, que é
+   onde a fonte já está e onde o `instalar_fontes.sh` procura. O `LEIA-ME.txt`
+   muda para lá (`git mv`), o `.gitignore` passa a ignorar fonte solta nela
+   (`*.ttf`, `*.otf`, `*.ttc` — fonte de terceiro tem EULA e não pode entrar
+   num commit por um stage em massa), e `assets/fontes/fonts/` deixa de
+   existir. O `tests/git-limpo.sh` para de registrar a divergência.
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `app/servidor.py` | item 1 |
+| `tests/previa-cerca.sh` | item 2 |
+| `scripts/wallpaper.sh` | item 3 |
+| `assets/fontes/`, `.gitignore`, `scripts/instalar_fontes.sh`, `tests/git-limpo.sh` | item 4 |
+
+### Como conferir
+
+```sh
+./tests/todos.sh          # app-navegador.py verde; nada pulado que tenha python com Playwright
+FLAVOR=alucard ... wallpaper.sh (em seco)   # semente do Dracula
+touch assets/fontes/locais/x.ttf && git status --short | grep -c x.ttf   # 0
+```
+
+---
+
+# P41 — O pack Dracula traz a base, e não depende de uma cópia congelada
+
+**A decisão (23/09):** *"O pack traz a base."*
+
+### O que medi
+
+O `meow.conf` desta máquina tem `ICONES_BASE="Dracula-Icones"` e
+`CURSOR="Dracula-Cursor"`. São cópias em `~/.local/share/icons` que o
+`rebuild_dracula_theme` do Spellbook montava a partir do `Dracula_OS-Theme` — e
+ele foi desativado pela P37. Elas vestem de Dracula os milhares de aplicativos
+fora dos 191 do `apps.map`. Em qualquer outra máquina, não existem: o pack
+Dracula cai no Papirus fora dos 191.
+
+A base de verdade é o `m4thewz/dracula-icons` (GPL-3.0; o `Dracula_OS-Theme` o
+tem como `src/icons/upstream/dracula-icons-{main,circle}`, ~25 mil SVG cada).
+
+### O que fazer
+
+1. **O pack declara a base** — um campo novo no `pack.json` (medir se já
+   existe molde: como o Catppuccin declara o Papirus) — com a origem pinada
+   (URL https + commit ou sha256), como a Nerd Font e o `catppuccin/cursors`
+   já são. O MeowSystem baixa, confere e instala; nada de copiar 25 mil SVG
+   para dentro do repositório.
+2. **O `MeowSystem-Icons` herda da base do pack**, e não do `ICONES_BASE` de
+   fábrica, quando o pack declara uma. O `ICONES_BASE` explícito do
+   `meow.conf` continua vencendo ("quem vence", `docs/PACKS.md`).
+3. **O cursor do Dracula** vem pelo mesmo caminho: a P12 abriu o
+   `origens.cursores.proprio`; aqui ele ganha a origem pinada, se o cursor não
+   couber no repositório.
+4. **Esta máquina converge sozinha:** com o pack declarando a base, a linha
+   `ICONES_BASE="Dracula-Icones"` do `meow.conf` vira vestígio (a regra da P3);
+   meça o que o painel e o `meow pack usar` dizem dela.
+5. **Tudo em seco nos testes** (download, conferência): o sudo é falso e a rede
+   não é garantida — o teste usa um tarball local de brinquedo com o mesmo
+   formato.
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `packs/dracula/pack.json`, `packs/dracula/PROCEDENCIA.md` | a base declarada e pinada |
+| `scripts/pack.py` | o campo, o `validar`, o `info` |
+| o script que instala a base de ícones (medir qual) e `scripts/cursor.sh` | ler a base do pack |
+| `meow.conf.exemplo`, `docs/PACKS.md` | a regra |
+| `tests/pack.sh` | a base baixa, confere, e herda; o explícito vence |
+
+---
+
+# P42 — Os temas de aplicativo do Dracula moram no pack
+
+**A decisão (23/09):** *"Migrar para o pack."*
+
+A P37 mediu o que o `Dracula_OS-Theme` aplicava e o MeowSystem nunca migrou:
+temas de **kitty, gnome-terminal, Telegram, Discord e OnlyOffice**, e **30
+overrides de `.desktop`** (o campo `override_desktop` do `mapping.json`). E o
+hook do apt que saiu (24/09) consertava uma coisa que vale trazer:
+**`.desktop` que o Flatpak cria com permissão 600** (o bug do GIMP) — o
+MeowSystem não cobre.
+
+### O que fazer
+
+1. Cada tema de aplicativo vira um `temas-de-apps` do pack Dracula, no molde
+   que a P18 fixou (Spotify, qBittorrent, Obsidian): manifesto, aplicar,
+   conferir, desfazer. Arte e cor saem da paleta do pack, nunca de hex cravado.
+2. Os overrides de `.desktop` viram as chaves que o MeowSystem já tem para isso
+   (`nomes_apps`, `ocultar_apps` — medir), declarados pelo pack.
+3. A permissão: o `.desktop` de `~/.local/share/applications` com permissão
+   diferente de 644 é corrigido pela etapa do MeowSystem que já cuida de
+   `.desktop` (medir: `apos_flatpak.sh`, `icones_absolutos.sh`), e o doctor
+   confere.
+4. Nada lê do `Dracula_OS-Theme` em execução (a P37 pôs o teste
+   `sem-dracula-os-theme.sh` para cobrar): a arte e os modelos são COPIADOS
+   para o pack, com linha no `PROCEDENCIA.md`.
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `assets/temas-de-apps/<app>/` ou `packs/dracula/apps/` (medir o molde) | os cinco temas |
+| `packs/dracula/pack.json`, `PROCEDENCIA.md` | a declaração e a procedência |
+| o script de `.desktop` escolhido | a permissão |
+| `tests/temas-de-apps.sh`, `tests/pack.sh` | cada tema aplica, confere e desfaz numa casa de brinquedo |
+
+---
+
+# P43 — O pack Dracula fecha as pontas, e o produto deixa de citar alguém
+
+As decisões de 23/09 sobre o que a P36 e a P38 deixaram, mais os comentários
+que a P37 envelheceu.
+
+1. **Os 7 conflitos de nome** (P36): com o Dracula no ar, **o desenho do
+   Dracula vence** (a decisão de 16/09, "Dracula vence tudo", registrada no
+   `icones_apps_dracula.sh`): Flatseal, BleachBit, FileRoller, Apostrophe,
+   Thunderbird, guvcview e setup-mozc. Com o Catppuccin no ar, as escolhas de
+   antes continuam. O `tests/fonte-unica.sh` tem de aceitar isso como
+   precedência declarada, e não como "duas fontes".
+2. **O `nyx.svg` sai do pack** (projeto pessoal — decisão 2 da P36): arquivo,
+   linha do `apps.map`, linha do `PROCEDENCIA.md`.
+3. **Nomes genéricos** (starred, printer, bluetooth, calendar, text-editor…)
+   continuam vestidos pelo Dracula, como o tema original faz; o cabeçalho do
+   `apps.map` passa a AVISAR que eles aparecem fora do lançador.
+4. **Aposentar a comparação com o `Dracula_OS-Theme`** — decisão: "aposentar
+   tudo". O `doctor` e o `meow pack sincronizar` deixam de ler
+   `~/Desenvolvimento/Dracula_OS-Theme`. O `PROCEDENCIA.md` continua dizendo
+   de onde cada arquivo veio (texto), sem leitor em execução.
+5. **Os nomes pessoais que a P38 deixou fora da tabela dela** — o mais sério é
+   código que RODA: `assets/temas-de-apps/obsidian/manifesto.sh` (:90, :106)
+   tem como padrão `$HOME/Controle de Bordo`, um cofre pessoal. Os cofres
+   saem do próprio Obsidian (`obsidian.json` lista os cofres abertos) — a
+   diretriz do PC autoadaptável. Também: os comentários com
+   `loginctl show-user <nome>` em `systemd/meow-leitura.timer` e
+   `meow-wallpaper.timer`, `docs/COSMIC-THEMING.md:773`,
+   `scripts/ponte_root.sh:3`, e o que
+   `git grep -nE "vitoriamaria|andrefarias|Controle de Bordo"` achar fora de
+   crédito (autor dos packs, CREDITOS, LICENSE, remote do README). O
+   `assets/prompt/aurora.patch` é da P39.
+6. **A régua 1 da portabilidade** passa a pegar `/home/<nome>` sem barra
+   final também, com as isenções nomeadas que isso pedir (`tests/pack.sh`
+   `CASA_ALHEIA`, `tests/fonte-unica.sh`).
+7. **Comentários que a P37 envelheceu** (ainda dizem que o Dracula-Icones é
+   reconstruído pelo `rebuild_dracula_theme`): `bin/meow:4039`,
+   `scripts/pack.py:823`, `:1009`, `:4029-4040`, `docs/PACKS.md:1019`,
+   `packs/dracula/PROCEDENCIA.md:20`, `tests/fonte-unica.sh:12`.
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `packs/dracula/icones/apps.map`, `apps/nyx.svg`, `PROCEDENCIA.md` | itens 1–3 |
+| `tests/fonte-unica.sh` | item 1 |
+| `scripts/pack.py`, `bin/meow` | itens 4 e 7 |
+| `assets/temas-de-apps/obsidian/manifesto.sh`, `systemd/*.timer`, `docs/COSMIC-THEMING.md`, `scripts/ponte_root.sh` e o que o grep achar | item 5 |
+| `tests/portabilidade.sh` | item 6 |
