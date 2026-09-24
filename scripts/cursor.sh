@@ -379,24 +379,47 @@ _cursor_instalado() {
 #   `_temas_de_cursor` do `app/servidor.py`. A lista existe para dizer o que
 #   FUNCIONA, não o que está no disco.
 #
-#   Pelo mesmo motivo, pasta que não termine em `-cursors` fica de fora mesmo
-#   tendo ponteiros dentro: o `aplicar` não sabe montar o nome dela. MEDIDO
-#   nesta máquina em 06/09/2026 — há TRÊS diretórios com um `cursors/` dentro
-#   (`/usr/share/icons/Adwaita`, `/usr/share/icons/Pop` e
-#   `~/.local/share/icons/catppuccin-mocha-light-cursors`) e só o último tem
-#   nome que a chave sabe escolher. É por isso que a página mostra UM: não é a
-#   página que está errada, é a máquina que tem um só.
-_cursor_temas_instalados() {
+#   O PARÁGRAFO QUE ESTAVA AQUI CAIU EM 15/09, E A LISTA FICOU NELE ATÉ A P35
+#   Ele dizia que pasta sem o sufixo `-cursors` ficava de fora "mesmo tendo
+#   ponteiros dentro: o `aplicar` não sabe montar o nome dela" — medido em
+#   06/09, quando era verdade. Em 15/09 (commit 4963d11) o `_cursor_dir_exato`
+#   ensinou o `aplicar` a aceitar o nome EXATO (é o que faz
+#   `CURSOR="Dracula-Cursor"` funcionar), e o `_temas_de_cursor` do painel
+#   acompanhou no dia seguinte. Esta função não. Medido nesta máquina em
+#   23/09/2026, com o conf dela (`CURSOR="Dracula-Cursor"`):
+#
+#     cursor.sh listar     catppuccin-mocha-light
+#     painel               Adwaita Dracula-Cursor Pop catppuccin-mocha-light
+#
+#   O ponteiro que ela USA não aparecia na lista do script que o aplica.
+#
+# A REGRA AGORA É A DA RESOLUÇÃO, E NÃO UM FILTRO DE NOME — 23/09/2026, P35
+#   A mesma do painel: todo diretório com `cursors/` dentro, em qualquer das
+#   três raízes, PROPÕE um valor (`<x>-cursors` propõe `<x>`; o resto, o
+#   próprio nome), e quem decide se ele entra é o `_cursor_instalado` — a
+#   função que o `aplicar` usa. Uma lista que só pergunta à resolução não tem
+#   regra própria para envelhecer. O sequestro continua valendo: com
+#   `Dracula/` (tema de ícones, sem `cursors/`) ao lado de
+#   `Dracula-cursors/cursors/`, a pasta propõe `Dracula`, a resolução escolhe o
+#   nome exato, não acha `Dracula/cursors`, e ele fica de fora — nos dois lados.
+#
+#   `dotglob` porque o painel lista com `os.listdir`, que vê nome com ponto na
+#   frente, e o `aplicar` resolve esse nome como qualquer outro. O `sort` é o
+#   do locale C porque o painel ordena por `sorted()` do Python, que é por
+#   código de caractere; em pt_BR o `sort` põe `catppuccin` antes de
+#   `Dracula`, e "a mesma lista" tem de ser também a mesma ordem.
+_cursor_temas_instalados() (
   local raiz d nome
+  shopt -s dotglob
   for raiz in "${CURSOR_RAIZES[@]}"; do
     [ -d "$raiz" ] || continue
-    for d in "$raiz"/*-cursors; do
+    for d in "$raiz"/*; do
       [ -d "$d/cursors" ] || continue
       nome="$(basename -- "$d")"
-      printf '%s\n' "${nome%-cursors}"
+      _cursor_instalado "${nome%-cursors}" && printf '%s\n' "${nome%-cursors}"
     done
-  done | sort -u
-}
+  done | LC_ALL=C sort -u
+)
 
 # --- instalação ------------------------------------------------------------
 # A ROTA DE DESCARGA, EM UMA FUNÇÃO SÓ — 06/09/2026
@@ -895,7 +918,7 @@ cmd_listar() {
   { _cursor_temas_instalados
     _cursor_ler_pack
     _cursor_do_pack "$CURSOR_PACK_VALOR" && printf '%s\n' "$CURSOR_PACK_VALOR"
-  } | sort -u
+  } | LC_ALL=C sort -u
   return "$MEOW_OK"
 }
 

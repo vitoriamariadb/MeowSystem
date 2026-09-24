@@ -477,8 +477,10 @@ meow_paleta() {
 #   todo pack usa — que é o ponto inteiro da sprint.
 #
 # O resolvedor de verdade é scripts/pack.py (ver docs/PACKS.md). Esta função só
-# pergunta a ele, e o faz sem sair do lugar quando não há pack: um fork de
-# python por script, num instalador de 54 etapas, custaria caro à toa.
+# pergunta a ele, e o faz sem sair do lugar quando PACK e FLAVOR estão vazios:
+# um fork de python por script, num instalador de 54 etapas, custaria caro à
+# toa. Com FLAVOR preenchido ela pergunta sempre — ver "A ADOÇÃO É UMA REGRA
+# SÓ", dentro dela.
 
 # AS RAÍZES DE BUSCA VINHAM DIGITADAS EM QUATRO LUGARES [21/09/2026]
 #   A mesma lista de três diretórios — `$MEOW_PACKS`, o XDG e `$MEOW_RAIZ/packs`
@@ -557,7 +559,7 @@ meow_pack_padrao_dir() {
 }
 
 meow_pack_dir() {
-  local PACK="${PACK:-}" base
+  local PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" saida recusado
   # ADOÇÃO POR CONVENÇÃO [2026-09-17]
   #   Sem a chave PACK, um FLAVOR que nomeie um pack existente adota esse pack.
   #   É o que faz um meow.conf escrito ANTES do formato existir continuar
@@ -565,23 +567,28 @@ meow_pack_dir() {
   #   exigir a chave nova faria o desktop perder os ícones no primeiro `meow
   #   ativar` depois da atualização — calado, que é o pior jeito.
   #   A chave explícita continua vencendo; isto é só o default.
-  if [ -z "$PACK" ] && [ -n "${FLAVOR:-}" ]; then
-    while IFS= read -r base; do
-      [ -n "$base" ] || continue
-      [ -f "$base/$FLAVOR/pack.json" ] && { PACK="$FLAVOR"; break; }
-    done <<< "$(meow_pack_raizes)"
-  fi
-  [ -n "$PACK" ] || return 0
-  python3 "$MEOW_RAIZ/scripts/pack.py" caminho "$PACK" id >/dev/null 2>&1 || {
-    meow_aviso "pack '$PACK' não resolve — usando o padrão"
+  #
+  # A ADOÇÃO É UMA REGRA SÓ, E MORA NO `pack.py` — 23/09/2026, sprint P35
+  #   A conta acima estava escrita AQUI, em shell, e o painel tinha a dele em
+  #   Python (`_pack_adotado`, app/servidor.py), que também adotava pelo SABOR
+  #   que a paleta declara. Medido com PACK vazio e `FLAVOR="alucard"`: este
+  #   lado vestia o padrão e o painel dizia Dracula. Agora os dois perguntam ao
+  #   `adocao` do `scripts/pack.py`, que tem a regra inteira e o porquê de
+  #   cada passo; aqui só se lê a resposta.
+  #
+  #   O PREÇO: o conf de fábrica (`FLAVOR="mocha"`) não fazia fork aqui, e agora
+  #   faz um, de ~45 ms — o mesmo que a chave PACK preenchida já pagava pela
+  #   sonda `caminho`. Um atalho em shell ("mocha não é nome de pack, então é o
+  #   padrão") seria a segunda cópia da regra, e foi uma segunda cópia que abriu
+  #   a divergência.
+  [ -n "$PACK$FLAVOR" ] || return 0
+  saida="$(python3 "$MEOW_RAIZ/scripts/pack.py" adocao "$PACK" "$FLAVOR" 2>/dev/null)" || {
+    meow_aviso "scripts/pack.py não disse qual pack adotar (PACK='$PACK', FLAVOR='$FLAVOR') — usando o padrão"
     return 0
   }
-  local d
-  while IFS= read -r base; do
-    [ -n "$base" ] || continue
-    d="$base/$PACK"
-    [ -f "$d/pack.json" ] && { printf '%s' "$d"; return 0; }
-  done <<< "$(meow_pack_raizes)"
+  recusado="$(printf '%s\n' "$saida" | sed -n 's/^recusado=//p')"
+  [ -n "$recusado" ] && meow_aviso "pack '$recusado' não resolve — usando o padrão"
+  printf '%s' "$(printf '%s\n' "$saida" | sed -n 's/^dir=//p')"
   return 0
 }
 
