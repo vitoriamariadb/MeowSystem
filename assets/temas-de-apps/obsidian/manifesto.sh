@@ -86,11 +86,12 @@
 #     num snippet próprio, habilitado por ela. Fica registrado como decisão, não
 #     como esquecimento.
 #
-# (7) O VAULT É UM LINK PARA /mnt/Apate.
-#     `~/Controle de Bordo` -> `/mnt/Apate/Controle de Bordo` (mesmo disco do
-#     repo). Isso não muda nada aqui porque `meow_escrever` já cria o temporário
-#     DENTRO do diretório de destino — o mv é atômico em qualquer um dos casos —
-#     mas registra-se para ninguém "otimizar" para um `cp` de fora depois.
+# (7) O COFRE PODE SER UM LINK PARA OUTRO DISCO.
+#     Medido na máquina onde este módulo nasceu: o cofre era um link simbólico
+#     para uma pasta noutro disco (o mesmo do repositório). Isso não muda nada
+#     aqui porque `meow_escrever` já cria o temporário DENTRO do diretório de
+#     destino — o mv é atômico em qualquer um dos casos —, mas registra-se para
+#     ninguém "otimizar" para um `cp` de fora depois.
 #
 # ---------------------------------------------------------------------- ORIGEM
 # Tema de terceiros, commit PINADO (detalhes em vendor/ORIGEM.md):
@@ -102,8 +103,30 @@
 
 MEOW_OBSIDIAN_APP_ID="md.obsidian.Obsidian"
 MEOW_OBSIDIAN_TEMA="Catppuccin"
-# O vault é configurável, mas o padrão é o dela.
-MEOW_OBSIDIAN_VAULT="${MEOW_OBSIDIAN_VAULT:-$HOME/Controle de Bordo}"
+# O COFRE SAI DO PRÓPRIO OBSIDIAN — 24/09/2026, P43
+#   Até aqui o padrão era um cofre desta casa, escrito por extenso. Na máquina
+#   de qualquer outra pessoa o módulo procurava uma pasta que não existe, dizia
+#   "vault não encontrado" e não tematizava nada — e o nome de um cofre pessoal
+#   viajava dentro do produto. A diretriz do PC autoadaptável: o que a máquina
+#   já sabe, se pergunta a ela, e não a uma lista de nomes.
+#
+#   O Obsidian guarda os cofres que conhece num `obsidian.json`. Medidos nesta
+#   máquina em 24/09 os DOIS lugares onde ele mora, e o formato é o mesmo:
+#       ~/.var/app/md.obsidian.Obsidian/config/obsidian/obsidian.json   (flatpak)
+#       ~/.config/obsidian/obsidian.json                               (nativo)
+#       {"vaults": {"<id>": {"path": "<absoluto>", "ts": <ms>, "open": true}}}
+#   O do flatpak traz chaves a mais (`adblock`, `frame`, `cli`), que não
+#   importam aqui. `open` só aparece no cofre que está aberto; `ts` é a última
+#   vez que ele foi aberto, em milissegundos.
+#
+#   O ESCOLHIDO É O QUE O OBSIDIAN ABRIU POR ÚLTIMO: o aberto antes do fechado,
+#   e o `ts` maior entre iguais, somando os dois arquivos — um cofre é uma
+#   pasta, e o `appearance.json` dele vale para os dois apps. Cofre cuja pasta
+#   sumiu (sem `.obsidian/`) não conta. O módulo continua tematizando UM cofre
+#   por passada, como antes; quem tem vários e quer outro diz qual em
+#   `MEOW_OBSIDIAN_VAULT`, que continua vencendo. A pergunta é feita só no
+#   `meow_app_detectar`, depois de o python3 e o app estarem confirmados.
+MEOW_OBSIDIAN_VAULT="${MEOW_OBSIDIAN_VAULT:-}"
 # Ver armadilha (1): o padrão precisa ser ancorado, ou casa o próprio shell.
 MEOW_OBSIDIAN_PADRAO_PROC='^/app/obsidian( |$)'
 
@@ -112,6 +135,38 @@ MEOW_OBSIDIAN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MEOW_OBSIDIAN_VENDOR="$MEOW_OBSIDIAN_DIR/vendor/$MEOW_OBSIDIAN_TEMA"
 
 # --- utilitários internos ---------------------------------------------------
+
+# O cofre que o próprio Obsidian abriu por último — ver "O COFRE SAI DO PRÓPRIO
+# OBSIDIAN" lá em cima. Não imprime nada quando ele não conhece cofre nenhum.
+_meow_obsidian_cofre() {
+  python3 - "$HOME/.var/app/$MEOW_OBSIDIAN_APP_ID/config/obsidian/obsidian.json" \
+            "${XDG_CONFIG_HOME:-$HOME/.config}/obsidian/obsidian.json" <<'PYFIM'
+import json, os, sys
+
+melhor = None
+for arquivo in sys.argv[1:]:
+    try:
+        with open(arquivo, encoding="utf-8") as f:
+            dados = json.load(f)
+    except (OSError, ValueError):
+        continue
+    cofres = dados.get("vaults") if isinstance(dados, dict) else None
+    if not isinstance(cofres, dict):
+        continue
+    for cofre in cofres.values():
+        if not isinstance(cofre, dict):
+            continue
+        pasta = cofre.get("path")
+        if not isinstance(pasta, str) or not os.path.isdir(os.path.join(pasta, ".obsidian")):
+            continue
+        ts = cofre.get("ts")
+        chave = (cofre.get("open") is True, ts if isinstance(ts, (int, float)) else 0)
+        if melhor is None or chave > melhor[0]:
+            melhor = (chave, pasta)
+if melhor:
+    print(melhor[1])
+PYFIM
+}
 
 # O app está aberto? Ver armadilhas (1) e (2).
 _meow_obsidian_rodando() {
@@ -268,7 +323,13 @@ meow_app_detectar() {
     meow_app_sem "obsidian: $MEOW_OBSIDIAN_APP_ID não instalado"
     return
   fi
-  # Sem vault não há o que tematizar — também não é erro.
+  # Sem vault não há o que tematizar — também não é erro. O cofre é perguntado
+  # ao Obsidian só aqui, e só quando ninguém disse qual (ver o topo do módulo).
+  [ -n "$MEOW_OBSIDIAN_VAULT" ] || MEOW_OBSIDIAN_VAULT="$(_meow_obsidian_cofre)"
+  if [ -z "$MEOW_OBSIDIAN_VAULT" ]; then
+    meow_app_sem "obsidian: o Obsidian ainda não conhece cofre nenhum (obsidian.json) — abra um cofre nele, ou diga qual em MEOW_OBSIDIAN_VAULT"
+    return
+  fi
   if [ ! -d "$MEOW_OBSIDIAN_VAULT/.obsidian" ]; then
     meow_app_sem "obsidian: vault '$MEOW_OBSIDIAN_VAULT' não encontrado"
     return

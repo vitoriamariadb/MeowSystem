@@ -770,7 +770,7 @@ e o que segura o trabalho de verdade é o teto de parada, que já está lá.
 ### `Linger=yes` faz o gerente `--user` sobreviver ao logout — então `WantedBy=` não basta
 
 ```
-loginctl show-user vitoriamaria -p Linger
+loginctl show-user "$USER" -p Linger
     Linger=yes
 systemctl --user show-environment | grep WAYLAND
     WAYLAND_DISPLAY=wayland-1

@@ -58,7 +58,7 @@ Documentation=man:systemd.timer(5)
 # `PartOf=` É O QUE FAZ O PARÁGRAFO ACIMA SER VERDADE, E FALTAVA
 #   "O relógio nasce e morre com a sessão dela" era meia verdade: `WantedBy=`
 #   manda no NASCIMENTO e não propaga parada nenhuma. Medido em 31/08/2026:
-#       loginctl show-user vitoriamaria -p Linger  ->  Linger=yes
+#       loginctl show-user <usuário> -p Linger  ->  Linger=yes
 #   Com lingering ligado o gerente `--user` sobrevive ao logout, então o relógio
 #   continuava batendo de minuto em minuto com a sessão dela fechada — e o
 #   `WAYLAND_DISPLAY` fica no ambiente do gerente depois do logout, então nem o

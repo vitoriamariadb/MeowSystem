@@ -14,6 +14,7 @@
 #
 # AS QUATRO REGRAS, E O DEFEITO QUE CADA UMA PEGA
 #   1. HOME DE PESSOA EM TEXTO        `/home/fulano/` em qualquer arquivo versionado
+#                                     (e `/home/fulano` sem a barra, desde a P43)
 #   2. DISCO QUE NÃO É PADRÃO         `/mnt/Apate` numa receita copiável
 #   3. IDENTIDADE REDIGIDA            `[REDACTED]` numa instrução de instalação
 #   4. ZDOTDIR SEM ESCAPE             `$HOME/.config/zsh` sem variável de troca
@@ -38,6 +39,18 @@
 #   perguntar se é comentário ou registro. As outras três continuam onde
 #   estavam: `/mnt/Apate` numa história e `[REDACTED]` num relato são o assunto
 #   do texto, e não uma receita que alguém vai copiar.
+#
+# A REGRA 1 PASSOU A PEGAR O HOME SEM A BARRA FINAL — 24/09/2026, sprint P43
+#   O padrão era `/home/<nome>/`, e a barra era a porta: `/home/fulano` no fim
+#   de uma linha, antes de uma aspa ou de um espaço, passava. O `tests/pack.sh`
+#   escreveu um dado assim de propósito, e o comentário dele conta por quê — o
+#   nome entrava "SEM a barra final" para a regra não o ver. Agora a regra casa
+#   o nome seguido de qualquer coisa que não seja letra, dígito, `_` ou `-`, ou
+#   do fim da linha; `/home/<usuário>` continua passando, porque o `<` não é
+#   nome de ninguém.
+#   RODADA CONTRA O REPOSITÓRIO INTEIRO ANTES DE FIXAR (24/09): dois achados
+#   novos, os dois em teste, e nenhum é a casa de alguém — cada um virou uma
+#   isenção nomeada, lá embaixo, com o motivo ao lado.
 #
 #   UM HOME CABE NO TEXTO DE DUAS FORMAS, e nenhuma das duas casa a regra:
 #     - `~/…` (ou `$HOME/…` num comando) quando é RECEITA ou exemplo — diz "a
@@ -148,6 +161,18 @@ ISENTAS=(
   # apareceu quando o `bin/meow` entrou nesta varredura, em 21/09/2026, pela
   # porta do shebang.
   'meow_aviso "$HOME/.config/zsh é um repositório git e não está protegido"'
+
+  # --- regra 1 SEM A BARRA: as duas que a P43 achou ao fechar a porta -------
+  # A casa de mentira do `tests/pack.sh`: é o DADO que a régua do `validar`
+  # (a da P30, `RE_CASA_DE_ALGUEM`) tem de recusar, e a prova só vale com a
+  # forma absoluta — `~` é justamente o que a régua deixa passar. `fulano` é o
+  # nome de ninguém. O `tests/pack.sh` não é desta sprint; se a linha mudar, a
+  # isenção para de casar sozinha.
+  'CASA_ALHEIA="/home/fulano"'
+  # O HOME de brinquedo do `tests/fonte-unica.sh` é `$T/home`, e `tema` é uma
+  # pasta DENTRO dele — o `/home/tema` que a regra lê é o fim de `$T/home/` e o
+  # nome de uma pasta de teste, não a casa de alguém.
+  'tema="$T/home/tema"'
 )
 
 # --- regra 1: A ÚNICA ISENÇÃO POR ARQUIVO, e ela é guarda, não descuido -----
@@ -235,7 +260,9 @@ mapfile -t ARQUIVOS < <(git ls-files 2>/dev/null) || exit 2
 # não mediu nada.
 R1="$(mktemp)" || exit 2
 trap 'rm -f "$R1"' EXIT
-git grep --no-color --no-column -zInE '/home/[a-zA-Z0-9_-]+/' -- . ":(exclude)$EU" > "$R1" 2>/dev/null
+# O NOME VAI ATÉ O PRIMEIRO CARÁTER QUE NÃO PODE SER NOME, OU ATÉ O FIM DA
+# LINHA — com ou sem a barra (P43). A classe do nome continua a de antes.
+git grep --no-color --no-column -zInE '/home/[a-zA-Z0-9_-]+([^a-zA-Z0-9_-]|$)' -- . ":(exclude)$EU" > "$R1" 2>/dev/null
 case $? in 0|1) ;; *) printf 'FALHOU: o git grep da regra 1 não rodou\n' >&2; exit 2 ;; esac
 while IFS= read -r -d '' arq && IFS= read -r -d '' num && IFS= read -r linha; do
   acusa "$arq" "$num" "$linha" "home de pessoa escrito: é o nome de alguém dentro do produto"

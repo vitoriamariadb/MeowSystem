@@ -81,7 +81,7 @@ Description=MeowSystem — devolve o carrossel de papéis de parede se ele for r
 Documentation=man:systemd.timer(5)
 # SEM `PartOf=cosmic-session.target`, E ISSO É DECISÃO, NÃO ESQUECIMENTO
 #   O irmão `meow-leitura.timer` ganhou a diretiva em 31/08/2026 porque
-#   `loginctl show-user vitoriamaria -p Linger` responde `Linger=yes` — o gerente
+#   `loginctl show-user <usuário> -p Linger` responde `Linger=yes` — o gerente
 #   `--user` sobrevive ao logout, e relógio pendurado só em `WantedBy=` continua
 #   batendo com a sessão fechada. Aqui esse é o comportamento PEDIDO. Este é
 #   `WantedBy=timers.target`, que o gerente com lingering alcança por
