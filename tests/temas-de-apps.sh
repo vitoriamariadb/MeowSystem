@@ -670,21 +670,37 @@ saida="$(nomes --aplicar --so-flatpak)"; rc=$?
   || falha "permissão: o --so-flatpak não consertou (rc=$rc)" "$saida"
 # O chmod que falha é erro, mas não pode calar o lançador: com um nome encurtado
 # na mesma passada, o `meow_lancador_reler` roda antes do erro (revisão da P42,
-# 24/09/2026). O `chmod` de mentira falha só no `trava.desktop`; o `pgrep` e o
-# `pkill` de mentira contam se o lançador foi chacoalhado, sem tocar o de quem roda.
+# 24/09/2026). O `chmod` de mentira falha só no `trava.desktop`.
+#   O LANÇADOR É DE MENTIRA, E HÁ DOIS — 24/09/2026, depois do conserto do
+#   `meow_lancador_reler`: ele deixou de ser `pkill -f` na máquina inteira e
+#   passou a mirar só o processo deste usuário E deste HOME. Então a prova é o
+#   comportamento: um `cosmic-launcher` de mentira com o HOME da casa tem de
+#   morrer, e um com outro HOME tem de continuar vivo. O de quem roda o teste
+#   (HOME de verdade) está no mesmo caso do segundo.
 BIN9="$T/bin9"; mkdir -p "$BIN9"
 printf '#!/bin/sh\ncase "$*" in *trava.desktop*) exit 1 ;; esac\nexec %s "$@"\n' "$(command -v chmod)" > "$BIN9/chmod"
-printf '#!/bin/sh\nexit 0\n' > "$BIN9/pgrep"
-printf '#!/bin/sh\necho "$*" >> "%s"\n' "$T/pkill9.log" > "$BIN9/pkill"
-chmod +x "$BIN9/chmod" "$BIN9/pgrep" "$BIN9/pkill"
+chmod +x "$BIN9/chmod"
+mkdir -p "$T/casa9" "$T/outra9"
+lancador_de_mentira() {  # $1 = HOME dele · $2 = arquivo do PID
+  setsid -f env -i HOME="$1" bash -c 'echo $$ > "$0"; exec -a cosmic-launcher sleep 300' "$2"
+}
+lancador_de_mentira "$T/casa9" "$T/pid-casa9"; lancador_de_mentira "$T/outra9" "$T/pid-outra9"
+for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$T/pid-casa9" ] && [ -s "$T/pid-outra9" ] && break; sleep 0.2; done
 printf '[Desktop Entry]\nName=Um Nome Comprido Demais\n' > "$AP/meow-teste-longo.desktop"
 printf '[Desktop Entry]\nName=trava\n' > "$AP/trava.desktop"; chmod 600 "$AP/trava.desktop"
 printf 'meow-teste-longo:Curto\n' > "$T/mapa9b"
 saida="$(env -i PATH="$BIN9:$PATH" HOME="$T/casa9" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$T/estado9" \
     MEOW_NOMES_MAPA="$T/mapa9b" NO_COLOR=1 "$RAIZ/scripts/nomes_apps.sh" --sem-sudo </dev/null 2>&1)"; rc=$?
-[ "$rc" = 2 ] && grep -qx 'Name=Curto' "$AP/meow-teste-longo.desktop" && [ -s "$T/pkill9.log" ] \
+sleep 0.5
+casa_morreu=0; kill -0 "$(cat "$T/pid-casa9")" 2>/dev/null || casa_morreu=1
+outra_viva=0; kill -0 "$(cat "$T/pid-outra9")" 2>/dev/null && outra_viva=1
+kill "$(cat "$T/pid-casa9")" "$(cat "$T/pid-outra9")" 2>/dev/null
+[ "$rc" = 2 ] && grep -qx 'Name=Curto' "$AP/meow-teste-longo.desktop" && [ "$casa_morreu" = 1 ] \
   && ok "permissão: o chmod que falha é erro (rc=2), mas só depois de o lançador reler o nome encurtado" \
-  || falha "permissão: o chmod que falhou calou o lançador (rc=$rc)" "$saida$(cat "$T/pkill9.log" 2>&1)"
+  || falha "permissão: o chmod que falhou calou o lançador (rc=$rc, lançador da casa morreu=$casa_morreu)" "$saida"
+[ "$outra_viva" = 1 ] \
+  && ok "lançador: o reler só alcança o lançador desta casa — o de outro HOME ficou vivo" \
+  || falha "lançador: o reler matou o lançador de outro HOME — o sinal saiu da casa"
 
 # ---------------------------------------------------------------------------
 # 8. O DESFAZER DO OBSIDIAN SÓ VOLTA O QUE É DELE, E EM TODOS OS COFRES
