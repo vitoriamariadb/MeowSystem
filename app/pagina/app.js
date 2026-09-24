@@ -8892,15 +8892,21 @@ function montarHome() {
    * única que dá para confundir com defeito quando a tela não esquenta. */
   const liga = (c) => ["sim", "true", "1"].includes(String(vale(c)).toLowerCase());
   const noite = elemento("section", { class: "home-noite" });
-  /* `NOITE_INICIO` vazio não é "não há noite": é "quem decide a hora é o
-   * horário do modo de leitura", que é o que os comentários das duas chaves
-   * dizem. A home mostra a hora que de fato vale, e não a célula vazia. */
-  const comecaAs = vale("NOITE_INICIO") || vale("LEITURA_HORARIO_INICIO");
-  const terminaAs = vale("NOITE_FIM") || vale("LEITURA_HORARIO_FIM");
+  /* A HORA DE CADA UM — 24/09/2026, reconferência da P54.
+   *   O título mostra a janela geral, a do gato do dock e do terminal, na
+   *   ordem do `lib/noite.sh`: as `NOITE_*`; vazias, as do papel de parede;
+   *   vazias as quatro, 18:00–07:00 (a janela que se arrasta no applet a
+   *   página não lê). Até aqui o título caía no horário do modo de leitura, e
+   *   o carrossel aparecia debaixo dele — mas o papel de parede e o modo de
+   *   leitura têm hora própria. Quando a deles não é a do título, a frase
+   *   deles diz a sua. */
+  const comecaAs = vale("NOITE_INICIO") || vale("WALLPAPER_NOITE_INICIO") || "18:00";
+  const terminaAs = vale("NOITE_FIM") || vale("WALLPAPER_NOITE_FIM") || "07:00";
+  const horaPropria = (ini, fim) => (ini && fim && (ini !== comecaAs || fim !== terminaAs))
+    ? `, das ${ini} às ${fim}` : "";
   noite.append(elemento("h3", {}, [
     iconeDeMenu("Dia e noite", "ajustar"),
-    elemento("span", { texto: comecaAs && terminaAs
-      ? `À noite, das ${comecaAs} às ${terminaAs}` : "À noite" }),
+    elemento("span", { texto: `À noite, das ${comecaAs} às ${terminaAs}` }),
   ]));
   const frases = [];
   if (vale("LOGO_MODO") === "hora" && vale("LOGO_NOITE")) {
@@ -8912,12 +8918,15 @@ function montarHome() {
          ? `, e a do terminal, ${maiuscula(vale("LOGO_DIA"))}.` : "."));
   }
   if (liga("WALLPAPER_NOITE")) {
-    frases.push("O carrossel sorteia só entre as imagens escuras.");
+    frases.push("O carrossel sorteia só entre as imagens escuras"
+      + horaPropria(vale("WALLPAPER_NOITE_INICIO") || "18:00",
+                    vale("WALLPAPER_NOITE_FIM") || "07:00") + ".");
   }
   if (liga("LEITURA_AGENDA")) {
     const textura = Number(vale("LEITURA_TEXTURA") || 0);
     const rampa = Number(vale("LEITURA_RAMPA_MIN") || 0);
     frases.push(`A tela esquenta até ${vale("LEITURA_TEMPERATURA")} K`
+      + horaPropria(vale("LEITURA_HORARIO_INICIO"), vale("LEITURA_HORARIO_FIM"))
       + (textura > 0 ? ` e ganha ${Math.round(textura * 100)}% de textura de papel` : "")
       + (rampa > 0 ? `, em ${rampa} min de rampa.` : "."));
   } else {

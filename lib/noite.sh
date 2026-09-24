@@ -41,7 +41,10 @@
 #   troca na hora errada. A ordem de precedência:
 #
 #     1. `NOITE_INICIO` / `NOITE_FIM` no meow.conf — o nome canônico, novo em
-#        01/09/2026. Quem escrever isto manda em tudo.
+#        01/09/2026. Quem escrever isto manda em quem pergunta a ESTA
+#        biblioteca — hoje, o gato do dock e o do terminal. O papel de parede
+#        continua com o `e_noite` dele, sobre as `WALLPAPER_NOITE_*`, e o modo
+#        de leitura com o horário dele (medido em 24/09/2026, P54).
 #     2. `leitura_hora_inicio` / `leitura_hora_fim` do CosmicComp — a janela que
 #        ELA ARRASTA na interface do applet do modo de leitura. Vem antes do
 #        conf antigo de propósito: é a única que ela pode mudar sem abrir editor,

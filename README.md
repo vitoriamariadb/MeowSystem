@@ -114,7 +114,7 @@ modo seco continua no terminal: `./install.sh --dry-run`.
 | **Os ícones** | Papirus como base, pastas coloridas pelo accent, e os glifos do Arcticons por programa — trocáveis um a um, pelo painel. |
 | **O terminal** | As dezesseis cores, o cursor, o prompt do `starship`, e o gato no lugar do logo do `fastfetch`, redesenhado em caracteres a cada geração. |
 | **O papel de parede** | Um carrossel com pastas de dia e de noite separadas por luminosidade, avançar e voltar no botão direito, e favoritos. O acervo nasce vazio: `meow wallpaper semear` baixa o conjunto curado, `meow wallpaper adicionar` usa as imagens que você já tem. |
-| **Dia e noite** | Um horário manda em tudo que pergunta "é noite?": o gato do dock, o do terminal, a imagem de fundo e o modo de leitura — que esquenta a tela e lhe dá textura de papel, em rampa. |
+| **Dia e noite** | À noite o gato do dock e o do terminal trocam de rosto, a imagem de fundo passa às escuras e o modo de leitura esquenta a tela e lhe dá textura de papel, em rampa — cada um com o seu horário, todos das 18:00 às 07:00 de fábrica. |
 | **Os programas** | Spotify, VS Code e companhia vestidos por dentro; os jogos da Steam e os do Heroic com um atalho por jogo no lançador, com a capa do jogo, e o atalho saindo junto com o jogo. |
 
 ## A máquina

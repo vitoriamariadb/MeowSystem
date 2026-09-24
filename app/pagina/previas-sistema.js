@@ -1266,7 +1266,9 @@
    * topo e pronto.
    *
    * A PRECEDÊNCIA TAMBÉM É DESENHO. As duas chaves gerais vencem; vazias, elas
-   * herdam as do papel de parede; vazias as quatro, valem 18:00–07:00. O
+   * herdam as do papel de parede; vazias as quatro, valem 18:00–07:00. Essa é
+   * a janela do gato do dock e do terminal: o papel de parede lê só as
+   * `WALLPAPER_NOITE_*`, e o modo de leitura, o horário dele (P54). O
    * desenho mostra a janela que está VALENDO e a legenda diz de onde ela veio —
    * "está vazio e mesmo assim tem noite" é uma das perguntas mais caras desta
    * seção. */
@@ -1412,16 +1414,31 @@
     const d = lerNoite(val);
     const c = conferir(val, REGRAS_NOITE);
     const horas = Math.round(d.duraMin / 60 * 10) / 10;
+    /* O PAPEL DE PAREDE TEM HORA PRÓPRIA — 24/09/2026, reconferência da P54.
+     *   A janela desta seção só decide a troca do gato do dock e do terminal:
+     *   o `wallpaper.sh` lê as `WALLPAPER_NOITE_*` (18:00–07:00 vazias), e o
+     *   modo de leitura, o horário dele. A legenda dizia que ela mandava nos
+     *   três, logo acima dos cartões que dizem o contrário. Quando a hora do
+     *   papel de parede não é a da seção, o acervo sai com a dele. */
+    const pIni = relogio(val.WALLPAPER_NOITE_INICIO, -1);
+    const pFim = relogio(val.WALLPAPER_NOITE_FIM, -1);
+    const parede = {
+      ini: pIni.ok ? pIni : relogio("18:00", 1080),
+      fim: pFim.ok ? pFim : relogio("07:00", 420),
+    };
+    const outraHora = parede.ini.min !== d.ini.min || parede.fim.min !== d.fim.min;
     const corpo = "a noite das " + d.ini.rotulo + " às " + d.fim.rotulo
       + " (" + horas + " h, " + d.fonte + ")"
       + (d.diaInteiro ? ", ou seja o dia inteiro: início igual ao fim"
         : (d.ini.min > d.fim.min ? ", atravessando a meia-noite" : ""))
       + ", " + (d.separa
         ? "com o acervo separado em claras e escuras no corte " + d.limiar
+          + (outraHora ? ", e as escuras entram das " + parede.ini.rotulo
+            + " às " + parede.fim.rotulo : "")
         : "com um acervo só, claras e escuras no mesmo sorteio");
     return montarLegenda(corpo, [
       notaDeErradas(c.erradas),
-      "manda em tudo que pergunta \"é noite?\": a logo, o papel de parede e o modo de leitura",
+      "é a hora em que o gato do dock e o do terminal trocam; o papel de parede e o modo de leitura têm hora própria",
     ]);
   }
 
