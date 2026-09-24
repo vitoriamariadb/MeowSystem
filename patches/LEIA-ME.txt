@@ -1,6 +1,27 @@
 patches/ — o que este diretório é, e as CINCO armadilhas que custam caro.
 
 ================================================================================
+0. DESDE 24/09/2026 QUEM COMPILA ESTA SÉRIE É O `meow compositor` (sprint P39)
+================================================================================
+    O `aurora-cosmic-comp-ws.sh` do Ritual da Aurora, que as seções abaixo
+    citam como o aplicador, foi desativado no Spellbook no mesmo dia: a regra
+    de 23/09 manda o que o MeowSystem usa de lá migrar para cá. Agora:
+
+        meow compositor --seco     diz o que faria, sem baixar nem escrever
+        meow compositor            baixa o fonte da versão instalada, aplica a
+                                   série com -F0, compila, confere os marcadores
+                                   e instala (sudo só no último passo)
+        meow compositor validar    baixa o fonte e só roda o dry-run
+        meow compositor conferir   o que o `--status` de lá mostrava
+        meow compositor reverter   como voltar ao binário do pacote
+
+    E UM ARQUIVO NOVO AQUI: `versao`, o pacote do cosmic-comp contra o qual a
+    série foi validada. O `meow compositor` recusa qualquer outra versão, e o
+    próprio arquivo diz como uma versão nova entra. O `.estado` que o doctor lê
+    passou a ser o nosso, em `/var/lib/meowsystem/cosmic-comp/patches.estado`.
+    O que as seções abaixo dizem sobre `/var/lib/aurora` é história.
+
+================================================================================
 1. NEM TODO PATCH DAQUI ESTÁ APLICADO. HOJE, O DAQUI NÃO ESTÁ.
 ================================================================================
     Medido em 29/08/2026: o script de build da Aurora aplicava UM `.patch` só, e

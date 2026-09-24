@@ -16,13 +16,29 @@
 #   1. HOME DE PESSOA EM TEXTO        `/home/fulano/` em qualquer arquivo versionado
 #   2. DISCO QUE NÃO É PADRÃO         `/mnt/Apate` numa receita copiável
 #   3. IDENTIDADE REDIGIDA            `[REDACTED]` numa instrução de instalação
-#   4. ZDOTDIR SEM ESCAPE             `$HOME/.config/zsh` sem variável de troca
+#   4. O VIZINHO EM EXECUÇÃO          `.config/zsh` ou `aurora-` em código que roda
 #
 #   As três primeiras são a mesma família: uma receita que só roda na bancada de
-#   quem a escreveu. A quarta é a vizinha: `~/.config/zsh` é o repositório
-#   privado da Aurora nesta casa, mas é também a convenção ZDOTDIR mais comum do
-#   mundo zsh — cravar o caminho faz o projeto recusar, na máquina de um
-#   estranho, um diretório que é dele.
+#   quem a escreveu. A quarta é a vizinha: `~/.config/zsh` é o Spellbook, o
+#   repositório pessoal desta casa, e `aurora-*` são os scripts do Ritual da
+#   Aurora que moram nele. Na máquina de um estranho nenhum dos dois existe.
+#
+# A REGRA 4 FICOU SEM ESCAPE E SEM ISENÇÃO — 24/09/2026, sprint P39
+#   Até aqui ela se chamava "ZDOTDIR sem escape" e aceitava a linha que trouxesse
+#   `:-` — `${ZDOTDIR:-$HOME/.config/zsh}`, `${MEOW_ZSH_ENV:-…}` —, com seis
+#   linhas isentas para o resto. Era a "integração opcional" que a regra do dono de
+#   23/09 recusa com essas palavras: o que o MeowSystem usa do Spellbook ou do
+#   Ritual migra para cá e é desativado lá; o que é só da máquina sai daqui. Um
+#   padrão que continua lendo o `~/.config/zsh` quando ele existe é as duas
+#   coisas ao mesmo tempo, e nenhuma delas.
+#
+#   O ALCANCE É O DA CONFERÊNCIA DA SPRINT, e não o repositório inteiro: `bin/`,
+#   `scripts/`, `lib/`, `app/` e o `install.sh` — o que RODA. Prosa, pesquisa e
+#   os `.patch` do compositor (que citam o script antigo em comentário Rust, e
+#   que mexer invalidaria) ficam de fora; comentário também, pelo
+#   `_so_comentario`. Docstring de Python NÃO é comentário para este laço, do
+#   mesmo jeito que não é para o `git grep` da conferência — e é por isso que o
+#   `gerar_tema_v1.py` trocou um nome por uma descrição no mesmo dia.
 #
 # A REGRA 1 PASSOU A LER TUDO — 23/09/2026, sprint P38
 #   Até aqui ela olhava só o que RODA: linha de código que não é comentário, e
@@ -75,47 +91,15 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; achados=$((achados+1)); }
 # Cada entrada é um trecho LITERAL da linha isenta (comparação por substring,
 # sem regex). Tudo o que não estiver aqui é achado.
 ISENTAS=(
-  # --- regra 4: leitura da árvore da vizinha, por contrato documentado -------
-  # O `install.sh` semeia o `vizinhos.conf` a partir do DISCO REAL, e para isso
-  # precisa perguntar se há um repositório git em `~/.config/zsh`. É justamente
-  # o padrão que tirou a lista de vizinhos de dentro do código
-  # (`lib/comum.sh:236-249`); cobrar escape aqui seria cobrar o oposto do
-  # conserto.
-  '[ -d "$HOME/.config/zsh/.git" ]'
-  # A mesma função, três linhas abaixo: isto é DADO, não caminho. O `\$HOME` sai
-  # escapado de propósito para que o `vizinhos.conf` guarde a variável, e não o
-  # valor expandido de quem rodou o instalador.
-  '\$HOME/.config/zsh'
-  # Um `case` que só existe para decidir se o AVISO sai. O destino real vem de
-  # `MEOW_COMPLETIONS_DIR`, que é o escape — e o comentário logo acima dele diz
-  # que foi assim que a linha foi testada.
-  '"$HOME/.config/zsh"/*)'
-
-  # --- regra 4: ISENÇÃO COM DÍVIDA ANOTADA ----------------------------------
-  # ERAM DUAS. UMA FOI PAGA EM 22/09/2026 (sprint P29), E A OUTRA CONTINUA AQUI.
-  #
-  # A QUE SAIU:
-  #     'MEOW_QBT_AURORA_FONTE="$HOME/.config/zsh/scripts/aurora-qbittorrent-config.sh"'
-  #   A P29 foi buscar o arquivo no Spellbook para trazê-lo, e mediu que ele
-  #   NÃO EXISTE lá — `find ~/.config/zsh -name '*qbittorrent*'` devolve zero
-  #   linha. Não era "está no outro projeto": era dependência de um arquivo que
-  #   não existe em lugar nenhum. A linha do manifesto virou
-  #   `${MEOW_QBT_AURORA_FONTE:-}` — padrão vazio —, e a isenção saiu junto.
-  #
-  #   E ESTE É O MOTIVO DE A ISENÇÃO TER DE SAIR NO MESMO COMMIT que o conserto:
-  #   enquanto ela estivesse aqui, este teste passaria VERDE sobre o defeito que
-  #   veio pegar, e passaria verde igual depois de consertado — o que faz dele
-  #   um teste que não mede nada. Uma isenção que sobrevive ao seu motivo é pior
-  #   que nenhuma isenção.
-  #
-  # A QUE FICA, e agora é a única: o `scripts/areas.sh` crava a árvore da
-  # vizinha sem variável de troca. Continua sendo dívida, não falso positivo. O
-  # remédio é uma linha — `${MEOW_AREAS_VIZINHO_FONTE:-$HOME/.config/zsh/...}`,
-  # ou o padrão vazio que o qbittorrent acabou de adotar — e o `areas.sh` NÃO
-  # está entre os arquivos que a P29 autoriza tocar ("Arquivos, e só estes").
-  # Apagar o achado calado seria pior que registrá-lo. No dia em que a linha
-  # mudar, esta isenção para de casar sozinha, que é a hora de reler isto.
-  'AREAS_VIZINHO_FONTE="$HOME/.config/zsh/scripts/aurora-cosmic-workspaces.py"'
+  # --- regra 4: AS SEIS ISENÇÕES SAÍRAM EM 24/09/2026 (P39) ------------------
+  # Eram seis linhas lendo ou citando o `~/.config/zsh`, casadas por quatro
+  # trechos (o placar conta LINHA: caiu de 13 para 7) — o `vizinhos.conf`
+  # semeado pelo instalador a partir do `.git` de lá (duas), o `case` que
+  # decidia o aviso das completions (uma), o aviso do doctor sobre o `.git`
+  # (duas) e o `AREAS_VIZINHO_FONTE` do `areas.sh`, a "isenção com dívida" da
+  # P29. As linhas saíram do código na mesma sprint, e as isenções com elas: uma
+  # isenção que sobrevive ao seu motivo é pior que nenhuma, como o próprio texto
+  # da P29 dizia aqui.
 
   # --- regra 1: home DE NINGUÉM, dentro de teste de unidade -----------------
   # As quatro linhas do `0001-meow-capa-cor-controles.patch` que casam a regra 1
@@ -141,13 +125,6 @@ ISENTAS=(
   # `LOGO` legítimo: o que se media era justamente um caminho absoluto aceito.
   '`LOGO=/home/x/meu-gato.svg`'
 
-  # --- regra 4: a MENSAGEM da leitura que já está isenta acima --------------
-  # Esta linha é o aviso que reporta o resultado do `[ -d "$HOME/.config/zsh/.git" ]`
-  # logo acima dela, no `bin/meow`. É o mesmo contrato e o mesmo diretório: se a
-  # leitura é legítima, dizer em voz alta o que ela achou também é. Ela só
-  # apareceu quando o `bin/meow` entrou nesta varredura, em 21/09/2026, pela
-  # porta do shebang.
-  'meow_aviso "$HOME/.config/zsh é um repositório git e não está protegido"'
 )
 
 # --- regra 1: A ÚNICA ISENÇÃO POR ARQUIVO, e ela é guarda, não descuido -----
@@ -244,9 +221,21 @@ done < "$R1"
 # Uma linha de COMENTÁRIO não é uma receita. O projeto inteiro é comentado em
 # prosa densa, e as 369 menções a `/mnt/Apate` medidas em 21/09/2026 são todas
 # história — dizer de onde veio um arquivo é documentação, não instrução.
+#
+# O `//`, O `/*` E O `*` SÓ SÃO COMENTÁRIO ONDE A LÍNGUA DIZ QUE SÃO — 24/09/2026
+#   Até aqui os quatro marcadores valiam para todo arquivo. Em shell, uma linha
+#   que começa com `*` é padrão de `case`, e padrão de `case` é código: medido
+#   na revisão da P39, `    *"$HOME/.config/zsh"/*) : ;;` acrescentado ao
+#   `scripts/forma.sh` passava VERDE na regra 4, e o `git grep` da conferência
+#   da sprint o pegava. O `//` e o bloco `/* */` são do `.js` e do código Rust
+#   dentro dos `.patch`; no `.sh`, no `.py` e no `bin/meow` o comentário é `#`.
+#   Medido antes de fechar a porta: nenhuma linha de `.sh` ou `.py` que começa
+#   com um dos três casava as regras 2, 3 ou 4 — o placar não mudou.
 _so_comentario() {
-  case "${1#"${1%%[![:space:]]*}"}" in
-    '#'*|'//'*|'*'*|'/*'*) return 0 ;;
+  local l="${1#"${1%%[![:space:]]*}"}"
+  case "$l" in '#'*) return 0 ;; esac
+  case "$2" in
+    *.js|*.patch) case "$l" in '//'*|'*'*|'/*'*) return 0 ;; esac ;;
   esac
   return 1
 }
@@ -307,7 +296,7 @@ for arq in "${ARQUIVOS[@]}"; do
     case "$linha" in '```'*) cerca=$((1-cerca)); continue ;; esac
 
     if [ "$tipo" = "codigo" ]; then
-      _so_comentario "$linha" && continue
+      _so_comentario "$linha" "$arq" && continue
     else
       # Fora da cerca, prosa é prosa.
       [ "$cerca" = "1" ] || continue
@@ -332,16 +321,18 @@ for arq in "${ARQUIVOS[@]}"; do
         acusa "$arq" "$num" "$linha" "identidade redigida numa instrução: o comando não roda" ;;
     esac
 
-    # --- 4. ZDOTDIR sem escape ------------------------------------------------
-    # `:-` é a marca do escape neste projeto: `${ZDOTDIR:-$HOME/.config/zsh}`,
-    # `${CP_COPIA:-...}`, `${MEOW_ZSH_ENV:-...}`. Quem a tem está oferecendo uma
-    # porta a quem não guarda o zsh ali.
+    # --- 4. o vizinho em execução -------------------------------------------
+    # Sem `:-` que valha e sem isenção (24/09/2026, P39 — ver o cabeçalho). Só no
+    # código que roda; a `acusa` continua sendo a porta, e a lista de isenções
+    # não tem nenhuma linha desta regra.
     if [ "$tipo" = "codigo" ]; then
-      case "$linha" in
-        *'$HOME/.config/zsh'*|*'${HOME}/.config/zsh'*)
+      case "$arq" in
+        bin/*|scripts/*|lib/*|app/*|install.sh)
           case "$linha" in
-            *':-'*) : ;;
-            *) acusa "$arq" "$num" "$linha" "caminho do zsh cravado sem variável de escape" ;;
+            *'.config/zsh'*)
+              acusa "$arq" "$num" "$linha" "o Spellbook (~/.config/zsh) lido em execução: ou migra para cá, ou sai" ;;
+            *'aurora-'*)
+              acusa "$arq" "$num" "$linha" "um aurora-* do Ritual chamado em execução: ou migra para cá, ou sai" ;;
           esac ;;
       esac
     fi

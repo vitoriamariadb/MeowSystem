@@ -21,6 +21,23 @@
 #   escrevesse as duas metades atravessaria a fronteira; um que não escrevesse
 #   nenhuma deixaria na mão dela um arquivo de 260 linhas para copiar.
 #
+# A OUTRA METADE SAIU DAQUI EM 24/09/2026 (P39), E O PARÁGRAFO ACIMA É HISTÓRIA
+#   A regra do dono, de 23/09: o que o MeowSystem lê do Spellbook migra para cá
+#   ou sai daqui, sem "integração opcional" que continue lendo o
+#   `~/.config/zsh` quando ele existe. Este arquivo lia o `env.zsh` de lá três
+#   vezes (o `starship init`, o `ZSH_THEME` e o `FZF_DEFAULT_OPTS`) e mandava
+#   aplicar nele o `assets/prompt/aurora.patch`, que carregava até o nome de
+#   quem o gerou. O que era do produto já morava aqui — o `starship.toml`. O
+#   resto era a máquina de uma pessoa: saiu, o patch junto.
+#
+#   A LINHA QUE LIGA O STARSHIP É DE QUEM USA, e este arquivo só a DIZ, no
+#   `aplicar` e no `mostrar`. Ele não a procura: numa máquina qualquer não há
+#   `env.zsh`, e ler o `.zshrc` de alguém seria adivinhar uma cadeia de
+#   `source` — nesta casa mesmo, o `.zshrc` não tem a linha, quem a tem é um
+#   arquivo que ele carrega. Um conferidor que adivinha acusa errado. O 4
+#   ("falta a metade dela") saiu com a leitura: o doctor passa a conferir o que
+#   é nosso, e o que é nosso é o arquivo e o binário.
+#
 # O QUE FOI MEDIDO ANTES DE ESCREVER ISTO (25/08/2026)
 #   - `starship` NÃO está no apt do Pop!_OS 24.04 (noble). `apt-cache policy
 #     starship` devolve VAZIO e `apt-cache show starship` diz "Nenhum pacote
@@ -49,9 +66,9 @@
 #
 # USO
 #   prompt.sh conferir   0 = conforme · 1 = divergente (nosso) · 3 = falta
-#                        dependência · 4 = falta a metade DELA (o patch)
-#   prompt.sh aplicar    instala ~/.config/starship.toml e diz o que sobra
-#   prompt.sh mostrar    imprime o patch do env.zsh e o comando de aplicação
+#                        dependência (o 4 saiu em 24/09/2026 — ver acima)
+#   prompt.sh aplicar    instala ~/.config/starship.toml e diz a linha do shell
+#   prompt.sh mostrar    imprime a linha que liga o starship no shell
 #   prompt.sh remover    tira o NOSSO arquivo (leia o aviso acima antes)
 set -uo pipefail
 
@@ -67,12 +84,11 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 #   com dois caracteres a mais custa menos que esse susto.
 PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}"
 PROMPT_FONTE="$MEOW_RAIZ/assets/prompt/starship.toml"
-PROMPT_PATCH="$MEOW_RAIZ/assets/prompt/aurora.patch"
 PROMPT_ALVO="${PROMPT_ALVO:-$HOME/.config/starship.toml}"
-# `ZDOTDIR` não chega aqui (este script roda em bash, e a variável é do shell
-# interativo dela), então o padrão é a convenção — que é o que ela usa.
-PROMPT_ZDOT="${ZDOTDIR:-$HOME/.config/zsh}"
-PROMPT_ENV="$PROMPT_ZDOT/env.zsh"
+# O `PROMPT_ZDOT`, o `PROMPT_ENV` e o `PROMPT_PATCH` saíram em 24/09/2026 (P39):
+# eram o `env.zsh` do Spellbook e o patch para ele. O padrão do `PROMPT_ZDOT`
+# ainda dizia que `~/.config/zsh` é "a convenção" — não é: sem `ZDOTDIR`, o zsh
+# lê do `$HOME`. Era a convenção de uma casa.
 
 # A linha de instalação do starship, escrita uma vez só.
 #
@@ -91,23 +107,8 @@ PROMPT_INSTALAR_ALT='cargo install starship --locked'
 
 _prompt_tem_starship() { meow_tem starship; }
 
-# O `env.zsh` chama o starship? Casa a inicialização, não a palavra solta — um
-# comentário mencionando "starship" não é o mesmo que o `eval` que o liga.
-_prompt_env_liga_starship() {
-  [ -f "$PROMPT_ENV" ] || return 1
-  grep -qE 'starship[[:space:]]+init[[:space:]]+zsh' "$PROMPT_ENV"
-}
-
-# O `ZSH_THEME` ainda carrega tema do oh-my-zsh? Vazio ou ausente é o certo.
-_prompt_env_tema_velho() {
-  [ -f "$PROMPT_ENV" ] || return 1
-  grep -qE '^[[:space:]]*ZSH_THEME=("[^"]+"|[^"[:space:]#]+)' "$PROMPT_ENV"
-}
-
-_prompt_env_tem_fzf() {
-  [ -f "$PROMPT_ENV" ] || return 1
-  grep -qE '^[[:space:]]*(export[[:space:]]+)?FZF_DEFAULT_OPTS=' "$PROMPT_ENV"
-}
+# As três perguntas ao `env.zsh` (o `starship init`, o `ZSH_THEME` e o
+# `FZF_DEFAULT_OPTS`) saíram daqui em 24/09/2026 — ver o cabeçalho.
 
 # COMPARAÇÃO PELO CRITÉRIO DO ESCRITOR, NUNCA `cmp`
 #   `meow_escrever` grava com `printf '%s'` e come o `\n` final do arquivo. Um
@@ -120,16 +121,9 @@ _prompt_toml_confere() {
   [ "$(cat "$PROMPT_FONTE")" = "$(cat "$PROMPT_ALVO")" ]
 }
 
-# A trava vale? Se `~/.config/zsh` não estiver no `vizinhos.conf`, este script
-# continua sem escrever lá — mas o resto do projeto perdeu a rede de proteção, e
-# quem descobre isso tem de ser alguém, não um commit surpresa.
-_prompt_avisar_trava() {
-  if meow_destino_permitido "$PROMPT_ENV" 2>/dev/null; then
-    meow_aviso "$PROMPT_ZDOT NÃO está protegido em $MEOW_VIZINHOS"
-    meow_aviso "  este script não escreve lá de qualquer jeito, mas a TRAVA 1 está aberta"
-    meow_info  "  há um modelo em $MEOW_RAIZ/vizinhos.conf.exemplo"
-  fi
-}
+# O `_prompt_avisar_trava` saiu com o `env.zsh`, em 24/09/2026: ele perguntava
+# se o `~/.config/zsh` estava no `vizinhos.conf`, que é a mesma adivinhação de
+# vizinho que o `bin/meow` e o `install.sh` deixaram de fazer no mesmo dia.
 
 # A RECUSA FICA GRAVADA, E ESSA É A METADE QUE FALTAVA — 22/09/2026, sprint P2
 #   A regra da P2 é "ou faz, ou oferece um botão que faz". Mas instalar o
@@ -159,24 +153,26 @@ _prompt_dizer_falta_starship() {
     "./scripts/prompt.sh instalar-starship"
 }
 
-_prompt_dizer_metade_dela() {
-  meow_info "falta a metade que é sua — o \`env.zsh\` é do Ritual da Aurora:"
-  meow_info "  cd $PROMPT_ZDOT"
-  meow_info "  patch -p1 --dry-run < $PROMPT_PATCH   # confere sem escrever"
-  meow_info "  patch -p1           < $PROMPT_PATCH"
-  meow_aviso "isso vira commit no seu repositório privado em até 10 min, sozinho"
+# A LINHA DO SHELL, DITA E NÃO ESCRITA. É a que a documentação do starship dá
+# para cada shell, e é a única coisa que falta do lado de quem usa. O zsh vem
+# primeiro porque é o shell que este projeto conhece; o bash, porque é o
+# padrão do Pop!_OS.
+_prompt_dizer_ligacao() {
+  meow_info "para o prompt aparecer, o seu shell precisa iniciar o starship — é uma linha sua:"
+  meow_info "  zsh  (no seu .zshrc):   eval \"\$(starship init zsh)\""
+  meow_info "  bash (no seu .bashrc):  eval \"\$(starship init bash)\""
+  meow_info "o MeowSystem não lê nem escreve arquivo de shell"
 }
 
 # --- conferir ---------------------------------------------------------------
-# OS QUATRO CÓDIGOS, E A RAZÃO DE O 4 EXISTIR AQUI
+# OS TRÊS CÓDIGOS
 #   0 tudo no lugar · 1 o NOSSO arquivo divergiu (e o doctor conserta) · 3 falta
-#   o starship, ou a etapa está desligada (nada a fazer) · 4 o nosso lado está
-#   certo e o `env.zsh` não foi patcheado.
+#   o starship, ou a etapa está desligada (nada a fazer).
 #
-#   O 4 é o que impede o ping-pong. Sem ele esta etapa devolveria 1 todo dia,
-#   para sempre, e o `meow doctor --consertar` rodaria um conserto que não pode
-#   consertar nada — porque a linha que falta está do outro lado da fronteira.
-#   O `bin/meow` já sabe ler o 4: "é escolha sua, não divergência".
+#   ERAM QUATRO ATÉ 24/09/2026. O 4 era "o nosso lado está certo e o `env.zsh`
+#   não foi patcheado", e existia para impedir o ping-pong de um conserto que
+#   não alcança a linha do outro lado. A linha deixou de ser lida (ver o
+#   cabeçalho), e com ela o 4 perdeu o que medir.
 cmd_conferir() {
   if [ "$PROMPT_STARSHIP" != "sim" ]; then
     meow_pula "prompt desligado no meow.conf (PROMPT_STARSHIP=\"$PROMPT_STARSHIP\")"
@@ -184,21 +180,9 @@ cmd_conferir() {
   fi
   [ -f "$PROMPT_FONTE" ] || { meow_erro "falta $PROMPT_FONTE"; return "$MEOW_ERRO"; }
 
-  local tem_ss=0 toml_ok=0 env_ok=0 fzf_ok=0 tema_velho=0
+  local tem_ss=0 toml_ok=0
   _prompt_tem_starship      && tem_ss=1
   _prompt_toml_confere      && toml_ok=1
-  _prompt_env_liga_starship && env_ok=1
-  _prompt_env_tem_fzf       && fzf_ok=1
-  _prompt_env_tema_velho    && tema_velho=1
-
-  # A metade meio-aplicada é a pior de todas e por isso vem primeiro: o env.zsh
-  # chama o starship e o nosso .toml não está lá. O prompt na tela dela não é o
-  # antigo nem o nosso — é o PADRÃO do starship, que ninguém escolheu.
-  if [ "$env_ok" = "1" ] && [ "$toml_ok" = "0" ]; then
-    meow_muda "o env.zsh já chama o starship, mas $PROMPT_ALVO não é o nosso"
-    meow_aviso "o prompt na tela é o PADRÃO do starship — rode: meow doctor --consertar"
-    return "$MEOW_DIVERGENTE"
-  fi
 
   if [ "$tem_ss" = "0" ]; then
     _prompt_dizer_falta_starship
@@ -211,26 +195,12 @@ cmd_conferir() {
     return "$MEOW_DIVERGENTE"
   fi
 
-  if [ "$env_ok" = "0" ] || [ "$fzf_ok" = "0" ]; then
-    local falta=""
-    [ "$env_ok" = "0" ] && falta="starship"
-    [ "$fzf_ok" = "0" ] && falta="${falta:+$falta e }FZF_DEFAULT_OPTS"
-    meow_info "o starship.toml está conforme; o env.zsh ainda não tem $falta"
-    _prompt_dizer_metade_dela
-    return 4
-  fi
-
-  if [ "$tema_velho" = "1" ]; then
-    meow_aviso "o env.zsh liga o starship E ainda define ZSH_THEME — o oh-my-zsh"
-    meow_aviso "  carrega um tema a cada shell só para jogá-lo fora. Sem sintoma na"
-    meow_aviso "  tela, só custo de partida. O patch ao lado zera a chave."
-  fi
   meow_ok "prompt conforme (starship, preset catppuccin-powerline, accent mauve)"
   return "$MEOW_OK"
 }
 
 # --- aplicar ----------------------------------------------------------------
-# ESCREVE UM ARQUIVO SÓ, E ELE É NOSSO. A metade dela sai como texto na tela.
+# ESCREVE UM ARQUIVO SÓ, E ELE É NOSSO. A linha do shell sai como texto na tela.
 cmd_aplicar() {
   if [ "$PROMPT_STARSHIP" != "sim" ]; then
     meow_pula "prompt desligado no meow.conf (PROMPT_STARSHIP=\"$PROMPT_STARSHIP\")"
@@ -247,8 +217,6 @@ cmd_aplicar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  _prompt_avisar_trava
-
   local rc
   meow_escrever "$PROMPT_ALVO" "$(cat "$PROMPT_FONTE")" 644; rc=$?
   case "$rc" in
@@ -260,12 +228,10 @@ cmd_aplicar() {
         fi ;;
   esac
 
-  if _prompt_env_liga_starship && _prompt_env_tem_fzf; then
-    meow_ok "o env.zsh já tem as duas linhas — nada sobra para você fazer"
-  else
-    _prompt_dizer_metade_dela
-    [ "$rc" = "$MEOW_OK" ] && rc=4
-  fi
+  # A linha do shell só é dita quando o arquivo acabou de mudar: é a hora em
+  # que alguém está olhando para o prompt. Repeti-la a cada passagem do timer
+  # seria o aviso que se aprende a ignorar.
+  [ "$rc" = "$MEOW_DIVERGENTE" ] && ! meow_seco && _prompt_dizer_ligacao
 
   meow_registrar "prompt.sh aplicar rc=$rc"
   return "$rc"
@@ -273,14 +239,10 @@ cmd_aplicar() {
 
 # --- mostrar ----------------------------------------------------------------
 cmd_mostrar() {
-  [ -f "$PROMPT_PATCH" ] || { meow_erro "falta $PROMPT_PATCH"; return "$MEOW_ERRO"; }
-  meow_titulo "O patch do env.zsh — o MeowSystem NÃO o aplica"
+  meow_titulo "A linha que liga o starship — o MeowSystem NÃO a escreve"
   printf '\n'
-  cat "$PROMPT_PATCH"
-  printf '\n'
-  _prompt_dizer_metade_dela
-  meow_info "para desfazer, byte a byte:"
-  meow_info "  cd $PROMPT_ZDOT && patch -R -p1 < $PROMPT_PATCH"
+  _prompt_dizer_ligacao
+  meow_info "o preset que ela desenha é o nosso: $PROMPT_ALVO"
   return "$MEOW_OK"
 }
 
@@ -288,12 +250,10 @@ cmd_mostrar() {
 # Não é o inverso do `aplicar`, e o aviso é a parte que importa: ver o cabeçalho.
 cmd_remover() {
   if [ ! -f "$PROMPT_ALVO" ]; then meow_pula "nada a remover"; return "$MEOW_OK"; fi
-  if _prompt_env_liga_starship; then
-    meow_aviso "o env.zsh AINDA chama o starship. Tirar só este arquivo não devolve"
-    meow_aviso "  o prompt antigo — devolve o prompt PADRÃO do starship."
-    meow_info  "  desfaça a outra metade primeiro:"
-    meow_info  "    cd $PROMPT_ZDOT && patch -R -p1 < $PROMPT_PATCH"
-  fi
+  # Sem ler o shell de ninguém não dá para saber se a linha do starship ainda
+  # está lá — então o aviso sai sempre, que é o lado seguro de errar.
+  meow_aviso "se o seu shell ainda inicia o starship, tirar este arquivo não devolve"
+  meow_aviso "  o prompt antigo — devolve o prompt PADRÃO do starship. Tire a linha antes."
   meow_seco && { meow_muda "removeria $PROMPT_ALVO"; return "$MEOW_DIVERGENTE"; }
   rm -f "$PROMPT_ALVO"
   meow_muda "removido $PROMPT_ALVO"

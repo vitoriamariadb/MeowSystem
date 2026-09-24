@@ -30,6 +30,13 @@
 # por `CP_SERIE`, porque numa maquina que fez o Ritual da Aurora e ELE que o
 # build obedece — mas ja nao e mais a unica resposta possivel, e a ausencia
 # dele deixou de ser divergencia.
+#
+# 24/09/2026 (sprint P39): o parágrafo acima envelheceu nos dois pontos. O
+# `/usr/local/share/aurora/patches.d/series` deixou de ser lido — o build veio
+# para cá, e quem o obedece é a série DAQUI —, e há um terceiro leitor, o
+# `compilar` do mesmo script, que é o `meow compositor`. O `aurora-cosmic-comp-ws.sh`
+# que o bloco de baixo nomeia foi desativado no Spellbook no mesmo dia. A versão
+# do pacote contra a qual esta série vale mora ao lado, em `versao`.
 # ============================================================================
 
 # series — a lista de patches que o aurora-cosmic-comp-ws.sh aplica no fonte do

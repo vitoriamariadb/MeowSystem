@@ -95,6 +95,16 @@
 #   defeito que mais custou caro aqui.
 #
 # VIZINHO 2 — o `aurora-cosmic-workspaces.py`, que NÃO é deste projeto
+#   SAIU EM 24/09/2026 (P39), e o texto abaixo fica como a história da guarda.
+#   A P37 mediu que o script não existe mais no Spellbook, e o
+#   `~/.local/bin/aurora-cosmic-workspaces.py` também não existe nesta casa: a
+#   guarda procurava um vizinho que tinha ido embora. E a regra de 23/09 manda
+#   o resto: o que era recurso do produto (dar nome e ordem às áreas) já mora
+#   aqui desde 07/09, e o que era só daquela máquina sai daqui, sem "integração
+#   opcional" que continue olhando para o `~/.config/zsh` quando ele existe.
+#   Sem vizinho, todo alfinete é nosso — que é o que o parágrafo "Máquina sem
+#   Aurora" lá embaixo já dizia para quem instala de fora.
+#
 #   O `docs/FRONTEIRA.md` dá o `pinned_workspaces` ao Ritual da Aurora, e a
 #   medição diz por quê: o self-heal roda de hora em hora (timer conferido:
 #   `ritual-aurora-self-heal.timer`, ciclo de 1h) e chama aquele script, que
@@ -775,68 +785,18 @@ _areas_sem_folga() {
   printf '%s' "$n"
 }
 
-# --- a guarda do vizinho ----------------------------------------------------
-# Ver o bloco "VIZINHO 2" do cabeçalho. A pergunta é uma só: renomear ESTE
-# alfinete sobrevive à próxima passagem do self-heal?
-AREAS_VIZINHO_FONTE="$HOME/.config/zsh/scripts/aurora-cosmic-workspaces.py"
-AREAS_VIZINHO_VIVO="$HOME/.local/bin/aurora-cosmic-workspaces.py"
-AREAS_VIZINHO_DESLIGA="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/.aurora-workspaces-off"
-
-_areas_vizinho_armado() {
-  [ -f "$AREAS_VIZINHO_DESLIGA" ] && return 1
-  [ -f "$AREAS_VIZINHO_VIVO" ] || [ -f "$AREAS_VIZINHO_FONTE" ]
-}
-
-# A FRONTEIRA MUDOU DE LADO EM 07/09/2026, E FOI DECISÃO DELA.
-#   Este script nasceu recusando (rc 4) o que o reparador do Ritual da Aurora
-#   também escreve, porque o `docs/FRONTEIRA.md` dava o `pinned_workspaces` a
-#   ele. Mostrei a ela o custo dessa recusa — a seção do painel existiria só para
-#   olhar — e a resposta foi: *"então corrige no zsh e traz a feature pra cá"*.
+# --- a guarda do vizinho: SAIU EM 24/09/2026 (P39) --------------------------
+# Aqui moravam três caminhos do Ritual da Aurora (o script no Spellbook, a
+# cópia em ~/.local/bin e a sentinela `.aurora-workspaces-off`) e as quatro
+# funções que os liam: `_areas_vizinho_armado`, `_areas_assumir_posse`,
+# `_areas_vizinho_manda` e `_areas_dizer_bloqueadas`. A guarda nasceu certa
+# (06/09, quando o reparador rodava de hora em hora e desfazia o nome), ganhou a
+# cessão em 07/09 pela sentinela que o próprio vizinho oferecia, e perdeu o
+# assunto quando o script sumiu do Spellbook. Ver "VIZINHO 2" no cabeçalho.
 #
-#   O conserto NÃO É editar o script vizinho. Ele já prevê a cessão, e diz onde:
-#   *"OPT-OUT: se ~/.config/cosmic/.aurora-workspaces-off existir, sai sem tocar
-#   em nada. Sentinela em arquivo separado, porque o COSMIC reserializa o
-#   pinned_workspaces sozinho e apagaria qualquer marcador que morasse dentro
-#   dele."* Usar a porta que o vizinho deixou aberta é melhor que arrombar a
-#   parede: o script dele continua intacto, atualizável, e a cessão é reversível
-#   apagando um arquivo.
-#
-#   A sentinela leva a data e o porquê por dentro. Daqui a seis meses, alguém que
-#   a encontre precisa saber que ela é decisão, e não sujeira.
-_areas_assumir_posse() {
-  _areas_vizinho_armado || return 0          # já é nosso, ou não há vizinho
-  if meow_seco; then
-    meow_info "desarmaria o reparador do Ritual da Aurora ($AREAS_VIZINHO_DESLIGA)"
-    return 0
-  fi
-  mkdir -p "$(dirname "$AREAS_VIZINHO_DESLIGA")" 2>/dev/null || true
-  cat > "$AREAS_VIZINHO_DESLIGA" <<'SENTINELA'
-# Quem manda nas áreas de trabalho é o MeowSystem, desde 07/09/2026.
-#
-# Este arquivo é o OPT-OUT que o próprio aurora-cosmic-workspaces.py oferece:
-# com ele presente, o reparador do Ritual da Aurora sai sem tocar no
-# pinned_workspaces. Antes disso os dois escreviam o mesmo arquivo, e o de lá
-# roda de hora em hora pelo self-heal — então uma renomeação feita aqui voltava
-# atrás sozinha depois de já ter funcionado por um login, que é o pior sintoma
-# possível.
-#
-# Para devolver as áreas ao Ritual da Aurora: apague este arquivo.
-# Quem escreve agora: scripts/areas.sh deste projeto (meow areas aplicar).
-SENTINELA
-  meow_muda "o reparador do Ritual da Aurora foi desarmado — as áreas agora são nossas"
-}
-
-# 0 = o vizinho manda no nome deste id (não escrevemos) · 1 = é nosso.
-_areas_vizinho_manda() {
-  local id="$1" arq
-  [ -n "$id" ] || return 1
-  _areas_vizinho_armado || return 1
-  for arq in "$AREAS_VIZINHO_VIVO" "$AREAS_VIZINHO_FONTE"; do
-    [ -f "$arq" ] || continue
-    grep -qF "\"$id\"" "$arq" 2>/dev/null && return 0
-  done
-  return 1
-}
+# A SENTINELA QUE ESTE ARQUIVO JÁ ESCREVEU, onde escreveu, fica no disco: ela
+# não atrapalha ninguém, e apagá-la seria o MeowSystem mexendo, de novo, numa
+# convenção que é de outro projeto.
 
 # --- backup, e ele é a diferença entre ter e não ter área de trabalho -------
 # Duas cópias, com propósitos diferentes:
@@ -939,8 +899,9 @@ cmd_estado() {
   meow_info "áreas alfinetadas, na ordem em que nascem:"
   for i in "${!AREAS_NOME[@]}"; do
     nu="$(_areas_sem_folga "${AREAS_NOME[$i]}")"
+    # Sempre "nosso" desde 24/09/2026: a coluna ficou para a linha não mudar
+    # de forma para quem já a lê, e o outro valor saiu com a guarda do vizinho.
     dono="nosso"
-    _areas_vizinho_manda "${AREAS_ID[$i]}" && dono="do Ritual da Aurora"
     printf '  %s%2d.%s %s  id=%-8s encaixe=%-5s (%s)%s\n' \
       "$C_MAUVE" "$((i + 1))" "$C_ZERO" "$(_areas_col "$nu")" \
       "${AREAS_ID[$i]:-<sem id>}" "${AREAS_TILING[$i]}" "$dono" \
@@ -959,10 +920,6 @@ cmd_estado() {
   done
   meow_info "para o meow.conf:  AREAS_NOMES=\"$nomes\"   AREAS_FOLGA=\"$folgas\""
 
-  if _areas_vizinho_armado; then
-    meow_aviso "o reparador do Ritual da Aurora está armado e roda de hora em hora:"
-    meow_aviso "o NOME das áreas marcadas acima é dele — ver o cabeçalho deste script."
-  fi
   _areas_so_no_login
   local pid; pid="$(pgrep -x cosmic-comp 2>/dev/null | head -1)"
   [ -n "$pid" ] || meow_aviso "cosmic-comp NÃO está rodando — nada disto está valendo agora"
@@ -972,13 +929,14 @@ cmd_estado() {
 # ============================================================================
 # o cálculo que `aplicar` e `conferir` dividem
 # ============================================================================
-# Preenche AREAS_ALVO_NOME / AREAS_ALVO_ENCAIXE a partir do conf, aplica a
-# guarda do vizinho e devolve o que sobrou para escrever.
-#   0 = tudo resolvido · 2 = erro de valor · 4 = há pendência do vizinho
-AREAS_ALVO_NOME=(); AREAS_ALVO_ENCAIXE=(); AREAS_BLOQUEADAS=()
+# Preenche AREAS_ALVO_NOME / AREAS_ALVO_ENCAIXE a partir do conf e devolve o
+# que sobrou para escrever.
+#   0 = tudo resolvido · 2 = erro de valor · 4 = há pendência (o `janelas.sh`
+#   discorda do encaixe; a pendência do Ritual da Aurora saiu em 24/09/2026)
+AREAS_ALVO_NOME=(); AREAS_ALVO_ENCAIXE=()
 
 _areas_planejar() {
-  AREAS_ALVO_NOME=(); AREAS_ALVO_ENCAIXE=(); AREAS_BLOQUEADAS=()
+  AREAS_ALVO_NOME=(); AREAS_ALVO_ENCAIXE=()
   local -a pedidos=() folgas=() encaixes=()
   local n b i
 
@@ -1013,17 +971,6 @@ _areas_planejar() {
       [ "$b" = "$n" ] && { n="$AREAS_FIGURA$n$AREAS_FIGURA"; break; }
     done
 
-    # a guarda do vizinho: renomear um alfinete que ele gerencia é desfeito em
-    # até uma hora, então não se escreve — confere-se e diz-se.
-    if [ "$i" -lt "${#AREAS_NOME[@]}" ] && [ "$n" != "${AREAS_NOME[$i]}" ] \
-       && _areas_vizinho_manda "${AREAS_ID[$i]}"; then
-      local nota=""
-      [ "$(_areas_sem_folga "${AREAS_NOME[$i]}")" = "$(_areas_sem_folga "$n")" ] \
-        && nota="  (a diferença é só a folga invisível)"
-      AREAS_BLOQUEADAS+=("'${AREAS_NOME[$i]}' -> '$n'   id=${AREAS_ID[$i]}$nota")
-      n="${AREAS_NOME[$i]}"
-      pendencia="$AREAS_PENDENCIA"
-    fi
     AREAS_ALVO_NOME+=("$n")
 
     local e=""
@@ -1057,18 +1004,6 @@ _areas_planejar() {
     fi
   fi
   return "$pendencia"
-}
-
-_areas_dizer_bloqueadas() {
-  local b
-  [ "${#AREAS_BLOQUEADAS[@]}" -eq 0 ] && return 0
-  meow_aviso "não renomeei ${#AREAS_BLOQUEADAS[@]} área(s): o nome delas é do Ritual da Aurora."
-  for b in "${AREAS_BLOQUEADAS[@]}"; do meow_aviso "  $b"; done
-  meow_aviso "o self-heal roda de hora em hora e repõe o nome da lista dele —"
-  meow_aviso "gravar aqui daria um nome novo que volta sozinho depois de um login."
-  meow_aviso "o conserto é na lista MANAGED de:"
-  meow_aviso "  $AREAS_VIZINHO_FONTE"
-  meow_aviso "e, depois, sincronizar a cópia em $AREAS_VIZINHO_VIVO"
 }
 
 # ============================================================================
@@ -1175,9 +1110,6 @@ cmd_alfinetar_primeira() {
     return "$MEOW_DIVERGENTE"
   fi
 
-  # A posse vem antes da escrita pelo mesmo motivo que no `aplicar`: com o
-  # reparador do vizinho armado, o que escrevermos volta atrás em até uma hora.
-  _areas_assumir_posse
   _areas_guardar || return "$MEOW_ERRO"
   mkdir -p "$AREAS_BASE" 2>/dev/null || {
     meow_erro "não consegui criar $AREAS_BASE"; return "$MEOW_ERRO"; }
@@ -1202,13 +1134,6 @@ cmd_aplicar() {
     return "$MEOW_OK"
   fi
   _areas_dependencia || return $?
-
-  # A POSSE VEM ANTES DO PLANO, e a ordem importa: é `_areas_vizinho_manda` que
-  # decide o que entra em `AREAS_BLOQUEADAS`, e ele responde pela presença da
-  # sentinela. Desarmar depois de montar o plano deixaria a primeira passagem
-  # recusando o que a segunda aceitaria — o tipo de coisa que faz alguém achar
-  # que precisou "rodar duas vezes para funcionar".
-  _areas_assumir_posse
 
   _areas_ler || return $?
 
@@ -1278,12 +1203,7 @@ cmd_aplicar() {
   # não uma reescrita do mesmo conteúdo devolvendo 1.
   _areas_ler_arquivo "$AREAS_ALVO"
   if [ "$novo" = "$AREAS_TEXTO" ]; then
-    if [ "${#AREAS_BLOQUEADAS[@]}" -gt 0 ]; then
-      meow_muda "não há o que gravar: o que você pediu foi recusado logo abaixo"
-    else
-      meow_ok "as áreas de trabalho já estavam assim ($(_areas_juntar "${AREAS_ALVO_NOME[@]}"))"
-    fi
-    _areas_dizer_bloqueadas
+    meow_ok "as áreas de trabalho já estavam assim ($(_areas_juntar "${AREAS_ALVO_NOME[@]}"))"
     meow_registrar "areas.sh aplicar rc=$rc_plano (sem mudança)"
     return "$rc_plano"
   fi
@@ -1300,7 +1220,6 @@ cmd_aplicar() {
         _areas_so_no_login
       fi ;;
   esac
-  _areas_dizer_bloqueadas
   [ "$rc_plano" = "$AREAS_PENDENCIA" ] && rc="$AREAS_PENDENCIA"
   meow_registrar "areas.sh aplicar areas=${#AREAS_ALVO_NOME[@]} rc=$rc"
   return "$rc"
@@ -1336,7 +1255,6 @@ cmd_conferir() {
         divergente=1; }
   done
 
-  _areas_dizer_bloqueadas
   if [ "$divergente" = "0" ]; then
     [ "$rc_plano" = "$MEOW_OK" ] && meow_ok "as áreas de trabalho estão conformes"
     return "$rc_plano"
@@ -1417,13 +1335,6 @@ cmd_desalfinetar() {
     meow_erro "  MEOW_SIM=1 ./scripts/areas.sh desalfinetar '$alvo'"
     return "$AREAS_PENDENCIA"
   fi
-  if _areas_vizinho_manda "${AREAS_ID[$achado]}"; then
-    meow_erro "'$alvo' é um alfinete do Ritual da Aurora: ele o recria na próxima hora."
-    _areas_dizer_bloqueadas
-    meow_aviso "tire-o da lista MANAGED de $AREAS_VIZINHO_FONTE primeiro."
-    return "$AREAS_PENDENCIA"
-  fi
-
   local novo erro
   erro="$(_areas_motor tirar "$AREAS_ALVO" "$achado" 2>&1 >/dev/null)"
   [ -n "$erro" ] && { meow_erro "não consegui tirar a área: $erro"; return "$MEOW_ERRO"; }

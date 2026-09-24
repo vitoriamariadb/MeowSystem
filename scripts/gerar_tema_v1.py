@@ -56,8 +56,11 @@ O ALPHA NÃO ENTRA. É DELA.
     assumida: os popups desses dois applets ficam OPACOS enquanto os nativos
     ficam translúcidos. A v1 não tem `transparent_*`, então não há como o Ritual
     da Aurora conduzir o alpha ali — e é justamente por não ter `transparent_*`
-    que o `aurora-vidro-maximizado.py` NUNCA seleciona a v1 (a função `temas()`
-    dele exige `glob("transparent_*")` no diretório). Zero ping-pong.
+    que o script de vidro-maximizado do Ritual NUNCA seleciona a v1 (a função
+    `temas()` dele exige `glob("transparent_*")` no diretório). Zero ping-pong.
+    (24/09/2026, P39: o nome do script saiu desta frase porque ela é docstring,
+    e docstring é texto que o `git grep` da regra "nada do Ritual é chamado em
+    execução" não sabe separar de código. O fato ficou.)
 
 O CONJUNTO É MÍNIMO, E O CRITÉRIO ESTÁ AQUI
     Os applets declaram 26 campos (lidos do blob de desserialização do binário).

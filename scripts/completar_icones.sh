@@ -182,7 +182,17 @@ AUTORAIS="$(python3 "$RAIZ/scripts/pack.py" onde "$_pack_ref" \
 # simbólico é monocromático por contrato e seria achatado numa cor só.
 # O caminho da logo que a Vitória desenhou. Fora do repo de propósito: é obra
 # dela, mora no projeto dela, e copiar para cá seria congelar uma versão.
-LOGO_HEFESTO_DELA="$HOME/Desenvolvimento/hefesto-dualsense4unix/assets/hefesto-logo.svg"
+#
+# O CAMINHO VIROU CHAVE EM 24/09/2026 (P39). Até aqui ele era cravado: o clone
+# do Hefesto dentro da pasta de projetos DESTA casa. Numa máquina qualquer esse
+# caminho não existe, e o produto não pode saber onde alguém guarda os projetos
+# dele — a regra de 23/09 diz que o que é só da máquina sai do projeto. A
+# decisão de 18/08 (a logo dela, e não uma cópia) continua de pé: é a chave
+# `ICONES_LOGO_HEFESTO` que aponta para o arquivo, e quem tem o clone a
+# preenche uma vez no meow.conf. Vazia, vale o desenho gerado do pack, que era
+# o que já acontecia em toda máquina sem o clone — menos onde a logo dela já
+# está no tema: ali ela fica, e o passo 2 diz por quê.
+LOGO_HEFESTO_DELA="${ICONES_LOGO_HEFESTO:-}"
 
 declare -A AUTORAL=(
   # O painel do próprio MeowSystem. É o único desenho autoral de TRAÇO — o
@@ -286,6 +296,7 @@ fi
 
 mudou=0
 avisos=0
+pendente=0   # a logo do Hefesto que ficou no tema esperando uma escolha (passo 2)
 
 # --- 0. o tema precisa existir e declarar scalable/apps ----------------------
 # Sem isto o script "funciona" e não aparece nada: é a armadilha clássica de tema
@@ -365,11 +376,38 @@ for nome in "${!AUTORAL[@]}"; do
   # ausente, disco não montado), cai no desenho gerado — o instalador não pode
   # ficar de pé ou não por causa de um caminho fora dele.
   if [ "${AUTORAL[$nome]}" = "__LOGO_DELA__" ]; then
-    if [ -f "$LOGO_HEFESTO_DELA" ]; then
+    if [ -n "$LOGO_HEFESTO_DELA" ] && [ -f "$LOGO_HEFESTO_DELA" ]; then
       fonte="$LOGO_HEFESTO_DELA"
     else
       fonte="$AUTORAIS/hefesto-$FLAVOR.svg"
-      meow_info "a logo dela não está em $LOGO_HEFESTO_DELA — usando o desenho gerado"
+      # A chave apontando para um arquivo que não está lá se diz na hora. Vazia
+      # é a escolha de fábrica, e só vira linha no log no caso logo abaixo.
+      if [ -n "$LOGO_HEFESTO_DELA" ]; then
+        meow_info "a logo do Hefesto não está em $LOGO_HEFESTO_DELA (ICONES_LOGO_HEFESTO) — usando o desenho gerado"
+      elif [ -f "$ALVO/$nome.svg" ] && ! grep -q '<title>hefesto — ' "$ALVO/$nome.svg"; then
+        # A ARTE QUE JÁ ESTÁ NO TEMA NÃO SE TROCA EM SILÊNCIO — 24/09/2026 (P39)
+        #   Com a chave vazia a fonte é o desenho gerado. Numa máquina onde a
+        #   logo dela já entrou no tema (pelo caminho cravado de antes da P39, ou
+        #   por uma chave que depois foi apagada), escrever aqui seria o `meow
+        #   doctor --consertar` das 5h pondo o desenho gerado no lugar da arte
+        #   aprovada sem ninguém decidir. Medido na revisão da P39, na casa onde
+        #   o projeto nasceu: sem esta guarda o seco passou a dizer `mudaria`
+        #   para os dois nomes do Hefesto.
+        #
+        #   O QUE É NOSSO SE PROVA PELO CONTEÚDO, como no `_hicolor_orfaos` lá
+        #   embaixo: todo desenho que o `gerar_icones_autorais.py` escreve para o
+        #   Hefesto carrega `<title>hefesto — <pack>`, em qualquer pack e flavor
+        #   (o título é do gerador, não da declaração). O que não carrega não
+        #   saiu daqui, e fica: o script sai 4, que o doctor e o instalador leem
+        #   como "escolha sua" e o auto-reparo não toca, e a linha diz as duas
+        #   saídas. Um pack que tire o `{titulo}` do desenho cai no mesmo lado
+        #   seguro — o arquivo fica, com o aviso.
+        meow_aviso "$nome.svg no tema não é o desenho gerado e ICONES_LOGO_HEFESTO está vazia — fica como está"
+        meow_info "  para mantê-lo em dia: ICONES_LOGO_HEFESTO=\"<caminho do .svg>\" no meow.conf"
+        meow_info "  para usar o desenho gerado: apague $ALVO/$nome.svg"
+        pendente=1
+        continue
+      fi
     fi
   fi
   if [ ! -f "$fonte" ]; then
@@ -638,6 +676,9 @@ if ! meow_seco && [ -x "$RAIZ/scripts/auditar_icones.sh" ]; then
 fi
 
 if [ "$mudou" = "0" ]; then
+  # 4 e não 0: o resto está no lugar, mas o aviso do passo 2 espera uma escolha
+  # dela, e um "ok" por cima dele o esconderia na tabela do doctor.
+  [ "$pendente" = "1" ] && exit 4
   meow_ok "ícones completos: ${#AUTORAL[@]} autorais e ${#APELIDO[@]} apelido(s) já no lugar"
   exit "$MEOW_OK"
 fi

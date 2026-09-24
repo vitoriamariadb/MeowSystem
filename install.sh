@@ -378,34 +378,14 @@ etapa_conf() {
   done
   meow_info "flavor=$FLAVOR accent=$ACCENT modo=$MODO logo=$LOGO"
 
-  # O vizinhos.conf não é opcional numa máquina que TEM vizinho: sem ele, a
-  # trava que protege um repositório com auto-commit some junto com a lista que
-  # era cravada no código. Criar na DETECÇÃO é mais seguro do que depender de
-  # alguém lembrar de criar à mão.
-  local viz="${MEOW_VIZINHOS:-$HOME/.config/meow/vizinhos.conf}"
-  if [ ! -f "$viz" ] && [ -d "$HOME/.config/zsh/.git" ]; then
-    local rc_viz raiz_cosmic
-    raiz_cosmic="$(meow_cosmic_dir)"
-    # A LINHA DO COSMIC SAI EXPANDIDA, A DO ZSH NÃO — a diferença é de propósito.
-    #   Quem lê o vizinhos.conf é o laço do `lib/comum.sh`, e ele expande UM nome
-    #   só: `$HOME`. Isso também é de propósito — passar as linhas por `eval`
-    #   transformaria um arquivo de configuração em execução de código. Logo
-    #   `$MEOW_COSMIC_DIR` não teria como chegar lá escrito, e a trava ficaria
-    #   guardando a raiz de sempre enquanto o resto do projeto passou a escrever
-    #   na que o `meow_cosmic_dir` devolve [21/09/2026]. Resolver aqui e gravar o
-    #   caminho absoluto é o que mantém as duas pontas medindo a mesma raiz — e
-    #   caminho absoluto é o que o próprio leitor pede.
-    meow_escrever "$viz" \
-"# Criado automaticamente: achei um repositório git em ~/.config/zsh.
-# O MeowSystem não escreve nos caminhos abaixo. Um por linha, absoluto.
-\$HOME/.config/zsh
-$raiz_cosmic/com.system76.CosmicSettings.Shortcuts" 644 >/dev/null
-    rc_viz=$?
-    if [ "$rc_viz" = "1" ]; then
-      mudou=1
-      meow_info "vizinhos.conf criado: ~/.config/zsh tem .git e fica protegido"
-    fi
-  fi
+  # O VIZINHOS.CONF DEIXOU DE NASCER AQUI EM 24/09/2026 (P39). Este bloco o
+  # criava sozinho quando achava um repositório git em `~/.config/zsh`, com
+  # aquele caminho e o dos atalhos do COSMIC dentro. Era a proteção certa para
+  # UMA casa, escrita no instalador de todas: a regra de 23/09 tira do projeto
+  # tudo o que olha para o `~/.config/zsh`, sem "integração opcional" que
+  # continue olhando quando ele existe. O arquivo continua sendo lido
+  # (lib/comum.sh), o modelo continua em `vizinhos.conf.exemplo`, e quem tem um
+  # vizinho o escreve. Nesta casa ele existe desde 11/09 e não muda.
 
   # O contrato do `concluir()` é 0 = já estava certo, 1 = consertei. Um
   # `return 0` incondicional aqui punha a etapa que ACABOU de criar o meow.conf
@@ -452,6 +432,13 @@ $raiz_cosmic/com.system76.CosmicSettings.Shortcuts" 644 >/dev/null
 #   próximo ciclo. `MEOW_COMPLETIONS_DIR=` continua existindo para quem quiser
 #   outro destino (por exemplo o antigo, dentro do Andromeda).
 #
+#   O "ACORDO NOVO" ACIMA DEIXOU DE SER CONTADO COMO CERTO EM 24/09/2026 (P39):
+#   ele dependia do self-heal do Ritual da Aurora, que não existe fora de uma
+#   casa, e nesta mesma casa o `_meow` não estava em `site-functions` quando
+#   foi medido. A frase da tela parou de prometer o Ritual. Instalar em
+#   `site-functions` sem ele pede root, e a ponte root deste projeto não tem
+#   verbo para isso — fica anotado como o que falta, não como feito.
+#
 #   O arquivo leva `# OVERRIDE` na segunda linha: é o contrato do próprio
 #   Andromeda (completions/CONVENCAO.md) para completion escrita à mão, e o
 #   gerador de lá preserva quem tem esse marcador nas 3 primeiras linhas — vale
@@ -488,8 +475,14 @@ instalar_completion() {
   # sem sudo, e não é divergência nossa — é etapa de outro dono. Por isso `pula`
   # com `MEOW_OK` e não `meow_muda`: um `doctor` eternamente divergente por causa
   # de um arquivo que o Aurora instala sozinho seria alarme que ninguém pode calar.
+  # A PROMESSA DO RITUAL SAIU DA FRASE EM 24/09/2026 (P39). Ela dizia que o
+  # self-heal da Aurora instalaria o arquivo "no próximo ciclo" — numa máquina
+  # sem o Ritual, isto é, em todas menos uma, ninguém instala, e nesta casa
+  # mesmo o `_meow` não estava lá quando foi medido. A frase agora diz o que é
+  # verdade em qualquer máquina, e a porta que existe.
   if [ ! -w "$COMPLETIONS_DIR" ]; then
-    meow_pula "completion do zsh pulada: '$COMPLETIONS_DIR' não é gravável — quem instala lá é o Ritual da Aurora (self-heal v3.56), no próximo ciclo"
+    meow_pula "completion do zsh pulada: '$COMPLETIONS_DIR' não é gravável (é do root)"
+    meow_info "  para outro diretório do seu \$fpath: MEOW_COMPLETIONS_DIR=<dir> ./install.sh"
     return "$MEOW_OK"
   fi
   if meow_seco; then
@@ -503,13 +496,19 @@ instalar_completion() {
   mv -f "$tmp" "$destino" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
 
   meow_ok "completion do zsh instalada em $destino"
-  # O aviso só sai quando o destino é MESMO o repo dela — com
-  # MEOW_COMPLETIONS_DIR apontando para outro lugar (é assim que isto foi
-  # testado) ele seria uma mentira.
-  case "$(readlink -m -- "$destino")" in
-    "$HOME/.config/zsh"/*)
-      meow_aviso "esse arquivo está no repo Andromeda: o auto-commit dela vai versioná-lo" ;;
-  esac
+  # O aviso só sai quando o destino cai num caminho que o `vizinhos.conf`
+  # protege — com MEOW_COMPLETIONS_DIR apontando para outro lugar (é assim que
+  # isto foi testado) ele seria uma mentira. Até 24/09/2026 a pergunta era pelo
+  # NOME de um repositório (`~/.config/zsh`); agora é pela lista que a pessoa
+  # escreveu, que é a mesma que a TRAVA 1 lê.
+  local viz_p viz_real
+  viz_real="$(readlink -m -- "$destino")"
+  for viz_p in ${MEOW_PROIBIDOS_LOCAIS[@]+"${MEOW_PROIBIDOS_LOCAIS[@]}"}; do
+    case "$viz_real" in "$viz_p"/*)
+      meow_aviso "esse arquivo está em $viz_p, que o vizinhos.conf protege: o dono dele vai versioná-lo"
+      break ;;
+    esac
+  done
   meow_info "para não instalar: MEOW_SEM_COMPLETIONS=1 ./install.sh"
   meow_info "o TAB só passa a funcionar no próximo terminal (o compinit lê o fpath no início)"
   return "$MEOW_DIVERGENTE"
@@ -1613,17 +1612,22 @@ etapa_som() {
 # O PROMPT, E A ÚNICA ETAPA QUE TERMINA COM UM COMANDO NA MÃO DELA.
 #
 #   O preset do starship é nosso e vai para `~/.config/starship.toml`. A linha
-#   que LIGA o starship mora em `~/.config/zsh/env.zsh`, que é do Ritual da
-#   Aurora e a TRAVA 1 recusa — então a outra metade sai como
-#   `assets/prompt/aurora.patch`, e é ela quem roda. Devolve 4 quando o nosso lado
-#   está certo e o dela não; o `concluir` acima já trata 3|4 como "pulado".
+#   que LIGA o starship mora no arquivo de inicialização do shell de quem usa,
+#   que não é deste projeto: o `prompt.sh aplicar` instala o nosso arquivo e
+#   DIZ a linha, sem procurá-la nem escrevê-la. Sai 0, 1, 2 ou 3; o 3 (falta o
+#   starship) cai no "pulado" do `concluir` acima.
 #
-# O QUE A MEDIÇÃO DERRUBOU, E VALE REGISTRAR: a Sprint R dizia que a causa era
-# `ZSH_THEME="agnoster"` na linha 9 do `env.zsh`. O agnoster é carregado pelo
-# oh-my-zsh na linha 26 e **jogado fora na linha 135**, por um `export PS1` que
-# vem depois no mesmo arquivo. Mexer só na linha 9 não mudaria um pixel — o
-# patch mexe nas duas, e o `else` dele devolve exatamente o PS1 de hoje quando o
-# starship não está no PATH.
+#   ATÉ 24/09/2026 (P39) a outra metade saía como `assets/prompt/aurora.patch`,
+#   para o `env.zsh` do Spellbook, e a etapa devolvia 4 quando o nosso lado
+#   estava certo e o de lá não. O patch e o 4 saíram juntos: eram a máquina de
+#   uma pessoa, e não o produto.
+#
+# O QUE A MEDIÇÃO DERRUBOU, E FICA COMO HISTÓRIA (é do tempo do patch): a Sprint
+# R dizia que a causa era `ZSH_THEME="agnoster"` na linha 9 do `env.zsh`. O
+# agnoster era carregado pelo oh-my-zsh na linha 26 e **jogado fora na linha
+# 135**, por um `export PS1` que vinha depois no mesmo arquivo. Mexer só na
+# linha 9 não mudaria um pixel — o patch mexia nas duas, e o `else` dele
+# devolvia exatamente o PS1 de então quando o starship não estava no PATH.
 etapa_prompt() {
   passo "Prompt do terminal (starship)"
   PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \

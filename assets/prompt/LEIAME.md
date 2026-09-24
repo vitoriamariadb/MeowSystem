@@ -1,34 +1,33 @@
 # O prompt — Sprint R
 
-Esta é a única sprint do MeowSystem que **não termina em commit nosso**. O
-produto são dois arquivos e um comando que **você** roda.
+O produto é **um arquivo nosso e uma linha sua**.
 
-O motivo é de fronteira, não de preguiça: o prompt do zsh mora em
-`~/.config/zsh/env.zsh`, que é o repositório do **Ritual da Aurora**, com
-auto-commit a cada 10 minutos. A TRAVA 1 do `lib/comum.sh` recusa aquele caminho
-por caminho (`vizinhos.conf`), e está certa.
-
-Mas a configuração do `starship` **não** mora lá — ela mora em
-`~/.config/starship.toml`, que não pertence a vizinho nenhum. Então a sprint se
+O prompt do zsh é ligado no arquivo de inicialização do SEU shell, e esse
+arquivo não é deste projeto: o MeowSystem não lê nem escreve arquivo de shell de
+ninguém. Mas a configuração do `starship` **não** mora lá — ela mora em
+`~/.config/starship.toml`, que é um caminho comum do XDG. Então o trabalho se
 parte exatamente onde a fronteira parte:
 
 | metade | onde | quem faz |
 |---|---|---|
 | o preset Catppuccin | `~/.config/starship.toml` | **nós** — `scripts/prompt.sh aplicar` |
-| ligar o prompt e o fzf | `~/.config/zsh/env.zsh` | **você** — `aurora.patch` |
+| ligar o prompt | o seu `.zshrc` (ou `.bashrc`) | **você** — uma linha |
 
 ---
 
-## ATENÇÃO: O aviso que vem antes de tudo
+## O `aurora.patch` saiu em 24/09/2026 (sprint P39)
 
-**Aplicar o `aurora.patch` vira um commit no seu repositório privado
-(`~/.config/zsh`) em até 10 minutos, sozinho, sem ninguém apertar nada.**
+Até essa data a sua metade era um patch, `assets/prompt/aurora.patch`, feito
+contra o `env.zsh` de UM repositório pessoal — o do Ritual da Aurora, em
+`~/.config/zsh` —, e o `prompt.sh` lia aquele arquivo para saber se o patch
+tinha entrado. A regra de 23/09 tirou as duas coisas: o que o MeowSystem usa de
+outro projeto, ou migra para cá, ou sai daqui, sem integração opcional que
+continue lendo aquele diretório quando ele existe. O que era do produto já morava
+aqui (o `starship.toml`); o patch era da máquina de uma pessoa, e carregava até
+o nome de quem o gerou. Ele continua no histórico do git para quem precisar ler.
 
-Isso é o comportamento normal do autosync de lá — não é defeito. Mas é decisão
-consciente, e por isso está escrito aqui em vez de acontecer calado. Se você não
-quiser o commit agora, o caminho é aplicar depois: **nada** neste diretório
-escreve em `~/.config/zsh` por conta própria, nem o `meow doctor`, nem o timer
-das 05:00, nem o `install.sh`.
+As medições abaixo, de 25/08, foram feitas naquele `env.zsh` e ficam como
+estavam: são o registro de por que o patch era aquele.
 
 ---
 
@@ -99,17 +98,19 @@ Quatro mudanças, todas nomeadas no cabeçalho do próprio arquivo:
 4. **`show_notifications = false`** — o preset vem com `true` e 45 s, ou seja,
    todo comando demorado penduraria uma notificação de desktop na sua tela.
 
-### `aurora.patch`
+### A linha do shell (era o `aurora.patch`)
 
-Três mudanças em `env.zsh`, 67 linhas de diff:
+O patch fazia três mudanças no `env.zsh` daquela máquina, e só a segunda é o
+que o prompt precisa em qualquer lugar:
 
-1. `ZSH_THEME="agnoster"` → `ZSH_THEME=""` (com string vazia o oh-my-zsh não
-   sourceia tema nenhum — `oh-my-zsh.sh:223`);
-2. a seção 5 passa a chamar `eval "$(starship init zsh)"`, **com guarda**:
-   se o `starship` sumir do PATH, o `else` devolve exatamente o PS1 de antes, em
-   vez de abrir um shell sem prompt;
-3. `FZF_DEFAULT_OPTS` ganha a paleta — o valor **exato** de
-   `functions/mec.zsh:12`, sem uma vírgula de diferença.
+1. `ZSH_THEME="agnoster"` → `ZSH_THEME=""` — vale só para quem usa oh-my-zsh
+   com tema (com string vazia ele não sourceia tema nenhum —
+   `oh-my-zsh.sh:223`);
+2. **`eval "$(starship init zsh)"`** — esta é a linha. Com guarda, se quiser:
+   se o `starship` sumir do PATH, um `else` com o prompt de antes evita abrir um
+   shell sem prompt;
+3. `FZF_DEFAULT_OPTS` com a paleta — é cor do fzf, e não do prompt; saiu deste
+   projeto junto com o patch.
 
 ---
 
@@ -140,22 +141,15 @@ passa a conferir esse arquivo todo dia.
 
 ### 3. A metade sua
 
-```sh
-MEOW="$PWD"          # a raiz do clone, guardada ANTES do cd
-cd ~/.config/zsh
-patch -p1 --dry-run < "$MEOW/assets/prompt/aurora.patch"
-patch -p1           < "$MEOW/assets/prompt/aurora.patch"
+No fim do seu `.zshrc` (ou do arquivo que ele carrega, se for assim na sua
+máquina):
+
+```zsh
+eval "$(starship init zsh)"
 ```
 
-O caminho sai da raiz do CLONE, e não de um disco. Até 21/09/2026 estas três
-linhas diziam `/mnt/Apate/Desenvolvimento/MeowSystem/src/prompt/` — um ponto de
-montagem que existe numa máquina só, e um diretório que nem nela existe mais: o
-`src/prompt/` virou `assets/prompt/` e o texto ficou. O `MEOW="$PWD"` é
-necessário porque a linha seguinte é um `cd`: um caminho relativo cru deixaria
-de valer exatamente no comando em que ele é usado.
-
-O `--dry-run` não escreve nada e acusa antes se o `env.zsh` tiver mudado desde
-12/08/2026 (o patch foi gerado contra a versão de 181 linhas).
+No bash, `eval "$(starship init bash)"` no `.bashrc`. O `./scripts/prompt.sh
+mostrar` imprime as duas.
 
 Vale no **próximo terminal**. Para ver na hora: `exec zsh`.
 
@@ -168,28 +162,23 @@ Vale no **próximo terminal**. Para ver na hora: `exec zsh`.
 - `0` tudo no lugar
 - `1` o **nosso** arquivo divergiu (o doctor conserta)
 - `3` falta o starship, ou `PROMPT_STARSHIP="nao"` no meow.conf
-- `4` o nosso lado está certo e o `env.zsh` ainda não foi patcheado — **não é
-  divergência, é a sua metade**, e o auto-reparo nunca mexe nela
+
+Havia um `4` até 24/09/2026 — "o `env.zsh` ainda não foi patcheado". Ele saiu
+junto com a leitura daquele arquivo: a sua linha não é conferida, porque
+conferi-la seria ler o seu shell.
 
 ---
 
 ## Como desfazer
 
-Byte a byte, e está conferido (`cmp` devolve igualdade com o original):
-
-```sh
-MEOW="$PWD"          # de novo a raiz do clone, antes do cd
-cd ~/.config/zsh
-patch -R -p1 < "$MEOW/assets/prompt/aurora.patch"
-```
-
-E, se quiser tirar também o nosso arquivo:
+Tire a linha do `starship init` do seu shell. E, se quiser tirar também o nosso
+arquivo:
 
 ```sh
 ./scripts/prompt.sh remover
 ```
 
-**Nesta ordem.** Ao contrário, o `env.zsh` continua chamando o starship sem
+**Nesta ordem.** Ao contrário, o seu shell continua chamando o starship sem
 configuração e você não volta ao prompt antigo — volta ao prompt **padrão** do
 starship, que ninguém escolheu. O `remover` avisa isso antes de agir.
 
@@ -213,9 +202,10 @@ retângulo lavanda vazio.)
 **Os milissegundos do `cmd_duration`.** `show_milliseconds = false` deixa
 `2m 13s` em vez de `2m 13s 402ms`.
 
-**A altura e a borda do fzf.** O `FZF_DEFAULT_OPTS` do patch leva **só a cor**,
-porque era só a cor que a sprint pedia promover. Se quiser que o Ctrl+R também
-abra em painel, como o fzf-tab já abre, é acrescentar ao fim daquela string:
+**A altura e a borda do fzf.** O `FZF_DEFAULT_OPTS` que o patch levava (e que
+saiu daqui com ele em 24/09/2026) tinha **só a cor**, porque era só a cor que a
+sprint pedia promover. Se quiser que o Ctrl+R também abra em painel, é
+acrescentar ao fim da sua string:
 
 ```
  --height=60% --layout=reverse --border
@@ -237,7 +227,7 @@ lado direito da linha. Como o preset `catppuccin-powerline` não define
 e ainda se economiza um subprocesso por prompt. Mas se um dia alguém configurar
 um prompt à direita no starship e ele não aparecer, **a causa é esta**.
 
-**O oh-my-zsh continua carregando.** O patch zera o `ZSH_THEME`, não desliga o
-framework: os plugins (`git`, `fzf`, `fzf-tab`, `autosuggestions`,
+**O oh-my-zsh continua carregando.** Zerar o `ZSH_THEME` (era o que o patch
+fazia) não desliga o framework: os plugins (`git`, `fzf`, `fzf-tab`, `autosuggestions`,
 `history-substring-search`, `syntax-highlighting`) continuam exatamente como
 estão. Só o tema sai.

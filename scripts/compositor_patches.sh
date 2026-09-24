@@ -17,6 +17,30 @@
 #     dela — ver o bloco do `cmd_aplicar` para por que a linha cai exatamente
 #     ali e não um passo adiante.
 #
+#   E O QUE MUDOU EM 24/09/2026 (P39) É QUEM COMPILA
+#     A regra do dono, de 23/09: o que o MeowSystem usa do Ritual da Aurora
+#     migra para cá e é desativado lá, sem "integração opcional". O build do
+#     compositor era o caso mais pesado: sem o `aurora-cosmic-comp-ws.sh`, que
+#     não vem neste repositório, ninguém fora desta casa tinha os patches — e
+#     em 21/09 o apt reescreveu o `/usr/bin/cosmic-comp` daqui sem que nada
+#     do lado de cá soubesse refazer. Agora o `compilar` deste arquivo baixa o
+#     fonte da versão instalada, aplica a série, compila, confere os
+#     marcadores no binário e instala, pedindo `sudo` só no último passo. O
+#     `meow compositor` é o rosto dele. O script da Aurora virou um aviso que
+#     aponta para cá.
+#
+#     A LINHA DO `aplicar` CONTINUA ONDE ESTAVA, e é por isso que o verbo novo
+#     é outro: o `aplicar` ainda nunca compila, e o doctor ainda nunca chama o
+#     `compilar`. Compilar é comando de gente, com a senha na mão — nunca de
+#     timer, porque este binário é também a tela de login.
+#
+#     A VERSÃO PASSOU A SER CONTRATO: `patches/versao` diz contra qual pacote a
+#     série foi validada, e o `compilar` recusa qualquer outra dizendo por quê.
+#
+#     E O `.estado` MUDOU DE CASA: é o nosso, em `/var/lib/meowsystem/`, gravado
+#     pelo nosso `compilar`. O `/var/lib/aurora` e a série instalada pelo Ritual
+#     em `/usr/local/share/aurora/` deixaram de ser lidos.
+#
 # POR QUE A PERGUNTA É SOBRE O PROCESSO, E NÃO SOBRE O ARQUIVO
 #   `/var/lib/aurora` guarda SEIS versões de `cosmic-comp` entre 13/07 e 26/08 —
 #   quase semanal. Todo `apt upgrade` do pacote reescreve `/usr/bin/cosmic-comp`
@@ -124,28 +148,39 @@
 #   o Ritual é quem compila. Este arquivo lê os dois primeiros e não escreve em
 #   nenhum.
 #
-# O CONTRATO COM O OUTRO LADO (acordado em 30/08/2026, não inventar outro)
-#   /var/lib/aurora/cosmic-comp-patches.estado  (644, root, legível sem sudo)
-#     # gerado por aurora-cosmic-comp-ws.sh — NAO EDITAR A MAO
-#     versao=0.1~1787767625~24.04~5c93094
-#     gravado=2026-08-30T01:40:00-03:00
+#   (24/09/2026, P39: o parágrafo acima é história. O `.estado` e o build são
+#   nossos — ver "O QUE MUDOU EM 24/09/2026" no topo. Do outro lado não sobra
+#   nada que este arquivo leia.)
+#
+# O CONTRATO DO `.estado` (o formato é o de 30/08/2026, e ficou o mesmo)
+#   /var/lib/meowsystem/cosmic-comp/patches.estado  (644, root, legível sem sudo)
+#     # gravado pelo meow compositor — NAO EDITAR A MAO
+#     versao=0.1~1788962084~24.04~a557859
+#     gravado=2026-09-24T01:40:00-03:00
 #     req AURORA-COSMIC-WS-PATCH-3.67 cosmic-comp-sem-workspace-vazio.patch presente
-#     opt AURORA-COSMIC-RADIUS-PATCH-1 cosmic-comp-raio-clampado.patch ausente
+#     opt AURORA-COSMIC-RADIUS-PATCH-2 cosmic-comp-raio-clampado.patch presente
 #   Linha de patch = QUATRO campos: <req|opt> <marcador> <arquivo.patch> <presente|ausente>
+#   O FORMATO NÃO MUDOU NA MUDANÇA DE DONO, de propósito: o `cmd_conferir`
+#   inteiro lê este texto, e um formato novo seria reescrever o leitor junto
+#   com a troca de quem escreve — dois riscos numa passagem só.
 #
 #   patches/series — a CÓPIA CANÔNICA desde 22/09/2026 (P29), neste repositório.
 #     <classe req|opt> <arquivo.patch> <marcador-base>
-#     O `/usr/local/share/aurora/patches.d/series` continua sendo lido como
-#     alternativa quando o clone não traz a nossa — ver `CP_SERIE_ALT`.
+#   patches/versao — a versão do pacote contra a qual a série vale (P39).
 #
 #   O marcador do `.estado` traz a VERSÃO no fim (`-3.67`); o da `series` é a
 #   BASE (`AURORA-COSMIC-WS-PATCH`). É de propósito: a base é o que sobrevive a
-#   um bump de versão do patch, e é ela que vira regex no binário.
+#   um bump de versão do patch, e é ela que vira regex no binário. O prefixo
+#   `AURORA-` fica: ele está compilado dentro dos `.patch`, e trocá-lo seria
+#   mexer em cinco patches validados para mudar um nome.
 #
 # USO
 #   compositor_patches.sh conferir            0 = tudo de pé · 1 = divergente · 3 = sem cosmic-comp
 #   compositor_patches.sh aplicar <dir-fonte> põe a série numa árvore de fonte do cosmic-comp
+#   compositor_patches.sh compilar            baixa o fonte, aplica, compila e instala (sudo no fim)
+#   compositor_patches.sh validar             baixa o fonte da versão instalada e só roda o dry-run
 #   compositor_patches.sh reverter            diz como voltar ao binário do pacote (não roda)
+#   (o rosto de todos é o `meow compositor`; MEOW_DRY_RUN=1 é o `--seco` dele)
 #
 #   O 0 cobre DOIS estados desde 21/09/2026: os patches de pé, e os patches
 #   nunca aplicados nesta máquina — sem `.estado` não houve promessa, e sem
@@ -159,10 +194,22 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # Todos com override por variável: é o que deixa testar sem root e sem mexer na
 # máquina dela. Nenhum deles vira chave do meow.conf — não há nada a configurar
 # aqui, e uma chave a mais no conf é uma pergunta a mais no wizard sem resposta
-# útil (o caminho do `.estado` é do lado da Aurora, não do gosto dela).
+# útil (o caminho do `.estado` é contrato deste arquivo, não gosto de ninguém).
 CP_BIN="${CP_BIN:-/usr/bin/cosmic-comp}"
-CP_ESTADO="${CP_ESTADO:-/var/lib/aurora/cosmic-comp-patches.estado}"
+# A CASA ROOT DO BUILD — 24/09/2026, P39. `/var/lib`, e não o
+# `/usr/local/lib/meowsystem` da ponte: lá mora programa, aqui mora dado que o
+# programa grava (o `.estado` e a cópia do binário do pacote). É a divisão do
+# FHS, e é a mesma que o `/var/lib/aurora` fazia do outro lado.
+CP_LIB="${CP_LIB:-/var/lib/meowsystem/cosmic-comp}"
+CP_ESTADO="${CP_ESTADO:-$CP_LIB/patches.estado}"
 CP_REPO="${CP_REPO:-$MEOW_RAIZ/patches}"
+# A versão do pacote contra a qual a série foi validada. Ver o próprio arquivo.
+CP_VERSOES="${CP_VERSOES:-$MEOW_RAIZ/patches/versao}"
+# ONDE O FONTE É BAIXADO E COMPILADO. Cache, e não estado: apagar esta pasta
+# custa um download e uma compilação do zero (~30 min), nunca um dado. Cada
+# árvore compilada pesa ~3,2 GB (medido do outro lado, em 28/08/2026), e por
+# isso o `compilar` poda as de outra versão depois de um build que deu certo.
+CP_CACHE="${CP_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem/cosmic-comp}"
 # A SÉRIE INVERTEU DE LADO EM 22/09/2026 (P29), E A ORDEM É A DECISÃO
 #   Até aqui `CP_SERIE` era a da Aurora e a nossa não existia: este arquivo lia
 #   `/usr/local/share/aurora/patches.d/series`, e caía em
@@ -171,15 +218,14 @@ CP_REPO="${CP_REPO:-$MEOW_RAIZ/patches}"
 #   repositório, e é ELA a primeira resposta — porque a origem passou a ser
 #   aqui, e uma origem que só vale quando a outra falta não é origem.
 #
-#   A DA AURORA CONTINUA SENDO LIDA, e isso não é indecisão. Numa máquina que
-#   fez o Ritual, o binário que está no disco foi compilado a partir DAQUELA
-#   série; conferir contra a nossa quando a dela existe e diverge diria verde
-#   sobre um binário que não é o que medimos. Por isso ela fica em `ALT`: lida
-#   só quando a nossa sumiu, que é o caso de quem rodou este script de fora do
-#   clone. O que saiu de vez foi `~/.config/zsh` — território da vizinha, e o
-#   assunto inteiro da P29.
+#   A DA AURORA DEIXOU DE SER LIDA EM 24/09/2026 (P39). Ela ficava em
+#   `CP_SERIE_ALT`, lida quando a nossa faltava, porque numa máquina que fez o
+#   Ritual o binário do disco tinha sido compilado a partir DELA. Com o build
+#   vindo para cá isso acabou: o binário que este arquivo mede é o que o NOSSO
+#   `compilar` instalou, a partir da NOSSA série. Ler a instalada pelo Ritual
+#   seria a "integração opcional" que a regra de 23/09 recusa com essas
+#   palavras. Sem `patches/series` o clone está quebrado, e o bloco 4 diz isso.
 CP_SERIE="${CP_SERIE:-$MEOW_RAIZ/patches/series}"
-CP_SERIE_ALT="${CP_SERIE_ALT:-/usr/local/share/aurora/patches.d/series}"
 # Onde `aplicar` procura a árvore de fonte do cosmic-comp. Sem padrão útil de
 # propósito: não há lugar canônico para um `git clone` do compositor nesta
 # máquina, e inventar um faria o verbo falhar apontando para um caminho que
@@ -234,11 +280,48 @@ _cp_tem() {
   return 1
 }
 
-# --- a série da Aurora ------------------------------------------------------
+# --- a série ----------------------------------------------------------------
 _cp_serie_arquivo() {
   [ -r "$CP_SERIE" ] && { printf '%s' "$CP_SERIE"; return 0; }
-  [ -r "$CP_SERIE_ALT" ] && { printf '%s' "$CP_SERIE_ALT"; return 0; }
   return 1
+}
+
+# --- a versão: a instalada, e as que a série conhece ------------------------
+_cp_versao_instalada() {
+  local v
+  v="$(dpkg-query -W -f='${Version}' cosmic-comp 2>/dev/null)" || return 1
+  [ -n "$v" ] || return 1
+  printf '%s' "$v"
+}
+
+# Uma por linha, sem comentário. O primeiro campo é a versão; o resto da linha
+# fica livre para uma nota, se um dia alguém quiser pôr.
+_cp_versoes_validadas() {
+  [ -r "$CP_VERSOES" ] || return 1
+  sed -e 's/#.*//' "$CP_VERSOES" | awk 'NF { print $1 }'
+}
+
+_cp_versao_valida() {
+  local v="$1" x
+  while IFS= read -r x; do
+    [ "$x" = "$v" ] && return 0
+  done < <(_cp_versoes_validadas)
+  return 1
+}
+
+# A RECUSA DIZ POR QUÊ, e diz o caminho — a sprint pede as duas coisas com
+# essas palavras. `apt-get source` não é receita de instalação: é o download
+# do fonte que o `validar` faz sozinho, e a frase aponta para ele.
+_cp_recusar_versao() {
+  local ver="$1" validadas
+  validadas="$(_cp_versoes_validadas 2>/dev/null | paste -sd' ' -)"
+  meow_erro "recusado: a série não foi validada contra o cosmic-comp instalado"
+  meow_info "  instalado:  $ver"
+  meow_info "  validadas:  ${validadas:-<nenhuma — $CP_VERSOES não existe ou está vazio>}"
+  meow_info "  por quê: o -F0 pega o hunk cujo contexto mudou, mas não o que ainda casa em"
+  meow_info "  código que mudou de sentido — e este binário é também a tela de login"
+  meow_info "  para validar:  meow compositor validar   (baixa o fonte e só roda o dry-run)"
+  meow_info "  se a série entrar limpa, a versão entra em patches/versao num commit — decisão sua"
 }
 
 # "1 marcador" / "2 marcadores". Custa três linhas e evita o `marcador(es)` que
@@ -306,13 +389,27 @@ cmd_conferir() {
   #   para a máquina sem compositor nenhum, que é onde ele já estava.
   local estado_ok=0 ritual_ausente=0 versao_estado="" gravado=""
   local -a linhas=()
+  # O NOME `ritual_ausente` FICOU, E O SENTIDO MUDOU EM 24/09/2026 (P39): era
+  # "esta máquina não fez o Ritual da Aurora"; agora é "o `meow compositor`
+  # nunca instalou nada aqui". A porta é a mesma, e o verde também — o que
+  # mudou foi a frase, que deixou de mandar para um script de outro projeto e
+  # passou a nomear o verbo daqui.
   if [ ! -e "$CP_ESTADO" ]; then
     ritual_ausente=1
-    _cp_diz info "quem aplica os patches do compositor é o Ritual da Aurora (aurora-cosmic-comp-ws.sh), que não vem neste repositório"
+    _cp_diz info "quem aplica os patches do compositor é o meow compositor (compila ~4 min, pede sudo no fim), e ele ainda não instalou nada aqui"
     _cp_diz info "sem $CP_ESTADO não há o que conferir: nada foi prometido, nada está faltando"
     # Sem crase: dentro de aspas duplas ela vira substituição de comando, e
     # esta frase nomeia um comando de verdade.
     _cp_diz info "o que muda sem eles: o meow painel apara o raio das barras ao que cabe na altura — o resto do tema é igual"
+    # A VERSÃO ENTRA AQUI COMO INFORMAÇÃO, NUNCA COMO VEREDITO (24/09/2026).
+    # Sem `.estado` nada foi prometido, então uma versão fora de
+    # `patches/versao` não é divergência — é só o que o `meow compositor` vai
+    # responder se alguém o chamar, dito antes, para ninguém descobrir na recusa.
+    local v_inst=""
+    v_inst="$(_cp_versao_instalada 2>/dev/null)" || v_inst=""
+    if [ -n "$v_inst" ] && ! _cp_versao_valida "$v_inst"; then
+      _cp_diz info "o cosmic-comp instalado ($v_inst) não está em patches/versao: a série ainda não foi validada nele"
+    fi
   elif [ ! -r "$CP_ESTADO" ]; then
     # O contrato pede 644. Se chegou aqui, o modo saiu do combinado — e o doctor
     # não usa sudo para contornar, ele relata.
@@ -347,7 +444,12 @@ cmd_conferir() {
     elif [ "$versao_estado" != "$versao_dpkg" ]; then
       problemas+=("o .estado é de outra versão do pacote"); precisa_build=1
       _cp_diz muda "versão divergente: .estado diz '$versao_estado', dpkg diz '$versao_dpkg'"
-      _cp_diz info "um apt trocou o binário depois do último build — a série daqui volta com: compositor_patches.sh aplicar <fonte>"
+      _cp_diz info "um apt trocou o binário depois do último build — a série volta com: meow compositor"
+      # E o `meow compositor` recusa versão que não esteja em `patches/versao`
+      # (24/09/2026). Dizer isto aqui poupa a pessoa de descobrir na recusa,
+      # depois de já ter decidido parar para compilar.
+      _cp_versao_valida "$versao_dpkg" || \
+        _cp_diz info "  antes, a série precisa ser validada nesta versão: meow compositor validar"
     fi
   fi
 
@@ -467,7 +569,7 @@ cmd_conferir() {
     #   é estado nenhum da Aurora — é arquivo apagado, e a frase tem de dizer
     #   isso em vez de mandar olhar para o lado.
     problemas+=("patches/series não existe neste clone"); precisa_build=1
-    _cp_diz muda "não achei a série ($CP_SERIE, nem $CP_SERIE_ALT)"
+    _cp_diz muda "não achei a série ($CP_SERIE)"
     _cp_diz info "  ela é versionada — 'git checkout patches/series' a traz de volta"
     _cp_diz info "  sem ela os ${#repo[@]} .patch de patches/ não têm ordem, classe nem marcador declarado"
   else
@@ -521,6 +623,10 @@ cmd_conferir() {
   #   `aurora-cosmic-comp-ws.sh`, com a série DELA em
   #   `/usr/local/share/aurora/patches.d/series`. Este arquivo deixou de
   #   comparar as duas árvores, não de saber que a outra existe — ver `CP_SERIE_ALT`.
+  #
+  #   RESOLVIDO EM 24/09/2026 (P39), e o parágrafo acima fica como história:
+  #   quem compila é o `compilar` daqui, com a série daqui, e o `CP_SERIE_ALT`
+  #   saiu. A outra árvore deixou de existir para este arquivo.
 
   # --- 6. o resumo, que é a linha da tabela ---------------------------------
   if [ "${#problemas[@]}" = "0" ]; then
@@ -554,10 +660,14 @@ cmd_conferir() {
     #   repositório: o doctor mandava, todo dia, rodar um comando que não
     #   existe. Agora os três passos são nomeáveis, e os dois primeiros são
     #   deste projeto.
-    meow_info "os patches são daqui desde 22/09/2026 — patches/series, 5 declarados"
-    meow_info "  1. aplicar na árvore de fonte:  scripts/compositor_patches.sh aplicar <dir-do-fonte>"
-    meow_info "  2. compilar e instalar:         é passo seu — cargo (~4 min) e um install em $CP_BIN"
-    meow_info "  3. voltar ao binário do pacote: scripts/compositor_patches.sh reverter (diz como)"
+    #
+    #   E OS DOIS PASSOS DO MEIO VIRARAM UM VERBO SÓ EM 24/09/2026 (P39): o
+    #   `meow compositor` baixa o fonte, aplica, compila e instala. O "é passo
+    #   seu — cargo e um install" saiu, porque deixou de ser verdade.
+    meow_info "o conserto é recompilar o compositor com a série de patches/ (~4 min, sudo só no fim):"
+    meow_info "  meow compositor --seco   diz o que faria, sem baixar nem escrever"
+    meow_info "  meow compositor          baixa o fonte da versão instalada, compila e instala"
+    meow_info "  meow compositor reverter diz como voltar ao binário do pacote"
     meow_info "o doctor não compila, não usa sudo e não escreve — ele só mede e conta"
   else
     meow_info "nada a recompilar: o binário do disco está em dia, quem está velho é a sessão"
@@ -640,7 +750,7 @@ cmd_aplicar() {
   meow_tem patch || { meow_pula "o comando 'patch' não está instalado — nada a aplicar"; return "$MEOW_SEM_DEPENDENCIA"; }
 
   serie="$(_cp_serie_arquivo)" || {
-    meow_erro "não achei a série ($CP_SERIE, nem $CP_SERIE_ALT)"
+    meow_erro "não achei a série ($CP_SERIE)"
     return "$MEOW_ERRO"
   }
 
@@ -742,9 +852,309 @@ cmd_aplicar() {
   done
 
   meow_ok "$(_cp_plural "$aplicados" 'patch aplicado' 'patches aplicados') na árvore ($pulados sem mexer)"
-  meow_info "o que falta é seu, e não é pouco: compilar (~4 min) e instalar em $CP_BIN"
-  meow_info "o binário do compositor é TAMBÉM a tela de login — leia 'O que pode dar errado' em patches/series"
+  # Dentro do `compilar` o "o que falta" é o próprio passo seguinte, e dizer
+  # "é seu" ali seria mentira de três linhas (24/09/2026, P39).
+  if [ "${_CP_COMPILANDO:-0}" != "1" ]; then
+    meow_info "o que falta: compilar (~4 min) e instalar em $CP_BIN — o meow compositor faz os dois"
+    meow_info "o binário do compositor é TAMBÉM a tela de login — leia 'O que pode dar errado' em patches/series"
+  fi
   return "$MEOW_OK"
+}
+
+# ============================================================================
+# `compilar` e `validar` — O BUILD VEIO PARA CÁ (24/09/2026, P39)
+# ============================================================================
+# O QUE O `aurora-cosmic-comp-ws.sh` FAZIA, LIDO INTEIRO ANTES DE TRAZER
+#   São 1083 linhas no Spellbook (`scripts/`), só leitura até esta decisão. Cada
+#   verbo dele, e o destino:
+#     --build     baixa o fonte da versão instalada, aplica a série (dry-run de
+#                 todos antes), `make VENDOR=1`, confere os marcadores no
+#                 binário, guarda o artefato e instala com sudo      -> VEIO: `compilar`
+#     --status    série, marcador por patch, disco x sessão          -> já era nosso: `conferir`
+#     --restore   copia o binário do pacote guardado por cima        -> `reverter` diz como, e
+#                                                                       aponta a cópia que guardamos
+#     --ensure    de hora em hora, pelo self-heal: reinstala o artefato da
+#                 versão e dispara o auto-build numa unit transitória -> NÃO VEIO
+#     --podar     poda o /var/lib/aurora                              -> NÃO VEIO (aqui se guarda um
+#                                                                       arquivo por versão, e só)
+#     night light reaplica o patch binário do shader depois de instalar -> NÃO VEIO: a luz quente
+#                                                                       é o modo de leitura, que é
+#                                                                       um patch DA SÉRIE
+#
+# POR QUE O `--ensure` E O AUTO-BUILD FICARAM DO LADO DE LÁ, DESATIVADOS
+#   O doctor daqui nunca compila e nunca usa sudo, e o timer das 05:00 roda o
+#   doctor. Um build de minutos que troca o compositor — que é a tela de login —
+#   disparado por timer é o que este projeto recusa desde a P29, com o motivo
+#   no bloco do `cmd_aplicar`. O que o auto-build dava (o patch voltar sozinho
+#   depois de um apt) volta pela linha `patches` do doctor, que fica vermelha e
+#   diz o verbo. E o artefato por versão existia para o `--ensure` reinstalar
+#   sem compilar: sem `--ensure`, guardá-lo seria guardar o que ninguém lê.
+#
+# O `compilar`, NA ORDEM, E ONDE ELE PARA
+#   1. versão: a instalada tem de estar em `patches/versao`, ou ele recusa;
+#   2. ferramentas: patch, make e cargo — o cargo é o do rustup de quem compila;
+#   3. fonte: `apt-get source cosmic-comp=<versão>`, no cache. COM O `=`: sem ele
+#      o apt baixa o CANDIDATO, que depois de um `apt update` não é o
+#      instalado — e o fonte de outra versão é a sessão que não sobe;
+#   4. a série: o `cmd_aplicar` inteiro, dry-run de todos com `-F0` antes de
+#      escrever, e um `req` que falha aborta com a árvore intocada;
+#   5. `make VENDOR=1`, com Nice 19, e o registro num arquivo do cache;
+#   6. os marcadores: todo patch que está na árvore tem de estar no binário;
+#      sem um `req`, nada é instalado (o `#[used]` que o linker comeu);
+#   7. a instalação, e SÓ AQUI entra o sudo: guarda o binário do pacote quando
+#      ele é de fábrica, troca `/usr/bin/cosmic-comp` por rename atômico e grava
+#      o `.estado` MEDIDO no binário instalado, nunca deduzido da série;
+#   8. poda as árvores de outra versão no cache.
+#   No `--seco` ele faz o 1 e o 2 e diz o resto — sem baixar, compilar ou sudo.
+#
+# POR QUE NÃO `dpkg-checkbuilddeps`, que pareceria o conferidor certo do passo
+#   2: o `Build-Depends` do pacote pede o `cargo` e o `rustc` do Debian e o
+#   `debhelper` — medido no `debian/control` da a557859 —, e quem compila aqui
+#   usa o do rustup. Ele recusaria a máquina que compila. Falta de biblioteca
+#   aparece no registro do `make`, cujo fim o `compilar` mostra.
+_cp_fonte_dir() { printf '%s/cosmic-comp-%s' "$CP_CACHE" "$1"; }
+
+# 0 = a árvore desta versão está no cache (agora ou de antes) · 2/3 = não deu
+_cp_baixar_fonte() {
+  local ver="$1" dir log
+  dir="$(_cp_fonte_dir "$ver")"
+  if [ -f "$dir/Cargo.toml" ] && [ -d "$dir/src" ]; then
+    meow_info "o fonte de $ver já está no cache: $dir"
+    return "$MEOW_OK"
+  fi
+  meow_tem apt-get || { meow_erro "falta o apt-get, e é ele que baixa o fonte"; return "$MEOW_SEM_DEPENDENCIA"; }
+  # Sem o `dpkg-source` o `apt-get source` BAIXA e não extrai, e sai 0 — o
+  # erro só apareceria duas linhas abaixo, como "a árvore não apareceu".
+  meow_tem dpkg-source || { meow_erro "falta o dpkg-source (do dpkg-dev): sem ele o fonte baixa e não se extrai"; return "$MEOW_SEM_DEPENDENCIA"; }
+  mkdir -p "$CP_CACHE" || { meow_erro "não consegui criar $CP_CACHE"; return "$MEOW_ERRO"; }
+  log="$CP_CACHE/baixar-$ver.log"
+  meow_info "BAIXA DA INTERNET: o fonte do cosmic-comp $ver (~98 MB), para $CP_CACHE"
+  if ! ( cd "$CP_CACHE" && apt-get source "cosmic-comp=$ver" ) >"$log" 2>&1; then
+    meow_erro "o apt-get source falhou para o cosmic-comp $ver"
+    # O 404 TEM FRASE PRÓPRIA porque foi medido, e não é raro: em 24/09/2026 o
+    # repositório do Pop já não servia o `.tar.xz` da versão instalada nesta
+    # máquina (a cd881a4, de 21/09). O fonte some do pool quando sai versão
+    # nova, e a única saída é andar junto com ele.
+    if grep -q ' 404 ' "$log" 2>/dev/null; then
+      meow_info "  o repositório já não serve o fonte desta versão (404)"
+      meow_info "  o caminho é atualizar o cosmic-comp — o apt traz binário e fonte da mesma versão — e validar a série nela"
+    else
+      meow_info "  o deb-src está habilitado nas fontes do apt? o registro está em $log"
+    fi
+    return "$MEOW_ERRO"
+  fi
+  if [ ! -f "$dir/Cargo.toml" ]; then
+    meow_erro "o fonte baixou e a árvore não apareceu em $dir (registro: $log)"
+    return "$MEOW_ERRO"
+  fi
+  meow_ok "fonte do cosmic-comp $ver em $dir"
+  return "$MEOW_OK"
+}
+
+# A série como três colunas separadas por tab: classe, arquivo, marcador-base.
+# É a mesma leitura do `cmd_aplicar`, e existe porque o `compilar` precisa dela
+# DEPOIS do build, para cobrar do binário o que entrou na árvore.
+_cp_serie_entradas() {
+  local serie="$1"
+  local -a campos=()
+  while read -r -a campos || [ "${#campos[@]}" -gt 0 ]; do
+    [ "${#campos[@]}" -ge 3 ] || continue
+    case "${campos[0]}" in req|opt) : ;; *) continue ;; esac
+    printf '%s\t%s\t%s\n' "${campos[0]}" "${campos[1]}" "${campos[2]}"
+  done < "$serie"
+}
+
+# 0 = o binário carrega o marcador de algum patch da série.
+_cp_tem_marcador_da_serie() {
+  local bin="$1" serie="$2" _c _a base
+  while IFS=$'\t' read -r _c _a base; do
+    [ -n "$(_cp_marcadores "$bin" "$base")" ] && return 0
+  done < <(_cp_serie_entradas "$serie")
+  return 1
+}
+
+# O `.estado`, MEDIDO no binário — nunca a intenção da série. É a regra que o
+# outro lado aprendeu em 30/08/2026 e que vem junto: o `#[used]` pode ter sido
+# comido pelo linker, e um arquivo de diagnóstico que grava o que a série
+# declara faz o doctor dizer "conforme" sobre um desktop que não está.
+_cp_texto_estado() {
+  local bin="$1" ver="$2" serie="$3" classe arquivo base achado
+  printf '# gravado pelo meow compositor — NAO EDITAR A MAO\n'
+  printf 'versao=%s\n' "$ver"
+  printf 'gravado=%s\n' "$(date -Is)"
+  while IFS=$'\t' read -r classe arquivo base; do
+    achado="$(_cp_marcadores "$bin" "$base" | head -1)"
+    if [ -n "$achado" ]; then
+      printf '%s %s %s presente\n' "$classe" "$achado" "$arquivo"
+    else
+      printf '%s %s %s ausente\n' "$classe" "$base" "$arquivo"
+    fi
+  done < <(_cp_serie_entradas "$serie")
+}
+
+cmd_compilar() {
+  local ver serie fonte bin log i
+  ver="$(_cp_versao_instalada)" || {
+    meow_pula "o cosmic-comp não está instalado (dpkg não o conhece) — nada a compilar"
+    return "$MEOW_SEM_DEPENDENCIA"; }
+  serie="$(_cp_serie_arquivo)" || { meow_erro "não achei a série ($CP_SERIE)"; return "$MEOW_ERRO"; }
+
+  meow_info "cosmic-comp instalado: $ver"
+  if ! _cp_versao_valida "$ver"; then
+    _cp_recusar_versao "$ver"
+    return "$MEOW_ERRO"
+  fi
+  meow_ok "a série foi validada contra esta versão (patches/versao)"
+
+  local -a faltam=()
+  for i in patch make cargo; do meow_tem "$i" || faltam+=("$i"); done
+  if [ "${#faltam[@]}" -gt 0 ]; then
+    meow_erro "falta para compilar: ${faltam[*]}"
+    meow_info "  o cargo é o do rustup de quem compila; o do apt costuma ser velho demais para o cosmic-comp"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  fonte="$(_cp_fonte_dir "$ver")"
+  bin="$fonte/target/release/cosmic-comp"
+  log="$CP_CACHE/compilar-$ver.log"
+
+  if meow_seco; then
+    local n_req n_opt
+    n_req="$(_cp_serie_entradas "$serie" | awk -F'\t' '$1=="req"' | wc -l)"
+    n_opt="$(_cp_serie_entradas "$serie" | awk -F'\t' '$1=="opt"' | wc -l)"
+    if [ -f "$fonte/Cargo.toml" ]; then
+      meow_info "o fonte já está no cache: $fonte"
+    else
+      meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_CACHE"
+    fi
+    meow_muda "aplicaria a série ($(_cp_plural "$n_req" obrigatório obrigatórios), $(_cp_plural "$n_opt" opcional opcionais)) com -F0, dry-run de todos antes"
+    meow_muda "compilaria com make VENDOR=1 (~4 min com o vendor quente, ~30 min do zero)"
+    meow_muda "conferiria os marcadores no binário e instalaria em $CP_BIN — com sudo, só neste passo"
+    meow_muda "gravaria o .estado medido em $CP_ESTADO"
+    meow_info "vale no próximo login; o caminho de volta: meow compositor reverter"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  _cp_baixar_fonte "$ver" || return $?
+
+  # O `cmd_aplicar` é o passo 4 inteiro, com as recusas dele. O `_CP_COMPILANDO`
+  # só cala o "o que falta é seu" do fim, que aqui seria falso.
+  _CP_COMPILANDO=1 cmd_aplicar "$fonte" || return $?
+
+  meow_info "compilando com Nice 19 (~4 min com o vendor quente, ~30 min do zero)"
+  meow_info "  o registro vai para $log"
+  if ! ( cd "$fonte" && nice -n 19 make VENDOR=1 ) >"$log" 2>&1; then
+    meow_erro "a compilação falhou — nada foi instalado, o compositor de agora continua"
+    tail -n 15 "$log" 2>/dev/null | sed 's/^/        /' >&2
+    return "$MEOW_ERRO"
+  fi
+  [ -f "$bin" ] || { meow_erro "o make terminou e o binário não apareceu em $bin"; return "$MEOW_ERRO"; }
+
+  # --- 6. o que entrou na árvore tem de estar no binário --------------------
+  local classe arquivo base falta_req=0
+  while IFS=$'\t' read -r classe arquivo base; do
+    _cp_ja_aplicado "$fonte" "$CP_REPO/$arquivo" "$base" || {
+      meow_info "$arquivo não entrou na árvore ($classe) — o binário sai sem esse efeito"
+      continue; }
+    if [ -n "$(_cp_marcadores "$bin" "$base")" ]; then
+      meow_ok "marcador no binário: $(_cp_marcadores "$bin" "$base" | head -1)"
+    elif [ "$classe" = "req" ]; then
+      meow_erro "$base está na árvore e NÃO no binário — o linker o comeu (falta o #[used])"
+      falta_req=1
+    else
+      meow_aviso "$base (opcional) não está no binário: o efeito pode estar lá, mas ninguém vai saber"
+    fi
+  done < <(_cp_serie_entradas "$serie")
+  [ "$falta_req" = "0" ] || { meow_erro "nada foi instalado: um obrigatório ficou fora do binário"; return "$MEOW_ERRO"; }
+
+  # --- 7. a instalação, e o único sudo deste arquivo ------------------------
+  # O MESMO BINÁRIO NÃO PEDE SENHA DE NOVO: um segundo `meow compositor` sobre
+  # a mesma árvore produz o mesmo arquivo, e trocá-lo por ele mesmo seria pedir
+  # a senha para nada. Sem o `.estado` a instalação segue mesmo assim: é ele
+  # que o doctor lê, e um build sem ele é um build que ninguém confere.
+  if cmp -s "$bin" "$CP_BIN" && [ -f "$CP_ESTADO" ]; then
+    meow_ok "o binário compilado é o que já está em $CP_BIN — nada a instalar"
+    return "$MEOW_OK"
+  fi
+  # O BINÁRIO DO PACOTE É GUARDADO ANTES, e só quando é de fábrica: um
+  # `/usr/bin/cosmic-comp` que já carrega marcador da série não é o do pacote,
+  # e guardá-lo como tal faria o caminho de volta devolver um binário patchado.
+  local pacote="$CP_LIB/$ver.pacote" tmp_estado
+  meow_info "instalando em $CP_BIN — pede a senha agora, e só agora"
+  sudo install -d -m 755 "$CP_LIB" || { meow_erro "não consegui criar $CP_LIB (sudo recusou?)"; return "$MEOW_ERRO"; }
+  if [ ! -f "$pacote" ]; then
+    if _cp_tem_marcador_da_serie "$CP_BIN" "$serie"; then
+      meow_info "o binário de agora já carrega marcador da série: não o guardo como o do pacote"
+    else
+      sudo install -m 755 "$CP_BIN" "$pacote" \
+        && meow_ok "o binário do pacote ficou guardado em $pacote" \
+        || meow_aviso "não consegui guardar o binário do pacote — sigo, e o reverter usa o apt"
+    fi
+  fi
+  # RENAME, NUNCA CÓPIA POR CIMA: um compositor pela metade é tela preta no
+  # próximo login, E a tela de login junto.
+  if ! { sudo install -m 755 "$bin" "$CP_BIN.meow-novo" && sudo mv -f "$CP_BIN.meow-novo" "$CP_BIN"; }; then
+    sudo rm -f "$CP_BIN.meow-novo" 2>/dev/null
+    meow_erro "não consegui instalar em $CP_BIN — o de antes continua lá"
+    return "$MEOW_ERRO"
+  fi
+  meow_muda "cosmic-comp patchado instalado em $CP_BIN (versão $ver)"
+
+  # O temporário nasce no cache, que é nosso e já existe a esta altura — e não
+  # no /tmp de todo mundo, onde o `sudo install` leria um arquivo que qualquer
+  # processo da máquina pode ter trocado entre o `mktemp` e a cópia.
+  tmp_estado="$(mktemp -p "$CP_CACHE" .estado.XXXXXX)" || return "$MEOW_ERRO"
+  _cp_texto_estado "$CP_BIN" "$ver" "$serie" > "$tmp_estado"
+  if sudo install -m 644 "$tmp_estado" "$CP_ESTADO"; then
+    meow_ok ".estado gravado em $CP_ESTADO (medido no binário instalado)"
+  else
+    meow_aviso "não consegui gravar $CP_ESTADO — o doctor vai dizer que nada foi prometido"
+  fi
+  rm -f "$tmp_estado"
+
+  # --- 8. poda: só árvore de fonte, e só de outra versão --------------------
+  local d
+  for d in "$CP_CACHE"/cosmic-comp-*; do
+    [ -d "$d" ] || continue
+    [ "$d" = "$fonte" ] && continue
+    [ -f "$d/Cargo.toml" ] || continue   # sem isto não é árvore de fonte: não toco
+    rm -rf -- "$d" && meow_info "podei o fonte antigo: ${d##*/}"
+  done
+
+  meow_registrar "compositor_patches.sh compilar $ver"
+  meow_info "vale no PRÓXIMO LOGIN — a sessão de agora segura o binário antigo até lá"
+  meow_info "o caminho de volta: meow compositor reverter"
+  return "$MEOW_DIVERGENTE"
+}
+
+# `validar` — O PASSO QUE PÕE UMA VERSÃO NOVA EM `patches/versao`
+#   Baixa o fonte da versão INSTALADA e roda o dry-run da série nele, sem
+#   escrever na árvore. É o que responde, antes de alguém registrar a versão,
+#   se a série entra limpa nela. Registrar continua sendo commit de gente.
+cmd_validar() {
+  local ver fonte
+  ver="$(_cp_versao_instalada)" || {
+    meow_pula "o cosmic-comp não está instalado (dpkg não o conhece) — nada a validar"
+    return "$MEOW_SEM_DEPENDENCIA"; }
+  meow_info "cosmic-comp instalado: $ver"
+  if _cp_versao_valida "$ver"; then
+    meow_ok "esta versão já está em patches/versao"
+  fi
+  fonte="$(_cp_fonte_dir "$ver")"
+  if meow_seco && [ ! -f "$fonte/Cargo.toml" ]; then
+    meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_CACHE e rodaria o dry-run da série"
+    return "$MEOW_DIVERGENTE"
+  fi
+  _cp_baixar_fonte "$ver" || return $?
+  # O dry-run é o do `cmd_aplicar`, em seco: a mesma leitura, sem um byte.
+  if MEOW_SECO=1 cmd_aplicar "$fonte"; then
+    _cp_versao_valida "$ver" && return "$MEOW_OK"
+    meow_ok "a série entra limpa no cosmic-comp $ver"
+    meow_info "para o meow compositor aceitá-la: acrescente $ver a patches/versao, num commit"
+    return "$MEOW_OK"
+  fi
+  meow_info "a versão $ver não entra em patches/versao enquanto um obrigatório recusar"
+  return "$MEOW_ERRO"
 }
 
 # `reverter` — O `--uninstall` DO ITEM DE RISCO DA P29
@@ -768,6 +1178,14 @@ cmd_aplicar() {
 cmd_reverter() {
   meow_info "o caminho de volta é reinstalar o PACOTE cosmic-comp pelo gerenciador de pacotes"
   meow_info "  ele devolve $CP_BIN ao binário de fábrica, sem nenhum patch da série"
+  # A CÓPIA GUARDADA PELO `compilar` (24/09/2026, P39) é a segunda rede, e vale
+  # dizê-la: o repositório do Pop tira o fonte de uma versão do ar quando sai a
+  # seguinte (medido nesse dia), e o `.deb` pode ir junto.
+  local ver=""
+  ver="$(_cp_versao_instalada 2>/dev/null)" || ver=""
+  if [ -n "$ver" ] && [ -f "$CP_LIB/$ver.pacote" ]; then
+    meow_info "  se o apt não achar esta versão, o binário do pacote dela está guardado em $CP_LIB/$ver.pacote"
+  fi
   meow_info "depois, relogue: o kernel segura o inode do binário antigo até o próximo login"
   meow_pula "este script não faz isso por você — escrever em /usr/bin pede root, e é decisão sua"
   return "$MEOW_OK"
@@ -776,6 +1194,8 @@ cmd_reverter() {
 case "${1:-conferir}" in
   conferir) cmd_conferir ;;
   aplicar)  shift 2>/dev/null || true; cmd_aplicar "${1:-}" ;;
+  compilar) cmd_compilar ;;
+  validar)  cmd_validar ;;
   reverter) cmd_reverter ;;
-  *) meow_erro "uso: compositor_patches.sh {conferir|aplicar [dir-do-fonte]|reverter}"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: compositor_patches.sh {conferir|aplicar [dir-do-fonte]|compilar|validar|reverter}"; exit "$MEOW_ERRO" ;;
 esac
