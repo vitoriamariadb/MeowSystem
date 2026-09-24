@@ -73,7 +73,7 @@ Achados **12** e **45**.
 
 # P50 — O rótulo diz o que a ação fez
 
-Achados **11, 14, 15, 16, 17, 32, 33, 36**.
+Achados **11, 14, 15, 16, 17, 32, 33, 36, 47**.
 
 1. **O fim de cada ação tem o rótulo que ela merece** (achado 17, sistêmico):
    hoje o texto sai só do código de saída — «Recarregar o painel» reciclou e
@@ -93,6 +93,9 @@ Achados **11, 14, 15, 16, 17, 32, 33, 36**.
 7. **O raio** (36): o deslizante diz o teto que vale e por quê; valor que o
    instalador recusa não é gravado como se valesse, e a tela não diz
    «aplicou».
+8. **O texto não cita aba nem botão que não existe** (47): a conferência
+   manda ao «Instalar e conferir», e a aba se chama «Instalação». O nome sai
+   de onde a tela o define, não de uma frase escrita à mão.
 
 ---
 
@@ -151,7 +154,7 @@ Achados **1, 3, 4, 5, 6, 7, 8, 9, 29**.
 
 # P54 — Os restos das outras abas, e a confirmação dos jogos
 
-Achados **18, 35, 37, 38, 41, 43, 44, 46**, e a decisão dos jogos.
+Achados **18, 35, 37, 38, 41, 43, 44, 46, 48**, e a decisão dos jogos.
 
 1. Os chips de «mudados por você» levam até o ajuste e o destacam (18).
 2. Textos e visual: «acima» que está abaixo (35), rótulos cortados na
@@ -161,10 +164,13 @@ Achados **18, 35, 37, 38, 41, 43, 44, 46**, e a decisão dos jogos.
 3. **Jogos — decisão de 24/09:** «Tirar do lançador» e «Tirar da lista»
    pedem confirmação, e a caixa diz quais atalhos saem e quais entram, com
    «Ver o que faria».
+4. **O starship é um só** (48): quem cria a pendência do prompt e o
+   «Resolver» usam a mesma regra de «instalado» (a da P49), e o starship do
+   cargo (`~/.cargo/bin`) conta.
 
 ---
 
-# Os 46 achados, como foram anotados na validação
+# Os 48 achados, como foram anotados na validação
 
 ## Início
 1. Console: GET /favicon.ico 404 no carregamento (cosmético, mas o console não fica limpo).
@@ -213,3 +219,5 @@ Achados **18, 35, 37, 38, 41, 43, 44, 46**, e a decisão dos jogos.
 44. «Decisões já executadas» mostra «appid 4046520», sem o nome do jogo.
 45. DEFEITO: «Quais programas estão vestidos» (meow apps) diz qBittorrent e Discord «não instalado» — os dois estão instalados (flatpak do usuário: org.qbittorrent.qBittorrent, com.discordapp.Discord). O módulo do qBittorrent, no mesmo dia, disse «já está vestido». Duas regras de «instalado».
 46. O `meow status` («O que está no ar agora») diz «logo coquinha -> (nenhuma)» com o morcego-dia no dock (modo Hora).
+47. Depois de «Atualizar a máquina inteira», a conferência manda consertar «pelo painel, em "Instalar e conferir"» — essa aba não existe (é «Instalação»).
+48. A pendência «o prompt do terminal precisa do starship» aparece com o starship JÁ instalado (~/.cargo/bin/starship, pelo cargo): quem cria a pendência não o acha, e o «Resolver» o acha («o starship já está instalado») — duas regras.
