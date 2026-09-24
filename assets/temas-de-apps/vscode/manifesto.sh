@@ -522,6 +522,11 @@ _meow_vscode_backup() {
 # CONTRATO — as três funções que o runner chama
 # =============================================================================
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+meow_app_instalado() { meow_tem "$MEOW_VSCODE_BIN"; }
+
 # 0 = dá para trabalhar · 3 = falta dependência. Nunca falha.
 #
 # O `python3` ENTRA AQUI, e não é preciosismo: TODA leitura e TODA escrita deste
@@ -538,7 +543,7 @@ _meow_vscode_backup() {
 meow_app_detectar() {
   # Motivo velho mente com cara de medida: zerar antes de medir é do contrato.
   MEOW_APP_MOTIVO=""
-  meow_tem "$MEOW_VSCODE_BIN" || { meow_app_sem "VS Code: '$MEOW_VSCODE_BIN' não está no PATH"; return; }
+  meow_app_instalado || { meow_app_sem "VS Code: '$MEOW_VSCODE_BIN' não está no PATH"; return; }
   meow_tem python3 || { meow_app_sem "VS Code: falta python3, que é o varredor de JSONC deste módulo"; return; }
   return "$MEOW_OK"
 }

@@ -622,6 +622,13 @@ _spot_receita_valida() {
     "$_SPOT_PALETA" "$_SPOT_FLAVOR" "$_SPOT_ACENTO" 2>/dev/null
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+# O Spotify de sistema, ou um de usuário sem o `Apps/`, É instalado: só não é o
+# que o spicetify alcança, e isso é o motivo da pendência, logo abaixo.
+meow_app_instalado() { meow_flatpak_tem com.spotify.Client; }
+
 # CADA SAÍDA-3 DAQUI DECLARA A CAUSA [21/09/2026]
 #   As sete linhas abaixo saíam com o mesmo número e nenhuma palavra, e quem
 #   recebia o número — o `aplicar` — chutava a primeira causa da lista. O
@@ -632,6 +639,7 @@ _spot_receita_valida() {
 meow_app_detectar() {
   # Motivo velho mente com cara de medida: zerar antes de medir é do contrato.
   MEOW_APP_MOTIVO=""
+  meow_app_instalado || { meow_app_sem "Spotify: não está instalado"; return; }
   _spot_instalado || { meow_app_sem "Spotify: não está instalado como flatpak de usuário"; return; }
 
   # O PACK PRECISA TER PEDIDO ALGUMA COISA — 22/09/2026, sprint P18

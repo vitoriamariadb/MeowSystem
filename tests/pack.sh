@@ -1025,6 +1025,58 @@ vest_caso "Dracula -> Catppuccin: o ICONES_BASE do Dracula é vestígio, e o ter
 vest_caso "sabor sem PACK -> Dracula: o CURSOR do Latte é vestígio, e o terminal diz" \
   dracula CURSOR 's/^FLAVOR=.*/FLAVOR="latte"/; s/^CURSOR=.*/CURSOR="catppuccin-latte-dark"/'
 
+# A CHAVE QUE SOBRAVA NÃO QUEBRA A ETAPA APPS — 24/09/2026, P49
+#   Achado 12 da validação no painel de verdade: `meow pack usar catppuccin`
+#   com `MEOW_FAMILIA_PALETA="dracula"` no conf, e o `btop-bat` foi procurar
+#   «Dracula Mocha.tmTheme» — `falharam: btop-bat`, e a etapa apps saía
+#   `falhou`. A chave deixou de ser lida (a família sai do tema vendorizado para
+#   o flavor, ver `_bb_familia`), e o que se cobra aqui é a volta inteira COM a
+#   chave velha no conf: Dracula, Catppuccin e o pack de mentira, cada troca
+#   seguida da etapa apps de verdade na casa de brinquedo — só bat e btop, os
+#   dois que a chave alcançava. Os binários são os desta máquina: sem nenhum
+#   dos dois o módulo sai 3 antes de procurar arquivo, o caso não provaria nada,
+#   e ele diz `pulado` em vez de passar calado.
+#
+#   E O TERMINAL NÃO A LISTA MAIS COMO "CONTINUA VALENDO": ela não vale nada.
+FAM="$T/familia.conf"
+sed 's/^PACK=.*/PACK="dracula"/; s/^FLAVOR=.*/FLAVOR="dracula"/' "$RAIZ/meow.conf.exemplo" > "$FAM"
+printf '\nMEOW_FAMILIA_PALETA="dracula"\n' >> "$FAM"
+fam_amb() { usar_amb env MEOW_CONF="$FAM" MEOW_PACKS="$PACKS" MEOW_ESTADO="$T/estado-familia" "$@"; }
+etapa_apps_bb() {
+  fam_amb bash -c 'set -a; . "$MEOW_CONF"; set +a
+    APPS_ATIVOS="bat,btop" "$MEOW_RAIZ/scripts/aplicar_apps.sh" aplicar' 2>&1
+}
+if ! command -v bat >/dev/null 2>&1 && ! command -v batcat >/dev/null 2>&1 \
+   && ! command -v btop >/dev/null 2>&1; then
+  printf 'pulado: nem bat nem btop nesta máquina — a etapa apps não chega a procurar o tema\n'
+else
+  for alvo in dracula catppuccin "$ID"; do
+    troca=""
+    [ "$alvo" = dracula ] || troca="$(fam_amb "$RAIZ/bin/meow" pack usar "$alvo" --sem-aplicar 2>&1)"
+    saida="$(etapa_apps_bb)"; rc=$?
+    if [ "$rc" = 2 ] || grep -q 'falharam' <<< "$saida"; then
+      falha "com a chave velha no conf, a etapa apps falhou depois de usar $alvo (rc=$rc)" "$saida"
+    elif grep -q 'MEOW_FAMILIA_PALETA' <<< "$troca"; then
+      falha "o meow pack usar $alvo ainda lista MEOW_FAMILIA_PALETA, que não é mais lida" "$troca"
+    else
+      ok "com a chave velha no conf, usar $alvo e a etapa apps termina sem falhar (rc=$rc)"
+    fi
+  done
+  # A volta ao Catppuccin é a que a chave quebrava: o tema instalado tem de ser
+  # o do flavor, e não o de uma família que o conf dizia.
+  for arq in "$CASA/.config/bat/themes/Catppuccin Mocha.tmTheme" "$CASA/.config/btop/themes/catppuccin_mocha.theme"; do
+    case "$arq" in
+      */bat/*) command -v bat >/dev/null 2>&1 || command -v batcat >/dev/null 2>&1 || continue ;;
+      *) command -v btop >/dev/null 2>&1 || continue ;;
+    esac
+    [ -f "$arq" ] && ok "a volta instalou $(basename "$arq"), e não o da família que a chave dizia" \
+      || falha "a volta ao Catppuccin não instalou $(basename "$arq")" "$(ls -R "$CASA/.config" 2>&1 | head -20)"
+  done
+  grep -q "não tem tema vendorizado" <<< "$saida" \
+    && ok "o pack de mentira, sem tema de bat e btop, é pendência dita, e não erro" \
+    || falha "o pack de mentira não disse que o flavor dele não tem tema de bat e btop" "$saida"
+fi
+
 # A ABA ÍCONES FALA COM AS PALAVRAS DO PACK NO AR. É a conferência da sprint no
 # nível do dado que a página desenha: com o Dracula no ar, nenhuma opção
 # oferecida carrega "Mocha" nem "Frappé", e o molde `${FLAVOR}` não é rótulo de

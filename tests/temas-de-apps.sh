@@ -69,7 +69,7 @@ declare -A TETO=(
   [toolkits-gtk-qt]=0  # nunca teve citação em código; as 5 dele são comentário
   [zapzap]=1
   [heroic]=5           # 246 citações no total; 241 são nomes de arte upstream
-  [btop-bat]=6
+  [btop-bat]=3         # era 6; a P49 (24/09/2026) tirou a família cravada e as duas frases «Catppuccin <flavor>»
   [vscode]=6
   [obsidian]=9         # o módulo da prova pelo avesso, e o próximo da fila
   [kitty]=0            # os cinco da P42 (24/09/2026) nasceram com teto zero
@@ -468,6 +468,24 @@ saida="$(mod discord aplicar)"; rc=$?
 [ "$rc" = 3 ] && printf '%s' "$saida" | grep -q 'cliente modificado' \
   && ok "discord: o cliente oficial sozinho é pendência, e o motivo diz o que falta" \
   || falha "discord: sem cliente modificado não saiu pendência com motivo (rc=$rc)" "$saida"
+# PENDENTE NÃO É "NÃO INSTALADO" — 24/09/2026, P49 (achado 45). A tabela do
+# `meow apps` dizia Discord e qBittorrent «não instalado» com os dois flatpaks do
+# usuário no disco: a coluna lia o código do `detectar`, e ele sai 3 pelo cliente
+# que falta, ou pelo tema que já está no ar. É esta casa, este Discord e um
+# qBittorrent sem o escritor do conf: instalados (0) e pendentes (3), na MESMA
+# linha do TSV que a CLI pinta.
+tabela() {
+  env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
+      XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
+      PACK=dracula FLAVOR=dracula NO_COLOR=1 APPS_ATIVOS="$1" \
+      "$RAIZ/scripts/aplicar_apps.sh" tabela </dev/null 2>/dev/null
+}
+mkdir -p "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
+saida="$(tabela discord,qbittorrent)"
+[ "$saida" = "$(printf 'discord\tdiscord\t0\t3\nqbittorrent\tqbittorrent\t0\t3')" ] \
+  && ok "meow apps: Discord e qBittorrent instalados e pendentes saem «instalado» na tabela" \
+  || falha "meow apps: a coluna «instalado» ainda não é a do programa no disco" "$saida"
+rm -rf "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
 DC="$CASA/.config/Vencord/themes"
 mkdir -p "$DC"
 saida="$(mod discord aplicar)"; rc=$?

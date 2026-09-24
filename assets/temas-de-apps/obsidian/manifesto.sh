@@ -304,6 +304,11 @@ sys.exit(1)
 PYFIM
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+meow_app_instalado() { meow_flatpak_tem "$MEOW_OBSIDIAN_APP_ID"; }
+
 # --- 1. detectar ------------------------------------------------------------
 # Nunca falha: 0 = tem, 3 = não tem. App ausente não é erro.
 #
@@ -341,7 +346,7 @@ meow_app_detectar() {
   # repositório ostree inteiro só por perguntar, que é o que `flatpak info`
   # fazia num HOME sem flatpak nenhum (medido em 10/08/2026). Detecção com
   # efeito colateral faz o MEOW_DRY_RUN=1 mentir.
-  if ! meow_flatpak_tem "$MEOW_OBSIDIAN_APP_ID"; then
+  if ! meow_app_instalado; then
     meow_app_sem "obsidian: $MEOW_OBSIDIAN_APP_ID não instalado"
     return
   fi

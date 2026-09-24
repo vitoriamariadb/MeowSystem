@@ -206,7 +206,54 @@ _bb_btop_bin() { command -v btop >/dev/null 2>&1; }
 #     `MEOW_FAMILIA_PALETA` resolve os dois: sem ela, tudo segue exatamente como
 #     era (`catppuccin`), então quem usa os quatro flavors de sempre não vê
 #     diferença nenhuma. Com ela, o nome e o caminho acompanham a família.
-_bb_familia() { printf '%s' "${MEOW_FAMILIA_PALETA:-catppuccin}"; }
+#
+# A CHAVE SAIU, E A FAMÍLIA VEM DO TEMA QUE ACOMPANHA O FLAVOR — 24/09/2026, P49
+#     A chave do parágrafo acima virou vestígio no primeiro dia em que alguém
+#     trocou de pack. Medido na validação do painel de verdade (achado 12): o
+#     `meow pack usar catppuccin` grava PACK e FLAVOR, e só — o meow.conf vence
+#     o pack —, então `MEOW_FAMILIA_PALETA="dracula"` continuou valendo com o
+#     FLAVOR já em `mocha`, e este módulo foi procurar «Dracula Mocha.tmTheme»
+#     e «dracula_mocha.theme». A etapa apps saiu `falhou`. Refeito numa casa de
+#     brinquedo no mesmo dia: `falharam: btop-bat`, rc=2. E a chave nem tinha
+#     cartão no painel: a pessoa não a via nem a corrigia pela tela.
+#
+#     QUEM A LIA ERA SÓ ESTA FUNÇÃO — um `grep` no repositório inteiro achou a
+#     leitura aqui e mais nada (o resto era comentário). Então o menor conserto
+#     não é dar cartão à chave e ensinar a pessoa a trocá-la junto com o pack: é
+#     a chave deixar de existir. O meow.conf de quem já a tem continua sendo
+#     lido sem quebrar — é uma linha de shell que ninguém consulta mais.
+#
+#     POR QUE A FAMÍLIA NÃO É O ID DO PACK NO AR
+#     Seria a resposta óbvia, e está errada: o `meow pack novo` cria um pack com
+#     outro id e a paleta do Catppuccin byte a byte (a seção 20 do
+#     `tests/pack.sh` cobra isso), e com ele no ar o módulo procuraria «<Id>
+#     Mocha.tmTheme». O que diz qual é a família de um flavor é o tema
+#     VENDORIZADO para ele, que está aqui do lado: `upstream/btop/<flavor>.theme`
+#     quando o flavor é um tema inteiro (o Dracula), e `<família>_<flavor>.theme`
+#     quando é um flavor dentro de uma família. O nome do bat sai da mesma
+#     família (as duas pastas vêm do mesmo SHA256SUMS, uma por flavor).
+#
+#     FLAVOR SEM TEMA VENDORIZADO — o `alucard` do Dracula, o flavor de um pack
+#     de terceiro — devolve vazio, e o `_bb_tem_tema` logo abaixo transforma isso
+#     em pendência dita (3), e não no erro de arquivo faltando: trocar para um
+#     pack que não traz tema de bat e btop não é defeito do repositório.
+_bb_familia() {
+  local f arq
+  f="$(_bb_flavor)"
+  if [ -f "$MEOW_BB_DIR/upstream/btop/$f.theme" ]; then printf '%s' "$f"; return 0; fi
+  for arq in "$MEOW_BB_DIR/upstream/btop/"*_"$f.theme"; do
+    if [ -f "$arq" ]; then
+      arq="${arq##*/}"
+      printf '%s' "${arq%_"$f".theme}"
+      return 0
+    fi
+  done
+  return 0
+}
+_bb_tem_tema() { [ -n "$(_bb_familia)" ]; }
+_bb_avisar_sem_tema() {
+  meow_pula "btop/bat: o flavor '$(_bb_flavor)' não tem tema vendorizado em assets/temas-de-apps/btop-bat/upstream — os dois ficam como estão"
+}
 _bb_familia_titulo() {
   local f; f="$(_bb_familia)"
   printf '%s' "$(printf '%s' "${f:0:1}" | tr '[:lower:]' '[:upper:]')${f:1}"
@@ -618,20 +665,24 @@ _bb_btop_aplicar() {
 # a interface do contrato: as três funções
 # ═══════════════════════════════════════════════════════════════════════════
 
-# 0 = pelo menos um dos dois está instalado · 3 = nenhum. Nunca falha.
+# 0 = pelo menos um dos dois está nesta máquina · 1 = nenhum. É a regra de
+# "instalado" que a tabela do `meow apps` pergunta (ver o `rodar_modulo` do
+# scripts/aplicar_apps.sh, 24/09/2026, P49), e o `detectar` logo abaixo abre
+# com ela.
+meow_app_instalado() { [ "$(_bb_presentes)" != "0" ]; }
+
+# 0 = pelo menos um dos dois está instalado, e o flavor tem tema aqui · 3 = não
+# dá para trabalhar. Nunca falha.
 meow_app_detectar() {
-  local achou=0 bat_bin
-  if bat_bin="$(_bb_bat_bin)"; then
-    meow_info "bat encontrado como '$bat_bin'"
-    achou=1
+  local bat_bin
+  if ! meow_app_instalado; then
+    meow_pula "btop e bat não estão instalados (sudo apt install btop bat)"
+    return "$MEOW_SEM_DEPENDENCIA"
   fi
-  if _bb_btop_bin; then
-    meow_info "btop encontrado"
-    achou=1
-  fi
-  if [ "$achou" = "1" ]; then return "$MEOW_OK"; fi
-  meow_pula "btop e bat não estão instalados (sudo apt install btop bat)"
-  return "$MEOW_SEM_DEPENDENCIA"
+  if bat_bin="$(_bb_bat_bin)"; then meow_info "bat encontrado como '$bat_bin'"; fi
+  if _bb_btop_bin; then meow_info "btop encontrado"; fi
+  if ! _bb_tem_tema; then _bb_avisar_sem_tema; return "$MEOW_SEM_DEPENDENCIA"; fi
+  return "$MEOW_OK"
 }
 
 # Quantos dos dois estão presentes. 0 = nenhum.
@@ -666,14 +717,17 @@ _bb_pior() {
 meow_app_conferir() {
   local pior=0 bat_rc btop_rc
   if [ "$(_bb_presentes)" = "0" ]; then return "$MEOW_SEM_DEPENDENCIA"; fi
+  if ! _bb_tem_tema; then _bb_avisar_sem_tema; return "$MEOW_SEM_DEPENDENCIA"; fi
 
   _bb_bat_conferir;  bat_rc=$?;  pior="$(_bb_pior "$pior" "$bat_rc")"
   _bb_btop_conferir; btop_rc=$?; pior="$(_bb_pior "$pior" "$btop_rc")"
 
   if [ "$bat_rc" = "3" ] && [ "$btop_rc" = "3" ]; then return "$MEOW_SEM_DEPENDENCIA"; fi
 
+  # O NOME É O DO TEMA, E NÃO "Catppuccin <flavor>" — 24/09/2026, P49: com o
+  # Dracula no ar a frase dizia «Catppuccin dracula já aplicado».
   if [ "$pior" = "0" ]; then
-    meow_ok "$(_bb_rotulo "$bat_rc" "$btop_rc"): Catppuccin $(_bb_flavor) já aplicado"
+    meow_ok "$(_bb_rotulo "$bat_rc" "$btop_rc"): $(_bb_bat_tema_nome) já aplicado"
   fi
   return "$pior"
 }
@@ -685,6 +739,7 @@ meow_app_aplicar() {
     meow_pula "btop e bat não estão instalados — temas prontos em $MEOW_BB_DIR/upstream para o dia da instalação"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  if ! _bb_tem_tema; then _bb_avisar_sem_tema; return "$MEOW_SEM_DEPENDENCIA"; fi
 
   # O carimbo do backup é fixado AQUI, no shell de cima. Se ficasse a cargo do
   # `_bb_backup`, cada pipeline `texto | _bb_instalar_stdin` rodaria num
@@ -705,7 +760,7 @@ meow_app_aplicar() {
     1) if meow_seco; then
          meow_muda "$rotulo: divergente — nada foi gravado (MEOW_DRY_RUN=1)"
        else
-         meow_ok "$rotulo: Catppuccin $(_bb_flavor) aplicado"
+         meow_ok "$rotulo: $(_bb_bat_tema_nome) aplicado"
        fi ;;
   esac
   return "$pior"

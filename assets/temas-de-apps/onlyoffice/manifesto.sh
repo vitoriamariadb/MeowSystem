@@ -190,9 +190,14 @@ _oo_gravar_conf() {
   return "$MEOW_DIVERGENTE"
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+meow_app_instalado() { _oo_lugares; }
+
 meow_app_detectar() {
   MEOW_APP_MOTIVO=""
-  _oo_lugares || { meow_app_sem "OnlyOffice: não está instalado"; return; }
+  meow_app_instalado || { meow_app_sem "OnlyOffice: não está instalado"; return; }
   # python3 monta o tema e lê o conf; pgrep é o guarda do app aberto — sem ele
   # o guarda falharia para ABERTO e a escolha seria escrita por baixo do app.
   local falta

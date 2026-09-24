@@ -30,9 +30,10 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #
 # `tabela` existe para o `meow apps` não precisar de uma SEGUNDA cópia do
 # `pasta_de` e do `rodar_modulo`. Ele imprime TSV cru — uma linha por módulo,
-# `pasta<TAB>slugs<TAB>rc_detectar<TAB>rc_conferir` — e quem pinta a tabela é a
-# CLI. Duas listas de slug-para-pasta em arquivos diferentes é como se ganha uma
-# tabela que mente sobre um app três meses depois.
+# `pasta<TAB>slugs<TAB>rc_instalado<TAB>rc_conferir` (a terceira era o
+# `rc_detectar` até 24/09/2026, P49) — e quem pinta a tabela é a CLI. Duas
+# listas de slug-para-pasta em arquivos diferentes é como se ganha uma tabela
+# que mente sobre um app três meses depois.
 ACAO="${1:-aplicar}"
 APPS="${APPS_ATIVOS:-}"
 
@@ -88,6 +89,27 @@ rodar_modulo() {
           meow_pula "o módulo '$pasta' não sabe desfazer"
           exit "$MEOW_SEM_DEPENDENCIA"
         fi ;;
+      # QUINTO VERBO: O PROGRAMA ESTÁ NESTA MÁQUINA? — 24/09/2026, P49
+      #   0 = está, 1 = não está. Só isso: não é "dá para vestir" (quem responde
+      #   isso é o `detectar`, e com o motivo). Medido na validação do painel de
+      #   verdade (achado 45): a tabela do `meow apps` disse qBittorrent e
+      #   Discord «não instalado», e os dois estavam (flatpak do usuário, com o
+      #   diretório em ~/.local/share/flatpak/app). A tabela lia o código do
+      #   `detectar` como se fosse "instalado", e o `detectar` sai 3 por
+      #   qualquer coisa que impeça de vestir: o Discord sem cliente modificado,
+      #   o qBittorrent já vestido por um tema que não veio daqui. Duas regras
+      #   de "instalado", e a da tabela mentia.
+      #   Agora é UMA: cada módulo diz a dele em `meow_app_instalado`, o
+      #   `detectar` dele abre com ela, e a tabela pergunta a mesma função. O
+      #   `tests/reversao.sh` cobra que todo módulo a tenha, como cobra o
+      #   `reverter` — sem ela a coluna não teria como não mentir.
+      instalado)
+        if declare -F meow_app_instalado >/dev/null; then
+          meow_app_instalado
+        else
+          meow_erro "o módulo '$pasta' não diz se o programa está instalado"
+          exit 2
+        fi ;;
       *) meow_erro "ação desconhecida para o módulo '$pasta': $acao"; exit 2 ;;
     esac
   )
@@ -130,10 +152,12 @@ if [ "$ACAO" = "tabela" ]; then
     ORDEM+=("$pasta")
     SLUGS_DE[$pasta]="$slug"
   done
+  # A terceira coluna é o `instalado`, e não o `detectar` (ver o quinto verbo,
+  # no `rodar_modulo`): "não dá para vestir" não é "não está instalado".
   for pasta in "${ORDEM[@]}"; do
-    rodar_modulo "$pasta" detectar >/dev/null 2>&1; rc_det=$?
+    rodar_modulo "$pasta" instalado >/dev/null 2>&1; rc_inst=$?
     rodar_modulo "$pasta" conferir >/dev/null 2>&1; rc_conf=$?
-    printf '%s\t%s\t%s\t%s\n' "$pasta" "${SLUGS_DE[$pasta]}" "$rc_det" "$rc_conf"
+    printf '%s\t%s\t%s\t%s\n' "$pasta" "${SLUGS_DE[$pasta]}" "$rc_inst" "$rc_conf"
   done
   exit "$MEOW_OK"
 fi

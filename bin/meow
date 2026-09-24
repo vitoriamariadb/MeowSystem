@@ -4184,19 +4184,28 @@ cmd_pack() {
       #     O painel só tem cartão para as chaves do meow.conf.exemplo; uma
       #     chave fora dele (a `MEOW_FAMILIA_PALETA` de cima é uma) é julgada
       #     pela mesma função, e a frase diz que ela não tem onde aparecer lá.
+      #
+      #   A `MEOW_FAMILIA_PALETA` DEIXOU DE SER LIDA — 24/09/2026, P49
+      #     O `btop-bat` passou a tirar a família do tema vendorizado para o
+      #     flavor (`_bb_familia`, no manifesto dele), e ele era o único leitor.
+      #     A linha continua no meow.conf de quem a tinha e não vale mais nada:
+      #     listá-la entre as que "continuam valendo" seria esta frase mentindo.
+      #     `APOSENTADAS` são as chaves que o projeto parou de ler — uma lista,
+      #     e não uma dedução, porque "ninguém mais lê" não se mede do conf.
       local restos="" fora="" linha chave dono onde
       linha="$(MEOW_RAIZ="$RAIZ" MEOW_CONF="$copia/meow.conf" MEOW_CONF_PADRAO="$CONF_PADRAO" \
         python3 - "$RAIZ" 2>/dev/null <<'PY'
 import os, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "app"))
 import servidor
+APOSENTADAS = {"MEOW_FAMILIA_PALETA"}
 com_cartao = set()
 for item in servidor.ler_esquema():
     com_cartao.add(item["chave"])
     if item.get("vestigio_de_pack"):
         print("%s\t%s\tcartao" % (item["chave"], item["vestigio_de_pack"]["pack"]))
 for chave in sorted(servidor.valores_brutos()):
-    v = None if chave in com_cartao else servidor._vestigio_de_pack(chave)
+    v = None if chave in com_cartao or chave in APOSENTADAS else servidor._vestigio_de_pack(chave)
     if v:
         print("%s\t%s\tfora" % (chave, v["pack"]))
 PY

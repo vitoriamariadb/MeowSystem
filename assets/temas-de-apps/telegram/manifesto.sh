@@ -52,9 +52,14 @@ _tg_no_ar() {
   if [ -n "$_TG_NO_AR" ]; then _TG_NOSSO=1; else _TG_NO_AR="$_TG_ARQ"; fi
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+meow_app_instalado() { _tg_instalado; }
+
 meow_app_detectar() {
   MEOW_APP_MOTIVO=""
-  _tg_instalado || { meow_app_sem "Telegram: não está instalado"; return; }
+  meow_app_instalado || { meow_app_sem "Telegram: não está instalado"; return; }
   meow_tem python3 || { meow_app_sem "Telegram: falta python3, que monta o tema com a paleta do pack"; return; }
   meow_app_tema_do_pack telegram.arquivo
   _TG_DE="$MEOW_APP_TEMA_PACK"

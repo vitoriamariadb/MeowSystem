@@ -192,6 +192,11 @@ sys.stdout.write('\n'.join(saida))
 PY
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+meow_app_instalado() { meow_flatpak_tem "$_ZZ_APP"; }
+
 # CADA SAÍDA-3 DAQUI DECLARA A CAUSA [21/09/2026]
 #   As quatro linhas abaixo devolviam o mesmo 3 sem uma palavra, e o `aplicar`
 #   traduzia todas elas por "ZapZap não instalado (ou falta python3)" — que
@@ -203,7 +208,7 @@ meow_app_detectar() {
   meow_tem flatpak || { meow_app_sem "ZapZap: o flatpak não está instalado"; return; }
   # por diretório, não por `flatpak info`: aquele cria o repositório ostree no
   # home só por ser perguntado, e detecção não pode escrever (ver lib/comum.sh).
-  meow_flatpak_tem "$_ZZ_APP" || { meow_app_sem "ZapZap: $_ZZ_APP não está instalado"; return; }
+  meow_app_instalado || { meow_app_sem "ZapZap: $_ZZ_APP não está instalado"; return; }
   [ -f "$_ZZ_ORIGEM" ] || { meow_app_sem "ZapZap: não achei o .desktop do flatpak em $_ZZ_ORIGEM"; return; }
   # O python3 continua sendo dependência por causa do `ZapZap.conf` (a chave da
   # bandeja). O `whatsapp-desktop` do Papirus saiu da lista em 11/08/2026: ele
