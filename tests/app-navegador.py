@@ -136,11 +136,12 @@ except ImportError:
 #   morria antes, no `networkidle`, e nunca chegava ate' la'. Nao se planta:
 #   a oficina passa a escolher um aplicativo em que a mudanca da Suavidade
 #   aparece na lupa (ver o passo 22).
-#   A reprovacao que sobra NAO e' do brinquedo: o `FLAVOR` nao ganha amostras
-#   em casa nenhuma, porque as cinco opcoes dele nao cabem na paleta de nenhum
-#   dos dois packs (4 no catppuccin, 2 no dracula) — medido com `FLAVOR` mocha
-#   e dracula. Ela reprova o "FLAVOR mostra as paletas" do passo 4 e derruba o
-#   passo 20c, e o conserto e' do `servidor.py`, fora do que a P33 libera.
+#   A reprovação que sobrava NÃO era do brinquedo: o `FLAVOR` não ganhava
+#   amostras em casa nenhuma, porque as cinco opções do exemplo não cabem na
+#   paleta de nenhum dos dois packs (4 no catppuccin, 2 no dracula). Ela
+#   reprovava o "FLAVOR mostra as paletas" do passo 4 e derrubava o passo 20c.
+#   O conserto era do `servidor.py`, fora do que a P33 liberava, e veio na P40
+#   (24/09/2026): a prévia se pergunta de novo sobre os flavors do pack no ar.
 BRINQUEDO = tempfile.mkdtemp(prefix="meow-navegador-")
 CASA = os.path.join(BRINQUEDO, "casa")
 CONF = os.path.join(CASA, ".config", "meow", "meow.conf")

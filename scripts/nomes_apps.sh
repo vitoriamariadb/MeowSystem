@@ -369,7 +369,14 @@ for linha in "${LINHAS[@]}"; do
   [ "$achou" = 0 ] && ausentes=$((ausentes + 1))
 done
 
-total="$(grep -cvE '^[[:space:]]*(#|$)' "$MEOW_NOMES_MAPA" 2>/dev/null || printf 0)"
+# O `grep -c` JÁ IMPRIME O ZERO — 24/09/2026, sprint P45
+#   Ele conta, imprime `0` e SAI 1 quando nada casa; o `|| printf 0` que estava
+#   aqui somava um segundo zero, e com o mapa vazio (ou só de comentário) a tela
+#   dizia "(0\n0 no mapa", quebrando a linha no meio. O padrão só vale para o
+#   caso em que o grep não imprime nada: o mapa que ele não consegue ler (o que
+#   não existe já parou lá em cima, com "não achei o mapa de nomes").
+total="$(grep -cvE '^[[:space:]]*(#|$)' "$MEOW_NOMES_MAPA" 2>/dev/null)"
+total="${total:-0}"
 
 if [ "$falhou" = 1 ]; then
   meow_erro "algum nome não pôde ser reescrito"

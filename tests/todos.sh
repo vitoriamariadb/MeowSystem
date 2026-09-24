@@ -16,8 +16,12 @@
 #   Metade desta suíte roda em qualquer lugar — HOME de brinquedo, `env -i`,
 #   `MEOW_IGNORA_DESKTOP=1`, nada além de bash e python3. A outra metade só
 #   responde a verdade NA MÁQUINA DELA: precisa do Papirus instalado, do
-#   `rsvg-convert`, do Playwright com Chromium, ou de subir o painel e escrever
-#   uma isca dentro do `~/.local/share/icons` de verdade.
+#   `rsvg-convert`, do Playwright com Chromium, ou dos `.desktop` que estão
+#   instalados nela. (A lista dizia também "subir o painel e escrever uma isca
+#   dentro do `~/.local/share/icons` de verdade", e estava velha desde a P40: o
+#   `previa-cerca.sh` planta a isca numa casa de brinquedo, e um `grep` por
+#   `local/share/icons` em `tests/` só acha casas de brinquedo — 24/09/2026,
+#   P45.)
 #
 #   Misturar os dois faz o CI ficar vermelho por AUSÊNCIA e não por defeito — e
 #   vermelho que não significa nada é a coisa que este arquivo veio matar, não
@@ -82,7 +86,7 @@ PORTATIL=(
 MAQUINA=(
   conversor.sh           # traça a partir de /usr/share/icons/Papirus; muda com a versão do pacote
   afinador.sh            # precisa de rsvg-convert e do `compare` do ImageMagick
-  previa-cerca.sh        # sobe o painel e planta uma isca no ~/.local/share/icons de verdade
+  previa-cerca.sh        # painel numa casa de brinquedo (P40); serve um .svg do Papirus da máquina
   app-navegador.py       # Playwright com Chromium, a página usada como ela usaria
   app-acessibilidade.py  # Playwright com Chromium; sobe o painel
   oficina.sh             # lê os .desktop da máquina: o desenho de pack que veste um deles tem cartão

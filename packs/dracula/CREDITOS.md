@@ -63,15 +63,24 @@ quatro sabores do Catppuccin e nada além: não existe um `catppuccin/dracula`.
 
 ## O que este pack NÃO traz, e de quem herda
 
-O `pack.json` diz na cara: este pack é uma paleta e dois acervos de ícone.
-`meow pack info dracula` imprime a herança linha a linha.
+Até 24/09/2026 este parágrafo dizia que o pack era "uma paleta e dois acervos
+de ícone", e a tabela punha o ponteiro no `catppuccin` por falta de um release
+Dracula fixável por tag. As duas frases envelheceram com a P41, que achou o
+release e pinou dois pacotes que quem instala baixa e confere pelo `sha256`: a
+base de ícones (`m4thewz/dracula-icons`, ramo `circle`, commit `00a230a2`,
+GPL-3.0) e o ponteiro (`Dracula-cursors.tar.xz`, release v4.0.0 do
+`dracula/gtk`, GPL-3.0). Depois dela a P42 trouxe cinco temas de aplicativo, e
+o sino (o bloco `som`) já era do pack. Recontado pelo `meow pack info dracula`,
+que imprime a herança linha a linha, o que o pack não traz é isto:
 
 | categoria | de quem |
 |---|---|
 | mimetypes | `catppuccin`, flavor `macchiato` — não existe acervo de mimetype Dracula |
-| cursores | `catppuccin`, tema `catppuccin-mocha-light` — não há pack de agente Dracula com release fixável por tag |
+| mapa do COSMIC | `catppuccin` — `cosmic.mapa` é `null`: vale o molde inteiro, e só o nome da paleta muda |
+| tema do qBittorrent | `catppuccin` — o `dracula.qbtheme` não tem procedência, e o `_nota_qbittorrent` do `pack.json` conta por que não entrou |
+| fontes | a herança manda buscar no `catppuccin`, que não traz nenhuma: vale a Nerd Font do motor |
 | papéis de parede | um repositório nomeado pelas chaves `WALLPAPER_DRACULA_REPO` e `WALLPAPER_DRACULA_COMMIT` do `meow.conf` — nomear a conta de uma pessoa num arquivo versionado é o que se evita aqui |
-| agente, fontes, sons de sistema, prompt, fastfetch, gatos | o pack embutido |
+| prompt, fastfetch, gatos | o motor (`assets/`), igual para todo pack — o formato ainda não tem campo para eles |
 
 ## Licença
 

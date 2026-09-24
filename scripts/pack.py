@@ -290,7 +290,11 @@ CAMPOS_COM_LEITOR = {
     #   Os nove restantes deram `grep` vazio de leitor no mesmo dia: os dois
     #   `recolorir`, `icones.apps.camada`, `paleta.acentos` e os cinco de
     #   `origens.wallpapers` — o `wallpaper.sh` lê `WALLPAPER_DRACULA_*` do
-    #   meow.conf pelo nome do flavor, e não abre pack nenhum.
+    #   meow.conf, e não lê campo nenhum do pack.json. (Aqui dizia "pelo nome
+    #   do flavor, e não abre pack nenhum", e envelheceu com a P40, 24/09/2026:
+    #   a semente segue o pack DONO do flavor, que o `meow_pack_dir` pergunta ao
+    #   `adocao`. Ele acha o pack, mas não lê o bloco — os cinco continuam no
+    #   aviso de campo morto, conferido no `validar dracula` da P45.)
     "icones.autorais.gerar",            # cmd_construir
     "origens.cursores.tema",            # app/servidor.py, `_declarado_pelo_pack`
     # O QUE O PACK BAIXA EM VEZ DE COPIAR — 24/09/2026, sprint P41. A base de
@@ -3946,11 +3950,13 @@ def origens(p):
         # 23/09/2026, sprint P32.
         #   A tabela dizia PRÓPRIO para o Dracula porque ele declara
         #   `origens.wallpapers`, e nenhum código lê esse bloco: o
-        #   `scripts/wallpaper.sh` não abre pack nenhum. Quem escolhe a semente é
-        #   o `_semente_do_flavor` de lá, pelo NOME do flavor — `dracula` lê
-        #   `WALLPAPER_DRACULA_REPO` do meow.conf, todo o resto cai no acervo do
-        #   Catppuccin —, com `WALLPAPER_SEMENTE_REPO` vencendo por cima. Quem
-        #   lia "próprio" acreditava que o pack trazia os papéis de parede dele.
+        #   `scripts/wallpaper.sh` não o abre. Quem escolhe a semente é o
+        #   `_semente_do_flavor` de lá, pelo ID do pack dono do flavor — desde a
+        #   P40 (24/09/2026) ele pergunta ao `adocao` de quem é o flavor, e não
+        #   olha mais o nome dele; `dracula` lê `WALLPAPER_DRACULA_REPO` do
+        #   meow.conf, todo o resto cai no acervo do Catppuccin —, com
+        #   `WALLPAPER_SEMENTE_REPO` vencendo por cima. Quem lia "próprio"
+        #   acreditava que o pack trazia os papéis de parede dele.
         #   Nem HERDADO serve: ninguém sobe a herança desta categoria.
         #
         #   POR QUE MUDA A TELA, E NÃO O SEMEADOR. Dar leitor ao bloco seria um
@@ -3960,7 +3966,7 @@ def origens(p):
         #   e ninguém pediu por ele. O menor passo verdadeiro é a tabela dizer de
         #   onde a imagem sai. Os campos seguem no aviso de campo morto, que conta
         #   que declará-los não faz nada; no dia em que o `wallpaper.sh`
-        #   perguntar ao pack, este bloco sai e a categoria volta à regra geral.
+        #   ler o bloco do pack, este sai e a categoria volta à regra geral.
         if cat == "wallpapers":
             saida.append((cat, "motor", ""))
             continue
@@ -3992,6 +3998,31 @@ def origens(p):
     return saida
 
 
+# A LINHA ESTÁ A UM CARACTERE DO TETO, E O CONSERTO FICA ESCRITO — 24/09/2026,
+# sprint P45, item 10.
+#   Medido hoje: 219 caracteres no Dracula e 195 no Catppuccin, contra os 220
+#   da P7. A próxima categoria que o Dracula declarar estoura, e o
+#   `tests/pack.sh` acusa. Duas propostas, medidas nos dois packs:
+#
+#   A. A família dos ícones vira um item só quando o grupo tem dois ou mais:
+#      "ícones (aplicativo, pastas, autorais, base)". Dracula 204, Catppuccin
+#      179. Continua listando tudo, e por isso cada categoria nova volta a
+#      comer a folga de 15.
+#   B. O grupo MAIOR vira "o resto", e os outros seguem por extenso:
+#      "herdado de catppuccin: mapa do COSMIC, ícones de arquivo, fontes · do
+#      motor, ou ausente: papéis de parede · próprio: o resto". Dracula 124,
+#      Catppuccin 112. É a menor que ainda diz o que é próprio e o que é
+#      herdado — um por extenso, o outro pelo complemento —, e o grupo que mais
+#      cresce é o que deixa de crescer na linha. Nada some: a tabela do `info`
+#      e o «Mais sobre este pack» do cartão listam categoria por categoria.
+#
+#   A proposta é a B, e ela NÃO entrou aqui por causa da tela. Desde a P34 o
+#   cartão não imprime esta função: imprime o `linhaDeOrigem` do
+#   `app/pagina/app.js`, que refaz o mesmo agrupamento a partir das
+#   `categorias` do `vocabulario`. Mudar só este lado faria o `tests/pack.sh`
+#   medir uma linha de 124 enquanto a Home desenha a de 219 — o teste passaria
+#   a mentir para o lado do verde. O app.js não está entre os arquivos da P45;
+#   as duas funções mudam juntas, na sprint que o tiver.
 def resumo_de_origem(p):
     """A tabela do `info` numa linha: 'próprio: … · herdado de X: …'.
 

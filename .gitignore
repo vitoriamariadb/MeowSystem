@@ -36,12 +36,17 @@ assets/fontes/upstream/
 #   é fonte de terceiro do mesmo jeito e entra na cerca, ainda que o instalador
 #   hoje só instale `.otf` e `.ttf`; as maiúsculas porque o `adicionar` aceita
 #   `.OTF` e `.TTF` e grava o nome como veio.
-assets/fontes/locais/*.otf
-assets/fontes/locais/*.ttf
-assets/fontes/locais/*.ttc
-assets/fontes/locais/*.OTF
-assets/fontes/locais/*.TTF
-assets/fontes/locais/*.TTC
+#
+# A CAIXA DA EXTENSÃO É QUALQUER UMA — 24/09/2026, sprint P45
+#   Eram seis linhas, a extensão toda minúscula ou toda maiúscula. Quem LÊ esta
+#   pasta é o `find -iname '*.otf'` do instalador, que não olha caixa, e o nome
+#   que vem de um zip é o que o autor da fonte escreveu: medido com
+#   `git check-ignore`, `.Otf`, `.oTF`, `.Ttf` e `.TtC` passavam pela cerca, e
+#   a fonte seria instalada e ficaria a um `git add -A` de entrar num commit,
+#   com a EULA junto. A classe de cada letra cobre as oito caixas de uma vez.
+assets/fontes/locais/*.[oO][tT][fF]
+assets/fontes/locais/*.[tT][tT][fF]
+assets/fontes/locais/*.[tT][tT][cC]
 
 # Imagens nunca vão para o git (o Andromeda ficou 18h com o auto-sync mudo por um
 # arquivo >100MB; aqui a regra é preventiva).

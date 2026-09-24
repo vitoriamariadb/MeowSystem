@@ -375,6 +375,22 @@ meow_desinstalar() {
     if meow_seco; then meow_muda "removeria $dir/"; else rm -rf "$dir"; meow_ok "removido $dir/"; fi
   done
 
+  # A BASE DE ÍCONES DO PACK SAI JUNTO — 24/09/2026, sprint P45
+  #   Desde a P41 o `construir_icones.sh` instala, ao lado do nosso tema, a
+  #   base que o pack declara, em `<NOME_TEMA_ICONES>-Base`. Este passo tirava
+  #   o tema e esquecia a base: medido no pacote pinado do Dracula, sobravam
+  #   15 MB em 25.010 entradas, herdadas por ninguém.
+  #   A MARCA DE DONO É A MESMA DO CONSTRUTOR: só sai o diretório com o
+  #   `.meow-origem` que o `construir_icones.sh` grava. Sem ela o `_ci_base_tirar`
+  #   de lá também não toca ("não foi este script que o pôs lá"), e o
+  #   desinstalador não pode ter a mão mais pesada que quem instalou.
+  dir="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}-Base"
+  if [ -d "$dir" ] && [ ! -f "$dir/.meow-origem" ]; then
+    meow_pula "não foi o MeowSystem que pôs, fica: $dir/"
+  elif [ -d "$dir" ]; then
+    if meow_seco; then meow_muda "removeria $dir/"; else rm -rf "$dir"; meow_ok "removido $dir/"; fi
+  fi
+
   # --- O ACERVO DE PAPEL DE PAREDE NÃO ENTRA NO LAÇO ACIMA (25/08/2026) -------
   #
   # Ele estava lá, e era um `rm -rf` de 320 MB de curadoria dela.
