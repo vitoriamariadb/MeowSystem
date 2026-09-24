@@ -17,14 +17,22 @@
 #   não tinha dono na suíte — o `tests/pack.sh` conta a biblioteca CONTRA ele,
 #   de propósito, e ninguém conferia o avesso.
 #
-# AS DUAS PERGUNTAS
+# AS TRÊS PERGUNTAS
 #   1. NENHUM CÓDIGO QUE RODA NOMEIA O `Dracula_OS-Theme`. Fora de comentário e
 #      de docstring, em tudo o que é versionado e roda: bin/, scripts/, lib/,
-#      app/, assets/, systemd/, src/, packs/ e o install.sh.
+#      app/, assets/, systemd/, src/, packs/ e o install.sh. E, desde a P43, a
+#      coluna `lido de` de todo PROCEDENCIA.md, que é DADO que o código abre.
 #   2. A MONTAGEM LÊ DO PACK, NUMA CASA ONDE O `Dracula_OS-Theme` NÃO EXISTE. O
 #      instalador da camada Dracula roda num HOME de brinquedo e tem de pôr no
-#      tema os 191 desenhos, cada um igual ao arquivo do pack de onde saiu, e
-#      nenhum de fora do repositório. É a máquina de outra pessoa, simulada.
+#      tema os desenhos do mapa, cada um igual ao arquivo do pack de onde saiu,
+#      e nenhum de fora do repositório. É a máquina de outra pessoa, simulada.
+#      (Eram 191 em 23/09; a P43 os levou a 203.)
+#   3. NEM O DOCTOR LÊ (P43, 24/09/2026). O `meow doctor` chama o
+#      `pack.py sincronizar` do pack no ar a cada passada. Ele roda aqui sob um
+#      gancho de auditoria do Python (`sys.addaudithook`, evento `open`), que vê
+#      TODA abertura de arquivo — inclusive a que falha porque o arquivo não
+#      existe. Nenhuma pode cair na casa de quem roda nem num `Dracula_OS-Theme`.
+#      Medido antes da P43, com o PROCEDENCIA.md de então: 364 aberturas lá.
 #
 # COMO A PERGUNTA 1 SEPARA CÓDIGO DE PROSA, E POR QUE NÃO POR ISENÇÃO
 #   O projeto é comentado em prosa densa, e a história da migração cita o
@@ -42,12 +50,16 @@
 #   - `tests/`: o `tests/pack.sh` lê o `Dracula_OS-Theme` de propósito, para
 #     contar por sha256 que a biblioteca inteira chegou ao pack, e pula dizendo
 #     por quê quando ele não existe. Teste não é execução.
-#   - `PROCEDENCIA.md`: é registro. A coluna "lido de" diz de onde cada cópia
-#     veio, e é assim que tem de ser. Quem a LÊ é o `meow pack sincronizar` (e a
-#     linha informativa do `meow doctor`), que compara cópia e origem quando a
-#     origem existe e cala quando não existe — regra 8 da P28. Aquilo não
-#     alimenta a montagem, e a pergunta 2 prova: sem o `Dracula_OS-Theme`, os
-#     191 chegam iguais.
+#   - A PROSA do `PROCEDENCIA.md` e a coluna "de onde": são registro, e dizer
+#     de onde cada cópia veio é o trabalho daquele arquivo.
+#
+#   ATÉ 24/09/2026 ELE POUPAVA O PROCEDENCIA.md INTEIRO, e isso ficou velho. A
+#   coluna "lido de" não é prosa: o `meow pack sincronizar` a abre, e o
+#   `meow doctor` o chama a cada passada — com o Dracula no ar, eram 364
+#   arquivos do `Dracula_OS-Theme` relidos na pasta pessoal de quem o escreveu.
+#   A decisão de 23/09 foi aposentar essa comparação (P43): a coluna ficou
+#   vazia, a origem continua em "de onde", e as perguntas 1 e 3 cobram as duas
+#   metades — nenhum `lido de` nomeia o repositório, e nada é aberto lá.
 #
 # CÓDIGOS DE SAÍDA (os do projeto)
 #   0 = tudo cobrado passou · 1 = achados · 2 = erro deste teste.
@@ -129,14 +141,24 @@ def tem_shebang(caminho):
     except OSError:
         return False
 
+sys.path.insert(0, os.path.join(raiz, "scripts"))
+import pack  # noqa: E402 — o leitor de PROCEDENCIA.md do próprio sincronizar
+
 versionados = subprocess.run(["git", "-C", raiz, "ls-files", "-z"],
                              capture_output=True, check=True).stdout.decode().split("\0")
 for rel in versionados:
     if not rel or not (rel.startswith(RODA) or rel in SOLTOS):
         continue
-    if os.path.basename(rel) == "PROCEDENCIA.md":
-        continue
     caminho = os.path.join(raiz, rel)
+    if os.path.basename(rel) == "PROCEDENCIA.md":
+        # Só a coluna `lido de`, lida pelo MESMO leitor do `sincronizar`: uma
+        # segunda leitura da tabela aqui discordaria da dele no dia em que
+        # alguém mudasse a ordem das colunas.
+        if os.path.isfile(caminho):
+            for lin in pack._tabela_procedencia(caminho):
+                if ALVO in lin.get("lido de", ""):
+                    print(f"{rel}: {lin.get('arquivo', '?')} — lido de {lin['lido de']}")
+        continue
     if not os.path.isfile(caminho):
         continue
     try:
@@ -232,6 +254,52 @@ done <<< "$pares"
   && ok "numa casa sem o Dracula_OS-Theme, a montagem põe no tema os $total desenhos, cada um igual ao do pack" \
   || falha "a montagem do Dracula não reproduziu o pack ($postos de $total iguais, rc=$rc)" \
            "$(printf '%s' "$diferentes" | head -10; tail -5 "$T/instalar.log")"
+
+# --- 3. nem o doctor lê: o sincronizar sob um gancho de auditoria (P43) -----
+#   A linha do doctor é esta, e é ELA que se roda abaixo. Se o doctor passar a
+#   chamar outra coisa, esta conferência deixa de medir o doctor — e diz.
+if grep -qF 'python3 "$RAIZ/scripts/pack.py" sincronizar "$pack_proc"' "$RAIZ/bin/meow"; then
+  ok "o doctor ainda compara a arte pelo 'pack.py sincronizar' do pack no ar"
+else
+  falha "o doctor não chama mais o 'pack.py sincronizar' do pack no ar — a pergunta 3 precisa ser refeita"
+fi
+# Uma casa própria: a pergunta 2 confere que a dela nunca ganha um
+# `Dracula_OS-Theme`, e esta não precisa de nenhum para medir — o gancho vê a
+# tentativa de abrir, exista o arquivo ou não.
+CASA3="$T/casa-do-doctor"
+mkdir -p "$CASA3"
+lidos="$(env HOME="$CASA3" XDG_DATA_HOME="$T/xdg" MEOW_PACKS="$T/packs" MEOW_RAIZ="$RAIZ" \
+  python3 - "$RAIZ" "$RAIZ/packs/dracula" "$CASA3" <<'PY'
+import contextlib, io, os, runpy, sys
+raiz, alvo, casa = sys.argv[1:4]
+abertos = []
+def gancho(evento, args):
+    if evento == "open" and args and isinstance(args[0], (str, bytes)):
+        abertos.append(os.fsdecode(args[0]))
+sys.addaudithook(gancho)
+sys.argv = [os.path.join(raiz, "scripts", "pack.py"), "sincronizar", alvo]
+rc = 0
+with contextlib.redirect_stdout(io.StringIO()):
+    try:
+        runpy.run_path(sys.argv[0], run_name="__main__")
+    except SystemExit as e:
+        rc = e.code or 0
+fora = [a for a in abertos if a.startswith(casa + os.sep) or "Dracula_OS-Theme" in a]
+print(f"rc={rc}")
+for a in fora:
+    print(a)
+PY
+)"; rc=$?
+if [ "$rc" != "0" ]; then
+  falha "o gancho de auditoria não rodou (rc=$rc)" "$lidos"
+elif [ "$(printf '%s\n' "$lidos" | sed -n 1p)" != "rc=0" ]; then
+  falha "o sincronizar do Dracula não saiu 0 — o doctor diria que a arte se separou da origem" "$lidos"
+elif [ "$(printf '%s\n' "$lidos" | grep -c .)" != "1" ]; then
+  falha "o sincronizar que o doctor chama abriu arquivo na casa de quem roda ou no Dracula_OS-Theme" \
+        "$(printf '%s\n' "$lidos" | sed 1d | head -5)"
+else
+  ok "o sincronizar que o doctor chama não abre nada na casa de quem roda nem no Dracula_OS-Theme"
+fi
 
 printf '\n'
 [ "$falhas" -eq 0 ] && exit 0

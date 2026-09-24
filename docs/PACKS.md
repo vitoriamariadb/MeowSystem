@@ -1017,8 +1017,9 @@ borrar.
 
 Arte de terceiro entra no pack **copiada**, e não apontada. Apontar para
 `~/.local/share/icons/Dracula-Icones/` seria depender de um diretório que o
-`rebuild_dracula_theme()` do Spellbook-OS reescreve do zero — aconteceu em
-21/09/2026, às 16:52:33. A regra já estava escrita em
+`rebuild_dracula_theme()` do Spellbook-OS reescrevia do zero — aconteceu em
+21/09/2026, às 16:52:33 (a P37 desativou aquela função em 23/09, e o Dracula
+passou a ser montado do pack). A regra já estava escrita em
 `assets/icones/PROCEDENCIA.md` desde 16/09 (*"por que copiar em vez de
 apontar"*); a P28 a levou ao pack inteiro.
 
@@ -1027,14 +1028,24 @@ Cada cópia ganha uma linha no `packs/<id>/PROCEDENCIA.md`:
 ```
 | arquivo | de onde | lido de | licença | copiado em | sha256 |
 |---|---|---|---|---|---|
-| `icones/apps/net.waterfox.waterfox.svg` | `m4thewz/dracula-icons`, ramo `circle` — … | `~/Desenvolvimento/Dracula_OS-Theme/src/icons/upstream/…/firefox.svg` | GPL-3.0 | 2026-09-23 | `a13118bd…` |
+| `icones/apps/net.waterfox.waterfox.svg` | `m4thewz/dracula-icons`, ramo `circle` — … |  | GPL-3.0 | 2026-09-23 | `a13118bd…` |
+| `icones/apps/guvcview.svg` | este repositório — `assets/icones/resgatados/guvcview.svg` | `motor:resgatados/guvcview.svg` | a do pacote `guvcview` | 2026-09-17 | `085829f8…` |
 ```
 
 `lido de` aceita `~/…`, `motor:…` ou caminho absoluto, e é só **lido**. Para
 publicar, a casa vai como `~/…`: um `/home/<nome>/…` ali é nome de usuário, e o
-`validar` recusa (item 13 de [Validar antes de publicar](#validar-antes-de-publicar)). O
-`sha256` é o da cópia no dia da cópia — o terceiro ponto que permite dizer qual
-lado andou:
+`validar` recusa (item 13 de [Validar antes de publicar](#validar-antes-de-publicar)).
+
+**`lido de` vazio é só registro** (24/09/2026, P43). A origem fica escrita como
+texto em `de onde`, o `sincronizar` confere que o arquivo existe no pack e não
+abre nada fora dele. É o que o Dracula faz desde que a comparação com o
+`Dracula_OS-Theme` foi aposentada — ele só existe na máquina de quem o escreveu,
+e o `meow doctor` relia 364 arquivos dele a cada passada. Uma origem que só
+existe numa máquina não é origem para comparar: é história, e vai em `de onde`.
+A coluna fica, mesmo vazia: é a mesma tabela que o `exportar` lê para a licença.
+
+O `sha256` é o da cópia no dia da cópia — o terceiro ponto que permite dizer
+qual lado andou:
 
 | a cópia | a origem | o `sincronizar` diz |
 |---|---|---|
@@ -1054,9 +1065,9 @@ retoque e o upstream é decisão de autor.
 
 ```bash
 meow pack sincronizar dracula
-#   ok   icones/apps/net.waterfox.waterfox.svg
-#   …
-#   19 de 19 em dia com a origem
+#   ok   icones/apps/guvcview.svg
+#
+#   1 de 1 em dia com a origem · 366 só registro, sem origem a ler
 ```
 
 A coluna `lido de` precisa ter a mesma extensão do `arquivo`: ela é dado de
