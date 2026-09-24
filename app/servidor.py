@@ -1208,6 +1208,21 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
                            for f in flavors}
         item["frase"] = ("As variantes do pack «%s», do escuro ao claro. Vale com "
                          "qualquer cor de destaque." % nome_pack)
+        # A PRÉVIA SE PERGUNTA DE NOVO, SOBRE AS OPÇÕES QUE VÃO PARA A PÁGINA —
+        # 24/09/2026, sprint P40
+        #   O `_tipo_de_previa` roda no `ler_esquema`, ANTES deste bloco, e olha
+        #   a linha do exemplo: `mocha | macchiato | frappe | latte | dracula`.
+        #   Cinco nomes não cabem na paleta de pack nenhum (4 no catppuccin, 2 no
+        #   dracula), a resposta era `""`, e a «Variante do tema» saía sem uma
+        #   amostra em casa nenhuma desde a P31 — o `tests/app-navegador.py`
+        #   reprovava "FLAVOR mostra as paletas" e morria no passo 20c, sem
+        #   botão de amostra para clicar. A pergunta é a mesma função, feita ao
+        #   conteúdo novo, e não uma exceção para esta chave: com um valor de
+        #   agora que o pack não tem, a resposta continua `""`, e o cartão mostra
+        #   esse valor como opção em vez de escondê-lo — o `controleFlavor`
+        #   pularia o flavor sem cor.
+        item["previa"] = _tipo_de_previa(item["chave"], oferta, item.get("faixa"),
+                                         item.get("padrao"))
 
 
 def _flavors_dos_packs():

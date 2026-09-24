@@ -163,27 +163,41 @@ done
 printf '\n--- 3/3 o .gitignore barra o que ele promete barrar ---\n'
 
 # CONFERIDO COM A FERRAMENTA, E NÃO POR LEITURA — e a diferenca custou caro.
-# Ate 21/09/2026 as quatro linhas diziam `assets/fontes/locais/*.otf`, e esse
-# diretório NUNCA existiu: o acervo real e `assets/fontes/fonts/locais/`. A
-# regra não casava nada, e o paragrafo de licenca ao lado dela — fonte de
-# terceiro vem com EULA própria — estava de pe sozinho. Ler o arquivo dizia que
-# estava protegido; `check-ignore` dizia a verdade.
-for face in teste.otf teste.ttf teste.OTF teste.TTF; do
-  alvo="assets/fontes/fonts/locais/$face"
-  if regra="$(git -C "$RAIZ" check-ignore -v "$alvo" 2>/dev/null)"; then
-    ok "$alvo barrado por ${regra%%$'\t'*}"
-  else
-    falha "$alvo NÃO é barrado — binário de fonte com EULA própria entra no commit"
-  fi
-done
-
-# O LEIA-ME TEM DE CONTINUAR ENTRANDO: a regra e por EXTENSAO, e não por
-# diretório, exatamente para isso. Um `assets/fontes/fonts/locais/*` consertaria
-# o caminho e quebraria a outra metade da decisao, calado.
-if git -C "$RAIZ" check-ignore -q assets/fontes/fonts/locais/LEIA-ME.txt; then
-  falha "o LEIA-ME do acervo de fontes ficou de fora do git — a regra pegou demais"
+# Até 21/09/2026 as linhas diziam `assets/fontes/locais/*.otf`, e o LEIA-ME
+# versionado morava em `assets/fontes/fonts/locais/`; a regra foi mudada para a
+# pasta do LEIA-ME, e o instalador seguiu lendo a outra. Eram duas pastas, e
+# este teste registrava a divergência em vez de medi-la.
+#
+# A PASTA CERCADA É A QUE O INSTALADOR LÊ — 24/09/2026, sprint P40
+#   A decisão de 23/09 ficou com `assets/fontes/locais/`, a do leitor. O
+#   caminho sai do `ACERVO_LOCAL` do `scripts/instalar_fontes.sh`, e não de um
+#   nome escrito aqui: se um dia o instalador mudar de pasta e a regra não, as
+#   faces abaixo deixam de ser barradas e este bloco reprova, em vez de seguir
+#   conferindo a pasta velha. O LEIA-ME tem de estar versionado NESSA pasta —
+#   é o que diz a quem abre o acervo o que soltar ali.
+ACERVO_FONTES="$(sed -n 's|^ACERVO_LOCAL="\$RAIZ/\(.*\)"$|\1|p' "$RAIZ/scripts/instalar_fontes.sh")"
+if [ -z "$ACERVO_FONTES" ]; then
+  falha "não achei o ACERVO_LOCAL no scripts/instalar_fontes.sh — a pasta de fontes não foi conferida"
 else
-  ok "assets/fontes/fonts/locais/LEIA-ME.txt continua versionável"
+  for face in teste.otf teste.ttf teste.ttc teste.OTF teste.TTF teste.TTC; do
+    alvo="$ACERVO_FONTES/$face"
+    if regra="$(git -C "$RAIZ" check-ignore -v "$alvo" 2>/dev/null)"; then
+      ok "$alvo barrado por ${regra%%$'\t'*}"
+    else
+      falha "$alvo NÃO é barrado — binário de fonte com EULA própria entra no commit"
+    fi
+  done
+
+  # O LEIA-ME TEM DE CONTINUAR ENTRANDO: a regra é por EXTENSÃO, e não por
+  # diretório, exatamente para isso. Um `assets/fontes/locais/*` barraria as
+  # fontes e quebraria a outra metade da decisão, calado.
+  if git -C "$RAIZ" check-ignore -q "$ACERVO_FONTES/LEIA-ME.txt"; then
+    falha "o LEIA-ME do acervo de fontes ficou de fora do git — a regra pegou demais"
+  elif ! git -C "$RAIZ" ls-files --error-unmatch "$ACERVO_FONTES/LEIA-ME.txt" >/dev/null 2>&1; then
+    falha "$ACERVO_FONTES/LEIA-ME.txt não está versionado — o acervo que o instalador lê ficou sem explicação"
+  else
+    ok "$ACERVO_FONTES/LEIA-ME.txt versionado, na pasta que o instalador lê"
+  fi
 fi
 
 # O QUE AINDA NÃO SAIU, CONTADO E NÃO AFIRMADO -- 22/09/2026
