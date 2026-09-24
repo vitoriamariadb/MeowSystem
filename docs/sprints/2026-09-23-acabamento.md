@@ -962,3 +962,60 @@ H=$(mktemp -d); HOME=$H meow doctor; find $H -newer /proc/self -type f | wc -l  
 # e nenhum SIGTERM: o pid do cosmic-panel real é o mesmo antes e depois
 meow aplicar (seco) | grep -i fzf     # escreveria as cores do fzf a partir da paleta
 ```
+
+---
+
+# P45 — As pontas que P39–P43 anotaram
+
+Cada item tem dono anotado no relatório da sprint que o viu. Nenhum é grande;
+juntos, são o que faz o produto mentir devagar.
+
+1. **O `--uninstall` deixa a base para trás** (P41): o `lib/desinstalar.sh`
+   remove `MeowSystem-Icons` e esquece `MeowSystem-Icons-Base` — sobram 15 MB e
+   25 mil entradas.
+2. **`meow icones estado` mente sobre a base** (P41): imprime
+   `base=${ICONES_BASE:-Papirus-Dark}`, e não a base que vale (a do pack, pelo
+   `_base_escolhida` do `pack.py`).
+3. **`meow pack info` sem id ignora a adoção por FLAVOR** (P41): com
+   `PACK=""` e `FLAVOR="dracula"` ele abre o pack padrão e mostra o Catppuccin.
+   Uma regra só — a da P35 (`adocao`).
+4. **`packs/dracula/CREDITOS.md` envelheceu** (P41, P43): a linha dos cursores
+   ("não há pack Dracula com release fixável por tag" — agora há, a P41 pinou
+   o `dracula/gtk`), "os 18 desenhos" com a linha do `nyx.svg` (que saiu).
+   Recontar pelo que está no pack.
+5. **`wallpaper.sh`: `_semente_e_pasta` é chamada antes de ser definida**
+   (P40): com `WALLPAPER_DRACULA_REPO` apontando para uma pasta e sem COMMIT,
+   imprime `command not found` e um aviso falso.
+6. **O `.gitignore` das fontes pega só minúscula** (P40): `.Otf`, `.TTF` vindos
+   de um zip escapam. A fonte de terceiro tem EULA.
+7. **Um nome pessoal que sobrou em código**: `scripts/compositor_patches.sh:46`
+   ('dono vitoriamaria'). E os comentários que envelheceram:
+   `tests/todos.sh:85` (o previa-cerca não planta mais isca no HOME real),
+   `scripts/pack.py` ~3579 (a semente não é mais pelo NOME do flavor),
+   `tests/app-navegador.py` 139-143, `tests/pack.sh` ~2046 (o `CASA_ALHEIA`
+   está isento pelo nome), o "sem desenho ainda" do `packs/dracula/icones/apps.map`
+   que cita projetos pessoais (Beholder, Crononauta…) — projeto pessoal não é
+   assunto do pack.
+8. **`scripts/nomes_apps.sh`**: `total=$(grep -c … || printf 0)` imprime
+   `0\n0` quando o mapa está vazio.
+9. **`APPS_ATIVOS` do `meow.conf.exemplo` ganha kitty, gnome-terminal e
+   onlyoffice** (decisão de 24/09): cada módulo se pula sozinho quando o app
+   não existe. O `meow.conf` de quem já instalou não muda.
+10. **O cartão da Home do Dracula está a 219 dos 220 caracteres da P7**
+    (P41): a próxima categoria estoura o teto e o `tests/pack.sh` acusa. A
+    linha de origem do cartão agrupa as categorias em vez de listar uma a uma
+    — medir o texto de hoje dos dois packs e propor o menor que ainda diga o
+    que é próprio e o que é herdado.
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `lib/desinstalar.sh` | 1 |
+| `bin/meow` (`icones estado`, `pack info`) | 2, 3 |
+| `packs/dracula/CREDITOS.md`, `packs/dracula/icones/apps.map` (só o comentário) | 4, 7 |
+| `scripts/wallpaper.sh` | 5 |
+| `.gitignore` | 6 |
+| `scripts/compositor_patches.sh`, `tests/todos.sh`, `scripts/pack.py` (comentário e item 10), `tests/app-navegador.py`, `tests/pack.sh` | 7, 10 |
+| `scripts/nomes_apps.sh` | 8 |
+| `meow.conf.exemplo` | 9 |
