@@ -2019,6 +2019,7 @@ abre um `pack.json`:
 | `validar <id-ou-caminho>` | confere o pack inteiro. 0 = ok, 1 = recusado |
 | `info <id>` | a vitrine no alto; depois o que é próprio, o que é herdado, categoria a categoria |
 | `usar <id> [flavor]` | o `PACK` e o `FLAVOR` que o `meow pack usar` vai gravar — **não escreve**; recusa antes |
+| `remover <id> [--seco]` | tira da sua casa de packs um pack que você importou; recusa o pack no ar, os que vêm com o MeowSystem e o que outro pack herda. Ver [Tirar um pack](#tirar-um-pack-meow-pack-remover) |
 | `caminho <id> <categoria>` | o caminho que aquela categoria resolve **no pack** |
 | `acervo <id> <categoria> [arquivo]` | o mesmo, subindo pack → herança → motor |
 | `paleta <id>` | o arquivo de paleta daquele pack |
@@ -2265,6 +2266,41 @@ pack na raiz.
 isso num temporário e diz o que o pack traz — a paleta, quantos ícones, de onde
 vêm ponteiro, papel de parede e som — sem escrever nada. É o que a tela de
 confirmar do painel mostra.
+
+### Tirar um pack: `meow pack remover`
+
+```bash
+meow pack remover meu-tema          # tira ~/.local/share/meowsystem/packs/meu-tema
+meow pack remover meu-tema --seco   # diz o que sairia, e o tamanho; não apaga nada
+```
+
+O avesso do `importar`, desde 24/09/2026 (P53). Até ali um pack importado só
+saía apagando a pasta à mão — e a dica do claro derivado, que manda importar de
+novo com outro nome, deixava um segundo pack que também não saía.
+
+**Só sai o que mora na sua casa de packs**, `~/.local/share/meowsystem/packs/<id>/`
+— a raiz 2, que é onde o `importar` grava. **Tirar um pack não troca o tema**:
+é perder uma opção, e para tê-la de volta basta importar o arquivo dele outra
+vez. E o verbo **recusa** três casos — sai 1, diz o porquê, e não toca em nada:
+
+| recusa | por quê |
+|---|---|
+| **o pack no ar** — o que o `PACK` e o `FLAVOR` do `meow.conf` vestem, pela mesma conta do `meow_pack_dir`, e também o que a chave `PACK` nomeia mesmo sem validar | sem ele no disco, o próximo aplicar vestiria o pack padrão, calado. Troque antes, com o **Usar este** de outro cartão ou o [`meow pack usar`](#trocar-de-pack-meow-pack-usar) |
+| **os que vêm com o MeowSystem** — os de `packs/` do projeto | a casa deles é o repositório, e não a sua. A regra é pela raiz, e não por nome: o próximo pack que o projeto publicar nasce protegido, sem ninguém vir a esta tabela |
+| **o que outro pack herda** — pela `heranca` ou por um `herda` de qualquer bloco, lido cru, mesmo de um pack que não valida por outro motivo | o herdeiro passaria a ser recusado pelo `validar` sem que você tivesse tocado nele. Remova o herdeiro primeiro |
+
+**Sai inteiro, ou não sai.** A pasta é renomeada para um oculto ao lado (no
+mesmo disco o `rename` é atômico, e quem procura pack não vê oculto) e só então
+apagada: um Ctrl+C no meio deixa o resto no oculto, e nunca meio pack com um
+`pack.json` que o `validar` recusaria.
+
+Quem decide é uma função só, a `remocao` do `scripts/pack.py`: o terminal a
+pergunta pelo `cmd_remover`, e o painel pela mesma função — é ela que acende o
+**Remover** no cartão da Início, e que cerca o argumento da ação `pack_remover`.
+O cartão de um pack que não pode sair não ganha o botão: diz o motivo na linha
+de baixo, com as palavras da tabela acima. O **Remover** passa pela caixa de
+confirmar de todo gesto que desfaz alguma coisa, com o «Ver o que faria», que é
+o `--seco`.
 
 ### No painel
 
