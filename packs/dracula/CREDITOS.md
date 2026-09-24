@@ -29,7 +29,14 @@ Até 21/09/2026 estes mesmos 26 slots também moravam dentro de
 Catppuccin. Não era: era uma cópia enfiada no arquivo do outro pack, e era só
 por causa dela que este pack "funcionava". A cópia saiu na P20.
 
-## Os 18 desenhos de aplicativo — `icones/apps/`
+## Os desenhos de aplicativo — `icones/apps/` e `icones/biblioteca/`
+
+**A tabela desta seção é a do nascimento do pack, 17/09/2026, com os 18
+desenhos de então.** Ela ficou velha em 23/09, quando a P36 trouxe a
+biblioteca, e não foi refeita: a conta de 24/09/2026 é de 72 desenhos em
+`icones/apps/` e 295 em `icones/biblioteca/`, e cada um tem a sua linha — de
+onde veio, licença, data e `sha256` — no [`PROCEDENCIA.md`](PROCEDENCIA.md)
+deste pack.
 
 Dezessete dos dezoito são cópia literal do `Dracula_OS-Theme`, que é repositório
 do dono deste projeto; o décimo oitavo já morava aqui. O casamento aplicativo →
@@ -40,7 +47,7 @@ desenho não foi refeito: vem da SPRINT 32 daquele projeto.
 | `src/icons/new-sessao-atual/` | 8 |
 | `src/icons/current/scalable/apps/` | 5 |
 | `src/icons/upstream/dracula-icons-circle/` | 2 |
-| `src/icons/projects/` | 1 (`nyx.svg`, arte própria) |
+| `src/icons/projects/` | 1 (`nyx.svg`, arte própria — saiu do pack em 24/09/2026, com a P43: era projeto pessoal, e projeto pessoal não entra num pack exportável) |
 | `assets/icones/resgatados/` — já daqui | 1 (`guvcview.svg`, a Câmera) |
 
 O upstream é `dracula-icons-circle` / `dracula-icons-main`, do Dracula theme.

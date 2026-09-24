@@ -43,7 +43,7 @@
 #
 # 1. A SESSÃO VIVA É LEGÍVEL SEM SUDO
 #      pgrep -x cosmic-comp            -> 3261
-#      ls -l /proc/3261/exe            -> dono vitoriamaria, -> /usr/bin/cosmic-comp
+#      ls -l /proc/3261/exe            -> dono <usuário>, -> /usr/bin/cosmic-comp
 #    O `/proc/<pid>/exe` abre o inode que o processo REALMENTE mapeou, mesmo
 #    depois de o caminho ter sido substituído por um `apt`. É essa a diferença
 #    entre a coluna "sessão" e a coluna "disco" daqui.

@@ -110,8 +110,16 @@ declare -A DESKTOP_ABSOLUTO=(
 #   a ser a escolha. Com o Catppuccin no ar, nenhum mapa de pack nomeia estes
 #   nomes, e a lista sai inteira do mesmo jeito. Se o `pack.py` falhar, nada é
 #   cedido — é o comportamento de antes desta data, e não um tema sem ícone.
+#
+#   E ESSA CONDIÇÃO NÃO É ESCRITA AQUI — 24/09/2026, revisão da P43. A primeira
+#   versão tinha um `[ "${ICONES_DRACULA:-nao}" = "sim" ] || return 0` nesta
+#   função, e o `fontes` punha o resgate atrás sempre: a mesma regra em dois
+#   lugares, com condições diferentes, e o `meow icones fonte` mentia com a
+#   camada desligada. Agora é o `fontes` que olha o interruptor (ele chega pelo
+#   ambiente, exportado com o meow.conf), e daqui só se lê o que ele deu ao
+#   pack. O preço é uma partida de `python3` também com a camada desligada
+#   (medido em 24/09: 50 ms com o Catppuccin, 60 ms com o Dracula).
 _resgatados_cedidos() {
-  [ "${ICONES_DRACULA:-nao}" = "sim" ] || return 0
   MEOW_PACK_DIR="$(meow_pack_dir)" python3 "$RAIZ/scripts/pack.py" fontes 2>/dev/null \
     | awk -F'\t' '$3 ~ /^pack:/ { print $1 }'
 }

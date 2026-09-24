@@ -961,6 +961,13 @@ chk_iconesapps() {
 # e um `meow icones reconstruir` que apagasse o diretório os levaria junto, sem
 # nada acusando. A folha de antes-e-depois some da tela e o PNG borrado volta —
 # exatamente o sintoma de que este trabalho existe para acabar.
+#
+# "NINGUÉM MAIS" DEIXOU DE SER VERDADE PARA DOIS DELES — 24/09/2026, P43. Com a
+# camada do pack ligada (`ICONES_DRACULA="sim"`) e um mapa de pack que nomeie
+# `guvcview` e `setup-mozc` — o do Dracula, ou o de quem o herda —, quem
+# escreve esses dois arquivos é o `icones_apps_dracula.sh`. O resgate os cede
+# (o `fontes` do scripts/pack.py decide), e este verificador deixa de
+# conferi-los; quem os confere é o `chk_dracula`.
 chk_resgatados() {
   ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \

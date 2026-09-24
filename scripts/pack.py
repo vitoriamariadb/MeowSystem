@@ -37,12 +37,14 @@ VERBOS
                                  entrada; vazia = recusada.
     fontes  [id]                 cada nome de ícone de `scalable/apps` e o
                                  arquivo de onde ele sai, um por linha:
-                                 `nome<TAB>fonte<TAB>camada`. O pack no ar
-                                 vence o resgate do motor para o mesmo nome;
-                                 duas linhas de um nome é empate. Ver `fontes`.
+                                 `nome<TAB>fonte<TAB>camada`. Para o mesmo
+                                 nome, o pack no ar vence o resgate do motor
+                                 com `ICONES_DRACULA="sim"` no ambiente, e perde
+                                 sem ele; duas linhas de um nome é empate. Ver
+                                 `fontes`.
     fonte   <nome> [id]          as linhas de `fontes` daquele nome. 0 = uma
-                                 fonte só; 1 = nenhuma, ou mais de uma. O
-                                 resgate que o pack pôs atrás vai para o stderr.
+                                 fonte só; 1 = nenhuma, ou mais de uma. O lado
+                                 que ficou atrás vai para o stderr.
     sincronizar <id>             compara cada arte copiada do PROCEDENCIA.md com
                                  a origem dela. SÓ LÊ. 0 = em dia, 1 = algum
                                  lado andou. Ver `cmd_sincronizar`.
@@ -917,6 +919,20 @@ def cmd_alvo(base):
 #   resgate volta a ser a fonte sem ninguém mexer em nada. O que continua
 #   empate é o mesmo nome duas vezes num mapa só, e esse o `validar` recusa.
 #
+#   SÓ COM A CAMADA LIGADA — 24/09/2026, revisão da P43. A primeira versão
+#   punha o resgate atrás sempre, e a condição `ICONES_DRACULA="sim"` morava
+#   só no `icones_resgatados.sh`: a mesma regra em dois lugares, com condições
+#   diferentes. Medido com o Dracula no ar e a camada desligada (o padrão do
+#   `meow.conf.exemplo`): o `meow icones fonte guvcview` apontava a lente do
+#   Dracula como fonte e dizia "o pack no ar vence o motor", e o arquivo no
+#   tema era o resgate — a linha saía "DIFERE da fonte". Desligada, o
+#   `icones_apps_dracula.sh` não põe nada deste mapa no tema (e tira o que
+#   pôs), então quem vence é o motor, e o lado que fica atrás é o do pack.
+#   A condição mora AQUI e só aqui: o `icones_resgatados.sh` pergunta ao
+#   `fontes` e cede o que ele der ao pack, sem repetir a conta. O interruptor
+#   vem do ambiente, como o `ICONES_FLAVOR` do `flavor-icones`, e o padrão é o
+#   mesmo dos dois instaladores e do `meow icones fonte`.
+#
 # O PARSER É O MESMO DO SHELL, LINHA A LINHA
 #   `nome` é o que vem antes do PRIMEIRO `:`, `alvo` é o resto, e o comentário
 #   é cortado ANTES — o formato de docs/PACKS.md, e o que o `_dracula_pares`
@@ -972,9 +988,10 @@ def fontes(ref=None):
     ou não: "nome no mapa sem desenho" é a outra metade da regra, e também é
     de quem chama.
 
-    O pack x motor NÃO é empate desde 24/09/2026 (P43): o resgate de um nome
-    que o mapa do pack também nomeia fica ATRÁS, e não sai daqui — ver o
-    bloco "O PACK NO AR VENCE O MOTOR" acima e o `fontes_e_atras`.
+    O pack x motor NÃO é empate desde 24/09/2026 (P43): para um nome que os
+    dois mapas nomeiam, um lado fica ATRÁS e não sai daqui — o motor com
+    `ICONES_DRACULA="sim"`, o pack sem ele. Ver o bloco "O PACK NO AR VENCE O
+    MOTOR" acima e o `fontes_e_atras`.
 
     Linha que o `resolver_alvo` recusa não vira fonte — o motivo vai para o
     stderr, e o `validar` recusa o pack inteiro por ela.
@@ -983,23 +1000,24 @@ def fontes(ref=None):
 
 
 def fontes_e_atras(ref=None):
-    """(fontes, atrás): as linhas que valem e os resgates que o pack pôs atrás.
+    """(fontes, atrás): as linhas que valem e as que o interruptor pôs atrás.
 
-    Só o nome que VIROU fonte do pack põe o resgate atrás: uma linha que o
-    `resolver_alvo` recusou não instala nada (o instalador a trata como "sem
-    desenho"), e aí o resgate continua sendo o que chega ao tema.
+    Com `ICONES_DRACULA="sim"` o pack vence e o resgate fica atrás; sem ele, o
+    contrário (ver "SÓ COM A CAMADA LIGADA", no bloco acima). Só o nome que
+    VIROU fonte do pack entra na disputa: uma linha que o `resolver_alvo`
+    recusou não instala nada (o instalador a trata como "sem desenho"), e aí
+    o resgate continua sendo o que chega ao tema.
     """
     ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
-    saida, atras = [], []
+    do_pack, do_motor = [], []
     mapa = acervo("icones.apps.mapa", ref=ref)
     if mapa:
         base, camada = os.path.dirname(mapa), OUTRO_PACK + _pack_de(mapa)
         for num, nome, alvo in ler_mapa(mapa):
             try:
-                saida.append((nome, _relativo(resolver_alvo(alvo, base)), camada))
+                do_pack.append((nome, _relativo(resolver_alvo(alvo, base)), camada))
             except Recusa as e:
                 print(f"  aviso {_relativo(mapa)}:{num}: {e}", file=sys.stderr)
-    do_pack = {nome for nome, _fonte, _camada in saida}
     resg = os.path.join(RAIZ, MAPA_RESGATADOS)
     if os.path.isfile(resg):
         with open(resg, encoding="utf-8") as fh:
@@ -1007,9 +1025,12 @@ def fontes_e_atras(ref=None):
                 campos = linha.split("#", 1)[0].split(":")
                 nome = campos[0].strip()
                 if len(campos) >= 3 and nome:
-                    (atras if nome in do_pack else saida).append(
+                    do_motor.append(
                         (nome, os.path.join(ACERVO_RESGATADOS, nome + ".svg"), "resgatados"))
-    return saida, atras
+    ligada = (os.environ.get("ICONES_DRACULA") or "nao") == "sim"
+    vence = {nome for nome, _fonte, _camada in (do_pack if ligada else do_motor)}
+    atras = [linha for linha in (do_motor if ligada else do_pack) if linha[0] in vence]
+    return [linha for linha in do_pack + do_motor if linha not in atras], atras
 
 
 def cmd_fontes(ref):
@@ -1024,13 +1045,21 @@ def cmd_fonte(nome, ref):
     achadas = [(f, c) for n, f, c in valem if n == nome]
     for fonte, camada in achadas:
         print(f"{nome}\t{fonte}\t{camada}")
-    # O RESGATE QUE FICOU ATRÁS É DITO, E NÃO ESCONDIDO: quem pergunta "de onde
-    # sai o guvcview?" com o Dracula no ar precisa saber que o desenho do motor
-    # existe e volta sozinho com outro pack. No stderr, para o stdout continuar
-    # sendo uma linha por fonte que vale — o formato que o `meow icones fonte` lê.
+    # O LADO QUE FICOU ATRÁS É DITO, E NÃO ESCONDIDO: quem pergunta "de onde
+    # sai o guvcview?" com o Dracula no ar precisa saber que o outro desenho
+    # existe e volta sozinho quando o interruptor ou o pack mudar. No stderr,
+    # para o stdout continuar sendo uma linha por fonte que vale — o formato
+    # que o `meow icones fonte` lê. O valor do interruptor sai do ambiente, e
+    # não escrito aqui: é o que a pessoa tem no meow.conf.
+    chave = os.environ.get("ICONES_DRACULA") or "nao"
     for _n, fonte, camada in (a for a in atras if a[0] == nome):
-        print(f"  info {fonte} ({camada}) fica atrás: o pack no ar vence o motor "
-              f"para este nome, e o resgate volta a valer com outro pack", file=sys.stderr)
+        if camada == "resgatados":
+            porque = (f"com ICONES_DRACULA=\"{chave}\" o pack no ar vence o motor para este "
+                      f"nome, e o resgate volta a valer com outro pack ou com a camada desligada")
+        else:
+            porque = (f"com ICONES_DRACULA=\"{chave}\" o mapa do pack não põe nada no tema, "
+                      f"e o resgate do motor é a escolha")
+        print(f"  info {fonte} ({camada}) fica atrás: {porque}", file=sys.stderr)
     if not achadas:
         print(f"  aviso nenhum mapa de scalable/apps nomeia {nome!r} — o ícone "
               f"vem do tema herdado ou do próprio aplicativo", file=sys.stderr)
@@ -2937,7 +2966,9 @@ def vitrine(p, dir_pack):
 #   exportação absoluto dentro, um mapa copiado da máquina de alguém.
 #
 #   `~/` PASSA, E É DE PROPÓSITO: diz "a casa de quem estiver lendo" sem dizer
-#   de quem — é como a coluna "lido de" do PROCEDENCIA.md do Dracula escreve.
+#   de quem — é como a linha `origem:` do `captura.txt` escreve, e como a
+#   coluna "lido de" do PROCEDENCIA.md do Dracula escrevia até 24/09/2026 (a
+#   P43 a esvaziou quando aposentou a comparação com o `Dracula_OS-Theme`).
 #   `/home/<nome>/` e `/Users/<nome>/` (o macOS) não passam, e o `/home/` pode
 #   vir depois de qualquer coisa: `/var/home/<nome>/` é a casa nos Fedora
 #   atômicos, e `file:///home/<nome>/` é a mesma casa com outro prefixo. O preço

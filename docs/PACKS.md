@@ -697,7 +697,8 @@ numa máquina.
   `best.ellie.StartupConfiguration : biblioteca/sun.svg`. A pasta é convenção,
   como `temas/capturados/`.
 - **O `meow pack info` a conta**, na linha dos aplicativos:
-  `icones.apps  PRÓPRIO  191 apps, 266 na biblioteca sem app ligado`. "Sem app
+  `icones.apps  PRÓPRIO  203 apps, 263 na biblioteca sem app ligado` (o
+  Dracula em 24/09/2026, depois da P43). "Sem app
   ligado" é medido por **conteúdo** (sha256), não por caminho: onze desenhos da
   biblioteca do Dracula também moram em `apps/` com nome de aplicativo (o
   `dice.svg` é o `apps/foundryvtt.svg`, byte a byte), e contar por caminho diria
@@ -720,7 +721,11 @@ numa tabela do `completar_icones.sh` ou num mapa do `48x48/apps` que o
 `scalable` do pack passaria a vencer): soltar só os nomes livres vestiria o
 mesmo aplicativo com dois desenhos. A lista, e o porquê de cada uma, está no
 cabeçalho do bloco no `packs/dracula/icones/apps.map`; a escolha é de quem
-mantém o pack.
+mantém o pack. (A escolha veio em 23/09, e as sete entraram em 24/09 com a P43:
+com o Dracula no ar, o desenho do Dracula vence. Dois dos nomes, `guvcview` e
+`setup-mozc`, disputam o mesmo arquivo com o `apps-resgatados.map`, e ali a
+precedência é declarada no `fontes` do `scripts/pack.py` — o pack vence com
+`ICONES_DRACULA="sim"`, o resgate sem ele.)
 
 ### `motor:` — apontar para o acervo do motor sem copiá-lo
 

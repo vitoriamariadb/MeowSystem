@@ -16,8 +16,10 @@
 #   1. Um nome, uma fonte — na camada `scalable/apps`, onde dois donos disputam
 #      o MESMO arquivo. Nome com duas fontes é falha; nome sem desenho também.
 #      Desde 24/09/2026 (P43) o pack no ar x o resgate do motor NÃO é empate:
-#      a precedência é declarada no `fontes` do pack.py (o pack vence), e o
-#      bloco 10 prova os dois lados pelos instaladores de verdade.
+#      a precedência é declarada no `fontes` do pack.py (o pack vence com
+#      `ICONES_DRACULA="sim"`, o motor sem ele), e o bloco 10 prova os dois
+#      lados pelos instaladores de verdade — inclusive num pack que herda o
+#      Dracula sem declarar mapa, que é o que o `meow pack novo` escreve.
 #   4. Mapa não aponta para fora: pack, `motor:` ou `pack:`, e só.
 #   5. Arte de terceiro entra por cópia, com procedência: o Waterfox tem linha
 #      no PROCEDENCIA.md do pack.
@@ -120,12 +122,23 @@ done
 #   e o resgate dito como "atrás" no stderr; com o Catppuccin no ar, a fonte é
 #   o resgate, como sempre foi. Se alguém tirar a precedência do `fontes`, o
 #   Dracula volta a dar duas linhas e sair 1 aqui.
+#
+#   A PRECEDÊNCIA OLHA O INTERRUPTOR — revisão da P43. Com o Dracula no ar e
+#   `ICONES_DRACULA="nao"` (o padrão), o mapa do pack não põe nada no tema, e a
+#   fonte é o resgate: é o que o `icones_resgatados.sh` instala, e o `fonte`
+#   tem de dizer o mesmo. A primeira versão apontava a lente do Dracula, e o
+#   `meow icones fonte` saía "DIFERE da fonte" sobre um tema correto.
 for nome in guvcview setup-mozc; do
-  saida="$(pack_py fonte "$nome" dracula 2>"$T/erro")"; rc=$?
+  saida="$(ICONES_DRACULA=sim pack_py fonte "$nome" dracula 2>"$T/erro")"; rc=$?
   [ "$rc" = "0" ] && [ "$(printf '%s\n' "$saida" | grep -c .)" = "1" ] \
     && printf '%s' "$saida" | grep -q "	pack:dracula\$" && grep -q 'fica atrás' "$T/erro" \
-    && ok "$nome com o Dracula no ar: uma fonte, a do pack, e o resgate dito como atrás" \
+    && ok "$nome com o Dracula no ar e a camada ligada: uma fonte, a do pack, e o resgate dito como atrás" \
     || falha "$nome com o Dracula no ar não tem o pack como fonte única (rc=$rc)" "$saida$(cat "$T/erro")"
+  saida="$(ICONES_DRACULA=nao pack_py fonte "$nome" dracula 2>"$T/erro")"; rc=$?
+  [ "$rc" = "0" ] && [ "$saida" = "$nome	assets/icones/resgatados/$nome.svg	resgatados" ] \
+    && grep -q '(pack:dracula) fica atrás' "$T/erro" && grep -qF 'ICONES_DRACULA="nao"' "$T/erro" \
+    && ok "$nome com o Dracula no ar e a camada desligada: a fonte é o resgate, e o pack dito como atrás" \
+    || falha "$nome com a camada desligada não tem o resgate como fonte única (rc=$rc)" "$saida$(cat "$T/erro")"
   saida="$(pack_py fonte "$nome" catppuccin 2>/dev/null)"; rc=$?
   [ "$rc" = "0" ] && [ "$saida" = "$nome	assets/icones/resgatados/$nome.svg	resgatados" ] \
     && ok "$nome com o Catppuccin no ar: a fonte é o resgate, a escolha de antes" \
@@ -222,11 +235,12 @@ saida="$(pack_py fonte steam maquina 2>/dev/null)"; rc=$?
 
 # PACK x MOTOR NÃO É EMPATE DESDE A P43 (24/09/2026): um pack que vista a
 # `luna` escreveria o mesmo `scalable/apps/luna.svg` que o resgate escreve, e a
-# precedência declarada diz que o pack no ar vence. Até a P43 isto era "duas
-# fontes, sai 1"; agora é uma fonte, a do pack, e o resgate dito como atrás.
+# precedência declarada diz que o pack no ar vence (com a camada ligada — o
+# bloco 1b cobre a desligada). Até a P43 isto era "duas fontes, sai 1"; agora
+# é uma fonte, a do pack, e o resgate dito como atrás.
 cp "$RAIZ/assets/icones/resgatados/luna.svg" "$d/icones/apps/luna.svg"
 printf 'luna : apps/luna.svg\n' > "$d/icones/apps.map"
-saida="$(pack_py fonte luna maquina 2>"$T/erro")"; rc=$?
+saida="$(ICONES_DRACULA=sim pack_py fonte luna maquina 2>"$T/erro")"; rc=$?
 [ "$rc" = "0" ] && [ "$saida" = "luna	$d/icones/apps/luna.svg	pack:maquina" ] \
   && grep -q 'assets/icones/resgatados/luna.svg (resgatados) fica atrás' "$T/erro" \
   && ok "pack x resgate: o pack no ar vence, e o 'fonte' diz o resgate que ficou atrás" \
@@ -240,7 +254,9 @@ sh_pares="$(MAPA="$RAIZ/packs/dracula/icones/apps.map" ICONES_BASE_MAPA="$RAIZ/p
   amb bash -c 'set -uo pipefail
   eval "$(sed -n "/^_dracula_pares() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
   _dracula_pares' 2>/dev/null | sort)"
-py_pares="$(pack_py fontes dracula 2>/dev/null | awk -F'\t' -v r="$RAIZ" '$3 ~ /^pack:/ {print $1 "\t" r "/" $2}' | sort)"
+# Com a camada ligada: desligada, o `fontes` põe atrás os dois nomes que o
+# resgate também tem, e a comparação mediria o interruptor, não o parser.
+py_pares="$(ICONES_DRACULA=sim pack_py fontes dracula 2>/dev/null | awk -F'\t' -v r="$RAIZ" '$3 ~ /^pack:/ {print $1 "\t" r "/" $2}' | sort)"
 [ -n "$sh_pares" ] && [ "$sh_pares" = "$py_pares" ] \
   && ok "o parser do shell e o do pack.py leem o mapa do Dracula igual ($(printf '%s\n' "$py_pares" | grep -c .) linhas)" \
   || falha "os dois parsers do mapa discordam" "$(diff <(printf '%s\n' "$sh_pares") <(printf '%s\n' "$py_pares"))"
@@ -414,6 +430,46 @@ icones_em "$casa_c" icones_resgatados.sh --conferir "${DESLIGADO[@]}"; r1=$?
 veste "$casa_c" guvcview "$RESG_G" && veste "$casa_c" setup-mozc "$RESG_M" && [ "$r1" = "0" ] \
   && ok "Dracula com ICONES_DRACULA=nao: o resgate veste os dois, e o --conferir sai 0" \
   || falha "Dracula desligado: o resgate não é a escolha (conferir=$r1)"
+
+# E a camada desligada DEPOIS de ligada, que é o caminho de quem mexe no
+# interruptor: o Dracula tira a lente (é dele, pelo conteúdo) e o resgate volta.
+icones_em "$casa_b" icones_resgatados.sh --aplicar "${DESLIGADO[@]}"
+icones_em "$casa_b" icones_apps_dracula.sh --aplicar "${DESLIGADO[@]}"
+icones_em "$casa_b" icones_resgatados.sh --conferir "${DESLIGADO[@]}"; r1=$?
+icones_em "$casa_b" icones_apps_dracula.sh --conferir "${DESLIGADO[@]}"; r2=$?
+veste "$casa_b" guvcview "$RESG_G" && veste "$casa_b" setup-mozc "$RESG_M" \
+  && [ "$r1" = "0" ] && [ "$r2" = "0" ] \
+  && ok "a camada desligada depois de ligada: o resgate volta aos dois, e os dois --conferir saem 0" \
+  || falha "a camada desligada depois de ligada não devolveu o resgate (resgate=$r1, dracula=$r2)"
+
+# O PACK QUE HERDA O DRACULA — 24/09/2026, revisão da P43
+#   O `meow pack novo` com o Dracula no ar escreve `"heranca": "dracula"` e
+#   não declara `icones.apps`: o mapa vem pela herança. Medido antes do
+#   conserto, com esse mesmo pack: o resgate cedia os dois nomes (o `fontes`
+#   sobe a herança), o `icones_apps_dracula.sh` lia mapa nenhum (o
+#   `meow_pack_arquivo` não sobe) e dizia "0 de 0 no tema", e o tema ficava
+#   SEM guvcview.svg e setup-mozc.svg — com os dois --conferir em 0. O pack é
+#   criado pelo verbo de verdade, e não escrito aqui, para o teste quebrar no
+#   dia em que o `novo` passar a escrever outra coisa.
+amb env MEOW_PACK_DIR="$RAIZ/packs/dracula" PACK=dracula FLAVOR=dracula \
+  python3 "$RAIZ/scripts/pack.py" novo derivado >/dev/null 2>&1
+if python3 -c 'import json, sys; p = json.load(open(sys.argv[1]))
+sys.exit(0 if p.get("heranca") == "dracula" and "icones" not in p else 1)' \
+     "$T/packs/derivado/pack.json" 2>/dev/null; then
+  DERIVADO=(PACK=derivado FLAVOR=dracula ICONES_DRACULA=sim)
+  casa_d="$T/casa-derivada"; mkdir -p "$casa_d"
+  icones_em "$casa_d" icones_resgatados.sh --aplicar "${DERIVADO[@]}"
+  icones_em "$casa_d" icones_apps_dracula.sh --aplicar "${DERIVADO[@]}"
+  icones_em "$casa_d" icones_resgatados.sh --conferir "${DERIVADO[@]}"; r1=$?
+  icones_em "$casa_d" icones_apps_dracula.sh --conferir "${DERIVADO[@]}"; r2=$?
+  veste "$casa_d" guvcview "$DO_PACK_G" && veste "$casa_d" setup-mozc "$DO_PACK_M" \
+    && [ "$r1" = "0" ] && [ "$r2" = "0" ] \
+    && ok "pack que herda o Dracula: o desenho do Dracula nos dois nomes, e os dois --conferir saem 0" \
+    || falha "pack que herda o Dracula: o tema não tem o desenho do Dracula nos dois nomes (resgate=$r1, dracula=$r2)"
+else
+  falha "o 'pack.py novo' com o Dracula no ar não escreveu um pack que herda o Dracula sem declarar ícones" \
+    "$(cat "$T/packs/derivado/pack.json" 2>&1)"
+fi
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
