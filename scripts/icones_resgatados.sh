@@ -89,9 +89,48 @@ declare -A DESKTOP_ABSOLUTO=(
 # Uma linha por ícone: `nome : png-de-origem : autoria`. Só o primeiro campo
 # interessa aqui — os outros dois são procedência, e quem os lê é a folha de
 # antes-e-depois e quem for abrir o mapa para entender de onde veio o desenho.
+#
+# O NOME QUE O PACK NO AR RECLAMA NÃO É DAQUI — 24/09/2026, P43
+#   A decisão de 23/09: com o Dracula no ar, o desenho do Dracula vence, e o
+#   mapa dele passou a nomear `guvcview` e `setup-mozc`, que também são deste
+#   mapa. Os dois instaladores escrevem o MESMO `scalable/apps/<nome>.svg`, e
+#   medido numa casa de brinquedo, depois da instalação, o `--conferir` daqui
+#   saía 1 acusando o desenho do pack como divergente — o doctor das 5h os
+#   trocaria um pelo outro todo dia, e o `nao` deste interruptor apagaria o
+#   arquivo do pack por nome, sem conferir o conteúdo.
+#
+#   Quem decide quem vence é o `fontes` do `scripts/pack.py`, que já é quem
+#   responde "de onde sai este ícone" ao `meow icones fonte`: um nome que ele
+#   dá ao pack (`pack:<id>`) sai desta lista — nem se instala, nem se confere,
+#   nem se remove. Perguntar a ele, e não reler o mapa do pack aqui, é o que
+#   impede uma terceira cópia do parser de mapa.
+#
+#   SÓ COM `ICONES_DRACULA="sim"`: desligado, o `icones_apps_dracula.sh` não
+#   põe nada do mapa do pack no tema (e tira o que pôs), então o resgate volta
+#   a ser a escolha. Com o Catppuccin no ar, nenhum mapa de pack nomeia estes
+#   nomes, e a lista sai inteira do mesmo jeito. Se o `pack.py` falhar, nada é
+#   cedido — é o comportamento de antes desta data, e não um tema sem ícone.
+#
+#   E ESSA CONDIÇÃO NÃO É ESCRITA AQUI — 24/09/2026, revisão da P43. A primeira
+#   versão tinha um `[ "${ICONES_DRACULA:-nao}" = "sim" ] || return 0` nesta
+#   função, e o `fontes` punha o resgate atrás sempre: a mesma regra em dois
+#   lugares, com condições diferentes, e o `meow icones fonte` mentia com a
+#   camada desligada. Agora é o `fontes` que olha o interruptor (ele chega pelo
+#   ambiente, exportado com o meow.conf), e daqui só se lê o que ele deu ao
+#   pack. O preço é uma partida de `python3` também com a camada desligada
+#   (medido em 24/09: 50 ms com o Catppuccin, 60 ms com o Dracula).
+_resgatados_cedidos() {
+  MEOW_PACK_DIR="$(meow_pack_dir)" python3 "$RAIZ/scripts/pack.py" fontes 2>/dev/null \
+    | awk -F'\t' '$3 ~ /^pack:/ { print $1 }'
+}
+
 _resgatados_nomes() {
   [ -f "$MAPA" ] || return 1
-  sed -e 's/#.*//' "$MAPA" | awk -F: 'NF>=3 { gsub(/^[ \t]+|[ \t]+$/, "", $1); if ($1 != "") print $1 }'
+  local cedidos
+  cedidos="$(_resgatados_cedidos)"
+  sed -e 's/#.*//' "$MAPA" | awk -F: 'NF>=3 { gsub(/^[ \t]+|[ \t]+$/, "", $1); if ($1 != "") print $1 }' \
+    | awk -v cedidos="$cedidos" 'BEGIN { n = split(cedidos, c, "\n"); for (i = 1; i <= n; i++) fora[c[i]] = 1 }
+                                 !($0 in fora)'
 }
 
 # --- instalar -----------------------------------------------------------------

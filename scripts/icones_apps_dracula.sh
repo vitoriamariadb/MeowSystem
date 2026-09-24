@@ -66,7 +66,25 @@ ICONES="$RAIZ/assets/icones"
 # A queda para o caminho antigo existe para quem atualizar o MeowSystem sem ter
 # o pack ainda: sem ela, um `git pull` no meio da migração deixaria o dock sem
 # os ícones, calado.
-MAPA="$(meow_pack_arquivo icones/apps.map assets/icones/apps-dracula.map)"
+#
+# O MAPA SOBE A HERANÇA, PELA MESMA PORTA DO `fontes` — 24/09/2026, revisão da P43
+#   Era só o `meow_pack_arquivo`, que olha o pack ativo e o núcleo e NÃO sobe a
+#   herança. Quem responde "de onde sai este ícone" é o `fontes` do pack.py, que
+#   sobe (o `acervo`), e desde a P43 é a resposta dele que manda o
+#   `icones_resgatados.sh` ceder `guvcview` e `setup-mozc` ao pack. Medido numa
+#   casa de brinquedo com o caminho do próprio produto — `meow pack novo meu`
+#   com o Dracula no ar, que escreve `"heranca": "dracula"` sem `icones.apps` —
+#   e `ICONES_DRACULA="sim"`: o resgate cedia os dois nomes, este script lia
+#   mapa nenhum ("0 de 0 no tema"), e o tema ficava sem os dois arquivos, com os
+#   dois `--conferir` em 0. A precedência era decidida numa resolução de mapa e
+#   executada noutra. Agora as duas são a mesma: o `acervo`, como o
+#   `icones_pastas.sh` já faz para o mapa das pastas e o painel para esta mesma
+#   lista. O `meow_pack_arquivo` fica como queda, para o pack que tenha o
+#   arquivo sem o declarar no `pack.json` — era o que ele achava antes.
+_pack_ref="$(meow_pack_dir)"
+[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
+MAPA="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.apps.mapa)" || MAPA=""
+[ -n "$MAPA" ] || MAPA="$(meow_pack_arquivo icones/apps.map assets/icones/apps-dracula.map)"
 # A raiz que o mapa resolve: o diretório do mapa, não uma constante. Assim o
 # mesmo script serve ao pack e ao lugar antigo sem saber em qual está.
 ICONES_BASE_MAPA="$(dirname "$MAPA")"

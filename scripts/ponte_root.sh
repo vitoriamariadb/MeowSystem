@@ -27,7 +27,7 @@
 # Porque não existe regra estreita para `install`. O que o projeto precisa é
 # escrever `.desktop` em `/usr/share/applications`, e a regra
 #
-#     vitoriamaria ALL=(root) NOPASSWD: /usr/bin/install -m 644 * *
+#     <usuário> ALL=(root) NOPASSWD: /usr/bin/install -m 644 * *
 #
 # é `NOPASSWD: ALL` com outro nome: o segundo `*` é qualquer destino, e escrever
 # qualquer arquivo como root é ser root. O mesmo vale para `rm`, `cp` e `tee`.

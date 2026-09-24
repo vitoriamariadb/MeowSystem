@@ -40,6 +40,22 @@
 #   desenho é gerado da paleta pelo gerar_icones_autorais.py e acompanha o
 #   flavor sozinho. Vestir por aqui seria trocar arte viva por arte congelada.
 #
+# AVISO: OS NOMES GENÉRICOS APARECEM FORA DO LANÇADOR — 24/09/2026, P43
+#   Nem toda linha daqui é nome de aplicativo. `starred`, `printer`,
+#   `bluetooth`, `calendar`, `text-editor`, `help-about`, `input-keyboard`,
+#   `video-display`, os `preferences-*` e companhia são nomes de ícone de TEMA:
+#   o painel de configuração pede um deles no `.desktop`, e qualquer outro
+#   programa pode pedir o mesmo nome ao tema — um diálogo, um applet da barra,
+#   um menu, uma lista de "abrir com". Quem pedir recebe o desenho daqui, e não
+#   só no lançador.
+#
+#   Fica assim por decisão de 23/09: é o que o tema original faz (o `build.sh`
+#   do Dracula_OS-Theme instala os mesmos nomes, lidos do mesmo `mapping.json`),
+#   e o Dracula no ar veste a máquina, não só a lista de aplicativos. Uma estrela
+#   ou uma impressora com cara de Dracula num canto inesperado da tela é esta
+#   escolha funcionando. Para devolver um nome só, comente a linha dele; para
+#   devolver todos, `ICONES_DRACULA="nao"` tira do tema o que este mapa pôs.
+#
 # O ACERVO MORA DENTRO DESTE REPOSITÓRIO — 16/09/2026
 #   Até hoje a segunda coluna era um caminho dentro do `Dracula_OS-Theme`, que
 #   é outro repositório e só existe na máquina DELE. Duas consequências, e as
@@ -66,7 +82,9 @@ com.system76.Popsicle : apps/com.system76.Popsicle.svg   # Gravador USB Popsicle
 input-keyboard : apps/input-keyboard.svg   # Input Method [upstream]
 org.kde.krita : apps/org.kde.krita.svg   # Krita — varinha (variação)
 menulibre : apps/menulibre.svg   # Menu Editor — pergaminho
-nyx : apps/nyx.svg   # Nyx [arte-propria]
+#   (a linha do `nyx` saiu daqui em 24/09/2026, P43, com o desenho: era projeto
+#    pessoal, e a decisão 2 da P36 deixa projeto pessoal fora de um pack que é
+#    exportável. A história está no PROCEDENCIA.md.)
 md.obsidian.Obsidian : apps/md.obsidian.Obsidian.svg   # Obsidian [alias-heuristico]
 org.onlyoffice.desktopeditors : apps/org.onlyoffice.desktopeditors.svg   # ONLYOFFICE — livro
 org.qbittorrent.qBittorrent : apps/org.qbittorrent.qBittorrent.svg   # qBittorrent [alias-heuristico]
@@ -120,7 +138,8 @@ net.waterfox.waterfox : apps/net.waterfox.waterfox.svg   # Waterfox — o Firefo
 #   `ibus-setup-chewing.svg`, o `terminal.svg` de `current/` e o
 #   `graveyard-variant.svg` da biblioteca), o pack guarda um arquivo só.
 #
-#   AS QUE NÃO ENTRARAM, E NENHUMA FOI TROCADA CALADA
+#   AS QUE NÃO ENTRARAM EM 23/09, E NENHUMA FOI TROCADA CALADA
+#   (entraram no dia seguinte, pela decisão dele — ver o bloco da P43 lá embaixo)
 #   Sete entradas têm um nome que já tem outra escolha, e ficaram INTEIRAS de
 #   fora — soltar só os nomes livres vestiria o mesmo aplicativo com dois
 #   desenhos, conforme o `Icon=` que a máquina pedir. A escolha é de quem
@@ -141,6 +160,7 @@ net.waterfox.waterfox : apps/net.waterfox.waterfox.svg   # Waterfox — o Firefo
 #   O `scalable` deste mapa VENCE o `48x48/apps` — é a precedência "Dracula
 #   vence tudo" de 16/09/2026. Ela foi escolhida para os dezoito de então, com
 #   os dois lados na mesa; estes cinco não foram vistos, e não trocam sozinhos.
+#   (Foram vistos em 23/09, e a decisão foi o Dracula vencer — P43.)
 #
 #   DOIS NOMES QUE O PRÓPRIO mapping.json DÁ A DOIS DESENHOS
 #   Venceu a entrada cuja chave É o nome, que nos dois casos é também a
@@ -329,6 +349,49 @@ vlc : biblioteca/cat.svg   # VLC media player [override-novo]
 yelp : apps/org.gnome.Yelp.svg   # Ajuda [upstream]
 org.gnome.Yelp : apps/org.gnome.Yelp.svg   # Ajuda [upstream]
 
+# OS SETE QUE A P36 DEIXOU DE FORA ENTRAM — 24/09/2026, P43
+#   A decisão de 23/09, com os dois lados na mesa: com o Dracula no ar, o
+#   desenho do Dracula VENCE — o "Dracula vence tudo" de 16/09 estendido aos
+#   sete. Com o Catppuccin no ar este mapa não é lido, e as escolhas de antes
+#   continuam: o traço do `apps-convertidos.map`, o Arcticons do Thunderbird, o
+#   resgate do guvcview e o do setup-mozc.
+#
+#   DUAS PRECEDÊNCIAS, E SÓ UMA JÁ EXISTIA
+#   Cinco dos sete disputam com o `48x48/apps` (convertidos e Arcticons). Ali
+#   não há arquivo em disputa: o resolvedor pede `scalable` primeiro, e este
+#   mapa vence sem uma linha de código a mais — é a precedência de 16/09.
+#   Os outros dois, `guvcview` e `setup-mozc`, disputam o MESMO arquivo em
+#   `scalable/apps` com o `apps-resgatados.map` do motor, e aquela precedência
+#   não os alcança. Medido com as duas linhas já aqui, numa casa de brinquedo:
+#   depois da instalação (resgate primeiro, Dracula depois, a ordem do
+#   `install.sh`), o `icones_resgatados.sh --conferir` saía 1 acusando os dois
+#   — o doctor das 5h os trocaria um pelo outro todo dia. Então a precedência
+#   passou a ser DECLARADA onde os dois perguntam: o `fontes` do
+#   `scripts/pack.py` diz que o pack no ar vence o motor para aquele nome, e o
+#   `icones_resgatados.sh` cede o que o pack no ar reclama — só com
+#   `ICONES_DRACULA="sim"`, porque desligado este mapa não põe nada no tema, e
+#   aí o resgate volta a ser a escolha.
+#
+#   TRÊS DESENHOS NOVOS EM `apps/`, cada um com a linha dele no PROCEDENCIA.md:
+#   o `ghostwriter.svg` e o `thunderbird.svg` de `current/` viraram
+#   `org.gnome.gitlab.somas.Apostrophe.svg` e `org.mozilla.Thunderbird.svg`; o
+#   `guvcview.svg` de `current/` virou `guvcview-lente.svg`, porque
+#   `apps/guvcview.svg` é o resgate que a Câmera veste — escolha de 16/09, que
+#   não muda. Os outros quatro desenhos já estavam na biblioteca.
+com.github.tchx84.Flatseal : biblioteca/chest.svg   # Flatseal [override-novo]
+flatseal : biblioteca/chest.svg   # Flatseal [override-novo]
+org.bleachbit.BleachBit : biblioteca/broom.svg   # BleachBit [override-novo]
+bleachbit : biblioteca/broom.svg   # BleachBit [override-novo]
+org.gnome.FileRoller : biblioteca/chest.svg   # Archive Manager [override-novo]
+org.gnome.ArchiveManager : biblioteca/chest.svg   # Archive Manager [override-novo]
+org.gnome.gitlab.somas.Apostrophe : apps/org.gnome.gitlab.somas.Apostrophe.svg   # Apostrophe [alias-heuristico]
+apostrophe : apps/org.gnome.gitlab.somas.Apostrophe.svg   # Apostrophe [alias-heuristico]
+ghostwriter : apps/org.gnome.gitlab.somas.Apostrophe.svg   # Apostrophe [alias-heuristico]
+org.mozilla.Thunderbird : apps/org.mozilla.Thunderbird.svg   # Thunderbird [alias-heuristico]
+thunderbird : apps/org.mozilla.Thunderbird.svg   # Thunderbird [alias-heuristico]
+guvcview : apps/guvcview-lente.svg   # Visualizador de vídeo GTK UVC [current-nome]
+setup-mozc : biblioteca/tarot.svg   # Mozc Setup [override-novo]
+
 # --- já têm arte autoral no MeowSystem (não entram) -----------------------
 # com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
 # com.system76.CosmicEdit                    -> autorais/cosmic-edit-dracula.svg   # Editor de Texto
@@ -339,8 +402,6 @@ org.gnome.Yelp : apps/org.gnome.Yelp.svg   # Ajuda [upstream]
 
 # --- sem desenho ainda ----------------------------------------------------
 # com.beholder.app : ?   # Beholder
-# bleachbit : ?   # BleachBit
-# bleachbit : ?   # BleachBit (as root)
 # com.boxy_svg.BoxySVG : ?   # Boxy SVG
 # org.andrebfarias.Crononauta : ?   # Chrononauta
 # Ubuntu-selfservice : ?   # Citrix Workspace (on Ubuntu)
@@ -357,7 +418,6 @@ org.gnome.Yelp : apps/org.gnome.Yelp.svg   # Ajuda [upstream]
 # sigilo : ?   # Sigilo
 # com.spotify.Client : ?   # Spotify
 # syncthing : ?   # Syncthing Web UI
-# thunderbird : ?   # Thunderbird
 # uad-ng : ?   # Universal Android Debloater
 # qrcode-void-generator : ?   # VOID | QRcode
 # whatsapp-linux-app : ?   # WhatsApp

@@ -59,7 +59,7 @@
 #
 #   OS `sudo chmod a+wr` DA DOC NÃO FORAM RODADOS, E NÃO DEVEM SER. O exemplo da
 #   doc é a instalação de SISTEMA (`/var/lib/flatpak`), que é do root. A desta
-#   máquina é de usuário e já era gravável: `nlink=1 modo=644 dono=vitoriamaria`.
+#   máquina é de usuário e já era gravável: `nlink=1 modo=644 dono=<usuário>`.
 #   Não havia permissão a conquistar; aqueles dois comandos só afrouxariam
 #   permissões sem ganho nenhum.
 #
