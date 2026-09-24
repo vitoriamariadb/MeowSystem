@@ -141,6 +141,22 @@ arte_do_jogo() {
   return 1
 }
 
+# --- O RESUMO PARA A CAIXA DO PAINEL — 24/09/2026, sprint P54 --------------
+# Decisão de 24/09: «Tirar do lançador» e «Tirar da lista» passam a perguntar
+# antes, e a caixa diz QUAIS atalhos saem e quais entram. As duas decisões
+# gravam uma linha e rodam esta passagem inteira — e a passagem aplica TODA
+# marca que estiver esperando no mapa, não só a do clique. Quem sabe o que ela
+# faria é ela mesma: o painel a roda em ensaio sobre uma CÓPIA do mapa com a
+# decisão dentro (`MEOW_JOGOS_FORA`) e lê estas linhas. Uma segunda conta
+# escrita no servidor seria a regra dos jogos em dois lugares, e a caixa
+# acabaria prometendo o que a passagem não faz.
+#   `@@jogo <entra|sai|apaga> <appid> <nome>`, uma por atalho ou pasta, e só
+# com `MEOW_JOGOS_RESUMO=1`: no terminal e no doctor nada muda.
+resumo_jogo() {
+  [ "${MEOW_JOGOS_RESUMO:-}" = "1" ] || return 0
+  printf '@@jogo %s %s %s\n' "$1" "$2" "${3:-appid $2}"
+}
+
 # 0 = está na lista de fora. O mapa é relido a cada consulta, e não carregado num
 # array: são poucas linhas, e é a mesma disciplina do `meow_nome_do_mapa` — lista
 # em memória global envelhece sem avisar.
@@ -396,9 +412,11 @@ while IFS= read -r lib; do
       'X-MeowSystem=jogo-steam' \
       "X-SteamAppId=$id")"
 
+    novo=1; [ -f "$APPS/meow-steam-$id.desktop" ] && novo=0
     meow_escrever "$APPS/meow-steam-$id.desktop" "$corpo" 644
     case $? in
-      1) mudou=1; escritos=$((escritos + 1)) ;;
+      1) mudou=1; escritos=$((escritos + 1))
+         [ "$novo" = 1 ] && resumo_jogo entra "$id" "$nome" ;;
       2) meow_erro "não consegui instalar o atalho do appid $id"; exit "$MEOW_ERRO" ;;
     esac
   done
@@ -422,8 +440,18 @@ else
     grep -q '^X-MeowSystem=jogo-steam$' "$f" || continue
     orfao="$(basename "$f" .desktop)"; orfao="${orfao#meow-steam-}"
     printf '%s' "$vivos" | grep -qx "$orfao" && continue
+    # O nome é o do próprio cartão que sai: o manifesto pode já não existir.
+    resumo_jogo sai "$orfao" "$(awk -F= '$1 == "Name" { sub(/^Name=/, ""); print; exit }' "$f")"
     if meow_seco; then
-      meow_muda "removeria o atalho de um jogo desinstalado (appid $orfao)"
+      # O CARTÃO DE UM JOGO QUE ELA TIROU NÃO É DE UM JOGO DESINSTALADO — P54.
+      #   Com o ensaio da caixa dos jogos, esta linha passou a ser lida logo
+      #   depois de um «Tirar do lançador», e dizia «desinstalado» de um jogo
+      #   que continua no disco. A limpeza é a mesma; o porquê, não.
+      if jogo_fora "$orfao"; then
+        meow_muda "tiraria do lançador o atalho do appid $orfao (está no jogos-fora.map)"
+      else
+        meow_muda "removeria o atalho de um jogo desinstalado (appid $orfao)"
+      fi
     else
       # Remove de TODO degrau — inclusive dos que saíram da escada quando a
       # escala da tela mudou; por isso o glob e não a lista.
@@ -749,6 +777,7 @@ else
 
     if meow_seco; then
       if [ -n "$alvo_pasta" ] || [ -n "$alvo_m" ]; then
+        resumo_jogo apaga "$id" "$alvo_nome"
         [ -n "$alvo_pasta" ] && meow_muda "apagaria $alvo_pasta ($(du -sh "$alvo_pasta" 2>/dev/null | cut -f1))"
         [ -n "$alvo_m" ] && meow_muda "apagaria $alvo_m"
         mudou=1
@@ -851,8 +880,13 @@ _notas_finais() {
 }
 { [ "$ferramentas" -gt 0 ] || [ "$fora" -gt 0 ] || [ "$voltou" -gt 0 ] || [ -n "$sem_licenca" ]; } && trap _notas_finais EXIT
 
+# «NENHUM JOGO INSTALADO TEM MANIFESTO» NÃO ERA O CASO — P54 (achado 43). Medido
+# no painel de verdade: cinco manifestos no disco, todos de ferramenta (Proton,
+# runtimes), e a frase dizia que faltava manifesto. `jogos` é 0 quando nenhum
+# manifesto é de jogo que vá para o lançador; o porquê de cada um sai nas notas
+# do fim (as ferramentas e os que estão fora pelo mapa).
 if [ "$jogos" -eq 0 ]; then
-  meow_pula "a Steam está instalada mas nenhum jogo instalado tem manifesto — nada a criar"
+  meow_pula "a Steam está instalada, e nenhum jogo dela vai para o lançador — nada a criar"
   [ "$mudou" = "1" ] && exit "$MEOW_DIVERGENTE"
   exit "$MEOW_OK"
 fi

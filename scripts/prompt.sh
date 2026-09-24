@@ -105,7 +105,34 @@ PROMPT_INSTALAR_ALT='cargo install starship --locked'
 
 # --- as quatro perguntas, cada uma respondida por medição -------------------
 
-_prompt_tem_starship() { meow_tem starship; }
+# O STARSHIP É UM SÓ, E ELE NÃO DEPENDE DE QUEM PERGUNTA — 24/09/2026, sprint
+# P54 (achado 48)
+#   Medido no painel de verdade: a pendência «o prompt do terminal precisa do
+#   starship» estava na Início com o starship JÁ instalado em ~/.cargo/bin, e o
+#   «Resolver» respondia «o starship já está instalado». As duas pontas chamam
+#   esta mesma função; o que mudava era o PATH de quem chamava. Quem cria a
+#   pendência é o `aplicar`, e ele roda também pelo `meow-doctor.timer`, cujo
+#   PATH é o do systemd de usuário (medido: `~/.local/bin` e os do sistema, e
+#   nenhum `~/.cargo/bin`); o «Resolver» roda pelo painel, que herdou o PATH do
+#   terminal que o abriu. A mesma pergunta, duas respostas.
+#   A regra é a da P49 (`meow_app_instalado`): o programa está onde quer que
+#   o jeito de instalá-lo o ponha, e não só onde o PATH de agora alcança — é o
+#   `_kitty_instalado` com o `~/.local/kitty.app`. Aqui são dois lugares: o
+#   `~/.local/bin`, que é onde o nosso «Instalar o starship» o põe, e o
+#   `~/.cargo/bin`, que é onde o `cargo install starship` (a receita
+#   alternativa, `PROMPT_INSTALAR_ALT`) o põe.
+#   Imprime ONDE achou, porque o «já está instalado» diz o caminho: com o
+#   `command -v` de antes, o starship que só o cargo conhece sairia com o
+#   caminho vazio.
+_prompt_onde_starship() {
+  local lugar
+  for lugar in "$(command -v starship 2>/dev/null)" \
+               "$HOME/.local/bin/starship" "$HOME/.cargo/bin/starship"; do
+    [ -n "$lugar" ] && [ -x "$lugar" ] && { printf '%s' "$lugar"; return 0; }
+  done
+  return 1
+}
+_prompt_tem_starship() { _prompt_onde_starship >/dev/null; }
 
 # As três perguntas ao `env.zsh` (o `starship init`, o `ZSH_THEME` e o
 # `FZF_DEFAULT_OPTS`) saíram daqui em 24/09/2026 — ver o cabeçalho.
@@ -277,7 +304,7 @@ cmd_remover() {
 #   ser botão no painel, que roda sem terminal (ver docs/FRONTEIRA.md, a ponte).
 cmd_instalar_starship() {
   if _prompt_tem_starship; then
-    meow_ok "o starship já está instalado ($(command -v starship))"
+    meow_ok "o starship já está instalado ($(_prompt_onde_starship))"
     meow_pendencia_resolvida starship-ausente
     return "$MEOW_OK"
   fi

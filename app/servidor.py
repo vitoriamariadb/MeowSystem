@@ -1973,6 +1973,10 @@ def ler_esquema():
             # corromperia caminho com vírgula.
             "lista": bool(re.search(r"separad[ao]s? por v[ií]rgula|v[ií]rgula[- ]separad", ajuda, re.I)),
             "lista_pathsep": bool(re.search(r"separados por `?:`?", ajuda)),
+            # Lista de IDs de `.desktop`: as fichas ganham o nome e o ícone do
+            # programa no `_dados_esquema` (P54, achado 41). A mesma regra das
+            # duas de cima — o que o comentário DIZ, e não um nome de chave.
+            "ids_de_desktop": bool(re.search(r"\bIDs? d[oe] `\.desktop`", ajuda)),
             # Horário: o comentário declara `HH:MM`, OU o valor já é um horário.
             # As duas metades são precisas: `LEITURA_HORARIO_INICIO` diz `HH:MM`
             # no comentário e a `NOITE_INICIO` não diz (ela fala em "18:00-07:00"
@@ -5373,6 +5377,70 @@ def _converter_desenho(origem, argv_extra, texto_parametros):
 
 
 # --- 6. os trabalhos ---------------------------------------------------------
+def _nome_no_appinfo(caminho, appid):
+    """`appinfo › common › name` do `appid` no `appinfo.vdf` da Steam, ou "".
+
+    O formato, versões 27 a 29 (as três que a Steam escreveu desde 2022):
+      cabeçalho  u32 versão · u32 universo · [v29: i64 onde começa a tabela]
+      entrada    u32 appid (0 = fim) · u32 tamanho do resto · u32 estado ·
+                 u32 data · u64 token · 20 bytes sha1 · u32 número da mudança ·
+                 [v28+: 20 bytes sha1 do binário] · KeyValues binário
+      KeyValues  um byte de tipo (0 abre bloco, 1 texto, 2/3/4/6 quatro
+                 bytes, 7/10 oito bytes, 8 fecha bloco), o nome da chave (na
+                 v29, u32 índice na tabela; antes, texto terminado em zero) e
+                 o valor.
+    Usado só para NOMEAR uma decisão cujo manifesto já foi embora (P54)."""
+    with open(caminho, "rb") as fh:
+        dados = fh.read(64 * 1024 * 1024)
+    versao = struct.unpack_from("<I", dados, 0)[0]
+    if versao not in (0x07564427, 0x07564428, 0x07564429):
+        return ""
+    pos, tabela = 8, None
+    if versao == 0x07564429:
+        inicio = struct.unpack_from("<q", dados, pos)[0]
+        pos += 8
+        quantos = struct.unpack_from("<I", dados, inicio)[0]
+        tabela = dados[inicio + 4:].split(b"\0", quantos)[:quantos]
+    fixo = 4 + 4 + 8 + 20 + 4 + (20 if versao != 0x07564427 else 0)
+    while pos + 8 <= len(dados):
+        este, tamanho = struct.unpack_from("<II", dados, pos)
+        if este == 0:
+            return ""
+        if este != appid:
+            pos += 8 + tamanho
+            continue
+        p, fim, pilha = pos + 8 + fixo, pos + 8 + tamanho, []
+        while p < fim:
+            tipo = dados[p]
+            p += 1
+            if tipo == 8:
+                if not pilha:
+                    return ""
+                pilha.pop()
+                continue
+            if tabela is not None:
+                nome = tabela[struct.unpack_from("<I", dados, p)[0]]
+                p += 4
+            else:
+                corte = dados.index(b"\0", p)
+                nome, p = dados[p:corte], corte + 1
+            if tipo == 0:
+                pilha.append(nome.lower())
+            elif tipo == 1:
+                corte = dados.index(b"\0", p)
+                valor, p = dados[p:corte], corte + 1
+                if pilha == [b"appinfo", b"common"] and nome.lower() == b"name":
+                    return valor.decode("utf-8", "replace").strip()
+            elif tipo in (2, 3, 4, 6):
+                p += 4
+            elif tipo in (7, 10):
+                p += 8
+            else:
+                return ""
+        return ""
+    return ""
+
+
 class Trabalho:
     """Um comando rodando, com a saída acumulada para a página buscar.
 
@@ -5618,6 +5686,48 @@ def _trabalho_json(trabalho, acao_id, seco=False):
             "seco": bool(seco)}
 
 
+def _previa_dos_jogos(mapa):
+    """O que a passagem dos jogos faria com `mapa` no lugar do mapa do disco.
+
+    {"entram": [...], "saem": [...], "apagam": [...]}, cada item `{appid,
+    nome}`; ou {"erro": ...}. Quem responde é o `jogos_steam.sh --conferir`,
+    rodado aqui sobre uma cópia, pelas linhas `@@jogo` que ele só imprime com
+    `MEOW_JOGOS_RESUMO=1` — ver o bloco «O RESUMO PARA A CAIXA DO PAINEL» lá.
+    A regra de quem entra e quem sai fica escrita num lugar só, e é o script.
+
+    Espera, e não trabalho em fundo: a caixa não tem o que mostrar antes da
+    resposta, e a passagem seca de uma biblioteca de trinta jogos é coisa de
+    um ou dois segundos. O teto de 60 s é o de um disco externo lento; passado
+    ele, a caixa diz que não deu para conferir, e a decisão continua possível."""
+    conf = conf_exportada()
+    if conf is None:
+        return {"erro": "não consegui ler o meow.conf"}
+    pasta = tempfile.mkdtemp(prefix="meow-jogos-")
+    try:
+        copia = os.path.join(pasta, "jogos-fora.map")
+        with open(copia, "w", encoding="utf-8") as fh:
+            fh.write(mapa)
+        ambiente = _ambiente_do_painel(seco=True)
+        ambiente.update(conf)
+        ambiente.update(MEOW_JOGOS_FORA=copia, MEOW_JOGOS_RESUMO="1", NO_COLOR="1")
+        proc = subprocess.run(
+            [os.path.join(RAIZ, "scripts", "jogos_steam.sh"), "--conferir"],
+            cwd=RAIZ, env=ambiente, stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60)
+    except (OSError, subprocess.SubprocessError) as e:
+        return {"erro": "não deu para conferir os jogos: %s" % e}
+    finally:
+        shutil.rmtree(pasta, ignore_errors=True)
+    saida = {"entram": [], "saem": [], "apagam": []}
+    campo = {"entra": "entram", "sai": "saem", "apaga": "apagam"}
+    for linha in proc.stdout.decode("utf-8", "replace").splitlines():
+        partes = linha.split(" ", 3)
+        if len(partes) == 4 and partes[0] == "@@jogo" and partes[1] in campo \
+                and partes[2].isdigit():
+            saida[campo[partes[1]]].append({"appid": partes[2], "nome": partes[3].strip()})
+    return saida
+
+
 def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None):
     """Começa uma ação. Devolve (trabalho, erro) — o erro pode ser um dicionário.
 
@@ -5694,6 +5804,12 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
     # ensaio para outro arquivo sem querer.
     if conf_do_ensaio:
         ambiente["MEOW_CONF"] = conf_do_ensaio
+        # E O MAPA DOS JOGOS, quando o ensaio é de uma decisão de jogo ainda não
+        # gravada (P54, `_ensaio_dos_jogos`): o `jogos_steam.sh` lê o mapa por
+        # esta variável, e a cópia com a decisão dentro mora na mesma pasta.
+        mapa_do_ensaio = os.path.join(pasta_de_ensaio, "jogos-fora.map")
+        if os.path.isfile(mapa_do_ensaio):
+            ambiente["MEOW_JOGOS_FORA"] = mapa_do_ensaio
     # O `install.sh` cala o progresso quando NÃO há terminal (`[ ! -t 1 ]`), e é
     # a decisão certa lá — quase 600 linhas num journal não têm leitor. Aqui há
     # leitora, e ela está olhando: sem esta linha a página mostraria um retângulo
@@ -7222,6 +7338,40 @@ class Manipulador(BaseHTTPRequestHandler):
             pass
         return vistos
 
+    # O NOME DE UM JOGO QUE JÁ NÃO TEM MANIFESTO — 24/09/2026, sprint P54
+    # (achado 44)
+    #   «Decisões já executadas» mostrava «appid 4046520». O nome de um jogo vem
+    #   do `appmanifest_<appid>.acf`, e é exatamente o que some quando a decisão
+    #   `apagar` dispara: o manifesto sai junto com a pasta. O registro
+    #   `jogos-apagados` guarda o nome desde 02/09 — mas a linha do 4046520 é de
+    #   antes dele e está com o nome vazio (medido: `4046520 2026-09-11 `), e uma
+    #   decisão `esconder` cujo jogo a Steam desinstalou nunca passou pelo
+    #   registro.
+    #   Quem ainda sabe o nome é a própria Steam: o `appcache/appinfo.vdf` é o
+    #   cache dela de TODO app que a conta já viu, instalado ou não — medido
+    #   nesta máquina, ele dá «Mad King Redemption Demo» para o 4046520. É
+    #   binário (o KeyValues da Valve, com a tabela de nomes de chave desde a
+    #   versão 29), e este leitor só vai atrás de `appinfo › common › name` do
+    #   appid pedido: pula as outras entradas pelo tamanho, sem abrir nenhuma.
+    #   Formato que ele não conhece, arquivo cortado ou appid ausente dão "", e
+    #   a linha continua dizendo o número — nunca uma exceção na aba.
+    _APPINFO = os.path.expanduser("~/.steam/steam/appcache/appinfo.vdf")
+    _NOMES_DA_STEAM = {}
+
+    @classmethod
+    def _nome_na_steam(cls, appid):
+        try:
+            carimbo = os.stat(cls._APPINFO).st_mtime_ns
+        except OSError:
+            return ""
+        chave = (carimbo, str(appid))
+        if chave not in cls._NOMES_DA_STEAM:
+            try:
+                cls._NOMES_DA_STEAM[chave] = _nome_no_appinfo(cls._APPINFO, int(appid))
+            except (OSError, ValueError, IndexError, struct.error):
+                cls._NOMES_DA_STEAM[chave] = ""
+        return cls._NOMES_DA_STEAM[chave]
+
     def _api_jogos(self, consulta):
         return self._json(self._dados_jogos(consulta))
 
@@ -7313,7 +7463,11 @@ class Manipulador(BaseHTTPRequestHandler):
             registro = gastos.get(appid) or {}
             orfas.append({
                 "appid": appid,
-                "nome": registro.get("nome") or "appid %s" % appid,
+                # O registro primeiro (é o nome do manifesto, guardado antes de
+                # apagá-lo); depois o cache da Steam (P54, ver `_nome_na_steam`);
+                # o número só quando ninguém mais sabe.
+                "nome": (registro.get("nome") or self._nome_na_steam(appid)
+                         or "appid %s" % appid),
                 "url": "", "cartao": False,
                 "acao": linha["acao"], "motivo": linha["motivo"],
                 "gasto": appid in gastos, "apagado_em": registro.get("data", ""),
@@ -7368,6 +7522,17 @@ class Manipulador(BaseHTTPRequestHandler):
         NÃO APAGA NADA. Quem apaga é o `scripts/jogos_steam.sh`, na passagem
         seguinte, com as guardas dele (Steam fechada, biblioteca montada, e o
         caminho vindo do `installdir` do manifesto, nunca deste mapa).
+
+        DUAS PERGUNTAS ANTES DA GRAVAÇÃO — 24/09/2026, sprint P54 (decisão dos
+        jogos). O mesmo pedido, com a mesma linha montada do mesmo jeito, e o
+        mapa do disco intocado nas duas:
+          · `previa: true` devolve o que a passagem faria com a decisão dentro
+            (`_previa_dos_jogos`): quais atalhos entram, quais saem, e que
+            pasta seria apagada. É o que a caixa de confirmar mostra;
+          · `seco: true` roda a passagem inteira em ensaio sobre a mesma cópia
+            e devolve o trabalho, para a gaveta — o «Ver o que faria».
+        Montar a linha num lugar e a cópia noutro faria a caixa prometer um
+        mapa e o botão gravar outro.
         """
         appid = str(corpo.get("appid", "")).strip()
         acao = str(corpo.get("acao", "")).strip()
@@ -7404,11 +7569,13 @@ class Manipulador(BaseHTTPRequestHandler):
         # disciplina do `_api_app_icone`.
         novas = list(linhas)
         indice = next((i for i, l in enumerate(novas) if id_da_linha(l) == appid), None)
+        so_pergunta = bool(corpo.get("previa") or corpo.get("seco"))
 
         if remover:
-            if indice is None:
+            if indice is None and not so_pergunta:
                 return self._json({"ok": True, "removido": False, "appid": appid})
-            del novas[indice]
+            if indice is not None:
+                del novas[indice]
         else:
             nova = "%s:%s:%s" % (appid, acao, motivo)
             if indice is not None:
@@ -7420,6 +7587,10 @@ class Manipulador(BaseHTTPRequestHandler):
                     novas.append(nova)
                 else:
                     novas.insert(ultima + 1, nova)
+        if corpo.get("previa"):
+            return self._json(_previa_dos_jogos("\n".join(novas)))
+        if corpo.get("seco"):
+            return self._ensaio_dos_jogos("\n".join(novas))
         try:
             with open(MAPA_JOGOS, "w", encoding="utf-8") as fh:
                 fh.write("\n".join(novas))
@@ -7428,6 +7599,28 @@ class Manipulador(BaseHTTPRequestHandler):
         return self._json({"ok": True, "appid": appid, "acao": "" if remover else acao,
                            "removido": remover,
                            "depois": "vale depois de \"Arrumar os jogos no lançador\""})
+
+    def _ensaio_dos_jogos(self, mapa):
+        """O «Ver o que faria» da caixa dos jogos: a passagem, seca, sobre `mapa`.
+
+        A cópia do mapa mora na pasta descartável do ensaio (`_conf_de_ensaio`,
+        a mesma do «Salvar e aplicar»), e o `iniciar` a entrega ao script pelo
+        `MEOW_JOGOS_FORA`. Quem apaga a pasta é o trabalho, quando termina."""
+        pasta, erro = _conf_de_ensaio([])
+        if erro:
+            return self._json({"erro": erro}, 500)
+        try:
+            with open(os.path.join(pasta, "jogos-fora.map"), "w", encoding="utf-8") as fh:
+                fh.write(mapa)
+        except OSError as e:
+            shutil.rmtree(pasta, ignore_errors=True)
+            return self._json({"erro": "não consegui preparar o ensaio: %s" % e}, 500)
+        trabalho, erro = iniciar("jogos_aplicar", "", confirmado=True, seco=True,
+                                 pasta_de_ensaio=pasta)
+        if erro:
+            shutil.rmtree(pasta, ignore_errors=True)
+            return self._json(erro if isinstance(erro, dict) else {"erro": erro}, 409)
+        return self._json(_trabalho_json(trabalho, "jogos_aplicar", seco=True))
 
     def _api_glifos(self, consulta):
         """O acervo de desenhos que a página pode oferecer para um aplicativo.
@@ -9261,6 +9454,38 @@ class Manipulador(BaseHTTPRequestHandler):
         # fora do que o pack oferece.
         vocab = vocabulario_do_pack()
         _com_o_vocabulario_do_pack(esquema, vocab, efetivos)
+        # AS FICHAS DE PROGRAMA DIZEM O PROGRAMA — 24/09/2026, sprint P54
+        # (achado 41). «Quais programas o lançador esconde» mostrava 32 ids
+        # crus — `org.gnome.Evince`, `org.gnome.baobab`,
+        # `gnome-language-selector` —, e a pergunta da chave é «quais
+        # PROGRAMAS»: quem lê um id reverso de domínio não sabe que é o leitor
+        # de PDF. Cada id que o valor ou o padrão cita ganha o `Name=` e o ícone
+        # do `.desktop` dele, pelos MESMOS `_desktops` e `_icone_na_tela` da
+        # aba de ícones: o nome é o do lançador, e o desenho é o que está na
+        # tela agora. Id sem `.desktop` nesta máquina fica de fora do mapa, e a
+        # ficha continua dizendo o id — é o caso do programa que não está
+        # instalado, e o comentário da chave diz que ele é pulado.
+        #   Só os ids citados, e não a máquina inteira: o esquema é lido a cada
+        # carga da página, e o ícone de cada programa custa uma busca no disco.
+        com_ids = [i for i in esquema if i.get("ids_de_desktop")]
+        if com_ids:
+            por_id = {d["id"]: d for d in self._desktops()}
+            tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
+            base_tema = os.path.expanduser("~/.local/share/icons/%s" % tema)
+            for item in com_ids:
+                citados = ",".join((item.get("valor") or "", item.get("padrao") or ""))
+                programas = {}
+                for ident in dict.fromkeys(x.strip() for x in citados.split(",")):
+                    d = por_id.get(ident)
+                    if not d:
+                        continue
+                    atual, _nosso = self._icone_na_tela(d, base_tema)
+                    programas[ident] = {
+                        "nome": d["nome"],
+                        "icone": ("/previa?tipo=arquivo&id=" + quote(atual, safe=""))
+                                 if atual else "",
+                    }
+                item["programas"] = programas
         medidas = dict(_medidas_do_projeto(), **_medidas_da_tela())
         return {
             # `~/.config/meow/meow.conf`, e não o caminho com o nome de usuário:

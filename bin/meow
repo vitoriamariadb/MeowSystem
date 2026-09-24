@@ -2195,7 +2195,33 @@ cmd_status() {
                 \( -type f -o -type l \) 2>/dev/null | wc -l)"
   campo "tema"     "$tema_icones"
   campo "arquivos" "$n_icones em ~/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
-  campo "logo"     "$LOGO  ->  $logo_path"
+  # O GATO QUE ESTÁ NO DOCK, E NÃO A CHAVE `LOGO` — 24/09/2026, sprint P54
+  # (achado 46)
+  #   A linha era `$LOGO  ->  <custom_logo_path do applet>`, e as duas metades
+  #   falavam de outra coisa. Medido no painel de verdade, com o modo `hora`:
+  #   «logo coquinha -> (nenhuma)» e o morcego-dia no dock. No modo `hora` quem
+  #   escolhe é o relógio (`LOGO_DIA`/`LOGO_NOITE`), e o `LOGO` só vale no modo
+  #   fixo; e o applet Logo Menu está fora do projeto desde 24/08/2026, então a
+  #   chave dele não existe nesta máquina.
+  #   O que ela VÊ é o botão do dock, e a pergunta é a do `meow logo listar`:
+  #   qual gato instalado tem o MESMO conteúdo do ícone do botão. O modo sai do
+  #   próprio `logo.sh modo`, que existe para ninguém reescrever a regra de
+  #   compatibilidade do `LOGO_ROTACAO`. A chave do applet continua dita, numa
+  #   linha dela, só quando existe.
+  local botao_dock no_dock="" gato modo_logo
+  botao_dock="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}/scalable/apps/com.system76.CosmicPanelAppButton.svg"
+  if [ -f "$botao_dock" ]; then
+    for gato in "$COSMIC/logos"/meow-*.svg; do
+      [ -f "$gato" ] && cmp -s "$gato" "$botao_dock" || continue
+      no_dock="$(basename "$gato" .svg)"; no_dock="${no_dock#meow-}"
+      break
+    done
+  fi
+  modo_logo="$(LOGO_MODO="${LOGO_MODO:-}" LOGO_ROTACAO="${LOGO_ROTACAO:-}" \
+                 "$RAIZ/scripts/logo.sh" modo 2>/dev/null)"
+  campo "logo"     "${no_dock:-nenhum gato do acervo} no dock  (modo ${modo_logo:-desconhecido})"
+  [ -f "$COSMIC/dev.cappsy.CosmicExtAppletLogoMenu/v1/custom_logo_path" ] &&
+    campo "applet"   "$logo_path"
 
   meow_passo "Papéis de parede"
   local l

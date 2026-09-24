@@ -471,6 +471,15 @@
     };
   }
 
+  /* "5 min" -> ["5", "min"]; "sempre" -> ["sempre", ""]. Os rótulos da
+   * `duracao` são sempre número, espaço e unidade, e é o que deixa o desenho
+   * pôr a unidade numa linha de baixo quando a de cima não cabe (P54). */
+  function partirRotulo(rotulo) {
+    const s = emTexto(rotulo);
+    const i = s.indexOf(" ");
+    return i < 0 ? [s, ""] : [s.slice(0, i), s.slice(i + 1)];
+  }
+
   function lista(valor, separador) {
     return emTexto(valor).split(separador).map((x) => x.trim()).filter(Boolean);
   }
@@ -1128,7 +1137,17 @@
     svg.appendChild(caminho(arco(82, 16, 9, 35, 325), { "stroke-width": 1.8 }));
     const fim = ponto(82, 16, 9, 325);
     svg.appendChild(seta(fim.x, fim.y, 325, 3.4));
-    svg.appendChild(texto(82, 18.5, d.intervalo.rotulo, { "font-size": 7 }));
+    /* O NÚMERO NO MIOLO DA SETA, E A UNIDADE EMBAIXO DELE — 24/09/2026, sprint
+     * P54 (achado 37). «5 min» numa linha só, em corpo 7, é mais largo que o
+     * miolo do círculo de raio 9: o «5» e o «n» saíam por cima do traço, e a
+     * validação no painel de verdade leu o rótulo como cortado pela seta. Em
+     * duas linhas cada pedaço cabe folgado; o corpo do número ainda encolhe
+     * quando o número é comprido, que é o `999` de quem digitou minuto solto. */
+    const [numIntervalo, unIntervalo] = partirRotulo(d.intervalo.rotulo);
+    svg.appendChild(texto(82, 17, numIntervalo, {
+      "font-size": q(Math.max(4, Math.min(7, 15 / Math.max(1, numIntervalo.length * 0.6)))),
+    }));
+    if (unIntervalo) svg.appendChild(texto(82, 22.2, unIntervalo, { "font-size": 4.2 }));
 
     if (d.ordem === "alfabetica") {
       svg.appendChild(linha(74, 30, 90, 30, { "stroke-width": 1.6 }));
@@ -1146,9 +1165,18 @@
      * quanto tempo. */
     svg.appendChild(circulo(9, 47, 2.2, { "stroke-width": 1.5 }));
     svg.appendChild(linha(9, 49.2, 9, 54, { "stroke-width": 1.5 }));
-    svg.appendChild(texto(14, 53, d.ttlEterno ? "sempre" : d.ttl.rotulo, {
-      "font-size": 5.5, "text-anchor": "start",
-    }));
+    /* E O PRAZO TAMBÉM EM DUAS LINHAS — mesma sprint, mesmo achado. «30 min» em
+     * corpo 5,5 ia de x=14 a x≈33, e a tarja do aviso começava em 31: o «n»
+     * entrava no balão da notificação. Número em cima e unidade embaixo ocupam
+     * menos da metade da largura; o «sempre», que é uma palavra só, desce de
+     * corpo em vez de partir. */
+    if (d.ttlEterno) {
+      svg.appendChild(texto(13.5, 52.5, "sempre", { "font-size": 4.6, "text-anchor": "start" }));
+    } else {
+      const [numTtl, unTtl] = partirRotulo(d.ttl.rotulo);
+      svg.appendChild(texto(13.5, 50.5, numTtl, { "font-size": 5.5, "text-anchor": "start" }));
+      if (unTtl) svg.appendChild(texto(13.5, 55.5, unTtl, { "font-size": 4.2, "text-anchor": "start" }));
+    }
 
     /* O AVISO É UMA TARJA, E NÃO UM SINO — 07/09/2026
      * A chave não pendura sino nenhum em lugar nenhum: ela manda o
@@ -1160,7 +1188,10 @@
      * menu do botão direito começa em x=66, então a tarja mora entre os dois.
      * Ela é a mesma `tarjaDeAviso` das três de "Manutenção", e é de propósito:
      * quatro chaves fazem a mesma coisa e passam a ter a mesma figura. */
-    svg.appendChild(tarjaDeAviso(31, 45.5, 33, 11, "imagem", d.avisa));
+    /* 31 -> 33 na P54: dois dedos de folga entre o prazo e a tarja, que antes
+     * se encostavam. A tarja encolhe na mesma conta e continua terminando em
+     * 64, antes do menu. */
+    svg.appendChild(tarjaDeAviso(33, 45.5, 31, 11, "imagem", d.avisa));
 
     /* O MENU DO BOTÃO DIREITO, INTEIRO — e não uma caixinha pontilhada. Medido
      * em 07/09/2026, a caixinha mudava 1,91% dos pixels do botão entre "sim" e

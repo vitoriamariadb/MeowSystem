@@ -1229,10 +1229,16 @@ MODO_AUTO_CLARO_ATE=""            # 0 a 23  (vazio = 18)
 # derivadas somem do disco no mesmo comando.
 WALLPAPER_NOITE="sim"             # sim | nao
 # @ Imagem escura a partir das
-# > Vazio usa o horário geral da noite.
+# > A hora em que o carrossel passa às imagens escuras.
+# O CÍRCULO SAIU DAQUI — 24/09/2026, sprint P54 (achado 38). As duas linhas
+# desta chave e da de baixo diziam «Vazio usa o horário geral da noite», e a
+# «A noite começa às» diz que, vazia, herda DESTAS: quem lia as duas girava de
+# uma para a outra sem achar hora nenhuma. E a frase nem era verdade — o
+# `wallpaper.sh` lê estas duas e, vazias, usa 18:00 e 07:00; a hora geral não
+# chega a ele. Quem herda é a geral, e só ela aponta para cá.
 WALLPAPER_NOITE_INICIO="18:00"    # HH:MM — a janela pode atravessar a meia-noite
 # @ Imagem escura até as
-# > Vazio usa o horário geral da noite.
+# > A hora em que o carrossel volta às imagens claras.
 WALLPAPER_NOITE_FIM="07:00"       # HH:MM — início == fim = noite o dia inteiro
 
 # @ Onde separa imagem clara de escura
