@@ -1531,7 +1531,7 @@ dizem quantas e de quem, e as não declaráveis dizem de onde saem. `HERDADO` co
 
 ```
   cursores          HERDADO de catppuccin        a cadeia não traz ponteiro
-  wallpapers        PRÓPRIO
+  wallpapers        DO MOTOR, ou inexistente     scripts/wallpaper.sh — ele não abre pack nenhum
   apps              PRÓPRIO
   som               PRÓPRIO
   fontes            HERDADO de catppuccin        a cadeia não traz fonte
@@ -1542,12 +1542,17 @@ dizem quantas e de quem, e as não declaráveis dizem de onde saem. `HERDADO` co
 põe os padrões dele no que faltar; um pack que herda do Dracula e não declara
 `som` toca o sino do motor. A tabela diz `DO MOTOR` para ele, e não `HERDADO`.
 
-**`wallpapers` diz PRÓPRIO no Dracula, e é a exceção que falta consertar.** Os
-campos de `origens.wallpapers` ainda não têm leitor — o `validar` os lista como
-campo morto —, e o papel de parede do Dracula vem de `WALLPAPER_DRACULA_REPO`
-no `meow.conf`, que o `wallpaper.sh` lê pelo nome do flavor. A linha fica como
-está até a sprint que der leitor ao bloco; o aviso de campo morto já conta a
-verdade sobre ela.
+**Os papéis de parede são do motor, declare o pack o que declarar.** O
+`scripts/wallpaper.sh` não abre pack nenhum: ele escolhe a semente pelo **nome
+do flavor** — `dracula` lê `WALLPAPER_DRACULA_REPO` do `meow.conf`, todo o resto
+cai no acervo do Catppuccin — e `WALLPAPER_SEMENTE_REPO` vence por cima. Então a
+tabela diz `DO MOTOR` para esta linha mesmo quando o pack declara
+`origens.wallpapers`, e nem `HERDADO` ela diz, porque ninguém sobe a herança
+dela. Os campos do bloco continuam no aviso de campo morto, que é o que avisa
+quem os declarou que declarar não fez nada. Até 23/09/2026 (P32) a linha dizia
+`PRÓPRIO` para o Dracula, e este parágrafo a registrava como a exceção a
+consertar; o conserto escolhido foi a tela dizer a verdade, e não um segundo
+semeador que lesse o bloco para chegar ao que o `wallpaper.sh` já faz.
 
 **Eram onze, e são quinze linhas.** A tabela da P12 (21/09/2026) contava onze:
 paleta, tema do COSMIC, ícones de aplicativo, de pasta, mimetypes, papéis de
@@ -1815,7 +1820,7 @@ Antes do `ok`, o validador imprime **quais campos aquele `pack.json` declara e
 nenhuma linha deste projeto consulta**:
 
 ```
-  aviso 11 campo(s) que este pack declara e NENHUM código lê:
+  aviso 9 campo(s) que este pack declara e NENHUM código lê:
           icones.apps.camada
           origens.wallpapers.tipo
           …
@@ -2034,6 +2039,8 @@ Este repositório traz **dois** packs, e eles ensinam coisas diferentes:
   herdado — com cada herança dita na cara.
 
 Se for copiar um para começar o seu, copie o **catppuccin**: o do Dracula
-declara onze campos que ainda não têm leitor, e o `validar` diz quais são. Eram
-quinze até a P15 dar leitor a `autor`, `versao` e `licenca`, e doze até a P10
+declara nove campos que ainda não têm leitor, e o `validar` diz quais são. Eram
+onze até a P32 recontar a lista e achar o leitor que `icones.autorais.gerar` e
+`origens.cursores.tema` já tinham (o `meow pack construir` e o painel), quinze
+até a P15 dar leitor a `autor`, `versao` e `licenca`, e doze até a P10
 dar leitor a `icones.mimetypes.flavor` — ver [Trocar de pack](#trocar-de-pack-meow-pack-usar).

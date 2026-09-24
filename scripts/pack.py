@@ -233,6 +233,25 @@ CAMPOS_COM_LEITOR = {
     # vestida de Dracula. O shell ainda não o lê: o `ICONES_FLAVOR` do meow.conf
     # continua mandando, que é o "Quem vence" do docs/PACKS.md.
     "icones.mimetypes.flavor",
+    # OS DOIS QUE O AVISO CHAMAVA DE MORTOS, E ESTAVAM VIVOS — 23/09/2026, P32.
+    #   O aviso mentia para o outro lado: acusava o Dracula de declarar onze
+    #   campos sem leitor, e dois tinham leitor desde antes. Recontados um a um:
+    #   · `icones.autorais.gerar` — o `cmd_construir`, aqui mesmo, sai com
+    #     "nada a construir" quando ele é falso ou falta;
+    #   · `origens.cursores.tema` — o `_declarado_pelo_pack` (app/servidor.py)
+    #     o reconhece como receita do pack. Medido: numa cópia do Dracula sem
+    #     ele, `_declarado_pelo_pack("dracula", "catppuccin-mocha-light")` vira
+    #     de True para False, e o painel passa a acusar o CURSOR de fábrica de
+    #     ser resto do Catppuccin. A função varre toda string do pack.json, mas
+    #     só chega nela o valor do meow.conf que cita o nome de OUTRO pack — e
+    #     dos nove que sobram no aviso nenhum é assim (`scalable/apps`,
+    #     `github-arvore`, `herdar`, `svg`, os acentos).
+    #   Os nove restantes deram `grep` vazio de leitor no mesmo dia: os dois
+    #   `recolorir`, `icones.apps.camada`, `paleta.acentos` e os cinco de
+    #   `origens.wallpapers` — o `wallpaper.sh` lê `WALLPAPER_DRACULA_*` do
+    #   meow.conf pelo nome do flavor, e não abre pack nenhum.
+    "icones.autorais.gerar",            # cmd_construir
+    "origens.cursores.tema",            # app/servidor.py, `_declarado_pelo_pack`
 }
 
 
@@ -3219,6 +3238,28 @@ def origens(p):
             declarou = isinstance(bloco, dict) and any(not str(k).startswith("_") for k in bloco)
             saida.append((cat, "próprio" if declarou else "motor", ""))
             continue
+        # OS PAPÉIS DE PAREDE SÃO DO MOTOR, DECLARE O PACK O QUE DECLARAR —
+        # 23/09/2026, sprint P32.
+        #   A tabela dizia PRÓPRIO para o Dracula porque ele declara
+        #   `origens.wallpapers`, e nenhum código lê esse bloco: o
+        #   `scripts/wallpaper.sh` não abre pack nenhum. Quem escolhe a semente é
+        #   o `_semente_do_flavor` de lá, pelo NOME do flavor — `dracula` lê
+        #   `WALLPAPER_DRACULA_REPO` do meow.conf, todo o resto cai no acervo do
+        #   Catppuccin —, com `WALLPAPER_SEMENTE_REPO` vencendo por cima. Quem
+        #   lia "próprio" acreditava que o pack trazia os papéis de parede dele.
+        #   Nem HERDADO serve: ninguém sobe a herança desta categoria.
+        #
+        #   POR QUE MUDA A TELA, E NÃO O SEMEADOR. Dar leitor ao bloco seria um
+        #   segundo caminho de semeadura — achar o pack ativo no shell, ler cinco
+        #   campos, expandir a chave do conf que `repo_do_conf` nomeia, cumprir o
+        #   `se_vazio` — para chegar ao que o `dracula)` do `wallpaper.sh` já faz,
+        #   e ninguém pediu por ele. O menor passo verdadeiro é a tabela dizer de
+        #   onde a imagem sai. Os campos seguem no aviso de campo morto, que conta
+        #   que declará-los não faz nada; no dia em que o `wallpaper.sh`
+        #   perguntar ao pack, este bloco sai e a categoria volta à regra geral.
+        if cat == "wallpapers":
+            saida.append((cat, "motor", ""))
+            continue
         # PONTEIRO E FONTES SÃO PRÓPRIOS SÓ COM `proprio`. Um bloco com só o
         # `tema` do ponteiro (o nome que a chave CURSOR recebe) não traz tema
         # nenhum, e a tabela dizia PRÓPRIO para ele; sem `proprio` e sem
@@ -3360,6 +3401,11 @@ def cmd_info(ref):
                          else "" if tipo == "motor" else "a cadeia não traz fonte")
             except Recusa:
                 conta = "a lista herdada não valida — rode o `validar` do pack base"
+        # DE ONDE O PAPEL DE PAREDE SAI, como nas fixas do motor — P32. A
+        # segunda metade é o porquê de o bloco declarado não mudar a linha: ver
+        # "OS PAPÉIS DE PAREDE SÃO DO MOTOR", no `origens`.
+        elif cat == "wallpapers":
+            conta = "scripts/wallpaper.sh — ele não abre pack nenhum"
         elif cat in FIXAS_NO_MOTOR:
             conta = FIXAS_NO_MOTOR[cat]
         print(f"  {cat:<16}  {estado:<27}  {conta}")
