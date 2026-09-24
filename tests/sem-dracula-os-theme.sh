@@ -187,9 +187,13 @@ fi
 #   o que tira o ~/Desenvolvimento/Dracula_OS-Theme do alcance.
 T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
-mkdir -p "$T/home" "$T/xdg" "$T/packs"
+# A casa numa variável, e não como `$T/home/...` escrito em cada uso: a regra 1
+# do tests/portabilidade.sh lê `/home/<nome>/` como home de pessoa cravado, e
+# acusou esta linha na primeira passada (23/09/2026).
+CASA="$T/casa"
+mkdir -p "$CASA" "$T/xdg" "$T/packs"
 amb() {
-  env HOME="$T/home" XDG_DATA_HOME="$T/xdg" MEOW_PACKS="$T/packs" MEOW_RAIZ="$RAIZ" \
+  env HOME="$CASA" XDG_DATA_HOME="$T/xdg" MEOW_PACKS="$T/packs" MEOW_RAIZ="$RAIZ" \
       PACK="dracula" FLAVOR="dracula" ICONES_DRACULA="sim" NOME_TEMA_ICONES="MeowSystem-Icons" "$@"
 }
 
@@ -210,7 +214,7 @@ fora="$(printf '%s\n' "$pares" | awk -F'\t' -v p="$RAIZ/packs/dracula/" -v m="$R
   || falha "o mapa do Dracula aponta para fora do repositório" "$fora"
 
 amb "$RAIZ/scripts/icones_apps_dracula.sh" instalar >"$T/instalar.log" 2>&1; rc=$?
-tema="$T/home/.local/share/icons/MeowSystem-Icons/scalable/apps"
+tema="$CASA/.local/share/icons/MeowSystem-Icons/scalable/apps"
 postos=0; diferentes=""
 while IFS=$'\t' read -r nome origem; do
   [ -n "$nome" ] || continue
@@ -222,7 +226,7 @@ while IFS=$'\t' read -r nome origem; do
     diferentes="${diferentes}${nome}"$'\n'
   fi
 done <<< "$pares"
-[ -e "$T/home/Desenvolvimento/Dracula_OS-Theme" ] \
+[ -e "$CASA/Desenvolvimento/Dracula_OS-Theme" ] \
   && falha "o HOME de brinquedo ganhou um Dracula_OS-Theme — a pergunta 2 deixou de valer"
 [ "$postos" = "$total" ] && [ "$rc" != "2" ] \
   && ok "numa casa sem o Dracula_OS-Theme, a montagem põe no tema os $total desenhos, cada um igual ao do pack" \
