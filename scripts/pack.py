@@ -5244,6 +5244,16 @@ def cmd_importar(caminho, opcoes):
     return OK
 
 
+def _til(caminho):
+    """O caminho com a casa como `~` — é o que a gaveta do painel mostra.
+
+    A P52 (24/09/2026) tira o nome de usuário do que a tela mostra; a saída do
+    `remover` passa pela gaveta, e nasce já sem ele.
+    """
+    casa = os.path.expanduser("~")
+    return "~" + caminho[len(casa):] if caminho.startswith(casa + os.sep) else caminho
+
+
 # REMOVER UM PACK IMPORTADO — 24/09/2026, sprint P53 (achado 8)
 #
 # O QUE FOI MEDIDO NO PAINEL DE VERDADE
@@ -5315,7 +5325,7 @@ def remocao(ident, pack_conf="", flavor_conf=""):
         if os.path.isfile(os.path.join(do_projeto, "pack.json")):
             return None, (f"o {campo(do_projeto, 'nome') or ident} vem com o MeowSystem — "
                           f"mora em packs/ do projeto, e só sai o que o importar gravou")
-        return None, (f"não há pack {ident!r} em {raiz_da_pessoa()}, que é onde o "
+        return None, (f"não há pack {ident!r} em {_til(raiz_da_pessoa())}, que é onde o "
                       f"importar grava — só de lá um pack sai")
     nome = campo(casa, "nome") or ident
     if ident in (pack_conf, adocao(pack_conf, flavor_conf)[0]):
@@ -5355,7 +5365,7 @@ def cmd_remover(ident, opcoes):
                 pass
     peso = f"{arquivos:,}".replace(",", ".") + f" arquivo(s), {_mb(bytes_)}"
     if seco:
-        print(f"  ~~   removeria {casa} — o pack {nome}, {peso}; nada foi apagado")
+        print(f"  ~~   removeria {_til(casa)} — o pack {nome}, {peso}; nada foi apagado")
         return OK
     # SAI INTEIRO OU NÃO SAI: primeiro o `rename` para um oculto AO LADO, e só
     # então o `rmtree`. É o avesso do `_instalar_pack`, pelo motivo dele: no
@@ -5369,9 +5379,9 @@ def cmd_remover(ident, opcoes):
         os.rename(casa, os.path.join(parede, ident))
     except OSError as e:
         shutil.rmtree(parede, ignore_errors=True)
-        raise Recusa(f"não consegui tirar {casa}: {e}")
+        raise Recusa(f"não consegui tirar {_til(casa)}: {e}")
     shutil.rmtree(parede, ignore_errors=True)
-    print(f"  ~~   removido: {casa} — o pack {nome}, {peso}")
+    print(f"  ~~   removido: {_til(casa)} — o pack {nome}, {peso}")
     print("  --   para tê-lo de novo, importe o arquivo dele outra vez")
     return OK
 

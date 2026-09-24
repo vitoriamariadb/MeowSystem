@@ -2000,6 +2000,13 @@ saida="$(remover minha-tinta)"; rc=$?
   && [ -z "$(find "$DA_PESSOA" -maxdepth 1 -name '.saindo-*' 2>/dev/null)" ] \
   && [ "$(sha256sum < "$T/remover.conf")" = "$remover_antes" ] \
   || faltam+=" o remover de verdade não tirou o pack inteiro, ou deixou o oculto (rc=$rc: $saida);"
+# A saída vai para a gaveta do painel, e a casa sai dela como `~` (a regra da
+# P52: a tela não mostra o nome de usuário). Fora da casa, o caminho fica.
+til="$(env HOME=/casa/de/teste python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import pack
+print(pack._til("/casa/de/teste/.local/share/meowsystem/packs/x"), pack._til("/casa/de/testex/y"))' \
+  "$RAIZ/scripts" 2>&1)"
+[ "$til" = "~/.local/share/meowsystem/packs/x /casa/de/testex/y" ] \
+  || faltam+=" a saída do remover não troca a casa por ~ ($til);"
 [ -z "$faltam" ] \
   && ok "meow pack remover tira o importado, recusa o do projeto, o no ar e o herdado, e ensaia sem apagar" \
   || falha "o meow pack remover não cumpre a regra:$faltam"
