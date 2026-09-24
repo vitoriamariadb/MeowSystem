@@ -3060,6 +3060,34 @@ def validar(ref, silencioso=False):
             except Recusa as e:
                 raise Recusa(f"{mapa_apps}:{num}: {e}") from None
 
+    # A BIBLIOTECA SÓ GUARDA DESENHO — 23/09/2026, P36
+    #   `icones/biblioteca/` é a coleção de onde se escolhe o próximo desenho de
+    #   aplicativo (ver `PASTA_BIBLIOTECA`, lá embaixo). Ela é o maior acervo
+    #   que um pack pode trazer — a do Dracula tem 295 —, e uma pasta desse
+    #   tamanho é onde um arquivo que não é desenho entra sem ninguém ver: um
+    #   `.png` de rascunho, um link para a máquina de quem montou. O `exportar`
+    #   já barra link e script; esta linha diz, antes, que a pasta tem uma
+    #   forma — `.svg` comum, sem subpasta —, e lista todos de uma vez.
+    #
+    #   SÓ NA PORTA DE QUEM PUBLICA, pelo motivo do "ALVO AUSENTE" acima: um
+    #   pack recusado no motor é ignorado inteiro, e um arquivo solto numa
+    #   pasta que nada instala não pode trocar o tema de ninguém. O oculto fica
+    #   de fora, como no `exportar`.
+    pasta_bib = os.path.join(dir_pack, PASTA_BIBLIOTECA)
+    if not silencioso and os.path.lexists(pasta_bib.rstrip("/")):
+        _exigir(os.path.isdir(pasta_bib) and not os.path.islink(pasta_bib.rstrip("/")),
+                f"{PASTA_BIBLIOTECA}: precisa ser uma pasta do pack, e não um arquivo ou link")
+        fora_da_forma = []
+        for a in sorted(os.listdir(pasta_bib)):
+            cheio = os.path.join(pasta_bib, a)
+            if a.startswith("."):
+                continue
+            if not a.endswith(".svg") or os.path.islink(cheio) or not os.path.isfile(cheio):
+                fora_da_forma.append(a)
+        _exigir(not fora_da_forma,
+                f"{PASTA_BIBLIOTECA}: {len(fora_da_forma)} entrada(s) que não são desenho "
+                f"(.svg comum, sem subpasta):\n      " + "\n      ".join(fora_da_forma))
+
     # AS DECLARAÇÕES DE DESENHO AUTORAL — 23/09/2026, sprint P26
     #   Os `.json` da pasta `icones.autorais.desenhos` viraram a entrada do
     #   gerador: um terceiro desenho entra copiando um arquivo, sem tocar em
@@ -3383,6 +3411,58 @@ def _contar_acervo(ref, categoria, flavors):
     return quantos, (f"{len(achados)} flavor(s)" if achados else "")
 
 
+# A BIBLIOTECA: DESENHOS QUE NENHUM APLICATIVO VESTE AINDA — 23/09/2026, P36
+#
+#   A queixa: "vc tinha achado mais de 300 [SVGs] do tema dracula mas eles não
+#   estão no pack". Estavam 11 de 295: o pack guardava só o desenho que já
+#   vestia alguém, e o resto da coleção — de onde a pessoa escolhe o próximo —
+#   morava num repositório que só existe numa máquina. `icones/biblioteca/` é
+#   essa coleção, dentro do pack.
+#
+#   SEM CAMPO NO pack.json, E É DE PROPÓSITO: nada INSTALA a biblioteca. Quem
+#   põe desenho no tema é o `icones.apps.mapa`, e uma linha dele pode apontar
+#   para `biblioteca/x.svg` como aponta para `apps/x.svg` — é o mesmo
+#   `resolver_alvo`. A pasta é convenção, como a `temas/capturados/`: um campo
+#   que declarasse "tenho biblioteca" seria lido só por esta conta.
+#
+#   "SEM APP LIGADO" É POR CONTEÚDO, E NÃO POR CAMINHO. Onze desenhos da
+#   biblioteca do Dracula já moravam em `icones/apps/` com nome de aplicativo
+#   (o `dice.svg` é o `apps/foundryvtt.svg`, byte a byte), e a decisão foi
+#   deixá-los lá. Contar por caminho diria que o dado não veste ninguém,
+#   quando o Foundry o veste todo dia. O sha256 de ~300 SVG custa milissegundos.
+PASTA_BIBLIOTECA = "icones/biblioteca/"
+
+
+def _contar_biblioteca(ref, dir_pack):
+    """(nomes no mapa de aplicativos, desenhos da biblioteca que nenhum veste).
+
+    None quando o pack não tem biblioteca — o `info` mostra a contagem de
+    sempre. Só a biblioteca do PRÓPRIO pack: ela não sobe pela herança, porque
+    nada a instala; o mapa, sim, é o que vale para o pack (o `acervo`).
+    """
+    bib = os.path.join(dir_pack, PASTA_BIBLIOTECA)
+    if not os.path.isdir(bib):
+        return None
+    mapa = acervo("icones.apps.mapa", ref=ref)
+    nomes, vestidos = set(), set()
+    if mapa:
+        base = os.path.dirname(mapa)
+        for _num, nome, alvo in ler_mapa(mapa):
+            nomes.add(nome)
+            try:
+                caminho = resolver_alvo(alvo, base)
+            except Recusa:
+                continue
+            if os.path.isfile(caminho):
+                vestidos.add(_sha(caminho))
+    soltos = 0
+    for a in os.listdir(bib):
+        caminho = os.path.join(bib, a)
+        if a.endswith(".svg") and os.path.isfile(caminho) and _sha(caminho) not in vestidos:
+            soltos += 1
+    return len(nomes), soltos
+
+
 # A TABELA DO `info` E A LINHA DO CARTÃO SAEM DA MESMA CONTA — 23/09/2026, P15
 #
 #   A P15 pediu, no cartão do painel e no alto do `info`, a linha "próprio:
@@ -3594,6 +3674,14 @@ def cmd_info(ref):
         if cat.startswith("icones."):
             quantos, fl = _contar_acervo(ref, cat, dados["flavors"])
             conta = f"{quantos}, {fl}" if quantos and fl else quantos
+            # COM BIBLIOTECA, A LINHA DOS APLICATIVOS CONTA NOMES, E NÃO
+            # ARQUIVOS DE `apps/` [23/09/2026, P36]: um mapa que aponta para
+            # `biblioteca/` veste aplicativos com desenho que não mora em
+            # `apps/`, e "70 desenho(s)" ali contaria a metade. A mesma linha,
+            # e não uma nova: a tabela tem as 15 que o `tests/pack.sh` cobra.
+            bib = _contar_biblioteca(ref, dir_pack) if cat == "icones.apps" else None
+            if bib:
+                conta = f"{bib[0]} apps, {bib[1]} na biblioteca sem app ligado"
         # PONTEIRO E FONTES DIZEM ONDE A CADEIA TERMINA — 23/09/2026, P12.
         #   "HERDADO de catppuccin" era tudo o que o Dracula mostrava para o
         #   ponteiro, e o catppuccin não traz ponteiro nenhum. A coluna ao lado

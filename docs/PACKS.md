@@ -354,6 +354,7 @@ packs/<id>/
   icones/                   MESMA FORMA para as quatro categorias — ver a seção própria
     apps.map                "nome-do-ícone : caminho/relativo.svg"
     apps/                   os desenhos referidos pelo mapa
+    biblioteca/             desenhos que nenhum aplicativo veste ainda — o mapa pode apontar para cá
     pastas.map              pastas/
     pastas/                 folder-documents.svg, folder-download.svg…
     mimetypes.map           "nome-freedesktop : glifo"
@@ -654,6 +655,7 @@ compartilhada e fica onde está. O que não pode é a decisão morar em `assets/
 ```
 packs/<id>/icones/
   apps.map          apps/         quais aplicativos, e os desenhos
+                    biblioteca/   a coleção de onde se escolhe (ver abaixo)
   pastas.map        pastas/
   mimetypes.map     mimetypes/<flavor>/
                     autorais/     os desenhos do projeto, por flavor
@@ -679,6 +681,46 @@ O `validar` cobra a existência de tudo o que estiver declarado, nas quatro. Um
 pack que promete um acervo e não entrega é recusado — pelo mesmo motivo que o
 `creditos` é cobrado: um validador que carimba a promessa vazia ensina a
 escrevê-la.
+
+### A biblioteca: os desenhos que ainda não vestem ninguém
+
+`icones/biblioteca/` guarda a **coleção** do pack — os desenhos de onde a pessoa
+escolhe o próximo ícone de aplicativo, vestindo alguém ou não. Ela nasceu em
+23/09/2026 (P36), de uma queixa medida: o Dracula tinha uma biblioteca de **295**
+SVG no `Dracula_OS-Theme`, e o pack carregava **11**. Parecia completo porque só
+guardava o que já vestia alguém; o resto morava num repositório que só existe
+numa máquina.
+
+- **Não tem campo no `pack.json`, e é de propósito.** Nada instala a biblioteca:
+  quem põe desenho no tema é o `apps.map`, e uma linha dele aponta para
+  `biblioteca/x.svg` como aponta para `apps/x.svg` —
+  `best.ellie.StartupConfiguration : biblioteca/sun.svg`. A pasta é convenção,
+  como `temas/capturados/`.
+- **O `meow pack info` a conta**, na linha dos aplicativos:
+  `icones.apps  PRÓPRIO  191 apps, 266 na biblioteca sem app ligado`. "Sem app
+  ligado" é medido por **conteúdo** (sha256), não por caminho: onze desenhos da
+  biblioteca do Dracula também moram em `apps/` com nome de aplicativo (o
+  `dice.svg` é o `apps/foundryvtt.svg`, byte a byte), e contar por caminho diria
+  que o dado não veste ninguém.
+- **O `validar` cobra a forma** — só `.svg` comum, sem subpasta nem link, todos
+  os achados de uma vez — e só na porta de quem publica: um arquivo solto numa
+  pasta que nada instala não pode fazer o motor ignorar o pack inteiro.
+- **Cada desenho tem a linha dele no `PROCEDENCIA.md`**, como qualquer arte
+  copiada (ver [Fonte e derivados](#fonte-e-derivados)). O `tests/pack.sh`
+  cobra isso, e conta a biblioteca do Dracula contra o `Dracula_OS-Theme` por
+  sha256 quando ele está na máquina — onde não está, pula dizendo por quê.
+  Nada do MeowSystem lê aquele repositório em execução: ele é a origem da
+  cópia, e só.
+
+**Trazer as ligações de outro tema não troca escolha nenhuma.** A P36 trouxe as
+ligações do `mapping.json` do Dracula_OS-Theme que apontam para SVG — 172
+nomes novos no `apps.map`. Sete entradas ficaram **inteiras** de fora porque um
+nome delas já tinha outra escolha (no próprio mapa, no `apps-resgatados.map`,
+numa tabela do `completar_icones.sh` ou num mapa do `48x48/apps` que o
+`scalable` do pack passaria a vencer): soltar só os nomes livres vestiria o
+mesmo aplicativo com dois desenhos. A lista, e o porquê de cada uma, está no
+cabeçalho do bloco no `packs/dracula/icones/apps.map`; a escolha é de quem
+mantém o pack.
 
 ### `motor:` — apontar para o acervo do motor sem copiá-lo
 

@@ -99,6 +99,236 @@ io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do g
 #   A raposa continua em `assets/icones/resgatados/`, como alternativa.
 net.waterfox.waterfox : apps/net.waterfox.waterfox.svg   # Waterfox — o Firefox do dracula-icons (circle)
 
+# A BIBLIOTECA INTEIRA DO DRACULA_OS-THEME — 23/09/2026, P36
+#   A queixa: "vc tinha achado mais de 300 [SVGs] do tema dracula mas eles não
+#   estão no pack". Estavam 11 de 295. A decisão dele: os 295 e TODAS as
+#   ligações do `mapping.json` que apontam para SVG entram; as de `projects`
+#   (os projetos pessoais) ficam fora, porque um pack é exportável.
+#
+#   Cada linha abaixo é um nome que o `build.sh` do Dracula_OS-Theme instala
+#   para aquela entrada — a chave, os `aliases_humanos` (espaço vira hífen) e os
+#   `aliases` — mais o `icon_original` quando ele é nome e não caminho. Só o
+#   `icon_original` daria 103 nomes para as 115 entradas; o laço de lá instala
+#   todos, e o apelido é o que acha o aplicativo quando o `.desktop` de outra
+#   máquina pede outro nome (o `telegram` em vez do `org.telegram.desktop`).
+#
+#   Os desenhos da biblioteca são apontados LÁ (44 linhas em `biblioteca/`):
+#   copiar cada um de novo para `apps/` seria o mesmo desenho em dois arquivos.
+#   Os de upstream e de `current/` foram copiados para `apps/` com o nome de
+#   um ícone que vestem, cada um com a linha dele no `PROCEDENCIA.md`; quando
+#   duas fontes de lá tinham os mesmos bytes (o `ibus.svg` e o
+#   `ibus-setup-chewing.svg`, o `terminal.svg` de `current/` e o
+#   `graveyard-variant.svg` da biblioteca), o pack guarda um arquivo só.
+#
+#   AS QUE NÃO ENTRARAM, E NENHUMA FOI TROCADA CALADA
+#   Sete entradas têm um nome que já tem outra escolha, e ficaram INTEIRAS de
+#   fora — soltar só os nomes livres vestiria o mesmo aplicativo com dois
+#   desenhos, conforme o `Icon=` que a máquina pedir. A escolha é de quem
+#   mantém o projeto:
+#
+#     com.github.tchx84.Flatseal (chest), org.bleachbit.BleachBit (broom),
+#     org.gnome.FileRoller (chest), org.gnome.gitlab.somas.Apostrophe
+#     (ghostwriter)       já vestem traço pelo `apps-convertidos.map`, no
+#                         `48x48/apps`
+#     org.mozilla.Thunderbird (thunderbird)
+#                         o nome `thunderbird` já veste o `apps-arcticons.map`
+#     guvcview (o `guvcview.svg` de `current/`)
+#                         `apps/guvcview.svg` já é outro desenho: o resgate que
+#                         a Câmera veste, logo acima
+#     setup-mozc (tarot)  o nome é do `apps-resgatados.map`, e os dois escrevem
+#                         o mesmo `scalable/apps` (regra 1 da P28)
+#
+#   O `scalable` deste mapa VENCE o `48x48/apps` — é a precedência "Dracula
+#   vence tudo" de 16/09/2026. Ela foi escolhida para os dezoito de então, com
+#   os dois lados na mesa; estes cinco não foram vistos, e não trocam sozinhos.
+#
+#   DOIS NOMES QUE O PRÓPRIO mapping.json DÁ A DOIS DESENHOS
+#   Venceu a entrada cuja chave É o nome, que nos dois casos é também a
+#   escolha revisada a olho (`override-novo`). No build de lá vence o último
+#   que o laço escreve — a outra —, então aqui a tela pode diferir do tema
+#   `Dracula-Icones` nestes dois:
+#     io.elementary.appcenter  fica `bag.svg` (da própria entrada); sai o
+#                              `pop-shop.svg` do io.elementary.appcenter-daemon
+#     org.gnome.gThumb         fica `eye-ball.svg` (da própria entrada); sai o
+#                              `org.gnome.gThumb.svg` do org.gnome.gThumb.Import
+#
+#   E dois nomes `-symbolic` recebem desenho colorido, porque é o que o
+#   `mapping.json` liga: `mark-location-symbolic` e
+#   `preferences-desktop-apps-symbolic`. Um símbolo é pintado pelo tema como
+#   máscara de uma cor só; o desenho pode aparecer como silhueta.
+bauh : apps/bauh.svg   # bauh [upstream]
+best.ellie.StartupConfiguration : biblioteca/sun.svg   # Startup Configuration [override-novo]
+startup-configuration : biblioteca/sun.svg   # Startup Configuration [override-novo]
+bluetooth-sendto : apps/bluetooth.svg   # Bluetooth Transfer [upstream]
+bluetooth : apps/bluetooth.svg   # Bluetooth Transfer [upstream]
+com.freerdp.FreeRDP : biblioteca/gate.svg   # FreeRDP [override-novo]
+freerdp : biblioteca/gate.svg   # FreeRDP [override-novo]
+com.github.donadigo.eddy : apps/com.github.donadigo.eddy.svg   # Eddy [upstream]
+com.google.Chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]
+chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]
+com.jwestall.Forecast : biblioteca/full-moon.svg   # Meteorologia [override-novo]
+forecast : biblioteca/full-moon.svg   # Meteorologia [override-novo]
+com.mattjakeman.ExtensionManager : biblioteca/toolbox.svg   # Extension Manager [override-novo]
+extension-manager : biblioteca/toolbox.svg   # Extension Manager [override-novo]
+popsicle : apps/com.system76.Popsicle.svg   # Popsicle USB Flasher [override-novo]
+foundry-vtt : apps/foundryvtt.svg   # Foundry VTT [override-novo]
+gcr-prompter : apps/security-medium.svg   # Access Prompt [upstream]
+security-medium : apps/security-medium.svg   # Access Prompt [upstream]
+geoclue-demo-agent : apps/mark-location-symbolic.svg   # Geoclue Demo agent [upstream]
+mark-location-symbolic : apps/mark-location-symbolic.svg   # Geoclue Demo agent [upstream]
+ghostty : apps/ghostty.svg   # Ghostty [override-novo]
+com.mitchellh.ghostty : apps/ghostty.svg   # Ghostty [override-novo]
+ghostty_ghostty : apps/ghostty.svg   # Ghostty [override-novo]
+gkbd-keyboard-display : apps/input-keyboard.svg   # Keyboard Layout [upstream]
+preferences-desktop-keyboard : apps/input-keyboard.svg   # Keyboard Layout [upstream]
+gnome-applications-panel : apps/preferences-desktop-apps-symbolic.svg   # Applications [current-nome]
+preferences-desktop-apps-symbolic : apps/preferences-desktop-apps-symbolic.svg   # Applications [current-nome]
+gnome-background-panel : apps/preferences-desktop-wallpaper.svg   # Background [upstream]
+preferences-desktop-wallpaper : apps/preferences-desktop-wallpaper.svg   # Background [upstream]
+gnome-bluetooth-panel : apps/bluetooth.svg   # Bluetooth [upstream]
+gnome-color-panel : apps/preferences-color.svg   # Color [upstream]
+preferences-color : apps/preferences-color.svg   # Color [upstream]
+gnome-connectivity-panel : apps/network-workgroup.svg   # Connectivity [current-nome]
+network-workgroup : apps/network-workgroup.svg   # Connectivity [current-nome]
+gnome-control-center : apps/org.gnome.Settings.svg   # Configurações [upstream]
+org.gnome.Settings : apps/org.gnome.Settings.svg   # Configurações [upstream]
+gnome-datetime-panel : apps/preferences-system-time.svg   # Date & Time [upstream]
+preferences-system-time : apps/preferences-system-time.svg   # Date & Time [upstream]
+gnome-default-apps-panel : apps/starred.svg   # Default Applications [current-nome]
+starred : apps/starred.svg   # Default Applications [current-nome]
+gnome-desktop-main-panel : apps/video-display.svg   # Desktop Options [current-nome]
+video-display : apps/video-display.svg   # Desktop Options [current-nome]
+gnome-disk-image-mounter : apps/drive-removable-media.svg   # Disk Image Mounter [upstream]
+drive-removable-media : apps/drive-removable-media.svg   # Disk Image Mounter [upstream]
+gnome-disk-image-writer : apps/drive-removable-media.svg   # Disk Image Writer [upstream]
+gnome-display-panel : apps/preferences-desktop-display.svg   # Displays [upstream]
+preferences-desktop-display : apps/preferences-desktop-display.svg   # Displays [upstream]
+gnome-firmware-panel : apps/firmware-manager.svg   # Firmware [upstream]
+firmware-manager : apps/firmware-manager.svg   # Firmware [upstream]
+gnome-info-overview-panel : apps/help-about.svg   # About [current-nome]
+help-about : apps/help-about.svg   # About [current-nome]
+gnome-initial-setup : apps/org.gnome.Settings.svg   # Initial Setup [upstream]
+preferences-system : apps/org.gnome.Settings.svg   # Initial Setup [upstream]
+gnome-keyboard-panel : apps/input-keyboard.svg   # Keyboard [upstream]
+gnome-language-selector : apps/preferences-desktop-locale.svg   # Suporte a idiomas [upstream]
+preferences-desktop-locale : apps/preferences-desktop-locale.svg   # Suporte a idiomas [upstream]
+gnome-location-panel : apps/mark-location-symbolic.svg   # Location Services [upstream]
+location-services-active : apps/mark-location-symbolic.svg   # Location Services [upstream]
+gnome-mouse-panel : apps/input-mouse.svg   # Mouse & Touchpad [upstream]
+input-mouse : apps/input-mouse.svg   # Mouse & Touchpad [upstream]
+gnome-network-panel : apps/network-workgroup.svg   # Network [current-nome]
+gnome-notifications-panel : apps/preferences-system-notifications.svg   # Notifications [upstream]
+preferences-system-notifications : apps/preferences-system-notifications.svg   # Notifications [upstream]
+gnome-online-accounts-panel : apps/goa-panel.svg   # Online Accounts [upstream]
+goa-panel : apps/goa-panel.svg   # Online Accounts [upstream]
+gnome-power-panel : apps/gnome-power-manager.svg   # Power [upstream]
+gnome-power-manager : apps/gnome-power-manager.svg   # Power [upstream]
+gnome-printers-panel : apps/printer.svg   # Printers [upstream]
+printer : apps/printer.svg   # Printers [upstream]
+gnome-region-panel : apps/preferences-desktop-locale.svg   # Region & Language [upstream]
+gnome-removable-media-panel : apps/media-removable.svg   # Removable Media [current-nome]
+media-removable : apps/media-removable.svg   # Removable Media [current-nome]
+gnome-session-properties : biblioteca/sun.svg   # Aplicativos iniciais de sessão [override-novo]
+session-properties : biblioteca/sun.svg   # Aplicativos iniciais de sessão [override-novo]
+gnome-sharing-panel : apps/preferences-system-sharing.svg   # Sharing [upstream]
+preferences-system-sharing : apps/preferences-system-sharing.svg   # Sharing [upstream]
+gnome-sound-panel : apps/multimedia-volume-control.svg   # Sound [current-nome]
+multimedia-volume-control : apps/multimedia-volume-control.svg   # Sound [current-nome]
+gnome-system-monitor : biblioteca/hourglass.svg   # System Monitor [override-novo]
+org.gnome.SystemMonitor : biblioteca/hourglass.svg   # System Monitor [override-novo]
+gnome-system-monitor-kde : biblioteca/hourglass.svg   # GNOME System Monitor [override-novo]
+gnome-thunderbolt-panel : apps/thunderbolt.svg   # Thunderbolt [upstream]
+thunderbolt : apps/thunderbolt.svg   # Thunderbolt [upstream]
+gnome-universal-access-panel : apps/preferences-desktop-accessibility.svg   # Accessibility [upstream]
+preferences-desktop-accessibility : apps/preferences-desktop-accessibility.svg   # Accessibility [upstream]
+gnome-usage-panel : apps/system-file-manager.svg   # File History & Trash [upstream]
+system-file-manager : apps/system-file-manager.svg   # File History & Trash [upstream]
+gnome-user-accounts-panel : apps/system-users.svg   # Users [upstream]
+system-users : apps/system-users.svg   # Users [upstream]
+gnome-wacom-panel : apps/input-tablet.svg   # Wacom Tablet [upstream]
+input-tablet : apps/input-tablet.svg   # Wacom Tablet [upstream]
+gnome-wwan-panel : apps/network-cellular-signal-excellent.svg   # Mobile Network [current-nome]
+network-cellular-signal-excellent : apps/network-cellular-signal-excellent.svg   # Mobile Network [current-nome]
+gparted : biblioteca/saw.svg   # GParted [override-novo]
+gucharmap : apps/accessories-character-map.svg   # Mapa de caracteres [upstream]
+accessories-character-map : apps/accessories-character-map.svg   # Mapa de caracteres [upstream]
+ibus-setup-chewing : apps/ibus-setup-chewing.svg   # IBus Chewing Preferences [upstream]
+im-config : apps/input-keyboard.svg   # Input Method [upstream]
+io.elementary.appcenter : biblioteca/bag.svg   # Pop!_Shop [override-novo]
+pop-shop : biblioteca/bag.svg   # Pop!_Shop [override-novo]
+appcenter : biblioteca/bag.svg   # Pop!_Shop [override-novo]
+io.elementary.appcenter-daemon : biblioteca/haunted-house.svg   # Pop!_Shop Daemon [alias-heuristico]
+boxbuddy : apps/io.github.dvlv.boxbuddyrs.svg   # BoxBuddy [override-novo]
+io.github.electronstudio.WeylusCommunityEdition : biblioteca/wand.svg   # Weylus [override-novo]
+weylus : biblioteca/wand.svg   # Weylus [override-novo]
+warehouse : apps/io.github.flattool.Warehouse.svg   # Warehouse [override-novo]
+io.github.vikdevelop.SaveDesktop : biblioteca/treasure-chest.svg   # Save Desktop [override-novo]
+save-desktop : biblioteca/treasure-chest.svg   # Save Desktop [override-novo]
+upscaler : apps/io.gitlab.theevilskeleton.Upscaler.svg   # Upscaler [override-novo]
+kitty : biblioteca/cat.svg   # kitty [override-novo]
+LinuxToys : biblioteca/toolbox.svg   # LinuxToys [override-novo]
+linuxtoys : biblioteca/toolbox.svg   # LinuxToys [override-novo]
+obsidian : apps/md.obsidian.Obsidian.svg   # Obsidian [alias-heuristico]
+menu-editor : apps/menulibre.svg   # Menu Editor [override-novo]
+nm-applet : apps/nm-device-wireless.svg   # Network [current-nome]
+nm-device-wireless : apps/nm-device-wireless.svg   # Network [current-nome]
+nm-connection-editor : biblioteca/spider-web.svg   # Advanced Network Configuration [override-novo]
+preferences-system-network : biblioteca/spider-web.svg   # Advanced Network Configuration [override-novo]
+nvidia-settings : apps/nvidia-settings.svg   # NVIDIA X Server Settings [alias-heuristico]
+org.freedesktop.IBus.Panel.Emojier : apps/ibus-setup-chewing.svg   # Emoji Choice [upstream]
+ibus : apps/ibus-setup-chewing.svg   # Emoji Choice [upstream]
+org.freedesktop.IBus.Panel.Extension.Gtk3 : apps/ibus-setup-chewing.svg   # Emoji Choice [upstream]
+org.freedesktop.IBus.Setup : apps/ibus-setup-chewing.svg   # IBus Preferences [upstream]
+ibus-setup : apps/ibus-setup-chewing.svg   # IBus Preferences [upstream]
+org.gnome.baobab : apps/org.gnome.baobab.svg   # Disk Usage Analyzer [upstream]
+org.gnome.Calendar : biblioteca/halloween.svg   # Calendário [alias-heuristico]
+calendar : biblioteca/halloween.svg   # Calendário [alias-heuristico]
+gnome-calendar : biblioteca/halloween.svg   # Calendário [alias-heuristico]
+org.gnome.ChromeGnomeShell : apps/org.gnome.ChromeGnomeShell.svg   # GNOME Shell integration [upstream]
+org.gnome.DiskUtility : biblioteca/treasure-chest.svg   # Disks [override-novo]
+org.gnome.eog : apps/org.gnome.eog.svg   # Image Viewer [upstream]
+org.gnome.Evince : apps/org.gnome.Evince.svg   # Document Viewer [upstream]
+org.gnome.Evince-previewer : apps/document-print-preview.svg   # Print Preview [upstream]
+document-print-preview : apps/document-print-preview.svg   # Print Preview [upstream]
+org.gnome.Evolution-alarm-notify : apps/preferences-system-notifications.svg   # Evolution Alarm Notify [upstream]
+appointment-soon : apps/preferences-system-notifications.svg   # Evolution Alarm Notify [upstream]
+org.gnome.font-viewer : biblioteca/scroll.svg   # Fonts [override-novo]
+org.gnome.gedit : apps/org.gnome.gedit.svg   # Editor de texto [alias-heuristico]
+gedit : apps/org.gnome.gedit.svg   # Editor de texto [alias-heuristico]
+text-editor : apps/org.gnome.gedit.svg   # Editor de texto [alias-heuristico]
+org.gnome.gThumb : biblioteca/eye-ball.svg   # gThumb [override-novo]
+gthumb : biblioteca/eye-ball.svg   # gThumb [override-novo]
+org.gnome.gThumb.Import : apps/org.gnome.gThumb.Import.svg   # Import with gThumb [upstream]
+org.gnome.PowerStats : apps/gnome-power-manager.svg   # Estatísticas de energia [upstream]
+org.gnome.seahorse.Application : biblioteca/key.svg   # Passwords and Keys [override-novo]
+seahorse : biblioteca/key.svg   # Passwords and Keys [override-novo]
+passwords-and-keys : biblioteca/key.svg   # Passwords and Keys [override-novo]
+org.gnome.Shell.Extensions : apps/org.gnome.Shell.Extensions.svg   # Extensions [upstream]
+org.gnome.Shell.PortalHelper : apps/network-workgroup.svg   # Network Login [current-nome]
+org.gnome.Terminal : biblioteca/graveyard-variant.svg   # Terminal [alias-heuristico]
+gnome-terminal : biblioteca/graveyard-variant.svg   # Terminal [alias-heuristico]
+org.gnome.tweaks : biblioteca/laurel.svg   # Tweaks [override-novo]
+tweaks : biblioteca/laurel.svg   # Tweaks [override-novo]
+gnome-tweaks : biblioteca/laurel.svg   # Tweaks [override-novo]
+org.gnome.Weather : apps/org.gnome.Weather.svg   # Weather [current-nome]
+krita : apps/org.kde.krita.svg   # Krita [override-novo]
+onlyoffice : apps/org.onlyoffice.desktopeditors.svg   # ONLYOFFICE [override-novo]
+org.pop_os.transition : apps/system-software-update.svg   # Flatpak Transition [upstream]
+system-software-update : apps/system-software-update.svg   # Flatpak Transition [upstream]
+qbittorrent : apps/org.qbittorrent.qBittorrent.svg   # qBittorrent [alias-heuristico]
+telegram : apps/org.telegram.desktop.svg   # Telegram [alias-heuristico]
+pavucontrol : apps/multimedia-volume-control.svg   # PulseAudio Volume Control [current-nome]
+pop-cosmic-workspaces : apps/pop-cosmic-workspaces.svg   # Mostrar Áreas de Trabalho [upstream]
+R : apps/rlogo_icon.svg   # R [override-novo]
+simple-scan : apps/org.gnome.SimpleScan.svg   # Scanner de documentos [current-nome]
+org.gnome.SimpleScan : apps/org.gnome.SimpleScan.svg   # Scanner de documentos [current-nome]
+stacer : apps/stacer.svg   # Stacer [alias-heuristico]
+system-config-printer : apps/printer.svg   # Printers [upstream]
+ulauncher : biblioteca/magician-hat.svg   # Ulauncher [override-novo]
+vlc : biblioteca/cat.svg   # VLC media player [override-novo]
+yelp : apps/org.gnome.Yelp.svg   # Ajuda [upstream]
+org.gnome.Yelp : apps/org.gnome.Yelp.svg   # Ajuda [upstream]
+
 # --- já têm arte autoral no MeowSystem (não entram) -----------------------
 # com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
 # com.system76.CosmicEdit                    -> autorais/cosmic-edit-dracula.svg   # Editor de Texto

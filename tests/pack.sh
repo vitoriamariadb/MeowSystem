@@ -2647,6 +2647,108 @@ queda="$(sed -n '/^def logo_do_painel(/,/^def /p' "$RAIZ/app/servidor.py" \
   && ok "o balão da tira e a queda do logo_do_painel não cravam o Catppuccin" \
   || falha "sobrou nome de pack cravado: tira=$tira, \"mocha\" no logo_do_painel=$queda"
 
+# --- 28. a biblioteca do Dracula mora no pack — 23/09/2026, P36 --------------
+#
+#   A queixa: "vc tinha achado mais de 300 [SVGs] do tema dracula mas eles não
+#   estão no pack". Estavam 11 de 295, e nada media isso: o pack parecia
+#   completo porque ninguém o contava contra a origem.
+#
+#   A CONTA É POR sha256, E NÃO POR NOME. Onze desenhos da biblioteca moravam
+#   em `icones/apps/` com nome de aplicativo (`dice.svg` é o `foundryvtt.svg`);
+#   contar por nome os daria como ausentes, e contar arquivos diria "295"
+#   para uma pasta com um desenho trocado.
+#
+#   O Dracula_OS-Theme SÓ EXISTE NA MÁQUINA DE QUEM O ESCREVEU. Nada do
+#   MeowSystem o lê em execução — ele é a origem da cópia, e só. Onde ele não
+#   está, a conferência se pula dizendo por quê, e o resto desta seção (que só
+#   olha o pack) roda igual.
+BIB="$RAIZ/packs/dracula/icones/biblioteca"
+ORIGEM_BIB="$HOME/Desenvolvimento/Dracula_OS-Theme/src/icons/new-sessao-atual"
+if [ -d "$ORIGEM_BIB" ]; then
+  conta="$(python3 - "$ORIGEM_BIB" "$BIB" <<'PY'
+import hashlib, os, sys
+def shas(d):
+    if not os.path.isdir(d):
+        return {}
+    return {hashlib.sha256(open(os.path.join(d, a), "rb").read()).hexdigest(): a
+            for a in sorted(os.listdir(d)) if a.endswith(".svg")}
+origem, pack = shas(sys.argv[1]), shas(sys.argv[2])
+faltam = sorted(a for s, a in origem.items() if s not in pack)
+print(f"{len(origem) - len(faltam)} {len(origem)}")
+print("\n".join(faltam))
+PY
+)"
+  achados="$(printf '%s\n' "$conta" | sed -n 1p)"
+  [ -n "$achados" ] && [ "${achados% *}" = "${achados#* }" ] && [ "${achados#* }" != "0" ] \
+    && ok "por sha256, a biblioteca do Dracula_OS-Theme está no pack: ${achados% *} de ${achados#* }" \
+    || falha "a biblioteca do pack não tem todos os desenhos da origem (${achados% *} de ${achados#* })" \
+             "$(printf '%s\n' "$conta" | tail -n +2 | head -20)"
+else
+  printf 'pulado: a biblioteca não foi contada contra a origem — %s não existe nesta máquina, e o pack não depende dele\n' \
+    "$ORIGEM_BIB"
+fi
+
+# TODO DESENHO DA BIBLIOTECA TEM PROCEDÊNCIA. É a regra 5 da P28 ("arte de
+#   terceiro entra por cópia, com uma linha no PROCEDENCIA.md") aplicada à
+#   pasta que mais cresce: um SVG largado ali sem linha passaria em todo o
+#   resto, e sairia no `.meowpack` sem dizer de onde veio.
+sem_linha=""
+for f in "$BIB"/*.svg; do
+  [ -e "$f" ] || continue
+  grep -qF "| \`icones/biblioteca/$(basename "$f")\` |" "$RAIZ/packs/dracula/PROCEDENCIA.md" \
+    || sem_linha="$sem_linha$(basename "$f")
+"
+done
+[ -d "$BIB" ] && [ -z "$sem_linha" ] \
+  && ok "todo desenho da biblioteca do Dracula tem a linha dele no PROCEDENCIA.md" \
+  || falha "desenho na biblioteca sem procedência (ou a biblioteca sumiu):" "$sem_linha"
+
+# O `info` CONTA A BIBLIOTECA, E A CONTA É CONFERIDA POR FORA: os nomes do mapa
+#   e os desenhos que nenhum deles veste, medidos aqui por sha256 sem passar
+#   pelo `pack.py`. Uma conta que só concordasse consigo mesma não provaria nada.
+esperado="$(python3 - "$RAIZ/packs/dracula/icones" <<'PY'
+import hashlib, os, sys
+ic = sys.argv[1]
+h = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()
+nomes = {}
+for linha in open(os.path.join(ic, "apps.map"), encoding="utf-8"):
+    util = linha.split("#", 1)[0]
+    nome, sep, alvo = util.partition(":")
+    if sep and nome.strip() and alvo.strip():
+        nomes[nome.strip()] = alvo.strip()
+vestidos = {h(os.path.join(ic, a)) for a in nomes.values() if os.path.isfile(os.path.join(ic, a))}
+bib = os.path.join(ic, "biblioteca")
+soltos = sum(1 for a in os.listdir(bib) if a.endswith(".svg") and h(os.path.join(bib, a)) not in vestidos)
+print(f"{len(nomes)} apps, {soltos} na biblioteca sem app ligado")
+PY
+)"
+linha="$(amb python3 "$RAIZ/scripts/pack.py" info dracula 2>&1 | grep -E '^  icones\.apps ')"
+[ -n "$esperado" ] && [[ "$linha" == *"$esperado" ]] \
+  && ok "o info do Dracula conta a biblioteca: $esperado" \
+  || falha "o info não conta a biblioteca como a conta de fora" "esperava '$esperado', veio '$linha'"
+
+# O `validar` CONHECE A PASTA: só `.svg` comum lá dentro, e a recusa diz todos.
+#   No pack de mentira, que é de terceiro — a regra é do formato, não do Dracula.
+mkdir -p "$PACK_DIR/icones/biblioteca"
+cp "$RAIZ/packs/dracula/icones/apps/steam.svg" "$PACK_DIR/icones/biblioteca/vapor.svg"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "um pack de terceiro com biblioteca de SVG valida" \
+  || falha "a biblioteca de SVG foi recusada (rc=$rc)" "$saida"
+printf 'rascunho' > "$PACK_DIR/icones/biblioteca/rascunho.png"
+ln -s /etc/hostname "$PACK_DIR/icones/biblioteca/link.svg"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
+[ "$rc" = "1" ] && [[ "$saida" == *"rascunho.png"* ]] && [[ "$saida" == *"link.svg"* ]] \
+  && ok "o validar recusa o que não é desenho na biblioteca, e nomeia os dois de uma vez" \
+  || falha "o validar aceitou um .png e um link na biblioteca (rc=$rc)" "$saida"
+# A PORTA DO MOTOR NÃO RECUSA: a biblioteca não é instalada por ninguém, e um
+#   arquivo solto nela não pode fazer o pack inteiro ser ignorado.
+saida="$(amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id 2>&1)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "a sonda do motor (caminho) segue vendo o pack com a biblioteca suja" \
+  || falha "um arquivo solto na biblioteca derrubou a sonda do motor (rc=$rc)" "$saida"
+rm -rf "$PACK_DIR/icones/biblioteca"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"
