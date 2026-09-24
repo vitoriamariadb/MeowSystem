@@ -75,11 +75,22 @@ VERBOS
                                      pack=<quem traz>
                                      dir=<o tema, dentro do pack>
                                      valor=<o que a chave CURSOR escreve>
+                                 Quando o ponteiro é BAIXADO (`origem`), o
+                                 `dir` sai vazio e vêm mais três linhas:
+                                 `url=`, `sha256=` e `pasta=`.
                                  1 = ninguém na cadeia traz. Ver `ponteiro`.
     tipografia [id]              as FONTES de texto que o pack alcança, uma por
                                  linha: `pack<TAB>nome<TAB>origem<TAB>sha256`.
                                  Não é o verbo `fontes`, que é de ícone (P28).
                                  Ver `tipografia`.
+    base-icones [id]             a BASE de ícones que o `MeowSystem-Icons`
+                                 herda, lendo `$ICONES_BASE` do ambiente.
+                                 Imprime, para o shell ler com `sed`:
+                                     quem=<conf, pack ou motor>
+                                     tema=<o que herdar, quando não é o pack>
+                                     pack=, url=, sha256=, pasta=
+                                 (a origem que a cadeia declara, vazias sem
+                                 ela). Ver `base_que_vale`.
     novo    <id> [--de-csv <arquivo.csv>] [--seco]
                                  cria o pack <id> a partir do que está no ar: a
                                  paleta, o timbre, um logo gerado e os créditos,
@@ -276,6 +287,13 @@ CAMPOS_COM_LEITOR = {
     #   meow.conf pelo nome do flavor, e não abre pack nenhum.
     "icones.autorais.gerar",            # cmd_construir
     "origens.cursores.tema",            # app/servidor.py, `_declarado_pelo_pack`
+    # O QUE O PACK BAIXA EM VEZ DE COPIAR — 24/09/2026, sprint P41. A base de
+    # ícones nasceu com leitor (o `base_de_icones`, e por ele o verbo
+    # `base-icones` que o `construir_icones.sh` pergunta), e a origem pinada do
+    # ponteiro também (o `ponteiro`, que o `cursor.sh` pergunta antes de
+    # baixar). O `icones.base.herda` já cabe na máscara `*.*.herda`.
+    "icones.base.origem.*",
+    "origens.cursores.origem.*",
 }
 
 
@@ -1650,6 +1668,107 @@ def conferir_ponteiro(tema, campo=CATEGORIA_PONTEIRO):
                     f"    ou tire-o.")
 
 
+# --- A ARTE QUE O PACK BAIXA, PINADA — 24/09/2026, sprint P41 ---------------
+#
+# O QUE NÃO CABE DENTRO DO PACK, MEDIDO
+#   A base de ícones do Dracula é o `m4thewz/dracula-icons` — 24.958 SVG no
+#   ramo `circle`, contados no pacote do commit em 24/09/2026. Copiá-los para o repositório seria
+#   congelar arte de terceiro, que é o modo de falha que o PROCEDENCIA.md do
+#   pack conta ter vivido. E o ponteiro Dracula tem 66 links entre os 113
+#   ponteiros: dentro do pack, o `exportar` o recusaria, porque um pack viaja
+#   com cópias (`_arquivos_do_pack`). Os dois são do tipo que o projeto já
+#   BAIXA em vez de copiar — a JetBrainsMono do `instalar_fontes.sh`, o
+#   `catppuccin/cursors` do `cursor.sh` —, e o pack passa a poder declarar a
+#   mesma coisa: a receita, e não os megabytes.
+#
+# UMA FORMA SÓ, PARA OS DOIS
+#   {"url": "https://…", "sha256": "<64 hex>", "pasta": "<dentro do pacote>"}
+#   `url` é um .tar (gz ou xz): o arquivo de um commit no GitHub e o asset de
+#   um release são isso. `sha256` é o do PACOTE, e é o pino — sem ele a URL
+#   entrega o que quiser. `pasta` é onde, no pacote aberto, está o tema; ela
+#   vira caminho no disco de quem instala, então vai nome por nome, sem `..` e
+#   sem barra na frente. O ponteiro acrescenta `nome`, o valor que a chave
+#   CURSOR escreve para escolhê-lo — o diretório de dentro do pacote tem o nome
+#   que o autor dele quis, e não o que a chave usa.
+#
+# QUEM BAIXA É O SHELL, NUNCA ESTE ARQUIVO
+#   O `pack.py` não escreve fora do pack (ver o `plano_de_uso`). Aqui se diz o
+#   que a origem é e se confere a forma; o `construir_icones.sh` e o
+#   `cursor.sh` baixam, conferem o sha256, abrem num temporário e só então
+#   instalam.
+EXT_PACOTE = (".tar.gz", ".tgz", ".tar.xz", ".txz")
+RE_PASTA_PACOTE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]*(/[A-Za-z0-9_][A-Za-z0-9._-]*)*$")
+
+
+def origem_pinada(origem, trilha, com_nome=False):
+    """{'url', 'sha256', 'pasta'} (e 'nome', no ponteiro) de um bloco `origem`.
+
+    Levanta Recusa com o campo e o que consertar. Não toca a rede: quem baixa
+    é o shell, e confere o sha256 do que chegou contra o que sai daqui.
+    """
+    _exigir(isinstance(origem, dict),
+            f"{trilha}: precisa ser um objeto — {{\"url\", \"sha256\", \"pasta\"}}")
+    esperadas = {"url", "sha256", "pasta"} | ({"nome"} if com_nome else set())
+    chaves = {k for k in origem if not str(k).startswith("_")}
+    _exigir(chaves == esperadas,
+            f"{trilha}: declara {', '.join(sorted(esperadas))}, e só elas.\n"
+            f"    Veio: {', '.join(sorted(chaves)) or '(nada)'}")
+    url, soma, pasta = origem["url"], origem["sha256"], origem["pasta"]
+    _exigir(isinstance(url, str) and url.startswith("https://"),
+            f"{trilha}.url: {url!r} — só https:// é aceito")
+    _exigir(url.lower().endswith(EXT_PACOTE),
+            f"{trilha}.url: {url!r} não termina em {', '.join(EXT_PACOTE)}.\n"
+            f"    Quem instala abre um .tar e mais nada; um .zip ou uma página não servem.")
+    _exigir(isinstance(soma, str) and RE_SHA256.match(soma),
+            f"{trilha}.sha256: {soma!r} não é um sha256 (64 hex minúsculos).\n"
+            f"    O conteúdo é pinado: sem ele, a URL entrega o que quiser.")
+    _exigir(isinstance(pasta, str) and RE_PASTA_PACOTE.match(pasta),
+            f"{trilha}.pasta: {pasta!r} — o caminho do tema dentro do pacote, nome por\n"
+            f"    nome, sem '..', sem barra na frente e sem começar por '.' ou '-'.")
+    saida = {"url": url, "sha256": soma, "pasta": pasta}
+    if com_nome:
+        nome = origem["nome"]
+        _exigir(isinstance(nome, str) and RE_NOME_PONTEIRO.match(nome) and valor_do_ponteiro(nome),
+                f"{trilha}.nome: {nome!r} é o valor que a chave CURSOR escreve. Só letras,\n"
+                f"    dígitos, '.', '_' e '-', sem começar por '.' ou '-': é o que o\n"
+                f"    scripts/cursor.sh aceita como nome de diretório sem mudá-lo.")
+        saida["nome"] = nome
+    return saida
+
+
+def _url_curta(url):
+    """`github.com/dono/repo` de uma URL — o bastante para dizer de onde, na tabela."""
+    from urllib.parse import urlsplit
+    partes = urlsplit(url)
+    caminho = [p for p in partes.path.split("/") if p]
+    return "/".join([partes.netloc] + caminho[:2])
+
+
+def _ponteiro_de_fora(ref):
+    """(id, origem) do primeiro pack da cadeia que declara o ponteiro BAIXADO.
+
+    A subida é a do `ponteiro`: o bloco `origens.cursores` do pack, senão o
+    `herda` dele, senão a `heranca`. Um `proprio` que venha antes na cadeia
+    responde primeiro — o pack mais perto de quem pergunta vence, seja qual for
+    a forma —, e aí a resposta é None, para o `acervo` achar o tema dentro dele.
+    """
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        dir_pack = achar(ref)
+        if not dir_pack:
+            break
+        bloco = campo(ref, "origens.cursores")
+        if isinstance(bloco, dict) and not bloco.get("herda"):
+            if "proprio" in bloco:
+                return None
+            if "origem" in bloco:
+                return campo(ref, "id") or os.path.basename(dir_pack), bloco["origem"]
+        prox = bloco.get("herda") if isinstance(bloco, dict) else None
+        ref = prox or campo(ref, "heranca")
+    return None
+
+
 def ponteiro(ref=None):
     """O ponteiro próprio que a cadeia alcança: {'pack', 'dir', 'valor'}, ou None.
 
@@ -1658,7 +1777,22 @@ def ponteiro(ref=None):
     Um tema que o `acervo` acha e que não passa em `conferir_ponteiro` é
     ignorado com aviso: o `validar` já o recusa na publicação, e quem pergunta
     aqui é o `cursor.sh`, que vai COPIAR o diretório.
+
+    O PONTEIRO BAIXADO (`origem`, P41) volta com `dir` vazio e com `url`,
+    `sha256` e `pasta`: não há tema dentro do pack para apontar, e quem o põe
+    no disco é o `cursor.sh`, com a rede. Uma origem que não passa na forma é
+    ignorada com aviso, pelo mesmo motivo do tema recusado.
     """
+    de_fora = _ponteiro_de_fora(_ref_ativa(ref))
+    if de_fora:
+        quem, bloco = de_fora
+        try:
+            org = origem_pinada(bloco, "origens.cursores.origem", com_nome=True)
+        except Recusa as e:
+            print(f"  aviso {e} — o ponteiro do pack foi ignorado", file=sys.stderr)
+            return None
+        return {"pack": quem, "dir": "", "valor": valor_do_ponteiro(org["nome"]),
+                "url": org["url"], "sha256": org["sha256"], "pasta": org["pasta"]}
     tema = acervo(CATEGORIA_PONTEIRO, ref=_ref_ativa(ref))
     if not tema or not os.path.isdir(tema):
         return None
@@ -1784,6 +1918,88 @@ def tipografia(ref=None):
         prox = bloco.get("herda") if isinstance(bloco, dict) else None
         ref = prox or campo(ref, "heranca")
     return None, []
+
+
+# --- A BASE DE ÍCONES — 24/09/2026, sprint P41 -------------------------------
+#
+# O QUE ELA É, E O BURACO QUE ELA FECHA
+#   O `MeowSystem-Icons` desenha uma parte dos ícones e HERDA o resto
+#   (`Inherits=` do index.theme, escrito pelo `construir_icones.sh`). Até aqui o
+#   herdado era sempre a chave `ICONES_BASE`, com o `Papirus-Dark` de fábrica.
+#   Medido em 23/09/2026: numa máquina vestida de Dracula, os 191 aplicativos
+#   do `icones/apps.map` saíam no desenho do pack e todo o resto saía Papirus.
+#   Nesta máquina não, porque o meow.conf dela diz `ICONES_BASE="Dracula-Icones"`
+#   — uma cópia em `~/.local/share/icons` que o `rebuild_dracula_theme` do
+#   Spellbook montava, e que a P37 desligou. Em qualquer outra, o Dracula caía
+#   no Papirus. "O pack traz a base" (decisão de 23/09): `icones.base.origem` é
+#   a base declarada, baixada e conferida por quem constrói o tema.
+#
+# QUEM VENCE — A ORDEM DO "Quem vence" DO docs/PACKS.md
+#   1. `ICONES_BASE` escrito à mão, diferente do de fábrica, vence: é o tema
+#      que a pessoa escolheu, e o meow.conf manda na máquina.
+#   2. O de fábrica (`Papirus-Dark`, ou vazio) cede à base que o pack declara.
+#   3. Sem base na cadeia, vale o de fábrica, como sempre valeu.
+#
+# `Papirus-Dark` ESCRITO À MÃO É TRATADO COMO O DE FÁBRICA
+#   Depois do `.` do meow.conf só se vê o valor, e todo meow.conf copiado do
+#   `meow.conf.exemplo` antes desta sprint TEM `ICONES_BASE="Papirus-Dark"`.
+#   Tratá-lo como escolha faria o Dracula continuar caindo no Papirus
+#   justamente em quem já instalou. É a mesma troca que o `flavor_de_icones`
+#   faz com o `ICONES_FLAVOR` igual ao `FLAVOR`, e pelo mesmo motivo. O preço
+#   está dito no docs/PACKS.md: com um pack que traz base, o `Papirus-Dark` não
+#   se escolhe por esta chave — escrevê-lo é o mesmo que deixá-la de fábrica.
+#
+# O NOME DE FÁBRICA É CONFERIDO CONTRA O meow.conf.exemplo
+#   É o valor que a chave traz de fábrica, e ela mora lá. A constante existe
+#   porque este arquivo não lê o exemplo em execução; o `tests/pack.sh` cobra
+#   que os dois digam o mesmo, e o dia em que o exemplo mudar, o teste diz.
+#
+# A HERANÇA É DO BLOCO INTEIRO, como a das fontes: responde o primeiro pack da
+#   cadeia que declara `icones.base.origem`; `icones.base.herda` vence a
+#   `heranca`.
+CATEGORIA_BASE = "icones.base"
+ICONES_BASE_DO_EXEMPLO = "Papirus-Dark"
+
+
+def base_de_icones(ref=None):
+    """A base que a cadeia declara — {'pack', 'url', 'sha256', 'pasta'} —, ou None.
+
+    Levanta Recusa se a origem de quem responde não passa: quem pergunta vai
+    baixar e instalar o que ela diz, como no `tipografia`.
+    """
+    ref = _ref_ativa(ref)
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        dir_pack = achar(ref)
+        if not dir_pack:
+            break
+        bloco = campo(ref, CATEGORIA_BASE)
+        if isinstance(bloco, dict) and not bloco.get("herda") and "origem" in bloco:
+            quem = campo(ref, "id") or os.path.basename(dir_pack)
+            return dict(origem_pinada(bloco["origem"], CATEGORIA_BASE + ".origem"), pack=quem)
+        prox = bloco.get("herda") if isinstance(bloco, dict) else None
+        ref = prox or campo(ref, "heranca")
+    return None
+
+
+def base_que_vale(ref, pedido):
+    """(quem, tema, declarada): quem vale para o `Inherits=` do MeowSystem-Icons.
+
+    `pedido` é o `ICONES_BASE` já expandido pelo shell. `quem` é 'conf', 'pack'
+    ou 'motor' (o valor de fábrica da chave, como na coluna do `info`); `tema`
+    é o nome a herdar nos dois que não são o pack (no pack, o nome é o do
+    diretório que o `construir_icones.sh` instala, e é ele quem sabe).
+    `declarada` é o `base_de_icones` — vem mesmo quando o conf vence, para a
+    tela dizer os dois.
+    """
+    pedido = (pedido or "").strip()
+    declarada = base_de_icones(ref)
+    if pedido and pedido != ICONES_BASE_DO_EXEMPLO:
+        return "conf", pedido, declarada
+    if declarada:
+        return "pack", "", declarada
+    return "motor", ICONES_BASE_DO_EXEMPLO, None
 
 
 def _rgb(hexcor):
@@ -3222,6 +3438,26 @@ def validar(ref, silencioso=False):
                 f"    Ou crie o tema, ou tire o campo.")
         conferir_ponteiro(tema)
 
+    # O QUE O PACK BAIXA — 24/09/2026, sprint P41. A origem pinada é conferida
+    #   aqui pela FORMA (https, sha256, a pasta sem `..`); o conteúdo, quem
+    #   confere é o shell, byte a byte, na hora de instalar — o `validar` não
+    #   toca a rede. `origem` vem sozinha pela regra do `proprio` e do `herda`
+    #   logo acima: um bloco que diz "baixe" e "use o do vizinho" não disse qual.
+    if isinstance(cur, dict) and "origem" in cur:
+        _exigir("proprio" not in cur and not cur.get("herda"),
+                "origens.cursores: `origem` vem sozinha. Ou o pack baixa o ponteiro, ou o\n"
+                "    traz dentro dele (`proprio`), ou herda o de outro (`herda`).")
+        origem_pinada(cur["origem"], "origens.cursores.origem", com_nome=True)
+    base = ic.get("base")
+    if base is not None:
+        _exigir(isinstance(base, dict),
+                "icones.base: precisa ser um objeto — {\"origem\": {…}} ou {\"herda\": \"<id>\"}")
+        _exigir(not ("origem" in base and base.get("herda")),
+                "icones.base: 'origem' e 'herda' ao mesmo tempo. Ou o pack traz a base, ou\n"
+                "    herda a de outro — as duas juntas não dizem qual.")
+        if "origem" in base:
+            origem_pinada(base["origem"], CATEGORIA_BASE + ".origem")
+
     fo = p.get(CATEGORIA_FONTES)
     if fo is not None:
         _exigir(isinstance(fo, dict),
@@ -3499,6 +3735,11 @@ ROTULO_DA_CATEGORIA = {
     "icones.pastas": "pastas",
     "icones.mimetypes": "ícones de arquivo",
     "icones.autorais": "ícones autorais",
+    # "ícones-base", e não "base de ícones": o cartão da Home tem o teto de 220
+    # da P7, e com a base o do Dracula foi a 222 pelo nome comprido (medido na
+    # P41, 24/09/2026). O nome curto diz o mesmo, e a tabela do `info` mostra a
+    # trilha inteira ao lado.
+    "icones.base": "ícones-base",
     "cursores": "ponteiro",
     "wallpapers": "papéis de parede",
     "apps": "temas de aplicativo",
@@ -3551,6 +3792,11 @@ def origens(p):
     for cat, bloco in [("paleta", p.get("paleta")), ("cosmic.mapa", (p.get("cosmic") or {}).get("mapa")),
                        ("icones.apps", ic.get("apps")), ("icones.pastas", ic.get("pastas")),
                        ("icones.mimetypes", ic.get("mimetypes")), ("icones.autorais", ic.get("autorais")),
+                       # A DÉCIMA SEXTA LINHA — 24/09/2026, sprint P41: a base
+                       # que o `MeowSystem-Icons` herda, baixada pelo que o pack
+                       # declara. Sem ela, vale o `ICONES_BASE` do meow.conf,
+                       # que é do motor.
+                       (CATEGORIA_BASE, ic.get("base")),
                        ("cursores", org.get("cursores")), ("wallpapers", org.get("wallpapers")),
                        # A NONA CATEGORIA — 22/09/2026, sprint P18. Ela não
                        # estava na tabela de P12 porque não existia: até aqui
@@ -3598,8 +3844,10 @@ def origens(p):
         # nenhum, e a tabela dizia PRÓPRIO para ele; sem `proprio` e sem
         # `herda`, a categoria cai na `heranca`, que é o que o `ponteiro` e o
         # `tipografia` fazem de verdade.
-        if (cat in ("cursores", CATEGORIA_FONTES) and isinstance(bloco, dict)
-                and "proprio" not in bloco and not bloco.get("herda")):
+        #   A `origem` pinada (P41, 24/09/2026) também é PRÓPRIA: o pack
+        #   declara de onde o ponteiro ou a base descem, e é ele que responde.
+        if (cat in ("cursores", CATEGORIA_FONTES, CATEGORIA_BASE) and isinstance(bloco, dict)
+                and "proprio" not in bloco and "origem" not in bloco and not bloco.get("herda")):
             bloco = None
         if bloco is None:
             # SEM HERANÇA DECLARADA NÃO EXISTE "HERDADO DE" — 22/09/2026
@@ -3711,14 +3959,40 @@ def cmd_info(ref):
         # das quatro imprimiria uma coluna vazia que faz a pessoa procurar o que
         # deu errado.
         conta = ""
-        if cat.startswith("icones."):
+        # A BASE DIZ DE ONDE DESCE, E QUEM VALE — 24/09/2026, P41. Ela não tem
+        # desenho no pack para contar: a coluna diz a origem pinada e o pack
+        # que a declara. Quando o `ICONES_BASE` chega pelo ambiente — o `meow
+        # pack info` SEM id carrega o meow.conf com `set -a`; com id, não —, um
+        # valor escolhido à mão aparece ao lado: "quando os dois existem e
+        # discordam, o info mostra os dois e diz qual está valendo"
+        # (docs/PACKS.md, "Quem vence"). Sem ele no ambiente, a linha diz que
+        # quem decide é a chave, e qual é o valor de fábrica dela.
+        if cat == CATEGORIA_BASE:
+            pedido = (os.environ.get("ICONES_BASE") or "").strip()
+            a_mao = pedido if pedido and pedido != ICONES_BASE_DO_EXEMPLO else ""
+            try:
+                b = base_de_icones(ref)
+            except Recusa:
+                b, conta = None, "a origem declarada não valida — rode o `validar`"
+            else:
+                if b:
+                    conta = f"{_url_curta(b['url'])}, sha256 {b['sha256'][:12]}…, do pack {b['pack']}"
+                elif a_mao:
+                    conta = f"a cadeia não traz base — vale o ICONES_BASE=\"{a_mao}\" do meow.conf"
+                else:
+                    conta = (f"a cadeia não traz base — vale o ICONES_BASE do meow.conf "
+                             f"({ICONES_BASE_DO_EXEMPLO} de fábrica)")
+            if b and a_mao:
+                conta += f"; vale o ICONES_BASE=\"{a_mao}\" do meow.conf"
+        elif cat.startswith("icones."):
             quantos, fl = _contar_acervo(ref, cat, dados["flavors"])
             conta = f"{quantos}, {fl}" if quantos and fl else quantos
             # COM BIBLIOTECA, A LINHA DOS APLICATIVOS CONTA NOMES, E NÃO
             # ARQUIVOS DE `apps/` [23/09/2026, P36]: um mapa que aponta para
             # `biblioteca/` veste aplicativos com desenho que não mora em
             # `apps/`, e "70 desenho(s)" ali contaria a metade. A mesma linha,
-            # e não uma nova: a tabela tem as 15 que o `tests/pack.sh` cobra.
+            # e não uma nova: a tabela tem as 16 que o `tests/pack.sh` cobra
+            # (eram 15 até a base de ícones da P41, 24/09/2026).
             bib = _contar_biblioteca(ref, dir_pack) if cat == "icones.apps" else None
             if bib:
                 conta = f"{bib[0]} apps, {bib[1]} na biblioteca sem app ligado"
@@ -3732,6 +4006,10 @@ def cmd_info(ref):
             pt = ponteiro(ref)
             conta = (f"CURSOR=\"{pt['valor']}\", do pack {pt['pack']}" if pt
                      else "" if tipo == "motor" else "a cadeia não traz ponteiro")
+            # O baixado diz de onde desce (P41): "do pack X" sozinho faria
+            # procurar o tema dentro do pack, e ele não mora lá.
+            if pt and pt.get("url"):
+                conta += f", baixado de {_url_curta(pt['url'])}"
         elif cat == CATEGORIA_FONTES:
             # Um pack BASE com a lista quebrada não derruba o `info` de quem o
             # herda: o `validar` deste pack não confere a lista do outro, e o
@@ -5200,6 +5478,12 @@ def main(argv):
             print(f"pack={pt['pack']}")
             print(f"dir={pt['dir']}")
             print(f"valor={pt['valor']}")
+            # O BAIXADO TRAZ A ORIGEM (P41): as três linhas só existem nele, e
+            # o ponteiro de dentro do pack continua saindo em três linhas — é o
+            # que o `cursor.sh` e o `tests/pack.sh` já leem.
+            for chave in ("url", "sha256", "pasta"):
+                if pt.get(chave):
+                    print(f"{chave}={pt[chave]}")
             return OK
         if verbo == "tipografia" and len(argv) in (2, 3):
             # SAI 0 COM A LISTA VAZIA, e 1 só na recusa. Para quem instala, "o
@@ -5209,6 +5493,18 @@ def main(argv):
             quem, lista = tipografia((argv[2] if len(argv) == 3 else "") or None)
             for nome, origem, soma in lista:
                 print(f"{quem}\t{nome}\t{origem}\t{soma or '-'}")
+            return OK
+        if verbo == "base-icones" and len(argv) in (2, 3):
+            # O `ICONES_BASE` VEM DO AMBIENTE, como o `ICONES_FLAVOR` do
+            # `flavor-icones`: é de lá que o `construir_icones.sh` o recebe. As
+            # quatro linhas da origem saem sempre, vazias sem ela, para o shell
+            # ler com `sed` sem ter de perguntar se a linha existe.
+            quem, tema, decl = base_que_vale((argv[2] if len(argv) == 3 else "") or None,
+                                             os.environ.get("ICONES_BASE"))
+            print(f"quem={quem}")
+            print(f"tema={tema}")
+            for chave in ("pack", "url", "sha256", "pasta"):
+                print(f"{chave}={(decl or {}).get(chave, '')}")
             return OK
         if verbo == "info" and len(argv) == 3:
             return cmd_info(argv[2])

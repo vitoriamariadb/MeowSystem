@@ -1432,9 +1432,12 @@ printf '%s\n' "$tabela" | grep -qE '^  wallpapers +DO MOTOR, ou inexistente +scr
   || falha "o info voltou a classificar wallpapers pelo bloco que ninguém lê" "$tabela"
 n_fixas="$(printf '%s\n' "$tabela" | grep -cE '^  (gerador|prompt|fastfetch|gatos) +DO MOTOR — não declarável')"
 n_linhas="$(printf '%s\n' "$tabela" | grep -c .)"
-[ "$n_fixas" = "4" ] && [ "$n_linhas" = "15" ] \
-  && ok "gerador, prompt, fastfetch e gatos aparecem como não declaráveis, e a tabela tem as 15 linhas" \
-  || falha "a tabela do info não tem as 15 linhas, ou as 4 fixas no motor (linhas=$n_linhas, fixas=$n_fixas)" "$tabela"
+# DEZESSEIS DESDE A P41 (24/09/2026): a base de ícones (`icones.base`) virou
+# categoria. Este pack não a declara nem herda, e ela sai DO MOTOR — a conta
+# das dez PRÓPRIAS acima não muda.
+[ "$n_fixas" = "4" ] && [ "$n_linhas" = "16" ] \
+  && ok "gerador, prompt, fastfetch e gatos aparecem como não declaráveis, e a tabela tem as 16 linhas" \
+  || falha "a tabela do info não tem as 16 linhas, ou as 4 fixas no motor (linhas=$n_linhas, fixas=$n_fixas)" "$tabela"
 case "$tabela" in
   *"CURSOR=\"$ID-roxo\", do pack $ID"*"1 fonte(s), do pack $ID"*)
     ok "o info diz o valor de CURSOR e quantas fontes, e de quem" ;;
@@ -2781,6 +2784,294 @@ saida="$(amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id 2>&1)"; rc=$?
   && ok "a sonda do motor (caminho) segue vendo o pack com a biblioteca suja" \
   || falha "um arquivo solto na biblioteca derrubou a sonda do motor (rc=$rc)" "$saida"
 rm -rf "$PACK_DIR/icones/biblioteca"
+
+# --- 29. o pack traz a base, e o ponteiro desce pelo mesmo caminho — P41 -----
+#
+#   A decisão de 23/09: "o pack traz a base". O Dracula declara a base de
+#   ícones (`icones.base.origem`) e o ponteiro (`origens.cursores.origem`) como
+#   RECEITA — URL, sha256, a pasta de dentro do pacote —, e quem instala baixa,
+#   confere e herda. Aqui a pergunta é a de sempre: funciona, converge, recusa
+#   o que não confere, e o meow.conf continua vencendo.
+#
+#   NADA DE REDE. O `curl` deste bloco é de mentira: ele entrega o arquivo de
+#   `$T/rede` cujo nome é o fim da URL, e anota cada chamada. As URLs são de
+#   `exemplo.invalid`, o domínio que nunca resolve — um `curl` de verdade que
+#   escapasse para cá falharia na hora, sem sair da máquina. Os pacotes são de
+#   brinquedo, no formato real: um .tar.gz com a pasta do tema dentro, como o
+#   que o GitHub gera para um commit, e um .tar.xz como o asset do release do
+#   ponteiro.
+REDE="$T/rede"; BIN41="$T/bin41"; H41="$T/casa-p41"
+mkdir -p "$REDE" "$BIN41" "$H41" "$T/pacote41/tema-de-mentira-1a2b/scalable/apps" \
+         "$T/pacote41/ponteiro-de-mentira/cursors"
+cat > "$BIN41/curl" <<'C'
+#!/bin/sh
+# curl de mentira do tests/pack.sh (P41): nunca abre a rede.
+dest=""; url=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -o) dest="$2"; shift 2 ;;
+    --proto|--proto-redir|--connect-timeout|--max-time|--retry|--retry-delay) shift 2 ;;
+    -*) shift ;;
+    *) url="$1"; shift ;;
+  esac
+done
+printf '%s\n' "$url" >> "$REDE/.chamadas"
+arq="$REDE/$(basename "$url")"
+[ -f "$arq" ] || exit 22
+cp "$arq" "$dest"
+C
+chmod +x "$BIN41/curl"
+printf '[Icon Theme]\nName=Mentira\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' \
+  > "$T/pacote41/tema-de-mentira-1a2b/index.theme"
+printf '<svg xmlns="http://www.w3.org/2000/svg"/>\n' > "$T/pacote41/tema-de-mentira-1a2b/scalable/apps/editor.svg"
+ln -s editor.svg "$T/pacote41/tema-de-mentira-1a2b/scalable/apps/text-editor.svg"
+tar -czf "$REDE/base.tar.gz" -C "$T/pacote41" tema-de-mentira-1a2b || exit 2
+printf 'Xcur de mentira' > "$T/pacote41/ponteiro-de-mentira/cursors/default"
+ln -s default "$T/pacote41/ponteiro-de-mentira/cursors/left_ptr"
+printf '[Icon Theme]\nName=ponteiro-de-mentira\n' > "$T/pacote41/ponteiro-de-mentira/index.theme"
+tar -cJf "$REDE/ponteiro.tar.xz" -C "$T/pacote41" ponteiro-de-mentira || exit 2
+SHA_BASE="$(sha256sum "$REDE/base.tar.gz" | cut -d' ' -f1)"
+SHA_PONT="$(sha256sum "$REDE/ponteiro.tar.xz" | cut -d' ' -f1)"
+
+# O pack que declara as duas origens. Herda do de mentira, que traz ponteiro
+# PRÓPRIO desde a seção 21: o que este declara tem de responder primeiro.
+PIN="$ID-pinado"; mkdir -p "$PACKS/$PIN"
+cp "$PACK_DIR/paleta.json" "$PACK_DIR/logo.svg" "$PACKS/$PIN/"
+printf '{"formato": 1, "id": "%s", "nome": "Pinado", "heranca": "%s",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "%s"}, "vitrine": {"capa": "logo.svg"},
+ "icones": {"base": {"origem": {"url": "https://exemplo.invalid/p41/base.tar.gz",
+   "sha256": "%s", "pasta": "tema-de-mentira-1a2b"}}},
+ "origens": {"cursores": {"origem": {"nome": "%s-baixado",
+   "url": "https://exemplo.invalid/p41/ponteiro.tar.xz", "sha256": "%s",
+   "pasta": "ponteiro-de-mentira"}}}}\n' \
+  "$PIN" "$ID" "$ID" "$SHA_BASE" "$ID" "$SHA_PONT" > "$PACKS/$PIN/pack.json"
+
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$PIN" 2>&1)"; rc=$?
+if [ "$rc" = "0" ] && [[ "$saida" != *icones.base* ]] && [[ "$saida" != *cursores.origem* ]]; then
+  ok "o pack com base e ponteiro baixados valida, e nenhum dos campos novos é campo morto"
+else
+  falha "o pack com as origens pinadas não validou, ou o aviso chamou um campo novo de morto (rc=$rc)" "$saida"
+fi
+
+# O NOME DE FÁBRICA É O DO EXEMPLO. A regra "Papirus-Dark cede ao pack" vale
+#   para o valor que o `meow.conf.exemplo` traz; se ele mudar e a constante do
+#   `pack.py` não, todo meow.conf novo passaria a ser lido como escolha.
+exemplo_py="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import pack; print(pack.ICONES_BASE_DO_EXEMPLO)' "$RAIZ/scripts")"
+exemplo_conf="$(sed -n 's/^ICONES_BASE="\([^"]*\)".*/\1/p' "$RAIZ/meow.conf.exemplo")"
+[ -n "$exemplo_py" ] && [ "$exemplo_py" = "$exemplo_conf" ] \
+  && ok "o ICONES_BASE de fábrica do pack.py é o do meow.conf.exemplo ($exemplo_py)" \
+  || falha "o pack.py e o meow.conf.exemplo discordam do ICONES_BASE de fábrica" "pack.py='$exemplo_py' exemplo='$exemplo_conf'"
+
+# QUEM VALE, PELO VERBO: o de fábrica cede, o escrito à mão vence, e o pack
+#   que responde é dito nos dois casos.
+base_verbo() { amb env ICONES_BASE="$1" python3 "$RAIZ/scripts/pack.py" base-icones "$PIN" 2>&1; }
+v_fab="$(base_verbo Papirus-Dark)"; v_vazio="$(base_verbo "")"; v_mao="$(base_verbo Outro-Tema)"
+if [[ "$v_fab" == *"quem=pack"*"pack=$PIN"*"sha256=$SHA_BASE"* ]] && [[ "$v_vazio" == *"quem=pack"* ]] \
+   && [[ "$v_mao" == *"quem=conf"*"tema=Outro-Tema"*"pack=$PIN"* ]]; then
+  ok "o Papirus-Dark de fábrica e o vazio cedem à base do pack; o ICONES_BASE escrito à mão vence, e o pack é dito"
+else
+  falha "o verbo base-icones não aplicou a regra de quem vence" "fábrica: $v_fab
+vazio: $v_vazio
+à mão: $v_mao"
+fi
+
+# A BASE DESCE, NUM HOME DE BRINQUEDO, pelo `construir_icones.sh base` — a
+#   porta que põe só a base, sem a construção inteira.
+base_sh() {  # $1 = ICONES_BASE; o resto, variáveis a mais
+  local pedido="$1"; shift
+  env -i PATH="$BIN41:$PATH" HOME="$H41" MEOW_RAIZ="$RAIZ" MEOW_PACKS="$PACKS" REDE="$REDE" NO_COLOR=1 \
+    PACK="$PIN" FLAVOR="$ID" ICONES_BASE="$pedido" "$@" bash "$RAIZ/scripts/construir_icones.sh" base 2>&1
+}
+BASE41="$H41/.local/share/icons/MeowSystem-Icons-Base"
+chamadas() { if [ -s "$REDE/.chamadas" ]; then grep -c . "$REDE/.chamadas"; else printf '0'; fi; }
+
+saida="$(base_sh Papirus-Dark MEOW_DRY_RUN=1)"; rc=$?
+if [ "$rc" = "1" ] && [[ "$saida" == *"baixaria a base"* ]] && [ "$(chamadas)" = "0" ] \
+   && [ -z "$(find "$H41" -mindepth 1 2>/dev/null)" ]; then
+  ok "em seco, a base diz que desceria — sem chamar o curl e sem escrever no HOME"
+else
+  falha "o seco da base baixou, escreveu, ou não disse (rc=$rc, chamadas=$(chamadas))" "$saida"
+fi
+
+saida="$(base_sh Papirus-Dark)"; rc=$?
+if [ "$rc" = "1" ] && [ -f "$BASE41/scalable/apps/editor.svg" ] && [ -L "$BASE41/scalable/apps/text-editor.svg" ] \
+   && grep -qx "sha256=$SHA_BASE" "$BASE41/.meow-origem" 2>/dev/null \
+   && [[ "$saida" == *"herda de 'MeowSystem-Icons-Base'"* ]]; then
+  ok "a base baixa, confere o sha256, entra com os links, e o tema passa a herdar dela"
+else
+  falha "a base não desceu inteira, ou o tema não herda dela (rc=$rc)" "$saida
+$(find "$H41" -mindepth 1 2>/dev/null | head -8)"
+fi
+saida="$(base_sh Papirus-Dark)"; rc=$?
+[ "$rc" = "0" ] && [[ "$saida" == *"confere"* ]] && [ "$(chamadas)" = "1" ] \
+  && ok "a segunda passagem confere a base pelo conteúdo e não baixa de novo" \
+  || falha "a base não convergiu na segunda passagem (rc=$rc, chamadas=$(chamadas))" "$saida"
+rm -f "$BASE41/scalable/apps/editor.svg"
+saida="$(base_sh Papirus-Dark)"; rc=$?
+[ "$rc" = "1" ] && [ -f "$BASE41/scalable/apps/editor.svg" ] && [ "$(chamadas)" = "2" ] \
+  && ok "um arquivo que some da base é percebido pelo conteúdo, e a base volta inteira" \
+  || falha "a base com arquivo faltando passou por inteira (rc=$rc, chamadas=$(chamadas))" "$saida"
+
+# O `Inherits=` DE VERDADE: a construção inteira, no mesmo HOME de brinquedo.
+#   É seguro rodá-la aqui: com um HOME que não é o da sessão, o
+#   `construir_icones.sh` recusa reiniciar o painel (o bloco "DUAS RECUSAS
+#   ANTES DE MATAR" dele), e tudo o que escreve fica no temporário.
+env -i PATH="$BIN41:$PATH" HOME="$H41" MEOW_RAIZ="$RAIZ" MEOW_PACKS="$PACKS" REDE="$REDE" NO_COLOR=1 \
+  PACK="$PIN" FLAVOR="$ID" ICONES_BASE="Papirus-Dark" bash "$RAIZ/scripts/construir_icones.sh" >/dev/null 2>&1
+herda="$(sed -n 's/^Inherits=//p' "$H41/.local/share/icons/MeowSystem-Icons/index.theme" 2>/dev/null)"
+[[ "$herda" == "MeowSystem-Icons-Base,"* ]] \
+  && ok "o index.theme do MeowSystem-Icons herda da base do pack ($herda)" \
+  || falha "o index.theme não herda da base do pack" "Inherits=$herda"
+
+# O MEOW.CONF VENCE, E A TELA DIZ OS DOIS. Com um ICONES_BASE escrito à mão, o
+#   tema herda dele, a base do pack sai do disco (ela é nossa: tem o
+#   `.meow-origem`), e a linha diz que o pack trazia uma.
+saida="$(base_sh Outro-Tema)"; rc=$?
+if [ "$rc" = "1" ] && [ ! -e "$BASE41" ] && [[ "$saida" == *"vale o ICONES_BASE=\"Outro-Tema\""* ]] \
+   && [[ "$saida" == *"herda de 'Outro-Tema'"* ]]; then
+  ok "o ICONES_BASE escrito à mão vence a base do pack, a base sai do disco, e a linha diz os dois"
+else
+  falha "o ICONES_BASE escrito à mão não venceu, ou a base ficou, ou a tela calou (rc=$rc)" "$saida"
+fi
+linha="$(amb env ICONES_BASE=Outro-Tema python3 "$RAIZ/scripts/pack.py" info "$PIN" 2>&1 | grep -E '^  icones\.base ')"
+[[ "$linha" == *PRÓPRIO*"exemplo.invalid/p41/base.tar.gz"*"do pack $PIN"*"vale o ICONES_BASE=\"Outro-Tema\""* ]] \
+  && ok "o info diz de onde a base desce, de quem, e que o meow.conf vale" \
+  || falha "a linha icones.base do info não diz a origem, o pack e quem vale" "$linha"
+
+# O DIRETÓRIO COM O NOSSO NOME QUE NÃO É NOSSO fica: sem o `.meow-origem`,
+#   nem a limpeza o apaga nem a instalação escreve por cima dele.
+mkdir -p "$BASE41"; printf 'de outra pessoa\n' > "$BASE41/index.theme"
+base_sh Outro-Tema >/dev/null; saida="$(base_sh Papirus-Dark)"; rc=$?
+if [ "$(cat "$BASE41/index.theme" 2>/dev/null)" = "de outra pessoa" ] && [ "$rc" = "0" ] \
+   && [[ "$saida" == *"não foi este script que o pôs lá"* ]] && [[ "$saida" == *"herda de 'Papirus-Dark'"* ]]; then
+  ok "um diretório com o nome da base e sem o marcador não é apagado nem sobrescrito"
+else
+  falha "o diretório de outra pessoa foi mexido, ou a tela não disse (rc=$rc)" "$saida"
+fi
+rm -rf "$BASE41"
+
+# O PINO FAZ O TRABALHO DELE: com o pacote trocado debaixo da mesma URL, o
+#   sha256 não bate, nada entra, nenhum palco fica para trás, e o erro diz os
+#   dois números. Sem o pacote (sem rede), a base fica para o próximo ciclo e
+#   o tema herda do de fábrica, sem erro.
+cp "$REDE/base.tar.gz" "$T/base-certa.tar.gz"; printf 'x' >> "$REDE/base.tar.gz"
+saida="$(base_sh Papirus-Dark)"; rc=$?
+if [ "$rc" = "2" ] && [[ "$saida" == *"não bate"*"esperado $SHA_BASE"* ]] && [ ! -e "$BASE41" ] \
+   && [ -z "$(find "$H41/.local/share/icons" -maxdepth 1 -name '.meow-base.*' 2>/dev/null)" ]; then
+  ok "o pacote que não confere com o sha256 pinado é recusado, e nada fica no disco"
+else
+  falha "o sha256 errado passou, ou deixou sobra (rc=$rc)" "$saida"
+fi
+rm -f "$REDE/base.tar.gz"
+saida="$(base_sh Papirus-Dark)"; rc=$?
+[ "$rc" = "0" ] && [[ "$saida" == *"sem rede"* ]] && [[ "$saida" == *"herda de 'Papirus-Dark'"* ]] \
+  && ok "sem rede, a base fica para o próximo ciclo e o tema herda do de fábrica" \
+  || falha "sem rede a base não saiu limpa (rc=$rc)" "$saida"
+mv "$T/base-certa.tar.gz" "$REDE/base.tar.gz"
+
+# AS RECUSAS DA FORMA — o `validar` não toca a rede, e confere o que dá para
+#   conferir sem ela: https, o sha256 escrito, a pasta sem `..`, o .tar, e a
+#   origem sozinha no bloco.
+recusa41() {  # $1 = o que é, $2 = JSON a fundir, $3 = trecho da mensagem
+  # O pai vai junto na cópia: a herança do pinado aponta para ele, e sem ele o
+  # `validar` recusaria pela herança, e não pelo que cada caso pergunta.
+  rm -rf "$T/recusa41"; mkdir -p "$T/recusa41"; cp -a "$PACKS/$PIN" "$PACK_DIR" "$T/recusa41/"
+  mexer_pack "$T/recusa41/$PIN" "$2"
+  saida="$(env MEOW_PACKS="$T/recusa41" MEOW_RAIZ="$RAIZ" python3 "$RAIZ/scripts/pack.py" validar "$PIN" 2>&1)"; rc=$?
+  if [ "$rc" = "1" ] && [[ "$saida" == *"$3"* ]]; then
+    ok "recusa $1"
+  else
+    falha "não recusou $1, ou não disse por quê (rc=$rc)" "$saida"
+  fi
+}
+recusa41 "a base em http" '{"icones": {"base": {"origem": {"url": "http://exemplo.invalid/b.tar.gz"}}}}' "só https"
+recusa41 "a base sem sha256" '{"icones": {"base": {"origem": {"sha256": null}}}}' "declara pasta, sha256, url"
+recusa41 "a base com '..' na pasta" '{"icones": {"base": {"origem": {"pasta": "../fora"}}}}' "sem '..'"
+recusa41 "a base num .zip" '{"icones": {"base": {"origem": {"url": "https://exemplo.invalid/b.zip"}}}}' "não termina em"
+recusa41 "a base com origem e herda juntas" "{\"icones\": {\"base\": {\"herda\": \"$ID\"}}}" "'origem' e 'herda' ao mesmo tempo"
+recusa41 "o ponteiro com origem e herda juntos" "{\"origens\": {\"cursores\": {\"herda\": \"$ID\"}}}" '`origem` vem sozinha'
+recusa41 "o ponteiro baixado sem nome" '{"origens": {"cursores": {"origem": {"nome": null}}}}' "declara nome, pasta, sha256, url"
+rm -rf "$T/recusa41"
+
+# O PONTEIRO BAIXADO. O verbo o entrega com `dir` vazio e a origem; o do pack
+#   de cima responde antes do PRÓPRIO do pai; o `aplicar` em seco não baixa; o
+#   de verdade baixa, instala com o nome que a chave usa, e converge.
+saida="$(amb python3 "$RAIZ/scripts/pack.py" ponteiro "$PIN" 2>&1)"
+[ "$saida" = "pack=$PIN
+dir=
+valor=$ID-baixado
+url=https://exemplo.invalid/p41/ponteiro.tar.xz
+sha256=$SHA_PONT
+pasta=ponteiro-de-mentira" ] \
+  && ok "o verbo 'ponteiro' entrega o baixado com a origem, e ele vence o PRÓPRIO do pack de quem herda" \
+  || falha "o verbo 'ponteiro' não respondeu o ponteiro baixado" "$saida"
+cursor41() {
+  env -i PATH="$BIN41:$T/bin:$PATH" HOME="$H41" MEOW_RAIZ="$RAIZ" MEOW_PACKS="$PACKS" REDE="$REDE" NO_COLOR=1 \
+    PACK="$PIN" CURSOR="$ID-baixado" "$@" bash "$RAIZ/scripts/cursor.sh" aplicar 2>&1
+}
+rm -rf "$H41"; mkdir -p "$H41"; : > "$REDE/.chamadas"
+saida="$(cursor41 MEOW_DRY_RUN=1)"; rc=$?
+if [ "$rc" = "1" ] && [[ "$saida" == *"baixaria o ponteiro '$ID-baixado' do pack $PIN"* ]] \
+   && [ "$(chamadas)" = "0" ] && [ -z "$(find "$H41" -mindepth 1 2>/dev/null)" ]; then
+  ok "o aplicar em seco diz que baixaria o ponteiro do pack, sem rede e sem escrever"
+else
+  falha "o aplicar em seco do ponteiro baixado baixou, escreveu ou não disse (rc=$rc)" "$saida"
+fi
+saida="$(cursor41)"; rc=$?
+saida2="$(cursor41)"; rc2=$?
+if [ "$rc" = "1" ] && [ -f "$H41/.local/share/icons/$ID-baixado-cursors/cursors/default" ] \
+   && [ -L "$H41/.local/share/icons/$ID-baixado-cursors/cursors/left_ptr" ] \
+   && [ "$rc2" = "0" ] && [[ "$saida2" == *"já está instalado"* ]] && [ "$(chamadas)" = "1" ]; then
+  ok "o ponteiro desce, entra como <valor>-cursors com os links, e a segunda passagem não baixa de novo"
+else
+  falha "o ponteiro baixado não entrou, ou não convergiu (rc=$rc, rc2=$rc2, chamadas=$(chamadas))" "$saida
+$saida2"
+fi
+rm -rf "$H41"; mkdir -p "$H41"; printf 'x' >> "$REDE/ponteiro.tar.xz"
+saida="$(cursor41)"; rc=$?
+[ "$rc" = "2" ] && [[ "$saida" == *"não bate"* ]] && [ ! -e "$H41/.local/share/icons/$ID-baixado-cursors" ] \
+  && ok "o ponteiro que não confere com o sha256 pinado é recusado, e nada entra" \
+  || falha "o ponteiro com sha256 errado passou (rc=$rc)" "$saida"
+linha="$(amb python3 "$RAIZ/scripts/pack.py" info "$PIN" 2>&1 | grep -E '^  cursores ')"
+[[ "$linha" == *PRÓPRIO*"CURSOR=\"$ID-baixado\", do pack $PIN, baixado de exemplo.invalid"* ]] \
+  && ok "o info diz o valor do ponteiro baixado, de quem, e de onde desce" \
+  || falha "a linha cursores do info não diz o ponteiro baixado" "$linha"
+
+# A HERANÇA DAS DUAS: um pack que herda do pinado e não declara nada recebe a
+#   base e o ponteiro dele, e a tabela diz de quem.
+NETO="$ID-neto"; mkdir -p "$PACKS/$NETO"; cp "$PACK_DIR/paleta.json" "$PACK_DIR/logo.svg" "$PACKS/$NETO/"
+printf '{"formato": 1, "id": "%s", "nome": "Neto", "heranca": "%s",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "%s"}, "vitrine": {"capa": "logo.svg"}}\n' \
+  "$NETO" "$PIN" "$ID" > "$PACKS/$NETO/pack.json"
+tabela="$(amb python3 "$RAIZ/scripts/pack.py" info "$NETO" 2>&1)"
+if printf '%s\n' "$tabela" | grep -qE "^  icones\.base +HERDADO de $PIN +exemplo\.invalid/.*do pack $PIN" \
+   && printf '%s\n' "$tabela" | grep -qE "^  cursores +HERDADO de $PIN +CURSOR=\"$ID-baixado\", do pack $PIN"; then
+  ok "quem herda do pinado recebe a base e o ponteiro dele, e a tabela diz de quem"
+else
+  falha "a base ou o ponteiro baixados não sobem pela herança" "$tabela"
+fi
+rm -rf "$PACKS/$NETO" "$PACKS/$PIN" "$H41"
+
+# E O DRACULA DE VERDADE DECLARA OS DOIS, pinados: a base do
+#   `m4thewz/dracula-icons` por commit e sha256, e o ponteiro do release do
+#   `dracula/gtk` com o valor que o meow.conf desta casa já usava. Só a forma —
+#   o conteúdo, quem confere é a instalação.
+# Sem `MEOW_PACKS` e com um XDG vazio: um pack `dracula` importado na casa de
+# quem roda esconderia o do repositório, e a pergunta é sobre o do repositório.
+so_repo() { env -u MEOW_PACK_DIR -u MEOW_PACKS XDG_DATA_HOME="$T/xdg41" MEOW_RAIZ="$RAIZ" "$@"; }
+v_dr="$(so_repo ICONES_BASE=Papirus-Dark python3 "$RAIZ/scripts/pack.py" base-icones dracula 2>&1)"
+v_dr_mao="$(so_repo ICONES_BASE=Dracula-Icones python3 "$RAIZ/scripts/pack.py" base-icones dracula 2>&1)"
+p_dr="$(so_repo python3 "$RAIZ/scripts/pack.py" ponteiro dracula 2>&1)"
+if [[ "$v_dr" == *"quem=pack"*"pack=dracula"*"url=https://github.com/m4thewz/dracula-icons/archive/"* ]] \
+   && printf '%s\n' "$v_dr" | grep -qE '^sha256=[0-9a-f]{64}$' \
+   && [[ "$v_dr_mao" == *"quem=conf"*"tema=Dracula-Icones"* ]] \
+   && [[ "$p_dr" == *"valor=Dracula-Cursor"*"url=https://github.com/dracula/gtk/releases/download/"* ]]; then
+  ok "o pack Dracula declara a base e o ponteiro pinados, e o ICONES_BASE escrito à mão continua vencendo"
+else
+  falha "o pack Dracula não declara a base e o ponteiro como a P41 pede" "$v_dr
+$v_dr_mao
+$p_dr"
+fi
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then

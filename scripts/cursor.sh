@@ -267,6 +267,11 @@ CURSOR_PACK_LIDO=0
 CURSOR_PACK_ID=""
 CURSOR_PACK_DIR=""
 CURSOR_PACK_VALOR=""
+# O PONTEIRO QUE O PACK MANDA BAIXAR — 24/09/2026, sprint P41. Vazios quando o
+# pack traz o tema dentro dele (o `CURSOR_PACK_DIR` acima) ou não traz nada.
+CURSOR_PACK_URL=""
+CURSOR_PACK_SHA=""
+CURSOR_PACK_PASTA=""
 
 _cursor_ler_pack() {
   [ "$CURSOR_PACK_LIDO" = "1" ] && return 0
@@ -286,14 +291,100 @@ _cursor_ler_pack() {
   CURSOR_PACK_ID="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
   CURSOR_PACK_DIR="$(printf '%s\n' "$saida" | sed -n 's/^dir=//p')"
   CURSOR_PACK_VALOR="$(printf '%s\n' "$saida" | sed -n 's/^valor=//p')"
+  CURSOR_PACK_URL="$(printf '%s\n' "$saida" | sed -n 's/^url=//p')"
+  CURSOR_PACK_SHA="$(printf '%s\n' "$saida" | sed -n 's/^sha256=//p')"
+  CURSOR_PACK_PASTA="$(printf '%s\n' "$saida" | sed -n 's/^pasta=//p')"
 }
 
 # 0 = este valor é o ponteiro que o pack traz, e é o pack que o resolve.
+# O `-n` do diretório entrou com a P41 (24/09/2026): o ponteiro BAIXADO chega
+# com `dir=` vazio, e `"/cursors"` não pode ser a pergunta que decide.
 _cursor_do_pack() {
   _cursor_ler_pack
-  [ -n "$CURSOR_PACK_VALOR" ] && [ -d "$CURSOR_PACK_DIR/cursors" ] || return 1
+  [ -n "$CURSOR_PACK_VALOR" ] && [ -n "$CURSOR_PACK_DIR" ] && [ -d "$CURSOR_PACK_DIR/cursors" ] || return 1
   [ "$1" = "$CURSOR_PACK_VALOR" ] || return 1
   [ "$(_cursor_nome_tema "$1")" = "$1-cursors" ]
+}
+
+# O PONTEIRO QUE O PACK MANDA BAIXAR — 24/09/2026, sprint P41
+#   O Dracula achou a origem do ponteiro dele: o `Dracula-cursors.tar.xz` do
+#   release v4.0.0 do `dracula/gtk`, com os mesmos 113 ponteiros que o
+#   `Dracula-Cursor` desta máquina, um a um. Ele não entra no pack porque 66
+#   deles são links, e o `exportar` recusa link (ver `origens.cursores` no
+#   `packs/dracula/pack.json`); então o pack declara a ORIGEM — URL, sha256 e
+#   a pasta de dentro do pacote — e é aqui que ela desce.
+#
+#   A MESMA TERCEIRA LINHA DA REGRA, e com a mesma condição: o valor é o do
+#   pack, e nenhum diretório de nome exato o sequestra. Nesta máquina ele
+#   sequestra — `~/.local/share/icons/Dracula-Cursor` existe —, e aí nada é
+#   baixado: as alavancas apontam para o que já está lá, como desde 15/09.
+#
+#   NÃO ENTRA NA LISTA DO PAINEL NEM NA DO `listar`. As duas oferecem "o que a
+#   chave aceita sem baixar nada", e este baixa. É a mesma fronteira do
+#   `catppuccin/cursors`: o valor funciona escrito no meow.conf, e aparece na
+#   lista depois de instalado.
+_cursor_baixavel_do_pack() {
+  _cursor_ler_pack
+  [ -n "$CURSOR_PACK_URL" ] && [ "$1" = "$CURSOR_PACK_VALOR" ] || return 1
+  [ "$(_cursor_nome_tema "$1")" = "$1-cursors" ]
+}
+
+# TUDO OU NADA, como o `_cursor_baixar_instalar`: desce para um temporário,
+# confere o sha256 que o pack pinou, abre, confere que a pasta declarada é um
+# tema de ponteiro sem link para fora, e só então entra pelo
+# `_cursor_instalar_pasta`, com o nome que a chave usa. Sem rede é 3 e o
+# ponteiro fica como estava; sha256 que não bate é 2 — é o arquivo mudando
+# debaixo do pino, e isso tem de acordar alguém.
+_cursor_baixar_do_pack() {
+  local valor="$1" tmp alvo real fora obtido f
+  for f in curl tar sha256sum realpath; do
+    meow_tem "$f" || { meow_erro "falta $f"; return "$MEOW_SEM_DEPENDENCIA"; }
+  done
+  tmp="$(mktemp -d -p "${TMPDIR:-/tmp}" ".meow-cursor-pack.XXXXXX")" || return "$MEOW_ERRO"
+  meow_info "baixando o ponteiro '$valor' do pack $CURSOR_PACK_ID…"
+  # O ponto na frente dos dois nomes de trabalho é o que os separa do diretório
+  # renomeado lá embaixo: o valor da chave nunca começa por ponto.
+  if ! _cursor_curl "$CURSOR_PACK_URL" "$tmp/.pacote"; then
+    rm -rf "$tmp"
+    meow_erro "não deu para baixar o ponteiro do pack $CURSOR_PACK_ID (sem rede?)"
+    meow_aviso "nada foi instalado — o cursor continua exatamente como estava."
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if ! echo "$CURSOR_PACK_SHA  $tmp/.pacote" | sha256sum --status -c - 2>/dev/null; then
+    obtido="$(sha256sum "$tmp/.pacote" | cut -d' ' -f1)"
+    rm -rf "$tmp"
+    meow_erro "sha256 do ponteiro não bate com o que o pack $CURSOR_PACK_ID pinou"
+    meow_info "  esperado $CURSOR_PACK_SHA"
+    meow_info "  obtido   $obtido"
+    return "$MEOW_ERRO"
+  fi
+  mkdir "$tmp/.aberto" || { rm -rf "$tmp"; return "$MEOW_ERRO"; }
+  if ! tar -xf "$tmp/.pacote" -C "$tmp/.aberto" 2>/dev/null; then
+    rm -rf "$tmp"; meow_erro "o pacote do ponteiro veio corrompido — nada instalado"; return "$MEOW_ERRO"
+  fi
+  alvo="$tmp/.aberto/$CURSOR_PACK_PASTA"
+  if [ ! -d "$alvo/cursors" ]; then
+    rm -rf "$tmp"
+    meow_erro "o pacote não tem '$CURSOR_PACK_PASTA/cursors' — o pack $CURSOR_PACK_ID declara a pasta errada?"
+    return "$MEOW_ERRO"
+  fi
+  # O link que sai do tema iria junto no `cp -a` do `_cursor_instalar_pasta`,
+  # e é a regra que o `pack.py` aplica ao ponteiro de dentro do pack.
+  real="$(realpath -m -- "$alvo")"
+  fora="$(find "$real" -type l -print0 | xargs -0 -r realpath -m -- 2>/dev/null \
+            | grep -v -e "^$real/" -e "^$real\$" || true)"
+  if [ -n "$fora" ]; then
+    rm -rf "$tmp"
+    meow_erro "o ponteiro do pack $CURSOR_PACK_ID tem link apontando para fora do tema — nada instalado"
+    return "$MEOW_ERRO"
+  fi
+  # O diretório passa a chamar-se como a CHAVE, e o `_cursor_instalar_pasta`
+  # põe o `-cursors` — o pacote do Dracula chama a pasta de `Dracula-cursors`,
+  # que a chave escreveria como `Dracula`, e o valor do pack é `Dracula-Cursor`.
+  mv -- "$alvo" "$tmp/$valor" || { rm -rf "$tmp"; return "$MEOW_ERRO"; }
+  _cursor_instalar_pasta "$tmp/$valor"; local rc=$?
+  rm -rf "$tmp"
+  return "$rc"
 }
 
 # O `index.theme` que faz o compositor obedecer. O `Comment=` não é enfeite: é a
@@ -762,6 +853,20 @@ cmd_aplicar() {
     rc=0
   elif _cursor_instalado "$CURSOR"; then
     meow_ok "tema de cursor '$nome' já está instalado"
+  # O PACK MANDA BAIXAR (P41, 24/09/2026): antes do release do Catppuccin,
+  # que não tem este nome e sairia num 404 — o `CURSOR="Dracula-Cursor"` numa
+  # máquina sem o diretório ia buscar um `Dracula-Cursor-cursors.zip` que o
+  # `catppuccin/cursors` nunca publicou.
+  elif _cursor_baixavel_do_pack "$CURSOR"; then
+    if meow_seco; then
+      meow_muda "baixaria o ponteiro '$CURSOR' do pack $CURSOR_PACK_ID (sha256 pinado) e o instalaria em $CURSOR_ICONES"
+      mudou=1
+    else
+      _cursor_baixar_do_pack "$CURSOR"; rc=$?
+      [ "$rc" -le 1 ] || return "$rc"
+      [ "$rc" = "1" ] && mudou=1
+      rc=0
+    fi
   else
     if meow_seco; then
       meow_muda "baixaria e instalaria '$nome' em $CURSOR_ICONES"
