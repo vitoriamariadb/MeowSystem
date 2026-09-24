@@ -1512,6 +1512,10 @@ mudando debaixo do pino.
 construção diz os dois na mesma linha ("o pack dracula traz uma base de ícones;
 vale o ICONES_BASE="Dracula-Icones" do meow.conf"). O de fábrica
 (`Papirus-Dark`, ou vazio) cede — ver [Quem vence](#quem-vence-o-pack-ou-o-meowconf).
+O nome da própria base (`MeowSystem-Icons-Base`, que a «Base de ícones» do
+painel lista como qualquer tema instalado) também cede: escolhê-lo é pedir a
+base do pack. A regra mora no `_base_escolhida` do `scripts/pack.py`, e o
+`construir_icones.sh`, o verbo `base-icones` e o `info` leem dela.
 Quando a base do pack não é a que vale, o diretório dela sai do disco.
 
 **Herdar é pelo bloco**, como nas fontes: responde o primeiro pack da cadeia que

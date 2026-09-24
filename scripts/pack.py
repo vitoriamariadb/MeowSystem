@@ -84,7 +84,9 @@ VERBOS
                                  Não é o verbo `fontes`, que é de ícone (P28).
                                  Ver `tipografia`.
     base-icones [id]             a BASE de ícones que o `MeowSystem-Icons`
-                                 herda, lendo `$ICONES_BASE` do ambiente.
+                                 herda, lendo `$ICONES_BASE` do ambiente (e o
+                                 `$NOME_TEMA_ICONES`, que dá o nome da nossa
+                                 base: escolhê-la é pedir a do pack).
                                  Imprime, para o shell ler com `sed`:
                                      quem=<conf, pack ou motor>
                                      tema=<o que herdar, quando não é o pack>
@@ -1949,6 +1951,19 @@ def tipografia(ref=None):
 #   está dito no docs/PACKS.md: com um pack que traz base, o `Papirus-Dark` não
 #   se escolhe por esta chave — escrevê-lo é o mesmo que deixá-la de fábrica.
 #
+# E A NOSSA PRÓPRIA BASE, ESCOLHIDA PELO NOME, É "A DO PACK" — revisão da P41
+#   O `construir_icones.sh` instala a base em `<NOME_TEMA_ICONES>-Base`, e a
+#   «Base de ícones» do painel oferece todo tema instalado (o `_temas_de_icones`
+#   só tira da lista o `NOME_TEMA_ICONES`). Escolher o `MeowSystem-Icons-Base`
+#   ali é pedir a base do pack, e não um tema com esse nome: ele só existe
+#   enquanto o pack no ar o traz. A primeira versão tinha essa exceção só no
+#   shell, e medido pela revisão em 24/09/2026: o verbo `base-icones` respondia
+#   `quem=conf` e o `info` dizia "vale o ICONES_BASE="MeowSystem-Icons-Base" do
+#   meow.conf", enquanto o construir herdava da base do pack. A regra mora no
+#   `_base_escolhida`, uma vez, e o shell lê a resposta do verbo. O sufixo
+#   `-Base` é o que o `construir_icones.sh` usa para o nome do diretório; o
+#   `tests/pack.sh` cobra que os dois concordam.
+#
 # O NOME DE FÁBRICA É CONFERIDO CONTRA O meow.conf.exemplo
 #   É o valor que a chave traz de fábrica, e ela mora lá. A constante existe
 #   porque este arquivo não lê o exemplo em execução; o `tests/pack.sh` cobra
@@ -1959,6 +1974,17 @@ def tipografia(ref=None):
 #   `heranca`.
 CATEGORIA_BASE = "icones.base"
 ICONES_BASE_DO_EXEMPLO = "Papirus-Dark"
+
+
+def _base_escolhida(pedido):
+    """O `ICONES_BASE` que é escolha dela, ou "" quando ele cede ao pack.
+
+    Cede o de fábrica, o vazio e o nome da nossa própria base. O nome do tema
+    vem do ambiente, como no shell (`${NOME_TEMA_ICONES:-MeowSystem-Icons}`).
+    """
+    pedido = (pedido or "").strip()
+    nossa = (os.environ.get("NOME_TEMA_ICONES") or "").strip() or "MeowSystem-Icons"
+    return "" if pedido in ("", ICONES_BASE_DO_EXEMPLO, nossa + "-Base") else pedido
 
 
 def base_de_icones(ref=None):
@@ -1993,10 +2019,10 @@ def base_que_vale(ref, pedido):
     `declarada` é o `base_de_icones` — vem mesmo quando o conf vence, para a
     tela dizer os dois.
     """
-    pedido = (pedido or "").strip()
+    escolhida = _base_escolhida(pedido)
     declarada = base_de_icones(ref)
-    if pedido and pedido != ICONES_BASE_DO_EXEMPLO:
-        return "conf", pedido, declarada
+    if escolhida:
+        return "conf", escolhida, declarada
     if declarada:
         return "pack", "", declarada
     return "motor", ICONES_BASE_DO_EXEMPLO, None
@@ -3968,8 +3994,7 @@ def cmd_info(ref):
         # (docs/PACKS.md, "Quem vence"). Sem ele no ambiente, a linha diz que
         # quem decide é a chave, e qual é o valor de fábrica dela.
         if cat == CATEGORIA_BASE:
-            pedido = (os.environ.get("ICONES_BASE") or "").strip()
-            a_mao = pedido if pedido and pedido != ICONES_BASE_DO_EXEMPLO else ""
+            a_mao = _base_escolhida(os.environ.get("ICONES_BASE"))
             try:
                 b = base_de_icones(ref)
             except Recusa:

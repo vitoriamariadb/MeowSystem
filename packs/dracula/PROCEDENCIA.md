@@ -514,11 +514,12 @@ pelo sha256 na instalação, e é o sha256 que diz qual versão foi escolhida.
 `Dracula-Icones` que o Spellbook montava herdava `dracula-icons-circle` antes do
 `main`; os dois cobrem quase os mesmos nomes (24.958 SVG contra 25.635, contados
 nos pacotes dos dois commits), e a diferença cai no resto da cadeia. O pacote
-foi baixado duas vezes no mesmo dia, e as duas deram o mesmo sha256. As cópias `dracula-icons-circle` e `-main` de
-`~/.local/share/icons/` desta máquina **não** são o pacote do commit: o `diff`
-contra ele acusa arquivos trocados por links e desenhos a menos, retoques do
-`Dracula_OS-Theme`. Por isso o MeowSystem instala a base num diretório com
-nome próprio (`MeowSystem-Icons-Base`) e não encosta naquelas.
+foi baixado duas vezes no mesmo dia, e as duas deram o mesmo sha256. As cópias
+`dracula-icons-circle` e `-main` de `~/.local/share/icons/` desta máquina
+**não** são o pacote do commit: o `diff` contra ele acusa arquivos trocados por
+links e desenhos a menos, retoques do `Dracula_OS-Theme`. Por isso o MeowSystem
+instala a base num diretório com nome próprio (`MeowSystem-Icons-Base`) e não
+encosta naquelas.
 
 **O ponteiro é o mesmo desta máquina, conferido um a um.** Os 113 ponteiros do
 `~/.local/share/icons/Dracula-Cursor/` batem com os do pacote (e com a árvore

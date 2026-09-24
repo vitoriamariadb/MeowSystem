@@ -370,6 +370,10 @@ _cursor_baixar_do_pack() {
   fi
   # O link que sai do tema iria junto no `cp -a` do `_cursor_instalar_pasta`,
   # e é a regra que o `pack.py` aplica ao ponteiro de dentro do pack.
+  #   É O GÊMEO DO `_ci_links_fora` do `construir_icones.sh`, e a revisão da P41
+  #   apontou a cópia (24/09/2026). Os dois scripts só dividem o `lib/comum.sh`,
+  #   que estava fora da tabela da P41: juntá-los lá é o conserto, e até lá
+  #   quem mexer num mexe no outro.
   real="$(realpath -m -- "$alvo")"
   fora="$(find "$real" -type l -print0 | xargs -0 -r realpath -m -- 2>/dev/null \
             | grep -v -e "^$real/" -e "^$real\$" || true)"

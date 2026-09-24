@@ -2875,6 +2875,21 @@ vazio: $v_vazio
 à mão: $v_mao"
 fi
 
+# A NOSSA BASE ESCOLHIDA PELO NOME É "A DO PACK", E A REGRA MORA NO pack.py —
+#   revisão da P41, 24/09/2026. O painel oferece o `MeowSystem-Icons-Base`
+#   instalado como qualquer tema; a primeira versão só o reconhecia no shell, e
+#   o verbo e o `info` diziam "vale o ICONES_BASE="MeowSystem-Icons-Base" do
+#   meow.conf" enquanto o construir herdava da base do pack.
+v_nossa="$(base_verbo MeowSystem-Icons-Base)"
+linha="$(amb env ICONES_BASE=MeowSystem-Icons-Base python3 "$RAIZ/scripts/pack.py" info "$PIN" 2>&1 | grep -E '^  icones\.base ')"
+if [[ "$v_nossa" == *"quem=pack"*"pack=$PIN"* ]] && [[ "$linha" == *"do pack $PIN"* ]] \
+   && [[ "$linha" != *"vale o ICONES_BASE"* ]]; then
+  ok "o ICONES_BASE que nomeia a nossa própria base é a do pack, no verbo e no info"
+else
+  falha "o ICONES_BASE=\"MeowSystem-Icons-Base\" foi lido como escolha à mão" "verbo: $v_nossa
+info: $linha"
+fi
+
 # A BASE DESCE, NUM HOME DE BRINQUEDO, pelo `construir_icones.sh base` — a
 #   porta que põe só a base, sem a construção inteira.
 base_sh() {  # $1 = ICONES_BASE; o resto, variáveis a mais
@@ -2912,6 +2927,26 @@ saida="$(base_sh Papirus-Dark)"; rc=$?
   && ok "um arquivo que some da base é percebido pelo conteúdo, e a base volta inteira" \
   || falha "a base com arquivo faltando passou por inteira (rc=$rc, chamadas=$(chamadas))" "$saida"
 
+# A BASE DE ANTES SÓ SAI DEPOIS QUE A NOVA ENTROU — revisão da P41, 24/09/2026.
+#   O `rm -rf` vinha antes do `mv`, e um `mv` que falhasse deixava o índice de
+#   antes apontando para uma base apagada, com a tela dizendo "fica como
+#   estava". O `mv` de mentira falha só no passo que põe a base NOVA no lugar
+#   (a origem é a pasta do pacote aberto); o resto passa ao de verdade.
+mkdir -p "$T/binmv41"
+printf '#!/bin/sh\ncase "$*" in *tema-de-mentira-1a2b*MeowSystem-Icons-Base*) exit 1 ;; esac\nexec %s "$@"\n' \
+  "$(command -v mv)" > "$T/binmv41/mv"
+chmod +x "$T/binmv41/mv"
+rm -f "$BASE41/scalable/apps/editor.svg"
+saida="$(base_sh Papirus-Dark PATH="$T/binmv41:$BIN41:$PATH")"; rc=$?
+if [ "$rc" = "2" ] && [ -f "$BASE41/index.theme" ] && grep -qx "sha256=$SHA_BASE" "$BASE41/.meow-origem" 2>/dev/null \
+   && [ -L "$BASE41/scalable/apps/text-editor.svg" ] \
+   && [ -z "$(find "$H41/.local/share/icons" -maxdepth 1 -name '.meow-base.*' 2>/dev/null)" ]; then
+  ok "o mv que falha ao pôr a base nova devolve a de antes, e nenhum palco fica para trás"
+else
+  falha "o mv que falhou deixou o tema sem base, ou deixou sobra (rc=$rc)" "$saida
+$(find "$H41/.local/share/icons" -maxdepth 2 2>/dev/null | head -8)"
+fi
+
 # O `Inherits=` DE VERDADE: a construção inteira, no mesmo HOME de brinquedo.
 #   É seguro rodá-la aqui: com um HOME que não é o da sessão, o
 #   `construir_icones.sh` recusa reiniciar o painel (o bloco "DUAS RECUSAS
@@ -2922,6 +2957,14 @@ herda="$(sed -n 's/^Inherits=//p' "$H41/.local/share/icons/MeowSystem-Icons/inde
 [[ "$herda" == "MeowSystem-Icons-Base,"* ]] \
   && ok "o index.theme do MeowSystem-Icons herda da base do pack ($herda)" \
   || falha "o index.theme não herda da base do pack" "Inherits=$herda"
+
+# E O SHELL LÊ A MESMA RESPOSTA DO VERBO: escolher a nossa base pelo nome deixa
+#   a base no disco e o tema herdando dela, sem uma segunda regra no shell.
+saida="$(base_sh MeowSystem-Icons-Base)"; rc=$?
+[ "$rc" = "0" ] && [ -f "$BASE41/.meow-origem" ] && [[ "$saida" == *"herda de 'MeowSystem-Icons-Base'"* ]] \
+  && [[ "$saida" != *"vale o ICONES_BASE"* ]] \
+  && ok "o construir lê o ICONES_BASE=\"MeowSystem-Icons-Base\" como a base do pack, e ela fica" \
+  || falha "o construir tratou a nossa base como escolha à mão (rc=$rc)" "$saida"
 
 # O MEOW.CONF VENCE, E A TELA DIZ OS DOIS. Com um ICONES_BASE escrito à mão, o
 #   tema herda dele, a base do pack sai do disco (ela é nossa: tem o

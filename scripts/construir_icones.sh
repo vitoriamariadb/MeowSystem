@@ -317,7 +317,8 @@ _ci_remover() {
 
 # Os alvos de link que caem FORA do diretório, um por linha. `realpath` de
 # todos de uma vez, e não um por link: o ramo circle tem 12.456 links, e um
-# `realpath` por link levaria segundos a cada instalação.
+# `realpath` por link levaria segundos a cada instalação. O `cursor.sh` tem o
+# gêmeo dele, no `_cursor_baixar_do_pack` (ver lá por que ainda são dois).
 _ci_links_fora() {
   local dir; dir="$(realpath -m -- "$1")"
   find "$dir" -type l -print0 2>/dev/null | xargs -0 -r realpath -m -- 2>/dev/null \
@@ -416,12 +417,31 @@ _ci_base_baixar() {
   printf 'sha256=%s\nurl=%s\nlinks=%s\n' "$sha" "$url" "$(find "$src" -type l | wc -l)" > "$src/.meow-origem" \
     || { rm -rf "$palco"; return "$MEOW_ERRO"; }
   chmod 755 "$src"
-  rm -rf "$BASE_DIR"
+  # A BASE DE ANTES SAI POR ÚLTIMO — revisão da P41, 24/09/2026. O `rm -rf`
+  # vinha antes do `mv`, e um `mv` que falhasse deixava o índice de antes
+  # apontando para uma base apagada, com a construção dizendo que o tema "fica
+  # como estava". A de antes vai para o palco (o mesmo disco: é um rename), a
+  # nova entra, e só então a de antes é apagada, junto com o palco. Se a nova
+  # não entra, a de antes volta para o lugar.
+  if [ -e "$BASE_DIR" ] || [ -L "$BASE_DIR" ]; then
+    mv -f "$BASE_DIR" "$palco/antes" || {
+      rm -rf "$palco"; meow_erro "não consegui tirar do lugar a base de antes, em $BASE_DIR"
+      return "$MEOW_ERRO"; }
+  fi
   if ! mv -f "$src" "$BASE_DIR"; then
+    if [ -e "$palco/antes" ] || [ -L "$palco/antes" ]; then mv -f "$palco/antes" "$BASE_DIR"; fi
     rm -rf "$palco"; meow_erro "falha ao mover a base de ícones para $BASE_DIR"; return "$MEOW_ERRO"
   fi
   rm -rf "$palco"
-  # O manifesto do projeto é o que permite ao `--uninstall` saber o que é nosso.
+  # O MANIFESTO LEVA SÓ O index.theme, E O `--uninstall` DE HOJE NÃO LEVA A
+  # BASE — revisão da P41, 24/09/2026. O passo 4/6 do `lib/desinstalar.sh`
+  # apaga os ARQUIVOS do manifesto, um a um, e o 5/6 apaga as árvores inteiras
+  # que ele conhece: o `MeowSystem-Icons`, e não esta. Medido pela revisão: a
+  # desinstalação tira este index.theme e deixa 12.514 arquivos e 12.456 links
+  # (54 MB), que nem são mais um tema. O conserto é a `-Base` entrar no laço do
+  # passo 5/6, e o `lib/desinstalar.sh` estava fora da tabela da P41: fica
+  # pendente, para a decisão dela. Registrar o index.theme segue valendo até
+  # lá: sem ele, a sobra deixa ao menos de ser oferecida como tema de ícones.
   meow_manifesto_registrar "$BASE_DIR/index.theme"
   meow_muda "base de ícones do pack $pack instalada em $BASE_DIR"
   return "$MEOW_DIVERGENTE"
@@ -430,19 +450,20 @@ _ci_base_baixar() {
 # Decide o `$HERDA` e põe (ou tira) a base no disco.
 # 0 = nada mudou · 1 = mudou, ou mudaria no seco · 2 = erro
 _ci_base() {
-  local pedido="$ICONES_BASE" saida quem tema pack url sha pasta rc
-  # O NOSSO PRÓPRIO DIRETÓRIO ESCOLHIDO À MÃO É "O DO PACK". Ele aparece na
-  # lista de temas instalados do painel como qualquer outro, e escolhê-lo lá é
-  # pedir a base do pack — não um tema com esse nome, que só existe enquanto
-  # o pack no ar o traz.
-  [ "$pedido" = "$TEMA_BASE" ] && pedido=""
+  local saida quem tema pack url sha pasta rc
   HERDA="$ICONES_BASE"
   meow_tem python3 || return "$MEOW_OK"
   # `"$(meow_pack_dir)"` vazio é o pack padrão, a mesma porta do `cursor.sh` e
   # do `instalar_fontes.sh`. Recusado (o pack declara uma origem torta) quer
   # dizer "não mexa em nada": a base que já estiver no disco fica, e o nosso
   # tema herda do que herdava.
-  if ! saida="$(ICONES_BASE="$pedido" python3 "$RAIZ/scripts/pack.py" base-icones "$(meow_pack_dir)")"; then
+  #   O NOSSO PRÓPRIO DIRETÓRIO ESCOLHIDO PELO NOME É "O DO PACK", e quem sabe
+  #   disso é o `_base_escolhida` do `pack.py` — a primeira versão tinha a
+  #   exceção só aqui, e o verbo e o `info` diziam outra coisa (revisão da P41,
+  #   24/09/2026). O `NOME_TEMA_ICONES` vai junto porque o nome da base é o
+  #   deste tema com `-Base`, e é por ele que o `pack.py` a reconhece.
+  if ! saida="$(ICONES_BASE="$ICONES_BASE" NOME_TEMA_ICONES="$TEMA_NOME" \
+                python3 "$RAIZ/scripts/pack.py" base-icones "$(meow_pack_dir)")"; then
     meow_aviso "não deu para ler a base de ícones do pack — o '$TEMA_NOME' herda de '$ICONES_BASE', como antes"
     return "$MEOW_OK"
   fi
