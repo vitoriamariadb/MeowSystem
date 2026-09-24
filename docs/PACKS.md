@@ -47,6 +47,7 @@ promessa do formato: ele descreve **todos** os temas, inclusive o de casa.
 - [Quem vence: o pack ou o `meow.conf`](#quem-vence-o-pack-ou-o-meowconf)
 - [O tema do COSMIC, e o único passo manual que existe](#o-tema-do-cosmic-e-o-único-passo-manual-que-existe)
 - [O som](#o-som)
+- [A base de ícones](#a-base-de-ícones)
 - [O ponteiro](#o-ponteiro)
 - [As fontes](#as-fontes)
 - [O que ainda não é do pack](#o-que-ainda-não-é-do-pack)
@@ -439,7 +440,9 @@ suportado é recusado com o número na mensagem.
                    "camada": "scalable/apps", "recolorir": false },
     "pastas":    { "desenhos": "icones/pastas/" },
     "mimetypes": { "herda": "catppuccin", "flavor": "macchiato" },
-    "autorais":  { "gerar": true }
+    "autorais":  { "gerar": true },
+    "base":      { "origem": { "url": "https://exemplo.org/tema-v1.tar.gz",
+                               "sha256": "…", "pasta": "tema-v1" } }
   },
 
   "origens": {
@@ -462,9 +465,11 @@ suportado é recusado com o número na mensagem.
 ```
 
 **`origens.cursores`** é `{"proprio": "cursores/<nome>"}` para o pack que traz
-o ponteiro, ou `{"herda": "<id>"}` para o que pega o de outro — ver [O
+o ponteiro, `{"origem": {…}}` para o que manda baixá-lo de um endereço pinado,
+ou `{"herda": "<id>"}` para o que pega o de outro — ver [O
 ponteiro](#o-ponteiro). **`fontes`** tem a mesma forma, com uma lista — ver [As
-fontes](#as-fontes).
+fontes](#as-fontes). **`icones.base`** é o tema que o seu herda para tudo o que
+ele não desenha — ver [A base de ícones](#a-base-de-ícones).
 
 **`autor`, `versao` e `licenca`** aparecem no alto do `meow pack info`, e o
 `autor` também no cartão do painel. Até 23/09/2026 nenhum código lia os três, e
@@ -1269,6 +1274,7 @@ máquina, o agente é este"*. Quem mora na máquina decide.
 | Chave do `meow.conf` | Campo do pack | Quem ganha |
 |---|---|---|
 | `CURSOR` | `origens.cursores.tema` | o conf |
+| `ICONES_BASE` | `icones.base` | o conf — mas o `Papirus-Dark` de fábrica cede ao pack |
 | `ICONES_FLAVOR` | `icones.mimetypes.flavor` | o conf |
 | `ICONES_PASTAS` | — | o conf |
 | `ACCENT` | `paleta.acentos[0]` | o conf |
@@ -1286,6 +1292,13 @@ dele é o painel, que o usa para não acusar de "outro pack" o `CURSOR` que o
 próprio pack receita. O que o pack faz
 pelo ponteiro é **trazê-lo** (`origens.cursores.proprio`); quem o escolhe é
 sempre a chave. Ver [O ponteiro](#o-ponteiro).
+
+**`ICONES_BASE` tem a mesma exceção do `ICONES_FLAVOR`, pelo mesmo motivo.**
+Depois do `.` do `meow.conf` só se vê o valor, e todo `meow.conf` copiado do
+exemplo traz `ICONES_BASE="Papirus-Dark"`. Tratar esse valor como escolha faria
+um pack que traz base continuar caindo no Papirus justamente em quem já
+instalou. Então o de fábrica (ou o vazio) cede ao pack; qualquer outro tema
+escrito ali vence. Ver [A base de ícones](#a-base-de-ícones).
 
 ---
 
@@ -1446,6 +1459,90 @@ No painel: **Manutenção → Som de evento**, com o botão «Ouvir».
 E lembre da precedência: um `SOM_*` no `meow.conf` da máquina vence o do pack,
 como qualquer outra chave.
 
+## A base de ícones
+
+O `MeowSystem-Icons` desenha uma parte dos ícones e **herda** o resto: é o
+`Inherits=` do `index.theme` dele. Até 24/09/2026 o herdado era sempre a chave
+`ICONES_BASE`, com o `Papirus-Dark` de fábrica — e um pack de ícones próprios
+só vestia os aplicativos do mapa dele. Fora deles, o Dracula saía Papirus.
+
+Um pack pode declarar a base dele. Ela não mora dentro do pack: um tema de
+ícones completo são dezenas de milhares de arquivos de terceiro, e copiá-los
+seria congelar a arte de alguém. O pack declara a **receita** — de onde, e qual
+conteúdo exato —, e quem instala baixa e confere:
+
+```json fragmento
+"icones": {
+  "base": {
+    "origem": {
+      "url": "https://github.com/dono/tema/archive/<commit>.tar.gz",
+      "sha256": "…os 64 hex do pacote…",
+      "pasta": "tema-<commit>"
+    }
+  }
+}
+```
+
+- **`url`** é `https://` e termina em `.tar.gz`, `.tgz`, `.tar.xz` ou `.txz`: o
+  arquivo que o GitHub gera para um commit, ou o asset de um release. Pinar pelo
+  commit na URL é o que o arquivo do GitHub permite quando o ramo não tem tag.
+- **`sha256`** é o do **pacote**, e é o pino: sem ele a URL entrega o que
+  quiser.
+- **`pasta`** é onde, no pacote aberto, está o tema (o diretório com o
+  `index.theme`). Nome por nome, sem `..` e sem barra na frente.
+
+**Quem instala é o `scripts/construir_icones.sh`**, porque ele é quem escreve o
+`Inherits=`. O pacote desce para um temporário dentro de
+`~/.local/share/icons/`, o sha256 é conferido, a pasta tem de ser um tema de
+ícones e nenhum link pode apontar para fora dele — e só então ela entra, com um
+`mv` só, em `~/.local/share/icons/MeowSystem-Icons-Base/`. O nome é deste
+projeto, e não o do upstream: um diretório de dono único é o que deixa a troca
+de pack levar a base junto, e o que impede de escrever por cima de uma cópia
+que outra ferramenta tenha posto ali com o nome do upstream.
+
+**A conferência de toda passagem é pelo conteúdo.** Ao lado do tema ficam o
+`.meow-origem` (o sha256 do pacote de onde ele veio) e o
+`.meow-somas.sha256` (o de cada arquivo). Um arquivo que some é percebido, e
+a base volta inteira; nada mudou, nada é baixado. Sem rede, a base fica para o
+próximo ciclo e o tema herda do que havia (a base de antes, ou o de fábrica).
+Com o sha256 errado, a construção para e diz os dois números — é o arquivo
+mudando debaixo do pino.
+
+**Quem vence.** Um `ICONES_BASE` escrito à mão vence a base do pack, e a
+construção diz os dois na mesma linha ("o pack dracula traz uma base de ícones;
+vale o ICONES_BASE="Dracula-Icones" do meow.conf"). O de fábrica
+(`Papirus-Dark`, ou vazio) cede — ver [Quem vence](#quem-vence-o-pack-ou-o-meowconf).
+O nome da própria base (`MeowSystem-Icons-Base`, que a «Base de ícones» do
+painel lista como qualquer tema instalado) também cede: escolhê-lo é pedir a
+base do pack. A regra mora no `_base_escolhida` do `scripts/pack.py`, e o
+`construir_icones.sh`, o verbo `base-icones` e o `info` leem dela.
+Quando a base do pack não é a que vale, o diretório dela sai do disco.
+
+**Herdar é pelo bloco**, como nas fontes: responde o primeiro pack da cadeia que
+declara `icones.base.origem`, e `icones.base.herda` vence a `heranca`.
+
+| o `validar` cobra | por quê |
+|---|---|
+| `url`, `sha256` e `pasta`, e só elas | a origem sem uma delas não diz o que baixar, ou não diz o que conferir |
+| `https://`, terminando em `.tar.*` | quem instala abre um `.tar` e mais nada |
+| o sha256 com 64 hex minúsculos | é o pino do conteúdo |
+| a pasta sem `..`, sem barra na frente | ela vira caminho no disco de quem instala |
+| `origem` e `herda` não aparecem juntas | um bloco que diz "baixe" e "use o do vizinho" não disse qual |
+
+O `validar` não toca a rede: ele confere a forma, e o conteúdo é conferido byte
+a byte na instalação.
+
+```bash
+ICONES_BASE="Papirus-Dark" python3 scripts/pack.py base-icones dracula
+#   quem=pack
+#   tema=
+#   pack=dracula
+#   url=https://github.com/m4thewz/dracula-icons/archive/00a230a2….tar.gz
+#   sha256=563580916e42…
+#   pasta=dracula-icons-00a230a2…
+scripts/construir_icones.sh base     # põe ou confere só a base, e diz de quem o tema herda
+```
+
 ## O ponteiro
 
 Um pack pode trazer o próprio ponteiro: um tema Xcursor comum, dentro dele.
@@ -1502,8 +1599,9 @@ virar um botão que baixa da rede.
 **Herdar é pelo bloco.** `origens.cursores.herda: "outro"` sobe para o pack
 `outro`; sem `proprio` nem `herda`, vale a `heranca` do pack. O `meow pack info`
 diz até onde a subida chega — `CURSOR="x", do pack y`, ou "a cadeia não traz
-ponteiro", que é o caso do Dracula hoje (o motivo está no `pack.json` dele:
-procedência).
+ponteiro". Até 24/09/2026 este era o caso do Dracula, por procedência; a origem
+do ponteiro dele foi achada, e ele passou a ser baixado (ver [O ponteiro que se
+baixa](#o-ponteiro-que-se-baixa)).
 
 ```bash
 python3 scripts/pack.py ponteiro meu-tema
@@ -1515,8 +1613,41 @@ python3 scripts/pack.py ponteiro meu-tema
 **Licença.** Tema de ponteiro é arte de terceiro quase sempre. O `LICENSE` e o
 `AUTHORS` vão dentro do diretório do tema — o `cursor.sh` os copia junto, e a
 auditoria funciona na máquina de quem instalou —, e o `CREDITOS.md` do pack diz
-de onde ele veio. Sem procedência, não entra: é por isso que o Dracula continua
-com `herda`.
+de onde ele veio. Sem procedência, não entra.
+
+### O ponteiro que se baixa
+
+Quando o tema não cabe no pack, o pack declara de onde ele desce, com a mesma
+forma da [base de ícones](#a-base-de-ícones) e um campo a mais, `nome` — o valor
+que a chave `CURSOR` escreve para escolhê-lo:
+
+```json fragmento
+"origens": {
+  "cursores": {
+    "origem": {
+      "nome": "Dracula-Cursor",
+      "url": "https://github.com/dracula/gtk/releases/download/v4.0.0/Dracula-cursors.tar.xz",
+      "sha256": "81780e218fdda616016aedf42e731c86ed16290b9753a21616642023821b85f5",
+      "pasta": "Dracula-cursors"
+    }
+  }
+}
+```
+
+É o caso do Dracula (24/09/2026). O tema cabe em tamanho, mas 66 dos 113
+ponteiros dele são links, e um pack que carrega link é recusado pelo
+`exportar`: um pack viaja com cópias. O pacote pinado é o que o `cursor.sh` já
+fazia com o `catppuccin/cursors`.
+
+Com `CURSOR="Dracula-Cursor"`, o `cursor.sh` baixa o pacote, confere o sha256,
+confere que a pasta tem `cursors/` e nenhum link para fora, e instala em
+`~/.local/share/icons/Dracula-Cursor-cursors/` — com o nome que a chave usa, e
+não com o de dentro do pacote. Um diretório de nome exato continua vencendo:
+onde `Dracula-Cursor/` já existe, nada é baixado. **Ele não entra na lista do
+painel antes de instalado**, porque a lista é "o que a chave aceita sem baixar
+nada" — o valor funciona escrito no `meow.conf`, como o de um ponteiro do
+`catppuccin/cursors`. `origem` vem sozinha no bloco: nem com `proprio`, nem com
+`herda`.
 
 ## As fontes
 
@@ -1658,12 +1789,16 @@ quem os declarou que declarar não fez nada. Até 23/09/2026 (P32) a linha dizia
 consertar; o conserto escolhido foi a tela dizer a verdade, e não um segundo
 semeador que lesse o bloco para chegar ao que o `wallpaper.sh` já faz.
 
-**Eram onze, e são quinze linhas.** A tabela da P12 (21/09/2026) contava onze:
+**Eram onze, e são dezesseis linhas.** A tabela da P12 (21/09/2026) contava onze:
 paleta, tema do COSMIC, ícones de aplicativo, de pasta, mimetypes, papéis de
 parede, som, ponteiro, fontes, gerador de ícone e "prompt, fastfetch, gatos"
 numa linha só. A P18 e a P27 acrescentaram duas que ela não contava (temas de
 aplicativo e ícones autorais), e a última linha dela são três coisas com três
-leitores diferentes, que viram três linhas aqui.
+leitores diferentes, que viram três linhas aqui. A P41 (24/09/2026) acrescentou
+a `icones.base`, a [base de ícones](#a-base-de-ícones): a coluna da direita diz
+de onde ela desce e de quem, e, quando o `ICONES_BASE` escolhido à mão chega
+pelo ambiente (o `meow pack info` sem id carrega o `meow.conf`; com id, não),
+que é ele que vale.
 
 ## O logo do pack
 

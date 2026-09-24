@@ -495,6 +495,50 @@ MeowSystem em 17/09/2026 (a Câmera veste o desenho dele, por escolha registrada
 no `icones/apps.map`), e o resgate de um ícone de pacote herda a licença do
 pacote — ver `assets/icones/PROCEDENCIA.md`, seção dos resgatados.
 
+## O que o pack baixa, e não copia
+
+Desde 24/09/2026 (P41) duas artes de terceiro chegam pelo `pack.json` como
+**receita**: a URL, o sha256 do pacote e a pasta de dentro dele. Quem instala
+baixa, confere byte a byte e só então põe no disco — o `construir_icones.sh`
+para a base, o `cursor.sh` para o ponteiro. Nenhum arquivo delas mora neste
+diretório, e por isso elas **não são linhas da tabela acima**: a tabela é das
+cópias, e o `sincronizar` compara cópia com origem. O que se baixa é conferido
+pelo sha256 na instalação, e é o sha256 que diz qual versão foi escolhida.
+
+| o quê | de onde | pino | licença | medido em |
+|---|---|---|---|---|
+| base de ícones (`icones.base`) | `m4thewz/dracula-icons`, ramo `circle`, commit `00a230a277d5e6ad913b90182977738335afee89` (26/05/2024, a ponta do ramo) — o pacote que o GitHub gera para o commit, pasta `dracula-icons-00a230a2…` | sha256 `563580916e426ccccb5da5b1a43f2cc0f7ab5d118c24b87776640da45b50acea`, 3.701.762 bytes | GPL-3.0, declarada no `README.md` do upstream (ver abaixo) | 2026-09-24 |
+| ponteiro (`origens.cursores`) | `dracula/gtk`, release `v4.0.0` (24/02/2023), asset `Dracula-cursors.tar.xz`, pasta `Dracula-cursors` | sha256 `81780e218fdda616016aedf42e731c86ed16290b9753a21616642023821b85f5`, 178.252 bytes | GPL-3.0 — o `LICENSE` do `dracula/gtk` | 2026-09-24 |
+
+**A base é o ramo `circle` porque era ele que esta máquina via.** O
+`Dracula-Icones` que o Spellbook montava herdava `dracula-icons-circle` antes do
+`main`; os dois cobrem quase os mesmos nomes (24.958 SVG contra 25.635, contados
+nos pacotes dos dois commits), e a diferença cai no resto da cadeia. O pacote
+foi baixado duas vezes no mesmo dia, e as duas deram o mesmo sha256. As cópias
+`dracula-icons-circle` e `-main` de `~/.local/share/icons/` desta máquina
+**não** são o pacote do commit: o `diff` contra ele acusa arquivos trocados por
+links e desenhos a menos, retoques do `Dracula_OS-Theme`. Por isso o MeowSystem
+instala a base num diretório com nome próprio (`MeowSystem-Icons-Base`) e não
+encosta naquelas.
+
+**O ponteiro é o mesmo desta máquina, conferido um a um.** Os 113 ponteiros do
+`~/.local/share/icons/Dracula-Cursor/` batem com os do pacote (e com a árvore
+`kde/cursors/Dracula-cursors` do `dracula/gtk`, pelo hash de blob do git, cuja
+última mudança é de 21/12/2021); o `preview.png` também. Só o `index.theme`
+difere, por uma quebra de linha a mais no fim do pacote. Dos 113, 66 são links
+— e é por isso que ele desce, em vez de morar aqui: o `exportar` recusa link.
+
+**A licença da base, medida e não suposta.** O `README.md` do
+`m4thewz/dracula-icons` diz *"GPL-3.0 License"* e aponta para um `LICENSE.md`
+que **não existe no repositório**: medido pela API do GitHub em 24/09/2026,
+nenhum commit dos dois ramos tocou `LICENSE` nem `LICENSE.md`. O mesmo README
+diz que os desenhos vêm do Tela-circle (aplicativos, mimetypes e dispositivos
+escaláveis) e do Papirus (lugares, ações e dispositivos pequenos). O Papirus é
+GPL-3.0; o repositório do Tela-circle não traz arquivo de licença nem a cita no
+README, no mesmo dia. Nada disso é redistribuído por este pack — quem instala
+baixa do upstream —, mas fica escrito para que ninguém conte com um arquivo de
+licença que ninguém publicou.
+
 ## Para quem for acrescentar uma linha
 
 O `sincronizar` procura a **primeira tabela** cujo cabeçalho tenha as colunas

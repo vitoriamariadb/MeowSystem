@@ -268,6 +268,11 @@ ESCALA_TELA=""
 # Para ver antes de escolher:  scripts/cursor.sh estado
 # O TAMANHO não mora aqui de propósito: 24 é o padrão dos dois lados, e gravá-lo
 # seria impor um valor onde não havia nenhum.
+#
+# O PONTEIRO DO PACK — 24/09/2026. O pack Dracula traz o dele, baixado de um
+# release pinado: `CURSOR="Dracula-Cursor"` o escolhe, e ele desce na primeira
+# passagem. Ele só aparece na lista do painel depois de instalado, como todo
+# ponteiro que precisa de rede. Quem escolhe continua sendo esta chave.
 CURSOR="catppuccin-mocha-light"
 # @ Versão do tema do ponteiro
 # > Vazio usa a última versão que o projeto testou.
@@ -482,6 +487,14 @@ NOME_TEMA_ICONES="MeowSystem-Icons"
 #   este projeto constrói e instala em ~/.local/share/icons/") e o mesmo "Por
 #   quê", que explicava uma chave que não era a delas. O `meow configurar` fazia
 #   igual. O conserto é o branco e o parágrafo: cada uma diz o que faz.
+#
+# O PACK PODE TRAZER A BASE — 24/09/2026
+#   Um pack que declara a base dele (o Dracula declara) a baixa, confere e
+#   herda dela, e aí este valor de fábrica — `Papirus-Dark`, ou vazio — cede ao
+#   pack. Qualquer OUTRO tema escrito aqui vence o pack, como toda chave deste
+#   arquivo. O preço: com um pack assim no ar, o `Papirus-Dark` não se escolhe
+#   por aqui, porque escrevê-lo é o mesmo que deixar a chave de fábrica. A regra
+#   inteira está em docs/PACKS.md, "A base de ícones".
 ICONES_BASE="Papirus-Dark"        # tema herdado como fallback
 
 # @ Ícones resgatados do PNG

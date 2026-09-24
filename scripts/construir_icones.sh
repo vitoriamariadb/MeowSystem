@@ -49,6 +49,18 @@ BOTOES=(com.system76.CosmicPanelAppButton com.system76.CosmicAppLibrary)
 FLAVOR="${FLAVOR:-mocha}"
 LOGO="${LOGO:-$FLAVOR}"
 ICONES_BASE="${ICONES_BASE:-Papirus-Dark}"
+# A base que o PACK traz mora aqui, ao lado do tema que a herda (P41, 24/09/2026).
+# O nome é deste projeto, e não o do upstream, por dois motivos medidos: nesta
+# máquina já existem `dracula-icons-circle` e `-main` que o Spellbook montou e
+# retocou (links trocados, arquivos a menos — o `diff` contra o pacote do commit
+# acusa), e escrever por cima deles seria mexer em diretório de outro dono. E um
+# diretório de dono único é o que deixa a troca de pack levar a base junto, como
+# a `MeowSystem/pack/` do `instalar_fontes.sh` leva as fontes.
+TEMA_BASE="$TEMA_NOME-Base"
+BASE_DIR="$HOME/.local/share/icons/$TEMA_BASE"
+# O que o `Inherits=` escreve. Começa como sempre foi, e a `_ci_base` o troca
+# pela base do pack quando ela vale e está no disco.
+HERDA="$ICONES_BASE"
 
 # ---------------------------------------------------------------------------
 # `adicionar <pasta-ou-zip>` e `remover <nome>` — um acervo de ícones de fora
@@ -97,6 +109,7 @@ _ci_nome_seguro() {
 _ci_nome_recusado() {
   case "$1" in
     "$TEMA_NOME") meow_erro "'$1' é o tema que este script constrói — recusado"; return 0 ;;
+    "$TEMA_BASE") meow_erro "'$1' é a base que o pack traz, e quem a põe e a tira é o 'construir_icones.sh base' — recusado"; return 0 ;;
     hicolor)      meow_erro "'hicolor' é a hierarquia de reserva do sistema, não um tema — recusado"; return 0 ;;
     default)      meow_erro "'default' é o tema de ponteiro do compositor — recusado"; return 0 ;;
   esac
@@ -264,6 +277,249 @@ _ci_remover() {
   return "$MEOW_DIVERGENTE"
 }
 
+# ---------------------------------------------------------------------------
+# A BASE QUE O PACK TRAZ — 24/09/2026, sprint P41
+# ---------------------------------------------------------------------------
+# O BURACO, MEDIDO
+#   O `Inherits=` do nosso tema era sempre o `ICONES_BASE`, e o de fábrica é o
+#   Papirus-Dark. Numa máquina vestida de Dracula, os 191 aplicativos do mapa
+#   do pack saíam no desenho dele e todo o resto saía Papirus — menos nesta
+#   máquina, cujo meow.conf aponta para o `Dracula-Icones` que o Spellbook
+#   montava e a P37 desligou. O pack passou a declarar a base
+#   (`icones.base.origem`: URL, commit, sha256), e é aqui que ela entra, porque
+#   este script é o dono de `~/.local/share/icons` e de quem escreve o
+#   `Inherits=` (o cabeçalho do `adicionar`, acima, conta por que um segundo
+#   script instalando tema ali seria a segunda verdade sobre o mesmo disco).
+#
+# QUEM VALE NÃO É DECIDIDO AQUI
+#   A regra — o `ICONES_BASE` escrito à mão vence, o de fábrica cede ao pack,
+#   sem base na cadeia vale o de fábrica — mora no `base_que_vale` do
+#   `scripts/pack.py`, uma vez, e este script lê a resposta. Aqui se faz o que
+#   é de disco: baixar, conferir, instalar, tirar.
+#
+# O PACOTE ENTRA INTEIRO OU NÃO ENTRA, COMO A NERD FONT
+#   Desce para um palco DENTRO de `~/.local/share/icons` (o `mv` final é no
+#   mesmo disco — TRAVA 2 do lib/comum.sh), o sha256 do pacote é conferido
+#   contra o que o pack pinou, a pasta declarada tem de ser um tema de ícones,
+#   e nenhum link pode apontar para fora dele. Só então ela vira `$BASE_DIR`,
+#   com um `mv` só. Sem rede é aviso e fica para o próximo ciclo; sha256 que
+#   não bate é erro, pelo motivo que o `instalar_fontes.sh` escreve: é o
+#   arquivo mudando debaixo do pino, e isso tem de acordar alguém.
+#
+# A CONFERÊNCIA DE TODA PASSAGEM É POR CONTEÚDO, E CUSTA POUCO
+#   Quem instala escreve dois arquivos ao lado do tema: `.meow-origem` (o
+#   sha256 do pacote de onde ele veio, e quantos links ele tem) e
+#   `.meow-somas.sha256` (o sha256 de cada arquivo). Medido em 24/09/2026 no
+#   ramo circle: 12.514 arquivos, e o `sha256sum -c` de todos leva 0,08 s com
+#   o disco quente. Um carimbo de versão sozinho juraria que está certo um tema
+#   com arquivo apagado; o manifesto não. O ponto na frente dos dois nomes os
+#   tira da vista de quem lista o tema, e nenhum leitor de ícone os abre.
+
+# Os alvos de link que caem FORA do diretório, um por linha. `realpath` de
+# todos de uma vez, e não um por link: o ramo circle tem 12.456 links, e um
+# `realpath` por link levaria segundos a cada instalação. O `cursor.sh` tem o
+# gêmeo dele, no `_cursor_baixar_do_pack` (ver lá por que ainda são dois).
+_ci_links_fora() {
+  local dir; dir="$(realpath -m -- "$1")"
+  find "$dir" -type l -print0 2>/dev/null | xargs -0 -r realpath -m -- 2>/dev/null \
+    | grep -v -e "^$dir/" -e "^$dir\$" || true
+}
+
+# 0 = a base instalada é a do pino e está inteira.
+_ci_base_confere() {
+  local links
+  [ -f "$BASE_DIR/.meow-origem" ] && grep -qx "sha256=$1" "$BASE_DIR/.meow-origem" || return 1
+  links="$(sed -n 's/^links=//p' "$BASE_DIR/.meow-origem")"
+  [ "$(find "$BASE_DIR" -type l 2>/dev/null | wc -l)" = "${links:-x}" ] || return 1
+  ( cd "$BASE_DIR" && sha256sum --status -c .meow-somas.sha256 ) 2>/dev/null
+}
+
+# Tira a base quando o pack no ar não a usa. SÓ A NOSSA: o `.meow-origem` é
+# escrito por quem instala, e um diretório com este nome sem ele é de outra
+# pessoa — que não se apaga em nome de limpeza.
+_ci_base_tirar() {
+  [ -d "$BASE_DIR" ] || return "$MEOW_OK"
+  if [ ! -f "$BASE_DIR/.meow-origem" ]; then
+    meow_aviso "$BASE_DIR existe e não foi este script que o pôs lá — fica como está"
+    return "$MEOW_OK"
+  fi
+  meow_destino_permitido "$BASE_DIR" || return "$MEOW_ERRO"
+  if meow_seco; then
+    meow_muda "removeria $BASE_DIR ($1)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  rm -rf "$BASE_DIR" || { meow_erro "não consegui remover $BASE_DIR"; return "$MEOW_ERRO"; }
+  meow_muda "a base de ícones saiu de $BASE_DIR ($1)"
+  return "$MEOW_DIVERGENTE"
+}
+
+# 1 = instalada · 2 = erro (sha256, pacote, pasta, link) · 3 = sem rede ou sem ferramenta
+_ci_base_baixar() {
+  local url="$1" sha="$2" pasta="$3" pack="$4" palco src obtido fora f
+  meow_destino_permitido "$BASE_DIR" || return "$MEOW_ERRO"
+  # A mesma régua do `_ci_base_tirar`: sem o `.meow-origem`, o diretório com
+  # este nome é de outra pessoa, e escrever por cima dele é apagá-lo.
+  if [ -d "$BASE_DIR" ] && [ ! -f "$BASE_DIR/.meow-origem" ]; then
+    meow_aviso "$BASE_DIR existe e não foi este script que o pôs lá — não escrevo por cima"
+    meow_info "  tire-o ou renomeie-o, e a base do pack $pack desce na passagem seguinte"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  for f in curl tar sha256sum realpath; do
+    meow_tem "$f" || {
+      meow_aviso "falta '$f' — a base de ícones do pack $pack fica para o próximo ciclo"
+      return "$MEOW_SEM_DEPENDENCIA"; }
+  done
+  mkdir -p "$HOME/.local/share/icons" || return "$MEOW_ERRO"
+  palco="$(mktemp -d -p "$HOME/.local/share/icons" ".meow-base.XXXXXX")" || return "$MEOW_ERRO"
+  meow_info "baixando a base de ícones do pack $pack…"
+  # `--proto =https` nos dois sentidos, como no `instalar_fontes.sh`: o
+  # `pack.py` só deixa passar URL em https, e um redirecionamento para http
+  # seria a mesma porta por trás.
+  if ! curl -sSfL --proto '=https' --proto-redir '=https' --connect-timeout 15 \
+       --max-time 600 --retry 3 --retry-delay 2 -o "$palco/pacote" "$url" 2>/dev/null; then
+    rm -rf "$palco"
+    meow_aviso "não consegui baixar a base de ícones do pack $pack (sem rede?) — fica para o próximo ciclo"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if ! echo "$sha  $palco/pacote" | sha256sum --status -c - 2>/dev/null; then
+    obtido="$(sha256sum "$palco/pacote" | cut -d' ' -f1)"
+    rm -rf "$palco"
+    meow_erro "sha256 da base de ícones não bate com o que o pack $pack pinou"
+    meow_info "  esperado $sha"
+    meow_info "  obtido   $obtido"
+    return "$MEOW_ERRO"
+  fi
+  mkdir "$palco/x" || { rm -rf "$palco"; return "$MEOW_ERRO"; }
+  if ! tar -xf "$palco/pacote" -C "$palco/x" 2>/dev/null; then
+    rm -rf "$palco"; meow_erro "o pacote da base de ícones veio corrompido — nada instalado"
+    return "$MEOW_ERRO"
+  fi
+  src="$palco/x/$pasta"
+  if ! _ci_e_tema_de_icones "$src"; then
+    rm -rf "$palco"
+    meow_erro "o pacote não tem '$pasta' com um index.theme de tema de ícones — nada instalado"
+    meow_info "  é o 'icones.base.origem.pasta' do pack $pack que diz onde o tema está"
+    return "$MEOW_ERRO"
+  fi
+  fora="$(_ci_links_fora "$src")"
+  if [ -n "$fora" ]; then
+    rm -rf "$palco"
+    meow_erro "a base do pack $pack tem link apontando para fora do tema — nada instalado"
+    meow_info "  $(printf '%s\n' "$fora" | head -1)"
+    return "$MEOW_ERRO"
+  fi
+  # O manifesto nasce do que acabou de ser conferido, e fora do tema: um
+  # arquivo escrito lá dentro durante o `find` entraria na própria lista.
+  if ! ( cd "$src" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 -r sha256sum ) > "$palco/somas"; then
+    rm -rf "$palco"; meow_erro "não consegui medir a base de ícones"; return "$MEOW_ERRO"
+  fi
+  mv -f "$palco/somas" "$src/.meow-somas.sha256" || { rm -rf "$palco"; return "$MEOW_ERRO"; }
+  printf 'sha256=%s\nurl=%s\nlinks=%s\n' "$sha" "$url" "$(find "$src" -type l | wc -l)" > "$src/.meow-origem" \
+    || { rm -rf "$palco"; return "$MEOW_ERRO"; }
+  chmod 755 "$src"
+  # A BASE DE ANTES SAI POR ÚLTIMO — revisão da P41, 24/09/2026. O `rm -rf`
+  # vinha antes do `mv`, e um `mv` que falhasse deixava o índice de antes
+  # apontando para uma base apagada, com a construção dizendo que o tema "fica
+  # como estava". A de antes vai para o palco (o mesmo disco: é um rename), a
+  # nova entra, e só então a de antes é apagada, junto com o palco. Se a nova
+  # não entra, a de antes volta para o lugar.
+  if [ -e "$BASE_DIR" ] || [ -L "$BASE_DIR" ]; then
+    mv -f "$BASE_DIR" "$palco/antes" || {
+      rm -rf "$palco"; meow_erro "não consegui tirar do lugar a base de antes, em $BASE_DIR"
+      return "$MEOW_ERRO"; }
+  fi
+  if ! mv -f "$src" "$BASE_DIR"; then
+    if [ -e "$palco/antes" ] || [ -L "$palco/antes" ]; then mv -f "$palco/antes" "$BASE_DIR"; fi
+    rm -rf "$palco"; meow_erro "falha ao mover a base de ícones para $BASE_DIR"; return "$MEOW_ERRO"
+  fi
+  rm -rf "$palco"
+  # O MANIFESTO LEVA SÓ O index.theme, E O `--uninstall` DE HOJE NÃO LEVA A
+  # BASE — revisão da P41, 24/09/2026. O passo 4/6 do `lib/desinstalar.sh`
+  # apaga os ARQUIVOS do manifesto, um a um, e o 5/6 apaga as árvores inteiras
+  # que ele conhece: o `MeowSystem-Icons`, e não esta. Medido pela revisão: a
+  # desinstalação tira este index.theme e deixa 12.514 arquivos e 12.456 links
+  # (54 MB), que nem são mais um tema. O conserto é a `-Base` entrar no laço do
+  # passo 5/6, e o `lib/desinstalar.sh` estava fora da tabela da P41: fica
+  # pendente, para a decisão dela. Registrar o index.theme segue valendo até
+  # lá: sem ele, a sobra deixa ao menos de ser oferecida como tema de ícones.
+  meow_manifesto_registrar "$BASE_DIR/index.theme"
+  meow_muda "base de ícones do pack $pack instalada em $BASE_DIR"
+  return "$MEOW_DIVERGENTE"
+}
+
+# Decide o `$HERDA` e põe (ou tira) a base no disco.
+# 0 = nada mudou · 1 = mudou, ou mudaria no seco · 2 = erro
+_ci_base() {
+  local saida quem tema pack url sha pasta rc
+  HERDA="$ICONES_BASE"
+  meow_tem python3 || return "$MEOW_OK"
+  # `"$(meow_pack_dir)"` vazio é o pack padrão, a mesma porta do `cursor.sh` e
+  # do `instalar_fontes.sh`. Recusado (o pack declara uma origem torta) quer
+  # dizer "não mexa em nada": a base que já estiver no disco fica, e o nosso
+  # tema herda do que herdava.
+  #   O NOSSO PRÓPRIO DIRETÓRIO ESCOLHIDO PELO NOME É "O DO PACK", e quem sabe
+  #   disso é o `_base_escolhida` do `pack.py` — a primeira versão tinha a
+  #   exceção só aqui, e o verbo e o `info` diziam outra coisa (revisão da P41,
+  #   24/09/2026). O `NOME_TEMA_ICONES` vai junto porque o nome da base é o
+  #   deste tema com `-Base`, e é por ele que o `pack.py` a reconhece.
+  if ! saida="$(ICONES_BASE="$ICONES_BASE" NOME_TEMA_ICONES="$TEMA_NOME" \
+                python3 "$RAIZ/scripts/pack.py" base-icones "$(meow_pack_dir)")"; then
+    meow_aviso "não deu para ler a base de ícones do pack — o '$TEMA_NOME' herda de '$ICONES_BASE', como antes"
+    return "$MEOW_OK"
+  fi
+  quem="$(printf '%s\n' "$saida" | sed -n 's/^quem=//p')"
+  tema="$(printf '%s\n' "$saida" | sed -n 's/^tema=//p')"
+  pack="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
+  url="$(printf '%s\n' "$saida" | sed -n 's/^url=//p')"
+  sha="$(printf '%s\n' "$saida" | sed -n 's/^sha256=//p')"
+  pasta="$(printf '%s\n' "$saida" | sed -n 's/^pasta=//p')"
+
+  if [ "$quem" != "pack" ]; then
+    HERDA="${tema:-$ICONES_BASE}"
+    # QUANDO O CONF VENCE O PACK, A TELA DIZ OS DOIS — é a regra do "Quem
+    # vence" do docs/PACKS.md, e é o caso desta máquina: o meow.conf dela diz
+    # `ICONES_BASE="Dracula-Icones"`, e o Dracula agora traz a própria base.
+    [ "$quem" = "conf" ] && [ -n "$pack" ] && \
+      meow_info "o pack $pack traz uma base de ícones; vale o ICONES_BASE=\"$tema\" do meow.conf"
+    _ci_base_tirar "o '$TEMA_NOME' herda de '$HERDA'"
+    return $?
+  fi
+
+  if _ci_base_confere "$sha"; then
+    meow_ok "a base de ícones do pack $pack está em $BASE_DIR e confere"
+    HERDA="$TEMA_BASE"
+    return "$MEOW_OK"
+  fi
+  # No seco não se baixa: baixar é gastar a rede dela para ensaiar, e abrir o
+  # pacote é escrever. O `Inherits=` do ensaio é o que a execução deixaria.
+  if meow_seco; then
+    meow_muda "baixaria a base de ícones do pack $pack e a instalaria em $BASE_DIR"
+    HERDA="$TEMA_BASE"
+    return "$MEOW_DIVERGENTE"
+  fi
+  _ci_base_baixar "$url" "$sha" "$pasta" "$pack"; rc=$?
+  case "$rc" in
+    1) HERDA="$TEMA_BASE"; return "$MEOW_DIVERGENTE" ;;
+    3) # Sem rede: uma base de antes (de outro pino) continua sendo base, e é
+       # melhor que nenhuma; sem nada no disco, o de fábrica segura a cadeia.
+       if [ -f "$BASE_DIR/.meow-origem" ] && _ci_e_tema_de_icones "$BASE_DIR"; then
+         HERDA="$TEMA_BASE"
+         meow_info "  fica a base que já estava em $BASE_DIR"
+       else
+         meow_info "  até lá o '$TEMA_NOME' herda de '$ICONES_BASE'"
+       fi
+       return "$MEOW_OK" ;;
+    *) return "$MEOW_ERRO" ;;
+  esac
+}
+
+_ci_base_cmd() {
+  local rc
+  _ci_base; rc=$?
+  meow_info "o '$TEMA_NOME' herda de '$HERDA'"
+  return "$rc"
+}
+
 # O DESPACHO É ANTES DE TUDO, E SÓ RECONHECE OS DOIS VERBOS NOVOS
 #   Argumento nenhum continua sendo a construção do tema, que é como o
 #   `install.sh` e o `bin/meow` chamam este script desde sempre. Um argumento
@@ -271,13 +527,19 @@ _ci_remover() {
 #   escrita no `instalar_fontes.sh`, onde `--dry-run` — o nome da VARIÁVEL
 #   documentada — caía no ramo que ESCREVE com quem digitou jurando que só tinha
 #   conferido.
+#
+#   `base` (P41, 24/09/2026) põe ou confere SÓ a base que o pack traz, e diz de
+#   quem o tema herda. É a porta do teste — que não pode rodar a construção
+#   inteira só para ver a base descer — e a de quem quer saber, sem esperar
+#   pelo `meow aplicar`, se a base do pack chegou.
 case "${1:-}" in
   "")        : ;;
   adicionar) _ci_adicionar "${2:-}"; exit $? ;;
   remover)   _ci_remover   "${2:-}"; exit $? ;;
+  base)      _ci_base_cmd;           exit $? ;;
   *)
     meow_erro "argumento desconhecido: $1"
-    meow_info "  uso: construir_icones.sh [adicionar <pasta-ou-zip> | remover <nome>]"
+    meow_info "  uso: construir_icones.sh [adicionar <pasta-ou-zip> | remover <nome> | base]"
     meow_info "  sem argumento, ele constrói o tema '$TEMA_NOME'"
     exit "$MEOW_ERRO" ;;
 esac
@@ -394,7 +656,7 @@ indice() {
 [Icon Theme]
 Name=$TEMA_NOME
 Comment=Catppuccin $FLAVOR para o COSMIC — gerado pelo MeowSystem-Theme
-Inherits=$ICONES_BASE,breeze-dark,Cosmic,Adwaita,hicolor
+Inherits=$HERDA,breeze-dark,Cosmic,Adwaita,hicolor
 Directories=$dirs
 
 [scalable/apps]
@@ -490,6 +752,18 @@ FIM
 }
 
 mudou=0
+
+# --- 0. a base que o nosso tema herda — 24/09/2026, P41 ---------------------
+# ANTES do índice, porque é ela que decide o `Inherits=`. Erro aqui (o sha256
+# que não bate, o pacote torto) para a construção ANTES de escrever: o índice
+# de antes continua apontando para a base de antes, que é um estado inteiro, e
+# não para um diretório pela metade.
+_ci_base
+case $? in
+  1) mudou=1 ;;
+  2) meow_erro "a base de ícones do pack não entrou — o tema '$TEMA_NOME' fica como estava"
+     exit "$MEOW_ERRO" ;;
+esac
 
 # --- 1. o índice do tema ----------------------------------------------------
 # `Directories=` é a ÚNICA chave de tamanho que a crate do COSMIC lê; Type,

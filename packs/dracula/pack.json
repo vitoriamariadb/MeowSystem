@@ -22,7 +22,7 @@
     "_nota": "O que o cartão de escolher pack mostra (P15, 23/09/2026). A capa É o logo.svg que a P25 desenha — o mesmo arquivo que vira o ícone do lançador —, e não uma tira de cores: tira é paleta, não identidade. As tags foram medidas, não escolhidas: o pack tem um flavor escuro (dracula) e um claro (alucard), e o 'text' sobre o 'base' dá 13,36:1 no primeiro e 7,10:1 no segundo, os dois acima dos 7:1 do WCAG AAA. Sem 'capturas' de propósito: uma foto de tela desta máquina levaria para o git o que estava aberto nela."
   },
   "heranca": "catppuccin",
-  "_nota_heranca": "Dito na cara: este pack é uma paleta e dois acervos de ícone. Do pack base vêm os mimetypes. Ponteiro e fontes a herança manda buscar nele, e ele não traz nenhum dos dois: o ponteiro sai da chave CURSOR (baixado do release pinado do catppuccin/cursors quando não está no disco) e a fonte é a Nerd Font do motor — o 'meow pack info' diz 'a cadeia não traz' nas duas linhas. Prompt, fastfetch e gatos vêm do MOTOR (assets/), iguais para todo pack, porque o formato ainda não tem campo para eles. Esta nota errou duas vezes: até 23/09/2026 ela punha prompt, fastfetch, gatos e 'sons' entre os herdados (o pack tem sino próprio, o bloco `som`, lá embaixo), e a primeira correção, no mesmo dia, ainda dizia que ponteiro e fontes vinham do pack base. 'meow pack info dracula' imprime isso linha a linha, e é para imprimir.",
+  "_nota_heranca": "Dito na cara: este pack é uma paleta e dois acervos de ícone. Do pack base vêm os mimetypes. As fontes a herança manda buscar nele, e ele não traz nenhuma: a fonte é a Nerd Font do motor — o 'meow pack info' diz 'a cadeia não traz' nessa linha. O ponteiro e a base de ícones deixaram de ser herdados em 24/09/2026 (P41): o pack declara de onde os dois descem, pinados, e quem instala os baixa (`origens.cursores.origem`, `icones.base.origem`). Prompt, fastfetch e gatos vêm do MOTOR (assets/), iguais para todo pack, porque o formato ainda não tem campo para eles. Esta nota errou duas vezes: até 23/09/2026 ela punha prompt, fastfetch, gatos e 'sons' entre os herdados (o pack tem sino próprio, o bloco `som`, lá embaixo), e a primeira correção, no mesmo dia, ainda dizia que ponteiro e fontes vinham do pack base. 'meow pack info dracula' imprime isso linha a linha, e é para imprimir.",
   "paleta": {
     "arquivo": "paleta.json",
     "flavor_padrao": "dracula",
@@ -63,14 +63,31 @@
       "gerar": true,
       "desenhos": "icones/autorais/",
       "_nota": "Os onze desenhos do projeto, nos DOIS flavors do pack — 22 arquivos. Até 22/09/2026 os onze do `dracula` moravam em assets/icones/autorais/, ao lado dos 44 do Catppuccin, e o `alucard` tinha ZERO: no modo claro do Dracula estes onze ícones caíam no `latte`, que é o flavor claro do OUTRO pack. É o mesmo defeito que o campo `paleta._nota_claro` aqui em cima conta ter consertado para a PALETA em 19/09 — ele continuou vivo para os ÍCONES mais três dias, porque a paleta morava no pack e os desenhos não. Os onze do alucard foram GERADOS, nunca copiados do latte: o gerador deriva por PAPEL, então o `contorno` do alucard sai do `text` do alucard e não do `text` de um pack vizinho."
+    },
+    "base": {
+      "origem": {
+        "url": "https://github.com/m4thewz/dracula-icons/archive/00a230a277d5e6ad913b90182977738335afee89.tar.gz",
+        "sha256": "563580916e426ccccb5da5b1a43f2cc0f7ab5d118c24b87776640da45b50acea",
+        "pasta": "dracula-icons-00a230a277d5e6ad913b90182977738335afee89"
+      },
+      "_nota": "A BASE: o que veste os milhares de aplicativos fora dos 191 do `apps.map` (P41, 24/09/2026). Até aqui o `MeowSystem-Icons` herdava do `ICONES_BASE` de fábrica, o Papirus-Dark, e o Dracula só saía inteiro numa máquina que tivesse o `Dracula-Icones` montado pelo `rebuild_dracula_theme` do Spellbook — desligado pela P37. Agora o `construir_icones.sh` baixa este pacote, confere o sha256, e herda dele; um `ICONES_BASE` escolhido à mão no meow.conf continua vencendo.",
+      "_nota_ramo": "O ramo `circle`, e não o `main`. Medido em 24/09/2026: o `Dracula-Icones` que vestia esta máquina herdava `dracula-icons-circle` ANTES do `main`, então o que ela via fora dos 191 era o circle — escolhê-lo não muda a tela de quem já usava o Dracula. A cobertura dos dois é quase a mesma, contada nos pacotes dos dois commits (24.958 SVG no circle, 25.635 no main; 701 nomes só no main, 540 deles simbólicos, que caem no breeze-dark, Cosmic e Adwaita da cadeia; 24 só no circle), e os desenhos que este pack já copiou do upstream vieram quase todos do circle.",
+      "_nota_pino": "Pinado pelo COMMIT, na URL, e pelo sha256 do pacote. O ramo `circle` não tem tag nem release (medido em 24/09/2026: `00a230a2`, de 26/05/2024, é a ponta dele), e o pacote é o que o GitHub gera para aquele commit — 3.701.762 bytes, baixado duas vezes no mesmo dia com o mesmo sha256. Se um dia o GitHub mudar a compressão desse pacote, o sha256 deixa de bater e o `construir_icones.sh` para dizendo os dois números: é o pino fazendo o trabalho dele."
     }
   },
   "origens": {
     "cursores": {
-      "herda": "catppuccin",
       "tema": "catppuccin-mocha-light",
-      "_nota": "Não há pack de agente Dracula com release fixável por tag.",
-      "_nota_proprio": "Continua `herda`, e não `proprio`, com o formato já aceitando o ponteiro dentro do pack (P12, 23/09/2026). O motivo é PROCEDÊNCIA, e é o mesmo do qbtheme em `apps._nota_qbittorrent`: o `Dracula-Cursor` desta máquina (~/.local/share/icons/Dracula-Cursor/, 113 ponteiros, escrito em 21/09/2026 16:52) traz só `cursors/`, `index.theme` e `preview.png` — nenhum LICENSE, AUTHORS ou origem. Copiá-lo para um pack versionado seria publicar arte de alguém sem crédito. Quando houver um tema Dracula com licença, ele entra em `cursores/<nome>/` e este bloco troca `herda` por `proprio`. O `tema` fica: é o valor que o painel reconhece como receita deste pack (`_declarado_pelo_pack`), e sem ele o CURSOR de fábrica seria acusado de ser de outro pack."
+      "origem": {
+        "nome": "Dracula-Cursor",
+        "url": "https://github.com/dracula/gtk/releases/download/v4.0.0/Dracula-cursors.tar.xz",
+        "sha256": "81780e218fdda616016aedf42e731c86ed16290b9753a21616642023821b85f5",
+        "pasta": "Dracula-cursors"
+      },
+      "_nota": "O ponteiro Dracula tem origem, e ela foi achada em 24/09/2026 (P41): é o `Dracula-cursors.tar.xz` do release v4.0.0 do `dracula/gtk` (GPL-3.0, 178.252 bytes). Os 113 ponteiros do `Dracula-Cursor` desta máquina batem um a um com os desse pacote, e com a árvore `kde/cursors/Dracula-cursors` do repositório; só o `index.theme` difere, por uma quebra de linha no fim. A nota que estava aqui (\"não há pack de agente Dracula com release fixável por tag\") deixou de ser verdade.",
+      "_nota_proprio": "`origem`, e não `proprio` (P12). O tema cabe em tamanho (2,4 MB), mas 66 dos 113 ponteiros são links, e um pack que carrega link é recusado pelo `exportar` — um pack viaja com cópias. Trocar os links por cópias incharia o pack e mudaria o tema de quem o desenhou. O pacote pinado é o que o `cursor.sh` já faz com o `catppuccin/cursors`: a receita no pack, o conteúdo conferido na instalação.",
+      "_nota_nome": "`Dracula-Cursor` é o valor que a chave CURSOR escreve para escolhê-lo — o mesmo que o meow.conf desta máquina já tem. Numa máquina onde esse diretório já existe com o nome exato, ele vence e nada é baixado (a regra de 15/09 do `cursor.sh`); nas outras, o pacote desce e entra como `Dracula-Cursor-cursors`. Quem escolhe continua sendo a chave: com o CURSOR de fábrica, o ponteiro é o do Catppuccin, como antes.",
+      "_nota_tema": "O `tema` fica, e não é o ponteiro do pack: é o valor que o painel reconhece como receita deste pack (`_declarado_pelo_pack`), e sem ele o CURSOR de fábrica seria acusado de ser resto de outro pack."
     },
     "wallpapers": {
       "tipo": "github-arvore",
