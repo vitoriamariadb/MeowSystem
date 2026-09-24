@@ -165,7 +165,7 @@ O applet `dev.cappsy.CosmicExtAppletLogoMenu` guarda o caminho do arquivo direto
 
 ```
 custom_logo_active = true
-custom_logo_path   = "/home/vitoriamaria/.config/cosmic/logos/gato-pop.svg"
+custom_logo_path   = "/home/<usuário>/.config/cosmic/logos/gato-pop.svg"
 ```
 
 Trocar a logo do painel é trocar esse SVG (ou apontar a chave para outro arquivo) —
@@ -373,7 +373,7 @@ pw-play --media-role Notification /usr/share/sounds/freedesktop/stereo/audio-vol
 E depois de `scripts/som.sh aplicar`, o **mesmo** teste:
 
 ```
-pw-play --media-role Notification /home/vitoriamaria/.local/share/sounds/freedesktop/stereo/audio-volume-change.oga
+pw-play --media-role Notification ~/.local/share/sounds/freedesktop/stereo/audio-volume-change.oga
 ```
 
 **O arquivo do usuário vence o do sistema.** O código do osd é

@@ -96,19 +96,6 @@ ISENTAS=(
   # mudar, esta isenção para de casar sozinha, que é a hora de reler isto.
   'AREAS_VIZINHO_FONTE="$HOME/.config/zsh/scripts/aurora-cosmic-workspaces.py"'
 
-  # --- regra 1: o CONTEÚDO de um arquivo dela, citado como medida -----------
-  # Não é receita: é o que a chave do applet do logo tem hoje, naquela máquina,
-  # dentro de um bloco que o texto apresenta como leitura. Reescrever a medida
-  # para `~/` faria o documento afirmar uma coisa que ninguém mediu.
-  'custom_logo_path   = "/home/vitoriamaria/.config/cosmic/logos/gato-pop.svg"'
-
-  # --- regra 1: ISENÇÃO COM DÍVIDA ANOTADA ----------------------------------
-  # Esta É receita — um `pw-play` para copiar e colar, com o home de outra
-  # pessoa no meio. Quem clonar o projeto recebe "arquivo não encontrado". O
-  # remédio é uma linha (`$HOME/.local/share/...`), mas o `docs/COSMIC-THEMING.md`
-  # não está entre os arquivos que a sprint P22 autoriza tocar.
-  'pw-play --media-role Notification /home/vitoriamaria/.local/share/sounds'
-
   # --- regra 1: home DE NINGUÉM, dentro de teste de unidade -----------------
   # As quatro linhas do `0001-meow-capa-cor-controles.patch` que casam a regra 1
   # são fixtures de `#[test]` em Rust: `/home/user/` é o home-placeholder

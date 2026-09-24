@@ -4,7 +4,7 @@
   "id": "dracula",
   "nome": "Dracula",
   "versao": "1.0.0",
-  "autor": "MeowSystem",
+  "autor": "AndreBFarias",
   "_nota_autor": "'MeowSystem' e não um nome de pessoa: este arquivo é versionado, e o sanitizer de identidade redige o user.name do git no que entra em commit. É o mesmo motivo que fez WALLPAPER_DRACULA_REPO nascer no meow.conf, que não é versionado, em vez de no código.",
   "licenca": "GPL-3.0-or-later",
   "creditos": "CREDITOS.md",
