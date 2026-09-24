@@ -62,6 +62,7 @@ PORTATIL=(
   arvore.sh              # pergunta ao `git ls-files` quem é dono de qual arquivo
   pack.sh                # pack de terceiro num MEOW_PACKS temporário; não instala nada
   fonte-unica.sh         # mapas do repositório + packs e HOME de brinquedo; só bash e python3
+  sem-dracula-os-theme.sh # tokenize no código versionado + a camada Dracula num HOME de brinquedo; bash e python3
   sem-receita-no-log.sh  # grep nos .sh versionados; nada além de bash
   temas-de-apps.sh       # grep nos manifestos + pack.py; estado de brinquedo
   git-limpo.sh           # acervo, HOME e estado de brinquedo; só git e bash
