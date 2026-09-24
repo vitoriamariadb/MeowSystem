@@ -166,19 +166,62 @@ e_produto() {
 # A receita do destino confere com a da captura? Comparação por conteúdo, nas
 # chaves que a GUI escreve. Ausente dos dois lados = confere (não há o que
 # divergir); presente só na captura = confere (máquina nova, ainda vai receber).
+#
+# "DIVERGIU" QUER DIZER "O VIDRO DELA MUDOU, E SÓ ELE" — 24/09/2026, sprint P48
+#   Até aqui bastava UMA das `CHAVES_DELA` diferir para ceder a árvore de
+#   produto inteira, e isso tinha dois furos, medidos na revisão da P48 numa
+#   cópia do ~/.config/cosmic desta máquina, trocando o acento pelo «Salvar e
+#   aplicar» (install.sh, etapa tema, com `--respeitar-gui`):
+#     "tema 'dracula-pink' aplicado: 20 escritos, 150 já estavam certos,
+#      0 removidos, 19 preservados da sua GUI"
+#   A receita foi para o pink e a `Dark/v2` ficou no mauve — accent e os 19
+#   `focus` —, com a notificação dizendo que aplicou. O tema híbrido que o
+#   bloco da fronteira, lá em cima, existe para impedir.
+#
+#   1. A RECEITA DO RESTO TEM DE SER A MESMA. Ceder o produto só faz sentido
+#      quando ele é a derivação que a GUI dela fez DESTE tema. Se o `accent`,
+#      a `palette`, o `bg_color`... da receita do destino diferem dos da
+#      captura, o produto do destino foi derivado de OUTRO tema: é o de antes
+#      da troca, e ceder é congelá-lo por baixo da receita nova. Essas chaves
+#      não são dela (a captura as impõe sempre, com ou sem esta flag), então
+#      a diferença nelas só pode ser a troca que o meow.conf pediu. O `meow
+#      pack` já tinha medido o mesmo furo pelo lado da troca de pack ("103
+#      escritos, 18 já estavam certos, 68 preservados da sua GUI": os 68 eram o
+#      Catppuccin de antes) e desviou dele aplicando sem a flag; aqui ele
+#      fecha para todo mundo que chama com ela.
+#      Custo, o mesmo do `meow tema <nome>`: numa troca de tema com o vidro
+#      dela mexido, o produto é o da captura, e as cores do vidro saem do
+#      `alpha_map` da captura, não do dela (o dela continua gravado; o
+#      `vidro.sh` avisa a diferença). Derivar o produto da receita dela
+#      precisaria da GUI.
+#   2. `frosted_maximized_apps` NÃO FAZ A GUI DERIVAR NADA. Ele está em
+#      `CHAVES_DELA` desde 19/09 para o `aplicar_tema` não brigar com o
+#      `vidro.sh` pela chave (ver acima) — e isso continua, pela
+#      `e_chave_dela`. Mas o `ThemeBuilder::build()` do libcosmic (theme.rs do
+#      commit c003a58, no ~/.cargo desta máquina) só o copia para o produto;
+#      nenhuma cor sai dele. Contado aqui, ele fazia TODA máquina com
+#      VIDRO_AO_MAXIMIZAR="sim" (o padrão do meow.conf.exemplo) parecer "vidro
+#      mexido" diante do `dracula-mauve`, que o traz `false`.
+#   Sai: diverge quando `frosted` ou `alpha_map` diferem e nada mais da receita
+#   difere. É o caso de 05/08, o que motivou a cessão, e ele continua cedido.
 receita_diverge() {
-  local arv v chave a b
+  local arv v a b chave k slider=0
   for arv in Dark Light; do
     for v in v1 v2; do
-      for chave in "${CHAVES_DELA[@]}"; do
-        a="$ORIGEM/com.system76.CosmicTheme.$arv.Builder/$v/$chave"
+      for a in "$ORIGEM/com.system76.CosmicTheme.$arv.Builder/$v"/*; do
+        chave="$(basename "$a")"
         b="$COSMIC/com.system76.CosmicTheme.$arv.Builder/$v/$chave"
         [ -f "$a" ] && [ -f "$b" ] || continue
-        cmp -s "$a" "$b" || return 0
+        cmp -s "$a" "$b" && continue
+        [ "$chave" = "frosted_maximized_apps" ] && continue
+        for k in "${CHAVES_DELA[@]}"; do
+          [ "$chave" = "$k" ] && { slider=1; continue 2; }
+        done
+        return 1
       done
     done
   done
-  return 1
+  [ "$slider" = "1" ]
 }
 
 uso() {

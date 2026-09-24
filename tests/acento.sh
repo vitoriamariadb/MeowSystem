@@ -162,6 +162,69 @@ saida_t2="$(etapa tema)"; rc_t2="$(rc)"
   || falha "a segunda passagem ainda escreve (gerar=$rc_g2 tema=$rc_t2)" "$saida_g2
 $saida_t2"
 
+# --- 4b. com a receita DELA diferente da captura, trocar o acento ainda chega
+#   O COSMIC de brinquedo acima é cópia byte a byte da captura, e numa máquina
+#   de verdade ele nunca é: com VIDRO_AO_MAXIMIZAR="sim" (o padrão do
+#   meow.conf.exemplo) o `vidro.sh` grava `frosted_maximized_apps=true` onde o
+#   dracula-mauve traz `false`, e o slider «Opacidade do vidro» dela move o
+#   `alpha_map`. Medido na revisão da P48, numa cópia do ~/.config/cosmic
+#   desta máquina: "tema 'dracula-pink' aplicado: 20 escritos, 150 já estavam
+#   certos, 0 removidos, 19 preservados da sua GUI", a receita no pink e a
+#   Dark/v2 inteira no mauve, com a notificação dizendo que aplicou. Aqui o
+#   brinquedo ganha as duas diferenças, do jeito que o vidro.sh e a GUI as
+#   escrevem, e o acento troca de novo pelas mesmas duas etapas.
+for f in "$COSMIC"/com.system76.CosmicTheme.*/v*/frosted_maximized_apps; do
+  [ -f "$f" ] && printf 'true' > "$f"
+done
+for f in "$COSMIC"/com.system76.CosmicTheme.Dark.Builder/v2/alpha_map \
+         "$COSMIC"/com.system76.CosmicTheme.Dark/v2/alpha_map; do
+  sed -i 's/extremely_low: 0\.91999996/extremely_low: 0.78/' "$f"
+done
+alpha_dela="$(cat "$COSMIC/com.system76.CosmicTheme.Dark.Builder/v2/alpha_map")"
+conf dracula green dracula
+saida_g="$(etapa gerar)"; rc_g="$(rc)"
+saida_t="$(etapa tema)"; rc_t="$(rc)"
+verde_v2="$(campo "$COSMIC/com.system76.CosmicTheme.Dark/v2/accent" base)"
+focos="$(grep -h '^ *focus: "' "$COSMIC"/com.system76.CosmicTheme.Dark/v2/* | sed 's/^ *//' | sort -u)"
+if [ "$rc_t" = "1" ] && [ "$verde_v2" = "#50FA7BFF" ] && [ "$focos" = 'focus: "#50FA7BFF",' ]; then
+  ok "com o vidro dela na receita, o acento novo chega à Dark/v2 (accent e os focos: $verde_v2)"
+else
+  falha "com a receita dela diferente da captura, a Dark/v2 ficou no acento velho (rc=$rc_t, accent=$verde_v2)" "$saida_g
+$saida_t
+$focos"
+fi
+[ "$(cat "$COSMIC/com.system76.CosmicTheme.Dark.Builder/v2/alpha_map")" = "$alpha_dela" ] \
+  && [ "$(cat "$COSMIC/com.system76.CosmicTheme.Dark.Builder/v2/frosted_maximized_apps")" = "true" ] \
+  && ok "e o alpha_map dela e o frosted_maximized_apps do vidro.sh continuam os dela" \
+  || falha "trocar o acento desfez o vidro dela"
+
+#   A FRONTEIRA CONTINUA DE PÉ: com o MESMO tema, o que a GUI dela derivou do
+#   slider vence a captura na manutenção. É o caso que motivou a cessão (05/08:
+#   o instalador reescreveu nove arquivos da Dark/v2 um minuto depois de ela
+#   mexer no vidro), e trocar o acento não pode tê-lo reaberto.
+tb="$COSMIC/com.system76.CosmicTheme.Dark/v2/transparent_background"
+sed -i '0,/^    base: "#\([0-9A-F]\{6\}\)[0-9A-F]\{2\}"/s//    base: "#\171"/' "$tb"
+derivado="$(cat "$tb")"
+saida_t="$(etapa tema)"; rc_t="$(rc)"
+# O `cmp` contra a captura é o que impede esta prova de passar à toa: se o
+# `sed` acima não casar, não há derivação dela nenhuma a preservar.
+! cmp -s "$tb" "$CAPS/dracula-green/com.system76.CosmicTheme.Dark/v2/transparent_background" \
+  && [ "$rc_t" = "0" ] && [ "$(cat "$tb")" = "$derivado" ] \
+  && ok "com o mesmo tema, o que a GUI dela derivou do vidro continua (a captura não o desfaz)" \
+  || falha "a manutenção desfez o que a GUI dela derivou (rc=$rc_t)" "$saida_t"
+#   E o `frosted_maximized_apps` sozinho NÃO é o vidro dela: quem o escreve é o
+#   vidro.sh, e o COSMIC não deriva cor nenhuma dele. Com o `alpha_map` de
+#   volta ao da captura, a mesma diferença na Dark/v2 é defeito e se conserta,
+#   em vez de virar "a captura está velha: você mexeu em Aparência".
+for f in "$COSMIC"/com.system76.CosmicTheme.Dark.Builder/v2/alpha_map \
+         "$COSMIC"/com.system76.CosmicTheme.Dark/v2/alpha_map; do
+  cp "$CAPS/dracula-green/${f#"$COSMIC"/}" "$f"
+done
+saida_t="$(etapa tema)"; rc_t="$(rc)"
+[ "$rc_t" = "1" ] && cmp -s "$tb" "$CAPS/dracula-green/com.system76.CosmicTheme.Dark/v2/transparent_background" \
+  && ok "com só o frosted_maximized_apps do vidro.sh diferente, a Dark/v2 volta a ser a da captura" \
+  || falha "o frosted_maximized_apps do vidro.sh foi tomado por vidro mexido na GUI (rc=$rc_t)" "$saida_t"
+
 # --- 5. a captura derivada é produto: o git não a vê -----------------------
 visto="$(git -C "$PACKS" status --porcelain --untracked-files=all -- dracula/temas/capturados 2>&1)"
 if [ -f "$CAPS/dracula-pink/.gitignore" ] && [[ "$visto" == *dracula-mauve* ]] \
