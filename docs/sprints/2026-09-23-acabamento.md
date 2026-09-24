@@ -1019,3 +1019,95 @@ juntos, são o que faz o produto mentir devagar.
 | `scripts/compositor_patches.sh`, `tests/todos.sh`, `scripts/pack.py` (comentário e item 10), `tests/app-navegador.py`, `tests/pack.sh` | 7, 10 |
 | `scripts/nomes_apps.sh` | 8 |
 | `meow.conf.exemplo` | 9 |
+
+---
+
+# P46 — O painel inteiro, aba por aba e botão por botão, é um gate
+
+**O pedido (24/09):** *"abrir cada aba como user. E vai aba a aba. Botão a
+botão, usa todos os menus, todas as configs, tudo certinho [...] e valida cada
+feature. Se tiver um teste completo pra isso e colocar como gate já ajudaria
+muito. Importante ser via navegador tudo."*
+
+### O que existe hoje
+
+`tests/app-navegador.py` (145 conferências) e `tests/app-acessibilidade.py`
+cobrem caminhos escolhidos a dedo. Nenhum dos dois garante que TODO controle
+da tela foi exercitado: um botão novo entra no painel sem teste nenhum, e a
+suíte continua verde.
+
+### O que fazer
+
+1. **`tests/app-completo.py`**, pelo navegador (Playwright, o python do PATH),
+   com o painel numa **casa de brinquedo** (`env -i`, HOME e MEOW_CONF
+   temporários, `MEOW_PONTE=/nao/existe`, o sudo falso na frente — o molde dos
+   dois testes de navegador de hoje). Para CADA aba:
+   - abre a aba como uma pessoa abriria (clique no menu lateral, não URL);
+   - **enumera todos os controles interativos** da aba no DOM (botões, selects,
+     inputs, sliders, toggles, links internos, menus e o que abrem, balões `?`,
+     gavetas);
+   - **aciona cada um** e confere um efeito observável: o DOM mudou, a API
+     respondeu 2xx, o estado na casa de brinquedo mudou (ou, no "Ver o que
+     faria", NÃO mudou);
+   - em toda a aba: **nenhum erro no console**, nenhuma resposta 4xx/5xx
+     inesperada, nenhum texto de tela com `undefined`, `NaN`, `[object`,
+     `${`;
+   - uma captura por aba, para quem revisar.
+2. **O inventário é o gate:** o teste guarda a lista dos controles que
+   conhece (por aba, por um identificador estável — `data-chave`, `id`,
+   rótulo). **Um controle na tela que não está no inventário REPROVA** ("o
+   botão X da aba Y não tem teste"), e um controle do inventário que sumiu da
+   tela também. Assim, botão novo sem teste não passa.
+3. **As exceções são nomeadas e com motivo** — o que não se aciona nem na casa
+   de brinquedo (o `--uninstall`, por exemplo) fica numa lista explícita, com
+   a frase de por quê, e o teste confere que ele existe e está protegido
+   (pede confirmação, mostra o que faria).
+4. **Gate de verdade:** no `tests/todos.sh`, o `app-completo.py` não pode sair
+   "pulado" — sem Playwright ele é VERMELHO, com a instrução de instalar. O
+   `docs/` do projeto (onde a regra de merge mora — medir) passa a dizer que
+   nada entra em `dev` sem ele verde.
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `tests/app-completo.py` | **novo** — o percurso e o inventário |
+| `tests/todos.sh` | o gate (sem "pulado") |
+| `app/pagina/*.js`, `app/servidor.py` | SÓ o que o percurso achar quebrado, cada um com prova |
+| a doc da regra de merge | a frase do gate |
+
+### Como conferir
+
+```sh
+./tests/app-completo.py        # todas as abas, todos os controles, 0 erro de console
+# mutante: um <button> novo sem teste em qualquer aba -> reprova nomeando o botão
+```
+
+---
+
+# P47 — O que a P44 deixou
+
+1. **O TAB do `meow` não completa** (P44): a completion foi para
+   `~/.local/share/zsh/site-functions`, que não está no `fpath` de fábrica do
+   zsh (medido: `zsh -f -c 'print -l $fpath'` começa em
+   `/usr/local/share/zsh/site-functions`). Ela vai para onde o zsh já procura,
+   pela ponte root (a P1 criou o perfil para isso; sem editar o shell de
+   ninguém), e o `--uninstall` a tira.
+2. **Três SIGTERM num laço sem filtro de HOME** (P44 os apontou no código):
+   o sinal só mira o processo da sessão de quem pediu.
+3. **O `gerar_temas.py --conferir` cria diretório**, e o **`logo.sh
+   --conferir` não liga o seco sozinho** — conferir é leitura.
+4. **`meow_painel_carencia_aurora` ficou sem chamador** — sai.
+5. **Um laranja cravado no `env.zsh` do Spellbook** (P44): é tema; sai da
+   paleta do pack, como as cores do fzf, ou deixa de ser cravado. Só o que é
+   tema (limite de 24/09).
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| `scripts/ponte_root.sh`, `install.sh`, `lib/desinstalar.sh`, `assets/zsh/_meow` | 1 |
+| os três laços (medir — `bin/meow`, `lib/painel.sh`, `scripts/painel.sh`) | 2 |
+| `scripts/gerar_temas.py`, `scripts/logo.sh` | 3 |
+| `lib/painel.sh` | 4 |
+| Spellbook `env.zsh`, `scripts/fzf.sh` | 5 |
