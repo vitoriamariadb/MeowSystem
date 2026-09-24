@@ -666,18 +666,23 @@ Os que pesam:
      claro): o MeowSystem passa a trazer o código, versionado, e o `meow`
      tem o verbo que o aplica; no Spellbook, a função vira aviso apontando
      para o `meow` (a regra de 23/09);
-   - **integração opcional** — só faz sentido com o Spellbook presente: a
-     leitura passa por uma chave do `meow.conf` com padrão VAZIO, e sem ela o
-     recurso se declara ausente em vez de quebrar;
-   - **sai** — era da máquina.
+   - **sai** — era só da máquina: o MeowSystem para de ler, e o recurso fica
+     no Spellbook, sem ninguém do lado de cá esperando por ele.
+
+   **Não há terceira via.** A regra de 23/09, confirmada para o Ritual da
+   Aurora com as palavras *"mesma coisa do spellbook"*: nada de "integração
+   opcional" que continue lendo o `~/.config/zsh` quando ele existe. Ou o
+   recurso é do produto e mora aqui, ou não é e sai daqui.
 2. **Os patches do compositor migram**: os `.patch`, o build e a instalação.
    Meça o que o `aurora-cosmic-comp-ws.sh` faz (só leitura no Spellbook), traga
    para o MeowSystem o que for do produto, e o verbo do `meow` que recompila.
    O build NÃO roda nesta sprint (leva minutos, precisa de `sudo` de verdade):
    ele roda depois da instalação, pela mão de quem coordena.
-3. **Nada do MeowSystem lê `~/.config/zsh` em execução**, exceto pelas
-   integrações opcionais declaradas no item 1 — e o `tests/portabilidade.sh`
-   cobra.
+3. **Nada do MeowSystem lê `~/.config/zsh` nem chama `aurora-*` em
+   execução** — e o `tests/portabilidade.sh` cobra, sem isenção.
+4. **As áreas de trabalho** (`aurora-cosmic-workspaces.py`) e o **night
+   light** seguem o mesmo destino dos patches se forem recurso do produto: o
+   código vem para o MeowSystem, e o Spellbook desativa o dele.
 
 ### Arquivos, e só estes
 
@@ -685,14 +690,14 @@ Os que pesam:
 |---|---|
 | os 13 arquivos da tabela acima | a dependência vira produto, opção ou sai |
 | `scripts/compositor_patches.sh` + os patches (novo diretório, medir onde) | a migração |
-| `meow.conf.exemplo` | as chaves das integrações opcionais |
+| `meow.conf.exemplo` | as chaves dos recursos que migraram, se precisarem de uma |
 | `tests/portabilidade.sh` | a isenção do `areas.sh` sai |
 | Spellbook: `aurora-cosmic-comp-ws.sh` e o que o inventário migrar | vira aviso |
 
 ### Como conferir
 
 ```sh
-git grep -nE '\.config/zsh|aurora-' -- bin scripts lib app install.sh | grep -vE ':\s*#'   # só as opções declaradas
+git grep -nE '\.config/zsh|aurora-' -- bin scripts lib app install.sh | grep -vE ':\s*#'   # vazio
 HOME=$(mktemp -d) meow doctor      # numa casa sem Spellbook: nada quebra, o ausente se declara
 meow compositor --seco             # (ou o verbo escolhido) diz o que recompilaria
 ```
