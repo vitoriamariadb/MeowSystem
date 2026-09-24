@@ -521,7 +521,7 @@ cima imprime *"Spotify não instalado (ou não é o flatpak de usuário)"*.
 ```
 ~/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent/qBittorrent.conf
     General\UseCustomUITheme     = true
-    General\CustomUIThemePath    = /home/andrefarias/.themes/dracula.qbtheme
+    General\CustomUIThemePath    = /home/<usuário>/.themes/dracula.qbtheme
     Advanced\useSystemIconTheme  = false
 
 ~/.themes/dracula.qbtheme        4.468 bytes, escrito em 21/09/2026 16:49 (por ele)
@@ -692,7 +692,7 @@ um commit pendente.**
 ```
 origin  git@github.com:vitoriamariadb/MeowSystem.git
 fork    git@github.com:[REDACTED]/MeowSystem.git
-maria   /home/andrefarias/Remotos/Andromeda-OS/home/vitoriamaria/Desenvolvimento/MeowSystem
+maria   /home/<usuário-b>/Remotos/Andromeda-OS/home/<usuário-a>/Desenvolvimento/MeowSystem
 ```
 
 Dois desktops, dois carrosséis de papel de parede, dois conjuntos de jogos.

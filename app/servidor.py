@@ -7721,7 +7721,7 @@ class Manipulador(BaseHTTPRequestHandler):
         origem_arte = self._arte_de_fabrica(d) if d else ""
         # UMA ORIGEM DENTRO DA CASA DELA NÃO VIRA LINHA DE MAPA — 09/09/2026
         #   Medido ao exercitar a rota: o GIMP daqui não vem do Papirus, vem do
-        #   flatpak de usuária, em `/home/vitoriamaria/.local/share/flatpak/...`.
+        #   flatpak de usuária, em `/home/<usuário>/.local/share/flatpak/...`.
         #   Gravar isso no `apps-convertidos.map` faria duas coisas erradas de
         #   uma vez. O repositório é PÚBLICO desde 06/09, e o campo levaria o
         #   nome dela para dentro de um arquivo versionado — é exatamente o que a

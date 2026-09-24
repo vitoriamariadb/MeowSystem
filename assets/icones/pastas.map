@@ -200,7 +200,7 @@
 # ÍCONE POR PASTA NÃO EXISTE NO `cosmic-files` — MEDIDO EM 10/08/2026
 #
 #   Nenhum script, mapa ou config deste projeto pode dar símbolo próprio a
-#   "Controle de Bordo", "Desenvolvimento", "/mnt/Apate/Torrents", "/mnt/Apate"
+#   "<cofre>" (o do Obsidian), "Desenvolvimento", "/mnt/Apate/Torrents", "/mnt/Apate"
 #   ou "Andromeda-OS". Não é descuido nosso: o gestor não tem o gancho.
 #
 #   PROVA PELO LADO DO GESTOR
@@ -219,14 +219,14 @@
 #   `g_themed_icon_get_names()`. Perguntando ao GIO diretamente, sem abrir
 #   janela nenhuma:
 #
-#     /home/vitoriamaria/Controle de Bordo   ['inode-directory', 'folder', ...]
-#     /home/vitoriamaria/Desenvolvimento     ['inode-directory', 'folder', ...]
+#     /home/<usuário>/<cofre>                ['inode-directory', 'folder', ...]
+#     /home/<usuário>/Desenvolvimento        ['inode-directory', 'folder', ...]
 #     /mnt/Apate/Torrents                    ['inode-directory', 'folder', ...]
 #     /mnt/Apate                             ['inode-directory', 'folder', ...]
 #     /mnt/Apate/Desenvolvimento/Andromeda-OS['inode-directory', 'folder', ...]
-#     /home/vitoriamaria/Documentos          ['folder-documents', 'folder', ...]
-#     /home/vitoriamaria/Área de trabalho    ['user-desktop', ...]
-#     /home/vitoriamaria                     ['user-home', ...]
+#     /home/<usuário>/Documentos             ['folder-documents', 'folder', ...]
+#     /home/<usuário>/Área de trabalho       ['user-desktop', ...]
+#     /home/<usuário>                        ['user-home', ...]
 #
 #   O GIO tem uma tabela FIXA de diretórios XDG e mais nada. Fora dela, todo
 #   diretório é `inode-directory`/`folder`. Os dois padrões que dariam ícone por
@@ -241,7 +241,7 @@
 #
 #   A ARTE QUE ELA QUERERIA JÁ EXISTE, EM MAUVE, COM SÍMBOLO, E NÃO TEM COMO
 #   CHEGAR. No dia em que a #591 sair, o casamento é este e é uma linha cada:
-#       Controle de Bordo  -> folder-important   (a exclamação)
+#       <cofre>            -> folder-important   (a exclamação)
 #       Desenvolvimento    -> folder-development (a engrenagem)
 #       Torrents           -> folder-torrent     (o redemoinho do µTorrent)
 #       /mnt/Apate         -> folder-linux       (o pinguim)

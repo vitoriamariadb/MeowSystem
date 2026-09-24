@@ -128,7 +128,7 @@
 #   Então a pasta é a DELE: `<config>/heroic/themes`. E o caminho absoluto é o
 #   mesmo dos dois lados da caixa — medido rodando dentro do sandbox:
 #       $ flatpak run --command=sh com.heroicgameslauncher.hgl -c 'echo $XDG_CONFIG_HOME'
-#       /home/vitoriamaria/.var/app/com.heroicgameslauncher.hgl/config
+#       /home/<usuário>/.var/app/com.heroicgameslauncher.hgl/config
 #   É por isso que gravar o caminho do HOST na chave funciona.
 #
 # ─────────────────────────────────────────────────────────────────────────────

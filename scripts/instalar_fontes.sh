@@ -578,7 +578,7 @@ if [ -d "$DESTINO" ]; then
 fi
 
 # --- 2c-bis. O ACERVO LOCAL: as fontes que ela solta ------------------------
-# 27/08/2026, ela: "/home/vitoriamaria/Downloads/zrnic.zip instala essa fonte via
+# 27/08/2026, ela: "/home/<usuário>/Downloads/zrnic.zip instala essa fonte via
 # install por favor."
 #
 # A PASTA É A INTERFACE, como em `assets/gatos/`

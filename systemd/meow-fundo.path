@@ -11,7 +11,7 @@
 # Reproduzido com `cosmic-settings wallpaper` aberto e FECHADO sem clicar em
 # nada. O diff, byte a byte, de `CosmicBackground/v1/output.DP-1`:
 #
-#   - source: Path("/home/vitoriamaria/.local/share/backgrounds/meowsystem/ativos-dia")
+#   - source: Path("/home/<usuário>/.local/share/backgrounds/meowsystem/ativos-dia")
 #   + source: Path("/usr/share/backgrounds")
 #   - sampling_method: Random,
 #   + sampling_method: Alphanumeric,

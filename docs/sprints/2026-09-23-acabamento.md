@@ -22,17 +22,17 @@ sistema real.
 
 **A anotação (P11, 23/09):** *"Ao exportar o dracula, o
 `temas/capturados/dracula-mauve/captura.txt` vai junto, e ele carrega
-`/home/andrefarias/.config/cosmic`. É metadado de procedência, e o exportar não
+`/home/<usuário-b>/.config/cosmic`. É metadado de procedência, e o exportar não
 o filtra, mas o PACKS.md pede 'nenhum nome de usuário' em quem publica."*
 
 ### O que medi
 
 ```
 git grep -n "/home/" -- packs
-packs/catppuccin/temas/capturados/latte-mauve/captura.txt:3:origem: /home/vitoriamaria/.config/cosmic
-packs/catppuccin/temas/capturados/mocha-mauve/captura.txt:3:origem: /home/vitoriamaria/.config/cosmic
-packs/catppuccin/temas/capturados/mocha-pink/captura.txt:3:origem: /home/vitoriamaria/.config/cosmic
-packs/dracula/temas/capturados/dracula-mauve/captura.txt:3:origem: /home/andrefarias/.config/cosmic
+packs/catppuccin/temas/capturados/latte-mauve/captura.txt:3:origem: /home/<usuário-a>/.config/cosmic
+packs/catppuccin/temas/capturados/mocha-mauve/captura.txt:3:origem: /home/<usuário-a>/.config/cosmic
+packs/catppuccin/temas/capturados/mocha-pink/captura.txt:3:origem: /home/<usuário-a>/.config/cosmic
+packs/dracula/temas/capturados/dracula-mauve/captura.txt:3:origem: /home/<usuário-b>/.config/cosmic
 ```
 
 **Dois nomes de usuário, de duas máquinas, em quatro arquivos versionados** — e
@@ -69,7 +69,7 @@ próxima captura escreveria de novo.
 | quem lê `origem:` (medir) | aceitar o `~` |
 | `packs/*/temas/capturados/*/captura.txt` | os quatro, com `~` |
 | `scripts/pack.py` | a régua no `validar` |
-| `tests/pack.sh` | uma seção: pack com `/home/fulano/` é recusado; os packs do repo validam |
+| `tests/pack.sh` | uma seção: pack com `/home/<nome>/` é recusado; os packs do repo validam |
 | `docs/PACKS.md` | a frase "nenhum nome de usuário" ganha a régua que a cobra |
 
 ### Como conferir
@@ -547,15 +547,15 @@ meow doctor                 # nada divergente por causa da migração
 transformar em produto oficial. e utilizável por qualquer um. os meus também.
 até em documentação."*
 
-O MeowSystem nasceu na máquina da Vitória (`/home/vitoriamaria`) e cresceu
-nesta (`/home/andrefarias`). Cada uma deixou o próprio home escrito pelo
+O MeowSystem nasceu na máquina da Vitória (`/home/<usuário-a>`) e cresceu
+nesta (`/home/<usuário-b>`). Cada uma deixou o próprio home escrito pelo
 caminho. Nada disso é segredo; é o que faz um produto parecer o computador de
 alguém.
 
 ### O que medi (dev, 23/09)
 
 ```
-git grep -c "/home/vitoriamaria\|/home/andrefarias"      171 linhas em 35 arquivos
+git grep -c "/home/<usuário-a>\|/home/<usuário-b>"       171 linhas em 35 arquivos
   docs/pesquisas/ + docs/sprints/                       107 linhas em 10 arquivos
   docs/folhas/meow-icones-folha.html                     29
   app/pagina/app.js                                       6   (comentários)
@@ -585,7 +585,7 @@ são comentário, doc, pesquisa, folha gerada. Mas é o que a pessoa lê.
    - o `.path` do systemd: leia a linha. Se é comentário, `~`; se é
      `PathChanged=`, use o especificador `%h` do systemd.
 2. **Os outros nomes pessoais** que um produto não deveria ter: meça
-   `git grep -nE "Controle de Bordo|~/Desenvolvimento/|vitoriamaria|andrefarias"`
+   `git grep -nE "<cofre>|~/Desenvolvimento/|<usuário-a>|<usuário-b>"`
    fora de créditos (o `autor` dos packs, CREDITOS.md, LICENSE, o remote do
    README) e trate pelo mesmo critério. Crédito fica; caminho e cofre pessoal
    saem.
@@ -606,7 +606,7 @@ são comentário, doc, pesquisa, folha gerada. Mas é o que a pessoa lê.
 ### Como conferir
 
 ```sh
-git grep -c "/home/vitoriamaria\|/home/andrefarias" | grep -v captura.txt   # vazio
+git grep -c "/home/<usuário-a>\|/home/<usuário-b>" | grep -v captura.txt   # vazio
 ./tests/portabilidade.sh      # rc 0, varrendo tudo
 ```
 

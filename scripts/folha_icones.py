@@ -219,6 +219,19 @@ def embute(caminho):
         return f'data:{tipo};base64,' + base64.b64encode(fh.read()).decode('ascii')
 
 
+# O BALÃO DO CARTÃO DIZ `~`, E NÃO A CASA DE QUEM GEROU A FOLHA — 23/09/2026
+#   O `title` de cada cartão levava o caminho absoluto do ícone, e a folha que
+#   entrou no repositório (docs/folhas/meow-icones-folha.html) carregava 29
+#   vezes o home de quem a gerou: um nome de usuário gravado num arquivo que
+#   qualquer pessoa abre. O `~` informa o mesmo — o ícone mora na casa de quem
+#   olha — sem dizer de quem é a casa. Só o TEXTO do balão muda: o caminho em
+#   si continua absoluto, porque é ele que o `embute` abre.
+def com_til(caminho):
+    if caminho and (caminho == HOME or caminho.startswith(HOME + os.sep)):
+        return '~' + caminho[len(HOME):]
+    return caminho or ''
+
+
 def main():
     saida = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
         HOME, 'Documentos', 'meow-icones-folha.html')
@@ -326,7 +339,7 @@ def main():
             g48 = i['arte'][str(TAMANHOS[1])] or g128
             f128 = i['formato'][str(TAMANHOS[0])]
             cartoes.append(f'''
-      <figure class="cartao" title="{html.escape(i['caminho'] or '')}">
+      <figure class="cartao" title="{html.escape(com_til(i['caminho']))}">
         <div class="par">
           <img class="grande" src="{g128}" alt="" width="128" height="128">
           <img class="pequeno" src="{g48}" alt="" width="48" height="48">

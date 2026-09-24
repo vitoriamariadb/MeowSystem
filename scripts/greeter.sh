@@ -13,7 +13,7 @@
 #   O mesmo binário faz as duas coisas, mas com sessões diferentes. Bloqueio roda
 #   DENTRO da sessão dela, lê `~/.config/cosmic` e por isso sempre esteve certo —
 #   é o mesmo processo que aparecia no journal reclamando do wallpaper dela:
-#       cosmic-greeter[3112]: failed to read wallpaper "/home/vitoriamaria/..."
+#       cosmic-greeter[3112]: failed to read wallpaper "/home/<usuário>/..."
 #   Login roda ANTES de existir sessão, e é só ele que precisa desta cópia.
 #
 # NÃO MEXEMOS NO TEMA DE ÍCONES DELE, E ISSO É DELIBERADO
@@ -63,7 +63,7 @@ CAPTURA="$(meow_captura "$ALVO")"
 # FASE 1 — O AVATAR, QUE NÃO PRECISA DE sudo E POR ISSO VEM ANTES DE TUDO
 #
 # O gato JÁ ESTAVA na tela de login desta máquina — `/var/lib/AccountsService/
-# assets/icones/vitoriamaria` bate byte a byte com `assets/meow-mocha-preto.svg`. Mas
+# icons/<usuário>` bate byte a byte com `assets/meow-mocha-preto.svg`. Mas
 # nenhum script deste repositório sabia disso: foi posto na mão em 04/08/2026, e
 # numa máquina recém-instalada simplesmente não existiria. Era um enfeite sem
 # dono, do tipo que some no primeiro reset e ninguém sabe repor.

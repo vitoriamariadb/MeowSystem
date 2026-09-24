@@ -3,7 +3,7 @@
 #
 # A PÁGINA MANDA A ARTE JUNTO, E É POR ISSO QUE ELA FUNCIONA
 #   O navegador não entrega o caminho do arquivo que ela arrastou — por projeto,
-#   não por descuido: uma página web não pode ler `/home/vitoriamaria/...`. O que
+#   não por descuido: uma página web não pode ler `~/...`. O que
 #   ela entrega é o CONTEÚDO. Então o `.json` exportado carrega cada ícone
 #   embutido em base64, e este script é o único lugar que precisa saber onde no
 #   disco aquilo mora. Consequência prática: o arquivo exportado continua válido

@@ -156,7 +156,7 @@ etapa_conf_ler() {
 #
 #   MEDIDO, simulando por leitura quem acabou de clonar o repositório:
 #   `assets/temas/capturados/original/captura.txt` diz, na terceira linha,
-#   `origem: /home/vitoriamaria/.config/cosmic` — 121 arquivos, 04/08/2026.
+#   `origem: /home/<usuário>/.config/cosmic` — 121 arquivos, 04/08/2026.
 #   Numa máquina onde o `aplicar_tema.sh` ainda não tinha rodado, aquela captura
 #   era a ÚNICA rede embaixo do botão «Voltar ao tema de antes», e o painel
 #   chama o `meow desfazer` com `MEOW_SIM=1` (app/servidor.py) — que era

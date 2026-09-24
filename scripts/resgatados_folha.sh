@@ -50,7 +50,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 # O mapa é a fonte: `nome : png-de-origem : autoria`. O `~` do caminho é expandido
-# aqui, e não no arquivo, porque um mapa com `/home/andrefarias` cravado seria um
+# aqui, e não no arquivo, porque um mapa com `/home/<usuário>` cravado seria um
 # mapa que só serve nesta máquina.
 pares=0; sem_png=0; sem_svg=(); larg=""
 while IFS=: read -r nome origem autoria; do
