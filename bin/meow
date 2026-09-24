@@ -87,8 +87,13 @@ __resolver_raiz() {
   # `MEOW_RAIZ_EXTRA` cobre um clone fora do home — aqui, um NVMe separado — sem
   # deixar o caminho de UMA máquina cravado no primeiro arquivo que quem chega
   # de fora abre para ler.
-  for cand in "$HOME/Desenvolvimento/MeowSystem" \
-              "$HOME/MeowSystem" \
+  #
+  # O `~/Desenvolvimento/MeowSystem` SAIU DAQUI EM 24/09/2026 (P39), pelo mesmo
+  # motivo: era a pasta de projetos DESTA casa, não um lugar onde um clone
+  # "costuma estar". Numa máquina com o ponteiro (que o instalador escreve) ele
+  # nunca era alcançado; numa sem o ponteiro, só servia a quem guarda projetos
+  # exatamente com esse nome.
+  for cand in "$HOME/MeowSystem" \
               "$HOME/.local/share/MeowSystem" \
               ${MEOW_RAIZ_EXTRA:+"$MEOW_RAIZ_EXTRA"}; do
     if __raiz_valida "$cand"; then printf '%s' "$cand"; return 0; fi
@@ -1898,7 +1903,7 @@ declare -A SEM_CONSERTO_RAZAO=(
   [midiabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: MIDIA_COMPILAR=1 ./scripts/midia_build.sh"
   [leiturabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
   [cursor]="o conserto pode BAIXAR o ponteiro que nem o disco nem o pack trazem, e o doctor não roda o que pode baixar — rode: ./scripts/cursor.sh aplicar"
-  [patches]="o conserto RECOMPILA o cosmic-comp (~4 min), e o doctor não compila — rode: aurora-cosmic-comp-ws.sh --build"
+  [patches]="o conserto RECOMPILA o cosmic-comp (~4 min) e instala com sudo, e o doctor não compila nem usa sudo — rode: meow compositor"
   [cli]="quem copia a CLI para ~/.local/bin é o instalador, e uma CLI que se reescreve no meio da própria execução é decisão sua — rode: ./install.sh"
   [pacotes]="instalar pacote é sudo apt-get, e o doctor não usa sudo — rode a linha que ele imprime, ou ./install.sh"
   [upstream]="o conserto CLONA da rede, e o doctor não baixa — rode: ./scripts/baixar_upstream.sh"
@@ -2148,15 +2153,13 @@ cmd_doctor() {
   local i
   for i in "${!CHK_NOME[@]}"; do imprimir_check "$i" 1; done
 
-  # O CENÁRIO EXATO DO ACIDENTE que a lista de vizinhos existe para evitar: um
-  # repositório com auto-commit no home e nenhuma linha protegendo-o. Enquanto a
-  # lista era cravada no código isso não podia acontecer; agora que ela vem de um
-  # arquivo, pode — e quem descobre é o doctor, não um commit surpresa.
-  if [ -d "$HOME/.config/zsh/.git" ] && [ "${#MEOW_PROIBIDOS_LOCAIS[@]}" -eq 0 ]; then
-    meow_aviso "$HOME/.config/zsh é um repositório git e não está protegido"
-    meow_info "  acrescente-o a ${MEOW_VIZINHOS:-$HOME/.config/meow/vizinhos.conf}"
-    meow_info "  há um modelo em $RAIZ/vizinhos.conf.exemplo"
-  fi
+  # O AVISO DO VIZINHO SEM PROTEÇÃO SAIU EM 24/09/2026 (P39). Ele perguntava
+  # se o `~/.config/zsh` era um repositório git fora do `vizinhos.conf` — o
+  # repositório de UMA casa, pelo nome, que é a leitura que a regra de 23/09
+  # tira do projeto sem terceira via. A lista de vizinhos continua sendo lida
+  # (lib/comum.sh) e continua valendo para o que a pessoa escrever nela; o que
+  # saiu foi o projeto adivinhar QUEM é vizinho. Nesta casa o arquivo existe
+  # desde 11/09 e já protege aquele caminho.
 
   # O `NOPASSWD: ALL` DA MÁQUINA, QUE ESVAZIA A PONTE — 21/09/2026
   #   Medido ao investigar um resíduo de sessão: `/etc/sudoers.d/<usuário>`,
@@ -3645,6 +3648,10 @@ meow — Catppuccin para o COSMIC
   meow leitura aplicar         põe o degrau da hora (o timer já faz sozinho)
   meow leitura remover         zera temperatura e textura, e desarma o timer
 
+  meow compositor [--seco]     recompila o cosmic-comp com os patches de patches/ e
+                               instala (sudo só no fim; vale no próximo login)
+  meow compositor validar      confere se a série entra na versão instalada
+
   meow abrir                   abre o painel de configuração no navegador
                                (127.0.0.1, porta efêmera, token de sessão) — é a
                                mesma coisa que o ícone "MeowSystem" do lançador
@@ -3735,6 +3742,53 @@ cmd_leitura() {
       printf '  depois desse build, escrever aqui é inofensivo e não muda um pixel.\n'
       ;;
     *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow leitura --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+# `meow compositor` — a porta única para os patches do cosmic-comp. Nasceu em
+# 24/09/2026 (P39), quando o build saiu do Ritual da Aurora e veio para o
+# `scripts/compositor_patches.sh`; o porquê de cada passo mora lá. Aqui só se
+# repassa, para que exista UM nome a lembrar.
+#
+# SEM VERBO, ELE COMPILA — ao contrário do `meow leitura` e do `meow painel`,
+# que sem verbo mostram estado, e de propósito. É o
+# comando que o doctor manda rodar quando a linha `patches` fica vermelha, e o
+# que a pessoa lê ali é "rode: meow compositor". Um sem-verbo que só mostrasse
+# estado mandaria digitar duas vezes para fazer a única coisa que a linha pede.
+# O `--seco` diz o que faria sem baixar, compilar ou pedir senha.
+#
+# O LOCK SÓ ENTRA QUANDO ESCREVE: compilar de verdade leva minutos, e um
+# `install.sh` do timer caindo no meio não tem o que fazer com um compositor
+# pela metade na árvore de fonte. No seco e no `conferir` não há o que proteger.
+cmd_compositor() {
+  local verbo="compilar" seco="${MEOW_DRY_RUN:-0}"
+  local -a resto=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --seco|--dry-run) seco=1 ;;
+      *) resto+=("$1") ;;
+    esac
+    shift
+  done
+  [ "${#resto[@]}" -gt 0 ] && verbo="${resto[0]}"
+
+  case "$verbo" in
+    compilar|validar)
+      [ "$seco" = "1" ] || meow_travar || return "$MEOW_ERRO"
+      MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
+    conferir|reverter)
+      MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
+    -h|--help|ajuda)
+      meow_titulo "meow compositor"
+      printf '  meow compositor [--seco]   baixa o fonte da versão instalada, aplica a série de\n'
+      printf '                             patches/, compila (~4 min) e instala — sudo só no fim\n'
+      printf '  meow compositor validar    baixa o fonte e só roda o dry-run da série nele\n'
+      printf '  meow compositor conferir   os marcadores no disco e na sessão (é a linha do doctor)\n'
+      printf '  meow compositor reverter   diz como voltar ao binário do pacote\n\n'
+      printf '  Ele só compila sobre uma versão que esteja em patches/versao, e diz por quê\n'
+      printf '  quando recusa. O binário é também a tela de login: vale no próximo login.\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow compositor --help"; return "$MEOW_ERRO" ;;
   esac
 }
 
@@ -4171,6 +4225,7 @@ despachar() {
     painel)           shift; cmd_painel "$@" ;;
     pack|packs)       shift; cmd_pack "$@" ;;
     leitura)          shift; cmd_leitura "$@" ;;
+    compositor)       shift; cmd_compositor "$@" ;;
     # `abrir` sobe o painel de configuração visual (a pasta `app/`). É `exec`, e
     # não uma chamada comum, porque o `run.sh` FICA DE PÉ: ele sobe o servidor,
     # abre o navegador e espera. Deixar este processo pendurado por baixo dele

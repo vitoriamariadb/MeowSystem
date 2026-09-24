@@ -252,10 +252,17 @@ meow_painel_achar_display() {
 # de nós, porque só o kill DELE carimbava esse arquivo. Carimbar ali é falar a
 # língua que ele já entende: "este painel acabou de nascer, não julgue ainda".
 # É o contrato pelo arquivo de estado que ele mesmo definiu.
+#
+# A TRÉGUA SAIU EM 24/09/2026 (P39), E A FUNÇÃO FICOU VAZIA. Ela escrevia no
+# diretório de estado de um vigia de outro projeto — a regra de 23/09 tira isso
+# sem terceira via. E o vigia não tem mais o que vigiar aqui: desde 19/09 quem
+# detecta o painel que não desenha é este arquivo (docs/FRONTEIRA.md), o
+# `aurora-painel-fantasma.timer` está desligado e o script não mora no
+# Spellbook (medido em 24/09). O nome e as seis chamadas do `scripts/painel.sh`
+# ficam porque aquele arquivo não é desta sprint; tirá-las é trabalho de quem
+# mexer nele, e a função vazia é o que as deixa inofensivas até lá.
 meow_painel_carencia_aurora() {
-  local d="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/aurora-painel-fantasma"
-  [ -d "$d" ] || return 0
-  date +%s > "$d/tentativas.ts" 2>/dev/null || true
+  return 0
 }
 
 # --- o painel VIVO que parou de desenhar -------------------------------------

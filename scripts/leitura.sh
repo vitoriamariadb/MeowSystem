@@ -298,7 +298,8 @@ LEITURA_K_ULT_X="$LEITURA_ESTADO_BASE/ultima_textura"
 
 LEITURA_COMP="/usr/bin/cosmic-comp"
 LEITURA_MARCADOR="AURORA-READING-MODE"
-LEITURA_NIGHTLIGHT="/var/lib/aurora/night-light-temp"
+# O `LEITURA_NIGHTLIGHT` (o `/var/lib/aurora/night-light-temp`) saiu em
+# 24/09/2026 (P39) — ver o bloco "O NIGHT LIGHT DA AURORA" no `cmd_estado`.
 LEITURA_TIMER="meow-leitura.timer"
 
 # 6500K é o NEUTRO e o topo da faixa (decisão dela, 29/08/2026: o slider vai de
@@ -949,7 +950,7 @@ cmd_estado() {
     if grep -aqs "$LEITURA_MARCADOR" "$LEITURA_COMP"; then
       meow_ok "$(_leitura_col "cosmic-comp no disco")sabe ler leitura_* ($LEITURA_MARCADOR presente)"
     else
-      meow_pula "$(_leitura_col "cosmic-comp no disco")NÃO sabe ler leitura_* — falta a etapa 1 (o patch do compositor)"
+      meow_pula "$(_leitura_col "cosmic-comp no disco")NÃO sabe ler leitura_* — falta a etapa 1 (o patch do compositor: meow compositor)"
     fi
   fi
   # `meow_tem pgrep` porque sem ele a resposta seria "cosmic-comp não está
@@ -971,34 +972,23 @@ cmd_estado() {
     fi
   fi
 
-  # O NIGHT LIGHT DA AURORA: RESTO INERTE HOJE, AVISO NO DIA EM QUE VOLTAR
-  #   Esta linha dizia "patch BINÁRIO, outro dono; aposentá-lo é a etapa 4". A
-  #   etapa 4 foi feita em 30/08/2026 e a frase virou promessa de trabalho pronto
-  #   (medições no item 3 do cabeçalho). O que sobrou é o arquivo de julho.
+  # O NIGHT LIGHT DA AURORA: A LINHA SAIU EM 24/09/2026 (P39)
+  #   Aqui morava a conferência do patcher de luz noturna do Ritual da Aurora:
+  #   lia a temperatura que ele guardava em `/var/lib/aurora/` e procurava o
+  #   rastro do shader dele no binário, para avisar no dia em que um `apt`
+  #   destravasse o patcher e as duas luzes quentes se somassem.
   #
-  #   O TESTE MUDOU DE "o arquivo existe" PARA "o shader quente está no binário",
-  #   porque é essa a pergunta que a linha existe para responder — quem esquenta a
-  #   tela dela AGORA. O arquivo sozinho não responde: ele é preferência salva, e
-  #   sobrevive à aposentadoria. Já o marcador do shader volta sozinho no dia em
-  #   que um `apt upgrade` tirar o `AURORA-READING-MODE` do binário e destravar o
-  #   `aurora-night-light.py`, que o self-heal segue chamando de hora em hora.
+  #   A LUZ QUENTE É DO PRODUTO E JÁ MORA AQUI: é este arquivo, com o
+  #   `AURORA-READING-MODE`, que é um patch da série de `patches/` — e o build
+  #   dela passou a ser o `meow compositor`, no mesmo dia. O patcher da Aurora
+  #   não está no Spellbook (medido em 24/09: nenhum `*night-light*` lá), e o
+  #   único que o chamava depois de instalar um build era o
+  #   `aurora-cosmic-comp-ws.sh`, desativado junto. A regra de 23/09 tira o
+  #   resto sem terceira via: o MeowSystem não lê o estado de outro projeto.
   #
-  #   OS DOIS ALVOS, `||`, DE PROPÓSITO: disco = valeria no próximo login, sessão
-  #   viva = vale agora. Para um AVISO, qualquer um dos dois já basta para ela
-  #   querer saber; exigir os dois calaria a metade da janela. `$pid` é o mesmo do
-  #   bloco acima — sem pgrep ele é vazio e sobra o teste do disco.
-  #
-  #   NÃO ESCREVE NADA: dois `grep -aqs`, um `cat` e uma linha impressa.
-  if [ -r "$LEITURA_NIGHTLIGHT" ]; then
-    local nl_shader="NIGHT LIGHT (Aurora)" nl_temp
-    nl_temp="$(cat "$LEITURA_NIGHTLIGHT" 2>/dev/null)"
-    if grep -aqs "$nl_shader" "$LEITURA_COMP" ||
-       { [ -n "$pid" ] && grep -aqs "$nl_shader" "/proc/$pid/exe"; }; then
-      meow_aviso "o night light da Aurora VOLTOU ao shader (${nl_temp}K) — dois donos esquentando a tela, e as temperaturas se multiplicam; confira com: aurora-night-light.py --status"
-    else
-      meow_pula "$(_leitura_col "night light da Aurora")aposentado em 30/08 — ${nl_temp}K é só a preferência guardada; quem esquenta a tela é o leitura_temperatura"
-    fi
-  fi
+  #   O que isto deixa de ver, dito para não virar promessa: numa máquina onde
+  #   algum OUTRO programa reescreva o shader do compositor, as duas luzes
+  #   voltam a se somar sem aviso daqui. O cabeçalho, item 3, tem a medição.
 
   # O `-d /run/user/.../systemd` é o MESMO teste do `cmd_remover` logo abaixo e
   # da `etapa_leitura` do `install.sh`, e faltava só aqui: sem barramento de

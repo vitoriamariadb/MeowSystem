@@ -297,11 +297,10 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 #   caminho, ao contrário do tema. Mudar aqui e olhar a barra não mostra nada, e
 #   isso NÃO é defeito.
 #
-#   E ESTE ARQUIVO PODE TER OUTRO DONO NA SUA MÁQUINA. Aqui em casa o
-#   `pinned_workspaces` é do Ritual da Aurora (`docs/FRONTEIRA.md`), que repõe
-#   o nome dos alfinetes dele de hora em hora. O `areas.sh` mede isso antes de
-#   escrever: onde o nome é do vizinho ele NÃO grava, devolve 4 e diz qual
-#   arquivo mudar. Numa máquina sem esse vizinho, tudo é nosso.
+#   O ARQUIVO É NOSSO EM QUALQUER MÁQUINA DESDE 24/09/2026. Até aqui o
+#   `areas.sh` media um vizinho do Ritual da Aurora que repunha o nome dos
+#   alfinetes de hora em hora, e recusava gravar onde o nome era dele. O
+#   vizinho saiu do Spellbook, e a guarda saiu daqui (sprint P39).
 
 # @ Nomes das áreas de trabalho
 # > A primeira da lista é a primeira do painel. Trocar a ordem aqui troca a sua tela.
@@ -532,6 +531,20 @@ ICONES_RESGATADOS="sim"           # sim | nao
 # nome e conferindo o conteúdo byte a byte (arquivo editado à mão fica). O
 # Arcticons nunca saiu do `48x48` — ele reaparece sozinho na passagem seguinte.
 ICONES_DRACULA="nao"              # sim | nao
+
+# @ Logo própria do Hefesto
+# > Um SVG seu para o ícone do Hefesto. Vazio = o desenho gerado do pack.
+# O Hefesto (o app do controle DualSense) tem logo desenhada pela autora dele —
+# a bigorna com o martelo —, e autoria vence tema: com um caminho aqui, é ela
+# que entra no tema para os dois nomes de ícone do app (`hefesto-dualsense4unix`
+# e `com.vitoriamaria.HefestoDualsense4Unix`). O arquivo não é copiado para o
+# projeto de propósito: ele mora no projeto do Hefesto, e uma cópia aqui
+# congelaria a versão.
+#
+# ATÉ 24/09/2026 ESTE CAMINHO ERA CRAVADO NO `scripts/completar_icones.sh`, na
+# pasta de projetos de uma casa. Quem tem o clone do Hefesto aponta aqui, uma
+# vez, algo como "$HOME/<onde está o clone>/assets/hefesto-logo.svg".
+ICONES_LOGO_HEFESTO=""            # caminho de um .svg; vazio = o desenho gerado
 
 # @ Cor das pastas
 # > Deixe escrito com ${FLAVOR} e ${ACCENT} para acompanhar o tema sozinho.
@@ -1464,14 +1477,15 @@ TERMINAL_CURSOR="accent"    # accent | port
 # flavor mocha e accent mauve.
 #
 #   ESTA CHAVE MANDA EM METADE DA COISA, E É DE PROPÓSITO. O preset é nosso e vai
-#   para ~/.config/starship.toml. A linha que LIGA o starship mora em
-#   ~/.config/zsh/env.zsh, que é o Ritual da Aurora — a TRAVA 1 recusa aquele
-#   caminho, e está certa: arquivo largado lá vira commit no repositório privado
-#   dela em 10 minutos. A segunda metade sai como patch, e é ela quem aplica:
+#   para ~/.config/starship.toml. A linha que LIGA o starship mora no arquivo de
+#   inicialização do seu shell, que não é deste projeto: o MeowSystem não lê nem
+#   escreve arquivo de shell. A linha é uma só, e o script a mostra:
 #       ./scripts/prompt.sh mostrar
+#   (até 24/09/2026 ela saía como um patch para o `env.zsh` de um repositório
+#   pessoal; o patch saiu na sprint P39.)
 #
-#   Com "nao" o módulo não mexe em nada — NÃO desfaz. Desfazer é o `patch -R` do
-#   env.zsh primeiro e só depois `./scripts/prompt.sh remover`; na ordem inversa
+#   Com "nao" o módulo não mexe em nada — NÃO desfaz. Desfazer é tirar a linha
+#   do shell primeiro e só depois `./scripts/prompt.sh remover`; na ordem inversa
 #   o shell não volta ao prompt antigo, volta ao PADRÃO do starship.
 #
 #   O starship NÃO está no apt do Pop!_OS (medido em 25/08/2026: `apt-cache
@@ -1495,8 +1509,9 @@ PROMPT_STARSHIP="sim"
 # O DESENHO É NOSSO, A CHAVE NÃO É. O arquivo nasce em
 # ~/.local/share/meowsystem/fastfetch/<gato>.ansi, que é território do
 # MeowSystem. Quem manda o fastfetch usá-lo é `logo.source`, no config.jsonc de
-# ~/.config/fastfetch — que é symlink para ~/.config/zsh e é do Ritual da
-# Aurora. O módulo GERA e CONFERE; o patch para colar lá sai em
+# ~/.config/fastfetch — que é o arquivo do fastfetch de quem usa, e não nosso.
+# Com FASTFETCH_LOGO_CONF="sim" o módulo troca ali as chaves do logo; com "nao"
+# ele GERA e CONFERE, e o patch para colar sai em
 # `scripts/fastfetch_logo.sh patch`. Enquanto ninguém colar, o `meow doctor`
 # mostra a pendência e NÃO notifica.
 #
@@ -1667,7 +1682,7 @@ FASTFETCH_LOGO_BLOCOS="auto"
 # @ Corrigir a configuração do fastfetch
 # > Deixa o MeowSystem manter a linha do logo em dia sozinho.
 # Deixar o MeowSystem corrigir sozinho a linha `logo.source` do config.jsonc do
-# fastfetch — que é da Aurora (symlink para ~/.config/zsh/fastfetch/).
+# fastfetch — que é o arquivo do fastfetch de quem usa, e não nosso.
 # A escrita é CIRÚRGICA (duas chaves, o resto do arquivo intacto), guarda backup
 # antes em ~/.local/state/meowsystem/backups/ e diz em voz alta o que tocou.
 # Com "nao", o script volta a só imprimir o patch e sair 4.

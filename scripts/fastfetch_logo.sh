@@ -923,7 +923,7 @@ _ffl_escrever_conf() {
 
   # GUARDA 3: em voz alta, sempre. Tocar arquivo de vizinho sem dizer é
   # exatamente o que a TRAVA 1 existe para impedir.
-  meow_aviso "escrevi no config.jsonc da Aurora (logo.source -> $alvo_rel)"
+  meow_aviso "escrevi no config.jsonc do fastfetch (logo.source -> $alvo_rel)"
   meow_info  "  backup: $bkp/config.jsonc"
   meow_info  "  desligue com FASTFETCH_LOGO_CONF=\"nao\" no ~/.config/meow/meow.conf"
   meow_registrar "fastfetch_logo.sh escreveu logo.source=$alvo_rel em $FFL_CONF_DELA"
@@ -935,7 +935,7 @@ _ffl_escrever_conf() {
 _ffl_fronteira() {
   local dados tipo fonte nchaves pad_topo pad_recuo
   if ! dados="$(_ffl_ler_conf 2>/dev/null)"; then
-    meow_aviso "não achei $FFL_CONF_DELA — nada a conferir do lado da Aurora"
+    meow_aviso "não achei $FFL_CONF_DELA — nada a conferir no config do fastfetch"
     return 2
   fi
   tipo="$(printf '%s' "$dados"  | sed -n '1p')"
@@ -1114,89 +1114,28 @@ _ffl_instalar_meow_fetch() {
   return 1
 }
 
-# --- a fronteira do lado do zsh ---------------------------------------------
-# O ARQUIVO É DA AURORA, e a disciplina é a mesma do `config.jsonc`: só se
-# escreve com `FASTFETCH_LOGO_CONF="sim"`, sempre com backup antes, sempre em
-# voz alta depois, e só a LINHA que interessa — o `~/.config/zsh` tem
-# auto-commit de 10 em 10 minutos, então um arquivo reescrito viraria um diff
-# gigante por causa de um enfeite.
+# --- a fronteira do lado do zsh: SAIU EM 24/09/2026 (P39) -------------------
+# AQUI MORAVA A ESCRITA NA LINHA DO FASTFETCH DO `env.zsh` DO SPELLBOOK: o
+# `_ffl_zsh_estado` lia qual das duas chamadas estava lá, o `_ffl_zsh_fronteira`
+# trocava `fastfetch --pipe false` por `meow-fetch --pipe false` (com backup e
+# em voz alta), e o `cmd_reverter` destrocava na desinstalação. O caminho era
+# `${MEOW_ZSH_ENV:-<o env.zsh do repositório privado dela>}`.
 #
-# E a troca é de uma palavra: `fastfetch --pipe false` vira `meow-fetch --pipe
-# false`. O `sed` de tradução que vem depois no cano dela continua intacto, e o
-# `command -v fastfetch` que guarda o bloco continua sendo o teste certo — o
-# `meow-fetch` não serve para nada sem o fastfetch instalado.
-FFL_ZSH_DELA="${MEOW_ZSH_ENV:-$HOME/.config/zsh/env.zsh}"
-FFL_ZSH_ANTES='fastfetch --pipe false | sed -E'
-FFL_ZSH_DEPOIS='meow-fetch --pipe false | sed -E'
-
-# Qual das duas linhas está lá: `meow` (nossa), `puro` (a dela), `nenhuma`.
-_ffl_zsh_estado() {
-  [ -r "$FFL_ZSH_DELA" ] || { printf 'nenhuma'; return; }
-  if grep -qF "$FFL_ZSH_DEPOIS" "$FFL_ZSH_DELA"; then printf 'meow'
-  elif grep -qF "$FFL_ZSH_ANTES" "$FFL_ZSH_DELA"; then printf 'puro'
-  else printf 'nenhuma'; fi
-}
-
-# Deixa a linha do env.zsh de acordo com `FASTFETCH_LOGO_ALINHAR`.
-# 0 = já estava certo · 1 = mudei (ou mudaria) · 2 = não dá para mudar daqui
-_ffl_zsh_fronteira() {
-  local estado querido de para bkp
-  estado="$(_ffl_zsh_estado)"
-  if _ffl_quer_meow_fetch; then
-    querido="meow"; de="$FFL_ZSH_ANTES"; para="$FFL_ZSH_DEPOIS"
-  else
-    querido="puro"; de="$FFL_ZSH_DEPOIS"; para="$FFL_ZSH_ANTES"
-  fi
-  [ "$estado" = "$querido" ] && return 0
-  if [ "$estado" = "nenhuma" ]; then
-    # Nem uma linha nem outra: este arquivo NÃO inventa a chamada do fastfetch
-    # no zsh de ninguém. Diz o que falta e sai.
-    meow_pula "não achei a linha do fastfetch em $FFL_ZSH_DELA"
-    meow_info  "  o contorno (e o título próprio) precisam da chamada \`meow-fetch --pipe false\`"
-    return 2
-  fi
-  if [ "$FASTFETCH_LOGO_CONF" != "sim" ]; then
-    meow_pula "FASTFETCH_LOGO_CONF=\"nao\" — não toco no env.zsh da Aurora"
-    meow_info  "  troque à mão em $FFL_ZSH_DELA:"
-    meow_info  "    de:   $de"
-    meow_info  "    para: $para"
-    return 2
-  fi
-  meow_seco && { meow_muda "trocaria \`${de%% |*}\` por \`${para%% |*}\` em $FFL_ZSH_DELA"; return 1; }
-
-  bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-vizinho"
-  mkdir -p "$bkp" 2>/dev/null || { meow_erro "não consegui criar $bkp"; return 2; }
-  cp -a "$FFL_ZSH_DELA" "$bkp/env.zsh" 2>/dev/null \
-    || { meow_erro "não consegui guardar backup de $FFL_ZSH_DELA — não vou escrever"; return 2; }
-
-  python3 - "$FFL_ZSH_DELA" "$de" "$para" <<'PY' || return 2
-import os, sys, tempfile
-caminho, de, para = sys.argv[1], sys.argv[2], sys.argv[3]
-bruto = open(caminho, encoding="utf-8").read()
-if de not in bruto:
-    sys.exit(1)
-# `replace(..., 1)`: uma ocorrência, a primeira. Se um dia houver duas, a
-# segunda fica e o `conferir` continua acusando — o que é melhor que este
-# arquivo decidir sozinho sobre um trecho que ele não entende.
-saida = bruto.replace(de, para, 1)
-d = os.path.dirname(os.path.realpath(caminho))
-fd, tmp = tempfile.mkstemp(dir=d, prefix=".meow-ffl.")
-try:
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        f.write(saida)
-    os.chmod(tmp, 0o644)
-    os.replace(tmp, os.path.realpath(caminho))
-except Exception:
-    os.path.exists(tmp) and os.unlink(tmp)
-    raise
-PY
-
-  meow_aviso "escrevi no env.zsh da Aurora (a chamada do fastfetch virou \`${para%% *}\`)"
-  meow_info  "  backup: $bkp/env.zsh"
-  meow_info  "  vale no PRÓXIMO terminal — este aqui já leu o arquivo"
-  meow_registrar "fastfetch_logo.sh trocou a chamada do fastfetch em $FFL_ZSH_DELA para ${para%% *}"
-  return 1
-}
+# A REGRA DE 23/09 TIROU ISTO SEM TERCEIRA VIA: o que o MeowSystem lia ou
+# escrevia no Spellbook, ou migra para cá, ou sai daqui. A peça que é do
+# produto já mora aqui — o `meow-fetch`, gerado e conferido por este arquivo. A
+# chamada dele é uma linha no shell de quem usa, e o shell de ninguém é
+# território deste projeto: numa máquina qualquer não existe `env.zsh`, e ler o
+# `.zshrc` de alguém seria adivinhar uma cadeia de `source` que é dela.
+#
+# O QUE MUDOU PARA QUEM ESTAVA LÁ: o `env.zsh` desta casa passou, no mesmo dia,
+# a escolher sozinho — `meow-fetch` quando ele existe, `fastfetch` quando não —,
+# e é isso que tira o `command not found` do terminal no dia em que o
+# desinstalador apagar o `meow-fetch`. Era esse o serviço que o `reverter` fazia.
+#
+# O QUE O CONTORNO PEDE AGORA, e é dito no `aplicar`: com `FASTFETCH_LOGO_ALINHAR`
+# diferente de `tabular`, o gato só abraça o texto se o shell chamar
+# `meow-fetch` no lugar de `fastfetch`.
 
 # --- o formato do título, no config.jsonc dela -------------------------------
 # ELE TEM DE MORAR LÁ, e a alternativa foi tentada e medida: o fastfetch 2.61.0
@@ -1255,9 +1194,9 @@ _ffl_escrever_titulo() {
   case $? in 2) meow_erro "não consegui escrever o título em $FFL_CONF_DELA"; return 2 ;; esac
 
   if [ -n "$FASTFETCH_TITULO" ]; then
-    meow_aviso "escrevi o título no config.jsonc da Aurora (\"$FASTFETCH_TITULO\")"
+    meow_aviso "escrevi o título no config.jsonc do fastfetch (\"$FASTFETCH_TITULO\")"
   else
-    meow_aviso "devolvi o título do config.jsonc da Aurora ao padrão do fastfetch"
+    meow_aviso "devolvi o título do config.jsonc ao padrão do fastfetch"
   fi
   meow_info  "  backup: $bkp/config.jsonc"
   meow_registrar "fastfetch_logo.sh escreveu title.format=$FASTFETCH_TITULO em $FFL_CONF_DELA"
@@ -1280,8 +1219,8 @@ TXT
 
 cmd_patch() {
   meow_info "cole isto NO LUGAR do bloco \"logo\" de $FFL_CONF_DELA"
-  meow_info "(o arquivo é da Aurora — symlink para ~/.config/zsh/fastfetch/;"
-  meow_info " este script não escreve nele, nem com sudo, nem por engano)"
+  meow_info "(é o arquivo do fastfetch, de quem usa: com FASTFETCH_LOGO_CONF=\"nao\""
+  meow_info " este script só mostra o bloco, e não escreve nele)"
   printf '\n'
   _ffl_patch_texto
   printf '\n'
@@ -1342,16 +1281,15 @@ cmd_aplicar() {
   esac
   unset _rcm
 
-  # O 2 SOBE PARA 4, e não some no 0. O `_ffl_zsh_fronteira` devolve 2 quando o
-  # env.zsh não tem NENHUMA das duas formas — nem a nossa, nem a dela. Isso não
-  # é "está tudo certo": é a peça do contorno faltando na tela. Deixar cair no
-  # 0 fazia o `aplicar` terminar verde com o gato invisível.
-  _ffl_zsh_fronteira; _rcz=$?
-  case "$_rcz" in
-    1) rc="$MEOW_DIVERGENTE" ;;
-    2) [ "$rc" = "$MEOW_OK" ] && rc=4 ;;
-  esac
-  unset _rcz
+  # A CHAMADA NO SHELL É DE QUEM USA — 24/09/2026, P39. Até aqui esta passagem
+  # trocava a linha do fastfetch no `env.zsh` do Spellbook e devolvia 4 quando
+  # não a achava. Agora ela só diz o que o contorno pede, uma linha, e o código
+  # de saída fica sendo o do que ela de fato escreveu. Ver o bloco "a fronteira
+  # do lado do zsh", lá em cima.
+  if _ffl_quer_meow_fetch; then
+    meow_info "o $(_ffl_alinhamento) aparece quando o seu shell chama meow-fetch no lugar de fastfetch"
+    meow_info "  o MeowSystem não lê nem escreve arquivo de shell — essa linha é sua"
+  fi
 
   _ffl_escrever_titulo; _rct=$?
   [ "$_rct" = "1" ] && rc="$MEOW_DIVERGENTE"
@@ -1383,7 +1321,7 @@ cmd_aplicar() {
   if [ "$rcf" = "1" ]; then
     printf '\n'
     meow_aviso "o fastfetch ainda NÃO vai mostrar o gato: falta uma troca de"
-    meow_aviso "  duas chaves no config.jsonc, que é da Aurora e não é nosso."
+    meow_aviso "  duas chaves no config.jsonc do fastfetch, que é seu e não nosso."
     printf '\n'
     _ffl_patch_texto
     printf '\n'
@@ -1425,10 +1363,10 @@ cmd_conferir() {
   meow_ok "logo ANSI conforme ($FASTFETCH_LOGO_COLUNAS x $(_ffl_linhas) células, $(_ffl_blocos))"
   meow_info "alinhamento: $(_ffl_alinhamento) · $(_ffl_quebras) linha(s) antes, recuo de $FASTFETCH_LOGO_RECUO"
 
-  # As duas peças do contorno entram na conferência do `doctor`: sem isto, o
-  # `meow-fetch` podia ficar desatualizado ou a linha do env.zsh podia voltar
-  # ao `fastfetch` puro (um `git checkout` no repo da Aurora basta) e nada
-  # acusaria — o gato continuaria certo no disco e errado na tela.
+  # O `meow-fetch` entra na conferência do `doctor`: sem isto, ele podia ficar
+  # desatualizado e nada acusaria — o gato continuaria certo no disco e errado
+  # na tela. (A outra peça, a linha do shell, saiu da conferência em
+  # 24/09/2026 junto com a escrita: ver "a fronteira do lado do zsh".)
   # O SECO É OBRIGATÓRIO AQUI, e a linha logo acima já dizia isso para a irmã
   # (`MEOW_SECO=1 _ffl_instalar`). Sem ele, `_ffl_instalar_meow_fetch` GRAVA o
   # arquivo com modo 755, registra no manifesto, e só depois o `conferir`
@@ -1440,23 +1378,6 @@ cmd_conferir() {
     meow_muda "o $(_ffl_meow_fetch) está desatualizado (ou não existe)"
     return "$MEOW_DIVERGENTE"
   fi
-  if [ "$(_ffl_zsh_estado)" != "$(_ffl_quer_meow_fetch && printf meow || printf puro)" ]; then
-    case "$(_ffl_zsh_estado)" in
-      # 4, E NÃO 0. Sem NENHUMA das duas formas no env.zsh, a peça que põe o
-      # contorno na tela dela simplesmente não existe — e o ramo antigo caía
-      # fora do `case` sem `return`, então a função terminava em 0 e o doctor
-      # marcava o fastfetch verde. É o estado de uma máquina nova, e o de um
-      # `git checkout` no repo da Aurora que mude a FORMA do bloco. O 4 é o
-      # "está pendente e não há conserto nosso possível" que este arquivo já
-      # usa: aparece no relatório sem pendurar "o auto-reparo corrigiu".
-      nenhuma) meow_pula "não achei a linha do fastfetch em $FFL_ZSH_DELA"
-               meow_info "  o contorno precisa da chamada \`meow-fetch --pipe false\` lá"
-               return 4 ;;
-      *) meow_muda "a chamada do fastfetch no env.zsh não combina com FASTFETCH_LOGO_ALINHAR=\"$(_ffl_alinhamento)\""
-         return "$MEOW_DIVERGENTE" ;;
-    esac
-  fi
-
   if _ffl_titulo_confere; then :; else
     [ "$?" = "1" ] && {
       meow_muda "o título do config.jsonc não é o que o conf pede (\"$FASTFETCH_TITULO\")"
@@ -1467,7 +1388,7 @@ cmd_conferir() {
   case "$rcf" in
     0) return "$MEOW_OK" ;;
     2) return "$MEOW_OK" ;;   # sem config dela para conferir; o .ansi está certo
-    *) meow_pula "o config.jsonc é da Aurora — 'fastfetch_logo.sh patch' mostra o que colar"
+    *) meow_pula "o config.jsonc do fastfetch é seu — 'fastfetch_logo.sh patch' mostra o que colar"
        return 4 ;;
   esac
 }
@@ -1499,65 +1420,16 @@ cmd_remover() {
 }
 
 # --- desfazer a fronteira, na hora de desinstalar ----------------------------
-# ESTE É O ÚNICO PEDAÇO DO FASTFETCH QUE O MANIFESTO NÃO ALCANÇA.
-#   O `gato.ansi` e o `~/.local/bin/meow-fetch` entram no manifesto pela
-#   `meow_manifesto_registrar` e saem no passo 4 do desinstalador. A LINHA do
-#   `env.zsh` não: ela é uma escrita cirúrgica dentro de um arquivo que é da
-#   Aurora, e o manifesto — que apaga arquivos inteiros — nunca poderia cuidar
-#   dela.
-#
-#   O ESTRAGO DE NÃO FAZER ISTO é diário e barulhento: o passo 4 apaga o
-#   `meow-fetch`, a linha continua chamando o `meow-fetch`, e cada terminal que
-#   ela abrir depois de desinstalar abre com `command not found`. Desinstalar
-#   tem de devolver a máquina, não deixar um buraco no shell.
-#
-#   POR QUE AQUI O `FASTFETCH_LOGO_CONF` NÃO GUARDA NADA
-#   Ele guarda a ESCRITA, e com razão: pôr a nossa chamada no arquivo dela é
-#   uma decisão dela. Tirá-la não é — se a linha diz `meow-fetch` e o
-#   `meow-fetch` está saindo do disco, restaurar `fastfetch` é conserto, não
-#   opinião. E o teste continua sendo o texto: sem a nossa linha lá, este
-#   caminho não escreve nada.
+# O VERBO FICOU, E FICOU VAZIO — 24/09/2026, P39. Ele devolvia `fastfetch` na
+# linha do `env.zsh` do Spellbook antes de o desinstalador apagar o
+# `meow-fetch`, para o terminal não abrir com `command not found`. Este arquivo
+# deixou de escrever naquela linha, então não há o que devolver; e quem tira o
+# `command not found` agora é o próprio `env.zsh`, que escolhe pelo que está
+# instalado. O `lib/desinstalar.sh` continua chamando este verbo, e é por isso
+# que ele existe: sai 0 dizendo que não há nada, em vez de "verbo desconhecido".
 cmd_reverter() {
-  local estado bkp
-  estado="$(_ffl_zsh_estado)"
-  if [ "$estado" != "meow" ]; then
-    meow_pula "a chamada do fastfetch no env.zsh não é nossa — nada a desfazer"
-    return "$MEOW_OK"
-  fi
-  meow_seco && {
-    meow_muda "devolveria \`${FFL_ZSH_ANTES%% |*}\` em $FFL_ZSH_DELA"
-    return "$MEOW_DIVERGENTE"
-  }
-
-  bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-vizinho"
-  mkdir -p "$bkp" 2>/dev/null || { meow_erro "não consegui criar $bkp"; return "$MEOW_ERRO"; }
-  cp -a "$FFL_ZSH_DELA" "$bkp/env.zsh" 2>/dev/null \
-    || { meow_erro "não consegui guardar backup de $FFL_ZSH_DELA — não vou escrever"; return "$MEOW_ERRO"; }
-
-  python3 - "$FFL_ZSH_DELA" "$FFL_ZSH_DEPOIS" "$FFL_ZSH_ANTES" <<'PY_REVERTER' || return "$MEOW_ERRO"
-import os, sys, tempfile
-caminho, de, para = sys.argv[1], sys.argv[2], sys.argv[3]
-bruto = open(caminho, encoding="utf-8").read()
-if de not in bruto:
-    sys.exit(1)
-saida = bruto.replace(de, para, 1)
-d = os.path.dirname(os.path.realpath(caminho))
-fd, tmp = tempfile.mkstemp(dir=d, prefix=".meow-ffl.")
-try:
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        f.write(saida)
-    os.chmod(tmp, 0o644)
-    os.replace(tmp, os.path.realpath(caminho))
-except Exception:
-    os.path.exists(tmp) and os.unlink(tmp)
-    raise
-PY_REVERTER
-
-  meow_aviso "devolvi a chamada \`fastfetch\` no env.zsh da Aurora"
-  meow_info  "  backup: $bkp/env.zsh"
-  meow_info  "  vale no PRÓXIMO terminal — este aqui já leu o arquivo"
-  meow_registrar "fastfetch_logo.sh reverter — env.zsh voltou a chamar fastfetch"
-  return "$MEOW_DIVERGENTE"
+  meow_pula "o MeowSystem não escreve em arquivo de shell — nada a desfazer no fastfetch"
+  return "$MEOW_OK"
 }
 
 case "${1:-aplicar}" in

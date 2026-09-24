@@ -195,7 +195,7 @@ _forma_conferir_raio_do_disco() { # $1 = Panel|Dock  $2 = dir
   chave="FORMA_RAIO_PAINEL"; [ "$barra" = "Dock" ] && chave="FORMA_RAIO_DOCK"
   meow_aviso "$barra: raio $atual no disco, acima de $teto, e o cosmic-comp NÃO está patchado"
   meow_info  "  com este valor topbar e dock somem JUNTAS e não voltam — medido em 26/08/2026"
-  meow_info  "  o patch some num 'apt upgrade' do cosmic-comp; refazer: aurora-cosmic-comp-ws.sh --build (~4 min)"
+  meow_info  "  o patch some num 'apt upgrade' do cosmic-comp; refazer: meow compositor (~4 min, sudo no fim)"
   meow_info  "  para impor um valor daqui em vez disso: $chave no meow.conf"
   meow_escrever "$dir/border_radius" "$teto" 644; rc=$?
   case "$rc" in
@@ -498,7 +498,7 @@ aplicar_barra() { # $1=Panel|Dock  $2=solto  $3=ilha  $4=margem  $5=raio  $6=esp
           meow_aviso "$barra: raio $raio acima de $teto, o único valor com dias de uso atrás"
           meow_info  "  não há teto calculável: o cosmic-comp compara o raio NOVO com a caixa do frame ANTERIOR"
           meow_info  "  (corner_radius.rs:657-698) e mata o cliente — topbar e dock somem JUNTAS"
-          meow_info  "  o conserto de raiz é o patch: aurora-cosmic-comp-ws.sh --build (~4 min)"
+          meow_info  "  o conserto de raiz é o patch: meow compositor (~4 min, sudo no fim)"
           meow_info  "  para tentar acima disso sem o patch: FORMA_RAIO_EXPERIMENTAL=sim"
           raio="$teto"
           ;;

@@ -242,12 +242,12 @@ for f in ~/.config/kitty/kitty.conf ~/.config/kitty/current-theme.conf \
   [ -f "$f" ] && { echo "== ${f/#$HOME/~}"; grep -vE '^\s*(#|$)' "$f" | head -25; echo; }
 done >> "$OUT" 2>&1
 close_fence
-sub 'paleta usada no zsh do Andromeda-OS'
-open_fence
-for f in "${ZDOTDIR:-$HOME/.config/zsh}/functions/_helpers.zsh"; do
-  [ -f "$f" ] && grep -inE '#[0-9a-f]{6}|\\033\[|tput|dracula|catppuccin' "$f" | head -40
-done >> "$OUT" 2>&1
-close_fence
+# A SUBSEÇÃO "paleta usada no zsh do Andromeda-OS" SAIU EM 24/09/2026 (P39).
+# Ela lia as cores de um arquivo de funções do Spellbook, o repositório pessoal
+# de uma casa — num inventário feito para viajar sozinho e rodar na máquina de
+# qualquer um, era a única linha que perguntava por outro projeto pelo nome. A
+# regra de 23/09 tira isso sem terceira via: nem o padrão com `ZDOTDIR` servia,
+# porque o arquivo lido era o daquela casa, não uma convenção do zsh.
 
 # --- 12. Automação existente ----------------------------------------------
 sec '12. Automação já instalada'

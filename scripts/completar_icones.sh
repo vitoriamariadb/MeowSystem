@@ -182,7 +182,16 @@ AUTORAIS="$(python3 "$RAIZ/scripts/pack.py" onde "$_pack_ref" \
 # simbólico é monocromático por contrato e seria achatado numa cor só.
 # O caminho da logo que a Vitória desenhou. Fora do repo de propósito: é obra
 # dela, mora no projeto dela, e copiar para cá seria congelar uma versão.
-LOGO_HEFESTO_DELA="$HOME/Desenvolvimento/hefesto-dualsense4unix/assets/hefesto-logo.svg"
+#
+# O CAMINHO VIROU CHAVE EM 24/09/2026 (P39). Até aqui ele era cravado: o clone
+# do Hefesto dentro da pasta de projetos DESTA casa. Numa máquina qualquer esse
+# caminho não existe, e o produto não pode saber onde alguém guarda os projetos
+# dele — a regra de 23/09 diz que o que é só da máquina sai do projeto. A
+# decisão de 18/08 (a logo dela, e não uma cópia) continua de pé: é a chave
+# `ICONES_LOGO_HEFESTO` que aponta para o arquivo, e quem tem o clone a
+# preenche uma vez no meow.conf. Vazia, vale o desenho gerado do pack, que era
+# o que já acontecia em toda máquina sem o clone.
+LOGO_HEFESTO_DELA="${ICONES_LOGO_HEFESTO:-}"
 
 declare -A AUTORAL=(
   # O painel do próprio MeowSystem. É o único desenho autoral de TRAÇO — o
@@ -365,11 +374,14 @@ for nome in "${!AUTORAL[@]}"; do
   # ausente, disco não montado), cai no desenho gerado — o instalador não pode
   # ficar de pé ou não por causa de um caminho fora dele.
   if [ "${AUTORAL[$nome]}" = "__LOGO_DELA__" ]; then
-    if [ -f "$LOGO_HEFESTO_DELA" ]; then
+    if [ -n "$LOGO_HEFESTO_DELA" ] && [ -f "$LOGO_HEFESTO_DELA" ]; then
       fonte="$LOGO_HEFESTO_DELA"
     else
       fonte="$AUTORAIS/hefesto-$FLAVOR.svg"
-      meow_info "a logo dela não está em $LOGO_HEFESTO_DELA — usando o desenho gerado"
+      # Só se diz alguma coisa quando a chave aponta para um arquivo que não
+      # está lá: vazia é a escolha de fábrica, e não merece linha no log.
+      [ -n "$LOGO_HEFESTO_DELA" ] && \
+        meow_info "a logo do Hefesto não está em $LOGO_HEFESTO_DELA (ICONES_LOGO_HEFESTO) — usando o desenho gerado"
     fi
   fi
   if [ ! -f "$fonte" ]; then
