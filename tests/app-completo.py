@@ -2585,10 +2585,18 @@ class Percurso:
                           "clicar no jogo abre a decisão dele"):
             return
         # TODA CONTAGEM DA ABA CONCORDA COM O NÚMERO (P54, achado 43, e a
-        # revisão, que achou a segunda): a casa tem um jogo com atalho, e a
-        # nota da grade de ícones dizia «1 jogos têm atalho».
-        solto = re.findall(r"\b1 jogos\b[^.]*", self.pag.locator("#conteudo").inner_text())
-        self.checa(not solto, f"a aba não diz «1 jogos» ({solto})")
+        # revisão, que achou a segunda: «1 jogos têm atalho», na grade de
+        # ícones). A contagem de atalhos é da MÁQUINA — o `.desktop` da Steam
+        # do sistema entra nela —, então o 1 é posto na página, e não esperado
+        # da casa: medido nesta bancada, com a Steam instalada, a conferência
+        # passava vazia contra o código de antes.
+        self.js("() => { JOGOS.total_apps = 1; render(); }")
+        texto = self.pag.locator("#conteudo").inner_text()
+        self.js("() => carregarJogos()")
+        self.assentar(quieto=300)
+        solto = re.findall(r"\b1 jogos\b[^.]*", texto)
+        self.checa(not solto and "1 jogo tem atalho" in texto,
+                   f"a aba não diz «1 jogos», e diz «1 jogo tem atalho» ({solto})")
         motivo = self.achar("decisão do jogo · campo «Por que este jogo sai do lançador»")
         if self.checa(motivo is not None, "a decisão tem o campo do motivo"):
             motivo.fill("teste do percurso")
