@@ -88,17 +88,42 @@ mauve,meutema,#BD93F9
   equivalente, com o hex em maiúsculas como nas paletas daqui, e dali em diante
   quem manda é o JSON.
 
+**O pack inteiro sai de uma vez:**
+
+```bash
+meow pack novo meu-tema --de-csv minhas-cores.csv
+meow pack validar meu-tema                  # sai 0
+meow pack info meu-tema | grep claro        # o claro derivado diz que é derivado
+```
+
+O `novo` confere o CSV, deriva o claro se faltar, roda a régua de contraste,
+escreve o `paleta.json` equivalente e monta o resto: o `pack.json` (ver o fim
+desta seção), o `logo.svg` gerado, o `CREDITOS.md` e os ícones autorais nas
+cores do CSV. O `id` é o da linha de comando e o `flavor` é o do CSV, e os dois
+não se confundem: `meu-tema` é um id válido e seria um flavor recusado — flavor
+não tem hífen. Ele escreve onde todo `novo` escreve (ver [`meow pack
+novo`](#meow-pack-novo-o-pack-que-começa-pelo-que-está-no-ar)), e nada do que
+está no ar entra: nem o timbre, nem o accent do seu `meow.conf`.
+
+**Pela tela, é o «Importar um pack»** da Home, que aceita o `.csv` solto além do
+`.meowpack`. A caixa de confirmar desenha a paleta, marca o claro derivado como
+derivado e lista o que ficou abaixo da régua — sem bloquear. É o mesmo pack do
+`novo --de-csv`, montado pela mesma função, com duas diferenças que são as de
+todo pack importado: ele vai para `~/.local/share/meowsystem/packs/`, e **o id
+sai do nome do arquivo**, porque o CSV não tem onde dizê-lo — `Minhas
+Cores.csv` vira o pack `minhas-cores`. No terminal, o mesmo é `meow pack
+importar minhas-cores.csv`. Importar não escreve por cima de um pack que já
+existe: o mesmo nome de arquivo, de novo, é recusado.
+
+**Só a paleta**, sem montar pack, é o `de-csv`:
+
 ```bash
 meow pack de-csv minhas-cores.csv > ~/.local/share/meowsystem/packs/meu-tema/paleta.json
 ```
 
 O verbo **só imprime**, como o `logo-gerado`: quem põe o arquivo no pack é você,
 com o `>`. Aponte o `>` para um arquivo novo — um CSV recusado não imprime JSON
-nenhum, e o `>` já terá esvaziado o destino. Montar o pack inteiro de uma vez,
-`meow pack novo <id> --de-csv <arquivo>`, **ainda não existe**: o `novo` nasce
-na sprint P11, e ligar o `--de-csv` nele — e o `.csv` na tela de importar — é
-pendência da P16, que fez esta tradução. Até lá, o pack se monta à mão, com os
-três arquivos do fim desta seção.
+nenhum, e o `>` já terá esvaziado o destino.
 
 **Se o CSV traz só flavors escuros, o claro é derivado** — do primeiro flavor
 do CSV, que é o que vira o `flavor_padrao` —, pelo método da subseção [Se o seu
@@ -140,21 +165,38 @@ tema. O que bloqueia continua sendo o `validar`: `text` sobre `base` abaixo de
 
 **Um pack feito de CSV tem paleta e nada mais**, e isso é legítimo — é o que o
 Dracula faz com sete categorias. O resto vem por herança, e só vem se o
-`pack.json` disser de quem:
+`pack.json` disser de quem. É este o que o `novo --de-csv` escreve (sem a
+`_nota` e a `descricao_curta`):
 
 ```json
 {
   "formato": 1, "id": "meu-tema", "nome": "Meu Tema",
+  "creditos": "CREDITOS.md",
   "heranca": "catppuccin",
+  "vitrine": { "capa": "logo.svg" },
   "paleta":  { "arquivo": "paleta.json", "flavor_padrao": "meutema" },
-  "vitrine": { "capa": "logo.svg" }
+  "cosmic":  { "nome_da_paleta": "meu-tema-<flavor>" },
+  "icones":  { "autorais": { "gerar": true, "desenhos": "icones/autorais/" } }
 }
 ```
 
 Sem `heranca`, ícones, ponteiro e papéis de parede não sobem para pack nenhum.
 Com ela, o `meow pack info` e o cartão dizem categoria a categoria o que veio de
-onde — `próprio: paleta · herdado de catppuccin: …` —, para ninguém achar que
-ganhou menos do que ganhou. O `logo.svg` sai do [`logo-gerado`](#pack-sem-logo-não-fica-sem-cara).
+onde — `próprio: paleta, ícones autorais · herdado de catppuccin: …` —, para
+ninguém achar que ganhou menos do que ganhou. A herança é o **pack padrão**, e
+não o que está no ar: o mesmo CSV tem de dar o mesmo pack em qualquer máquina,
+e o padrão é o único pack que toda instalação tem. O `logo.svg` sai do
+[`logo-gerado`](#pack-sem-logo-não-fica-sem-cara).
+
+**Os ícones autorais são a exceção, e ela foi medida.** Herdados, eles vêm nos
+flavors do pai: os 44 do Catppuccin são `mocha`, `macchiato`, `frappe` e
+`latte`, e nenhum veste `meutema`. Montado à mão só com a `heranca`, o pack de
+CSV mostrava `icones.autorais  HERDADO de catppuccin  44 desenho(s)` e zero
+flavors dele. Então o `novo` declara `icones.autorais.gerar` e já entrega os
+desenhos construídos pelo [`meow pack construir`](#os-autorais-e-o-flavor-que-caía-no-pack-do-vizinho) — 11
+desenhos em cada flavor, o claro derivado incluído —, sem rede e escrevendo só
+dentro do pack. O `info` diz `PRÓPRIO  22 desenho(s), 2 flavor(s)`. Se mudar a
+paleta depois, rode `meow pack construir meu-tema` de novo.
 
 ---
 
@@ -1902,6 +1944,10 @@ se publica por commit —, ou em `$MEOW_PACKS/<id>/` quando essa variável exist
 (a raiz de teste). **Recusa** um id que já exista em qualquer raiz: escrever por
 cima é o erro que não se desfaz com Ctrl+C.
 
+**`meow pack novo <id> --de-csv <arquivo>`** troca o ponto de partida: a paleta
+é a do CSV, a herança é o pack padrão, e nada vem do que está no ar — nem o
+timbre. Ver [Começar por um CSV](#começar-por-um-csv).
+
 **O que ele não leva, e por quê.** A P11 pedia também "os acervos que a pessoa
 adicionou — ícones, papéis de parede, ponteiro — copiados". Medido em
 23/09/2026: o formato não tem onde guardar papel de parede nem ponteiro
@@ -2008,7 +2054,11 @@ caixa diz quantos MB ele tem com e sem elas, com "levar as imagens junto"
 marcado — o `[S/n]` do terminal. Só então baixa. **Importar um pack** abre a
 caixa de confirmar com a paleta desenhada, cada flavor com as 26 cores, e uma
 linha para ícones, papéis de parede, ponteiro e som; a mensagem de que entrou
-só aparece quando a rota diz `instalado`.
+só aparece quando a rota diz `instalado`. Ele aceita também um **`.csv`** de
+cores (P16): a rota o reconhece pelo `nome`, o pack é montado pelo mesmo
+`meow pack importar` — que monta como o `novo --de-csv` —, e a caixa mostra
+ainda o claro derivado, como derivado, e a régua de contraste, sem bloquear.
+Ver [Começar por um CSV](#começar-por-um-csv).
 
 Quem confere e quem instala é o **mesmo** `meow pack exportar`/`importar` do
 terminal — as rotas só levam o arquivo de um lado para o outro. Uma segunda
@@ -2034,6 +2084,8 @@ Este repositório traz **dois** packs, e eles ensinam coisas diferentes:
   herdado — com cada herança dita na cara.
 
 Se for copiar um para começar o seu, copie o **catppuccin**: o do Dracula
-declara onze campos que ainda não têm leitor, e o `validar` diz quais são. Eram
-quinze até a P15 dar leitor a `autor`, `versao` e `licenca`, e doze até a P10
-dar leitor a `icones.mimetypes.flavor` — ver [Trocar de pack](#trocar-de-pack-meow-pack-usar).
+declara dez campos que ainda não têm leitor, e o `validar` diz quais são. Eram
+quinze até a P15 dar leitor a `autor`, `versao` e `licenca`, doze até a P10
+dar leitor a `icones.mimetypes.flavor` — ver [Trocar de pack](#trocar-de-pack-meow-pack-usar) —,
+e onze até a P16 registrar o leitor que `icones.autorais.gerar` já tinha: o
+`meow pack construir` o lê desde a P29, e o aviso o contava como morto.
