@@ -138,10 +138,37 @@ fi
 ( cd "$TMP" && find . -type f ! -name manifesto.sha256 -print0 \
     | sort -z | xargs -0 sha256sum > manifesto.sha256 )
 
+# A `origem:` DE UMA CAPTURA DE PACK DIZ `~`, E NÃO DE QUEM ELA É — 23/09/2026, P30
+#   Esta linha gravava o `$COSMIC` expandido, e com ele o nome de usuário de
+#   quem capturou. MEDIDO: as quatro capturas versionadas dos dois packs levavam
+#   `/home/<nome>/.config/cosmic`, de DUAS máquinas diferentes, e todo
+#   `.meowpack` exportado de qualquer um dos dois os levava junto — o
+#   docs/PACKS.md pede, para publicar, "nenhum nome de usuário". Consertar no
+#   `exportar` seria curar o sintoma: a próxima captura escreveria de novo.
+#   Com `~` a linha diz o que importa (de qual árvore do COSMIC a foto saiu) e
+#   cala o que não importa (de quem).
+#
+#   A `original` É A EXCEÇÃO, E O MOTIVO É QUEM LÊ. Medido antes de trocar: o
+#   único leitor desta linha é o `cmd_desfazer` (bin/meow), e ele só lê a da
+#   `original` — compara com o `$COSMIC` desta máquina para recusar o reset de
+#   fábrica de OUTRA pessoa. Ali o caminho absoluto É a identidade da máquina:
+#   com `~`, expandir no leitor faria a guarda passar em toda máquina (o defeito
+#   de 21/09 de volta, calado), e não expandir faria o `desfazer` recusar na
+#   própria máquina que capturou. E ela não viaja: mora no motor, fora de pack
+#   nenhum (`pack.py captura-destino`), e o `exportar` só leva o pack.
+#   Fora do `$HOME` (um `MEOW_COSMIC_DIR` de teste) não há nome a esconder, e o
+#   caminho fica como está — se ele tiver cara de casa de alguém, a régua do
+#   `pack.py validar` recusa o pack dizendo o arquivo e a linha.
+ORIGEM="$COSMIC"
+if [ "$NOME" != "original" ] && [ -n "${HOME:-}" ]; then
+  # shellcheck disable=SC2088  # o "~" é o DADO que se grava, não caminho a expandir
+  case "$COSMIC" in "$HOME"/*) ORIGEM="~/${COSMIC#"$HOME"/}" ;; esac
+fi
+
 {
   echo "captura: $NOME"
   echo "quando: $(date -Iseconds)"
-  echo "origem: $COSMIC"
+  echo "origem: $ORIGEM"
   echo "arquivos: $total"
   [ ${#ausentes[@]} -gt 0 ] && echo "ausentes: ${ausentes[*]}"
 } > "$TMP/captura.txt"

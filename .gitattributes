@@ -10,3 +10,11 @@ assets/papeis-de-parede/BANIDOS.txt merge=ours
 # elas: o hook respeita `byte-exact` venha a captura de onde vier.
 assets/temas/capturados/** byte-exact
 packs/*/temas/capturados/** byte-exact
+
+# O `captura.txt` NÃO É FOTOGRAFIA — 23/09/2026, P30. Ele mora dentro da pasta
+# da captura, então os dois padrões acima o pegavam, mas quem o escreve é o
+# `capturar_tema.sh`, com `echo` (newline final e tudo), e não o COSMIC: o
+# motivo do `byte-exact` não vale para ele. E o atributo não é de graça — o hook
+# tira o arquivo marcado de TODAS as varreduras, não só da de whitespace. Um
+# metadado escrito por nós passa pelas mesmas que o resto do nosso texto.
+**/temas/capturados/*/captura.txt -byte-exact

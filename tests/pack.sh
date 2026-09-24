@@ -1975,6 +1975,123 @@ saida="$(env MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" MEOW_ESTADO="$T/estado" 
   && ok "meow pack de-csv com dois argumentos recusa, e diz que o destino vai pelo '>'" \
   || falha "meow pack de-csv aceitou um segundo argumento (rc=$rc)" "$saida"
 
+# --- 23. o pack que viaja não leva o nome de ninguém — 23/09/2026, P30 -------
+#
+#   MEDIDO: as quatro capturas versionadas dos dois packs diziam
+#   `origem: /home/<nome>/.config/cosmic`, com dois nomes de duas máquinas, e
+#   todo `.meowpack` exportado os levava. A causa era o `capturar_tema.sh`, que
+#   gravava o `$HOME` expandido; a régua do `validar` é o que impede de voltar.
+#   Esta seção confere as três pontas: quem ESCREVE a captura grava `~`; a
+#   régua RECUSA a casa de alguém, dizendo o arquivo e a linha, e deixa passar
+#   o `~/`, o binário e o oculto; e as três portas de quem publica ou recebe —
+#   o `novo --de-csv`, o `importar` (de `.meowpack` ou de `.csv`) e o
+#   `exportar` — a herdam, porque rodam o `validar` inteiro.
+#
+#   A CASA É DE NINGUÉM, E A LINHA NÃO A ESCREVE INTEIRA. O `fulano` é o nome de
+#   mentira, e ele entra por variável SEM a barra final: o
+#   tests/portabilidade.sh (regra 1) acusa `/home/<nome>/` em linha de código,
+#   e com razão — lá é receita que só roda na bancada de quem escreveu. Aqui é
+#   o dado que a régua tem de recusar, e a barra vem na hora de escrevê-lo.
+CASA_ALHEIA="/home/fulano"
+MAC_ALHEIO="/Users/fulano"
+
+# Os dois packs do repositório passam na régua — é o "depois: 0" da sprint.
+for p in catppuccin dracula; do
+  saida="$(viaja "$RAIZ/bin/meow" pack validar "$RAIZ/packs/$p" 2>&1)"; rc=$?
+  [ "$rc" = "0" ] \
+    && ok "o pack $p do repositório valida com a régua do nome de usuário (rc=0)" \
+    || falha "o pack $p do repositório não valida (rc=$rc)" "$saida"
+done
+
+# O CSV MORA NUMA CASA, E A CASA NÃO ENTRA NO PACK. Das duas portas que montam
+# um pack de CSV — o `novo --de-csv` e o `importar` de um `.csv` —, só o NOME
+# do arquivo chega ao pack (o `_comentario` da paleta e o CREDITOS.md). Se o
+# caminho inteiro entrasse, a régua, que roda no `validar` do `_instalar_pack`,
+# recusaria o próprio pack que acabou de ser montado: o rc 0 é a prova das duas
+# coisas de uma vez.
+CASA_CSV="$T$CASA_ALHEIA"
+mkdir -p "$CASA_CSV"
+cp "$T/cores.csv" "$CASA_CSV/casa-tinta.csv"
+CASA_ID="$ID-casa"; CASA_DIR="$PACKS/$CASA_ID"
+saida="$(viaja "$RAIZ/bin/meow" pack novo "$CASA_ID" --de-csv "$CASA_CSV/casa-tinta.csv" 2>&1)"; rc=$?
+vazou="$(grep -rn "/home/" "$CASA_DIR" 2>/dev/null)"
+[ "$rc" = "0" ] && [ -f "$CASA_DIR/pack.json" ] && [ -z "$vazou" ] \
+  && ok "o novo --de-csv de um CSV dentro de uma casa passa na régua, e a casa não entra no pack" \
+  || falha "o novo --de-csv de um CSV dentro de uma casa recusou, ou levou a casa (rc=$rc)" "$saida
+$vazou"
+saida="$(viaja "$RAIZ/bin/meow" pack importar "$CASA_CSV/casa-tinta.csv" 2>&1)"; rc=$?
+vazou="$(grep -rn "/home/" "$DA_PESSOA/casa-tinta" 2>/dev/null)"
+[ "$rc" = "0" ] && [ -d "$DA_PESSOA/casa-tinta" ] && [ -z "$vazou" ] \
+  && ok "o importar do mesmo .csv passa na régua, e a casa não entra no pack" \
+  || falha "o importar de um .csv dentro de uma casa recusou, ou levou a casa (rc=$rc)" "$saida
+$vazou"
+rm -rf "${DA_PESSOA:?}/casa-tinta"
+
+# QUEM ESCREVE A CAPTURA GRAVA `~`. O `capturar_tema.sh` de verdade, com o HOME
+# na casa de mentira e o COSMIC no lugar padrão dela (sem `MEOW_COSMIC_DIR`),
+# gravando no pack de CSV acima pelo `MEOW_PACK_DIR`. Antes da P30 a linha
+# `origem:` saía com o caminho absoluto — e aqui ele traria a casa do fulano.
+# (Por extenso nem neste comentário: o pre-commit avisa de caminho de casa em
+# qualquer linha de `.sh`, e o aviso voltaria a cada commit deste arquivo.)
+mkdir -p "$CASA_CSV/.config/cosmic/com.system76.CosmicTheme.Mode/v1"
+printf 'true' > "$CASA_CSV/.config/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark"
+saida="$(amb env -u MEOW_COSMIC_DIR HOME="$CASA_CSV" MEOW_ESTADO="$T/estado" \
+         MEOW_PACK_DIR="$CASA_DIR" bash "$RAIZ/scripts/capturar_tema.sh" tinta-mauve </dev/null 2>&1)"; rc=$?
+origem="$(sed -n 's/^origem: //p' "$CASA_DIR/temas/capturados/tinta-mauve/captura.txt" 2>/dev/null)"
+# shellcheck disable=SC2088  # o "~" é o texto esperado na linha, não caminho a expandir
+[ "$rc" = "0" ] && [ "$origem" = "~/.config/cosmic" ] \
+  && ok "o capturar_tema.sh grava origem: ~/.config/cosmic, e não a casa de quem capturou" \
+  || falha "a captura não gravou a origem com ~ (rc=$rc, origem=$origem)" "$saida"
+
+# O QUE PASSA: o `~/`, o `<nome>` de um texto que ensina a forma, o binário (o
+# PNG com a casa depois de um byte nulo) e o oculto (o `.git/` de um clone).
+# Nenhum deles viaja com nome de ninguém, ou nem viaja.
+printf '\nlido de ~/Desenvolvimento/tinta/logo.svg\nforma: /home/<nome>/.config/cosmic\n' \
+  >> "$CASA_DIR/CREDITOS.md"
+printf '\x89PNG\r\n\x1a\n\0\0\0\0%s/Imagens/tela.png\n' "$CASA_ALHEIA" > "$CASA_DIR/tela.png"
+mkdir -p "$CASA_DIR/.git"
+printf '[remote]\n\turl = %s/tinta.git\n' "$CASA_ALHEIA" > "$CASA_DIR/.git/config"
+saida="$(viaja "$RAIZ/bin/meow" pack validar "$CASA_ID" 2>&1)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "a régua deixa passar o ~/, o <nome> de exemplo, o binário e o oculto (rc=0)" \
+  || falha "a régua recusou o que não leva nome de ninguém (rc=$rc)" "$saida"
+
+# O QUE NÃO PASSA, E TUDO DE UMA VEZ: a casa no Linux num .md e a do macOS
+# dentro de um SVG, cada uma com o arquivo e a linha.
+printf 'lido de %s/Downloads/tinta.csv\n' "$CASA_ALHEIA" >> "$CASA_DIR/CREDITOS.md"
+n_cred="$(wc -l < "$CASA_DIR/CREDITOS.md")"
+svg="$(cd "$CASA_DIR" && find icones -name '*.svg' | LC_ALL=C sort | head -n1)"
+printf '<!-- exportado de %s/Desktop/tinta.svg -->\n' "$MAC_ALHEIO" >> "$CASA_DIR/$svg"
+n_svg="$(wc -l < "$CASA_DIR/$svg")"
+saida="$(viaja "$RAIZ/bin/meow" pack validar "$CASA_ID" 2>&1)"; rc=$?
+[ "$rc" = "1" ] && [[ "$saida" == *"2 linha(s) com a casa de alguém"* ]] \
+  && [[ "$saida" == *"CREDITOS.md:$n_cred: $CASA_ALHEIA/"* ]] \
+  && [[ "$saida" == *"$svg:$n_svg: $MAC_ALHEIO/"* ]] \
+  && ok "o validar recusa /home/<nome>/ e /Users/<nome>/, dizendo arquivo e linha, os dois de uma vez" \
+  || falha "o validar não recusou a casa de alguém como devia (rc=$rc)" "$saida"
+# O motor não cobra: o pack pessoal com o próprio caminho continua vestindo o
+# desktop, como na vitrine e no logo.
+amb python3 "$RAIZ/scripts/pack.py" caminho "$CASA_ID" id >/dev/null 2>&1 \
+  && ok "a régua é da porta de quem publica: a sonda do motor ainda vê o pack" \
+  || falha "a régua tirou o pack do motor"
+rm -f "$T/casa.meowpack"
+saida="$(viaja "$RAIZ/bin/meow" pack exportar "$CASA_ID" "$T/casa.meowpack" 2>&1)"; rc=$?
+[ "$rc" != "0" ] && [[ "$saida" == *"CREDITOS.md:$n_cred:"* ]] && [ ! -e "$T/casa.meowpack" ] \
+  && ok "o exportar herda a régua: recusa, diz a linha, e não escreve o arquivo (rc=$rc)" \
+  || falha "o exportar levou a casa de alguém, ou não disse onde (rc=$rc)" "$saida"
+
+# E o `importar` de um `.meowpack`: o da 20, que importou limpo, com UM texto a
+# mais trazendo a casa de alguém — e o MANIFESTO acertado, para que a recusa
+# seja pela régua e não por um sha que não bate.
+python3 "$T/forja.py" "$T/$NOVO.meowpack" "$T/forjado.meowpack" extra nota-casa.md \
+  "lido de $CASA_ALHEIA/tema/logo.svg" || exit 2
+saida="$(viaja "$RAIZ/bin/meow" pack importar "$T/forjado.meowpack" 2>&1)"; rc=$?
+restos="$(ls -A "$DA_PESSOA" 2>/dev/null)"
+[ "$rc" != "0" ] && [[ "$saida" == *"nota-casa.md:1: $CASA_ALHEIA/"* ]] && [ -z "$restos" ] \
+  && ok "o importar herda a régua: recusa o .meowpack com a casa de alguém, e nada é escrito (rc=$rc)" \
+  || falha "o importar aceitou a casa de alguém, ou deixou rastro (rc=$rc)" "$saida
+restos: $restos"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"
