@@ -36,3 +36,4 @@
 #   no `.tar.xz`). O caminho é atualizar o cosmic-comp — o apt traz binário e
 #   fonte da mesma versão — e validar a série nessa.
 0.1~1788962084~24.04~a557859
+0.1~1790118748~24.04~0fbd457
