@@ -2204,19 +2204,16 @@ cmd_status() {
   #   fixo; e o applet Logo Menu está fora do projeto desde 24/08/2026, então a
   #   chave dele não existe nesta máquina.
   #   O que ela VÊ é o botão do dock, e a pergunta é a do `meow logo listar`:
-  #   qual gato instalado tem o MESMO conteúdo do ícone do botão. O modo sai do
-  #   próprio `logo.sh modo`, que existe para ninguém reescrever a regra de
-  #   compatibilidade do `LOGO_ROTACAO`. A chave do applet continua dita, numa
-  #   linha dela, só quando existe.
-  local botao_dock no_dock="" gato modo_logo
-  botao_dock="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}/scalable/apps/com.system76.CosmicPanelAppButton.svg"
-  if [ -f "$botao_dock" ]; then
-    for gato in "$COSMIC/logos"/meow-*.svg; do
-      [ -f "$gato" ] && cmp -s "$gato" "$botao_dock" || continue
-      no_dock="$(basename "$gato" .svg)"; no_dock="${no_dock#meow-}"
-      break
-    done
-  fi
+  #   qual gato do acervo tem o MESMO conteúdo do ícone do botão. As duas
+  #   respostas saem do próprio `logo.sh` — o gato pelo `no-dock`, o modo pelo
+  #   `modo` —, que existem para ninguém reescrever as regras dele. (A primeira
+  #   versão desta linha comparava o botão aqui mesmo, só com as cópias de
+  #   ~/.config/cosmic/logos, e já divergia do `listar`, que cai no `.svg` cru
+  #   quando a cópia não existe: revisão da P54.) A chave do applet continua
+  #   dita, numa linha dela, só quando existe.
+  local no_dock modo_logo
+  no_dock="$(MEOW_DRY_RUN=1 NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-}" \
+               "$RAIZ/scripts/logo.sh" no-dock 2>/dev/null)" || no_dock=""
   modo_logo="$(LOGO_MODO="${LOGO_MODO:-}" LOGO_ROTACAO="${LOGO_ROTACAO:-}" \
                  "$RAIZ/scripts/logo.sh" modo 2>/dev/null)"
   campo "logo"     "${no_dock:-nenhum gato do acervo} no dock  (modo ${modo_logo:-desconhecido})"

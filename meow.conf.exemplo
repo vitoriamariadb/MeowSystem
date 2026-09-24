@@ -1180,18 +1180,25 @@ FILES_MENU_AUTOBUILD="sim"
 # --- Dia e noite ------------------------------------------------------------
 
 # @ A noite começa às
-# > Manda em tudo que pergunta "é noite?": o gato, o papel de parede e o modo de leitura.
+# > A hora em que o gato do dock e o do terminal trocam para a noite. O papel de parede e o modo de leitura têm hora própria.
 # Vazio = herda WALLPAPER_NOITE_INICIO/FIM (ou 18:00-07:00). Preenchido, manda
-# em TUDO que pergunta "é noite?": o gato, o carrossel de papel de parede claro
-# e escuro, e o padrão do modo de leitura. A regra é a de sempre —
+# no que pergunta "é noite?" pelo `lib/noite.sh`: o gato do dock e o do
+# terminal. A regra é a de sempre —
 # inicio > fim atravessa a meia-noite; inicio == fim é noite o dia inteiro.
+#
+# O CARROSSEL E O MODO DE LEITURA NÃO LEEM ESTAS DUAS — revisão da P54,
+# 24/09/2026. Este bloco e a frase de baixo dos dois controles diziam que elas
+# mandavam "no carrossel de papel de parede claro e escuro, e no padrão do modo
+# de leitura", e não mandam: o `wallpaper.sh` lê só WALLPAPER_NOITE_* (vazias,
+# 18:00 e 07:00), e o `leitura.sh` lê o horário do applet ou LEITURA_HORARIO_*.
+# Quem punha 20:00 aqui continuava vendo o carrossel escurecer às 18:00.
 #
 # QUEM VENCE, NESTA ORDEM: estas duas chaves; depois a janela que você arrasta
 # na interface do applet do modo de leitura; depois WALLPAPER_NOITE_*; depois
 # 18:00-07:00. `meow logo listar` diz qual delas está valendo agora.
 NOITE_INICIO=""
 # @ A noite termina às
-# > Manda em tudo que pergunta "é noite?": o gato, o papel de parede e o modo de leitura.
+# > A hora em que o gato do dock e o do terminal trocam para o dia. O papel de parede e o modo de leitura têm hora própria.
 NOITE_FIM=""
 
 # @ O tema claro começa às
@@ -1202,8 +1209,8 @@ NOITE_FIM=""
 # 8 tinha de LER O CÓDIGO para descobrir que a chave existe. A conferência de
 # tarefas tropeçou na consequência: a página "Dia e noite" parecia não ter nada
 # a ver com o tema, e tem — só que as horas do TEMA são estas, separadas da
-# noite da máquina (NOITE_INICIO/FIM manda no gato, no papel de parede e no
-# modo de leitura; estas duas mandam só no claro/escuro quando MODO="auto").
+# noite da máquina (NOITE_INICIO/FIM manda no gato do dock e no do terminal;
+# estas duas mandam só no claro/escuro quando MODO="auto").
 # São horas cheias (7, 18), sem minutos — é assim que o `modo_desejado`
 # compara. (E esta frase evita soletrar o formato de relógio por extenso:
 # a sigla dele no comentário é o que faz o leitor classificar a chave como
@@ -1274,8 +1281,9 @@ WALLPAPER_LIMIAR_LUZ="0.37"       # 0.0 a 1.0 (0 = preto, 1 = branco)
 #   `wallpaper.sh` e o `lib/noite.sh`. Dono diferente, seção própria.
 #
 #   NADA MUDOU DE LUGAR NO ARQUIVO: as sete já estavam nesta ordem e neste
-#   ponto — o que entrou foi o cabeçalho acima. A janela da noite continua
-#   sendo UMA: `NOITE_INICIO`/`NOITE_FIM`, acima, mandam aqui também.
+#   ponto — o que entrou foi o cabeçalho acima. E a janela DESTE modo não é a
+#   do `NOITE_INICIO`/`NOITE_FIM`, como esta linha dizia até a revisão da P54:
+#   o `leitura.sh` lê o horário do applet ou LEITURA_HORARIO_*, abaixo.
 
 # @ Ligar o modo de leitura no horário
 # > A tela esquenta e ganha textura de papel à noite, sem você tocar.

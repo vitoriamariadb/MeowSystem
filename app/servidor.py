@@ -5389,27 +5389,47 @@ def _nome_no_appinfo(caminho, appid):
                  bytes, 7/10 oito bytes, 8 fecha bloco), o nome da chave (na
                  v29, u32 índice na tabela; antes, texto terminado em zero) e
                  o valor.
-    Usado só para NOMEAR uma decisão cujo manifesto já foi embora (P54)."""
+    Usado só para NOMEAR uma decisão cujo manifesto já foi embora (P54).
+
+    POR SALTO NO ARQUIVO, E NÃO UMA LEITURA DE 64 MB — 24/09/2026, revisão da
+    P54. A primeira versão lia os primeiros 64 MB e andava na memória. Numa
+    conta de biblioteca grande o `appinfo.vdf` passa disso, e a v29 guarda a
+    tabela de nomes de chave NO FIM: o índice dela caía fora do que foi lido, o
+    `struct.error` virava "" no chamador, e toda decisão sem manifesto voltava
+    a «appid N» calada. Medido com um v29 de 73 MB montado à mão: a exceção
+    saía até para o PRIMEIRO appid do arquivo. Agora só se leem o cabeçalho, a
+    tabela (do índice até o fim, que é só ela) e a entrada do appid pedido; as
+    outras são puladas por `seek`, sem teto de tamanho."""
     with open(caminho, "rb") as fh:
-        dados = fh.read(64 * 1024 * 1024)
-    versao = struct.unpack_from("<I", dados, 0)[0]
-    if versao not in (0x07564427, 0x07564428, 0x07564429):
-        return ""
-    pos, tabela = 8, None
-    if versao == 0x07564429:
-        inicio = struct.unpack_from("<q", dados, pos)[0]
-        pos += 8
-        quantos = struct.unpack_from("<I", dados, inicio)[0]
-        tabela = dados[inicio + 4:].split(b"\0", quantos)[:quantos]
-    fixo = 4 + 4 + 8 + 20 + 4 + (20 if versao != 0x07564427 else 0)
-    while pos + 8 <= len(dados):
-        este, tamanho = struct.unpack_from("<II", dados, pos)
-        if este == 0:
+        cabeca = fh.read(16)
+        if len(cabeca) < 8:
             return ""
-        if este != appid:
-            pos += 8 + tamanho
-            continue
-        p, fim, pilha = pos + 8 + fixo, pos + 8 + tamanho, []
+        versao = struct.unpack_from("<I", cabeca, 0)[0]
+        if versao not in (0x07564427, 0x07564428, 0x07564429):
+            return ""
+        pos, tabela = 8, None
+        if versao == 0x07564429:
+            inicio = struct.unpack_from("<q", cabeca, pos)[0]
+            pos += 8
+            fh.seek(inicio)
+            final = fh.read()
+            quantos = struct.unpack_from("<I", final, 0)[0]
+            tabela = final[4:].split(b"\0", quantos)[:quantos]
+        fixo = 4 + 4 + 8 + 20 + 4 + (20 if versao != 0x07564427 else 0)
+        fh.seek(pos)
+        while True:
+            par = fh.read(8)
+            if len(par) < 8:
+                return ""
+            este, tamanho = struct.unpack("<II", par)
+            if este == 0:
+                return ""
+            if este != appid:
+                fh.seek(tamanho, os.SEEK_CUR)
+                continue
+            dados = fh.read(tamanho)
+            break
+        p, fim, pilha = fixo, len(dados), []
         while p < fim:
             tipo = dados[p]
             p += 1
@@ -5438,7 +5458,6 @@ def _nome_no_appinfo(caminho, appid):
             else:
                 return ""
         return ""
-    return ""
 
 
 class Trabalho:
@@ -5689,8 +5708,9 @@ def _trabalho_json(trabalho, acao_id, seco=False):
 def _previa_dos_jogos(mapa):
     """O que a passagem dos jogos faria com `mapa` no lugar do mapa do disco.
 
-    {"entram": [...], "saem": [...], "apagam": [...]}, cada item `{appid,
-    nome}`; ou {"erro": ...}. Quem responde é o `jogos_steam.sh --conferir`,
+    {"entram": [...], "saem": [...], "repetem": [...], "apagam": [...]}, cada
+    item `{appid, nome}`; ou {"erro": ...}. `repetem` é o cartão duplicado ou de
+    gerador antigo que a mesma passagem tira (revisão da P54). Quem responde é o `jogos_steam.sh --conferir`,
     rodado aqui sobre uma cópia, pelas linhas `@@jogo` que ele só imprime com
     `MEOW_JOGOS_RESUMO=1` — ver o bloco «O RESUMO PARA A CAIXA DO PAINEL» lá.
     A regra de quem entra e quem sai fica escrita num lugar só, e é o script.
@@ -5718,8 +5738,8 @@ def _previa_dos_jogos(mapa):
         return {"erro": "não deu para conferir os jogos: %s" % e}
     finally:
         shutil.rmtree(pasta, ignore_errors=True)
-    saida = {"entram": [], "saem": [], "apagam": []}
-    campo = {"entra": "entram", "sai": "saem", "apaga": "apagam"}
+    saida = {"entram": [], "saem": [], "repetem": [], "apagam": []}
+    campo = {"entra": "entram", "sai": "saem", "repete": "repetem", "apaga": "apagam"}
     for linha in proc.stdout.decode("utf-8", "replace").splitlines():
         partes = linha.split(" ", 3)
         if len(partes) == 4 and partes[0] == "@@jogo" and partes[1] in campo \

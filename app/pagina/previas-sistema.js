@@ -1141,8 +1141,11 @@
      * P54 (achado 37). «5 min» numa linha só, em corpo 7, é mais largo que o
      * miolo do círculo de raio 9: o «5» e o «n» saíam por cima do traço, e a
      * validação no painel de verdade leu o rótulo como cortado pela seta. Em
-     * duas linhas cada pedaço cabe folgado; o corpo do número ainda encolhe
-     * quando o número é comprido, que é o `999` de quem digitou minuto solto. */
+     * duas linhas cada pedaço cabe folgado. O corpo do número só encolhe a
+     * partir de QUATRO algarismos: 15/(n·0,6) fica abaixo de 7 com n=4 (6,25),
+     * e com n=3 dá 8,3, que o teto prende em 7. O `999` de quem digitou minuto
+     * solto sai em corpo 7 e ainda cabe no miolo (medido na revisão da P54: x
+     * de 75,99 a 88,01, com o traço do círculo de 73 a 91). */
     const [numIntervalo, unIntervalo] = partirRotulo(d.intervalo.rotulo);
     svg.appendChild(texto(82, 17, numIntervalo, {
       "font-size": q(Math.max(4, Math.min(7, 15 / Math.max(1, numIntervalo.length * 0.6)))),

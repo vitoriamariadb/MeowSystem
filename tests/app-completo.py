@@ -2148,6 +2148,10 @@ class Percurso:
         clicar()
         if not self.checa(self.caixa_aberta(), f"{frase} pergunta antes de arrumar o lançador"):
             return
+        # A caixa fala a língua do botão clicado (revisão da P54): o «Voltar ao
+        # normal» numa caixa «Tirar da lista» leria como tirar o jogo do lançador.
+        ok = (self.pag.locator("#confirmar-ok").text_content() or "").strip()
+        self.checa(ok == frase.strip("«»"), f"a caixa de {frase} confirma com o mesmo nome ({ok!r})")
         efeito = self.pag.locator("#confirmar .efeito-jogos [data-efeito]")
         fim = time.time() + 60
         while not efeito.count() and time.time() < fim:
@@ -2580,6 +2584,11 @@ class Percurso:
         if not self.checa(self.pag.locator("#conteudo .escolha-jogo").count(),
                           "clicar no jogo abre a decisão dele"):
             return
+        # TODA CONTAGEM DA ABA CONCORDA COM O NÚMERO (P54, achado 43, e a
+        # revisão, que achou a segunda): a casa tem um jogo com atalho, e a
+        # nota da grade de ícones dizia «1 jogos têm atalho».
+        solto = re.findall(r"\b1 jogos\b[^.]*", self.pag.locator("#conteudo").inner_text())
+        self.checa(not solto, f"a aba não diz «1 jogos» ({solto})")
         motivo = self.achar("decisão do jogo · campo «Por que este jogo sai do lançador»")
         if self.checa(motivo is not None, "a decisão tem o campo do motivo"):
             motivo.fill("teste do percurso")
@@ -2588,13 +2597,13 @@ class Percurso:
             abrir()
             botao = f"decisão do jogo · {rotulo}"
             if self.checa(self.achar(botao) is not None, f"a decisão oferece «{rotulo}»"):
-                # «Tirar do lançador» pergunta antes desde a P54; o «Voltar ao
-                # normal» a decisão de 24/09 não nomeou, e continua direto.
-                if rotulo == "Tirar do lançador":
-                    self.decisao_com_caixa(lambda b=botao: self.achar(b).click(),
-                                           f"«{rotulo}»", abrir)
-                else:
-                    self.decisao_de_jogo(lambda b=botao: self.achar(b).click(), f"«{rotulo}»")
+                # Os dois perguntam antes desde a P54: a decisão de 24/09 nomeia
+                # a CLASSE («as ações de jogos que aplicam todas as marcas
+                # pendentes»), e o «Voltar ao normal» também grava a linha e
+                # roda a passagem inteira — ele ficou de fora na primeira
+                # versão, e a revisão o pegou.
+                self.decisao_com_caixa(lambda b=botao: self.achar(b).click(),
+                                       f"«{rotulo}»", abrir)
                 self.acionados.add(botao)
         abrir()
         apagar = "decisão do jogo · Apagar os arquivos"

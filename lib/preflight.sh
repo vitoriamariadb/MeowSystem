@@ -173,7 +173,15 @@ meow_preflight() {
   local faltam_apt="" n_faltam=0
   for linha in "${COMANDOS[@]}"; do
     IFS='|' read -r cmd nivel pacote para <<< "$linha"
-    meow_tem "$cmd" && continue
+    # O STARSHIP TEM DONO, E É A ETAPA DO PROMPT — revisão da P54. Ele mora
+    # também em ~/.cargo/bin, que o PATH do systemd de usuário não tem; o
+    # `meow_tem` daqui dizia «sem starship» na mesma passagem em que a etapa o
+    # achava. A pergunta vai para a regra de lá (`prompt.sh onde-starship`).
+    if [ "$cmd" = "starship" ]; then
+      "$MEOW_RAIZ/scripts/prompt.sh" onde-starship >/dev/null 2>&1 && continue
+    else
+      meow_tem "$cmd" && continue
+    fi
     n_faltam=$((n_faltam+1))
     case "$nivel" in
       base)  meow_erro "falta o básico: $cmd — $para"; fatal=1 ;;

@@ -150,8 +150,9 @@ arte_do_jogo() {
 # decisão dentro (`MEOW_JOGOS_FORA`) e lê estas linhas. Uma segunda conta
 # escrita no servidor seria a regra dos jogos em dois lugares, e a caixa
 # acabaria prometendo o que a passagem não faz.
-#   `@@jogo <entra|sai|apaga> <appid> <nome>`, uma por atalho ou pasta, e só
-# com `MEOW_JOGOS_RESUMO=1`: no terminal e no doctor nada muda.
+#   `@@jogo <entra|sai|repete|apaga> <appid> <nome>`, uma por atalho ou pasta,
+# e só com `MEOW_JOGOS_RESUMO=1`: no terminal e no doctor nada muda. O `repete`
+# (revisão da P54) é o cartão duplicado ou de gerador antigo que sai junto.
 resumo_jogo() {
   [ "${MEOW_JOGOS_RESUMO:-}" = "1" ] || return 0
   printf '@@jogo %s %s %s\n' "$1" "$2" "${3:-appid $2}"
@@ -576,6 +577,10 @@ else
     # linha, um `meow-steam-<id>.desktop` que tivesse perdido a marca (arquivo
     # truncado, edição à mão) seria removido por apontar para si mesmo.
     [ "$f" = "$APPS/meow-steam-$id.desktop" ] && continue
+    # A caixa dos jogos conta também os cartões que saem sem ser nossos
+    # (revisão da P54): sem esta linha ela dizia «nenhum atalho sai» com um
+    # duplicado saindo, e só o «Ver o que faria» o mostrava.
+    resumo_jogo repete "$id" "$(awk -F= '$1 == "Name" { sub(/^Name=/, ""); print; exit }' "$f")"
     if meow_seco; then
       meow_muda "removeria o cartão duplicado do appid $id: $(basename "$f") (aponta para o jogo e não é nosso)"
     else
@@ -605,6 +610,9 @@ else
     [ -e "$f" ] || continue
     printf '%s' "$ja_tratados" | grep -qxF "$f" && continue
     grep -q 'steam://rungameid/' "$f" || continue
+    # O appid é o fim do nome nos dois moldes (`steam-jogo-<id>`, `steam-<id>`).
+    id="$(basename "$f" .desktop)"; id="${id##*-}"
+    resumo_jogo repete "$id" "$(awk -F= '$1 == "Name" { sub(/^Name=/, ""); print; exit }' "$f")"
     if meow_seco; then
       meow_muda "removeria atalho do gerador antigo: $(basename "$f")"
     else
@@ -672,6 +680,7 @@ else
     # appid, mas um `%U` ou uma opção depois dele continua sendo o mesmo jogo —
     # e sem a âncora, `rungameid/316790` casaria com `rungameid/3167900`.
     grep -qE "steam://rungameid/$id([[:space:]]|\$)" "$f" || continue
+    resumo_jogo repete "$id" "$(awk -F= '$1 == "Name" { sub(/^Name=/, ""); print; exit }' "$f")"
     if meow_seco; then
       meow_muda "removeria o cartão duplicado do appid $id (molde da Steam, $(basename "$f"))"
     else

@@ -206,5 +206,16 @@ case "$saida" in
   *) reclamar "o seco não NOMEOU o arquivo que sairia\n$saida" ;;
 esac
 
+# --- e a caixa dos jogos do painel conta o rival que sai (revisão da P54) ------
+# O painel lê as linhas `@@jogo` deste mesmo ensaio para dizer, antes do clique,
+# o que a passagem tira do lançador. O duplicado sai na mesma passagem que a
+# decisão dela; sem a linha, a caixa dizia «nenhum atalho sai» e só o «Ver o
+# que faria» o mostrava. Os dois rivais continuam no disco, porque o seco acima
+# não removeu nada.
+resumo="$(env -i PATH="$PATH" HOME="$H" USER="${USER:-t}" NO_COLOR=1 MEOW_DRY_RUN=1 \
+  MEOW_JOGOS_RESUMO=1 bash "$RAIZ/scripts/jogos_steam.sh" 2>&1 | grep '^@@jogo repete ')"
+[ "$(printf '%s\n' "$resumo" | grep -c "^@@jogo repete $INSTALADO Bail or Jail$")" = "2" ] \
+  || reclamar "o resumo do ensaio não conta os dois cartões duplicados que sairiam\n$resumo"
+
 [ "$falhas" = "0" ] || exit 1
 printf 'ok: um cartão por jogo, e o rival não volta a duplicar\n'

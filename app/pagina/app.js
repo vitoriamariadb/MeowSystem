@@ -4186,9 +4186,13 @@ function pintarEfeitoDosJogos(caixa, r) {
     return;
   }
   const partes = [];
+  /* `repetem` desde a revisão da P54: a mesma passagem tira do lançador os
+   * cartões duplicados de um jogo e os de geradores antigos, e a caixa que só
+   * falava dos nossos dizia «nenhum atalho sai» com um deles saindo. */
   for (const [campo, rotulo] of [
     ["saem", "Saem do lançador"],
     ["entram", "Entram no lançador"],
+    ["repetem", "Cartões duplicados ou antigos que saem"],
     ["apagam", "Têm os arquivos apagados"],
   ]) {
     const itens = r[campo] || [];
@@ -4205,18 +4209,22 @@ function pintarEfeitoDosJogos(caixa, r) {
   caixa.replaceChildren(...partes);
 }
 
-async function confirmarJogo(j, acao, motivo, remover) {
+/* `rotulos` ({titulo, ok}) é de quem chama com outro gesto que não os dois de
+ * cima: o «Voltar ao normal» remove a linha como o «Tirar da lista», e a caixa
+ * tem de falar a língua do botão que ela clicou. */
+async function confirmarJogo(j, acao, motivo, remover, rotulos = {}) {
   const pedido = { appid: j.appid, acao, motivo, remover: !!remover };
   const efeito = elemento("div", { class: "efeito-jogos" }, [
     elemento("p", { texto: "Conferindo o que a arrumação faria…" }),
   ]);
   const resposta = perguntar({
-    titulo: remover ? `Tirar ${j.nome} da lista?` : `Tirar ${j.nome} do lançador?`,
+    titulo: rotulos.titulo
+         || (remover ? `Tirar ${j.nome} da lista?` : `Tirar ${j.nome} do lançador?`),
     texto: (remover ? "A linha sai da lista" : "A decisão fica anotada")
          + " e o lançador é arrumado agora — com todas as marcas que estiverem "
          + "esperando, e não só esta.",
     corpo: efeito,
-    ok: remover ? "Tirar da lista" : "Tirar do lançador",
+    ok: rotulos.ok || (remover ? "Tirar da lista" : "Tirar do lançador"),
     ensaio: true,
   });
   api("/api/jogo-fora", { method: "POST", body: JSON.stringify({ ...pedido, previa: true }) })
@@ -4424,8 +4432,11 @@ function montarJogos() {
    * lá quando ela é enviada, e o total é o número da máquina. */
   if ((JOGOS.apps || []).length) {
     caixa.append(elemento("h3", { class: "subsecao-titulo", texto: "O ícone de cada jogo" }));
+    /* «1 jogos têm atalho» — revisão da P54, a mesma concordância do achado 43
+     * e a mesma forma da nota de jogos da aba Ícones. */
+    const comAtalho = JOGOS.total_apps ?? JOGOS.apps.length;
     caixa.append(elemento("p", { class: "nota-secao",
-      texto: `${JOGOS.total_apps ?? JOGOS.apps.length} jogos têm atalho nesta `
+      texto: `${comAtalho} ${comAtalho === 1 ? "jogo tem" : "jogos têm"} atalho nesta `
            + "máquina. A capa acima decide se ele aparece no lançador; aqui se "
            + "escolhe o desenho com que ele aparece." }));
     caixa.append(pulaGrade("apos-apps-jogos", "Pular a lista"));
@@ -4502,11 +4513,22 @@ function montarEscolhaDeJogo(j) {
   }
 
   if (j.acao || j.gasto) {
+    /* PERGUNTA ANTES, COMO OS OUTROS DOIS — 24/09/2026, revisão da P54. A
+     * decisão de 24/09 nomeia a CLASSE («as ações de jogos que aplicam todas as
+     * marcas pendentes»), e não dois botões: este também grava a linha e roda a
+     * passagem inteira, e um «Marcar para apagar» de outro jogo, esperando a
+     * Steam fechar, saía no clique daqui sem caixa nenhuma. O título e o botão
+     * da caixa dizem o gesto deste botão; «Tirar da lista» leria como tirar o
+     * jogo do lançador, que é o contrário do que ele faz. */
+    const rotulo = j.gasto ? "Tirar a linha gasta" : "Voltar ao normal";
     linha.append(elemento("button", {
       type: "button", class: "btn",
-      texto: j.gasto ? "Tirar a linha gasta" : "Voltar ao normal",
+      texto: rotulo,
       title: "Tira esta decisão da lista. O cartão volta na próxima passagem.",
-      onclick: () => definirJogo(j.appid, "", "", true),
+      onclick: () => confirmarJogo(j, "", "", true, {
+        titulo: j.gasto ? `Tirar a linha gasta de ${j.nome}?` : `Voltar ${j.nome} ao normal?`,
+        ok: rotulo,
+      }),
     }));
   }
 

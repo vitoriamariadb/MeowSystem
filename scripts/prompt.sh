@@ -358,5 +358,11 @@ case "${1:-aplicar}" in
   remover)          cmd_remover ;;
   instalar-starship)  cmd_instalar_starship ;;
   nao-quero-starship) cmd_recusar_starship ;;
-  *) meow_erro "uso: prompt.sh {aplicar|conferir|mostrar|remover|instalar-starship|nao-quero-starship}"; exit "$MEOW_ERRO" ;;
+  # `onde-starship` IMPRIME ONDE O STARSHIP ESTÁ, e sai 1 se em lugar nenhum —
+  # revisão da P54. Existe para o pré-voo do `install.sh` perguntar AQUI: com o
+  # `meow_tem` dele, que só olha o PATH de agora, eram três donos do «tem
+  # starship», e numa passagem com o PATH do systemd o pré-voo dizia «sem
+  # starship» na mesma rodada em que esta etapa dizia «conforme».
+  onde-starship)      _prompt_onde_starship ;;
+  *) meow_erro "uso: prompt.sh {aplicar|conferir|mostrar|remover|instalar-starship|nao-quero-starship|onde-starship}"; exit "$MEOW_ERRO" ;;
 esac
