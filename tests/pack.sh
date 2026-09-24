@@ -3300,6 +3300,60 @@ else
   ok "o pack padrão não declara os temas de aplicativo da P42 — ausência, e não empréstimo"
 fi
 
+# --- 30. o esquema do cosmic-term troca junto com o pack — 24/09/2026, P51 ----
+#
+#   O achado 40: com o Dracula no ar o `terminal.sh` instalava o esquema
+#   «Dracula» e NÃO o selecionava — a seleção dizia «Catppuccin Mocha», e o
+#   instalador mandava escolher à mão em Ajustes › Cores. Medido na máquina de
+#   verdade: aquele valor é o nome que o pack Catppuccin gera, as duas chaves de
+#   seleção foram escritas com 1,5 ms de distância (nenhum clique da GUI escreve
+#   as duas), e o próprio MeowSystem, com o Catppuccin no ar, o tratava como
+#   seu. O defeito era a régua de "nosso": ela olhava só a paleta do pack ATIVO,
+#   e o nome que o pack anterior escreveu virava "escolha sua" na troca.
+#
+#   Numa casa de brinquedo, pelo `TERMINAL_DIR` que o script tem para isso, e
+#   com um `cosmic-term` de mentira no PATH (o `_pronto` só pergunta se existe).
+H51="$T/casa-p51"; TD51="$H51/term"; BIN51="$T/bin51"
+mkdir -p "$TD51" "$BIN51"
+printf '#!/bin/sh\nexit 0\n' > "$BIN51/cosmic-term"; chmod +x "$BIN51/cosmic-term"
+term51() {  # term51 <PACK> <FLAVOR> [ESQUEMA] — a etapa do terminal, como o install.sh a chama
+  env -i PATH="$BIN51:$PATH" HOME="$H51" MEOW_RAIZ="$RAIZ" MEOW_PACKS="$PACKS" \
+    MEOW_CONF="$H51/meow.conf" MEOW_ESTADO="$H51/estado" NO_COLOR=1 TERMINAL_DIR="$TD51" \
+    PACK="$1" FLAVOR="$2" ACCENT="mauve" TERMINAL_ESQUEMA="${3:-sim}" \
+    bash "$RAIZ/scripts/terminal.sh" aplicar 2>&1
+}
+sel51() { cat "$TD51/syntax_theme_$1" 2>/dev/null; }
+
+saida="$(term51 catppuccin mocha)"
+if [ "$(sel51 dark)" = '"Catppuccin Mocha"' ] && [ "$(sel51 light)" = '"Catppuccin Latte"' ]; then
+  ok "com o Catppuccin no ar o terminal seleciona Catppuccin Mocha / Catppuccin Latte"
+else
+  falha "o Catppuccin não selecionou o esquema dele (dark=$(sel51 dark) light=$(sel51 light))" "$saida"
+fi
+saida="$(term51 dracula dracula)"
+if [ "$(sel51 dark)" = '"Dracula"' ] && [ "$(sel51 light)" = '"Alucard"' ] \
+   && ! printf '%s\n' "$saida" | grep -q 'NÃO selecionado'; then
+  ok "trocar para o Dracula troca a seleção: o nome que o Catppuccin escreveu é do MeowSystem"
+else
+  falha "a troca de pack deixou o esquema do Dracula instalado e não selecionado (dark=$(sel51 dark))" "$saida"
+fi
+# A ESCOLHA DELA CONTINUA VENCENDO: um nome que pack nenhum gera é dela.
+printf '"Minha Escolha"' > "$TD51/syntax_theme_dark"
+saida="$(term51 dracula dracula)"
+[ "$(sel51 dark)" = '"Minha Escolha"' ] \
+  && ok "um esquema que nenhum pack gera é escolha dela, e fica" \
+  || falha "o terminal.sh sobrescreveu uma seleção que não é de pack nenhum" "$saida"
+# DESLIGAR DESLIGA COM QUALQUER PACK: o `TERMINAL_ESQUEMA="nao"` procurava a
+#   palavra Catppuccin nos mapas, e um terminal só com o Dracula ficava vestido.
+rm -f "$TD51"/*
+term51 dracula dracula >/dev/null
+saida="$(term51 dracula dracula "nao")"
+if [ ! -e "$TD51/color_schemes_dark" ] && [ ! -e "$TD51/syntax_theme_dark" ]; then
+  ok "TERMINAL_ESQUEMA=\"nao\" com o Dracula no ar tira o esquema dele"
+else
+  falha "TERMINAL_ESQUEMA=\"nao\" deixou o esquema do Dracula no terminal" "$saida"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

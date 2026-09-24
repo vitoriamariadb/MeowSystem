@@ -112,12 +112,57 @@
    * degraus no meio — desenhar os três iguais faria a escolha parecer inócua. */
   var CLAREZA = { mocha: 0, macchiato: 9, frappe: 19, latte: 100 };
 
+  /* OS FLAVORS SÃO OS DO PACK NO AR — 24/09/2026, P51 (achados 27 e 28).
+   * As duas constantes de cima eram o desenho inteiro: com FLAVOR=dracula a
+   * aba Cor e tela caía no padrão, desenhava mocha, e a legenda dizia que o
+   * valor «não é um dos aceitos». O app.js publica o vocabulário do pack no ar
+   * em `window.MEOW_PACK` (a porta do `MEOW_MEDIDAS`), lido aqui na hora de
+   * desenhar, porque este arquivo carrega antes dele.
+   *   A CLAREZA CONTINUA SENDO A ORDEM, e não a luminância: os escuros do mais
+   * escuro ao mais claro, pela `luz` do `base` que o servidor manda (a régua da
+   * «Variante do tema»), um degrau de 9,5 cada, e os claros no topo. Com o
+   * Catppuccin isso dá os mesmos 0, 9,5 e 19 de antes. As constantes ficam como
+   * a resposta de quando o pack não respondeu. */
+  function packNoAr() {
+    var p = typeof window !== "undefined" ? window.MEOW_PACK : null;
+    return p && p.flavors && p.flavors.length ? p : null;
+  }
+
+  function flavorsDoPack() {
+    var p = packNoAr();
+    if (!p) return { lista: FLAVORS, clareza: CLAREZA, claros: ["latte"], nome: {} };
+    var saida = { lista: [], clareza: {}, claros: [], nome: {} };
+    var escuros = p.flavors.filter(function (f) { return !f.claro; })
+      .sort(function (a, b) { return (a.luz || 0) - (b.luz || 0); });
+    escuros.forEach(function (f, i) { saida.clareza[f.id] = i * 9.5; });
+    p.flavors.forEach(function (f) {
+      saida.lista.push(f.id);
+      saida.nome[f.id] = f.nome || f.id;
+      if (f.claro) { saida.claros.push(f.id); saida.clareza[f.id] = 100; }
+    });
+    return saida;
+  }
+
+  /* O nome que o servidor dá à cor, pelo hex do flavor (ver `nomeDaCor` no
+   * app.js), ou o slot quando não há vocabulário. */
+  function nomeDaCorNoPack(slot, flavor) {
+    var p = packNoAr();
+    var f = p && p.flavors.filter(function (x) { return x.id === flavor; })[0];
+    return (f && f.nomes_de_cor && f.nomes_de_cor[slot]) || slot;
+  }
+
+  /* «Dracula», com as aspas da casa, ou o texto de quando o pack não respondeu. */
+  function nomeDoPack(sem) {
+    var p = typeof window !== "undefined" ? window.MEOW_PACK : null;
+    return p && p.nome ? "«" + p.nome + "»" : sem;
+  }
+
   function mistura(a, b, pct) {
     return "color-mix(in srgb, " + a + " " + n2(pct) + "%, " + b + ")";
   }
 
   function tomDoFlavor(flavor) {
-    var p = CLAREZA[flavor];
+    var p = flavorsDoPack().clareza[flavor];
     if (p === undefined || p === 0) return ESCURO;
     if (p >= 100) return CLARO;
     return mistura(CLARO, ESCURO, p);
@@ -589,7 +634,11 @@
 
     modelo: function (v) {
       var d = diario();
-      var flavor = lerOpcao(v, d, "FLAVOR", FLAVORS, "mocha");
+      /* A lista, o padrão e os claros são os do pack no ar — ver
+       * `flavorsDoPack`. [P51, achado 28] */
+      var fl = flavorsDoPack();
+      var pack = packNoAr();
+      var flavor = lerOpcao(v, d, "FLAVOR", fl.lista, (pack && pack.flavor_padrao) || fl.lista[0]);
       var accent = lerOpcao(v, d, "ACCENT", CORES, "mauve");
       var modo = lerOpcao(v, d, "MODO", ["escuro", "claro", "auto"], "escuro");
       var encaixe = lerTriEstado(v, d, "JANELAS_TILING");
@@ -599,11 +648,17 @@
       var ponteiro = corDoPonteiro(cursor);
       /* O sabor diz QUAL escuro; o modo diz SE a máquina veste claro. Quando os
        * dois se contradizem (latte com modo escuro) quem vence é o par que a
-       * máquina de fato usa: latte é claro, e o modo claro é claro. */
-      var claro = modo === "claro" || flavor === "latte";
+       * máquina de fato usa: latte é claro, e o modo claro é claro. O claro é
+       * o que o pack declara em `claros` — o alucard, com o Dracula. [P51] */
+      var claro = modo === "claro" || fl.claros.indexOf(flavor) >= 0;
       return {
         flavor: flavor,
+        /* O NOME QUE A TELA DIZ é o do pack, e o da cor sai do hex dela
+         * (achado 27: «Uma tela em mocha escuro, com destaque mauve», com o
+         * Dracula no ar). O `flavor` e o `accent` continuam sendo o valor. */
+        flavorNome: fl.nome[flavor] || flavor,
         accent: accent,
+        accentNome: nomeDaCorNoPack(accent, flavor),
         modo: modo,
         claro: claro,
         encaixe: encaixe,
@@ -625,8 +680,8 @@
       var acento = corDaPaleta(m.accent, "var(--accent)");
       var esc = m.escala;
 
-      var s = quadro("Uma tela em " + m.flavor + " " + (m.claro ? "claro" : "escuro")
-        + ", com destaque " + m.accent + ", "
+      var s = quadro("Uma tela em " + m.flavorNome + " " + (m.claro ? "claro" : "escuro")
+        + ", com destaque " + m.accentNome + ", "
         + (m.encaixe ? "janelas lado a lado" : "janelas soltas")
         + " e o ponteiro em " + Math.round(esc * 100) + "%.");
 
@@ -727,7 +782,7 @@
         ? "alternando claro e escuro pelo relógio"
         : (m.claro ? "claro" : "escuro");
       var ponteiro = m.cursor ? ", ponteiro " + curto(m.cursor, 30) : ", ponteiro do sistema";
-      return m.flavor + " " + luz + " com destaque " + m.accent + ", "
+      return m.flavorNome + " " + luz + " com destaque " + m.accentNome + ", "
         + arrumacao + ", " + m.escalaRotulo + ponteiro + "." + m.fecho;
     },
   });
@@ -1283,14 +1338,39 @@
     modelo: function (v) {
       var d = diario();
       var pastas = corDasPastas(v.ICONES_PASTAS);
+      var pack = packNoAr();
+      /* A BASE QUE VALE É A QUE A REGRA RESPONDE — 24/09/2026, P51 (achado
+       * 34). O desenho dizia «o que faltar vem do Papirus-Dark» com o Dracula
+       * no ar, que traz a base dele desde a P41 e diante da qual o valor de
+       * fábrica cede. O servidor manda a resposta do `base_que_vale` e os
+       * valores que cedem (`base_de_icones`); aqui só se confere a qual dos
+       * dois lados o valor da tela pertence. */
+      var bi = pack && pack.base_de_icones;
+      var bruta = texto(v.ICONES_BASE);
+      var base = bi && bi.cede.indexOf(bruta) >= 0 ? bi.vale : (bruta || "Papirus-Dark");
+      /* O SABOR DOS ÍCONES DE ARQUIVO é o do acervo que o pack alcança, e o de
+       * fábrica (`"$FLAVOR"`) acompanha a variante: vale o que a regra do
+       * pack.py responde (`mimetypes.efetivo`), e não "um valor que não é
+       * aceito". O nome é o do dono do acervo, com a herança dita. [P51] */
+      var mt = pack && pack.mimetypes;
+      var padraoIcones = (mt && (mt.efetivo || mt.flavors[0])) || "macchiato";
+      var flavorIcones = /\$/.test(texto(v.ICONES_FLAVOR))
+        ? padraoIcones
+        : lerOpcao(v, d, "ICONES_FLAVOR", mt ? Object.keys(mt.nomes || {}) : FLAVORS, padraoIcones);
       return {
         tema: lerTexto(v, null, "NOME_TEMA_ICONES", "MeowSystem-Icons"),
-        base: lerTexto(v, null, "ICONES_BASE", "Papirus-Dark"),
+        base: base,
+        baseDoPack: bi && bi.de && bi.cede.indexOf(bruta) >= 0 ? bi.de : "",
         pastasCor: pastas.cor,
         pastasFrase: pastas.rotulo
           ? "pastas em " + curto(pastas.rotulo, 30)
           : "pastas na cor de destaque",
-        flavor: lerOpcao(v, d, "ICONES_FLAVOR", FLAVORS, "macchiato"),
+        flavor: flavorIcones,
+        /* O nome curto vai no `<title>`, que é meia linha; a herança dita vai
+         * na legenda, que é onde a frase inteira cabe. */
+        flavorCurto: (mt && mt.nomes && mt.nomes[flavorIcones]) || flavorIcones,
+        flavorNome: ((mt && mt.nomes && mt.nomes[flavorIcones]) || flavorIcones)
+          + (mt && mt.herdado ? " (herdado do " + mt.nome_de + ")" : ""),
         marca: lerSimNao(v, d, "ICONES_COR_MARCA", false),
         xdg: lerSimNao(v, d, "PASTAS_XDG", false),
         fecho: fechoDaLegenda(d),
@@ -1303,7 +1383,7 @@
       var tinta = claro ? ESCURO : CLARO;
       var fraco = mistura(tinta, tom, 55);
       var s = quadro("Quatro pastas e quatro programas no tema " + m.tema
-        + ", sabor " + m.flavor + ", cor "
+        + ", sabor " + m.flavorCurto + ", cor "
         + (m.marca ? "pela marca de cada programa" : "por categoria") + ".");
 
       s.appendChild(ret(1.5, 1.5, 93, 45, 3.5, { fill: tom }));
@@ -1370,13 +1450,17 @@
 
     legenda: function (m) {
       return "tema " + curto(m.tema) + ", " + m.pastasFrase
-        + ", ícones de arquivo no sabor " + m.flavor + ", cor "
+        + ", ícones de arquivo no sabor " + m.flavorNome + ", cor "
         + (m.marca
           ? "pela marca de cada programa (o mensageiro fica verde, a loja de jogos safira, o navegador pêssego)"
           : "por categoria (programas do mesmo assunto na mesma cor)")
         + ", pastas especiais "
         + (m.xdg ? "vazadas, do outro acervo" : "na mesma cor das outras")
-        + ", e o que faltar vem do " + curto(m.base) + "." + m.fecho;
+        + (m.baseDoPack
+          ? ", e o que faltar vem da base do pack «" + curto(m.baseDoPack) + "» ("
+            + curto(m.base) + ")"
+          : ", e o que faltar vem do " + curto(m.base))
+        + "." + m.fecho;
     },
   });
 
@@ -1484,10 +1568,15 @@
        * estreitas. A metade direita é a ampliação. */
       var esc = lupa ? 0.42 : 1;
 
+      /* O PACK NO AR, E NÃO O CATPPUCCIN — 24/09/2026, P51 (achado 40). As
+       * dezesseis cores e o `port` do TERMINAL_CURSOR saem da paleta do pack
+       * ativo (o `terminal.sh` a lê pelo `meow_paleta`); a frase dizia
+       * «do Catppuccin» com o Dracula no ar. */
       var s = quadro("Uma linha de comando com "
         + (m.starship ? "o prompt do starship em pastilhas" : "o prompt simples")
-        + ", cursor " + (m.cursor === "port" ? "na cor do Catppuccin" : "na cor de destaque")
-        + " e a paleta " + (m.esquema ? "do Catppuccin" : "de fábrica")
+        + ", cursor " + (m.cursor === "port" ? "na cor do tema " + nomeDoPack("do pack")
+          : "na cor de destaque")
+        + " e a paleta " + (m.esquema ? "do pack " + nomeDoPack("no ar") : "de fábrica")
         + (lupa ? ", e o mesmo cursor ampliado à direita" : "") + ".");
 
       s.appendChild(ret(1.5, 1.5, 93, 45, 3.5, { fill: tom }));
@@ -1588,13 +1677,19 @@
     },
 
     legenda: function (m) {
+      /* O PROMPT NÃO É DO PACK, E A FRASE NÃO FINGE — P51. O `starship.toml`
+       * é do motor (o preset catppuccin-powerline, o mesmo com qualquer pack;
+       * a `_nota_heranca` do pack Dracula diz isso), então ele não ganha o
+       * nome do pack no ar: ganha o de onde de fato vem. */
       return (m.esquema
-        ? "as dezesseis cores do terminal vêm do Catppuccin"
+        ? "as dezesseis cores do terminal vêm da paleta do pack " + nomeDoPack("no ar")
         : "o terminal fica com a paleta de fábrica do cosmic-term")
         + ", o cursor sai "
-        + (m.cursor === "port" ? "no rosewater do Catppuccin" : "na cor de destaque")
+        + (m.cursor === "port" ? "na cor que o tema " + nomeDoPack("do pack") + " escolhe"
+          : "na cor de destaque")
         + ", e o prompt do zsh "
-        + (m.starship ? "é o do Catppuccin, pelo starship" : "é o simples, sem starship")
+        + (m.starship ? "é o do starship que vem com o MeowSystem, o mesmo com qualquer pack"
+          : "é o simples, sem starship")
         + "." + m.fecho;
     },
   });

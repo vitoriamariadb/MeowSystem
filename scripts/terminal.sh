@@ -275,7 +275,7 @@ case "${1:-}" in
   remover|--remover)      ACAO="remover" ;;
   -h|--help)
     printf 'uso: %s [aplicar|conferir|remover]\n\n' "$(basename "$0")"
-    printf '  aplicar   instala o esquema Catppuccin no cosmic-term e o seleciona\n'
+    printf '  aplicar   instala o esquema da paleta do pack no cosmic-term e o seleciona\n'
     printf '  conferir  não escreve nada (0 igual · 1 divergente · 3 sem dependência)\n'
     printf '  remover   tira o nosso esquema e volta ao de fábrica\n\n'
     printf 'conf: FLAVOR, ACCENT, TERMINAL_ESQUEMA, TERMINAL_CURSOR\n'
@@ -328,7 +328,52 @@ _nome_esquema() {
 # `remover`, apagar só o flavor de agora deixaria o antigo para trás. Sai da
 # MESMA paleta pelo mesmo motivo: um nome que só o `remover` conhece é lixo que
 # ninguém apaga.
-NOSSOS_NOMES="$(printf '%s\n' "$NOMES_ESQUEMA" | cut -f2- | paste -sd, -)"
+#
+# E EM QUALQUER PACK, NÃO SÓ NO DE AGORA — 24/09/2026, P51 (achado 40)
+#   A frase de cima dizia "em qualquer flavor" e a conta lia só a paleta do
+#   pack ATIVO. Trocar de pack é o caso que ela não via: o nome que o pack
+#   anterior escreveu no `syntax_theme_*` deixava de ser "nosso" no instante da
+#   troca, e o `_slot_por` o tratava como escolha dela — com o Dracula no ar, o
+#   esquema Dracula ficava instalado e NÃO selecionado, e o instalador mandava
+#   escolher à mão em Ajustes › Cores. MEDIDO nesta máquina antes de mexer:
+#   `syntax_theme_dark` dizia «Catppuccin Mocha» e o `light` «Catppuccin
+#   Latte» — os nomes exatos que a paleta do pack Catppuccin gera —, os dois
+#   arquivos com mtime de 22/09 15:38:01.206 e .208, 1,5 ms de distância, que
+#   nenhum clique da GUI produz (ela escreve um seletor por vez); e o próprio
+#   MeowSystem, com o Catppuccin no ar, o tratou como seu (o backup
+#   `2026-09-24T08-44-09-sistema` é o `_gravar` dele sobre a seleção). Era do
+#   MeowSystem, então a troca de pack o troca.
+#   Os nomes saem de TODO pack do disco (as mesmas raízes do `pack.py`), e os
+#   da paleta de agora vão junto — uma `MEOW_PALETA` escolhida à mão não mora
+#   em pack nenhum. Um nome que pack nenhum gera continua sendo dela.
+NOSSOS_NOMES="$(python3 -c '
+import json, os, sys
+sys.path.insert(0, sys.argv[1])
+import pack
+nomes, vistos = [], set()
+def juntar(dados):
+    for n in (dados.get("nomes") or {}).values():
+        if isinstance(n, str) and n and n not in nomes:
+            nomes.append(n)
+for base in pack.raizes():
+    try:
+        ids = sorted(os.listdir(base))
+    except OSError:
+        continue
+    for ident in ids:
+        if ident in vistos or not os.path.isfile(os.path.join(base, ident, "pack.json")):
+            continue
+        vistos.add(ident)
+        try:
+            juntar(pack.validar(ident, silencioso=True)[1])
+        except Exception:
+            continue
+try:
+    juntar(json.load(open(sys.argv[2])))
+except Exception:
+    pass
+print(",".join(nomes))
+' "$RAIZ/scripts" "$PALETA" 2>/dev/null)"
 
 # O slot escuro segue o FLAVOR; o claro sai da PALETA, não de um nome cravado.
 #
@@ -612,7 +657,7 @@ _pronto() {
     return "$MEOW_ERRO"
   fi
   if ! _nome_esquema "$FLAVOR_ESCURO" >/dev/null; then
-    meow_aviso "FLAVOR=\"$_FLAVOR\" não é um flavor do Catppuccin — confira o meow.conf"
+    meow_aviso "FLAVOR=\"$_FLAVOR\" não é um flavor da paleta do pack no ar — confira o meow.conf"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ "$_CURSOR" != "accent" ] && [ "$_CURSOR" != "port" ]; then
@@ -780,6 +825,18 @@ _slot_tirar() {
   return "$MEOW_OK"
 }
 
+# Algum esquema NOSSO (de qualquer pack) em algum dos dois mapas? 0 = sim.
+_tem_nosso() {
+  local arq n
+  for arq in "$DIR/color_schemes_dark" "$DIR/color_schemes_light"; do
+    [ -f "$arq" ] || continue
+    while IFS= read -r n; do
+      [ -n "$n" ] && grep -qF "name: \"$n\"" "$arq" && return 0
+    done <<< "$(printf '%s\n' "$NOSSOS_NOMES" | tr ',' '\n')"
+  done
+  return 1
+}
+
 # --- as ações ---------------------------------------------------------------
 _aplicar() {
   local rc mudou=0
@@ -829,7 +886,11 @@ main() {
     # Desligar tem de DESLIGAR — a mesma lição do `midia.sh`. Deixar de
     # aplicar manteria de pé o que uma passagem anterior escreveu, e o sintoma
     # seria "desliguei e continua", que é o pior porque não há onde olhar.
-    if grep -qF 'Catppuccin' "$DIR"/color_schemes_dark "$DIR"/color_schemes_light 2>/dev/null; then
+    # A PALAVRA "Catppuccin" ERA A RÉGUA, E ELA SÓ VIA UM PACK — P51. Com o
+    # Dracula no ar o mapa não a tem, e `TERMINAL_ESQUEMA="nao"` deixava o
+    # terminal vestido. A régua é a mesma do `remover`: algum nome nosso dentro
+    # de um dos mapas.
+    if _tem_nosso; then
       meow_muda "TERMINAL_ESQUEMA=\"$ESQUEMA\" no meow.conf, mas o esquema nosso continua instalado"
       [ "$ACAO" = "conferir" ] && return "$MEOW_DIVERGENTE"
       _remover; return $?

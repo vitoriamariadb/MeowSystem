@@ -126,7 +126,23 @@ CAPTURAS = RAIZ / "assets" / "temas" / "capturados"
 #       depois de conferir a procedência.
 MOLDE = "original"
 ARVORES = ("Dark", "Light")
-PADRAO = ["mocha-mauve", "mocha-pink", "latte-mauve"]
+
+
+# SEM ARGUMENTO, AS CAPTURAS SÃO AS QUE O PACK NO AR ALCANÇA — 24/09/2026, P51
+#   Era `PADRAO = ["mocha-mauve", "mocha-pink", "latte-mauve"]`: as três
+#   capturas do Catppuccin, escritas à mão. A `dracula-mauve` nunca entrou na
+#   lista, e a v1 dela ficou sendo a do Catppuccin — medido pela P48 e pela P49,
+#   e de novo antes deste conserto: `Dark/v1/accent` em #CBA6F7 numa captura
+#   cuja v2 diz #BD93F9, e 18 arquivos da v1 divergindo da v2 dela
+#   (`gerar_tema_v1.py --conferir dracula-mauve`). Acrescentar o nome que
+#   faltou consertaria a captura de hoje e esqueceria a próxima — a que o
+#   `derivar_acento.py` cria para um acento novo (P48), a de um pack de
+#   terceiro. A lista é o estado: as capturas que o `pack.capturas()` alcança
+#   do pack no ar (ele, o que ele herda, o motor), menos o molde, que não se
+#   gera. É a mesma escada que o `aplicar_tema.sh` sobe para achar a captura
+#   que vai aplicar, então toda captura que pode chegar à tela tem a v1 em dia.
+def padrao():
+    return [c for c in pack.capturas() if c != MOLDE]
 
 # As chaves geradas. Ver a docstring para o critério e para o que ficou fora.
 # `name` e `palette.name` entram porque um arquivo que diz `"cosmic-dark"` no
@@ -453,7 +469,8 @@ def main() -> int:
         description="Gera a árvore CosmicTheme.{Dark,Light}/v1 das capturas, "
                     "a partir da v2 da própria captura e do fóssil de 'original'.")
     p.add_argument("capturas", nargs="*", metavar="captura",
-                   help=f"quais capturas gerar. Sem argumento: {' '.join(PADRAO)}")
+                   help="quais capturas gerar. Sem argumento: as que o pack no ar "
+                        f"alcança, menos '{MOLDE}'")
     p.add_argument("--conferir", action="store_true",
                    help="não escreve: sai 1 se algum campo divergir (campo a campo, "
                         "com tolerância de 8 bits)")
@@ -461,7 +478,7 @@ def main() -> int:
 
     seco = os.environ.get("MEOW_DRY_RUN", "0") == "1"
     conferir = args.conferir or seco
-    alvos = args.capturas or PADRAO
+    alvos = args.capturas or padrao()
 
     if MOLDE in alvos:
         sys.exit(f"ERRO: '{MOLDE}' é o molde e o reset de fábrica — não se gera nela.")

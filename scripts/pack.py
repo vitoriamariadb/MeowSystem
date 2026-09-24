@@ -141,6 +141,7 @@ VERBOS
                                      pack=<o id que veste, o padrão incluído>
                                      dir=<o diretório; vazio = ninguém escolheu>
                                      recusado=<o id que não validou, ou vazio>
+                                     nome=<o nome de tela do pack que veste>
                                  Ver `adocao`.
 
     Sem argumento, imprime esta ajuda.
@@ -5733,6 +5734,10 @@ def main(argv):
             print(f"pack={ident}")
             print(f"dir={dir_pack}")
             print(f"recusado={recusado}")
+            # O NOME DE TELA VAI JUNTO — 24/09/2026, P51 (achado 24): o
+            # cabeçalho do `install.sh` dizia «Catppuccin» com qualquer pack no
+            # ar, e o nome é o que o `pack.json` declara, lido aqui uma vez.
+            print(f"nome={campo(ident, 'nome') or ident}")
             return OK
         # OS TRÊS VERBOS DA CAPTURA NÃO RECEBEM `<id>`, e os outros recebem.
         #   Quem pergunta por uma captura é sempre o desktop VIVO — o

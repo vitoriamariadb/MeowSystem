@@ -121,6 +121,14 @@ let ESQUEMA = null;          // o que veio de /api/esquema
  * lá o `medidas` vem congelado dentro do JSON embutido, como todo o resto. */
 function publicarMedidas() {
   window.MEOW_MEDIDAS = (ESQUEMA && ESQUEMA.medidas) || {};
+  /* E O PACK NO AR, PELA MESMA PORTA — 24/09/2026, P51 (achados 27, 28, 34 e
+   * 40). Os desenhos de Cor e tela, Ícones e Terminal só conheciam o
+   * Catppuccin: a lista de flavors era `mocha | macchiato | frappe | latte`
+   * cravada, e com FLAVOR=dracula a legenda dizia que o valor «não é um dos
+   * aceitos» e desenhava mocha. O vocabulário do pack (`ESQUEMA.pack`, o
+   * `vocabulario` do scripts/pack.py) já vinha para a página; agora chega a
+   * eles também, na hora de desenhar. */
+  window.MEOW_PACK = (ESQUEMA && ESQUEMA.pack) || null;
 }
 let GRUPOS = [];             // [{nome, chaves:[...]}] + as abas de ação e folhas
 let ABA = null;              // qual grupo está aberto
@@ -226,8 +234,12 @@ const ROTULO_DE_VALOR = {
    * chave no meow.conf.exemplo). O botão dizia "Do port oficial", e o
    * inteiro do sentido estava na palavra que ninguém entende: sem saber o
    * que é um port, "oficial" não diz oficial DE QUÊ. Catppuccin fica — é
-   * nome próprio, está escrito na aba ao lado e ela o escolhe todo dia. */
-  accent: "Cor de destaque", port: "Do Catppuccin",
+   * nome próprio, está escrito na aba ao lado e ela o escolhe todo dia.
+   * O NOME PRÓPRIO É O DO PACK NO AR — 24/09/2026, P51 (achado 19). Com o
+   * Dracula no ar o botão dizia «Do Catppuccin», e o `port` é o `rosewater` da
+   * paleta do Dracula. Quem rotula agora é o servidor (`item.rotulos`, com o
+   * nome do pack); este é só o que a tela diz se o pack não responder. */
+  accent: "Cor de destaque", port: "Do tema",
   true: "Sim", false: "Não",
   "30s": "30 s", "5m": "5 min", "2h": "2 h", "6h": "6 h", "12h": "12 h",
   "1d": "1 dia", "7d": "7 dias",
@@ -238,14 +250,34 @@ const ROTULO_DE_VALOR = {
   dock: "Dock", titulo: "Título", artista: "Artista", album: "Álbum",
   largura: "Largura", fonte: "Fonte", capa: "Capa", controles: "Controles",
   mocha: "Mocha", macchiato: "Macchiato", frappe: "Frappé", latte: "Latte",
-  dracula: "Drácula",
+  /* O `dracula: "Drácula"` SAIU — 24/09/2026, P51 (achados 2 e 25). O cartão
+   * do pack dizia «Dracula», o retrato «Drácula», e a «Variante do tema»
+   * oferecia «Drácula» ao lado de «alucard» minúsculo: dois flavors do mesmo
+   * pack com regras diferentes, porque só um deles tinha linha aqui. O nome de
+   * um flavor do pack no ar é o que o pack dá (`nomeDoFlavor`, logo abaixo); os
+   * quatro de cima ficam para o flavor do Catppuccin que aparece com outro
+   * pack no ar — os ícones de arquivo herdados, por exemplo. */
   coquinha: "Coquinha", mimir: "Mimir",
 };
+
+/** O nome que o PACK NO AR dá a um flavor dele, ou "". [P51] */
+function nomeDoFlavor(v) {
+  const f = ((ESQUEMA && ESQUEMA.pack && ESQUEMA.pack.flavors) || []).find((x) => x.id === v);
+  return f ? f.nome : "";
+}
+
+/** O nome em português de uma cor da paleta, no flavor pedido — ou o slot.
+ *  Quem nomeia é o servidor, pelo hex (`_nomes_de_cor`): o slot é o valor
+ *  gravado, e o nome acompanha o pack no ar. [P51, achado 26] */
+function nomeDaCor(slot, flavor) {
+  const f = ((ESQUEMA && ESQUEMA.pack && ESQUEMA.pack.flavors) || []).find((x) => x.id === flavor);
+  return (f && f.nomes_de_cor && f.nomes_de_cor[slot]) || slot;
+}
 
 /** O rótulo VISÍVEL de um valor do conf. O valor gravado nunca muda. */
 function rotuloDeValor(v) {
   if (v === "" || v == null) return "vazio";
-  return ROTULO_DE_VALOR[v] || v;
+  return ROTULO_DE_VALOR[v] || nomeDoFlavor(v) || v;
 }
 
 /** Primeira letra maiúscula, o resto intacto (nomes próprios sobrevivem). */
@@ -1338,7 +1370,13 @@ async function importarArquivo(arquivo) {
    *
    * Um número sem nome não deixa consertar: ela não tem como saber o que
    * perdeu nem onde procurar. O nome vai CRU pelo mesmo motivo já escrito no
-   * bloco das recusadas acima — é o texto que existe no arquivo dela. */
+   * bloco das recusadas acima — é o texto que existe no arquivo dela.
+   *
+   * O EXEMPLO ENVELHECEU, E A REGRA NÃO — 24/09/2026, P51. A `MEOW_FAMILIA_PALETA`
+   * deixou de ser lida na P49: a família do btop e do bat passou a sair do
+   * flavor (o `_bb_familia` do manifesto btop-bat), e um conf antigo que ainda
+   * a traz a vê descartada aqui sem perder nada. O caso continua valendo para
+   * qualquer chave que o catálogo não conheça. */
   if (r.desconhecidas && r.desconhecidas.length) {
     for (const chave of r.desconhecidas.slice(0, 4)) {
       torrada(`${chave}: fora do catálogo — ficou como estava`, "igual");
@@ -2406,8 +2444,12 @@ function controleFlavor(item, aplica) {
     }, [
       /* O rótulo pela tabela ("Frappé", com acento e maiúscula) — o VALOR que
        * vai para o arquivo continua sendo o cru, no data-valor. A conferência
-       * de língua pegou "frappe" minúsculo em duas abas, contra a régua dela. */
-      elemento("span", { class: "nome", texto: rotuloDeValor(nome) }),
+       * de língua pegou "frappe" minúsculo em duas abas, contra a régua dela.
+       * O QUE O SERVIDOR ROTULOU VEM PRIMEIRO — 24/09/2026, P51 (achado 25): o
+       * `item.rotulos` da «Variante do tema» traz o nome que o pack dá a cada
+       * flavor, e só esta amostra o ignorava — «Drácula» ao lado de «alucard». */
+      elemento("span", { class: "nome",
+                         texto: (item.rotulos && item.rotulos[nome]) || rotuloDeValor(nome) }),
       tira,
     ]));
   }
@@ -2437,11 +2479,16 @@ function controleCor(item, aplica) {
   };
   for (const nome of nomes) {
     if (!cores[nome]) continue;
+    /* O LEITOR DE TELA OUVIA `mauve`, `sapphire`, `maroon` — 24/09/2026, P51
+     * (achado 26): os nomes que o Catppuccin dá às cores dele, com o Dracula no
+     * ar. O botão continua gravando o slot (`data-valor`); o que ele DIZ é o
+     * nome da cor, no flavor em vigor (`nomeDaCor`). */
+    const dito = nomeDaCor(nome, flavor);
     caixa.append(elemento("button", {
       type: "button", "data-valor": nome, "aria-pressed": "false",
       style: `background:${cores[nome]}`,
-      title: `${nome} — ${cores[nome]}`,
-      "aria-label": nome,
+      title: `${maiuscula(dito)} — ${cores[nome]}`,
+      "aria-label": maiuscula(dito),
       onclick: async () => { if (await aplica(nome)) pintar(nome); },
     }));
   }
@@ -4788,6 +4835,16 @@ function montarCartao(item) {
    *   dentro do controle (o deslizante diz "como está: 24"). */
   const agora = item.valendo_agora;
   const escolhido = valorEmVigor(item);
+  /* DESLIGADO NÃO É UM NÚMERO — 24/09/2026, P51 (achado 39). De dia a máquina
+   * guarda 0 na temperatura do modo de leitura, e o cartão dizia «Na máquina
+   * agora: 0» — que não é temperatura nenhuma. O servidor já não o manda como
+   * valor (`_leitura_desligada`), e diz que está desligado. */
+  if (item.desligado_agora && escolhido !== "") {
+    cartao.append(elemento("p", { class: "frase" }, [
+      elemento("b", { texto: "Na máquina agora: desligado. " }),
+      elemento("span", { texto: "O modo de leitura não está esquentando a tela neste momento." }),
+    ]));
+  }
   if (agora != null && escolhido !== "" && !mesmoValor(agora, escolhido)) {
     cartao.append(elemento("p", { class: "frase dominada" }, [
       elemento("b", { texto: `Na máquina agora: ${rotuloDeValor(agora)}. ` }),
@@ -6569,7 +6626,11 @@ function parDeBotoes(item, aplica) {
       "data-valor": opcao,
       "aria-pressed": "false",
       onclick: async () => { if (await aplica(opcao)) pintar(opcao); },
-    }, [moldura, elemento("span", { class: "rotulo-lado", texto: rotuloDeValor(opcao) })]));
+    /* O rótulo que o servidor deu vem primeiro, como no seletor e nos botões
+     * de opção — P51 (achado 19): o `item.rotulos` do TERMINAL_CURSOR diz o
+     * nome do pack no ar, e este par o ignorava. */
+    }, [moldura, elemento("span", { class: "rotulo-lado",
+        texto: (item.rotulos && item.rotulos[opcao]) || rotuloDeValor(opcao) })]));
   }
   /* O «Deixar como está» das três chaves que aceitam vazio fica numa linha
    * própria embaixo, e sem desenho: o desenho dele seria igual ao de uma das
@@ -8545,9 +8606,15 @@ function montarHome() {
 
   const ident = elemento("div", { class: "home-id" });
   ident.append(elemento("p", { class: "home-rotulo", texto: "Como a máquina está vestida" }));
+  /* O NOME DO FLAVOR E O DA COR SÃO OS DO PACK — 24/09/2026, P51 (achado 2).
+   * O cartão do pack dizia «Dracula» e este título «Drácula · Mauve»: o flavor
+   * vinha de uma tabela escrita à mão e a cor pelo nome do slot do Catppuccin.
+   * Os dois saem agora do pack no ar (`rotuloDeValor` pergunta ao pack, e
+   * `nomeDaCor` ao hex do flavor). */
   ident.append(elemento("h2", { class: "home-titulo",
-    texto: [vale("FLAVOR"), vale("ACCENT"), vale("MODO")]
-      .map((v) => maiuscula(rotuloDeValor(v))).join(" · ") }));
+    texto: [rotuloDeValor(vale("FLAVOR")),
+            nomeDaCor(vale("ACCENT"), vale("FLAVOR")) || rotuloDeValor(""),
+            rotuloDeValor(vale("MODO"))].map((v) => maiuscula(v)).join(" · ") }));
 
   /* A TIRA É O FLAVOR, DESENHADO. Mesma disciplina do cartão de variante: um
    * nome não se compara, uma tira se compara. O acento ganha um anel — é a
