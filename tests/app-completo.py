@@ -759,6 +759,23 @@ CAMINHO_JS = r"""
 }
 """
 
+# AS TORRADAS QUE NASCEM A PARTIR DE AGORA, com a classe e o texto — ver o
+# `h_acervo`, que é quem precisa delas: a torrada some antes de a página parar.
+TORRADAS_VISTAS_JS = r"""
+() => {
+  window.__torradasVistas = [];
+  if (window.__torradasVigia) window.__torradasVigia.disconnect();
+  window.__torradasVigia = new MutationObserver((ms) => {
+    for (const m of ms) for (const n of m.addedNodes) {
+      if (!n.classList || !n.classList.contains('torrada')) continue;
+      const classe = ['ok', 'igual', 'erro'].find((c) => n.classList.contains(c)) || '';
+      window.__torradasVistas.push({ classe, texto: n.textContent || '' });
+    }
+  });
+  window.__torradasVigia.observe(document.getElementById('torradas'), { childList: true });
+}
+"""
+
 # A PÁGINA PARADA: nenhuma mutação por `quieto` ms (a marca do censo não
 # conta), com um teto — a gaveta de um trabalho vivo muda a cada 400 ms e
 # nunca para sozinha.
@@ -1798,6 +1815,18 @@ class Percurso:
         if not self.checa(arquivo, f"há um arquivo de teste para «{rotulo}»"):
             return
         antes, n0 = retrato(), len(self.posts)
+        # A TORRADA É CONTADA QUANDO NASCE, E NÃO SÓ NO FIM — 24/09/2026, P52
+        #   Ela vive 2,6 s (`torrada()`, no app.js), e depois de um «Adicionar» a
+        #   página repinta por uns 2,5 s. O `assentar` espera 300 ms de silêncio,
+        #   e a própria torrada saindo é uma mutação que empurra a espera para
+        #   depois dela. Medido na árvore de `dev` (92e7c09), só a aba «Logo do
+        #   sistema»: a torrada `ok` nasceu em 101 ms, a conta foi feita em 3,0 s,
+        #   e a reprovação saiu sem defeito nenhum na página. Na corrida inteira
+        #   as quatro «Adicionar» reprovaram assim, e em outra da mesma árvore só
+        #   uma: a conta dependia de quanto a máquina estava ocupada. A conta do
+        #   fim continua valendo: uma frase repetida não nasce de novo (a que
+        #   existe só ganha sobrevida), e aí quem a vê é a conta do fim.
+        self.js(TORRADAS_VISTAS_JS)
         with self.pag.expect_file_chooser(timeout=5000) as escolha:
             self.achar(nome).click()
         escolha.value.set_files(arquivo)
@@ -1806,11 +1835,15 @@ class Percurso:
             self.pag.wait_for_timeout(100)
         self.assentar(quieto=300, teto=120000)
         self.esperar_trabalho()
-        ok = self.pag.locator("#torradas .torrada.ok, #torradas .torrada.igual").count()
+        vistas = self.js("() => window.__torradasVistas || []")
+        ok = (self.pag.locator("#torradas .torrada.ok, #torradas .torrada.igual").count()
+              or any(v["classe"] in ("ok", "igual") for v in vistas))
         erro = self.pag.locator("#torradas .torrada.erro")
-        self.checa(ok and not erro.count(),
+        disse = ([erro.first.inner_text()] if erro.count() else []) + \
+            [v["texto"] for v in vistas if v["classe"] == "erro"]
+        self.checa(ok and not disse,
                    f"«{rotulo}» aceita {os.path.basename(arquivo)} e diz que entrou"
-                   + (f" — disse {erro.first.inner_text()[:120]!r}" if erro.count() else ""))
+                   + (f" — disse {disse[0][:120]!r}" if disse else ""))
         self.checa(diferenca(antes, retrato()), f"«{rotulo}» escreveu na casa de brinquedo")
 
     def h_exportar_pack(self, nome):
