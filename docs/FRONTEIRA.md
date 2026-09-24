@@ -114,15 +114,17 @@ versionado, e nenhuma linha daquela seção fala de território de vizinho.
 | `gsettings` / `dconf` — `org.gnome.desktop.interface` (`cursor-theme`) | Meow (`cursor.sh`) | **Meow** — resolvido em 25/08/2026, ver abaixo |
 | `~/.icons/default/index.theme` | Meow (`cursor.sh`) | **Meow** — é o que o `cosmic-comp` obedece; o gsettings NÃO o alcança |
 | `/usr/local/bin/*` (wrappers de execução) | Aurora | **Aurora** |
-| `/usr/local/share/zsh/site-functions/_meow` | Aurora | **Aurora instala, Meow fornece** |
-| binário `cosmic-comp` (patches de workspace e night light) | Aurora | **Aurora** |
+| ~~`/usr/local/share/zsh/site-functions/_meow`~~ | ~~Aurora~~ | **MUDOU DE LADO** em 24/09/2026 (P44) — era o self-heal do Ritual que a copiava, e fora de uma casa ninguém a instalava. Ver a linha de baixo |
+| `~/.local/share/zsh/site-functions/_meow` | Meow (`install.sh`, `instalar_completion`) | **Meow** — sem root e sem ponte. A linha do `fpath` que faz o zsh procurar ali é do shell de quem usa: o instalador a DIZ, não a escreve |
+| binário `cosmic-comp` (a série de `patches/`) | Meow (`meow compositor`) | **Meow compila e instala desde 24/09/2026 (P39)** — `sudo` só no fim; o que o `apt` põe continua sendo do `apt`. Até a P39 era a Aurora, pelo `aurora-cosmic-comp-ws.sh --build` |
 | ~~`/usr/local/share/aurora/patches.d/` (a `series` e os `.patch`; cópia canônica em `~/.config/zsh/patches/patches.d/`)~~ | ~~Aurora~~ | **MUDOU DE LADO** — desde 22/09/2026 a série é `patches/series`, deste repositório, e os cinco `.patch` moram todos aqui. Ver «O que é tema volta para casa», no fim |
 | `patches/series` (a série: classe, ordem, marcador-base) | Meow | **Meow** — desde 22/09/2026; era da Aurora. É quem sabe APLICAR os patches, e isso é tema |
-| `/var/lib/aurora/cosmic-comp-patches.estado` | Aurora | **Aurora escreve, Meow lê e diz** — 644, dono root, legível por ela sem sudo; é o contrato do `meow doctor` |
-| `patches/*.patch` deste repositório | Meow | **Meow** — é onde o patch nasce e é revisado. Desde 22/09/2026 é também onde ele é APLICADO (`compositor_patches.sh aplicar`); compilar e instalar seguem sendo passo dela |
+| ~~`/var/lib/aurora/cosmic-comp-patches.estado`~~ | ~~Aurora~~ | **MUDOU DE LADO** em 24/09/2026 (P39) — o `.estado` é `/var/lib/meowsystem/cosmic-comp/patches.estado`, gravado pelo `meow compositor` e lido pela linha `patches` do doctor |
+| `patches/*.patch` deste repositório | Meow | **Meow** — é onde o patch nasce e é revisado. Desde 22/09/2026 é também onde ele é APLICADO (`compositor_patches.sh aplicar`), e desde 24/09/2026 (P39) compilar e instalar também: `meow compositor` |
 | ciclo de vida do processo `cosmic-panel` | Aurora | **Meow desde 26/08/2026** — o `systemd/meow-painel.service` é o supervisor; o lado da Aurora segue desarmado. A tabela dizia "Aurora" até 29/08 |
 | tema do qBittorrent | Aurora | **Aurora** — o `meow` chama o script de lá |
-| `~/.config/fastfetch/config.jsonc`, chave `logo.source` | Aurora | **Meow escreve, cirurgicamente, desde 01/09/2026** — ver abaixo |
+| `~/.config/fastfetch/` (o diretório inteiro) | Meow (`fastfetch_logo.sh`) | **Meow desde 24/09/2026 (P44)** — era symlink para o Spellbook, e cada chave escrita virava commit lá. Virou diretório de verdade, com o mesmo conteúdo e backup; o Spellbook parou de versioná-lo. Até a P44 a linha dizia "Aurora; Meow escreve cirurgicamente o `logo.source`" — ver abaixo |
+| `~/.config/meowsystem/fzf.sh` (as cores do fzf) | Meow (`scripts/fzf.sh`) | **Meow desde 24/09/2026 (P44)** — sai da paleta do pack no ar. A linha que o carrega é do shell de quem usa |
 | binário `cosmic-files` / `cosmic-files-applet` | apt | **Meow, por PATH** — `~/.local/bin/` vence `/usr/bin/`, e o nosso SAI DA FRENTE quando o pacote sobe de versão sem build correspondente |
 
 ---
@@ -497,8 +499,9 @@ causa dele seria cobrar 4 minutos de `cargo` por um logout.
 
 **E ele não conserta nada, de propósito.** `patches` está em `SEM_CONSERTO`: o
 conserto é recompilar o `cosmic-comp` (~4 min, `sudo install` em `/usr/bin`), e o
-doctor nunca usa sudo, nunca baixa e nunca compila. O comando é dela:
-`aurora-cosmic-comp-ws.sh --build`. Um build de 4 minutos disparado pelo timer
+doctor nunca usa sudo, nunca baixa e nunca compila. O comando era dela:
+`aurora-cosmic-comp-ws.sh --build`. Desde 24/09/2026 (P39) o build é daqui, e o
+comando que a linha `patches` manda rodar é `meow compositor`. Um build de 4 minutos disparado pelo timer
 das 05:00 seria pior que o defeito que ele corrige — é a mesma decisão que já
 tinha posto `cursor` (baixa da rede), `midiabin` e `leiturabin` (compilam) nessa lista.
 
@@ -630,6 +633,13 @@ voltam a divergir, e é para esse dia que as duas linhas existem.
 ---
 
 ## O `logo.source` do fastfetch: a única linha que o Meow escreve num arquivo da Aurora
+
+> **Esta seção é história desde 24/09/2026 (P44).** O `~/.config/fastfetch`
+> deixou de ser symlink: é um diretório do MeowSystem, com o mesmo conteúdo, e o
+> Spellbook parou de versioná-lo. As quatro guardas abaixo protegiam um arquivo
+> de outro repositório; o arquivo agora é nosso, e ficam como o registro de por
+> que a escrita foi, por três semanas, cirúrgica. Ver «O doctor só lê, e o que
+> era tema termina de sair do Spellbook», mais abaixo.
 
 `~/.config/fastfetch` é symlink para `~/.config/zsh/fastfetch/`, e `~/.config/zsh`
 está no `vizinhos.conf` — a TRAVA 1 do `lib/comum.sh` recusa escrever ali, e a
@@ -1134,6 +1144,27 @@ Três itens do plano ficaram de fora, e nenhum por esquecimento:
    apontar para um script que não existe: agora nomeia `aplicar`, que é daqui.
 
 ---
+
+## O doctor só lê, e o que era tema termina de sair do Spellbook — 24/09/2026 (P44)
+
+**Um sinal nunca sai da casa de quem pediu.** O `painel.sh reciclar` derrubava
+o painel por `pkill -x cosmic-panel` — a máquina inteira. Medido: um
+`HOME=$(mktemp -d) meow doctor` gravava 13 arquivos na casa de brinquedo e
+mandava SIGTERM no painel da sessão de verdade. Agora todo sinal do painel mira
+só o processo do MESMO usuário e do MESMO `$HOME` de quem chamou
+(`meow_painel_desta_casa`, `lib/painel.sh`), e o doctor sem `--consertar` não
+escreve: o `chk_logo` e o `chk_apps` passaram a rodar em seco, como as irmãs.
+O `tests/doctor-so-le.sh` cobra as duas coisas.
+
+**O que era tema no Spellbook, e ainda morava lá:**
+
+| item | para onde | o que ficou do lado de lá |
+|---|---|---|
+| as cores do fzf (`FZF_DEFAULT_OPTS` em Catppuccin, `fzf-tab` em Dracula — duas paletas cravadas na mesma máquina) | `scripts/fzf.sh` escreve `~/.config/meowsystem/fzf.sh` a partir da paleta do pack no ar | a linha que carrega o arquivo, e o `use-fzf-default-opts` do fzf-tab: são do shell de quem usa |
+| `~/.config/fastfetch` (symlink para `fastfetch/` do Spellbook) | diretório de verdade, do MeowSystem; o `fastfetch_logo.sh` o assume sozinho, com backup | nada: o Spellbook parou de versionar `fastfetch/` |
+
+O resto do `env.zsh` — aliases, PATH, `FZF_DEFAULT_COMMAND`, atalhos — ficou
+intocado: é máquina, não tema (o limite de 24/09).
 
 ## O contrato numerado, que era citado em dezenas de linhas e não existia — 21/09/2026
 

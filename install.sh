@@ -443,12 +443,30 @@ etapa_conf() {
 #   Andromeda (completions/CONVENCAO.md) para completion escrita à mão, e o
 #   gerador de lá preserva quem tem esse marcador nas 3 primeiras linhas — vale
 #   para quem apontar o MEOW_COMPLETIONS_DIR de volta para lá.
-COMPLETIONS_DIR="${MEOW_COMPLETIONS_DIR:-/usr/local/share/zsh/site-functions}"
+#
+# O QUE FALTAVA FOI FEITO EM 24/09/2026 (P44): A COMPLETION MORA NA CASA DE QUEM USA
+#   O destino padrão passou a ser `~/.local/share/zsh/site-functions` (o XDG de
+#   dados do usuário): gravável sem root, sem ponte, e fora do repositório de
+#   qualquer pessoa. O `/usr/local/share/...` fica como escolha explícita, pelo
+#   mesmo `MEOW_COMPLETIONS_DIR`.
+#
+#   O QUE A MEDIÇÃO DO DIA DERRUBOU: a sprint dizia que esse diretório já está
+#   no `$fpath`. Não está — nem no fpath compilado do zsh desta máquina
+#   (`zsh -f -c 'print -l $fpath'` começa em `/usr/local/share/zsh/...`), nem
+#   em arquivo de inicialização nenhum dela. O zsh não o procura sozinho. Então
+#   esta etapa faz a metade que é nossa — o arquivo no lugar — e DIZ a linha
+#   que falta, do mesmo jeito que o `prompt.sh` diz a do starship: a linha do
+#   `fpath` é do shell de quem usa, e o MeowSystem não escreve em arquivo de
+#   shell. Ela sai só quando o arquivo é escrito, e só se o fpath de fábrica
+#   do zsh não tiver o diretório — dizer a mesma coisa em toda passagem é
+#   ensinar a ignorar.
+COMPLETIONS_DIR="${MEOW_COMPLETIONS_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions}"
 
 # Escrita atômica igual à da `meow_escrever`, e por fora da trava de território
-# de propósito — que continua valendo, agora pelo outro lado: o destino padrão é
-# `/usr/local/share/...`, que está em `MEOW_PROIBIDOS_SISTEMA`, e apontar
-# `MEOW_COMPLETIONS_DIR` de volta para o Andromeda cai na lista de vizinhos.
+# de propósito — que continua valendo, agora pelo outro lado: apontar o
+# `MEOW_COMPLETIONS_DIR` para `/usr/local/share/...` cai em
+# `MEOW_PROIBIDOS_SISTEMA` (até a P44 era o destino padrão), e apontá-lo de volta
+# para o Andromeda cai na lista de vizinhos.
 # Nos dois casos `meow_escrever` recusaria, corretamente; aqui a escolha de
 # escrever é explícita, está num lugar só, e o teste de permissão logo abaixo é
 # quem decide se ela acontece.
@@ -463,6 +481,15 @@ instalar_completion() {
     return "$MEOW_OK"
   fi
   [ -f "$origem" ] || { meow_erro "falta $origem"; return "$MEOW_ERRO"; }
+  # O diretório do usuário nasce aqui; um que a pessoa apontou e não existe
+  # continua sendo "não há onde pôr" — criar caminho alheio não é nosso.
+  if [ ! -d "$COMPLETIONS_DIR" ] && [ -z "${MEOW_COMPLETIONS_DIR:-}" ]; then
+    if meow_seco; then
+      meow_muda "criaria $COMPLETIONS_DIR e instalaria a completion lá"
+      return "$MEOW_DIVERGENTE"
+    fi
+    mkdir -p "$COMPLETIONS_DIR" 2>/dev/null || { meow_erro "não consegui criar $COMPLETIONS_DIR"; return "$MEOW_ERRO"; }
+  fi
   if [ ! -d "$COMPLETIONS_DIR" ]; then
     meow_pula "não achei $COMPLETIONS_DIR — sem lugar no \$fpath para a completion"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -471,8 +498,9 @@ instalar_completion() {
     meow_ok "completion do zsh já instalada em $destino"
     return "$MEOW_OK"
   fi
-  # O destino padrão é do sistema e pertence ao root: aqui não há o que consertar
-  # sem sudo, e não é divergência nossa — é etapa de outro dono. Por isso `pula`
+  # Um destino apontado para o sistema pertence ao root (até a P44 era o padrão):
+  # aqui não há o que consertar sem sudo, e não é divergência nossa — é etapa de
+  # outro dono. Por isso `pula`
   # com `MEOW_OK` e não `meow_muda`: um `doctor` eternamente divergente por causa
   # de um arquivo que o Aurora instala sozinho seria alarme que ninguém pode calar.
   # A PROMESSA DO RITUAL SAIU DA FRASE EM 24/09/2026 (P39). Ela dizia que o
@@ -511,6 +539,14 @@ instalar_completion() {
   done
   meow_info "para não instalar: MEOW_SEM_COMPLETIONS=1 ./install.sh"
   meow_info "o TAB só passa a funcionar no próximo terminal (o compinit lê o fpath no início)"
+  # A linha do `fpath`, dita e não escrita — ver o bloco "O QUE FALTAVA FOI
+  # FEITO", acima. O `-f` pergunta ao zsh sem arquivo de inicialização nenhum:
+  # é o fpath de fábrica, e é o único que se pode perguntar sem rodar o shell
+  # de alguém.
+  if meow_tem zsh && ! zsh -f -c 'print -l -- $fpath' 2>/dev/null | grep -qxF -- "$COMPLETIONS_DIR"; then
+    meow_info "o zsh não procura em $COMPLETIONS_DIR sozinho; no seu .zshrc, ANTES do compinit:"
+    meow_info "  fpath=(\"$COMPLETIONS_DIR\" \$fpath)"
+  fi
   return "$MEOW_DIVERGENTE"
 }
 
@@ -664,8 +700,12 @@ etapa_cli() {
 
   # 3 AQUI É "NÃO HÁ ONDE PÔR", E ISSO NÃO É FALHA DESTA ETAPA
   #   A `instalar_completion` devolve 3 quando o diretório de completions não
-  #   existe — numa máquina que não é esta, `/usr/local/share/zsh/site-functions`
-  #   pode simplesmente não estar lá. O `-ge 2` que estava aqui engolia esse 3 junto
+  #   existe. Desde a P44 (24/09/2026) isso só acontece com um
+  #   `MEOW_COMPLETIONS_DIR` apontado para um diretório que não está lá: o
+  #   destino padrão, `~/.local/share/zsh/site-functions`, a função cria sozinha.
+  #   Até então o padrão era `/usr/local/share/zsh/site-functions`, que numa
+  #   máquina que não é esta podia simplesmente não existir — foi esse o caso
+  #   medido abaixo. O `-ge 2` que estava aqui engolia esse 3 junto
   #   com o 2 e devolvia erro: MEDIDO num HOME de teste sem o diretório, o
   #   `install.sh` terminava com "falhou: cli" tendo instalado o `meow` inteiro
   #   e funcionando. O que se perde sem completion é o TAB, e o `meow_pula`
@@ -1635,6 +1675,18 @@ etapa_prompt() {
   return $?
 }
 
+# AS CORES DO FZF, e a etapa nasceu da regra de 23/09 — 24/09/2026 (P44).
+#   Eram hex cravados no `env.zsh` do Spellbook, e em DUAS paletas: o
+#   `FZF_DEFAULT_OPTS` em Catppuccin e o fzf-tab em Dracula, na mesma máquina.
+#   Agora saem da paleta do pack no ar, para `~/.config/meowsystem/fzf.sh`, e a
+#   linha que carrega o arquivo é do shell de quem usa — o mesmo desenho do
+#   starship logo acima. O mapa de papéis e a medição estão em `scripts/fzf.sh`.
+etapa_fzf() {
+  passo "Cores do fzf"
+  FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$MEOW_RAIZ/scripts/fzf.sh" aplicar
+  return $?
+}
+
 # O TERMINAL, a última peça da tela que continuava de fábrica. Escreve QUATRO
 # arquivos em `com.system76.CosmicTerm/v1` — os dois mapas de esquema e as duas
 # chaves que os SELECIONAM. Um esquema instalado e não selecionado não muda um
@@ -1669,6 +1721,10 @@ etapa_terminal() {
 # `~/.config/zsh`, território da Aurora. O script gera, CONFERE e imprime o
 # patch; nunca escreve lá. Por isso pode devolver 4, e o `concluir` já lê 4 como
 # "pulado" — sem contar falha e sem virar notificação diária.
+# (O parágrafo acima é de 25/08. Desde 01/09 a escrita das chaves é cirúrgica,
+# e desde 24/09/2026 (P44) o `~/.config/fastfetch` é diretório do MeowSystem: o
+# script troca o symlink por um diretório de verdade, com o mesmo conteúdo e
+# backup — ver o topo do `scripts/fastfetch_logo.sh`.)
 #
 # ANSI, e não sixel/kitty, porque foi MEDIDO ao vivo em 25/08/2026: a DA1 do
 # cosmic-term responde `\e[?6c` (sem o `;4` do sixel) e a query kitty volta
@@ -3339,7 +3395,7 @@ main() {
                 etapa_mimetypes etapa_icones_apps etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_apps_dracula etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
-                etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
+                etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
                 etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}

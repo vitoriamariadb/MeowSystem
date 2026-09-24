@@ -205,6 +205,38 @@ FASTFETCH_LOGO_NOITE="${FASTFETCH_LOGO_NOITE:-${LOGO_NOITE:-coquinha}}"
 #   donos da mesma linha, que é o defeito que este projeto mais persegue.
 FASTFETCH_LOGO_CONF="${FASTFETCH_LOGO_CONF:-sim}"
 
+# --- O DIRETÓRIO PASSOU A SER NOSSO — 24/09/2026 (P44) ------------------------
+# As quatro guardas acima existiam porque o `~/.config/fastfetch` era SYMLINK
+# para o repositório de shell de uma casa (o Spellbook, com auto-commit a cada
+# 10 min): cada chave que este script gravava — `logo.source`, `logo.type` e os
+# dois números do `padding`, mais o título — virava commit no repositório de
+# outra pessoa. A regra de 23/09 ("tema é do MeowSystem; máquina é do
+# Spellbook") decidiu o lado: o fastfetch é tema, e o diretório vem para cá.
+#
+# O QUE MUDA, E SÓ QUANDO HÁ O QUE MUDAR (`_ffl_assumir_diretorio`)
+#   - `~/.config/fastfetch` é symlink: vira um diretório de verdade com o MESMO
+#     conteúdo (cópia do alvo, byte a byte), e o de antes vai para
+#     `$MEOW_ESTADO/backups/<carimbo>-fastfetch/` — o conteúdo e para onde o
+#     link apontava. Dito em voz alta, como toda escrita daqui.
+#   - É diretório de verdade, ou não existe: nada muda. A troca não pergunta
+#     se o link é do Spellbook (ver o parágrafo logo abaixo): um
+#     `~/.config/fastfetch` de dotfiles via stow, em qualquer máquina, também
+#     vira diretório — no `aplicar` e no `doctor --consertar` do timer das 5h —,
+#     sempre com backup e aviso. Até a revisão da P44 (24/09/2026) esta linha
+#     dizia que "uma máquina sem Spellbook nunca passa por esta função", e o
+#     código nunca fez essa distinção.
+#   - `FASTFETCH_LOGO_CONF="nao"` continua sendo "não mexa no config do
+#     fastfetch", e isso inclui não trocar o symlink.
+#   O SYMLINK É PERGUNTADO AO DISCO, NUNCA PELO NOME DE QUEM ESTÁ DO OUTRO LADO:
+#   qualquer link ali é tratado igual, porque a pergunta é "o arquivo que o
+#   MeowSystem escreve mora fora da casa do MeowSystem?", e não "de quem é".
+#
+# O DO OUTRO LADO PARA DE VERSIONAR NO MESMO DIA, e isso é trabalho de lá, não
+# daqui: este script não escreve no repositório de ninguém. Se o de lá sair
+# primeiro, o link fica apontando para o nada; aí o que vira diretório é um
+# diretório VAZIO — o fastfetch cai no padrão dele, que é o mesmo que um link
+# quebrado já dava.
+
 # LARGURA EM COLUNAS. 40 não é chute: é a largura do logo `pop` que este
 # substitui (medido — o bloco de informação continua começando na MESMA coluna,
 # então nada do texto dela se desloca). Mexer aqui é seguro.
@@ -326,6 +358,64 @@ esac
 # O config.jsonc DELA. Só é LIDO — nunca aberto para escrita, em nenhum caminho
 # deste arquivo.
 FFL_CONF_DELA="$HOME/.config/fastfetch/config.jsonc"
+FFL_CONF_DIR="$(dirname "$FFL_CONF_DELA")"
+
+# O symlink vira diretório — ver "O DIRETÓRIO PASSOU A SER NOSSO", no topo.
+# 0 = nada a fazer (já é diretório, não existe, ou a chave desliga) ·
+# 1 = assumi (ou, no seco, assumiria) · 2 = não deu, e nada foi trocado.
+#
+# A TROCA É EM DOIS PASSOS, E O SEGUNDO É O ÚNICO QUE ENCOSTA NO LINK
+#   O diretório novo é montado INTEIRO ao lado (temporário no mesmo pai, que é o
+#   mesmo sistema de arquivos) antes de o link sair. `rename(2)` não põe um
+#   diretório por cima de um symlink (ENOTDIR), então são um `rm` e um `mv`
+#   seguidos: a janela em que `~/.config/fastfetch` não existe é de dois
+#   syscalls, e um fastfetch aberto nela sai com o logo e os módulos padrão —
+#   uma vez. Se o `mv` falhar, o link volta.
+_ffl_assumir_diretorio() {
+  local para alvo novo bkp
+  [ -L "$FFL_CONF_DIR" ] || return 0
+  if [ "$FASTFETCH_LOGO_CONF" != "sim" ]; then
+    meow_pula "$FFL_CONF_DIR é symlink e FASTFETCH_LOGO_CONF=\"$FASTFETCH_LOGO_CONF\" — fica como está"
+    return 0
+  fi
+  para="$(readlink "$FFL_CONF_DIR")"
+  alvo="$(readlink -f "$FFL_CONF_DIR" 2>/dev/null || true)"
+  if meow_seco; then
+    meow_muda "trocaria o symlink $FFL_CONF_DIR -> $para por um diretório de verdade, com o mesmo conteúdo"
+    return 1
+  fi
+
+  bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-fastfetch"
+  mkdir -p "$bkp/conteudo" 2>/dev/null \
+    || { meow_erro "não consegui criar $bkp — o symlink fica como está"; return 2; }
+  printf '%s\n' "$para" > "$bkp/symlink-apontava-para" 2>/dev/null \
+    || { meow_erro "não consegui guardar o backup em $bkp — o symlink fica como está"; return 2; }
+  if [ -d "$alvo" ]; then
+    cp -a "$alvo/." "$bkp/conteudo/" 2>/dev/null \
+      || { meow_erro "não consegui copiar $alvo para o backup — o symlink fica como está"; return 2; }
+  fi
+
+  novo="$(mktemp -d -p "$(dirname "$FFL_CONF_DIR")" ".fastfetch.meow.XXXXXX")" \
+    || { meow_erro "não consegui montar o diretório novo ao lado de $FFL_CONF_DIR"; return 2; }
+  if [ -d "$alvo" ] && ! cp -a "$alvo/." "$novo/" 2>/dev/null; then
+    rm -rf "$novo"; meow_erro "não consegui copiar o conteúdo de $alvo — o symlink fica como está"; return 2
+  fi
+  chmod 755 "$novo"
+  rm -f "$FFL_CONF_DIR" || { rm -rf "$novo"; meow_erro "não consegui tirar o symlink $FFL_CONF_DIR"; return 2; }
+  if ! mv "$novo" "$FFL_CONF_DIR"; then
+    ln -s "$para" "$FFL_CONF_DIR" 2>/dev/null
+    rm -rf "$novo"; meow_erro "não consegui pôr o diretório no lugar — o symlink voltou"; return 2
+  fi
+
+  if [ -d "$alvo" ]; then
+    meow_aviso "$FFL_CONF_DIR deixou de ser symlink para $para: agora é um diretório do MeowSystem, com o mesmo conteúdo"
+  else
+    meow_aviso "$FFL_CONF_DIR era symlink para $para, que não existe: agora é um diretório vazio do MeowSystem"
+  fi
+  meow_info  "  backup (o conteúdo e o destino do link): $bkp"
+  meow_registrar "fastfetch_logo.sh assumiu $FFL_CONF_DIR (era symlink para $para)"
+  return 1
+}
 
 _ffl_svg() {
   case "$FASTFETCH_LOGO_GATO" in
@@ -1291,6 +1381,17 @@ cmd_aplicar() {
     meow_info "  o MeowSystem não lê nem escreve arquivo de shell — essa linha é sua"
   fi
 
+  # O DIRETÓRIO ANTES DAS CHAVES: o título e o `logo.source` logo abaixo são
+  # escritos dentro dele, e escritos através do link iriam parar no
+  # repositório de outra pessoa (P44, 24/09/2026 — ver o topo).
+  _ffl_assumir_diretorio
+  case $? in
+    1) rc="$MEOW_DIVERGENTE" ;;
+    2) meow_erro "não assumi $FFL_CONF_DIR, e por isso não escrevo nele"
+       meow_registrar "fastfetch_logo.sh aplicar rc=2, o symlink ficou"
+       return "$MEOW_ERRO" ;;
+  esac
+
   _ffl_escrever_titulo; _rct=$?
   [ "$_rct" = "1" ] && rc="$MEOW_DIVERGENTE"
   unset _rct
@@ -1358,6 +1459,14 @@ cmd_conferir() {
   [ "$rc" = "$MEOW_ERRO" ] && return "$rc"
   if [ "$rc" != "$MEOW_OK" ]; then
     meow_muda "logo ANSI divergente do SVG/tamanho pedidos"
+    return "$MEOW_DIVERGENTE"
+  fi
+  # O symlink é divergência NOSSA (1), e não da fronteira (4): quem o conserta
+  # é o `aplicar` daqui, sem mão de ninguém. Ver "O DIRETÓRIO PASSOU A SER
+  # NOSSO". Vem antes do "conforme" para ser a PRIMEIRA linha — é ela que a
+  # tabela do doctor mostra.
+  if [ -L "$FFL_CONF_DIR" ] && [ "$FASTFETCH_LOGO_CONF" = "sim" ]; then
+    meow_muda "$FFL_CONF_DIR é symlink para $(readlink "$FFL_CONF_DIR") — viraria um diretório do MeowSystem, com o mesmo conteúdo"
     return "$MEOW_DIVERGENTE"
   fi
   meow_ok "logo ANSI conforme ($FASTFETCH_LOGO_COLUNAS x $(_ffl_linhas) células, $(_ffl_blocos))"

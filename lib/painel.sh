@@ -258,9 +258,12 @@ meow_painel_achar_display() {
 # sem terceira via. E o vigia não tem mais o que vigiar aqui: desde 19/09 quem
 # detecta o painel que não desenha é este arquivo (docs/FRONTEIRA.md), o
 # `aurora-painel-fantasma.timer` está desligado e o script não mora no
-# Spellbook (medido em 24/09). O nome e as seis chamadas do `scripts/painel.sh`
-# ficam porque aquele arquivo não é desta sprint; tirá-las é trabalho de quem
-# mexer nele, e a função vazia é o que as deixa inofensivas até lá.
+# Spellbook (medido em 24/09).
+#
+# AS SEIS CHAMADAS SAÍRAM DO `scripts/painel.sh` NA P44 (24/09/2026), e desde
+# então esta função não tem quem a chame — `grep -rn carencia_aurora` só a acha
+# aqui. Fica porque a regra da casa é apontar código morto, não apagá-lo; quem
+# quiser tirá-la tira este bloco inteiro, sem caçar mais nada.
 meow_painel_carencia_aurora() {
   return 0
 }
@@ -330,6 +333,37 @@ meow_painel_do_supervisor() {   # imprime o PID do painel do cosmic-session, se 
     [ "$pai" = "$ses" ] && { printf '%s' "$p"; return 0; }
   done
   return 1
+}
+
+# --- de QUEM é a casa do painel -----------------------------------------------
+# UM SINAL NUNCA SAI DA CASA DE QUEM PEDIU — 24/09/2026 (P44)
+#   O `reciclar` achava o painel com `pgrep -x cosmic-panel` e o derrubava com
+#   `pkill -x cosmic-panel`: a máquina inteira, de qualquer usuário, de qualquer
+#   `$HOME`. Medido pela revisão da P39 e de novo nesta: `HOME=$(mktemp -d) meow
+#   doctor` mandava SIGTERM no painel da sessão de verdade, porque o `logo.sh`
+#   da casa de brinquedo via "gato trocado" e pedia o reciclo. Um teste, um
+#   `meow` de outro clone ou de outro usuário — qualquer um piscava a barra de
+#   quem está na frente da tela.
+#
+#   O PAINEL É DESTA CASA quando as duas coisas batem: é do MESMO usuário
+#   (`pgrep -u`, que também poupa o painel de outra pessoa logada) e o `HOME`
+#   com que ele nasceu — `/proc/<pid>/environ`, que só o dono lê — é o `$HOME`
+#   de quem chama. O `cosmic-session`, o laço do `meow-painel.service` e o
+#   Alt+F2 sobem o painel com o `HOME` da sessão (medido em 24/09: HOME igual,
+#   mesmo `sessionid`), e o timer que pede o reciclo roda com esse mesmo
+#   `HOME`. Uma casa de brinquedo não casa com nada, e o sinal não sai.
+#
+#   POR QUE NÃO O `sessionid`: o processo que pede o reciclo vem, na maior parte
+#   das vezes, de uma unidade do `systemd --user`, e o gerente do usuário não
+#   está em sessão nenhuma — o `sessionid` dele é o "não definido" do kernel.
+#   Cobrar esse número recusaria justamente o caminho de todo dia.
+meow_painel_desta_casa() {      # imprime os PIDs dos cosmic-panel deste usuário e deste HOME
+  local p casa eu="${HOME%/}"
+  for p in $(pgrep -u "$(id -u)" -x cosmic-panel 2>/dev/null); do
+    casa="$(tr '\0' '\n' < "/proc/$p/environ" 2>/dev/null | sed -n 's/^HOME=//p' | head -n1)"
+    [ -n "$casa" ] && [ "${casa%/}" = "$eu" ] && printf '%s\n' "$p"
+  done
+  return 0
 }
 
 meow_painel_nossos() {          # imprime os PIDs dos painéis que NÃO são do supervisor
