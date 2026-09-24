@@ -419,11 +419,16 @@ sys.stdout.write(d if isinstance(d, str) else json.dumps(d))
 PY
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+meow_app_instalado() { _heroic_presente; }
+
 # ─────────────────────────────────────────────────────────────────────────────
 # meow_app_detectar — 0 presente, 3 ausente.
 # ─────────────────────────────────────────────────────────────────────────────
 meow_app_detectar() {
-  _heroic_presente || { meow_pula "Heroic não está instalado"; return "$MEOW_SEM_DEPENDENCIA"; }
+  meow_app_instalado || { meow_pula "Heroic não está instalado"; return "$MEOW_SEM_DEPENDENCIA"; }
   local dir
   dir="$(_heroic_conf_dir)" || {
     meow_pula "Heroic instalado, mas ainda não abriu uma vez — sem pasta de configuração"

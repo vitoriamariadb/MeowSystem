@@ -486,6 +486,13 @@ _meow_qbt_dizer_o_ar() {
   return 0
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+# O nativo conta: ele É o qBittorrent instalado, e o módulo sempre o reconheceu
+# (o aviso logo abaixo); só não o veste, porque o escritor do conf é flatpak.
+meow_app_instalado() { meow_flatpak_tem "$MEOW_QBT_APP_ID" || meow_tem qbittorrent; }
+
 # ─────────────────────────────────────────────────────────────────────────────
 # núcleo comum das três funções: dá para trabalhar? (0 = sim, 3 = não)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -494,11 +501,14 @@ _meow_qbt_dizer_o_ar() {
 # uma vez só" marcaria como já-avisado no chamado mudo, e a receita nunca
 # chegaria à tela. Por isso o núcleo é separado do relato.
 _meow_qbt_pronto() {
+  meow_app_instalado || { meow_pula "qBittorrent não instalado"; return "$MEOW_SEM_DEPENDENCIA"; }
+  # Instalado, e sem a pasta do flatpak ao alcance: ou é o nativo, ou é o
+  # flatpak sem o comando `flatpak` — nos dois casos, nada para vestir.
   _meow_qbt_conf_dir >/dev/null || {
     if meow_tem qbittorrent; then
       _meow_qbt_avisar_nativo
     else
-      meow_pula "qBittorrent não instalado"
+      meow_pula "qBittorrent: falta o comando flatpak"
     fi
     return "$MEOW_SEM_DEPENDENCIA"
   }

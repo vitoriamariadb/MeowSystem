@@ -15,7 +15,7 @@
 #   O buraco não deu erro em lugar nenhum. Foi preciso alguém perguntar "o
 #   install e o uninstall estão pareados?" para ele aparecer.
 #
-# SÃO QUATRO AFIRMAÇÕES, E AS TRÊS ÚLTIMAS SÃO AS QUE ENVELHECEM
+# SÃO CINCO AFIRMAÇÕES, E AS QUATRO ÚLTIMAS SÃO AS QUE ENVELHECEM
 #   1. o desinstalador chama o `reverter` — uma linha, quebra alto se sumir;
 #   2. TODO módulo em `assets/temas-de-apps/` define `meow_app_reverter` — esta é a que
 #      apodrece sozinha: um módulo novo nasce com `detectar/conferir/aplicar`
@@ -41,6 +41,10 @@
 #      "Spotify não instalado" para um Spotify instalado. O bloco 4 lá embaixo
 #      explica as duas cobranças; esta é a que nasce velha se alguém migrar um
 #      módulo pela metade, e o custo de falhar nela é o log mentir de novo.
+#   5. TODO módulo diz se o programa está instalado (`meow_app_instalado`), e
+#      o `detectar` dele chama a mesma função — acrescentada em 24/09/2026
+#      (P49), quando a tabela do `meow apps` disse «não instalado» para dois
+#      flatpaks que estavam no disco. O bloco 5 lá embaixo conta o resto.
 #
 # POR QUE `declare -F` NUM SUBSHELL, E NÃO UM `grep`
 #   `grep -q meow_app_reverter` passaria com a palavra dentro de um comentário —
@@ -184,6 +188,54 @@ for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
   fi
 done
 
+# --- 5. "instalado" é uma regra só, e o `detectar` a chama -----------------
+# 24/09/2026, P49 (achado 45 da validação no painel de verdade): a tabela do
+# `meow apps` disse qBittorrent e Discord «não instalado», e os dois estavam. A
+# coluna lia o código do `detectar`, e o módulo tinha a regra dele. Agora a
+# regra é o `meow_app_instalado` de cada módulo, que a tabela pergunta. Três
+# cobranças, pelos mesmos motivos das de cima:
+#   a) todo módulo a define — um módulo novo sem ela deixaria a coluna sem
+#      resposta, e o runner diria erro onde a tela diz «não»;
+#   b) o arquivo a CHAMA além de defini-la — é o `detectar` abrindo com ela, e
+#      é o que faz a frase «não está instalado» do módulo e a coluna da tabela
+#      saírem da mesma função (no qBittorrent, pelo núcleo `_meow_qbt_pronto`);
+#   c) aqui e agora, nesta máquina: se o `detectar` diz que dá para trabalhar,
+#      o `instalado` não pode dizer que o programa não está.
+instalados=0
+for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
+  nome="$(basename "$(dirname "$mod")")"
+  usos="$(grep -v '^[[:space:]]*#' "$mod" | grep -c 'meow_app_instalado')"
+  if [ "$usos" -lt 2 ]; then
+    printf 'FALHOU: o módulo %s não define e chama meow_app_instalado (%s uso)\n' "$nome" "$usos" >&2
+    printf '        a coluna «instalado» e a frase do módulo voltariam a ser duas regras\n' >&2
+    falhou=1
+    continue
+  fi
+  medida="$(
+    set +u
+    MEOW_ESTADO="$(mktemp -d -p "${TMPDIR:-/tmp}" .meow-reversao.XXXXXX)"
+    trap 'rm -rf "$MEOW_ESTADO"' EXIT
+    MEOW_IGNORA_DESKTOP=1 NO_COLOR=1
+    # shellcheck source=../lib/comum.sh
+    . "$RAIZ/lib/comum.sh" >/dev/null 2>&1
+    # shellcheck disable=SC1090
+    . "$mod" >/dev/null 2>&1
+    declare -F meow_app_instalado >/dev/null || { printf 'sem'; exit 0; }
+    meow_app_instalado >/dev/null 2>&1; inst=$?
+    meow_app_detectar >/dev/null 2>&1; det=$?
+    printf '%s %s' "$inst" "$det"
+  )"
+  if [ "$medida" = "sem" ]; then
+    printf 'FALHOU: o módulo %s não define meow_app_instalado depois do source\n' "$nome" >&2
+    falhou=1
+  elif [ "${medida#* }" = "0" ] && [ "${medida% *}" != "0" ]; then
+    printf 'FALHOU: em %s o detectar diz que dá para trabalhar e o instalado diz que não está (%s)\n' "$nome" "$medida" >&2
+    falhou=1
+  else
+    instalados=$((instalados + 1))
+  fi
+done
+
 # E A GUARDA MORDE. Sem esta conferência o `meow_app_pendente` poderia degenerar
 # numa frase genérica sem ninguém notar, que é o defeito voltando pela porta de
 # trás: motivo vazio tem de GRITAR "defeito no módulo", não virar silêncio bonito.
@@ -206,5 +258,6 @@ esac
 printf 'ok: o --uninstall desfaz os %s módulos de aplicativo\n' \
   "$(find "$RAIZ/assets/temas-de-apps" -mindepth 1 -maxdepth 1 -type d | wc -l)"
 printf 'ok: os %s módulos migrados declaram o motivo em toda saída de pendência\n' "$migrados"
+printf 'ok: os %s módulos dizem se o programa está instalado pela mesma regra que o detectar chama\n' "$instalados"
 printf 'ok: as %s unidades de systemd/ estão nas duas listas do desinstalador\n' \
   "$(find "$RAIZ/systemd" -maxdepth 1 -name 'meow-*' -type f | wc -l)"

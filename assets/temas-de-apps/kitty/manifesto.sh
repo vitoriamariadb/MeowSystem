@@ -219,9 +219,14 @@ _kitty_gravar_conf() {
   return "$MEOW_DIVERGENTE"
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+meow_app_instalado() { _kitty_instalado; }
+
 meow_app_detectar() {
   MEOW_APP_MOTIVO=""
-  _kitty_instalado || { meow_app_sem "kitty: não está instalado"; return; }
+  meow_app_instalado || { meow_app_sem "kitty: não está instalado"; return; }
   meow_tem python3 || { meow_app_sem "kitty: falta python3, que monta o tema com a paleta do pack"; return; }
   # SEM `$( )`: a resposta vem pelas duas variáveis (ver lib/comum.sh).
   meow_app_tema_do_pack kitty.arquivo

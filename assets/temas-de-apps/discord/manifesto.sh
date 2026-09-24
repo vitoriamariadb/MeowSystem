@@ -57,9 +57,14 @@ _dc_marca() {
   sed -n 's|^ \* meowsystem-tema: \([^ ]*\).*$|\1|p' "$1" 2>/dev/null | head -n 1
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+meow_app_instalado() { _dc_instalado; }
+
 meow_app_detectar() {
   MEOW_APP_MOTIVO=""
-  _dc_instalado || { meow_app_sem "Discord: não está instalado"; return; }
+  meow_app_instalado || { meow_app_sem "Discord: não está instalado"; return; }
   _DC_PASTAS="$(_dc_pastas)"
   [ -n "$_DC_PASTAS" ] || { meow_app_sem "Discord: o cliente oficial não carrega tema — falta um cliente modificado (BetterDiscord, Vencord ou Vesktop)"; return; }
   meow_tem python3 || { meow_app_sem "Discord: falta python3, que monta o tema com a paleta do pack"; return; }

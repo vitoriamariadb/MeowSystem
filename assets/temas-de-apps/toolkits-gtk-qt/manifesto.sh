@@ -384,13 +384,18 @@ _meow_tk_conf_vale() {
   esac
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+meow_app_instalado() { meow_tem cosmic-settings-daemon || [ -d "$MEOW_TK_TK_DIR" ]; }
+
 # ============================================================================
 # 1. DETECTAR
 # ============================================================================
 # O "app" deste módulo é a ponte COSMIC -> toolkits. Sem o daemon que a
 # constrói não há o que conferir nem o que consertar: devolve 3, nunca erro.
 meow_app_detectar() {
-  if ! meow_tem cosmic-settings-daemon && [ ! -d "$MEOW_TK_TK_DIR" ]; then
+  if ! meow_app_instalado; then
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"

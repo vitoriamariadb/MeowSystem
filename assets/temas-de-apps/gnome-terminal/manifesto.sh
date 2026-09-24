@@ -80,9 +80,14 @@ _gt_no_ar() {
   _GT_NO_AR="o perfil '${nome:-$padrao}'"
 }
 
+# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
+# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
+# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
+meow_app_instalado() { meow_tem gnome-terminal; }
+
 meow_app_detectar() {
   MEOW_APP_MOTIVO=""
-  meow_tem gnome-terminal || { meow_app_sem "GNOME Terminal: não está instalado"; return; }
+  meow_app_instalado || { meow_app_sem "GNOME Terminal: não está instalado"; return; }
   meow_tem dconf || { meow_app_sem "GNOME Terminal: falta o dconf, que guarda os perfis dele"; return; }
   meow_tem python3 || { meow_app_sem "GNOME Terminal: falta python3, que monta o tema com a paleta do pack"; return; }
   meow_app_tema_do_pack gnome-terminal.arquivo
