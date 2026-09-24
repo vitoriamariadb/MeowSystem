@@ -2238,8 +2238,30 @@ cmd_adicionar() {
 #   `WALLPAPER_SEMENTE_REPO` continua vencendo por cima, para teste e para quem
 #   quiser um acervo que não é de nenhum dos dois. Passar só o repo sem o commit
 #   é erro honesto: sem pino não há receita, e o script para e diz isso.
+#
+# QUEM ESCOLHE É O PACK DONO DO FLAVOR, E NÃO O NOME DELE — 24/09/2026, P40
+#   Era `case "${FLAVOR:-mocha}" in dracula)`: o nome do flavor decidia, e a
+#   lista tinha um nome só. O `alucard`, o claro do próprio Dracula que a P31
+#   pôs na «Variante do tema», caía no `*` e semeava o acervo do Catppuccin —
+#   medido em seco, `FLAVOR=alucard` pedia a árvore de
+#   `zhichaoh/catppuccin-wallpapers`. Pôr `alucard` ao lado do `dracula` seria a
+#   lista ganhar mais um nome, até o próximo flavor que alguém esquecer.
+#
+#   A pergunta agora é DE QUEM é o flavor, e quem responde é o disco: o
+#   `meow_pack_dir` (lib/comum.sh) pergunta ao `adocao` do scripts/pack.py, que
+#   acha o pack cuja paleta declara o flavor — a mesma regra que escolhe a
+#   paleta e os ícones, então o papel de parede e a tela não têm como discordar.
+#   Vazio é o padrão, e o padrão cai no `*`, como o `mocha` caía. O preço é o
+#   fork de python que o `meow_pack_dir` já cobra (~45 ms, medido na P35), uma
+#   vez por execução deste script.
+#
+#   O `dracula)` que sobra é o id do PACK, e continua escrito porque as chaves
+#   do conf que ele lê levam o nome do pack (`WALLPAPER_DRACULA_*`).
 _semente_do_flavor() {
-  case "${FLAVOR:-mocha}" in
+  local dono
+  dono="$(meow_pack_dir)"
+  dono="${dono%/}"
+  case "${dono##*/}" in
     dracula)
       # ACERVO AUTORAL, GERADO EM CÓDIGO — 15/09/2026
       #   Treze desenhos em PNG 4K (3840x2160), rasterizados do SVG que o gerador

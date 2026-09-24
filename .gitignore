@@ -16,23 +16,32 @@ assets/fontes/upstream/
 # Consequência assumida: numa máquina nova a fonte não volta sozinha — é preciso
 # soltar o arquivo no acervo de novo. Está escrito no LEIA-ME de lá.
 #
-# O CAMINHO ESTAVA ERRADO E A REGRA NÃO CASAVA NADA — consertado em 21/09/2026.
-#   As quatro linhas diziam `assets/fontes/locais/`, e esse diretório NUNCA
-#   existiu: o acervo real é `assets/fontes/fonts/locais/` (é onde mora o
-#   `LEIA-ME.txt` versionado que o parágrafo acima cita). Medido com a
-#   ferramenta, não por leitura:
-#       git check-ignore -v assets/fontes/fonts/locais/teste.otf   ->  nada
-#   Ou seja: o parágrafo de licença acima estava de pé sozinho, sem nada que o
-#   cumprisse, e uma `.otf` de terceiro solta no acervo entrava no commit — com
-#   a EULA dela junto. É o tipo de erro que só aparece no dia em que custa.
+# UMA PASTA SÓ, A DO LEITOR — decisão de 23/09/2026, feita na P40.
+#   Havia duas, nascidas no mesmo commit (3e29900, 01/09). O
+#   `scripts/instalar_fontes.sh` lê — e o `adicionar` dele, que o painel chama,
+#   escreve — `assets/fontes/locais/`; o `LEIA-ME.txt` versionado morava em
+#   `assets/fontes/fonts/locais/`. Em 21/09 esta regra foi corrigida
+#   para a pasta do LEIA-ME, porque `locais/` não existia no git — e com isso
+#   passou a cercar a pasta que ninguém lê e a deixar aberta a que o instalador
+#   lê: uma fonte solta onde ela é instalada ficava a um `git add -A` de entrar
+#   num commit, com a EULA junto. A decisão foi a pasta do leitor: o LEIA-ME foi
+#   para lá (`git mv`), `assets/fontes/fonts/` deixou de existir, e o
+#   `tests/git-limpo.sh` lê o `ACERVO_LOCAL` do instalador e confere, com
+#   `check-ignore`, que é ESSA a pasta cercada — as duas não voltam a se separar
+#   caladas.
 #
 #   Continua sendo por EXTENSÃO e não por diretório, ao contrário das regras de
 #   papel de parede lá embaixo, porque aqui a distinção é o ponto: o BINÁRIO
-#   fica de fora e o `LEIA-ME.txt` entra.
-assets/fontes/fonts/locais/*.otf
-assets/fontes/fonts/locais/*.ttf
-assets/fontes/fonts/locais/*.OTF
-assets/fontes/fonts/locais/*.TTF
+#   fica de fora e o `LEIA-ME.txt` entra. O `.ttc` (várias faces num arquivo só)
+#   é fonte de terceiro do mesmo jeito e entra na cerca, ainda que o instalador
+#   hoje só instale `.otf` e `.ttf`; as maiúsculas porque o `adicionar` aceita
+#   `.OTF` e `.TTF` e grava o nome como veio.
+assets/fontes/locais/*.otf
+assets/fontes/locais/*.ttf
+assets/fontes/locais/*.ttc
+assets/fontes/locais/*.OTF
+assets/fontes/locais/*.TTF
+assets/fontes/locais/*.TTC
 
 # Imagens nunca vão para o git (o Andromeda ficou 18h com o auto-sync mudo por um
 # arquivo >100MB; aqui a regra é preventiva).
