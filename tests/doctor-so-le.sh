@@ -115,10 +115,27 @@ export -f kill pkill killall
 
 painel_real() { pgrep -x cosmic-panel 2>/dev/null | LC_ALL=C sort | paste -sd' ' -; }
 
+# O STARSHIP SAI DO PATH DO DOCTOR — 24/09/2026 (P44, revisão)
+#   A primeira versão deste teste passava nesta máquina só porque ela tem o
+#   starship (em ~/.cargo/bin): o ramo "falta o starship" do `chk_prompt`, que
+#   gravava `pendencias.tsv`, nunca rodava aqui, e só o CI, que não o tem, o
+#   pegaria — vermelho. Tirar do PATH o diretório que o guarda põe a máquina
+#   dela no mesmo ramo do runner e do Pop!_OS limpo. `/usr/bin` e `/bin` ficam:
+#   sem eles nada roda, e o starship ali viria do apt da distribuição, que é o
+#   caso de quem o tem de fábrica — a linha abaixo diz que o ramo não rodou.
+PATH_DOCTOR=""
+IFS=: read -ra _dirs <<< "$PATH"
+for _d in "${_dirs[@]}"; do
+  case "$_d" in /usr/bin|/bin) ;; *) [ -x "$_d/starship" ] && continue ;; esac
+  PATH_DOCTOR="${PATH_DOCTOR:+$PATH_DOCTOR:}$_d"
+done
+
 # --- a corrida ----------------------------------------------------------------
 printf '\n--- o doctor numa casa de brinquedo ---\n'
+PATH="$PATH_DOCTOR" command -v starship >/dev/null 2>&1 \
+  && printf '  --   o starship está no diretório do sistema — o ramo sem starship não rodou aqui\n'
 ANTES="$(painel_real)"
-env PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+env PATH="$FALSO:$PATH_DOCTOR" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
   "$RAIZ/bin/meow" doctor > "$TMP/saida" 2>&1
 RC=$?
 DEPOIS="$(painel_real)"

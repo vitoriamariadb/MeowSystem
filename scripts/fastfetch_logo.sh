@@ -218,8 +218,13 @@ FASTFETCH_LOGO_CONF="${FASTFETCH_LOGO_CONF:-sim}"
 #     conteúdo (cópia do alvo, byte a byte), e o de antes vai para
 #     `$MEOW_ESTADO/backups/<carimbo>-fastfetch/` — o conteúdo e para onde o
 #     link apontava. Dito em voz alta, como toda escrita daqui.
-#   - É diretório de verdade, ou não existe: nada muda. Uma máquina sem
-#     Spellbook nunca passa por esta função.
+#   - É diretório de verdade, ou não existe: nada muda. A troca não pergunta
+#     se o link é do Spellbook (ver o parágrafo logo abaixo): um
+#     `~/.config/fastfetch` de dotfiles via stow, em qualquer máquina, também
+#     vira diretório — no `aplicar` e no `doctor --consertar` do timer das 5h —,
+#     sempre com backup e aviso. Até a revisão da P44 (24/09/2026) esta linha
+#     dizia que "uma máquina sem Spellbook nunca passa por esta função", e o
+#     código nunca fez essa distinção.
 #   - `FASTFETCH_LOGO_CONF="nao"` continua sendo "não mexa no config do
 #     fastfetch", e isso inclui não trocar o symlink.
 #   O SYMLINK É PERGUNTADO AO DISCO, NUNCA PELO NOME DE QUEM ESTÁ DO OUTRO LADO:

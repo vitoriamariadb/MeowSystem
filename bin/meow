@@ -1312,8 +1312,21 @@ chk_cursor() {
 #   proibia escrever. A leitura do `env.zsh` saiu, o patch saiu, e o 4 com
 #   eles; o cabeçalho do `scripts/prompt.sh` conta por quê.
 #   O `fix_prompt` escreve um arquivo só, e ele é nosso.
+#
+# O `MEOW_DRY_RUN=1` FALTAVA AQUI TAMBÉM — 24/09/2026 (P44, revisão)
+#   Sem starship, o `conferir` passa pelo `_prompt_dizer_falta_starship`, que
+#   chama o `meow_pendencia_acionavel` e grava a linha `starship-ausente` em
+#   `pendencias.tsv`. Medido pela revisão: o `tests/doctor-so-le.sh` com o
+#   `~/.cargo/bin` fora do PATH achou esse arquivo na casa de brinquedo, e era a
+#   única escrita que sobrava num bwrap que imita o CI. Aqui ele passava só
+#   porque esta máquina tem o starship; o runner do GitHub e um Pop!_OS limpo
+#   não têm. Com o seco, o `meow_pendencia_acionavel` diz a frase na tela e
+#   devolve antes de tocar o arquivo — a saída e o código são os mesmos.
+#   O PREÇO, O MESMO DO `chk_apps`: a pendência deixa de ser renovada pela
+#   leitura do doctor. Quem a registra é o `aplicar` (o `install.sh`); o 3 não
+#   entra no laço de conserto, então o `fix_prompt` não a registra no doctor.
 chk_prompt() {
-  PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \
+  MEOW_DRY_RUN=1 PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \
     "$RAIZ/scripts/prompt.sh" conferir 2>&1
 }
 

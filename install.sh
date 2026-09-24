@@ -700,8 +700,12 @@ etapa_cli() {
 
   # 3 AQUI É "NÃO HÁ ONDE PÔR", E ISSO NÃO É FALHA DESTA ETAPA
   #   A `instalar_completion` devolve 3 quando o diretório de completions não
-  #   existe — numa máquina que não é esta, `/usr/local/share/zsh/site-functions`
-  #   pode simplesmente não estar lá. O `-ge 2` que estava aqui engolia esse 3 junto
+  #   existe. Desde a P44 (24/09/2026) isso só acontece com um
+  #   `MEOW_COMPLETIONS_DIR` apontado para um diretório que não está lá: o
+  #   destino padrão, `~/.local/share/zsh/site-functions`, a função cria sozinha.
+  #   Até então o padrão era `/usr/local/share/zsh/site-functions`, que numa
+  #   máquina que não é esta podia simplesmente não existir — foi esse o caso
+  #   medido abaixo. O `-ge 2` que estava aqui engolia esse 3 junto
   #   com o 2 e devolvia erro: MEDIDO num HOME de teste sem o diretório, o
   #   `install.sh` terminava com "falhou: cli" tendo instalado o `meow` inteiro
   #   e funcionando. O que se perde sem completion é o TAB, e o `meow_pula`
