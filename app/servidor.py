@@ -4134,16 +4134,6 @@ def _prev_paredes():
             #   esteja em `ativos/`): aí não há o que banir, e a página não deve
             #   desenhar o botão.
             canonico = os.path.join(base, "ativos", nome)
-            # A RECUSADA QUE VOLTOU NÃO É MAIS RECUSADA — 24/09/2026, sprint P46.
-            #   O `desbanir` COPIA a imagem de volta para `ativos/` e deixa a de
-            #   `banidos/` (o `banir` jamais apaga, e o desfazer segue a regra).
-            #   Esta lista lia só a pasta, e a imagem devolvida continuava nas
-            #   «Recusadas», com um «Devolver» que respondia "nada a fazer" —
-            #   medido pelo `tests/app-completo.py`: Tirar, Devolver, e a conta
-            #   das Recusadas parada em 1. O `banir` MOVE a imagem para fora de
-            #   `ativos/`; estar nas duas pastas é, por construção, ter voltado.
-            if grupo == "banidos" and os.path.isfile(canonico):
-                continue
             fora.append({"id": grupo + "/" + nome, "rotulo": nome,
                          "origem": arq, "grupo": grupo,
                          # `""` quando a medição é que decide — é o caso comum,
@@ -4463,6 +4453,21 @@ def previas(tipo, grupo=None):
     if fonte is None:
         return None
     itens = fonte()
+    # A RECUSADA QUE VOLTOU NÃO É MAIS RECUSADA — 24/09/2026, sprint P46
+    #   O `desbanir` COPIA a imagem de volta para `ativos/` e deixa a de
+    #   `banidos/` (o `banir` jamais apaga, e o desfazer segue a regra). A lista
+    #   lia só a pasta, e a imagem devolvida continuava nas «Recusadas», com um
+    #   «Devolver» que respondia "nada a fazer" — medido pelo
+    #   `tests/app-completo.py`: Tirar, Devolver, e a conta das Recusadas parada
+    #   em 1. O `banir` MOVE a imagem para fora de `ativos/`; estar nas duas
+    #   pastas é, por construção, ter voltado — e o `banir` do item já diz isso
+    #   (é o caminho em `ativos/`, quando ele existe).
+    #   O corte é AQUI, na lista que a página desenha, e não no `_prev_paredes`:
+    #   a miniatura continua servida pelo `previa_bytes`, porque uma ficha que a
+    #   página desenhou um instante antes de devolver ainda a pede — e cortada
+    #   na fonte ela virava 404, medido na corrida seguinte.
+    if tipo == "parede":
+        itens = [i for i in itens if not (i["grupo"] == "banidos" and i["banir"])]
     # AS CONTAGENS SAEM ANTES DO FILTRO, E É DE PROPÓSITO — 01/09/2026
     #   As cinco sub-abas da galeria nasciam sem número: só ganhavam a conta
     #   depois de serem ABERTAS uma vez, porque a página só sabia o tamanho do
