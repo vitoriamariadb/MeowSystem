@@ -92,14 +92,15 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; achados=$((achados+1)); }
 # sem regex). Tudo o que não estiver aqui é achado.
 ISENTAS=(
   # --- regra 4: AS SEIS ISENÇÕES SAÍRAM EM 24/09/2026 (P39) ------------------
-  # Eram seis linhas lendo ou citando o `~/.config/zsh`, casadas por quatro
-  # trechos (o placar conta LINHA: caiu de 13 para 7) — o `vizinhos.conf`
-  # semeado pelo instalador a partir do `.git` de lá (duas), o `case` que
-  # decidia o aviso das completions (uma), o aviso do doctor sobre o `.git`
-  # (duas) e o `AREAS_VIZINHO_FONTE` do `areas.sh`, a "isenção com dívida" da
-  # P29. As linhas saíram do código na mesma sprint, e as isenções com elas: uma
-  # isenção que sobrevive ao seu motivo é pior que nenhuma, como o próprio texto
-  # da P29 dizia aqui.
+  # Eram seis linhas lendo ou citando o `~/.config/zsh`, casadas por cinco
+  # trechos (o placar conta LINHA: caiu de 13 para 7; o "quatro" que esteve
+  # aqui até a P44 contou errado — o `git show 665b643` tira cinco) — o
+  # `vizinhos.conf` semeado pelo instalador a partir do `.git` de lá (duas), o
+  # `case` que decidia o aviso das completions (uma), o aviso do doctor sobre o
+  # `.git` (duas) e o `AREAS_VIZINHO_FONTE` do `areas.sh`, a "isenção com
+  # dívida" da P29. As linhas saíram do código na mesma sprint, e as isenções
+  # com elas: uma isenção que sobrevive ao seu motivo é pior que nenhuma, como o
+  # próprio texto da P29 dizia aqui.
 
   # --- regra 1: home DE NINGUÉM, dentro de teste de unidade -----------------
   # As quatro linhas do `0001-meow-capa-cor-controles.patch` que casam a regra 1

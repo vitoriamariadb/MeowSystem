@@ -430,7 +430,10 @@ _aplicar() {
   if ! _asa_cita; then
     meow_aviso "falta a última peça, e ela é à mão: acrescente \"$APP_ID\" a"
     meow_aviso "  $ASA"
-    meow_aviso "  (arquivo da Aurora; escrever nele RECRIA a topbar na hora — faça uma vez, à mão)"
+    # A frase dizia "arquivo da Aurora" até a P44 (24/09/2026). É a ordem dos
+    # applets da topbar, do COSMIC e de quem usa — nome de outro projeto na
+    # tela não diz a ninguém de quem é o arquivo.
+    meow_aviso "  (é a sua ordem de applets: escrever nele RECRIA a topbar na hora — faça uma vez, à mão)"
   else
     meow_info "a topbar já cita o applet — ele sobe junto com o painel"
   fi

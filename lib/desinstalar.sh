@@ -477,11 +477,12 @@ meow_desinstalar() {
     meow_muda "removeria ~/.local/bin/meow e a completion do zsh"
   else
     rm -f "$HOME/.local/bin/meow"
-    # A completion mora em /usr/local/share/zsh/site-functions desde 08/2026 (o
-    # porquê está no install.sh): lá quem manda é o root, e quem instala é o
-    # Ritual da Aurora. Sem permissão nós não apagamos escondido nem falhamos
-    # calados — dizemos o comando e seguimos.
-    COMP_MEOW="${MEOW_COMPLETIONS_DIR:-/usr/local/share/zsh/site-functions}/_meow"
+    # A completion mora em ~/.local/share/zsh/site-functions desde a P44
+    # (24/09/2026; o porquê está no `instalar_completion` do install.sh) — o
+    # MESMO padrão de lá, senão o desinstalador procuraria o arquivo onde ele
+    # não está mais. Quem apontou o MEOW_COMPLETIONS_DIR para um diretório do
+    # root continua ouvindo o comando em vez de ver uma falha calada.
+    COMP_MEOW="${MEOW_COMPLETIONS_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions}/_meow"
     if [ -e "$COMP_MEOW" ]; then
       if [ -w "$(dirname "$COMP_MEOW")" ]; then
         rm -f "$COMP_MEOW"

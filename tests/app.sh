@@ -194,6 +194,7 @@ _IDIOMA = _re.compile(r'^\s*([A-Z][A-Z0-9_]{2,})="\$\{\1:[-=]', _re.M)
 _NAO_E_AJUSTE = {
     "APROXIMOU",        # contador interno do icones_apps.sh
     "FORMA_COMP_BIN",   # caminho do binário do compositor, para teste
+    "FZF_ALVO",         # ~/.config/meowsystem/fzf.sh, para teste (P44)
     "GREETER_HOME",     # /var/lib/cosmic-greeter, para teste
     "PROMPT_ALVO",      # ~/.config/starship.toml, para teste
     "SOM_DURACAO",      # 85 ms: o debounce medido do osd, não gosto

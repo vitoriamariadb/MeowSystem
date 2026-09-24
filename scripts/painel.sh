@@ -49,9 +49,11 @@
 # ============================================================================
 # O QUE ESTE SCRIPT **NÃO** FAZ
 # ============================================================================
-#   - Não edita, não desativa e não mascara nada do Ritual da Aurora. Onde há
-#     conflito, o Meow resolve DO LADO DELE: a trégua com o vigia é carimbada no
-#     `tentativas.ts` que o próprio vigia já lê (ver lib/painel.sh).
+#   - Não edita, não desativa e não mascara nada do Ritual da Aurora. A trégua
+#     que se carimbava no `tentativas.ts` do vigia dele saiu na P39, e as
+#     chamadas a ela, na P44 (24/09/2026) — ver lib/painel.sh.
+#   - Não sinaliza painel de outra casa. Todo SIGTERM daqui mira só o painel do
+#     mesmo usuário e do mesmo `$HOME` de quem chamou (`meow_painel_desta_casa`).
 #   - Não devolve o applet de notificações. O sino depende do socketpair que só
 #     o `cosmic-session` cria (`PANEL_NOTIFICATIONS_FD`); a outra ponta teria de
 #     estar DENTRO do `cosmic-notifications`, e o nome D-Bus
@@ -111,7 +113,10 @@ VIDA_BOA=${MEOW_PAINEL_VIDA_BOA:-120}
 #   Assim o 41 volta sozinho no dia em que couber.
 conferir() {
   local rc=0 barra dir teto atual desejo escrito alvo
-  mkdir -p "$ESTADO" 2>/dev/null || true
+  # O diretório também é escrita, e o seco não escreve — 24/09/2026 (P44): o
+  # `chk_painel` do doctor passava por aqui e deixava `painel/` (e os três pais)
+  # criados numa casa de brinquedo onde nada mais seria gravado.
+  meow_seco || mkdir -p "$ESTADO" 2>/dev/null || true
 
   if meow_painel_compositor_clampa; then
     meow_ok "o cosmic-comp em execução clampa o raio — o canto das barras é seu, sem teto"
@@ -170,8 +175,11 @@ conferir() {
     meow_info  "  e como painel e dock são o MESMO processo os dois somem JUNTOS — medido em 26/08/2026"
     meow_info  "  guardei o seu $desejo: ele volta sozinho se a barra crescer, ou com o patch do compositor"
     meow_escrever "$dir/border_radius" "$alvo" 644
+    # No seco o `meow_escrever` devolve 1 SEM ter escrito, e carimbar "fui eu que
+    # gravei $alvo" aqui seria mentir para a reconciliação do desejo — e
+    # escrever no estado durante uma leitura do doctor (P44, 24/09/2026).
     case "$?" in
-      1) printf '%s' "$alvo" > "$ESTADO/raio_escrito.$barra" 2>/dev/null || true; rc=1 ;;
+      1) meow_seco || printf '%s' "$alvo" > "$ESTADO/raio_escrito.$barra" 2>/dev/null || true; rc=1 ;;
       2) meow_erro "não consegui escrever $dir/border_radius"; return "$MEOW_ERRO" ;;
     esac
   done
@@ -202,15 +210,28 @@ teto() {
 
 # ---------------------------------------------------------------- reciclar --
 # A PORTA ÚNICA. Quem precisa que o painel releia entra por aqui.
-#   `pkill -x`, nunca `-f`: `-f` pegaria o `cosmic-panel-button` e os
-#   `cosmic-applet-*` junto (eles morrem com o pai de todo jeito).
+#   O alvo é o `cosmic-panel` pelo nome exato, nunca por `-f`: `-f` pegaria o
+#   `cosmic-panel-button` e os `cosmic-applet-*` junto (eles morrem com o pai
+#   de todo jeito).
 #   SIGTERM, nunca SIGKILL: o painel precisa desmontar as layer surfaces antes
 #   de sair; com SIGKILL o compositor às vezes segura a superfície órfã e o
 #   painel novo nasce por cima do fantasma do velho.
+#
+# E SÓ O PAINEL DESTA CASA — 24/09/2026 (P44). Até aqui o alvo era
+# `pkill -x cosmic-panel`, a máquina inteira; um `meow doctor` numa casa de
+# brinquedo derrubava a barra da sessão de verdade. Quem decide o que é "desta
+# casa" é o `meow_painel_desta_casa` (lib/painel.sh), e o porquê de usuário +
+# `HOME` está lá. Há painel de pé que não é daqui: ele é de outra casa, e a
+# resposta é dizer isso e sair 0 — não há o que reciclar NESTA.
 reciclar() {
-  local espera
-  if ! pgrep -x cosmic-panel >/dev/null 2>&1; then
-    meow_info "não há painel de pé — nada a reciclar (o laço o repõe, se estiver armado)"
+  local espera alvos
+  alvos="$(meow_painel_desta_casa)"
+  if [ -z "$alvos" ]; then
+    if pgrep -x cosmic-panel >/dev/null 2>&1; then
+      meow_info "o painel de pé não é desta casa (HOME=$HOME) — não reciclo o de ninguém"
+    else
+      meow_info "não há painel de pé — nada a reciclar (o laço o repõe, se estiver armado)"
+    fi
     return "$MEOW_OK"
   fi
   # Se o laço está de pé, ele repõe. Se não está, quem repõe é o cosmic-session
@@ -226,9 +247,9 @@ reciclar() {
          fi ;;
     esac
   fi
-  meow_painel_carencia_aurora
   meow_info "SIGTERM no cosmic-panel"
-  pkill -x cosmic-panel
+  # shellcheck disable=SC2086  # um PID por palavra, de propósito
+  kill -TERM $alvos 2>/dev/null
   return "$MEOW_OK"
 }
 
@@ -313,7 +334,6 @@ laco() {
         echo "o painel do supervisor (pid $sup) está vivo e NÃO desenha — reciclando"
         ultimo_fantasma="$agora_f"
         kill -TERM "$sup" 2>/dev/null
-        meow_painel_carencia_aurora
         sleep 10
         continue
       fi
@@ -334,12 +354,12 @@ laco() {
         echo "painel vivo que NÃO desenha — reciclando"
         ultimo_fantasma="$agora_f"
         meow_painel_nossos | while read -r p; do kill -TERM "$p" 2>/dev/null; done
-        pgrep -x cosmic-panel >/dev/null 2>&1 && pkill -TERM -x cosmic-panel 2>/dev/null
-        meow_painel_carencia_aurora
+        # O que sobrou de pé, e só o desta casa: era `pkill -TERM -x cosmic-panel`,
+        # a máquina inteira, até a P44 (24/09/2026). Ver `meow_painel_desta_casa`.
+        meow_painel_desta_casa | while read -r p; do kill -TERM "$p" 2>/dev/null; done
         sleep 10
         continue
       fi
-      meow_painel_carencia_aurora
       sleep 10
       continue
     fi
@@ -374,8 +394,6 @@ laco() {
     #    CosmicPanel.*/v1 com a barra nascendo joga um reload no pior momento da
     #    corrida do corner_radius.
     conferir >/dev/null 2>&1 || true
-
-    meow_painel_carencia_aurora
 
     # 7) `env -i` + lista negra. Ver lib/painel.sh: sem isso a barra sobe sem
     #    bandeja e sem botão de desligar, e nada na tela diz por quê.
@@ -419,29 +437,15 @@ laco() {
     #   12 rondas por minuto contra 1. É barulho de fundo perto de um painel
     #   duplicado na tela dela.
     #
-    #   O QUE NÃO ACELERA JUNTO É A TRÉGUA DA AURORA: ela escreve um arquivo em
-    #   /run, e 12 escritas por minuto seriam I/O para nada. O contador abaixo a
-    #   mantém no ritmo antigo (uma por minuto), que é o que a CARENCIA=600s do
-    #   vigia da Aurora precisa.
-    local desde_tregua=60
+    #   A TRÉGUA COM O VIGIA DA AURORA, que era renovada aqui uma vez por minuto
+    #   com um contador próprio, saiu na P44 (24/09/2026) junto com as outras
+    #   cinco chamadas: a função já estava vazia desde a P39, e o porquê está no
+    #   `meow_painel_carencia_aurora` (lib/painel.sh).
     while kill -0 "$pid" 2>/dev/null; do
       sleep 5 & sono=$!
       wait -n "$pid" "$sono" 2>/dev/null
       kill "$sono" 2>/dev/null
       kill -0 "$pid" 2>/dev/null || break
-      desde_tregua=$(( desde_tregua + 5 ))
-
-      # RENOVAR A TRÉGUA AQUI NÃO É ZELO.
-      #   Carimbar só no spawn cobre os primeiros 600s (a CARENCIA do vigia da
-      #   Aurora). Passado esse prazo o vigia volta a julgar um painel que é
-      #   nosso, e o sinal 1 dele ("Can't start notifications applet") é
-      #   PERMANENTE num painel sem o socketpair do supervisor — o nosso.
-      #   Sem esta linha o par vira um pisca-pisca: ele mata a cada 3 min, nós
-      #   repomos, a cota se esgota e a barra fica caída de verdade.
-      if [ "$desde_tregua" -ge 60 ]; then
-        meow_painel_carencia_aurora
-        desde_tregua=0
-      fi
 
       # O supervisor voltou a ter painel? O dele é melhor (tem o sino).
       if meow_painel_do_supervisor >/dev/null 2>&1; then
