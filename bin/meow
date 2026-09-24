@@ -4367,6 +4367,28 @@ PY
       meow_seco && seco=(--seco)
       python3 "$RAIZ/scripts/pack.py" importar "$arquivo" "$@" ${seco[@]+"${seco[@]}"}
       ;;
+    # `remover` — o avesso do `importar`, P53, 24/09/2026
+    #   Até aqui um pack importado só saía apagando a pasta à mão. Quem decide o
+    #   que pode sair é a `remocao` do scripts/pack.py, pelo motivo do topo desta
+    #   função; aqui só se põe o rosto e se traduz o `MEOW_DRY_RUN` em `--seco`.
+    #
+    #   ESTE TAMBÉM LÊ O meow.conf, como o `novo`, e por outro motivo: o pack NO
+    #   AR não sai, e quem diz qual é são o PACK e o FLAVOR de lá. Eles vão
+    #   pelo ambiente, por extenso, como o `$FLAVOR` do `usar` — o `carregar_conf`
+    #   já os exporta, e escrevê-los aqui é o que deixa a dependência à vista.
+    remover|remove)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga qual pack remover: meow pack remover <id>"; return "$MEOW_ERRO"; }
+      shift
+      carregar_conf || return "$MEOW_ERRO"
+      local -a seco=()
+      meow_seco && seco=(--seco)
+      local rc=0
+      PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" \
+        python3 "$RAIZ/scripts/pack.py" remover "$alvo" "$@" ${seco[@]+"${seco[@]}"} || rc=$?
+      [ "$rc" = 0 ] && registrar "pack remover $alvo"
+      return "$rc"
+      ;;
     # `de-csv` — a paleta entra por CSV, 23/09/2026, sprint P16
     #   Imprime o `paleta.json` equivalente a um CSV `slot,flavor,hex`, com o
     #   claro derivado quando o CSV não traz um. SÓ IMPRIME, como o
@@ -4388,7 +4410,7 @@ PY
       python3 "$RAIZ/scripts/pack.py" de-csv "$arq"
       ;;
     -h|--help|ajuda)
-      printf 'uso: meow pack [listar|usar <id>|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|importar <arquivo>|de-csv <arq>|raizes]\n\n'
+      printf 'uso: meow pack [listar|usar <id>|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|importar <arquivo>|remover <id>|de-csv <arq>|raizes]\n\n'
       printf '  listar           os packs instalados, e se cada um valida\n'
       printf '  usar <id> [fl]   troca o pack da máquina: grava PACK e FLAVOR e aplica\n'
       printf '  validar <id>     confere o pack inteiro; 0 = ok\n'
@@ -4401,6 +4423,8 @@ PY
       printf '                   o pack num arquivo só, para mandar a alguém\n'
       printf '  importar <arquivo.meowpack|arquivo.csv>\n'
       printf '                   confere, e instala como opção — não troca o seu tema\n'
+      printf '  remover <id>     tira um pack que você importou; o que vem com o MeowSystem,\n'
+      printf '                   o que está no ar e o que outro pack herda ficam\n'
       printf '  de-csv <arq>     a paleta.json de um CSV slot,flavor,hex; só imprime\n'
       printf '  raizes           onde o MeowSystem procura\n\n'
       printf 'A especificação do formato está em docs/PACKS.md.\n'

@@ -249,6 +249,10 @@ meow_app_tema_do_pack() {
 #   o `aplicar` de um terminal e responde. Publicar um comando que o painel
 #   rodaria sem tty seria oferecer um botão que não faz nada, que é a classe de
 #   falha que a P2 apagou do projeto inteiro.
+#   [Envelheceu em 24/09/2026, P53: o painel passou a mandar a resposta junto
+#   (`MEOW_TEMA_DE_TERCEIRO`), então o botão já não roda "sem tty e sem
+#   resposta" — ele roda com a resposta dela. A linha nasce com comando. Ver "A
+#   RESPOSTA TAMBÉM CHEGA PELO PAINEL", logo abaixo.]
 #
 #   `<app>` É O ID DO MÓDULO, e ele vira o id da pendência (`<app>-tema-de-
 #   terceiro`). A irmã do caminho feliz está nas duas primeiras saídas: uma
@@ -269,6 +273,55 @@ meow_app_tema_do_pack() {
 #   dentro de uma leitura é a mesma classe de falha que esta sprint veio matar.
 #
 #   Quem passa `pergunte` é o `meow_app_aplicar` de cada módulo, e só ele.
+#
+# A RESPOSTA TAMBÉM CHEGA PELO PAINEL — 24/09/2026, sprint P53 (achado 4)
+#   A pendência dizia "é decisão sua, e ela se toma rodando o aplicar deste app
+#   de um terminal": medido no painel de verdade com o OnlyOffice, a Home
+#   mandava a pessoa para o terminal. Agora a linha leva o comando (`meow apps
+#   aplicar <app>`, que num terminal faz a pergunta), e a Home desenha os dois
+#   lados da decisão como botões, pela rota de sempre: o mesmo `aplicar`, com a
+#   resposta em `MEOW_TEMA_DE_TERCEIRO` — `trocar` é o "s" da pergunta, `manter`
+#   é o "não, e não pergunte de novo".
+#
+#   O `manter` FICA GRAVADO, POR APP E POR TEMA, em `temas-mantidos.tsv` no
+#   estado. Sem isso a pendência voltaria na passagem seguinte do timer, e o
+#   botão teria respondido nada. É por tema e não só por app: se ela trocar o
+#   tema do programa por outro que também não veio daqui, a pergunta é nova. E
+#   a gravação não cala o terminal — quem roda o `aplicar` à mão ainda é
+#   perguntado, porque é ali que se muda de ideia.
+#
+#   A resposta só vale no caminho que ESCREVE (`pergunte`), pelo motivo do
+#   bloco acima: uma leitura não troca tema, nem grava decisão.
+_meow_temas_mantidos() { printf '%s/temas-mantidos.tsv' "$MEOW_ESTADO"; }
+
+_meow_tema_mantido() {  # <app> <no-ar> — 0 = ela disse «Manter o meu» para este tema
+  local arq no_ar="${2//$'\t'/ }"; arq="$(_meow_temas_mantidos)"
+  no_ar="${no_ar//$'\n'/ }"
+  [ -f "$arq" ] || return 1
+  awk -F'\t' -v a="$1" -v t="$no_ar" '$1 == a && $2 == t { achou = 1 } END { exit !achou }' "$arq"
+}
+
+_meow_tema_esquecer() {  # <app> — tira a resposta gravada daquele app
+  local arq; arq="$(_meow_temas_mantidos)"
+  [ -f "$arq" ] || return 0
+  awk -F'\t' -v a="$1" '$1 != a' "$arq" > "$arq.tmp" 2>/dev/null && mv -f "$arq.tmp" "$arq" 2>/dev/null
+  rm -f "$arq.tmp" 2>/dev/null
+  return 0
+}
+
+# O PAR SE SOMA, e não substitui o que o app já tinha: o Discord pergunta uma
+# vez por PASTA de cliente (BetterDiscord, Vencord, Vesktop), cada uma com o
+# arquivo dela, e um «Manter o meu» que apagasse a linha da pasta anterior
+# deixaria a primeira perguntando de novo na passagem seguinte. Quem limpa o
+# app inteiro é o «Trocar» (`_meow_tema_esquecer`).
+_meow_tema_manter() {  # <app> <no-ar>
+  local app="$1" no_ar="${2//$'\t'/ }"
+  no_ar="${no_ar//$'\n'/ }"
+  mkdir -p "$MEOW_ESTADO" || return 1
+  _meow_tema_mantido "$app" "$no_ar" && return 0
+  printf '%s\t%s\n' "$app" "$no_ar" >> "$(_meow_temas_mantidos)"
+}
+
 meow_app_tema_no_ar() {
   local app="$1" no_ar="$2" do_pack="$3" de_quem="${4:-$MEOW_APP_TEMA_PACK}" resp=""
   local pode_perguntar="${5:-}"
@@ -293,8 +346,45 @@ meow_app_tema_no_ar() {
     return "$MEOW_OK"
   fi
 
+  # A RESPOSTA QUE O PAINEL MANDOU, E A QUE FICOU GRAVADA — P53. Ver o bloco de
+  # cima. A gravada vem ANTES do aviso: um «Manter o meu» respondido não pode
+  # virar um `!!` no log a cada hora. E ela cede a duas coisas: a resposta nova
+  # do painel, e o terminal que vai perguntar.
+  local do_painel=""
+  [ "$pode_perguntar" = "pergunte" ] && do_painel="${MEOW_TEMA_DE_TERCEIRO:-}"
+  if [ -z "$do_painel" ] && _meow_tema_mantido "$app" "$no_ar" \
+     && ! { [ "$pode_perguntar" = "pergunte" ] && [ -t 0 ] && [ -t 1 ] && ! meow_seco; }; then
+    meow_pendencia_resolvida "$id"
+    meow_ok "$app: fica no '$no_ar', como você escolheu («Manter o meu»)"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
   meow_aviso "$app: está em '$no_ar', que não veio daqui"
   meow_info  "o pack$fonte traz '$do_pack'"
+
+  # ANTES DO SECO, de propósito: o «Ver o que faria» do «Trocar pelo tema do
+  # pack» tem de ensaiar a TROCA, e quem diz o que ela escreveria é o módulo,
+  # daqui para baixo, com o seco dele.
+  case "$do_painel" in
+    trocar)
+      if meow_seco; then
+        meow_muda "$app: trocaria pelo tema do pack — é a resposta do painel"
+      else
+        _meow_tema_esquecer "$app"
+        meow_pendencia_resolvida "$id"
+        meow_muda "$app: trocando pelo tema do pack — é a resposta do painel"
+      fi
+      return "$MEOW_DIVERGENTE" ;;
+    manter)
+      if meow_seco; then
+        meow_pula "$app: gravaria que o '$no_ar' fica, e não perguntaria de novo"
+      else
+        _meow_tema_manter "$app" "$no_ar" || return "$MEOW_ERRO"
+        meow_pendencia_resolvida "$id"
+        meow_ok "$app: fica no '$no_ar' — não pergunto de novo enquanto ele for o tema"
+      fi
+      return "$MEOW_SEM_DEPENDENCIA" ;;
+  esac
 
   # O seco promete não tocar em arquivo nenhum, e perguntar é o começo de tocar.
   if meow_seco; then
@@ -314,9 +404,12 @@ meow_app_tema_no_ar() {
     esac
   fi
 
+  # O COMANDO VAI NA LINHA — P53. Sem ele o painel não desenha botão (a regra
+  # "o botão precisa das duas pontas", no `pendencias()` do app/servidor.py), e
+  # ele é também o que um terminal responde: o `aplicar` deste app pergunta.
   meow_pendencia_acionavel "$id" \
-    "O $app está no tema '$no_ar', que não veio do MeowSystem — deixei como está. Trocar pelo tema do pack é decisão sua, e ela se toma rodando o aplicar deste app de um terminal" \
-    ""
+    "O $app está no tema '$no_ar', que não veio do MeowSystem — deixei como está. Trocar pelo tema do pack ou manter o seu é decisão sua" \
+    "meow apps aplicar $app"
   return "$MEOW_SEM_DEPENDENCIA"
 }
 

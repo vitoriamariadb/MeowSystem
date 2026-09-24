@@ -156,6 +156,8 @@ CONF = os.path.join(CASA, ".config", "meow", "meow.conf")
 ESTADO = os.path.join(CASA, ".local", "state", "meowsystem")
 PAREDES = 6
 APPID = "1715980"
+# A tag que a história de um pack traz e que tem de sair como TEXTO (P53).
+HOSTIL = '<img src=x onerror="window.__meow_xss=1">'
 
 
 def valor_de(chave, conf=CONF):
@@ -343,10 +345,44 @@ def montar_casa():
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "ACAO_DA_PENDENCIA" for a in no.targets)):
             pendencias = sorted(ast.literal_eval(no.value))
+    # E UMA DE TEMA DE TERCEIRO, a que ganha dois botões e não um (P53, achados
+    # 3 e 4): o servidor as reconhece pelo SUFIXO do id, e não por linha no
+    # `ACAO_DA_PENDENCIA`. O sufixo sai da fonte, e o app é o primeiro módulo
+    # que chama a leitura no caminho que escreve (`pergunte`) — é esse o
+    # módulo que registra a linha, e ele muda sem ninguém vir aqui.
+    for no in arvore.body:
+        if (isinstance(no, ast.Assign)
+                and any(getattr(a, "id", "") == "SUFIXO_TEMA_DE_TERCEIRO" for a in no.targets)):
+            modulos = os.path.join(RAIZ, "assets", "temas-de-apps")
+            for app in sorted(os.listdir(modulos)):
+                try:
+                    with open(os.path.join(modulos, app, "manifesto.sh"), encoding="utf-8") as fh:
+                        if re.search(r"meow_app_tema_no_ar .* pergunte\b", fh.read()):
+                            pendencias.append(app + ast.literal_eval(no.value))
+                            break
+                except OSError:
+                    continue
     with open(os.path.join(ESTADO, "pendencias.tsv"), "w", encoding="utf-8") as fh:
         for ident in pendencias:
             fh.write(f"{ident}\tteste\tPendência plantada pelo teste ({ident})"
                      f"\t./scripts/teste.sh {ident}\t2026-09-24T00:00:00-03:00\n")
+
+    # UMA HISTÓRIA DE PACK COM MARKDOWN HOSTIL — P53, achado 6. A página passou
+    # a montar títulos, listas, negrito, código e link a partir do `LEIA-ME.md`
+    # de quem publicou o pack, numa página com token de sessão. O `tests/pack.sh`
+    # confere o CÓDIGO (nada de `innerHTML`); aqui se confere o EFEITO, no
+    # navegador: a tag sai como texto, o `javascript:` não vira link, e o
+    # negrito vira negrito (ver `conferir_historia`). O arquivo é o que o
+    # pack padrão declara em `vitrine.descricao`, na CÓPIA da raiz.
+    padrao = subprocess.run([sys.executable, os.path.join(RAIZ_B, "scripts", "pack.py"), "padrao"],
+                            capture_output=True, text=True).stdout.strip()
+    with open(os.path.join(padrao, "pack.json"), encoding="utf-8") as fh:
+        historia = (json.load(fh).get("vitrine") or {}).get("descricao")
+    if historia:
+        with open(os.path.join(padrao, historia), "a", encoding="utf-8") as fh:
+            fh.write("\n## Teste da casa de brinquedo\n\n"
+                     "Um " + HOSTIL + " no texto, um [link mau](javascript:window.__meow_xss=2)"
+                     " e **negrito de brinquedo**.\n")
 
     # UM JOGO DA STEAM, no molde do `tests/um-cartao-por-jogo.sh`: o manifesto
     # diz que está instalado, e o `.desktop` da própria Steam o anuncia. A capa
@@ -1738,6 +1774,19 @@ class Percurso:
         veio de um CSV não tem site, e o pack importado no gesto anterior
         passa a ser o primeiro da fila — medido na quarta corrida. Os
         exemplares são abertos em ordem até um revelar alguma coisa."""
+        if nome.startswith("cartão de pack"):
+            # TODOS os cartões, e antes do laço: ele para no primeiro exemplar
+            # que revela alguma coisa, e o da história plantada pode não ser
+            # esse. O `open` é posto e tirado direto — o clique é o do laço.
+            self.historia_conferida = False
+            for i in range(self.quantos(nome)):
+                d = self.achar(nome, i).locator("xpath=..")
+                d.evaluate("(d) => { d.open = true; }")
+                self.conferir_historia(d)
+                d.evaluate("(d) => { d.open = false; }")
+            self.checa(self.historia_conferida,
+                       "a história com Markdown hostil, plantada no pack padrão, foi "
+                       "conferida no cartão dele")
         for i in range(min(3, self.quantos(nome))):
             antes = set(self.censo())
             el = self.achar(nome, i)
@@ -1763,6 +1812,42 @@ class Percurso:
                        "e fecha no segundo clique")
             if novos:
                 break
+
+    # A HISTÓRIA DO PACK É MONTADA, E NADA DELA VIRA HTML — P53, achado 6. O
+    # `montar_casa` pôs no LEIA-ME do pack padrão uma tag, um `javascript:` e
+    # um negrito. Em QUALQUER exemplar: nenhum elemento fora do subconjunto,
+    # nenhum `href` que não seja https, e a página não rodou nada. No
+    # exemplar que tem o trecho plantado: a tag está lá, como texto, e o
+    # negrito virou `<strong>`.
+    HISTORIA_JS = r"""
+    (d) => {
+      const h = d.querySelector('.pack-historia');
+      if (!h) return null;
+      const PERMITIDOS = new Set(['H4', 'H5', 'P', 'UL', 'OL', 'LI', 'STRONG', 'CODE', 'A']);
+      return {
+        estranhos: [...h.querySelectorAll('*')].map((e) => e.tagName)
+                     .filter((t) => !PERMITIDOS.has(t)),
+        hrefs: [...h.querySelectorAll('a')].map((a) => a.getAttribute('href') || '')
+                 .filter((u) => !u.startsWith('https://')),
+        rodou: window.__meow_xss !== undefined,
+        plantado: h.textContent.includes('Teste da casa de brinquedo'),
+        tag_como_texto: h.textContent.includes(HOSTIL),
+        negrito: [...h.querySelectorAll('strong')].some((b) => b.textContent === 'negrito de brinquedo'),
+      };
+    }
+    """
+
+    def conferir_historia(self, details):
+        r = details.evaluate(self.HISTORIA_JS.replace("HOSTIL", json.dumps(HOSTIL)))
+        if r is None:
+            return
+        self.checa(not r["estranhos"] and not r["hrefs"] and not r["rodou"],
+                   f"a história do pack não vira HTML (elementos {r['estranhos'][:3]}, "
+                   f"hrefs {r['hrefs'][:2]}, rodou={r['rodou']})")
+        if r["plantado"]:
+            self.historia_conferida = True
+            self.checa(r["tag_como_texto"] and r["negrito"],
+                       "a tag da história sai como texto, e o **negrito** vira negrito")
 
     def h_link_externo(self, nome):
         """Não sai para a internet: o pedido de fora é recusado pela rota do
@@ -1929,8 +2014,29 @@ class Percurso:
             self.pag.locator("#confirmar-ok").click()
             self.acionados.add("caixa · #confirmar-ok")
             self.assentar(quieto=400, teto=30000)
-            self.checa(self.pag.locator("#conteudo article.pack").count() == packs0 + 1,
-                       "confirmar instala o pack, e ele ganha cartão na Início")
+            if self.checa(self.pag.locator("#conteudo article.pack").count() == packs0 + 1,
+                          "confirmar instala o pack, e ele ganha cartão na Início"):
+                # O AVESSO, NO MESMO GESTO — P53, achado 8. O pack que acabou
+                # de entrar é o único da casa de brinquedo que mora na casa da
+                # pessoa, e é o único cartão que ganha o «Remover».
+                self.acionar("cartão de pack · Remover", limpar=False)
+
+    def h_remover_pack(self, nome):
+        """O «Remover» do pack importado: a caixa, o ensaio que não apaga e o
+        de verdade, pelo protocolo das três respostas — e no fim o cartão sai
+        da Início e a pasta sai da casa, inteira, sem o oculto da troca."""
+        packs0 = self.pag.locator("#conteudo article.pack").count()
+        da_pessoa = os.path.join(CASA, ".local", "share", "meowsystem", "packs")
+        antes = sorted(os.listdir(da_pessoa)) if os.path.isdir(da_pessoa) else []
+        self.checa(self.quantos(nome) == 1,
+                   f"só o pack importado ganha o «Remover» ({self.quantos(nome)} na tela)")
+        self.gesto_de_acao(lambda: self.clicar_nome(nome), "Remover")
+        self.assentar(quieto=400, teto=30000)
+        depois = sorted(os.listdir(da_pessoa)) if os.path.isdir(da_pessoa) else []
+        self.checa(self.pag.locator("#conteudo article.pack").count() == packs0 - 1,
+                   "«Remover» tira o cartão do pack da Início")
+        self.checa(len(depois) == len(antes) - 1,
+                   f"e tira a pasta dele da casa, sem deixar resto ({antes} → {depois})")
 
     # ======================================================================
     # PENDÊNCIAS, JOGOS, DESENHOS
@@ -2547,6 +2653,8 @@ class Percurso:
             (r"^aba · ação rápida ", self.h_clique_de_acao),
             (r"^pendência · Resolver$", self.h_resolver),
             (r"^pendência · Não, obrigado$", self.h_recusar),
+            (r"^pendência · (Trocar pelo tema do pack|Manter o meu)$", self.h_clique_de_acao),
+            (r"^cartão de pack · Remover$", self.h_remover_pack),
             (r"^aba · (Tópicos|Sistema|Abrir .+)$", self.h_porta),
             (r"^aba · Exportar o meu$", self.h_exportar_pack),
             (r"^aba · Importar um pack$", self.h_importar_pack),
@@ -2875,8 +2983,10 @@ INVENTARIO = {
         ajuste mudado · ir ao cartão
         cartão de pack · Usar este
         cartão de pack · abre «Mais sobre este pack»
+        pendência · Manter o meu
         pendência · Não, obrigado
         pendência · Resolver
+        pendência · Trocar pelo tema do pack
     """),
     "Cor e tela": _linhas("""
         aba · Claro
@@ -2904,7 +3014,8 @@ INVENTARIO = {
         ajuste MODO · ?
         ajuste MODO · opção
         ajuste PACK · ?
-        ajuste PACK · campo
+        ajuste PACK · deixar vazio
+        ajuste PACK · opção
         ajuste WALLPAPER_DRACULA_COMMIT · ?
         ajuste WALLPAPER_DRACULA_COMMIT · campo
         ajuste WALLPAPER_DRACULA_REPO · ?
@@ -3383,6 +3494,7 @@ REVELADOS = {
     """),
     "Início": _linhas("""
         cartão de pack · link externo
+        cartão de pack · Remover
     """),
     "Áreas de trabalho": _linhas("""
         ajuste AREAS_FOLGA · opção

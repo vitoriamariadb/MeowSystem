@@ -355,11 +355,18 @@ CENSO_JS = """
      Um teste que falha por latência ensina a ignorar vermelho — que é
      exatamente o defeito que a P23 veio consertar. Antes desta rede, uma aba
      sub-renderizada só media menos coisa e seguia verde; o falso-vermelho
-     seria criação desta sprint, e por isso morre aqui. */
+     seria criação desta sprint, e por isso morre aqui.
+
+     E A HISTÓRIA DO PACK TAMBÉM FICA DE FORA — 24/09/2026, P53. Ela deixou
+     de ser um `<pre>` e virou parágrafos montados do `LEIA-ME.md` de quem
+     publicou o pack (o `historiaDoPack` do app.js). É texto do autor do
+     pack, e não ajuda deste painel: o do Dracula abre um parágrafo com
+     `meow pack info dracula`, em código, e a primeira letra é a dele. */
   const minusculas = [];
   for (const p of pr.querySelectorAll('p')) {
     if (p.offsetParent === null || p.closest('.dica')) continue;
     if (p.classList.contains('sem-previa')) continue;
+    if (p.closest('.pack-historia')) continue;
     const t = (p.textContent || '').trim().replace(/\\s+/g, ' ');
     if (!t) continue;
     const c = t[0];

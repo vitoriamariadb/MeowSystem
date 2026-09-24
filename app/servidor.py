@@ -863,6 +863,12 @@ def _packs_no_disco():
 #   Então o texto viaja CRU no JSON e a página o põe num `<pre>` por
 #   `textContent` — nada é interpretado, nem do lado de cá nem do de lá. Quem
 #   quiser negrito escreve no site dele, que o cartão linka.
+#   [24/09/2026, P53: o `<pre>` mostrava `#`, `##` e `**` crus na tela — medido
+#   no painel de verdade, 25 marcas na história do Dracula. A página passou a
+#   montar um SUBCONJUNTO — títulos, listas, negrito, código e link https — nó
+#   a nó, cada pedaço por `textContent` (o `historiaDoPack` do app.js). Deste
+#   lado nada muda, e a regra também não: o texto viaja cru, e HTML de
+#   terceiro continua sem jeito de virar HTML aqui.]
 #
 # UM PACK QUEBRADO NÃO DERRUBA A LISTA
 #   Um `pack.json` de terceiro pode estar malformado de jeitos que o `validar`
@@ -905,12 +911,41 @@ def vocabulario_do_pack():
         return None
 
 
+# O «REMOVER» DO CARTÃO — 24/09/2026, sprint P53 (achado 8)
+#   Quem decide o que sai é a `remocao` do scripts/pack.py, a mesma que o
+#   `meow pack remover` pergunta; daqui só sai o que o cartão precisa saber.
+#   None é "este pack não mora na casa dela" — o que vem com o MeowSystem —, e o
+#   cartão não ganha botão nenhum. Com `pode` falso, o cartão diz o `motivo`
+#   (o pack no ar, o que outro herda) em vez de oferecer o clique que o comando
+#   recusaria. O PACK e o FLAVOR são os que o `carregar_conf` do `bin/meow`
+#   passaria: os efetivos do meow.conf.
+def _remocao_do_cartao(mod, ident, conf):
+    try:
+        casa, motivo = mod.remocao(ident, conf.get("PACK") or "", conf.get("FLAVOR") or "")
+    except Exception:
+        return None
+    if not casa:
+        return None
+    return {"pode": not motivo, "motivo": motivo or ""}
+
+
+def _packs_removiveis():
+    """Os ids que o `pack_remover` aceita — a cerca do argumento. [P53]"""
+    mod = modulo_pack()
+    if not mod:
+        return []
+    conf = valores_efetivos(["PACK", "FLAVOR"])
+    return [i for i in sorted(_packs_no_disco())
+            if (_remocao_do_cartao(mod, i, conf) or {}).get("pode")]
+
+
 def packs_com_vitrine():
     """Os packs no disco, cada um com a vitrine que declara — o `/api/packs`."""
     mod = modulo_pack()
     if not mod:
         return []
     no_ar = _pack_no_ar()
+    conf = valores_efetivos(["PACK", "FLAVOR"])
     saida = []
     for ident in sorted(_packs_no_disco()):
         try:
@@ -919,8 +954,11 @@ def packs_com_vitrine():
             # `valido` falso tira o «Usar este» do cartão: o `meow pack usar`
             # recusaria este pack pelo mesmo motivo, e um botão que só leva a
             # uma recusa ensina a desconfiar dos outros. [P10]
+            #   O «Remover» FICA [P53]: um pack importado que não valida é
+            # justamente o que se quer tirar, e sem o botão ele só sairia à mão.
             saida.append({"id": ident, "nome": ident, "problemas": [str(erro)],
-                          "no_ar": ident == no_ar, "valido": False})
+                          "no_ar": ident == no_ar, "valido": False,
+                          "remover": _remocao_do_cartao(mod, ident, conf)})
             continue
         vit, problemas = mod.vitrine(p, dir_pack)
         # O `vocabulario` sobe a herança e valida o dono dela; um dono quebrado
@@ -984,6 +1022,7 @@ def packs_com_vitrine():
             "valido": True,
             "flavors": vocab["flavors"],
             "categorias": vocab["categorias"],
+            "remover": _remocao_do_cartao(mod, ident, conf),
         })
     return saida
 
@@ -1223,6 +1262,23 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         #   pularia o flavor sem cor.
         item["previa"] = _tipo_de_previa(item["chave"], oferta, item.get("faixa"),
                                          item.get("padrao"))
+
+    # 5. «Theme pack» — os packs DO DISCO, pelo nome. [P53, 24/09/2026, achado
+    #    29] Era um campo de texto: para escolher o Dracula era preciso digitar
+    #    `dracula`, e o que se digitasse errado caía no padrão calado no próximo
+    #    aplicar. A oferta é a mesma varredura do `/api/packs` e do «Usar este»
+    #    (`_packs_no_disco`), e a cerca da escrita também (`validar_valor`). O
+    #    vazio continua sendo o terceiro estado — "o embutido", como o exemplo
+    #    diz. O valor de agora fora da lista continua oferecido, como nos
+    #    blocos 1 e 4: o meow.conf vence, e a tela mostra o que está lá.
+    item = por_chave.get("PACK")
+    if item and mod:
+        oferta = sorted(_packs_no_disco())
+        agora = item.get("valor") or ""
+        if agora and "$" not in agora and agora not in oferta:
+            oferta.append(agora)
+        item["opcoes"] = oferta
+        item["rotulos"] = {i: (mod.campo(i, "nome") or i) for i in oferta}
 
 
 def _flavors_dos_packs():
@@ -2716,6 +2772,11 @@ def validar_valor(item, valor):
     # desta função existe para não ter. Ver `_flavors_dos_packs`.
     if item["chave"] == "FLAVOR" and fechadas:
         fechadas = _flavors_dos_packs() or fechadas
+    # O «THEME PACK» CERCA PELOS PACKS DO DISCO — P53: é o que a página passou a
+    # oferecer (bloco 5 do `_com_o_vocabulario_do_pack`). Um id que não existe
+    # não é recusado por ninguém lá adiante: o `adocao` veste o padrão, calado.
+    if item["chave"] == "PACK":
+        fechadas = sorted(_packs_no_disco()) or fechadas
     if fechadas and valor not in fechadas:
         return "%s aceita %s" % (item["chave"], " | ".join(fechadas))
 
@@ -3222,6 +3283,12 @@ PROVEDORES = {
     # é a mesma do `/api/packs`, então o cartão só oferece o que esta cerca
     # aceita. [P10]
     "packs": lambda: sorted(_packs_no_disco()),
+    # O argumento do «Remover»: só o que a `remocao` deixa sair. É a mesma
+    # conta que acende o botão no cartão. [P53]
+    "packs_removiveis": _packs_removiveis,
+    # O argumento dos dois botões da pendência de tema de terceiro: os apps que
+    # têm essa pendência na Home agora. [P53] Ver `SUFIXO_TEMA_DE_TERCEIRO`.
+    "apps_de_terceiro": lambda: sorted({_app_da_pendencia(p["id"]) for p in pendencias()} - {""}),
 }
 
 
@@ -3492,6 +3559,22 @@ ACOES = {
         "oculta": True,
         "ajuda": "Grava o pack e a variante dele no meow.conf e roda o "
                  "instalador: a máquina inteira troca de tema.",
+    },
+    # TIRAR UM PACK IMPORTADO — 24/09/2026, sprint P53 (achado 8)
+    #   O «Remover» dos cartões da Início. É o `meow pack remover`, e quem decide
+    #   o que pode sair é a `remocao` do scripts/pack.py — a mesma conta que
+    #   acende o botão no cartão e que cerca o argumento (`packs_removiveis`).
+    #   `destrutivo` porque o pack sai do disco, e é isso que põe o «Ver o que
+    #   faria» na caixa. `oculta` pelo motivo do `pack_usar`: o argumento é um
+    #   pack, e quem o escolhe é o cartão.
+    "pack_remover": {
+        "rotulo": "Remover este pack",
+        "grupo": "Instalação",
+        "argv": _meow("pack", "remover", "@ARG@"), "arg": "packs_removiveis",
+        "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
+        "oculta": True,
+        "ajuda": "Tira da sua casa de packs um pack que você importou. O tema no "
+                 "ar não muda; para tê-lo de novo, importe o arquivo dele outra vez.",
     },
     "instalar": {
         "rotulo": "Instalar tudo",
@@ -4048,6 +4131,35 @@ ACOES = {
         "ajuda": "Aplica o tema em todos os programas marcados que estiverem "
                  "instalados. Programa ausente fica pendente, e nunca "
                  "derruba o resto.",
+    },
+    # A ESCOLHA DO TEMA DE TERCEIRO — 24/09/2026, sprint P53 (achados 3 e 4)
+    #   Os dois botões da pendência `<app>-tema-de-terceiro`. O argv é o verbo
+    #   que já existia (`apps aplicar <app>`, como o do Spotify logo abaixo), e a
+    #   resposta vai no ambiente: é ela que o `meow_app_tema_no_ar` (lib/comum.sh)
+    #   lê no lugar da pergunta do terminal. Uma rota nova para escrever tema de
+    #   programa seria a segunda estrada que o `resolverPendencia` do app.js
+    #   existe para não ter. O «Trocar» pergunta antes, e é `destrutivo`: ele
+    #   escreve por cima do tema que a pessoa escolheu à mão, e é isso que põe o
+    #   «Ver o que faria» na caixa — o ensaio da troca, que o
+    #   `meow_app_tema_no_ar` deixa o módulo dizer. O «Manter» só grava a
+    #   decisão, e não mexe no programa.
+    "apps_tema_do_pack": {
+        "rotulo": "Trocar pelo tema do pack",
+        "grupo": "Lançadores e jogos",
+        "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "apps_de_terceiro",
+        "ambiente": {"MEOW_TEMA_DE_TERCEIRO": "trocar"},
+        "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
+        "oculta": True,
+        "ajuda": "Troca o tema que o programa tem agora pelo do pack no ar.",
+    },
+    "apps_manter_o_meu": {
+        "rotulo": "Manter o meu tema",
+        "grupo": "Lançadores e jogos",
+        "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "apps_de_terceiro",
+        "ambiente": {"MEOW_TEMA_DE_TERCEIRO": "manter"},
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "O tema de agora fica, e o MeowSystem para de perguntar "
+                 "enquanto o programa estiver nele.",
     },
     # O TEMA DO SPOTIFY — 22/09/2026, sprint P2. É a ação para onde a pendência
     # `spicetify-tema-ausente` aponta. O argv é o verbo que já existia (`apps
@@ -5404,6 +5516,34 @@ RECUSA_DA_PENDENCIA = {
                          "nao-quero-starship"],
 }
 
+# A ESCOLHA DO TEMA DE TERCEIRO — 24/09/2026, sprint P53 (achados 3 e 4)
+#   O `meow_app_tema_no_ar` (lib/comum.sh) registra `<app>-tema-de-terceiro`
+#   quando um programa está num tema que não veio do MeowSystem, e a linha
+#   mandava decidir "rodando o aplicar deste app de um terminal" — medido no
+#   painel de verdade com o OnlyOffice. A decisão tem dois lados, e cada um
+#   vira um botão, pela rota de qualquer botão: as ações `apps_tema_do_pack` e
+#   `apps_manter_o_meu`, com o app de argumento.
+#
+#   PELO SUFIXO, E NÃO UMA LINHA POR APP NO `ACAO_DA_PENDENCIA`: o id nasce
+#   assim para todo módulo que chama aquela função — sete hoje —, e o próximo
+#   ganha os botões sem vir aqui. O app só vale se for um id e tiver módulo.
+#   A regra das duas pontas continua: sem `comando` na linha, não há botão.
+SUFIXO_TEMA_DE_TERCEIRO = "-tema-de-terceiro"
+ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar pelo tema do pack"),
+                            ("apps_manter_o_meu", "Manter o meu"))
+
+
+def _app_da_pendencia(ident):
+    """O app de uma pendência `<app>-tema-de-terceiro`, ou ''."""
+    if not ident.endswith(SUFIXO_TEMA_DE_TERCEIRO):
+        return ""
+    app = ident[:-len(SUFIXO_TEMA_DE_TERCEIRO)]
+    if not re.match(r"^[a-z0-9][a-z0-9-]*$", app):
+        return ""
+    modulo = os.path.join(RAIZ, "assets", "temas-de-apps", app, "manifesto.sh")
+    return app if os.path.isfile(modulo) else ""
+
+
 PENDENCIAS = os.path.join(ESTADO, "pendencias.tsv")
 
 
@@ -5436,10 +5576,14 @@ def pendencias():
                 #   falha. Lendo só a tabela, a Home poria um "Resolver" que
                 #   dispararia um segundo build em cima do primeiro.
                 acao = ACAO_DA_PENDENCIA.get(ident, "") if comando else ""
+                app = _app_da_pendencia(ident) if comando else ""
                 fora.append({
                     "id": ident, "etapa": etapa, "frase": frase,
                     "comando": comando, "quando": quando,
                     "acao": acao,
+                    # Os dois lados da decisão, na ordem da frase. [P53]
+                    "escolha": [{"acao": a, "argumento": app, "rotulo": r}
+                                for a, r in ESCOLHA_TEMA_DE_TERCEIRO] if app else [],
                     "recusavel": ident in RECUSA_DA_PENDENCIA,
                     # O rótulo que os cartões de ação já usam. Sai da própria
                     # ação, e não de uma segunda lista aqui: duas verdades sobre
@@ -8781,9 +8925,13 @@ class Manipulador(BaseHTTPRequestHandler):
                 resumo = ("%s%s arquivo(s), %s. Ele entra como opção entre os packs — "
                           "nada do seu tema muda até você escolher usá-lo."
                           % (por, quantos, mod._mb(pack["bytes"])))
+            # «O PACK», E O NOME ENTRE ASPAS — P53, achado 9. Era «Importar o
+            # Tinta De Teste?»: o nome solto depois do artigo lia-se como frase,
+            # e o «De» maiúsculo vinha do id. O nome agora sai do arquivo como
+            # ela o escreveu (`montar_novo`), e as aspas dizem onde ele começa.
             return self._json({
                 "precisa_confirmar": True,
-                "titulo": "Importar o %s?" % nome,
+                "titulo": "Importar o pack «%s»?" % nome,
                 "resumo": resumo,
                 "pack": pack,
             })

@@ -7669,6 +7669,19 @@ async function resolverPendencia(p) {
   render();
 }
 
+/* OS DOIS LADOS DE UMA DECISÃO — 24/09/2026, sprint P53 (achados 3 e 4). A
+ * pendência de tema de terceiro traz `escolha`: «Trocar pelo tema do pack» e
+ * «Manter o meu», cada um uma ação do servidor com o app de argumento. O
+ * caminho é o do «Resolver», pelo motivo que o comentário dele dá: a mesma
+ * caixa, a mesma gaveta, o mesmo desfecho. */
+async function escolherNaPendencia(e) {
+  const acao = (ESQUEMA.acoes || []).find((a) => a.id === e.acao);
+  if (!acao) { torrada("esta escolha não tem ação registrada", "erro"); return; }
+  await rodar(acao, e.argumento);
+  await recarregarPendencias();
+  render();
+}
+
 async function recusarPendencia(p) {
   const ok = await perguntar({
     titulo: "Não perguntar de novo?",
@@ -7707,7 +7720,7 @@ function montarPendencias() {
    *   por palavra; a outra nomeia o que aquelas linhas são: coisas que o
    *   programa achou e não conserta sozinho. Quando só existe uma das duas
    *   espécies, só a frase dela aparece. */
-  const comClique = PENDENCIAS.filter((p) => p.acao || p.recusavel).length;
+  const comClique = PENDENCIAS.filter((p) => p.acao || p.recusavel || (p.escolha || []).length).length;
   const semClique = PENDENCIAS.length - comClique;
   const caixa = elemento("section", { class: "home-pendencias" });
   /* TUDO DENTRO DE UM <span> SÓ, e isto não é capricho: o `h3` é `display:
@@ -7768,6 +7781,15 @@ function montarPendencias() {
         onclick: () => resolverPendencia(p),
       }));
     }
+    /* A ESCOLHA, SEM LADO PREFERIDO (P53): nenhum dos dois ganha o acento,
+     * porque a decisão é dela e a tela não empurra para um lado. */
+    for (const e of (p.escolha || [])) {
+      botoes.append(elemento("button", {
+        type: "button", class: "btn btn-mini",
+        texto: e.rotulo,
+        onclick: () => escolherNaPendencia(e),
+      }));
+    }
     if (p.recusavel) {
       botoes.append(elemento("button", {
         type: "button", class: "btn btn-mini",
@@ -7786,7 +7808,7 @@ function montarPendencias() {
       class: "pastilha p-rede", texto: "baixa da internet" }));
     /* SEM BOTÃO, A ORIGEM. Uma linha que não oferece nada precisa dizer de onde
      * veio, ou vira uma reclamação sem endereço. O nome da etapa é o endereço. */
-    if (!p.acao && !p.recusavel) {
+    if (!p.acao && !p.recusavel && !(p.escolha || []).length) {
       botoes.append(elemento("span", { class: "pendencia-origem", texto: p.etapa }));
     }
     linha.append(botoes);
@@ -7815,6 +7837,9 @@ function montarPendencias() {
  * `html` — nem um negrito é interpretado. O `tests/pack.sh` cobra isto no
  * código de `cartaoDePack`. E o site só vira link se for https, conferido lá
  * no `pack.py` e de novo aqui: é o único campo do pack que vira `href`.
+ *   [24/09/2026, P53: o `<pre>` saiu, a regra ficou. A história se monta nó a
+ * nó, cada pedaço por `textContent`, e um link da história só vira `href`
+ * pela mesma porta do https — ver `historiaDoPack`.]
  *
  * O QUE ESTE BLOCO NÃO ERA. A P10 faz da Home o lugar de TROCAR de pack: o
  * «Usar este», o anel no que está no ar, o Exportar e o Importar. Aqui era só o
@@ -7842,9 +7867,21 @@ async function recarregarPacks() {
  * (`resumo_de_origem`), que só conhece o id. Agora as duas saem daqui, da
  * mesma `p.categorias` — o `vocabulario` do pack.py, que traz o `nome_de` —,
  * e um lado não tem mais como dizer o pack de outro jeito. */
+/* O "FIXO" CAÍA EM «PRÓPRIO» — 24/09/2026, P53 (achado 7). O `origens` do
+ * pack.py tem QUATRO tipos, e esta função conhecia três: o traço do gerador, o
+ * prompt, o fastfetch e os gatos — que vêm de `assets/` para todo pack, e que o
+ * `meow pack info` chama de «DO MOTOR — não declarável» — saíam «próprio» no
+ * «Mais sobre» do Dracula, medido no painel de verdade. Agora cada tipo tem a
+ * frase dele, com as palavras do `info`, e um tipo que o pack.py venha a
+ * ganhar aparece pelo nome em vez de se passar por outro. */
+const ORIGEM_NA_TELA = {
+  "próprio": "próprio",
+  motor: "do motor, ou ausente",
+  fixo: "do motor — não declarável",
+};
 function deOndeVem(c) {
   return c.tipo === "herdado" ? `herdado do ${c.nome_de || c.de}`
-    : c.tipo === "motor" ? "do motor, ou ausente" : "próprio";
+    : ORIGEM_NA_TELA[c.tipo] || c.tipo;
 }
 
 /* A linha do cartão: o agrupamento do `resumo_de_origem`, com o nome. Sem as
@@ -7859,6 +7896,88 @@ function linhaDeOrigem(p) {
     grupos.set(de, [...(grupos.get(de) || []), c.categoria]);
   }
   return [...grupos].map(([de, cats]) => `${de}: ${cats.join(", ")}`).join(" · ") || p.origem || "";
+}
+
+/* A HISTÓRIA EM MARKDOWN, MAS SÓ UM PEDAÇO DELE — 24/09/2026, P53 (achado 6)
+ *   O `<pre>` da P15 punha o `LEIA-ME.md` na tela como estava, com `#`, `##`,
+ *   `**` e crases à vista — medido no painel de verdade: 25 marcas na história
+ *   do Dracula. A regra de segurança daquele bloco continua inteira: NADA do
+ *   texto vira HTML. O que muda é que este leitor reconhece cinco formas —
+ *   título (`#`), item de lista (`-`, `*`, `+`, `1.`), negrito (`**`), código
+ *   (crase) e link `[texto](https://…)` — e monta cada uma como NÓ, com o
+ *   texto por `textContent` (o `texto` e os filhos-string do `elemento`).
+ *   Qualquer outra coisa, uma tag inclusive, sai como texto. O link só ganha
+ *   `href` com `https://`, a regra do `site` logo abaixo; com outro esquema
+ *   fica o texto dele, sem endereço.
+ *
+ *   DECIDIDO CONTRA A OUTRA SAÍDA DA SPRINT, reescrever as histórias em texto
+ *   puro: ela consertaria as dos dois packs do repositório e deixaria crua a
+ *   de todo pack de terceiro — o formato pede um `.md` (docs/PACKS.md), e
+ *   quem publica escreve Markdown. */
+function trechosDaLinha(linha) {
+  const nos = [];
+  const forma = /\*\*([^*]+)\*\*|`([^`]+)`|\[([^\]]+)\]\(([^)\s]+)\)/g;
+  let fim = 0;
+  let m;
+  while ((m = forma.exec(linha))) {
+    if (m.index > fim) nos.push(linha.slice(fim, m.index));
+    if (m[1] !== undefined) nos.push(elemento("strong", { texto: m[1] }));
+    else if (m[2] !== undefined) nos.push(elemento("code", { texto: m[2] }));
+    else if (m[4].startsWith("https://")) {
+      nos.push(elemento("a", { href: m[4], target: "_blank", rel: "noopener noreferrer",
+                               texto: m[3] }));
+    } else nos.push(m[3]);
+    fim = forma.lastIndex;
+  }
+  if (fim < linha.length) nos.push(linha.slice(fim));
+  return nos;
+}
+
+function historiaDoPack(texto) {
+  const caixa = elemento("div", { class: "pack-historia" });
+  let paragrafo = null;
+  let lista = null;
+  for (const bruta of String(texto || "").split("\n")) {
+    const linha = bruta.trim();
+    let m;
+    if (!linha) {
+      paragrafo = null;
+      lista = null;
+    } else if ((m = /^(#{1,6})\s+(.*)$/.exec(linha))) {
+      paragrafo = null;
+      lista = null;
+      caixa.append(elemento(m[1].length <= 2 ? "h4" : "h5", {}, trechosDaLinha(m[2])));
+    } else if ((m = /^(?:[-*+]|\d+[.)])\s+(.*)$/.exec(linha))) {
+      paragrafo = null;
+      const numerada = /^\d/.test(linha);
+      if (!lista || (lista.tagName === "OL") !== numerada) {
+        lista = elemento(numerada ? "ol" : "ul");
+        caixa.append(lista);
+      }
+      lista.append(elemento("li", {}, trechosDaLinha(m[1])));
+    } else if (lista && /^\s/.test(bruta)) {
+      // A linha recuada logo abaixo de um item é a continuação dele.
+      lista.lastElementChild.append(" ", ...trechosDaLinha(linha));
+    } else {
+      lista = null;
+      if (paragrafo) paragrafo.append(" ");
+      else caixa.append(paragrafo = elemento("p"));
+      paragrafo.append(...trechosDaLinha(linha));
+    }
+  }
+  return caixa;
+}
+
+/* O «REMOVER» DO CARTÃO — 24/09/2026, sprint P53 (achado 8)
+ *   É o `meow pack remover`, pela ação `pack_remover` do servidor, com a caixa
+ *   de todo gesto que desfaz alguma coisa — e por isso com o «Ver o que faria».
+ *   Quem decide o que pode sair é a `remocao` do scripts/pack.py; o cartão só
+ *   lê a resposta (`p.remover`). A lista de packs se relê sozinha quando o
+ *   trabalho termina (o fim de todo trabalho que escreve relê `/api/packs`). */
+async function removerPack(p) {
+  const acao = (ESQUEMA.acoes || []).find((a) => a.id === "pack_remover");
+  if (!acao) { torrada("Remover um pack não está disponível nesta página.", "erro"); return; }
+  await rodar(acao, p.id);
 }
 
 function cartaoDePack(p) {
@@ -7933,12 +8052,18 @@ function cartaoDePack(p) {
    * pack», e a frase aponta para ele, como este comentário prometia.
    * "COM OUTRO NOME DE ARQUIVO" NÃO É ENFEITE: o id do pack sai do nome do
    * CSV, e importar não escreve por cima de um pack que já existe — o mesmo
-   * nome seria recusado, e a frase mandaria a pessoa a uma parede. */
+   * nome seria recusado, e a frase mandaria a pessoa a uma parede.
+   * [24/09/2026, P53, achado 8: o outro nome criava um SEGUNDO pack, e nenhum
+   * dos dois saía. Com o «Remover» no cartão, a frase manda tirar este antes
+   * e o mesmo nome volta a servir; o «outro nome» fica só para quando este não
+   * pode sair agora — o pack no ar, o que outro herda.] */
+  const podeSair = !!(p.remover && p.remover.pode);
   for (const d of (p.claros_derivados || [])) {
     corpo.append(elemento("p", { class: "pack-herda",
       texto: `Claro «${d.flavor}»: derivado de «${d.de}» pelo método do Latte, não desenhado. `
            + "Para usar o seu, ponha as 26 linhas dele no CSV e importe-o de novo em "
-           + "«Importar um pack», com outro nome de arquivo." }));
+           + (podeSair ? "«Importar um pack», depois de tirar este com o «Remover»."
+                       : "«Importar um pack», com outro nome de arquivo.") }));
   }
   /* O pack que não valida aparece assim mesmo, dizendo por quê — como no
    * `meow pack info`. Esconder o cartão esconderia também o motivo. */
@@ -7958,9 +8083,7 @@ function cartaoDePack(p) {
     const mais = elemento("details", { class: "pack-mais" }, [
       elemento("summary", { texto: "Mais sobre este pack" }),
     ]);
-    if (p.descricao) {
-      mais.append(elemento("pre", { class: "pack-historia", texto: p.descricao }));
-    }
+    if (p.descricao) mais.append(historiaDoPack(p.descricao));
     if (categorias.length) {
       const lista = elemento("dl", { class: "pack-categorias" });
       for (const c of categorias) {
@@ -7996,16 +8119,32 @@ function cartaoDePack(p) {
     corpo.append(mais);
   }
 
-  if (!p.no_ar && p.valido !== false) {
-    corpo.append(elemento("div", { class: "pack-acoes" }, [
-      elemento("button", {
-        type: "button", class: "btn",
-        texto: "Usar este",
-        title: `Veste a máquina inteira com o ${p.nome}`,
-        onclick: () => usarPack(p),
-      }),
-    ]));
+  /* O «REMOVER» ENTRA AO LADO DO «USAR ESTE», e só no pack que mora na casa
+   * dela (P53). O que não pode sair diz por quê, na linha de baixo, em vez de
+   * um botão que a caixa recusaria depois — o pack no ar, o que outro herda. */
+  const remover = p.remover || null;
+  const botoes = [];
+  if (remover && remover.pode) {
+    botoes.push(elemento("button", {
+      type: "button", class: "btn btn-perigo",
+      texto: "Remover",
+      title: `Tira o ${p.nome} da sua casa de packs`,
+      onclick: () => removerPack(p),
+    }));
   }
+  if (!p.no_ar && p.valido !== false) {
+    botoes.push(elemento("button", {
+      type: "button", class: "btn",
+      texto: "Usar este",
+      title: `Veste a máquina inteira com o ${p.nome}`,
+      onclick: () => usarPack(p),
+    }));
+  }
+  if (remover && !remover.pode && remover.motivo) {
+    corpo.append(elemento("p", { class: "pack-fica",
+      texto: `Não sai daqui: ${remover.motivo}.` }));
+  }
+  if (botoes.length) corpo.append(elemento("div", { class: "pack-acoes" }, botoes));
   cartao.append(corpo);
   return cartao;
 }
@@ -8148,7 +8287,13 @@ async function importarPack(arquivo) {
     return;
   }
   torrada(r.frase || `${arquivo.name} entrou — ele aparece entre os packs, e usar é outro clique.`, "ok");
-  await recarregarPacks();
+  /* O ESQUEMA TAMBÉM SE RELÊ — P53, achado 29. O «Theme pack» de Cor e tela
+   * passou a oferecer os packs do disco, e a oferta vem no esquema: sem esta
+   * releitura o pack que acabou de entrar ganhava cartão aqui e ficava fora
+   * da escolha até um F5 (medido na casa de brinquedo). O «Remover» não
+   * precisa disto: ele é um trabalho que escreve, e o fim de todo trabalho
+   * que escreve já relê os dois. */
+  await Promise.all([recarregarPacks(), recarregarEsquema()]);
   render();
 }
 

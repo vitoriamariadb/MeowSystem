@@ -819,8 +819,9 @@ por_vitrine "$VIT_BOA"
 
 # O PAINEL: a história chega CRUA, e a arte só sai pelo que o pack declarou.
 #   O `<script>` do LEIA-ME tem de chegar como texto no JSON — nem executado,
-#   nem "limpo" pelo servidor: quem garante que ele não roda é o `<pre>` com
-#   `textContent`, e um servidor que escapasse HTML esconderia um cliente que
+#   nem "limpo" pelo servidor: quem garante que ele não roda é o `textContent`
+#   da página (o `<pre>` até a P53, o `historiaDoPack` desde ela), e um
+#   servidor que escapasse HTML esconderia um cliente que
 #   voltou a usar `innerHTML`. A rota de arte não aceita caminho; `../` e
 #   número fora da lista são "não achei".
 saida="$(amb python3 - "$RAIZ" "$ID" <<'PY' 2>&1
@@ -890,20 +891,29 @@ info="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID" 2>&1)"
 $info"
 por_vitrine "$VIT_BOA"
 
-# A REGRA DE SEGURANÇA, NO CÓDIGO DA PÁGINA. A história entra num `<pre>` por
-# `texto` (textContent). Um `html:` ou um `innerHTML` dentro do cartão é o
-# Markdown de terceiro virando HTML numa página com token de sessão.
+# A REGRA DE SEGURANÇA, NO CÓDIGO DA PÁGINA. Um `html:` ou um `innerHTML` no
+# caminho da história é o Markdown de terceiro virando HTML numa página com
+# token de sessão.
+#   DESDE A P53 (24/09/2026) a história não é mais um `<pre>`: o
+# `historiaDoPack` monta títulos, listas, negrito, código e link nó a nó, e o
+# `trechosDaLinha` faz o de dentro da linha. A regra passou a valer para as
+# três funções, e o link tem de passar pelo `https://` antes de virar `href`.
+# O comportamento — uma tag no texto sai como texto, um `javascript:` não vira
+# link — é cobrado no navegador, pelo `tests/app-completo.py`.
 corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-if [ -z "$corpo" ]; then
-  falha "não achei a função cartaoDePack em app/pagina/app.js"
-elif printf '%s\n' "$corpo" | grep -vE '^\s*(\*|/\*|//)' | grep -qE '\bhtml:|innerHTML|insertAdjacentHTML'; then
-  falha "o cartão de pack interpreta HTML — a história tem de ser texto puro" \
-        "$(printf '%s\n' "$corpo" | grep -nE '\bhtml:|innerHTML|insertAdjacentHTML')"
-elif printf '%s\n' "$corpo" | grep -q 'elemento("pre"' \
-     && printf '%s\n' "$corpo" | grep -q 'texto: p.descricao'; then
-  ok "a história do pack entra num <pre> como texto, sem interpretar nada"
+historia="$(sed -n '/^function historiaDoPack(/,/^}/p;/^function trechosDaLinha(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+if [ -z "$corpo" ] || [ -z "$historia" ]; then
+  falha "não achei cartaoDePack, historiaDoPack e trechosDaLinha em app/pagina/app.js"
+elif printf '%s\n%s\n' "$corpo" "$historia" | grep -vE '^\s*(\*|/\*|//)' \
+     | grep -qE '\bhtml:|innerHTML|insertAdjacentHTML|outerHTML|DOMParser'; then
+  falha "o cartão de pack interpreta HTML — a história se monta nó a nó, por texto" \
+        "$(printf '%s\n%s\n' "$corpo" "$historia" | grep -nE '\bhtml:|innerHTML|insertAdjacentHTML|outerHTML|DOMParser')"
+elif printf '%s\n' "$corpo" | grep -q 'historiaDoPack(p.descricao)' \
+     && printf '%s\n' "$historia" | grep -q 'startsWith("https://")' \
+     && [ "$(printf '%s\n' "$historia" | grep -c 'href:')" = "1" ]; then
+  ok "a história do pack se monta nó a nó por texto, e só link https vira href"
 else
-  falha "o cartão de pack deixou de pôr a história num <pre> por texto"
+  falha "o cartão de pack deixou de montar a história pelo historiaDoPack, ou o href escapou do https"
 fi
 
 # --- 19. trocar de pack e voltar, conferindo o tema no disco — 23/09/2026, P10
@@ -1809,11 +1819,17 @@ else
     && ok "o novo --de-csv roda a régua de contraste e avisa, sem bloquear" \
     || falha "o novo --de-csv não disse o que reprovou na régua" "$novo_csv"
 fi
-achado="$(python3 - "$CSV_DIR/pack.json" "$(basename "$padrao")" "$ID" <<'PY'
+achado="$(python3 - "$CSV_DIR/pack.json" "$(basename "$padrao")" "$ID" "$CSV_ID" <<'PY'
 import json, sys
 p = json.load(open(sys.argv[1], encoding="utf-8"))
-padrao, no_ar = sys.argv[2], sys.argv[3]
+padrao, no_ar, dado = sys.argv[2], sys.argv[3], sys.argv[4]
 erros = []
+# O ID FOI DADO NA LINHA DE COMANDO, e o nome sai dele, e não do `cores.csv`:
+# o nome pelo arquivo (P53, achado 9) é só para quando o id também sai do
+# arquivo, que é o `importar`.
+esperado = " ".join(parte.capitalize() for parte in dado.split("-"))
+if p.get("nome") != esperado:
+    erros.append(f"nome = {p.get('nome')!r}: o id {dado!r} foi dado, e o nome é {esperado!r}")
 if p.get("heranca") != padrao:
     erros.append(f"heranca = {p.get('heranca')!r}: é o pack padrão ({padrao!r}), e não o no ar ({no_ar!r})")
 if (p.get("paleta") or {}).get("flavor_padrao") != "tinta":
@@ -1826,7 +1842,7 @@ print("\n".join(erros))
 PY
 )"
 [ -z "$achado" ] \
-  && ok "o pack de CSV herda do padrão, e o flavor_padrao é o primeiro do CSV" \
+  && ok "o pack de CSV herda do padrão, o flavor_padrao é o primeiro do CSV, e o nome sai do id dado" \
   || falha "o pack.json do novo --de-csv não é o que a sprint pede" "$achado"
 saida="$(amb "$RAIZ/bin/meow" pack validar "$CSV_ID" 2>&1)"; rc=$?
 [ "$rc" = "0" ] && [[ "$saida" != *"NENHUM código lê"* ]] \
@@ -1926,9 +1942,13 @@ printf '%s\n' "$corpo" | grep -q 'p.claros_derivados' \
 # "Traga as 26 linhas no CSV" não dizia para onde. Até a segunda metade da
 # P16 a tela não tinha onde, e o cartão mandava ao terminal (`meow pack
 # de-csv`); agora o «Importar um pack» aceita o .csv, e a frase aponta para ele.
+#   Desde a P53 (achado 8) o outro nome é só para o pack que não pode sair: o
+# que pode manda tirar este com o «Remover», e o mesmo nome volta a servir —
+# o outro nome fazia um segundo pack, e nenhum dos dois saía.
 printf '%s\n' "$corpo" | grep -q '«Importar um pack», com outro nome de arquivo' \
-  && ok "o cartão diz onde trocar o claro derivado: o «Importar um pack» da tela" \
-  || falha "o cartão manda trocar o claro sem apontar o importar da tela"
+  && printf '%s\n' "$corpo" | grep -q '«Importar um pack», depois de tirar este com o «Remover»' \
+  && ok "o cartão diz onde trocar o claro derivado: o «Importar um pack» da tela, e o «Remover» antes quando pode" \
+  || falha "o cartão manda trocar o claro sem apontar o importar da tela, ou sem o «Remover»"
 
 # O `.csv` PELA PORTA DO IMPORTAR — P16, item 5. No terminal primeiro: o id
 # sai do nome do arquivo, o pack vai para a raiz da pessoa, o meow.conf não
@@ -1958,8 +1978,90 @@ fi
   || falha "o importar do .csv mexeu no meow.conf, ou calou o claro derivado" "$importou"
 saida="$(viaja "$RAIZ/bin/meow" pack importar "$T/Minha Tinta.csv" 2>&1)"; rc=$?
 [ "$rc" = "1" ] && [[ "$saida" == *"já existe"*"com outro nome, ele vira outro pack"* ]] \
-  && ok "o mesmo .csv de novo é recusado, dizendo que o nome do arquivo faz o id" \
+  && [[ "$saida" == *"meow pack remover minha-tinta"* ]] \
+  && ok "o mesmo .csv de novo é recusado, dizendo que o nome do arquivo faz o id e como tirar o de lá" \
   || falha "o .csv importado duas vezes não foi recusado como devia (rc=$rc)" "$saida"
+
+# O NOME DO PACK DE CSV É O DO ARQUIVO, COMO FOI ESCRITO — P53, achado 9. Era
+# o id com cada pedaço capitalizado, e a caixa do painel perguntava «Importar o
+# Tinta De Teste?» por um `tinta de teste.csv`.
+nome_csv="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["nome"])' \
+  "$DA_PESSOA/minha-tinta/pack.json" 2>&1)"
+cp "$T/cores.csv" "$T/tinta de teste.csv"
+nome_minusculo="$(amb python3 - "$RAIZ" "$T/tinta de teste.csv" <<'PY' 2>&1
+import json, os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "scripts"))
+import pack
+arquivos, _p, _r = pack.montar_novo(pack.id_do_csv(sys.argv[2]), sys.argv[2])
+print(json.loads(arquivos["pack.json"])["nome"])
+PY
+)"
+[ "$nome_csv" = "Minha Tinta" ] && [ "$nome_minusculo" = "Tinta de teste" ] \
+  && ok "o nome do pack de CSV sai do arquivo como foi escrito («Minha Tinta», «Tinta de teste»)" \
+  || falha "o nome do pack de CSV não é o do arquivo" "Minha Tinta.csv -> $nome_csv; tinta de teste.csv -> $nome_minusculo"
+
+# --- 20c. REMOVER UM PACK IMPORTADO — 24/09/2026, P53 (achado 8) -------------
+#   O `importar` escrevia na casa da pessoa e nada tirava de lá. Agora o
+#   `meow pack remover` tira, e recusa três coisas, cada uma com o motivo: o que
+#   vem com o MeowSystem, o pack no ar e o que outro pack herda. O ensaio não
+#   apaga nada, e o de verdade não deixa meio pack nem o oculto da troca.
+#   Um meow.conf à parte, para o "no ar" não mexer no dos outros casos.
+printf 'FLAVOR="tinta"\nACCENT="mauve"\nMODO="escuro"\nPACK="minha-tinta"\n' > "$T/remover.conf"
+remover() { viaja env MEOW_CONF="$T/remover.conf" "$RAIZ/bin/meow" pack remover "$@" 2>&1; }
+faltam=""
+saida="$(remover minha-tinta)"; rc=$?
+[ "$rc" = "1" ] && [[ "$saida" == *"está no ar"* ]] && [ -d "$DA_PESSOA/minha-tinta" ] \
+  || faltam+=" o pack no ar saiu, ou não disse que está no ar (rc=$rc: $saida);"
+printf 'FLAVOR="%s"\nACCENT="mauve"\nMODO="escuro"\nPACK="%s"\n' "$ID" "$ID" > "$T/remover.conf"
+saida="$(remover dracula)"; rc=$?
+[ "$rc" = "1" ] && [[ "$saida" == *"vem com o MeowSystem"* ]] \
+  || faltam+=" o dracula do projeto não foi recusado como do MeowSystem (rc=$rc: $saida);"
+saida="$(remover '../fora')"; rc=$?
+[ "$rc" = "1" ] || faltam+=" um id com barra passou (rc=$rc);"
+mkdir -p "$DA_PESSOA/filho"
+printf '{"formato": 1, "id": "filho", "nome": "Filho", "icones": {"mimetypes": {"herda": "minha-tinta"}}}\n' \
+  > "$DA_PESSOA/filho/pack.json"
+saida="$(remover minha-tinta)"; rc=$?
+[ "$rc" = "1" ] && [[ "$saida" == *"Filho herda do Minha Tinta"* ]] \
+  || faltam+=" o pack de quem outro herda saiu, ou não disse quem herda (rc=$rc: $saida);"
+rm -rf "${DA_PESSOA:?}/filho"
+saida="$(viaja env MEOW_CONF="$T/remover.conf" MEOW_DRY_RUN=1 "$RAIZ/bin/meow" pack remover minha-tinta 2>&1)"; rc=$?
+[ "$rc" = "0" ] && [[ "$saida" == *"removeria"*"nada foi apagado"* ]] && [ -f "$DA_PESSOA/minha-tinta/pack.json" ] \
+  || faltam+=" o ensaio apagou, ou não disse o que apagaria (rc=$rc: $saida);"
+# A tela pergunta à mesma regra: o cartão do importado ganha o «Remover», o do
+# projeto não ganha nada, e a cerca do argumento é a mesma conta.
+saida="$(viaja env MEOW_CONF="$T/remover.conf" python3 - "$RAIZ" <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+por_id = {p["id"]: p for p in servidor.packs_com_vitrine()}
+erros = []
+if (por_id.get("minha-tinta") or {}).get("remover") != {"pode": True, "motivo": ""}:
+    erros.append("o cartão do importado: %r" % (por_id.get("minha-tinta") or {}).get("remover"))
+if (por_id.get("dracula") or {}).get("remover") is not None:
+    erros.append("o cartão do dracula do projeto ganhou remover: %r" % por_id["dracula"]["remover"])
+if servidor._packs_removiveis() != ["minha-tinta"]:
+    erros.append("a cerca do argumento: %r" % servidor._packs_removiveis())
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)" || faltam+=" a tela não pergunta à mesma regra: $saida;"
+remover_antes="$(sha256sum < "$T/remover.conf")"
+saida="$(remover minha-tinta)"; rc=$?
+[ "$rc" = "0" ] && [[ "$saida" == *"removido"* ]] && [ ! -e "$DA_PESSOA/minha-tinta" ] \
+  && [ -z "$(find "$DA_PESSOA" -maxdepth 1 -name '.saindo-*' 2>/dev/null)" ] \
+  && [ "$(sha256sum < "$T/remover.conf")" = "$remover_antes" ] \
+  || faltam+=" o remover de verdade não tirou o pack inteiro, ou deixou o oculto (rc=$rc: $saida);"
+# A saída vai para a gaveta do painel, e a casa sai dela como `~` (a regra da
+# P52: a tela não mostra o nome de usuário). Fora da casa, o caminho fica.
+til="$(env HOME=/casa/de/teste python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import pack
+print(pack._til("/casa/de/teste/.local/share/meowsystem/packs/x"), pack._til("/casa/de/testex/y"))' \
+  "$RAIZ/scripts" 2>&1)"
+[ "$til" = "~/.local/share/meowsystem/packs/x /casa/de/testex/y" ] \
+  || faltam+=" a saída do remover não troca a casa por ~ ($til);"
+[ -z "$faltam" ] \
+  && ok "meow pack remover tira o importado, recusa o do projeto, o no ar e o herdado, e ensaia sem apagar" \
+  || falha "o meow pack remover não cumpre a regra:$faltam"
 rm -rf "${DA_PESSOA:?}/minha-tinta"
 
 # E PELA ROTA, com o contrato da 20b: o ensaio pede confirmação e desenha o
