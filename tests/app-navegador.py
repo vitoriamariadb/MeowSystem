@@ -75,10 +75,12 @@ import hashlib
 import os
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
 import time
+import zlib
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FOTOS = "--fotos" in sys.argv
@@ -111,25 +113,41 @@ except ImportError:
 #   O `meow.conf` do brinquedo e' uma copia do `meow.conf.exemplo`, o arquivo
 #   de uma instalacao nova — e e' ele que o passo 21 confere byte a byte.
 #
-#   O QUE ISTO CUSTA, MEDIDO NA PRIMEIRA CORRIDA INTEIRA NO BRINQUEDO
-#   (23/09/2026): quatro conferencias liam o que esta' INSTALADO na casa dela
-#   e reprovam olhando uma casa vazia —
-#     · a grade de icones do tema e as miniaturas da galeria (zero de cada);
-#     · o ponteiro, "3 de 0": o `CURSOR` de fabrica nao esta' instalado, entao
-#       a lista do disco nao vira cerca e a chave fica sem opcoes, enquanto as
-#       3 previas saem de /usr/share/icons;
-#     · a Suavidade da oficina, 0,0%: o aplicativo que o brinquedo oferece tem
-#       um icone tao simples que a conversao devolve o MESMO SVG de 2 a 10
-#       (medido pela rota, um pedido por valor).
-#   E' reprovacao honesta, e o que elas devem passar a medir num brinquedo e'
-#   decisao de outra sprint; o que nao pode e' o teste voltar a subir o painel
-#   dela para ficar verde. A quinta reprovacao NAO e' do brinquedo: o `FLAVOR`
-#   nao ganha amostras em casa nenhuma, porque as cinco opcoes dele nao cabem
-#   na paleta de nenhum dos dois packs (4 no catppuccin, 2 no dracula) —
-#   medido com `FLAVOR` mocha e dracula. E' ela que derruba o passo 20c.
+#   E A CASA NAO FICA VAZIA — corrigido no mesmo dia, na revisao da P33
+#   A primeira corrida inteira no brinquedo reprovou em quatro conferencias,
+#   e a primeira versao deste bloco as deu por "decisao de outra sprint". Nao
+#   eram: tres liam o que esta' INSTALADO numa casa e olhavam uma vazia, e a
+#   quarta escolhia mal o que medir. Defeito DESTE arquivo, e vermelho em
+#   qualquer maquina. As tres ganharam o que mediam na casa dela, derivado do
+#   `meow.conf` do brinquedo e nunca de um nome escrito aqui (`montar_casa`):
+#     · a grade de icones do tema, zero: o `NOME_TEMA_ICONES` nao existia em
+#       ~/.local/share/icons. Recebe os glifos versionados em
+#       `assets/icones/arcticons-apps/`, que sao o que o construtor veste;
+#     · a galeria, zero: `ativos/` vazio. Recebe PAREDES imagens lisas;
+#     · o ponteiro, "3 de 0": o `CURSOR` de fabrica nao estava instalado, a
+#       lista do disco nao virava cerca e a chave ficava sem opcoes, enquanto
+#       as 3 previas saiam de /usr/share/icons. Recebe um XCursor de verdade
+#       com o nome do valor de fabrica.
+#   A quarta, a Suavidade da oficina em 0,0%, NAO nasceu do brinquedo. O
+#   primeiro aplicativo da grade e' o «Arquivos» do COSMIC nas duas casas
+#   (medido lendo os `.desktop` com um HOME e com o outro), e a arte de
+#   fabrica dele e' a mesma, a do hicolor do sistema — tao simples que a rota
+#   devolve o MESMO SVG com a suavidade em 2 e em 9. Na casa dela o teste
+#   morria antes, no `networkidle`, e nunca chegava ate' la'. Nao se planta:
+#   a oficina passa a escolher um aplicativo em que a mudanca da Suavidade
+#   aparece na lupa (ver o passo 22).
+#   A reprovacao que sobra NAO e' do brinquedo: o `FLAVOR` nao ganha amostras
+#   em casa nenhuma, porque as cinco opcoes dele nao cabem na paleta de nenhum
+#   dos dois packs (4 no catppuccin, 2 no dracula) — medido com `FLAVOR` mocha
+#   e dracula. Ela reprova o "FLAVOR mostra as paletas" do passo 4 e derruba o
+#   passo 20c, e o conserto e' do `servidor.py`, fora do que a P33 libera.
 BRINQUEDO = tempfile.mkdtemp(prefix="meow-navegador-")
 CASA = os.path.join(BRINQUEDO, "casa")
 CONF = os.path.join(CASA, ".config", "meow", "meow.conf")
+# Quantas imagens a galeria do brinquedo recebe. O passo 4 cobra MAIS de 20
+# miniaturas (a casa dela tem 46); 24 passa o piso com folga e ainda cabe numa
+# pagina da galeria, que desenha 60 de cada vez.
+PAREDES = 24
 
 falhas = []
 passos = []
@@ -335,10 +353,70 @@ def descartar(pag):
         pag.wait_for_timeout(400)
 
 
+def png_liso(caminho, rgb, larg=64, alt=40):
+    """Um PNG de uma cor so', escrito a mao para nao depender de biblioteca.
+    E' o mesmo do `tests/app-acessibilidade.py`, copiado e nao importado: a
+    P33 libera os dois testes, e nao um terceiro arquivo que os dois leiam."""
+    def pedaco(tipo, corpo):
+        return (struct.pack(">I", len(corpo)) + tipo + corpo
+                + struct.pack(">I", zlib.crc32(tipo + corpo) & 0xFFFFFFFF))
+    linhas = (b"\x00" + bytes(rgb) * larg) * alt
+    with open(caminho, "wb") as fh:
+        fh.write(b"\x89PNG\r\n\x1a\n"
+                 + pedaco(b"IHDR", struct.pack(">IIBBBBB", larg, alt, 8, 2, 0, 0, 0))
+                 + pedaco(b"IDAT", zlib.compress(linhas))
+                 + pedaco(b"IEND", b""))
+
+
+def xcursor_liso(caminho, lado=24, argb=0xFFCDD6F4):
+    """Um XCursor de uma imagem so' — um triangulo — no formato que o
+    `_cursor_para_rgba` do servidor decodifica: `Xcur`, o cabecalho de 16
+    bytes, UMA entrada de imagem (tipo 0xfffd0002, subtipo = tamanho) e o bloco
+    de 36 bytes seguido dos pixels em ARGB little-endian. Um arquivo que ele
+    nao decodificasse viraria botao sem desenho, e nao previa."""
+    pixels = b"".join(struct.pack("<I", argb if x <= y else 0)
+                      for y in range(lado) for x in range(lado))
+    with open(caminho, "wb") as fh:
+        fh.write(b"Xcur" + struct.pack("<III", 16, 0x10000, 1)
+                 + struct.pack("<III", 0xFFFD0002, lado, 28)
+                 + struct.pack("<9I", 36, 0xFFFD0002, lado, 1, lado, lado, 0, 0, 0)
+                 + pixels)
+
+
 def montar_casa():
-    """Semeia o HOME de brinquedo e devolve o ambiente do servidor."""
+    """Semeia o HOME de brinquedo e devolve o ambiente do servidor.
+
+    O que se planta e' o que o passo 4 mede numa casa instalada, e cada lugar
+    sai do `meow.conf` do brinquedo (`valor_de`), nunca de um nome escrito
+    aqui: o exemplo mudar de tema, de ponteiro ou de pasta muda a semeadura
+    junto. O porque de cada um esta' no bloco "E A CASA NAO FICA VAZIA"."""
     os.makedirs(os.path.dirname(CONF))
     shutil.copyfile(os.path.join(RAIZ, "meow.conf.exemplo"), CONF)
+
+    icones = os.path.join(CASA, ".local", "share", "icons")
+    # O ponteiro de fabrica, pelo nome EXATO do valor: e' a primeira regra do
+    # `_cursor_pastas_do_valor` (e do `_cursor_nome_tema` do `cursor.sh`), e
+    # nao depende da convencao do sufixo.
+    ponteiro = os.path.join(icones, valor_de("CURSOR"), "cursors")
+    os.makedirs(ponteiro)
+    xcursor_liso(os.path.join(ponteiro, "left_ptr"))
+    # O tema de icones instalado, com os glifos versionados que o construtor
+    # veste nos aplicativos. `scalable/apps` e' uma das tres pastas que o
+    # `_prev_icones` le.
+    tema = os.path.join(icones, valor_de("NOME_TEMA_ICONES"), "scalable", "apps")
+    os.makedirs(tema)
+    glifos = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
+    for nome in sorted(os.listdir(glifos)):
+        if nome.endswith(".svg"):
+            shutil.copyfile(os.path.join(glifos, nome), os.path.join(tema, nome))
+    # A galeria: `ativos/` e' a pasta do carrossel, a aba que a pagina abre.
+    # Uma cor por imagem, para nenhuma ser copia byte a byte de outra.
+    ativos = os.path.join(valor_de("WALLPAPER_BASE").replace("$HOME", CASA), "ativos")
+    os.makedirs(ativos)
+    for i in range(PAREDES):
+        png_liso(os.path.join(ativos, f"brinquedo-{i:02d}.png"),
+                 (10 * i, 0x2A, 0xFF - 10 * i))
+
     falso = os.path.join(BRINQUEDO, "falso")
     os.makedirs(falso)
     with open(os.path.join(falso, "sudo"), "w", encoding="utf-8") as fh:
@@ -1925,6 +2003,66 @@ def main():
             # Um aplicativo com arte de fabrica: o primeiro dos doze primeiros
             # cuja oficina responde com pelo menos cinco cartoes. Nao se fixa um
             # nome porque a grade e' a maquina dela; se nenhum servir, pula.
+            #
+            # E EM QUE A SUAVIDADE MUDA O TRACO A VISTA — 23/09/2026, revisao
+            # da P33
+            #   A regua, mais abaixo, sai do cartao «Limpo» e vai a `SUAVE`, e
+            #   a conferencia cobra que a lupa mude mais de 0,3% dos pixels.
+            #   Cinco cartoes nao garantem que haja o que mudar, e foi medido
+            #   no brinquedo com a regua indo a 9: o primeiro da grade (o
+            #   «Arquivos» do COSMIC, arte do hicolor) volta da rota com o MESMO
+            #   SVG, 0,0%; o seguinte, o BleachBit, volta com outro texto e o
+            #   mesmo numero de nos, 0,1% — abaixo do piso que separa desenho
+            #   novo do antialiasing. Nos dois a pagina redesenhou exatamente o
+            #   que recebeu, e a conferencia reprovava a arte, nao a pagina.
+            #
+            #   Entao a pergunta vai antes, e por outro caminho: o SVG do
+            #   «Limpo» e o que a ROTA devolve com `SUAVE` sao desenhados pelo
+            #   mesmo `desenhar()` da lupa, em duas caixas `.oficina-lupa` da
+            #   largura dela, e medidos com o mesmo `pixels_diferentes` e o
+            #   mesmo piso. So' serve o aplicativo em que a diferenca aparece.
+            #   Isto nao e' a conferencia de novo: ela passa pela regua, pelo
+            #   `reguar()` e pela repintura da lupa, e e' ali que um defeito da
+            #   pagina apareceria — com a arte ja' provada capaz de mudar.
+            SUAVE = "9"
+            desenha_limpo_e_suave = """async (valor) => {
+              const c = (OFICINA.variacoes || []).find((v) => v.id === 'limpo');
+              if (!c || !c.svg) return false;
+              const r = await fetch('/api/app-desenho', {
+                method: 'POST',
+                headers: { 'X-Meow-Token': TOKEN, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ app: OFICINA.app, acao: 'vetorizar',
+                                       fonte: c.fonte || 'icone', detalhe: c.detalhe,
+                                       suavidade: Number(valor), cheia: !!c.cheia,
+                                       fracas: c.fracas || 0, minimo: c.minimo || 0 }),
+              }).then((x) => x.json());
+              if (!r.svg || r.svg === c.svg) return false;
+              const nos = [c.svg, r.svg].map((t) => desenhar(t, 200, OFICINA.cor));
+              if (nos.some((n) => !n)) return false;
+              const larg = document.querySelector('.oficina-lupa').getBoundingClientRect().width;
+              const par = document.createElement('div');
+              par.id = 'teste-suavidade';
+              par.style.cssText = 'position:fixed;left:0;top:0;z-index:99999;display:flex';
+              for (const n of nos) {
+                const caixa = document.createElement('div');
+                caixa.className = 'oficina-lupa';
+                caixa.style.width = larg + 'px';
+                caixa.append(n);
+                par.append(caixa);
+              }
+              document.body.append(par);
+              return true;
+            }"""
+
+            def suavidade_se_ve():
+                if not pag.evaluate(desenha_limpo_e_suave, SUAVE):
+                    return False
+                caixas = pag.locator("#teste-suavidade > .oficina-lupa")
+                dif_ = pixels_diferentes(foto(caixas.nth(0), "22-porta-limpo"),
+                                         foto(caixas.nth(1), "22-porta-suave"))
+                pag.evaluate("() => document.getElementById('teste-suavidade').remove()")
+                return dif_ is not None and dif_ > 0.3
+
             achou = None
             for botao in pag.locator(".grade-apps button.app").all()[:12]:
                 botao.click()
@@ -1943,11 +2081,13 @@ def main():
                 except Exception:
                     botao.click()
                     continue
-                if pag.locator(".oficina-folha button.oficina-cartao").count() >= 5:
+                if (pag.locator(".oficina-folha button.oficina-cartao").count() >= 5
+                        and suavidade_se_ve()):
                     achou = botao
                     break
                 botao.click()
-            checa(achou is not None, "achei uma ficha cuja oficina desenha pelo menos cinco variacoes")
+            checa(achou is not None, "achei uma ficha cuja oficina desenha pelo menos cinco"
+                                     " variacoes e cuja Suavidade muda o traco a vista")
             if achou is not None:
                 # O id do `.desktop` que a oficina abriu. Ele nao e' fixo: a
                 # grade e' a maquina de quem roda, e as chamadas de porta feitas
@@ -2023,7 +2163,7 @@ def main():
                 pedidos = []
                 pag.on("request", lambda r: pedidos.append(r.url) if "/api/app-desenho" in r.url else None)
                 with pag.expect_response(lambda r: "/api/app-desenho" in r.url, timeout=25000):
-                    regua.fill("9")
+                    regua.fill(SUAVE)
                     regua.dispatch_event("input")
                 pag.wait_for_timeout(600)
                 checa(len(pedidos) == 1, f"mover a regua dispara UMA chamada, nao uma por pixel ({len(pedidos)})")
