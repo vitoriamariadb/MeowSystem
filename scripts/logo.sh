@@ -498,6 +498,25 @@ elif [ "$LOGO_MODO" = "hora" ]; then
     [ "$proximo" -lt 0 ] && proximo=0
   fi
   unset _j _ini _fim _quer
+elif [ "$LOGO_MODO" = "fixo" ]; then
+  # --- O MODO FIXO: O `LOGO` VENCE, COMO O CABEÇALHO SEMPRE PROMETEU ---------
+  # 24/09/2026, P50. Até aqui o `fixo` caía no ramo de baixo, que é o da
+  # rotação: com um gato do acervo já na chave, ele ficava, e o `LOGO` não era
+  # lido. Medido numa casa de brinquedo, pelo caminho que o painel ensina: o
+  # modo `hora` pôs o mimir, o cartão mandou passar a «Fixo», e `LOGO_MODO=fixo
+  # LOGO=coquinha` respondeu «logo já no lugar: mimir», rc 0, dock igual — o
+  # achado 33 de volta, no modo para onde o motivo manda a pessoa. Preservar a
+  # chave só tem razão de ser onde quem troca o gato é o script (a rotação);
+  # aqui quem troca é ela, pelo `LOGO`, e nada mais gira por cima.
+  proximo="$(_indice_de "$LOGO")"
+  if [ "$proximo" -lt 0 ]; then
+    # O mesmo aviso do modo `hora` para um nome fora do acervo. Fica o gato que
+    # está no ar: cair calado no primeiro da ordem alfabética trocaria o dock
+    # por um gato que ninguém pediu.
+    meow_aviso "LOGO=\"$LOGO\" não está em $ACERVO — fica o gato que está no ar"
+    proximo="$indice"
+    [ "$proximo" -lt 0 ] && proximo=0
+  fi
 else
   # Sem girar: só garante que a chave aponta para ALGUM gato do acervo. Se já
   # aponta, não se mexe — senão toda rodada do instalador desfaria a rotação e

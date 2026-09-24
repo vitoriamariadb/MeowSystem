@@ -757,26 +757,28 @@ FORMA_DOCK_ILHA="nao"             # sim | nao  <- ver o aviso acima
 #   espaço 8, recheio 6.
 #
 #   O RAIO TEM UM TETO FÍSICO, E ELE NÃO É UM NÚMERO FIXO
-#   Um raio maior que METADE DA ALTURA da barra faz o compositor recusar a layer
-#   surface, e como painel e dock são o MESMO processo os dois somem JUNTOS.
-#   O teto é derivado (`lib/painel.sh`), não cravado: `meow painel teto` mostra
-#   a conta. Nesta máquina dá 22 no painel e 32 no dock.
+#   Um raio acima do teto faz o compositor recusar a layer surface, e como
+#   painel e dock são o MESMO processo os dois somem JUNTOS. O teto é derivado
+#   (`lib/painel.sh`), não cravado: `meow painel teto` mostra a conta. Era a
+#   METADE DA ALTURA da barra (22 no painel e 32 no dock, nesta máquina) até o
+#   cosmic-comp de 11/09/2026, que mede o raio antes de a barra ter tamanho:
+#   sem o patch em execução, o teto é 0.
 #   Com `patches/cosmic-comp-raio-clampado.patch` EM EXECUÇÃO não há teto: o
 #   compositor reduz o canto em vez de derrubar o cliente, e o raio é todo seu.
 #
-#   POR ISSO A FAIXA DAS DUAS LINHAS DE RAIO É ESSE TETO, E NÃO UM NÚMERO REDONDO
-#   `0 a 22` no painel e `0 a 32` na dock é onde o deslizante da página termina —
-#   arrastar até o fim não pode ser um gesto que apaga a sua barra. Não é trava:
-#   escrever um número maior à mão continua possível, e o `forma.sh` avisa e
-#   CORTA (ou segue, se o compositor estiver clampado). Se o `meow painel teto`
-#   passar a dizer outro número — outra escala, outro `size`, outro applet mais
-#   alto —, é ESTE comentário que envelheceu, e é ele que se corrige.
+#   A FAIXA DAS DUAS LINHAS DE RAIO É A MAIOR, E A PÁGINA MOSTRA A DE AGORA
+#   `0 a 22` no painel e `0 a 32` na dock é a régua de metade da altura. Desde
+#   24/09/2026 (P50) o deslizante da página termina no teto que o `lib/painel.sh`
+#   calcula NA HORA, diz embaixo por quê, e a página não grava acima dele —
+#   arrastar até o fim não pode ser um gesto que apaga a sua barra. Escrever um
+#   número maior à mão continua possível, e o `forma.sh` avisa e CORTA (ou
+#   segue, se o compositor estiver clampado).
 FORMA_MARGEM_PAINEL=""            # 0 a 24 px  (o quanto o painel descola da borda)
 # @ Distância da borda — dock
 # > Em pixels.
 FORMA_MARGEM_DOCK=""              # 0 a 24 px  (o quanto a dock descola da borda)
 # @ Canto arredondado — painel
-# > Em pixels. Acima da metade da altura, o compositor limita sozinho.
+# > Em pixels.
 FORMA_RAIO_PAINEL=""              # 0 a 22 px  (o teto desta máquina; acima disso a barra some)
 # @ Canto arredondado — dock
 # > Em pixels.

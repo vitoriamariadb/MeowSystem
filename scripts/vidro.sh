@@ -639,6 +639,31 @@ FIM
 op_msg="painel $(descrever_opacidade "$op_painel"), dock $(descrever_opacidade "$op_dock")"
 
 if [ "$mudou" = "0" ]; then
+  # A LINHA DO VIDRO NÃO SE CONTRADIZ — 24/09/2026, sprint P50 (achado 15)
+  #   A receita era conferida DEPOIS do "vidro já conforme", e a tabela do
+  #   doctor, que mostra a primeira linha, dizia as duas coisas uma embaixo da
+  #   outra: «vidro já conforme» e «o vidro na tela não é o que você escolheu».
+  #   As duas eram verdade sobre coisas diferentes — o que ESTE script grava
+  #   confere; a cor que a GUI derivou, não —, e juntas liam como mentira.
+  #   Agora a receita vem primeiro: quando ela diverge, é ela que abre a
+  #   conferência, e o que confere desce para o detalhe, dizendo de quê fala.
+  #   O código continua o 4 de sempre (não há o que consertar daqui).
+  saida_receita="$(conferir_receita 2>&1)"; rc_receita=$?
+  if [ "$rc_receita" != "0" ]; then
+    printf '%s\n' "$saida_receita" | head -1
+    if [ "$desejado" = "true" ]; then
+      meow_info "o que o MeowSystem grava confere: $op_msg, mantido ao maximizar"
+    else
+      meow_info "o que o MeowSystem grava confere: $op_msg; sai ao maximizar (padrão do COSMIC)"
+      meow_aviso "com isso a \"Opacidade do fundo\" da GUI é ignorada enquanto houver janela"
+      meow_aviso "  maximizada — a barra fica chapada na cor do tema (medido em 23/08/2026)"
+    fi
+    printf '%s\n' "$saida_receita" | tail -n +2
+    # Sai 4, não 1: não há o que consertar — quem deriva é a GUI. Ver o
+    # cabeçalho de `conferir_receita` e o bloco do código 4 em
+    # scripts/aplicar_tema.sh.
+    exit 4
+  fi
   if [ "$desejado" = "true" ]; then
     meow_ok "vidro já conforme: $op_msg, mantido ao maximizar"
   else
@@ -646,9 +671,6 @@ if [ "$mudou" = "0" ]; then
     meow_aviso "com isso a \"Opacidade do fundo\" da GUI é ignorada enquanto houver janela"
     meow_aviso "  maximizada — a barra fica chapada na cor do tema (medido em 23/08/2026)"
   fi
-  # Sai 4, não 1: não há o que consertar — quem deriva é a GUI. Ver o cabeçalho de
-  # `conferir_receita` e o bloco do código 4 em scripts/aplicar_tema.sh.
-  conferir_receita || exit 4
   exit "$MEOW_OK"
 fi
 

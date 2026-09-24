@@ -3707,6 +3707,15 @@ main() {
   fi
 
   if [ ${#FALHOS[@]} -gt 0 ]; then
+    # NUM ENSAIO NADA É APLICADO — 24/09/2026, sprint P50 (achado 11). O
+    # rodapé dizia "o resto foi aplicado" também no «Ver o que faria», com a
+    # faixa da gaveta dizendo «nada foi escrito» no alto da mesma saída. Ensaio
+    # não deixa nada pela metade porque não começa nada: a frase diz isso.
+    if meow_seco; then
+      printf '\n  %sAlgumas etapas falharam no ensaio. Nada foi escrito:%s\n' "$C_AMARELO" "$C_ZERO"
+      printf '  %sas outras dizem acima o que fariam.%s\n\n' "$C_AMARELO" "$C_ZERO"
+      return 2
+    fi
     printf '\n  %sAlgumas etapas falharam. Nada foi deixado pela metade —%s\n' "$C_AMARELO" "$C_ZERO"
     printf '  %scada etapa é independente, e o resto foi aplicado.%s\n\n' "$C_AMARELO" "$C_ZERO"
     return 2
@@ -3731,9 +3740,14 @@ main() {
   # UMA PASSAGEM SÓ (--uma-passagem, ou o ensaio): o rodapé de antes, preservado
   # inteiro. A diferença é a linha do meio — quem fecha o laço agora é o
   # instalador, e a pessoa não precisa mais contar passagem nenhuma.
+  #   NO ENSAIO O VERBO É O DO QUE MUDARIA — revisão da P50, a linha do achado
+  #   11: o ensaio sem falha não chega ao rodapé de cima, e terminava aqui
+  #   dizendo «mudaram» com a faixa «nada foi escrito» no alto da gaveta.
   if [ "$ainda" -gt 0 ]; then
-    printf '\n  %s%d etapa(s) mudaram nesta passagem.%s\n' \
-      "$C_AMARELO$C_FORTE" "$ainda" "$C_ZERO"
+    local mudaram="mudaram"
+    meow_seco && mudaram="mudariam"
+    printf '\n  %s%d etapa(s) %s nesta passagem.%s\n' \
+      "$C_AMARELO$C_FORTE" "$ainda" "$mudaram" "$C_ZERO"
     printf '  Esta execução teve uma passagem só. Algumas etapas dependem do\n'
     printf '  resultado da anterior; sem --uma-passagem (e fora do ensaio) o\n'
     printf '  instalador repete sozinho até ninguém mais escrever:\n\n'

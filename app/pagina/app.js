@@ -1653,6 +1653,19 @@ function montarControle(item, cartao) {
   /* 3. faixa numérica -> deslizante + número, os dois amarrados */
   if (item.faixa) {
     const [lo, hi, passo] = item.faixa;
+    /* O DESLIZANTE TERMINA NO TETO QUE VALE AGORA — 24/09/2026, P50 (achado 36)
+     *   A régua do raio vem do comentário do `meow.conf.exemplo` («0 a 32 px»),
+     * que é o teto de quando o compositor media pela caixa do frame anterior.
+     * Medido no painel de verdade: 16 foi gravado, o instalador cortou para 0
+     * (sem o patch do raio nesta sessão, qualquer canto acima de 0 derruba
+     * painel e dock juntos) e a tela disse «mexeu e aplicou». O servidor manda
+     * o teto que o `lib/painel.sh` calcula AGORA (`item.teto`), e o fim da
+     * régua passa a ser ele, que é a regra que o próprio exemplo escreve:
+     * arrastar até o fim não pode ser o gesto que apaga a barra. O porquê
+     * sai embaixo do deslizante, em palavras. `trava` falso (o compositor corta
+     * sozinho, ou o modo experimental) deixa a régua inteira e só diz. */
+    const teto = item.teto && item.teto.trava ? Number(item.teto.valor) : null;
+    const topo = teto == null ? hi : String(Math.max(Number(lo), Math.min(Number(hi), teto)));
     const caixa = elemento("div", { class: "faixa" });
     /* O TERCEIRO ESTADO DO DESLIZANTE — 02/09/2026.
      *   A validação mediu: "os oito deslizantes de FORMA_* não têm o estado
@@ -1712,11 +1725,11 @@ function montarControle(item, cartao) {
      * porque uma alça que nasce no piso da régua desenha 0 onde a dock dela
      * tem 24. */
     const partida = agoraNaRegua
-      ? String(Math.min(Number(hi), Math.max(Number(lo), Number(agora))))
+      ? String(Math.min(Number(topo), Math.max(Number(lo), Number(agora))))
       : naoNumero(String(item.padrao ?? "")) ? String(lo) : String(item.padrao || lo);
     const comoEsta = agoraNaRegua ? `como está: ${rotuloDeValor(agora)}` : "como está";
     const slider = elemento("input", {
-      type: "range", min: lo, max: hi, step: passo,
+      type: "range", min: lo, max: topo, step: passo,
       value: naRegua ? valor : partida,
       class: naRegua ? "" : "faixa-comoesta",
       "aria-label": rotuloAcessivel(item),
@@ -1746,6 +1759,14 @@ function montarControle(item, cartao) {
     });
     slider.addEventListener("change", () => aplica(slider.value));
     caixa.append(slider, saida);
+    if (item.teto) {
+      caixa.append(elemento("p", {
+        class: "frase teto-raio",
+        texto: item.teto.trava
+          ? `Até ${item.teto.valor} px nesta sessão: ${item.teto.motivo}.`
+          : `${maiuscula(item.teto.motivo)}.`,
+      }));
+    }
 
     const alternativas = elemento("div", { class: "faixa-estados" });
     if (item.aceita_vazio) {
@@ -5084,6 +5105,24 @@ function porqueEDica(item) {
 }
 
 /* --- as ações ------------------------------------------------------------- */
+/* O PORQUÊ DE UM BOTÃO APAGADO, COM OS NOMES DA TELA — 24/09/2026, P50
+ *   O servidor manda o motivo em DADO, e a frase nasce aqui por uma razão só
+ * (achado 47): os nomes que ela cita têm de ser os que a pessoa vê. O ajuste
+ * sai pelo título do cartão dele (`nomeVisivel`) e o valor pelo rótulo do
+ * botão (`rotuloDeValor`); a ação que vem antes, pelo rótulo do cartão dela.
+ * Nenhum nome de tela escrito à mão, que é como «Instalar e conferir»
+ * sobreviveu dezoito dias numa frase a uma aba que já se chamava
+ * «Instalação» (renomeada em 06/09). */
+function fraseIndisponivel(motivo) {
+  if (motivo.antes) {
+    const antes = (ESQUEMA.acoes || []).find((a) => a.id === motivo.antes);
+    return `Antes, «${antes ? antes.rotulo : motivo.antes}»: ${motivo.porque}.`;
+  }
+  return `Sem efeito com «${nomeVisivel(motivo.chave)}» em `
+    + `«${rotuloDeValor(motivo.vale)}». Mude para «${rotuloDeValor(motivo.pede)}» `
+    + "para usar este botão.";
+}
+
 function montarAcao(acao) {
   const bloco = elemento("article", { class: "acao" });
   bloco.append(elemento("h3", { texto: acao.rotulo }));
@@ -5178,6 +5217,17 @@ function montarAcao(acao) {
     executar.disabled = true;
     bloco.append(elemento("p", { class: "frase",
       texto: "Nada para escolher nesta máquina agora: a lista desta ação está vazia." }));
+  }
+  /* SEM EFEITO AGORA, O «EXECUTAR» TAMBÉM NÃO ACENDE — 24/09/2026, P50
+   *   A mesma regra do bloco de cima, para a ação que tem o que escolher e não
+   * teria efeito nenhum: «Pôr um gato no dock» com o gato por horário (achado
+   * 33, «já estava certo» com o dock igual) e «Gravar as áreas» sem área
+   * fixada (achado 32, «pulado»). Quem mede é o servidor (`indisponivel`, no
+   * `servidor.py`); a frase é daqui, com os nomes que a tela dá. */
+  if (acao.indisponivel) {
+    executar.disabled = true;
+    bloco.append(elemento("p", { class: "frase indisponivel",
+      texto: fraseIndisponivel(acao.indisponivel) }));
   }
   bloco.append(rodape);
   /* O COMANDO NA TELA É O COMANDO QUE VAI RODAR — 07/09/2026
@@ -5508,7 +5558,7 @@ function abrirGaveta(trabalho, aplicar = null) {
   if (TRABALHO?.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve,
                rotulo: trabalho.rotulo, mudou: false,
-               seco: !!trabalho.seco, aplicar };
+               seco: !!trabalho.seco, fim: trabalho.fim || {}, aplicar };
   const gaveta = $("#gaveta");
   gaveta.hidden = false;
   faixaDeEnsaio(!!trabalho.seco);
@@ -5528,6 +5578,17 @@ function abrirGaveta(trabalho, aplicar = null) {
   marcarEstado("correndo", "correndo…");
   TRABALHO.timer = setInterval(puxar, 400);
   puxar();
+}
+
+/* A LINHA DA TABELA DO FIM QUE VALE PARA ESTE CÓDIGO — 24/09/2026, P50
+ * `fim` vem do servidor com o trabalho (ver `NATUREZAS`): código, ou `0~`
+ * para o 0 que deixou linha `~~` na saída, -> [classe, frase]. O que não está
+ * na tabela é erro, e a frase diz o código — é o mesmo "saiu N" de antes, e é
+ * ele que o «Parar» mostra (o SIGTERM volta como -15). */
+function fimDoTrabalho(fim, rc, mudou) {
+  const tabela = fim || {};
+  const linha = (rc === 0 && mudou && tabela["0~"]) || tabela[String(rc)];
+  return linha || ["erro", `saiu ${rc}`];
 }
 
 function marcarEstado(classe, texto) {
@@ -5627,26 +5688,29 @@ async function puxar() {
     /* NO ENSAIO NINGUÉM ESCREVEU, E É ESTA LINHA QUE CONTA ISSO PARA O RESTO
      * DA FUNÇÃO — 22/09/2026, sprint P8
      *   `escreve` é da AÇÃO (o instalador escreve, sempre) e `seco` é desta
-     *   EXECUÇÃO; o que as quatro decisões abaixo precisam saber é o `e`
-     *   lógico das duas. Sem esta linha, um ensaio do instalador terminaria
-     *   dizendo "mexeu e aplicou", esvaziaria a bandeja de escolhas pendentes
-     *   e mandaria a página reler a máquina atrás de mudanças que não
-     *   aconteceram — a tela inteira mentindo junto, que é o defeito que esta
-     *   sprint veio matar e não repetir com outra cara.
+     *   EXECUÇÃO; o que as decisões abaixo precisam saber é o `e` lógico das
+     *   duas. Sem esta linha, um ensaio do instalador esvaziaria a bandeja de
+     *   escolhas pendentes e mandaria a página reler a máquina atrás de
+     *   mudanças que não aconteceram — a tela inteira mentindo junto, que é o
+     *   defeito que esta sprint veio matar e não repetir com outra cara.
      *
-     *   E O QUE SOBRA JÁ ESTÁ CERTO DE GRAÇA: com `escreveu` falso, o código 1
-     *   é traduzido como "há divergências" em vez de "mexeu e consertou", que é
-     *   a frase exata de um ensaio. A regra de 01/09 ("o 1 depende de quem
-     *   rodou") já valia para quem só LÊ; quem só ENSAIA está do mesmo lado. */
+     *   A PASTILHA SAIU DAQUI NA P50 (24/09/2026). Até ali o `escreveu` também
+     *   escolhia a frase: falso, o código 1 era traduzido como "há
+     *   divergências" em vez de "mexeu e consertou". Hoje a frase do ensaio é
+     *   a da natureza `ensaio` («nada mudaria», «mudaria»), que o servidor
+     *   manda pronta em `TRABALHO.fim`; o `escreveu` decide só a bandeja e a
+     *   releitura, logo abaixo. */
     const escreveu = TRABALHO.escreve && !TRABALHO.seco;
-    /* Os códigos de saída do projeto, traduzidos com as palavras dele: 0 já
-     * estava certo, 3 falta dependência, o resto é erro. Um "exit 1" cru
-     * pareceria falha, e aqui ele é a boa notícia.
+    /* Os códigos de saída do projeto, traduzidos com as palavras dele. Um
+     * "exit 1" cru pareceria falha, e quase sempre ele é a boa notícia.
      *
      * O 1 DEPENDE DE QUEM RODOU, e ignorar isso era uma mentira na tela: um
      * `meow status`, que só olha, terminava com a pastilha "mexeu e consertou".
-     * Visto em 01/09/2026. Para quem ESCREVE, 1 é "divergia e consertei"; para
-     * quem só LÊ, o mesmo 1 é "achei divergência" — e ninguém consertou nada. */
+     * Visto em 01/09/2026. Até a P50 a página separava só dois lados: para
+     * quem ESCREVE, 1 era "divergia e consertei"; para quem só LÊ, "achei
+     * divergência". Desde 24/09/2026 são as naturezas do bloco da P50, logo
+     * abaixo — o 1 de uma troca é «trocou», o de uma gravação «gravou», o do
+     * instalador «aplicou, com pendência». */
     const rc = r.rc;
     /* O 0 DO INSTALADOR NÃO QUER DIZER "NADA MUDOU" — 13/09/2026. O `install.sh`
      * sai 0 quando passa inteiro, tenha escrito ou não, e conta o que escreveu
@@ -5654,12 +5718,21 @@ async function puxar() {
      * Salvar: a pastilha dizia "já estava certo" em cima da passagem que tinha
      * acabado de trocar ícones e o gato da dock — a tela escondendo justamente
      * o que ela pediu para ver. */
-    if (rc === 0) marcarEstado("ok",
-      `${escreveu && TRABALHO.mudou ? "mexeu e aplicou" : "já estava certo"} · ${r.segundos}s`);
-    else if (rc === 1) marcarEstado(escreveu ? "ok" : "correndo",
-      `${escreveu ? "mexeu e consertou" : "há divergências"} · ${r.segundos}s`);
-    else if (rc === 3 || rc === 4) marcarEstado("pula", `pulado · ${r.segundos}s`);
-    else marcarEstado("erro", `saiu ${rc} · ${r.segundos}s`);
+    /* A FRASE SAI DA NATUREZA DA AÇÃO, E NÃO SÓ DO CÓDIGO — 24/09/2026, P50
+     *   As duas regras acima passaram para a tabela do servidor, porque
+     * deixaram de bastar como estavam: a de 01/09 virou a natureza (quem só lê
+     * é `mostrar` ou `conferir`, e o 1 dele é «há divergências»), a de 13/09
+     * virou a linha `0~`. Medido no painel de verdade, «Recarregar o painel»
+     * reciclou e disse «já estava certo», «Próxima imagem» disse «mexeu e
+     * consertou», «Ouvir o som» disse «já estava certo». O código não sabe se
+     * a ação confere, troca, toca ou recicla; a ação sabe, e o servidor manda
+     * a tabela do fim DESTE trabalho
+     * (`fim`, ver `NATUREZAS` no `servidor.py`), já trocada pela do ensaio
+     * quando é ensaio. Aqui só se escolhe a linha: o `0~` é o 0 com linha
+     * `~~` na saída — a regra de 13/09, que agora é da tabela. O que não está
+     * nela (2, o negativo de quem foi interrompido) é erro, em toda natureza. */
+    const [classeFim, fraseFim] = fimDoTrabalho(TRABALHO.fim, rc, TRABALHO.mudou);
+    marcarEstado(classeFim, `${fraseFim} · ${r.segundos}s`);
     /* Um doctor --consertar ou um install que passou zera a lista de pendentes:
      * o que estava escrito no conf acabou de valer na tela. Só quem ESCREVE
      * zera — um `meow status` bem-sucedido não aplicou chave nenhuma, e apagar
@@ -5715,7 +5788,11 @@ async function puxar() {
        * continua tendo direito de saber como acabou. A frase é a mesma da
        * pastilha de estado, com o nome do trabalho na frente. */
       const fim = $("#gaveta-estado").textContent;
-      torrada(`${TRABALHO.rotulo || "O trabalho"}: ${fim}`, rc === 0 || rc === 1 ? "ok" : "erro");
+      /* A cor da torrada é a da pastilha (P50): o 1 do instalador que não
+       * aplicou tudo e o «há divergências» de quem só confere não são o verde
+       * de «ok», nem o vermelho de erro. */
+      torrada(`${TRABALHO.rotulo || "O trabalho"}: ${fim}`,
+              { ok: "ok", erro: "erro" }[classeFim] || "igual");
     }
     /* O ensaio acabou: o botão que o transforma em execução entra agora. Antes
      * do `TRABALHO = null`, que é quem guarda o gesto.

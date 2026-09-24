@@ -2107,14 +2107,36 @@ primeira_linha() { sem_glifo "${1%%$'\n'*}"; }
 # espaço, saindo "a,b c,d".
 em_linha() { paste -sd, - | sed 's/,/, /g'; }
 
+# O AVISO QUE NÃO É DIVERGÊNCIA — 24/09/2026, sprint P50 (achado 14)
+#   Esperar o próximo login não é estar fora do lugar: os patches do compositor
+#   já estão no binário do disco, quem está velho é a sessão, e o próprio
+#   conferidor dizia "não há comando a rodar". Mesmo assim saía `~~`, contava
+#   como divergência, o fim do doctor mandava "rode: meow doctor --consertar" e o
+#   «Consertar» do painel terminava com «mexeu e aplicou» sem ter mexido em
+#   nada. O conferidor passou a sair 0 nesse caso, abrindo com um `!!` — e é
+#   esse `!!` que a tabela mostra, em vez de um `ok` verde sobre uma espera.
+#   O `pior_rc` não o vê (é 0), o `--consertar` o pula, e o detalhe continua
+#   aparecendo embaixo, como o de uma divergência. O `chk_painel` já abria o
+#   "vale no PRÓXIMO LOGIN" dele com `!!`, e ganha o mesmo glifo pela mesma regra.
+aviso_na_cabeca() {
+  local l="${1%%$'\n'*}"
+  l="${l#"${l%%[![:space:]]*}"}"
+  case "$l" in '!! '*) return 0 ;; esac
+  return 1
+}
+
 imprimir_check() {
-  local i="$1" detalhar="${2:-0}" linha
+  local i="$1" detalhar="${2:-0}" linha rotulo aviso=0
   linha="$(primeira_linha "${CHK_SAIDA[$i]}")"
+  rotulo="$(rotulo_rc "${CHK_RC[$i]}")"
+  if [ "${CHK_RC[$i]}" = "0" ] && aviso_na_cabeca "${CHK_SAIDA[$i]}"; then
+    rotulo="$(printf '%s!!%s  ' "$C_AMARELO" "$C_ZERO")"; aviso=1
+  fi
   # 11, e não 10, desde 11/08/2026: `convertidos` é o primeiro nome de
   # verificador com 11 caracteres, e com 10 a coluna da direita saía uma casa
   # fora do prumo só naquela linha.
-  printf '  %s %s %s\n' "$(rotulo_rc "${CHK_RC[$i]}")" "$(pad "${CHK_NOME[$i]}" 11)" "$linha"
-  if [ "$detalhar" = "1" ] && [ "${CHK_RC[$i]}" != "0" ]; then
+  printf '  %s %s %s\n' "$rotulo" "$(pad "${CHK_NOME[$i]}" 11)" "$linha"
+  if [ "$detalhar" = "1" ] && { [ "${CHK_RC[$i]}" != "0" ] || [ "$aviso" = "1" ]; }; then
     printf '%s\n' "${CHK_SAIDA[$i]}" | tail -n +2 | while IFS= read -r l; do
       l="$(sem_glifo "$l")"
       [ -n "$l" ] || continue
