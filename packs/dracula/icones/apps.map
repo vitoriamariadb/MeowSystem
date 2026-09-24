@@ -401,23 +401,16 @@ setup-mozc : biblioteca/tarot.svg   # Mozc Setup [override-novo]
 # com.system76.CosmicTerm                    -> autorais/cosmic-term-dracula.svg   # Terminal
 
 # --- sem desenho ainda ----------------------------------------------------
-# com.beholder.app : ?   # Beholder
 # com.boxy_svg.BoxySVG : ?   # Boxy SVG
-# org.andrebfarias.Crononauta : ?   # Chrononauta
 # Ubuntu-selfservice : ?   # Citrix Workspace (on Ubuntu)
 # com.github.rafostar.Clapper : ?   # Clapper
 # com.discordapp.Discord : ?   # Discord
-# extase-em-4r73 : ?   # Extase em 4R73
 # be.alexandervanhee.gradia : ?   # Gradia
 # hefesto-dualsense4unix : ?   # Hefesto - Dualsense4Unix
 # com.meowsystem.Painel : ?   # MeowSystem
 # com.microsoft.Edge : ?   # Microsoft Edge
 # com.obsproject.Studio : ?   # OBS Studio
-# protocolo-ouroboros : ?   # Ouroboros
-# pdfforge : ?   # PDForge
-# sigilo : ?   # Sigilo
 # com.spotify.Client : ?   # Spotify
 # syncthing : ?   # Syncthing Web UI
 # uad-ng : ?   # Universal Android Debloater
-# qrcode-void-generator : ?   # VOID | QRcode
 # whatsapp-linux-app : ?   # WhatsApp

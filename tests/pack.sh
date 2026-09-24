@@ -1362,7 +1362,8 @@ done
 #   `wallpapers` entra com campos que ainda não têm leitor, e de propósito. Até
 #   a P32 (23/09/2026) a tabela dizia PRÓPRIO para ele, e o docs/PACKS.md
 #   registrava isso como a exceção a consertar; agora ela diz DO MOTOR, porque
-#   o `wallpaper.sh` não abre pack nenhum. São DEZ as que saem PRÓPRIO. O aviso
+#   o `wallpaper.sh` não lê o bloco (desde a P40 ele segue o pack dono do
+#   flavor, pelas chaves do meow.conf). São DEZ as que saem PRÓPRIO. O aviso
 #   de campo morto continua cobrado aqui: é ele que diz a quem declarou o bloco
 #   que declarar não fez nada.
 #

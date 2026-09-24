@@ -4179,7 +4179,7 @@ def cmd_info(ref):
         # segunda metade é o porquê de o bloco declarado não mudar a linha: ver
         # "OS PAPÉIS DE PAREDE SÃO DO MOTOR", no `origens`.
         elif cat == "wallpapers":
-            conta = "scripts/wallpaper.sh — ele não abre pack nenhum"
+            conta = "scripts/wallpaper.sh — segue o pack do flavor, sem ler este bloco"
         elif cat in FIXAS_NO_MOTOR:
             conta = FIXAS_NO_MOTOR[cat]
         print(f"  {cat:<16}  {estado:<27}  {conta}")

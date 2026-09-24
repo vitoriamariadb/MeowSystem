@@ -144,7 +144,11 @@ fi
 # Quantas ficariam de fora do jeito que está — é este número que explica o
 # sintoma para quem ler o log daqui a seis meses.
 antes=0
-[ -f "$INDEX" ] && antes="$(grep -cE '^\[[^]]+/[^]]+\]' "$INDEX" 2>/dev/null || echo 0)"
+if [ -f "$INDEX" ]; then
+  # Sem `|| echo 0`: o `grep -c` já imprime 0 quando nada casa (e sai 1), e o
+  # `echo` somava outro 0 embaixo. O `:-0` cobre o arquivo ilegível.
+  antes="$(grep -cE '^\[[^]]+/[^]]+\]' "$INDEX" 2>/dev/null)"; antes="${antes:-0}"
+fi
 
 if meow_seco; then
   meow_muda "declararia ${#PARES[@]} pastas no hicolor do usuário (hoje: $antes)"

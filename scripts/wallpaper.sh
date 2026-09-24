@@ -1347,7 +1347,7 @@ reconciliar_sumicos() {
     meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null
     return 0                                   # guarda 1
   fi
-  n_antes="$(grep -c . "$VISTAS" 2>/dev/null || echo 0)"
+  n_antes="$(grep -c . "$VISTAS" 2>/dev/null)"; n_antes="${n_antes:-0}"   # `|| echo 0` somava um 0 ao 0 do grep
 
   if [ "$n_agora" = "0" ] && [ "$n_antes" -gt 0 ]; then
     meow_aviso "ativos/ está VAZIO e tinha $n_antes imagem(ns) — não vou banir nada"

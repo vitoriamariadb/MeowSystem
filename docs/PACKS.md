@@ -1782,7 +1782,7 @@ dizem quantas e de quem, e as não declaráveis dizem de onde saem. `HERDADO` co
 
 ```
   cursores          HERDADO de catppuccin        a cadeia não traz ponteiro
-  wallpapers        DO MOTOR, ou inexistente     scripts/wallpaper.sh — ele não abre pack nenhum
+  wallpapers        DO MOTOR, ou inexistente     scripts/wallpaper.sh — segue o pack do flavor, sem ler este bloco
   apps              PRÓPRIO
   som               PRÓPRIO
   fontes            HERDADO de catppuccin        a cadeia não traz fonte
@@ -1794,9 +1794,10 @@ põe os padrões dele no que faltar; um pack que herda do Dracula e não declara
 `som` toca o sino do motor. A tabela diz `DO MOTOR` para ele, e não `HERDADO`.
 
 **Os papéis de parede são do motor, declare o pack o que declarar.** O
-`scripts/wallpaper.sh` não abre pack nenhum: ele escolhe a semente pelo **nome
-do flavor** — `dracula` lê `WALLPAPER_DRACULA_REPO` do `meow.conf`, todo o resto
-cai no acervo do Catppuccin — e `WALLPAPER_SEMENTE_REPO` vence por cima. Então a
+`scripts/wallpaper.sh` não lê o bloco `origens.wallpapers`: desde a P40 ele
+segue o **pack dono do flavor** (o `alucard` é do Dracula) e lê as chaves do
+`meow.conf` — o Dracula lê `WALLPAPER_DRACULA_REPO`, todo o resto cai no acervo
+do Catppuccin — e `WALLPAPER_SEMENTE_REPO` vence por cima. Então a
 tabela diz `DO MOTOR` para esta linha mesmo quando o pack declara
 `origens.wallpapers`, e nem `HERDADO` ela diz, porque ninguém sobe a herança
 dela. Os campos do bloco continuam no aviso de campo morto, que é o que avisa
