@@ -1871,7 +1871,9 @@ function barraDeFundos() {
   for (const f of FUNDOS) {
     caixa.append(elemento("button", {
       type: "button", "aria-pressed": String(f.id === FUNDO.id),
-      title: `Ver sobre ${f.rotulo}`,
+      /* Minúscula no meio da frase [P34, 23/09/2026]: «Ver sobre Escuro» lia
+       * como nome próprio. O `rotulo` fica maiúsculo no botão, onde abre. */
+      title: `Ver sobre ${f.rotulo.toLocaleLowerCase("pt-BR")}`,
       onclick: () => { FUNDO = f; aplicarFundo(); render(); },
     }, [
       elemento("i", { style: `background: var(${f.varr})` }),
@@ -7701,6 +7703,32 @@ async function recarregarPacks() {
   PACKS = (r && !r.erro && Array.isArray(r.packs)) ? r.packs : [];
 }
 
+/* DE ONDE VEM UMA CATEGORIA, NAS PALAVRAS DA TELA — 23/09/2026, P34. O cartão
+ * dizia «herdado de catppuccin», pelo ID, e o «Mais sobre» da mesma caixa,
+ * logo abaixo, «herdado do Catppuccin», pelo NOME: duas palavras para o mesmo
+ * pack. A linha do cartão era o `p.origem`, montado no `pack.py`
+ * (`resumo_de_origem`), que só conhece o id. Agora as duas saem daqui, da
+ * mesma `p.categorias` — o `vocabulario` do pack.py, que traz o `nome_de` —,
+ * e um lado não tem mais como dizer o pack de outro jeito. */
+function deOndeVem(c) {
+  return c.tipo === "herdado" ? `herdado do ${c.nome_de || c.de}`
+    : c.tipo === "motor" ? "do motor, ou ausente" : "próprio";
+}
+
+/* A linha do cartão: o agrupamento do `resumo_de_origem`, com o nome. Sem as
+ * categorias fixas do motor, pelo motivo que ele conta — são as mesmas em todo
+ * cartão, e não distinguem pack nenhum. Sem `categorias` (o `vocabulario` do
+ * pack falhou no servidor) fica o `p.origem`: pelo id, mas é o que há. */
+function linhaDeOrigem(p) {
+  const grupos = new Map();
+  for (const c of p.categorias || []) {
+    if (c.tipo === "fixo") continue;
+    const de = deOndeVem(c);
+    grupos.set(de, [...(grupos.get(de) || []), c.categoria]);
+  }
+  return [...grupos].map(([de, cats]) => `${de}: ${cats.join(", ")}`).join(" · ") || p.origem || "";
+}
+
 function cartaoDePack(p) {
   /* O CARTÃO GANHOU CLASSES, E O DESENHO FOI PARA O `estilo.css` — 23/09/2026,
    * sprint P10. A P15 o escreveu por `style` porque a folha de estilo não era
@@ -7759,7 +7787,8 @@ function cartaoDePack(p) {
     for (const tag of p.tags) tags.append(elemento("li", { texto: tag }));
     corpo.append(tags);
   }
-  if (p.origem) corpo.append(elemento("p", { class: "pack-herda", texto: maiuscula(p.origem) }));
+  const origem = linhaDeOrigem(p);
+  if (origem) corpo.append(elemento("p", { class: "pack-herda", texto: maiuscula(origem) }));
   /* O CLARO DERIVADO SE DECLARA — 23/09/2026, P16. Um pack feito de CSV tem
    * paleta e nada mais, e o claro dele pode ter nascido do escuro pelo método
    * do Latte, sem ninguém desenhá-lo. A linha de cima diz o que veio por
@@ -7803,9 +7832,7 @@ function cartaoDePack(p) {
     if (categorias.length) {
       const lista = elemento("dl", { class: "pack-categorias" });
       for (const c of categorias) {
-        const de = c.tipo === "herdado" ? `herdado do ${c.nome_de || c.de}`
-          : c.tipo === "motor" ? "do motor, ou ausente" : "próprio";
-        lista.append(elemento("dt", { texto: c.categoria }), elemento("dd", { texto: de }));
+        lista.append(elemento("dt", { texto: c.categoria }), elemento("dd", { texto: deOndeVem(c) }));
       }
       mais.append(lista);
     }
@@ -8090,20 +8117,30 @@ async function exportarPack(p) {
     return;
   }
   const contar = (n) => `${Number(n).toLocaleString("pt-BR")} arquivo(s)`;
+  /* O AVISO DO TERMINAL ENTRA NA CAIXA — 23/09/2026, P34. O `meow pack
+   * exportar` avisa quando o pack herda de um pack que não vem com o
+   * MeowSystem, e pela tela o aviso não chegava: o pack saía para ser recusado
+   * na máquina de quem o recebesse. Com aviso, a caixa aparece mesmo sem
+   * imagens — é a hora de ler, antes de mandar. As palavras são as do comando
+   * (o `avisos` do `medir`). */
+  const avisos = (m.avisos || []).map((a) => ` ${maiuscula(a)}.`).join("");
   let semImagens = false;
-  if (m.imagens) {
+  if (m.imagens || avisos) {
     const levar = elemento("input", { type: "checkbox", checked: true });
     const ok = await perguntar({
       titulo: `Exportar o ${p.nome}?`,
-      texto: `${contar(m.arquivos)}, ${m.tamanho} antes de comprimir — `
-        + `${m.imagens === 1 ? "1 imagem soma" : `${m.imagens} imagens somam`} ${m.tamanho_imagens} disso.`,
-      corpo: elemento("label", { style: "display:flex;gap:.5rem;align-items:baseline" }, [
+      texto: `${contar(m.arquivos)}, ${m.tamanho} antes de comprimir`
+        + (m.imagens
+          ? ` — ${m.imagens === 1 ? "1 imagem soma" : `${m.imagens} imagens somam`} ${m.tamanho_imagens} disso.`
+          : ".")
+        + avisos,
+      corpo: m.imagens ? elemento("label", { style: "display:flex;gap:.5rem;align-items:baseline" }, [
         levar,
         elemento("span", {
           texto: `Levar as imagens junto. Sem elas, o pack fica com ${m.tamanho_sem_imagens}, `
             + "e a vitrine da cópia deixa de citá-las.",
         }),
-      ]),
+      ]) : null,
       ok: "Exportar",
     });
     if (!ok) return;

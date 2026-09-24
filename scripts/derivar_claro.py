@@ -17,11 +17,27 @@ O QUE SE CONFERE, E NÃO É OPINIÃO
     Contraste WCAG de `text` sobre `base` >= 7:1 (AAA para texto normal) e de
     cada acento sobre `base` >= 4.5:1 (AA). O Latte entrega 7,06 e 4,79 nesses
     dois pontos; é a régua.
+
+O MÉTODO MORA NO `pack.py` DESDE 23/09/2026 (P34), E ESTE SCRIPT SÓ O CHAMA
+    A P16 levou o algoritmo para o `pack.py` (`derivar_claro`), porque o CSV
+    de cores precisava dele como biblioteca e este script não servia: cravava
+    o `dracula` na leitura e gravava em `/tmp/dracula-claro.json`. Ficaram duas
+    cópias passo a passo iguais, e o `tests/pack.sh` provava que a do
+    `pack.py` devolvia o `alucard` — a daqui não tinha quem a cobrasse. Duas
+    cópias de um método com três correções na história divergem na quarta.
+
+    Agora o `main()` chama a do `pack.py`, e a história das três correções
+    continua escrita aqui, ao lado da chamada, porque é aqui que ela foi
+    aprendida. E este script não grava mais nada: o JSON do claro sai no
+    STDOUT, e o relatório de contraste no STDERR — `> claro.json` pega só o
+    que é dado, e quem roda no terminal continua lendo a conferência.
 """
 import colorsys
 import os
 import json
 import sys
+
+from pack import derivar_claro   # vizinho de arquivo: `scripts/` é o sys.path[0]
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -114,45 +130,23 @@ def main():
     #   é o matiz daquele slot: é o do `base`. O Dracula é azul-arroxeado, então
     #   os cinzas claros puxam para lá — que é exatamente o que o Latte faz com
     #   os dele.
-    h_base = colorsys.rgb_to_hsv(*hx2rgb(escuro["base"]))[0]
-    claro = {}
-    for k in ordem:
-        h_d, s_d, _ = colorsys.rgb_to_hsv(*hx2rgb(escuro[k]))
-        if s_d < 0.10:
-            h_d = h_base
-        s_l = colorsys.rgb_to_hsv(*hx2rgb(latte[k]))[1]
-        alvo = lum(latte[k])
-        # Busca V para a luminância alvo, com S fixo. Se nem V=1 alcança (matiz
-        # escuro demais para aquela saturação), afrouxa S e tenta de novo — é o
-        # caso do azul, que com S alto não chega a claro nenhum.
-        for tentativa in range(12):
-            s = max(0.0, s_l - tentativa * 0.07)
-            lo, hi = 0.0, 1.0
-            for _ in range(40):
-                mid = (lo + hi) / 2
-                if lum(rgb2hx(*colorsys.hsv_to_rgb(h_d, s, mid))) < alvo:
-                    lo = mid
-                else:
-                    hi = mid
-            cand = rgb2hx(*colorsys.hsv_to_rgb(h_d, s, (lo + hi) / 2))
-            if abs(lum(cand) - alvo) < 0.01:
-                break
-        claro[k] = cand
-
+    #
     # AJUSTE FINO DO `text`, E SÓ DELE.
     #   Mirar a luminância do Latte deixou o `text` a 6,99 de contraste — AAA
     #   pede 7,0, e a diferença é o arredondamento para hexa, não o método.
     #   Este é o único slot com exigência ABSOLUTA (é onde a pessoa lê), então
     #   ele desce alguns pontos de V até passar. Os demais são comparados com o
     #   Latte, e lá o critério é relativo.
-    while contraste(claro["text"], claro["base"]) < 7.02:
-        h, sv, vv = colorsys.rgb_to_hsv(*hx2rgb(claro["text"]))
-        vv -= 0.004
-        if vv <= 0:
-            break
-        claro["text"] = rgb2hx(*colorsys.hsv_to_rgb(h, sv, vv))
+    #
+    # AS TRÊS CORREÇÕES E O AJUSTE SÃO O `derivar_claro` DO `pack.py` [P34, 23/09/2026]
+    #   Até aqui eles estavam escritos DUAS vezes: neste `main()` e no
+    #   `pack.py`, que a P16 copiou passo a passo para o CSV de cores. A
+    #   história fica escrita acima, onde foi aprendida; o código é um só, e o
+    #   `tests/pack.sh` cobra que esta porta e a do `de-csv` devolvam o mesmo
+    #   claro — o `alucard` versionado, 26 de 26.
+    claro = derivar_claro(escuro, latte)
 
-    # --- conferência, que é o que autoriza gravar -----------------------------
+    # --- conferência, que é o que autoriza imprimir o claro -------------------
     # A RÉGUA É O LATTE, NÃO UM NÚMERO QUE EU INVENTEI.
     #   A primeira conferência exigia 4,5:1 de TODO acento sobre o base — e
     #   reprovou 12 slots. Medindo o Latte com a mesma régua, ele reprova nos
@@ -173,22 +167,28 @@ def main():
         if c < ref * 0.95:
             falhas.append("%s/base %.2f — o Latte faz %.2f no mesmo slot" % (k, c, ref))
 
-    print("%-11s %-9s -> %-9s  contraste c/ base" % ("slot", "dracula", "claro"))
+    # O RELATÓRIO VAI PARA O STDERR, E O CLARO PARA O STDOUT [P34, 23/09/2026]
+    #   Era tudo no STDOUT, e o claro gravado em `/tmp/dracula-claro.json` —
+    #   um arquivo fixo num diretório de todos, que a segunda rodada
+    #   sobrescrevia calada. Agora quem quer o arquivo o nomeia com `>`, como
+    #   no `meow pack de-csv`, e o relatório continua na tela.
+    err = sys.stderr
+    print("%-11s %-9s -> %-9s  contraste c/ base" % ("slot", "dracula", "claro"), file=err)
     for k in ordem:
         print("%-11s %-9s -> %-9s  %5.2f" % (k, escuro[k], claro[k],
-                                             contraste(claro[k], claro["base"])))
-    print()
-    print("text/base  : %.2f   (Latte: %.2f)" % (c_text, contraste(latte["text"], latte["base"])))
+                                             contraste(claro[k], claro["base"])), file=err)
+    print(file=err)
+    print("text/base  : %.2f   (Latte: %.2f)" % (c_text, contraste(latte["text"], latte["base"])),
+          file=err)
     print("mauve/base : %.2f   (Latte: %.2f)" % (contraste(claro["mauve"], claro["base"]),
-                                                 contraste(latte["mauve"], latte["base"])))
+                                                 contraste(latte["mauve"], latte["base"])), file=err)
     if falhas:
-        print("\nREPROVADO:")
+        print("\nREPROVADO:", file=err)
         for f in falhas:
-            print("  " + f)
+            print("  " + f, file=err)
         return 1
-    print("\nAPROVADO — WCAG AAA no texto, AA em todos os acentos")
-    json.dump(claro, open("/tmp/dracula-claro.json", "w"), indent=2, ensure_ascii=False)
-    print("gravado em /tmp/dracula-claro.json")
+    print("\nAPROVADO — WCAG AAA no texto, AA em todos os acentos", file=err)
+    print(json.dumps(claro, indent=2, ensure_ascii=False))
     return 0
 
 

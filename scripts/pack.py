@@ -1852,14 +1852,19 @@ def _dentro(base, alvo, campo):
 # O CLARO DERIVADO É O MÉTODO DO ALUCARD, E NÃO UM SEGUNDO
 #   As três regras de docs/PACKS.md, "Se o seu tema não tem um claro", viraram
 #   código uma vez só: `scripts/derivar_claro.py`, em 19/09/2026, que gerou o
-#   `alucard`. Aquele script crava o `dracula` na leitura e grava num arquivo de
-#   /tmp, então não serve de biblioteca, e ele não está entre os arquivos da
-#   P16. O `derivar_claro` abaixo é o MESMO algoritmo, passo a passo e com os
-#   mesmos números (S < 0,10, 12 tentativas de -0,07 em S, 40 passos de busca,
-#   o ajuste do `text` até 7,02). A prova de que não é um método novo é medida,
-#   e o `tests/pack.sh` a cobra: dadas as 26 cores do `dracula`, ele devolve o
-#   `alucard` versionado — 26 de 26 iguais. Os dois agora são duas cópias do
-#   mesmo algoritmo; unificá-las é mexer no `derivar_claro.py`, e fica dito.
+#   `alucard`. Aquele script cravava o `dracula` na leitura e gravava num
+#   arquivo de /tmp, então não servia de biblioteca, e ele não estava entre os
+#   arquivos da P16. O `derivar_claro` abaixo é o MESMO algoritmo, passo a passo
+#   e com os mesmos números (S < 0,10, 12 tentativas de -0,07 em S, 40 passos de
+#   busca, o ajuste do `text` até 7,02). A prova de que não é um método novo é
+#   medida, e o `tests/pack.sh` a cobra: dadas as 26 cores do `dracula`, ele
+#   devolve o `alucard` versionado — 26 de 26 iguais.
+#   UMA CÓPIA SÓ DESDE 23/09/2026 (P34). A P16 deixou as duas lado a lado e
+#   disse que unificá-las era mexer no `derivar_claro.py`. Foi o que se fez: o
+#   `main()` dele chama esta função e imprime o claro no STDOUT, sem gravar em
+#   /tmp. A história das três correções continua lá, onde foi aprendida, e o
+#   `tests/pack.sh` cobra que as duas portas — o script e o `de-csv` — dão o
+#   mesmo claro.
 #
 # A RÉGUA É O LATTE DO PACK PADRÃO, NOMEADO
 #   O método se chama "do Latte" porque a calibração É o Latte, e o
