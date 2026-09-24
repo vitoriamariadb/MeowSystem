@@ -405,8 +405,13 @@ _spot_mp_quer() { [ "$_SPOT_MARKETPLACE" = "sim" ]; }
 # `custom_apps` é lista separada por vírgula. As bordas viram vírgula para que
 # o primeiro e o último item casem com o mesmo padrão dos do meio.
 _spot_mp_registrado() {
-  case ",$(_spot_ini_ler custom_apps | tr -d '[:space:]')," in
-    *,marketplace,*) return 0 ;;
+  # O `config-xpui.ini` separa as listas com `|` (`custom_apps = a|b|c`); a
+  # vírgula continua aceita. Até 24/09/2026 só a vírgula contava: com mais de um
+  # CustomApp o Marketplace "não estava registrado" mesmo estando, o
+  # `_spot_mp_registrar` mandava o spicetify acrescentá-lo de novo, e a
+  # instalação saía com "o spicetify não gravou o custom_apps".
+  case "|$(_spot_ini_ler custom_apps | tr -d '[:space:]' | tr ',' '|')|" in
+    *"|marketplace|"*) return 0 ;;
   esac
   return 1
 }

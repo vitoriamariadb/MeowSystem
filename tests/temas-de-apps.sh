@@ -799,6 +799,33 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 9. A LISTA DO SPICETIFY SE SEPARA POR `|`
+# ---------------------------------------------------------------------------
+# POR QUE ESTA SEÇÃO NASCEU — 24/09/2026, na instalação
+#   O `config-xpui.ini` guarda as listas com `|` (`custom_apps = a|b|c`), e o
+#   `_spot_mp_registrado` procurava `,marketplace,`. Com um CustomApp só, a
+#   lista era a própria palavra e passava; com quatro, a máquina que instalou
+#   em 24/09 ouviu "o spicetify não gravou o custom_apps" com o Marketplace lá.
+CASA9="$T/casa9"; mkdir -p "$CASA9/.config/spicetify"
+spot_registrado() {  # <valor do custom_apps>
+  printf '[AdditionalOptions]\ncustom_apps           = %s\n' "$1" > "$CASA9/.config/spicetify/config-xpui.ini"
+  env -i PATH="$PATH" HOME="$CASA9" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$T/estado9" NO_COLOR=1 \
+    bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
+             . "$MEOW_RAIZ/assets/temas-de-apps/spotify/manifesto.sh" >/dev/null 2>&1 || exit 2
+             _spot_mp_registrado' </dev/null >/dev/null 2>&1
+}
+f9=""
+spot_registrado "marketplace|lyrics-plus|reddit|new-releases" || f9+=" [no começo de uma lista com |]"
+spot_registrado "lyrics-plus|marketplace" || f9+=" [no fim]"
+spot_registrado "marketplace" || f9+=" [sozinho]"
+spot_registrado "lyrics-plus, marketplace" || f9+=" [com vírgula]"
+spot_registrado "lyrics-plus|reddit" && f9+=" [ausente dado como presente]"
+spot_registrado "marketplace-extra|lyrics" && f9+=" [um nome que só começa com marketplace]"
+[ -z "$f9" ] \
+  && ok "spotify: o Marketplace é achado no custom_apps, com a lista separada por |" \
+  || falha "spotify: a leitura do custom_apps errou:$f9"
+
+# ---------------------------------------------------------------------------
 printf '\n'
 if [ "$falhas" -gt 0 ]; then
   printf '%s achado(s).\n' "$falhas" >&2
