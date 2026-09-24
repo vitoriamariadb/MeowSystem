@@ -4134,6 +4134,16 @@ def _prev_paredes():
             #   esteja em `ativos/`): aí não há o que banir, e a página não deve
             #   desenhar o botão.
             canonico = os.path.join(base, "ativos", nome)
+            # A RECUSADA QUE VOLTOU NÃO É MAIS RECUSADA — 24/09/2026, sprint P46.
+            #   O `desbanir` COPIA a imagem de volta para `ativos/` e deixa a de
+            #   `banidos/` (o `banir` jamais apaga, e o desfazer segue a regra).
+            #   Esta lista lia só a pasta, e a imagem devolvida continuava nas
+            #   «Recusadas», com um «Devolver» que respondia "nada a fazer" —
+            #   medido pelo `tests/app-completo.py`: Tirar, Devolver, e a conta
+            #   das Recusadas parada em 1. O `banir` MOVE a imagem para fora de
+            #   `ativos/`; estar nas duas pastas é, por construção, ter voltado.
+            if grupo == "banidos" and os.path.isfile(canonico):
+                continue
             fora.append({"id": grupo + "/" + nome, "rotulo": nome,
                          "origem": arq, "grupo": grupo,
                          # `""` quando a medição é que decide — é o caso comum,
@@ -4866,6 +4876,21 @@ _CONVERSOR_CHEIA_TRAVA = threading.Lock()
 #   e o repositório é PÚBLICO desde 06/09. O que entra no repositório continua
 #   entrando por um lugar só: o «Usar».
 _OFICINA_RASCUNHO = os.path.join(ESTADO, "oficina")
+
+# O ÍCONE QUE UM `.desktop` DECLARA POR CAMINHO — 24/09/2026, sprint P46
+#   O `_icone_na_tela` devolve o `Icon=` absoluto de um `.desktop` como o ícone
+# do aplicativo (é o que a Steam e os instaladores de `/opt` fazem), e a cerca
+# do `/previa?tipo=arquivo` só conhece as pastas de arte. Medido pelo
+# `tests/app-completo.py` nesta máquina: o «Elden Ring Tracker» declara
+# `/opt/elden-ring-tracker/assets/icons/icon.png`, a grade de Lançadores pedia
+# esse arquivo a cada pintura, e a cerca respondia 404 — ícone quebrado e erro
+# no console, em toda visita à aba.
+#   A cerca NÃO ganha uma pasta: ganha os ARQUIVOS que o próprio servidor mandou
+# a página mostrar, um por um, e só com extensão de imagem. Quem planta um
+# caminho aqui é um `.desktop` instalado na máquina dela, e o pedido continua
+# exigindo o token da sessão — a sonda de existência que a cerca veio fechar
+# segue fechada para quem não tem o token.
+_ICONES_DECLARADOS = set()
 
 # O LANÇADOR TAMBÉM É DICIONÁRIO FECHADO. Não há "o comando que abre" vindo de
 # lugar nenhum: são estes dois, nesta ordem, e o `shutil.which` escolhe o
@@ -5816,7 +5841,7 @@ class Manipulador(BaseHTTPRequestHandler):
             pedido = os.path.normpath(consulta.get("id", [""])[0] or "")
             alvo_arq = os.path.realpath(pedido)
             ok_pasta = any(pedido.startswith(p + os.sep) or alvo_arq.startswith(p + os.sep)
-                           for p in permitidos)
+                           for p in permitidos) or pedido in _ICONES_DECLARADOS
             # A EXTENSÃO É CONFERIDA NOS DOIS CAMINHOS, E A MEDIÇÃO EXIGIU ISSO
             #   Aceitar o caminho PEDIDO curou o «Original» da oficina, que
             #   aparecia quebrado porque a arte de metade dos aplicativos é um
@@ -6526,8 +6551,13 @@ class Manipulador(BaseHTTPRequestHandler):
         """(caminho do ícone que aparece hoje, se é do nosso tema)."""
         nome = d["icone"] or d["id"]
         # 1. caminho absoluto no próprio `.desktop` — é o que a Steam faz.
+        #    E o caminho vai para a lista do que a `/previa` serve (ver
+        #    `_ICONES_DECLARADOS`): mandar a página mostrar um arquivo que a
+        #    cerca recusa é desenhar um ícone quebrado.
         if nome.startswith("/") and os.path.isfile(nome):
-            return nome, False
+            if os.path.splitext(nome)[1].lower() in (".svg", ".png", ".jpg", ".jpeg"):
+                _ICONES_DECLARADOS.add(os.path.normpath(nome))
+                return nome, False
         bases = [(base_tema, True)]
         for raiz_icones in (os.path.expanduser("~/.local/share/icons"),
                             "/usr/share/icons", "/var/lib/flatpak/exports/share/icons",
@@ -6888,6 +6918,13 @@ class Manipulador(BaseHTTPRequestHandler):
         # sem esta linha a grade os mostraria como "nosso", sem cor, e a oficina
         # abriria na primeira cor da paleta em vez de `mauve`.
         convertidos = self._mapa_convertidos()
+        # A TRAVA VAI JUNTO — 24/09/2026, sprint P46. A grade de Aplicativos já a
+        # mandava (`_dados_apps`); esta não, e a página oferecia o «Usar este
+        # ícone» que o `_api_app_icone` recusa com 409 para o mesmo aplicativo.
+        # É a mesma conta do POST, com os mesmos três argumentos: a tela e a
+        # recusa não podem discordar. Medido pelo `tests/app-completo.py` no
+        # «Elden Ring Tracker».
+        travas = self._travas_do_arcticons()
         icones = []
         for d in self._desktops():
             if d["oculto"] or not self._e_jogo(d):
@@ -6901,6 +6938,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "url": ("/previa?tipo=arquivo&id=" + quote(atual, safe="")) if atual else "",
                 "mapa": arcticons.get(d["id"]) or arcticons.get(d["icone"]) or None,
                 "traco": convertidos.get(d["id"]) or convertidos.get(d["icone"]) or None,
+                "trava": self._motivo_da_trava(travas, [d["id"], d["icone"]], d["nome"]),
             })
         return {"jogos": fora, "total": len(fora), "mapa": MAPA_JOGOS,
                 "apps": icones, "total_apps": len(icones)}

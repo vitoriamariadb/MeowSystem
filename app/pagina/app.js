@@ -1338,6 +1338,23 @@ async function importarArquivo(arquivo) {
   }
 }
 
+/* A LISTA SE RELÊ QUANDO O PASSO TERMINA, E NÃO QUANDO ELE COMEÇA
+ * — 24/09/2026, sprint P46
+ *   O «Usar este ícone», o «Voltar ao ícone de fábrica» e o salvar da oficina
+ * rodam o `icones_traco` e reliam a lista de aplicativos LOGO EM SEGUIDA, com
+ * o passo ainda correndo. Medido pelo `tests/app-completo.py`: o `/api/apps`
+ * lido no meio do passo devolvia o caminho de um desenho que o passo apagava
+ * um instante depois, e as miniaturas pediam o arquivo já apagado — 404 no
+ * console e ícone quebrado na grade até a releitura do fim do trabalho. O
+ * `rodar()` volta quando a gaveta abre, e não quando o trabalho acaba; quem
+ * quer o estado DEPOIS do passo espera aqui. */
+function fimDoTrabalho() {
+  return new Promise((pronto) => {
+    const olhar = () => (TRABALHO ? setTimeout(olhar, 300) : pronto());
+    olhar();
+  });
+}
+
 /* Roda uma acao pelo id — o `Salvar` precisa disparar o instalador sem que
  * exista um cartao clicado para ele. */
 async function rodarAcao(id, argumento) {
@@ -1527,7 +1544,18 @@ function montarControle(item, cartao) {
   }
   if (item.previa === "flavor") return controleFlavor(item, aplica);
   if (item.previa === "cor") return controleCor(item, aplica);
-  if (item.previa === "areas") return controlePorArea(item, aplica);
+  /* O `null` DAS ÁREAS NÃO VOLTA PARA O CARTÃO — 24/09/2026, sprint P46
+   *   O `controlePorArea` devolve `null` quando `AREAS_NOMES` está vazio, e o
+   * comentário dele promete cair "no campo comum, que ao menos deixa escrever".
+   * O `return` direto não caía: o `null` chegava ao `cartao.append`, que o
+   * escreve como TEXTO. Medido pelo `tests/app-completo.py` numa casa nova (o
+   * `meow.conf.exemplo` traz `AREAS_NOMES` vazio): o cartão «Folga invisível
+   * no nome» saía sem controle nenhum e com a palavra "null" no lugar dele. É
+   * o mesmo molde do gato e do ponteiro, logo acima. */
+  if (item.previa === "areas") {
+    const c = controlePorArea(item, aplica);
+    if (c) return c;
+  }
 
   /* 1. lista separada por vírgula -> fichas */
   if (item.lista || item.lista_pathsep) {
@@ -2930,6 +2958,7 @@ function montarEscolhaDeIcone(app, recarregar) {
        *   com a saída, e o script relê a dock e o menu no fim. */
       await rodarAcao("icones_traco");
       APP_ABERTO = null;
+      await fimDoTrabalho();
       await relerLista();
     },
   }));
@@ -2951,6 +2980,7 @@ function montarEscolhaDeIcone(app, recarregar) {
          * script que o tira — o mesmo passo do «Usar este ícone». */
         await rodarAcao("icones_traco");
         APP_ABERTO = null;
+        await fimDoTrabalho();
         await relerLista();
       },
     }));
@@ -3744,6 +3774,7 @@ function oficinaDeDesenho(app, relerLista) {
     /* As duas coisas que até ontem eram dois botões: gravar e pôr na tela. */
     await rodarAcao("icones_traco");
     OFICINA.carregou = false;      // o «Salvo» mudou; a folha relê ao remontar
+    await fimDoTrabalho();
     await relerLista();
   }
 
@@ -4610,16 +4641,30 @@ function montarGaleria() {
  * para as imagens: a lista muda por baixo enquanto o script corre, e mostrar por
  * um minuto um estado que já não existe é como se aprende a não confiar na
  * página. */
+/* O CANCELAR NÃO CANCELAVA — 24/09/2026, sprint P46
+ *   Desde a P8 (22/09) o `confirmar()` devolve uma PALAVRA ("rodar", "ensaio"
+ * ou "nao"), e esta função continuou lendo a resposta como booleano: toda
+ * palavra é verdadeira, então o `!` nunca parava nada. Medido pelo
+ * `tests/app-completo.py` no «Arrumar os jogos no lançador», que é
+ * `destrutivo`: Cancelar mandava `jogos_aplicar` rodar de verdade, e «Ver o
+ * que faria» também — sem o `seco`. Agora a leitura é a mesma do `rodar()`:
+ * "nao" para, "ensaio" roda seco, e a gaveta do ensaio oferece o «Rodar de
+ * verdade». A pergunta vale também para `sudo` e `destrutivo`, como lá. */
 async function rodarDaSecao(acaoId, invalidar) {
   const acao = ESQUEMA.acoes.find((a) => a.id === acaoId);
   if (!acao) return;
-  if (acao.confirma && !(await confirmar(acao, ""))) return;
+  let seco = false;
+  if (acao.confirma || acao.sudo || acao.destrutivo) {
+    const resposta = await confirmar(acao, "");
+    if (resposta === "nao") return;
+    seco = resposta === "ensaio";
+  }
   const r = await api("/api/rodar", {
     method: "POST",
-    body: JSON.stringify({ acao: acaoId, argumento: "", confirmado: true }),
+    body: JSON.stringify({ acao: acaoId, argumento: "", confirmado: true, seco }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirGaveta(r);
+  abrirGaveta(r, seco ? () => rodarDeVerdade(acao, "") : null);
   const esperar = setInterval(() => {
     if (TRABALHO) return;
     clearInterval(esperar);
@@ -5085,6 +5130,19 @@ function montarAcao(acao) {
     onclick: () => rodar(acao, escolha ? escolha.value : ""),
   });
   rodape.append(executar);
+  /* SEM O QUE ESCOLHER, O «EXECUTAR» NÃO ACENDE — 24/09/2026, sprint P46
+   *   Uma ação que recebe argumento (`arg`, o `@ARG@` do comando) e cuja lista
+   * veio vazia não tinha seletor, e o «Executar» mandava o argumento vazio: o
+   * servidor recusava com 409 ("argumento fora da lista do disco") depois de
+   * a caixa já ter perguntado e oferecido o ensaio. Medido pelo
+   * `tests/app-completo.py` numa casa sem área alfinetada, no «Tirar uma
+   * área». Um botão que só pode dar erro não é oferecido: ele fica apagado, e
+   * o cartão diz por quê. */
+  if (acao.arg && !escolha) {
+    executar.disabled = true;
+    bloco.append(elemento("p", { class: "frase",
+      texto: "Nada para escolher nesta máquina agora: a lista desta ação está vazia." }));
+  }
   bloco.append(rodape);
   /* O COMANDO NA TELA É O COMANDO QUE VAI RODAR — 07/09/2026
    * A conferência de uso: *"a ação «Pôr um gato no dock» mostra na tela o
@@ -5576,6 +5634,22 @@ async function puxar() {
      *   e as listas que já tinham sido abertas; as outras se leem quando
      *   forem abertas. */
     if (escreveu) {
+      /* O QUE VEM DO DISCO SE ESQUECE AQUI, ANTES DE QUALQUER REPINTURA
+       * — 24/09/2026, sprint P46
+       *   As duas releituras logo abaixo repintam cada uma quando chega, e a
+       * dos packs costuma chegar primeiro: ela repintava a grade de ícones e a
+       * galeria com as listas de ANTES do trabalho. Medido pelo
+       * `tests/app-completo.py`: depois do «Voltar ao ícone de fábrica» a grade
+       * pedia o desenho em traço que o `icones_traco` tinha acabado de apagar,
+       * e depois do «Tirar» e do «Medir» a galeria pedia a miniatura da imagem
+       * que tinha mudado de pasta — 404 no console e imagem quebrada até a
+       * releitura seguinte. Esquecidas aqui, as listas se releem na primeira
+       * pintura (o `previasDe` e o `montarApps` já sabem buscar o que falta);
+       * a troca é um "lendo…" de um instante no lugar da imagem quebrada. */
+      for (const chave of [...PREVIAS.keys()]) {
+        if (chave.startsWith("icone/") || chave.startsWith("parede/")) PREVIAS.delete(chave);
+      }
+      APPS = null;
       /* Uma etapa que escreveu pode ter RESOLVIDO uma pendência (ou criado
        * outra): quem apaga a linha do TSV é o próprio script, no caminho feliz.
        * Reler aqui é o que faz o bloco sumir da Home sem F5. */
@@ -8321,8 +8395,13 @@ function montarHome() {
   const paredes = previasDe("parede", "ativos");
   if (paredes && paredes.itens.length) {
     const fotos = elemento("div", { class: "home-fotos" });
+    /* SÓ A MINIATURA PRONTA — 24/09/2026, sprint P46. A galeria já pedia
+     * `i.pronta` antes de pôr a imagem; a Início não, e pedia a miniatura que
+     * o servidor ainda estava gerando: 404 no console e foto quebrada na
+     * abertura da página, medido pelo `tests/app-completo.py` numa casa com o
+     * acervo recém-chegado. A que não está pronta aparece na próxima pintura. */
     for (const i of paredes.itens.slice(0, 6)) {
-      if (i.url) fotos.append(elemento("img", { src: i.url, alt: "", title: i.rotulo }));
+      if (i.url && i.pronta) fotos.append(elemento("img", { src: i.url, alt: "", title: i.rotulo }));
     }
     const n = (paredes.contagens && paredes.contagens.ativos) || paredes.itens.length;
     fotos.append(elemento("span", { class: "home-fotos-conta",
@@ -9035,6 +9114,21 @@ async function iniciar() {
    * de verdade, e o MouseEvent entrando pelo `seco` o transformaria em ensaio. */
   $("#aviso-aplicar-botao").addEventListener("click", () => salvarEscolhas());
   $("#salvar-conta").addEventListener("click", alternarListaPendentes);
+  /* O CONTADOR É UM BOTÃO, E PASSA A DIZER QUE É — 24/09/2026, sprint P46
+   *   Desde 07/09 o «N escolhas» abre a lista das escolhas pendentes, mas é um
+   * `<strong>` com clique: fora da fila do Tab e sem papel para o leitor de
+   * tela. Quem usa teclado não tinha como abrir a lista. Medido pelo censo do
+   * `tests/app-completo.py`, que conta o que recebe foco ou tem papel de
+   * controle: o contador estava na tela e não existia para ele. O elemento é
+   * do `index.html`; o papel, a vez no Tab e o Enter/Espaço entram aqui, junto
+   * do clique que já morava aqui. */
+  $("#salvar-conta").setAttribute("role", "button");
+  $("#salvar-conta").tabIndex = 0;
+  $("#salvar-conta").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    alternarListaPendentes();
+  });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") document.getElementById("lista-pendentes")?.remove();
   });
