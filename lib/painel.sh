@@ -241,33 +241,6 @@ meow_painel_achar_display() {
   return 1
 }
 
-# --- a trégua com o vigia da Aurora ----------------------------------------
-# O `aurora-painel-fantasma.sh` mata o painel apostando na premissa escrita no
-# cabeçalho dele: "o cosmic-session o respawna em ~4ms". Para um painel que NÓS
-# subimos (PPID != cosmic-session) isso é falso, e ele já matou barras que
-# ninguém ia ressuscitar.
-#
-# NÃO EDITAMOS O SCRIPT DELE. Ele já tem a trava certa — `CARENCIA=600`, lida de
-# `$XDG_RUNTIME_DIR/aurora-painel-fantasma/tentativas.ts` — e ela só nunca soube
-# de nós, porque só o kill DELE carimbava esse arquivo. Carimbar ali é falar a
-# língua que ele já entende: "este painel acabou de nascer, não julgue ainda".
-# É o contrato pelo arquivo de estado que ele mesmo definiu.
-#
-# A TRÉGUA SAIU EM 24/09/2026 (P39), E A FUNÇÃO FICOU VAZIA. Ela escrevia no
-# diretório de estado de um vigia de outro projeto — a regra de 23/09 tira isso
-# sem terceira via. E o vigia não tem mais o que vigiar aqui: desde 19/09 quem
-# detecta o painel que não desenha é este arquivo (docs/FRONTEIRA.md), o
-# `aurora-painel-fantasma.timer` está desligado e o script não mora no
-# Spellbook (medido em 24/09).
-#
-# AS SEIS CHAMADAS SAÍRAM DO `scripts/painel.sh` NA P44 (24/09/2026), e desde
-# então esta função não tem quem a chame — `grep -rn carencia_aurora` só a acha
-# aqui. Fica porque a regra da casa é apontar código morto, não apagá-lo; quem
-# quiser tirá-la tira este bloco inteiro, sem caçar mais nada.
-meow_painel_carencia_aurora() {
-  return 0
-}
-
 # --- o painel VIVO que parou de desenhar -------------------------------------
 #
 # O SEGUNDO MODO DE FALHA DA MESMA QUEIXA [18/09/2026]
@@ -324,11 +297,12 @@ meow_painel_fantasma() {        # 0 = há um painel vivo que não desenha
 # supervisor" numa janela em que ele comprovadamente dormia.
 # E NUNCA com `| head -1`: o menor PID é o NOSSO sempre que o supervisor chega
 # atrasado, e o crédito se inverteria. Classificamos TODOS.
+# TODOS OS DESTA CASA, e não os da máquina — ver "OS TRÊS DO `laco`", abaixo.
 meow_painel_do_supervisor() {   # imprime o PID do painel do cosmic-session, se houver
   local ses p pai
   ses="$(pgrep -x cosmic-session | head -1)"
   [ -n "$ses" ] || return 1
-  for p in $(pgrep -x cosmic-panel 2>/dev/null); do
+  for p in $(meow_painel_desta_casa); do
     pai="$(ps -o ppid= -p "$p" 2>/dev/null | tr -d ' ')"
     [ "$pai" = "$ses" ] && { printf '%s' "$p"; return 0; }
   done
@@ -357,6 +331,20 @@ meow_painel_do_supervisor() {   # imprime o PID do painel do cosmic-session, se 
 #   das vezes, de uma unidade do `systemd --user`, e o gerente do usuário não
 #   está em sessão nenhuma — o `sessionid` dele é o "não definido" do kernel.
 #   Cobrar esse número recusaria justamente o caminho de todo dia.
+#
+# OS TRÊS DO `laco` TAMBÉM — 24/09/2026 (P47)
+#   A P44 pôs a regra no `reciclar` e deixou anotados, no cabeçalho do
+#   `scripts/painel.sh`, os três SIGTERM do `laco` que ainda achavam o painel
+#   pela máquina: o `kill` no painel do supervisor (ramo 1, o fantasma) e os
+#   dois laços sobre `meow_painel_nossos` (ramo 1, ao ceder a vez; ramo 2, o
+#   fantasma). Os três tiram o PID de uma destas duas funções — a de cima e a
+#   de baixo —, e as duas passaram a escolher entre os painéis DESTA casa, em
+#   vez de entre os do `pgrep -x cosmic-panel`. Filtrar nas duas, e não em cada
+#   `kill`, é para o sinal seguinte: um `kill` novo que tire o PID delas já
+#   nasce com o filtro, sem ninguém lembrar dele. Na sessão de verdade nada
+#   muda (o painel do supervisor tem o `HOME` dela — medido em 24/09, pid
+#   580721, filho do `cosmic-session`); um `meow painel laco` com outro `HOME`
+#   não acha painel de ninguém, e o `estado` passa a contar só os desta casa.
 meow_painel_desta_casa() {      # imprime os PIDs dos cosmic-panel deste usuário e deste HOME
   local p casa eu="${HOME%/}"
   for p in $(pgrep -u "$(id -u)" -x cosmic-panel 2>/dev/null); do
@@ -366,10 +354,10 @@ meow_painel_desta_casa() {      # imprime os PIDs dos cosmic-panel deste usuári
   return 0
 }
 
-meow_painel_nossos() {          # imprime os PIDs dos painéis que NÃO são do supervisor
+meow_painel_nossos() {          # imprime os PIDs dos painéis desta casa que NÃO são do supervisor
   local ses p pai achou=1
   ses="$(pgrep -x cosmic-session | head -1)"
-  for p in $(pgrep -x cosmic-panel 2>/dev/null); do
+  for p in $(meow_painel_desta_casa); do
     pai="$(ps -o ppid= -p "$p" 2>/dev/null | tr -d ' ')"
     [ -n "$ses" ] && [ "$pai" = "$ses" ] && continue
     printf '%s\n' "$p"; achou=0

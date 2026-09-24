@@ -50,20 +50,21 @@
 # O QUE ESTE SCRIPT **NÃO** FAZ
 # ============================================================================
 #   - Não edita, não desativa e não mascara nada do Ritual da Aurora. A trégua
-#     que se carimbava no `tentativas.ts` do vigia dele saiu na P39, e as
-#     chamadas a ela, na P44 (24/09/2026) — ver lib/painel.sh.
-#   - Não sinaliza painel de outra casa pelo `reciclar`, que é a porta dos
-#     outros scripts: ele mira só o painel do mesmo usuário e do mesmo `$HOME`
-#     de quem chamou (`meow_painel_desta_casa`), e o último SIGTERM do ramo 2
-#     do `laco` também. OS OUTROS TRÊS DO `laco` NÃO FILTRAM O `HOME`, e a frase
-#     que dizia "todo SIGTERM daqui" exagerava (revisão da P44, 24/09/2026): o
-#     `kill` no painel do supervisor e os dois `meow_painel_nossos` acham o
-#     painel pela máquina, pelo parentesco com o primeiro `cosmic-session`. O
-#     que os segura hoje é outra coisa: o `laco` é o `ExecStart` do
-#     `meow-painel.service`, que roda dentro da sessão e com o `HOME` dela, e o
-#     kernel recusa (EPERM) o sinal de quem não é root a processo de outro
-#     usuário. O caso que escapa é um `meow painel laco` à mão, do mesmo
-#     usuário, com outro `HOME`. Filtrar esses três fica para a P45.
+#     que se carimbava no `tentativas.ts` do vigia dele saiu na P39, as
+#     chamadas a ela na P44, e a função vazia que sobrou na P47 (24/09/2026).
+#   - Não sinaliza painel de outra casa. O `reciclar`, que é a porta dos
+#     outros scripts, mira só o painel do mesmo usuário e do mesmo `$HOME` de
+#     quem chamou (`meow_painel_desta_casa`, P44), e o último SIGTERM do ramo 2
+#     do `laco` também. OS OUTROS TRÊS DO `laco` — o `kill` no painel do
+#     supervisor e os dois laços sobre `meow_painel_nossos` — achavam o painel
+#     pela máquina, pelo parentesco com o primeiro `cosmic-session`, e a revisão
+#     da P44 os anotou aqui. O que os segurava era outra coisa: o `laco` é o
+#     `ExecStart` do `meow-painel.service`, que roda na sessão e com o `HOME`
+#     dela, e o kernel recusa (EPERM) o sinal de quem não é root a processo de
+#     outro usuário; escapava um `meow painel laco` à mão, do mesmo usuário,
+#     com outro `HOME`. DESDE A P47 (24/09/2026) OS TRÊS FILTRAM: as duas
+#     funções de onde eles tiram o PID só escolhem entre os painéis desta casa
+#     (o porquê de filtrar nelas, e não em cada `kill`, está em lib/painel.sh).
 #   - Não devolve o applet de notificações. O sino depende do socketpair que só
 #     o `cosmic-session` cria (`PANEL_NOTIFICATIONS_FD`); a outra ponta teria de
 #     estar DENTRO do `cosmic-notifications`, e o nome D-Bus
@@ -443,14 +444,15 @@ laco() {
     #   da volta é o backoff do supervisor, não nós.
     #
     #   Cinco segundos põem o teto da dupla em 5s. O custo é a ronda:
-    #   `meow_painel_do_supervisor` são dois `pgrep` e um `ps` por painel vivo —
-    #   12 rondas por minuto contra 1. É barulho de fundo perto de um painel
-    #   duplicado na tela dela.
+    #   `meow_painel_do_supervisor` são dois `pgrep` e, por painel vivo desta
+    #   casa, a leitura do `environ` (P47) e um `ps` — 12 rondas por minuto
+    #   contra 1. É barulho de fundo perto de um painel duplicado na tela dela.
     #
     #   A TRÉGUA COM O VIGIA DA AURORA, que era renovada aqui uma vez por minuto
     #   com um contador próprio, saiu na P44 (24/09/2026) junto com as outras
-    #   cinco chamadas: a função já estava vazia desde a P39, e o porquê está no
-    #   `meow_painel_carencia_aurora` (lib/painel.sh).
+    #   cinco chamadas: a função já estava vazia desde a P39 — ela escrevia no
+    #   estado de um vigia de outro projeto, que a regra de 23/09 tira —, e ela
+    #   mesma saiu na P47, por não ter mais quem a chamasse.
     while kill -0 "$pid" 2>/dev/null; do
       sleep 5 & sono=$!
       wait -n "$pid" "$sono" 2>/dev/null

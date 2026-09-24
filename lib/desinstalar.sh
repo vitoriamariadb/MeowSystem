@@ -153,6 +153,27 @@ meow_desinstalar() {
     fi
   fi
 
+  # A COMPLETION DO `fpath` DE FÁBRICA SAI AQUI, E PELA PONTE — 24/09/2026 (P47)
+  #   Desde a P47 o `install.sh` a põe em `/usr/local/share/zsh/site-functions`
+  #   pelo verbo `completion-instalar` da ponte root (o porquê está no
+  #   `completion_no_sistema` de lá). Ela mora fora do `$HOME`, então escapa do
+  #   passo 4 pelo mesmo motivo do hook acima, e sai ANTES da ponte, logo
+  #   abaixo: depois dela, tirar um arquivo de root volta a pedir senha. A cópia
+  #   da casa do usuário (a da P44) continua saindo no passo 6.
+  #   Uma completion órfã não quebra nada, mas é a pessoa desinstalar e
+  #   continuar vendo o TAB oferecer os verbos de um `meow` que já não existe.
+  local comp_sistema=/usr/local/share/zsh/site-functions/_meow
+  if [ -f "$comp_sistema" ]; then
+    if meow_seco; then
+      meow_muda "removeria $comp_sistema"
+    elif meow_ponte completion-remover </dev/null >/dev/null 2>&1 || sudo rm -f "$comp_sistema" 2>/dev/null; then
+      meow_ok "completion do zsh removida de $comp_sistema"
+    else
+      meow_aviso "sem sudo para remover a completion do zsh"
+      meow_info "  rode: sudo rm -f $comp_sistema"
+    fi
+  fi
+
   # A PONTE ROOT SAI JUNTO, E A ORDEM IMPORTA [2026-09-18]
   #   Até aqui o `--uninstall` deixava para trás as duas peças com privilégio:
   #   a regra `/etc/sudoers.d/49-meowsystem-ponte` e o braço
@@ -494,6 +515,8 @@ meow_desinstalar() {
   else
     rm -f "$HOME/.local/bin/meow"
     # A completion mora em ~/.local/share/zsh/site-functions desde a P44
+    # quando não há ponte root (a do fpath de fábrica, que a ponte instala
+    # desde a P47, saiu no passo 1, antes da ponte)
     # (24/09/2026; o porquê está no `instalar_completion` do install.sh) — o
     # MESMO padrão de lá, senão o desinstalador procuraria o arquivo onde ele
     # não está mais. Quem apontou o MEOW_COMPLETIONS_DIR para um diretório do

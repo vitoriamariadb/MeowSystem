@@ -53,13 +53,18 @@
 #   · não recebe caminho de origem. Todo destino é literal neste arquivo;
 #   · não instala pacote, não chama `apt install`, não roda `.deb`. O
 #     `atualizar` é `full-upgrade` dos repositórios já configurados;
-#   · não apaga nada fora dos dois caminhos do hook de apt.
+#   · não apaga nada fora dos dois caminhos do hook de apt e do da completion
+#     do zsh (este desde a P47, 24/09/2026).
 #
 # O QUE ELA CUSTA, DITO SEM ENFEITE: quem puder rodar comando como a dona da
 # máquina passa a poder, sem senha, marcar `.desktop` de sistema, atualizar os
-# pacotes e reinstalar o hook do apt. É menos do que `NOPASSWD: ALL` por uma
-# margem larga, e é mais do que nada. Desligar é `PONTE_ROOT="nao"` no
-# `meow.conf` e `./install.sh` — a etapa então REMOVE a regra e o arquivo.
+# pacotes, reinstalar o hook do apt e pôr no `fpath` de fábrica do zsh a
+# completion do `meow` que estiver no clone registrado — que o zsh de QUALQUER
+# usuário carrega quando completa `meow` (P47; a conferência do verbo aceita só
+# arquivo que começa por `#compdef meow`, e o preço está escrito lá). É menos do
+# que `NOPASSWD: ALL` por uma margem larga, e é mais do que nada. Desligar é
+# `PONTE_ROOT="nao"` no `meow.conf` e `./install.sh` — a etapa então REMOVE a
+# regra e o arquivo.
 #
 # CÓDIGOS DE SAÍDA: 0 fez · 2 erro · 3 falta condição (o caminho não existe)
 set -euo pipefail
@@ -81,6 +86,9 @@ WRAPPER=/usr/local/sbin/meow-lancador-apt.sh
 # substitui tem de ser quem sabe a verdade. O `install.sh` sabe; o chamador sem
 # senha, não.
 PERFIL=/usr/local/lib/meowsystem/perfil
+# O primeiro diretório do `fpath` de fábrica do zsh desta distribuição
+# (`zsh -f -c 'print -l $fpath'`, medido em 24/09/2026) — ver `completion-instalar`.
+COMPLETION=/usr/local/share/zsh/site-functions/_meow
 REGRA=/etc/sudoers.d/49-meowsystem-ponte
 PONTE=/usr/local/lib/meowsystem/ponte_root.sh
 
@@ -210,6 +218,50 @@ apt-hook-remover)
   anotar "apt-hook-remover"
   ;;
 
+# --- a completion do zsh -----------------------------------------------------
+# POR QUE ELA ENTROU NA PONTE — 24/09/2026 (P47)
+#   O zsh só procura completion no `fpath`, e o de fábrica desta distribuição
+#   começa em `/usr/local/share/zsh/site-functions`. A P44 pôs o `_meow` em
+#   `~/.local/share/zsh/site-functions`, que não está nele: medido no zsh
+#   interativo dela, `whence -w _meow` respondia `none` e o TAB não completava.
+#   Pôr o diretório no `fpath` seria editar o `.zshrc` de alguém; pôr o arquivo
+#   onde o zsh JÁ procura é root, e root sem senha é esta ponte.
+#
+# A ORIGEM VEM DO PERFIL, como no `apt-hook-instalar`: a `raiz` que o
+#   instalador gravou como root. O chamador não escolhe arquivo nenhum.
+#
+# O QUE SE CONFERE, E POR QUE NA CÓPIA: o clone é gravável por quem chama, e o
+#   que ele contém vira código que o zsh de todo usuário carrega ao completar
+#   `meow`. A ponte não tem como julgar o código; ela garante o que dá para
+#   garantir — que o arquivo é a completion do `meow` (primeira linha
+#   `#compdef meow`, até 64 KiB; a de hoje tem 9) e que o que se conferiu é o
+#   que se instala: o arquivo é lido UMA vez, para um temporário, e tudo
+#   depois disso olha o temporário. Um symlink trocado no meio do caminho não
+#   tem como pôr outra coisa lá. O diretório de destino é do pacote do zsh, e
+#   esta ponte não cria diretório de sistema: sem ele, 3.
+completion-instalar)
+  [ -d "${COMPLETION%/*}" ] || morrer "${COMPLETION%/*} não existe" 3
+  [ -r "$PERFIL" ] || morrer "o perfil não foi registrado — rode ./install.sh" 3
+  raiz="$(sed -n 's/^raiz=//p' "$PERFIL" | head -n1)"
+  case "$raiz" in /*) ;; *) morrer "raiz inválida no perfil" ;; esac
+  fonte="$raiz/assets/zsh/_meow"
+  [ -f "$fonte" ] || morrer "não achei $fonte" 3
+  tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+  head -c 65537 "$fonte" > "$tmp" || morrer "não consegui ler $fonte"
+  [ "$(stat -c %s "$tmp")" -le 65536 ] || morrer "$fonte é grande demais para uma completion"
+  [ "$(head -n1 "$tmp")" = "#compdef meow" ] || morrer "$fonte não começa por #compdef meow"
+  if cmp -s "$tmp" "$COMPLETION"; then exit 0; fi   # regra 5: nada a escrever
+  install -m 644 -o root -g root "$tmp" "$COMPLETION" || morrer "não consegui instalar $COMPLETION"
+  anotar "completion-instalar de $raiz"
+  ;;
+
+# O `--uninstall` a tira, e tira pela ponte ANTES de a ponte sair — é a ordem
+# de `lib/desinstalar.sh`. Caminho literal, como o do hook.
+completion-remover)
+  rm -f "$COMPLETION"
+  anotar "completion-remover"
+  ;;
+
 # --- a máquina em dia ------------------------------------------------------
 # `full-upgrade` dos repositórios JÁ configurados. Esta ponte não acrescenta
 # repositório, não instala pacote por nome e não roda `.deb`.
@@ -283,6 +335,8 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE greeter-aplicar, \\
     $PONTE apt-hook-instalar, \\
     $PONTE apt-hook-remover, \\
+    $PONTE completion-instalar, \\
+    $PONTE completion-remover, \\
     $PONTE atualizar, \\
     $PONTE limpar, \\
     $PONTE estado
@@ -294,8 +348,8 @@ REGRA_FIM
 ''|-h|--help|ajuda)
   sed -n '2,60p' "$0"
   printf '\nverbos: desktop · desktop-banco · greeter-ver · greeter-aplicar ·\n'
-  printf '        apt-hook-instalar · apt-hook-remover · atualizar · limpar ·\n'
-  printf '        estado · regra-sudo\n'
+  printf '        apt-hook-instalar · apt-hook-remover · completion-instalar ·\n'
+  printf '        completion-remover · atualizar · limpar · estado · regra-sudo\n'
   ;;
 
 *) morrer "verbo desconhecido: $verbo" ;;

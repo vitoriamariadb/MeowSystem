@@ -131,8 +131,20 @@ LOGO_RECICLAR="${LOGO_RECICLAR:-sim}"
 
 CONFERIR=0
 ACAO="aplicar"
+# O `--conferir` LIGA O SECO SOZINHO — 24/09/2026 (P47)
+#   Até aqui ele ligava só o `CONFERIR=1`, que nenhuma linha deste arquivo lê:
+#   quem segura cada escrita é o `meow_seco`, e o seco só nascia de um
+#   `MEOW_DRY_RUN=1` de fora. O `chk_logo` do doctor passa a variável desde a
+#   P44; quem chamava `logo.sh --conferir` à mão rodava o `aplicar` inteiro.
+#   Medido numa casa de brinquedo, sem `MEOW_DRY_RUN`: 13 arquivos gravados
+#   (os cinco gatos, os dois botões do dock, o `.ansi`, o `meow-fetch`,
+#   estado, manifesto e log) e o reciclo do painel pedido. O `MEOW_SECO` é
+#   congelado no `source` do `lib/comum.sh`, então ele é ligado aqui, depois
+#   do source; o `MEOW_DRY_RUN` exportado é para o filho que um dia escape de
+#   um `meow_seco` deste arquivo — hoje todos passam por um. O mesmo par do
+#   `jogos_heroic.sh`.
 case "${1:-}" in
-  --conferir)    CONFERIR=1 ;;
+  --conferir)    CONFERIR=1; MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
   girar)         ACAO="girar" ;;
   girar-vencido) ACAO="girar-vencido" ;;
   listar)        ACAO="listar" ;;
