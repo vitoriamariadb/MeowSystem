@@ -3364,6 +3364,10 @@ def main():
         print(f"   {aba[:18]:18s} {rot[:44]:44s} {como:15s} {estado}")
         if cauda:
             print(f"   {'':18s} … {cauda}")
+    if v.conhecidos_vistos:
+        print("\n== defeitos conhecidos que apareceram, e onde se consertam")
+        for padrao in sorted(v.conhecidos_vistos):
+            print(f"   ~~ {DEFEITOS_CONHECIDOS[padrao][0]}")
     print("\n== os dez gestos mais demorados")
     for nome, t in sorted(v.duracoes.items(), key=lambda x: -x[1])[:10]:
         print(f"   {t:5.1f} s  {nome}")
