@@ -237,6 +237,23 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 6b. O ensaio: o mesmo rodapé, com o verbo do que mudaria — revisão da P50
+# ---------------------------------------------------------------------------
+# Achado 11: num ensaio nada é aplicado, e nada mudou. O rodapé das falhas já
+# dizia isso desde a P50; o do ensaio sem falha terminava em «mudaram».
+cenario ensaio 'etapa_falsa_mudaria etapa_falsa_quieta' '
+etapa_falsa_mudaria() { passo "etapa falsa que mudaria"; meow_muda "mudaria"; return 1; }
+etapa_falsa_quieta() { passo "etapa falsa que nunca escreve"; return 0; }
+' --dry-run
+if [ "$RC" != "0" ]; then
+  falhou "ensaio: saiu $RC — um ensaio que acha o que mudar não é falha"
+elif ! contem '1 etapa(s) mudariam nesta passagem.' || contem 'mudaram nesta passagem'; then
+  falhou "ensaio: o rodapé diz que algo mudou — saiu: $(printf '%s' "$SAIDA" | grep 'etapa(s)')"
+else
+  passou "ensaio: o rodapé diz o que mudaria, e não o que mudou"
+fi
+
+# ---------------------------------------------------------------------------
 # 7. A conf que quebra depois de alguém já ter escrito: o teto NÃO fala
 # ---------------------------------------------------------------------------
 # Medido em 21/09/2026, e é regressão do laço: a guarda do teto cobrava apenas

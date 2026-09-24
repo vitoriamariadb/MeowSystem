@@ -4101,16 +4101,26 @@ ACOES = {
         "natureza": "trocar",
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
         "escreve": True, "sudo": False, "confirma": False,
-        "indisponivel": _gato_so_nos_modos(("fixo", "rotacao"), "fixo"),
+        # SÓ O MODO FIXO — e a rotação saiu da lista na revisão da P50. Nela o
+        # `logo.sh` guarda o gato do acervo que já está no ar (senão cada
+        # `install.sh` desfaria o giro), e o `LOGO` é só o ponto de partida,
+        # como o meow.conf.exemplo diz: medido numa casa de brinquedo, com o
+        # botão aceso, `rotacao, LOGO=mimir` respondeu «logo já no lugar:
+        # morcego-dia», rc 0. O `fixo` só passou a ler o `LOGO` com o conserto
+        # do mesmo dia no `logo.sh`; antes dele, o motivo mandava a pessoa a um
+        # modo em que o botão acendia e continuava sem efeito.
+        "indisponivel": _gato_so_nos_modos(("fixo",), "fixo"),
         # A AJUDA PROMETIA UMA VIRADA QUE NÃO ACONTECE — 24/09/2026, P50 (achado
         # 33). Dizia que, por horário, "o relógio devolve o gato dele na virada
         # seguinte". Medido no painel de verdade com a Coquinha no modo Hora: o
         # relógio não espera virada nenhuma, o `logo.sh` põe na hora o gato da
         # fase, e o botão respondia «já estava certo» com o dock igual. Agora o
-        # botão se apaga nesse modo (o `indisponivel`, logo acima), e o cartão
-        # diz onde se muda — pelo nome que o cartão daquele ajuste tem na tela.
-        "ajuda": "Põe no dock o gato escolhido. Quando é o relógio que escolhe "
-                 "o gato, este botão fica apagado e diz onde mudar.",
+        # botão se apaga nesse modo e no que gira (o `indisponivel`, logo
+        # acima), e o cartão diz onde se muda — pelo nome que o cartão daquele
+        # ajuste tem na tela.
+        "ajuda": "Põe no dock o gato escolhido, e ele fica. Quando o gato segue "
+                 "o relógio ou gira sozinho, este botão fica apagado e diz onde "
+                 "mudar.",
     },
     "logo_girar": {
         "rotulo": "Passar ao próximo gato",
@@ -5966,24 +5976,29 @@ def pendencias():
 def _trabalho_json(trabalho, acao_id, seco=False):
     """O que a página precisa para abrir a gaveta de um trabalho que começou.
 
-    `escreve` vai junto porque o CÓDIGO 1 QUER DIZER DUAS COISAS, e a página
-    precisa saber qual — ver o comentário no `/api/rodar`.
+    `escreve` vai junto porque é ele que decide, no fim, se a página relê a
+    máquina e esvazia a bandeja de pendentes. Até a P50 (24/09/2026) servia
+    também para traduzir o código de saída — o 1 de quem escreve era
+    "consertei", o de quem só lê era "há divergências", ver o `/api/rodar` —;
+    hoje a frase do fim vem pronta em `fim`, pela natureza da ação.
 
     `seco` É UM CAMPO À PARTE, E NÃO UM `escreve: False` — 22/09/2026, P8
       A tentação era dizer que um ensaio "não escreve" e reaproveitar o campo
       que já existe. Seriam duas verdades diferentes no mesmo lugar: `escreve`
       fala da AÇÃO (o `instalar` escreve, sempre), e `seco` fala desta
-      EXECUÇÃO. A página precisa das duas — a primeira para traduzir o código
-      de saída (ver o `/api/rodar`), a segunda para pintar o cabeçalho amarelo
-      e para NÃO limpar a bandeja de pendentes no fim. Fundi-las faria um
-      ensaio do instalador terminar com a pastilha "já estava certo" e a
-      bandeja vazia, que é a mentira que esta sprint veio matar.
+      EXECUÇÃO. A página precisa das duas — a primeira para saber se relê a
+      máquina, a segunda para pintar o cabeçalho amarelo e para NÃO limpar a
+      bandeja de pendentes no fim. Fundi-las faria um ensaio do instalador
+      terminar com a pastilha "já estava certo" e a bandeja vazia, que é a
+      mentira que esta sprint veio matar. (Desde a P50 a pastilha não
+      depende mais de nenhuma das duas: a do ensaio é a da natureza `ensaio`,
+      que o `fim_da_acao` escolhe. A bandeja continua dependendo.)
     """
     # O topo da gaveta mostra o comando como a pessoa o digitaria, e não o
     # `argv` cru com o caminho do clone — ver `comando_na_tela` (P52).
     # `fim` é a frase do fim DESTA execução, pela natureza da ação — ver
-    # `NATUREZAS` (P50). `escreve` continua indo: é ele que decide se a página
-    # relê a máquina e esvazia a bandeja no fim, e isso não é rótulo.
+    # `NATUREZAS` (P50). `escreve` continua indo pelo que a docstring diz: a
+    # releitura e a bandeja, e não o rótulo.
     return {"id": trabalho.id, "rotulo": trabalho.rotulo,
             "comando": comando_na_tela(trabalho.argv),
             "escreve": escreve(ACOES[acao_id]),
@@ -9890,13 +9905,15 @@ class Manipulador(BaseHTTPRequestHandler):
                 # O erro estruturado (a confirmação que falta) passa inteiro; o
                 # erro de sempre continua sendo uma frase, como a página espera.
                 return self._json(erro if isinstance(erro, dict) else {"erro": erro}, 409)
-            # `escreve` vai junto porque o CÓDIGO 1 QUER DIZER DUAS COISAS, e a
-            # página precisa saber qual — visto na tela em 01/09/2026, quando um
-            # `meow status` (que só lê) terminou com a pastilha "mexeu e
-            # consertou". O contrato do projeto é "1 = divergia e consertei" para
-            # quem ESCREVE; para quem só olha — `status`, `doctor` sem
-            # `--consertar`, `tema`, `apps`, `leitura` — o mesmo 1 quer dizer "há
-            # divergências", e nada foi consertado.
+            # O CÓDIGO 1 QUER DIZER MAIS DE UMA COISA — visto na tela em
+            # 01/09/2026, quando um `meow status` (que só lê) terminou com a
+            # pastilha "mexeu e consertou". O contrato do projeto é "1 = divergia
+            # e consertei" para quem ESCREVE; para quem só olha — `status`,
+            # `doctor` sem `--consertar`, `tema`, `apps`, `leitura` — o mesmo 1
+            # quer dizer "há divergências", e nada foi consertado. Até a P50 a
+            # página separava os dois pelo `escreve` desta resposta; desde
+            # 24/09/2026 a frase vai pronta no `fim`, pela natureza da ação (ver
+            # `NATUREZAS`), e o `escreve` fica só para a releitura e a bandeja.
             return self._json(_trabalho_json(trabalho, acao, seco=seco))
 
         # O `.meowpack` — ver `_api_pack_exportar`. [23/09/2026, P11] Fora do
@@ -10115,7 +10132,14 @@ if __name__ == "__main__":
     # `--onde` não sobe servidor nenhum: responde e sai — ver `onde_na_tela`.
     # A linha de URL do `main` é a interface com o `run.sh`, e esta porta não
     # passa perto dela.
-    if len(sys.argv) == 3 and sys.argv[1] == "--onde":
+    # COM O NÚMERO ERRADO DE ARGUMENTOS ELA TAMBÉM NÃO SOBE — revisão da P50. A
+    # condição exigia os três de uma vez, e `--onde` sem o id (ou com dois)
+    # caía no `main()`: medido, subiu o painel de verdade na casa real e
+    # imprimiu a URL. Quem pergunta onde fica um botão não pediu servidor.
+    if len(sys.argv) > 1 and sys.argv[1] == "--onde":
+        if len(sys.argv) != 3:
+            sys.stderr.write("uso: servidor.py --onde <ação ou pendência>\n")
+            sys.exit(2)
         frase = onde_na_tela(sys.argv[2])
         sys.stdout.write(frase + "\n" if frase else "")
         sys.exit(0 if frase else 1)

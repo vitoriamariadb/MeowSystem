@@ -550,8 +550,9 @@ rm -rf "$_tmp11"
 #        instalador (P48) não é verde, e o ensaio não diz verbo de quem fez.
 #   12b. O nome de botão e de aba que um script cita sai da tabela `ACOES`
 #        (`--onde`), e as duas frases escritas à mão sumiram do código.
-#   12c. O botão sem efeito se apaga: o gato por horário, as áreas sem
-#        alfinete — e o servidor recusa rodá-lo.
+#   12c. O botão sem efeito se apaga: o gato por horário ou girando, as áreas
+#        sem alfinete — e o servidor recusa rodá-lo. E o «Pôr» aceso põe o
+#        gato no dock de verdade.
 #   12d. O raio: acima do teto de agora, o valor não é gravado.
 #   Casa, conf, estado e COSMIC de brinquedo, antes do `import`: nada aqui lê
 #   ou escreve a máquina de quem roda, a não ser a pergunta "o compositor
@@ -635,6 +636,18 @@ porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel 
                         "_", raiz], capture_output=True, text=True, env=dict(os.environ))
 if porta.stdout.strip() != esperado:
     erros.append("o meow_onde_no_painel do lib/comum.sh diz %r" % porta.stdout.strip())
+# `--onde` com o número errado de argumentos não sobe o painel (revisão da
+# P50: caía no `main()`). O `timeout` é a rede: se subir, morre aqui, na casa
+# de brinquedo, e o teste diz.
+for extra in ([], ["doctor", "instalar"]):
+    try:
+        r = subprocess.run([sys.executable, os.path.join(raiz, "app", "servidor.py"), "--onde"]
+                           + extra, capture_output=True, text=True, timeout=20)
+        if r.returncode != 2 or "http" in r.stdout:
+            erros.append("--onde com %d argumento(s) não recusou: rc=%s %r"
+                         % (len(extra), r.returncode, r.stdout[:80]))
+    except subprocess.TimeoutExpired:
+        erros.append("--onde com %d argumento(s) subiu o servidor" % len(extra))
 for rel in ("scripts", "bin", "lib", "install.sh"):
     base = os.path.join(raiz, rel)
     arquivos = ([base] if os.path.isfile(base) else
@@ -665,10 +678,61 @@ if trabalho is not None or not erro:
 conf_com(LOGO_MODO="fixo")
 if servidor.indisponivel("logo_trocar") or not servidor.indisponivel("logo_girar"):
     erros.append("com o gato fixo, o «Pôr» tem de acender e o «Passar ao próximo» não")
+# NA ROTAÇÃO O «PÔR» TAMBÉM SE APAGA — revisão da P50. Lá o `logo.sh` guarda o
+# gato do acervo que já está no ar, e o `LOGO` é só o ponto de partida.
 conf_com(LOGO_MODO="", LOGO_ROTACAO="sim")
-if servidor.indisponivel("logo_trocar") or servidor.indisponivel("logo_girar"):
-    erros.append("LOGO_ROTACAO=sim sem LOGO_MODO é o modo que gira (a regra do logo.sh), "
-                 "e os dois botões apagaram")
+trocar, girar = servidor.indisponivel("logo_trocar"), servidor.indisponivel("logo_girar")
+if trocar != {"chave": "LOGO_MODO", "vale": "rotacao", "pede": "fixo"} or girar:
+    erros.append("LOGO_ROTACAO=sim sem LOGO_MODO é o modo que gira (a regra do logo.sh): "
+                 "o «Pôr» se apaga pedindo fixo, e o «Passar ao próximo» acende — "
+                 "deu %r e %r" % (trocar, girar))
+# ACESO É TER EFEITO, E NÃO SÓ `indisponivel() is None` — revisão da P50.
+#   A primeira versão desta seção cobrava só que o botão acendia no `fixo`, e
+#   o `logo.sh` desse modo guardava o gato que já estava no ar: o motivo
+#   mandava a pessoa a um modo em que o botão continuava sem efeito. Aqui se
+#   faz o caminho que o cartão ensina, na casa de brinquedo: o relógio põe o
+#   mimir, a pessoa passa a «Fixo», e o «Pôr» roda o comando dele com a
+#   Coquinha. Sem reciclar o painel (`LOGO_RECICLAR="nao"`), e com um
+#   `notify-send` falso: a notificação do `meow logo` iria para a sessão de
+#   quem roda o teste.
+applet = os.path.join(cosmic, "dev.cappsy.CosmicExtAppletLogoMenu", "v1")
+os.makedirs(applet)
+falso = os.path.join(os.path.dirname(casa), "falso")
+os.makedirs(falso)
+with open(os.path.join(falso, "notify-send"), "w", encoding="utf-8") as fh:
+    fh.write("#!/bin/sh\nexit 1\n")
+os.chmod(os.path.join(falso, "notify-send"), 0o755)
+ambiente = dict(os.environ, PATH=falso + os.pathsep + os.environ.get("PATH", ""))
+logo_sh = os.path.join(raiz, "scripts", "logo.sh")
+conf_com(LOGO_MODO="hora", LOGO_DIA="mimir", LOGO_NOITE="mimir", LOGO="mimir", LOGO_RECICLAR="nao")
+subprocess.run(["bash", "-c", 'set -a; . "$1"; set +a; exec "$2" aplicar', "_", conf, logo_sh],
+               capture_output=True, env=ambiente, timeout=60)
+conf_com(LOGO_MODO="fixo", LOGO="mimir", LOGO_RECICLAR="nao")
+botao = os.path.join(casa, ".local", "share", "icons", "MeowSystem-Icons", "scalable", "apps",
+                     "com.system76.CosmicPanelAppButton.svg")
+coquinha = os.path.join(cosmic, "logos", "meow-coquinha.svg")
+
+
+def no_dock(caminho):
+    try:
+        with open(botao, "rb") as a, open(caminho, "rb") as b:
+            return a.read() == b.read()
+    except OSError:
+        return False
+
+
+if no_dock(coquinha) or not no_dock(os.path.join(cosmic, "logos", "meow-mimir.svg")):
+    erros.append("a casa de brinquedo não começou com o mimir no dock")
+elif servidor.indisponivel("logo_trocar"):
+    erros.append("com o gato fixo, «Pôr um gato no dock» não acendeu")
+else:
+    argv = [a.replace("@ARG@", "coquinha") for a in servidor.ACOES["logo_trocar"]["argv"]]
+    r = subprocess.run(argv, capture_output=True, text=True, env=ambiente, timeout=120)
+    if r.returncode != 1 or not no_dock(coquinha):
+        erros.append("no modo fixo, «Pôr um gato no dock» com a Coquinha não a pôs no dock "
+                     "(rc=%s): %s" % (r.returncode, (r.stdout + r.stderr).strip()[-160:]))
+    elif servidor.fim_da_acao("logo_trocar")["1"][1] != "trocou":
+        erros.append("o fim do «Pôr» que trocou não diz «trocou»")
 conf_com()
 if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinetar_primeira":
     erros.append("sem área fixada, «Gravar as áreas» não manda antes a «Criar a primeira área»")

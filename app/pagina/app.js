@@ -5688,26 +5688,29 @@ async function puxar() {
     /* NO ENSAIO NINGUÉM ESCREVEU, E É ESTA LINHA QUE CONTA ISSO PARA O RESTO
      * DA FUNÇÃO — 22/09/2026, sprint P8
      *   `escreve` é da AÇÃO (o instalador escreve, sempre) e `seco` é desta
-     *   EXECUÇÃO; o que as quatro decisões abaixo precisam saber é o `e`
-     *   lógico das duas. Sem esta linha, um ensaio do instalador terminaria
-     *   dizendo "mexeu e aplicou", esvaziaria a bandeja de escolhas pendentes
-     *   e mandaria a página reler a máquina atrás de mudanças que não
-     *   aconteceram — a tela inteira mentindo junto, que é o defeito que esta
-     *   sprint veio matar e não repetir com outra cara.
+     *   EXECUÇÃO; o que as decisões abaixo precisam saber é o `e` lógico das
+     *   duas. Sem esta linha, um ensaio do instalador esvaziaria a bandeja de
+     *   escolhas pendentes e mandaria a página reler a máquina atrás de
+     *   mudanças que não aconteceram — a tela inteira mentindo junto, que é o
+     *   defeito que esta sprint veio matar e não repetir com outra cara.
      *
-     *   E O QUE SOBRA JÁ ESTÁ CERTO DE GRAÇA: com `escreveu` falso, o código 1
-     *   é traduzido como "há divergências" em vez de "mexeu e consertou", que é
-     *   a frase exata de um ensaio. A regra de 01/09 ("o 1 depende de quem
-     *   rodou") já valia para quem só LÊ; quem só ENSAIA está do mesmo lado. */
+     *   A PASTILHA SAIU DAQUI NA P50 (24/09/2026). Até ali o `escreveu` também
+     *   escolhia a frase: falso, o código 1 era traduzido como "há
+     *   divergências" em vez de "mexeu e consertou". Hoje a frase do ensaio é
+     *   a da natureza `ensaio` («nada mudaria», «mudaria»), que o servidor
+     *   manda pronta em `TRABALHO.fim`; o `escreveu` decide só a bandeja e a
+     *   releitura, logo abaixo. */
     const escreveu = TRABALHO.escreve && !TRABALHO.seco;
-    /* Os códigos de saída do projeto, traduzidos com as palavras dele: 0 já
-     * estava certo, 3 falta dependência, o resto é erro. Um "exit 1" cru
-     * pareceria falha, e aqui ele é a boa notícia.
+    /* Os códigos de saída do projeto, traduzidos com as palavras dele. Um
+     * "exit 1" cru pareceria falha, e quase sempre ele é a boa notícia.
      *
      * O 1 DEPENDE DE QUEM RODOU, e ignorar isso era uma mentira na tela: um
      * `meow status`, que só olha, terminava com a pastilha "mexeu e consertou".
-     * Visto em 01/09/2026. Para quem ESCREVE, 1 é "divergia e consertei"; para
-     * quem só LÊ, o mesmo 1 é "achei divergência" — e ninguém consertou nada. */
+     * Visto em 01/09/2026. Até a P50 a página separava só dois lados: para
+     * quem ESCREVE, 1 era "divergia e consertei"; para quem só LÊ, "achei
+     * divergência". Desde 24/09/2026 são as naturezas do bloco da P50, logo
+     * abaixo — o 1 de uma troca é «trocou», o de uma gravação «gravou», o do
+     * instalador «aplicou, com pendência». */
     const rc = r.rc;
     /* O 0 DO INSTALADOR NÃO QUER DIZER "NADA MUDOU" — 13/09/2026. O `install.sh`
      * sai 0 quando passa inteiro, tenha escrito ou não, e conta o que escreveu
@@ -5716,11 +5719,14 @@ async function puxar() {
      * acabado de trocar ícones e o gato da dock — a tela escondendo justamente
      * o que ela pediu para ver. */
     /* A FRASE SAI DA NATUREZA DA AÇÃO, E NÃO SÓ DO CÓDIGO — 24/09/2026, P50
-     *   As duas regras acima continuam valendo, e deixaram de bastar: medido no
-     * painel de verdade, «Recarregar o painel» reciclou e disse «já estava
-     * certo», «Próxima imagem» disse «mexeu e consertou», «Ouvir o som» disse
-     * «já estava certo». O código não sabe se a ação confere, troca, toca ou
-     * recicla; a ação sabe, e o servidor manda a tabela do fim DESTE trabalho
+     *   As duas regras acima passaram para a tabela do servidor, porque
+     * deixaram de bastar como estavam: a de 01/09 virou a natureza (quem só lê
+     * é `mostrar` ou `conferir`, e o 1 dele é «há divergências»), a de 13/09
+     * virou a linha `0~`. Medido no painel de verdade, «Recarregar o painel»
+     * reciclou e disse «já estava certo», «Próxima imagem» disse «mexeu e
+     * consertou», «Ouvir o som» disse «já estava certo». O código não sabe se
+     * a ação confere, troca, toca ou recicla; a ação sabe, e o servidor manda
+     * a tabela do fim DESTE trabalho
      * (`fim`, ver `NATUREZAS` no `servidor.py`), já trocada pela do ensaio
      * quando é ensaio. Aqui só se escolhe a linha: o `0~` é o 0 com linha
      * `~~` na saída — a regra de 13/09, que agora é da tabela. O que não está

@@ -3740,9 +3740,14 @@ main() {
   # UMA PASSAGEM SÓ (--uma-passagem, ou o ensaio): o rodapé de antes, preservado
   # inteiro. A diferença é a linha do meio — quem fecha o laço agora é o
   # instalador, e a pessoa não precisa mais contar passagem nenhuma.
+  #   NO ENSAIO O VERBO É O DO QUE MUDARIA — revisão da P50, a linha do achado
+  #   11: o ensaio sem falha não chega ao rodapé de cima, e terminava aqui
+  #   dizendo «mudaram» com a faixa «nada foi escrito» no alto da gaveta.
   if [ "$ainda" -gt 0 ]; then
-    printf '\n  %s%d etapa(s) mudaram nesta passagem.%s\n' \
-      "$C_AMARELO$C_FORTE" "$ainda" "$C_ZERO"
+    local mudaram="mudaram"
+    meow_seco && mudaram="mudariam"
+    printf '\n  %s%d etapa(s) %s nesta passagem.%s\n' \
+      "$C_AMARELO$C_FORTE" "$ainda" "$mudaram" "$C_ZERO"
     printf '  Esta execução teve uma passagem só. Algumas etapas dependem do\n'
     printf '  resultado da anterior; sem --uma-passagem (e fora do ensaio) o\n'
     printf '  instalador repete sozinho até ninguém mais escrever:\n\n'
