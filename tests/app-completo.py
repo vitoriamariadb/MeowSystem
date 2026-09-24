@@ -342,6 +342,23 @@ def montar_casa():
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "ACAO_DA_PENDENCIA" for a in no.targets)):
             pendencias = sorted(ast.literal_eval(no.value))
+    # E UMA DE TEMA DE TERCEIRO, a que ganha dois botões e não um (P53, achados
+    # 3 e 4): o servidor as reconhece pelo SUFIXO do id, e não por linha no
+    # `ACAO_DA_PENDENCIA`. O sufixo sai da fonte, e o app é o primeiro módulo
+    # que chama a leitura no caminho que escreve (`pergunte`) — é esse o
+    # módulo que registra a linha, e ele muda sem ninguém vir aqui.
+    for no in arvore.body:
+        if (isinstance(no, ast.Assign)
+                and any(getattr(a, "id", "") == "SUFIXO_TEMA_DE_TERCEIRO" for a in no.targets)):
+            modulos = os.path.join(RAIZ, "assets", "temas-de-apps")
+            for app in sorted(os.listdir(modulos)):
+                try:
+                    with open(os.path.join(modulos, app, "manifesto.sh"), encoding="utf-8") as fh:
+                        if re.search(r"meow_app_tema_no_ar .* pergunte\b", fh.read()):
+                            pendencias.append(app + ast.literal_eval(no.value))
+                            break
+                except OSError:
+                    continue
     with open(os.path.join(ESTADO, "pendencias.tsv"), "w", encoding="utf-8") as fh:
         for ident in pendencias:
             fh.write(f"{ident}\tteste\tPendência plantada pelo teste ({ident})"
@@ -1815,8 +1832,29 @@ class Percurso:
             self.pag.locator("#confirmar-ok").click()
             self.acionados.add("caixa · #confirmar-ok")
             self.assentar(quieto=400, teto=30000)
-            self.checa(self.pag.locator("#conteudo article.pack").count() == packs0 + 1,
-                       "confirmar instala o pack, e ele ganha cartão na Início")
+            if self.checa(self.pag.locator("#conteudo article.pack").count() == packs0 + 1,
+                          "confirmar instala o pack, e ele ganha cartão na Início"):
+                # O AVESSO, NO MESMO GESTO — P53, achado 8. O pack que acabou
+                # de entrar é o único da casa de brinquedo que mora na casa da
+                # pessoa, e é o único cartão que ganha o «Remover».
+                self.acionar("cartão de pack · Remover", limpar=False)
+
+    def h_remover_pack(self, nome):
+        """O «Remover» do pack importado: a caixa, o ensaio que não apaga e o
+        de verdade, pelo protocolo das três respostas — e no fim o cartão sai
+        da Início e a pasta sai da casa, inteira, sem o oculto da troca."""
+        packs0 = self.pag.locator("#conteudo article.pack").count()
+        da_pessoa = os.path.join(CASA, ".local", "share", "meowsystem", "packs")
+        antes = sorted(os.listdir(da_pessoa)) if os.path.isdir(da_pessoa) else []
+        self.checa(self.quantos(nome) == 1,
+                   f"só o pack importado ganha o «Remover» ({self.quantos(nome)} na tela)")
+        self.gesto_de_acao(lambda: self.clicar_nome(nome), "Remover")
+        self.assentar(quieto=400, teto=30000)
+        depois = sorted(os.listdir(da_pessoa)) if os.path.isdir(da_pessoa) else []
+        self.checa(self.pag.locator("#conteudo article.pack").count() == packs0 - 1,
+                   "«Remover» tira o cartão do pack da Início")
+        self.checa(len(depois) == len(antes) - 1,
+                   f"e tira a pasta dele da casa, sem deixar resto ({antes} → {depois})")
 
     # ======================================================================
     # PENDÊNCIAS, JOGOS, DESENHOS
@@ -2422,6 +2460,8 @@ class Percurso:
             (r"^aba · ação rápida ", self.h_clique_de_acao),
             (r"^pendência · Resolver$", self.h_resolver),
             (r"^pendência · Não, obrigado$", self.h_recusar),
+            (r"^pendência · (Trocar pelo tema do pack|Manter o meu)$", self.h_clique_de_acao),
+            (r"^cartão de pack · Remover$", self.h_remover_pack),
             (r"^aba · (Tópicos|Sistema|Abrir .+)$", self.h_porta),
             (r"^aba · Exportar o meu$", self.h_exportar_pack),
             (r"^aba · Importar um pack$", self.h_importar_pack),
@@ -2750,8 +2790,10 @@ INVENTARIO = {
         ajuste mudado · ir ao cartão
         cartão de pack · Usar este
         cartão de pack · abre «Mais sobre este pack»
+        pendência · Manter o meu
         pendência · Não, obrigado
         pendência · Resolver
+        pendência · Trocar pelo tema do pack
     """),
     "Cor e tela": _linhas("""
         aba · Claro
@@ -2779,7 +2821,8 @@ INVENTARIO = {
         ajuste MODO · ?
         ajuste MODO · opção
         ajuste PACK · ?
-        ajuste PACK · campo
+        ajuste PACK · deixar vazio
+        ajuste PACK · opção
         ajuste WALLPAPER_DRACULA_COMMIT · ?
         ajuste WALLPAPER_DRACULA_COMMIT · campo
         ajuste WALLPAPER_DRACULA_REPO · ?
@@ -3258,6 +3301,7 @@ REVELADOS = {
     """),
     "Início": _linhas("""
         cartão de pack · link externo
+        cartão de pack · Remover
     """),
     "Áreas de trabalho": _linhas("""
         ajuste AREAS_FOLGA · opção

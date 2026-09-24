@@ -271,9 +271,24 @@ _meow_qbt_avisar_nativo() {
 #   mesmo" — está feito: o tutorial de 20 linhas que ficava logo abaixo virou
 #   pendência sem comando, e nenhum caminho deste arquivo imprime mais um
 #   endereço de `~/.config/zsh` como lição de casa.
+#
+# VESTIDO POR ELA, NÃO HÁ O QUE ESPERAR — 24/09/2026, sprint P53 (achado 3)
+#   Medido no painel de verdade: a Home dizia «não há comando meu que resolva»
+#   com o qBittorrent vestido pelo `dracula.qbtheme` que ela escolheu — uma
+#   linha sem saída sobre uma coisa que não estava faltando. A escolha que as
+#   outras pendências de tema ganharam («Trocar pelo tema do pack» / «Manter o
+#   meu», ver `meow_app_tema_no_ar`) aqui só tem um lado que se entrega: sem
+#   escritor do conf, «Trocar» seria o botão que promete e some. Então, com o
+#   app vestido, o que vale é o «Manter o meu», e ele não precisa de clique: a
+#   linha sai, e o `_meow_qbt_dizer_o_ar` diz no log que fica como está. Sem
+#   tema nenhum no app a linha continua, porque aí falta mesmo alguma coisa.
 _meow_qbt_avisar_sem_aurora() {
   [ "$MEOW_QBT_AVISOU_SEM_AURORA" = "1" ] && return 0
   MEOW_QBT_AVISOU_SEM_AURORA=1
+  if [ -n "$(_meow_qbt_no_ar)" ]; then
+    meow_pendencia_resolvida qbittorrent-conf-fora-de-escopo
+    return 0
+  fi
   meow_pendencia_acionavel qbittorrent-conf-fora-de-escopo \
     "O tema do qBittorrent é instalado por aqui; escrever o qBittorrent.conf não é escopo deste módulo, e não há comando meu que resolva" \
     ""

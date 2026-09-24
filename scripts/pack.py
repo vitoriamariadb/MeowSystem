@@ -115,6 +115,11 @@ VERBOS
                                  `.csv` solto vira pack pelo mesmo `montar_novo`
                                  do `novo --de-csv`, com o id tirado do nome do
                                  arquivo.
+    remover <id> [--seco]        tira um pack da casa da pessoa, onde o
+                                 `importar` grava. Recusa (1) o que vem com o
+                                 MeowSystem, o pack no ar (pelo `$PACK` e o
+                                 `$FLAVOR` do ambiente) e o que outro pack
+                                 herda. Ver `remocao`.
     info    <id>                 o que é próprio, o que é herdado, o que falta
     usar    <id> [flavor]        o PACK e o FLAVOR que o `meow pack usar` grava,
                                  como três linhas `PACK=`/`FLAVOR=`/`PORQUE=`.
@@ -5216,6 +5221,10 @@ def cmd_importar(caminho, opcoes):
                         f"    Importar por cima trocaria o que está lá sem perguntar, e um pack\n"
                         f"    com o mesmo nome noutra raiz esconderia um dos dois. Para trocar,\n"
                         f"    tire o que está lá primeiro."
+                        # Desde a P53 a casa da pessoa tem por onde tirar: a
+                        # frase aponta o verbo em vez de deixar a pasta à mão.
+                        + (f"\n    Ele é seu: meow pack remover {ident}, ou o «Remover» do cartão."
+                           if existe and os.path.dirname(existe) == raiz_da_pessoa() else "")
                         + ("\n    O id sai do nome do CSV: com outro nome, ele vira outro pack."
                            if de_csv else ""))
     # Depois da conferência do id, e não antes: montar desenha os autorais, e
@@ -5232,6 +5241,138 @@ def cmd_importar(caminho, opcoes):
         print(f"  ok   instalado em {destino}")
     print("  --   nada foi aplicado: importar é ganhar uma opção, não trocar de tema.")
     print(f"       Para vestir: PACK=\"{ident}\" e FLAVOR=\"{r['flavor_padrao']}\" no meow.conf.")
+    return OK
+
+
+# REMOVER UM PACK IMPORTADO — 24/09/2026, sprint P53 (achado 8)
+#
+# O QUE FOI MEDIDO NO PAINEL DE VERDADE
+#   "Pack importado não tem como ser removido: nem botão no cartão, nem rota,
+#   nem verbo do meow." O `importar` grava em `raiz_da_pessoa()` e nada tirava
+#   de lá: o pack só saía apagando a pasta à mão. E a dica do claro derivado
+#   manda importar de novo com outro nome — um segundo pack, que também não
+#   saía.
+#
+# A REGRA MORA AQUI, E O TERMINAL E O CARTÃO PERGUNTAM A ELA
+#   O `meow pack remover` chama o `cmd_remover`; o painel chama a `remocao` para
+#   decidir se o cartão ganha o «Remover» e, se não ganha, dizer por quê. Uma
+#   segunda cópia no painel discordaria no primeiro caso esquisito — é a
+#   história da `adocao`, logo no começo deste arquivo.
+#
+# SAI SÓ O QUE MORA NA CASA DA PESSOA, e fica, com o motivo dito:
+#   · o que vem com o MeowSystem: o que mora em `packs/` do projeto. Pela RAIZ,
+#     e não por nome — nenhuma lista de ids mora aqui, e o terceiro pack que o
+#     projeto publicar fica protegido sem ninguém vir a este bloco;
+#   · o pack no ar, pela `adocao` do PACK e do FLAVOR do meow.conf — a mesma
+#     conta do `meow_pack_dir`. E o que a chave PACK NOMEIA, mesmo reprovado:
+#     sem ele no disco o próximo aplicar vestiria o padrão, calado;
+#   · o que outro pack herda, pela `heranca` ou por um `herda` de qualquer
+#     bloco: o outro passaria a ser recusado pelo `validar` sem que a pessoa
+#     tivesse tocado nele.
+def _quem_herda_de(ident):
+    """Os ids dos packs do disco que herdam de `ident`, por qualquer campo."""
+    def herdas(no):
+        if isinstance(no, dict):
+            for chave, valor in no.items():
+                if chave in ("heranca", "herda") and isinstance(valor, str):
+                    yield valor
+                else:
+                    yield from herdas(valor)
+    quem = set()
+    for base in raizes():
+        try:
+            nomes = os.listdir(base)
+        except OSError:
+            continue
+        for nome in nomes:
+            if nome == ident or nome.startswith("."):
+                continue
+            # O `pack.json` é lido cru, sem o `validar`: um pack que herda deste
+            # e não valida por OUTRO motivo continua dependendo dele, e apagar o
+            # de quem ele herda só somaria um defeito ao que ele já tem.
+            try:
+                with open(os.path.join(base, nome, "pack.json"), encoding="utf-8") as fh:
+                    p = json.load(fh)
+            except (OSError, ValueError):
+                continue
+            if ident in set(herdas(p)):
+                quem.add(nome)
+    return sorted(quem)
+
+
+def remocao(ident, pack_conf="", flavor_conf=""):
+    """(diretório, motivo) do `remover`. Levanta Recusa com um id que não é id.
+
+    `diretório` é onde o pack mora na casa da pessoa, e None quando ele não mora
+    lá — o cartão de um pack assim não ganha botão nenhum. `motivo` é a frase de
+    por que ele não sai, e None quando sai. `pack_conf` e `flavor_conf` são o
+    PACK e o FLAVOR do meow.conf, que dizem qual pack está no ar.
+    """
+    _exigir(RE_ID.match(ident or ""), f"id {ident!r} — só minúsculas, dígitos e hífen")
+    casa = os.path.join(raiz_da_pessoa(), ident)
+    if os.path.islink(casa) or not os.path.isfile(os.path.join(casa, "pack.json")):
+        do_projeto = os.path.join(RAIZ, "packs", ident)
+        if os.path.isfile(os.path.join(do_projeto, "pack.json")):
+            return None, (f"o {campo(do_projeto, 'nome') or ident} vem com o MeowSystem — "
+                          f"mora em packs/ do projeto, e só sai o que o importar gravou")
+        return None, (f"não há pack {ident!r} em {raiz_da_pessoa()}, que é onde o "
+                      f"importar grava — só de lá um pack sai")
+    nome = campo(casa, "nome") or ident
+    if ident in (pack_conf, adocao(pack_conf, flavor_conf)[0]):
+        return casa, (f"o {nome} está no ar — troque de pack antes, com o «Usar este» "
+                      f"de outro cartão ou o meow pack usar")
+    herdeiros = [campo(h, "nome") or h for h in _quem_herda_de(ident)]
+    if herdeiros:
+        return casa, (f"o {', '.join(herdeiros)} herda{'m' if len(herdeiros) > 1 else ''} "
+                      f"do {nome} — remova {'aqueles' if len(herdeiros) > 1 else 'aquele'} "
+                      f"primeiro")
+    return casa, None
+
+
+def cmd_remover(ident, opcoes):
+    seco = False
+    for op in opcoes:
+        if op in ("--seco", "--dry-run"):
+            seco = True
+        else:
+            print(f"  erro não entendi {op!r} — uso: remover <id> [--seco]", file=sys.stderr)
+            return ERRO_USO
+    # O PACK E O FLAVOR VÊM DO AMBIENTE, como o `$FLAVOR` do `usar`: é o
+    # `meow pack remover` quem carrega o meow.conf e os passa. Sem eles a
+    # `adocao` responde o padrão, e o pack no ar pareceria removível.
+    casa, motivo = remocao(ident, os.environ.get("PACK") or "", os.environ.get("FLAVOR") or "")
+    if motivo:
+        print(f"  erro não removo: {motivo}", file=sys.stderr)
+        return RECUSADO
+    nome = campo(casa, "nome") or ident
+    arquivos, bytes_ = 0, 0
+    for base, _dirs, nomes in os.walk(casa):
+        for n in nomes:
+            arquivos += 1
+            try:
+                bytes_ += os.lstat(os.path.join(base, n)).st_size
+            except OSError:
+                pass
+    peso = f"{arquivos:,}".replace(",", ".") + f" arquivo(s), {_mb(bytes_)}"
+    if seco:
+        print(f"  ~~   removeria {casa} — o pack {nome}, {peso}; nada foi apagado")
+        return OK
+    # SAI INTEIRO OU NÃO SAI: primeiro o `rename` para um oculto AO LADO, e só
+    # então o `rmtree`. É o avesso do `_instalar_pack`, pelo motivo dele: no
+    # mesmo sistema de arquivos o `rename` é atômico, e o `.saindo-…` não é
+    # visto por quem procura pack. Um Ctrl+C no meio do `rmtree` deixa o resto
+    # no oculto, e não meio pack com `pack.json` que o `validar` recusaria.
+    import shutil
+    import tempfile
+    parede = tempfile.mkdtemp(prefix=".saindo-", dir=raiz_da_pessoa())
+    try:
+        os.rename(casa, os.path.join(parede, ident))
+    except OSError as e:
+        shutil.rmtree(parede, ignore_errors=True)
+        raise Recusa(f"não consegui tirar {casa}: {e}")
+    shutil.rmtree(parede, ignore_errors=True)
+    print(f"  ~~   removido: {casa} — o pack {nome}, {peso}")
+    print("  --   para tê-lo de novo, importe o arquivo dele outra vez")
     return OK
 
 
@@ -5352,6 +5493,25 @@ def montar_novo(ident, csv=None):
     """
     import time
     nome = " ".join(parte.capitalize() for parte in ident.split("-"))
+    # O NOME DE UM PACK DE CSV É O DO ARQUIVO, COMO FOI ESCRITO — 24/09/2026,
+    #   P53 (achado 9). A linha de cima capitaliza cada pedaço do id, e o
+    #   painel perguntou «Importar o Tinta De Teste?» por um arquivo chamado
+    #   `tinta de teste.csv`: o «De» maiúsculo saiu da regra, e não do arquivo.
+    #   O nome agora é o do arquivo — hífen e sublinhado viram espaço, e só a
+    #   primeira letra sobe. "Minha Tinta.csv" continua «Minha Tinta».
+    #   SÓ QUANDO O ID TAMBÉM SAIU DELE, que é o caso do `importar` (o
+    #   `id_do_csv`): no `novo <id> --de-csv cores.csv` o id foi DADO na linha
+    #   de comando, e o pack `meu-pack` não pode se chamar «Cores» porque o
+    #   arquivo da paleta se chamava assim. Sem CSV, ninguém escreveu nome
+    #   nenhum, e fica como estava.
+    if csv:
+        try:
+            do_arquivo = id_do_csv(csv) == ident
+        except Recusa:
+            do_arquivo = False
+        solto = re.sub(r"[\s_-]+", " ", os.path.splitext(os.path.basename(csv))[0]).strip()
+        if do_arquivo and solto:
+            nome = solto[0].upper() + solto[1:]
     data = time.strftime("%d/%m/%Y")
     som, reprovados = {}, []
     if csv:
@@ -5709,6 +5869,8 @@ def main(argv):
             return cmd_exportar(argv[2], argv[3:])
         if verbo == "importar" and len(argv) >= 3:
             return cmd_importar(argv[2], argv[3:])
+        if verbo == "remover" and len(argv) >= 3:
+            return cmd_remover(argv[2], argv[3:])
         if verbo == "caminho" and len(argv) == 4:
             return cmd_caminho(argv[2], argv[3])
         if verbo == "app" and len(argv) == 4:

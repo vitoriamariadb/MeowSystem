@@ -548,6 +548,74 @@ saida="$saida$(mod onlyoffice conferir)"; rc3=$?
   || falha "onlyoffice: nunca aberto, a tela e os códigos discordam (aplicar=$rc1 e $rc2, conferir=$rc3)" "$saida"
 mod onlyoffice reverter >/dev/null
 
+# A ESCOLHA PELO PAINEL — 24/09/2026, sprint P53 (achado 4). O caso medido no
+#   painel de verdade: o OnlyOffice num tema dela, e a pendência mandando
+#   "rodar o aplicar deste app de um terminal". A linha passa a levar o comando
+#   (é o que acende os botões na Home), e a resposta chega pelo ambiente:
+#   `manter` grava e cala a pendência nas passagens seguintes; `trocar` troca,
+#   e esquece o `manter`. O ensaio da troca não escreve nada.
+pend() { awk -F'\t' -v i="$1" '$1 == i { print $4 }' "$T/estado8/pendencias.tsv" 2>/dev/null; }
+mantidos="$T/estado8/temas-mantidos.tsv"
+oo_conf theme-de-alguem
+antes="$(cat "$OO_CONF")"
+faltam=""
+saida="$(mod onlyoffice aplicar)"; rc=$?
+[ "$rc" = 3 ] && [ "$(pend onlyoffice-tema-de-terceiro)" = "meow apps aplicar onlyoffice" ] \
+  && ! printf '%s' "$saida" | grep -q 'de um terminal' \
+  || faltam+=" a pendência não leva o comando, ou ainda manda ao terminal (rc=$rc);"
+saida="$(mod onlyoffice aplicar MEOW_TEMA_DE_TERCEIRO=manter)"; rc=$?
+[ "$rc" = 3 ] && [ "$(cat "$OO_CONF")" = "$antes" ] && [ -z "$(pend onlyoffice-tema-de-terceiro)" ] \
+  && grep -qxF "$(printf 'onlyoffice\ttheme-de-alguem')" "$mantidos" 2>/dev/null \
+  || faltam+=" «Manter o meu» não gravou, mexeu no conf, ou deixou a pendência (rc=$rc: $saida);"
+saida="$(mod onlyoffice aplicar)"; rc=$?
+[ "$rc" = 3 ] && [ -z "$(pend onlyoffice-tema-de-terceiro)" ] && printf '%s' "$saida" | grep -q 'como você escolheu' \
+  || faltam+=" depois do «Manter o meu» a pendência voltou (rc=$rc: $saida);"
+# Outro tema que não veio daqui é pergunta nova; mantido também, ele SOMA ao
+# primeiro, e não o apaga — é o caso do Discord, uma pergunta por pasta.
+oo_conf theme-outro-dela
+saida="$(mod onlyoffice aplicar)"; rc=$?
+[ "$rc" = 3 ] && [ -n "$(pend onlyoffice-tema-de-terceiro)" ] \
+  || faltam+=" outro tema de terceiro não perguntou de novo (rc=$rc: $saida);"
+saida="$(mod onlyoffice aplicar MEOW_TEMA_DE_TERCEIRO=manter)"; rc=$?
+[ "$(grep -c '^onlyoffice' "$mantidos" 2>/dev/null)" = 2 ] \
+  || faltam+=" o segundo «Manter o meu» apagou o primeiro ($(cat "$mantidos" 2>/dev/null | tr '\t\n' ' |'));"
+oo_conf theme-de-alguem
+saida="$(mod onlyoffice aplicar MEOW_TEMA_DE_TERCEIRO=trocar MEOW_DRY_RUN=1)"; rc=$?
+[ "$(cat "$OO_CONF")" = "$antes" ] && grep -q '^onlyoffice' "$mantidos" \
+  || faltam+=" o ensaio do «Trocar» escreveu (rc=$rc: $saida);"
+saida="$(mod onlyoffice aplicar MEOW_TEMA_DE_TERCEIRO=trocar)"; rc=$?
+[ "$rc" = 1 ] && [ "$(oo_escolha)" = theme-meowsystem ] && ! grep -q '^onlyoffice' "$mantidos" \
+  || faltam+=" «Trocar pelo tema do pack» não trocou, ou não esqueceu o «Manter» (rc=$rc: $saida);"
+mod onlyoffice reverter >/dev/null
+[ -z "$faltam" ] \
+  && ok "onlyoffice: a escolha vem do painel — «Manter o meu» grava e cala, «Trocar» troca, e o ensaio não escreve" \
+  || falha "onlyoffice: a escolha do painel não cumpre:$faltam"
+
+# --- qBittorrent: VESTIDO POR ELA, NÃO HÁ O QUE ESPERAR — P53 (achado 3) ---
+#   Sem escritor do conf (o caso de toda máquina que não é a da Vitória, e o
+#   desta: o script do Aurora não existe), a Home mostrava «não há comando meu
+#   que resolva» com o qBittorrent vestido pelo tema que ela escolheu. Vestido,
+#   a linha sai; sem tema nenhum, ela continua, porque aí falta alguma coisa.
+falso flatpak
+QB="$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent"
+mkdir -p "$QB"
+printf '[Preferences]\nGeneral\\UseCustomUITheme=false\n' > "$QB/qBittorrent.conf"
+saida="$(mod qbittorrent aplicar)"; rc1=$?
+tinha="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/pendencias.tsv" 2>/dev/null)"
+printf '[Preferences]\nGeneral\\CustomUIThemePath=%s/.themes/dela.qbtheme\nGeneral\\UseCustomUITheme=true\n' \
+  "$CASA" > "$QB/qBittorrent.conf"
+antes="$(cat "$QB/qBittorrent.conf")"
+saida="$saida$(mod qbittorrent aplicar)"; rc2=$?
+ficou="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/pendencias.tsv" 2>/dev/null)"
+[ "$rc1" = 3 ] && [ -n "$tinha" ] && [ "$rc2" = 3 ] && [ -z "$ficou" ] \
+  && [ "$(cat "$QB/qBittorrent.conf")" = "$antes" ] && printf '%s' "$saida" | grep -q 'já está vestido' \
+  && ok "qbittorrent: vestido por ela e sem escritor, a pendência sai e o conf fica; sem tema, ela fica" \
+  || falha "qbittorrent: a pendência sem saída sobre um app vestido (sem tema: rc=$rc1, vestido: rc=$rc2)" \
+           "$saida
+pendência antes: $tinha
+pendência depois: $ficou"
+rm -rf "$CASA/.var/app/org.qbittorrent.qBittorrent" "$BIN/flatpak"
+
 # --- GNOME Terminal ------------------------------------------------------
 #   O `dconf` de mentira guarda cada chave numa linha do HOME de brinquedo, e
 #   imita os cinco verbos que o módulo usa. O formato do `dump` (as chaves em
