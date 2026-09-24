@@ -974,7 +974,9 @@ Cada cópia ganha uma linha no `packs/<id>/PROCEDENCIA.md`:
 | `icones/apps/net.waterfox.waterfox.svg` | `m4thewz/dracula-icons`, ramo `circle` — … | `~/Desenvolvimento/Dracula_OS-Theme/src/icons/upstream/…/firefox.svg` | GPL-3.0 | 2026-09-23 | `a13118bd…` |
 ```
 
-`lido de` aceita `~/…`, `motor:…` ou caminho absoluto, e é só **lido**. O
+`lido de` aceita `~/…`, `motor:…` ou caminho absoluto, e é só **lido**. Para
+publicar, a casa vai como `~/…`: um `/home/<nome>/…` ali é nome de usuário, e o
+`validar` recusa (item 13 de [Validar antes de publicar](#validar-antes-de-publicar)). O
 `sha256` é o da cópia no dia da cópia — o terceiro ponto que permite dizer qual
 lado andou:
 
@@ -1290,9 +1292,13 @@ mesmo nome), a ponte já está montada e as duas linhas acima viram uma:
 na entrada e exporta o `MEOW_PACK_DIR` para você.
 
 A captura é **portátil**: são ~176 arquivos de texto com caminhos relativos. O
-único arquivo com caminho de máquina é o `captura.txt`, que é metadado de
-procedência — `aplicar_tema.sh:394` o pula explicitamente, e ele não entra no
-`manifesto.sha256`.
+`captura.txt` é metadado de procedência, e o `aplicar_tema.sh` o pula
+explicitamente. Desde 23/09/2026 (P30) a linha `origem:` diz `~/.config/cosmic`
+— de qual árvore a foto saiu, e não de quem: antes ela levava a casa de quem
+capturou para dentro de todo `.meowpack`. O `capturar_tema.sh` o escreve depois
+do `manifesto.sha256`, que então não o lista; o `gerar_tema_v1.py`, quando
+refaz o manifesto, o inclui — quem editar o `captura.txt` de uma captura dessas
+refaz a linha dele no manifesto, ou o `sha256sum -c` acusa.
 
 Se o pack **não** trouxer captura, o MeowSystem não quebra: ele avisa e diz ao
 usuário os três passos acima. Mas aí cada pessoa paga o custo, em vez de você
@@ -1835,18 +1841,27 @@ Ele confere, nesta ordem, e **para no primeiro erro**:
 11. nenhuma URL fora de `https://`
 12. **contraste**: `text` sobre `base` precisa passar em WCAG AA (4.5:1) — 26
     hexes aleatórios passam em tudo acima e produzem uma interface ilegível
-13. **a vitrine** — a capa existe, é SVG e está dentro do pack; a frase curta
+13. **nenhum nome de usuário** (P30, 23/09/2026): nenhum arquivo de texto do
+    pack traz `/home/<nome>/` ou `/Users/<nome>/`. A recusa diz o arquivo e a
+    linha, todas de uma vez. `~/…` passa — diz "a casa de quem lê" sem dizer
+    de quem —, e ficam de fora o binário (byte nulo nos primeiros 8000 bytes,
+    a pergunta do git) e o oculto, que o `exportar` não leva. Cobrado só pelo
+    verbo `validar`, como o 14 e o 15: um pack pessoal com o próprio caminho
+    num `PROCEDENCIA.md` continua vestindo o desktop. O `exportar`, o
+    `importar` e o `novo` (com ou sem `--de-csv`) rodam o `validar` inteiro, e
+    a herdam sem uma linha a mais
+14. **a vitrine** — a capa existe, é SVG e está dentro do pack; a frase curta
     cabe em 80 caracteres; a descrição é um `.md` do pack; o `site` é
-    `https://`. Cobrado só pelo verbo `validar`, como o 14: o instalador e o
+    `https://`. Cobrado só pelo verbo `validar`, como o 15: o instalador e o
     painel usam um pack de vitrine quebrada assim mesmo. A exceção é o `site`
     em `http://`, que já caiu no 11 — e o 11 vale para o motor. Ver
     [A vitrine](#a-vitrine)
-14. **o logo**: `logo.svg` existe, é SVG quadrado, sem script, sem imagem
+15. **o logo**: `logo.svg` existe, é SVG quadrado, sem script, sem imagem
     embutida e sem nada que aponte para fora dele. Cobrado só pelo verbo
     `validar`: o instalador usa o pack sem logo assim mesmo — ver
     [O logo do pack](#o-logo-do-pack), que diz cada regra e o porquê. Depois
     da vitrine, e de propósito: o logo é o arquivo que `vitrine.capa` nomeia, e
-    é o 13 que diz, antes, se o campo aponta para um SVG que existe
+    é o 14 que diz, antes, se o campo aponta para um SVG que existe
 
 A validação roda de novo dentro do `meow_preflight`, **antes** de o instalador
 escrever qualquer coisa. Um pack quebrado não chega a tocar no seu desktop.
@@ -2071,7 +2086,11 @@ leitura do tarball no servidor seria a porta que ninguém conferiu.
 - [ ] `licenca` no `pack.json` é compatível com a de tudo que você empacotou
 - [ ] a captura do tema está no pack (senão, diga no `LEIA-ME.md` que não está)
 - [ ] `heranca` está escrita, mesmo sendo o default
-- [ ] nenhum caminho absoluto, nenhum `~`, nenhum nome de usuário
+- [ ] nenhum caminho absoluto, nenhum `~` no que o pack declara (campos do
+      `pack.json`, mapas) — e nenhum nome de usuário em arquivo nenhum: este
+      o `validar` cobra, recusando a linha de texto com `/home/<nome>/` ou
+      `/Users/<nome>/` (item 13 de [Validar antes de publicar](#validar-antes-de-publicar)).
+      Numa nota de procedência, `~/…` passa
 - [ ] o `logo.svg` é seu, e as formas declaram papel na `class` em vez de hex
 
 Este repositório traz **dois** packs, e eles ensinam coisas diferentes:

@@ -2709,6 +2709,64 @@ def vitrine(p, dir_pack):
     return saida, problemas
 
 
+# O NOME DE QUEM ESCREVEU NÃO VIAJA — 23/09/2026, sprint P30
+#
+#   O docs/PACKS.md pede, para publicar, "nenhum nome de usuário", e nada o
+#   cobrava. MEDIDO: as quatro capturas versionadas dos dois packs traziam
+#   `/home/<nome>/.config/cosmic` na linha `origem:` do `captura.txt` — dois
+#   nomes, de duas máquinas —, e o `exportar` os levava dentro de todo
+#   `.meowpack`. A causa foi consertada onde nasce (o `capturar_tema.sh` escreve
+#   `~`); esta régua é o que impede de voltar, venha de onde vier: um
+#   PROCEDENCIA.md escrito à mão, um SVG que o editor salvou com o caminho de
+#   exportação absoluto dentro, um mapa copiado da máquina de alguém.
+#
+#   `~/` PASSA, E É DE PROPÓSITO: diz "a casa de quem estiver lendo" sem dizer
+#   de quem — é como a coluna "lido de" do PROCEDENCIA.md do Dracula escreve.
+#   `/home/<nome>/` e `/Users/<nome>/` (o macOS) não passam, e o `/home/` pode
+#   vir depois de qualquer coisa: `/var/home/<nome>/` é a casa nos Fedora
+#   atômicos, e `file:///home/<nome>/` é a mesma casa com outro prefixo. O preço
+#   é um link com `/home/<palavra>/` no meio do caminho ser recusado também —
+#   raro, e a recusa diz a linha. O nome é o que um usuário pode ter (letra,
+#   dígito, `_`, `.`, `-`), então o `<nome>` de um texto que ensina a forma não
+#   é nome de ninguém, e passa.
+#
+#   SÓ TEXTO, SÓ DENTRO DO PACK. A lista é a do `exportar` (`_arquivos_do_pack`):
+#   sem o oculto — o `.git` de um pack publicado por clone não é do pack — e sem
+#   link, que ele recusa por conta própria. Binário é o que tem byte nulo nos
+#   primeiros 8000 bytes, a mesma pergunta que o git faz: o PNG de uma captura e
+#   o `.qbtheme` do Catppuccin (um recurso compilado do Qt) não têm linha para
+#   apontar.
+#
+#   SÓ NA PORTA DE QUEM PUBLICA, como a vitrine e o logo: um pack pessoal com o
+#   próprio caminho num PROCEDENCIA.md continua vestindo o desktop de quem o
+#   escreveu — recusá-lo no motor trocaria o tema da pessoa pelo padrão por
+#   causa de uma linha de texto. O `exportar`, o `importar` e o `novo` (com ou
+#   sem `--de-csv`) passam pelo `validar` inteiro, e herdam a régua sem uma
+#   linha a mais.
+RE_CASA_DE_ALGUEM = re.compile(r"/(?:home|Users)/[\w.-]+/")
+
+
+def nomes_de_usuario(dir_pack):
+    """Cada linha de texto do pack com a casa de alguém escrita por extenso.
+
+    Uma entrada por linha, `arquivo:linha: trecho`, e TODAS de uma vez — como os
+    slots que faltam: consertar uma por rodada é o que faz alguém desistir. A
+    linha é contada por `\\n`, como o editor e o `grep -n` contam.
+    """
+    achados = []
+    arquivos, _ocultos, _problemas = _arquivos_do_pack(dir_pack)
+    for rel in arquivos:
+        with open(os.path.join(dir_pack, rel), "rb") as fh:
+            dado = fh.read()
+        if b"\0" in dado[:8000]:
+            continue
+        for num, linha in enumerate(dado.decode("utf-8", "replace").split("\n"), 1):
+            m = RE_CASA_DE_ALGUEM.search(linha)
+            if m:
+                achados.append(f"{rel}:{num}: {m.group(0)}")
+    return achados
+
+
 def validar(ref, silencioso=False):
     """Confere o pack. Levanta Recusa na primeira falha, com o que consertar."""
     dir_pack = achar(ref)
@@ -3077,6 +3135,15 @@ def validar(ref, silencioso=False):
                 f"{arq}: 'derivados' é {{claro: escuro de onde ele saiu}} — o claro\n"
                 f"    listado em 'claros', o escuro em 'flavors'. Não confere: "
                 f"{', '.join(map(str, tortos))}")
+
+    # --- o nome de quem escreveu — 23/09/2026, P30 ---------------------------
+    # Só na porta de quem publica; o porquê está em `nomes_de_usuario`, acima.
+    if not silencioso:
+        casas = nomes_de_usuario(dir_pack)
+        _exigir(not casas,
+                f"{len(casas)} linha(s) com a casa de alguém escrita por extenso — o pack\n"
+                f"    viaja, e o nome de usuário iria junto. Escreva ~/ no lugar dela, que\n"
+                f"    diz o mesmo sem dizer de quem:\n      " + "\n      ".join(casas))
 
     # --- vitrine ------------------------------------------------------------
     # Só na porta de quem PUBLICA — ver `vitrine`, acima, "ELA É COBRADA DE QUEM
