@@ -44,7 +44,17 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # O flavor dos ÍCONES é independente do flavor do TEMA — ela pediu explicitamente
 # "frappe ou macchiato" para os ícones, com a interface em mocha. A chave separada
 # é o que torna isso possível sem partir o significado de FLAVOR no resto do repo.
-FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
+#
+# QUEM DECIDE O FLAVOR É O `pack.py`, E NÃO MAIS UM `:-macchiato` — 23/09/2026, P31
+#   Era `FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"`. Com o conf de fábrica
+#   (`ICONES_FLAVOR="$FLAVOR"`) e o Dracula no ar o valor chegava `dracula`, não
+#   existe acervo de mimetype Dracula, e este script saía com "nada a vestir" —
+#   enquanto o pack declara `icones.mimetypes.flavor: "macchiato"` exatamente
+#   para isso, e o painel já o lia desde a P10. A regra (o conf escrito à mão
+#   vence; o de fábrica que não existe cai no flavor que o pack escolheu) mora
+#   no `flavor_de_icones` do pack.py, e é a MESMA que a aba Ícones pergunta.
+#   Ela é perguntada logo abaixo do `_pack_ref`, porque precisa do mesmo pack
+#   que o `acervo` vai subir.
 
 # O ACERVO MUDOU DE CASA EM 22/09/2026 — ele é do PACK, e não do motor
 #   Era `$RAIZ/assets/icones/catppuccin/$FLAVOR_ICONES`: 3.281 arquivos do
@@ -77,8 +87,15 @@ FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
 #   `_pronto` culpar o flavor por um defeito que é do pack.
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
+FLAVOR_ICONES="$(python3 "$RAIZ/scripts/pack.py" flavor-icones "$_pack_ref")" || FLAVOR_ICONES=""
 ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
             icones.mimetypes.desenhos "$FLAVOR_ICONES")" || ORIGEM=""
+# SEM FLAVOR, SEM ORIGEM: `acervo ... ""` devolve a pasta-mãe do acervo (a que
+# guarda um diretório por flavor), e o `_pronto` a aceitaria — o `--conferir`
+# diria "0 já vestidos" com nada vestido. Vazio aqui nasce de conf sem
+# `ICONES_FLAVOR` nem `FLAVOR`, ou do pack.py recusando o pack; nos dois casos o
+# `_pronto` diz que não há o que vestir.
+[ -n "$FLAVOR_ICONES" ] || ORIGEM=""
 # O MAPA SEGUIU O ACERVO PARA DENTRO DO PACK — 22/09/2026
 #   A P13 desceu os 3.280 glifos para `packs/catppuccin/icones/mimetypes/` e
 #   deixou o mapa em `assets/icones/mimetypes.map`. Meio caminho: O MAPA É A

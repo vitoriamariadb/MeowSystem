@@ -582,6 +582,17 @@ ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 #   `ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"` da linha 519, e o wizard já sabe
 #   mostrar as duas coisas (`$FLAVOR  ->  mocha`).
 #   Quem quiser a divergência de propósito escreve o nome do flavor aqui.
+#
+# QUANDO O TEMA NÃO TEM ÍCONE DE ARQUIVO, VALE O QUE O PACK ESCOLHEU — 23/09/2026
+#   O de fábrica acompanha o `FLAVOR`, e nem todo flavor tem acervo de ícone de
+#   arquivo: o Dracula não tem nenhum, e herda o do Catppuccin. Nesse caso vale
+#   o flavor que o pack escolheu para os ícones que herda — o campo
+#   `icones.mimetypes.flavor` do pack.json dele; o Dracula escolhe o macchiato.
+#   Era o `ICONES_FLAVOR="dracula"` expandido, que não existe, e os ícones de
+#   arquivo não se vestiam. A regra mora num lugar só (`scripts/pack.py`, verbo
+#   `flavor-icones`), e é ela que os três scripts de ícone e o painel perguntam.
+#   Um nome escrito aqui à mão continua vencendo, exista ou não o acervo dele;
+#   vazio vale o mesmo que o de fábrica.
 ICONES_FLAVOR="$FLAVOR"
 
 # @ Cor pela marca do programa

@@ -4805,8 +4805,15 @@ function montarCartao(item) {
       class: "frase",
       /* «Vale como», com maiúscula: é uma frase da tela, e não a continuação
        * de um rótulo — era um dos cinco parágrafos visíveis que abriam em
-       * minúscula. — 22/09/2026 */
-      texto: `Vale como: ${semCasa(item.valor, item.efetivo)}`,
+       * minúscula. — 22/09/2026
+       * O NOME QUE O PACK DÁ, QUANDO ELE DÁ UM — 23/09/2026, P31. A variante dos
+       * ícones de arquivo passou a valer o que a regra do pack.py responde, e
+       * com o Dracula no ar isso é o macchiato herdado: a linha dizia
+       * «macchiato» cru, um nome do Catppuccin sem dono, logo abaixo do botão
+       * que o diz «Macchiato (herdado do Catppuccin)». Os dois usam agora o
+       * mesmo `item.rotulos`. */
+      texto: `Vale como: ${(item.rotulos && item.rotulos[item.efetivo])
+                           || semCasa(item.valor, item.efetivo)}`,
       /* "DEPOIS DE O SHELL EXPANDIR AS VARIÁVEIS" SAIU — 09/09/2026. Shell e
        * expandir são as palavras de quem escreveu o `bin/meow`; o comentário
        * logo acima já diz quais são os dois casos reais, e é o que a frase
@@ -8274,9 +8281,15 @@ function montarHome() {
 
   /* A TIRA É O FLAVOR, DESENHADO. Mesma disciplina do cartão de variante: um
    * nome não se compara, uma tira se compara. O acento ganha um anel — é a
-   * única cor da tira que significa algo em toda a interface. */
+   * única cor da tira que significa algo em toda a interface.
+   *
+   * O BALÃO DIZIA "na ordem do Catppuccin" — 23/09/2026, P31. A ordem é a
+   * `ordem_canonica` do `paleta.json` do pack NO AR (o `/api/esquema` a manda
+   * em `paleta.ordem`), e com o Dracula no ar a frase nomeava outro pack. O nome
+   * do pack no ar não entra: o balão tem teto de 80 caracteres, e o nome de um
+   * pack de terceiro não tem. */
   const paleta = (ESQUEMA.paleta.flavors || {})[vale("FLAVOR")] || {};
-  const tira = elemento("div", { class: "home-tira", title: "A paleta desta variante, na ordem do Catppuccin" });
+  const tira = elemento("div", { class: "home-tira", title: "A paleta desta variante, na ordem da paleta do pack" });
   for (const nome of (ESQUEMA.paleta.ordem || [])) {
     if (!paleta[nome]) continue;
     const s = elemento("span", { title: nome });

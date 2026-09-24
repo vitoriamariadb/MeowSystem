@@ -58,7 +58,11 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # O flavor dos ÍCONES é independente do flavor do TEMA — mesma chave que as
 # etapas irmãs usam, para que os tipos de arquivo e as pastas nunca discordem.
-FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
+#
+# E A MESMA REGRA, PERGUNTADA E NÃO COPIADA — 23/09/2026, P31. Era
+# `${ICONES_FLAVOR:-macchiato}`; agora é o `flavor-icones` do pack.py, logo
+# abaixo do `_pack_ref`. O porquê inteiro está no bloco gêmeo do
+# `icones_mimetypes.sh`: as irmãs só não discordam se perguntarem ao mesmo lugar.
 
 # AS PASTAS AUTORAIS DO DRACULA VÊM DE OUTRA FONTE — 16/09/2026
 #   O pack `catppuccin/vscode-icons` cobre os quatro sabores do Catppuccin e
@@ -88,8 +92,12 @@ FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"
 #     `set -e` uma última linha que não case mataria o script calado").
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
+FLAVOR_ICONES="$(python3 "$RAIZ/scripts/pack.py" flavor-icones "$_pack_ref")" || FLAVOR_ICONES=""
 ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
             icones.mimetypes.desenhos "$FLAVOR_ICONES")" || ORIGEM=""
+# Sem flavor, sem origem — a pasta-mãe do acervo não é flavor nenhum. Ver o
+# bloco gêmeo em icones_mimetypes.sh.
+[ -n "$FLAVOR_ICONES" ] || ORIGEM=""
 # [2026-09-17] Era `if [ "${FLAVOR:-}" = "dracula" ]` — um NOME de tema cravado
 # no código, que um terceiro pack nunca satisfaria. Agora a pergunta é sobre o
 # que EXISTE, não sobre como o tema se chama: o pack ativo tem um acervo de
