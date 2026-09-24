@@ -258,7 +258,13 @@ reciclar() {
          fi ;;
     esac
   fi
-  meow_info "SIGTERM no cosmic-panel"
+  # `~~`, e não `>>` — 24/09/2026, sprint P50 (achado 17). O código de saída
+  # é 0 nos dois caminhos (reciclou, ou não havia painel desta casa para
+  # reciclar), e quem chama por `|| ...` depende disso. O que separa um do
+  # outro na saída é esta linha: `~~` é o glifo do projeto para "mudou", e é
+  # ele que a gaveta do painel lê para dizer «recarregou» em vez de «nada a
+  # recarregar» — antes ela dizia «já estava certo» com o PID do painel novo.
+  meow_muda "SIGTERM no cosmic-panel — ele volta em uns 2 s"
   # shellcheck disable=SC2086  # um PID por palavra, de propósito
   kill -TERM $alvos 2>/dev/null
   return "$MEOW_OK"

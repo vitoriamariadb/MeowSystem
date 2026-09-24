@@ -172,7 +172,12 @@ cmd_aplicar() {
     0) meow_ok "a atualização não desfez nada — o MeowSystem sobreviveu inteiro" ;;
     *) meow_muda "há etapa fora do lugar depois da atualização"
        meow_info "  conserte com:  meow doctor --consertar"
-       meow_info "  (ou pelo painel, em \"Instalar e conferir\")"
+       # O NOME DA ABA SAI DE ONDE A TELA O DEFINE — 24/09/2026, P50 (achado
+       # 47). Esta linha dizia «pelo painel, em "Instalar e conferir"», a aba
+       # que se chama «Instalação» desde 06/09. Quem sabe o nome do botão e
+       # da aba é a tabela do painel, e é a ela que se pergunta.
+       local onde; onde="$(meow_onde_no_painel doctor_consertar)"
+       [ -n "$onde" ] && meow_info "  (ou, no painel, $onde)"
        rc="$MEOW_DIVERGENTE" ;;
   esac
 

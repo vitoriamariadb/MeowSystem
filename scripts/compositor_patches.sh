@@ -498,7 +498,7 @@ cmd_conferir() {
     mapfile -t m_sessao < <(_cp_marcadores "$sessao" "$base")
     if ! _cp_tem "$marcador" ${m_sessao[@]+"${m_sessao[@]}"}; then
       fora_da_sessao=$((fora_da_sessao+1))
-      _cp_diz muda "$marcador está no disco mas NÃO na sessão"
+      _cp_diz info "$marcador está no disco mas NÃO na sessão"
       _cp_diz info "  vale no próximo login — nada a fazer agora, e nada a recompilar"
       continue
     fi
@@ -651,6 +651,26 @@ cmd_conferir() {
   local cabeca="${problemas[0]}"
   [ "${#problemas[@]}" -ge 2 ] && cabeca="$cabeca; ${problemas[1]}"
   [ "${#problemas[@]}" -ge 3 ] && cabeca="$cabeca (+$(( ${#problemas[@]} - 2 )) a mais)"
+
+  # ESPERAR O LOGIN É AVISO, E NÃO DIVERGÊNCIA — 24/09/2026, sprint P50 (achado 14)
+  #   Quando a ÚNICA coisa que falta é a sessão trocar de binário, o disco está
+  #   em dia, não há o que recompilar e não há comando que resolva: a frase de
+  #   baixo sempre disse isso. O código de saída dizia o contrário — 1, a
+  #   divergência que o doctor soma, que manda "rode: meow doctor --consertar" e
+  #   que o painel pintava «mexeu e aplicou» no fim de um conserto que não
+  #   consertou nada (medido no painel de verdade, com os cinco marcadores da
+  #   série à espera do login). Sai 0, abrindo com `!!`: o doctor mostra o `!!`
+  #   na tabela (ver `imprimir_check`) e não o conta. Qualquer outro problema
+  #   junto — um marcador que FALTA no disco, um `.estado` ilegível — continua
+  #   no 1 de sempre, logo abaixo.
+  if [ "$precisa_build" = "0" ] && [ "$fora_da_sessao" -gt 0 ] \
+     && [ "${#problemas[@]}" = "1" ]; then
+    meow_aviso "$cabeca"
+    _cp_despejar
+    meow_info "nada a recompilar: o binário do disco está em dia, quem está velho é a sessão"
+    meow_info "o próximo login resolve sozinho — não há comando a rodar"
+    return "$MEOW_OK"
+  fi
   meow_muda "$cabeca"
   _cp_despejar
   if [ "$precisa_build" = "1" ]; then

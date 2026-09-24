@@ -540,4 +540,180 @@ print("ok: o comando da gaveta cola com a casa entre aspas, e a página exportad
 PY
 rm -rf "$_tmp11"
 
+# --- 12. O RÓTULO DIZ O QUE A AÇÃO FEZ — 24/09/2026, sprint P50 ----------------
+#   Os achados 11, 14, 15, 16, 17, 32, 33, 36 e 47 da validação no painel de
+#   verdade, na parte que se prova sem navegador (o `tests/app-completo.py`
+#   cobra a tela):
+#   12a. Toda ação declara uma `natureza` que a tabela `NATUREZAS` conhece, e
+#        o fim de cada uma diz o que ela fez: o reciclo não diz «já estava
+#        certo», a troca não diz «consertou», o som diz «tocou», o 1 do
+#        instalador (P48) não é verde, e o ensaio não diz verbo de quem fez.
+#   12b. O nome de botão e de aba que um script cita sai da tabela `ACOES`
+#        (`--onde`), e as duas frases escritas à mão sumiram do código.
+#   12c. O botão sem efeito se apaga: o gato por horário, as áreas sem
+#        alfinete — e o servidor recusa rodá-lo.
+#   12d. O raio: acima do teto de agora, o valor não é gravado.
+#   Casa, conf, estado e COSMIC de brinquedo, antes do `import`: nada aqui lê
+#   ou escreve a máquina de quem roda, a não ser a pergunta "o compositor
+#   desta sessão tem o patch do raio?", que só lê o `/proc`.
+_tmp12="$(mktemp -d)"
+HOME="$_tmp12/casa" MEOW_CONF="$_tmp12/casa/.config/meow/meow.conf" \
+MEOW_ESTADO="$_tmp12/casa/.local/state/meowsystem" \
+MEOW_COSMIC_DIR="$_tmp12/casa/.config/cosmic" MEOW_RAIZ="$RAIZ" \
+  python3 - "$RAIZ" <<'PY' || falhas=$((falhas+1))
+import os, re, subprocess, sys, time
+raiz = sys.argv[1]
+casa = os.environ["HOME"]
+conf = os.environ["MEOW_CONF"]
+cosmic = os.environ["MEOW_COSMIC_DIR"]
+os.makedirs(os.path.dirname(conf))
+with open(os.path.join(raiz, "meow.conf.exemplo"), encoding="utf-8") as fh:
+    exemplo = fh.read()
+if not re.search(r'^LOGO_MODO="hora"', exemplo, re.M):
+    print('FALHOU: o meow.conf.exemplo não tem mais LOGO_MODO="hora"', file=sys.stderr)
+    sys.exit(1)
+
+
+def conf_com(**chaves):
+    texto = exemplo
+    for k, v in chaves.items():
+        texto, n = re.subn(r'^%s="[^"]*"' % k, '%s="%s"' % (k, v), texto, count=1, flags=re.M)
+        if not n:
+            texto += '\n%s="%s"\n' % (k, v)
+    with open(conf, "w", encoding="utf-8") as fh:
+        fh.write(texto)
+
+
+conf_com()
+sys.path.insert(0, os.path.join(raiz, "app"))
+import servidor
+
+erros = []
+
+# 12a. as naturezas
+classes = {"ok", "correndo", "pula", "erro"}
+for ident, acao in servidor.ACOES.items():
+    nat = acao.get("natureza")
+    if nat not in servidor.NATUREZAS:
+        erros.append("a ação %s não declara uma natureza conhecida (%r)" % (ident, nat))
+for nat, tabela in servidor.NATUREZAS.items():
+    for cod, (classe, frase) in tabela.items():
+        if classe not in classes or not frase or cod not in ("0", "0~", "1"):
+            erros.append("a natureza %s tem a linha %s mal formada: %r" % (nat, cod, (classe, frase)))
+fim = servidor.fim_da_acao
+if not erros:
+    if fim("painel_reciclar")["0"][1] == "já estava certo" or "0~" not in fim("painel_reciclar"):
+        erros.append("«Recarregar o painel» ainda pode dizer «já estava certo» depois de reciclar")
+    if "consert" in fim("wallpaper_proximo")["1"][1]:
+        erros.append("«Próxima imagem» ainda termina dizendo que consertou")
+    if fim("som_ouvir")["0"][1] != "tocou":
+        erros.append("«Ouvir o som» não termina dizendo que tocou: %r" % (fim("som_ouvir")["0"],))
+    if fim("instalar")["1"][0] == "ok":
+        erros.append("o 1 do instalador (o tema que não chegou, P48) ainda é verde")
+    if re.search(r"aplicou|consertou", fim("doctor_consertar")["0~"][1]):
+        erros.append("o conserto que não consertou nada ainda diz que aplicou")
+    for ident in servidor.ACOES:
+        for cod, (_c, frase) in fim(ident, seco=True).items():
+            if re.search(r"aplicou|consertou|trocou|gravou|tirou|devolveu|baixou|tocou|recarregou",
+                         frase):
+                erros.append("o ensaio de %s diz %r — num ensaio nada foi feito" % (ident, frase))
+                break
+
+# 12b. o nome que um script cita sai da tabela
+acao = servidor.ACOES["doctor_consertar"]
+esperado = "«%s», na aba %s" % (acao["rotulo"], acao["grupo"])
+if servidor.onde_na_tela("doctor_consertar") != esperado:
+    erros.append("--onde doctor_consertar diz %r, e não %r"
+                 % (servidor.onde_na_tela("doctor_consertar"), esperado))
+alvo = servidor.ACOES[servidor.ACAO_DA_PENDENCIA["areas-sem-alfinete"]]
+if servidor.onde_na_tela("areas-sem-alfinete") != "«%s», na aba %s" % (alvo["rotulo"], alvo["grupo"]):
+    erros.append("--onde de uma pendência não diz a ação dela")
+oculta = next(k for k, a in servidor.ACOES.items() if a.get("oculta"))
+if servidor.onde_na_tela(oculta) or servidor.onde_na_tela("nao-existe"):
+    erros.append("--onde cita um botão que não tem cartão (%s) ou que não existe" % oculta)
+porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel doctor_consertar',
+                        "_", raiz], capture_output=True, text=True, env=dict(os.environ))
+if porta.stdout.strip() != esperado:
+    erros.append("o meow_onde_no_painel do lib/comum.sh diz %r" % porta.stdout.strip())
+for rel in ("scripts", "bin", "lib", "install.sh"):
+    base = os.path.join(raiz, rel)
+    arquivos = ([base] if os.path.isfile(base) else
+                [os.path.join(d, n) for d, _s, ns in os.walk(base) for n in ns])
+    for arq in arquivos:
+        try:
+            linhas = open(arq, encoding="utf-8").read().splitlines()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for n, l in enumerate(linhas, 1):
+            if l.lstrip().startswith("#"):
+                continue
+            if "Instalar e conferir" in l or "«Resolver» no painel" in l:
+                erros.append("nome de tela escrito à mão em %s:%d" % (os.path.relpath(arq, raiz), n))
+
+# 12c. o botão sem efeito se apaga
+conf_com(LOGO_MODO="hora")
+trocar, girar = servidor.indisponivel("logo_trocar"), servidor.indisponivel("logo_girar")
+if trocar != {"chave": "LOGO_MODO", "vale": "hora", "pede": "fixo"}:
+    erros.append("com o gato por horário, «Pôr um gato no dock» não se apaga: %r" % (trocar,))
+if not girar or girar.get("pede") != "rotacao":
+    erros.append("com o gato por horário, «Passar ao próximo gato» não se apaga: %r" % (girar,))
+trabalho, erro = servidor.iniciar("logo_trocar", "coquinha")
+if trabalho is not None or not erro:
+    if trabalho is not None:
+        trabalho.parar()
+    erros.append("o servidor rodou «Pôr um gato no dock» apagado")
+conf_com(LOGO_MODO="fixo")
+if servidor.indisponivel("logo_trocar") or not servidor.indisponivel("logo_girar"):
+    erros.append("com o gato fixo, o «Pôr» tem de acender e o «Passar ao próximo» não")
+conf_com(LOGO_MODO="", LOGO_ROTACAO="sim")
+if servidor.indisponivel("logo_trocar") or servidor.indisponivel("logo_girar"):
+    erros.append("LOGO_ROTACAO=sim sem LOGO_MODO é o modo que gira (a regra do logo.sh), "
+                 "e os dois botões apagaram")
+conf_com()
+if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinetar_primeira":
+    erros.append("sem área fixada, «Gravar as áreas» não manda antes a «Criar a primeira área»")
+pinos = os.path.join(cosmic, "com.system76.CosmicComp", "v1")
+os.makedirs(pinos)
+with open(os.path.join(pinos, "pinned_workspaces"), "w", encoding="utf-8") as fh:
+    fh.write('[\n    (\n        output: (\n            name: "DP-1",\n            edid: None,\n'
+             '        ),\n        tiling_enabled: false,\n        id: Some("c0ffee"),\n'
+             '        name: Some("Brinquedo"),\n    ),\n]\n')
+if servidor.indisponivel("areas_aplicar"):
+    erros.append("com uma área fixada, «Gravar as áreas» continua apagado")
+
+# 12d. o teto do raio
+dock = os.path.join(cosmic, "com.system76.CosmicPanel.Dock", "v1")
+os.makedirs(dock)
+for nome, valor in (("size", "L"), ("padding", "4")):
+    with open(os.path.join(dock, nome), "w", encoding="utf-8") as fh:
+        fh.write(valor)
+medida = servidor.teto_do_raio()
+if "Dock" not in medida or medida.get("compositor") not in ("clampa", "pendente", "sem"):
+    erros.append("o teto do raio não saiu do lib/painel.sh: %r" % (medida,))
+if "Panel" in medida or servidor.teto_da_chave("FORMA_RAIO_PAINEL"):
+    erros.append("a barra sem pasta no COSMIC ganhou teto: %r" % (medida,))
+item = next(i for i in servidor.ler_esquema() if i["chave"] == "FORMA_RAIO_DOCK")
+for estado, recusa in ((dict(Dock=0, compositor="sem", experimental=False), True),
+                       (dict(Dock=0, compositor="pendente", experimental=False), True),
+                       (dict(Dock=36, compositor="clampa", experimental=False), False),
+                       (dict(Dock=0, compositor="sem", experimental=True), False)):
+    servidor._TETO_CACHE.update(quando=time.time(), valor=estado)
+    queixa = servidor.validar_valor(item, "16")
+    if bool(queixa) != recusa:
+        erros.append("com %r, 16 no raio da dock %s" % (estado, "passou" if recusa else
+                                                       "foi recusado: %s" % queixa))
+    if servidor.validar_valor(item, "0") or servidor.validar_valor(item, ""):
+        erros.append("com %r, o 0 ou o vazio foram recusados" % (estado,))
+    teto = servidor.teto_da_chave("FORMA_RAIO_DOCK")
+    if not teto or not teto["motivo"] or teto["trava"] != recusa:
+        erros.append("com %r, o cartão não diz o teto e o porquê: %r" % (estado, teto))
+
+if erros:
+    print("FALHOU: " + "; ".join(erros), file=sys.stderr)
+    sys.exit(1)
+print("ok: cada ação declara a natureza e o fim diz o que ela fez; o nome de tela sai "
+      "da tabela; o botão sem efeito se apaga; o raio não passa do teto de agora")
+PY
+rm -rf "$_tmp12"
+
 exit "$falhas"

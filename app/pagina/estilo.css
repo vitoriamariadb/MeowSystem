@@ -1207,6 +1207,18 @@ select { flex: 1 1 auto; }
    isso não entra na fileira de `.faixa-estados`, que é onde moram os estados
    que disputam o mesmo valor. */
 .acao-cartao { display: flex; gap: .35rem; align-items: center; margin-top: .15rem; }
+/* O TETO DO RAIO QUE VALE NESTA SESSÃO — 24/09/2026, P50 (achado 36). Linha
+   própria, embaixo da régua, com o fio amarelo do `.frase.dominada`: é o mesmo
+   tipo de frase — não é erro, é o motivo de a régua acabar antes do que o
+   exemplo promete —, e ela tem de caber inteira, sem o corte de três linhas. */
+.faixa > .frase.teto-raio {
+  flex: 0 0 100%;
+  border-left: 2px solid var(--yellow);
+  padding-left: .55rem;
+  display: block;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+}
 /* Os estados que não moram na régua do deslizante. */
 .faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .1rem; flex: 0 0 100%; }
 /* O PISO DE 24 PX — 21/09/2026, WCAG 2.2 critério 2.5.8

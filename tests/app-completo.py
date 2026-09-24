@@ -722,6 +722,30 @@ def diferenca(antes, depois):
     return sorted(mudou + sumiu)
 
 
+# O FIM DA GAVETA SAI DA NATUREZA DA AÇÃO — 24/09/2026, sprint P50 (achado 17)
+#   A pastilha do fim era escolhida só pelo código de saída, e o percurso a
+#   anotava na tabela sem cobrar nada: «Recarregar o painel» dizia «já estava
+#   certo» depois de reciclar, e passava. Agora cada ação declara a natureza
+#   dela no servidor, e a frase do fim tem de ser uma das que a tabela
+#   `NATUREZAS` dá para ESSA natureza (a do `ensaio`, no «Ver o que faria») —
+#   ou o «pulado» e o «saiu N» que valem para todas. A tabela é lida do
+#   servidor da raiz de brinquedo, e não copiada aqui: uma cópia seria a
+#   segunda lista que o teste passaria a conferir contra si mesma.
+_NATUREZAS = {}
+
+
+def frases_do_fim(natureza):
+    if not _NATUREZAS:
+        codigo = ("import json, sys; sys.path.insert(0, sys.argv[1]); import servidor; "
+                  "print(json.dumps({n: sorted({f for _c, f in t.values()}) "
+                  "for n, t in servidor.NATUREZAS.items()}))")
+        ambiente = dict(os.environ, MEOW_RAIZ=RAIZ_B, HOME=CASA, MEOW_CONF=CONF)
+        r = subprocess.run([sys.executable, "-c", codigo, os.path.join(RAIZ_B, "app")],
+                           capture_output=True, text=True, env=ambiente)
+        _NATUREZAS.update(json.loads(r.stdout or "{}"))
+    return set(_NATUREZAS.get(natureza, [])) | {"pulado"}
+
+
 # O REGISTRO DOS FALSOS, LIDO COMO VEREDITO
 #   Um sinal fora da casa é defeito em QUALQUER gesto: é o painel da sessão
 #   de verdade. Numa execução de verdade o resto é informação (o `systemctl
@@ -1075,7 +1099,8 @@ class Percurso:
     ACOES_JS = r"""
     () => (ESQUEMA.acoes || []).map((a) => ({
       id: a.id, rotulo: a.rotulo, escreve: !!a.escreve, sudo: !!a.sudo,
-      confirma: !!a.confirma, destrutivo: !!a.destrutivo, rede: !!a.rede }))
+      confirma: !!a.confirma, destrutivo: !!a.destrutivo, rede: !!a.rede,
+      natureza: a.natureza || "" }))
     """
 
     def acoes(self):
@@ -1287,8 +1312,13 @@ class Percurso:
         # brinquedo não há sessão, rede nem senha, e uma ação honesta sai 2
         # dizendo isso ("não consegui armar o timer"). Ele vai para a tabela do
         # fim, e quem reprova é a QUEBRA, logo acima.
+        frase = estado.split(" · ")[0].strip().lower()
+        natureza = "ensaio" if seco else acao.get("natureza", "")
+        self.checa(frase in frases_do_fim(natureza) or re.match(r"saiu -?\d+$", frase),
+                   f"o fim de «{rot}» ({estado.strip()}) é uma frase da natureza "
+                   f"«{natureza}», e não só do código de saída")
         cauda = ""
-        if not re.search(r"certo|consertou|diverg|mexeu|pulado", estado, re.I):
+        if re.match(r"saiu ", frase):
             cauda = " / ".join(l.strip() for l in saida.splitlines() if l.strip())[-160:]
         self.resultados.append((self.aba, rot, "ensaio" if seco else "de verdade", estado, cauda))
 
@@ -1535,7 +1565,57 @@ class Percurso:
     # ======================================================================
     def h_executar(self, nome):
         rotulo = re.match(r"ação «(.*)» ·", nome).group(1)
+        el = self.achar(nome)
+        if el is not None and el.is_disabled():
+            self.conferir_apagado(el, rotulo)
+            return
         self.gesto_de_acao(lambda: self.clicar_nome(nome), rotulo)
+
+    # O «EXECUTAR» APAGADO DIZ POR QUÊ, COM OS NOMES DA TELA — 24/09/2026, P50
+    #   Achados 32 e 33: «Pôr um gato no dock» com o gato por horário e «Gravar
+    #   as áreas» sem área fixada rodavam e não faziam nada. Agora o botão se
+    #   apaga — na casa de brinquedo, o `LOGO_MODO` de fábrica é `hora`, e os
+    #   dois botões do gato nascem apagados. O que se cobra: o cartão diz o
+    #   motivo, o motivo cita o ajuste pelo título do cartão dele e o valor
+    #   pelo rótulo do botão (achado 47 — o nome sai de onde a tela o define),
+    #   ou a ação que vem antes pelo rótulo dela; e o servidor recusa rodar a
+    #   ação apagada mesmo com um POST direto.
+    MOTIVO_JS = r"""
+    (id) => {
+      const a = (ESQUEMA.acoes || []).find((x) => x.id === id);
+      if (!a || !a.indisponivel) return null;
+      const m = a.indisponivel;
+      const antes = m.antes ? (ESQUEMA.acoes.find((x) => x.id === m.antes) || {}).rotulo : null;
+      return { antes, chave: m.chave ? nomeVisivel(m.chave) : null,
+               vale: m.vale ? rotuloDeValor(m.vale) : null,
+               pede: m.pede ? rotuloDeValor(m.pede) : null };
+    }
+    """
+
+    def conferir_apagado(self, el, rotulo):
+        acao = self.acao_por_rotulo(rotulo)
+        if not self.checa(acao, f"o «Executar» apagado é de uma ação que o servidor declara ({rotulo})"):
+            return
+        cartao = el.locator("xpath=ancestor::article[1]")
+        frase = cartao.locator("p.frase").all_inner_texts()
+        motivo = self.js(self.MOTIVO_JS, acao["id"])
+        if motivo is None:
+            # O apagado de antes (P46): lista vazia. Continua dizendo por quê.
+            self.checa(any(f.strip() for f in frase),
+                       f"«{rotulo}» apagado diz por quê no cartão")
+            return
+        texto = " ".join(frase)
+        nomes = [n for n in (motivo["antes"], motivo["chave"], motivo["vale"], motivo["pede"]) if n]
+        self.checa(nomes and all(f"«{n}»" in texto for n in nomes),
+                   f"«{rotulo}» apagado diz por quê com os nomes da tela {nomes}: {texto[:160]!r}")
+        self.esperar_status(409, "/api/rodar")
+        sel = cartao.locator("select")
+        arg = sel.input_value() if sel.count() else ""
+        resposta = self.js("(c) => api('/api/rodar', {method: 'POST', body: JSON.stringify(c)})",
+                           {"acao": acao["id"], "argumento": arg, "confirmado": True})
+        self.checa(resposta and resposta.get("erro") and self.js("() => TRABALHO === null"),
+                   f"o servidor recusa rodar «{rotulo}» apagado ({(resposta or {}).get('erro')!r})")
+        self.acoes_vistas.setdefault(acao["id"], set()).add("apagada")
 
     def h_clique_de_acao(self, nome):
         """Ação rápida, «Usar este», «Conferir»: um botão que roda uma ação."""

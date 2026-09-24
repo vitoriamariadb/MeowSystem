@@ -3707,6 +3707,15 @@ main() {
   fi
 
   if [ ${#FALHOS[@]} -gt 0 ]; then
+    # NUM ENSAIO NADA É APLICADO — 24/09/2026, sprint P50 (achado 11). O
+    # rodapé dizia "o resto foi aplicado" também no «Ver o que faria», com a
+    # faixa da gaveta dizendo «nada foi escrito» no alto da mesma saída. Ensaio
+    # não deixa nada pela metade porque não começa nada: a frase diz isso.
+    if meow_seco; then
+      printf '\n  %sAlgumas etapas falharam no ensaio. Nada foi escrito:%s\n' "$C_AMARELO" "$C_ZERO"
+      printf '  %sas outras dizem acima o que fariam.%s\n\n' "$C_AMARELO" "$C_ZERO"
+      return 2
+    fi
     printf '\n  %sAlgumas etapas falharam. Nada foi deixado pela metade —%s\n' "$C_AMARELO" "$C_ZERO"
     printf '  %scada etapa é independente, e o resto foi aplicado.%s\n\n' "$C_AMARELO" "$C_ZERO"
     return 2

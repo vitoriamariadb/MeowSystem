@@ -2730,6 +2730,110 @@ def expansao_perigosa(valor):
     return None
 
 
+# ============================================================================
+# O TETO DO RAIO QUE VALE AGORA — 24/09/2026, sprint P50 (achado 36)
+# ============================================================================
+# Medido no painel de verdade: «Canto arredondado — dock» ia de 0 a 32 no
+# deslizante, 16 foi gravado como `FORMA_RAIO_DOCK="16"`, o instalador RECUSOU
+# aplicar (com razão: no compositor desta sessão, sem o patch do raio, qualquer
+# canto acima de 0 derruba painel e dock juntos — `lib/painel.sh`, medido em
+# 11/09) e só avisou com `!!`; o COSMIC ficou com `border_radius` 0, e a tela
+# disse «MEXEU E APLICOU». O 32 da régua é o teto de quando o compositor ainda
+# media pela caixa do frame anterior (`altura/2`), e não o de hoje.
+#
+# O TETO É UMA CONTA SÓ, E ELA MORA NO `lib/painel.sh`: é a que o `forma.sh`
+# usa para cortar. O painel pergunta a ela — as mesmas três funções, pelo
+# mesmo `bash -c` com que o `definir_varias` chama o `meow_conf_definir` —, e
+# não refaz a conta em Python: dois tetos que discordam foi o que a data de
+# 26/08 existiu para acabar. Guardado por 30 s, como a ponte: `pgrep` e um
+# `grep -a` no binário do compositor não são de graça, e o esquema é lido a
+# cada pintura.
+#
+# O QUE SAI DAQUI
+#   · a página desenha o deslizante até o teto, e diz o teto e o porquê;
+#   · o `validar_valor` recusa acima dele, então o valor que o instalador
+#     cortaria não chega ao meow.conf como se valesse — e o «Salvar e aplicar»
+#     não roda para depois dizer que aplicou.
+# Com o compositor que corta o excesso sozinho (o patch em execução) não há
+# teto, e a frase diz isso. Com `FORMA_RAIO_EXPERIMENTAL=sim` o `forma.sh`
+# deixa passar, e aqui também: a frase avisa e ninguém trava.
+_TETO_CACHE = {"quando": 0.0, "valor": None}
+_BARRA_DO_RAIO = {"FORMA_RAIO_PAINEL": "Panel", "FORMA_RAIO_DOCK": "Dock"}
+
+
+def teto_do_raio():
+    """O que o `lib/painel.sh` diz agora: {"Panel": n, "Dock": n,
+    "compositor": "clampa"|"pendente"|"sem", "experimental": bool}.
+
+    A barra que não tem pasta no COSMIC não entra (uma casa sem painel não tem
+    teto a dizer). Falhar a pergunta devolve {}: sem teto conhecido, a página
+    desenha a régua do exemplo, como antes."""
+    agora = time.time()
+    if _TETO_CACHE["valor"] is not None and agora - _TETO_CACHE["quando"] < 30:
+        return _TETO_CACHE["valor"]
+    fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
+    programa = (
+        'set -a; . "$2"; set +a\n'
+        '. "$1/lib/comum.sh"; . "$1/lib/painel.sh"\n'
+        'printf "experimental\\t%s\\n" "${FORMA_RAIO_EXPERIMENTAL-}"\n'
+        'for b in Panel Dock; do\n'
+        '  d="$MEOW_PAINEL_BASE/com.system76.CosmicPanel.$b/v1"\n'
+        '  [ -d "$d" ] || continue\n'
+        '  t="$(meow_painel_teto "$d" 2>/dev/null)" || continue\n'
+        '  printf "%s\\t%s\\n" "$b" "$t"\n'
+        'done\n'
+        'if meow_painel_compositor_clampa; then printf "compositor\\tclampa\\n"\n'
+        'elif meow_painel_patch_pendente; then printf "compositor\\tpendente\\n"\n'
+        'else printf "compositor\\tsem\\n"; fi\n'
+    )
+    valor = {}
+    try:
+        saida = subprocess.run(["bash", "-c", programa, "_", RAIZ, fonte],
+                               capture_output=True, timeout=10,
+                               env=_ambiente_do_painel()).stdout.decode("utf-8", "replace")
+    except (OSError, subprocess.SubprocessError):
+        saida = ""
+    for linha in saida.splitlines():
+        nome, _, v = linha.partition("\t")
+        if nome in ("Panel", "Dock") and v.isdigit():
+            valor[nome] = int(v)
+        elif nome == "compositor" and v in ("clampa", "pendente", "sem"):
+            valor["compositor"] = v
+        elif nome == "experimental":
+            valor["experimental"] = v in ("sim", "true", "1")
+    if "compositor" not in valor:
+        valor = {}
+    _TETO_CACHE["quando"], _TETO_CACHE["valor"] = agora, valor
+    return valor
+
+
+def teto_da_chave(chave):
+    """O teto de UMA chave de raio, em dado: {"valor", "trava", "motivo"}, ou
+    None quando a chave não é de raio ou a barra não tem teto conhecido."""
+    barra = _BARRA_DO_RAIO.get(chave)
+    medida = teto_do_raio() if barra else {}
+    if not barra or barra not in medida:
+        return None
+    t = medida[barra]
+    acima = ("qualquer canto arredondado" if t == 0
+             else "um canto acima de %d px" % t)
+    if medida["compositor"] == "clampa":
+        return {"valor": None, "trava": False,
+                "motivo": "o compositor desta sessão corta o excesso sozinho, "
+                          "e o raio é todo seu"}
+    if medida.get("experimental"):
+        return {"valor": t, "trava": False,
+                "motivo": "modo experimental ligado (FORMA_RAIO_EXPERIMENTAL): "
+                          "%s pode derrubar painel e dock juntos" % acima}
+    if medida["compositor"] == "pendente":
+        porque = ("o patch do raio já está instalado, mas só vale no próximo "
+                  "login; até lá, %s derruba painel e dock juntos" % acima)
+    else:
+        porque = ("o compositor desta sessão não tem o patch do raio, e %s "
+                  "derruba painel e dock juntos" % acima)
+    return {"valor": t, "trava": True, "motivo": porque}
+
+
 def validar_valor(item, valor):
     """None quando o valor cabe na chave; a frase da recusa quando não cabe.
 
@@ -2820,6 +2924,13 @@ def validar_valor(item, valor):
             return "%s é um número entre %s e %s" % (item["chave"], lo, hi)
         if not (lo <= n <= hi):
             return "%s vai de %s a %s — %s está fora" % (item["chave"], lo, hi, valor)
+        # O TETO DE AGORA É CERCA TAMBÉM — P50, achado 36. A régua do exemplo
+        # diz até onde a chave pode ir numa máquina qualquer; o `teto_da_chave`
+        # diz até onde o instalador aplica NESTA sessão, e acima disso ele
+        # corta. Gravar o que vai ser cortado é gravar como se valesse.
+        teto = teto_da_chave(item["chave"])
+        if teto and teto["trava"] and n > teto["valor"]:
+            return "o teto agora é %d px: %s" % (teto["valor"], teto["motivo"])
         return None
 
     # A cerca contra substituição de comando vale para TODA chave, e fica aqui
@@ -3539,6 +3650,169 @@ def _ponte_viva():
     return vale
 
 
+# ============================================================================
+# O FIM DE UMA AÇÃO DIZ O QUE ELA FEZ — 24/09/2026, sprint P50 (achado 17)
+# ============================================================================
+# Até aqui a pastilha do fim da gaveta saía SÓ do código de saída, com uma
+# ressalva de quem escreve: 0 era "já estava certo" (ou "mexeu e aplicou" com
+# linha `~~`), 1 era "mexeu e consertou". Medido no painel de verdade, em
+# 24/09: «Recarregar o painel» reciclou (o PID mudou) e disse «JÁ ESTAVA
+# CERTO»; «Próxima imagem», uma troca pedida, disse «MEXEU E CONSERTOU»;
+# «Consertar» disse «MEXEU E APLICOU» sem mudar nada; «Ouvir o som» disse «JÁ
+# ESTAVA CERTO». E o instalador que a P48 fez sair 1 com o tema que não chegou
+# ao COSMIC ganhava a pastilha verde de conserto.
+#
+# O CÓDIGO NÃO SABE O QUE A AÇÃO É, E QUEM SABE É A AÇÃO
+#   O 1 do projeto é "divergia e consertei" para um conserto, "troquei" para
+#   uma troca pedida, e "o que você pediu e a tela divergem" para o instalador
+#   da P48. Então cada ação da tabela `ACOES` DECLARA a sua `natureza` (a
+#   linha logo abaixo do `grupo`), como declara `escreve` e `rede` — o mesmo
+#   gesto de declarar, e não adivinhar, que aqueles dois campos já fazem —, e a
+#   frase sai da natureza mais o código, nesta tabela e só nela. Botão nenhum
+#   tem rótulo de fim escrito à mão.
+#
+# A CHAVE `0~` É O 0 COM LINHA `~~` NA SAÍDA: o `install.sh` sai 0 tendo
+#   escrito (conta nas linhas `~~ mexeu:`), e o `meow pack remover` também
+#   (`~~ removido:`). Onde a natureza não a declara, o 0 é o 0.
+#
+# O ENSAIO É UMA NATUREZA DA EXECUÇÃO, E NÃO DA AÇÃO: um `seco` de qualquer
+#   ação não escreveu nada, e o fim dele fala do que MUDARIA. Quem troca uma
+#   pela outra é o `fim_da_acao`, e não a página.
+#
+# 3 e 4 são "pulado" em toda natureza (falta dependência; escolha sua). O resto
+# — 2, e o negativo de quem foi interrompido — é "saiu N", e quem o escreve é a
+# página: não há natureza em que um erro seja outra coisa.
+NATUREZAS = {
+    # só lê: `meow status`, `meow log`, a lista de temas prontos
+    "mostrar":   {"0": ("ok", "mostrou"),
+                  "1": ("correndo", "há divergências")},
+    # só lê, e a pergunta é "está como deveria?": o doctor, `meow apps`
+    "conferir":  {"0": ("ok", "tudo confere"),
+                  "1": ("correndo", "há divergências")},
+    # O 0 COM `~~` DO CONSERTO É O QUE ELE NÃO CONSERTA: a tabela do doctor
+    # mostrou a divergência, o laço a pulou (sem conserto automático, escolha
+    # sua, falta dependência), e nada foi escrito.
+    "consertar": {"0": ("ok", "nada a consertar"),
+                  "0~": ("correndo", "divergências sem conserto"),
+                  "1": ("ok", "consertou")},
+    # aplica o que está no meow.conf: `apps aplicar`, reconstruir os ícones
+    "aplicar":   {"0": ("ok", "já estava certo"),
+                  "0~": ("ok", "mexeu e aplicou"),
+                  "1": ("ok", "mexeu e aplicou")},
+    # O INSTALADOR INTEIRO, E O 1 DELE NÃO É VERDE: desde a P48 ele sai 1 quando
+    # o tema pedido não chegou ao COSMIC (o flavor sem captura), com a frase e a
+    # pendência na Início. Aplicou o resto, e não aplicou tudo.
+    "instalar":  {"0": ("ok", "já estava certo"),
+                  "0~": ("ok", "mexeu e aplicou"),
+                  "1": ("correndo", "aplicou, com pendência")},
+    # troca o que está no ar por outra escolha: a próxima imagem, o tema
+    "trocar":    {"0": ("ok", "já estava assim"),
+                  "0~": ("ok", "trocou"),
+                  "1": ("ok", "trocou")},
+    # grava uma decisão que vale depois: as áreas (no próximo login), o lado
+    # de uma imagem, o «Manter o meu tema»
+    "gravar":    {"0": ("ok", "já estava assim"),
+                  "0~": ("ok", "gravou"),
+                  "1": ("ok", "gravou")},
+    "tirar":     {"0": ("ok", "nada a tirar"),
+                  "0~": ("ok", "tirou"),
+                  "1": ("ok", "tirou")},
+    "devolver":  {"0": ("ok", "nada a devolver"),
+                  "0~": ("ok", "devolveu"),
+                  "1": ("ok", "devolveu")},
+    # baixa da internet e instala: o starship, a coleção, o tema do Spotify
+    "baixar":    {"0": ("ok", "já estava aqui"),
+                  "0~": ("ok", "baixou e instalou"),
+                  "1": ("ok", "baixou e instalou")},
+    "atualizar": {"0": ("ok", "já estava em dia"),
+                  "0~": ("ok", "atualizou"),
+                  "1": ("ok", "atualizou")},
+    # «Ouvir o som» toca e não escreve: o 0 dele é ter tocado.
+    "tocar":     {"0": ("ok", "tocou")},
+    # O RECICLO SÓ ACONTECE COM LINHA `~~`: o `painel.sh reciclar` sai 0 também
+    # quando não há painel desta casa de pé, e aí não reciclou nada.
+    "reciclar":  {"0": ("ok", "nada a recarregar"),
+                  "0~": ("ok", "recarregou")},
+    "ensaio":    {"0": ("ok", "nada mudaria"),
+                  "0~": ("correndo", "mudaria"),
+                  "1": ("correndo", "mudaria")},
+}
+_FIM_PULADO = {"3": ("pula", "pulado"), "4": ("pula", "pulado")}
+
+
+def fim_da_acao(acao_id, seco=False):
+    """A tabela do fim de UM trabalho: código (ou `0~`) -> [classe, frase]."""
+    natureza = "ensaio" if seco else ACOES[acao_id]["natureza"]
+    return {k: list(v) for k, v in dict(_FIM_PULADO, **NATUREZAS[natureza]).items()}
+
+
+# ============================================================================
+# O BOTÃO QUE NÃO TERIA EFEITO SE APAGA, E DIZ POR QUÊ — 24/09/2026, P50
+# ============================================================================
+# Achado 33: «Pôr um gato no dock» com a Coquinha, no modo Hora, respondeu «JÁ
+# ESTAVA CERTO — logo já no lugar: morcego-dia», e o dock ficou igual (medido).
+# No modo `hora` quem põe o gato é o relógio, e o `logo.sh` devolve o da fase
+# na mesma passada. Achado 32: «Gravar as áreas» sem área fixada sai PULADO,
+# porque herda o monitor de uma área que não existe — e quem a cria é outro
+# botão da mesma aba, «Criar a primeira área».
+#
+# É O MESMO REMÉDIO DO «Tirar uma área» SEM ÁREA (P46): o botão que só pode
+# não fazer nada não é oferecido, fica apagado, e o cartão diz por quê. A
+# condição é DECLARADA pela ação, no campo `indisponivel` dela — uma função
+# que mede a máquina agora e devolve o motivo, ou None. O motivo sai em DADO, e
+# não em frase: quem escreve a frase é a página, com o nome que o cartão do
+# ajuste tem na tela e o rótulo que o botão da outra ação tem na tela (achado
+# 47 — nome de tela escrito à mão é o que envelhece primeiro). E o servidor
+# recusa rodar a ação apagada, pelo mesmo motivo de o `confirma` ser tranca e
+# não costume: um POST direto não passa por botão nenhum.
+def _modo_do_gato():
+    """O modo EFETIVO do gato do dock (`hora`, `rotacao`, `fixo`), ou "".
+
+    Quem responde é o `logo.sh modo`, que existe para ninguém reimplementar a
+    regra de compatibilidade `LOGO_ROTACAO` -> `LOGO_MODO`: dois donos da mesma
+    regra é o defeito que o comentário dele já conta. O conf lido é o do
+    `carregar_conf` — o dela, ou o exemplo quando ela não tem um —, e só ele:
+    somar o exemplo por baixo poria o `LOGO_MODO="hora"` de fábrica na frente de
+    quem só escreveu `LOGO_ROTACAO="sim"`. Medido: 9 ms."""
+    fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
+    programa = 'set -a; . "$1"; set +a; exec "$2" modo'
+    try:
+        r = subprocess.run(["bash", "-c", programa, "_", fonte,
+                            os.path.join(RAIZ, "scripts", "logo.sh")],
+                           capture_output=True, timeout=10, env=_ambiente_do_painel())
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return r.stdout.decode("utf-8", "replace").strip() if r.returncode == 0 else ""
+
+
+def _gato_so_nos_modos(vale_em, pede):
+    """A condição dos dois botões do gato: sem efeito fora dos modos `vale_em`.
+
+    Modo que não se soube ler não apaga nada: um botão apagado por engano é
+    pior que um botão que responde «já estava assim»."""
+    def medir():
+        modo = _modo_do_gato()
+        if not modo or modo in vale_em:
+            return None
+        return {"chave": "LOGO_MODO", "vale": modo, "pede": pede}
+    return medir
+
+
+def _areas_sem_alfinete():
+    """«Gravar as áreas» sem área fixada: a ordem é «Criar a primeira área»."""
+    if _areas_alfinetadas():
+        return None
+    return {"antes": "areas_alfinetar_primeira",
+            "porque": "nenhuma área está fixada, e é de uma fixada que as "
+                      "outras herdam o monitor"}
+
+
+def indisponivel(acao_id):
+    """O motivo de a ação não ter efeito agora (um dicionário), ou None."""
+    medir = ACOES[acao_id].get("indisponivel")
+    return medir() if medir else None
+
+
 ACOES = {
     # --- o ciclo de vida -----------------------------------------------------
     # TROCAR DE PACK — 23/09/2026, sprint P10
@@ -3554,6 +3828,7 @@ ACOES = {
     "pack_usar": {
         "rotulo": "Usar este pack",
         "grupo": "Instalação",
+        "natureza": "instalar",
         "argv": _meow("pack", "usar", "@ARG@"), "arg": "packs",
         "escreve": True, "sudo": True, "confirma": True, "rede": True,
         "oculta": True,
@@ -3570,6 +3845,7 @@ ACOES = {
     "pack_remover": {
         "rotulo": "Remover este pack",
         "grupo": "Instalação",
+        "natureza": "tirar",
         "argv": _meow("pack", "remover", "@ARG@"), "arg": "packs_removiveis",
         "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
         "oculta": True,
@@ -3579,6 +3855,7 @@ ACOES = {
     "instalar": {
         "rotulo": "Instalar tudo",
         "grupo": "Instalação",
+        "natureza": "instalar",
         "argv": [os.path.join(RAIZ, "install.sh")],
         "escreve": True, "sudo": True, "confirma": True, "rede": True,
         "ajuda": "Passa {as_etapas}. Rodar de novo numa máquina já pronta "
@@ -3591,6 +3868,7 @@ ACOES = {
     "som_ouvir": {
         "rotulo": "Ouvir o som",
         "grupo": "Manutenção",
+        "natureza": "tocar",
         "argv": [os.path.join(RAIZ, "scripts", "som.sh"), "ouvir"],
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Toca o som de volume que está instalado agora. Se não houver o "
@@ -3599,6 +3877,7 @@ ACOES = {
     "som_aplicar": {
         "rotulo": "Regravar o som",
         "grupo": "Manutenção",
+        "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "som.sh"), "aplicar"],
         "escreve": True, "sudo": False, "confirma": False,
         # A ÚNICA AJUDA DESTE ARQUIVO ACIMA DE 220 CARACTERES — 22/09/2026.
@@ -3614,6 +3893,7 @@ ACOES = {
     "doctor": {
         "rotulo": "Conferir a máquina",
         "grupo": "Instalação",
+        "natureza": "conferir",
         "argv": _meow("doctor"),
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Faz {as_conferencias} e lista o que está fora do lugar. "
@@ -3622,6 +3902,7 @@ ACOES = {
     "doctor_consertar": {
         "rotulo": "Consertar o que estiver fora",
         "grupo": "Instalação",
+        "natureza": "consertar",
         "argv": _meow("doctor", "--consertar"),
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Confere e aplica só o que falhou — o mesmo que o "
@@ -3630,6 +3911,7 @@ ACOES = {
     "status": {
         "rotulo": "O que está no ar agora",
         "grupo": "Instalação",
+        "natureza": "mostrar",
         "argv": _meow("status"),
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Variante, cor de destaque, tema, ícones e papel de parede.",
@@ -3637,6 +3919,7 @@ ACOES = {
     "desinstalar": {
         "rotulo": "Desinstalar o MeowSystem",
         "grupo": "Instalação",
+        "natureza": "tirar",
         "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall"],
         # "sudo": True desde 18/09/2026 — ela SEMPRE atravessou sudo (o hook de
         # apt do lançador), e passou a atravessar também na remoção da ponte
@@ -3649,6 +3932,7 @@ ACOES = {
     "log": {
         "rotulo": "As últimas 50 linhas do registro",
         "grupo": "Instalação",
+        "natureza": "mostrar",
         "argv": _meow("log"),
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "O que este projeto escreveu, e quando.",
@@ -3669,6 +3953,7 @@ ACOES = {
     "sistema_ver": {
         "rotulo": "O que a atualização mudaria",
         "grupo": "Atualização",
+        "natureza": "mostrar",
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
         "escreve": False, "sudo": False, "confirma": False,
@@ -3688,6 +3973,7 @@ ACOES = {
     "sistema_atualizar": {
         "rotulo": "Atualizar a máquina inteira",
         "grupo": "Atualização",
+        "natureza": "atualizar",
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "aplicar"],
         "escreve": True, "sudo": True, "confirma": True, "rede": True,
@@ -3707,6 +3993,7 @@ ACOES = {
     "sistema_limpar": {
         "rotulo": "Limpar o que sobrou",
         "grupo": "Atualização",
+        "natureza": "tirar",
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "limpar"],
         "escreve": True, "sudo": True, "confirma": True,
@@ -3720,6 +4007,7 @@ ACOES = {
     "tema": {
         "rotulo": "Temas prontos nesta máquina",
         "grupo": "Cor e tela",
+        "natureza": "mostrar",
         "argv": _meow("tema"),
         "escreve": False, "sudo": False, "confirma": False,
         # "TEMA ALVO" E "CAPTURA" SAÍRAM — 09/09/2026. "Alvo" é palavra de quem
@@ -3733,6 +4021,7 @@ ACOES = {
     "tema_aplicar": {
         "rotulo": "Trocar de tema",
         "grupo": "Cor e tela",
+        "natureza": "trocar",
         "argv": _meow("tema", "@ARG@"), "arg": "capturas",
         "escreve": True, "sudo": False, "confirma": False,
         # "POR CÓPIA DE ARQUIVO" era o COMO, e o como não muda nenhuma decisão
@@ -3742,6 +4031,7 @@ ACOES = {
     "tema_modo": {
         "rotulo": "Passar para claro ou escuro",
         "grupo": "Cor e tela",
+        "natureza": "trocar",
         "argv": _meow("tema", "@ARG@"), "arg": "modos",
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
@@ -3750,6 +4040,7 @@ ACOES = {
     "desfazer": {
         "rotulo": "Voltar ao tema de antes",
         "grupo": "Instalação",
+        "natureza": "devolver",
         "argv": _meow("desfazer"),
         "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
         "ajuda": "Devolve o COSMIC ao backup feito antes da instalação.",
@@ -3762,6 +4053,7 @@ ACOES = {
     "icones": {
         "rotulo": "Tema de ícones instalado",
         "grupo": "Ícones",
+        "natureza": "mostrar",
         "argv": _meow("icones"),
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Qual está selecionado e quantos arquivos ele tem.",
@@ -3769,6 +4061,7 @@ ACOES = {
     "icones_reconstruir": {
         "rotulo": "Reconstruir o tema de ícones",
         "grupo": "Ícones",
+        "natureza": "aplicar",
         "argv": _meow("icones", "reconstruir"),
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "É o que faz uma troca de variante dos ícones aparecer na "
@@ -3783,6 +4076,7 @@ ACOES = {
     "icones_traco": {
         "rotulo": "Pôr os desenhos em traço na tela",
         "grupo": "Ícones",
+        "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "icones_apps_arcticons.sh")],
         "escreve": True, "sudo": False, "confirma": False,
         # O CAMINHO `48x48/apps` SAIU DA TELA — 09/09/2026. É a pasta interna do
@@ -3796,6 +4090,7 @@ ACOES = {
     "logo_listar": {
         "rotulo": "Qual gato está no ar, e por quê",
         "grupo": "Logo do sistema",
+        "natureza": "mostrar",
         "argv": _meow("logo", "listar"),
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "A lista, o gato em vigor, e qual regra o escolheu.",
@@ -3803,24 +4098,39 @@ ACOES = {
     "logo_trocar": {
         "rotulo": "Pôr um gato no dock",
         "grupo": "Logo do sistema",
+        "natureza": "trocar",
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
         "escreve": True, "sudo": False, "confirma": False,
-        "ajuda": "Com a escolha por horário, o relógio devolve o gato dele "
-                 "na virada seguinte. Para fixar, mude a escolha do gato "
-                 "para “fixo”.",
+        "indisponivel": _gato_so_nos_modos(("fixo", "rotacao"), "fixo"),
+        # A AJUDA PROMETIA UMA VIRADA QUE NÃO ACONTECE — 24/09/2026, P50 (achado
+        # 33). Dizia que, por horário, "o relógio devolve o gato dele na virada
+        # seguinte". Medido no painel de verdade com a Coquinha no modo Hora: o
+        # relógio não espera virada nenhuma, o `logo.sh` põe na hora o gato da
+        # fase, e o botão respondia «já estava certo» com o dock igual. Agora o
+        # botão se apaga nesse modo (o `indisponivel`, logo acima), e o cartão
+        # diz onde se muda — pelo nome que o cartão daquele ajuste tem na tela.
+        "ajuda": "Põe no dock o gato escolhido. Quando é o relógio que escolhe "
+                 "o gato, este botão fica apagado e diz onde mudar.",
     },
     "logo_girar": {
         "rotulo": "Passar ao próximo gato",
         "grupo": "Logo do sistema",
+        "natureza": "trocar",
         "argv": _meow("logo", "girar"),
         "escreve": True, "sudo": False, "confirma": False,
+        # O MESMO APAGAR DO «Pôr um gato no dock» — P50. Fora do modo que gira,
+        # o `logo.sh girar` diz "o gato não gira" e sai 0, e o fim da gaveta
+        # não tinha como distinguir isso de um giro: é a ação que não teria
+        # efeito, e ela se apaga pelo mesmo campo.
+        "indisponivel": _gato_so_nos_modos(("rotacao",), "rotacao"),
         "ajuda": "Só tem efeito quando o gato está girando; fora disso o "
-                 "comando avisa em vez de fingir.",
+                 "botão fica apagado e diz onde mudar.",
     },
     # --- papel de parede -----------------------------------------------------
     "wallpaper": {
         "rotulo": "O carrossel agora",
         "grupo": "Papel de parede",
+        "natureza": "mostrar",
         "argv": _meow("wallpaper"),
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Pasta, quantas imagens, intervalo, ordem, e se há imagem "
@@ -3829,6 +4139,7 @@ ACOES = {
     "wallpaper_proximo": {
         "rotulo": "Próxima imagem",
         "grupo": "Papel de parede",
+        "natureza": "trocar",
         "argv": _meow("wallpaper", "proximo"),
         "escreve": True, "sudo": False, "confirma": False,
         # 85 -> 76 CARACTERES — 21/09/2026, o teto de 80 do balão da P6. Esta
@@ -3842,6 +4153,7 @@ ACOES = {
     "wallpaper_anterior": {
         "rotulo": "Imagem anterior",
         "grupo": "Papel de parede",
+        "natureza": "trocar",
         "argv": _meow("wallpaper", "anterior"),
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Volta uma imagem, com a mesma fixação.",
@@ -3849,6 +4161,7 @@ ACOES = {
     "wallpaper_carrossel": {
         "rotulo": "Voltar a girar",
         "grupo": "Papel de parede",
+        "natureza": "trocar",
         "argv": _meow("wallpaper", "carrossel"),
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Solta a imagem fixada agora, sem esperar o tempo acabar.",
@@ -3856,6 +4169,7 @@ ACOES = {
     "wallpaper_aplicar": {
         "rotulo": "Reaplicar as regras do carrossel",
         "grupo": "Papel de parede",
+        "natureza": "aplicar",
         "argv": _meow("wallpaper", "aplicar"),
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Reescreve o estado do papel de parede a partir dos "
@@ -3882,6 +4196,7 @@ ACOES = {
     "wallpaper_banir": {
         "rotulo": "Tirar esta imagem do carrossel",
         "grupo": "Papel de parede",
+        "natureza": "tirar",
         "argv": _meow("wallpaper", "banir", "@ARG@"), "arg": "paredes_ativas",
         "escreve": True, "sudo": False, "confirma": False,
         "destrutivo": True, "oculta": True,
@@ -3906,6 +4221,7 @@ ACOES = {
     "wallpaper_usar": {
         "rotulo": "Usar esta imagem agora",
         "grupo": "Papel de parede",
+        "natureza": "trocar",
         "argv": _meow("wallpaper", "usar", "@ARG@"), "arg": "paredes_ativas",
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         # O BOTÃO CITADO NÃO EXISTE COM ESSE NOME — medido em 09/09/2026 na
@@ -3920,6 +4236,7 @@ ACOES = {
     "wallpaper_dia": {
         "rotulo": "Guardar esta imagem para o dia",
         "grupo": "Papel de parede",
+        "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "dia"), "arg": "paredes_ativas",
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Ela passa a girar só de dia, mesmo que a medição a ache escura. "
@@ -3928,6 +4245,7 @@ ACOES = {
     "wallpaper_noite": {
         "rotulo": "Guardar esta imagem para a noite",
         "grupo": "Papel de parede",
+        "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "noite"), "arg": "paredes_ativas",
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Ela passa a girar só de noite, mesmo que a medição a ache clara. "
@@ -3936,6 +4254,7 @@ ACOES = {
     "wallpaper_lado_auto": {
         "rotulo": "Deixar a medição decidir",
         "grupo": "Papel de parede",
+        "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "auto"), "arg": "paredes_ativas",
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         # "LUMINÂNCIA" SAIU — 09/09/2026. É o nome exato da grandeza e ninguém
@@ -3956,6 +4275,7 @@ ACOES = {
     "areas_ver": {
         "rotulo": "As áreas de agora",
         "grupo": "Áreas de trabalho",
+        "natureza": "mostrar",
         "argv": _meow("areas", "estado"),
         "escreve": False, "sudo": False, "confirma": False,
         # O `id` SAIU DA FRASE — 09/09/2026. Ele continua na SAÍDA do comando,
@@ -3966,8 +4286,13 @@ ACOES = {
     "areas_aplicar": {
         "rotulo": "Gravar as áreas",
         "grupo": "Áreas de trabalho",
+        "natureza": "gravar",
         "argv": _meow("areas", "aplicar"),
         "escreve": True, "sudo": False, "confirma": False,
+        # Sem área fixada ele sai PULADO e manda a um «Resolver» que não está
+        # nesta aba (achado 32). A ordem passa a ser da tela: apagado, com o
+        # nome do botão que vem antes. Ver `_areas_sem_alfinete`.
+        "indisponivel": _areas_sem_alfinete,
         # A CAIXA ALTA SAIU — 09/09/2026. Nenhum outro texto desta página grita,
         # e o aviso não fica mais fraco em caixa baixa: quem o lê está com o
         # dedo no botão. `cosmic-comp` FICA — é o nome do programa que lê o
@@ -3982,6 +4307,7 @@ ACOES = {
     "areas_alfinetar_primeira": {
         "rotulo": "Criar a primeira área",
         "grupo": "Áreas de trabalho",
+        "natureza": "gravar",
         "argv": _meow("areas", "alfinetar-primeira"),
         "escreve": True, "sudo": False, "confirma": True,
         "ajuda": "Cria a primeira área fixada no monitor que está ligado agora, "
@@ -3990,6 +4316,7 @@ ACOES = {
     "areas_reverter": {
         "rotulo": "Voltar as áreas de antes",
         "grupo": "Áreas de trabalho",
+        "natureza": "devolver",
         "argv": _meow("areas", "reverter"),
         "escreve": True, "sudo": False, "confirma": True,
         "ajuda": "Devolve o arquivo como estava antes da primeira gravação daqui.",
@@ -3997,6 +4324,7 @@ ACOES = {
     "areas_desalfinetar": {
         "rotulo": "Tirar uma área",
         "grupo": "Áreas de trabalho",
+        "natureza": "tirar",
         "argv": _meow("areas", "desalfinetar", "@ARG@"), "arg": "areas",
         "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
         # O ALFINETE É O QUE SEGURA A ÁREA: sem ele o cosmic-comp a destrói assim
@@ -4010,6 +4338,7 @@ ACOES = {
     "wallpaper_desbanir": {
         "rotulo": "Devolver uma imagem tirada",
         "grupo": "Papel de parede",
+        "natureza": "devolver",
         "argv": _meow("wallpaper", "desbanir", "@ARG@"), "arg": "paredes_banidas",
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Volta para a pasta que gira e sai da lista de banidas — as "
@@ -4018,6 +4347,7 @@ ACOES = {
     "wallpaper_semear": {
         "rotulo": "Baixar a coleção curada",
         "grupo": "Papel de parede",
+        "natureza": "baixar",
         "argv": _meow("wallpaper", "semear"),
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "ajuda": "Reconstrói a coleção a partir da lista de fontes. Usa rede "
@@ -4031,6 +4361,7 @@ ACOES = {
         # responder "como estão os dois?", e é isso que ele passa a dizer.
         "rotulo": "Como estão o painel e a dock",
         "grupo": "Painel e dock",
+        "natureza": "mostrar",
         "argv": _meow("painel", "estado"),
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "O estado do painel, da dock e do serviço que cuida dos dois.",
@@ -4038,6 +4369,7 @@ ACOES = {
     "painel_teto": {
         "rotulo": "Até quanto o canto pode arredondar",
         "grupo": "Painel e dock",
+        "natureza": "mostrar",
         "argv": _meow("painel", "teto"),
         "escreve": False, "sudo": False, "confirma": False,
         # "TETO DERIVADO" SAIU — 09/09/2026. "Derivado" só diz alguma coisa a
@@ -4049,6 +4381,7 @@ ACOES = {
     "painel_reciclar": {
         "rotulo": "Recarregar o painel",
         "grupo": "Painel e dock",
+        "natureza": "reciclar",
         "argv": _meow("painel", "reciclar"),
         "escreve": True, "sudo": False, "confirma": False,
         # 86 -> 66 CARACTERES — 21/09/2026, o mesmo teto e o mesmo motivo do
@@ -4064,6 +4397,7 @@ ACOES = {
     "prompt_instalar_starship": {
         "rotulo": "Instalar o starship",
         "grupo": "Manutenção",
+        "natureza": "baixar",
         "argv": [os.path.join(RAIZ, "scripts", "prompt.sh"), "instalar-starship"],
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "ajuda": "Baixa o starship de starship.rs para ~/.local/bin, sem sudo. "
@@ -4072,6 +4406,7 @@ ACOES = {
     "leitura": {
         "rotulo": "Modo de leitura agora",
         "grupo": "Modo de leitura",
+        "natureza": "mostrar",
         "argv": _meow("leitura"),
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Que degrau o relógio pede, o que a tela mostra, e se o "
@@ -4080,6 +4415,7 @@ ACOES = {
     "leitura_aplicar": {
         "rotulo": "Aplicar o degrau desta hora",
         "grupo": "Modo de leitura",
+        "natureza": "aplicar",
         "argv": _meow("leitura", "aplicar"),
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Põe agora o que o agendamento poria sozinho.",
@@ -4087,6 +4423,7 @@ ACOES = {
     "leitura_remover": {
         "rotulo": "Desligar o modo de leitura",
         "grupo": "Modo de leitura",
+        "natureza": "tirar",
         "argv": _meow("leitura", "remover"),
         "escreve": True, "sudo": False, "confirma": True,
         "ajuda": "Zera temperatura e textura, e desarma o agendamento.",
@@ -4094,6 +4431,7 @@ ACOES = {
     "files_menu": {
         "rotulo": "Menu da área de trabalho",
         "grupo": "Papel de parede",
+        "natureza": "mostrar",
         "argv": _meow("files-menu"),
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Os dois itens de papel de parede no botão direito.",
@@ -4106,6 +4444,7 @@ ACOES = {
     "files_menu_build": {
         "rotulo": "Construir o menu da área de trabalho",
         "grupo": "Papel de parede",
+        "natureza": "baixar",
         "argv": _meow("files-menu", "build"),
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "ajuda": "Compila a versão instalada do cosmic-files com os dois itens "
@@ -4119,6 +4458,7 @@ ACOES = {
         # "Como estão o painel e a dock": ele repetia a aba onde já está.
         "rotulo": "Quais programas estão vestidos",
         "grupo": "Lançadores e jogos",
+        "natureza": "conferir",
         "argv": _meow("apps"),
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Um por linha: se está instalado, e se o tema já foi aplicado.",
@@ -4126,6 +4466,7 @@ ACOES = {
     "apps_aplicar": {
         "rotulo": "Vestir os programas agora",
         "grupo": "Lançadores e jogos",
+        "natureza": "aplicar",
         "argv": _meow("apps", "aplicar"),
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Aplica o tema em todos os programas marcados que estiverem "
@@ -4146,6 +4487,7 @@ ACOES = {
     "apps_tema_do_pack": {
         "rotulo": "Trocar pelo tema do pack",
         "grupo": "Lançadores e jogos",
+        "natureza": "trocar",
         "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "apps_de_terceiro",
         "ambiente": {"MEOW_TEMA_DE_TERCEIRO": "trocar"},
         "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
@@ -4155,6 +4497,7 @@ ACOES = {
     "apps_manter_o_meu": {
         "rotulo": "Manter o meu tema",
         "grupo": "Lançadores e jogos",
+        "natureza": "gravar",
         "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "apps_de_terceiro",
         "ambiente": {"MEOW_TEMA_DE_TERCEIRO": "manter"},
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
@@ -4170,6 +4513,7 @@ ACOES = {
     "spotify_baixar_tema": {
         "rotulo": "Baixar o tema do Spotify",
         "grupo": "Lançadores e jogos",
+        "natureza": "baixar",
         "argv": _meow("apps", "aplicar", "spotify"),
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "ajuda": "Baixa o tema catppuccin do spicetify de um commit fixo do "
@@ -4190,6 +4534,7 @@ ACOES = {
     "jogos": {
         "rotulo": "Ver o que mudaria nos jogos",
         "grupo": "Lançadores e jogos",
+        "natureza": "conferir",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh"), "--conferir"],
         "escreve": False, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Lista atalho a criar, atalho a remover e arquivo a apagar. "
@@ -4198,6 +4543,7 @@ ACOES = {
     "jogos_aplicar": {
         "rotulo": "Arrumar os jogos no lançador",
         "grupo": "Lançadores e jogos",
+        "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh")],
         "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
         "oculta": True,
@@ -4214,6 +4560,7 @@ ACOES = {
     "jogos_heroic": {
         "rotulo": "Ver o que mudaria nos jogos do Heroic",
         "grupo": "Lançadores e jogos",
+        "natureza": "conferir",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--conferir"],
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Lista atalho a criar e atalho a remover. Não escreve nada.",
@@ -4221,6 +4568,7 @@ ACOES = {
     "jogos_heroic_aplicar": {
         "rotulo": "Pôr os jogos do Heroic no lançador",
         "grupo": "Lançadores e jogos",
+        "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "Um atalho por jogo instalado no Heroic, com a capa que ele "
@@ -5544,6 +5892,27 @@ def _app_da_pendencia(ident):
     return app if os.path.isfile(modulo) else ""
 
 
+# ONDE UM BOTÃO MORA NA TELA, DITO PELA TABELA QUE O DEFINE — 24/09/2026, P50
+#   Achado 47: depois de «Atualizar a máquina inteira», a conferência mandava
+#   consertar «pelo painel, em "Instalar e conferir"» — a aba que se chama
+#   «Instalação» desde 06/09. E o achado 32: o `meow_pendencia_acionavel`
+#   dizia «ou o botão «Resolver» no painel» na gaveta de uma aba sem
+#   «Resolver» nenhum. As duas eram nomes de tela escritos à mão num script, e
+#   nome escrito à mão é o que envelhece no primeiro renome.
+#   Quem define o nome do botão e a aba em que ele mora é a tabela `ACOES` — o
+#   `rotulo` e o `grupo`, que é a página do menu. Os scripts perguntam aqui,
+#   por `python3 app/servidor.py --onde <ação ou pendência>`, e a porta deles
+#   é o `meow_onde_no_painel` do `lib/comum.sh`.
+#   Ação `oculta` não tem cartão em aba nenhuma, e pendência sem ação não tem
+#   botão: nos dois casos a resposta é vazia, e a frase que a usaria não sai.
+def onde_na_tela(ident):
+    """«rótulo», na aba Grupo — da ação, ou da ação de uma pendência — ou ""."""
+    acao = ACOES.get(ident) or ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""))
+    if not acao or acao.get("oculta"):
+        return ""
+    return "«%s», na aba %s" % (acao["rotulo"], acao["grupo"])
+
+
 PENDENCIAS = os.path.join(ESTADO, "pendencias.tsv")
 
 
@@ -5612,10 +5981,14 @@ def _trabalho_json(trabalho, acao_id, seco=False):
     """
     # O topo da gaveta mostra o comando como a pessoa o digitaria, e não o
     # `argv` cru com o caminho do clone — ver `comando_na_tela` (P52).
+    # `fim` é a frase do fim DESTA execução, pela natureza da ação — ver
+    # `NATUREZAS` (P50). `escreve` continua indo: é ele que decide se a página
+    # relê a máquina e esvazia a bandeja no fim, e isso não é rótulo.
     return {"id": trabalho.id, "rotulo": trabalho.rotulo,
             "comando": comando_na_tela(trabalho.argv),
             "escreve": escreve(ACOES[acao_id]),
-            "seco": bool(seco)}
+            "seco": bool(seco),
+            "fim": fim_da_acao(acao_id, seco)}
 
 
 def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None):
@@ -5635,6 +6008,13 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
     acao = ACOES.get(acao_id)
     if acao is None:
         return (None, "ação desconhecida")
+
+    # O BOTÃO APAGADO TAMBÉM É TRANCA DO SERVIDOR — P50. A página não o
+    # oferece; um POST direto (ou uma página lida antes de a máquina mudar)
+    # ouve o motivo, que o cartão diz com as palavras da tela.
+    if indisponivel(acao_id):
+        return (None, "«%s» não teria efeito agora — o cartão diz por quê"
+                      % acao["rotulo"])
 
     # A CONFIRMAÇÃO É UMA TRANCA DO SERVIDOR, E NÃO UM COSTUME DA PÁGINA
     #   O campo `confirma` existe desde o primeiro dia e era só uma DICA: a
@@ -9261,6 +9641,12 @@ class Manipulador(BaseHTTPRequestHandler):
         # fora do que o pack oferece.
         vocab = vocabulario_do_pack()
         _com_o_vocabulario_do_pack(esquema, vocab, efetivos)
+        # O teto do raio que vale NESTA sessão, nos dois cartões de raio — ver
+        # `teto_da_chave` (P50, achado 36).
+        for item in esquema:
+            teto = teto_da_chave(item["chave"])
+            if teto:
+                item["teto"] = teto
         medidas = dict(_medidas_do_projeto(), **_medidas_da_tela())
         return {
             # `~/.config/meow/meow.conf`, e não o caminho com o nome de usuário:
@@ -9324,6 +9710,9 @@ class Manipulador(BaseHTTPRequestHandler):
                          k in _PELA_PONTE and _ponte_viva()),
                      pela_ponte=bool(v.get("sudo")) and (
                          k in _PELA_PONTE and _ponte_viva()),
+                     # O MOTIVO, e não a função que o mede: a medida roda
+                     # aqui, a cada leitura, e a página só o diz. P50.
+                     indisponivel=indisponivel(k),
                      opcoes=([] if v.get("oculta")
                              else PROVEDORES[v["arg"]]() if "arg" in v else []))
                 for k, v in ACOES.items()
@@ -9723,4 +10112,11 @@ def main():
 
 
 if __name__ == "__main__":
+    # `--onde` não sobe servidor nenhum: responde e sai — ver `onde_na_tela`.
+    # A linha de URL do `main` é a interface com o `run.sh`, e esta porta não
+    # passa perto dela.
+    if len(sys.argv) == 3 and sys.argv[1] == "--onde":
+        frase = onde_na_tela(sys.argv[2])
+        sys.stdout.write(frase + "\n" if frase else "")
+        sys.exit(0 if frase else 1)
     main()

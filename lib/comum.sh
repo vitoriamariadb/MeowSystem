@@ -1490,6 +1490,21 @@ _meow_pendencia_tirar() {
   return 0
 }
 
+# ONDE, NO PAINEL, MORA O BOTÃO QUE FAZ ISTO — 24/09/2026, sprint P50
+#   Imprime «rótulo», na aba Grupo — de uma ação do painel, ou da ação de uma
+#   pendência —, e sai 1 (sem imprimir nada) quando não há botão com cartão.
+#   Quem sabe o nome do botão e a aba dele é a tabela `ACOES` do
+#   `app/servidor.py`, e é a ela que se pergunta: nome de tela escrito à mão
+#   num script é o que deixou a conferência mandando a uma aba «Instalar e
+#   conferir» dezoito dias depois de ela virar «Instalação» (achado 47). Sem
+#   python3 ou sem o painel no clone, a resposta é vazia, e a frase que a usaria
+#   simplesmente não cita tela nenhuma — melhor que citar a errada.
+meow_onde_no_painel() {
+  local servidor="$MEOW_RAIZ/app/servidor.py"
+  [ -f "$servidor" ] && command -v python3 >/dev/null 2>&1 || return 1
+  MEOW_RAIZ="$MEOW_RAIZ" python3 "$servidor" --onde "$1" 2>/dev/null
+}
+
 # A ETAPA SAI DO ARQUIVO QUE CHAMOU, e não de um argumento a mais: um argumento
 # é uma string que alguém digita errado uma vez e ninguém confere depois. O
 # `BASH_SOURCE[1]` é o estado real de quem chamou — a mesma disciplina que o
@@ -1499,8 +1514,19 @@ meow_pendencia_acionavel() {
   local etapa; etapa="$(basename "${BASH_SOURCE[1]:-desconhecida}")"
 
   meow_aviso "$frase"
+  # O BOTÃO CITADO É O QUE EXISTE, NA ABA EM QUE ELE ESTÁ — P50 (achado 32).
+  #   Dizia "(ou o botão «Resolver» no painel)": na gaveta de «Gravar as
+  #   áreas» não há «Resolver» nenhum, e a pendência sem ação na tabela
+  #   `ACAO_DA_PENDENCIA` do servidor não ganha «Resolver» em lugar nenhum.
+  #   Agora quem nomeia é o `meow_onde_no_painel`, e sem botão a frase não
+  #   promete botão.
   if [ -n "$comando" ]; then
-    meow_info "resolve: $comando  (ou o botão «Resolver» no painel)"
+    local onde; onde="$(meow_onde_no_painel "$id")"
+    if [ -n "$onde" ]; then
+      meow_info "resolve: $comando  (ou, no painel, $onde)"
+    else
+      meow_info "resolve: $comando"
+    fi
   fi
 
   # O seco não escreve o TSV pelo mesmo motivo que não escreve o meow.log: ele
