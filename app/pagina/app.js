@@ -2264,24 +2264,38 @@ const CORES_DA_TIRA = ["base", "surface0", "surface2", "text", "mauve", "blue", 
  *   salva, roda o instalador e leva o não.
  *   A lista de capturas vem do disco, pela ação `tema_estado`; aqui o que
  *   importa é o par escolhido estar entre elas. */
+/* A PERGUNTA MUDOU: NÃO É "HÁ FOTOGRAFIA?", É "APLICA?" — 24/09/2026, P48.
+ *   Desde a P48 o acento sem captura se deriva da captura do mesmo flavor
+ *   (`scripts/derivar_acento.py`): com o Dracula, só o mauve foi fotografado e
+ *   as doze cores aplicam. O servidor manda, por flavor, os acentos que
+ *   aplicam e, quando nenhum aplica, o porquê (`acentos_que_aplicam`) — a
+ *   mesma conta que o instalador faz. Sem essa resposta (painel exportado de
+ *   antes, derivador ausente) vale a regra velha: só as fotografadas. */
 function combinacaoTemCaptura() {
   const capturas = (ESQUEMA.capturas || []).map((c) => String(c).toLowerCase());
-  if (!capturas.length) return null;
+  const aplicam = ESQUEMA.acentos_que_aplicam || {};
+  if (!capturas.length && !Object.keys(aplicam).length) return null;
   const f = flavorEmVigor();
   const item = ESQUEMA.chaves.find((k) => k.chave === "ACCENT");
   const a = item ? valorEmVigor(item) : "";
   if (!f || !a) return null;
-  return { par: `${f}-${a}`, existe: capturas.includes(`${f}-${a}`), capturas };
+  const doFlavor = aplicam[f] || null;
+  const existe = capturas.includes(`${f}-${a}`)
+    || !!(doFlavor && (doFlavor.acentos || []).includes(a));
+  return { par: `${f}-${a}`, existe, capturas, motivo: doFlavor ? doFlavor.motivo : "" };
 }
 
 function avisoDeCombinacao() {
   const c = combinacaoTemCaptura();
   if (!c || c.existe) return null;
+  /* O porquê vem do derivador quando ele respondeu ("não há tema capturado do
+   * frappe para derivar…"); a lista das fotografadas continua de reserva. */
+  const porque = c.motivo
+    ? `O tema do COSMIC fica como está: ${c.motivo}.`
+    : `A etapa do tema vai ser pulada — o tema do COSMIC fica como está. Existem: ${c.capturas.join(", ")}.`;
   return elemento("p", { class: "frase dominada" }, [
-    elemento("b", { texto: `Não há captura para ${c.par}. ` }),
-    elemento("span", {
-      texto: `A etapa do tema vai ser pulada — o tema do COSMIC fica como está. Existem: ${c.capturas.join(", ")}.`,
-    }),
+    elemento("b", { texto: `Não há tema para ${c.par}. ` }),
+    elemento("span", { texto: porque }),
   ]);
 }
 

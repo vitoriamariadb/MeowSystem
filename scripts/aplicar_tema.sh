@@ -221,7 +221,14 @@ case "$NOME" in ''|*/*|.*) echo "ERRO: nome inválido: '$NOME'" >&2; exit 2 ;; e
 #   de restauração, onde quanto menos se carrega, melhor), então a pergunta vai
 #   direto ao Python. `MEOW_PACK_DIR` chega pelo ambiente quando quem chamou
 #   passou pela ponte; sem ela, cai no pack padrão, como todo consumidor Python.
-ORIGEM="$(python3 "$RAIZ/scripts/pack.py" captura "$NOME" 2>/dev/null)"
+#
+# O `|| ORIGEM=""` NÃO É ENFEITE — 24/09/2026, sprint P48
+#   Captura ausente faz o `pack.py captura` sair 1, e com o `set -e` lá de cima
+#   a atribuição morria ALI: o script saía 1, calado, sem a frase de erro nem o
+#   3 logo abaixo, que nunca eram alcançados. Medido com `dracula-pink` antes
+#   de a derivação existir: `aplicar_tema.sh dracula-pink` devolvia 1, e 1 é
+#   "divergente, consertei" para quem lê o código — o avesso de "não existe".
+ORIGEM="$(python3 "$RAIZ/scripts/pack.py" captura "$NOME" 2>/dev/null)" || ORIGEM=""
 [ -n "$ORIGEM" ] && [ -d "$ORIGEM" ] || {
   echo "ERRO: captura '$NOME' não existe no pack ativo, no que ele herda, nem em assets/temas/capturados/" >&2
   exit 3
@@ -425,7 +432,10 @@ RECEITA_VELHA=0
 
 while IFS= read -r -d '' arq; do
   rel="${arq#"$ORIGEM"/}"
-  case "$rel" in manifesto.sha256|captura.txt) continue ;; esac
+  # O `.gitignore` é da captura DERIVADA (scripts/derivar_acento.py): ela é
+  # produto, mora dentro do pack e se esconde do git sozinha. É metadado, como
+  # os outros dois — copiá-lo poria um `.gitignore` na raiz do ~/.config/cosmic.
+  case "$rel" in manifesto.sha256|captura.txt|.gitignore) continue ;; esac
   destino="$COSMIC/$rel"
 
   # O vidro que ela ajustou na GUI vence a captura, sempre — inclusive numa

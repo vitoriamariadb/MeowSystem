@@ -280,8 +280,20 @@ meow_preflight() {
 
   # 8. Existe captura para o que o meow.conf pediu? Descobrir isso na etapa 5,
   #    depois de escrever a CLI e instalar pacotes, é descobrir tarde.
+  #
+  #    O PAR QUE SE DERIVA NÃO É AVISO — 24/09/2026, sprint P48 (achado 31)
+  #      Desde a P48 o acento sem fotografia ganha captura na etapa `gerar`
+  #      (`scripts/derivar_acento.py`, a partir da captura do mesmo flavor), e
+  #      a etapa `tema` o aplica. Sem esta pergunta, o `dracula-pink` abria o
+  #      instalador com "o tema do COSMIC não vai ser aplicado" e terminava com
+  #      ele aplicado: a mesma tela dizendo as duas coisas. O `--conferir` sai 1
+  #      quando derivaria, e é só esse caso que deixa de ser aviso; o 3 (flavor
+  #      que nunca foi fotografado) continua sendo, com a lista de sempre.
   if [ -n "${FLAVOR:-}" ] && [ -n "${ACCENT:-}" ] \
-     && [ -z "$(meow_captura "${FLAVOR}-${ACCENT}")" ]; then
+     && [ -z "$(meow_captura "${FLAVOR}-${ACCENT}")" ] \
+     && { MEOW_PACK_DIR="${MEOW_PACK_DIR:-$(meow_pack_dir)}" \
+            python3 "$MEOW_RAIZ/scripts/derivar_acento.py" --conferir "${FLAVOR}-${ACCENT}" >/dev/null 2>&1
+          [ "$?" != "1" ]; }; then
     meow_aviso "não há captura para '${FLAVOR}-${ACCENT}' — o tema do COSMIC não vai ser aplicado"
     # `original` fica de fora da lista: é reset de fábrica DESTA máquina, não uma
     # variante que alguém escolheria no meow.conf.
