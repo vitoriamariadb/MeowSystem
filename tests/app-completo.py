@@ -2636,18 +2636,34 @@ class Percurso:
             det.first.locator(":scope > summary > span, :scope > summary").first.click()
             self.assentar(quieto=300, teto=15000)
 
+    def cartao_do_aplicativo(self, nome):
+        """O cartão do aplicativo aberto, pronto para o clique.
+
+        A GRADE SOME ENQUANTO O ESQUEMA SE RELÊ — 24/09/2026, depois da leva B.
+        Um trabalho que escreve esquece a lista de aplicativos (P46) e a relê
+        depois do esquema, que leva de 2 a 4 s; com a máquina carregada, a grade
+        voltava depois dos 8 s do clique, e o gate reprovava «aplicativo ·
+        abrir» sem defeito novo na página (medido: nenhum botão da grade no DOM
+        no instante da reprovação). E o cartão que já estava na tela podia
+        estar debaixo do desenho preso no topo da aba (`.previa-bloco.presa`),
+        que tomava o clique. A grade é esperada como uma pessoa esperaria, e o
+        cartão vai para o meio da tela antes do clique. A demora em si é da P57."""
+        cartao = self.pag.locator(f'[data-inventario="{css_attr(nome)}"]',
+                                  has_text=self.app_aberto).first
+        cartao.wait_for(state="attached", timeout=30000)
+        cartao.evaluate("e => e.scrollIntoView({block: 'center'})")
+        return cartao
+
     def abrir_painel(self, nome):
         if not self.pag.locator("#conteudo .escolha-icone").count():
             self.censo()
-            self.pag.locator(f'[data-inventario="{css_attr(nome)}"]',
-                             has_text=self.app_aberto).first.click()
+            self.cartao_do_aplicativo(nome).click()
             self.assentar(quieto=400, teto=15000)
 
     def fechar_painel_do_aplicativo(self, nome):
         if self.pag.locator("#conteudo .escolha-icone").count():
             self.censo()
-            self.pag.locator(f'[data-inventario="{css_attr(nome)}"]',
-                             has_text=self.app_aberto).first.click()
+            self.cartao_do_aplicativo(nome).click()
             self.assentar(quieto=200)
 
     # ======================================================================
