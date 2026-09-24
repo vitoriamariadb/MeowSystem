@@ -25,8 +25,8 @@
 #
 # A REGRA 4 FICOU SEM ESCAPE E SEM ISENÇÃO — 24/09/2026, sprint P39
 #   Até aqui ela se chamava "ZDOTDIR sem escape" e aceitava a linha que trouxesse
-#   `:-` — `${ZDOTDIR:-$HOME/.config/zsh}`, `${MEOW_ZSH_ENV:-…}` —, com cinco
-#   isenções para o resto. Era a "integração opcional" que a regra do dono de
+#   `:-` — `${ZDOTDIR:-$HOME/.config/zsh}`, `${MEOW_ZSH_ENV:-…}` —, com seis
+#   linhas isentas para o resto. Era a "integração opcional" que a regra do dono de
 #   23/09 recusa com essas palavras: o que o MeowSystem usa do Spellbook ou do
 #   Ritual migra para cá e é desativado lá; o que é só da máquina sai daqui. Um
 #   padrão que continua lendo o `~/.config/zsh` quando ele existe é as duas
@@ -92,9 +92,11 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; achados=$((achados+1)); }
 # sem regex). Tudo o que não estiver aqui é achado.
 ISENTAS=(
   # --- regra 4: AS SEIS ISENÇÕES SAÍRAM EM 24/09/2026 (P39) ------------------
-  # Eram cinco linhas lendo ou citando o `~/.config/zsh` — o `vizinhos.conf`
-  # semeado pelo instalador a partir do `.git` de lá (três), o aviso do doctor
-  # sobre ele e o `AREAS_VIZINHO_FONTE` do `areas.sh`, a "isenção com dívida" da
+  # Eram seis linhas lendo ou citando o `~/.config/zsh`, casadas por quatro
+  # trechos (o placar conta LINHA: caiu de 13 para 7) — o `vizinhos.conf`
+  # semeado pelo instalador a partir do `.git` de lá (duas), o `case` que
+  # decidia o aviso das completions (uma), o aviso do doctor sobre o `.git`
+  # (duas) e o `AREAS_VIZINHO_FONTE` do `areas.sh`, a "isenção com dívida" da
   # P29. As linhas saíram do código na mesma sprint, e as isenções com elas: uma
   # isenção que sobrevive ao seu motivo é pior que nenhuma, como o próprio texto
   # da P29 dizia aqui.
@@ -219,9 +221,21 @@ done < "$R1"
 # Uma linha de COMENTÁRIO não é uma receita. O projeto inteiro é comentado em
 # prosa densa, e as 369 menções a `/mnt/Apate` medidas em 21/09/2026 são todas
 # história — dizer de onde veio um arquivo é documentação, não instrução.
+#
+# O `//`, O `/*` E O `*` SÓ SÃO COMENTÁRIO ONDE A LÍNGUA DIZ QUE SÃO — 24/09/2026
+#   Até aqui os quatro marcadores valiam para todo arquivo. Em shell, uma linha
+#   que começa com `*` é padrão de `case`, e padrão de `case` é código: medido
+#   na revisão da P39, `    *"$HOME/.config/zsh"/*) : ;;` acrescentado ao
+#   `scripts/forma.sh` passava VERDE na regra 4, e o `git grep` da conferência
+#   da sprint o pegava. O `//` e o bloco `/* */` são do `.js` e do código Rust
+#   dentro dos `.patch`; no `.sh`, no `.py` e no `bin/meow` o comentário é `#`.
+#   Medido antes de fechar a porta: nenhuma linha de `.sh` ou `.py` que começa
+#   com um dos três casava as regras 2, 3 ou 4 — o placar não mudou.
 _so_comentario() {
-  case "${1#"${1%%[![:space:]]*}"}" in
-    '#'*|'//'*|'*'*|'/*'*) return 0 ;;
+  local l="${1#"${1%%[![:space:]]*}"}"
+  case "$l" in '#'*) return 0 ;; esac
+  case "$2" in
+    *.js|*.patch) case "$l" in '//'*|'*'*|'/*'*) return 0 ;; esac ;;
   esac
   return 1
 }
@@ -282,7 +296,7 @@ for arq in "${ARQUIVOS[@]}"; do
     case "$linha" in '```'*) cerca=$((1-cerca)); continue ;; esac
 
     if [ "$tipo" = "codigo" ]; then
-      _so_comentario "$linha" && continue
+      _so_comentario "$linha" "$arq" && continue
     else
       # Fora da cerca, prosa é prosa.
       [ "$cerca" = "1" ] || continue

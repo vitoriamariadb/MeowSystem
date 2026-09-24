@@ -1288,11 +1288,16 @@ chk_cursor() {
     "$RAIZ/scripts/cursor.sh" conferir 2>&1
 }
 
-# O PROMPT DO ZSH, E A METADE QUE NÃO É NOSSA.
-#   Devolve 4 quando o `~/.config/starship.toml` está conforme e o `env.zsh`
-#   ainda não foi patcheado. O 4 é o que impede o ping-pong: sem ele o doctor
-#   acusaria divergência todo dia por uma linha que a TRAVA 1 nos proíbe de
-#   escrever, e o `--consertar` rodaria um conserto incapaz de consertar.
+# O PROMPT DO ZSH: O DOCTOR CONFERE A METADE QUE É NOSSA, E SÓ ELA.
+#   O `conferir` olha o `~/.config/starship.toml` e o binário do starship, e
+#   devolve 0, 1 ou 3. A linha que LIGA o starship é do arquivo de
+#   inicialização do shell de quem usa: o MeowSystem não a lê nem a escreve, e
+#   o `prompt.sh` só a DIZ, no `aplicar` e no `mostrar`.
+#   ATÉ 24/09/2026 (P39) ELE DEVOLVIA 4 quando o toml estava conforme e o
+#   `env.zsh` do Spellbook ainda não tinha recebido o patch — o 4 impedia o
+#   ping-pong de um `--consertar` incapaz de consertar uma linha que a TRAVA 1
+#   proibia escrever. A leitura do `env.zsh` saiu, o patch saiu, e o 4 com
+#   eles; o cabeçalho do `scripts/prompt.sh` conta por quê.
 #   O `fix_prompt` escreve um arquivo só, e ele é nosso.
 chk_prompt() {
   PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \

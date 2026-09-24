@@ -1027,7 +1027,7 @@ cmd_compilar() {
     else
       meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_CACHE"
     fi
-    meow_muda "aplicaria a série ($n_req obrigatório(s), $n_opt opcional(is)) com -F0, dry-run de todos antes"
+    meow_muda "aplicaria a série ($(_cp_plural "$n_req" obrigatório obrigatórios), $(_cp_plural "$n_opt" opcional opcionais)) com -F0, dry-run de todos antes"
     meow_muda "compilaria com make VENDOR=1 (~4 min com o vendor quente, ~30 min do zero)"
     meow_muda "conferiria os marcadores no binário e instalaria em $CP_BIN — com sudo, só neste passo"
     meow_muda "gravaria o .estado medido em $CP_ESTADO"

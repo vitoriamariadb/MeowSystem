@@ -1612,17 +1612,22 @@ etapa_som() {
 # O PROMPT, E A ÚNICA ETAPA QUE TERMINA COM UM COMANDO NA MÃO DELA.
 #
 #   O preset do starship é nosso e vai para `~/.config/starship.toml`. A linha
-#   que LIGA o starship mora em `~/.config/zsh/env.zsh`, que é do Ritual da
-#   Aurora e a TRAVA 1 recusa — então a outra metade sai como
-#   `assets/prompt/aurora.patch`, e é ela quem roda. Devolve 4 quando o nosso lado
-#   está certo e o dela não; o `concluir` acima já trata 3|4 como "pulado".
+#   que LIGA o starship mora no arquivo de inicialização do shell de quem usa,
+#   que não é deste projeto: o `prompt.sh aplicar` instala o nosso arquivo e
+#   DIZ a linha, sem procurá-la nem escrevê-la. Sai 0, 1, 2 ou 3; o 3 (falta o
+#   starship) cai no "pulado" do `concluir` acima.
 #
-# O QUE A MEDIÇÃO DERRUBOU, E VALE REGISTRAR: a Sprint R dizia que a causa era
-# `ZSH_THEME="agnoster"` na linha 9 do `env.zsh`. O agnoster é carregado pelo
-# oh-my-zsh na linha 26 e **jogado fora na linha 135**, por um `export PS1` que
-# vem depois no mesmo arquivo. Mexer só na linha 9 não mudaria um pixel — o
-# patch mexe nas duas, e o `else` dele devolve exatamente o PS1 de hoje quando o
-# starship não está no PATH.
+#   ATÉ 24/09/2026 (P39) a outra metade saía como `assets/prompt/aurora.patch`,
+#   para o `env.zsh` do Spellbook, e a etapa devolvia 4 quando o nosso lado
+#   estava certo e o de lá não. O patch e o 4 saíram juntos: eram a máquina de
+#   uma pessoa, e não o produto.
+#
+# O QUE A MEDIÇÃO DERRUBOU, E FICA COMO HISTÓRIA (é do tempo do patch): a Sprint
+# R dizia que a causa era `ZSH_THEME="agnoster"` na linha 9 do `env.zsh`. O
+# agnoster era carregado pelo oh-my-zsh na linha 26 e **jogado fora na linha
+# 135**, por um `export PS1` que vinha depois no mesmo arquivo. Mexer só na
+# linha 9 não mudaria um pixel — o patch mexia nas duas, e o `else` dele
+# devolvia exatamente o PS1 de então quando o starship não estava no PATH.
 etapa_prompt() {
   passo "Prompt do terminal (starship)"
   PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \

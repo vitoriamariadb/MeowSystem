@@ -544,6 +544,10 @@ ICONES_DRACULA="nao"              # sim | nao
 # ATÉ 24/09/2026 ESTE CAMINHO ERA CRAVADO NO `scripts/completar_icones.sh`, na
 # pasta de projetos de uma casa. Quem tem o clone do Hefesto aponta aqui, uma
 # vez, algo como "$HOME/<onde está o clone>/assets/hefesto-logo.svg".
+#
+# COM A CHAVE VAZIA, UMA LOGO QUE JÁ ESTÁ NO TEMA NÃO É TROCADA. O `meow doctor`
+# avisa, o auto-reparo não mexe, e a escolha fica com você: preencher a chave,
+# ou apagar o ícone do tema para ficar com o desenho gerado.
 ICONES_LOGO_HEFESTO=""            # caminho de um .svg; vazio = o desenho gerado
 
 # @ Cor das pastas
