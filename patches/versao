@@ -36,4 +36,11 @@
 #   no `.tar.xz`). O caminho é atualizar o cosmic-comp — o apt traz binário e
 #   fonte da mesma versão — e validar a série nessa.
 0.1~1788962084~24.04~a557859
+
+# O QUE VALIDOU A LINHA ABAIXO (medido em 24/09/2026, depois da instalação)
+#   - `apt-get install --only-upgrade cosmic-comp` levou a máquina da cd881a4
+#     para esta, e só este pacote mudou;
+#   - `meow compositor validar` baixou o fonte desta versão e rodou o dry-run
+#     da série com `-F0`: os cinco entram limpos, o `req`
+#     (cosmic-comp-sem-workspace-vazio) e os quatro `opt`.
 0.1~1790118748~24.04~0fbd457
