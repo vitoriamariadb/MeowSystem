@@ -23,7 +23,7 @@
 #       app-<id-escapado>@autostart.service
 #   e a pendura em `xdg-desktop-autostart.target.wants/`. Conferido lendo a
 #   unidade gerada do `openrgb-gloway`, que traz literalmente
-#       SourcePath=/home/vitoriamaria/.config/autostart/openrgb-gloway.desktop
+#       SourcePath=/home/<usuário>/.config/autostart/openrgb-gloway.desktop
 #       PartOf=graphical-session.target
 #   O escape é o do systemd: `openrgb-gloway` vira `openrgb\x2dgloway`, e é por
 #   isso que este script chama `systemd-escape` em vez de montar o nome à mão.
@@ -47,7 +47,7 @@
 #       /run/user/1000/systemd/user.control
 #       /run/user/1000/systemd/transient
 #       /run/user/1000/systemd/generator.early
-#       /home/vitoriamaria/.config/systemd/user      <- o mask mora AQUI
+#       /home/<usuário>/.config/systemd/user         <- o mask mora AQUI
 #       …
 #       /run/user/1000/systemd/generator.late        <- o autostart nasce AQUI
 #   O `~/.config/systemd/user` aparece **doze posições antes** do

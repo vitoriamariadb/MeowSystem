@@ -72,7 +72,7 @@ sprint cobra o depois.
 | **balões (`title`) com mais de 60 caracteres** | **306** (o maior: 154) | P6 |
 | balões com um comando `meow` cru dentro | 119 | P6 |
 | **botões cujo nome acessível passa de 40 caracteres** | **56** (o pior: 144, para um botão "Sim") | P7 |
-| caminhos `/home/andrefarias/...` visíveis na tela | 43 | P7 |
+| caminhos `/home/<usuário>/...` visíveis na tela | 43 | P7 |
 | parágrafos com mais de 220 caracteres | 122 | P7 |
 | **altura da gaveta de saída** | **414 px = 46% da tela** | P5 |
 | **altura do menu lateral com a gaveta aberta** | **cai de 842 px para 428 px** | P5 |
@@ -584,7 +584,7 @@ Quatro coisas, todas contáveis:
 
    para um botão cujo nome é "Sim". São 12 botões assim só nessa aba.
 
-2. **43 caminhos `/home/andrefarias/...` visíveis na tela.** Todo cartão de
+2. **43 caminhos `/home/<usuário>/...` visíveis na tela.** Todo cartão de
    ação imprime o caminho absoluto do script embaixo do botão Executar.
 
 3. **122 parágrafos acima de 220 caracteres.** O da aba Atualização tem 70
@@ -711,7 +711,7 @@ sudo."*
 > investigar um resíduo que um agente deixou no sistema:
 >
 > ```
-> /etc/sudoers.d/andrefarias:1:  andrefarias ALL=(ALL) NOPASSWD: ALL
+> /etc/sudoers.d/<usuário>:1:  <usuário> ALL=(ALL) NOPASSWD: ALL
 > ```
 >
 > Arquivo de **14/04/2026**. **Nesta máquina não existe senha de sudo a
@@ -1180,7 +1180,7 @@ um bom motivo, e o `packs/dracula/pack.json` explica qual — apagou a conta e
 
 > **CORREÇÃO DE 21/09, e ela inverte o item 4 desta sprint.** Eu afirmei que
 > `aurora-cosmic-comp-ws.sh` *"não existe nesta máquina, nem no repositório"*.
-> **Existe:** `/home/andrefarias/.config/zsh/scripts/aurora-cosmic-comp-ws.sh`,
+> **Existe:** `/home/<usuário>/.config/zsh/scripts/aurora-cosmic-comp-ws.sh`,
 > 53.285 bytes, 18/09. Procurei em `Spellbook-OS/` — o repositório — e ele mora
 > no Spellbook **instalado**, que é outro caminho.
 >
@@ -1440,7 +1440,7 @@ repositório num Pop!_OS com COSMIC. É a sprint que responde literalmente ao
 $ cat assets/temas/capturados/original/captura.txt
 captura: original
 quando:  2026-08-04T17:33:15-03:00
-origem:  /home/vitoriamaria/.config/cosmic
+origem:  /home/<usuário>/.config/cosmic
 arquivos: 121
 ```
 
@@ -1570,7 +1570,7 @@ E o `README` diz "quatro chaves essenciais" (`:41`, `:158`); são **cinco**
 ```sh
 # 1. o backup é da máquina de quem instala
 grep origem ~/.local/state/meowsystem/backups/*/captura.txt
-# espera: o HOME de quem rodou. Nunca /home/vitoriamaria
+# espera: o HOME de quem rodou. Nunca o de outra máquina
 
 # 2. o wizard não oferece o que não existe
 meow configurar   # responder "macchiato" + "teal" tem de ser impossível ou avisado
@@ -1634,7 +1634,7 @@ frentes podem correr em paralelo.
 ## Como isto foi medido, para quem quiser refazer
 
 ```sh
-cd ~/Desenvolvimento/MeowSystem
+cd MeowSystem                     # a raiz do clone, onde quer que ele esteja
 ./app/run.sh --sem-abrir          # imprime a URL com o token
 ```
 

@@ -2159,8 +2159,8 @@ cmd_doctor() {
   fi
 
   # O `NOPASSWD: ALL` DA MÁQUINA, QUE ESVAZIA A PONTE — 21/09/2026
-  #   Medido ao investigar um resíduo de sessão: `/etc/sudoers.d/andrefarias`,
-  #   de 14/04/2026, tem `andrefarias ALL=(ALL) NOPASSWD: ALL`. Com essa linha
+  #   Medido ao investigar um resíduo de sessão: `/etc/sudoers.d/<usuário>`,
+  #   de 14/04/2026, tem `<usuário> ALL=(ALL) NOPASSWD: ALL`. Com essa linha
   #   no ar, a ponte root do `chk_ponte` não protege nada: a regra estreita que
   #   ela instala — caminho absoluto, nove verbos nomeados, nenhum curinga — é
   #   um subconjunto de uma regra que já libera tudo. E a frase que o projeto
@@ -3422,7 +3422,7 @@ cmd_desfazer() {
   #   tema de antes» com `ambiente: {"MEOW_SIM": "1"}`, porque a página já
   #   perguntou e o `read` daqui ficaria pendurado sem tty. O efeito colateral
   #   era o botão restaurar, sem avisar nada, o desktop de fábrica de
-  #   `/home/vitoriamaria` — que é o que a captura versionada tem gravado.
+  #   `/home/<usuário>` — que é o que a captura versionada tem gravado.
   #
   #   A guarda passa a ser incondicional, e a porta de fuga ganha nome próprio:
   #   quem quer mesmo o tema de fábrica de outra máquina tem de dizer isso, e

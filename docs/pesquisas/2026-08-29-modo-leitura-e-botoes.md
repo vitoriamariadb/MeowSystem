@@ -130,7 +130,7 @@ Passos:
 
 - **Risco:** Quase nenhum: a tela fica âmbar e desliga na mesma tela, na hora. O perigo real é o desfazer errado -- medi que /var/lib/aurora/cosmic-comp-...5c93094.orig tem 28.339.864 bytes (binário do PACOTE, sem o patch de workspace) enquanto o instalado tem 33.571.456. Rodar '--restore' rebaixa o compositor e o workspace vazio fantasma volta no próximo login.
 - **Volta:** Sim, na hora e sem tocar em binário: Configurações > Acessibilidade > Filtros de cor > Desativado. Se precisar mexer no binário, o retorno certo é 'sudo cp -a /var/lib/aurora/cosmic-comp-0.1~1787767625~24.04~5c93094.aurora-ws /usr/bin/cosmic-comp' (33.571.456 bytes, com o patch de workspace), nunca o .orig.
-- **Arquivos:** `/home/vitoriamaria/.local/state/cosmic-comp/a11y_screen_filter.ron`, `/var/lib/aurora/night-light-temp`, `/usr/bin/cosmic-comp`
+- **Arquivos:** `~/.local/state/cosmic-comp/a11y_screen_filter.ron`, `/var/lib/aurora/night-light-temp`, `/usr/bin/cosmic-comp`
 
 **2. Os botões que dá para mover sem compilar nada, e um vigia que pare de ser mudo** · alvo `botoes` · 1 hora · dono: ambos
 
@@ -138,9 +138,9 @@ Três coisas baratas: leva os botões do OBS para a esquerda por override de fla
 
 Passos:
 
-- mkdir -p /home/vitoriamaria/.var/app/com.obsproject.Studio/data/qt-plugins/wayland-decoration-client
+- mkdir -p ~/.var/app/com.obsproject.Studio/data/qt-plugins/wayland-decoration-client
 - Copiar (cópia, não symlink) o libadwaita.so de <org.kde.Platform 6.11>/files/lib/plugins/wayland-decoration-client/ para essa pasta -- 6.11 porque o Qt do OBS é 6.11.1.
-- flatpak override --user --env=QT_PLUGIN_PATH=/home/vitoriamaria/.var/app/com.obsproject.Studio/data/qt-plugins com.obsproject.Studio
+- flatpak override --user --env=QT_PLUGIN_PATH=$HOME/.var/app/com.obsproject.Studio/data/qt-plugins com.obsproject.Studio
 - NUNCA apontar o QT_PLUGIN_PATH para a raiz de plugins do runtime KDE -- o OBS passaria a carregar a plataforma Wayland/EGL do runtime em vez da própria.
 - Abrir o OBS no workspace OS e conferir os botões.
 - No aurora-cosmic-buttons-watch.sh, gravar uma linha em ~/.local/state/aurora/upstream-vigias.tsv (é dela e gravável; /var/lib/aurora é root e o timer é de usuário).
@@ -150,7 +150,7 @@ Passos:
 
 - **Risco:** O plugin de decoração usa API privada do QtWayland: hoje o Qt bate exatamente (6.11.1 dos dois lados), mas se o OBS subir para Qt 6.12 num flatpak update ele pode não abrir. Se o plugin simplesmente não carregar, o Qt cai no libbradient embutido e a única consequência é botão à direita. AVISO: a edição do vigia é em ~/.config/zsh, que tem auto-commit a cada 10 min -- vira commit no repositório privado dela.
 - **Volta:** Sim, um comando: 'flatpak override --user --unset-env=QT_PLUGIN_PATH com.obsproject.Studio'. Sem reboot, sem reinstalar. O vigia e as docs são texto, revertíveis por git.
-- **Arquivos:** `/home/vitoriamaria/.var/app/com.obsproject.Studio/data/qt-plugins/wayland-decoration-client/libadwaita.so`, `/home/vitoriamaria/.local/share/flatpak/overrides/com.obsproject.Studio`, `/home/vitoriamaria/.config/zsh/scripts/aurora-cosmic-buttons-watch.sh`, `/home/vitoriamaria/.local/state/aurora/upstream-vigias.tsv`, `/mnt/Apate/Desenvolvimento/MeowSystem/bin/meow`, `/mnt/Apate/Desenvolvimento/MeowSystem/docs/FRONTEIRA.md`, `/mnt/Apate/Desenvolvimento/MeowSystem/docs/SPRINTS.md`
+- **Arquivos:** `~/.var/app/com.obsproject.Studio/data/qt-plugins/wayland-decoration-client/libadwaita.so`, `~/.local/share/flatpak/overrides/com.obsproject.Studio`, `~/.config/zsh/scripts/aurora-cosmic-buttons-watch.sh`, `~/.local/state/aurora/upstream-vigias.tsv`, `/mnt/Apate/Desenvolvimento/MeowSystem/bin/meow`, `/mnt/Apate/Desenvolvimento/MeowSystem/docs/FRONTEIRA.md`, `/mnt/Apate/Desenvolvimento/MeowSystem/docs/SPRINTS.md`
 
 **3. Um atalho de teclado para ligar e desligar o modo de leitura** · alvo `leitura` · 3 horas · dono: Aurora
 
@@ -173,7 +173,7 @@ Passos:
 
 - **Risco:** Nenhum risco de sessão: é cliente Wayland comum, não-privilegiado, que fala um protocolo que o compositor já publica para qualquer cliente não-sandboxed. Não toca em binário. Dois cuidados: escrever ~/.config/zsh vira commit no repositório privado dela em até 10 min; e escrever direto no a11y_screen_filter.ron NÃO funciona como alternativa (o arquivo só é lido no início da sessão, nenhum inotify o vigia).
 - **Volta:** Sim: apagar o script de ~/.config/zsh/scripts e de /usr/local/bin, tirar a linha do self-heal e a entrada do MANAGED, apagar o binding do arquivo custom (o COSMIC relê na hora).
-- **Arquivos:** `/home/vitoriamaria/.config/zsh/scripts/aurora-modo-leitura.py`, `/usr/local/bin/aurora-modo-leitura.py`, `/home/vitoriamaria/.config/zsh/scripts/ritual-aurora-self-heal.sh`, `/home/vitoriamaria/.config/zsh/scripts/aurora-cosmic-shortcuts.py`, `/home/vitoriamaria/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom`
+- **Arquivos:** `~/.config/zsh/scripts/aurora-modo-leitura.py`, `/usr/local/bin/aurora-modo-leitura.py`, `~/.config/zsh/scripts/ritual-aurora-self-heal.sh`, `~/.config/zsh/scripts/aurora-cosmic-shortcuts.py`, `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom`
 
 **4. Textura de papel e conforto dentro do mesmo patch do shader, e o rótulo parando de mentir** · alvo `leitura` · meio dia, incluindo a validação e o teste aninhado · dono: Aurora
 
@@ -198,7 +198,7 @@ Passos:
 
 - **Risco:** O pior caso NÃO é 'ficar sem filtro': o POSTPROCESS_SHADER é compilado de forma ansiosa na inicialização do renderer, então GLSL inválido = compositor não sobe = TELA PRETA no próximo login, e o self-heal reaplica de hora em hora. Por isso os passos de validação e de sessão aninhada são obrigatórios, não opcionais. Segundo: o grão cai sobre TUDO, inclusive vídeo e jogo (por isso a pergunta 3). Terceiro: escrever em ~/.config/zsh vira commit no repositório privado dela em até 10 min.
 - **Volta:** Sim, sem reinstalar sistema, por três caminhos: reaplicar com grão 0; TTY (Ctrl+Alt+F3) e 'sudo cp -a /var/lib/aurora/cosmic-comp-0.1~1787767625~24.04~5c93094.aurora-ws /usr/bin/cosmic-comp'; ou 'sudo apt-get install --reinstall cosmic-comp' (mais 'apt-get install --reinstall cosmic-settings' para o rótulo). O filtro em si se desliga pela UI sem relogar.
-- **Arquivos:** `/home/vitoriamaria/.config/zsh/scripts/aurora-night-light.py`, `/usr/local/bin/aurora-night-light.py`, `/usr/bin/cosmic-comp`, `/usr/bin/cosmic-settings`, `/var/lib/aurora/night-light-temp`, `/home/vitoriamaria/.config/zsh/scripts/aurora-modo-leitura.py`
+- **Arquivos:** `~/.config/zsh/scripts/aurora-night-light.py`, `/usr/local/bin/aurora-night-light.py`, `/usr/bin/cosmic-comp`, `/usr/bin/cosmic-settings`, `/var/lib/aurora/night-light-temp`, `~/.config/zsh/scripts/aurora-modo-leitura.py`
 
 **5. Botões à esquerda nos apps COSMIC: piloto com um app e, se prestar, a onda** · alvo `botoes` · piloto: ~1 hora de máquina (build frio, 860 crates). Onda completa: 1 a 2 dias, mais ~30 min de rebuild por apt upgrade de cada pacote (esses sobem quase toda semana) · dono: ambos
 
@@ -227,7 +227,7 @@ Passos:
 
 - **Risco:** Três riscos reais. (1) Resultado misto e permanente: o diálogo de abrir/salvar arquivo (xdg-desktop-portal-cosmic, em /usr/libexec, ativado por D-Bus com caminho ABSOLUTO), as barras que o próprio compositor desenha (Steam e X11) e o CosmicTweaks (flatpak) ficam à direita de qualquer jeito. (2) Binário congelado: um apt upgrade sobe /usr/bin para 1.8 e ela continua rodando o 1.7 patchado de /usr/local/bin sem sinal nenhum -- é o que o --ensure do passo 16 existe para cobrir. (3) Um build ruim faz aquele app não abrir (se for o cosmic-settings, ela perde a UI de configurações até apagar o arquivo). Não há risco de sessão: o cosmic-comp fica de fora. Custo de disco: ~25 GB de árvores no /mnt/Apate. E o aurora-cosmic-apps-botoes.sh é escrita em ~/.config/zsh, que auto-commita a cada 10 min.
 - **Volta:** Sim, imediato e sem reinstalar nada: 'sudo rm /usr/local/bin/<app>' e o pacote original de /usr/bin volta a ser o executado no próximo start do app. Nada em /usr/bin é sobrescrito, nenhuma config dela é tocada, nenhum backup precisa ser mantido.
-- **Arquivos:** `/mnt/Apate/Desenvolvimento/MeowSystem/patches/libcosmic-botoes-a-esquerda.patch`, `/mnt/Apate/build/cosmic-term-1.7.0~1787681551~24.04~909a0d3/vendor/libcosmic/src/widget/header_bar.rs`, `/mnt/Apate/build/cosmic-term-1.7.0~1787681551~24.04~909a0d3/vendor/libcosmic/.cargo-checksum.json`, `/usr/local/bin/cosmic-term`, `/usr/local/bin/cosmic-files`, `/usr/local/bin/cosmic-edit`, `/usr/local/bin/cosmic-settings`, `/usr/local/bin/cosmic-store`, `/usr/local/bin/cosmic-player`, `/usr/local/bin/cosmic-monitor`, `/home/vitoriamaria/.config/zsh/scripts/aurora-cosmic-apps-botoes.sh`, `/mnt/Apate/Desenvolvimento/MeowSystem/scripts/botoes.sh`, `/mnt/Apate/Desenvolvimento/MeowSystem/bin/meow`
+- **Arquivos:** `/mnt/Apate/Desenvolvimento/MeowSystem/patches/libcosmic-botoes-a-esquerda.patch`, `/mnt/Apate/build/cosmic-term-1.7.0~1787681551~24.04~909a0d3/vendor/libcosmic/src/widget/header_bar.rs`, `/mnt/Apate/build/cosmic-term-1.7.0~1787681551~24.04~909a0d3/vendor/libcosmic/.cargo-checksum.json`, `/usr/local/bin/cosmic-term`, `/usr/local/bin/cosmic-files`, `/usr/local/bin/cosmic-edit`, `/usr/local/bin/cosmic-settings`, `/usr/local/bin/cosmic-store`, `/usr/local/bin/cosmic-player`, `/usr/local/bin/cosmic-monitor`, `~/.config/zsh/scripts/aurora-cosmic-apps-botoes.sh`, `/mnt/Apate/Desenvolvimento/MeowSystem/scripts/botoes.sh`, `/mnt/Apate/Desenvolvimento/MeowSystem/bin/meow`
 
 ---
 
@@ -283,11 +283,11 @@ EDIÇÃO 5c — no fim de Config::load, copiar `cosmic_comp_config.leitura_*` pa
 - **Risco:** ALTO e único: shader que não compila = sem desktop E sem tela de login, porque o greeter roda o mesmo binário. O gate EGL do passo 18 é o que impede — nenhum binário vai para /usr/bin sem passar nele. Risco menor: esquecer o is_noop() faz o passe ser pulado e nada aparecer, sem mensagem de erro.
 - **Volta:** O cartão de recuperação do campo `recuperacao`, por TTY (Ctrl+Alt+F2) ou ssh, restaurando o `.orig` — que conferi agora que bate com o md5 do dpkg. Antes disso: se o gate reprovar, nada foi instalado e não há o que desfazer.
 - **Arquivos:**
-  - `/home/vitoriamaria/.config/zsh/patches/patches.d/series`
-  - `/home/vitoriamaria/.config/zsh/patches/patches.d/cosmic-comp-modo-leitura.patch`
-  - `/home/vitoriamaria/.config/zsh/patches/patches.d/cosmic-comp-sem-workspace-vazio.patch`
-  - `/home/vitoriamaria/.config/zsh/scripts/aurora-cosmic-comp-ws.sh`
-  - `/home/vitoriamaria/.config/zsh/scripts/aurora-glsl-gate.c`
+  - `~/.config/zsh/patches/patches.d/series`
+  - `~/.config/zsh/patches/patches.d/cosmic-comp-modo-leitura.patch`
+  - `~/.config/zsh/patches/patches.d/cosmic-comp-sem-workspace-vazio.patch`
+  - `~/.config/zsh/scripts/aurora-cosmic-comp-ws.sh`
+  - `~/.config/zsh/scripts/aurora-glsl-gate.c`
   - `/mnt/Apate/Desenvolvimento/cosmic-comp-patch/cosmic-comp-0.1~1787767625~24.04~5c93094/src/backend/render/shaders/offscreen.frag`
   - `/mnt/Apate/Desenvolvimento/cosmic-comp-patch/cosmic-comp-0.1~1787767625~24.04~5c93094/src/backend/render/mod.rs`
   - `/mnt/Apate/Desenvolvimento/cosmic-comp-patch/cosmic-comp-0.1~1787767625~24.04~5c93094/src/backend/kms/surface/mod.rs`
@@ -352,7 +352,7 @@ Passos:
   - `/mnt/Apate/Desenvolvimento/MeowSystem/scripts/leitura_build.sh`
   - `/mnt/Apate/Desenvolvimento/MeowSystem/scripts/leitura.sh`
   - `/mnt/Apate/Desenvolvimento/MeowSystem/bin/meow`
-  - `/home/vitoriamaria/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings`
+  - `~/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings`
 
 #### 4. Aposentar o night light sem apagá-lo
 
@@ -373,7 +373,7 @@ Passos:
 - **Risco:** BAIXO. A trava não escreve byte nenhum. Se ela for posta no lugar errado (linha 192), o `--restore` do patcher para de funcionar — e ele é um dos caminhos de volta. O passo 2 existe só por causa disso.
 - **Volta:** Tirar as 6 linhas da trava. E, mesmo com a trava errada, a recuperação principal continua sendo o `.orig` por TTY, que não passa pelo patcher.
 - **Arquivos:**
-  - `/home/vitoriamaria/.config/zsh/scripts/aurora-night-light.py`
+  - `~/.config/zsh/scripts/aurora-night-light.py`
   - `/usr/local/bin/aurora-night-light.py`
 
 #### 5. O doctor conta a verdade sobre o compositor
@@ -396,7 +396,7 @@ Passos:
 - **Arquivos:**
   - `/mnt/Apate/Desenvolvimento/MeowSystem/bin/meow`
   - `/mnt/Apate/Desenvolvimento/MeowSystem/lib/painel.sh`
-  - `/home/vitoriamaria/.config/zsh/scripts/aurora-cosmic-comp-ws.sh`
+  - `~/.config/zsh/scripts/aurora-cosmic-comp-ws.sh`
 
 #### 6. Fechar a dívida do raio de canto
 
@@ -416,8 +416,8 @@ Passos:
 - **Risco:** MÉDIO. É `opt`, então se não aplicar o build segue sem ele. Mas ele MEXE no protocolo de canto do painel — e é o painel que já sumiu por causa desse arquivo. Um build que sobe e desenha errado não dispara alarme nenhum; o sintoma é o painel fantasma.
 - **Volta:** Tirar a linha `opt:` da série e rebuildar. O teto de 8 do lado do Meow continua valendo enquanto o marcador não estiver no binário, então a barra dela não fica desprotegida no meio do caminho.
 - **Arquivos:**
-  - `/home/vitoriamaria/.config/zsh/patches/patches.d/cosmic-comp-raio-clampado.patch`
-  - `/home/vitoriamaria/.config/zsh/patches/patches.d/series`
+  - `~/.config/zsh/patches/patches.d/cosmic-comp-raio-clampado.patch`
+  - `~/.config/zsh/patches/patches.d/series`
   - `/mnt/Apate/Desenvolvimento/MeowSystem/README.md`
   - `/mnt/Apate/Desenvolvimento/MeowSystem/scripts/forma.sh`
 
@@ -800,4 +800,3 @@ for t in d['dossie_bruto']:
 A estrutura é `plano` (a síntese) e `dossie_bruto[]` (uma entrada por trilha, cada uma com
 `achados`, `codigo`, `derrubado` e `solucoes` já passadas por um cético adversarial que
 tentou refutá-las).
-

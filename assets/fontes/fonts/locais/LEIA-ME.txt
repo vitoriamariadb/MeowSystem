@@ -38,7 +38,7 @@ O BINÁRIO NÃO VAI PARA O GIT
 zrnic rg.otf
 ================================================================================
 
-Pedido dela em 27/08/2026: *"/home/vitoriamaria/Downloads/zrnic.zip instala essa
+Pedido dela em 27/08/2026: *"/home/<usuário>/Downloads/zrnic.zip instala essa
 fonte via install por favor."*
 
     família   Zrnic  (a tabela `name` também traz "Zrnic Rg")

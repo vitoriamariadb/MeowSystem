@@ -449,7 +449,7 @@ function encurtarCaminho(txt) {
   /* A BARRA DO FIM TAMBÉM SAI DA COMPARAÇÃO — 21/09/2026
    *   O `filter(Boolean)` acima come a barra final, então um caminho de
    * DIRETÓRIO nunca era igual ao original e ganhava um "…/" que mentia:
-   * `/home/andrefarias/Imagens/` voltava como `…/home/andrefarias/Imagens`,
+   * `/home/<usuário>/Imagens/` voltava como `…/home/<usuário>/Imagens`,
    * 26 caracteres, nada cortado, e a reticência anunciando que havia mais
    * acima de `/home`. Nenhum balão de hoje passa diretório por aqui (os oito
    * que carregam caminho terminam em nome de arquivo), mas a mentira estava a
@@ -460,7 +460,7 @@ function encurtarCaminho(txt) {
 /* O COMANDO COMO ELA O DIGITARIA — 22/09/2026
  * ---------------------------------------------------------------------------
  * A linha embaixo de cada cartão de ação imprimia o `argv` inteiro, com o
- * caminho absoluto na frente: `/home/andrefarias/…/bin/meow doctor`. Medido com
+ * caminho absoluto na frente: `/home/<usuário>/…/bin/meow doctor`. Medido com
  * o painel no ar e as 14 abas percorridas: 42 dessas linhas, e mais uma no
  * «vale como:» de `WALLPAPER_BASE` — 43 caminhos absolutos na tela, quase todos
  * repetindo o MESMO prefixo, que é a parte que não identifica nada.
@@ -495,11 +495,11 @@ function comandoCurto(cmd) {
 
 /* O 43º CAMINHO DA TELA, que não é comando — 22/09/2026
  * A linha «vale como:» do cartão existe para mostrar o valor com `$HOME` já
- * trocado, e era ela que imprimia `/home/andrefarias/.local/share/…` por
+ * trocado, e era ela que imprimia `/home/<usuário>/.local/share/…` por
  * extenso. A casa da pessoa NÃO vem de uma expressão sobre `/home/`: ela é
  * DERIVADA do par que o cartão já tem na mão — o valor cru começa em `$HOME`,
  * o efetivo termina no mesmo resto, logo o que sobra na frente do efetivo é a
- * casa dela, seja ela `/home/andrefarias` ou qualquer outro lugar.
+ * casa dela, seja ela `/home/<usuário>` ou qualquer outro lugar.
  *   O QUE SE PERDE, DITO EM VOZ ALTA: com o `~` no lugar, a frase passa a
  * diferir do valor cru quase só pelo símbolo. Ela continua porque a decisão de
  * 09/09 é mostrar os dois lados, e porque `~` é o que a pessoa vê no
@@ -2029,7 +2029,7 @@ function controleImagem(item, tipo, aplica) {
      * e o `porBalao` decide pelo que o elemento ESCREVE NA TELA: achando um
      * botão sem texto nenhum, ele fazia do balão o nome acessível. Resultado
      * medido em 21/09, com o painel no ar: 32 botões desta grade anunciavam
-     * «/home/andrefarias/.local/share/icons/…/default» — o caminho do arquivo
+     * «/home/<usuário>/.local/share/icons/…/default» — o caminho do arquivo
      * no lugar do nome do gato, e 67 caracteres onde cabia «Coquinha».
      *   Entregando os filhos ao `elemento()` o `porBalao` vê o rótulo, não põe
      * `aria-label` nenhum, e o nome acessível volta a ser o que está escrito
@@ -5097,7 +5097,7 @@ function montarAcao(acao) {
    * então as duas leituras passam a concordar; e como o valor vem de um
    * `<select>`, a linha se reescreve quando ele muda. */
   /* E O CAMINHO ABSOLUTO SAI DESTA LINHA — 22/09/2026
-   *   Ela imprimia o `argv` inteiro, com `/home/andrefarias/…` na frente: 42
+   *   Ela imprimia o `argv` inteiro, com `/home/<usuário>/…` na frente: 42
    * das 43 tarjas de caminho que a página mostrava. O que a linha existe para
    * dizer é O QUE VAI RODAR, e para isso `meow doctor` diz mais que o caminho
    * completo do executável — é assim que o README escreve e é assim que ela

@@ -232,7 +232,7 @@ _meow_qbt_avisar_nativo() {
 #   2. o arquivo tem origem conhecida e ALCANCE INSTÁVEL. Medido em
 #      22/09/2026: ele está em `Remotos/Andromeda-OS/usr/local/bin/`, 27.253
 #      bytes, e aquele caminho é um `sshfs` da outra máquina
-#      (`vitoriamaria@meowsystem.local:/`, fuse.sshfs, 58 G). Estava montado na
+#      (`<usuário>@meowsystem.local:/`, fuse.sshfs, 58 G). Estava montado na
 #      hora da medição — e é justamente por isso que ele não serve de conserto:
 #      um botão que depende de a rede e o host do outro lado estarem de pé
 #      promete o que não entrega na metade das vezes;
@@ -393,7 +393,7 @@ _meow_qbt_instalar_tema() {
 #   Em 21/09/2026, nesta máquina:
 #     ~/.var/app/…/qBittorrent/qBittorrent.conf
 #         General\UseCustomUITheme    = true
-#         General\CustomUIThemePath   = /home/andrefarias/.themes/dracula.qbtheme
+#         General\CustomUIThemePath   = /home/<usuário>/.themes/dracula.qbtheme
 #     ~/.themes/dracula.qbtheme        4.468 bytes, escrito às 16:49 do mesmo dia
 #
 #   E o módulo dizia «não há quem escreva o qBittorrent.conf» — enquanto o conf

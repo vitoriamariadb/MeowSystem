@@ -110,7 +110,7 @@ com teste.
 
 - **O «Voltar ao tema de antes» restaura o desktop de OUTRA PESSOA.**
   `assets/temas/capturados/original/captura.txt` registra
-  `origem: /home/vitoriamaria/.config/cosmic`, 121 arquivos, 04/08/2026. É o
+  `origem: /home/<usuário>/.config/cosmic`, 121 arquivos, 04/08/2026. É o
   que o `meow desfazer` devolve — nesta máquina, hoje. E o
   `capturar_tema.sh:67` **recusa recapturá-lo**, então não se conserta sozinho
   (P24).
@@ -1314,7 +1314,7 @@ Frase dela: *"o papel de parede voltou a ser o antigo também. novamente"*.
 
 ```
 ~/.config/cosmic/com.system76.CosmicBackground/v1/output.DP-1   [10/08 18:48]
-    source: Path("/home/vitoriamaria/Imagens/Parede_papel/Cyberpunk Neon Cat …jpeg")
+    source: Path("/home/<usuário>/Imagens/Parede_papel/Cyberpunk Neon Cat …jpeg")
     sampling_method: Alphanumeric
 ```
 

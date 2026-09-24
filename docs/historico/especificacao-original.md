@@ -1,7 +1,7 @@
 # MeowSystem-Theme — Catppuccin para COSMIC
 
 Relatório técnico + plano de execução para transformar o rice manual do
-`vitoriamaria@MeowSystem` num repositório instalável, idempotente e reversível —
+`<usuário>@MeowSystem` num repositório instalável, idempotente e reversível —
 no mesmo espírito do `Dracula_OS-Theme`, mas nativo de COSMIC.
 
 | | |
@@ -610,7 +610,7 @@ remote `cosmic`, v0.8.0), e ele já tem as chaves prontas:
 
 ```ron
 ~/.config/cosmic/dev.cappsy.CosmicExtAppletLogoMenu/v1/custom_logo_active  → true
-~/.config/cosmic/dev.cappsy.CosmicExtAppletLogoMenu/v1/custom_logo_path    → "/home/vitoriamaria/.config/cosmic/logos/gato-pop.svg"
+~/.config/cosmic/dev.cappsy.CosmicExtAppletLogoMenu/v1/custom_logo_path    → "/home/<usuário>/.config/cosmic/logos/gato-pop.svg"
 ~/.config/cosmic/dev.cappsy.CosmicExtAppletLogoMenu/v1/logo                → "SteamDeck (Blue)"
 ```
 
@@ -762,5 +762,5 @@ onde foi parar, e automatiza por cópia. Suas preferências (fonte 14, opacidade
 - **Papirus Icon Theme** — GPL-3.0
 - **Cosmictron** — SethStormR (comunidade)
 - **cosmic-ext-bg** — olafkfreund (comunidade)
-- **Dracula_OS-Theme** — AndreBFarias, GPL-3.0 (arquitetura de referência e sons CC0)
+- **Dracula_OS-Theme** — `github.com/AndreBFarias/Dracula_OS-Theme`, GPL-3.0 (arquitetura de referência e sons CC0)
 - Logo do gato: original, feita para este projeto, sobre a paleta Catppuccin.
