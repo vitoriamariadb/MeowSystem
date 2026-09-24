@@ -91,6 +91,14 @@ meow_app_aplicar() {
     # O "já está" só sai no fim, se nada mudou (ver o kitty).
     [ "$_TG_NO_AR" = "$_TG_QUERO" ] \
       || meow_muda "Telegram: o arquivo do MeowSystem estava em '$_TG_NO_AR' — passa a '$_TG_QUERO'"
+  elif [ -z "$_TG_NO_AR" ]; then
+    # Sem arquivo NÃO é "sem tema", e é por isso que a ajudante comum não fala
+    # aqui (revisão da P42, 24/09/2026): ela dizia "está sem tema", e o tema no
+    # ar mora no `tdata`, que daqui não se lê — o Telegram pode estar em
+    # qualquer um. O que falta é o arquivo. A pendência de terceiro, se havia
+    # uma de um arquivo alheio que saiu, some do mesmo jeito que sumiria lá.
+    meow_pendencia_resolvida telegram-tema-de-terceiro
+    meow_info "Telegram: o arquivo do tema do pack ainda não foi entregue — monto (do pack $_TG_DE)"
   else
     # Um arquivo de outro dono NO NOSSO caminho é raro — mas é dela, e a regra é
     # a mesma dos outros módulos: pergunta, ou deixa pendência.
@@ -100,7 +108,11 @@ meow_app_aplicar() {
 
   meow_escrever "$_TG_ARQ" "$_TG_DESEJADO" 644
   case $? in
-    0) meow_app_tema_no_ar telegram "$_TG_QUERO" "$_TG_QUERO" "$_TG_DE"; return "$MEOW_OK" ;;
+    # O par do "sem tema" de cima: a ajudante diria "já está no tema do pack",
+    # e o que se sabe é só que o arquivo está entregue.
+    0) meow_pendencia_resolvida telegram-tema-de-terceiro
+       meow_ok "Telegram: o arquivo do tema do pack já está entregue (do pack $_TG_DE) — $_TG_QUERO"
+       return "$MEOW_OK" ;;
     2) meow_erro "Telegram: falhou ao escrever $_TG_ARQ"; return "$MEOW_ERRO" ;;
   esac
   meow_seco && return "$MEOW_DIVERGENTE"

@@ -413,6 +413,28 @@ saida="$(mod kitty aplicar)"; rc=$?
 [ "$rc" = 3 ] && [ ! -e "$K/current-theme.conf" ] \
   && ok "kitty: cor escrita no kitty.conf conta como tema dela (rc=3), e nada é escrito" \
   || falha "kitty: sobrescreveu as cores escritas no kitty.conf (rc=$rc)" "$saida"
+rm -rf "$K"
+# O `include` fora do bloco também é tema dela, quando o incluído pinta — é como
+# o dracula/kitty manda instalar (`include dracula.conf`). A primeira versão lia
+# isso como "sem tema" e punha o nosso bloco no fim, onde ele vence: o tema dela
+# trocado calado (revisão da P42, 24/09/2026). E o `include` que só traz fonte
+# não é tema: aplica, e a linha dela fica.
+mkdir -p "$K"; printf 'font_size 12\ninclude gruvbox.conf\n' > "$K/kitty.conf"
+printf 'background #282828\nforeground #ebdbb2\n' > "$K/gruvbox.conf"
+antes="$(cat "$K/kitty.conf")"
+saida="$(mod kitty conferir)"; rc1=$?
+saida="$saida$(mod kitty aplicar)"; rc2=$?
+[ "$rc1" = 3 ] && [ "$rc2" = 3 ] && [ "$(cat "$K/kitty.conf")" = "$antes" ] && [ ! -e "$K/current-theme.conf" ] \
+  && printf '%s' "$saida" | grep -q 'gruvbox.conf (incluído pelo kitty.conf)' \
+  && ok "kitty: um include fora do bloco que pinta é tema dela (rc=3), e o kitty.conf fica intocado" \
+  || falha "kitty: o include dela foi lido como 'sem tema' (conferir=$rc1, aplicar=$rc2)" "$saida$(cat "$K/kitty.conf")"
+rm -f "$K/gruvbox.conf"
+printf 'font_family Fira Code\n' > "$K/fontes.conf"; printf 'font_size 12\ninclude fontes.conf\n' > "$K/kitty.conf"
+saida="$(mod kitty aplicar)"; rc=$?
+[ "$rc" = 1 ] && [ "$(tail -n 1 "$K/kitty.conf")" = '# END_KITTY_THEME' ] && grep -qx 'include fontes.conf' "$K/kitty.conf" \
+  && ok "kitty: um include que só traz fonte não é tema — aplica, e o include dela fica" \
+  || falha "kitty: um include sem cor travou o tema (rc=$rc)" "$saida"
+mod kitty reverter >/dev/null
 rm -rf "$K" "$BIN/kitty"
 saida="$(mod kitty detectar)"; rc=$?
 [ "$rc" = 3 ] && ok "kitty: sem o kitty, o detectar dá pendente" \
@@ -425,8 +447,15 @@ mkdir -p "$CASA/.local/share/flatpak/app/org.telegram.desktop"
 TG="$CASA/.local/share/meowsystem/temas-de-apps/telegram/MeowSystem.tdesktop-theme"
 saida="$(mod telegram aplicar)"; rc=$?
 [ "$rc" = 1 ] && grep -q '^// meowsystem-tema: dracula/dracula' "$TG" 2>/dev/null \
-  && ok "telegram: aplicar entrega o tema montado no lugar fixo" \
-  || falha "telegram: o tema não foi entregue (rc=$rc)" "$saida"
+  && ! printf '%s' "$saida" | grep -q 'está sem tema' \
+  && ok "telegram: aplicar entrega o tema montado no lugar fixo, e não diz que o app está sem tema" \
+  || falha "telegram: o tema não foi entregue, ou a tela disse 'está sem tema' (rc=$rc)" "$saida"
+# O que daqui se lê é o ARQUIVO, e não o tema no ar (ele mora no `tdata`): a
+# segunda passada diz "entregue", nunca "já está no tema do pack" (revisão da P42).
+saida="$(mod telegram aplicar)"; rc=$?
+[ "$rc" = 0 ] && printf '%s' "$saida" | grep -q 'já está entregue' && ! printf '%s' "$saida" | grep -q 'já está no tema do pack' \
+  && ok "telegram: a segunda passada diz que o arquivo está entregue (rc=0)" \
+  || falha "telegram: a segunda passada disse o que não sabe (rc=$rc)" "$saida"
 saida="$(mod telegram conferir)"; rc=$?
 [ "$rc" = 0 ] && ok "telegram: depois de aplicar, o conferir dá 0" || falha "telegram: conferir devolveu $rc" "$saida"
 saida="$(mod telegram reverter)"; rc=$?
@@ -504,6 +533,20 @@ mod onlyoffice reverter >/dev/null
 [ "$rc1" = 1 ] && [ "$rc2" = 0 ] && [ "$(cat "$OO_CONF")" = "$(printf '[General]\nUITheme=theme-dark')" ] \
   && ok "onlyoffice: sem appdata, o caminho no UITheme é lido pelo id do JSON — o nosso segue sendo o nosso" \
   || falha "onlyoffice: sem appdata o próprio tema virou terceiro (rc=$rc1 e $rc2)" "$saida$(cat "$OO_CONF")"
+# NUNCA ABERTO: sem o conf, a escolha não tem onde morar. O tema vai para a
+# pasta e a escolha espera, dita como pendência nas duas passadas e no conferir.
+# A primeira versão dizia "aplicado" na 1ª e "já está no tema do pack" com rc=0
+# na 2ª, enquanto o conferir dava 1 — e o doctor nunca convergia (revisão da
+# P42, 24/09/2026). E o conf continua sem ser criado: é do app.
+rm -f "$OO_CONF"
+saida="$(mod onlyoffice aplicar)"; rc1=$?
+saida="$saida$(mod onlyoffice aplicar)"; rc2=$?
+saida="$saida$(mod onlyoffice conferir)"; rc3=$?
+[ "$rc1" = 3 ] && [ "$rc2" = 3 ] && [ "$rc3" = 3 ] && [ -f "$OO_ARQ" ] && [ ! -e "$OO_CONF" ] \
+  && ! printf '%s' "$saida" | grep -qE 'já está no tema do pack|tema do pack aplicado' \
+  && ok "onlyoffice: nunca aberto, o tema vai para a pasta e a escolha é pendência — no aplicar e no conferir (rc=3)" \
+  || falha "onlyoffice: nunca aberto, a tela e os códigos discordam (aplicar=$rc1 e $rc2, conferir=$rc3)" "$saida"
+mod onlyoffice reverter >/dev/null
 
 # --- GNOME Terminal ------------------------------------------------------
 #   O `dconf` de mentira guarda cada chave numa linha do HOME de brinquedo, e
@@ -625,6 +668,23 @@ saida="$(nomes --aplicar --so-flatpak)"; rc=$?
 [ "$rc" = 1 ] && [ "$(stat -c '%a' "$AP/seiscentos.desktop")" = 644 ] \
   && ok "permissão: o gatilho do flatpak (--so-flatpak) também conserta — é o evento que deixa o 600" \
   || falha "permissão: o --so-flatpak não consertou (rc=$rc)" "$saida"
+# O chmod que falha é erro, mas não pode calar o lançador: com um nome encurtado
+# na mesma passada, o `meow_lancador_reler` roda antes do erro (revisão da P42,
+# 24/09/2026). O `chmod` de mentira falha só no `trava.desktop`; o `pgrep` e o
+# `pkill` de mentira contam se o lançador foi chacoalhado, sem tocar o de quem roda.
+BIN9="$T/bin9"; mkdir -p "$BIN9"
+printf '#!/bin/sh\ncase "$*" in *trava.desktop*) exit 1 ;; esac\nexec %s "$@"\n' "$(command -v chmod)" > "$BIN9/chmod"
+printf '#!/bin/sh\nexit 0\n' > "$BIN9/pgrep"
+printf '#!/bin/sh\necho "$*" >> "%s"\n' "$T/pkill9.log" > "$BIN9/pkill"
+chmod +x "$BIN9/chmod" "$BIN9/pgrep" "$BIN9/pkill"
+printf '[Desktop Entry]\nName=Um Nome Comprido Demais\n' > "$AP/meow-teste-longo.desktop"
+printf '[Desktop Entry]\nName=trava\n' > "$AP/trava.desktop"; chmod 600 "$AP/trava.desktop"
+printf 'meow-teste-longo:Curto\n' > "$T/mapa9b"
+saida="$(env -i PATH="$BIN9:$PATH" HOME="$T/casa9" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$T/estado9" \
+    MEOW_NOMES_MAPA="$T/mapa9b" NO_COLOR=1 "$RAIZ/scripts/nomes_apps.sh" --sem-sudo </dev/null 2>&1)"; rc=$?
+[ "$rc" = 2 ] && grep -qx 'Name=Curto' "$AP/meow-teste-longo.desktop" && [ -s "$T/pkill9.log" ] \
+  && ok "permissão: o chmod que falha é erro (rc=2), mas só depois de o lançador reler o nome encurtado" \
+  || falha "permissão: o chmod que falhou calou o lançador (rc=$rc)" "$saida$(cat "$T/pkill9.log" 2>&1)"
 
 # ---------------------------------------------------------------------------
 printf '\n'

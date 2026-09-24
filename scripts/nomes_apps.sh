@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # nomes_apps.sh — encurta o `Name=` dos aplicativos que estouram a célula do
-#                 lançador do COSMIC.
+#                 lançador do COSMIC, e devolve 644 aos `.desktop` do home
+#                 (desde 24/09/2026, sprint P42 — ver "A PERMISSÃO" abaixo).
 #
 #   ./nomes_apps.sh              aplica (o mesmo que --aplicar)
 #   ./nomes_apps.sh --conferir   não escreve; devolve 1 se algo divergir
 #   ./nomes_apps.sh --sem-sudo   aplica só o que não precisa de root
-#   ./nomes_apps.sh --so-flatpak aplica só nos exports de flatpak do home
-#   ./nomes_apps.sh --so-sistema aplica só em /usr/share e /var/lib (é o gatilho do apt)
+#   ./nomes_apps.sh --so-flatpak aplica só nos exports de flatpak do home, e o
+#                                644 em ~/.local/share/applications
+#   ./nomes_apps.sh --so-sistema aplica só em /usr/share e /var/lib (é o gatilho do apt;
+#                                não toca a permissão do home)
 #
 # O QUE ELA VÊ HOJE, E POR QUE
 #   "os .desktop super feios" — e, perguntada, o que incomoda são "os nomes
@@ -372,10 +375,6 @@ if [ "$falhou" = 1 ]; then
   meow_erro "algum nome não pôde ser reescrito"
   exit "$MEOW_ERRO"
 fi
-if [ "$perm_falhou" = 1 ]; then
-  meow_erro "algum .desktop do home não pôde voltar a 644"
-  exit "$MEOW_ERRO"
-fi
 
 if [ "$pendente_sudo" -gt 0 ]; then
   if [ "$SEM_SUDO" = 1 ]; then
@@ -386,7 +385,7 @@ if [ "$pendente_sudo" -gt 0 ]; then
   fi
 fi
 
-if [ "$mudou" = 0 ] && [ "$pendente_sudo" = 0 ] && [ "$perm_n" = 0 ]; then
+if [ "$mudou" = 0 ] && [ "$pendente_sudo" = 0 ] && [ "$perm_n" = 0 ] && [ "$perm_falhou" = 0 ]; then
   meow_ok "nomes do lançador já curtos ($total no mapa, $ausentes não instalados)"
   exit "$MEOW_OK"
 fi
@@ -421,6 +420,14 @@ if [ "$mudou" = 1 ]; then
   #   A chamada é guardada pelo `mudou = 1`: sem escrita, ninguém chacoalha o
   #   lançador, porque isso fecharia a grade se ela estivesse com ela aberta.
   meow_lancador_reler
+fi
+
+# O chmod que falhou é erro, mas só DEPOIS de o lançador reler: ele não tem nada
+# a ver com os nomes, e sair antes deixava um nome já encurtado no disco com o
+# comprido na tela até a próxima sessão (revisão da P42, 24/09/2026).
+if [ "$perm_falhou" = 1 ]; then
+  meow_erro "algum .desktop do home não pôde voltar a 644"
+  exit "$MEOW_ERRO"
 fi
 
 exit "$MEOW_DIVERGENTE"

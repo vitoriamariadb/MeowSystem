@@ -31,11 +31,12 @@
 #   que ela escrever abaixo dele é dela, e vence, que é como o kitty funciona.
 #
 # AS TRÊS SAÍDAS DA LEITURA (a regra da P18, `meow_app_tema_no_ar`)
-#   sem tema         nem `current-theme.conf` nem cor escrita no `kitty.conf`
+#   sem tema         nem `current-theme.conf` nem cor no `kitty.conf`
 #   do pack          o `current-theme.conf` tem a marca `meowsystem-tema:`
-#   de terceiro      o arquivo existe sem a marca, OU o `kitty.conf` escreve as
-#                    cores ele mesmo — as duas são escolha dela, e a resposta é
-#                    PERGUNTAR (ou deixar pendência), nunca sobrescrever calado.
+#   de terceiro      o arquivo existe sem a marca, OU o `kitty.conf` põe as
+#                    cores ele mesmo, escritas ou por um `include` fora do bloco
+#                    — é escolha dela, e a resposta é PERGUNTAR (ou deixar
+#                    pendência), nunca sobrescrever calado.
 #   A marca diz também pack e flavor. Um tema NOSSO de outro flavor não é de
 #   terceiro: é o mesmo módulo de antes, e ele se atualiza sem perguntar.
 #
@@ -69,26 +70,101 @@ _kitty_marca() {
   sed -n 's/^# meowsystem-tema: \([^ ]*\).*$/\1/p' "$1" 2>/dev/null | head -n 1
 }
 
-# Cor escrita no próprio kitty.conf, FORA do nosso bloco. É tema à mão.
+# Cor no kitty.conf FORA do nosso bloco: escrita nele, ou num arquivo que ele
+# inclui. As duas são tema à mão. Imprime o que achou, para a tela dizer qual.
+#
+# O `include` CONTA, E CONTAR SÓ A COR ESCRITA ERA O DEFEITO — 24/09/2026
+#   A primeira versão só olhava a cor escrita no próprio arquivo, e o
+#   dracula/kitty manda instalar justamente com `include dracula.conf`. Na
+#   revisão da P42, uma casa de brinquedo com `font_size 12` e `include
+#   gruvbox.conf` deu conferir "está sem tema" e aplicar rc=1, com o nosso
+#   bloco no fim — e no kitty a última linha vence: o tema dela trocado calado,
+#   que é a saída que a P18 proíbe.
+#
+#   O incluído só conta se PINTA: `include fontes.conf` com fonte e atalho não é
+#   tema. O caminho se resolve como a documentação do kitty descreve (variável
+#   de ambiente, `~`, relativo à pasta de quem inclui; `globinclude` pelo
+#   padrão) — descrito, não medido: o kitty não está instalado nesta máquina. O
+#   incluído do incluído também é lido. O que não existe o kitty ignora e não
+#   pinta, então não conta; o que existe e não se deixa ler conta — ilegível não
+#   é "sem tema" (a mesma regra do `appdata` no módulo do OnlyOffice).
 _kitty_conf_tem_cor() {
   [ -f "$_KITTY_CONF" ] || return 1
-  awk '
-    /^# BEGIN_KITTY_THEME/ { dentro = 1 }
-    /^# END_KITTY_THEME/   { dentro = 0; next }
-    !dentro && /^[[:space:]]*(foreground|background|color[0-9]+)[[:space:]]/ { achou = 1 }
-    END { exit !achou }
-  ' "$_KITTY_CONF"
+  python3 - "$_KITTY_CONF" <<'PY'
+import glob, os, re, sys
+
+COR = re.compile(r"^\s*(foreground|background|color[0-9]+)\s")
+INC = re.compile(r"^\s*(include|globinclude)\s+(.+?)\s*$")
+vistos = set()
+
+
+def linhas(arq):
+    with open(arq, encoding="utf-8", errors="replace") as f:
+        return f.read().split("\n")
+
+
+def alvos(tipo, valor, pasta):
+    alvo = os.path.expanduser(os.path.expandvars(valor))
+    if not os.path.isabs(alvo):
+        alvo = os.path.join(pasta, alvo)
+    return sorted(glob.glob(alvo)) if tipo == "globinclude" else [alvo]
+
+
+def pinta(arq):
+    real = os.path.realpath(arq)
+    if real in vistos:
+        return False
+    vistos.add(real)
+    try:
+        ls = linhas(arq)
+    except FileNotFoundError:
+        return False
+    except OSError:
+        return True
+    for l in ls:
+        if COR.match(l):
+            return True
+        m = INC.match(l)
+        if m and any(pinta(a) for a in alvos(m.group(1), m.group(2), os.path.dirname(arq))):
+            return True
+    return False
+
+
+conf = sys.argv[1]
+vistos.add(os.path.realpath(conf))
+try:
+    raiz = linhas(conf)
+except OSError:
+    print("o kitty.conf, que não se deixa ler")
+    sys.exit(0)
+dentro = False
+for l in raiz:
+    if l.startswith("# BEGIN_KITTY_THEME"):
+        dentro = True
+    elif l.startswith("# END_KITTY_THEME"):
+        dentro = False
+    elif not dentro:
+        if COR.match(l):
+            print("as cores escritas no próprio kitty.conf")
+            sys.exit(0)
+        m = INC.match(l)
+        if m and any(pinta(a) for a in alvos(m.group(1), m.group(2), os.path.dirname(conf))):
+            print(f"{m.group(2)} (incluído pelo kitty.conf)")
+            sys.exit(0)
+sys.exit(1)
+PY
 }
 
 # O que está no ar, em duas variáveis: `_KITTY_NO_AR` é o que a tela diz e
 # `_KITTY_NOSSO` é 1 quando o arquivo leva a nossa marca.
 _kitty_no_ar() {
+  local de_la
   _KITTY_NO_AR=""; _KITTY_NOSSO=0
   if [ -f "$_KITTY_TEMA" ]; then
     _KITTY_NO_AR="$(_kitty_marca "$_KITTY_TEMA")"
     if [ -n "$_KITTY_NO_AR" ]; then _KITTY_NOSSO=1; else _KITTY_NO_AR="$_KITTY_TEMA"; fi
-  elif _kitty_conf_tem_cor; then
-    _KITTY_NO_AR="as cores escritas no próprio kitty.conf"
+  elif de_la="$(_kitty_conf_tem_cor)"; then
+    _KITTY_NO_AR="$de_la"
   fi
 }
 

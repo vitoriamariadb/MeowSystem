@@ -220,6 +220,13 @@ meow_app_conferir() {
     meow_muda "OnlyOffice: o tema do pack não está em $_OO_ARQ, ou é de outro flavor"
     rc="$MEOW_DIVERGENTE"
   fi
+  # Sem o conf, a escolha não é divergência que o `aplicar` conserte — é a
+  # mesma pendência que ele devolve (ver lá). Com o tema já na pasta, 3; sem
+  # ele, o 1 de cima fica, porque a pasta o `aplicar` resolve.
+  if [ "$_OO_NO_AR" != "$_OO_TEMA_ID" ] && [ ! -f "$_OO_CONF" ] && [ "$rc" = "$MEOW_OK" ]; then
+    meow_pula "OnlyOffice: nunca foi aberto — o tema do pack já está na pasta, e a escolha espera o conf que o app cria ao abrir"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
   if [ "$_OO_NO_AR" != "$_OO_TEMA_ID" ]; then
     meow_muda "OnlyOffice: o tema escolhido é o de fábrica — o pack $_OO_DE traz '$_OO_NOME'"
     rc="$MEOW_DIVERGENTE"
@@ -245,9 +252,18 @@ meow_app_aplicar() {
 
   # 2. a escolha — só com o app fechado, e só se ainda não é a nossa.
   if [ "$_OO_NO_AR" != "$_OO_TEMA_ID" ]; then
+    # NUNCA ABERTO É PENDÊNCIA, COMO O ABERTO — 24/09/2026, revisão da P42
+    #   A primeira versão só avisava aqui e seguia para o fim: a 1ª passada dizia
+    #   "tema do pack aplicado", e a 2ª, sem nada a escrever, caía no "já está no
+    #   tema do pack — theme-meowsystem" com rc=0, enquanto o `conferir` dava 1
+    #   ("o tema escolhido é o de fábrica"). Medido numa casa de brinquedo com o
+    #   flatpak e sem o conf. A tela mentia, e o doctor nunca convergia. O conf
+    #   NÃO é criado por nós: é do app, e a forma que ele espera na primeira
+    #   abertura não foi medida. Então a escolha espera, dita, como no aberto.
     if [ ! -f "$_OO_CONF" ]; then
-      meow_info "OnlyOffice: o app nunca foi aberto, e sem o conf dele não há onde escolher o tema —"
-      meow_info "  ele já está na pasta; a próxima passagem o escolhe (ou escolha '$_OO_NOME' em Preferências > Aparência)"
+      meow_app_sem "OnlyOffice: nunca foi aberto, e sem o conf dele não há onde escolher o tema — ele já está na pasta; a escolha fica para depois da primeira abertura (ou escolha '$_OO_NOME' em Preferências > Aparência)"
+      meow_app_pendente onlyoffice
+      return "$MEOW_SEM_DEPENDENCIA"
     elif _oo_aberto; then
       meow_app_sem "OnlyOffice: está aberto, e ele reescreve o conf ao sair — o tema já está na pasta; a escolha fica para quando ele estiver fechado"
       meow_app_pendente onlyoffice
