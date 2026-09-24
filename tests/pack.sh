@@ -2092,6 +2092,112 @@ restos="$(ls -A "$DA_PESSOA" 2>/dev/null)"
   || falha "o importar aceitou a casa de alguém, ou deixou rastro (rc=$rc)" "$saida
 restos: $restos"
 
+# --- 24. o script e o painel respondem a mesma coisa — 23/09/2026, P35 -------
+#
+#   As duas anotações da P12: "com FLAVOR=alucard e PACK vazio o painel adota
+#   dracula e o shell adota o padrão", e "`cursor.sh listar` só lista `-cursors`,
+#   o painel lista também nomes exatos". As duas eram a mesma lição que a P17
+#   pagou duas vezes: uma regra escrita em shell e de novo em Python, e as
+#   cópias divergindo. A adoção agora é UMA (`pack.py adocao`) e as duas listas
+#   perguntam à mesma resolução; o que prende isso é rodar os DOIS lados no
+#   mesmo HOME de brinquedo e comparar as respostas. Os poucos valores escritos
+#   abaixo (`alucard` -> dracula, o sabor do pack de mentira -> ele) são o que a
+#   sprint prometeu, e estão lá só para os dois lados não concordarem no erro.
+#
+#   AS DUAS METADES SE AMARRAM NO PONTEIRO DO PACK. O conf da parte B tem PACK
+#   vazio e o FLAVOR claro do pack de mentira: só a adoção pelo SABOR chega ao
+#   `$ID`, e só por ela o ponteiro dele entra na lista. Um lado que voltasse a
+#   adotar só pelo nome perderia o ponteiro, e a lista dele sairia outra.
+#
+#   OS MUTANTES, MEDIDOS AO ESCREVER, cada um numa cópia da árvore:
+#     o `meow_pack_dir` de volta à adoção só pelo nome        cai A e B
+#     o `_pack_adotado` de volta a `PACK or FLAVOR`, cru      cai A e B
+#     o `_cursor_temas_instalados` de volta a `*-cursors`     cai B
+#     o `sort` do `cursor.sh` sem `LC_ALL=C`                  cai B
+#     o `cursor.sh` sem o `dotglob`                           cai B
+#   O do `sort` só cai onde houver um locale que não ordene por código de
+#   caractere — o `pt_BR.UTF-8` que vai no ambiente abaixo. Numa máquina sem
+#   ele o `sort` cai no C e a ordem deixa de ser cobrada: o conjunto continua.
+#
+#   A casa e as raízes de pack são PRÓPRIAS: as seções de cima deixam outros
+#   packs em `$PACKS`, e um que declarasse o mesmo flavor e viesse antes na
+#   ordem alfabética mudaria a resposta das duas metades juntas — o teste
+#   continuaria verde, e mediria outra coisa.
+P35="$T/p35"; H35="$P35/casa"; mkdir -p "$P35/packs" "$H35"
+cp -a "$PACK_DIR" "$P35/packs/$ID"
+PADRAO_ID="$(basename "$(amb python3 "$RAIZ/scripts/pack.py" padrao)")"
+dos_dois() {  # o ambiente dos dois lados: o mesmo HOME, as mesmas raízes
+  env -i PATH="$PATH" HOME="$H35" MEOW_RAIZ="$RAIZ" MEOW_PACKS="$P35/packs" \
+    MEOW_CONF="$P35/meow.conf" NO_COLOR=1 "$@"
+}
+
+# A. A ADOÇÃO, com PACK vazio. O shell diz o diretório (vazio = o padrão); o
+#    painel diz o id. Os dois viram id antes de comparar.
+SABORES="dracula alucard mocha latte inexistente $ID ${ID}claro"
+adocao_shell="$(for f in $SABORES; do
+  printf '%s ' "$f"
+  dos_dois PACK="" FLAVOR="$f" bash -c '. "$MEOW_RAIZ/lib/comum.sh"
+    d="$(meow_pack_dir)"; basename "${d:-$(meow_pack_padrao_dir)}"' 2>&1
+done)"
+adocao_painel="$(dos_dois python3 - $SABORES <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(os.environ["MEOW_RAIZ"], "app"))
+import servidor
+for f in sys.argv[1:]:
+    with open(servidor.CONF, "w", encoding="utf-8") as fh:
+        fh.write('PACK=""\nFLAVOR="%s"\n' % f)
+    print(f, servidor._pack_adotado())
+PY
+)"
+if [ "$adocao_shell" = "$adocao_painel" ] \
+   && [[ "$adocao_shell" == *"alucard dracula"* ]] && [[ "$adocao_shell" == *"${ID}claro $ID"* ]] \
+   && [[ "$adocao_shell" == *"mocha $PADRAO_ID"* ]] && [[ "$adocao_shell" == *"inexistente $PADRAO_ID"* ]]; then
+  ok "PACK vazio: shell e painel adotam o mesmo pack para os $(wc -w <<< "$SABORES") sabores, alucard -> dracula"
+else
+  falha "a adoção do shell e a do painel divergem, ou não adotam pelo sabor declarado" "shell:
+$adocao_shell
+painel:
+$adocao_painel"
+fi
+
+# B. A LISTA DE PONTEIROS, na ordem. Cada diretório abaixo é um caso que uma
+#    das duas listas já errou ou poderia errar sozinha:
+#      foo-cursors/      a convenção do Catppuccin: propõe `foo`
+#      Bar/              o nome EXATO — o que o `cursor.sh listar` perdia
+#      Zeta-cursors/     a ordem: em C, `Zeta` vem antes de `foo`; em pt_BR, não
+#      .oculto/          o nome com ponto, que o `os.listdir` vê e o `*` não
+#      Sequestro/        tema de ÍCONES de mesmo nome sequestra `Sequestro-cursors`:
+#                        fica de fora dos dois lados
+#    E o `/usr/share/icons` é o da máquina, lido pelos dois — o que ele tiver
+#    entra igual dos dois lados, e a comparação não depende dele.
+for d in ".local/share/icons/foo-cursors" ".icons/Bar" ".local/share/icons/Zeta-cursors" \
+         ".icons/.oculto" ".local/share/icons/Sequestro-cursors"; do
+  mkdir -p "$H35/$d/cursors"; printf 'Xcur de mentira' > "$H35/$d/cursors/left_ptr"
+done
+mkdir -p "$H35/.local/share/icons/Sequestro"
+printf '[Icon Theme]\nName=Sequestro\nDirectories=48x48/apps\n' > "$H35/.local/share/icons/Sequestro/index.theme"
+printf 'PACK=""\nFLAVOR="%s"\n' "${ID}claro" > "$P35/meow.conf"
+lista_shell="$(dos_dois PACK="" FLAVOR="${ID}claro" LC_ALL=pt_BR.UTF-8 \
+  bash "$RAIZ/scripts/cursor.sh" listar 2> "$P35/listar.err")"
+lista_painel="$(dos_dois python3 - <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(os.environ["MEOW_RAIZ"], "app"))
+import servidor
+print("\n".join(servidor._temas_de_cursor()))
+PY
+)"
+casos="$(grep -xE "Bar|Zeta|foo|\.oculto|$ID-roxo|Sequestro" <<< "$lista_shell" | tr '\n' ' ')"
+if [ "$lista_shell" = "$lista_painel" ] && [ "$casos" = ".oculto Bar Zeta foo $ID-roxo " ]; then
+  ok "cursor.sh listar e o painel: o mesmo conjunto, na mesma ordem ($(wc -l <<< "$lista_shell") ponteiros, o do pack adotado pelo sabor incluído)"
+else
+  falha "cursor.sh listar e o painel listam ponteiros diferentes, ou em outra ordem" "os casos, na ordem do shell: $casos
+shell:
+$lista_shell
+$(cat "$P35/listar.err")
+painel:
+$lista_painel"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

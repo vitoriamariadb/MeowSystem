@@ -1314,21 +1314,26 @@ def _declarado_pelo_pack(adotado, alvo):
 
 
 def _pack_adotado():
-    """O id do pack no ar, ou '' quando nenhum pack responde. [23/09/2026]
+    """O id do pack no ar, ou '' sem `scripts/pack.py`. [23/09/2026]
 
-    A MESMA ADOÇÃO DO `_vestigio_de_pack`, lá em cima: a chave PACK, ou o FLAVOR
-    quando ela está vazia — e o FLAVOR traduzido para o pack que o declara,
-    porque nenhum pack se chama `mocha`. Aquela função faz a conta no meio de
-    outra pergunta e não a devolve; a oficina (sprint P26) precisa só dela, para
-    dizer se o desenho de um pack é do pack que está no ar.
+    A oficina (sprint P26) precisa dele para dizer se o desenho de um pack é do
+    pack que está no ar, e a lista de ponteiros (`_ponteiro_do_pack`) para
+    saber de que pack é o ponteiro que o `cursor.sh` instalaria.
+
+    A CONTA NÃO É FEITA AQUI DESDE A P35 — 23/09/2026
+        Era: a chave PACK, ou o FLAVOR traduzido para o pack que o declara. O
+        `meow_pack_dir` do shell fazia outra — só pelo NOME do FLAVOR —, e com
+        `PACK=""` e `FLAVOR="alucard"` este lado dizia `dracula` enquanto a
+        máquina vestia o padrão. Agora os dois perguntam ao `adocao` do
+        `scripts/pack.py`, e o `tests/pack.sh` roda os dois no mesmo HOME de
+        brinquedo e compara. O padrão sai com o id dele, e não vazio: é ele que
+        veste a máquina quando ninguém escolheu outro.
     """
-    vals = valores_efetivos(["PACK", "FLAVOR"])
-    adotado = (vals.get("PACK") or vals.get("FLAVOR") or "").strip().lower()
     mod = modulo_pack()
-    if not mod or not adotado or mod.achar(adotado):
-        return adotado
-    dir_sabor = _pack_do_sabor(mod, adotado)
-    return os.path.basename(dir_sabor.rstrip("/")).lower() if dir_sabor else ""
+    if not mod:
+        return ""
+    vals = valores_efetivos(["PACK", "FLAVOR"])
+    return mod.adocao(vals.get("PACK") or "", vals.get("FLAVOR") or "")[0]
 
 
 def _enumerar(itens):
@@ -2099,33 +2104,21 @@ def _cursor_pastas_do_valor(valor, do_pack=None):
 def _ponteiro_do_pack():
     """O ponteiro próprio do pack no ar, COMO O `cursor.sh` O VÊ — dict ou None.
 
-    POR QUE NÃO É O `_pack_adotado()`, LÁ EM CIMA
-        O `cursor.sh` pergunta pelo pack com `meow_pack_dir` (lib/comum.sh):
-        a chave PACK; sem ela, o FLAVOR quando existe um pack com esse NOME;
-        e o pack que não passa na sonda (`pack.py caminho`) vira o padrão. O
-        `_pack_adotado` traduz o sabor para o pack que o declara — com
-        `FLAVOR="alucard"` e `PACK=""` ele responde `dracula`, e o shell,
-        `catppuccin`. Para a oficina a tradução é o certo; aqui ela ofereceria
-        na tela um ponteiro que o script não acha, e o clique sairia baixando
-        da rede. A lista do painel tem de ser a do script, e por isso esta
-        função repete a conta dele, e não a do vizinho.
+    É O `_pack_adotado()`, LÁ EM CIMA, DESDE A P35 — 23/09/2026
+        Até aqui esta função repetia a conta do `meow_pack_dir` (lib/comum.sh)
+        à mão, e dizia por quê: o `_pack_adotado` traduzia o sabor para o pack
+        que o declara e o shell não, então com `FLAVOR="alucard"` e `PACK=""`
+        a tela ofereceria um ponteiro que o script não acha. Era a terceira
+        cópia da mesma regra, escrita para não discordar da segunda. A regra
+        agora é uma só, o `adocao` do `scripts/pack.py`, e o shell e o
+        `_pack_adotado` perguntam a ela — a lista do painel continua sendo a do
+        script, agora por construção.
     """
     mod = modulo_pack()
     if not mod or not hasattr(mod, "ponteiro"):
         return None
-    vals = valores_efetivos(["PACK", "FLAVOR"])
-    pack = (vals.get("PACK") or "").strip()
-    sabor = (vals.get("FLAVOR") or "").strip()
-    if not pack and sabor and any(os.path.isfile(os.path.join(r, sabor, "pack.json"))
-                                  for r in mod.raizes()):
-        pack = sabor
-    if pack:
-        try:
-            mod.validar(pack, silencioso=True)
-        except Exception:
-            pack = ""
     try:
-        return mod.ponteiro(pack or mod.dir_padrao())
+        return mod.ponteiro(_pack_adotado() or mod.dir_padrao())
     except Exception:
         return None
 
@@ -2191,6 +2184,16 @@ def _temas_de_cursor():
         15/09, e escolhê-los NÃO toca a rede: o `_cursor_instalado` acha
         `/usr/share/icons/Adwaita` e `/usr/share/icons/Pop` pelo nome exato,
         com `cursors/` dentro — rodado com as funções do próprio script.
+
+    E O `cursor.sh listar` FICOU PARA TRÁS ATÉ A P35 — 23/09/2026
+        O script que aplica continuava listando só as pastas `-cursors`: nesta
+        máquina, `catppuccin-mocha-light` contra os quatro daqui, e fora da
+        lista dele o `Dracula-Cursor` que o meow.conf usa. Agora ele propõe e
+        peneira como esta função — cada pasta com `cursors/` propõe um valor, e
+        a resolução decide —, ordena como o `sorted()` daqui, e o pack do
+        ponteiro sai da mesma adoção (`_ponteiro_do_pack`). O `tests/pack.sh`
+        roda os dois no mesmo HOME de brinquedo e compara a lista inteira, na
+        ordem.
     """
     fora = set()
     do_pack = _ponteiro_do_pack()

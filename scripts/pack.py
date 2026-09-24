@@ -108,6 +108,13 @@ VERBOS
     padrao                       o diretório do pack PADRÃO, resolvido pelas
                                  raízes como qualquer outro. É o que o shell
                                  pergunta em vez de cravar o nome dele.
+    adocao  <PACK> <FLAVOR>      o pack que um meow.conf com esses dois valores
+                                 veste — a regra única do `meow_pack_dir` e do
+                                 painel. Imprime, para o shell ler com `sed`:
+                                     pack=<o id que veste, o padrão incluído>
+                                     dir=<o diretório; vazio = ninguém escolheu>
+                                     recusado=<o id que não validou, ou vazio>
+                                 Ver `adocao`.
 
     Sem argumento, imprime esta ajuda.
 
@@ -351,6 +358,119 @@ def dir_padrao():
         DEVERIA estar faz o erro dizer o que falta.
     """
     return achar(PACK_PADRAO) or os.path.join(RAIZ, "packs", PACK_PADRAO)
+
+
+# A ADOÇÃO: QUE PACK UM meow.conf VESTE — 23/09/2026, sprint P35
+#
+# A MESMA PERGUNTA TINHA TRÊS RESPOSTAS, EM DUAS LÍNGUAS
+#   O `meow_pack_dir` (lib/comum.sh) adotava pelo NOME do FLAVOR; o
+#   `_pack_adotado` do painel, pelo SABOR que a paleta declara; e o
+#   `_ponteiro_do_pack`, também do painel, repetia a conta do shell de
+#   propósito, para a lista de ponteiros não oferecer o que o script não acha.
+#   Medido em 23/09, com PACK vazio, num HOME de brinquedo:
+#
+#     FLAVOR        shell        painel
+#     dracula       dracula      dracula
+#     alucard       o padrão     dracula      <- a divergência que a P12 anotou
+#     mocha         o padrão     catppuccin
+#     latte         o padrão     catppuccin
+#     inexistente   o padrão     ''           ("nenhum pack responde")
+#
+#   `mocha` e `latte` só concordavam porque o padrão É o Catppuccin. Com
+#   `FLAVOR="alucard"` o shell vestia a máquina com a paleta do Catppuccin e o
+#   painel abria a oficina do Dracula. É o defeito que a P17 pegou duas vezes e
+#   que reprovou a P10: a mesma regra escrita duas vezes, e as cópias
+#   divergindo no primeiro caso esquisito.
+#
+# A REGRA MORA AQUI, E OS DOIS LADOS PERGUNTAM
+#   O shell pelo verbo `adocao`; o painel importando este arquivo, como já faz
+#   para todo o resto. Nesta ordem:
+#     1. a chave PACK, quando preenchida, vence tudo;
+#     2. um FLAVOR que NOMEIE um pack existente adota esse pack — a promessa do
+#        meow.conf.exemplo, e o que faz um conf de antes do formato valer;
+#     3. um FLAVOR que o pack PADRÃO declara fica no padrão: PACK vazio já quer
+#        dizer "o embutido", e o sabor dele não muda isso. Vem antes do passo 4
+#        para que um pack de terceiro que também chame um flavor de `mocha` não
+#        tome a máquina de fábrica calado;
+#     4. um FLAVOR que outro pack DECLARA na paleta adota esse pack — o
+#        `alucard` é do Dracula. Na ordem do `achar`: as raízes na precedência,
+#        os ids em ordem alfabética, e um id escondido por uma raiz de cima não
+#        conta, porque não é ele que o id encontra;
+#     5. nada disso: o padrão.
+#   O pack escolhido em 1, 2 ou 4 passa pela validação do MOTOR
+#   (`silencioso=True`), a mesma da sonda `caminho` que o shell fazia. Reprovado,
+#   a máquina veste o padrão, e quem chamou diz por quê.
+#
+# O DIRETÓRIO VAZIO CONTINUA SENDO O SINAL DE "NINGUÉM ESCOLHEU"
+#   Nos passos 3 e 5 o `dir` sai vazio, e não com o caminho do padrão. É o que
+#   o `meow_pack_dir` sempre devolveu nesses casos, e o `meow_paleta` depende
+#   disso: entre o pack escolhido e o padrão ele ainda olha `PALETA_ARQUIVO`, e
+#   um caminho aqui pularia esse degrau para quem nunca escolheu pack.
+#
+# O PREÇO, MEDIDO: o conf de fábrica (`FLAVOR="mocha"`, PACK vazio) não fazia
+#   fork nenhum no `meow_pack_dir`, e agora faz um — ~45 ms nesta máquina, o
+#   mesmo que a chave PACK preenchida já pagava pela sonda `caminho`.
+def _flavors_do_pack(dir_pack):
+    """Os flavors que a paleta de um pack declara, ou um conjunto vazio.
+
+    NÃO VALIDA, e é de propósito: quem pergunta ainda está escolhendo QUAL pack
+    validar, e um pack de terceiro quebrado que nem declara o flavor não tem por
+    que derrubar a busca pelos outros. O arquivo declarado continua preso ao
+    pack pelo `_dentro` — ler fora dele só para olhar nomes seria abrir a porta
+    que o formato inteiro fecha.
+    """
+    try:
+        arq = campo(dir_pack, "paleta.arquivo", "paleta.json")
+        with open(_dentro(dir_pack, arq, "paleta.arquivo"), encoding="utf-8") as fh:
+            flavors = json.load(fh).get("flavors")
+    except (OSError, ValueError, AttributeError, TypeError, Recusa):
+        return set()
+    return set(flavors) if isinstance(flavors, dict) else set()
+
+
+def adocao(pack="", flavor=""):
+    """(id, dir, recusado): o pack que um meow.conf com estes PACK e FLAVOR veste.
+
+    `id` é sempre um pack — o padrão quando nada escolheu outro. `dir` é o
+    diretório do escolhido, e vazio quando quem veste é o padrão por falta de
+    escolha ou por recusa. `recusado` é o id que não passou na validação, ou ''.
+    """
+    escolhido = pack or ""
+    if not escolhido and flavor:
+        # O NOME PASSA PELO RE_ID ANTES DE VIRAR CAMINHO: um FLAVOR com `/` ou
+        # `..` não é id de pack nenhum, e o `validar` recusaria de qualquer
+        # jeito um diretório cujo nome não case com o id de dentro.
+        if RE_ID.match(flavor) and any(os.path.isfile(os.path.join(b, flavor, "pack.json"))
+                                       for b in raizes()):
+            escolhido = flavor
+        elif flavor not in _flavors_do_pack(dir_padrao()):
+            vistos = set()
+            for base in raizes():
+                try:
+                    nomes = sorted(os.listdir(base))
+                except OSError:
+                    continue
+                for nome in nomes:
+                    if nome in vistos or not os.path.isfile(os.path.join(base, nome, "pack.json")):
+                        continue
+                    vistos.add(nome)
+                    if flavor in _flavors_do_pack(os.path.join(base, nome)):
+                        escolhido = nome
+                        break
+                if escolhido:
+                    break
+    if not escolhido:
+        return PACK_PADRAO, "", ""
+    try:
+        _p, _d, dir_pack = validar(escolhido, silencioso=True)
+    except Exception:
+        # QUALQUER exceção, e não só Recusa: um `"paleta": "x"` de terceiro
+        # estoura AttributeError antes de virar Recusa (o bloco "A VITRINE DOS
+        # PACKS", no app/servidor.py, mediu o caso), e aqui ele tem de virar "o
+        # padrão veste", nunca um traceback no instalador. É o mesmo `except
+        # Exception` que o `_ponteiro_do_pack` do painel já usava.
+        return PACK_PADRAO, "", escolhido
+    return os.path.basename(dir_pack), dir_pack, ""
 
 
 def paleta_do_pack_ativo():
@@ -4762,6 +4882,17 @@ def main(argv):
             return OK
         if verbo == "padrao":
             print(dir_padrao())
+            return OK
+        # OS DOIS ARGUMENTOS VÊM SEMPRE, VAZIOS OU NÃO: `adocao "" mocha` é o
+        # conf de fábrica, e um verbo que aceitasse um só teria de adivinhar
+        # qual dos dois chegou. Sai 0 também na recusa — a máquina veste o
+        # padrão, que é resposta; o `recusado=` é o que o shell transforma em
+        # aviso, com a cara dos avisos dele.
+        if verbo == "adocao" and len(argv) == 4:
+            ident, dir_pack, recusado = adocao(argv[2], argv[3])
+            print(f"pack={ident}")
+            print(f"dir={dir_pack}")
+            print(f"recusado={recusado}")
             return OK
         # OS TRÊS VERBOS DA CAPTURA NÃO RECEBEM `<id>`, e os outros recebem.
         #   Quem pergunta por uma captura é sempre o desktop VIVO — o
