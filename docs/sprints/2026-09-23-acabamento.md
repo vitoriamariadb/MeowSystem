@@ -538,3 +538,169 @@ meow doctor                 # nada divergente por causa da migração
   Não apague: o MeowSystem passa a escrever o dele onde a arquitetura dele
   escreve, e o antigo vira órfão registrado no relatório, com o comando para
   removê-lo, que a pessoa roda se quiser.
+
+---
+
+# P38 — Nenhuma linha do projeto é da máquina de alguém
+
+**O pedido (23/09):** *"quando ela fez ela fez pra ela. mas temos que
+transformar em produto oficial. e utilizável por qualquer um. os meus também.
+até em documentação."*
+
+O MeowSystem nasceu na máquina da Vitória (`/home/vitoriamaria`) e cresceu
+nesta (`/home/andrefarias`). Cada uma deixou o próprio home escrito pelo
+caminho. Nada disso é segredo; é o que faz um produto parecer o computador de
+alguém.
+
+### O que medi (dev, 23/09)
+
+```
+git grep -c "/home/vitoriamaria\|/home/andrefarias"      171 linhas em 35 arquivos
+  docs/pesquisas/ + docs/sprints/                       107 linhas em 10 arquivos
+  docs/folhas/meow-icones-folha.html                     29
+  app/pagina/app.js                                       6   (comentários)
+  assets/icones/pastas.map                                5   (comentários)
+  scripts/autostart.sh 2 · resgatados_folha.sh, instalar_fontes.sh,
+    importar_icones.sh, greeter.sh, install.sh, bin/meow, app/servidor.py 1 cada
+  systemd/meow-fundo.path                                 1
+  assets/temas-de-apps/{qbittorrent,heroic}/manifesto.sh 1 cada
+  assets/temas/capturados/original/captura.txt            1
+  assets/fontes/fonts/locais/LEIA-ME.txt                  1
+  docs/SPRINTS.md 2 · docs/historico/especificacao-original.md 1
+  docs/folhas/{meow-icones-curadoria,folha-sprints-2026-09-21,folha-pastas}.html 1 cada
+  packs/*/temas/capturados/*/captura.txt                  4   <- da P30, não mexa
+```
+
+Nenhuma dessas linhas, fora dos `captura.txt`, está em código que RODA:
+são comentário, doc, pesquisa, folha gerada. Mas é o que a pessoa lê.
+
+### O que fazer
+
+1. **Troque cada ocorrência pelo que ela quer dizer**, não por um nome
+   genérico às cegas:
+   - caminho que é receita ou exemplo → `~/…` (ou `$HOME/…` em shell);
+   - caminho que é MEDIDA citada (o que um arquivo continha naquela máquina) →
+     `/home/<usuário>/…`, que a regra 1 do `tests/portabilidade.sh` não casa
+     e que diz a verdade (o valor é absoluto);
+   - o `.path` do systemd: leia a linha. Se é comentário, `~`; se é
+     `PathChanged=`, use o especificador `%h` do systemd.
+2. **Os outros nomes pessoais** que um produto não deveria ter: meça
+   `git grep -nE "Controle de Bordo|~/Desenvolvimento/|vitoriamaria|andrefarias"`
+   fora de créditos (o `autor` dos packs, CREDITOS.md, LICENSE, o remote do
+   README) e trate pelo mesmo critério. Crédito fica; caminho e cofre pessoal
+   saem.
+3. **A régua, para não voltar:** o `tests/portabilidade.sh` passa a varrer
+   TODO arquivo de texto versionado — docs, pesquisas, folhas, comentários —
+   com a regra 1. As isenções que sobrarem são poucas, nomeadas e com motivo.
+4. **As folhas HTML geradas** (`docs/folhas/*.html`): se o gerador ainda
+   existe, corrija o GERADOR e regenere; se não existe, corrija o HTML.
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| os 31 arquivos da tabela acima, menos os `packs/*/captura.txt` | a troca |
+| `tests/portabilidade.sh` | a varredura passa a cobrir o repositório inteiro |
+| geradores das folhas, se existirem | a origem da troca |
+
+### Como conferir
+
+```sh
+git grep -c "/home/vitoriamaria\|/home/andrefarias" | grep -v captura.txt   # vazio
+./tests/portabilidade.sh      # rc 0, varrendo tudo
+```
+
+### O que pode dar errado
+
+- **O histórico do git continua com os caminhos.** Reescrever histórico é
+  destrutivo e não é desta sprint.
+- **`docs/pesquisas/*.json` são saídas de ferramenta.** Troque só o caminho
+  dentro das strings; confira que cada JSON continua válido.
+
+---
+
+# P39 — O MeowSystem traz o que é dele, e não pede o Spellbook emprestado
+
+**O pedido (23/09):** o mesmo da P38 — *"produto oficial, utilizável por
+qualquer um"* — e a regra de 23/09: *"tudo do spellbook que entrar em conflito
+com o meowsystem, migramos pra cá e desativamos no spellbook"*.
+
+A P37 cuida do que o Spellbook ESCREVE e o MeowSystem também escreve (o tema).
+Esta cuida do contrário: **o que o MeowSystem LÊ do Spellbook para funcionar**.
+Na máquina de qualquer outra pessoa não há `~/.config/zsh`, não há Ritual da
+Aurora, e esses recursos simplesmente não existem.
+
+**Depende da P37** (as duas desativam funções no MESMO repositório do
+Spellbook, e ele não tem worktree: uma de cada vez).
+
+### O que medi (dev, 23/09, só código que roda, fora de comentário)
+
+```
+.config/zsh | aurora- | Spellbook | Dracula_OS-Theme | Desenvolvimento/
+  install.sh 5 · bin/meow 4 · scripts/areas.sh 3 · forma.sh 2 · fastfetch_logo.sh 2
+  prompt.sh 1 · pack.py 1 · leitura.sh 1 · gerar_tema_v1.py 1 · compositor_patches.sh 1
+  completar_icones.sh 1 · coleta-meowsystem.sh 1 · lib/painel.sh 1
+```
+
+Os que pesam:
+
+- **Os 5 patches do compositor.** `scripts/compositor_patches.sh:311` diz:
+  *"quem aplica os patches do compositor é o Ritual da Aurora
+  (aurora-cosmic-comp-ws.sh), que não vem neste repositório"*. O `bin/meow`
+  (`[patches]`) e o `scripts/forma.sh` mandam rodar `aurora-cosmic-comp-ws.sh
+  --build`. **Qualquer outra pessoa fica sem os patches.** Em 21/09 o apt
+  reescreveu o `/usr/bin/cosmic-comp` desta máquina e ela ficou sem eles.
+- **As áreas de trabalho:** `scripts/areas.sh:781` lê
+  `$HOME/.config/zsh/scripts/aurora-cosmic-workspaces.py` (isenção com dívida
+  no `tests/portabilidade.sh`, desde a P29).
+- **O fastfetch:** `scripts/fastfetch_logo.sh:1128` lê `~/.config/zsh/env.zsh`.
+- **O prompt:** `scripts/prompt.sh:74` usa `${ZDOTDIR:-$HOME/.config/zsh}` —
+  o padrão do zsh, sem ZDOTDIR, é o `$HOME`, não o `~/.config/zsh`.
+- **O night light:** `scripts/leitura.sh:997` fala do night light "da Aurora".
+
+### O que fazer
+
+1. **Inventário primeiro**, uma linha por dependência: o que o MeowSystem lê,
+   de onde, para quê, e o destino:
+   - **migra** — é recurso do produto (os patches do compositor são o caso
+     claro): o MeowSystem passa a trazer o código, versionado, e o `meow`
+     tem o verbo que o aplica; no Spellbook, a função vira aviso apontando
+     para o `meow` (a regra de 23/09);
+   - **integração opcional** — só faz sentido com o Spellbook presente: a
+     leitura passa por uma chave do `meow.conf` com padrão VAZIO, e sem ela o
+     recurso se declara ausente em vez de quebrar;
+   - **sai** — era da máquina.
+2. **Os patches do compositor migram**: os `.patch`, o build e a instalação.
+   Meça o que o `aurora-cosmic-comp-ws.sh` faz (só leitura no Spellbook), traga
+   para o MeowSystem o que for do produto, e o verbo do `meow` que recompila.
+   O build NÃO roda nesta sprint (leva minutos, precisa de `sudo` de verdade):
+   ele roda depois da instalação, pela mão de quem coordena.
+3. **Nada do MeowSystem lê `~/.config/zsh` em execução**, exceto pelas
+   integrações opcionais declaradas no item 1 — e o `tests/portabilidade.sh`
+   cobra.
+
+### Arquivos, e só estes
+
+| arquivo | o quê |
+|---|---|
+| os 13 arquivos da tabela acima | a dependência vira produto, opção ou sai |
+| `scripts/compositor_patches.sh` + os patches (novo diretório, medir onde) | a migração |
+| `meow.conf.exemplo` | as chaves das integrações opcionais |
+| `tests/portabilidade.sh` | a isenção do `areas.sh` sai |
+| Spellbook: `aurora-cosmic-comp-ws.sh` e o que o inventário migrar | vira aviso |
+
+### Como conferir
+
+```sh
+git grep -nE '\.config/zsh|aurora-' -- bin scripts lib app install.sh | grep -vE ':\s*#'   # só as opções declaradas
+HOME=$(mktemp -d) meow doctor      # numa casa sem Spellbook: nada quebra, o ausente se declara
+meow compositor --seco             # (ou o verbo escolhido) diz o que recompilaria
+```
+
+### O que pode dar errado
+
+- **O build do cosmic-comp precisa de toolchain Rust e de `sudo`.** O teste
+  roda em seco; quem compila de verdade é a instalação, depois, com a pessoa
+  sabendo.
+- **Os patches são contra uma versão do cosmic-comp.** Registre a versão, e o
+  verbo recusa aplicar sobre outra sem dizer por quê.
