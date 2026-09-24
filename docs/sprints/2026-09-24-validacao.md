@@ -101,7 +101,7 @@ Achados **11, 14, 15, 16, 17, 32, 33, 36**.
 Achados **2, 19, 20, 24, 25, 26, 27, 28, 34, 39, 40, 42**.
 
 Tudo o que a tela diz tem de vir do pack no ar. Reconte com o Dracula no ar,
-aba por aba (o método da P31): Terminal (cores, agente, prompt), Cor e tela
+aba por aba (o método da P31): Terminal (as cores, o TERMINAL_CURSOR e o prompt), Cor e tela
 (a ilustração que diz que FLAVOR=dracula «não é aceito», os rótulos dos
 flavors, os nomes das cores de destaque, a prévia do lado a lado, a versão do
 ponteiro), o cabeçalho do instalador, a ação do Spotify, «Tema de onde
@@ -185,7 +185,7 @@ Achados **18, 35, 37, 38, 41, 43, 44, 46**, e a decisão dos jogos.
 16. «Próxima imagem» termina com o rótulo «MEXEU E CONSERTOU» — é uma troca pedida, não um conserto.
 17. SISTÊMICO: o rótulo do fim de uma ação sai só do código de saída — «Recarregar o painel» reciclou o painel (PID mudou) e disse «JÁ ESTAVA CERTO»; somado ao 14 e ao 16, o texto não conversa com o que a ação fez.
 18. Os chips de «mudados por você» levam à aba, mas não rolam até o ajuste nem o destacam — o cartão do ponteiro fica a 1084 px, fora da tela, e a pessoa tem de procurar.
-19. Catppuccin que sobrou: «Cor do agente» do terminal, com o Dracula no ar, oferece «Do Catppuccin» e explica «a que o Catppuccin escolheu».
+19. Catppuccin que sobrou: o ajuste TERMINAL_CURSOR do terminal, com o Dracula no ar, oferece «Do Catppuccin» e explica «a que o Catppuccin escolheu».
 20. «Versão do tema do ponteiro» (v2.0.0) é a do catppuccin/cursors e aparece mesmo com o ponteiro do Dracula, que vem pinado pelo pack — confunde.
 21. O .conf de «Exportar › Meus ajustes» abre com «# Origem: /home/<usuário>/.config/meow/meow.conf» — num arquivo feito para levar a outra máquina, expõe o nome de usuário (a classe da P30).
 22. «Exportar › Esta tela num arquivo» embute o esquema inteiro em JSON, com caminhos absolutos (/home/<usuário>/.config/meow/meow.conf, a raiz do repositório, o valor efetivo de cada chave) — uma página feita para compartilhar leva o nome de usuário e a configuração da máquina.
