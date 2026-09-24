@@ -1,0 +1,21 @@
+# meowsystem-tema: {{pack}}/{{flavor}}
+# {{nome}} no GNOME Terminal, montado pelo MeowSystem com a paleta do pack. É
+# um perfil PRÓPRIO, com id próprio, carregado por `dconf load` no caminho
+# dele — os perfis que ela já tinha ficam como estavam. As chaves vão em ordem
+# alfabética e na forma que o `dconf dump` devolve, que é como o módulo confere.
+#
+# A ordem das dezesseis cores é a mesma do modelo do kitty (dracula/kitty): o
+# "azul" do ANSI é o roxo, e os brilhantes sem slot na paleta caem no vizinho.
+[/]
+background-color='{{base}}'
+bold-color-same-as-fg=true
+cursor-background-color='{{text}}'
+cursor-colors-set=true
+cursor-foreground-color='{{base}}'
+foreground-color='{{text}}'
+highlight-background-color='{{surface1}}'
+highlight-colors-set=true
+highlight-foreground-color='{{text}}'
+palette=['{{mantle}}', '{{red}}', '{{green}}', '{{yellow}}', '{{mauve}}', '{{pink}}', '{{sky}}', '{{text}}', '{{overlay0}}', '{{maroon}}', '{{green}}', '{{yellow}}', '{{lavender}}', '{{flamingo}}', '{{sky}}', '{{rosewater}}']
+use-theme-colors=false
+visible-name='{{nome}} (MeowSystem)'

@@ -477,6 +477,47 @@ lá, intacta, como alternativa. O que mudou é que ela deixou de ser o que vence
 calado: o `apps-resgatados.map` não a instala mais, e o nome
 `net.waterfox.waterfox` tem **uma** fonte — esta.
 
+## Os temas de aplicativo — 24/09/2026, sprint P42
+
+Cinco modelos em `apps/`, um por aplicativo, declarados no bloco `apps` do
+`pack.json`. **Não são cópias**, e por isso não estão na tabela de cima: cada
+um é o arquivo do aplicativo com o PAPEL da cor no lugar do hex (`{{base}}`,
+`{{mauve}}`), pela decisão de 23/09 de que cor de tema de aplicativo sai da
+paleta do pack. Quem põe o hex é o `assets/temas-de-apps/modelo.py`, na hora de
+aplicar, no flavor da máquina — é o que faz o `alucard` sair claro nos cinco.
+
+Um modelo nunca vai ser igual, byte a byte, ao arquivo de onde o desenho veio.
+Na tabela de cima o `sincronizar` diria "a ORIGEM andou" para sempre e
+ofereceria um `cp` que apagaria os papéis. E esta tabela não tem a coluna
+"lido de" de propósito: nada lê a origem em execução — o
+`tests/sem-dracula-os-theme.sh` cobra, e o `tests/temas-de-apps.sh` cobra que
+nenhum modelo traga hex escrito.
+
+| arquivo | desenho de | licença | copiado em | o que mudou |
+|---|---|---|---|---|
+| `apps/kitty.modelo.conf` | `dracula/kitty` (github.com/dracula/kitty), pela cópia em `Dracula_OS-Theme/app-themes/kitty/current-theme.conf` | MIT | 2026-09-24 | As 36 cores viraram papel. Com o flavor `dracula`, 30 saem iguais às de lá; as 6 sem slot na paleta (verde, amarelo, magenta e ciano brilhantes, branco brilhante e branco da seleção) caem no vizinho. |
+| `apps/gnome-terminal.modelo.dconf` | desenho deste projeto, na ordem do modelo do kitty | GPL-3.0 | 2026-09-24 | Nada foi copiado. O perfil que a origem tinha (`app-themes/gnome-terminal/dracula-profile.dconf`) chama-se "Dracula" e não é: fundo rgb(42,44,57), texto verde rgb(146,181,156), e nenhuma das dezesseis cores da paleta dele é do tema. |
+| `apps/telegram.modelo.tdesktop-theme` | `dracula/telegram` v0.1.3, de Neil Smith e colaboradores (github.com/dracula/telegram), pela cópia em `Dracula_OS-Theme/app-themes/telegram/dracula.tdesktop-theme` | MIT | 2026-09-24 | Os 51 hex viraram papel; o cabeçalho de créditos ficou como veio. |
+| `apps/discord.modelo.theme.css` | o tema Dracula do CtorW para Vesktop e Vencord (github.com/CtorW/Vesktop-Discord), sobre o `midnight` do refact0r, pela cópia em `Dracula_OS-Theme/app-themes/discord-betterdiscord/Dracula.theme.css` | MIT | 2026-09-24 | Os 40 hex viraram papel, e o `@name` ganhou o nome do flavor e "(MeowSystem)". O `@import` do midnight ficou: o tema é um punhado de variáveis sobre ele, e não existe sem ele. |
+| `apps/onlyoffice.modelo.json` | os NOMES das 125 chaves de um tema de interface que esta máquina tinha em `uithemes/` (`dracula_only_office.json`, id `theme-dracula-dark-ajustado-2`, de 12/08/2025) | a origem não declara nenhuma — ver abaixo | 2026-09-24 | Todo valor virou papel, inclusive os que não eram Dracula (o texto normal em #00988C, as abas em #333). |
+
+**O que cada papel substituiu** está no próprio modelo: a linha que diz
+`{{papel}}` tinha um hex na origem. Onde a origem usava um tom que a paleta não
+tem, a escolha foi o vizinho, e as não óbvias foram estas: no Telegram, o
+"antracito" (#212020) virou `mantle`; o preto, o branco e o transparente viraram
+`crust`, `text` e `crust` com transparência zero; e, nos quatro tipos de
+arquivo, o tom escuro virou a cor do tipo com `cc` de transparência (menos o
+ciano, que é o `sapphire`), o de seleção, com `80`, e o de passagem, a própria
+cor (no vermelho, o `maroon`).
+
+**O OnlyOffice é o caso sem procedência, dito na cara.** O tema de antes não
+tinha tema de OnlyOffice — só um README dizendo "não há automação". O arquivo
+de onde as chaves vieram estava no disco desta máquina, sem repositório, autor
+ou licença. O que entrou dele são os NOMES das chaves, que são o formato de
+tema do próprio OnlyOffice, e a escolha de papel de cada uma; nenhum valor. Se
+aparecer a origem com uma licença que não permita isto, o modelo se refaz a
+partir dos temas de fábrica do app (o binário 9.4.0 traz oito).
+
 ## Licença, marca e o que a cópia não muda
 
 **GPL-3.0 nas duas origens, medida e não suposta.** O `LICENSE` do

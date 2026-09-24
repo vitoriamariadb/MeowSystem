@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # nomes_apps.sh — encurta o `Name=` dos aplicativos que estouram a célula do
-#                 lançador do COSMIC.
+#                 lançador do COSMIC, e devolve 644 aos `.desktop` do home
+#                 (desde 24/09/2026, sprint P42 — ver "A PERMISSÃO" abaixo).
 #
 #   ./nomes_apps.sh              aplica (o mesmo que --aplicar)
 #   ./nomes_apps.sh --conferir   não escreve; devolve 1 se algo divergir
 #   ./nomes_apps.sh --sem-sudo   aplica só o que não precisa de root
-#   ./nomes_apps.sh --so-flatpak aplica só nos exports de flatpak do home
-#   ./nomes_apps.sh --so-sistema aplica só em /usr/share e /var/lib (é o gatilho do apt)
+#   ./nomes_apps.sh --so-flatpak aplica só nos exports de flatpak do home, e o
+#                                644 em ~/.local/share/applications
+#   ./nomes_apps.sh --so-sistema aplica só em /usr/share e /var/lib (é o gatilho do apt;
+#                                não toca a permissão do home)
 #
 # O QUE ELA VÊ HOJE, E POR QUE
 #   "os .desktop super feios" — e, perguntada, o que incomoda são "os nomes
@@ -217,6 +220,66 @@ ausentes=0
 falhou=0
 declare -A DIRS_TOCADOS=()
 
+# --- A PERMISSÃO DOS `.desktop` DO HOME — 24/09/2026, sprint P42 -------------
+#
+# O DEFEITO, E QUEM O CONSERTAVA ATÉ ONTEM
+#   O tema Dracula de antes deixou o caso escrito em dois lugares, e é o que se
+#   sabe dele: `.desktop` que o Flatpak põe em `~/.local/share/applications` com
+#   permissão 600 (o "bug do GIMP", no `reaplicar_tema.sh` de lá) e, no
+#   `normalizar_desktops.sh`, que o Pop!_OS/GNOME Shell recusa abrir aplicativo
+#   com permissão restrita. O conserto era um `find ... ! -perm 644 -exec chmod
+#   644`, que o hook do apt dele rodava depois de toda operação. O hook saiu em
+#   24/09/2026, e a P37 mediu que o MeowSystem não cobria o caso. A regra ficou a
+#   mesma de lá, decidida na sprint: diferente de 644 volta a 644 — o 664 do
+#   umask 002 e o 755 de quem marcou o atalho como executável também.
+#
+#   Nesta máquina, hoje, são ZERO: os 73 `.desktop` de lá estão em 644 (medido
+#   em 24/09/2026). O conserto de antes passou por eles; este é o que fica.
+#
+# POR QUE AQUI, E NÃO NOS DOIS SCRIPTS QUE A SPRINT SUGERIU MEDIR
+#   A conta foi feita pelo que cada um tem de caminho até a tela dela:
+#     apos_flatpak.sh      roda no evento certo, mas o doctor não o confere
+#     icones_absolutos.sh  o doctor confere, mas NÃO conserta (está no
+#                          `SEM_CONSERTO` do bin/meow: o resto dele usa sudo), e
+#                          o doctor diria "rode: meow ativar" para um chmod no
+#                          home — uma receita que não resolve
+#     nomes_apps.sh        o doctor confere (`chk_nomes`, --conferir) E conserta
+#                          sem sudo (`fix_nomes`, --sem-sudo), e o gatilho do
+#                          flatpak já o chama (`apos_flatpak.sh`, --so-flatpak)
+#   Os três caminhos que o conserto precisa já passavam por este arquivo.
+#
+# EM QUE MODO ELE RODA
+#   Em todos, menos `--so-sistema`: aquele é o gatilho do apt, que roda como
+#   ROOT, e root não tem nada a fazer no home dela (é a armadilha 3 do wrapper,
+#   contada no bloco dos filtros acima). No `--so-flatpak` roda de propósito —
+#   o evento que deixa o 600 é justamente o do flatpak.
+#
+# E ELE NÃO CHACOALHA O LANÇADOR
+#   O contador é separado do `mudou` dos nomes, e é por isso: o `mudou` chama o
+#   `meow_lancador_reler`, que derruba o `cosmic-app-library` para ele reler —
+#   e um chmod não muda nada que o lançador desenhe. Só links simbólicos ficam
+#   de fora (`-type f`): o modo de um link é o do alvo.
+PERM_DIR="$HOME/.local/share/applications"
+perm_n=0
+perm_falhou=0
+if [ "$SO_CLASSE" != "sistema" ] && [ -d "$PERM_DIR" ]; then
+  while IFS= read -r -d '' arq; do
+    modo="$(stat -c %a -- "$arq" 2>/dev/null)"
+    if [ "$CONFERIR" = 1 ]; then
+      meow_muda "$(basename "$arq") está com permissão $modo — o certo é 644"
+      perm_n=$((perm_n + 1))
+      continue
+    fi
+    if chmod 644 -- "$arq" 2>/dev/null; then
+      meow_info "$(basename "$arq"): permissão $modo -> 644"
+      perm_n=$((perm_n + 1))
+    else
+      meow_erro "não consegui dar 644 a $arq (permissão $modo)"
+      perm_falhou=1
+    fi
+  done < <(find "$PERM_DIR" -maxdepth 1 -type f -name '*.desktop' ! -perm 644 -print0 2>/dev/null)
+fi
+
 # O mapa vai para um array ANTES do laço, e não para o `stdin` dele. Com
 # `done < "$mapa"`, um `sudo` que resolvesse pedir senha leria a próxima linha do
 # mapa como se fosse a senha — engolindo a linha e falhando o sudo, as duas
@@ -322,7 +385,7 @@ if [ "$pendente_sudo" -gt 0 ]; then
   fi
 fi
 
-if [ "$mudou" = 0 ] && [ "$pendente_sudo" = 0 ]; then
+if [ "$mudou" = 0 ] && [ "$pendente_sudo" = 0 ] && [ "$perm_n" = 0 ] && [ "$perm_falhou" = 0 ]; then
   meow_ok "nomes do lançador já curtos ($total no mapa, $ausentes não instalados)"
   exit "$MEOW_OK"
 fi
@@ -330,6 +393,8 @@ fi
 if [ "$CONFERIR" = 1 ]; then
   exit "$MEOW_DIVERGENTE"
 fi
+
+[ "$perm_n" -gt 0 ] && meow_ok "$perm_n .desktop do home voltaram a 644"
 
 if [ "$mudou" = 1 ]; then
   # O lançador lê o cache de .desktop. Falhar aqui não é erro: o arquivo já está
@@ -355,6 +420,14 @@ if [ "$mudou" = 1 ]; then
   #   A chamada é guardada pelo `mudou = 1`: sem escrita, ninguém chacoalha o
   #   lançador, porque isso fecharia a grade se ela estivesse com ela aberta.
   meow_lancador_reler
+fi
+
+# O chmod que falhou é erro, mas só DEPOIS de o lançador reler: ele não tem nada
+# a ver com os nomes, e sair antes deixava um nome já encurtado no disco com o
+# comprido na tela até a próxima sessão (revisão da P42, 24/09/2026).
+if [ "$perm_falhou" = 1 ]; then
+  meow_erro "algum .desktop do home não pôde voltar a 644"
+  exit "$MEOW_ERRO"
 fi
 
 exit "$MEOW_DIVERGENTE"

@@ -58,7 +58,9 @@ command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 0; 
 # 1. O TETO POR MÓDULO
 # ---------------------------------------------------------------------------
 # MIGRADOS: perguntam ao pack e não conhecem mais o nome de tema nenhum.
-MIGRADOS=(spotify qbittorrent)
+# Os cinco do fim NASCERAM migrados, em 24/09/2026 (P42): são os temas que o
+# Dracula de antes aplicava, e cada um lê um MODELO do pack (seções 7 e 8).
+MIGRADOS=(spotify qbittorrent kitty gnome-terminal telegram discord onlyoffice)
 
 # A TABELA. Medida em 22/09/2026, depois da P18. Ela só desce.
 declare -A TETO=(
@@ -70,6 +72,11 @@ declare -A TETO=(
   [btop-bat]=6
   [vscode]=6
   [obsidian]=9         # o módulo da prova pelo avesso, e o próximo da fila
+  [kitty]=0            # os cinco da P42 (24/09/2026) nasceram com teto zero
+  [gnome-terminal]=0
+  [telegram]=0
+  [discord]=0
+  [onlyoffice]=0
 )
 
 citacoes_em_codigo() {
@@ -300,6 +307,384 @@ if destrava_com_nome_vazio; then
 else
   ok "qbittorrent: nome de pack vazio não destrava (o ')' indentado não conta)"
 fi
+
+# ---------------------------------------------------------------------------
+# 7. OS MODELOS DO PACK NÃO TRAZEM COR ESCRITA, E MONTAM EM TODO FLAVOR
+# ---------------------------------------------------------------------------
+# POR QUE ESTA SEÇÃO NASCEU — 24/09/2026, sprint P42
+#   Os temas de kitty, GNOME Terminal, Telegram, Discord e OnlyOffice entraram
+#   no pack Dracula como MODELO: o papel da cor no lugar dela, e quem põe o hex é
+#   o `assets/temas-de-apps/modelo.py`, com a paleta do pack no ar. Um hex
+#   escrito num modelo é o flavor `dracula` cravado — o `alucard` sairia com uma
+#   cor escura no meio, e nada acusaria. A régua é por PACK, e não pela lista dos
+#   cinco: o modelo que o próximo pack trouxer entra nela sozinho.
+MODELO_PY="$RAIZ/assets/temas-de-apps/modelo.py"
+mapfile -t MODELOS < <(find "$RAIZ/packs" -path '*/apps/*.modelo.*' -type f | sort)
+if [ "${#MODELOS[@]}" -eq 0 ]; then
+  falha "nenhum modelo em packs/*/apps/ — os temas de aplicativo da P42 sumiram"
+fi
+for m in "${MODELOS[@]}"; do
+  rel="${m#"$RAIZ"/}"
+  hexas="$(grep -nE '#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3}([0-9A-Fa-f]{2})?)?\b' "$m")"
+  if [ -n "$hexas" ]; then
+    falha "$rel: cor escrita no modelo — a cor sai da paleta, pelo papel" "$hexas"
+  else
+    ok "$rel: nenhum hex escrito"
+  fi
+  pal="$(dirname "$(dirname "$m")")/paleta.json"
+  pack_id="$(basename "$(dirname "$(dirname "$m")")")"
+  for flavor in $(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1]))["flavors"]))' "$pal"); do
+    saida="$(python3 "$MODELO_PY" "$m" "$pal" "$flavor" "$pack_id" 2>&1)"; rc=$?
+    if [ "$rc" = 0 ] && ! printf '%s' "$saida" | grep -q '{{'; then
+      ok "$rel: monta com o flavor $flavor"
+    else
+      falha "$rel: não montou com o flavor $flavor (rc=$rc)" "$(printf '%s\n' "$saida" | head -5)"
+    fi
+  done
+done
+# E o papel que a paleta não tem é recusa, não texto literal dentro do tema.
+printf 'cor: {{azul}}\n' > "$T/modelo-errado.conf"
+if python3 "$MODELO_PY" "$T/modelo-errado.conf" "$RAIZ/packs/dracula/paleta.json" dracula dracula >/dev/null 2>&1; then
+  falha "modelo.py aceitou um papel que a paleta não tem ({{azul}})"
+else
+  ok "modelo.py recusa o papel que a paleta não tem, em vez de deixá-lo no tema"
+fi
+
+# ---------------------------------------------------------------------------
+# 8. CADA TEMA APLICA, CONFERE E DESFAZ — NUMA CASA DE BRINQUEDO
+# ---------------------------------------------------------------------------
+# A casa é outra por inteiro: HOME, XDG, estado e packs de brinquedo, e o PATH
+# começa por um `bin/` com os aplicativos de mentira — o kitty, o GNOME
+# Terminal e o `dconf` são scripts que só existem aqui, e o `pgrep` também,
+# para "o OnlyOffice está aberto?" responder o que o teste manda e não o que a
+# máquina de quem roda tiver aberto. O `env -i` tira o D-Bus da sessão do
+# ambiente: sem ele, nem um `dconf` de verdade que escapasse do PATH alcançaria
+# o banco de quem roda o teste.
+CASA="$T/casa8"
+BIN="$T/bin8"
+mkdir -p "$CASA" "$BIN" "$T/packs8"
+mod() {  # <módulo> <verbo> [VAR=valor ...]
+  local m="$1" v="$2"; shift 2
+  env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
+      XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
+      MEOW_ESTADO="$T/estado8" PACK=dracula FLAVOR=dracula NO_COLOR=1 "$@" \
+      bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
+               . "$MEOW_RAIZ/assets/temas-de-apps/$0/manifesto.sh" || exit 2
+               meow_app_$1' "$m" "$v" </dev/null 2>&1
+}
+falso() { printf '#!/bin/sh\nexit %s\n' "${2:-0}" > "$BIN/$1"; chmod +x "$BIN/$1"; }
+# "Nada aberto" é o padrão; o caso do OnlyOffice aberto troca este por um que diz sim.
+falso pgrep 1
+
+# --- kitty ---------------------------------------------------------------
+falso kitty
+K="$CASA/.config/kitty"
+saida="$(mod kitty conferir)"; rc=$?
+[ "$rc" = 1 ] && ok "kitty: sem tema, o conferir diverge (rc=1)" || falha "kitty: conferir sem tema devolveu $rc" "$saida"
+saida="$(mod kitty aplicar)"; rc=$?
+if [ "$rc" = 1 ] && grep -q '^# meowsystem-tema: dracula/dracula' "$K/current-theme.conf" 2>/dev/null \
+   && grep -qx 'include current-theme.conf' "$K/kitty.conf" 2>/dev/null; then
+  ok "kitty: aplicar escreve o tema do pack e o include no kitty.conf"
+else
+  falha "kitty: aplicar não deixou tema e include (rc=$rc)" "$saida"
+fi
+saida="$(mod kitty conferir)"; rc=$?
+[ "$rc" = 0 ] && ok "kitty: depois de aplicar, o conferir dá 0" || falha "kitty: conferir depois de aplicar devolveu $rc" "$saida"
+saida="$(mod kitty aplicar FLAVOR=alucard)"; rc=$?
+[ "$rc" = 1 ] && grep -q '^# meowsystem-tema: dracula/alucard' "$K/current-theme.conf" \
+  && ok "kitty: trocar o flavor atualiza o NOSSO tema sem perguntar" \
+  || falha "kitty: o tema não acompanhou o flavor alucard (rc=$rc)" "$saida"
+saida="$(mod kitty reverter)"; rc=$?
+[ "$rc" = 1 ] && [ ! -e "$K/current-theme.conf" ] && [ ! -e "$K/kitty.conf" ] \
+  && ok "kitty: desfazer tira o tema e o kitty.conf que só tinha o bloco" \
+  || falha "kitty: desfazer deixou sobra (rc=$rc)" "$saida$(ls -la "$K" 2>&1)"
+# O tema DELA: um current-theme.conf sem a marca fica intocado, e vira pendência.
+mkdir -p "$K"; printf 'background #000000\n' > "$K/current-theme.conf"
+saida="$(mod kitty aplicar)"; rc=$?
+[ "$rc" = 3 ] && [ "$(cat "$K/current-theme.conf")" = 'background #000000' ] \
+  && grep -q 'kitty-tema-de-terceiro' "$T/estado8/pendencias.tsv" 2>/dev/null \
+  && ok "kitty: o tema dela fica como está, e a pergunta vira pendência (rc=3)" \
+  || falha "kitty: o tema de terceiro não foi respeitado (rc=$rc)" "$saida"
+rm -rf "$K"
+# Cor escrita no próprio kitty.conf também é escolha dela — é o caso da máquina
+# onde esta sprint nasceu, com as dezesseis cores logo abaixo do include.
+mkdir -p "$K"; printf 'include current-theme.conf\nforeground #ffffff\n' > "$K/kitty.conf"
+saida="$(mod kitty aplicar)"; rc=$?
+[ "$rc" = 3 ] && [ ! -e "$K/current-theme.conf" ] \
+  && ok "kitty: cor escrita no kitty.conf conta como tema dela (rc=3), e nada é escrito" \
+  || falha "kitty: sobrescreveu as cores escritas no kitty.conf (rc=$rc)" "$saida"
+rm -rf "$K"
+# O `include` fora do bloco também é tema dela, quando o incluído pinta — é como
+# o dracula/kitty manda instalar (`include dracula.conf`). A primeira versão lia
+# isso como "sem tema" e punha o nosso bloco no fim, onde ele vence: o tema dela
+# trocado calado (revisão da P42, 24/09/2026). E o `include` que só traz fonte
+# não é tema: aplica, e a linha dela fica.
+mkdir -p "$K"; printf 'font_size 12\ninclude gruvbox.conf\n' > "$K/kitty.conf"
+printf 'background #282828\nforeground #ebdbb2\n' > "$K/gruvbox.conf"
+antes="$(cat "$K/kitty.conf")"
+saida="$(mod kitty conferir)"; rc1=$?
+saida="$saida$(mod kitty aplicar)"; rc2=$?
+[ "$rc1" = 3 ] && [ "$rc2" = 3 ] && [ "$(cat "$K/kitty.conf")" = "$antes" ] && [ ! -e "$K/current-theme.conf" ] \
+  && printf '%s' "$saida" | grep -q 'gruvbox.conf (incluído pelo kitty.conf)' \
+  && ok "kitty: um include fora do bloco que pinta é tema dela (rc=3), e o kitty.conf fica intocado" \
+  || falha "kitty: o include dela foi lido como 'sem tema' (conferir=$rc1, aplicar=$rc2)" "$saida$(cat "$K/kitty.conf")"
+rm -f "$K/gruvbox.conf"
+printf 'font_family Fira Code\n' > "$K/fontes.conf"; printf 'font_size 12\ninclude fontes.conf\n' > "$K/kitty.conf"
+saida="$(mod kitty aplicar)"; rc=$?
+[ "$rc" = 1 ] && [ "$(tail -n 1 "$K/kitty.conf")" = '# END_KITTY_THEME' ] && grep -qx 'include fontes.conf' "$K/kitty.conf" \
+  && ok "kitty: um include que só traz fonte não é tema — aplica, e o include dela fica" \
+  || falha "kitty: um include sem cor travou o tema (rc=$rc)" "$saida"
+mod kitty reverter >/dev/null
+rm -rf "$K" "$BIN/kitty"
+saida="$(mod kitty detectar)"; rc=$?
+[ "$rc" = 3 ] && ok "kitty: sem o kitty, o detectar dá pendente" \
+  || { command -v kitty >/dev/null 2>&1 \
+       && printf 'pulado: kitty ausente — esta máquina tem um kitty de verdade no PATH\n' \
+       || falha "kitty: sem o kitty o detectar devolveu $rc" "$saida"; }
+
+# --- Telegram ------------------------------------------------------------
+mkdir -p "$CASA/.local/share/flatpak/app/org.telegram.desktop"
+TG="$CASA/.local/share/meowsystem/temas-de-apps/telegram/MeowSystem.tdesktop-theme"
+saida="$(mod telegram aplicar)"; rc=$?
+[ "$rc" = 1 ] && grep -q '^// meowsystem-tema: dracula/dracula' "$TG" 2>/dev/null \
+  && ! printf '%s' "$saida" | grep -q 'está sem tema' \
+  && ok "telegram: aplicar entrega o tema montado no lugar fixo, e não diz que o app está sem tema" \
+  || falha "telegram: o tema não foi entregue, ou a tela disse 'está sem tema' (rc=$rc)" "$saida"
+# O que daqui se lê é o ARQUIVO, e não o tema no ar (ele mora no `tdata`): a
+# segunda passada diz "entregue", nunca "já está no tema do pack" (revisão da P42).
+saida="$(mod telegram aplicar)"; rc=$?
+[ "$rc" = 0 ] && printf '%s' "$saida" | grep -q 'já está entregue' && ! printf '%s' "$saida" | grep -q 'já está no tema do pack' \
+  && ok "telegram: a segunda passada diz que o arquivo está entregue (rc=0)" \
+  || falha "telegram: a segunda passada disse o que não sabe (rc=$rc)" "$saida"
+saida="$(mod telegram conferir)"; rc=$?
+[ "$rc" = 0 ] && ok "telegram: depois de aplicar, o conferir dá 0" || falha "telegram: conferir devolveu $rc" "$saida"
+saida="$(mod telegram reverter)"; rc=$?
+[ "$rc" = 1 ] && [ ! -e "$TG" ] && ok "telegram: desfazer tira o arquivo entregue" \
+  || falha "telegram: desfazer não tirou o arquivo (rc=$rc)" "$saida"
+
+# --- Discord -------------------------------------------------------------
+mkdir -p "$CASA/.local/share/flatpak/app/com.discordapp.Discord"
+saida="$(mod discord aplicar)"; rc=$?
+[ "$rc" = 3 ] && printf '%s' "$saida" | grep -q 'cliente modificado' \
+  && ok "discord: o cliente oficial sozinho é pendência, e o motivo diz o que falta" \
+  || falha "discord: sem cliente modificado não saiu pendência com motivo (rc=$rc)" "$saida"
+DC="$CASA/.config/Vencord/themes"
+mkdir -p "$DC"
+saida="$(mod discord aplicar)"; rc=$?
+[ "$rc" = 1 ] && grep -q 'meowsystem-tema: dracula/dracula' "$DC/MeowSystem.theme.css" 2>/dev/null \
+  && ok "discord: com o Vencord, o tema vai para a pasta themes/ dele" \
+  || falha "discord: o tema não chegou à pasta do Vencord (rc=$rc)" "$saida"
+saida="$(mod discord conferir)"; rc=$?
+[ "$rc" = 0 ] && ok "discord: depois de aplicar, o conferir dá 0" || falha "discord: conferir devolveu $rc" "$saida"
+saida="$(mod discord reverter)"; rc=$?
+[ "$rc" = 1 ] && [ ! -e "$DC/MeowSystem.theme.css" ] && ok "discord: desfazer tira o tema da pasta" \
+  || falha "discord: desfazer não tirou o tema (rc=$rc)" "$saida"
+
+# --- OnlyOffice ----------------------------------------------------------
+#   O conf é de mentira mas tem a forma do de verdade: `appdata` é um JSON em
+#   base64 dentro de `@ByteArray(...)`, e a escolha mora nele e no `UITheme`.
+OO="$CASA/.var/app/org.onlyoffice.desktopeditors"
+OO_CONF="$OO/config/onlyoffice/DesktopEditors.conf"
+OO_ARQ="$OO/data/onlyoffice/desktopeditors/uithemes/meowsystem.json"
+oo_conf() {  # <uitheme> — escreve o conf de mentira com aquela escolha
+  mkdir -p "$(dirname "$OO_CONF")"
+  printf '[General]\nUITheme=%s\nappdata="@ByteArray(%s)"\nmaximized=true\n' "$1" \
+    "$(printf '{"langid":"pt-BR","uitheme":"%s","usegpu":true}' "$1" | base64 -w0)" > "$OO_CONF"
+}
+oo_escolha() { sed -n 's/^appdata="@ByteArray(\(.*\))"$/\1/p' "$OO_CONF" | base64 -d | python3 -c 'import json,sys; print(json.load(sys.stdin)["uitheme"])'; }
+mkdir -p "$OO/data/onlyoffice/desktopeditors/uithemes"
+oo_conf theme-dark
+saida="$(mod onlyoffice aplicar)"; rc=$?
+if [ "$rc" = 1 ] && [ "$(oo_escolha)" = theme-meowsystem ] && grep -qx "UITheme=$OO_ARQ" "$OO_CONF" \
+   && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(d["id"]!="theme-meowsystem")' "$OO_ARQ" \
+   && grep -qx 'maximized=true' "$OO_CONF"; then
+  ok "onlyoffice: tema de fábrica é 'sem tema' — aplicar põe o JSON e escolhe, e o resto do conf fica"
+else
+  falha "onlyoffice: aplicar não deixou o tema escolhido (rc=$rc)" "$saida$(cat "$OO_CONF")"
+fi
+saida="$(mod onlyoffice conferir)"; rc=$?
+[ "$rc" = 0 ] && ok "onlyoffice: depois de aplicar, o conferir dá 0" || falha "onlyoffice: conferir devolveu $rc" "$saida"
+saida="$(mod onlyoffice reverter)"; rc=$?
+[ "$rc" = 1 ] && [ "$(oo_escolha)" = theme-dark ] && grep -qx 'UITheme=theme-dark' "$OO_CONF" && [ ! -e "$OO_ARQ" ] \
+  && ok "onlyoffice: desfazer devolve a escolha de antes e tira o JSON" \
+  || falha "onlyoffice: desfazer não devolveu a escolha (rc=$rc, escolha=$(oo_escolha))" "$saida"
+oo_conf theme-de-alguem
+antes="$(cat "$OO_CONF")"
+saida="$(mod onlyoffice aplicar)"; rc=$?
+[ "$rc" = 3 ] && [ "$(cat "$OO_CONF")" = "$antes" ] \
+  && ok "onlyoffice: um tema de terceiro escolhido fica, e vira pendência (rc=3)" \
+  || falha "onlyoffice: trocou a escolha dela (rc=$rc)" "$saida"
+oo_conf theme-light
+falso pgrep 0
+antes="$(cat "$OO_CONF")"
+saida="$(mod onlyoffice aplicar)"; rc=$?
+[ "$rc" = 3 ] && [ "$(cat "$OO_CONF")" = "$antes" ] && [ -f "$OO_ARQ" ] \
+  && ok "onlyoffice: com o app aberto o tema vai para a pasta e a escolha espera (rc=3)" \
+  || falha "onlyoffice: escreveu o conf com o app aberto (rc=$rc)" "$saida"
+falso pgrep 1
+mod onlyoffice reverter >/dev/null
+# Sem o `appdata`, o que diz o tema no ar é o `UITheme` — e ele guarda o
+# CAMINHO do JSON. A primeira versão comparava esse caminho com o id e lia o
+# próprio tema como de terceiro na segunda passagem (medido aqui, 24/09/2026).
+printf '[General]\nUITheme=theme-dark\n' > "$OO_CONF"
+mod onlyoffice aplicar >/dev/null; rc1=$?
+saida="$(mod onlyoffice aplicar)"; rc2=$?
+mod onlyoffice reverter >/dev/null
+[ "$rc1" = 1 ] && [ "$rc2" = 0 ] && [ "$(cat "$OO_CONF")" = "$(printf '[General]\nUITheme=theme-dark')" ] \
+  && ok "onlyoffice: sem appdata, o caminho no UITheme é lido pelo id do JSON — o nosso segue sendo o nosso" \
+  || falha "onlyoffice: sem appdata o próprio tema virou terceiro (rc=$rc1 e $rc2)" "$saida$(cat "$OO_CONF")"
+# NUNCA ABERTO: sem o conf, a escolha não tem onde morar. O tema vai para a
+# pasta e a escolha espera, dita como pendência nas duas passadas e no conferir.
+# A primeira versão dizia "aplicado" na 1ª e "já está no tema do pack" com rc=0
+# na 2ª, enquanto o conferir dava 1 — e o doctor nunca convergia (revisão da
+# P42, 24/09/2026). E o conf continua sem ser criado: é do app.
+rm -f "$OO_CONF"
+saida="$(mod onlyoffice aplicar)"; rc1=$?
+saida="$saida$(mod onlyoffice aplicar)"; rc2=$?
+saida="$saida$(mod onlyoffice conferir)"; rc3=$?
+[ "$rc1" = 3 ] && [ "$rc2" = 3 ] && [ "$rc3" = 3 ] && [ -f "$OO_ARQ" ] && [ ! -e "$OO_CONF" ] \
+  && ! printf '%s' "$saida" | grep -qE 'já está no tema do pack|tema do pack aplicado' \
+  && ok "onlyoffice: nunca aberto, o tema vai para a pasta e a escolha é pendência — no aplicar e no conferir (rc=3)" \
+  || falha "onlyoffice: nunca aberto, a tela e os códigos discordam (aplicar=$rc1 e $rc2, conferir=$rc3)" "$saida"
+mod onlyoffice reverter >/dev/null
+
+# --- GNOME Terminal ------------------------------------------------------
+#   O `dconf` de mentira guarda cada chave numa linha do HOME de brinquedo, e
+#   imita os cinco verbos que o módulo usa. O formato do `dump` (as chaves em
+#   ordem, `chave=valor` com as aspas simples do GVariant) é o do dconf de
+#   verdade — conferido uma vez num D-Bus privado com HOME de brinquedo, em
+#   24/09/2026, e não aqui, onde um D-Bus que escapasse chegaria ao banco de
+#   quem roda.
+falso gnome-terminal
+cat > "$BIN/dconf" <<'DCONF'
+#!/usr/bin/env python3
+import os, sys
+banco = os.path.join(os.environ["HOME"], ".dconf-de-mentira")
+d = {}
+if os.path.exists(banco):
+    for l in open(banco, encoding="utf-8"):
+        k, v = l.rstrip("\n").split("\t", 1)
+        d[k] = v
+def salvar():
+    open(banco, "w", encoding="utf-8").write("".join(f"{k}\t{v}\n" for k, v in sorted(d.items())))
+verbo = sys.argv[1]
+if verbo == "read":
+    if sys.argv[2] in d:
+        print(d[sys.argv[2]])
+elif verbo == "write":
+    d[sys.argv[2]] = sys.argv[3]; salvar()
+elif verbo == "reset":
+    if sys.argv[2] == "-f":
+        for k in [k for k in d if k.startswith(sys.argv[3])]:
+            del d[k]
+    else:
+        d.pop(sys.argv[2], None)
+    salvar()
+elif verbo == "dump":
+    p = sys.argv[2]
+    ks = sorted(k for k in d if k.startswith(p) and "/" not in k[len(p):])
+    if ks:
+        print("[/]")
+        for k in ks:
+            print(f"{k[len(p):]}={d[k]}")
+elif verbo == "load":
+    for l in sys.stdin:
+        l = l.rstrip("\n")
+        if l and not l.startswith(("#", "[")):
+            k, v = l.split("=", 1)
+            d[sys.argv[2] + k] = v
+    salvar()
+else:
+    sys.exit(1)
+DCONF
+chmod +x "$BIN/dconf"
+GT="/org/gnome/terminal/legacy/profiles:"
+UUID="6d656f77-7379-4374-656d-2d7465726d31"
+dc() { HOME="$CASA" "$BIN/dconf" "$@"; }
+saida="$(mod gnome-terminal aplicar)"; rc=$?
+if [ "$rc" = 1 ] && [ "$(dc read "$GT/default")" = "'$UUID'" ] \
+   && dc read "$GT/list" | grep -q "b1dcc9dd-5262-4d8d-a863-c897e6d979b9', '$UUID'" \
+   && [ "$(dc read "$GT/:$UUID/use-theme-colors")" = false ]; then
+  ok "gnome-terminal: aplicar cria o perfil do pack, põe na lista ao lado do de fábrica e faz dele o padrão"
+else
+  falha "gnome-terminal: aplicar não deixou o perfil como padrão (rc=$rc)" "$saida$(cat "$CASA/.dconf-de-mentira" 2>&1)"
+fi
+saida="$(mod gnome-terminal conferir)"; rc=$?
+[ "$rc" = 0 ] && ok "gnome-terminal: depois de aplicar, o conferir dá 0" || falha "gnome-terminal: conferir devolveu $rc" "$saida"
+saida="$(mod gnome-terminal conferir FLAVOR=alucard)"; rc=$?
+[ "$rc" = 1 ] && ok "gnome-terminal: com outro flavor, o perfil nosso diverge" || falha "gnome-terminal: conferir com alucard devolveu $rc" "$saida"
+saida="$(mod gnome-terminal reverter)"; rc=$?
+[ "$rc" = 1 ] && [ -z "$(dc read "$GT/default")" ] && [ -z "$(dc read "$GT/list")" ] && [ -z "$(dc dump "$GT/:$UUID/")" ] \
+  && ok "gnome-terminal: desfazer devolve o padrão e a lista de fábrica, e apaga o perfil" \
+  || falha "gnome-terminal: desfazer deixou sobra (rc=$rc)" "$saida$(cat "$CASA/.dconf-de-mentira" 2>&1)"
+# O perfil de fábrica com cores próprias é o que o tema de antes deixou na
+# máquina onde esta sprint nasceu: é escolha dela, e fica.
+dc write "$GT/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9/use-theme-colors" false
+dc write "$GT/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9/visible-name" "'Dracula'"
+saida="$(mod gnome-terminal aplicar)"; rc=$?
+[ "$rc" = 3 ] && [ -z "$(dc read "$GT/default")" ] && printf '%s' "$saida" | grep -q "perfil 'Dracula'" \
+  && ok "gnome-terminal: um perfil padrão com cores próprias fica, e vira pendência (rc=3)" \
+  || falha "gnome-terminal: trocou o perfil padrão dela (rc=$rc)" "$saida"
+
+# ---------------------------------------------------------------------------
+# 9. O `.desktop` DO HOME VOLTA A 644 — E O DOCTOR CONFERE
+# ---------------------------------------------------------------------------
+# O caso que o hook do apt do tema de antes consertava, e que saiu com ele em
+# 24/09/2026: `.desktop` em `~/.local/share/applications` com 600. Quem conserta
+# agora é o `scripts/nomes_apps.sh` (o doctor o confere com `--conferir` e o
+# conserta com `--sem-sudo`). O mapa de nomes é de brinquedo e VAZIO: o teste
+# mede a permissão, e um nome encurtado chamaria o `meow_lancador_reler`, que
+# derruba o lançador da sessão de quem roda.
+AP="$T/casa9/.local/share/applications"
+mkdir -p "$AP"
+for n in seiscentos seiscentos-e-quarenta-e-quatro setecentos; do
+  printf '[Desktop Entry]\nName=%s\n' "$n" > "$AP/$n.desktop"
+done
+chmod 600 "$AP/seiscentos.desktop"; chmod 644 "$AP/seiscentos-e-quarenta-e-quatro.desktop"
+chmod 755 "$AP/setecentos.desktop"
+ln -s seiscentos-e-quarenta-e-quatro.desktop "$AP/link.desktop"
+printf '# vazio\n' > "$T/mapa9"
+nomes() {
+  env -i PATH="$PATH" HOME="$T/casa9" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$T/estado9" \
+      MEOW_NOMES_MAPA="$T/mapa9" NO_COLOR=1 "$RAIZ/scripts/nomes_apps.sh" "$@" </dev/null 2>&1
+}
+modos() { stat -c '%a' "$AP/seiscentos.desktop" "$AP/seiscentos-e-quarenta-e-quatro.desktop" "$AP/setecentos.desktop" | paste -sd' '; }
+saida="$(nomes --conferir)"; rc=$?
+[ "$rc" = 1 ] && [ "$(modos)" = "600 644 755" ] && printf '%s' "$saida" | grep -q 'seiscentos.desktop está com permissão 600' \
+  && ok "permissão: o conferir acusa o 600 e o 755, e não escreve" \
+  || falha "permissão: o conferir não acusou, ou escreveu (rc=$rc, modos=$(modos))" "$saida"
+saida="$(nomes --so-sistema)"; rc=$?
+[ "$(modos)" = "600 644 755" ] \
+  && ok "permissão: o gatilho do apt (--so-sistema, que roda como root) não chega ao home" \
+  || falha "permissão: o --so-sistema mexeu no home (modos=$(modos))" "$saida"
+saida="$(nomes --sem-sudo)"; rc=$?
+[ "$rc" = 1 ] && [ "$(modos)" = "644 644 644" ] \
+  && ok "permissão: o conserto do doctor (--sem-sudo) devolve 644" \
+  || falha "permissão: o --sem-sudo não devolveu 644 (rc=$rc, modos=$(modos))" "$saida"
+saida="$(nomes --conferir)"; rc=$?
+[ "$rc" = 0 ] && ok "permissão: depois do conserto, o conferir dá 0" || falha "permissão: conferir depois do conserto devolveu $rc" "$saida"
+chmod 600 "$AP/seiscentos.desktop"
+saida="$(nomes --aplicar --so-flatpak)"; rc=$?
+[ "$rc" = 1 ] && [ "$(stat -c '%a' "$AP/seiscentos.desktop")" = 644 ] \
+  && ok "permissão: o gatilho do flatpak (--so-flatpak) também conserta — é o evento que deixa o 600" \
+  || falha "permissão: o --so-flatpak não consertou (rc=$rc)" "$saida"
+# O chmod que falha é erro, mas não pode calar o lançador: com um nome encurtado
+# na mesma passada, o `meow_lancador_reler` roda antes do erro (revisão da P42,
+# 24/09/2026). O `chmod` de mentira falha só no `trava.desktop`; o `pgrep` e o
+# `pkill` de mentira contam se o lançador foi chacoalhado, sem tocar o de quem roda.
+BIN9="$T/bin9"; mkdir -p "$BIN9"
+printf '#!/bin/sh\ncase "$*" in *trava.desktop*) exit 1 ;; esac\nexec %s "$@"\n' "$(command -v chmod)" > "$BIN9/chmod"
+printf '#!/bin/sh\nexit 0\n' > "$BIN9/pgrep"
+printf '#!/bin/sh\necho "$*" >> "%s"\n' "$T/pkill9.log" > "$BIN9/pkill"
+chmod +x "$BIN9/chmod" "$BIN9/pgrep" "$BIN9/pkill"
+printf '[Desktop Entry]\nName=Um Nome Comprido Demais\n' > "$AP/meow-teste-longo.desktop"
+printf '[Desktop Entry]\nName=trava\n' > "$AP/trava.desktop"; chmod 600 "$AP/trava.desktop"
+printf 'meow-teste-longo:Curto\n' > "$T/mapa9b"
+saida="$(env -i PATH="$BIN9:$PATH" HOME="$T/casa9" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$T/estado9" \
+    MEOW_NOMES_MAPA="$T/mapa9b" NO_COLOR=1 "$RAIZ/scripts/nomes_apps.sh" --sem-sudo </dev/null 2>&1)"; rc=$?
+[ "$rc" = 2 ] && grep -qx 'Name=Curto' "$AP/meow-teste-longo.desktop" && [ -s "$T/pkill9.log" ] \
+  && ok "permissão: o chmod que falha é erro (rc=2), mas só depois de o lançador reler o nome encurtado" \
+  || falha "permissão: o chmod que falhou calou o lançador (rc=$rc)" "$saida$(cat "$T/pkill9.log" 2>&1)"
 
 # ---------------------------------------------------------------------------
 printf '\n'
