@@ -320,11 +320,17 @@ def montar_casa():
     for nome in sorted(os.listdir(glifos)):
         if nome.endswith(".svg"):
             shutil.copyfile(os.path.join(glifos, nome), os.path.join(tema, nome))
+    # METADE ESCURA, METADE CLARA. O carrossel separa dia e noite pela luz de
+    # cada imagem, e só monta o grupo da HORA (`e_noite`) se ele tiver duas ou
+    # mais — senão tudo fica em `ativos/` e as abas Dia e Noite da galeria
+    # nascem vazias. Com as seis escuras da primeira versão, o percurso passava
+    # de noite e reprovava de dia: medido às 07:21 de 24/09/2026, "o grupo de
+    # dia ficou com 1 imagem(ns)". Três de cada lado valem a qualquer hora.
     ativos = os.path.join(valor_de("WALLPAPER_BASE").replace("$HOME", CASA), "ativos")
     os.makedirs(ativos)
     for i in range(PAREDES):
         png_liso(os.path.join(ativos, f"brinquedo-{i:02d}.png"),
-                 (30 * i, 0x2A, 0xFF - 30 * i))
+                 (0x1E + 8 * i, 0x1E, 0x2E) if i % 2 else (0xEE, 0xEE - 8 * i, 0xE0))
 
     # UMA PENDÊNCIA POR CONSERTO QUE O SERVIDOR CONHECE — o molde do
     # `tests/app-acessibilidade.py`, lido do `ACAO_DA_PENDENCIA` da fonte.
@@ -1547,7 +1553,8 @@ class Percurso:
             self.pag.locator("#conteudo .abas button", has_text=papel).first.click()
             self.assentar(quieto=300)
             medir = "papel de parede · Medir"
-            if self.checa(self.quantos(medir), f"na aba {papel}, {imagem} ganha o «Medir»"):
+            if self.checa(self.esperar_nome(medir) is not None,
+                          f"na aba {papel}, {imagem} ganha o «Medir»"):
                 antes = retrato()
                 self.gesto_de_acao(lambda: self.clicar_na_ficha(medir), "Medir")
                 self.assentar(quieto=300)
@@ -1561,7 +1568,8 @@ class Percurso:
             self.pag.locator("#conteudo .abas button", has_text="Recusadas").first.click()
             self.assentar(quieto=300)
             devolver = "papel de parede · Devolver"
-            if self.checa(self.quantos(devolver), "nas Recusadas a imagem tem «Devolver»"):
+            if self.checa(self.esperar_nome(devolver) is not None,
+                          "nas Recusadas a imagem tem «Devolver»"):
                 self.gesto_de_acao(lambda: self.clicar_na_ficha(devolver), "Devolver")
                 self.assentar(quieto=300)
                 c2 = self.contagem_galeria()
