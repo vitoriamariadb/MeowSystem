@@ -81,7 +81,6 @@ import tempfile
 import time
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONF = os.path.expanduser("~/.config/meow/meow.conf")
 FOTOS = "--fotos" in sys.argv
 DESTINO_FOTOS = "/tmp/meow-app-testes"
 
@@ -92,6 +91,45 @@ except ImportError:
     print("  " + sys.executable)
     print("  receita no cabecalho de tests/app-navegador.py")
     sys.exit(3)
+
+# O PAINEL SOBE NUM HOME DE BRINQUEDO, E NUNCA CONTRA O `meow.conf` DELA —
+# 23/09/2026, sprint P33
+#   Ate' hoje este arquivo subia o `app/run.sh` com o ambiente de quem o
+#   chamava: o `meow.conf` de verdade, o estado de verdade e o `sudo` da
+#   maquina — e rodava acoes de verdade nesse painel (o `meow status`, o
+#   `doctor`, o rascunho da oficina gravado no estado dela). A regra do
+#   projeto e' que nada da interface e' aplicado em sandbox, tudo e' aplicado
+#   na maquina da pessoa; por isso quem vai para a sandbox e' o TESTE. E a P33
+#   tornou isto urgente: o `tests/todos.sh` passou a achar o python com
+#   Playwright, e este arquivo, que saia "pulado" nos terminais sem o pyenv,
+#   agora roda de fato a cada `./tests/todos.sh`.
+#
+#   O servidor recebe um ambiente limpo, o `env -i` do `tests/convergencia.sh`:
+#   HOME e `MEOW_CONF` num diretorio temporario, `MEOW_PONTE` para o vazio e um
+#   `sudo` falso na frente do PATH — numa maquina com `NOPASSWD: ALL` o
+#   `sudo -n` de verdade PASSA, e um teste cujo alcance depende disso e' roleta.
+#   O `meow.conf` do brinquedo e' uma copia do `meow.conf.exemplo`, o arquivo
+#   de uma instalacao nova — e e' ele que o passo 21 confere byte a byte.
+#
+#   O QUE ISTO CUSTA, MEDIDO NA PRIMEIRA CORRIDA INTEIRA NO BRINQUEDO
+#   (23/09/2026): quatro conferencias liam o que esta' INSTALADO na casa dela
+#   e reprovam olhando uma casa vazia —
+#     · a grade de icones do tema e as miniaturas da galeria (zero de cada);
+#     · o ponteiro, "3 de 0": o `CURSOR` de fabrica nao esta' instalado, entao
+#       a lista do disco nao vira cerca e a chave fica sem opcoes, enquanto as
+#       3 previas saem de /usr/share/icons;
+#     · a Suavidade da oficina, 0,0%: o aplicativo que o brinquedo oferece tem
+#       um icone tao simples que a conversao devolve o MESMO SVG de 2 a 10
+#       (medido pela rota, um pedido por valor).
+#   E' reprovacao honesta, e o que elas devem passar a medir num brinquedo e'
+#   decisao de outra sprint; o que nao pode e' o teste voltar a subir o painel
+#   dela para ficar verde. A quinta reprovacao NAO e' do brinquedo: o `FLAVOR`
+#   nao ganha amostras em casa nenhuma, porque as cinco opcoes dele nao cabem
+#   na paleta de nenhum dos dois packs (4 no catppuccin, 2 no dracula) —
+#   medido com `FLAVOR` mocha e dracula. E' ela que derruba o passo 20c.
+BRINQUEDO = tempfile.mkdtemp(prefix="meow-navegador-")
+CASA = os.path.join(BRINQUEDO, "casa")
+CONF = os.path.join(CASA, ".config", "meow", "meow.conf")
 
 falhas = []
 passos = []
@@ -297,12 +335,32 @@ def descartar(pag):
         pag.wait_for_timeout(400)
 
 
-def sobe_servidor():
+def montar_casa():
+    """Semeia o HOME de brinquedo e devolve o ambiente do servidor."""
+    os.makedirs(os.path.dirname(CONF))
+    shutil.copyfile(os.path.join(RAIZ, "meow.conf.exemplo"), CONF)
+    falso = os.path.join(BRINQUEDO, "falso")
+    os.makedirs(falso)
+    with open(os.path.join(falso, "sudo"), "w", encoding="utf-8") as fh:
+        fh.write("#!/bin/sh\n"
+                 "printf 'sudo: recusado pelo tests/app-navegador.py\\n' >&2\n"
+                 "exit 1\n")
+    os.chmod(os.path.join(falso, "sudo"), 0o755)
+    return {"PATH": falso + os.pathsep + os.environ.get("PATH", ""),
+            "HOME": CASA, "USER": os.environ.get("USER", "meow"),
+            "LANG": os.environ.get("LANG", "C.UTF-8"),
+            "MEOW_CONF": CONF, "MEOW_PONTE": "/nao/existe"}
+
+
+def sobe_servidor(ambiente):
     """Sobe o painel e devolve (processo, url). A URL sai na PRIMEIRA linha do
-    `--sem-abrir` — e e a unica forma de saber a porta, que o kernel escolhe."""
+    `--sem-abrir` — e e a unica forma de saber a porta, que o kernel escolhe.
+    `ambiente` e' o do HOME de brinquedo (`montar_casa`), e SO' ele: nada do
+    ambiente de quem chamou chega ao servidor."""
     proc = subprocess.Popen(
         [os.path.join(RAIZ, "app", "run.sh"), "--sem-abrir"],
-        cwd=RAIZ, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        cwd=RAIZ, env=ambiente,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     url = None
     inicio = time.time()
     while time.time() - inicio < 40:
@@ -317,15 +375,15 @@ def sobe_servidor():
 
 
 def main():
-    if not os.path.exists(CONF):
-        print("pulado: nao ha ~/.config/meow/meow.conf — rode o ./install.sh antes.")
-        return 3
+    # O "pulado: nao ha ~/.config/meow/meow.conf" saiu daqui junto com a casa
+    # dela: o `meow.conf` agora e' o do brinquedo, e ele sempre existe.
+    ambiente = montar_casa()
     if FOTOS:
         os.makedirs(DESTINO_FOTOS, exist_ok=True)
 
     md5_inicial = md5_conf()
     log_nivel_inicial = valor_de("LOG_NIVEL")
-    proc, url = sobe_servidor()
+    proc, url = sobe_servidor(ambiente)
     if not url:
         print("XX o app/run.sh nao imprimiu a URL — nada a testar")
         proc.terminate()
@@ -351,7 +409,24 @@ def main():
                 and "Failed to fetch" not in m.text
                 and erros_de_console.append(m.text)))
             pag.on("pageerror", lambda e: erros_de_console.append(str(e)))
-            pag.goto(url, wait_until="networkidle")
+            # A PAGINA PRONTA E' O TRILHO DESENHADO, NAO O SILENCIO DA REDE —
+            # 23/09/2026, sprint P33
+            #   Era `wait_until="networkidle"`, que espera 500 ms sem conexao
+            #   nenhuma, e o `page.goto` estourava os 30 s em toda corrida — em
+            #   `dev` tambem. Medido antes de trocar a espera: com a pagina
+            #   aberta, aos 2, 8 e 20 s o UNICO pedido aberto e' o
+            #   `GET /api/pulso`, tipo `eventsource`, e nenhum pedido novo nasce
+            #   depois dos 3 s — nao ha intervalo vazando. E o pulso nao e'
+            #   vazamento: e' o interruptor do servidor (o bloco "O PAINEL MORRE
+            #   COM A JANELA QUE O ABRIU", em `servidor.py`), aberto de proposito
+            #   enquanto a pagina existir — entao a rede desta pagina NUNCA
+            #   silencia.
+            #
+            #   O `#trilho button` e' a prova certa de "pronta": o `iniciar()`
+            #   so' o desenha depois de o esquema chegar, e na mesma volta em
+            #   que pinta o `#resumo` que o passo 1 le logo abaixo.
+            pag.goto(url, wait_until="domcontentloaded")
+            pag.wait_for_selector("#trilho button")
 
             print("\n1. A PAGINA ABRE")
             checa(pag.title() == "MeowSystem", "o titulo e MeowSystem")
@@ -816,7 +891,11 @@ def main():
             # instalador inteiro na maquina de quem testa.
             checa(pag.locator("#botao-salvar").is_visible(),
                   "sem escolha pendente, o Salvar continua na tela")
-            checa("Aplica" in (pag.locator("#botao-salvar").get_attribute("title") or ""),
+            # O BALAO E' `data-balao` DESDE A P6 (21/09/2026): o `porBalao` tira
+            # o `title` nativo de todo elemento. Lendo o `title`, esta
+            # conferencia reprovava um Salvar que diz exatamente o que ela pede
+            # — medido na primeira corrida depois do `networkidle`, 23/09/2026.
+            checa("Aplica" in (pag.locator("#botao-salvar").get_attribute("data-balao") or ""),
                   "e diz que aplica o que ja' esta' salvo")
 
             print("\n10. UMA ACAO, COM SAIDA AO VIVO")
@@ -826,8 +905,15 @@ def main():
             # Instalar e Conferir com o Ver o Estado"*. Conferir a maquina e ver
             # o que esta' no ar sao a mesma pergunta feita de dois jeitos.
             secao("Instalação")
+            # O «EXECUTAR» PELO NOME, E NAO O PRIMEIRO BOTAO — 23/09/2026
+            #   Desde 22/09 (P7) o «ver comando» nasce ANTES do «Executar» no
+            #   rodape do cartao, e o `.first` passou a abrir a lista de
+            #   comandos em vez de rodar a acao: a gaveta nunca abria, e este
+            #   passo e o 10b mediam uma gaveta de 0 px. Medido na primeira
+            #   corrida depois do `networkidle`, com captura da aba.
             pag.locator("#conteudo .acao, #conteudo .cartao",
-                        has_text="O que está no ar agora").locator("button").first.click()
+                        has_text="O que está no ar agora").get_by_role(
+                            "button", name="Executar", exact=True).click()
             saida = ""
             # PACIÊNCIA DE 25 s, e não de 10: o `meow status` consulta systemd,
             # cosmic-randr e o tema inteiro. Numa máquina ocupada — foi o caso
@@ -1052,8 +1138,12 @@ def main():
             # todo dia" se um dia essa acao existir. O rotulo inteiro nao tem
             # esse risco.
             secao("Instalação")
+            # O «Executar» pelo nome, pelo mesmo motivo do passo 10: com o
+            # `.first` este passo clicava no «ver comando» e o `doctor` nem
+            # rodava — a conferencia de que ele so' le passava sem ter lido.
             pag.locator("#conteudo .acao, #conteudo .cartao",
-                        has_text="Conferir a máquina").locator("button").first.click()
+                        has_text="Conferir a máquina").get_by_role(
+                            "button", name="Executar", exact=True).click()
             pag.wait_for_timeout(6000)
             checa(md5_conf() == md5_antes, "o doctor so' le: o meow.conf não mudou")
 
@@ -1222,7 +1312,16 @@ def main():
                   f"as {vivas} abas com deslizante repintam o desenho durante o arrasto")
             checa(not pag.locator("#salvar-conta:visible").count(),
                   "e arrastar nao acendeu a barra do Salvar — nada foi escolhido")
+            # O RELOAD ESPERA O TRILHO, PELO MESMO MOTIVO DO `goto` DO PASSO 1 —
+            # 23/09/2026, sprint P33
+            #   O `reload` volta no `load`, e o `iniciar()` so' desenha o trilho
+            #   quando o esquema chega. Medido no brinquedo: 1,8 s entre um e
+            #   outro, e com os 1500 ms fixos daqui o passo 17b contava as abas
+            #   de uma pagina que ainda nao tinha nenhuma — "nenhum deslizante
+            #   nas 0 abas", e duas reprovacoes que nao eram da pagina. As
+            #   outras idas e voltas deste arquivo esperam o mesmo seletor.
             pag.reload()
+            pag.wait_for_selector("#trilho button")
             pag.wait_for_timeout(1500)
 
             print("\n17b. O DESLIZANTE NASCE LIVRE, E OS DOIS BOTOES")
@@ -1466,7 +1565,7 @@ def main():
             #     atravessava o balao e 22 dos 50 botoes de "Cor e tela" ficavam
             #     inalcancaveis. Mede-se pelo ponteiro: quem esta sob o centro
             #     do botao tem de ser o botao.
-            pag.goto(url); pag.wait_for_timeout(1800)
+            pag.goto(url); pag.wait_for_selector("#trilho button"); pag.wait_for_timeout(1800)
             pag.locator('#trilho button[data-grupo="Cor e tela"]').first.click()
             pag.wait_for_timeout(700)
             gatilho = pag.locator('#conteudo .cartao[data-chave="FLAVOR"] button.porque').first
@@ -1524,6 +1623,10 @@ def main():
             #     `align-items: start` na grade cada cartao tinha a propria
             #     altura e os botoes saiam em escadinha de ate 20px. Um pixel de
             #     folga e arredondamento de sub-pixel; vinte e defeito.
+            #     O `:not(.ver-comando)` e' de 23/09/2026: desde a P7 o rodape
+            #     tem DOIS botoes, e o «ver comando» quebra linha junto das
+            #     pastilhas quando elas sao muitas — contado aqui, ele virava
+            #     uma escada de 42 px que o «Executar» nao tem.
             escadas = []
             for aba_ in ("Atualização", "Instalação", "Papel de parede", "Logo do sistema"):
                 bt = pag.locator(f'#trilho button[data-grupo="{aba_}"]').first
@@ -1532,7 +1635,7 @@ def main():
                 bt.click(); pag.wait_for_timeout(900)
                 for tops in pag.evaluate("""() => {
                   const fil = {};
-                  for (const b of document.querySelectorAll('#conteudo .grade > .acao .rodape .btn')) {
+                  for (const b of document.querySelectorAll('#conteudo .grade > .acao .rodape .btn:not(.ver-comando)')) {
                     const c = b.closest('.acao').getBoundingClientRect();
                     (fil[Math.round(c.top / 20)] ||= []).push(Math.round(b.getBoundingClientRect().top));
                   }
@@ -1582,7 +1685,7 @@ def main():
             #     por rede depois da primeira pintura; enquanto elas somavam ao
             #     contador, o "8" ao lado de "Icones" virava "48" sem que ela
             #     tivesse feito nada.
-            pag.goto(url); pag.wait_for_timeout(1200)
+            pag.goto(url); pag.wait_for_selector("#trilho button"); pag.wait_for_timeout(1200)
             antes_conta = pag.evaluate("""() => Object.fromEntries(
               [...document.querySelectorAll('#trilho button[data-grupo]')]
                 .map(b => [b.dataset.grupo, (b.querySelector('.conta') || {}).textContent || '']))""")
@@ -1605,13 +1708,13 @@ def main():
             # (a) A BANDEJA SOBREVIVE AO F5. Antes: 14 escolhas pendentes, um
             #     recarregar, e MUDANCAS.size === 0 sem uma palavra. O espelho
             #     mora no sessionStorage e volta filtrado pelo esquema.
-            pag.goto(url); pag.wait_for_timeout(1800)
+            pag.goto(url); pag.wait_for_selector("#trilho button"); pag.wait_for_timeout(1800)
             pag.locator('#trilho button[data-grupo="Cor e tela"]').first.click()
             pag.wait_for_timeout(700)
             alvo = pag.locator('#conteudo .cartao[data-chave="FLAVOR"] .amostras button:not([aria-pressed=true])').first
             alvo.click(); pag.wait_for_timeout(500)
             antes_n = pag.evaluate("() => MUDANCAS.size")
-            pag.reload(); pag.wait_for_timeout(2200)
+            pag.reload(); pag.wait_for_selector("#trilho button"); pag.wait_for_timeout(2200)
             depois_n = pag.evaluate("() => MUDANCAS.size")
             checa(antes_n == 1 and depois_n == 1,
                   f"a escolha pendente sobrevive ao F5 (antes={antes_n}, depois={depois_n})")
@@ -2200,7 +2303,7 @@ def main():
         except subprocess.TimeoutExpired:
             proc.kill()
 
-    print("\n21. O ARQUIVO DELA FICOU COMO ESTAVA")
+    print("\n21. O meow.conf FICOU COMO ESTAVA")
     checa(md5_conf() == md5_inicial, "o meow.conf esta byte a byte como antes do teste")
 
     bons = sum(1 for ok, _ in passos if ok)
@@ -2215,4 +2318,9 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # O brinquedo sai sempre, inclusive quando o teste morre no meio: ele e'
+    # uma casa inteira em /tmp, com um `sudo` falso dentro.
+    try:
+        sys.exit(main())
+    finally:
+        shutil.rmtree(BRINQUEDO, ignore_errors=True)

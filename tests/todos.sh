@@ -152,7 +152,45 @@ case "$MODO" in
   maquina)  ALVOS=("${MAQUINA[@]}");                  QUAL="os ${#MAQUINA[@]} que exigem a máquina dela" ;;
 esac
 
-printf '== suíte MeowSystem: %s ==\n\n' "$QUAL"
+printf '== suíte MeowSystem: %s ==\n' "$QUAL"
+
+# ---------------------------------------------------------------------------
+# O PYTHON QUE TEM O PLAYWRIGHT — 23/09/2026, sprint P33
+# ---------------------------------------------------------------------------
+#   Os dois testes de navegador são `#!/usr/bin/env python3`, e o `env` pega o
+#   PRIMEIRO python3 do PATH. Nesta máquina ele é o /usr/bin/python3, que não
+#   tem Playwright; quem tem é o do pyenv, e os shims do pyenv só entram no
+#   PATH quando o shell dela os carrega — no zsh daqui o `python3` é uma função
+#   que carrega o pyenv na primeira chamada, e um `./tests/todos.sh` aberto
+#   antes dela herda o PATH sem eles. Medido em 23/09/2026: a suíte marcava os
+#   dois como *pulados* numa máquina com Playwright e Chromium instalados — e
+#   pulado não é verde, é o placar sem os dois testes que mais olham a tela.
+#
+#   Então o runner PERGUNTA a cada candidato se ele importa o Playwright, em vez
+#   de aceitar o primeiro que o PATH oferece: todo python3 do PATH, na ordem
+#   dele; o que o `pyenv` resolve, se o comando existe; e o venv que a receita
+#   no cabeçalho dos dois testes manda criar. O primeiro que responder roda os
+#   `.py`. Nenhum respondeu: eles rodam como sempre e dizem "pulado" com a
+#   receita na tela — agora sim porque falta, e não porque ninguém procurou.
+PY_NAVEGADOR=""
+TEM_PY=0
+for nome in "${ALVOS[@]}"; do [[ $nome == *.py ]] && TEM_PY=1; done
+if [ "$TEM_PY" -eq 1 ]; then
+  mapfile -t CANDIDATOS < <(
+    type -ap python3
+    command -v pyenv >/dev/null 2>&1 && pyenv which python3 2>/dev/null
+    printf '%s\n' "$HOME/.local/share/meowsystem/venv-testes/bin/python3"
+  )
+  for py in "${CANDIDATOS[@]}"; do
+    [ -x "$py" ] || continue
+    "$py" -c 'import playwright.sync_api' >/dev/null 2>&1 && { PY_NAVEGADOR="$py"; break; }
+  done
+  # A tela diz qual interpretador rodou os `.py`, pelo mesmo motivo de dizer
+  # qual subconjunto: um "ok" que não diz com quê não se reproduz.
+  printf 'python dos testes de navegador: %s\n' \
+         "${PY_NAVEGADOR:-nenhum python3 com Playwright nesta máquina}"
+fi
+printf '\n'
 
 VERDES=0; PULADOS=0; VERMELHOS=()
 for nome in "${ALVOS[@]}"; do
@@ -163,7 +201,11 @@ for nome in "${ALVOS[@]}"; do
     continue
   fi
   inicio="$(date +%s)"
-  saida="$("$arq" 2>&1)"; rc=$?
+  if [[ $nome == *.py ]] && [ -n "$PY_NAVEGADOR" ]; then
+    saida="$("$PY_NAVEGADOR" "$arq" 2>&1)"; rc=$?
+  else
+    saida="$("$arq" 2>&1)"; rc=$?
+  fi
   seg=$(( $(date +%s) - inicio ))
 
   # `pulado` no começo de uma linha é o idioma da casa para "não dava para
