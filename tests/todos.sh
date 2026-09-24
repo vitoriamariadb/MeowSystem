@@ -92,6 +92,18 @@ MAQUINA=(
   app-navegador.py       # Playwright com Chromium, a página usada como ela usaria
   app-acessibilidade.py  # Playwright com Chromium; sobe o painel
   oficina.sh             # lê os .desktop da máquina: o desenho de pack que veste um deles tem cartão
+  app-completo.py        # Playwright com Chromium: TODA aba, TODO controle — o gate de merge (P46)
+)
+
+# O GATE NÃO SE PULA — 24/09/2026, sprint P46
+#   O `app-completo.py` é o percurso do painel inteiro, aba por aba e botão por
+#   botão, e é a condição para uma sprint entrar em `dev` (a regra está escrita
+#   no `docs/SPRINTS.md`). Um gate que sai "pulado" quando falta o Playwright
+#   deixaria a suíte dizer "0 vermelhos" sem ele ter rodado — e "pulado não é
+#   verde" é a regra deste arquivo desde o primeiro dia. Para os testes desta
+#   lista, `pulado` é VERMELHO, com a receita de instalar na tela.
+SEM_PULO=(
+  app-completo.py
 )
 
 # ---------------------------------------------------------------------------
@@ -250,7 +262,22 @@ for nome in "${ALVOS[@]}"; do
   disse_falhou=0
   [[ $saida == *FALHOU* ]] && disse_falhou=1
 
-  if [ "$disse_pulado" -eq 1 ] && [ "$disse_falhou" -eq 0 ] \
+  sem_pulo=0
+  for i in "${SEM_PULO[@]}"; do [ "$i" = "$nome" ] && sem_pulo=1; done
+  if [ "$sem_pulo" -eq 1 ] && [[ $nome == *.py ]] && [ -z "$PY_NAVEGADOR" ]; then
+    # Sem python com Playwright o teste nem chega a subir o painel: é aqui que
+    # a receita aparece, e não num "pulado" que o placar esconderia.
+    estado="FALHOU"; VERMELHOS+=("$nome")
+    saida="FALHOU: $nome é gate de merge e nenhum python3 desta máquina tem o Playwright.
+  python3 -m venv ~/.local/share/meowsystem/venv-testes
+  ~/.local/share/meowsystem/venv-testes/bin/pip install playwright
+  ~/.local/share/meowsystem/venv-testes/bin/playwright install chromium
+$saida"
+  elif [ "$sem_pulo" -eq 1 ] && [ "$disse_pulado" -eq 1 ]; then
+    estado="FALHOU"; VERMELHOS+=("$nome")
+    saida="FALHOU: $nome é gate de merge, e pulado aqui é vermelho
+$saida"
+  elif [ "$disse_pulado" -eq 1 ] && [ "$disse_falhou" -eq 0 ] \
      && { [ "$rc" -eq 0 ] || [ "$rc" -eq 3 ]; }; then
     estado="pulado"; PULADOS=$((PULADOS + 1))
   elif [ "$rc" -eq 0 ]; then

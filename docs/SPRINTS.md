@@ -4,6 +4,14 @@ Este arquivo é **autossuficiente**: quem for executar uma sprint não precisa d
 nenhum contexto de conversa anterior. Cada uma traz o que já foi medido, o que
 fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
 
+**A REGRA DE MERGE (24/09/2026, P46): nada entra em `dev` sem o
+`./tests/app-completo.py` verde** — o painel inteiro pelo navegador, aba por
+aba e controle por controle. Ele roda dentro do `./tests/todos.sh` e ali não sai
+"pulado": sem Playwright ele é vermelho, com a receita de instalar. Botão novo
+na tela entra no inventário do teste no mesmo commit que o criou; sem isso o
+teste o reprova pelo nome. (Até esta data a regra não estava escrita em lugar
+nenhum — nem aqui, nem num `CONTRIBUTING`, que o projeto não tem.)
+
 Última atualização: **21/09/2026**.
 
 ---
