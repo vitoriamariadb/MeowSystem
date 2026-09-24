@@ -302,6 +302,118 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 7. O DESFAZER DO OBSIDIAN SÓ VOLTA O QUE É DELE, E EM TODOS OS COFRES
+# ---------------------------------------------------------------------------
+# POR QUE ESTA SEÇÃO NASCEU — 24/09/2026, na revisão da P43
+#   O item 5 da P43 tirou do módulo o cofre escrito por extenso: o cofre passou
+#   a sair do `obsidian.json`, o que o Obsidian abriu por último. O `aplicar`
+#   ficou certo. O `reverter` herdou a mesma pergunta e ficou errado: com o
+#   cofre A tematizado, bastava a pessoa abrir o cofre B e escolher ali um tema
+#   dela para o desfazer ir ao B — zerava o `cssTheme` dela, tirava o snippet,
+#   sem backup, dizia que tinha tirado o tema e deixava o A tematizado. Com o
+#   doctor diário tematizando o cofre da vez, o `--uninstall` deixava o tema em
+#   todos os cofres de antes.
+#
+#   A casa de brinquedo tem DOIS cofres, de nomes inventados, e três tempos:
+#     1. o `aplicar` tematiza o A, o único que o obsidian.json conhece;
+#     2. a pessoa abre o B (fica `open`, com o `ts` maior) e escolhe um tema dela;
+#     3. o `reverter`.
+#   O A tem de voltar, arquivo por arquivo, ao que era antes do MeowSystem, e o
+#   appearance.json tematizado tem de ficar num backup. O B tem de ficar byte a
+#   byte como ela o deixou.
+#
+#   O flatpak e o pgrep daqui são de brinquedo: basta existirem, e o pgrep que
+#   sai 1 é "o Obsidian está fechado". Sem ele, um Obsidian aberto na máquina de
+#   quem roda o teste faria o módulo recusar, e a seção falharia por fora. O
+#   XDG_CONFIG_HOME vai para dentro da casa pelo mesmo motivo que o HOME: é por
+#   ali que o módulo acharia o obsidian.json de verdade.
+C="$T/casa7"
+A="$C/Cofre Alfa"
+B="$C/cofre-beta"
+OBS_JSON="$C/.var/app/md.obsidian.Obsidian/config/obsidian/obsidian.json"
+mkdir -p "$C/bin" "$(dirname "$OBS_JSON")" "$A/.obsidian" "$B/.obsidian/snippets" \
+         "$B/.obsidian/themes/Tema de Brinquedo"
+printf '#!/bin/sh\nexit 1\n' > "$C/bin/flatpak"
+printf '#!/bin/sh\nexit 1\n' > "$C/bin/pgrep"
+chmod +x "$C/bin/flatpak" "$C/bin/pgrep"
+
+# O A antes do MeowSystem, gravado como o Obsidian grava: indentação de 2 e sem
+# \n no fim. O `cssTheme` vazio é o padrão do app, que é para onde o desfazer
+# devolve.
+printf '{\n  "theme": "obsidian",\n  "cssTheme": "",\n  "baseFontSize": 16\n}' \
+  > "$A/.obsidian/appearance.json"
+
+impressao() { (cd "$1" && find . -type f -print0 | sort -z | xargs -0 -r sha256sum); }
+
+modulo_obsidian() {
+  (
+    export HOME="$C" XDG_CONFIG_HOME="$C/.config"
+    export MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$C/estado" NO_COLOR=1
+    export PATH="$C/bin:$PATH"
+    unset MEOW_OBSIDIAN_VAULT
+    # shellcheck disable=SC1091
+    . "$RAIZ/lib/comum.sh" || exit 2
+    # shellcheck disable=SC1091
+    . "$ACERVO/obsidian/manifesto.sh" || exit 2
+    "meow_app_$1" 2>&1
+    printf 'rc=%s\n' "$?"
+  )
+}
+
+a_antes="$(impressao "$A")"
+
+# 1. o aplicar tematiza o A
+printf '{"vaults":{"a1":{"path":"%s","ts":1000,"open":true}}}' "$A" > "$OBS_JSON"
+saida="$(modulo_obsidian aplicar)"
+if printf '%s' "$saida" | grep -q 'rc=1' && [ -f "$A/.obsidian/themes/Catppuccin/theme.css" ] \
+   && grep -q '"cssTheme": "Catppuccin"' "$A/.obsidian/appearance.json"; then
+  ok "obsidian: o aplicar tematiza o cofre que o obsidian.json conhece"
+else
+  falha "obsidian: o aplicar não tematizou o cofre A da casa de brinquedo" "$saida"
+fi
+a_tematizado="$(sha256sum < "$A/.obsidian/appearance.json" | cut -d' ' -f1)"
+
+# 2. a pessoa abre o B e escolhe um tema dela, com o snippet dela ligado
+printf '{\n  "theme": "obsidian",\n  "cssTheme": "Tema de Brinquedo",\n  "enabledCssSnippets": [\n    "dracula_background"\n  ]\n}' \
+  > "$B/.obsidian/appearance.json"
+printf '.theme-dark { --background-primary: #101010; }' > "$B/.obsidian/themes/Tema de Brinquedo/theme.css"
+printf 'body { background: #202020; }' > "$B/.obsidian/snippets/dracula_background.css"
+printf '{"vaults":{"a1":{"path":"%s","ts":1000},"b2":{"path":"%s","ts":2000,"open":true}}}' \
+  "$A" "$B" > "$OBS_JSON"
+b_antes="$(impressao "$B")"
+
+# 3. o desfazer
+saida="$(modulo_obsidian reverter)"
+if [ "$(impressao "$B")" = "$b_antes" ]; then
+  ok "obsidian: o desfazer não toca no cofre que o MeowSystem nunca tematizou"
+else
+  falha "obsidian: o desfazer mexeu no cofre B, que tinha um tema escolhido pela pessoa" \
+        "$saida
+$(diff <(printf '%s\n' "$b_antes") <(impressao "$B"))"
+fi
+if [ "$(impressao "$A")" = "$a_antes" ]; then
+  ok "obsidian: o desfazer devolve o cofre tematizado ao que era antes do MeowSystem"
+else
+  falha "obsidian: o cofre A não voltou ao que era antes do MeowSystem" \
+        "$saida
+$(diff <(printf '%s\n' "$a_antes") <(impressao "$A"))"
+fi
+if find "$C/estado/backups" -path '*/obsidian/*' -type f -exec sha256sum {} + 2>/dev/null \
+   | grep -q "^$a_tematizado "; then
+  ok "obsidian: o appearance.json tematizado ficou num backup antes de ser desfeito"
+else
+  falha "obsidian: nenhum backup guarda o appearance.json tematizado do A" "$saida"
+fi
+
+# E desfeito é desfeito: a segunda passada não tem nada a fazer, e diz 0.
+saida="$(modulo_obsidian reverter)"
+if printf '%s' "$saida" | grep -q 'rc=0' && [ "$(impressao "$B")" = "$b_antes" ]; then
+  ok "obsidian: o segundo desfazer não acha nada a fazer (rc=0)"
+else
+  falha "obsidian: o segundo desfazer não devolveu 0, ou mexeu no B" "$saida"
+fi
+
+# ---------------------------------------------------------------------------
 printf '\n'
 if [ "$falhas" -gt 0 ]; then
   printf '%s achado(s).\n' "$falhas" >&2

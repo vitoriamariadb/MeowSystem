@@ -126,6 +126,7 @@ MEOW_OBSIDIAN_TEMA="Catppuccin"
 #   por passada, como antes; quem tem vários e quer outro diz qual em
 #   `MEOW_OBSIDIAN_VAULT`, que continua vencendo. A pergunta é feita só no
 #   `meow_app_detectar`, depois de o python3 e o app estarem confirmados.
+#   O DESFAZER NÃO: ele passa por TODOS os cofres — ver o DESFAZER lá embaixo.
 MEOW_OBSIDIAN_VAULT="${MEOW_OBSIDIAN_VAULT:-}"
 # Ver armadilha (1): o padrão precisa ser ancorado, ou casa o próprio shell.
 MEOW_OBSIDIAN_PADRAO_PROC='^/app/obsidian( |$)'
@@ -138,13 +139,16 @@ MEOW_OBSIDIAN_VENDOR="$MEOW_OBSIDIAN_DIR/vendor/$MEOW_OBSIDIAN_TEMA"
 
 # O cofre que o próprio Obsidian abriu por último — ver "O COFRE SAI DO PRÓPRIO
 # OBSIDIAN" lá em cima. Não imprime nada quando ele não conhece cofre nenhum.
+# Com `todos`, imprime TODOS os cofres dos dois arquivos, cada um terminado por
+# NUL (nome de pasta pode ter quebra de linha): é a lista do desfazer.
 _meow_obsidian_cofre() {
-  python3 - "$HOME/.var/app/$MEOW_OBSIDIAN_APP_ID/config/obsidian/obsidian.json" \
+  python3 - "${1:-um}" "$HOME/.var/app/$MEOW_OBSIDIAN_APP_ID/config/obsidian/obsidian.json" \
             "${XDG_CONFIG_HOME:-$HOME/.config}/obsidian/obsidian.json" <<'PYFIM'
 import json, os, sys
 
+todos = sys.argv[1] == "todos"
 melhor = None
-for arquivo in sys.argv[1:]:
+for arquivo in sys.argv[2:]:
     try:
         with open(arquivo, encoding="utf-8") as f:
             dados = json.load(f)
@@ -158,6 +162,9 @@ for arquivo in sys.argv[1:]:
             continue
         pasta = cofre.get("path")
         if not isinstance(pasta, str) or not os.path.isdir(os.path.join(pasta, ".obsidian")):
+            continue
+        if todos:
+            sys.stdout.write(pasta + "\0")
             continue
         ts = cofre.get("ts")
         chave = (cofre.get("open") is True, ts if isinstance(ts, (int, float)) else 0)
@@ -200,8 +207,18 @@ _meow_obsidian_backup() {
 }
 
 # O leitor/mesclador do appearance.json. Fica aqui dentro para o módulo ser um
-# arquivo só. Modos: "conferir" (não escreve) e "aplicar".
+# arquivo só. Modos: "conferir" (não escreve) e "aplicar"; e, do desfazer,
+# "conferir-desfazer" (não escreve) e "desfazer".
 # Códigos: 0 = já está certo · 1 = divergente (ou mesclado) · 2 = erro.
+#
+# O DESFAZER SÓ VOLTA O `cssTheme` QUE FOR DELE — 24/09/2026, revisão da P43
+#   Até aqui o desfazer chamava o modo "aplicar" com o tema vazio, e isso fazia
+#   o que o "aplicar" faz: punha QUALQUER `cssTheme` no padrão, tirava o snippet
+#   com "dracula" no nome e, sem appearance.json, criava um. Num cofre que o
+#   MeowSystem tematizou dá no mesmo; num que a pessoa tematizou sozinha, zera a
+#   escolha dela. Nos modos do desfazer, `tema` é o NOSSO: o `cssTheme` só volta
+#   ao padrão se ainda for ele, o array dos snippets não é tocado e arquivo que
+#   não existe continua não existindo.
 _meow_obsidian_json() {
   local modo="$1" arquivo="$2" tema="$3"
   MEOW_PY_SECO="$(meow_seco && echo 1 || echo 0)" \
@@ -210,6 +227,7 @@ import json, os, sys, tempfile
 
 modo, caminho, tema = sys.argv[1], sys.argv[2], sys.argv[3]
 seco = os.environ.get("MEOW_PY_SECO") == "1"
+desfazer = modo in ("conferir-desfazer", "desfazer")
 
 existia = os.path.exists(caminho)
 if existia:
@@ -230,14 +248,18 @@ else:
 antes = json.dumps(dados, sort_keys=True)
 motivos = []
 
-if dados.get("cssTheme") != tema:
+if desfazer:
+    if dados.get("cssTheme") == tema:
+        motivos.append("cssTheme=%r -> ''" % tema)
+        dados["cssTheme"] = ""
+elif dados.get("cssTheme") != tema:
     motivos.append("cssTheme=%r -> %r" % (dados.get("cssTheme"), tema))
     dados["cssTheme"] = tema
 
 # O snippet "dracula_background" pinta o fundo por cima e faria o Catppuccin
 # parecer quebrado. Só mexemos no ARRAY: o .css dela continua no disco, então
-# reverter é só remarcar o snippet na interface.
-snippets = dados.get("enabledCssSnippets")
+# reverter é só remarcar o snippet na interface. (O desfazer não toca no array.)
+snippets = None if desfazer else dados.get("enabledCssSnippets")
 if isinstance(snippets, list):
     limpos = [s for s in snippets
               if not (isinstance(s, str) and "dracula" in s.lower())]
@@ -246,16 +268,16 @@ if isinstance(snippets, list):
         motivos.append("snippets removidos: %s" % ", ".join(map(str, removidos)))
         dados["enabledCssSnippets"] = limpos
 
-if not existia:
+if not existia and not desfazer:
     motivos.append("appearance.json não existia")
 
-if json.dumps(dados, sort_keys=True) == antes and existia:
+if json.dumps(dados, sort_keys=True) == antes and (existia or desfazer):
     sys.exit(0)
 
 for m in motivos:
     sys.stderr.write("  %s\n" % m)
 
-if modo == "conferir" or seco:
+if modo in ("conferir", "conferir-desfazer") or seco:
     sys.exit(1)
 
 # O Obsidian grava com indentação de 2 e SEM \n final (medido no arquivo dela);
@@ -494,31 +516,72 @@ meow_app_aplicar() {
 # `.css` dele nunca saiu do disco (ver `_meow_obsidian_json`) — remarcar é um
 # clique na interface, e adivinhar por ela seria repor uma escolha que não é
 # nossa. A mensagem diz onde está.
+#
+# TODOS OS COFRES, E EM CADA UM SÓ O QUE É NOSSO — 24/09/2026, revisão da P43
+#   Quando o cofre deixou de ser escrito por extenso (item 5 da P43), o desfazer
+#   passou a ir ao cofre que o Obsidian abriu por ÚLTIMO — e esse não é, em
+#   geral, o que foi tematizado. Medido numa casa de brinquedo com dois cofres
+#   (seção 7 do tests/temas-de-apps.sh): tematizado o A, aberto o B com um tema
+#   que a pessoa escolheu, o desfazer zerava o `cssTheme` do B e tirava o
+#   snippet dele, sem backup, dizia que o tema tinha saído e deixava o A como
+#   estava. E como o doctor diário tematiza o cofre da vez, o `--uninstall`
+#   deixava o tema em todos os cofres de antes.
+#
+#   Agora ele passa por TODOS os cofres dos dois obsidian.json, mais o de
+#   `MEOW_OBSIDIAN_VAULT`, cada pasta uma vez só. Em cada um saem os arquivos do
+#   tema que ainda são byte a byte os nossos, e o `cssTheme` só volta ao padrão
+#   se ainda for o nosso (ver `_meow_obsidian_json`). O appearance.json vai para
+#   o backup antes de ser reescrito, como no `aplicar`: um arquivo por cofre,
+#   com o número e o nome da pasta no rótulo, para saber de onde cada um veio.
 meow_app_reverter() {
   # A frase que estava aqui era um chute entre duas das cinco causas que o
   # `detectar` mede. Agora é a medida que fala.
   meow_app_detectar || { meow_app_pendente obsidian; return; }
 
-  local tema_dir appearance mudou=0 arquivo rc
-  tema_dir="$(_meow_obsidian_tema_dir)"
-  appearance="$(_meow_obsidian_appearance)"
+  local -a lidos=() cofres=()
+  local -A vistos=()
+  local c real
+  mapfile -d '' -t lidos < <(_meow_obsidian_cofre todos)
+  for c in "$MEOW_OBSIDIAN_VAULT" ${lidos[@]+"${lidos[@]}"}; do
+    # O mesmo cofre chega por dois nomes (o link da armadilha 7, os dois
+    # obsidian.json): quem decide se já foi visto é a pasta de verdade.
+    real="$(readlink -m -- "$c")"
+    [ -n "${vistos[$real]:-}" ] && continue
+    vistos[$real]=1
+    cofres+=("$c")
+  done
+
+  # Este `local` faz sombra no global só enquanto a função roda: é o que deixa
+  # os utilitários lá de cima, que leem MEOW_OBSIDIAN_VAULT, servirem cofre a cofre.
+  local MEOW_OBSIDIAN_VAULT tema_dir appearance mudou=0 algum=0 arquivo i
+  local -a nossos_de=() json_de=()
 
   # Levantar ANTES de recusar por app aberto: com nada a fazer, "já estava
   # desfeito" é 0 mesmo com o Obsidian na tela.
-  local -a nossos=()
-  for arquivo in theme.css manifest.json; do
-    _meow_obsidian_igual "$MEOW_OBSIDIAN_VENDOR/$arquivo" "$tema_dir/$arquivo" \
-      && nossos+=("$arquivo")
+  for i in "${!cofres[@]}"; do
+    MEOW_OBSIDIAN_VAULT="${cofres[$i]}"
+    tema_dir="$(_meow_obsidian_tema_dir)"
+    appearance="$(_meow_obsidian_appearance)"
+    nossos_de[i]=""
+    for arquivo in theme.css manifest.json; do
+      _meow_obsidian_igual "$MEOW_OBSIDIAN_VENDOR/$arquivo" "$tema_dir/$arquivo" \
+        && nossos_de[i]+=" $arquivo"
+    done
+    json_de[i]=0
+    _meow_obsidian_json conferir-desfazer "$appearance" "$MEOW_OBSIDIAN_TEMA" >/dev/null 2>&1
+    case $? in
+      0) ;;
+      1) json_de[i]=1 ;;
+      *) meow_erro "obsidian: não consegui ler o appearance.json de '$MEOW_OBSIDIAN_VAULT'"; return "$MEOW_ERRO" ;;
+    esac
+    [ -n "${nossos_de[i]}" ] || [ "${json_de[i]}" = "1" ] || continue
+    algum=1
+    # A trava 1 aqui, e não no laço que escreve: cofre em território proibido
+    # recusa a rodada inteira ANTES de qualquer escrita, como era com um cofre só.
+    meow_destino_permitido "$appearance" || return "$MEOW_ERRO"
   done
-  local json_pendente=0
-  _meow_obsidian_json conferir "$appearance" "" >/dev/null 2>&1
-  case $? in
-    0) ;;
-    1) json_pendente=1 ;;
-    *) meow_erro "obsidian: não consegui ler o appearance.json"; return "$MEOW_ERRO" ;;
-  esac
 
-  if [ "${#nossos[@]}" -eq 0 ] && [ "$json_pendente" = "0" ]; then
+  if [ "$algum" = "0" ]; then
     meow_ok "obsidian: já estava sem o Catppuccin"
     return "$MEOW_OK"
   fi
@@ -530,38 +593,54 @@ meow_app_reverter() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  meow_destino_permitido "$appearance" || return "$MEOW_ERRO"
+  # Zerado a cada execução para o backup ser um diretório só por rodada.
+  unset MEOW_OBSIDIAN_BACKUP_DIR
 
-  if meow_seco; then
-    [ "${#nossos[@]}" -gt 0 ] && meow_muda "obsidian: removeria ${nossos[*]} de $tema_dir"
-    [ "$json_pendente" = "1" ] && meow_muda "obsidian: cssTheme voltaria ao padrão do app"
-    return "$MEOW_DIVERGENTE"
-  fi
+  for i in "${!cofres[@]}"; do
+    [ -n "${nossos_de[i]}" ] || [ "${json_de[i]}" = "1" ] || continue
+    MEOW_OBSIDIAN_VAULT="${cofres[$i]}"
+    tema_dir="$(_meow_obsidian_tema_dir)"
+    appearance="$(_meow_obsidian_appearance)"
 
-  # 1. os dois arquivos do tema — só saem os que ainda são byte a byte os nossos.
-  #    Um `theme.css` que ela editou deixou de ser nosso e fica.
-  for arquivo in ${nossos[@]+"${nossos[@]}"}; do
-    if rm -f "$tema_dir/$arquivo"; then mudou=1; else
-      meow_erro "obsidian: não consegui remover $tema_dir/$arquivo"; return "$MEOW_ERRO"
+    if meow_seco; then
+      [ -n "${nossos_de[i]}" ] && meow_muda "obsidian: removeria${nossos_de[i]} de $tema_dir"
+      [ "${json_de[i]}" = "1" ] && meow_muda "obsidian: cssTheme de '$MEOW_OBSIDIAN_VAULT' voltaria ao padrão do app"
+      continue
+    fi
+
+    # 1. os dois arquivos do tema — só saem os que ainda são byte a byte os nossos.
+    #    Um `theme.css` que ela editou deixou de ser nosso e fica. (A lista é de
+    #    nomes fixos, sem espaço: pode ser partida pelo `for`.)
+    for arquivo in ${nossos_de[i]}; do
+      if rm -f "$tema_dir/$arquivo"; then mudou=1; else
+        meow_erro "obsidian: não consegui remover $tema_dir/$arquivo"; return "$MEOW_ERRO"
+      fi
+    done
+    # `rmdir` sem `-p` e sem `-f`: some se ficou vazio, fica se ela pôs algo lá.
+    [ -d "$tema_dir" ] && rmdir "$tema_dir" 2>/dev/null
+    [ -n "${nossos_de[i]}" ] && meow_muda "obsidian: tema $MEOW_OBSIDIAN_TEMA removido de '$MEOW_OBSIDIAN_VAULT'"
+
+    # 2. o appearance.json, pelo mesmo varredor que o aplicou. O python grava
+    #    direto (não passa por `meow_escrever`), então nada disto entra no
+    #    manifesto — que é o que impede o desinstalador de apagar o arquivo depois.
+    if [ "${json_de[i]}" = "1" ]; then
+      _meow_obsidian_backup "$appearance" "$((i + 1))-$(basename -- "$MEOW_OBSIDIAN_VAULT")-appearance.json" || {
+        meow_erro "obsidian: não consegui fazer backup do appearance.json de '$MEOW_OBSIDIAN_VAULT'"
+        return "$MEOW_ERRO"
+      }
+      _meow_obsidian_json desfazer "$appearance" "$MEOW_OBSIDIAN_TEMA"
+      case $? in
+        0|1) mudou=1; meow_muda "obsidian: cssTheme de '$MEOW_OBSIDIAN_VAULT' de volta ao padrão do app" ;;
+        *) meow_erro "obsidian: falhou ao devolver o appearance.json de '$MEOW_OBSIDIAN_VAULT'"; return "$MEOW_ERRO" ;;
+      esac
     fi
   done
-  # `rmdir` sem `-p` e sem `-f`: some se ficou vazio, fica se ela pôs algo lá.
-  [ -d "$tema_dir" ] && rmdir "$tema_dir" 2>/dev/null
-  [ "$mudou" = "1" ] && meow_muda "obsidian: tema $MEOW_OBSIDIAN_TEMA removido do vault"
-
-  # 2. o appearance.json, pelo mesmo varredor que o aplicou. O python grava
-  #    direto (não passa por `meow_escrever`), então nada disto entra no
-  #    manifesto — que é o que impede o desinstalador de apagar o arquivo depois.
-  if [ "$json_pendente" = "1" ]; then
-    _meow_obsidian_json aplicar "$appearance" ""
-    rc=$?
-    case $rc in
-      0|1) mudou=1; meow_muda "obsidian: cssTheme de volta ao padrão do app" ;;
-      *) meow_erro "obsidian: falhou ao devolver o appearance.json"; return "$MEOW_ERRO" ;;
-    esac
-  fi
+  meow_seco && return "$MEOW_DIVERGENTE"
 
   [ "$mudou" = "0" ] && { meow_ok "obsidian: já estava sem o Catppuccin"; return "$MEOW_OK"; }
+  if [ -n "${MEOW_OBSIDIAN_BACKUP_DIR:-}" ] && [ -d "${MEOW_OBSIDIAN_BACKUP_DIR:-}/obsidian" ]; then
+    meow_info "obsidian: backup do que existia em $MEOW_OBSIDIAN_BACKUP_DIR/obsidian"
+  fi
   meow_ok "obsidian: sem o Catppuccin — reabra o app para ver"
   meow_info "o snippet 'dracula_background' continua no disco, desmarcado: Aparência > Snippets CSS"
   meow_info "tire 'obsidian' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
