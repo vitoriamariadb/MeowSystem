@@ -131,7 +131,7 @@ tema não tem um claro](#se-o-seu-tema-não-tem-um-claro), e não por outro. Ele
 chama `<flavor>claro` (uma palavra só: nome de flavor não tem hífen) e **diz que
 foi derivado**: a paleta ganha o campo
 
-```json
+```json fragmento
 "derivados": { "meutemaclaro": "meutema" }
 ```
 
@@ -182,7 +182,8 @@ Dracula faz com sete categorias. O resto vem por herança, e só vem se o
 
 Sem `heranca`, ícones, ponteiro e papéis de parede não sobem para pack nenhum.
 Com ela, o `meow pack info` e o cartão dizem categoria a categoria o que veio de
-onde — `próprio: paleta, ícones autorais · herdado de catppuccin: …` —, para
+onde — `próprio: paleta, ícones autorais · herdado de catppuccin: …` no `info`,
+e o mesmo com o nome do pack no cartão, «herdado do Catppuccin» —, para
 ninguém achar que ganhou menos do que ganhou. A herança é o **pack padrão**, e
 não o que está no ar: o mesmo CSV tem de dar o mesmo pack em qualquer máquina,
 e o padrão é o único pack que toda instalação tem. O `logo.svg` sai do
@@ -212,15 +213,27 @@ A paleta é um JSON com os mesmos campos de `packs/catppuccin/paleta.json`:
                      "overlay2", "overlay1", "overlay0", "surface2", "surface1",
                      "surface0", "base", "mantle", "crust"],
   "claros": [],
-  "nomes":  { "meu-tema": "Meu Tema" },
+  "nomes":  { "meutema": "Meu Tema" },
   "flavors": {
-    "meu-tema": {
-      "base": "#282A36", "text": "#F8F8F2", "mauve": "#BD93F9",
-      "…": "as 26, sem exceção"
+    "meutema": {
+      "rosewater": "#F8F0EC", "flamingo": "#FFB8D1", "pink": "#FF79C6",
+      "mauve": "#BD93F9", "red": "#FF5555", "maroon": "#FF6E6E",
+      "peach": "#FFB86C", "yellow": "#F1FA8C", "green": "#50FA7B",
+      "teal": "#7FE9DE", "sky": "#8BE9FD", "sapphire": "#62D6E8",
+      "blue": "#6272A4", "lavender": "#D6ACFF", "text": "#F8F8F2",
+      "subtext1": "#E0E0DA", "subtext0": "#C8C8C2", "overlay2": "#A4A6B8",
+      "overlay1": "#8B8DA0", "overlay0": "#6272A4", "surface2": "#565A72",
+      "surface1": "#44475A", "surface0": "#383A4C", "base": "#282A36",
+      "mantle": "#21222C", "crust": "#191A21"
     }
   }
 }
 ```
+
+Este exemplo valida como está, e o flavor é `meutema`, uma palavra só: o id do
+pack pode ter hífen, o nome de flavor não. Todo bloco JSON inteiro deste
+documento passa pelo `validar` no `tests/pack.sh`; os que mostram só um pedaço
+de arquivo levam `json fragmento` no fonte, e deles se confere só que são JSON.
 
 **Os 26 nomes são do Catppuccin, e isso é deliberado.** Eles não são "as cores
 do Catppuccin": são o **vocabulário** com que o resto do projeto fala de cor.
@@ -391,7 +404,7 @@ suportado é recusado com o número na mensagem.
 
 ### O resto
 
-```json
+```json fragmento
 {
   "versao": "1.0.0",
   "autor": "Seu Nome",
@@ -410,7 +423,7 @@ suportado é recusado com o número na mensagem.
 
   "paleta": {
     "arquivo": "paleta.json",
-    "flavor_padrao": "meu-tema",
+    "flavor_padrao": "meutema",
     "acentos": ["mauve", "pink", "green"],
     "claro_de_reserva": { "pack": "catppuccin", "flavor": "latte" }
   },
@@ -485,7 +498,7 @@ Ninguém escolhe um tema por um `id`. Até 23/09/2026 um pack era isso e 26
 hexadecimais, e a tela que escolhe um pack não tinha o que desenhar. O bloco
 `vitrine` é o que o pack diz de si para quem vai escolher:
 
-```json
+```json fragmento
 "vitrine": {
   "capa": "logo.svg",
   "descricao_curta": "O roxo do Dracula, com o gato do MeowSystem.",
@@ -654,7 +667,7 @@ pede (`application-x-cd-image`) não é o nome do desenho (`cd`).
 
 Cada categoria declara os dois no `pack.json`, e nenhuma é obrigatória:
 
-```json
+```json fragmento
 "icones": {
   "apps":      { "mapa": "icones/apps.map", "desenhos": "icones/apps/" },
   "mimetypes": { "mapa": "icones/mimetypes.map", "desenhos": "icones/mimetypes/" },
@@ -765,6 +778,7 @@ um desenho, no vocabulário que o gerador já usava por dentro:
     "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 48 48\" …>",
     "  <title>{titulo}</title>",
     "  <path d=\"…\" fill=\"{corpo}\"/>",
+    "  <rect x=\"19.2\" y=\"17.2\" width=\"9.6\" height=\"6.4\" fill=\"{touchpad}\" stroke=\"{tinta}\"/>",
     "</svg>"
   ]
 }
@@ -1030,7 +1044,7 @@ Obsidian anunciou *"Catppuccin Mocha já estava aplicado"*. O único dos oito qu
 
 ### O que se declara
 
-```json
+```json fragmento
 "apps": {
   "spotify":     { "spicetify_tema": "Sleek", "esquema": "Dracula" },
   "qbittorrent": { "arquivo": "apps/dracula.qbtheme", "sha256": "27948d…" },
@@ -1251,19 +1265,19 @@ o tema funcionando com zero cliques:
 ```bash
 # 1. gere o .ron a partir da sua paleta
 MEOW_PALETA=~/.local/share/meowsystem/packs/meu-tema/paleta.json \
-  ./scripts/gerar_temas.py meu-tema-mauve
+  ./scripts/gerar_temas.py meutema-mauve
 
 # 2. importe UMA vez:
 #    Configurações > Área de trabalho > Aparência > Importar
 
 # 3. fotografe — desde 22/09/2026 ele grava DENTRO do pack ATIVO, sozinho
 MEOW_PACK_DIR=~/.local/share/meowsystem/packs/meu-tema \
-  ./scripts/capturar_tema.sh meu-tema-mauve
-#   ~/.local/share/meowsystem/packs/meu-tema/temas/capturados/meu-tema-mauve/
+  ./scripts/capturar_tema.sh meutema-mauve
+#   ~/.local/share/meowsystem/packs/meu-tema/temas/capturados/meutema-mauve/
 
 # 4. confira que o resolvedor a acha, e publique
 MEOW_PACK_DIR=~/.local/share/meowsystem/packs/meu-tema \
-  python3 scripts/pack.py captura meu-tema-mauve
+  python3 scripts/pack.py captura meutema-mauve
 ```
 
 **O `.ron` do passo 1 não vem no clone de ninguém**, e isso mudou em 22/09/2026:
@@ -1286,7 +1300,7 @@ $ env -u MEOW_PACK_DIR PACK=dracula python3 scripts/pack.py captura-destino meu-
 
 **Com o pack já ativo no `meow.conf`** (`PACK=meu-tema`, ou um `FLAVOR` com o
 mesmo nome), a ponte já está montada e as duas linhas acima viram uma:
-`meow tema capturar meu-tema-mauve` — o `bin/meow` chama o `meow_ponte_python`
+`meow tema capturar meutema-mauve` — o `bin/meow` chama o `meow_ponte_python`
 na entrada e exporta o `MEOW_PACK_DIR` para você.
 
 A captura é **portátil**: são ~176 arquivos de texto com caminhos relativos. O
@@ -1321,7 +1335,7 @@ O som é **sintetizado na instalação**, nunca baixado: não há binário de á
 repositório e não há licença de terceiro para auditar. O pack declara números, e
 o `scripts/som.sh` gera o WAV.
 
-```json
+```json fragmento
 "som": {
   "fundamental": 784.0,
   "harmonico": 932.3,
@@ -1397,7 +1411,7 @@ packs/meu-tema/
       cursors/              default, left_ptr, pointer… (link vale, se ficar dentro)
 ```
 
-```json
+```json fragmento
 "origens": {
   "cursores": { "proprio": "cursores/meu-tema-roxo" }
 }
@@ -1462,7 +1476,7 @@ Um pack pode trazer fontes de texto. Elas **somam** às do motor: a
 JetBrainsMono Nerd Font pinada continua sendo instalada, e continua sendo a do
 terminal, para todo pack.
 
-```json
+```json fragmento
 "fontes": {
   "proprio": [
     { "arquivo": "fontes/MinhaFonte-Regular.otf" },

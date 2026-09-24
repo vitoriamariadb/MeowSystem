@@ -105,6 +105,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 RAIZ = Path(__file__).resolve().parent.parent
 # A PALETA VEM DA PORTA ÚNICA DO LADO PYTHON — 22/09/2026
@@ -454,6 +455,26 @@ def main() -> int:
     if not args.conferir:
         args.saida.mkdir(parents=True, exist_ok=True)
 
+    # O TÍTULO DIZ O PACK DONO DO FLAVOR — 23/09/2026, P34 (anotado na P16b)
+    #   Era `Catppuccin <Flavor>` cravado nas duas fontes, do tempo em que o
+    #   gerador só pintava o Catppuccin. Com a paleta do pack ativo, os onze do
+    #   Dracula saíam «Catppuccin Dracula» e «Catppuccin Alucard», e um pack de
+    #   CSV sairia «Catppuccin Meutema». O nome vem do `pack.json` do MESMO pack
+    #   de onde vêm a paleta e o destino — o `MEOW_PACK_DIR`, ou o padrão —, e
+    #   sem `nome` fica o nome do diretório.
+    #   O FLAVOR QUE SE CHAMA COMO O PACK NÃO SE REPETE: o `dracula` do Dracula
+    #   seria «Dracula Dracula», gagueira e não informação. E o nome é texto de
+    #   quem fez o pack, então entra escapado — um «Tom & Jerry» não pode tirar
+    #   o `<title>` do XML. O `{titulo}` de uma declaração não escapa nada, e
+    #   por isso o escape é daqui.
+    ref = pack._ref_ativa(None)
+    nome_do_pack = str(pack.campo(ref, "nome") or os.path.basename(str(ref).rstrip("/")))
+
+    def titulo_de(nome: str, flavor: str) -> str:
+        variante = flavor.capitalize()
+        dono = nome_do_pack if variante == nome_do_pack else f"{nome_do_pack} {variante}"
+        return f"{nome} — {escape(dono)}"
+
     divergentes = []
     for flavor, cores in paleta["flavors"].items():
         if args.accent not in cores:
@@ -474,10 +495,10 @@ def main() -> int:
                 identidade = IDENTIDADE.get(nome)
                 if identidade is not None:
                     c["marca"] = cores[args.accent if identidade == "__ACCENT__" else identidade]
-                c["titulo"] = f"{nome} — Catppuccin {flavor.capitalize()}"
+                c["titulo"] = titulo_de(nome, flavor)
                 yield nome, desenha(c)
             for nome, decl in declarados.items():
-                titulo = f"{nome} — Catppuccin {flavor.capitalize()}"
+                titulo = titulo_de(nome, flavor)
                 try:
                     yield nome, pack.desenhar_autoral(decl, cores, claro, args.accent,
                                                       {"titulo": titulo})

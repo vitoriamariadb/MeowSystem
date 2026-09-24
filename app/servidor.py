@@ -2952,6 +2952,25 @@ def paleta_css(flavor, accent):
     return "\n".join(linhas) + "\n"
 
 
+def _flavor_no_modo(flavor, modo):
+    """O flavor que a página veste: no MODO claro, o primeiro claro do PACK NO AR.
+
+    UMA FUNÇÃO, E NÃO TRÊS CÓPIAS — 23/09/2026, P34. A P10 ensinou três
+    lugares a vestir o claro do pack no ar em vez do "latte" cravado — o
+    `/paleta.css`, a marca do painel e a página exportada —, e a linha do
+    "primeiro claro, ou o flavor pedido" nasceu copiada nos três. O porquê da
+    regra está no `/paleta.css`, que foi onde ela nasceu. Um quarto lugar
+    copiaria o vizinho mais próximo, e uma mudança na regra teria de achar os
+    três; agora quem precisa pergunta aqui.
+
+    Pack sem claro declarado devolve o flavor pedido: não há claro para onde ir.
+    """
+    if modo != "claro":
+        return flavor
+    claros = _paleta_dados().get("claros") or []
+    return claros[0] if claros else flavor
+
+
 # --- 5. as ações -------------------------------------------------------------
 # UMA LISTA FECHADA, E ELA É A FRONTEIRA DE SEGURANÇA DESTE ARQUIVO.
 # A página manda um `id`; o `id` é chave deste dicionário; o que roda é o `argv`
@@ -5478,10 +5497,7 @@ class Manipulador(BaseHTTPRequestHandler):
     def _logo_do_painel(self):
         valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
         flavor = valores.get("FLAVOR") or "mocha"
-        if valores.get("MODO") == "claro":
-            # O claro do PACK NO AR, pela mesma razão do `/paleta.css`. [P10]
-            claros = _paleta_dados().get("claros") or []
-            flavor = claros[0] if claros else flavor
+        flavor = _flavor_no_modo(flavor, valores.get("MODO"))
         return logo_do_painel(flavor, valores.get("ACCENT") or "mauve")
 
     def do_GET(self):
@@ -5764,9 +5780,7 @@ class Manipulador(BaseHTTPRequestHandler):
             #   com o Dracula no ar e o modo claro, o painel pedia um flavor que
             #   a paleta dele não tem e saía sem cor. O primeiro claro que o
             #   pack declara é o que o COSMIC veste nesse modo.
-            if valores.get("MODO") == "claro":
-                claros = _paleta_dados().get("claros") or []
-                flavor = claros[0] if claros else flavor
+            flavor = _flavor_no_modo(flavor, valores.get("MODO"))
             return self._responder(paleta_css(flavor, valores.get("ACCENT") or "mauve"),
                                    tipo="text/css; charset=utf-8")
 
@@ -8230,6 +8244,16 @@ class Manipulador(BaseHTTPRequestHandler):
                 m.update(tamanho=mod._mb(m["bytes"]),
                          tamanho_imagens=mod._mb(m["bytes_imagens"]),
                          tamanho_sem_imagens=mod._mb(m["bytes"] - m["bytes_imagens"]))
+                # O QUE O TERMINAL AVISA, A TELA AVISA [P34, 23/09/2026]. O
+                #   `exportar` diz, com `!!`, que o pack herda de um pack que não
+                #   vem com o MeowSystem — quem importar precisa tê-lo. No
+                #   terminal a pessoa lia; pela tela a linha morria neste
+                #   stderr, e o pack saía para ser recusado do outro lado. As
+                #   palavras são as do comando, e não uma segunda frase daqui:
+                #   é ele quem sabe o que confere, pelo cabeçalho destas rotas.
+                m["avisos"] = [linha.strip()[2:].strip()
+                               for linha in (r.stderr or "").splitlines()
+                               if linha.strip().startswith("!!")]
                 return self._json(m)
             with open(saida, "rb") as fh:
                 corpo = fh.read()
@@ -8296,6 +8320,14 @@ class Manipulador(BaseHTTPRequestHandler):
                 # A recusa é o stderr: o stdout tem o `ok` da validação, e a
                 # torrada que leva os dois diz "ok" e "recusado" na mesma frase.
                 texto = (r.stderr or "").strip() or (r.stdout or "").strip()
+                # O ARQUIVO DELA, E NÃO O NOSSO [P34, 23/09/2026]. As recusas do
+                #   `importar` citam o caminho que ele recebeu, e esse caminho é
+                #   o temporário daqui: a torrada dizia
+                #   "/tmp/meow-importa-xrbbubgv/envio.meowpack: não é um
+                #   .meowpack", um nome que ela nunca viu e uma pasta que já
+                #   não existe quando ela lê. O nome é o que ela escolheu no
+                #   seletor — o mesmo que a caixa de confirmar mostra.
+                texto = texto.replace(caminho, envio or "o arquivo enviado")
                 return self._json({"erro": texto or "o importar falhou", "rc": r.returncode}, 400)
             # Depois do `importar` ter validado, e não antes: o `pack` confia no
             # que acabou de passar pela conferência inteira.
@@ -8487,10 +8519,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
         valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
         flavor = valores.get("FLAVOR") or "mocha"
-        if valores.get("MODO") == "claro":
-            # O claro do PACK NO AR, pela mesma razão do `/paleta.css`. [P10]
-            claros = _paleta_dados().get("claros") or []
-            flavor = claros[0] if claros else flavor
+        flavor = _flavor_no_modo(flavor, valores.get("MODO"))
         paleta = paleta_css(flavor, valores.get("ACCENT") or "mauve")
 
         def ler(nome):

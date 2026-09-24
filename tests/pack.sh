@@ -1416,6 +1416,11 @@ esac
 #   não pega: ele cobra os 220 nos literais de ajuda do `servidor.py`, e esta
 #   frase é montada no `pack.py`. Então ela é medida aqui, na fonte, para os
 #   packs do repositório e para o de mentira, que declara as onze.
+#   DESDE A P34 (23/09/2026) o cartão não imprime mais o `p.origem` cru: o
+#   `linhaDeOrigem` do app.js faz o MESMO agrupamento a partir das categorias,
+#   com o nome do pack no lugar do id («herdado do Catppuccin»). A medida daqui
+#   continua valendo para ele: as duas linhas só diferem no tamanho do nome
+#   contra o do id, e nos dois packs do repositório os dois têm as mesmas letras.
 saida="$(amb python3 - "$RAIZ" "$ID" <<'PY' 2>&1
 import json, os, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "scripts"))
@@ -1680,6 +1685,23 @@ PY
 [ "$rc" = "0" ] \
   && ok "o claro derivado é o alucard, 26 de 26 — o método é o do projeto, não um segundo" \
   || falha "a derivação do claro deixou de ser a que gerou o alucard" "$saida"
+
+# AS DUAS PORTAS DÃO O MESMO CLARO — 23/09/2026, P34. O `scripts/derivar_claro.py`
+# que gerou o `alucard` tinha uma cópia própria do método, e a conferência de
+# cima cobrava só a do `pack.py`. Desde a P34 o script chama a mesma função e
+# imprime o claro no STDOUT; aqui as duas portas são comparadas slot a slot, e
+# um script que volte a derivar por conta própria — ou a imprimir outra coisa —
+# cai aqui. O relatório dele vai para o STDERR, e por isso fica de fora.
+saida="$(amb python3 "$RAIZ/scripts/derivar_claro.py" 2>/dev/null \
+         | python3 -c 'import json, sys
+porta = json.load(sys.stdin)
+csv = json.load(open(sys.argv[1], encoding="utf-8"))["flavors"]["tintaclaro"]
+dif = [s for s in csv if porta.get(s) != csv[s]] + sorted(set(porta) - set(csv))
+print(", ".join(dif))
+sys.exit(1 if dif else 0)' "$T/csv-paleta.json" 2>&1)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "o derivar_claro.py e o de-csv dão o mesmo claro, 26 de 26 — uma régua, duas portas" \
+  || falha "o derivar_claro.py e o de-csv divergem no claro (rc=$rc)" "$saida"
 
 # A CONFERÊNCIA DA SPRINT, AO PÉ DA LETRA, pelo `bin/meow`: `novo --de-csv`,
 # `validar` saindo 0, e o `info` com a linha do claro. O meow.conf de teste
@@ -1974,6 +1996,290 @@ saida="$(env MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" MEOW_ESTADO="$T/estado" 
 [ "$rc" != "0" ] && [[ "$saida" == *"um CSV só"* ]] && [ ! -e "$T/destino.json" ] \
   && ok "meow pack de-csv com dois argumentos recusa, e diz que o destino vai pelo '>'" \
   || falha "meow pack de-csv aceitou um segundo argumento (rc=$rc)" "$saida"
+
+# --- 23. os exemplos do docs/PACKS.md validam — 23/09/2026, P34 --------------
+#
+#   A paleta de exemplo do PACKS.md usava o flavor `meu-tema`, com hífen — o
+#   que o `validar` recusa desde 19/09/2026 —, e o `pack.json` do mesmo
+#   documento pedia `flavor_padrao: "meutema"`. Quem copiasse os dois ganhava
+#   uma recusa na primeira linha. O exemplo errado nasceu porque ninguém o
+#   passava pelo `validar`; este bloco passa.
+#
+#   O QUE ENTRA: todo bloco ```json do documento. Os INTEIROS são separados
+#   pelo que são — paleta (`flavors`), pack.json (`formato`) ou desenho autoral
+#   (`papeis` + `svg`) — e montados num pack de verdade, com a paleta, os
+#   desenhos na pasta de autorais, o CREDITOS.md e o logo do `logo-gerado`
+#   (os arquivos que o pack.json do exemplo declara); o `validar` do verbo, o
+#   de quem publica, tem de sair 0. Um bloco inteiro que não é nenhum dos três
+#   é falha, e diz o que fazer: um exemplo que ninguém confere é o que voltaria
+#   errado.
+#
+#   O MARCADOR É ```json fragmento, NO FONTE DO DOCUMENTO. Metade dos blocos
+#   mostra UMA chave (`"vitrine": {…}`) ou o pedaço opcional de um arquivo
+#   (o "O resto" do pack.json, com `sha256: "…"`), e não é arquivo nenhum
+#   para validar. A palavra fica na linha da cerca, colada ao bloco: um
+#   comentário HTML na linha de cima se descolaria dele na primeira edição. A
+#   renderização não muda — o realce usa só a primeira palavra. Do fragmento
+#   se confere só que é JSON, sozinho ou entre chaves.
+saida="$(amb python3 - "$RAIZ" "$T/doc" <<'PY' 2>&1
+import json, os, subprocess, sys
+raiz, base = sys.argv[1], sys.argv[2]
+pack_py = os.path.join(raiz, "scripts", "pack.py")
+linhas = open(os.path.join(raiz, "docs", "PACKS.md"), encoding="utf-8").read().split("\n")
+blocos, i = [], 0
+while i < len(linhas):
+    cerca = linhas[i].strip()
+    if cerca.startswith("```json"):
+        j = i + 1
+        while j < len(linhas) and not linhas[j].strip().startswith("```"):
+            j += 1
+        blocos.append((i + 1, cerca[3:].split()[1:], "\n".join(linhas[i + 1:j])))
+        i = j
+    i += 1
+
+erros, paletas, packs, desenhos, fragmentos = [], [], [], [], 0
+for num, marcas, corpo in blocos:
+    if marcas == ["fragmento"]:
+        fragmentos += 1
+        for texto in (corpo, "{" + corpo + "}"):
+            try:
+                json.loads(texto)
+                break
+            except ValueError:
+                pass
+        else:
+            erros.append(f"PACKS.md:{num}: o fragmento não é JSON, nem sozinho nem entre chaves")
+        continue
+    if marcas:
+        erros.append(f"PACKS.md:{num}: marcador {' '.join(marcas)!r} — o único que existe é 'fragmento'")
+        continue
+    try:
+        obj = json.loads(corpo)
+    except ValueError as e:
+        erros.append(f"PACKS.md:{num}: não é JSON ({e}).\n"
+                     f"    Se é um pedaço de arquivo, a cerca é ```json fragmento")
+        continue
+    if isinstance(obj, dict) and "flavors" in obj:
+        paletas.append((num, obj))
+    elif isinstance(obj, dict) and "formato" in obj:
+        packs.append((num, obj))
+    elif isinstance(obj, dict) and "papeis" in obj and "svg" in obj:
+        desenhos.append((num, obj))
+    else:
+        erros.append(f"PACKS.md:{num}: um JSON inteiro que não é pack.json, paleta nem desenho.\n"
+                     f"    Ou ele é um pedaço (```json fragmento), ou este teste aprende a validá-lo")
+if len(paletas) != 1 or not packs:
+    erros.append(f"o PACKS.md tem {len(paletas)} paleta(s) e {len(packs)} pack.json inteiros — "
+                 f"o pack do exemplo precisa de uma paleta e de pelo menos um pack.json")
+
+def escrever(d, rel, texto):
+    alvo = os.path.join(d, rel)
+    os.makedirs(os.path.dirname(alvo), exist_ok=True)
+    with open(alvo, "w", encoding="utf-8") as fh:
+        fh.write(texto)
+
+for num, p in (packs if not erros else []):
+    d = os.path.join(base, str(p.get("id")))
+    escrever(d, "pack.json", json.dumps(p, ensure_ascii=False, indent=2))
+    escrever(d, (p.get("paleta") or {}).get("arquivo") or "paleta.json",
+             json.dumps(paletas[0][1], ensure_ascii=False, indent=2))
+    if p.get("creditos"):
+        escrever(d, p["creditos"], "Tudo aqui é de quem escreveu o exemplo.\n")
+    pasta = ((p.get("icones") or {}).get("autorais") or {}).get("desenhos") or "icones/autorais/"
+    os.makedirs(os.path.join(d, pasta), exist_ok=True)
+    for k, (_n, desenho) in enumerate(desenhos):
+        escrever(d, os.path.join(pasta, f"exemplo{k}.json"), json.dumps(desenho, ensure_ascii=False))
+    capa = (p.get("vitrine") or {}).get("capa")
+    if capa:
+        r = subprocess.run([sys.executable, pack_py, "logo-gerado", d], capture_output=True, text=True)
+        escrever(d, capa, r.stdout)
+    r = subprocess.run([sys.executable, pack_py, "validar", d], capture_output=True, text=True)
+    if r.returncode != 0:
+        erros.append(f"PACKS.md:{num}, com a paleta da linha {paletas[0][0]} e "
+                     f"{len(desenhos)} desenho(s): o validar recusa (rc={r.returncode})\n"
+                     + (r.stderr.strip() or r.stdout.strip()))
+if erros:
+    print("\n".join(erros))
+    sys.exit(1)
+print(f"{len(packs)} pack.json, {len(paletas)} paleta e {len(desenhos)} desenho validados; "
+      f"{fragmentos} fragmento(s) conferidos como JSON")
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "os exemplos do docs/PACKS.md passam pelo validar ($saida)" \
+  || falha "um exemplo do docs/PACKS.md não passa pelo validar" "$saida"
+
+# --- 24. os miúdos que as sprints anotaram — 23/09/2026, P34 -----------------
+#
+#   Quatro anotações pequenas, cada uma com a sua trava. Nenhuma reprova
+#   sozinha; juntas, eram o código mentindo devagar.
+#
+#   O CLARO DA PÁGINA É UMA FUNÇÃO SÓ (P10). O "primeiro claro do pack no ar"
+#   estava copiado no `/paleta.css`, na marca do painel e na página exportada.
+#   A conta mora no `_flavor_no_modo`, e a trava é dupla: a linha aparece UMA
+#   vez no servidor, dentro dela — uma quarta cópia cai aqui —, e a função
+#   responde o que as três respondiam.
+saida="$(amb python3 - "$RAIZ" <<'PY' 2>&1
+import ast, os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+fonte = open(servidor.__file__, encoding="utf-8").read()
+fn = [n for n in ast.walk(ast.parse(fonte))
+      if isinstance(n, ast.FunctionDef) and n.name == "_flavor_no_modo"]
+linhas = [i for i, l in enumerate(fonte.splitlines(), 1) if "claros[0]" in l]
+erros = []
+if not fn or len(linhas) != 1 or not (fn[0].lineno <= linhas[0] <= fn[0].end_lineno):
+    erros.append(f"o primeiro claro do pack no ar está fora da função, ou copiado: linhas {linhas}")
+else:
+    for claros, modo, esperado in ((["papel", "outro"], "claro", "papel"),
+                                   (["papel"], "escuro", "tinta"),
+                                   ([], "claro", "tinta")):
+        servidor._paleta_dados = lambda c=claros: {"claros": c}
+        if servidor._flavor_no_modo("tinta", modo) != esperado:
+            erros.append(f"claros={claros} modo={modo}: esperava {esperado!r}")
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "o claro da página sai de uma função só, e ela responde o que as três cópias respondiam" \
+  || falha "o claro da página voltou a ser copiado, ou a função mudou de resposta" "$saida"
+
+# O CARTÃO E O «MAIS SOBRE» DIZEM O PACK PELO NOME (P10). O cartão imprimia o
+#   `p.origem` do pack.py, montado pelo id ("herdado de catppuccin"), e o «Mais
+#   sobre», logo abaixo, "herdado do Catppuccin". A frase mora no `deOndeVem`,
+#   e as duas linhas a chamam; o `p.origem` cru não volta ao cartão. E o
+#   «Ver sobre Escuro» dos botões de fundo perde a maiúscula no meio da frase.
+cartao="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+linha="$(sed -n '/^function linhaDeOrigem(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+fundos="$(sed -n '/^function barraDeFundos(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+n_frase="$(grep -c 'herdado d[eo] ${' "$RAIZ/app/pagina/app.js")"
+faltam=""
+[ "$n_frase" = "1" ] || faltam+=" a frase 'herdado do' está em $n_frase lugares, e é uma só;"
+[[ "$cartao" == *"linhaDeOrigem(p)"* && "$cartao" != *"maiuscula(p.origem)"* ]] \
+  || faltam+=" o cartão imprime o p.origem cru;"
+[[ "$cartao" == *"deOndeVem(c)"* && "$linha" == *"deOndeVem(c)"* ]] \
+  || faltam+=" o cartão e o «Mais sobre» não perguntam ao deOndeVem;"
+[[ "$fundos" == *'toLocaleLowerCase'* && "$fundos" != *'Ver sobre ${f.rotulo}`'* ]] \
+  || faltam+=" o «Ver sobre» mantém a maiúscula no meio da frase;"
+[ -z "$faltam" ] \
+  && ok "o cartão e o «Mais sobre» dizem o pack pelo nome, da mesma frase, e o «Ver sobre» é minúsculo" \
+  || falha "o rótulo de herança voltou a ter duas formas:$faltam"
+
+# O IMPORTAR DIZ O ARQUIVO DELA, E O EXPORTAR AVISA NA TELA (P11). As recusas
+#   citavam o temporário do servidor (/tmp/meow-importa-…/envio.meowpack), e o
+#   aviso "herda de um pack que não vem com o MeowSystem" morria no stderr do
+#   comando. O pack que herda de fora é montado aqui pelo `novo` e apontado
+#   para o pack de mentira, que não vem com o MeowSystem. O script vai para um
+#   arquivo pelo motivo da 20b: o `viaja` fecha o stdin.
+AVISO="$ID-aviso"
+cat > "$T/p34-rotas.py" <<'PY'
+import base64, json, os, sys
+sys.path.insert(0, os.path.join(os.environ["MEOW_RAIZ"], "app"))
+import servidor
+aviso, pai = sys.argv[1:]
+h = servidor.Manipulador.__new__(servidor.Manipulador)
+h._json = lambda dados, status=200: (status, dados)
+erros = []
+for nome, conteudo, esperado in (("Meu Tema.meowpack", b"isto nao e zstd",
+                                  "Meu Tema.meowpack: não é um .meowpack"),
+                                 ("Minha Tinta.csv", b"slot,flavor,hex\n\xff\xfe\n",
+                                  "Minha Tinta.csv: não é texto UTF-8")):
+    st, r = h._api_pack_importar({"nome": nome, "conteudo": base64.b64encode(conteudo).decode()})
+    erro = r.get("erro", "")
+    if st != 400 or esperado not in erro or "meow-importa" in erro:
+        erros.append(f"a recusa de {nome!r} não diz o arquivo dela: {st} {erro!r}")
+st, r = h._api_pack_exportar({"id": [aviso], "medir": ["1"]})
+if not (st == 200 and any(f"'{pai}', que não vem com o MeowSystem" in a for a in r.get("avisos", []))):
+    erros.append(f"o medir do exportar não traz o aviso do comando: {st} {r}")
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+saida="$(viaja "$RAIZ/bin/meow" pack novo "$AVISO" 2>&1)"; rc=$?
+if [ "$rc" != "0" ]; then
+  falha "o meow pack novo não montou o pack que herda de fora (rc=$rc)" "$saida"
+else
+  python3 - "$PACKS/$AVISO/pack.json" "$ID" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1], encoding="utf-8"))
+p["heranca"] = sys.argv[2]
+json.dump(p, open(sys.argv[1], "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+PY
+  exportou="$(viaja "$RAIZ/bin/meow" pack exportar "$AVISO" "$T/$AVISO.meowpack" --seco 2>&1)"
+  saida="$(viaja python3 "$T/p34-rotas.py" "$AVISO" "$ID" 2>&1)"; rc=$?
+  [ "$rc" = "0" ] && [[ "$exportou" == *"'$ID', que não vem com o MeowSystem"* ]] \
+    && ok "o importar recusa dizendo o arquivo dela, e o aviso do exportar chega à tela como no terminal" \
+    || falha "o importar cita o temporário do servidor, ou o aviso do exportar não chega à tela" \
+             "$saida$exportou"
+  exporta="$(sed -n '/^async function exportarPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+  [[ "$exporta" == *"m.avisos"* && "$exporta" == *"m.imagens || avisos"* ]] \
+    && ok "a caixa do exportar mostra o aviso, e aparece por ele mesmo sem imagens" \
+    || falha "a página não mostra o aviso do exportar"
+fi
+rm -rf "${PACKS:?}/$AVISO"
+
+# O TÍTULO DOS AUTORAIS DIZ O PACK DONO DO FLAVOR (P16b). Era «Catppuccin
+#   <Flavor>» cravado, e os onze do Dracula saíam «Catppuccin Dracula». Três
+#   travas: nos packs do repositório, o gerador confere o que está versionado
+#   (quem mudar o título sem regerar cai aqui) e todo `<title>` abre pelo nome
+#   do pack, sem repeti-lo; e num pack de nome «Tom & Jerry» o SVG continua XML
+#   — o nome é texto de quem fez o pack, e entra escapado.
+mkdir -p "$T/tj/tom-e-jerry"
+saida="$(amb python3 - "$RAIZ" "$PACK_DIR" "$T/tj" <<'PY' 2>&1
+import json, os, shutil, subprocess, sys
+import xml.etree.ElementTree as ET
+raiz, fonte, base = sys.argv[1:]
+gerador = os.path.join(raiz, "scripts", "gerar_icones_autorais.py")
+SVG = "{http://www.w3.org/2000/svg}title"
+erros = []
+
+def gerar(dir_pack, *extra):
+    amb = dict(os.environ, MEOW_PACK_DIR=dir_pack)
+    amb.pop("MEOW_PALETA", None)
+    return subprocess.run([sys.executable, gerador, *extra], env=amb, capture_output=True, text=True)
+
+for ident in sorted(os.listdir(os.path.join(raiz, "packs"))):
+    d = os.path.join(raiz, "packs", ident)
+    pasta = os.path.join(d, "icones", "autorais")
+    if not os.path.isdir(pasta) or not any(a.endswith(".svg") for a in os.listdir(pasta)):
+        continue
+    r = gerar(d, "--conferir", "--saida", pasta)
+    if r.returncode != 0:
+        erros.append(f"{ident}: o versionado não é o que o gerador desenha:\n"
+                     + "\n".join(l for l in r.stdout.splitlines() if "ok " not in l))
+    nome = json.load(open(os.path.join(d, "pack.json"), encoding="utf-8"))["nome"]
+    for arq in sorted(a for a in os.listdir(pasta) if a.endswith(".svg")):
+        t = ET.parse(os.path.join(pasta, arq)).getroot().find(SVG).text or ""
+        dono = t.split(" — ", 1)[-1]
+        if not dono.startswith(nome) or f"{nome} {nome}" in dono:
+            erros.append(f"{ident}/{arq}: o título é {t!r}")
+
+d = os.path.join(base, "tom-e-jerry")
+for arq in ("paleta.json", "pack.json"):
+    shutil.copy(os.path.join(fonte, arq), d)
+p = json.load(open(os.path.join(d, "pack.json"), encoding="utf-8"))
+p.update(id="tom-e-jerry", nome="Tom & Jerry")
+json.dump(p, open(os.path.join(d, "pack.json"), "w", encoding="utf-8"), ensure_ascii=False)
+saida = os.path.join(base, "saida")
+r = gerar(d, "--saida", saida)
+if r.returncode != 0:
+    erros.append(f"o gerador recusou o pack «Tom & Jerry»: {r.stderr or r.stdout}")
+else:
+    for arq in sorted(os.listdir(saida)):
+        try:
+            t = ET.parse(os.path.join(saida, arq)).getroot().find(SVG).text or ""
+        except ET.ParseError as e:
+            erros.append(f"{arq}: não é XML com o nome do pack dentro ({e})")
+            continue
+        if " — Tom & Jerry " not in t:
+            erros.append(f"{arq}: o título é {t!r}")
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "o título dos autorais diz o pack dono do flavor, o versionado confere, e um nome com & não quebra o SVG" \
+  || falha "o título dos autorais não diz o pack dono, ou o versionado não foi regerado" "$saida"
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
