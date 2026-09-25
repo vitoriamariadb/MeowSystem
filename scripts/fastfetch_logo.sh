@@ -293,19 +293,29 @@ FFL_BASE="$HOME/.local/share/meowsystem/fastfetch"
 # dock. Duas noites nesta máquina é o que aquele arquivo existe para impedir.
 
 # O gato que está NO BOTÃO DO DOCK agora, pelo arquivo — ou vazio se não der
-# para dizer. Compara por conteúdo (`cmp`), não por nome: o arquivo do tema de
-# ícones se chama `com.system76.CosmicPanelAppButton.svg` e não carrega o nome
-# do gato em lugar nenhum.
+# para dizer. Compara por conteúdo, não por nome: o arquivo do tema de ícones
+# se chama `com.system76.CosmicPanelAppButton.svg` e não carrega o nome do gato
+# em lugar nenhum.
+#
+# QUEM RESPONDE É O `logo.sh no-dock` — 24/09/2026, revisão da P57
+#   Esta função comparava o botão com o `.svg` CRU de `assets/gatos/`, e o
+#   botão não é o cru: o `logo.sh` o grava com o `$(cat)` do `meow_escrever`,
+#   que come a quebra de linha do fim. Três dos cinco gatos do acervo terminam
+#   numa (os três morcegos), e com qualquer um deles no dock a resposta daqui
+#   era "nenhum": o espelho caía na fase e, com o `morcego-dia` fixo de noite e
+#   o `LOGO_DIA` desta máquina (o mesmo morcego-dia), punha no terminal o MESMO
+#   gato do dock (medido numa casa de brinquedo). É o descompasso que o
+#   `_esta_no_dock` do `logo.sh` consertou em 16/09, e o `no-dock` existe para
+#   ser o dono único da pergunta — o `meow status` já a faz a ele. A cópia da
+#   regra que morava aqui era a que tinha envelhecido.
+#   O `no-dock` só lê (o seco vai junto, como no `meow status`) e custa uns
+#   25 ms, dentro do tique do `meow-gato.timer`.
 _ffl_gato_do_dock() {
-  local tema="${NOME_TEMA_ICONES:-MeowSystem-Icons}" svg botao
-  botao="$HOME/.local/share/icons/$tema/scalable/apps/com.system76.CosmicPanelAppButton.svg"
-  [ -f "$botao" ] || return 1
-  for svg in "$MEOW_RAIZ/assets/gatos"/*.svg; do
-    [ -f "$svg" ] || continue
-    case "$(basename "$svg")" in *-symbolic.svg) continue ;; esac
-    cmp -s "$svg" "$botao" && { basename "${svg%.svg}"; return 0; }
-  done
-  return 1
+  local nome
+  [ -x "$MEOW_RAIZ/scripts/logo.sh" ] || return 1
+  nome="$(MEOW_DRY_RUN=1 NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-}" \
+            "$MEOW_RAIZ/scripts/logo.sh" no-dock 2>/dev/null)" || return 1
+  printf '%s\n' "$nome"
 }
 
 # O SEGUINTE no acervo, em círculo. Com dois gatos, é "o outro".

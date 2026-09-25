@@ -2540,6 +2540,8 @@ def main():
             #   depois das três releituras do fim — e não pode anotar nenhuma. A
             #   ação é a «Próxima imagem»: escreve, é rápida, e não toca no
             #   meow.conf que o passo 21 confere.
+            #   E A LISTA É PEDIDA UMA VEZ SÓ (revisão da P57): o `.then` do
+            #   esquema a pedia de novo, já relida.
             secao("Ícones")
             pag.wait_for_selector("#conteudo .grade-apps .app", timeout=30000)
             grade = pag.evaluate("""async () => {
@@ -2551,20 +2553,32 @@ def main():
                 if (!cartoes || lendo) sumiu.push({ cartoes, lendo });
               });
               vigia.observe(document.getElementById('conteudo'), { childList: true, subtree: true });
-              await rodarAcao('wallpaper_proximo');
-              const inicio = performance.now();
-              while (TRABALHO && performance.now() - inicio < 60000) {
-                await new Promise((r) => setTimeout(r, 50));
+              const original = window.fetch;
+              let pedidas = 0;
+              window.fetch = (rota, ...resto) => {
+                if (String(rota).startsWith('/api/apps')) pedidas += 1;
+                return original(rota, ...resto);
+              };
+              try {
+                await rodarAcao('wallpaper_proximo');
+                const inicio = performance.now();
+                while (TRABALHO && performance.now() - inicio < 60000) {
+                  await new Promise((r) => setTimeout(r, 50));
+                }
+                await new Promise((r) => setTimeout(r, 3000));
+              } finally {
+                window.fetch = original;
               }
-              await new Promise((r) => setTimeout(r, 3000));
               vigia.disconnect();
-              return { sumiu, terminou: !TRABALHO,
+              return { sumiu, terminou: !TRABALHO, pedidas,
                        cartoes: document.querySelectorAll('#conteudo .grade-apps .app').length };
             }""")
             checa(grade["terminou"] and grade["cartoes"] and not grade["sumiu"],
                   "a grade de Ícones passa da lista de antes para a de depois sem sumir: "
                   f"{len(grade['sumiu'])} pintura(s) sem cartão ou com «Lendo…», "
                   f"{grade['cartoes']} cartões no fim")
+            checa(grade["pedidas"] == 1,
+                  f"e a lista de aplicativos é pedida uma vez no fim do trabalho: {grade['pedidas']}")
             print("\n20b. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,
                   f"nenhum erro de JavaScript em toda a visita"

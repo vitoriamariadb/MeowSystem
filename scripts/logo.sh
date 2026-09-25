@@ -6,6 +6,7 @@
 #   ./logo.sh --conferir   não escreve; 1 se algo divergir
 #   ./logo.sh listar       mostra o acervo, quem está no ar e por quê
 #   ./logo.sh no-dock      imprime o gato que está no botão do dock (1 = nenhum)
+#   ./logo.sh applet       imprime a chave do applet de logo instalado (1 = nenhum)
 #
 # ============================================================================
 # O QUE MUDOU EM 01/09/2026, E O QUE FOI MEDIDO PARA PODER MUDAR
@@ -183,10 +184,23 @@ case "${1:-}" in
   # mesmo motivo do `modo`: o `meow status` tinha escrito de novo a pergunta
   # «qual gato está no dock», e a cópia dele já divergia desta (sem o `.svg`
   # cru de reserva). A regra é o `_esta_no_dock`, lá embaixo, que o `listar`
-  # também usa.
+  # também usa. Desde a revisão da P57 o espelho do `fastfetch_logo.sh` também
+  # pergunta aqui: a cópia dele comparava com o `.svg` cru e errava os gatos
+  # cujo arquivo termina em quebra de linha.
   no-dock)       ACAO="no-dock" ;;
+  # `applet` IMPRIME A CHAVE `custom_logo_path` DO APPLET DE LOGO INSTALADO E
+  # SAI (1 = nenhum instalado, ou sem a chave) — revisão da P57, pelo mesmo
+  # motivo do `modo` e do `no-dock`. O `meow status` e o `meow logo` liam a
+  # chave do `dev.cappsy.CosmicExtAppletLogoMenu` pelo nome, e desde a P57 o
+  # applet é o que está instalado (`_applet_de_logo`, lá em cima): os dois
+  # donos discordavam. Com o `co.uk.cappsy` instalado, o `meow logo` diria
+  # «(nenhuma)» com o gato já na chave dele; com a pasta do `dev.cappsy`
+  # sobrando, o `status` mostraria a chave de um applet que já saiu.
+  applet)
+    [ -n "$APPLET_ID" ] && [ -f "$APPLET/custom_logo_path" ] || exit "$MEOW_DIVERGENTE"
+    printf '%s\n' "$(cat "$APPLET/custom_logo_path")"; exit "$MEOW_OK" ;;
   aplicar|"") ;;
-  *) meow_erro "uso: logo.sh [aplicar|girar|girar-vencido|listar|no-dock|modo|--conferir]"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: logo.sh [aplicar|girar|girar-vencido|listar|no-dock|modo|applet|--conferir]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && CONFERIR=1
 

@@ -7341,7 +7341,20 @@ class Manipulador(BaseHTTPRequestHandler):
 
         # A saída do comando vai para uma torrada, que é tela: a casa sai como
         # `~`, pela mesma porta da gaveta — ver `texto_na_tela` (P52).
-        saida = texto_na_tela(((r.stdout or "") + (r.stderr or "")).strip())
+        # E O CLONE SAI TAMBÉM, PORQUE A TORRADA NÃO É A GAVETA — 24/09/2026,
+        # revisão da P57. Na gaveta vale só a casa (um clone em `/opt` não diz
+        # o nome de ninguém); fora dela, nem a casa nem o clone, que é a régua
+        # do `tests/app-completo.py`. A última linha do `meow fontes adicionar`
+        # é «o acervo é <clone>/assets/fontes/locais», e o vazamento é antigo:
+        # com o esquema lento a torrada (2,6 s de vida) morria antes da conta do
+        # fim da aba, e com o da P57 o gesto caiu de 4,8–5,4 s para 3,3–3,5 s e
+        # ela ainda estava na tela — o gate reprovou a aba Terminal. O que mora
+        # no clone vira `./…`, como o `comando_na_tela` escreve um script dele;
+        # e vira ANTES da casa, porque o clone costuma morar nela, e trocada a
+        # casa primeiro ele sobraria como `~/…`.
+        bruta = ((r.stdout or "") + (r.stderr or "")).strip()
+        bruta = re.sub(r"(?<![\w/.~-])" + re.escape(RAIZ) + r"(?![\w.-])", ".", bruta)
+        saida = texto_na_tela(bruta)
         # O CONTRATO DE IDEMPOTÊNCIA CHEGA INTEIRO À TELA: 0 é "já estava
         # assim", e isso não é erro nem é novidade — é a resposta certa para
         # quem enviou duas vezes o mesmo arquivo. Só 2 para cima é falha.
@@ -8799,9 +8812,9 @@ class Manipulador(BaseHTTPRequestHandler):
     def _editor_de_svg(self):
         """Quem esta máquina abre num `.svg`, perguntado UMA vez por sessão.
 
-        Devolve `{"tem": bool, "nome": str}`. O nome é o `Name=` do `.desktop`
-        que o `xdg-mime` aponta — nesta máquina, `com.boxy_svg.BoxySVG.desktop`
-        -> "Boxy SVG".
+        Devolve `{"tem": bool, "nome": str}`. O nome é o que o lançador mostra
+        do `.desktop` que o `xdg-mime` aponta (o do `_desktops`, P57) — nesta
+        máquina, `com.boxy_svg.BoxySVG.desktop` -> "Boxy SVG".
 
         O NOME NÃO É ENFEITE, É A DIFERENÇA ENTRE UM BOTÃO E UMA APOSTA. «Abrir
         no editor» promete algo que só se descobre clicando; «Abrir no Boxy SVG»
@@ -8830,24 +8843,19 @@ class Manipulador(BaseHTTPRequestHandler):
                     alvo = ""
             if not alvo or not alvo.endswith(".desktop") or "/" in alvo:
                 return _EDITOR_SVG
-            # O `Name=` sem sufixo de idioma: `Name[pt_BR]=` é outra chave, e
-            # pegar a primeira que casasse daria o nome traduzido de um
-            # aplicativo e o original de outro na mesma tela.
-            nome = ""
-            for bruto, _origem in self.DIRS_DESKTOP:
-                caminho = os.path.join(os.path.expanduser(bruto), alvo)
-                if not os.path.isfile(caminho):
-                    continue
-                try:
-                    with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
-                        for linha in fh:
-                            if linha.startswith("Name="):
-                                nome = linha[5:].strip()
-                                break
-                except OSError:
-                    pass
-                break
-            _EDITOR_SVG = {"tem": True, "nome": nome or alvo[:-8]}
+            # O NOME É O DO LANÇADOR, E QUEM O LÊ É O `_desktops` — 24/09/2026,
+            # revisão da P57. Aqui morava um leitor próprio do `Name=` cru, com
+            # este porquê: "pegar a primeira [chave] que casasse daria o nome
+            # traduzido de um aplicativo e o original de outro na mesma tela". A
+            # P57 inverteu a conta: a grade de Ícones, na mesma tela, passou a
+            # dizer o `Name[…]` da sessão, e era este botão que misturava. Com o
+            # leitor da grade o nome é o mesmo dos dois lados, e o `.desktop`
+            # também: o daqui parava no PRIMEIRO achado na ordem do
+            # `DIRS_DESKTOP` (o do sistema), e o `_desktops` deixa o de depois
+            # vencer (o da usuária), como o lançador.
+            ident = alvo[:-len(".desktop")]
+            d = next((x for x in self._desktops() if x["id"] == ident), None)
+            _EDITOR_SVG = {"tem": True, "nome": (d or {}).get("nome") or ident}
             return _EDITOR_SVG
 
     def _caminho_rascunho(self, nome):
@@ -10252,12 +10260,16 @@ class Manipulador(BaseHTTPRequestHandler):
         # crus — `org.gnome.Evince`, `org.gnome.baobab`,
         # `gnome-language-selector` —, e a pergunta da chave é «quais
         # PROGRAMAS»: quem lê um id reverso de domínio não sabe que é o leitor
-        # de PDF. Cada id que o valor ou o padrão cita ganha o `Name=` e o ícone
+        # de PDF. Cada id que o valor ou o padrão cita ganha o nome e o ícone
         # do `.desktop` dele, pelos MESMOS `_desktops` e `_icone_na_tela` da
         # aba de ícones: o nome é o do lançador, e o desenho é o que está na
-        # tela agora. Id sem `.desktop` nesta máquina fica de fora do mapa, e a
-        # ficha continua dizendo o id — é o caso do programa que não está
-        # instalado, e o comentário da chave diz que ele é pulado.
+        # tela agora. Desde a P57 o nome é o `Name[…]` da cadeia de idioma da
+        # sessão, e o `Name=` só quando nenhum casa (`idiomas_da_sessao`):
+        # medido, o nm-connection-editor sai «Configuração avançada de rede», e
+        # não «Advanced Network Configuration». Id sem `.desktop` nesta máquina
+        # fica de fora do mapa, e a ficha continua dizendo o id — é o caso do
+        # programa que não está instalado, e o comentário da chave diz que ele
+        # é pulado.
         #   Só os ids citados, e não a máquina inteira: o esquema é lido a cada
         # carga da página, e o ícone de cada programa custa uma busca no disco.
         com_ids = [i for i in esquema if i.get("ids_de_desktop")]

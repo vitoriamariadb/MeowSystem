@@ -6023,7 +6023,9 @@ async function puxar() {
       Promise.all([recarregarPacks(), lista]).then(render);
       Promise.all([recarregarEsquema(), lista]).then(() => {
         PREVIAS.delete("icone/");
-        if (APPS) carregarApps();
+        /* Com a `lista` acima já relida do disco depois do trabalho, pedi-la
+         * de novo aqui era o mesmo `/api/apps` duas vezes (revisão da P57). */
+        if (APPS && !lista) carregarApps();
         if (JOGOS) carregarJogos();
         render();
       });

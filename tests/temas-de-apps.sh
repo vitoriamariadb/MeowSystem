@@ -371,6 +371,11 @@ fi
 # máquina de quem roda tiver aberto. O `env -i` tira o D-Bus da sessão do
 # ambiente: sem ele, nem um `dconf` de verdade que escapasse do PATH alcançaria
 # o banco de quem roda o teste.
+#   AS INSTALAÇÕES DO FLATPAK TAMBÉM SÃO DE BRINQUEDO — revisão da P57. O
+# `meow_flatpak_tem` pergunta à do sistema (`FLATPAK_SYSTEM_DIR`) e às de
+# `installations.d` (`FLATPAK_CONFIG_DIR`); sem as duas aqui, o `mod` e o
+# `tabela` liam o /var/lib/flatpak e o /etc/flatpak de quem roda, e um app
+# instalado nele desmentiria o «não instalado» das casas abaixo.
 CASA="$T/casa8"
 BIN="$T/bin8"
 mkdir -p "$CASA" "$BIN" "$T/packs8"
@@ -378,7 +383,8 @@ mod() {  # <módulo> <verbo> [VAR=valor ...]
   local m="$1" v="$2"; shift 2
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
       XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
-      MEOW_ESTADO="$T/estado8" PACK=dracula FLAVOR=dracula NO_COLOR=1 "$@" \
+      MEOW_ESTADO="$T/estado8" PACK=dracula FLAVOR=dracula NO_COLOR=1 \
+      FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" FLATPAK_CONFIG_DIR="$T/flatpak-etc" "$@" \
       bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
                . "$MEOW_RAIZ/assets/temas-de-apps/$0/manifesto.sh" || exit 2
                meow_app_$1' "$m" "$v" </dev/null 2>&1
@@ -488,6 +494,7 @@ saida="$(mod discord aplicar)"; rc=$?
 tabela() {
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
       XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
+      FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" FLATPAK_CONFIG_DIR="$T/flatpak-etc" \
       PACK=dracula FLAVOR=dracula NO_COLOR=1 APPS_ATIVOS="$1" \
       "$RAIZ/scripts/aplicar_apps.sh" tabela </dev/null 2>/dev/null
 }

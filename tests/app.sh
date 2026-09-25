@@ -695,14 +695,27 @@ if trocar != {"chave": "LOGO_MODO", "vale": "rotacao", "pede": "fixo"} or girar:
 #   Coquinha. Sem reciclar o painel (`LOGO_RECICLAR="nao"`), e com um
 #   `notify-send` falso: a notificação do `meow logo` iria para a sessão de
 #   quem roda o teste.
+#   O APPLET DE LOGO INSTALADO, desde a P57, é o `.desktop` com
+# `X-CosmicApplet=true` que o COSMIC acha (o `_applet_de_logo` do logo.sh), e
+# não a pasta de configuração, que sobra quando ele sai: com só a pasta, esta
+# casa não simulava applet nenhum (revisão da P57). As pastas de aplicativos
+# são só as da casa, para um applet instalado em quem roda o teste não entrar.
 applet = os.path.join(cosmic, "dev.cappsy.CosmicExtAppletLogoMenu", "v1")
 os.makedirs(applet)
+aplicativos = os.path.join(casa, ".local", "share", "applications")
+os.makedirs(aplicativos, exist_ok=True)
+with open(os.path.join(aplicativos, "dev.cappsy.CosmicExtAppletLogoMenu.desktop"), "w",
+          encoding="utf-8") as fh:
+    fh.write("[Desktop Entry]\nType=Application\nName=Logo Menu\nNoDisplay=true\n"
+             "X-CosmicApplet=true\n")
 falso = os.path.join(os.path.dirname(casa), "falso")
 os.makedirs(falso)
 with open(os.path.join(falso, "notify-send"), "w", encoding="utf-8") as fh:
     fh.write("#!/bin/sh\nexit 1\n")
 os.chmod(os.path.join(falso, "notify-send"), 0o755)
-ambiente = dict(os.environ, PATH=falso + os.pathsep + os.environ.get("PATH", ""))
+ambiente = dict(os.environ, PATH=falso + os.pathsep + os.environ.get("PATH", ""),
+                XDG_DATA_HOME=os.path.join(casa, ".local", "share"),
+                XDG_DATA_DIRS=os.path.join(casa, "sem-pastas-do-sistema"))
 logo_sh = os.path.join(raiz, "scripts", "logo.sh")
 conf_com(LOGO_MODO="hora", LOGO_DIA="mimir", LOGO_NOITE="mimir", LOGO="mimir", LOGO_RECICLAR="nao")
 subprocess.run(["bash", "-c", 'set -a; . "$1"; set +a; exec "$2" aplicar', "_", conf, logo_sh],
@@ -793,6 +806,8 @@ rm -rf "$_tmp12"
 #        todo modo (item 5).
 #   13d. Uma leitura do esquema mede cada fato da máquina uma vez, e não uma
 #        vez por chave (item 6).
+#   13e. A torrada do «Adicionar» não leva o caminho do clone (a revisão: o
+#        esquema rápido do item 6 deixou à vista um vazamento antigo).
 #   Casa, conf, estado e COSMIC de brinquedo, como na 12.
 _tmp13="$(mktemp -d)"
 HOME="$_tmp13/casa" MEOW_CONF="$_tmp13/casa/.config/meow/meow.conf" \
@@ -874,6 +889,32 @@ for amb, quer in ((dict(LANG="pt_BR.UTF-8"), ["Configurações", "Câmara", "Fon
 # id da lista de fábrica, com o `.desktop` da casa vencendo o do sistema.
 desktop("nm-connection-editor", "Name=Advanced Network Configuration\n"
         "Name[pt_BR]=Configuração avançada de rede\n")
+# E O BOTÃO «Abrir no …» DA OFICINA TAMBÉM — revisão da P57. Ele tinha um
+# leitor próprio do `Name=` cru e, na mesma tela da grade, era quem misturava o
+# nome traduzido de um aplicativo com o original de outro. O editor que o
+# `xdg-mime` aponta é um de brinquedo, e o `xdg-open` falso é só para haver
+# com que abrir.
+bin_editor = os.path.join(os.path.dirname(casa), "bin-editor")
+os.makedirs(bin_editor)
+for prog, corpo in (("xdg-mime", "echo com.exemplo.Editor.desktop"), ("xdg-open", "exit 0")):
+    with open(os.path.join(bin_editor, prog), "w", encoding="utf-8") as fh:
+        fh.write("#!/bin/sh\n%s\n" % corpo)
+    os.chmod(os.path.join(bin_editor, prog), 0o755)
+desktop("com.exemplo.Editor", "Name=Vector Editor\nName[pt_BR]=Editor de vetores\n"
+        "MimeType=image/svg+xml;\n")
+caminho_antes = os.environ["PATH"]
+antes = idioma(LANG="pt_BR.UTF-8")
+os.environ["PATH"] = bin_editor + os.pathsep + caminho_antes
+servidor._EDITOR_SVG = None
+try:
+    editor = m._editor_de_svg()
+finally:
+    os.environ["PATH"] = caminho_antes
+    servidor._EDITOR_SVG = None
+    idioma(**{k: v for k, v in antes.items() if v is not None})
+if editor != {"tem": True, "nome": "Editor de vetores"}:
+    erros.append("13a: o botão do editor de SVG diz %r, e a grade diria «Editor de vetores»"
+                 % (editor,))
 
 # 13b. o --onde e as frases do install.sh
 esquema = servidor.ler_esquema()
@@ -927,7 +968,11 @@ os.makedirs(falso)
 with open(os.path.join(falso, "notify-send"), "w", encoding="utf-8") as fh:
     fh.write("#!/bin/sh\nexit 1\n")
 os.chmod(os.path.join(falso, "notify-send"), 0o755)
-ambiente = dict(os.environ, PATH=falso + os.pathsep + os.environ.get("PATH", ""), NO_COLOR="1")
+# As pastas de aplicativos são só as da casa (revisão da P57): a «máquina sem
+# applet» logo abaixo não pode depender de quem roda o teste não ter um.
+ambiente = dict(os.environ, PATH=falso + os.pathsep + os.environ.get("PATH", ""), NO_COLOR="1",
+                XDG_DATA_HOME=os.path.join(casa, ".local", "share"),
+                XDG_DATA_DIRS=os.path.join(casa, "sem-pastas-do-sistema"))
 logos = os.path.join(cosmic, "logos")
 botao = os.path.join(casa, ".local", "share", "icons", "MeowSystem-Icons", "scalable", "apps",
                      "com.system76.CosmicPanelAppButton.svg")
@@ -990,19 +1035,56 @@ if ler(sobra) != '"%s"' % os.path.join(logos, "meow-coquinha.svg"):
                  % ler(sobra))
 if os.path.exists(os.path.join(dev, "custom_logo_path")):
     erros.append("13c: o logo.sh escreveu na pasta do dev.cappsy, que não está instalado")
+# E QUEM MOSTRA A CHAVE PERGUNTA AO `logo.sh` — revisão da P57. O `meow logo`
+# e o `meow status` liam a do `dev.cappsy` pelo nome. Com o co.uk.cappsy
+# instalado e o gato na chave dele, e uma chave velha sobrando na pasta do
+# dev.cappsy, o «arquivo» do `meow logo` é a do instalado.
+with open(os.path.join(dev, "custom_logo_path"), "w", encoding="utf-8") as fh:
+    fh.write('"%s"' % os.path.join(logos, "de-outro.svg"))
+r = subprocess.run([os.path.join(raiz, "bin", "meow"), "logo"], capture_output=True, text=True,
+                   env=ambiente, timeout=60)
+linha = next((l for l in r.stdout.splitlines() if "arquivo" in l), "")
+if "meow-coquinha.svg" not in linha:
+    erros.append("13c: o «arquivo» do `meow logo` não é a chave do applet instalado: %r" % linha)
 # O GATO DO TERMINAL VAI JUNTO NO MODO FIXO: com `FASTFETCH_LOGO_MODO=espelho`
 # (o de fábrica) ele é o seguinte do acervo depois do que está no dock. A
 # conversão para o terminal precisa do rsvg-convert e do ImageMagick.
 if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
-    nomes_gatos = sorted(os.path.basename(p)[:-len(".svg")]
-                         for p in glob.glob(os.path.join(raiz, "assets", "gatos", "*.svg"))
-                         if not p.endswith("-symbolic.svg"))
+    # A ORDEM É A DO `_ffl_o_outro`: o `sort` em C do nome COM o `.svg` — o
+    # `-` vem antes do `.`, e o `morcego.svg` fica depois dos outros dois
+    # morcegos (revisão da P57; sem a extensão ele vinha antes).
+    nomes_gatos = [n[:-len(".svg")] for n in sorted(
+        os.path.basename(p) for p in glob.glob(os.path.join(raiz, "assets", "gatos", "*.svg"))
+        if not p.endswith("-symbolic.svg"))]
     espelho = nomes_gatos[(nomes_gatos.index("coquinha") + 1) % len(nomes_gatos)]
     carimbo = (ler(os.path.join(casa, ".local", "share", "meowsystem", "fastfetch", ".gato-atual"))
                or "").split(" ")[0]
     if no_dock() != "coquinha" or carimbo != espelho:
         erros.append("13c: no modo fixo, o dock foi para %s e o terminal ficou com %r — o "
                      "espelho pede %s" % (no_dock(), carimbo, espelho))
+    # E COM UM GATO CUJO SVG TERMINA EM QUEBRA DE LINHA — revisão da P57. O
+    # botão do dock é a cópia que o `logo.sh` grava, sem a quebra do fim, e o
+    # espelho que comparava o botão com o `.svg` cru não achava gato nenhum no
+    # dock: caía na fase. Os três morcegos do acervo são assim, e a coquinha
+    # de cima não é. O gato sai do acervo, e não de um nome escrito aqui; o
+    # `LOGO_DIA` e o `LOGO_NOITE` são ele mesmo, para que cair na fase dê o
+    # gato do dock no terminal a qualquer hora.
+    com_quebra = []
+    for n in nomes_gatos:
+        with open(os.path.join(raiz, "assets", "gatos", n + ".svg"), "rb") as fh:
+            if fh.read().endswith(b"\n"):
+                com_quebra.append(n)
+    if com_quebra:
+        gato = com_quebra[0]
+        logo(LOGO_MODO="fixo", LOGO=gato, LOGO_DIA=gato, LOGO_NOITE=gato)
+        espelho = nomes_gatos[(nomes_gatos.index(gato) + 1) % len(nomes_gatos)]
+        carimbo = (ler(os.path.join(casa, ".local", "share", "meowsystem", "fastfetch",
+                                    ".gato-atual")) or "").split(" ")[0]
+        if no_dock() != gato or carimbo != espelho:
+            erros.append("13c: com %s (o SVG termina em quebra de linha) no dock, o terminal "
+                         "ficou com %r — o espelho pede %s" % (no_dock(), carimbo, espelho))
+    else:
+        print("pulado: 13c, o gato cujo SVG termina em quebra de linha — nenhum no acervo")
 else:
     print("pulado: 13c, o gato do terminal — falta rsvg-convert ou o convert do ImageMagick")
 
@@ -1047,11 +1129,40 @@ nome = ((ficha.get("programas") or {}).get("nm-connection-editor") or {}).get("n
 if nome != "Configuração avançada de rede":
     erros.append("13a: a ficha de «Quais programas o lançador esconde» diz %r" % nome)
 
+# 13e. a torrada do «Adicionar» não leva a casa nem o clone — revisão da P57
+#   O gate reprovou a aba Terminal nesta sprint: a torrada do «Adicionar fonte»
+#   mostra as três últimas linhas do `meow fontes adicionar`, e a última diz
+#   «o acervo é <clone>/assets/fontes/locais». O vazamento é antigo; com o
+#   esquema lento a torrada morria antes da conta do fim da aba. O comando
+#   aqui é de mentira — um `subprocess.run` que devolve a saída de lá —, para o
+#   teste não gravar fonte no acervo do clone de verdade.
+class Rodado:
+    returncode = 1
+    stdout = ("  ~~   'brinquedo.ttf' instalada\n  >> copiada de %s/Downloads/brinquedo.ttf\n"
+              "  >> 1 face(s) instalada(s) — o acervo é %s/assets/fontes/locais\n" % (casa, raiz))
+    stderr = ""
+
+
+respostas = []
+m._json = lambda dados, status=200: respostas.append(dados)
+servidor.subprocess.run = lambda *a, **k: Rodado()
+try:
+    m._acervo_por_comando(servidor.Manipulador.ACERVOS["fonte"], "brinquedo.ttf",
+                          {"conteudo": "Zm9udGU="})
+finally:
+    servidor.subprocess.run = rodar
+    del m._json
+log = (respostas or [{}])[0].get("log", "")
+if raiz in log or casa in log or "o acervo é ./assets/fontes/locais" not in log \
+        or "~/Downloads/brinquedo.ttf" not in log:
+    erros.append("13e: a torrada do «Adicionar fonte» leva %r" % log)
+
 if erros:
     print("FALHOU: " + "\n  ".join(erros), file=sys.stderr)
     sys.exit(1)
 print("ok: a ficha diz o nome do lançador, o --onde cobre cartão e aba, o logo.sh diz o que "
-      "faz e o terminal segue o dock, e o esquema mede cada fato uma vez")
+      "faz e o terminal segue o dock, o esquema mede cada fato uma vez, e a torrada do "
+      "«Adicionar» não leva o clone")
 PY
 rm -rf "$_tmp13"
 
