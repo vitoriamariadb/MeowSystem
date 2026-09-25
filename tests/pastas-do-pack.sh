@@ -24,6 +24,19 @@
 #      tom fora da paleta que não é o acento deslocado por igual, param a
 #      derivação dizendo por quê, e a queda de 15/09 (a variante do Mocha) vale.
 #
+# E O QUE A REVISÃO DA P56 ACHOU, NO MESMO DIA (24/09/2026)
+#   5. O claro sai do claro. A primeira versão derivava todo flavor do Mocha, e
+#      o Alucard (o claro do Dracula) saía de papel escuro e símbolo claro. Com
+#      ele no ar, o `folder.svg` é a variante derivada do latte — cada hex no
+#      slot do latte que o upstream usa ali —, e os 56 do Catppuccin, derivados
+#      pela mesma regra, saem iguais ao upstream byte a byte (o `peach`, o `sky`
+#      e o `red` do latte têm a sombra presa no zero).
+#   6. O molde de fábrica com o FLAVOR vazio chega como `cat--mauve`, e veste a
+#      variante do tema, e não a do Mocha.
+#   7. As sete pastas especiais do Dracula (PASTAS_XDG="sim") chegam ao disco:
+#      o `icones_pastas.sh` procurava nelas o nome do glifo do Catppuccin, não
+#      achava nenhuma e dizia «já vestidas de Catppuccin macchiato».
+#
 # POR QUE É DA MÁQUINA
 #   O script lê o Papirus-Dark por `/usr/share/icons/<base>` e o papirus-folders
 #   que o `scripts/baixar_upstream.sh` baixa (ou o que `MEOW_CAT_FOLDERS`
@@ -99,6 +112,37 @@ saida="$(guarda "$T/up-torto")"
 [ ! -e "$T/casa-guarda/.local" ] \
   && ok "as guardas não deixaram nada na casa" \
   || falha "as guardas escreveram na casa de brinquedo" "$(find "$T/casa-guarda" | head)"
+
+# --- 7. as sete pastas especiais do Dracula chegam ao disco ----------------
+#   O `icones_pastas.sh` não precisa do Papirus: ele copia os desenhos do pack
+#   para `scalable/places`. A casa começa como a máquina de 24/09 estava — os
+#   sete do Catppuccin macchiato no lugar (aqui, de brinquedo) —, e o `--aplicar`
+#   tem de trocá-los pelos do Dracula e dizer de quem eles são.
+xdg() {   # $1 = a casa · $2 = PACK · $3 = FLAVOR · $4 = o modo
+  env -i PATH="$FALSO:$PATH" HOME="$1" USER="${USER:-t}" NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+    PACK="$2" FLAVOR="$3" ACCENT=mauve PASTAS_XDG=sim ICONES_FLAVOR=macchiato \
+    ICONES_TEMA=MeowSystem-Icons bash "$RAIZ/scripts/icones_pastas.sh" "$4" 2>&1
+}
+LUGAR="$T/casa-xdg/.local/share/icons/MeowSystem-Icons/scalable/places"
+mkdir -p "$LUGAR"
+for n in documents download music pictures publicshare templates videos; do
+  printf '<svg><path style="fill:#CAD3F5"/></svg>' > "$LUGAR/folder-$n.svg"
+done
+aplicou="$(xdg "$T/casa-xdg" dracula dracula --aplicar)"
+conferiu="$(xdg "$T/casa-xdg" dracula dracula --conferir)"; rc=$?
+postos=0
+for d in "$RAIZ/packs/dracula/icones/pastas/"*.svg; do
+  [ "$(cat "$d")" = "$(cat "$LUGAR/$(basename "$d")" 2>/dev/null)" ] && postos=$((postos + 1))
+done
+if [ "$postos" = 7 ] && [ "$rc" = 0 ] && [[ "$aplicou" == *"desenhos do pack Dracula"* ]] \
+   && [[ "$conferiu" == *"7 pasta(s) especiais já vestidas com os desenhos do pack Dracula"* ]] \
+   && [[ "$aplicou$conferiu" != *Catppuccin* ]]; then
+  ok "com PASTAS_XDG=\"sim\" as sete pastas especiais do Dracula chegam ao disco, e a frase diz o pack"
+else
+  falha "as pastas especiais do Dracula não chegaram ao disco, ou a frase fala de outro pack ($postos de 7, rc=$rc)" \
+    "$aplicou
+$conferiu"
+fi
 
 # --- o resto pede o Papirus e o papirus-folders de verdade -----------------
 if [ ! -d /usr/share/icons/Papirus-Dark ]; then
@@ -216,6 +260,126 @@ criados="$(find "$T/casa-seca" -mindepth 1 | wc -l)"
 [ "$rc" = "1" ] && [ "$criados" = "0" ] \
   && ok "o seco numa casa vazia diz que mudaria e não cria nada (rc=1)" \
   || falha "o seco escreveu na casa, ou não acusou a divergência (rc=$rc, $criados entradas)" "$saida"
+
+# --- 5. o claro sai do claro -------------------------------------------------
+#   O Alucard no ar: a variante sai do `cat-latte-mauve`, e cada hex dela é o
+#   slot do Alucard que o latte do upstream usa naquela posição — o papel no
+#   `surface0`, o símbolo no `text` — e a sombra, o acento dele com o
+#   deslocamento que o latte mostra. Derivado do Mocha, o papel saía #4A4F67.
+CASA_ALU="$T/casa-alucard"
+saida="$(pastas "$CASA_ALU" dracula alucard mauve)"; rc=$?
+TEMA_ALU="$CASA_ALU/.local/share/icons/MeowSystem-Icons"
+if [ "$rc" != "1" ] || [[ "$saida" != *"derivada de 'cat-latte-mauve'"* ]]; then
+  falha "com o Alucard no ar a variante não saiu do latte (rc=$rc)" "$saida"
+else
+  achado="$(python3 - "$RAIZ" "$UP" "$TEMA_ALU" <<'PY'
+import json, os, re, sys
+raiz, up, tema = sys.argv[1:4]
+HEX = re.compile(r"#[0-9A-Fa-f]{6}")
+
+
+def paleta(pack):
+    with open(os.path.join(raiz, "packs", pack, "paleta.json"), encoding="utf-8") as fh:
+        return json.load(fh)["flavors"]
+
+
+def rgb(h):
+    return [int(h[i:i + 2], 16) for i in (1, 3, 5)]
+
+
+latte, alu = paleta("catppuccin")["latte"], paleta("dracula")["alucard"]
+slot = {v.upper(): s for s, v in latte.items()}
+erros = []
+for tam in ("22x22", "24x24", "32x32", "48x48", "64x64"):
+    for nome in ("folder-cat-latte-mauve.svg", "folder-cat-latte-mauve-documents.svg"):
+        with open(os.path.join(up, "src", tam, "places", nome), encoding="utf-8") as fh:
+            de = [h.upper() for h in HEX.findall(fh.read())]
+        feito = os.path.join(tema, tam, "places", nome.replace("-latte-", "-alucard-"))
+        with open(feito, encoding="utf-8") as fh:
+            para = [h.upper() for h in HEX.findall(fh.read())]
+        esperado = []
+        for h in de:
+            if h in slot:
+                esperado.append(alu[slot[h]].upper())
+            else:
+                d = rgb(latte["mauve"])[0] - rgb(h)[0]
+                esperado.append("#%02X%02X%02X" % tuple(max(c - d, 0) for c in rgb(alu["mauve"])))
+        if para != esperado:
+            erros.append("%s/%s: %s, e o latte do upstream pede %s"
+                         % (tam, os.path.basename(feito), para, esperado))
+alvo = os.path.basename(os.path.realpath(os.path.join(tema, "48x48", "places", "folder.svg")))
+if alvo != "folder-cat-alucard-mauve.svg":
+    erros.append("48x48/folder.svg -> %s" % alvo)
+print("\n".join(erros) if erros else
+      "OK papel %s, símbolo %s" % (alu["surface0"].upper(), alu["text"].upper()))
+PY
+)"
+  if [[ "$achado" == OK* ]]; then
+    ok "com o Alucard no ar a variante sai do latte, slot a slot (${achado#OK })"
+  else
+    falha "com o Alucard no ar as pastas não seguem o desenho claro do upstream" "$achado"
+  fi
+fi
+
+#   E a regra inteira, contra o que o upstream já traz: os 56 do Catppuccin,
+#   derivados pela função do próprio script (a origem escura entra, e o claro
+#   troca sozinho), saem iguais ao upstream byte a byte. Derivando tudo do
+#   Mocha, os 14 do latte saíam diferentes nos cinco tamanhos.
+sed -n '/^_derivar_py() {/,/^}/p' "$RAIZ/scripts/construir_pastas.sh" > "$T/derivar.sh"
+# shellcheck source=/dev/null
+. "$T/derivar.sh"
+PAL_CAT="$RAIZ/packs/catppuccin/paleta.json"
+parados="" origens=""
+for fl in latte frappe macchiato mocha; do
+  for ac in rosewater flamingo pink mauve red maroon peach yellow green teal sky sapphire blue lavender; do
+    if saida="$(_derivar_py "$UP/src" "cat-mocha-$ac" "cat-$fl-$ac" "$T/regra/$fl-$ac/src" \
+                  "$PAL_CAT" mocha "$PAL_CAT" "$fl" "$ac" "text|surface0|crust|base")"; then
+      origens+=" $fl<${saida%% *}"
+    else
+      parados+=" $fl-$ac ($saida)"
+    fi
+  done
+done
+achado="$(python3 - "$UP/src" "$T/regra" <<'PY'
+import filecmp, os, sys
+up, regra = sys.argv[1:3]
+iguais, difs = 0, []
+for par in sorted(os.listdir(regra)):
+    base = os.path.join(regra, par, "src")
+    for tam in sorted(os.listdir(base)):
+        for nome in sorted(os.listdir(os.path.join(base, tam, "places"))):
+            if filecmp.cmp(os.path.join(base, tam, "places", nome),
+                           os.path.join(up, tam, "places", nome), shallow=False):
+                iguais += 1
+            else:
+                difs.append("%s/%s" % (tam, nome))
+print(iguais, len(difs), " ".join(difs[:4]))
+PY
+)"
+read -r iguais difs _resto <<< "$achado"
+claros_do_latte="$(grep -o ' latte<cat-latte-' <<< "$origens" | wc -l)"
+if [ -z "$parados" ] && [ "${difs:-1}" = 0 ] && [ "${iguais:-0}" -gt 0 ] && [ "$claros_do_latte" = 14 ] \
+   && [[ "$origens" != *" latte<cat-mocha-"* ]]; then
+  ok "os 56 do Catppuccin, derivados pela regra, saem iguais ao upstream ($iguais arquivos; o latte sai do latte)"
+else
+  falha "a regra da derivação não reproduz o upstream (iguais=$iguais, diferentes=$difs)" \
+    "parados:${parados:- nenhum}
+${achado}
+origens:$origens"
+fi
+
+# --- 6. o molde com o FLAVOR vazio veste a variante do tema ----------------
+#   `cat-${FLAVOR}-${ACCENT}` expandido com `FLAVOR=""` chega como `cat--mauve`.
+#   A base de ícones aponta para um tema que não existe, como nas guardas: o que
+#   se confere é a variante que a derivação escolhe, e nada é escrito.
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa-molde" USER="${USER:-t}" NO_COLOR=1 \
+  MEOW_RAIZ="$RAIZ" MEOW_CAT_FOLDERS="$UP" PACK=dracula FLAVOR=dracula ACCENT=mauve \
+  ICONES_BASE=Tema-Ausente ICONES_PASTAS=cat--mauve NOME_TEMA_ICONES=MeowSystem-Icons \
+  bash "$RAIZ/scripts/construir_pastas.sh" 2>&1)"
+[[ "$saida" == *"'cat-dracula-mauve' não existe no papirus-folders — derivada de 'cat-mocha-mauve'"* ]] \
+  && [[ "$saida" != *"não deu para derivar"* ]] && [ ! -e "$T/casa-molde/.local" ] \
+  && ok "o molde com o FLAVOR vazio (cat--mauve) veste a variante do tema, e não a do Mocha" \
+  || falha "o molde com o FLAVOR vazio caiu no Mocha, ou escreveu na casa" "$saida"
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then

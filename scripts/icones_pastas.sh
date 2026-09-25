@@ -107,6 +107,19 @@ _pastas_do_pack="$(meow_pack_arquivo icones/pastas assets/icones/pastas-dracula)
 if [ -n "$_pastas_do_pack" ] && [ -d "$_pastas_do_pack" ]; then
   ORIGEM="$_pastas_do_pack"
 fi
+# QUEM VESTE, DITO NA TELA — 24/09/2026, na revisão da P56. As frases diziam
+#   «vestidas de Catppuccin <flavor>» fosse qual fosse a origem, e com o Dracula
+#   no ar a tela dizia «Catppuccin macchiato» sobre as pastas DELE. O desenho do
+#   pack não tem flavor: a frase diz de quem ele é, pelo nome que a `adocao` do
+#   pack.py dá (a mesma pergunta do cabeçalho do `meow ajuda`). Com o acervo do
+#   Catppuccin, as frases são as de antes, palavra por palavra.
+VESTIDAS="de Catppuccin $FLAVOR_ICONES"; DE_QUEM="flavor $FLAVOR_ICONES"
+if [ -n "$ORIGEM" ] && [ "$ORIGEM" = "$_pastas_do_pack" ]; then
+  _nome_pack="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null \
+                | sed -n 's/^nome=//p')" || _nome_pack=""
+  VESTIDAS="com os desenhos do pack ${_nome_pack:-no ar}"
+  DE_QUEM="desenhos do pack ${_nome_pack:-no ar}"
+fi
 # O MAPA VEM DA DECLARAÇÃO DO PACK, COM QUEDA PARA O NÚCLEO — 22/09/2026
 #   Era `$RAIZ/assets/icones/pastas.map`, cravado. A docs/PACKS.md desta mesma
 #   sprint documenta `pastas.map` como parte da forma do pack e diz que "cada
@@ -163,11 +176,27 @@ _pronto() {
 # "nome<TAB>caminho-de-origem", só dos glifos que existem de fato. Um glifo
 # faltando é aviso, não erro: aquele nome continua vindo do `construir_pastas.sh`
 # em mauve, que é exatamente o que ele era antes desta sprint.
+#
+# O DESENHO DO PACK SE CHAMA PELO NOME XDG — 24/09/2026, na revisão da P56
+#   O glifo do mapa (`folder_docs`, `folder_audio`…) é o nome do acervo
+#   `catppuccin/vscode-icons`, e só ele se chama assim. As sete pastas do
+#   Dracula nasceram em 15/09 com o nome que o cosmic-files pede
+#   (`folder-documents.svg`…), e o `[ -f ]` daqui procurava `folder_docs.svg` em
+#   `packs/dracula/icones/pastas/`: numa casa com o Dracula no ar e
+#   PASTAS_XDG="sim", o `--conferir` dizia «0 pasta(s) especiais já vestidas»,
+#   o `--aplicar` não escrevia nada, e as do Catppuccin que já estavam lá
+#   ficavam. Sem o glifo, vale o arquivo com o nome XDG. O glifo vem primeiro:
+#   o acervo do Catppuccin não tem arquivo com nome XDG, e os bytes de lá são os
+#   de sempre.
 _desejado() {
   local nome glifo
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
-    [ -f "$ORIGEM/$glifo.svg" ] && printf '%s\t%s\n' "$nome" "$ORIGEM/$glifo.svg"
+    if [ -f "$ORIGEM/$glifo.svg" ]; then
+      printf '%s\t%s\n' "$nome" "$ORIGEM/$glifo.svg"
+    elif [ -f "$ORIGEM/$nome.svg" ]; then
+      printf '%s\t%s\n' "$nome" "$ORIGEM/$nome.svg"
+    fi
   done
 }
 
@@ -196,7 +225,7 @@ _conferir() {
   fi
 
   if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
-    meow_ok "$total pasta(s) especiais já vestidas de Catppuccin $FLAVOR_ICONES"
+    meow_ok "$total pasta(s) especiais já vestidas $VESTIDAS"
     return "$MEOW_OK"
   fi
   meow_muda "pastas especiais: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
@@ -239,10 +268,10 @@ _aplicar() {
   fi
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "pastas especiais já vestidas de Catppuccin $FLAVOR_ICONES"
+    meow_ok "pastas especiais já vestidas $VESTIDAS"
     return "$MEOW_OK"
   fi
-  meow_info "pastas especiais: $postos posto(s), $removidos removido(s) — flavor $FLAVOR_ICONES"
+  meow_info "pastas especiais: $postos posto(s), $removidos removido(s) — $DE_QUEM"
   meow_info "o cosmic-files relê o tema ao abrir uma janela nova"
   return "$MEOW_DIVERGENTE"
 }

@@ -1240,9 +1240,10 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
                              "este ajuste não tem o que vestir." % nome_pack)
 
     # 3. «Cor das pastas» — o molde `cat-<variante>-<cor>` vira dois seletores
-    #    na página. Aqui sai o que cada um oferece: as variantes do pack no ar
-    #    que o papirus-folders tem, e as cores que ele tem. A primeira opção de
-    #    cada um é o molde que acompanha o tema, que é o valor de fábrica.
+    #    na página. Aqui sai o que cada um oferece: todo flavor do pack no ar
+    #    (desde a P56 o `construir_pastas.sh` deriva o que o papirus-folders não
+    #    tem), e as cores que o papirus-folders tem. A primeira opção de cada um
+    #    é o molde que acompanha o tema, que é o valor de fábrica.
     item = por_chave.get("ICONES_PASTAS")
     if item:
         cores_de = _cores_de_pasta()
@@ -2886,10 +2887,15 @@ def conf_exportada(fonte=None):
                     nomes.append(achado.group(1))
     except OSError:
         return None
+    # O FLAVOR VAZIO É O `flavor_padrao` DO PACK NO AR, e não o `mocha` — a linha
+    # gêmea do `carregar_conf` do bin/meow, que conta a medição (24/09/2026, na
+    # revisão da P56, achado 4). O `$2` é a RAIZ.
     programa = (
         'set -a\n'
         '. "$1" || exit 2\n'
         'set +a\n'
+        '[ -n "${FLAVOR:-}" ] || FLAVOR="$(python3 "$2/scripts/pack.py" adocao "${PACK:-}" "" '
+        '2>/dev/null | sed -n "s/^flavor_padrao=//p")"\n'
         'FLAVOR="${FLAVOR:-mocha}"; ACCENT="${ACCENT:-mauve}"\n'
         'MODO="${MODO:-escuro}"; LOGO="${LOGO:-$FLAVOR}"\n'
         'export MEOW_RAIZ="$2"\n'

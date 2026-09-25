@@ -130,10 +130,15 @@ _cor_de_pasta_existe() { [ -f "$FONTE/src/64x64/places/folder-$1-documents.svg" 
 #
 #   O QUE O PAPIRUS-FOLDERS PINTA, MEDIDO NAS 56 COMBINAÇÕES
 #     Cada uma usa QUATRO hex, os mesmos nos cinco tamanhos. Três são slots do
-#     flavor dela: o acento (a frente), o `text` (o papel) e o `surface0` (o
-#     símbolo). O quarto, a sombra de trás, NÃO é cor de paleta nenhuma: é o
-#     acento com 0x14 a menos em cada canal, preso em zero (o `red` do latte,
-#     #D20F39, dá #BE0025). Nas 56, sem exceção.
+#     flavor dela: o acento (a frente), o `text` e o `surface0`. Nos 42 dos três
+#     escuros o papel é o `text` e o símbolo, o `surface0`; nos 14 do latte é o
+#     contrário — papel #CCD0DA (o `surface0`), símbolo #4C4F69 (o `text`). O
+#     quarto, a sombra de trás, NÃO é cor de paleta nenhuma: é o acento com 0x14
+#     a menos em cada canal, preso em zero (o `red` do latte, #D20F39, dá
+#     #BE0025). Nas 56, sem exceção.
+#     [Corrigido na revisão, 24/09/2026: a primeira versão deste bloco dizia "o
+#     `text` (o papel)" para as 56, e derivava todo flavor do Mocha — ver "O
+#     CLARO SAI DO CLARO", logo abaixo.]
 #
 #   ENTÃO A TROCA É SLOT A SLOT, E A SOMBRA SEGUE O ACENTO
 #     O hex que é slot do flavor de origem vira o MESMO slot do flavor pedido,
@@ -143,13 +148,32 @@ _cor_de_pasta_existe() { [ -f "$FONTE/src/64x64/places/folder-$1-documents.svg" 
 #     não existe pronto sai do que existe, pela regra que a origem obedece, e
 #     não de mais uma lista de variantes.
 #
+#   O CLARO SAI DO CLARO — 24/09/2026, na revisão da P56
+#     Slot a slot só vale entre dois flavors do MESMO LADO, porque o papel de um
+#     escuro é o `text` e o de um claro é o `surface0`. A primeira versão partia
+#     sempre do `cat-mocha-<acento>`, e o `alucard` (o claro do Dracula) saía
+#     `fill:#7126DE #4A4F67 #853AF2 #4A4F67`, papel escuro e símbolo claro, onde
+#     o latte do upstream é `#7425DB #CCD0DA #8839EF #CCD0DA`. Medido com o
+#     próprio `_derivar_py`, derivando do Mocha o que o upstream já traz:
+#     frappe, macchiato e mocha iguais nos 5.460 arquivos de cada um; o latte,
+#     diferente nos 5.460 — papel e símbolo trocados.
+#     Então a origem fica do lado do pedido: o flavor que o pack no ar lista em
+#     `claros` sai do primeiro `claros` do pack padrão (o latte); o escuro, do
+#     Mocha da queda de 15/09. É a pergunta da P48 para escolher a árvore Light
+#     ou Dark (`plano`, no `scripts/derivar_acento.py`), feita às duas paletas.
+#     Derivados assim, os 56 do Catppuccin saem iguais ao upstream, byte a byte.
+#
 #   E PARA, EM VEZ DE PINTAR TORTO. As guardas são três:
 #     · o acento de origem tem de estar nos desenhos — senão a paleta não
 #       descreve este papirus-folders, e cada troca seria um chute;
 #     · um hex que é dois slots na origem e duas cores no pedido não tem
 #       tradução — o mesmo motivo do `DE_PARA` do `tabela_azul_mauve`, abaixo;
-#     · um tom fora da paleta que não é o acento deslocado por igual nos três
-#       canais é tom que ninguém mediu, e derivá-lo seria inventar cor.
+#     · um tom fora da paleta que não é o acento deslocado por igual é tom que
+#       ninguém mediu, e derivá-lo seria inventar cor. "Por igual" vale nos
+#       canais que não bateram em 0 ou 255; nos que bateram, o prendedor tem de
+#       explicar o valor. Com a origem clara isso conta: o `peach`, o `sky` e o
+#       `red` do latte têm um canal abaixo de 0x14, e as sombras deles ficam a
+#       (20,20,11), (4,20,20) e (20,15,20) do acento.
 #     Parada, a variante cai na queda de 15/09, com o motivo no log.
 #
 #   COM O CATPPUCCIN NO AR ISTO NÃO RODA: as 56 existem, a condição do bloco é o
@@ -169,11 +193,16 @@ _cor_de_pasta_existe() { [ -f "$FONTE/src/64x64/places/folder-$1-documents.svg" 
 # O PAPEL E O SÍMBOLO DAS PASTAS, QUE A LIXEIRA NÃO PODE TOMAR POR ACENTO
 #   São o `text`, o `surface0`, o `crust` e o `base` do Mocha, que o
 #   `recolorir_lixeiras` pula ao ler os tons da pasta vizinha. Numa variante
-#   derivada a derivação os traduz pela mesma tabela: sem isso a lixeira do
-#   Dracula tomava o `surface0` dele (#383A4C, que o `sort` põe antes do acento)
-#   por tom, e saía cinza-escura no meio das pastas roxas.
+#   derivada são os MESMOS QUATRO SLOTS, lidos no flavor pedido: sem isso a
+#   lixeira do Dracula tomava o `surface0` dele (#383A4C, que o `sort` põe antes
+#   do acento) por tom, e saía cinza-escura no meio das pastas roxas. Pelo nome
+#   do slot, e não pelos hex do Mocha traduzidos (a primeira versão): com a
+#   origem clara os hex do Mocha nem estão nos desenhos, e traduzi-los pararia a
+#   derivação do `alucard` inteira.
 PAPEL_DAS_PASTAS="CDD6F4|313244|11111B|1E1E2E"
+SLOTS_DO_PAPEL="text|surface0|crust|base"
 DERIVADA=""
+ORIGEM_DERIVADA=""
 MOTIVO_DERIVACAO=""
 
 _derivar_py() {
@@ -189,20 +218,36 @@ def parar(motivo):
     sys.exit(1)
 
 
-def cores(arq, flavor, de_quem):
+def paleta(arq, de_quem):
+    """(flavors, claros) da paleta. O `claros` que não é lista conta como vazio."""
     try:
         with open(arq, encoding="utf-8") as fh:
-            achadas = (json.load(fh).get("flavors") or {}).get(flavor)
+            dados = json.load(fh)
+        flavors, claros = dados.get("flavors") or {}, dados.get("claros")
     except (OSError, ValueError, AttributeError) as e:
         parar("não li a paleta %s (%s)" % (de_quem, type(e).__name__))
+    return flavors, (claros if isinstance(claros, list) else [])
+
+
+def cores(flavors, flavor, de_quem):
+    achadas = flavors.get(flavor) if isinstance(flavors, dict) else None
     if not isinstance(achadas, dict):
         parar("a paleta %s não tem o flavor '%s'" % (de_quem, flavor))
     return {s: h.upper() for s, h in achadas.items()
             if isinstance(h, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", h)}
 
 
-de = cores(pal_origem, fl_origem, "do pack padrão")
-para = cores(pal_pedida, fl_pedido, "do pack no ar")
+flavors_de, claros_de = paleta(pal_origem, "do pack padrão")
+flavors_para, claros_para = paleta(pal_pedida, "do pack no ar")
+# O CLARO SAI DO CLARO (o bloco lá em cima): a origem que chega é a escura.
+if fl_pedido in claros_para:
+    if not claros_de:
+        parar("o %s é claro, e o pack padrão não tem flavor claro de onde derivá-lo"
+              % fl_pedido)
+    fl_origem = claros_de[0]
+    origem = "cat-%s-%s" % (fl_origem, acento)
+de = cores(flavors_de, fl_origem, "do pack padrão")
+para = cores(flavors_para, fl_pedido, "do pack no ar")
 if acento not in de or acento not in para:
     parar("'%s' não é cor do %s e do %s" % (acento, fl_origem, fl_pedido))
 slots = {}
@@ -221,11 +266,14 @@ def traduzir(h):
             parar("%s é %s no %s, e o %s não dá uma cor só para isso"
                   % (h, "/".join(slots[h]), fl_origem, fl_pedido))
         return alvo.pop()
-    passo = {a - b for a, b in zip(rgb(de[acento]), rgb(h))}
-    if len(passo) != 1:
-        parar("%s não é cor do %s nem o %s dele deslocado por igual nos três canais"
+    # O passo sai dos canais que não bateram em 0 ou 255, e o prendedor tem de
+    # explicar os que bateram (a terceira guarda, lá em cima).
+    a, s = rgb(de[acento]), rgb(h)
+    passo = {x - y for x, y in zip(a, s) if 0 < y < 255}
+    d = passo.pop() if len(passo) == 1 else None
+    if d is None or [min(max(x - d, 0), 255) for x in a] != s:
+        parar("%s não é cor do %s nem o %s dele deslocado por igual, preso em 0 e 255"
               % (h, fl_origem, acento))
-    d = passo.pop()
     return "#%02X%02X%02X" % tuple(min(max(c - d, 0), 255) for c in rgb(para[acento]))
 
 
@@ -260,11 +308,14 @@ for tam, nome, novo in arquivos:
     os.makedirs(pasta, exist_ok=True)
     with open(os.path.join(pasta, novo), "w", encoding="utf-8", newline="") as fh:
         fh.write(HEX.sub(lambda m: tabela["#" + m.group(1).upper()], textos[(tam, nome)]))
-print("|".join(traduzir("#" + h.upper())[1:] for h in papel.split("|") if h))
+# De onde saiu, e o papel no flavor pedido — `papel` são os nomes dos slots.
+print(origem, "|".join(para[s][1:] for s in papel.split("|") if s in para))
 PY
 }
 
-derivar_variante() {   # $1 = a variante pedida · $2 = a do papirus-folders de onde ela sai
+# $1 = a variante pedida · $2 = a escura do papirus-folders, de onde sai o pedido
+# escuro; o claro troca de origem sozinho (ver "O CLARO SAI DO CLARO").
+derivar_variante() {
   local pedida="$1" origem="$2" flavor fl_origem saida
   meow_tem python3 || { MOTIVO_DERIVACAO="sem python3, que é quem troca as cores"; return 1; }
   flavor="${pedida#cat-}"; flavor="${flavor%-*}"
@@ -274,14 +325,23 @@ derivar_variante() {   # $1 = a variante pedida · $2 = a do papirus-folders de 
   trap 'rm -rf "${DERIVADA:-}"' EXIT
   saida="$(_derivar_py "$FONTE/src" "$origem" "$pedida" "$DERIVADA/src" \
              "$(meow_pack_padrao_dir)/paleta.json" "$fl_origem" \
-             "$(meow_paleta)" "$flavor" "${pedida##*-}" "$PAPEL_DAS_PASTAS")" || {
+             "$(meow_paleta)" "$flavor" "${pedida##*-}" "$SLOTS_DO_PAPEL")" || {
     MOTIVO_DERIVACAO="${saida:-o python3 saiu com erro}"
     rm -rf "$DERIVADA"; DERIVADA=""
     return 1
   }
-  PAPEL_DAS_PASTAS="$saida"
+  read -r ORIGEM_DERIVADA PAPEL_DAS_PASTAS <<< "$saida"
   FONTE="$DERIVADA"
 }
+
+# O MOLDE COM A VARIANTE VAZIA É O DO TEMA — 24/09/2026, na revisão da P56
+#   O `ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"` de fábrica se expande quando o
+#   meow.conf é lido, ANTES de o `carregar_conf` dar ao FLAVOR vazio o padrão do
+#   pack. Com `FLAVOR=""` escrito à mão ele chegava aqui como `cat--mauve`, o
+#   bloco de baixo procurava o flavor '' na paleta e caía no Mocha — medido com o
+#   Dracula no ar, `folder.svg -> folder-cat-mocha-mauve.svg`. A variante que
+#   falta é a do tema, o «Acompanha o tema» da página: o FLAVOR que chegou.
+case "$COR" in cat--?*) [ -z "${FLAVOR:-}" ] || COR="cat-$FLAVOR-${COR#cat--}" ;; esac
 
 if [ -d "$FONTE/src/64x64/places" ] && ! _cor_de_pasta_existe "$COR"; then
   _cor_pedida="$COR"
@@ -295,7 +355,7 @@ if [ -d "$FONTE/src/64x64/places" ] && ! _cor_de_pasta_existe "$COR"; then
   # com o nome da pedida.
   if [ "$_cor_alt" = "cat-mocha-${COR##*-}" ] && _cor_de_pasta_existe "$_cor_alt" \
      && derivar_variante "$COR" "$_cor_alt"; then
-    meow_info "pastas: '$COR' não existe no papirus-folders — derivada de '$_cor_alt' com a paleta do pack no ar"
+    meow_info "pastas: '$COR' não existe no papirus-folders — derivada de '$ORIGEM_DERIVADA' com a paleta do pack no ar"
   elif _cor_de_pasta_existe "$_cor_alt"; then
     [ -n "$MOTIVO_DERIVACAO" ] && meow_aviso "pastas: não deu para derivar '$_cor_pedida' — $MOTIVO_DERIVACAO"
     COR="$_cor_alt"

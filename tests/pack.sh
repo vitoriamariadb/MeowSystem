@@ -2743,7 +2743,7 @@ p31_flavor_do_script() {   # o flavor que a saída de um icones_*.sh diz ter usa
 p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR ("" = a de fábrica) · $5 o que a regra manda
   sed -e "s/^PACK=.*/PACK=\"$2\"/" -e "s/^FLAVOR=.*/FLAVOR=\"$3\"/" "$RAIZ/meow.conf.exemplo" > "$P31_CONF"
   [ -z "$4" ] || sed -i "s/^ICONES_FLAVOR=.*/$4/" "$P31_CONF"
-  local painel script saida visto apps divergiu=""
+  local painel script saida visto apps divergiu="" proprias=""
   painel="$(p31_amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_ponte_python >/dev/null 2>&1 || exit 9
     exec python3 "$1"' _ "$T/p31painel.py" 2>/dev/null | tail -1)"
   for script in icones_mimetypes icones_pastas icones_apps; do
@@ -2755,6 +2755,14 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
     apps="$5"; [ "$apps" = "latte" ] || apps="macchiato"
     if [ "$script" = "icones_apps" ]; then
       [ "$visto" = "$apps" ] || divergiu+=" $script='$visto' (esperava $apps)"
+    elif [ "$script" = "icones_pastas" ] && [ -d "$RAIZ/packs/$2/icones/pastas" ]; then
+      # AS PASTAS PRÓPRIAS DO PACK NÃO TÊM FLAVOR — 24/09/2026, na revisão da
+      # P56. As sete do Dracula são desenho dele, e a frase diz o pack; até ali
+      # o script não as achava, não escrevia nada e dizia «Catppuccin
+      # macchiato», que era o que esta conta cobrava.
+      proprias=1
+      [[ "$saida" == *"desenhos do pack "* && "$saida" != *Catppuccin* ]] \
+        || divergiu+=" $script não diz os desenhos do pack: $(tail -1 <<< "$saida")"
     else
       [ "$visto" = "$painel" ] || divergiu+=" $script='$visto'"
     fi
@@ -2763,6 +2771,8 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
     falha "$1: o painel diz '$painel', e a regra manda '$5'"
   elif [ -n "$divergiu" ]; then
     falha "$1: o painel diz '$painel' e o shell discorda:$divergiu"
+  elif [ -n "$proprias" ]; then
+    ok "$1: painel, icones_mimetypes e icones_apps dizem '$painel', e as pastas especiais são os desenhos do pack"
   else
     ok "$1: painel e os três icones_*.sh dizem '$painel'"
   fi
@@ -3477,6 +3487,66 @@ cabeca56="$(amb env MEOW_CONF="$T/ajuda-p56.conf" HOME="$T/casa-ajuda-p56" NO_CO
 [ "$cabeca56" = "meow — $nome56 para o COSMIC" ] \
   && ok "o cabeçalho do meow ajuda diz o pack no ar: $cabeca56" \
   || falha "o cabeçalho do meow ajuda não diz o pack no ar ($nome56)" "$cabeca56"
+
+#   E O QUE A REVISÃO DA P56 ACHOU, NO MESMO DIA:
+#   - a tabela do `info` e a do «Mais sobre este pack» diziam «pastas: próprio»
+#     e «7 desenho(s)» para o Dracula, e o desenho do pack veste só as pastas
+#     especiais (com PASTAS_XDG="sim"); as outras são o papirus-folders na
+#     paleta do pack. A nota é uma só, e as duas tabelas a mostram;
+#   - com o FLAVOR vazio, a página caía no `flavor_padrao` do pack (a P56) e o
+#     `carregar_conf` e o `conf_exportada`, no `mocha`. A `adocao` passou a
+#     dizer o `flavor_padrao`, e os três respondem igual.
+saida="$(amb python3 - "$RAIZ" <<'PY' 2>&1
+import os, subprocess, sys
+raiz = sys.argv[1]
+sys.path.insert(0, os.path.join(raiz, "scripts"))
+import pack
+erros = []
+nota = pack.NOTA_DA_CATEGORIA.get("icones.pastas") or ""
+if "especiais" not in nota or "papirus-folders" not in nota:
+    erros.append("a nota das pastas não diz o que elas vestem: %r" % nota)
+for ref in ("dracula", os.environ["ID"]):
+    pastas = next((c for c in pack.vocabulario(ref)["categorias"] if c["categoria"] == "pastas"), {})
+    if pastas.get("nota") != nota:
+        erros.append("%s: o «Mais sobre» não recebe a nota das pastas: %r" % (ref, pastas))
+    info = subprocess.run([sys.executable, os.path.join(raiz, "scripts", "pack.py"), "info", ref],
+                          capture_output=True, text=True).stdout
+    linha = next((l for l in info.splitlines() if l.strip().startswith("icones.pastas")), "")
+    if not nota or nota not in linha:
+        erros.append("%s: a linha do info não diz o que as pastas vestem: %r" % (ref, linha))
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+cartao="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+[ "$rc" = "0" ] && [[ "$cartao" == *'c.nota'* ]] \
+  && ok "as pastas dizem o que o desenho do pack veste, no info e no «Mais sobre» do cartão" \
+  || falha "a tabela ainda diz «pastas: próprio» sem dizer o que o desenho veste" "$saida"
+
+printf 'PACK="%s"\nFLAVOR=""\nACCENT="mauve"\nMODO="escuro"\n' "$ID" > "$T/vazio-p56.conf"
+printf 'PACK=""\nFLAVOR=""\nACCENT="mauve"\nMODO="escuro"\n' > "$T/vazio-padrao-p56.conf"
+padrao56="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["paleta"]["flavor_padrao"])' \
+  "$(amb python3 "$RAIZ/scripts/pack.py" padrao)/pack.json")"
+divergem=""
+for par in "vazio-p56:$ID" "vazio-padrao-p56:$padrao56"; do
+  conf="$T/${par%%:*}.conf"; quer="${par#*:}"
+  shell="$(amb env MEOW_CONF="$conf" HOME="$T/casa-vazio-p56" bash -c '
+    . "$MEOW_RAIZ/lib/comum.sh"
+    RAIZ="$MEOW_RAIZ"; CONF="$MEOW_CONF_ARQUIVO"; CONF_PADRAO="$MEOW_CONF_PADRAO"
+    eval "$(sed -n "/^carregar_conf() {/,/^}/p" "$RAIZ/bin/meow")"
+    carregar_conf >/dev/null 2>&1 || exit 9
+    printf "%s" "$FLAVOR"' 2>&1)"
+  painel="$(amb env MEOW_CONF="$conf" HOME="$T/casa-vazio-p56" python3 -c '
+import os, sys
+sys.path.insert(0, os.path.join(os.environ["MEOW_RAIZ"], "app"))
+import servidor
+print((servidor.conf_exportada() or {}).get("FLAVOR", ""))' 2>&1)"
+  [ -n "$quer" ] && [ "$shell" = "$quer" ] && [ "$painel" = "$quer" ] \
+    || divergem+=" ${par%%:*}: shell '$shell', painel '$painel', o pack diz '$quer';"
+done
+[ -z "$divergem" ] \
+  && ok "com o FLAVOR vazio o shell e o painel caem no flavor_padrao do pack ($ID e $padrao56), como a página" \
+  || falha "com o FLAVOR vazio o shell ou o painel não caem no padrão do pack:$divergem"
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then

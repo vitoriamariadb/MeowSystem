@@ -142,6 +142,8 @@ VERBOS
                                      dir=<o diretório; vazio = ninguém escolheu>
                                      recusado=<o id que não validou, ou vazio>
                                      nome=<o nome de tela do pack que veste>
+                                     flavor_padrao=<o flavor dele quando o
+                                       FLAVOR do conf está vazio>
                                  Ver `adocao`.
 
     Sem argumento, imprime esta ajuda.
@@ -3915,6 +3917,22 @@ FIXAS_NO_MOTOR = {
 }
 
 
+# O QUE A DECLARAÇÃO DAS PASTAS VESTE — 24/09/2026, P56 (item 2, na revisão)
+#   A tabela dizia «pastas: próprio» e «7 desenho(s)» para o Dracula, e a tela
+#   mostrava outra coisa. O que um pack declara em `icones.pastas` veste só as
+#   pastas ESPECIAIS (o `scripts/icones_pastas.sh`, pelo `pastas.map`), e só com
+#   PASTAS_XDG="sim", que de fábrica vem desligado. Todas as outras, a pasta comum
+#   inclusive, são o papirus-folders do motor na paleta do pack — o
+#   `scripts/construir_pastas.sh` deriva a variante que ele não traz —, e isso
+#   nenhum pack declara. A coluna de origem continua dizendo de quem é a
+#   declaração; a nota diz o que ela veste. O `info` e o «Mais sobre» do cartão
+#   leem a mesma nota, como leem o mesmo `origens`.
+NOTA_DA_CATEGORIA = {
+    "icones.pastas": ("só as pastas especiais, com «Ícones das pastas especiais» ligado "
+                      "(PASTAS_XDG); as outras são o papirus-folders, na paleta do pack"),
+}
+
+
 def origens(p):
     """[(categoria, tipo, de_quem)] na ordem da tabela do `info`.
 
@@ -4188,6 +4206,8 @@ def cmd_info(ref):
             conta = "scripts/wallpaper.sh — segue o pack do flavor, sem ler este bloco"
         elif cat in FIXAS_NO_MOTOR:
             conta = FIXAS_NO_MOTOR[cat]
+        if cat in NOTA_DA_CATEGORIA:
+            conta = " — ".join(x for x in (conta, NOTA_DA_CATEGORIA[cat]) if x)
         print(f"  {cat:<16}  {estado:<27}  {conta}")
     return OK
 
@@ -4418,7 +4438,8 @@ def vocabulario(ref):
                      "cores": [dados["flavors"][f][s] for s in SLOTS]}
                     for f in dados["flavors"]],
         "categorias": [{"categoria": ROTULO_DA_CATEGORIA[c], "tipo": t, "de": q,
-                        "nome_de": nome_do_pack(q) if q else ""}
+                        "nome_de": nome_do_pack(q) if q else "",
+                        "nota": NOTA_DA_CATEGORIA.get(c, "")}
                        for c, t, q in origens(p)],
         "mimetypes": None,
         "apps": None,
@@ -5749,6 +5770,12 @@ def main(argv):
             # cabeçalho do `install.sh` dizia «Catppuccin» com qualquer pack no
             # ar, e o nome é o que o `pack.json` declara, lido aqui uma vez.
             print(f"nome={campo(ident, 'nome') or ident}")
+            # E O FLAVOR DE QUEM VESTE — 24/09/2026, na revisão da P56 (achado
+            # 4): é o que o `carregar_conf` do bin/meow e o `conf_exportada` do
+            # painel dão a um FLAVOR vazio, a regra do docs/PACKS.md ("Quem
+            # vence": com o conf vazio, entra o `paleta.flavor_padrao`). A
+            # página já a seguia pelo `vocabulario`; o shell caía no `mocha`.
+            print(f"flavor_padrao={campo(ident, 'paleta.flavor_padrao') or ''}")
             return OK
         # OS TRÊS VERBOS DA CAPTURA NÃO RECEBEM `<id>`, e os outros recebem.
         #   Quem pergunta por uma captura é sempre o desktop VIVO — o
