@@ -428,33 +428,30 @@ checa(codigo == 200 and dados.get("removido")
       and (dados.get("fica") or {}).get("frase") == "o desenho «google-chrome» do pack «Dracula»",
       "desfazer a escolha do Chrome devolve o desenho que o pack dava, e o diz", repr(dados))
 # O arcade do programa está no tema desde a seção 5 (a volta ao Dracula o repôs).
+# Desfeita a escolha, o nome sai do mapa no ar — e o passo do pack o tira do
+# tema, pelo registro do que ele pôs lá (P66, 25/09/2026). Até a P66 a resposta
+# dizia `sobra` («continua no tema»), e este bloco era o defeito conhecido que o
+# `_dracula_sobras` não tirava: ele só olhava os mapas dos packs fora do ar.
 codigo, dados = desfazer("programa-de-brinquedo")
 fica = dados.get("fica") or {}
-checa(codigo == 200 and dados.get("removido") and fica.get("tipo") == "sobra"
-      and fica.get("frase", "").startswith("o desenho «arcade» do pack «Dracula», que continua no tema"),
-      "desfazer a do programa que o pack não conhecia tira a linha, e a resposta diz que o desenho "
-      "fica no tema — e não «de fábrica»", repr(dados))
+checa(codigo == 200 and dados.get("removido") and fica.get("tipo") == "fabrica",
+      "desfazer a do programa que o pack não conhecia tira a linha, e a resposta diz o ícone "
+      "que fica depois do passo do pack: o de fábrica", repr(dados))
 checa(mapa_agora() == antes,
       "sem as duas escolhas, o apps.map do Dracula volta byte a byte ao que era")
+rc, saida = conferir()
+checa(rc == 1 and "programa-de-brinquedo.svg (desenho que saiu do mapa do pack no ar)" in saida,
+      "antes do passo, o --conferir diz que apagaria o arcade do programa, e por quê (rc=%s)" % rc,
+      saida[-600:])
 rc, saida = passo_do_pack()
 checa(texto(os.path.join(tema, "google-chrome.svg"))
       == texto(os.path.join(icones, "apps", "google-chrome.svg")) is not None,
       "o passo do pack põe no tema o desenho que o pack dava ao Chrome (rc=%s)" % rc, saida[-600:])
+checa(not os.path.exists(os.path.join(tema, "programa-de-brinquedo.svg")),
+      "e tira do tema o arcade do programa que saiu do mapa no ar — o ícone de fábrica que a "
+      "resposta disse", saida[-600:])
 rc, saida = conferir()
 checa(rc == 0, "e o --conferir do passo sai 0 depois dele (rc=%s)" % rc, saida[-600:])
-# O DEFEITO CONHECIDO, FORA DO TERRITÓRIO DA P64, no molde dos
-#   `DEFEITOS_CONHECIDOS` do tests/app-completo.py: dito em toda corrida, e
-#   reprovando no dia em que deixar de acontecer — nesse dia a frase `sobra` do
-#   `_desfazer_do_pack` e este bloco saem juntos. O `icones_apps_dracula.sh`
-#   não tira do tema o nome que saiu do mapa no ar (o `_dracula_sobras` só olha
-#   os mapas fora do ar), e o `--conferir` acima sai 0 com ele lá.
-sobrou = texto(os.path.join(tema, "programa-de-brinquedo.svg")) == texto(
-    os.path.join(icones, "biblioteca", "arcade.svg")) is not None
-if sobrou:
-    print("  conhecido: o passo do pack deixa no tema o arcade do programa que saiu do mapa "
-          "no ar — conserto em scripts/icones_apps_dracula.sh (_dracula_sobras)")
-checa(sobrou, "o desenho do programa continua no tema, como a resposta disse",
-      "o passo do pack passou a tirá-lo: tire a frase `sobra` do `_desfazer_do_pack` e este bloco")
 
 codigo, dados = desfazer("google-chrome")
 checa(codigo == 200 and dados.get("removido") is False and mapa_agora() == antes,

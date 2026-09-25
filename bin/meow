@@ -227,8 +227,11 @@ carregar_conf() {
   #   o meow.conf direto — também seguem, e o `mocha` de reserva saiu com ela.
   #   E o molde das pastas é completado aqui também: o `meow icones` mostrava
   #   `pastas cat--mauve`, o valor cru, com o Dracula no ar.]
+  #   [P66, 25/09/2026: a linha do molde virou o `meow_pastas_do_molde` do
+  #   lib/comum.sh, que o `conf_exportada` também chama — era a mesma linha
+  #   escrita duas vezes.]
   FLAVOR="$(meow_flavor)"; ACCENT="${ACCENT:-mauve}"
-  case "${ICONES_PASTAS:-}" in cat--?*) ICONES_PASTAS="cat-$FLAVOR-${ICONES_PASTAS#cat--}" ;; esac
+  meow_pastas_do_molde
   MODO="${MODO:-escuro}";    LOGO="${LOGO:-$FLAVOR}"
   export FLAVOR ACCENT MODO LOGO
   # A PONTE SHELL -> PYTHON, AQUI PORQUE AQUI É ONDE PACK/FLAVOR NASCEM

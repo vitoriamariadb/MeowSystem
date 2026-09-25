@@ -339,7 +339,10 @@ main() {
     # pack no ar). A frase diz essa regra, que vale com qualquer pack e acento.
     if [ -d "$DESTINO" ] && [ -n "$(find "$DESTINO" -maxdepth 1 -name '*.svg' -print -quit 2>/dev/null)" ]; then
       # No seco, «devolveria», pelo motivo do resumo do `_aplicar` (P65).
-      if meow_seco; then
+      # E no `--conferir` também (P66, 25/09/2026): o verbo que só lê não é o
+      # seco — o `MEOW_SECO` fica vazio nele —, e com os desenhos no disco ele
+      # dizia «devolvendo», saía 1 e não mudava nada.
+      if meow_seco || [ "${1:-}" = "--conferir" ]; then
         meow_info "PASTAS_XDG=\"${PASTAS_XDG:-nao}\" — devolveria as pastas especiais à cor das outras pastas"
       else
         meow_info "PASTAS_XDG=\"${PASTAS_XDG:-nao}\" — devolvendo as pastas especiais à cor das outras pastas"

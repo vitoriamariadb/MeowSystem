@@ -165,7 +165,7 @@ _dracula_pares() {
 # --- instalar -----------------------------------------------------------------
 _dracula_instalar() {
   local rc=0 nome caminho origem
-  local postos=0 faltando=()
+  local postos=0 faltando=() no_tema=()
 
   while IFS=$'\t' read -r nome caminho; do
     [ -n "$nome" ] || continue
@@ -196,7 +196,9 @@ _dracula_instalar() {
       1) postos=$((postos+1)) ;;
       *) rc=2 ;;
     esac
+    [ -f "$ALVO/$nome.svg" ] && no_tema+=("$nome"$'\t'"$origem")
   done < <(_dracula_pares)
+  _dracula_registrar "${no_tema[@]}"
 
   if [ "${#faltando[@]}" -gt 0 ]; then
     meow_aviso "no mapa mas sem desenho no disco: ${faltando[*]}"
@@ -328,8 +330,32 @@ _dracula_remover() {
 #   o `fontes`. Uma terceira cópia do parser, aqui, seria a que divergiria. Uma
 #   partida de `python3` só, para todos os packs do disco — o custo que o
 #   cabeçalho do `_dracula_pares` mediu é o da partida por linha.
+#
+# E O NOME QUE SAIU DO MAPA NO AR — 25/09/2026, sprint P66
+#   O juízo acima só olhava os mapas FORA do ar. Desfeita no painel a escolha
+#   de um desenho do pack para um programa que o pack não conhecia (P64), a
+#   linha sai do mapa no ar, e o desenho ficava no tema: medido no
+#   tests/seletor-do-pack.sh, o arcade do programa de brinquedo continuava em
+#   `scalable/apps` depois do passo do pack, com o `--conferir` saindo 0.
+#   Sem a linha, não há mapa que prove de quem é o arquivo — e o conteúdo
+#   sozinho não prova: o `completar_icones.sh` põe no mesmo `scalable/apps` os
+#   autorais do pack, byte a byte (medido nesta máquina: o
+#   `com.meowsystem.Painel` e o `fogstripper` são o `autorais/<nome>-dracula.svg`
+#   do Dracula, sem linha em mapa nenhum). Um juízo só pelo conteúdo os
+#   apagaria, e o outro passo os poria de volta na passagem seguinte.
+#   A prova é o REGISTRO: o `_dracula_instalar` anota o que pôs no tema
+#   (nome e desenho), e o nome anotado que nenhum mapa no ar pede mais sai
+#   pelo mesmo juízo — ninguém no ar o reclama, e o conteúdo é o do desenho
+#   anotado. O que o registro não anotou (uma instalação de antes dele, ou um
+#   arquivo de outro dono) não sai.
+REGISTRO="$MEOW_ESTADO/icones-do-pack.tsv"
+_dracula_registrar() {   # _dracula_registrar "nome<TAB>desenho"... — fora do seco
+  meow_seco && return 0
+  meow_escrever "$REGISTRO" "$(printf '%s\n' "$@" | sort -u)" 644 >/dev/null || true
+}
+
 _dracula_de_fora() {
-  python3 - "$RAIZ" "$MAPA" "$_pack_ref" <<'PY'
+  python3 - "$RAIZ" "$MAPA" "$_pack_ref" "$REGISTRO" <<'PY'
 import contextlib
 import io
 import os
@@ -359,6 +385,7 @@ for base in pack.raizes():
         mapa = pack.acervo("icones.apps.mapa", ref=dir_pack)
         if mapa and os.path.realpath(mapa) not in (no_ar, *mapas):
             mapas.append(os.path.realpath(mapa))
+ditos = set()
 for mapa in mapas:
     try:
         linhas = list(pack.ler_mapa(mapa))
@@ -368,20 +395,34 @@ for mapa in mapas:
         if nome in nomes_no_ar:
             continue
         try:
-            print("%s\t%s" % (nome, pack.resolver_alvo(alvo, os.path.dirname(mapa))))
+            desenho = pack.resolver_alvo(alvo, os.path.dirname(mapa))
         except pack.Recusa:
             continue
+        ditos.add((nome, desenho))
+        print("%s\t%s\tde um pack que não está no ar" % (nome, desenho))
+# O registro (P66): o nome anotado que nenhum mapa no ar pede. Nome com `/`
+# não é nome de ícone, e não vira caminho fora do `scalable/apps`.
+try:
+    with open(sys.argv[4], encoding="utf-8") as fh:
+        anotados = [linha.rstrip("\n").split("\t") for linha in fh]
+except OSError:
+    anotados = []
+for campos in anotados:
+    if len(campos) != 2 or not campos[0] or "/" in campos[0] or campos[0] in nomes_no_ar \
+            or tuple(campos) in ditos:
+        continue
+    print("%s\t%s\tque saiu do mapa do pack no ar" % tuple(campos))
 PY
 }
 
 _dracula_sobras() {
-  local rc=0 tirados=0 nome caminho
-  while IFS=$'\t' read -r nome caminho; do
+  local rc=0 tirados=0 nome caminho porque
+  while IFS=$'\t' read -r nome caminho porque; do
     [ -n "$nome" ] && [ -f "$ALVO/$nome.svg" ] && [ -f "$caminho" ] || continue
     # `$(cat)` dos dois lados, pelo motivo do bloco do `_dracula_remover`.
     [ "$(cat "$caminho")" = "$(cat "$ALVO/$nome.svg")" ] || continue
     if meow_seco; then
-      meow_muda "apagaria $ALVO/$nome.svg (desenho de um pack que não está no ar)"
+      meow_muda "apagaria $ALVO/$nome.svg (desenho $porque)"
       tirados=$((tirados+1)); continue
     fi
     rm -f "$ALVO/$nome.svg" && tirados=$((tirados+1)) || rc=2
@@ -389,7 +430,7 @@ _dracula_sobras() {
 
   [ "$tirados" -gt 0 ] || return "$rc"
   meow_seco && return 1
-  meow_ok "$tirados desenho(s) de pack que não está no ar retirado(s) do tema"
+  meow_ok "$tirados desenho(s) de pack que nenhum mapa no ar pede retirado(s) do tema"
   # A CACHE PRECISA SABER QUE ELES SAÍRAM. O `_dracula_cache` reindexa quando
   # um `.svg` é mais novo que ela, e apagar não deixa nada mais novo: com a
   # cache velha, o GTK procuraria desenhos que não estão mais no disco.
