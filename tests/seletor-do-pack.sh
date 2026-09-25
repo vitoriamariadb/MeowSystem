@@ -20,7 +20,9 @@
 #      mostrou; e o `--conferir` do passo sai 0 depois dela.
 #   4. As recusas: o pack fora do ar, o desenho que a busca não ofereceria, o
 #      nome que outro dono do `scalable/apps` decide, a camada desligada — com
-#      a frase que aponta o cartão pelo título que ele tem na tela.
+#      a frase que aponta o cartão pelo título que ele tem na tela. E as duas
+#      grades que abrem a ficha (Aplicativos, e Lançadores e jogos) mandam a
+#      trava do pack que o POST aplica.
 #   5. Trocar para o Catppuccin não carrega a escolha: a busca não oferece o
 #      Dracula, o passo do pack tira do tema o que o Dracula tinha posto, o
 #      Catppuccin não ganha arquivo nenhum — e a escolha volta com o Dracula.
@@ -74,6 +76,16 @@ desktop() {   # desktop <arquivo> <Name> <Icon>
 desktop google-chrome "Chrome de Brinquedo" google-chrome
 desktop programa-de-brinquedo "Programa de Brinquedo" programa-de-brinquedo
 desktop com.system76.CosmicFiles "Arquivos de Brinquedo" com.system76.CosmicFiles
+# E dois jogos, que a aba «Lançadores e jogos» mostra com a MESMA ficha: um com
+# o `Icon=` por caminho de arquivo, onde o desenho do pack não vale, e um com
+# nome de ícone, onde vale. Revisão da P60: a grade de jogos não mandava a trava
+# do pack, e a ficha do primeiro oferecia o Dracula que o POST recusa com 409.
+jogo() {   # jogo <arquivo> <Name> <Icon>
+  printf '[Desktop Entry]\nName=%s\nExec=true\nIcon=%s\nTerminal=false\nType=Application\nCategories=Game;\n' \
+    "$2" "$3" > "$CASA/.local/share/applications/$1.desktop"
+}
+jogo jogo-de-brinquedo "Jogo de Brinquedo" "$CASA/jogo.svg"
+jogo jogo-por-nome "Jogo por Nome" jogo-por-nome
 
 env -u MEOW_PACK_DIR -u MEOW_PALETA -u MEOW_PALETA_DA_PONTE -u MEOW_PACKS \
     -u NOME_TEMA_ICONES -u PACK -u FLAVOR -u ICONES_DRACULA -u MEOW_SECO \
@@ -280,6 +292,20 @@ apps = {a["id"]: a for a in servidor.Manipulador._dados_apps(m, {}).get("apps", 
 checa((apps.get("com.system76.CosmicFiles") or {}).get("trava_pack")
       and (apps.get("google-chrome") or {}).get("trava_pack") is None,
       "a grade diz a trava do pack no «Arquivos», e não no Chrome")
+# A GRADE DE JOGOS ABRE A MESMA FICHA, E A TELA E A RECUSA DIZEM A MESMA FRASE.
+# O campo tem de vir nos dois jogos: ausente, a ficha lê "sem trava" e oferece
+# o pack. Com a camada ligada, para o POST chegar à trava do app.
+jogos = {a["id"]: a for a in servidor.Manipulador._dados_jogos(m, {}).get("apps", [])}
+por_caminho = jogos.get("jogo-de-brinquedo") or {}
+codigo, dados = escolher("jogo-de-brinquedo", "biblioteca/alien.svg")
+checa(por_caminho.get("trava_pack") and codigo == 409
+      and dados.get("erro") == por_caminho["trava_pack"],
+      "a grade de jogos diz a trava do pack no jogo de ícone por caminho, com a "
+      "frase do 409 que o «Usar este ícone» ouviria (%s)" % codigo,
+      repr((por_caminho.get("trava_pack"), dados)))
+por_nome = jogos.get("jogo-por-nome") or {}
+checa("trava_pack" in por_nome and por_nome["trava_pack"] is None,
+      "e manda o campo vazio no jogo de ícone por nome, onde o pack vale", repr(por_nome))
 
 conf_com(ICONES_DRACULA="")
 r = glifos("alien")

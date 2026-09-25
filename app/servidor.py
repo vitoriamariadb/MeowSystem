@@ -8401,6 +8401,13 @@ class Manipulador(BaseHTTPRequestHandler):
         # recusa não podem discordar. Medido pelo `tests/app-completo.py` no
         # «Elden Ring Tracker».
         travas = self._travas_do_arcticons()
+        # E A TRAVA DO PACK TAMBÉM — 25/09/2026, revisão da P60. É o mesmo
+        # defeito da P46 com o campo novo: a ficha esconde o grupo do pack
+        # quando lê `trava_pack`, e esta grade só mandava a `trava`. Um jogo
+        # com o `Icon=` por caminho recebia o Dracula na ficha, e o «Usar este
+        # ícone» ouvia 409 (medido pela revisão numa casa de brinquedo). É a
+        # mesma conta do `_dados_apps` e do POST, e os donos são lidos uma vez.
+        donos_scalable = self._donos_do_scalable()
         icones = []
         for d in self._desktops():
             if d["oculto"] or not self._e_jogo(d):
@@ -8415,6 +8422,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "mapa": arcticons.get(d["id"]) or arcticons.get(d["icone"]) or None,
                 "traco": convertidos.get(d["id"]) or convertidos.get(d["icone"]) or None,
                 "trava": self._motivo_da_trava(travas, [d["id"], d["icone"]], d["nome"]),
+                "trava_pack": self._trava_do_pack(d, d["nome"], donos_scalable),
             })
         return {"jogos": fora, "total": len(fora), "mapa": MAPA_JOGOS,
                 "apps": icones, "total_apps": len(icones)}
