@@ -46,7 +46,9 @@ TK="$COSMIC/com.system76.CosmicTk/v1"
 # painel e o dock evoluíram separados e cada um pede o seu.
 BOTOES=(com.system76.CosmicPanelAppButton com.system76.CosmicAppLibrary)
 
-FLAVOR="${FLAVOR:-mocha}"
+# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+FLAVOR="$(meow_flavor)"
 LOGO="${LOGO:-$FLAVOR}"
 ICONES_BASE="${ICONES_BASE:-Papirus-Dark}"
 # A base que o PACK traz mora aqui, ao lado do tema que a herda (P41, 24/09/2026).

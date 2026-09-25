@@ -148,7 +148,9 @@ TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 ALVO="$TEMA_DIR/scalable/apps"
 BASE="${ICONES_BASE:-Papirus-Dark}"
 BASE_DIR="/usr/share/icons/$BASE"
-FLAVOR="${FLAVOR:-mocha}"
+# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+FLAVOR="$(meow_flavor)"
 ACCENT="${ACCENT:-mauve}"
 # OS DESENHOS AUTORAIS SÃO DO PACK, E NÃO DO MOTOR — 22/09/2026
 #   Era `$RAIZ/assets/icones/autorais`. Aquele diretório guardava 55 arquivos de

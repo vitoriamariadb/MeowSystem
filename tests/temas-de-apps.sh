@@ -1534,6 +1534,72 @@ saida="$(mod10 obsidian reverter noite dracula)"; rc=$?
   && ok "P55: a origem do Obsidian passa pela regra da P41 antes da rede, e o desfazer leva a pasta do que desceu, com a sobra" \
   || falha "P55: a origem e o que desceu:$faltam"
 
+# --- j) O VS CODE CONTA SÓ O PACK QUE PASSA NO VALIDAR — 25/09/2026, P61 ----
+#   A régua do «tema de ícones de outro pack» do VS Code contava toda pasta com
+#   um pack.json, sem o `validar` — a régua que a revisão da P55 tirou do snippet
+#   do Obsidian (a seção g). Medido com uma pasta `torta`, cujo pack.json não
+#   passa no `validar` (falta o `formato`) e declara o tema de ícones
+#   `icones-dela`, e o settings.json dela nesse tema: o `aplicar` com o `noite`
+#   no ar (que não traz ícones) o trocava pelo `vs-seti` de fábrica. A régua dos
+#   dois é agora uma só, a lista de packs válidos do lib/comum.sh: nenhum dos
+#   dois manifestos chama o `validar` do pack.py por conta própria.
+mkdir -p "$PACKS10/torta"
+printf '{"apps": {"vscode-icones": {"esquema": "icones-dela", "origem": {"extensao": "dela.icones"}}}}\n' \
+  > "$PACKS10/torta/pack.json"
+semear10
+printf '{\n    // o editor dela\n    "editor.fontSize": 14,\n    "workbench.iconTheme": "icones-dela"\n}\n' > "$VSC10"
+faltam=""
+env -i PATH="$PATH" HOME="$CASA10" XDG_DATA_HOME="$CASA10/.local/share" MEOW_PACKS="$PACKS10" \
+  python3 "$RAIZ/scripts/pack.py" validar torta >/dev/null 2>&1 && faltam+=" a torta de brinquedo passa no validar;"
+saida="$(mod10 vscode aplicar noite dracula)"; rc=$?
+[ "$rc" = 1 ] && grep -q '"workbench.colorTheme": "Noite Escura"' "$VSC10" \
+  && grep -q '"workbench.iconTheme": "icones-dela"' "$VSC10" && grep -q '// o editor dela' "$VSC10" \
+  || faltam+=" aplicar (rc=$rc, $(grep -o '"workbench.iconTheme": "[^"]*"' "$VSC10"): $saida);"
+saida="$(mod10 vscode conferir noite dracula)"; rc=$?
+[ "$rc" = 0 ] || faltam+=" conferir depois do aplicar (rc=$rc: $saida);"
+for mod in obsidian vscode; do
+  arq="$ACERVO/$mod/manifesto.sh"
+  grep -n 'pack\.validar(' "$arq" | grep -qv '^[0-9]*: *#' && faltam+=" o $mod chama o validar do pack.py por conta própria;"
+  grep -n 'meow_packs_validos' "$arq" | grep -qv '^[0-9]*: *#' || faltam+=" o $mod não pergunta a lista de packs válidos;"
+done
+[ -z "$faltam" ] \
+  && ok "P61: o tema de ícones que só um pack inválido declara não é de pack nenhum, e a régua dos packs válidos é uma só" \
+  || falha "P61: o VS Code e o pack inválido:$faltam"
+
+# --- k) O OBSIDIAN NÃO DEIXA PASTA VAZIA NEM SOBRA — 25/09/2026, P61 --------
+#   Sem rede, o `aplicar` criava a pasta do que desce (o `mkdir` vem antes da
+#   descida, e tem de vir: o palco mora nela) e a deixava vazia; o desfazer,
+#   sem nada nosso para tirar, dizia «já estava sem o Dracula» e a deixava. E a
+#   sobra de uma descida interrompida (`.meow-descendo.*`) sobrevivia a um
+#   `aplicar` que descia de novo. Agora a descida que não entra leva a pasta,
+#   se ela ficou vazia; o desfazer leva a pasta vazia que uma versão de antes
+#   deixou; e toda descida leva as sobras das anteriores.
+faltam=""
+semear10
+saida="$(mod10 obsidian aplicar dracula dracula)"; rc=$?
+[ "$rc" = 3 ] && [ ! -e "$BAIXADOS10" ] \
+  || faltam+=" o aplicar sem rede deixou [$(ls -A "$BAIXADOS10" 2>/dev/null | tr '\n' ' ')] (rc=$rc: $saida);"
+mkdir -p "$BAIXADOS10"
+saida="$(mod10 obsidian reverter dracula dracula)"; rc=$?
+[ "$rc" = 0 ] && [ ! -e "$BAIXADOS10" ] && printf '%s' "$saida" | grep -q 'obsidian: já estava sem o Dracula' \
+  || faltam+=" o desfazer deixou a pasta vazia (rc=$rc: $saida);"
+saida="$(mod10 obsidian reverter dracula dracula)"; rc=$?
+[ "$rc" = 0 ] || faltam+=" o segundo desfazer (rc=$rc: $saida);"
+mkdir -p "$BAIXADOS10/.meow-descendo.Velho1/x" && printf 'meio pacote' > "$BAIXADOS10/.meow-descendo.Velho1/pacote"
+rm -f "$REDE10/.chamadas"
+saida="$(mod10 obsidian aplicar noite dracula)"; rc=$?
+[ "$rc" = 1 ] && [ "$(chamadas10)" = 1 ] && [ "$(ls -A "$BAIXADOS10" 2>/dev/null)" = "$SHA_OBS10" ] \
+  && [[ "$(aparencia10)" == "Noite Pinada |"* ]] \
+  || faltam+=" o aplicar que desce deixou [$(ls -A "$BAIXADOS10" 2>/dev/null | tr '\n' ' ')] (rc=$rc: $saida);"
+semear10
+mkdir -p "$BAIXADOS10/.meow-descendo.Velho2"
+saida="$(mod10 obsidian aplicar dracula dracula)"; rc=$?
+[ "$rc" = 3 ] && [ ! -e "$BAIXADOS10" ] && [ -z "$(ls -A "$T10/tmp")" ] \
+  || faltam+=" o aplicar sem rede com uma sobra deixou [$(ls -A "$BAIXADOS10" 2>/dev/null | tr '\n' ' ')] (rc=$rc: $saida);"
+[ -z "$faltam" ] \
+  && ok "P61: o Obsidian sem rede não deixa pasta vazia, o desfazer leva a de antes, e a descida leva as sobras" \
+  || falha "P61: a pasta do que desce:$faltam"
+
 # ---------------------------------------------------------------------------
 printf '\n'
 if [ "$falhas" -gt 0 ]; then

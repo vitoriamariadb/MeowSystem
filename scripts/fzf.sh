@@ -82,7 +82,9 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 . "$MEOW_RAIZ/lib/comum.sh"
 
 FZF_ALVO="${FZF_ALVO:-${XDG_CONFIG_HOME:-$HOME/.config}/meowsystem/fzf.sh}"
-_FLAVOR="${FLAVOR:-mocha}"
+# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+_FLAVOR="$(meow_flavor)"
 _ACCENT="${ACCENT:-mauve}"
 
 ACAO="${1:-aplicar}"

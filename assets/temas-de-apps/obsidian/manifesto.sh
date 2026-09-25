@@ -278,11 +278,18 @@ _meow_obsidian_tema_dir()   { printf '%s/.obsidian/themes/%s' "$MEOW_OBSIDIAN_VA
 #   UMA LINHA POR CAMPO é o que a resposta daqui é, e o pack de terceiro escreve
 #   o que quiser: um campo da origem com quebra de linha é recusado, e os dois
 #   nomes de tela saem numa linha só — nenhum deles inventa um campo a mais.
+#
+# OS PACKS QUE PASSAM NO `validar` VÊM DO lib/comum.sh — 25/09/2026, P61
+#   A conta deles morava aqui dentro, e o VS Code, que pergunta a mesma coisa do
+#   tema de ícones, contava toda pasta com um pack.json. Ela foi para o
+#   `meow_packs_validos`, sem mudar uma linha, e os dois módulos a perguntam; a
+#   régua (a expressão) continua sendo montada aqui, e só aqui.
 _OBS_PACK=""; _OBS_PACK_NOME=""; _OBS_EXIBE=""; _OBS_OUTROS=""; _OBS_PACKS=""
 _OBS_URL=""; _OBS_SHA=""; _OBS_PASTA=""; _OBS_ORIGEM_RECUSA=""
 _meow_obsidian_packs() {
   local saida
-  saida="$(PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
+  saida="$(PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" MEOW_PACKS_VALIDOS="$(meow_packs_validos)" \
+             python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
 import json, os, re, sys
 sys.path.insert(0, sys.argv[1])
 import pack
@@ -298,23 +305,9 @@ try:
 except (OSError, ValueError, TypeError, AttributeError):
     pass
 # Só o pack que passa no `validar` conta: uma pasta com um pack.json qualquer
-# não é pack, e o id dela não tem por que desmarcar snippet de ninguém.
-vistos, validos = set(), set()
-for base in pack.raizes():
-    try:
-        nomes_da_raiz = os.listdir(base)
-    except OSError:
-        continue
-    for n in nomes_da_raiz:
-        if n in vistos or not pack.RE_ID.fullmatch(n) \
-           or not os.path.isfile(os.path.join(base, n, "pack.json")):
-            continue
-        vistos.add(n)
-        try:
-            pack.validar(n, silencioso=True)
-        except Exception:
-            continue
-        validos.add(n)
+# não é pack, e o id dela não tem por que desmarcar snippet de ninguém. A lista
+# é a do `meow_packs_validos` (lib/comum.sh), a mesma que o VS Code pergunta.
+validos = set(os.environ.get("MEOW_PACKS_VALIDOS", "").split())
 
 def regua(ids):
     # O id como PALAVRA: nem letra nem dígito colado antes ou depois, e o hífen
@@ -425,13 +418,25 @@ _meow_obsidian_fonte_pronta() {
 # fica para o próximo ciclo; sha256 que não bate é ERRO, pelo motivo do
 # `construir_icones.sh`: é o arquivo mudando debaixo do pino.
 # 1 = desceu · 2 = erro · 3 = sem rede ou sem ferramenta (com o motivo guardado)
+#
+# A SOBRA DAS DESCIDAS DE ANTES SAI ANTES DESTA — 25/09/2026, P61. O palco de uma
+#   descida cortada no meio (`.meow-descendo.*`) só saía pelo desfazer (revisão
+#   da P55), e sobrevivia a um `aplicar` que descia de novo: medido com um
+#   `.meow-descendo.Velho1` na pasta, o pack de brinquedo `noite` desceu, vestiu
+#   o cofre e o deixou lá. Quem desce agora é a única descida — o `aplicar` roda
+#   sob a trava do MeowSystem —, e todo palco que já está na pasta é de uma que
+#   não terminou. A pasta que a descida deixar vazia, quem leva é o `aplicar`,
+#   logo depois dela.
 _meow_obsidian_baixar() {
-  local palco src nome obtido f
+  local palco src nome obtido f sobra
   for f in curl tar sha256sum; do
     meow_tem "$f" || { meow_app_sem "obsidian: falta '$f' para baixar o tema '$MEOW_OBSIDIAN_TEMA' do pack $_OBS_PACK_NOME"; return; }
   done
   meow_destino_permitido "$MEOW_OBSIDIAN_FONTE" || return "$MEOW_ERRO"
   mkdir -p "$MEOW_OBSIDIAN_BAIXADOS" || return "$MEOW_ERRO"
+  for sobra in "$MEOW_OBSIDIAN_BAIXADOS"/.meow-descendo.*; do
+    [ -d "$sobra" ] && rm -rf -- "$sobra"
+  done
   palco="$(mktemp -d -p "$MEOW_OBSIDIAN_BAIXADOS" ".meow-descendo.XXXXXX")" || return "$MEOW_ERRO"
   meow_info "obsidian: baixando o tema '$MEOW_OBSIDIAN_TEMA' do pack $_OBS_PACK_NOME…"
   # `--proto =https` nos dois sentidos, como no `construir_icones.sh`: a origem é
@@ -744,8 +749,14 @@ meow_app_aplicar() {
     if meow_seco; then
       meow_muda "obsidian: baixaria o tema '$MEOW_OBSIDIAN_TEMA' do pack $_OBS_PACK_NOME ($_OBS_URL)"
     else
-      _meow_obsidian_baixar
-      case $? in
+      _meow_obsidian_baixar; rc=$?
+      # A DESCIDA QUE NÃO ENTROU NÃO DEIXA A PASTA — 25/09/2026, P61. O palco
+      # mora dentro dela (o `mv` final é no mesmo disco), então o `mkdir` vem
+      # antes da rede; sem rede, a pasta ficava vazia e o desfazer, sem nada
+      # nosso para tirar, a deixava. Vazia, ela sai; com o que já desceu de
+      # outra vez, o `rmdir` a deixa.
+      [ "$rc" = 1 ] || rmdir -- "$MEOW_OBSIDIAN_BAIXADOS" 2>/dev/null
+      case $rc in
         1) ;;
         3) meow_app_pendente obsidian; return ;;
         *) return "$MEOW_ERRO" ;;
@@ -1033,6 +1044,11 @@ meow_app_reverter() {
   [ "${#sobras[@]}" -gt 0 ] && algum=1
 
   if [ "$algum" = "0" ]; then
+    # A PASTA VAZIA DO QUE DESCE TAMBÉM SAI AQUI — 25/09/2026, P61. Até a P61 o
+    # `aplicar` sem rede a deixava vazia, e este caminho, que é o de nada
+    # nosso para tirar, a deixava também. Pasta vazia não é tema: a frase
+    # continua dizendo que ele não estava, e a saída continua 0.
+    meow_seco || rmdir -- "$MEOW_OBSIDIAN_BAIXADOS" 2>/dev/null
     meow_ok "obsidian: já estava sem o $_OBS_PACK_NOME"
     return "$MEOW_OK"
   fi

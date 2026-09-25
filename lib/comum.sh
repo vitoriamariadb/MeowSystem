@@ -685,6 +685,93 @@ meow_pack_dir() {
   return 0
 }
 
+# O FLAVOR QUE VALE: o do meow.conf, e, vazio, o padrão do pack no ar.
+#
+# ERA UMA LINHA EM CADA SCRIPT, E TODAS DIZIAM `mocha` — 25/09/2026, sprint P61
+#   Oito scripts tinham o seu `${FLAVOR:-mocha}` (`fzf`, `completar_icones`,
+#   `greeter`, `midia`, `construir_icones`, `logo`, `icones_apps_arcticons` e
+#   `terminal`), e o `mocha` é o padrão de UM pack. A página já caía no flavor
+#   padrão do pack no ar (P56, o `flavorEmVigor` do app/pagina/app.js), e o
+#   `carregar_conf` do bin/meow perguntava ao pack desde a revisão da P56 — mas
+#   quem roda sem o bin/meow, como as unidades do systemd, que leem o meow.conf
+#   direto, ficava com o `mocha`. Medido numa casa de brinquedo, com o Dracula no
+#   ar e `FLAVOR=""`: o `fzf.sh conferir` dizia que a paleta do Dracula não tem
+#   o "mocha" e deixava as cores como estavam; o `terminal.sh` e o `midia.sh`,
+#   o mesmo, cada um com a sua frase.
+#
+# A REGRA É A DO docs/PACKS.md ("Quem vence"): o FLAVOR do conf vence; vazio,
+#   entra o `paleta.flavor_padrao` do pack no ar. Quem diz qual é o pack no ar, e
+#   o padrão dele, é a `adocao` do scripts/pack.py — a pergunta do
+#   `meow_pack_dir`, logo acima, e do `conf_exportada` do painel. O fork só
+#   acontece com o FLAVOR vazio.
+#
+# SEM RESPOSTA, AVISO E VAZIO (1), e não um nome de reserva. O `mocha` que o
+#   `carregar_conf` guardava para esse caso era o padrão de um pack dito sem
+#   perguntar a ninguém; sem o pack.py não há pack no ar que se saiba, e quem
+#   chama diz, com a frase dele, que o flavor não resolve.
+meow_flavor() {
+  local padrao
+  if [ -n "${FLAVOR:-}" ]; then
+    printf '%s' "$FLAVOR"
+    return 0
+  fi
+  padrao="$(python3 "$MEOW_RAIZ/scripts/pack.py" adocao "${PACK:-}" "" 2>/dev/null \
+              | sed -n 's/^flavor_padrao=//p')"
+  if [ -z "$padrao" ]; then
+    meow_aviso "scripts/pack.py não disse o flavor padrão do pack no ar (PACK='${PACK:-}') — o FLAVOR fica vazio"
+    return 1
+  fi
+  printf '%s' "$padrao"
+}
+
+# OS PACKS DO DISCO QUE PASSAM NO `validar`, um id por linha, em ordem.
+#
+# UMA RÉGUA SÓ PARA "ESTE NOME É DE UM PACK" — 25/09/2026, sprint P61
+#   O Obsidian e o VS Code perguntam a mesma coisa sobre o que está no
+#   aplicativo — o snippet ligado, o tema de ícones — e contavam os packs cada um
+#   à sua maneira. A revisão da P55 pôs o Obsidian na regra certa: uma pasta com
+#   um pack.json qualquer não é pack, e só conta o que passa no `validar`. O VS
+#   Code ficou contando toda pasta com um pack.json. Medido com uma pasta `torta`
+#   que não passa no `validar` (falta o `formato`) e declara o tema de ícones
+#   `icones-dela`: com o settings.json dela nesse tema e um pack sem ícones no
+#   ar, o `aplicar` o trocava pelo de fábrica. A régua saiu do Obsidian para
+#   cá, sem mudar uma conta, e os dois a perguntam.
+#
+# A CONTA É A DO `achar` (scripts/pack.py): as raízes na precedência, um id uma
+#   vez só — o de cima esconde o de baixo, porque é ele que o id encontra —, e o
+#   nome da pasta passando pelo RE_ID antes de virar caminho. O `validar` é o do
+#   motor, calado, e QUALQUER exceção dele reprova, pelo motivo do `adocao`: um
+#   pack de terceiro quebrado estoura antes de virar Recusa.
+#
+# Sem resposta do pack.py, a lista sai vazia — e vazia quer dizer "pack
+#   nenhum", que não desmarca nem troca nada em aplicativo nenhum.
+meow_packs_validos() {
+  python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
+import os, sys
+sys.path.insert(0, sys.argv[1])
+import pack
+
+vistos, validos = set(), set()
+for base in pack.raizes():
+    try:
+        nomes_da_raiz = os.listdir(base)
+    except OSError:
+        continue
+    for n in nomes_da_raiz:
+        if n in vistos or not pack.RE_ID.fullmatch(n) \
+           or not os.path.isfile(os.path.join(base, n, "pack.json")):
+            continue
+        vistos.add(n)
+        try:
+            pack.validar(n, silencioso=True)
+        except Exception:
+            continue
+        validos.add(n)
+for n in sorted(validos):
+    print(n)
+PYFIM
+}
+
 # Um caminho de dentro do pack ativo, com queda para o do núcleo.
 #   meow_pack_arquivo icones/apps.map  assets/icones/apps-dracula.map
 # devolve o primeiro que existir, nessa ordem. É o que permite migrar um acervo
