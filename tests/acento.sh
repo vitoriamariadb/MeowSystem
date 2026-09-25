@@ -250,6 +250,14 @@ saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/catppuccin" MEOW_PALETA="$RAIZ/packs
   || falha "a escolha da base do mocha não passou pela guarda (rc=$r)" "$saida"
 
 # --- 7. o flavor sem fotografia não aplica, e vira pendência ---------------
+#   DESDE A P59 (25/09/2026) O FRAPPE SE DERIVA: sai do mocha-pink, trocado slot
+#   a slot (scripts/derivar_flavor.py, e o tests/variante.sh prova). O que não
+#   aplica agora é o flavor sem base NENHUMA do mesmo lado — e é esse o caso
+#   que esta seção continua cobrando: um Catppuccin de brinquedo sem as duas
+#   fotos escuras. E o pack vai para o `$MEOW_PACKS`, e não fica no clone: um
+#   frappe que se derivasse nasceria dentro do `packs/catppuccin` daqui.
+cp -a "$RAIZ/packs/catppuccin" "$PACKS/" || exit 2
+rm -rf "$PACKS"/catppuccin/temas/capturados/mocha-*
 conf frappe pink catppuccin
 saida_t="$(etapa tema)"; rc_t="$(rc)"
 if [ "$rc_t" = "3" ] && grep -q "^tema-sem-captura	.*não há tema capturado do frappe" "$ESTADO/pendencias.tsv" 2>/dev/null; then

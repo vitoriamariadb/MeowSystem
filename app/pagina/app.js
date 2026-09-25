@@ -135,6 +135,9 @@ function publicarMedidas() {
    * banda em green»: a mesma cor com dois nomes na mesma tela. A legenda
    * pergunta aqui, pela mesma função e pelo mesmo flavor dos botões. */
   window.MEOW_NOME_DA_COR = (slot) => nomeDaCor(slot, flavorEmVigor());
+  /* E se um par aplica — P59, para a prévia de «Cor e tela» não prometer a
+   * cor de uma variante sem tema. Ver `parAplica`. */
+  window.MEOW_PAR_APLICA = parAplica;
 }
 let GRUPOS = [];             // [{nome, chaves:[...]}] + as abas de ação e folhas
 let ABA = null;              // qual grupo está aberto
@@ -2390,9 +2393,47 @@ function combinacaoTemCaptura() {
   const a = item ? valorEmVigor(item) : "";
   if (!f || !a) return null;
   const doFlavor = aplicam[f] || null;
-  const existe = capturas.includes(`${f}-${a}`)
-    || !!(doFlavor && (doFlavor.acentos || []).includes(a));
+  const existe = parAplica(f, a);
   return { par: `${f}-${a}`, existe, capturas, motivo: doFlavor ? doFlavor.motivo : "" };
+}
+
+/* A MESMA CONTA, PARA A PRÉVIA — 25/09/2026, P59. O desenho de «Cor e tela»
+ * precisa saber se um par aplica para não prometer a cor de uma variante sem
+ * tema; ele a recebe por `window.MEOW_PAR_APLICA` (ver `publicarMedidas`), e a
+ * conta é esta, a do cartão. `null` quando a página não sabe. */
+function parAplica(f, a) {
+  const capturas = (ESQUEMA.capturas || []).map((c) => String(c).toLowerCase());
+  const aplicam = ESQUEMA.acentos_que_aplicam || {};
+  if (!capturas.length && !Object.keys(aplicam).length) return null;
+  const doFlavor = aplicam[f] || null;
+  return capturas.includes(`${f}-${a}`)
+    || !!(doFlavor && (doFlavor.acentos || []).includes(a));
+}
+
+/* O FLAVOR CLARO NO MODO ESCURO — 25/09/2026, sprint P59.
+ *   Com FLAVOR=alucard e «Claro ou escuro» em escuro, a prévia desenhava uma
+ * tela clara, a página se vestia de claro e o desktop ficava escuro. O lado da
+ * tela é o do MODO (quem escreve o `is_dark` é a `etapa_modo`, e só por ele), e
+ * a captura de um flavor claro leva no escuro o do pack: a variante clara é o
+ * lado claro, e aparece no claro — e de dia, no automático. Escolhê-la com o
+ * modo escuro não é erro, mas não muda a tela agora, e o cartão diz isso em vez
+ * de deixá-la procurar a mudança. O par vem do servidor (`pack.lados`, o mesmo
+ * `_flavor_no_modo` que veste a página). */
+function avisoDeLado() {
+  const pack = ESQUEMA.pack || {};
+  const f = flavorEmVigor();
+  const lados = (pack.lados || {})[f];
+  const modoItem = ESQUEMA.chaves.find((k) => k.chave === "MODO");
+  const modo = (modoItem && (valorEmVigor(modoItem) || modoItem.efetivo)) || "";
+  if (!lados || modo !== "escuro" || !lados.escuro || lados.escuro === f) return null;
+  const nome = (id) => ((pack.flavors || []).find((x) => x.id === id) || {}).nome || id;
+  return elemento("p", { class: "frase dominada" }, [
+    elemento("b", { texto: `${nome(f)} é o lado claro. ` }),
+    elemento("span", {
+      texto: `Com «Claro ou escuro» em escuro, a tela veste o ${nome(lados.escuro)}; `
+        + `o ${nome(f)} aparece no claro, e de dia no automático.`,
+    }),
+  ]);
 }
 
 function avisoDeCombinacao() {
@@ -5005,6 +5046,10 @@ function montarCartao(item) {
   if (item.chave === "FLAVOR" || item.chave === "ACCENT") {
     const aviso = avisoDeCombinacao();
     if (aviso) cartao.append(aviso);
+  }
+  if (item.chave === "FLAVOR") {
+    const lado = avisoDeLado();
+    if (lado) cartao.append(lado);
   }
   /* O QUE ESTÁ VALENDO, quando não é o arquivo que manda. O cartão mostrava
    * 3500 (o padrão de fábrica) com a máquina em 4700 — o número do applet.

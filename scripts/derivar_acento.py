@@ -585,7 +585,7 @@ def _separar(par: str):
     return flavor, acento
 
 
-def plano(par: str, paleta: dict | None = None) -> dict:
+def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
     """O que se sabe de `<flavor>-<acento>` sem escrever nada.
 
     estado: `fotografia` (captura tirada da GUI: nada a fazer), `derivavel`
@@ -636,6 +636,17 @@ def plano(par: str, paleta: dict | None = None) -> dict:
     if recusas:
         saida["motivo"] = ("nenhuma captura do " + flavor + " se reproduz para servir de base — "
                            + " | ".join(recusas))
+    elif _flavor:
+        # O FLAVOR SEM FOTOGRAFIA NENHUMA SE DERIVA DE OUTRO DO MESMO LADO —
+        # 25/09/2026, sprint P59. Era aqui que o alucard, o frappe e o
+        # macchiato paravam: «não há tema capturado». Quem sabe fazer é o
+        # irmão `derivar_flavor.py` (o cabeçalho dele diz o que se mediu); a
+        # fotografia do próprio flavor, quando existe, continua sendo a base e
+        # nunca chega a este ramo. O `_flavor=False` é dele: o par do outro
+        # lado é pedido a este `plano` sem voltar para lá, e um pack cujos dois
+        # lados não têm foto não vira laço.
+        import derivar_flavor
+        return derivar_flavor.plano(par, paleta)
     else:
         saida["motivo"] = (f"não há tema capturado do {flavor} para derivar — "
                            f"sem ele, o vidro, a neutra e o fundo do COSMIC não têm de onde vir")
@@ -646,13 +657,19 @@ def _conteudo(p: dict) -> dict:
     """{caminho relativo: bytes} da captura derivada inteira, sem o manifesto."""
     base = Path(p["dir_base"])
     arquivos = {}
-    for arq in sorted(base.rglob("*")):
-        if not arq.is_file():
-            continue
-        rel = arq.relative_to(base).as_posix()
-        if rel in ("manifesto.sha256", "captura.txt", ".gitignore"):
-            continue
-        arquivos[rel] = arq.read_bytes()
+    # A derivada de FLAVOR (P59) já chega inteira: ela junta duas capturas — a
+    # base do mesmo lado e o par do pack no outro —, e copiar a base por baixo
+    # deixaria sobrar arquivo do lado que foi trocado.
+    if "conteudo" in p:
+        arquivos.update(p["conteudo"])
+    else:
+        for arq in sorted(base.rglob("*")):
+            if not arq.is_file():
+                continue
+            rel = arq.relative_to(base).as_posix()
+            if rel in ("manifesto.sha256", "captura.txt", ".gitignore"):
+                continue
+            arquivos[rel] = arq.read_bytes()
     for rel, txt in p["arquivos"].items():
         arquivos[rel] = txt.encode("utf-8")
     # captura.txt SEM hora de agora: a derivação é função da base, e o arquivo
@@ -666,6 +683,8 @@ def _conteudo(p: dict) -> dict:
               f"origem: {MARCA}{p['base']} (scripts/derivar_acento.py)",
               f"arquivos: {len([r for r in arquivos if r.startswith('com.system76.')])}",
               f"acento: {p['acento']} na árvore {p['arvore']}"]
+    if p.get("como"):
+        cabeca.append(f"flavor: {p['como']}")
     arquivos["captura.txt"] = ("\n".join(cabeca) + "\n").encode("utf-8")
     arquivos[".gitignore"] = IGNORAR.encode("utf-8")
     return arquivos
@@ -700,6 +719,8 @@ def derivar(par: str, conferir: bool = False, paleta: dict | None = None) -> tup
         # Corrida com um `meow tema capturar`: a fotografia vence, sempre.
         return 0, f"{par}: captura tirada da GUI, nada a derivar"
     if conferir:
+        if p.get("como"):
+            return 1, f"{par}: derivaria de {p['base']} ({p['como']})"
         return 1, f"{par}: derivaria de {p['base']} ({len(p['arquivos'])} arquivo(s) do acento)"
     # Escrita numa pasta irmã e troca por rename: quem ler no meio (o doctor,
     # o painel) vê a captura velha ou a nova, nunca uma pela metade.
@@ -718,6 +739,8 @@ def derivar(par: str, conferir: bool = False, paleta: dict | None = None) -> tup
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
         shutil.rmtree(velha, ignore_errors=True)
+    if p.get("como"):
+        return 1, f"{par}: derivada de {p['base']} — {p['como']}"
     return 1, (f"{par}: derivada de {p['base']} — {len(p['arquivos'])} arquivo(s) "
                f"do acento, o resto é o da base")
 
