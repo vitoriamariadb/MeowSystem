@@ -65,13 +65,17 @@ QUAIS CAMPOS CARREGAM O VIDRO — MEDIDO NO ORÁCULO, NÃO SÓ LIDO
     O `primary` usa o `container_alpha` mesmo com as caixas desligadas; os
     outros, o `actual_alpha`. Está no código, e a varredura confirmou.
 
-A MATEMÁTICA É A DO `derivar_acento.py`, E ELE NÃO É TOCADO
-    A escada Oklch, o `over()`, o `into_format` para u8 e a troca no lugar,
-    todos em f32, já estão portados e conferidos lá (P48). Aqui se usam os
-    mesmos, pelo nome. O que é só do vidro fica aqui: a escada que carrega
-    alpha (`_escada`) e o `get_text()` com o alpha (`_texto`) — o de lá recebe
-    sempre 1,0 e faz a conta do desvio em f64; com o vidro ela tem de ser em
-    f32, senão um `.5` no fim cai para o outro lado.
+A MATEMÁTICA É A DO `derivar_acento.py`
+    A escada Oklch, o `over()`, o `get_text()`, o `into_format` para u8 e a
+    troca no lugar, todos em f32, já estão portados e conferidos lá (P48).
+    Aqui se usam os mesmos, pelo nome. O que é só do vidro fica aqui: a escada
+    que carrega alpha (`_escada`).
+    (Revisão da P58, 25/09/2026: o `get_text()` com alpha morava aqui numa
+    cópia, `_texto`, porque o `cor_de_texto` de lá fazia a conta do desvio em
+    f64 — inofensivo lá, que só o chama com 1,0; com o vidro um `.5` no fim
+    cai para o outro lado. A conta de lá passou a ser f32, e a cópia saiu. A
+    varredura larga deste arquivo, antes e depois, deu as mesmas 1180
+    respostas.)
     Conferido contra o oráculo em 25/09/2026: as quatro capturas de pack, as
     duas árvores, os 14 níveis de três mapas, com as caixas como estão e todas
     desligadas — 672 receitas, cada campo da lista acima igual ao que o
@@ -118,6 +122,7 @@ A GUARDA É A DA P48, CAMPO A CAMPO
 from __future__ import annotations
 
 import argparse
+import functools
 import os
 import re
 import shutil
@@ -151,13 +156,21 @@ def _chave_do_nivel(nivel: str) -> str:
 
 
 def alfa_do_nivel(mapa: str, nivel: str) -> float:
-    """O `AlphaMap::blurred_alpha(frosted)`, em f32."""
+    """O `AlphaMap::blurred_alpha(frosted)`, em f32.
+
+    O motivo de não derivar vai para a tela do `aplicar_tema.sh`, e um nível
+    que não é número punha lá o «could not convert string to float: 'abc'» do
+    Python (revisão da P58, 25/09/2026). A frase é daqui."""
     nome = v1.achatar(v1.parse(nivel))["."][1]
     campos = v1.achatar(v1.parse(mapa))
     chave = _chave_do_nivel(nome)
     if chave not in campos:
         raise ValueError(f"o alpha_map não tem o nível {nome}")
-    return f32(float(campos[chave][1]))
+    try:
+        return f32(float(campos[chave][1]))
+    except (TypeError, ValueError):
+        raise ValueError(f"o alpha_map dá ao nível {nome} o valor {campos[chave][1]}, "
+                         "que não é número") from None
 
 
 def _cor(receita: dict, chave: str, obrigatoria: bool = False):
@@ -173,32 +186,31 @@ def _cor(receita: dict, chave: str, obrigatoria: bool = False):
     return ac.cor_exata(txt)
 
 
+# A ESCADA É O GROSSO DO CUSTO, E ELA SE REPETE — 25/09/2026, revisão da P58
+#   A revisão mediu cada `aplicar_tema.sh` 0,15 a 0,2 s mais lento com a P58.
+#   Fora os ~45 ms de partida do Python (o que custa a `original`, que para no
+#   `bg_color`), o tempo é das escadas Oklch: o `pintar_vidro` roda duas vezes
+#   por árvore (o vidro da captura, para a guarda, e o do destino), cada
+#   passada sobe cinco escadas, e as cinco são as mesmas nas duas — a escada é
+#   do RGB, o alpha só entra depois. Guardada pela cor, a segunda passada não
+#   refaz nenhuma: medido, mediana de nove, o `derivar_vidro.py` foi de 170 a
+#   200 ms por captura de pack para 115 a 130 ms, com as mesmas 1180 respostas
+#   na varredura. A escada guardada é tupla: o `ctl.reverse()` do claro vira a
+#   lista que o `_escada` monta a cada chamada, nunca a guardada.
+@functools.lru_cache(maxsize=None)
+def _degraus(rgb: tuple, n: int) -> tuple:
+    return tuple(tuple(c[:3]) for c in ac.degraus(rgb, n))
+
+
 def _escada(cor, n: int) -> list:
     """`steps()` de uma cor COM alpha. A conta é no Oklch, que não olha o
     alpha, e o `oklch_to_srgba_nearest_chroma` o devolve intacto: a escada do
     fundo translúcido é a do fundo, degrau a degrau, com outro alpha."""
-    return [tuple(c[:3]) + (cor[3],) for c in ac.degraus(tuple(cor[:3]), n)]
+    return [c + (cor[3],) for c in _degraus(tuple(cor[:3]), n)]
 
 
 def _com_alfa(escada: list, alfa: float) -> list:
     return [c[:3] + (alfa,) for c in escada]
-
-
-def _texto(base: int, escada: list, reserva, escada_tinta, alfa: float):
-    """`get_text()` do steps.rs COM o alpha: ele anda mais degraus quanto mais
-    translúcido o fundo. A conta do desvio é `((1. - alpha) * 100.0).round()`
-    em f32 — com 0,555, em f64 ela dá 44,4999 e arredonda para 44; em f32 ela
-    dá 44,5 e o Rust vai para 45."""
-    if escada_tinta is not None:
-        escada = escada_tinta
-    extra = ac._arred_rust(f32(f32(1.0 - alfa) * f32(100.0))) if alfa < 1.0 else 0
-    escuro = base < 60
-    i = ac._indice_vizinho(base, 70 + extra, len(escada), escuro)
-    if i is None:
-        i = ac._indice_vizinho(base, 50 + extra, len(escada), escuro)
-    if i is None:
-        i = 99 if escuro else 0
-    return escada[i] if i < len(escada) else reserva
 
 
 # ===========================================================================
@@ -229,8 +241,10 @@ def pintar_vidro(produto: dict, receita: dict, alfa: float, alfa_real: float) ->
     degr = _escada(bg, 100)
     i_bg = ac.indice(bg[:3], 100)
 
+    # O `get_text()` com o alpha: anda mais degraus quanto mais translúcido o
+    # fundo (a conta em f32 mora no derivar_acento.py).
     def texto(base, escada, a):
-        return _texto(base, escada, ctl[8], tinta_esc, a)
+        return ac.cor_de_texto(base, escada, ctl[8], tinta_esc, a)
 
     def superficie(base, passos, escada, reserva, onde):
         cor = ac.cor_de_superficie(base, passos, escada, escuro, reserva)

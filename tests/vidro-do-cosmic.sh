@@ -149,6 +149,41 @@ done <<< "$esperados"
   && ok "Dark/v2: os 14 campos do vidro são os que a GUI derivou com este mapa em 17/09 (base #383A4C86)" \
   || falha "o vidro da Dark/v2 não é o que a GUI derivou com este mapa" "$errados"
 
+# A Light vai de 49 para 86 na mesma aplicação, e o teste não olhava para ela
+# (revisão da P58, 25/09/2026). Aqui a GUI não serve de referência: em 17/09
+# ela gravou o mapa nas duas árvores e rederivou só a Dark. Os 21 campos
+# abaixo são os que o `build()` do libcosmic escreve no oráculo de bancada com
+# a receita Light da captura e este mapa, conferidos um a um em 25/09.
+esperados_claro="transparent_background base #CCD0DA86
+transparent_background component.base #EAEEF886
+transparent_background component.hover #DBDEE792
+transparent_background component.pressed #D2D4DB9E
+transparent_background component.selected #DBDEE792
+transparent_background component.disabled #EAEEF843
+transparent_background divider #8A8D949E
+transparent_primary base #EFF1F5C6
+transparent_primary component.base #DFE1E5C6
+transparent_primary component.hover #DFE1E5C6
+transparent_primary component.pressed #DFE1E5C6
+transparent_primary component.selected #DFE1E5C6
+transparent_primary component.disabled #DFE1E563
+transparent_primary divider #B5B6B9D1
+transparent_secondary base #F1F5FFFF
+transparent_secondary component.base #EAEEF8FF
+transparent_secondary component.hover #ECF0F9FF
+transparent_secondary component.pressed #EEF2FAFF
+transparent_secondary component.selected #ECF0F9FF
+transparent_secondary component.disabled #EAEEF880
+transparent_secondary divider #C1C4CCFF"
+errados=""
+while read -r arq cam quer; do
+  tem="$(valor "$C1/com.system76.CosmicTheme.Light/v2/$arq" "$cam")"
+  [ "$tem" = "$quer" ] || errados+="$arq $cam: $tem (esperado $quer)"$'\n'
+done <<< "$esperados_claro"
+[ -z "$errados" ] \
+  && ok "Light/v2: os três transparent_* saem do 49 da captura para 86, e os 21 campos são os do build() (base #CCD0DA86)" \
+  || falha "o vidro da Light/v2 não é o que o build() dá com este mapa" "$errados"
+
 # Fora do vidro, nada: todo o resto é a foto, byte a byte (as chaves dela e
 # o que o vidro.sh escreve são dela e ficam).
 fora=""
@@ -201,6 +236,28 @@ saida="$(aplicar "$C2" dracula-mauve --conferir)"; rc=$?
 [ "$rc" = "0" ] && [[ "$saida" == "tema 'dracula-mauve' já aplicado (189 arquivos conferem)" ]] \
   && ok "com o mapa da captura, a foto confere de primeira: $saida" \
   || falha "com o mapa da captura, a foto deixou de conferir (rc=$rc)" "$saida"
+#   E um COSMIC POVOADO com o mapa da captura, que a seção só via vazio
+#   (revisão da P58, 25/09/2026). Outro tema aplicado — o mocha-pink, cujo
+#   `frosted` é outro — e as chaves dela iguais às da captura (o mapa, o nível,
+#   o vidro ao maximizar, o modo): não há vidro a derivar, e a troca é a cópia
+#   de sempre, árvore por árvore, sem linha de vidro.
+C5="$T/cosmic5"; mkdir -p "$C5"
+cp -a "$PACKS/catppuccin/temas/capturados/mocha-pink"/com.system76.CosmicTheme.* "$C5/"
+while IFS= read -r -d '' a; do
+  rel="${a#"$CAP"/}"
+  case "$rel" in com.system76.CosmicTheme.Mode/v1/is_dark|com.system76.CosmicTheme.Mode/v1/auto_switch) cp "$a" "$C5/$rel" ;; esac
+  case "$(basename "$rel")" in alpha_map|frosted|frosted_maximized_apps) cp "$a" "$C5/$rel" ;; esac
+done < <(find "$CAP" -type f -print0)
+saida="$(aplicar "$C5" dracula-mauve)"; rc=$?
+difere=""
+for arv in "$CAP"/com.system76.CosmicTheme.*; do
+  diff -rq "$arv" "$C5/$(basename "$arv")" >/dev/null 2>&1 || difere+="$(basename "$arv")"$'\n'
+done
+if [ "$rc" = "0" ] && [ -z "$difere" ] && [[ "$saida" != *"vidro"* ]]; then
+  ok "COSMIC povoado com o mapa da captura: a troca chega byte a byte, sem linha de vidro"
+else
+  falha "com o mapa da captura num COSMIC povoado, as árvores não são as da captura (rc=$rc)" "$difere$saida"
+fi
 
 # --- 3. o texto que muda de degrau --------------------------------------------
 #   O `get_text()` do libcosmic anda mais degraus quanto mais translúcido o
@@ -241,6 +298,39 @@ if [ "$rc_a" = "0" ] && [[ "$saida_a" == *"fica com o vidro da captura — Dark:
 else
   falha "a captura com vidro inconsistente não foi tratada como devia (aplicar rc=$rc_a, vidro rc=$rc)" "$saida_a
 $saida"
+fi
+
+# --- 4b. o porquê chega à tela: em português, e também no seco ----------------
+#   Achados da revisão da P58 (25/09/2026). O seco é `--conferir` por dentro, e
+#   a frase do vidro sumia dele: a tela dizia «mudaria …/transparent_*» sem o
+#   motivo. E um nível do `alpha_map` que não é número punha na tela o erro do
+#   Python em inglês. (A captura voltou a ser a do repositório, com o AA.)
+cp "$RAIZ/packs/dracula/temas/capturados/dracula-mauve/com.system76.CosmicTheme.Dark/v2/transparent_background" \
+  "$CAP/com.system76.CosmicTheme.Dark/v2/transparent_background"
+C6="$T/cosmic6"; mkdir -p "$C6"
+cp -a "$CAP"/com.system76.CosmicTheme.* "$C6/"
+mapa_novo_em "$C6"
+saida="$(amb "$C6" dracula env MEOW_DRY_RUN=1 bash "$RAIZ/scripts/aplicar_tema.sh" dracula-mauve 2>&1)"; rc=$?
+if [ "$rc" = "1" ] \
+   && [[ "$saida" == *"vidro: Dark 'VeryHigh2' = alpha 86 do alpha_map deste COSMIC (a captura trazia AA)"* ]] \
+   && [[ "$saida" == *"mudaria  com.system76.CosmicTheme.Dark/v2/transparent_background"* ]] \
+   && [ "$(valor "$C6/com.system76.CosmicTheme.Dark/v2/transparent_background" base)" = "#383A4CAA" ]; then
+  ok "no seco, o «mudaria» do vidro vem com o motivo, e nada é escrito"
+else
+  falha "o seco não disse por que o vidro mudaria (rc=$rc)" "$saida"
+fi
+C7="$T/cosmic7"; mkdir -p "$C7"
+cp -a "$CAP"/com.system76.CosmicTheme.* "$C7/"
+mapa_novo_em "$C7"
+sed -i 's/very_high_2: 0.52615/very_high_2: abc/' "$C7/com.system76.CosmicTheme.Dark.Builder/v2/alpha_map"
+saida="$(aplicar "$C7" dracula-mauve)"; rc=$?
+if [ "$rc" = "0" ] \
+   && [[ "$saida" == *"Dark: o alpha_map dá ao nível VeryHigh2 o valor abc, que não é número"* ]] \
+   && [[ "$saida" != *"could not convert"* ]] \
+   && [ "$(valor "$C7/com.system76.CosmicTheme.Dark/v2/transparent_background" base)" = "#383A4CAA" ]; then
+  ok "um nível que não é número: a frase diz qual, em português, e a Dark fica com o vidro da captura"
+else
+  falha "o alpha_map malformado não chegou à tela como devia (rc=$rc)" "$saida"
 fi
 
 # --- 5. nada fica para trás ----------------------------------------------------

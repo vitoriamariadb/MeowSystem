@@ -266,10 +266,17 @@ def cor_de_superficie(base, passos, degr, escuro, reserva):
 
 
 def cor_de_texto(base, degr, reserva, degr_tinta, alfa):
-    """`get_text()` do steps.rs."""
+    """`get_text()` do steps.rs.
+
+    O desvio é `((1. - alpha) * 100.0).round()` em f32: com 0,555, em f64 a
+    conta dá 44,4999 e arredonda para 44; em f32 dá 44,5, e o Rust vai para 45.
+    (25/09/2026, revisão da P58: aqui ela era em f64, e o `derivar_vidro.py`,
+    que passa o alpha do nível, guardava uma cópia desta função com a conta em
+    f32. O chamador deste arquivo passa 1,0, e aí o desvio é zero nos dois
+    jeitos; a conta passou a ser uma só, e a cópia saiu.)"""
     if degr_tinta is not None:
         degr = degr_tinta
-    extra = _arred_rust((1.0 - alfa) * 100.0) if alfa < 1.0 else 0
+    extra = _arred_rust(f32(f32(1.0 - alfa) * f32(100.0))) if alfa < 1.0 else 0
     escuro = base < 60
     i = _indice_vizinho(base, 70 + extra, len(degr), escuro)
     if i is None:

@@ -488,21 +488,35 @@ if VISTA="$(mktemp -d "${TMPDIR:-/tmp}/meow-vidro.XXXXXX")"; then
   [ "$rc_vidro" = "1" ] && [ -d "$VISTA/captura" ] && ORIGEM="$VISTA/captura"
   # A frase vai para a tela quando há o que dizer, e nunca no `--conferir`: a
   # primeira linha dele é o veredito que a tabela do doctor mostra.
+  # O SECO É `--conferir` POR DENTRO, MAS QUEM O LÊ É GENTE — 25/09/2026,
+  #   revisão da P58. Ninguém lê a saída dele por máquina (o doctor, o
+  #   `tema_ativo` e o install.sh conferem com MEOW_DRY_RUN=0), e a lista de
+  #   «mudaria» já vem antes do veredito. Sem a frase, o seco mostrava
+  #   «mudaria …/transparent_background» sem dizer por quê.
   case "$rc_vidro" in
-    1|3) [ "$CONFERIR" = "1" ] || printf '  %s\n' "$frase_vidro" ;;
+    1|3) if [ "$CONFERIR" != "1" ] || [ "$SECO" = "1" ]; then
+           printf '  %s\n' "$frase_vidro"
+         fi ;;
   esac
 fi
 
-# O destino ainda é a FOTO da captura? Com a régua do laço: o alpha do `base:`
-# que a Aurora reescreve não conta. É o que separa, na cessão, a derivação da
-# GUI dela da cópia que um `aplicar_tema` de antes deixou.
-e_a_foto() {
+# A RÉGUA DE "ESTE ARQUIVO É AQUELE", UMA SÓ — 25/09/2026, revisão da P58
+#   O alpha do `base:` que a Aurora reescreve não conta. O laço mede com ela se
+#   o destino já está certo, e o `e_a_foto` mede se o destino ainda é a FOTO
+#   da captura. A P58 tinha copiado a régua do laço para o `e_a_foto`; duas
+#   cópias discordam em silêncio no dia em que só uma muda, e a cessão à GUI
+#   passaria a chamar de "obra dela" o que o laço chama de igual.
+confere() {   # confere <rel> <um> <outro>
   if e_chave_da_aurora "$1"; then
-    diff -q <(normalizar < "$CAPTURA/$1") <(normalizar < "$COSMIC/$1") >/dev/null 2>&1
+    diff -q <(normalizar < "$2") <(normalizar < "$3") >/dev/null 2>&1
   else
-    cmp -s "$CAPTURA/$1" "$COSMIC/$1"
+    cmp -s "$2" "$3"
   fi
 }
+
+# O destino ainda é a FOTO da captura? É o que separa, na cessão, a derivação
+# da GUI dela da cópia que um `aplicar_tema` de antes deixou.
+e_a_foto() { confere "$1" "$CAPTURA/$1" "$COSMIC/$1"; }
 
 divergentes=0
 escritos=0
@@ -546,14 +560,8 @@ while IFS= read -r -d '' arq; do
     iguais=$((iguais+1)); continue
   fi
 
-  if [ -f "$destino" ]; then
-    if e_chave_da_aurora "$rel"; then
-      if diff -q <(normalizar < "$arq") <(normalizar < "$destino") >/dev/null 2>&1; then
-        iguais=$((iguais+1)); continue
-      fi
-    elif cmp -s "$arq" "$destino"; then
-      iguais=$((iguais+1)); continue
-    fi
+  if [ -f "$destino" ] && confere "$rel" "$arq" "$destino"; then
+    iguais=$((iguais+1)); continue
   fi
 
   # O produto derivado só é imposto quando a receita ainda bate — ver a fronteira
