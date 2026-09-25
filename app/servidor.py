@@ -2955,16 +2955,23 @@ def conf_exportada(fonte=None):
     # O FLAVOR VAZIO É O `flavor_padrao` DO PACK NO AR, e não o `mocha` — a linha
     # gêmea do `carregar_conf` do bin/meow, que conta a medição (24/09/2026, na
     # revisão da P56, achado 4). O `$2` é a RAIZ.
+    #   [25/09/2026, P65: a pergunta era a linha `flavor_padrao=` da `adocao`,
+    #   escrita aqui, com o `mocha` de reserva — a cópia da regra que a P61 não
+    #   alcançou. Medido com o molde de fábrica no conf e um pack sem
+    #   `paleta.flavor_padrao`: o painel dava FLAVOR=mocha, que a paleta dele não
+    #   tem, e ICONES_PASTAS=cat--mauve em todo pack. Agora é o `meow_flavor` do
+    #   lib/comum.sh — a mesma regra do shell, sem reserva: sem resposta, vazio —,
+    #   e o molde é completado como no `carregar_conf`. Por isso o `lib/comum.sh`
+    #   é carregado antes do FLAVOR, e não depois.]
     programa = (
         'set -a\n'
         '. "$1" || exit 2\n'
         'set +a\n'
-        '[ -n "${FLAVOR:-}" ] || FLAVOR="$(python3 "$2/scripts/pack.py" adocao "${PACK:-}" "" '
-        '2>/dev/null | sed -n "s/^flavor_padrao=//p")"\n'
-        'FLAVOR="${FLAVOR:-mocha}"; ACCENT="${ACCENT:-mauve}"\n'
-        'MODO="${MODO:-escuro}"; LOGO="${LOGO:-$FLAVOR}"\n'
         'export MEOW_RAIZ="$2"\n'
         '. "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1 || true\n'
+        'FLAVOR="$(meow_flavor 2>/dev/null)"; ACCENT="${ACCENT:-mauve}"\n'
+        'case "${ICONES_PASTAS:-}" in cat--?*) ICONES_PASTAS="cat-$FLAVOR-${ICONES_PASTAS#cat--}" ;; esac\n'
+        'MODO="${MODO:-escuro}"; LOGO="${LOGO:-$FLAVOR}"\n'
         'if ! meow_ponte_python >/dev/null 2>&1; then\n'
         '  if [ "${MEOW_PALETA:-}" = "${MEOW_PALETA_DA_PONTE:-}" ]; then\n'
         '    MEOW_PALETA=""; MEOW_PACK_DIR=""; MEOW_PALETA_DA_PONTE=""\n'

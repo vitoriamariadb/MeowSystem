@@ -43,12 +43,14 @@
 #   vem de `assets/icones/pastas.map`, que é a mesma que o outro script instala — uma
 #   fonte de verdade só.
 #
-#   MAS SÓ SE CEDE O QUE JÁ ESTÁ NO DISCO. Ceder um nome cujo pastel ainda não
+#   MAS SÓ SE CEDE O QUE JÁ ESTÁ NO DISCO. Ceder um nome cujo desenho ainda não
 #   foi instalado deixaria aquela pasta AZUL (herdada do Papirus) até a rodada
 #   seguinte — pior que a cor errada, porque quebra o conjunto. Por isso o teste
 #   é `[ -f scalable/places/<nome>.svg ]`, e não a mera presença no mapa: se o
 #   outro script falhar, sumir ou perder o pack, este aqui volta a vestir o nome
-#   de mauve na mesma passagem, sozinho.
+#   na cor das outras pastas na mesma passagem, sozinho. [Dizia «cujo pastel» e
+#   «de mauve» até a P65 (25/09/2026): o desenho do Catppuccin e o acento de uma
+#   casa, a classe que a P62 tirou da tela.]
 #
 # CEDER UM NOME QUEBRA OS APELIDOS QUE PASSAM POR ELE — MEDIDO, SÃO 11
 #   O `SPRINTS.md` avisava de UMA cadeia (`folder-videos -> folder-video`) e

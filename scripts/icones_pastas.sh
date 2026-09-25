@@ -175,7 +175,8 @@ _pronto() {
 # --- o que deveria estar no disco ---------------------------------------------
 # "nome<TAB>caminho-de-origem", só dos glifos que existem de fato. Um glifo
 # faltando é aviso, não erro: aquele nome continua vindo do `construir_pastas.sh`
-# em mauve, que é exatamente o que ele era antes desta sprint.
+# na cor das outras pastas, que é exatamente o que ele era antes desta sprint.
+# [Dizia «em mauve» até a P65 (25/09/2026): o acento de uma casa, e não a regra.]
 #
 # O DESENHO DO PACK SE CHAMA PELO NOME XDG — 24/09/2026, na revisão da P56
 #   O glifo do mapa (`folder_docs`, `folder_audio`…) é o nome do acervo
@@ -249,8 +250,9 @@ _aplicar() {
 
   # Órfão: estava no mapa ontem, não está hoje. Podemos remover porque este
   # diretório tem um dono só (ver o cabeçalho). E remover aqui é o que devolve o
-  # nome ao `construir_pastas.sh`: sem o pastel no disco ele para de ceder e a
-  # pasta volta a ser mauve na mesma rodada, em vez de ficar azul.
+  # nome ao `construir_pastas.sh`: sem o desenho no disco ele para de ceder e a
+  # pasta volta à cor das outras na mesma rodada, em vez de ficar azul. [Dizia
+  # «o pastel» e «mauve» até a P65 (25/09/2026), como as frases que a P62 trocou.]
   if [ -d "$DESTINO" ]; then
     for arq in "$DESTINO"/*.svg; do
       [ -e "$arq" ] || continue
@@ -271,7 +273,15 @@ _aplicar() {
     meow_ok "pastas especiais já vestidas $VESTIDAS"
     return "$MEOW_OK"
   fi
-  meow_info "pastas especiais: $postos posto(s), $removidos removido(s) — $DE_QUEM"
+  # NO SECO, O CONDICIONAL — 25/09/2026, P65. O ensaio dizia «removeria» arquivo
+  # por arquivo e fechava com «0 posto(s), 1 removido(s)», no passado, sem nada
+  # ter saído do disco: a mentira de tempo verbal que o `aplicar_apps.sh` (P62)
+  # e o rodapé do `install.sh` (P50) já tinham consertado nos deles.
+  if meow_seco; then
+    meow_info "pastas especiais: poria $postos, removeria $removidos — $DE_QUEM"
+  else
+    meow_info "pastas especiais: $postos posto(s), $removidos removido(s) — $DE_QUEM"
+  fi
   meow_info "o cosmic-files relê o tema ao abrir uma janela nova"
   return "$MEOW_DIVERGENTE"
 }
@@ -328,7 +338,12 @@ main() {
     # como as outras pastas (`ICONES_PASTAS`, o acento por padrão, na paleta do
     # pack no ar). A frase diz essa regra, que vale com qualquer pack e acento.
     if [ -d "$DESTINO" ] && [ -n "$(find "$DESTINO" -maxdepth 1 -name '*.svg' -print -quit 2>/dev/null)" ]; then
-      meow_info "PASTAS_XDG=\"${PASTAS_XDG:-nao}\" — devolvendo as pastas especiais à cor das outras pastas"
+      # No seco, «devolveria», pelo motivo do resumo do `_aplicar` (P65).
+      if meow_seco; then
+        meow_info "PASTAS_XDG=\"${PASTAS_XDG:-nao}\" — devolveria as pastas especiais à cor das outras pastas"
+      else
+        meow_info "PASTAS_XDG=\"${PASTAS_XDG:-nao}\" — devolvendo as pastas especiais à cor das outras pastas"
+      fi
       MAPA_LIDO=()
     else
       meow_ok "pastas especiais desligadas (PASTAS_XDG=\"${PASTAS_XDG:-nao}\") — elas seguem a cor das outras pastas"

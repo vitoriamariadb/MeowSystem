@@ -164,7 +164,14 @@ MEOW_BB_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 # lá dentro do `main()`, ou seja, DEPOIS de a fila de módulos poder ter sido
 # carregada. Uma variável congelada aqui em cima leria "mocha" e ignoraria em
 # silêncio o flavor que ela escolheu — e silêncio é o pior modo de errar.
-_bb_flavor() { printf '%s' "${MEOW_FLAVOR:-${FLAVOR:-mocha}}"; }
+# [25/09/2026, P65: vazio, vale o flavor padrão do pack no ar — o `meow_flavor`
+# do lib/comum.sh, a regra que os scripts seguem desde a P61. Era o `mocha`, o
+# padrão de um pack só. Medido numa casa de brinquedo, com o Dracula no ar e o
+# FLAVOR vazio: o `conferir` pedia o «Catppuccin Mocha» no bat e o
+# `catppuccin_mocha` no btop; agora pede o «Dracula» e o `dracula`.]
+_bb_flavor() {
+  if [ -n "${MEOW_FLAVOR:-}" ]; then printf '%s' "$MEOW_FLAVOR"; else meow_flavor; fi
+}
 
 # Os três caminhos do bat vêm do PRÓPRIO binário (ver o cabeçalho: a cadeia
 # BAT_CONFIG_DIR > XDG_CONFIG_HOME > ~/.config foi medida, não suposta).

@@ -46,6 +46,16 @@
 #      (#433F4D e #534B62), passou ao slot mais próximo dela: o `surface0` e o
 #      `surface1`. Continuam sem recolorir pelo acento.
 #
+# E OS RESTOS QUE A P65 FECHOU (25/09/2026)
+#   7b. O ensaio de desligar as pastas especiais fala no condicional: dizia
+#      «0 posto(s), 7 removido(s)» logo depois de «removeria».
+#   9. O resgate do Nautilus (`assets/icones/resgatados/`), o mesmo desenho do
+#      `folder-download.svg` sem a seta, tinha o corpo de antes; e o
+#      PROCEDENCIA.md dizia «nada mais no desenho mudou», com as aberturas do
+#      castelo tendo mudado junto com a frente.
+#   10. Os comentários das pastas especiais dizem a cor das outras pastas, e não
+#      o mauve de uma casa.
+#
 # POR QUE É DA MÁQUINA
 #   O script lê o Papirus-Dark por `/usr/share/icons/<base>` e o papirus-folders
 #   que o `scripts/baixar_upstream.sh` baixa (ou o que `MEOW_CAT_FOLDERS`
@@ -130,14 +140,18 @@ saida="$(guarda "$T/up-torto")"
 #   mais próximo, medido no OKLab e escrito no PROCEDENCIA.md do pack: as costas
 #   no `surface0`, a frente no `surface1`, lidos aqui da paleta.json. Nenhum dos
 #   dois tons de antes sobra em desenho nenhum.
-achado="$(python3 - "$RAIZ/packs/dracula" <<'PY'
+#   [P65: e o resgate do Nautilus, que é o `folder-download.svg` de antes sem a
+#   seta, e seguia com os dois; e o PROCEDENCIA.md, que dizia «nada mais no
+#   desenho mudou» com as aberturas do castelo tendo ido junto com a frente, as
+#   conta e fala do resgate.]
+achado="$(python3 - "$RAIZ/packs/dracula" "$RAIZ/assets/icones/resgatados/org.gnome.Nautilus.svg" <<'PY'
 import glob, json, os, re, sys
-pack = sys.argv[1]
+pack, resgate = sys.argv[1], sys.argv[2]
 with open(os.path.join(pack, "paleta.json"), encoding="utf-8") as fh:
     dra = json.load(fh)["flavors"]["dracula"]
 quer = [dra["surface0"].upper(), dra["surface1"].upper()]
 erros, vistos = [], 0
-for svg in sorted(glob.glob(os.path.join(pack, "icones", "pastas", "*.svg"))):
+for svg in sorted(glob.glob(os.path.join(pack, "icones", "pastas", "*.svg"))) + [resgate]:
     vistos += 1
     nome = os.path.basename(svg)
     with open(svg, encoding="utf-8") as fh:
@@ -151,14 +165,21 @@ for svg in sorted(glob.glob(os.path.join(pack, "icones", "pastas", "*.svg"))):
     velhos = {h.upper() for h in re.findall(r"#[0-9A-Fa-f]{6}", texto)} & {"#433F4D", "#534B62"}
     if velhos:
         erros.append("%s: ainda tem %s" % (nome, sorted(velhos)))
-if vistos != 7:
-    erros.append("eram sete desenhos em icones/pastas/, e são %d" % vistos)
+if vistos != 8:
+    erros.append("eram sete desenhos em icones/pastas/ e o resgate, e são %d" % vistos)
+with open(os.path.join(pack, "PROCEDENCIA.md"), encoding="utf-8") as fh:
+    proc = fh.read()
+linha = next((l for l in proc.splitlines() if l.startswith("| `icones/pastas/*.svg`")), "")
+if "aberturas do castelo" not in linha:
+    erros.append("o PROCEDENCIA.md não conta as aberturas do castelo, que mudaram com a frente: %r" % linha[-160:])
+if "resgatados/org.gnome.Nautilus.svg" not in proc:
+    erros.append("o PROCEDENCIA.md não diz que o resgate do Nautilus foi junto")
 print("\n".join(erros) if erros else "OK %s %s" % tuple(quer))
 PY
 )"
 [[ "$achado" == OK* ]] \
-  && ok "o corpo das sete pastas especiais do Dracula é o surface0 e o surface1 da paleta dele (${achado#OK })" \
-  || falha "o corpo das pastas especiais do Dracula está fora da paleta dele" "$achado"
+  && ok "o corpo das sete pastas especiais do Dracula e do resgate do Nautilus é o surface0 e o surface1 da paleta dele (${achado#OK }), e o PROCEDENCIA.md conta o que mudou" \
+  || falha "o corpo das pastas especiais do Dracula, ou do resgate, está fora da paleta dele, ou a procedência não conta" "$achado"
 
 # --- 7. as sete pastas especiais do Dracula chegam ao disco ----------------
 #   O `icones_pastas.sh` não precisa do Papirus: ele copia os desenhos do pack
@@ -197,11 +218,25 @@ fi
 #   `construir_pastas.sh`: as sete voltam a ele e vestem o que as outras
 #   vestem. A frase diz a regra, sem nomear cor nem tema. A casa é a da seção
 #   7, com os desenhos do Dracula no lugar.
-desligar() {   # $1 = a casa
-  env -i PATH="$FALSO:$PATH" HOME="$1" USER="${USER:-t}" NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+desligar() {   # $1 = a casa · [VAR=valor ...], que vencem
+  local casa="$1"; shift
+  env -i PATH="$FALSO:$PATH" HOME="$casa" USER="${USER:-t}" NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
     PACK=dracula FLAVOR=dracula ACCENT=mauve PASTAS_XDG=nao ICONES_FLAVOR=macchiato \
-    ICONES_TEMA=MeowSystem-Icons bash "$RAIZ/scripts/icones_pastas.sh" --aplicar 2>&1
+    ICONES_TEMA=MeowSystem-Icons "$@" bash "$RAIZ/scripts/icones_pastas.sh" --aplicar 2>&1
 }
+# O ENSAIO VEM ANTES, E FALA NO CONDICIONAL — 25/09/2026, P65. O seco dizia
+#   «removeria» arquivo por arquivo e fechava com «0 posto(s), 7 removido(s)»,
+#   no passado, com os sete ainda no disco; e abria com «devolvendo». O ensaio
+#   não tira nada, e cada frase dele diz o que faria.
+ensaio="$(desligar "$T/casa-xdg" MEOW_DRY_RUN=1)"; rc=$?
+if [ "$(find "$LUGAR" -name '*.svg' 2>/dev/null | wc -l)" = 7 ] && [ "$rc" = 1 ] \
+   && [[ "$ensaio" == *"removeria"* ]] && [[ "$ensaio" == *"pastas especiais: poria 0, removeria 7"* ]] \
+   && [[ "$ensaio" == *"devolveria as pastas especiais"* ]] \
+   && [[ "$ensaio" != *"posto(s)"* ]] && [[ "$ensaio" != *"removido(s)"* ]] && [[ "$ensaio" != *devolvendo* ]]; then
+  ok "o ensaio de desligar as pastas especiais fala no condicional, do começo ao resumo, e não tira nada"
+else
+  falha "o ensaio de desligar as pastas especiais fala como se tivesse feito, ou tirou (rc=$rc)" "$ensaio"
+fi
 devolveu="$(desligar "$T/casa-xdg")"
 de_novo="$(desligar "$T/casa-xdg")"; rc=$?
 if [ -z "$(find "$LUGAR" -name '*.svg' 2>/dev/null)" ] && [ "$rc" = 0 ] \
@@ -213,6 +248,39 @@ else
   falha "as pastas especiais desligadas não saíram, ou a frase crava uma cor (rc=$rc)" "$devolveu
 $de_novo"
 fi
+
+# --- 10. os comentários dizem a regra, e não o mauve — 25/09/2026, P65 ------
+#   A P62 tirou da tela o «mauve» e o «pastel» das pastas especiais: sem os
+#   desenhos, os sete nomes vestem a cor das outras pastas, com qualquer pack e
+#   acento. Quatro comentários ainda o diziam no presente, como regra — os que
+#   a revisão da P62 apontou —, e comentário é o que o próximo a mexer lê
+#   primeiro. As frases velhas são procuradas no texto dos comentários com as
+#   quebras de linha desfeitas, porque cada uma atravessa duas linhas.
+achado="$(python3 - "$RAIZ" <<'PY'
+import os, re, sys
+raiz = sys.argv[1]
+velhas = {
+    "scripts/icones_pastas.sh": ["continua vindo do `construir_pastas.sh` em mauve",
+                                 "sem o pastel no disco ele para de ceder",
+                                 "a pasta volta a ser mauve na mesma rodada"],
+    "scripts/construir_pastas.sh": ["Ceder um nome cujo pastel ainda não foi instalado",
+                                    "este aqui volta a vestir o nome de mauve na mesma passagem"],
+    "assets/icones/pastas.map": ["para que o pastel não brigue com o mauve",
+                                 "ele só cede o nome cujo pastel já está no disco"],
+}
+erros = []
+for arq, frases in velhas.items():
+    with open(os.path.join(raiz, arq), encoding="utf-8") as fh:
+        texto = " ".join(re.sub(r"^\s*#\s?", "", l).strip()
+                         for l in fh if l.lstrip().startswith("#"))
+    texto = re.sub(r"\s+", " ", texto)
+    erros += ["%s: «%s»" % (arq, f) for f in frases if f in texto]
+print("\n".join(erros))
+PY
+)"
+[ -z "$achado" ] \
+  && ok "os comentários das pastas especiais dizem a cor das outras pastas, e não o mauve de uma casa" \
+  || falha "há comentário das pastas especiais que ainda diz o mauve, ou o pastel, como regra" "$achado"
 
 # --- o resto pede o Papirus e o papirus-folders de verdade -----------------
 if [ ! -d /usr/share/icons/Papirus-Dark ]; then

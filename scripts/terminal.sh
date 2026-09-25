@@ -246,7 +246,8 @@
 #   Aliases `--aplicar`, `--conferir` e `--remover` existem para o `bin/meow`
 #   chamar com a mesma cara dos módulos vizinhos.
 #
-#   FLAVOR="mocha"            slot escuro (mocha | frappe | macchiato; latte -> mocha)
+#   FLAVOR=""                 slot escuro; vazio, o flavor padrão do pack no ar
+#                             (`meow_flavor`); sendo o claro, o 1º escuro da paleta
 #   ACCENT="mauve"            cor do cursor, quando TERMINAL_CURSOR="accent"
 #   TERMINAL_ESQUEMA="sim"    "nao" desinstala
 #   TERMINAL_CURSOR="accent"  "port" devolve o rosewater do port oficial

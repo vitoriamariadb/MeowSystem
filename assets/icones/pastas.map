@@ -272,9 +272,11 @@
 #
 # QUEM CEDE ESTES NOMES
 #   `scripts/construir_pastas.sh` lê ESTE arquivo e para de criar os apelidos
-#   listados aqui, para que o pastel não brigue com o mauve. Ver o cabeçalho
-#   dele — a cessão é condicional: ele só cede o nome cujo pastel já está no
-#   disco, senão a pasta ficaria AZUL até a rodada seguinte.
+#   listados aqui, para que o desenho da pasta especial não brigue com o
+#   apelido na cor das outras pastas. Ver o cabeçalho dele — a cessão é
+#   condicional: ele só cede o nome cujo desenho já está no disco, senão a pasta
+#   ficaria AZUL até a rodada seguinte. [Dizia «o pastel» e «o mauve» até a P65
+#   (25/09/2026): o desenho do Catppuccin e o acento de uma casa.]
 
 # ESTAS SETE SÃO DO `vscode-icons`, E ELA AS REPROVOU EM 08/08/2026
 #   Ficam aqui, sem custo, porque `PASTAS_XDG="nao"` as mantém desligadas e o
