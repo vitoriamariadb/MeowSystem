@@ -306,3 +306,79 @@ hoje, byte a byte.
 `scripts/icones_pastas.sh`, `scripts/construir_pastas.sh` e
 `assets/icones/pastas.map` (comentários e o tempo verbal), a arte e o
 `PROCEDENCIA.md`, `tests/`.
+
+---
+
+# Leva E — o fim da cauda (25/09/2026)
+
+As reconferências da leva D2 aprovaram P63, P64 e P65 e deixaram notas; duas são
+de função. Para a cauda parar de crescer, a varredura de texto desta leva cobre o
+repositório INTEIRO por classe de frase, com um teste que impede a volta.
+
+---
+
+# P66 — As notas de função da leva D2
+
+1. **O acento do outro lado é o da foto.** Com `FLAVOR=latte`, `ACCENT=blue` e
+   `MODO=escuro`, o COSMIC veste a Dark `catppuccin-mocha` com `#CBA6F7FF`
+   (mauve), e a página e a prévia vestem mocha com `--accent: var(--blue)`;
+   `mocha-green` no claro faz o mesmo (Light latte com `#8839EF`). A P59 acertou
+   o flavor do outro lado; o acento continua prometido sem ser aplicado. O
+   acento do lado do par sai pelo derivador de acento (P48), como o do lado
+   escolhido.
+2. **O desfazer da escolha do pack deixa sobra no tema.** O `_dracula_sobras`
+   (`scripts/icones_apps_dracula.sh`, ~377) só limpa desenhos dos packs FORA do
+   ar; desfeita a escolha de um desenho do pack no ar, ele fica no tema (o
+   `tests/seletor-do-pack.sh` avisa «conhecido: o passo do pack deixa no tema o
+   arcade...»).
+3. **O mapa do Dracula com o pack vazio.** Com `PACK=""` e `FLAVOR=alucard`, a
+   adoção e o `pack.py` dão o pack Dracula, e o `_mapa_dracula` dá 0 nomes
+   (`acervo(ref='alucard')` devolve None).
+4. **O molde `cat--<acento>` do `ICONES_PASTAS` em duas cópias**: `carregar_conf`
+   (`bin/meow`, ~232) e `conf_exportada` (`app/servidor.py`, ~2973). A docstring
+   do próprio `conf_exportada` condena «duas versões da mesma regra»: uma só.
+5. **O `--conferir` das pastas no tempo errado.** Com `PASTAS_XDG=nao` e os
+   desenhos no disco, `scripts/icones_pastas.sh --conferir` diz «devolvendo as
+   pastas especiais à cor das outras pastas» (rc=1, nada muda) — o verbo que só
+   lê diz o que faria.
+6. **A montagem «base menos um lado + o lado do par»** está no
+   `derivar_flavor.plano` e no `derivar_acento.plano`. Extraia se for pequena e
+   segura; se não, diga por quê.
+
+### Território
+
+O derivador de acento e o de flavor (o lado do par), `scripts/icones_apps_dracula.sh`
+(`_dracula_sobras`, `_mapa_dracula`), o molde do `ICONES_PASTAS` (`bin/meow`
+`carregar_conf` e `app/servidor.py` `conf_exportada`), o `--conferir` do
+`scripts/icones_pastas.sh`, `tests/`.
+
+---
+
+# P67 — A varredura das frases velhas
+
+Cada classe abaixo é varrida no repositório inteiro (`git grep`), não só nas
+linhas citadas. Afirmação no PRESENTE que ficou falsa se corrige; registro com
+data («a decisão dela, 10/08/2026», «[dizia X até a P65]») é história e fica.
+Um teste novo trava cada classe, para ela não voltar.
+
+1. **«flavor que nunca foi fotografado»** — desde a P59 esse flavor se deriva:
+   `bin/meow` (~414 e ~3508), `install.sh` (~3755), `lib/preflight.sh` (~299), e o
+   que o grep achar.
+2. **A Light do Dracula.** A docstring do `_lados_do_pack` (`app/servidor.py`,
+   ~3708) ainda diz que a Light do `dracula-mauve` é o Latte e que isso fica para
+   uma sprint própria — a P63 fez essa sprint.
+3. **Pastas em mauve ou pastel como regra do presente**:
+   `scripts/construir_pastas.sh` (~70, ~410), `scripts/icones_pastas.sh` (~47), e
+   o que o grep achar em `scripts/`, `lib/`, `bin/` e `assets/icones/*.map`.
+4. **O botão que mudou de nome.** «Voltar ao ícone de fábrica» virou «Desfazer a
+   escolha no traço» (P64); comentários que falam do botão de hoje pelo nome
+   antigo (`app/servidor.py` ~8828, `tests/seletor-do-pack.sh` ~31) passam ao
+   novo; os que contam a história ficam.
+5. **Procedência dos resgatados.** `assets/icones/PROCEDENCIA.md` (~348) diz a
+   faixa de antes; o `ANTES-E-DEPOIS.png` mostra o Nautilus antigo — o
+   `org.gnome.Nautilus.svg` mudou na P65.
+
+### Território
+
+Só texto e comentário nos arquivos que o grep achar, a figura
+`ANTES-E-DEPOIS.png` e o `PROCEDENCIA.md` dos ícones, e um teste de trava novo.
