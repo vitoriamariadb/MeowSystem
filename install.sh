@@ -3771,10 +3771,12 @@ main() {
   #   Achado 31 da validação: com o acento sem captura, a etapa `tema` se pulava,
   #   o instalador saía 0 com "Pronto. [...] nada mais a escrever", e o painel
   #   pintava «MEXEU E APLICOU» com o desktop na cor de antes. Desde a P48 o
-  #   acento se deriva e isso só sobra para o flavor que nunca foi fotografado
-  #   — e, nesse caso, o que a pessoa pediu no meow.conf e o que a tela mostra
-  #   DIVERGEM: é o 1 do projeto, e a última linha diz qual é a divergência. A
-  #   pendência (`tema-sem-captura`, na etapa) é a outra metade, na Início.
+  #   acento se deriva, e desde a P59 o flavor sem foto sai de outro do mesmo
+  #   lado: isso só sobra para o flavor sem fotografia dele nem de outro do
+  #   mesmo lado que se reproduza — e, nesse caso, o que a pessoa pediu no
+  #   meow.conf e o que a tela mostra DIVERGEM: é o 1 do projeto, e a última
+  #   linha diz qual é a divergência. A pendência (`tema-sem-captura`, na
+  #   etapa) é a outra metade, na Início.
   #   No ensaio a etapa já disse o que faria, e o rodapé dele segue o de sempre.
   if [ -n "${TEMA_NAO_APLICADO:-}" ] && ! meow_seco; then
     printf '\n  %s%s%s\n' "$C_AMARELO$C_FORTE" "$TEMA_NAO_APLICADO" "$C_ZERO"

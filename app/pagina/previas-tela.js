@@ -696,7 +696,12 @@
       /* A VARIANTE SEM TEMA NÃO MUDA A COR DA TELA — P59. Quando o par não
        * aplica (o `acentos_que_aplicam` do esquema, a conta do instalador), o
        * instalador pula a etapa do tema e o COSMIC fica como está: o desenho
-       * pinta com a cor que a página veste agora, que é a da tela. */
+       * pinta com a cor que a página veste agora (ver o `desenho`, abaixo).
+       *   A FRASE DIZIA «que é a da tela», E O ACENTO NÃO ERA — 25/09/2026,
+       * revisão da P59. A página vestia o flavor da tela com o acento do conf:
+       * com o frappe-pink sem tema e o COSMIC em mocha-mauve, o destaque saía
+       * rosa. Quem escreve acento no COSMIC é só o aplicar_tema.sh, e ele não
+       * roda nesse caso; o servidor agora tira os dois da tela. */
       var aplica = typeof window !== "undefined" && typeof window.MEOW_PAR_APLICA === "function"
         ? window.MEOW_PAR_APLICA(flavor, accent) : null;
       return {
@@ -723,7 +728,11 @@
 
     desenho: function (m) {
       /* Sem tema, a cor é a que a página veste: `--base` e `--accent` são os
-       * do `/paleta.css`, que nesse caso veste o que a tela mostra. [P59] */
+       * do `/paleta.css`. Com o par sem tema salvo, o servidor veste a página
+       * com o flavor e o acento que o COSMIC mostra (`_flavor_da_pagina` e
+       * `_acento_da_pagina`), e o que a tela não diz sai do padrão do pack;
+       * com ele só escolhido no cartão, a página ainda veste o conf salvo.
+       * [P59, e a revisão] */
       var tom = m.semTema ? "var(--base)" : m.claro ? CLARO : tomDoFlavor(m.flavor);
       var tinta = m.claro ? ESCURO : CLARO;
       var corpo = mistura(tinta, tom, m.claro ? 7 : 11);

@@ -3681,9 +3681,9 @@ def _flavor_no_modo(flavor, modo):
       escuro o do pack — o `flavor_padrao` (a Dark do `latte-mauve` é o Mocha;
       a derivada do alucard, o dracula), ou o primeiro escuro da paleta quando
       o padrão é claro. É a mesma regra do `par_do_outro_lado` do
-      scripts/derivar_flavor.py, que monta a captura; o tests/acento.sh confere
-      que os dois respondem igual. O automático continua no FLAVOR: ali o
-      relógio alterna, e a página não o acompanha."""
+      scripts/derivar_flavor.py, que monta a captura; o tests/variante.sh, na
+      seção 7, confere que os dois respondem igual. O automático continua no
+      FLAVOR: ali o relógio alterna, e a página não o acompanha."""
     claros = _paleta_dados().get("claros") or []
     if modo == "claro":
         return claros[0] if claros else flavor
@@ -3702,8 +3702,15 @@ def _flavor_no_modo(flavor, modo):
 def _lados_do_pack():
     """{flavor: {"claro": ..., "escuro": ...}} — o que o `_flavor_no_modo` veste
     em cada lado, para cada flavor do pack no ar. A prévia de «Cor e tela» o
-    recebe pelo esquema (`pack.lados`) e desenha o que a página e o COSMIC vão
-    vestir, em vez de repetir a regra em JavaScript. [P59]"""
+    recebe pelo esquema (`pack.lados`) e desenha o que a página vai vestir, em
+    vez de repetir a regra em JavaScript. [P59]
+
+    O COSMIC NEM SEMPRE VESTE O MESMO — medido na revisão da P59, 25/09/2026,
+    e anterior a ela: a foto `dracula-mauve` traz na Light o Latte do
+    Catppuccin (`name: "catppuccin-latte"`, a receita igual à do latte-mauve).
+    Com FLAVOR=dracula e MODO=claro a tela mostra o latte, e a página e a
+    prévia dizem alucard. Mexer na foto muda os bytes do dracula; fica para
+    uma sprint própria."""
     return {f: {m: _flavor_no_modo(f, m) for m in ("claro", "escuro")}
             for f in (_paleta_dados().get("flavors") or {})}
 
@@ -3772,10 +3779,30 @@ def _flavor_na_tela():
     return None
 
 
+def _acento_na_tela(flavor):
+    """O acento que o COSMIC mostra agora, dito como cor do `flavor`: o `accent`
+    da receita da árvore que o `is_dark` escolhe (`Some("#CBA6F7FF")`), achado
+    pelo hex entre as cores do flavor na paleta do pack no ar. None quando não
+    dá para saber — sem a receita, com `None` nela, ou com uma cor que o flavor
+    não tem. É o irmão do `_flavor_na_tela`, pela mesma porta. [P59, revisão]"""
+    escuro = _cosmic_ler("com.system76.CosmicTheme.Mode/v1/is_dark")
+    if escuro not in ("true", "false"):
+        return None
+    arvore = "Dark" if escuro == "true" else "Light"
+    bruto = _cosmic_ler("com.system76.CosmicTheme.%s.Builder/v2/accent" % arvore) or ""
+    m = re.match(r'^Some\(\s*"(#[0-9A-Fa-f]{6})', bruto)
+    if not m:
+        return None
+    cores = (_paleta_dados().get("flavors") or {}).get(flavor) or {}
+    return next((slot for slot, hexa in cores.items()
+                 if str(hexa).upper() == m.group(1).upper()), None)
+
+
 def _flavor_da_pagina(flavor, valores):
     """O flavor que `/paleta.css`, a marca e a página exportada vestem: o do
     `_flavor_no_modo`, menos para a variante sem tema — aí o que a tela mostra,
-    e sem isso o padrão do pack no modo. Ver o bloco acima."""
+    e sem isso o padrão do pack no modo. Ver o bloco acima. O acento que vai
+    junto é o do `_acento_da_pagina`."""
     modo = valores.get("MODO")
     if not _variante_sem_tema(flavor, valores.get("ACCENT") or "mauve"):
         return _flavor_no_modo(flavor, modo)
@@ -3786,6 +3813,27 @@ def _flavor_da_pagina(flavor, valores):
     no_ar = _pack_no_ar()
     padrao = (mod.campo(no_ar, "paleta.flavor_padrao") if mod and no_ar else "") or flavor
     return _flavor_no_modo(padrao, modo)
+
+
+def _acento_da_pagina(flavor, valores):
+    """O acento que vai com o `flavor` do `_flavor_da_pagina`: o do conf, menos
+    para a variante sem tema — aí o que a tela mostra (`_acento_na_tela`), e sem
+    isso o mauve, o padrão de sempre do ACCENT (`${ACCENT:-mauve}`).
+
+    O ACENTO DA VARIANTE SEM TEMA NÃO É O DO CONF — 25/09/2026, revisão da P59
+      O `_flavor_da_pagina` trocava só o flavor. Numa casa de brinquedo com o
+      Catppuccin sem foto escura, FLAVOR=frappe ACCENT=pink e o COSMIC em
+      mocha-mauve, o `/paleta.css` servia `--base #1E1E2E --accent var(--pink)`:
+      o fundo da tela com o acento do conf, que ninguém aplicou — quem escreve
+      acento no COSMIC é o aplicar_tema.sh, e a etapa tema se pula nesse caso.
+      A prévia de «Cor e tela» pinta a variante sem tema com o `--accent` da
+      página, e desenhava um destaque rosa dizendo «Uma tela na cor de agora».
+      O pink é a metade da variante que não aplicou, e a página não se veste
+      dela nem pela metade. O `tests/variante.sh` (seção 8) pergunta à rota."""
+    accent = valores.get("ACCENT") or "mauve"
+    if not _variante_sem_tema(valores.get("FLAVOR") or "mocha", accent):
+        return accent
+    return _acento_na_tela(flavor) or "mauve"
 
 
 # --- 5. as ações -------------------------------------------------------------
@@ -7128,7 +7176,7 @@ class Manipulador(BaseHTTPRequestHandler):
         valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
         flavor = valores.get("FLAVOR") or "mocha"
         flavor = _flavor_da_pagina(flavor, valores)
-        return logo_do_painel(flavor, valores.get("ACCENT") or "mauve")
+        return logo_do_painel(flavor, _acento_da_pagina(flavor, valores))
 
     def do_GET(self):
         alvo = urlparse(self.path)
@@ -7411,7 +7459,7 @@ class Manipulador(BaseHTTPRequestHandler):
             #   a paleta dele não tem e saía sem cor. O primeiro claro que o
             #   pack declara é o que o COSMIC veste nesse modo.
             flavor = _flavor_da_pagina(flavor, valores)
-            return self._responder(paleta_css(flavor, valores.get("ACCENT") or "mauve"),
+            return self._responder(paleta_css(flavor, _acento_da_pagina(flavor, valores)),
                                    tipo="text/css; charset=utf-8")
 
         # Os estáticos da página. `os.path.basename` mata `../` na origem: nunca
@@ -10275,7 +10323,7 @@ class Manipulador(BaseHTTPRequestHandler):
         valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
         flavor = valores.get("FLAVOR") or "mocha"
         flavor = _flavor_da_pagina(flavor, valores)
-        paleta = paleta_css(flavor, valores.get("ACCENT") or "mauve")
+        paleta = paleta_css(flavor, _acento_da_pagina(flavor, valores))
 
         def ler(nome):
             try:

@@ -17,7 +17,10 @@ O QUE FOI MEDIDO ANTES DE ESCREVER UMA LINHA
        `neutral_tint`, `bg_color`, `primary_container_bg`, `text_tint`,
        `accent`, `success`, `warning` e `destructive` do topo. Conferido slot a
        slot nas quatro capturas: a Light do latte-mauve, a Dark do mocha-pink e
-       as duas do dracula-mauve são EXATAMENTE a paleta pelo mapa. A única
+       as duas do dracula-mauve são EXATAMENTE a paleta pelo mapa — a Light do
+       dracula-mauve pela paleta do LATTE, e não a do alucard: a foto do
+       Dracula traz no claro o Latte do Catppuccin (`catppuccin-latte`, a
+       receita igual à do latte-mauve; visto na revisão da P59). A única
        exceção é a Dark do mocha-mauve, cujo `neutral_tint` é float (0.5175,
        0.5266, 0.5907): a GUI dela o mexeu, e ele não é slot de paleta nenhuma.
     2. O PRODUTO (`<Árvore>/v2`) não é paleta: é o que o `ThemeBuilder::build()`
@@ -34,9 +37,14 @@ O QUE FOI MEDIDO ANTES DE ESCREVER UMA LINHA
        pastas e da P48 no acento — e REFAZ o produto com o `build()` do
        libcosmic, portado abaixo em f32, operação por operação. O oráculo da
        P48 (o `build()` de verdade, compilado do commit c003a58 que está no
-       ~/.cargo desta máquina) conferiu a porta: a receita trocada de cada
-       flavor novo, nos 14 acentos, dá a mesma árvore no oráculo e aqui, byte a
-       byte, e as bases dão elas mesmas.
+       ~/.cargo desta máquina) conferiu a porta, e as bases dão elas mesmas. Na
+       receita trocada de cada flavor novo, nos 14 acentos, 1470 dos 1596
+       arquivos do produto saem iguais aos do oráculo byte a byte; os outros
+       126 diferem só no que a derivação deixa com a base — a quebra de linha
+       final do `corner_radii` e do `gaps`, que não são cor (42 cada), e o
+       alpha da Aurora no `base:` do `secondary` (42; ver abaixo). Recontado em
+       25/09/2026, na revisão da P59: a frase dizia «a mesma árvore, byte a
+       byte», e não era.
 
 O QUE NÃO SE DERIVA, DITO PELO NOME
     · O OUTRO LADO. A Dark do `latte-mauve` é o Mocha do Catppuccin, e trocar
