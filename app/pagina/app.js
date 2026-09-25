@@ -2821,7 +2821,10 @@ async function carregarGlifos(termo) {
   if (GLIFOS.termo === termo && !GLIFOS.carregando) return;
   GLIFOS = { termo, itens: [], carregando: true };
   const r = await api(`/api/glifos?busca=${encodeURIComponent(termo || "")}`);
-  GLIFOS = { termo, itens: r.glifos || [], carregando: false, limitado: r.limitado };
+  /* O `aviso` é a frase de quando o pack no ar tem desenhos e a camada que os
+   * põe no tema está desligada (P60, `_desenhos_do_pack_no_ar`). */
+  GLIFOS = { termo, itens: r.glifos || [], carregando: false, limitado: r.limitado,
+             aviso: r.aviso || "" };
   render();
 }
 
@@ -2982,9 +2985,12 @@ function montarEscolhaDeIcone(app, recarregar) {
    *   segue logo abaixo para quem só quer escolher. */
   painel.append(oficinaDeDesenho(app, relerLista));
 
+  /* «NO ACERVO ARCTICONS» SAIU DO CAMPO — 25/09/2026, P60. A busca passou a
+   * achar também os desenhos do pack no ar, e o campo prometendo um acervo só
+   * mandaria procurar o Dracula em outro lugar. */
   const busca = elemento("input", {
     type: "search", value: GLIFOS.termo || "", "data-foco": "glifos",
-    placeholder: "Buscar desenho no acervo Arcticons…",
+    placeholder: "Buscar desenho pelo nome…",
     "aria-label": "Buscar desenho",
     oninput: (e) => carregarGlifos(e.target.value.trim().toLowerCase()),
   });
@@ -3007,30 +3013,82 @@ function montarEscolhaDeIcone(app, recarregar) {
                      || (app.mapa && app.mapa.cor)
                      || ((ESQUEMA.paleta.ordem || [])[0] || "mauve");
 
+  /* OS DESENHOS DO PACK NO AR ENTRAM NA TIRA — 25/09/2026, P60
+   *   A pergunta que abriu a sprint: «Nosso pack de 300 icons aparece pro user
+   *   pra que ele possa escolher um deles pra substituir algum atual?». O
+   *   servidor manda o pack no ar primeiro, num grupo com o nome dele (ver
+   *   `_desenhos_do_pack_no_ar`), e a tira os separa com um rótulo: sem ele, o
+   *   `google-chrome` do Dracula e o do Arcticons seriam dois quadrados com o
+   *   mesmo nome. Sem pack na tira não há rótulo, e ela é a de sempre.
+   *
+   *   A ESCOLHA É PELA CHAVE, E NÃO PELO NOME, pelo mesmo motivo: marcando pelo
+   *   `data-glifo`, um clique marcaria os dois. O `data-glifo` continua sendo o
+   *   nome, que é o que a busca casa.
+   *
+   *   ONDE O PACK NÃO PODE VALER, ELE NÃO APARECE (`trava_pack`): no «Arquivos»
+   *   o traço vale, e um desenho do pack sairia na instalação seguinte. A
+   *   frase diz isso no lugar do grupo. */
+  const chaveDe = (g) => (g.pack ? `pack:${g.pack}:${g.desenho}` : g.glifo);
+  const doPackNaBusca = GLIFOS.itens.some((g) => g.pack);
+  const itens = app.trava_pack ? GLIFOS.itens.filter((g) => !g.pack) : GLIFOS.itens;
+  const comPack = itens.some((g) => g.pack);
+  const itemEscolhido = () => itens.find((g) => chaveDe(g) === escolhido) || null;
   const tiraGlifos = elemento("div", { class: "tira-glifos" });
+  const notaDaCor = elemento("p", { class: "frase", hidden: true });
+  const fraseDoFim = elemento("p", { class: "frase" });
   const pintarGlifos = () => {
     for (const b of tiraGlifos.querySelectorAll("button")) {
-      b.setAttribute("aria-pressed", String(b.dataset.glifo === escolhido));
+      b.setAttribute("aria-pressed", String(b.dataset.escolha === escolhido));
     }
+    /* A COR NÃO VAI COM O DESENHO DO PACK, E A TELA DIZ: ele entra no tema com
+     * as cores que tem (o pack declara `recolorir: false`, e nenhum passo o
+     * recolore). E a escolha mora no pack, não no mapa do traço — a frase do
+     * fim diz onde ela vale. */
+    const g = itemEscolhido();
+    notaDaCor.hidden = !(g && g.pack);
+    notaDaCor.textContent = g && g.pack
+      ? `O desenho do pack «${g.grupo}» entra com as cores dele: a cor abaixo vale só para o traço.`
+      : "";
+    fraseDoFim.textContent = g && g.pack
+      ? `A escolha fica no pack «${g.grupo}»: vale com ele no ar, em toda máquina que instalar daqui.`
+      : "A escolha fica guardada no projeto: vale em toda máquina que instalar daqui.";
   };
   if (GLIFOS.carregando) {
     tiraGlifos.append(elemento("p", { class: "sem-previa", texto: "Procurando…" }));
-  } else if (!GLIFOS.itens.length) {
+  } else if (!itens.length) {
     tiraGlifos.append(elemento("p", { class: "sem-previa",
       texto: "Nenhum desenho com esse nome — mostrando o acervo que veio com o projeto." }));
     if (GLIFOS.termo) carregarGlifos("");
   }
-  for (const g of GLIFOS.itens) {
+  let grupoAntes = null;
+  for (const g of itens) {
+    const grupo = g.pack ? g.grupo : "";
+    if (comPack && grupo !== grupoAntes) {
+      tiraGlifos.append(elemento("div", { class: "rotulo-mini rotulo-da-tira",
+        texto: g.pack ? g.grupo : "Traço, na cor abaixo" }));
+    }
+    grupoAntes = grupo;
     tiraGlifos.append(elemento("button", {
-      type: "button", "data-glifo": g.glifo, title: `${g.glifo} — ${g.grupo}`,
-      "aria-pressed": String(g.glifo === escolhido),
-      onclick: () => { escolhido = g.glifo; pintarGlifos(); },
+      type: "button", class: g.pack ? "do-pack" : "",
+      "data-glifo": g.glifo, "data-escolha": chaveDe(g), title: `${g.glifo} — ${g.grupo}`,
+      "aria-pressed": String(chaveDe(g) === escolhido),
+      onclick: () => { escolhido = chaveDe(g); pintarGlifos(); },
     }, [
       elemento("img", { src: g.url, alt: "", loading: "lazy" }),
       elemento("span", { texto: g.glifo }),
     ]));
   }
-  if (!app.trava) painel.append(tiraGlifos);
+  if (!app.trava) {
+    /* A trava do pack só fala quando a busca trouxe desenho do pack (ou o
+     * teria trazido, com a camada ligada): nos outros casos ela não explica
+     * nada que esteja na tela. */
+    if (app.trava_pack && (doPackNaBusca || GLIFOS.aviso)) {
+      painel.append(elemento("p", { class: "frase", texto: app.trava_pack }));
+    } else if (GLIFOS.aviso) {
+      painel.append(elemento("p", { class: "frase", texto: GLIFOS.aviso }));
+    }
+    painel.append(tiraGlifos);
+  }
 
   const cores = elemento("div", { class: "cores-grade" });
   /* `ordem` e não `ordem_canonica`: o nome errado deixava a fileira de cores
@@ -3059,6 +3117,7 @@ function montarEscolhaDeIcone(app, recarregar) {
     }));
   }
   painel.append(elemento("div", { class: "rotulo-mini", texto: "Cor" }));
+  painel.append(notaDaCor);
   painel.append(cores);
 
   const acoes = elemento("div", { class: "escolha-botoes" });
@@ -3073,6 +3132,24 @@ function montarEscolhaDeIcone(app, recarregar) {
     type: "button", class: "btn btn-accent", texto: "Usar este ícone",
     onclick: async () => {
       if (!escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }
+      /* O DESENHO DO PACK GRAVA NO MAPA DO PACK, E O PASSO É OUTRO — P60. A
+       * linha vai para o `apps.map` do pack no ar (o servidor diz por quê, no
+       * `_desenhos_do_pack_no_ar`), e quem põe aquele mapa no tema é o
+       * `icones_pack`, e não o `icones_traco`. A cor não vai junto. */
+      const g = itemEscolhido();
+      if (g && g.pack) {
+        const r = await api("/api/app-icone", {
+          method: "POST",
+          body: JSON.stringify({ app: app.id, pack: g.pack, desenho: g.desenho }),
+        });
+        if (r.erro) { torrada(r.erro, "erro"); return; }
+        torrada(`${app.nome}: ${g.glifo}, do pack «${r.nome_pack}»`, "ok");
+        await rodarAcao("icones_pack");
+        APP_ABERTO = null;
+        await fimDoTrabalho();
+        await relerLista();
+        return;
+      }
       const r = await api("/api/app-icone", {
         method: "POST",
         body: JSON.stringify({ app: app.id, glifo: escolhido, cor: corEscolhida }),
@@ -3134,9 +3211,11 @@ function montarEscolhaDeIcone(app, recarregar) {
    * apps-arcticons.map, no repositório" respondia uma pergunta que ninguém
    * faz na frente desta grade ("onde isto é gravado?") e escondia a que ela
    * faz de fato: isto vale só aqui, ou em toda máquina? O caminho continua
-   * escrito no comentário do bloco acima, para quem for editar à mão. */
-  if (!app.trava) painel.append(elemento("p", { class: "frase",
-    texto: "A escolha fica guardada no projeto: vale em toda máquina que instalar daqui." }));
+   * escrito no comentário do bloco acima, para quem for editar à mão.
+   * [P60: com um desenho do pack marcado, a frase diz que a escolha mora no
+   * pack e vale com ele no ar — ver o `pintarGlifos`, que a escreve.] */
+  pintarGlifos();
+  if (!app.trava) painel.append(fraseDoFim);
   return painel;
 }
 

@@ -2248,6 +2248,15 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .tira-glifos button:hover { border-color: var(--surface2); color: var(--text); }
 .tira-glifos button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tira-glifos button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
+/* O DESENHO DO PACK SAI COMO ELE ENTRA NO TEMA — 25/09/2026, P60. A inversão
+ * acima é para o traço preto do acervo. Um desenho do pack traz as cores dele
+ * e entra no tema sem ser recolorido (o Dracula declara `recolorir: false`, e
+ * nenhum passo recolore): invertido, a miniatura mostraria um roxo que vira
+ * verde, uma cor que a tela nunca vai ter. */
+.tira-glifos button.do-pack img { filter: none; }
+/* O rótulo do grupo (o nome do pack, e o do traço) ocupa a linha inteira da
+ * grade, e não uma célula entre os desenhos. */
+.tira-glifos .rotulo-da-tira { grid-column: 1 / -1; margin-top: .2rem; }
 
 .rotulo-mini { font-size: var(--t-legenda); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--overlay2); }
 
