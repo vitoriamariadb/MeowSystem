@@ -290,7 +290,7 @@ saida_t="$(etapa tema MEOW_DRY_RUN=1)"; rc_t="$(rc)"; sem="$(cat "$T/sem_captura
   && ok "no ensaio, um par que se deriva deixa TEMA_SEM_CAPTURA=deriva e não escreve a captura" \
   || falha "o ensaio do macchiato-green não deu o recado certo (rc=$rc_t, TEMA_SEM_CAPTURA='$sem')" "$saida_t"
 #   A página: com o par sem tema, ela veste o que o COSMIC mostra (a Dark do
-#   mocha-mauve, posta de volta no brinquedo), e não o frappe.
+#   macchiato-pink, posta no brinquedo), e não o frappe.
 #   O ACENTO TAMBÉM, E PERGUNTADO À ROTA — 25/09/2026, revisão da P59. Esta
 #   seção conferia só o flavor (`mocha`), e a página vestia o mocha com o pink
 #   do conf: `--accent: var(--pink)` com o COSMIC em `#CBA6F7`, e a prévia de
@@ -299,8 +299,18 @@ saida_t="$(etapa tema MEOW_DRY_RUN=1)"; rc_t="$(rc)"; sem="$(cat "$T/sem_captura
 #   vida. A pergunta agora é aos três que vestem a página — o `/paleta.css` do
 #   `do_GET`, a página exportada e a marca do painel —, e a resposta tem de ser
 #   o hex que a receita do COSMIC de brinquedo guarda.
-conf frappe pink catppuccin escuro
-cp -a "$CAT/mocha-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
+#   A TELA NÃO PODE SER A QUEDA — 25/09/2026, segunda revisão da P59. O
+#   brinquedo punha o COSMIC em mocha-mauve, e mocha e mauve são as duas quedas
+#   do servidor: o `flavor_padrao` do pack no `_flavor_da_pagina` e o
+#   `or "mauve"` do `_acento_da_pagina`. Com o `_flavor_na_tela` ou o
+#   `_acento_na_tela` devolvendo sempre None, esta seção passava igual (medido
+#   numa cópia mutada). A tela agora é a do macchiato-pink, que a etapa gerar
+#   deriva do mocha-pink, e o conf é o frappe-green: o flavor e o acento da tela
+#   não são nem os do conf nem as quedas, e cada caminho errado dá outra cor.
+conf macchiato pink catppuccin escuro
+etapa gerar >/dev/null
+conf frappe green catppuccin escuro
+cp -a "$CAT/macchiato-pink"/com.system76.CosmicTheme.* "$COSMIC/"
 saida="$(amb env MEOW_PACKS="$SEM" MEOW_PACK_DIR="$SEM/catppuccin" MEOW_PALETA="$SEM/catppuccin/paleta.json" \
   python3 - "$RAIZ" <<'PY' 2>&1
 import json, os, re, sys
@@ -324,22 +334,24 @@ marca = re.search(r'stroke="(#[0-9A-Fa-f]{6})"', (m._logo_do_painel() or b"").de
 receita = open(os.path.join(os.environ["MEOW_COSMIC_DIR"],
                             "com.system76.CosmicTheme.Dark.Builder/v2/accent")).read()
 tela = re.search(r"#[0-9A-Fa-f]{6}", receita).group(0).upper()
-mocha = json.load(open(os.environ["MEOW_PALETA"]))["flavors"]["mocha"]["base"].upper()
+macchiato = json.load(open(os.environ["MEOW_PALETA"]))["flavors"]["macchiato"]
 erros = []
+if tela != macchiato["pink"].upper():   # sem isto, um brinquedo que caiu na queda passaria de novo
+    erros.append(f"o COSMIC de brinquedo não está no macchiato-pink (acento {tela})")
 for onde, (base, acento) in (("/paleta.css", vestido(servido[0] if servido else "")),
                              ("a página exportada", vestido(bloco.group(1) if bloco else ""))):
-    if base != mocha:
-        erros.append(f"{onde}: --base {base or 'nenhum'}, e o mocha que a tela mostra tem {mocha}")
+    if base != macchiato["base"].upper():
+        erros.append(f"{onde}: --base {base or 'nenhum'}, e o macchiato que a tela mostra tem {macchiato['base'].upper()}")
     if acento != tela:
         erros.append(f"{onde}: o --accent chega a {acento or 'nada'}, e o COSMIC tem {tela}")
 if (marca.group(1).upper() if marca else "") != tela:
     erros.append(f"a marca do painel em {marca.group(1) if marca else 'nada'}, e o COSMIC tem {tela}")
-print("\n".join(erros) or f"--base {mocha}, --accent e marca em {tela}")
+print("\n".join(erros) or f"--base {macchiato['base'].upper()}, --accent e marca em {tela}")
 sys.exit(1 if erros else 0)
 PY
 )"; r=$?
 [ "$r" = "0" ] \
-  && ok "com o frappe-pink sem tema, a página veste o flavor e o acento que a tela mostra ($saida)" \
+  && ok "com o frappe-green sem tema, a página veste o flavor e o acento que a tela mostra ($saida)" \
   || falha "a página se vestiu da variante sem tema" "$saida"
 
 # --- 9. o repositório não mudou --------------------------------------------

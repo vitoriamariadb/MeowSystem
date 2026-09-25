@@ -10488,7 +10488,8 @@ class Manipulador(BaseHTTPRequestHandler):
         vocab = vocabulario_do_pack()
         _com_o_vocabulario_do_pack(esquema, vocab, efetivos)
         # E o que cada flavor veste em cada lado, para a prévia de «Cor e tela»
-        # desenhar o que a página e o COSMIC vão vestir (P59, `_lados_do_pack`).
+        # desenhar o que a página vai vestir — o COSMIC nem sempre veste o
+        # mesmo (P59, `_lados_do_pack`).
         if isinstance(vocab, dict):
             vocab["lados"] = _lados_do_pack()
         # O teto do raio que vale NESTA sessão, nos dois cartões de raio — ver
