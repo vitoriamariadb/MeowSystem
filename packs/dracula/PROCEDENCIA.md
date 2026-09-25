@@ -558,6 +558,25 @@ tema do próprio OnlyOffice, e a escolha de papel de cada uma; nenhum valor. Se
 aparecer a origem com uma licença que não permita isto, o modelo se refaz a
 partir dos temas de fábrica do app (o binário 9.4.0 traz oito).
 
+## As pastas especiais — 25/09/2026, sprint P61
+
+Os sete desenhos de `icones/pastas/` são **desenho próprio deste projeto** (ver
+o `CREDITOS.md`), e por isso não estão na tabela de cima: não há origem a
+comparar. Eles não recolorem pelo acento (`icones.pastas.recolorir: false`, a
+decisão do pack), e o corpo da pasta — as costas e a frente, a mesma silhueta
+nos sete — estava em dois tons fora da paleta do Dracula. Os dois passaram ao
+slot mais próximo do flavor `dracula`, pela distância no OKLab (a euclidiana, a
+mesma do OKLCH com o matiz pesado pelo croma), medida contra os 26:
+
+| arquivo | desenho de | licença | desde | o que mudou |
+|---|---|---|---|---|
+| `icones/pastas/*.svg` (os sete) | desenho deste projeto | GPL-3.0 | 2026-09-16 | As costas, `#433F4D` (oklch 0,377 0,024 298°), passaram ao `surface0` `#383A4C`, a 0,0257 (o segundo mais perto, o `surface1`, a 0,0287); a frente, `#534B62` (oklch 0,430 0,039 301°), ao `surface1` `#44475A`, a 0,0310 (o `surface2`, a 0,0464). Nada mais no desenho mudou. As costas contra a frente foram de 1,24:1 para 1,22:1, e os símbolos sobre a frente ganharam contraste (o mauve, de 3,41:1 para 3,79:1). |
+
+**O que ficou fora da paleta, dito para não parecer esquecido.** No
+`folder-download.svg`, o castelo (`#423E4D`, a 0,0222 do `surface0`) e a lua
+(`#DDA442`, a 0,0829 do `peach`) não são o corpo, e não mudaram. Com a frente no
+`surface1`, o castelo ficou a 1,13:1 dela, onde estava a 1,26:1.
+
 ## Licença, marca e o que a cópia não muda
 
 **GPL-3.0 nas duas origens, medida e não suposta.** O `LICENSE` do

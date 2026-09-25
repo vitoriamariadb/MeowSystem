@@ -264,7 +264,9 @@ DIR="${TERMINAL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.Cosmi
 PALETA="$(meow_paleta)"
 
 ESQUEMA="${TERMINAL_ESQUEMA:-sim}"
-_FLAVOR="${FLAVOR:-mocha}"
+# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+_FLAVOR="$(meow_flavor)"
 _ACCENT="${ACCENT:-mauve}"
 _CURSOR="${TERMINAL_CURSOR:-accent}"
 

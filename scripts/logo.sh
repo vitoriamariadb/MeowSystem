@@ -122,7 +122,9 @@ APPLET_ID="$(_applet_de_logo)"
 APPLET="$COSMIC/${APPLET_ID:-sem-applet-de-logo}/v1"
 ESTADO="$MEOW_ESTADO/logo-atual"
 
-FLAVOR="${FLAVOR:-mocha}"
+# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+FLAVOR="$(meow_flavor)"
 LOGO="${LOGO:-$FLAVOR}"
 
 # --- AS TRÊS MANEIRAS DE ESCOLHER O GATO ------------------------------------

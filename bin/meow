@@ -222,9 +222,13 @@ carregar_conf() {
   #   é o `conf_exportada` do app/servidor.py. O `ICONES_PASTAS` de fábrica já
   #   chega expandido com o vazio (`cat--mauve`), e quem o completa com este
   #   FLAVOR é o `construir_pastas.sh`.
-  [ -n "${FLAVOR:-}" ] || FLAVOR="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "" 2>/dev/null \
-                                      | sed -n 's/^flavor_padrao=//p')"
-  FLAVOR="${FLAVOR:-mocha}"; ACCENT="${ACCENT:-mauve}"
+  #   [25/09/2026, P61: a pergunta mora no `meow_flavor` do lib/comum.sh, a
+  #   regra que os scripts chamados sem o bin/meow — as unidades do systemd leem
+  #   o meow.conf direto — também seguem, e o `mocha` de reserva saiu com ela.
+  #   E o molde das pastas é completado aqui também: o `meow icones` mostrava
+  #   `pastas cat--mauve`, o valor cru, com o Dracula no ar.]
+  FLAVOR="$(meow_flavor)"; ACCENT="${ACCENT:-mauve}"
+  case "${ICONES_PASTAS:-}" in cat--?*) ICONES_PASTAS="cat-$FLAVOR-${ICONES_PASTAS#cat--}" ;; esac
   MODO="${MODO:-escuro}";    LOGO="${LOGO:-$FLAVOR}"
   export FLAVOR ACCENT MODO LOGO
   # A PONTE SHELL -> PYTHON, AQUI PORQUE AQUI É ONDE PACK/FLAVOR NASCEM

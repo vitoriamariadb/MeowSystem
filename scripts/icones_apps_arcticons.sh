@@ -119,7 +119,9 @@ BASE="$HOME/.local/share/icons/$TEMA"
 #   O `icones_apps.sh` usa `ICONES_FLAVOR` porque o acervo PNG dele só existe em
 #   macchiato e latte, e ele APROXIMA mocha e frappé para o vizinho. Aqui a cor
 #   sai da paleta, que tem os quatro — então mocha é mocha.
-FLAVOR="${FLAVOR:-mocha}"
+# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+FLAVOR="$(meow_flavor)"
 
 # O diretório de destino e a espessura do traço dele. Array para que acrescentar
 # um segundo tamanho (um `22x22/apps` com traço grosso, se um dia a barra passar

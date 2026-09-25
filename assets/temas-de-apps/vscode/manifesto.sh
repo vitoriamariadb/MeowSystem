@@ -739,21 +739,24 @@ _meow_vscode_do_pack() {
 # OS TEMAS DE ÍCONES QUE OS PACKS DO DISCO DECLARAM, separados por vírgula: a
 # régua do "de outro pack" da função logo abaixo, e ela não depende do pack no
 # ar. Uma pergunta só ao `scripts/pack.py`, importado.
+#
+# SÓ O PACK QUE PASSA NO `validar` CONTA — 25/09/2026, P61
+#   A lista era toda pasta com um pack.json, sem o `validar`. Medido com uma
+#   pasta `torta` que não passa nele (falta o `formato`) e declara o tema de
+#   ícones `icones-dela`, o settings.json dela nesse tema e um pack sem ícones no
+#   ar: o `aplicar` trocava o `icones-dela` pelo `vs-seti` de fábrica, como se o
+#   MeowSystem o tivesse posto. É a régua que a revisão da P55 levou ao snippet
+#   do Obsidian, e os ids vêm agora da mesma lista, o `meow_packs_validos` do
+#   lib/comum.sh — uma cópia da conta aqui seria a segunda.
 _VSC_TODOS_ICONES=""
 _meow_vscode_icones_de_todos() {
-  _VSC_TODOS_ICONES="$(python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
+  _VSC_TODOS_ICONES="$(MEOW_PACKS_VALIDOS="$(meow_packs_validos)" python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
 import os, sys
 sys.path.insert(0, sys.argv[1])
 import pack
 
-ids = set()
-for base in pack.raizes():
-    try:
-        ids.update(n for n in os.listdir(base) if os.path.isfile(os.path.join(base, n, "pack.json")))
-    except OSError:
-        pass
 icones = []
-for ident in sorted(ids):
+for ident in os.environ.get("MEOW_PACKS_VALIDOS", "").split():
     try:
         _quem, valor = pack.tema_de_app("apps.vscode-icones.esquema", ref=ident)
     except Exception:

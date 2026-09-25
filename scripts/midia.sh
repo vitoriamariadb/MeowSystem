@@ -70,7 +70,9 @@ FONTE="${MIDIA_FONTE:-auto}"
 COR_TITULO="${MIDIA_COR_TITULO:-mauve}"
 COR_ARTISTA="${MIDIA_COR_ARTISTA:-green}"
 CONTROLES="${MIDIA_CONTROLES:-nao}"
-_FLAVOR="${FLAVOR:-mocha}"
+# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+_FLAVOR="$(meow_flavor)"
 # A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
 # 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
 # Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.

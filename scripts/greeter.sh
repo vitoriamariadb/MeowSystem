@@ -49,7 +49,10 @@ ARVORES=(
 
 alvo_tema() {
   # Mesmo nome de captura que o resto do projeto usa: <flavor>-<accent>.
-  local flavor="${FLAVOR:-mocha}" accent="${ACCENT:-mauve}"
+  # Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
+  # Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+  local flavor accent="${ACCENT:-mauve}"
+  flavor="$(meow_flavor)"
   printf '%s-%s' "$flavor" "$accent"
 }
 

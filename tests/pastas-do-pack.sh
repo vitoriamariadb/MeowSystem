@@ -37,6 +37,15 @@
 #      o `icones_pastas.sh` procurava nelas o nome do glifo do Catppuccin, não
 #      achava nenhuma e dizia «já vestidas de Catppuccin macchiato».
 #
+# E AS DUAS REGRAS QUE A P61 CONSERTOU (25/09/2026)
+#   8. A lixeira dos flavors do Catppuccin: o `recolorir_lixeiras` pulava só o
+#      papel do Mocha, e com o latte, o frappé e o macchiato tomava o papel ou
+#      o símbolo da pasta por tom. A lixeira de cada flavor sai da sombra e do
+#      acento dele, e a do Mocha é a de antes, byte a byte.
+#   9. O corpo das sete pastas especiais do Dracula, fora da paleta dele
+#      (#433F4D e #534B62), passou ao slot mais próximo dela: o `surface0` e o
+#      `surface1`. Continuam sem recolorir pelo acento.
+#
 # POR QUE É DA MÁQUINA
 #   O script lê o Papirus-Dark por `/usr/share/icons/<base>` e o papirus-folders
 #   que o `scripts/baixar_upstream.sh` baixa (ou o que `MEOW_CAT_FOLDERS`
@@ -113,6 +122,44 @@ saida="$(guarda "$T/up-torto")"
   && ok "as guardas não deixaram nada na casa" \
   || falha "as guardas escreveram na casa de brinquedo" "$(find "$T/casa-guarda" | head)"
 
+# --- 9. o corpo das pastas especiais do Dracula é da paleta dele ------------
+#   As sete desenham a pasta em dois tons, as costas e a frente — os dois
+#   primeiros `<path>` de cada uma, a mesma silhueta nas sete —, e eles eram
+#   #433F4D e #534B62, fora da paleta do Dracula. Continuam sem recolorir pelo
+#   acento (`icones.pastas.recolorir: false`), e os dois tons passaram ao slot
+#   mais próximo, medido no OKLab e escrito no PROCEDENCIA.md do pack: as costas
+#   no `surface0`, a frente no `surface1`, lidos aqui da paleta.json. Nenhum dos
+#   dois tons de antes sobra em desenho nenhum.
+achado="$(python3 - "$RAIZ/packs/dracula" <<'PY'
+import glob, json, os, re, sys
+pack = sys.argv[1]
+with open(os.path.join(pack, "paleta.json"), encoding="utf-8") as fh:
+    dra = json.load(fh)["flavors"]["dracula"]
+quer = [dra["surface0"].upper(), dra["surface1"].upper()]
+erros, vistos = [], 0
+for svg in sorted(glob.glob(os.path.join(pack, "icones", "pastas", "*.svg"))):
+    vistos += 1
+    nome = os.path.basename(svg)
+    with open(svg, encoding="utf-8") as fh:
+        texto = fh.read()
+    # O `fill` dos dois primeiros `<path>`, na ordem do arquivo. Por texto, e
+    # não por um parser de XML: é arte versionada deste repositório, e o que
+    # se pergunta é o atributo de dois elementos.
+    corpo = [f.upper() for f in re.findall(r'<path\b[^>]*?\bfill="([^"]*)"', texto)][:2]
+    if corpo != quer:
+        erros.append("%s: o corpo é %s, e a paleta pede %s" % (nome, corpo, quer))
+    velhos = {h.upper() for h in re.findall(r"#[0-9A-Fa-f]{6}", texto)} & {"#433F4D", "#534B62"}
+    if velhos:
+        erros.append("%s: ainda tem %s" % (nome, sorted(velhos)))
+if vistos != 7:
+    erros.append("eram sete desenhos em icones/pastas/, e são %d" % vistos)
+print("\n".join(erros) if erros else "OK %s %s" % tuple(quer))
+PY
+)"
+[[ "$achado" == OK* ]] \
+  && ok "o corpo das sete pastas especiais do Dracula é o surface0 e o surface1 da paleta dele (${achado#OK })" \
+  || falha "o corpo das pastas especiais do Dracula está fora da paleta dele" "$achado"
+
 # --- 7. as sete pastas especiais do Dracula chegam ao disco ----------------
 #   O `icones_pastas.sh` não precisa do Papirus: ele copia os desenhos do pack
 #   para `scalable/places`. A casa começa como a máquina de 24/09 estava — os
@@ -177,6 +224,62 @@ else
     falha "com o Catppuccin no ar as pastas não são as do upstream ($difere de $contados diferem; folder.svg -> $alvo)"
   fi
 fi
+
+# --- 8. a lixeira de cada flavor do Catppuccin --------------------------------
+#   O `recolorir_lixeiras` pinta os dois cinzas da lixeira do Papirus com os
+#   dois tons da pasta vizinha que não são o papel dela — e pulava só o papel do
+#   Mocha. Medido com o mauve: a lixeira do latte saía `#4C4F69 #7425DB` (o
+#   `text` do latte e a sombra), e não `#7425DB #8839EF` (a sombra e o acento),
+#   como a do Mocha é `#B792E3 #CBA6F7`; a do frappé, `#414559 #B68AD2`; a do
+#   macchiato, `#363A4F #B28CE2`. A régua é a do script, dita daqui: os dois
+#   tons são a sombra (o hex da pasta do upstream que não é slot do flavor) e o
+#   acento, em ordem de texto — o primeiro no cinza claro, o segundo no escuro.
+#   No Mocha isso é a lixeira de antes, byte a byte; a casa dele é a da seção 1.
+for fl in latte frappe macchiato; do
+  pastas "$T/casa-lixeira-$fl" "" "$fl" mauve >/dev/null
+done
+achado="$(python3 - "$RAIZ" "$UP" "$T" "$CASA_CAT" <<'PY'
+import json, os, re, sys
+raiz, up, t, casa_mocha = sys.argv[1:5]
+HEX = re.compile(r"#[0-9A-Fa-f]{6}")
+with open(os.path.join(raiz, "packs", "catppuccin", "paleta.json"), encoding="utf-8") as fh:
+    cat = json.load(fh)["flavors"]
+erros, tons = [], {}
+for fl in ("latte", "frappe", "macchiato", "mocha"):
+    casa = casa_mocha if fl == "mocha" else os.path.join(t, "casa-lixeira-" + fl)
+    slots = {h.upper() for h in cat[fl].values()}
+    for tam in ("22x22", "24x24", "32x32", "48x48", "64x64"):
+        with open(os.path.join(up, "src", tam, "places", "folder-cat-%s-mauve-documents.svg" % fl),
+                  encoding="utf-8") as fh:
+            sombra = sorted({h for h in HEX.findall(fh.read()) if h.upper() not in slots})
+        if len(sombra) != 1:
+            erros.append("%s %s: o upstream não tem UMA sombra fora da paleta: %s" % (fl, tam, sombra))
+            continue
+        claro, escuro = sorted(sombra + [cat[fl]["mauve"].upper()])
+        tons[fl] = "%s %s" % (claro, escuro)
+        for alvo in ("user-trash", "user-trash-full"):
+            with open(os.path.join("/usr/share/icons/Papirus-Dark", tam, "places", alvo + ".svg"),
+                      encoding="utf-8") as fh:
+                quer = fh.read()
+            quer = re.sub("#9f9f9f", claro, quer, flags=re.I)
+            quer = re.sub("#8e8e8e", escuro, quer, flags=re.I).rstrip("\n")
+            feito = os.path.join(casa, ".local/share/icons/MeowSystem-Icons", tam, "places", alvo + ".svg")
+            try:
+                with open(feito, encoding="utf-8") as fh:
+                    tem = fh.read()
+            except OSError:
+                tem = None
+            if tem != quer:
+                achados = sorted({h.upper() for h in HEX.findall(tem or "")})
+                erros.append("%s %s/%s.svg: %s, e a régua pede %s %s"
+                             % (fl, tam, alvo, achados if tem is not None else "não existe", claro, escuro))
+print("\n".join(erros[:8]) + ("\n(e mais %d)" % (len(erros) - 8) if len(erros) > 8 else "") if erros
+      else "OK " + "; ".join("%s %s" % (fl, tons[fl]) for fl in ("latte", "frappe", "macchiato", "mocha")))
+PY
+)"
+[[ "$achado" == OK* ]] \
+  && ok "a lixeira de cada flavor do Catppuccin é a sombra e o acento dele (${achado#OK }), e a do Mocha, a de antes" \
+  || falha "a lixeira de algum flavor do Catppuccin tomou o papel ou o símbolo da pasta por tom" "$achado"
 
 # --- 2. com o Dracula no ar, as pastas vestem a paleta dele ----------------
 CASA_DRA="$T/casa-dracula"

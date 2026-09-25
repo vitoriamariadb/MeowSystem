@@ -366,6 +366,30 @@ if [ -d "$FONTE/src/64x64/places" ] && ! _cor_de_pasta_existe "$COR"; then
   unset _cor_pedida _cor_alt
 fi
 
+# O PAPEL QUE A LIXEIRA PULA É O DO FLAVOR DAS PASTAS — 25/09/2026, sprint P61
+#   O `PAPEL_DAS_PASTAS` lá de cima é o do Mocha, e só a variante derivada o
+#   trocava pelo do flavor dela. As outras 42 do papirus-folders — o latte, o
+#   frappé e o macchiato — seguiam com o do Mocha, e o `recolorir_lixeiras`
+#   tomava o papel ou o símbolo delas por tom. Medido com o mauve: a lixeira do
+#   latte saía `#4C4F69 #7425DB` (o `text` e a sombra), e não `#7425DB #8839EF`
+#   (a sombra e o acento), como a do Mocha é `#B792E3 #CBA6F7`; a do frappé,
+#   `#414559 #B68AD2`; a do macchiato, `#363A4F #B28CE2`. Agora os quatro slots
+#   saem do flavor da variante, pelo nome, na paleta do pack padrão — o
+#   Catppuccin que o papirus-folders pinta, a de origem da derivação. No Mocha
+#   são os quatro hex de sempre, e a lixeira dele não muda um byte. Sem python3,
+#   ou com um flavor que a paleta não tem, fica o do Mocha, como era.
+if [ -z "$DERIVADA" ] && meow_tem python3; then
+  _papel="$(python3 - "$(meow_pack_padrao_dir)/paleta.json" "${COR#cat-}" "$SLOTS_DO_PAPEL" <<'PY' 2>/dev/null
+import json, sys
+arq, variante, slots = sys.argv[1:4]
+with open(arq, encoding="utf-8") as fh:
+    cores = json.load(fh)["flavors"][variante.rsplit("-", 1)[0]]
+print("|".join(cores[s][1:].upper() for s in slots.split("|")))
+PY
+)" && [ -n "$_papel" ] && PAPEL_DAS_PASTAS="$_papel"
+  unset _papel
+fi
+
 TAMANHOS=(22x22 24x24 32x32 48x48 64x64)
 
 # --- os nomes que este script CEDE (ver o cabeçalho) -------------------------
