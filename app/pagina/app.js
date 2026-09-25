@@ -8930,7 +8930,7 @@ function montarHome() {
 
   const comoEscolhido = { hora: "escolhida pelo relógio", rotacao: "girando pela lista", fixo: "fixa" };
   ident.append(elemento("p", { class: "home-linha", texto:
-    `Logo ${gatoNome ? rotuloDeValor(gatoNome) : "—"}, ${comoEscolhido[vale("LOGO_MODO")] || "fixa"} · ícones ${vale("NOME_TEMA_ICONES")} · ponteiro ${vale("CURSOR") || "de fábrica"}` }));
+    `Logo ${gatoNome ? maiuscula(rotuloDeValor(gatoNome)) : "—"}, ${comoEscolhido[vale("LOGO_MODO")] || "fixa"} · ícones ${vale("NOME_TEMA_ICONES")} · ponteiro ${vale("CURSOR") || "de fábrica"}` }));
   retrato.append(ident);
 
   /* As fotos são a COLEÇÃO, não "a que está na tela" — a página não sabe qual
