@@ -298,11 +298,15 @@ etapa_backup_tema() {
   # dizia DUAS raízes diferentes na mesma pasta — e a instrução mandava o
   # humano restaurar na errada. (O par idêntico do `scripts/aplicar_tema.sh`,
   # linhas 324 e 329, tem o mesmo literal e é de fora desta sprint: anotado.)
+  # O BOTÃO SAI DO `--onde` — 24/09/2026, P57: esta frase citava o «Voltar ao
+  # tema de antes» por extenso, a classe do achado 47. Sem resposta (sem
+  # python3, sem o painel no clone), ela fica só com o `meow desfazer`.
+  local onde; onde="$(meow_onde_no_painel desfazer)"
   cat > "$destino/COMO-RESTAURAR.txt" <<FIM
 Estado de $cosmic (só as árvores de tema) de ANTES do MeowSystem nesta
 máquina, guardado em $(date '+%d/%m/%Y %H:%M:%S').
 
-É o que o "Voltar ao tema de antes" do painel e o "meow desfazer" devolvem.
+É o que o "meow desfazer" devolve${onde:+ — no painel, $onde}.
 
 Para voltar exatamente a este estado, à mão:
 
@@ -1641,7 +1645,9 @@ etapa_lancador_apt() {
       #   depois de todo apt, calado.
       if ! meow_conf_diz LANCADOR_SISTEMA nao; then
         meow_aviso "o hook de apt existe e o meow.conf não diz LANCADOR_SISTEMA=\"nao\" — deixo como está"
-        meow_info "  para removê-lo, escreva a chave (pelo painel, em «Arrumar o lançador»)"
+        # O CARTÃO SAI DO `--onde` — 24/09/2026, P57 (a classe do achado 47).
+        local onde; onde="$(meow_onde_no_painel LANCADOR_SISTEMA)"
+        meow_info "  para removê-lo, escreva a chave${onde:+ (pelo painel, em $onde)}"
         return "$MEOW_SEM_DEPENDENCIA"
       fi
       if meow_seco; then
@@ -3745,7 +3751,9 @@ main() {
   #   No ensaio a etapa já disse o que faria, e o rodapé dele segue o de sempre.
   if [ -n "${TEMA_NAO_APLICADO:-}" ] && ! meow_seco; then
     printf '\n  %s%s%s\n' "$C_AMARELO$C_FORTE" "$TEMA_NAO_APLICADO" "$C_ZERO"
-    printf '  O resto do instalador seguiu; a pendência fica na aba Início do painel.\n\n'
+    # A ABA SAI DO `--onde` — P57: o nome da Início era escrito aqui à mão.
+    local onde; onde="$(meow_onde_no_painel inicio)"
+    printf '  O resto do instalador seguiu; a pendência fica no painel%s.\n\n' "${onde:+, $onde}"
     return "$MEOW_DIVERGENTE"
   fi
 

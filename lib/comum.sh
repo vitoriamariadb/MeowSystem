@@ -1499,6 +1499,9 @@ _meow_pendencia_tirar() {
 #   conferir» dezoito dias depois de ela virar «Instalação» (achado 47). Sem
 #   python3 ou sem o painel no clone, a resposta é vazia, e a frase que a usaria
 #   simplesmente não cita tela nenhuma — melhor que citar a errada.
+#   DESDE A P57 (24/09/2026) ELA RESPONDE TAMBÉM CARTÃO E ABA: uma chave do
+#   meow.conf dá «título do cartão», na aba Seção, e `inicio` dá a aba que abre
+#   o painel — as duas frases que o `install.sh` ainda escrevia à mão.
 meow_onde_no_painel() {
   local servidor="$MEOW_RAIZ/app/servidor.py"
   [ -f "$servidor" ] && command -v python3 >/dev/null 2>&1 || return 1

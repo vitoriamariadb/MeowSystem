@@ -9560,8 +9560,13 @@ function montarGrupos() {
 
     /* A HOME É UM GRUPO, e é por isso que ela é a aba que abre por padrão
      * (`ABA = abaDoHash() || chaveDeAba(GRUPOS[0])`). Ela não é um assunto entre
-     * os outros — é a porta, e por isso entra antes dos dois blocos do menu. */
-    GRUPOS.unshift({ tipo: "home", nome: "Início", itens: [] });
+     * os outros — é a porta, e por isso entra antes dos dois blocos do menu.
+     * O NOME VEM DO SERVIDOR desde 24/09/2026 (P57), como o das outras abas: é
+     * de lá que o `--onde inicio` o dá aos scripts, e escrito aqui seria o
+     * segundo dono de um nome de tela — o `install.sh` citava a «aba Início»
+     * à mão. As chaves "Início" do `ICONES_MENU` e das prévias continuam
+     * sendo o texto da aba, como as das seções. */
+    GRUPOS.unshift({ tipo: "home", nome: ESQUEMA.aba_inicio, itens: [] });
 
     /* AS GALERIAS ENTRAM NO ASSUNTO A QUE PERTENCEM, e é por isso que a página
      * de papel de parede tem a coleção, os nove ajustes e as sete ações: os três
