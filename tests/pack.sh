@@ -3300,6 +3300,68 @@ else
   ok "o pack padrão não declara os temas de aplicativo da P42 — ausência, e não empréstimo"
 fi
 
+# --- 29b. os aplicativos vestem o pack no ar — 24/09/2026, P55 ---------------
+#
+#   O Obsidian, o VS Code e o Heroic traziam o tema do Catppuccin cravado. Agora
+#   os dois packs o declaram no bloco `apps`, e esta seção prova o lado do
+#   FORMATO: cada pack responde pelo dele, o tema de fora do Dracula é pinado
+#   (https, e o sha256 do pacote), a procedência está escrita, e nenhum campo novo
+#   cai no aviso de campo morto. Se aplicam, conferem e desfazem — e se recusam o
+#   herdado — é o `tests/temas-de-apps.sh`, numa casa de brinquedo.
+#   Sem `MEOW_PACKS` e com um XDG vazio, como a seção 29: a pergunta é sobre os
+#   packs do repositório.
+app55() { so_repo python3 "$RAIZ/scripts/pack.py" app "$1" "apps.$2" 2>&1; }
+valor55() { app55 "$1" "$2" | sed -n 's/^valor=//p'; }
+faltam=""
+for par in "catppuccin obsidian.esquema Catppuccin" "catppuccin vscode.esquema Catppuccin Mocha" \
+           "catppuccin vscode.origem.extensao Catppuccin.catppuccin-vsc" \
+           "catppuccin vscode-icones.esquema catppuccin-mocha" \
+           "dracula obsidian.esquema Dracula Official" "dracula vscode.esquema Dracula Theme" \
+           "dracula vscode.origem.extensao dracula-theme.theme-dracula" "dracula heroic.esquema dracula"; do
+  read -r p trilha esperado <<< "$par"
+  saida="$(app55 "$p" "$trilha")"
+  printf '%s\n' "$saida" | grep -qx "pack=$p" && [ "$(valor55 "$p" "$trilha")" = "$esperado" ] \
+    || faltam+=" $p/$trilha ($saida);"
+done
+# O `<flavor>` do Heroic do Catppuccin sai com o FLAVOR da máquina.
+[ "$(so_repo env FLAVOR=latte python3 "$RAIZ/scripts/pack.py" app catppuccin apps.heroic.esquema | sed -n 's/^valor=//p')" \
+  = "catppuccin-latte-<accent>.css" ] || faltam+=" heroic do catppuccin com FLAVOR=latte;"
+[ -z "$faltam" ] \
+  && ok "os dois packs declaram o tema do Obsidian, do VS Code e do Heroic, e cada um responde pelo dele" \
+  || falha "o bloco apps da P55 não responde como declarado:$faltam"
+
+# O TEMA DE FORA DO DRACULA É PINADO, E A PROCEDÊNCIA ESTÁ ESCRITA. A forma é a
+#   da P41 (https, 64 hex minúsculos, a pasta sem `..`); o conteúdo, quem confere
+#   é o módulo, na instalação. Cada pino tem a linha dele no PROCEDENCIA.md, com o
+#   mesmo sha256 — um número no pack.json e outro na procedência é a divergência
+#   calada que a tabela existe para matar.
+faltam=""
+for app in obsidian vscode; do
+  url="$(valor55 dracula "$app.origem.url")"; sha="$(valor55 dracula "$app.origem.sha256")"
+  [[ "$url" == https://* ]] && [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || faltam+=" $app: url ou sha256 fora da forma ($url $sha);"
+  grep -qF "$sha" "$RAIZ/packs/dracula/PROCEDENCIA.md" || faltam+=" $app: o sha256 não está no PROCEDENCIA.md;"
+done
+pasta="$(valor55 dracula obsidian.origem.pasta)"
+[[ "$pasta" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*$ ]] && [[ "$(valor55 dracula obsidian.origem.url)" == *"/archive/${pasta#obsidian-}.tar.gz" ]] \
+  || faltam+=" obsidian: a pasta ($pasta) não é a do commit da URL;"
+[ -z "$faltam" ] \
+  && ok "o Obsidian e o VS Code do Dracula descem pinados, e o PROCEDENCIA.md traz os dois sha256" \
+  || falha "o pino do tema de fora do Dracula:$faltam"
+
+# O DRACULA NÃO TRAZ ÍCONES DE VS CODE, E ISSO É AUSÊNCIA DITA: a herança
+#   responde pelo Catppuccin, e é o módulo que recusa o herdado (o teste de lá).
+#   E nenhum campo novo é campo morto — nos dois packs.
+saida="$(app55 dracula vscode-icones.esquema)"
+printf '%s\n' "$saida" | grep -qx 'pack=catppuccin' \
+  && ok "os ícones de VS Code do Dracula sobem ao Catppuccin pela herança — e o módulo os recusa (temas-de-apps.sh)" \
+  || falha "apps.vscode-icones do Dracula não subiu ao Catppuccin, e o teste do módulo deixou de provar a recusa" "$saida"
+mortos="$(so_repo python3 "$RAIZ/scripts/pack.py" validar dracula 2>&1; so_repo python3 "$RAIZ/scripts/pack.py" validar catppuccin 2>&1)"
+if printf '%s\n' "$mortos" | grep -qE '^ +apps\.'; then
+  falha "um campo do bloco apps da P55 caiu no aviso de campo morto" "$mortos"
+else
+  ok "nenhum campo do bloco apps da P55 é campo morto, no Dracula nem no Catppuccin"
+fi
+
 # --- 30. o esquema do cosmic-term troca junto com o pack — 24/09/2026, P51 ----
 #
 #   O achado 40: com o Dracula no ar o `terminal.sh` instalava o esquema
@@ -3399,68 +3461,6 @@ PY
 [ "$rc" = "0" ] \
   && ok "o latte herdado tem a régua do dono, a textura zerada é desligado, e as 26 cores têm nome" \
   || falha "o que a revisão da P51 reprovou voltou" "$saida"
-
-# --- 32. os aplicativos vestem o pack no ar — 24/09/2026, P55 ----------------
-#
-#   O Obsidian, o VS Code e o Heroic traziam o tema do Catppuccin cravado. Agora
-#   os dois packs o declaram no bloco `apps`, e esta seção prova o lado do
-#   FORMATO: cada pack responde pelo dele, o tema de fora do Dracula é pinado
-#   (https, e o sha256 do pacote), a procedência está escrita, e nenhum campo novo
-#   cai no aviso de campo morto. Se aplicam, conferem e desfazem — e se recusam o
-#   herdado — é o `tests/temas-de-apps.sh`, numa casa de brinquedo.
-#   Sem `MEOW_PACKS` e com um XDG vazio, como a seção 29: a pergunta é sobre os
-#   packs do repositório.
-app55() { so_repo python3 "$RAIZ/scripts/pack.py" app "$1" "apps.$2" 2>&1; }
-valor55() { app55 "$1" "$2" | sed -n 's/^valor=//p'; }
-faltam=""
-for par in "catppuccin obsidian.esquema Catppuccin" "catppuccin vscode.esquema Catppuccin Mocha" \
-           "catppuccin vscode.origem.extensao Catppuccin.catppuccin-vsc" \
-           "catppuccin vscode-icones.esquema catppuccin-mocha" \
-           "dracula obsidian.esquema Dracula Official" "dracula vscode.esquema Dracula Theme" \
-           "dracula vscode.origem.extensao dracula-theme.theme-dracula" "dracula heroic.esquema dracula"; do
-  read -r p trilha esperado <<< "$par"
-  saida="$(app55 "$p" "$trilha")"
-  printf '%s\n' "$saida" | grep -qx "pack=$p" && [ "$(valor55 "$p" "$trilha")" = "$esperado" ] \
-    || faltam+=" $p/$trilha ($saida);"
-done
-# O `<flavor>` do Heroic do Catppuccin sai com o FLAVOR da máquina.
-[ "$(so_repo env FLAVOR=latte python3 "$RAIZ/scripts/pack.py" app catppuccin apps.heroic.esquema | sed -n 's/^valor=//p')" \
-  = "catppuccin-latte-<accent>.css" ] || faltam+=" heroic do catppuccin com FLAVOR=latte;"
-[ -z "$faltam" ] \
-  && ok "os dois packs declaram o tema do Obsidian, do VS Code e do Heroic, e cada um responde pelo dele" \
-  || falha "o bloco apps da P55 não responde como declarado:$faltam"
-
-# O TEMA DE FORA DO DRACULA É PINADO, E A PROCEDÊNCIA ESTÁ ESCRITA. A forma é a
-#   da P41 (https, 64 hex minúsculos, a pasta sem `..`); o conteúdo, quem confere
-#   é o módulo, na instalação. Cada pino tem a linha dele no PROCEDENCIA.md, com o
-#   mesmo sha256 — um número no pack.json e outro na procedência é a divergência
-#   calada que a tabela existe para matar.
-faltam=""
-for app in obsidian vscode; do
-  url="$(valor55 dracula "$app.origem.url")"; sha="$(valor55 dracula "$app.origem.sha256")"
-  [[ "$url" == https://* ]] && [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || faltam+=" $app: url ou sha256 fora da forma ($url $sha);"
-  grep -qF "$sha" "$RAIZ/packs/dracula/PROCEDENCIA.md" || faltam+=" $app: o sha256 não está no PROCEDENCIA.md;"
-done
-pasta="$(valor55 dracula obsidian.origem.pasta)"
-[[ "$pasta" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*$ ]] && [[ "$(valor55 dracula obsidian.origem.url)" == *"/archive/${pasta#obsidian-}.tar.gz" ]] \
-  || faltam+=" obsidian: a pasta ($pasta) não é a do commit da URL;"
-[ -z "$faltam" ] \
-  && ok "o Obsidian e o VS Code do Dracula descem pinados, e o PROCEDENCIA.md traz os dois sha256" \
-  || falha "o pino do tema de fora do Dracula:$faltam"
-
-# O DRACULA NÃO TRAZ ÍCONES DE VS CODE, E ISSO É AUSÊNCIA DITA: a herança
-#   responde pelo Catppuccin, e é o módulo que recusa o herdado (o teste de lá).
-#   E nenhum campo novo é campo morto — nos dois packs.
-saida="$(app55 dracula vscode-icones.esquema)"
-printf '%s\n' "$saida" | grep -qx 'pack=catppuccin' \
-  && ok "os ícones de VS Code do Dracula sobem ao Catppuccin pela herança — e o módulo os recusa (temas-de-apps.sh)" \
-  || falha "apps.vscode-icones do Dracula não subiu ao Catppuccin, e o teste do módulo deixou de provar a recusa" "$saida"
-mortos="$(so_repo python3 "$RAIZ/scripts/pack.py" validar dracula 2>&1; so_repo python3 "$RAIZ/scripts/pack.py" validar catppuccin 2>&1)"
-if printf '%s\n' "$mortos" | grep -qE '^ +apps\.'; then
-  falha "um campo do bloco apps da P55 caiu no aviso de campo morto" "$mortos"
-else
-  ok "nenhum campo do bloco apps da P55 é campo morto, no Dracula nem no Catppuccin"
-fi
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
