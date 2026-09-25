@@ -579,6 +579,13 @@ fi
 #   mão, que é precisamente o ato que criou o problema — e a derivação real tem
 #   mais campos do que este script conhece. Quem deriva certo é a GUI: mover o
 #   slider uma vez basta.
+#   (25/09/2026, revisão da P58: isso deixou de valer para o vidro. Desde a P58
+#   o `aplicar_tema.sh` deriva, fora da GUI, os campos que carregam o vidro —
+#   o `scripts/derivar_vidro.py`, com a lista medida no `build()` do libcosmic
+#   e a guarda de que a captura se reproduz —, e o conselho lá embaixo manda
+#   reaplicar a captura quando, aplicada aqui, ela grava o alpha do nível.
+#   Este script continua só comparando; a GUI fica como o caminho quando a
+#   conta daquela captura não fecha.)
 #
 # (`_frosted_para_chave` mora lá em cima, junto do `--conferir`: as duas
 #  conferências precisam dela, e a de cima roda antes deste ponto do arquivo.)

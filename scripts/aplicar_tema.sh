@@ -453,12 +453,16 @@ FIM
 # --- O VIDRO SEGUE O COSMIC INSTALADO — 25/09/2026, sprint P58 ----------------
 # O `alpha_map` e o `frosted` são dela (`CHAVES_DELA`, lá em cima) e ficam; as
 # CORES que carregam o vidro iam como a captura as fotografou, com o
-# `alpha_map` da versão do COSMIC de quando a foto foi tirada. Medido nesta
-# máquina em 25/09: o `alpha_map` ao vivo, gravado em 17/09 pelo COSMIC
-# atualizado, dá `very_high_2: 0.52615` (alpha 86); o `dracula-mauve` traz
-# 0.66615 e grava `#383A4CAA` no `transparent_background`. Com o `frosted` em
-# `VeryHigh2` nos dois, a tela ficava em 67 % com o nível pedindo 52 % — e o
-# `--conferir` dizia "já aplicado (189 arquivos conferem)".
+# `alpha_map` do dia da foto. Medido nesta máquina em 25/09: o `alpha_map` ao
+# vivo, que o slider «Opacidade do vidro» gravou em 17/09, dá
+# `very_high_2: 0.52615` (alpha 86); o `dracula-mauve` traz 0.66615 e grava
+# `#383A4CAA` no `transparent_background`. Com o `frosted` em `VeryHigh2` nos
+# dois, a tela ficava em 67 % com o nível pedindo 52 % — e o `--conferir`
+# dizia "já aplicado (189 arquivos conferem)".
+# (Revisão da P58, 25/09/2026: a primeira redação dizia "gravado pelo COSMIC
+# atualizado", e não houve atualização — nenhum pacote do COSMIC mudou entre
+# 11 e 21/09. A conta que mostra que o mapa é o do slider está no cabeçalho do
+# `derivar_vidro.py`.)
 #
 # A CAPTURA PASSA A SER LIDA COMO ESTE COSMIC A DERIVA. O `derivar_vidro.py`
 # refaz, numa cópia fora do COSMIC, só os campos que o `ThemeBuilder::build()`
@@ -561,10 +565,10 @@ while IFS= read -r -d '' arq; do
   # A FOTO NO DESTINO NÃO É OBRA DA GUI — 25/09/2026, sprint P58
   #   Com o vidro vindo do `alpha_map` dela (o bloco de antes do laço), um
   #   produto que diverge da vista pode ser a própria foto da captura, que um
-  #   `aplicar_tema` anterior gravou com o vidro da versão velha. Isso não é
+  #   `aplicar_tema` anterior gravou com o vidro do mapa da foto. Isso não é
   #   derivação dela, é cópia nossa — e ceder deixava o AA na tela para sempre.
   #   Medido nesta máquina: a receita no disco difere da `dracula-mauve` só no
-  #   `alpha_map` (o COSMIC de 17/09 o reescreveu), então todo «Salvar e
+  #   `alpha_map` (o slider o reescreveu em 17/09), então todo «Salvar e
   #   aplicar» (`--respeitar-gui`) cairia aqui e sairia 4, dizendo «você mexeu
   #   em Aparência». Sem vista, a foto É a origem, e o arquivo que chega aqui
   #   já diverge dela: nada muda.

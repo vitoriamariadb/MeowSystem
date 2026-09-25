@@ -2,24 +2,32 @@
 # vidro-do-cosmic.sh — o vidro que o tema grava é o do alpha_map que o COSMIC tem.
 #
 # POR QUE ESTE ARQUIVO NASCEU EM 25/09/2026 (sprint P58)
-#   Medido na máquina dela: o `alpha_map` ao vivo, gravado em 17/09 pelo COSMIC
-#   atualizado, dá `very_high_2: 0.52615` (alpha 86). A captura `dracula-mauve`
-#   traz o mapa anterior, 0.66615 (alpha AA), e o `transparent_background` dela
-#   é `#383A4CAA`. Com o `frosted` em `VeryHigh2` nos dois, o tema aplicado
-#   deixava o vidro em AA (67 %) com o nível pedindo 86 (52 %); o
-#   `aplicar_tema.sh --conferir` dizia "já aplicado (189 arquivos conferem)"; e
-#   o `vidro.sh` mandava reaplicar a captura que já estava aplicada.
+#   Medido na máquina dela: o `alpha_map` ao vivo, que o slider «Opacidade do
+#   vidro» gravou em 17/09, dá `very_high_2: 0.52615` (alpha 86). A captura
+#   `dracula-mauve` traz o mapa do dia da foto, 0.66615 (alpha AA), e o
+#   `transparent_background` dela é `#383A4CAA`. Com o `frosted` em `VeryHigh2`
+#   nos dois, o tema aplicado deixava o vidro em AA (67 %) com o nível pedindo
+#   86 (52 %); o `aplicar_tema.sh --conferir` dizia "já aplicado (189 arquivos
+#   conferem)"; e o `vidro.sh` mandava reaplicar a captura que já estava
+#   aplicada.
+#   (Revisão da P58, 25/09/2026: a primeira redação dizia "gravado pelo COSMIC
+#   atualizado"; nenhum pacote do COSMIC mudou entre 11 e 21/09. A medição
+#   está no cabeçalho do scripts/derivar_vidro.py.)
 #
 #   A prova que a sprint pediu: numa casa de brinquedo com o `alpha_map` novo,
 #   aplicar `dracula-mauve` grava o `transparent_background` com alpha 86, e o
 #   `vidro.sh` confere sem aviso; com o mapa da captura, os bytes são os de hoje.
 #
 # OS VALORES ESPERADOS NÃO SÃO CONTA DESTE TESTE
-#   Os catorze campos do vidro da seção 1 são os que a GUI do COSMIC instalado
-#   (cosmic-settings 1.9.0) gravou nesta máquina entre 19 e 21/09, com esta
-#   mesma receita e este mesmo mapa — estão no backup do `aplicar_tema.sh` de
-#   21/09 —, e são também o que o `ThemeBuilder::build()` do libcosmic escreve
-#   no oráculo de bancada. O `on` da seção 3 é o do oráculo (commit c003a58).
+#   Os catorze campos do vidro da seção 1 são os que a GUI desta máquina
+#   (cosmic-settings 1.7.0) gravou em 17/09 22:35:41, quando o slider gravou
+#   este mapa, com esta mesma receita — estão no backup do `aplicar_tema.sh` de
+#   21/09 16:51, que preserva o mtime —, e são também o que o
+#   `ThemeBuilder::build()` do libcosmic escreve no oráculo de bancada. O `on`
+#   da seção 3 é o do oráculo (commit c003a58).
+#   (Revisão da P58: a primeira redação dizia que era o cosmic-settings 1.9.0,
+#   entre 19 e 21/09. O 1.9.0 entrou às 16:49 de 21/09, e nenhuma derivação
+#   dele com este mapa está em disco.)
 #
 # O MAPA ENTRA ESCRITO AQUI, E NÃO LIDO DO ~/.config/cosmic
 #   Este teste é portátil: o mapa de 17/09 vai literal, como o COSMIC o grava.
@@ -43,7 +51,7 @@ cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/catppuccin" "$PACKS/" || exit 2
 CAP="$PACKS/dracula/temas/capturados/dracula-mauve"
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null)"
 
-# O `alpha_map` que o COSMIC de 17/09 gravou, byte a byte.
+# O `alpha_map` que o slider gravou em 17/09, byte a byte.
 MAPA_NOVO='(
     extremely_low: 0.78,
     extremely_low_2: 0.75692,
@@ -107,7 +115,7 @@ fi
 saida="$(aplicar "$C1" dracula-mauve --respeitar-gui --conferir)"; rc=$?
 [ "$rc" = "1" ] \
   && ok "o --conferir deixou de dizer «já aplicado» com o vidro errado ($saida)" \
-  || falha "o --conferir ainda confere a foto com o vidro de outra versão (rc=$rc)" "$saida"
+  || falha "o --conferir ainda confere a foto com o vidro de outro mapa (rc=$rc)" "$saida"
 
 # O caminho do «Salvar e aplicar»: a etapa tema do install.sh chama assim.
 saida="$(aplicar "$C1" dracula-mauve --respeitar-gui)"; rc=$?
@@ -138,8 +146,8 @@ while read -r arq cam quer; do
   [ "$tem" = "$quer" ] || errados+="$arq $cam: $tem (esperado $quer)"$'\n'
 done <<< "$esperados"
 [ -z "$errados" ] \
-  && ok "Dark/v2: os 14 campos do vidro são os que a GUI do COSMIC instalado derivou (base #383A4C86)" \
-  || falha "o vidro da Dark/v2 não é o que o COSMIC instalado deriva" "$errados"
+  && ok "Dark/v2: os 14 campos do vidro são os que a GUI derivou com este mapa em 17/09 (base #383A4C86)" \
+  || falha "o vidro da Dark/v2 não é o que a GUI derivou com este mapa" "$errados"
 
 # Fora do vidro, nada: todo o resto é a foto, byte a byte (as chaves dela e
 # o que o vidro.sh escreve são dela e ficam).

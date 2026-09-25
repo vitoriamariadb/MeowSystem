@@ -2,20 +2,36 @@
 """O vidro de uma captura, derivado do `alpha_map` que o COSMIC desta máquina tem.
 
 O DEFEITO QUE ESTE ARQUIVO FECHA — 25/09/2026, sprint P58
-    O `alpha_map` ao vivo (gravado em 17/09 pelo COSMIC atualizado) dá
-    `very_high_2: 0.52615`, alpha 86. A captura `dracula-mauve` traz o mapa da
-    versão anterior, `very_high_2: 0.66615`, alpha AA, e o
+    O `alpha_map` ao vivo, que o slider «Opacidade do vidro» gravou em 17/09,
+    dá `very_high_2: 0.52615`, alpha 86. A captura `dracula-mauve` traz o mapa
+    do dia da foto, `very_high_2: 0.66615`, alpha AA, e o
     `transparent_background` dela é `#383A4CAA`. O `frosted` é `VeryHigh2` nos
     dois. O `aplicar_tema.sh` deixa o `alpha_map` e o `frosted` da GUI (são as
     chaves dela) e copiava a cor da captura: na tela o vidro ficava em AA
     (67 %) com o nível escolhido pedindo 86 (52 %). E o doctor mandava
     reaplicar a captura que já estava aplicada — conselho circular.
 
-O MAPA DA MÁQUINA É A VERDADE DA VERSÃO DO COSMIC
-    O `alpha_map` é o que a versão instalada do COSMIC diz que cada nível de
-    vidro vale; o da captura é fotografia de outra versão. Por isso a cor que
-    carrega o vidro sai da receita que vai ficar no disco depois de aplicar: a
-    da captura, com o `alpha_map` e o `frosted` que já estão no destino (que o
+O MAPA DO DESTINO É O SLIDER DELA, NÃO OUTRA VERSÃO DO COSMIC
+    A primeira redação daqui (25/09) dizia que o mapa ao vivo era o de "um
+    COSMIC atualizado em 17/09" e o da captura, "fotografia de outra versão".
+    Não é, e a revisão da P58 mediu, no mesmo dia:
+      · nenhum pacote do COSMIC mudou entre 11 e 21/09 (/var/log/dpkg.log): o
+        cosmic-settings 1.7.0 entrou em 11/09 17:02 e o 1.9.0 em 21/09 16:49;
+        em 17/09 o apt só trocou perl, sqlite, libsoup, libaom e gstreamer. O
+        mapa ao vivo tem mtime 17/09 22:35:41 nas duas árvores: foi o 1.7.0;
+      · ele é o `AlphaMap::default()` do libcosmic (0,90 a 0,60, o mesmo nos
+        três checkouts do ~/.cargo) com `.offset(-0.12)`, os 14 níveis iguais
+        em f32 — o que o slider grava: o `Message::Glass` do cosmic-settings
+        (src/pages/desktop/appearance/mod.rs, igual no commit 3cb538f, o do
+        pacote 1.7.0) parte do default e aplica o `offset`;
+      · a captura é de 11/09 22:27, com esse mesmo 1.7.0. O mapa Dark dela é o
+        `ALPHA_MAP` do gerar_temas.py, o default +0,02 que o `.ron` leva; o
+        Light é o default -0,36.
+    A regra fica, e o porquê é o do topo do `aplicar_tema.sh`: o `alpha_map` é
+    uma preferência contínua dela (`CHAVES_DELA`), e a captura só guarda a
+    posição do slider do dia em que foi tirada. Por isso a cor que carrega o
+    vidro sai da receita que vai ficar no disco depois de aplicar: a da
+    captura, com o `alpha_map` e o `frosted` que já estão no destino (que o
     `aplicar_tema.sh` não sobrescreve). Sem eles no destino (máquina nova), a
     captura grava os dela, e o vidro dela é o certo — nada muda.
 
@@ -42,7 +58,8 @@ QUAIS CAMPOS CARREGAM O VIDRO — MEDIDO NO ORÁCULO, NÃO SÓ LIDO
     a mais na escada do texto quando o fundo é translúcido, então outro alpha
     pode pôr o texto noutro degrau — e com ele os divisores. No `dracula-mauve`
     de hoje, de AA para 86, o texto fica no mesmo degrau e mudam só os dois
-    `transparent_*` da Dark. O `mocha-pink`, fotografado em `VeryLow2` (D9) e
+    `transparent_*` da Dark (e os três da Light, que vai de 49 para 86: cinco
+    arquivos). O `mocha-pink`, fotografado em `VeryLow2` (D9) e
     aplicado aqui em `VeryHigh2` (86), tem o texto do background subindo de
     #F6F8FF para #FFFFFF: 18 arquivos, com a v1.
     O `primary` usa o `container_alpha` mesmo com as caixas desligadas; os
@@ -59,13 +76,24 @@ A MATEMÁTICA É A DO `derivar_acento.py`, E ELE NÃO É TOCADO
     duas árvores, os 14 níveis de três mapas, com as caixas como estão e todas
     desligadas — 672 receitas, cada campo da lista acima igual ao que o
     `build()` escreve.
-    E contra o COSMIC INSTALADO, que é mais novo que o oráculo: o backup do
-    `aplicar_tema.sh` de 21/09 guarda a Dark/v2 que a GUI do cosmic-settings
-    1.9.0 derivou da receita do `dracula-mauve` com o mapa de 17/09. Os 54
-    campos do vidro que a conta dá são os dela, um a um. (Fora do vidro, não:
-    o 1.9.0 tira menos croma da neutra — a borda #A9BCF2 da captura sai
-    #B7BCD7 na GUI —, e isso a captura continua trazendo da versão de quando
-    foi tirada. Não é vidro; fica anotado.)
+    E contra a GUI desta máquina: o backup do `aplicar_tema.sh` de 21/09 16:51
+    guarda a Dark/v2 que o cosmic-settings 1.7.0 derivou da receita do
+    `dracula-mauve` em 17/09 22:35:41, quando o slider gravou o mapa de hoje
+    (o `cp -a` do backup preserva o mtime). Os 54 campos do vidro que a conta
+    dá são os dela, um a um. Nessa gravação a GUI escreveu o mapa nas duas
+    árvores e rederivou só a Dark: a Light/v2 ficou no alpha 49, com mtime de
+    16/09.
+    (A primeira redação atribuía essa derivação ao cosmic-settings 1.9.0,
+    "entre 19 e 21/09". Não foi: o 1.9.0 entrou às 16:49 de 21/09, dois
+    minutos antes do backup, e nenhuma derivação dele com este mapa está em
+    disco — nos backups seguintes e no disco de hoje, o vidro da Dark/v2 é o
+    das próprias capturas: AA, e o 8A do `mocha-mauve` em 24/09. Revisão da
+    P58, 25/09/2026.)
+    Fora do vidro a mesma receita não dá a captura: na derivação de 17/09 os
+    degraus da neutra têm menos croma (a borda #A9BCF2 da captura sai
+    #B7BCD7). Não é troca de versão — a captura é de 11/09 22:27 e nenhum
+    pacote do COSMIC mudou até 21/09 —, e de onde a diferença vem não foi
+    medido. Não é vidro; fica anotado.
 
 A GUARDA É A DA P48, CAMPO A CAMPO
     Antes de pintar o vidro novo, a conta pinta o vidro DA PRÓPRIA CAPTURA e
@@ -75,14 +103,17 @@ A GUARDA É A DA P48, CAMPO A CAMPO
     seria o tema híbrido que o docs/COSMIC-THEMING.md proíbe. Nesse caso a
     árvore inteira fica com o vidro da captura — o comportamento de antes — e
     a frase diz qual campo não fecha.
-    A guarda olha SÓ o campo que muda, e isso foi medido: a Light do
-    `dracula-mauve` e as duas árvores do `mocha-mauve` vêm de derivações mais
-    velhas, e nelas o divisor do background e o texto do `list_button` não
-    são o que o `build()` dá com o vidro delas. Com o mapa desta máquina esses
-    campos não mudam (o texto fica no mesmo degrau), então ficam como a foto
-    os tem, e os `transparent_*`, que fecham, recebem o vidro daqui. Exigir a
-    árvore inteira recusaria as três, e o vidro delas ficaria errado sem que
-    nada ficasse mais fiel por isso.
+    A guarda olha SÓ o campo que muda, e isso foi medido: três árvores trazem
+    campos que não são o que o `build()` dá com o vidro delas — na Dark do
+    `mocha-mauve`, o `divider` do background e o do secondary; na Light do
+    `mocha-mauve` e na do `dracula-mauve`, esses dois e o `list_button`
+    inteiro (`on`, `divider`, `on_disabled`). (Recontado na revisão da P58,
+    25/09/2026: a primeira redação punha o `list_button` nas três e esquecia o
+    `secondary`.) Com o mapa desta máquina esses campos não mudam (o texto fica
+    no mesmo degrau), então ficam como a foto os tem, e os `transparent_*`,
+    que fecham, recebem o vidro daqui. Exigir a árvore inteira recusaria as
+    três, e o vidro delas ficaria errado sem que nada ficasse mais fiel por
+    isso.
 """
 from __future__ import annotations
 
