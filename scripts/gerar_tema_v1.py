@@ -491,8 +491,12 @@ def main() -> int:
     #   rodar `meow tema capturar` — o passo manual do achado 31. Quem deriva é
     #   o irmão `derivar_acento.py`; aqui só se pergunta a ele, e o `--conferir`
     #   sai 1 quando há o que derivar, que é o que faz o instalador rodar esta
-    #   geração. Um par que não se deriva (flavor sem captura nenhuma) sai 3 lá
-    #   e é só informação aqui: quem avisa é a etapa `tema`.
+    #   geração. Um par que não se deriva sai 3 lá e é só informação aqui:
+    #   quem avisa é a etapa `tema`. É o par que não tem base nenhuma: nem foto
+    #   do mesmo flavor, nem de outro flavor do mesmo lado que se reproduza —
+    #   desde a P59 o flavor sem foto sai de outro, pelo `derivar_flavor.py`.
+    #   (25/09/2026, P63: dizia «flavor sem captura nenhuma», e esse flavor
+    #   passou a se derivar.)
     #   Antes da checagem do esquema v1, de propósito: a derivação copia a v1 da
     #   própria base, não gera nada por cima do molde de 04/2026.
     rc_acento = 0

@@ -149,53 +149,131 @@ done <<< "$esperados"
   && ok "Dark/v2: os 14 campos do vidro são os que a GUI derivou com este mapa em 17/09 (base #383A4C86)" \
   || falha "o vidro da Dark/v2 não é o que a GUI derivou com este mapa" "$errados"
 
-# A Light vai de 49 para 86 na mesma aplicação, e o teste não olhava para ela
+# A Light muda de vidro na mesma aplicação, e o teste não olhava para ela
 # (revisão da P58, 25/09/2026). Aqui a GUI não serve de referência: em 17/09
-# ela gravou o mapa nas duas árvores e rederivou só a Dark. Os 21 campos
-# abaixo são os que o `build()` do libcosmic escreve no oráculo de bancada com
-# a receita Light da captura e este mapa, conferidos um a um em 25/09.
-esperados_claro="transparent_background base #CCD0DA86
-transparent_background component.base #EAEEF886
-transparent_background component.hover #DBDEE792
-transparent_background component.pressed #D2D4DB9E
-transparent_background component.selected #DBDEE792
-transparent_background component.disabled #EAEEF843
-transparent_background divider #8A8D949E
-transparent_primary base #EFF1F5C6
-transparent_primary component.base #DFE1E5C6
-transparent_primary component.hover #DFE1E5C6
-transparent_primary component.pressed #DFE1E5C6
-transparent_primary component.selected #DFE1E5C6
-transparent_primary component.disabled #DFE1E563
-transparent_primary divider #B5B6B9D1
-transparent_secondary base #F1F5FFFF
-transparent_secondary component.base #EAEEF8FF
-transparent_secondary component.hover #ECF0F9FF
-transparent_secondary component.pressed #EEF2FAFF
-transparent_secondary component.selected #ECF0F9FF
-transparent_secondary component.disabled #EAEEF880
-transparent_secondary divider #C1C4CCFF"
-errados=""
-while read -r arq cam quer; do
-  tem="$(valor "$C1/com.system76.CosmicTheme.Light/v2/$arq" "$cam")"
-  [ "$tem" = "$quer" ] || errados+="$arq $cam: $tem (esperado $quer)"$'\n'
-done <<< "$esperados_claro"
+# ela gravou o mapa nas duas árvores e rederivou só a Dark. Os campos abaixo
+# são os que o `build()` do libcosmic escreve no oráculo de bancada com a
+# receita Light da captura e este mapa.
+# REFEITOS NA P63 (25/09/2026), quando a Light da captura deixou de ser o Latte
+# (VeryHigh2, 49 para 86) e passou a ser a derivada do alucard, com o nível do
+# latte-mauve de onde ela sai: `VeryLow2`, D9 para B5. Com B5 o texto sobe de
+# degrau — o `get_text()` anda mais quanto mais translúcido o fundo, a seção 3
+# conta —, e não só nos três `transparent_*`: o `on`, o `divider` e o
+# `on_disabled` do background, do primary, do secondary, do button e do
+# list_button andam junto (o #020210 da captura vira #090B1F). São 48 campos, e
+# a lista abaixo é a INTEIRA: os valores são os do oráculo, com a receita nova e
+# este mapa, e das 288 cores da Light/v2 a aplicação dá as 288 dele, menos o
+# alpha da Aurora no `base:` do `secondary` (ver o aplicar_tema.sh), que não
+# muda aqui.
+esperados_claro="transparent_background base #CECFDCB5
+transparent_background component.base #ECEDFAB5
+transparent_background component.hover #E6E7F2BD
+transparent_background component.pressed #E2E2ECC4
+transparent_background component.selected #E6E7F2BD
+transparent_background component.disabled #ECEDFA5B
+transparent_background component.divider #090B1F33
+transparent_background component.on #090B1FFF
+transparent_background component.on_disabled #090B1FA6
+transparent_background divider #9999A5C4
+transparent_background on #010009FF
+transparent_primary base #F0F0F6F5
+transparent_primary component.base #E0E0E6F5
+transparent_primary component.hover #E0E0E6F5
+transparent_primary component.pressed #E0E0E6F5
+transparent_primary component.selected #E0E0E6F5
+transparent_primary component.disabled #E0E0E67A
+transparent_primary component.divider #03041533
+transparent_primary component.on #030415FF
+transparent_primary component.on_disabled #030415A6
+transparent_primary divider #C1C1CAF7
+transparent_primary on #0B0E21FF
+transparent_secondary component.divider #090B1F33
+transparent_secondary component.on #090B1FFF
+transparent_secondary component.on_disabled #090B1FA6
+transparent_secondary divider #C5C6D3FF
+transparent_secondary on #0D1024FF
+background on #010009FF
+background divider #9FA0ACE1
+background component.on #090B1FFF
+background component.divider #090B1F33
+background component.on_disabled #090B1FA6
+primary on #0B0E21FF
+primary divider #C2C3CBFF
+primary component.on #030415FF
+primary component.divider #03041533
+primary component.on_disabled #030415A6
+secondary on #0D1024FF
+secondary divider #BFC0CCE1
+secondary component.on #090B1FFF
+secondary component.divider #090B1F33
+secondary component.on_disabled #090B1FA6
+button on #090B1FFF
+button divider #090B1F33
+button on_disabled #090B1FA6
+list_button on #090B1FFF
+list_button divider #090B1F33
+list_button on_disabled #090B1FA6"
+# Campo a campo, a Light/v2 aplicada contra a da captura: o que mudou tem de ser
+# exatamente a lista, com o valor dela; e a Light/v1 é o RGB da v2 nova, pela
+# mesma função do gerar_tema_v1.py, com o alpha do molde.
+errados="$(python3 - "$RAIZ" "$CAP" "$C1" "$esperados_claro" <<'FIM'
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1] + "/scripts")
+import gerar_tema_v1 as v1
+cap, cos = Path(sys.argv[2]), Path(sys.argv[3])
+quer = {}
+for linha in sys.argv[4].splitlines():
+    arq, cam, hexa = linha.split()
+    quer[(arq, cam)] = hexa
+def cores(arq):
+    try:
+        return {c: v for c, (t, v, _n) in v1.achatar(v1.parse(arq.read_text(encoding="utf-8"))).items()
+                if t == "cor"}
+    except (OSError, ValueError, IndexError):
+        return {}
+erros = []
+mudou = {}
+for a in sorted((cap / "com.system76.CosmicTheme.Light/v2").iterdir()):
+    antes, depois = cores(a), cores(cos / a.relative_to(cap))
+    for cam, v in antes.items():
+        if depois.get(cam, "").upper() != v.upper():
+            mudou[(a.name, cam)] = depois.get(cam, "nada")
+for chave in sorted(mudou.keys() | quer.keys()):
+    tem, esp = mudou.get(chave), quer.get(chave)
+    if esp is None:
+        erros.append(f"{chave[0]} {chave[1]} mudou para {tem}, e não é campo do vidro")
+    elif tem is None or tem.upper() != esp:
+        erros.append(f"{chave[0]} {chave[1]}: {tem or 'o da captura'} (esperado {esp})")
+for chave in v1.CONJUNTO:
+    molde = cap / "com.system76.CosmicTheme.Light/v1" / chave
+    fonte = cos / "com.system76.CosmicTheme.Light/v2" / chave
+    if molde.is_file() and fonte.is_file():
+        txt, _ = v1.gerar_arquivo(molde.read_text(encoding="utf-8"), fonte.read_text(encoding="utf-8"))
+        if (cos / "com.system76.CosmicTheme.Light/v1" / chave).read_text(encoding="utf-8") != txt:
+            erros.append(f"Light/v1/{chave} não é o RGB da Light/v2 aplicada")
+print("\n".join(erros))
+FIM
+)"
 [ -z "$errados" ] \
-  && ok "Light/v2: os três transparent_* saem do 49 da captura para 86, e os 21 campos são os do build() (base #CCD0DA86)" \
+  && ok "Light/v2: os transparent_* saem do D9 da captura para B5, o texto sobe de degrau, e os 48 campos que mudam são os do build() (base #CECFDCB5); a v1 acompanha" \
   || falha "o vidro da Light/v2 não é o que o build() dá com este mapa" "$errados"
 
 # Fora do vidro, nada: todo o resto é a foto, byte a byte (as chaves dela e
-# o que o vidro.sh escreve são dela e ficam).
+# o que o vidro.sh escreve são dela e ficam). A Light/v2 e a Light/v1 saem
+# desta conta desde a P63: o degrau do texto delas é vidro, e a conferência
+# campo a campo, logo acima, é que diz o que nelas podia mudar.
 fora=""
 while IFS= read -r -d '' a; do
   rel="${a#"$CAP"/}"
   case "$rel" in manifesto.sha256|captura.txt|.gitignore) continue ;; esac
   case "$(basename "$rel")" in alpha_map|frosted|frosted_maximized_apps) continue ;; esac
   case "$rel" in com.system76.CosmicTheme.*/v2/transparent_*) continue ;; esac
+  case "$rel" in com.system76.CosmicTheme.Light/v[12]/*) continue ;; esac
   cmp -s "$a" "$C1/$rel" || fora+="$rel"$'\n'
 done < <(find "$CAP" -type f -print0)
 [ -z "$fora" ] \
-  && ok "fora dos transparent_* nada mudou: o resto do COSMIC é a captura byte a byte" \
+  && ok "fora do vidro nada mudou: o resto do COSMIC é a captura byte a byte" \
   || falha "a derivação do vidro mexeu fora do vidro" "$fora"
 
 r1="$(aplicar "$C1" dracula-mauve --respeitar-gui --conferir)"; c1=$?

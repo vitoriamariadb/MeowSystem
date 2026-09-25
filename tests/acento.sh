@@ -144,15 +144,21 @@ focos="$(grep -h '^ *focus: "' "$COSMIC"/com.system76.CosmicTheme.Dark/v2/* | se
 [ "$focos" = 'focus: "#FF79C6FF",' ] \
   && ok "o foco de todos os componentes da Dark/v2 é o pink" \
   || falha "sobrou foco de outra cor na Dark/v2" "$focos"
-# E NADA que o acento não pinta: a receita da neutra, o vidro e a Light ficam.
+# E NADA que o acento não pinta: a receita da neutra, o vidro e a paleta ficam.
 iguais=1
 for rel in com.system76.CosmicTheme.Dark.Builder/v2/neutral_tint \
            com.system76.CosmicTheme.Dark.Builder/v2/frosted \
-           com.system76.CosmicTheme.Dark/v2/palette \
-           com.system76.CosmicTheme.Light/v2/accent; do
+           com.system76.CosmicTheme.Dark/v2/palette; do
   cmp -s "$CAPS/dracula-mauve/$rel" "$COSMIC/$rel" || { iguais=0; falha "mudou o que o acento não pinta: $rel"; }
 done
-[ "$iguais" = "1" ] && ok "a neutra, o vidro, a paleta e a árvore Light ficaram as da captura do mauve"
+[ "$iguais" = "1" ] && ok "a neutra, o vidro e a paleta ficaram os da captura do mauve"
+# A LIGHT É A DO ALUCARD NO MESMO ACENTO — 25/09/2026, sprint P63. Até aqui
+# ela era a da captura do mauve, copiada, e a do mauve era o Latte do
+# Catppuccin. O tests/claro-do-pack.sh confere a árvore inteira; aqui, o acento.
+claro="$(campo "$COSMIC/com.system76.CosmicTheme.Light/v2/accent" base)"
+[ "$claro" = "#ED77BBFF" ] \
+  && ok "a Light/v2/accent é o pink do alucard ($claro), e não o mauve da captura da base" \
+  || falha "a Light do dracula-pink não é a do alucard-pink: accent $claro"
 
 # --- 4. converge: a segunda passagem não escreve nada ----------------------
 saida_g2="$(etapa gerar)"; rc_g2="$(rc)"

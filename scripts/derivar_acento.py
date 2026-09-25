@@ -639,6 +639,32 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
             continue
         saida.update(estado="derivavel", base=nome, arvore=arvore, acento=acento,
                      dir_base=str(cand), arquivos=arquivos)
+        # O OUTRO LADO É O DO PAR DO PACK, NO MESMO ACENTO — 25/09/2026, P63
+        #   A árvore que não é a do flavor vinha da base, copiada, e a Light
+        #   do dracula-mauve era o Latte do Catppuccin: o dracula-pink no claro
+        #   era o Latte, com o acento mauve. Quando o par do pack nesse lado
+        #   nunca foi fotografado (o alucard), o lado sai da derivação dele no
+        #   acento pedido — o `lado_do_par` do derivar_flavor.py, o mesmo que
+        #   pôs o alucard-mauve na foto do mauve. Par com foto (o latte), ou
+        #   par que não se deriva: fica o da base, como até aqui.
+        import derivar_flavor
+        try:
+            lado = derivar_flavor.lado_do_par(par, paleta)
+        except ValueError:
+            lado = None
+        if lado:
+            prefixos = (f"com.system76.CosmicTheme.{lado['arvore']}/",
+                        f"com.system76.CosmicTheme.{lado['arvore']}.Builder/")
+            conteudo = {}
+            for arq in sorted(cand.rglob("*")):
+                rel = arq.relative_to(cand).as_posix()
+                if arq.is_file() and not rel.startswith(prefixos) \
+                        and rel not in ("manifesto.sha256", "captura.txt", ".gitignore"):
+                    conteudo[rel] = arq.read_bytes()
+            conteudo.update(lado["conteudo"])
+            nome_lado = "claro" if lado["arvore"] == "Light" else "escuro"
+            saida.update(conteudo=conteudo, linha_do_lado=derivar_flavor.linha_do_lado(lado),
+                         lado=f"o {nome_lado} é o do {lado['par']}")
         return saida
     if recusas:
         saida["motivo"] = ("nenhuma captura do " + flavor + " se reproduz para servir de base — "
@@ -692,6 +718,8 @@ def _conteudo(p: dict) -> dict:
               f"acento: {p['acento']} na árvore {p['arvore']}"]
     if p.get("como"):
         cabeca.append(f"flavor: {p['como']}")
+    if p.get("linha_do_lado"):
+        cabeca.append(p["linha_do_lado"])
     arquivos["captura.txt"] = ("\n".join(cabeca) + "\n").encode("utf-8")
     arquivos[".gitignore"] = IGNORAR.encode("utf-8")
     return arquivos
@@ -728,6 +756,9 @@ def derivar(par: str, conferir: bool = False, paleta: dict | None = None) -> tup
     if conferir:
         if p.get("como"):
             return 1, f"{par}: derivaria de {p['base']} ({p['como']})"
+        if p.get("lado"):
+            return 1, (f"{par}: derivaria de {p['base']} ({len(p['arquivos'])} arquivo(s) do "
+                       f"acento; {p['lado']})")
         return 1, f"{par}: derivaria de {p['base']} ({len(p['arquivos'])} arquivo(s) do acento)"
     # Escrita numa pasta irmã e troca por rename: quem ler no meio (o doctor,
     # o painel) vê a captura velha ou a nova, nunca uma pela metade.
@@ -748,6 +779,9 @@ def derivar(par: str, conferir: bool = False, paleta: dict | None = None) -> tup
         shutil.rmtree(velha, ignore_errors=True)
     if p.get("como"):
         return 1, f"{par}: derivada de {p['base']} — {p['como']}"
+    if p.get("lado"):
+        return 1, (f"{par}: derivada de {p['base']} — {len(p['arquivos'])} arquivo(s) "
+                   f"do acento, {p['lado']}, e o resto é o da base")
     return 1, (f"{par}: derivada de {p['base']} — {len(p['arquivos'])} arquivo(s) "
                f"do acento, o resto é o da base")
 
