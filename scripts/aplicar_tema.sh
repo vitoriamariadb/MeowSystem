@@ -194,6 +194,9 @@ e_produto() {
 #      `alpha_map` da captura, não do dela (o dela continua gravado; o
 #      `vidro.sh` avisa a diferença). Derivar o produto da receita dela
 #      precisaria da GUI.
+#      (25/09/2026, P58: esse custo acabou no vidro. As cores que carregam o
+#      vidro saem do `alpha_map` dela — ver «O VIDRO SEGUE O COSMIC
+#      INSTALADO», antes do laço.)
 #   2. `frosted_maximized_apps` NÃO FAZ A GUI DERIVAR NADA. Ele está em
 #      `CHAVES_DELA` desde 19/09 para o `aplicar_tema` não brigar com o
 #      `vidro.sh` pela chave (ver acima) — e isso continua, pela
@@ -447,6 +450,74 @@ FIM
   return 0
 }
 
+# --- O VIDRO SEGUE O COSMIC INSTALADO — 25/09/2026, sprint P58 ----------------
+# O `alpha_map` e o `frosted` são dela (`CHAVES_DELA`, lá em cima) e ficam; as
+# CORES que carregam o vidro iam como a captura as fotografou, com o
+# `alpha_map` do dia da foto. Medido nesta máquina em 25/09: o `alpha_map` ao
+# vivo, que o slider «Opacidade do vidro» gravou em 17/09, dá
+# `very_high_2: 0.52615` (alpha 86); o `dracula-mauve` traz 0.66615 e grava
+# `#383A4CAA` no `transparent_background`. Com o `frosted` em `VeryHigh2` nos
+# dois, a tela ficava em 67 % com o nível pedindo 52 % — e o `--conferir`
+# dizia "já aplicado (189 arquivos conferem)".
+# (Revisão da P58, 25/09/2026: a primeira redação dizia "gravado pelo COSMIC
+# atualizado", e não houve atualização — nenhum pacote do COSMIC mudou entre
+# 11 e 21/09. A conta que mostra que o mapa é o do slider está no cabeçalho do
+# `derivar_vidro.py`.)
+#
+# A CAPTURA PASSA A SER LIDA COMO ESTE COSMIC A DERIVA. O `derivar_vidro.py`
+# refaz, numa cópia fora do COSMIC, só os campos que o `ThemeBuilder::build()`
+# tira do `alpha_map[frosted]` (a lista, medida no oráculo, está no cabeçalho
+# dele), com o mapa e o nível que estão no destino. Tudo daqui para baixo — a
+# conferência, a cessão à GUI, o backup, o que sobra — lê essa cópia: o
+# `--conferir` seguinte diz "já aplicado", e o doctor não entra em ping-pong.
+#
+# BYTE A BYTE O DE ANTES quando nada muda: destino sem `alpha_map` (máquina
+# nova: a captura grava o dela), o mesmo valor para o nível, ou a guarda
+# recusando — um campo que ia mudar não é, na captura, o que o `build()` dá;
+# a frase diz qual, e a captura vai como está.
+#
+# `CAPTURA` guarda a foto: a cessão, no laço, precisa das duas (ver lá).
+CAPTURA="$ORIGEM"
+VISTA=""
+if VISTA="$(mktemp -d "${TMPDIR:-/tmp}/meow-vidro.XXXXXX")"; then
+  trap 'rm -rf "$VISTA"' EXIT
+  rc_vidro=0
+  frase_vidro="$(MEOW_COSMIC_DIR="$COSMIC" python3 "$RAIZ/scripts/derivar_vidro.py" \
+                   "$CAPTURA" --vista "$VISTA/captura" 2>&1)" || rc_vidro=$?
+  # 1 = a cópia está pronta, e só ela: a escrita é atômica lá dentro.
+  [ "$rc_vidro" = "1" ] && [ -d "$VISTA/captura" ] && ORIGEM="$VISTA/captura"
+  # A frase vai para a tela quando há o que dizer, e nunca no `--conferir`: a
+  # primeira linha dele é o veredito que a tabela do doctor mostra.
+  # O SECO É `--conferir` POR DENTRO, MAS QUEM O LÊ É GENTE — 25/09/2026,
+  #   revisão da P58. Ninguém lê a saída dele por máquina (o doctor, o
+  #   `tema_ativo` e o install.sh conferem com MEOW_DRY_RUN=0), e a lista de
+  #   «mudaria» já vem antes do veredito. Sem a frase, o seco mostrava
+  #   «mudaria …/transparent_background» sem dizer por quê.
+  case "$rc_vidro" in
+    1|3) if [ "$CONFERIR" != "1" ] || [ "$SECO" = "1" ]; then
+           printf '  %s\n' "$frase_vidro"
+         fi ;;
+  esac
+fi
+
+# A RÉGUA DE "ESTE ARQUIVO É AQUELE", UMA SÓ — 25/09/2026, revisão da P58
+#   O alpha do `base:` que a Aurora reescreve não conta. O laço mede com ela se
+#   o destino já está certo, e o `e_a_foto` mede se o destino ainda é a FOTO
+#   da captura. A P58 tinha copiado a régua do laço para o `e_a_foto`; duas
+#   cópias discordam em silêncio no dia em que só uma muda, e a cessão à GUI
+#   passaria a chamar de "obra dela" o que o laço chama de igual.
+confere() {   # confere <rel> <um> <outro>
+  if e_chave_da_aurora "$1"; then
+    diff -q <(normalizar < "$2") <(normalizar < "$3") >/dev/null 2>&1
+  else
+    cmp -s "$2" "$3"
+  fi
+}
+
+# O destino ainda é a FOTO da captura? É o que separa, na cessão, a derivação
+# da GUI dela da cópia que um `aplicar_tema` de antes deixou.
+e_a_foto() { confere "$1" "$CAPTURA/$1" "$COSMIC/$1"; }
+
 divergentes=0
 escritos=0
 iguais=0
@@ -489,14 +560,8 @@ while IFS= read -r -d '' arq; do
     iguais=$((iguais+1)); continue
   fi
 
-  if [ -f "$destino" ]; then
-    if e_chave_da_aurora "$rel"; then
-      if diff -q <(normalizar < "$arq") <(normalizar < "$destino") >/dev/null 2>&1; then
-        iguais=$((iguais+1)); continue
-      fi
-    elif cmp -s "$arq" "$destino"; then
-      iguais=$((iguais+1)); continue
-    fi
+  if [ -f "$destino" ] && confere "$rel" "$arq" "$destino"; then
+    iguais=$((iguais+1)); continue
   fi
 
   # O produto derivado só é imposto quando a receita ainda bate — ver a fronteira
@@ -504,7 +569,19 @@ while IFS= read -r -d '' arq; do
   # A comparação vem ANTES desta guarda de propósito: um arquivo que já está
   # idêntico não foi "cedido", ele só está certo. Contá-lo aqui faria o script
   # anunciar "120 arquivos preservados" numa árvore em que nove divergiam.
-  if [ "$RECEITA_VELHA" = "1" ] && e_produto "$rel" && [ -f "$destino" ]; then
+  #
+  # A FOTO NO DESTINO NÃO É OBRA DA GUI — 25/09/2026, sprint P58
+  #   Com o vidro vindo do `alpha_map` dela (o bloco de antes do laço), um
+  #   produto que diverge da vista pode ser a própria foto da captura, que um
+  #   `aplicar_tema` anterior gravou com o vidro do mapa da foto. Isso não é
+  #   derivação dela, é cópia nossa — e ceder deixava o AA na tela para sempre.
+  #   Medido nesta máquina: a receita no disco difere da `dracula-mauve` só no
+  #   `alpha_map` (o slider o reescreveu em 17/09), então todo «Salvar e
+  #   aplicar» (`--respeitar-gui`) cairia aqui e sairia 4, dizendo «você mexeu
+  #   em Aparência». Sem vista, a foto É a origem, e o arquivo que chega aqui
+  #   já diverge dela: nada muda.
+  if [ "$RECEITA_VELHA" = "1" ] && e_produto "$rel" && [ -f "$destino" ] \
+     && ! e_a_foto "$rel"; then
     cedidos=$((cedidos+1)); continue
   fi
 

@@ -579,6 +579,13 @@ fi
 #   mão, que é precisamente o ato que criou o problema — e a derivação real tem
 #   mais campos do que este script conhece. Quem deriva certo é a GUI: mover o
 #   slider uma vez basta.
+#   (25/09/2026, revisão da P58: isso deixou de valer para o vidro. Desde a P58
+#   o `aplicar_tema.sh` deriva, fora da GUI, os campos que carregam o vidro —
+#   o `scripts/derivar_vidro.py`, com a lista medida no `build()` do libcosmic
+#   e a guarda de que a captura se reproduz —, e o conselho lá embaixo manda
+#   reaplicar a captura quando, aplicada aqui, ela grava o alpha do nível.
+#   Este script continua só comparando; a GUI fica como o caminho quando a
+#   conta daquela captura não fecha.)
 #
 # (`_frosted_para_chave` mora lá em cima, junto do `--conferir`: as duas
 #  conferências precisam dela, e a de cima roda antes deste ponto do arquivo.)
@@ -625,10 +632,30 @@ FIM
     # #313244, quase) e o alpha é de outro nível. Os dois vieram da mesma
     # derivação velha da GUI, de quando a máquina ainda era mocha. Quando existe
     # captura do alvo, reimpô-la conserta os dois de uma vez e é uma linha.
-    if [ -n "${FLAVOR:-}" ] && [ -n "${ACCENT:-}" ] \
-       && [ -n "$(meow_captura "$FLAVOR-$ACCENT")" ]; then
-      meow_info "a captura '$FLAVOR-$ACCENT' existe e traz os dois coerentes:  meow tema $FLAVOR-$ACCENT"
+    #
+    # O CONSELHO TEM DE RESOLVER — 25/09/2026, sprint P58
+    #   Bastava a captura EXISTIR para esta linha mandar reaplicá-la. Medido em
+    #   25/09: com a `dracula-mauve` já aplicada (189 arquivos conferem), o
+    #   aviso «pede 86, está gravado AA» vinha seguido de «meow tema
+    #   dracula-mauve» — que gravava o AA de novo. Circular.
+    #   Desde a P58 o `aplicar_tema.sh` tira o vidro do `alpha_map` deste
+    #   COSMIC (scripts/derivar_vidro.py), e a pergunta que decide é a que ele
+    #   responde: aplicada AQUI, com que alpha a captura sai? Se é o que o
+    #   nível pede, reaplicar resolve e é isso que se diz. Se não é (a conta do
+    #   vidro não fecha naquela captura), reaplicar não muda nada, e dizer isso
+    #   poupa a volta inútil; o caminho que sobra é o da GUI.
+    local par="" cap="" alfa_cap=""
+    if [ -n "${FLAVOR:-}" ] && [ -n "${ACCENT:-}" ]; then
+      par="$FLAVOR-$ACCENT"
+      cap="$(meow_captura "$par")"
+    fi
+    [ -n "$cap" ] && alfa_cap="$(MEOW_COSMIC_DIR="$BASE" \
+      python3 "$RAIZ/scripts/derivar_vidro.py" "$cap" --alfa 2>/dev/null)"
+    if [ -n "$alfa_cap" ] && [ "$alfa_cap" = "$esperado" ]; then
+      meow_info "a captura '$par', aplicada aqui, grava o alpha $esperado deste nível:  meow tema $par"
     else
+      [ -n "$alfa_cap" ] \
+        && meow_info "reaplicar a captura '$par' não resolve: aplicada aqui, ela grava alpha $alfa_cap"
       meow_info "abra Aparência e mova o slider de opacidade uma vez — só a GUI deriva a cor corretamente"
     fi
     return 1
