@@ -30,8 +30,9 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #
 # `tabela` existe para o `meow apps` não precisar de uma SEGUNDA cópia do
 # `pasta_de` e do `rodar_modulo`. Ele imprime TSV cru — uma linha por módulo,
-# `pasta<TAB>slugs<TAB>rc_instalado<TAB>rc_conferir` (a terceira era o
-# `rc_detectar` até 24/09/2026, P49) — e quem pinta a tabela é a CLI. Duas
+# `pasta<TAB>slugs<TAB>rc_instalado<TAB>rc_conferir<TAB>motivo` (a terceira era
+# o `rc_detectar` até 24/09/2026, P49; o motivo do 3 entrou em 25/09, P62) — e
+# quem pinta a tabela é a CLI. Duas
 # listas de slug-para-pasta em arquivos diferentes é como se ganha uma tabela
 # que mente sobre um app três meses depois.
 ACAO="${1:-aplicar}"
@@ -110,6 +111,20 @@ rodar_modulo() {
           meow_erro "o módulo '$pasta' não diz se o programa está instalado"
           exit 2
         fi ;;
+      # SEXTO VERBO, SÓ DA TABELA: O MOTIVO DO `detectar` — 25/09/2026, revisão da P62
+      #   Quase todo `conferir` sai 3 CALADO quando o `detectar` barra — o
+      #   `meow_app_detectar || return 3` do Discord, do kitty, do OnlyOffice, do
+      #   Spotify… —, e o motivo que o `meow_app_sem` guardou morre com o
+      #   subshell. A tabela pergunta aqui, e só quando o `conferir` não deu linha
+      #   `--` nenhuma: o que o `detectar` diz nessa linha (os módulos de antes do
+      #   contrato, como o Heroic que nunca abriu) ou o MEOW_APP_MOTIVO dos do
+      #   contrato, dito pela porta dele (`meow_app_pendente`, lib/comum.sh). Sem
+      #   nenhum dos dois não sai linha: o qBittorrent vestido por fora diz o dele
+      #   por `!!` e `>>`, e a tabela não traduz aviso em motivo.
+      motivo)
+        meow_app_detectar 2>/dev/null && exit "$MEOW_OK"
+        [ -n "$MEOW_APP_MOTIVO" ] && meow_app_pendente "$pasta"
+        exit "$MEOW_SEM_DEPENDENCIA" ;;
       *) meow_erro "ação desconhecida para o módulo '$pasta': $acao"; exit 2 ;;
     esac
   )
@@ -154,10 +169,38 @@ if [ "$ACAO" = "tabela" ]; then
   done
   # A terceira coluna é o `instalado`, e não o `detectar` (ver o quinto verbo,
   # no `rodar_modulo`): "não dá para vestir" não é "não está instalado".
+  #
+  # A QUINTA É O MOTIVO DO 3 — 25/09/2026, sprint P62
+  #   A P55 pediu que o `meow apps` dissesse «sem tema neste pack», e só o
+  #   `meow apps conferir` dizia: com um pack sem aplicativo nenhum, a frase
+  #   saía lá três vezes, uma por programa, e a tabela pintava os três de `--`.
+  #   Quem sabe o motivo é o módulo, e ele chega aqui por dois caminhos: as
+  #   linhas `--` do `conferir` (o `meow_app_pendente` do Obsidian e do VS
+  #   Code, o `meow_pula` do «não veio daqui» do kitty e do OnlyOffice) e, se o
+  #   `conferir` sai 3 calado, o verbo `motivo` do `rodar_modulo`, que traz o
+  #   do `detectar`. As linhas vão na quinta coluna, unidas por « · » — o TSV
+  #   não aceita tabulação nem quebra de linha. Sem nenhum dos dois a coluna
+  #   fica vazia: a tabela não inventa o motivo que o módulo não disse.
+  #   [Até a revisão da P62, no mesmo dia, só havia o primeiro caminho, e este
+  #   bloco chamava o `meow_pula` de "a porta do contrato do motivo no
+  #   lib/comum.sh". A porta é o `meow_app_sem`, que guarda no MEOW_APP_MOTIVO,
+  #   e quem diz é o `meow_app_pendente`. Medido numa casa de brinquedo vazia,
+  #   dos onze `conferir` que saíram 3 só o do Obsidian e o do qBittorrent deram
+  #   a linha `--`; nesta máquina, o Discord e o qBittorrent instalados saíam na
+  #   tabela «não veste», sem motivo nenhum embaixo.]
+  linhas_de_pulo() {
+    sed -n -e 's/\x1b\[[0-9;]*m//g' -e 's/^  --   //p' | tr '\t' ' ' \
+      | awk 'NR > 1 { printf " · " } { printf "%s", $0 }'
+  }
   for pasta in "${ORDEM[@]}"; do
     rodar_modulo "$pasta" instalado >/dev/null 2>&1; rc_inst=$?
-    rodar_modulo "$pasta" conferir >/dev/null 2>&1; rc_conf=$?
-    printf '%s\t%s\t%s\t%s\n' "$pasta" "${SLUGS_DE[$pasta]}" "$rc_inst" "$rc_conf"
+    saida="$(rodar_modulo "$pasta" conferir 2>/dev/null)"; rc_conf=$?
+    motivo=""
+    if [ "$rc_conf" = "$MEOW_SEM_DEPENDENCIA" ]; then
+      motivo="$(printf '%s\n' "$saida" | linhas_de_pulo)"
+      [ -n "$motivo" ] || motivo="$(rodar_modulo "$pasta" motivo 2>/dev/null | linhas_de_pulo)"
+    fi
+    printf '%s\t%s\t%s\t%s\t%s\n' "$pasta" "${SLUGS_DE[$pasta]}" "$rc_inst" "$rc_conf" "$motivo"
   done
   exit "$MEOW_OK"
 fi
@@ -188,11 +231,22 @@ done
 #   de auditoria tinha mexido na máquina. O bucket é o mesmo (rc=1); o que muda
 #   é o que 1 SIGNIFICA em cada ação: no aplicar, "consertei"; no conferir,
 #   "diverge". É a mesma disciplina do tempo verbal no modo seco.
+#
+# E NO SECO O 1 É "APLICARIA" — 25/09/2026, sprint P62
+#   A disciplina estava escrita aqui e faltava neste resumo: o ensaio do
+#   «Trocar pelo tema do pack» (o `meow apps aplicar onlyoffice` com
+#   `MEOW_DRY_RUN=1`) terminava em `ok aplicados: onlyoffice`, logo abaixo das
+#   linhas `~~ mudaria` do próprio módulo — a classe do achado 11, que a P50
+#   consertou só no rodapé do `install.sh`. No ensaio nada foi escrito: o 1 diz
+#   o que o módulo faria, com o `~~` das linhas dele, e o desfazer em seco
+#   segue a mesma régua.
 if [ ${#APLICADOS[@]} -gt 0 ]; then
   case "$ACAO" in
     conferir) meow_muda "divergentes: ${APLICADOS[*]}" ;;
-    reverter) meow_ok   "desfeitos: ${APLICADOS[*]}" ;;
-    *)        meow_ok   "aplicados: ${APLICADOS[*]}" ;;
+    reverter) if meow_seco; then meow_muda "desfaria: ${APLICADOS[*]}"
+              else meow_ok "desfeitos: ${APLICADOS[*]}"; fi ;;
+    *)        if meow_seco; then meow_muda "aplicaria: ${APLICADOS[*]}"
+              else meow_ok "aplicados: ${APLICADOS[*]}"; fi ;;
   esac
 fi
 [ ${#JA_OK[@]}     -gt 0 ] && meow_ok   "já estavam certos: ${JA_OK[*]}"

@@ -32,7 +32,9 @@
 #
 #   Lidas as demais escritas do `logo.sh`, TODAS caem fora do caminho vigiado:
 #     - o acervo instalado ....... `~/.config/cosmic/logos/meow-<nome>.svg`
-#     - a chave do applet ........ `~/.config/cosmic/dev.cappsy.…/v1/custom_logo_*`
+#     - a chave do applet ........ `~/.config/cosmic/<applet de logo instalado>/v1/custom_logo_*`
+#       (era `dev.cappsy.…` por extenso; desde a P57 o id é o do applet que o
+#       COSMIC acha instalado, o `_applet_de_logo` do `logo.sh`)
 #     - o estado da rotação ...... `~/.local/state/meowsystem/logo-atual`
 #     - os botões do dock ........ `~/.local/share/icons/<tema>/scalable/apps/`
 #   E a remoção de órfão — o `rm -f` que o SPRINTS.md manda conferir — mira em
@@ -99,16 +101,19 @@ ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . 
 #   `assets/gatos/` está sob controle de versão (`git ls-files assets/gatos`
 #   devolve os três arquivos), então um `git checkout`/`stash`/`rebase` remove e
 #   recria os SVG um a um, e o `PathModified` do irmão vê CADA passo. O serviço
-#   rodaria com o acervo pela metade — passa pela guarda de acervo vazio
-#   (logo.sh:140-143) e cai direto no `rm -f` de órfão (logo.sh:216-230),
-#   apagando do dock o gato que só sumiu porque o git estava no meio da troca.
+#   rodaria com o acervo pela metade — passa pela guarda de acervo vazio (a do
+#   «não há gato nenhum», no `logo.sh`) e cai direto no `rm -f` de órfão (o
+#   bloco "1b" de lá, que tira do disco o que saiu do acervo), apagando do dock
+#   o gato que só sumiu porque o git estava no meio da troca. [Os dois lugares
+#   eram citados por número de linha até 25/09/2026, P62, e os números já
+#   apontavam para outra coisa.]
 #   Pela systemd.path(5) a unidade NÃO redispara enquanto este serviço está
 #   ativo: os 3 s esticam a janela e engolem a rajada inteira num disparo só,
 #   já com o acervo completo de volta no disco.
 ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
 ExecStartPre=-/usr/bin/sleep 3
 
-# O MESMO LOCK DO `bin/meow` (lib/comum.sh:131), pelo `flock(1)`, que usa o
+# O MESMO LOCK DO `bin/meow` (o `meow_travar` do lib/comum.sh), pelo `flock(1)`, que usa o
 # mesmo `flock(2)` sobre o mesmo arquivo. Aqui é `-w 60` e não `-n`: um disparo
 # perdido é um gato que ela soltou na pasta e não entrou, e a `.path` pode não
 # disparar de novo — então esperamos a vez até um minuto. E `-E 0` porque o
@@ -116,7 +121,7 @@ ExecStartPre=-/usr/bin/sleep 3
 # faria o `flock` sair 1 e ela receberia na tela o aviso de "o acervo mudou"
 # sem que nada tivesse sido escrito.
 # A LISTA `export FLAVOR LOGO` ERA A ARMADILHA Nº 3, IGUAL À DO meow-logo.service
-#   O `scripts/logo.sh` lê `NOME_TEMA_ICONES` na linha 336, e ela ficava de fora
+#   O `scripts/logo.sh` lê `NOME_TEMA_ICONES` (o tema do botão do dock), e ela ficava de fora
 #   deste export: chegava vazia, o script caía no padrão `MeowSystem-Icons` e o
 #   gato novo era gravado numa árvore de tema que, com `NOME_TEMA_ICONES`
 #   customizado, ninguém lê. Sem erro e sem log — o `.path` dispara, o serviço
@@ -129,9 +134,11 @@ ExecStartPre=-/usr/bin/sleep 3
 ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; exec "$R/scripts/logo.sh"'
 
 # 1 é "estava divergente e eu consertei" — o código que o `logo.sh` devolve
-# quando o acervo mudou, que é justamente o caso normal aqui. 3 é "o applet
-# dev.cappsy não está nesta máquina". Sem esta linha, TODA entrada de gato novo
-# apareceria como serviço falho.
+# quando o acervo mudou, que é justamente o caso normal aqui. 3 é "o acervo está
+# vazio". Sem esta linha, TODA entrada de gato novo apareceria como serviço
+# falho. [Até 25/09/2026, P62, o 3 era "o applet dev.cappsy não está nesta
+# máquina": desde 16/09 a falta do applet não para o `logo.sh`, e desde a P57
+# o applet é o que está instalado, e não um id escrito.]
 SuccessExitStatus=1 3
 
 # O AVISO, E SÓ QUANDO ALGO DE FATO ENTROU

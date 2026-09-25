@@ -309,9 +309,12 @@ _aplicar() {
 #   ela tira uma linha do `pastas.map`. Um segundo caminho de remoção seria uma
 #   segunda regra para o mesmo ato, e a que ninguém relê é sempre a que quebra.
 #
-#   O `construir_pastas.sh` faz o resto sozinho: ele só cede o nome cujo pastel
-#   ESTÁ no disco, então com o diretório limpo os 7 voltam a mauve na mesma
-#   passagem do instalador. Nenhuma pasta fica sem ícone no meio do caminho.
+#   O `construir_pastas.sh` faz o resto sozinho: ele só cede o nome cujo desenho
+#   ESTÁ no disco, então com o diretório limpo os 7 voltam à cor das outras
+#   pastas na mesma passagem do instalador. Nenhuma pasta fica sem ícone no meio
+#   do caminho. [Até a revisão da P62 (25/09/2026) dizia "cujo pastel" e "voltam
+#   a mauve": o desenho do Catppuccin e o acento de uma casa, a afirmação que a
+#   P62 corrigiu na tela, lá embaixo, e no comentário gêmeo do install.sh.]
 _desligado() { [ "${PASTAS_XDG:-nao}" != "sim" ]; }
 
 main() {
@@ -320,11 +323,15 @@ main() {
   if _desligado; then
     # Sem nada no disco não há o que desfazer: dizer "removi" aqui seria a mesma
     # mentira de tempo verbal que o projeto já corrigiu no modo seco.
+    # «MAUVE» ERA O ACENTO DE UMA CASA — 25/09/2026, sprint P62. Sem os desenhos
+    # especiais, os sete nomes voltam ao `construir_pastas.sh`, que os veste
+    # como as outras pastas (`ICONES_PASTAS`, o acento por padrão, na paleta do
+    # pack no ar). A frase diz essa regra, que vale com qualquer pack e acento.
     if [ -d "$DESTINO" ] && [ -n "$(find "$DESTINO" -maxdepth 1 -name '*.svg' -print -quit 2>/dev/null)" ]; then
-      meow_info "PASTAS_XDG=\"${PASTAS_XDG:-nao}\" — devolvendo as pastas especiais ao mauve"
+      meow_info "PASTAS_XDG=\"${PASTAS_XDG:-nao}\" — devolvendo as pastas especiais à cor das outras pastas"
       MAPA_LIDO=()
     else
-      meow_ok "pastas especiais desligadas (PASTAS_XDG=\"${PASTAS_XDG:-nao}\") — as pastas seguem mauve"
+      meow_ok "pastas especiais desligadas (PASTAS_XDG=\"${PASTAS_XDG:-nao}\") — elas seguem a cor das outras pastas"
       return "$MEOW_OK"
     fi
   fi

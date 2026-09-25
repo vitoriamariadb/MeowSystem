@@ -59,8 +59,9 @@ StartLimitBurst=20
 Type=oneshot
 
 # O LOCK, QUE ATÉ AQUI SÓ VALIA PARA A MÃO DELA
-#   `meow_travar` (lib/comum.sh:131) existe e é chamado em dez pontos do
-#   `bin/meow` — mas em NENHUM script de `scripts/`. Como esta unidade chama o
+#   `meow_travar` (lib/comum.sh) existe e é chamado pelo `bin/meow` — em dez
+#   pontos quando este bloco nasceu, em 27 contados em 25/09/2026 — mas em
+#   NENHUM script de `scripts/`. Como esta unidade chama o
 #   `wallpaper.sh` direto, o relógio de 15 em 15 minutos podia entrar no meio de
 #   um `meow doctor --consertar` (que também chama `wallpaper.sh aplicar`, agora
 #   sob o lock) sem nada para segurá-lo. O `flock(1)` do util-linux usa o mesmo

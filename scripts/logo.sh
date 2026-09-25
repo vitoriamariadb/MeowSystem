@@ -315,7 +315,11 @@ fi
 #   não escreve, sai. Um disparo a mais por edição dela, contra o
 #   `StartLimitBurst=20` — folga de sobra, e o disjuntor continua lá para o dia
 #   em que alguém quebrar a idempotência.
-# O `no-dock` só pergunta: quem o chama é o `meow status`, que não escreve.
+# O `no-dock` só pergunta, e quem o chama só lê: o `meow status`, o espelho do
+# `fastfetch_logo.sh` (revisão da P57) e o retrato da Início (`app/servidor.py`,
+# 25/09) — os três com o seco junto. Normalizar aqui seria escrever no acervo
+# por causa de uma leitura. [Até 25/09/2026, P62, esta linha só citava o
+# `meow status`, e o dono único da pergunta já tinha mais dois clientes.]
 if [ "$ACAO" != "no-dock" ] && [ -d "$ACERVO" ] && meow_tem python3 \
    && [ -f "$RAIZ/scripts/normalizar_svg.py" ]; then
   if meow_seco; then
