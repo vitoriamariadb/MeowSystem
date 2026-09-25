@@ -3400,6 +3400,84 @@ PY
   && ok "o latte herdado tem a régua do dono, a textura zerada é desligado, e as 26 cores têm nome" \
   || falha "o que a revisão da P51 reprovou voltou" "$saida"
 
+# --- 32. as pastas e o resto do Catppuccin na tela — 24/09/2026, P56 ---------
+#
+#   Três coisas que a tela dizia do Catppuccin com qualquer pack no ar:
+#   - «Cor das pastas» só oferecia as variantes que o papirus-folders traz (com
+#     o Dracula no ar, nenhuma) e chamava as cores pelos slots do Catppuccin.
+#     Desde a P56 todo flavor do pack no ar tem pasta, derivada, e a cor se
+#     chama pelo nome da cor que a pasta recebe (o disco, quem confere é o
+#     `tests/pastas-do-pack.sh`). O papirus-folders aqui é de brinquedo: só os
+#     nomes dos arquivos, que é tudo o que o painel lê dele.
+#   - a base de ícones perguntava à regra do pack.py sem o NOME_TEMA_ICONES do
+#     meow.conf, e com um nome próprio cedia uma base que nem existe;
+#   - o cabeçalho do `meow ajuda` dizia «Catppuccin». Aqui o pack no ar é o de
+#     mentira, e o cabeçalho tem de dizer o nome DELE.
+UP56="$T/papirus-folders-p56"; mkdir -p "$UP56/src/64x64/places"
+for fl in latte frappe macchiato mocha; do
+  for cor in mauve pink blue; do : > "$UP56/src/64x64/places/folder-cat-$fl-$cor-documents.svg"; done
+done
+saida="$(env -u NOME_TEMA_ICONES MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" MEOW_CAT_FOLDERS="$UP56" \
+  MEOW_PACK_DIR="$RAIZ/packs/dracula" python3 - "$RAIZ" <<'PY' 2>&1
+import os, subprocess, sys
+raiz = sys.argv[1]
+sys.path.insert(0, os.path.join(raiz, "app"))
+import servidor
+mod = servidor.modulo_pack()
+erros = []
+for pack, flavor in (("dracula", "dracula"), ("dracula", "alucard"), ("catppuccin", "latte")):
+    esquema = servidor.ler_esquema()
+    vocab = mod.vocabulario(pack)
+    servidor._com_o_vocabulario_do_pack(esquema, vocab, {
+        "FLAVOR": flavor, "ICONES_PASTAS": "cat-%s-mauve" % flavor})
+    molde = {i["chave"]: i for i in esquema}["ICONES_PASTAS"]["molde_pastas"]
+    ids = sorted(f["id"] for f in vocab["flavors"])
+    ofertas = sorted(v["valor"] for v in molde["variantes"][1:])
+    if ofertas != ids:
+        erros.append("%s: as variantes são %r, e o pack tem %r" % (pack, ofertas, ids))
+    if molde["fora_do_papirus"]:
+        erros.append("%s/%s: a página ainda diz que a pasta sai na variante escura (%r)"
+                     % (pack, flavor, molde["fora_do_papirus"]))
+    do_fl = next(f for f in vocab["flavors"] if f["id"] == flavor)
+    nomes = servidor._nomes_de_cor(dict(zip(mod.SLOTS[:14], do_fl["cores"])))
+    for c in molde["cores"][1:]:
+        if c["rotulo"].lower() != nomes[c["valor"]]:
+            erros.append("%s/%s: %s se chama %r, e a cor que a pasta recebe é %r"
+                         % (pack, flavor, c["valor"], c["rotulo"], nomes[c["valor"]]))
+# A base de ícones com um nome de tema próprio no conf, e nenhum no ambiente.
+esquema = servidor.ler_esquema()
+item = {i["chave"]: i for i in esquema}["ICONES_BASE"]
+item["opcoes"] = ["Papirus-Dark", "Tema-P56-Base", "MeowSystem-Icons-Base"]
+vocab = mod.vocabulario("dracula")
+servidor._com_o_vocabulario_do_pack(esquema, vocab, {
+    "FLAVOR": "dracula", "ICONES_BASE": "Tema-P56-Base", "NOME_TEMA_ICONES": "Tema-P56"})
+cede = (vocab.get("base_de_icones") or {}).get("cede") or []
+verbo = subprocess.run(
+    [sys.executable, os.path.join(raiz, "scripts", "pack.py"), "base-icones", "dracula"],
+    capture_output=True, text=True,
+    env=dict(os.environ, NOME_TEMA_ICONES="Tema-P56", ICONES_BASE="Tema-P56-Base")).stdout
+if "Tema-P56-Base" not in cede or "MeowSystem-Icons-Base" in cede:
+    erros.append("a base de ícones cede %r, e o nome do tema no conf é Tema-P56" % cede)
+if item.get("efetivo") != "Tema-P56-Base" or "quem=pack" not in verbo:
+    erros.append("o painel e o verbo discordam da base: efetivo=%r, verbo=%r"
+                 % (item.get("efetivo"), verbo.splitlines()[:1]))
+if "NOME_TEMA_ICONES" in os.environ:
+    erros.append("o NOME_TEMA_ICONES ficou no ambiente do servidor: %r" % os.environ["NOME_TEMA_ICONES"])
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+[ "$rc" = "0" ] \
+  && ok "«Cor das pastas» oferece os flavors do pack no ar com o nome da cor que a pasta recebe, e a base de ícones lê o nome do tema do conf" \
+  || falha "as pastas ou a base de ícones ainda falam do Catppuccin, ou do tema errado" "$saida"
+printf 'PACK="%s"\nFLAVOR="%s"\n' "$ID" "$ID" > "$T/ajuda-p56.conf"
+nome56="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["nome"])' "$PACK_DIR/pack.json")"
+cabeca56="$(amb env MEOW_CONF="$T/ajuda-p56.conf" HOME="$T/casa-ajuda-p56" NO_COLOR=1 \
+  "$RAIZ/bin/meow" ajuda 2>&1 | sed -n 2p)"
+[ "$cabeca56" = "meow — $nome56 para o COSMIC" ] \
+  && ok "o cabeçalho do meow ajuda diz o pack no ar: $cabeca56" \
+  || falha "o cabeçalho do meow ajuda não diz o pack no ar ($nome56)" "$cabeca56"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

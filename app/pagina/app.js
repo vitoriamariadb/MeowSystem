@@ -917,7 +917,15 @@ function valorNaTela(item) {
 /** O flavor que vale agora — a escolha pendente dela, ou o que está no disco. */
 function flavorEmVigor() {
   const item = ESQUEMA.chaves.find((k) => k.chave === "FLAVOR");
-  return (item ? valorEmVigor(item) : "") || "mocha";
+  /* SEM FLAVOR, O PADRÃO DO PACK NO AR — 24/09/2026, P56. Caía em `"mocha"`,
+   * o padrão de UM pack: com o Dracula no ar e o FLAVOR vazio, as amostras
+   * procuravam o mocha na paleta do Dracula e saíam sem cor. O padrão é o que
+   * o pack declara (`flavor_padrao`, pelo `vocabulario`); sem o vocabulário,
+   * o primeiro flavor da paleta que a página recebeu — a mesma queda do
+   * `vocabulario` do scripts/pack.py. */
+  const pack = ESQUEMA.pack || {};
+  return (item ? valorEmVigor(item) : "") || pack.flavor_padrao
+    || Object.keys((ESQUEMA.paleta && ESQUEMA.paleta.flavors) || {})[0] || "";
 }
 
 function escolher(chave, valor, cartao) {

@@ -1182,6 +1182,11 @@ def _cores_de_pasta():
     return achadas
 
 
+# O `NOME_TEMA_ICONES` do meow.conf no ambiente, só durante a pergunta à regra
+# da base de ícones — ver o bloco 7, logo abaixo. [P56]
+_NOME_DO_TEMA_TRAVA = threading.Lock()
+
+
 def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
     """Reescreve, no esquema QUE VAI PARA A PÁGINA, o que é vocabulário do pack."""
     if not vocab:
@@ -1249,15 +1254,37 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         ibase = mod.SLOTS.index("base") if mod else 0
         luz = (lambda f: mod._luminancia(f["cores"][ibase])) if mod else (lambda f: 0.0)
         variantes = [{"valor": "${FLAVOR}", "rotulo": "Acompanha o tema"}]
-        variantes += [{"valor": f["id"], "rotulo": f["nome"]}
-                      for f in sorted(vocab["flavors"], key=luz) if f["id"] in cores_de]
+        # CADA FLAVOR DO PACK NO AR É VARIANTE — 24/09/2026, P56. Eram só os que o
+        #   papirus-folders traz, e com o Dracula no ar a lista ficava vazia: ele
+        #   só tem os quatro do Catppuccin. O `construir_pastas.sh` agora deriva
+        #   a variante que falta da do Catppuccin, trocando cor por cor pela
+        #   paleta do pack; com o papirus-folders no disco, todo flavor do pack
+        #   tem pasta.
+        if cores_de:
+            variantes += [{"valor": f["id"], "rotulo": f["nome"]}
+                          for f in sorted(vocab["flavors"], key=luz)]
         todas = set().union(*cores_de.values()) if cores_de else set()
         # Sem o papirus-folders no disco a lista de cores são os catorze slots
         # cromáticos da paleta, que é exatamente o que ele traz quando chega; a
         # etapa das pastas se pula sozinha até lá, e a página diz isso.
         ordem = [s for s in (_paleta_dados().get("ordem_canonica") or [])[:14]]
+        # O NOME É O DA COR QUE A PASTA RECEBE — 24/09/2026, P56. Eram os slots
+        #   do Catppuccin com inicial maiúscula («Mauve», «Sapphire»), e a P51
+        #   recusou trocá-los pelo nome da cor enquanto a pasta recebesse o hex
+        #   do Mocha com qualquer pack no ar: nomear pelo pack mentiria. Agora a
+        #   pasta recebe o hex do flavor dela, e o nome é o da `nomeDaCor` da
+        #   P51 (`_nomes_de_cor`, abaixo), no flavor que o valor de agora pinta
+        #   — o de «Acompanha o tema» é o FLAVOR. O valor gravado continua sendo
+        #   o slot. Um flavor que o pack no ar não tem (escrito à mão) fica com
+        #   o slot, que é o nome que ele sempre teve.
+        achado = re.match(r"^cat-(.+)-([^-]+)$", efetivos.get("ICONES_PASTAS") or "")
+        fl_pastas = achado.group(1) if achado else (efetivos.get("FLAVOR") or "")
+        do_fl = next((f for f in vocab["flavors"] if f["id"] == fl_pastas), None)
+        nome_da_cor = (_nomes_de_cor(dict(zip(mod.SLOTS[:14], do_fl["cores"])))
+                       if do_fl and mod else {})
         cores = [{"valor": "${ACCENT}", "rotulo": "Acompanha o destaque"}]
-        cores += [{"valor": c, "rotulo": c.capitalize()}
+        cores += [{"valor": c, "rotulo": (nome_da_cor[c][:1].upper() + nome_da_cor[c][1:])
+                                         if nome_da_cor.get(c) else c.capitalize()}
                   for c in ordem if (c in todas or not todas)]
         flavor_no_ar = efetivos.get("FLAVOR") or ""
         item["frase"] = ("A variante e a cor das pastas comuns. «Acompanha» repinta "
@@ -1266,11 +1293,14 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
             "variantes": variantes,
             "cores": cores,
             "sem_upstream": not cores_de,
-            # A VARIANTE NO AR QUE O PAPIRUS-FOLDERS NÃO TEM. O
-            # `construir_pastas.sh` cai na variante escura que ele tem e avisa
-            # no log; a página diz o mesmo antes, com o nome do flavor do pack.
+            # A VARIANTE NO AR QUE O PAPIRUS-FOLDERS NÃO TEM, E QUE NÃO SE
+            # DERIVA. O `construir_pastas.sh` cai na variante escura que ele tem
+            # e avisa no log; a página diz o mesmo antes, com o nome do flavor.
+            # Desde a P56 só chega aqui um flavor que o pack no ar não tem: os
+            # dele saem derivados, na cor dele.
             "fora_do_papirus": (nomes.get(flavor_no_ar) or flavor_no_ar)
-                               if cores_de and flavor_no_ar not in cores_de else "",
+                               if cores_de and flavor_no_ar not in cores_de
+                               and flavor_no_ar not in nomes else "",
         }
 
     # 4. «Variante do tema» — os flavors do PACK NO AR, e não a cerca do
@@ -1351,16 +1381,36 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
     #    base e o do pack; o desenho recebe, pelo `vocab`, a mesma resposta e os
     #    valores que cedem — perguntados à regra opção a opção (`_base_escolhida`),
     #    e não copiados dela.
+    #
+    #    A REGRA LÊ O NOME DO TEMA DO AMBIENTE, E ESTE PROCESSO NÃO O TEM — P56.
+    #    O `_base_escolhida` cede o `<NOME_TEMA_ICONES>-Base` pelo nome que o
+    #    shell exporta do meow.conf, e o painel nunca leu o conf para o ambiente:
+    #    com um nome próprio, a regra aqui cedia o `MeowSystem-Icons-Base`, que
+    #    numa casa assim nem existe, e tomava a base do pack por um tema
+    #    escolhido à mão. Medido com `NOME_TEMA_ICONES="Tema-P56"` e o Dracula no
+    #    ar: o desenho dizia «o que faltar vem do Tema-P56-Base», e o
+    #    `pack.py base-icones` do shell, com o mesmo conf, responde `quem=pack`.
+    #    O nome vai para o ambiente só enquanto a regra responde, com o do conf,
+    #    e volta ao que era; a trava é porque o ambiente é um só para as linhas
+    #    do servidor.
     item = por_chave.get("ICONES_BASE")
     if item and mod:
-        try:
-            quem, tema, decl = mod.base_que_vale(vocab["id"], efetivos.get("ICONES_BASE"))
-            nossa = (efetivos.get("NOME_TEMA_ICONES") or "MeowSystem-Icons") + "-Base"
-            candidatos = [""] + list(item.get("opcoes") or []) + [item.get("valor") or ""]
-            cede = sorted({c for c in candidatos if not mod._base_escolhida(c)})
-            _q, tema_cedido, decl_cedida = mod.base_que_vale(vocab["id"], "")
-        except Exception:
-            quem = None
+        with _NOME_DO_TEMA_TRAVA:
+            antes = os.environ.get("NOME_TEMA_ICONES")
+            os.environ["NOME_TEMA_ICONES"] = efetivos.get("NOME_TEMA_ICONES") or ""
+            try:
+                quem, tema, decl = mod.base_que_vale(vocab["id"], efetivos.get("ICONES_BASE"))
+                nossa = (efetivos.get("NOME_TEMA_ICONES") or "MeowSystem-Icons") + "-Base"
+                candidatos = [""] + list(item.get("opcoes") or []) + [item.get("valor") or ""]
+                cede = sorted({c for c in candidatos if not mod._base_escolhida(c)})
+                _q, tema_cedido, decl_cedida = mod.base_que_vale(vocab["id"], "")
+            except Exception:
+                quem = None
+            finally:
+                if antes is None:
+                    os.environ.pop("NOME_TEMA_ICONES", None)
+                else:
+                    os.environ["NOME_TEMA_ICONES"] = antes
         if quem:
             dono = mod.campo(decl_cedida["pack"], "nome") if decl_cedida else ""
             vocab["base_de_icones"] = {"vale": nossa if decl_cedida else tema_cedido,
