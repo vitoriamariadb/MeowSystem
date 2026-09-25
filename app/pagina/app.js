@@ -5882,8 +5882,23 @@ function marcarLinhasAbaixo() {
 }
 
 async function puxar() {
-  if (!TRABALHO) return;
-  const r = await api(`/api/trabalho?id=${TRABALHO.id}&desde=${TRABALHO.proximo}`);
+  /* A LEITURA QUE VOLTA TEM DE SER A DE AGORA — 24/09/2026, sprint P57
+   *   O intervalo de 400 ms não espera a leitura anterior: com o servidor
+   * lento (a máquina carregada), duas ficam no ar, e o que vinha depois do
+   * `await` escrevia no `TRABALHO` de AGORA com a resposta de ANTES. A que
+   * voltava por último repetia a saída; a que voltava depois do fim escrevia
+   * num `TRABALHO` já `null` — a exceção que derrubou uma rodada do gate em
+   * «Ouvir o som»; e a de um trabalho que acabou, chegando com o seguinte já
+   * aberto, punha a saída do velho na gaveta do novo e o dava por terminado
+   * com ele ainda rodando. A guarda: a resposta só vale se o trabalho ainda é
+   * o mesmo e ninguém leu depois dela; se não, a próxima volta do intervalo
+   * pede de onde a gaveta está. O `tests/app-navegador.py` (passo 23) monta as
+   * três corridas. */
+  const t = TRABALHO;
+  if (!t) return;
+  const desde = t.proximo;
+  const r = await api(`/api/trabalho?id=${t.id}&desde=${desde}`);
+  if (TRABALHO !== t || t.proximo !== desde) return;
   if (r.erro) { clearInterval(TRABALHO.timer); pastilhaDeTrabalho(false); return; }
   TRABALHO.proximo = r.proximo;
 
@@ -5977,7 +5992,21 @@ async function puxar() {
       for (const chave of [...PREVIAS.keys()]) {
         if (chave.startsWith("icone/") || chave.startsWith("parede/")) PREVIAS.delete(chave);
       }
+      /* A LISTA DE APLICATIVOS SE RELÊ JÁ, E A TELA SÓ REPINTA COM ELA
+       * — 24/09/2026, sprint P57
+       *   O "lendo…" de um instante, acima, era a grade de Ícones inteira
+       * trocada por «Lendo os aplicativos…»: a primeira pintura depois do
+       * trabalho (a dos packs, logo abaixo) achava a lista esquecida e só então
+       * a pedia. Medido numa casa de brinquedo: 110 ms sem cartão nenhum, 240 ms
+       * com a máquina carregada — e o esquema, que a sprint supunha no caminho,
+       * nunca esteve nele. A lista que estava aberta é pedida aqui, com o
+       * trabalho já terminado (é a do disco DEPOIS dele: a razão da P46 fica de
+       * pé), e as duas repinturas de baixo esperam por ela — a grade passa da
+       * lista de antes para a de depois sem sumir no meio. A que nunca foi
+       * aberta continua sendo lida quando for aberta. */
+      const aberta = APPS !== null;
       APPS = null;
+      const lista = aberta ? carregarApps() : null;
       /* Uma etapa que escreveu pode ter RESOLVIDO uma pendência (ou criado
        * outra): quem apaga a linha do TSV é o próprio script, no caminho feliz.
        * Reler aqui é o que faz o bloco sumir da Home sem F5. */
@@ -5991,10 +6020,12 @@ async function puxar() {
        * packs, que é quem sabe qual está no ar. */
       const folha = document.querySelector('link[rel="stylesheet"][href^="/paleta.css"]');
       if (folha) folha.href = `/paleta.css?v=${Date.now()}`;
-      recarregarPacks().then(render);
-      recarregarEsquema().then(() => {
+      Promise.all([recarregarPacks(), lista]).then(render);
+      Promise.all([recarregarEsquema(), lista]).then(() => {
         PREVIAS.delete("icone/");
-        if (APPS) carregarApps();
+        /* Com a `lista` acima já relida do disco depois do trabalho, pedi-la
+         * de novo aqui era o mesmo `/api/apps` duas vezes (revisão da P57). */
+        if (APPS && !lista) carregarApps();
         if (JOGOS) carregarJogos();
         render();
       });
@@ -9545,8 +9576,13 @@ function montarGrupos() {
 
     /* A HOME É UM GRUPO, e é por isso que ela é a aba que abre por padrão
      * (`ABA = abaDoHash() || chaveDeAba(GRUPOS[0])`). Ela não é um assunto entre
-     * os outros — é a porta, e por isso entra antes dos dois blocos do menu. */
-    GRUPOS.unshift({ tipo: "home", nome: "Início", itens: [] });
+     * os outros — é a porta, e por isso entra antes dos dois blocos do menu.
+     * O NOME VEM DO SERVIDOR desde 24/09/2026 (P57), como o das outras abas: é
+     * de lá que o `--onde inicio` o dá aos scripts, e escrito aqui seria o
+     * segundo dono de um nome de tela — o `install.sh` citava a «aba Início»
+     * à mão. As chaves "Início" do `ICONES_MENU` e das prévias continuam
+     * sendo o texto da aba, como as das seções. */
+    GRUPOS.unshift({ tipo: "home", nome: ESQUEMA.aba_inicio, itens: [] });
 
     /* AS GALERIAS ENTRAM NO ASSUNTO A QUE PERTENCEM, e é por isso que a página
      * de papel de parede tem a coleção, os nove ajustes e as sete ações: os três

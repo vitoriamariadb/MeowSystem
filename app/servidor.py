@@ -96,6 +96,7 @@
 
 import base64
 import datetime
+import functools
 import hashlib
 import hmac
 import html
@@ -252,6 +253,64 @@ ESTADO = os.environ.get("MEOW_ESTADO") or os.path.join(
 )
 
 TOKEN = secrets.token_urlsafe(32)
+
+
+# UMA LEITURA DO ESQUEMA PERGUNTA CADA COISA À MÁQUINA UMA VEZ
+# — 24/09/2026, sprint P57 (item 6)
+#   O `/api/esquema` é lido a cada carga da página e no fim de todo trabalho que
+#   escreve, e levava 2,2 s numa casa de brinquedo e de 3,3 a 4,2 s nesta
+#   máquina. O perfil mostrou para onde ia: o `_tipo_de_previa` pergunta,
+#   chave por chave, se o valor é um ponteiro instalado, e cada uma das 69
+#   perguntas refazia a lista de ponteiros e, com ela, a adoção do pack (a
+#   validação inteira do pack.json, 30 mil `realpath`) e o bash que lê o
+#   meow.conf; o `_vestigio_de_pack` relia os dois confs e rodava o bash de novo
+#   para cada uma das 123 chaves. Numa leitura só: 233 bashes e 149 adoções, com
+#   a mesma resposta — e o comentário do `_vestigio_de_pack` já dizia que a
+#   leitura "é cacheada pelo próprio `valores_brutos`", que não cacheava nada.
+#
+#   A MEMÓRIA É DE UMA LEITURA, E DA LINHA DE EXECUÇÃO QUE A FAZ. Fora de uma
+#   leitura (`_numa_leitura`) as funções marcadas perguntam como sempre; dentro
+#   dela, a primeira resposta vale até a leitura acabar. O servidor é
+#   `ThreadingHTTPServer`: a leitura de outro pedido, ou o `/api/definir` que
+#   acabou de gravar, nunca vê a resposta desta. Guardar ENTRE leituras seria a
+#   página mostrando o que já mudou — a lição da P46.
+_LEITURA = threading.local()
+
+
+def _uma_vez_por_leitura(funcao):
+    """Marca uma pergunta à máquina cuja resposta não muda dentro de uma leitura.
+
+    A lista, o dicionário ou o conjunto que volta é uma CÓPIA da guardada: a
+    lista de temas vira as `opcoes` de mais de uma chave, e quem acrescentasse
+    uma opção a uma delas a acrescentaria em todas."""
+    @functools.wraps(funcao)
+    def embrulho(*args):
+        memoria = getattr(_LEITURA, "memoria", None)
+        if memoria is None:
+            return funcao(*args)
+        chave = (funcao.__name__,) + tuple(tuple(a) if isinstance(a, list) else a
+                                           for a in args)
+        if chave not in memoria:
+            memoria[chave] = funcao(*args)
+        resposta = memoria[chave]
+        return type(resposta)(resposta) if isinstance(resposta, (list, dict, set)) else resposta
+    return embrulho
+
+
+def _numa_leitura(funcao):
+    """Liga a memória do `_uma_vez_por_leitura` enquanto `funcao` roda; uma
+    leitura de dentro de outra (o `ler_esquema` do `_dados_esquema`) usa a da
+    de fora."""
+    @functools.wraps(funcao)
+    def embrulho(*args, **kwargs):
+        if getattr(_LEITURA, "memoria", None) is not None:
+            return funcao(*args, **kwargs)
+        _LEITURA.memoria = {}
+        try:
+            return funcao(*args, **kwargs)
+        finally:
+            _LEITURA.memoria = None
+    return embrulho
 
 
 # --- 2. o esquema, lido do meow.conf.exemplo --------------------------------
@@ -1628,6 +1687,7 @@ def _declarado_pelo_pack(adotado, alvo):
     return False
 
 
+@_uma_vez_por_leitura
 def _pack_adotado():
     """O id do pack no ar, ou '' sem `scripts/pack.py`. [23/09/2026]
 
@@ -1971,6 +2031,7 @@ def _capturas_no_disco():
         return []
 
 
+@_numa_leitura
 def ler_esquema():
     """Ordem, seção, ajuda e opções de cada chave — direto do meow.conf.exemplo."""
     itens = []
@@ -2335,6 +2396,7 @@ def _dirs_de_icones():
                 yield nome, completo
 
 
+@_uma_vez_por_leitura
 def _temas_de_icones():
     """Os temas de ícones INSTALADOS — o que `ICONES_BASE` pode de fato herdar.
 
@@ -2513,6 +2575,7 @@ def _ponteiro_vem_do_pack(valor):
     return bool(do_pack) and do_pack.get("valor") == valor
 
 
+@_uma_vez_por_leitura
 def _temas_de_cursor():
     """Os valores que a chave `CURSOR` aceita — nem um a mais que isso.
 
@@ -2699,6 +2762,7 @@ def _nome_antigo_valendo():
             if antigo in nomes and novo not in nomes}
 
 
+@_uma_vez_por_leitura
 def valores_brutos():
     """O valor CRU de cada chave no meow.conf dela, caindo no exemplo quando falta.
 
@@ -2726,6 +2790,7 @@ def valores_brutos():
     return valores
 
 
+@_uma_vez_por_leitura
 def valores_efetivos(chaves):
     """O valor DEPOIS de o shell expandir — é o que os scripts de fato recebem.
 
@@ -3958,6 +4023,7 @@ def fim_da_acao(acao_id, seco=False):
 # 47 — nome de tela escrito à mão é o que envelhece primeiro). E o servidor
 # recusa rodar a ação apagada, pelo mesmo motivo de o `confirma` ser tranca e
 # não costume: um POST direto não passa por botão nenhum.
+@_uma_vez_por_leitura
 def _modo_do_gato():
     """O modo EFETIVO do gato do dock (`hora`, `rotacao`, `fixo`), ou "".
 
@@ -5084,6 +5150,7 @@ def _prev_icones():
     return fora
 
 
+@_uma_vez_por_leitura
 def _prev_cursores():
     """Um item por ponteiro que a chave `CURSOR` de fato SABE escolher.
 
@@ -6191,12 +6258,43 @@ def _app_da_pendencia(ident):
 #   é o `meow_onde_no_painel` do `lib/comum.sh`.
 #   Ação `oculta` não tem cartão em aba nenhuma, e pendência sem ação não tem
 #   botão: nos dois casos a resposta é vazia, e a frase que a usaria não sai.
+#
+# E TAMBÉM CARTÕES E ABAS — 24/09/2026, sprint P57 (item 4)
+#   O `install.sh` ainda citava por extenso o cartão «Arrumar o lançador» e a
+#   «aba Início» — a classe do achado 47, que o `--onde` de ações não
+#   alcançava. Um cartão se pergunta pela CHAVE, e a resposta sai do mesmo
+#   lugar de onde a página tira o cartão: o título escrito no
+#   `meow.conf.exemplo` (o `# @`), com a troca que o pack no ar faz
+#   (`_com_o_vocabulario_do_pack`), e a seção, que é a aba. Chave sem título
+#   escrito não tem nome certo para citar (o da página é derivado lá), e a
+#   resposta é vazia. A aba que abre o painel se pergunta por `inicio`.
+#
+# A INÍCIO ERA A ÚNICA ABA NOMEADA SÓ NA PÁGINA — as outras saem da seção do
+#   `meow.conf.exemplo` ou do `grupo` de uma ação, ambos lidos aqui. O nome
+#   passa a morar neste arquivo, e a página o lê do esquema (`aba_inicio`, no
+#   `montarGrupos` do app.js): um dono só, e o `--onde` diz o que a tela mostra.
+ABA_INICIO = "Início"
+
+
 def onde_na_tela(ident):
-    """«rótulo», na aba Grupo — da ação, ou da ação de uma pendência — ou ""."""
+    """Onde um lugar do painel mora, pela tabela que o define, ou "":
+
+    «rótulo», na aba Grupo — de uma ação, ou da ação de uma pendência;
+    «título», na aba Seção — do cartão de uma chave do meow.conf;
+    na aba Início — para `inicio`, a aba que abre o painel."""
     acao = ACOES.get(ident) or ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""))
-    if not acao or acao.get("oculta"):
+    if acao:
+        return "" if acao.get("oculta") else "«%s», na aba %s" % (acao["rotulo"], acao["grupo"])
+    if ident == "inicio":
+        return "na aba %s" % ABA_INICIO
+    esquema = ler_esquema()
+    item = next((i for i in esquema if i["chave"] == ident), None)
+    if not item:
         return ""
-    return "«%s», na aba %s" % (acao["rotulo"], acao["grupo"])
+    _com_o_vocabulario_do_pack(esquema, vocabulario_do_pack(), {})
+    if not item.get("titulo") or not item.get("secao"):
+        return ""
+    return "«%s», na aba %s" % (item["titulo"], item["secao"])
 
 
 PENDENCIAS = os.path.join(ESTADO, "pendencias.tsv")
@@ -6648,6 +6746,46 @@ def _repositorio_no_ar():
         return "https://%s/%s" % (host, m.group(2))
     m = re.match(r"^(https?://[^/]+/.+?)(?:\.git)?/?$", url)
     return m.group(1) if m else ""
+
+
+def idiomas_da_sessao():
+    """A cadeia de idioma da sessão, na ordem em que um `Name[…]` se procura.
+
+    O NOME QUE O LANÇADOR MOSTRA — 24/09/2026, sprint P57 (item 3)
+        As fichas do painel diziam o `Name=` cru — «COSMIC Settings»,
+        «Camera» —, e o lançador do COSMIC, «Configurações» e «Câmera»: o
+        `Name[pt_BR]`. Medido nesta máquina: 5 dos 49 `.desktop` visíveis têm
+        um `Name[pt_BR]` diferente do `Name=`, e 2 dos 32 da lista de fábrica do
+        «Quais programas o lançador esconde».
+
+    A REGRA É A DA ESPECIFICAÇÃO (Desktop Entry, "Localized values for keys"):
+        para `lang_PAÍS.CODIFICAÇÃO@MOD`, procura-se `lang_PAÍS@MOD`,
+        `lang_PAÍS`, `lang@MOD` e `lang`, e sem nenhum vale a chave sem idioma;
+        a codificação não entra. A cadeia é a do gettext e do GLib: a lista do
+        `LANGUAGE`, e depois o primeiro que houver de `LC_ALL`, `LC_MESSAGES` e
+        `LANG` — "C" e "POSIX" não têm tradução.
+
+    O QUE FICA DE FORA: a tradução por catálogo (`X-Ubuntu-Gettext-Domain`),
+        extensão do Ubuntu que a especificação não tem. Medido: o «Fonts» do
+        `org.gnome.font-viewer` é desse tipo, e o catálogo pt_BR do domínio
+        dele não está instalado nesta máquina — nem o de nenhum dos outros
+        domínios que os `.desktop` daqui citam."""
+    brutos = [v for v in os.environ.get("LANGUAGE", "").split(":") if v]
+    brutos += [os.environ[n] for n in ("LC_ALL", "LC_MESSAGES", "LANG") if os.environ.get(n)][:1]
+    fora = []
+    for bruto in brutos:
+        base, _arroba, modificador = bruto.partition("@")
+        base = base.split(".", 1)[0]
+        if base in ("", "C", "POSIX"):
+            continue
+        lingua, _sublinha, pais = base.partition("_")
+        for v in ("%s_%s@%s" % (lingua, pais, modificador) if pais and modificador else "",
+                  "%s_%s" % (lingua, pais) if pais else "",
+                  "%s@%s" % (lingua, modificador) if modificador else "",
+                  lingua):
+            if v and v not in fora:
+                fora.append(v)
+    return fora
 
 
 class Manipulador(BaseHTTPRequestHandler):
@@ -7203,7 +7341,20 @@ class Manipulador(BaseHTTPRequestHandler):
 
         # A saída do comando vai para uma torrada, que é tela: a casa sai como
         # `~`, pela mesma porta da gaveta — ver `texto_na_tela` (P52).
-        saida = texto_na_tela(((r.stdout or "") + (r.stderr or "")).strip())
+        # E O CLONE SAI TAMBÉM, PORQUE A TORRADA NÃO É A GAVETA — 24/09/2026,
+        # revisão da P57. Na gaveta vale só a casa (um clone em `/opt` não diz
+        # o nome de ninguém); fora dela, nem a casa nem o clone, que é a régua
+        # do `tests/app-completo.py`. A última linha do `meow fontes adicionar`
+        # é «o acervo é <clone>/assets/fontes/locais», e o vazamento é antigo:
+        # com o esquema lento a torrada (2,6 s de vida) morria antes da conta do
+        # fim da aba, e com o da P57 o gesto caiu de 4,8–5,4 s para 3,3–3,5 s e
+        # ela ainda estava na tela — o gate reprovou a aba Terminal. O que mora
+        # no clone vira `./…`, como o `comando_na_tela` escreve um script dele;
+        # e vira ANTES da casa, porque o clone costuma morar nela, e trocada a
+        # casa primeiro ele sobraria como `~/…`.
+        bruta = ((r.stdout or "") + (r.stderr or "")).strip()
+        bruta = re.sub(r"(?<![\w/.~-])" + re.escape(RAIZ) + r"(?![\w.-])", ".", bruta)
+        saida = texto_na_tela(bruta)
         # O CONTRATO DE IDEMPOTÊNCIA CHEGA INTEIRO À TELA: 0 é "já estava
         # assim", e isso não é erro nem é novidade — é a resposta certa para
         # quem enviou duas vezes o mesmo arquivo. Só 2 para cima é falha.
@@ -7366,8 +7517,12 @@ class Manipulador(BaseHTTPRequestHandler):
     )
 
     def _desktops(self):
-        """Todo `.desktop` visível da máquina: id, nome, ícone declarado, origem."""
+        """Todo `.desktop` visível da máquina: id, nome, ícone declarado, origem.
+
+        O nome é o que o lançador mostra: o `Name[…]` da cadeia de idioma da
+        sessão, e o `Name=` só quando nenhum casa (P57, `idiomas_da_sessao`)."""
         vistos = {}
+        idiomas = idiomas_da_sessao()
         for bruto, origem in self.DIRS_DESKTOP:
             pasta = os.path.expanduser(bruto)
             if not os.path.isdir(pasta):
@@ -7383,6 +7538,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 caminho = os.path.join(pasta, arq)
                 dados = {"id": ident, "nome": ident, "icone": "", "origem": origem,
                          "arquivo": caminho, "oculto": False, "categorias": ""}
+                traduzidos = {}
                 try:
                     with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
                         em_entrada = False
@@ -7398,6 +7554,10 @@ class Manipulador(BaseHTTPRequestHandler):
                                 continue
                             if linha.startswith("Name=") and dados["nome"] == ident:
                                 dados["nome"] = linha[5:].strip()
+                            elif linha.startswith("Name["):
+                                idioma, igual, valor = linha[5:].partition("]=")
+                                if igual and valor.strip():
+                                    traduzidos.setdefault(idioma, valor.strip())
                             elif linha.startswith("Icon="):
                                 dados["icone"] = linha[5:].strip()
                             elif linha.startswith("Categories="):
@@ -7407,6 +7567,8 @@ class Manipulador(BaseHTTPRequestHandler):
                                     dados["oculto"] = True
                 except OSError:
                     continue
+                dados["nome"] = next((traduzidos[i] for i in idiomas if i in traduzidos),
+                                     dados["nome"])
                 # Quem vem depois vence: o `.desktop` da usuária sobrepõe o do
                 # sistema, que é a mesma precedência que o lançador usa.
                 vistos[ident] = dados
@@ -8650,9 +8812,9 @@ class Manipulador(BaseHTTPRequestHandler):
     def _editor_de_svg(self):
         """Quem esta máquina abre num `.svg`, perguntado UMA vez por sessão.
 
-        Devolve `{"tem": bool, "nome": str}`. O nome é o `Name=` do `.desktop`
-        que o `xdg-mime` aponta — nesta máquina, `com.boxy_svg.BoxySVG.desktop`
-        -> "Boxy SVG".
+        Devolve `{"tem": bool, "nome": str}`. O nome é o que o lançador mostra
+        do `.desktop` que o `xdg-mime` aponta (o do `_desktops`, P57) — nesta
+        máquina, `com.boxy_svg.BoxySVG.desktop` -> "Boxy SVG".
 
         O NOME NÃO É ENFEITE, É A DIFERENÇA ENTRE UM BOTÃO E UMA APOSTA. «Abrir
         no editor» promete algo que só se descobre clicando; «Abrir no Boxy SVG»
@@ -8681,24 +8843,19 @@ class Manipulador(BaseHTTPRequestHandler):
                     alvo = ""
             if not alvo or not alvo.endswith(".desktop") or "/" in alvo:
                 return _EDITOR_SVG
-            # O `Name=` sem sufixo de idioma: `Name[pt_BR]=` é outra chave, e
-            # pegar a primeira que casasse daria o nome traduzido de um
-            # aplicativo e o original de outro na mesma tela.
-            nome = ""
-            for bruto, _origem in self.DIRS_DESKTOP:
-                caminho = os.path.join(os.path.expanduser(bruto), alvo)
-                if not os.path.isfile(caminho):
-                    continue
-                try:
-                    with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
-                        for linha in fh:
-                            if linha.startswith("Name="):
-                                nome = linha[5:].strip()
-                                break
-                except OSError:
-                    pass
-                break
-            _EDITOR_SVG = {"tem": True, "nome": nome or alvo[:-8]}
+            # O NOME É O DO LANÇADOR, E QUEM O LÊ É O `_desktops` — 24/09/2026,
+            # revisão da P57. Aqui morava um leitor próprio do `Name=` cru, com
+            # este porquê: "pegar a primeira [chave] que casasse daria o nome
+            # traduzido de um aplicativo e o original de outro na mesma tela". A
+            # P57 inverteu a conta: a grade de Ícones, na mesma tela, passou a
+            # dizer o `Name[…]` da sessão, e era este botão que misturava. Com o
+            # leitor da grade o nome é o mesmo dos dois lados, e o `.desktop`
+            # também: o daqui parava no PRIMEIRO achado na ordem do
+            # `DIRS_DESKTOP` (o do sistema), e o `_desktops` deixa o de depois
+            # vencer (o da usuária), como o lançador.
+            ident = alvo[:-len(".desktop")]
+            d = next((x for x in self._desktops() if x["id"] == ident), None)
+            _EDITOR_SVG = {"tem": True, "nome": (d or {}).get("nome") or ident}
             return _EDITOR_SVG
 
     def _caminho_rascunho(self, nome):
@@ -10076,6 +10233,7 @@ class Manipulador(BaseHTTPRequestHandler):
         ]
         return "\n".join(partes), "meowsystem-painel-%s.html" % _carimbo()
 
+    @_numa_leitura
     def _dados_esquema(self):
         """O que a página inteira consome. Um dicionário só, e é ele que o
         `exportar_pagina` congela dentro do arquivo standalone."""
@@ -10102,12 +10260,16 @@ class Manipulador(BaseHTTPRequestHandler):
         # crus — `org.gnome.Evince`, `org.gnome.baobab`,
         # `gnome-language-selector` —, e a pergunta da chave é «quais
         # PROGRAMAS»: quem lê um id reverso de domínio não sabe que é o leitor
-        # de PDF. Cada id que o valor ou o padrão cita ganha o `Name=` e o ícone
+        # de PDF. Cada id que o valor ou o padrão cita ganha o nome e o ícone
         # do `.desktop` dele, pelos MESMOS `_desktops` e `_icone_na_tela` da
         # aba de ícones: o nome é o do lançador, e o desenho é o que está na
-        # tela agora. Id sem `.desktop` nesta máquina fica de fora do mapa, e a
-        # ficha continua dizendo o id — é o caso do programa que não está
-        # instalado, e o comentário da chave diz que ele é pulado.
+        # tela agora. Desde a P57 o nome é o `Name[…]` da cadeia de idioma da
+        # sessão, e o `Name=` só quando nenhum casa (`idiomas_da_sessao`):
+        # medido, o nm-connection-editor sai «Configuração avançada de rede», e
+        # não «Advanced Network Configuration». Id sem `.desktop` nesta máquina
+        # fica de fora do mapa, e a ficha continua dizendo o id — é o caso do
+        # programa que não está instalado, e o comentário da chave diz que ele
+        # é pulado.
         #   Só os ids citados, e não a máquina inteira: o esquema é lido a cada
         # carga da página, e o ícone de cada programa custa uma busca no disco.
         com_ids = [i for i in esquema if i.get("ids_de_desktop")]
@@ -10208,6 +10370,9 @@ class Manipulador(BaseHTTPRequestHandler):
             "folhas": self._folhas(),
             "descricoes": DESCRICAO_SECAO,
             "blocos": BLOCO_DA_SECAO,
+            # O nome da aba que abre o painel, dito num lugar só: é o mesmo que
+            # o `--onde inicio` dá aos scripts (P57, ver `ABA_INICIO`).
+            "aba_inicio": ABA_INICIO,
             # A paleta inteira vai junto: as amostras de flavor e de cor são
             # desenhadas com ela, e uma segunda viagem ao servidor para 4x26
             # valores seria viagem à toa.
@@ -10606,7 +10771,7 @@ if __name__ == "__main__":
     # imprimiu a URL. Quem pergunta onde fica um botão não pediu servidor.
     if len(sys.argv) > 1 and sys.argv[1] == "--onde":
         if len(sys.argv) != 3:
-            sys.stderr.write("uso: servidor.py --onde <ação ou pendência>\n")
+            sys.stderr.write("uso: servidor.py --onde <ação, pendência, chave ou inicio>\n")
             sys.exit(2)
         frase = onde_na_tela(sys.argv[2])
         sys.stdout.write(frase + "\n" if frase else "")

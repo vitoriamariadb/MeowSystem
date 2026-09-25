@@ -2212,7 +2212,10 @@ cmd_status() {
   meow_passo "Ícones e logo"
   local tema_icones logo_path n_icones
   tema_icones="$(cat "$COSMIC/com.system76.CosmicTk/v1/icon_theme" 2>/dev/null || printf '(nenhum)')"
-  logo_path="$(cat "$COSMIC/dev.cappsy.CosmicExtAppletLogoMenu/v1/custom_logo_path" 2>/dev/null || printf '(nenhuma)')"
+  # A CHAVE É A DO APPLET INSTALADO, E QUEM SABE QUAL É O `logo.sh applet`
+  # — revisão da P57. Esta linha lia a do `dev.cappsy` pelo nome, e o
+  # `logo.sh` passou a achar o applet pelo que está instalado.
+  logo_path="$(MEOW_DRY_RUN=1 "$RAIZ/scripts/logo.sh" applet 2>/dev/null)" || logo_path=""
   n_icones="$(find "$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                 \( -type f -o -type l \) 2>/dev/null | wc -l)"
   campo "tema"     "$tema_icones"
@@ -2239,8 +2242,7 @@ cmd_status() {
   modo_logo="$(LOGO_MODO="${LOGO_MODO:-}" LOGO_ROTACAO="${LOGO_ROTACAO:-}" \
                  "$RAIZ/scripts/logo.sh" modo 2>/dev/null)"
   campo "logo"     "${no_dock:-nenhum gato do acervo} no dock  (modo ${modo_logo:-desconhecido})"
-  [ -f "$COSMIC/dev.cappsy.CosmicExtAppletLogoMenu/v1/custom_logo_path" ] &&
-    campo "applet"   "$logo_path"
+  [ -n "$logo_path" ] && campo "applet"   "$logo_path"
 
   meow_passo "Papéis de parede"
   local l
@@ -2588,7 +2590,8 @@ cmd_logo() {
   if [ -z "$arg" ]; then
     meow_titulo "Logo do painel"
     campo "em uso" "$LOGO"
-    campo "arquivo" "$(cat "$COSMIC/dev.cappsy.CosmicExtAppletLogoMenu/v1/custom_logo_path" 2>/dev/null || printf '(nenhuma)')"
+    # A chave do applet INSTALADO, pelo `logo.sh applet` (revisão da P57).
+    campo "arquivo" "$(MEOW_DRY_RUN=1 "$RAIZ/scripts/logo.sh" applet 2>/dev/null || printf '(nenhuma)')"
     printf '\n  %sgatos do acervo (assets/gatos/)%s\n' "$C_DIM" "$C_ZERO"
     logos_disponiveis | sed 's/^/    /'
     printf '\n  %ssolte um .svg em assets/gatos/ e ele entra na hora — a pasta é a lista%s\n' \

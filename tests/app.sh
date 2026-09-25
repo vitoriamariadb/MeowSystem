@@ -695,14 +695,27 @@ if trocar != {"chave": "LOGO_MODO", "vale": "rotacao", "pede": "fixo"} or girar:
 #   Coquinha. Sem reciclar o painel (`LOGO_RECICLAR="nao"`), e com um
 #   `notify-send` falso: a notificação do `meow logo` iria para a sessão de
 #   quem roda o teste.
+#   O APPLET DE LOGO INSTALADO, desde a P57, é o `.desktop` com
+# `X-CosmicApplet=true` que o COSMIC acha (o `_applet_de_logo` do logo.sh), e
+# não a pasta de configuração, que sobra quando ele sai: com só a pasta, esta
+# casa não simulava applet nenhum (revisão da P57). As pastas de aplicativos
+# são só as da casa, para um applet instalado em quem roda o teste não entrar.
 applet = os.path.join(cosmic, "dev.cappsy.CosmicExtAppletLogoMenu", "v1")
 os.makedirs(applet)
+aplicativos = os.path.join(casa, ".local", "share", "applications")
+os.makedirs(aplicativos, exist_ok=True)
+with open(os.path.join(aplicativos, "dev.cappsy.CosmicExtAppletLogoMenu.desktop"), "w",
+          encoding="utf-8") as fh:
+    fh.write("[Desktop Entry]\nType=Application\nName=Logo Menu\nNoDisplay=true\n"
+             "X-CosmicApplet=true\n")
 falso = os.path.join(os.path.dirname(casa), "falso")
 os.makedirs(falso)
 with open(os.path.join(falso, "notify-send"), "w", encoding="utf-8") as fh:
     fh.write("#!/bin/sh\nexit 1\n")
 os.chmod(os.path.join(falso, "notify-send"), 0o755)
-ambiente = dict(os.environ, PATH=falso + os.pathsep + os.environ.get("PATH", ""))
+ambiente = dict(os.environ, PATH=falso + os.pathsep + os.environ.get("PATH", ""),
+                XDG_DATA_HOME=os.path.join(casa, ".local", "share"),
+                XDG_DATA_DIRS=os.path.join(casa, "sem-pastas-do-sistema"))
 logo_sh = os.path.join(raiz, "scripts", "logo.sh")
 conf_com(LOGO_MODO="hora", LOGO_DIA="mimir", LOGO_NOITE="mimir", LOGO="mimir", LOGO_RECICLAR="nao")
 subprocess.run(["bash", "-c", 'set -a; . "$1"; set +a; exec "$2" aplicar', "_", conf, logo_sh],
@@ -779,5 +792,378 @@ print("ok: cada ação declara a natureza e o fim diz o que ela fez; o nome de t
       "da tabela; o botão sem efeito se apaga; o raio não passa do teto de agora")
 PY
 rm -rf "$_tmp12"
+
+# --- 13. AS REGRAS QUE AINDA MENTIAM — 24/09/2026, sprint P57 -----------------
+#   Quatro regras que diziam uma coisa e faziam outra, cada uma com a prova que
+#   reprova o código de antes (o item 1, o flatpak, mora no
+#   `tests/temas-de-apps.sh`; o 2, a corrida da gaveta, no `app-navegador.py`):
+#   13a. O nome da ficha é o que o lançador mostra: o `Name[...]` da cadeia de
+#        idioma da sessão, e não o `Name=` cru (item 3).
+#   13b. O `--onde` cobre cartões e abas, e as frases do `install.sh` que citam
+#        um lugar do painel saem dele (item 4).
+#   13c. O `logo.sh`: o applet de logo é o que está instalado, o aviso do modo
+#        fixo diz o que acontece, e o gato do terminal acompanha o do dock em
+#        todo modo (item 5).
+#   13d. Uma leitura do esquema mede cada fato da máquina uma vez, e não uma
+#        vez por chave (item 6).
+#   13e. A torrada do «Adicionar» não leva o caminho do clone (a revisão: o
+#        esquema rápido do item 6 deixou à vista um vazamento antigo).
+#   Casa, conf, estado e COSMIC de brinquedo, como na 12.
+_tmp13="$(mktemp -d)"
+HOME="$_tmp13/casa" MEOW_CONF="$_tmp13/casa/.config/meow/meow.conf" \
+MEOW_ESTADO="$_tmp13/casa/.local/state/meowsystem" \
+MEOW_COSMIC_DIR="$_tmp13/casa/.config/cosmic" MEOW_RAIZ="$RAIZ" \
+  python3 - "$RAIZ" <<'PY' || falhas=$((falhas+1))
+import collections, glob, os, re, shutil, subprocess, sys
+raiz = sys.argv[1]
+casa = os.environ["HOME"]
+conf = os.environ["MEOW_CONF"]
+cosmic = os.environ["MEOW_COSMIC_DIR"]
+os.makedirs(os.path.dirname(conf))
+with open(os.path.join(raiz, "meow.conf.exemplo"), encoding="utf-8") as fh:
+    exemplo = fh.read()
+IDIOMA = ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG")
+
+
+def conf_com(**chaves):
+    texto = exemplo
+    for k, v in chaves.items():
+        texto, n = re.subn(r'^%s="[^"]*"' % k, '%s="%s"' % (k, v), texto, count=1, flags=re.M)
+        if not n:
+            texto += '\n%s="%s"\n' % (k, v)
+    with open(conf, "w", encoding="utf-8") as fh:
+        fh.write(texto)
+
+
+def idioma(**amb):
+    """Troca a cadeia de idioma deste processo por `amb`; devolve a de antes."""
+    antes = {k: os.environ.pop(k, None) for k in IDIOMA}
+    os.environ.update(amb)
+    return antes
+
+
+conf_com()
+sys.path.insert(0, os.path.join(raiz, "app"))
+import servidor
+
+erros = []
+aplicativos = os.path.join(casa, ".local", "share", "applications")
+os.makedirs(aplicativos)
+
+
+def desktop(ident, corpo):
+    with open(os.path.join(aplicativos, ident + ".desktop"), "w", encoding="utf-8") as fh:
+        fh.write("[Desktop Entry]\nType=Application\nExec=true\n" + corpo)
+
+
+# 13a. o nome da ficha
+#   Três programas: um com as duas traduções (e uma ação com nome próprio, que
+#   não pode vazar para o do programa), um só com a do português de Portugal, e
+#   um sem nenhuma. A regra é a da especificação: `lang_PAÍS@MOD`, `lang_PAÍS`,
+#   `lang@MOD`, `lang`, e o `Name=` por último; a cadeia é a do `LANGUAGE` e
+#   depois a do primeiro de `LC_ALL`, `LC_MESSAGES` e `LANG`.
+desktop("com.exemplo.Ajustes", "Name=Settings\nName[pt]=Definições\nName[pt_BR]=Configurações\n"
+        "\n[Desktop Action nova]\nName=New window\nName[pt_BR]=Outra janela\n")
+desktop("com.exemplo.Camara", "Name=Camera\nName[pt]=Câmara\n")
+desktop("com.exemplo.Fontes", "Name=Fonts\n")
+m = servidor.Manipulador.__new__(servidor.Manipulador)
+for amb, quer in ((dict(LANG="pt_BR.UTF-8"), ["Configurações", "Câmara", "Fonts"]),
+                  (dict(LANG="pt_PT.UTF-8"), ["Definições", "Câmara", "Fonts"]),
+                  (dict(LANG="C.UTF-8"), ["Settings", "Camera", "Fonts"]),
+                  (dict(LANG="en_US.UTF-8", LANGUAGE="pt_BR:en"),
+                   ["Configurações", "Câmara", "Fonts"]),
+                  (dict(LANG="pt_BR.UTF-8", LC_MESSAGES="en_US.UTF-8"),
+                   ["Settings", "Camera", "Fonts"]),
+                  (dict(LANG="en_US.UTF-8", LC_ALL="pt_BR.UTF-8"),
+                   ["Configurações", "Câmara", "Fonts"])):
+    antes = idioma(**amb)
+    try:
+        por_id = {d["id"]: d["nome"] for d in m._desktops()}
+    finally:
+        idioma(**{k: v for k, v in antes.items() if v is not None})
+    tem = [por_id.get(i) for i in ("com.exemplo.Ajustes", "com.exemplo.Camara",
+                                   "com.exemplo.Fontes")]
+    if tem != quer:
+        erros.append("13a: com %s as fichas dizem %s, e o lançador diria %s" % (amb, tem, quer))
+# E a ficha de «Quais programas o lançador esconde» (P54) diz o mesmo nome: um
+# id da lista de fábrica, com o `.desktop` da casa vencendo o do sistema.
+desktop("nm-connection-editor", "Name=Advanced Network Configuration\n"
+        "Name[pt_BR]=Configuração avançada de rede\n")
+# E O BOTÃO «Abrir no …» DA OFICINA TAMBÉM — revisão da P57. Ele tinha um
+# leitor próprio do `Name=` cru e, na mesma tela da grade, era quem misturava o
+# nome traduzido de um aplicativo com o original de outro. O editor que o
+# `xdg-mime` aponta é um de brinquedo, e o `xdg-open` falso é só para haver
+# com que abrir.
+bin_editor = os.path.join(os.path.dirname(casa), "bin-editor")
+os.makedirs(bin_editor)
+for prog, corpo in (("xdg-mime", "echo com.exemplo.Editor.desktop"), ("xdg-open", "exit 0")):
+    with open(os.path.join(bin_editor, prog), "w", encoding="utf-8") as fh:
+        fh.write("#!/bin/sh\n%s\n" % corpo)
+    os.chmod(os.path.join(bin_editor, prog), 0o755)
+desktop("com.exemplo.Editor", "Name=Vector Editor\nName[pt_BR]=Editor de vetores\n"
+        "MimeType=image/svg+xml;\n")
+caminho_antes = os.environ["PATH"]
+antes = idioma(LANG="pt_BR.UTF-8")
+os.environ["PATH"] = bin_editor + os.pathsep + caminho_antes
+servidor._EDITOR_SVG = None
+try:
+    editor = m._editor_de_svg()
+finally:
+    os.environ["PATH"] = caminho_antes
+    servidor._EDITOR_SVG = None
+    idioma(**{k: v for k, v in antes.items() if v is not None})
+if editor != {"tem": True, "nome": "Editor de vetores"}:
+    erros.append("13a: o botão do editor de SVG diz %r, e a grade diria «Editor de vetores»"
+                 % (editor,))
+
+# 13b. o --onde e as frases do install.sh
+esquema = servidor.ler_esquema()
+lanc = next(i for i in esquema if i["chave"] == "LANCADOR_SISTEMA")
+quer = "«%s», na aba %s" % (lanc["titulo"], lanc["secao"])
+if servidor.onde_na_tela("LANCADOR_SISTEMA") != quer:
+    erros.append("13b: --onde LANCADOR_SISTEMA diz %r, e o cartão é %s"
+                 % (servidor.onde_na_tela("LANCADOR_SISTEMA"), quer))
+porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel LANCADOR_SISTEMA',
+                        "_", raiz], capture_output=True, text=True, env=dict(os.environ))
+if porta.stdout.strip() != quer:
+    erros.append("13b: o meow_onde_no_painel de um cartão diz %r" % porta.stdout.strip())
+sem_titulo = next((i["chave"] for i in esquema if not i.get("titulo")), None)
+if sem_titulo and servidor.onde_na_tela(sem_titulo):
+    erros.append("13b: --onde inventa um cartão para %s, que não tem título escrito" % sem_titulo)
+inicio = getattr(servidor, "ABA_INICIO", None)
+if not inicio or servidor.onde_na_tela("inicio") != "na aba %s" % inicio:
+    erros.append("13b: --onde inicio não diz a aba que abre o painel: %r"
+                 % servidor.onde_na_tela("inicio"))
+with open(os.path.join(raiz, "app", "pagina", "app.js"), encoding="utf-8") as fh:
+    if not re.search(r'tipo:\s*"home",\s*nome:\s*ESQUEMA\.aba_inicio\b', fh.read()):
+        erros.append("13b: a página não tira o nome da Início do esquema — são dois donos do nome")
+# O NOME DE TELA NUMA FRASE DO install.sh, DERIVADO E NÃO LISTADO: todo título
+# de cartão e rótulo de ação citado entre aspas numa linha que fala do painel,
+# e todo nome de aba depois da palavra «aba». O `passo "Ícones resgatados do
+# PNG"` não conta: é o nome da etapa, e a linha não fala do painel.
+nomes = ({i["titulo"] for i in esquema if i.get("titulo")}
+         | {a["rotulo"] for a in servidor.ACOES.values() if not a.get("oculta")})
+abas = ({i["secao"] for i in esquema if i.get("secao")}
+        | {a["grupo"] for a in servidor.ACOES.values() if not a.get("oculta")}
+        | {inicio or "Início"})
+with open(os.path.join(raiz, "install.sh"), encoding="utf-8") as fh:
+    instalador = fh.read()
+for n, linha in enumerate(instalador.splitlines(), 1):
+    if linha.lstrip().startswith("#"):
+        continue
+    citados = [x for x in nomes
+               if "painel" in linha and ("«%s»" % x in linha or '"%s"' % x in linha)]
+    citados += ["aba " + x for x in abas
+                if re.search(r"\baba\s+[«\"]?%s(?!\w)" % re.escape(x), linha)]
+    if citados:
+        erros.append("13b: install.sh:%d escreve à mão %s" % (n, ", ".join(sorted(citados))))
+for ident in ("LANCADOR_SISTEMA", "inicio", "desfazer"):
+    if "meow_onde_no_painel %s" % ident not in instalador:
+        erros.append("13b: o install.sh não pergunta ao --onde onde fica %s" % ident)
+
+# 13c. o logo.sh
+logo_sh = os.path.join(raiz, "scripts", "logo.sh")
+falso = os.path.join(os.path.dirname(casa), "falso")
+os.makedirs(falso)
+with open(os.path.join(falso, "notify-send"), "w", encoding="utf-8") as fh:
+    fh.write("#!/bin/sh\nexit 1\n")
+os.chmod(os.path.join(falso, "notify-send"), 0o755)
+# As pastas de aplicativos são só as da casa (revisão da P57): a «máquina sem
+# applet» logo abaixo não pode depender de quem roda o teste não ter um.
+ambiente = dict(os.environ, PATH=falso + os.pathsep + os.environ.get("PATH", ""), NO_COLOR="1",
+                XDG_DATA_HOME=os.path.join(casa, ".local", "share"),
+                XDG_DATA_DIRS=os.path.join(casa, "sem-pastas-do-sistema"))
+logos = os.path.join(cosmic, "logos")
+botao = os.path.join(casa, ".local", "share", "icons", "MeowSystem-Icons", "scalable", "apps",
+                     "com.system76.CosmicPanelAppButton.svg")
+
+
+def logo(**chaves):
+    conf_com(LOGO_RECICLAR="nao", **chaves)
+    r = subprocess.run(["bash", "-c", 'set -a; . "$1"; set +a; exec "$2" aplicar', "_", conf,
+                        logo_sh], capture_output=True, text=True, env=ambiente, timeout=180)
+    return r.stdout + r.stderr
+
+
+def no_dock():
+    for caminho in sorted(glob.glob(os.path.join(logos, "meow-*.svg"))):
+        with open(caminho, "rb") as a:
+            try:
+                with open(botao, "rb") as b:
+                    if a.read() == b.read():
+                        return os.path.basename(caminho)[len("meow-"):-len(".svg")]
+            except OSError:
+                return None
+    return None
+
+
+def ler(caminho):
+    try:
+        with open(caminho, encoding="utf-8") as fh:
+            return fh.read()
+    except OSError:
+        return None
+
+
+# A MÁQUINA SEM APPLET, COM A SOBRA DE UM: a pasta de configuração do
+# `co.uk.cappsy`, apontando para uma imagem que não é do acervo — o retrato
+# desta máquina em 24/09/2026, onde nenhum applet de logo está instalado.
+sobra = os.path.join(cosmic, "co.uk.cappsy.CosmicAppletLogoMenu", "v1", "custom_logo_path")
+os.makedirs(os.path.dirname(sobra))
+de_outro = '"%s"' % os.path.join(logos, "de-outro.png")
+with open(sobra, "w", encoding="utf-8") as fh:
+    fh.write(de_outro)
+logo(LOGO_MODO="hora", LOGO_DIA="mimir", LOGO_NOITE="mimir", LOGO="mimir")
+saida = logo(LOGO_MODO="fixo", LOGO="gato-de-fora")
+if no_dock() != "mimir":
+    erros.append("13c: no modo fixo, um LOGO fora do acervo trocou o gato do dock por %s — "
+                 "o aviso promete que fica o que está no ar" % no_dock())
+aviso = next((l for l in saida.splitlines() if 'LOGO="gato-de-fora"' in l), "")
+if "mimir" not in aviso:
+    erros.append("13c: o aviso do LOGO fora do acervo não diz o gato que ficou: %r" % aviso)
+if ler(sobra) != de_outro:
+    erros.append("13c: o logo.sh escreveu na configuração de um applet que não está instalado")
+# O APPLET INSTALADO é o que o COSMIC acha como applet: um `.desktop` com
+# `X-CosmicApplet=true`. É a pasta DELE que recebe o gato, e a sobra do outro
+# nome, sem nada instalado, fica como está.
+desktop("co.uk.cappsy.CosmicAppletLogoMenu", "Name=Logo Menu\nNoDisplay=true\nX-CosmicApplet=true\n")
+dev = os.path.join(cosmic, "dev.cappsy.CosmicExtAppletLogoMenu", "v1")
+os.makedirs(dev)
+logo(LOGO_MODO="fixo", LOGO="coquinha")
+if ler(sobra) != '"%s"' % os.path.join(logos, "meow-coquinha.svg"):
+    erros.append("13c: com o co.uk.cappsy instalado, o gato não foi para a chave dele: %r"
+                 % ler(sobra))
+if os.path.exists(os.path.join(dev, "custom_logo_path")):
+    erros.append("13c: o logo.sh escreveu na pasta do dev.cappsy, que não está instalado")
+# E QUEM MOSTRA A CHAVE PERGUNTA AO `logo.sh` — revisão da P57. O `meow logo`
+# e o `meow status` liam a do `dev.cappsy` pelo nome. Com o co.uk.cappsy
+# instalado e o gato na chave dele, e uma chave velha sobrando na pasta do
+# dev.cappsy, o «arquivo» do `meow logo` é a do instalado.
+with open(os.path.join(dev, "custom_logo_path"), "w", encoding="utf-8") as fh:
+    fh.write('"%s"' % os.path.join(logos, "de-outro.svg"))
+r = subprocess.run([os.path.join(raiz, "bin", "meow"), "logo"], capture_output=True, text=True,
+                   env=ambiente, timeout=60)
+linha = next((l for l in r.stdout.splitlines() if "arquivo" in l), "")
+if "meow-coquinha.svg" not in linha:
+    erros.append("13c: o «arquivo» do `meow logo` não é a chave do applet instalado: %r" % linha)
+# O GATO DO TERMINAL VAI JUNTO NO MODO FIXO: com `FASTFETCH_LOGO_MODO=espelho`
+# (o de fábrica) ele é o seguinte do acervo depois do que está no dock. A
+# conversão para o terminal precisa do rsvg-convert e do ImageMagick.
+if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
+    # A ORDEM É A DO `_ffl_o_outro`: o `sort` em C do nome COM o `.svg` — o
+    # `-` vem antes do `.`, e o `morcego.svg` fica depois dos outros dois
+    # morcegos (revisão da P57; sem a extensão ele vinha antes).
+    nomes_gatos = [n[:-len(".svg")] for n in sorted(
+        os.path.basename(p) for p in glob.glob(os.path.join(raiz, "assets", "gatos", "*.svg"))
+        if not p.endswith("-symbolic.svg"))]
+    espelho = nomes_gatos[(nomes_gatos.index("coquinha") + 1) % len(nomes_gatos)]
+    carimbo = (ler(os.path.join(casa, ".local", "share", "meowsystem", "fastfetch", ".gato-atual"))
+               or "").split(" ")[0]
+    if no_dock() != "coquinha" or carimbo != espelho:
+        erros.append("13c: no modo fixo, o dock foi para %s e o terminal ficou com %r — o "
+                     "espelho pede %s" % (no_dock(), carimbo, espelho))
+    # E COM UM GATO CUJO SVG TERMINA EM QUEBRA DE LINHA — revisão da P57. O
+    # botão do dock é a cópia que o `logo.sh` grava, sem a quebra do fim, e o
+    # espelho que comparava o botão com o `.svg` cru não achava gato nenhum no
+    # dock: caía na fase. Os três morcegos do acervo são assim, e a coquinha
+    # de cima não é. O gato sai do acervo, e não de um nome escrito aqui; o
+    # `LOGO_DIA` e o `LOGO_NOITE` são ele mesmo, para que cair na fase dê o
+    # gato do dock no terminal a qualquer hora.
+    com_quebra = []
+    for n in nomes_gatos:
+        with open(os.path.join(raiz, "assets", "gatos", n + ".svg"), "rb") as fh:
+            if fh.read().endswith(b"\n"):
+                com_quebra.append(n)
+    if com_quebra:
+        gato = com_quebra[0]
+        logo(LOGO_MODO="fixo", LOGO=gato, LOGO_DIA=gato, LOGO_NOITE=gato)
+        espelho = nomes_gatos[(nomes_gatos.index(gato) + 1) % len(nomes_gatos)]
+        carimbo = (ler(os.path.join(casa, ".local", "share", "meowsystem", "fastfetch",
+                                    ".gato-atual")) or "").split(" ")[0]
+        if no_dock() != gato or carimbo != espelho:
+            erros.append("13c: com %s (o SVG termina em quebra de linha) no dock, o terminal "
+                         "ficou com %r — o espelho pede %s" % (no_dock(), carimbo, espelho))
+    else:
+        print("pulado: 13c, o gato cujo SVG termina em quebra de linha — nenhum no acervo")
+else:
+    print("pulado: 13c, o gato do terminal — falta rsvg-convert ou o convert do ImageMagick")
+
+# 13d. uma leitura do esquema mede cada fato uma vez
+#   Medido em 24/09/2026, numa casa de brinquedo: 2,2 s por leitura, e 69
+#   chaves perguntavam de novo quais ponteiros estão instalados, cada uma
+#   refazendo a adoção do pack (a validação inteira do pack) e rodando o bash
+#   que lê o meow.conf. A mesma pergunta, com a mesma resposta, dentro de uma
+#   leitura só. A régua é o que se repete: a adoção com os mesmos argumentos, e
+#   o mesmo comando de subprocesso.
+mod = servidor.modulo_pack()
+feitas = collections.Counter()
+adocao, rodar = mod.adocao, servidor.subprocess.run
+
+
+def contar_adocao(*a, **k):
+    feitas[("adocao",) + tuple(a)] += 1
+    return adocao(*a, **k)
+
+
+def contar_rodar(argv, *a, **k):
+    feitas[tuple(argv)] += 1
+    return rodar(argv, *a, **k)
+
+
+antes = idioma(LANG="pt_BR.UTF-8")
+mod.adocao, servidor.subprocess.run = contar_adocao, contar_rodar
+try:
+    dados = servidor.Manipulador.__new__(servidor.Manipulador)._dados_esquema()
+finally:
+    mod.adocao, servidor.subprocess.run = adocao, rodar
+    idioma(**{k: v for k, v in antes.items() if v is not None})
+repetidas = sorted((n, " ".join(str(x) for x in k).replace("\n", " ")[:90])
+                   for k, n in feitas.items() if n > 1)
+if repetidas:
+    erros.append("13d: uma leitura do esquema repetiu %d pergunta(s) — a pior %d vezes: %s"
+                 % (len(repetidas), repetidas[-1][0], repetidas[-1][1]))
+if dados.get("aba_inicio") != inicio or not inicio:
+    erros.append("13b: o esquema não manda à página o nome da Início (%r)" % dados.get("aba_inicio"))
+ficha = next((i for i in dados["chaves"] if i["chave"] == "LANCADOR_OCULTAR"), {})
+nome = ((ficha.get("programas") or {}).get("nm-connection-editor") or {}).get("nome")
+if nome != "Configuração avançada de rede":
+    erros.append("13a: a ficha de «Quais programas o lançador esconde» diz %r" % nome)
+
+# 13e. a torrada do «Adicionar» não leva a casa nem o clone — revisão da P57
+#   O gate reprovou a aba Terminal nesta sprint: a torrada do «Adicionar fonte»
+#   mostra as três últimas linhas do `meow fontes adicionar`, e a última diz
+#   «o acervo é <clone>/assets/fontes/locais». O vazamento é antigo; com o
+#   esquema lento a torrada morria antes da conta do fim da aba. O comando
+#   aqui é de mentira — um `subprocess.run` que devolve a saída de lá —, para o
+#   teste não gravar fonte no acervo do clone de verdade.
+class Rodado:
+    returncode = 1
+    stdout = ("  ~~   'brinquedo.ttf' instalada\n  >> copiada de %s/Downloads/brinquedo.ttf\n"
+              "  >> 1 face(s) instalada(s) — o acervo é %s/assets/fontes/locais\n" % (casa, raiz))
+    stderr = ""
+
+
+respostas = []
+m._json = lambda dados, status=200: respostas.append(dados)
+servidor.subprocess.run = lambda *a, **k: Rodado()
+try:
+    m._acervo_por_comando(servidor.Manipulador.ACERVOS["fonte"], "brinquedo.ttf",
+                          {"conteudo": "Zm9udGU="})
+finally:
+    servidor.subprocess.run = rodar
+    del m._json
+log = (respostas or [{}])[0].get("log", "")
+if raiz in log or casa in log or "o acervo é ./assets/fontes/locais" not in log \
+        or "~/Downloads/brinquedo.ttf" not in log:
+    erros.append("13e: a torrada do «Adicionar fonte» leva %r" % log)
+
+if erros:
+    print("FALHOU: " + "\n  ".join(erros), file=sys.stderr)
+    sys.exit(1)
+print("ok: a ficha diz o nome do lançador, o --onde cobre cartão e aba, o logo.sh diz o que "
+      "faz e o terminal segue o dock, o esquema mede cada fato uma vez, e a torrada do "
+      "«Adicionar» não leva o clone")
+PY
+rm -rf "$_tmp13"
 
 exit "$falhas"

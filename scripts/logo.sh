@@ -6,6 +6,7 @@
 #   ./logo.sh --conferir   não escreve; 1 se algo divergir
 #   ./logo.sh listar       mostra o acervo, quem está no ar e por quê
 #   ./logo.sh no-dock      imprime o gato que está no botão do dock (1 = nenhum)
+#   ./logo.sh applet       imprime a chave do applet de logo instalado (1 = nenhum)
 #
 # ============================================================================
 # O QUE MUDOU EM 01/09/2026, E O QUE FOI MEDIDO PARA PODER MUDAR
@@ -93,7 +94,32 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ACERVO="$RAIZ/assets/gatos"
 COSMIC="$(meow_cosmic_dir)"
 LOGOS_DIR="$COSMIC/logos"
-APPLET="$COSMIC/dev.cappsy.CosmicExtAppletLogoMenu/v1"
+
+# O APPLET DE LOGO É O QUE ESTÁ INSTALADO, E NÃO UM NOME ESCRITO AQUI
+# — 24/09/2026, sprint P57
+#   Esta linha cravava `dev.cappsy.CosmicExtAppletLogoMenu`, e "o applet
+#   existe" era a pasta de configuração dele existir. Os dois erravam: o
+#   mesmo applet já teve outro id (`co.uk.cappsy.CosmicAppletLogoMenu`), que
+#   o nome cravado não via; e a pasta de configuração SOBRA quando o applet
+#   sai — é o `~/.var/app` do item 1 desta mesma sprint, com outra cara.
+#   Medido nesta máquina: só a pasta do co.uk.cappsy, apontando para uma
+#   imagem que não é do acervo, e nenhum dos dois instalado.
+#   Instalado é o que o COSMIC acha como applet: um `.desktop` com
+#   `X-CosmicApplet=true` nas pastas de aplicativos do XDG, de id terminado em
+#   `LogoMenu` — o nome de família que o `applet_montado`, lá embaixo, já
+#   procura nas barras. A pasta que o script lê e escreve é a do id achado.
+_applet_de_logo() {
+  local dir arq
+  for dir in "${XDG_DATA_HOME:-$HOME/.local/share}" \
+             $(printf '%s' "${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" | tr ':' ' '); do
+    for arq in "$dir"/applications/*LogoMenu.desktop; do
+      grep -qsx 'X-CosmicApplet=true' "$arq" && { basename "$arq" .desktop; return 0; }
+    done
+  done
+  return 1
+}
+APPLET_ID="$(_applet_de_logo)"
+APPLET="$COSMIC/${APPLET_ID:-sem-applet-de-logo}/v1"
 ESTADO="$MEOW_ESTADO/logo-atual"
 
 FLAVOR="${FLAVOR:-mocha}"
@@ -158,10 +184,23 @@ case "${1:-}" in
   # mesmo motivo do `modo`: o `meow status` tinha escrito de novo a pergunta
   # «qual gato está no dock», e a cópia dele já divergia desta (sem o `.svg`
   # cru de reserva). A regra é o `_esta_no_dock`, lá embaixo, que o `listar`
-  # também usa.
+  # também usa. Desde a revisão da P57 o espelho do `fastfetch_logo.sh` também
+  # pergunta aqui: a cópia dele comparava com o `.svg` cru e errava os gatos
+  # cujo arquivo termina em quebra de linha.
   no-dock)       ACAO="no-dock" ;;
+  # `applet` IMPRIME A CHAVE `custom_logo_path` DO APPLET DE LOGO INSTALADO E
+  # SAI (1 = nenhum instalado, ou sem a chave) — revisão da P57, pelo mesmo
+  # motivo do `modo` e do `no-dock`. O `meow status` e o `meow logo` liam a
+  # chave do `dev.cappsy.CosmicExtAppletLogoMenu` pelo nome, e desde a P57 o
+  # applet é o que está instalado (`_applet_de_logo`, lá em cima): os dois
+  # donos discordavam. Com o `co.uk.cappsy` instalado, o `meow logo` diria
+  # «(nenhuma)» com o gato já na chave dele; com a pasta do `dev.cappsy`
+  # sobrando, o `status` mostraria a chave de um applet que já saiu.
+  applet)
+    [ -n "$APPLET_ID" ] && [ -f "$APPLET/custom_logo_path" ] || exit "$MEOW_DIVERGENTE"
+    printf '%s\n' "$(cat "$APPLET/custom_logo_path")"; exit "$MEOW_OK" ;;
   aplicar|"") ;;
-  *) meow_erro "uso: logo.sh [aplicar|girar|girar-vencido|listar|no-dock|modo|--conferir]"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: logo.sh [aplicar|girar|girar-vencido|listar|no-dock|modo|applet|--conferir]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && CONFERIR=1
 
@@ -390,9 +429,9 @@ fi
 #   applet (as duas chaves `custom_logo_*`), e o resto do script — que é o que
 #   ela vê — segue.
 TEM_APPLET=1
-if [ ! -d "$APPLET" ]; then
+if [ -z "$APPLET_ID" ]; then
   TEM_APPLET=0
-  meow_pula "o applet dev.cappsy (logo do painel) não está nesta máquina — o gato do dock e o do terminal seguem"
+  meow_pula "nenhum applet de logo do painel instalado — o gato do dock e o do terminal seguem"
 fi
 
 # TER A CONFIGURAÇÃO NÃO É ESTAR NA BARRA — e a diferença é invisível de outro jeito.
@@ -481,6 +520,19 @@ indice=-1
 for i in "${!NOMES[@]}"; do
   [ "$(destino_de "${NOMES[$i]}")" = "$atual" ] && { indice=$i; break; }
 done
+# SEM A CHAVE DO APPLET, O QUE ESTÁ NO AR É O GATO DO DOCK — 24/09/2026, P57
+#   O `indice` saía só da chave, e numa máquina sem applet ele era sempre -1:
+#   o modo fixo com um `LOGO` fora do acervo prometia «fica o gato que está no
+#   ar» e punha o primeiro da ordem alfabética no dock (medido numa casa de
+#   brinquedo: mimir no dock, coquinha depois); a rotação voltava ao `LOGO` a
+#   cada passagem e girava sempre para o mesmo. O que ela VÊ é o botão do dock
+#   (ver o `_no_dock`, lá em cima), e é ele que responde quando a chave não diz
+#   gato nenhum do acervo.
+if [ "$indice" -lt 0 ]; then
+  for i in "${!NOMES[@]}"; do
+    _esta_no_dock "$i" && { indice=$i; break; }
+  done
+fi
 
 # O ÍNDICE DE UM NOME DO ACERVO, ou -1. Usado pelo modo `hora` e pelo `LOGO`.
 _indice_de() {
@@ -498,7 +550,8 @@ if [ "$ACAO" = "girar" ]; then
   [ "$indice" -lt 0 ] && proximo=0
 elif [ "$LOGO_MODO" = "hora" ]; then
   # --- O MODO NOVO: O RELÓGIO MANDA, E ELE MANDA SOBRE O QUE JÁ ESTÁ NO AR ----
-  # Aqui NÃO se preserva o que está na chave, ao contrário dos outros dois modos.
+  # Aqui NÃO se preserva o que está no ar, ao contrário do modo `rotacao` (o
+  # `fixo` também não preserva desde a P50: nele manda o `LOGO`).
   # A razão é a diferença entre "quem gira é o script" e "quem gira é a hora":
   # no modo `rotacao` sobrescrever a chave a cada `install.sh` desfaria a
   # rotação; no modo `hora` NÃO sobrescrever seria o gato ficar preso no rosto
@@ -537,19 +590,34 @@ elif [ "$LOGO_MODO" = "fixo" ]; then
     # O mesmo aviso do modo `hora` para um nome fora do acervo. Fica o gato que
     # está no ar: cair calado no primeiro da ordem alfabética trocaria o dock
     # por um gato que ninguém pediu.
-    meow_aviso "LOGO=\"$LOGO\" não está em $ACERVO — fica o gato que está no ar"
-    proximo="$indice"
-    [ "$proximo" -lt 0 ] && proximo=0
+    # A FRASE DIZ O QUE ACONTECE — 24/09/2026, P57. Ela dizia «fica o gato que
+    # está no ar» também quando nenhum estava (sem applet, o `indice` era
+    # sempre -1) e o dock ia para o primeiro do acervo. Agora o que está no ar
+    # sai também do dock (bloco 2), a frase nomeia o gato que ficou, e o caso
+    # sem gato nenhum no ar — a primeira passagem numa casa nova — diz que vai
+    # o primeiro.
+    if [ "$indice" -ge 0 ]; then
+      proximo="$indice"
+      meow_aviso "LOGO=\"$LOGO\" não está em $ACERVO — fica o gato que está no ar, ${NOMES[$proximo]}"
+    else
+      proximo=0
+      meow_aviso "LOGO=\"$LOGO\" não está em $ACERVO, e nenhum gato do acervo está no ar — vai o primeiro, ${NOMES[0]}"
+    fi
   fi
 else
-  # Sem girar: só garante que a chave aponta para ALGUM gato do acervo. Se já
-  # aponta, não se mexe — senão toda rodada do instalador desfaria a rotação e
-  # ela veria o gato voltar ao primeiro sozinho.
+  # O MODO `rotacao`, SEM GIRAR — desde a P50 é o único que chega aqui (o
+  # `fixo` ganhou o ramo dele). Só garante que o que está no ar — a chave do
+  # applet ou, sem ela, o dock (P57) — é ALGUM gato do acervo. Se já é, não se
+  # mexe — senão toda rodada do instalador desfaria a rotação e ela veria o
+  # gato voltar ao primeiro sozinho.
   if [ "$indice" -ge 0 ]; then
     proximo="$indice"
   else
-    # `LOGO` do meow.conf nomeia o gato PREFERIDO do acervo — é o que vale numa
-    # máquina nova e quando a rotação está desligada. A chave deixou de nomear
+    # `LOGO` do meow.conf nomeia o gato PREFERIDO do acervo — é o ponto de
+    # partida da rotação, quando nenhum gato do acervo está no ar (a máquina
+    # nova). Até a P57 esta linha dizia que ele valia também "quando a rotação
+    # está desligada": com a rotação desligada o modo é `hora` ou `fixo`, e
+    # nenhum dos dois passa por aqui. A chave deixou de nomear
     # variante do gato gerado em 08/08/2026, quando os gatos do projeto foram
     # excluídos; sem isto ela viraria mais uma chave que o conf oferece e nenhum
     # código lê, que é defeito conhecido deste projeto.
@@ -687,7 +755,17 @@ fi
 # sem rasterizar nada. Ver o bloco `_ffl_ja_esta_certo` no fastfetch_logo.sh — e
 # note que o `conferir` do doctor NÃO passa essa variável, então a checagem
 # profunda continua acontecendo uma vez por dia.
-if [ "$LOGO_MODO" = "hora" ] && ! meow_seco && [ -x "$RAIZ/scripts/fastfetch_logo.sh" ]; then
+#
+# EM TODO MODO, E NÃO SÓ NO `hora` — 24/09/2026, sprint P57
+#   A chamada era só do modo `hora`, e o modo de fábrica do terminal é o
+#   `espelho` (FASTFETCH_LOGO_MODO): ele mostra o gato que o dock NÃO está
+#   mostrando, lido do botão do dock. Um `meow logo coquinha` no modo fixo
+#   trocava o dock e deixava o terminal com o espelho do gato de antes até a
+#   próxima passagem do instalador (medido numa casa de brinquedo: o dock na
+#   Coquinha, o terminal ainda com o espelho do Mimir); o `girar` da rotação,
+#   igual. O espelho acompanha em todo modo que troca o gato do dock, e a
+#   guarda barata acima faz a chamada sem mudança custar um `cmp` de carimbo.
+if ! meow_seco && [ -x "$RAIZ/scripts/fastfetch_logo.sh" ]; then
   FFL_FUNDO=1 LOG_NIVEL=silencioso "$RAIZ/scripts/fastfetch_logo.sh" aplicar >/dev/null 2>&1 || true
 fi
 

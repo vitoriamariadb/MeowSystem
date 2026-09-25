@@ -1499,6 +1499,9 @@ _meow_pendencia_tirar() {
 #   conferir» dezoito dias depois de ela virar «Instalação» (achado 47). Sem
 #   python3 ou sem o painel no clone, a resposta é vazia, e a frase que a usaria
 #   simplesmente não cita tela nenhuma — melhor que citar a errada.
+#   DESDE A P57 (24/09/2026) ELA RESPONDE TAMBÉM CARTÃO E ABA: uma chave do
+#   meow.conf dá «título do cartão», na aba Seção, e `inicio` dá a aba que abre
+#   o painel — as duas frases que o `install.sh` ainda escrevia à mão.
 meow_onde_no_painel() {
   local servidor="$MEOW_RAIZ/app/servidor.py"
   [ -f "$servidor" ] && command -v python3 >/dev/null 2>&1 || return 1
@@ -1560,13 +1563,41 @@ meow_tem() { command -v "$1" >/dev/null 2>&1; }
 # (medido em HOME virgem, 10/08/2026). Detecção com efeito colateral é o mesmo
 # vazamento que o `meow_registrar` acima já teve de tapar: `MEOW_DRY_RUN=1`
 # promete não escrever nada, e perguntar não pode ser escrever.
-# Cobre instalação de usuário, de sistema e o dado por app em ~/.var/app.
+#
+# INSTALADO É A IMPLANTAÇÃO, E NÃO A PASTA DE DADOS — 24/09/2026, sprint P57
+#   Esta função cobria também "o dado por app em ~/.var/app", e era o defeito:
+#   `~/.var/app/<id>` é onde o app guarda os DADOS dele, e o `flatpak
+#   uninstall` a deixa para trás (só o `--delete-data` a leva). Medido nesta
+#   máquina: o `org.mozilla.thunderbird_esr` tem pasta ali, não está no
+#   `flatpak list`, e esta função dizia 0. Desde a P49 ela é a regra ÚNICA de
+#   "instalado" — a tabela do `meow apps` e os módulos perguntam aqui —, então o
+#   falso positivo saía nos dois lugares.
+#
+#   Instalado é o que o próprio flatpak chama de implantado: `app/<id>/<arq>/
+#   <ramo>/active` apontando para a pasta do commit. Só a pasta `app/<id>` não
+#   basta — é a sobra de uma implantação desfeita pela metade. E as instalações
+#   são as que o flatpak consulta, pelas variáveis dele (`man flatpak`,
+#   ENVIRONMENT; `man flatpak-installation`): a do usuário (`FLATPAK_USER_DIR`,
+#   ou `$XDG_DATA_HOME/flatpak`), a do sistema (`FLATPAK_SYSTEM_DIR`, ou
+#   /var/lib/flatpak) e as que cada `.conf` de `installations.d` declara no
+#   `Path=` — lidas do disco, e não escritas aqui. As variáveis são também o que
+#   deixa um teste perguntar numa instalação de brinquedo.
 meow_flatpak_tem() {   # 0 = instalado, 1 = não
-  local id="$1"
-  [ -d "$HOME/.local/share/flatpak/app/$id" ] && return 0
-  [ -d "/var/lib/flatpak/app/$id" ] && return 0
-  [ -d "$HOME/.var/app/$id" ] && return 0
-  meow_debug "flatpak '$id' não achado por diretório (app/ nem .var/app/)"
+  local id="$1" base ativo conf
+  local -a bases=("${FLATPAK_USER_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/flatpak}"
+                  "${FLATPAK_SYSTEM_DIR:-/var/lib/flatpak}")
+  for conf in "${FLATPAK_CONFIG_DIR:-/etc/flatpak}"/installations.d/*.conf; do
+    [ -f "$conf" ] || continue
+    while IFS= read -r base; do
+      [ -n "$base" ] && bases+=("$base")
+    done < <(sed -n 's/^[[:space:]]*Path[[:space:]]*=[[:space:]]*\(.*[^[:space:]]\)[[:space:]]*$/\1/p' "$conf" 2>/dev/null)
+  done
+  for base in "${bases[@]}"; do
+    for ativo in "$base/app/$id"/*/*/active; do
+      [ -d "$ativo" ] && return 0
+    done
+  done
+  meow_debug "flatpak '$id' sem implantação em nenhuma instalação (${bases[*]})"
   return 1
 }
 

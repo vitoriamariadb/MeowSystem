@@ -152,6 +152,17 @@ done
 T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
 
+# UM FLATPAK INSTALADO NA CASA DE BRINQUEDO TEM A FORMA DE UM DE VERDADE — P57
+#   `app/<id>/<arquitetura>/<ramo>/active` apontando para a pasta do commit, que
+#   é o que o `meow_flatpak_tem` pergunta desde 24/09/2026. A pasta de dados
+#   (`~/.var/app/<id>`) sozinha não é mais "instalado": ela sobra depois do
+#   `flatpak uninstall`, e as casas das seções abaixo que só a criavam passavam
+#   por causa do defeito.
+implantar() {  # <raiz da instalação> <id>
+  local ramo="$1/app/$2/x86_64/stable"
+  mkdir -p "$ramo/0123abcd" && ln -sfn 0123abcd "$ramo/active"
+}
+
 tres_saidas() {
   # Subshell com estado de brinquedo: a terceira saída REGISTRA pendência, e
   # pendência é arquivo. Sem esta gaiola o teste sujaria o
@@ -360,6 +371,11 @@ fi
 # máquina de quem roda tiver aberto. O `env -i` tira o D-Bus da sessão do
 # ambiente: sem ele, nem um `dconf` de verdade que escapasse do PATH alcançaria
 # o banco de quem roda o teste.
+#   AS INSTALAÇÕES DO FLATPAK TAMBÉM SÃO DE BRINQUEDO — revisão da P57. O
+# `meow_flatpak_tem` pergunta à do sistema (`FLATPAK_SYSTEM_DIR`) e às de
+# `installations.d` (`FLATPAK_CONFIG_DIR`); sem as duas aqui, o `mod` e o
+# `tabela` liam o /var/lib/flatpak e o /etc/flatpak de quem roda, e um app
+# instalado nele desmentiria o «não instalado» das casas abaixo.
 CASA="$T/casa8"
 BIN="$T/bin8"
 mkdir -p "$CASA" "$BIN" "$T/packs8"
@@ -367,7 +383,8 @@ mod() {  # <módulo> <verbo> [VAR=valor ...]
   local m="$1" v="$2"; shift 2
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
       XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
-      MEOW_ESTADO="$T/estado8" PACK=dracula FLAVOR=dracula NO_COLOR=1 "$@" \
+      MEOW_ESTADO="$T/estado8" PACK=dracula FLAVOR=dracula NO_COLOR=1 \
+      FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" FLATPAK_CONFIG_DIR="$T/flatpak-etc" "$@" \
       bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
                . "$MEOW_RAIZ/assets/temas-de-apps/$0/manifesto.sh" || exit 2
                meow_app_$1' "$m" "$v" </dev/null 2>&1
@@ -443,7 +460,7 @@ saida="$(mod kitty detectar)"; rc=$?
        || falha "kitty: sem o kitty o detectar devolveu $rc" "$saida"; }
 
 # --- Telegram ------------------------------------------------------------
-mkdir -p "$CASA/.local/share/flatpak/app/org.telegram.desktop"
+implantar "$CASA/.local/share/flatpak" org.telegram.desktop
 TG="$CASA/.local/share/meowsystem/temas-de-apps/telegram/MeowSystem.tdesktop-theme"
 saida="$(mod telegram aplicar)"; rc=$?
 [ "$rc" = 1 ] && grep -q '^// meowsystem-tema: dracula/dracula' "$TG" 2>/dev/null \
@@ -463,7 +480,7 @@ saida="$(mod telegram reverter)"; rc=$?
   || falha "telegram: desfazer não tirou o arquivo (rc=$rc)" "$saida"
 
 # --- Discord -------------------------------------------------------------
-mkdir -p "$CASA/.local/share/flatpak/app/com.discordapp.Discord"
+implantar "$CASA/.local/share/flatpak" com.discordapp.Discord
 saida="$(mod discord aplicar)"; rc=$?
 [ "$rc" = 3 ] && printf '%s' "$saida" | grep -q 'cliente modificado' \
   && ok "discord: o cliente oficial sozinho é pendência, e o motivo diz o que falta" \
@@ -477,15 +494,60 @@ saida="$(mod discord aplicar)"; rc=$?
 tabela() {
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
       XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
+      FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" FLATPAK_CONFIG_DIR="$T/flatpak-etc" \
       PACK=dracula FLAVOR=dracula NO_COLOR=1 APPS_ATIVOS="$1" \
       "$RAIZ/scripts/aplicar_apps.sh" tabela </dev/null 2>/dev/null
 }
-mkdir -p "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
+implantar "$CASA/.local/share/flatpak" org.qbittorrent.qBittorrent
 saida="$(tabela discord,qbittorrent)"
 [ "$saida" = "$(printf 'discord\tdiscord\t0\t3\nqbittorrent\tqbittorrent\t0\t3')" ] \
   && ok "meow apps: Discord e qBittorrent instalados e pendentes saem «instalado» na tabela" \
   || falha "meow apps: a coluna «instalado» ainda não é a do programa no disco" "$saida"
 rm -rf "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
+# INSTALADO É A IMPLANTAÇÃO, E NÃO A PASTA DE DADOS — 24/09/2026, P57 (item 1).
+#   A regra única da P49 aceitava `~/.var/app/<id>`, a pasta de DADOS, que o
+#   `flatpak uninstall` deixa para trás: medido nesta máquina, o
+#   `org.mozilla.thunderbird_esr` tinha pasta lá, não estava no `flatpak list`,
+#   e contava como instalado — na tabela do `meow apps` e nos módulos. E ela só
+#   olhava duas instalações escritas por extenso. As cinco casas abaixo são as
+#   que o flatpak consulta, pelas variáveis dele: a do usuário, a do sistema
+#   (`FLATPAK_SYSTEM_DIR`) e uma declarada num `.conf` de `installations.d`
+#   (`FLATPAK_CONFIG_DIR`) — mais a pasta de dados sozinha e a pasta do app sem
+#   implantação (a sobra de uma remoção), que não são instalação nenhuma.
+fp() {  # <id> — o código de saída do meow_flatpak_tem nesta casa
+  env -i PATH="$PATH" HOME="$CASA" XDG_DATA_HOME="$CASA/.local/share" MEOW_RAIZ="$RAIZ" \
+      MEOW_ESTADO="$T/estado8" FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" \
+      FLATPAK_CONFIG_DIR="$T/flatpak-etc" \
+      bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2; meow_flatpak_tem "$1"' _ "$1" \
+      </dev/null >/dev/null 2>&1
+  printf '%s' "$?"
+}
+mkdir -p "$CASA/.var/app/com.exemplo.SoDados/config" "$CASA/.local/share/flatpak/app/com.exemplo.Sobra"
+implantar "$CASA/.local/share/flatpak" com.exemplo.Usuario
+implantar "$T/flatpak-sistema" com.exemplo.Sistema
+mkdir -p "$T/flatpak-etc/installations.d"
+printf '[Installation "extra"]\nPath=%s\nDisplayName=Um cartão de brinquedo\n' "$T/flatpak-extra" \
+  > "$T/flatpak-etc/installations.d/extra.conf"
+implantar "$T/flatpak-extra" com.exemplo.Extra
+esperado="" achou=""
+for par in com.exemplo.SoDados:1 com.exemplo.Sobra:1 com.exemplo.Usuario:0 \
+           com.exemplo.Sistema:0 com.exemplo.Extra:0; do
+  esperado+=" $par"
+  achou+=" ${par%%:*}:$(fp "${par%%:*}")"
+done
+[ "$achou" = "$esperado" ] \
+  && ok "flatpak instalado é a implantação numa das instalações do flatpak — e a pasta de dados sozinha não é" \
+  || falha "flatpak: a regra de «instalado» errou (0 = instalado)" "  esperado:$esperado
+  achou:   $achou"
+# E A TABELA DIZ O MESMO: o qBittorrent de que sobrou só a pasta de dados sai
+# «não instalado» no `meow apps`.
+mkdir -p "$CASA/.var/app/org.qbittorrent.qBittorrent/config"
+saida="$(tabela qbittorrent)"
+[ "$(printf '%s' "$saida" | cut -f3)" = 1 ] \
+  && ok "meow apps: o qBittorrent de que sobrou só a pasta de dados sai «não instalado»" \
+  || falha "meow apps: a pasta de dados de um app desinstalado ainda conta como instalado" "$saida"
+rm -rf "$CASA/.var/app/org.qbittorrent.qBittorrent" "$CASA/.var/app/com.exemplo.SoDados" \
+       "$CASA/.local/share/flatpak/app/com.exemplo."*
 DC="$CASA/.config/Vencord/themes"
 mkdir -p "$DC"
 saida="$(mod discord aplicar)"; rc=$?
@@ -501,6 +563,7 @@ saida="$(mod discord reverter)"; rc=$?
 # --- OnlyOffice ----------------------------------------------------------
 #   O conf é de mentira mas tem a forma do de verdade: `appdata` é um JSON em
 #   base64 dentro de `@ByteArray(...)`, e a escolha mora nele e no `UITheme`.
+implantar "$CASA/.local/share/flatpak" org.onlyoffice.desktopeditors
 OO="$CASA/.var/app/org.onlyoffice.desktopeditors"
 OO_CONF="$OO/config/onlyoffice/DesktopEditors.conf"
 OO_ARQ="$OO/data/onlyoffice/desktopeditors/uithemes/meowsystem.json"
@@ -615,6 +678,7 @@ mod onlyoffice reverter >/dev/null
 #   que resolva» com o qBittorrent vestido pelo tema que ela escolheu. Vestido,
 #   a linha sai; sem tema nenhum, ela continua, porque aí falta alguma coisa.
 falso flatpak
+implantar "$CASA/.local/share/flatpak" org.qbittorrent.qBittorrent
 QB="$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent"
 mkdir -p "$QB"
 printf '[Preferences]\nGeneral\\UseCustomUITheme=false\n' > "$QB/qBittorrent.conf"
@@ -632,7 +696,8 @@ ficou="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/penden
            "$saida
 pendência antes: $tinha
 pendência depois: $ficou"
-rm -rf "$CASA/.var/app/org.qbittorrent.qBittorrent" "$BIN/flatpak"
+rm -rf "$CASA/.var/app/org.qbittorrent.qBittorrent" "$BIN/flatpak" \
+       "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
 
 # --- GNOME Terminal ------------------------------------------------------
 #   O `dconf` de mentira guarda cada chave numa linha do HOME de brinquedo, e
@@ -820,6 +885,7 @@ B="$C/cofre-beta"
 OBS_JSON="$C/.var/app/md.obsidian.Obsidian/config/obsidian/obsidian.json"
 mkdir -p "$C/bin" "$(dirname "$OBS_JSON")" "$A/.obsidian" "$B/.obsidian/snippets" \
          "$B/.obsidian/themes/Tema de Brinquedo"
+implantar "$C/.local/share/flatpak" md.obsidian.Obsidian
 printf '#!/bin/sh\nexit 1\n' > "$C/bin/flatpak"
 printf '#!/bin/sh\nexit 1\n' > "$C/bin/pgrep"
 chmod +x "$C/bin/flatpak" "$C/bin/pgrep"
