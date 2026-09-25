@@ -917,7 +917,15 @@ function valorNaTela(item) {
 /** O flavor que vale agora — a escolha pendente dela, ou o que está no disco. */
 function flavorEmVigor() {
   const item = ESQUEMA.chaves.find((k) => k.chave === "FLAVOR");
-  return (item ? valorEmVigor(item) : "") || "mocha";
+  /* SEM FLAVOR, O PADRÃO DO PACK NO AR — 24/09/2026, P56. Caía em `"mocha"`,
+   * o padrão de UM pack: com o Dracula no ar e o FLAVOR vazio, as amostras
+   * procuravam o mocha na paleta do Dracula e saíam sem cor. O padrão é o que
+   * o pack declara (`flavor_padrao`, pelo `vocabulario`); sem o vocabulário,
+   * o primeiro flavor da paleta que a página recebeu — a mesma queda do
+   * `vocabulario` do scripts/pack.py. */
+  const pack = ESQUEMA.pack || {};
+  return (item ? valorEmVigor(item) : "") || pack.flavor_padrao
+    || Object.keys((ESQUEMA.paleta && ESQUEMA.paleta.flavors) || {})[0] || "";
 }
 
 function escolher(chave, valor, cartao) {
@@ -1501,8 +1509,9 @@ function rotuloAcessivel(item) {
  * para outra máquina, para escrever à mão — acha a linha inteira no «ver
  * comando» do cartão, que é a porta da P6 para o texto cru.
  *
- * AS OPÇÕES SAEM DO SERVIDOR (`molde_pastas`), e ele as tira do DISCO: as
- * variantes do pack no ar que o papirus-folders tem, e as cores que ele tem.
+ * AS OPÇÕES SAEM DO SERVIDOR (`molde_pastas`), e ele as tira do DISCO e do
+ * pack: todo flavor do pack no ar (desde a P56 o `construir_pastas.sh` deriva
+ * o que o papirus-folders não tem), e as cores que o papirus-folders tem.
  * Um valor que não é `cat-<variante>-<cor>` foi escrito à mão, e o molde não o
  * descreve: aí o controle devolve null e o cartão cai no campo de texto de
  * sempre — escolher por ela o que ela escreveu seria pior que mostrar o texto. */
@@ -8419,8 +8428,14 @@ function cartaoDePack(p) {
     if (p.descricao) mais.append(historiaDoPack(p.descricao));
     if (categorias.length) {
       const lista = elemento("dl", { class: "pack-categorias" });
+      /* A NOTA DIZ O QUE A DECLARAÇÃO VESTE — 24/09/2026, P56 (item 2, na
+       * revisão). «pastas: próprio» sozinho dizia que os desenhos do pack vestem
+       * as pastas, e eles vestem só as especiais; as outras são o
+       * papirus-folders na paleta do pack. A nota vem do `vocabulario`, a mesma
+       * do `meow pack info`, e fica aqui: a linha do cartão tem o teto da P7. */
       for (const c of categorias) {
-        lista.append(elemento("dt", { texto: c.categoria }), elemento("dd", { texto: deOndeVem(c) }));
+        lista.append(elemento("dt", { texto: c.categoria }),
+                     elemento("dd", { texto: deOndeVem(c) + (c.nota ? ` — ${c.nota}` : "") }));
       }
       mais.append(lista);
     }

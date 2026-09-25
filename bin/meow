@@ -210,6 +210,20 @@ carregar_conf() {
   . "$fonte" || { set +a; meow_erro "$fonte tem erro de sintaxe"; return "$MEOW_ERRO"; }
   set +a
   CONF_LIDA="$fonte"
+  # SEM FLAVOR, O PADRÃO DO PACK NO AR — 24/09/2026, na revisão da P56 (achado 4)
+  #   Era `${FLAVOR:-mocha}`, o padrão de UM pack, e o docs/PACKS.md ("Quem
+  #   vence") manda outra coisa: com o conf vazio, entra o `paleta.flavor_padrao`
+  #   do pack. A P56 pôs a página nessa regra (o `flavorEmVigor`), e o shell
+  #   ficou com a outra resposta. Medido com `PACK="dracula"` e `FLAVOR=""`
+  #   escritos à mão: a página dizia Dracula, e o `fix_pastas` do `doctor
+  #   --consertar` vestia as pastas de `cat-mocha-mauve`. A pergunta é a
+  #   `adocao` do pack.py, a do `meow_pack_dir`; o `mocha` fica para quando ela
+  #   não responde. O fork só acontece com o FLAVOR vazio. O gêmeo desta linha
+  #   é o `conf_exportada` do app/servidor.py. O `ICONES_PASTAS` de fábrica já
+  #   chega expandido com o vazio (`cat--mauve`), e quem o completa com este
+  #   FLAVOR é o `construir_pastas.sh`.
+  [ -n "${FLAVOR:-}" ] || FLAVOR="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "" 2>/dev/null \
+                                      | sed -n 's/^flavor_padrao=//p')"
   FLAVOR="${FLAVOR:-mocha}"; ACCENT="${ACCENT:-mauve}"
   MODO="${MODO:-escuro}";    LOGO="${LOGO:-$FLAVOR}"
   export FLAVOR ACCENT MODO LOGO
@@ -3840,9 +3854,18 @@ cmd_menu() {
 
 # --- 9. ajuda e despacho ----------------------------------------------------
 cmd_ajuda() {
+  # O CABEÇALHO DIZ O PACK NO AR — 24/09/2026, P56. Era «meow — Catppuccin para
+  #   o COSMIC» com qualquer pack no ar: o slogan que o cabeçalho do `install.sh`
+  #   perdeu na P51 (achado 24) continuava aqui. O nome sai da mesma pergunta que
+  #   o de lá faz — a adoção do `pack.py`, com o PACK e o FLAVOR do meow.conf —,
+  #   e sem resposta o cabeçalho fica sem nome, sem ganhar um de reserva.
+  local nome_pack
+  nome_pack="$(python3 "$RAIZ/scripts/pack.py" adocao \
+                 "${PACK:-$(meow_conf_valor PACK || true)}" \
+                 "${FLAVOR:-$(meow_conf_valor FLAVOR || true)}" 2>/dev/null \
+               | sed -n 's/^nome=//p')"
+  printf '\nmeow%s para o COSMIC\n' "${nome_pack:+ — $nome_pack}"
   cat <<'FIM'
-
-meow — Catppuccin para o COSMIC
 
   meow                         menu interativo (fzf; sem ele, menu numerado)
   meow status                  painel de estado e o que está divergente
