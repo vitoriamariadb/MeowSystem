@@ -296,6 +296,115 @@ _dracula_remover() {
   return "$rc"
 }
 
+# --- o que um pack fora do ar deixou no tema ----------------------------------
+# TROCAR DE PACK NÃO TIRAVA OS DESENHOS DO PACK DE ANTES — medido em 25/09/2026
+#   Numa casa de brinquedo, com o Dracula no ar e a camada ligada: 203 desenhos
+#   em `scalable/apps`. Depois `PACK=catppuccin` e este script de novo, com a
+#   camada ligada ou desligada — os 203 continuavam lá, e a linha do fim dizia
+#   "nada dele no tema". O `_dracula_remover` tira por nome, lido do mapa DO
+#   PACK NO AR, e o Catppuccin não tem mapa: os nomes do Dracula nem chegavam a
+#   ser lidos. A P60 pôs a escolha da ficha de ícone no mapa do pack, e sem isto
+#   a escolha feita com o Dracula no ar ficaria na tela do Catppuccin — o
+#   vazamento que aquela sprint proíbe, e o desktop metade de cada pack que o
+#   `_vestigio_de_pack` do painel conta desde 18/09.
+#
+# O MESMO JUÍZO DO `_dracula_remover`, SOBRE OS MAPAS DOS OUTROS PACKS
+#   Um arquivo sai quando o nome é de um mapa de pack que não está no ar,
+#   ninguém no ar o reclama, e o conteúdo é o do desenho daquele mapa — a
+#   prova de que foi este script que o pôs lá.
+#
+# "NINGUÉM NO AR O RECLAMA" É O `fontes` DO pack.py, E O CONTEÚDO NÃO BASTA
+#   A primeira versão pulava só os nomes do mapa no ar e confiava no conteúdo
+#   para o resto. O `tests/fonte-unica.sh` mostrou o furo no mesmo dia: um pack
+#   que veste `luna` com uma CÓPIA do desenho do resgate — é assim que arte de
+#   terceiro entra num pack, e foi assim que o Waterfox desceu para o Dracula
+#   em 23/09 — deixa o `luna.svg` do resgate idêntico ao desenho do pack. Fora
+#   do ar esse pack, o arquivo "era dele" pelo conteúdo, saía, e o resgate o
+#   repunha na passagem seguinte. O `fontes` do pack no ar diz quem vale para
+#   cada nome — o mapa dele e o resgate, com a precedência da P43 —, e nome que
+#   tem fonte em vigor não é sobra de ninguém.
+#
+# QUEM LÊ OS MAPAS É O `pack.py`, IMPORTADO: o `ler_mapa`, o `resolver_alvo` e
+#   o `fontes`. Uma terceira cópia do parser, aqui, seria a que divergiria. Uma
+#   partida de `python3` só, para todos os packs do disco — o custo que o
+#   cabeçalho do `_dracula_pares` mediu é o da partida por linha.
+_dracula_de_fora() {
+  python3 - "$RAIZ" "$MAPA" "$_pack_ref" <<'PY'
+import contextlib
+import io
+import os
+import sys
+
+sys.path.insert(0, os.path.join(sys.argv[1], "scripts"))
+import pack  # noqa: E402
+
+no_ar = os.path.realpath(sys.argv[2]) if sys.argv[2] and os.path.isfile(sys.argv[2]) else ""
+nomes_no_ar = {nome for _num, nome, _alvo in pack.ler_mapa(no_ar)} if no_ar else set()
+# O aviso de linha recusada o `_dracula_pares` já deu, pelo `pack.py alvo`.
+with contextlib.redirect_stderr(io.StringIO()):
+    nomes_no_ar |= {nome for nome, _fonte, _camada in pack.fontes(sys.argv[3] or None)}
+# A PRIMEIRA RAIZ VENCE, como no `achar`: um pack de mesmo id em
+# ~/.local/share/meowsystem/packs esconde o do repositório.
+vistos, mapas = set(), []
+for base in pack.raizes():
+    try:
+        ids = sorted(os.listdir(base))
+    except OSError:
+        continue
+    for pid in ids:
+        dir_pack = os.path.join(base, pid)
+        if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
+            continue
+        vistos.add(pid)
+        mapa = pack.acervo("icones.apps.mapa", ref=dir_pack)
+        if mapa and os.path.realpath(mapa) not in (no_ar, *mapas):
+            mapas.append(os.path.realpath(mapa))
+for mapa in mapas:
+    try:
+        linhas = list(pack.ler_mapa(mapa))
+    except OSError:
+        continue
+    for _num, nome, alvo in linhas:
+        if nome in nomes_no_ar:
+            continue
+        try:
+            print("%s\t%s" % (nome, pack.resolver_alvo(alvo, os.path.dirname(mapa))))
+        except pack.Recusa:
+            continue
+PY
+}
+
+_dracula_sobras() {
+  local rc=0 tirados=0 nome caminho
+  while IFS=$'\t' read -r nome caminho; do
+    [ -n "$nome" ] && [ -f "$ALVO/$nome.svg" ] && [ -f "$caminho" ] || continue
+    # `$(cat)` dos dois lados, pelo motivo do bloco do `_dracula_remover`.
+    [ "$(cat "$caminho")" = "$(cat "$ALVO/$nome.svg")" ] || continue
+    if meow_seco; then
+      meow_muda "apagaria $ALVO/$nome.svg (desenho de um pack que não está no ar)"
+      tirados=$((tirados+1)); continue
+    fi
+    rm -f "$ALVO/$nome.svg" && tirados=$((tirados+1)) || rc=2
+  done < <(_dracula_de_fora | sort -u)
+
+  [ "$tirados" -gt 0 ] || return "$rc"
+  meow_seco && return 1
+  meow_ok "$tirados desenho(s) de pack que não está no ar retirado(s) do tema"
+  # A CACHE PRECISA SABER QUE ELES SAÍRAM. O `_dracula_cache` reindexa quando
+  # um `.svg` é mais novo que ela, e apagar não deixa nada mais novo: com a
+  # cache velha, o GTK procuraria desenhos que não estão mais no disco.
+  if [ -f "$TEMA_DIR/icon-theme.cache" ]; then
+    if meow_tem gtk-update-icon-cache && gtk-update-icon-cache -q -f "$TEMA_DIR" 2>/dev/null; then
+      meow_ok "cache do tema reindexada (ela ainda listava os desenhos retirados)"
+    else
+      meow_aviso "$TEMA_DIR/icon-theme.cache ainda lista os desenhos retirados — apague-a se um ícone sumir"
+    fi
+  fi
+  _dracula_avisar
+  [ "$rc" = "0" ] && rc=1
+  return "$rc"
+}
+
 # --- a cache do tema ----------------------------------------------------------
 # Com um `icon-theme.cache` dentro do diretório do tema, o GTK lê a CACHE e
 # ignora o disco — um SVG copiado depois dela não existe para o resolvedor. É a
@@ -362,8 +471,16 @@ _dracula_estado() {
 #   rodada do instalador em QUALQUER máquina — inclusive na dela, que não
 #   participou da decisão. Quem liga é o meow.conf, e a chave está no painel.
 _dracula_aplicar() {
+  # O que um pack fora do ar deixou sai ANTES, ligado ou desligado: é o que
+  # a troca de pack deixa para trás, e a chave não muda isso (P60).
+  local rc_fora rc
+  _dracula_sobras; rc_fora=$?
   if [ "${ICONES_DRACULA:-nao}" = "sim" ]; then _dracula_instalar
   else _dracula_remover; fi
+  rc=$?
+  if [ "$rc" = "2" ] || [ "$rc_fora" = "2" ]; then return 2; fi
+  if [ "$rc" = "1" ] || [ "$rc_fora" = "1" ]; then return 1; fi
+  return 0
 }
 
 case "${1:-aplicar}" in

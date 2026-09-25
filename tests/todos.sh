@@ -82,6 +82,7 @@ PORTATIL=(
   doctor-so-le.sh        # o doctor inteiro num HOME de brinquedo, sudo/pkill/kill falsos (~15s)
   fzf-da-paleta.sh       # paleta inventada e os dois packs daqui num HOME de brinquedo; bash e python3
   acento.sh              # COSMIC, pack e HOME de brinquedo; as etapas gerar e tema do install.sh; bash e python3
+  seletor-do-pack.sh     # cópia da árvore e HOME de brinquedo; as rotas da ficha e o passo do pack (P60); bash, git e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
