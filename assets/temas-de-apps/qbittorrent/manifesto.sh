@@ -488,6 +488,24 @@ _meow_qbt_ar_ok() {
   return "$MEOW_QBT_VEREDITO_AR"
 }
 
+# O FATO VAI PELA PORTA DO ONLYOFFICE — 25/09/2026, P65
+#   Eram um `!!` («o qBittorrent já está vestido») e um `>>` («não veio daqui,
+#   e fica como está»). A tabela do `meow apps` pintava o qBittorrent vestido
+#   por um tema de fora de `--`, sem linha embaixo, e o OnlyOffice, no mesmo
+#   estado, com o motivo dele. A diferença era a porta: o OnlyOffice diz o
+#   «não veio daqui» com um `meow_pula` no `conferir`, e a linha `--` é o que a
+#   tabela leva para a quinta coluna (o `linhas_de_pulo` do
+#   `scripts/aplicar_apps.sh`); o `!!` sai no stderr, que a tabela descarta, e
+#   o `>>` ela não lê. A frase é a mesma, numa linha `--`, e a tabela não
+#   ganhou regra nova. Com um escritor do conf destravado quem fala é o
+#   `meow_app_tema_no_ar`, com a pergunta; sem ele — nesta máquina, e em toda
+#   que não tem o script do Aurora —, é esta linha.
+#   POR QUE NÃO A PORTA DO CONTRATO DO MOTIVO (a que guarda o MEOW_APP_MOTIVO,
+#   no lib/comum.sh): um módulo que a chama passa a responder pelo contrato
+#   inteiro — o `tests/reversao.sh` cobra que TODA saída 3 do `detectar` vá por
+#   ela, e conta como entrada no contrato até o nome dela escrito aqui. Este
+#   módulo ainda não entrou (as outras saídas 3 dele falam por `--`, por `!!`
+#   ou pela pendência), e entrar é outra conversa.
 MEOW_QBT_DISSE_O_AR=0
 _meow_qbt_dizer_o_ar() {
   local no_ar
@@ -496,8 +514,7 @@ _meow_qbt_dizer_o_ar() {
   no_ar="$(_meow_qbt_no_ar)"
   [ -n "$no_ar" ] || return 0
   [ "$no_ar" = "$(_meow_qbt_alvo)" ] && return 0
-  meow_aviso "o qBittorrent já está vestido: $no_ar"
-  meow_info  "não veio daqui, e fica como está — o tema do pack não é escrito por cima"
+  meow_pula "qBittorrent: já está vestido com '$no_ar', que não veio daqui — o tema do pack não é escrito por cima"
   return 0
 }
 

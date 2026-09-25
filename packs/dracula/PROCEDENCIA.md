@@ -570,12 +570,27 @@ mesma do OKLCH com o matiz pesado pelo croma), medida contra os 26:
 
 | arquivo | desenho de | licença | desde | o que mudou |
 |---|---|---|---|---|
-| `icones/pastas/*.svg` (os sete) | desenho deste projeto | GPL-3.0 | 2026-09-16 | As costas, `#433F4D` (oklch 0,377 0,024 298°), passaram ao `surface0` `#383A4C`, a 0,0257 (o segundo mais perto, o `surface1`, a 0,0287); a frente, `#534B62` (oklch 0,430 0,039 301°), ao `surface1` `#44475A`, a 0,0310 (o `surface2`, a 0,0464). Nada mais no desenho mudou. As costas contra a frente foram de 1,24:1 para 1,22:1, e os símbolos sobre a frente ganharam contraste (o mauve, de 3,41:1 para 3,79:1). |
+| `icones/pastas/*.svg` (os sete) | desenho deste projeto | GPL-3.0 | 2026-09-16 | As costas, `#433F4D` (oklch 0,377 0,024 298°), passaram ao `surface0` `#383A4C`, a 0,0257 (o segundo mais perto, o `surface1`, a 0,0287); a frente, `#534B62` (oklch 0,430 0,039 301°), ao `surface1` `#44475A`, a 0,0310 (o `surface2`, a 0,0464). No `folder-download.svg`, as quatro aberturas do castelo (três em arco e uma janela), que eram da cor da frente, `#534B62`, foram com ela para o `#44475A`; nada mais no desenho mudou. As costas contra a frente foram de 1,24:1 para 1,22:1, e os símbolos sobre a frente ganharam contraste (o mauve, de 3,41:1 para 3,79:1). |
 
 **O que ficou fora da paleta, dito para não parecer esquecido.** No
 `folder-download.svg`, o castelo (`#423E4D`, a 0,0222 do `surface0`) e a lua
 (`#DDA442`, a 0,0829 do `peach`) não são o corpo, e não mudaram. Com a frente no
 `surface1`, o castelo ficou a 1,13:1 dela, onde estava a 1,26:1.
+
+**O resgate do Nautilus foi junto — 25/09/2026, sprint P65.** A tabela acima
+dizia «nada mais no desenho mudou», e as aberturas do castelo tinham mudado
+com a frente; a frase agora as conta. E o mesmo desenho mora fora deste pack:
+`assets/icones/resgatados/org.gnome.Nautilus.svg` é o `folder-download.svg` de
+antes da P61 sem a seta — o corpo, a lua, o castelo e as aberturas, path a path,
+conferido por `diff` —, e seguia com o `#433F4D` e o `#534B62`. Passou aos mesmos
+dois slots, pela mesma medida: as costas no `surface0`, a frente e as aberturas
+no `surface1`; o castelo e a lua ficaram, como aqui. O resgate é decalque de um
+PNG que ela customizou na paleta do Dracula (a autoria `terceiro` do
+`assets/icones/apps-resgatados.map`), aceito com RMSE de até 0,15 contra o
+original a 256 px. O PNG de origem não está mais no disco, mas a troca mede
+0,027 de RMSE entre as duas versões do SVG, na mesma régua; somada ao pior
+resgate medido (0,105), a distância ao original fica em no máximo 0,132 (o
+RMSE é uma distância, e vale a desigualdade triangular), abaixo do teto.
 
 ## Licença, marca e o que a cópia não muda
 

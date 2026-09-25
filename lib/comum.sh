@@ -709,16 +709,36 @@ meow_pack_dir() {
 #   `carregar_conf` guardava para esse caso era o padrão de um pack dito sem
 #   perguntar a ninguém; sem o pack.py não há pack no ar que se saiba, e quem
 #   chama diz, com a frase dele, que o flavor não resolve.
+#
+# O PACK SEM `flavor_padrao` CAI NO PRIMEIRO FLAVOR DA PALETA — 25/09/2026, P65
+#   O campo é opcional no `validar`, e a pergunta era a linha `flavor_padrao=`
+#   da `adocao`, que diz só o que o pack.json declara. Medido com um pack de
+#   brinquedo sem o campo e o FLAVOR vazio: o pack.py respondia (saída 0, o
+#   pack e o diretório), a linha vinha vazia, e este aviso dizia que ele «não
+#   disse» — enquanto o `vocabulario` do pack.py e o `flavorEmVigor` da página
+#   caíam no primeiro flavor da paleta. E o `icones_apps_arcticons.sh`, que roda
+#   sob `set -e`, morria na atribuição.
+#   A pergunta agora é ao `vocabulario`, pelo pack que a `adocao` escolhe: a
+#   queda mora lá, e é a mesma que a página já segue. Escrevê-la aqui em shell
+#   seria a cópia que a P61 veio tirar. O custo é o do fork de antes (~45 ms),
+#   e só com o FLAVOR vazio. Com resposta, sempre há flavor — a paleta que passa
+#   no `validar` tem ao menos um —, e o aviso ficou só para quando o pack.py não
+#   responde.
 meow_flavor() {
   local padrao
   if [ -n "${FLAVOR:-}" ]; then
     printf '%s' "$FLAVOR"
     return 0
   fi
-  padrao="$(python3 "$MEOW_RAIZ/scripts/pack.py" adocao "${PACK:-}" "" 2>/dev/null \
-              | sed -n 's/^flavor_padrao=//p')"
+  padrao="$(python3 - "$MEOW_RAIZ/scripts" "${PACK:-}" <<'PYFIM' 2>/dev/null
+import sys
+sys.path.insert(0, sys.argv[1])
+import pack
+print(pack.vocabulario(pack.adocao(sys.argv[2], "")[0])["flavor_padrao"])
+PYFIM
+)"
   if [ -z "$padrao" ]; then
-    meow_aviso "scripts/pack.py não disse o flavor padrão do pack no ar (PACK='${PACK:-}') — o FLAVOR fica vazio"
+    meow_aviso "scripts/pack.py não respondeu qual é o flavor padrão do pack no ar (PACK='${PACK:-}') — o FLAVOR fica vazio"
     return 1
   fi
   printf '%s' "$padrao"

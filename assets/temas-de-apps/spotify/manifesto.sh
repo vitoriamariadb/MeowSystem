@@ -174,7 +174,10 @@ _SPOT_PALETA="$(meow_paleta)"
 # install.sh). Ler o meow.conf aqui dentro seria um segundo leitor da mesma conf,
 # com precedência própria. A rede contra o valor errado é a checagem no
 # `meow_app_detectar`, que também pega erro de digitação.
-_SPOT_FLAVOR="${FLAVOR:-mocha}"
+# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só — uma das três cópias da regra
+# que a P61 não alcançou (P65, 25/09/2026).
+_SPOT_FLAVOR="$(meow_flavor)"
 _SPOT_ACENTO="${ACCENT:-mauve}"
 
 _SPOT_CONFIG_DIR="$HOME/.config/spicetify"

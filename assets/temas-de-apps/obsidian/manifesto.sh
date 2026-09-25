@@ -755,7 +755,14 @@ meow_app_aplicar() {
       # antes da rede; sem rede, a pasta ficava vazia e o desfazer, sem nada
       # nosso para tirar, a deixava. Vazia, ela sai; com o que já desceu de
       # outra vez, o `rmdir` a deixa.
-      [ "$rc" = 1 ] || rmdir -- "$MEOW_OBSIDIAN_BAIXADOS" 2>/dev/null
+      #   [25/09/2026, P65: e as mães dela, que o `mkdir -p` cria numa casa
+      #   nova — `meowsystem/temas-de-apps/` e `meowsystem/`. Medido numa casa
+      #   de brinquedo sem rede: a pasta do Obsidian saía e as duas ficavam
+      #   vazias. O `rmdir` vai de baixo para cima e para na primeira que tem
+      #   alguma coisa (o tema do Telegram, os packs dela); acima de
+      #   `meowsystem/` não sobe, porque dali para cima a pasta não é nossa.]
+      [ "$rc" = 1 ] || rmdir -- "$MEOW_OBSIDIAN_BAIXADOS" "${MEOW_OBSIDIAN_BAIXADOS%/*}" \
+                                "${MEOW_OBSIDIAN_BAIXADOS%/*/*}" 2>/dev/null
       case $rc in
         1) ;;
         3) meow_app_pendente obsidian; return ;;

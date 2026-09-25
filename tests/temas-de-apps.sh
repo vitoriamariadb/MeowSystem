@@ -746,6 +746,12 @@ pendência depois: $ficou"
 #   «não veste» e as palavras do módulo na linha de baixo. (A pasta do Vencord
 #   que a seção do Discord deixou sai de cena e volta no fim: sem ela, o Discord
 #   é só o cliente oficial de novo.)
+#   O QBITTORRENT VESTIDO POR FORA TEM MOTIVO — 25/09/2026, P65. A revisão
+#   da P62 o deixou no `--` porque o módulo dizia o estado por `!!` (no stderr,
+#   que a tabela descarta) e `>>`; o OnlyOffice, no mesmo estado, saía com o
+#   dele, que é uma linha `--` do `conferir`. Agora o qBittorrent diz o mesmo
+#   fato pela mesma porta, e a tabela o mostra sem regra nova: «não veste» e a
+#   linha de baixo.
 mv "$CASA/.config/Vencord" "$T/vencord-de-lado"
 printf 'PACK="dracula"\nFLAVOR="dracula"\nACCENT="mauve"\nAPPS_ATIVOS="discord,qbittorrent"\n' > "$T/meow8.conf"
 saida="$(env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
@@ -754,8 +760,10 @@ saida="$(env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
            FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" FLATPAK_CONFIG_DIR="$T/flatpak-etc" \
            "$RAIZ/bin/meow" apps </dev/null 2>&1)"
 faltam=""
-printf '%s\n' "$saida" | grep -qE '^  qbittorrent +sim +-- +qbittorrent$' \
-  || faltam+=" o qBittorrent vestido por ela não ficou no «--»;"
+printf '%s\n' "$saida" | grep -qE '^  qbittorrent +sim +não veste +qbittorrent$' \
+  && printf '%s\n' "$saida" | grep -A1 -E '^  qbittorrent ' | tail -n 1 \
+       | grep -qE "^ {21}qBittorrent: .*'$CASA/\.themes/dela\.qbtheme', que não veio daqui" \
+  || faltam+=" o qBittorrent vestido por ela não saiu «não veste» com o motivo embaixo;"
 printf '%s\n' "$saida" | grep -qE '^  discord +sim +não veste +discord$' \
   && printf '%s\n' "$saida" | grep -A1 -E '^  discord ' | tail -n 1 | grep -qE '^ {21}Discord: .*cliente modificado' \
   || faltam+=" o Discord não saiu «não veste» com o motivo do detectar embaixo;"
@@ -763,7 +771,7 @@ printf '%s\n' "$saida" | grep -qE '^  discord +sim +não veste +discord$' \
   = "$(printf '%s\n' "$saida" | grep -cE '^ {21}[^ ]')" ] \
   || faltam+=" há «não veste» sem a linha do motivo;"
 [ -z "$faltam" ] \
-  && ok "meow apps: «não veste» só com o motivo embaixo — o qBittorrent vestido por ela fica «--», o Discord diz o cliente que falta" \
+  && ok "meow apps: «não veste» só com o motivo embaixo — o qBittorrent vestido por ela diz o tema que está nele, o Discord diz o cliente que falta" \
   || falha "meow apps: a tabela diz «não veste» sem motivo, ou perde o motivo guardado:$faltam" "$saida"
 mv "$T/vencord-de-lado" "$CASA/.config/Vencord"
 rm -rf "$CASA/.var/app/org.qbittorrent.qBittorrent" "$BIN/flatpak" \
@@ -1719,11 +1727,14 @@ done
 #   `aplicar` que descia de novo. Agora a descida que não entra leva a pasta,
 #   se ela ficou vazia; o desfazer leva a pasta vazia que uma versão de antes
 #   deixou; e toda descida leva as sobras das anteriores.
+#   [P65: e as mães dela, `meowsystem/temas-de-apps/` e `meowsystem/`, que o
+#   `mkdir -p` cria numa casa nova e ficavam vazias depois do aplicar sem rede.
+#   A casa do `semear10` é nova, sem `meowsystem/` nenhum.]
 faltam=""
 semear10
 saida="$(mod10 obsidian aplicar dracula dracula)"; rc=$?
-[ "$rc" = 3 ] && [ ! -e "$BAIXADOS10" ] \
-  || faltam+=" o aplicar sem rede deixou [$(ls -A "$BAIXADOS10" 2>/dev/null | tr '\n' ' ')] (rc=$rc: $saida);"
+[ "$rc" = 3 ] && [ ! -e "$BAIXADOS10" ] && [ ! -e "$CASA10/.local/share/meowsystem" ] \
+  || faltam+=" o aplicar sem rede deixou [$(cd "$CASA10/.local/share" 2>/dev/null && find meowsystem 2>/dev/null | tr '\n' ' ')] (rc=$rc: $saida);"
 mkdir -p "$BAIXADOS10"
 saida="$(mod10 obsidian reverter dracula dracula)"; rc=$?
 [ "$rc" = 0 ] && [ ! -e "$BAIXADOS10" ] && printf '%s' "$saida" | grep -q 'obsidian: já estava sem o Dracula' \

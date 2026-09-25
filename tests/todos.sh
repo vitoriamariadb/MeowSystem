@@ -69,7 +69,7 @@ PORTATIL=(
   sem-dracula-os-theme.sh # tokenize no código versionado + a camada Dracula num HOME de brinquedo; bash e python3
   sem-receita-no-log.sh  # grep nos .sh versionados; nada além de bash
   temas-de-apps.sh       # grep nos manifestos + pack.py; estado de brinquedo
-  flavor-padrao.sh       # o lib/comum.sh, três scripts que só leem e o meow icones num HOME de brinquedo (P61); bash e python3
+  flavor-padrao.sh       # o lib/comum.sh, quatro scripts que só leem, dois manifestos, o conf do painel e o meow icones num HOME de brinquedo (P61, P65); bash e python3
   git-limpo.sh           # acervo, HOME e estado de brinquedo; só git e bash
   app.sh                 # compara o esquema do painel com o do wizard; python3
   estilo.sh              # régua da caneta contra o acervo Arcticons DAQUI (pede numpy)
