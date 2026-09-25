@@ -26,6 +26,11 @@
 #   5. Trocar para o Catppuccin não carrega a escolha: a busca não oferece o
 #      Dracula, o passo do pack tira do tema o que o Dracula tinha posto, o
 #      Catppuccin não ganha arquivo nenhum — e a escolha volta com o Dracula.
+#   6. (P64, 25/09/2026) A escolha tem desfazer: a linha do painel leva a que
+#      ela trocou, e desfazer a devolve — o mapa volta byte a byte. A resposta
+#      diz o ícone que fica, e o «Voltar ao ícone de fábrica» de um app que
+#      está nos dois mapas não diz mais «de fábrica». E a trava do traço não
+#      recusa o desenho do pack.
 #
 # AS PERGUNTAS VÃO ÀS ROTAS DE VERDADE, no molde do tests/oficina.sh: o
 #   `Manipulador` sem socket, com o `_json` capturado. O passo que põe no tema é
@@ -76,6 +81,9 @@ desktop() {   # desktop <arquivo> <Name> <Icon>
 desktop google-chrome "Chrome de Brinquedo" google-chrome
 desktop programa-de-brinquedo "Programa de Brinquedo" programa-de-brinquedo
 desktop com.system76.CosmicFiles "Arquivos de Brinquedo" com.system76.CosmicFiles
+# E um com a trava do TRAÇO (P64): a Calculadora tem desenho convertido no
+# `apps-convertidos.map`, e nenhum outro dono do `scalable/apps`.
+desktop org.gnome.Calculator "Calculadora de Brinquedo" org.gnome.Calculator
 # E dois jogos, que a aba «Lançadores e jogos» mostra com a MESMA ficha: um com
 # o `Icon=` por caminho de arquivo, onde o desenho do pack não vale, e um com
 # nome de ícone, onde vale. Revisão da P60: a grade de jogos não mandava a trava
@@ -258,9 +266,12 @@ checa(codigo == 200 and dados.get("ok") and dados.get("nome_pack") == "Dracula",
 with open(mapa, encoding="utf-8") as fh:
     depois = fh.read().split("\n")
 mudou = [i for i, (a, b) in enumerate(zip(antes, depois)) if a != b]
+# P64: a linha diz também a que ela trocou, inteira — é o que o desfazer devolve.
 checa(len(antes) == len(depois) and len(mudou) == 1
-      and depois[mudou[0]] == "google-chrome : biblioteca/alien.svg   # Chrome de Brinquedo — escolhido no painel",
-      "no apps.map do Dracula só a linha do google-chrome muda, e ela diz de onde veio",
+      and depois[mudou[0]] == ("google-chrome : biblioteca/alien.svg   # Chrome de Brinquedo — "
+                               "escolhido no painel; antes: " + antes[mudou[0]])
+      and antes[mudou[0]] == "google-chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]",
+      "no apps.map do Dracula só a linha do google-chrome muda, e ela diz de onde veio e a que trocou",
       repr([depois[i] for i in mudou]))
 
 ultima = max(i for i, l in enumerate(depois) if l.split("#", 1)[0].count(":"))
@@ -368,6 +379,100 @@ conf_com(PACK="dracula", FLAVOR="dracula")
 rc, saida = passo_do_pack()
 checa(texto(os.path.join(tema, "google-chrome.svg")) == texto(alien),
       "de volta ao Dracula, a escolha volta com ele: ela mora no pack (rc=%s)" % rc)
+
+# --- 6. desfazer a escolha, e o ícone que fica — P64 ---------------------------
+# Aqui o mapa do Dracula tem as duas escolhas da seção 3: a do Chrome, que
+# trocou a linha dele, e a do programa, que o pack não conhecia.
+def glifos_de(app, busca="chrome"):
+    return chamar(m._api_glifos, {"busca": [busca], "app": [app]})[1]
+
+
+def desfazer(app, pack="dracula"):
+    return chamar(m._api_app_icone, {"app": app, "pack": pack, "remover": True})
+
+
+def mapa_agora():
+    with open(mapa, encoding="utf-8") as fh:
+        return fh.read().split("\n")
+
+
+r = glifos_de("google-chrome")
+checa(r.get("pack") == {"id": "dracula", "nome": "Dracula"}
+      and r.get("escolha") == {"pack": "dracula", "nome_pack": "Dracula",
+                               "desenho": "biblioteca/alien.svg", "antes": "apps/google-chrome.svg"},
+      "a busca da ficha do Chrome diz a escolha do painel no pack, e o desenho que ela trocou",
+      repr((r.get("pack"), r.get("escolha"))))
+checa((glifos_de("programa-de-brinquedo").get("escolha") or {}).get("antes", "?") is None
+      and glifos_de("com.system76.CosmicFiles").get("escolha") is None,
+      "a do programa novo não trocou desenho nenhum, e o «Arquivos» não tem escolha")
+
+# O CHROME ESTÁ NOS DOIS MAPAS: tirar o traço deixa o desenho do pack na tela,
+# e a torrada dizia «voltou para o ícone de fábrica».
+codigo, dados = chamar(m._api_app_icone, {"app": "google-chrome", "remover": True})
+fica = dados.get("fica") or {}
+checa(codigo == 200 and dados.get("removido") and fica.get("tipo") == "pack"
+      and fica.get("frase") == "o desenho «alien» do pack «Dracula»",
+      "tirar o Chrome do mapa do traço diz que fica o desenho do pack, e não o de fábrica",
+      repr(dados))
+
+codigo, dados = desfazer("google-chrome")
+checa(codigo == 200 and dados.get("removido")
+      and (dados.get("fica") or {}).get("frase") == "o desenho «google-chrome» do pack «Dracula»",
+      "desfazer a escolha do Chrome devolve o desenho que o pack dava, e o diz", repr(dados))
+# O arcade do programa está no tema desde a seção 5 (a volta ao Dracula o repôs).
+codigo, dados = desfazer("programa-de-brinquedo")
+fica = dados.get("fica") or {}
+checa(codigo == 200 and dados.get("removido") and fica.get("tipo") == "sobra"
+      and fica.get("frase", "").startswith("o desenho «arcade» do pack «Dracula», que continua no tema"),
+      "desfazer a do programa que o pack não conhecia tira a linha, e a resposta diz que o desenho "
+      "fica no tema — e não «de fábrica»", repr(dados))
+checa(mapa_agora() == antes,
+      "sem as duas escolhas, o apps.map do Dracula volta byte a byte ao que era")
+rc, saida = passo_do_pack()
+checa(texto(os.path.join(tema, "google-chrome.svg"))
+      == texto(os.path.join(icones, "apps", "google-chrome.svg")) is not None,
+      "o passo do pack põe no tema o desenho que o pack dava ao Chrome (rc=%s)" % rc, saida[-600:])
+rc, saida = conferir()
+checa(rc == 0, "e o --conferir do passo sai 0 depois dele (rc=%s)" % rc, saida[-600:])
+# O DEFEITO CONHECIDO, FORA DO TERRITÓRIO DA P64, no molde dos
+#   `DEFEITOS_CONHECIDOS` do tests/app-completo.py: dito em toda corrida, e
+#   reprovando no dia em que deixar de acontecer — nesse dia a frase `sobra` do
+#   `_desfazer_do_pack` e este bloco saem juntos. O `icones_apps_dracula.sh`
+#   não tira do tema o nome que saiu do mapa no ar (o `_dracula_sobras` só olha
+#   os mapas fora do ar), e o `--conferir` acima sai 0 com ele lá.
+sobrou = texto(os.path.join(tema, "programa-de-brinquedo.svg")) == texto(
+    os.path.join(icones, "biblioteca", "arcade.svg")) is not None
+if sobrou:
+    print("  conhecido: o passo do pack deixa no tema o arcade do programa que saiu do mapa "
+          "no ar — conserto em scripts/icones_apps_dracula.sh (_dracula_sobras)")
+checa(sobrou, "o desenho do programa continua no tema, como a resposta disse",
+      "o passo do pack passou a tirá-lo: tire a frase `sobra` do `_desfazer_do_pack` e este bloco")
+
+codigo, dados = desfazer("google-chrome")
+checa(codigo == 200 and dados.get("removido") is False and mapa_agora() == antes,
+      "desfazer sem escolha no pack não mexe no mapa", repr(dados))
+codigo, dados = desfazer("google-chrome", pack="catppuccin")
+checa(codigo == 409, "desfazer no mapa de um pack fora do ar é recusado (%s)" % codigo, repr(dados))
+
+# ESCOLHER DUAS VEZES: o desfazer volta ao desenho do PACK, e não ao da
+# primeira escolha — a linha trocada viaja de uma escolha para a outra.
+escolher("google-chrome", "biblioteca/alien.svg")
+codigo, dados = escolher("google-chrome", "biblioteca/arcade.svg")
+desfazer("google-chrome")
+checa(codigo == 200 and mapa_agora() == antes,
+      "duas escolhas seguidas e um desfazer: o mapa volta ao do pack, byte a byte")
+
+# A TRAVA DO TRAÇO NÃO É A DO PACK. A Calculadora tem desenho convertido — o
+# glifo do Arcticons não vale nela —, e o desenho do pack vai para o
+# `scalable/apps`, que vence o traço. A ficha oferece o pack, e o POST aceita.
+apps = {a["id"]: a for a in servidor.Manipulador._dados_apps(m, {}).get("apps", [])}
+calc = apps.get("org.gnome.Calculator") or {}
+codigo, dados = escolher("org.gnome.Calculator", "biblioteca/alien.svg")
+checa(calc.get("trava") and calc.get("trava_pack") is None and codigo == 200,
+      "a Calculadora, com a trava do traço e sem a do pack, aceita o desenho do pack (%s)" % codigo,
+      repr((calc.get("trava"), dados)))
+desfazer("org.gnome.Calculator")
+checa(mapa_agora() == antes, "e o desfazer dela devolve o mapa do pack")
 
 if falhas:
     print("FALHOU: os desenhos do pack na ficha de ícone:", file=sys.stderr)

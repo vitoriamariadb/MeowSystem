@@ -8732,11 +8732,16 @@ class Manipulador(BaseHTTPRequestHandler):
                                        % (desenho, pack["nome"])}, 404)
         d = next((x for x in self._desktops() if x["id"] == app), None) or {"id": app}
         rotulo = d.get("nome") or app
-        # A página não oferece a busca a quem tem trava do traço, nem o pack a
-        # quem tem outro dono; um POST direto ouve o mesmo motivo.
-        motivo = (self._motivo_da_trava(self._travas_do_arcticons(),
-                                        [app, d.get("icone", "")], rotulo)
-                  or self._trava_do_pack(d, rotulo))
+        # A página não oferece o pack a quem tem outro dono; um POST direto ouve
+        # o mesmo motivo.
+        # A TRAVA DO TRAÇO SAIU DAQUI — 25/09/2026, P64. Ela diz por que um glifo
+        # do Arcticons não valeria (intocável, curadoria, desenho convertido), e
+        # o que esses três impedem mora no `48x48/apps`; o desenho do pack vai
+        # para o `scalable/apps`, que vence o traço. Recusar por ela era recusar
+        # a Calculadora, cujo ícone na tela já é o desenho do Dracula. A ficha
+        # passou a oferecer o pack a quem tem só a trava do traço, e o POST
+        # aceita o que ela oferece.
+        motivo = self._trava_do_pack(d, rotulo)
         if motivo:
             return self._json({"erro": motivo}, 409)
         # O NOME DA LINHA É O DO `Icon=` (ver `_nome_do_icone`): é ele que o
@@ -8750,15 +8755,25 @@ class Manipulador(BaseHTTPRequestHandler):
             ativas = [(num, n) for num, n, _alvo in modulo_pack().ler_mapa(pack["mapa"])]
         except OSError as e:
             return self._json({"erro": "não consegui ler o mapa do pack: %s" % e}, 500)
+        numero = next((num for num, n in ativas if n == nome), None)
+        # A LINHA TROCADA VAI JUNTO (P64, ver `_MARCA_DO_PAINEL`): a do pack, ou
+        # a que uma escolha anterior do painel já carregava.
+        antes = ""
+        if numero is not None:
+            antes = self._escolha_do_painel(linhas[numero - 1])
+            if antes is None:
+                antes = linhas[numero - 1]
         # O COMENTÁRIO É A PROCEDÊNCIA, como em toda linha do mapa: quem o abrir
-        # sabe que esta não veio do tema de origem.
-        linha = "%s : %s   # %s — escolhido no painel" % (
-            nome, desenho, re.sub(r"[\x00-\x1f#]+", " ", rotulo).strip())
+        # sabe que esta não veio do tema de origem. O `;` sai do nome junto com o
+        # `#` (P64): é ele que abre o "; antes: ", e um `Name=` de `.desktop`
+        # não pode escrever o que o desfazer devolve.
+        linha = "%s : %s   # %s — escolhido no painel%s" % (
+            nome, desenho, re.sub(r"[\x00-\x1f#;]+", " ", rotulo).strip(),
+            "; antes: " + antes if antes else "")
         # O ARQUIVO INTEIRO SOBREVIVE, como no `apps-arcticons.map`: o mapa do
         # Dracula tem 206 linhas de comentário (medido em 25/09), no cabeçalho e
         # nos blocos. A linha nova entra depois da última ativa, e não no fim do
         # arquivo, que é um bloco comentado.
-        numero = next((num for num, n in ativas if n == nome), None)
         if numero is not None:
             linhas[numero - 1] = linha
         elif ativas:
@@ -8774,6 +8789,171 @@ class Manipulador(BaseHTTPRequestHandler):
                            "nome_pack": pack["nome"], "glifo": item["glifo"],
                            "desenho": desenho,
                            "depois": "vale depois de «%s»" % ACOES["icones_pack"]["rotulo"]})
+
+    # ========================================================================
+    # A ESCOLHA DO PAINEL LEVA A LINHA QUE ELA TROCOU — 25/09/2026, sprint P64
+    # ========================================================================
+    # Até aqui a escolha tomava o lugar da linha do pack e a linha sumia: não
+    # havia o que devolver, e a escolha de um desenho do pack não tinha
+    # desfazer. O «Voltar ao ícone de fábrica» ao lado só mexe no mapa do
+    # traço — e com o Chrome, que está nos dois mapas, dizia «voltou para o
+    # ícone de fábrica» com o desenho do Dracula na tela.
+    #
+    # A linha trocada vai INTEIRA no comentário da escolha, depois de "; antes:":
+    #
+    #   google-chrome : biblioteca/alien.svg   # Chrome — escolhido no painel; antes: google-chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]
+    #
+    #   · NA MESMA LINHA, e não num comentário ao lado: a troca continua mexendo
+    #     numa linha só (o diff de uma escolha é uma linha), e não sobra
+    #     comentário órfão quando alguém apaga a escolha à mão. Todo leitor do
+    #     mapa corta no primeiro `#` (o `ler_mapa` do pack.py, o awk do
+    #     `icones_apps_dracula.sh`, o `_mapa_dracula`), e o segundo `#` — o da
+    #     procedência antiga — é comentário dentro do comentário.
+    #   · A LINHA INTEIRA, e não só o caminho: a procedência (`[alias-heuristico]`)
+    #     é parte do que o pack diz, e desfazer devolve o arquivo byte a byte.
+    #   · A LINHA DO PACK VIAJA DE UMA ESCOLHA PARA A OUTRA: escolher duas vezes e
+    #     desfazer volta ao que o PACK dava, e não à primeira escolha.
+    #   · ESCOLHA SEM "antes" é a de um nome que o pack não conhecia: desfazer tira
+    #     a linha, e o arquivo volta ao que era.
+    # A linha que não é do painel nunca sai por aqui: quem a pôs foi o pack.
+    _MARCA_DO_PAINEL = re.compile(r"^[^#]*#.*? — escolhido no painel(?:; antes: (.*))?$")
+
+    def _escolha_do_painel(self, linha):
+        """A linha que uma escolha do painel trocou ("" quando não trocou
+        nenhuma), ou None quando `linha` não é escolha do painel."""
+        achado = self._MARCA_DO_PAINEL.match(linha)
+        return None if not achado else (achado.group(1) or "")
+
+    def _escolha_no_pack(self, pack, app):
+        """{pack, nome_pack, desenho, antes} da escolha do painel para `app` no
+        mapa do pack no ar, ou None. `antes` é o desenho que ela trocou, ou None
+        quando o pack não tinha linha para o nome."""
+        mod = modulo_pack()
+        nome = self._nome_do_icone(app)
+        try:
+            with open(pack["mapa"], "r", encoding="utf-8") as fh:
+                linhas = fh.read().split("\n")
+            ativas = list(mod.ler_mapa(pack["mapa"]))
+        except OSError:
+            return None
+        for num, n, alvo in ativas:
+            if n != nome:
+                continue
+            antes = self._escolha_do_painel(linhas[num - 1])
+            if antes is None:
+                return None
+            return {"pack": pack["id"], "nome_pack": pack["nome"], "desenho": alvo,
+                    "antes": antes.split("#", 1)[0].partition(":")[2].strip() or None}
+        return None
+
+    def _desfazer_do_pack(self, app, corpo):
+        """O «Desfazer a escolha no pack»: a linha que a escolha trocou volta.
+
+        A camada desligada não impede, nem trava nenhuma: tirar uma escolha
+        sempre vale, como tirar a linha do traço. O pack do pedido tem de ser o
+        do ar, pela razão do `_escolher_do_pack`: uma página de antes de uma
+        troca de pack mexeria no mapa de um pack fora do ar."""
+        pedido = str(corpo.get("pack", "")).strip()
+        pack, _desenhos, _aviso = self._desenhos_do_pack_no_ar()
+        if not pack:
+            return self._json({"erro": "o pack no ar não tem mapa de aplicativos: não há "
+                                       "escolha dele para desfazer"}, 409)
+        if pack["id"] != pedido:
+            return self._json({"erro": "o pack «%s» não está no ar — o que está é o «%s»"
+                                       % (pedido, pack["nome"])}, 409)
+        nome = self._nome_do_icone(app)
+        mod = modulo_pack()
+        try:
+            with open(pack["mapa"], "r", encoding="utf-8") as fh:
+                linhas = fh.read().split("\n")
+            numero, alvo = next(((num, a) for num, n, a in mod.ler_mapa(pack["mapa"])
+                                 if n == nome), (None, ""))
+        except OSError as e:
+            return self._json({"erro": "não consegui ler o mapa do pack: %s" % e}, 500)
+        antes = self._escolha_do_painel(linhas[numero - 1]) if numero is not None else None
+        if antes is None:
+            return self._json({"ok": True, "removido": False, "app": app,
+                               "fica": self._o_que_fica(app)})
+        if antes:
+            linhas[numero - 1] = antes
+        else:
+            del linhas[numero - 1]
+        try:
+            with open(pack["mapa"], "w", encoding="utf-8") as fh:
+                fh.write("\n".join(linhas))
+        except OSError as e:
+            return self._json({"erro": "não consegui gravar o mapa do pack: %s" % e}, 500)
+        fica = self._o_que_fica(app)
+        # O NOME QUE SAI DO MAPA NO AR FICA NO TEMA — medido em 25/09/2026, P64.
+        #   Sem "antes", a linha do painel sai do mapa, e o `icones_apps_dracula.sh`
+        #   não tira do `scalable/apps` o desenho de um nome que o mapa NO AR
+        #   deixou de ter: o `_dracula_sobras` dele só olha os mapas dos packs
+        #   fora do ar, e o `--conferir` sai 0 com o desenho lá. O conserto é
+        #   daquele script, fora do território desta sprint; até ele, a torrada
+        #   não diz «de fábrica» com o desenho do pack na tela. A prova de que o
+        #   arquivo é o da escolha é a mesma do script: o conteúdo.
+        if not antes:
+            tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
+            no_tema = os.path.expanduser("~/.local/share/icons/%s/scalable/apps/%s.svg"
+                                         % (tema, nome))
+            try:
+                with open(mod.resolver_alvo(alvo, os.path.dirname(pack["mapa"])),
+                          "r", encoding="utf-8") as fh:
+                    escolhido = fh.read().rstrip()
+                with open(no_tema, "r", encoding="utf-8") as fh:
+                    sobrou = fh.read().rstrip() == escolhido
+            except (OSError, UnicodeDecodeError, mod.Recusa):
+                sobrou = False
+            if sobrou:
+                fica = {"tipo": "sobra",
+                        "frase": "o desenho «%s» do pack «%s», que continua no tema: o passo "
+                                 "do pack não tira dele um nome que saiu do mapa"
+                                 % (os.path.splitext(os.path.basename(alvo))[0], pack["nome"])}
+        return self._json({"ok": True, "removido": True, "app": app, "pack": pack["id"],
+                           "nome_pack": pack["nome"], "fica": fica})
+
+    def _o_que_fica(self, app):
+        """{"tipo", "frase"}: o ícone que o aplicativo veste quando uma escolha
+        sai, lido dos mapas que acabaram de ser gravados — P64.
+
+        É A TORRADA QUE MENTIA: ela dizia «voltou para o ícone de fábrica»
+        sempre, e o Chrome está no `apps-arcticons.map` E no `apps.map` do
+        Dracula. Tirado o traço, o que fica na tela é o desenho do pack.
+
+        A ORDEM É A DO TEMA. O mapa do pack no ar, com a camada ligada, põe o
+        desenho em `scalable/apps`, que vence o `48x48/apps` do traço; no traço,
+        o glifo do Arcticons e a conversão não convivem num nome (o
+        `_conferir_gemeos` do script para o passo). O mapa do pack sobe a
+        herança, como no `icones_apps_dracula.sh` — é o `acervo`, e não o mapa
+        próprio que a ficha oferece. As frases são as do `_quem_veste`, com o
+        nome do desenho quando há um: a torrada e a trava da grade falam do
+        mesmo ícone, e não podem discordar.
+
+        É PREVISÃO, E NÃO MEDIDA: o passo roda logo depois (`icones_traco`,
+        `icones_pack`), e a grade relida mostra o que ficou de fato. Os donos
+        do `scalable/apps` fora dos mapas desta ficha (o `completar_icones.sh`,
+        o resgate) não entram na conta."""
+        d = next((x for x in self._desktops() if x["id"] == app), None) or {}
+        mod = modulo_pack()
+        ident = _pack_adotado() if mod else ""
+        if ident and (valores_efetivos(["ICONES_DRACULA"]).get("ICONES_DRACULA") or "") == "sim":
+            mapa = mod.acervo("icones.apps.mapa", ref=ident) or ""
+            nome = self._nome_do_icone(app)
+            for _num, n, alvo in (mod.ler_mapa(mapa) if os.path.isfile(mapa) else ()):
+                if n == nome:
+                    dono = mod._pack_de(mapa)
+                    nome_pack = str(mod.campo(dono, "nome", dono) or dono)
+                    return {"tipo": "pack", "frase": "o desenho «%s» do pack «%s»"
+                            % (os.path.splitext(os.path.basename(alvo))[0], nome_pack)}
+        arcticons = self._mapa_arcticons()
+        marca = arcticons.get(app) or arcticons.get(d.get("icone") or "")
+        if marca:
+            return {"tipo": "arcticons",
+                    "frase": "o glifo «%s» do Arcticons, em traço" % marca["glifo"]}
+        convertidos = self._mapa_convertidos()
+        if convertidos.get(app) or convertidos.get(d.get("icone") or ""):
+            return {"tipo": "conversao", "frase": "a conversão em traço do projeto"}
+        return {"tipo": "fabrica", "frase": "o ícone de fábrica"}
 
     def _api_glifos(self, consulta):
         """O acervo de desenhos que a página pode oferecer para um aplicativo.
@@ -8814,6 +8994,18 @@ class Manipulador(BaseHTTPRequestHandler):
                 do_pack.append({"glifo": d["glifo"], "grupo": pack["nome"],
                                 "pack": pack["id"], "desenho": d["desenho"],
                                 "url": "/previa?tipo=arquivo&id=" + quote(d["caminho"], safe="")})
+        # A FICHA PERGUNTA POR APLICATIVO — 25/09/2026, P64. Duas respostas que
+        # a tira sozinha não dá: `pack`, o pack que a ficha pode oferecer — a
+        # ficha com trava do traço mostra a busca só com ele, e precisa saber
+        # antes de a busca achar alguma coisa —, e `escolha`, a do painel para
+        # ESTE aplicativo no mapa do pack, que é o que acende o «Desfazer a
+        # escolha no pack». A escolha vem mesmo com a camada desligada: tirá-la
+        # sempre vale (`_desfazer_do_pack`).
+        app = (consulta.get("app", [""])[0] or "").strip()
+        extra = {"aviso": aviso,
+                 "pack": {"id": pack["id"], "nome": pack["nome"]} if pack and not aviso else None,
+                 "escolha": (self._escolha_no_pack(pack, app)
+                             if pack and re.match(r"^[A-Za-z0-9._+-]{1,120}$", app) else None)}
         fora, vistos = [], set()
         # O `upstream/` NÃO É O ARCTICONS — e eu supus que era.
         #   A validação mediu: "assets/icones/upstream/ contém papirus-folders,
@@ -8853,9 +9045,9 @@ class Manipulador(BaseHTTPRequestHandler):
                     fora.append({"glifo": glifo, "grupo": grupo,
                                  "url": "/previa?tipo=arquivo&id=" + quote(caminho, safe="")})
                     if len(fora) >= limite:
-                        return self._json({"glifos": do_pack + fora, "limitado": True,
-                                           "aviso": aviso})
-        return self._json({"glifos": do_pack + fora, "limitado": limitado, "aviso": aviso})
+                        return self._json(dict({"glifos": do_pack + fora, "limitado": True},
+                                               **extra))
+        return self._json(dict({"glifos": do_pack + fora, "limitado": limitado}, **extra))
 
     def _api_app_icone(self, corpo):
         """Grava a escolha dela no mapa do repositório — e traz o glifo junto."""
@@ -8873,6 +9065,11 @@ class Manipulador(BaseHTTPRequestHandler):
         # no do traço: ver o bloco "OS DESENHOS DO PACK NO AR NA FICHA DE ÍCONE".
         if corpo.get("pack") and not remover:
             return self._escolher_do_pack(app, corpo)
+        # E O DESFAZER DELA — P64. Até aqui o `remover` ia sempre para o mapa do
+        # traço, com ou sem `pack`: ver "A ESCOLHA DO PAINEL LEVA A LINHA QUE
+        # ELA TROCOU".
+        if corpo.get("pack"):
+            return self._desfazer_do_pack(app, corpo)
 
         # A TRANCA DO BOTÃO QUE NÃO PODE VALER — ver `_travas_do_arcticons`. A
         # página já não o oferece; o servidor recusa mesmo assim, porque um POST
@@ -8906,13 +9103,17 @@ class Manipulador(BaseHTTPRequestHandler):
         #   arquivo dela.
         novas = list(linhas)
         indice = next((i for i, l in enumerate(novas) if id_da_linha(l) == app), None)
+        # O `fica` é o ícone que sobra, para a torrada não dizer «de fábrica»
+        # com o desenho do pack na tela (P64, `_o_que_fica`).
         if remover:
             if indice is None:
-                return self._json({"ok": True, "removido": False, "app": app})
+                return self._json({"ok": True, "removido": False, "app": app,
+                                   "fica": self._o_que_fica(app)})
             del novas[indice]
             with open(caminho, "w", encoding="utf-8") as fh:
                 fh.write("\n".join(novas))
-            return self._json({"ok": True, "removido": True, "app": app})
+            return self._json({"ok": True, "removido": True, "app": app,
+                               "fica": self._o_que_fica(app)})
 
         if not _re.match(r"^[a-z0-9._-]{1,60}$", glifo):
             return self._json({"erro": "glifo inválido"}, 400)

@@ -123,6 +123,7 @@ from __future__ import annotations
 
 import argparse
 import functools
+import math
 import os
 import re
 import shutil
@@ -160,17 +161,27 @@ def alfa_do_nivel(mapa: str, nivel: str) -> float:
 
     O motivo de não derivar vai para a tela do `aplicar_tema.sh`, e um nível
     que não é número punha lá o «could not convert string to float: 'abc'» do
-    Python (revisão da P58, 25/09/2026). A frase é daqui."""
+    Python (revisão da P58, 25/09/2026). A frase é daqui.
+
+    O NaN PASSA PELO `float()`, E POR ISSO É CONFERIDO DEPOIS DELE — 25/09/2026,
+    P64 (nota 5(ii) da revisão da P58). Para o Python, «NaN» é um float; para
+    a conta, não é alfa nenhum: ele atravessava a guarda acima, o `alfa ==
+    alfa_cap` do `derivar_arvore` nunca fecha com NaN, e a pintura estourava no
+    `para_hex` com «cannot convert float NaN to integer», em inglês. Ganha a
+    frase dos outros valores inválidos."""
     nome = v1.achatar(v1.parse(nivel))["."][1]
     campos = v1.achatar(v1.parse(mapa))
     chave = _chave_do_nivel(nome)
     if chave not in campos:
         raise ValueError(f"o alpha_map não tem o nível {nome}")
     try:
-        return f32(float(campos[chave][1]))
+        alfa = f32(float(campos[chave][1]))
     except (TypeError, ValueError):
+        alfa = math.nan
+    if math.isnan(alfa):
         raise ValueError(f"o alpha_map dá ao nível {nome} o valor {campos[chave][1]}, "
-                         "que não é número") from None
+                         "que não é número")
+    return alfa
 
 
 def _cor(receita: dict, chave: str, obrigatoria: bool = False):
