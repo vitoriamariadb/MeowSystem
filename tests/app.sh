@@ -1085,6 +1085,29 @@ if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
                          "ficou com %r — o espelho pede %s" % (no_dock(), carimbo, espelho))
     else:
         print("pulado: 13c, o gato cujo SVG termina em quebra de linha — nenhum no acervo")
+    # E NO MODO HORA, O OUTRO DO PAR — 25/09/2026, decisão depois da P57. Com o
+    # dock no `LOGO_DIA` ou no `LOGO_NOITE`, o terminal mostra o outro gato do
+    # par, e não o seguinte do acervo. O par sai do acervo, escolhido para que
+    # o seguinte do gato da noite NÃO seja o do dia: senão as duas regras dariam
+    # o mesmo gato e o teste não separaria uma da outra. A noite é o dia inteiro
+    # (início igual ao fim); o dia é uma janela de noite que começa daqui a 2 h.
+    if len(nomes_gatos) >= 3:
+        import datetime
+        dia, noite = nomes_gatos[0], nomes_gatos[1]
+        agora = datetime.datetime.now()
+        longe = [(agora + datetime.timedelta(hours=h)).strftime("%H:%M") for h in (2, 3)]
+        for fase, janela, no_dock_esperado, no_terminal in (
+                ("noite", ("00:00", "00:00"), noite, dia),
+                ("dia", tuple(longe), dia, noite)):
+            logo(LOGO_MODO="hora", LOGO_DIA=dia, LOGO_NOITE=noite,
+                 NOITE_INICIO=janela[0], NOITE_FIM=janela[1])
+            carimbo = (ler(os.path.join(casa, ".local", "share", "meowsystem", "fastfetch",
+                                        ".gato-atual")) or "").split(" ")[0]
+            if no_dock() != no_dock_esperado or carimbo != no_terminal:
+                erros.append("13c: no modo hora, de %s, o dock ficou com %s e o terminal com %r "
+                             "— o outro do par é %s" % (fase, no_dock(), carimbo, no_terminal))
+    else:
+        print("pulado: 13c, o outro do par no modo hora — o acervo tem menos de três gatos")
 else:
     print("pulado: 13c, o gato do terminal — falta rsvg-convert ou o convert do ImageMagick")
 

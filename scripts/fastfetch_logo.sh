@@ -154,6 +154,8 @@ FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}"
 # COM MAIS DE DOIS GATOS NO ACERVO, "o outro" vira "o SEGUINTE na ordem
 # alfabética, em círculo". Com dois, que é o caso dela, as duas definições são a
 # mesma coisa. É o mesmo critério de ordem que o `logo.sh` usa para girar.
+# No MODO HORA, desde 25/09/2026, "o outro" é o outro do par `LOGO_DIA` /
+# `LOGO_NOITE` — ver o bloco do `espelho`, lá embaixo.
 #
 # O ARQUIVO PASSA A SE CHAMAR `gato.ansi`, E O NOME IMPORTA
 #   No modo `fixo` o destino continua `<nome-do-gato>.ansi`, e um arquivo
@@ -339,7 +341,29 @@ case "$FASTFETCH_LOGO_MODO" in
     FFL_ALVO="$FFL_BASE/gato.ansi"
     _dock="$(_ffl_gato_do_dock || true)"
     _outro=""
-    [ -n "$_dock" ] && _outro="$(_ffl_o_outro "$_dock" || true)"
+    # NO MODO HORA, "O OUTRO" É O OUTRO DO PAR — 25/09/2026, decisão do dono
+    # desta máquina depois da P57.
+    #   Com o dock no `LOGO_DIA` ou no `LOGO_NOITE`, o terminal mostra o outro
+    #   gato do par: à noite o do dia, de dia o da noite. É o pedido de 01/09
+    #   («pra sempre termos os 2») ao pé da letra, e o que esta máquina mostrava
+    #   até a P57 — só que por acaso: o espelho não reconhecia os morcegos e
+    #   caía na fase invertida. Com o espelho consertado, "o seguinte na ordem"
+    #   punha à noite um TERCEIRO gato no terminal (o `morcego`, depois do
+    #   `morcego-noite`), e o par sumia da tela.
+    #   O modo é o que o `logo.sh modo` diz, e não uma cópia da regra de
+    #   compatibilidade do `LOGO_ROTACAO` aqui. Fora do modo hora, ou com um par
+    #   de gatos iguais, vale "o seguinte" de sempre, logo abaixo.
+    if [ -n "$_dock" ] && [ "$("$MEOW_RAIZ/scripts/logo.sh" modo 2>/dev/null)" = "hora" ]; then
+      _par_dia="${LOGO_DIA:-mimir}"; _par_noite="${LOGO_NOITE:-coquinha}"
+      if [ "$_par_dia" != "$_par_noite" ]; then
+        case "$_dock" in
+          "$_par_dia")   _outro="$_par_noite" ;;
+          "$_par_noite") _outro="$_par_dia" ;;
+        esac
+      fi
+      unset _par_dia _par_noite
+    fi
+    [ -z "$_outro" ] && [ -n "$_dock" ] && _outro="$(_ffl_o_outro "$_dock" || true)"
     if [ -n "$_outro" ]; then
       FASTFETCH_LOGO_GATO="$_outro"; FFL_PORQUE="o dock está com $_dock"
     else
