@@ -1,18 +1,56 @@
 #!/usr/bin/env bash
-# assets/temas-de-apps/obsidian/manifesto.sh — Catppuccin Mocha no Obsidian (flatpak).
+# assets/temas-de-apps/obsidian/manifesto.sh — o tema do pack no Obsidian (flatpak).
+#
+# ATÉ 24/09/2026 A PRIMEIRA LINHA DIZIA "Catppuccin Mocha no Obsidian", e era a
+# verdade do arquivo: o nome do tema cravado, nenhuma leitura de pack, paleta ou
+# flavor, e o snippet tirado pela palavra "dracula". Com o Dracula no ar ele
+# tirava o Dracula e punha o Catppuccin. Ver "O TEMA SAI DO PACK NO AR", abaixo.
 #
 # ESTE ARQUIVO É `source`, NÃO EXECUTADO: nada de `exit`, nada de `set -e`.
 # O `lib/comum.sh` já veio carregado pelo runner (e ele já fez `set -uo pipefail`,
 # então toda variável opcional aqui usa `${VAR:-}`).
 #
 # O QUE ELE FAZ
-#   1. instala <vault>/.obsidian/themes/Catppuccin/{theme.css,manifest.json}
-#   2. aponta "cssTheme" para "Catppuccin" em <vault>/.obsidian/appearance.json
-#   3. tira do "enabledCssSnippets" qualquer snippet com "dracula" no nome — o
-#      dela é o `dracula_background`, que pinta o fundo por cima do tema e faria
-#      o Catppuccin parecer quebrado.
+#   1. instala <vault>/.obsidian/themes/<tema>/{theme.css,manifest.json}, o
+#      tema que o pack no ar declara em `apps.obsidian.esquema`;
+#   2. aponta "cssTheme" para <tema> em <vault>/.obsidian/appearance.json;
+#   3. tira do "enabledCssSnippets" o snippet com o nome de OUTRO pack — o da
+#      máquina onde o módulo nasceu é o `dracula_background`, que pinta o fundo
+#      por cima do tema e fazia o Catppuccin parecer quebrado.
 #   O appearance.json é MESCLADO por python3/json: as outras chaves dela
 #   (baseFontSize, nativeMenus, theme, accentColor...) ficam intactas.
+#
+# O TEMA SAI DO PACK NO AR — 24/09/2026, sprint P55
+#   Medido nesta máquina com o Dracula no ar: o cofre estava com `cssTheme:
+#   "Catppuccin"`, e este arquivo não lia pack, paleta nem flavor. Agora o nome é
+#   o `apps.obsidian.esquema` do pack no ar, e os dois arquivos saem de um de
+#   dois lugares:
+#     vendor/<tema>/   o que mora no motor e aplica sem rede — o do Catppuccin;
+#     `origem`         o pacote que o pack pina (a URL com o commit, o sha256 e a
+#                      pasta de dentro, a forma da base de ícones da P41) — o
+#                      Dracula oficial. Desce UMA vez, é conferido pelo sha256,
+#                      e o theme.css e o manifest.json ficam em
+#                      $MEOW_OBSIDIAN_BAIXADOS/<sha256>/: as passadas de hora em
+#                      hora comparam com eles e não tocam a rede. O `name` do
+#                      manifest tem de ser o `esquema`, porque é ele a pasta em
+#                      `themes/` e o `cssTheme`, como a loja do Obsidian instala.
+#
+#   O TEMA DE OUTRO PACK NUNCA ENTRA. Estes temas têm a cor escrita, e não saem
+#   da paleta: herdar o do pack padrão num pack que não declara o Obsidian seria
+#   vestir as cores de um com o nome do outro. O `apps.obsidian` que responde tem
+#   de ser o do pack no ar; sem ele a saída é pendente, com o motivo «sem tema
+#   neste pack», e nada é escrito.
+#
+#   O NOME NA TELA É O DO FLAVOR PADRÃO DO PACK ("Catppuccin Mocha", "Dracula"),
+#   e não o do FLAVOR da máquina: este módulo não escolhe flavor dentro do tema —
+#   o do Catppuccin cai no Mocha no modo escuro (armadilha 5), e o Dracula
+#   oficial só tem um. Com o Catppuccin no ar, é a frase que a tela já dizia.
+#
+#   O SNIPPET SAI DO PACK NO AR, E NÃO DA PALAVRA. A regra era "todo snippet com
+#   'dracula' no nome"; passou a ser "todo snippet com o id de OUTRO pack do disco
+#   no nome", com os packs contados a cada passada. Com o Catppuccin no ar dá no
+#   mesmo (o outro é o `dracula`); com o Dracula no ar o `dracula_background` é
+#   dele, e fica, e um `catppuccin_…` sairia.
 #
 # ------------------------------------------------------------------ ARMADILHAS
 # Tudo abaixo foi MEDIDO nesta máquina em 2026-08-04, não deduzido.
@@ -100,9 +138,16 @@
 #   manifest 0.4.47, minAppVersion 1.13.0 — e o Obsidian dela é 1.13.4.
 # Os arquivos são VENDORADOS em vendor/: aplicar não depende de rede, e o que
 # entra no vault é sempre o mesmo byte que foi revisado.
+# O do Dracula não mora aqui: o pack o pina e o módulo o baixa (P55); a origem,
+# o commit e o sha256 dele estão no packs/dracula/PROCEDENCIA.md.
 
 MEOW_OBSIDIAN_APP_ID="md.obsidian.Obsidian"
-MEOW_OBSIDIAN_TEMA="Catppuccin"
+# O TEMA E DE ONDE ELE SAI — P55. Nascem vazios, e quem os preenche é o
+# `detectar`, perguntando ao pack no ar (ver `_meow_obsidian_do_pack`):
+# `MEOW_OBSIDIAN_TEMA` é o nome (o `cssTheme` e a pasta em `themes/`) e
+# `MEOW_OBSIDIAN_FONTE` a pasta de onde saem o theme.css e o manifest.json.
+MEOW_OBSIDIAN_TEMA=""
+MEOW_OBSIDIAN_FONTE=""
 # O COFRE SAI DO PRÓPRIO OBSIDIAN — 24/09/2026, P43
 #   Até aqui o padrão era um cofre desta casa, escrito por extenso. Na máquina
 #   de qualquer outra pessoa o módulo procurava uma pasta que não existe, dizia
@@ -133,7 +178,10 @@ MEOW_OBSIDIAN_PADRAO_PROC='^/app/obsidian( |$)'
 
 # Raiz do módulo — resolvida a partir deste arquivo, que é `source`.
 MEOW_OBSIDIAN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MEOW_OBSIDIAN_VENDOR="$MEOW_OBSIDIAN_DIR/vendor/$MEOW_OBSIDIAN_TEMA"
+# O que desce pela rede, uma pasta por pacote, com o sha256 dele no nome — ver
+# "O TEMA SAI DO PACK NO AR", no topo. Mesmo endereço onde o módulo do Telegram
+# entrega o dele: é arquivo NOSSO, na casa dela, e o desfazer o leva embora.
+MEOW_OBSIDIAN_BAIXADOS="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/temas-de-apps/obsidian"
 
 # --- utilitários internos ---------------------------------------------------
 
@@ -183,6 +231,185 @@ _meow_obsidian_rodando() {
 _meow_obsidian_appearance() { printf '%s/.obsidian/appearance.json' "$MEOW_OBSIDIAN_VAULT"; }
 _meow_obsidian_tema_dir()   { printf '%s/.obsidian/themes/%s' "$MEOW_OBSIDIAN_VAULT" "$MEOW_OBSIDIAN_TEMA"; }
 
+# --- o pack no ar (P55) -----------------------------------------------------
+
+# O PACK NO AR E OS OUTROS, NUMA PERGUNTA SÓ AO `scripts/pack.py` — importado,
+# como o painel o importa, e não um verbo por dado: o id e o nome de tela do pack
+# no ar (pela regra única do `adocao`, a mesma do `meow_pack_dir`), o nome do
+# flavor padrão dele, que é o que a tela diz (ver o topo), e os ids dos packs do
+# disco, que são a régua do snippet. A resposta vem pelas variáveis, e não pelo
+# stdout, pelo motivo do `meow_app_tema_do_pack`: quem chama direto não a perde
+# num `$( )`.
+_OBS_PACK=""; _OBS_PACK_NOME=""; _OBS_EXIBE=""; _OBS_OUTROS=""; _OBS_PACKS=""
+_meow_obsidian_packs() {
+  local saida
+  saida="$(PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
+import json, os, sys
+sys.path.insert(0, sys.argv[1])
+import pack
+
+ident, _dir, _recusado = pack.adocao(os.environ.get("PACK", ""), os.environ.get("FLAVOR", ""))
+nome = pack.campo(ident, "nome") or ident
+exibe = nome
+try:
+    arq = pack.campo(ident, "paleta.arquivo", "paleta.json")
+    with open(os.path.join(pack.achar(ident), arq), encoding="utf-8") as fh:
+        nomes = json.load(fh).get("nomes") or {}
+    exibe = nomes.get(pack.campo(ident, "paleta.flavor_padrao")) or nome
+except (OSError, ValueError, TypeError, AttributeError):
+    pass
+ids = set()
+for base in pack.raizes():
+    try:
+        ids.update(n for n in os.listdir(base) if os.path.isfile(os.path.join(base, n, "pack.json")))
+    except OSError:
+        pass
+print("pack=" + ident)
+print("nome=" + nome)
+print("exibe=" + exibe)
+print("outros=" + ",".join(sorted(ids - {ident})))
+print("packs=" + ",".join(sorted(ids | {ident})))
+PYFIM
+)" || return 1
+  _OBS_PACK="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
+  _OBS_PACK_NOME="$(printf '%s\n' "$saida" | sed -n 's/^nome=//p')"
+  _OBS_EXIBE="$(printf '%s\n' "$saida" | sed -n 's/^exibe=//p')"
+  _OBS_OUTROS="$(printf '%s\n' "$saida" | sed -n 's/^outros=//p')"
+  _OBS_PACKS="$(printf '%s\n' "$saida" | sed -n 's/^packs=//p')"
+  [ -n "$_OBS_PACK" ]
+}
+
+# O TEMA QUE O PACK NO AR DECLARA, E DE ONDE ELE SAI. Preenche MEOW_OBSIDIAN_TEMA
+# e MEOW_OBSIDIAN_FONTE, e, quando o tema desce pela rede, _OBS_URL, _OBS_SHA e
+# _OBS_PASTA. Sai pelo `meow_app_sem` — é um pedaço do `detectar`.
+#   A FORMA DA ORIGEM É CONFERIDA AQUI, e não no `pack.py`: o `validar` cobra a
+#   forma da origem pinada só na base de ícones e no ponteiro (P41), e o bloco
+#   `apps` não é território desta sprint lá. As regras são as mesmas daquelas —
+#   https, 64 hex minúsculos, a pasta sem `..` e sem começar por `.` ou `-`.
+_OBS_URL=""; _OBS_SHA=""; _OBS_PASTA=""
+_meow_obsidian_do_pack() {
+  MEOW_OBSIDIAN_TEMA=""; MEOW_OBSIDIAN_FONTE=""; _OBS_URL=""; _OBS_SHA=""; _OBS_PASTA=""
+  _meow_obsidian_packs || { meow_app_sem "obsidian: o scripts/pack.py não disse qual é o pack no ar"; return; }
+  # Direto, sem `$( )`: a resposta vem pelas duas variáveis (lib/comum.sh).
+  meow_app_tema_do_pack obsidian.esquema
+  if [ -z "$MEOW_APP_TEMA" ]; then
+    meow_app_sem "obsidian: sem tema neste pack ($_OBS_PACK_NOME) — o Obsidian fica como está"
+    return
+  fi
+  if [ "$MEOW_APP_TEMA_PACK" != "$_OBS_PACK" ]; then
+    meow_app_sem "obsidian: sem tema neste pack ($_OBS_PACK_NOME) — o que a herança traz é o '$MEOW_APP_TEMA', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não veste outro"
+    return
+  fi
+  MEOW_OBSIDIAN_TEMA="$MEOW_APP_TEMA"
+  meow_app_tema_do_pack obsidian.origem.url;    _OBS_URL="$MEOW_APP_TEMA"
+  meow_app_tema_do_pack obsidian.origem.sha256; _OBS_SHA="$MEOW_APP_TEMA"
+  meow_app_tema_do_pack obsidian.origem.pasta;  _OBS_PASTA="$MEOW_APP_TEMA"
+  if [ -z "$_OBS_URL$_OBS_SHA$_OBS_PASTA" ]; then
+    MEOW_OBSIDIAN_FONTE="$MEOW_OBSIDIAN_DIR/vendor/$MEOW_OBSIDIAN_TEMA"
+    # O único motivo daqui que não é da máquina dela: ou o repositório chegou
+    # incompleto, ou o pack pede um tema que o motor não traz e não diz de onde
+    # ele desce. Nos dois, do lado dela não há o que consertar (3, e não 2).
+    if [ ! -f "$MEOW_OBSIDIAN_FONTE/theme.css" ] || [ ! -f "$MEOW_OBSIDIAN_FONTE/manifest.json" ]; then
+      meow_app_sem "obsidian: o pack $_OBS_PACK_NOME pede o tema '$MEOW_OBSIDIAN_TEMA', que não está em $MEOW_OBSIDIAN_DIR/vendor e não tem origem para descer"
+      return
+    fi
+    return "$MEOW_OK"
+  fi
+  case "$_OBS_URL" in
+    https://*) ;;
+    *) meow_app_sem "obsidian: a origem do tema '$MEOW_OBSIDIAN_TEMA' no pack $_OBS_PACK_NOME não é uma URL https ('$_OBS_URL')"; return ;;
+  esac
+  if ! [[ "$_OBS_SHA" =~ ^[0-9a-f]{64}$ ]]; then
+    meow_app_sem "obsidian: a origem do tema '$MEOW_OBSIDIAN_TEMA' no pack $_OBS_PACK_NOME não traz um sha256 (64 hex) — sem ele a URL entrega o que quiser"
+    return
+  fi
+  if ! [[ "$_OBS_PASTA" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*(/[A-Za-z0-9_][A-Za-z0-9._-]*)*$ ]]; then
+    meow_app_sem "obsidian: a origem do tema '$MEOW_OBSIDIAN_TEMA' no pack $_OBS_PACK_NOME não diz, numa pasta sem '..', onde o tema está dentro do pacote"
+    return
+  fi
+  MEOW_OBSIDIAN_FONTE="$MEOW_OBSIDIAN_BAIXADOS/$_OBS_SHA"
+  return "$MEOW_OK"
+}
+
+# 0 = os dois arquivos do tema estão à mão. O do vendor/ o `detectar` já
+# conferiu; o que desceu é conferido pelo CONTEÚDO, a régua da base de ícones
+# da P41 — uma pasta com um arquivo apagado ou mexido não é o pacote pinado.
+_meow_obsidian_fonte_pronta() {
+  [ -n "$_OBS_SHA" ] || return 0
+  [ -f "$MEOW_OBSIDIAN_FONTE/.meow-origem" ] \
+    && grep -qx "sha256=$_OBS_SHA" "$MEOW_OBSIDIAN_FONTE/.meow-origem" \
+    && ( cd "$MEOW_OBSIDIAN_FONTE" && sha256sum --status -c .meow-somas.sha256 ) 2>/dev/null
+}
+
+# A descida do pacote pinado, que só o `aplicar` chama. Entra inteiro ou não
+# entra: baixa para um palco DENTRO de $MEOW_OBSIDIAN_BAIXADOS (o `mv` final é
+# no mesmo disco — TRAVA 2 do lib/comum.sh), confere o sha256, abre, confere que
+# a pasta declarada traz o tema com o `name` que o pack pediu, e só então a
+# cópia dos dois arquivos vira a fonte, com um `mv` só. Sem rede é pendência e
+# fica para o próximo ciclo; sha256 que não bate é ERRO, pelo motivo do
+# `construir_icones.sh`: é o arquivo mudando debaixo do pino.
+# 1 = desceu · 2 = erro · 3 = sem rede ou sem ferramenta (com o motivo guardado)
+_meow_obsidian_baixar() {
+  local palco src nome obtido f
+  for f in curl tar sha256sum; do
+    meow_tem "$f" || { meow_app_sem "obsidian: falta '$f' para baixar o tema '$MEOW_OBSIDIAN_TEMA' do pack $_OBS_PACK_NOME"; return; }
+  done
+  meow_destino_permitido "$MEOW_OBSIDIAN_FONTE" || return "$MEOW_ERRO"
+  mkdir -p "$MEOW_OBSIDIAN_BAIXADOS" || return "$MEOW_ERRO"
+  palco="$(mktemp -d -p "$MEOW_OBSIDIAN_BAIXADOS" ".meow-descendo.XXXXXX")" || return "$MEOW_ERRO"
+  meow_info "obsidian: baixando o tema '$MEOW_OBSIDIAN_TEMA' do pack $_OBS_PACK_NOME…"
+  # `--proto =https` nos dois sentidos, como no `construir_icones.sh`: a origem é
+  # https, e um redirecionamento para http seria a mesma porta por trás.
+  if ! curl -sSfL --proto '=https' --proto-redir '=https' --connect-timeout 15 \
+       --max-time 300 --retry 3 --retry-delay 2 -o "$palco/pacote" "$_OBS_URL" 2>/dev/null; then
+    rm -rf "$palco"
+    meow_app_sem "obsidian: não consegui baixar o tema '$MEOW_OBSIDIAN_TEMA' do pack $_OBS_PACK_NOME (sem rede?) — fica para o próximo ciclo"
+    return
+  fi
+  if ! echo "$_OBS_SHA  $palco/pacote" | sha256sum --status -c - 2>/dev/null; then
+    obtido="$(sha256sum "$palco/pacote" | cut -d' ' -f1)"
+    rm -rf "$palco"
+    meow_erro "obsidian: o sha256 do tema '$MEOW_OBSIDIAN_TEMA' não bate com o que o pack $_OBS_PACK_NOME pinou — nada instalado"
+    meow_info "  esperado $_OBS_SHA"
+    meow_info "  obtido   $obtido"
+    return "$MEOW_ERRO"
+  fi
+  if ! { mkdir "$palco/x" && tar -xf "$palco/pacote" -C "$palco/x"; } 2>/dev/null; then
+    rm -rf "$palco"
+    meow_erro "obsidian: o pacote do tema '$MEOW_OBSIDIAN_TEMA' veio corrompido — nada instalado"
+    return "$MEOW_ERRO"
+  fi
+  src="$palco/x/$_OBS_PASTA"
+  # Arquivo de verdade, e não link: o que vai para o cofre é copiado daqui.
+  nome=""
+  if [ -f "$src/theme.css" ] && [ ! -L "$src/theme.css" ] && [ -f "$src/manifest.json" ] && [ ! -L "$src/manifest.json" ]; then
+    nome="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("name", ""))' \
+              "$src/manifest.json" 2>/dev/null)"
+  fi
+  if [ "$nome" != "$MEOW_OBSIDIAN_TEMA" ]; then
+    rm -rf "$palco"
+    meow_erro "obsidian: o pacote não traz em '$_OBS_PASTA' o theme.css e o manifest.json do tema '$MEOW_OBSIDIAN_TEMA'${nome:+ (o manifest diz '$nome')} — nada instalado"
+    return "$MEOW_ERRO"
+  fi
+  if ! { mkdir "$palco/tema" && cp -- "$src/theme.css" "$src/manifest.json" "$palco/tema/" \
+         && ( cd "$palco/tema" && sha256sum theme.css manifest.json > .meow-somas.sha256 ) \
+         && printf 'sha256=%s\nurl=%s\n' "$_OBS_SHA" "$_OBS_URL" > "$palco/tema/.meow-origem"; }; then
+    rm -rf "$palco"
+    meow_erro "obsidian: não consegui guardar o tema baixado em $MEOW_OBSIDIAN_BAIXADOS"
+    return "$MEOW_ERRO"
+  fi
+  # A sobra de uma descida anterior que não conferiu sai antes; a nova entra.
+  rm -rf -- "$MEOW_OBSIDIAN_FONTE"
+  if ! mv -f -- "$palco/tema" "$MEOW_OBSIDIAN_FONTE"; then
+    rm -rf "$palco"
+    meow_erro "obsidian: não consegui pôr o tema baixado em $MEOW_OBSIDIAN_FONTE"
+    return "$MEOW_ERRO"
+  fi
+  rm -rf "$palco"
+  meow_muda "obsidian: tema '$MEOW_OBSIDIAN_TEMA' do pack $_OBS_PACK_NOME baixado e conferido pelo sha256"
+  return "$MEOW_DIVERGENTE"
+}
+
 # Compara com a MESMA semântica do meow_escrever — ver armadilha (4).
 # 0 = igual, 1 = diferente/ausente.
 _meow_obsidian_igual() {
@@ -219,13 +446,20 @@ _meow_obsidian_backup() {
 #   escolha dela. Nos modos do desfazer, `tema` é o NOSSO: o `cssTheme` só volta
 #   ao padrão se ainda for ele, o array dos snippets não é tocado e arquivo que
 #   não existe continua não existindo.
+#
+# OS DOIS ARGUMENTOS QUE A P55 MUDOU (24/09/2026)
+#   `outros` (o 4º) são os ids dos outros packs do disco, separados por vírgula:
+#   é a régua do snippet, e sai do pack no ar (ver o topo). E, nos modos do
+#   desfazer, `tema` é a LISTA dos nossos, um por linha — o desfazer não depende
+#   do pack, e reconhece como nosso qualquer tema que o MeowSystem traga.
 _meow_obsidian_json() {
-  local modo="$1" arquivo="$2" tema="$3"
+  local modo="$1" arquivo="$2" tema="$3" outros="${4:-}"
   MEOW_PY_SECO="$(meow_seco && echo 1 || echo 0)" \
-  python3 - "$modo" "$arquivo" "$tema" <<'PYFIM'
+  python3 - "$modo" "$arquivo" "$tema" "$outros" <<'PYFIM'
 import json, os, sys, tempfile
 
 modo, caminho, tema = sys.argv[1], sys.argv[2], sys.argv[3]
+outros = [o for o in sys.argv[4].split(",") if o]
 seco = os.environ.get("MEOW_PY_SECO") == "1"
 desfazer = modo in ("conferir-desfazer", "desfazer")
 
@@ -249,20 +483,21 @@ antes = json.dumps(dados, sort_keys=True)
 motivos = []
 
 if desfazer:
-    if dados.get("cssTheme") == tema:
-        motivos.append("cssTheme=%r -> ''" % tema)
+    if dados.get("cssTheme") in [t for t in tema.split("\n") if t]:
+        motivos.append("cssTheme=%r -> ''" % dados.get("cssTheme"))
         dados["cssTheme"] = ""
 elif dados.get("cssTheme") != tema:
     motivos.append("cssTheme=%r -> %r" % (dados.get("cssTheme"), tema))
     dados["cssTheme"] = tema
 
-# O snippet "dracula_background" pinta o fundo por cima e faria o Catppuccin
-# parecer quebrado. Só mexemos no ARRAY: o .css dela continua no disco, então
-# reverter é só remarcar o snippet na interface. (O desfazer não toca no array.)
+# O snippet com o nome de outro pack pinta por cima do tema do pack no ar — o
+# "dracula_background" fazia o Catppuccin parecer quebrado. Só mexemos no ARRAY:
+# o .css dela continua no disco, então reverter é só remarcar o snippet na
+# interface. (O desfazer não toca no array.)
 snippets = None if desfazer else dados.get("enabledCssSnippets")
 if isinstance(snippets, list):
     limpos = [s for s in snippets
-              if not (isinstance(s, str) and "dracula" in s.lower())]
+              if not (isinstance(s, str) and any(o in s.lower() for o in outros))]
     if limpos != snippets:
         removidos = [s for s in snippets if s not in limpos]
         motivos.append("snippets removidos: %s" % ", ".join(map(str, removidos)))
@@ -361,14 +596,13 @@ meow_app_detectar() {
     meow_app_sem "obsidian: vault '$MEOW_OBSIDIAN_VAULT' não encontrado"
     return
   fi
-  # ESTE É O ÚNICO MOTIVO DAQUI QUE NÃO É DA MÁQUINA DELA: é o repositório que
-  # chegou incompleto. Continua saindo 3 (do lado dela não há o que consertar),
-  # e o `meow_erro` saiu junto com os outros para o motivo não ser dito duas
-  # vezes — o texto passou a dizer de quem é a falta.
-  if [ ! -f "$MEOW_OBSIDIAN_VENDOR/theme.css" ] || [ ! -f "$MEOW_OBSIDIAN_VENDOR/manifest.json" ]; then
-    meow_app_sem "obsidian: falta o tema vendorado em $MEOW_OBSIDIAN_VENDOR (o repositório veio incompleto)"
-    return
-  fi
+  # O DESFAZER NÃO DEPENDE DO PACK (P55; ver o DESFAZER lá embaixo): ele pede só
+  # o que vem até aqui. O resto — o tema que o pack no ar declara, e de onde ele
+  # sai — é do `conferir` e do `aplicar`. O motivo do repositório incompleto,
+  # que morava aqui, foi para o `_meow_obsidian_do_pack`, junto com o nome do
+  # tema: é lá que se sabe qual pasta do vendor/ devia existir.
+  [ "${1:-}" = "sem-pack" ] && return "$MEOW_OK"
+  _meow_obsidian_do_pack || return
   return "$MEOW_OK"
 }
 
@@ -381,12 +615,20 @@ meow_app_conferir() {
   local tema_dir divergente=0
   tema_dir="$(_meow_obsidian_tema_dir)"
 
-  _meow_obsidian_igual "$MEOW_OBSIDIAN_VENDOR/theme.css" "$tema_dir/theme.css" \
-    || { meow_muda "obsidian: theme.css ausente ou diferente"; divergente=1; }
-  _meow_obsidian_igual "$MEOW_OBSIDIAN_VENDOR/manifest.json" "$tema_dir/manifest.json" \
-    || { meow_muda "obsidian: manifest.json ausente ou diferente"; divergente=1; }
+  if ! _meow_obsidian_fonte_pronta; then
+    # O tema de fora ainda não desceu (ou a cópia guardada não confere): não há
+    # com que comparar o cofre, e é divergência — quem baixa é o `aplicar`.
+    # Conferir não toca a rede.
+    meow_muda "obsidian: o tema '$MEOW_OBSIDIAN_TEMA' do pack $_OBS_PACK_NOME ainda não desceu"
+    divergente=1
+  else
+    _meow_obsidian_igual "$MEOW_OBSIDIAN_FONTE/theme.css" "$tema_dir/theme.css" \
+      || { meow_muda "obsidian: theme.css ausente ou diferente"; divergente=1; }
+    _meow_obsidian_igual "$MEOW_OBSIDIAN_FONTE/manifest.json" "$tema_dir/manifest.json" \
+      || { meow_muda "obsidian: manifest.json ausente ou diferente"; divergente=1; }
+  fi
 
-  _meow_obsidian_json conferir "$(_meow_obsidian_appearance)" "$MEOW_OBSIDIAN_TEMA"
+  _meow_obsidian_json conferir "$(_meow_obsidian_appearance)" "$MEOW_OBSIDIAN_TEMA" "$_OBS_OUTROS"
   case $? in
     0) ;;
     1) meow_muda "obsidian: appearance.json divergente"; divergente=1 ;;
@@ -394,7 +636,7 @@ meow_app_conferir() {
   esac
 
   if [ "$divergente" = "0" ]; then
-    meow_ok "obsidian: Catppuccin Mocha já aplicado"
+    meow_ok "obsidian: $_OBS_EXIBE já aplicado"
     return "$MEOW_OK"
   fi
   # Aviso útil: divergente + app aberto = o aplicar vai recusar.
@@ -413,6 +655,25 @@ meow_app_aplicar() {
   tema_dir="$(_meow_obsidian_tema_dir)"
   appearance="$(_meow_obsidian_appearance)"
 
+  # --- 3.0a — o tema de fora desce ANTES de levantar (P55): sem ele não há com
+  # que comparar o cofre. A descida só escreve na nossa pasta
+  # ($MEOW_OBSIDIAN_BAIXADOS), e por isso vem antes do guarda do app aberto, que
+  # protege o appearance.json dela. Refazer a cópia guardada não é "aplicar":
+  # se o cofre já estava certo, a saída continua sendo 0. O seco não desce — diz
+  # que desceria, e os dois arquivos contam como pendentes logo abaixo.
+  if ! _meow_obsidian_fonte_pronta; then
+    if meow_seco; then
+      meow_muda "obsidian: baixaria o tema '$MEOW_OBSIDIAN_TEMA' do pack $_OBS_PACK_NOME ($_OBS_URL)"
+    else
+      _meow_obsidian_baixar
+      case $? in
+        1) ;;
+        3) meow_app_pendente obsidian; return ;;
+        *) return "$MEOW_ERRO" ;;
+      esac
+    fi
+  fi
+
   # --- 3.0 — LEVANTAR o que falta, ANTES de qualquer guarda ou escrita.
   # Duas coisas dependem desta ordem (ver armadilha 3):
   #   · "nada a fazer" é 0, mesmo com o Obsidian aberto. Recusar antes de olhar
@@ -423,12 +684,12 @@ meow_app_aplicar() {
   local -a pendentes=()
   local arquivo
   for arquivo in theme.css manifest.json; do
-    _meow_obsidian_igual "$MEOW_OBSIDIAN_VENDOR/$arquivo" "$tema_dir/$arquivo" \
+    _meow_obsidian_igual "$MEOW_OBSIDIAN_FONTE/$arquivo" "$tema_dir/$arquivo" \
       || pendentes+=("$arquivo")
   done
 
   local json_pendente=0
-  _meow_obsidian_json conferir "$appearance" "$MEOW_OBSIDIAN_TEMA" 2>/dev/null
+  _meow_obsidian_json conferir "$appearance" "$MEOW_OBSIDIAN_TEMA" "$_OBS_OUTROS" 2>/dev/null
   rc=$?
   case $rc in
     0) ;;                   # já está como queremos: nem backup, nem escrita
@@ -437,7 +698,7 @@ meow_app_aplicar() {
   esac
 
   if [ "${#pendentes[@]}" -eq 0 ] && [ "$json_pendente" = "0" ]; then
-    meow_ok "obsidian: Catppuccin Mocha já estava aplicado"
+    meow_ok "obsidian: $_OBS_EXIBE já estava aplicado"
     return "$MEOW_OK"
   fi
 
@@ -466,7 +727,14 @@ meow_app_aplicar() {
       meow_erro "obsidian: não consegui fazer backup de $arquivo"
       return "$MEOW_ERRO"
     fi
-    meow_escrever "$tema_dir/$arquivo" "$(cat "$MEOW_OBSIDIAN_VENDOR/$arquivo")" 644
+    # A fonte só falta no seco, com o tema de fora ainda por descer (3.0a). Fora
+    # dele, faltar é erro: um `$(cat)` de arquivo sumido gravaria VAZIO no cofre.
+    if [ ! -f "$MEOW_OBSIDIAN_FONTE/$arquivo" ]; then
+      if meow_seco; then meow_muda "mudaria $tema_dir/$arquivo"; mudou=1; continue; fi
+      meow_erro "obsidian: $MEOW_OBSIDIAN_FONTE/$arquivo sumiu no meio da passada — nada escrito"
+      return "$MEOW_ERRO"
+    fi
+    meow_escrever "$tema_dir/$arquivo" "$(cat "$MEOW_OBSIDIAN_FONTE/$arquivo")" 644
     rc=$?
     case $rc in
       0) ;;
@@ -481,7 +749,7 @@ meow_app_aplicar() {
       meow_erro "obsidian: não consegui fazer backup do appearance.json"
       return "$MEOW_ERRO"
     }
-    _meow_obsidian_json aplicar "$appearance" "$MEOW_OBSIDIAN_TEMA"
+    _meow_obsidian_json aplicar "$appearance" "$MEOW_OBSIDIAN_TEMA" "$_OBS_OUTROS"
     case $? in
       0) ;;
       1) mudou=1 ;;
@@ -490,20 +758,73 @@ meow_app_aplicar() {
   fi
 
   if [ "$mudou" = "0" ]; then
-    meow_ok "obsidian: Catppuccin Mocha já estava aplicado"
+    meow_ok "obsidian: $_OBS_EXIBE já estava aplicado"
     return "$MEOW_OK"
   fi
   if meow_seco; then
-    meow_muda "obsidian: (seco) aplicaria o Catppuccin Mocha no vault"
+    meow_muda "obsidian: (seco) aplicaria o $_OBS_EXIBE no vault"
     return "$MEOW_DIVERGENTE"
   fi
 
   if [ -n "${MEOW_OBSIDIAN_BACKUP_DIR:-}" ] && [ -d "${MEOW_OBSIDIAN_BACKUP_DIR:-}/obsidian" ]; then
     meow_info "obsidian: backup do que existia em $MEOW_OBSIDIAN_BACKUP_DIR/obsidian"
   fi
-  meow_ok "obsidian: Catppuccin Mocha aplicado — reabra o app para ver"
+  meow_ok "obsidian: $_OBS_EXIBE aplicado — reabra o app para ver"
   meow_registrar "obsidian: cssTheme=$MEOW_OBSIDIAN_TEMA em $MEOW_OBSIDIAN_VAULT"
   return "$MEOW_DIVERGENTE"
+}
+
+# Os temas que o MeowSystem traz, um por linha: `pasta<TAB>nome`. O vendor/
+# primeiro, depois o que desceu (só a pasta com a nossa `.meow-origem`). O nome
+# sai do manifest de cada um — é a pasta em `themes/` e o `cssTheme`.
+_meow_obsidian_nossos() {
+  python3 - "$MEOW_OBSIDIAN_DIR/vendor" "$MEOW_OBSIDIAN_BAIXADOS" <<'PYFIM' 2>/dev/null
+import json, os, sys
+
+def pastas(base, marca):
+    try:
+        nomes = sorted(os.listdir(base))
+    except OSError:
+        return []
+    return [os.path.join(base, n) for n in nomes
+            if not n.startswith(".") and os.path.isdir(os.path.join(base, n))
+            and (not marca or os.path.isfile(os.path.join(base, n, marca)))]
+
+for pasta in pastas(sys.argv[1], "") + pastas(sys.argv[2], ".meow-origem"):
+    try:
+        with open(os.path.join(pasta, "manifest.json"), encoding="utf-8") as fh:
+            nome = json.load(fh).get("name")
+    except (OSError, ValueError, AttributeError):
+        continue
+    if isinstance(nome, str) and nome and not set("\t\n/") & set(nome) \
+       and os.path.isfile(os.path.join(pasta, "theme.css")):
+        print(pasta + "\t" + nome)
+PYFIM
+}
+
+# Os snippets que estão no disco, desmarcados, com o nome de um pack — os que o
+# `aplicar` desmarca, e que a frase do fim do desfazer nomeia. Um por linha.
+_meow_obsidian_snippets_desmarcados() {   # <ids dos packs> <cofre>...
+  python3 - "$@" <<'PYFIM' 2>/dev/null
+import json, os, sys
+
+packs = [p for p in sys.argv[1].split(",") if p]
+achados = []
+for cofre in sys.argv[2:]:
+    try:
+        with open(os.path.join(cofre, ".obsidian", "appearance.json"), encoding="utf-8") as fh:
+            ligados = json.load(fh).get("enabledCssSnippets") or []
+        arquivos = sorted(os.listdir(os.path.join(cofre, ".obsidian", "snippets")))
+    except (OSError, ValueError, AttributeError):
+        continue
+    for arq in arquivos:
+        nome = arq[:-len(".css")] if arq.endswith(".css") else ""
+        if nome and nome not in ligados and nome not in achados \
+           and any(p in nome.lower() for p in packs):
+            achados.append(nome)
+for nome in achados:
+    print(nome)
+PYFIM
 }
 
 # --- DESFAZER (11/08/2026) --------------------------------------------------
@@ -521,6 +842,18 @@ meow_app_aplicar() {
 # `.css` dele nunca saiu do disco (ver `_meow_obsidian_json`) — remarcar é um
 # clique na interface, e adivinhar por ela seria repor uma escolha que não é
 # nossa. A mensagem diz onde está.
+#   [P55, 24/09/2026: a mensagem nomeava o `dracula_background` com qualquer
+#   cofre e qualquer pack. Agora ela nomeia os snippets que estão no disco,
+#   desmarcados, com o nome de um pack — que são os que o `aplicar` desmarca.]
+#
+# O DESFAZER NÃO DEPENDE DO PACK NO AR — 24/09/2026, P55
+#   É a regra do kitty: quem trocou de pack continua com o tema de antes no
+#   cofre, e o que diz de quem ele é são os bytes. Nosso é o tema byte a byte
+#   igual a um dos que o MeowSystem traz — os de vendor/ e os que desceram para
+#   $MEOW_OBSIDIAN_BAIXADOS —, e o `cssTheme` volta ao padrão se for o nome de
+#   um deles. Por isso o `detectar` vem sem o pack (`sem-pack`), e um pack sem
+#   tema de Obsidian não trava o `--uninstall`. O pack no ar só dá o nome da
+#   frase. O que desceu sai por último, depois dos cofres: é a régua do nosso.
 #
 # TODOS OS COFRES, E EM CADA UM SÓ O QUE É NOSSO — 24/09/2026, revisão da P43
 #   Quando o cofre deixou de ser escrito por extenso (item 5 da P43), o desfazer
@@ -540,8 +873,10 @@ meow_app_aplicar() {
 #   com o número e o nome da pasta no rótulo, para saber de onde cada um veio.
 meow_app_reverter() {
   # A frase que estava aqui era um chute entre duas das cinco causas que o
-  # `detectar` mede. Agora é a medida que fala.
-  meow_app_detectar || { meow_app_pendente obsidian; return; }
+  # `detectar` mede. Agora é a medida que fala — e sem o pack (ver acima).
+  meow_app_detectar sem-pack || { meow_app_pendente obsidian; return; }
+  # O pack no ar só dá o nome da frase; sem resposta, a frase diz de quem é.
+  _meow_obsidian_packs || _OBS_PACK_NOME="tema do MeowSystem"
 
   local -a lidos=() cofres=()
   local -A vistos=()
@@ -556,38 +891,58 @@ meow_app_reverter() {
     cofres+=("$c")
   done
 
+  # Os nossos: a pasta de onde cada tema sai e o nome dele, e a lista dos nomes,
+  # um por linha, que é como o `_meow_obsidian_json` os recebe.
+  local -a fontes=() nomes=() baixados=()
+  local fonte nome nossos_nomes
+  while IFS=$'\t' read -r fonte nome; do
+    fontes+=("$fonte"); nomes+=("$nome")
+    [ -f "$fonte/.meow-origem" ] && baixados+=("$fonte")
+  done < <(_meow_obsidian_nossos)
+  nossos_nomes="$(printf '%s\n' ${nomes[@]+"${nomes[@]}"})"
+
   # Este `local` faz sombra no global só enquanto a função roda: é o que deixa
   # os utilitários lá de cima, que leem MEOW_OBSIDIAN_VAULT, servirem cofre a cofre.
-  local MEOW_OBSIDIAN_VAULT tema_dir appearance mudou=0 algum=0 arquivo i
-  local -a nossos_de=() json_de=()
+  local MEOW_OBSIDIAN_VAULT tema_dir appearance mudou=0 algum=0 arquivo i k p lista tem
+  # Um PAR é um tema nosso achado num cofre: o cofre, o tema e os arquivos que
+  # ainda são byte a byte os nossos. Um cofre pode ter mais de um (o de antes
+  # da troca de pack e o de agora).
+  local -a json_de=() tem_de=() par_cofre=() par_tema=() par_arquivos=() com_algo=()
 
   # Levantar ANTES de recusar por app aberto: com nada a fazer, "já estava
   # desfeito" é 0 mesmo com o Obsidian na tela.
   for i in "${!cofres[@]}"; do
     MEOW_OBSIDIAN_VAULT="${cofres[$i]}"
-    tema_dir="$(_meow_obsidian_tema_dir)"
     appearance="$(_meow_obsidian_appearance)"
-    nossos_de[i]=""
-    for arquivo in theme.css manifest.json; do
-      _meow_obsidian_igual "$MEOW_OBSIDIAN_VENDOR/$arquivo" "$tema_dir/$arquivo" \
-        && nossos_de[i]+=" $arquivo"
+    tem=0
+    for k in "${!fontes[@]}"; do
+      tema_dir="$MEOW_OBSIDIAN_VAULT/.obsidian/themes/${nomes[k]}"
+      lista=""
+      for arquivo in theme.css manifest.json; do
+        _meow_obsidian_igual "${fontes[k]}/$arquivo" "$tema_dir/$arquivo" && lista+=" $arquivo"
+      done
+      [ -n "$lista" ] || continue
+      par_cofre+=("$i"); par_tema+=("${nomes[k]}"); par_arquivos+=("$lista"); tem=1
     done
     json_de[i]=0
-    _meow_obsidian_json conferir-desfazer "$appearance" "$MEOW_OBSIDIAN_TEMA" >/dev/null 2>&1
+    _meow_obsidian_json conferir-desfazer "$appearance" "$nossos_nomes" >/dev/null 2>&1
     case $? in
       0) ;;
       1) json_de[i]=1 ;;
       *) meow_erro "obsidian: não consegui ler o appearance.json de '$MEOW_OBSIDIAN_VAULT'"; return "$MEOW_ERRO" ;;
     esac
-    [ -n "${nossos_de[i]}" ] || [ "${json_de[i]}" = "1" ] || continue
+    tem_de[i]="$tem"
+    [ "$tem" = "1" ] || [ "${json_de[i]}" = "1" ] || continue
     algum=1
+    com_algo+=("$MEOW_OBSIDIAN_VAULT")
     # A trava 1 aqui, e não no laço que escreve: cofre em território proibido
     # recusa a rodada inteira ANTES de qualquer escrita, como era com um cofre só.
     meow_destino_permitido "$appearance" || return "$MEOW_ERRO"
   done
+  [ "${#baixados[@]}" -gt 0 ] && algum=1
 
   if [ "$algum" = "0" ]; then
-    meow_ok "obsidian: já estava sem o Catppuccin"
+    meow_ok "obsidian: já estava sem o $_OBS_PACK_NOME"
     return "$MEOW_OK"
   fi
 
@@ -602,28 +957,34 @@ meow_app_reverter() {
   unset MEOW_OBSIDIAN_BACKUP_DIR
 
   for i in "${!cofres[@]}"; do
-    [ -n "${nossos_de[i]}" ] || [ "${json_de[i]}" = "1" ] || continue
+    [ "${tem_de[i]}" = "1" ] || [ "${json_de[i]}" = "1" ] || continue
     MEOW_OBSIDIAN_VAULT="${cofres[$i]}"
-    tema_dir="$(_meow_obsidian_tema_dir)"
     appearance="$(_meow_obsidian_appearance)"
 
     if meow_seco; then
-      [ -n "${nossos_de[i]}" ] && meow_muda "obsidian: removeria${nossos_de[i]} de $tema_dir"
+      for p in "${!par_cofre[@]}"; do
+        [ "${par_cofre[p]}" = "$i" ] || continue
+        meow_muda "obsidian: removeria${par_arquivos[p]} de $MEOW_OBSIDIAN_VAULT/.obsidian/themes/${par_tema[p]}"
+      done
       [ "${json_de[i]}" = "1" ] && meow_muda "obsidian: cssTheme de '$MEOW_OBSIDIAN_VAULT' voltaria ao padrão do app"
       continue
     fi
 
-    # 1. os dois arquivos do tema — só saem os que ainda são byte a byte os nossos.
-    #    Um `theme.css` que ela editou deixou de ser nosso e fica. (A lista é de
-    #    nomes fixos, sem espaço: pode ser partida pelo `for`.)
-    for arquivo in ${nossos_de[i]}; do
-      if rm -f "$tema_dir/$arquivo"; then mudou=1; else
-        meow_erro "obsidian: não consegui remover $tema_dir/$arquivo"; return "$MEOW_ERRO"
-      fi
+    # 1. os dois arquivos de cada tema nosso — só saem os que ainda são byte a
+    #    byte os nossos. Um `theme.css` que ela editou deixou de ser nosso e fica.
+    #    (A lista é de nomes fixos, sem espaço: pode ser partida pelo `for`.)
+    for p in "${!par_cofre[@]}"; do
+      [ "${par_cofre[p]}" = "$i" ] || continue
+      tema_dir="$MEOW_OBSIDIAN_VAULT/.obsidian/themes/${par_tema[p]}"
+      for arquivo in ${par_arquivos[p]}; do
+        if rm -f "$tema_dir/$arquivo"; then mudou=1; else
+          meow_erro "obsidian: não consegui remover $tema_dir/$arquivo"; return "$MEOW_ERRO"
+        fi
+      done
+      # `rmdir` sem `-p` e sem `-f`: some se ficou vazio, fica se ela pôs algo lá.
+      [ -d "$tema_dir" ] && rmdir "$tema_dir" 2>/dev/null
+      meow_muda "obsidian: tema ${par_tema[p]} removido de '$MEOW_OBSIDIAN_VAULT'"
     done
-    # `rmdir` sem `-p` e sem `-f`: some se ficou vazio, fica se ela pôs algo lá.
-    [ -d "$tema_dir" ] && rmdir "$tema_dir" 2>/dev/null
-    [ -n "${nossos_de[i]}" ] && meow_muda "obsidian: tema $MEOW_OBSIDIAN_TEMA removido de '$MEOW_OBSIDIAN_VAULT'"
 
     # 2. o appearance.json, pelo mesmo varredor que o aplicou. O python grava
     #    direto (não passa por `meow_escrever`), então nada disto entra no
@@ -633,21 +994,32 @@ meow_app_reverter() {
         meow_erro "obsidian: não consegui fazer backup do appearance.json de '$MEOW_OBSIDIAN_VAULT'"
         return "$MEOW_ERRO"
       }
-      _meow_obsidian_json desfazer "$appearance" "$MEOW_OBSIDIAN_TEMA"
+      _meow_obsidian_json desfazer "$appearance" "$nossos_nomes"
       case $? in
         0|1) mudou=1; meow_muda "obsidian: cssTheme de '$MEOW_OBSIDIAN_VAULT' de volta ao padrão do app" ;;
         *) meow_erro "obsidian: falhou ao devolver o appearance.json de '$MEOW_OBSIDIAN_VAULT'"; return "$MEOW_ERRO" ;;
       esac
     fi
   done
+
+  # 3. o que desceu, por último: é a régua do "nosso" dos cofres acima, e sem
+  #    ele um tema baixado que ficou num cofre deixaria de ser reconhecido.
+  for fonte in ${baixados[@]+"${baixados[@]}"}; do
+    if meow_seco; then meow_muda "obsidian: removeria o tema baixado em $fonte"; continue; fi
+    if rm -rf -- "$fonte"; then mudou=1; meow_muda "obsidian: o tema baixado saiu de $fonte"; else
+      meow_erro "obsidian: não consegui remover $fonte"; return "$MEOW_ERRO"
+    fi
+  done
   meow_seco && return "$MEOW_DIVERGENTE"
 
-  [ "$mudou" = "0" ] && { meow_ok "obsidian: já estava sem o Catppuccin"; return "$MEOW_OK"; }
+  [ "$mudou" = "0" ] && { meow_ok "obsidian: já estava sem o $_OBS_PACK_NOME"; return "$MEOW_OK"; }
   if [ -n "${MEOW_OBSIDIAN_BACKUP_DIR:-}" ] && [ -d "${MEOW_OBSIDIAN_BACKUP_DIR:-}/obsidian" ]; then
     meow_info "obsidian: backup do que existia em $MEOW_OBSIDIAN_BACKUP_DIR/obsidian"
   fi
-  meow_ok "obsidian: sem o Catppuccin — reabra o app para ver"
-  meow_info "o snippet 'dracula_background' continua no disco, desmarcado: Aparência > Snippets CSS"
+  meow_ok "obsidian: sem o $_OBS_PACK_NOME — reabra o app para ver"
+  while IFS= read -r nome; do
+    [ -n "$nome" ] && meow_info "o snippet '$nome' continua no disco, desmarcado: Aparência > Snippets CSS"
+  done < <(_meow_obsidian_snippets_desmarcados "$_OBS_PACKS" ${com_algo[@]+"${com_algo[@]}"})
   meow_info "tire 'obsidian' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
   return "$MEOW_DIVERGENTE"
 }
