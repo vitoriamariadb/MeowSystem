@@ -1280,6 +1280,9 @@ saida="$(mod10 obsidian reverter noite dracula)$(mod10 vscode reverter noite dra
 # --- d) PACK SEM TEMA: NADA, E O MOTIVO ------------------------------------
 #   O `sem-apps` herda do Catppuccin e não declara aplicativo nenhum. O que a
 #   herança traz é recusado, dito, e a casa fica como estava.
+#   [Revisão da P55, 25/09/2026: a frase do Heroic mostrava o molde cru, «o que a
+#   herança traz é o 'catppuccin-dracula-<accent>.css'». O `<accent>` é deste
+#   módulo expandir, e a frase diz o nome que o molde daria.]
 semear10
 antes="$(impressao10)"
 faltam=""
@@ -1287,6 +1290,7 @@ for m in obsidian vscode heroic; do
   saida="$(mod10 "$m" aplicar sem-apps dracula)"; rc=$?
   [ "$rc" = 3 ] && printf '%s' "$saida" | grep -q 'sem tema neste pack (Sem Apps)' \
     || faltam+=" $m aplicar (rc=$rc: $saida);"
+  case "$saida" in *'<accent>'*) faltam+=" $m mostra o molde cru ($saida);" ;; esac
   saida="$(mod10 "$m" conferir sem-apps dracula)"; rc=$?
   [ "$rc" = 3 ] && printf '%s' "$saida" | grep -q 'sem tema neste pack (Sem Apps)' \
     || faltam+=" $m conferir (rc=$rc: $saida);"
@@ -1341,6 +1345,128 @@ $(mod10 vscode reverter torto dracula)"; rc3=$?
   && [ ! -e "$COFRE10/.obsidian/theme.css" ] && [ "$(aparencia10)" = " | dracula_background,catppuccin_realce,fonte" ] \
   && ok "P55: o nome de pasta e o id de extensão que um pack manda passam pela régua — fora dela, pendência e nada escrito" \
   || falha "P55: um nome ou id torto do pack passou (obsidian=$rc1, vscode=$rc2, desfazer=$rc3)" "$saida"
+
+# --- g) O SNIPPET É DE OUTRO PACK SÓ QUANDO TRAZ O ID INTEIRO --------------
+#   Revisão da P55 (25/09/2026). A régua comparava por PEDAÇO de texto com o id
+#   de toda pasta que tivesse um pack.json — e o painel importa um CSV com o nome
+#   do arquivo como id: `Mar.csv` vira o pack `mar`. Medido com ele no disco e o
+#   Catppuccin no ar: dos quatro snippets ligados (`markdown-tables`,
+#   `margin-fix`, `summary-cards`, `fonte`) sobrava o `fonte`; e uma pasta `e`
+#   com `{}` no pack.json desmarcava o `meu_realce` e o `fonte`. O doctor de hora
+#   em hora desmarcava snippets dela que não têm nada com pack nenhum. Agora o id
+#   conta como PALAVRA do nome (o que separa as palavras é o que não é letra nem
+#   dígito — o hífen do id também), e só o de pack que passa no `validar`: a
+#   pasta `realce`, com `{}`, prova isso, porque `realce` é palavra do
+#   `meu_realce`. O desfazer nomeia os desmarcados pela mesma régua.
+mkdir -p "$PACKS10/mar" "$PACKS10/realce"
+cp "$PACKS10/sem-apps/logo.svg" "$PACKS10/sem-apps/paleta.json" "$PACKS10/mar/"
+printf '{"formato": 1, "id": "mar", "nome": "Mar", "heranca": "catppuccin",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}, "vitrine": {"capa": "logo.svg"}}\n' \
+  > "$PACKS10/mar/pack.json"
+printf '{}' > "$PACKS10/realce/pack.json"
+semear10
+python3 - "$COFRE10/.obsidian/appearance.json" <<'PY' || exit 2
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+d["enabledCssSnippets"] = ["dracula_background", "markdown-tables", "margin-fix", "summary-cards",
+                           "meu_realce", "Mar Fundo", "sem_apps_borda", "fonte"]
+json.dump(d, open(sys.argv[1], "w", encoding="utf-8"), indent=2)
+PY
+printf 'body{}' > "$COFRE10/.obsidian/snippets/Mar Fundo.css"
+printf 'body{}' > "$COFRE10/.obsidian/snippets/summary-extra.css"
+faltam=""
+env -i PATH="$PATH" HOME="$CASA10" XDG_DATA_HOME="$CASA10/.local/share" MEOW_PACKS="$PACKS10" \
+  python3 "$RAIZ/scripts/pack.py" validar mar >/dev/null 2>&1 || faltam+=" o pack mar de brinquedo não passa no validar;"
+saida="$(mod10 obsidian aplicar catppuccin mocha)"; rc=$?
+[ "$rc" = 1 ] && [ "$(aparencia10)" = "Catppuccin | markdown-tables,margin-fix,summary-cards,meu_realce,fonte" ] \
+  || faltam+=" aplicar (rc=$rc, $(aparencia10): $saida);"
+saida="$(mod10 obsidian conferir catppuccin mocha)"; rc=$?
+[ "$rc" = 0 ] || faltam+=" conferir depois do aplicar (rc=$rc: $saida);"
+saida="$(mod10 obsidian reverter catppuccin mocha)"; rc=$?
+[ "$rc" = 1 ] && printf '%s' "$saida" | grep -q "o snippet 'dracula_background' continua no disco" \
+  && printf '%s' "$saida" | grep -q "o snippet 'Mar Fundo' continua no disco" \
+  && ! printf '%s' "$saida" | grep -q 'summary-extra' \
+  || faltam+=" desfazer (rc=$rc: $saida);"
+[ -z "$faltam" ] \
+  && ok "P55: o snippet sai só quando traz o id de outro pack como palavra, e só de pack que passa no validar" \
+  || falha "P55: a régua do snippet:$faltam"
+
+# --- h) A EXTENSÃO QUE ESTÁ NO EDITOR TEM DE TRAZER O TEMA -----------------
+#   Revisão da P55 (25/09/2026). A 2.25 do Dracula renomeou o tema de «Dracula»
+#   para «Dracula Theme» (ver o PROCEDENCIA.md), e o módulo só baixava quando a
+#   extensão FALTA. Medido com uma 2.24.3 de brinquedo e o Dracula no ar: o
+#   `aplicar` gravava «Dracula Theme», avisava uma vez, e o `conferir` dizia «já
+#   no lugar» dali em diante, com o editor no tema de fábrica. Agora a versão que
+#   não traz o tema não conta como no lugar: com pino, o pacote pinado entra por
+#   cima — uma vez só, mesmo com a pasta velha ao lado, como o `code` de mentira
+#   a deixa —; sem pino, é pendência dita, e nada é escrito.
+semear10
+vsix10 "$T10/tema-noite-0.9.vsix" noite tema-noite 0.9.0 '{"themes": [{"label": "Noite"}]}'
+env HOME="$CASA10" MERCADO="$MERCADO10" "$BIN10/code" --install-extension "$T10/tema-noite-0.9.vsix"
+rm -f "$REDE10/.chamadas"
+faltam=""
+saida="$(mod10 vscode conferir noite dracula)"; rc=$?
+[ "$rc" = 1 ] && printf '%s' "$saida" | grep -q "tema-noite@0.9.0 não contribui o tema 'Noite Escura' (tem: Noite)" \
+  || faltam+=" conferir com a versão velha (rc=$rc: $saida);"
+saida="$(mod10 vscode aplicar noite dracula)"; rc=$?
+[ "$rc" = 1 ] && [ "$(chamadas10)" = 1 ] && [ -d "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
+  && grep -q '"workbench.colorTheme": "Noite Escura"' "$VSC10" && [ -z "$(ls -A "$T10/tmp")" ] \
+  || faltam+=" aplicar (rc=$rc, chamadas=$(chamadas10): $saida);"
+saida="$(mod10 vscode conferir noite dracula)$(mod10 vscode aplicar noite dracula)"; rc=$?
+[ "$rc" = 0 ] && [ "$(chamadas10)" = 1 ] && printf '%s' "$saida" | grep -q 'VS Code: Noite Escura já no lugar' \
+  && ! printf '%s' "$saida" | grep -q 'não contribui' \
+  || faltam+=" segunda passada, com a pasta velha ao lado (rc=$rc, chamadas=$(chamadas10): $saida);"
+semear10
+vsix10 "$T10/catppuccin-velho.vsix" Catppuccin catppuccin-vsc 0.1.0 '{"themes": [{"label": "Catppuccin"}]}'
+env HOME="$CASA10" MERCADO="$MERCADO10" "$BIN10/code" --install-extension "$T10/catppuccin-velho.vsix"
+antes="$(impressao10)"
+saida="$(mod10 vscode aplicar catppuccin mocha)"; rc=$?
+[ "$rc" = 3 ] && printf '%s' "$saida" | grep -q "catppuccin-vsc@0.1.0 não contribui o tema 'Catppuccin Mocha' (tem: Catppuccin)" \
+  && [ "$(impressao10)" = "$antes" ] \
+  || faltam+=" sem pino (rc=$rc: $saida);"
+[ -z "$faltam" ] \
+  && ok "P55: a extensão que está no editor e não traz o tema do pack não conta como no lugar — com pino, o pinado entra uma vez; sem, pendência" \
+  || falha "P55: a extensão sem o tema:$faltam"
+
+# --- i) A ORIGEM PELA REGRA DA P41, E O DESFAZER LEVA TUDO O QUE DESCEU -----
+#   Revisão da P55 (25/09/2026). A forma da origem do Obsidian era uma cópia, em
+#   shell, da regra do `origem_pinada` do scripts/pack.py, e a cópia não conferia
+#   a extensão do pacote: medido com uma URL .zip de sha256 certo, o módulo
+#   baixava e parava em «pacote corrompido» (2). Agora quem confere é a regra
+#   única, antes de tocar a rede. E o desfazer levava o tema baixado mas deixava
+#   a pasta dele, e a sobra de uma descida interrompida (`.meow-descendo.*`)
+#   ficava para sempre — nem ele nem o `--uninstall` olhavam pastas com ponto.
+mkdir -p "$PACKS10/zipado"
+cp "$PACKS10/sem-apps/logo.svg" "$PACKS10/sem-apps/paleta.json" "$PACKS10/zipado/"
+(cd "$T10/pacote" && python3 -c 'import sys, zipfile
+z = zipfile.ZipFile(sys.argv[1], "w")
+for n in ("theme.css", "manifest.json"):
+    z.write("noite-obsidian-1a2b/" + n)' "$REDE10/obsidian-zipado.zip") || exit 2
+printf '{"formato": 1, "id": "zipado", "nome": "Zipado", "heranca": "catppuccin",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}, "vitrine": {"capa": "logo.svg"},
+ "apps": {"obsidian": {"esquema": "Noite Pinada", "origem": {
+            "url": "https://exemplo.invalid/p55/obsidian-zipado.zip",
+            "sha256": "%s", "pasta": "noite-obsidian-1a2b"}}}}\n' \
+  "$(sha256sum < "$REDE10/obsidian-zipado.zip" | cut -d' ' -f1)" > "$PACKS10/zipado/pack.json"
+semear10
+antes="$(impressao10)"
+faltam=""
+saida="$(mod10 obsidian aplicar zipado dracula)"; rc=$?
+[ "$rc" = 3 ] && [ "$(chamadas10)" = 0 ] && printf '%s' "$saida" | grep -q 'não termina em .tar.gz' \
+  && [ "$(impressao10)" = "$antes" ] \
+  || faltam+=" a origem .zip (rc=$rc, chamadas=$(chamadas10): $saida);"
+mod10 obsidian aplicar noite dracula >/dev/null
+mkdir -p "$BAIXADOS10/.meow-descendo.XyZ123/x" && printf 'meio pacote' > "$BAIXADOS10/.meow-descendo.XyZ123/pacote"
+saida="$(mod10 obsidian reverter noite dracula)"; rc=$?
+[ "$rc" = 1 ] && [ ! -e "$BAIXADOS10" ] \
+  || faltam+=" o desfazer deixou $(ls -A "$BAIXADOS10" 2>/dev/null | tr '\n' ' ')(rc=$rc: $saida);"
+mkdir -p "$BAIXADOS10/.meow-descendo.AbC456"
+saida="$(mod10 obsidian reverter noite dracula)"; rc=$?
+[ "$rc" = 1 ] && [ ! -e "$BAIXADOS10" ] \
+  || faltam+=" a sobra sozinha ficou (rc=$rc: $saida);"
+[ -z "$faltam" ] \
+  && ok "P55: a origem do Obsidian passa pela regra da P41 antes da rede, e o desfazer leva a pasta do que desceu, com a sobra" \
+  || falha "P55: a origem e o que desceu:$faltam"
 
 # ---------------------------------------------------------------------------
 printf '\n'

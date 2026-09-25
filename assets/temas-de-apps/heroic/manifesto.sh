@@ -211,7 +211,10 @@ _heroic_do_pack() {
     return 1
   fi
   if [ "$MEOW_APP_TEMA_PACK" != "$pack" ]; then
-    _HEROIC_MOTIVO="Heroic: sem tema neste pack ($nome) — o que a herança traz é o '$MEOW_APP_TEMA', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não veste outro"
+    # O `<accent>` é deste módulo expandir (ver o topo), e a frase diz o nome que
+    # o molde daria: até a revisão da P55 (25/09/2026) ela mostrava o molde cru,
+    # «'catppuccin-dracula-<accent>.css'».
+    _HEROIC_MOTIVO="Heroic: sem tema neste pack ($nome) — o que a herança traz é o '${MEOW_APP_TEMA//<accent>/$_HEROIC_ACENTO}', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não veste outro"
     return 1
   fi
   case "$MEOW_APP_TEMA" in

@@ -52,6 +52,21 @@
 #   mesmo (o outro é o `dracula`); com o Dracula no ar o `dracula_background` é
 #   dele, e fica, e um `catppuccin_…` sairia.
 #
+#   O ID CONTA COMO PALAVRA, E SÓ O DE PACK QUE VALE — 25/09/2026, revisão da P55
+#   A primeira versão comparava por PEDAÇO de texto, com o id de toda pasta que
+#   tivesse um pack.json. O painel importa um CSV com o nome do arquivo como id
+#   (`Mar.csv` vira o pack `mar`), e medido com ele no disco e o Catppuccin no
+#   ar, dos snippets `markdown-tables`, `margin-fix`, `summary-cards` e `fonte`
+#   sobrava o `fonte`; uma pasta `e` com `{}` no pack.json desmarcava o
+#   `meu_realce` e o `fonte`. E o doctor roda de hora em hora. Agora o id tem de
+#   aparecer INTEIRO, como palavra do nome — o que separa as palavras é o que não
+#   é letra nem dígito, e o hífen do id também (`sem-apps` casa `sem_apps_borda`)
+#   —, sem distinguir maiúscula de minúscula, e só entre os packs que passam no
+#   `validar`. A régua é montada num lugar só, o `_meow_obsidian_packs`. O
+#   `dracula_background` continua saindo com o Catppuccin no ar; o preço, dito:
+#   um nome colado, como `draculabg`, deixou de contar, porque é a mesma forma do
+#   `mar` dentro de `markdown`.
+#
 # ------------------------------------------------------------------ ARMADILHAS
 # Tudo abaixo foi MEDIDO nesta máquina em 2026-08-04, não deduzido.
 #
@@ -236,19 +251,43 @@ _meow_obsidian_tema_dir()   { printf '%s/.obsidian/themes/%s' "$MEOW_OBSIDIAN_VA
 # O PACK NO AR E OS OUTROS, NUMA PERGUNTA SÓ AO `scripts/pack.py` — importado,
 # como o painel o importa, e não um verbo por dado: o id e o nome de tela do pack
 # no ar (pela regra única do `adocao`, a mesma do `meow_pack_dir`), o nome do
-# flavor padrão dele, que é o que a tela diz (ver o topo), e os ids dos packs do
-# disco, que são a régua do snippet. A resposta vem pelas variáveis, e não pelo
-# stdout, pelo motivo do `meow_app_tema_do_pack`: quem chama direto não a perde
-# num `$( )`.
+# flavor padrão dele, que é o que a tela diz (ver o topo), a régua do snippet e
+# a origem do tema. A resposta vem pelas variáveis, e não pelo stdout, pelo
+# motivo do `meow_app_tema_do_pack`: quem chama direto não a perde num `$( )`.
+#
+# A RÉGUA DO SNIPPET É MONTADA AQUI, E SÓ AQUI — 25/09/2026, revisão da P55
+#   Ver "O ID CONTA COMO PALAVRA", no topo. `_OBS_OUTROS` e `_OBS_PACKS` eram os
+#   ids, separados por vírgula, e cada leitor fazia a comparação dele; agora são
+#   a EXPRESSÃO pronta — a dos outros packs e a de todos —, e os dois leitores
+#   (o `_meow_obsidian_json` e o `_meow_obsidian_snippets_desmarcados`) só a
+#   aplicam. Duas cópias da regra são como ela diverge. Vazia quer dizer "pack
+#   nenhum": não tira snippet nenhum.
+#
+# A ORIGEM PASSA PELA REGRA DA P41 — 25/09/2026, revisão da P55
+#   A forma da origem era conferida em shell, no `_meow_obsidian_do_pack`, numa
+#   cópia das regras do `origem_pinada` (scripts/pack.py) — e a cópia já diferia
+#   num ponto: não conferia a extensão do pacote. Medido com uma URL .zip de
+#   sha256 certo: o módulo baixava e parava em «pacote corrompido» (2). A origem
+#   do Obsidian tem a forma daquela, `{url, sha256, pasta}`, e quem a confere
+#   agora é a própria regra, antes de tocar a rede. O bloco é pedido como o
+#   `meow_app_tema_do_pack` o pede — o `tema_de_app`, com o diretório que o
+#   `adocao` deu, que é o que o `meow_pack_dir` imprime —, e sai em
+#   `_OBS_URL`/`_OBS_SHA`/`_OBS_PASTA`, ou, recusado, com o porquê em
+#   `_OBS_ORIGEM_RECUSA`. De quem é o bloco quem diz é o `detectar`, pelo
+#   `esquema`: o `origem` sai do mesmo bloco.
+#   UMA LINHA POR CAMPO é o que a resposta daqui é, e o pack de terceiro escreve
+#   o que quiser: um campo da origem com quebra de linha é recusado, e os dois
+#   nomes de tela saem numa linha só — nenhum deles inventa um campo a mais.
 _OBS_PACK=""; _OBS_PACK_NOME=""; _OBS_EXIBE=""; _OBS_OUTROS=""; _OBS_PACKS=""
+_OBS_URL=""; _OBS_SHA=""; _OBS_PASTA=""; _OBS_ORIGEM_RECUSA=""
 _meow_obsidian_packs() {
   local saida
   saida="$(PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
-import json, os, sys
+import json, os, re, sys
 sys.path.insert(0, sys.argv[1])
 import pack
 
-ident, _dir, _recusado = pack.adocao(os.environ.get("PACK", ""), os.environ.get("FLAVOR", ""))
+ident, dir_pack, _recusado = pack.adocao(os.environ.get("PACK", ""), os.environ.get("FLAVOR", ""))
 nome = pack.campo(ident, "nome") or ident
 exibe = nome
 try:
@@ -258,17 +297,54 @@ try:
     exibe = nomes.get(pack.campo(ident, "paleta.flavor_padrao")) or nome
 except (OSError, ValueError, TypeError, AttributeError):
     pass
-ids = set()
+# Só o pack que passa no `validar` conta: uma pasta com um pack.json qualquer
+# não é pack, e o id dela não tem por que desmarcar snippet de ninguém.
+vistos, validos = set(), set()
 for base in pack.raizes():
     try:
-        ids.update(n for n in os.listdir(base) if os.path.isfile(os.path.join(base, n, "pack.json")))
+        nomes_da_raiz = os.listdir(base)
     except OSError:
-        pass
+        continue
+    for n in nomes_da_raiz:
+        if n in vistos or not pack.RE_ID.fullmatch(n) \
+           or not os.path.isfile(os.path.join(base, n, "pack.json")):
+            continue
+        vistos.add(n)
+        try:
+            pack.validar(n, silencioso=True)
+        except Exception:
+            continue
+        validos.add(n)
+
+def regua(ids):
+    # O id como PALAVRA: nem letra nem dígito colado antes ou depois, e o hífen
+    # dele casando qualquer separador. Os ids passaram no RE_ID, inteiros (o `$`
+    # do Python aceitaria um `\n` no fim do nome da pasta).
+    if not ids:
+        return ""
+    ids = sorted(r"[\W_]+".join(re.escape(p) for p in i.split("-") if p) for i in ids)
+    return r"(?i)(?<![^\W_])(?:%s)(?![^\W_])" % "|".join(ids)
+
+url = sha = pasta = recusa = ""
+_quem, origem = pack.tema_de_app("apps.obsidian.origem", ref=dir_pack or None)
+if origem is not None:
+    try:
+        o = pack.origem_pinada(origem, "apps.obsidian.origem")
+        url, sha, pasta = o["url"], o["sha256"], o["pasta"]
+    except pack.Recusa as e:
+        recusa = " ".join(str(e).split())
+    if any(c in v for v in (url, sha, pasta) for c in "\r\n"):
+        url = sha = pasta = ""
+        recusa = "apps.obsidian.origem: um dos campos tem quebra de linha"
 print("pack=" + ident)
-print("nome=" + nome)
-print("exibe=" + exibe)
-print("outros=" + ",".join(sorted(ids - {ident})))
-print("packs=" + ",".join(sorted(ids | {ident})))
+print("nome=" + " ".join(str(nome).splitlines()))
+print("exibe=" + " ".join(str(exibe).splitlines()))
+print("outros=" + regua(validos - {ident}))
+print("packs=" + regua(validos | {ident}))
+print("url=" + url)
+print("sha256=" + sha)
+print("pasta=" + pasta)
+print("recusa=" + recusa)
 PYFIM
 )" || return 1
   _OBS_PACK="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
@@ -276,19 +352,22 @@ PYFIM
   _OBS_EXIBE="$(printf '%s\n' "$saida" | sed -n 's/^exibe=//p')"
   _OBS_OUTROS="$(printf '%s\n' "$saida" | sed -n 's/^outros=//p')"
   _OBS_PACKS="$(printf '%s\n' "$saida" | sed -n 's/^packs=//p')"
+  _OBS_URL="$(printf '%s\n' "$saida" | sed -n 's/^url=//p')"
+  _OBS_SHA="$(printf '%s\n' "$saida" | sed -n 's/^sha256=//p')"
+  _OBS_PASTA="$(printf '%s\n' "$saida" | sed -n 's/^pasta=//p')"
+  _OBS_ORIGEM_RECUSA="$(printf '%s\n' "$saida" | sed -n 's/^recusa=//p')"
   [ -n "$_OBS_PACK" ]
 }
 
 # O TEMA QUE O PACK NO AR DECLARA, E DE ONDE ELE SAI. Preenche MEOW_OBSIDIAN_TEMA
-# e MEOW_OBSIDIAN_FONTE, e, quando o tema desce pela rede, _OBS_URL, _OBS_SHA e
-# _OBS_PASTA. Sai pelo `meow_app_sem` — é um pedaço do `detectar`.
-#   A FORMA DA ORIGEM É CONFERIDA AQUI, e não no `pack.py`: o `validar` cobra a
-#   forma da origem pinada só na base de ícones e no ponteiro (P41), e o bloco
-#   `apps` não é território desta sprint lá. As regras são as mesmas daquelas —
-#   https, 64 hex minúsculos, a pasta sem `..` e sem começar por `.` ou `-`.
-_OBS_URL=""; _OBS_SHA=""; _OBS_PASTA=""
+# e MEOW_OBSIDIAN_FONTE; quando o tema desce pela rede, o `_meow_obsidian_packs`
+# já deixou _OBS_URL, _OBS_SHA e _OBS_PASTA. Sai pelo `meow_app_sem` — é um
+# pedaço do `detectar`.
+#   A FORMA DA ORIGEM era conferida aqui, em shell; desde a revisão da P55
+#   (25/09/2026) quem confere é o `origem_pinada` do pack.py — ver "A ORIGEM
+#   PASSA PELA REGRA DA P41", logo acima.
 _meow_obsidian_do_pack() {
-  MEOW_OBSIDIAN_TEMA=""; MEOW_OBSIDIAN_FONTE=""; _OBS_URL=""; _OBS_SHA=""; _OBS_PASTA=""
+  MEOW_OBSIDIAN_TEMA=""; MEOW_OBSIDIAN_FONTE=""; _OBS_URL=""; _OBS_SHA=""; _OBS_PASTA=""; _OBS_ORIGEM_RECUSA=""
   _meow_obsidian_packs || { meow_app_sem "obsidian: o scripts/pack.py não disse qual é o pack no ar"; return; }
   # Direto, sem `$( )`: a resposta vem pelas duas variáveis (lib/comum.sh).
   meow_app_tema_do_pack obsidian.esquema
@@ -309,10 +388,11 @@ _meow_obsidian_do_pack() {
       return ;;
   esac
   MEOW_OBSIDIAN_TEMA="$MEOW_APP_TEMA"
-  meow_app_tema_do_pack obsidian.origem.url;    _OBS_URL="$MEOW_APP_TEMA"
-  meow_app_tema_do_pack obsidian.origem.sha256; _OBS_SHA="$MEOW_APP_TEMA"
-  meow_app_tema_do_pack obsidian.origem.pasta;  _OBS_PASTA="$MEOW_APP_TEMA"
-  if [ -z "$_OBS_URL$_OBS_SHA$_OBS_PASTA" ]; then
+  if [ -n "$_OBS_ORIGEM_RECUSA" ]; then
+    meow_app_sem "obsidian: a origem do tema '$MEOW_OBSIDIAN_TEMA' no pack $_OBS_PACK_NOME não serve — $_OBS_ORIGEM_RECUSA"
+    return
+  fi
+  if [ -z "$_OBS_URL" ]; then
     MEOW_OBSIDIAN_FONTE="$MEOW_OBSIDIAN_DIR/vendor/$MEOW_OBSIDIAN_TEMA"
     # O único motivo daqui que não é da máquina dela: ou o repositório chegou
     # incompleto, ou o pack pede um tema que o motor não traz e não diz de onde
@@ -322,18 +402,6 @@ _meow_obsidian_do_pack() {
       return
     fi
     return "$MEOW_OK"
-  fi
-  case "$_OBS_URL" in
-    https://*) ;;
-    *) meow_app_sem "obsidian: a origem do tema '$MEOW_OBSIDIAN_TEMA' no pack $_OBS_PACK_NOME não é uma URL https ('$_OBS_URL')"; return ;;
-  esac
-  if ! [[ "$_OBS_SHA" =~ ^[0-9a-f]{64}$ ]]; then
-    meow_app_sem "obsidian: a origem do tema '$MEOW_OBSIDIAN_TEMA' no pack $_OBS_PACK_NOME não traz um sha256 (64 hex) — sem ele a URL entrega o que quiser"
-    return
-  fi
-  if ! [[ "$_OBS_PASTA" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*(/[A-Za-z0-9_][A-Za-z0-9._-]*)*$ ]]; then
-    meow_app_sem "obsidian: a origem do tema '$MEOW_OBSIDIAN_TEMA' no pack $_OBS_PACK_NOME não diz, numa pasta sem '..', onde o tema está dentro do pacote"
-    return
   fi
   MEOW_OBSIDIAN_FONTE="$MEOW_OBSIDIAN_BAIXADOS/$_OBS_SHA"
   return "$MEOW_OK"
@@ -456,18 +524,21 @@ _meow_obsidian_backup() {
 #   não existe continua não existindo.
 #
 # OS DOIS ARGUMENTOS QUE A P55 MUDOU (24/09/2026)
-#   `outros` (o 4º) são os ids dos outros packs do disco, separados por vírgula:
-#   é a régua do snippet, e sai do pack no ar (ver o topo). E, nos modos do
-#   desfazer, `tema` é a LISTA dos nossos, um por linha — o desfazer não depende
-#   do pack, e reconhece como nosso qualquer tema que o MeowSystem traga.
+#   `outros` (o 4º) é a régua do snippet, e sai do pack no ar (ver o topo). E,
+#   nos modos do desfazer, `tema` é a LISTA dos nossos, um por linha — o desfazer
+#   não depende do pack, e reconhece como nosso qualquer tema que o MeowSystem
+#   traga.
+#   [25/09/2026, revisão da P55: `outros` eram os ids, e a comparação era aqui,
+#   por pedaço de texto; passou a ser a expressão que o `_meow_obsidian_packs`
+#   monta — ver "A RÉGUA DO SNIPPET É MONTADA AQUI".]
 _meow_obsidian_json() {
   local modo="$1" arquivo="$2" tema="$3" outros="${4:-}"
   MEOW_PY_SECO="$(meow_seco && echo 1 || echo 0)" \
   python3 - "$modo" "$arquivo" "$tema" "$outros" <<'PYFIM'
-import json, os, sys, tempfile
+import json, os, re, sys, tempfile
 
 modo, caminho, tema = sys.argv[1], sys.argv[2], sys.argv[3]
-outros = [o for o in sys.argv[4].split(",") if o]
+outros = sys.argv[4]
 seco = os.environ.get("MEOW_PY_SECO") == "1"
 desfazer = modo in ("conferir-desfazer", "desfazer")
 
@@ -503,9 +574,9 @@ elif dados.get("cssTheme") != tema:
 # o .css dela continua no disco, então reverter é só remarcar o snippet na
 # interface. (O desfazer não toca no array.)
 snippets = None if desfazer else dados.get("enabledCssSnippets")
-if isinstance(snippets, list):
+if isinstance(snippets, list) and outros:
     limpos = [s for s in snippets
-              if not (isinstance(s, str) and any(o in s.lower() for o in outros))]
+              if not (isinstance(s, str) and re.search(outros, s))]
     if limpos != snippets:
         removidos = [s for s in snippets if s not in limpos]
         motivos.append("snippets removidos: %s" % ", ".join(map(str, removidos)))
@@ -811,12 +882,13 @@ PYFIM
 }
 
 # Os snippets que estão no disco, desmarcados, com o nome de um pack — os que o
-# `aplicar` desmarca, e que a frase do fim do desfazer nomeia. Um por linha.
-_meow_obsidian_snippets_desmarcados() {   # <ids dos packs> <cofre>...
+# `aplicar` desmarca, e que a frase do fim do desfazer nomeia. Um por linha. A
+# régua é a de todos os packs, montada no `_meow_obsidian_packs` (25/09/2026).
+_meow_obsidian_snippets_desmarcados() {   # <régua dos packs> <cofre>...
   python3 - "$@" <<'PYFIM' 2>/dev/null
-import json, os, sys
+import json, os, re, sys
 
-packs = [p for p in sys.argv[1].split(",") if p]
+packs = sys.argv[1]
 achados = []
 for cofre in sys.argv[2:]:
     try:
@@ -828,7 +900,7 @@ for cofre in sys.argv[2:]:
     for arq in arquivos:
         nome = arq[:-len(".css")] if arq.endswith(".css") else ""
         if nome and nome not in ligados and nome not in achados \
-           and any(p in nome.lower() for p in packs):
+           and packs and re.search(packs, nome):
             achados.append(nome)
 for nome in achados:
     print(nome)
@@ -908,6 +980,16 @@ meow_app_reverter() {
     [ -f "$fonte/.meow-origem" ] && baixados+=("$fonte")
   done < <(_meow_obsidian_nossos)
   nossos_nomes="$(printf '%s\n' ${nomes[@]+"${nomes[@]}"})"
+  # A SOBRA DE UMA DESCIDA INTERROMPIDA — 25/09/2026, revisão da P55. O palco do
+  # `_meow_obsidian_baixar` (`.meow-descendo.*`) é nosso, e o
+  # `_meow_obsidian_nossos` não o vê: pula pasta com ponto, e o palco não tem
+  # manifest. Uma descida cortada no meio o deixava ali para sempre — nem este
+  # desfazer nem o `--uninstall` o levavam.
+  local -a sobras=()
+  local sobra
+  for sobra in "$MEOW_OBSIDIAN_BAIXADOS"/.meow-descendo.*; do
+    [ -d "$sobra" ] && sobras+=("$sobra")
+  done
 
   # Este `local` faz sombra no global só enquanto a função roda: é o que deixa
   # os utilitários lá de cima, que leem MEOW_OBSIDIAN_VAULT, servirem cofre a cofre.
@@ -948,6 +1030,7 @@ meow_app_reverter() {
     meow_destino_permitido "$appearance" || return "$MEOW_ERRO"
   done
   [ "${#baixados[@]}" -gt 0 ] && algum=1
+  [ "${#sobras[@]}" -gt 0 ] && algum=1
 
   if [ "$algum" = "0" ]; then
     meow_ok "obsidian: já estava sem o $_OBS_PACK_NOME"
@@ -1018,7 +1101,16 @@ meow_app_reverter() {
       meow_erro "obsidian: não consegui remover $fonte"; return "$MEOW_ERRO"
     fi
   done
+  for sobra in ${sobras[@]+"${sobras[@]}"}; do
+    if meow_seco; then meow_muda "obsidian: removeria a sobra de uma descida interrompida, $sobra"; continue; fi
+    if rm -rf -- "$sobra"; then mudou=1; meow_muda "obsidian: a sobra de uma descida interrompida saiu de $sobra"; else
+      meow_erro "obsidian: não consegui remover $sobra"; return "$MEOW_ERRO"
+    fi
+  done
   meow_seco && return "$MEOW_DIVERGENTE"
+  # A pasta do que desceu também é nossa, e vazia sai, como a do Telegram
+  # (25/09/2026). Com alguma coisa que não é nossa lá dentro, o `rmdir` a deixa.
+  rmdir -- "$MEOW_OBSIDIAN_BAIXADOS" 2>/dev/null || true
 
   [ "$mudou" = "0" ] && { meow_ok "obsidian: já estava sem o $_OBS_PACK_NOME"; return "$MEOW_OK"; }
   if [ -n "${MEOW_OBSIDIAN_BACKUP_DIR:-}" ] && [ -d "${MEOW_OBSIDIAN_BACKUP_DIR:-}/obsidian" ]; then

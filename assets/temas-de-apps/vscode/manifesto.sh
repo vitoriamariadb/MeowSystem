@@ -20,7 +20,9 @@
 #   como sempre desceu (ver a PROCEDÊNCIA, abaixo). O do Dracula o pack pina: a
 #   URL do `.vsix` e o sha256 dele, a forma da base de ícones da P41. O módulo
 #   baixa para um temporário, confere, instala pelo CLI (`--install-extension
-#   <arquivo>`) e apaga o arquivo; só baixa quando a extensão falta.
+#   <arquivo>`) e apaga o arquivo; só baixa quando a extensão falta — ou,
+#   desde a revisão de 25/09/2026, quando a versão que está no editor não traz
+#   o tema (ver o `_meow_vscode_sem_o_tema`).
 #
 #   PACK SEM TEMA DE ÍCONES (o Dracula) não mexe no `workbench.iconTheme` —
 #   menos quando o que está lá é o tema de ícones que OUTRO pack declara, que o
@@ -444,13 +446,21 @@ _meow_vscode_lista() {
 #     (ligada por padrão) faz um glob sem correspondência ABORTAR a função em
 #     vez de sobrar literal como no bash. Este arquivo é bash, mas um `find`
 #     custa 3 ms e tira o módulo do assunto.
+#
+#  3. A VERSÃO MAIS ALTA, QUANDO HÁ MAIS DE UMA — 25/09/2026, revisão da P55.
+#     Instalar um .vsix por cima de uma versão mais velha pode deixar as duas
+#     pastas no disco (o `code` de mentira do tests/temas-de-apps.sh deixa), e o
+#     `-print -quit` devolvia a primeira que o `find` achasse. Desde que a
+#     versão que não traz o tema do pack deixou de contar como no lugar (ver o
+#     `_meow_vscode_sem_o_tema`), ler a velha seria baixar o pacote pinado de
+#     novo a cada hora. A que vale é a mais alta — a que acabou de entrar.
 _meow_vscode_pkg() {
   local id_min achado
   id_min="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
   [ -d "$MEOW_VSCODE_EXTDIR" ] || return 1
   achado="$(find "$MEOW_VSCODE_EXTDIR" -mindepth 2 -maxdepth 2 -name package.json \
               -path "$MEOW_VSCODE_EXTDIR/$id_min-[0-9]*/package.json" \
-              -print -quit 2>/dev/null)"
+              -print 2>/dev/null | sort -V | tail -n 1)"
   [ -n "$achado" ] || return 1
   printf '%s\n' "$achado"
 }
@@ -465,10 +475,71 @@ _meow_vscode_tem_ext() {
   _meow_vscode_lista | grep -qixF -- "$id_min"
 }
 
+# O QUE A VERSÃO INSTALADA CONTRIBUI, CONTRA O QUE O PACK PEDE. Imprime uma frase
+# por nome que falta — o tema, o ícone — e sai 1; sai 0 quando nada falta, ou
+# quando o package.json não diz (ilegível, ou sem lista daquele tipo): o que não
+# se sabe não é acusado.
+#   ERA UM PEDAÇO DA AUDITORIA, QUE SÓ AVISAVA — 25/09/2026, revisão da P55. O
+#   `conferir` e o `aplicar` passaram a perguntar a mesma coisa (ver o
+#   `_meow_vscode_sem_o_tema`), e a regra saiu de lá para ser uma só. A frase é
+#   a de antes; quem põe o «aviso:» na frente é a auditoria.
+#   O NOME CASA O `id` OU O `label` do tema — o settings.json o nomeia por um
+#   deles, e aceitar os dois não acusa a falta de um tema que está lá. A lista
+#   do «tem:» é a de antes.
+_meow_vscode_contribui() {   # <package.json> <tema> <ícone>
+  python3 - "$@" <<'PYFIM' 2>/dev/null
+import json, sys
+pkg, tema, icone = sys.argv[1:4]
+try:
+    d = json.load(open(pkg, encoding="utf-8"))
+    nome = "%s@%s" % (d.get("name"), d.get("version"))
+    c = d.get("contributes") or {}
+    temas = [t for t in c.get("themes") or [] if isinstance(t, dict)]
+    icones = [t for t in c.get("iconThemes") or [] if isinstance(t, dict)]
+except Exception:
+    sys.exit(0)
+falta = 0
+if tema and temas and tema not in [t.get(k) for t in temas for k in ("id", "label")]:
+    print("%s não contribui o tema %r (tem: %s)"
+          % (nome, tema, ", ".join(str(t.get("label") or t.get("id")) for t in temas)))
+    falta = 1
+if icone and icones and icone not in [t.get("id") for t in icones]:
+    print("%s não contribui o ícone %r (tem: %s)"
+          % (nome, icone, ", ".join(str(t.get("id")) for t in icones)))
+    falta = 1
+sys.exit(falta)
+PYFIM
+}
+
+# 0 = a extensão do tema está no disco e a versão dela NÃO traz o tema que o pack
+# pede — a frase fica em `_VSC_SEM_O_TEMA`; 1 = traz, não está no disco, ou o
+# package.json não diz.
+#
+# A VERSÃO QUE NÃO TRAZ O TEMA NÃO ESTÁ NO LUGAR — 25/09/2026, revisão da P55
+#   A 2.25 do Dracula renomeou o tema de «Dracula» para «Dracula Theme» (ver o
+#   packs/dracula/PROCEDENCIA.md), e o módulo só instalava a extensão que FALTA.
+#   Medido com uma 2.24.3 de brinquedo e o Dracula no ar: o `aplicar` gravava
+#   «Dracula Theme», avisava uma vez, e dali em diante o `conferir` e o `aplicar`
+#   diziam «já no lugar», com o editor no tema de fábrica. E o settings.json
+#   dela desliga a atualização automática de extensões (lido em 25/09/2026:
+#   `"extensions.autoUpdate": false`), então uma 2.24 que já estivesse lá
+#   ficaria. Agora é divergência: com pino, o `aplicar` põe o pacote pinado por
+#   cima; sem pino, é pendência dita, e nada é escrito — atualizar sem pino
+#   seria trazer a versão que a Marketplace quisesse, que é o que aquela chave
+#   desliga.
+_VSC_SEM_O_TEMA=""
+_meow_vscode_sem_o_tema() {
+  local pkg
+  _VSC_SEM_O_TEMA=""
+  pkg="$(_meow_vscode_pkg "$MEOW_VSCODE_EXT_TEMA")" || return 1
+  _VSC_SEM_O_TEMA="$(_meow_vscode_contribui "$pkg" "$MEOW_VSCODE_TEMA" "")" && return 1
+  [ -n "$_VSC_SEM_O_TEMA" ]
+}
+
 # Confere se a versão instalada realmente contribui o tema/ícone que pedimos, e
 # se o engine dela sobrevive à faxina da Aurora. Só avisa — nunca falha o passo.
 _meow_vscode_auditar_ext() {
-  local pkg menor
+  local pkg menor linha
   # `code --version` cria o perfil igual ao `--list-extensions`. Sem perfil não
   # há extensão para auditar, então a auditoria não tem o que fazer aqui — e
   # perguntar seria escrever num modo que prometeu não escrever.
@@ -477,9 +548,9 @@ _meow_vscode_auditar_ext() {
   for pkg in "$(_meow_vscode_pkg "$MEOW_VSCODE_EXT_TEMA" 2>/dev/null || true)" \
              "$(_meow_vscode_pkg "$MEOW_VSCODE_EXT_ICONES" 2>/dev/null || true)"; do
     if [ -z "$pkg" ] || [ ! -f "$pkg" ]; then continue; fi
-    python3 - "$pkg" "${menor:-0}" "$MEOW_VSCODE_TEMA" "$MEOW_VSCODE_ICONES" <<'PYFIM'
+    python3 - "$pkg" "${menor:-0}" <<'PYFIM'
 import json, sys
-pkg, minor, tema, icone = sys.argv[1], int(sys.argv[2] or 0), sys.argv[3], sys.argv[4]
+pkg, minor = sys.argv[1], int(sys.argv[2] or 0)
 try:
     d = json.load(open(pkg, encoding="utf-8"))
 except Exception as e:
@@ -495,13 +566,12 @@ try:
               "próxima passagem (até 1h) e o tema cai para o padrão" % (nome, eng, minor))
 except (IndexError, ValueError):
     pass
-temas = [t.get("label") or t.get("id") for t in (d.get("contributes") or {}).get("themes", [])]
-icones = [t.get("id") for t in (d.get("contributes") or {}).get("iconThemes", [])]
-if temas and tema not in temas:
-    print("aviso: %s não contribui o tema %r (tem: %s)" % (nome, tema, ", ".join(map(str, temas))))
-if icones and icone not in icones:
-    print("aviso: %s não contribui o ícone %r (tem: %s)" % (nome, icone, ", ".join(map(str, icones))))
 PYFIM
+    # O tema e o ícone que faltam na versão instalada: a regra mora no
+    # `_meow_vscode_contribui` (25/09/2026).
+    while IFS= read -r linha; do
+      if [ -n "$linha" ]; then printf 'aviso: %s\n' "$linha"; fi
+    done < <(_meow_vscode_contribui "$pkg" "$MEOW_VSCODE_TEMA" "$MEOW_VSCODE_ICONES")
   done
 }
 
@@ -551,11 +621,52 @@ _meow_vscode_backup() {
 # =============================================================================
 # O id e o nome de tela do pack no ar, pela regra única do `adocao` — a mesma do
 # `meow_pack_dir`. O nome é o que as frases do desfazer dizem.
+#
+# E, NA MESMA PERGUNTA, O RESTO DO BLOCO — 25/09/2026, revisão da P55
+#   Cada `meow_app_tema_do_pack` abre dois python (o `adocao` do `meow_pack_dir`
+#   e o verbo `app`), e este módulo fazia seis perguntas por passada, mais esta.
+#   Medido numa casa de brinquedo com o Catppuccin no ar, sem nada a fazer, e a
+#   mesma carga nas três árvores: o `conferir` ia de 27 ms antes da P55 a 680
+#   ms, e com as cinco trilhas aqui vai a 179 ms. O `esquema` continua sendo
+#   perguntado direto — é ele que diz de que pack é o bloco, e a herança é
+#   recusada por ele —, e as outras cinco trilhas saem daqui, com o pack.py
+#   importado: o mesmo `tema_de_app`, com o diretório que o `adocao` deu, que é
+#   o que o `meow_pack_dir` imprime e o verbo `app` recebe. Vazio é ausência,
+#   como lá. A resposta é uma linha por campo, e por isso um valor com quebra
+#   de linha — que o pack de terceiro pode escrever — conta como ausente, e o
+#   nome de tela sai numa linha só: nenhum dos dois inventa um campo a mais.
+_VSC_EXT=""; _VSC_URL=""; _VSC_SHA=""; _VSC_ICONES=""; _VSC_ICONES_PACK=""; _VSC_EXT_ICONES=""
 _meow_vscode_pack_no_ar() {
   local saida
-  saida="$(python3 "$MEOW_RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null)" || return 1
+  saida="$(PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
+import os, sys
+sys.path.insert(0, sys.argv[1])
+import pack
+
+ident, dir_pack, _recusado = pack.adocao(os.environ.get("PACK", ""), os.environ.get("FLAVOR", ""))
+print("pack=" + ident)
+print("nome=" + " ".join(str(pack.campo(ident, "nome") or ident).splitlines()))
+icones_pack = ""
+for chave, trilha in (("ext", "vscode.origem.extensao"), ("url", "vscode.origem.url"),
+                      ("sha", "vscode.origem.sha256"), ("icones", "vscode-icones.esquema"),
+                      ("ext_icones", "vscode-icones.origem.extensao")):
+    quem, valor = pack.tema_de_app("apps." + trilha, ref=dir_pack or None)
+    if quem is None or valor is None or any(c in str(valor) for c in "\r\n"):
+        quem = valor = ""
+    print("%s=%s" % (chave, valor))
+    if chave == "icones":
+        icones_pack = quem
+print("icones_pack=" + icones_pack)
+PYFIM
+)" || return 1
   _MEOW_VSCODE_PACK="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
   _MEOW_VSCODE_PACK_NOME="$(printf '%s\n' "$saida" | sed -n 's/^nome=//p')"
+  _VSC_EXT="$(printf '%s\n' "$saida" | sed -n 's/^ext=//p')"
+  _VSC_URL="$(printf '%s\n' "$saida" | sed -n 's/^url=//p')"
+  _VSC_SHA="$(printf '%s\n' "$saida" | sed -n 's/^sha=//p')"
+  _VSC_ICONES="$(printf '%s\n' "$saida" | sed -n 's/^icones=//p')"
+  _VSC_ICONES_PACK="$(printf '%s\n' "$saida" | sed -n 's/^icones_pack=//p')"
+  _VSC_EXT_ICONES="$(printf '%s\n' "$saida" | sed -n 's/^ext_icones=//p')"
   [ -n "$_MEOW_VSCODE_PACK" ]
 }
 
@@ -563,8 +674,12 @@ _meow_vscode_pack_no_ar() {
 # tema desce pinada, o `_MEOW_VSCODE_VSIX` e o `_MEOW_VSCODE_VSIX_SHA`. Sai pelo
 # `meow_app_sem`: é um pedaço do `detectar`. Só vale o bloco do PACK NO AR — o
 # tema herdado de outro pack é recusado, e os ícones herdados são ignorados.
-#   A forma do pino é conferida aqui, e não no `pack.py`, pelo motivo que o
-#   módulo do Obsidian conta: https e 64 hex minúsculos, as regras da P41.
+#   A forma do pino é conferida aqui, e não no `pack.py`: https e 64 hex
+#   minúsculos, as regras da P41. [25/09/2026, revisão da P55: o Obsidian
+#   passou a chamar o `origem_pinada` do pack.py, que é a regra daquela forma —
+#   um .tar com a `pasta` de dentro. Este pino é outra forma, um .vsix que o CLI
+#   instala inteiro, e o `origem_pinada` o recusaria; as duas regras daqui
+#   continuam sendo desta forma.]
 _meow_vscode_do_pack() {
   MEOW_VSCODE_TEMA=""; MEOW_VSCODE_ICONES=""; MEOW_VSCODE_EXT_TEMA=""; MEOW_VSCODE_EXT_ICONES=""
   _MEOW_VSCODE_VSIX=""; _MEOW_VSCODE_VSIX_SHA=""
@@ -580,7 +695,8 @@ _meow_vscode_do_pack() {
     return
   fi
   MEOW_VSCODE_TEMA="$MEOW_APP_TEMA"
-  meow_app_tema_do_pack vscode.origem.extensao; MEOW_VSCODE_EXT_TEMA="$MEOW_APP_TEMA"
+  # O resto do bloco já veio na pergunta do `_meow_vscode_pack_no_ar` (25/09/2026).
+  MEOW_VSCODE_EXT_TEMA="$_VSC_EXT"
   if [ -z "$MEOW_VSCODE_EXT_TEMA" ]; then
     meow_app_sem "VS Code: o pack $_MEOW_VSCODE_PACK_NOME pede o tema '$MEOW_VSCODE_TEMA' e não diz de que extensão ele vem (apps.vscode.origem.extensao)"
     return
@@ -593,8 +709,7 @@ _meow_vscode_do_pack() {
     MEOW_VSCODE_EXT_TEMA=""
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-  meow_app_tema_do_pack vscode.origem.url;    _MEOW_VSCODE_VSIX="$MEOW_APP_TEMA"
-  meow_app_tema_do_pack vscode.origem.sha256; _MEOW_VSCODE_VSIX_SHA="$MEOW_APP_TEMA"
+  _MEOW_VSCODE_VSIX="$_VSC_URL"; _MEOW_VSCODE_VSIX_SHA="$_VSC_SHA"
   if [ -n "$_MEOW_VSCODE_VSIX$_MEOW_VSCODE_VSIX_SHA" ]; then
     case "$_MEOW_VSCODE_VSIX" in
       https://*) ;;
@@ -605,10 +720,9 @@ _meow_vscode_do_pack() {
       return
     fi
   fi
-  meow_app_tema_do_pack vscode-icones.esquema
-  if [ -n "$MEOW_APP_TEMA" ] && [ "$MEOW_APP_TEMA_PACK" = "$_MEOW_VSCODE_PACK" ]; then
-    MEOW_VSCODE_ICONES="$MEOW_APP_TEMA"
-    meow_app_tema_do_pack vscode-icones.origem.extensao; MEOW_VSCODE_EXT_ICONES="$MEOW_APP_TEMA"
+  if [ -n "$_VSC_ICONES" ] && [ "$_VSC_ICONES_PACK" = "$_MEOW_VSCODE_PACK" ]; then
+    MEOW_VSCODE_ICONES="$_VSC_ICONES"
+    MEOW_VSCODE_EXT_ICONES="$_VSC_EXT_ICONES"
     if [ -z "$MEOW_VSCODE_EXT_ICONES" ]; then
       meow_app_sem "VS Code: o pack $_MEOW_VSCODE_PACK_NOME pede os ícones '$MEOW_VSCODE_ICONES' e não diz de que extensão eles vêm (apps.vscode-icones.origem.extensao)"
       return
@@ -770,6 +884,12 @@ meow_app_conferir() {
       divergente=1
     fi
   done
+  # A extensão do tema no disco, numa versão que não traz o tema, não está no
+  # lugar (25/09/2026; ver o `_meow_vscode_sem_o_tema`).
+  if _meow_vscode_sem_o_tema; then
+    meow_info "extensão sem o tema: $_VSC_SEM_O_TEMA"
+    divergente=1
+  fi
 
   _meow_vscode_pares
   saida="$(_meow_vscode_json conferir "$MEOW_VSCODE_SETTINGS" "${_VSC_PARES[@]}" 2>&1)"; rc=$?
@@ -812,6 +932,16 @@ meow_app_aplicar() {
   for ext in "$MEOW_VSCODE_EXT_TEMA" ${MEOW_VSCODE_EXT_ICONES:+"$MEOW_VSCODE_EXT_ICONES"}; do
     if ! _meow_vscode_tem_ext "$ext"; then faltando+=("$ext"); fi
   done
+  # A extensão do tema no disco numa versão sem o tema do pack (25/09/2026; ver o
+  # `_meow_vscode_sem_o_tema`): com pino, o pacote pinado entra por cima dela,
+  # pelo caminho da que falta; sem, é pendência, e nada é escrito.
+  if _meow_vscode_sem_o_tema; then
+    if [ -z "$_MEOW_VSCODE_VSIX" ]; then
+      meow_app_sem "VS Code: $_VSC_SEM_O_TEMA — atualize a extensão pelo editor; o pack $_MEOW_VSCODE_PACK_NOME não pina um pacote dela"
+      meow_app_pendente vscode; return
+    fi
+    faltando+=("$MEOW_VSCODE_EXT_TEMA")
+  fi
 
   _meow_vscode_pares
   _meow_vscode_json conferir "$MEOW_VSCODE_SETTINGS" "${_VSC_PARES[@]}" >/dev/null 2>&1; rc_set=$?
@@ -865,6 +995,13 @@ meow_app_aplicar() {
     _MEOW_VSCODE_LISTA=""   # o cache do CLI acabou de ficar velho
     if ! _meow_vscode_tem_ext "$ext"; then
       meow_erro "o CLI disse que instalou $ext, mas não achei a pasta em $MEOW_VSCODE_EXTDIR"
+      return "$MEOW_ERRO"
+    fi
+    # O pacote pinado entrou e a versão no disco ainda não traz o tema: ou o
+    # pino não é do tema que o pack declara, ou o CLI deixou uma mais nova no
+    # lugar. Seguir seria baixar de novo a cada hora (25/09/2026).
+    if [ "$ext" = "$MEOW_VSCODE_EXT_TEMA" ] && [ -n "$_MEOW_VSCODE_VSIX" ] && _meow_vscode_sem_o_tema; then
+      meow_erro "VS Code: o pacote que o pack $_MEOW_VSCODE_PACK_NOME pina para $ext entrou, e $_VSC_SEM_O_TEMA — o settings.json não foi mudado"
       return "$MEOW_ERRO"
     fi
     meow_muda "extensão $ext instalada"
