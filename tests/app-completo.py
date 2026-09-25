@@ -2561,7 +2561,7 @@ class Percurso:
 
         A ORDEM IMPORTA, e é a de quem usa: primeiro o que só mexe no desenho
         (escolher, colorir, a oficina, a busca), depois o que grava. «Usar este
-        ícone» e «Voltar ao ícone de fábrica» fecham o painel quando terminam,
+        ícone» e «Desfazer a escolha no traço» fecham o painel quando terminam,
         e por isso vêm por último, cada um com o painel reaberto."""
         antes = set(self.censo())
         # O PAINEL É DO MESMO APLICATIVO, pelo nome: gravar um ícone reordena a
@@ -2592,7 +2592,7 @@ class Percurso:
         # e o painel deixa de oferecer o «Usar este ícone» — medido na terceira
         # corrida.
         gravam = ("ícone do aplicativo · Adicionar ícone",
-                  "ícone do aplicativo · Voltar ao ícone de fábrica",
+                  "ícone do aplicativo · Desfazer a escolha no traço",
                   "ícone do aplicativo · Usar este ícone",
                   "ícone do aplicativo › oficina · Usar")
         for n in novos:
@@ -2608,15 +2608,15 @@ class Percurso:
             self.abrir_painel(nome)
             if self.achar(n) is not None:
                 self.acionar(n, limpar=False)
-        # O «Voltar» só existe quando o aplicativo tem desenho gravado — o que o
+        # O «Desfazer» só existe quando o aplicativo tem desenho gravado — o que o
         # «Usar este ícone» acabou de fazer. Reaberto, ele tem de aparecer, e é
         # ele que devolve a raiz de brinquedo ao que era. (Aplicativo com trava
         # não oferece o «Usar»: aí não há o que conferir.)
         if gravam[2] in novos:
             self.abrir_painel(nome)
             if self.checa(self.achar(gravam[1]) is not None,
-                          "depois do «Usar este ícone», o painel oferece «Voltar ao "
-                          "ícone de fábrica»"):
+                          "depois do «Usar este ícone», o painel oferece «Desfazer "
+                          "a escolha no traço»"):
                 self.acionar(gravam[1], limpar=False)
         self.abrir_painel(nome)
         self.garantir_aberto("oficina")
@@ -2789,7 +2789,7 @@ class Percurso:
         self.achar(nome).click()
         post = self.esperar_post(n0, teto=10)
         self.checa(post and post[1].get("remover") is True,
-                   "«Voltar ao ícone de fábrica» pede para tirar o desenho")
+                   "«Desfazer a escolha no traço» pede para tirar o desenho")
         self.assentar(quieto=300, teto=20000)
         self.esperar_trabalho()
         self.checa(diferenca(antes, retrato()), "e o mapa volta ao que era")
@@ -2938,7 +2938,7 @@ class Percurso:
             (r" › papel do desenho · seletor$", self.h_seletor_solto),
             (r"^ícone do aplicativo · filtro «", self.h_filtro_glifos),
             (r"^ícone do aplicativo · Usar este ícone$", self.h_usar_icone),
-            (r"^ícone do aplicativo · Voltar ao ícone de fábrica$", self.h_voltar_icone),
+            (r"^ícone do aplicativo · Desfazer a escolha no traço$", self.h_voltar_icone),
             (r"oficina · deslizante «", self.h_oficina_regua),
             (r"edição do SVG · texto «", self.h_texto_svg),
             (r"edição do SVG · Abrir no editor$", self.h_editor_svg),
@@ -3724,7 +3724,7 @@ INVENTARIO = {
 PAINEL_DO_APLICATIVO = _linhas("""
     ícone do aplicativo · Adicionar ícone
     ícone do aplicativo · Usar este ícone
-    ícone do aplicativo · Voltar ao ícone de fábrica
+    ícone do aplicativo · Desfazer a escolha no traço
     ícone do aplicativo · filtro «Buscar desenho»
     ícone do aplicativo › cor · escolher
     ícone do aplicativo › desenho do acervo · escolher

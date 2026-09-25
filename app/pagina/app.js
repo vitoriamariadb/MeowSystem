@@ -2817,14 +2817,24 @@ async function carregarApps() {
   render();
 }
 
-async function carregarGlifos(termo) {
-  if (GLIFOS.termo === termo && !GLIFOS.carregando) return;
-  GLIFOS = { termo, itens: [], carregando: true };
-  const r = await api(`/api/glifos?busca=${encodeURIComponent(termo || "")}`);
+async function carregarGlifos(termo, app) {
+  if (GLIFOS.termo === termo && GLIFOS.app === app && !GLIFOS.carregando) return;
+  GLIFOS = { termo, app, itens: [], carregando: true };
+  const r = await api(`/api/glifos?busca=${encodeURIComponent(termo || "")}`
+                      + `&app=${encodeURIComponent(app || "")}`);
+  /* A BUSCA DE AGORA VENCE — 25/09/2026, P64. Cada letra digitada dispara um
+   * pedido, e a resposta de um pedido mais velho pode chegar depois da do
+   * mais novo: ela pintava a lista da busca anterior debaixo do campo que já
+   * dizia outra coisa. A resposta que não é a do termo (e do aplicativo) que
+   * está pedido agora sai sem tocar em nada. */
+  if (GLIFOS.termo !== termo || GLIFOS.app !== app) return;
   /* O `aviso` é a frase de quando o pack no ar tem desenhos e a camada que os
-   * põe no tema está desligada (P60, `_desenhos_do_pack_no_ar`). */
-  GLIFOS = { termo, itens: r.glifos || [], carregando: false, limitado: r.limitado,
-             aviso: r.aviso || "" };
+   * põe no tema está desligada (P60, `_desenhos_do_pack_no_ar`). O `pack` é o
+   * pack que a ficha pode oferecer, e a `escolha` é a do painel no mapa dele
+   * para ESTE aplicativo (P64, `_api_glifos`): por isso a busca é por
+   * aplicativo, e não só por termo. */
+  GLIFOS = { termo, app, itens: r.glifos || [], carregando: false, limitado: r.limitado,
+             aviso: r.aviso || "", pack: r.pack || null, escolha: r.escolha || null };
   render();
 }
 
@@ -2919,8 +2929,16 @@ function gradeDeApps(apps, filtro, recarregar) {
         /* A busca começa pelo nome do aplicativo — é o palpite certo na maioria
          * das vezes ("Telegram" acha `telegram`). Quando não acha nada, o
          * `montarEscolhaDeIcone` cai para o acervo do repositório, para a
-         * fileira nunca abrir vazia. */
-        if (APP_ABERTO) carregarGlifos(a.nome.split(/\s+/)[0].toLowerCase());
+         * fileira nunca abrir vazia.
+         * ABRIR PERGUNTA DE NOVO — 25/09/2026, P64. A busca guardada respondia
+         * ao mesmo termo e ao mesmo aplicativo sem ir ao servidor, e a
+         * `escolha` no pack que vem nela muda com os botões da própria ficha,
+         * que a fecham ao terminar: reaberta, ela esconderia o «Desfazer a
+         * escolha no pack» da escolha que acabou de ser feita. */
+        if (APP_ABERTO) {
+          GLIFOS = { termo: null, itens: [], carregando: false };
+          carregarGlifos(a.nome.split(/\s+/)[0].toLowerCase(), a.id);
+        }
         render();
       },
     }, [
@@ -2992,11 +3010,26 @@ function montarEscolhaDeIcone(app, recarregar) {
     type: "search", value: GLIFOS.termo || "", "data-foco": "glifos",
     placeholder: "Buscar desenho pelo nome…",
     "aria-label": "Buscar desenho",
-    oninput: (e) => carregarGlifos(e.target.value.trim().toLowerCase()),
+    oninput: (e) => carregarGlifos(e.target.value.trim().toLowerCase(), app.id),
   });
-  if (!app.trava) painel.append(busca);
+  /* A TRAVA DO TRAÇO NÃO LEVA O PACK JUNTO — 25/09/2026, P64
+   *   A `trava` diz por que um glifo do TRAÇO não valeria neste aplicativo
+   *   (intocável, curadoria, desenho convertido), e escondia a busca inteira —
+   *   com o grupo do pack dentro. O que impede o pack é outra trava, a
+   *   `trava_pack` (P60). Com a do traço e sem a do pack, a busca fica e a tira
+   *   mostra só o pack. O `pack` vem da busca (`_api_glifos`): sem pack que a
+   *   ficha possa oferecer, a ficha travada continua como era.
+   *   [Revisão da P64: só o convertido é assunto do `48x48/apps`, que o
+   *   `scalable/apps` do pack vence. O intocável é pedido dela, e a curadoria
+   *   mora no mesmo `scalable/apps` do pack: esses dois travam o pack também, e
+   *   o servidor os manda na `trava_pack` — a página não decide, lê.] */
+  const packNaFicha = !app.trava_pack && GLIFOS.app === app.id && !!GLIFOS.pack;
+  const comBusca = !app.trava || packNaFicha;
+  if (comBusca) painel.append(busca);
 
-  let escolhido = app.mapa ? app.mapa.glifo : null;
+  /* O glifo do mapa do traço não é escolha que a ficha travada ofereça: ele
+   * nem está na tira, e o «Usar este ícone» o mandaria para a recusa. */
+  let escolhido = app.mapa && !app.trava ? app.mapa.glifo : null;
   /* A COR DE ABERTURA VEM DOS DOIS MAPAS, E ISSO SÓ APARECEU NA FOTO — 09/09/2026
    *
    * Estava `app.mapa ? app.mapa.cor : ordem[0]`: quem tem desenho no acervo de
@@ -3027,10 +3060,13 @@ function montarEscolhaDeIcone(app, recarregar) {
    *
    *   ONDE O PACK NÃO PODE VALER, ELE NÃO APARECE (`trava_pack`): no «Arquivos»
    *   o traço vale, e um desenho do pack sairia na instalação seguinte. A
-   *   frase diz isso no lugar do grupo. */
+   *   frase diz isso no lugar do grupo.
+   *
+   *   [P64: e onde o TRAÇO não pode valer (`trava`), é o traço que sai da tira
+   *   — cada grupo obedece à trava dele.] */
   const chaveDe = (g) => (g.pack ? `pack:${g.pack}:${g.desenho}` : g.glifo);
   const doPackNaBusca = GLIFOS.itens.some((g) => g.pack);
-  const itens = app.trava_pack ? GLIFOS.itens.filter((g) => !g.pack) : GLIFOS.itens;
+  const itens = GLIFOS.itens.filter((g) => (g.pack ? !app.trava_pack : !app.trava));
   const comPack = itens.some((g) => g.pack);
   const itemEscolhido = () => itens.find((g) => chaveDe(g) === escolhido) || null;
   const tiraGlifos = elemento("div", { class: "tira-glifos" });
@@ -3056,9 +3092,17 @@ function montarEscolhaDeIcone(app, recarregar) {
   if (GLIFOS.carregando) {
     tiraGlifos.append(elemento("p", { class: "sem-previa", texto: "Procurando…" }));
   } else if (!itens.length) {
+    /* [Revisão da P64: na ficha com a trava do traço, a tira só tem o pack, e
+     * o que vem a seguir são os desenhos dele — a frase não promete o acervo
+     * do projeto, que o traço filtrado não deixa aparecer.] */
+    const mostrando = app.trava && GLIFOS.pack
+      ? `os desenhos do pack «${GLIFOS.pack.nome}»`
+      : "o acervo que veio com o projeto";
     tiraGlifos.append(elemento("p", { class: "sem-previa",
-      texto: "Nenhum desenho com esse nome — mostrando o acervo que veio com o projeto." }));
-    if (GLIFOS.termo) carregarGlifos("");
+      texto: `Nenhum desenho com esse nome — mostrando ${mostrando}.` }));
+    /* Só quem tem busca na tela busca de novo: a ficha travada sem pack tem a
+     * tira sempre vazia, e pediria a busca vazia a cada repintura. */
+    if (GLIFOS.termo && comBusca) carregarGlifos("", app.id);
   }
   let grupoAntes = null;
   for (const g of itens) {
@@ -3078,7 +3122,7 @@ function montarEscolhaDeIcone(app, recarregar) {
       elemento("span", { texto: g.glifo }),
     ]));
   }
-  if (!app.trava) {
+  if (comBusca) {
     /* A trava do pack só fala quando a busca trouxe desenho do pack (ou o
      * teria trazido, com a camada ligada): nos outros casos ela não explica
      * nada que esteja na tela. */
@@ -3126,9 +3170,11 @@ function montarEscolhaDeIcone(app, recarregar) {
    *   torrada disse "Hefesto: steam em green", a gaveta disse "os ícones novos
    *   já estão na dock" — e a dock ficou igual, porque o script pula os
    *   intocáveis sem uma palavra. Quem sabe se a escolha pode valer é o
-   *   servidor (`trava`); a página só não oferece o que ele recusaria. */
+   *   servidor (`trava`); a página só não oferece o que ele recusaria.
+   *   [P64: com a trava do traço, a tira só tem o pack, e o botão fica para
+   *   ele — ver o `comBusca`, lá em cima.] */
   if (app.trava) painel.append(elemento("p", { class: "frase", texto: app.trava }));
-  if (!app.trava) acoes.append(elemento("button", {
+  if (comBusca) acoes.append(elemento("button", {
     type: "button", class: "btn btn-accent", texto: "Usar este ícone",
     onclick: async () => {
       if (!escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }
@@ -3183,18 +3229,55 @@ function montarEscolhaDeIcone(app, recarregar) {
       /* "MAPA" ERA O NOME DO ARQUIVO (apps-arcticons.map), não do que o botão
        * faz — 09/09/2026. Ele desfaz a escolha e devolve o ícone de fábrica,
        * e é isso que o rótulo passa a dizer; a torrada logo abaixo já dizia
-       * o efeito certo, e agora as duas contam a mesma história. */
-      type: "button", class: "btn", texto: "Voltar ao ícone de fábrica",
+       * o efeito certo, e agora as duas contam a mesma história.
+       * [Revisão da P64, 25/09/2026: «Voltar ao ícone de fábrica» era a
+       * mentira da torrada, no rótulo. O Chrome está nos dois mapas, e tirado o
+       * traço fica o desenho do pack: o botão prometia a fábrica logo acima da
+       * torrada que dizia o pack. O que fica, só o servidor sabe depois de
+       * gravar (`_o_que_fica`), e quem diz é a torrada; o rótulo diz o que o
+       * botão desfaz, como o «Desfazer a escolha no pack» ao lado.] */
+      type: "button", class: "btn", texto: "Desfazer a escolha no traço",
       onclick: async () => {
         const r = await api("/api/app-icone", {
           method: "POST",
           body: JSON.stringify({ app: app.id, remover: true }),
         });
         if (r.erro) { torrada(r.erro, "erro"); return; }
-        torrada(`${app.nome} voltou para o ícone de fábrica`, "ok");
+        /* A TORRADA DIZ O ÍCONE QUE FICA, E QUEM SABE É O SERVIDOR — 25/09/2026,
+         * P64. Ela dizia «voltou para o ícone de fábrica» sempre, e o Chrome
+         * está no mapa do traço E no `apps.map` do Dracula: tirado o traço, o
+         * que fica na tela é o desenho do pack, que o `scalable/apps` põe na
+         * frente. O servidor olha os mapas depois de gravar (`_o_que_fica`). */
+        torrada(`${app.nome} fica com ${r.fica.frase}`, "ok");
         /* O desenho que sobra na tela vira órfão, e é a varredura do mesmo
          * script que o tira — o mesmo passo do «Usar este ícone». */
         await rodarAcao("icones_traco");
+        APP_ABERTO = null;
+        await fimDoTrabalho();
+        await relerLista();
+      },
+    }));
+  }
+  /* O DESFAZER DA ESCOLHA NO PACK — 25/09/2026, P64
+   *   O «Usar este ícone» com um desenho do pack troca a linha do aplicativo
+   *   no `apps.map` do pack no ar (P60), e não havia volta: o botão acima
+   *   só mexe no mapa do traço. A escolha do painel leva no comentário a linha
+   *   que ela trocou, e desfazer devolve essa linha — o desenho que o pack dava
+   *   antes —, ou tira a do painel, quando o pack não tinha nenhuma. A busca
+   *   diz se há o que desfazer (`GLIFOS.escolha`, do `_api_glifos`), e o botão
+   *   só nasce com ela, como o do traço só nasce com o `app.mapa`. */
+  const escolhaNoPack = GLIFOS.app === app.id ? GLIFOS.escolha : null;
+  if (escolhaNoPack) {
+    acoes.append(elemento("button", {
+      type: "button", class: "btn", texto: "Desfazer a escolha no pack",
+      onclick: async () => {
+        const r = await api("/api/app-icone", {
+          method: "POST",
+          body: JSON.stringify({ app: app.id, pack: escolhaNoPack.pack, remover: true }),
+        });
+        if (r.erro) { torrada(r.erro, "erro"); return; }
+        torrada(`${app.nome} fica com ${r.fica.frase}`, "ok");
+        await rodarAcao("icones_pack");
         APP_ABERTO = null;
         await fimDoTrabalho();
         await relerLista();
@@ -3215,7 +3298,7 @@ function montarEscolhaDeIcone(app, recarregar) {
    * [P60: com um desenho do pack marcado, a frase diz que a escolha mora no
    * pack e vale com ele no ar — ver o `pintarGlifos`, que a escreve.] */
   pintarGlifos();
-  if (!app.trava) painel.append(fraseDoFim);
+  if (comBusca) painel.append(fraseDoFim);
   return painel;
 }
 
@@ -5888,8 +5971,14 @@ function abrirGaveta(trabalho, aplicar = null) {
  * `fim` vem do servidor com o trabalho (ver `NATUREZAS`): código, ou `0~`
  * para o 0 que deixou linha `~~` na saída, -> [classe, frase]. O que não está
  * na tabela é erro, e a frase diz o código — é o mesmo "saiu N" de antes, e é
- * ele que o «Parar» mostra (o SIGTERM volta como -15). */
-function fimDoTrabalho(fim, rc, mudou) {
+ * ele que o «Parar» mostra (o SIGTERM volta como -15).
+ *
+ * O NOME ERA `fimDoTrabalho`, O MESMO DA ESPERA DA P46 — 25/09/2026, P64. Num
+ * script, a segunda declaração de topo vence a primeira, e a página inteira
+ * passou a chamar esta: o `await fimDoTrabalho()` da ficha de ícone e da
+ * oficina recebia um array, que não espera nada, e a lista era relida com o
+ * passo ainda correndo. O `tests/restos-do-painel.sh` conta os nomes do topo. */
+function linhaDoFim(fim, rc, mudou) {
   const tabela = fim || {};
   const linha = (rc === 0 && mudou && tabela["0~"]) || tabela[String(rc)];
   return linha || ["erro", `saiu ${rc}`];
@@ -6050,7 +6139,7 @@ async function puxar() {
      * quando é ensaio. Aqui só se escolhe a linha: o `0~` é o 0 com linha
      * `~~` na saída — a regra de 13/09, que agora é da tabela. O que não está
      * nela (2, o negativo de quem foi interrompido) é erro, em toda natureza. */
-    const [classeFim, fraseFim] = fimDoTrabalho(TRABALHO.fim, rc, TRABALHO.mudou);
+    const [classeFim, fraseFim] = linhaDoFim(TRABALHO.fim, rc, TRABALHO.mudou);
     marcarEstado(classeFim, `${fraseFim} · ${r.segundos}s`);
     /* Um doctor --consertar ou um install que passou zera a lista de pendentes:
      * o que estava escrito no conf acabou de valer na tela. Só quem ESCREVE

@@ -332,6 +332,23 @@ if [ "$rc" = "0" ] \
 else
   falha "o alpha_map malformado não chegou à tela como devia (rc=$rc)" "$saida"
 fi
+# E O NaN, QUE O `float()` ACEITA — 25/09/2026, P64 (nota 5(ii) da revisão da
+#   P58). «NaN» passava pela guarda do `abc` como número e estourava no
+#   `para_hex`: a tela mostrava «cannot convert float NaN to integer», o erro do
+#   Python em inglês. A frase tem de ser a mesma do `abc`, e a Dark, a da captura.
+C8="$T/cosmic8"; mkdir -p "$C8"
+cp -a "$CAP"/com.system76.CosmicTheme.* "$C8/"
+mapa_novo_em "$C8"
+sed -i 's/very_high_2: 0.52615/very_high_2: NaN/' "$C8/com.system76.CosmicTheme.Dark.Builder/v2/alpha_map"
+saida="$(aplicar "$C8" dracula-mauve)"; rc=$?
+if [ "$rc" = "0" ] \
+   && [[ "$saida" == *"Dark: o alpha_map dá ao nível VeryHigh2 o valor NaN, que não é número"* ]] \
+   && [[ "$saida" != *"cannot convert"* ]] \
+   && [ "$(valor "$C8/com.system76.CosmicTheme.Dark/v2/transparent_background" base)" = "#383A4CAA" ]; then
+  ok "um nível NaN: a mesma frase em português, e a Dark fica com o vidro da captura"
+else
+  falha "o NaN no alpha_map não chegou à tela como os outros valores inválidos (rc=$rc)" "$saida"
+fi
 
 # --- 5. nada fica para trás ----------------------------------------------------
 sobra="$(find "$TMPV" -mindepth 1 -maxdepth 1 2>/dev/null)"

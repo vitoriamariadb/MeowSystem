@@ -97,6 +97,7 @@ MAQUINA=(
   app-acessibilidade.py  # Playwright com Chromium; sobe o painel
   oficina.sh             # lê os .desktop da máquina: o desenho de pack que veste um deles tem cartão
   pastas-do-pack.sh      # parte do Papirus-Dark de /usr/share/icons e do papirus-folders baixado (P56)
+  restos-do-painel.sh    # a ficha de ícone e a gaveta no vm do node, sem navegador (P64); sem node, conta e pula
   app-completo.py        # Playwright com Chromium: TODA aba, TODO controle — o gate de merge (P46)
 )
 
