@@ -600,6 +600,8 @@ def _separar(par: str):
 #   punham as do par — com o filtro em lugares diferentes: na leitura, aqui;
 #   depois dela, lá. O resultado é o mesmo, e o tests/notas-de-funcao.sh o
 #   confere nos 84 pares dos dois packs, contra a soma medida antes da troca.
+#   [Revisão da P66, 25/09/2026: eram TRÊS — o `_conteudo`, abaixo, lia a base
+#   inteira pelo mesmo laço, com a mesma tupla; ele chama o `montar` também.]
 FICHAS = ("manifesto.sha256", "captura.txt", ".gitignore")
 
 
@@ -688,24 +690,41 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
         #   O lado do par passa pela MESMA derivação do lado escolhido
         #   (`derivar_arvore`, com a guarda), na cor do par para o acento pedido
         #   — o blue do mocha, o green do latte. Tudo o que não é acento continua
-        #   o da base, como no lado escolhido. Uma base cujo lado do par não se
-        #   reproduz é recusada como a que não se reproduz do lado escolhido: a
-        #   guarda é a mesma, e a próxima base é tentada.
+        #   o da base, como no lado escolhido.
         #   Com o lado vindo do `lado_do_par` (o Dracula, P63) nada muda: aquele
         #   lado já nasce no acento pedido. Sem par no pack, ou sem essa cor no
         #   par, também não: não há acento prometido para aquele lado.
+        #   O LADO DO PAR QUE NÃO SE DERIVA FICA O DA BASE, E NÃO DERRUBA A BASE
+        #   — revisão da P66, 25/09/2026. A primeira versão recusava a base cujo
+        #   lado do par não passa na guarda, e com ela a variante inteira: um
+        #   pack de terceiro com a Light da foto mexida na GUI perdia todos os
+        #   acentos derivados, que antes aplicavam, por um lado que só aparece
+        #   no outro modo. A regra é a da P63 logo acima («par que não se
+        #   deriva: fica o da base»): esse lado fica o da base, byte a byte, no
+        #   acento dela, e o `captura.txt` diz qual campo não fechou. É uma
+        #   árvore que o COSMIC escreveu, e não o híbrido que a guarda impede;
+        #   o lado escolhido continua exigindo a guarda. Nos dois packs de hoje
+        #   isso não acontece (os 25 lados do par se derivam).
+        #   O QUE NÃO PASSA POR AQUI: a FOTO de um par. O `plano` devolve
+        #   `fotografia` lá em cima sem olhar o lado do par dela, e o da
+        #   `mocha-pink` é a Light do latte no mauve (#8839EF), e não no pink
+        #   (#EA76CB) que a página promete. Consertar isso é escrever na foto
+        #   (o `refazer_foto` do derivar_flavor.py, como a P63 fez na
+        #   `dracula-mauve`) ou derivar na hora de aplicar — as duas fora do
+        #   território da P66; o tests/notas-de-funcao.sh o diz em toda corrida.
         parceiro = None if lado else derivar_flavor.par_do_outro_lado(flavor, paleta)
         cor_do_par = ((paleta.get("flavors") or {}).get(parceiro) or {}).get(nome_acento)
         outro = "Dark" if arvore == "Light" else "Light"
+        sem_acento = ""
         if cor_do_par:
             try:
                 arquivos.update(derivar_arvore(cand, outro, cor_do_par))
             except (ValueError, KeyError) as e:
-                recusas.append(f"{nome}: {e}")
-                continue
+                sem_acento = str(e)
             except OSError as e:
-                recusas.append(f"{nome}: {e.strerror or type(e).__name__}")
-                continue
+                # Sem a árvore do outro lado (uma foto só do escuro) também:
+                # não há o que pintar, e o lado escolhido não depende dela.
+                sem_acento = e.strerror or type(e).__name__
         saida.update(estado="derivavel", base=nome, arvore=arvore, acento=acento,
                      dir_base=str(cand), arquivos=arquivos)
         if lado:
@@ -713,6 +732,12 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
             saida.update(conteudo=montar(cand, lado["arvore"], lado["conteudo"]),
                          linha_do_lado=derivar_flavor.linha_do_lado(lado),
                          lado=f"o {nome_lado} é o do {lado['par']}")
+        elif cor_do_par and sem_acento:
+            nome_lado = "claro" if outro == "Light" else "escuro"
+            saida.update(linha_do_lado=(f"{nome_lado}: o do {nome}, no acento dele — o {nome_acento} "
+                                        f"do {parceiro} não se deriva dele: {sem_acento} "
+                                        f"(scripts/derivar_acento.py)"),
+                         lado=f"o {nome_lado} fica o do {nome}, sem o {nome_acento} do {parceiro}")
         elif cor_do_par:
             nome_lado = "claro" if outro == "Light" else "escuro"
             saida.update(linha_do_lado=(f"{nome_lado}: o do {nome}, no {nome_acento} do "
@@ -749,13 +774,7 @@ def _conteudo(p: dict) -> dict:
     if "conteudo" in p:
         arquivos.update(p["conteudo"])
     else:
-        for arq in sorted(base.rglob("*")):
-            if not arq.is_file():
-                continue
-            rel = arq.relative_to(base).as_posix()
-            if rel in ("manifesto.sha256", "captura.txt", ".gitignore"):
-                continue
-            arquivos[rel] = arq.read_bytes()
+        arquivos.update(montar(base))
     for rel, txt in p["arquivos"].items():
         arquivos[rel] = txt.encode("utf-8")
     # captura.txt SEM hora de agora: a derivação é função da base, e o arquivo

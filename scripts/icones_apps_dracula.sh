@@ -298,7 +298,7 @@ _dracula_remover() {
   return "$rc"
 }
 
-# --- o que um pack fora do ar deixou no tema ----------------------------------
+# --- o que um pack fora do ar, ou o mapa no ar, deixou no tema ----------------
 # TROCAR DE PACK NÃO TIRAVA OS DESENHOS DO PACK DE ANTES — medido em 25/09/2026
 #   Numa casa de brinquedo, com o Dracula no ar e a camada ligada: 203 desenhos
 #   em `scalable/apps`. Depois `PACK=catppuccin` e este script de novo, com a
@@ -513,7 +513,9 @@ _dracula_estado() {
 #   participou da decisão. Quem liga é o meow.conf, e a chave está no painel.
 _dracula_aplicar() {
   # O que um pack fora do ar deixou sai ANTES, ligado ou desligado: é o que
-  # a troca de pack deixa para trás, e a chave não muda isso (P60).
+  # a troca de pack deixa para trás, e a chave não muda isso (P60). E o nome
+  # que saiu do mapa no ar, pelo registro (P66): desfeita a escolha no
+  # painel, ninguém mais o pede, com a camada ligada ou não.
   local rc_fora rc
   _dracula_sobras; rc_fora=$?
   if [ "${ICONES_DRACULA:-nao}" = "sim" ]; then _dracula_instalar

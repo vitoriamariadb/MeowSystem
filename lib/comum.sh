@@ -750,9 +750,13 @@ PYFIM
 #   como `cat--<acento>`. Quem o completa com o FLAVOR do `meow_flavor` era uma
 #   linha no `carregar_conf` do bin/meow e a mesma linha, escrita de novo, no
 #   `conf_exportada` do app/servidor.py (P61 e P65) — as duas versões da mesma
-#   regra que a docstring do próprio `conf_exportada` condena. Uma só, aqui, e
-#   os dois a chamam depois de dar o FLAVOR. Mexe no `ICONES_PASTAS` do shell
-#   que chama (exportado, se já era), e só quando ele é o molde.
+#   regra que a docstring do próprio `conf_exportada` condena. Os dois a chamam
+#   daqui, depois de dar o FLAVOR. Mexe no `ICONES_PASTAS` do shell que chama
+#   (exportado, se já era), e só quando ele é o molde.
+#   AINDA HÁ UMA TERCEIRA CÓPIA (revisão da P66, 25/09/2026): o
+#   scripts/construir_pastas.sh completa o mesmo molde no `$COR` dele (~346, a
+#   da revisão da P56), com a guarda do FLAVOR vazio. A P66 só nomeava estas
+#   duas; quem mexer lá a troca por esta função.
 meow_pastas_do_molde() {
   case "${ICONES_PASTAS:-}" in cat--?*) ICONES_PASTAS="cat-${FLAVOR:-}-${ICONES_PASTAS#cat--}" ;; esac
 }
