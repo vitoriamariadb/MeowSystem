@@ -194,3 +194,115 @@ As frases do `install.sh`, do `scripts/icones_pastas.sh` e do
 `scripts/construir_pastas.sh` (só texto e comentário), o resumo do
 `scripts/aplicar_apps.sh`, a tabela e os textos do `bin/meow`, `docs/PACKS.md`,
 os comentários de `scripts/logo.sh`, de `systemd/` e do `lib/noite.sh`, `tests/`.
+
+---
+
+# Leva D2 — o que as revisões da leva D deixaram (25/09/2026)
+
+As reconferências da P58 a P62 aprovaram as sprints e deixaram notas que não
+bloqueavam. A decisão continua a mesma: corrigir tudo.
+
+---
+
+# P63 — O claro do Dracula é o Alucard
+
+### O que medi (revisão da P59)
+
+- Com `FLAVOR=dracula` e `MODO=claro`, o COSMIC veste a árvore Light da captura
+  `dracula-mauve`: `is_dark=false · Light: "catppuccin-latte" Some("#8839EFFF")`.
+  As 10 chaves de cor da Light do `dracula-mauve` são as do `latte-mauve` — é o
+  Latte do Catppuccin.
+- O pack diz o contrário: `pack.lados.dracula.claro = alucard`, a `_nota_claro`
+  diz que o claro já é um Dracula, e a prévia (P59) diz «Alucard claro».
+- A P59 criou o derivador de flavor (`scripts/derivar_flavor.py`), que já tira o
+  `alucard` do `latte` pela paleta, slot a slot.
+- Frases velhas fora do território da P59: `bin/meow` (~3453) e
+  `scripts/gerar_tema_v1.py` (~494) ainda dizem que o tema sem captura «só sobra
+  para o flavor que nunca foi fotografado».
+
+### O que fazer
+
+1. A árvore Light de toda captura do Dracula (`dracula-mauve` e as derivadas por
+   acento) sai do Alucard — derivada pelo mesmo caminho da P59, não copiada à
+   mão. A árvore Dark fica byte a byte igual.
+2. As capturas são byte-exact (`.gitattributes`); o `manifesto.sha256` do pack
+   continua batendo (atualize junto) e o `PROCEDENCIA.md` diz de onde a Light
+   passou a vir.
+3. As duas frases velhas dizem a regra de hoje.
+
+### Como conferir
+
+Num COSMIC de brinquedo, `FLAVOR=dracula` com `MODO=claro` aplica uma Light com
+as cores do Alucard (nenhum hex do Latte), e com `MODO=escuro` a Dark é a de
+hoje, byte a byte.
+
+### Território
+
+`packs/dracula/temas/capturados/`, o derivador de flavor, `gerar_tema_v1.py`
+(só se a v1 da Light precisar), as duas frases, `tests/`.
+
+---
+
+# P64 — Os restos do painel
+
+1. **Duas funções `fimDoTrabalho`.** O `app/pagina/app.js` declara duas no topo
+   do script (~1425, sem parâmetros; ~5892, com três, da P50). A segunda vence:
+   o `await fimDoTrabalho()` do ramo do pack (P60) e dos três vizinhos recebe um
+   array, não uma Promise, e não espera. Renomear a da P50 e o chamador dela.
+2. **Desfazer a escolha de um desenho do pack.** O `remover` do
+   `_api_app_icone` vai sempre para o caminho do traço; o «Voltar ao ícone de
+   fábrica» só nasce com `app.mapa`; com o app nos dois mapas (o Chrome está no
+   `apps-arcticons.map` e no `apps.map` do Dracula), a torrada «voltou para o
+   ícone de fábrica» mente. A escolha do pack tem desfazer, e a torrada diz o
+   ícone que ficou.
+3. **A busca da ficha.** O `carregarGlifos` não descarta a resposta velha (uma
+   busca disparada antes chega depois e pinta a lista errada); a busca some para
+   o app com trava do traço, levando junto o grupo do pack, que não depende
+   dessa trava; o pack Catppuccin não declara `icones.apps`, e os 44 autorais
+   dele ficam fora da ficha (declare, se o formato permite, ou diga por quê).
+4. **O vidro com NaN.** Um nível `NaN` no `alpha_map` passa pelo `float()` e
+   estoura no `para_hex`: a tela mostra «cannot convert float NaN to integer»,
+   erro do Python em inglês (P58, nota 5(ii)).
+
+### Território
+
+`app/pagina/app.js` (as funções nomeadas e a ficha), `app/servidor.py`
+(`_api_app_icone`, `_api_glifos`), `packs/catppuccin/pack.json` (só
+`icones.apps`), `scripts/derivar_vidro.py`, `tests/`.
+
+---
+
+# P65 — Os restos do shell e dos textos
+
+1. **O flavor padrão, inteiro.** O `meow_flavor` (`lib/comum.sh`) não cai no
+   primeiro flavor da paleta quando o pack não declara `paleta.flavor_padrao` —
+   o `vocabulario` do `pack.py` e o `flavorEmVigor` da página caem; o aviso
+   culpa o `pack.py`, que respondeu. Sob `set -euo pipefail`, o
+   `icones_apps_arcticons.sh` morre na linha do `meow_flavor` sem a frase dele.
+   Restam três cópias da regra: o `conf_exportada` (`app/servidor.py`, com
+   `mocha` de reserva e o molde `cat--<acento>`) e os `${FLAVOR:-mocha}` dos
+   manifestos `btop-bat` e `spotify`; e o cabeçalho de uso do
+   `scripts/terminal.sh` (~249) ainda dá `mocha`.
+2. **O qBittorrent vestido por fora sai sem motivo** na tabela do `meow apps`
+   (`--`), e o OnlyOffice, no mesmo estado, sai com motivo: o módulo do
+   qBittorrent diz isso por `!!`/`>>`, e a tabela só traduz `meow_app_sem`.
+3. **Tempo verbal do ensaio.** No seco, `scripts/icones_pastas.sh` (~274) diz
+   «pastas especiais: 0 posto(s), 1 removido(s)» logo depois de «removeria».
+4. **Comentários que ainda dizem mauve no presente**:
+   `scripts/icones_pastas.sh` (~177-178 e ~251-253), `scripts/construir_pastas.sh`
+   (~46-51) e `assets/icones/pastas.map` (~273-277).
+5. **Arte e procedência.** `packs/dracula/PROCEDENCIA.md` (~573) diz «nada mais no
+   desenho mudou», e as aberturas do castelo do `folder-download.svg` também
+   passaram de `#534b62` para `#44475a`; `assets/icones/resgatados/org.gnome.Nautilus.svg`
+   segue com o corpo antigo `#433f4d`/`#534b62`, fora da paleta; o `aplicar` do
+   Obsidian sem rede deixa vazias as pastas-mãe `~/.local/share/meowsystem/temas-de-apps/`
+   e `meowsystem/` numa casa nova.
+
+### Território
+
+`lib/comum.sh` (`meow_flavor`), `scripts/icones_apps_arcticons.sh`, o
+`conf_exportada` do `app/servidor.py`, os manifestos `btop-bat`, `spotify`,
+`qbittorrent` e `obsidian`, `scripts/terminal.sh` (cabeçalho),
+`scripts/icones_pastas.sh`, `scripts/construir_pastas.sh` e
+`assets/icones/pastas.map` (comentários e o tempo verbal), a arte e o
+`PROCEDENCIA.md`, `tests/`.
