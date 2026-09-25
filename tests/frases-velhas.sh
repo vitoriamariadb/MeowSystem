@@ -19,10 +19,11 @@
 #      o `ICONES_PASTAS` (o acento, por padrão) e o desenho do pack no ar.
 #   4. o botão do traço pelo nome velho. «Voltar ao ícone de fábrica» virou
 #      «Desfazer a escolha no traço» na P64.
-#   5. a procedência dos resgatados. A faixa de RMSE e a folha de antes e
-#      depois são de 11 e 12/09/2026, e desenhos mudaram depois delas. Esta
-#      classe tem duas travas: a frase da faixa leva a data, e a folha mais
-#      velha que um desenho tem a nota ao lado (a seção do fim).
+#   5. a procedência dos resgatados. A faixa de RMSE é de 11/09/2026, a folha
+#      de antes e depois tem a idade do commit dela, e desenho muda depois das
+#      duas. Esta classe tem três travas: a frase da faixa leva a data, a nota
+#      ao lado da folha diz a data da folha, e a folha mais velha que um
+#      desenho tem o nome dele numa tabela da nota (a seção do fim).
 #
 # O QUE É HISTÓRIA, E FICA
 #   A mesma frase é mentira no presente e registro na história, e só o entorno
@@ -57,6 +58,11 @@
 #
 # CÓDIGOS DE SAÍDA (os do projeto)
 #   0 = nenhuma frase velha no presente · 1 = achados · 2 = erro deste teste
+#   O Python de dentro sai 3 quando acha, e não 1, porque 1 é também o que ele
+#   devolve quando quebra (exceção, erro de sintaxe) — e quebra é erro deste
+#   teste, não achado. A tradução para os códigos do projeto é a última linha.
+#   [Até a revisão da P67 (25/09/2026) o Python saía 1 nos dois casos, e um
+#   teste quebrado se passava por achado.]
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -87,8 +93,10 @@ CLASSES = [
     {"num": 1, "nome": "o flavor que nunca foi fotografado como o caso sem saída",
      "cita": True, "onde": None, "gatilho": ("flavor",),
      "padroes": [
-         re.compile(r"\bflavor(?:es)?\s+(?:que\s+)?(?:nunca|jamais|n[aã]o)\s+(?:foi|foram|tenha\s+sido|"
-                    r"tenham\s+sido|é|são)\s+(?:fotografad|capturad)\w*", I),
+         # O «ainda» no meio entrou na revisão da P67: «o flavor que ainda não
+         # foi fotografado» passava.
+         re.compile(r"\bflavor(?:es)?\s+(?:que\s+)?(?:ainda\s+)?(?:nunca|jamais|n[aã]o)\s+(?:foi|foram|"
+                    r"tenha\s+sido|tenham\s+sido|é|são)\s+(?:fotografad|capturad)\w*", I),
          re.compile(r"\bflavor(?:es)?\s+(?:nunca|jamais)\s+(?:fotografad|capturad)\w*", I),
          re.compile(r"\bflavor(?:es)?\s+sem\s+(?:foto|fotografia|captura)(?:\s+nenhuma)?,?\s+"
                     r"(?:n[aã]o\s+(?:aplica|se\s+deriva|tem\s+de\s+onde)|(?:fica|vai)\s+para\s+a\s+GUI)", I),
@@ -107,6 +115,12 @@ CLASSES = [
      "padroes": [
          re.compile(r"\b(?:continua|continuam|fica|ficam|segue|seguem|volta|voltam|devolve|devolvem)\s+"
                     r"(?:a\s+ser\s+|a\s+|ao\s+|em\s+|de\s+)?(?:o\s+)?mauve\b", I),
+         # A cor ANTES do verbo, a forma que o `bin/meow` guardava no comentário
+         # do `chk_pastasxdg` («o mauve volta sozinho») e que a varredura da P67
+         # deixou passar, porque o padrão de cima só olhava o verbo antes da cor.
+         # O `(?<![\w-])` é para o nome de tema (`cat-mocha-mauve`) não contar.
+         re.compile(r"(?<![\w-])mauve\s+(?:continua|continuam|fica|ficam|segue|seguem|volta|voltam|"
+                    r"devolve|devolvem)\b", I),
          # A «PASTA MAUVE CHAPADA» é o ícone do Gestor de Arquivos de que ela
          # reclamou em 11/08/2026 — o desenho de um aplicativo, e não a regra
          # das pastas. Citada em três arquivos, sempre como a queixa dela.
@@ -283,19 +297,33 @@ for classe in CLASSES:
 # 5b. A FOLHA DE ANTES E DEPOIS NÃO FICA VELHA CALADA
 #   A folha (`assets/icones/resgatados/ANTES-E-DEPOIS.png`) sai do
 #   `scripts/resgatados_folha.sh`, que pede os PNG de origem nos caminhos do
-#   mapa — e em 25/09/2026 doze dos 21 não estavam mais no disco, então ela
-#   não se refaz aqui. Uma folha que não se refaz pode ficar, mas não calada:
-#   cada desenho que mudou depois do commit dela, e cada linha que entrou ou
-#   saiu do mapa desde então, tem de estar nomeado ao lado dela, no
-#   `assets/icones/PROCEDENCIA.md`: do parágrafo que fala da folha até o fim
-#   daquela seção (o próximo `## `). Refeita a folha, o commit dela anda e a
-#   cobrança some sozinha. Pergunta ao git: fora dele não há como saber a idade
-#   da folha, e esta seção diz e pula (num clone raso o commit da folha é o
-#   único que há, e a conta sai limpa).
+#   mapa — e em 25/09/2026 doze dos 21 não estavam mais no disco, então a
+#   folha daquele dia foi remontada a partir da velha, e não pelo script (o
+#   PROCEDENCIA.md conta a costura). Uma folha pode ficar mais velha que os
+#   desenhos, mas não calada, e a nota dela, no `assets/icones/PROCEDENCIA.md`
+#   (do parágrafo que fala da folha até o fim daquela seção, o próximo `## `),
+#   responde por duas coisas:
+#     · a data da frase «A folha de hoje é de dd/mm/aaaa» é a do commit da
+#       folha. Refeita a folha, o commit anda, e a nota que ficou dizendo a
+#       data de antes é achado;
+#     · cada desenho que mudou depois do commit da folha, e cada linha que
+#       entrou ou saiu do mapa desde então, está na primeira coluna de uma
+#       tabela cujo cabeçalho diga «depois da folha de dd/mm/aaaa», com a data
+#       dela. A tabela, e não a nota inteira: um nome citado de passagem (os
+#       PNG que faltam, uma tabela de uma folha anterior) não é o aviso de que
+#       aquele desenho mudou.
+#   Refeita a folha, a data do commit anda e a tabela velha deixa de valer
+#   sozinha. Pergunta ao git: fora dele, ou num clone raso (em que o commit da
+#   folha pode ser só o mais velho que veio), não há como saber a idade da
+#   folha, e esta seção diz e pula.
+#   [Até a revisão da P67 (25/09/2026) bastava o nome aparecer em qualquer
+#   ponto da nota, a data dela não era cobrada, e uma folha apagada passava por
+#   «refeita nesta árvore».]
 # ---------------------------------------------------------------------------
 FOLHA = "assets/icones/resgatados/ANTES-E-DEPOIS.png"
 MAPA = "assets/icones/apps-resgatados.map"
 PROC = "assets/icones/PROCEDENCIA.md"
+DATA_DA_NOTA = re.compile(r"\bA\s+folha\s+de\s+hoje\s+é\s+de\s+\**(\d{1,2})/(\d{1,2})/(\d{4})\b", I)
 
 
 def git(*args):
@@ -311,16 +339,56 @@ def nomes_do_mapa(texto):
     return saida - {""}
 
 
+def nomes_da_tabela(nota, cabeca):
+    """Os nomes da primeira coluna da tabela cujo cabeçalho contém `cabeca`."""
+    linhas = nota.splitlines()
+    for k, linha in enumerate(linhas):
+        if linha.lstrip().startswith("|") and cabeca in linha.lower():
+            saida = set()
+            for corpo in linhas[k + 1:]:
+                if not corpo.lstrip().startswith("|"):
+                    break
+                saida.update(corpo.strip().strip("|").split("|")[0].replace("`", " ").split())
+            return saida
+    return set()
+
+
 try:
     r = git("log", "-1", "--format=%H %ad", "--date=short", "--", FOLHA)
 except OSError:
     r = None
 if r is None or r.returncode != 0 or not r.stdout.strip():
     print("  --   classe 5 — a folha dos resgatados: fora do git, a idade dela não se mede (pulado)")
+elif not os.path.isfile(os.path.join(raiz, FOLHA)):
+    falhas += 1
+    print("  NÃO  classe 5 — a folha dos resgatados sumiu da árvore, e o PROCEDENCIA.md ainda aponta para "
+          "ela: %s" % FOLHA, file=sys.stderr)
 elif git("diff", "--quiet", "HEAD", "--", FOLHA).returncode != 0:
-    print("  ok   classe 5 — a folha dos resgatados foi refeita nesta árvore")
+    print("  ok   classe 5 — a folha dos resgatados foi refeita nesta árvore (a nota se cobra no commit)")
+elif git("rev-parse", "--is-shallow-repository").stdout.strip() == "true":
+    print("  --   classe 5 — a folha dos resgatados: clone raso, a idade dela não se mede (pulado)")
 else:
     commit, data = r.stdout.split()
+    aaaa, mm, dd = data.split("-")
+    quando = "%s/%s/%s" % (dd, mm, aaaa)
+    with open(os.path.join(raiz, PROC), encoding="utf-8") as fh:
+        proc = fh.read()
+    ini = proc.find("ANTES-E-DEPOIS")
+    fim = proc.find("\n## ", ini) if ini >= 0 else -1
+    nota = "" if ini < 0 else proc[ini:fim if fim >= 0 else len(proc)]
+
+    m = DATA_DA_NOTA.search(nota)
+    if not m:
+        falhas += 1
+        print("  NÃO  classe 5 — a folha dos resgatados é de %s, e a nota dela no PROCEDENCIA.md não diz "
+              "«A folha de hoje é de %s»" % (quando, quando), file=sys.stderr)
+    elif (int(m.group(1)), int(m.group(2)), m.group(3)) != (int(dd), int(mm), aaaa):
+        falhas += 1
+        print("  NÃO  classe 5 — a nota da folha dos resgatados diz que ela é de %s, e o commit dela é de %s"
+              % ("/".join(m.groups()), quando), file=sys.stderr)
+    else:
+        print("  ok   classe 5 — a nota da folha dos resgatados diz a data do commit dela, %s" % quando)
+
     velho = git("show", "%s:%s" % (commit, MAPA))
     if velho.returncode != 0:
         print("  --   classe 5 — o mapa dos resgatados não existia no commit da folha (pulado)")
@@ -335,23 +403,22 @@ else:
             e = git("hash-object", "--", svg).stdout.strip()
             if era and e and era != e:
                 mudaram.append(nome)
-        with open(os.path.join(raiz, PROC), encoding="utf-8") as fh:
-            proc = fh.read()
-        ini = proc.find("ANTES-E-DEPOIS")
-        fim = proc.find("\n## ", ini) if ini >= 0 else -1
-        nota = "" if ini < 0 else proc[ini:fim if fim >= 0 else len(proc)]
-        faltam = [n for n in mudaram
-                  if not re.search(r"(?<![\w.-])%s(?![\w.-])" % re.escape(n), nota)]
+        ditos = nomes_da_tabela(nota, "depois da folha de %s" % quando)
+        faltam = [n for n in mudaram if n not in ditos]
         if faltam:
             falhas += 1
             print("  NÃO  classe 5 — a folha dos resgatados é de %s, e %d desenho(s) mudaram depois dela sem "
-                  "que o PROCEDENCIA.md diga: %s" % (data, len(faltam), ", ".join(faltam)), file=sys.stderr)
+                  "estar na tabela «depois da folha de %s» do PROCEDENCIA.md: %s"
+                  % (quando, len(faltam), quando, ", ".join(faltam)), file=sys.stderr)
         else:
-            print("  ok   classe 5 — a folha dos resgatados é de %s, e o PROCEDENCIA.md nomeia os %d desenho(s) "
-                  "que mudaram depois dela" % (data, len(mudaram)))
+            print("  ok   classe 5 — a folha dos resgatados é de %s, e %d desenho(s) mudaram depois dela"
+                  % (quando, len(mudaram)))
 
-sys.exit(1 if falhas else 0)
+sys.exit(3 if falhas else 0)
 PY
 rc=$?
-[ "$rc" -le 1 ] || exit 2
-exit "$rc"
+case "$rc" in
+  0) exit 0 ;;
+  3) exit 1 ;;
+  *) printf 'FALHOU: o python deste teste quebrou (saiu %s)\n' "$rc" >&2; exit 2 ;;
+esac

@@ -287,9 +287,10 @@
 #
 #   NÃO PROPONHA LIGÁ-LAS COMO "o acervo bom que estava sendo ignorado". Elas
 #   são pasta VAZADA de traço claro (`fill="none"` + `stroke`, viewBox 16x16) ao
-#   lado das mauve CHEIAS, e NENHUMA usa `mauve`. Ligar isto hoje SUBSTITUIRIA
-#   exatamente as sete pastas com símbolo mauve que ela pediu em 10/08 — ou
-#   seja, desfaria as duas decisões dela de uma vez. A frase e o motivo estão em
+#   lado das CHEIAS na cor das outras pastas, e NENHUMA usa `mauve`, o accent
+#   dela. Ligar isto hoje SUBSTITUIRIA exatamente as sete pastas com símbolo, na
+#   cor do acento, que ela pediu em 10/08 — ou seja, desfaria as duas decisões
+#   dela de uma vez. A frase e o motivo estão em
 #   `scripts/icones_pastas.sh`, e a comparação dos dois acervos em
 #   `assets/icones/PROCEDENCIA.md`.
 

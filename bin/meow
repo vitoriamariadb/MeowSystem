@@ -467,10 +467,11 @@ chk_icones() {
     "$RAIZ/scripts/construir_icones.sh" 2>&1
 }
 
-# As pastas especiais pelo nome XDG (`folder-pictures`, `folder-music`…), do pack
-# Catppuccin. Diretório próprio (`scalable/places`) e dono único; o
+# As pastas especiais pelo nome XDG (`folder-pictures`, `folder-music`…), com o
+# desenho do pack no ar quando o `PASTAS_XDG` pede (o do Catppuccin, ou o próprio
+# do pack que tem um). Diretório próprio (`scalable/places`) e dono único; o
 # `construir_pastas.sh` cede esses nomes, e só cede o que já está no disco — se
-# este script sumir, o mauve volta sozinho na mesma passagem.
+# este script sumir, a pasta volta sozinha à cor das outras na mesma passagem.
 chk_pastasxdg() {
   PASTAS_XDG="${PASTAS_XDG:-nao}" ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
