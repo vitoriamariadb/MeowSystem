@@ -3015,11 +3015,14 @@ function montarEscolhaDeIcone(app, recarregar) {
   /* A TRAVA DO TRAÇO NÃO LEVA O PACK JUNTO — 25/09/2026, P64
    *   A `trava` diz por que um glifo do TRAÇO não valeria neste aplicativo
    *   (intocável, curadoria, desenho convertido), e escondia a busca inteira —
-   *   com o grupo do pack dentro. O desenho do pack vai para `scalable/apps`,
-   *   que vence o `48x48/apps` do traço, e o que o impede é outra trava, a
+   *   com o grupo do pack dentro. O que impede o pack é outra trava, a
    *   `trava_pack` (P60). Com a do traço e sem a do pack, a busca fica e a tira
    *   mostra só o pack. O `pack` vem da busca (`_api_glifos`): sem pack que a
-   *   ficha possa oferecer, a ficha travada continua como era. */
+   *   ficha possa oferecer, a ficha travada continua como era.
+   *   [Revisão da P64: só o convertido é assunto do `48x48/apps`, que o
+   *   `scalable/apps` do pack vence. O intocável é pedido dela, e a curadoria
+   *   mora no mesmo `scalable/apps` do pack: esses dois travam o pack também, e
+   *   o servidor os manda na `trava_pack` — a página não decide, lê.] */
   const packNaFicha = !app.trava_pack && GLIFOS.app === app.id && !!GLIFOS.pack;
   const comBusca = !app.trava || packNaFicha;
   if (comBusca) painel.append(busca);
@@ -3089,8 +3092,14 @@ function montarEscolhaDeIcone(app, recarregar) {
   if (GLIFOS.carregando) {
     tiraGlifos.append(elemento("p", { class: "sem-previa", texto: "Procurando…" }));
   } else if (!itens.length) {
+    /* [Revisão da P64: na ficha com a trava do traço, a tira só tem o pack, e
+     * o que vem a seguir são os desenhos dele — a frase não promete o acervo
+     * do projeto, que o traço filtrado não deixa aparecer.] */
+    const mostrando = app.trava && GLIFOS.pack
+      ? `os desenhos do pack «${GLIFOS.pack.nome}»`
+      : "o acervo que veio com o projeto";
     tiraGlifos.append(elemento("p", { class: "sem-previa",
-      texto: "Nenhum desenho com esse nome — mostrando o acervo que veio com o projeto." }));
+      texto: `Nenhum desenho com esse nome — mostrando ${mostrando}.` }));
     /* Só quem tem busca na tela busca de novo: a ficha travada sem pack tem a
      * tira sempre vazia, e pediria a busca vazia a cada repintura. */
     if (GLIFOS.termo && comBusca) carregarGlifos("", app.id);
@@ -3220,8 +3229,14 @@ function montarEscolhaDeIcone(app, recarregar) {
       /* "MAPA" ERA O NOME DO ARQUIVO (apps-arcticons.map), não do que o botão
        * faz — 09/09/2026. Ele desfaz a escolha e devolve o ícone de fábrica,
        * e é isso que o rótulo passa a dizer; a torrada logo abaixo já dizia
-       * o efeito certo, e agora as duas contam a mesma história. */
-      type: "button", class: "btn", texto: "Voltar ao ícone de fábrica",
+       * o efeito certo, e agora as duas contam a mesma história.
+       * [Revisão da P64, 25/09/2026: «Voltar ao ícone de fábrica» era a
+       * mentira da torrada, no rótulo. O Chrome está nos dois mapas, e tirado o
+       * traço fica o desenho do pack: o botão prometia a fábrica logo acima da
+       * torrada que dizia o pack. O que fica, só o servidor sabe depois de
+       * gravar (`_o_que_fica`), e quem diz é a torrada; o rótulo diz o que o
+       * botão desfaz, como o «Desfazer a escolha no pack» ao lado.] */
+      type: "button", class: "btn", texto: "Desfazer a escolha no traço",
       onclick: async () => {
         const r = await api("/api/app-icone", {
           method: "POST",
@@ -3245,12 +3260,12 @@ function montarEscolhaDeIcone(app, recarregar) {
   }
   /* O DESFAZER DA ESCOLHA NO PACK — 25/09/2026, P64
    *   O «Usar este ícone» com um desenho do pack troca a linha do aplicativo
-   *   no `apps.map` do pack no ar (P60), e não havia volta: o «Voltar» acima
+   *   no `apps.map` do pack no ar (P60), e não havia volta: o botão acima
    *   só mexe no mapa do traço. A escolha do painel leva no comentário a linha
    *   que ela trocou, e desfazer devolve essa linha — o desenho que o pack dava
    *   antes —, ou tira a do painel, quando o pack não tinha nenhuma. A busca
    *   diz se há o que desfazer (`GLIFOS.escolha`, do `_api_glifos`), e o botão
-   *   só nasce com ela, como o «Voltar» só nasce com o `app.mapa`. */
+   *   só nasce com ela, como o do traço só nasce com o `app.mapa`. */
   const escolhaNoPack = GLIFOS.app === app.id ? GLIFOS.escolha : null;
   if (escolhaNoPack) {
     acoes.append(elemento("button", {

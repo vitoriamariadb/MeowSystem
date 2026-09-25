@@ -8128,7 +8128,9 @@ class Manipulador(BaseHTTPRequestHandler):
                 # None (P60): outro dono do `scalable/apps`, ou um `Icon=` por
                 # caminho. O traço pode valer onde o pack não vale — o
                 # «Arquivos» —, e por isso é um campo à parte da `trava`.
-                "trava_pack": self._trava_do_pack(d, d["nome"], donos_scalable),
+                # [Revisão da P64: o intocável e a curadoria travam os dois, e a
+                # frase vem nos dois campos — ver `_trava_do_pack`.]
+                "trava_pack": self._trava_do_pack(d, d["nome"], donos_scalable, travas),
             })
         return {"apps": fora, "total": len(fora), "jogos": jogos}
 
@@ -8435,7 +8437,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "mapa": arcticons.get(d["id"]) or arcticons.get(d["icone"]) or None,
                 "traco": convertidos.get(d["id"]) or convertidos.get(d["icone"]) or None,
                 "trava": self._motivo_da_trava(travas, [d["id"], d["icone"]], d["nome"]),
-                "trava_pack": self._trava_do_pack(d, d["nome"], donos_scalable),
+                "trava_pack": self._trava_do_pack(d, d["nome"], donos_scalable, travas),
             })
         return {"jogos": fora, "total": len(fora), "mapa": MAPA_JOGOS,
                 "apps": icones, "total_apps": len(icones)}
@@ -8695,9 +8697,33 @@ class Manipulador(BaseHTTPRequestHandler):
                     donos.update(chaves or linha.split())
         return donos
 
-    def _trava_do_pack(self, d, rotulo, donos=None):
+    def _trava_do_pack(self, d, rotulo, donos=None, travas=None):
         """A frase de por que um desenho do pack não valeria neste app, ou None."""
         icone = (d.get("icone") or "").strip()
+        # DOIS DOS TRÊS CASOS DA TRAVA DO TRAÇO TRAVAM O PACK — 25/09/2026,
+        # revisão da P64.
+        #   A P64 tirou a trava do traço inteira do caminho do pack, com a razão
+        #   de que o que ela impede mora no `48x48/apps`. Vale para o convertido,
+        #   e só para ele. O intocável é pedido dela («estes ficam como estão,
+        #   venha o que vier»), e a curadoria é a arte que ela escolheu à mão,
+        #   que o `importar_icones.sh` põe no MESMO `scalable/apps` do pack. O
+        #   `icones_apps.sh` e o `icones_apps_arcticons.sh` cedem aos dois (tiram
+        #   o nome do mapa lido); o `icones_apps_dracula.sh` não cede a nenhum
+        #   dos dois, e escreve por cima do que estiver lá.
+        #   Medido numa casa de brinquedo, com o código da P64: um jogo de
+        #   `Icon=steam_icon_12345` e um programa com linha no `curadoria.map` e
+        #   a arte dela no tema. A ficha mostrava a frase da trava logo acima do
+        #   «Usar este ícone» com os desenhos do Dracula, o POST saía 200, e
+        #   depois do `icones_pack` o arquivo dos dois no tema era o alien — a
+        #   arte dela, apagada.
+        #   A frase é a da trava do traço, com a mesma lista lida do script: a
+        #   ficha mostra a `trava`, e o 409 do POST diz a mesma coisa.
+        intocaveis, prefixos, curados, _convertidos = (
+            self._travas_do_arcticons() if travas is None else travas)
+        motivo = self._motivo_da_trava((intocaveis, prefixos, curados, ()),
+                                       [d.get("id"), icone], rotulo)
+        if motivo:
+            return motivo
         if icone.startswith("/"):
             return ("O lançador de %s aponta o ícone por caminho de arquivo, e o tema "
                     "de ícones não é consultado para ele." % rotulo)
@@ -8734,13 +8760,12 @@ class Manipulador(BaseHTTPRequestHandler):
         rotulo = d.get("nome") or app
         # A página não oferece o pack a quem tem outro dono; um POST direto ouve
         # o mesmo motivo.
-        # A TRAVA DO TRAÇO SAIU DAQUI — 25/09/2026, P64. Ela diz por que um glifo
-        # do Arcticons não valeria (intocável, curadoria, desenho convertido), e
-        # o que esses três impedem mora no `48x48/apps`; o desenho do pack vai
-        # para o `scalable/apps`, que vence o traço. Recusar por ela era recusar
-        # a Calculadora, cujo ícone na tela já é o desenho do Dracula. A ficha
-        # passou a oferecer o pack a quem tem só a trava do traço, e o POST
-        # aceita o que ela oferece.
+        # O CONVERTIDO NÃO TRAVA O PACK — 25/09/2026, P64 e a revisão dela. A
+        # trava do traço tem três casos, e só o convertido mora no `48x48/apps`,
+        # que o desenho do pack, no `scalable/apps`, vence: recusar por ele era
+        # recusar a Calculadora, cujo ícone na tela já é o desenho do Dracula.
+        # O intocável e a curadoria travam o pack também, e é a `_trava_do_pack`
+        # que os diz — a mesma conta das duas grades, que a ficha lê.
         motivo = self._trava_do_pack(d, rotulo)
         if motivo:
             return self._json({"erro": motivo}, 409)
@@ -8748,14 +8773,12 @@ class Manipulador(BaseHTTPRequestHandler):
         # script escreve em `scalable/apps/<nome>.svg`, e é ele que o tema acha.
         nome = self._nome_do_icone(app)
         try:
-            with open(pack["mapa"], "r", encoding="utf-8") as fh:
-                linhas = fh.read().split("\n")
             # O parser é o do pack.py, o mesmo do `fontes`: a linha que ele lê
             # como a do nome é a que se troca.
-            ativas = [(num, n) for num, n, _alvo in modulo_pack().ler_mapa(pack["mapa"])]
+            linhas, ativas = self._mapa_do_pack(pack["mapa"])
         except OSError as e:
             return self._json({"erro": "não consegui ler o mapa do pack: %s" % e}, 500)
-        numero = next((num for num, n in ativas if n == nome), None)
+        numero = next((num for num, n, _alvo in ativas if n == nome), None)
         # A LINHA TROCADA VAI JUNTO (P64, ver `_MARCA_DO_PAINEL`): a do pack, ou
         # a que uma escolha anterior do painel já carregava.
         antes = ""
@@ -8824,16 +8847,26 @@ class Manipulador(BaseHTTPRequestHandler):
         achado = self._MARCA_DO_PAINEL.match(linha)
         return None if not achado else (achado.group(1) or "")
 
+    def _mapa_do_pack(self, mapa):
+        """(linhas, ativas) do `apps.map` de um pack: o arquivo inteiro, linha a
+        linha — é ele que se grava de volta —, e as ativas como o `ler_mapa` do
+        pack.py as lê, (número, nome, alvo). O OSError sobe: quem chama decide
+        se ele é um 500 ou "não há escolha".
+
+        UMA LEITURA SÓ — revisão da P64. Escolher, perguntar pela escolha e
+        desfazê-la liam o mapa cada um do seu jeito, e é assim que três leitores
+        do mesmo arquivo passam a achar linhas diferentes."""
+        with open(mapa, "r", encoding="utf-8") as fh:
+            linhas = fh.read().split("\n")
+        return linhas, list(modulo_pack().ler_mapa(mapa))
+
     def _escolha_no_pack(self, pack, app):
         """{pack, nome_pack, desenho, antes} da escolha do painel para `app` no
         mapa do pack no ar, ou None. `antes` é o desenho que ela trocou, ou None
         quando o pack não tinha linha para o nome."""
-        mod = modulo_pack()
         nome = self._nome_do_icone(app)
         try:
-            with open(pack["mapa"], "r", encoding="utf-8") as fh:
-                linhas = fh.read().split("\n")
-            ativas = list(mod.ler_mapa(pack["mapa"]))
+            linhas, ativas = self._mapa_do_pack(pack["mapa"])
         except OSError:
             return None
         for num, n, alvo in ativas:
@@ -8864,12 +8897,10 @@ class Manipulador(BaseHTTPRequestHandler):
         nome = self._nome_do_icone(app)
         mod = modulo_pack()
         try:
-            with open(pack["mapa"], "r", encoding="utf-8") as fh:
-                linhas = fh.read().split("\n")
-            numero, alvo = next(((num, a) for num, n, a in mod.ler_mapa(pack["mapa"])
-                                 if n == nome), (None, ""))
+            linhas, ativas = self._mapa_do_pack(pack["mapa"])
         except OSError as e:
             return self._json({"erro": "não consegui ler o mapa do pack: %s" % e}, 500)
+        numero, alvo = next(((num, a) for num, n, a in ativas if n == nome), (None, ""))
         antes = self._escolha_do_painel(linhas[numero - 1]) if numero is not None else None
         if antes is None:
             return self._json({"ok": True, "removido": False, "app": app,
@@ -8932,7 +8963,17 @@ class Manipulador(BaseHTTPRequestHandler):
         É PREVISÃO, E NÃO MEDIDA: o passo roda logo depois (`icones_traco`,
         `icones_pack`), e a grade relida mostra o que ficou de fato. Os donos
         do `scalable/apps` fora dos mapas desta ficha (o `completar_icones.sh`,
-        o resgate) não entram na conta."""
+        o resgate) não entram na conta.
+
+        A RESOLUÇÃO DO MAPA É A DO SCRIPT, E NÃO A DO `_mapa_dracula` — revisão
+        da P64. A revisão apontou as duas como resoluções da mesma coisa com
+        quedas diferentes, e são. Medido numa casa de brinquedo com `PACK=""` e
+        `FLAVOR="alucard"` (o claro do Dracula): o `meow_pack_dir` + `acervo`
+        do `icones_apps_dracula.sh` e o `_pack_adotado` + `acervo` daqui acham
+        `packs/dracula/icones/apps.map`; o `_mapa_dracula`, que passa o FLAVOR
+        cru como pack, não acha mapa nenhum (0 nomes). Quem prevê o que o
+        script vai fazer pergunta como o script — e quem discorda é o
+        `_mapa_dracula`, fora do território desta sprint."""
         d = next((x for x in self._desktops() if x["id"] == app), None) or {}
         mod = modulo_pack()
         ident = _pack_adotado() if mod else ""

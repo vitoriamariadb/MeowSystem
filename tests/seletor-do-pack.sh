@@ -30,7 +30,8 @@
 #      ela trocou, e desfazer a devolve — o mapa volta byte a byte. A resposta
 #      diz o ícone que fica, e o «Voltar ao ícone de fábrica» de um app que
 #      está nos dois mapas não diz mais «de fábrica». E a trava do traço não
-#      recusa o desenho do pack.
+#      recusa o desenho do pack — só a do convertido: o intocável e a curadoria
+#      travam os dois, na grade e no POST (revisão da P64).
 #
 # AS PERGUNTAS VÃO ÀS ROTAS DE VERDADE, no molde do tests/oficina.sh: o
 #   `Manipulador` sem socket, com o `_json` capturado. O passo que põe no tema é
@@ -94,6 +95,13 @@ jogo() {   # jogo <arquivo> <Name> <Icon>
 }
 jogo jogo-de-brinquedo "Jogo de Brinquedo" "$CASA/jogo.svg"
 jogo jogo-por-nome "Jogo por Nome" jogo-por-nome
+# E os dois casos da trava do traço que travam o pack também (revisão da P64):
+# um jogo da Steam, intocável pelo prefixo `steam_icon_` da lista do script, e
+# um programa com a arte que ela escolheu na curadoria — a linha como o
+# `importar_icones.sh` a escreve, no `curadoria.map` da raiz de brinquedo.
+jogo meow-steam-12345 "Jogo da Steam" steam_icon_12345
+desktop programa-curado "Programa Curado" programa-curado
+printf 'programa-curado\tsvg\tscalable/apps\n' > "$T/raiz/assets/icones/curadoria.map" || exit 2
 
 env -u MEOW_PACK_DIR -u MEOW_PALETA -u MEOW_PALETA_DA_PONTE -u MEOW_PACKS \
     -u NOME_TEMA_ICONES -u PACK -u FLAVOR -u ICONES_DRACULA -u MEOW_SECO \
@@ -473,6 +481,24 @@ checa(calc.get("trava") and calc.get("trava_pack") is None and codigo == 200,
       repr((calc.get("trava"), dados)))
 desfazer("org.gnome.Calculator")
 checa(mapa_agora() == antes, "e o desfazer dela devolve o mapa do pack")
+
+# O INTOCÁVEL E A CURADORIA TRAVAM O PACK — revisão da P64. Dos três casos da
+# trava do traço, só o convertido mora no `48x48/apps`. O intocável é pedido
+# dela, e a arte da curadoria mora no mesmo `scalable/apps` do pack; o
+# `icones_apps_dracula.sh` não cede a nenhum dos dois, e a linha no mapa poria
+# o desenho do pack por cima. A grade manda a frase na `trava_pack` (é ela que
+# esconde a busca na ficha), e o POST a devolve no 409, sem tocar no mapa.
+jogos = {a["id"]: a for a in servidor.Manipulador._dados_jogos(m, {}).get("apps", [])}
+apps = {a["id"]: a for a in servidor.Manipulador._dados_apps(m, {}).get("apps", [])}
+for app, grade, caso in (("meow-steam-12345", jogos, "o jogo da Steam, intocável"),
+                         ("programa-curado", apps, "o programa com arte da curadoria")):
+    a = grade.get(app) or {}
+    codigo, dados = escolher(app, "biblioteca/alien.svg")
+    checa(a.get("trava") and a.get("trava_pack") == a.get("trava")
+          and codigo == 409 and dados.get("erro") == a["trava_pack"] and mapa_agora() == antes,
+          "%s: a grade diz a trava do pack com a frase da do traço, e o POST a devolve no 409 "
+          "sem mexer no mapa (%s)" % (caso, codigo),
+          repr((a.get("trava"), a.get("trava_pack"), codigo, dados)))
 
 if falhas:
     print("FALHOU: os desenhos do pack na ficha de ícone:", file=sys.stderr)

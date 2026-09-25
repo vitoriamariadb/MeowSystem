@@ -18,6 +18,16 @@
 #      depois da de agora, e sumia inteira para o aplicativo com trava do
 #      traço, levando junto o grupo do pack, que não depende dessa trava.
 #
+# E O QUE A REVISÃO DA P64 ACHOU NO CONSERTO
+#   · O rótulo «Voltar ao ícone de fábrica» era a mentira da torrada em outro
+#     lugar: com o Chrome nos dois mapas, ele prometia a fábrica logo acima da
+#     torrada que dizia o pack. Ele diz agora o que desfaz («Desfazer a escolha
+#     no traço»), e a torrada diz o que fica.
+#   · Na ficha travada com pack, a frase da busca sem resultado prometia «o
+#     acervo que veio com o projeto» e mostrava só os desenhos do pack.
+#   · (A trava do intocável e a da curadoria, que voltaram a travar o pack, são
+#     do servidor, e é o tests/seletor-do-pack.sh que as cobra.)
+#
 # COMO SE MEDE
 #   · A contagem das declarações no topo sai do texto (a regra da casa: toda
 #     função de topo começa na coluna 0), e roda sem node.
@@ -253,6 +263,23 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
   checa(!painel.todos().some((e) => e.tagName === "INPUT" && e.dataset.foco === "glifos"),
         "e sem pack que a ficha possa oferecer, também");
 
+  // A BUSCA QUE NÃO ACHOU NADA DIZ O QUE VEM A SEGUIR (revisão da P64): na ficha
+  // travada, o traço sai da tira, e o que a busca vazia traz são os desenhos
+  // do pack — a frase não pode prometer o acervo do projeto. A busca da ficha
+  // travada acha um traço, que a trava tira da tira.
+  const semAchado = (app, itens) => {
+    zerar(); glifos({ termo: "xyz", itens });
+    respostas = () => ({ glifos: [] });
+    const frase = ficha(app).todos().find((e) => e.tagName === "P" && e.className === "sem-previa");
+    return frase ? frase.textContent : "(sem frase)";
+  };
+  let frase = semAchado(aplicativo({ trava }), [TRACO]);
+  checa(frase === "Nenhum desenho com esse nome — mostrando os desenhos do pack «Dracula».",
+        "na ficha travada, a busca sem achado diz que mostra os desenhos do pack", frase);
+  frase = semAchado(aplicativo(), []);
+  checa(frase === "Nenhum desenho com esse nome — mostrando o acervo que veio com o projeto.",
+        "e na ficha sem trava, o acervo do projeto, como antes", frase);
+
   // --- 3.5 o desfazer da escolha no pack, e a torrada que diz o que fica ---------
   zerar();
   const escolha = { pack: "dracula", nome_pack: "Dracula", glifo: "alien", antes: "google-chrome" };
@@ -296,8 +323,13 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
   zerar(); glifos();
   respostas = (rota) => (rota === "/api/app-icone" ? { ok: true, removido: true, fica } : {});
   painel = ficha(aplicativo({ mapa: { glifo: "google-chrome", cor: "yellow" } }));
-  const voltar = botao(painel, "Voltar ao ícone de fábrica");
-  if (checa(voltar, "com o Chrome no mapa do traço, a ficha oferece «Voltar ao ícone de fábrica»")) {
+  // O RÓTULO NÃO PROMETE O QUE FICA (revisão da P64): «Voltar ao ícone de
+  // fábrica» dizia a fábrica logo acima da torrada que dizia o pack.
+  const voltar = botao(painel, "Desfazer a escolha no traço");
+  const fabrica = painel.todos().filter((e) => e.tagName === "BUTTON" && /fábrica/.test(e.textContent));
+  if (checa(voltar && !fabrica.length,
+            "com o Chrome no mapa do traço, a ficha oferece «Desfazer a escolha no traço», e botão "
+            + "nenhum promete a fábrica", fabrica.map((b) => b.textContent).join(", "))) {
     await voltar.clicar();
     const t = (chamadas.torradas[0] || {}).texto || "";
     checa(t.includes("o desenho «google-chrome» do pack «Dracula»") && !t.includes("fábrica"),
