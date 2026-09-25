@@ -875,24 +875,35 @@ chk_heroictema() {
   #   chave `theme` recebe o `apps.heroic.esquema` do pack no ar, que tem duas
   #   formas (o bloco "O TEMA SAI DO PACK NO AR" do módulo): com `.css`, um
   #   arquivo do acervo, que passa pelo handler lido aqui; sem, um tema que o
-  #   Heroic já traz — o `dracula` —, que não passa. Herdado, o módulo não grava
-  #   nada. A frase pergunta pela mesma porta do módulo (a `adocao` e o
-  #   `meow_app_tema_do_pack`); com o Catppuccin no ar, ela é a de antes.
-  local saida pack nome
+  #   Heroic já traz — o `dracula` —, que não passa. Recusado, o módulo não grava
+  #   nada. Com o Catppuccin no ar, a frase é a de antes.
+  #
+  #   QUEM CLASSIFICA É O MÓDULO, PERGUNTADO — revisão da P62, no mesmo dia
+  #   A primeira versão reescrevia aqui a regra do `_heroic_do_pack` (herdado,
+  #   com `.css`, sem `.css`) e errou onde as duas se afastam: com um pack que
+  #   pede um `.css` fora do acervo, esta frase dizia «o módulo grava com o
+  #   .css, e está certo», e o módulo recusa («não está no acervo») e não grava
+  #   nada. Agora o manifesto é carregado num subshell, como o `rodar_modulo` do
+  #   aplicar_apps.sh o carrega, e a frase lê o que ele decidiu: o
+  #   `_HEROIC_EMBUTIDO` e o `_HEROIC_TEMA`, ou o `_HEROIC_MOTIVO` da recusa, com
+  #   as palavras dele. A `adocao` daqui fica só para o nome do pack na frase.
+  local saida nome tema embutido motivo
   local cauda="o módulo grava com o .css, e está certo"
   local pesa="o módulo grava 'theme' COM o .css por causa dessa linha; confira o handler antes de confiar na tela"
-  saida="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null)" || saida=""
-  pack="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
-  nome="$(printf '%s\n' "$saida" | sed -n 's/^nome=//p')"
-  if [ -n "$pack" ]; then
-    meow_app_tema_do_pack heroic.esquema
-    if [ -z "$MEOW_APP_TEMA" ] || [ "$MEOW_APP_TEMA_PACK" != "$pack" ]; then
-      cauda="o pack no ar (${nome:-$pack}) não tem tema para o Heroic, e o módulo não grava nada"
-      pesa="o pack no ar (${nome:-$pack}) não tem tema para o Heroic — a linha pesa num pack de tema em arquivo"
-    elif [ "${MEOW_APP_TEMA%.css}" = "$MEOW_APP_TEMA" ]; then
-      cauda="o pack no ar (${nome:-$pack}) veste o '$MEOW_APP_TEMA', que o Heroic já traz, e sem arquivo não passa por aí"
-      pesa="o pack no ar (${nome:-$pack}) veste o '$MEOW_APP_TEMA', que o Heroic já traz e não passa por essa linha — ela pesa num pack de tema em arquivo"
-    fi
+  nome="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null | sed -n 's/^nome=//p')"
+  saida="$(exec 2>/dev/null
+           . "$RAIZ/assets/temas-de-apps/heroic/manifesto.sh" || exit "$MEOW_ERRO"
+           _heroic_do_pack
+           printf 'tema=%s\nembutido=%s\nmotivo=%s\n' "$_HEROIC_TEMA" "$_HEROIC_EMBUTIDO" "$_HEROIC_MOTIVO")"
+  tema="$(printf '%s\n' "$saida" | sed -n 's/^tema=//p')"
+  embutido="$(printf '%s\n' "$saida" | sed -n 's/^embutido=//p')"
+  motivo="$(printf '%s\n' "$saida" | sed -n 's/^motivo=//p')"
+  if [ -n "$motivo" ]; then
+    cauda="o módulo não grava nada com o pack no ar: ${motivo#Heroic: }"
+    pesa="a linha pesa num pack de tema em arquivo, e com o pack no ar o módulo não grava nada: ${motivo#Heroic: }"
+  elif [ "$embutido" = 1 ]; then
+    cauda="o pack no ar (${nome:-?}) veste o '$tema', que o Heroic já traz, e sem arquivo não passa por aí"
+    pesa="o pack no ar (${nome:-?}) veste o '$tema', que o Heroic já traz e não passa por essa linha — ela pesa num pack de tema em arquivo"
   fi
   if grep -aq -- 'join(customThemesPath, theme)' "$asar"; then
     echo "o Heroic abre o tema pelo nome do arquivo — $cauda"
@@ -3051,11 +3062,17 @@ cmd_apps() {
         #   o `--` basta (a coluna do lado já diz por quê); com ele, a coluna diz
         #   que o tema não entra, e a linha de baixo diz o motivo com as palavras
         #   do módulo — a quinta coluna do `aplicar_apps.sh tabela`.
+        #   «não veste» SÓ COM O MOTIVO EMBAIXO (revisão da P62, no mesmo dia): a
+        #   primeira versão o dizia em todo 3 de programa instalado, e o
+        #   qBittorrent vestido por um tema de fora — o estado desta máquina —
+        #   saía `sim  não veste` sem linha nenhuma, com o `meow apps conferir`
+        #   dizendo «o qBittorrent já está vestido». Sem motivo na quinta coluna
+        #   fica o `--` de antes: a tabela não afirma o que o módulo não disse.
         case "$conf" in
           0) t_tema="aplicado"; c_tema="$C_VERDE" ;;
           1) t_tema="pendente"; c_tema="$C_AMARELO"; rc_geral=1 ;;
           3) t_tema="--";       c_tema="$C_DIM"
-             [ "$det" = 0 ] && t_tema="não veste" ;;
+             [ "$det" = 0 ] && [ -n "$motivo" ] && t_tema="não veste" ;;
           *) t_tema="erro";     c_tema="$C_VERM"; rc_geral=2 ;;
         esac
         # A cor entra FORA do %-10s: os bytes de escape são invisíveis na tela

@@ -111,6 +111,20 @@ rodar_modulo() {
           meow_erro "o módulo '$pasta' não diz se o programa está instalado"
           exit 2
         fi ;;
+      # SEXTO VERBO, SÓ DA TABELA: O MOTIVO DO `detectar` — 25/09/2026, revisão da P62
+      #   Quase todo `conferir` sai 3 CALADO quando o `detectar` barra — o
+      #   `meow_app_detectar || return 3` do Discord, do kitty, do OnlyOffice, do
+      #   Spotify… —, e o motivo que o `meow_app_sem` guardou morre com o
+      #   subshell. A tabela pergunta aqui, e só quando o `conferir` não deu linha
+      #   `--` nenhuma: o que o `detectar` diz nessa linha (os módulos de antes do
+      #   contrato, como o Heroic que nunca abriu) ou o MEOW_APP_MOTIVO dos do
+      #   contrato, dito pela porta dele (`meow_app_pendente`, lib/comum.sh). Sem
+      #   nenhum dos dois não sai linha: o qBittorrent vestido por fora diz o dele
+      #   por `!!` e `>>`, e a tabela não traduz aviso em motivo.
+      motivo)
+        meow_app_detectar 2>/dev/null && exit "$MEOW_OK"
+        [ -n "$MEOW_APP_MOTIVO" ] && meow_app_pendente "$pasta"
+        exit "$MEOW_SEM_DEPENDENCIA" ;;
       *) meow_erro "ação desconhecida para o módulo '$pasta': $acao"; exit 2 ;;
     esac
   )
@@ -160,19 +174,32 @@ if [ "$ACAO" = "tabela" ]; then
   #   A P55 pediu que o `meow apps` dissesse «sem tema neste pack», e só o
   #   `meow apps conferir` dizia: com um pack sem aplicativo nenhum, a frase
   #   saía lá três vezes, uma por programa, e a tabela pintava os três de `--`.
-  #   Quem sabe o motivo é o módulo, e ele o diz no `conferir` pela linha `--`
-  #   (o `meow_pula`, a porta do contrato do motivo no lib/comum.sh). A saída
-  #   que ia para o nada é lida aqui, e as linhas `--` de um 3 vão na quinta
-  #   coluna, unidas por « · » — o TSV não aceita tabulação nem quebra de linha.
-  #   Um `conferir` que sai 3 calado deixa a coluna vazia: a tabela não inventa
-  #   o motivo que o módulo não disse.
+  #   Quem sabe o motivo é o módulo, e ele chega aqui por dois caminhos: as
+  #   linhas `--` do `conferir` (o `meow_app_pendente` do Obsidian e do VS
+  #   Code, o `meow_pula` do «não veio daqui» do kitty e do OnlyOffice) e, se o
+  #   `conferir` sai 3 calado, o verbo `motivo` do `rodar_modulo`, que traz o
+  #   do `detectar`. As linhas vão na quinta coluna, unidas por « · » — o TSV
+  #   não aceita tabulação nem quebra de linha. Sem nenhum dos dois a coluna
+  #   fica vazia: a tabela não inventa o motivo que o módulo não disse.
+  #   [Até a revisão da P62, no mesmo dia, só havia o primeiro caminho, e este
+  #   bloco chamava o `meow_pula` de "a porta do contrato do motivo no
+  #   lib/comum.sh". A porta é o `meow_app_sem`, que guarda no MEOW_APP_MOTIVO,
+  #   e quem diz é o `meow_app_pendente`. Medido numa casa de brinquedo vazia,
+  #   dos onze `conferir` que saíram 3 só o do Obsidian e o do qBittorrent deram
+  #   a linha `--`; nesta máquina, o Discord e o qBittorrent instalados saíam na
+  #   tabela «não veste», sem motivo nenhum embaixo.]
+  linhas_de_pulo() {
+    sed -n -e 's/\x1b\[[0-9;]*m//g' -e 's/^  --   //p' | tr '\t' ' ' \
+      | awk 'NR > 1 { printf " · " } { printf "%s", $0 }'
+  }
   for pasta in "${ORDEM[@]}"; do
     rodar_modulo "$pasta" instalado >/dev/null 2>&1; rc_inst=$?
     saida="$(rodar_modulo "$pasta" conferir 2>/dev/null)"; rc_conf=$?
     motivo=""
-    [ "$rc_conf" = "$MEOW_SEM_DEPENDENCIA" ] && motivo="$(printf '%s\n' "$saida" \
-      | sed -n -e 's/\x1b\[[0-9;]*m//g' -e 's/^  --   //p' | tr '\t' ' ' \
-      | awk 'NR > 1 { printf " · " } { printf "%s", $0 }')"
+    if [ "$rc_conf" = "$MEOW_SEM_DEPENDENCIA" ]; then
+      motivo="$(printf '%s\n' "$saida" | linhas_de_pulo)"
+      [ -n "$motivo" ] || motivo="$(rodar_modulo "$pasta" motivo 2>/dev/null | linhas_de_pulo)"
+    fi
     printf '%s\t%s\t%s\t%s\t%s\n' "$pasta" "${SLUGS_DE[$pasta]}" "$rc_inst" "$rc_conf" "$motivo"
   done
   exit "$MEOW_OK"

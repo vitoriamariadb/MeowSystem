@@ -736,6 +736,36 @@ ficou="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/penden
            "$saida
 pendência antes: $tinha
 pendência depois: $ficou"
+# «NÃO VESTE» SÓ COM O MOTIVO EMBAIXO — 25/09/2026, revisão da P62
+#   A P62 pintou de «não veste» todo 3 de programa instalado, e o motivo só
+#   vinha quando o `conferir` dava linha `--`. Nesta casa — o qBittorrent vestido
+#   por ela, o estado da máquina onde a revisão mediu — a tabela dizia `sim  não
+#   veste` sem linha nenhuma, com o `conferir` dizendo «já está vestido». E o
+#   Discord só com o cliente oficial, cujo `conferir` sai 3 calado, perdia o
+#   motivo que o `detectar` guardou. Sem motivo, o `--` de antes; com ele,
+#   «não veste» e as palavras do módulo na linha de baixo. (A pasta do Vencord
+#   que a seção do Discord deixou sai de cena e volta no fim: sem ela, o Discord
+#   é só o cliente oficial de novo.)
+mv "$CASA/.config/Vencord" "$T/vencord-de-lado"
+printf 'PACK="dracula"\nFLAVOR="dracula"\nACCENT="mauve"\nAPPS_ATIVOS="discord,qbittorrent"\n' > "$T/meow8.conf"
+saida="$(env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
+           XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
+           MEOW_ESTADO="$T/estado8" MEOW_CONF="$T/meow8.conf" TMPDIR="$T" NO_COLOR=1 \
+           FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" FLATPAK_CONFIG_DIR="$T/flatpak-etc" \
+           "$RAIZ/bin/meow" apps </dev/null 2>&1)"
+faltam=""
+printf '%s\n' "$saida" | grep -qE '^  qbittorrent +sim +-- +qbittorrent$' \
+  || faltam+=" o qBittorrent vestido por ela não ficou no «--»;"
+printf '%s\n' "$saida" | grep -qE '^  discord +sim +não veste +discord$' \
+  && printf '%s\n' "$saida" | grep -A1 -E '^  discord ' | tail -n 1 | grep -qE '^ {21}Discord: .*cliente modificado' \
+  || faltam+=" o Discord não saiu «não veste» com o motivo do detectar embaixo;"
+[ "$(printf '%s\n' "$saida" | grep -cE '^  [a-z-]+ +sim +não veste ')" \
+  = "$(printf '%s\n' "$saida" | grep -cE '^ {21}[^ ]')" ] \
+  || faltam+=" há «não veste» sem a linha do motivo;"
+[ -z "$faltam" ] \
+  && ok "meow apps: «não veste» só com o motivo embaixo — o qBittorrent vestido por ela fica «--», o Discord diz o cliente que falta" \
+  || falha "meow apps: a tabela diz «não veste» sem motivo, ou perde o motivo guardado:$faltam" "$saida"
+mv "$T/vencord-de-lado" "$CASA/.config/Vencord"
 rm -rf "$CASA/.var/app/org.qbittorrent.qBittorrent" "$BIN/flatpak" \
        "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
 
@@ -1460,8 +1490,24 @@ saida="$(chk10 dracula dracula)"; rc=$?
   && ! printf '%s' "$saida" | grep -qF '.css' \
   || faltam+=" com o Dracula a frase não diz o tema que ele traz (rc=$rc: $saida);"
 saida="$(chk10 sem-apps dracula)"; rc=$?
-[ "$rc" = 0 ] && printf '%s' "$saida" | grep -qF 'o pack no ar (Sem Apps) não tem tema para o Heroic' \
+[ "$rc" = 0 ] && printf '%s' "$saida" | grep -qF 'o módulo não grava nada com o pack no ar: sem tema neste pack (Sem Apps)' \
   || faltam+=" sem tema no pack a frase não diz (rc=$rc: $saida);"
+# QUEM CLASSIFICA É O MÓDULO — revisão da P62, no mesmo dia. A primeira versão
+#   reescrevia no doctor a regra do `_heroic_do_pack`, e as duas se afastavam num
+#   pack que pede um `.css` fora do acervo: o doctor dizia «o módulo grava com o
+#   .css, e está certo», e o módulo recusa e não grava nada. A frase agora é a
+#   recusa do módulo, com as palavras dele.
+mkdir -p "$PACKS10/css-fora"
+cp "$PACKS10/sem-apps/logo.svg" "$PACKS10/sem-apps/paleta.json" "$PACKS10/css-fora/"
+printf '{"formato": 1, "id": "css-fora", "nome": "Css Fora", "heranca": "catppuccin",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}, "vitrine": {"capa": "logo.svg"},
+ "apps": {"heroic": {"esquema": "fora-do-acervo.css"}}}\n' > "$PACKS10/css-fora/pack.json"
+saida="$(chk10 css-fora dracula)"; rc=$?
+[ "$rc" = 0 ] && printf '%s' "$saida" | grep -qF "o módulo não grava nada com o pack no ar: o pack" \
+  && printf '%s' "$saida" | grep -qF "'fora-do-acervo.css', que não está no acervo" \
+  && ! printf '%s' "$saida" | grep -qF 'grava com o .css' \
+  || faltam+=" com um .css fora do acervo a frase não diz a recusa do módulo (rc=$rc: $saida);"
+rm -rf "$PACKS10/css-fora"
 printf 'x outra forma y' > "$asar10/app.asar"
 saida="$(chk10 dracula dracula)"; rc=$?
 [ "$rc" = 1 ] && ! printf '%s' "$saida" | grep -qF 'COM o .css' \
@@ -1470,7 +1516,7 @@ saida="$(chk10 catppuccin mocha)"; rc=$?
 [ "$rc" = 1 ] && printf '%s' "$saida" | grep -qF "o módulo grava 'theme' COM o .css por causa dessa linha" \
   || faltam+=" com o handler mudado e o Catppuccin no ar, a frase de antes sumiu (rc=$rc: $saida);"
 [ -z "$faltam" ] \
-  && ok "P62: o heroictema do doctor diz o que o módulo grava com o pack no ar — .css só no tema de arquivo" \
+  && ok "P62: o heroictema do doctor diz o que o módulo grava com o pack no ar — .css só no tema de arquivo, e a recusa com as palavras do módulo" \
   || falha "P62: o heroictema:$faltam"
 
 # --- e) O DESFAZER DO VS CODE TIRA SÓ AS EXTENSÕES DO PACK NO AR -----------

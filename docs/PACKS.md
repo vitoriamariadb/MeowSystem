@@ -1120,7 +1120,7 @@ Obsidian anunciou *"Catppuccin Mocha já estava aplicado"*. O único dos oito qu
 |---|---|
 | `arquivo` | caminho **dentro do pack** para a arte do tema. Volta resolvido em caminho absoluto |
 | `sha256` | a integridade daquele arquivo. O `validar` a confere **na publicação** |
-| `herda` | *"este aplicativo eu pego emprestado daquele pack"*. Vence a `heranca` do topo. Nenhum pack o usa hoje, e no Obsidian, no VS Code (tema e ícones) e no Heroic ele não veste nada: o tema desses tem a cor escrita, e o módulo recusa o herdado dizendo *«sem tema neste pack»* |
+| `herda` | *"este aplicativo eu pego emprestado daquele pack"*. Vence a `heranca` do topo. Nenhum pack o usa hoje, e no Obsidian, no tema do VS Code e no Heroic ele não veste nada: o tema desses tem a cor escrita, e o módulo recusa o herdado dizendo *«sem tema neste pack»*. Os ícones do VS Code herdados ficam de fora do mesmo jeito, mas em silêncio: o tema do pack entra sem eles, e nenhuma frase diz por quê |
 | o resto | nomes que o módulo daquele app entende — veja a tabela abaixo |
 
 Os campos que cada módulo entende hoje:

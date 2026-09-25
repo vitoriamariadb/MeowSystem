@@ -309,9 +309,12 @@ _aplicar() {
 #   ela tira uma linha do `pastas.map`. Um segundo caminho de remoção seria uma
 #   segunda regra para o mesmo ato, e a que ninguém relê é sempre a que quebra.
 #
-#   O `construir_pastas.sh` faz o resto sozinho: ele só cede o nome cujo pastel
-#   ESTÁ no disco, então com o diretório limpo os 7 voltam a mauve na mesma
-#   passagem do instalador. Nenhuma pasta fica sem ícone no meio do caminho.
+#   O `construir_pastas.sh` faz o resto sozinho: ele só cede o nome cujo desenho
+#   ESTÁ no disco, então com o diretório limpo os 7 voltam à cor das outras
+#   pastas na mesma passagem do instalador. Nenhuma pasta fica sem ícone no meio
+#   do caminho. [Até a revisão da P62 (25/09/2026) dizia "cujo pastel" e "voltam
+#   a mauve": o desenho do Catppuccin e o acento de uma casa, a afirmação que a
+#   P62 corrigiu na tela, lá embaixo, e no comentário gêmeo do install.sh.]
 _desligado() { [ "${PASTAS_XDG:-nao}" != "sim" ]; }
 
 main() {
