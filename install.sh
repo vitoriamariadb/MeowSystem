@@ -1017,11 +1017,24 @@ etapa_tema() {
   #   Chamá-lo de novo aqui não é redundância: o `gerar` sai antes de chegar a
   #   ele quando o `gerar_temas.py` falha, e a etapa do tema não pode depender
   #   disso para saber se há tema. Quando já está derivada, ele só confere.
+  #   E O FLAVOR SEM FOTOGRAFIA NENHUMA TAMBÉM — 25/09/2026, P59: o alucard, o
+  #   frappe e o macchiato saem de outro flavor do mesmo lado, trocado slot a
+  #   slot (o `derivar_flavor.py`, que o `derivar_acento.py` chama). Esta
+  #   etapa não muda: a pergunta e a escrita continuam as mesmas duas linhas.
+  #
+  # O `TEMA_SEM_CAPTURA` É O RECADO PARA O FIM DO `main` — P59. A tela de login
+  #   veste a MESMA captura (o `greeter.sh` pergunta ao `meow_captura` pelo
+  #   mesmo par), e sem ela se pula antes de olhar o sudo; o rodapé mandava
+  #   então «sudo -v && ./install.sh» para um pulo que não era de root. Ele diz
+  #   `deriva` no ensaio, em que a captura ainda não foi escrita, e `falta` quando
+  #   o par não tem tema; vazio, a captura existe. Zerado a cada passagem.
+  TEMA_SEM_CAPTURA=""
   if [ -z "$captura" ]; then
     local deriva rc_d
     deriva="$(python3 "$MEOW_RAIZ/scripts/derivar_acento.py" --conferir "$alvo" 2>&1)"; rc_d=$?
     if [ "$rc_d" = "1" ]; then
       if meow_seco; then
+        TEMA_SEM_CAPTURA="deriva"
         meow_muda "derivaria a captura de '$alvo' e a aplicaria"
         return "$MEOW_DIVERGENTE"
       fi
@@ -1036,9 +1049,11 @@ etapa_tema() {
   TEMA_NAO_APLICADO=""
 
   if [ -z "$captura" ]; then
-    # Sem captura DEPOIS da derivação, o par não se deriva (um flavor que nunca
-    # foi fotografado) e o tema NÃO foi aplicado. Isso vira pendência na
-    # Início: antes a tela dizia «aplicou» com o desktop na cor de antes.
+    # Sem captura DEPOIS da derivação, o par não se deriva (um flavor sem
+    # fotografia dele nem de outro do mesmo lado que se reproduza, desde a P59)
+    # e o tema NÃO foi aplicado. Isso vira pendência na Início: antes a tela
+    # dizia «aplicou» com o desktop na cor de antes.
+    TEMA_SEM_CAPTURA="falta"
     deriva="${deriva#*não se deriva — }"
     TEMA_NAO_APLICADO="O tema do COSMIC não foi aplicado: não há captura para '$alvo' (${deriva#  })."
     meow_pendencia_acionavel tema-sem-captura "$TEMA_NAO_APLICADO"
@@ -3647,13 +3662,25 @@ main() {
     # cada um tem um conserto diferente. Quem se pulou por opt-in já se anunciou em
     # PULADOS_OPTIN; o que sobrar é que de fato depende de sudo.
     if [ ${#PULADOS[@]} -gt 0 ]; then
-      local p por_root=0
+      local p por_root=0 sem_captura=""
       for p in "${PULADOS[@]}"; do
         case " ${PULADOS_OPTIN[*]:-} " in *" $p "*) continue ;; esac
+        # A TELA DE LOGIN SEM TEMA NÃO É FALTA DE ROOT — 25/09/2026, P59. Com
+        #   FLAVOR=alucard a gaveta terminou mandando «sudo -v && ./install.sh»:
+        #   o `greeter` se pulou porque a captura não existia, antes de olhar o
+        #   sudo, e digitar a senha daria o mesmo resumo. O recado é da
+        #   `etapa_tema` (o `TEMA_SEM_CAPTURA`, que olha o mesmo par).
+        if [ "$p" = "greeter" ] && [ -n "${TEMA_SEM_CAPTURA:-}" ]; then
+          sem_captura="$TEMA_SEM_CAPTURA"; continue
+        fi
         case "$p" in greeter|ocultar|nomes|absolutos) por_root=1 ;; esac
       done
       [ "$por_root" = "1" ] && \
         meow_info "algumas dessas precisavam de root. Para completá-las:  sudo -v && ./install.sh"
+      case "$sem_captura" in
+        deriva) meow_info "greeter: no ensaio a captura do tema ainda não foi escrita (a etapa tema a deriva antes da tela de login) — não é falta de root" ;;
+        falta)  meow_info "greeter: a tela de login veste o tema do COSMIC, e ele não tem captura — não é falta de root" ;;
+      esac
       [ ${#PULADOS_OPTIN[@]} -gt 0 ] && \
         meow_info "${PULADOS_OPTIN[*]}: é opt-in, não é falta de root — LANCADOR_SISTEMA=\"sim\" no meow.conf liga"
     fi
@@ -3752,10 +3779,12 @@ main() {
   #   Achado 31 da validação: com o acento sem captura, a etapa `tema` se pulava,
   #   o instalador saía 0 com "Pronto. [...] nada mais a escrever", e o painel
   #   pintava «MEXEU E APLICOU» com o desktop na cor de antes. Desde a P48 o
-  #   acento se deriva e isso só sobra para o flavor que nunca foi fotografado
-  #   — e, nesse caso, o que a pessoa pediu no meow.conf e o que a tela mostra
-  #   DIVERGEM: é o 1 do projeto, e a última linha diz qual é a divergência. A
-  #   pendência (`tema-sem-captura`, na etapa) é a outra metade, na Início.
+  #   acento se deriva, e desde a P59 o flavor sem foto sai de outro do mesmo
+  #   lado: isso só sobra para o flavor sem fotografia dele nem de outro do
+  #   mesmo lado que se reproduza — e, nesse caso, o que a pessoa pediu no
+  #   meow.conf e o que a tela mostra DIVERGEM: é o 1 do projeto, e a última
+  #   linha diz qual é a divergência. A pendência (`tema-sem-captura`, na
+  #   etapa) é a outra metade, na Início.
   #   No ensaio a etapa já disse o que faria, e o rodapé dele segue o de sempre.
   if [ -n "${TEMA_NAO_APLICADO:-}" ] && ! meow_seco; then
     printf '\n  %s%s%s\n' "$C_AMARELO$C_FORTE" "$TEMA_NAO_APLICADO" "$C_ZERO"

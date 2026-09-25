@@ -673,16 +673,47 @@
       /* O sabor diz QUAL escuro; o modo diz SE a máquina veste claro. Quando os
        * dois se contradizem (latte com modo escuro) quem vence é o par que a
        * máquina de fato usa: latte é claro, e o modo claro é claro. O claro é
-       * o que o pack declara em `claros` — o alucard, com o Dracula. [P51] */
+       * o que o pack declara em `claros` — o alucard, com o Dracula. [P51]
+       *
+       * QUEM VENCE É O MODO, E ISSO FOI MEDIDO — 25/09/2026, P59. A frase de
+       * cima dizia que a máquina usava o claro, e a máquina não usa: quem
+       * escreve o `is_dark` do COSMIC é a `etapa_modo`, pelo MODO e só por ele,
+       * e o FLAVOR escolhe a captura, que traz as duas árvores. Com alucard e
+       * modo escuro esta prévia desenhava uma tela clara e o instalador
+       * deixava o desktop escuro. O lado agora é o do MODO, e o flavor
+       * desenhado é o que veste aquele lado: o servidor manda a conta pronta
+       * (`pack.lados`, do mesmo `_flavor_no_modo` que veste a página — o
+       * alucard no escuro veste o dracula; o mocha no claro, o latte). O
+       * automático fica como era, porque ali quem alterna é o relógio. Sem a
+       * conta do servidor (página exportada antes dela), vale a regra de cima. */
+      var lados = pack && pack.lados ? pack.lados[flavor] : null;
+      var vestido = flavor;
       var claro = modo === "claro" || fl.claros.indexOf(flavor) >= 0;
+      if (lados && modo !== "auto") {
+        vestido = lados[modo] || flavor;
+        claro = modo === "claro";
+      }
+      /* A VARIANTE SEM TEMA NÃO MUDA A COR DA TELA — P59. Quando o par não
+       * aplica (o `acentos_que_aplicam` do esquema, a conta do instalador), o
+       * instalador pula a etapa do tema e o COSMIC fica como está: o desenho
+       * pinta com a cor que a página veste agora (ver o `desenho`, abaixo).
+       *   A FRASE DIZIA «que é a da tela», E O ACENTO NÃO ERA — 25/09/2026,
+       * revisão da P59. A página vestia o flavor da tela com o acento do conf:
+       * com o frappe-pink sem tema e o COSMIC em mocha-mauve, o destaque saía
+       * rosa. Quem escreve acento no COSMIC é só o aplicar_tema.sh, e ele não
+       * roda nesse caso; o servidor agora tira os dois da tela. */
+      var aplica = typeof window !== "undefined" && typeof window.MEOW_PAR_APLICA === "function"
+        ? window.MEOW_PAR_APLICA(flavor, accent) : null;
       return {
-        flavor: flavor,
+        flavor: vestido,
         /* O NOME QUE A TELA DIZ é o do pack, e o da cor sai do hex dela
          * (achado 27: «Uma tela em mocha escuro, com destaque mauve», com o
-         * Dracula no ar). O `flavor` e o `accent` continuam sendo o valor. */
-        flavorNome: fl.nome[flavor] || flavor,
+         * Dracula no ar). O `accent` continua sendo o valor; o `flavor`, desde
+         * a P59, é o que veste o lado do MODO (o `vestido`, acima). */
+        flavorNome: fl.nome[vestido] || vestido,
         accent: accent,
-        accentNome: nomeDaCorNoPack(accent, flavor),
+        accentNome: nomeDaCorNoPack(accent, vestido),
+        semTema: aplica === false ? flavor + "-" + accent : "",
         modo: modo,
         claro: claro,
         encaixe: encaixe,
@@ -696,16 +727,24 @@
     },
 
     desenho: function (m) {
-      var tom = m.claro ? CLARO : tomDoFlavor(m.flavor);
+      /* Sem tema, a cor é a que a página veste: `--base` e `--accent` são os
+       * do `/paleta.css`. Com o par sem tema salvo, o servidor veste a página
+       * com o flavor e o acento que o COSMIC mostra (`_flavor_da_pagina` e
+       * `_acento_da_pagina`), e o que a tela não diz sai do padrão do pack;
+       * com ele só escolhido no cartão, a página ainda veste o conf salvo.
+       * [P59, e a revisão] */
+      var tom = m.semTema ? "var(--base)" : m.claro ? CLARO : tomDoFlavor(m.flavor);
       var tinta = m.claro ? ESCURO : CLARO;
       var corpo = mistura(tinta, tom, m.claro ? 7 : 11);
       var contorno = mistura(tinta, tom, 45);
       var fraco = mistura(tinta, tom, 62);
-      var acento = corDaPaleta(m.accent, "var(--accent)");
+      var acento = m.semTema ? "var(--accent)" : corDaPaleta(m.accent, "var(--accent)");
       var esc = m.escala;
 
-      var s = quadro("Uma tela em " + m.flavorNome + " " + (m.claro ? "claro" : "escuro")
-        + ", com destaque " + m.accentNome + ", "
+      var s = quadro((m.semTema
+        ? "Uma tela na cor de agora, porque " + m.semTema + " não tem tema"
+        : "Uma tela em " + m.flavorNome + " " + (m.claro ? "claro" : "escuro")
+          + ", com destaque " + m.accentNome) + ", "
         + (m.encaixe ? "janelas lado a lado" : "janelas soltas")
         + " e o ponteiro em " + Math.round(esc * 100) + "%.");
 
@@ -806,8 +845,10 @@
         ? "alternando claro e escuro pelo relógio"
         : (m.claro ? "claro" : "escuro");
       var ponteiro = m.cursor ? ", ponteiro " + curto(m.cursor, 30) : ", ponteiro do sistema";
-      return m.flavorNome + " " + luz + " com destaque " + m.accentNome + ", "
-        + arrumacao + ", " + m.escalaRotulo + ponteiro + "." + m.fecho;
+      var cor = m.semTema
+        ? "o tema do COSMIC fica como está, porque " + m.semTema + " não tem tema"
+        : m.flavorNome + " " + luz + " com destaque " + m.accentNome;
+      return cor + ", " + arrumacao + ", " + m.escalaRotulo + ponteiro + "." + m.fecho;
     },
   });
 

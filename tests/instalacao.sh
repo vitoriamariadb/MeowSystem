@@ -288,5 +288,51 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 8. A tela de login sem tema não manda ao sudo — 25/09/2026, sprint P59
+# ---------------------------------------------------------------------------
+# Com FLAVOR=alucard a gaveta terminou em «algumas dessas precisavam de root:
+# sudo -v && ./install.sh», e o `greeter` tinha se pulado porque o tema não
+# tinha captura, antes de olhar o sudo. As duas etapas aqui têm os nomes de
+# verdade (o rodapé as reconhece pelo nome) e o recado que a `etapa_tema` de
+# verdade deixa: `TEMA_SEM_CAPTURA`. Os mesmos pulos, com e sem ele.
+#   O `LOG_NIVEL=info` é o do meow.conf.exemplo: sem tty e sem ele o
+# instalador fica `silencioso`, e as duas frases do rodapé são `meow_info`.
+cenario login_sem_tema 'etapa_tema etapa_greeter' '
+LOG_NIVEL=info
+etapa_tema() { passo "tema falso sem captura"; TEMA_SEM_CAPTURA="falta"; return 3; }
+etapa_greeter() { passo "tela de login falsa"; meow_aviso "não há captura"; return 3; }
+'
+if contem 'sudo -v && ./install.sh'; then
+  falhou "login sem tema: o rodapé mandou ao sudo por um pulo que é de captura"
+elif ! contem 'greeter: a tela de login veste o tema do COSMIC, e ele não tem captura — não é falta de root'; then
+  falhou "login sem tema: o rodapé não disse que o pulo é da captura — saiu: $(printf '%s' "$SAIDA" | tail -4 | tr '\n' ' ')"
+else
+  passou "tela de login sem tema: o rodapé diz que falta a captura, e não manda ao sudo"
+fi
+cenario login_por_root 'etapa_tema etapa_greeter etapa_ocultar' '
+LOG_NIVEL=info
+etapa_tema() { passo "tema falso que aplicou"; TEMA_SEM_CAPTURA=""; return 0; }
+etapa_greeter() { passo "tela de login falsa sem sudo"; return 3; }
+etapa_ocultar() { passo "ocultar falso sem sudo"; return 3; }
+'
+if ! contem 'algumas dessas precisavam de root. Para completá-las:  sudo -v && ./install.sh'; then
+  falhou "login por root: o pulo de root de verdade perdeu a frase do sudo"
+elif contem 'não tem captura'; then
+  falhou "login por root: o rodapé culpou a captura com o tema aplicado"
+else
+  passou "tela de login sem sudo, com o tema aplicado: o rodapé manda ao sudo, como antes"
+fi
+cenario login_ensaio 'etapa_tema etapa_greeter' '
+LOG_NIVEL=info
+etapa_tema() { passo "tema falso no ensaio"; TEMA_SEM_CAPTURA="deriva"; meow_muda "derivaria"; return 1; }
+etapa_greeter() { passo "tela de login falsa"; return 3; }
+' --dry-run
+if contem 'sudo -v && ./install.sh' || ! contem 'greeter: no ensaio a captura do tema ainda não foi escrita'; then
+  falhou "login no ensaio: o rodapé não disse que a captura ainda não existe — saiu: $(printf '%s' "$SAIDA" | tail -4 | tr '\n' ' ')"
+else
+  passou "tela de login no ensaio: o rodapé diz que a captura ainda não foi escrita, e não manda ao sudo"
+fi
+
+# ---------------------------------------------------------------------------
 [ "$FALHAS" = "0" ] || exit 1
 printf 'ok: o laço das passagens fecha sozinho, e as duas guardas disparam\n'
