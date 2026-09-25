@@ -45,7 +45,7 @@
     }
   },
   "apps": {
-    "_nota": "Os TEMAS DE DENTRO dos aplicativos, e não os ícones deles — `icones.apps`, logo acima, é outra coisa. O bloco nasceu em 22/09/2026 (sprint P18) porque `assets/temas-de-apps/` era anterior ao formato de pack e nunca soube que ele existe: uma contagem mediu 446 citações da palavra `catppuccin` em oito módulos e ZERO consultas ao pack ativo. Numa máquina vestida de Dracula, o módulo do Obsidian anunciou 'Catppuccin Mocha já estava aplicado' — o único dos oito que 'deu certo' foi o que aplicou o tema do outro pack e chamou de sucesso. Só spotify e qbittorrent estão aqui: os outros seis módulos ainda não perguntam, e declarar o tema deles antes de existir quem leia seria a promessa vazia que o `validar` avisa em voz alta.",
+    "_nota": "Os TEMAS DE DENTRO dos aplicativos, e não os ícones deles — `icones.apps`, logo acima, é outra coisa. O bloco nasceu em 22/09/2026 (sprint P18) porque `assets/temas-de-apps/` era anterior ao formato de pack e nunca soube que ele existe: uma contagem mediu 446 citações da palavra `catppuccin` em oito módulos e ZERO consultas ao pack ativo. Numa máquina vestida de Dracula, o módulo do Obsidian anunciou 'Catppuccin Mocha já estava aplicado' — o único dos oito que 'deu certo' foi o que aplicou o tema do outro pack e chamou de sucesso. Só spotify e qbittorrent estão aqui: os outros seis módulos ainda não perguntam, e declarar o tema deles antes de existir quem leia seria a promessa vazia que o `validar` avisa em voz alta. [Envelheceu em 24/09/2026, P55: o Obsidian, o VS Code e o Heroic passaram a perguntar — ver o `_nota_p55`, logo abaixo do qbittorrent.]",
     "spotify": {
       "spicetify_tema": "catppuccin",
       "esquema": "<flavor>",
@@ -64,6 +64,30 @@
       "arquivo": "apps/catppuccin-mocha.qbtheme",
       "sha256": "f6ddf59ed881ea4a423e8d48a73f6f507c594a560f398097891fcb70bc8255e1",
       "_nota": "Veio de `assets/temas-de-apps/qbittorrent/` em 22/09/2026, com a PROCEDENCIA.md ao lado — a procedência viaja junto com a arte, que é a regra da casa para arquivo de terceiro. O sha256 também mudou de lugar: ele era uma constante do `manifesto.sh`, e um módulo que confere o sha de UM arquivo específico é um módulo que só sabe aplicar aquele tema. Quem confere agora é o `pack.py validar`, na publicação, e o módulo pergunta ao pack qual é o número."
+    },
+    "_nota_p55": "Os quatro blocos abaixo entraram em 24/09/2026 (sprint P55), cada um com o leitor no módulo dele, e são o que aqueles módulos traziam cravado: o nome do tema do Obsidian, o tema e os ícones do VS Code e o arquivo do Heroic. Com o Catppuccin no ar o resultado é o de antes, byte a byte (medido numa casa de brinquedo, com a árvore de antes e a de depois). O que mudou é que o módulo pergunta, e com outro pack no ar ele deixa de pôr o Catppuccin: ou veste o que aquele pack declara, ou diz «sem tema neste pack». A HERANÇA NÃO VALE PARA ESTES QUATRO: os temas deles têm a cor escrita, e o Catppuccin herdado vestiria outro pack com as cores deste. O btop-bat e os toolkits continuam sem bloco: a família do btop e do bat sai do flavor (P49), e o Qt segue o COSMIC.",
+    "obsidian": {
+      "esquema": "Catppuccin",
+      "_nota": "O nome do tema no Obsidian: a pasta em `.obsidian/themes/` e o `cssTheme` do `appearance.json`. Sem `origem` DE PROPÓSITO: o tema mora VENDORADO no motor (`assets/temas-de-apps/obsidian/vendor/Catppuccin/`, o commit pinado no `vendor/ORIGEM.md`), e o módulo o acha pelo nome — aplicar não depende de rede, como antes."
+    },
+    "vscode": {
+      "esquema": "Catppuccin Mocha",
+      "origem": {
+        "extensao": "Catppuccin.catppuccin-vsc",
+        "_nota": "Sem `url` e sem `sha256` DE PROPÓSITO: a extensão desce da Marketplace pelo CLI do VS Code, que resolve a última versão compatível com o `code` instalado — é o que o cabeçalho do módulo explica, e é o que ele fazia antes."
+      },
+      "_nota": "O `workbench.colorTheme`, e a extensão que o traz. O Mocha é fixo, e não `<flavor>`: é o que o módulo gravava antes da P55, com qualquer flavor, e a sprint pediu o Catppuccin igual ao de antes."
+    },
+    "vscode-icones": {
+      "esquema": "catppuccin-mocha",
+      "origem": {
+        "extensao": "Catppuccin.catppuccin-vsc-icons"
+      },
+      "_nota": "O tema de ÍCONES de dentro do VS Code (`workbench.iconTheme`) e a extensão dele. É um bloco à parte do `vscode` porque um pack pode trazer tema de cor e não trazer ícones — o Dracula é assim. Quem lê é o módulo do VS Code, e só o do pack no ar: herdado, não serve."
+    },
+    "heroic": {
+      "esquema": "catppuccin-<flavor>-<accent>.css",
+      "_nota": "O valor da chave `theme` do Heroic. Com `.css`, é um arquivo do acervo do motor (`assets/temas-de-apps/heroic/upstream/themes/`, os 56 do catppuccin/heroic), que o módulo instala com o remendo de variáveis; sem, é um tema que o próprio Heroic traz. O `<flavor>` o pack expande, com o FLAVOR da máquina; o `<accent>` o módulo, com o ACCENT. O par que não existir no acervo cai no flavor padrão deste pack com o acento de fábrica (`mauve`), que é o `catppuccin-mocha-mauve.css` de antes."
     }
   }
 }

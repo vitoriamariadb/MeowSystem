@@ -130,7 +130,32 @@
     "onlyoffice": {
       "arquivo": "apps/onlyoffice.modelo.json",
       "_nota": "Um tema de interface do OnlyOffice (a pasta `uithemes/`, lida pelo app ao abrir) com o id `theme-meowsystem`. O tema de antes NÃO tinha tema de OnlyOffice — só um README dizendo 'não há automação'. As 125 chaves daqui são as do tema que esta máquina já tinha em `uithemes/` (id `theme-dracula-dark-ajustado-2`, de 12/08/2025, sem procedência registrada), com cada cor trocada por papel; o que era estranho nele (o texto normal em #00988C, as abas em #333) saiu da paleta como os outros."
-    }
+    },
+    "_nota_p55": "Os blocos abaixo entraram em 24/09/2026 (sprint P55). Medido naquele dia, nesta máquina, com o Dracula no ar: o Obsidian estava com `cssTheme: \"Catppuccin\"`, e os módulos do Obsidian, do VS Code e do Heroic só conheciam o Catppuccin — com este pack no ar, punham o tema do outro. Aqui NÃO há modelo: os três são os temas OFICIAIS do Dracula, com a cor escrita por quem os desenhou, e dois deles descem pela rede como a base de ícones (a URL com o commit ou a versão, o sha256 do pacote, conferido na instalação). A origem, a licença e o que foi medido de cada um estão na seção 'O que o pack baixa, e não copia' do PROCEDENCIA.md. Os três são escuros nos dois modos: nenhum tem par para o `alucard`, e com ele no ar os três ficam no Dracula.",
+    "obsidian": {
+      "esquema": "Dracula Official",
+      "origem": {
+        "url": "https://github.com/dracula/obsidian/archive/ddb95ec25babe3ef21907b8b612bbdb9fc2904c9.tar.gz",
+        "sha256": "20fa7f83ebba437b80f09c33297441ba223e2138994c16853965a75cb3ef8462",
+        "pasta": "obsidian-ddb95ec25babe3ef21907b8b612bbdb9fc2904c9"
+      },
+      "_nota": "O Dracula oficial do Obsidian (dracula/obsidian, MIT), o mesmo que a loja do app instala com esse nome: o `name` do manifest é o `esquema`, e é a pasta em `.obsidian/themes/` e o `cssTheme`. Pinado pelo COMMIT na URL e pelo sha256 do pacote que o GitHub gera para ele — o repositório não tem tag nem release (medido em 24/09/2026; `ddb95ec2`, de 10/08/2026, é a ponta do `main`, versão 1.1.6 no manifest). O módulo baixa uma vez, confere, e guarda só o `theme.css` e o `manifest.json` da pasta declarada."
+    },
+    "vscode": {
+      "esquema": "Dracula Theme",
+      "origem": {
+        "extensao": "dracula-theme.theme-dracula",
+        "url": "https://open-vsx.org/api/dracula-theme/theme-dracula/2.25.1/file/dracula-theme.theme-dracula-2.25.1.vsix",
+        "sha256": "f4d8c28fc64874b1b959cc90dbd39c84d5d35c9cf203e32b7a758dc9abf5b1cb"
+      },
+      "_nota": "O Dracula oficial do VS Code (dracula/visual-studio-code, MIT), na versão 2.25.1 — a última que a Marketplace oficial serve (publisher `dracula-theme`), com o `.vsix` que o Open VSX guarda. Não é o do release do GitHub, que parou na v2.24.3: a 2.25 renomeou o tema de «Dracula» para «Dracula Theme», e uma 2.24.3 que o editor atualizasse sozinho mudaria o nome debaixo do `workbench.colorTheme`, com a tela caindo no tema de fábrica sem aviso. A pasta `extension/` dos dois `.vsix` de 2.25.1 é a mesma, arquivo por arquivo; e o `theme/dracula.json` é o mesmo nos três pacotes medidos (a 2.24.3 do GitHub e as duas 2.25.1). O módulo baixa e instala pelo CLI só quando a extensão falta, ou quando a versão que está no editor não traz o «Dracula Theme» — uma 2.24 de antes da troca de nome, que fica onde a atualização automática de extensões está desligada: essa o pacote pinado substitui (revisão de 25/09/2026). Uma versão que traga o tema fica."
+    },
+    "_nota_vscode_icones": "Sem `vscode-icones` DE PROPÓSITO: o Dracula não tem tema de ícones oficial para o VS Code. A herança levaria ao `catppuccin-mocha` do pack padrão, e o módulo recusa o herdado — com este pack no ar, o `workbench.iconTheme` fica como está, e um que o Catppuccin tenha deixado volta ao de fábrica.",
+    "heroic": {
+      "esquema": "dracula",
+      "_nota": "O Heroic JÁ TRAZ um tema Dracula, e é ele: `dracula` está no `defaultThemes` do `ThemeSelector` do Heroic na v2.15.0, na v2.22.1 e na v2.22.3 (lido no código-fonte das três tags em 24/09/2026). Sem `.css`, o módulo não instala arquivo nem mexe no `customThemesPath`: grava só a chave `theme`, e o Heroic pula o `getThemeCSS` para os temas que ele traz. Até a P55 o módulo compunha os 56 CSS do Catppuccin com a paleta daqui e parava em erro — os flavors desta paleta não são os daquele acervo."
+    },
+    "_nota_zapzap": "O ZapZap NÃO tem bloco, e não falta: o módulo dele troca o nome para «WhatsApp» e aponta o `Icon=` para `meow-whatsapp`, e esse ícone é desenhado pelo tema de ícones, com o `sky` da paleta do pack no ar. Medido em 24/09/2026 nesta máquina: `#8BE9FD`, o ciano do Dracula, no `48x48/apps/meow-whatsapp.svg`. O que dizia «ícone Catppuccin» era a frase do módulo, e ela passou a dizer o pack no ar."
   },
   "som": {
     "_nota": "O sino do Dracula. O pack embutido usa 880 Hz + a quinta justa acima (1320), que soa resolvida e clara. Aqui a escolha é outra: sol (784) com a TERÇA MENOR acima (si bemol, 932.3). Terça menor é o intervalo que a música ocidental lê como sombrio — é o que faz o mesmo gesto de mexer no volume soar noturno em vez de alegre, sem virar alarme. O decaimento é mais lento (38 contra 46) porque a terça menor precisa de um instante a mais para ser reconhecida como intervalo; abaixo disso as duas notas viram um clique só. Duração e ganho ficam nos defaults: a primeira é presa ao debounce de 125 ms do cosmic-osd, e o segundo é calibrado contra o arquivo de fábrica — mexer neles muda o susto, não o timbre.",

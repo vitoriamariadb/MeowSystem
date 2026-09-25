@@ -585,11 +585,16 @@ para a base, o `cursor.sh` para o ponteiro. Nenhum arquivo delas mora neste
 diretório, e por isso elas **não são linhas da tabela acima**: a tabela é das
 cópias, e o `sincronizar` compara cópia com origem. O que se baixa é conferido
 pelo sha256 na instalação, e é o sha256 que diz qual versão foi escolhida.
+[Desde a P55, 24/09/2026, são quatro: o tema do Obsidian e a extensão do VS Code
+descem pelos módulos de `assets/temas-de-apps/`, pela mesma receita — ver o fim
+desta seção.]
 
 | o quê | de onde | pino | licença | medido em |
 |---|---|---|---|---|
 | base de ícones (`icones.base`) | `m4thewz/dracula-icons`, ramo `circle`, commit `00a230a277d5e6ad913b90182977738335afee89` (26/05/2024, a ponta do ramo) — o pacote que o GitHub gera para o commit, pasta `dracula-icons-00a230a2…` | sha256 `563580916e426ccccb5da5b1a43f2cc0f7ab5d118c24b87776640da45b50acea`, 3.701.762 bytes | GPL-3.0, declarada no `README.md` do upstream (ver abaixo) | 2026-09-24 |
 | ponteiro (`origens.cursores`) | `dracula/gtk`, release `v4.0.0` (24/02/2023), asset `Dracula-cursors.tar.xz`, pasta `Dracula-cursors` | sha256 `81780e218fdda616016aedf42e731c86ed16290b9753a21616642023821b85f5`, 178.252 bytes | GPL-3.0 — o `LICENSE` do `dracula/gtk` | 2026-09-24 |
+| tema do Obsidian (`apps.obsidian`, P55) | `dracula/obsidian`, commit `ddb95ec25babe3ef21907b8b612bbdb9fc2904c9` (10/08/2026, a ponta do `main`) — o pacote que o GitHub gera para o commit, pasta `obsidian-ddb95ec2…`; o módulo usa só o `theme.css` e o `manifest.json` dela | sha256 `20fa7f83ebba437b80f09c33297441ba223e2138994c16853965a75cb3ef8462`, 389.546 bytes | MIT — o `LICENSE` do repositório | 2026-09-24 |
+| extensão do VS Code (`apps.vscode`, P55) | `dracula/visual-studio-code` 2.25.1, a extensão `dracula-theme.theme-dracula`, no `.vsix` que o Open VSX guarda (`open-vsx.org/api/dracula-theme/theme-dracula/2.25.1/file/…`) | sha256 `f4d8c28fc64874b1b959cc90dbd39c84d5d35c9cf203e32b7a758dc9abf5b1cb`, 483.084 bytes — o mesmo número que o Open VSX publica ao lado do arquivo | MIT — o `LICENSE.txt` que vem no `.vsix` | 2026-09-24 |
 
 **A base é o ramo `circle` porque era ele que esta máquina via.** O
 `Dracula-Icones` que o Spellbook montava herdava `dracula-icons-circle` antes do
@@ -619,6 +624,41 @@ GPL-3.0; o repositório do Tela-circle não traz arquivo de licença nem a cita 
 README, no mesmo dia. Nada disso é redistribuído por este pack — quem instala
 baixa do upstream —, mas fica escrito para que ninguém conte com um arquivo de
 licença que ninguém publicou.
+
+**Os temas de aplicativo que descem — 24/09/2026, P55.** Medido naquele dia,
+nesta máquina, com o Dracula no ar: o cofre do Obsidian estava com
+`cssTheme: "Catppuccin"`, e os módulos do Obsidian, do VS Code e do Heroic só
+conheciam o Catppuccin. Os três passaram a vestir o que este pack declara no
+bloco `apps`, e dois deles descem pela rede, pinados como a base e o ponteiro:
+
+- **O Obsidian** é o Dracula oficial, o mesmo que a loja do app instala com o
+  nome `Dracula Official` (o `name` do `manifest.json`, versão 1.1.6). O
+  repositório não tem tag nem release, e por isso o pino é o commit, na URL, e o
+  sha256 do pacote; baixado duas vezes no mesmo dia, deu o mesmo número. O
+  `Dracula` que esta máquina tinha em `.obsidian/themes/` é esse mesmo tema numa
+  versão anterior (1.1.5): o `diff` contra o 1.1.6 acusa só as cores do canvas,
+  que passaram a `rgb()`, o glifo de uma caixa marcada e um espaço no fim de uma
+  linha. O módulo instala o 1.1.6 numa pasta com o nome do manifest, e não
+  encosta naquela.
+- **O VS Code** é o Dracula oficial na versão 2.25.1, a última que a Marketplace
+  serve (publisher `dracula-theme`, domínio verificado, 17/07/2024). O release do
+  GitHub parou na v2.24.3, e não serve: a 2.25 renomeou o tema de «Dracula» para
+  «Dracula Theme», e uma 2.24.3 que o editor atualizasse sozinho mudaria o nome
+  debaixo do `workbench.colorTheme`, com a tela caindo no tema de fábrica sem
+  aviso. O `.vsix` da Marketplace chega comprimido pelo servidor, e os bytes do
+  pacote não são garantidos; o do Open VSX é o arquivo guardado, com o sha256
+  publicado ao lado. Comparados no mesmo dia, os dois `.vsix` da 2.25.1 têm a
+  pasta `extension/` idêntica, arquivo por arquivo — mudam só o
+  `extension.vsixmanifest` e o `[Content_Types].xml`, que são do empacotamento.
+  O `theme/dracula.json` é o mesmo nos três pacotes medidos (a 2.24.3 do GitHub
+  e as duas 2.25.1). O código-fonte do repositório não serve de pacote: o
+  `theme/` é gerado no build, e o `.gitignore` o deixa de fora.
+- **O Heroic** não desce: o Heroic já traz um tema `dracula` (a chave está no
+  `defaultThemes` do `ThemeSelector` nas tags v2.15.0, v2.22.1 e v2.22.3, lidas
+  no mesmo dia), e o pack declara só o nome dele.
+
+Os três são escuros nos dois modos, e nenhum tem par para o `alucard`: com ele
+no ar, o Obsidian, o VS Code e o Heroic ficam no Dracula.
 
 ## Para quem for acrescentar uma linha
 

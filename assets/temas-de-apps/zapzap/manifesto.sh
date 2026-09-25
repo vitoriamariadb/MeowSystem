@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
-# assets/temas-de-apps/zapzap/manifesto.sh — o ZapZap vira "WhatsApp", com ícone Catppuccin.
+# assets/temas-de-apps/zapzap/manifesto.sh — o ZapZap vira "WhatsApp", com o ícone nas cores do pack no ar.
+#
+# ATÉ 24/09/2026 A PRIMEIRA LINHA DIZIA "com ícone Catppuccin", e a tela do
+# `conferir` também — com qualquer pack no ar. O ÍCONE nunca foi do Catppuccin:
+# este módulo só grava `Icon=meow-whatsapp`, e quem o desenha é o tema de ícones,
+# com o `sky` da paleta do pack no ar (medido nesta máquina com o Dracula no ar:
+# `#8BE9FD` no `48x48/apps/meow-whatsapp.svg`, o ciano do Dracula). Quem
+# mentia era a frase. Desde a P55 ela diz o nome do pack no ar.
 #
 # O QUE ELE FAZ, E POR QUE
 #   O ZapZap é um cliente de WhatsApp para Linux. No lançador ele aparece com o
@@ -74,6 +81,15 @@ _ZZ_GUARDADO="$HOME/.local/share/flatpak/exports/share/applications/.$_ZZ_APP.de
 
 _zz_tema_dir() {
   printf '%s' "$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+}
+
+# O nome de tela do pack no ar, que é de quem são as cores do ícone (ver o topo),
+# pela regra única do `adocao` — a mesma do `meow_pack_dir`. Sem resposta, a
+# frase diz de quem é sem dizer o nome.
+_zz_pack_nome() {
+  local nome
+  nome="$(python3 "$MEOW_RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null | sed -n 's/^nome=//p')"
+  printf '%s' "${nome:-do pack no ar}"
 }
 
 # Devolve o caminho de onde LER a receita — E NÃO ESCREVE NADA.
@@ -235,7 +251,7 @@ meow_app_conferir() {
     return "$MEOW_DIVERGENTE"
   fi
 
-  meow_ok "ZapZap já aparece como '$_ZZ_NOME_NOVO' com o ícone Catppuccin"
+  meow_ok "ZapZap já aparece como '$_ZZ_NOME_NOVO' com o ícone $(_zz_pack_nome)"
   return "$MEOW_OK"
 }
 

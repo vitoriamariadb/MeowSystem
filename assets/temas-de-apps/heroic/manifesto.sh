@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
-# assets/temas-de-apps/heroic/manifesto.sh — Catppuccin dentro do Heroic Games Launcher.
+# assets/temas-de-apps/heroic/manifesto.sh — o tema do pack no Heroic Games Launcher.
 #
 # ESTE ARQUIVO É `source`, NÃO EXECUTADO. Sem `exit`, sem `set -e`.
+#
+# ATÉ 24/09/2026 A PRIMEIRA LINHA DIZIA "Catppuccin dentro do Heroic", e o
+# arquivo era isso: 16 menções ao Catppuccin, nenhuma ao pack no ar. Com o
+# Dracula no ar ele compunha os 56 CSS do Catppuccin com a paleta do Dracula, e
+# parava em erro (os flavors dela não são os do acervo). Ver "O TEMA SAI DO PACK
+# NO AR", logo abaixo de "O ACERVO".
 #
 # POR QUE ELE EXISTE
 #   Pedido dela em 08/09/2026: *"temos alguma seção eu imagino que instale temas
@@ -57,6 +63,8 @@
 #     E o nome do arquivo, que aqui coincidem) e `_heroic_classe` devolve o nome
 #     SEM ela — é a classe do `body`, e só ela escreve o seletor do nosso bloco.
 #     São duas funções porque um dia divergiram e ninguém percebeu.
+#     [P55, 24/09/2026: a `_heroic_classe` saiu; a classe vem do nome de cada
+#     arquivo, no `_heroic_css`. Ver a nota onde ela morava.]
 #
 #     O `meow doctor` relê esse handler a cada passagem (verificador
 #     `heroictema`): se um Heroic futuro passar a juntar o ".css" sozinho, ele
@@ -152,9 +160,26 @@
 #   `SHA256SUMS`. São 240 KB de texto: vão para o git, ao contrário dos cursores
 #   e dos papéis de parede, porque texto pequeno versionado é o que permite
 #   instalar sem rede.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# O TEMA SAI DO PACK NO AR — 24/09/2026, sprint P55
+# ─────────────────────────────────────────────────────────────────────────────
+#   O que vai na chave `theme` é o `apps.heroic.esquema` do pack no ar, e só do
+#   pack no ar: o herdado de outro pack é recusado com o motivo «sem tema neste
+#   pack», porque os temas do Heroic têm a cor escrita. O valor tem duas formas,
+#   e a forma é a do próprio Heroic (ver o cabeçalho acima):
+#     com `.css`   um arquivo deste acervo — o Catppuccin, que declara
+#                  `catppuccin-<flavor>-<accent>.css`. O `<flavor>` o pack
+#                  expande; o `<accent>` este módulo, com o ACCENT. Instala os
+#                  56 com o remendo, aponta o `customThemesPath` e escolhe o do
+#                  par; o par que não existir cai no flavor padrão do pack com o
+#                  acento de fábrica, como caía antes no `…-mocha-mauve`.
+#     sem `.css`   um tema que o Heroic JÁ TRAZ — o Dracula, que declara
+#                  `dracula`. Nenhum arquivo, nenhum `customThemesPath`: só a
+#                  chave, e o Heroic pula o `getThemeCSS` para os que ele traz.
+#   Com o Catppuccin no ar, os bytes que chegam ao disco são os de antes.
 
 _HEROIC_APPID="com.heroicgameslauncher.hgl"
-_HEROIC_FLAVOR="${FLAVOR:-mocha}"
 _HEROIC_ACENTO="${ACCENT:-mauve}"
 _HEROIC_ORIGEM="$RAIZ/assets/temas-de-apps/heroic/upstream/themes"
 
@@ -163,23 +188,71 @@ _HEROIC_ORIGEM="$RAIZ/assets/temas-de-apps/heroic/upstream/themes"
 # Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
 _HEROIC_PALETA="$(meow_paleta)"
 
-# A CLASSE do `body` — o nome do arquivo sem a extensão. É ela que abre o CSS do
-# upstream (`body.catppuccin-mocha-mauve { … }`) e é ela que abre o nosso bloco.
-# Se a combinação de flavor e accent dela não existir no acervo (accent novo do
-# Catppuccin, por exemplo), o módulo cai no par de fábrica do projeto em vez de
-# apontar para um arquivo que não existe.
-_heroic_classe() {
-  local nome="catppuccin-${_HEROIC_FLAVOR}-${_HEROIC_ACENTO}"
-  [ -f "$_HEROIC_ORIGEM/$nome.css" ] || nome="catppuccin-mocha-mauve"
-  printf '%s' "$nome"
+# O TEMA QUE O PACK NO AR DECLARA — ver "O TEMA SAI DO PACK NO AR", no topo.
+# Preenche `_HEROIC_TEMA` (o valor da chave `theme`) e `_HEROIC_EMBUTIDO` (1 =
+# um tema que o Heroic traz). Devolve 1 quando o pack no ar não tem tema para o
+# Heroic, com a frase em `_HEROIC_MOTIVO`: este módulo diz os motivos pelo
+# `meow_pula`, desde antes da P55, e não pelo contrato do motivo guardado do
+# lib/comum.sh. (O nome daquela função não vai escrito aqui de propósito: o
+# `tests/reversao.sh` trata como sujeito ao contrato todo módulo que o cita, e
+# passar o Heroic para ele é outra mudança.)
+_HEROIC_TEMA=""; _HEROIC_EMBUTIDO=0; _HEROIC_MOTIVO=""
+_heroic_do_pack() {
+  local saida pack nome
+  _HEROIC_TEMA=""; _HEROIC_EMBUTIDO=0; _HEROIC_MOTIVO=""
+  saida="$(python3 "$MEOW_RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null)" \
+    || { _HEROIC_MOTIVO="Heroic: o scripts/pack.py não disse qual é o pack no ar"; return 1; }
+  pack="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
+  nome="$(printf '%s\n' "$saida" | sed -n 's/^nome=//p')"
+  # Direto, sem `$( )`: a resposta vem pelas duas variáveis (lib/comum.sh).
+  meow_app_tema_do_pack heroic.esquema
+  if [ -z "$MEOW_APP_TEMA" ]; then
+    _HEROIC_MOTIVO="Heroic: sem tema neste pack ($nome) — o Heroic fica como está"
+    return 1
+  fi
+  if [ "$MEOW_APP_TEMA_PACK" != "$pack" ]; then
+    # O `<accent>` é deste módulo expandir (ver o topo), e a frase diz o nome que
+    # o molde daria: até a revisão da P55 (25/09/2026) ela mostrava o molde cru,
+    # «'catppuccin-dracula-<accent>.css'».
+    _HEROIC_MOTIVO="Heroic: sem tema neste pack ($nome) — o que a herança traz é o '${MEOW_APP_TEMA//<accent>/$_HEROIC_ACENTO}', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não veste outro"
+    return 1
+  fi
+  case "$MEOW_APP_TEMA" in
+    *.css)
+      _HEROIC_TEMA="${MEOW_APP_TEMA//<accent>/$_HEROIC_ACENTO}"
+      if [ ! -f "$_HEROIC_ORIGEM/$_HEROIC_TEMA" ]; then
+        # O par que o acervo não tem (um accent novo do upstream, um FLAVOR que
+        # a família não conhece) cai no flavor PADRÃO do pack com o acento de
+        # fábrica: com o FLAVOR vazio, o pack expande o `<flavor>` pelo
+        # `flavor_padrao` dele. Era o `…-mocha-mauve` escrito aqui.
+        FLAVOR="" meow_app_tema_do_pack heroic.esquema
+        _HEROIC_TEMA="${MEOW_APP_TEMA//<accent>/mauve}"
+      fi
+      if [ ! -f "$_HEROIC_ORIGEM/$_HEROIC_TEMA" ]; then
+        _HEROIC_MOTIVO="Heroic: o pack $nome pede o tema '$_HEROIC_TEMA', que não está no acervo ($_HEROIC_ORIGEM)"
+        _HEROIC_TEMA=""
+        return 1
+      fi ;;
+    *) _HEROIC_TEMA="$MEOW_APP_TEMA"; _HEROIC_EMBUTIDO=1 ;;
+  esac
+  return 0
 }
+
+# A CLASSE do `body` morava aqui, numa `_heroic_classe`, até a P55 (24/09/2026):
+# o nome do arquivo sem a extensão, que abre o CSS do upstream
+# (`body.catppuccin-mocha-mauve { … }`) e o nosso bloco. Ela só servia ao
+# `_heroic_tema`, e saiu com o par de fábrica que ela escolhia, que foi para o
+# `_heroic_do_pack`. A classe de cada arquivo sai do nome DELE, no `_heroic_css`,
+# que é quem escreve o seletor do bloco.
 
 # O VALOR DA CHAVE `theme`, que é o nome do ARQUIVO — com o `.css`. Ver a seção
 # do cabeçalho: o `getThemeCSS` do 2.22.1 faz `join(customThemesPath, theme)` e
 # não acrescenta extensão nenhuma. Sem o `.css` aqui a tela fica de fábrica sem
-# nenhum aviso, que foi o defeito de 08/09/2026.
+# nenhum aviso, que foi o defeito de 08/09/2026. [P55: o `.css` vem da
+# declaração do pack; o tema que o Heroic traz vem sem ele, como o
+# `midnightMirage` do `reverter`.]
 _heroic_tema() {
-  printf '%s.css' "$(_heroic_classe)"
+  printf '%s' "$_HEROIC_TEMA"
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -296,12 +369,12 @@ _heroic_cor() {   # <flavor> <accent> <receita>
 }
 
 # O bloco que vai no fim do arquivo instalado, com o seletor DAQUELE arquivo.
-_heroic_bloco() {   # <flavor> <accent>
-  local flavor="$1" acento="$2" item nome receita valor
+_heroic_bloco() {   # <classe> <flavor> <accent>
+  local classe="$1" flavor="$2" acento="$3" item nome receita valor
   _heroic_paleta_carregar || return 1
   printf '%s\n' "/* MeowSystem — as cores que o Heroic 2.22.1 usa e o acervo de maio/2025 não define."
   printf '%s\n' "   Medido no app.asar da versão instalada; a tabela mora no manifesto.sh. */"
-  printf 'body.catppuccin-%s-%s {\n' "$flavor" "$acento"
+  printf 'body.%s {\n' "$classe"
   for item in "${_HEROIC_REMENDO[@]}"; do
     nome="${item%%|*}"; receita="${item#*|}"
     valor="$(_heroic_cor "$flavor" "$acento" "$receita")" || return 1
@@ -315,9 +388,11 @@ _heroic_bloco() {   # <flavor> <accent>
 # disco e que o `aplicar` grava.
 _heroic_css() {   # <arquivo do acervo>
   local arq="$1" base flavor acento bloco
-  base="$(basename "$arq" .css)"          # catppuccin-<flavor>-<accent>
-  flavor="${base#catppuccin-}"; acento="${flavor#*-}"; flavor="${flavor%%-*}"
-  bloco="$(_heroic_bloco "$flavor" "$acento")" || return 1
+  # <família>-<flavor>-<accent>, lido do FIM: nem flavor nem accent têm hífen, e
+  # a família é a de quem declara o acervo — não um nome escrito aqui (P55).
+  base="$(basename "$arq" .css)"
+  acento="${base##*-}"; flavor="${base%-*}"; flavor="${flavor##*-}"
+  bloco="$(_heroic_bloco "$base" "$flavor" "$acento")" || return 1
   printf '%s\n\n%s' "$(cat "$arq")" "$bloco"
 }
 
@@ -434,6 +509,7 @@ meow_app_detectar() {
     meow_pula "Heroic instalado, mas ainda não abriu uma vez — sem pasta de configuração"
     return "$MEOW_SEM_DEPENDENCIA"
   }
+  _heroic_do_pack || { meow_pula "$_HEROIC_MOTIVO"; return "$MEOW_SEM_DEPENDENCIA"; }
   meow_ok "Heroic presente, configuração em $dir"
   return "$MEOW_OK"
 }
@@ -445,32 +521,39 @@ meow_app_conferir() {
   _heroic_presente || return "$MEOW_SEM_DEPENDENCIA"
   local dir tema pasta divergiu=0 falta=0 f alvo
   dir="$(_heroic_conf_dir)" || return "$MEOW_SEM_DEPENDENCIA"
+  # O motivo do pack é DITO (P55): o «sem tema neste pack» é o que o `meow apps
+  # conferir` tem de mostrar. Os dois de cima continuam mudos, como eram.
+  _heroic_do_pack || { meow_pula "$_HEROIC_MOTIVO"; return "$MEOW_SEM_DEPENDENCIA"; }
   tema="$(_heroic_tema)"
   pasta="$dir/themes"
 
-  # COMPARA COMO A `meow_escrever` ESCREVE, E NÃO COM `cmp` — 08/09/2026.
-  #   `cmp` acusou 56 de 56 diferentes num diretório com os 56 arquivos certos.
-  #   A causa é a regra 5 do contrato: `meow_escrever` grava com `printf '%s'`,
-  #   sem a quebra de linha final, e compara por conteúdo do mesmo jeito. Os
-  #   arquivos do upstream TÊM a quebra final. Byte a byte eles diferem sempre;
-  #   pela régua que os escreveu, são iguais — e é essa a régua que vale, senão
-  #   o módulo reescreve os 56 a cada passagem e nunca diz "conforme".
-  #
-  #   O que se compara é o TEXTO COMPOSTO (upstream + o nosso bloco), e não o
-  #   arquivo do acervo: desde 09/09/2026 o que vai para o disco dela é a soma
-  #   dos dois. O `SHA256SUMS` continua sendo a conferência da cópia do upstream
-  #   NO REPOSITÓRIO — são duas perguntas diferentes.
-  for f in "$_HEROIC_ORIGEM"/*.css; do
-    alvo="$(_heroic_css "$f")" || {
-      meow_erro "não consegui ler $_HEROIC_PALETA — sem fonte de cor, não dá para compor o tema"
-      return "$MEOW_ERRO"
-    }
-    [ "$alvo" = "$(cat "$pasta/$(basename "$f")" 2>/dev/null)" ] || falta=$((falta + 1))
-  done
-  [ "$falta" = "0" ] || { meow_muda "$falta dos 56 temas não estão em $pasta"; divergiu=1; }
+  # O TEMA QUE O HEROIC TRAZ É SÓ A CHAVE (P55): não há arquivo nem pasta a
+  # conferir, e um `customThemesPath` que exista fica como está.
+  if [ "$_HEROIC_EMBUTIDO" = "0" ]; then
+    # COMPARA COMO A `meow_escrever` ESCREVE, E NÃO COM `cmp` — 08/09/2026.
+    #   `cmp` acusou 56 de 56 diferentes num diretório com os 56 arquivos certos.
+    #   A causa é a regra 5 do contrato: `meow_escrever` grava com `printf '%s'`,
+    #   sem a quebra de linha final, e compara por conteúdo do mesmo jeito. Os
+    #   arquivos do upstream TÊM a quebra final. Byte a byte eles diferem sempre;
+    #   pela régua que os escreveu, são iguais — e é essa a régua que vale, senão
+    #   o módulo reescreve os 56 a cada passagem e nunca diz "conforme".
+    #
+    #   O que se compara é o TEXTO COMPOSTO (upstream + o nosso bloco), e não o
+    #   arquivo do acervo: desde 09/09/2026 o que vai para o disco dela é a soma
+    #   dos dois. O `SHA256SUMS` continua sendo a conferência da cópia do upstream
+    #   NO REPOSITÓRIO — são duas perguntas diferentes.
+    for f in "$_HEROIC_ORIGEM"/*.css; do
+      alvo="$(_heroic_css "$f")" || {
+        meow_erro "não consegui ler $_HEROIC_PALETA — sem fonte de cor, não dá para compor o tema"
+        return "$MEOW_ERRO"
+      }
+      [ "$alvo" = "$(cat "$pasta/$(basename "$f")" 2>/dev/null)" ] || falta=$((falta + 1))
+    done
+    [ "$falta" = "0" ] || { meow_muda "$falta dos 56 temas não estão em $pasta"; divergiu=1; }
 
-  [ "$(_heroic_json_le "$dir/config.json" defaultSettings.customThemesPath)" = "$pasta" ] \
-    || { meow_muda "customThemesPath não aponta para $pasta"; divergiu=1; }
+    [ "$(_heroic_json_le "$dir/config.json" defaultSettings.customThemesPath)" = "$pasta" ] \
+      || { meow_muda "customThemesPath não aponta para $pasta"; divergiu=1; }
+  fi
   [ "$(_heroic_json_le "$dir/store/config.json" theme)" = "$tema" ] \
     || { meow_muda "o tema escolhido não é $tema"; divergiu=1; }
 
@@ -491,6 +574,8 @@ meow_app_aplicar() {
     meow_pula "Heroic ainda não abriu uma vez — nada para configurar"
     return "$MEOW_SEM_DEPENDENCIA"
   }
+  # Sem tema para o pack no ar, nada se escreve — nem o tema de outro pack (P55).
+  _heroic_do_pack || { meow_pula "$_HEROIC_MOTIVO"; return "$MEOW_SEM_DEPENDENCIA"; }
 
   meow_app_conferir >/dev/null 2>&1 && {
     meow_ok "Heroic já está no nosso tema — nada a fazer"
@@ -504,6 +589,25 @@ meow_app_aplicar() {
 
   tema="$(_heroic_tema)"
   pasta="$dir/themes"
+
+  # O TEMA QUE O HEROIC TRAZ (P55): só a chave do front, com o backup dela antes.
+  # Os 56 arquivos e o `customThemesPath` ficam de fora — um tema que ela tenha
+  # na pasta continua lá, e é o desfazer que tira os nossos.
+  local novo
+  if [ "$_HEROIC_EMBUTIDO" = "1" ]; then
+    meow_seco || _heroic_backup "$dir/store/config.json"
+    novo="$(_heroic_json_com "$dir/store/config.json" theme "$tema" tab)" \
+      || { meow_erro "não consegui ler $dir/store/config.json — o JSON está quebrado"; return "$MEOW_ERRO"; }
+    meow_escrever "$dir/store/config.json" "$novo"
+    rc=$?
+    [ "$rc" -ge 2 ] && return "$MEOW_ERRO"
+    if [ "$rc" = "1" ]; then
+      meow_ok "Heroic vestido de $tema, o tema que o próprio Heroic traz — a janela mostra na próxima vez que abrir"
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_ok "Heroic já está no nosso tema"
+    return "$MEOW_OK"
+  fi
 
   # 1. os 56 CSS, cada um com o remendo de variáveis colado no fim.
   #    `meow_escrever` compara por conteúdo: numa máquina já pronta isto não
@@ -520,7 +624,6 @@ meow_app_aplicar() {
   done
 
   # 2. a pasta, no arquivo do backend.
-  local novo
   meow_seco || { _heroic_backup "$dir/config.json"; _heroic_backup "$dir/store/config.json"; }
   novo="$(_heroic_json_com "$dir/config.json" defaultSettings.customThemesPath "$pasta" espaco)" \
     || { meow_erro "não consegui ler $dir/config.json — o JSON está quebrado"; return "$MEOW_ERRO"; }
