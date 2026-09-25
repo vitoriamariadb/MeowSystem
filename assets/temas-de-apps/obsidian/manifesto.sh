@@ -300,6 +300,14 @@ _meow_obsidian_do_pack() {
     meow_app_sem "obsidian: sem tema neste pack ($_OBS_PACK_NOME) — o que a herança traz é o '$MEOW_APP_TEMA', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não veste outro"
     return
   fi
+  # O NOME VIRA PASTA em `themes/` (e o `cssTheme`), e quem o escreve é o pack —
+  # o `pack.py` devolve nome como veio. Com `/`, ou sendo `.` ou `..`, o tema
+  # seria escrito fora da pasta de temas do cofre.
+  case "$MEOW_APP_TEMA" in
+    */*|.|..|*$'\n'*)
+      meow_app_sem "obsidian: o pack $_OBS_PACK_NOME dá ao tema um nome que não serve de pasta ('$MEOW_APP_TEMA') — nada é escrito"
+      return ;;
+  esac
   MEOW_OBSIDIAN_TEMA="$MEOW_APP_TEMA"
   meow_app_tema_do_pack obsidian.origem.url;    _OBS_URL="$MEOW_APP_TEMA"
   meow_app_tema_do_pack obsidian.origem.sha256; _OBS_SHA="$MEOW_APP_TEMA"
@@ -796,7 +804,7 @@ for pasta in pastas(sys.argv[1], "") + pastas(sys.argv[2], ".meow-origem"):
             nome = json.load(fh).get("name")
     except (OSError, ValueError, AttributeError):
         continue
-    if isinstance(nome, str) and nome and not set("\t\n/") & set(nome) \
+    if isinstance(nome, str) and nome not in ("", ".", "..") and not set("\t\n/") & set(nome) \
        and os.path.isfile(os.path.join(pasta, "theme.css")):
         print(pasta + "\t" + nome)
 PYFIM

@@ -975,7 +975,7 @@ PACKS10="$T10/packs"; MERCADO10="$T10/mercado"; COFRE10="$CASA10/Cofre de Brinqu
 HD10="$CASA10/.var/app/com.heroicgameslauncher.hgl/config/heroic"
 VSC10="$CASA10/.config/Code/User/settings.json"
 BAIXADOS10="$CASA10/.local/share/meowsystem/temas-de-apps/obsidian"
-mkdir -p "$BIN10" "$REDE10" "$PACKS10/noite" "$PACKS10/sem-apps" "$MERCADO10" "$T10/tmp"
+mkdir -p "$BIN10" "$REDE10" "$PACKS10/noite" "$PACKS10/sem-apps" "$PACKS10/torto" "$MERCADO10" "$T10/tmp"
 for f in pgrep:1 flatpak:0 update-desktop-database:0; do
   printf '#!/bin/sh\nexit %s\n' "${f#*:}" > "$BIN10/${f%%:*}"; chmod +x "$BIN10/${f%%:*}"
 done
@@ -1057,10 +1057,11 @@ tar -czf "$REDE10/obsidian-noite.tar.gz" -C "$T10/pacote" noite-obsidian-1a2b ||
 SHA_OBS10="$(sha256sum < "$REDE10/obsidian-noite.tar.gz" | cut -d' ' -f1)"
 SHA_VSIX10="$(sha256sum < "$REDE10/tema-noite.vsix" | cut -d' ' -f1)"
 
-# Os dois packs de brinquedo. O `noite` pina o tema do Obsidian e a extensão do
+# Os packs de brinquedo. O `noite` pina o tema do Obsidian e a extensão do
 # VS Code, e não declara Heroic nem ícones: a herança leva ao Catppuccin, e o
-# módulo tem de recusar. O `sem-apps` não declara aplicativo nenhum.
-for p in noite sem-apps; do
+# módulo tem de recusar. O `sem-apps` não declara aplicativo nenhum. O `torto`
+# declara o que um pack de terceiro não pode mandar (a seção f).
+for p in noite sem-apps torto; do
   cp "$RAIZ/packs/dracula/logo.svg" "$PACKS10/$p/"
   python3 - "$RAIZ/packs/dracula/paleta.json" "$PACKS10/$p/paleta.json" "$p" <<'PY' || exit 2
 import json, sys
@@ -1081,6 +1082,11 @@ printf '{"formato": 1, "id": "noite", "nome": "Noite", "heranca": "catppuccin",
 printf '{"formato": 1, "id": "sem-apps", "nome": "Sem Apps", "heranca": "catppuccin",
  "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}, "vitrine": {"capa": "logo.svg"}}\n' \
   > "$PACKS10/sem-apps/pack.json"
+printf '{"formato": 1, "id": "torto", "nome": "Torto", "heranca": "catppuccin",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}, "vitrine": {"capa": "logo.svg"},
+ "apps": {"obsidian": {"esquema": ".."},
+          "vscode": {"esquema": "Torto", "origem": {"extensao": "--uninstall-extension=ms-python.python"}}}}\n' \
+  > "$PACKS10/torto/pack.json"
 
 implantar10() {  # <id> — o flatpak instalado na casa, na forma de um de verdade (ver o topo da seção)
   local app="$CASA10/.local/share/flatpak/app/$1"
@@ -1314,6 +1320,27 @@ saida="$(mod10 vscode reverter catppuccin mocha)"; rc=$?
   && [ "$(printf '%s\n' "$saida" | grep -c 'extensão removida')" = 2 ] \
   && ok "P55: com o Catppuccin no ar, o desfazer do VS Code tira as duas do Catppuccin, e a extensão de outro pack fica" \
   || falha "P55: o desfazer do VS Code mexeu na extensão de outro pack, ou não tirou as do Catppuccin (rc=$rc)" "$saida"
+
+# --- f) O NOME E O ID QUE O PACK ESCREVE PASSAM PELA RÉGUA -----------------
+#   O nome do tema do Obsidian vira pasta no cofre, e o id da extensão vai para
+#   a linha de comando do `code` — e quem os escreve é o pack, que pode ser de
+#   terceiro. O `torto` pede `..` (a pasta de cima de `themes/`) e um id que o
+#   CLI leria como opção: os dois viram pendência dita, e nada é escrito — nem
+#   pelo desfazer, que pergunta as extensões ao mesmo pack.
+semear10
+mod10 vscode aplicar catppuccin mocha >/dev/null
+saida="$(mod10 obsidian aplicar torto dracula)"; rc1=$?
+saida="$saida
+$(mod10 vscode aplicar torto dracula)"; rc2=$?
+saida="$saida
+$(mod10 vscode reverter torto dracula)"; rc3=$?
+[ "$rc1" = 3 ] && [ "$rc2" = 3 ] && printf '%s' "$saida" | grep -q "nome que não serve de pasta ('..')" \
+  && printf '%s' "$saida" | grep -q 'não tem a forma <editor>.<nome>' \
+  && ! printf '%s' "$saida" | grep -q 'extensão removida' \
+  && [ -d "$CASA10/.vscode/extensions/catppuccin.catppuccin-vsc-3.19.0" ] \
+  && [ ! -e "$COFRE10/.obsidian/theme.css" ] && [ "$(aparencia10)" = " | dracula_background,catppuccin_realce,fonte" ] \
+  && ok "P55: o nome de pasta e o id de extensão que um pack manda passam pela régua — fora dela, pendência e nada escrito" \
+  || falha "P55: um nome ou id torto do pack passou (obsidian=$rc1, vscode=$rc2, desfazer=$rc3)" "$saida"
 
 # ---------------------------------------------------------------------------
 printf '\n'

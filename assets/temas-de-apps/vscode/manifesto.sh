@@ -585,6 +585,14 @@ _meow_vscode_do_pack() {
     meow_app_sem "VS Code: o pack $_MEOW_VSCODE_PACK_NOME pede o tema '$MEOW_VSCODE_TEMA' e não diz de que extensão ele vem (apps.vscode.origem.extensao)"
     return
   fi
+  # O ID VAI PARA A LINHA DE COMANDO DO `code`, e quem o escreve é o pack: fora
+  # da forma `<editor>.<nome>` (letras, dígitos e hífen, como a Marketplace os
+  # dá), um id que começasse por `-` viraria opção do CLI.
+  if ! [[ "$MEOW_VSCODE_EXT_TEMA" =~ ^[A-Za-z0-9][A-Za-z0-9-]*\.[A-Za-z0-9][A-Za-z0-9-]*$ ]]; then
+    meow_app_sem "VS Code: a extensão '$MEOW_VSCODE_EXT_TEMA' do pack $_MEOW_VSCODE_PACK_NOME não tem a forma <editor>.<nome> — nada é instalado"
+    MEOW_VSCODE_EXT_TEMA=""
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
   meow_app_tema_do_pack vscode.origem.url;    _MEOW_VSCODE_VSIX="$MEOW_APP_TEMA"
   meow_app_tema_do_pack vscode.origem.sha256; _MEOW_VSCODE_VSIX_SHA="$MEOW_APP_TEMA"
   if [ -n "$_MEOW_VSCODE_VSIX$_MEOW_VSCODE_VSIX_SHA" ]; then
@@ -604,6 +612,11 @@ _meow_vscode_do_pack() {
     if [ -z "$MEOW_VSCODE_EXT_ICONES" ]; then
       meow_app_sem "VS Code: o pack $_MEOW_VSCODE_PACK_NOME pede os ícones '$MEOW_VSCODE_ICONES' e não diz de que extensão eles vêm (apps.vscode-icones.origem.extensao)"
       return
+    fi
+    if ! [[ "$MEOW_VSCODE_EXT_ICONES" =~ ^[A-Za-z0-9][A-Za-z0-9-]*\.[A-Za-z0-9][A-Za-z0-9-]*$ ]]; then
+      meow_app_sem "VS Code: a extensão '$MEOW_VSCODE_EXT_ICONES' do pack $_MEOW_VSCODE_PACK_NOME não tem a forma <editor>.<nome> — nada é instalado"
+      MEOW_VSCODE_EXT_ICONES=""
+      return "$MEOW_SEM_DEPENDENCIA"
     fi
   fi
   return "$MEOW_OK"

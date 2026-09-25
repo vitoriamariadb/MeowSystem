@@ -63,6 +63,8 @@
 #     E o nome do arquivo, que aqui coincidem) e `_heroic_classe` devolve o nome
 #     SEM ela — é a classe do `body`, e só ela escreve o seletor do nosso bloco.
 #     São duas funções porque um dia divergiram e ninguém percebeu.
+#     [P55, 24/09/2026: a `_heroic_classe` saiu; a classe vem do nome de cada
+#     arquivo, no `_heroic_css`. Ver a nota onde ela morava.]
 #
 #     O `meow doctor` relê esse handler a cada passagem (verificador
 #     `heroictema`): se um Heroic futuro passar a juntar o ".css" sozinho, ele
@@ -233,12 +235,12 @@ _heroic_do_pack() {
   return 0
 }
 
-# A CLASSE do `body` — o nome do arquivo sem a extensão. É ela que abre o CSS do
-# upstream (`body.catppuccin-mocha-mauve { … }`) e é ela que abre o nosso bloco.
-# [P55: o par de fábrica, que morava aqui, foi para o `_heroic_do_pack`.]
-_heroic_classe() {
-  printf '%s' "${_HEROIC_TEMA%.css}"
-}
+# A CLASSE do `body` morava aqui, numa `_heroic_classe`, até a P55 (24/09/2026):
+# o nome do arquivo sem a extensão, que abre o CSS do upstream
+# (`body.catppuccin-mocha-mauve { … }`) e o nosso bloco. Ela só servia ao
+# `_heroic_tema`, e saiu com o par de fábrica que ela escolhia, que foi para o
+# `_heroic_do_pack`. A classe de cada arquivo sai do nome DELE, no `_heroic_css`,
+# que é quem escreve o seletor do bloco.
 
 # O VALOR DA CHAVE `theme`, que é o nome do ARQUIVO — com o `.css`. Ver a seção
 # do cabeçalho: o `getThemeCSS` do 2.22.1 faz `join(customThemesPath, theme)` e
