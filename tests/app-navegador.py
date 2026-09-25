@@ -2528,6 +2528,43 @@ def main():
                   "a leitura de um trabalho que acabou não escreve na gaveta do seguinte nem o "
                   f"dá por terminado: vivo={seguinte['vivo']}, saída {seguinte['saida']} e depois "
                   f"{seguinte['depois']}")
+
+            print("\n24. A GRADE DE APLICATIVOS NÃO SOME NO FIM DE UM TRABALHO")
+            # A RELEITURA DA GRADE — 24/09/2026, sprint P57 (item 6)
+            #   Um trabalho que escreve esquece a lista de aplicativos (P46), e a
+            #   grade de Ícones era trocada por «Lendo os aplicativos…» até a
+            #   primeira pintura seguinte pedir a lista de novo: medido numa casa
+            #   de brinquedo, 110 ms sem cartão nenhum, 240 ms com a máquina
+            #   carregada, e o gate tropeçava nisso. Um vigia no `#conteudo`
+            #   anota toda pintura sem cartão, ou com o «Lendo», do clique até
+            #   depois das três releituras do fim — e não pode anotar nenhuma. A
+            #   ação é a «Próxima imagem»: escreve, é rápida, e não toca no
+            #   meow.conf que o passo 21 confere.
+            secao("Ícones")
+            pag.wait_for_selector("#conteudo .grade-apps .app", timeout=30000)
+            grade = pag.evaluate("""async () => {
+              const sumiu = [];
+              const vigia = new MutationObserver(() => {
+                const cartoes = document.querySelectorAll('#conteudo .grade-apps .app').length;
+                const lendo = [...document.querySelectorAll('#conteudo .sem-previa')]
+                  .some((e) => e.textContent.includes('Lendo os aplicativos'));
+                if (!cartoes || lendo) sumiu.push({ cartoes, lendo });
+              });
+              vigia.observe(document.getElementById('conteudo'), { childList: true, subtree: true });
+              await rodarAcao('wallpaper_proximo');
+              const inicio = performance.now();
+              while (TRABALHO && performance.now() - inicio < 60000) {
+                await new Promise((r) => setTimeout(r, 50));
+              }
+              await new Promise((r) => setTimeout(r, 3000));
+              vigia.disconnect();
+              return { sumiu, terminou: !TRABALHO,
+                       cartoes: document.querySelectorAll('#conteudo .grade-apps .app').length };
+            }""")
+            checa(grade["terminou"] and grade["cartoes"] and not grade["sumiu"],
+                  "a grade de Ícones passa da lista de antes para a de depois sem sumir: "
+                  f"{len(grade['sumiu'])} pintura(s) sem cartão ou com «Lendo…», "
+                  f"{grade['cartoes']} cartões no fim")
             print("\n20b. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,
                   f"nenhum erro de JavaScript em toda a visita"

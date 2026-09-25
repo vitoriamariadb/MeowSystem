@@ -5992,7 +5992,21 @@ async function puxar() {
       for (const chave of [...PREVIAS.keys()]) {
         if (chave.startsWith("icone/") || chave.startsWith("parede/")) PREVIAS.delete(chave);
       }
+      /* A LISTA DE APLICATIVOS SE RELÊ JÁ, E A TELA SÓ REPINTA COM ELA
+       * — 24/09/2026, sprint P57
+       *   O "lendo…" de um instante, acima, era a grade de Ícones inteira
+       * trocada por «Lendo os aplicativos…»: a primeira pintura depois do
+       * trabalho (a dos packs, logo abaixo) achava a lista esquecida e só então
+       * a pedia. Medido numa casa de brinquedo: 110 ms sem cartão nenhum, 240 ms
+       * com a máquina carregada — e o esquema, que a sprint supunha no caminho,
+       * nunca esteve nele. A lista que estava aberta é pedida aqui, com o
+       * trabalho já terminado (é a do disco DEPOIS dele: a razão da P46 fica de
+       * pé), e as duas repinturas de baixo esperam por ela — a grade passa da
+       * lista de antes para a de depois sem sumir no meio. A que nunca foi
+       * aberta continua sendo lida quando for aberta. */
+      const aberta = APPS !== null;
       APPS = null;
+      const lista = aberta ? carregarApps() : null;
       /* Uma etapa que escreveu pode ter RESOLVIDO uma pendência (ou criado
        * outra): quem apaga a linha do TSV é o próprio script, no caminho feliz.
        * Reler aqui é o que faz o bloco sumir da Home sem F5. */
@@ -6006,8 +6020,8 @@ async function puxar() {
        * packs, que é quem sabe qual está no ar. */
       const folha = document.querySelector('link[rel="stylesheet"][href^="/paleta.css"]');
       if (folha) folha.href = `/paleta.css?v=${Date.now()}`;
-      recarregarPacks().then(render);
-      recarregarEsquema().then(() => {
+      Promise.all([recarregarPacks(), lista]).then(render);
+      Promise.all([recarregarEsquema(), lista]).then(() => {
         PREVIAS.delete("icone/");
         if (APPS) carregarApps();
         if (JOGOS) carregarJogos();
