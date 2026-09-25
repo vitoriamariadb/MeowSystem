@@ -1106,6 +1106,20 @@ if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
             if no_dock() != no_dock_esperado or carimbo != no_terminal:
                 erros.append("13c: no modo hora, de %s, o dock ficou com %s e o terminal com %r "
                              "— o outro do par é %s" % (fase, no_dock(), carimbo, no_terminal))
+            # E O RETRATO DA INÍCIO DIZ O GATO DO DOCK, e não a `LOGO` (25/09/2026,
+            # validação final: «Logo Coquinha» com o morcego-noite no dock). O
+            # servidor é importado num processo à parte, com esta casa e este conf.
+            r = subprocess.run([sys.executable, "-c",
+                                "import sys; sys.path.insert(0, sys.argv[1]); import servidor; "
+                                "print(servidor._gato_no_dock())",
+                                os.path.join(raiz, "app")],
+                               capture_output=True, text=True, env=ambiente, timeout=60)
+            if r.stdout.strip() != no_dock_esperado:
+                erros.append("13c: de %s, o esquema diz o gato do dock %r — o dock tem %s"
+                             % (fase, r.stdout.strip() or r.stderr.strip()[-160:], no_dock_esperado))
+        with open(os.path.join(raiz, "app", "pagina", "app.js"), encoding="utf-8") as fh:
+            if "const gatoNome = ESQUEMA.gato_no_dock ||" not in fh.read():
+                erros.append("13c: o retrato da Início não lê o gato do dock (ESQUEMA.gato_no_dock)")
     else:
         print("pulado: 13c, o outro do par no modo hora — o acervo tem menos de três gatos")
 else:

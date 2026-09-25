@@ -4100,6 +4100,30 @@ def _modo_do_gato():
     return r.stdout.decode("utf-8", "replace").strip() if r.returncode == 0 else ""
 
 
+@_uma_vez_por_leitura
+def _gato_no_dock():
+    """O gato que está NO BOTÃO DO DOCK agora, ou "" quando não há um.
+
+    O RETRATO DA INÍCIO LIA A CHAVE, E NÃO O DOCK — 25/09/2026, validação final
+    no painel de verdade. Às 03:28, com o morcego-noite no dock (modo `hora`),
+    ele dizia «Logo Coquinha, escolhida pelo relógio»: a `LOGO` é a do modo
+    `fixo`, e no `hora` quem põe o gato é o relógio. É a classe do achado 46,
+    que a P54 consertou no `meow status` perguntando ao `logo.sh no-dock` — o
+    dono único da pergunta, que o espelho do terminal também usa. A página
+    pergunta ao mesmo dono, pelo caminho do `_modo_do_gato` logo acima: o conf
+    do `carregar_conf`, e o seco junto, porque o `no-dock` só lê."""
+    fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
+    programa = 'set -a; . "$1"; set +a; exec "$2" no-dock'
+    try:
+        r = subprocess.run(["bash", "-c", programa, "_", fonte,
+                            os.path.join(RAIZ, "scripts", "logo.sh")],
+                           capture_output=True, timeout=10,
+                           env=dict(_ambiente_do_painel(), MEOW_DRY_RUN="1"))
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return r.stdout.decode("utf-8", "replace").strip() if r.returncode == 0 else ""
+
+
 def _gato_so_nos_modos(vale_em, pede):
     """A condição dos dois botões do gato: sem efeito fora dos modos `vale_em`.
 
@@ -10362,6 +10386,9 @@ class Manipulador(BaseHTTPRequestHandler):
             "chaves": esquema,
             # Para o item "Créditos" do menu — ver `_repositorio_no_ar`.
             "repositorio": _repositorio_no_ar(),
+            # O gato que está no dock agora, do `logo.sh no-dock` — o retrato
+            # da Início o diz, e não a `LOGO`, que é só a do modo fixo.
+            "gato_no_dock": _gato_no_dock(),
             # Quais combinações de FLAVOR × ACCENT existem de verdade: a
             # página avisa ANTES de ela salvar uma que o instalador recusa.
             "capturas": _capturas_no_disco(),

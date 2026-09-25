@@ -8883,7 +8883,12 @@ function montarHome() {
 
   /* --- 1. o retrato ------------------------------------------------------- */
   const retrato = elemento("section", { class: "home-retrato" });
-  const gatoNome = vale("LOGO");
+  /* O GATO É O DO DOCK, E NÃO O DA CHAVE — 25/09/2026, validação final. A
+   * `LOGO` é a do modo fixo; no modo hora quem põe o gato é o relógio, e às
+   * 03:28 este retrato dizia «Logo Coquinha» com o morcego-noite no dock. O
+   * servidor pergunta ao `logo.sh no-dock` (`gato_no_dock`); a chave só vale
+   * quando o dock não diz nada — antes da primeira instalação, por exemplo. */
+  const gatoNome = ESQUEMA.gato_no_dock || vale("LOGO");
   const gatos = previasDe("gato");
   const gato = gatos && gatos.itens.find((i) => i.id === gatoNome);
   if (gato && gato.url) {
