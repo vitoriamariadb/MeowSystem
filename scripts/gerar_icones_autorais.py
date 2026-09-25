@@ -64,7 +64,8 @@ OS OITO APLICATIVOS DO PRÓPRIO SISTEMA
 
     A ÚNICA EXCEÇÃO É O GESTOR DE ARQUIVOS, que usa o ACCENT — porque as pastas
     dentro dele já são `cat-<flavor>-<accent>`, e um ícone azul abrindo uma
-    janela de pastas mauve seria a única incoerência visível do conjunto.
+    janela de pastas na cor do acento seria a única incoerência visível do
+    conjunto.
 
     NENHUM DELES USA GRADIENTE, e o original usava. `linearGradient` a 48px não
     aparece como volume: aparece como sujeira de compressão. As formas aqui são

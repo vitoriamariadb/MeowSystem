@@ -1417,7 +1417,7 @@ async function importarArquivo(arquivo) {
 
 /* A LISTA SE RELÊ QUANDO O PASSO TERMINA, E NÃO QUANDO ELE COMEÇA
  * — 24/09/2026, sprint P46
- *   O «Usar este ícone», o «Voltar ao ícone de fábrica» e o salvar da oficina
+ *   O «Usar este ícone», o «Desfazer a escolha no traço» e o salvar da oficina
  * rodam o `icones_traco` e reliam a lista de aplicativos LOGO EM SEGUIDA, com
  * o passo ainda correndo. Medido pelo `tests/app-completo.py`: o `/api/apps`
  * lido no meio do passo devolvia o caminho de um desenho que o passo apagava

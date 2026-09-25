@@ -3712,12 +3712,15 @@ def _lados_do_pack():
     recebe pelo esquema (`pack.lados`) e desenha o que a página vai vestir, em
     vez de repetir a regra em JavaScript. [P59]
 
-    O COSMIC NEM SEMPRE VESTE O MESMO — medido na revisão da P59, 25/09/2026,
-    e anterior a ela: a foto `dracula-mauve` traz na Light o Latte do
-    Catppuccin (`name: "catppuccin-latte"`, a receita igual à do latte-mauve).
-    Com FLAVOR=dracula e MODO=claro a tela mostra o latte, e a página e a
-    prévia dizem alucard. Mexer na foto muda os bytes do dracula; fica para
-    uma sprint própria."""
+    O COSMIC VESTE O MESMO FLAVOR DESDE A P63 — a revisão da P59 (25/09/2026)
+    mediu a foto `dracula-mauve` trazendo na Light o Latte do Catppuccin
+    (`name: "catppuccin-latte"`, a receita igual à do latte-mauve), e com
+    FLAVOR=dracula e MODO=claro a tela mostrava o latte enquanto a página e a
+    prévia diziam alucard. A P63 fez a sprint própria: a Light das capturas do
+    Dracula sai do alucard, derivada (`lado_do_par`, no
+    scripts/derivar_flavor.py), e a foto diz `name: "dracula-alucard"`. [Até a
+    P67 esta docstring dava a Light do Latte no presente, e a sprint como
+    pendente.]"""
     return {f: {m: _flavor_no_modo(f, m) for m in ("claro", "escuro")}
             for f in (_paleta_dados().get("flavors") or {})}
 
@@ -4179,8 +4182,8 @@ NATUREZAS = {
                   "0~": ("ok", "mexeu e aplicou"),
                   "1": ("ok", "mexeu e aplicou")},
     # O INSTALADOR INTEIRO, E O 1 DELE NÃO É VERDE: desde a P48 ele sai 1 quando
-    # o tema pedido não chegou ao COSMIC (o flavor sem captura), com a frase e a
-    # pendência na Início. Aplicou o resto, e não aplicou tudo.
+    # o tema pedido não chegou ao COSMIC (o par sem captura que não se deriva),
+    # com a frase e a pendência na Início. Aplicou o resto, e não aplicou tudo.
     "instalar":  {"0": ("ok", "já estava certo"),
                   "0~": ("ok", "mexeu e aplicou"),
                   "1": ("correndo", "aplicou, com pendência")},
@@ -8983,9 +8986,10 @@ class Manipulador(BaseHTTPRequestHandler):
     # ========================================================================
     # Até aqui a escolha tomava o lugar da linha do pack e a linha sumia: não
     # havia o que devolver, e a escolha de um desenho do pack não tinha
-    # desfazer. O «Voltar ao ícone de fábrica» ao lado só mexe no mapa do
-    # traço — e com o Chrome, que está nos dois mapas, dizia «voltou para o
-    # ícone de fábrica» com o desenho do Dracula na tela.
+    # desfazer. O «Desfazer a escolha no traço» ao lado só mexe no mapa do
+    # traço — e com o Chrome, que está nos dois mapas, a torrada dele dizia
+    # «voltou para o ícone de fábrica» com o desenho do Dracula na tela. [Até a
+    # P67 este comentário chamava o botão pelo nome de antes da P64.]
     #
     # A linha trocada vai INTEIRA no comentário da escolha, depois de "; antes:":
     #

@@ -295,8 +295,11 @@ meow_preflight() {
   #      a etapa `tema` o aplica. Sem esta pergunta, o `dracula-pink` abria o
   #      instalador com "o tema do COSMIC não vai ser aplicado" e terminava com
   #      ele aplicado: a mesma tela dizendo as duas coisas. O `--conferir` sai 1
-  #      quando derivaria, e é só esse caso que deixa de ser aviso; o 3 (flavor
-  #      que nunca foi fotografado) continua sendo, com a lista de sempre.
+  #      quando derivaria (desde a P59, também o flavor sem foto, de outro do
+  #      mesmo lado), e é só esse caso que deixa de ser aviso; o 3 (o par sem
+  #      captura daquele lado ao alcance do pack, ou sem uma que se reproduza)
+  #      continua sendo, com a lista de sempre. [Dizia «flavor que nunca foi
+  #      fotografado» até a P67 (25/09/2026).]
   if [ -n "${FLAVOR:-}" ] && [ -n "${ACCENT:-}" ] \
      && [ -z "$(meow_captura "${FLAVOR}-${ACCENT}")" ] \
      && { MEOW_PACK_DIR="${MEOW_PACK_DIR:-$(meow_pack_dir)}" \

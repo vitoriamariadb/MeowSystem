@@ -21,7 +21,7 @@
 #   `folder-documents` e `inode-directory`, que é o nome genérico de diretório
 #   que os aplicativos realmente pedem. Um tema derivado que copie só os SVGs
 #   coloridos NÃO cobre esses nomes: a busca cai no Papirus-Dark e metade das
-#   pastas fica mauve enquanto a outra metade continua AZUL.
+#   pastas fica na cor pedida enquanto a outra metade continua AZUL.
 #   Por isso este script reproduz cada apelido apontando para o equivalente
 #   colorido, e conta quantos conseguiu — o número aparece no log de propósito.
 #
@@ -32,10 +32,11 @@
 #
 # ESTE SCRIPT CEDE ALGUNS NOMES — E A CESSÃO É CONDICIONAL, DE PROPÓSITO
 #   Desde 08/08/2026 as pastas ESPECIAIS que o `cosmic-files` pede pelo nome XDG
-#   (`folder-pictures`, `folder-music`, ...) são vestidas pelo pack Catppuccin,
-#   em `scalable/places`, pelo `scripts/icones_pastas.sh`. Se este script
-#   continuasse criando o apelido mauve no mesmo nome, haveria DOIS arquivos para
-#   o mesmo ícone — e medido, os dois resolvedores discordam: a crate do COSMIC
+#   (`folder-pictures`, `folder-music`, ...) são vestidas pelo desenho do pack
+#   no ar (o do Catppuccin, ou o próprio do pack que tem um), em
+#   `scalable/places`, pelo `scripts/icones_pastas.sh`. Se este script
+#   continuasse criando o apelido colorido no mesmo nome, haveria DOIS arquivos
+#   para o mesmo ícone — e medido, os dois resolvedores discordam: a crate do COSMIC
 #   abre o `scalable`, o GTK abre o tamanho exato. A mesma pasta apareceria
 #   pastel a 16px e mauve a 48px dentro de um mesmo aplicativo GTK.
 #
@@ -67,7 +68,8 @@
 #   São 11 nomes × 5 tamanhos = 55 apelidos que o passe 2 abandonaria (ele exige
 #   `[ -e "$destino/$alvo" ]`), e que cairiam AZUIS sem ninguém acusar. O conserto
 #   está no passe 2: quando o alvo foi cedido, desce a cadeia inteira do Papirus
-#   com `readlink -f` e aponta direto para a cor. Eles continuam mauve.
+#   com `readlink -f` e aponta direto para a cor. Eles continuam na cor das
+#   outras pastas.
 #
 # 22x22 E 24x24 FICARAM SEM APELIDO NENHUM ATÉ 08/08/2026 — E NÃO ERA COR
 #   `Papirus-Dark/22x22/places` e `.../24x24/places` são SYMLINK para a árvore
@@ -406,8 +408,8 @@ ler_cedidos() {
     case "$linha" in ''|'#'*) continue ;; esac
     nome="${linha%%:*}"
     [ -n "$nome" ] || continue
-    # A CONDIÇÃO É O DISCO, NÃO O MAPA — ver o cabeçalho. Sem o pastel instalado
-    # não se cede, e a pasta continua mauve em vez de ficar azul.
+    # A CONDIÇÃO É O DISCO, NÃO O MAPA — ver o cabeçalho. Sem o desenho instalado
+    # não se cede, e a pasta continua na cor das outras em vez de ficar azul.
     [ -f "$PASTEL_DIR/$nome.svg" ] && CEDIDOS["$nome"]=1
   done < "$MAPA_PASTAS"
   return 0
@@ -483,7 +485,8 @@ mudou=0
 recolorir_lixeiras() {
   local tam="$1" origem destino modelo claro escuro alvo tmp
   destino="$TEMA_DIR/$tam/places"
-  # O modelo é uma pasta mauve já instalada; sem ela não há de onde tirar tom.
+  # O modelo é uma pasta da cor pedida já instalada; sem ela não há de onde
+  # tirar tom.
   modelo="$destino/folder-$COR-documents.svg"
   [ -f "$modelo" ] || return 0
   # O que se pula é o `PAPEL_DAS_PASTAS`, e não mais os quatro hex do Mocha
@@ -583,8 +586,8 @@ tabela_azul_mauve() {
   mapfile -t para < <(grep -oE '#[0-9A-Fa-f]{6}' "$mauve")
   [ "${#de[@]}" -gt 0 ] && [ "${#de[@]}" = "${#para[@]}" ] || return 1
   for i in "${!de[@]}"; do
-    # Um hex azul querendo duas cores mauve diferentes é sinal de que o par
-    # deixou de ser o mesmo desenho. Melhor parar do que pintar torto.
+    # Um hex azul querendo duas cores diferentes na pasta pedida é sinal de que
+    # o par deixou de ser o mesmo desenho. Melhor parar do que pintar torto.
     if [ -n "${DE_PARA[${de[$i]}]:-}" ] && [ "${DE_PARA[${de[$i]}]}" != "${para[$i]}" ]; then
       DE_PARA=(); return 1
     fi
@@ -615,7 +618,8 @@ vestir_azuis_orfaos() {
     esac
     eq="${fim/folder-blue/folder-$COR}"
     eq="${eq/user-blue/user-$COR}"
-    # Tem twin mauve: o laço dos apelidos resolve, e resolve melhor (symlink).
+    # Tem gêmeo na cor pedida: o laço dos apelidos resolve, e resolve melhor
+    # (symlink).
     [ -f "$FONTE/src/$tam/places/$eq" ] && continue
 
     desejado="$(sed "${troca[@]}" "$origem")"
@@ -700,10 +704,11 @@ for tam in "${TAMANHOS[@]}"; do
         equivalente=""
 
         # A CESSÃO, ANTES DE QUALQUER OUTRA COISA (ver o cabeçalho).
-        #   Não basta não criar: o apelido mauve das rodadas anteriores JÁ ESTÁ
-        #   no disco, e enquanto ele existir o GTK abre ele em vez do pastel nos
-        #   tamanhos exatos. Remover é o que faz a cessão valer de fato — e é
-        #   seguro porque este nome é criado por este script e por mais ninguém.
+        #   Não basta não criar: o apelido colorido das rodadas anteriores JÁ
+        #   ESTÁ no disco, e enquanto ele existir o GTK abre ele em vez do
+        #   desenho cedido nos tamanhos exatos. Remover é o que faz a cessão
+        #   valer de fato — e é seguro porque este nome é criado por este script
+        #   e por mais ninguém.
         if cedido "$nome"; then
           if [ -e "$destino/$nome" ] || [ -L "$destino/$nome" ]; then
             if meow_seco; then
