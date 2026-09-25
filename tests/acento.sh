@@ -154,15 +154,21 @@ focos="$(grep -h '^ *focus: "' "$COSMIC"/com.system76.CosmicTheme.Dark/v2/* | se
 [ "$focos" = 'focus: "#FF79C6FF",' ] \
   && ok "o foco de todos os componentes da Dark/v2 é o pink" \
   || falha "sobrou foco de outra cor na Dark/v2" "$focos"
-# E NADA que o acento não pinta: a receita da neutra, o vidro e a Light ficam.
+# E NADA que o acento não pinta: a receita da neutra, o vidro e a paleta ficam.
 iguais=1
 for rel in com.system76.CosmicTheme.Dark.Builder/v2/neutral_tint \
            com.system76.CosmicTheme.Dark.Builder/v2/frosted \
-           com.system76.CosmicTheme.Dark/v2/palette \
-           com.system76.CosmicTheme.Light/v2/accent; do
+           com.system76.CosmicTheme.Dark/v2/palette; do
   cmp -s "$CAPS/dracula-mauve/$rel" "$COSMIC/$rel" || { iguais=0; falha "mudou o que o acento não pinta: $rel"; }
 done
-[ "$iguais" = "1" ] && ok "a neutra, o vidro, a paleta e a árvore Light ficaram as da captura do mauve"
+[ "$iguais" = "1" ] && ok "a neutra, o vidro e a paleta ficaram os da captura do mauve"
+# A LIGHT É A DO ALUCARD NO MESMO ACENTO — 25/09/2026, sprint P63. Até aqui
+# ela era a da captura do mauve, copiada, e a do mauve era o Latte do
+# Catppuccin. O tests/claro-do-pack.sh confere a árvore inteira; aqui, o acento.
+claro="$(campo "$COSMIC/com.system76.CosmicTheme.Light/v2/accent" base)"
+[ "$claro" = "#ED77BBFF" ] \
+  && ok "a Light/v2/accent é o pink do alucard ($claro), e não o mauve da captura da base" \
+  || falha "a Light do dracula-pink não é a do alucard-pink: accent $claro"
 
 # --- 4. converge: a segunda passagem não escreve nada ----------------------
 saida_g2="$(etapa gerar)"; rc_g2="$(rc)"
@@ -260,6 +266,14 @@ saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/catppuccin" MEOW_PALETA="$RAIZ/packs
   || falha "a escolha da base do mocha não passou pela guarda (rc=$r)" "$saida"
 
 # --- 7. o flavor sem fotografia não aplica, e vira pendência ---------------
+#   DESDE A P59 (25/09/2026) O FRAPPE SE DERIVA: sai do mocha-pink, trocado slot
+#   a slot (scripts/derivar_flavor.py, e o tests/variante.sh prova). O que não
+#   aplica agora é o flavor sem base NENHUMA do mesmo lado — e é esse o caso
+#   que esta seção continua cobrando: um Catppuccin de brinquedo sem as duas
+#   fotos escuras. E o pack vai para o `$MEOW_PACKS`, e não fica no clone: um
+#   frappe que se derivasse nasceria dentro do `packs/catppuccin` daqui.
+cp -a "$RAIZ/packs/catppuccin" "$PACKS/" || exit 2
+rm -rf "$PACKS"/catppuccin/temas/capturados/mocha-*
 conf frappe pink catppuccin
 saida_t="$(etapa tema)"; rc_t="$(rc)"
 if [ "$rc_t" = "3" ] && grep -q "^tema-sem-captura	.*não há tema capturado do frappe" "$ESTADO/pendencias.tsv" 2>/dev/null; then

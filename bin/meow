@@ -3504,8 +3504,12 @@ cmd_configurar() {
     #   Desde a P48 o `derivar_acento.py` escreve a captura do acento a partir
     #   da do mesmo flavor, e o instalador a aplica sozinho. Mandar importar o
     #   `.ron` na GUI para esse par seria o passo manual do achado 31, dito
-    #   agora por outra porta. O `--conferir` sai 1 quando derivaria; a frase
-    #   abaixo fica para o flavor que nunca foi fotografado (saída 3).
+    #   agora por outra porta. O `--conferir` sai 1 quando derivaria: do mesmo
+    #   flavor (P48) ou, sem foto nenhuma dele, de outro flavor do mesmo lado
+    #   (P59, o `derivar_flavor.py`). A frase abaixo fica para o par que não
+    #   tem de onde sair (saída 3): nenhuma captura daquele lado ao alcance do
+    #   pack, ou nenhuma que se reproduza. (25/09/2026, P63: aqui dizia «o
+    #   flavor que nunca foi fotografado», e desde a P59 esse flavor se deriva.)
     if [ -n "$_fl" ] && [ -n "$_ac" ] && [ -z "$(meow_captura "$_par")" ] \
        && { python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$_par" >/dev/null 2>&1
             [ "$?" != "1" ]; }; then

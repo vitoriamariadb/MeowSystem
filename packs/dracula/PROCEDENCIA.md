@@ -694,6 +694,78 @@ bloco `apps`, e dois deles descem pela rede, pinados como a base e o ponteiro:
 Os três são escuros nos dois modos, e nenhum tem par para o `alucard`: com ele
 no ar, o Obsidian, o VS Code e o Heroic ficam no Dracula.
 
+## O tema do COSMIC: a Dark é foto, a Light é o Alucard — 25/09/2026, sprint P63
+
+`temas/capturados/dracula-mauve/` não é arte de terceiro, e por isso não está
+em tabela nenhuma daqui: é o `~/.config/cosmic` desta máquina com o Dracula
+aplicado, fotografado pelo `scripts/capturar_tema.sh` em 11/09/2026 (a hora e a
+casa estão no `captura.txt`). O que o COSMIC escreveu vai byte a byte — o
+`.gitattributes` marca a pasta `byte-exact` —, e o `manifesto.sha256` dá o
+sha256 de cada arquivo.
+
+**A árvore Dark é a foto, e continua a mesma.** Os 69 arquivos de
+`com.system76.CosmicTheme.Dark/`, os 38 de `Dark.Builder/` e os 2 de `Mode/`
+têm no manifesto o mesmo sha256 de antes da P63.
+
+**A árvore Light deixou de ser foto.** A foto trouxe no claro o Latte do
+Catppuccin — `name: "catppuccin-latte"`, o acento #8839EF, e as dez chaves de
+cor da receita iguais às do `latte-mauve` —, porque em 11/09 era o que esta
+máquina tinha no modo claro. Com FLAVOR=dracula e MODO=claro o COSMIC vestia o
+Latte, e o pack diz que o claro do dracula é o `alucard` (o `claros` da
+`paleta.json`, o `_nota_claro` do `pack.json`); a página e a prévia já diziam
+Alucard. Desde a P63 as duas árvores Light (`Light/` e `Light.Builder/`, v1 e
+v2, 80 arquivos, 57 deles mudaram) são as do `alucard-mauve`, **derivadas, não
+copiadas**:
+
+- **De onde.** Da Light do `latte-mauve` do Catppuccin (a foto de 04/08, a única
+  Light ao alcance do Dracula que se reproduz com a receita que traz), trocada
+  slot a slot do latte pelo alucard e refeita pelo `build()` do libcosmic que o
+  `scripts/derivar_flavor.py` porta — o mesmo caminho que a P59 dá ao
+  FLAVOR=alucard. A Light antiga não servia de base: o produto dela não é o que
+  a receita dela dá (66 campos, a começar pelo vidro 8A com a receita em
+  `VeryHigh2`).
+- **O comando.** `MEOW_PACK_DIR=packs/dracula python3 scripts/derivar_flavor.py
+  dracula-mauve` escreve as duas árvores, a linha `claro:` do `captura.txt` e
+  refaz o manifesto pelo mesmo comando do `capturar_tema.sh`; o resto da foto
+  não muda um byte. Com `--conferir` ele só diz se a foto está em dia, e o
+  `tests/claro-do-pack.sh` o roda: uma Light que não seja a que a derivação dá
+  hoje derruba o teste.
+- **Conferido contra o oráculo** (o `build()` de verdade, do commit c003a58):
+  todas as cores da `Light/v2` saem iguais. Diferem a quebra de linha final do
+  `corner_radii` e do `gaps`, o alpha da Aurora no `base:` do `secondary` (FF, o
+  da base) e o `frosted_maximized_apps`, que o oráculo escreve e a base não
+  traz — as mesmas diferenças que a P59 anotou no cabeçalho do derivador.
+- **A v1** (a árvore dos applets antigos) sai da v2 nova pela mesma função do
+  `scripts/gerar_tema_v1.py`, que não precisou mudar: rodado sobre a foto, ele
+  confere tudo e escreve zero arquivos.
+
+**O que veio da base e não é cor.** O `build()` só refaz cor; a geometria e o
+vidro da Light são os do `latte-mauve`. Medido na receita (`Light.Builder/v2`):
+
+| chave | a Light antiga | a de agora | a Dark |
+|---|---|---|---|
+| `corner_radii` | 0, 2, 8, 8, 8, 8 | 0, 4, 8, 16, 32, 160 | 0, 2, 8, 8, 8, 8 |
+| `spacing` | 4 a 160 | 0 a 128 | 0 a 128 |
+| `active_hint` | 5 | 4 | 4 |
+| `frosted` | `VeryHigh2` | `VeryLow2` | `VeryHigh2` |
+| `alpha_map` | 0,54 a 0,24 | 0,92 a 0,62 | 0,92 a 0,62 |
+
+O `frosted` e o `alpha_map` são dela: o `aplicar_tema.sh` só os escreve onde
+faltam, e numa máquina que já tem COSMIC ficam os que o slider gravou. Os
+outros três a captura impõe — no modo claro os cantos passam a ser os
+arredondados de fábrica, e a Dark continua com os da foto.
+
+**As derivadas de acento** (`dracula-pink`, `dracula-green`…) nascem na
+máquina, dentro desta pasta, e não vão para o git (cada uma traz um
+`.gitignore`). Desde a P63 a Light de cada uma é a do alucard no MESMO acento
+— a do `dracula-pink` é a do `alucard-pink` —, pelo mesmo `derivar_flavor.py`,
+e o `captura.txt` dela diz `claro: o do alucard-<acento>, derivado de
+latte-mauve`. A regra vale porque o `alucard` nunca foi fotografado: no
+Catppuccin, cujo claro tem foto, a derivada de acento continua levando a Light
+da base. Uma derivada de antes da P63 que ainda esteja no disco se refaz na
+etapa `gerar` do instalador — a do «Salvar e aplicar» — na próxima vez que o
+acento dela for escolhido.
+
 ## Para quem for acrescentar uma linha
 
 O `sincronizar` procura a **primeira tabela** cujo cabeçalho tenha as colunas
