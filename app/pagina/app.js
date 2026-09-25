@@ -5882,8 +5882,23 @@ function marcarLinhasAbaixo() {
 }
 
 async function puxar() {
-  if (!TRABALHO) return;
-  const r = await api(`/api/trabalho?id=${TRABALHO.id}&desde=${TRABALHO.proximo}`);
+  /* A LEITURA QUE VOLTA TEM DE SER A DE AGORA — 24/09/2026, sprint P57
+   *   O intervalo de 400 ms não espera a leitura anterior: com o servidor
+   * lento (a máquina carregada), duas ficam no ar, e o que vinha depois do
+   * `await` escrevia no `TRABALHO` de AGORA com a resposta de ANTES. A que
+   * voltava por último repetia a saída; a que voltava depois do fim escrevia
+   * num `TRABALHO` já `null` — a exceção que derrubou uma rodada do gate em
+   * «Ouvir o som»; e a de um trabalho que acabou, chegando com o seguinte já
+   * aberto, punha a saída do velho na gaveta do novo e o dava por terminado
+   * com ele ainda rodando. A guarda: a resposta só vale se o trabalho ainda é
+   * o mesmo e ninguém leu depois dela; se não, a próxima volta do intervalo
+   * pede de onde a gaveta está. O `tests/app-navegador.py` (passo 23) monta as
+   * três corridas. */
+  const t = TRABALHO;
+  if (!t) return;
+  const desde = t.proximo;
+  const r = await api(`/api/trabalho?id=${t.id}&desde=${desde}`);
+  if (TRABALHO !== t || t.proximo !== desde) return;
   if (r.erro) { clearInterval(TRABALHO.timer); pastilhaDeTrabalho(false); return; }
   TRABALHO.proximo = r.proximo;
 

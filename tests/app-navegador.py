@@ -2431,6 +2431,103 @@ def main():
                     pag.evaluate(f"document.getElementById('principal').scrollTop = {topo} + 420")
                     pag.wait_for_timeout(400)
                     foto(pag, "22-oficina-rolada")
+
+            print("\n23. DUAS LEITURAS DA GAVETA NO AR")
+            # A CORRIDA DO `puxar` — 24/09/2026, sprint P57 (item 2)
+            #   O `puxar` lê o `TRABALHO` antes do `await` e escreve nele depois,
+            #   e o intervalo de 400 ms dispara uma leitura nova com a anterior
+            #   ainda no ar sempre que o servidor demora — com a máquina
+            #   carregada, é a regra. Derrubou uma rodada do gate em «Ouvir o
+            #   som»: a leitura que voltava depois do fim escrevia num
+            #   `TRABALHO` que já era `null`. As três corridas abaixo são as que
+            #   o intervalo produz, com o `/api/trabalho` de mentira respondendo
+            #   na ordem que o teste escolhe: a leitura velha do MESMO trabalho
+            #   que chega por último (a saída repetia), a que chega depois do
+            #   fim (a exceção) e a de um trabalho que acabou chegando no
+            #   trabalho SEGUINTE (escrevia na gaveta dele e o dava por
+            #   terminado, com ele ainda rodando no servidor).
+            corrida = pag.evaluate("""async () => {
+              const original = window.fetch;
+              const fila = [];
+              window.fetch = (rota, opcoes) => String(rota).startsWith('/api/trabalho')
+                ? new Promise((pronto) => fila.push({ rota: String(rota), pronto }))
+                : original(rota, opcoes);
+              // O servidor de mentira: `linhas` é tudo o que o trabalho já
+              // escreveu, e a resposta é a fatia pedida no `desde`, como a de
+              // verdade.
+              const responde = (i, linhas, vivo) => {
+                const desde = Number(new URL(fila[i].rota, location.href).searchParams.get('desde'));
+                fila[i].pronto(new Response(JSON.stringify({
+                  linhas: linhas.slice(desde), proximo: linhas.length, vivo,
+                  rc: vivo ? null : 0, segundos: 1 }),
+                  { status: 200, headers: { 'Content-Type': 'application/json' } }));
+              };
+              const tique = () => new Promise((r) => setTimeout(r, 80));
+              const saida = () => [...document.querySelectorAll('#saida span')]
+                .map((s) => s.textContent.trim());
+              const trabalho = (id) => ({ id, rotulo: 'Leitura dupla', comando: 'meow teste',
+                                          escreve: false, fim: { '0': ['ok', 'pronto'] } });
+              const erros = [];
+              const ouvir = (e) => erros.push(String((e.reason && e.reason.message) || e.reason));
+              window.addEventListener('unhandledrejection', ouvir);
+              const fora = {};
+              try {
+                abrirGaveta(trabalho('a'));          // leitura 0, desde 0
+                clearInterval(TRABALHO.timer);
+                puxar();                             // leitura 1, desde 0
+                await tique();
+                responde(0, ['um'], true);
+                await tique();
+                responde(1, ['um', 'dois'], true);   // a velha, chegando por último
+                await tique();
+                puxar();                             // leitura 2
+                await tique();
+                responde(2, ['um', 'dois'], false);
+                await tique();
+                fora.mesmo = saida();
+
+                abrirGaveta(trabalho('b'));          // leitura 3
+                clearInterval(TRABALHO.timer);
+                puxar();                             // leitura 4
+                await tique();
+                responde(3, ['três'], false);
+                await tique();
+                responde(4, ['três'], false);        // depois do fim
+                await tique();
+
+                abrirGaveta(trabalho('c'));          // leitura 5
+                clearInterval(TRABALHO.timer);
+                puxar();                             // leitura 6
+                await tique();
+                responde(5, ['quatro'], false);
+                await tique();
+                abrirGaveta(trabalho('d'));          // leitura 7
+                clearInterval(TRABALHO.timer);
+                await tique();
+                responde(6, ['quatro'], false);      // a do trabalho c, no d
+                await tique();
+                fora.seguinte = { vivo: !!TRABALHO && TRABALHO.id === 'd', saida: saida() };
+                responde(7, ['cinco'], false);
+                await tique();
+                fora.seguinte.depois = saida();
+              } finally {
+                window.fetch = original;
+                window.removeEventListener('unhandledrejection', ouvir);
+              }
+              fora.erros = erros;
+              return fora;
+            }""")
+            checa(corrida["mesmo"] == ["um", "dois"],
+                  "com duas leituras do mesmo trabalho no ar, a que volta atrasada não "
+                  f"repete a saída: {corrida['mesmo']}")
+            checa(not corrida["erros"],
+                  "a leitura que volta depois do fim do trabalho não quebra a página"
+                  + (f" — {corrida['erros'][:1]}" if corrida["erros"] else ""))
+            seguinte = corrida["seguinte"]
+            checa(seguinte["vivo"] and seguinte["saida"] == [] and seguinte["depois"] == ["cinco"],
+                  "a leitura de um trabalho que acabou não escreve na gaveta do seguinte nem o "
+                  f"dá por terminado: vivo={seguinte['vivo']}, saída {seguinte['saida']} e depois "
+                  f"{seguinte['depois']}")
             print("\n20b. O CONSOLE FICOU LIMPO?")
             checa(not erros_de_console,
                   f"nenhum erro de JavaScript em toda a visita"
