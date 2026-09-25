@@ -870,12 +870,36 @@ chk_heroictema() {
     echo "Heroic presente, mas sem app.asar de flatpak ao alcance — nada a conferir"
     return "$MEOW_SEM_DEPENDENCIA"
   }
+  # O QUE O MÓDULO GRAVA É O QUE O PACK NO AR DECLARA — 25/09/2026, sprint P62
+  #   A frase dizia «o módulo grava com o .css» com qualquer pack. Desde a P55 a
+  #   chave `theme` recebe o `apps.heroic.esquema` do pack no ar, que tem duas
+  #   formas (o bloco "O TEMA SAI DO PACK NO AR" do módulo): com `.css`, um
+  #   arquivo do acervo, que passa pelo handler lido aqui; sem, um tema que o
+  #   Heroic já traz — o `dracula` —, que não passa. Herdado, o módulo não grava
+  #   nada. A frase pergunta pela mesma porta do módulo (a `adocao` e o
+  #   `meow_app_tema_do_pack`); com o Catppuccin no ar, ela é a de antes.
+  local saida pack nome
+  local cauda="o módulo grava com o .css, e está certo"
+  local pesa="o módulo grava 'theme' COM o .css por causa dessa linha; confira o handler antes de confiar na tela"
+  saida="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null)" || saida=""
+  pack="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
+  nome="$(printf '%s\n' "$saida" | sed -n 's/^nome=//p')"
+  if [ -n "$pack" ]; then
+    meow_app_tema_do_pack heroic.esquema
+    if [ -z "$MEOW_APP_TEMA" ] || [ "$MEOW_APP_TEMA_PACK" != "$pack" ]; then
+      cauda="o pack no ar (${nome:-$pack}) não tem tema para o Heroic, e o módulo não grava nada"
+      pesa="o pack no ar (${nome:-$pack}) não tem tema para o Heroic — a linha pesa num pack de tema em arquivo"
+    elif [ "${MEOW_APP_TEMA%.css}" = "$MEOW_APP_TEMA" ]; then
+      cauda="o pack no ar (${nome:-$pack}) veste o '$MEOW_APP_TEMA', que o Heroic já traz, e sem arquivo não passa por aí"
+      pesa="o pack no ar (${nome:-$pack}) veste o '$MEOW_APP_TEMA', que o Heroic já traz e não passa por essa linha — ela pesa num pack de tema em arquivo"
+    fi
+  fi
   if grep -aq -- 'join(customThemesPath, theme)' "$asar"; then
-    echo "o Heroic abre o tema pelo nome do arquivo — o módulo grava com o .css, e está certo"
+    echo "o Heroic abre o tema pelo nome do arquivo — $cauda"
     return 0
   fi
   echo "o getThemeCSS do Heroic mudou de forma: não achei 'join(customThemesPath, theme)' no app.asar"
-  echo "o módulo grava 'theme' COM o .css por causa dessa linha; confira o handler antes de confiar na tela"
+  echo "$pesa"
   echo "arquivo: $asar"
   return "$MEOW_DIVERGENTE"
 }
@@ -3012,18 +3036,26 @@ cmd_apps() {
     tabela)
       meow_titulo "Aplicativos"
       printf '  %s%s %s %s %s%s\n' "$C_DIM" "$(pad "programa" 18)" "$(pad "instalado" 10)" "$(pad "tema" 10)" "nomes no meow.conf" "$C_ZERO"
-      local pasta slugs det conf rc_geral=0
+      local pasta slugs det conf motivo rc_geral=0
       local t_inst c_inst t_tema c_tema
-      while IFS=$'\t' read -r pasta slugs det conf; do
+      while IFS=$'\t' read -r pasta slugs det conf motivo; do
         [ -n "$pasta" ] || continue
         case "$det" in
           0) t_inst="sim"; c_inst="$C_VERDE" ;;
           *) t_inst="não"; c_inst="$C_DIM" ;;
         esac
+        # O 3 DE UM PROGRAMA INSTALADO DIZ O MOTIVO — 25/09/2026, sprint P62
+        #   Era `--` para tudo: com um pack sem tema para o Obsidian, o VS Code e
+        #   o Heroic, a tabela dizia `sim  --` três vezes, e o `meow apps
+        #   conferir` dizia «sem tema neste pack» nas mesmas três. Sem o programa,
+        #   o `--` basta (a coluna do lado já diz por quê); com ele, a coluna diz
+        #   que o tema não entra, e a linha de baixo diz o motivo com as palavras
+        #   do módulo — a quinta coluna do `aplicar_apps.sh tabela`.
         case "$conf" in
           0) t_tema="aplicado"; c_tema="$C_VERDE" ;;
           1) t_tema="pendente"; c_tema="$C_AMARELO"; rc_geral=1 ;;
-          3) t_tema="--";       c_tema="$C_DIM" ;;
+          3) t_tema="--";       c_tema="$C_DIM"
+             [ "$det" = 0 ] && t_tema="não veste" ;;
           *) t_tema="erro";     c_tema="$C_VERM"; rc_geral=2 ;;
         esac
         # A cor entra FORA do %-10s: os bytes de escape são invisíveis na tela
@@ -3031,6 +3063,8 @@ cmd_apps() {
         printf '  %s %s%s%s %s%s%s %s\n' \
                "$(pad "$pasta" 18)" "$c_inst" "$(pad "$t_inst" 10)" "$C_ZERO" \
                "$c_tema" "$(pad "$t_tema" 10)" "$C_ZERO" "$slugs"
+        [ "$conf" = 3 ] && [ "$det" = 0 ] && [ -n "$motivo" ] \
+          && printf '  %s %s%s%s\n' "$(pad "" 18)" "$C_DIM" "$motivo" "$C_ZERO"
       done < <(APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
         SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
       printf '\n  %snome sem programa ainda não é falha: aparece só quando alguém escrever o manifesto.%s\n' \

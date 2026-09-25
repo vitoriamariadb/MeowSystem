@@ -2401,10 +2401,18 @@ etapa_upstream() {
   return $?
 }
 
-# As pastas ESPECIAIS que o cosmic-files pede pelo nome XDG, vestidas pelo pack
-# Catppuccin. Vem ANTES do `etapa_pastas` de propósito: o `construir_pastas.sh`
-# só cede um nome quando o pastel JÁ está no disco, e nesta ordem a cessão vale
+# As pastas ESPECIAIS que o cosmic-files pede pelo nome XDG, vestidas com os
+# desenhos que o pack no ar tem para elas, ou com os do Catppuccin que ele
+# herda. Vem ANTES do `etapa_pastas` de propósito: o `construir_pastas.sh` só
+# cede um nome quando o desenho JÁ está no disco, e nesta ordem a cessão vale
 # na primeira passagem em vez de custar uma rodada.
+#
+# O TÍTULO NÃO DIZ DE QUEM É O DESENHO — 25/09/2026, sprint P62
+#   Era «Pastas especiais em Catppuccin», e com o Dracula no ar as sete são os
+#   desenhos do Dracula. No padrão (`PASTAS_XDG="nao"`) não entra desenho de
+#   pack nenhum: as sete seguem a cor das outras pastas. De quem é o desenho,
+#   quando há um, quem diz é a linha do `icones_pastas.sh`, que pergunta ao
+#   pack no ar; o título só nomeia a etapa.
 #
 # A PREMISSA DA SPRINT C CAIU, E O QUE ENTROU É OUTRO CAMINHO
 #   A sprint queria instalar 14 nomes do pack (`folder-github`, `folder-docker`
@@ -2414,7 +2422,7 @@ etapa_upstream() {
 #   binário do cosmic-files. Seriam ícones que ela nunca veria. O casamento que
 #   vale é por nome XDG, e são 7.
 etapa_pastas_xdg() {
-  passo "Pastas especiais em Catppuccin"
+  passo "Pastas especiais (nome XDG)"
   PASTAS_XDG="${PASTAS_XDG:-nao}" ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$MEOW_RAIZ/scripts/icones_pastas.sh"

@@ -6353,6 +6353,15 @@ def _app_da_pendencia(ident):
 #   `meow.conf.exemplo` ou do `grupo` de uma ação, ambos lidos aqui. O nome
 #   passa a morar neste arquivo, e a página o lê do esquema (`aba_inicio`, no
 #   `montarGrupos` do app.js): um dono só, e o `--onde` diz o que a tela mostra.
+#
+# E OS DOIS BOTÕES DO TEMA DE TERCEIRO — 25/09/2026, sprint P62 (item 2)
+#   «Vestir os programas agora» terminava com «resolve: meow apps aplicar
+#   onlyoffice», e a Início tinha os dois botões da decisão. A pendência
+#   `<app>-tema-de-terceiro` casa pelo sufixo (`SUFIXO_TEMA_DE_TERCEIRO`), e
+#   não pelo `ACAO_DA_PENDENCIA`: o `--onde` não a achava, respondia vazio, e o
+#   `meow_pendencia_acionavel` ficava só com o terminal. Os botões são os da
+#   `ESCOLHA_TEMA_DE_TERCEIRO`, que o bloco de pendências da Início desenha, e
+#   os nomes saem de lá — os dois, porque a decisão tem dois lados.
 ABA_INICIO = "Início"
 
 
@@ -6360,11 +6369,15 @@ def onde_na_tela(ident):
     """Onde um lugar do painel mora, pela tabela que o define, ou "":
 
     «rótulo», na aba Grupo — de uma ação, ou da ação de uma pendência;
+    «um» ou «outro», na aba Início — dos botões da pendência de tema de terceiro;
     «título», na aba Seção — do cartão de uma chave do meow.conf;
     na aba Início — para `inicio`, a aba que abre o painel."""
     acao = ACOES.get(ident) or ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""))
     if acao:
         return "" if acao.get("oculta") else "«%s», na aba %s" % (acao["rotulo"], acao["grupo"])
+    if _app_da_pendencia(ident):
+        return "%s, na aba %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_TEMA_DE_TERCEIRO),
+                                  ABA_INICIO)
     if ident == "inicio":
         return "na aba %s" % ABA_INICIO
     esquema = ler_esquema()

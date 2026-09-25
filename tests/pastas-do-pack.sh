@@ -144,6 +144,29 @@ else
 $conferiu"
 fi
 
+# --- 7b. desligadas, elas seguem a cor das outras — 25/09/2026, sprint P62 ---
+#   As frases diziam «devolvendo as pastas especiais ao mauve» e «as pastas
+#   seguem mauve», o acento de uma casa, com qualquer pack. A regra é a do
+#   `construir_pastas.sh`: as sete voltam a ele e vestem o que as outras
+#   vestem. A frase diz a regra, sem nomear cor nem tema. A casa é a da seção
+#   7, com os desenhos do Dracula no lugar.
+desligar() {   # $1 = a casa
+  env -i PATH="$FALSO:$PATH" HOME="$1" USER="${USER:-t}" NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+    PACK=dracula FLAVOR=dracula ACCENT=mauve PASTAS_XDG=nao ICONES_FLAVOR=macchiato \
+    ICONES_TEMA=MeowSystem-Icons bash "$RAIZ/scripts/icones_pastas.sh" --aplicar 2>&1
+}
+devolveu="$(desligar "$T/casa-xdg")"
+de_novo="$(desligar "$T/casa-xdg")"; rc=$?
+if [ -z "$(find "$LUGAR" -name '*.svg' 2>/dev/null)" ] && [ "$rc" = 0 ] \
+   && [[ "$devolveu" == *"devolvendo as pastas especiais à cor das outras pastas"* ]] \
+   && [[ "$de_novo" == *"elas seguem a cor das outras pastas"* ]] \
+   && [[ "$devolveu$de_novo" != *mauve* ]] && [[ "$devolveu$de_novo" != *Catppuccin* ]]; then
+  ok "desligadas, as pastas especiais voltam à cor das outras, e a frase não crava a cor de uma casa"
+else
+  falha "as pastas especiais desligadas não saíram, ou a frase crava uma cor (rc=$rc)" "$devolveu
+$de_novo"
+fi
+
 # --- o resto pede o Papirus e o papirus-folders de verdade -----------------
 if [ ! -d /usr/share/icons/Papirus-Dark ]; then
   printf 'pulado: sem o Papirus-Dark em /usr/share/icons — as pastas partem dele\n'

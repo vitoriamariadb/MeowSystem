@@ -499,7 +499,9 @@ tabela() {
       "$RAIZ/scripts/aplicar_apps.sh" tabela </dev/null 2>/dev/null
 }
 implantar "$CASA/.local/share/flatpak" org.qbittorrent.qBittorrent
-saida="$(tabela discord,qbittorrent)"
+# As quatro primeiras colunas: a quinta, o motivo do 3, entrou na P62 e é
+# cobrada na seção da P55, lá embaixo.
+saida="$(tabela discord,qbittorrent | cut -f1-4)"
 [ "$saida" = "$(printf 'discord\tdiscord\t0\t3\nqbittorrent\tqbittorrent\t0\t3')" ] \
   && ok "meow apps: Discord e qBittorrent instalados e pendentes saem «instalado» na tabela" \
   || falha "meow apps: a coluna «instalado» ainda não é a do programa no disco" "$saida"
@@ -671,6 +673,44 @@ mod onlyoffice reverter >/dev/null
 [ -z "$faltam" ] \
   && ok "onlyoffice: a escolha vem do painel — «Manter o meu» grava e cala, «Trocar» troca, e o ensaio não escreve" \
   || falha "onlyoffice: a escolha do painel não cumpre:$faltam"
+
+# O ENSAIO DIZ «APLICARIA», E A GAVETA APONTA OS BOTÕES — 25/09/2026, sprint P62
+#   Medido no painel de verdade: o «Ver o que faria» do «Trocar pelo tema do
+#   pack» terminava em «ok aplicados: onlyoffice», e o «Vestir os programas
+#   agora» mandava ao terminal («resolve: meow apps aplicar onlyoffice») com os
+#   dois botões da decisão esperando na Início. O resumo do `aplicar_apps.sh`
+#   segue o tempo verbal do seco, e a frase da pendência cita o que o `--onde`
+#   do servidor diz dela — o nome dos botões não vem escrito aqui.
+apps8() {  # <verbo> <apps> [VAR=valor ...] — o `aplicar_apps.sh` nesta casa
+  local v="$1" a="$2"; shift 2
+  env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
+      XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
+      MEOW_ESTADO="$T/estado8" PACK=dracula FLAVOR=dracula NO_COLOR=1 APPS_ATIVOS="$a" \
+      FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" FLATPAK_CONFIG_DIR="$T/flatpak-etc" "$@" \
+      "$RAIZ/scripts/aplicar_apps.sh" "$v" </dev/null 2>&1
+}
+faltam=""
+oo_conf theme-de-alguem
+antes="$(cat "$OO_CONF")"
+saida="$(apps8 aplicar onlyoffice MEOW_TEMA_DE_TERCEIRO=trocar MEOW_DRY_RUN=1)"; rc=$?
+[ "$rc" = 1 ] && [ "$(cat "$OO_CONF")" = "$antes" ] && printf '%s' "$saida" | grep -q 'aplicaria: onlyoffice' \
+  && ! printf '%s' "$saida" | grep -q 'aplicados:' \
+  || faltam+=" o ensaio do «Trocar» não terminou em «aplicaria» (rc=$rc: $saida);"
+onde="$(env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" \
+          python3 "$RAIZ/app/servidor.py" --onde onlyoffice-tema-de-terceiro 2>/dev/null)"
+saida="$(apps8 aplicar onlyoffice)"; rc=$?
+[ "$rc" = 0 ] && [ -n "$onde" ] \
+  && printf '%s' "$saida" | grep -qF "resolve: meow apps aplicar onlyoffice  (ou, no painel, $onde)" \
+  || faltam+=" a gaveta não aponta os botões da Início (rc=$rc, --onde «$onde»: $saida);"
+mod onlyoffice aplicar MEOW_TEMA_DE_TERCEIRO=trocar >/dev/null
+saida="$(apps8 reverter onlyoffice MEOW_DRY_RUN=1)"; rc=$?
+[ "$rc" = 1 ] && [ "$(oo_escolha)" = theme-meowsystem ] && printf '%s' "$saida" | grep -q 'desfaria: onlyoffice' \
+  && ! printf '%s' "$saida" | grep -q 'desfeitos:' \
+  || faltam+=" o ensaio do desfazer não terminou em «desfaria», ou escreveu (rc=$rc: $saida);"
+mod onlyoffice reverter >/dev/null
+[ -z "$faltam" ] \
+  && ok "P62: o ensaio do OnlyOffice diz «aplicaria» e «desfaria», e a gaveta cita os botões que o --onde dá" \
+  || falha "P62: o ensaio ou a gaveta do OnlyOffice:$faltam"
 
 # --- qBittorrent: VESTIDO POR ELA, NÃO HÁ O QUE ESPERAR — P53 (achado 3) ---
 #   Sem escritor do conf (o caso de toda máquina que não é a da Vitória, e o
@@ -1370,9 +1410,68 @@ saida="$(env -i PATH="$BIN10:$PATH" HOME="$CASA10" XDG_CONFIG_HOME="$CASA10/.con
            NO_COLOR=1 APPS_ATIVOS=obsidian,vscode,heroic "$RAIZ/scripts/aplicar_apps.sh" conferir </dev/null 2>&1)"
 [ "$(printf '%s\n' "$saida" | grep -c 'sem tema neste pack (Sem Apps)')" = 3 ] \
   || faltam+=" meow apps conferir não disse três vezes «sem tema neste pack» ($saida);"
+# E A TABELA TAMBÉM — 25/09/2026, sprint P62 (a nota 7 da reconferência da P55).
+#   O `meow apps` sem verbo, que é o «Quais programas estão vestidos» do painel,
+#   pintava os três de `--`. O motivo vem na quinta coluna do TSV, a CLI o põe
+#   embaixo da linha, e a coluna do tema diz «não veste». Tabela é leitura: a
+#   casa não muda.
+printf 'PACK="sem-apps"\nFLAVOR="dracula"\nACCENT="mauve"\nAPPS_ATIVOS="obsidian,vscode,heroic"\n' \
+  > "$T10/meow.conf"
+saida="$(env -i PATH="$BIN10:$PATH" HOME="$CASA10" XDG_CONFIG_HOME="$CASA10/.config" \
+           XDG_DATA_HOME="$CASA10/.local/share" MEOW_PACKS="$PACKS10" MEOW_RAIZ="$RAIZ" \
+           MEOW_ESTADO="$T10/estado" MEOW_CONF="$T10/meow.conf" TMPDIR="$T10/tmp" NO_COLOR=1 \
+           "$RAIZ/bin/meow" apps </dev/null 2>&1)"
+# A régua é a linha, e não o número de espaços: sem locale UTF-8 (o `env -i`
+# daqui) o `pad` conta bytes, e o «ã» come um espaço do alinhamento.
+[ "$(printf '%s\n' "$saida" | grep -cE '^  [a-z-]+ +sim +não veste +[a-z]')" = 3 ] \
+  && [ "$(printf '%s\n' "$saida" | grep -c 'sem tema neste pack (Sem Apps)')" = 3 ] \
+  || faltam+=" a tabela do meow apps não disse «não veste» e o motivo nos três ($saida);"
+[ "$(impressao10)" = "$antes" ] || faltam+=" a tabela mudou a casa;"
 [ -z "$faltam" ] \
   && ok "P55: pack sem tema para o app não aplica o de outro pack — diz «sem tema neste pack», no módulo e no meow apps, e não escreve" \
   || falha "P55: pack sem tema:$faltam"
+
+# --- d2) O DOCTOR DIZ O QUE O MÓDULO DO HEROIC GRAVA — 25/09/2026, P62 ------
+#   O `heroictema` dizia «o módulo grava com o .css» com qualquer pack, e com o
+#   Dracula no ar o módulo grava o tema que o Heroic já traz, sem extensão. A
+#   frase sai do pack no ar, pela porta do módulo; com o Catppuccin é a de
+#   antes, palavra por palavra. O `app.asar` é de brinquedo: tem a linha que o
+#   verificador procura, ou não tem.
+asar10="$CASA10/.local/share/flatpak/app/com.heroicgameslauncher.hgl/current/active/files/bin/heroic/resources"
+chk10() {  # <PACK> <FLAVOR> — o `chk_heroictema` do bin/meow, recortado, nesta casa
+  env -i PATH="$BIN10:$PATH" HOME="$CASA10" XDG_DATA_HOME="$CASA10/.local/share" \
+      MEOW_PACKS="$PACKS10" MEOW_RAIZ="$RAIZ" RAIZ="$RAIZ" MEOW_ESTADO="$T10/estado" \
+      PACK="$1" FLAVOR="$2" NO_COLOR=1 \
+      bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
+               eval "$(sed -n "/^chk_heroictema() {/,/^}/p" "$MEOW_RAIZ/bin/meow")"
+               chk_heroictema' </dev/null 2>&1
+}
+semear10
+mkdir -p "$asar10"
+esq10="$(python3 "$RAIZ/scripts/pack.py" app dracula apps.heroic.esquema 2>/dev/null | sed -n 's/^valor=//p')"
+nome10="$(python3 "$RAIZ/scripts/pack.py" adocao dracula dracula 2>/dev/null | sed -n 's/^nome=//p')"
+faltam=""
+printf 'x path.join(customThemesPath, theme) y' > "$asar10/app.asar"
+saida="$(chk10 catppuccin mocha)"; rc=$?
+[ "$rc" = 0 ] && [ "$saida" = "o Heroic abre o tema pelo nome do arquivo — o módulo grava com o .css, e está certo" ] \
+  || faltam+=" com o Catppuccin a frase mudou (rc=$rc: $saida);"
+saida="$(chk10 dracula dracula)"; rc=$?
+[ "$rc" = 0 ] && [ -n "$esq10" ] && printf '%s' "$saida" | grep -qF "o pack no ar ($nome10) veste o '$esq10'" \
+  && ! printf '%s' "$saida" | grep -qF '.css' \
+  || faltam+=" com o Dracula a frase não diz o tema que ele traz (rc=$rc: $saida);"
+saida="$(chk10 sem-apps dracula)"; rc=$?
+[ "$rc" = 0 ] && printf '%s' "$saida" | grep -qF 'o pack no ar (Sem Apps) não tem tema para o Heroic' \
+  || faltam+=" sem tema no pack a frase não diz (rc=$rc: $saida);"
+printf 'x outra forma y' > "$asar10/app.asar"
+saida="$(chk10 dracula dracula)"; rc=$?
+[ "$rc" = 1 ] && ! printf '%s' "$saida" | grep -qF 'COM o .css' \
+  || faltam+=" com o handler mudado e o Dracula no ar, ainda diz que grava .css (rc=$rc: $saida);"
+saida="$(chk10 catppuccin mocha)"; rc=$?
+[ "$rc" = 1 ] && printf '%s' "$saida" | grep -qF "o módulo grava 'theme' COM o .css por causa dessa linha" \
+  || faltam+=" com o handler mudado e o Catppuccin no ar, a frase de antes sumiu (rc=$rc: $saida);"
+[ -z "$faltam" ] \
+  && ok "P62: o heroictema do doctor diz o que o módulo grava com o pack no ar — .css só no tema de arquivo" \
+  || falha "P62: o heroictema:$faltam"
 
 # --- e) O DESFAZER DO VS CODE TIRA SÓ AS EXTENSÕES DO PACK NO AR -----------
 #   Estar instalada não diz de quem é a extensão: a de outro pack pode ter sido

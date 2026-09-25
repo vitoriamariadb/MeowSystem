@@ -632,6 +632,18 @@ if servidor.onde_na_tela("areas-sem-alfinete") != "«%s», na aba %s" % (alvo["r
 oculta = next(k for k, a in servidor.ACOES.items() if a.get("oculta"))
 if servidor.onde_na_tela(oculta) or servidor.onde_na_tela("nao-existe"):
     erros.append("--onde cita um botão que não tem cartão (%s) ou que não existe" % oculta)
+# A pendência do tema de terceiro (P62): os DOIS botões que a Início desenha
+# para ela, lidos da tabela da escolha — de um app com módulo, e de nenhum outro.
+modulos = os.path.join(raiz, "assets", "temas-de-apps")
+com_modulo = next(n for n in sorted(os.listdir(modulos))
+                  if os.path.isfile(os.path.join(modulos, n, "manifesto.sh")))
+onde = servidor.onde_na_tela(com_modulo + servidor.SUFIXO_TEMA_DE_TERCEIRO)
+if not all("«%s»" % r in onde for _a, r in servidor.ESCOLHA_TEMA_DE_TERCEIRO) \
+        or not onde.endswith("na aba %s" % servidor.ABA_INICIO):
+    erros.append("--onde da pendência de tema de terceiro de %s não cita os botões da Início: %r"
+                 % (com_modulo, onde))
+if servidor.onde_na_tela("sem-modulo-nenhum" + servidor.SUFIXO_TEMA_DE_TERCEIRO):
+    erros.append("--onde cita os botões do tema de terceiro para um app sem módulo")
 porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel doctor_consertar',
                         "_", raiz], capture_output=True, text=True, env=dict(os.environ))
 if porta.stdout.strip() != esperado:

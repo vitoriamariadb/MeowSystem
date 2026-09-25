@@ -461,7 +461,9 @@ recolorir_lixeiras() {
   modelo="$destino/folder-$COR-documents.svg"
   [ -f "$modelo" ] || return 0
   # O que se pula é o `PAPEL_DAS_PASTAS`, e não mais os quatro hex do Mocha
-  # escritos aqui: numa variante derivada eles saem traduzidos (P56, lá em cima).
+  # escritos aqui: numa variante derivada são os mesmos quatro slots, lidos no
+  # flavor pedido (P56, lá em cima). [Até 25/09/2026, P62, dizia que eles "saem
+  # traduzidos": era a primeira versão da P56, que a revisão trocou pelo slot.]
   claro="$(grep -oE '#[0-9A-Fa-f]{6}' "$modelo" | sort -u | grep -viE "#($PAPEL_DAS_PASTAS)" | head -1)"
   escuro="$(grep -oE '#[0-9A-Fa-f]{6}' "$modelo" | sort -u | grep -viE "#($PAPEL_DAS_PASTAS|${claro#\#})" | head -1)"
   [ -n "$claro" ] && [ -n "$escuro" ] || return 0
@@ -836,5 +838,8 @@ meow_seco && exit "$MEOW_DIVERGENTE"
 meow_ok "pastas $COR: $copiados ícones, $apelidos apelidos cobertos"
 [ "$azuis" -gt 0 ] && meow_info "$azuis pasta(s) órfã(s) do upstream recolorida(s) do azul do $BASE para o accent"
 [ "$faltaram" -gt 0 ] && meow_info "$faltaram apelido(s) sem equivalente colorido — herdam do $BASE"
-[ "$cedidos" -gt 0 ] && meow_info "$cedidos nome(s) cedidos ao icones_pastas.sh (pastel em scalable/places)"
+# O DESENHO CEDIDO É O DO PACK NO AR — 25/09/2026, sprint P62. A linha dizia
+# «pastel», que é o Catppuccin; com o Dracula no ar, o que está lá são os
+# desenhos dele. De quem é, diz a linha do `icones_pastas.sh`.
+[ "$cedidos" -gt 0 ] && meow_info "$cedidos nome(s) cedidos ao icones_pastas.sh (o desenho dele, em scalable/places)"
 exit "$MEOW_DIVERGENTE"

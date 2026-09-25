@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# lib/noite.sh — "é noite AGORA?", uma vez só, para a máquina inteira.
+# lib/noite.sh — "é noite AGORA?", uma vez só, para o gato do dock e o do
+# terminal. [Até 25/09/2026, P62, esta linha dizia "para a máquina inteira": o
+# papel de parede e o modo de leitura têm hora própria — ver logo abaixo.]
 #
 # ESTE ARQUIVO É `source`, NÃO EXECUTADO.
 #
@@ -17,7 +19,11 @@
 #   01/09/2026 chegou o QUARTO consumidor — o gato do dock e o do fastfetch,
 #   que trocam de rosto com a hora. Quatro cópias seria pedir para divergirem.
 #
-#   As duas em shell passam a ser ESTA. A do awk continua onde está, porque o
+#   A do gato (o `logo.sh` e o `fastfetch_logo.sh`) nasceu sendo ESTA. A do
+#   `wallpaper.sh` era para vir junto, e não veio: o `e_noite` dele continua o
+#   dele, sobre as `WALLPAPER_NOITE_*` — medido em 24/09/2026 (P54). Até
+#   25/09/2026 (P62) esta linha dizia "as duas em shell passam a ser ESTA",
+#   como se ele tivesse vindo. A do awk continua onde está, porque o
 #   `leitura.sh` calcula a rampa DENTRO do mesmo `awk` (ele precisa da fase E do
 #   fator no mesmo passo, e chamar bash de dentro do awk seria pior); a do Rust
 #   continua onde está, porque o applet não pode chamar shell a cada quadro. As

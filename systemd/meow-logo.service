@@ -57,8 +57,8 @@ RemainAfterExit=yes
 ExecStart=/bin/true
 # A LISTA `export FLAVOR LOGO LOGO_INTERVALO` ERA A ARMADILHA Nº 3, E COBRAVA
 #   O `scripts/logo.sh` lê SEIS chaves do conf, não três: além dessas, ele lê
-#   `LOGO_ROTACAO` (que a linha já testava à mão) e, na linha 336,
-#   `NOME_TEMA_ICONES` — que ficava de FORA do export e chegava vazia. O efeito
+#   `LOGO_ROTACAO` (que a linha já testava à mão) e, para achar o botão do
+#   dock, `NOME_TEMA_ICONES` — que ficava de FORA do export e chegava vazia. O efeito
 #   não é erro: o script cai no padrão `MeowSystem-Icons` e grava o gato numa
 #   árvore de tema que, numa máquina com `NOME_TEMA_ICONES` customizado, ninguém
 #   lê. Sem erro, sem log, sem nada — o modo de falha calado de sempre.
