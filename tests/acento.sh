@@ -45,6 +45,16 @@ CONF="$CASA/.config/meow/meow.conf"
 mkdir -p "$(dirname "$CONF")" "$COSMIC" "$PACKS" "$ESTADO"
 cp -a "$RAIZ/packs/dracula" "$PACKS/" || exit 2
 CAPS="$PACKS/dracula/temas/capturados"
+# A CÓPIA SAI SEM AS CAPTURAS DERIVADAS — 25/09/2026, suíte depois da leva D.
+#   A captura derivada mora DENTRO do pack, fora do git (é a regra da P48), e
+#   uma máquina em que a pessoa já escolheu o rosa tem a `dracula-pink` ali. O
+#   `cp -a` a trazia junto, e o teste reprovava na partida («o ponto de partida
+#   não é o esperado») sem defeito nenhum no código — medido no clone principal
+#   depois de um «Salvar e aplicar» de verdade com o rosa. Quem é derivada diz
+#   isso no próprio `captura.txt`; é essa a marca lida aqui, e não um nome.
+for cap in "$CAPS"/*/; do
+  grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
+done
 
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null)"
 
