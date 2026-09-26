@@ -5148,17 +5148,12 @@ async function rodarNaGaleria(acaoId, argumento) {
   if (r.erro) { torrada(r.erro, "erro"); return; }
   abrirGaveta(r);
   /* A lista muda por baixo: a imagem sai de `ativos/` e entra em `banidos/`.
-   * Esperar o trabalho terminar e recarregar as duas é o que evita a galeria
-   * mostrar por um minuto um estado que não existe mais. */
-  const esperar = setInterval(async () => {
-    if (TRABALHO) return;
-    clearInterval(esperar);
-    PREVIAS.delete("parede/ativos");
-    PREVIAS.delete("parede/banidos");
-    PREVIAS.delete("parede/noite");
-    PREVIAS.delete("parede/dia");
-    render();
-  }, 700);
+   * Quem a relê no fim é o `puxar`, como a de todo trabalho que escreve — e
+   * as seis ações da galeria escrevem.
+   *   [Até a P68 (25/09/2026) um intervalo daqui esperava o trabalho acabar,
+   * esquecia as quatro listas e repintava: era a segunda pintura vazia da
+   * galeria, com «lendo o acervo…», depois da releitura que o `puxar` já
+   * fazia desde a P46.] */
 }
 
 /* --- os cartões ----------------------------------------------------------- */
@@ -6211,6 +6206,8 @@ async function puxar() {
        * releitura seguinte. Esquecidas aqui, as listas se releem na primeira
        * pintura (o `previasDe` e o `montarApps` já sabem buscar o que falta);
        * a troca é um "lendo…" de um instante no lugar da imagem quebrada. */
+      const vista = "parede/" + ABA_GALERIA;
+      const paredes = PREVIAS.get(vista) ? [vista] : [];
       for (const chave of [...PREVIAS.keys()]) {
         if (chave.startsWith("icone/") || chave.startsWith("parede/")) PREVIAS.delete(chave);
       }
@@ -6229,6 +6226,27 @@ async function puxar() {
       const aberta = APPS !== null;
       APPS = null;
       const lista = aberta ? carregarApps() : null;
+      /* A GALERIA SE RELÊ JÁ, COMO A GRADE — 25/09/2026, sprint P68 (item 3)
+       *   O "lendo…" de um instante da P46 era, na aba Papel de parede, a
+       * galeria inteira trocada por «lendo o acervo…» até a releitura chegar:
+       * duas pinturas vazias a cada «Usar», «Dia», «Noite» e «Tirar» (a dos
+       * packs, logo abaixo, e a do intervalo do `rodarNaGaleria`), medidas por
+       * um vigia no `tests/app-completo.py`. Com a máquina carregada a
+       * releitura passava dos 8 s que o gate dá ao gesto seguinte, e ele
+       * reprovou 9 vezes na corrida inteira. A mesma cura da grade: a lista
+       * que a galeria mostra, se estava lida, é pedida aqui, com o trabalho já
+       * terminado (o disco DEPOIS dele: nenhuma miniatura de arquivo que mudou
+       * de pasta, a razão da P46), e as duas repinturas esperam por ela — a
+       * galeria passa da lista de antes para a de depois sem sumir no meio.
+       *   SÓ A QUE ESTÁ À VISTA. A primeira versão relia todas as sub-abas já
+       * abertas, e o gate da aba sozinha reprovou 2 de 3 corridas no «ver
+       * comando» do cartão seguinte ao «Imagem anterior»: o botão sumia no meio
+       * do clique, uma repintura chegando depois de o gesto dar a tela por
+       * assentada (de onde ela vinha não foi medido). Relendo só a que está à
+       * vista, 3 de 3 — o mesmo que a aba dava antes da P68. As outras
+       * continuam esquecidas e se leem quando forem abertas, como até aqui. */
+      const galeria = Promise.all(paredes.map(
+        (chave) => carregarPrevias("parede", chave.slice("parede/".length))));
       /* Uma etapa que escreveu pode ter RESOLVIDO uma pendência (ou criado
        * outra): quem apaga a linha do TSV é o próprio script, no caminho feliz.
        * Reler aqui é o que faz o bloco sumir da Home sem F5. */
@@ -6242,8 +6260,8 @@ async function puxar() {
        * packs, que é quem sabe qual está no ar. */
       const folha = document.querySelector('link[rel="stylesheet"][href^="/paleta.css"]');
       if (folha) folha.href = `/paleta.css?v=${Date.now()}`;
-      Promise.all([recarregarPacks(), lista]).then(render);
-      Promise.all([recarregarEsquema(), lista]).then(() => {
+      Promise.all([recarregarPacks(), lista, galeria]).then(render);
+      Promise.all([recarregarEsquema(), lista, galeria]).then(() => {
         PREVIAS.delete("icone/");
         /* Com a `lista` acima já relida do disco depois do trabalho, pedi-la
          * de novo aqui era o mesmo `/api/apps` duas vezes (revisão da P57). */
@@ -7518,6 +7536,9 @@ function devolverFoco(ancora) {
  *          `scrollTop` no máximo novo (que pode ser zero)
  *      ... as prévias chegam do servidor -> render() de novo
  *          a página volta ao tamanho, e a rolagem não volta com ela.
+ *   [Desde a P68 (25/09/2026) a galeria não pinta vazia no fim de um trabalho:
+ *   o `puxar` relê a lista que ela mostra antes de repintar. O grampo continua
+ *   valendo para toda lista que chega depois da pintura.]
  *
  * Trocar de aba é o mesmo grampo com o sinal invertido: a aba nova é curta, o
  * máximo dela é 100, e a página abre em 100 em vez de no topo.
