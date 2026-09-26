@@ -238,6 +238,8 @@ $saida_t2"
 # --- 8. o Catppuccin não muda: o claro dele tem foto ------------------------
 #   A regra vale quando o par do outro lado NUNCA foi fotografado. O latte tem
 #   foto, e a derivada de acento do mocha continua levando a Light da base.
+#   [P66, 25/09/2026: a da base, no acento pedido — o green do latte no
+#   mocha-green; o tests/notas-de-funcao.sh prova o resto dela byte a byte.]
 saida="$(amb env MEOW_PACK_DIR="$PACKS/catppuccin" MEOW_PALETA="$PACKS/catppuccin/paleta.json" \
   python3 - "$RAIZ" <<'PY' 2>&1
 import json, os, sys
@@ -250,7 +252,8 @@ for par in ("mocha-pink", "mocha-green", "latte-pink"):
     if df.lado_do_par(par, paleta) is not None:
         erros.append(f"{par}: o lado do par deixou de ser o da foto")
 p = da.plano("mocha-green", paleta)
-if p["estado"] != "derivavel" or p.get("base") != "mocha-pink" or "conteudo" in p or p.get("lado"):
+if p["estado"] != "derivavel" or p.get("base") != "mocha-pink" or "conteudo" in p \
+        or p.get("lado") != "o claro leva o green do latte":
     erros.append(f"mocha-green: estado={p['estado']} base={p.get('base')} lado={p.get('lado')!r}")
 print("\n".join(erros))
 sys.exit(1 if erros else 0)

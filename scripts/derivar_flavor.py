@@ -862,12 +862,8 @@ def plano(par: str, paleta: dict, _com_par: bool = True) -> dict:
     # pergunta — não se busca. Sem isso o claro do dracula-pink pediria o
     # alucard-pink, que pediria o escuro ao dracula-pink, e o laço não acabaria.
     parceiro = par_do_outro_lado(flavor, paleta) if _com_par else None
-    conteudo = {}
-    for arq in sorted(cand.rglob("*")):
-        rel = arq.relative_to(cand).as_posix()
-        if arq.is_file() and rel not in ("manifesto.sha256", "captura.txt", ".gitignore"):
-            conteudo[rel] = arq.read_bytes()
     como = f"o {fl_c} trocado slot a slot pelo {flavor}"
+    lado_do_par = None
     if parceiro:
         par_do_par = f"{parceiro}-{nome_acento}"
         try:
@@ -876,11 +872,10 @@ def plano(par: str, paleta: dict, _com_par: bool = True) -> dict:
             saida["motivo"] = (f"o {'escuro' if outro == 'Dark' else 'claro'} do pack, {parceiro}, "
                                f"não tem tema: {e}")
             return saida
-        conteudo = {rel: dado for rel, dado in conteudo.items()
-                    if not rel.startswith((f"com.system76.CosmicTheme.{outro}/",
-                                           f"com.system76.CosmicTheme.{outro}.Builder/"))}
-        conteudo.update(lado_do_par)
         como += f"; o {'escuro' if outro == 'Dark' else 'claro'} é o do {par_do_par}"
+    # A montagem é o `montar` do derivar_acento.py desde a P66 (25/09/2026): a
+    # mesma que a derivada de acento faz com o lado do par.
+    conteudo = da.montar(cand, outro if parceiro else None, lado_do_par)
     for rel, txt in arquivos.items():
         conteudo[rel] = txt.encode("utf-8")
     saida.update(estado="derivavel", base=nome, arvore=arvore, acento=cores[nome_acento],

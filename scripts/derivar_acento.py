@@ -592,6 +592,33 @@ def _separar(par: str):
     return flavor, acento
 
 
+# A MONTAGEM «A BASE MENOS UM LADO + O LADO DO PAR» — 25/09/2026, sprint P66
+#   Estava escrita duas vezes: no `plano` daqui (o lado do par na derivada de
+#   acento, P63) e no `plano` do derivar_flavor.py (o outro lado do flavor sem
+#   foto, P59). As duas liam a base inteira sem a ficha, o manifesto e o
+#   `.gitignore` (quem monta os refaz), tiravam as duas pastas de uma árvore e
+#   punham as do par — com o filtro em lugares diferentes: na leitura, aqui;
+#   depois dela, lá. O resultado é o mesmo, e o tests/notas-de-funcao.sh o
+#   confere nos 84 pares dos dois packs, contra a soma medida antes da troca.
+#   [Revisão da P66, 25/09/2026: eram TRÊS — o `_conteudo`, abaixo, lia a base
+#   inteira pelo mesmo laço, com a mesma tupla; ele chama o `montar` também.]
+FICHAS = ("manifesto.sha256", "captura.txt", ".gitignore")
+
+
+def montar(base: Path, arvore: str | None = None, lado: dict | None = None) -> dict:
+    """{rel: bytes} da captura `base`, sem as `FICHAS` — e, com `arvore`, com as
+    duas pastas dessa árvore (produto e receita) trocadas pelas de `lado`."""
+    fora = (f"com.system76.CosmicTheme.{arvore}/",
+            f"com.system76.CosmicTheme.{arvore}.Builder/") if arvore else ()
+    conteudo = {}
+    for arq in sorted(base.rglob("*")):
+        rel = arq.relative_to(base).as_posix()
+        if arq.is_file() and rel not in FICHAS and not rel.startswith(fora):
+            conteudo[rel] = arq.read_bytes()
+    conteudo.update(lado or {})
+    return conteudo
+
+
 def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
     """O que se sabe de `<flavor>-<acento>` sem escrever nada.
 
@@ -637,8 +664,6 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
             # absoluto, e esta frase vai para a tela e para a Início.
             recusas.append(f"{nome}: {e.strerror or type(e).__name__}")
             continue
-        saida.update(estado="derivavel", base=nome, arvore=arvore, acento=acento,
-                     dir_base=str(cand), arquivos=arquivos)
         # O OUTRO LADO É O DO PAR DO PACK, NO MESMO ACENTO — 25/09/2026, P63
         #   A árvore que não é a do flavor vinha da base, copiada, e a Light
         #   do dracula-mauve era o Latte do Catppuccin: o dracula-pink no claro
@@ -647,24 +672,77 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
         #   acento pedido — o `lado_do_par` do derivar_flavor.py, o mesmo que
         #   pôs o alucard-mauve na foto do mauve. Par com foto (o latte), ou
         #   par que não se deriva: fica o da base, como até aqui.
+        #   [P66, 25/09/2026: o da base, e com o acento pedido — o bloco abaixo.]
         import derivar_flavor
         try:
             lado = derivar_flavor.lado_do_par(par, paleta)
         except ValueError:
             lado = None
+        # O ACENTO DO LADO DO PAR É O PEDIDO — 25/09/2026, sprint P66
+        #   Quando o lado do par fica o da base (o par tem foto, como o latte e o
+        #   mocha no Catppuccin), ele ficava também com o ACENTO da base. Medido
+        #   num COSMIC de brinquedo pelas etapas do install.sh: FLAVOR=latte,
+        #   ACCENT=blue e MODO=escuro vestiam a Dark `catppuccin-mocha` com
+        #   #CBA6F7FF, o mauve do latte-mauve; e mocha-green no claro, a Light
+        #   `catppuccin-latte` com #8839EFFF, o mauve da Light do mocha-pink. A
+        #   página e a prévia vestiam o blue e o green do par — o acento
+        #   prometido e não aplicado.
+        #   O lado do par passa pela MESMA derivação do lado escolhido
+        #   (`derivar_arvore`, com a guarda), na cor do par para o acento pedido
+        #   — o blue do mocha, o green do latte. Tudo o que não é acento continua
+        #   o da base, como no lado escolhido.
+        #   Com o lado vindo do `lado_do_par` (o Dracula, P63) nada muda: aquele
+        #   lado já nasce no acento pedido. Sem par no pack, ou sem essa cor no
+        #   par, também não: não há acento prometido para aquele lado.
+        #   O LADO DO PAR QUE NÃO SE DERIVA FICA O DA BASE, E NÃO DERRUBA A BASE
+        #   — revisão da P66, 25/09/2026. A primeira versão recusava a base cujo
+        #   lado do par não passa na guarda, e com ela a variante inteira: um
+        #   pack de terceiro com a Light da foto mexida na GUI perdia todos os
+        #   acentos derivados, que antes aplicavam, por um lado que só aparece
+        #   no outro modo. A regra é a da P63 logo acima («par que não se
+        #   deriva: fica o da base»): esse lado fica o da base, byte a byte, no
+        #   acento dela, e o `captura.txt` diz qual campo não fechou. É uma
+        #   árvore que o COSMIC escreveu, e não o híbrido que a guarda impede;
+        #   o lado escolhido continua exigindo a guarda. Nos dois packs de hoje
+        #   isso não acontece (os 25 lados do par se derivam).
+        #   O QUE NÃO PASSA POR AQUI: a FOTO de um par. O `plano` devolve
+        #   `fotografia` lá em cima sem olhar o lado do par dela, e o da
+        #   `mocha-pink` é a Light do latte no mauve (#8839EF), e não no pink
+        #   (#EA76CB) que a página promete. Consertar isso é escrever na foto
+        #   (o `refazer_foto` do derivar_flavor.py, como a P63 fez na
+        #   `dracula-mauve`) ou derivar na hora de aplicar — as duas fora do
+        #   território da P66; o tests/notas-de-funcao.sh o diz em toda corrida.
+        parceiro = None if lado else derivar_flavor.par_do_outro_lado(flavor, paleta)
+        cor_do_par = ((paleta.get("flavors") or {}).get(parceiro) or {}).get(nome_acento)
+        outro = "Dark" if arvore == "Light" else "Light"
+        sem_acento = ""
+        if cor_do_par:
+            try:
+                arquivos.update(derivar_arvore(cand, outro, cor_do_par))
+            except (ValueError, KeyError) as e:
+                sem_acento = str(e)
+            except OSError as e:
+                # Sem a árvore do outro lado (uma foto só do escuro) também:
+                # não há o que pintar, e o lado escolhido não depende dela.
+                sem_acento = e.strerror or type(e).__name__
+        saida.update(estado="derivavel", base=nome, arvore=arvore, acento=acento,
+                     dir_base=str(cand), arquivos=arquivos)
         if lado:
-            prefixos = (f"com.system76.CosmicTheme.{lado['arvore']}/",
-                        f"com.system76.CosmicTheme.{lado['arvore']}.Builder/")
-            conteudo = {}
-            for arq in sorted(cand.rglob("*")):
-                rel = arq.relative_to(cand).as_posix()
-                if arq.is_file() and not rel.startswith(prefixos) \
-                        and rel not in ("manifesto.sha256", "captura.txt", ".gitignore"):
-                    conteudo[rel] = arq.read_bytes()
-            conteudo.update(lado["conteudo"])
             nome_lado = "claro" if lado["arvore"] == "Light" else "escuro"
-            saida.update(conteudo=conteudo, linha_do_lado=derivar_flavor.linha_do_lado(lado),
+            saida.update(conteudo=montar(cand, lado["arvore"], lado["conteudo"]),
+                         linha_do_lado=derivar_flavor.linha_do_lado(lado),
                          lado=f"o {nome_lado} é o do {lado['par']}")
+        elif cor_do_par and sem_acento:
+            nome_lado = "claro" if outro == "Light" else "escuro"
+            saida.update(linha_do_lado=(f"{nome_lado}: o do {nome}, no acento dele — o {nome_acento} "
+                                        f"do {parceiro} não se deriva dele: {sem_acento} "
+                                        f"(scripts/derivar_acento.py)"),
+                         lado=f"o {nome_lado} fica o do {nome}, sem o {nome_acento} do {parceiro}")
+        elif cor_do_par:
+            nome_lado = "claro" if outro == "Light" else "escuro"
+            saida.update(linha_do_lado=(f"{nome_lado}: o do {nome}, no {nome_acento} do "
+                                        f"{parceiro}, {cor_do_par} (scripts/derivar_acento.py)"),
+                         lado=f"o {nome_lado} leva o {nome_acento} do {parceiro}")
         return saida
     if recusas:
         saida["motivo"] = ("nenhuma captura do " + flavor + " se reproduz para servir de base — "
@@ -696,13 +774,7 @@ def _conteudo(p: dict) -> dict:
     if "conteudo" in p:
         arquivos.update(p["conteudo"])
     else:
-        for arq in sorted(base.rglob("*")):
-            if not arq.is_file():
-                continue
-            rel = arq.relative_to(base).as_posix()
-            if rel in ("manifesto.sha256", "captura.txt", ".gitignore"):
-                continue
-            arquivos[rel] = arq.read_bytes()
+        arquivos.update(montar(base))
     for rel, txt in p["arquivos"].items():
         arquivos[rel] = txt.encode("utf-8")
     # captura.txt SEM hora de agora: a derivação é função da base, e o arquivo

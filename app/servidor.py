@@ -2963,6 +2963,8 @@ def conf_exportada(fonte=None):
     #   lib/comum.sh — a mesma regra do shell, sem reserva: sem resposta, vazio —,
     #   e o molde é completado como no `carregar_conf`. Por isso o `lib/comum.sh`
     #   é carregado antes do FLAVOR, e não depois.]
+    #   [P66, 25/09/2026: «como no `carregar_conf`» é pela MESMA função, o
+    #   `meow_pastas_do_molde` do lib/comum.sh — a linha estava escrita aqui e lá.]
     programa = (
         'set -a\n'
         '. "$1" || exit 2\n'
@@ -2970,7 +2972,7 @@ def conf_exportada(fonte=None):
         'export MEOW_RAIZ="$2"\n'
         '. "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1 || true\n'
         'FLAVOR="$(meow_flavor 2>/dev/null)"; ACCENT="${ACCENT:-mauve}"\n'
-        'case "${ICONES_PASTAS:-}" in cat--?*) ICONES_PASTAS="cat-$FLAVOR-${ICONES_PASTAS#cat--}" ;; esac\n'
+        'meow_pastas_do_molde 2>/dev/null || true\n'
         'MODO="${MODO:-escuro}"; LOGO="${LOGO:-$FLAVOR}"\n'
         'if ! meow_ponte_python >/dev/null 2>&1; then\n'
         '  if [ "${MEOW_PALETA:-}" = "${MEOW_PALETA_DA_PONTE:-}" ]; then\n'
@@ -7909,8 +7911,16 @@ class Manipulador(BaseHTTPRequestHandler):
         # calado. `valores_efetivos` roda o mesmo `set -a; . conf` que o
         # `carregar_conf` do bin/meow usa, e é a única fonte de verdade sobre o
         # valor de uma chave.
-        _v = valores_efetivos(["PACK", "FLAVOR"])
-        _pack = _v.get("PACK") or _v.get("FLAVOR") or ""
+        #
+        # [25/09/2026, P66: a conta é o `_pack_adotado`, a `adocao` do pack.py —
+        #   a mesma do `icones_apps_dracula.sh` e do `_o_que_fica`. Aqui ela era
+        #   `PACK or FLAVOR`, e o FLAVOR cru só é nome de pack quando o flavor se
+        #   chama como ele. Medido numa casa de brinquedo com `PACK=""` e
+        #   `FLAVOR="alucard"` (o claro do Dracula): a adoção dava o Dracula, o
+        #   script via os 203 nomes do mapa dele, e esta função, com
+        #   `acervo(ref='alucard')` devolvendo None, dava 0 — a grade sem a
+        #   etiqueta do pack que está na tela.]
+        _pack = _pack_adotado()
         # A RESOLUÇÃO SAIU DAQUI EM 21/09/2026, E ELA ERA A PIOR DAS CINCO
         #   Estas linhas montavam `RAIZ/packs/<pack>/icones/apps.map` à mão. Era
         #   a QUINTA cópia da lista de raízes e a única que conhecia UMA só: um
@@ -9060,12 +9070,11 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "o pack «%s» não está no ar — o que está é o «%s»"
                                        % (pedido, pack["nome"])}, 409)
         nome = self._nome_do_icone(app)
-        mod = modulo_pack()
         try:
             linhas, ativas = self._mapa_do_pack(pack["mapa"])
         except OSError as e:
             return self._json({"erro": "não consegui ler o mapa do pack: %s" % e}, 500)
-        numero, alvo = next(((num, a) for num, n, a in ativas if n == nome), (None, ""))
+        numero = next((num for num, n, _alvo in ativas if n == nome), None)
         antes = self._escolha_do_painel(linhas[numero - 1]) if numero is not None else None
         if antes is None:
             return self._json({"ok": True, "removido": False, "app": app,
@@ -9080,31 +9089,12 @@ class Manipulador(BaseHTTPRequestHandler):
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa do pack: %s" % e}, 500)
         fica = self._o_que_fica(app)
-        # O NOME QUE SAI DO MAPA NO AR FICA NO TEMA — medido em 25/09/2026, P64.
-        #   Sem "antes", a linha do painel sai do mapa, e o `icones_apps_dracula.sh`
-        #   não tira do `scalable/apps` o desenho de um nome que o mapa NO AR
-        #   deixou de ter: o `_dracula_sobras` dele só olha os mapas dos packs
-        #   fora do ar, e o `--conferir` sai 0 com o desenho lá. O conserto é
-        #   daquele script, fora do território desta sprint; até ele, a torrada
-        #   não diz «de fábrica» com o desenho do pack na tela. A prova de que o
-        #   arquivo é o da escolha é a mesma do script: o conteúdo.
-        if not antes:
-            tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
-            no_tema = os.path.expanduser("~/.local/share/icons/%s/scalable/apps/%s.svg"
-                                         % (tema, nome))
-            try:
-                with open(mod.resolver_alvo(alvo, os.path.dirname(pack["mapa"])),
-                          "r", encoding="utf-8") as fh:
-                    escolhido = fh.read().rstrip()
-                with open(no_tema, "r", encoding="utf-8") as fh:
-                    sobrou = fh.read().rstrip() == escolhido
-            except (OSError, UnicodeDecodeError, mod.Recusa):
-                sobrou = False
-            if sobrou:
-                fica = {"tipo": "sobra",
-                        "frase": "o desenho «%s» do pack «%s», que continua no tema: o passo "
-                                 "do pack não tira dele um nome que saiu do mapa"
-                                 % (os.path.splitext(os.path.basename(alvo))[0], pack["nome"])}
+        # [Até a P66 (25/09/2026) havia aqui a frase `sobra`: sem "antes", a linha
+        #   sai do mapa, e o `_dracula_sobras` do `icones_apps_dracula.sh` não
+        #   tirava do tema o nome que o mapa NO AR deixou de ter. Ele passou a
+        #   tirar — pelo registro do que o passo pôs no tema —, e o passo do pack
+        #   que a ficha roda logo depois leva o desenho: o que fica é o que o
+        #   `_o_que_fica` diz.]
         return self._json({"ok": True, "removido": True, "app": app, "pack": pack["id"],
                            "nome_pack": pack["nome"], "fica": fica})
 
@@ -9138,7 +9128,9 @@ class Manipulador(BaseHTTPRequestHandler):
         `packs/dracula/icones/apps.map`; o `_mapa_dracula`, que passa o FLAVOR
         cru como pack, não acha mapa nenhum (0 nomes). Quem prevê o que o
         script vai fazer pergunta como o script — e quem discorda é o
-        `_mapa_dracula`, fora do território desta sprint."""
+        `_mapa_dracula`, fora do território desta sprint.
+        [P66, 25/09/2026: o `_mapa_dracula` passou a perguntar ao
+        `_pack_adotado` também, e os três concordam.]"""
         d = next((x for x in self._desktops() if x["id"] == app), None) or {}
         mod = modulo_pack()
         ident = _pack_adotado() if mod else ""

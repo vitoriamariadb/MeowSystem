@@ -744,6 +744,23 @@ PYFIM
   printf '%s' "$padrao"
 }
 
+# O MOLDE DAS PASTAS, COMPLETADO PELO FLAVOR QUE VALE — 25/09/2026, sprint P66
+#   O `ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"` de fábrica se expande quando o
+#   meow.conf é lido, antes de o FLAVOR vazio virar o padrão do pack, e chega
+#   como `cat--<acento>`. Quem o completa com o FLAVOR do `meow_flavor` era uma
+#   linha no `carregar_conf` do bin/meow e a mesma linha, escrita de novo, no
+#   `conf_exportada` do app/servidor.py (P61 e P65) — as duas versões da mesma
+#   regra que a docstring do próprio `conf_exportada` condena. Os dois a chamam
+#   daqui, depois de dar o FLAVOR. Mexe no `ICONES_PASTAS` do shell que chama
+#   (exportado, se já era), e só quando ele é o molde.
+#   AINDA HÁ UMA TERCEIRA CÓPIA (revisão da P66, 25/09/2026): o
+#   scripts/construir_pastas.sh completa o mesmo molde no `$COR` dele (~346, a
+#   da revisão da P56), com a guarda do FLAVOR vazio. A P66 só nomeava estas
+#   duas; quem mexer lá a troca por esta função.
+meow_pastas_do_molde() {
+  case "${ICONES_PASTAS:-}" in cat--?*) ICONES_PASTAS="cat-${FLAVOR:-}-${ICONES_PASTAS#cat--}" ;; esac
+}
+
 # OS PACKS DO DISCO QUE PASSAM NO `validar`, um id por linha, em ordem.
 #
 # UMA RÉGUA SÓ PARA "ESTE NOME É DE UM PACK" — 25/09/2026, sprint P61
