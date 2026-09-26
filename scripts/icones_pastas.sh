@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# icones_pastas.sh — o pack Catppuccin vestindo as PASTAS ESPECIAIS do cosmic-files.
+# icones_pastas.sh — o desenho do pack no ar vestindo as PASTAS ESPECIAIS do cosmic-files.
 #
 # POR QUE ESTE SCRIPT EXISTE, E POR QUE ELE NÃO É A SPRINT C QUE ESTAVA ESCRITA
 #   A tela que ela mandou dizendo "esses são os ícones que eu quero" era a página
@@ -44,7 +44,7 @@
 #   no disco. Ter dois donos daquela linha já custou a este projeto um laço
 #   eterno de seis rodadas. Aqui só se põe arquivo.
 #
-# O QUE NÃO ESTIVER NO MAPA CONTINUA MAUVE
+# O QUE NÃO ESTIVER NO MAPA CONTINUA NA COR DAS OUTRAS PASTAS
 #   `folder` (a pasta comum), `user-desktop` e o lixo não estão no mapa — de
 #   propósito, e o porquê de cada um está em `assets/icones/pastas.map`.
 #

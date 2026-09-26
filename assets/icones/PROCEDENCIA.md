@@ -38,7 +38,7 @@ ajudava a confusão. Corrigido em 10/08/2026.
 | upstream | `catppuccin/vscode-icons` | `catppuccin/papirus-folders` |
 | forma | `fill="none"` + `stroke`, `viewBox="0 0 16 16"` — **traço** de árvore de arquivos do VS Code | pasta **cheia**, com dobra, sombra e símbolo interno, 22..64 px |
 | quem consome | `scripts/icones_pastas.sh` (as pastas XDG, hoje **desligado**) | `scripts/construir_pastas.sh` (**todas** as pastas) |
-| serve de pasta de gestor de arquivos? | **não** | é a fonte viva das pastas mauve |
+| serve de pasta de gestor de arquivos? | **não** | é a fonte viva das pastas, na cor do acento |
 
 São **228 glifos `folder_*` por flavor**, em **cinco** diretórios
 (`css-variables`, `frappe`, `latte`, `macchiato`, `mocha`) — mas são ícone de
@@ -345,7 +345,10 @@ path SVG, gradiente virando `<linearGradient>` de verdade, sombra virando
 `<image>` — traçar não é redesenhar, e um PNG dentro de um SVG não é vetor.
 O critério de aceitação foi numérico, não "achei bonito": cada SVG é renderizado
 a 256 px e comparado ao original por RMSE (`compare -metric RMSE`), com teto de
-**0,15**. Os desenhos ficaram entre **0,018** e **0,105**.
+**0,15**. Em 11/09/2026 os desenhos ficaram entre **0,018** e **0,105**. [A
+frase não tinha data até a P67 (25/09/2026), e cinco desenhos mudaram depois
+dela — o de 0,018 era o `uad-ng`, que hoje é outro desenho. Estão em «O antes e
+depois», logo abaixo.]
 
 **A coluna `autoria` do mapa decide o quanto se pode mexer.** `dela` é obra
 autoral — reproduz, não reinterpreta, e se o SVG original reaparecer um dia, ele
@@ -371,7 +374,47 @@ aparece na tela, não sobre apagar o desenho.
 
 **O antes e depois** fica em `assets/icones/resgatados/ANTES-E-DEPOIS.png`,
 gerado por `scripts/resgatados_folha.sh` a partir do mesmo mapa — se um ícone
-entrar ou sair do resgate, a folha acompanha sozinha.
+entrar ou sair do resgate, a folha refeita acompanha sozinha.
+
+**A folha de hoje é de 25/09/2026, sprint P67, e é a do `resgatados_folha.sh`
+com uma costura, dita aqui.** O script pede o PNG de origem no caminho que o
+mapa guarda, e 12 dos 21 não estão mais nesta máquina: os nove do
+`Dracula-Icones`, que saiu do disco, o do `scrcpy`, o do `guvcview` e o do
+Thunderbird do flatpak. Rodado hoje, ele sai com doze molduras «sem o PNG» e
+perde a comparação que é a razão de a folha existir. Então ela foi remontada a
+partir da de 12/09/2026: cada par recortado da velha, a célula da DIREITA dos
+cinco desenhos que mudaram trocada pelo SVG de hoje na receita do script
+(`rsvg-convert` a 150 px, sobre o `#282A36`, moldura de 2 px), e o par do
+`net.waterfox.waterfox`, que saiu do mapa em 23/09/2026 (P28), tirado — o
+resgate dele continua em `resgatados/`. Conferido pixel a pixel (RMSE 0): fora
+das doze células da esquerda que o script deixaria vazias, ela é a folha que o
+script monta hoje; e as nove da esquerda cujo PNG ainda está no disco são as da
+folha de 12/09. A costura só guardou o que o disco perdeu.
+
+O que a direita trocou, medido em 25/09/2026. As distâncias são `compare -metric
+RMSE` a 150 px sobre o `#282A36`, entre a célula da folha de 12/09, o SVG de
+hoje e o PNG da esquerda — a régua da folha, e não a de 256 px do critério
+acima:
+
+| desenho | o que mudou entre a folha de 12/09/2026 e esta | folha de 12/09 × hoje | PNG × folha de 12/09 | PNG × hoje |
+|---|---|---|---|---|
+| `org.gnome.Nautilus` | o corpo passou ao `surface0` e ao `surface1` do Dracula (P65, 25/09/2026; a conta a 256 px está no `packs/dracula/PROCEDENCIA.md`) | 0,026 | 0,012 | 0,028 |
+| `photogimp` | o traço, refeito junto com os autorais do COSMIC (15/09/2026) | 0,035 | 0,046 | 0,055 |
+| `uad-ng` | desenho novo, da leva do Dracula (15/09/2026) | 0,371 | 0,019 | 0,371 |
+| `Ubuntu` | desenho novo, da leva do Dracula (15/09/2026) | 0,444 | 0,076 | 0,448 |
+| `Ubuntu-selfservice` | desenho novo, da leva do Dracula (15/09/2026) | 0,245 | 0,033 | 0,239 |
+
+Os três últimos passam do teto de 0,15 contra o PNG: não são mais decalque, são
+desenho novo com o nome do resgate, e a folha agora mostra isso lado a lado.
+[Até a revisão da P67 (25/09/2026) esta nota dizia que a folha era a de 12/09 e
+que não se refazia aqui, e a tabela acima era o que a folha escondia.]
+
+O `tests/frases-velhas.sh` cobra esta nota em duas coisas. A data da primeira
+frase, «A folha de hoje é de…», é a do commit da folha: refeita a folha, a nota
+anda junto. E um desenho que mude depois da folha, ou uma linha que entre ou
+saia do mapa, tem de estar na primeira coluna de uma tabela cujo cabeçalho diga
+«depois da folha de» e a data dela, enquanto a folha não for refeita — nome
+citado de passagem, como os PNG que faltam, não conta.
 
 **Licença.** Os `dela` são obra dela. Os `terceiro` são redesenho de logo de
 terceiro já customizada por ela: a marca continua de quem é, e o uso aqui é o

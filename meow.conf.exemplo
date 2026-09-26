@@ -671,19 +671,22 @@ ICONES_COR_MARCA="nao"
 # @ Ícones das pastas especiais
 # > Imagens, Documentos, Downloads, Músicas, Vídeos, Modelos e Público.
 # As PASTAS ESPECIAIS (Imagens, Documentos, Downloads, Músicas, Vídeos, Modelos e
-# Público) vêm do pack `vscode-icons` em vez das roxas do papirus-folders?
+# Público) vêm do desenho do pack no ar (no Catppuccin, o `vscode-icons`) em vez
+# das cheias do papirus-folders, na cor das outras pastas?
 #
 # FOI VISTO E RECUSADO — e o padrão aqui é a decisão de 08/08/2026:
 #   "as pastas do temas dos icons do vscode catpuccin, tipo as folders, essas
 #    nao tão legais tambem".
-# São pasta VAZADA de traço claro ao lado das mauve CHEIAS, e nenhuma das 7 usa
-# `mauve`, o accent de fábrica — o conjunto não fecha. O risco estava previsto
-# desde o desenho da Sprint C; quem decidiu foi a tela.
+# São pasta VAZADA de traço claro ao lado das CHEIAS na cor das outras pastas —
+# na tela dela, em 08/08, o `mauve` de fábrica, que nenhuma das 7 usa. O conjunto
+# não fecha. O risco estava previsto desde o desenho da Sprint C; quem decidiu
+# foi a tela.
 #
 # Com "sim", elas voltam; com "nao", o `icones_pastas.sh` LIMPA o que tinha posto
-# e o `construir_pastas.sh` devolve o mauve na mesma passagem. Se um dia quiser
-# experimentar de novo, vale olhar junto com ICONES_FLAVOR="latte", que a folha
-# `~/folha-pastas-2.html` mostra com contraste bem melhor sobre fundo claro.
+# e o `construir_pastas.sh` as devolve à cor das outras pastas na mesma passagem.
+# Se um dia quiser experimentar de novo, vale olhar junto com ICONES_FLAVOR="latte",
+# que a folha `~/folha-pastas-2.html` mostra com contraste bem melhor sobre fundo
+# claro.
 PASTAS_XDG="nao"
 
 # --- Painel e dock ----------------------------------------------------------

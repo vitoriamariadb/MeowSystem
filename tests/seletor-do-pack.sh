@@ -28,7 +28,7 @@
 #      Catppuccin não ganha arquivo nenhum — e a escolha volta com o Dracula.
 #   6. (P64, 25/09/2026) A escolha tem desfazer: a linha do painel leva a que
 #      ela trocou, e desfazer a devolve — o mapa volta byte a byte. A resposta
-#      diz o ícone que fica, e o «Voltar ao ícone de fábrica» de um app que
+#      diz o ícone que fica, e o «Desfazer a escolha no traço» de um app que
 #      está nos dois mapas não diz mais «de fábrica». E a trava do traço não
 #      recusa o desenho do pack — só a do convertido: o intocável e a curadoria
 #      travam os dois, na grade e no POST (revisão da P64).

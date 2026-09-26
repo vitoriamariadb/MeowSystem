@@ -265,7 +265,7 @@ saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/catppuccin" MEOW_PALETA="$RAIZ/packs
   && ok "o mocha deriva do mocha-pink, porque o mocha-mauve não se reproduz" \
   || falha "a escolha da base do mocha não passou pela guarda (rc=$r)" "$saida"
 
-# --- 7. o flavor sem fotografia não aplica, e vira pendência ---------------
+# --- 7. o flavor sem base do mesmo lado não aplica, e vira pendência -------
 #   DESDE A P59 (25/09/2026) O FRAPPE SE DERIVA: sai do mocha-pink, trocado slot
 #   a slot (scripts/derivar_flavor.py, e o tests/variante.sh prova). O que não
 #   aplica agora é o flavor sem base NENHUMA do mesmo lado — e é esse o caso

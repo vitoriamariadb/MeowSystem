@@ -30,10 +30,12 @@
 # OS DOIS QUE FICARAM DE FORA, E POR QUÊ
 #
 #   `folder`      o pack tem `_folder`, mas este é o ícone de TODA pasta comum.
-#                 Vesti-lo apagaria as pastas mauve do `papirus-folders` da tela
-#                 inteira, que é justamente o que ela escolheu ter. Fica mauve.
+#                 Vesti-lo apagaria da tela inteira as pastas cheias do
+#                 `papirus-folders`, na cor do acento, que é justamente o que ela
+#                 escolheu ter. Fica na cor das outras pastas.
 #                 Se ela quiser o contrário um dia, é uma linha aqui.
-#   `user-desktop` o pack não tem nada de Área de Trabalho. Fica mauve.
+#   `user-desktop` o pack não tem nada de Área de Trabalho. Fica na cor das
+#                 outras pastas.
 #
 #   `user-trash`/`user-trash-full` o `cosmic-files` pede e o pack não tem. Eram
 #                 arquivos regulares no Papirus (não apelidos), então o
@@ -42,7 +44,7 @@
 #                 azuis". Não eram azuis, eram CINZA — `#8e8e8e` e `#9f9f9f` são
 #                 os únicos fill dos cinco tamanhos, conferido. E já não são: o
 #                 `construir_pastas.sh` os recolore no accent, lendo os dois tons
-#                 da pasta mauve vizinha em vez de cravar hex. Com isso os 12
+#                 da pasta vizinha em vez de cravar hex. Com isso os 12
 #                 nomes que o `cosmic-files` pede fecham no accent dela.
 #
 # A BARRA LATERAL DO `cosmic-files` NÃO PASSA POR AQUI — E A NOTA ANTIGA
@@ -71,8 +73,8 @@
 #   Só `folder-symbolic` é uma pasta, e é liso, porque pasta genérica é lisa
 #   mesmo. Ou seja: a barra lateral JÁ entrega símbolo por tipo, no idioma dela
 #   (glifo monocromático), enquanto a grade entrega no idioma da grade (pasta
-#   mauve com o símbolo dentro). São duas linguagens de propósito, não uma
-#   divergência.
+#   cheia na cor do acento, com o símbolo dentro). São duas linguagens de
+#   propósito, não uma divergência.
 #
 #   Vira defeito no dia em que alguém trocar o ACERVO da grade — e é por isso
 #   que a troca de acervo foi recusada em 10/08 (ver o bloco "SÍMBOLO POR TIPO,
@@ -285,9 +287,10 @@
 #
 #   NÃO PROPONHA LIGÁ-LAS COMO "o acervo bom que estava sendo ignorado". Elas
 #   são pasta VAZADA de traço claro (`fill="none"` + `stroke`, viewBox 16x16) ao
-#   lado das mauve CHEIAS, e NENHUMA usa `mauve`. Ligar isto hoje SUBSTITUIRIA
-#   exatamente as sete pastas com símbolo mauve que ela pediu em 10/08 — ou
-#   seja, desfaria as duas decisões dela de uma vez. A frase e o motivo estão em
+#   lado das CHEIAS na cor das outras pastas, e NENHUMA usa `mauve`, o accent
+#   dela. Ligar isto hoje SUBSTITUIRIA exatamente as sete pastas com símbolo, na
+#   cor do acento, que ela pediu em 10/08 — ou seja, desfaria as duas decisões
+#   dela de uma vez. A frase e o motivo estão em
 #   `scripts/icones_pastas.sh`, e a comparação dos dois acervos em
 #   `assets/icones/PROCEDENCIA.md`.
 

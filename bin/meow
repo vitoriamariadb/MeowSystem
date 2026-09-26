@@ -413,8 +413,11 @@ chk_tema() {
     #   Esta linha mandava importar o `.ron` na GUI para QUALQUER par sem
     #   captura. O par que se deriva (`derivar_acento.py`) é divergência com
     #   conserto: o `fix_gerar`, que roda antes deste na mesma lista, o deriva,
-    #   e o `fix_tema` o aplica — um `--consertar` só. A GUI fica para o flavor
-    #   que nunca foi fotografado, que é o único caso sem outro caminho.
+    #   e o `fix_tema` o aplica — um `--consertar` só. A GUI fica para o par que
+    #   não tem de onde sair (o `--conferir` sai 3): nenhuma captura daquele lado
+    #   ao alcance do pack, ou nenhuma que se reproduza. [Dizia «o flavor que
+    #   nunca foi fotografado» até a P67 (25/09/2026): desde a P59 esse flavor
+    #   se deriva de outro do mesmo lado.]
     local deriva
     deriva="$(python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$alvo" 2>&1)"
     if [ "$?" = "1" ]; then
@@ -467,10 +470,11 @@ chk_icones() {
     "$RAIZ/scripts/construir_icones.sh" 2>&1
 }
 
-# As pastas especiais pelo nome XDG (`folder-pictures`, `folder-music`…), do pack
-# Catppuccin. Diretório próprio (`scalable/places`) e dono único; o
+# As pastas especiais pelo nome XDG (`folder-pictures`, `folder-music`…), com o
+# desenho do pack no ar quando o `PASTAS_XDG` pede (o do Catppuccin, ou o próprio
+# do pack que tem um). Diretório próprio (`scalable/places`) e dono único; o
 # `construir_pastas.sh` cede esses nomes, e só cede o que já está no disco — se
-# este script sumir, o mauve volta sozinho na mesma passagem.
+# este script sumir, a pasta volta sozinha à cor das outras na mesma passagem.
 chk_pastasxdg() {
   PASTAS_XDG="${PASTAS_XDG:-nao}" ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
