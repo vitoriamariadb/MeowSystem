@@ -48,6 +48,66 @@ divisão que a origem não tem.
 Quem consome: `scripts/icones_mimetypes.sh` (os tipos de arquivo) e
 `scripts/icones_pastas.sh` (as pastas XDG).
 
+## O tema do COSMIC: a Light da `mocha-pink` é derivada — 25/09/2026, sprint P68
+
+`temas/capturados/` não é arte de terceiro: cada pasta é o `~/.config/cosmic`
+desta máquina com o tema aplicado, fotografado pelo `scripts/capturar_tema.sh`
+(a hora e a casa estão no `captura.txt` dela). O que o COSMIC escreveu vai
+byte a byte, e o `manifesto.sha256` dá o sha256 de cada arquivo.
+
+**Uma árvore deixou de ser foto: a Light da `mocha-pink`.** A foto de
+04/08/2026 trouxe no claro o Latte com o acento **mauve** (`#8839EF`), porque
+era o que a GUI tinha no modo claro naquele dia; com FLAVOR=mocha, ACCENT=pink
+e MODO=claro o COSMIC vestia `catppuccin-latte` com `Some("#8839EFFF")`, e a
+página e a prévia prometiam o pink do latte, `#EA76CB`. Desde a P68 as duas
+árvores Light da foto (`Light/` e `Light.Builder/`) são as do Latte no pink,
+**derivadas, não copiadas**:
+
+- **Por onde.** O `derivar_arvore` do `scripts/derivar_acento.py` — o mesmo
+  que a P48 dá ao acento sem fotografia e a P66 ao lado do par das derivadas —,
+  na Light da própria foto, com o `pink` do latte da `paleta.json`. A guarda
+  passa (a Light da foto se reproduz com o mauve que declara), e mudam 34
+  arquivos: 19 da `Light/v2`, 14 da `Light/v1` (refeita pela mesma função do
+  `scripts/gerar_tema_v1.py`) e o `accent` da receita. O que não é acento —
+  a neutra, o fundo, o vidro, os cantos — continua o da foto, byte a byte.
+- **O comando**, rodado da raiz do repositório:
+
+  ```
+  MEOW_PACK_DIR=$PWD/packs/catppuccin python3 - <<'PY'
+  import json, sys; from pathlib import Path
+  sys.path.insert(0, "scripts")
+  import derivar_acento as da, gerar_tema_v1 as v1
+  cap = Path("packs/catppuccin/temas/capturados/mocha-pink")
+  rosa = json.load(open("packs/catppuccin/paleta.json"))["flavors"]["latte"]["pink"]
+  for rel, txt in da.derivar_arvore(cap, "Light", rosa).items():
+      (cap / rel).write_text(txt)
+  ficha = cap / "captura.txt"
+  ficha.write_text(ficha.read_text() + f"claro: o da foto, no pink do latte, "
+                   f"{rosa.upper()} (scripts/derivar_acento.py)\n")
+  v1.refazer_manifesto(cap)
+  PY
+  ```
+
+  O `captura.txt` ganhou a linha `claro: o da foto, no pink do latte, #EA76CB
+  (scripts/derivar_acento.py)`, e o manifesto foi refeito pelo mesmo comando
+  do `capturar_tema.sh` (35 linhas mudam: os 34 e o `captura.txt`). A Dark, a
+  Dark.Builder e o Mode não mudam um byte.
+- **A trava.** O `tests/notas-de-funcao.sh` aplica a foto pelas etapas do
+  instalador e confere o pink na receita e em todo foco da Light, e confere
+  que o `derivar_arvore` não muda um byte da Light da foto do repositório —
+  uma Light copiada à mão, ou uma porta do `build()` que mudou, derruba o
+  teste. O caso saiu do `CONHECIDOS` dele, onde a P66 o deixou.
+- **As derivadas.** As capturas de acento do mocha saem desta foto; a Light
+  delas é a mesma de antes, byte a byte, menos no `mocha-red` e no
+  `mocha-blue`, em que o `on` branco da `Light/v1/accent_button` passa a ser
+  escrito `1.0`, e não `0.99999994` — o mesmo `#FFFFFF` em 8 bits. Elas nascem
+  na máquina e se refazem sozinhas na etapa `gerar` do instalador.
+
+Este é o arquivo da procedência deste pack (o `LEIA-ME.md` diz). Um
+`PROCEDENCIA.md` na raiz do pack, como o do Dracula, não serve aqui: o `meow
+pack sincronizar catppuccin` lê a tabela de arte copiada dele e recusa um
+`PROCEDENCIA.md` sem ela.
+
 ## O que NÃO é deste pack, e mora em `assets/`
 
 A fronteira é de dono, não de assunto. O `assets/paleta/cosmic-map.json` é

@@ -1828,8 +1828,32 @@ class Percurso:
         imagem = self.achar(nome).locator("xpath=ancestor::figure[1]").locator(".nome") \
                      .inner_text().strip()
         antes = retrato()
+        # A GALERIA NÃO SOME NA RELEITURA — 25/09/2026, sprint P68 (item 3)
+        #   O gate inteiro reprovou 9 vezes nesta aba com «a lista que o traz
+        #   não voltou em 8 s», e a aba sozinha passou 2 de 2: o fim de um
+        #   trabalho esquecia as listas da galeria (P46) e toda pintura seguinte
+        #   mostrava «lendo o acervo…» até a releitura chegar — com a máquina
+        #   carregada, mais que os 8 s do `esperar_nome` do gesto seguinte. A
+        #   demora só aparece sob carga; a galeria vazia no meio aparece em toda
+        #   corrida, e é ela que o vigia cobra: do clique até a releitura
+        #   assentar, nenhuma pintura do #conteudo sem ficha ou com o «lendo».
+        #   O molde é o passo 24 do tests/app-navegador.py (a grade da P57).
+        self.js("""() => {
+          window.__galeriaSumiu = [];
+          window.__vigiaGaleria = new MutationObserver(() => {
+            const fichas = document.querySelectorAll('#conteudo .galeria figure').length;
+            const lendo = [...document.querySelectorAll('#conteudo .sem-previa')]
+              .some((e) => e.textContent.includes('lendo o acervo'));
+            if (!fichas || lendo) window.__galeriaSumiu.push({ fichas, lendo });
+          });
+          window.__vigiaGaleria.observe(document.getElementById('conteudo'),
+                                        { childList: true, subtree: true });
+        }""")
         self.gesto_de_acao(lambda: self.clicar_na_ficha(nome), f"papel de parede: {papel}")
         self.assentar(quieto=300)
+        sumiu = self.js("() => { window.__vigiaGaleria.disconnect(); return window.__galeriaSumiu; }")
+        self.checa(not sumiu, f"a galeria não some na releitura depois de «{papel}»: "
+                              f"{len(sumiu)} pintura(s) sem ficha ou com «lendo o acervo…»")
         c1 = self.contagem_galeria()
         if papel in ("Dia", "Noite"):
             # A contagem pode não mudar (a imagem escura já contava na Noite

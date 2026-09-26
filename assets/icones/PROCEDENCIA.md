@@ -390,6 +390,11 @@ resgate dele continua em `resgatados/`. Conferido pixel a pixel (RMSE 0): fora
 das doze células da esquerda que o script deixaria vazias, ela é a folha que o
 script monta hoje; e as nove da esquerda cujo PNG ainda está no disco são as da
 folha de 12/09. A costura só guardou o que o disco perdeu.
+[Desde a P68 (25/09/2026) a costura é do script: a esquerda de um par sem PNG
+sai da folha que já está no caminho, no mesmo lugar e com o mesmo rótulo, e
+uma folha que ele não sabe costurar fica como está (sai 3). Rodado nesta
+máquina, com os mesmos doze PNG fora do disco, ele devolve esta folha pixel a
+pixel e não a regrava; o `tests/folha-dos-resgatados.sh` prende isso.]
 
 O que a direita trocou, medido em 25/09/2026. As distâncias são `compare -metric
 RMSE` a 150 px sobre o `#282A36`, entre a célula da folha de 12/09, o SVG de

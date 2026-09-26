@@ -757,6 +757,8 @@ PYFIM
 #   scripts/construir_pastas.sh completa o mesmo molde no `$COR` dele (~346, a
 #   da revisão da P56), com a guarda do FLAVOR vazio. A P66 só nomeava estas
 #   duas; quem mexer lá a troca por esta função.
+#   [P68, 25/09/2026: trocada — o construir_pastas.sh a chama num subshell com
+#   o `$COR`, e a regra mora só aqui.]
 meow_pastas_do_molde() {
   case "${ICONES_PASTAS:-}" in cat--?*) ICONES_PASTAS="cat-${FLAVOR:-}-${ICONES_PASTAS#cat--}" ;; esac
 }

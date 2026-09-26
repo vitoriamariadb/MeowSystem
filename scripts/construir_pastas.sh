@@ -345,7 +345,13 @@ derivar_variante() {
 #   bloco de baixo procurava o flavor '' na paleta e caía no Mocha — medido com o
 #   Dracula no ar, `folder.svg -> folder-cat-mocha-mauve.svg`. A variante que
 #   falta é a do tema, o «Acompanha o tema» da página: o FLAVOR que chegou.
-case "$COR" in cat--?*) [ -z "${FLAVOR:-}" ] || COR="cat-$FLAVOR-${COR#cat--}" ;; esac
+#   [P68, 25/09/2026: a regra é o `meow_pastas_do_molde` do lib/comum.sh, a
+#   mesma do `carregar_conf` e do painel — esta linha era a terceira cópia dela.
+#   Ele age no `ICONES_PASTAS`, e por isso roda num subshell com o `$COR`: o
+#   ambiente dos filhos deste script fica como estava. Quem pergunta se o valor
+#   é o molde é ele; com o FLAVOR vazio ele devolve o molde como veio, que é o
+#   que a guarda daqui fazia.]
+COR="$(ICONES_PASTAS="$COR"; meow_pastas_do_molde; printf '%s' "$ICONES_PASTAS")"
 
 if [ -d "$FONTE/src/64x64/places" ] && ! _cor_de_pasta_existe "$COR"; then
   _cor_pedida="$COR"

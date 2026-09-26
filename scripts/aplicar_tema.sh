@@ -544,12 +544,29 @@ for a in "$@"; do [ "$a" = "--respeitar-gui" ] && RESPEITAR_GUI=1; done
 RECEITA_VELHA=0
 [ "$RESPEITAR_GUI" = "1" ] && receita_diverge && RECEITA_VELHA=1
 
+# AS FICHAS DA CAPTURA SÃO UMA LISTA SÓ — 25/09/2026, sprint P68 (item 5)
+#   O que é da captura e não do COSMIC (o manifesto, o `captura.txt`, o
+#   `.gitignore` da derivada) estava escrito aqui num `case` e no `FICHAS` do
+#   derivar_acento.py, que a P66 extraiu para o `montar`. Duas listas discordam
+#   em silêncio no dia em que só uma ganha um nome: a derivada deixaria de levar
+#   o arquivo novo, e este laço o copiaria para a raiz do ~/.config/cosmic. A
+#   lista é a de lá, pedida uma vez, antes do laço; sem ela o laço não roda —
+#   copiar sem saber o que é ficha é o `rm` e o `cp` às cegas que este script
+#   existe para não fazer. (O python3 já é condição daqui: é ele que acha a
+#   captura, lá em cima.)
+fichas="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import derivar_acento
+print("\n".join(derivar_acento.FICHAS))' "$RAIZ/scripts" 2>/dev/null)" && [ -n "$fichas" ] || {
+  echo "ERRO: não consegui ler do scripts/derivar_acento.py quais arquivos da captura são fichas" >&2
+  exit 2
+}
+mapfile -t FICHAS <<< "$fichas"
+
 while IFS= read -r -d '' arq; do
   rel="${arq#"$ORIGEM"/}"
   # O `.gitignore` é da captura DERIVADA (scripts/derivar_acento.py): ela é
   # produto, mora dentro do pack e se esconde do git sozinha. É metadado, como
   # os outros dois — copiá-lo poria um `.gitignore` na raiz do ~/.config/cosmic.
-  case "$rel" in manifesto.sha256|captura.txt|.gitignore) continue ;; esac
+  for ficha in "${FICHAS[@]}"; do [ "$rel" = "$ficha" ] && continue 2; done
   destino="$COSMIC/$rel"
 
   # O vidro que ela ajustou na GUI vence a captura, sempre — inclusive numa
