@@ -103,14 +103,18 @@ def arvore(cap, arv):
     return (ler(cap / f"com.system76.CosmicTheme.{arv}.Builder" / "v2"),
             ler(cap / f"com.system76.CosmicTheme.{arv}" / "v2"))
 erros = []
+# A Light do dracula-mauve entrou nesta lista na P63 (25/09/2026): era o Latte
+# de outro momento (o vidro 8A com a receita em VeryHigh2) e passou a ser a
+# derivada do alucard, que o build() portado escreveu — ela TEM de se reproduzir.
 for cap, arv in ((cat / "latte-mauve", "Light"), (cat / "mocha-pink", "Dark"),
-                 (dra / "dracula-mauve", "Dark"), (cat / "latte-mauve", "Dark")):
+                 (dra / "dracula-mauve", "Dark"), (cat / "latte-mauve", "Dark"),
+                 (dra / "dracula-mauve", "Light")):
     try:
         df.conferir_base(*arvore(cap, arv), arv)
     except ValueError as e:
         erros.append(f"{cap.name} {arv} não se reproduziu: {e}")
-# As duas que NÃO se reproduzem, medidas: a neutra que a GUI mexeu e o vidro 8A.
-for cap, arv in ((cat / "mocha-mauve", "Dark"), (dra / "dracula-mauve", "Light")):
+# A que NÃO se reproduz, medida: a neutra que a GUI mexeu.
+for cap, arv in ((cat / "mocha-mauve", "Dark"),):
     try:
         df.conferir_base(*arvore(cap, arv), arv)
         erros.append(f"{cap.name} {arv} passou na guarda, e o produto dela não é o da receita")
@@ -122,13 +126,19 @@ sys.exit(1 if erros else 0)
 PY
 )"; r=$?
 [ "$r" = "0" ] \
-  && ok "o build() portado reproduz as quatro árvores que se reproduzem, e recusa as duas que não, dizendo o campo" \
+  && ok "o build() portado reproduz as cinco árvores que se reproduzem, e recusa a que não, dizendo o campo" \
   || falha "a guarda do build() portado não bate com as capturas" "$saida"
 
 # --- 2. FLAVOR=alucard, «Salvar e aplicar»: o tema do COSMIC muda -----------
 #   O ponto de partida é o Dracula aplicado, com o modo escuro: é a máquina de
 #   onde o alucard foi escolhido na medição da sprint.
+#   COM O CLARO QUE A FOTO TINHA ANTES DA P63 (25/09/2026). Desde ela a Light
+#   do dracula-mauve é o próprio alucard-mauve, e aplicar o alucard sobre ela
+#   não escreveria nada — «já aplicado», e esta seção não provaria que a etapa
+#   aplica. A Light de antes era o Latte (a receita igual à do latte-mauve), e
+#   é ela que vai no brinquedo.
 cp -a "$DRA/dracula-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
+cp -a "$CAT/latte-mauve"/com.system76.CosmicTheme.Light* "$COSMIC/"
 conf alucard mauve dracula escuro
 saida_g="$(etapa gerar)"; rc_g="$(rc)"
 saida_t="$(etapa tema)"; rc_t="$(rc)"; sem="$(cat "$T/sem_captura")"

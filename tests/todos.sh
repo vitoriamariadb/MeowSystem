@@ -86,6 +86,7 @@ PORTATIL=(
   vidro-do-cosmic.sh     # COSMIC, packs, HOME e TMPDIR de brinquedo; o alpha_map de 17/09 vai escrito no teste
   seletor-do-pack.sh     # cópia da árvore e HOME de brinquedo; as rotas da ficha e o passo do pack (P60); bash, git e python3
   variante.sh            # COSMIC, os dois packs e HOME de brinquedo; as etapas gerar, tema e modo (P59); bash e python3
+  claro-do-pack.sh       # COSMIC, os dois packs e HOME de brinquedo; a foto só é lida (P63); bash e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por

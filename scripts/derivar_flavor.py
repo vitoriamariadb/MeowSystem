@@ -20,7 +20,8 @@ O QUE FOI MEDIDO ANTES DE ESCREVER UMA LINHA
        as duas do dracula-mauve são EXATAMENTE a paleta pelo mapa — a Light do
        dracula-mauve pela paleta do LATTE, e não a do alucard: a foto do
        Dracula traz no claro o Latte do Catppuccin (`catppuccin-latte`, a
-       receita igual à do latte-mauve; visto na revisão da P59). A única
+       receita igual à do latte-mauve; visto na revisão da P59, e desfeito
+       pela P63: desde ela a Light da foto é o alucard, ver a seção 7). A única
        exceção é a Dark do mocha-mauve, cujo `neutral_tint` é float (0.5175,
        0.5266, 0.5907): a GUI dela o mexeu, e ele não é slot de paleta nenhuma.
     2. O PRODUTO (`<Árvore>/v2`) não é paleta: é o que o `ThemeBuilder::build()`
@@ -633,9 +634,10 @@ def conferir_base(receita: dict, produto: dict, arvore: str):
     """A GUARDA DA P48, com o `build()` inteiro: a base tem de se reproduzir.
 
     Uma captura cujo produto não é o que o COSMIC escreve com a receita dela é
-    fotografia de outro momento (medido: a Light do dracula-mauve tem o vidro
-    8A no produto e VeryHigh2 na receita; a Dark do mocha-mauve, a neutra que a
-    GUI dela mexeu) — derivar dela seria o tema híbrido. O alpha da Aurora no
+    fotografia de outro momento (medido: a Light do dracula-mauve tinha o vidro
+    8A no produto e VeryHigh2 na receita, até a P63 a trocar pela derivada do
+    alucard; a Dark do mocha-mauve, a neutra que a GUI dela mexeu) — derivar
+    dela seria o tema híbrido. O alpha da Aurora no
     `base:` dos três contêineres fica fora da conta, como no `--conferir` do
     aplicar_tema.sh."""
     b = build(ler_receita(receita))
@@ -805,7 +807,7 @@ def _outro_lado(par_do_par: str, outro: str, paleta: dict) -> dict:
     raise ValueError(p["motivo"])
 
 
-def plano(par: str, paleta: dict) -> dict:
+def plano(par: str, paleta: dict, _com_par: bool = True) -> dict:
     """O que se sabe de `<flavor>-<acento>` quando o flavor NÃO tem fotografia.
 
     Mesmo contrato do `plano` do derivar_acento.py, que é quem chama: `estado`
@@ -855,7 +857,11 @@ def plano(par: str, paleta: dict) -> dict:
     # as do par do pack no mesmo acento. Sem par (pack sem claro declarado), a
     # base fica como está desse lado — a mesma queda que a P48 dá à árvore que
     # não é a do acento.
-    parceiro = par_do_outro_lado(flavor, paleta)
+    # `_com_par=False` (P63, 25/09/2026) é do `lado_do_par`, lá embaixo: ele
+    # pede só o lado derivado, e o outro lado — que seria o da captura de quem
+    # pergunta — não se busca. Sem isso o claro do dracula-pink pediria o
+    # alucard-pink, que pediria o escuro ao dracula-pink, e o laço não acabaria.
+    parceiro = par_do_outro_lado(flavor, paleta) if _com_par else None
     conteudo = {}
     for arq in sorted(cand.rglob("*")):
         rel = arq.relative_to(cand).as_posix()
@@ -881,3 +887,146 @@ def plano(par: str, paleta: dict) -> dict:
                  dir_base=str(cand), arquivos=arquivos, conteudo=conteudo, como=como,
                  flavor_da_base=fl_c, par_do_outro_lado=parceiro and f"{parceiro}-{nome_acento}")
     return saida
+
+
+# ===========================================================================
+# 7. O OUTRO LADO DE UMA FOTO, QUANDO O PAR DO PACK NUNCA FOI FOTOGRAFADO
+# ===========================================================================
+# O DEFEITO — 25/09/2026, sprint P63 (medido na revisão da P59)
+#   Com FLAVOR=dracula e MODO=claro o COSMIC vestia a Light da foto
+#   `dracula-mauve`: `name: "catppuccin-latte"`, acento #8839EF, e as dez chaves
+#   de cor da receita iguais às do `latte-mauve` — o Latte do Catppuccin. E a
+#   P48 copiava essa Light da base para toda derivada de acento: o dracula-pink
+#   no claro também era o Latte, com o acento mauve dele. O pack diz o
+#   contrário: o claro do dracula é o alucard (`claros` da paleta, o
+#   `_nota_claro` do pack.json), e a página e a prévia já o desenhavam assim.
+#
+# A REGRA SAI DO ESTADO, E NÃO DO NOME DE UM PACK
+#   O lado de uma captura que não é o do flavor dela é o do PAR do pack nesse
+#   lado (`par_do_outro_lado`), no MESMO acento — a regra que a seção 6 já dá à
+#   derivada de um flavor sem foto (o escuro do alucard-pink é o dracula-pink).
+#   E ela só vale quando o par NUNCA foi fotografado: aí o lado dele só existe
+#   como esta derivação, e o que a foto de outro flavor traz desse lado é tema
+#   de outro pack ou de outro dia. Com o par fotografado (o latte, no
+#   Catppuccin) nada muda: a Light do mocha-pink é a que a GUI fotografou, e a
+#   P48 continua copiando a da base.
+#   A derivação é a do `plano` acima, com `_com_par=False`: do par se quer o
+#   lado dele, e o outro lado dele seria o de quem pergunta.
+def lado_do_par(par: str, paleta: dict):
+    """O lado que a captura `par` (`<flavor>-<acento>`) leva do par do pack.
+
+    Devolve {"par", "arvore", "base", "conteudo"} — `conteudo` são os bytes das
+    duas árvores desse lado, produto e receita. None quando o pack não tem par
+    do outro lado, ou quando o par tem fotografia. ValueError, com o motivo em
+    português de tela, quando o par não se deriva."""
+    flavor, nome_acento = da._separar(par)
+    parceiro = par_do_outro_lado(flavor, paleta)
+    if not parceiro:
+        return None
+    for nome in pack.capturas():
+        achada = pack.captura(nome)
+        if nome.startswith(parceiro + "-") and achada and not da.base_da(Path(achada)):
+            return None
+    p = plano(f"{parceiro}-{nome_acento}", paleta, _com_par=False)
+    if p["estado"] != "derivavel":
+        raise ValueError(p["motivo"])
+    prefixos = (f"com.system76.CosmicTheme.{p['arvore']}/",
+                f"com.system76.CosmicTheme.{p['arvore']}.Builder/")
+    return {"par": f"{parceiro}-{nome_acento}", "arvore": p["arvore"], "base": p["base"],
+            "conteudo": {rel: dado for rel, dado in p["conteudo"].items()
+                         if rel.startswith(prefixos)}}
+
+
+def linha_do_lado(lado: dict) -> str:
+    """A linha do captura.txt que diz de onde veio o lado do par. A mesma na
+    foto e na derivada de acento, e sem data: a captura tem de sair igual byte
+    a byte a cada passagem."""
+    nome = "claro" if lado["arvore"] == "Light" else "escuro"
+    return f"{nome}: o do {lado['par']}, derivado de {lado['base']} (scripts/derivar_flavor.py)"
+
+
+# A FOTO GANHA O LADO DO PAR POR ESTE COMANDO, E NÃO À MÃO
+#   `derivar_flavor.py dracula-mauve` escreve na FOTOGRAFIA as duas árvores do
+#   lado do par, e a linha que diz de onde vieram; o resto da foto (a Dark, o
+#   Mode, a data) não muda um byte. O `manifesto.sha256` é refeito pelo mesmo
+#   comando do capturar_tema.sh. O instalador não chama isto: a foto é
+#   versionada, e o que se escreve aqui vai para um commit. O
+#   `tests/claro-do-pack.sh` roda o `--conferir` contra a foto do repositório —
+#   uma foto cujo lado não é o que a derivação dá hoje (a porta do `build()`
+#   mudou, ou alguém copiou uma árvore à mão) faz o teste cair.
+def refazer_foto(par: str, paleta: dict, conferir: bool = False) -> tuple[int, str]:
+    """(0, frase) já confere; (1, frase) escreveu, ou escreveria no `conferir`;
+    (3, frase) não há o que pôr, e a frase diz por quê."""
+    achada = pack.captura(par)
+    if not achada:
+        return 3, f"{par}: não há captura com esse nome no pack no ar"
+    cap = Path(achada)
+    if da.base_da(cap):
+        return 3, f"{par}: é derivada, e a derivada já nasce com o lado do par (derivar_acento.py)"
+    try:
+        lado = lado_do_par(par, paleta)
+    except ValueError as e:
+        return 3, f"{par}: o par do outro lado não se deriva — {e}"
+    if lado is None:
+        return 3, f"{par}: o outro lado fica o da foto (o pack não tem par nesse lado, ou o par tem foto)"
+    nome = "claro" if lado["arvore"] == "Light" else "escuro"
+    prefixos = (f"com.system76.CosmicTheme.{lado['arvore']}/",
+                f"com.system76.CosmicTheme.{lado['arvore']}.Builder/")
+    atual = {}
+    for arq in cap.rglob("*"):
+        rel = arq.relative_to(cap).as_posix()
+        if arq.is_file() and rel.startswith(prefixos):
+            atual[rel] = arq.read_bytes()
+    novo = lado["conteudo"]
+    total = sum(1 for a in cap.rglob("*") if a.is_file()
+                and a.relative_to(cap).as_posix().startswith("com.system76.")) \
+        - len(atual) + len(novo)
+    ficha = cap / "captura.txt"
+    linhas = []
+    for linha in ficha.read_text(encoding="utf-8").splitlines():
+        if linha.startswith(("claro: ", "escuro: ")):
+            continue
+        linhas.append(f"arquivos: {total}" if linha.startswith("arquivos: ") else linha)
+    texto = "\n".join(linhas + [linha_do_lado(lado)]) + "\n"
+    mudam = sorted(r for r in atual.keys() | novo.keys() if atual.get(r) != novo.get(r))
+    if not mudam and ficha.read_text(encoding="utf-8") == texto:
+        return 0, f"{par}: o {nome} já é o do {lado['par']}"
+    if conferir:
+        return 1, (f"{par}: poria o {nome} do {lado['par']} ({len(mudam)} arquivo(s) do "
+                   f"{nome} mudam)")
+    for rel in atual.keys() - novo.keys():
+        (cap / rel).unlink()
+    for rel, dado in novo.items():
+        f = cap / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(dado)
+    ficha.write_text(texto, encoding="utf-8")
+    v1.refazer_manifesto(cap)
+    return 1, (f"{par}: o {nome} passou a ser o do {lado['par']}, derivado de {lado['base']} "
+               f"— {len(mudam)} arquivo(s)")
+
+
+def main() -> int:
+    import argparse
+    ap = argparse.ArgumentParser(
+        description="Põe na captura fotografada o lado do par do pack, derivado "
+                    "(o claro do dracula-mauve é o alucard-mauve).")
+    ap.add_argument("pares", nargs="+", metavar="flavor-acento")
+    ap.add_argument("--conferir", action="store_true",
+                    help="não escreve: sai 1 se mudaria, 0 se já confere, 3 se não há o que pôr")
+    args = ap.parse_args()
+    conferir = args.conferir or os.environ.get("MEOW_DRY_RUN", "0") == "1"
+    paleta = da._paleta()
+    codigos = []
+    for par in args.pares:
+        if "-" not in par or par.startswith(".") or "/" in par:
+            print(f"ERRO: '{par}' não está no formato flavor-acento", file=sys.stderr)
+            return 2
+        rc, frase = refazer_foto(par, paleta, conferir)
+        print(f"  {frase}")
+        codigos.append(rc)
+    return 1 if 1 in codigos else (3 if 3 in codigos else 0)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -24,15 +24,15 @@
         alpha: 0.0,
     ),
     selected_text: (
-        red: 0.53333336,
-        green: 0.22352941,
-        blue: 0.9372549,
+        red: 0.52156866,
+        green: 0.22745098,
+        blue: 0.9490196,
         alpha: 1.0,
     ),
     focus: (
-        red: 0.53333336,
-        green: 0.22352941,
-        blue: 0.9372549,
+        red: 0.52156866,
+        green: 0.22745098,
+        blue: 0.9490196,
         alpha: 1.0,
     ),
     divider: (
@@ -62,13 +62,13 @@
     border: (
         red: 0.07450981,
         green: 0.08235294,
-        blue: 0.12156863,
+        blue: 0.12941177,
         alpha: 1.0,
     ),
     disabled_border: (
         red: 0.07450981,
         green: 0.08235294,
-        blue: 0.12156863,
+        blue: 0.12941177,
         alpha: 0.5,
     ),
 )
