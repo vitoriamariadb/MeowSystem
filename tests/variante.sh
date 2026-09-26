@@ -201,7 +201,31 @@ etapa gerar >/dev/null; saida_t="$(etapa tema)"; rc_t="$(rc)"
 $(cat "$COSMIC/com.system76.CosmicTheme.Light.Builder/v2/accent" "$COSMIC/com.system76.CosmicTheme.Dark.Builder/v2/accent")"
 
 # --- 5. frappe e macchiato, com o Catppuccin no ar -------------------------
+#   A LIGHT É A DO LATTE-MAUVE COM O VIDRO DESTE COSMIC — 25/09/2026, sprint P68
+#   Esta seção comparava a Light do COSMIC com a do `latte-mauve` byte a byte, e
+#   reprovou com as levas D e E mescladas: a P58 (o vidro segue o COSMIC
+#   instalado) nasceu ao lado da P59, e a camada dela rederiva, ao aplicar, as
+#   cores que carregam o alpha. O brinquedo está no mocha-mauve, com o `frosted`
+#   em ExtremelyHigh2 (alpha 8A) nas duas receitas, e a Light do latte-mauve foi
+#   fotografada em VeryLow2 (D9): «Light 'ExtremelyHigh2' = alpha 8A do
+#   alpha_map deste COSMIC (a captura trazia D9)».
+#   Medido na P68 se as duas camadas se compõem, com frappe-mauve e
+#   macchiato-mauve: a Light que o COSMIC recebe é, byte a byte (produto e
+#   receita), a que a FOTO latte-mauve deixa no mesmo COSMIC; a captura
+#   derivada leva a Light do latte-mauve sem mudar um byte; as duas árvores do
+#   COSMIC são a vista do `derivar_vidro.py` da captura derivada; e a segunda
+#   passagem não escreve nada. O defeito era do teste, que não contava o vidro.
+#   A régua passa a ser a foto vista por este COSMIC — a vista do vidro do
+#   latte-mauve, a mesma que a P58 dá às fotos —, e o alpha 8A do fundo
+#   translúcido é conferido pelo número, para a vista não ser a única
+#   testemunha. A Light do mocha-mauve que o brinquedo já tinha difere dessa
+#   vista em 37 arquivos: uma etapa que não a aplicasse não passaria aqui.
 cp -a "$CAT/mocha-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
+LATTE_AQUI="$T/latte-mauve-neste-cosmic"
+vidro_latte="$(amb python3 "$RAIZ/scripts/derivar_vidro.py" "$CAT/latte-mauve" --vista "$LATTE_AQUI" 2>&1)"
+rc_v=$?
+[ "$rc_v" = "1" ] \
+  || { printf 'erro: a vista do vidro do latte-mauve neste COSMIC não se derivou (rc=%s): %s\n' "$rc_v" "$vidro_latte" >&2; exit 2; }
 for caso in "frappe #CA9EE6" "macchiato #C6A0F6"; do
   fl="${caso% *}"; mauve="${caso#* }"
   conf "$fl" mauve catppuccin escuro
@@ -210,8 +234,9 @@ for caso in "frappe #CA9EE6" "macchiato #C6A0F6"; do
   if [ "$rc_g" = "1" ] && [[ "$saida_g" == *"$fl-mauve: derivada de mocha-pink"* ]] && [ "$rc_t" = "1" ] \
      && [ "$(cat "$COSMIC/com.system76.CosmicTheme.Dark.Builder/v2/accent")" = "Some(\"${mauve}FF\")" ] \
      && [ "$(cat "$COSMIC/com.system76.CosmicTheme.Dark/v2/name")" = "\"catppuccin-$fl\"" ] \
-     && arvores_iguais "$CAT/latte-mauve" Light; then
-    ok "$fl-mauve deriva do mocha-pink e aplica: a Dark é a do $fl, a Light é a do latte-mauve"
+     && arvores_iguais "$LATTE_AQUI" Light \
+     && grep -qxF '    base: "#CCD0DA8A",' "$COSMIC/com.system76.CosmicTheme.Light/v2/transparent_background"; then
+    ok "$fl-mauve deriva do mocha-pink e aplica: a Dark é a do $fl, a Light é a do latte-mauve com o vidro deste COSMIC (8A)"
   else
     falha "$fl-mauve não aplicou como devia (gerar=$rc_g tema=$rc_t)" "$saida_g
 $saida_t"
