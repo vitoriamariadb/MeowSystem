@@ -392,11 +392,15 @@ PY
 
 # --- 4. o molde das pastas numa regra só -----------------------------------
 printf -- '--- 4. o molde do ICONES_PASTAS numa regra só ---\n'
-copias="$(grep -c 'cat--?\*)' "$RAIZ/bin/meow" "$RAIZ/app/servidor.py" "$RAIZ/lib/comum.sh" | tr '\n' ' ')"
-[ "$copias" = "$RAIZ/bin/meow:0 $RAIZ/app/servidor.py:0 $RAIZ/lib/comum.sh:1 " ] \
+#   [P68, 25/09/2026: e o scripts/construir_pastas.sh, a terceira cópia que a
+#   revisão da P66 achou — ele passou a chamar a mesma função.]
+copias="$(grep -c 'cat--?\*)' "$RAIZ/bin/meow" "$RAIZ/app/servidor.py" "$RAIZ/lib/comum.sh" \
+            "$RAIZ/scripts/construir_pastas.sh" | tr '\n' ' ')"
+[ "$copias" = "$RAIZ/bin/meow:0 $RAIZ/app/servidor.py:0 $RAIZ/lib/comum.sh:1 $RAIZ/scripts/construir_pastas.sh:0 " ] \
   && grep -q '^  meow_pastas_do_molde$' "$RAIZ/bin/meow" \
   && grep -q "'meow_pastas_do_molde " "$RAIZ/app/servidor.py" \
-  && ok "o molde cat--<acento> é completado num lugar só (o meow_pastas_do_molde), e o bin/meow e o painel o chamam" \
+  && grep -q 'meow_pastas_do_molde; printf' "$RAIZ/scripts/construir_pastas.sh" \
+  && ok "o molde cat--<acento> é completado num lugar só (o meow_pastas_do_molde), e o bin/meow, o painel e o construir_pastas.sh o chamam" \
   || falha "o molde das pastas continua escrito em mais de um lugar" "$copias"
 printf 'PACK="dracula"\nFLAVOR=""\nACCENT="mauve"\nICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"\n' > "$T/molde.conf"
 saida="$(env -i PATH="$CAMINHO" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/molde.conf" \
@@ -436,6 +440,32 @@ grep -q 'conteudo = da.montar(cand, ' "$RAIZ/scripts/derivar_flavor.py" \
   && grep -q 'conteudo=montar(cand, lado\["arvore"\], lado\["conteudo"\])' "$RAIZ/scripts/derivar_acento.py" \
   && ok "os dois planos montam a captura pelo montar do derivar_acento.py (a soma da seção 1 é a prova de que ela é a mesma)" \
   || falha "a montagem do lado do par não é a função única nos dois derivadores"
+#   AS FICHAS DA CAPTURA NUMA LISTA SÓ — 25/09/2026, sprint P68 (item 5). O
+#   filtro do `montar` (o `FICHAS` do derivar_acento.py) tinha uma versão em
+#   shell no laço do aplicar_tema.sh. A prova é pelo que acontece, e não pelo
+#   texto: numa cópia dos scripts em que o `FICHAS` ganha um nome (um
+#   `LEIA-ME.md` na raiz da captura), aplicar o tema não o põe no COSMIC — e
+#   com o `case` de antes, punha.
+R6="$T/raiz6"; P6="$T/packs6"; C6="$T/cosmic6"; E6="$T/estado6"
+mkdir -p "$R6" "$P6" "$C6" "$E6" "$T/tmp6"
+cp -a "$RAIZ/scripts" "$RAIZ/lib" "$R6/"; ln -s "$RAIZ/assets" "$R6/assets"
+cp -a "$RAIZ/packs/catppuccin" "$P6/"
+for cap in "$P6"/*/temas/capturados/*/; do
+  grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
+done
+sed -i 's/^FICHAS = ("manifesto.sha256", "captura.txt", ".gitignore")$/FICHAS = ("manifesto.sha256", "captura.txt", ".gitignore", "LEIA-ME.md")/' \
+  "$R6/scripts/derivar_acento.py"
+grep -q '"LEIA-ME.md")$' "$R6/scripts/derivar_acento.py" \
+  || { printf 'erro: não consegui pôr uma ficha a mais no FICHAS da cópia\n' >&2; exit 2; }
+printf 'uma ficha que não é do COSMIC\n' > "$P6/catppuccin/temas/capturados/latte-mauve/LEIA-ME.md"
+saida="$(env -i PATH="$CAMINHO" HOME="$CASA" MEOW_RAIZ="$R6" MEOW_ESTADO="$E6" MEOW_COSMIC_DIR="$C6" \
+           MEOW_PACK_DIR="$P6/catppuccin" MEOW_PACKS="$P6" TMPDIR="$T/tmp6" LANG=C.UTF-8 NO_COLOR=1 \
+           bash "$R6/scripts/aplicar_tema.sh" latte-mauve 2>&1)"; r=$?
+[ "$r" = "0" ] && [ -f "$C6/com.system76.CosmicTheme.Light/v2/accent" ] \
+  && [ ! -e "$C6/LEIA-ME.md" ] && [ ! -e "$C6/manifesto.sha256" ] && [ ! -e "$C6/captura.txt" ] \
+  && ok "o aplicar_tema.sh segue o FICHAS do derivar_acento.py: um nome a mais lá, e o arquivo não vai para o COSMIC" \
+  || falha "o aplicar_tema.sh não segue o FICHAS do derivar_acento.py (rc=$r)" "$saida
+$(ls -a "$C6")"
 
 # --- 7. o repositório não mudou --------------------------------------------
 [ "$(git -C "$RAIZ" status --porcelain 2>/dev/null; git -C "$RAIZ" status --porcelain --ignored -- packs 2>/dev/null)" = "$git_antes" ] \
