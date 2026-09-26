@@ -382,3 +382,48 @@ Um teste novo trava cada classe, para ela não voltar.
 
 Só texto e comentário nos arquivos que o grep achar, a figura
 `ANTES-E-DEPOIS.png` e o `PROCEDENCIA.md` dos ícones, e um teste de trava novo.
+
+---
+
+# P68 — O que a suíte das levas D e E mostrou
+
+Suíte do dev em e0949bb (todas as levas mescladas): 35 verdes, 1 pulado, 2
+vermelhos. Nesta rodada só DEFEITO DE FUNÇÃO reprova; nota de texto vai para o
+relatório final.
+
+1. **O vidro e as variantes derivadas.** `tests/variante.sh` reprova:
+   «frappe-mauve não aplicou como devia (gerar=1 tema=1)», idem macchiato-mauve. A
+   reconferência da P66 mediu a causa: a camada do vidro da P58 rederiva o alpha
+   ao aplicar («vidro: Dark 'ExtremelyHigh2' = alpha 8A do alpha_map deste COSMIC
+   (a captura trazia D9) … 16 arquivo(s) rederivados»), e o teste compara a Light
+   com a do `latte-mauve` byte a byte. Meça se o defeito está no teste (que não
+   conta o vidro rederivado) ou na derivação/aplicação (duas camadas que não se
+   compõem), e conserte onde estiver.
+2. **A foto `mocha-pink` no claro.** Com `FLAVOR=mocha ACCENT=pink MODO=claro`, o
+   COSMIC veste `"catppuccin-latte"` com `Some("#8839EFFF")` (mauve); o pink do
+   latte é `#EA76CB`. A foto `packs/catppuccin/temas/capturados/mocha-pink` traz o
+   mauve na `Light.Builder/v2/accent`. A reconferência da P66 mediu:
+   `derivar_arvore(mocha-pink, 'Light', '#EA76CB')` passa na guarda e muda 34
+   arquivos. Refaça a Light da foto por esse caminho, com o `manifesto.sha256` e o
+   `PROCEDENCIA.md`, e tire o caso do CONHECIDOS do `tests/notas-de-funcao.sh`.
+3. **A galeria do papel de parede some na releitura.** O gate inteiro reprovou 9
+   vezes na aba Papel de parede («a lista que o traz não voltou em 8 s»); a aba
+   sozinha passou 2 de 2. É a mesma classe da grade de ícones que a P57 (item 6)
+   consertou: depois de uma ação que escreve, a galeria esquece as prévias e só
+   repinta depois da releitura. A galeria não some durante a releitura, sem
+   voltar a pedir miniatura de arquivo que mudou de pasta (a razão da P46).
+4. **`meow icones resgatados folha` apaga a costura.** O comando regera a folha
+   `ANTES-E-DEPOIS.png` dentro do repositório; com 12 PNG faltando, troca a folha
+   costurada pela P67 por uma com 12 molduras vazias, e a trava da P67 diria «ok».
+   O comando não pode perder o que a folha tem.
+5. **Regra duplicada.** O molde `cat--<acento>` do `ICONES_PASTAS` ainda tem uma
+   terceira cópia em `scripts/construir_pastas.sh` (~346), e o filtro que a P66
+   extraiu no Python tem uma versão em shell no `scripts/aplicar_tema.sh`.
+
+### Território
+
+`tests/variante.sh` e o que o item 1 medir, a foto `mocha-pink` do Catppuccin e o
+`PROCEDENCIA.md`/manifesto dela, `tests/notas-de-funcao.sh`, a galeria do papel de
+parede em `app/pagina/app.js`, o `meow icones resgatados folha` (`bin/meow` e o
+script que ele chama), `scripts/construir_pastas.sh` (~346) e o filtro do
+`scripts/aplicar_tema.sh`, `tests/`.
