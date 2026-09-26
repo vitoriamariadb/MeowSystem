@@ -712,6 +712,9 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
         #   (o `refazer_foto` do derivar_flavor.py, como a P63 fez na
         #   `dracula-mauve`) ou derivar na hora de aplicar — as duas fora do
         #   território da P66; o tests/notas-de-funcao.sh o diz em toda corrida.
+        #   [P68, 25/09/2026: escrito na foto — a Light da `mocha-pink` é a do
+        #   `derivar_arvore` no pink do latte (o CREDITOS.md do Catppuccin tem
+        #   o comando), e o teste passou a cobrá-la em vez de dizê-la.]
         parceiro = None if lado else derivar_flavor.par_do_outro_lado(flavor, paleta)
         cor_do_par = ((paleta.get("flavors") or {}).get(parceiro) or {}).get(nome_acento)
         outro = "Dark" if arvore == "Light" else "Light"

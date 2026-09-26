@@ -15,14 +15,13 @@
 #        o das FOTOS —, e o que já estava certo não muda um byte (a soma
 #        abaixo). O lado do par que não se deriva fica o da base, sem derrubar
 #        a variante (revisão da P66).
-#        UM DEFEITO CONHECIDO FICA DE FORA, E É DITO EM TODA CORRIDA: a foto
-#        `mocha-pink` veste no claro o mauve do latte (#8839EF), e o par pede o
-#        pink dele (#EA76CB). A foto não passa pelo derivador — o `plano` a
-#        devolve como `fotografia` —, e consertá-la é escrever nela ou derivar
-#        ao aplicar, fora do território da P66 (revisão da P66, 25/09/2026). No
-#        molde dos `DEFEITOS_CONHECIDOS` do tests/app-completo.py, o teste
-#        reprova no dia em que ele deixar de acontecer: nesse dia o
-#        `CONHECIDOS` da seção 1 sai junto.
+#        [Até a P68 (25/09/2026) um defeito conhecido ficava de fora, dito em
+#        toda corrida: a foto `mocha-pink` vestia no claro o mauve do latte
+#        (#8839EF), e o par pede o pink dele (#EA76CB). A P68 escreveu na foto a
+#        Light que o `derivar_arvore` do derivar_acento.py dá no pink — 34
+#        arquivos, com o manifesto refeito e a linha `claro:` no captura.txt;
+#        a conta está no CREDITOS.md do pack —, e o `CONHECIDOS` saiu: a foto
+#        passa pela mesma régua dos outros 83 pares.]
 #     2. O desfazer da escolha do pack. Desfeita a escolha de um desenho do pack
 #        no ar para um nome que o mapa não tinha, o desenho ficava no tema. O
 #        passo do pack o tira agora pelo registro do que ele pôs lá — e só isso:
@@ -51,6 +50,11 @@
 #   pelo acento, campo a campo. Medido em 25/09/2026 com o código de antes da
 #   P66 (9aa3b01) e com o de depois: o mesmo número. Mexer em qualquer outro
 #   byte de captura é outra decisão, e quem a tomar troca este número junto.
+#   [P68, 25/09/2026: a decisão foi tomada — a Light da `mocha-pink` passou ao
+#   pink —, e a soma é a mesma: o que mudou é o outro lado de uma foto, fora
+#   dela. Das derivadas, só o `mocha-red` e o `mocha-blue` mudam um byte, na
+#   Light/v1/accent_button (o `on` branco escrito 1.0, e não 0.99999994: o
+#   mesmo #FFFFFF em 8 bits), e o outro lado delas também fica fora.]
 #
 # NADA FORA DO TEMPORÁRIO: COSMIC, casa, estado e packs de brinquedo (as
 #   derivadas nascem dentro do pack copiado), `env -i` em toda chamada, a ponte
@@ -163,6 +167,42 @@ etapa modo >/dev/null
 $saida_g
 $saida_t"
 
+#   A FOTO mocha-pink NO CLARO — 25/09/2026, sprint P68. Ela não passa pelo
+#   derivador (o `plano` a devolve como `fotografia`), e vestia a Light
+#   `catppuccin-latte` com #8839EFFF, o mauve, com o par pedindo o pink do
+#   latte. A P68 escreveu o pink NA FOTO, pelo `derivar_arvore`; aqui ela é
+#   aplicada pelas mesmas etapas, e a Light da foto do repositório é conferida
+#   contra a conta: com o pink que ela declara, o derivador não muda um byte —
+#   uma Light copiada à mão, ou uma porta do `build()` que mudou, derruba isto.
+rosa="$(cor catppuccin latte pink)"
+conf mocha pink catppuccin claro
+saida_g="$(etapa gerar)"; rc_g="$(rc)"
+saida_t="$(etapa tema)"; rc_t="$(rc)"
+etapa modo >/dev/null
+[ "$(cat "$COSMIC/com.system76.CosmicTheme.Mode/v1/is_dark")" = "false" ] \
+  && [ "$(veste Light)" = "\"catppuccin-latte\"|Some(\"${rosa}FF\")|focus: \"${rosa}FF\", " ] \
+  && ok "FLAVOR=mocha, ACCENT=pink, MODO=claro: a foto veste o Latte com o pink dele, $rosa, na receita e em todo foco" \
+  || falha "a foto mocha-pink no claro não veste o pink do latte (gerar=$rc_g tema=$rc_t)" "$(veste Light)
+$saida_g
+$saida_t"
+saida="$(amb python3 - "$RAIZ" "$CAT/mocha-pink" "$rosa" <<'PY' 2>&1
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1] + "/scripts")
+import derivar_acento as da
+try:
+    trocas = da.derivar_arvore(Path(sys.argv[2]), "Light", sys.argv[3])
+except ValueError as e:
+    print(f"a Light da foto não se reproduz: {e}")
+    sys.exit(1)
+print("\n".join(sorted(trocas)))
+sys.exit(1 if trocas else 0)
+PY
+)"; r=$?
+[ "$r" = "0" ] \
+  && ok "a Light da foto mocha-pink é a que o derivar_arvore dá no $rosa, byte a byte" \
+  || falha "a Light da foto mocha-pink não é a conta do derivador" "$saida"
+
 #   Os 14 acentos, e a soma do que não muda. Sem escrever nada: o `plano` e o
 #   `_conteudo` do derivar_acento.py são o que a etapa gerar gravaria.
 saida="$(amb env MEOW_ESPERADA="$SOMA_MEDIDA" python3 - "$RAIZ" "$PACKS" <<'PY' 2>&1
@@ -170,10 +210,7 @@ import hashlib, json, os, sys
 from pathlib import Path
 raiz, packs = sys.argv[1], Path(sys.argv[2])
 sys.path.insert(0, raiz + "/scripts")
-# O defeito conhecido do cabeçalho: a foto cujo lado do par não veste o acento
-# do par. Sai daqui no dia em que for consertado — o teste o cobra.
-CONHECIDOS = {"mocha-pink"}
-soma, erros, conhecidos, pares, lados = hashlib.sha256(), [], [], 0, 0
+soma, erros, pares, lados = hashlib.sha256(), [], 0, 0
 for pack_id in ("dracula", "catppuccin"):
     os.environ["MEOW_PACK_DIR"] = str(packs / pack_id)
     os.environ["MEOW_PALETA"] = str(packs / pack_id / "paleta.json")
@@ -205,14 +242,7 @@ for pack_id in ("dracula", "catppuccin"):
                          if rel.startswith(f"com.system76.CosmicTheme.{outro}/v2/")
                          for linha in dado.decode().splitlines() if linha.strip().startswith("focus: \"")}
                 veste = receita == f'Some("{quer}FF")' and focos == {f'focus: "{quer}FF",'}
-                if par in CONHECIDOS and veste:
-                    erros.append(f"{par}: o {outro} passou a vestir o {ac} do {parceiro} — o defeito "
-                                 "conhecido foi consertado: ele sai do CONHECIDOS e do cabeçalho")
-                elif par in CONHECIDOS:
-                    conhecidos.append(f"conhecido, fora da P66: a foto {par} veste no {outro} {receita}, "
-                                      f"e o par pede o {ac} do {parceiro}, {quer}FF — conserto: escrever "
-                                      "na foto (refazer_foto do derivar_flavor.py) ou derivar ao aplicar")
-                elif not veste:
+                if not veste:
                     erros.append(f"{par}: o {outro} veste {receita} e {sorted(focos)}, e o par pede {quer}FF")
                 else:
                     lados += 1
@@ -226,17 +256,16 @@ for pack_id in ("dracula", "catppuccin"):
                 if not rel.startswith(fora):
                     soma.update(rel.encode() + b"\0" + cont[rel] + b"\0")
 medida = soma.hexdigest()
-print(f"{pares} pares; {lados} lados do par no acento do par e {len(conhecidos)} conhecido; soma {medida}")
+print(f"{pares} pares; {lados} lados do par no acento do par; soma {medida}")
 if medida != os.environ["MEOW_ESPERADA"]:
     erros.append(f"a soma do que não muda é {medida}, e a medida é {os.environ['MEOW_ESPERADA']}")
-print("\n".join(conhecidos + erros))
+print("\n".join(erros))
 sys.exit(1 if erros else 0)
 PY
 )"; r=$?
 [ "$r" = "0" ] \
   && ok "nos 84 pares, o lado do par — da derivada e da foto — veste o acento do par, e o resto é o de antes, byte a byte ($(printf '%s\n' "$saida" | head -1))" \
   || falha "o acento do lado do par, ou a soma do que não muda" "$saida"
-printf '%s\n' "$saida" | grep '^conhecido, fora da P66: ' | sed 's/^/  /'
 
 #   O lado do par que não se deriva fica o da base, e a variante continua
 #   aplicando (revisão da P66). Num Catppuccin de brinquedo: a Light da
@@ -248,8 +277,10 @@ for cap in "$P1"/*/temas/capturados/*/; do
   grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
 done
 ROSA="$P1/catppuccin/temas/capturados/mocha-pink"
-sed -i 's/hover: "#8041D6FF"/hover: "#8041D5FF"/' "$ROSA/com.system76.CosmicTheme.Light/v2/accent"
-grep -q 'hover: "#8041D5FF"' "$ROSA/com.system76.CosmicTheme.Light/v2/accent" \
+#   O `hover` é o do pink do latte desde a P68 (25/09/2026), que escreveu na
+#   foto a Light no pink; antes era o #8041D6 do mauve.
+sed -i 's/hover: "#CE72B9FF"/hover: "#CE72B8FF"/' "$ROSA/com.system76.CosmicTheme.Light/v2/accent"
+grep -q 'hover: "#CE72B8FF"' "$ROSA/com.system76.CosmicTheme.Light/v2/accent" \
   || { printf 'erro: não consegui mexer na Light da mocha-pink de brinquedo\n' >&2; exit 2; }
 saida="$(amb env MEOW_PACK_DIR="$P1/catppuccin" MEOW_PALETA="$P1/catppuccin/paleta.json" \
   python3 - "$RAIZ" "$ROSA" <<'PY' 2>&1

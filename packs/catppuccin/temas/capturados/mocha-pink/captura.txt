@@ -2,3 +2,4 @@ captura: mocha-pink
 quando: 2026-08-04T21:50:22-03:00
 origem: ~/.config/cosmic
 arquivos: 154
+claro: o da foto, no pink do latte, #EA76CB (scripts/derivar_acento.py)
