@@ -11,6 +11,7 @@ patches/ — o que este diretório é, e as CINCO armadilhas que custam caro.
     SÉRIE (`~/.config/zsh/patches/patches.d/series`, `req` aborta o build,
     `opt` deixa seguir) e o raio-clampado ESTÁ declarado nela. Mas declarar não
     é aplicar: o binário só muda com um `--build`, e ele ainda não rodou.
+    [28/09/2026: o `opt` deixou de existir — ver a seção 7.]
 
         aurora-cosmic-comp-ws.sh --status   # série, marcador por patch, disco x sessão
         ./bin/meow doctor                   # a linha `patches` diz o mesmo, todo dia
@@ -163,6 +164,50 @@ patches/ — o que este diretório é, e as CINCO armadilhas que custam caro.
          24) estão abaixo do teto (22, 36), então mesmo sem o clamp não havia
          risco imediato. Medir o teto ANTES de entrar em pânico é `meow painel
          teto`.
+================================================================================
+7. DESDE 28/09/2026 NÃO EXISTE PATCH OPCIONAL — TODOS SÃO `req`
+================================================================================
+    O build de 25/09/2026 (cosmic-comp 0.1~1790118748~24.04~0fbd457) saiu com
+    workspace e raio, e SEM o menu-clique-curto e o modo-leitura: os dois eram
+    `opt`, o dry-run falhou no fonte novo e o script seguiu. O sintoma que ela
+    viu três dias depois foi o applet do Modo de Leitura dizendo "o compositor
+    desta sessão ainda não lê estas chaves" — e o menu da janela voltando a
+    fechar sozinho. A lição (a) da seção 6 se repetiu: o `opt` fez o que devia,
+    e ninguém ouviu.
+
+    Decisão dela, com estas palavras: "tudo tem que ser obrigatório".
+
+      * a `series` declara os quatro como `req`;
+      * o `aurora-cosmic-comp-ws.sh` LÊ `opt` COMO `req` e avisa — uma linha
+        `opt` esquecida numa cópia velha não reabre o buraco;
+      * patch que não aplica ABORTA o build e o desktop fica no binário do
+        pacote (sem workspace fixo, sem modo de leitura) até alguém portar;
+      * o `--ensure` só instala artefato que tem TODOS os marcadores. Antes ele
+        reinstalava o de 25/09 sem conferir, e com tudo `req` isso viraria uma
+        reinstalação por hora sem nunca disparar o build.
+
+    OS DOIS FORAM PORTADOS NO MESMO DIA, e pelo mesmo motivo: o upstream
+    acrescentou um campo bem onde o hunk encaixava (`last_tablet_idx` no
+    `MenuGrab`, `decoration_preference` no `CosmicCompConfig`). E saíram como
+    v2, não só portados:
+
+      * REANCORADOS: todo encaixe que estava no FIM de uma lista (último campo,
+        último braço do `match`, último uniform) passou para o INÍCIO. O
+        upstream cresce pelo fim; a abertura não muda. Regra para patch novo:
+        ancore no começo da lista, ou na própria lógica que você corrige;
+      * O MODO DE LEITURA NÃO ESCURECE MAIS A TELA POR OMISSÃO: o uniform
+        `leitura_temp` (neutro = 1.0) virou `leitura_atenuacao` (= 1 − tint,
+        neutro = 0.0). Zero é o default do GL para uniform não passado, e na v1
+        um lugar de desenho que um update criasse sem este patch conhecer
+        sairia PRETO — a tela de login junto;
+      * MARCADORES -2 (AURORA-COSMIC-MENU-PATCH-2, AURORA-READING-MODE-2), e o
+        script da Aurora agora exige a versão que o `.patch` declara: subir um
+        patch recompila sozinho.
+
+    O cabeçalho de cada `.patch` tem a nota do porte e da v2. O build também
+    passou a rodar o aurora-glsl-gate (que existia e ninguém chamava) antes do
+    `make`, e a partir de uma árvore reextraída a cada vez.
+
 ================================================================================
 SE O COMPOSITOR NÃO SUBIR — LEIA ANTES DE COMPILAR, NÃO DEPOIS
 ================================================================================

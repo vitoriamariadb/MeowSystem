@@ -57,63 +57,83 @@
 #   linker descarta um static que ninguem le e o `--ensure` deixa de reconhecer
 #   o build (armadilha 3 do patches/LEIA-ME.txt).
 #
+# ============================================================================
+# PORTADO E REANCORADO EM 28/09/2026 (fonte 0.1~1790118748~24.04~0fbd457)
+# ============================================================================
+#   O build de 25/09/2026 saiu SEM este patch: ele era `opt`, o dry-run falhou
+#   no fonte novo e o script seguiu calado. O upstream acrescentou
+#   `last_tablet_idx` ao `MenuGrab` (o menu aprendeu caneta de mesa digitalizadora),
+#   e o hunk da struct e o do construtor perderam o contexto.
+#   Refeito sobre a árvore da série já com os patches anteriores aplicados, e
+#   conferido com dry-run dos quatro em sequência num fonte limpo.
+#
+#   A v2 (marcador AURORA-COSMIC-MENU-PATCH-2) não só portou: REANCOROU. Todo
+#   ponto de encaixe saiu do fim de lista, onde o upstream cresce, para um lugar
+#   que não muda à toa:
+#     - o campo `nascimento` é o PRIMEIRO da struct e do construtor;
+#     - o filtro do release, o `static` do marcador e a constante moram DENTRO
+#       do `button()`, ancorados no `if !any_entered` — a lógica que o patch
+#       corrige. Se o upstream reescrever ESSE trecho, o patch tem de parar de
+#       aplicar, porque a premissa dele mudou; já a assinatura da função (o
+#       tipo do evento trocou de nome uma vez) deixou de ser contexto.
+#   O comportamento é o mesmo da v1.
+#
 --- a/src/shell/grabs/menu/mod.rs
 +++ b/src/shell/grabs/menu/mod.rs
-@@ -510,12 +510,32 @@
-     touch_entered: Option<TouchSlot>,
+@@ -524,6 +524,11 @@ pub struct Element {
  }
  
-+/// AURORA-COSMIC-MENU-PATCH — o menu de janela para de fechar no release do
-+/// clique que o abriu. O menu nasce EMBAIXO do cursor, entao um item ja esta com
-+/// `pointer_entered` quando o release do botao direito chega, e o ramo
-+/// `selected && Released` do `button()` fechava o menu antes de ela ver o que
-+/// havia dentro. Ver o cabecalho do .patch.
-+///
-+/// O `#[used]` e o que impede o linker de descartar um static que ninguem le —
-+/// sem ele o `--ensure` do aurora-cosmic-comp-ws.sh nao enxerga este patch no
-+/// binario e nunca reinstala.
-+#[used]
-+static AURORA_MENU_PATCH: &str = "AURORA-COSMIC-MENU-PATCH-1";
-+
-+/// Abaixo disto, um `Released` e o fim do clique que ABRIU o menu, nao uma
-+/// escolha dela. Mesmo limiar que o GTK usa para separar clique de arrasto em
-+/// menu (gtkmenushell.c). Acima dele o press-drag-release continua igual: quem
-+/// segurar o botao, arrastar ate um item e soltar, aciona o item.
-+const CLIQUE_CURTO: std::time::Duration = std::time::Duration::from_millis(250);
-+
  pub struct MenuGrab {
++    /// AURORA-COSMIC-MENU-PATCH: quando este grab nasceu. PRIMEIRO campo de
++    /// proposito: o upstream acrescenta campo no FIM da struct (foi assim com o
++    /// `last_tablet_idx`, que quebrou a v1 deste patch em 25/09/2026), e a
++    /// abertura da struct nao muda.
++    nascimento: std::time::Instant,
      elements: Arc<Mutex<Vec<Element>>>,
      start_data: GrabStartData,
      seat: Seat<State>,
-     screen_space_relative: Option<Output>,
-     scale: Arc<Mutex<f64>>,
-+    /// AURORA-COSMIC-MENU-PATCH: quando este grab nasceu.
-+    nascimento: std::time::Instant,
- }
- 
- impl PointerGrab<State> for MenuGrab {
-@@ -600,6 +620,16 @@
-         handle: &mut PointerInnerHandle<'_, State>,
-         event: &ButtonEvent,
-     ) {
-+        // AURORA-COSMIC-MENU-PATCH: engole o release do clique que ABRIU o menu.
+@@ -620,6 +625,36 @@ impl PointerGrab<State> for MenuGrab {
+             .unwrap()
+             .iter()
+             .any(|elem| elem.pointer_entered);
++        // AURORA-COSMIC-MENU-PATCH — o menu de janela para de fechar no release
++        // do clique que o abriu. O menu nasce EMBAIXO do cursor, entao um item
++        // ja esta com `pointer_entered` quando o release do botao direito chega,
++        // e o ramo `selected && Released` logo abaixo fechava o menu antes de ela
++        // ver o que havia dentro. Ver o cabecalho do .patch.
 +        //
-+        // Engolir inteiro, e nao apenas pular o `unset_grab` la embaixo, porque
-+        // o `PointerTarget::button` repassa o evento ao iced e o `button` do
-+        // iced dispara o `on_press` NO RELEASE: sem isto, o clique curto
-+        // acionaria o item que estivesse sob o cursor — trocar "o menu some" por
-+        // "o menu minimiza a janela sozinho" seria pior do que o defeito.
++        // ANCORADO AQUI, NA LOGICA QUE ELE CORRIGE, e nao na assinatura da
++        // funcao: se o upstream reescrever este `if`, o patch TEM de parar de
++        // aplicar — a premissa dele mudou. A assinatura, ao contrario, muda por
++        // motivos que nao importam (o tipo do evento ja trocou de nome uma vez).
++        //
++        // O `#[used]` e o que impede o linker de descartar um static que ninguem
++        // le — sem ele o `--ensure` do aurora-cosmic-comp-ws.sh nao enxerga este
++        // patch no binario. Mora aqui dentro, e nao no topo do modulo, pelo mesmo
++        // motivo: o topo do modulo e a vizinhanca da struct `Element`, que cresce.
++        #[used]
++        static AURORA_MENU_PATCH: &str = "AURORA-COSMIC-MENU-PATCH-2";
++        // Abaixo disto, um `Released` e o fim do clique que ABRIU o menu, nao uma
++        // escolha dela. Mesmo limiar que o GTK usa para separar clique de arrasto
++        // em menu (gtkmenushell.c). Acima dele o press-drag-release continua
++        // igual: quem segurar, arrastar ate um item e soltar, aciona o item.
++        const CLIQUE_CURTO: std::time::Duration = std::time::Duration::from_millis(250);
++        // Engolir o evento inteiro, e nao apenas pular o `unset_grab`, porque o
++        // `PointerTarget::button` repassa o evento ao iced e o `button` do iced
++        // dispara o `on_press` NO RELEASE: sem isto, o clique curto acionaria o
++        // item sob o cursor — "o menu minimiza a janela sozinho", pior que o
++        // defeito.
 +        if event.state == ButtonState::Released && self.nascimento.elapsed() < CLIQUE_CURTO {
 +            return;
 +        }
-         let any_entered = self
-             .elements
-             .lock()
-@@ -1075,6 +1105,7 @@
-             seat: seat.clone(),
-             screen_space_relative,
-             scale,
-+            nascimento: std::time::Instant::now(),
-         }
-     }
+         if !any_entered {
+             if event.state == ButtonState::Pressed {
+                 handle.unset_grab(self, state, event.serial, event.time, true);
+@@ -1332,6 +1367,7 @@ impl MenuGrab {
+             .unwrap() = Some(grab_state);
  
+         MenuGrab {
++            nascimento: std::time::Instant::now(),
+             elements,
+             start_data,
+             seat: seat.clone(),
