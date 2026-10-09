@@ -2872,6 +2872,21 @@ _logo_relogio() {
   return 0
 }
 
+# O ÍNDICE DO TEMA, DEPOIS DE TODA ETAPA QUE ESCREVE NELE — 09/10/2026, P74 item 5
+#   O `etapa_icones` escreve o `index.theme` antes das etapas que criam
+#   `48x48/apps`, `scalable/mimetypes` e os `status`, e a primeira passagem
+#   terminava com eles fora do `Directories=` — só a segunda os declarava (T8
+#   da paridade de 09/10). Esta etapa vem DEPOIS da última que escreve no tema
+#   (a dos gatos, que põe os dois botões em `scalable/apps`), recalcula o índice
+#   do disco e reindexa a cache que estiver velha: o tema sai certo na primeira
+#   passagem, e o laço das passagens deixa de ser quem o acerta.
+etapa_icones_indice() {
+  passo "Índice do tema de ícones"
+  NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/construir_icones.sh" indice
+  return $?
+}
+
 etapa_logo() {
   passo "Gatos do painel"
   local destino="$HOME/.config/systemd/user" mudou=0 rc modo
@@ -3559,7 +3574,7 @@ main() {
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_apps_dracula etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
-                etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
+                etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
                 etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)

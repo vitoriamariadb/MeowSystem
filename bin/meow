@@ -1821,6 +1821,12 @@ fix_modo()      { local d; d="$(modo_desejado)" || return "$MEOW_ERRO"; meow_esc
 fix_completar() { FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/completar_icones.sh" 2>&1; }
+# O índice do tema, do disco, depois de tudo o que escreve nele (P74 item 5):
+# o par da `etapa_icones_indice` do install.sh, e o último da lista do doctor.
+chk_indice()    { MEOW_DRY_RUN=1 NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/construir_icones.sh" indice 2>&1; }
+fix_indice()    { NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/construir_icones.sh" indice 2>&1; }
 fix_icones()    { FLAVOR="$FLAVOR" LOGO="$LOGO" \
                     ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
@@ -2019,7 +2025,7 @@ fix_autoreparo() {
 # `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho autoreparo cli pacotes escala upstream fontes logo)
+VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho autoreparo cli pacotes escala upstream fontes logo indice)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso

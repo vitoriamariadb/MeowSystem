@@ -593,6 +593,60 @@ _ci_base_cmd() {
   return "$rc"
 }
 
+# O RESTO DA CADEIA, DEPOIS DA BASE. Uma constante, porque são dois a escrever
+# a linha `Inherits=`: a construção e o `indice` (que a relê do disco).
+CAUDA_HERANCA="breeze-dark,Cosmic,Adwaita,hicolor"
+
+# `indice` — O ÍNDICE NO FIM, DE UMA VEZ — 09/10/2026, P74 item 5 (T8)
+#   O DEFEITO, MEDIDO numa casa de brinquedo com o Dracula: uma passada das
+#   etapas de ícone deixava o `Directories=` sem `48x48/apps`,
+#   `scalable/mimetypes` e os dois `status`. O índice é escrito no passo 1
+#   desta construção, ANTES das etapas que criam esses diretórios; só o laço
+#   de até cinco passagens do `install.sh` escondia isso, porque na segunda o
+#   disco já tinha tudo. Uma máquina que rodasse uma passagem só (o doctor, o
+#   `--uma-passagem`) ficava com mimetypes e status que ninguém acha.
+#
+#   A CURA é uma etapa única, a última que escreve no tema: esta. Ela recalcula
+#   o `Directories=` do disco com as mesmas funções da construção (uma verdade
+#   só sobre o que é um diretório do tema), e mantém a herança que a construção
+#   decidiu no passo 0 — ela é lida do índice, e não decidida de novo, porque
+#   decidir é o trabalho do `_ci_base`, que pode baixar. Sem índice no disco o
+#   tema ainda não foi construído, e não há o que indexar.
+#
+#   E A CACHE VAI JUNTO: o `gtk-update-icon-cache` indexa o que o
+#   `Directories=` declara, e a cache que existir e for mais velha que algum
+#   arquivo do tema esconde o arquivo dos aplicativos GTK (o cabeçalho do
+#   `completar_icones.sh` conta a medição). Como lá, a cache só é reindexada se
+#   já existir: criá-la seria escolher pela máquina um regime que ela não pediu.
+_ci_indice_cmd() {
+  local rc=0 cache="$TEMA_DIR/icon-theme.cache" herda
+  if [ ! -f "$TEMA_DIR/index.theme" ]; then
+    meow_pula "o tema '$TEMA_NOME' ainda não tem índice — quem o escreve primeiro é a construção"
+    return "$MEOW_OK"
+  fi
+  herda="$(sed -n 's/^Inherits=//p' "$TEMA_DIR/index.theme" | head -1)"
+  HERDA="${herda%",$CAUDA_HERANCA"}"; HERDA_ATRAS=""
+  [ -n "$HERDA" ] || HERDA="$ICONES_BASE"
+  meow_escrever "$TEMA_DIR/index.theme" "$(indice)" 644
+  case $? in
+    1) rc="$MEOW_DIVERGENTE" ;;
+    2) meow_erro "não consegui escrever o index.theme"; return "$MEOW_ERRO" ;;
+  esac
+  if [ -f "$cache" ] && [ -n "$(find "$TEMA_DIR" -newer "$cache" -print -quit 2>/dev/null)" ]; then
+    if meow_seco; then
+      meow_muda "reindexaria a cache do tema (ela é mais velha que algum arquivo dele)"
+      rc="$MEOW_DIVERGENTE"
+    elif meow_tem gtk-update-icon-cache && gtk-update-icon-cache -q -f "$TEMA_DIR" 2>/dev/null; then
+      rc="$MEOW_DIVERGENTE"
+    else
+      meow_aviso "não consegui reindexar $cache — apague-a se algum ícone não aparecer"
+    fi
+  fi
+  [ "$rc" = "$MEOW_OK" ] && meow_ok "índice do '$TEMA_NOME' descreve o disco"
+  [ "$rc" = "$MEOW_DIVERGENTE" ] && ! meow_seco && meow_muda "índice do '$TEMA_NOME' refeito do disco"
+  return "$rc"
+}
+
 # O DESPACHO É ANTES DE TUDO, E SÓ RECONHECE OS DOIS VERBOS NOVOS
 #   Argumento nenhum continua sendo a construção do tema, que é como o
 #   `install.sh` e o `bin/meow` chamam este script desde sempre. Um argumento
@@ -610,9 +664,10 @@ case "${1:-}" in
   adicionar) _ci_adicionar "${2:-}"; exit $? ;;
   remover)   _ci_remover   "${2:-}"; exit $? ;;
   base)      _ci_base_cmd;           exit $? ;;
+  indice)    : ;;   # despachado depois do `indice()`, que ele usa (P74 item 5)
   *)
     meow_erro "argumento desconhecido: $1"
-    meow_info "  uso: construir_icones.sh [adicionar <pasta-ou-zip> | remover <nome> | base]"
+    meow_info "  uso: construir_icones.sh [adicionar <pasta-ou-zip> | remover <nome> | base | indice]"
     meow_info "  sem argumento, ele constrói o tema '$TEMA_NOME'"
     exit "$MEOW_ERRO" ;;
 esac
@@ -729,7 +784,7 @@ indice() {
 [Icon Theme]
 Name=$TEMA_NOME
 Comment=Catppuccin $FLAVOR para o COSMIC — gerado pelo MeowSystem-Theme
-Inherits=$HERDA$HERDA_ATRAS,breeze-dark,Cosmic,Adwaita,hicolor
+Inherits=$HERDA$HERDA_ATRAS,$CAUDA_HERANCA
 Directories=$dirs
 
 [scalable/apps]
@@ -823,6 +878,13 @@ FIM
     fi
   done < <(places_no_disco)
 }
+
+# O `indice` usa o `indice()` e as funções de disco logo acima, e por isso é
+# despachado aqui, e não no `case` do topo.
+if [ "${1:-}" = "indice" ]; then
+  _ci_indice_cmd
+  exit $?
+fi
 
 mudou=0
 
