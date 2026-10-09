@@ -26,7 +26,9 @@
 #                    com o shim ligado: sem ele o build não vale em sessão
 #                    nenhuma, e meia hora de cargo para nada não é conserto;
 #   cosmic-files     o menu de papel de parede (`files_menu.sh build`), se
-#                    FILES_MENU não for "nao".
+#                    FILES_MENU não for "nao";
+#   cosmic-settings  o oráculo do tema (`oraculo_tema.sh construir`): só
+#                    compila se a derivação do libcosmic novo mudou.
 #
 # E DUAS GUARDAS QUE VALEM ANTES DE QUALQUER PASSO (P76, tarefa 5)
 #   - o rustc: se o pré-voo acusou toolchain vermelho (o fonte novo pede um
@@ -49,6 +51,7 @@ PA_COMPOSITOR="${PA_COMPOSITOR:-$MEOW_RAIZ/scripts/compositor_patches.sh}"
 PA_FILES="${PA_FILES:-$MEOW_RAIZ/scripts/files_menu.sh}"
 PA_DOCTOR="${PA_DOCTOR:-$MEOW_RAIZ/bin/meow}"
 PA_RUSTUP="${PA_RUSTUP:-rustup}"
+PA_ORACULO="${PA_ORACULO:-$MEOW_RAIZ/scripts/oraculo_tema.sh}"
 # O veredito do pré-voo (`meow cosmic prever`), gravado antes do apt.
 PA_CANDIDATO="${PA_CANDIDATO:-$MEOW_ESTADO/cosmic-candidato.tsv}"
 
@@ -99,6 +102,12 @@ _pa_guardas() {
   return 0
 }
 
+passo_cosmic_settings() { # $1 versão
+  meow_seco && { meow_muda "conferiria a derivação do tema do cosmic-settings $1 (e compilaria o oráculo se ela mudou)"; return 0; }
+  "$PA_ORACULO" construir
+  case $? in 0|1|3) return 0 ;; *) return 1 ;; esac
+}
+
 cmd_rodar() {
   local p v antigo mudou=0 falhou=0
   local -A visto=() novo=()
@@ -121,6 +130,7 @@ cmd_rodar() {
     case "$p" in
       cosmic-comp)  passo_cosmic_comp "$v";  rc=$? ;;
       cosmic-files) passo_cosmic_files "$v"; rc=$? ;;
+      cosmic-settings) passo_cosmic_settings "$v"; rc=$? ;;
     esac
     if [ "$rc" = "0" ]; then
       gravar+=("$p"$'\t'"$v")

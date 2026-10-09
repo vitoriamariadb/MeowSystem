@@ -1007,6 +1007,23 @@ meow_cosmic_v() {
   printf 'v%s' "${n:-1}"
 }
 
+# A REVISÃO DO LIBCOSMIC QUE UM PACOTE DO COSMIC PINA — 09/10/2026, P76
+#   O sufixo do `Version` do pacote do Pop (`…~24.04~58aeb65`) é a revisão do
+#   upstream, e o `Cargo.lock` dela no GitHub diz o libcosmic que o pacote
+#   compilou. É por ela que o pré-voo, o oráculo do tema e os applets acompanham
+#   o COSMIC instalado (ou o candidato). Devolve o SHA completo; sem rede, ou
+#   sem `Cargo.lock`, sai 1 e não inventa. `MEOW_SEM_REDE=1` corta a pergunta.
+#   (Decisão aberta da pesquisa, §6.1: GitHub primeiro; o fonte do apt como
+#   reserva fica para quando o GitHub faltar de verdade.)
+meow_libcosmic_de() { # $1 repositório (cosmic-settings, cosmic-panel) $2 versão do pacote
+  local sha="${2##*~}" rev
+  [ "${MEOW_SEM_REDE:-0}" = "1" ] && return 1
+  rev="$(curl -sfL --max-time 20 "https://raw.githubusercontent.com/pop-os/$1/$sha/Cargo.lock" 2>/dev/null |
+    awk '/^name = "libcosmic"$/{f=1} f && /^source = /{sub(/.*#/,""); sub(/"$/,""); print; exit}')"
+  [ -n "$rev" ] || return 1
+  printf '%s' "$rev"
+}
+
 # O `cosmic-comp` QUE O PRÓXIMO LOGIN VAI RODAR — 09/10/2026, P76
 #   Com o shim do compositor ligado (`meow compositor ativar`), o binário
 #   patchado mora em `~/.local/libexec/meow/cosmic-comp/<versão>/`, e quem

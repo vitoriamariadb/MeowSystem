@@ -46,16 +46,20 @@ cat > "$T/rustup" <<FIM
 #!/bin/sh
 echo "rustup \$*" >> "$T/log"
 FIM
+cat > "$T/oraculo" <<FIM
+#!/bin/sh
+echo "oraculo \$*" >> "$T/log"
+FIM
 cat > "$T/doctor" <<FIM
 #!/bin/sh
 echo "doctor \$*" >> "$T/log"
 FIM
-chmod 755 "$T/compositor" "$T/files" "$T/doctor" "$T/rustup"
+chmod 755 "$T/compositor" "$T/files" "$T/doctor" "$T/rustup" "$T/oraculo"
 
 rodar() {
   HOME="$T/home" PATH="$T/bin:$PATH" MEOW_ESTADO="$T/estado" MEOW_CONF="$T/nao-existe.conf" \
   PA_CASA="$T/casa" PA_COMPOSITOR="$T/compositor" PA_FILES="$T/files" PA_DOCTOR="$T/doctor" \
-  PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" \
+  PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" PA_ORACULO="$T/oraculo" \
     "$RAIZ/scripts/cosmic_pos_apt.sh" "$@" >/dev/null 2>&1
 }
 linhas() { grep -c "$1" "$T/log" 2>/dev/null || true; }
@@ -116,6 +120,13 @@ igual "um rustup update" "$(linhas '^rustup update')" 1
 : > "$T/log"; rodar
 igual "nada mudou: nem rustup" "$(linhas '^rustup')" 0
 rm -f "$T/candidato.tsv"
+
+echo "== o cosmic-settings sobe: o oráculo é chamado uma vez"
+versoes cosmic-comp=0.1~d cosmic-files=1.10~d cosmic-panel=1.10~a cosmic-settings=1.10~a
+: > "$T/log"; rodar
+igual "um construir do oráculo" "$(linhas '^oraculo construir')" 1
+: > "$T/log"; rodar
+igual "e zero na passagem seguinte" "$(linhas '^oraculo')" 0
 
 echo "== o seco não escreve"
 versoes cosmic-comp=0.1~e cosmic-files=1.10~e cosmic-panel=1.10~a

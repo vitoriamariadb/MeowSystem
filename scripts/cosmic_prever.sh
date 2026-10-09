@@ -236,11 +236,13 @@ _cv_toolchain() { # $1 árvore $2 pacote
 # --- 5. tema ----------------------------------------------------------------
 # A revisão do libcosmic que um pacote do COSMIC pina, pelo `Cargo.lock` no
 # GitHub na revisão do pacote (o sufixo do `Version`).
+# (O `meow_libcosmic_de` mora no lib/comum.sh: o oráculo e os applets também
+# perguntam.) Aqui ele devolve o SHA curto, que é como o veredito o mostra.
 cv_libcosmic_de() { # $1 repositório (cosmic-settings) $2 versão -> sha curto
-  local sha="${2##*~}"
+  local rev
   [ "$CV_REDE" = "sim" ] || return 1
-  curl -sfL --max-time 20 "https://raw.githubusercontent.com/pop-os/$1/$sha/Cargo.lock" 2>/dev/null |
-    awk '/^name = "libcosmic"$/{f=1} f && /^source = /{sub(/.*#/,""); sub(/"$/,""); print substr($0,1,7); exit}'
+  rev="$(meow_libcosmic_de "$1" "$2")" || return 1
+  printf '%s' "${rev:0:7}"
 }
 
 _cv_tema() { # $1 versão do cosmic-settings candidato
