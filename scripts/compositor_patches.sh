@@ -1116,6 +1116,12 @@ _cp_baixar_fonte() {
       return "$MEOW_ERRO"
     fi
   fi
+  # A ÁRVORE PELA METADE SAI ANTES — conferência da P76. Chegar aqui quer dizer
+  # que `$dir` não tem `Cargo.toml` (o teste do topo), e o `dpkg-source -x`
+  # recusa extrair num alvo que existe ("alvo do desempacotamento existe",
+  # medido em 09/10/2026): uma extração interrompida travaria todo build
+  # seguinte desta versão. A árvore é cache e se refaz da guarda.
+  rm -rf "$dir"
   if ! dpkg-source -x "$dsc" "$dir" >>"$log" 2>&1 || [ ! -f "$dir/Cargo.toml" ]; then
     meow_erro "o fonte não se extraiu em $dir (registro: $log)"
     return "$MEOW_ERRO"

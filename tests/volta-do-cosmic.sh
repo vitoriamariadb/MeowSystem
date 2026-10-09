@@ -74,6 +74,26 @@ guardar; igual "de verdade: guardou (1)" "$?" 1
 [ -f "$C/cosmic-comp_0.1~b.tar.xz" ] && ok "a origem no cache ficou" || falha "a origem foi apagada"
 guardar; igual "segunda vez: nada a fazer (0)" "$?" 0
 
+echo "== a árvore pela metade no cache não trava o fonte guardado (conferência da P76)"
+# O `dpkg-source -x` recusa extrair num alvo que existe. Uma extração
+# interrompida deixava `cosmic-comp-<versão>/` sem `Cargo.toml`, e todo build
+# seguinte daquela versão parava em "o fonte não se extraiu".
+if command -v dpkg-source >/dev/null 2>&1; then
+  P="$T/pacote/cosmic-comp-1.0"; mkdir -p "$P/debian/source" "$P/src"
+  printf 'cosmic-comp (1.0) noble; urgency=low\n\n  * x\n\n -- t <t@t>  Fri, 09 Oct 2026 00:00:00 +0000\n' > "$P/debian/changelog"
+  printf 'Source: cosmic-comp\nMaintainer: t <t@t>\n\nPackage: cosmic-comp\nArchitecture: all\nDescription: x\n' > "$P/debian/control"
+  echo '3.0 (native)' > "$P/debian/source/format"; echo '[package]' > "$P/Cargo.toml"; echo 'fn main(){}' > "$P/src/main.rs"
+  mkdir -p "$F" && (cd "$F" && dpkg-source -b "$P" >/dev/null 2>&1)
+  mkdir -p "$C/cosmic-comp-1.0"; echo meia > "$C/cosmic-comp-1.0/lixo"
+  printf 'cosmic-comp\t1.0\tinstalled\n' > "$T/dpkg.tsv"
+  HOME="$T/lar" PATH="$T/bin:$PATH" MEOW_ESTADO="$T/lar/estado" MEOW_IGNORA_DESKTOP=1 \
+    "$RAIZ/scripts/compositor_patches.sh" validar >/dev/null 2>&1
+  [ -f "$C/cosmic-comp-1.0/Cargo.toml" ] && ok "a árvore foi refeita a partir da guarda" || falha "a árvore pela metade travou a extração"
+  [ -e "$C/cosmic-comp-1.0/lixo" ] && falha "o resto da árvore pela metade ficou" || ok "o resto da árvore pela metade saiu"
+else
+  ok "sem dpkg-source: a extração não é medida (pulado)"
+fi
+
 echo
 if [ "$falhas" = 0 ]; then echo "volta-do-cosmic: tudo certo"; exit 0; fi
 echo "volta-do-cosmic: $falhas falha(s)"; exit 1
