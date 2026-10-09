@@ -1217,7 +1217,7 @@ cmd_compilar() {
     if [ -f "$fonte/Cargo.toml" ]; then
       meow_info "o fonte já está no cache: $fonte"
     else
-      meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_CACHE"
+      meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_GUARDA e o abriria em $CP_CACHE"
     fi
     meow_muda "aplicaria a série ($(_cp_plural "$n_req" obrigatório obrigatórios), $(_cp_plural "$n_opt" opcional opcionais)) pela escada (-F0, depois -F1), dry-run de todos antes"
     meow_muda "compilaria com make VENDOR=1 (~4 min com o vendor quente, ~30 min do zero)"
@@ -1346,7 +1346,7 @@ cmd_validar() {
   fi
   fonte="$(_cp_fonte_dir "$ver")"
   if meow_seco && [ ! -f "$fonte/Cargo.toml" ]; then
-    meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_CACHE e rodaria o dry-run da série"
+    meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_GUARDA, o abriria em $CP_CACHE e rodaria o dry-run da série"
     return "$MEOW_DIVERGENTE"
   fi
   _cp_baixar_fonte "$ver" || return $?
