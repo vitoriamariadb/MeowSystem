@@ -9230,6 +9230,14 @@ class Manipulador(BaseHTTPRequestHandler):
                         "_texto": self._sem_acento(" ".join(
                             [os.path.splitext(nome)[0]]
                             + textos.get(os.path.normpath(caminho), [])))}
+                # O PNG FEITO À MÃO APARECE, MAS AINDA NÃO SE ESCOLHE — P73. Raster
+                # não é fonte (o `meow_icones_derivados` do lib/icones.sh recusa:
+                # de um PNG não sai vetor, flavor nem tamanho maior), e a decisão
+                # 2 de 09/10 é que ele entre no pack agora e vire vetor num lote
+                # conferido por RMSE. Até lá ele é visto, com o porquê na dica.
+                if g["tipo"] == "png":
+                    item["trava"] = ("PNG feito à mão: entra no tema quando virar vetor "
+                                     "(o lote da decisão de 09/10, conferido por RMSE)")
                 no_mapa = do_mapa.get(os.path.normpath(caminho)) if pack else None
                 if no_mapa:
                     item.update(pack=pack["id"], desenho=no_mapa["desenho"])

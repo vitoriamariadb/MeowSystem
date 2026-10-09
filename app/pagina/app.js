@@ -3070,13 +3070,18 @@ function montarEscolhaDeIcone(app, recarregar) {
    *   `scalable/apps` do pack vence. O intocável é pedido dela, e a curadoria
    *   mora no mesmo `scalable/apps` do pack: esses dois travam o pack também, e
    *   o servidor os manda na `trava_pack` — a página não decide, lê.] */
-  const packNaFicha = !app.trava_pack && GLIFOS.app === app.id && !!GLIFOS.pack;
-  const comBusca = !app.trava || packNaFicha;
-  if (comBusca) painel.append(busca);
+  /* A TRAVA É ESTADO, E NÃO SUMIÇO — 09/10/2026, P73 (T4). Até aqui a trava
+   * escondia a busca (as duas travas, como no CosmicEdit) ou o grupo do pack
+   * (a `trava_pack`, em onze apps): o acervo sumia justo onde ela queria ver o
+   * que existe. Agora a busca e as pastas ficam sempre; o desenho que não
+   * valeria neste app aparece apagado, sem «Usar», e o porquê — a frase da
+   * trava, com o dono do ícone — vai para a dica. */
+  const comBusca = true;
+  painel.append(busca);
 
   /* O glifo do mapa do traço não é escolha que a ficha travada ofereça: ele
    * nem está na tira, e o «Usar este ícone» o mandaria para a recusa. */
-  let escolhido = app.mapa && !app.trava ? app.mapa.glifo : null;
+  let escolhido = null;
   /* A COR DE ABERTURA VEM DOS DOIS MAPAS, E ISSO SÓ APARECEU NA FOTO — 09/09/2026
    *
    * Estava `app.mapa ? app.mapa.cor : ordem[0]`: quem tem desenho no acervo de
@@ -3114,8 +3119,17 @@ function montarEscolhaDeIcone(app, recarregar) {
   /* A ESCOLHA É PELA CHAVE GRUPO|NOME — P73. A mesma pasta não repete nome,
    * e o `google-chrome` do Dracula e o do Arcticons continuam distintos. */
   const chaveDe = (g) => `${g.grupo}|${g.glifo}`;
-  const doPackNaBusca = GLIFOS.itens.some((g) => g.pack);
-  const itens = GLIFOS.itens.filter((g) => (g.pack ? !app.trava_pack : !app.trava));
+  const itens = GLIFOS.itens;
+  /* QUAL TRAVA VALE PARA QUAL DESENHO: o traço é do `48x48/apps`, e obedece à
+   * `trava`; o desenho que entra como está vai para o `scalable/apps`, e
+   * obedece à `trava_pack` (P60, P64). O PNG feito à mão ainda não é fonte (a
+   * decisão 2 de 09/10: ele entra no pack agora e vira vetor num lote
+   * conferido por RMSE), e o servidor manda o motivo dele no próprio item. */
+  const travaDe = (g) => g.trava || (g.tipo === "traco" ? app.trava : app.trava_pack) || "";
+  /* O traço que o app já veste abre marcado, como antes da P73 (`app.mapa`). */
+  const vestido = app.mapa && !app.trava
+    ? itens.find((g) => g.tipo === "traco" && g.glifo === app.mapa.glifo) : null;
+  if (vestido) escolhido = chaveDe(vestido);
   const grupoDe = (id) => (GLIFOS.grupos || []).find((x) => x.id === id) || { id, acervo: "", nome: id };
   const nomeDoPack = (g) => grupoDe(g.grupo).acervo;
   const itemEscolhido = () => itens.find((g) => chaveDe(g) === escolhido) || null;
@@ -3140,11 +3154,13 @@ function montarEscolhaDeIcone(app, recarregar) {
       : "A escolha fica guardada no projeto: vale em toda máquina que instalar daqui.";
   };
   const botaoDe = (g) => elemento("button", {
-    type: "button", class: g.tipo === "traco" ? "" : "do-pack",
-    "data-glifo": g.glifo, "data-escolha": chaveDe(g),
-    title: `${g.glifo} — ${grupoDe(g.grupo).acervo} · ${grupoDe(g.grupo).nome}`,
+    type: "button",
+    class: (g.tipo === "traco" ? "" : "do-pack") + (travaDe(g) ? " travado" : ""),
+    "data-glifo": g.glifo, "data-escolha": travaDe(g) ? null : chaveDe(g),
+    "aria-disabled": travaDe(g) ? "true" : null,
+    title: travaDe(g) || `${g.glifo} — ${grupoDe(g.grupo).acervo} · ${grupoDe(g.grupo).nome}`,
     "aria-pressed": String(chaveDe(g) === escolhido),
-    onclick: () => { escolhido = chaveDe(g); pintarGlifos(); },
+    onclick: () => { if (travaDe(g)) return; escolhido = chaveDe(g); pintarGlifos(); },
   }, [
     elemento("img", { src: g.url, alt: "", loading: "lazy" }),
     elemento("span", { texto: g.glifo }),
@@ -3181,24 +3197,22 @@ function montarEscolhaDeIcone(app, recarregar) {
   for (const gr of GLIFOS.grupos || []) {
     const deles = itens.filter((g) => g.grupo === gr.id);
     if (!deles.length) continue;
+    const travaDaPasta = deles.every((g) => travaDe(g)) ? travaDe(deles[0]) : "";
     tiraGlifos.append(pasta(gr.id,
       [elemento("span", { class: "dono", texto: gr.acervo }),
-       elemento("span", { class: "nome-pasta", texto: gr.nome })],
+       elemento("span", { class: "nome-pasta", texto: gr.nome }),
+       /* O cadeado é desenho (CSS), e não palavra: a pasta inteira apagada
+        * diz «não vale aqui», e a dica diz por quê. */
+       travaDaPasta ? elemento("span", { class: "cadeado", role: "img", "aria-label": "travado",
+                                         title: travaDaPasta }) : null],
       GLIFOS.termo ? `${gr.achados}/${gr.total}` : String(gr.total),
       deles.map(botaoDe),
       !!GLIFOS.termo || (!sugeridos.length && primeiraNoAr && primeiraNoAr.id === gr.id)));
   }
-  if (comBusca) {
-    /* A trava do pack só fala quando a busca trouxe desenho do pack (ou o
-     * teria trazido, com a camada ligada): nos outros casos ela não explica
-     * nada que esteja na tela. */
-    if (app.trava_pack && (doPackNaBusca || GLIFOS.aviso)) {
-      painel.append(elemento("p", { class: "frase", texto: app.trava_pack }));
-    } else if (GLIFOS.aviso) {
-      painel.append(elemento("p", { class: "frase", texto: GLIFOS.aviso }));
-    }
-    painel.append(tiraGlifos);
-  }
+  /* [Até a P73 a trava do pack e o `aviso` da camada desligada eram frases
+   * aqui, acima da tira. A trava foi para a dica de cada desenho (acima), e o
+   * `aviso` para a do «Levar para o pack», que é o único gesto que ele barra.] */
+  painel.append(tiraGlifos);
 
   const cores = elemento("div", { class: "cores-grade" });
   /* `ordem` e não `ordem_canonica`: o nome errado deixava a fileira de cores
@@ -3239,8 +3253,12 @@ function montarEscolhaDeIcone(app, recarregar) {
    *   servidor (`trava`); a página só não oferece o que ele recusaria.
    *   [P64: com a trava do traço, a tira só tem o pack, e o botão fica para
    *   ele — ver o `comBusca`, lá em cima.] */
-  if (app.trava) painel.append(elemento("p", { class: "frase", texto: app.trava }));
-  if (comBusca) acoes.append(elemento("button", {
+  /* [A frase da `trava` saiu daqui na P73: ela é a dica dos desenhos que ela
+   * apaga, e o botão abaixo continua lá para os que valem.] */
+  /* Sem nenhum desenho que valha (as duas travas, como no CosmicEdit), o
+   * «Usar» não nasce: só o acervo, apagado, com a dica do dono. */
+  const algumVale = itens.some((g) => !travaDe(g));
+  if (comBusca && algumVale) acoes.append(elemento("button", {
     type: "button", class: "btn btn-accent", texto: "Usar este ícone",
     onclick: async () => {
       if (!escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }

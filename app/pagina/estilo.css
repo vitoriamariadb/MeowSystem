@@ -2236,6 +2236,32 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .pasta-acervo > summary .dono { font-weight: 700; color: var(--text); }
 .pasta-acervo > summary .conta { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--overlay2); }
 .pasta-acervo[open] > summary { border-bottom: 1px solid var(--surface0); }
+/* A TRAVA É ESTADO, E NÃO SUMIÇO — P73 (T4). O desenho que não valeria neste
+ * app fica na pasta, apagado e sem resposta ao clique; a dica diz o dono do
+ * ícone. A pasta inteira travada ganha um cadeado desenhado (sem palavra). */
+.tira-glifos button.travado { opacity: .38; cursor: not-allowed; }
+.tira-glifos button.travado:hover { border-color: var(--surface0); }
+.pasta-acervo .cadeado {
+  display: inline-block;
+  width: .7rem;
+  height: .8rem;
+  border: 2px solid var(--overlay2);
+  border-radius: 2px;
+  position: relative;
+  top: .1rem;
+}
+.pasta-acervo .cadeado::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: .45rem;
+  height: .4rem;
+  transform: translateX(-50%);
+  border: 2px solid var(--overlay2);
+  border-bottom: 0;
+  border-radius: .3rem .3rem 0 0;
+}
 .grade-glifos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
