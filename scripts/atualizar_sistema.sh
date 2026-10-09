@@ -112,6 +112,17 @@ cmd_aplicar() {
   meow_titulo "Atualizar a máquina"
 
   meow_passo "1/4 Pacotes do sistema"
+  # O PRÉ-VOO DO COSMIC VEM ANTES DO UPGRADE, E NÃO O BLOQUEIA — P76
+  #   O candidato (o `.deb` e o fonte) só existe no índice do Pop até sair o
+  #   próximo; depois do upgrade o fonte da versão instalada pode não estar
+  #   mais lá. A sonda lê o candidato agora, guarda o fonte e grava o veredito
+  #   que o pós-apt usa. Vermelho não segura o apt: diz onde gente vai entrar.
+  #   (A ponte faz `update` e `full-upgrade` num verbo só, então a fila lida
+  #   aqui é a do último `apt update` — a do sistema, que roda sozinho.)
+  if _as_tem apt && [ -x "$MEOW_RAIZ/scripts/cosmic_prever.sh" ]; then
+    "$MEOW_RAIZ/scripts/cosmic_prever.sh" prever \
+      || meow_info "  o veredito do COSMIC tem vermelho — o upgrade segue; o detalhe fica em: meow cosmic ler"
+  fi
   if _as_tem apt; then
     # PELA PONTE, SEM SENHA — 08/09/2026. É o que faz o botão "Atualizar a
     # máquina inteira" do painel funcionar: ele roda sem terminal, e um prompt

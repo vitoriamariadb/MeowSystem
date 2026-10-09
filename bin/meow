@@ -4609,6 +4609,16 @@ despachar() {
     pack|packs)       shift; cmd_pack "$@" ;;
     leitura)          shift; cmd_leitura "$@" ;;
     compositor)       shift; cmd_compositor "$@" ;;
+    # P76: o pré-voo do COSMIC candidato. Só lê o que o apt vai instalar e
+    # grava o veredito; o porquê de cada item mora no próprio script.
+    cosmic)           shift
+      case "${1:-prever}" in
+        prever|ler) "$RAIZ/scripts/cosmic_prever.sh" "$@"; exit $? ;;
+        -h|--help|ajuda)
+          printf '  meow cosmic prever [--sem-rede]  o veredito sobre o COSMIC da fila do apt, antes do upgrade\n'
+          printf '  meow cosmic ler                  o último veredito gravado\n' ;;
+        *) meow_erro "verbo desconhecido: $1"; meow_info "veja: meow cosmic --help"; exit "$MEOW_ERRO" ;;
+      esac ;;
     # `abrir` sobe o painel de configuração visual (a pasta `app/`). É `exec`, e
     # não uma chamada comum, porque o `run.sh` FICA DE PÉ: ele sobe o servidor,
     # abre o navegador e espera. Deixar este processo pendurado por baixo dele

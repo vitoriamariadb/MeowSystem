@@ -90,6 +90,7 @@ PORTATIL=(
   notas-de-funcao.sh     # COSMIC, packs, HOME e estado de brinquedo; as etapas do install.sh e os passos de ícone (P66); bash e python3
   frases-velhas.sh       # lê o que está versionado e pergunta ao git a idade da folha dos resgatados (P67); bash, git e python3
   compositor-shim.sh     # shim do compositor com dpkg-query e binários falsos, HOME de brinquedo (P76); só bash
+  cosmic-prever.sh       # .deb e fontes de brinquedo do cosmic-comp, sem apt nem rede (P76); bash e dpkg-deb
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
