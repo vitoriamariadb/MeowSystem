@@ -118,7 +118,7 @@ VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}"
 #   O SLIDER "Opacidade do fundo" DA GUI ESCREVE EXATAMENTE ESTA CHAVE. Não é
 #   um controle paralelo que a gente atropela por azar: Ajustes → Área de
 #   trabalho → Painel → "Opacidade do fundo" grava
-#   `com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/opacity`, o MESMO arquivo que este script
+#   `com.system76.CosmicPanel.Panel/v1/opacity`, o MESMO arquivo que este script
 #   escrevia toda passagem. Com o `meow-doctor.timer` rodando `fix_vidro` todo
 #   dia, o número dela voltava para 0.19/0.26 sem nada dizer por quê — e a
 #   captura que ela mandou mostrava o slider EXIBINDO 19 e 26, ou seja, a GUI
