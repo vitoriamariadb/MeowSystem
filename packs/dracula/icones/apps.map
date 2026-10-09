@@ -117,6 +117,20 @@ io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do g
 #   A raposa continua em `assets/icones/resgatados/`, como alternativa.
 net.waterfox.waterfox : apps/net.waterfox.waterfox.svg   # Waterfox — o Firefox do dracula-icons (circle)
 
+# OS TRÊS RESGATADOS APROVADOS — 09/10/2026, P73 (I8)
+#   Pedido dela, 16/09: «Syncthing eu ia pedir pra refazer…» e, sobre a leva
+#   de 15/09 (5aee691), «os novos tão aprovados. manda ver». O Discord, o
+#   Spotify e o Syncthing foram desenhados naquela leva e ficaram em
+#   `assets/icones/resgatados/` sem linha em mapa nenhum — as três linhas
+#   estavam lá embaixo, em "sem desenho ainda", como `: ?`. O nome do arquivo
+#   no resgate (`discord.svg`) não é o `Icon=` do app (`com.discordapp.Discord`),
+#   e por isso eles nunca podiam entrar pelo `apps-resgatados.map`, que instala
+#   pelo nome do arquivo. Foram COPIADOS para `apps/` com o nome do ícone, como
+#   o guvcview em 17/09 (um pack é autocontido), com a linha no PROCEDENCIA.md.
+com.discordapp.Discord : apps/com.discordapp.Discord.svg   # Discord — o resgatado aprovado em 16/09
+com.spotify.Client : apps/com.spotify.Client.svg   # Spotify — o resgatado aprovado em 16/09
+syncthing : apps/syncthing.svg   # Syncthing Web UI — o resgatado aprovado em 16/09
+
 # A BIBLIOTECA INTEIRA DO DRACULA_OS-THEME — 23/09/2026, P36
 #   A queixa: "vc tinha achado mais de 300 [SVGs] do tema dracula mas eles não
 #   estão no pack". Estavam 11 de 295. A decisão dele: os 295 e TODAS as
@@ -404,13 +418,10 @@ setup-mozc : biblioteca/tarot.svg   # Mozc Setup [override-novo]
 # com.boxy_svg.BoxySVG : ?   # Boxy SVG
 # Ubuntu-selfservice : ?   # Citrix Workspace (on Ubuntu)
 # com.github.rafostar.Clapper : ?   # Clapper
-# com.discordapp.Discord : ?   # Discord
 # be.alexandervanhee.gradia : ?   # Gradia
 # hefesto-dualsense4unix : ?   # Hefesto - Dualsense4Unix
 # com.meowsystem.Painel : ?   # MeowSystem
 # com.microsoft.Edge : ?   # Microsoft Edge
 # com.obsproject.Studio : ?   # OBS Studio
-# com.spotify.Client : ?   # Spotify
-# syncthing : ?   # Syncthing Web UI
 # uad-ng : ?   # Universal Android Debloater
 # whatsapp-linux-app : ?   # WhatsApp

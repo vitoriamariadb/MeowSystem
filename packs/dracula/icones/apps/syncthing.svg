@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Syncthing">
+  <title>Syncthing — quatro maquinas iguais ligadas em malha, sem servidor no centro</title>
+
+  <!-- malha peer-to-peer: cada no fala com o vizinho, o meio fica vazio -->
+  <path d="M28.01 9.03L38.97 28.01L19.99 38.97L9.03 19.99Z" fill="none" stroke="#7FE9DE" stroke-width="4.8" stroke-linejoin="round"/>
+
+  <!-- blocos de arquivo em transito, em sentidos opostos -->
+  <g fill="#FF79C6">
+    <rect x="30.19" y="15.22" width="6.6" height="6.6" rx="1.2" transform="rotate(60 33.49 18.52)"/>
+    <rect x="11.21" y="26.18" width="6.6" height="6.6" rx="1.2" transform="rotate(60 14.51 29.48)"/>
+  </g>
+
+  <!-- os nos: identicos entre si, nenhum e o dono -->
+  <g fill="#F8F8F2" stroke="#21222C" stroke-width="2.2">
+    <circle cx="28.01" cy="9.03" r="5.2"/>
+    <circle cx="38.97" cy="28.01" r="5.2"/>
+    <circle cx="19.99" cy="38.97" r="5.2"/>
+    <circle cx="9.03" cy="19.99" r="5.2"/>
+  </g>
+</svg>
