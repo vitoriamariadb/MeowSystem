@@ -210,7 +210,8 @@ if command -v git >/dev/null 2>&1; then
   g() { GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 git -C "$V" -c user.name=t -c user.email=t@t "$@"; }
   g init -q && g add .obsidian/appearance.json && g commit -qm inicial
   obs() {
-    ( export HOME="$C" XDG_CONFIG_HOME="$C/.config" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$C/estado" NO_COLOR=1
+    ( export HOME="$C" XDG_CONFIG_HOME="$C/.config" XDG_DATA_HOME="$C/.local/share" \
+             MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$C/estado" NO_COLOR=1
       export PATH="$C/bin:$FALSO:$PATH" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
       unset MEOW_OBSIDIAN_VAULT PACK FLAVOR MEOW_PACK_DIR MEOW_PALETA
       . "$RAIZ/lib/comum.sh" || exit 2

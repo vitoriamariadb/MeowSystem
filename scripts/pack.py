@@ -5916,7 +5916,10 @@ def montar_novo(ident, csv=None):
             raise Recusa(f"a paleta no ar ({arq_paleta}) não serve de ponto de partida: {e}")
         flavor, accent = _flavor_e_accent(pf, paleta)
 
-        som = {k: v for k, v in (pf.get("som") or {}).items() if not str(k).startswith("_")}
+        # Só o timbre: o `tema` (P74) é uma pasta DO pack de onde se parte, e o
+        # novo a alcança pela herança, sem copiá-la.
+        som = {k: v for k, v in (pf.get("som") or {}).items()
+               if not str(k).startswith("_") and k != "tema"}
         for chave, var in SOM_NO_CONF.items():
             bruto = (os.environ.get(var) or "").strip()
             if bruto:

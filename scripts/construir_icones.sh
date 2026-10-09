@@ -73,7 +73,7 @@ HERDA_ATRAS=""
 # `tema_de_icones` do `pack.py`, o mesmo que dá o nome ao tema exportado.
 COMENTARIO_TEMA="$(python3 "$RAIZ/scripts/pack.py" tema-icones "$(meow_pack_dir)" "$FLAVOR" 2>/dev/null \
                      | sed -n 's/^comentario=//p')"
-COMENTARIO_TEMA="${COMENTARIO_TEMA:-MeowSystem $FLAVOR para o COSMIC}"
+[ -n "$COMENTARIO_TEMA" ] || COMENTARIO_TEMA="MeowSystem $FLAVOR para o COSMIC"
 
 # ---------------------------------------------------------------------------
 # `adicionar <pasta-ou-zip>` e `remover <nome>` — um acervo de ícones de fora

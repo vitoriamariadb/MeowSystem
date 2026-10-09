@@ -110,7 +110,7 @@ dono = pack._pack_de(sys.argv[2])
 print(pack.campo(dono, "nome", dono) or "")
 PY
 )"
-DONO_ACERVO="${DONO_ACERVO:-Catppuccin}"
+[ -n "$DONO_ACERVO" ] || DONO_ACERVO="Catppuccin"
 # O MAPA SEGUIU O ACERVO PARA DENTRO DO PACK — 22/09/2026
 #   A P13 desceu os 3.280 glifos para `packs/catppuccin/icones/mimetypes/` e
 #   deixou o mapa em `assets/icones/mimetypes.map`. Meio caminho: O MAPA É A

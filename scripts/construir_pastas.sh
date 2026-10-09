@@ -113,7 +113,7 @@ TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 _base="$(ICONES_BASE="${ICONES_BASE:-}" NOME_TEMA_ICONES="$TEMA_NOME" \
            python3 "$RAIZ/scripts/pack.py" base-apelidos 2>/dev/null)"
 BASE="$(printf '%s\n' "$_base" | sed -n 's/^tema=//p')"
-BASE="${BASE:-Papirus-Dark}"
+[ -n "$BASE" ] || BASE="Papirus-Dark"
 BASE_DIR="$(printf '%s\n' "$_base" | sed -n 's/^dir=//p')"
 unset _base
 COR="${ICONES_PASTAS:-cat-mocha-mauve}"

@@ -155,7 +155,7 @@ ALVO="$TEMA_DIR/scalable/apps"
 _base="$(ICONES_BASE="${ICONES_BASE:-}" NOME_TEMA_ICONES="$TEMA_NOME" \
            python3 "$RAIZ/scripts/pack.py" base-apelidos 2>/dev/null)"
 BASE="$(printf '%s\n' "$_base" | sed -n 's/^tema=//p')"
-BASE="${BASE:-Papirus-Dark}"
+[ -n "$BASE" ] || BASE="Papirus-Dark"
 BASE_DIR="$(printf '%s\n' "$_base" | sed -n 's/^dir=//p')"
 unset _base
 # Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
