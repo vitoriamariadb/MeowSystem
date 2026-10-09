@@ -220,13 +220,31 @@ fi
 #   teste, e deixá-la seria o teste fazendo o defeito que veio pegar. Só volta
 #   o que estava limpo antes (`git checkout` do HEAD, que era o conteúdo de
 #   antes) e o arquivo não rastreado que nasceu durante o teste. Um arquivo que
-#   já estava sujo e mudou fica, nomeado, para conferir à mão.
+#   já estava sujo e mudou volta ao conteúdo guardado antes do painel subir
+#   [conferência da P75, 09/10/2026: até aqui ele ficava, nomeado — e nem era
+#   visto, ver o `estado_todo`].
 printf '\n--- 4/4 o painel em uso não suja o repositório inteiro ---\n'
 if ! command -v python3 >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
   printf '  --   sem python3 ou curl — o painel não foi exercitado\n'
 else
-  estado_todo() { git -C "$RAIZ" status --porcelain -unormal | LC_ALL=C sort; }
+  # A LINHA DO STATUS E O CONTEÚDO — conferência da P75, 09/10/2026. Só a
+  #   linha do `git status` não vê um arquivo que JÁ estava sujo e o painel
+  #   sujou de novo: ` M packs/dracula/icones/apps.map` antes e depois é a
+  #   mesma linha. É o estado do checkout onde o produto é usado (o dev de
+  #   09/10 tinha esse ` M`), e ali esta seção passava verde com o painel
+  #   gravando no mapa. O hash do conteúdo vai junto de cada linha.
+  estado_todo() {
+    git -C "$RAIZ" status --porcelain -unormal | LC_ALL=C sort | while IFS= read -r l; do
+      printf '%s\t%s\n' "$l" "$(git -C "$RAIZ" hash-object -- "${l:3}" 2>/dev/null || printf 'sem-hash')"
+    done
+  }
   estado_todo > "$TMP/antes-painel"
+  # O conteúdo de quem já estava sujo fica guardado, para a devolução abaixo
+  # repor o arquivo dela como estava — e não o do HEAD, que apagaria o trabalho.
+  while IFS=$'\t' read -r linha _; do
+    [ -f "$RAIZ/${linha:3}" ] || continue
+    mkdir -p "$TMP/guarda/$(dirname "${linha:3}")" && cp -p -- "$RAIZ/${linha:3}" "$TMP/guarda/${linha:3}"
+  done < "$TMP/antes-painel"
   P_CASA="$TMP/casa-painel"; P_FALSO="$TMP/falso-painel"; P_LOG="$TMP/painel.log"
   mkdir -p "$P_CASA/.config/meow" "$P_CASA/.local/share/applications" "$P_FALSO" || exit 2
   for c in sudo pkexec pkill killall systemctl notify-send; do
@@ -275,9 +293,18 @@ else
   else
     falha "o painel em uso MUDOU o git status do repositório:"
     grep '^[-+][^-+]' "$TMP/diff-painel" | sed 's/^/       /' >&2
-    # A devolução: só o que nasceu do teste (ver o bloco acima).
-    while IFS= read -r linha; do
+    # A devolução: só o que nasceu do teste (ver o bloco acima). O que já
+    # aparecia no status de antes volta ao conteúdo guardado lá em cima.
+    while IFS=$'\t' read -r linha _; do
       cam="${linha:3}"
+      if cut -f1 "$TMP/antes-painel" | cut -c4- | grep -qxF -- "$cam"; then
+        if [ -f "$TMP/guarda/$cam" ] && cp -p -- "$TMP/guarda/$cam" "$RAIZ/$cam"; then
+          printf '       devolvido: %s (como estava antes do teste, já sujo)\n' "$cam" >&2
+        else
+          printf '       NÃO devolvido: %s (já estava sujo antes do teste — confira à mão)\n' "$cam" >&2
+        fi
+        continue
+      fi
       case "${linha:0:2}" in
         '??') rm -rf -- "${RAIZ:?}/$cam" && printf '       devolvido: %s (nasceu no teste)\n' "$cam" >&2 ;;
         *)    git -C "$RAIZ" checkout -q -- "$cam" && printf '       devolvido: %s (estava limpo antes)\n' "$cam" >&2 ;;
