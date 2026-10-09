@@ -3166,7 +3166,16 @@ function montarEscolhaDeIcone(app, recarregar) {
   /* O traço que o app já veste abre marcado, como antes da P73 (`app.mapa`). */
   const vestido = app.mapa && !app.trava
     ? itens.find((g) => g.tipo === "traco" && g.glifo === app.mapa.glifo) : null;
-  if (GLIFOS.escolhido === undefined) GLIFOS.escolhido = vestido ? chaveDe(vestido) : null;
+  /* A ESCOLHA DELA ABRE MARCADA — 09/10/2026, P73 (QA de uso). Desde a I3 a
+   * escolha mora no `icones-escolhidos.map` dela, e o servidor a manda em
+   * `minha`; só o traço abria marcado, e quem reabria a ficha não via qual
+   * desenho tinha escolhido — só o «Desfazer». Ela vence o traço porque é ela
+   * que vence no tema (`pack.py fontes`). O arquivo é a identidade da escolha. */
+  const daMinha = GLIFOS.app === app.id && GLIFOS.minha
+    ? itens.find((g) => g.arquivo === GLIFOS.minha.arquivo && !travaDe(g)) : null;
+  if (GLIFOS.escolhido === undefined) {
+    GLIFOS.escolhido = daMinha ? chaveDe(daMinha) : vestido ? chaveDe(vestido) : null;
+  }
   const grupoDe = (id) => (GLIFOS.grupos || []).find((x) => x.id === id) || { id, acervo: "", nome: id };
   const nomeDoPack = (g) => grupoDe(g.grupo).acervo;
   const itemEscolhido = () => itens.find((g) => chaveDe(g) === GLIFOS.escolhido) || null;
@@ -3261,7 +3270,9 @@ function montarEscolhaDeIcone(app, recarregar) {
       /* Com busca, a conta é a do que casou; sem busca, o total da pasta. */
       String(GLIFOS.termo ? gr.achados : gr.total),
       deles.map(botaoDe),
-      !!GLIFOS.termo || (!sugeridos.length && primeiraNoAr && primeiraNoAr.id === gr.id)));
+      /* A pasta da escolha dela também abre: marcada e fechada não se vê. */
+      !!GLIFOS.termo || (!sugeridos.length && primeiraNoAr && primeiraNoAr.id === gr.id)
+        || (!!daMinha && daMinha.grupo === gr.id)));
   }
   /* [Até a P73 a trava do pack e o `aviso` da camada desligada eram frases
    * aqui, acima da tira. A trava foi para a dica de cada desenho (acima), e o
