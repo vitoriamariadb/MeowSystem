@@ -417,6 +417,15 @@ cmd_conferir() {
       return "$MEOW_DIVERGENTE"
     fi
     if [ ! -x "$casa_v/cosmic-comp" ] || [ ! -r "$casa_v/estado" ]; then
+      # O DEGRAU 4 ACENDE (conferência da P76): sem build porque o `req` não
+      # entra nesta versão não é "o pós-apt ainda vem" — é o único degrau que
+      # pede gente (§4.3 da pesquisa), e a matriz já o gravou. Verde aqui seria
+      # o "tudo confere" com algo fora.
+      if awk -F'\t' -v v="$v_shim" '$1==v && $3 ~ /:4( |$)/ {achou=1} END {exit !achou}' "$CP_MATRIZ" 2>/dev/null; then
+        meow_muda "o patch obrigatório não entra no cosmic-comp $v_shim (degrau 4) — a sessão sobe de fábrica até um rebase"
+        meow_info "o que recusou: meow compositor validar"
+        return "$MEOW_DIVERGENTE"
+      fi
       meow_aviso "o cosmic-comp $v_shim ainda não tem build nosso — a sessão sobe de fábrica, sem os patches"
       meow_info "o build vem sozinho depois do apt; na mão: meow compositor"
       return "$MEOW_OK"

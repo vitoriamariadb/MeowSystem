@@ -100,6 +100,19 @@ igual "qual, com shim e build: build" "$(CP qual)" "$T/casa/$VER_INST/cosmic-com
 CP desativar >/dev/null; igual "desativar escreve (1)" "$?" 1
 [ -e "$T/home/.local/bin/cosmic-comp" ] && falha "o shim ficou" || ok "o shim saiu"
 CP desativar >/dev/null; igual "desativar de novo não escreve (0)" "$?" 0
+echo "== a conferência com o shim e sem build (conferência da P76)"
+# Sem build porque o pós-apt ainda não passou: fábrica, sem vermelho. Sem build
+# porque a escada gravou o degrau 4 (o `req` não entra): vermelho, pede gente.
+CP ativar >/dev/null
+printf '0.1~sem-build' > "$T/versao"
+CP conferir >/dev/null; igual "sem build e sem degrau 4: 0" "$?" 0
+mkdir -p "$T/home/.local/state/meowsystem/cosmic-comp"
+printf '0.1~sem-build\t2026-10-09\tcosmic-comp-sem-workspace-vazio.patch:4 cosmic-comp-raio-clampado.patch:1\n' \
+  > "$T/home/.local/state/meowsystem/cosmic-comp/matriz.tsv"
+CP conferir >/dev/null; igual "sem build e com o degrau 4 na matriz: 1" "$?" 1
+printf '%s' "$VER_INST" > "$T/versao"
+CP desativar >/dev/null
+
 printf '#!/bin/sh\necho alheio\n' > "$T/home/.local/bin/cosmic-comp"
 CP ativar >/dev/null; igual "ativar recusa um cosmic-comp alheio (2)" "$?" 2
 grep -q alheio "$T/home/.local/bin/cosmic-comp" && ok "o alheio ficou intocado" || falha "o alheio foi sobrescrito"
