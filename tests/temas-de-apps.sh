@@ -578,6 +578,16 @@ ligado() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(" ".
   && ok "discord: o tema do pack sai ligado no Vencord (enabledThemes)" \
   || falha "discord: o tema não foi ligado no settings.json do Vencord" "$(ligado)"
 python3 -c 'import json,sys;json.dump({"enabledThemes":["dela.css"],"outra":"fica"},open(sys.argv[1],"w"))' "$VS"
+# COM O VESKTOP DO FLATPAK ABERTO, NADA SE ESCREVE (conferência da P74): o
+#   processo dele é `vesktop.bin`, e um `pgrep` que só conhece esse nome tem de
+#   segurar a escrita — senão ele desfaz a lista na próxima gravação dele.
+printf '#!/bin/sh\n[ "$1" = "-x" ] && [ "$2" = "vesktop.bin" ] && exit 0\nexit 1\n' > "$BIN/pgrep"; chmod +x "$BIN/pgrep"
+antes_vs="$(cat "$VS")"
+saida="$(mod discord aplicar)"; rc_v=$?
+falso pgrep 1
+[ "$rc_v" = 3 ] && [ "$(cat "$VS")" = "$antes_vs" ] \
+  && ok "discord: com o Vesktop do flatpak aberto (vesktop.bin), a lista do cliente não é escrita" \
+  || falha "discord: o Vesktop aberto não segurou a escrita do settings.json (rc=$rc_v)" "$saida"
 saida="$(mod discord conferir)"; rc_c=$?
 saida="$saida$(mod discord aplicar)"; rc_a=$?
 [ "$rc_c" = 1 ] && [ "$rc_a" = 1 ] && [ "$(ligado)" = "dela.css MeowSystem.theme.css fica" ] \

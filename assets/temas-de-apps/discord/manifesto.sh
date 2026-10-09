@@ -79,7 +79,14 @@ _dc_ajustes() {
   esac
 }
 
-_dc_aberto() { pgrep -x vesktop >/dev/null 2>&1 || pgrep -x Discord >/dev/null 2>&1 || pgrep -x discord >/dev/null 2>&1; }
+# O Vesktop do flatpak roda como `vesktop.bin` (o `startvesktop` do pacote faz
+# `zypak-wrapper /app/bin/vesktop/vesktop.bin`), e o `pgrep -x vesktop` não o
+# via: com ele aberto, a lista era escrita e se perdia na próxima gravação
+# dele. [Conferência da P74, 09/10/2026, medido no pacote instalado aqui.]
+_dc_aberto() {
+  pgrep -x vesktop >/dev/null 2>&1 || pgrep -x vesktop.bin >/dev/null 2>&1 \
+    || pgrep -x Discord >/dev/null 2>&1 || pgrep -x discord >/dev/null 2>&1
+}
 
 # conferir | ligar | desligar — o nosso tema na lista `enabledThemes`.
 # 0 = já está · 1 = divergente / escreveu · 2 = erro.
