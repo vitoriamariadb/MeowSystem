@@ -112,6 +112,14 @@ fi
 #   deste bloco é byte a byte a do awk antigo nesta máquina (medido em
 #   09/10/2026: `eDP-1 1 1920 1080 60.002` e `HDMI-A-1 1 1920 1080 60.000`).
 #
+# A ORDEM VEM DO `sort`, NÃO DO `cosmic-randr` — conferência da P76. Medido em
+#   09/10/2026, seis chamadas seguidas: o `cosmic-randr` entrega as saídas
+#   numa ordem que muda de uma chamada para outra (`HDMI-A-1 eDP-1`, depois
+#   `eDP-1 HDMI-A-1`), no `--kdl` e na tela de humano. O "byte a byte igual"
+#   acima vale com a ordem fixada aqui; sem o `sort`, a linha do doctor
+#   mudaria de ordem entre duas conferências sem nada ter mudado. O `-f`
+#   ignora a caixa (`eDP-1` antes de `HDMI-A-1`).
+#
 # `LC_ALL=C` NÃO É PARANOIA: sem ele o awk desta máquina (pt_BR) imprime
 # `escala=1,25`, com vírgula. O `cosmic-randr --scale` recusa vírgula, e a
 # comparação numérica passa a mentir. Foi o primeiro defeito deste arquivo.
@@ -129,7 +137,8 @@ saidas() {
           printf "%s\t%s\t%s\t%s\t%.3f\n", nome, escala, $2, $3, $4 / 1000
           ligada = 0   # uma linha por saída: só o modo corrente interessa
         }
-      '
+      ' \
+    | LC_ALL=C sort -f -t "$(printf '\t')" -k1,1
 }
 
 # `1.25` e `1.250` são o mesmo número e strings diferentes. Comparar como texto

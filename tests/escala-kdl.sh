@@ -6,6 +6,9 @@
 # 144 Hz, e uma desligada. O `saidas()` do script tem de devolver as duas
 # ligadas, uma linha cada, com a escala em fração, o modo corrente e o hz com
 # três casas — e nada da desligada. Sem COSMIC, sem sessão, sem escrever.
+# O KDL falso põe o HDMI-A-1 ANTES do eDP-1 (conferência da P76): o
+# `cosmic-randr` não promete ordem, e a saída do `saidas()` tem de ser a mesma
+# em qualquer uma — eDP-1 primeiro.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -14,6 +17,13 @@ cat > "$T/bin/cosmic-randr" <<'FIM'
 #!/bin/sh
 [ "$1 $2" = "list --kdl" ] || exit 2
 cat <<'KDL'
+output "HDMI-A-1" enabled=#true {
+  scale 1.00
+  modes {
+    mode 1920 1080 144000 current=#true preferred=#true
+    mode 1920 1080 60000
+  }
+}
 output "eDP-1" enabled=#true {
   description make="BOE" model="0x0B02"
   physical 340 190
@@ -23,13 +33,6 @@ output "eDP-1" enabled=#true {
   modes {
     mode 2560 1600 165000 preferred=#true
     mode 2560 1600 59951 current=#true
-  }
-}
-output "HDMI-A-1" enabled=#true {
-  scale 1.00
-  modes {
-    mode 1920 1080 144000 current=#true preferred=#true
-    mode 1920 1080 60000
   }
 }
 output "DP-2" enabled=#false {
