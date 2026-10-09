@@ -31,6 +31,7 @@ versoes() { # pares pacote=versão
 cat > "$T/compositor" <<FIM
 #!/bin/sh
 echo "compositor \$*" >> "$T/log"
+[ "\$1" = compilar ] || exit 0
 v=\$(awk -F'\t' '\$1=="cosmic-comp"{print \$2}' "$T/dpkg.tsv")
 mkdir -p "$T/casa/\$v" && echo "req X y presente" > "$T/casa/\$v/estado"
 exit 1
@@ -41,15 +42,20 @@ echo "files \$*" >> "$T/log"
 [ -f "$T/files-falha" ] && exit 2
 exit 1
 FIM
+cat > "$T/rustup" <<FIM
+#!/bin/sh
+echo "rustup \$*" >> "$T/log"
+FIM
 cat > "$T/doctor" <<FIM
 #!/bin/sh
 echo "doctor \$*" >> "$T/log"
 FIM
-chmod 755 "$T/compositor" "$T/files" "$T/doctor"
+chmod 755 "$T/compositor" "$T/files" "$T/doctor" "$T/rustup"
 
 rodar() {
   HOME="$T/home" PATH="$T/bin:$PATH" MEOW_ESTADO="$T/estado" MEOW_CONF="$T/nao-existe.conf" \
   PA_CASA="$T/casa" PA_COMPOSITOR="$T/compositor" PA_FILES="$T/files" PA_DOCTOR="$T/doctor" \
+  PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" \
     "$RAIZ/scripts/cosmic_pos_apt.sh" "$@" >/dev/null 2>&1
 }
 linhas() { grep -c "$1" "$T/log" 2>/dev/null || true; }
@@ -73,7 +79,7 @@ echo "== só o cosmic-files sobe"
 versoes cosmic-comp=0.1~a cosmic-files=1.10~b cosmic-panel=1.10~a
 : > "$T/log"
 rodar
-igual "nenhum build do compositor" "$(linhas '^compositor')" 0
+igual "nenhum build do compositor" "$(linhas '^compositor compilar')" 0
 igual "um build do menu" "$(linhas '^files build')" 1
 : > "$T/log"; rodar
 igual "e zero na passagem seguinte" "$(grep -c . "$T/log")" 0
@@ -100,11 +106,23 @@ versoes cosmic-comp=0.1~d cosmic-files=1.10~c cosmic-panel=1.10~a
 igual "sem shim, nenhum build" "$(linhas '^compositor compilar')" 0
 grep -q $'cosmic-comp\t0.1~d' "$T/estado/cosmic-versoes" && ok "e a versão é gravada (nada a fazer não é falha)" || falha "a versão não foi gravada"
 
+echo "== o pré-voo acusou o rustc baixo: rustup update antes do build"
+printf 'toolchain\tvermelho\tcosmic-comp pede rust 9.0\n' > "$T/candidato.tsv"
+versoes cosmic-comp=0.1~d cosmic-files=1.10~d cosmic-panel=1.10~a
+: > "$T/log"; rodar
+igual "um rustup update" "$(linhas '^rustup update')" 1
+[ "$(grep -n 'rustup update' "$T/log" | cut -d: -f1)" -lt "$(grep -n '^files build' "$T/log" | cut -d: -f1)" ] \
+  && ok "e ele vem antes do build" || falha "o rustup não veio antes do build"
+: > "$T/log"; rodar
+igual "nada mudou: nem rustup" "$(linhas '^rustup')" 0
+rm -f "$T/candidato.tsv"
+
 echo "== o seco não escreve"
 versoes cosmic-comp=0.1~e cosmic-files=1.10~e cosmic-panel=1.10~a
 h2="$(sha256sum < "$T/estado/cosmic-versoes")"
 : > "$T/log"; rodar --seco
-igual "seco: nenhum passo rodou" "$(grep -c . "$T/log")" 0
+# O `guardar` roda no seco com MEOW_DRY_RUN=1, que só diz o que faria.
+igual "seco: nenhum passo rodou" "$(grep -v '^compositor guardar' "$T/log" | grep -c .)" 0
 igual "seco: o arquivo de versões não mudou" "$(sha256sum < "$T/estado/cosmic-versoes")" "$h2"
 
 echo

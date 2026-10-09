@@ -197,13 +197,60 @@ cmd_aplicar() {
 }
 
 # --- a limpeza --------------------------------------------------------------
+# A VOLTA PARA TRÁS DO COSMIC — 09/10/2026, P76
+#   O repositório do Pop serve UMA versão por pacote. Medido em 09/10/2026: o
+#   `cosmic-comp_…0fbd457_amd64.deb` em `/var/cache/apt/archives` era o único
+#   pacote de fábrica do compositor instalado que existia no mundo, e o `apt
+#   clean` daqui o apagaria. Antes do clean, o `.deb` da versão INSTALADA de
+#   cada `cosmic-*` é copiado para a guarda do usuário — sem sudo: o cache do
+#   apt é legível por todos. Da guarda sai só o que não é nem a versão
+#   instalada nem a mais nova das outras: um passo para trás basta para voltar.
+AS_ARQUIVOS="${AS_ARQUIVOS:-/var/cache/apt/archives}"
+AS_GUARDA_DEBS="${AS_GUARDA_DEBS:-${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/debs}"
+
+_as_guardar_debs() {
+  local p v arq n=0
+  while IFS=$'\t' read -r p v; do
+    # No nome do `.deb` o `:` do epoch vira `%3a`.
+    arq="$(ls "$AS_ARQUIVOS/${p}_${v//:/%3a}_"*.deb 2>/dev/null | head -1)"
+    [ -n "$arq" ] || continue
+    if [ -f "$AS_GUARDA_DEBS/${arq##*/}" ]; then
+      meow_ok "já guardado: ${arq##*/}"
+      continue
+    fi
+    if meow_seco; then
+      meow_muda "guardaria ${arq##*/} em $AS_GUARDA_DEBS antes do clean"; n=$((n+1)); continue
+    fi
+    mkdir -p "$AS_GUARDA_DEBS" && cp -f "$arq" "$AS_GUARDA_DEBS/" \
+      && { meow_muda "guardado ${arq##*/} — a volta para trás do $p"; n=$((n+1)); } \
+      || meow_aviso "não consegui guardar ${arq##*/}"
+  done < <(dpkg-query -W -f='${Package}\t${Version}\t${db:Status-Status}\n' 'cosmic-*' 2>/dev/null |
+           awk -F'\t' '$3=="installed" {print $1"\t"$2}')
+  meow_seco || _as_podar_debs
+  [ "$n" = "0" ] || return "$MEOW_DIVERGENTE"
+  return "$MEOW_OK"
+}
+
+# Por pacote: fica o da versão instalada e o mais novo dos outros.
+_as_podar_debs() {
+  local p inst d
+  [ -d "$AS_GUARDA_DEBS" ] || return 0
+  for p in $(ls "$AS_GUARDA_DEBS" 2>/dev/null | sed -n 's/^\(cosmic-[^_]*\)_.*\.deb$/\1/p' | sort -u); do
+    inst="$(dpkg-query -W -f='${Version}' "$p" 2>/dev/null)"
+    ls "$AS_GUARDA_DEBS/${p}_"*.deb 2>/dev/null | grep -v -F "_${inst//:/%3a}_" | sort -V | head -n -1 |
+      while IFS= read -r d; do rm -f "$d" && meow_info "podado da guarda: ${d##*/}"; done
+  done
+}
+
 cmd_limpar() {
   if meow_seco; then
+    _as_guardar_debs
     meow_muda "rodaria: apt autoclean, apt autoremove e apt clean"
     return "$MEOW_DIVERGENTE"
   fi
   _as_tem apt || { meow_pula "sem apt nesta máquina"; return "$MEOW_OK"; }
   meow_titulo "Limpar o que sobrou"
+  _as_guardar_debs
   local antes depois
   antes="$(du -sm /var/cache/apt/archives 2>/dev/null | cut -f1)"
   if ! meow_ponte limpar; then

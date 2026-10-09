@@ -183,6 +183,7 @@
 #   compositor_patches.sh ativar              liga o shim em ~/.local/bin (P76; vale no próximo login)
 #   compositor_patches.sh desativar           desliga o shim: o próximo login volta a /usr/bin
 #   compositor_patches.sh qual                o binário que o próximo login vai rodar
+#   compositor_patches.sh guardar             leva o fonte baixado do cache para ~/.local/share
 #   (o rosto de todos é o `meow compositor`; MEOW_DRY_RUN=1 é o `--seco` dele)
 #
 #   O 0 cobre DOIS estados desde 21/09/2026: os patches de pé, e os patches
@@ -213,6 +214,13 @@ CP_VERSOES="${CP_VERSOES:-$MEOW_RAIZ/patches/versao}"
 # árvore compilada pesa ~3,2 GB (medido do outro lado, em 28/08/2026), e por
 # isso o `compilar` poda as de outra versão depois de um build que deu certo.
 CP_CACHE="${CP_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem/cosmic-comp}"
+# O FONTE BAIXADO SAIU DO CACHE — 09/10/2026, P76. "Apagar esta pasta custa um
+# download", dizia o bloco acima, e deixou de ser verdade: o índice do Pop
+# serve uma versão por pacote, e em 09/10 o `.tar.xz` do 0fbd457 instalado só
+# existia no `~/.cache`. Cache é o que se recria; isto não se recria mais. O
+# `.dsc` e o `.tar.xz` moram aqui (é a mesma guarda do `meow cosmic prever`),
+# e só a ÁRVORE extraída e compilada continua no cache.
+CP_GUARDA="${CP_GUARDA:-${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/fontes/cosmic-comp}"
 # A SÉRIE INVERTEU DE LADO EM 22/09/2026 (P29), E A ORDEM É A DECISÃO
 #   Até aqui `CP_SERIE` era a da Aurora e a nossa não existia: este arquivo lia
 #   `/usr/local/share/aurora/patches.d/series`, e caía em
@@ -1041,8 +1049,22 @@ cmd_aplicar() {
 _cp_fonte_dir() { printf '%s/cosmic-comp-%s' "$CP_CACHE" "$1"; }
 
 # 0 = a árvore desta versão está no cache (agora ou de antes) · 2/3 = não deu
+# O que o cache antigo guardava (`.dsc` e `.tar.*`) vai para a guarda, sem
+# apagar a origem. Idempotente: o que já está lá não se copia de novo.
+_cp_guardar_do_cache() {
+  local f n=0
+  for f in "$CP_CACHE"/cosmic-comp_*.dsc "$CP_CACHE"/cosmic-comp_*.tar.*; do
+    [ -f "$f" ] || continue
+    [ -f "$CP_GUARDA/${f##*/}" ] && continue
+    if meow_seco; then meow_muda "guardaria ${f##*/} em $CP_GUARDA"; n=1; continue; fi
+    mkdir -p "$CP_GUARDA" && cp -f "$f" "$CP_GUARDA/" && n=1
+  done
+  [ "$n" = "1" ] && return "$MEOW_DIVERGENTE"
+  return "$MEOW_OK"
+}
+
 _cp_baixar_fonte() {
-  local ver="$1" dir log
+  local ver="$1" dir log dsc
   dir="$(_cp_fonte_dir "$ver")"
   if [ -f "$dir/Cargo.toml" ] && [ -d "$dir/src" ]; then
     meow_info "o fonte de $ver já está no cache: $dir"
@@ -1052,25 +1074,32 @@ _cp_baixar_fonte() {
   # Sem o `dpkg-source` o `apt-get source` BAIXA e não extrai, e sai 0 — o
   # erro só apareceria duas linhas abaixo, como "a árvore não apareceu".
   meow_tem dpkg-source || { meow_erro "falta o dpkg-source (do dpkg-dev): sem ele o fonte baixa e não se extrai"; return "$MEOW_SEM_DEPENDENCIA"; }
-  mkdir -p "$CP_CACHE" || { meow_erro "não consegui criar $CP_CACHE"; return "$MEOW_ERRO"; }
+  mkdir -p "$CP_CACHE" "$CP_GUARDA" || { meow_erro "não consegui criar $CP_CACHE e $CP_GUARDA"; return "$MEOW_ERRO"; }
+  _cp_guardar_do_cache
   log="$CP_CACHE/baixar-$ver.log"
-  meow_info "BAIXA DA INTERNET: o fonte do cosmic-comp $ver (~98 MB), para $CP_CACHE"
-  if ! ( cd "$CP_CACHE" && apt-get source "cosmic-comp=$ver" ) >"$log" 2>&1; then
-    meow_erro "o apt-get source falhou para o cosmic-comp $ver"
-    # O 404 TEM FRASE PRÓPRIA porque foi medido, e não é raro: em 24/09/2026 o
-    # repositório do Pop já não servia o `.tar.xz` da versão instalada nesta
-    # máquina (a cd881a4, de 21/09). O fonte some do pool quando sai versão
-    # nova, e a única saída é andar junto com ele.
-    if grep -q ' 404 ' "$log" 2>/dev/null; then
-      meow_info "  o repositório já não serve o fonte desta versão (404)"
-      meow_info "  o caminho é atualizar o cosmic-comp — o apt traz binário e fonte da mesma versão — e validar a série nela"
-    else
-      meow_info "  o deb-src está habilitado nas fontes do apt? o registro está em $log"
+  # No nome do `.dsc` não vai o epoch.
+  dsc="$CP_GUARDA/cosmic-comp_${ver#*:}.dsc"
+  if [ -f "$dsc" ]; then
+    meow_info "o fonte do cosmic-comp $ver está guardado: $CP_GUARDA"
+  else
+    meow_info "BAIXA DA INTERNET: o fonte do cosmic-comp $ver (~98 MB), para $CP_GUARDA"
+    if ! ( cd "$CP_GUARDA" && apt-get source --download-only "cosmic-comp=$ver" ) >"$log" 2>&1; then
+      meow_erro "o apt-get source falhou para o cosmic-comp $ver"
+      # O 404 TEM FRASE PRÓPRIA porque foi medido, e não é raro: em 24/09/2026 o
+      # repositório do Pop já não servia o `.tar.xz` da versão instalada nesta
+      # máquina (a cd881a4, de 21/09). O fonte some do pool quando sai versão
+      # nova, e a única saída é andar junto com ele.
+      if grep -q ' 404 ' "$log" 2>/dev/null; then
+        meow_info "  o repositório já não serve o fonte desta versão (404)"
+        meow_info "  o caminho é atualizar o cosmic-comp — o apt traz binário e fonte da mesma versão — e validar a série nela"
+      else
+        meow_info "  o deb-src está habilitado nas fontes do apt? o registro está em $log"
+      fi
+      return "$MEOW_ERRO"
     fi
-    return "$MEOW_ERRO"
   fi
-  if [ ! -f "$dir/Cargo.toml" ]; then
-    meow_erro "o fonte baixou e a árvore não apareceu em $dir (registro: $log)"
+  if ! dpkg-source -x "$dsc" "$dir" >>"$log" 2>&1 || [ ! -f "$dir/Cargo.toml" ]; then
+    meow_erro "o fonte não se extraiu em $dir (registro: $log)"
     return "$MEOW_ERRO"
   fi
   meow_ok "fonte do cosmic-comp $ver em $dir"
@@ -1407,5 +1436,6 @@ case "${1:-conferir}" in
   ativar)    cmd_ativar ;;
   desativar) cmd_desativar ;;
   qual)      _cp_proximo_login ;;
-  *) meow_erro "uso: compositor_patches.sh {conferir|aplicar [dir-do-fonte]|compilar|validar|reverter|ativar|desativar|qual}"; exit "$MEOW_ERRO" ;;
+  guardar)   _cp_guardar_do_cache ;;
+  *) meow_erro "uso: compositor_patches.sh {conferir|aplicar [dir-do-fonte]|compilar|validar|reverter|ativar|desativar|qual|guardar}"; exit "$MEOW_ERRO" ;;
 esac

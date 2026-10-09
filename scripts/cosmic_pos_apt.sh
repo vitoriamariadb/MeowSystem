@@ -27,6 +27,14 @@
 #                    nenhuma, e meia hora de cargo para nada não é conserto;
 #   cosmic-files     o menu de papel de parede (`files_menu.sh build`), se
 #                    FILES_MENU não for "nao".
+#
+# E DUAS GUARDAS QUE VALEM ANTES DE QUALQUER PASSO (P76, tarefa 5)
+#   - o rustc: se o pré-voo acusou toolchain vermelho (o fonte novo pede um
+#     rust mais novo que o instalado), `rustup update` antes do build. O
+#     `~/.cargo` é dela, sem sudo; sem isso o build só falharia e contaria a
+#     tentativa;
+#   - o fonte: o que o cache antigo do compositor guardava vai para
+#     `~/.local/share/meowsystem/fontes/` (`compositor_patches.sh guardar`).
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -40,6 +48,9 @@ PA_CASA="${PA_CASA:-$HOME/.local/libexec/meow/cosmic-comp}"
 PA_COMPOSITOR="${PA_COMPOSITOR:-$MEOW_RAIZ/scripts/compositor_patches.sh}"
 PA_FILES="${PA_FILES:-$MEOW_RAIZ/scripts/files_menu.sh}"
 PA_DOCTOR="${PA_DOCTOR:-$MEOW_RAIZ/bin/meow}"
+PA_RUSTUP="${PA_RUSTUP:-rustup}"
+# O veredito do pré-voo (`meow cosmic prever`), gravado antes do apt.
+PA_CANDIDATO="${PA_CANDIDATO:-$MEOW_ESTADO/cosmic-candidato.tsv}"
 
 # pacote<TAB>versão dos `cosmic-*` instalados, ordenado.
 _pa_instalados() {
@@ -70,6 +81,24 @@ passo_cosmic_files() { # $1 versão
   case $? in 0|1) return 0 ;; *) return 1 ;; esac
 }
 
+# As duas guardas, só quando algum pacote mudou de versão (senão a passagem
+# tem de sair sem escrever nada).
+_pa_guardas() {
+  local p algum=0
+  for p in "$@"; do [ "${visto[$p]:-}" != "${novo[$p]}" ] && algum=1; done
+  [ "$algum" = "1" ] || return 0
+  if awk -F'\t' '$1=="toolchain" && $2=="vermelho" {achou=1} END {exit !achou}' "$PA_CANDIDATO" 2>/dev/null; then
+    if meow_seco; then
+      meow_muda "atualizaria o rust (rustup update): o pré-voo acusou o rustc abaixo do que o fonte novo pede"
+    elif command -v "$PA_RUSTUP" >/dev/null 2>&1; then
+      meow_info "o pré-voo acusou o rustc abaixo do que o fonte novo pede — rustup update"
+      "$PA_RUSTUP" update >/dev/null 2>&1 || meow_aviso "o rustup update falhou — o build vai tentar com o rust de agora"
+    fi
+  fi
+  [ -x "$PA_COMPOSITOR" ] && MEOW_DRY_RUN="${MEOW_SECO:-0}" "$PA_COMPOSITOR" guardar >/dev/null 2>&1
+  return 0
+}
+
 cmd_rodar() {
   local p v antigo mudou=0 falhou=0
   local -A visto=() novo=()
@@ -79,6 +108,8 @@ cmd_rodar() {
     while IFS=$'\t' read -r p v; do [ -n "$p" ] && visto["$p"]="$v"; done < "$PA_VERSOES"
   fi
   while IFS=$'\t' read -r p v; do novo["$p"]="$v"; done < <(_pa_instalados)
+
+  _pa_guardas "${novo[@]+"${!novo[@]}"}"
 
   local -a gravar=()
   for p in "${!novo[@]}"; do

@@ -92,6 +92,7 @@ PORTATIL=(
   compositor-shim.sh     # shim do compositor com dpkg-query e binários falsos, HOME de brinquedo (P76); só bash
   cosmic-prever.sh       # .deb e fontes de brinquedo do cosmic-comp, sem apt nem rede (P76); bash e dpkg-deb
   pos-apt.sh             # pós-apt do COSMIC com dpkg-query e passos falsos, HOME de brinquedo (P76); só bash
+  volta-do-cosmic.sh     # guarda do .deb e do fonte com dpkg-query, apt e sudo falsos, HOME de brinquedo (P76); só bash
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
