@@ -744,6 +744,39 @@ PYFIM
   printf '%s' "$padrao"
 }
 
+# O FLAVOR DO LADO QUE A TELA VESTE — 09/10/2026, P74 item 10 (I10)
+#   O `meow_flavor` diz QUAL escuro (ou claro) a pessoa escolheu; o MODO diz
+#   qual LADO a tela veste. Com `MODO="claro"` o COSMIC veste o claro do pack
+#   (o Alucard, com o Dracula), e o traço do dock e as pastas continuavam
+#   pintados com a paleta do escuro — traço quase branco sobre fundo claro
+#   (P69 de 26/09, nunca feito). Esta função devolve o flavor do lado vestido:
+#   o par do outro lado quando o MODO pede o lado que o FLAVOR não é, pela
+#   regra que monta a captura (o `par_do_outro_lado` do
+#   scripts/derivar_flavor.py, a mesma do `_flavor_no_modo` do painel). Com
+#   `MODO="auto"` o relógio alterna e um tema de ícones não acompanha sem ser
+#   refeito: vale o FLAVOR, como antes. Sem resposta do Python, o FLAVOR.
+meow_flavor_vestido() {
+  local fl
+  fl="$(meow_flavor)" || return 1
+  case "${MODO:-escuro}" in
+    claro|escuro) ;;
+    *) printf '%s' "$fl"; return 0 ;;
+  esac
+  python3 - "$MEOW_RAIZ/scripts" "$fl" "${MODO:-escuro}" "$(meow_paleta)" <<'PYFIM' 2>/dev/null || printf '%s' "$fl"
+import json, sys
+sys.path.insert(0, sys.argv[1])
+import derivar_flavor
+fl, modo = sys.argv[2], sys.argv[3]
+with open(sys.argv[4], encoding="utf-8") as fh:
+    paleta = json.load(fh)
+claros = [c for c in (paleta.get("claros") or []) if c in (paleta.get("flavors") or {})]
+if (modo == "claro") != (fl in claros):
+    print(derivar_flavor.par_do_outro_lado(fl, paleta) or fl)
+else:
+    print(fl)
+PYFIM
+}
+
 # O MOLDE DAS PASTAS, COMPLETADO PELO FLAVOR QUE VALE — 25/09/2026, sprint P66
 #   O `ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"` de fábrica se expande quando o
 #   meow.conf é lido, antes de o FLAVOR vazio virar o padrão do pack, e chega

@@ -363,6 +363,19 @@ derivar_variante() {
 #   que a guarda daqui fazia.]
 COR="$(ICONES_PASTAS="$COR"; meow_pastas_do_molde; printf '%s' "$ICONES_PASTAS")"
 
+# A COR QUE ACOMPANHA O TEMA ACOMPANHA O LADO VESTIDO — 09/10/2026, P74 item 10
+#   Com `MODO="claro"` a tela veste o claro do pack, e as pastas que «acompanham
+#   o tema» (`cat-<FLAVOR>-<acento>`, o molde de fábrica) saíam na variante do
+#   escuro. Só a cor que é a do FLAVOR troca para o flavor do lado vestido (o
+#   `meow_flavor_vestido` do lib/comum.sh); uma escolhida à mão fica.
+_fl="$(meow_flavor 2>/dev/null)"
+_vestido="$(meow_flavor_vestido 2>/dev/null)"
+case "$COR" in
+  "cat-$_fl-"?*) [ -n "$_fl" ] && [ -n "$_vestido" ] && [ "$_vestido" != "$_fl" ] \
+                   && COR="cat-$_vestido-${COR#"cat-$_fl-"}" ;;
+esac
+unset _fl _vestido
+
 if [ -d "$FONTE/src/64x64/places" ] && ! _cor_de_pasta_existe "$COR"; then
   _cor_pedida="$COR"
   case "$COR" in

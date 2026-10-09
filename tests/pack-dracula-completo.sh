@@ -245,6 +245,34 @@ else
   printf 'pulado: sem git, o cofre em git não se monta\n'
 fi
 
+# --- item 10 (I10): com MODO=claro, o traço e as pastas vestem o claro --------
+#   O `meow_flavor_vestido` dá o flavor do lado que a tela veste: no claro, o
+#   claro do pack; no escuro, o escuro, mesmo com um FLAVOR claro; no `auto`,
+#   o FLAVOR. O traço do dock e as pastas perguntam a ele.
+vestido() {   # $1 = PACK · $2 = FLAVOR · $3 = MODO
+  amb PACK="$1" FLAVOR="$2" MODO="$3" bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_ponte_python >/dev/null 2>&1; meow_flavor_vestido' 2>/dev/null
+}
+tabela="$(for par in "dracula dracula claro" "dracula dracula escuro" "dracula alucard escuro" \
+                     "dracula dracula auto" "catppuccin mocha claro" "catppuccin latte escuro"; do
+  # shellcheck disable=SC2086
+  printf '%s ' "$(vestido $par)"
+done)"
+if [ "$tabela" = "alucard dracula dracula dracula latte mocha " ] \
+   && grep -q '^FLAVOR="$(meow_flavor_vestido)"' "$RAIZ/scripts/icones_apps_arcticons.sh" \
+   && grep -q 'meow_flavor_vestido' "$RAIZ/scripts/construir_pastas.sh"; then
+  ok "com MODO=claro o traço do dock e as pastas usam o claro do pack (e no escuro, o escuro)"
+else
+  falha "o flavor do lado vestido não é o que a tela veste, ou o traço e as pastas não o perguntam" "$tabela"
+fi
+UPF="$RAIZ/assets/icones/upstream/papirus-folders"
+if [ -d "$UPF/src" ] && [ -d /usr/share/icons/Papirus-Dark ]; then
+  s="$(amb PACK=dracula FLAVOR=dracula ACCENT=mauve MODO=claro ICONES_PASTAS=cat-dracula-mauve \
+        MEOW_DRY_RUN=1 MEOW_CAT_FOLDERS="$UPF" bash "$RAIZ/scripts/construir_pastas.sh" 2>&1)"
+  [[ "$s" == *"'cat-alucard-mauve' não existe no papirus-folders — derivada de 'cat-latte-mauve'"* ]] \
+    && ok "com MODO=claro as pastas que acompanham o tema saem na variante do Alucard (derivada do Latte)" \
+    || falha "com MODO=claro as pastas não foram para o claro do pack" "$s"
+fi
+
 # --- item 9 (T3): o tema de som do Dracula, e quem o toca ---------------------
 #   O `som.sh` instala os 25 efeitos do pack como tema de som e a unidade que
 #   os toca nas notificações; a 2ª passada é 0; com o Catppuccin (sem tema de
