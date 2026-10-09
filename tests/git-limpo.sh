@@ -63,7 +63,7 @@ TMP="$(mktemp -d)" || { printf 'erro: mktemp\n' >&2; exit 2; }
 limpar() { rm -rf "$TMP"; }
 trap limpar EXIT
 
-printf '\n--- 1/3 uma ação de curadoria não pode mudar o git status ---\n'
+printf '\n--- 1/4 uma ação de curadoria não pode mudar o git status ---\n'
 
 ANTES="$TMP/antes"; DEPOIS="$TMP/depois"
 estado_git > "$ANTES"
@@ -134,7 +134,7 @@ else
   printf '       escrever dentro do clone. NADA foi desfeito: confira à mão.\n' >&2
 fi
 
-printf '\n--- 2/3 os dois arquivos de curadoria fora do índice ---\n'
+printf '\n--- 2/4 os dois arquivos de curadoria fora do índice ---\n'
 
 # DOIS, E NÃO CINCO: este título dizia "os cinco arquivos" e conferia dois.
 # Os três `.map` de ícone continuam versionados de propósito — a leitura deles
@@ -160,7 +160,7 @@ for alvo in assets/papeis-de-parede/BANIDOS.txt assets/papeis-de-parede/lado.tsv
   fi
 done
 
-printf '\n--- 3/3 o .gitignore barra o que ele promete barrar ---\n'
+printf '\n--- 3/4 o .gitignore barra o que ele promete barrar ---\n'
 
 # CONFERIDO COM A FERRAMENTA, E NÃO POR LEITURA — e a diferenca custou caro.
 # Até 21/09/2026 as linhas diziam `assets/fontes/locais/*.otf`, e o LEIA-ME
@@ -197,6 +197,92 @@ else
     falha "$ACERVO_FONTES/LEIA-ME.txt não está versionado — o acervo que o instalador lê ficou sem explicação"
   else
     ok "$ACERVO_FONTES/LEIA-ME.txt versionado, na pasta que o instalador lê"
+  fi
+fi
+
+# --- 4/4 o painel em uso, e o repositório INTEIRO — P75, 09/10/2026 --------
+#   As três seções acima exercitam UM caminho de escrita: o `wallpaper.sh`. A
+#   regra da P21 é sobre o produto inteiro, e o painel achou outra porta sem
+#   que nada acusasse: o «Usar este ícone» com um desenho do pack gravava a
+#   escolha no `packs/<id>/icones/apps.map` versionado (`171dedb`, 25/09), e o
+#   `git status` do dev de 09/10 mostrava ` M packs/dracula/icones/apps.map`
+#   (01-regressoes.md, I3). O `tests/seletor-do-pack.sh` cobra essa mesma
+#   rota, mas numa CÓPIA da árvore — e a cópia nunca vê o `git status` daqui.
+#
+#   Aqui o painel sobe de verdade, sobre ESTE repositório, numa casa de
+#   brinquedo com sudo falso, e recebe os gestos de quem usa: gravar uma
+#   chave, escolher um desenho do pack para um aplicativo. A régua é o
+#   `git status` do repositório inteiro, versionado E não rastreado, antes e
+#   depois.
+#
+#   E O QUE O TESTE SUJOU, ELE DEVOLVE. O "não conserta o que achar" do
+#   cabeçalho é sobre o trabalho de quem roda; aqui a sujeira é do próprio
+#   teste, e deixá-la seria o teste fazendo o defeito que veio pegar. Só volta
+#   o que estava limpo antes (`git checkout` do HEAD, que era o conteúdo de
+#   antes) e o arquivo não rastreado que nasceu durante o teste. Um arquivo que
+#   já estava sujo e mudou fica, nomeado, para conferir à mão.
+printf '\n--- 4/4 o painel em uso não suja o repositório inteiro ---\n'
+if ! command -v python3 >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
+  printf '  --   sem python3 ou curl — o painel não foi exercitado\n'
+else
+  estado_todo() { git -C "$RAIZ" status --porcelain -unormal | LC_ALL=C sort; }
+  estado_todo > "$TMP/antes-painel"
+  P_CASA="$TMP/casa-painel"; P_FALSO="$TMP/falso-painel"; P_LOG="$TMP/painel.log"
+  mkdir -p "$P_CASA/.config/meow" "$P_CASA/.local/share/applications" "$P_FALSO" || exit 2
+  for c in sudo pkexec pkill killall systemctl notify-send; do
+    printf '#!/bin/sh\nexit 1\n' > "$P_FALSO/$c"; chmod 755 "$P_FALSO/$c"
+  done
+  cp "$RAIZ/meow.conf.exemplo" "$P_CASA/.config/meow/meow.conf"
+  printf '\nPACK="dracula"\nFLAVOR="dracula"\nICONES_DRACULA="sim"\n' >> "$P_CASA/.config/meow/meow.conf"
+  printf '[Desktop Entry]\nName=Teste do git-limpo\nExec=true\nIcon=org.meow.GitLimpo\nType=Application\n' \
+    > "$P_CASA/.local/share/applications/org.meow.GitLimpo.desktop"
+  env -i PATH="$P_FALSO:$PATH" HOME="$P_CASA" USER="${USER:-t}" LANG="${LANG:-C.UTF-8}" \
+    MEOW_CONF="$P_CASA/.config/meow/meow.conf" MEOW_PONTE=/nao/existe \
+    "$RAIZ/app/run.sh" --sem-abrir > "$P_LOG" 2>&1 &
+  P_PID=$!
+  url=""
+  for _ in $(seq 1 40); do
+    url="$(grep -o 'http://127\.0\.0\.1:[0-9]*/?t=[A-Za-z0-9_-]*' "$P_LOG" | head -1)"
+    [ -n "$url" ] && break
+    sleep 1
+  done
+  if [ -z "$url" ]; then
+    falha "o painel não subiu — nada foi exercitado"; tail -5 "$P_LOG" | sed 's/^/       /' >&2
+  else
+    P_BASE="${url%%/\?t=*}"; P_TOK="${url##*t=}"
+    poste() { curl -s -o "$TMP/resposta" -w '%{http_code}' -H "X-Meow-Token: $P_TOK" \
+                -H 'Content-Type: application/json' --data "$2" "$P_BASE$1"; }
+    desenho="$(cd "$RAIZ/packs/dracula/icones" && ls apps/*.svg 2>/dev/null | head -1)"
+    c1="$(poste /api/definir '{"chave":"LOGO_INTERVALO","valor":"7d"}')"
+    c2="$(poste /api/app-icone "{\"app\":\"org.meow.GitLimpo\",\"pack\":\"dracula\",\"desenho\":\"$desenho\"}")"
+    # A prova positiva, como na seção 1: os gestos chegaram ao servidor e
+    # foram aceitos. Um painel que recusasse tudo deixaria o git limpo também.
+    if [ "$c1" = "200" ] && grep -q '^LOGO_INTERVALO="7d"' "$P_CASA/.config/meow/meow.conf"; then
+      ok "o painel gravou a chave na casa de brinquedo"
+    else
+      falha "o painel não gravou a chave (HTTP $c1)"
+    fi
+    if [ "$c2" = "200" ]; then
+      ok "o painel aceitou o desenho do pack para o aplicativo ($desenho)"
+    else
+      falha "o painel recusou a escolha de ícone (HTTP $c2): $(head -c 200 "$TMP/resposta")"
+    fi
+  fi
+  kill "$P_PID" 2>/dev/null; wait "$P_PID" 2>/dev/null
+  estado_todo > "$TMP/depois-painel"
+  if diff -u "$TMP/antes-painel" "$TMP/depois-painel" > "$TMP/diff-painel" 2>&1; then
+    ok "git status do repositório inteiro idêntico antes e depois do painel"
+  else
+    falha "o painel em uso MUDOU o git status do repositório:"
+    grep '^[-+][^-+]' "$TMP/diff-painel" | sed 's/^/       /' >&2
+    # A devolução: só o que nasceu do teste (ver o bloco acima).
+    while IFS= read -r linha; do
+      cam="${linha:3}"
+      case "${linha:0:2}" in
+        '??') rm -rf -- "${RAIZ:?}/$cam" && printf '       devolvido: %s (nasceu no teste)\n' "$cam" >&2 ;;
+        *)    git -C "$RAIZ" checkout -q -- "$cam" && printf '       devolvido: %s (estava limpo antes)\n' "$cam" >&2 ;;
+      esac
+    done < <(LC_ALL=C comm -13 "$TMP/antes-painel" "$TMP/depois-painel")
   fi
 fi
 
