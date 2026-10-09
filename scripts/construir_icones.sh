@@ -67,6 +67,13 @@ HERDA="$ICONES_BASE"
 # camada que está no disco, na ordem do `icones.base.por_tras` do pack. Moram
 # em `$TEMA_BASE-2`, `-3`…, ao lado da frente, com a mesma régua dela.
 HERDA_ATRAS=""
+# O `Comment=` do índice é o do PACK NO AR, no flavor da máquina (P74 item 4,
+# 09/10/2026). Era `Catppuccin $FLAVOR para o COSMIC` com qualquer pack — o
+# Dracula instalado se descrevia como Catppuccin. Quem compõe a frase é o
+# `tema_de_icones` do `pack.py`, o mesmo que dá o nome ao tema exportado.
+COMENTARIO_TEMA="$(python3 "$RAIZ/scripts/pack.py" tema-icones "$(meow_pack_dir)" "$FLAVOR" 2>/dev/null \
+                     | sed -n 's/^comentario=//p')"
+COMENTARIO_TEMA="${COMENTARIO_TEMA:-MeowSystem $FLAVOR para o COSMIC}"
 
 # ---------------------------------------------------------------------------
 # `adicionar <pasta-ou-zip>` e `remover <nome>` — um acervo de ícones de fora
@@ -783,7 +790,7 @@ indice() {
   cat <<FIM
 [Icon Theme]
 Name=$TEMA_NOME
-Comment=Catppuccin $FLAVOR para o COSMIC — gerado pelo MeowSystem-Theme
+Comment=$COMENTARIO_TEMA
 Inherits=$HERDA$HERDA_ATRAS,$CAUDA_HERANCA
 Directories=$dirs
 

@@ -98,6 +98,9 @@ VERBOS
                                  (a origem que a cadeia declara, vazias sem
                                  ela), e uma `atras=<url> <sha256> <pasta>`
                                  por camada de trás. Ver `base_que_vale`.
+    tema-icones [id] [flavor]    o nome e o comentário do tema de ícones montado
+                                 para o pack nesse flavor: `nome=` e
+                                 `comentario=`. Ver `tema_de_icones`.
     base-apelidos                o tema de onde as pastas e os apelidos de
                                  utilitário copiam desenho (o `ICONES_BASE`
                                  escolhido à mão, ou o Papirus-Dark), e onde
@@ -2200,6 +2203,43 @@ def dir_de_tema_de_icones(nome):
         if os.path.isfile(os.path.join(cand, "index.theme")):
             return cand
     return ""
+
+
+# --- O NOME E O COMENTÁRIO DO TEMA MONTADO — 09/10/2026, P74 item 4 (T7) -----
+#
+# O DEFEITO, MEDIDO
+#   O `index.theme` do tema montado dizia `Comment=Catppuccin $FLAVOR para o
+#   COSMIC` com qualquer pack no ar (`construir_icones.sh`), e o tema se chama
+#   `MeowSystem-Icons` em qualquer pack: um tema exportado do Dracula chegaria
+#   à outra máquina dizendo Catppuccin, e dois exportados (o escuro e o claro)
+#   cairiam no mesmo diretório.
+#
+# O NOME É DO PACK E DO FLAVOR, E SÓ O EXPORTADO O USA
+#   `MeowSystem-<Nome>-<Flavor>-Icons`, com o flavor omitido quando ele é o
+#   próprio pack (o `dracula` do Dracula): `MeowSystem-Dracula-Icons`,
+#   `MeowSystem-Dracula-Alucard-Icons`, `MeowSystem-Catppuccin-Mocha-Icons`.
+#   O tema instalado nesta máquina continua `NOME_TEMA_ICONES` (o COSMIC, o
+#   painel e o doctor o leem por esse nome); trocá-lo é outra decisão.
+#
+# O COMENTÁRIO É O DO PACK: o nome, o flavor e a frase curta da vitrine.
+def _so_letras(texto):
+    return re.sub(r"[^A-Za-z0-9]+", "", str(texto or ""))
+
+
+def tema_de_icones(ref=None, flavor=""):
+    """(nome, comentario) do tema de ícones montado para o pack `ref` no `flavor`."""
+    ref = _ref_ativa(ref)
+    dir_pack = achar(ref)
+    ident = (campo(ref, "id") or os.path.basename(dir_pack or "") or "pack") if dir_pack else str(ref)
+    nome = str(campo(ref, "nome", ident) or ident) if dir_pack else ident
+    flavor = (flavor or (campo(ref, "paleta.flavor_padrao", "") if dir_pack else "") or "").strip()
+    partes = ["MeowSystem", _so_letras(nome) or _so_letras(ident) or "Pack"]
+    if flavor and flavor.lower() != ident.lower() and _so_letras(flavor):
+        partes.append(_so_letras(flavor)[:1].upper() + _so_letras(flavor)[1:])
+    frase = str(campo(ref, "vitrine.descricao_curta", "") or "").strip() if dir_pack else ""
+    comentario = f"{nome} ({flavor})" if flavor else nome
+    comentario += f" — {frase}" if frase else " — gerado pelo MeowSystem"
+    return "-".join(partes + ["Icons"]), comentario.replace("\n", " ")
 
 
 def base_dos_apelidos(pedido):
@@ -5969,6 +6009,14 @@ def main(argv):
             # quando o pack traz uma base só, ou quando o conf vence.
             for c in (decl or {}).get("por_tras", []):
                 print(f"atras={c['url']}\t{c['sha256']}\t{c['pasta']}")
+            return OK
+        if verbo == "tema-icones" and len(argv) in (2, 3, 4):
+            # `nome=` e `comentario=`, para o shell ler com `sed`. Ver
+            # `tema_de_icones` (P74 item 4).
+            nome, comentario = tema_de_icones((argv[2] if len(argv) >= 3 else "") or None,
+                                              argv[3] if len(argv) == 4 else "")
+            print(f"nome={nome}")
+            print(f"comentario={comentario}")
             return OK
         if verbo == "base-apelidos" and len(argv) == 2:
             # A mesma porta do `base-icones`: o `ICONES_BASE` vem do ambiente,

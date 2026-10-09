@@ -4503,6 +4503,18 @@ PY
       meow_seco && seco=(--seco)
       python3 "$RAIZ/scripts/pack.py" exportar "$alvo" "$@" ${seco[@]+"${seco[@]}"}
       ;;
+    # `exportar-tema` — o tema de ícones MONTADO, P74 item 4, 09/10/2026
+    #   O `exportar` leva a receita; este leva o tema pronto, com a base, para
+    #   instalar em qualquer máquina sem o MeowSystem. Quem monta é o
+    #   `scripts/exportar_tema.sh`, numa casa temporária: não lê o meow.conf
+    #   desta máquina (o exportado é o do pack, de fábrica) e não escreve nada
+    #   fora do arquivo que entrega.
+    exportar-tema|export-theme)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga qual pack: meow pack exportar-tema <id> [flavor] [arquivo.tar.gz]"; return "$MEOW_ERRO"; }
+      shift
+      "$RAIZ/scripts/exportar_tema.sh" "$alvo" "$@"
+      ;;
     importar|import)
       local arquivo="${1:-}"
       [ -n "$arquivo" ] || { meow_erro "diga qual arquivo: meow pack importar <arquivo.meowpack|arquivo.csv>"; return "$MEOW_ERRO"; }
@@ -4554,7 +4566,7 @@ PY
       python3 "$RAIZ/scripts/pack.py" de-csv "$arq"
       ;;
     -h|--help|ajuda)
-      printf 'uso: meow pack [listar|usar <id>|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|importar <arquivo>|remover <id>|de-csv <arq>|raizes]\n\n'
+      printf 'uso: meow pack [listar|usar <id>|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|exportar-tema <id>|importar <arquivo>|remover <id>|de-csv <arq>|raizes]\n\n'
       printf '  listar           os packs instalados, e se cada um valida\n'
       printf '  usar <id> [fl]   troca o pack da máquina: grava PACK e FLAVOR e aplica\n'
       printf '  validar <id>     confere o pack inteiro; 0 = ok\n'
@@ -4565,6 +4577,8 @@ PY
       printf '    --de-csv <arq> a paleta vem do CSV slot,flavor,hex; o resto, do pack padrão\n'
       printf '  exportar <id> [arquivo.meowpack] [--sem-imagens]\n'
       printf '                   o pack num arquivo só, para mandar a alguém\n'
+      printf '  exportar-tema <id> [flavor] [arquivo.tar.gz]\n'
+      printf '                   o tema de ícones montado, com a base, pronto para instalar\n'
       printf '  importar <arquivo.meowpack|arquivo.csv>\n'
       printf '                   confere, e instala como opção — não troca o seu tema\n'
       printf '  remover <id>     tira um pack que você importou; o que vem com o MeowSystem,\n'

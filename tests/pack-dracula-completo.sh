@@ -68,6 +68,64 @@ saida="$(amb env MEOW_PACKS="$T/packs" python3 "$RAIZ/scripts/pack.py" validar t
   && ok "uma camada de trás sem sha256 é recusada pelo validar, com a trilha do campo" \
   || falha "o validar aceitou uma camada de trás sem pino (rc=$rc)" "$saida"
 
+# --- item 4: o tema exportado tem o nome e o comentário do pack ---------------
+#   O nome é do pack e do flavor (o flavor some quando é o próprio pack), e o
+#   `Comment=` não diz Catppuccin com o Dracula. O índice instalado nesta
+#   máquina passa a ter o mesmo comentário: quem o escreve pergunta ao mesmo
+#   verbo. A montagem inteira (rede, base, etapas) fica no relatório da spec.
+nomes="$(for par in "dracula" "dracula alucard" "catppuccin mocha"; do
+  # shellcheck disable=SC2086
+  amb python3 "$RAIZ/scripts/pack.py" tema-icones $par 2>&1 | sed -n 's/^nome=//p'
+done | paste -sd' ')"
+[ "$nomes" = "MeowSystem-Dracula-Icons MeowSystem-Dracula-Alucard-Icons MeowSystem-Catppuccin-Mocha-Icons" ] \
+  && ok "o tema exportado se chama pelo pack e pelo flavor: $nomes" \
+  || falha "o nome do tema exportado não é o do pack e do flavor" "$nomes"
+com="$(amb python3 "$RAIZ/scripts/pack.py" tema-icones dracula alucard 2>&1 | sed -n 's/^comentario=//p')"
+[[ "$com" == "Dracula (alucard) — "* ]] && [[ "$com" != *Catppuccin* ]] \
+  && ok "o comentário do tema é o do pack, sem Catppuccin: $com" \
+  || falha "o comentário do tema do Dracula não é o do pack" "$com"
+grep -q '^Comment=\$COMENTARIO_TEMA$' "$RAIZ/scripts/construir_icones.sh" \
+  && ! grep -q 'Comment=Catppuccin' "$RAIZ/scripts/construir_icones.sh" \
+  && ok "o índice instalado escreve o comentário do pack, e não «Catppuccin»" \
+  || falha "o construir_icones.sh ainda escreve um Comment fixo"
+
+# --- item 5: o índice no fim, por uma etapa só --------------------------------
+#   Numa casa de brinquedo com um tema já construído pela metade (o índice só
+#   com `scalable/apps`) e diretórios que outras etapas criaram depois, o
+#   `indice` declara todos, guarda a herança que a construção decidiu, e a
+#   segunda chamada não escreve nada. E a etapa vem depois da última que
+#   escreve no tema, no `install.sh` e no doctor.
+TEMA="$T/casa/.local/share/icons/MeowSystem-Icons"
+mkdir -p "$TEMA/scalable/apps" "$TEMA/48x48/apps" "$TEMA/scalable/mimetypes" "$TEMA/22x22/status" "$TEMA/scalable/status"
+for d in scalable/apps 48x48/apps scalable/mimetypes 22x22/status scalable/status; do
+  printf '<svg/>\n' > "$TEMA/$d/x.svg"
+done
+printf '[Icon Theme]\nName=MeowSystem-Icons\nComment=velho\nInherits=Tema-X,MeowSystem-Icons-Base-2,breeze-dark,Cosmic,Adwaita,hicolor\nDirectories=scalable/apps\n' \
+  > "$TEMA/index.theme"
+indice() { amb PACK=dracula FLAVOR=dracula NOME_TEMA_ICONES=MeowSystem-Icons bash "$RAIZ/scripts/construir_icones.sh" indice 2>&1; }
+s1="$(indice)"; rc1=$?
+s2="$(indice)"; rc2=$?
+dirs="$(sed -n 's/^Directories=//p' "$TEMA/index.theme")"
+herda="$(sed -n 's/^Inherits=//p' "$TEMA/index.theme")"
+if [ "$rc1" = "1" ] && [ "$rc2" = "0" ] \
+   && [ "$dirs" = "48x48/apps,scalable/apps,scalable/mimetypes,22x22/status,scalable/status" ] \
+   && [ "$herda" = "Tema-X,MeowSystem-Icons-Base-2,breeze-dark,Cosmic,Adwaita,hicolor" ]; then
+  ok "o índice do fim declara o que as outras etapas criaram, guarda a herança, e a 2ª vez não escreve"
+else
+  falha "o índice do fim não descreveu o disco, mexeu na herança, ou não convergiu (rc $rc1/$rc2)" \
+    "Directories=$dirs
+Inherits=$herda
+$s1
+$s2"
+fi
+ordem="$(sed -n '/local etapas=(/,/)/p' "$RAIZ/install.sh" | grep -oE '\betapa_[a-z_0-9]+\b' | tr '\n' ' ')"
+[[ "$ordem" == *"etapa_logo etapa_icones_indice "* ]] \
+  && ok "no install.sh a etapa do índice vem logo depois da dos gatos, a última que escreve no tema" \
+  || falha "a etapa do índice não está depois da última que escreve no tema" "$ordem"
+[[ "$(sed -n 's/^VERIFICAVEIS=(\(.*\))$/\1/p' "$RAIZ/bin/meow")" == *" logo indice" ]] \
+  && ok "no doctor o índice é a última conferência" \
+  || falha "o doctor não confere o índice depois de tudo"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"
