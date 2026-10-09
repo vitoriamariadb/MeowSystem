@@ -85,6 +85,54 @@ Arquivos de outros blocos que esta branch tocou (para a integração):
 flavor), `lib/desinstalar.sh` (`meow-som.service` na lista), `install.sh`,
 `README.md`, `README.en.md`, `docs/SPRINTS.md` (contagens).
 
+## Conferência — 09/10/2026 (conferente que corrige)
+
+Toda prova refeita do zero, numa casa de brinquedo com `sudo`, `apt`,
+`systemctl`, `pkill` e companhia falsos (o registro deles não tem `sudo` que
+escreva). O HOME real só foi lido: nada de `MeowSystem-Sons`, `meow-som.service`
+nem `-Base-2` nele, e o cofre do Obsidian sem filtro nem linha em
+`.git/info/attributes`.
+
+**Confirmado, com a prova refeita:** item 1 (todo leitor da base pergunta ao
+`pack.py`; seção 11 do `pastas-do-pack.sh` verde); item 2 (simbólicos do
+`Dracula-Icones` congelado fora da cadeia: 458 só com o circle, **0** com o
+main atrás); item 3 (229 em `scalable/apps`; o conf desta máquina já diz
+`ICONES_DRACULA="sim"`); item 4 (exportar → instalar num HOME limpo: cache nos
+três, 0 links para fora, 0 quebrados, 229 apps, 0 «Catppuccin», `Inherits` só
+das duas bases e do `hicolor`); item 5 (uma passada das 18 etapas de ícone do
+`install.sh` → `validar_index.py` com `com_arte_nao_declarados=0`; a 2ª passada
+não escreve nenhum arquivo); item 6 (a conta do `css-variables` dá os 656 do
+`mocha/` byte a byte, e os 656 × 2 do Dracula também; as dez pastas na mesma
+silhueta); item 7 (`/paleta.css` com FLAVOR vazio sai `#282A36`/`#BD93F9`);
+item 8 (num cofre com o HEAD e o disco DESTE cofre real: `git status` limpo, um
+checkout de commit antigo mantém o Dracula, o HEAD guarda «Catppuccin»); item 9
+(25 `.oga` iguais aos da origem; o `.qbtheme` bate com o do commit `9020f6eb`
+do upstream; 24 dos 27 overrides que escondem; os dois papéis comparados dão
+RMSE 0); item 10 (com `MODO=claro`, as 10 cores dos 47 traços são do Alucard).
+
+**Corrigido (um commit cada):**
+
+| commit | o que estava errado |
+|---|---|
+| `e184c73` | `som.sh aplicar` dizia «som de volume do MeowSystem instalado» quando só o tema de som mudava. |
+| `70f5967` | O `-nome` do `LANCADOR_OCULTAR` não devolvia ao lançador o que uma passada anterior já tinha escondido: a frase do exemplo era falsa. Agora desfaz a marca na forma que o script escreve. |
+| `a733a48` | O cabeçalho do `starship.toml` e a `_nota_modelos` do pack diziam o contrário do que a P74 fez. |
+| `b2030f4` | O Vesktop do flatpak roda como `vesktop.bin`, e o `pgrep -x vesktop` não o via: com ele aberto, a lista `enabledThemes` era escrita e perdida. |
+| `b9b7419` | O `som.sh vigiar` acordava 3 vezes por segundo sem aviso nenhum (13 `select` em 3 s, medido com `strace`). Agora são 0. |
+| `2b60bed` | Segurança (seção «Segurança» da spec no dev): a `pasta` da base podia ser link para fora, e o `.meow-origem` era escrito no alvo; `../` no nome do `apps.map` e do mapa de tipos de arquivo escrevia fora do tema; links no som, nos tipos de arquivo e na origem da derivação eram seguidos; a derivação escrevia através de um link no destino. |
+| `3d74268` | Segurança: os `python3 -` novos importavam módulo do diretório corrente (um `json.py` no cwd rodava). Agora é `python3 -I -`. O `exportar-tema` só aceita id e flavor na forma do pack.py, porque os dois vão para um conf carregado com `.`. |
+| `f73b13f` | Segurança: um slot a mais na paleta de um pack importado fechava a aspa no `starship.toml` e abria um `[custom.*]` com `command`. Agora só entram nome simples e `#RRGGBB`. |
+| `8f23668` | Segurança: o flavor do lado vestido (uma chave da paleta) só sai como `[a-z0-9_]+`. |
+
+O teste do pack malicioso está no `tests/pack-dracula-completo.sh` (seção
+«segurança»). Com a árvore de antes dos acertos ele falha em tudo: base rc 1, 2
+arquivos escritos no alvo do link, 2 `escapou`, 4 cópias do segredo, segredo
+sobrescrito, 1 `[custom]` no starship. Com a de agora, tudo 0.
+
+**Testes depois dos acertos** (HOME temporário e `sudo` falso): ver o fim do
+relatório da conferência; `portabilidade.sh` continua vermelho pelo
+`docs/pesquisas/2026-10-09-cosmic-vivo.md:198`, que vem do `f24868c`.
+
 ## Achados para a próxima leva
 
 - `icones_apps_arcticons.sh` sai 3 depois de escrever, fora da sessão gráfica: o `meow_tela_reler` devolve 3 sob `set -e`. O `exportar-tema` o lista entre os «sem dependência».
@@ -94,3 +142,9 @@ flavor), `lib/desinstalar.sh` (`meow-som.service` na lista), `install.sh`,
 - Duas regras do «lado vestido»: o `_flavor_no_modo` do painel (o primeiro claro) e o `meow_flavor_vestido` (o par do outro lado). Concordam nos casos de hoje.
 - O tocador de som cobre só a notificação; dispositivo, bloqueio de tela e captura de tela não têm gatilho ligado.
 - O cabeçalho de `assets/prompt/starship.toml` ainda diz «só o flavor mocha»: o arquivo instalado já troca a paleta.
+- (conferência) Trocar de pack não devolve ao lançador os 24 que o Dracula esconde: o `ocultar_apps.sh` nunca desfaz uma marca que saiu da lista (o mesmo vale para a lista do conf); hoje só o `-nome` e o `meow desfazer --lancador` devolvem.
+- (conferência) Há 37 `python3 -` sem `-I` no código de produto fora do que a P74 escreveu (`git grep -c 'python3 - ' -- '*.sh' bin/meow ':!tests/'`): todos importam do diretório corrente. É a varredura de segurança da integração (o quinto alerta, `bin/meow`).
+- (conferência) O `meow_flavor` ainda devolve o `flavor_padrao` do pack sem conferir a forma do nome; a P74 só fechou o `meow_flavor_vestido`.
+- (conferência) O `icones_pastas.sh` lê o `pastas.map` novo do Dracula e não foi tocado pela P74: os nomes dele viram arquivo no tema sem a régua `[A-Za-z0-9._+-]`.
+- (conferência) O `icones_apps.sh` (camada de aplicativos do Catppuccin) aproxima o Dracula para o `macchiato` do Catppuccin; hoje não pesa porque o acervo `assets/icones/catppuccin-apps` não existe, mas com ele no disco o Dracula vestiria Catppuccin.
+- (conferência) As bases exportadas aparecem nos seletores de tema com o `Name=` do upstream («Dracula Circle» e «Dracula»), ao lado do tema exportado.
