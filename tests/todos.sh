@@ -241,6 +241,9 @@ printf '\n'
 #   Playwright, o pyenv, o site do pip do usuário — vai apontado por variável,
 #   e é só leitura. No fim, o placar diz quantas vezes alguém tentou o sudo.
 CASA_REAL="$HOME"
+# A casa de verdade fica dita, só para leitura, a quem precisa PERGUNTAR algo
+# dela (o `doctor-so-le.sh` confere que o reciclo acha o painel da sessão).
+export SUITE_CASA_REAL="$CASA_REAL"
 SUITE_TMP="$(mktemp -d)" || { printf 'erro: mktemp\n' >&2; exit 2; }
 trap 'rm -rf "$SUITE_TMP"' EXIT
 mkdir -p "$SUITE_TMP/falso" "$SUITE_TMP/casa" || exit 2
