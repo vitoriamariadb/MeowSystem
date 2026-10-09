@@ -81,6 +81,36 @@ escrito), arquivo que veio no `f24868c`, antes desta branch.
   fonte (`meow_icones_derivados`), e a decisão 2 manda vetorizar num lote por RMSE. O lote
   não foi feito aqui.
 
+## Conferência — 09/10/2026
+
+Cada tarefa refeita na branch, com HOME de brinquedo e sudo falso no PATH:
+
+- **T1–T4:** `tests/acervo-da-ficha.sh` dá 0. São 814 desenhos em 15 pastas, sem corte.
+  «firefox» acha o `net.waterfox.waterfox.svg`, e «alienígena» e «alienigena» acham o
+  `alien.svg`. A rota leva 0,11–0,17 s e devolve 294 KB.
+- **T5:** dos 175 da lista da auditoria (`faltam-175.tsv`), por sha256, 171 estão no pack. Os
+  três sem `inkscape:export-filename` têm o sha da origem na linha deles. O `calcdeirao` fica
+  fora. `pack.py validar dracula` sai 0, e os 584 sha256 do PROCEDENCIA batem com o disco.
+- **I3:** o passo do pack rodou 3 vezes com duas escolhas, com a camada ligada e desligada, e
+  é idempotente: rc 1, depois 0 e 0, e o `--conferir` dá 0. Desfeita uma escolha, o desenho sai
+  do tema pelo registro (P66). O `icones-traco.map` com glifo por caminho também é
+  idempotente no `icones_apps_arcticons.sh`. A seção 3b do `git-limpo.sh` sai 0 no
+  repositório de verdade.
+- **I8:** o `fonte` dos três nomes aponta para `apps/` do pack. Os `Icon=` reais da máquina
+  são os mesmos do mapa.
+- **I9:** o `com.meowsystem.Painel.svg` instalado pelo `completar_icones.sh` é igual à saída
+  do `pack.py logo dracula dracula mauve`, e a segunda passada e o `--conferir` saem 0.
+
+**Corrigido nesta conferência:** escolher um **traço** depois de um **desenho** para o mesmo
+app respondia ok, e a tela ficava com o desenho, porque a escolha de desenho mora no
+`scalable/apps`, que vence o `48x48/apps`. Agora o traço tira a escolha de desenho, e a
+página roda também o passo do pack. A prova está no fim do `tests/seletor-do-pack.sh`.
+
+**Isenção registrada, sem mudança:** a conta por sha256 do `tests/acervo-da-ficha.sh`
+deixa fora os 3.280 `mimetypes/` do Catppuccin antes de contar. A frase do teste não os
+cita. A spec só nomeia `pastas/`, `gatos/` e `logo.svg`. O motivo é o mesmo das pastas, e o
+`pack.py` o escreve: tipo de arquivo não é ícone de aplicativo.
+
 ## Achados para a próxima leva
 
 - O lote de vetorização dos 39 PNG de `packs/dracula/icones/feitos-a-mao/` (decisão 2): até
@@ -96,3 +126,14 @@ escrito), arquivo que veio no `f24868c`, antes desta branch.
   sprint — é da P77.
 - `scripts/icones_apps_dracula.sh`: o comentário «O PADRÃO É `nao`» do `_dracula_aplicar` vai
   envelhecer com a T6 da P74.
+- (conferência) A nota «O desenho de «…» entra com as cores dele: a cor abaixo vale só para o
+  traço» era da P60 e só aparecia com desenho de pack. Agora aparece com qualquer desenho
+  marcado, e é frase na tela. O princípio pede estado visual, por exemplo apagar a fileira de
+  cores quando um desenho está marcado.
+- (conferência) Abrir a pasta «feitos à mão (PNG)» baixa os 39 PNG inteiros, 41 MB, como
+  miniatura, e o `/previa` responde `no-store`. Uma miniatura reduzida resolve.
+- (conferência) Os desenhos de 4 mimetypes e de 6 pastas coloridas da leva da T5 estão na
+  `biblioteca/` e aparecem na ficha como ícone de app. Os de `pastas/` e os `mimetypes/` ficam
+  de fora.
+- (conferência) No `app/pagina/app.js`, o `const comBusca = true` da T4 sobrou como constante
+  morta, sem efeito.
