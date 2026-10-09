@@ -18,8 +18,10 @@ O BURACO QUE ISTO TAPA
 O QUE NUNCA FAZ
     - Não toca em valor que já existe. O `ACCENT="mauve"` dela continua dela,
       mesmo que o exemplo diga outra coisa. Só entram chaves AUSENTES.
-    - Não remove nada. Chave que ela inventou, comentário que ela escreveu e
-      chave que saiu do exemplo ficam onde estão.
+    - Não remove nada, com UMA exceção nomeada: a linha ATIVA de uma chave
+      APOSENTADA (`APOSENTADAS`, mais abaixo, desde a P75). Chave que ela
+      inventou, comentário que ela escreveu e chave que só saiu do exemplo
+      ficam onde estão.
     - Não reordena e não reformata o arquivo dela.
 
 A ÚNICA LINHA QUE JÁ EXISTIA E MUDA — 24/09/2026, P52
@@ -72,6 +74,44 @@ def chaves_de(texto: str) -> set[str]:
 RENOMEADAS = {"WALLPAPER_FONTES_DELA": "WALLPAPER_FONTES_PERMITIDAS"}
 
 
+# AS CHAVES APOSENTADAS — P75, 09/10/2026
+#   Em 24/09 ela decidiu «Tirar a linha do conf» para a `ICONES_BASE`: a base
+#   vem do pack, pinada. A decisão virou um COMENTÁRIO no meow.conf dela, e a
+#   chave continuou no exemplo. Este script devolve toda chave do exemplo que
+#   o arquivo não tem, e linha comentada conta como ausente: no install.sh
+#   seguinte a chave voltou, o painel regravou o valor por cima (o
+#   `MeowSystem-Icons-Base` que ele oferecia como "a base do pack"), e as
+#   pastas e os apelidos foram procurar a base em `/usr/share/icons`, onde ela
+#   nunca existiu. Sete auto-reparos seguidos pularam as pastas
+#   (01-regressoes.md, I1, I2 e «Por que voltou», item 2).
+#
+#   A cura é ter onde dizer "esta chave saiu": uma aposentada nunca é
+#   devolvida, mesmo que um exemplo velho ainda a traga, e a linha ATIVA dela
+#   sai do arquivo dela — é a única remoção deste script. O comentário que ela
+#   escreveu em volta fica. Uma decisão do tipo "a chave sai" passa a ser uma
+#   linha aqui, e não uma esperança de que ninguém a traga de volta.
+#
+#   O valor é a frase do porquê, para quem ler o `--conferir`.
+APOSENTADAS = {
+    "ICONES_BASE": "a base de ícones vem do pack, pinada (decisão de 24/09/2026)",
+}
+
+
+def aposentar(texto: str) -> tuple[str, list[str]]:
+    """(texto, [nomes]) — sem as linhas ativas das chaves aposentadas."""
+    tiradas = []
+    linhas = texto.splitlines(keepends=True)
+    fica = []
+    for linha in linhas:
+        m = CHAVE.match(linha)
+        if m and m.group(1) in APOSENTADAS:
+            if m.group(1) not in tiradas:
+                tiradas.append(m.group(1))
+            continue
+        fica.append(linha)
+    return "".join(fica), tiradas
+
+
 def renomear(texto: str) -> tuple[str, list[str]]:
     """(texto, ["ANTIGO -> NOVO"]) — o nome antigo trocado pelo novo, na linha.
 
@@ -102,7 +142,7 @@ def blocos_faltando(exemplo: str, atuais: set[str]) -> list[tuple[str, str]]:
     achados: list[tuple[str, str]] = []
     for i, linha in enumerate(linhas):
         m = CHAVE.match(linha)
-        if not m or m.group(1) in atuais:
+        if not m or m.group(1) in atuais or m.group(1) in APOSENTADAS:
             continue
         inicio = i
         while inicio > 0 and linhas[inicio - 1].lstrip().startswith("#"):
@@ -132,13 +172,17 @@ def main() -> int:
     atual = args.conf.read_text(encoding="utf-8")
 
     # O nome antigo vira o novo ANTES da conta do que falta — ver `RENOMEADAS`.
+    atual, aposentadas = aposentar(atual)
     atual, renomeadas = renomear(atual)
     faltando = blocos_faltando(exemplo, chaves_de(atual))
-    if not faltando and not renomeadas:
+    if not faltando and not renomeadas and not aposentadas:
         return 0
 
     nomes = ", ".join(n for n, _ in faltando)
     if args.conferir:
+        if aposentadas:
+            print("aposentada(s), ainda no meow.conf: "
+                  + "; ".join(f"{n} ({APOSENTADAS[n]})" for n in aposentadas))
         if renomeadas:
             print(f"com o nome antigo no meow.conf: {', '.join(renomeadas)}")
         if faltando:
@@ -152,11 +196,17 @@ def main() -> int:
     novo = atual
     if faltando:
         corpo = "\n\n".join(bloco for _, bloco in faltando)
-        # A frase do cabeçalho não pode mentir quando um nome foi trocado acima.
+        # A frase do cabeçalho não pode mentir quando algo mudou acima: um nome
+        # trocado (`RENOMEADAS`) ou a linha de uma aposentada que saiu (P75).
+        acima = []
+        if renomeadas:
+            acima.append(f"só o NOME de {', '.join(renomeadas)} mudou, com o valor de antes")
+        if aposentadas:
+            acima.append(f"saiu a linha de {', '.join(aposentadas)}, chave aposentada")
         intacto = ("# são os padrões; mexa à vontade. Nada acima desta linha foi alterado.\n"
-                   if not renomeadas else
-                   "# são os padrões; mexa à vontade. Acima desta linha, só o NOME de\n"
-                   f"# {', '.join(renomeadas)} mudou; o valor é o de antes.\n")
+                   if not acima else
+                   "# são os padrões; mexa à vontade. Acima desta linha,\n"
+                   f"# {'; '.join(acima)}.\n")
         novo = atual.rstrip("\n") + (
             "\n\n"
             "# --- Acrescentado pelo install.sh -----------------------------------------\n"
@@ -170,6 +220,8 @@ def main() -> int:
     tmp = args.conf.with_suffix(args.conf.suffix + ".tmp")
     tmp.write_text(novo, encoding="utf-8")
     tmp.replace(args.conf)
+    if aposentadas:
+        print(f"aposentadas, linha tirada do meow.conf: {', '.join(aposentadas)}")
     if renomeadas:
         print(f"renomeadas no meow.conf, com o valor de antes: {', '.join(renomeadas)}")
     if faltando:

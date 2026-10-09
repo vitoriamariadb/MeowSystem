@@ -1453,8 +1453,12 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
     #    O nome vai para o ambiente só enquanto a regra responde, com o do conf,
     #    e volta ao que era; a trava é porque o ambiente é um só para as linhas
     #    do servidor.
-    item = por_chave.get("ICONES_BASE")
-    if item and mod:
+    #    [P75, 09/10/2026: a chave saiu do meow.conf.exemplo — aposentada no
+    #    `migrar_conf.py` —, e sem cartão a pergunta continua: a base que vale
+    #    é a do pack, e o desenho precisa dela. O `{}` faz a regra responder
+    #    pelo valor vazio, que é o que um conf sem a linha tem.]
+    item = por_chave.get("ICONES_BASE") or {}
+    if mod:
         with _NOME_DO_TEMA_TRAVA:
             antes = os.environ.get("NOME_TEMA_ICONES")
             os.environ["NOME_TEMA_ICONES"] = efetivos.get("NOME_TEMA_ICONES") or ""

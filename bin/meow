@@ -360,12 +360,26 @@ logos_disponiveis() {
 # Cada uma devolve 0/1/2/3 e imprime detalhe em stdout (capturado pelo runner).
 # Todas rodam em seco: `doctor` sem `--consertar` não escreve configuração.
 
+# O MEOW.CONF TAMBÉM SE MIGRA AQUI — P75, 09/10/2026
+#   A chave aposentada (`ICONES_BASE`, desde 24/09) só saía do arquivo no
+#   próximo `./install.sh`, e enquanto isso o auto-reparo das 5h montava as
+#   pastas e os apelidos a partir dela — sete passadas puladas, de 28/09 a
+#   09/10. O `migrar_conf.py --conferir` é a mesma pergunta que o
+#   `etapa_conf` do install.sh faz (aposentada, nome antigo, chave nova
+#   faltando), e o `fix_conf` dá a mesma resposta. CRIAR o arquivo continua
+#   sendo só do install.sh: as duas criações em lugares diferentes são o que
+#   o comentário do `SEM_CONSERTO` lá embaixo recusa.
 chk_conf() {
   [ -f "$CONF" ] || { echo "meow.conf ainda não existe — o install.sh cria a partir do exemplo"; return "$MEOW_DIVERGENTE"; }
-  local v
+  local v migra
   for v in FLAVOR ACCENT MODO LOGO; do
     [ -n "${!v:-}" ] || { echo "$v não está definida em $CONF"; return "$MEOW_ERRO"; }
   done
+  if ! migra="$(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" --conferir 2>&1)"; then
+    printf '%s\n' "$migra" | head -n 1
+    printf '%s\n' "$migra" | sed 1d
+    return "$MEOW_DIVERGENTE"
+  fi
   echo "flavor=$FLAVOR accent=$ACCENT modo=$MODO logo=$LOGO"
   return 0
 }
@@ -2018,6 +2032,21 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
 
 fix_escala()    { ESCALA_TELA="${ESCALA_TELA:-}" "$RAIZ/scripts/escala.sh" 2>&1; }
 
+# O par do `chk_conf` (P75): migra, nunca cria. Sem arquivo, o 3 diz quem cria.
+fix_conf() {
+  [ -f "$CONF" ] || { meow_pula "o meow.conf nasce no ./install.sh, a partir do exemplo"; return "$MEOW_SEM_DEPENDENCIA"; }
+  if meow_seco; then
+    meow_muda "migraria o meow.conf: $(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" --conferir 2>&1 | em_linha)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  local saida
+  saida="$(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" 2>&1)" ||
+    { meow_erro "não consegui migrar o meow.conf: $saida"; return "$MEOW_ERRO"; }
+  [ -n "$saida" ] || return 0
+  meow_ok "$saida"
+  return "$MEOW_DIVERGENTE"
+}
+
 # OS CINCO QUE SAÍRAM DO `SEM_CONSERTO` NA P75 — 09/10/2026
 #   Ela: «O doctor não tem que avisar nada. Tem que corrigir.» Os cinco
 #   tinham conserto conhecido e o doctor devolvia a linha para ela rodar:
@@ -2098,9 +2127,10 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-# `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
+# `conf` não tem CRIAÇÃO própria de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
+# [P75, 09/10/2026: a MIGRAÇÃO, sim — ver o `chk_conf`.]
 # AS DEPENDÊNCIAS VÊM PRIMEIRO — P75, 09/10/2026. `pacotes` e `upstream`
 #   moravam no fim da lista, e o laço do `--consertar` anda na ordem dela: o
 #   Papirus e o papirus-folders chegavam DEPOIS do `completar` e do `pastas`
@@ -2122,9 +2152,12 @@ VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel jan
 #
 #   `cursor`, `cli`, `upstream`, `fontes` e `pacotes` saíram na P75 (ver o
 #   bloco do `fix_pacotes`); o `pacotes` volta quando a ponte não está no ar.
-SEM_CONSERTO=" conf ponte convertidos heroictema midiabin leiturabin patches "
+#
+#   `conf` saiu na mesma leva: o conserto dele é a migração (`fix_conf`),
+#   e a criação continua só no install.sh — o `fix_conf` sai 3 sem arquivo.
+SEM_CONSERTO=" ponte convertidos heroictema midiabin leiturabin patches "
 if ! meow_ponte_viva; then
-  SEM_CONSERTO=" conf ponte ocultar absolutos convertidos lancadorapt heroictema midiabin leiturabin patches pacotes "
+  SEM_CONSERTO=" ponte ocultar absolutos convertidos lancadorapt heroictema midiabin leiturabin patches pacotes "
 fi
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -2143,7 +2176,6 @@ fi
 #   pinado, e a regra dela é a do doctor que corrige; as razões do `cursor` e
 #   das `fontes` saíram com eles.]
 declare -A SEM_CONSERTO_RAZAO=(
-  [conf]="é o install.sh que cria"
   [ponte]="escrever em /etc/sudoers.d é decisão sua, com a senha na mão — rode: ./install.sh"
   [ocultar]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [absolutos]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
