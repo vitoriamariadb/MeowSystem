@@ -101,6 +101,32 @@ resgate que a Câmera veste). Os `sha256` foram medidos na cópia e conferidos
 contra a origem naquele dia, e nascem com a coluna `lido de` vazia. A tabela
 ficou com 367 linhas.
 
+**O resto de `current/` e os PNG feitos à mão entraram em 09/10/2026 (P73).**
+A auditoria daquele dia (`docs/pesquisas/2026-10-09-paridade-de-icones.md`,
+seção 3) mediu 175 desenhos Drácula próprios — sha256 fora do upstream, do
+Papirus, do pack, do motor e do tema — que só existiam em
+`Dracula_OS-Theme/src/icons/current/scalable/apps/`, fora da tela desde
+16/04/2026: nunca tiveram ligação no `mapping.json`, e a P36 trouxe só as
+ligações. Entraram **174** em `icones/biblioteca/`; o `calcdeirao.svg` ficou
+fora, porque é do projeto pessoal `Caldeirao` (a decisão 4 de
+`docs/sprints/2026-10-09-uso-real/02-decisoes.md`, pela regra de 23/09). Três
+mudaram de nome, e a linha de cada um diz por quê: `arcade-antigo.svg` e
+`box-antigo.svg` (a biblioteca já tinha um `arcade.svg` e um `box.svg`,
+desenhos diferentes) e `045-computer-game.svg` (o espaço do nome de origem não
+cabe numa linha de mapa). Três perderam o atributo `inkscape:export-filename`, que guardava a casa de quem os desenhou e não desenha nada (`SPEEDTEST.svg`, `chatons.svg`, `tromapps.svg`: o `validar` recusa o pack com `/home/<nome>/` escrito), e a linha guarda o sha256 da origem ao lado do da cópia. Dois são um PNG embutido num SVG
+(`gnome-remote-desktop.svg` e `skype-call-recorder.svg`), e a linha diz isso.
+Os **39 PNG** de `icones/feitos-a-mao/` são os desenhados à mão: os 38 únicos de
+`current/` (35 em `scalable/apps`, 3 em `48x48/apps-global`) e 1 dos 30 PNG do
+tema antigo congelado em 24/09 que não estava em `current/` (o `hplj1020.png`).
+Os outros 13 do tema antigo têm os mesmos bytes de `src/icons/projects/` — são
+os projetos pessoais, e ficaram fora pela mesma regra. Eles entram como PNG pela
+decisão 2 do mesmo dia (nada some), e cada um vira vetor num lote conferido por
+RMSE; até lá a ficha de ícone os mostra sem deixar escolher, porque raster não é
+fonte (`meow_icones_derivados`, no `lib/icones.sh`). Cada `sha256` foi medido na
+cópia e conferido contra a origem no mesmo dia, e a coluna `lido de` nasce
+vazia, como desde a P43. Com o `catalog.json` da biblioteca (P73 também, para a
+busca achar «alienígena»), a tabela ficou com 581 linhas.
+
 | arquivo | de onde | lido de | licença | copiado em | sha256 |
 |---|---|---|---|---|---|
 | `icones/apps/accessories-character-map.svg` | `m4thewz/dracula-icons`, ramo `circle` — `scalable/apps/accessories-character-map.svg` |  | GPL-3.0 | 2026-09-23 | `90a48589b3abafd55e33e38dba55154e0d03a19a7d7ec15182903a62386a0bcb` |
@@ -471,6 +497,219 @@ ficou com 367 linhas.
 | `icones/biblioteca/zombie-variant.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/zombie-variant.svg` |  | GPL-3.0 | 2026-09-23 | `b2f1c89ba3151eebf8667c0e7fe95dcd4385ba5c92d4067b59772d35a0ce24ce` |
 | `icones/biblioteca/zombie.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/zombie.svg` |  | GPL-3.0 | 2026-09-23 | `647264ce053bf02633e68856f2fb15520a919f378e037416bb47d1482924dc44` |
 | `icones/biblioteca/catalog.json` | `Dracula_OS-Theme` — `catalog.json` (o catálogo dos 295 de `src/icons/new-sessao-atual/`: descrição em português e etiquetas; commit `29b393b1`) |  | GPL-3.0 | 2026-10-09 | `1ab89bbcecbeecc6f1ff9cb7cab0d223306279d54120025ac5880a1051e4156d` |
+| `icones/biblioteca/005-potion.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/005-potion.svg` |  | GPL-3.0 | 2026-10-09 | `276a9419a0821df9ef4075a024527e8538dc77bb4178f9e0f3db8133f45b8345` |
+| `icones/biblioteca/007-mobile-game.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/007-mobile-game.svg` |  | GPL-3.0 | 2026-10-09 | `0de2bbe77fa164e82920051bc80aaa97a6f9745cd90b36e3ab8a7fb84703a63b` |
+| `icones/biblioteca/009-crystal-ball.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/009-crystal-ball.svg` |  | GPL-3.0 | 2026-10-09 | `e134592cc143cd3b93d68190404b70da05628bac621c32ce9b68f3b5fbf4b844` |
+| `icones/biblioteca/016-galaxy.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/016-galaxy.svg` |  | GPL-3.0 | 2026-10-09 | `07367fb9f391f39ba2fa9b14ad2f830d086a3ef1f1b82b9eef7bd3899ab51e34` |
+| `icones/biblioteca/020-halloween.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/020-halloween.svg` |  | GPL-3.0 | 2026-10-09 | `3285653a3f7a79ed6ecc44ba77ee578cf373f074b99d662bfb974e1113d4d6f0` |
+| `icones/biblioteca/026-building.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/026-building.svg` |  | GPL-3.0 | 2026-10-09 | `216c98316c1aa2db22aab1dc36995c4a7df94d9613b2d566502286c5ab1acdcd` |
+| `icones/biblioteca/030-lantern.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/030-lantern.svg` |  | GPL-3.0 | 2026-10-09 | `c877521834f45d10d3bff8faf69de671d668f456988dba9459c72e8113a286ce` |
+| `icones/biblioteca/040-scarecrow.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/040-scarecrow.svg` |  | GPL-3.0 | 2026-10-09 | `f23aa13c71f44dee020af782141ecaefa4d8cf306f854bb802f3c1442423c0c0` |
+| `icones/biblioteca/041-scroll.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/041-scroll.svg` |  | GPL-3.0 | 2026-10-09 | `90f8d0735e07cd123f6eaf64f5c5ca1b456b992f3c942ef417f1401210ead339` |
+| `icones/biblioteca/043-scythe.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/043-scythe.svg` |  | GPL-3.0 | 2026-10-09 | `e86866f2e0146fcab48816716d55263198ee7bbc0afac4f79862651f13a1f7d9` |
+| `icones/biblioteca/045-computer-game.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/045-computer game.svg`; com outro nome porque o espaço do nome não cabe numa linha de mapa |  | GPL-3.0 | 2026-10-09 | `beb379a0832348c9b426240e71ede30429ae3b7a7e02292c75914b292e9d308b` |
+| `icones/biblioteca/alpaca.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/alpaca.svg` |  | GPL-3.0 | 2026-10-09 | `31383e85903042a63e7dfa4148879bbbeb29a724c7af8c024d7fd0d2788a6568` |
+| `icones/biblioteca/app-launcher.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/app-launcher.svg` |  | GPL-3.0 | 2026-10-09 | `47fed1cb754ce6fb4359459e8aa0cb8bc97f8d2c4f71a924a7a2e697d7e117da` |
+| `icones/biblioteca/application-vnd.ms-cab-compressed.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/application-vnd.ms-cab-compressed.svg` |  | GPL-3.0 | 2026-10-09 | `9d4738af8dcfd3409da14561713eebce694c0aa7401d90635016d5ae2c562847` |
+| `icones/biblioteca/application-x-dreamcast-rom.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/application-x-dreamcast-rom.svg` |  | GPL-3.0 | 2026-10-09 | `b8bfa43eb2d86634d08e28746a9cff0078b2c1e1e2699e57f50e26118d39f095` |
+| `icones/biblioteca/application-x-genesis-rom.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/application-x-genesis-rom.svg` |  | GPL-3.0 | 2026-10-09 | `0a976958f9c2648bbe47a93d0efd967077f015590e3c64c8e7499a807579f745` |
+| `icones/biblioteca/arcade-antigo.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/arcade.svg`; com outro nome porque `icones/biblioteca/arcade.svg` já era outro desenho |  | GPL-3.0 | 2026-10-09 | `36b7a2a87887f3422bd6f0797c288bf0cfa2edc2f79113d5ac5a69639beb7ad4` |
+| `icones/biblioteca/AtomicGameEngine.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/AtomicGameEngine.svg` |  | GPL-3.0 | 2026-10-09 | `9f37ec5dc6c356551af885381eb0860aad92ed3cb732bb686ae91ff40cc15585` |
+| `icones/biblioteca/atoms.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/atoms.svg` |  | GPL-3.0 | 2026-10-09 | `8680d1cd7495a11b0969928b79598e7599c016cb4fe6c770b9d218000b0d848d` |
+| `icones/biblioteca/audio-volume-high-warning-symbolic.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/audio-volume-high-warning-symbolic.svg` |  | GPL-3.0 | 2026-10-09 | `12f428cb714e57e1b4f3ba24c28ecd4b995d1f4ea3099b580c29d56c8cdbd374` |
+| `icones/biblioteca/bad-marker.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/bad-marker.svg` |  | GPL-3.0 | 2026-10-09 | `617c285c5b848b2da1d7023307f5ef388e59588f76545847e3048b9fc049abaa` |
+| `icones/biblioteca/basex.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/basex.svg` |  | GPL-3.0 | 2026-10-09 | `af882e4af9011ab85d20b681101d4f02fb8aea7afff8693f8bd8a27852efa973` |
+| `icones/biblioteca/battery-030-charging-profile-performance.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/battery-030-charging-profile-performance.svg` |  | GPL-3.0 | 2026-10-09 | `9c4137b6075eb40b95e6d4503d03719150f23d5d30f564197d875a21404a4208` |
+| `icones/biblioteca/battery-080-charging-profile-balanced.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/battery-080-charging-profile-balanced.svg` |  | GPL-3.0 | 2026-10-09 | `54cd196e1c687d74387b57fdb7995aed03136919e0fca4fb2f6bc241ee2d9f10` |
+| `icones/biblioteca/battery-100-charging-profile-balanced.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/battery-100-charging-profile-balanced.svg` |  | GPL-3.0 | 2026-10-09 | `25d187521834cb4453d0c193e6b9f9b13f5fc3f75fe71a219ba8e61f6b4813e2` |
+| `icones/biblioteca/bibfilex.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/bibfilex.svg` |  | GPL-3.0 | 2026-10-09 | `8622d5bcda7e4bab8ca8fd2f95c97eb6239a68280634ea16e0909f9ecf7c0be5` |
+| `icones/biblioteca/bitshares-ui.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/bitshares-ui.svg` |  | GPL-3.0 | 2026-10-09 | `4854d09c03047f293ab2bb83461fd2f047ddc94eeb18ff0665d5910daaf7aa8d` |
+| `icones/biblioteca/blackbody.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/blackbody.svg` |  | GPL-3.0 | 2026-10-09 | `1ae39437d2d61a3dd3ecd54b646913bb20442c0a42e66db2e1308b82690354cb` |
+| `icones/biblioteca/blue-folder-system.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/blue-folder-system.svg` |  | GPL-3.0 | 2026-10-09 | `2421236f7219ef461cd89f1342d1f7c6ade2fd6248c0489f058107a5b67f6213` |
+| `icones/biblioteca/boilr.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/boilr.svg` |  | GPL-3.0 | 2026-10-09 | `2eb47af8fe435830686f2e86b5f0ff7d8169521e2edbc2d2a128e456921c2c6f` |
+| `icones/biblioteca/box-antigo.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/box.svg`; com outro nome porque `icones/biblioteca/box.svg` já era outro desenho |  | GPL-3.0 | 2026-10-09 | `1b188ef5ad5a5ea078a5486c3a9a34c7a2dc1244add79c5b98ba51a24ccbd6bd` |
+| `icones/biblioteca/braid.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/braid.svg` |  | GPL-3.0 | 2026-10-09 | `c7594e068936f2c2e9d7dae39b6708a5fba3856a5f92fa978f5a4b082ade2c66` |
+| `icones/biblioteca/briar.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/briar.svg` |  | GPL-3.0 | 2026-10-09 | `475d69f08ff61c740a19e380cdec0c64be376e3729727605c22fddeee441d693` |
+| `icones/biblioteca/brown-user-desktop.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/brown-user-desktop.svg` |  | GPL-3.0 | 2026-10-09 | `edfaef29e9fd4fd75011199fc709b28bd0e0dc4831200e2eb82f2f2fb702bf33` |
+| `icones/biblioteca/bspline.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/bspline.svg` |  | GPL-3.0 | 2026-10-09 | `ad7de5e14a75718ac6ca858fa70937eae23b1350093eb65597652e0a0996ca67` |
+| `icones/biblioteca/BTORRENT.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/BTORRENT.svg` |  | GPL-3.0 | 2026-10-09 | `ad47dbf902ed6d3b43576d4ba1bddedc7621f4bd8f3264baf4effd01a9502587` |
+| `icones/biblioteca/buhocms.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/buhocms.svg` |  | GPL-3.0 | 2026-10-09 | `33803b2b1d936d055f219389efed61c6a3eafb4c18b458de73c9117876335293` |
+| `icones/biblioteca/calendar-black-10.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/calendar-black-10.svg` |  | GPL-3.0 | 2026-10-09 | `43ae5e611aef79400a317627c42a784815b5f2f07e97675977703ffbdda89962` |
+| `icones/biblioteca/calendar-black-12.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/calendar-black-12.svg` |  | GPL-3.0 | 2026-10-09 | `8d95bfaac4c68689ae996e190a0eb01036a75203b1781879c869cb1f33788a54` |
+| `icones/biblioteca/calendar-blue-26.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/calendar-blue-26.svg` |  | GPL-3.0 | 2026-10-09 | `58231ac8e4e882c622956b8e41f9d116c91f630c397cf0d5b7202e4a2a30b03b` |
+| `icones/biblioteca/calendar-purple-11.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/calendar-purple-11.svg` |  | GPL-3.0 | 2026-10-09 | `cdd41074a88be47c4a57a948d879e09af570a583269bb202660d355f9193e03a` |
+| `icones/biblioteca/calendar-red-27.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/calendar-red-27.svg` |  | GPL-3.0 | 2026-10-09 | `021e320d2c91bd2d4086846401da77b63c06ca80f1b8830114aa2414976341c0` |
+| `icones/biblioteca/calligrastage.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/calligrastage.svg` |  | GPL-3.0 | 2026-10-09 | `3e4e6108f18d40d80b8d864613a3068a71cbf7426d0f2d40e4a3d829a6a8012b` |
+| `icones/biblioteca/calls.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/calls.svg` |  | GPL-3.0 | 2026-10-09 | `79089b9923eab34cc484b8db29da804dd73a6352bee61ce55f272fbaea952017` |
+| `icones/biblioteca/cartridges.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/cartridges.svg` |  | GPL-3.0 | 2026-10-09 | `39f857b0d9e3943db20edb699d61cf54ef9ffc071d8981cca848c931e13703f6` |
+| `icones/biblioteca/chatons.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/chatons.svg`; sem o atributo `inkscape:export-filename`, que guardava a casa de quem o desenhou (`/home/<nome>/…`) e não desenha nada — a origem tem sha256 `2bc3e80346a788f54128ff5254cd267b06ff182230b2fe8a2dc0d660e4e9338a` |  | GPL-3.0 | 2026-10-09 | `b91bdcb55f205f6dd799cd8e4750f2e314d3fde8f4c940ea6792ccf9596458a9` |
+| `icones/biblioteca/chrome-ieicmdpibfnjbmjolkmohnelljmjomoj-Default.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/chrome-ieicmdpibfnjbmjolkmohnelljmjomoj-Default.svg` |  | GPL-3.0 | 2026-10-09 | `197029630f9ce6c5eba3ed3342ea73e454e718668373a7a3451d5572c1ad4e5c` |
+| `icones/biblioteca/chrome-ofbpedjdfkboehhknoohhenbpmgcjoik-Default.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/chrome-ofbpedjdfkboehhknoohhenbpmgcjoik-Default.svg` |  | GPL-3.0 | 2026-10-09 | `e6193f6956e701451743707d87dfad94ab8875d5bafe23b540bf1d547adf7acd` |
+| `icones/biblioteca/cleaner.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/cleaner.svg` |  | GPL-3.0 | 2026-10-09 | `dca95f0b0263a5ffae8deab4de6b84a9c194a6c68393229d1500900f980ebc31` |
+| `icones/biblioteca/clima2.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/clima2.svg` |  | GPL-3.0 | 2026-10-09 | `60c2bf2b3ae4e1e95462e565741d368ca9ad32986f6dbffa091f29371601124a` |
+| `icones/biblioteca/com.github.bilelmoussaoui.Authenticator.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/com.github.bilelmoussaoui.Authenticator.svg` |  | GPL-3.0 | 2026-10-09 | `6663ef7e84cba7ec672ff254c29a990e2dd4beb4e3e550cbca201f45f5aa6188` |
+| `icones/biblioteca/com.github.freeeradicals.elements.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/com.github.freeeradicals.elements.svg` |  | GPL-3.0 | 2026-10-09 | `8adf6e2d906df17005b789383c6622adbe753c005b3a7351698186f7c3025e21` |
+| `icones/biblioteca/coolero.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/coolero.svg` |  | GPL-3.0 | 2026-10-09 | `d4f35b17059bac144ee91914051e885c5e555fb32e080579657dd27e9bee3395` |
+| `icones/biblioteca/cups-launcher.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/cups-launcher.svg` |  | GPL-3.0 | 2026-10-09 | `3a9e29fe0924623ad5c17cba89a46cadb468e0a96b0f8b3709a56ef3afb7c130` |
+| `icones/biblioteca/czkawka-gui.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/czkawka-gui.svg` |  | GPL-3.0 | 2026-10-09 | `7d5d8891e29b95d4695410716a42ff82c5a359867ee69eebede806f775a7bf05` |
+| `icones/biblioteca/dart.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/dart.svg` |  | GPL-3.0 | 2026-10-09 | `21c1a3dcc77ad491423686c51eb6f0ff2b433ed53531f8a4eae8833e79809ce6` |
+| `icones/biblioteca/dbeaver.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/dbeaver.svg` |  | GPL-3.0 | 2026-10-09 | `465a0d41390801e0a8e1de34394daa5231630ee65824c2a17ccb6557d4916965` |
+| `icones/biblioteca/dbt.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/dbt.svg` |  | GPL-3.0 | 2026-10-09 | `62d63733f9565d945078ad471e10366e228e3bca1365e4c7583adef1684d6cd2` |
+| `icones/biblioteca/deepin-deb-installer.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/deepin-deb-installer.svg` |  | GPL-3.0 | 2026-10-09 | `031a26bcda0d3024371b1896dccbaab0eaa775878cc56375b4985dbaf1ff2064` |
+| `icones/biblioteca/deepin-image-viewer.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/deepin-image-viewer.svg` |  | GPL-3.0 | 2026-10-09 | `db7ac43bd32d8720a055a7bcb2a2535708d9e0da8d643f2c75cddb85d852d956` |
+| `icones/biblioteca/default-folder-github.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/default-folder-github.svg` |  | GPL-3.0 | 2026-10-09 | `2f80ec942b83c1e7e60366f2ed53f16e388df8e3131ae83e33e228ec7da219ed` |
+| `icones/biblioteca/default-network-server.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/default-network-server.svg` |  | GPL-3.0 | 2026-10-09 | `e7278f074269a40dab2f63a2f39f12a31295299959bbe27f65b4c65fc154201b` |
+| `icones/biblioteca/diffpdf.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/diffpdf.svg` |  | GPL-3.0 | 2026-10-09 | `90316427d2e60092713c0e87e932ecf9083801cf86a62da8b589e8900a2fd7a3` |
+| `icones/biblioteca/discord.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/discord.svg` |  | GPL-3.0 | 2026-10-09 | `1669e445e3273665c9d01e367f74d089f1a45eac4c984d2620b6623ed97e1fb5` |
+| `icones/biblioteca/distccmon.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/distccmon.svg` |  | GPL-3.0 | 2026-10-09 | `ab53349cc4c87c4b06359b8e5820c727f6d1395be36258160421274f1e17d224` |
+| `icones/biblioteca/distributor-logo-lmde.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/distributor-logo-lmde.svg` |  | GPL-3.0 | 2026-10-09 | `c2f432dc8952ffa6b0facb28d9446d0a4bbacbd3d4416a5a8d1559bd26e9bd62` |
+| `icones/biblioteca/distributor-logo-nomadbsd.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/distributor-logo-nomadbsd.svg` |  | GPL-3.0 | 2026-10-09 | `59cc62e2b4ad118317634bfd8a19a5ae3f23a5a5dd4ea6eb65250dd0e785e28b` |
+| `icones/biblioteca/distributor-logo-quirky.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/distributor-logo-quirky.svg` |  | GPL-3.0 | 2026-10-09 | `07b77b6a396d0e764799606bc36f6d9a0e1db3596dfce46f8483968d39f1973e` |
+| `icones/biblioteca/distributor-logo-ubuntu-unity.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/distributor-logo-ubuntu-unity.svg` |  | GPL-3.0 | 2026-10-09 | `ec59f0a4c2f1fd602b59c303c66112467374d8b8f84e9ebbd6db4e31ed833a2f` |
+| `icones/biblioteca/distributor-logo-vanillaos.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/distributor-logo-vanillaos.svg` |  | GPL-3.0 | 2026-10-09 | `f2ba32827c9065cd7575e3d4071150e8c4978cc5d3e2d5de10b63c4bbe8063f2` |
+| `icones/biblioteca/dwarf-fortress.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/dwarf-fortress.svg` |  | GPL-3.0 | 2026-10-09 | `21ab8358531b9755830a340cacdae399b1f93942f6dbcffd2e1548e26937fd1f` |
+| `icones/biblioteca/easyssh.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/easyssh.svg` |  | GPL-3.0 | 2026-10-09 | `a24d82befa8ebb4f010502b47a96892cd25373b434bf198539e81f5d0e587b70` |
+| `icones/biblioteca/eddy.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/eddy.svg` |  | GPL-3.0 | 2026-10-09 | `5adf3e581fd44a61a3d92047b23945dd74bed1e9d10a8bb27d2e2ddfd64439d5` |
+| `icones/biblioteca/enteauth.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/enteauth.svg` |  | GPL-3.0 | 2026-10-09 | `b2eca6a7b98e91ab9d9a2e2e3b4bb798e6015f86404c01159c319af38a9a4f08` |
+| `icones/biblioteca/face-confused.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/face-confused.svg` |  | GPL-3.0 | 2026-10-09 | `db6b8d0b672cb42a2addd3f3e321ce7e6ed52296ce4db42df1a79ad7cc746020` |
+| `icones/biblioteca/gaiasky.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gaiasky.svg` |  | GPL-3.0 | 2026-10-09 | `c88de3b05cff32bf27c391b44bec3d0511be05a5cbf2bba78b55e4e1cfab44ce` |
+| `icones/biblioteca/gdevelop.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gdevelop.svg` |  | GPL-3.0 | 2026-10-09 | `028962653a5417a5e0832dc0622857e0c05c04794b5a017c1e3e8e0a94936425` |
+| `icones/biblioteca/gedit.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gedit.svg` |  | GPL-3.0 | 2026-10-09 | `662f13785fdb37ae644446431651bfdaae6ddf51a6024fb9dee239b1b8176970` |
+| `icones/biblioteca/ghostwriter2.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/ghostwriter2.svg` |  | GPL-3.0 | 2026-10-09 | `ac0293ea0518fc6db0403da13a48339caa414f6a132998401ddc2e385d2f4e46` |
+| `icones/biblioteca/github.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/github.svg` |  | GPL-3.0 | 2026-10-09 | `170ab6d393e38afc23193342c66b9dc0ae9d7042167815fb5b2d2dfb5bcfcfd8` |
+| `icones/biblioteca/glimpse.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/glimpse.svg` |  | GPL-3.0 | 2026-10-09 | `7045d0548b40990ded013307c9068b14a4a41e32ca36aecf73aa5681e260f653` |
+| `icones/biblioteca/gnome-design-vectorslicer.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gnome-design-vectorslicer.svg` |  | GPL-3.0 | 2026-10-09 | `c921f6369779e1ffd99114e602823d5091683cfff92db9ba56110b314bf97398` |
+| `icones/biblioteca/gnome-remote-desktop.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gnome-remote-desktop.svg`; é um PNG embutido num SVG, e não vetor |  | GPL-3.0 | 2026-10-09 | `9b3f29075e4292f73b7460868d41622747b3e235fc794d8d9249e11c62ca5dca` |
+| `icones/biblioteca/green-qt.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/green-qt.svg` |  | GPL-3.0 | 2026-10-09 | `bb4f7f511deffbb9122c7a2a79e00ec553ed290b793cc6061db6c62b076e786f` |
+| `icones/biblioteca/gucview.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gucview.svg` |  | GPL-3.0 | 2026-10-09 | `cc23195d5e32f240772b55b3232a2b0a32dfe37df4847c78c1c94457dd6d9999` |
+| `icones/biblioteca/halftone.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/halftone.svg` |  | GPL-3.0 | 2026-10-09 | `07c0b4d1b97bf1ef0dc4cafe1d292ee41a2a2ed28dc18d584c5d421eb7eb79ac` |
+| `icones/biblioteca/hardinfo.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/hardinfo.svg` |  | GPL-3.0 | 2026-10-09 | `9304939edbb4697e6a4a9736745e035569a259e07d55dcc398098cabd812aa56` |
+| `icones/biblioteca/i-score.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/i-score.svg` |  | GPL-3.0 | 2026-10-09 | `c23dd9bd14eff4ff399fbc5bd5074cbea41c785d271c5d06b7a4a39744c3d18d` |
+| `icones/biblioteca/iaito.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/iaito.svg` |  | GPL-3.0 | 2026-10-09 | `94dbc4dc8660b8a6748e0686ca0a1b11aa41854efe0d74600aa2107965dd9fc5` |
+| `icones/biblioteca/ic_light_enpass.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/ic_light_enpass.svg` |  | GPL-3.0 | 2026-10-09 | `39ad300d93605363453797d877f42233ee84c315a6e05df4ba9772cde0717608` |
+| `icones/biblioteca/ignition.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/ignition.svg` |  | GPL-3.0 | 2026-10-09 | `ecdb2c415512c639c2f0dadcce70b51ad2fcb75efe12ab04f2c67fb13d2f6b93` |
+| `icones/biblioteca/image-aseprite.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/image-aseprite.svg` |  | GPL-3.0 | 2026-10-09 | `d74194cece5a6bc259d176ceef4b0207ed62605d0e37caf79425f7274d8a0683` |
+| `icones/biblioteca/io.github.dvlv.boxbuddyrs.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/io.github.dvlv.boxbuddyrs.svg` |  | GPL-3.0 | 2026-10-09 | `ca5d0581c7896f0650eca2aea50d73f12514385cee150ce75ffcb20c4aa46d8b` |
+| `icones/biblioteca/iotas.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/iotas.svg` |  | GPL-3.0 | 2026-10-09 | `32f8332e740c7bf663d31ef8be7c33b69b83ce8dec6ffab977c4a913cd78fcd9` |
+| `icones/biblioteca/jogos.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/jogos.svg` |  | GPL-3.0 | 2026-10-09 | `0e998890dc7f7b22bf8fc4d3fe12400eb1e7c7227cd2c6b74e7b765467eb3830` |
+| `icones/biblioteca/jupyter.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/jupyter.svg` |  | GPL-3.0 | 2026-10-09 | `5b55f5ec8d4c08a510bd0a9493e4d988e39e34d56307a7e3fbf1800936e8202e` |
+| `icones/biblioteca/Kazam.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/Kazam.svg` |  | GPL-3.0 | 2026-10-09 | `d34e79a3d5c4e67bf954ca1270ebbbabc453a0a1b6c0871e5891abc3f810bfe8` |
+| `icones/biblioteca/kongress.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/kongress.svg` |  | GPL-3.0 | 2026-10-09 | `6e83333f70b39cb4877efbfcdd9ee90ab7d59728766a47a72a55f55538fa910d` |
+| `icones/biblioteca/latex.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/latex.svg` |  | GPL-3.0 | 2026-10-09 | `1675d954f14bac3b5e0d4964aecdf17b13dfc3ebf6a2f1ef74411c1fa4de093b` |
+| `icones/biblioteca/LogAnalyzer.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/LogAnalyzer.svg` |  | GPL-3.0 | 2026-10-09 | `168d708f3a0825d7cbc62e1f80bb3c80e91badc8e856b687fe583f5f42e0a4ad` |
+| `icones/biblioteca/logo-dat-desktop.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/logo-dat-desktop.svg` |  | GPL-3.0 | 2026-10-09 | `f43a3b0b870124729f9c09342673f7af4c38614e22254cb531787efa8964b12f` |
+| `icones/biblioteca/lunarvim.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/lunarvim.svg` |  | GPL-3.0 | 2026-10-09 | `ccade347e60cc9e11f0ae29abf8d1724ed91a96e08e33fecb71efc250ba06284` |
+| `icones/biblioteca/luppp.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/luppp.svg` |  | GPL-3.0 | 2026-10-09 | `6a86742ca382cb594e30e7c2ca2044e61fbdd8109014bdba2c39d51771996a0b` |
+| `icones/biblioteca/manta.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/manta.svg` |  | GPL-3.0 | 2026-10-09 | `1e0682abbdc16f41dfd40a0931a2c9832672f3aca70a46c6d9b484634af5f187` |
+| `icones/biblioteca/minimal-podcasts-player.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/minimal-podcasts-player.svg` |  | GPL-3.0 | 2026-10-09 | `fc31a3057072c8be46b908c00b4ec27e521bcfbb5bcd7df06a349dbd509f238c` |
+| `icones/biblioteca/minuet-rhythms.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/minuet-rhythms.svg` |  | GPL-3.0 | 2026-10-09 | `dc0a683b8fa3b56fea868c53953aa8a73f67fa714ef126f6b487c2988e5d43b5` |
+| `icones/biblioteca/mirrorhall.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/mirrorhall.svg` |  | GPL-3.0 | 2026-10-09 | `829b7810b27796cb4de21a2de6ec8d95a1f9f3eb0184c1689ca02098bd2428e6` |
+| `icones/biblioteca/ms-teams.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/ms-teams.svg` |  | GPL-3.0 | 2026-10-09 | `cbdd23ce1bfe5d9b5f5e4a5c22296d574972d9300967aed1a8391923d477f9e9` |
+| `icones/biblioteca/musictube.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/musictube.svg` |  | GPL-3.0 | 2026-10-09 | `d4552d6cf7664bf1ad5eaa33d8baebbfa4755d6f030fa4f61eac000042d128bd` |
+| `icones/biblioteca/network-mobile-20-edge-locked.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/network-mobile-20-edge-locked.svg` |  | GPL-3.0 | 2026-10-09 | `02146f6712931c571f9fb4685c69e781423128632845d9499cf296daee16b6af` |
+| `icones/biblioteca/network-mobile-20-lte.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/network-mobile-20-lte.svg` |  | GPL-3.0 | 2026-10-09 | `3a0bd19f0881df2a66fdda71e99a52cdc012f775d9dfca0c0db784d5915ce651` |
+| `icones/biblioteca/network-mobile-60-edge.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/network-mobile-60-edge.svg` |  | GPL-3.0 | 2026-10-09 | `845ac8318ff1ef8302576df285e4800c86a8df9070c518260c14e8c9d6ff032b` |
+| `icones/biblioteca/network-wireless-80-limited-symbolic.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/network-wireless-80-limited-symbolic.svg` |  | GPL-3.0 | 2026-10-09 | `a87fd244602f73192bc339731c19ed3b3dbcfae117814b2660a4b5ec637732d0` |
+| `icones/biblioteca/noisetorch.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/noisetorch.svg` |  | GPL-3.0 | 2026-10-09 | `53d33c5d9849bb68e61eed31cbb6b7ba3bd63075180cb1fb7bfba35dbc05e248` |
+| `icones/biblioteca/nuclear.png.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/nuclear.png.svg` |  | GPL-3.0 | 2026-10-09 | `ee7d097f28a840a96e1e0cd2faa92e87b2a55a69cd5950eff6110d57c3983391` |
+| `icones/biblioteca/org.gnome.Terminal.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/org.gnome.Terminal.svg` (mesmos bytes de `com.system76.CosmicTerm.svg`) |  | GPL-3.0 | 2026-10-09 | `75c1fc13d733666c8281c04a8a30b23bd25e989d931ca3a82eab659efc34bf3d` |
+| `icones/biblioteca/org.kde.kompare.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/org.kde.kompare.svg` |  | GPL-3.0 | 2026-10-09 | `bf364ab9bb3bf7f1d5b9f66e073fc69acb7d33ef9a8216ab337d9d9486b58d9f` |
+| `icones/biblioteca/paisa.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/paisa.svg` |  | GPL-3.0 | 2026-10-09 | `678baccb12369be6919bca2ae3a71f2807721c31e3a728db6dd2c3ccd8480d8c` |
+| `icones/biblioteca/picsaw.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/picsaw.svg` |  | GPL-3.0 | 2026-10-09 | `8499495b3a76f51a132739309005648fb56d66668b0409535208cc1b59fdc0f7` |
+| `icones/biblioteca/pink-folder-gradle.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/pink-folder-gradle.svg` |  | GPL-3.0 | 2026-10-09 | `feb7ee36dcda28f36a17e715e5f3cf60e7ad64d5c829bc6d1c0978a8172dd69a` |
+| `icones/biblioteca/plasmavault.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/plasmavault.svg` |  | GPL-3.0 | 2026-10-09 | `3688746e44c4757b965930addb55db6db8a8c8925345761e206bec75708b29bf` |
+| `icones/biblioteca/preferences-desktop-display-color.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/preferences-desktop-display-color.svg` |  | GPL-3.0 | 2026-10-09 | `68291770e06c18662f0563eed61b8db21dcc175ad7bfc3ae7fad3845db6a2bca` |
+| `icones/biblioteca/proton-mail.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/proton-mail.svg` |  | GPL-3.0 | 2026-10-09 | `ce870f23bd110f457a850f6a018d6adca7e8070eb408f9f1ce5a687ea0e72706` |
+| `icones/biblioteca/purple-folder-script.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/purple-folder-script.svg` |  | GPL-3.0 | 2026-10-09 | `67bca39f4665e0be0c911c756c12946a14e6ed8317ae9bc139d157b4bd1ee668` |
+| `icones/biblioteca/PySimpleCV.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/PySimpleCV.svg` |  | GPL-3.0 | 2026-10-09 | `547ae979eb91c5fbb4e98525ad8c3337e1d4c98f7b66f76de48193a7f3cdb8fd` |
+| `icones/biblioteca/pyspread.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/pyspread.svg` |  | GPL-3.0 | 2026-10-09 | `8ed2efa9d6f258f96d78c737c4681b01bc44a711c659d7fcec7edc0e9b11e87e` |
+| `icones/biblioteca/python-idle.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/python-idle.svg` |  | GPL-3.0 | 2026-10-09 | `4aa3db5fe0c4cf71df45145d97de4a3ae3d36fb7236a8326a5e29fa22066fa22` |
+| `icones/biblioteca/python.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/python.svg` |  | GPL-3.0 | 2026-10-09 | `5289429a6fc7d2dca1539b1484b82a0605687cae71ba8ec3dfe77880647acbf5` |
+| `icones/biblioteca/qcanvas.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/qcanvas.svg` |  | GPL-3.0 | 2026-10-09 | `96c77d6152a2f40d19cb99b8066dd6e316af8221c473c3ad73f6639c8eee4ff5` |
+| `icones/biblioteca/qgifer.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/qgifer.svg` |  | GPL-3.0 | 2026-10-09 | `1cf3ce86e34d9d76c4a579003e3418b36260787efffc8a0b0cd7baba679bddba` |
+| `icones/biblioteca/readitlater.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/readitlater.svg` |  | GPL-3.0 | 2026-10-09 | `a2b006dea41dc947d264c14da3779295df5264d13cc1a962e0420397cc142847` |
+| `icones/biblioteca/recordbox.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/recordbox.svg` |  | GPL-3.0 | 2026-10-09 | `2740d4b5bd10cca9027c9892f4183aa8fde096ca965c380b5bb1c8317348932e` |
+| `icones/biblioteca/red-folder-video.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/red-folder-video.svg` |  | GPL-3.0 | 2026-10-09 | `16c0bc3ac60d8142901bf3229ce52f196835d01315efbafb9122bf6cd3407595` |
+| `icones/biblioteca/rede.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/rede.svg` |  | GPL-3.0 | 2026-10-09 | `9994285574313ab1e55c36b5b2ae6466e626f5d4fafce2774095131bb75553f9` |
+| `icones/biblioteca/retro.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/retro.svg` |  | GPL-3.0 | 2026-10-09 | `ddb205568653f15f31907aa4755bbb661b940042fdc3d50feb109f03a2c032e7` |
+| `icones/biblioteca/rhb.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/rhb.svg` |  | GPL-3.0 | 2026-10-09 | `b2a48aed8be29a33fba66d598b4ce9c4da35f12e0b321156c7519eecf0fc5a9d` |
+| `icones/biblioteca/sigviewer.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/sigviewer.svg` |  | GPL-3.0 | 2026-10-09 | `1af775abe42876d4b307efb798d18c84a69d611acb6c6cd9499ce198f3666348` |
+| `icones/biblioteca/siliconsneaker.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/siliconsneaker.svg` |  | GPL-3.0 | 2026-10-09 | `e13f11abd3caca5a0137bb0ec68f7d97f42664ea26dcf9684af426f690d57ba7` |
+| `icones/biblioteca/skype-call-recorder.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/skype-call-recorder.svg`; é um PNG embutido num SVG, e não vetor |  | GPL-3.0 | 2026-10-09 | `a6c641be40fa269bf23ee6ab17f868e87ae12b4e116e0c7dc9acfbf8739bb2f1` |
+| `icones/biblioteca/slack.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/slack.svg` |  | GPL-3.0 | 2026-10-09 | `a0f4d8f4ed00457aa89fdffca08370f6221bcdfd2381e8d40aa76332e8ba50f1` |
+| `icones/biblioteca/slimbook.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/slimbook.svg` |  | GPL-3.0 | 2026-10-09 | `c0727e9152a5904092101beb9c0b9c28e057aeb3c01461df8e9a2366a31f1f87` |
+| `icones/biblioteca/spacestation14.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/spacestation14.svg` |  | GPL-3.0 | 2026-10-09 | `5d08fff9ff0b5d26ddc7aa1a8d3548f4cf5ac6d25483bb0d8eae8ca686a3183f` |
+| `icones/biblioteca/SPEEDTEST.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/SPEEDTEST.svg`; sem o atributo `inkscape:export-filename`, que guardava a casa de quem o desenhou (`/home/<nome>/…`) e não desenha nada — a origem tem sha256 `fec959aa8e621975b3684637bae886ffb92c26c37e2cd7a0355fadf8b214241d` |  | GPL-3.0 | 2026-10-09 | `77af003d6b83090ed955f4e45be3231e7ec20daf274c43418bdf57410e7a9074` |
+| `icones/biblioteca/spring.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/spring.svg` |  | GPL-3.0 | 2026-10-09 | `54d77bf280a0c1abcd7aa7853653f098a9975b075f9b84b9ab35245d86884a37` |
+| `icones/biblioteca/steam_icon_1250.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_1250.svg` |  | GPL-3.0 | 2026-10-09 | `357b06f79c80f86756d6e0271ac2d346fda3f0403a0688d551a41b59314fe62a` |
+| `icones/biblioteca/steam_icon_241600.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_241600.svg` |  | GPL-3.0 | 2026-10-09 | `562ad82eeef877167ec3fa6738f38bbb771437cb35404e93bd9501885ffcb8ee` |
+| `icones/biblioteca/steam_icon_265930.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_265930.svg` |  | GPL-3.0 | 2026-10-09 | `c46e711d829a88915e4f5d54d1c4fcc3119cd5d2bb43eeb35991b1b245c34dcc` |
+| `icones/biblioteca/steam_icon_304930.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_304930.svg` |  | GPL-3.0 | 2026-10-09 | `90e6784e8cfc2c76ff29d657175144307de228be5e132edc22956125b5c65191` |
+| `icones/biblioteca/steam_icon_308420.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_308420.svg` |  | GPL-3.0 | 2026-10-09 | `6fdfdca5c1d6bd16fe85106dfc63a91db1158455aaee676e28cb17e18634f6e5` |
+| `icones/biblioteca/steam_icon_356570.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_356570.svg` |  | GPL-3.0 | 2026-10-09 | `7e8ba56f6f969b684ae1acb21873e5ff26707b71045726b2d9e2b039f02bd769` |
+| `icones/biblioteca/steam_icon_38740.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_38740.svg` |  | GPL-3.0 | 2026-10-09 | `10348a8ff5d18b823b4e0ebe912dea641b293c5512fb8d6bb62c0220ce7f5350` |
+| `icones/biblioteca/steam_icon_400020.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_400020.svg` |  | GPL-3.0 | 2026-10-09 | `6c5851a93952236e76c7bf126fb8931138dcd72d119f013f6e9e9de00b860d1c` |
+| `icones/biblioteca/steam_icon_435530.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_435530.svg` |  | GPL-3.0 | 2026-10-09 | `647b261d7b5557b2b1a1d418e239695e9baf589843f6a24bcbe02870eed615fd` |
+| `icones/biblioteca/steam_icon_457760.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_457760.svg` |  | GPL-3.0 | 2026-10-09 | `4c5280b3cd457adfd8014a6376d7de26e1853c994ac01cd49d7f6e49a0f0fb0f` |
+| `icones/biblioteca/steam_icon_514900.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_514900.svg` |  | GPL-3.0 | 2026-10-09 | `b788024873a8dd9df540765dbd4f4846e5cad258f661fd12110adb6fbbe5a4f6` |
+| `icones/biblioteca/steam_icon_524220.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_524220.svg` |  | GPL-3.0 | 2026-10-09 | `943efafac216a9862bb6efd47e361a16f60fb05ccff9c9dd8faa0b6bbb06cded` |
+| `icones/biblioteca/steam_icon_552620.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_552620.svg` |  | GPL-3.0 | 2026-10-09 | `d3ca64b937b91f3bcb91c7e22daf14c3ac117745ba78fd5c73e2129c5bb38f28` |
+| `icones/biblioteca/steam_icon_607260.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_607260.svg` |  | GPL-3.0 | 2026-10-09 | `8d73b162b6d28911eef6a892eb5055fdc7378e4797c99263aa0a1ca59080586f` |
+| `icones/biblioteca/steam_icon_65980.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_65980.svg` |  | GPL-3.0 | 2026-10-09 | `580d5c3c437134f6edca328439596a7ad4440bfb6300b890719c27836c7cbf6c` |
+| `icones/biblioteca/steam_icon_953490.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/steam_icon_953490.svg` |  | GPL-3.0 | 2026-10-09 | `e3e05e3c2fa1a01762ab1c3bc4210a7a4686c915ff665c3477dd825fd5d106b4` |
+| `icones/biblioteca/system-suspend-inhibited.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/system-suspend-inhibited.svg` |  | GPL-3.0 | 2026-10-09 | `a3cdae50ad262a860f41c7613dccf0dd5a246cb8142bfbb52f85c5f01d0fbdfd` |
+| `icones/biblioteca/tauno-plotter.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/tauno-plotter.svg` |  | GPL-3.0 | 2026-10-09 | `12b3da67632364f7851c126da1dec78362525890a28fa70b5c1371024444de6e` |
+| `icones/biblioteca/timetrack.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/timetrack.svg` |  | GPL-3.0 | 2026-10-09 | `d8b405838e575cb9791557620d67be397a74f21d7aa07fbd731095882b02fa3f` |
+| `icones/biblioteca/top-power-off-icon.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/top-power-off-icon.svg` |  | GPL-3.0 | 2026-10-09 | `d0af4747267af4a9ee84fb7dae726459301fac52c5d07389247ace518d2a798b` |
+| `icones/biblioteca/tromapps.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/tromapps.svg`; sem o atributo `inkscape:export-filename`, que guardava a casa de quem o desenhou (`/home/<nome>/…`) e não desenha nada — a origem tem sha256 `55071bb9f5bf87d851ae6c553ad99de9a8b9c1d587f7bc157f0e17a986c76212` |  | GPL-3.0 | 2026-10-09 | `7aca833116fbcbd772f80492f49855c8f5863559387a65effb9c9781eb0cf77f` |
+| `icones/biblioteca/ultrastardx.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/ultrastardx.svg` |  | GPL-3.0 | 2026-10-09 | `7697a82e9c3f400820f4397cb71f50327ce8f77202ad42608a25eb3e72f46162` |
+| `icones/biblioteca/upnp-router-control.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/upnp-router-control.svg` |  | GPL-3.0 | 2026-10-09 | `0e28e37dd15f28fa544d3ee59bc92317daabcd7ccf528aedc990d48b08ce58d7` |
+| `icones/biblioteca/vnclicensewiz.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/vnclicensewiz.svg` |  | GPL-3.0 | 2026-10-09 | `1c20a99bf097964e83f8a37b76e3f3cd67eefe79e763036bda36cd2b90d5813a` |
+| `icones/biblioteca/whatsapp.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/whatsapp.svg` |  | GPL-3.0 | 2026-10-09 | `de7ef3558ac12718507ebbd886bf1697d7df1133b166122c0a63c3559b77be3b` |
+| `icones/biblioteca/window-pop-out.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/window-pop-out.svg` |  | GPL-3.0 | 2026-10-09 | `65b92cb91486e423f0d0d22f11e54b8ee6820c4834ed58696a9f3c2ad34e3e7a` |
+| `icones/biblioteca/workspace-switcher-symbolic.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/workspace-switcher-symbolic.svg` |  | GPL-3.0 | 2026-10-09 | `b9ef58c60eaf602fc05789300133326b6d73c478a0e4708b51b0f8e182b653b0` |
+| `icones/biblioteca/wrapbox.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/wrapbox.svg` |  | GPL-3.0 | 2026-10-09 | `d9bbe59995fd8913f9c7645097d5375a6c6ef48842381d29339535ca5703fe84` |
+| `icones/biblioteca/xfce-system.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/xfce-system.svg` (mesmos bytes de `system_section.svg`) |  | GPL-3.0 | 2026-10-09 | `053d1604e9519fdd6d81efc85c121e6e89b3f1eea74c327b8869abb7a29017e2` |
+| `icones/biblioteca/xtactics.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/xtactics.svg` |  | GPL-3.0 | 2026-10-09 | `76531e5194bfcb8b9be00200907869c4fbbf287707c2c97dd9b6ed787cacb836` |
+| `icones/feitos-a-mao/Antigravity.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/Antigravity.png` |  | GPL-3.0 | 2026-10-09 | `5126588073f18c9dd6db59ed9a07872ca773520db6e886b9e6651c4af1f4e226` |
+| `icones/feitos-a-mao/Easy-Effects.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/Easy Effects.png`; o nome mudou para caber numa linha de mapa |  | GPL-3.0 | 2026-10-09 | `8b305c1392d47c7b8bf0d7c8e0246ecefa51dfaf8c84eee8c27f88cac7a5e898` |
+| `icones/feitos-a-mao/FileZilla.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/FileZilla.png` |  | GPL-3.0 | 2026-10-09 | `d527c62329865ef3fe5533068f381e0130b85e67e03abe789ea1470e830abea0` |
+| `icones/feitos-a-mao/Heroic-Games-Launcher.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/Heroic Games Launcher.png`; o nome mudou para caber numa linha de mapa |  | GPL-3.0 | 2026-10-09 | `cbc053c80d212b44ce6ff16ceb5528a8933da59e2e156b9c8c8c8fb327978d49` |
+| `icones/feitos-a-mao/Tweaks.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/Tweaks.png` |  | GPL-3.0 | 2026-10-09 | `0833c26dd15844eb695400027dd344b8d8405e4382ffe259f62cd9e0cec0b695` |
+| `icones/feitos-a-mao/box-buddy.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/box-buddy.png` |  | GPL-3.0 | 2026-10-09 | `8d2e773ae84bfe58bb7ad81dde0c38fa0a5da0dce29a3fa307d497b25e7ce243` |
+| `icones/feitos-a-mao/calculadora.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/calculadora.png` |  | GPL-3.0 | 2026-10-09 | `7bbeb7a9ebc7ede3ba959d9226bf812f8a9f1fbe94885280d8dd44217294e712` |
+| `icones/feitos-a-mao/calendario.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/calendário.png`; o nome mudou para caber numa linha de mapa |  | GPL-3.0 | 2026-10-09 | `853c192a93bf7ef9e8a2d58e91894d6ba526c7cf90ccca81ffeb8f27103caffe` |
+| `icones/feitos-a-mao/camera.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/camera.png` |  | GPL-3.0 | 2026-10-09 | `c5f31a6df32af8d34bb66b510bf9606d5533de1199177583e6023b21e3af74e9` |
+| `icones/feitos-a-mao/cheese.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/cheese.png` |  | GPL-3.0 | 2026-10-09 | `49920b0c2c299096e92c574ef9f30161d7fef65d73a4e80dc43cad840b7c561f` |
+| `icones/feitos-a-mao/citrix.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/citrix.png` |  | GPL-3.0 | 2026-10-09 | `0a4957018e3382c34513db2207c385f13657b5f26b2b2e8c35011e39430330cd` |
+| `icones/feitos-a-mao/clapper.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/clapper.png` |  | GPL-3.0 | 2026-10-09 | `d17012a35eb1656505dca92fdd7154262b9d5a1291a30c7fb0cec8c0da200f3f` |
+| `icones/feitos-a-mao/com.system76.CosmicSettings.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/com.system76.CosmicSettings.png` |  | GPL-3.0 | 2026-10-09 | `1ba596c0e3e4a2ca65f401d2bdfb8c76d733498ea95f9ea7e47b5aa754f73e8f` |
+| `icones/feitos-a-mao/dbeaver.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/dbeaver.png` |  | GPL-3.0 | 2026-10-09 | `dc297ee8083deba78b6935b5fe6cc09661d87e7db80b4e8b634a668166c163af` |
+| `icones/feitos-a-mao/discord.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/discord.png` |  | GPL-3.0 | 2026-10-09 | `ab1d1d26e6d10422edcf6513b6826d51cbebd2e97ee290f1912ac6370c14e3ee` |
+| `icones/feitos-a-mao/edge.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/edge.png` |  | GPL-3.0 | 2026-10-09 | `479760d3e460ca5c35bd5b7d5911882bf9fc64c56d2793fcfd9f690d62764ea8` |
+| `icones/feitos-a-mao/firefox.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/firefox.png` |  | GPL-3.0 | 2026-10-09 | `aa0904456835e915ffe60853020856dbb6e977d4644ecf870bd05392c47f484b` |
+| `icones/feitos-a-mao/flatseal.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/flatseal.png` |  | GPL-3.0 | 2026-10-09 | `818a9353aec97e6561ba97cbfbb7911a501a199593ffca358a19819db813a280` |
+| `icones/feitos-a-mao/gerenciador-de-extensoes.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gerenciador-de-extensoes.png` |  | GPL-3.0 | 2026-10-09 | `6b875d6ee9bcc148cdbfeaea553987dc594ea8434a10960262b8dc835399c4eb` |
+| `icones/feitos-a-mao/gerenciador-de-menu.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gerenciador-de-menu.png` |  | GPL-3.0 | 2026-10-09 | `cb622c0b6e17a0eacd565770ef0b6607bdfeee566c0c1c9716fff91d51371924` |
+| `icones/feitos-a-mao/gimp.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gimp.png` |  | GPL-3.0 | 2026-10-09 | `4a017153f367c023b29f22039a42d9590bd99471b2ac692a08123d919f474661` |
+| `icones/feitos-a-mao/gnome-folder.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gnome-folder.png` |  | GPL-3.0 | 2026-10-09 | `71735a16feb0cb3d57702558b2f416fb3d928c7f63d9cf833cce678c12bfe406` |
+| `icones/feitos-a-mao/gparted.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gparted.png` |  | GPL-3.0 | 2026-10-09 | `2ff2033b25eff9377c7444124c2dbb4f12b37fd6abd4ae22d42652f8eadf1694` |
+| `icones/feitos-a-mao/gradia.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/gradia.png` |  | GPL-3.0 | 2026-10-09 | `ddec7ad2f5f7a43c5172b205ad7c0d7d8009371ff1b7b3883efe6ea44ae3bef1` |
+| `icones/feitos-a-mao/krita.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/krita.png` |  | GPL-3.0 | 2026-10-09 | `55728bdc2f7a69d927ff990db89b7cd3af9a4a4ab02841267f5880e4c3a2409c` |
+| `icones/feitos-a-mao/linux-toys.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/linux-toys.png` |  | GPL-3.0 | 2026-10-09 | `5c3c3b02f5093c371970fc245f680552639687aa0d994eea2e8c8b4af801b3a8` |
+| `icones/feitos-a-mao/obs-studio.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/obs-studio.png` |  | GPL-3.0 | 2026-10-09 | `2bcfd1a4427ad06f249bf24a1f4d377c315cada7a65086af1568589732341f77` |
+| `icones/feitos-a-mao/obsidian.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/obsidian.png` |  | GPL-3.0 | 2026-10-09 | `03f6930f6935331a75a3bd596a3415d5a6ae78e03ed7a1e61647017911f474db` |
+| `icones/feitos-a-mao/opera.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/opera.png` |  | GPL-3.0 | 2026-10-09 | `2b04f4c0af6c87268add74562005d05d3a37a6b4986bb4ad0df2cd61f84e7fcf` |
+| `icones/feitos-a-mao/spotify.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/spotify.png` |  | GPL-3.0 | 2026-10-09 | `f45bca5ab42f2b78254ca278d2e2850d9de469333314dd2d157f23606d287c14` |
+| `icones/feitos-a-mao/visalizador-de-imagens.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/visalizador-de-imagens.png` |  | GPL-3.0 | 2026-10-09 | `5f541fc13af6e44e92412f1f8ae6a79451b7886d9d9924cd9b71bcfd954c18b7` |
+| `icones/feitos-a-mao/vscode.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/vscode.png` |  | GPL-3.0 | 2026-10-09 | `05cd67998b862adb129e7cd7377deae00ca28cfd5fefa07935664a4323ef5054` |
+| `icones/feitos-a-mao/warehouse.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/warehouse.png` |  | GPL-3.0 | 2026-10-09 | `a9c0b3e073e71a41219dc851a322c732f8916f385edb8e1a1771e6f7510ca161` |
+| `icones/feitos-a-mao/weylus.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/weylus.png` |  | GPL-3.0 | 2026-10-09 | `99df79541158868908ff401cd68acba0f0ce637aea9e0f86735e0878623d6937` |
+| `icones/feitos-a-mao/whatsapp.png` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/whatsapp.png` |  | GPL-3.0 | 2026-10-09 | `4b81059777ac5d37f876f736a8fe2cf65d34a6368436471225c515df6868a446` |
+| `icones/feitos-a-mao/Clapper.png` | `Dracula_OS-Theme` — `src/icons/current/48x48/apps-global/Clapper.png` |  | GPL-3.0 | 2026-10-09 | `c2d989baf85e5e65f99b4e7f962e887aa265a5aab2dc87e5b7d21f0b1863ff32` |
+| `icones/feitos-a-mao/demo-general2018.png` | `Dracula_OS-Theme` — `src/icons/current/48x48/apps-global/demo-general2018.png` |  | GPL-3.0 | 2026-10-09 | `59c4046ebf70ee930547ba3ab1dd93138ff2fad59818d0ef46c98f97110ed4c2` |
+| `icones/feitos-a-mao/gimp-48.png` | `Dracula_OS-Theme` — `src/icons/current/48x48/apps-global/gimp.png`; o nome mudou para caber numa linha de mapa |  | GPL-3.0 | 2026-10-09 | `2e56ac7ed1ef8b568d909b2fdb1293f177e4b272b0e7de41484c3749cdcb3390` |
+| `icones/feitos-a-mao/hplj1020.png` | o tema antigo `Dracula-Icones`, na cópia congelada de 24/09/2026 (`~/.local/state/meowsystem/backups/2026-09-24T03-50-20-copias-congeladas-dracula/`) — `scalable/apps/hplj1020.png` |  | GPL-3.0 | 2026-10-09 | `d74318b1532ed72064dbe6c30cf63325b58b77f1f83e1c69c685dbc40807d909` |
 
 ### Onde cada origem foi reencontrada — e a diferença com o `CREDITOS.md`
 
