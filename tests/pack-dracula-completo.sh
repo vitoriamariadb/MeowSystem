@@ -425,6 +425,13 @@ p["icones"]["mimetypes"]["derivar"]["de"] = "malsrc"
 json.dump(p, open(a, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 q = json.load(open(b, encoding="utf-8")); q["id"] = "malsrc"
 json.dump(q, open(b, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+# Um slot a mais na paleta, que fecha a aspa e abre um módulo do starship que
+# roda comando (o `validar` só confere o hex dos 26 slots).
+f = a.replace("pack.json", "paleta.json")
+d = json.load(open(f, encoding="utf-8"))
+d["flavors"]["dracula"]["evil"] = '#000000"\n[custom.evil]\ncommand = "true"\nwhen = "true"\n#'
+d["ordem_canonica"] = list(d.get("ordem_canonica") or []) + ["evil"]
+json.dump(d, open(f, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 PY
 printf '../../../../../../escapou : %s\n' "$D" >> "$PM/icones/apps.map"
 cp "$RAIZ/packs/catppuccin/icones/mimetypes.map" "$PM/icones/mimetypes.map"
@@ -448,19 +455,22 @@ if [ "$(amb env MEOW_PACKS="$TM/packs" python3 "$RAIZ/scripts/pack.py" validar m
   mal MEOW_CONF="$HM/.config/meow/meow.conf" WALLPAPER_FONTES="$TM/fontes-vazio.tsv" \
     bash -c 'set -a; . "$MEOW_CONF"; set +a; PACK=mal; "$MEOW_RAIZ/scripts/wallpaper.sh" semear' >"$TM/log-papel.txt" 2>&1
   mal python3 "$RAIZ/scripts/pack.py" construir mal >"$TM/log-construir.txt" 2>&1
+  mal PROMPT_ALVO="$TM/starship.toml" bash "$RAIZ/scripts/prompt.sh" aplicar >"$TM/log-prompt.txt" 2>&1
+  injetado="$(grep -c '^\[custom' "$TM/starship.toml" 2>/dev/null)"
   escapou="$(find "$TM" -name 'escapou*' | wc -l)"
   no_alvo="$(find "$TM/alvo-fora" -name '.meow-*' | wc -l)"
   vazou="$(grep -rlF 'SEGREDO' "$HM" "$PM/icones/mimetypes" 2>/dev/null | wc -l)"
   intacto=0; [ "$(cat "$TM/segredo.svg")" = "$SEGREDO" ] && [ "$(cat "$TM/segredo.oga")" = "$SEGREDO" ] && intacto=1
   if [ "$rc_base" = 2 ] && [ "$no_alvo" = 0 ] && [ ! -L "$HM/.local/share/icons/MeowSystem-Icons-Base" ] \
      && [ "$escapou" = 0 ] && [ "$vazou" = 0 ] && [ "$intacto" = 1 ] \
+     && [ -f "$TM/starship.toml" ] && [ "$injetado" = 0 ] \
      && [ ! -L "$PM/icones/mimetypes/dracula/$G.svg" ] \
      && grep -q 'linha(s) com nome fora' "$TM/log-apps.txt" && grep -q 'link ou saem' "$TM/log-som.txt" \
      && [ "$(find "$HM/.local/share/icons/MeowSystem-Icons/scalable/apps" -name '*.svg' | wc -l)" -gt 100 ]; then
-    ok "segurança: o pack «mal» não lê nem escreve fora da raiz (base com pasta-link, ../ nos mapas, links no som, no papel, nos ícones de arquivo e no destino da derivação)"
+    ok "segurança: o pack «mal» não lê nem escreve fora da raiz (base com pasta-link, ../ nos mapas, links no som, no papel, nos ícones de arquivo e no destino da derivação), nem injeta módulo no starship pela paleta"
   else
     falha "segurança: o pack «mal» alcançou fora da raiz" \
-      "base rc=$rc_base escrito no alvo do link=$no_alvo escapou=$escapou segredo copiado=$vazou segredo intacto=$intacto
+      "base rc=$rc_base escrito no alvo do link=$no_alvo escapou=$escapou segredo copiado=$vazou segredo intacto=$intacto starship injetado=${injetado:-sem arquivo}
 $(cat "$TM"/log-base.txt "$TM"/log-apps.txt | tail -6)"
   fi
 else

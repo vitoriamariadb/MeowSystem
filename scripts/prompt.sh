@@ -168,8 +168,17 @@ with open(paleta, encoding="utf-8") as fh:
     dados = json.load(fh)
 cores = dados["flavors"][flavor]
 nome = re.sub(r"[^a-z0-9_]", "_", f"{pack}_{flavor}".lower())
+# A PALETA É DADO NÃO CONFIÁVEL, E O DESTINO É CÓDIGO — conferência da P74
+#   (alerta de segurança de 09/10/2026). O `validar` confere o hex dos 26
+#   slots e mais nada: um pack importado pode pôr na `ordem_canonica` um slot a
+#   mais cujo valor fecha a aspa e abre um `[custom.x]` com `command = ...` —
+#   e o starship roda esse comando a cada prompt. Só entra linha cujo nome é
+#   uma palavra simples e cujo valor é `#RRGGBB`.
+hexa = re.compile(r"^#[0-9A-Fa-f]{6}$")
 bloco = f"[palettes.{nome}]\n" + "".join(
-    f'{s} = "{cores[s].lower()}"\n' for s in (dados.get("ordem_canonica") or list(cores)))
+    f'{s} = "{cores[s].lower()}"\n' for s in (dados.get("ordem_canonica") or list(cores))
+    if isinstance(s, str) and re.fullmatch(r"[a-z0-9]+", s)
+    and isinstance(cores.get(s), str) and hexa.match(cores[s]))
 texto = re.sub(r"^palette = '[^']*'$", f"palette = '{nome}'", texto, count=1, flags=re.M)
 texto = re.sub(r'^\[palettes\.[^\]]+\]\n(?:[a-z0-9]+ = "#[0-9a-fA-F]{6}"\n)+', lambda _m: bloco,
                texto, count=1, flags=re.M)
