@@ -11568,6 +11568,12 @@ def main():
                     os.unlink(arquivo_pid)
         except (OSError, ValueError):
             pass
+        # Desde a P75 (09/10/2026) cada painel solto tem o registro dele, com
+        # o próprio pid no nome (ver `run.sh`): apagar o nosso é apagar só ele.
+        try:
+            os.unlink(os.path.join(ESTADO, "paineis", "%d.pid" % os.getpid()))
+        except OSError:
+            pass
         servidor.server_close()
 
 

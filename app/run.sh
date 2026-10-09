@@ -65,7 +65,42 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ABRIR=1
 SO_URL=0
 SEM_JANELA=0
-PID_ARQ="$MEOW_ESTADO/app.pid"
+SERVIDOR="$RAIZ/app/servidor.py"
+
+# UM REGISTRO POR PAINEL, E O `--parar` SÓ DERRUBA O PRÓPRIO — P75, 09/10/2026
+#   Era um arquivo só, `$MEOW_ESTADO/app.pid`, para todo painel solto da casa:
+#   o segundo sobrescrevia o primeiro, e o `--parar` matava o pid que estivesse
+#   lá, fosse de quem fosse. Medido no uso real de 09/10 (achado 23): dois
+#   painéis de pé, de dois clones da mesma casa, e um `--parar` do outro
+#   derrubou o meu (exit 143), duas vezes em dez minutos. O estado é da casa e
+#   os clones são vários — as árvores de trabalho de uma leva dividem o mesmo
+#   `~/.local/state/meowsystem`.
+#
+#   Agora cada painel solto tem o seu registro, `paineis/<pid>.pid`, com o
+#   caminho do servidor que ele roda. O `--parar` e o `--estado` só olham os
+#   registros cujo processo está vivo E roda o servidor DESTE clone (a linha de
+#   comando do processo, não a palavra do arquivo): um pid reaproveitado pelo
+#   sistema, ou o painel de outro clone, não é tocado. O registro de processo
+#   morto sai na mesma passada; o `servidor.py` apaga o dele ao sair.
+#   O `app.pid` antigo é lido do mesmo jeito, para o painel que subiu antes
+#   desta mudança ainda ter porta de saída.
+PAINEIS="$MEOW_ESTADO/paineis"
+e_deste_clone() {   # pid vivo, e com o servidor deste clone na linha de comando
+  [ -n "${1:-}" ] && kill -0 "$1" 2>/dev/null &&
+    tr '\0' '\n' < "/proc/$1/cmdline" 2>/dev/null | grep -qxF "$SERVIDOR"
+}
+paineis_deste_clone() {
+  local f pid
+  for f in "$PAINEIS"/*.pid "$MEOW_ESTADO/app.pid"; do
+    [ -f "$f" ] || continue
+    case "$f" in */app.pid) pid="$(cat "$f" 2>/dev/null)" ;; *) pid="$(basename "$f" .pid)" ;; esac
+    if e_deste_clone "$pid"; then
+      printf '%s %s\n' "$pid" "$f"
+    elif ! kill -0 "$pid" 2>/dev/null; then
+      rm -f "$f"
+    fi
+  done
+}
 
 case "${1:-}" in
   --sem-abrir) ABRIR=0; SEM_JANELA=1 ;;
@@ -74,18 +109,21 @@ case "${1:-}" in
     # O painel solto precisa de uma porta para ser fechado — senão a única saída
     # seria `pkill`, que é a ferramenta errada para um processo que a gente
     # mesmo largou de propósito.
-    if [ -f "$PID_ARQ" ] && kill -0 "$(cat "$PID_ARQ")" 2>/dev/null; then
-      kill -TERM "$(cat "$PID_ARQ")" 2>/dev/null
-      rm -f "$PID_ARQ"
-      meow_ok "painel encerrado"
+    parados=()
+    while read -r pid arq; do
+      kill -TERM "$pid" 2>/dev/null && parados+=("$pid")
+      rm -f "$arq"
+    done < <(paineis_deste_clone)
+    if [ "${#parados[@]}" -gt 0 ]; then
+      meow_ok "painel encerrado (pid ${parados[*]})"
     else
-      rm -f "$PID_ARQ"
-      meow_pula "não há painel de pé"
+      meow_pula "não há painel deste clone de pé"
     fi
     exit 0 ;;
   --estado)
-    if [ -f "$PID_ARQ" ] && kill -0 "$(cat "$PID_ARQ")" 2>/dev/null; then
-      meow_ok "painel de pé (pid $(cat "$PID_ARQ"))"
+    vivos="$(paineis_deste_clone | cut -d' ' -f1 | paste -sd' ' -)"
+    if [ -n "$vivos" ]; then
+      meow_ok "painel de pé (pid $vivos)"
     else
       meow_pula "painel parado"
     fi
@@ -131,7 +169,6 @@ meow_tem python3 || {
   exit "$MEOW_SEM_DEPENDENCIA"
 }
 
-SERVIDOR="$RAIZ/app/servidor.py"
 [ -f "$SERVIDOR" ] || { meow_erro "não achei $SERVIDOR"; exit "$MEOW_ERRO"; }
 
 # A PONTE SHELL -> PYTHON [21/09/2026]
@@ -423,7 +460,7 @@ fi
 trap - EXIT INT TERM HUP
 rm -f "$TUBO"
 disown "$PID" 2>/dev/null || true
-printf '%s\n' "$PID" > "$PID_ARQ" 2>/dev/null || true
+mkdir -p "$PAINEIS" 2>/dev/null && printf '%s\n' "$SERVIDOR" > "$PAINEIS/$PID.pid" 2>/dev/null || true
 
 meow_ok "o painel ficou de pé sozinho (pid $PID) — o terminal é seu de novo"
 meow_info "fechar a janela do navegador encerra o painel; à mão:  meow abrir --parar"
