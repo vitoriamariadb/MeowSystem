@@ -2047,6 +2047,25 @@ fix_conf() {
   return "$MEOW_DIVERGENTE"
 }
 
+# O CONF MIGRADO VALE PARA O RESTO DA MESMA PASSADA — conferência da P75, 09/10/2026
+#   O `fix_conf` roda no subshell da captura de saída, e o `carregar_conf` já
+#   tinha posto as chaves NESTE shell antes da tabela: a aposentada que ele
+#   tirou do arquivo continuava no ambiente. Medido numa casa de brinquedo com
+#   uma cópia do meow.conf dela (a `ICONES_BASE="MeowSystem-Icons-Base"` ativa
+#   na :1841): a 1ª passada migrava o conf, montava `completar` e `pastas` ainda
+#   pela chave velha, e terminava vermelha nomeando os dois — só a 2ª ficava
+#   verde. Quem chama isto é o laço do `--consertar`, depois do `fix_conf`: a
+#   aposentada sai do ambiente (a lista é a do `migrar_conf.py`, lida dele, e
+#   não copiada) e o conf é relido.
+recarregar_conf_migrado() {
+  local k
+  for k in $(python3 -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import migrar_conf; print(" ".join(migrar_conf.APOSENTADAS))' \
+               "$RAIZ/scripts" 2>/dev/null); do
+    unset "$k"
+  done
+  carregar_conf --ponte-opcional >/dev/null 2>&1
+}
+
 # OS CINCO QUE SAÍRAM DO `SEM_CONSERTO` NA P75 — 09/10/2026
 #   Ela: «O doctor não tem que avisar nada. Tem que corrigir.» Os cinco
 #   tinham conserto conhecido e o doctor devolvia a linha para ela rodar:
@@ -2657,6 +2676,9 @@ cmd_doctor() {
       3)   ;;
       *)   falhou=1 ;;
     esac
+    # O conf migrado vale já para os consertos seguintes (ver o bloco do
+    # `recarregar_conf_migrado`).
+    if [ "$nome" = "conf" ] && [ "$rc" = "1" ]; then recarregar_conf_migrado; fi
   done
 
   # O VEREDITO É O DEPOIS, E NÃO O ANTES — P75, 09/10/2026
@@ -2672,11 +2694,19 @@ cmd_doctor() {
   #   fez e não fez — é nomeado e faz a passada terminar vermelha (2). No seco
   #   nada foi escrito, e a segunda tabela seria a primeira repetida: ali vale o
   #   "é isto que o conserto FARIA" de sempre.
+  #
+  #   E A SEGUNDA TABELA É INTEIRA QUANDO ALGO FOI ESCRITO — conferência da P75,
+  #   09/10/2026. Ela olhava só o que estava fora ANTES, e um conserto mexe no
+  #   que outra linha confere: numa casa de brinquedo, a 2ª passada começou com
+  #   `icones ok`, o `completar` e o `pastas` puseram arquivos no tema, o
+  #   `index.theme` ficou para trás, e a passada fechou em «conferido de novo,
+  #   tudo no lugar» — a 3ª achou `~~ icones`. Sem nada escrito (`mexeu=0`), o
+  #   que estava no lugar continua no lugar, e a segunda pergunta só vai ao resto.
   local restou=()
   if ! meow_seco; then
     local LOG_NIVEL=info; export LOG_NIVEL
     for i in "${!CHK_NOME[@]}"; do
-      [ "${CHK_RC[$i]}" = "0" ] && continue
+      [ "${CHK_RC[$i]}" = "0" ] && [ "$mexeu" = "0" ] && continue
       saida="$("chk_${CHK_NOME[$i]}" 2>&1)"; rc=$?
       CHK_RC[$i]="$rc"; CHK_SAIDA[$i]="$saida"
       fora_do_lugar "$i" && restou+=("$i")

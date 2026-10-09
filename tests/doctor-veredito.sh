@@ -154,6 +154,26 @@ else
   falha "o conserto que não fez virou «consertado» (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
 fi
 
+# Conferência da P75 (09/10/2026): o conserto de uma linha desarruma outra que
+# estava no lugar (o `completar` põe arquivos no tema e o `index.theme` do
+# `icones` fica para trás). A segunda tabela confere TUDO quando algo foi
+# escrito, e não só o que estava fora antes — senão a passada diz «tudo no
+# lugar» com a linha `a` fora.
+cat > "$TMP/c5b" <<'FIM'
+VERIFICAVEIS=(a b)
+M="$HOME/marca"
+chk_a() { [ -f "$M.b" ] && { echo "a desarrumada pelo b"; return 1; }; echo "a no lugar"; return 0; }
+chk_b() { [ -f "$M.b" ] && { echo "b no lugar"; return 0; }; echo "b fora"; return 1; }
+fix_b() { : > "$M.b"; echo "b posto"; return 1; }
+FIM
+saida="$(cenario "$TMP/c5b" --consertar)"; rc=$?
+if [ "$rc" = "2" ] && grep -q '^ *erro a — continua fora' <<< "$saida" \
+   && ! grep -q 'tudo no lugar' <<< "$saida"; then
+  ok "a linha que estava no lugar e o conserto de outra desarrumou é nomeada (rc=2)"
+else
+  falha "a passada não viu a linha que o conserto desarrumou (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
 # O pacote que falta vai pela ponte root, sem senha. A ponte aqui é de
 # brinquedo (registra o que recebe no stdin e marca o "instalado"), e o sudo de
 # brinquedo só a executa a ELA — qualquer outro sudo segue registrado e

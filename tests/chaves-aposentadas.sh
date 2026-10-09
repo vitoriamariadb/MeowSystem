@@ -93,6 +93,31 @@ else
   printf '%s\n---\n%s\n' "$antes" "$depois_c" | sed 's/^/       /' >&2
 fi
 
+printf '\n--- 5. a passada que migra já não lê a aposentada ---\n'
+# Conferência da P75 (09/10/2026): o `fix_conf` roda num subshell, e a chave
+# que ele tirou do arquivo seguia no ambiente do doctor — a 1ª passada montava
+# `completar` e `pastas` pela `ICONES_BASE` velha e terminava vermelha. Aqui
+# um verificador de mentira só fica verde quando a aposentada saiu do
+# ambiente; ele não tem conserto que mude nada, então quem o põe no lugar é a
+# releitura do conf, na mesma passada.
+cp "$TMP/conf2" "$CASA/.config/meow/meow.conf"
+printf 'ICONES_BASE="MeowSystem-Icons-Base"\n' >> "$CASA/.config/meow/meow.conf"
+roda_x() {
+  env PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+    XDG_CONFIG_HOME="$CASA/.config" XDG_STATE_HOME="$CASA/.local/state" \
+    bash -c 'source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow")
+             VERIFICAVEIS=(conf leitor)
+             chk_leitor() { [ -z "${ICONES_BASE+x}" ] && { echo "sem a aposentada"; return 0; }; echo "lê ICONES_BASE=$ICONES_BASE"; return 1; }
+             fix_leitor() { return 1; }
+             cmd_doctor "$@"' _ "$@" 2>&1
+}
+saida="$(roda_x --consertar)"; rc=$?
+if [ "$rc" = "1" ] && grep -q 'consertado' <<< "$saida"; then
+  ok "na mesma passada que tira a linha, quem vem depois do conf já não lê a ICONES_BASE (rc=1)"
+else
+  falha "a aposentada seguiu no ambiente depois da migração (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2
