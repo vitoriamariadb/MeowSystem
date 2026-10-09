@@ -269,6 +269,46 @@ for app in "${OCULTAR[@]}"; do
   rm -f "$tmp"
 done
 
+# O «-nome» DEVOLVE O QUE JÁ ESTAVA ESCONDIDO — conferência da P74, 09/10/2026
+#   Sem isto o `-nome` só impedia de esconder: um app que uma passada anterior
+#   já tinha marcado (o pack Dracula esconde o `mpv`, por exemplo) continuava
+#   fora do lançador, e a frase do meow.conf.exemplo («para manter um deles à
+#   vista, escreva `-nome`») não era verdade. Desfaz-se só a marca na forma que
+#   este script escreve — a linha `NoDisplay=true` logo depois de
+#   `[Desktop Entry]` — e só nos nomes que a pessoa pediu com `-`. A cópia vem
+#   antes da escrita, como acima.
+devolvidos=0
+for app in ${_fora[@]+"${_fora[@]}"}; do
+  arq="$SISTEMA/$app.desktop"
+  [ -f "$arq" ] || continue
+  awk 'ant == "[Desktop Entry]" && $0 == "NoDisplay=true" { achou = 1 } { ant = $0 } END { exit !achou }' "$arq" \
+    || continue
+  if meow_seco; then
+    meow_muda "devolveria $app ao lançador"
+    mudou=1
+    continue
+  fi
+  if ! meow_desktop_pode "$arq"; then
+    sem_root=$((sem_root+1))
+    continue
+  fi
+  novo="$(awk 'ant == "[Desktop Entry]" && $0 == "NoDisplay=true" && !feito { feito = 1; ant = $0; next }
+               { print; ant = $0 }' "$arq")"
+  if ! meow_backup_sistema "$arq"; then
+    meow_aviso "não consegui guardar cópia de $arq — não vou devolvê-lo"
+    continue
+  fi
+  tmp="$(mktemp)"
+  printf '%s\n' "$novo" > "$tmp"
+  if meow_desktop_escrever "$arq" "$tmp"; then
+    mudou=1; devolvidos=$((devolvidos+1))
+  else
+    sem_root=$((sem_root+1))
+  fi
+  rm -f "$tmp"
+done
+[ "$devolvidos" -gt 0 ] && meow_muda "$devolvidos aplicativo(s) de volta ao lançador, pelo «-nome» do LANCADOR_OCULTAR"
+
 if [ "$sem_root" -gt 0 ]; then
   meow_aviso "$sem_root aplicativo(s) precisam de sudo para ocultar"
   meow_info "rode o install.sh de novo com sudo disponível"

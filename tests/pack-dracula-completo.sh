@@ -338,6 +338,23 @@ else
   falha "a lista do lançador do pack não somou, não obedeceu ao «-nome», ou vazou para o Catppuccin" "dracula: $d1
 catppuccin: $c1"
 fi
+# O «-nome» DEVOLVE o que uma passada anterior já escondeu (conferência da P74):
+#   o `mpv` marcado na forma que o script escreve volta ao lançador, o `vim`
+#   continua escondido, e a segunda passada não tem nada a fazer. Na pasta de
+#   sistema de brinquedo, que é gravável: nada passa por sudo.
+printf '[Desktop Entry]\nNoDisplay=true\nName=mpv\nExec=mpv\n' > "$SIS/mpv.desktop"
+oculta_de_vez() {
+  amb PACK=dracula FLAVOR="" LANCADOR_OCULTAR="vim,-mpv" MEOW_APLICATIVOS_SISTEMA="$SIS" \
+    bash "$RAIZ/scripts/ocultar_apps.sh" >/dev/null 2>&1
+}
+oculta_de_vez; r1=$?
+oculta_de_vez; r2=$?
+if [ "$r1" = 1 ] && [ "$r2" = 0 ] && ! grep -q '^NoDisplay=' "$SIS/mpv.desktop" \
+   && grep -qx 'NoDisplay=true' "$SIS/vim.desktop"; then
+  ok "o «-mpv» devolve ao lançador o mpv que já estava escondido, e a 2ª passada é 0"
+else
+  falha "o «-nome» não devolveu o que já estava escondido (rc $r1/$r2)" "$(cat "$SIS/mpv.desktop")"
+fi
 
 # --- item 9 (T7): os papéis de parede do Dracula vêm do pack, em 4K -----------
 #   Numa casa nova (o conf de fábrica, sem repositório de papel de parede), o
