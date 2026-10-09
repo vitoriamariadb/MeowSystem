@@ -1101,7 +1101,10 @@ servidor._com_o_vocabulario_do_pack(esquema, vocab, {"FLAVOR": "dracula"})
 item = {i["chave"]: i for i in esquema}
 erros = []
 fl = item["ICONES_FLAVOR"]
-if fl["opcoes"] != ["macchiato"] or fl["rotulos"].get("macchiato") != "Macchiato (herdado do Catppuccin)":
+# [P74, 09/10/2026: os ícones de arquivo do Dracula deixaram de ser herdados do
+# macchiato do Catppuccin — são dele, um por flavor —, e a opção é o flavor
+# dele, com o nome dele.]
+if fl["opcoes"] != ["dracula", "alucard"] or any("Catppuccin" in r for r in fl["rotulos"].values()):
     erros.append("variante dos ícones de arquivo: %r %r" % (fl["opcoes"], fl.get("rotulos")))
 if item["ICONES_DRACULA"]["titulo"] != "Ícones do pack nos aplicativos" \
         or "«Dracula»" not in item["ICONES_DRACULA"]["frase"]:
@@ -2735,7 +2738,7 @@ print(item.get("efetivo") or "")
 PY
 p31_flavor_do_script() {   # o flavor que a saída de um icones_*.sh diz ter usado
   sed -n -e "s/.* — flavor \([a-z0-9_]*\)$/\1/p" \
-         -e "s/.* vestid[oa]s de Catppuccin \([a-z0-9_]*\)$/\1/p" \
+         -e "s/.* vestid[oa]s de [A-Z][A-Za-z]* \([a-z0-9_]*\)$/\1/p" \
          -e "s/.*para o flavor '\([a-z0-9_]*\)'.*/\1/p" \
          -e "s|.*catppuccin-apps/\([a-z0-9_]*\)$|\1|p" \
          -e "s/.* — Catppuccin \([a-z0-9_]*\)$/\1/p" | tail -1
@@ -2777,8 +2780,10 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
     ok "$1: painel e os três icones_*.sh dizem '$painel'"
   fi
 }
-p31_caso "Dracula no ar, conf de fábrica: o macchiato que o pack escolheu" \
-  dracula dracula "" macchiato
+# [P74, 09/10/2026: o Dracula traz os ícones de arquivo dele, e o de fábrica
+# acompanha o tema — era o macchiato que o pack escolhia do Catppuccin.]
+p31_caso "Dracula no ar, conf de fábrica: o dracula do próprio pack" \
+  dracula dracula "" dracula
 p31_caso "Catppuccin no Latte, conf de fábrica: o latte do próprio tema" \
   catppuccin latte "" latte
 p31_caso "Dracula no ar, ICONES_FLAVOR=\"latte\" escrito à mão: o conf vence" \
@@ -2793,8 +2798,8 @@ saida="$(env -u MEOW_PACK_DIR MEOW_RAIZ="$RAIZ" PACK=dracula FLAVOR=dracula ICON
          python3 "$RAIZ/scripts/pack.py" flavor-icones dracula 2>&1)"; rc=$?
 env -u MEOW_PACK_DIR MEOW_RAIZ="$RAIZ" FLAVOR= ICONES_FLAVOR= \
   python3 "$RAIZ/scripts/pack.py" flavor-icones catppuccin >/dev/null 2>&1; rc_vazio=$?
-[ "$rc" = "0" ] && [ "$saida" = "macchiato" ] && [ "$rc_vazio" = "1" ] \
-  && ok "pack.py flavor-icones dracula responde macchiato, e sem conf nenhum sai 1" \
+[ "$rc" = "0" ] && [ "$saida" = "dracula" ] && [ "$rc_vazio" = "1" ] \
+  && ok "pack.py flavor-icones dracula responde dracula (o acervo é dele desde a P74), e sem conf nenhum sai 1" \
   || falha "o verbo flavor-icones não responde como a regra (rc=$rc/$rc_vazio)" "$saida"
 
 # A «VARIANTE DO TEMA» OFERECE O PACK NO AR, E A CERCA ACEITA O QUE ELA OFERECE.
@@ -3447,11 +3452,14 @@ import servidor
 erros = []
 mod = servidor.modulo_pack()
 mt = mod.vocabulario("dracula")["mimetypes"]
-if mt.get("claros") != ["latte"]:
-    erros.append("os claros do acervo herdado: %r" % mt.get("claros"))
+# [P74, 09/10/2026: o dono do acervo de ícones de arquivo do Dracula é o próprio
+# Dracula, e a régua é a dele: o claro é o alucard, e a luz vai do escuro ao
+# claro. A conta é a mesma que a revisão da P51 cobrava do dono herdado.]
+if mt.get("claros") != ["alucard"]:
+    erros.append("os claros do dono do acervo: %r" % mt.get("claros"))
 luz = mt.get("luz") or {}
-if sorted(luz, key=luz.get) != ["mocha", "macchiato", "frappe", "latte"]:
-    erros.append("a luz do acervo herdado fora de ordem: %r" % luz)
+if sorted(luz, key=luz.get) != ["dracula", "alucard"]:
+    erros.append("a luz do dono do acervo fora de ordem: %r" % luz)
 item = {i["chave"]: i for i in servidor.ler_esquema()}
 for chave in ("LEITURA_TEMPERATURA", "LEITURA_TEXTURA"):
     if item[chave]["valendo_agora"] is not None or item[chave]["desligado_agora"] is not True:

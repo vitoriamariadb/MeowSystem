@@ -4123,6 +4123,29 @@ NOTA_DA_CATEGORIA = {
 }
 
 
+def _cadeia_declara(ref, cat):
+    """Algum pack da cadeia a partir de `ref` declara `cat`? (P74 item 7)
+
+    A mesma régua da tabela do `origens`: o `mapa` do COSMIC só conta escrito
+    (o `null` é o do motor), ponteiro, fontes e base só com `proprio`,
+    `origem` ou `herda`, e o resto com qualquer bloco."""
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        if not achar(ref):
+            return False
+        caminho = {"cosmic.mapa": "cosmic.mapa", "cursores": "origens.cursores",
+                   "wallpapers": "origens.wallpapers"}.get(cat, cat)
+        bloco = campo(ref, caminho)
+        if cat in ("cursores", CATEGORIA_FONTES, CATEGORIA_BASE):
+            if isinstance(bloco, dict) and ("proprio" in bloco or "origem" in bloco or bloco.get("herda")):
+                return True
+        elif bloco is not None:
+            return True
+        ref = campo(ref, "heranca")
+    return False
+
+
 def origens(p):
     """[(categoria, tipo, de_quem)] na ordem da tabela do `info`.
 
@@ -4132,6 +4155,7 @@ def origens(p):
     ic = p.get("icones") or {}
     org = p.get("origens") or {}
     saida = []
+    dir_pack_info = achar(p["id"]) if p.get("id") else None
     for cat, bloco in [("paleta", p.get("paleta")), ("cosmic.mapa", (p.get("cosmic") or {}).get("mapa")),
                        ("icones.apps", ic.get("apps")), ("icones.pastas", ic.get("pastas")),
                        ("icones.mimetypes", ic.get("mimetypes")), ("icones.autorais", ic.get("autorais")),
@@ -4181,8 +4205,16 @@ def origens(p):
         #   onde a imagem sai. Os campos seguem no aviso de campo morto, que conta
         #   que declará-los não faz nada; no dia em que o `wallpaper.sh`
         #   ler o bloco do pack, este sai e a categoria volta à regra geral.
+        #   [P74 item 7, 09/10/2026: o dia chegou para o `desenhos`. O
+        #   `wallpaper.sh` passou a semear, pelo `acervo`, os papéis de parede
+        #   que o pack traz em `origens.wallpapers.desenhos` (os SVG do Dracula,
+        #   rasterizados em 4K). Com a pasta declarada e no disco, PRÓPRIO; o
+        #   resto do bloco continua sem leitor, e continua do motor.]
         if cat == "wallpapers":
-            saida.append((cat, "motor", ""))
+            desenhos = bloco.get("desenhos") if isinstance(bloco, dict) else None
+            proprio = isinstance(desenhos, str) and dir_pack_info and \
+                os.path.isdir(os.path.join(dir_pack_info, desenhos))
+            saida.append((cat, "próprio" if proprio else "motor", ""))
             continue
         # PONTEIRO E FONTES SÃO PRÓPRIOS SÓ COM `proprio`. Um bloco com só o
         # `tema` do ponteiro (o nome que a chave CURSOR recebe) não traz tema
@@ -4204,6 +4236,18 @@ def origens(p):
             #   não existe para aquele pack. O `acervo()` já resolve assim; era
             #   só a tela que discordava dele.
             tipo, quem = ("herdado", p["heranca"]) if p.get("heranca") else ("motor", "")
+            # A HERANÇA QUE NÃO TRAZ NADA É O MOTOR — 09/10/2026, P74 item 7.
+            #   O Dracula dizia «HERDADO de catppuccin» no mapa do COSMIC e nas
+            #   fontes, e o Catppuccin não declara nenhum dos dois: o mapa é o
+            #   `assets/paleta/cosmic-map.json` do motor e a fonte é a Nerd Font
+            #   do motor. «Herdado do Catppuccin» com o Dracula no ar era a
+            #   frase do achado 9 de 09/10, sobre coisa que não é dele.
+            #   Só nessas duas: nas outras, «herdado de» é o nome da porta por
+            #   onde o valor chega (o ponteiro do pack de CSV vem do CURSOR que
+            #   o Catppuccin nomeia), e o `tests/pack.sh` o cobra.
+            if tipo == "herdado" and cat in ("cosmic.mapa", CATEGORIA_FONTES) \
+                    and not _cadeia_declara(p["heranca"], cat):
+                tipo, quem = "motor", ""
         elif isinstance(bloco, dict) and bloco.get("herda"):
             tipo, quem = "herdado", bloco["herda"]
         else:
@@ -4396,6 +4440,11 @@ def cmd_info(ref):
         # "OS PAPÉIS DE PAREDE SÃO DO MOTOR", no `origens`.
         elif cat == "wallpapers":
             conta = "scripts/wallpaper.sh — segue o pack do flavor, sem ler este bloco"
+            # Com os desenhos no pack (P74), a linha conta os SVG que ele traz.
+            if tipo == "próprio":
+                pasta = acervo("origens.wallpapers.desenhos", ref=ref) or ""
+                n = sum(1 for _r, _d, fs in os.walk(pasta) for a in fs if a.lower().endswith(".svg"))
+                conta = f"{n} desenho(s) SVG, rasterizados em PNG 4K ao semear (scripts/wallpaper.sh)"
         elif cat in FIXAS_NO_MOTOR:
             conta = FIXAS_NO_MOTOR[cat]
         if cat in NOTA_DA_CATEGORIA:
