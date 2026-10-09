@@ -246,6 +246,24 @@ CP_CASA="${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}"
 CP_SHIM="${CP_SHIM:-$HOME/.local/bin/cosmic-comp}"
 CP_SHIM_FONTE="$MEOW_RAIZ/scripts/compositor_shim.sh"
 CP_SHIM_MARCA="MEOW-COSMIC-COMP-SHIM"
+# A MATRIZ DE COMPATIBILIDADE GRAVADA PELA MÁQUINA — P76
+#   O `patches/versao` era porteiro: só compilava sobre versão que alguém tinha
+#   validado à mão e posto num commit. Agora quem decide é a escada, patch a
+#   patch, e o que ela decidiu fica aqui, uma linha por versão:
+#     <versão> <TAB> <data> <TAB> <patch>:<degrau> <patch>:<degrau> …
+#   Degraus (`docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.3):
+#     1  `-F0` limpo e os arquivos que o patch toca iguais aos da última versão boa
+#     2  entra (`-F0` com arquivo mudado upstream, ou só com `-F1`): vai para o
+#        build sob a guarda de queda do shim, "em observação"
+#     3  `opt` que não entra: o build sai sem ele, só a função dele degrada
+#     4  `req` que não entra: não há build, a sessão sobe de fábrica, e é o
+#        único degrau que pede gente — um rebase do patch, num commit
+#   Mora no estado e não em `patches/`: quem grava é a máquina, e o clone é do
+#   git. O `patches/versao` continua lido, como o histórico do que gente validou.
+CP_MATRIZ="${CP_MATRIZ:-$MEOW_ESTADO/cosmic-comp/matriz.tsv}"
+# Os arquivos que a série toca, como estavam no fonte PURO da última versão
+# que compilou. É contra eles que o degrau 1 pergunta "o upstream mexeu aqui?".
+CP_ALVOS="${CP_ALVOS:-$MEOW_ESTADO/cosmic-comp/alvos}"
 
 # --- o buffer de saída ------------------------------------------------------
 # A PRIMEIRA LINHA É A TABELA DO DOCTOR, E ELA SÓ EXISTE NO FIM
@@ -321,22 +339,8 @@ _cp_versao_valida() {
   while IFS= read -r x; do
     [ "$x" = "$v" ] && return 0
   done < <(_cp_versoes_validadas)
-  return 1
-}
-
-# A RECUSA DIZ POR QUÊ, e diz o caminho — a sprint pede as duas coisas com
-# essas palavras. `apt-get source` não é receita de instalação: é o download
-# do fonte que o `validar` faz sozinho, e a frase aponta para ele.
-_cp_recusar_versao() {
-  local ver="$1" validadas
-  validadas="$(_cp_versoes_validadas 2>/dev/null | paste -sd' ' -)"
-  meow_erro "recusado: a série não foi validada contra o cosmic-comp instalado"
-  meow_info "  instalado:  $ver"
-  meow_info "  validadas:  ${validadas:-<nenhuma — $CP_VERSOES não existe ou está vazio>}"
-  meow_info "  por quê: o -F0 pega o hunk cujo contexto mudou, mas não o que ainda casa em"
-  meow_info "  código que mudou de sentido — e este binário é também a tela de login"
-  meow_info "  para validar:  meow compositor validar   (baixa o fonte e só roda o dry-run)"
-  meow_info "  se a série entrar limpa, a versão entra em patches/versao num commit — decisão sua"
+  # P76: vale também a versão em que a escada pôs o `req` no build.
+  awk -F'\t' -v v="$v" '$1==v && $3 !~ /:4( |$)/ {ok=1} END {exit !ok}' "$CP_MATRIZ" 2>/dev/null
 }
 
 # --- o shim (P76) -----------------------------------------------------------
@@ -467,7 +471,7 @@ cmd_conferir() {
     local v_inst=""
     v_inst="$(_cp_versao_instalada 2>/dev/null)" || v_inst=""
     if [ -n "$v_inst" ] && ! _cp_versao_valida "$v_inst"; then
-      _cp_diz info "o cosmic-comp instalado ($v_inst) não está em patches/versao: a série ainda não foi validada nele"
+      _cp_diz info "o cosmic-comp instalado ($v_inst) ainda não passou pela série: a escada decide no primeiro build"
     fi
   elif [ ! -r "$CP_ESTADO" ]; then
     # O contrato pede 644. Se chegou aqui, o modo saiu do combinado — e o doctor
@@ -508,7 +512,7 @@ cmd_conferir() {
       # (24/09/2026). Dizer isto aqui poupa a pessoa de descobrir na recusa,
       # depois de já ter decidido parar para compilar.
       _cp_versao_valida "$versao_dpkg" || \
-        _cp_diz info "  antes, a série precisa ser validada nesta versão: meow compositor validar"
+        _cp_diz info "  a versão é nova para a série: o build decide patch a patch (meow compositor validar mostra antes)"
     fi
   fi
 
@@ -804,7 +808,29 @@ cmd_conferir() {
 #   deixou o `.orig` na árvore. Um arquivo `.rej`/`.orig` esquecido vira, dias
 #   depois, um `grep` que acha o marcador num arquivo que o compilador nem lê.
 _CP_PATCH_OPCOES=(-p1 --forward -F0 --no-backup-if-mismatch --silent)
+# O SEGUNDO DEGRAU DA ESCADA (P76): `-F1` aceita UMA linha de contexto que
+# mudou. Medido em 09/10/2026: o modo de leitura falha um hunk com `-F0` no
+# cosmic-comp 41497b4 porque o upstream acrescentou campos ao
+# `CosmicCompConfig` e mudou a terceira linha de contexto — e entra com `-F1`,
+# no lugar certo. O risco que o bloco acima descreve continua de pé, e por
+# isso o `-F1` só vale com o build entrando sob a guarda de queda do shim, e
+# nunca vai além de uma linha.
+_CP_PATCH_OPCOES_F1=(-p1 --forward -F1 --no-backup-if-mismatch --silent)
 
+# O degrau de cada patch na última passagem do `cmd_aplicar`, "arquivo:degrau".
+declare -a _CP_DEGRAUS=()
+
+# 0 = algum arquivo que o patch toca difere do da última versão boa (ou não há
+# cópia dela para comparar, que é o mesmo que não saber).
+_cp_alvos_mudaram() {
+  local fonte="$1" patch_arq="$2" alvo
+  while IFS= read -r alvo; do
+    [ -n "$alvo" ] || continue
+    [ -f "$CP_ALVOS/$alvo" ] || return 0
+    cmp -s "$fonte/$alvo" "$CP_ALVOS/$alvo" || return 0
+  done < <(_cp_alvos_do_patch "$patch_arq")
+  return 1
+}
 _cp_alvos_do_patch() {
   # Os arquivos que um `.patch` toca, lidos das linhas `+++`. O `b/` da frente
   # é o `-p1` do `patch`, e sai aqui pelo mesmo motivo.
@@ -870,6 +896,8 @@ cmd_aplicar() {
       estado+=("ja")
     elif (cd "$fonte" && patch "${_CP_PATCH_OPCOES[@]}" --dry-run < "$p") >/dev/null 2>&1; then
       estado+=("pode")
+    elif (cd "$fonte" && patch "${_CP_PATCH_OPCOES_F1[@]}" --dry-run < "$p") >/dev/null 2>&1; then
+      estado+=("pode-f1")
     else
       estado+=("recusa")
     fi
@@ -880,19 +908,33 @@ cmd_aplicar() {
 
   # --- a decisão: um `req` que não entra aborta tudo, antes de escrever -----
   local i abortar=0
+  _CP_DEGRAUS=()
   for i in "${!classe[@]}"; do
     case "${estado[$i]}" in
-      ja)         meow_ok   "${arquivo[$i]} já está na árvore (${base[$i]})" ;;
-      pode)       meow_info "${arquivo[$i]} aplica limpo (${classe[$i]})" ;;
+      ja)         meow_ok   "${arquivo[$i]} já está na árvore (${base[$i]})"
+                  _CP_DEGRAUS+=("${arquivo[$i]}:ja") ;;
+      pode)
+        if _cp_alvos_mudaram "$fonte" "$CP_REPO/${arquivo[$i]}"; then
+          meow_info "${arquivo[$i]} aplica limpo, mas o upstream mexeu no que ele toca: degrau 2, em observação (${classe[$i]})"
+          _CP_DEGRAUS+=("${arquivo[$i]}:2")
+        else
+          meow_info "${arquivo[$i]} aplica limpo: degrau 1 (${classe[$i]})"
+          _CP_DEGRAUS+=("${arquivo[$i]}:1")
+        fi ;;
+      pode-f1)
+        meow_info "${arquivo[$i]} só entra com -F1 — o contexto mudou: degrau 2, em observação (${classe[$i]})"
+        _CP_DEGRAUS+=("${arquivo[$i]}:2") ;;
       sem-arquivo)
         meow_muda "${arquivo[$i]} está na série e não existe em $CP_REPO"
         [ "${classe[$i]}" = "req" ] && abortar=1 ;;
       recusa)
         if [ "${classe[$i]}" = "req" ]; then
-          meow_muda "${arquivo[$i]} é OBRIGATÓRIO e o dry-run recusou"
+          meow_muda "${arquivo[$i]} é OBRIGATÓRIO e não entra nem com -F1: degrau 4, precisa de gente"
+          _CP_DEGRAUS+=("${arquivo[$i]}:4")
           abortar=1
         else
-          meow_muda "${arquivo[$i]} é opcional e o dry-run recusou — o efeito dele fica de fora"
+          meow_muda "${arquivo[$i]} é opcional e não entra nem com -F1: degrau 3, só o efeito dele fica de fora"
+          _CP_DEGRAUS+=("${arquivo[$i]}:3")
         fi ;;
     esac
   done
@@ -916,9 +958,14 @@ cmd_aplicar() {
   # último de propósito — quanto mais tarde ele encostar na árvore, menos coisa
   # há para desfazer se der errado.
   local aplicados=0 pulados=0
+  local -a opcoes=()
   for i in "${!classe[@]}"; do
-    [ "${estado[$i]}" = "pode" ] || { pulados=$((pulados+1)); continue; }
-    if (cd "$fonte" && patch "${_CP_PATCH_OPCOES[@]}" < "$CP_REPO/${arquivo[$i]}") >/dev/null 2>&1; then
+    case "${estado[$i]}" in
+      pode)    opcoes=("${_CP_PATCH_OPCOES[@]}") ;;
+      pode-f1) opcoes=("${_CP_PATCH_OPCOES_F1[@]}") ;;
+      *)       pulados=$((pulados+1)); continue ;;
+    esac
+    if (cd "$fonte" && patch "${opcoes[@]}" < "$CP_REPO/${arquivo[$i]}") >/dev/null 2>&1; then
       aplicados=$((aplicados+1))
       meow_ok "${arquivo[$i]} aplicado"
     else
@@ -1071,6 +1118,20 @@ _cp_texto_estado() {
   done < <(_cp_serie_entradas "$serie")
 }
 
+# Uma linha por versão na matriz; a de uma versão já gravada é trocada, e uma
+# linha igual à que já está lá não reescreve o arquivo (idempotência).
+_cp_gravar_matriz() {
+  local ver="$1" linha tmp
+  [ "${#_CP_DEGRAUS[@]}" -gt 0 ] || return 0
+  linha="$ver"$'\t'"$(date +%F)"$'\t'"${_CP_DEGRAUS[*]}"
+  if awk -F'\t' -v v="$ver" -v d="${_CP_DEGRAUS[*]}" '$1==v && $3==d {achou=1} END {exit !achou}' "$CP_MATRIZ" 2>/dev/null; then
+    return 0
+  fi
+  mkdir -p "${CP_MATRIZ%/*}" || return 1
+  tmp="$(mktemp -p "${CP_MATRIZ%/*}" .matriz.XXXXXX)" || return 1
+  { awk -F'\t' -v v="$ver" '$1!=v' "$CP_MATRIZ" 2>/dev/null; printf '%s\n' "$linha"; } > "$tmp" && mv -f "$tmp" "$CP_MATRIZ"
+}
+
 cmd_compilar() {
   local ver serie fonte bin log i
   ver="$(_cp_versao_instalada)" || {
@@ -1079,11 +1140,16 @@ cmd_compilar() {
   serie="$(_cp_serie_arquivo)" || { meow_erro "não achei a série ($CP_SERIE)"; return "$MEOW_ERRO"; }
 
   meow_info "cosmic-comp instalado: $ver"
-  if ! _cp_versao_valida "$ver"; then
-    _cp_recusar_versao "$ver"
-    return "$MEOW_ERRO"
+  # A RECUSA DE VERSÃO SAIU — P76. Ela existia porque este binário ia para
+  # `/usr/bin`, que é também a tela de login: um hunk que "quase" casa subiria
+  # quebrado para a sessão E para o greeter. Com o build em escopo de usuário
+  # o greeter não o vê, e a sessão tem a guarda de queda do shim. Quem decide
+  # agora é a escada, patch a patch, e o que ela decidiu vai para a matriz.
+  if _cp_versao_valida "$ver"; then
+    meow_ok "esta versão já passou pela série (patches/versao ou a matriz)"
+  else
+    meow_info "versão nova para a série: a escada decide patch a patch e grava em $CP_MATRIZ"
   fi
-  meow_ok "a série foi validada contra esta versão (patches/versao)"
 
   local -a faltam=()
   for i in patch make cargo; do meow_tem "$i" || faltam+=("$i"); done
@@ -1106,7 +1172,7 @@ cmd_compilar() {
     else
       meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_CACHE"
     fi
-    meow_muda "aplicaria a série ($(_cp_plural "$n_req" obrigatório obrigatórios), $(_cp_plural "$n_opt" opcional opcionais)) com -F0, dry-run de todos antes"
+    meow_muda "aplicaria a série ($(_cp_plural "$n_req" obrigatório obrigatórios), $(_cp_plural "$n_opt" opcional opcionais)) pela escada (-F0, depois -F1), dry-run de todos antes"
     meow_muda "compilaria com make VENDOR=1 (~4 min com o vendor quente, ~30 min do zero)"
     meow_muda "conferiria os marcadores no binário e o guardaria em $CP_CASA/$ver — sem sudo"
     meow_muda "gravaria o estado medido em $CP_CASA/$ver/estado"
@@ -1116,9 +1182,27 @@ cmd_compilar() {
 
   _cp_baixar_fonte "$ver" || return $?
 
+  # OS ARQUIVOS PUROS QUE A SÉRIE TOCA, guardados ANTES de a série escrever
+  # neles: se este build der certo, eles viram a "última versão boa" contra a
+  # qual o degrau 1 da próxima versão pergunta. Arquivo que já carrega o
+  # marcador não é puro (uma passagem anterior o patchou) e não se guarda.
+  local novo_alvos="$CP_ALVOS.novo" _c a b alvo
+  rm -rf "$novo_alvos"
+  while IFS=$'\t' read -r _c a b; do
+    while IFS= read -r alvo; do
+      [ -f "$fonte/$alvo" ] || continue
+      grep -q -- "$b" "$fonte/$alvo" 2>/dev/null && continue
+      mkdir -p "$novo_alvos/${alvo%/*}" && cp -f "$fonte/$alvo" "$novo_alvos/$alvo"
+    done < <(_cp_alvos_do_patch "$CP_REPO/$a")
+  done < <(_cp_serie_entradas "$serie")
+
   # O `cmd_aplicar` é o passo 4 inteiro, com as recusas dele. O `_CP_COMPILANDO`
   # só cala o "o que falta é seu" do fim, que aqui seria falso.
-  _CP_COMPILANDO=1 cmd_aplicar "$fonte" || return $?
+  local rc_ap=0
+  _CP_COMPILANDO=1 cmd_aplicar "$fonte" || rc_ap=$?
+  # O DEGRAU 4 TAMBÉM VAI PARA A MATRIZ: é a linha que diz ao pós-apt e ao
+  # doctor que esta versão precisa de gente, e não de mais uma tentativa.
+  [ "$rc_ap" = "0" ] || { _cp_gravar_matriz "$ver"; return "$rc_ap"; }
 
   meow_info "compilando com Nice 19 (~4 min com o vendor quente, ~30 min do zero)"
   meow_info "  o registro vai para $log"
@@ -1179,6 +1263,10 @@ cmd_compilar() {
   # que acabou de ser trocado.
   rm -f "$destino/ruim" "$destino/quedas"
   meow_muda "cosmic-comp patchado guardado em $destino (versão $ver), estado medido no binário"
+  _cp_gravar_matriz "$ver"
+  if [ -d "$novo_alvos" ]; then
+    rm -rf "$CP_ALVOS" && mv -f "$novo_alvos" "$CP_ALVOS" && printf '%s\n' "$ver" > "$CP_ALVOS/.versao"
+  fi
   _cp_shim_ativo || meow_info "o shim está desligado: este build só vale depois de 'meow compositor ativar'"
 
   # --- 8. poda: só árvore de fonte, e só de outra versão --------------------
@@ -1218,11 +1306,11 @@ cmd_validar() {
   # O dry-run é o do `cmd_aplicar`, em seco: a mesma leitura, sem um byte.
   if MEOW_SECO=1 cmd_aplicar "$fonte"; then
     _cp_versao_valida "$ver" && return "$MEOW_OK"
-    meow_ok "a série entra limpa no cosmic-comp $ver"
-    meow_info "para o meow compositor aceitá-la: acrescente $ver a patches/versao, num commit"
+    meow_ok "a série entra no cosmic-comp $ver (os degraus estão acima)"
+    meow_info "o meow compositor compila nela sem pedir commit: a escada decide e grava a matriz"
     return "$MEOW_OK"
   fi
-  meow_info "a versão $ver não entra em patches/versao enquanto um obrigatório recusar"
+  meow_info "o cosmic-comp $ver não tem build enquanto o obrigatório recusar: é o degrau 4, um rebase do patch"
   return "$MEOW_ERRO"
 }
 

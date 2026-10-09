@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# pos-apt.sh — o pós-apt do COSMIC reconstrói UMA vez por versão nova, e zero
+# vezes na segunda passagem? (P76)
+#
+# `scripts/cosmic_pos_apt.sh` com um `dpkg-query` falso (as versões vêm de um
+# arquivo) e os três passos trocados por registros de uma linha: o compositor
+# (que, como o de verdade, deixa o `estado` do build da versão), o menu do
+# cosmic-files e o doctor. A prova da pesquisa (§4.3): "gera exatamente um
+# rebuild por versão nova e zero na segunda vez". E o passo que falha não grava
+# a versão, para o próximo apt tentar de novo.
+# HOME, estado e casa de brinquedo; nada de apt, cargo, sudo nem rede.
+set -uo pipefail
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+falhas=0
+ok()    { printf '  ok    %s\n' "$*"; }
+falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
+igual() { if [ "$2" = "$3" ]; then ok "$1"; else falha "$1 (esperado '$3', veio '$2')"; fi; }
+
+mkdir -p "$T/bin" "$T/home/.local/bin" "$T/casa"
+cp "$RAIZ/scripts/compositor_shim.sh" "$T/home/.local/bin/cosmic-comp"
+cat > "$T/bin/dpkg-query" <<FIM
+#!/bin/sh
+cat "$T/dpkg.tsv"
+FIM
+chmod 755 "$T/bin/dpkg-query"
+versoes() { # pares pacote=versão
+  : > "$T/dpkg.tsv"; local x
+  for x in "$@"; do printf '%s\t%s\tinstalled\n' "${x%%=*}" "${x#*=}" >> "$T/dpkg.tsv"; done
+}
+cat > "$T/compositor" <<FIM
+#!/bin/sh
+echo "compositor \$*" >> "$T/log"
+v=\$(awk -F'\t' '\$1=="cosmic-comp"{print \$2}' "$T/dpkg.tsv")
+mkdir -p "$T/casa/\$v" && echo "req X y presente" > "$T/casa/\$v/estado"
+exit 1
+FIM
+cat > "$T/files" <<FIM
+#!/bin/sh
+echo "files \$*" >> "$T/log"
+[ -f "$T/files-falha" ] && exit 2
+exit 1
+FIM
+cat > "$T/doctor" <<FIM
+#!/bin/sh
+echo "doctor \$*" >> "$T/log"
+FIM
+chmod 755 "$T/compositor" "$T/files" "$T/doctor"
+
+rodar() {
+  HOME="$T/home" PATH="$T/bin:$PATH" MEOW_ESTADO="$T/estado" MEOW_CONF="$T/nao-existe.conf" \
+  PA_CASA="$T/casa" PA_COMPOSITOR="$T/compositor" PA_FILES="$T/files" PA_DOCTOR="$T/doctor" \
+    "$RAIZ/scripts/cosmic_pos_apt.sh" "$@" >/dev/null 2>&1
+}
+linhas() { grep -c "$1" "$T/log" 2>/dev/null || true; }
+
+echo "== primeira passagem: tudo é novo"
+versoes cosmic-comp=0.1~a cosmic-files=1.10~a cosmic-panel=1.10~a
+: > "$T/log"
+rodar; igual "rc 1 (escreveu)" "$?" 1
+igual "um build do compositor" "$(linhas '^compositor compilar')" 1
+igual "um build do menu" "$(linhas '^files build')" 1
+igual "um doctor --consertar" "$(linhas '^doctor doctor --consertar')" 1
+h1="$(sha256sum < "$T/estado/cosmic-versoes")"
+
+echo "== segunda passagem, nada mudou: zero"
+: > "$T/log"
+rodar; igual "rc 0" "$?" 0
+igual "nenhuma linha no registro" "$(grep -c . "$T/log")" 0
+igual "o arquivo de versões não mudou" "$(sha256sum < "$T/estado/cosmic-versoes")" "$h1"
+
+echo "== só o cosmic-files sobe"
+versoes cosmic-comp=0.1~a cosmic-files=1.10~b cosmic-panel=1.10~a
+: > "$T/log"
+rodar
+igual "nenhum build do compositor" "$(linhas '^compositor')" 0
+igual "um build do menu" "$(linhas '^files build')" 1
+: > "$T/log"; rodar
+igual "e zero na passagem seguinte" "$(grep -c . "$T/log")" 0
+
+echo "== o compositor sobe e o build da versão já existe"
+mkdir -p "$T/casa/0.1~c"; echo "req X y presente" > "$T/casa/0.1~c/estado"
+versoes cosmic-comp=0.1~c cosmic-files=1.10~b cosmic-panel=1.10~a
+: > "$T/log"; rodar
+igual "artefato da versão presente: nenhum build" "$(linhas '^compositor compilar')" 0
+
+echo "== o passo que falha não grava a versão"
+versoes cosmic-comp=0.1~c cosmic-files=1.10~c cosmic-panel=1.10~a
+touch "$T/files-falha"
+: > "$T/log"; rodar; igual "rc 2 (falhou)" "$?" 2
+grep -q $'cosmic-files\t1.10~b' "$T/estado/cosmic-versoes" && ok "ficou a versão antiga do cosmic-files" || falha "a versão nova foi gravada apesar da falha"
+rm -f "$T/files-falha"
+: > "$T/log"; rodar
+igual "a passagem seguinte tenta de novo" "$(linhas '^files build')" 1
+
+echo "== shim desligado: o compositor não compila"
+rm -f "$T/home/.local/bin/cosmic-comp"
+versoes cosmic-comp=0.1~d cosmic-files=1.10~c cosmic-panel=1.10~a
+: > "$T/log"; rodar
+igual "sem shim, nenhum build" "$(linhas '^compositor compilar')" 0
+grep -q $'cosmic-comp\t0.1~d' "$T/estado/cosmic-versoes" && ok "e a versão é gravada (nada a fazer não é falha)" || falha "a versão não foi gravada"
+
+echo "== o seco não escreve"
+versoes cosmic-comp=0.1~e cosmic-files=1.10~e cosmic-panel=1.10~a
+h2="$(sha256sum < "$T/estado/cosmic-versoes")"
+: > "$T/log"; rodar --seco
+igual "seco: nenhum passo rodou" "$(grep -c . "$T/log")" 0
+igual "seco: o arquivo de versões não mudou" "$(sha256sum < "$T/estado/cosmic-versoes")" "$h2"
+
+echo
+if [ "$falhas" = 0 ]; then echo "pos-apt: tudo certo"; exit 0; fi
+echo "pos-apt: $falhas falha(s)"; exit 1
