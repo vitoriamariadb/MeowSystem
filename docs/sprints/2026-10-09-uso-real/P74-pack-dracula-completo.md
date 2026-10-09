@@ -33,3 +33,14 @@ PC terei tudo conforme o tema dracula?», «conseguiremos gerar e exportar temas
 - `pack.py info dracula`: nada «herdado do Catppuccin» que tenha cura; mimetypes PRÓPRIO.
 - exportar → instalar num HOME limpo → cache reconstruído, 0 links para fora, 230+ apps.
 - `comm` dos simbólicos do tema antigo contra tema+base → 0.
+
+## Segurança (acrescentado às 18:45 de 09/10, revisão automática de segurança, `scripts/pack.py`)
+
+Obrigatório para o conferente da P74: a revisão acusou *parser differential / path traversal*
+em `scripts/pack.py`, no código novo da base em camadas (commit 13929d4, `origem_pinada` e quem
+monta `<nossa>-Base-<n>`). Regra: um caminho vindo de `pack.json` (ou de uma origem pinada) é
+validado e USADO pela mesma forma normalizada — `os.path.realpath` contra a raiz permitida —,
+nunca validado como texto (regex, `startswith`, `split('/')`) e usado por outro parser (git,
+tar, shell). Nome de camada/pasta de destino só de um conjunto fechado (`[A-Za-z0-9._-]`, sem
+`..`). Teste com um pack malicioso (`"origem": {"caminho": "a/../../../../etc"}`, nome com `/`,
+symlink no checkout pinado) provando que nada é lido nem escrito fora da raiz.
