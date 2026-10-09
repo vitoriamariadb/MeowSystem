@@ -1738,6 +1738,61 @@ def _declarado_pelo_pack(adotado, alvo):
     return False
 
 
+# AS ESCOLHAS DE ÍCONE DO PAINEL MORAM COM QUEM USA — 09/10/2026, sprint P73 (I3)
+#   «Usar o programa não pode sujar o repositório» (P21, 21/09). Desde a P60 o
+#   «Usar este ícone» gravava no `apps.map` do pack, e desde sempre o do traço
+#   gravava no `apps-arcticons.map` e copiava o glifo para `arcticons-apps/` —
+#   tudo dentro do clone. As duas escolhas passaram para dois arquivos ao lado
+#   do meow.conf, no formato dos mapas que elas substituem por cima:
+#     · `icones-escolhidos.map`: `nome : desenho   # app — escolhido no painel`,
+#       lido pelo `pack.py escolhas` (o `icones_apps_dracula.sh` o põe no
+#       `scalable/apps`, e o `fontes` diz que ele vence o pack e o motor);
+#     · `icones-traco.map`: `app:glifo:cor[:alias]`, lido pelo
+#       `icones_apps_arcticons.sh` depois do mapa do projeto.
+#   Levar uma escolha para o pack é o gesto explícito «Levar para o pack».
+def _mapa_de_escolhas_do_usuario():
+    mod = modulo_pack()
+    if mod and hasattr(mod, "arquivo_de_escolhas"):
+        return mod.arquivo_de_escolhas()
+    return os.path.join(os.path.dirname(CONF), "icones-escolhidos.map")
+
+
+def _mapa_de_traco_do_usuario():
+    return (os.environ.get("MEOW_ICONES_TRACO")
+            or os.path.join(os.path.dirname(CONF), "icones-traco.map"))
+
+
+def _gravar_escolha(caminho, chave, linha, separador):
+    """Troca (ou tira, com `linha` None) a linha de `chave` em `caminho`.
+
+    O resto do arquivo sobrevive, como nos mapas do repositório: é a pessoa
+    quem pode ter escrito ali à mão. Devolve True quando havia linha da chave.
+    Grava por arquivo temporário e `rename`, para uma página fechada no meio
+    não deixar o arquivo pela metade."""
+    try:
+        with open(caminho, "r", encoding="utf-8") as fh:
+            linhas = fh.read().split("\n")
+    except FileNotFoundError:
+        linhas = []
+    if linhas and linhas[-1] == "":
+        linhas.pop()
+
+    def da_chave(l):
+        util = l.split("#", 1)[0]
+        return util.split(separador, 1)[0].strip() == chave and separador in util
+
+    havia = any(da_chave(l) for l in linhas)
+    linhas = [l for l in linhas if not da_chave(l)]
+    if linha is not None:
+        linhas.append(linha)
+    os.makedirs(os.path.dirname(caminho) or ".", exist_ok=True)
+    tmp = caminho + ".meow-tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(linhas) + ("\n" if linhas else ""))
+    os.replace(tmp, caminho)
+    return havia
+
+
 @_uma_vez_por_leitura
 def _pack_adotado():
     """O id do pack no ar, ou '' sem `scripts/pack.py`. [23/09/2026]
@@ -8130,19 +8185,24 @@ class Manipulador(BaseHTTPRequestHandler):
           A mesma regra, escrita do mesmo jeito, e só ela: repinta o que já
           está aqui, nunca acrescenta um nome que este mapa não conhece."""
         fora = {}
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                for linha in fh:
-                    corte = linha.strip()
-                    if not corte or corte.startswith("#"):
-                        continue
-                    campos = [c.strip() for c in corte.split(":")]
-                    if len(campos) >= 3:
-                        fora[campos[0]] = {"glifo": campos[1], "cor": campos[2],
-                                           "alias": len(campos) > 3 and campos[3] == "alias"}
-        except OSError:
-            pass
+        # O DE QUEM USA É LIDO DEPOIS, E VENCE — P73 (I3): é a ordem do
+        # `_ler_mapa` do `icones_apps_arcticons.sh`. O `meu` diz que a linha é
+        # escolha do painel, e é o que acende o «Desfazer a escolha no traço».
+        for caminho, meu in ((os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map"), False),
+                             (_mapa_de_traco_do_usuario(), True)):
+            try:
+                with open(caminho, "r", encoding="utf-8") as fh:
+                    for linha in fh:
+                        corte = linha.strip()
+                        if not corte or corte.startswith("#"):
+                            continue
+                        campos = [c.strip() for c in corte.split(":")]
+                        if len(campos) >= 3:
+                            fora[campos[0]] = {"glifo": campos[1], "cor": campos[2],
+                                               "alias": len(campos) > 3 and campos[3] == "alias",
+                                               "meu": meu}
+            except OSError:
+                pass
 
         if _valor_vivo("ICONES_COR_MARCA") == "sim":
             marca = os.path.join(RAIZ, "assets", "icones", "apps-marca.map")
@@ -9137,6 +9197,10 @@ class Manipulador(BaseHTTPRequestHandler):
         `_pack_adotado` também, e os três concordam.]"""
         d = next((x for x in self._desktops() if x["id"] == app), None) or {}
         mod = modulo_pack()
+        # A ESCOLHA DO PAINEL VENCE TUDO (P73): é a primeira pergunta.
+        minha = self._minha_escolha(app)
+        if minha:
+            return {"tipo": "escolha", "frase": "o desenho «%s» que você escolheu" % minha["glifo"]}
         ident = _pack_adotado() if mod else ""
         if ident and (valores_efetivos(["ICONES_DRACULA"]).get("ICONES_DRACULA") or "") == "sim":
             mapa = mod.acervo("icones.apps.mapa", ref=ident) or ""
@@ -9346,6 +9410,9 @@ class Manipulador(BaseHTTPRequestHandler):
             _ICONES_DECLARADOS.add(os.path.normpath(it["caminho"]))
             saida = {k: v for k, v in it.items() if not k.startswith("_") and k != "caminho"}
             saida["url"] = "/previa?tipo=arquivo&id=" + quote(it["caminho"], safe="")
+            # O ARQUIVO É A IDENTIDADE DA ESCOLHA (P73): é o que o «Usar este
+            # ícone» manda de volta, e o que o `icones-escolhidos.map` guarda.
+            saida["arquivo"] = self._arquivo_na_ficha(it["caminho"])
             saida["sugerido"] = any(p in it["_texto"] for p in palpites)
             glifos.append(saida)
         for g in grupos:
@@ -9355,35 +9422,134 @@ class Manipulador(BaseHTTPRequestHandler):
         # A FICHA PERGUNTA POR APLICATIVO — 25/09/2026, P64. O `pack` é o pack
         # que a ficha pode oferecer, e a `escolha` é a do painel para ESTE
         # aplicativo no mapa do pack, que acende o «Desfazer a escolha no pack».
+        app_ok = bool(re.match(r"^[A-Za-z0-9._+-]{1,120}$", app))
         extra = {"aviso": aviso,
                  "pack": {"id": pack["id"], "nome": pack["nome"]} if pack and not aviso else None,
-                 "escolha": (self._escolha_no_pack(pack, app)
-                             if pack and re.match(r"^[A-Za-z0-9._+-]{1,120}$", app) else None)}
+                 "escolha": (self._escolha_no_pack(pack, app) if pack and app_ok else None),
+                 # A escolha do painel para ESTE app, no estado de quem usa (P73):
+                 # acende o «Desfazer» e, se o desenho é do pack no ar, o «Levar
+                 # para o pack».
+                 "minha": self._minha_escolha(app) if app_ok else None}
         # `limitado` fica, sempre falso: é o campo que dizia «a lista foi
         # cortada», e nenhuma resposta corta mais.
         return self._json(dict({"grupos": grupos, "glifos": glifos, "limitado": False}, **extra))
 
-    def _api_app_icone(self, corpo):
-        """Grava a escolha dela no mapa do repositório — e traz o glifo junto."""
-        import re as _re
-        import shutil as _shutil
+    def _arquivo_na_ficha(self, caminho):
+        """Como a ficha e as escolhas escrevem um arquivo: a partir da raiz do
+        MeowSystem quando mora nela, e absoluto quando mora num pack de fora."""
+        caminho = os.path.normpath(caminho)
+        if caminho.startswith(RAIZ + os.sep):
+            return os.path.relpath(caminho, RAIZ)
+        return caminho
 
+    def _item_da_ficha(self, arquivo):
+        """O item da ficha cujo arquivo é `arquivo`, ou None. O pedido só escolhe
+        entre o que a ficha ofereceria: um caminho forjado não vira escolha."""
+        if not arquivo or not isinstance(arquivo, str):
+            return None
+        alvo = os.path.normpath(arquivo if os.path.isabs(arquivo) else os.path.join(RAIZ, arquivo))
+        _grupos, itens = self._acervo_da_ficha()
+        return next((it for it in itens if os.path.normpath(it["caminho"]) == alvo), None)
+
+    def _minha_escolha(self, app):
+        """{arquivo, glifo, grupo, pack, desenho} da escolha do painel para `app`
+        no estado de quem usa, ou None. `pack`/`desenho` só vêm quando o desenho
+        é do pack no ar: é o que o «Levar para o pack» grava."""
+        mod = modulo_pack()
+        if not mod or not hasattr(mod, "escolhas_do_painel"):
+            return None
+        nome = self._nome_do_icone(app)
+        arq = next((a for _n, n, a in mod.escolhas_do_painel() if n == nome), None)
+        if not arq:
+            return None
+        item = self._item_da_ficha(arq) or {}
+        return {"arquivo": self._arquivo_na_ficha(arq),
+                "glifo": os.path.splitext(os.path.basename(arq))[0],
+                "grupo": item.get("grupo"), "pack": item.get("pack"),
+                "desenho": item.get("desenho")}
+
+    def _escolher_desenho(self, app, item):
+        """O «Usar este ícone» com um desenho que entra como está: a linha no
+        `icones-escolhidos.map` de quem usa (P73, I3). Nada no repositório."""
+        if item.get("tipo") != "desenho":
+            return self._json({"erro": "este desenho não entra como está no tema"}, 409)
+        d = next((x for x in self._desktops() if x["id"] == app), None) or {"id": app}
+        rotulo = d.get("nome") or app
+        # A TRAVA DO PACK VALE PARA TODO DESENHO QUE VAI AO `scalable/apps`: é o
+        # mesmo arquivo, de onde quer que o desenho venha (P60, P64).
+        motivo = self._trava_do_pack(d, rotulo)
+        if motivo:
+            return self._json({"erro": motivo}, 409)
+        nome = self._nome_do_icone(app)
+        arquivo = self._arquivo_na_ficha(item["caminho"])
+        linha = "%s : %s   # %s — escolhido no painel" % (
+            nome, arquivo, re.sub(r"[\x00-\x1f#;]+", " ", rotulo).strip())
+        try:
+            _gravar_escolha(_mapa_de_escolhas_do_usuario(), nome, linha, ":")
+        except OSError as e:
+            return self._json({"erro": "não consegui guardar a escolha: %s" % e}, 500)
+        return self._json({"ok": True, "app": app, "glifo": item["glifo"], "arquivo": arquivo,
+                           "depois": "vale depois de «%s»" % ACOES["icones_pack"]["rotulo"]})
+
+    def _api_app_icone(self, corpo):
+        """Guarda a escolha dela no estado dela — e, por gesto, leva ao pack.
+
+        ATÉ A P73 ESTA ROTA ESCREVIA NO REPOSITÓRIO: a linha do traço no
+        `apps-arcticons.map` (com o glifo copiado do `upstream/` para
+        `arcticons-apps/`) e a do pack no `apps.map` dele. É a regressão I3 —
+        ver "AS ESCOLHAS DE ÍCONE DO PAINEL MORAM COM QUEM USA", no topo. Agora:
+          · `arquivo` de desenho     → `icones-escolhidos.map` (quem usa);
+          · `glifo` + `cor` (traço)  → `icones-traco.map` (quem usa);
+          · `remover` + `escolha`    → tira a linha do primeiro;
+          · `remover` sozinho        → tira a linha do segundo;
+          · `pack` + `desenho`       → «Levar para o pack», o gesto explícito
+                                       que grava no mapa do pack (o código da
+                                       P60, `_escolher_do_pack`);
+          · `pack` + `remover`       → desfaz o que foi levado (P64).
+        """
         app = str(corpo.get("app", "")).strip()
         glifo = str(corpo.get("glifo", "")).strip()
         cor = str(corpo.get("cor", "")).strip()
         remover = bool(corpo.get("remover"))
-        if not app or not _re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
+        if not app or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
             return self._json({"erro": "aplicativo inválido"}, 400)
 
-        # UM DESENHO DO PACK NO AR — P60. A escolha mora no mapa do pack, e não
-        # no do traço: ver o bloco "OS DESENHOS DO PACK NO AR NA FICHA DE ÍCONE".
+        # LEVAR PARA O PACK — o gesto explícito da P21. Feito, a escolha deixa de
+        # morar com quem usa: a linha do pack é ela, e duas fontes para o mesmo
+        # nome seria o empate que a P28 proíbe.
         if corpo.get("pack") and not remover:
-            return self._escolher_do_pack(app, corpo)
-        # E O DESFAZER DELA — P64. Até aqui o `remover` ia sempre para o mapa do
-        # traço, com ou sem `pack`: ver "A ESCOLHA DO PAINEL LEVA A LINHA QUE
-        # ELA TROCOU".
+            pack, _desenhos, _aviso = self._desenhos_do_pack_no_ar()
+            resposta = self._escolher_do_pack(app, corpo)
+            levada = pack and self._escolha_no_pack(pack, app)
+            if levada and levada["desenho"] == str(corpo.get("desenho", "")).strip():
+                try:
+                    _gravar_escolha(_mapa_de_escolhas_do_usuario(), self._nome_do_icone(app),
+                                    None, ":")
+                except OSError:
+                    pass
+            return resposta
+        # E O DESFAZER DELA — P64.
         if corpo.get("pack"):
             return self._desfazer_do_pack(app, corpo)
+
+        # DESFAZER A MINHA ESCOLHA DE DESENHO — P73.
+        if remover and corpo.get("escolha"):
+            try:
+                havia = _gravar_escolha(_mapa_de_escolhas_do_usuario(),
+                                        self._nome_do_icone(app), None, ":")
+            except OSError as e:
+                return self._json({"erro": "não consegui tirar a escolha: %s" % e}, 500)
+            return self._json({"ok": True, "removido": havia, "app": app,
+                               "fica": self._o_que_fica(app)})
+
+        item = None
+        if corpo.get("arquivo") and not remover:
+            item = self._item_da_ficha(str(corpo.get("arquivo")))
+            if not item:
+                return self._json({"erro": "não achei o desenho '%s' na ficha"
+                                           % corpo.get("arquivo")}, 404)
+            if item.get("tipo") != "traco":
+                return self._escolher_desenho(app, item)
 
         # A TRANCA DO BOTÃO QUE NÃO PODE VALER — ver `_travas_do_arcticons`. A
         # página já não o oferece; o servidor recusa mesmo assim, porque um POST
@@ -9396,64 +9562,37 @@ class Manipulador(BaseHTTPRequestHandler):
             if motivo:
                 return self._json({"erro": motivo}, 409)
 
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                linhas = fh.read().split("\n")
-        except OSError as e:
-            return self._json({"erro": "não achei o mapa: %s" % e}, 500)
-
-        def id_da_linha(l):
-            corte = l.strip()
-            if not corte or corte.startswith("#"):
-                return None
-            return corte.split(":")[0].strip()
-
-        # O ARQUIVO INTEIRO SOBREVIVE — só a linha do aplicativo muda.
-        #   A primeira versão reescrevia o mapa filtrando as linhas em branco, e
-        #   o `git diff` do teste mostrou o estrago: um arquivo de 350 linhas,
-        #   com blocos de comentário que explicam cada decisão de cor, perdeu
-        #   suas separações. Editar a configuração de alguém não é reformatar o
-        #   arquivo dela.
-        novas = list(linhas)
-        indice = next((i for i, l in enumerate(novas) if id_da_linha(l) == app), None)
+        caminho = _mapa_de_traco_do_usuario()
         # O `fica` é o ícone que sobra, para a torrada não dizer «de fábrica»
         # com o desenho do pack na tela (P64, `_o_que_fica`).
         if remover:
-            if indice is None:
-                return self._json({"ok": True, "removido": False, "app": app,
-                                   "fica": self._o_que_fica(app)})
-            del novas[indice]
-            with open(caminho, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(novas))
-            return self._json({"ok": True, "removido": True, "app": app,
+            try:
+                havia = _gravar_escolha(caminho, app, None, ":")
+            except OSError as e:
+                return self._json({"erro": "não consegui tirar a escolha: %s" % e}, 500)
+            return self._json({"ok": True, "removido": havia, "app": app,
                                "fica": self._o_que_fica(app)})
 
-        if not _re.match(r"^[a-z0-9._-]{1,60}$", glifo):
+        # O GLIFO É O NOME EM `arcticons-apps/`, OU O CAMINHO DE OUTRA PASTA DE
+        # TRAÇO DA FICHA — P73. Até aqui um glifo fora de `arcticons-apps/` era
+        # COPIADO do `upstream/` para lá: o repositório ganhava arquivo a cada
+        # escolha. A ficha só oferece o que já está no repositório, e o
+        # `icones_apps_arcticons.sh` lê o caminho direto da pasta dele.
+        trazer = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
+        if item:
+            if os.path.dirname(os.path.normpath(item["caminho"])) == trazer:
+                glifo = item["glifo"]
+            else:
+                glifo = self._arquivo_na_ficha(item["caminho"])
+        if not re.match(r"^[a-z0-9._-]{1,60}$", glifo) and not (
+                item and re.match(r"^assets/icones/[A-Za-z0-9._+/-]{1,200}\.svg$", glifo)
+                and "/../" not in "/" + glifo + "/"):
             return self._json({"erro": "glifo inválido"}, 400)
         cores = set((_paleta_dados().get("ordem") or []))
         if cores and cor not in cores:
             return self._json({"erro": "a cor tem de ser um nome da paleta"}, 400)
-
-        # O GLIFO TEM DE EXISTIR EM `arcticons-apps/` — é de lá que o construtor
-        # lê. Se ela escolheu um do acervo grande, ele vem junto: é isso que faz
-        # a página "atuar no repositório" em vez de mandar recado.
-        destino_glifo = os.path.join(RAIZ, "assets", "icones", "arcticons-apps", glifo + ".svg")
-        copiou = False
-        if not os.path.isfile(destino_glifo):
-            achado = ""
-            up = os.path.join(RAIZ, "assets", "icones", "upstream")
-            for dirpath, _, nomes in os.walk(up):
-                if glifo + ".svg" in nomes:
-                    achado = os.path.join(dirpath, glifo + ".svg")
-                    break
-            if not achado:
-                return self._json({"erro": "não achei o desenho '%s' no acervo" % glifo}, 404)
-            try:
-                _shutil.copy2(achado, destino_glifo)
-                copiou = True
-            except OSError as e:
-                return self._json({"erro": "não consegui trazer o desenho: %s" % e}, 500)
+        if "/" not in glifo and not os.path.isfile(os.path.join(trazer, glifo + ".svg")):
+            return self._json({"erro": "não achei o desenho '%s' no acervo" % glifo}, 404)
 
         # REPETIR GLIFO OU COR FAZ O GERADOR ESTOURAR, a menos que a linha diga
         # `alias` — está no cabeçalho do mapa. A página não pode deixar ela cair
@@ -9463,25 +9602,12 @@ class Manipulador(BaseHTTPRequestHandler):
         repetido = any(m["glifo"] == glifo or m["cor"] == cor
                        for chave, m in mapa.items() if chave != app)
         linha = "%s:%s:%s%s" % (app, glifo, cor, ":alias" if repetido else "")
-
-        if indice is not None:
-            novas[indice] = linha
-        else:
-            # Entra junto das outras linhas ativas — depois da última — para o
-            # arquivo continuar lendo como uma lista, e não como um comentário
-            # com uma linha solta no fim.
-            ultima = max((i for i, l in enumerate(novas) if id_da_linha(l)), default=None)
-            if ultima is None:
-                novas.append(linha)
-            else:
-                novas.insert(ultima + 1, linha)
         try:
-            with open(caminho, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(novas))
+            _gravar_escolha(caminho, app, linha, ":")
         except OSError as e:
-            return self._json({"erro": "não consegui gravar o mapa: %s" % e}, 500)
-        return self._json({"ok": True, "app": app, "glifo": glifo, "cor": cor,
-                           "alias": repetido, "trouxe_do_acervo": copiou,
+            return self._json({"erro": "não consegui guardar a escolha: %s" % e}, 500)
+        return self._json({"ok": True, "app": app, "glifo": os.path.basename(glifo).rsplit(".svg", 1)[0],
+                           "cor": cor, "alias": repetido, "trouxe_do_acervo": False,
                            "depois": "vale depois de \"Pôr os desenhos em traço na tela\""})
 
     # ========================================================================

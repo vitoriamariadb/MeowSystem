@@ -200,6 +200,71 @@ else
   fi
 fi
 
+# ESCOLHER ÍCONE NO PAINEL NÃO SUJA O REPOSITÓRIO — 09/10/2026, P73 (I3)
+#   A regressão I3: desde a P60 o «Usar este ícone» gravava no `apps.map` do
+#   pack, e o do traço no `apps-arcticons.map` (com o glifo copiado para
+#   `arcticons-apps/`). Medido no dev em 09/10: ` M packs/dracula/icones/
+#   apps.map`, a linha do ghostwriter. O `tests/seletor-do-pack.sh` não via
+#   porque roda numa CÓPIA da árvore; este roda as rotas de verdade contra o
+#   repositório de verdade — é a prova que a spec da P73 pede —, com o HOME de
+#   brinquedo, e escolhe três ícones de três jeitos: um desenho da biblioteca do
+#   Dracula, um resgatado do motor e um glifo de traço. E roda o passo que a
+#   ficha dispara depois (o do pack), que escreve no HOME de brinquedo.
+printf '\n--- 3b escolher três ícones no painel não muda o git status ---\n'
+ANTES_I="$TMP/antes-icones"; DEPOIS_I="$TMP/depois-icones"
+estado_git > "$ANTES_I"
+CASA_I="$TMP/casa-icones"
+mkdir -p "$CASA_I/.config/meow" "$CASA_I/.local/share/applications" "$CASA_I/.local/state/meowsystem" \
+  || exit 2
+cp "$RAIZ/meow.conf.exemplo" "$CASA_I/.config/meow/meow.conf" || exit 2
+printf '\nPACK="dracula"\nFLAVOR="dracula"\nICONES_DRACULA="sim"\n' >> "$CASA_I/.config/meow/meow.conf"
+for par in "um-navegador:Um Navegador" "um-chat:Um Chat" "um-editor:Um Editor"; do
+  printf '[Desktop Entry]\nName=%s\nExec=true\nIcon=%s\nType=Application\n' "${par#*:}" "${par%%:*}" \
+    > "$CASA_I/.local/share/applications/${par%%:*}.desktop"
+done
+env -u MEOW_PACK_DIR -u PACK -u FLAVOR -u ICONES_DRACULA -u MEOW_ICONES_ESCOLHAS -u MEOW_ICONES_TRACO \
+    HOME="$CASA_I" MEOW_CONF="$CASA_I/.config/meow/meow.conf" XDG_CONFIG_HOME="$CASA_I/.config" \
+    XDG_DATA_HOME="$CASA_I/.local/share" XDG_STATE_HOME="$CASA_I/.local/state" \
+    MEOW_ESTADO="$CASA_I/.local/state/meowsystem" PYTHONDONTWRITEBYTECODE=1 \
+    python3 - "$RAIZ" "$CASA_I" <<'PY'
+import os, subprocess, sys
+raiz, casa = sys.argv[1], sys.argv[2]
+sys.path.insert(0, os.path.join(raiz, "app"))
+import servidor  # noqa: E402
+M = servidor.Manipulador
+M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "usuária"),)
+m = M.__new__(M)
+r = {}
+m._json = lambda d, c=200: r.update(d=d, c=c)
+falhou = 0
+for corpo in ({"app": "um-navegador", "arquivo": "packs/dracula/icones/biblioteca/alien.svg"},
+              {"app": "um-chat", "arquivo": "assets/icones/resgatados/discord.svg"},
+              {"app": "um-editor", "arquivo": "assets/icones/arcticons-apps/firefox.svg",
+               "glifo": "firefox", "cor": "mauve"}):
+    r.clear()
+    m._api_app_icone(corpo)
+    if r.get("c") != 200:
+        falhou = 1
+        print("  NÃO  a escolha %r foi recusada: %r" % (corpo, r.get("d")), file=sys.stderr)
+amb = dict(os.environ)
+amb.update(servidor.conf_exportada() or {})
+subprocess.run([os.path.join(raiz, "scripts", "icones_apps_dracula.sh"), "aplicar"], env=amb,
+               capture_output=True, timeout=120)
+sys.exit(falhou)
+PY
+[ "$?" = "0" ] || falha "o painel recusou uma das três escolhas de ícone"
+estado_git > "$DEPOIS_I"
+if cmp -s "$ANTES_I" "$DEPOIS_I"; then
+  ok "três ícones escolhidos (biblioteca, resgatado, traço) e o git status é o mesmo"
+else
+  falha "escolher ícone no painel mudou o git status:"
+  diff "$ANTES_I" "$DEPOIS_I" | sed 's/^/        /' >&2
+fi
+for arq in icones-escolhidos.map icones-traco.map; do
+  [ -s "$CASA_I/.config/meow/$arq" ] && ok "a escolha foi para ~/.config/meow/$arq, no estado de quem usa" \
+    || falha "~/.config/meow/$arq não recebeu a escolha"
+done
+
 # O QUE AINDA NÃO SAIU, CONTADO E NÃO AFIRMADO -- 22/09/2026
 #   A P21 nomeia SETE escritas dentro do repositório versionado e esta passagem
 #   entregou DUAS. Enquanto isso for verdade, um veredito final dizendo "usar o
@@ -213,8 +278,11 @@ fi
 #   dívida acabar — e é ela que diz se a P21 pode ser fechada.
 printf '\n--- pendente: o que a P21 promete e esta passagem não entregou ---\n'
 PENDENTES=0
-for alvo in assets/icones/apps-arcticons.map assets/icones/apps-convertidos.map \
-            assets/icones/jogos-fora.map assets/icones/arcticons-apps \
+# [P73, 09/10/2026: o `apps-arcticons.map` e o `arcticons-apps/` saíram da lista
+#   — a escolha de traço do painel mora no estado de quem usa, e a seção 3b
+#   cobra. A oficina de desenho ainda escreve os dois do convertido.]
+for alvo in assets/icones/apps-convertidos.map \
+            assets/icones/jogos-fora.map \
             assets/icones/convertidos-apps assets/gatos; do
   n_alvo="$(git -C "$RAIZ" ls-files -- "$alvo" | wc -l)"
   [ "$n_alvo" -gt 0 ] || continue

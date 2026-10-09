@@ -104,6 +104,14 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 ORIGEM="$RAIZ/assets/icones/arcticons-apps"
 MAPA="$RAIZ/assets/icones/apps-arcticons.map"
+# A ESCOLHA DE TRAÇO DO PAINEL MORA COM QUEM USA — 09/10/2026, P73 (I3). O
+# «Usar este ícone» com um glifo de traço gravava a linha no mapa acima, dentro
+# do clone, e copiava o glifo para `arcticons-apps/`: usar o programa sujava o
+# repositório (a regra da P21). A linha vai agora para este arquivo, ao lado do
+# meow.conf, no MESMO formato; lido depois do mapa do projeto, ele vence o app
+# que os dois nomeiam. O glifo é o nome em `arcticons-apps/` ou, para as outras
+# pastas de traço que a ficha oferece, o caminho a partir da raiz.
+MAPA_USUARIO="${MEOW_ICONES_TRACO:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-traco.map}"
 ORIGEM_CONV="$RAIZ/assets/icones/convertidos-apps"
 MAPA_CONV="$RAIZ/assets/icones/apps-convertidos.map"
 MAPA_MARCA="$RAIZ/assets/icones/apps-marca.map"
@@ -259,6 +267,8 @@ _ler_mapa() {
     esac
     IFS=':' read -r nome glifo cor marca <<<"$linha"
     [ -n "$nome" ] && [ -n "$glifo" ] && [ -n "$cor" ] || continue
+    # O caminho (só o do mapa de quem usa) fica dentro da raiz: `..` não sobe.
+    case "$glifo" in */*) case "/$glifo/" in */../*) continue ;; esac ;; esac
     intocavel "$nome" && continue
     if [ -n "${CURADO[$nome]:-}" ]; then
       meow_debug "$nome: arte escolhida na curadoria — o Arcticons sai de cima"
@@ -266,10 +276,13 @@ _ler_mapa() {
     fi
     GLIFO["$nome"]="$glifo"
     ARTE["$nome"]="$ORIGEM/$glifo.svg"
+    case "$glifo" in */*) ARTE["$nome"]="$RAIZ/$glifo" ;; esac
     ACERVO["$nome"]="Arcticons"
     COR["$nome"]="$cor"
     if [ "${marca:-}" = "alias" ]; then ALIAS_OK["$glifo"]=1; ALIAS_OK["cor:$cor"]=1; fi
-  done < "$MAPA"
+  # O `echo` entre os dois é a quebra que um arquivo sem `\n` no fim não tem:
+  # sem ela, a última linha de um colaria na primeira do outro.
+  done < <(cat "$MAPA"; echo; [ -f "$MAPA_USUARIO" ] && cat "$MAPA_USUARIO"; echo)
   # `return 0` NÃO É DECORAÇÃO: um `while` devolve o status do último comando do
   # corpo, e a última linha do mapa não é um alias — o teste devolveria 1 e, com
   # `set -e`, o script morreria aqui, calado e com código 1. Aconteceu no irmão.

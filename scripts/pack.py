@@ -42,6 +42,10 @@ VERBOS
                                  com `ICONES_DRACULA="sim"` no ambiente, e perde
                                  sem ele; duas linhas de um nome é empate. Ver
                                  `fontes`.
+    escolhas                     as escolhas de ícone do painel (o estado de
+                                 quem usa, fora do repositório): `nome<TAB>
+                                 arquivo`, uma por linha, só as que valem. Ver
+                                 `escolhas_do_painel`.
     fonte   <nome> [id]          as linhas de `fontes` daquele nome. 0 = uma
                                  fonte só; 1 = nenhuma, ou mais de uma. O lado
                                  que ficou atrás vai para o stderr.
@@ -1010,6 +1014,82 @@ def _pack_de(caminho):
     return "?"
 
 
+# A ESCOLHA DO PAINEL MORA COM QUEM USA, E VENCE — 09/10/2026, sprint P73 (I3)
+#
+# A REGRESSÃO: desde a P60 (25/09) o «Usar este ícone» com um desenho do pack
+#   gravava a linha no `apps.map` do pack, DENTRO do clone. A P21 (21/09) tinha
+#   dito o contrário — «usar o programa não pode sujar o repositório», e gravar
+#   no pack só «por gesto explícito, não por uso». Medido em 09/10: o `git
+#   status` do dev com ` M packs/dracula/icones/apps.map`, a linha do
+#   ghostwriter escolhida no painel. E o `.meowpack` exportava a escolha junto.
+#   (Ver I3 em docs/sprints/2026-10-09-uso-real/01-regressoes.md.)
+#
+# A CURA: a escolha vai para um arquivo do ESTADO de quem usa, ao lado do
+#   meow.conf — `icones-escolhidos.map`, no formato dos mapas de pack:
+#
+#     org.kde.ghostwriter : packs/dracula/icones/apps/org.gnome.gitlab.somas.Apostrophe.svg   # ghostwriter — escolhido no painel
+#
+#   O alvo é o caminho do desenho a partir da raiz do MeowSystem (absoluto
+#   quando o desenho mora num pack de fora dela, em `~/.local/share/
+#   meowsystem/packs`). Qualquer pasta da ficha vale, de qualquer pack: a
+#   decisão 3 de 09/10 pôs todos os acervos na ficha. Levar a escolha para o
+#   mapa do pack continua existindo, como o gesto explícito «Levar para o pack»
+#   do painel — o `_escolher_do_pack` do servidor, que é o código da P60.
+#
+# A ESCOLHA VENCE O PACK E O MOTOR, com a camada ligada ou não: quem escolheu
+#   um desenho para um app à mão decidiu, e é isso que o `fontes` diz. O
+#   `icones_apps_dracula.sh` a põe no `scalable/apps` (é o dono daquela camada
+#   para os mapas), e o `icones_resgatados.sh` a cede como cede o pack.
+def arquivo_de_escolhas():
+    """O caminho do `icones-escolhidos.map` de quem usa (exista ou não)."""
+    if os.environ.get("MEOW_ICONES_ESCOLHAS"):
+        return os.environ["MEOW_ICONES_ESCOLHAS"]
+    conf = os.environ.get("MEOW_CONF") or os.path.join(os.path.expanduser("~"), ".config",
+                                                       "meow", "meow.conf")
+    return os.path.join(os.path.dirname(conf), "icones-escolhidos.map")
+
+
+def _alvo_de_escolha(alvo):
+    """O arquivo que uma linha de escolha aponta, ou Recusa.
+
+    Só `.svg` comum (raster não é fonte, ver `meow_icones_derivados`), dentro
+    da raiz do MeowSystem ou de uma raiz de packs: o arquivo é da pessoa, mas o
+    que ele aponta vai para o tema, e uma linha não pode puxar `/etc/` para lá.
+    """
+    caminho = os.path.normpath(alvo if os.path.isabs(alvo) else os.path.join(RAIZ, alvo))
+    reais = [os.path.realpath(r) for r in [RAIZ] + raizes()]
+    real = os.path.realpath(caminho)
+    _exigir(any(real.startswith(r + os.sep) for r in reais),
+            f"{alvo!r} está fora do MeowSystem e das pastas de packs")
+    _exigir(caminho.endswith(".svg") and os.path.isfile(caminho) and not os.path.islink(caminho),
+            f"{alvo!r} não é um .svg comum que exista")
+    return caminho
+
+
+def escolhas_do_painel():
+    """(número, nome, arquivo) de cada escolha do painel que vale.
+
+    A linha que o `_alvo_de_escolha` recusa não vale, e o motivo vai para o
+    stderr: a pessoa a escreveu à mão, ou o desenho saiu do disco."""
+    try:
+        linhas = list(ler_mapa(arquivo_de_escolhas()))
+    except OSError:
+        return []
+    saida = []
+    for num, nome, alvo in linhas:
+        try:
+            saida.append((num, nome, _alvo_de_escolha(alvo)))
+        except Recusa as e:
+            print(f"  aviso {arquivo_de_escolhas()}:{num}: {e}", file=sys.stderr)
+    return saida
+
+
+def cmd_escolhas():
+    for _num, nome, arquivo in escolhas_do_painel():
+        print(f"{nome}\t{arquivo}")
+    return OK
+
+
 def fontes(ref=None):
     """Cada (nome, fonte, camada) da camada `scalable/apps`, na ordem dos mapas.
 
@@ -1062,7 +1142,13 @@ def fontes_e_atras(ref=None):
     ligada = (os.environ.get("ICONES_DRACULA") or "nao") == "sim"
     vence = {nome for nome, _fonte, _camada in (do_pack if ligada else do_motor)}
     atras = [linha for linha in (do_motor if ligada else do_pack) if linha[0] in vence]
-    return [linha for linha in do_pack + do_motor if linha not in atras], atras
+    # A ESCOLHA DO PAINEL VENCE AS DUAS — P73, ver "A ESCOLHA DO PAINEL MORA COM
+    # QUEM USA" acima. O que ela nomeia vai para trás, do pack e do motor.
+    escolhas = [(nome, _relativo(arq), "escolha") for _num, nome, arq in escolhas_do_painel()]
+    escolhidos = {nome for nome, _f, _c in escolhas}
+    atras += [linha for linha in do_pack + do_motor
+              if linha[0] in escolhidos and linha not in atras]
+    return [linha for linha in do_pack + do_motor if linha not in atras] + escolhas, atras
 
 
 def cmd_fontes(ref):
@@ -1084,8 +1170,12 @@ def cmd_fonte(nome, ref):
     # que o `meow icones fonte` lê. O valor do interruptor sai do ambiente, e
     # não escrito aqui: é o que a pessoa tem no meow.conf.
     chave = os.environ.get("ICONES_DRACULA") or "nao"
+    escolhido = any(c == "escolha" for _f, c in achadas)
     for _n, fonte, camada in (a for a in atras if a[0] == nome):
-        if camada == "resgatados":
+        if escolhido:
+            porque = ("a escolha do painel, no estado de quem usa, vence o pack e o motor "
+                      "(P73), e este desenho volta se ela for desfeita")
+        elif camada == "resgatados":
             porque = (f"com ICONES_DRACULA=\"{chave}\" o pack no ar vence o motor para este "
                       f"nome, e o resgate volta a valer com outro pack ou com a camada desligada")
         else:
@@ -5970,6 +6060,8 @@ def main(argv):
         # `fontes` e `fonte` aceitam o id por argumento e caem no pack ativo
         # (`MEOW_PACK_DIR`) sem ele — a mesma ponte do `acervo`, pelo mesmo
         # motivo: quem pergunta do shell já resolveu o pack ativo por ela.
+        if verbo == "escolhas" and len(argv) == 2:
+            return cmd_escolhas()
         if verbo == "fontes" and len(argv) in (2, 3):
             return cmd_fontes(argv[2] if len(argv) == 3 else None)
         if verbo == "fonte" and len(argv) in (3, 4):

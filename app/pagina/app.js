@@ -2846,7 +2846,11 @@ function gradeDeIcones(limite = 24) {
  * `assets/icones/apps-arcticons.map` DO REPOSITÓRIO — é o que faz ela
  * sobreviver a uma reinstalação, e é o que "atuar no repo local" quer dizer.
  * O desenho escolhido, se ainda não estava no repositório, vem junto do acervo
- * Arcticons (21 mil) para `assets/icones/arcticons-apps/`. */
+ * Arcticons (21 mil) para `assets/icones/arcticons-apps/`.
+ * [09/10/2026, P73: deixou de ser assim. Usar o programa não pode sujar o
+ * repositório (P21), e as escolhas vão para o estado de quem usa, ao lado do
+ * meow.conf — `icones-traco.map` e `icones-escolhidos.map`. Ver "AS ESCOLHAS
+ * DE ÍCONE DO PAINEL MORAM COM QUEM USA", no app/servidor.py.] */
 let APPS = null;
 let APPS_BUSCA = "";
 let APP_ABERTO = null;
@@ -2880,7 +2884,8 @@ async function carregarGlifos(termo, app) {
    * para ESTE aplicativo (P64, `_api_glifos`): por isso a busca é por
    * aplicativo, e não só por termo. */
   GLIFOS = { termo, app, itens: r.glifos || [], grupos: r.grupos || [], carregando: false,
-             aviso: r.aviso || "", pack: r.pack || null, escolha: r.escolha || null };
+             aviso: r.aviso || "", pack: r.pack || null, escolha: r.escolha || null,
+             minha: r.minha || null };
   render();
 }
 
@@ -3135,7 +3140,6 @@ function montarEscolhaDeIcone(app, recarregar) {
   const itemEscolhido = () => itens.find((g) => chaveDe(g) === escolhido) || null;
   const tiraGlifos = elemento("div", { class: "tira-glifos" });
   const notaDaCor = elemento("p", { class: "frase", hidden: true });
-  const fraseDoFim = elemento("p", { class: "frase" });
   const pintarGlifos = () => {
     for (const b of tiraGlifos.querySelectorAll("button[data-escolha]")) {
       b.setAttribute("aria-pressed", String(b.dataset.escolha === escolhido));
@@ -3145,13 +3149,10 @@ function montarEscolhaDeIcone(app, recarregar) {
      * recolore). E a escolha mora no pack, não no mapa do traço — a frase do
      * fim diz onde ela vale. */
     const g = itemEscolhido();
-    notaDaCor.hidden = !(g && g.pack);
-    notaDaCor.textContent = g && g.pack
-      ? `O desenho do pack «${nomeDoPack(g)}» entra com as cores dele: a cor abaixo vale só para o traço.`
+    notaDaCor.hidden = !(g && g.tipo !== "traco");
+    notaDaCor.textContent = g && g.tipo !== "traco"
+      ? `O desenho de «${nomeDoPack(g)}» entra com as cores dele: a cor abaixo vale só para o traço.`
       : "";
-    fraseDoFim.textContent = g && g.pack
-      ? `A escolha fica no pack «${nomeDoPack(g)}»: vale com ele no ar, em toda máquina que instalar daqui.`
-      : "A escolha fica guardada no projeto: vale em toda máquina que instalar daqui.";
   };
   const botaoDe = (g) => elemento("button", {
     type: "button",
@@ -3260,20 +3261,24 @@ function montarEscolhaDeIcone(app, recarregar) {
   const algumVale = itens.some((g) => !travaDe(g));
   if (comBusca && algumVale) acoes.append(elemento("button", {
     type: "button", class: "btn btn-accent", texto: "Usar este ícone",
+    /* A ESCOLHA FICA COM QUEM USA — 09/10/2026, P73 (I3). Até aqui ela ia para
+     * o repositório (o mapa do traço, ou o `apps.map` do pack); agora vai para
+     * o estado dela, ao lado do meow.conf, e o pack só recebe pelo «Levar para
+     * o pack». O porquê fica na dica, e não numa frase embaixo da ficha. */
+    title: "A escolha fica nesta conta; «Levar para o pack» a põe no pack",
     onclick: async () => {
       if (!escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }
-      /* O DESENHO DO PACK GRAVA NO MAPA DO PACK, E O PASSO É OUTRO — P60. A
-       * linha vai para o `apps.map` do pack no ar (o servidor diz por quê, no
-       * `_desenhos_do_pack_no_ar`), e quem põe aquele mapa no tema é o
-       * `icones_pack`, e não o `icones_traco`. A cor não vai junto. */
+      /* O DESENHO QUE ENTRA COMO ESTÁ VAI PARA O `scalable/apps`, E O PASSO É
+       * OUTRO — P60, e desde a P73 vale para toda pasta que não é traço: quem
+       * põe a escolha no tema é o `icones_pack`. A cor não vai junto. */
       const g = itemEscolhido();
-      if (g && g.pack) {
+      if (g && g.tipo !== "traco") {
         const r = await api("/api/app-icone", {
           method: "POST",
-          body: JSON.stringify({ app: app.id, pack: g.pack, desenho: g.desenho }),
+          body: JSON.stringify({ app: app.id, arquivo: g.arquivo }),
         });
         if (r.erro) { torrada(r.erro, "erro"); return; }
-        torrada(`${app.nome}: ${g.glifo}, do pack «${r.nome_pack}»`, "ok");
+        torrada(`${app.nome}: ${g.glifo}`, "ok");
         await rodarAcao("icones_pack");
         APP_ABERTO = null;
         await fimDoTrabalho();
@@ -3282,11 +3287,12 @@ function montarEscolhaDeIcone(app, recarregar) {
       }
       const r = await api("/api/app-icone", {
         method: "POST",
-        body: JSON.stringify({ app: app.id, glifo: escolhido, cor: corEscolhida }),
+        body: JSON.stringify({ app: app.id, glifo: g ? g.glifo : "", arquivo: g ? g.arquivo : "",
+                               cor: corEscolhida }),
       });
       if (r.erro) { torrada(r.erro, "erro"); return; }
       torrada(
-        `${app.nome}: ${escolhido} em ${corEscolhida}`
+        `${app.nome}: ${r.glifo} em ${corEscolhida}`
         + (r.trouxe_do_acervo ? " — o desenho entrou no projeto" : "")
         /* "ALIAS" SAIU — 09/09/2026. É a palavra do arquivo de mapa para
          * "este programa reaproveita o desenho de outro"; na torrada ela
@@ -3308,7 +3314,9 @@ function montarEscolhaDeIcone(app, recarregar) {
       await relerLista();
     },
   }));
-  if (app.mapa) {
+  /* Só a escolha DE QUEM USA se desfaz daqui (P73): a linha do mapa do
+   * projeto é curadoria do repositório, e não sai por um clique. */
+  if (app.mapa && app.mapa.meu) {
     acoes.append(elemento("button", {
       /* "MAPA" ERA O NOME DO ARQUIVO (apps-arcticons.map), não do que o botão
        * faz — 09/09/2026. Ele desfaz a escolha e devolve o ícone de fábrica,
@@ -3350,6 +3358,47 @@ function montarEscolhaDeIcone(app, recarregar) {
    *   antes —, ou tira a do painel, quando o pack não tinha nenhuma. A busca
    *   diz se há o que desfazer (`GLIFOS.escolha`, do `_api_glifos`), e o botão
    *   só nasce com ela, como o do traço só nasce com o `app.mapa`. */
+  /* A MINHA ESCOLHA DE DESENHO, E O GESTO QUE A LEVA AO PACK — P73 (I3). O
+   * «Desfazer» tira a linha do estado de quem usa; o «Levar para o pack» só
+   * nasce quando o desenho é do pack no ar, e grava no mapa dele — o gesto
+   * explícito que a P21 pedia («gravar no pack só por gesto, não por uso»).
+   * Com a camada do pack desligada ele fica apagado, e o porquê na dica. */
+  const minha = GLIFOS.app === app.id ? GLIFOS.minha : null;
+  if (minha) {
+    acoes.append(elemento("button", {
+      type: "button", class: "btn", texto: "Desfazer a minha escolha",
+      onclick: async () => {
+        const r = await api("/api/app-icone", {
+          method: "POST", body: JSON.stringify({ app: app.id, escolha: true, remover: true }),
+        });
+        if (r.erro) { torrada(r.erro, "erro"); return; }
+        torrada(`${app.nome} fica com ${r.fica.frase}`, "ok");
+        await rodarAcao("icones_pack");
+        APP_ABERTO = null;
+        await fimDoTrabalho();
+        await relerLista();
+      },
+    }));
+    if (minha.pack && minha.desenho) {
+      acoes.append(elemento("button", {
+        type: "button", class: "btn", texto: "Levar para o pack",
+        disabled: !!GLIFOS.aviso,
+        title: GLIFOS.aviso || "Grava no pack: vale em toda máquina que instalar daqui",
+        onclick: async () => {
+          const r = await api("/api/app-icone", {
+            method: "POST",
+            body: JSON.stringify({ app: app.id, pack: minha.pack, desenho: minha.desenho }),
+          });
+          if (r.erro) { torrada(r.erro, "erro"); return; }
+          torrada(`${app.nome}: ${minha.glifo}, no pack «${r.nome_pack}»`, "ok");
+          await rodarAcao("icones_pack");
+          APP_ABERTO = null;
+          await fimDoTrabalho();
+          await relerLista();
+        },
+      }));
+    }
+  }
   const escolhaNoPack = GLIFOS.app === app.id ? GLIFOS.escolha : null;
   if (escolhaNoPack) {
     acoes.append(elemento("button", {
@@ -3382,7 +3431,9 @@ function montarEscolhaDeIcone(app, recarregar) {
    * [P60: com um desenho do pack marcado, a frase diz que a escolha mora no
    * pack e vale com ele no ar — ver o `pintarGlifos`, que a escreve.] */
   pintarGlifos();
-  if (comBusca) painel.append(fraseDoFim);
+  /* [A frase do fim saiu na P73: ela dizia «a escolha fica guardada no
+   * projeto», e deixou de ser verdade; onde a escolha mora é a dica do «Usar
+   * este ícone».] */
   return painel;
 }
 

@@ -248,12 +248,15 @@ saida="$(ICONES_DRACULA=sim pack_py fonte luna maquina 2>"$T/erro")"; rc=$?
 
 # --- 6. os dois parsers do mapa concordam ------------------------------------
 #   O `_dracula_pares` do shell e o `ler_mapa` do Python leem o mesmo formato.
+#   [P73, 09/10/2026: o parser do shell passou a se chamar `_dracula_pares_do_mapa`
+#   — o `_dracula_pares` de agora tira dele os nomes que a escolha do painel
+#   decide, e é o parser que este bloco compara.]
 #   A função do shell é extraída VERBATIM, como no `tests/pack.sh`: uma cópia
 #   dela aqui seria a que passaria no dia em que a original quebrasse.
 sh_pares="$(MAPA="$RAIZ/packs/dracula/icones/apps.map" ICONES_BASE_MAPA="$RAIZ/packs/dracula/icones" RAIZ="$RAIZ" \
   amb bash -c 'set -uo pipefail
-  eval "$(sed -n "/^_dracula_pares() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
-  _dracula_pares' 2>/dev/null | sort)"
+  eval "$(sed -n "/^_dracula_pares_do_mapa() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
+  _dracula_pares_do_mapa' 2>/dev/null | sort)"
 # Com a camada ligada: desligada, o `fontes` põe atrás os dois nomes que o
 # resgate também tem, e a comparação mediria o interruptor, não o parser.
 py_pares="$(ICONES_DRACULA=sim pack_py fontes dracula 2>/dev/null | awk -F'\t' -v r="$RAIZ" '$3 ~ /^pack:/ {print $1 "\t" r "/" $2}' | sort)"
