@@ -2549,38 +2549,16 @@ cmd_doctor() {
     meow_info "  o MeowSystem não mexe nela: regra de sudo é sua, não nossa"
   fi
 
-  # A ARTE COPIADA QUE DIVERGIU DA ORIGEM — regra 8 da P28, 23/09/2026
-  #   O pack ativo pode trazer arte de terceiro copiada, com a origem no
-  #   `PROCEDENCIA.md`. Quando a cópia e a origem se separam, o doctor diz — e
-  #   pelo mesmo molde do aviso do sudo logo acima: NÃO É UM CHECK, não entra
-  #   em `VERIFICAVEIS` e não passa pelo `--consertar`. Não há conserto
-  #   automático possível: escolher entre o retoque daqui e o upstream de lá é
-  #   decisão de autor, e um auto-reparo das 5h que escolhesse sozinho
-  #   apagaria, um dia, o retoque de alguém.
+  # A COMPARAÇÃO COM A ORIGEM SAIU DA PASSADA — P75, 09/10/2026 (D3)
+  #   Aqui morava o `pack.py sincronizar` do pack no ar, a cada passada: a
+  #   regra 8 da P28 (23/09), "mostra a divergência entre a cópia e a origem e
+  #   espera o gesto". Em 24/09 ela decidiu outra coisa para a comparação com o
+  #   Dracula_OS-Theme: «Aposentar tudo». A P43 esvaziou a coluna `lido de`,
+  #   mas a chamada ficou, e o doctor seguia perguntando toda madrugada por
+  #   uma decisão que não é mais pergunta (01-regressoes.md, D3).
   #
-  #   Silêncio quando está em dia e quando a origem não está nesta máquina — a
-  #   dela não tem o `Dracula_OS-Theme`, e "não há com o que comparar" não é
-  #   notícia. Só o código 1 (algum lado andou) vira linha.
-  #
-  #   E ESTA LINHA NÃO LÊ MAIS A CASA DE NINGUÉM — 24/09/2026, P43. Até aqui,
-  #   com o Dracula no ar, ela relia a cada passada 364 arquivos do
-  #   `Dracula_OS-Theme`, na pasta pessoal de quem escreveu o tema (a coluna
-  #   `lido de` do PROCEDENCIA.md dele): a última leitura, em execução, de um
-  #   caminho da máquina de alguém. A decisão de 23/09 foi "aposentar tudo". A coluna ficou
-  #   vazia nessas linhas, e o `sincronizar` conta linha vazia como só registro,
-  #   sem abrir nada fora do pack. O chamado daqui não mudou: ele continua
-  #   servindo ao pack de terceiro que declare origem, e à linha do Dracula cuja
-  #   origem é o próprio motor. O `tests/sem-dracula-os-theme.sh` cobra isso
-  #   abrindo este mesmo `sincronizar` sob um gancho de auditoria.
-  local pack_proc; pack_proc="$(meow_pack_dir)"
-  if [ -n "$pack_proc" ] && [ -f "$pack_proc/PROCEDENCIA.md" ]; then
-    python3 "$RAIZ/scripts/pack.py" sincronizar "$pack_proc" >/dev/null 2>&1
-    if [ "$?" = "1" ]; then
-      meow_info "o pack $(basename "$pack_proc") tem arte copiada que se separou da origem"
-      meow_info "  é informação, não conserto — qual versão fica é decisão sua"
-      meow_info "  veja o par lado a lado:  meow pack sincronizar $(basename "$pack_proc")"
-    fi
-  fi
+  #   O verbo continua existindo para quem quiser comparar à mão um pack de
+  #   terceiro (`meow pack sincronizar <id>`); o doctor é que não o chama.
 
   local pior; pior="$(pior_rc)"
   if [ "$consertar" = "0" ]; then
