@@ -758,11 +758,13 @@ PYFIM
 meow_flavor_vestido() {
   local fl
   fl="$(meow_flavor)" || return 1
-  case "${MODO:-escuro}" in
+  # Sem MODO no ambiente (um script chamado à mão, sem o meow.conf), não há
+  # lado a escolher: vale o FLAVOR, como antes desta função.
+  case "${MODO:-}" in
     claro|escuro) ;;
     *) printf '%s' "$fl"; return 0 ;;
   esac
-  python3 - "$MEOW_RAIZ/scripts" "$fl" "${MODO:-escuro}" "$(meow_paleta)" <<'PYFIM' 2>/dev/null || printf '%s' "$fl"
+  python3 - "$MEOW_RAIZ/scripts" "$fl" "$MODO" "$(meow_paleta)" <<'PYFIM' 2>/dev/null || printf '%s' "$fl"
 import json, sys
 sys.path.insert(0, sys.argv[1])
 import derivar_flavor
