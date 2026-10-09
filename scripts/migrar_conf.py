@@ -93,7 +93,7 @@ RENOMEADAS = {"WALLPAPER_FONTES_DELA": "WALLPAPER_FONTES_PERMITIDAS"}
 #
 #   O valor é a frase do porquê, para quem ler o `--conferir`.
 APOSENTADAS = {
-    "ICONES_BASE": "a base de ícones vem do pack, pinada (decisão de 24/09/2026)",
+    "ICONES_BASE": "a base de ícones vem do pack, pinada, por decisão de 24/09/2026",
 }
 
 
