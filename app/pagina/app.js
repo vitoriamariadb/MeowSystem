@@ -3366,6 +3366,9 @@ function montarEscolhaDeIcone(app, recarregar) {
        *   servidor). Agora o clique grava e roda o passo certo: a gaveta abre
        *   com a saída, e o script relê a dock e o menu no fim. */
       await rodarAcao("icones_traco");
+      /* O traço tirou a escolha de desenho deste app (conferência da P73): é o
+       * passo do pack que tira o desenho do `scalable/apps`, que vence o traço. */
+      if (r.tirou_escolha) { await fimDoTrabalho(); await rodarAcao("icones_pack"); }
       APP_ABERTO = null;
       await fimDoTrabalho();
       await relerLista();

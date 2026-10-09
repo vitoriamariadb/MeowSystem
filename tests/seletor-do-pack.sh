@@ -557,6 +557,31 @@ for app, grade, caso in (("meow-steam-12345", jogos, "o jogo da Steam, intocáve
           "sem mexer no mapa (%s)" % (caso, codigo),
           repr((a.get("trava"), a.get("trava_pack"), codigo, dados)))
 
+# O TRAÇO ESCOLHIDO DEPOIS DE UM DESENHO É O QUE FICA — conferência da P73. A
+# escolha de desenho vai para o `scalable/apps`, que vence o `48x48/apps` do
+# traço: com as duas linhas no estado de quem usa, o «Usar este ícone» do traço
+# respondia ok e a tela continuava com o desenho. A última escolha vale.
+codigo, dados = usar("programa-de-brinquedo", "packs/dracula/icones/biblioteca/alien.svg")
+rc, saida = passo_do_pack()
+checa(codigo == 200 and texto(os.path.join(tema, "programa-de-brinquedo.svg")) == texto(alien),
+      "o programa veste o alien escolhido como desenho (rc=%s)" % rc, repr(dados) + saida[-400:])
+codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
+                                          "arquivo": "assets/icones/arcticons-apps/firefox.svg"})
+with open(escolhas, encoding="utf-8") as fh:
+    sobrou = [l for l in fh if l.startswith("programa-de-brinquedo ")]
+checa(codigo == 200 and dados.get("tirou_escolha") is True and not sobrou
+      and m._o_que_fica("programa-de-brinquedo").get("tipo") != "escolha",
+      "o traço escolhido depois tira a escolha de desenho do estado, e a resposta diz que tirou",
+      repr((codigo, dados, sobrou)))
+rc, saida = passo_do_pack()
+checa(not os.path.exists(os.path.join(tema, "programa-de-brinquedo.svg")),
+      "e o passo do pack tira o desenho do `scalable/apps`, para o traço aparecer (rc=%s)" % rc,
+      saida[-400:])
+codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
+                                          "arquivo": "assets/icones/arcticons-apps/firefox.svg"})
+checa(codigo == 200 and dados.get("tirou_escolha") is False,
+      "sem escolha de desenho, o traço não diz que tirou nada", repr(dados))
+
 if falhas:
     print("FALHOU: os desenhos do pack na ficha de ícone:", file=sys.stderr)
     for linha in falhas:

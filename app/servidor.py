@@ -9617,8 +9617,25 @@ class Manipulador(BaseHTTPRequestHandler):
             _gravar_escolha(caminho, app, linha, ":")
         except OSError as e:
             return self._json({"erro": "não consegui guardar a escolha: %s" % e}, 500)
+        # O TRAÇO ESCOLHIDO DEPOIS DE UM DESENHO TIRA O DESENHO — conferência da
+        #   P73. A escolha de desenho mora no `scalable/apps`, que vence o
+        #   `48x48/apps` do traço: com as duas linhas no estado de quem usa, este
+        #   «Usar» respondia ok e a tela continuava com o desenho. A última
+        #   escolha é a que vale. O `tirou_escolha` avisa a página de que o passo
+        #   do pack também precisa rodar, para o desenho sair do tema.
+        mod = modulo_pack()
+        nome = self._nome_do_icone(app)
+        tirou = bool(mod and hasattr(mod, "escolhas_do_painel")
+                     and any(n == nome for _num, n, _a in mod.escolhas_do_painel()))
+        if tirou:
+            try:
+                _gravar_escolha(_mapa_de_escolhas_do_usuario(), nome, None, ":")
+            except OSError as e:
+                return self._json({"erro": "guardei o traço, e não consegui tirar o desenho "
+                                           "escolhido antes: %s" % e}, 500)
         return self._json({"ok": True, "app": app, "glifo": os.path.basename(glifo).rsplit(".svg", 1)[0],
                            "cor": cor, "alias": repetido, "trouxe_do_acervo": False,
+                           "tirou_escolha": tirou,
                            "depois": "vale depois de \"Pôr os desenhos em traço na tela\""})
 
     # ========================================================================
