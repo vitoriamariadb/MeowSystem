@@ -27,6 +27,7 @@ reaproveita os agentes concluídos.
 ## Próximo passo
 
 1. Ler `03-integracao-onda-1.md` na worktree de integração.
-2. Lançar a onda 2: P77 interface (hallmark + QA de uso real) a partir da integração.
-3. Uso real final como usuário no navegador, sobre a integração; só então dev recebe tudo.
-4. Pendentes de quem usa: senha em arquivo (decisão 5), aplicar a GPU (decisão 6), a frase cortada.
+2. Varredura de segurança dedicada (pack como dado não confiável) sobre a integração: 4 alertas automáticos em P73/P74 (pack.py ×2, icones_apps_dracula.sh, som.sh, servidor.py servindo SVG); nada entra no dev antes.
+3. Lançar a onda 2: P77 interface (hallmark + QA de uso real) a partir da integração.
+4. Uso real final como usuário no navegador, sobre a integração; só então dev recebe tudo.
+5. Pendentes de quem usa: senha em arquivo (decisão 5), aplicar a GPU (decisão 6), a frase cortada.
