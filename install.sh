@@ -1272,7 +1272,7 @@ etapa_icones_resgatados() {
 #   último é quem deixa a cache descrevendo o disco inteiro.
 etapa_icones_apps_dracula() {
   passo "Pack Dracula nos aplicativos"
-  ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+  ICONES_DRACULA="${ICONES_DRACULA:-sim}" \
     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$MEOW_RAIZ/scripts/icones_apps_dracula.sh" --aplicar
   return $?

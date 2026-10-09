@@ -8825,11 +8825,11 @@ class Manipulador(BaseHTTPRequestHandler):
                 desenhos.append({"glifo": arq[:-len(fim)], "desenho": desenho,
                                  "caminho": caminho})
         aviso = ""
-        # O PADRÃO DA CHAVE É O DESLIGADO, como no script e no instalador: só o
-        # "sim" põe o mapa no tema. O título é o que o cartão tem na tela (o
+        # O PADRÃO DA CHAVE É O LIGADO desde a P74 (09/10/2026), como no script
+        # e no instalador: só o "nao" tira o mapa do tema. O título é o que o cartão tem na tela (o
         # `_com_o_vocabulario_do_pack` o reescreve), e o tests/seletor-do-pack.sh
         # confere que os dois não se separam.
-        if (vals.get("ICONES_DRACULA") or "") != "sim":
+        if (vals.get("ICONES_DRACULA") or "sim") == "nao":
             aviso = ("Os desenhos do pack «%s» aparecem nesta busca com «Ícones do pack "
                      "nos aplicativos» ligado." % pack["nome"])
         return pack, desenhos, aviso
@@ -9138,7 +9138,7 @@ class Manipulador(BaseHTTPRequestHandler):
         d = next((x for x in self._desktops() if x["id"] == app), None) or {}
         mod = modulo_pack()
         ident = _pack_adotado() if mod else ""
-        if ident and (valores_efetivos(["ICONES_DRACULA"]).get("ICONES_DRACULA") or "") == "sim":
+        if ident and (valores_efetivos(["ICONES_DRACULA"]).get("ICONES_DRACULA") or "sim") != "nao":
             mapa = mod.acervo("icones.apps.mapa", ref=ident) or ""
             nome = self._nome_do_icone(app)
             for _num, n, alvo in (mod.ler_mapa(mapa) if os.path.isfile(mapa) else ()):

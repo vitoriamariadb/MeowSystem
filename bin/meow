@@ -1079,7 +1079,8 @@ chk_resgatados() {
     "$RAIZ/scripts/icones_resgatados.sh" --conferir 2>&1
 }
 
-# O PADRÃO AQUI É `nao`, IGUAL AO DO SCRIPT E AO DO `meow.conf.exemplo`.
+# O PADRÃO AQUI É `sim`, IGUAL AO DO SCRIPT E AO DO `meow.conf.exemplo` (era
+# `nao` até a P74, 09/10/2026: escolher o pack não ligava os desenhos dele).
 # Um padrão diferente em qualquer um dos três faria o doctor "consertar" para um
 # estado que o instalador desfaz na passagem seguinte — o pingue-pongue silencioso
 # que o `fix_resgatados` logo abaixo já documenta do outro lado.
@@ -1093,7 +1094,7 @@ chk_som() { SOM="${SOM:-sim}" "$RAIZ/scripts/som.sh" conferir 2>&1; }
 fix_som() { SOM="${SOM:-sim}" "$RAIZ/scripts/som.sh" aplicar 2>&1; }
 
 chk_dracula() {
-  ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+  ICONES_DRACULA="${ICONES_DRACULA:-sim}" \
     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$RAIZ/scripts/icones_apps_dracula.sh" --conferir 2>&1
 }
@@ -1882,7 +1883,7 @@ fix_iconesapps(){ ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
 fix_resgatados(){ ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_resgatados.sh" --aplicar 2>&1; }
-fix_dracula()   { ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+fix_dracula()   { ICONES_DRACULA="${ICONES_DRACULA:-sim}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar 2>&1; }
 fix_sistema()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
@@ -2854,7 +2855,7 @@ cmd_icones() {
         # "ligado" para o que o instalador deixa desligado.
         case "$camada_f" in
           resgatados) chave=ICONES_RESGATADOS; valor="${ICONES_RESGATADOS:-sim}" ;;
-          *)          chave=ICONES_DRACULA;    valor="${ICONES_DRACULA:-nao}" ;;
+          *)          chave=ICONES_DRACULA;    valor="${ICONES_DRACULA:-sim}" ;;
         esac
         printf '       %-9s %s  (%s="%s")\n' "camada" "$camada_f" "$chave" "$valor"
         while IFS=$'\t' read -r tipo destino; do

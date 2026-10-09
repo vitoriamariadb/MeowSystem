@@ -124,7 +124,7 @@ done
 #   Dracula volta a dar duas linhas e sair 1 aqui.
 #
 #   A PRECEDÊNCIA OLHA O INTERRUPTOR — revisão da P43. Com o Dracula no ar e
-#   `ICONES_DRACULA="nao"` (o padrão), o mapa do pack não põe nada no tema, e a
+#   `ICONES_DRACULA="nao"` (o desligado; o padrão é "sim" desde a P74), o mapa do pack não põe nada no tema, e a
 #   fonte é o resgate: é o que o `icones_resgatados.sh` instala, e o `fonte`
 #   tem de dizer o mesmo. A primeira versão apontava a lente do Dracula, e o
 #   `meow icones fonte` saía "DIFERE da fonte" sobre um tema correto.

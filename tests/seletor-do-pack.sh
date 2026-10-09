@@ -326,7 +326,7 @@ por_nome = jogos.get("jogo-por-nome") or {}
 checa("trava_pack" in por_nome and por_nome["trava_pack"] is None,
       "e manda o campo vazio no jogo de ícone por nome, onde o pack vale", repr(por_nome))
 
-conf_com(ICONES_DRACULA="")
+conf_com(ICONES_DRACULA="nao")
 r = glifos("alien")
 esquema = servidor.ler_esquema()
 servidor._com_o_vocabulario_do_pack(esquema, servidor.vocabulario_do_pack(), {})

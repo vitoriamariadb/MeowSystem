@@ -530,21 +530,20 @@ ICONES_RESGATADOS="sim"           # sim | nao
 # já da paleta Dracula —, ao contrário do Arcticons, que é traço monocromático
 # pintado por nós. Aqui não se recolore nada: a cópia é byte a byte.
 #
-# LIGAR ISTO TROCA ARTE QUE JÁ ESTÁ NA TELA, e por isso nasce em "nao"
-#   Onze dos dezoito nomes já vestem Arcticons: Krita, Telegram, qBittorrent,
-#   Obsidian, ONLYOFFICE, Chrome, Calculator, Warehouse, Upscaler, Steam e
-#   input-keyboard. O `scalable/apps` VENCE o `48x48/apps` no resolvedor (strace
-#   de 08/08/2026, no cabeçalho do `completar_icones.sh`), então ligar troca os
-#   onze de uma vez. Os outros sete estavam de fábrica e só ganham.
-#
-#   "Dracula vence tudo" foi escolhido em 16/09/2026, com os dois lados na mesa.
-#   O padrão continua "nao" porque o padrão é o que vale numa máquina que não
-#   participou dessa decisão — a sua, ou uma recém-formatada.
+# ESCOLHER O PACK LIGA OS DESENHOS DELE, e por isso nasce em "sim" — P74, 09/10/2026
+#   Até aqui nascia em "nao", para não trocar de fábrica os onze nomes que já
+#   vestiam Arcticons. Medido em 09/10/2026: com `PACK="dracula"` e o resto de
+#   fábrica, o tema saía com 28 ícones de aplicativo contra 230 com a camada
+#   ligada — escolher o Dracula entregava metade dele. "Dracula vence tudo" foi
+#   escolhido em 16/09/2026. A camada põe no tema o mapa do PACK NO AR, e um
+#   pack sem mapa não põe nada: "sim" é "o pack decide", e a chave só serve
+#   para desligar. O `scalable/apps` VENCE o `48x48/apps` no resolvedor (strace
+#   de 08/08/2026), então desligar devolve o Arcticons a esses onze.
 #
 # DESLIGAR DESLIGA, E NÃO CUSTA NADA: "nao" apaga só o que este projeto pôs, por
 # nome e conferindo o conteúdo byte a byte (arquivo editado à mão fica). O
 # Arcticons nunca saiu do `48x48` — ele reaparece sozinho na passagem seguinte.
-ICONES_DRACULA="nao"              # sim | nao
+ICONES_DRACULA="sim"              # sim | nao
 
 # @ Logo própria do Hefesto
 # > Um SVG seu para o ícone do Hefesto. Vazio = o desenho gerado do pack.

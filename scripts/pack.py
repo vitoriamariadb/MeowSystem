@@ -38,9 +38,9 @@ VERBOS
     fontes  [id]                 cada nome de ícone de `scalable/apps` e o
                                  arquivo de onde ele sai, um por linha:
                                  `nome<TAB>fonte<TAB>camada`. Para o mesmo
-                                 nome, o pack no ar vence o resgate do motor
-                                 com `ICONES_DRACULA="sim"` no ambiente, e perde
-                                 sem ele; duas linhas de um nome é empate. Ver
+                                 nome, o pack no ar vence o resgate do motor,
+                                 e perde com `ICONES_DRACULA="nao"` no
+                                 ambiente; duas linhas de um nome é empate. Ver
                                  `fontes`.
     fonte   <nome> [id]          as linhas de `fontes` daquele nome. 0 = uma
                                  fonte só; 1 = nenhuma, ou mais de uma. O lado
@@ -1068,7 +1068,9 @@ def fontes_e_atras(ref=None):
                 if len(campos) >= 3 and nome:
                     do_motor.append(
                         (nome, os.path.join(ACERVO_RESGATADOS, nome + ".svg"), "resgatados"))
-    ligada = (os.environ.get("ICONES_DRACULA") or "nao") == "sim"
+    # O padrão é ligada (P74 item 3, 09/10/2026): só o "nao" escrito desliga,
+    # a mesma régua do `icones_apps_dracula.sh`.
+    ligada = (os.environ.get("ICONES_DRACULA") or "sim") != "nao"
     vence = {nome for nome, _fonte, _camada in (do_pack if ligada else do_motor)}
     atras = [linha for linha in (do_motor if ligada else do_pack) if linha[0] in vence]
     return [linha for linha in do_pack + do_motor if linha not in atras], atras
@@ -1092,7 +1094,7 @@ def cmd_fonte(nome, ref):
     # para o stdout continuar sendo uma linha por fonte que vale — o formato
     # que o `meow icones fonte` lê. O valor do interruptor sai do ambiente, e
     # não escrito aqui: é o que a pessoa tem no meow.conf.
-    chave = os.environ.get("ICONES_DRACULA") or "nao"
+    chave = os.environ.get("ICONES_DRACULA") or "sim"
     for _n, fonte, camada in (a for a in atras if a[0] == nome):
         if camada == "resgatados":
             porque = (f"com ICONES_DRACULA=\"{chave}\" o pack no ar vence o motor para este "

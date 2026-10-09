@@ -506,11 +506,16 @@ _dracula_estado() {
 }
 
 # --- ponto de entrada ---------------------------------------------------------
-# O PADRÃO É `nao`, E O PADRÃO É A CURADORIA
-#   Onze dos dezoito nomes já vestem arte aprovada no artifact de 12-15/09.
-#   Ligar isto de fábrica trocaria aquele trabalho pela arte do pack na primeira
-#   rodada do instalador em QUALQUER máquina — inclusive na dela, que não
-#   participou da decisão. Quem liga é o meow.conf, e a chave está no painel.
+# O PADRÃO É `sim`: ESCOLHER O PACK LIGA OS DESENHOS DELE — 09/10/2026, P74 item 3
+#   Até aqui o padrão era `nao`, para não trocar de fábrica os onze desenhos
+#   do Arcticons aprovados em 12-15/09. Medido em 09/10/2026 numa casa de
+#   brinquedo com `PACK="dracula"` e o resto de fábrica: 28 ícones em
+#   `scalable/apps`, contra 230 com a camada ligada — escolher o Dracula
+#   entregava um Dracula pela metade, e o `pack usar` precisava de um segundo
+#   passo que ninguém dizia (T6 da paridade de 09/10). "Dracula vence tudo" já
+#   era a decisão de 16/09. Agora o padrão vem do pack: a camada põe no tema o
+#   mapa do pack no ar, e um pack sem mapa não põe nada — então `sim` de
+#   fábrica é "o pack decide", e a chave só serve para DESLIGAR (`nao`).
 _dracula_aplicar() {
   # O que um pack fora do ar deixou sai ANTES, ligado ou desligado: é o que
   # a troca de pack deixa para trás, e a chave não muda isso (P60). E o nome
@@ -518,7 +523,7 @@ _dracula_aplicar() {
   # painel, ninguém mais o pede, com a camada ligada ou não.
   local rc_fora rc
   _dracula_sobras; rc_fora=$?
-  if [ "${ICONES_DRACULA:-nao}" = "sim" ]; then _dracula_instalar
+  if [ "${ICONES_DRACULA:-sim}" != "nao" ]; then _dracula_instalar
   else _dracula_remover; fi
   rc=$?
   if [ "$rc" = "2" ] || [ "$rc_fora" = "2" ]; then return 2; fi
