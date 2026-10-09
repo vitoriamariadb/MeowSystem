@@ -245,6 +245,28 @@ else
   printf 'pulado: sem git, o cofre em git não se monta\n'
 fi
 
+# --- item 9 (T5): os overrides de `.desktop` do Dracula moram no pack ---------
+#   O pack esconde do lançador o que o tema Dracula de antes escondia, somado
+#   à lista do conf; um `-nome` no conf tira um do pack; e com o Catppuccin no
+#   ar a lista do Dracula não vale. No seco, numa pasta de sistema de brinquedo:
+#   nada é escrito, e o que se lê é o «ocultaria».
+SIS="$T/aplicativos"; mkdir -p "$SIS"
+for n in org.keepassxc.KeePassXC mpv vim; do
+  printf '[Desktop Entry]\nName=%s\nExec=%s\n' "$n" "$n" > "$SIS/$n.desktop"
+done
+oculta() {   # $1 = PACK · $2 = LANCADOR_OCULTAR
+  amb PACK="$1" FLAVOR="" LANCADOR_OCULTAR="$2" MEOW_DRY_RUN=1 MEOW_APLICATIVOS_SISTEMA="$SIS" \
+    bash "$RAIZ/scripts/ocultar_apps.sh" 2>&1 | sed -n 's/.*ocultaria //p' | sort | paste -sd' '
+}
+d1="$(oculta dracula 'vim,-mpv')"
+c1="$(oculta catppuccin 'vim')"
+if [ "$d1" = "org.keepassxc.KeePassXC vim" ] && [ "$c1" = "vim" ] && ! grep -q NoDisplay "$SIS"/*.desktop; then
+  ok "o Dracula esconde o que o tema de antes escondia, somado ao conf; «-mpv» tira um; o Catppuccin não herda a lista"
+else
+  falha "a lista do lançador do pack não somou, não obedeceu ao «-nome», ou vazou para o Catppuccin" "dracula: $d1
+catppuccin: $c1"
+fi
+
 # --- item 9 (T7): os papéis de parede do Dracula vêm do pack, em 4K -----------
 #   Numa casa nova (o conf de fábrica, sem repositório de papel de parede), o
 #   Dracula semeia os SVG do pack rasterizados em PNG 3840x2160, e não o acervo

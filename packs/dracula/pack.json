@@ -178,6 +178,35 @@
     },
     "_nota_zapzap": "O ZapZap NÃO tem bloco, e não falta: o módulo dele troca o nome para «WhatsApp» e aponta o `Icon=` para `meow-whatsapp`, e esse ícone é desenhado pelo tema de ícones, com o `sky` da paleta do pack no ar. Medido em 24/09/2026 nesta máquina: `#8BE9FD`, o ciano do Dracula, no `48x48/apps/meow-whatsapp.svg`. O que dizia «ícone Catppuccin» era a frase do módulo, e ela passou a dizer o pack no ar."
   },
+  "lancador": {
+    "ocultar": [
+      "com.system76.CosmicMonitor",
+      "com.system76.CosmicScreenshot",
+      "gnome-online-accounts-gtk",
+      "gparted",
+      "LinuxToys",
+      "mpv",
+      "nm-connection-editor",
+      "nvidia-settings",
+      "onboard",
+      "onboard-settings",
+      "org.freedesktop.IBus.Setup",
+      "org.gnome.baobab",
+      "org.gnome.DiskUtility",
+      "org.gnome.FileRoller",
+      "org.gnome.font-viewer",
+      "org.gnome.gThumb",
+      "org.gnome.gThumb.Import",
+      "org.gnome.seahorse.Application",
+      "org.keepassxc.KeePassXC",
+      "qt5ct",
+      "qt6ct",
+      "setup-mozc",
+      "syncthing-start",
+      "system-config-printer"
+    ],
+    "_nota": "Os overrides de `.desktop` do tema Dracula de antes (a pasta `overrides/` do Dracula_OS-Theme, 30 arquivos medidos na P37), migrados para o pack em 09/10/2026 (P74 item 9, T5), pela decisão de 24/09 («migrar para o pack»), que a P42 tinha devolvido sem cumprir. Dos 30: 3 MOSTRAM e já são feitos por outros módulos (Boxy SVG, o ZapZap como WhatsApp e o Ghostty: o `appid.map`, o módulo do zapzap e o `icones_absolutos.sh`); 27 ESCONDEM do lançador, e 24 deles estão aqui. Ficaram fora 3 que são só daquela máquina, pela regra de 23/09 (o que é só do PC fica): o `mnemo` (projeto pessoal), o `elden-ring-tracker` (instalado à mão em /opt) e o `Ubuntu` (um contêiner do distrobox dela). O `ocultar_apps.sh` soma esta lista à do meow.conf (`LANCADOR_OCULTAR`), e um nome com `-` na frente, lá, tira um daqui."
+  },
   "som": {
     "_nota": "O sino do Dracula. O pack embutido usa 880 Hz + a quinta justa acima (1320), que soa resolvida e clara. Aqui a escolha é outra: sol (784) com a TERÇA MENOR acima (si bemol, 932.3). Terça menor é o intervalo que a música ocidental lê como sombrio — é o que faz o mesmo gesto de mexer no volume soar noturno em vez de alegre, sem virar alarme. O decaimento é mais lento (38 contra 46) porque a terça menor precisa de um instante a mais para ser reconhecida como intervalo; abaixo disso as duas notas viram um clique só. Duração e ganho ficam nos defaults: a primeira é presa ao debounce de 125 ms do cosmic-osd, e o segundo é calibrado contra o arquivo de fábrica — mexer neles muda o susto, não o timbre.",
     "fundamental": 784.0,

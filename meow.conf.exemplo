@@ -1815,6 +1815,10 @@ LANCADOR_SISTEMA="nao"
 #
 #   Programa que não está instalado é pulado em silêncio: sobra na lista sem
 #   custo nenhum, e o placar do doctor diz quantos foram.
+#
+#   O PACK NO AR SOMA A LISTA DELE (P74, 09/10/2026): o Dracula esconde o que o
+#   tema Dracula de antes escondia (`lancador.ocultar` no pack.json). Para
+#   manter um deles à vista, escreva o nome aqui com `-` na frente (`-mpv`).
 LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,info,im-config,ibus-setup,org.freedesktop.IBus.Setup,org.gnome.font-viewer,gnome-language-selector,system-config-printer,org.gnome.eog,org.gnome.Evince,org.gnome.baobab,org.gnome.PowerStats,org.gnome.seahorse.Application,org.gnome.DiskUtility,simple-scan,yelp,gucharmap,nm-connection-editor,repoman,com.system76.Popsicle,gparted,nvidia-settings,syncthing-start,syncthing-ui,google-chrome,steam,github-desktop"
 
 # @ Programas bloqueados no início

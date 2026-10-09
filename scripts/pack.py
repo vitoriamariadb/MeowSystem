@@ -101,6 +101,9 @@ VERBOS
     tema-icones [id] [flavor]    o nome e o comentário do tema de ícones montado
                                  para o pack nesse flavor: `nome=` e
                                  `comentario=`. Ver `tema_de_icones`.
+    ocultar [id]                 os ids de `.desktop` que o pack esconde do
+                                 lançador (`lancador.ocultar`), um por linha.
+                                 Ver `ocultar_do_pack`.
     base-apelidos                o tema de onde as pastas e os apelidos de
                                  utilitário copiam desenho (o `ICONES_BASE`
                                  escolhido à mão, ou o Papirus-Dark), e onde
@@ -329,6 +332,9 @@ CAMPOS_COM_LEITOR = {
     # Os papéis de parede do pack (P74 item 9): o `wallpaper.sh` os semeia pelo
     # `acervo`, rasterizando o SVG.
     "origens.wallpapers.desenhos",
+    # O que o pack esconde do lançador (P74 item 9): o `ocultar_apps.sh` pergunta
+    # pelo verbo `ocultar`.
+    "lancador.ocultar",
 }
 
 
@@ -2247,6 +2253,33 @@ def tema_de_icones(ref=None, flavor=""):
     return "-".join(partes + ["Icons"]), comentario.replace("\n", " ")
 
 
+# --- O QUE O PACK ESCONDE DO LANÇADOR — 09/10/2026, P74 item 9 (T5) ----------
+#   Os 30 overrides de `.desktop` que o tema Dracula de antes trazia (a pasta
+#   `overrides/` do Dracula_OS-Theme), medidos na P37: 3 mostram e já são
+#   feitos por outros módulos (o `appid.map`, o do zapzap, o
+#   `icones_absolutos.sh`); 27 escondem do menu. A decisão de 24/09 foi
+#   «migrar para o pack», e a P42 a devolveu sem cumprir («esconder é gosto de
+#   uma casa»). O pack declara a lista em `lancador.ocultar`, e o
+#   `ocultar_apps.sh` a soma à do conf. A herança é a do pack inteiro: o
+#   primeiro da cadeia que declara a lista responde.
+RE_DESKTOP_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$")
+
+
+def ocultar_do_pack(ref=None):
+    """Os ids de `.desktop` que o pack esconde do lançador, na ordem dele."""
+    ref = _ref_ativa(ref)
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        if not achar(ref):
+            break
+        lista = campo(ref, "lancador.ocultar")
+        if isinstance(lista, list):
+            return [n for n in lista if isinstance(n, str) and RE_DESKTOP_ID.match(n)]
+        ref = campo(ref, "heranca")
+    return []
+
+
 def base_dos_apelidos(pedido):
     """(tema, dir): o tema de onde pastas e apelidos copiam desenho, e onde ele está."""
     tema = _base_escolhida(pedido) or ICONES_BASE_DO_EXEMPLO
@@ -3506,6 +3539,14 @@ def validar(ref, silencioso=False):
                 alvo = _dentro(dir_pack, bloco[chave], f"icones.{cat}.{chave}")
                 _exigir(os.path.exists(alvo),
                         f"icones.{cat}.{chave}: {bloco[chave]!r} não existe no pack")
+    # A LISTA DO LANÇADOR (P74 item 9): ids de `.desktop`, e só eles — eles
+    #   viram nome de arquivo em /usr/share/applications, pela ponte root.
+    oc = (p.get("lancador") or {}).get("ocultar") if isinstance(p.get("lancador"), dict) else None
+    if p.get("lancador") is not None:
+        _exigir(isinstance(p.get("lancador"), dict) and isinstance(oc, list)
+                and all(isinstance(n, str) and RE_DESKTOP_ID.match(n) for n in oc),
+                "lancador.ocultar: uma lista de ids de `.desktop` (letras, dígitos, '.', '_' e '-'),\n"
+                "    sem '/' e sem a extensão — viram nome de arquivo do sistema.")
     # OS ÍCONES DE ARQUIVO DERIVADOS (P74 item 6): de qual pack e de qual pasta
     #   do acervo dele. A pasta é um nome só, pela régua das pastas de pacote, e
     #   o `derivar` precisa dos `desenhos` ao lado — é onde a derivação escreve.
@@ -6125,6 +6166,11 @@ def main(argv):
                                               argv[3] if len(argv) == 4 else "")
             print(f"nome={nome}")
             print(f"comentario={comentario}")
+            return OK
+        if verbo == "ocultar" and len(argv) in (2, 3):
+            # Um id por linha; nenhuma quando o pack não esconde nada.
+            for nome in ocultar_do_pack((argv[2] if len(argv) == 3 else "") or None):
+                print(nome)
             return OK
         if verbo == "base-apelidos" and len(argv) == 2:
             # A mesma porta do `base-icones`: o `ICONES_BASE` vem do ambiente,

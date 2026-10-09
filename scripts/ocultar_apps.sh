@@ -78,7 +78,9 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-SISTEMA="/usr/share/applications"
+# A pasta do sistema vem de fora só para o teste (P74): o `tests/` monta uma de
+# brinquedo, e nada aqui escreve no /usr/share de verdade num teste.
+SISTEMA="${MEOW_APLICATIVOS_SISTEMA:-/usr/share/applications}"
 
 # Um por linha, com o porquê ao lado. Só entra o que ela pediu.
 OCULTAR=(
@@ -172,6 +174,7 @@ OCULTAR+=("${OCULTAR_DUPLICATA[@]}")
 LANCADOR_OCULTAR="${LANCADOR_OCULTAR:-}"
 LANCADOR_OCULTAR_FONTE="fábrica"
 _da_conf=()
+_fora=()
 if [ -n "$LANCADOR_OCULTAR" ]; then
   while IFS= read -r _item; do
     # Apara espaço dos dois lados: o conf é escrito à mão e `a, b` é a forma
@@ -179,13 +182,41 @@ if [ -n "$LANCADOR_OCULTAR" ]; then
     # `.desktop` que não existe e um "não instalado" silencioso no placar.
     _item="${_item#"${_item%%[![:space:]]*}"}"
     _item="${_item%"${_item##*[![:space:]]}"}"
-    [ -n "$_item" ] && _da_conf+=("$_item")
+    # `-nome` é «este não», para os que o pack esconde (P74, logo abaixo).
+    case "$_item" in
+      -?*) _fora+=("${_item#-}") ;;
+      ?*)  _da_conf+=("$_item") ;;
+    esac
   done < <(printf '%s\n' "$LANCADOR_OCULTAR" | tr ',' '\n')
   if [ "${#_da_conf[@]}" -gt 0 ]; then
     OCULTAR=("${_da_conf[@]}")
     LANCADOR_OCULTAR_FONTE="meow.conf"
   fi
 fi
+
+# O QUE O PACK ESCONDE ENTRA SOMADO — 09/10/2026, P74 item 9 (T5)
+#   O pack no ar declara a lista dele (`lancador.ocultar`, os overrides de
+#   `.desktop` que o tema Dracula de antes trazia), e ela se SOMA à do conf: a
+#   chave do conf é escrita por quem instala e vem com os 32 de fábrica, então
+#   uma lista do pack que só valesse com a chave vazia não valeria em lugar
+#   nenhum. Tirar um nome do pack é escrevê-lo com `-` na frente, no conf — a
+#   mesma linha que a pessoa já lê inteira. Nome repetido entra uma vez.
+_do_pack="$(meow_pack_dir)"
+[ -n "$_do_pack" ] || _do_pack="$(meow_pack_padrao_dir 2>/dev/null || true)"
+declare -A _ja=()
+for _item in "${OCULTAR[@]}"; do _ja["$_item"]=1; done
+while IFS= read -r _item; do
+  [ -n "$_item" ] && [ -z "${_ja[$_item]:-}" ] || continue
+  OCULTAR+=("$_item"); _ja["$_item"]=1
+done < <(python3 "$RAIZ/scripts/pack.py" ocultar "$_do_pack" 2>/dev/null)
+if [ "${#_fora[@]}" -gt 0 ]; then
+  _resto=()
+  for _item in "${OCULTAR[@]}"; do
+    printf '%s\n' "${_fora[@]}" | grep -qxF -- "$_item" || _resto+=("$_item")
+  done
+  OCULTAR=(${_resto[@]+"${_resto[@]}"})
+fi
+unset _do_pack _ja _resto
 
 mudou=0
 ausentes=0
