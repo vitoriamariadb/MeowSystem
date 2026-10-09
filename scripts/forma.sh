@@ -104,7 +104,7 @@
 #   e responde 22 (Panel) e 32 (Dock) nesta máquina.
 _forma_teto_raio() { # $1 = Panel|Dock
   local t
-  t="$(meow_painel_teto "$BASE/com.system76.CosmicPanel.$1/v1" 2>/dev/null)" && { printf '%s' "$t"; return 0; }
+  t="$(meow_painel_teto "$BASE/com.system76.CosmicPanel.$1/$(meow_cosmic_v "com.system76.CosmicPanel.$1")" 2>/dev/null)" && { printf '%s' "$t"; return 0; }
   # Sem conseguir derivar (size/padding ilegíveis), o único valor seguro.
   # ERA `8` — "o mais apertado dos antigos", conservador enquanto o teto do
   # compositor sem patch era `altura/2`. Desde 11/09/2026 esse teto é ZERO (ver
@@ -437,7 +437,7 @@ escritos=0
 
 aplicar_barra() { # $1=Panel|Dock  $2=solto  $3=ilha  $4=margem  $5=raio  $6=espaco  $7=recheio
   local barra="$1" dir solto ilha expandir margem raio espaco recheio rc
-  dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+  dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
   # Criar o diretório do nada faria o COSMIC ver uma configuração de painel órfã,
   # sem as outras chaves. Se ele não existe, esta barra não está configurada
   # nesta máquina — não é erro. (Mesma regra do vidro.sh.)
@@ -538,7 +538,7 @@ _tam() { case "$2" in XS|S|M|L|XL) printf '%s' "$2" ;;
 
 aplicar_tamanhos() { # $1=Panel|Dock  $2=centro  $3=ala inicial  $4=ala final
   local barra="$1" centro="$2" ini="$3" fim="$4" dir rc v_ini v_fim
-  dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+  dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
   [ -d "$dir" ] || return 0
 
   if [ -n "$centro" ]; then
@@ -580,7 +580,7 @@ fi
 # não aponta para cá. Avisar é barato; escrever a chave aqui seria duplicar a
 # dona dela, que é o vidro.sh.
 for barra in Panel Dock; do
-  arq="$BASE/com.system76.CosmicPanel.$barra/v1/keep_style_on_maximize"
+  arq="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")/keep_style_on_maximize"
   [ -f "$arq" ] || continue
   [ "$(cat "$arq")" = "true" ] && continue
   meow_aviso "keep_style_on_maximize=false no $barra: a forma se desfaz ao maximizar"
@@ -594,7 +594,7 @@ done
 _forma_raio_dito() { # $1 = Panel|Dock  $2 = valor do meow.conf (pode ser vazio)
   local disco
   [ -n "$2" ] && { printf 'raio %s' "$2"; return 0; }
-  disco="$(cat "$BASE/com.system76.CosmicPanel.$1/v1/border_radius" 2>/dev/null || true)"
+  disco="$(cat "$BASE/com.system76.CosmicPanel.$1/$(meow_cosmic_v "com.system76.CosmicPanel.$1")/border_radius" 2>/dev/null || true)"
   case "$disco" in
     ''|*[!0-9]*) printf 'raio da GUI' ;;
     *)           printf 'raio %s (seu)' "$disco" ;;
@@ -605,7 +605,7 @@ _forma_raio_dito() { # $1 = Panel|Dock  $2 = valor do meow.conf (pode ser vazio)
 _forma_margem_dita() { # $1 = Panel|Dock  $2 = valor do meow.conf
   local disco
   [ -n "$2" ] && { printf 'margem %s' "$2"; return 0; }
-  disco="$(cat "$BASE/com.system76.CosmicPanel.$1/v1/margin" 2>/dev/null || true)"
+  disco="$(cat "$BASE/com.system76.CosmicPanel.$1/$(meow_cosmic_v "com.system76.CosmicPanel.$1")/margin" 2>/dev/null || true)"
   case "$disco" in
     ''|*[!0-9]*) printf 'margem da GUI' ;;
     *)           printf 'margem %s (sua)' "$disco" ;;

@@ -132,7 +132,7 @@ conferir() {
   if meow_painel_compositor_clampa; then
     meow_ok "o cosmic-comp em execução clampa o raio — o canto das barras é seu, sem teto"
     for barra in Panel Dock; do
-      dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+      dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
       [ -d "$dir" ] || continue
       atual="$(cat "$dir/border_radius" 2>/dev/null)"
       case "$atual" in ''|*[!0-9]*) continue ;; esac
@@ -151,7 +151,7 @@ conferir() {
   fi
 
   for barra in Panel Dock; do
-    dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+    dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
     [ -d "$dir" ] || { meow_pula "com.system76.CosmicPanel.$barra não está configurado aqui"; continue; }
 
     teto="$(meow_painel_teto "$dir")" || {
@@ -202,7 +202,7 @@ conferir() {
 teto() {
   local barra dir
   for barra in Panel Dock; do
-    dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+    dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
     [ -d "$dir" ] || continue
     printf '%-6s size=%-3s padding=%-2s altura=%-3s teto=%-3s raio=%s\n' \
       "$barra" "$(cat "$dir/size" 2>/dev/null)" "$(cat "$dir/padding" 2>/dev/null)" \

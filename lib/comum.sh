@@ -993,6 +993,20 @@ meow_cosmic_dir() {
   printf '%s' "${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
 }
 
+# O ESQUEMA DE UM NAMESPACE DO COSMIC — 09/10/2026, P76
+#   O `v1` estava escrito à mão em cada escritor. O COSMIC migra esquema
+#   (medido em 09/10/2026 nesta máquina: `io.github.cosmic_utils.camera` tem
+#   `v20` e `v21`, o `clipboard-manager` tem `v2` e `v3`), e um escritor
+#   cravado em `v1` continua gravando, verde no doctor, numa pasta que ninguém
+#   lê mais. A verdade é o pacote: o maior `v<n>` em `/usr/share/cosmic/<ns>`.
+#   Namespace que o pacote não traz (o do terminal, o do relógio) fica em `v1`.
+#   O contrato inteiro está em `contratos/cosmic.tsv`.
+meow_cosmic_v() {
+  local n
+  n="$(ls -1 "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/$1" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\)$/\1/p' | sort -n | tail -1)"
+  printf 'v%s' "${n:-1}"
+}
+
 # O `cosmic-comp` QUE O PRÓXIMO LOGIN VAI RODAR — 09/10/2026, P76
 #   Com o shim do compositor ligado (`meow compositor ativar`), o binário
 #   patchado mora em `~/.local/libexec/meow/cosmic-comp/<versão>/`, e quem

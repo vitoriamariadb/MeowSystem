@@ -258,7 +258,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-DIR="${TERMINAL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicTerm/v1}"
+DIR="${TERMINAL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicTerm/$(meow_cosmic_v com.system76.CosmicTerm)}"
 # A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
 # 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
 # Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.

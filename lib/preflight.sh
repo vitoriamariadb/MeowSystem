@@ -62,22 +62,33 @@ meow_preflight() {
   # 3. Esquema de tema. As capturas deste repositório são v1+v2 (ver
   #    docs/COSMIC-THEMING.md §4 e §4h). Um esquema que não reconhecemos tem de
   #    ser dito ANTES de copiar mais de cem arquivos por cima dele.
-  local esquemas="" _v
+  #
+  #    O FURO DO `*" v2 "*`, FECHADO EM 09/10/2026 (P76): o ramo verde casava
+  #    qualquer lista que CONTIVESSE v2 — `v1 v2 v3` e `v2 v3` passavam verdes,
+  #    e um v3 é justamente o esquema que as capturas não cobrem. A lista agora
+  #    é comparada INTEIRA contra a do contrato (`contratos/cosmic.tsv`, a linha
+  #    `esquema` do `CosmicTheme.Dark`).
+  local esquemas="" _v cobertos
   for _v in "$(meow_cosmic_dir)/com.system76.CosmicTheme.Dark/"v*; do
     [ -d "$_v" ] && esquemas="$esquemas${_v##*/} "
   done
+  esquemas="$(printf '%s' "$esquemas" | tr ' ' '\n' | sed '/^$/d' | sort -V | tr '\n' ' ')"
+  esquemas="${esquemas% }"
+  cobertos="$(awk -F'\t' '$1=="esquema" && $2=="com.system76.CosmicTheme.Dark" {print $3; exit}' \
+              "$MEOW_RAIZ/contratos/cosmic.tsv" 2>/dev/null)"
+  cobertos="${cobertos:-v1 v2}"
   case " $esquemas " in
     "  ") meow_pula "o COSMIC ainda não escreveu tema neste usuário — a captura vai criar" ;;
-    *" v2 "*) meow_ok "esquema de tema: ${esquemas% } (as capturas cobrem v1 e v2)" ;;
+    " $cobertos ") meow_ok "esquema de tema: ${esquemas% } (as capturas cobrem $cobertos)" ;;
     # v1 SEM v2 É CONHECIDO, E O `case` NÃO TINHA RAMO PARA ELE ATÉ 10/08/2026.
     #   O comentário logo acima diz "as capturas deste repositório são v1+v2" e o
     #   código chamava metade disso de "desconhecido". É um COSMIC anterior ao
     #   esquema v2; a captura escreve as duas árvores e a v2 fica inerte até o dia
     #   em que ele atualizar. Inerte nesta máquina — aqui o disco tem v1 e v2 —,
     #   mas errado, e um aviso falso no pré-voo é o que faz pré-voo ser ignorado.
-    *" v1 "*) meow_ok "esquema de tema: ${esquemas% } — COSMIC anterior ao v2; a captura cobre e a v2 fica inerte" ;;
+    " v1 ") meow_ok "esquema de tema: ${esquemas% } — COSMIC anterior ao v2; a captura cobre e a v2 fica inerte" ;;
     *) meow_aviso "esquema de tema desconhecido aqui: ${esquemas% }"
-       meow_info "  as capturas deste repositório são v1+v2 (docs/COSMIC-THEMING.md §4)"
+       meow_info "  as capturas deste repositório cobrem $cobertos (contratos/cosmic.tsv)"
        avisos=$((avisos+1)) ;;
   esac
 

@@ -63,13 +63,21 @@ _rodar_seco() {   # $1 = o HOME de brinquedo · $2 = onde despejar a saída (opc
 # As unidades do repositório no disco do HOME de brinquedo, com os dois `@…@`
 # resolvidos — é isso que faz o `meow_escrever` concluir "já está certo" e o ramo
 # `meow_seco` seguir para a pergunta seguinte. Usada pelas rodadas 2 e 3.
+_v_do_pacote() {
+  local n; n="$(ls -1 "/usr/share/cosmic/$1" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\)$/\1/p' | sort -n | tail -1)"
+  printf 'v%s' "${n:-1}"
+}
 _plantar_unidades() {   # $1 = o HOME de brinquedo
   local u nome destino="$1/.config/systemd/user"
   mkdir -p "$destino"
   for u in "$RAIZ"/systemd/*; do
     nome="$(basename "$u")"
+    # O `@V_PANEL@`/`@V_DOCK@` (P76) é o esquema que o pacote traz, como o
+    # `meow_cosmic_v` do lib/comum.sh o lê: o maior `v<n>`, ou `v1`.
     sed -e "s|@ATIVOS@|$1/.local/share/backgrounds/meowsystem/ativos|g" \
-        -e "s|@ACERVO@|$RAIZ/assets/gatos|g" "$u" > "$destino/$nome"
+        -e "s|@ACERVO@|$RAIZ/assets/gatos|g" \
+        -e "s|@V_PANEL@|$(_v_do_pacote com.system76.CosmicPanel.Panel)|g" \
+        -e "s|@V_DOCK@|$(_v_do_pacote com.system76.CosmicPanel.Dock)|g" "$u" > "$destino/$nome"
     chmod 644 "$destino/$nome"
   done
 }

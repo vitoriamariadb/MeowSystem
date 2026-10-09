@@ -184,7 +184,7 @@ AREAS_ENCAIXE="${AREAS_ENCAIXE:-}"
 # Nunca escrita daqui.
 JANELAS_TILING="${JANELAS_TILING:-}"
 
-AREAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/v1"
+AREAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/$(meow_cosmic_v com.system76.CosmicComp)"
 AREAS_ALVO="$AREAS_BASE/pinned_workspaces"
 AREAS_BINARIO="/usr/bin/cosmic-comp"
 

@@ -2016,6 +2016,10 @@ etapa_painel() {
   for u in "${unidades[@]}"; do
     [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
     conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    # P76: o vigia do raio olha o esquema que o pacote traz hoje, não um `v1`
+    # cravado (ver o cabeçalho de `systemd/meow-painel-raio.path`).
+    conteudo="${conteudo//@V_PANEL@/$(meow_cosmic_v com.system76.CosmicPanel.Panel)}"
+    conteudo="${conteudo//@V_DOCK@/$(meow_cosmic_v com.system76.CosmicPanel.Dock)}"
     meow_escrever "$destino/$u" "$conteudo" 644
     case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
   done
