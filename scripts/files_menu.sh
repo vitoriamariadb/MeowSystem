@@ -196,7 +196,11 @@ cmd_aplicar() {
     mudou=1
   done
 
-  meow_seco && { [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"; return "$MEOW_OK"; }
+  # O SECO SEM MUDANÇA DESCE ATÉ O `ok` LÁ DE BAIXO — P75, 09/10/2026. Ele
+  # voltava 0 daqui, calado, e a linha `files_menu` do doctor saía vazia
+  # (achado 5 de 09/10): a tabela mostra a primeira linha do conferidor, e o
+  # conferidor no lugar não dizia nada.
+  if meow_seco && [ "$mudou" = "1" ]; then return "$MEOW_DIVERGENTE"; fi
   if [ "$mudou" = "1" ]; then
     meow_ok "menu de contexto vestido: avançar e voltar papel de parede ($ver)"
     meow_info "  vale nas janelas NOVAS; a área de trabalho pega no próximo login"

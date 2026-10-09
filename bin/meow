@@ -1771,10 +1771,19 @@ chk_upstream() {
 #   medido em 21/09/2026, a linha do `fontes` saía com a célula em branco, que é
 #   o mesmo buraco descrito no cabeçalho do `rodar_checks`. O `rc` é guardado
 #   antes do cano, senão quem responderia seria o `sed`.
+#
+#   E O VEREDITO SOBE PARA A PRIMEIRA LINHA — P75, 09/10/2026 (achado 5). A
+#   primeira linha não-vazia é o título do primeiro bloco, "Fonte da
+#   interface", e a tabela mostrava isso como se fosse o estado. O veredito do
+#   script é a ÚLTIMA linha ("fontes já no lugar", ou a do seco divergente),
+#   e é ela que vai para cima; o resto segue como detalhe, sem as linhas
+#   em branco, que a tabela já pulava.
 chk_fontes() {
   local saida rc
   saida="$("$RAIZ/scripts/instalar_fontes.sh" --conferir 2>&1)"; rc=$?
-  printf '%s\n' "$saida" | sed '/./,$!d'
+  saida="$(printf '%s\n' "$saida" | sed '/^[[:space:]]*$/d')"
+  printf '%s\n' "$saida" | tail -n 1
+  printf '%s\n' "$saida" | sed '$d'
   return "$rc"
 }
 
@@ -2285,13 +2294,23 @@ imprimir_check() {
   # O pulado que avisou sai com o glifo do aviso, e não com o `--` do pulado
   # de rotina: é ele que pesa no veredito (`pulado_com_aviso`), e a tela tem
   # de mostrar a mesma diferença que a conta faz (P75, 09/10/2026).
-  pulado_com_aviso "$i" && rotulo="$(printf '%s!!%s  ' "$C_AMARELO" "$C_ZERO")"
+  #
+  # E A LINHA DA TABELA É A DO AVISO, e não a primeira da saída: no `pastas`
+  # a primeira era a nota de que a cor foi derivada de outra, e o motivo de
+  # ter pulado ficava escondido no detalhe. O detalhe passa a ser o resto.
+  local saida="${CHK_SAIDA[$i]}"
+  if pulado_com_aviso "$i"; then
+    rotulo="$(printf '%s!!%s  ' "$C_AMARELO" "$C_ZERO")"
+    local l_aviso; l_aviso="$(printf '%s\n' "$saida" | grep -m1 -E '^[[:space:]]*!! ')"
+    linha="$(sem_glifo "$l_aviso")"
+    saida="$(printf 'x\n%s\n' "$saida" | grep -vxF -- "$l_aviso")"
+  fi
   # 11, e não 10, desde 11/08/2026: `convertidos` é o primeiro nome de
   # verificador com 11 caracteres, e com 10 a coluna da direita saía uma casa
   # fora do prumo só naquela linha.
   printf '  %s %s %s\n' "$rotulo" "$(pad "${CHK_NOME[$i]}" 11)" "$linha"
   if [ "$detalhar" = "1" ] && { [ "${CHK_RC[$i]}" != "0" ] || [ "$aviso" = "1" ]; }; then
-    printf '%s\n' "${CHK_SAIDA[$i]}" | tail -n +2 | while IFS= read -r l; do
+    printf '%s\n' "$saida" | tail -n +2 | while IFS= read -r l; do
       l="$(sem_glifo "$l")"
       [ -n "$l" ] || continue
       printf '       %s%s%s\n' "$C_DIM" "$l" "$C_ZERO"

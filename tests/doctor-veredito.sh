@@ -216,6 +216,15 @@ if grep -qiE 'apt(-get)? install|instale com' "$TMP/inteira"; then
 else
   ok "nenhuma linha do doctor manda instalar à mão"
 fi
+# Nenhuma linha da tabela vazia ou cortada no dois-pontos (achado 5 de 09/10:
+# `files_menu` e `resgatados` sem texto, `escala: saídas ligadas agora:`,
+# `fontes: Fonte da interface`).
+vazias="$(grep -E '^  (ok|~~|--|!!|erro) +[a-z_]+( *| .*:)$' "$TMP/inteira")"
+if [ -n "$vazias" ]; then
+  falha "linha da tabela vazia ou cortada:"; printf '%s\n' "$vazias" | sed 's/^/       /' >&2
+else
+  ok "toda linha da tabela diz alguma coisa inteira"
+fi
 
 printf '\n--- 5. a lista da ponte é a do install.sh ---\n'
 # O verbo `pacotes` da ponte root guarda a lista LITERAL (ela mora no arquivo

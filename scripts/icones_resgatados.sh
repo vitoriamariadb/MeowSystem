@@ -176,7 +176,10 @@ _resgatados_instalar() {
     _resgatados_avisar
     rc=1
   elif [ "$rc" = "0" ]; then
-    meow_debug "os resgatados já estavam todos no lugar"
+    # `ok`, e não `meow_debug` — P75, 09/10/2026. Em silêncio, a linha
+    # `resgatados` do doctor saía vazia (achado 5 de 09/10): a tabela mostra a
+    # primeira linha do conferidor, e o conferidor em dia não dizia nada.
+    meow_ok "os $(_resgatados_estado | cut -d' ' -f1) resgatados já estão no tema"
   fi
   return "$rc"
 }
@@ -318,6 +321,9 @@ _resgatados_remover() {
   fi
 
   [ "$tirados" -gt 0 ] && { meow_ok "$tirados ícone(s) resgatado(s) retirado(s) do tema"; rc=1; }
+  # Desligado e já sem nenhum no tema: a linha do doctor também precisa dizer
+  # alguma coisa (o mesmo achado 5 de 09/10, do lado do `ICONES_RESGATADOS=nao`).
+  [ "$rc" = "0" ] && meow_ok "resgatados desligados — nenhum no tema"
   return "$rc"
 }
 

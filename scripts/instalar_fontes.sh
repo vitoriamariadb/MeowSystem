@@ -907,6 +907,10 @@ fi
 
 if [ "$mudou" = "1" ]; then
   meow_seco || meow_info "terminais já abertos podem precisar de uma aba nova"
+  # O veredito do seco, que faltava: o caminho em dia fecha com "fontes já no
+  # lugar", e o divergente terminava no último detalhe. O doctor lê o veredito
+  # pela última linha (`chk_fontes`), P75, 09/10/2026.
+  meow_seco && meow_muda "fontes a instalar ou a apontar no COSMIC"
   exit "$MEOW_DIVERGENTE"
 fi
 meow_ok "fontes já no lugar"

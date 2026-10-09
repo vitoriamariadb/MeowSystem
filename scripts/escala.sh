@@ -137,17 +137,23 @@ mesma_escala() {
   LC_ALL=C awk -v a="$1" -v b="$2" 'BEGIN{ exit !(a+0 == b+0) }'
 }
 
+# O RESUMO VEM NA PRIMEIRA LINHA — P75, 09/10/2026. Ela era o cabeçalho
+#   "saídas ligadas agora:", e a linha `escala` do doctor (que mostra só a
+#   primeira) saía cortada no dois-pontos (achado 5 de 09/10). Agora a
+#   primeira linha já diz as saídas e de quem é a escala; o detalhe segue
+#   embaixo, como antes.
 if [ "$CONFERIR" = "1" ]; then
-  meow_info "saídas ligadas agora:"
+  lista="$(saidas)"
+  resumo="$(printf '%s\n' "$lista" | awk -F'\t' 'NF { printf "%s%s na escala %s", (n++ ? ", " : ""), $1, $2 }')"
+  if [ -z "$ESCALA_TELA" ]; then
+    meow_info "${resumo:-nenhuma saída ligada} — a escala é da GUI (Ajustes → Telas → Escala)"
+  else
+    meow_info "${resumo:-nenhuma saída ligada} — ESCALA_TELA pede $ESCALA_TELA em todas"
+  fi
   while IFS=$'\t' read -r nome escala larg alt hz; do
     [ -n "$nome" ] || continue
     printf '    %-10s escala=%s  modo=%sx%s @ %s Hz\n' "$nome" "$escala" "$larg" "$alt" "$hz"
-  done < <(saidas)
-  if [ -z "$ESCALA_TELA" ]; then
-    meow_info "ESCALA_TELA vazia — a escala é da GUI (Ajustes → Telas → Escala)"
-  else
-    meow_info "o que este script quer: escala $ESCALA_TELA em todas elas"
-  fi
+  done <<< "$lista"
   exit "$MEOW_OK"
 fi
 
