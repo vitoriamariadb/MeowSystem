@@ -2074,7 +2074,10 @@ declare -A SEM_CONSERTO_RAZAO=(
   [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste assets/temas-de-apps/heroic/manifesto.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
   [cursor]="o conserto pode BAIXAR o ponteiro que nem o disco nem o pack trazem, e o doctor não roda o que pode baixar — rode: ./scripts/cursor.sh aplicar"
-  [patches]="o conserto RECOMPILA o cosmic-comp (~4 min) e instala com sudo, e o doctor não compila nem usa sudo — rode: meow compositor"
+  # P76 (conferência): o build mora em ~/.local/libexec, sem sudo, e quem o refaz
+  # sozinho depois do apt é o pós-apt do COSMIC. A frase antiga ("instala com
+  # sudo") deixou de ser verdade com o shim.
+  [patches]="o conserto RECOMPILA o cosmic-comp (~4 a 30 min), e quem o refaz depois do apt é o pós-apt do COSMIC — rode: meow compositor"
   [cli]="quem copia a CLI para ~/.local/bin é o instalador, e uma CLI que se reescreve no meio da própria execução é decisão sua — rode: ./install.sh"
   [pacotes]="instalar pacote é sudo apt-get, e o doctor não usa sudo — rode a linha que ele imprime, ou ./install.sh"
   [upstream]="o conserto CLONA da rede, e o doctor não baixa — rode: ./scripts/baixar_upstream.sh"
