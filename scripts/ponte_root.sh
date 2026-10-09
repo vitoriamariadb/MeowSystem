@@ -160,13 +160,26 @@ greeter-ver)
   ;;
 
 # stdin: um tar. Extrai dentro do `.config/cosmic` do greeter, com o dono certo.
-# `--no-absolute-names` e a recusa de `..` são o que impede o tar de escrever
-# fora do destino — é o buraco clássico deste formato.
+# O que impede o tar de escrever fora do destino — o buraco clássico deste
+# formato — é o padrão do GNU tar (tira a `/` do começo e recusa membro com
+# `..`), a extração num temporário, a recusa de `..` e de link simbólico no que
+# saiu dele, e só então a cópia.
+#
+# O `--no-absolute-names` QUE MORAVA AQUI NÃO EXISTE — P75, 09/10/2026 (S4)
+#   O GNU tar tem `-P/--absolute-names` e não tem a forma negativa: medido com o
+#   tar 1.35 desta máquina, `tar -x --no-absolute-names` sai 64 com "opção
+#   desconhecida". Este verbo recusou TODA chamada desde que nasceu, com a
+#   frase "tar recusado", e o `greeter.sh` mandava essa frase para o
+#   `/dev/null` — a tela de login "precisava de sudo" numa máquina com a ponte
+#   no ar, e ninguém sabia por quê (01-regressoes.md, S4; P70 item 1). O que a
+#   flag pretendia, o padrão do tar já faz; o link simbólico, que ela nem
+#   cobria, passa a ser recusado abaixo.
 greeter-aplicar)
   [ -d "$GREETER_HOME" ] || exit 3
   id "$GREETER_DONO" >/dev/null 2>&1 || morrer "o usuário $GREETER_DONO não existe" 3
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-  tar -x -C "$tmp" --no-absolute-names --no-same-owner -f - || morrer "tar recusado"
+  tar -x -C "$tmp" --no-same-owner -f - || morrer "tar recusado: o que chegou pelo stdin não se extrai"
+  [ -z "$(find "$tmp" -mindepth 1 -type l -print -quit)" ] || morrer "link simbólico no tar"
   ( cd "$tmp" && find . -mindepth 1 -printf '%P\n' ) | while IFS= read -r rel; do
     case "$rel" in ..*|*/../*|*/..) morrer "caminho com .. no tar" ;; esac
   done
