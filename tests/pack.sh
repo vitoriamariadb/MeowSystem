@@ -2867,7 +2867,9 @@ queda="$(sed -n '/^def logo_do_painel(/,/^def /p' "$RAIZ/app/servidor.py" \
 #   está, a conferência se pula dizendo por quê, e o resto desta seção (que só
 #   olha o pack) roda igual.
 BIB="$RAIZ/packs/dracula/icones/biblioteca"
-ORIGEM_BIB="$HOME/Desenvolvimento/Dracula_OS-Theme/src/icons/new-sessao-atual"
+# Sob o `tests/todos.sh` o HOME é de brinquedo (P75); a origem é só LIDA da
+# casa de verdade, que ele deixa em `SUITE_CASA_REAL`.
+ORIGEM_BIB="${SUITE_CASA_REAL:-$HOME}/Desenvolvimento/Dracula_OS-Theme/src/icons/new-sessao-atual"
 if [ -d "$ORIGEM_BIB" ]; then
   conta="$(python3 - "$ORIGEM_BIB" "$BIB" <<'PY'
 import hashlib, os, sys
