@@ -572,6 +572,19 @@ mesma do OKLCH com o matiz pesado pelo croma), medida contra os 26:
 |---|---|---|---|---|
 | `icones/pastas/*.svg` (os sete) | desenho deste projeto | GPL-3.0 | 2026-09-16 | As costas, `#433F4D` (oklch 0,377 0,024 298°), passaram ao `surface0` `#383A4C`, a 0,0257 (o segundo mais perto, o `surface1`, a 0,0287); a frente, `#534B62` (oklch 0,430 0,039 301°), ao `surface1` `#44475A`, a 0,0310 (o `surface2`, a 0,0464). No `folder-download.svg`, as quatro aberturas do castelo (três em arco e uma janela), que eram da cor da frente, `#534B62`, foram com ela para o `#44475A`; nada mais no desenho mudou. As costas contra a frente foram de 1,24:1 para 1,22:1, e os símbolos sobre a frente ganharam contraste (o mauve, de 3,41:1 para 3,79:1). |
 
+**As três que fecham a família — 09/10/2026, sprint P74.** `folder`, `user-home`
+e `user-desktop` vinham do papirus-folders mesmo com as pastas especiais
+ligadas (I7 de `docs/sprints/2026-10-09-uso-real/01-regressoes.md`; o pedido de
+16/09 era «que os agentes gerem as demais variações de pastas»). Entraram como
+desenho deste projeto, com o corpo das sete path a path (as costas no
+`surface0`, a frente no `surface1`) e o símbolo na paleta do flavor `dracula`:
+
+| arquivo | desenho de | licença | desde | o símbolo |
+|---|---|---|---|---|
+| `icones/pastas/folder.svg` | desenho deste projeto | GPL-3.0 | 2026-10-09 | nenhum: é a pasta comum, só o corpo |
+| `icones/pastas/user-home.svg` | desenho deste projeto | GPL-3.0 | 2026-10-09 | a casa, no `mauve` `#BD93F9` |
+| `icones/pastas/user-desktop.svg` | desenho deste projeto | GPL-3.0 | 2026-10-09 | o monitor, a tela no `sky` `#8BE9FD` e a moldura no `text` `#F8F8F2` |
+
 **O que ficou fora da paleta, dito para não parecer esquecido.** No
 `folder-download.svg`, o castelo (`#423E4D`, a 0,0222 do `surface0`) e a lua
 (`#DDA442`, a 0,0829 do `peach`) não são o corpo, e não mudaram. Com a frente no
@@ -609,6 +622,19 @@ pessoal, sem vender nada.
 MeowSystem em 17/09/2026 (a Câmera veste o desenho dele, por escolha registrada
 no `icones/apps.map`), e o resgate de um ícone de pacote herda a licença do
 pacote — ver `assets/icones/PROCEDENCIA.md`, seção dos resgatados.
+
+## Os ícones de arquivo — 09/10/2026, sprint P74
+
+`icones/mimetypes/dracula/` e `icones/mimetypes/alucard/` (656 desenhos cada)
+**não foram copiados nem desenhados aqui**: são derivados, pelo `meow pack
+construir dracula`, do `css-variables/` do acervo do pack Catppuccin
+(`packs/catppuccin/icones/mimetypes/`, o catppuccin/vscode-icons, MIT). Cada
+`var(--vscode-ctp-<papel>)` vira o hex do papel na `paleta.json` deste pack, no
+flavor do diretório. O `LICENSE` da origem vai junto, em
+`icones/mimetypes/LICENSE`. A conta foi conferida contra a origem no mesmo dia:
+com a paleta do Mocha, ela dá os 656 arquivos do `mocha/` do Catppuccin byte a
+byte. Por serem derivados de um acervo que já está no repositório, eles não são
+linhas da tabela das artes copiadas.
 
 ## O que o pack baixa, e não copia
 

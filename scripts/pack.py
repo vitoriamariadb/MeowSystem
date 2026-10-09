@@ -324,6 +324,8 @@ CAMPOS_COM_LEITOR = {
     # As camadas de trás da base (P74 item 2): o `base_de_icones` as lê, e o
     # `construir_icones.sh` as baixa pelo verbo `base-icones` (linhas `atras=`).
     "icones.base.por_tras",
+    # Os ícones de arquivo derivados da paleta (P74 item 6): o `construir` lê.
+    "icones.mimetypes.derivar.*",
 }
 
 
@@ -3501,6 +3503,16 @@ def validar(ref, silencioso=False):
                 alvo = _dentro(dir_pack, bloco[chave], f"icones.{cat}.{chave}")
                 _exigir(os.path.exists(alvo),
                         f"icones.{cat}.{chave}: {bloco[chave]!r} não existe no pack")
+    # OS ÍCONES DE ARQUIVO DERIVADOS (P74 item 6): de qual pack e de qual pasta
+    #   do acervo dele. A pasta é um nome só, pela régua das pastas de pacote, e
+    #   o `derivar` precisa dos `desenhos` ao lado — é onde a derivação escreve.
+    der = (ic.get("mimetypes") or {}).get("derivar")
+    if der is not None:
+        _exigir(isinstance(der, dict) and isinstance(der.get("de"), str) and der.get("de")
+                and isinstance(der.get("pasta"), str) and RE_PASTA_PACOTE.match(der["pasta"])
+                and "/" not in der["pasta"] and (ic.get("mimetypes") or {}).get("desenhos"),
+                "icones.mimetypes.derivar: {\"de\": \"<id do pack>\", \"pasta\": \"<pasta do acervo dele>\"},\n"
+                "    ao lado de `desenhos`, que é onde a derivação escreve.")
 
     # AS LINHAS DO MAPA DE APLICATIVOS — regras 1 e 4 da P28, 23/09/2026
     #   Até aqui o `validar` conferia que o MAPA existe, e não o que ele diz. Um
@@ -4689,8 +4701,16 @@ def cmd_construir(ref, seco=False):
     ident = p.get("id", os.path.basename(dir_pack))
 
     gerar = ((p.get("icones") or {}).get("autorais") or {}).get("gerar")
-    if not gerar:
+    derivar = ((p.get("icones") or {}).get("mimetypes") or {}).get("derivar")
+    if not gerar and not derivar:
         print(f"  --   {ident}: não declara nada derivado — nada a construir")
+        return OK
+    # Os ícones de arquivo derivados (P74 item 6) vêm antes dos autorais: não
+    # dependem de gerador de fora, e um pack pode declarar só eles.
+    if derivar:
+        derivar_mimetypes(ident, seco=seco)
+    if not gerar:
+        print(f"  ok   {ident}: construído")
         return OK
 
     # `_dentro` com o caminho que VAMOS ESCREVER: se um dia a saída vier do
@@ -4717,6 +4737,91 @@ def cmd_construir(ref, seco=False):
         raise Recusa(f"o gerador de ícones autorais saiu {r.returncode}")
     print(f"  ok   {ident}: construído")
     return OK
+
+
+# --- OS ÍCONES DE ARQUIVO DERIVADOS DA PALETA — 09/10/2026, P74 item 6 (T9) ---
+#
+# O BURACO, MEDIDO
+#   O Dracula herdava os 656 ícones de arquivo do Catppuccin no flavor
+#   `macchiato`: com o Dracula no ar, o cosmic-files abria uma pasta e os tipos
+#   de arquivo saíam no lilás e no azul do Catppuccin, e o doctor dizia «123
+#   tipos de arquivo já vestidos de Catppuccin macchiato». O `pack.json` dizia
+#   «não existe acervo de mimetype Dracula» — e não existia mesmo.
+#
+# A CURA É O ACERVO DE ORIGEM, NÃO UM RECOLORIDO
+#   O upstream do Catppuccin (catppuccin/vscode-icons, MIT) publica, ao lado
+#   dos quatro flavors, o `css-variables/`: os MESMOS 656 desenhos com cada cor
+#   escrita por papel (`var(--vscode-ctp-mauve)`). Medido em 09/10/2026: trocar
+#   cada `var(--vscode-ctp-<papel>)` pelo hex do papel na paleta do Mocha dá os
+#   656 arquivos do `mocha/` byte a byte (com o hex em minúsculas, como lá).
+#   Então o pack que declara `icones.mimetypes.derivar` ganha um diretório por
+#   flavor DA PALETA DELE, pela mesma conta: o papel é o da paleta, o hex é o do
+#   pack. Os 16 papéis usados existem em toda paleta que o `validar` aceita (os
+#   26 slots são obrigatórios).
+#
+# QUEM ESCREVE É O `construir`, DENTRO DO PACK, E A SAÍDA É VERSIONADA
+#   Como o acervo do Catppuccin, e ao contrário dos autorais (ver a dívida no
+#   `cmd_construir`): aqui não há segunda cópia em lugar nenhum, e a máquina de
+#   quem instala não precisa construir nada. O `LICENSE` da origem vai junto,
+#   porque o desenho é dela. Idempotente: arquivo igual não é reescrito, e o
+#   que saiu da origem sai do flavor.
+RE_VAR_CTP = re.compile(r"var\(--vscode-ctp-([a-z0-9]+)\)")
+
+
+def derivar_mimetypes(ref, seco=False):
+    """Escreve `<desenhos>/<flavor>/` para cada flavor da paleta do pack. Levanta Recusa."""
+    p, dados, dir_pack = validar(ref, silencioso=True)
+    ident = p.get("id", os.path.basename(dir_pack))
+    bloco = (p.get("icones") or {}).get("mimetypes") or {}
+    der = bloco.get("derivar") or {}
+    origem = acervo("icones.mimetypes.desenhos", der.get("pasta", ""), ref=der.get("de"))
+    if not origem or not os.path.isdir(origem):
+        raise Recusa(f"icones.mimetypes.derivar: o pack {der.get('de')!r} não tem "
+                     f"{der.get('pasta')!r} no acervo de mimetype dele")
+    desenhos = sorted(f for f in os.listdir(origem) if f.endswith(".svg"))
+    destino_base = _dentro(dir_pack, bloco["desenhos"], "icones.mimetypes.desenhos")
+    escritos = removidos = 0
+    for flavor, cores in dados["flavors"].items():
+        destino = os.path.join(destino_base, flavor)
+        if not seco:
+            os.makedirs(destino, exist_ok=True)
+        for nome in desenhos:
+            with open(os.path.join(origem, nome), encoding="utf-8") as fh:
+                texto = fh.read()
+            faltou = sorted({m for m in RE_VAR_CTP.findall(texto) if m not in cores})
+            if faltou:
+                raise Recusa(f"{nome}: a paleta {flavor!r} não tem {', '.join(faltou)}")
+            novo = RE_VAR_CTP.sub(lambda m: cores[m.group(1)].lower(), texto)
+            alvo = os.path.join(destino, nome)
+            try:
+                with open(alvo, encoding="utf-8") as fh:
+                    if fh.read() == novo:
+                        continue
+            except OSError:
+                pass
+            escritos += 1
+            if not seco:
+                with open(alvo, "w", encoding="utf-8") as fh:
+                    fh.write(novo)
+        if os.path.isdir(destino):
+            for nome in sorted(os.listdir(destino)):
+                if nome.endswith(".svg") and nome not in desenhos:
+                    removidos += 1
+                    if not seco:
+                        os.remove(os.path.join(destino, nome))
+    licenca = os.path.join(os.path.dirname(origem.rstrip("/")), "LICENSE")
+    if os.path.isfile(licenca) and not seco:
+        alvo = os.path.join(destino_base, "LICENSE")
+        with open(licenca, encoding="utf-8") as fh:
+            texto = fh.read()
+        if not os.path.isfile(alvo) or open(alvo, encoding="utf-8").read() != texto:
+            with open(alvo, "w", encoding="utf-8") as fh:
+                fh.write(texto)
+    verbo = "escreveria" if seco else "escreveu"
+    print(f"  {'~~' if escritos or removidos else 'ok'}   {ident}: ícones de arquivo de "
+          f"{der.get('de')}/{der.get('pasta')}, {len(desenhos)} por flavor × "
+          f"{len(dados['flavors'])} — {verbo} {escritos}, tirou {removidos}")
+    return escritos + removidos
 
 
 # --- O PACK QUE VIAJA: novo, exportar, importar — 23/09/2026, sprint P11 -----

@@ -22,7 +22,7 @@
     "_nota": "O que o cartão de escolher pack mostra (P15, 23/09/2026). A capa É o logo.svg que a P25 desenha — o mesmo arquivo que vira o ícone do lançador —, e não uma tira de cores: tira é paleta, não identidade. As tags foram medidas, não escolhidas: o pack tem um flavor escuro (dracula) e um claro (alucard), e o 'text' sobre o 'base' dá 13,36:1 no primeiro e 7,10:1 no segundo, os dois acima dos 7:1 do WCAG AAA. Sem 'capturas' de propósito: uma foto de tela desta máquina levaria para o git o que estava aberto nela."
   },
   "heranca": "catppuccin",
-  "_nota_heranca": "Dito na cara: este pack é uma paleta, os acervos de ícone (aplicativos, a biblioteca, autorais e pastas) e os temas de aplicativo. Do pack base vêm os mimetypes. As fontes a herança manda buscar nele, e ele não traz nenhuma: a fonte é a Nerd Font do motor — o 'meow pack info' diz 'a cadeia não traz' nessa linha. O ponteiro e a base de ícones deixaram de ser herdados em 24/09/2026 (P41): o pack declara de onde os dois descem, pinados, e quem instala os baixa (`origens.cursores.origem`, `icones.base.origem`). Prompt, fastfetch e gatos vêm do MOTOR (assets/), iguais para todo pack, porque o formato ainda não tem campo para eles. Esta nota errou duas vezes: até 23/09/2026 ela punha prompt, fastfetch, gatos e 'sons' entre os herdados (o pack tem sino próprio, o bloco `som`, lá embaixo), e a primeira correção, no mesmo dia, ainda dizia que ponteiro e fontes vinham do pack base. 'meow pack info dracula' imprime isso linha a linha, e é para imprimir.",
+  "_nota_heranca": "Dito na cara: este pack é uma paleta, os acervos de ícone (aplicativos, a biblioteca, autorais e pastas) e os temas de aplicativo. Do pack base vinham os mimetypes até 09/10/2026 (P74): agora eles são derivados, pela paleta deste pack, do `css-variables` de lá — ver `icones.mimetypes`. As fontes a herança manda buscar nele, e ele não traz nenhuma: a fonte é a Nerd Font do motor — o 'meow pack info' diz 'a cadeia não traz' nessa linha. O ponteiro e a base de ícones deixaram de ser herdados em 24/09/2026 (P41): o pack declara de onde os dois descem, pinados, e quem instala os baixa (`origens.cursores.origem`, `icones.base.origem`). Prompt, fastfetch e gatos vêm do MOTOR (assets/), iguais para todo pack, porque o formato ainda não tem campo para eles. Esta nota errou duas vezes: até 23/09/2026 ela punha prompt, fastfetch, gatos e 'sons' entre os herdados (o pack tem sino próprio, o bloco `som`, lá embaixo), e a primeira correção, no mesmo dia, ainda dizia que ponteiro e fontes vinham do pack base. 'meow pack info dracula' imprime isso linha a linha, e é para imprimir.",
   "paleta": {
     "arquivo": "paleta.json",
     "flavor_padrao": "dracula",
@@ -52,12 +52,17 @@
     },
     "pastas": {
       "desenhos": "icones/pastas/",
-      "recolorir": false
+      "mapa": "icones/pastas.map",
+      "recolorir": false,
+      "_nota_mapa": "O mapa é do pack desde 09/10/2026 (P74 item 6, I7): as sete pastas especiais de 15/09 mais `folder`, `user-home` e `user-desktop`, desenhadas no mesmo dia na mesma silhueta. O porquê está no cabeçalho do `icones/pastas.map`."
     },
     "mimetypes": {
-      "herda": "catppuccin",
-      "flavor": "macchiato",
-      "_nota": "Não existe acervo de mimetype Dracula. O do Catppuccin tem quatro flavors (frappe, latte, macchiato, mocha), 656 arquivos cada; o macchiato é o vizinho mais próximo em luminosidade."
+      "desenhos": "icones/mimetypes/",
+      "derivar": {
+        "de": "catppuccin",
+        "pasta": "css-variables"
+      },
+      "_nota": "PRÓPRIO desde 09/10/2026 (P74 item 6). Até aqui o pack herdava os 656 ícones de arquivo do Catppuccin no flavor `macchiato` — com o Dracula no ar, os tipos de arquivo saíam no lilás e no azul do Catppuccin. O upstream do Catppuccin (catppuccin/vscode-icons, MIT) publica o `css-variables/`: os mesmos 656 desenhos com a cor escrita por papel. O `meow pack construir dracula` troca cada papel pelo hex dele na paleta deste pack e escreve `icones/mimetypes/<flavor>/`, um diretório por flavor (o `dracula` e o `alucard`). Medido no mesmo dia: a mesma conta com a paleta do Mocha reproduz o `mocha/` do Catppuccin byte a byte. O mapa (qual desenho veste qual tipo) continua o do Catppuccin, pela `heranca`: é o mesmo acervo de nomes, e a escolha é do upstream."
     },
     "autorais": {
       "gerar": true,

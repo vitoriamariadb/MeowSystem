@@ -165,8 +165,10 @@ for svg in sorted(glob.glob(os.path.join(pack, "icones", "pastas", "*.svg"))) + 
     velhos = {h.upper() for h in re.findall(r"#[0-9A-Fa-f]{6}", texto)} & {"#433F4D", "#534B62"}
     if velhos:
         erros.append("%s: ainda tem %s" % (nome, sorted(velhos)))
-if vistos != 8:
-    erros.append("eram sete desenhos em icones/pastas/ e o resgate, e são %d" % vistos)
+# Dez desde a P74 (09/10/2026): as sete de 15/09 mais `folder`, `user-home` e
+# `user-desktop`, na mesma silhueta; e o resgate do Nautilus.
+if vistos != 11:
+    erros.append("eram dez desenhos em icones/pastas/ e o resgate, e são %d" % vistos)
 with open(os.path.join(pack, "PROCEDENCIA.md"), encoding="utf-8") as fh:
     proc = fh.read()
 linha = next((l for l in proc.splitlines() if l.startswith("| `icones/pastas/*.svg`")), "")
@@ -196,18 +198,20 @@ mkdir -p "$LUGAR"
 for n in documents download music pictures publicshare templates videos; do
   printf '<svg><path style="fill:#CAD3F5"/></svg>' > "$LUGAR/folder-$n.svg"
 done
+# Quantas o pack desenha: as sete de 15/09 e as três da P74 (09/10/2026).
+N_PASTAS="$(find "$RAIZ/packs/dracula/icones/pastas" -maxdepth 1 -name '*.svg' | wc -l)"
 aplicou="$(xdg "$T/casa-xdg" dracula dracula --aplicar)"
 conferiu="$(xdg "$T/casa-xdg" dracula dracula --conferir)"; rc=$?
 postos=0
 for d in "$RAIZ/packs/dracula/icones/pastas/"*.svg; do
   [ "$(cat "$d")" = "$(cat "$LUGAR/$(basename "$d")" 2>/dev/null)" ] && postos=$((postos + 1))
 done
-if [ "$postos" = 7 ] && [ "$rc" = 0 ] && [[ "$aplicou" == *"desenhos do pack Dracula"* ]] \
-   && [[ "$conferiu" == *"7 pasta(s) especiais já vestidas com os desenhos do pack Dracula"* ]] \
+if [ "$postos" = "$N_PASTAS" ] && [ "$N_PASTAS" = 10 ] && [ "$rc" = 0 ] && [[ "$aplicou" == *"desenhos do pack Dracula"* ]] \
+   && [[ "$conferiu" == *"$N_PASTAS pasta(s) especiais já vestidas com os desenhos do pack Dracula"* ]] \
    && [[ "$aplicou$conferiu" != *Catppuccin* ]]; then
-  ok "com PASTAS_XDG=\"sim\" as sete pastas especiais do Dracula chegam ao disco, e a frase diz o pack"
+  ok "com PASTAS_XDG=\"sim\" as $N_PASTAS pastas especiais do Dracula chegam ao disco, e a frase diz o pack"
 else
-  falha "as pastas especiais do Dracula não chegaram ao disco, ou a frase fala de outro pack ($postos de 7, rc=$rc)" \
+  falha "as pastas especiais do Dracula não chegaram ao disco, ou a frase fala de outro pack ($postos de $N_PASTAS, rc=$rc)" \
     "$aplicou
 $conferiu"
 fi
@@ -229,8 +233,8 @@ desligar() {   # $1 = a casa · [VAR=valor ...], que vencem
 #   no passado, com os sete ainda no disco; e abria com «devolvendo». O ensaio
 #   não tira nada, e cada frase dele diz o que faria.
 ensaio="$(desligar "$T/casa-xdg" MEOW_DRY_RUN=1)"; rc=$?
-if [ "$(find "$LUGAR" -name '*.svg' 2>/dev/null | wc -l)" = 7 ] && [ "$rc" = 1 ] \
-   && [[ "$ensaio" == *"removeria"* ]] && [[ "$ensaio" == *"pastas especiais: poria 0, removeria 7"* ]] \
+if [ "$(find "$LUGAR" -name '*.svg' 2>/dev/null | wc -l)" = "$N_PASTAS" ] && [ "$rc" = 1 ] \
+   && [[ "$ensaio" == *"removeria"* ]] && [[ "$ensaio" == *"pastas especiais: poria 0, removeria $N_PASTAS"* ]] \
    && [[ "$ensaio" == *"devolveria as pastas especiais"* ]] \
    && [[ "$ensaio" != *"posto(s)"* ]] && [[ "$ensaio" != *"removido(s)"* ]] && [[ "$ensaio" != *devolvendo* ]]; then
   ok "o ensaio de desligar as pastas especiais fala no condicional, do começo ao resumo, e não tira nada"

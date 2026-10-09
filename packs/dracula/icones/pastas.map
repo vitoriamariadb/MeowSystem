@@ -1,0 +1,32 @@
+# packs/dracula/icones/pastas.map — que desenho do pack veste cada PASTA ESPECIAL.
+#
+# FORMATO      nome-de-icone-freedesktop:desenho-em-icones/pastas/ (sem .svg, sem espaço)
+# COMENTÁRIO   linha começando com # ; linha vazia é ignorada
+#
+# O MAPA DO DRACULA É DELE — 09/10/2026, P74 item 6 (I7)
+#   Até aqui o Dracula usava o `assets/icones/pastas.map` do motor, que é a
+#   tradução dos nomes XDG para os glifos do Catppuccin e deixa de fora, de
+#   propósito, `folder`, `user-home` e `user-desktop` (o porquê de cada um está
+#   lá). O pedido de 16/09 — «que os agentes gerem as demais variações de
+#   pastas», a partir das do Nautilus — fechou a família: as três entraram como
+#   desenho deste pack, na mesma silhueta e nos mesmos dois tons das sete
+#   (`surface0` e `surface1`), e é este mapa que as põe no tema.
+#
+#   Tudo aqui só vale com «Ícones das pastas especiais» ligado (PASTAS_XDG="sim"):
+#   desligado, as dez vestem o papirus-folders na paleta do pack, como as outras.
+#   E `folder` é a pasta COMUM: ligado, toda pasta sem nome especial passa a ter
+#   o corpo do Dracula, sem o acento — é a família inteira num estilo só, que é
+#   o que o pedido de 16/09 descreve.
+#
+# O NOME DO DESENHO É O NOME XDG, como o das sete de 15/09: o `icones_pastas.sh`
+# procura o desenho pelo glifo do mapa e, sem ele, pelo nome.
+folder-documents:folder-documents
+folder-download:folder-download
+folder-music:folder-music
+folder-pictures:folder-pictures
+folder-publicshare:folder-publicshare
+folder-templates:folder-templates
+folder-videos:folder-videos
+folder:folder
+user-home:user-home
+user-desktop:user-desktop

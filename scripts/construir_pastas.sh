@@ -413,7 +413,18 @@ fi
 TAMANHOS=(22x22 24x24 32x32 48x48 64x64)
 
 # --- os nomes que este script CEDE (ver o cabeçalho) -------------------------
-MAPA_PASTAS="$RAIZ/assets/icones/pastas.map"
+# O MAPA É O MESMO DO `icones_pastas.sh`, pela mesma porta — P74 item 6 (I7).
+#   Era o `assets/icones/pastas.map` cravado. Quando o Dracula passou a trazer o
+#   mapa dele (com `folder`, `user-home` e `user-desktop`), o `icones_pastas.sh`
+#   punha os três em `scalable/places` e este script, lendo o mapa do motor,
+#   continuava criando os três apelidos nos tamanhos fixos — que vencem o
+#   `scalable` no tamanho exato, e o desenho do pack nunca aparecia. Quem cede
+#   tem de ler o mapa de quem veste.
+_pack_ref="$(meow_pack_dir)"
+[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
+MAPA_PASTAS="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.pastas.mapa 2>/dev/null)" || MAPA_PASTAS=""
+[ -n "$MAPA_PASTAS" ] || MAPA_PASTAS="$RAIZ/assets/icones/pastas.map"
+unset _pack_ref
 PASTEL_DIR="$TEMA_DIR/scalable/places"
 
 declare -A CEDIDOS=()

@@ -126,6 +126,37 @@ ordem="$(sed -n '/local etapas=(/,/)/p' "$RAIZ/install.sh" | grep -oE '\betapa_[
   && ok "no doctor o índice é a última conferência" \
   || falha "o doctor não confere o índice depois de tudo"
 
+# --- item 6: ícones de arquivo e pastas do próprio Dracula --------------------
+#   Os 656 ícones de arquivo por flavor são do pack, derivados do
+#   `css-variables` do Catppuccin pela paleta do Dracula: nenhum hex do
+#   macchiato sobra, o `construir` no seco não tem nada a escrever (o versionado
+#   é o que ele produz), e o `info` diz PRÓPRIO. E as pastas: o mapa do pack
+#   veste as dez, e o `construir_pastas.sh` cede pelo MESMO mapa.
+linha="$(amb python3 "$RAIZ/scripts/pack.py" info dracula 2>&1 | grep -E '^  icones\.mimetypes ')"
+[[ "$linha" == *"PRÓPRIO"*"1.312 desenho(s)"* ]] \
+  && ok "icones.mimetypes do Dracula é PRÓPRIO: 656 por flavor, nos dois flavors" \
+  || falha "o info não diz os ícones de arquivo do Dracula como próprios" "$linha"
+macc="$(python3 -c 'import json,sys;print("|".join(v.lower() for v in json.load(open(sys.argv[1]))["flavors"]["macchiato"].values()))' "$RAIZ/packs/catppuccin/paleta.json")"
+com_macc="$(grep -liE "$macc" "$RAIZ"/packs/dracula/icones/mimetypes/*/*.svg | wc -l)"
+total="$(find "$RAIZ/packs/dracula/icones/mimetypes" -name '*.svg' | wc -l)"
+[ "$total" = 1312 ] && [ "$com_macc" = 0 ] \
+  && ok "nenhum dos $total ícones de arquivo do Dracula tem cor do macchiato" \
+  || falha "ícones de arquivo do Dracula com cor do Catppuccin, ou contagem errada" "total=$total com_macchiato=$com_macc"
+seco="$(amb python3 "$RAIZ/scripts/pack.py" construir dracula --seco 2>&1 | grep 'ícones de arquivo')"
+[[ "$seco" == *"escreveria 0, tirou 0"* ]] \
+  && ok "o construir não tem ícone de arquivo a escrever: o versionado é o que a paleta dá" \
+  || falha "os ícones de arquivo versionados não são os que a paleta do Dracula dá" "$seco"
+mapa="$(amb python3 "$RAIZ/scripts/pack.py" acervo dracula icones.pastas.mapa 2>&1)"
+nomes="$(grep -v '^#' "$mapa" 2>/dev/null | grep -c ':')"
+faltam=""
+while IFS=: read -r n g; do
+  case "$n" in ''|'#'*) continue ;; esac
+  [ -f "$RAIZ/packs/dracula/icones/pastas/$g.svg" ] || faltam="$faltam $g"
+done < "$mapa"
+[ "$nomes" = 10 ] && [ -z "$faltam" ] && grep -q 'acervo "$_pack_ref" icones.pastas.mapa' "$RAIZ/scripts/construir_pastas.sh" \
+  && ok "o mapa de pastas do Dracula veste dez nomes (folder, user-home e user-desktop inclusive), e quem cede lê o mesmo mapa" \
+  || falha "o mapa de pastas do Dracula não tem as dez, falta desenho, ou o construir_pastas não o lê" "nomes=$nomes faltam=$faltam"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"
