@@ -2172,6 +2172,17 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
  * traz de 6 a 10 cores próprias. Então a etiqueta é o NOME do acervo, e o
  * mauve a separa das outras, que são todas nome de cor da paleta. */
 .app-dracula { color: var(--mauve); }
+/* O SELO DA ORIGEM — 09/10/2026, P73 (achado 24). A palavra saiu da grade e
+ * virou forma; o nome vai para a dica (`title`, pelo balão). Cinco formas, de
+ * propósito distintas também sem cor (o daltônico lê a forma): anel cheio,
+ * losango, ponto, quadrado e anel vazio. A cor do ponto do traço é a do próprio
+ * traço (`--cor-do-selo`, a cor da paleta que o pinta). */
+.selo { display: inline-block; width: .7rem; height: .7rem; margin-top: .15rem; }
+.selo-escolha { border-radius: 50%; border: 3px solid var(--accent); background: var(--base); }
+.selo-pack { background: var(--accent); transform: rotate(45deg) scale(.85); border-radius: 2px; }
+.selo-traco { border-radius: 50%; background: var(--cor-do-selo, var(--overlay2)); }
+.selo-nosso { background: var(--subtext0); border-radius: 1px; }
+.selo-fabrica { border-radius: 50%; border: 1.5px solid var(--overlay2); }
 
 /* O painel de escolha nasce embaixo do aplicativo clicado, ocupando a linha
  * inteira — assim o contexto não se perde. Borda em accent porque ele está

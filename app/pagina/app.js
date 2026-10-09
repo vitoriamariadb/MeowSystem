@@ -3020,18 +3020,44 @@ function gradeDeApps(apps, filtro, recarregar) {
        * hex desse slot na paleta do pack no ar (o `icones_apps_arcticons.sh`
        * lê o `meow_paleta` no FLAVOR), e o nome sai do mesmo hex (`nomeDaCor`),
        * como nos botões da «Cor de destaque». */
-      a.dracula
-        ? elemento("span", { class: "app-marca app-dracula", texto: "Dracula" })
-        : (a.mapa || a.traco)
-        ? elemento("span", { class: "app-marca",
-                             texto: nomeDaCor((a.mapa || a.traco).cor, flavorEmVigor()) })
-        : elemento("span", { class: "app-marca app-fabrica",
-                             texto: a.nosso ? "nosso" : "de fábrica" }),
+      /* A ORIGEM VIRA SELO, E A PALAVRA VAI PARA A DICA — 09/10/2026, P73
+       * (achado 24 de 09/10). A grade misturava quatro origens escritas em
+       * palavra («Dracula», «rosa», «nosso», «de fábrica»), e para quem usa
+       * uns «acionavam o tema» e outros não, sem razão visível. «Sem texto na
+       * interface; no máximo vira dica.» Agora cada origem tem uma FORMA:
+       *   · escolha de quem usa — o anel cheio no acento;
+       *   · desenho do pack     — o losango no acento do pack;
+       *   · traço               — o ponto pintado com a cor dele (a cor É o
+       *                           dado; o nome dela vai para a dica);
+       *   · desenho nosso       — o quadrado de canto vivo;
+       *   · de fábrica          — o anel vazio.
+       * A regra de quem vence continua a de antes (o que está NA TELA). */
+      seloDaOrigem(a),
     ]);
     grade.append(fig);
     if (APP_ABERTO === a.id) grade.append(montarEscolhaDeIcone(a, recarregar));
   }
   return grade;
+}
+
+/* O selo da origem do ícone na grade — ver "A ORIGEM VIRA SELO", acima. */
+function seloDaOrigem(a) {
+  const traco = a.mapa || a.traco;
+  const [tipo, dica] = a.escolhido
+    ? ["escolha", "Escolhido por você nesta conta"]
+    : a.dracula
+    ? ["pack", "Desenho do pack no ar"]
+    : traco
+    ? ["traco", `Traço do MeowSystem, em ${nomeDaCor(traco.cor, flavorEmVigor())}`]
+    : a.nosso
+    ? ["nosso", "Desenho do MeowSystem"]
+    : ["fabrica", "De fábrica: nenhum acervo veste este app"];
+  const hex = traco && !a.escolhido && !a.dracula
+    ? ((ESQUEMA.paleta.flavors || {})[flavorEmVigor()] || {})[traco.cor] : "";
+  return elemento("span", {
+    class: `app-marca selo selo-${tipo}`, role: "img", "aria-label": dica, title: dica,
+    style: hex ? `--cor-do-selo:${hex}` : null,
+  });
 }
 
 function montarEscolhaDeIcone(app, recarregar) {

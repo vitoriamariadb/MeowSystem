@@ -8316,6 +8316,11 @@ class Manipulador(BaseHTTPRequestHandler):
         # Os nomes que outro dono do `scalable/apps` decide (P60), lidos uma
         # vez para a grade inteira — ver `_donos_do_scalable`.
         donos_scalable = self._donos_do_scalable()
+        # As escolhas de desenho do painel (P73, I3), por nome de ícone: o selo
+        # «escolhido por você» da grade (achado 24 de 09/10).
+        mod = modulo_pack()
+        escolhidos = ({n for _num, n, _a in mod.escolhas_do_painel()}
+                      if mod and hasattr(mod, "escolhas_do_painel") else set())
         for d in self._desktops():
             if d["oculto"]:
                 continue
@@ -8348,6 +8353,12 @@ class Manipulador(BaseHTTPRequestHandler):
                     atual and os.path.dirname(atual) == dir_pack
                     and (d["icone"] or d["id"]) in pack_dracula),
                 "mapa": mapa.get(d["id"]) or mapa.get(d["icone"]) or None,
+                # A ESCOLHA DE DESENHO DE QUEM USA ESTÁ NA TELA (P73): o nome
+                # tem linha no `icones-escolhidos.map` e o arquivo na tela é o
+                # do `scalable/apps`, onde o passo do pack a pôs.
+                "escolhido": bool(
+                    atual and os.path.dirname(atual) == dir_pack
+                    and ((d["icone"] or "") in escolhidos or d["id"] in escolhidos)),
                 # O SEGUNDO ACERVO DE TRAÇO, num campo PRÓPRIO — 08/09/2026.
                 # 33 aplicativos são vestidos por ele, e a página não sabia:
                 # todos apareciam como "nosso" sem cor, e a oficina de desenho
