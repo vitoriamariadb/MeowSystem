@@ -3824,6 +3824,151 @@ def _contar_acervo(ref, categoria, flavors):
 PASTA_BIBLIOTECA = "icones/biblioteca/"
 
 
+# ============================================================================
+# O ACERVO DA FICHA DE ÍCONE, DECLARADO NUM LUGAR SÓ — 09/10/2026, sprint P73
+# ============================================================================
+# O pedido de quem usa, 09/10: «Era pra aparecerem todos os Drácula feitos e
+# todos os do MeowSystem feitos, numa pasta cada. Independente do app que eu
+# escolher, eu deveria acessar todas as imagens disponíveis.» E a decisão 3 do
+# mesmo dia (docs/sprints/2026-10-09-uso-real/02-decisoes.md): os acervos de
+# TODOS os packs aparecem, cada um na sua pasta, com o pack no ar primeiro.
+# Ela revoga a regra da P60 («o acervo de um pack fora do ar não entra»).
+#
+# POR QUE AQUI, E NÃO NUMA TUPLA DO SERVIDOR
+#   Até a P73 a ficha (`_api_glifos`) lia uma tupla fixa —
+#   `("arcticons-apps", "autorais", "convertidos-apps")` — e os autorais do
+#   pack só no flavor em vigor. Medido na auditoria de 09/10: `resgatados/` (29
+#   desenhos, 28 sem gêmeo em grupo nenhum), `arcticons/` (34 sem gêmeo) e os
+#   onze `-alucard` nunca apareciam. Uma lista no servidor é a quinta cópia de
+#   "onde moram os desenhos": o `tests/acervo-da-ficha.sh` conta o disco contra
+#   ESTA função, e o servidor pergunta a ela.
+#
+# O QUE ENTRA, E O QUE FICA DE FORA DE PROPÓSITO
+#   · de cada pack em qualquer raiz: os `icones.apps.desenhos` declarados, a
+#     biblioteca (`PASTA_BIBLIOTECA`), os autorais de TODOS os flavors (o
+#     flavor é subgrupo) e os PNG feitos à mão (`PASTA_FEITOS_A_MAO`);
+#   · do motor: as pastas de `ACERVOS_DO_MOTOR`, com as subpastas.
+#   Fora: `pastas/` e os mimetypes (pasta e tipo de arquivo não são ícone de
+#   aplicativo — oferecer um faria o lançador mostrar uma pasta no lugar do
+#   programa); `previa-arcticons/` (os 35 têm os mesmos bytes de desenhos que já
+#   chegam por outra pasta, medido sha a sha em 09/10); `upstream/` (é o
+#   papirus-folders, 21.000 pastas coloridas, e não o Arcticons — a validação
+#   de 08/09 mediu «steam» dando 56 pastas); a folha `ANTES-E-DEPOIS.png` dos
+#   resgatados, que é a comparação de antes e depois, e não um ícone.
+#   [O grupo «Catppuccin» que saiu na P60 era a pasta `catppuccin-apps/`, fora
+#   do git e de PNG. O que volta com a decisão 3 é o acervo versionado do pack
+#   Catppuccin — os autorais dele —, pela mesma porta dos outros packs.]
+PASTA_FEITOS_A_MAO = "icones/feitos-a-mao/"
+ACERVOS_DO_MOTOR = (
+    # (pasta em assets/icones/, nome na tela, tipo). O tipo diz o que a ficha
+    # faz com a escolha: `desenho` entra no tema como está; `traco` é glifo de
+    # contorno, que o `icones_apps_arcticons.sh` pinta na cor escolhida.
+    ("resgatados", "resgatados", "desenho"),
+    ("autorais", "autorais", "desenho"),
+    ("arcticons-apps", "traço", "traco"),
+    ("arcticons", "traço (Arcticons)", "traco"),
+    ("convertidos-apps", "convertidos", "traco"),
+)
+FORA_DA_FICHA = ("ANTES-E-DEPOIS.png",)
+# O nome vira texto de mapa no estado de quem usa (`escolhas_do_painel`): `#`
+# cortaria a linha, `:` a partiria, e uma quebra a dividiria em duas.
+RE_NOME_NA_FICHA = re.compile(r"^[^#:\x00-\x1f]{1,200}$")
+
+
+def _arquivos_da_pasta(pasta, ext):
+    """Os arquivos comuns de `pasta` (sem descer), com a extensão `ext`."""
+    try:
+        nomes = sorted(os.listdir(pasta))
+    except OSError:
+        return []
+    saida = []
+    for nome in nomes:
+        cheio = os.path.join(pasta, nome)
+        if (nome.startswith(".") or not nome.lower().endswith(ext) or nome in FORA_DA_FICHA
+                or not RE_NOME_NA_FICHA.match(nome) or os.path.islink(cheio)
+                or not os.path.isfile(cheio)):
+            continue
+        saida.append(cheio)
+    return saida
+
+
+def acervos_de_icone(no_ar=""):
+    """Cada pasta de desenho que a ficha de ícone oferece, na ordem da tela.
+
+    Um dicionário por grupo: `id`, `acervo` (o nome do pack, ou «MeowSystem»),
+    `nome` (a pasta, como a tela a chama), `pack` (o id, ou ''), `no_ar`,
+    `tipo` (`desenho`, `traco` ou `png`), `pasta` e `arquivos` (os caminhos).
+    O pack `no_ar` vem primeiro, depois os outros packs, depois o motor.
+    """
+    grupos = []
+
+    def grupo(gid, acervo, nome, pack, tipo, pasta, arquivos):
+        if arquivos:
+            grupos.append({"id": gid, "acervo": acervo, "nome": nome, "pack": pack,
+                           "no_ar": bool(pack) and pack == no_ar, "tipo": tipo,
+                           "pasta": pasta, "arquivos": arquivos})
+
+    vistos = set()
+    for base in raizes():
+        try:
+            ids = sorted(os.listdir(base))
+        except OSError:
+            continue
+        for pid in ids:
+            dir_pack = os.path.join(base, pid)
+            if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
+                continue
+            vistos.add(pid)
+            nome_pack = str(campo(dir_pack, "nome", pid) or pid)
+            # SÓ O QUE O PRÓPRIO PACK TRAZ: a herança não sobe aqui, porque o
+            # acervo herdado já aparece na pasta do pack de onde ele vem.
+            pastas = []
+            declarada = campo(dir_pack, "icones.apps.desenhos")
+            if isinstance(declarada, str) and declarada:
+                try:
+                    pastas.append(("apps", "feitos para apps",
+                                   _dentro(dir_pack, declarada, "icones.apps.desenhos"),
+                                   "desenho", ".svg"))
+                except Recusa:
+                    pass
+            pastas.append(("biblioteca", "biblioteca", os.path.join(dir_pack, PASTA_BIBLIOTECA),
+                           "desenho", ".svg"))
+            pastas.append(("feitos-a-mao", "feitos à mão (PNG)",
+                           os.path.join(dir_pack, PASTA_FEITOS_A_MAO), "png", ".png"))
+            for chave, nome, pasta, tipo, ext in pastas:
+                grupo("pack:%s:%s" % (pid, chave), nome_pack, nome, pid, tipo, pasta,
+                      _arquivos_da_pasta(pasta, ext))
+            # OS AUTORAIS DE TODOS OS FLAVORS, COM O FLAVOR COMO SUBGRUPO. Até a
+            # P73 só o do flavor em vigor entrava: no Dracula escuro, os onze do
+            # `alucard` não existiam para a ficha.
+            aut = campo(dir_pack, "icones.autorais.desenhos") or PASTA_AUTORAIS
+            try:
+                pasta_aut = _dentro(dir_pack, aut, "icones.autorais.desenhos")
+            except Recusa:
+                continue
+            arquivos = _arquivos_da_pasta(pasta_aut, ".svg")
+            flavors = sorted(_flavors_do_pack(dir_pack), key=len, reverse=True)
+            por_flavor = {}
+            for arq in arquivos:
+                miolo = os.path.basename(arq)[:-len(".svg")]
+                flavor = next((f for f in flavors if miolo.endswith("-" + f)), "")
+                por_flavor.setdefault(flavor, []).append(arq)
+            for flavor in sorted(por_flavor):
+                grupo("pack:%s:autorais:%s" % (pid, flavor or "-"), nome_pack,
+                      "autorais · %s" % flavor if flavor else "autorais", pid, "desenho",
+                      pasta_aut, por_flavor[flavor])
+    for pasta, nome, tipo in ACERVOS_DO_MOTOR:
+        raiz = os.path.join(RAIZ, "assets", "icones", pasta)
+        for dirpath, dirs, _nomes in os.walk(raiz):
+            dirs.sort()
+            sub = os.path.relpath(dirpath, raiz)
+            grupo("motor:" + (pasta if sub == "." else "%s/%s" % (pasta, sub)), "MeowSystem",
+                  nome if sub == "." else "%s · %s" % (nome, sub), "", tipo, dirpath,
+                  _arquivos_da_pasta(dirpath, ".svg"))
+    # O PACK NO AR PRIMEIRO, e a ordem de dentro de cada lado fica a de cima.
+    return sorted(grupos, key=lambda g: (not g["no_ar"], not g["pack"]))
+
+
 def _contar_biblioteca(ref, dir_pack):
     """(nomes no mapa de aplicativos, desenhos da biblioteca que nenhum veste).
 

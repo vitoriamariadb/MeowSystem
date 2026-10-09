@@ -9207,42 +9207,29 @@ class Manipulador(BaseHTTPRequestHandler):
         P60: é o que o «Levar para o pack» grava no mapa dele.
         """
         grupos, itens = [], []
-
-        def grupo(gid, acervo, nome, pasta, tipo, pack="", no_ar=False):
-            g = {"id": gid, "acervo": acervo, "nome": nome, "pack": pack,
-                 "no_ar": no_ar, "tipo": tipo, "pasta": pasta, "total": 0}
-            grupos.append(g)
-            return g
-
+        mod = modulo_pack()
+        if not mod:
+            return grupos, itens
+        # A LISTA DE PASTAS É A DO `pack.py acervos_de_icone` (P73, T2): todos
+        # os packs, cada um na sua pasta, e as do motor — ver o bloco "O ACERVO
+        # DA FICHA DE ÍCONE, DECLARADO NUM LUGAR SÓ" de lá. Esta rota não sabe
+        # mais de pasta nenhuma.
+        # O QUE O PACK NO AR PODE GRAVAR NO MAPA DELE continua sendo o que o
+        # `_desenhos_do_pack_no_ar` diz (P60): é a lista do «Levar para o pack».
         pack, desenhos, _aviso = self._desenhos_do_pack_no_ar()
-        if pack:
-            base = os.path.dirname(pack["mapa"])
-            por_pasta = {}
-            for d in desenhos:
-                sub = d["desenho"].split("/", 1)[0]
-                g = por_pasta.get(sub) or por_pasta.setdefault(sub, grupo(
-                    "pack:%s:%s" % (pack["id"], sub), pack["nome"], sub,
-                    os.path.join(base, sub), "desenho", pack["id"], True))
-                g["total"] += 1
-                itens.append({"glifo": d["glifo"], "grupo": g["id"], "pack": pack["id"],
-                              "desenho": d["desenho"], "caminho": d["caminho"],
-                              "tipo": "desenho", "_texto": self._sem_acento(d["glifo"])})
-        for pasta, nome in (("arcticons-apps", "traço (Arcticons)"),
-                            ("autorais", "desenho nosso"),
-                            ("convertidos-apps", "convertido")):
-            raiz = os.path.join(RAIZ, "assets", "icones", pasta)
-            if not os.path.isdir(raiz):
-                continue
-            g = grupo("motor:" + pasta, "MeowSystem", nome, raiz, "traco")
-            for dirpath, dirs, nomes in os.walk(raiz):
-                dirs.sort()
-                for arq in sorted(nomes):
-                    if not arq.endswith(".svg"):
-                        continue
-                    g["total"] += 1
-                    itens.append({"glifo": arq[:-4], "grupo": g["id"], "tipo": "traco",
-                                  "caminho": os.path.join(dirpath, arq),
-                                  "_texto": self._sem_acento(arq[:-4])})
+        do_mapa = {os.path.normpath(d["caminho"]): d for d in desenhos}
+        for g in mod.acervos_de_icone(_pack_adotado()):
+            arquivos = g.pop("arquivos")
+            g["total"] = len(arquivos)
+            grupos.append(g)
+            for caminho in arquivos:
+                nome = os.path.basename(caminho)
+                item = {"glifo": os.path.splitext(nome)[0], "grupo": g["id"], "tipo": g["tipo"],
+                        "caminho": caminho, "_texto": self._sem_acento(os.path.splitext(nome)[0])}
+                no_mapa = do_mapa.get(os.path.normpath(caminho)) if pack else None
+                if no_mapa:
+                    item.update(pack=pack["id"], desenho=no_mapa["desenho"])
+                itens.append(item)
         return grupos, itens
 
     def _palpites_do_app(self, app):
