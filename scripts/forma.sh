@@ -139,7 +139,10 @@ _forma_teto_raio() { # $1 = Panel|Dock
 #     na janela em que ela ainda pode morrer.
 #     Por isso a pergunta certa é sobre o PROCESSO, não sobre o arquivo: o
 #     compositor de pé nasceu DEPOIS de o binário patchado chegar ao disco?
-FORMA_COMP_BIN="${FORMA_COMP_BIN:-/usr/bin/cosmic-comp}"
+# P76: vazio de propósito. Esta linha roda ANTES do `lib/comum.sh` ser lido, e
+# o `lib/painel.sh` preenche o vazio com o compositor do próximo login (o build
+# do shim, ou `/usr/bin`) pelo `meow_cosmic_comp_disco`.
+FORMA_COMP_BIN="${FORMA_COMP_BIN:-}"
 MEOW_PAINEL_COMP_BIN="$FORMA_COMP_BIN"
 _forma_compositor_clampa() {
   meow_painel_compositor_clampa && return 0

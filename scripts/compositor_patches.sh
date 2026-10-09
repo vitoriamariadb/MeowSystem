@@ -180,6 +180,9 @@
 #   compositor_patches.sh compilar            baixa o fonte, aplica, compila e instala (sudo no fim)
 #   compositor_patches.sh validar             baixa o fonte da versão instalada e só roda o dry-run
 #   compositor_patches.sh reverter            diz como voltar ao binário do pacote (não roda)
+#   compositor_patches.sh ativar              liga o shim em ~/.local/bin (P76; vale no próximo login)
+#   compositor_patches.sh desativar           desliga o shim: o próximo login volta a /usr/bin
+#   compositor_patches.sh qual                o binário que o próximo login vai rodar
 #   (o rosto de todos é o `meow compositor`; MEOW_DRY_RUN=1 é o `--seco` dele)
 #
 #   O 0 cobre DOIS estados desde 21/09/2026: os patches de pé, e os patches
@@ -231,6 +234,18 @@ CP_SERIE="${CP_SERIE:-$MEOW_RAIZ/patches/series}"
 # máquina, e inventar um faria o verbo falhar apontando para um caminho que
 # ninguém escolheu. Quem chama nomeia, por argumento ou por esta variável.
 CP_FONTE="${CP_FONTE:-}"
+# O COMPOSITOR EM ESCOPO DE USUÁRIO — 09/10/2026, P76
+#   O build patchado deixou de ir para `/usr/bin` (onde o apt sobrescreve e a
+#   tela de login lê o mesmo arquivo) e passou a morar aqui, um diretório por
+#   versão do pacote: `<versão>/cosmic-comp` e `<versão>/estado`. Quem o põe na
+#   sessão é o shim (`scripts/compositor_shim.sh`), instalado como
+#   `~/.local/bin/cosmic-comp` pelo `ativar` — o `cosmic-session` acha o
+#   compositor pelo PATH, e o PATH da sessão começa ali. O greeter não vê
+#   `~/.local/bin`, e o apt nunca toca em nenhum dos dois.
+CP_CASA="${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}"
+CP_SHIM="${CP_SHIM:-$HOME/.local/bin/cosmic-comp}"
+CP_SHIM_FONTE="$MEOW_RAIZ/scripts/compositor_shim.sh"
+CP_SHIM_MARCA="MEOW-COSMIC-COMP-SHIM"
 
 # --- o buffer de saída ------------------------------------------------------
 # A PRIMEIRA LINHA É A TABELA DO DOCTOR, E ELA SÓ EXISTE NO FIM
@@ -324,6 +339,21 @@ _cp_recusar_versao() {
   meow_info "  se a série entrar limpa, a versão entra em patches/versao num commit — decisão sua"
 }
 
+# --- o shim (P76) -----------------------------------------------------------
+# 0 = o `cosmic-comp` que a sessão acha pelo PATH é o nosso shim.
+_cp_shim_ativo() { grep -qs -- "$CP_SHIM_MARCA" "$CP_SHIM"; }
+
+# O binário que o PRÓXIMO LOGIN vai rodar. Com o shim no ar, quem responde é o
+# próprio shim (`MEOW_SHIM_SO_DIZER=1`), para a regra das três condições morar
+# num lugar só; sem ele, é o de `/usr/bin`, como sempre foi.
+_cp_proximo_login() {
+  if _cp_shim_ativo; then
+    MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$CP_CASA" MEOW_SHIM_FABRICA="$CP_BIN" bash "$CP_SHIM"
+  else
+    printf '%s\n' "$CP_BIN"
+  fi
+}
+
 # "1 marcador" / "2 marcadores". Custa três linhas e evita o `marcador(es)` que
 # faz a linha da tabela — a única que ela lê todo dia — parecer saída de robô.
 _cp_plural() { [ "$1" = "1" ] && printf '%s %s' "$1" "$2" || printf '%s %s' "$1" "$3"; }
@@ -354,6 +384,35 @@ cmd_conferir() {
   # pergunta continua tendo resposta útil (é justamente ela que diz se o build
   # precisa ser refeito). Então segue-se sem a coluna "sessão", com uma linha
   # dizendo, e sem inventar divergência.
+  # --- 0. o shim (P76): com ele no ar, o binário que conta é o build da versão
+  # COM O SHIM, O DISCO QUE INTERESSA É O BUILD DA VERSÃO, NÃO `/usr/bin`
+  #   O `/usr/bin/cosmic-comp` volta a ser de fábrica e fica de fábrica; o
+  #   `.estado` de `/var/lib` fala de um arranjo que acabou. Então o `CP_BIN` e
+  #   o `CP_ESTADO` desta conferência passam a ser os do build da versão que o
+  #   dpkg diz instalada — e o resto do verbo, marcador a marcador, disco e
+  #   sessão, segue igual.
+  #
+  #   SEM BUILD É FÁBRICA, E FÁBRICA NÃO É VERMELHO: é o princípio D da
+  #   pesquisa (toda falha degrada para fábrica, nunca para quebrado). Quem
+  #   reconstrói é o pós-apt. Só o `ruim` — duas quedas seguidas — pede gente.
+  if _cp_shim_ativo; then
+    local v_shim="" casa_v=""
+    v_shim="$(_cp_versao_instalada 2>/dev/null)" || v_shim=""
+    casa_v="$CP_CASA/$v_shim"
+    if [ -e "$casa_v/ruim" ]; then
+      meow_muda "o build do cosmic-comp $v_shim caiu duas vezes seguidas e foi posto de lado — a sessão sobe de fábrica"
+      meow_info "volta com um build novo: meow compositor"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if [ ! -x "$casa_v/cosmic-comp" ] || [ ! -r "$casa_v/estado" ]; then
+      meow_aviso "o cosmic-comp $v_shim ainda não tem build nosso — a sessão sobe de fábrica, sem os patches"
+      meow_info "o build vem sozinho depois do apt; na mão: meow compositor"
+      return "$MEOW_OK"
+    fi
+    CP_BIN="$casa_v/cosmic-comp"
+    CP_ESTADO="$casa_v/estado"
+  fi
+
   local pid sessao=""
   pid="$(pgrep -x cosmic-comp 2>/dev/null | head -1)"
   if [ -n "$pid" ] && [ -r "/proc/$pid/exe" ]; then
@@ -1049,9 +1108,9 @@ cmd_compilar() {
     fi
     meow_muda "aplicaria a série ($(_cp_plural "$n_req" obrigatório obrigatórios), $(_cp_plural "$n_opt" opcional opcionais)) com -F0, dry-run de todos antes"
     meow_muda "compilaria com make VENDOR=1 (~4 min com o vendor quente, ~30 min do zero)"
-    meow_muda "conferiria os marcadores no binário e instalaria em $CP_BIN — com sudo, só neste passo"
-    meow_muda "gravaria o .estado medido em $CP_ESTADO"
-    meow_info "vale no próximo login; o caminho de volta: meow compositor reverter"
+    meow_muda "conferiria os marcadores no binário e o guardaria em $CP_CASA/$ver — sem sudo"
+    meow_muda "gravaria o estado medido em $CP_CASA/$ver/estado"
+    meow_info "vale no próximo login com o shim ligado; o caminho de volta: meow compositor desativar"
     return "$MEOW_DIVERGENTE"
   fi
 
@@ -1087,50 +1146,40 @@ cmd_compilar() {
   done < <(_cp_serie_entradas "$serie")
   [ "$falta_req" = "0" ] || { meow_erro "nada foi instalado: um obrigatório ficou fora do binário"; return "$MEOW_ERRO"; }
 
-  # --- 7. a instalação, e o único sudo deste arquivo ------------------------
-  # O MESMO BINÁRIO NÃO PEDE SENHA DE NOVO: um segundo `meow compositor` sobre
-  # a mesma árvore produz o mesmo arquivo, e trocá-lo por ele mesmo seria pedir
-  # a senha para nada. Sem o `.estado` a instalação segue mesmo assim: é ele
-  # que o doctor lê, e um build sem ele é um build que ninguém confere.
-  if cmp -s "$bin" "$CP_BIN" && [ -f "$CP_ESTADO" ]; then
-    meow_ok "o binário compilado é o que já está em $CP_BIN — nada a instalar"
+  # --- 7. a instalação, EM ESCOPO DE USUÁRIO (P76) ---------------------------
+  # O BUILD NÃO VAI MAIS PARA `/usr/bin`, E O SUDO SAIU DESTE ARQUIVO
+  #   Até 09/10/2026 este passo trocava `/usr/bin/cosmic-comp` por rename com
+  #   sudo e guardava o binário do pacote em `/var/lib`. Lá o apt sobrescreve e
+  #   a tela de login lê o mesmo arquivo. Agora o build mora em
+  #   `$CP_CASA/<versão>/`, que é dela, e quem o põe na sessão é o shim. O
+  #   `/usr/bin` fica de fábrica, e a cópia do pacote deixa de ser necessária:
+  #   o de fábrica nunca sai do lugar.
+  #
+  #   O MESMO BINÁRIO NÃO SE REESCREVE: um segundo `compilar` sobre a mesma
+  #   árvore produz o mesmo arquivo, e a passagem tem de ser idempotente.
+  local destino="$CP_CASA/$ver" tmp_bin tmp_estado
+  if cmp -s "$bin" "$destino/cosmic-comp" && [ -f "$destino/estado" ] && [ ! -e "$destino/ruim" ]; then
+    meow_ok "o binário compilado é o que já está em $destino — nada a instalar"
     return "$MEOW_OK"
   fi
-  # O BINÁRIO DO PACOTE É GUARDADO ANTES, e só quando é de fábrica: um
-  # `/usr/bin/cosmic-comp` que já carrega marcador da série não é o do pacote,
-  # e guardá-lo como tal faria o caminho de volta devolver um binário patchado.
-  local pacote="$CP_LIB/$ver.pacote" tmp_estado
-  meow_info "instalando em $CP_BIN — pede a senha agora, e só agora"
-  sudo install -d -m 755 "$CP_LIB" || { meow_erro "não consegui criar $CP_LIB (sudo recusou?)"; return "$MEOW_ERRO"; }
-  if [ ! -f "$pacote" ]; then
-    if _cp_tem_marcador_da_serie "$CP_BIN" "$serie"; then
-      meow_info "o binário de agora já carrega marcador da série: não o guardo como o do pacote"
-    else
-      sudo install -m 755 "$CP_BIN" "$pacote" \
-        && meow_ok "o binário do pacote ficou guardado em $pacote" \
-        || meow_aviso "não consegui guardar o binário do pacote — sigo, e o reverter usa o apt"
-    fi
-  fi
-  # RENAME, NUNCA CÓPIA POR CIMA: um compositor pela metade é tela preta no
-  # próximo login, E a tela de login junto.
-  if ! { sudo install -m 755 "$bin" "$CP_BIN.meow-novo" && sudo mv -f "$CP_BIN.meow-novo" "$CP_BIN"; }; then
-    sudo rm -f "$CP_BIN.meow-novo" 2>/dev/null
-    meow_erro "não consegui instalar em $CP_BIN — o de antes continua lá"
+  mkdir -p "$destino" || { meow_erro "não consegui criar $destino"; return "$MEOW_ERRO"; }
+  # TEMPORÁRIO NO MESMO DIRETÓRIO E `mv`: o shim pode ler este caminho a
+  # qualquer login, e um compositor pela metade é sessão que não sobe.
+  tmp_bin="$(mktemp -p "$destino" .cosmic-comp.XXXXXX)" || return "$MEOW_ERRO"
+  if ! { cp -f "$bin" "$tmp_bin" && chmod 755 "$tmp_bin" && mv -f "$tmp_bin" "$destino/cosmic-comp"; }; then
+    rm -f "$tmp_bin"
+    meow_erro "não consegui guardar o build em $destino"
     return "$MEOW_ERRO"
   fi
-  meow_muda "cosmic-comp patchado instalado em $CP_BIN (versão $ver)"
-
-  # O temporário nasce no cache, que é nosso e já existe a esta altura — e não
-  # no /tmp de todo mundo, onde o `sudo install` leria um arquivo que qualquer
-  # processo da máquina pode ter trocado entre o `mktemp` e a cópia.
-  tmp_estado="$(mktemp -p "$CP_CACHE" .estado.XXXXXX)" || return "$MEOW_ERRO"
-  _cp_texto_estado "$CP_BIN" "$ver" "$serie" > "$tmp_estado"
-  if sudo install -m 644 "$tmp_estado" "$CP_ESTADO"; then
-    meow_ok ".estado gravado em $CP_ESTADO (medido no binário instalado)"
-  else
-    meow_aviso "não consegui gravar $CP_ESTADO — o doctor vai dizer que nada foi prometido"
-  fi
-  rm -f "$tmp_estado"
+  tmp_estado="$(mktemp -p "$destino" .estado.XXXXXX)" || return "$MEOW_ERRO"
+  _cp_texto_estado "$destino/cosmic-comp" "$ver" "$serie" > "$tmp_estado" \
+    && mv -f "$tmp_estado" "$destino/estado" \
+    || { rm -f "$tmp_estado"; meow_erro "não consegui gravar $destino/estado"; return "$MEOW_ERRO"; }
+  # BUILD NOVO ZERA A GUARDA DE QUEDA: o `ruim` e o contador falam do binário
+  # que acabou de ser trocado.
+  rm -f "$destino/ruim" "$destino/quedas"
+  meow_muda "cosmic-comp patchado guardado em $destino (versão $ver), estado medido no binário"
+  _cp_shim_ativo || meow_info "o shim está desligado: este build só vale depois de 'meow compositor ativar'"
 
   # --- 8. poda: só árvore de fonte, e só de outra versão --------------------
   local d
@@ -1143,7 +1192,7 @@ cmd_compilar() {
 
   meow_registrar "compositor_patches.sh compilar $ver"
   meow_info "vale no PRÓXIMO LOGIN — a sessão de agora segura o binário antigo até lá"
-  meow_info "o caminho de volta: meow compositor reverter"
+  meow_info "o caminho de volta: meow compositor desativar"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -1195,7 +1244,57 @@ cmd_validar() {
 #   (reinstalar o PACOTE `cosmic-comp`, pelo gerenciador de pacotes), que é o
 #   que a sprint P29 cobra do `--uninstall`: saber voltar ao binário do pacote.
 #   Quem vai digitar sabe digitar; o que faltava era saber O QUE fazer.
+# `ativar` e `desativar` — O SHIM ENTRA E SAI DO PATH DA SESSÃO (P76)
+#   NADA AQUI PRECISA DE SUDO: o shim mora em `~/.local/bin`, que é dela.
+#   Ligar não troca o compositor da sessão de agora — o `cosmic-session` só
+#   procura o nome no PATH ao subir —, então os dois valem no próximo login.
+#   Desligar é o caminho de volta inteiro: sem shim, o PATH acha o de
+#   `/usr/bin`, e os builds em `$CP_CASA` ficam guardados, sem efeito.
+cmd_ativar() {
+  [ -r "$CP_SHIM_FONTE" ] || { meow_erro "falta $CP_SHIM_FONTE — repositório incompleto"; return "$MEOW_ERRO"; }
+  if cmp -s "$CP_SHIM_FONTE" "$CP_SHIM"; then
+    meow_ok "o shim do compositor já está em $CP_SHIM"
+    return "$MEOW_OK"
+  fi
+  # UM `cosmic-comp` QUE NÃO É O NOSSO NÃO SE SOBRESCREVE: alguém o pôs ali, e
+  # trocar o compositor de outra pessoa calado é pior que não ligar o nosso.
+  if [ -e "$CP_SHIM" ] && ! _cp_shim_ativo; then
+    meow_erro "$CP_SHIM existe e não é o shim do meow — não o troco"
+    return "$MEOW_ERRO"
+  fi
+  if meow_seco; then
+    meow_muda "instalaria o shim em $CP_SHIM (vale no próximo login)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  mkdir -p "${CP_SHIM%/*}" || return "$MEOW_ERRO"
+  local tmp; tmp="$(mktemp -p "${CP_SHIM%/*}" .meow-shim.XXXXXX)" || return "$MEOW_ERRO"
+  cp -f "$CP_SHIM_FONTE" "$tmp" && chmod 755 "$tmp" && mv -f "$tmp" "$CP_SHIM" \
+    || { rm -f "$tmp"; meow_erro "não consegui instalar $CP_SHIM"; return "$MEOW_ERRO"; }
+  meow_manifesto_registrar "$CP_SHIM"
+  meow_muda "shim do compositor ligado em $CP_SHIM — vale no próximo login"
+  meow_info "no próximo login vale: $(_cp_proximo_login)"
+  return "$MEOW_DIVERGENTE"
+}
+
+cmd_desativar() {
+  if ! _cp_shim_ativo; then
+    meow_ok "o shim do compositor não está ligado — a sessão usa $CP_BIN"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "removeria $CP_SHIM (o próximo login volta a $CP_BIN)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  rm -f "$CP_SHIM" || { meow_erro "não consegui remover $CP_SHIM"; return "$MEOW_ERRO"; }
+  meow_muda "shim do compositor desligado — o próximo login volta a $CP_BIN"
+  return "$MEOW_DIVERGENTE"
+}
+
 cmd_reverter() {
+  if _cp_shim_ativo; then
+    meow_info "o compositor patchado entra pelo shim em $CP_SHIM; o caminho de volta é: meow compositor desativar"
+    meow_info "  sem o shim, o próximo login usa $CP_BIN, o do pacote"
+  fi
   meow_info "o caminho de volta é reinstalar o PACOTE cosmic-comp pelo gerenciador de pacotes"
   meow_info "  ele devolve $CP_BIN ao binário de fábrica, sem nenhum patch da série"
   # A CÓPIA GUARDADA PELO `compilar` (24/09/2026, P39) é a segunda rede, e vale
@@ -1217,5 +1316,8 @@ case "${1:-conferir}" in
   compilar) cmd_compilar ;;
   validar)  cmd_validar ;;
   reverter) cmd_reverter ;;
-  *) meow_erro "uso: compositor_patches.sh {conferir|aplicar [dir-do-fonte]|compilar|validar|reverter}"; exit "$MEOW_ERRO" ;;
+  ativar)    cmd_ativar ;;
+  desativar) cmd_desativar ;;
+  qual)      _cp_proximo_login ;;
+  *) meow_erro "uso: compositor_patches.sh {conferir|aplicar [dir-do-fonte]|compilar|validar|reverter|ativar|desativar|qual}"; exit "$MEOW_ERRO" ;;
 esac

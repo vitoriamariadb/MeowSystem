@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# compositor-shim.sh — o shim do compositor escolhe o binário certo? (P76)
+#
+# O shim (`scripts/compositor_shim.sh`) é o `cosmic-comp` que a sessão acha
+# pelo PATH. Este teste o roda com um `dpkg-query` falso e dois binários falsos
+# que só imprimem o próprio nome, e cobre os casos da pesquisa
+# (`docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.1):
+#   versão igual -> build · versão diferente -> fábrica · `ruim` -> fábrica ·
+#   sem build -> fábrica · estado sem o `req` presente -> fábrica ·
+#   duas quedas seguidas antes da janela -> `ruim` e fábrica ·
+#   sessão que passa da janela -> o contador zera.
+# E os verbos `ativar`, `desativar` e `qual` do `compositor_patches.sh`, num
+# HOME de brinquedo. Nada aqui toca `/usr/bin`, nem chama sudo.
+set -uo pipefail
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+SHIM="$RAIZ/scripts/compositor_shim.sh"
+falhas=0
+ok()    { printf '  ok    %s\n' "$*"; }
+falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
+igual() { if [ "$2" = "$3" ]; then ok "$1"; else falha "$1 (esperado '$3', veio '$2')"; fi; }
+
+mkdir -p "$T/bin" "$T/casa" "$T/home"
+VER_INST="0.1~1791227611~24.04~41497b4"
+printf '%s' "$VER_INST" > "$T/versao"
+cat > "$T/bin/dpkg-query" <<FIM
+#!/bin/sh
+cat "$T/versao"
+FIM
+chmod 755 "$T/bin/dpkg-query"
+
+# O de fábrica e o build: imprimem quem são e, se pedido, ficam vivos.
+cat > "$T/fabrica" <<'FIM'
+#!/bin/sh
+echo fabrica
+FIM
+chmod 755 "$T/fabrica"
+fazer_build() { # $1 = versão
+  mkdir -p "$T/casa/$1"
+  cat > "$T/casa/$1/cosmic-comp" <<'FIM'
+#!/bin/sh
+echo build
+[ -n "${FICAR:-}" ] && sleep "$FICAR"
+exit 0
+FIM
+  chmod 755 "$T/casa/$1/cosmic-comp"
+  printf 'versao=%s\nreq AURORA-COSMIC-WS-PATCH-3.67 cosmic-comp-sem-workspace-vazio.patch presente\n' "$1" > "$T/casa/$1/estado"
+}
+rodar() { PATH="$T/bin:$PATH" MEOW_SHIM_FABRICA="$T/fabrica" MEOW_SHIM_CASA="$T/casa" \
+          MEOW_SHIM_JANELA="${JANELA:-1}" HOME="$T/home" bash "$SHIM"; }
+
+echo "== o shim escolhe"
+igual "sem build: fábrica" "$(rodar)" fabrica
+
+fazer_build "$VER_INST"
+igual "versão igual: build" "$(rodar)" build
+rm -f "$T/casa/$VER_INST/quedas"
+
+printf '0.1~outra' > "$T/versao"
+igual "versão diferente: fábrica" "$(rodar)" fabrica
+printf '%s' "$VER_INST" > "$T/versao"
+
+date -Is > "$T/casa/$VER_INST/ruim"
+igual "build ruim: fábrica" "$(rodar)" fabrica
+rm -f "$T/casa/$VER_INST/ruim"
+
+sed -i 's/presente$/ausente/' "$T/casa/$VER_INST/estado"
+igual "estado sem req presente: fábrica" "$(rodar)" fabrica
+fazer_build "$VER_INST"
+
+igual "só dizer: o caminho do build" "$(MEOW_SHIM_SO_DIZER=1 rodar)" "$T/casa/$VER_INST/cosmic-comp"
+[ -e "$T/casa/$VER_INST/quedas" ] && falha "só dizer contou queda" || ok "só dizer não conta queda"
+
+echo "== a guarda de queda"
+# Três inícios de um build que morre na hora. A janela é de 1 s; esperar 2 s
+# entre eles deixa o vigia acordar e ver o PID morto.
+igual "1º início: build" "$(rodar)" build; sleep 2
+igual "2º início: build" "$(rodar)" build; sleep 2
+igual "3º início, depois de duas quedas: fábrica" "$(rodar)" fabrica
+[ -e "$T/casa/$VER_INST/ruim" ] && ok "o build ficou marcado ruim" || falha "o build não foi marcado ruim"
+igual "4º início: continua fábrica até build novo" "$(rodar)" fabrica
+
+fazer_build "$VER_INST"; rm -f "$T/casa/$VER_INST/ruim" "$T/casa/$VER_INST/quedas"
+# Um build que fica vivo mais que a janela: o vigia zera o contador.
+igual "sessão longa: build" "$(FICAR=3 rodar)" build
+sleep 1
+[ -e "$T/casa/$VER_INST/quedas" ] && falha "o contador ficou depois de uma sessão que passou da janela" \
+  || ok "o contador zerou depois de uma sessão que passou da janela"
+
+echo "== os verbos (HOME de brinquedo)"
+CP() { HOME="$T/home" PATH="$T/bin:$PATH" CP_BIN="$T/fabrica" CP_CASA="$T/casa" \
+       MEOW_ESTADO="$T/home/.local/state/meowsystem" MEOW_IGNORA_DESKTOP=1 \
+       "$RAIZ/scripts/compositor_patches.sh" "$@" 2>&1; }
+igual "qual, sem shim: fábrica" "$(CP qual)" "$T/fabrica"
+CP ativar >/dev/null; rc=$?
+igual "ativar escreve (1)" "$rc" 1
+cmp -s "$SHIM" "$T/home/.local/bin/cosmic-comp" && ok "o shim foi instalado em ~/.local/bin" || falha "o shim não está em ~/.local/bin"
+CP ativar >/dev/null; igual "ativar de novo não escreve (0)" "$?" 0
+igual "qual, com shim e build: build" "$(CP qual)" "$T/casa/$VER_INST/cosmic-comp"
+CP desativar >/dev/null; igual "desativar escreve (1)" "$?" 1
+[ -e "$T/home/.local/bin/cosmic-comp" ] && falha "o shim ficou" || ok "o shim saiu"
+CP desativar >/dev/null; igual "desativar de novo não escreve (0)" "$?" 0
+printf '#!/bin/sh\necho alheio\n' > "$T/home/.local/bin/cosmic-comp"
+CP ativar >/dev/null; igual "ativar recusa um cosmic-comp alheio (2)" "$?" 2
+grep -q alheio "$T/home/.local/bin/cosmic-comp" && ok "o alheio ficou intocado" || falha "o alheio foi sobrescrito"
+
+echo
+if [ "$falhas" = 0 ]; then echo "compositor-shim: tudo certo"; exit 0; fi
+echo "compositor-shim: $falhas falha(s)"; exit 1

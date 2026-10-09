@@ -74,7 +74,8 @@
 MEOW_PAINEL_SH_CARREGADO=1
 
 MEOW_PAINEL_BASE="${MEOW_PAINEL_BASE:-$(meow_cosmic_dir)}"
-MEOW_PAINEL_COMP_BIN="${MEOW_PAINEL_COMP_BIN:-/usr/bin/cosmic-comp}"
+# P76: o disco que conta é o do próximo login (o build do shim, ou /usr/bin).
+MEOW_PAINEL_COMP_BIN="${MEOW_PAINEL_COMP_BIN:-$(meow_cosmic_comp_disco)}"
 MEOW_PAINEL_MARCA_RAIO="AURORA-COSMIC-RADIUS-PATCH"
 
 # --- a tabela de alturas ----------------------------------------------------

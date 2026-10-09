@@ -296,7 +296,7 @@ LEITURA_ESTADO_BASE="${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/$LEITURA_APPLE
 LEITURA_K_ULT_T="$LEITURA_ESTADO_BASE/ultima_temperatura"
 LEITURA_K_ULT_X="$LEITURA_ESTADO_BASE/ultima_textura"
 
-LEITURA_COMP="/usr/bin/cosmic-comp"
+LEITURA_COMP="$(meow_cosmic_comp_disco)"   # P76: o do próximo login (build do shim ou /usr/bin)
 LEITURA_MARCADOR="AURORA-READING-MODE"
 # O `LEITURA_NIGHTLIGHT` (o `/var/lib/aurora/night-light-temp`) saiu em
 # 24/09/2026 (P39) — ver o bloco "O NIGHT LIGHT DA AURORA" no `cmd_estado`.

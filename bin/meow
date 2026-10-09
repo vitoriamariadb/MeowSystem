@@ -4109,17 +4109,25 @@ cmd_compositor() {
     compilar|validar)
       [ "$seco" = "1" ] || meow_travar || return "$MEOW_ERRO"
       MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
-    conferir|reverter)
+    conferir|reverter|qual)
+      MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
+    # P76: o shim em `~/.local/bin` — sem sudo, vale no próximo login.
+    ativar|desativar)
+      [ "$seco" = "1" ] || meow_travar || return "$MEOW_ERRO"
       MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
     -h|--help|ajuda)
       meow_titulo "meow compositor"
       printf '  meow compositor [--seco]   baixa o fonte da versão instalada, aplica a série de\n'
-      printf '                             patches/, compila (~4 min) e instala — sudo só no fim\n'
+      printf '                             patches/, compila (~4 min) e guarda o build em\n'
+      printf '                             ~/.local/libexec/meow/cosmic-comp/<versão> — sem sudo\n'
       printf '  meow compositor validar    baixa o fonte e só roda o dry-run da série nele\n'
       printf '  meow compositor conferir   os marcadores no disco e na sessão (é a linha do doctor)\n'
-      printf '  meow compositor reverter   diz como voltar ao binário do pacote\n\n'
+      printf '  meow compositor reverter   diz como voltar ao binário do pacote\n'
+      printf '  meow compositor ativar     liga o shim em ~/.local/bin: o próximo login usa o build\n'
+      printf '  meow compositor desativar  desliga o shim: o próximo login volta a /usr/bin\n'
+      printf '  meow compositor qual       o binário que o próximo login vai rodar\n\n'
       printf '  Ele só compila sobre uma versão que esteja em patches/versao, e diz por quê\n'
-      printf '  quando recusa. O binário é também a tela de login: vale no próximo login.\n'
+      printf '  quando recusa. A tela de login não vê o shim: ela fica sempre de fábrica.\n'
       ;;
     *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow compositor --help"; return "$MEOW_ERRO" ;;
   esac

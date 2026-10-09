@@ -993,6 +993,21 @@ meow_cosmic_dir() {
   printf '%s' "${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
 }
 
+# O `cosmic-comp` QUE O PRÓXIMO LOGIN VAI RODAR — 09/10/2026, P76
+#   Com o shim do compositor ligado (`meow compositor ativar`), o binário
+#   patchado mora em `~/.local/libexec/meow/cosmic-comp/<versão>/`, e quem
+#   decide entre ele e o de fábrica é o próprio shim. Perguntar a ele
+#   (`MEOW_SHIM_SO_DIZER=1`) mantém a regra num lugar só. Sem shim, é o de
+#   `/usr/bin`, como sempre foi — e os verificadores que liam marcador lá
+#   continuam lendo o mesmo arquivo.
+meow_cosmic_comp_disco() {
+  local shim="$HOME/.local/bin/cosmic-comp"
+  if grep -qs -- MEOW-COSMIC-COMP-SHIM "$shim"; then
+    MEOW_SHIM_SO_DIZER=1 bash "$shim" 2>/dev/null && return 0
+  fi
+  printf '%s\n' /usr/bin/cosmic-comp
+}
+
 # --- TRAVA 1: territórios proibidos ----------------------------------------
 # Uma escrita fora de lugar aqui não dá erro: dá um sintoma bizarro dias depois.
 #
