@@ -772,10 +772,12 @@ fl, modo = sys.argv[2], sys.argv[3]
 with open(sys.argv[4], encoding="utf-8") as fh:
     paleta = json.load(fh)
 claros = [c for c in (paleta.get("claros") or []) if c in (paleta.get("flavors") or {})]
-if (modo == "claro") != (fl in claros):
-    print(derivar_flavor.par_do_outro_lado(fl, paleta) or fl)
-else:
-    print(fl)
+par = derivar_flavor.par_do_outro_lado(fl, paleta) if (modo == "claro") != (fl in claros) else fl
+# O par é uma chave da paleta do pack, e um pack importado é dado não
+# confiável: o nome vira caminho (as pastas, o traço), então só da forma que o
+# conf aceita (conferência da P74, alerta de segurança de 09/10/2026).
+import re
+print(par if isinstance(par, str) and re.fullmatch(r"[a-z0-9_]+", par) else fl)
 PYFIM
 }
 
