@@ -335,6 +335,8 @@ CAMPOS_COM_LEITOR = {
     # O que o pack esconde do lançador (P74 item 9): o `ocultar_apps.sh` pergunta
     # pelo verbo `ocultar`.
     "lancador.ocultar",
+    # O tema de som do pack (P74 item 9): o `som.sh` o instala pelo `acervo`.
+    "som.tema",
 }
 
 
@@ -3802,6 +3804,13 @@ def validar(ref, silencioso=False):
     }
     for chave, valor in som.items():
         if chave.startswith("_"):
+            continue
+        # O TEMA DE SOM (P74 item 9) não é timbre: é o diretório de um tema de
+        #   som freedesktop dentro do pack, com o `index.theme` dele.
+        if chave == "tema":
+            alvo = _dentro(dir_pack, valor if isinstance(valor, str) else "", "som.tema")
+            _exigir(os.path.isfile(os.path.join(alvo, "index.theme")),
+                    f"pack.json: som.tema = {valor!r} precisa ser uma pasta do pack com um index.theme")
             continue
         _exigir(chave in LIMITES,
                 f"pack.json: som.{chave} não é uma chave conhecida.\n"

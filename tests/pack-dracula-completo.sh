@@ -245,6 +245,49 @@ else
   printf 'pulado: sem git, o cofre em git não se monta\n'
 fi
 
+# --- item 9 (T3): o tema de som do Dracula, e quem o toca ---------------------
+#   O `som.sh` instala os 25 efeitos do pack como tema de som e a unidade que
+#   os toca nas notificações; a 2ª passada é 0; com o Catppuccin (sem tema de
+#   som) os dois saem. E o `vigiar`, com um `dbus-monitor` de brinquedo: toca
+#   o som de notificação do tema numa chamada `Notify`, e cala na que pede
+#   `suppress-sound`. O `systemctl` não é chamado num HOME de teste.
+CS="$T/casa-som"; FS="$CS/falso"; mkdir -p "$FS"
+printf '#!/bin/sh\necho "pw-play $*" >> "%s/tocou.log"\n' "$CS" > "$FS/pw-play"
+printf '#!/bin/sh\necho "systemctl $*" >> "%s/systemctl.log"\n' "$CS" > "$FS/systemctl"
+cat > "$FS/dbus-monitor" <<'DBUS'
+#!/bin/sh
+printf 'signal time=1.0 sender=org.freedesktop.DBus -> destination=:1.9 serial=2; member=NameAcquired\n   string ":1.9"\n'
+printf 'method call time=2.0 sender=:1.50 -> destination=:1.20 serial=7 path=/org/freedesktop/Notifications; interface=org.freedesktop.Notifications; member=Notify\n   string "app"\n   int32 -1\n'
+sleep 1
+printf 'method call time=3.0 sender=:1.51 -> destination=:1.20 serial=8 path=/org/freedesktop/Notifications; interface=org.freedesktop.Notifications; member=Notify\n   string "telegram"\n   array [\n      dict entry(\n         string "suppress-sound"\n         variant             boolean true\n      )\n   ]\n'
+sleep 0.5
+DBUS
+chmod +x "$FS"/*
+som() {   # $1 = PACK · $2 = FLAVOR · $3 = verbo
+  env -i PATH="$FS:$FALSO:$PATH" HOME="$CS" LANG=C.UTF-8 NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+    MEOW_ESTADO="$CS/estado" PACK="$1" FLAVOR="$2" SOM=sim bash "$RAIZ/scripts/som.sh" "$3" >/dev/null 2>&1
+}
+som dracula dracula aplicar; r1=$?
+som dracula dracula aplicar; r2=$?
+som dracula dracula conferir; r3=$?
+n_oga="$(find "$CS/.local/share/sounds/MeowSystem-Sons" -name '*.oga' 2>/dev/null | wc -l)"
+unidade_ok=0
+[ -f "$CS/.config/systemd/user/meow-som.service" ] \
+  && [ "$(cat "$CS/.config/systemd/user/meow-som.service")" = "$(cat "$RAIZ/systemd/meow-som.service")" ] && unidade_ok=1
+som dracula dracula vigiar
+tocou="$(cat "$CS/tocou.log" 2>/dev/null)"
+som catppuccin mocha aplicar; r4=$?
+if [ "$r1" = 1 ] && [ "$r2" = 0 ] && [ "$r3" = 0 ] && [ "$n_oga" = 25 ] && [ "$unidade_ok" = 1 ] \
+   && [ "$(printf '%s\n' "$tocou" | grep -c .)" = 1 ] && [[ "$tocou" == *"/MeowSystem-Sons/stereo/notification/message-new-instant.oga" ]] \
+   && [ "$r4" = 1 ] && [ ! -e "$CS/.local/share/sounds/MeowSystem-Sons" ] && [ ! -e "$CS/.config/systemd/user/meow-som.service" ] \
+   && [ ! -e "$CS/systemctl.log" ]; then
+  ok "o tema de som do Dracula (25 efeitos) entra com quem o toca nas notificações, cala no suppress-sound, e sai com o Catppuccin"
+else
+  falha "o tema de som do pack ou o tocador das notificações" "rc $r1/$r2/$r3/$r4 oga=$n_oga unidade=$unidade_ok
+tocou: $tocou
+systemctl: $(cat "$CS/systemctl.log" 2>/dev/null)"
+fi
+
 # --- item 9 (T5): os overrides de `.desktop` do Dracula moram no pack ---------
 #   O pack esconde do lançador o que o tema Dracula de antes escondia, somado
 #   à lista do conf; um `-nome` no conf tira um do pack; e com o Catppuccin no

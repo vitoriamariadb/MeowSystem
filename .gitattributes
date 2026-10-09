@@ -28,3 +28,5 @@ packs/*/apps/*.qbtheme byte-exact
 # Os papéis de parede do pack (P74): SVG copiados do repositório de origem e
 # conferidos pelo sha256 do PROCEDENCIA.md — byte a byte pelo mesmo motivo.
 packs/*/wallpapers/** byte-exact
+# Os sons do pack (P74): `.oga` binários, conferidos pelo sha256 do PROCEDENCIA.md.
+packs/*/sons/** byte-exact

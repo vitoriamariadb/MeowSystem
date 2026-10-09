@@ -213,6 +213,8 @@
     "harmonico": 932.3,
     "peso_fundamental": 0.58,
     "peso_harmonico": 0.32,
-    "decaimento": 38.0
+    "decaimento": 38.0,
+    "tema": "sons/",
+    "_nota_tema": "O tema de som Dracula (P74 item 9, T3, 09/10/2026): os 25 efeitos que o tema de antes trazia, curados pelo Dracula_OS-Theme do pacote «Sci-fi Sounds» do Kenney (CC0), com o `index.theme` dele. Ficaram fora em 16/09 porque o COSMIC só toca UM som de evento, o de volume (o cabeçalho do `scripts/som.sh` conta a medição). O motivo virou cura: o `som.sh` instala o tema e liga o `meow-som.service`, que toca o som de notificação deste tema quando um aplicativo notifica — o COSMIC não toca nenhum. O som de volume continua o sino acima: os de 0,24 s do tema empilham na tecla segurada."
   }
 }
