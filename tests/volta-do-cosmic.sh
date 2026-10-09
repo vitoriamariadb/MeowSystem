@@ -19,7 +19,7 @@ ok()    { printf '  ok    %s\n' "$*"; }
 falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
 igual() { if [ "$2" = "$3" ]; then ok "$1"; else falha "$1 (esperado '$3', veio '$2')"; fi; }
 
-mkdir -p "$T/bin" "$T/arquivos" "$T/home"
+mkdir -p "$T/bin" "$T/arquivos" "$T/lar"
 printf 'cosmic-comp\t0.1~b\tinstalled\ncosmic-files\t1.9~a\tinstalled\n' > "$T/dpkg.tsv"
 cat > "$T/bin/dpkg-query" <<FIM
 #!/bin/sh
@@ -36,10 +36,10 @@ chmod 755 "$T/bin/"*
 : > "$T/arquivos/cosmic-panel_1.9~a_amd64.deb"   # não instalado: não se guarda
 
 limpar() {
-  HOME="$T/home" PATH="$T/bin:$PATH" MEOW_PONTE=/nao/existe MEOW_ESTADO="$T/home/estado" \
+  HOME="$T/lar" PATH="$T/bin:$PATH" MEOW_PONTE=/nao/existe MEOW_ESTADO="$T/lar/estado" \
   AS_ARQUIVOS="$T/arquivos" "$RAIZ/scripts/atualizar_sistema.sh" limpar 2>&1
 }
-G="$T/home/.local/share/meowsystem/debs"
+G="$T/lar/.local/share/meowsystem/debs"
 
 echo "== limpar no seco"
 saida="$(MEOW_DRY_RUN=1 limpar)"
@@ -64,9 +64,9 @@ limpar >/dev/null
 [ -f "$G/cosmic-comp_0.0~z_amd64.deb" ] && falha "o mais velho ficou" || ok "o mais velho saiu"
 
 echo "== o fonte do compositor sai do cache"
-C="$T/home/.cache/meowsystem/cosmic-comp"; F="$T/home/.local/share/meowsystem/fontes/cosmic-comp"
+C="$T/lar/.cache/meowsystem/cosmic-comp"; F="$T/lar/.local/share/meowsystem/fontes/cosmic-comp"
 mkdir -p "$C"; echo dsc > "$C/cosmic-comp_0.1~b.dsc"; echo tar > "$C/cosmic-comp_0.1~b.tar.xz"
-guardar() { HOME="$T/home" PATH="$T/bin:$PATH" MEOW_ESTADO="$T/home/estado" "$RAIZ/scripts/compositor_patches.sh" guardar >/dev/null 2>&1; }
+guardar() { HOME="$T/lar" PATH="$T/bin:$PATH" MEOW_ESTADO="$T/lar/estado" "$RAIZ/scripts/compositor_patches.sh" guardar >/dev/null 2>&1; }
 MEOW_DRY_RUN=1 guardar; igual "seco: diz que guardaria (1)" "$?" 1
 [ -d "$F" ] && falha "o seco criou a guarda do fonte" || ok "o seco não escreveu"
 guardar; igual "de verdade: guardou (1)" "$?" 1
