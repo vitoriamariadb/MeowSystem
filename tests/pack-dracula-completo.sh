@@ -186,6 +186,65 @@ else
   falha "sobrou um «or \"mocha\"» no servidor ou um «Catppuccin» na aba Terminal"
 fi
 
+# --- item 8: o tema do Obsidian sobrevive ao git do cofre ---------------------
+#   Um cofre de brinquedo versionado em git, com outro tema no commit (como o
+#   cofre dela, com «Catppuccin» no HEAD). Depois do `aplicar`: o disco tem o
+#   tema do pack no ar, o `git status` não vê o arquivo mudado, um checkout do
+#   arquivo devolve o tema desta máquina (era aí que ele oscilava), um commit
+#   não leva o tema para o cofre, e a segunda passada não tem o que fazer. O
+#   `reverter` tira o filtro. O pack é o padrão (o tema dele mora no vendor/,
+#   sem rede); o filtro não depende do pack. O flatpak e o pgrep são de
+#   brinquedo, como no tests/temas-de-apps.sh.
+if command -v git >/dev/null 2>&1; then
+  C="$T/casa-obs"; V="$C/Cofre em Git"
+  mkdir -p "$C/bin" "$V/.obsidian" "$C/.local/share/flatpak/app/md.obsidian.Obsidian/x86_64/stable/active" \
+           "$C/.var/app/md.obsidian.Obsidian/config/obsidian"
+  printf '#!/bin/sh\nexit 1\n' > "$C/bin/flatpak"; printf '#!/bin/sh\nexit 1\n' > "$C/bin/pgrep"
+  chmod +x "$C/bin/flatpak" "$C/bin/pgrep"
+  printf '{"vaults":{"v1":{"path":"%s","ts":1000,"open":true}}}' "$V" \
+    > "$C/.var/app/md.obsidian.Obsidian/config/obsidian/obsidian.json"
+  printf '{\n  "enabledCssSnippets": [],\n  "cssTheme": "Tema do Outro",\n  "baseFontSize": 14\n}\n' \
+    > "$V/.obsidian/appearance.json"
+  # Sem a configuração global de quem roda: um gancho de commit dela não tem
+  # nada que fazer num cofre de brinquedo.
+  g() { GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 git -C "$V" -c user.name=t -c user.email=t@t "$@"; }
+  g init -q && g add .obsidian/appearance.json && g commit -qm inicial
+  obs() {
+    ( export HOME="$C" XDG_CONFIG_HOME="$C/.config" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$C/estado" NO_COLOR=1
+      export PATH="$C/bin:$FALSO:$PATH" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+      unset MEOW_OBSIDIAN_VAULT PACK FLAVOR MEOW_PACK_DIR MEOW_PALETA
+      . "$RAIZ/lib/comum.sh" || exit 2
+      . "$RAIZ/assets/temas-de-apps/obsidian/manifesto.sh" || exit 2
+      "meow_app_$1" 2>&1; printf 'rc=%s\n' "$?" )
+  }
+  s1="$(obs aplicar)"
+  tema_disco="$(sed -n 's/.*"cssTheme": "\([^"]*\)".*/\1/p' "$V/.obsidian/appearance.json")"
+  sujo="$(g status --porcelain -- .obsidian/appearance.json)"
+  g checkout -q -- .obsidian/appearance.json
+  depois_checkout="$(sed -n 's/.*"cssTheme": "\([^"]*\)".*/\1/p' "$V/.obsidian/appearance.json")"
+  g add .obsidian/appearance.json && g commit -qm 'outra coisa' --allow-empty
+  no_commit="$(g show HEAD:.obsidian/appearance.json | sed -n 's/.*"cssTheme": "\([^"]*\)".*/\1/p')"
+  s2="$(obs aplicar)"
+  if [[ "$s1" == *rc=1* ]] && [ "$tema_disco" = "Catppuccin" ] && [ -z "$sujo" ] \
+     && [ "$depois_checkout" = "Catppuccin" ] && [ "$no_commit" = "Tema do Outro" ] && [[ "$s2" == *rc=0* ]]; then
+    ok "obsidian: o tema do pack fica no disco, o git do cofre guarda o dele, um checkout não o desfaz, e a 2ª passada é 0"
+  else
+    falha "obsidian: o tema do cofre em git ainda briga com o git" \
+      "disco=$tema_disco sujo='$sujo' checkout=$depois_checkout commit=$no_commit
+$s1
+$s2"
+  fi
+  s3="$(obs reverter)"
+  if [ -z "$(g config --local --get-regexp 'filter\.meow-obsidian|meow\.obsidian' 2>/dev/null)" ] \
+     && ! grep -q meow-obsidian "$V/.git/info/attributes" 2>/dev/null; then
+    ok "obsidian: o desfazer tira o filtro do git do cofre"
+  else
+    falha "obsidian: o filtro ficou no git do cofre depois do desfazer" "$s3"
+  fi
+else
+  printf 'pulado: sem git, o cofre em git não se monta\n'
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"

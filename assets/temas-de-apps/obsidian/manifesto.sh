@@ -514,6 +514,111 @@ _meow_obsidian_backup() {
   return 0
 }
 
+# --- O COFRE EM GIT — 09/10/2026, P74 item 8 (T2) ---------------------------
+#   O tema oscilava: o cofre dela é git, o `appearance.json` está versionado com
+#   `"cssTheme": "Catppuccin"`, e toda operação de git que reescreve a árvore o
+#   devolvia, para este módulo trocar de novo na passada seguinte (dez vezes no
+#   doctor.log, de 28/09 a 09/10). A cura é o filtro do `filtro_git.py`, ao lado
+#   deste arquivo, que conta o mecanismo: o git passa a escrever o tema desta
+#   máquina no disco e a guardar o do cofre nos commits. Ele mora só no
+#   `.git/config` e no `.git/info/attributes` do cofre — nada versionado, nada
+#   que viaje para a outra máquina.
+#
+# O CAMINHO DO COFRE PODE SER O DO PORTAL DE DOCUMENTOS DO FLATPAK
+#   O `obsidian.json` desta máquina guarda `/run/user/1000/doc/<id>/<cofre>`, e o
+#   git não roda ali (medido: «unable to get current working directory»). O
+#   `flatpak documents` diz a origem de cada documento; o git roda nela.
+_meow_obsidian_hospedeiro() {
+  local cofre="$1" id resto origem
+  case "$cofre" in
+    /run/user/*/doc/*/*)
+      id="${cofre#/run/user/*/doc/}"; resto="${id#*/}"; id="${id%%/*}"
+      origem="$(flatpak documents --columns=id,origin 2>/dev/null \
+                | awk -F'\t' -v id="$id" '$1 == id { print $2; exit }')"
+      [ -n "$origem" ] || return 1
+      # A origem é o próprio documento (a pasta exportada); o resto do caminho
+      # depois do id repete o nome dela.
+      printf '%s/%s' "$(dirname -- "$origem")" "$resto" ;;
+    *) printf '%s' "$cofre" ;;
+  esac
+}
+
+# conferir | aplicar | renovar | conferir-desfazer | desfazer — o filtro do cofre no ar.
+#
+# `renovar` É O ÍNDICE SABER QUE NADA MUDOU. Medido num cofre de brinquedo: com
+#   o filtro no lugar, o `git diff` do arquivo sai vazio e o `git status` ainda
+#   o lista como mudado, porque o tamanho no disco não é o que o índice guardou
+#   (o nome do tema mudou de tamanho) e o git não abre o conteúdo nesse caso.
+#   Um `git add` do arquivo, só quando o `git diff --quiet` diz que o conteúdo
+#   limpo é o do índice, regrava o carimbo e nada mais: o blob é o mesmo, e uma
+#   mudança dela no arquivo (que o diff veria) nunca é posta no índice por nós.
+# 0 = nada a fazer (ou o cofre não é git, ou o arquivo não está nele) ·
+# 1 = divergente / escreveu · 2 = erro.
+_meow_obsidian_git() {
+  local modo="$1" tema="${2:-}" cofre raiz rel attrs linha filtro limpar vestir
+  meow_tem git || return "$MEOW_OK"
+  cofre="$(_meow_obsidian_hospedeiro "$MEOW_OBSIDIAN_VAULT")" || return "$MEOW_OK"
+  raiz="$(git -C "$cofre" rev-parse --show-toplevel 2>/dev/null)" || return "$MEOW_OK"
+  rel="$(realpath -m --relative-to="$raiz" "$cofre/.obsidian/appearance.json")" || return "$MEOW_OK"
+  git -C "$raiz" ls-files --error-unmatch -- "$rel" >/dev/null 2>&1 || return "$MEOW_OK"
+  attrs="$(git -C "$raiz" rev-parse --path-format=absolute --git-path info/attributes 2>/dev/null)" \
+    || return "$MEOW_OK"
+  filtro="$MEOW_RAIZ/assets/temas-de-apps/obsidian/filtro_git.py"
+  linha="/${rel// /[[:space:]]} filter=meow-obsidian"
+  limpar="python3 '$filtro' limpar %f"
+  vestir="python3 '$filtro' vestir"
+
+  local tem_linha=0 tem_cfg=0
+  grep -qxF -- "$linha" "$attrs" 2>/dev/null && tem_linha=1
+  [ "$(git -C "$raiz" config --local --get filter.meow-obsidian.clean 2>/dev/null)" = "$limpar" ] \
+    && [ "$(git -C "$raiz" config --local --get filter.meow-obsidian.smudge 2>/dev/null)" = "$vestir" ] \
+    && [ "$(git -C "$raiz" config --local --get meow.obsidian-tema 2>/dev/null)" = "$tema" ] && tem_cfg=1
+
+  case "$modo" in
+    conferir)
+      [ "$tem_linha" = 1 ] && [ "$tem_cfg" = 1 ] && return "$MEOW_OK"
+      meow_muda "obsidian: o git do cofre ainda não sabe que o tema é desta máquina ($raiz)"
+      return "$MEOW_DIVERGENTE" ;;
+    aplicar)
+      [ "$tem_linha" = 1 ] && [ "$tem_cfg" = 1 ] && return "$MEOW_OK"
+      if meow_seco; then
+        meow_muda "obsidian: ensinaria ao git do cofre que o tema é desta máquina ($raiz)"
+        return "$MEOW_DIVERGENTE"
+      fi
+      meow_destino_permitido "$attrs" || return "$MEOW_ERRO"
+      git -C "$raiz" config --local filter.meow-obsidian.clean "$limpar" \
+        && git -C "$raiz" config --local filter.meow-obsidian.smudge "$vestir" \
+        && git -C "$raiz" config --local meow.obsidian-tema "$tema" || return "$MEOW_ERRO"
+      if [ "$tem_linha" = 0 ]; then
+        mkdir -p -- "$(dirname -- "$attrs")" && printf '%s\n' "$linha" >> "$attrs" || return "$MEOW_ERRO"
+      fi
+      meow_muda "obsidian: o git do cofre guarda o tema dele e escreve o desta máquina ($raiz)"
+      return "$MEOW_DIVERGENTE" ;;
+    renovar)
+      [ "$tem_linha" = 1 ] && [ "$tem_cfg" = 1 ] || return "$MEOW_OK"
+      meow_seco && return "$MEOW_OK"
+      git -C "$raiz" diff --quiet -- "$rel" 2>/dev/null && git -C "$raiz" add -- "$rel" 2>/dev/null
+      return "$MEOW_OK" ;;
+    conferir-desfazer|desfazer)
+      [ "$tem_linha" = 0 ] && [ -z "$(git -C "$raiz" config --local --get-regexp '^filter\.meow-obsidian\.|^meow\.obsidian-tema$' 2>/dev/null)" ] \
+        && return "$MEOW_OK"
+      [ "$modo" = "conferir-desfazer" ] && return "$MEOW_DIVERGENTE"
+      if meow_seco; then
+        meow_muda "obsidian: tiraria do git do cofre o filtro do tema ($raiz)"
+        return "$MEOW_DIVERGENTE"
+      fi
+      git -C "$raiz" config --local --remove-section filter.meow-obsidian 2>/dev/null
+      git -C "$raiz" config --local --unset meow.obsidian-tema 2>/dev/null
+      if [ "$tem_linha" = 1 ]; then
+        local tmp; tmp="$(mktemp -p "$(dirname -- "$attrs")" .meow.XXXXXX)" || return "$MEOW_ERRO"
+        grep -vxF -- "$linha" "$attrs" > "$tmp"; mv -f -- "$tmp" "$attrs" || return "$MEOW_ERRO"
+      fi
+      meow_muda "obsidian: o filtro do tema saiu do git do cofre ($raiz)"
+      return "$MEOW_DIVERGENTE" ;;
+  esac
+  return "$MEOW_ERRO"
+}
+
 # O leitor/mesclador do appearance.json. Fica aqui dentro para o módulo ser um
 # arquivo só. Modos: "conferir" (não escreve) e "aplicar"; e, do desfazer,
 # "conferir-desfazer" (não escreve) e "desfazer".
@@ -718,6 +823,8 @@ meow_app_conferir() {
     1) meow_muda "obsidian: appearance.json divergente"; divergente=1 ;;
     *) meow_erro "obsidian: não consegui ler o appearance.json"; return "$MEOW_DIVERGENTE" ;;
   esac
+  # O cofre em git (P74 item 8): sem o filtro, o tema volta no próximo checkout.
+  _meow_obsidian_git conferir "$MEOW_OBSIDIAN_TEMA" || divergente=1
 
   if [ "$divergente" = "0" ]; then
     meow_ok "obsidian: $_OBS_EXIBE já aplicado"
@@ -794,7 +901,12 @@ meow_app_aplicar() {
     *) meow_erro "obsidian: não consegui ler o appearance.json"; return "$MEOW_ERRO" ;;
   esac
 
-  if [ "${#pendentes[@]}" -eq 0 ] && [ "$json_pendente" = "0" ]; then
+  # O cofre em git (P74 item 8): o filtro que faz o tema desta máquina sobreviver
+  # ao git dele. Levantado aqui com os outros, pelo mesmo motivo do 3.0.
+  local git_pendente=0
+  _meow_obsidian_git conferir "$MEOW_OBSIDIAN_TEMA" >/dev/null 2>&1 || git_pendente=1
+
+  if [ "${#pendentes[@]}" -eq 0 ] && [ "$json_pendente" = "0" ] && [ "$git_pendente" = "0" ]; then
     meow_ok "obsidian: $_OBS_EXIBE já estava aplicado"
     return "$MEOW_OK"
   fi
@@ -853,6 +965,19 @@ meow_app_aplicar() {
       *) meow_erro "obsidian: falhou ao mesclar o appearance.json"; return "$MEOW_ERRO" ;;
     esac
   fi
+
+  # --- 3.3 — o git do cofre, se ele for um repositório e o arquivo estiver nele.
+  if [ "$git_pendente" = "1" ]; then
+    _meow_obsidian_git aplicar "$MEOW_OBSIDIAN_TEMA"
+    case $? in
+      0) ;;
+      1) mudou=1 ;;
+      *) meow_erro "obsidian: não consegui pôr o filtro do tema no git do cofre"; return "$MEOW_ERRO" ;;
+    esac
+  fi
+
+  # O índice do git do cofre fica sabendo que o arquivo é o mesmo (ver `renovar`).
+  [ "$json_pendente" = "1" ] || [ "$git_pendente" = "1" ] && _meow_obsidian_git renovar "$MEOW_OBSIDIAN_TEMA"
 
   if [ "$mudou" = "0" ]; then
     meow_ok "obsidian: $_OBS_EXIBE já estava aplicado"
@@ -1015,7 +1140,7 @@ meow_app_reverter() {
   # Um PAR é um tema nosso achado num cofre: o cofre, o tema e os arquivos que
   # ainda são byte a byte os nossos. Um cofre pode ter mais de um (o de antes
   # da troca de pack e o de agora).
-  local -a json_de=() tem_de=() par_cofre=() par_tema=() par_arquivos=() com_algo=()
+  local -a json_de=() tem_de=() git_de=() par_cofre=() par_tema=() par_arquivos=() com_algo=()
 
   # Levantar ANTES de recusar por app aberto: com nada a fazer, "já estava
   # desfeito" é 0 mesmo com o Obsidian na tela.
@@ -1039,6 +1164,10 @@ meow_app_reverter() {
       1) json_de[i]=1 ;;
       *) meow_erro "obsidian: não consegui ler o appearance.json de '$MEOW_OBSIDIAN_VAULT'"; return "$MEOW_ERRO" ;;
     esac
+    # O filtro do git do cofre (P74 item 8) é nosso, e sai junto.
+    git_de[i]=0
+    _meow_obsidian_git conferir-desfazer >/dev/null 2>&1 || git_de[i]=1
+    [ "${git_de[i]}" = "1" ] && tem=1
     tem_de[i]="$tem"
     [ "$tem" = "1" ] || [ "${json_de[i]}" = "1" ] || continue
     algum=1
@@ -1081,7 +1210,18 @@ meow_app_reverter() {
         meow_muda "obsidian: removeria${par_arquivos[p]} de $MEOW_OBSIDIAN_VAULT/.obsidian/themes/${par_tema[p]}"
       done
       [ "${json_de[i]}" = "1" ] && meow_muda "obsidian: cssTheme de '$MEOW_OBSIDIAN_VAULT' voltaria ao padrão do app"
+      [ "${git_de[i]}" = "1" ] && _meow_obsidian_git desfazer
       continue
+    fi
+
+    # 0. o filtro do git do cofre (P74 item 8), antes do appearance.json: sem
+    #    ele, o desfazer abaixo é o que o git guardaria.
+    if [ "${git_de[i]}" = "1" ]; then
+      _meow_obsidian_git desfazer
+      case $? in
+        0|1) mudou=1 ;;
+        *) meow_erro "obsidian: não consegui tirar o filtro do git de '$MEOW_OBSIDIAN_VAULT'"; return "$MEOW_ERRO" ;;
+      esac
     fi
 
     # 1. os dois arquivos de cada tema nosso — só saem os que ainda são byte a
