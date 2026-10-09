@@ -51,3 +51,12 @@ estado do usuário) são dado não confiável: o nome do ícone de destino só d
 sem `/` nem `..`; o desenho de origem resolvido com `realpath` e aceito só dentro da raiz do pack
 (ou de `assets/icones/`). Linha que falha é pulada e contada no log, sem abortar o resto. Mesmo
 teste do pack malicioso, agora com `../../../../etc/passwd : x` e `x : ../../../.ssh/id_ed25519`.
+
+**Regra geral (18:55, quarto alerta, `scripts/som.sh`: symlink e caminho de pack de terceiro).**
+Vale para TODO script que lê de um pack (sons, ícones, mapas, temas de app, papéis de parede):
+tudo que vem de `packs/<id>/` é dado não confiável, porque um pack pode ser importado. Cada
+arquivo lido do pack: `realpath` dentro da raiz do pack, sem seguir symlink para fora
+(`find -P`, `cp -P`/`--no-dereference`, `[ -L ]` recusado ou resolvido e conferido); cada
+nome de destino de um conjunto fechado. O conferente faz um `grep` de todo `cp`, `ln`, `install`,
+`cat`, `tar` e `open()` sobre caminho vindo de pack nos arquivos que a P74 tocou e prova com o
+mesmo pack malicioso.
