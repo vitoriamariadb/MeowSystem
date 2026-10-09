@@ -157,6 +157,35 @@ done < "$mapa"
   && ok "o mapa de pastas do Dracula veste dez nomes (folder, user-home e user-desktop inclusive), e quem cede lê o mesmo mapa" \
   || falha "o mapa de pastas do Dracula não tem as dez, falta desenho, ou o construir_pastas não o lê" "nomes=$nomes faltam=$faltam"
 
+# --- item 7: nada de Catppuccin com o Dracula no ar ---------------------------
+#   O prompt: com o Dracula, a paleta do starship é a dele, nos 26 slots; com o
+#   Catppuccin Mocha, o arquivo é o preset de antes. Um `starship` falso na
+#   frente do PATH, porque o script só escreve com ele presente. E as quatro
+#   rotas da página que caíam em `mocha` com o FLAVOR vazio.
+printf '#!/bin/sh\nexit 0\n' > "$FALSO/starship"; chmod 755 "$FALSO/starship"
+prompt() {   # $1 = PACK · $2 = FLAVOR · $3 = destino
+  amb PACK="$1" FLAVOR="$2" MEOW_ESTADO="$T/estado" PROMPT_ALVO="$3" \
+    bash "$RAIZ/scripts/prompt.sh" aplicar >/dev/null 2>&1
+}
+prompt dracula dracula "$T/st-dracula.toml"
+prompt catppuccin mocha "$T/st-mocha.toml"
+dra_mauve="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["flavors"]["dracula"]["mauve"].lower())' "$RAIZ/packs/dracula/paleta.json")"
+if grep -qx "palette = 'dracula_dracula'" "$T/st-dracula.toml" 2>/dev/null \
+   && grep -qx "mauve = \"$dra_mauve\"" "$T/st-dracula.toml" \
+   && [ "$(grep -c '^\[palettes\.' "$T/st-dracula.toml")" = 1 ] \
+   && ! grep -q '^\[palettes\.catppuccin' "$T/st-dracula.toml" \
+   && [ "$(cat "$T/st-mocha.toml" 2>/dev/null)" = "$(cat "$RAIZ/assets/prompt/starship.toml")" ]; then
+  ok "o prompt veste a paleta do Dracula com ele no ar, e com o Catppuccin Mocha é o preset de antes"
+else
+  falha "o prompt não segue a paleta do pack no ar" "$(grep -n '^palette\|^\[palettes\|^mauve' "$T/st-dracula.toml" 2>&1)"
+fi
+if ! grep -q 'valores.get("FLAVOR") or "mocha"' "$RAIZ/app/servidor.py" \
+   && ! grep -qi 'que o Catppuccin escolheu' "$RAIZ/meow.conf.exemplo"; then
+  ok "nenhuma rota da página cai no mocha com o FLAVOR vazio, e a aba Terminal não fala do Catppuccin"
+else
+  falha "sobrou um «or \"mocha\"» no servidor ou um «Catppuccin» na aba Terminal"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"

@@ -1498,7 +1498,7 @@ LEITURA_APPLET="sim"              # sim | nao
 TERMINAL_ESQUEMA="sim"      # sim | nao
 
 # @ Cor do cursor
-# > A cor de destaque, ou a que o Catppuccin escolheu.
+# > A cor de destaque, ou a do esquema de origem do terminal.
 # ONDE O ACCENT ENTRA, E É A ÚNICA DECISÃO DE GOSTO DESTE MÓDULO.
 # O port oficial pinta o cursor de `rosewater` e não usa `mauve` em lugar nenhum
 # (o magenta do ANSI no Catppuccin é o `pink`, #F5C2E7, não o mauve). "accent"
@@ -1507,9 +1507,11 @@ TERMINAL_ESQUEMA="sim"      # sim | nao
 TERMINAL_CURSOR="accent"    # accent | port
 
 # @ Prompt do zsh
-# > O prompt do starship que vem com o MeowSystem, o mesmo com qualquer pack.
-# O prompt do zsh, pelo starship, com o preset OFICIAL catppuccin-powerline no
-# flavor mocha e accent mauve.
+# > O prompt do starship que vem com o MeowSystem, nas cores do pack no ar.
+# O prompt do zsh, pelo starship. O DESENHO é o do preset oficial
+# catppuccin-powerline; as CORES são as da paleta do pack no ar, no flavor da
+# máquina (P74, 09/10/2026: até aqui o arquivo saía com a paleta do Mocha
+# fosse qual fosse o pack, e com o Dracula no ar o prompt era Catppuccin).
 #
 #   ESTA CHAVE MANDA EM METADE DA COISA, E É DE PROPÓSITO. O preset é nosso e vai
 #   para ~/.config/starship.toml. A linha que LIGA o starship mora no arquivo de

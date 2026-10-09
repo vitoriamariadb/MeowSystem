@@ -96,6 +96,21 @@ ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
 # `ICONES_FLAVOR` nem `FLAVOR`, ou do pack.py recusando o pack; nos dois casos o
 # `_pronto` diz que não há o que vestir.
 [ -n "$FLAVOR_ICONES" ] || ORIGEM=""
+# DE QUEM É O ACERVO, DITO NA TELA — 09/10/2026, P74 item 7 (T1). A frase dizia
+#   «vestidos de Catppuccin <flavor>» com qualquer pack: o doctor desta máquina,
+#   com o Dracula no ar, dizia «123 tipos de arquivo já vestidos de Catppuccin
+#   macchiato». Desde a P74 o Dracula traz os dele, e a frase diz o NOME do
+#   pack dono do diretório que veste (o `_pack_de` do pack.py, o mesmo que a
+#   aba Ícones usa). Com o Catppuccin no ar, a frase é a de antes.
+DONO_ACERVO="$( [ -n "$ORIGEM" ] && python3 - "$RAIZ/scripts" "$ORIGEM" <<'PY' 2>/dev/null
+import sys
+sys.path.insert(0, sys.argv[1])
+import pack
+dono = pack._pack_de(sys.argv[2])
+print(pack.campo(dono, "nome", dono) or "")
+PY
+)"
+DONO_ACERVO="${DONO_ACERVO:-Catppuccin}"
 # O MAPA SEGUIU O ACERVO PARA DENTRO DO PACK — 22/09/2026
 #   A P13 desceu os 3.280 glifos para `packs/catppuccin/icones/mimetypes/` e
 #   deixou o mapa em `assets/icones/mimetypes.map`. Meio caminho: O MAPA É A
@@ -180,7 +195,7 @@ _conferir() {
   fi
 
   if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
-    meow_ok "$total tipos de arquivo já vestidos de Catppuccin $FLAVOR_ICONES"
+    meow_ok "$total tipos de arquivo já vestidos de $DONO_ACERVO $FLAVOR_ICONES"
     return "$MEOW_OK"
   fi
   meow_muda "tipos de arquivo: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
@@ -221,7 +236,7 @@ _aplicar() {
   fi
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "tipos de arquivo já vestidos de Catppuccin $FLAVOR_ICONES"
+    meow_ok "tipos de arquivo já vestidos de $DONO_ACERVO $FLAVOR_ICONES"
     return "$MEOW_OK"
   fi
   meow_info "tipos de arquivo: $postos posto(s), $removidos removido(s) — flavor $FLAVOR_ICONES"
