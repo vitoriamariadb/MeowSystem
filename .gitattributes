@@ -25,3 +25,6 @@ packs/*/temas/capturados/** byte-exact
 # viraram 5.056, e o sha256 deixou de bater com o pino). Byte a byte, como as
 # capturas.
 packs/*/apps/*.qbtheme byte-exact
+# Os papéis de parede do pack (P74): SVG copiados do repositório de origem e
+# conferidos pelo sha256 do PROCEDENCIA.md — byte a byte pelo mesmo motivo.
+packs/*/wallpapers/** byte-exact

@@ -245,6 +245,38 @@ else
   printf 'pulado: sem git, o cofre em git não se monta\n'
 fi
 
+# --- item 9 (T7): os papéis de parede do Dracula vêm do pack, em 4K -----------
+#   Numa casa nova (o conf de fábrica, sem repositório de papel de parede), o
+#   Dracula semeia os SVG do pack rasterizados em PNG 3840x2160, e não o acervo
+#   do Catppuccin. A curadoria (que baixa da rede) fica de fora com uma receita
+#   vazia; os recusados de fábrica (`BANIDOS.txt.padrao`) continuam recusados.
+if command -v rsvg-convert >/dev/null 2>&1; then
+  CW="$T/casa-papel"; mkdir -p "$CW/.config/meow"
+  sed -e 's/^PACK=.*/PACK="dracula"/' -e 's/^FLAVOR=.*/FLAVOR="dracula"/' "$RAIZ/meow.conf.exemplo" > "$CW/.config/meow/meow.conf"
+  : > "$T/fontes-vazio.tsv"
+  papel() {
+    env -i PATH="$FALSO:$PATH" HOME="$CW" LANG=C.UTF-8 NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+      MEOW_CONF="$CW/.config/meow/meow.conf" MEOW_ESTADO="$CW/estado" WALLPAPER_FONTES="$T/fontes-vazio.tsv" \
+      bash -c 'set -a; . "$MEOW_CONF"; set +a; "$MEOW_RAIZ/scripts/wallpaper.sh" semear' 2>&1
+  }
+  s1="$(papel)"; s2="$(papel)"
+  AT="$CW/.local/share/backgrounds/meowsystem/ativos"
+  n_png="$(find "$AT" -name 'tulip-*.png' 2>/dev/null | wc -l)"
+  n_4k="$(for f in "$AT"/tulip-*.png; do python3 -c 'import struct,sys;d=open(sys.argv[1],"rb").read(24);print(*struct.unpack(">II",d[16:24]))' "$f"; done 2>/dev/null | grep -c '^3840 2160$')"
+  n_cat="$(find "$AT" -name 'cat-*' 2>/dev/null | wc -l)"
+  esperado="$(find "$RAIZ/packs/dracula/wallpapers" -name '*.svg' | while read -r s; do r="${s#"$RAIZ"/packs/dracula/wallpapers/}"; n="tulip-${r//\//-}"; n="${n%.svg}.png"; grep -qxF "$n" "$RAIZ/assets/papeis-de-parede/BANIDOS.txt.padrao" 2>/dev/null || echo "$n"; done | wc -l)"
+  if [ "$n_png" -gt 0 ] && [ "$n_png" = "$esperado" ] && [ "$n_4k" = "$n_png" ] && [ "$n_cat" = 0 ] \
+     && [[ "$s2" == *"já semeada"* ]]; then
+    ok "numa casa nova, o Dracula semeia em PNG 4K os $n_png SVG do pack que não estão recusados, sem nada do Catppuccin, e a 2ª passada não faz nada"
+  else
+    falha "os papéis de parede do Dracula não vieram do pack em 4K" "png=$n_png esperado=$esperado 4k=$n_4k catppuccin=$n_cat
+$s1
+$s2"
+  fi
+else
+  printf 'pulado: sem rsvg-convert, o SVG do pack não se rasteriza\n'
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"

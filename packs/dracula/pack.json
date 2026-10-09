@@ -111,6 +111,8 @@
       "ignorar": [
         "svg"
       ],
+      "desenhos": "wallpapers/",
+      "_nota_desenhos": "Os treze SVG do tulip-orchid (MIT), dentro do pack desde 09/10/2026 (P74 item 9, T7): sem o repositório no meow.conf — o caso de toda instalação nova —, o Dracula caía no acervo do Catppuccin. O `wallpaper.sh` os rasteriza em PNG 3840x2160 ao semear; o PNG sai igual, pixel a pixel, ao do repositório. A procedência está no PROCEDENCIA.md.",
       "se_vazio": "herdar",
       "_nota": "As duas chaves nomeiam ENTRADAS DO MEOW.CONF, não valores: 'dono/repo' nomeia a conta de uma pessoa e este arquivo é versionado. Quem instala põe o repositório no próprio meow.conf."
     }

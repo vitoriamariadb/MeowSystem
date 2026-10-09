@@ -326,6 +326,9 @@ CAMPOS_COM_LEITOR = {
     "icones.base.por_tras",
     # Os ícones de arquivo derivados da paleta (P74 item 6): o `construir` lê.
     "icones.mimetypes.derivar.*",
+    # Os papéis de parede do pack (P74 item 9): o `wallpaper.sh` os semeia pelo
+    # `acervo`, rasterizando o SVG.
+    "origens.wallpapers.desenhos",
 }
 
 
