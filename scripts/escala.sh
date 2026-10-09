@@ -100,32 +100,33 @@ if ! meow_tem cosmic-randr; then
 fi
 
 # --- ler o que está ligado AGORA --------------------------------------------
-# A saída do `cosmic-randr list` é colorida e indentada. O awk abaixo devolve
-# uma linha por saída habilitada:  nome<TAB>escala<TAB>largura<TAB>altura<TAB>hz
+# Uma linha por saída habilitada:  nome<TAB>escala<TAB>largura<TAB>altura<TAB>hz
 #
-# A ESCALA VEM EM PORCENTAGEM ("100%") e o `--scale` quer fração (1.0): a
-# conversão é feita aqui, uma vez, para que o resto do script compare maçã com
-# maçã. Comparar "100%" com "1.25" foi o primeiro jeito e ele dizia que tudo
-# divergia sempre.
+# PELO `--kdl`, E NÃO PELA TELA DE HUMANO — 09/10/2026, P76
+#   Até aqui o awk lia a saída colorida e indentada do `cosmic-randr list`,
+#   com a escala em porcentagem ("100%") e o hz em texto ("60.000 Hz"). É a
+#   saída para gente, e nada promete que ela fique igual. O `--kdl` é o formato
+#   de máquina, e existe nas duas versões medidas (0.1.0 instalada e 1.10 da
+#   fila): `output "eDP-1" enabled=#true {`, `scale 1.00` já em fração, e
+#   `mode 1920 1080 60002 current=#true` com o refresh em milihertz. A saída
+#   deste bloco é byte a byte a do awk antigo nesta máquina (medido em
+#   09/10/2026: `eDP-1 1 1920 1080 60.002` e `HDMI-A-1 1 1920 1080 60.000`).
 #
 # `LC_ALL=C` NÃO É PARANOIA: sem ele o awk desta máquina (pt_BR) imprime
 # `escala=1,25`, com vírgula. O `cosmic-randr --scale` recusa vírgula, e a
 # comparação numérica passa a mentir. Foi o primeiro defeito deste arquivo.
 saidas() {
-  cosmic-randr list 2>/dev/null \
-    | sed -E 's/\x1b\[[0-9;]*m//g' \
+  cosmic-randr list --kdl 2>/dev/null \
     | LC_ALL=C awk '
-        /^[^ ]/ {
-          nome = $1
-          ligada = (index($0, "(enabled)") > 0)
-          escala = ""; larg = ""; alt = ""; hz = ""
+        /^output "/ {
+          nome = $2; gsub(/"/, "", nome)
+          ligada = (index($0, "enabled=#true") > 0)
+          escala = ""
           next
         }
-        /^  Scale:/ { sub(/%$/, "", $2); escala = $2 / 100; next }
-        ligada && /\(current\)/ {
-          # "    1920x1080 @  60.000 Hz (current) (preferred)"
-          split($1, wh, "x"); larg = wh[1]; alt = wh[2]; hz = $3
-          printf "%s\t%s\t%s\t%s\t%s\n", nome, escala, larg, alt, hz
+        /^  scale / { escala = $2 + 0; next }
+        ligada && /^    mode / && /current=#true/ {
+          printf "%s\t%s\t%s\t%s\t%.3f\n", nome, escala, $2, $3, $4 / 1000
           ligada = 0   # uma linha por saída: só o modo corrente interessa
         }
       '

@@ -96,6 +96,7 @@ PORTATIL=(
   contrato-cosmic.sh     # /usr/share/cosmic e COSMIC de brinquedo com v2; seis escritores e o pré-voo (P76); bash e python3
   oraculo-tema.sh        # saídas do oráculo guardadas em tests/oraculo/ contra a cópia em Python (P76); só python3
   applet-pino.sh         # dois Cargo.lock falsos e um cargo falso; o leitura_build.sh num HOME de brinquedo (P76); só bash
+  escala-kdl.sh          # cosmic-randr falso com KDL fixo; só o saidas() do escala.sh (P76); só bash
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
