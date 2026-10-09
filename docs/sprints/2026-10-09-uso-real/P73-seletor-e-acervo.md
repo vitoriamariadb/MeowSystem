@@ -50,6 +50,15 @@ que mapeamos à mão.» «Sem texto na interface; no máximo vira dica.»
 | I9 — o lançador veste o `logo.svg` do pack no ar | feita | `0d580aa` |
 | Achado 24 — origem vira selo (forma), o porquê vai para a dica | feita | `874a5a7` |
 | Prova — `tests/acervo-da-ficha.sh`, `restos-do-painel.sh` refeito | feita | `6883982` |
+| T1, conserto achado pelo gate — a tira de pastas sobrevive à repintura (o `/previa` é `no-store`: eram 342 pedidos de miniatura a cada `render()` com a biblioteca aberta, agora 0) | feita | `22935c6` |
+| Gate `tests/app-completo.py` adaptado (pastas, desenho travado, escolha no estado da casa e raiz intacta) | feita, verde em 543 s | `7cf9b1c` |
+
+**Testes rodados na branch** (HOME de brinquedo; sudo falso onde o teste sobe o painel):
+`acervo-da-ficha`, `seletor-do-pack`, `git-limpo`, `restos-do-painel`, `fonte-unica`,
+`pack`, `sem-dracula-os-theme`, `notas-de-funcao`, `numeros`, `orfaos`, `arvore`,
+`frases-velhas`, `app`, `estilo`, `app-acessibilidade.py` e `app-completo.py` — todos 0.
+`portabilidade.sh` sai 1 por `docs/pesquisas/2026-10-09-cosmic-vivo.md:198` (um `/home/<pessoa>`
+escrito), arquivo que veio no `f24868c`, antes desta branch.
 
 **O que não deu para fazer como escrito, e por quê:**
 
