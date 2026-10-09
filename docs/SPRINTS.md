@@ -262,7 +262,7 @@ porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio
 
 | | |
 |---|---|
-| `install.sh` | 60 etapas; rodar de novo não escreve um byte |
+| `install.sh` | 61 etapas; rodar de novo não escreve um byte |
 | `meow doctor` | **63** conferências; a única divergência é a arte convertida, e ela espera a folha |
 | painel | 123 chaves · 54 ações · 13 páginas de assunto |
 | conferência do navegador | **123/123**, console limpo nas catorze páginas |
