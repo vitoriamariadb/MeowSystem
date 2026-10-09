@@ -159,7 +159,7 @@ _PROMPT_PACK="$(meow_pack_dir)"
 _PROMPT_PACK="$(basename "${_PROMPT_PACK:-catppuccin}")"
 
 _prompt_desejado() {
-  python3 - "$PROMPT_FONTE" "$(meow_paleta)" "$(meow_flavor)" "$_PROMPT_PACK" <<'PY'
+  python3 -I - "$PROMPT_FONTE" "$(meow_paleta)" "$(meow_flavor)" "$_PROMPT_PACK" <<'PY'
 import json, re, sys
 fonte, paleta, flavor, pack = sys.argv[1:5]
 with open(fonte, encoding="utf-8") as fh:

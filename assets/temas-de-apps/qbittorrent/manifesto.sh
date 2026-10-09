@@ -480,7 +480,7 @@ _meow_qbt_conf_escrever() {
   local conf="$1" usar="$2" caminho="${3:-}"
   meow_destino_permitido "$conf" || return "$MEOW_ERRO"
   MEOW_PY_SECO="$(meow_seco && echo 1 || echo 0)" \
-  python3 - "$conf" "$usar" "$caminho" <<'PYFIM'
+  python3 -I - "$conf" "$usar" "$caminho" <<'PYFIM'
 import os, sys, tempfile
 conf, usar, caminho = sys.argv[1:4]
 seco = os.environ.get("MEOW_PY_SECO") == "1"

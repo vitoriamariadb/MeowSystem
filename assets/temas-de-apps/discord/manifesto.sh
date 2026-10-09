@@ -95,7 +95,7 @@ _dc_lista() {
   [ -n "$ajustes" ] || return "$MEOW_OK"
   [ "$modo" = "conferir" ] || meow_seco || meow_destino_permitido "$ajustes" || return "$MEOW_ERRO"
   MEOW_PY_SECO="$(meow_seco && echo 1 || echo 0)" \
-  python3 - "$modo" "$ajustes" "$_DC_ARQ_NOME" <<'PYFIM'
+  python3 -I - "$modo" "$ajustes" "$_DC_ARQ_NOME" <<'PYFIM'
 import json, os, sys, tempfile
 modo, caminho, nome = sys.argv[1:4]
 seco = os.environ.get("MEOW_PY_SECO") == "1"

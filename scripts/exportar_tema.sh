@@ -42,18 +42,26 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 ID="${1:-}"
 [ -n "$ID" ] || { meow_erro "uso: exportar_tema.sh <id> [flavor] [arquivo.tar.gz]"; exit "$MEOW_ERRO"; }
+# O id e o flavor entram num meow.conf que a casa de brinquedo carrega com `.`
+# (o `sed` lá embaixo): só da forma que o pack.py aceita (RE_ID e
+# RE_FLAVOR_CONF), para uma aspa ou um `$(` não virar código ao carregar.
+# [Conferência da P74, alerta de segurança de 09/10/2026.]
+case "$ID" in ''|-*|*[!a-z0-9-]*) meow_erro "'$ID' não é um id de pack (minúsculas, dígitos e hífen)"; exit "$MEOW_ERRO" ;; esac
 if ! python3 "$RAIZ/scripts/pack.py" validar "$ID" >/dev/null 2>&1; then
   meow_erro "o pack '$ID' não valida — rode: meow pack validar $ID"
   exit "$MEOW_ERRO"
 fi
 FLAVOR_PEDIDO="${2:-}"
-[ -n "$FLAVOR_PEDIDO" ] || FLAVOR_PEDIDO="$(python3 - "$RAIZ/scripts" "$ID" <<'PY'
+[ -n "$FLAVOR_PEDIDO" ] || FLAVOR_PEDIDO="$(python3 -I - "$RAIZ/scripts" "$ID" <<'PY'
 import sys
 sys.path.insert(0, sys.argv[1])
 import pack
 print(pack.campo(sys.argv[2], "paleta.flavor_padrao", "") or "")
 PY
 )"
+# O flavor pela mesma régua, e depois de resolvido: o padrão vem do pack.json,
+# e um pack importado é dado não confiável.
+case "$FLAVOR_PEDIDO" in *[!a-z0-9_]*) meow_erro "'$FLAVOR_PEDIDO' não é um nome de flavor (minúsculas, dígitos e '_')"; exit "$MEOW_ERRO" ;; esac
 saida_nome="$(python3 "$RAIZ/scripts/pack.py" tema-icones "$ID" "$FLAVOR_PEDIDO")" || exit "$MEOW_ERRO"
 NOME="$(printf '%s\n' "$saida_nome" | sed -n 's/^nome=//p')"
 [ -n "$NOME" ] || { meow_erro "o pack.py não deu nome ao tema de '$ID'"; exit "$MEOW_ERRO"; }

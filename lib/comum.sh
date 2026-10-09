@@ -764,7 +764,7 @@ meow_flavor_vestido() {
     claro|escuro) ;;
     *) printf '%s' "$fl"; return 0 ;;
   esac
-  python3 - "$MEOW_RAIZ/scripts" "$fl" "$MODO" "$(meow_paleta)" <<'PYFIM' 2>/dev/null || printf '%s' "$fl"
+  python3 -I - "$MEOW_RAIZ/scripts" "$fl" "$MODO" "$(meow_paleta)" <<'PYFIM' 2>/dev/null || printf '%s' "$fl"
 import json, sys
 sys.path.insert(0, sys.argv[1])
 import derivar_flavor
