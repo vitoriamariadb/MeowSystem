@@ -461,16 +461,22 @@ cmd_aplicar() {
   [ "$rcl" = "$MEOW_DIVERGENTE" ] && rc="$MEOW_DIVERGENTE"
 
   # O tema de som do pack e quem o toca (P74 item 9).
-  local rct; _som_tema_e_unidade aplicar; rct=$?
+  #   [Conferência da P74: o `rc` do volume fica separado do `rc` final. Com
+  #   só o tema mudando, a frase abaixo dizia «som de volume do MeowSystem
+  #   instalado» sobre um arquivo que não foi tocado — a tela que mente.]
+  local rct rcv="$rc"; _som_tema_e_unidade aplicar; rct=$?
   [ "$rct" = "$MEOW_ERRO" ] && { meow_erro "não consegui pôr o tema de som do pack"; return "$MEOW_ERRO"; }
   if [ "$rct" = "$MEOW_DIVERGENTE" ]; then
     rc="$MEOW_DIVERGENTE"
-    [ -n "$SOM_TEMA_PACK" ] && ! meow_seco && meow_muda "tema de som do pack em $SOM_TEMA_DIR, tocado nas notificações"
+    if [ -n "$SOM_TEMA_PACK" ]; then
+      if meow_seco; then meow_muda "poria o tema de som do pack em $SOM_TEMA_DIR, tocado nas notificações"
+      else meow_muda "tema de som do pack em $SOM_TEMA_DIR, tocado nas notificações"; fi
+    fi
   fi
 
-  if [ "$rc" = "$MEOW_DIVERGENTE" ] && meow_seco; then
+  if [ "$rcv" = "$MEOW_DIVERGENTE" ] && meow_seco; then
     meow_muda "instalaria o som de volume do MeowSystem em $SOM_ALVO"
-  elif [ "$rc" = "$MEOW_DIVERGENTE" ]; then
+  elif [ "$rcv" = "$MEOW_DIVERGENTE" ]; then
     meow_muda "som de volume do MeowSystem instalado em $SOM_ALVO"
     meow_info "licenças registradas em $SOM_LICENCAS"
     meow_info "vale na próxima mudança de volume — nada a reiniciar"
