@@ -97,7 +97,12 @@ VERBOS
                                      pack=, url=, sha256=, pasta=
                                  (a origem que a cadeia declara, vazias sem
                                  ela). Ver `base_que_vale`.
-    novo    <id> [--de-csv <arquivo.csv>] [--seco]
+    base-apelidos                o tema de onde as pastas e os apelidos de
+                                 utilitário copiam desenho (o `ICONES_BASE`
+                                 escolhido à mão, ou o Papirus-Dark), e onde
+                                 ele está: `tema=` e `dir=` (vazio fora do
+                                 disco). Ver `base_dos_apelidos`.
+    novo   <id> [--de-csv <arquivo.csv>] [--seco]
                                  cria o pack <id> a partir do que está no ar: a
                                  paleta, o timbre, um logo gerado e os créditos,
                                  herdando o resto do pack ativo. Em $MEOW_PACKS
@@ -2135,6 +2140,56 @@ def base_que_vale(ref, pedido):
     if declarada:
         return "pack", "", declarada
     return "motor", ICONES_BASE_DO_EXEMPLO, None
+
+
+# --- A ÁRVORE DOS APELIDOS — 09/10/2026, P74 item 1 (I1/I2) ------------------
+#
+# O DEFEITO, MEDIDO
+#   O `construir_pastas.sh` e o `completar_icones.sh` liam a chave crua e
+#   montavam `/usr/share/icons/$ICONES_BASE`. Com o conf dizendo
+#   `ICONES_BASE="MeowSystem-Icons-Base"` (a base do pack, que mora em
+#   `~/.local/share/icons`), os dois diziam "não está instalado" e as pastas
+#   coloridas sumiram por sete passadas do doctor (01-regressoes.md, I1/I2).
+#   A regra de quem vence já morava no `_base_escolhida`, e só dois leitores a
+#   perguntavam.
+#
+# POR QUE NÃO É A MESMA RESPOSTA DO `base_que_vale`
+#   Esses dois não herdam a base: eles COPIAM dela desenhos com nome de
+#   Papirus — os links `folder-blue-*` que o papirus-folders recolore, a
+#   lixeira cinza, o `64x64/apps/cs-sources.svg`. A base de um pack (a do
+#   Dracula é a m4thewz, com `scalable/places` e sem `folder-blue`) não tem
+#   essa árvore, e nem é o papel dela. Então a regra é a mesma, e o que muda é
+#   o que "ceder" quer dizer: o `ICONES_BASE` escolhido à mão vence (é o tema
+#   que a pessoa pôs e é dele que ela quer as pastas), e o que cede — fábrica,
+#   vazio, o nome da nossa própria base — cai no Papirus-Dark de fábrica, o
+#   companheiro do papirus-folders que o `install.sh` instala como
+#   pré-requisito da etapa de pastas.
+#
+# ONDE O TEMA ESTÁ É PERGUNTA AO DISCO, NOS LUGARES DA ESPECIFICAÇÃO
+#   `$XDG_DATA_HOME/icons`, `~/.icons` e `<XDG_DATA_DIRS>/icons`, nessa ordem —
+#   a do resolvedor. O `/usr/share/icons/` cravado era o segundo meio do
+#   defeito: um tema escolhido à mão em `~/.local/share/icons` nunca era achado.
+def dir_de_tema_de_icones(nome):
+    """O diretório do tema de ícones `nome` no disco, ou "" se ele não está."""
+    if not nome or "/" in nome or nome in (".", ".."):
+        return ""
+    casa = os.path.expanduser("~")
+    lugares = [os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.join(casa, ".local/share"), "icons"),
+               os.path.join(casa, ".icons")]
+    for d in (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":"):
+        if d:
+            lugares.append(os.path.join(d, "icons"))
+    for lugar in lugares:
+        cand = os.path.join(lugar, nome)
+        if os.path.isfile(os.path.join(cand, "index.theme")):
+            return cand
+    return ""
+
+
+def base_dos_apelidos(pedido):
+    """(tema, dir): o tema de onde pastas e apelidos copiam desenho, e onde ele está."""
+    tema = _base_escolhida(pedido) or ICONES_BASE_DO_EXEMPLO
+    return tema, dir_de_tema_de_icones(tema)
 
 
 def _rgb(hexcor):
@@ -5877,6 +5932,14 @@ def main(argv):
             print(f"tema={tema}")
             for chave in ("pack", "url", "sha256", "pasta"):
                 print(f"{chave}={(decl or {}).get(chave, '')}")
+            return OK
+        if verbo == "base-apelidos" and len(argv) == 2:
+            # A mesma porta do `base-icones`: o `ICONES_BASE` vem do ambiente,
+            # e as duas linhas saem sempre (o `dir=` vazio é "não está no
+            # disco"), para o shell ler com `sed`. Ver `base_dos_apelidos`.
+            tema, onde = base_dos_apelidos(os.environ.get("ICONES_BASE"))
+            print(f"tema={tema}")
+            print(f"dir={onde}")
             return OK
         if verbo == "info" and len(argv) == 3:
             return cmd_info(argv[2])

@@ -104,8 +104,18 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
-BASE="${ICONES_BASE:-Papirus-Dark}"
-BASE_DIR="/usr/share/icons/$BASE"
+# A ÁRVORE DE ONDE AS PASTAS COPIAM DESENHO É PERGUNTA AO `pack.py` — P74 item 1
+#   Era `/usr/share/icons/$ICONES_BASE`, a chave crua: com o conf dizendo
+#   `ICONES_BASE="MeowSystem-Icons-Base"` (a base do pack, em ~/.local/share)
+#   a etapa de pastas se pulava por sete passadas do doctor (I1/I2 do 01-regressoes.md). A
+#   regra de quem vence mora no `_base_escolhida`, e o `base-apelidos` diz o
+#   tema (o escolhido à mão, ou o Papirus-Dark) e onde ele está no disco.
+_base="$(ICONES_BASE="${ICONES_BASE:-}" NOME_TEMA_ICONES="$TEMA_NOME" \
+           python3 "$RAIZ/scripts/pack.py" base-apelidos 2>/dev/null)"
+BASE="$(printf '%s\n' "$_base" | sed -n 's/^tema=//p')"
+BASE="${BASE:-Papirus-Dark}"
+BASE_DIR="$(printf '%s\n' "$_base" | sed -n 's/^dir=//p')"
+unset _base
 COR="${ICONES_PASTAS:-cat-mocha-mauve}"
 FONTE="${MEOW_CAT_FOLDERS:-$RAIZ/assets/icones/upstream/papirus-folders}"
 

@@ -575,6 +575,35 @@ saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa-molde" USER="${USER:-t}" NO_CO
   && ok "o molde com o FLAVOR vazio (cat--mauve) veste a variante do tema, e não a do Mocha" \
   || falha "o molde com o FLAVOR vazio caiu no Mocha, ou escreveu na casa" "$saida"
 
+# --- 11. a base do pack escolhida pelo nome não pula as pastas (P74 item 1) ---
+#   O conf desta máquina diz `ICONES_BASE="MeowSystem-Icons-Base"`, a base do
+#   pack, que mora em `~/.local/share/icons`. O script montava
+#   `/usr/share/icons/$ICONES_BASE` e dizia «não está instalado — pastas
+#   coloridas puladas» (I1/I2). Pela regra do `_base_escolhida`, esse nome cede,
+#   e as pastas copiam do Papirus-Dark. O completar, o outro leitor da chave,
+#   vai junto.
+if [ -d /usr/share/icons/Papirus-Dark ] && [ -d "$UP/src" ]; then
+  saida="$(pastas "$T/casa-base-do-pack" dracula dracula mauve ICONES_BASE=MeowSystem-Icons-Base)"
+  [[ "$saida" != *"não está instalado"* ]] \
+    && [ -L "$T/casa-base-do-pack/.local/share/icons/MeowSystem-Icons/48x48/places/folder.svg" ] \
+    && ok "ICONES_BASE=MeowSystem-Icons-Base: as pastas coloridas entram (a base do pack cede ao Papirus-Dark)" \
+    || falha "com a base do pack escolhida pelo nome as pastas se pularam" "$saida"
+  # O completar só escreve num tema que já tem índice (quem o escreve é o
+  # `construir_icones.sh`, que aqui não roda): um índice mínimo basta.
+  printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n' \
+    > "$T/casa-base-do-pack/.local/share/icons/MeowSystem-Icons/index.theme"
+  saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa-base-do-pack" USER="${USER:-t}" NO_COLOR=1 \
+    MEOW_RAIZ="$RAIZ" PACK=dracula FLAVOR=dracula ACCENT=mauve \
+    ICONES_BASE=MeowSystem-Icons-Base NOME_TEMA_ICONES=MeowSystem-Icons \
+    bash "$RAIZ/scripts/completar_icones.sh" 2>&1)"
+  [[ "$saida" != *"não está instalado"* ]] \
+    && [ -f "$T/casa-base-do-pack/.local/share/icons/MeowSystem-Icons/scalable/apps/repoman.svg" ] \
+    && ok "ICONES_BASE=MeowSystem-Icons-Base: o apelido do repoman entra" \
+    || falha "com a base do pack escolhida pelo nome o completar pulou os apelidos" "$saida"
+else
+  printf 'pulado: sem Papirus-Dark ou sem papirus-folders, a base do pack não tem de onde copiar\n'
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "as pastas vestem a paleta do pack no ar, e o Catppuccin continua o de antes"
