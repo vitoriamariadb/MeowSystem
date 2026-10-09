@@ -174,12 +174,19 @@ const zerar = () => {
   chamadas.releituras = 0; js("TRABALHO = null; APP_ABERTO = null");
 };
 
-const PACK = { glifo: "alien", grupo: "Dracula", pack: "dracula",
-               desenho: "biblioteca/alien.svg", url: "/previa?x" };
-const TRACO = { glifo: "google-chrome", grupo: "traço (Arcticons)", url: "/previa?y" };
+// [P73, 09/10/2026: a resposta da busca ganhou `grupos` (as pastas por acervo),
+// e cada item o `grupo` (o id da pasta), o `tipo` e o `arquivo`.]
+const PACK = { glifo: "alien", grupo: "pack:dracula:biblioteca", tipo: "desenho", pack: "dracula",
+               desenho: "biblioteca/alien.svg", arquivo: "packs/dracula/icones/biblioteca/alien.svg",
+               url: "/previa?x" };
+const TRACO = { glifo: "google-chrome", grupo: "motor:arcticons-apps", tipo: "traco",
+                arquivo: "assets/icones/arcticons-apps/google-chrome.svg", url: "/previa?y" };
+const GRUPOS = [
+  { id: "pack:dracula:biblioteca", acervo: "Dracula", nome: "biblioteca", no_ar: true, total: 1, achados: 1 },
+  { id: "motor:arcticons-apps", acervo: "MeowSystem", nome: "traço", no_ar: false, total: 1, achados: 1 }];
 const glifos = (extra) => js(`GLIFOS = ${JSON.stringify(Object.assign({
-  termo: "chrome", app: "google-chrome", itens: [PACK, TRACO], carregando: false,
-  aviso: "", pack: { id: "dracula", nome: "Dracula" }, escolha: null }, extra))}`);
+  termo: "chrome", app: "google-chrome", itens: [PACK, TRACO], grupos: GRUPOS, carregando: false,
+  aviso: "", pack: { id: "dracula", nome: "Dracula" }, escolha: null, minha: null }, extra))}`);
 const aplicativo = (extra) => Object.assign({ id: "google-chrome", nome: "Chrome de Brinquedo",
   trava: null, trava_pack: null, mapa: null, traco: null }, extra);
 const ficha = (app) => ctx.montarEscolhaDeIcone(app, async () => { chamadas.releituras += 1; });
@@ -210,7 +217,7 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
   // é isso que o TRABALHO de pé representa.
   ctx.rodarAcao = async (id) => { chamadas.acoes.push(id); js("TRABALHO = { id: 'passo' }"); };
   let painel = ficha(aplicativo());
-  const doPack = painel.todos().find((e) => e.tagName === "BUTTON" && e.dataset.escolha === "pack:dracula:biblioteca/alien.svg");
+  const doPack = painel.todos().find((e) => e.tagName === "BUTTON" && e.dataset.escolha === "pack:dracula:biblioteca|alien");
   const usar = botao(painel, "Usar este ícone");
   if (checa(doPack && usar, "a ficha do Chrome oferece o alien do pack e o «Usar este ícone»")) {
     await doPack.clicar();
@@ -244,24 +251,34 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
         "a resposta da busca velha, chegando depois, não pinta a lista da busca de agora",
         JSON.stringify(agora));
 
-  // --- 3.4 a trava do traço não leva o grupo do pack junto ----------------------
+  // --- 3.4 a trava é estado, e não sumiço (P73, T4) ------------------------------
+  // [Até a P73 este bloco cobrava que a trava TIRASSE o traço da tira, e que as
+  // duas travas tirassem a busca. A P73 inverteu: o acervo fica, apagado, sem
+  // «Usar», e o porquê vai para a dica de cada desenho.]
   zerar(); glifos();
   const trava = "Chrome de Brinquedo já tem desenho convertido do projeto.";
+  const travaPack = "O ícone é decidido por outro passo.";
+  const temBusca = (pn) => pn.todos().some((e) => e.tagName === "INPUT" && e.dataset.foco === "glifos");
+  const pastas = (pn) => pn.todos().filter((e) => e.tagName === "DETAILS" && e.dataset.grupo)
+                                   .map((e) => e.dataset.grupo);
+  const apagados = (pn) => pn.todos().filter((e) => e.tagName === "BUTTON"
+                                             && (e.className || "").includes("travado"));
   painel = ficha(aplicativo({ trava }));
-  const campo = painel.todos().find((e) => e.tagName === "INPUT" && e.dataset.foco === "glifos");
   const tira = painel.todos().filter((e) => e.tagName === "BUTTON" && e.dataset.escolha);
-  checa(campo && tira.length === 1 && tira[0].dataset.escolha.startsWith("pack:")
-        && botao(painel, "Usar este ícone"),
-        "com a trava do traço, a busca, o grupo do pack e o «Usar este ícone» ficam — e o traço sai da tira",
-        `busca ${!!campo}, tira [${tira.map((b) => b.dataset.escolha)}]`);
-  painel = ficha(aplicativo({ trava, trava_pack: "O ícone é decidido por outro passo." }));
-  checa(!painel.todos().some((e) => e.tagName === "INPUT" && e.dataset.foco === "glifos")
-        && !botao(painel, "Usar este ícone"),
-        "com a trava do traço e a do pack, a ficha continua sem busca e sem «Usar este ícone»");
+  checa(temBusca(painel) && tira.length === 1 && tira[0].dataset.escolha.startsWith("pack:")
+        && apagados(painel).length === 1 && botao(painel, "Usar este ícone"),
+        "com a trava do traço, a busca, o pack e o «Usar este ícone» ficam, e o traço fica APAGADO na pasta dele",
+        `busca ${temBusca(painel)}, tira [${tira.map((b) => b.dataset.escolha)}], apagados ${apagados(painel).length}`);
+  painel = ficha(aplicativo({ trava, trava_pack: travaPack }));
+  checa(temBusca(painel) && pastas(painel).join() === "pack:dracula:biblioteca,motor:arcticons-apps"
+        && apagados(painel).length === 2 && !botao(painel, "Usar este ícone"),
+        "com as duas travas (o CosmicEdit), a ficha mostra a busca e as pastas do acervo, tudo apagado, "
+        + "e sem «Usar este ícone»", `pastas [${pastas(painel)}], apagados ${apagados(painel).length}`);
+  checa(apagados(painel).every((b) => b.getAttribute("aria-disabled") === "true"),
+        "e cada desenho apagado diz que não vale (aria-disabled), com o porquê na dica");
   glifos({ pack: null });
   painel = ficha(aplicativo({ trava }));
-  checa(!painel.todos().some((e) => e.tagName === "INPUT" && e.dataset.foco === "glifos"),
-        "e sem pack que a ficha possa oferecer, também");
+  checa(temBusca(painel), "e sem pack no ar, a busca continua");
 
   // A BUSCA QUE NÃO ACHOU NADA DIZ O QUE VEM A SEGUIR (revisão da P64): na ficha
   // travada, o traço sai da tira, e o que a busca vazia traz são os desenhos
@@ -273,12 +290,11 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
     const frase = ficha(app).todos().find((e) => e.tagName === "P" && e.className === "sem-previa");
     return frase ? frase.textContent : "(sem frase)";
   };
-  let frase = semAchado(aplicativo({ trava }), [TRACO]);
-  checa(frase === "Nenhum desenho com esse nome — mostrando os desenhos do pack «Dracula».",
-        "na ficha travada, a busca sem achado diz que mostra os desenhos do pack", frase);
-  frase = semAchado(aplicativo(), []);
-  checa(frase === "Nenhum desenho com esse nome — mostrando o acervo que veio com o projeto.",
-        "e na ficha sem trava, o acervo do projeto, como antes", frase);
+  // [P73: a busca sem achado não troca mais a tira pelo acervo inteiro — o
+  // acervo inteiro é a ficha sem busca. Ela diz só que nada casou.]
+  let frase = semAchado(aplicativo({ trava }), []);
+  checa(frase === "Nenhum desenho casa com “xyz”.",
+        "a busca sem achado diz que nada casou com o termo", frase);
 
   // --- 3.5 o desfazer da escolha no pack, e a torrada que diz o que fica ---------
   zerar();
@@ -322,7 +338,9 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
 
   zerar(); glifos();
   respostas = (rota) => (rota === "/api/app-icone" ? { ok: true, removido: true, fica } : {});
-  painel = ficha(aplicativo({ mapa: { glifo: "google-chrome", cor: "yellow" } }));
+  // [P73: só a escolha de traço DE QUEM USA (`meu`) tem «Desfazer»; a linha do
+  // mapa do projeto é curadoria do repositório.]
+  painel = ficha(aplicativo({ mapa: { glifo: "google-chrome", cor: "yellow", meu: true } }));
   // O RÓTULO NÃO PROMETE O QUE FICA (revisão da P64): «Voltar ao ícone de
   // fábrica» dizia a fábrica logo acima da torrada que dizia o pack.
   const voltar = botao(painel, "Desfazer a escolha no traço");
