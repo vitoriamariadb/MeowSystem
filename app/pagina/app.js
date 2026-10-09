@@ -2860,6 +2860,8 @@ let GLIFOS = { termo: null, itens: [], carregando: false };
  * seguinte (o mesmo defeito que a oficina já teve, ver `OFICINA`). Guarda-se o
  * id do grupo; sem nada guardado, abre a primeira pasta do pack no ar. */
 const PASTAS_ABERTAS = new Map();
+/* A repintura da ficha que está na tela (ver "A TIRA SOBREVIVE À REPINTURA"). */
+let PINTAR_FICHA = null;
 
 async function carregarApps() {
   const r = await api("/api/apps");
@@ -3112,7 +3114,11 @@ function montarEscolhaDeIcone(app, recarregar) {
 
   /* O glifo do mapa do traço não é escolha que a ficha travada ofereça: ele
    * nem está na tira, e o «Usar este ícone» o mandaria para a recusa. */
-  let escolhido = null;
+  /* A ESCOLHA MORA NA BUSCA, E NÃO NESTA CHAMADA — P73. A tira é reaproveitada
+   * entre repinturas (ver "A TIRA SOBREVIVE À REPINTURA", abaixo), e um botão
+   * dela que gravasse numa variável daqui gravaria na ficha de três cliques
+   * atrás. `GLIFOS.escolhido` é a da busca de agora; a `pintarFicha` é a da
+   * ficha que está na tela. */
   /* A COR DE ABERTURA VEM DOS DOIS MAPAS, E ISSO SÓ APARECEU NA FOTO — 09/09/2026
    *
    * Estava `app.mapa ? app.mapa.cor : ordem[0]`: quem tem desenho no acervo de
@@ -3160,15 +3166,23 @@ function montarEscolhaDeIcone(app, recarregar) {
   /* O traço que o app já veste abre marcado, como antes da P73 (`app.mapa`). */
   const vestido = app.mapa && !app.trava
     ? itens.find((g) => g.tipo === "traco" && g.glifo === app.mapa.glifo) : null;
-  if (vestido) escolhido = chaveDe(vestido);
+  if (GLIFOS.escolhido === undefined) GLIFOS.escolhido = vestido ? chaveDe(vestido) : null;
   const grupoDe = (id) => (GLIFOS.grupos || []).find((x) => x.id === id) || { id, acervo: "", nome: id };
   const nomeDoPack = (g) => grupoDe(g.grupo).acervo;
-  const itemEscolhido = () => itens.find((g) => chaveDe(g) === escolhido) || null;
-  const tiraGlifos = elemento("div", { class: "tira-glifos" });
+  const itemEscolhido = () => itens.find((g) => chaveDe(g) === GLIFOS.escolhido) || null;
+  /* A TIRA SOBREVIVE À REPINTURA — 09/10/2026, P73. A página se repinta a cada
+   * clique (uma cor, a oficina), e o `/previa` responde `no-store`: uma tira
+   * nova a cada repintura pedia DE NOVO cada miniatura das pastas abertas —
+   * medido com a biblioteca aberta, 469 pedidos para abrir e 342 a cada
+   * `render()`. Ela é montada uma vez por resposta da busca (e por estado de
+   * trava do app) e guardada na própria `GLIFOS`; a repintura a recoloca. */
+  const chaveDaTira = `${app.id}|${app.trava || ""}|${app.trava_pack || ""}`;
+  const reaproveita = !GLIFOS.carregando && GLIFOS.tira && GLIFOS.chaveDaTira === chaveDaTira;
+  const tiraGlifos = reaproveita ? GLIFOS.tira : elemento("div", { class: "tira-glifos" });
   const notaDaCor = elemento("p", { class: "frase", hidden: true });
   const pintarGlifos = () => {
     for (const b of tiraGlifos.querySelectorAll("button[data-escolha]")) {
-      b.setAttribute("aria-pressed", String(b.dataset.escolha === escolhido));
+      b.setAttribute("aria-pressed", String(b.dataset.escolha === GLIFOS.escolhido));
     }
     /* A COR NÃO VAI COM O DESENHO DO PACK, E A TELA DIZ: ele entra no tema com
      * as cores que tem (o pack declara `recolorir: false`, e nenhum passo o
@@ -3186,8 +3200,12 @@ function montarEscolhaDeIcone(app, recarregar) {
     "data-glifo": g.glifo, "data-escolha": travaDe(g) ? null : chaveDe(g),
     "aria-disabled": travaDe(g) ? "true" : null,
     title: travaDe(g) || `${g.glifo} — ${grupoDe(g.grupo).acervo} · ${grupoDe(g.grupo).nome}`,
-    "aria-pressed": String(chaveDe(g) === escolhido),
-    onclick: () => { if (travaDe(g)) return; escolhido = chaveDe(g); pintarGlifos(); },
+    "aria-pressed": String(chaveDe(g) === GLIFOS.escolhido),
+    onclick: () => {
+      if (travaDe(g)) return;
+      GLIFOS.escolhido = chaveDe(g);
+      if (PINTAR_FICHA) PINTAR_FICHA();
+    },
   }, [
     elemento("img", { src: g.url, alt: "", loading: "lazy" }),
     elemento("span", { texto: g.glifo }),
@@ -3200,28 +3218,36 @@ function montarEscolhaDeIcone(app, recarregar) {
    * alguma coisa. O nome do app não filtra: ele acende a faixa «sugeridos». */
   const pasta = (id, cabeca, conta, filhos, abertaPadrao) => {
     const aberta = PASTAS_ABERTAS.has(id) ? PASTAS_ABERTAS.get(id) : abertaPadrao;
+    /* O ESTADO É GRAVADO NO CLIQUE, E NÃO SÓ NO `toggle`: o `toggle` chega
+     * numa tarefa depois, e uma repintura no meio (a busca que responde)
+     * nasceria com o estado velho — a pasta aberta fechava sozinha. */
+    const resumo = elemento("summary", {
+      onclick: () => PASTAS_ABERTAS.set(id, !det.open),
+    }, [...cabeca, elemento("span", { class: "conta", texto: conta })]);
     const det = elemento("details", { class: "pasta-acervo", "data-grupo": id }, [
-      elemento("summary", {}, [...cabeca, elemento("span", { class: "conta", texto: conta })]),
-      elemento("div", { class: "grade-glifos" }, filhos),
+      resumo, elemento("div", { class: "grade-glifos" }, filhos),
     ]);
     det.open = aberta;
     det.addEventListener("toggle", () => PASTAS_ABERTAS.set(id, det.open));
     return det;
   };
-  if (GLIFOS.carregando) {
+  PINTAR_FICHA = pintarGlifos;
+  if (reaproveita) {
+    /* nada a montar: a tira de antes, com as pastas e as miniaturas dela */
+  } else if (GLIFOS.carregando) {
     tiraGlifos.append(elemento("p", { class: "sem-previa", texto: "Procurando…" }));
   } else if (!itens.length) {
     tiraGlifos.append(elemento("p", { class: "sem-previa",
       texto: GLIFOS.termo ? `Nenhum desenho casa com “${GLIFOS.termo}”.` : "Nenhum desenho no acervo." }));
   }
-  const sugeridos = itens.filter((g) => g.sugerido);
+  const sugeridos = reaproveita ? [] : itens.filter((g) => g.sugerido);
   if (sugeridos.length) {
     tiraGlifos.append(pasta("sugeridos",
       [elemento("span", { class: "dono", texto: "Sugeridos" })],
       String(sugeridos.length), sugeridos.map(botaoDe), true));
   }
   const primeiraNoAr = (GLIFOS.grupos || []).find((x) => x.no_ar && x.achados);
-  for (const gr of GLIFOS.grupos || []) {
+  for (const gr of reaproveita ? [] : GLIFOS.grupos || []) {
     const deles = itens.filter((g) => g.grupo === gr.id);
     if (!deles.length) continue;
     const travaDaPasta = deles.every((g) => travaDe(g)) ? travaDe(deles[0]) : "";
@@ -3232,13 +3258,18 @@ function montarEscolhaDeIcone(app, recarregar) {
         * diz «não vale aqui», e a dica diz por quê. */
        travaDaPasta ? elemento("span", { class: "cadeado", role: "img", "aria-label": "travado",
                                          title: travaDaPasta }) : null],
-      GLIFOS.termo ? `${gr.achados}/${gr.total}` : String(gr.total),
+      /* Com busca, a conta é a do que casou; sem busca, o total da pasta. */
+      String(GLIFOS.termo ? gr.achados : gr.total),
       deles.map(botaoDe),
       !!GLIFOS.termo || (!sugeridos.length && primeiraNoAr && primeiraNoAr.id === gr.id)));
   }
   /* [Até a P73 a trava do pack e o `aviso` da camada desligada eram frases
    * aqui, acima da tira. A trava foi para a dica de cada desenho (acima), e o
    * `aviso` para a do «Levar para o pack», que é o único gesto que ele barra.] */
+  if (!reaproveita && !GLIFOS.carregando) {
+    GLIFOS.tira = tiraGlifos;
+    GLIFOS.chaveDaTira = chaveDaTira;
+  }
   painel.append(tiraGlifos);
 
   const cores = elemento("div", { class: "cores-grade" });
@@ -3293,7 +3324,7 @@ function montarEscolhaDeIcone(app, recarregar) {
      * o pack». O porquê fica na dica, e não numa frase embaixo da ficha. */
     title: "A escolha fica nesta conta; «Levar para o pack» a põe no pack",
     onclick: async () => {
-      if (!escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }
+      if (!GLIFOS.escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }
       /* O DESENHO QUE ENTRA COMO ESTÁ VAI PARA O `scalable/apps`, E O PASSO É
        * OUTRO — P60, e desde a P73 vale para toda pasta que não é traço: quem
        * põe a escolha no tema é o `icones_pack`. A cor não vai junto. */
