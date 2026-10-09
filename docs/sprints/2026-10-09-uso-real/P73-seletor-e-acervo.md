@@ -130,6 +130,7 @@ cita. A spec só nomeia `pastas/`, `gatos/` e `logo.svg`. O motivo é o mesmo da
   traço» era da P60 e só aparecia com desenho de pack. Agora aparece com qualquer desenho
   marcado, e é frase na tela. O princípio pede estado visual, por exemplo apagar a fileira de
   cores quando um desenho está marcado.
+  [Resolvido no QA de uso, 72d9bf3: a fileira se apaga e a frase foi para a dica dela.]
 - (conferência) Abrir a pasta «feitos à mão (PNG)» baixa os 39 PNG inteiros, 41 MB, como
   miniatura, e o `/previa` responde `no-store`. Uma miniatura reduzida resolve.
 - (conferência) Os desenhos de 4 mimetypes e de 6 pastas coloridas da leva da T5 estão na
@@ -137,3 +138,16 @@ cita. A spec só nomeia `pastas/`, `gatos/` e `logo.svg`. O motivo é o mesmo da
   de fora.
 - (conferência) No `app/pagina/app.js`, o `const comBusca = true` da T4 sobrou como constante
   morta, sem efeito.
+- (QA de uso) O «Usar este ícone» com desenho roda o «Pôr os desenhos do pack na tela» na hora
+  (desde a P60): escreve em `~/.local/share/icons/MeowSystem-Icons/scalable/apps` e reindexa a
+  cache. Quem testa o painel com o HOME real escreve no tema da máquina ao escolher um ícone;
+  o QA desta leva escreveu três arquivos assim e os tirou (ver o relatório). Teste de uso do
+  seletor só com HOME temporário.
+- (QA de uso) A ficha marca a escolha dela (7602ec3) e o traço vestido, mas não o desenho do
+  pack que o app já veste sem escolha (o Waterfox abre com o `net.waterfox.waterfox` do pack
+  sem marca). Falta o servidor dizer qual arquivo veste o app.
+- (QA de uso) A busca «firefox» não acha a raposa roxa resgatada
+  (`resgatados/net.waterfox.waterfox.svg`): a linha do Waterfox saiu do `apps-resgatados.map`
+  na P28, e com ela o nome que a busca casaria.
+- (QA de uso) O Discord resgatado (`apps/com.discordapp.Discord.svg`) é roxo-escuro sobre o
+  fundo escuro da ficha e quase some na miniatura; é da arte, não do seletor.
