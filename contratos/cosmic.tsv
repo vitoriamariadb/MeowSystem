@@ -64,3 +64,11 @@ esquema	com.system76.CosmicAppletTime	v1	cosmic-applets	scripts/relogio.sh
 tema	cosmic-theme/src/steps.rs	1006619eca4127ae818cd8c50c4261d1ce541ed80f92ae55b5a90e061351a8be	c003a58	scripts/derivar_acento.py
 tema	cosmic-theme/src/model/theme.rs	41e180abb8af41689b0266a7f684a4753d9f9b1cf2488016b90b4aab578a719d	c003a58	scripts/derivar_flavor.py
 tema	cosmic-theme/src/model/cosmic_palette.rs	093e526b16a1fb906737c44d99737065df95cf8416ccba036f34c6dba033de4b	c003a58	scripts/derivar_flavor.py
+
+# --- revisões que um comentário do meow mediu -----------------------------------
+# O `scripts/appid_dock.sh` descreve o casamento de app-id do `cosmic-app-list`
+# pela crate `freedesktop-desktop-entry` 0.8.1, que o `Cargo.lock` do
+# cosmic-applets 40248fb travava. Medido em 09/10/2026: o instalado é o
+# 82e7cd8, que trava a 0.8.3. A sonda acusa a diferença; o comentário é que
+# precisa ser conferido de novo, não o código.
+revisao	cosmic-applets	40248fb	freedesktop-desktop-entry 0.8.1	scripts/appid_dock.sh

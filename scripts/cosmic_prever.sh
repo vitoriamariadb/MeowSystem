@@ -27,6 +27,8 @@
 #   toolchain  o `rust-version` do fonte contra o rustc que o build usaria
 #   tema       o libcosmic que o `cosmic-settings` candidato pina, e o hash dos
 #              três arquivos da derivação contra o contrato
+#   revisao    cada linha `revisao` do contrato contra a revisão instalada e a
+#              candidata do pacote (o comentário que mediu outra revisão)
 #   icones     os `.desktop` que o candidato traz a mais ou a menos que o
 #              instalado, e os novos sem desenho em mapa nenhum (só informa:
 #              nada é apagado nem desenhado sozinho)
@@ -270,7 +272,20 @@ _cv_tema() { # $1 versão do cosmic-settings candidato
   return 0
 }
 
-# --- 6. ícones: o que entrou, o que saiu, e o que não tem desenho -----------
+# --- 6. revisões que um comentário mediu ---------------------------------------
+_cv_revisao() { # $1 pacote $2 versão $3 "instalado"|"candidato"
+  local tipo alvo rev assunto quem atual="${2##*~}"
+  while IFS=$'\t' read -r tipo alvo rev assunto quem; do
+    [ "$tipo" = "revisao" ] && [ "$alvo" = "$1" ] || continue
+    if [ "$atual" = "$rev" ]; then
+      _cv_dizer revisao verde "$1 $3 é o $atual, o mesmo que $quem mediu ($assunto)"
+    else
+      _cv_dizer revisao amarelo "$1 $3 é o $atual; $quem foi medido no $rev ($assunto) — confira o comentário"
+    fi
+  done < <(grep -v '^#' "$CV_CONTRATO")
+}
+
+# --- 7. ícones: o que entrou, o que saiu, e o que não tem desenho -----------
 CV_MAPAS=("$MEOW_RAIZ"/packs/*/icones/*.map "$MEOW_RAIZ"/assets/icones/*.map)
 
 # 0 = algum mapa dá desenho ao nome de ícone (o primeiro campo da linha).
@@ -335,6 +350,7 @@ cmd_prever() {
     _cv_esquema "$x" "$p"
     _cv_chaves "$x" "$p"
     _cv_icones_candidato "$x" "$p"
+    _cv_revisao "$p" "$v" candidato
     case "$p" in
       cosmic-comp|cosmic-files)
         if arvore="$(_cv_fonte "$p" "$v")"; then
@@ -347,6 +363,11 @@ cmd_prever() {
     esac
   done < <(_cv_candidatos)
   [ "$n" -gt 0 ] || _cv_dizer cosmic verde "nenhum pacote do COSMIC na fila do apt"
+  # A revisão INSTALADA também: o comentário pode estar velho desde já.
+  local alvo_r
+  for alvo_r in $(awk -F'\t' '$1=="revisao" {print $2}' "$CV_CONTRATO" | sort -u); do
+    v="$(dpkg-query -W -f='${Version}' "$alvo_r" 2>/dev/null)" && [ -n "$v" ] && _cv_revisao "$alvo_r" "$v" instalado
+  done
 
   local tmp; mkdir -p "${CV_SAIDA%/*}" && tmp="$(mktemp -p "${CV_SAIDA%/*}" .candidato.XXXXXX)" || return "$MEOW_ERRO"
   { printf '# gravado por meow cosmic prever em %s — NAO EDITAR A MAO\n' "$(date -Is)"
