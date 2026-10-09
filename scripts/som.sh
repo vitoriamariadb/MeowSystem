@@ -350,14 +350,28 @@ _som_tema() {
   fi
   [ "$modo" = "conferir" ] || meow_seco || meow_destino_permitido "$SOM_TEMA_DIR" || return "$MEOW_ERRO"
   MEOW_PY_SECO="$( { [ "$modo" = "conferir" ] || meow_seco; } && echo 1 || echo 0)" \
-  python3 - "$SOM_TEMA_PACK" "$SOM_TEMA_DIR" <<'PY'
+  python3 -I - "$SOM_TEMA_PACK" "$SOM_TEMA_DIR" <<'PY'
 import filecmp, os, shutil, sys
 origem, destino = sys.argv[1], sys.argv[2]
 so_ler = os.environ.get("MEOW_PY_SECO") == "1"
-quer = set()
+# O QUE VEM DO PACK É DADO NÃO CONFIÁVEL — conferência da P74 (alerta de
+#   segurança de 09/10/2026): um pack importado pode trazer em `sons/` um link
+#   para `~/.ssh/id_ed25519`, e o `copyfile` o seguiria. Só entra arquivo
+#   comum, que não é link e cujo `realpath` cai dentro da pasta do tema; o
+#   `os.walk` já não desce por diretório que é link. O resto é pulado e dito.
+dentro = os.path.realpath(origem) + os.sep
+quer, recusados = set(), []
 for raiz, _d, arqs in os.walk(origem):
     for a in arqs:
-        quer.add(os.path.relpath(os.path.join(raiz, a), origem))
+        cheio = os.path.join(raiz, a)
+        if os.path.islink(cheio) or not os.path.isfile(cheio) \
+                or not os.path.realpath(cheio).startswith(dentro):
+            recusados.append(os.path.relpath(cheio, origem))
+            continue
+        quer.add(os.path.relpath(cheio, origem))
+if recusados:
+    sys.stderr.write("  !!   %d arquivo(s) do tema de som do pack são link ou saem dele, e ficaram de fora: %s\n"
+                     % (len(recusados), " ".join(sorted(recusados)[:3])))
 tem = set()
 for raiz, _d, arqs in os.walk(destino):
     for a in arqs:

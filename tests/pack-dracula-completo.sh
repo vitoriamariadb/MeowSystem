@@ -388,6 +388,86 @@ else
   printf 'pulado: sem rsvg-convert, o SVG do pack não se rasteriza\n'
 fi
 
+# --- segurança: o pack é dado não confiável (conferência da P74) -------------
+#   Os alertas de 09/10/2026 (spec, seção «Segurança»): um pack pode ser
+#   importado, e nada que vem dele pode ler ou escrever fora da raiz dele. Um
+#   pack «mal», cópia do Dracula com o que um terceiro poria lá:
+#     · a base pinada é um pacote cuja `pasta` é um LINK para fora (o `curl`
+#       falso entrega o pacote local; o sha256 é o dele, como o pack pinou);
+#     · uma linha do `apps.map` e uma do mapa de tipos de arquivo com `../`
+#       no nome de destino;
+#     · um som, um papel de parede e um ícone de arquivo que são links para um
+#       «segredo» fora do pack;
+#     · um ícone de arquivo derivado que é link no DESTINO (escrever nele seria
+#       escrever no segredo), e um desenho-link na origem da derivação.
+#   Nada sai da casa de brinquedo, o segredo fica intacto, e cada script segue
+#   com o resto.
+TM="$T/mal"; HM="$TM/casa"; FM="$TM/falso"; PM="$TM/packs/mal"
+mkdir -p "$TM/packs" "$FM" "$TM/alvo-fora/scalable/apps" "$TM/tar" \
+         "$HM/.local/share/icons/MeowSystem-Icons/scalable/apps" "$HM/.config/meow"
+cp -r "$RAIZ/packs/dracula" "$PM"; cp -r "$RAIZ/packs/catppuccin" "$TM/packs/malsrc"
+SEGREDO='<svg xmlns="http://www.w3.org/2000/svg"><!-- SEGREDO --></svg>'
+printf '%s\n' "$SEGREDO" > "$TM/segredo.svg"; cp "$TM/segredo.svg" "$TM/segredo.oga"
+printf '[Icon Theme]\nName=Fora\nDirectories=scalable/apps\n[scalable/apps]\nSize=16\n' > "$TM/alvo-fora/index.theme"
+ln -s "$TM/alvo-fora" "$TM/tar/tema"; tar -czf "$TM/base.tar.gz" -C "$TM/tar" tema
+printf '#!/bin/sh\nwhile [ $# -gt 0 ]; do [ "$1" = "-o" ] && { cp "%s" "$2"; exit 0; }; shift; done; exit 1\n' \
+  "$TM/base.tar.gz" > "$FM/curl"; chmod +x "$FM/curl"
+G="$(grep -v '^#' "$RAIZ/packs/catppuccin/icones/mimetypes.map" | grep -v '^$' | head -1 | cut -d: -f2)"
+D="$(sed -e 's/#.*//' "$PM/icones/apps.map" | awk -F: 'NF>=2 { gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2; exit }')"
+python3 - "$PM/pack.json" "$TM/packs/malsrc/pack.json" "$(sha256sum "$TM/base.tar.gz" | cut -d' ' -f1)" <<'PY'
+import json, sys
+a, b, sha = sys.argv[1:4]
+p = json.load(open(a, encoding="utf-8")); p["id"] = "mal"
+p["icones"]["base"]["origem"] = {"url": "https://exemplo.invalid/base.tar.gz", "sha256": sha, "pasta": "tema"}
+p["icones"]["base"].pop("por_tras", None)
+p["icones"]["mimetypes"]["mapa"] = "icones/mimetypes.map"
+p["icones"]["mimetypes"]["derivar"]["de"] = "malsrc"
+json.dump(p, open(a, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+q = json.load(open(b, encoding="utf-8")); q["id"] = "malsrc"
+json.dump(q, open(b, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+PY
+printf '../../../../../../escapou : %s\n' "$D" >> "$PM/icones/apps.map"
+cp "$RAIZ/packs/catppuccin/icones/mimetypes.map" "$PM/icones/mimetypes.map"
+printf '../../../../../../escapou2:%s\n' "$G" >> "$PM/icones/mimetypes.map"
+ln -s "$TM/segredo.oga" "$PM/sons/stereo/notification/vazou.oga"
+ln -s "$TM/segredo.svg" "$PM/wallpapers/catedral/vazou.svg"
+rm -f "$PM/icones/mimetypes/dracula/$G.svg"; ln -s "$TM/segredo.svg" "$PM/icones/mimetypes/dracula/$G.svg"
+ln -s "$TM/segredo.svg" "$TM/packs/malsrc/icones/mimetypes/css-variables/zz_vazou.svg"
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n' > "$HM/.local/share/icons/MeowSystem-Icons/index.theme"
+sed -e 's/^PACK=.*/PACK="mal"/' -e 's/^FLAVOR=.*/FLAVOR="dracula"/' "$RAIZ/meow.conf.exemplo" > "$HM/.config/meow/meow.conf"
+: > "$TM/fontes-vazio.tsv"
+mal() {
+  env -i PATH="$FM:$FALSO:$PATH" HOME="$HM" USER="${USER:-t}" LANG=C.UTF-8 NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+    MEOW_PACKS="$TM/packs" MEOW_ESTADO="$HM/estado" PACK=mal FLAVOR=dracula NOME_TEMA_ICONES=MeowSystem-Icons "$@"
+}
+if [ "$(amb env MEOW_PACKS="$TM/packs" python3 "$RAIZ/scripts/pack.py" validar mal >/dev/null 2>&1; echo $?)" = 0 ]; then
+  mal ICONES_BASE= bash "$RAIZ/scripts/construir_icones.sh" base >"$TM/log-base.txt" 2>&1; rc_base=$?
+  mal ICONES_DRACULA=sim bash "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar >"$TM/log-apps.txt" 2>&1
+  mal ICONES_FLAVOR=dracula ICONES_TEMA=MeowSystem-Icons bash "$RAIZ/scripts/icones_mimetypes.sh" >"$TM/log-mime.txt" 2>&1
+  mal SOM=sim bash "$RAIZ/scripts/som.sh" aplicar >"$TM/log-som.txt" 2>&1
+  mal MEOW_CONF="$HM/.config/meow/meow.conf" WALLPAPER_FONTES="$TM/fontes-vazio.tsv" \
+    bash -c 'set -a; . "$MEOW_CONF"; set +a; PACK=mal; "$MEOW_RAIZ/scripts/wallpaper.sh" semear' >"$TM/log-papel.txt" 2>&1
+  mal python3 "$RAIZ/scripts/pack.py" construir mal >"$TM/log-construir.txt" 2>&1
+  escapou="$(find "$TM" -name 'escapou*' | wc -l)"
+  no_alvo="$(find "$TM/alvo-fora" -name '.meow-*' | wc -l)"
+  vazou="$(grep -rlF 'SEGREDO' "$HM" "$PM/icones/mimetypes" 2>/dev/null | wc -l)"
+  intacto=0; [ "$(cat "$TM/segredo.svg")" = "$SEGREDO" ] && [ "$(cat "$TM/segredo.oga")" = "$SEGREDO" ] && intacto=1
+  if [ "$rc_base" = 2 ] && [ "$no_alvo" = 0 ] && [ ! -L "$HM/.local/share/icons/MeowSystem-Icons-Base" ] \
+     && [ "$escapou" = 0 ] && [ "$vazou" = 0 ] && [ "$intacto" = 1 ] \
+     && [ ! -L "$PM/icones/mimetypes/dracula/$G.svg" ] \
+     && grep -q 'linha(s) com nome fora' "$TM/log-apps.txt" && grep -q 'link ou saem' "$TM/log-som.txt" \
+     && [ "$(find "$HM/.local/share/icons/MeowSystem-Icons/scalable/apps" -name '*.svg' | wc -l)" -gt 100 ]; then
+    ok "segurança: o pack «mal» não lê nem escreve fora da raiz (base com pasta-link, ../ nos mapas, links no som, no papel, nos ícones de arquivo e no destino da derivação)"
+  else
+    falha "segurança: o pack «mal» alcançou fora da raiz" \
+      "base rc=$rc_base escrito no alvo do link=$no_alvo escapou=$escapou segredo copiado=$vazou segredo intacto=$intacto
+$(cat "$TM"/log-base.txt "$TM"/log-apps.txt | tail -6)"
+  fi
+else
+  falha "segurança: o pack «mal» de brinquedo não validou — o teste não exercitou nada" \
+    "$(amb env MEOW_PACKS="$TM/packs" python3 "$RAIZ/scripts/pack.py" validar mal 2>&1 | tail -3)"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"

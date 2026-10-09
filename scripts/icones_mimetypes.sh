@@ -102,7 +102,7 @@ ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
 #   macchiato». Desde a P74 o Dracula traz os dele, e a frase diz o NOME do
 #   pack dono do diretório que veste (o `_pack_de` do pack.py, o mesmo que a
 #   aba Ícones usa). Com o Catppuccin no ar, a frase é a de antes.
-DONO_ACERVO="$( [ -n "$ORIGEM" ] && python3 - "$RAIZ/scripts" "$ORIGEM" <<'PY' 2>/dev/null
+DONO_ACERVO="$( [ -n "$ORIGEM" ] && python3 -I - "$RAIZ/scripts" "$ORIGEM" <<'PY' 2>/dev/null
 import sys
 sys.path.insert(0, sys.argv[1])
 import pack
@@ -137,6 +137,11 @@ _ler_mapa() {
   while IFS= read -r linha; do
     case "$linha" in ''|'#'*) continue ;; esac
     nome="${linha%%:*}"; glifo="${linha#*:}"
+    # Os dois lados viram nome de arquivo (`<nome>.svg` no tema, `<glifo>.svg`
+    # no acervo): só de um conjunto fechado, sem `/` nem `..` — um mapa de pack
+    # importado é dado não confiável (conferência da P74, alerta de segurança
+    # de 09/10/2026). A linha fora dele é pulada.
+    case "$nome$glifo" in *..*|*[!A-Za-z0-9._+-]*) continue ;; esac
     [ -n "$nome" ] && [ -n "$glifo" ] && MAPA_LIDO["$nome"]="$glifo"
   done < "$MAPA"
 }
@@ -162,7 +167,9 @@ _desejado() {
   local nome glifo
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
-    [ -f "$ORIGEM/$glifo.svg" ] && printf '%s\t%s\n' "$nome" "$ORIGEM/$glifo.svg"
+    # Link não entra: o `cat` o seguiria para fora do acervo (P74, idem).
+    [ -f "$ORIGEM/$glifo.svg" ] && [ ! -L "$ORIGEM/$glifo.svg" ] \
+      && printf '%s\t%s\n' "$nome" "$ORIGEM/$glifo.svg"
   done
 }
 

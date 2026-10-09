@@ -408,6 +408,28 @@ _ci_base_baixar() {
     return "$MEOW_ERRO"
   fi
   src="$palco/x/$pasta"
+  # A PASTA É CONFERIDA PELA FORMA QUE VAI SER USADA — conferência da P74
+  #   (alerta de segurança de 09/10/2026). O `pack.py` valida o texto da
+  #   `pasta` (sem `..`, sem barra na frente), mas quem a usa é o disco: um
+  #   pacote pinado por um pack importado pode trazer a pasta, ou um diretório
+  #   do caminho dela, como LINK para fora do palco — e aí o `.meow-origem` e o
+  #   manifesto abaixo seriam escritos dentro do alvo do link, e o `mv` poria o
+  #   link no lugar da base. Então: nenhum componente do caminho é link, e o
+  #   `realpath` dele cai dentro do que o `tar` abriu.
+  local dentro resolvido parcial comp
+  dentro="$(realpath -e -- "$palco/x")"
+  resolvido="$(realpath -e -- "$src" 2>/dev/null)" || resolvido=""
+  parcial="$palco/x"
+  for comp in ${pasta//\// }; do
+    parcial="$parcial/$comp"
+    if [ -L "$parcial" ]; then resolvido=""; break; fi
+  done
+  case "$resolvido" in
+    "$dentro"/*) : ;;
+    *) rm -rf "$palco"
+       meow_erro "a pasta '$pasta' do pacote da base do pack $pack é link, ou sai do pacote — nada instalado"
+       return "$MEOW_ERRO" ;;
+  esac
   if ! _ci_e_tema_de_icones "$src"; then
     rm -rf "$palco"
     meow_erro "o pacote não tem '$pasta' com um index.theme de tema de ícones — nada instalado"

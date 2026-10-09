@@ -4872,6 +4872,7 @@ RE_VAR_CTP = re.compile(r"var\(--vscode-ctp-([a-z0-9]+)\)")
 
 def derivar_mimetypes(ref, seco=False):
     """Escreve `<desenhos>/<flavor>/` para cada flavor da paleta do pack. Levanta Recusa."""
+    import tempfile
     p, dados, dir_pack = validar(ref, silencioso=True)
     ident = p.get("id", os.path.basename(dir_pack))
     bloco = (p.get("icones") or {}).get("mimetypes") or {}
@@ -4880,10 +4881,23 @@ def derivar_mimetypes(ref, seco=False):
     if not origem or not os.path.isdir(origem):
         raise Recusa(f"icones.mimetypes.derivar: o pack {der.get('de')!r} não tem "
                      f"{der.get('pasta')!r} no acervo de mimetype dele")
-    desenhos = sorted(f for f in os.listdir(origem) if f.endswith(".svg"))
+    # SÓ ARQUIVO COMUM DE DENTRO DA ORIGEM — conferência da P74 (alerta de
+    #   segurança de 09/10/2026). O pack de onde se deriva pode ser importado, e
+    #   um `.svg` que é link para fora (`~/.ssh/id_ed25519`) seria lido e escrito
+    #   dentro deste pack. O link, ou o que resolve fora da pasta, fica de fora.
+    dentro_origem = os.path.realpath(origem) + os.sep
+    desenhos = sorted(f for f in os.listdir(origem) if f.endswith(".svg")
+                      and not os.path.islink(os.path.join(origem, f))
+                      and os.path.isfile(os.path.join(origem, f))
+                      and os.path.realpath(os.path.join(origem, f)).startswith(dentro_origem))
     destino_base = _dentro(dir_pack, bloco["desenhos"], "icones.mimetypes.desenhos")
     escritos = removidos = 0
     for flavor, cores in dados["flavors"].items():
+        # O nome do flavor vira diretório: só de um conjunto fechado (o mesmo
+        # do conf), para `../` numa paleta importada não escrever fora do pack.
+        if not RE_FLAVOR_CONF.match(str(flavor)):
+            raise Recusa(f"icones.mimetypes.derivar: o flavor {flavor!r} não é um nome de "
+                         f"diretório aceito (só minúsculas, dígitos e '_')")
         destino = os.path.join(destino_base, flavor)
         if not seco:
             os.makedirs(destino, exist_ok=True)
@@ -4895,16 +4909,24 @@ def derivar_mimetypes(ref, seco=False):
                 raise Recusa(f"{nome}: a paleta {flavor!r} não tem {', '.join(faltou)}")
             novo = RE_VAR_CTP.sub(lambda m: cores[m.group(1)].lower(), texto)
             alvo = os.path.join(destino, nome)
-            try:
-                with open(alvo, encoding="utf-8") as fh:
-                    if fh.read() == novo:
-                        continue
-            except OSError:
-                pass
+            # UM LINK NO DESTINO NÃO É ATRAVESSADO (conferência da P74): o
+            #   `open(alvo, "w")` escreveria no alvo dele, fora do pack. O link
+            #   conta como diferente e é trocado por um arquivo comum, pelo
+            #   temporário + `os.replace`, que substitui o link sem segui-lo.
+            if not os.path.islink(alvo):
+                try:
+                    with open(alvo, encoding="utf-8") as fh:
+                        if fh.read() == novo:
+                            continue
+                except OSError:
+                    pass
             escritos += 1
             if not seco:
-                with open(alvo, "w", encoding="utf-8") as fh:
+                fd, tmp = tempfile.mkstemp(dir=destino, prefix=".meow-")
+                with os.fdopen(fd, "w", encoding="utf-8") as fh:
                     fh.write(novo)
+                os.chmod(tmp, 0o644)
+                os.replace(tmp, alvo)
         if os.path.isdir(destino):
             for nome in sorted(os.listdir(destino)):
                 if nome.endswith(".svg") and nome not in desenhos:
@@ -4912,13 +4934,18 @@ def derivar_mimetypes(ref, seco=False):
                     if not seco:
                         os.remove(os.path.join(destino, nome))
     licenca = os.path.join(os.path.dirname(origem.rstrip("/")), "LICENSE")
-    if os.path.isfile(licenca) and not seco:
+    # A licença pela mesma régua dos desenhos: link não é lido nem atravessado.
+    if os.path.isfile(licenca) and not os.path.islink(licenca) and not seco:
         alvo = os.path.join(destino_base, "LICENSE")
         with open(licenca, encoding="utf-8") as fh:
             texto = fh.read()
-        if not os.path.isfile(alvo) or open(alvo, encoding="utf-8").read() != texto:
-            with open(alvo, "w", encoding="utf-8") as fh:
+        if os.path.islink(alvo) or not os.path.isfile(alvo) \
+                or open(alvo, encoding="utf-8").read() != texto:
+            fd, tmp = tempfile.mkstemp(dir=destino_base, prefix=".meow-")
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 fh.write(texto)
+            os.chmod(tmp, 0o644)
+            os.replace(tmp, alvo)
     verbo = "escreveria" if seco else "escreveu"
     print(f"  {'~~' if escritos or removidos else 'ok'}   {ident}: ícones de arquivo de "
           f"{der.get('de')}/{der.get('pasta')}, {len(desenhos)} por flavor × "

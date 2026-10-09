@@ -149,13 +149,31 @@ _dracula_pares() {
   #   mapa continuava partindo a linha. `substr` a partir do primeiro `:` não
   #   conta campos: ele diz "nome é o que vem antes, caminho é o resto", que é o
   #   formato escrito em docs/PACKS.md.
+  #
+  # O NOME É DADO NÃO CONFIÁVEL — conferência da P74 (alerta de segurança de
+  #   09/10/2026, path traversal). O nome da coluna 1 vira o arquivo
+  #   `scalable/apps/<nome>.svg` no tema, e um mapa de pack importado podia
+  #   dizer `../../../../.config/autostart/x : apps/y.svg` e escrever fora do
+  #   tema. Agora o nome só passa num conjunto fechado (`[A-Za-z0-9._+-]`, sem
+  #   `..`); a linha que falha sai marcada com `!` (que o conjunto não tem),
+  #   é contada no aviso e pulada, e as outras seguem. O desenho de origem já
+  #   era conferido do outro lado: o `pack.py alvo` o resolve com `realpath` e
+  #   recusa o que cai fora da raiz do pack ou do motor (o `_dentro`).
   cru="$(sed -e 's/#.*//' "$MAPA" | awk -F: '
     NF>=2 {
       nome=$1; caminho=substr($0, index($0, ":") + 1)
       gsub(/^[ \t]+|[ \t]+$/, "", nome)
       gsub(/^[ \t]+|[ \t]+$/, "", caminho)
-      if (nome != "" && caminho != "") print nome "\t" caminho
+      if (nome == "" || caminho == "") next
+      if (nome !~ /^[A-Za-z0-9._+-]+$/ || index(nome, "..")) { print "!\t" nome; next }
+      print nome "\t" caminho
     }')"
+  local recusados
+  recusados="$(printf '%s\n' "$cru" | grep -c $'^!\t')"
+  if [ "$recusados" -gt 0 ]; then
+    meow_aviso "$MAPA: $recusados linha(s) com nome fora de [A-Za-z0-9._+-] (ou com '..') puladas: $(printf '%s\n' "$cru" | sed -n $'s/^!\t//p' | head -3 | paste -sd' ')"
+    cru="$(printf '%s\n' "$cru" | grep -v $'^!\t')"
+  fi
   [ -n "$cru" ] || return 0
   paste <(printf '%s\n' "$cru" | cut -f1) \
         <(printf '%s\n' "$cru" | cut -f2 \
