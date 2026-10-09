@@ -9218,6 +9218,7 @@ class Manipulador(BaseHTTPRequestHandler):
         # `_desenhos_do_pack_no_ar` diz (P60): é a lista do «Levar para o pack».
         pack, desenhos, _aviso = self._desenhos_do_pack_no_ar()
         do_mapa = {os.path.normpath(d["caminho"]): d for d in desenhos}
+        textos = self._textos_da_busca(mod)
         for g in mod.acervos_de_icone(_pack_adotado()):
             arquivos = g.pop("arquivos")
             g["total"] = len(arquivos)
@@ -9225,12 +9226,78 @@ class Manipulador(BaseHTTPRequestHandler):
             for caminho in arquivos:
                 nome = os.path.basename(caminho)
                 item = {"glifo": os.path.splitext(nome)[0], "grupo": g["id"], "tipo": g["tipo"],
-                        "caminho": caminho, "_texto": self._sem_acento(os.path.splitext(nome)[0])}
+                        "caminho": caminho,
+                        "_texto": self._sem_acento(" ".join(
+                            [os.path.splitext(nome)[0]]
+                            + textos.get(os.path.normpath(caminho), [])))}
                 no_mapa = do_mapa.get(os.path.normpath(caminho)) if pack else None
                 if no_mapa:
                     item.update(pack=pack["id"], desenho=no_mapa["desenho"])
                 itens.append(item)
         return grupos, itens
+
+    # A BUSCA ACHA PELO NOME DO APP E PELO SIGNIFICADO — 09/10/2026, P73 (T3)
+    #   Medido em 09/10: «firefox» não achava o `apps/net.waterfox.waterfox.svg`
+    #   (o Firefox-Dracula, que o Waterfox veste) e «alienígena» não achava o
+    #   `biblioteca/alien.svg`. A busca casava só o NOME DO ARQUIVO, e o nome do
+    #   arquivo é o nome de ícone em inglês — só ajuda quem já sabe a resposta.
+    #   Duas fontes que já existiam passam a contar:
+    #   · a LINHA DO MAPA de cada pack (`icones.apps.mapa`): o nome de ícone que
+    #     ela veste e o comentário dela, que é o nome do app na tela («Waterfox —
+    #     o Firefox do dracula-icons»). Vale para o desenho que a linha aponta,
+    #     inclusive o do motor por `motor:`;
+    #   · o CATÁLOGO da pasta (`catalog.json`, ao lado dos desenhos), com a
+    #     descrição em português e as etiquetas — o do Dracula_OS-Theme veio
+    #     para a biblioteca do Dracula nesta sprint, com a linha no
+    #     PROCEDENCIA.md.
+    def _textos_da_busca(self, mod):
+        """{caminho normalizado: [textos]}: o que a busca casa além do nome do arquivo."""
+        textos = {}
+
+        def junta(caminho, *partes):
+            textos.setdefault(os.path.normpath(caminho), []).extend(p for p in partes if p)
+
+        mapas = set()
+        for base in mod.raizes():
+            try:
+                ids = sorted(os.listdir(base))
+            except OSError:
+                continue
+            for pid in ids:
+                dir_pack = os.path.join(base, pid)
+                if not os.path.isfile(os.path.join(dir_pack, "pack.json")):
+                    continue
+                mapa = mod.acervo("icones.apps.mapa", ref=dir_pack) or ""
+                if mapa and os.path.isfile(mapa):
+                    mapas.add(os.path.realpath(mapa))
+                bib = os.path.join(dir_pack, mod.PASTA_BIBLIOTECA)
+                try:
+                    with open(os.path.join(bib, "catalog.json"), encoding="utf-8") as fh:
+                        catalogo = json.load(fh)
+                except (OSError, ValueError):
+                    catalogo = {}
+                for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
+                    if isinstance(ficha, dict):
+                        etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
+                        junta(os.path.join(bib, str(arq)), str(ficha.get("descricao") or ""),
+                              *[str(t).replace("_", " ") for t in etiquetas])
+        for mapa in sorted(mapas):
+            try:
+                with open(mapa, encoding="utf-8") as fh:
+                    linhas = fh.read().split("\n")
+            except OSError:
+                continue
+            for linha in linhas:
+                util, _sep, comentario = linha.partition("#")
+                nome, sep, alvo = util.partition(":")
+                if not sep or not nome.strip() or not alvo.strip():
+                    continue
+                try:
+                    caminho = mod.resolver_alvo(alvo.strip(), os.path.dirname(mapa))
+                except mod.Recusa:
+                    continue
+                junta(caminho, nome.strip(), comentario.strip())
+        return textos
 
     def _palpites_do_app(self, app):
         """Os textos que fazem um desenho ser «sugerido» para `app`: o id, o

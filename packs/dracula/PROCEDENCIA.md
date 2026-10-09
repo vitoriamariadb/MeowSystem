@@ -470,6 +470,7 @@ ficou com 367 linhas.
 | `icones/biblioteca/zeus.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/zeus.svg` |  | GPL-3.0 | 2026-09-23 | `34d021605abeee091c33cd292d65221838f7e05249ccf39a05b566060f5371c0` |
 | `icones/biblioteca/zombie-variant.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/zombie-variant.svg` |  | GPL-3.0 | 2026-09-23 | `b2f1c89ba3151eebf8667c0e7fe95dcd4385ba5c92d4067b59772d35a0ce24ce` |
 | `icones/biblioteca/zombie.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/zombie.svg` |  | GPL-3.0 | 2026-09-23 | `647264ce053bf02633e68856f2fb15520a919f378e037416bb47d1482924dc44` |
+| `icones/biblioteca/catalog.json` | `Dracula_OS-Theme` — `catalog.json` (o catálogo dos 295 de `src/icons/new-sessao-atual/`: descrição em português e etiquetas; commit `29b393b1`) |  | GPL-3.0 | 2026-10-09 | `1ab89bbcecbeecc6f1ff9cb7cab0d223306279d54120025ac5880a1051e4156d` |
 
 ### Onde cada origem foi reencontrada — e a diferença com o `CREDITOS.md`
 

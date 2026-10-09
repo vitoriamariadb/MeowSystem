@@ -3453,6 +3453,12 @@ def validar(ref, silencioso=False):
             cheio = os.path.join(pasta_bib, a)
             if a.startswith("."):
                 continue
+            # O CATÁLOGO É O ÚNICO QUE NÃO É DESENHO — 09/10/2026, P73. É dado
+            # sobre os desenhos (descrição em português e etiquetas, um por
+            # arquivo), e a busca da ficha de ícone o lê ao lado deles. Arquivo
+            # comum de texto, com nome fixo: o resto da forma continua valendo.
+            if a == "catalog.json" and os.path.isfile(cheio) and not os.path.islink(cheio):
+                continue
             if not a.endswith(".svg") or os.path.islink(cheio) or not os.path.isfile(cheio):
                 fora_da_forma.append(a)
         _exigir(not fora_da_forma,
