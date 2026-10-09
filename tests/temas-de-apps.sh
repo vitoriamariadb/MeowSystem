@@ -569,9 +569,26 @@ saida="$(mod discord aplicar)"; rc=$?
   || falha "discord: o tema não chegou à pasta do Vencord (rc=$rc)" "$saida"
 saida="$(mod discord conferir)"; rc=$?
 [ "$rc" = 0 ] && ok "discord: depois de aplicar, o conferir dá 0" || falha "discord: conferir devolveu $rc" "$saida"
+# LIGADO NO CLIENTE, E NÃO SÓ NA PASTA — 09/10/2026, P74 item 9 (T6). O tema
+#   vai para a lista `enabledThemes` do `settings/settings.json` do Vencord, e
+#   o que já estava lá fica; o desfazer o tira da lista junto com o arquivo.
+VS="$CASA/.config/Vencord/settings/settings.json"
+ligado() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(" ".join(d.get("enabledThemes",[])), d.get("outra","-"))' "$VS" 2>&1; }
+[ "$(ligado)" = "MeowSystem.theme.css -" ] \
+  && ok "discord: o tema do pack sai ligado no Vencord (enabledThemes)" \
+  || falha "discord: o tema não foi ligado no settings.json do Vencord" "$(ligado)"
+python3 -c 'import json,sys;json.dump({"enabledThemes":["dela.css"],"outra":"fica"},open(sys.argv[1],"w"))' "$VS"
+saida="$(mod discord conferir)"; rc_c=$?
+saida="$saida$(mod discord aplicar)"; rc_a=$?
+[ "$rc_c" = 1 ] && [ "$rc_a" = 1 ] && [ "$(ligado)" = "dela.css MeowSystem.theme.css fica" ] \
+  && ok "discord: desligado, o conferir acusa e o aplicar liga, sem tocar no tema e na chave dela" \
+  || falha "discord: o tema desligado não foi religado, ou o resto do settings.json mudou (rc $rc_c/$rc_a)" "$(ligado)
+$saida"
 saida="$(mod discord reverter)"; rc=$?
-[ "$rc" = 1 ] && [ ! -e "$DC/MeowSystem.theme.css" ] && ok "discord: desfazer tira o tema da pasta" \
-  || falha "discord: desfazer não tirou o tema (rc=$rc)" "$saida"
+[ "$rc" = 1 ] && [ ! -e "$DC/MeowSystem.theme.css" ] && [ "$(ligado)" = "dela.css fica" ] \
+  && ok "discord: desfazer tira o tema da pasta e da lista do cliente" \
+  || falha "discord: desfazer não tirou o tema (rc=$rc)" "$saida
+$(ligado)"
 
 # --- OnlyOffice ----------------------------------------------------------
 #   O conf é de mentira mas tem a forma do de verdade: `appdata` é um JSON em
