@@ -96,7 +96,8 @@ VERBOS
                                      tema=<o que herdar, quando não é o pack>
                                      pack=, url=, sha256=, pasta=
                                  (a origem que a cadeia declara, vazias sem
-                                 ela). Ver `base_que_vale`.
+                                 ela), e uma `atras=<url> <sha256> <pasta>`
+                                 por camada de trás. Ver `base_que_vale`.
     base-apelidos                o tema de onde as pastas e os apelidos de
                                  utilitário copiam desenho (o `ICONES_BASE`
                                  escolhido à mão, ou o Papirus-Dark), e onde
@@ -317,6 +318,9 @@ CAMPOS_COM_LEITOR = {
     # baixar). O `icones.base.herda` já cabe na máscara `*.*.herda`.
     "icones.base.origem.*",
     "origens.cursores.origem.*",
+    # As camadas de trás da base (P74 item 2): o `base_de_icones` as lê, e o
+    # `construir_icones.sh` as baixa pelo verbo `base-icones` (linhas `atras=`).
+    "icones.base.por_tras",
 }
 
 
@@ -2098,7 +2102,11 @@ def _base_escolhida(pedido):
     """
     pedido = (pedido or "").strip()
     nossa = (os.environ.get("NOME_TEMA_ICONES") or "").strip() or "MeowSystem-Icons"
-    return "" if pedido in ("", ICONES_BASE_DO_EXEMPLO, nossa + "-Base") else pedido
+    # As camadas de trás da base (P74 item 2) moram em `<nossa>-Base-<n>`, e
+    # escolher uma delas pelo nome também é pedir a base do pack.
+    if re.fullmatch(re.escape(nossa) + r"-Base(-[0-9]+)?", pedido):
+        return ""
+    return "" if pedido in ("", ICONES_BASE_DO_EXEMPLO) else pedido
 
 
 def base_de_icones(ref=None):
@@ -2117,7 +2125,13 @@ def base_de_icones(ref=None):
         bloco = campo(ref, CATEGORIA_BASE)
         if isinstance(bloco, dict) and not bloco.get("herda") and "origem" in bloco:
             quem = campo(ref, "id") or os.path.basename(dir_pack)
-            return dict(origem_pinada(bloco["origem"], CATEGORIA_BASE + ".origem"), pack=quem)
+            # `por_tras` (P74 item 2): as camadas que ficam atrás da frente, na
+            # ordem do `Inherits=`. Vazia num pack que traz uma base só.
+            atras = [origem_pinada(c.get("origem") if isinstance(c, dict) else None,
+                                   f"{CATEGORIA_BASE}.por_tras[{i}].origem")
+                     for i, c in enumerate(bloco.get("por_tras") or [])]
+            return dict(origem_pinada(bloco["origem"], CATEGORIA_BASE + ".origem"),
+                        pack=quem, por_tras=atras)
         prox = bloco.get("herda") if isinstance(bloco, dict) else None
         ref = prox or campo(ref, "heranca")
     return None
@@ -3649,6 +3663,20 @@ def validar(ref, silencioso=False):
                 "    herda a de outro — as duas juntas não dizem qual.")
         if "origem" in base:
             origem_pinada(base["origem"], CATEGORIA_BASE + ".origem")
+        # AS CAMADAS DE TRÁS (P74 item 2, 09/10/2026): cada uma é uma origem
+        #   pinada como a da frente, e só existem atrás de uma frente — sem a
+        #   `origem`, "por trás" de quê?
+        if "por_tras" in base:
+            atras = base["por_tras"]
+            _exigir("origem" in base and isinstance(atras, list) and atras,
+                    "icones.base.por_tras: uma lista não vazia, e só ao lado de uma `origem` —\n"
+                    "    são as camadas que ficam ATRÁS da base que o pack traz.")
+            for i, camada in enumerate(atras):
+                trilha = f"{CATEGORIA_BASE}.por_tras[{i}]"
+                _exigir(isinstance(camada, dict)
+                        and {k for k in camada if not str(k).startswith("_")} == {"origem"},
+                        f"{trilha}: um objeto com a `origem` e só ela — {{\"origem\": {{…}}}}")
+                origem_pinada(camada["origem"], trilha + ".origem")
 
     fo = p.get(CATEGORIA_FONTES)
     if fo is not None:
@@ -4211,6 +4239,8 @@ def cmd_info(ref):
             else:
                 if b:
                     conta = f"{_url_curta(b['url'])}, sha256 {b['sha256'][:12]}…, do pack {b['pack']}"
+                    if b.get("por_tras"):
+                        conta += f", +{len(b['por_tras'])} por trás"
                 elif a_mao:
                     conta = f"a cadeia não traz base — vale o ICONES_BASE=\"{a_mao}\" do meow.conf"
                 else:
@@ -5932,6 +5962,11 @@ def main(argv):
             print(f"tema={tema}")
             for chave in ("pack", "url", "sha256", "pasta"):
                 print(f"{chave}={(decl or {}).get(chave, '')}")
+            # Uma linha por camada de trás (P74 item 2), na ordem do
+            # `Inherits=`: `atras=<url><TAB><sha256><TAB><pasta>`. Nenhuma
+            # quando o pack traz uma base só, ou quando o conf vence.
+            for c in (decl or {}).get("por_tras", []):
+                print(f"atras={c['url']}\t{c['sha256']}\t{c['pasta']}")
             return OK
         if verbo == "base-apelidos" and len(argv) == 2:
             # A mesma porta do `base-icones`: o `ICONES_BASE` vem do ambiente,

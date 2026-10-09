@@ -70,6 +70,16 @@
         "sha256": "563580916e426ccccb5da5b1a43f2cc0f7ab5d118c24b87776640da45b50acea",
         "pasta": "dracula-icons-00a230a277d5e6ad913b90182977738335afee89"
       },
+      "por_tras": [
+        {
+          "origem": {
+            "url": "https://github.com/m4thewz/dracula-icons/archive/de2a8edd94608ba0ac4dcf5a187af0ffaa511ebc.tar.gz",
+            "sha256": "51db7832983249a6d296154fdb7afab7c51c32ac8813bc5bf73ee89a3e1ebb36",
+            "pasta": "dracula-icons-de2a8edd94608ba0ac4dcf5a187af0ffaa511ebc"
+          }
+        }
+      ],
+      "_nota_por_tras": "O ramo `main` ATRÁS do `circle` (P74 item 2, decisão 1 de 09/10/2026: «as duas, circle por cima, main por trás, como o tema antigo»). Medido em 09/10/2026: dos 1.394 nomes `*-symbolic` do `Dracula-Icones` antigo (backup congelado de 24/09), 458 não existiam no tema + base só com o circle; com o main atrás, 0. É a mesma ordem do `Dracula-Icones` de antes, que herdava `dracula-icons-circle` e depois `dracula-icons-main`. Pinado como o circle: o commit na URL (`de2a8edd`, 02/08/2025, a ponta do `main`, sem tag) e o sha256 do pacote que o GitHub gera para ele, 3.463.683 bytes, baixado duas vezes no mesmo dia com o mesmo sha256. Ele desce para `<NOME_TEMA_ICONES>-Base-2`, ao lado da frente.",
       "_nota": "A BASE: o que veste os milhares de aplicativos fora dos 191 do `apps.map` (P41, 24/09/2026). Até aqui o `MeowSystem-Icons` herdava do `ICONES_BASE` de fábrica, o Papirus-Dark, e o Dracula só saía inteiro numa máquina que tivesse o `Dracula-Icones` montado pelo `rebuild_dracula_theme` do Spellbook — desligado pela P37. Agora o `construir_icones.sh` baixa este pacote, confere o sha256, e herda dele; um `ICONES_BASE` escolhido à mão no meow.conf continua vencendo.",
       "_nota_ramo": "O ramo `circle`, e não o `main`. Medido em 24/09/2026: o `Dracula-Icones` que vestia esta máquina herdava `dracula-icons-circle` ANTES do `main`, então o que ela via fora dos 191 era o circle — escolhê-lo não muda a tela de quem já usava o Dracula. A cobertura dos dois é quase a mesma, contada nos pacotes dos dois commits (24.958 SVG no circle, 25.635 no main; 701 nomes só no main, 540 deles simbólicos, que caem no breeze-dark, Cosmic e Adwaita da cadeia; 24 só no circle), e os desenhos que este pack já copiou do upstream vieram quase todos do circle.",
       "_nota_pino": "Pinado pelo COMMIT, na URL, e pelo sha256 do pacote. O ramo `circle` não tem tag nem release (medido em 24/09/2026: `00a230a2`, de 26/05/2024, é a ponta dele), e o pacote é o que o GitHub gera para aquele commit — 3.701.762 bytes, baixado duas vezes no mesmo dia com o mesmo sha256. Se um dia o GitHub mudar a compressão desse pacote, o sha256 deixa de bater e o `construir_icones.sh` para dizendo os dois números: é o pino fazendo o trabalho dele."

@@ -63,6 +63,10 @@ BASE_DIR="$HOME/.local/share/icons/$TEMA_BASE"
 # O que o `Inherits=` escreve. Começa como sempre foi, e a `_ci_base` o troca
 # pela base do pack quando ela vale e está no disco.
 HERDA="$ICONES_BASE"
+# As camadas que ficam ATRÁS da base (P74 item 2, 09/10/2026): `,<nome>` por
+# camada que está no disco, na ordem do `icones.base.por_tras` do pack. Moram
+# em `$TEMA_BASE-2`, `-3`…, ao lado da frente, com a mesma régua dela.
+HERDA_ATRAS=""
 
 # ---------------------------------------------------------------------------
 # `adicionar <pasta-ou-zip>` e `remover <nome>` — um acervo de ícones de fora
@@ -111,7 +115,7 @@ _ci_nome_seguro() {
 _ci_nome_recusado() {
   case "$1" in
     "$TEMA_NOME") meow_erro "'$1' é o tema que este script constrói — recusado"; return 0 ;;
-    "$TEMA_BASE") meow_erro "'$1' é a base que o pack traz, e quem a põe e a tira é o 'construir_icones.sh base' — recusado"; return 0 ;;
+    "$TEMA_BASE"|"$TEMA_BASE"-[0-9]*) meow_erro "'$1' é a base que o pack traz, e quem a põe e a tira é o 'construir_icones.sh base' — recusado"; return 0 ;;
     hicolor)      meow_erro "'hicolor' é a hierarquia de reserva do sistema, não um tema — recusado"; return 0 ;;
     default)      meow_erro "'default' é o tema de ponteiro do compositor — recusado"; return 0 ;;
   esac
@@ -449,11 +453,71 @@ _ci_base_baixar() {
   return "$MEOW_DIVERGENTE"
 }
 
+# AS CAMADAS DE TRÁS — 09/10/2026, P74 item 2 (T10 e a decisão 1)
+#   A base do Dracula é o `circle` do m4thewz; o `Dracula-Icones` de antes
+#   herdava o `circle` e, ATRÁS dele, o `main`, e é do `main` que vinham 458
+#   nomes `*-symbolic` que a cadeia nova perdeu em 24/09 (medido contra o
+#   backup congelado). O pack declara as camadas em `icones.base.por_tras`, e
+#   cada uma passa pela mesma régua da frente — o mesmo `_ci_base_baixar`, o
+#   mesmo `_ci_base_confere`, o mesmo `_ci_base_tirar` —, com o `BASE_DIR`
+#   local apontando para o diretório dela: as três funções leem o `BASE_DIR`
+#   do escopo de quem chama, e uma régua só é o que impede duas verdades sobre
+#   o que é "uma base inteira".
+
+# Tira as camadas `$TEMA_BASE-<n>` com n >= $1 (as que o pack no ar não usa).
+_ci_base_tirar_atras() {
+  local desde="$1" porque="$2" d n rc pior="$MEOW_OK" BASE_DIR
+  for d in "$HOME/.local/share/icons/$TEMA_BASE"-[0-9]*; do
+    [ -d "$d" ] || continue
+    n="${d##*-}"
+    case "$n" in ''|*[!0-9]*) continue ;; esac
+    [ "$n" -ge "$desde" ] || continue
+    BASE_DIR="$d"
+    _ci_base_tirar "$porque"; rc=$?
+    [ "$rc" -gt "$pior" ] && pior="$rc"
+  done
+  return "$pior"
+}
+
+# Põe ou confere cada camada de trás, das linhas `atras=` do verbo (em $1), e
+# escreve o `HERDA_ATRAS`. 0 = nada mudou · 1 = mudou · 2 = erro
+_ci_base_camadas() {
+  local linhas="$1" pack="$2" url sha pasta n=1 rc pior="$MEOW_OK" BASE_DIR
+  HERDA_ATRAS=""
+  while IFS=$'\t' read -r url sha pasta; do
+    [ -n "$url" ] || continue
+    n=$((n + 1))
+    BASE_DIR="$HOME/.local/share/icons/$TEMA_BASE-$n"
+    if _ci_base_confere "$sha"; then
+      HERDA_ATRAS="$HERDA_ATRAS,$TEMA_BASE-$n"
+      continue
+    fi
+    if meow_seco; then
+      meow_muda "baixaria a camada $n da base de ícones do pack $pack e a instalaria em $BASE_DIR"
+      HERDA_ATRAS="$HERDA_ATRAS,$TEMA_BASE-$n"; pior="$MEOW_DIVERGENTE"
+      continue
+    fi
+    _ci_base_baixar "$url" "$sha" "$pasta" "$pack"; rc=$?
+    case "$rc" in
+      1) HERDA_ATRAS="$HERDA_ATRAS,$TEMA_BASE-$n"; pior="$MEOW_DIVERGENTE" ;;
+      3) # Sem rede: a camada de antes, se houver, segue valendo, como na frente.
+         if [ -f "$BASE_DIR/.meow-origem" ] && _ci_e_tema_de_icones "$BASE_DIR"; then
+           HERDA_ATRAS="$HERDA_ATRAS,$TEMA_BASE-$n"
+         fi ;;
+      *) return "$MEOW_ERRO" ;;
+    esac
+  done < <(printf '%s\n' "$linhas" | sed -n 's/^atras=//p')
+  _ci_base_tirar_atras "$((n + 1))" "o pack $pack traz $((n - 1)) camada(s) por trás"; rc=$?
+  [ "$rc" -gt "$pior" ] && pior="$rc"
+  return "$pior"
+}
+
 # Decide o `$HERDA` e põe (ou tira) a base no disco.
 # 0 = nada mudou · 1 = mudou, ou mudaria no seco · 2 = erro
 _ci_base() {
-  local saida quem tema pack url sha pasta rc
+  local saida quem tema pack url sha pasta rc rc_atras
   HERDA="$ICONES_BASE"
+  HERDA_ATRAS=""
   meow_tem python3 || return "$MEOW_OK"
   # `"$(meow_pack_dir)"` vazio é o pack padrão, a mesma porta do `cursor.sh` e
   # do `instalar_fontes.sh`. Recusado (o pack declara uma origem torta) quer
@@ -483,14 +547,21 @@ _ci_base() {
     # `ICONES_BASE="Dracula-Icones"`, e o Dracula agora traz a própria base.
     [ "$quem" = "conf" ] && [ -n "$pack" ] && \
       meow_info "o pack $pack traz uma base de ícones; vale o ICONES_BASE=\"$tema\" do meow.conf"
-    _ci_base_tirar "o '$TEMA_NOME' herda de '$HERDA'"
-    return $?
+    _ci_base_tirar "o '$TEMA_NOME' herda de '$HERDA'"; rc=$?
+    _ci_base_tirar_atras 2 "o '$TEMA_NOME' herda de '$HERDA'"; rc_atras=$?
+    [ "$rc_atras" -gt "$rc" ] && rc="$rc_atras"
+    return "$rc"
   fi
+
+  # As camadas de trás antes da frente: elas não decidem nada da frente, e
+  # assim os três retornos de baixo (confere, seco, baixou) levam o delas junto.
+  _ci_base_camadas "$saida" "$pack"; rc_atras=$?
+  [ "$rc_atras" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
 
   if _ci_base_confere "$sha"; then
     meow_ok "a base de ícones do pack $pack está em $BASE_DIR e confere"
     HERDA="$TEMA_BASE"
-    return "$MEOW_OK"
+    return "$rc_atras"
   fi
   # No seco não se baixa: baixar é gastar a rede dela para ensaiar, e abrir o
   # pacote é escrever. O `Inherits=` do ensaio é o que a execução deixaria.
@@ -510,7 +581,7 @@ _ci_base() {
        else
          meow_info "  até lá o '$TEMA_NOME' herda de '$ICONES_BASE'"
        fi
-       return "$MEOW_OK" ;;
+       return "$rc_atras" ;;
     *) return "$MEOW_ERRO" ;;
   esac
 }
@@ -518,7 +589,7 @@ _ci_base() {
 _ci_base_cmd() {
   local rc
   _ci_base; rc=$?
-  meow_info "o '$TEMA_NOME' herda de '$HERDA'"
+  meow_info "o '$TEMA_NOME' herda de '$HERDA$HERDA_ATRAS'"
   return "$rc"
 }
 
@@ -658,7 +729,7 @@ indice() {
 [Icon Theme]
 Name=$TEMA_NOME
 Comment=Catppuccin $FLAVOR para o COSMIC — gerado pelo MeowSystem-Theme
-Inherits=$HERDA,breeze-dark,Cosmic,Adwaita,hicolor
+Inherits=$HERDA$HERDA_ATRAS,breeze-dark,Cosmic,Adwaita,hicolor
 Directories=$dirs
 
 [scalable/apps]

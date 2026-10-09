@@ -89,6 +89,7 @@ PORTATIL=(
   claro-do-pack.sh       # COSMIC, os dois packs e HOME de brinquedo; a foto só é lida (P63); bash e python3
   notas-de-funcao.sh     # COSMIC, packs, HOME e estado de brinquedo; as etapas do install.sh e os passos de ícone (P66); bash e python3
   frases-velhas.sh       # lê o que está versionado e pergunta ao git a idade da folha dos resgatados (P67); bash, git e python3
+  pack-dracula-completo.sh # o pack Dracula completo e exportável, packs e HOME de brinquedo (P74); bash e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
