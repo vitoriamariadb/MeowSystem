@@ -957,8 +957,9 @@ chk_midia() {
     "$RAIZ/scripts/midia.sh" --conferir 2>&1
 }
 
-# Só confere — não existe `fix_midiabin`, e a ausência é a metade que faz o
-# comentário acima valer. Ver `SEM_CONSERTO`.
+# P76: o `fix_midiabin` existe desde 09/10/2026 — ver o bloco do `SEM_CONSERTO`.
+# Os dois nomes continuam separados pelo motivo acima: o conserto da sombra
+# órfã não pode esperar um build.
 chk_midiabin() {
   MIDIA="${MIDIA:-}" "$RAIZ/scripts/midia_build.sh" --conferir 2>&1
 }
@@ -1547,7 +1548,9 @@ chk_leitura() {
 #
 #   Compilar continua não sendo trabalho do doctor: o caminho do `cargo` é
 #   inalcançável sem `LEITURA_COMPILAR=1`, e quem exporta essa chave é o
-#   `install.sh`. Por isso `leiturabin` está em SEM_CONSERTO.
+#   `install.sh`. Por isso `leiturabin` estava em SEM_CONSERTO — até 09/10/2026
+#   (P76), quando o conserto virou rebuild que segue o painel; ver o bloco do
+#   `SEM_CONSERTO`.
 #
 #   Sem lista de `export` aqui, pelo mesmo motivo do `chk_leitura`: o `set -a` do
 #   `carregar_conf` já exporta toda chave do meow.conf, e lista fixa é a
@@ -1842,8 +1845,8 @@ fix_wallpaper() { WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WA
 fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
   SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" \
                     "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1; }
-# Só a sombra, as chaves e o fail-safe. O par `midiabin` não tem `fix_` — ver o
-# comentário do `chk_midia`.
+# Só a sombra, as chaves e o fail-safe. O par `midiabin` tem o `fix_` dele, que
+# compila (P76) — ver o comentário do `chk_midia` para por que são dois.
 fix_midia()     { MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
                     MIDIA_COR_ALBUM="${MIDIA_COR_ALBUM:-}" MIDIA_CAPA="${MIDIA_CAPA:-}" \
                     MIDIA_FONTE="${MIDIA_FONTE:-}" MIDIA_COR_TITULO="${MIDIA_COR_TITULO:-}" \
@@ -1856,6 +1859,13 @@ fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
                     VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-}" \
                     "$RAIZ/scripts/vidro.sh" 2>&1; }
 fix_forma()     { rodar_forma "$RAIZ" 2>&1; }
+# OS DOIS APPLETS SE RECOMPILAM — 09/10/2026, P76. Em escopo de usuário, sem
+# sudo, e só quando o `--conferir` deles diz divergente (o carimbo não bate:
+# a receita mudou, ou o libcosmic do painel andou). A chave `*_COMPILAR=1` é a
+# mesma que o `install.sh` exporta.
+fix_midiabin()   { MIDIA="${MIDIA:-}" MIDIA_COMPILAR=1 "$RAIZ/scripts/midia_build.sh" --aplicar 2>&1; }
+fix_leiturabin() { LEITURA_COMPILAR=1 "$RAIZ/scripts/leitura_build.sh" --aplicar 2>&1; }
+
 fix_painel()    {
   rodar_painel "$RAIZ" conferir 2>&1
   local rc=$?
@@ -2030,9 +2040,16 @@ VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relo
 #   escreve em `/etc/sudoers.d`, e um auto-reparo por relógio não escreve em
 #   `/etc/sudoers.d` — essa continua sendo uma decisão que passa por ela, no
 #   `./install.sh`, com a senha na mão.
-SEM_CONSERTO=" conf ponte convertidos heroictema midiabin leiturabin cursor patches cli pacotes upstream fontes "
+#
+#   `midiabin` e `leiturabin` SAÍRAM DAQUI EM 09/10/2026 (P76). Estavam porque
+#   o conserto compila, e compilar não era do doctor. O que mudou: o conserto
+#   é um rebuild em escopo de usuário, sem sudo, e o motivo de ele precisar
+#   acontecer passou a ser o apt (o libcosmic do painel que o applet segue;
+#   ver `scripts/applet_pino.sh`) — e o doctor que roda depois do apt é o do
+#   pós-apt. O doctor corrige; ele não manda rodar.
+SEM_CONSERTO=" conf ponte convertidos heroictema cursor patches cli pacotes upstream fontes "
 if ! meow_ponte_viva; then
-  SEM_CONSERTO=" conf ponte ocultar absolutos convertidos lancadorapt heroictema midiabin leiturabin cursor patches cli pacotes upstream fontes "
+  SEM_CONSERTO=" conf ponte ocultar absolutos convertidos lancadorapt heroictema cursor patches cli pacotes upstream fontes "
 fi
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -2056,8 +2073,6 @@ declare -A SEM_CONSERTO_RAZAO=(
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
   [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste assets/temas-de-apps/heroic/manifesto.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
-  [midiabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: MIDIA_COMPILAR=1 ./scripts/midia_build.sh"
-  [leiturabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
   [cursor]="o conserto pode BAIXAR o ponteiro que nem o disco nem o pack trazem, e o doctor não roda o que pode baixar — rode: ./scripts/cursor.sh aplicar"
   [patches]="o conserto RECOMPILA o cosmic-comp (~4 min) e instala com sudo, e o doctor não compila nem usa sudo — rode: meow compositor"
   [cli]="quem copia a CLI para ~/.local/bin é o instalador, e uma CLI que se reescreve no meio da própria execução é decisão sua — rode: ./install.sh"

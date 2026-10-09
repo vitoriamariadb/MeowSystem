@@ -137,6 +137,17 @@ MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1
 LEITURA_APPLET="${LEITURA_APPLET:-sim}"
 COMPILAR="${LEITURA_COMPILAR:-0}"
 
+# O PINO ANDA COM O PAINEL — 09/10/2026, P76
+#   O `rev` do libcosmic no `Cargo.toml` daqui é o conhecido-bom (1f6dc99). O
+#   applet passa a compilar contra o libcosmic do cosmic-panel INSTALADO, numa
+#   cópia da receita com o `rev` trocado (`$ESTADO/receita-painel`); se não
+#   compilar ali, fica registrado e o build volta ao pino. A regra inteira está
+#   no `scripts/applet_pino.sh`. O carimbo ganha a linha `libcosmic` só quando
+#   o alvo não é o pino — assim um carimbo antigo, do pino, continua batendo.
+. "$RAIZ/scripts/applet_pino.sh"
+PINO_REV="$(ap_rev_do_lock "$TRAVA")"
+_alvo_rev() { ap_alvo leitura "$PINO_REV"; }
+
 CONFERIR=0; REVERTER=0
 case "${1:-}" in
   --conferir) CONFERIR=1 ;;
@@ -145,6 +156,8 @@ case "${1:-}" in
   *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar|--reverter]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && [ "$REVERTER" = 0 ] && CONFERIR=1
+# P76: conferir é só leitura também para a regra do pino (`applet_pino.sh`).
+[ "$CONFERIR" = 1 ] && AP_SO_LER=1
 
 _sha() { sha256sum -- "$1" 2>/dev/null | cut -d' ' -f1; }
 
@@ -209,9 +222,11 @@ _sha_arte() {
 }
 
 _carimbo_vivo() {
+  local alvo; alvo="$(_alvo_rev)"
   printf 'fonte %s\nreceita %s\ntrava %s\narte %s\nbinario %s\nrustc %s\n' \
     "$(_sha "$FONTE")" "$(_sha "$MANIFESTO")" "$(_sha "$TRAVA")" \
     "$(_sha_arte)" "$(_sha "$BINARIO")" "$(_rustc_versao)"
+  [ "$alvo" = "$PINO_REV" ] || printf 'libcosmic %s\n' "$alvo"
 }
 
 # Compara campo a campo. Campo VIVO vazio é pulado (é o caso do rustc no seco);
@@ -399,7 +414,26 @@ _aplicar() {
   mkdir -p "$ESTADO" || { meow_erro "não consegui criar $ESTADO"; return "$MEOW_ERRO"; }
 
   meow_info "compilando o applet do modo de leitura (build frio de libcosmic: dezenas de minutos)"
-  if ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
+  # PRIMEIRO O LIBCOSMIC DO PAINEL, quando ele não é o pino: a receita é
+  # copiada, o `rev` trocado, e o `Cargo.lock` da cópia se refaz (sem
+  # `--locked`, de propósito: ele é que precisa andar). Se não compilar, a
+  # revisão fica registrada e segue o build de sempre, no pino.
+  local alvo_rev compilou=0
+  alvo_rev="$(_alvo_rev)"
+  if [ "$alvo_rev" != "$PINO_REV" ]; then
+    local copia="$ESTADO/receita-painel"
+    rm -rf "$copia" && mkdir -p "$copia" && cp -a "$RECEITA"/. "$copia"/ \
+      && sed -i "s/$PINO_REV/$alvo_rev/" "$copia/Cargo.toml"
+    meow_info "compilando contra o libcosmic do painel instalado (${alvo_rev:0:7})"
+    if CARGO_TARGET_DIR="$ALVO" cargo build --release \
+         --manifest-path "$copia/Cargo.toml" >/dev/null 2>&1; then
+      compilou=1
+    else
+      ap_falhou leitura "$alvo_rev"
+      meow_aviso "o applet não compila no libcosmic ${alvo_rev:0:7} do painel — volta ao pino ${PINO_REV:0:7}"
+    fi
+  fi
+  if [ "$compilou" = 0 ] && ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
         --manifest-path "$MANIFESTO" >/dev/null 2>&1; then
     meow_erro "o cargo falhou — veja o motivo com:"
     meow_info "  CARGO_TARGET_DIR=$ALVO cargo build --release --locked --manifest-path $MANIFESTO"
@@ -424,6 +458,8 @@ _aplicar() {
     2) meow_erro "não consegui escrever $SOMBRA"; return "$MEOW_ERRO" ;;
   esac
 
+  # A BASE ANTES DO CARIMBO: o carimbo pergunta o alvo, e o alvo lê a base.
+  if [ "$compilou" = 1 ]; then ap_compilou leitura "$alvo_rev"; else ap_compilou leitura "$PINO_REV"; fi
   _carimbo_vivo > "$CARIMBO" || { meow_erro "não consegui gravar o carimbo"; return "$MEOW_ERRO"; }
 
   meow_ok "applet do modo de leitura compilado e instalado ($(_sha "$BINARIO" | cut -c1-8))"
