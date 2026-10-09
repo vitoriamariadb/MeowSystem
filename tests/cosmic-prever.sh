@@ -17,6 +17,14 @@ T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 # O rustup de verdade, lido ANTES de o HOME virar brinquedo: a sonda pergunta
 # ao rustc de dentro da árvore, e o rustup acha os toolchains pelo RUSTUP_HOME.
 RH="${RUSTUP_HOME:-$HOME/.rustup}"; CH="${CARGO_HOME:-$HOME/.cargo}"
+# A SUÍTE RODA COM HOME DE BRINQUEDO (conferência da P76): aí o `$HOME/.rustup`
+# não existe, o proxy `rustc` do PATH não acha toolchain nenhum, e o teste
+# acusava "o toolchain não saiu vermelho" sem a sonda ter errado. O rustup de
+# verdade é lido (só lido) no lar da conta, que o `getent` diz.
+if [ ! -d "$RH/toolchains" ]; then
+  _lar="$(getent passwd "$(id -un)" | cut -d: -f6)"
+  [ -d "$_lar/.rustup/toolchains" ] && { RH="$_lar/.rustup"; CH="$_lar/.cargo"; }
+fi
 falhas=0
 ok()    { printf '  ok    %s\n' "$*"; }
 falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
@@ -87,7 +95,7 @@ prever quebrado; rc=$?
 [ "$(veredito quebrado série vermelho)" = 1 ] && ok "o req que não entra: vermelho" || falha "a série não saiu vermelha"
 [ "$(veredito quebrado icones amarelo)" = 1 ] && ok "o .desktop novo sem desenho: amarelo" || falha "o .desktop novo não foi acusado"
 [ "$(veredito bom icones amarelo)" = 0 ] && ok "o bom não traz .desktop novo" || falha "o bom acusou ícone"
-if command -v rustc >/dev/null 2>&1; then
+if RUSTUP_HOME="$RH" CARGO_HOME="$CH" RUSTUP_AUTO_INSTALL=0 rustc --version >/dev/null 2>&1; then
   [ "$(veredito quebrado toolchain vermelho)" = 1 ] && ok "rust-version 999.0: vermelho" || falha "o toolchain não saiu vermelho"
 else
   ok "sem rustc nesta máquina: toolchain não medido (pulado)"
