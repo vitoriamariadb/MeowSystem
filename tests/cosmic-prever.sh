@@ -6,7 +6,8 @@
 #   bom       mesmo `v1` de hoje, as duas chaves do contrato no binário, o patch
 #             da série entra com `-F0`, `rust-version` antigo;
 #   quebrado  o pacote sobe para `v3`, uma chave do contrato sumiu do binário,
-#             o hunk do patch não casa mais, `rust-version` que nenhum rustc tem.
+#             o hunk do patch não casa mais, `rust-version` que nenhum rustc tem,
+#             e entra um `.desktop` cujo ícone nenhum mapa desenha.
 # O veredito precisa sair diferente: o bom sem vermelho (rc 0), o quebrado com
 # vermelho em chave, série e toolchain (rc 1) e amarelo em esquema.
 # Tudo em diretórios de brinquedo: nada de apt, rede, sudo nem HOME de verdade.
@@ -45,6 +46,11 @@ montar() { # $1 nome $2 versão $3 v-do-esquema $4 chaves-no-binário $5 corpo-d
   mkdir -p "$d/DEBIAN" "$d/usr/bin" "$d/usr/share/cosmic/com.system76.CosmicComp/$3"
   printf 'Package: cosmic-comp\nVersion: %s\nArchitecture: all\nMaintainer: teste <t@t>\nDescription: brinquedo\n' "$2" > "$d/DEBIAN/control"
   printf '%s\n' "$4" > "$d/usr/bin/cosmic-comp"
+  if [ "$1" = quebrado ]; then
+    mkdir -p "$d/usr/share/applications"
+    printf '[Desktop Entry]\nName=Brinquedo\nIcon=com.system76.CosmicBrinquedo\nType=Application\n' \
+      > "$d/usr/share/applications/com.system76.CosmicBrinquedo.desktop"
+  fi
   mkdir -p "$T/debs-$1"
   dpkg-deb -b --root-owner-group "$d" "$T/debs-$1/cosmic-comp_$2_all.deb" >/dev/null 2>&1 || return 1
   local f="$T/fonte-$1/cosmic-comp-$2"
@@ -79,6 +85,8 @@ prever quebrado; rc=$?
 [ "$(veredito quebrado esquema amarelo)" = 1 ] && ok "esquema v1 -> v3: amarelo" || falha "o v3 não foi acusado"
 [ "$(veredito quebrado chave vermelho)" = 1 ] && ok "a chave que sumiu: vermelho" || falha "a chave sumida não saiu vermelha"
 [ "$(veredito quebrado série vermelho)" = 1 ] && ok "o req que não entra: vermelho" || falha "a série não saiu vermelha"
+[ "$(veredito quebrado icones amarelo)" = 1 ] && ok "o .desktop novo sem desenho: amarelo" || falha "o .desktop novo não foi acusado"
+[ "$(veredito bom icones amarelo)" = 0 ] && ok "o bom não traz .desktop novo" || falha "o bom acusou ícone"
 if command -v rustc >/dev/null 2>&1; then
   [ "$(veredito quebrado toolchain vermelho)" = 1 ] && ok "rust-version 999.0: vermelho" || falha "o toolchain não saiu vermelho"
 else

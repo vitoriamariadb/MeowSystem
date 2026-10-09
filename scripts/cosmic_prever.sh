@@ -5,6 +5,7 @@
 #   ./cosmic_prever.sh --debs D --fontes F   .deb e fontes já baixados (teste, ou medida à mão)
 #   ./cosmic_prever.sh --sem-rede            não pergunta ao GitHub (o item tema fica "não medido")
 #   ./cosmic_prever.sh ler                   imprime o último veredito gravado
+#   ./cosmic_prever.sh icones                os apps do COSMIC instalados sem desenho em mapa nenhum
 #
 # O rosto é o `meow cosmic prever`. Sai 0 sem vermelho, 1 com algum vermelho,
 # 2 em erro deste script. NÃO bloqueia upgrade nenhum: o veredito só decide o
@@ -26,6 +27,9 @@
 #   toolchain  o `rust-version` do fonte contra o rustc que o build usaria
 #   tema       o libcosmic que o `cosmic-settings` candidato pina, e o hash dos
 #              três arquivos da derivação contra o contrato
+#   icones     os `.desktop` que o candidato traz a mais ou a menos que o
+#              instalado, e os novos sem desenho em mapa nenhum (só informa:
+#              nada é apagado nem desenhado sozinho)
 #
 # OS TRÊS VEREDITOS, e a regra de quem usa: gente só entra no vermelho.
 #   verde     nada a fazer;
@@ -266,6 +270,60 @@ _cv_tema() { # $1 versão do cosmic-settings candidato
   return 0
 }
 
+# --- 6. ícones: o que entrou, o que saiu, e o que não tem desenho -----------
+CV_MAPAS=("$MEOW_RAIZ"/packs/*/icones/*.map "$MEOW_RAIZ"/assets/icones/*.map)
+
+# 0 = algum mapa dá desenho ao nome de ícone (o primeiro campo da linha).
+_cv_tem_arte() {
+  local nome="$1"
+  grep -qhE "^${nome//./\\.}([: 	]|$)" "${CV_MAPAS[@]}" 2>/dev/null
+}
+
+# Os `.desktop` visíveis de uma árvore (`/` para o instalado), um
+# "<arquivo><TAB><Icon>" por linha.
+_cv_desktops() { # $1 raiz $2.. arquivos .desktop relativos ou absolutos
+  local raiz="$1" d i; shift
+  for d in "$@"; do
+    [ -f "$raiz$d" ] || continue
+    grep -qi '^NoDisplay=true' "$raiz$d" && continue
+    i="$(sed -n 's/^Icon=//p' "$raiz$d" | head -1)"
+    printf '%s\t%s\n' "${d##*/}" "$i"
+  done
+}
+
+_cv_icones_candidato() { # $1 árvore extraída $2 pacote
+  local -a novos=() velhos=()
+  mapfile -t novos < <(cd "$1" && find usr/share/applications -maxdepth 1 -name '*.desktop' 2>/dev/null | sed 's|^|/|' | sort)
+  mapfile -t velhos < <(dpkg -L "$2" 2>/dev/null | grep '^/usr/share/applications/[^/]*\.desktop$' | sort)
+  local d i entrou saiu
+  entrou="$(comm -13 <(printf '%s\n' "${velhos[@]##*/}" | sort) <(printf '%s\n' "${novos[@]##*/}" | sort) | sed '/^$/d')"
+  saiu="$(comm -23 <(printf '%s\n' "${velhos[@]##*/}" | sort) <(printf '%s\n' "${novos[@]##*/}" | sort) | sed '/^$/d')"
+  [ -n "$saiu" ] && _cv_dizer icones amarelo "$2: saem $(printf '%s' "$saiu" | tr '\n' ' ')— o desenho deles fica no mapa, sem uso"
+  while IFS=$'\t' read -r d i; do
+    printf '%s\n' "$entrou" | grep -qxF "$d" || continue
+    if _cv_tem_arte "$i"; then
+      _cv_dizer icones verde "$2: entra $d, e o mapa já tem desenho para $i"
+    else
+      _cv_dizer icones amarelo "$2: entra $d sem desenho em mapa nenhum ($i) — vale o do tema herdado"
+    fi
+  done < <(_cv_desktops "$1" "${novos[@]}")
+  return 0
+}
+
+cmd_icones() {
+  local d i n=0
+  local -a todos=()
+  mapfile -t todos < <(dpkg -L $(dpkg-query -W -f='${Package}\n' 'cosmic-*' 2>/dev/null) 2>/dev/null |
+                       grep '^/usr/share/applications/[^/]*\.desktop$' | sort -u)
+  while IFS=$'\t' read -r d i; do
+    _cv_tem_arte "$i" && continue
+    n=$((n+1))
+    meow_aviso "sem desenho: $i ($d)"
+  done < <(_cv_desktops "" "${todos[@]}")
+  [ "$n" = "0" ] && meow_ok "todo app visível do COSMIC instalado tem desenho num mapa"
+  return "$MEOW_OK"
+}
+
 # --- o comando --------------------------------------------------------------
 cmd_prever() {
   local p v d x arvore n=0
@@ -276,6 +334,7 @@ cmd_prever() {
     x="$(_cv_extraido "$p" "$v" "$d")" || { _cv_dizer "$p" amarelo "não consegui abrir o .deb candidato ($v)"; continue; }
     _cv_esquema "$x" "$p"
     _cv_chaves "$x" "$p"
+    _cv_icones_candidato "$x" "$p"
     case "$p" in
       cosmic-comp|cosmic-files)
         if arvore="$(_cv_fonte "$p" "$v")"; then
@@ -316,12 +375,13 @@ while [ $# -gt 0 ]; do
     --debs)     CV_DEBS="$2"; shift ;;
     --fontes)   CV_FONTES="$2"; shift ;;
     --sem-rede) CV_REDE="nao" ;;
-    prever|ler) acao="$1" ;;
-    *) meow_erro "uso: cosmic_prever.sh [prever|ler] [--debs DIR] [--fontes DIR] [--sem-rede]"; exit "$MEOW_ERRO" ;;
+    prever|ler|icones) acao="$1" ;;
+    *) meow_erro "uso: cosmic_prever.sh [prever|ler|icones] [--debs DIR] [--fontes DIR] [--sem-rede]"; exit "$MEOW_ERRO" ;;
   esac
   shift
 done
 case "$acao" in
   prever) cmd_prever ;;
   ler)    cmd_ler ;;
+  icones) cmd_icones ;;
 esac
