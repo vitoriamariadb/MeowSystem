@@ -2851,6 +2851,11 @@ let APPS = null;
 let APPS_BUSCA = "";
 let APP_ABERTO = null;
 let GLIFOS = { termo: null, itens: [], carregando: false };
+/* AS PASTAS ABERTAS SOBREVIVEM AO `render()` — P73. A página se repinta a cada
+ * clique, e um `<details>` aberto à mão nasceria fechado de novo no clique
+ * seguinte (o mesmo defeito que a oficina já teve, ver `OFICINA`). Guarda-se o
+ * id do grupo; sem nada guardado, abre a primeira pasta do pack no ar. */
+const PASTAS_ABERTAS = new Map();
 
 async function carregarApps() {
   const r = await api("/api/apps");
@@ -2874,7 +2879,7 @@ async function carregarGlifos(termo, app) {
    * pack que a ficha pode oferecer, e a `escolha` é a do painel no mapa dele
    * para ESTE aplicativo (P64, `_api_glifos`): por isso a busca é por
    * aplicativo, e não só por termo. */
-  GLIFOS = { termo, app, itens: r.glifos || [], carregando: false, limitado: r.limitado,
+  GLIFOS = { termo, app, itens: r.glifos || [], grupos: r.grupos || [], carregando: false,
              aviso: r.aviso || "", pack: r.pack || null, escolha: r.escolha || null };
   render();
 }
@@ -2967,10 +2972,11 @@ function gradeDeApps(apps, filtro, recarregar) {
       title: `${a.id}  ·  ${a.origem}`,
       onclick: () => {
         APP_ABERTO = APP_ABERTO === a.id ? null : a.id;
-        /* A busca começa pelo nome do aplicativo — é o palpite certo na maioria
-         * das vezes ("Telegram" acha `telegram`). Quando não acha nada, o
-         * `montarEscolhaDeIcone` cai para o acervo do repositório, para a
-         * fileira nunca abrir vazia.
+        /* [Até 09/10/2026 a busca começava pelo nome do aplicativo — "o palpite
+         * certo na maioria das vezes". Medido na P73: era filtro, e não
+         * palpite — 18 de 38 apps abriam com zero opções, e «google» nunca
+         * mostrava a biblioteca. A ficha abre SEM busca, com o acervo inteiro
+         * em pastas, e o palpite virou o `sugerido` que o servidor marca.]
          * ABRIR PERGUNTA DE NOVO — 25/09/2026, P64. A busca guardada respondia
          * ao mesmo termo e ao mesmo aplicativo sem ir ao servidor, e a
          * `escolha` no pack que vem nela muda com os botões da própria ficha,
@@ -2978,7 +2984,7 @@ function gradeDeApps(apps, filtro, recarregar) {
          * escolha no pack» da escolha que acabou de ser feita. */
         if (APP_ABERTO) {
           GLIFOS = { termo: null, itens: [], carregando: false };
-          carregarGlifos(a.nome.split(/\s+/)[0].toLowerCase(), a.id);
+          carregarGlifos("", a.id);
         }
         render();
       },
@@ -3105,16 +3111,19 @@ function montarEscolhaDeIcone(app, recarregar) {
    *
    *   [P64: e onde o TRAÇO não pode valer (`trava`), é o traço que sai da tira
    *   — cada grupo obedece à trava dele.] */
-  const chaveDe = (g) => (g.pack ? `pack:${g.pack}:${g.desenho}` : g.glifo);
+  /* A ESCOLHA É PELA CHAVE GRUPO|NOME — P73. A mesma pasta não repete nome,
+   * e o `google-chrome` do Dracula e o do Arcticons continuam distintos. */
+  const chaveDe = (g) => `${g.grupo}|${g.glifo}`;
   const doPackNaBusca = GLIFOS.itens.some((g) => g.pack);
   const itens = GLIFOS.itens.filter((g) => (g.pack ? !app.trava_pack : !app.trava));
-  const comPack = itens.some((g) => g.pack);
+  const grupoDe = (id) => (GLIFOS.grupos || []).find((x) => x.id === id) || { id, acervo: "", nome: id };
+  const nomeDoPack = (g) => grupoDe(g.grupo).acervo;
   const itemEscolhido = () => itens.find((g) => chaveDe(g) === escolhido) || null;
   const tiraGlifos = elemento("div", { class: "tira-glifos" });
   const notaDaCor = elemento("p", { class: "frase", hidden: true });
   const fraseDoFim = elemento("p", { class: "frase" });
   const pintarGlifos = () => {
-    for (const b of tiraGlifos.querySelectorAll("button")) {
+    for (const b of tiraGlifos.querySelectorAll("button[data-escolha]")) {
       b.setAttribute("aria-pressed", String(b.dataset.escolha === escolhido));
     }
     /* A COR NÃO VAI COM O DESENHO DO PACK, E A TELA DIZ: ele entra no tema com
@@ -3124,44 +3133,60 @@ function montarEscolhaDeIcone(app, recarregar) {
     const g = itemEscolhido();
     notaDaCor.hidden = !(g && g.pack);
     notaDaCor.textContent = g && g.pack
-      ? `O desenho do pack «${g.grupo}» entra com as cores dele: a cor abaixo vale só para o traço.`
+      ? `O desenho do pack «${nomeDoPack(g)}» entra com as cores dele: a cor abaixo vale só para o traço.`
       : "";
     fraseDoFim.textContent = g && g.pack
-      ? `A escolha fica no pack «${g.grupo}»: vale com ele no ar, em toda máquina que instalar daqui.`
+      ? `A escolha fica no pack «${nomeDoPack(g)}»: vale com ele no ar, em toda máquina que instalar daqui.`
       : "A escolha fica guardada no projeto: vale em toda máquina que instalar daqui.";
+  };
+  const botaoDe = (g) => elemento("button", {
+    type: "button", class: g.tipo === "traco" ? "" : "do-pack",
+    "data-glifo": g.glifo, "data-escolha": chaveDe(g),
+    title: `${g.glifo} — ${grupoDe(g.grupo).acervo} · ${grupoDe(g.grupo).nome}`,
+    "aria-pressed": String(chaveDe(g) === escolhido),
+    onclick: () => { escolhido = chaveDe(g); pintarGlifos(); },
+  }, [
+    elemento("img", { src: g.url, alt: "", loading: "lazy" }),
+    elemento("span", { texto: g.glifo }),
+  ]);
+  /* UMA PASTA POR ACERVO — 09/10/2026, P73 (T1). «Era pra aparecerem todos os
+   * Drácula feitos e todos os do MeowSystem feitos, numa pasta cada.» Cada
+   * grupo do servidor vira um `<details>` com o dono, a pasta e a conta; a
+   * miniatura só desce quando a pasta abre (`loading=lazy` dentro de um
+   * `<details>` fechado não busca nada). Com busca, abre toda pasta que achou
+   * alguma coisa. O nome do app não filtra: ele acende a faixa «sugeridos». */
+  const pasta = (id, cabeca, conta, filhos, abertaPadrao) => {
+    const aberta = PASTAS_ABERTAS.has(id) ? PASTAS_ABERTAS.get(id) : abertaPadrao;
+    const det = elemento("details", { class: "pasta-acervo", "data-grupo": id }, [
+      elemento("summary", {}, [...cabeca, elemento("span", { class: "conta", texto: conta })]),
+      elemento("div", { class: "grade-glifos" }, filhos),
+    ]);
+    det.open = aberta;
+    det.addEventListener("toggle", () => PASTAS_ABERTAS.set(id, det.open));
+    return det;
   };
   if (GLIFOS.carregando) {
     tiraGlifos.append(elemento("p", { class: "sem-previa", texto: "Procurando…" }));
   } else if (!itens.length) {
-    /* [Revisão da P64: na ficha com a trava do traço, a tira só tem o pack, e
-     * o que vem a seguir são os desenhos dele — a frase não promete o acervo
-     * do projeto, que o traço filtrado não deixa aparecer.] */
-    const mostrando = app.trava && GLIFOS.pack
-      ? `os desenhos do pack «${GLIFOS.pack.nome}»`
-      : "o acervo que veio com o projeto";
     tiraGlifos.append(elemento("p", { class: "sem-previa",
-      texto: `Nenhum desenho com esse nome — mostrando ${mostrando}.` }));
-    /* Só quem tem busca na tela busca de novo: a ficha travada sem pack tem a
-     * tira sempre vazia, e pediria a busca vazia a cada repintura. */
-    if (GLIFOS.termo && comBusca) carregarGlifos("", app.id);
+      texto: GLIFOS.termo ? `Nenhum desenho casa com “${GLIFOS.termo}”.` : "Nenhum desenho no acervo." }));
   }
-  let grupoAntes = null;
-  for (const g of itens) {
-    const grupo = g.pack ? g.grupo : "";
-    if (comPack && grupo !== grupoAntes) {
-      tiraGlifos.append(elemento("div", { class: "rotulo-mini rotulo-da-tira",
-        texto: g.pack ? g.grupo : "Traço, na cor abaixo" }));
-    }
-    grupoAntes = grupo;
-    tiraGlifos.append(elemento("button", {
-      type: "button", class: g.pack ? "do-pack" : "",
-      "data-glifo": g.glifo, "data-escolha": chaveDe(g), title: `${g.glifo} — ${g.grupo}`,
-      "aria-pressed": String(chaveDe(g) === escolhido),
-      onclick: () => { escolhido = chaveDe(g); pintarGlifos(); },
-    }, [
-      elemento("img", { src: g.url, alt: "", loading: "lazy" }),
-      elemento("span", { texto: g.glifo }),
-    ]));
+  const sugeridos = itens.filter((g) => g.sugerido);
+  if (sugeridos.length) {
+    tiraGlifos.append(pasta("sugeridos",
+      [elemento("span", { class: "dono", texto: "Sugeridos" })],
+      String(sugeridos.length), sugeridos.map(botaoDe), true));
+  }
+  const primeiraNoAr = (GLIFOS.grupos || []).find((x) => x.no_ar && x.achados);
+  for (const gr of GLIFOS.grupos || []) {
+    const deles = itens.filter((g) => g.grupo === gr.id);
+    if (!deles.length) continue;
+    tiraGlifos.append(pasta(gr.id,
+      [elemento("span", { class: "dono", texto: gr.acervo }),
+       elemento("span", { class: "nome-pasta", texto: gr.nome })],
+      GLIFOS.termo ? `${gr.achados}/${gr.total}` : String(gr.total),
+      deles.map(botaoDe),
+      !!GLIFOS.termo || (!sugeridos.length && primeiraNoAr && primeiraNoAr.id === gr.id)));
   }
   if (comBusca) {
     /* A trava do pack só fala quando a busca trouxe desenho do pack (ou o

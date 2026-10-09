@@ -2212,13 +2212,36 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
  * <span> do nome ficava com ALTURA ZERO. `align-content: start` é o que impede
  * o grid de espremer as linhas para caber; a altura mínima garante o nome. */
 .tira-glifos {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  max-height: 28rem;
+  overflow-y: auto;
+  padding: .2rem;
+}
+/* UMA PASTA POR ACERVO — 09/10/2026, P73. A tira deixou de ser uma grade só
+ * (60 + 60, cortada sem aviso) e virou uma pilha de pastas recolhíveis, cada
+ * uma com o dono, o nome e a conta. A grade de cada pasta é a de antes; a
+ * rolagem é da pilha, para a pasta aberta não esconder as de baixo. */
+.pasta-acervo { border: 1px solid var(--surface0); border-radius: var(--r-2); background: var(--base); }
+.pasta-acervo > summary {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  padding: .4rem .6rem;
+  cursor: pointer;
+  font-size: var(--t-legenda);
+  color: var(--subtext0);
+}
+.pasta-acervo > summary .dono { font-weight: 700; color: var(--text); }
+.pasta-acervo > summary .conta { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--overlay2); }
+.pasta-acervo[open] > summary { border-bottom: 1px solid var(--surface0); }
+.grade-glifos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
   align-content: start;
   gap: .4rem;
-  max-height: 18rem;
-  overflow-y: auto;
-  padding: .2rem;
+  padding: .4rem;
 }
 .tira-glifos button {
   display: flex;

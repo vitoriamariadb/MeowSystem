@@ -9157,99 +9157,149 @@ class Manipulador(BaseHTTPRequestHandler):
             return {"tipo": "conversao", "frase": "a conversão em traço do projeto"}
         return {"tipo": "fabrica", "frase": "o ícone de fábrica"}
 
-    def _api_glifos(self, consulta):
-        """O acervo de desenhos que a página pode oferecer para um aplicativo.
+    # ========================================================================
+    # A FICHA MOSTRA O ACERVO INTEIRO, EM PASTAS — 09/10/2026, sprint P73 (T1)
+    # ========================================================================
+    # O pedido de quem usa, 09/10: «Era pra aparecerem todos os Drácula feitos
+    # e todos os do MeowSystem feitos, numa pasta cada. Independente do app que
+    # eu escolher, eu deveria acessar todas as imagens disponíveis, não só as
+    # que mapeamos à mão.»
+    #
+    # O QUE ESCONDIA, MEDIDO NA AUDITORIA DE 09/10
+    #   (docs/pesquisas/2026-10-09-paridade-de-icones.md, seção 2)
+    #   · um teto de 60 por lado (`limite = 60`), sem página seguinte: a busca
+    #     vazia enchia os 60 do pack só com `apps/`, e os 295 da biblioteca
+    #     nunca apareciam sem busca. A página guardava o `limitado` e ninguém o
+    #     lia;
+    #   · a ficha abria com a busca pela 1ª palavra do nome do app («google»,
+    #     «microsoft»): o palpite virava filtro, e 18 de 38 apps abriam com zero
+    #     opções.
+    #   Dos 591 desenhos versionados distintos, 146 nunca podiam aparecer.
+    #
+    # A CURA: A ROTA DEVOLVE O ÍNDICE INTEIRO, AGRUPADO POR PASTA
+    #   Sem teto. São perto de mil desenhos, só com metadados (nome, grupo,
+    #   miniatura por URL): a página desenha cada grupo recolhido, e a
+    #   miniatura só desce quando o grupo abre (`loading=lazy`). Cada grupo traz
+    #   o `total` da pasta e os `achados` da busca, e é a conta que o
+    #   tests/acervo-da-ficha.sh confere contra o disco.
+    #   O NOME DO APP VIRA DESTAQUE, NÃO FILTRO: o item que casa com o nome, o
+    #   id ou o `Icon=` do app sai marcado `sugerido`, e a página o repete numa
+    #   faixa no alto. O resto continua lá, na pasta dele.
+    #   O PACK NO AR VEM PRIMEIRO, como desde a P60: é a arte do tema que está
+    #   na tela.
+    @staticmethod
+    def _sem_acento(texto):
+        """O texto sem acento e em minúsculas — a régua da busca da ficha.
 
-        Dois lugares, e a diferença importa:
-          · `arcticons-apps/` são os 39 já escolhidos e presentes no repositório;
-          · `upstream/` é o pack Arcticons inteiro (21 mil), baixado uma vez.
-        Escolher um do upstream COPIA o arquivo para `arcticons-apps/`, porque é
-        de lá que o `icones_apps_arcticons.sh` lê — a página faz o que o
-        comentário daquele script manda fazer à mão.
+        «alienígena» tem de achar quem digita «alienigena», e o contrário."""
+        import unicodedata
+        return "".join(c for c in unicodedata.normalize("NFKD", str(texto or ""))
+                       if not unicodedata.combining(c)).lower()
 
-        E, desde a P60, os desenhos do pack no ar, num grupo com o nome dele —
-        ver `_desenhos_do_pack_no_ar`.
+    def _acervo_da_ficha(self):
+        """(grupos, itens) de tudo o que a ficha de ícone oferece.
+
+        `grupos` é a lista ordenada das pastas, cada uma um dicionário com `id`,
+        `acervo` (de quem é: o nome do pack, ou «MeowSystem»), `nome` (a pasta,
+        como a tela a chama), `pack`, `no_ar`, `tipo` e `total`. `itens` traz um
+        dicionário por arquivo, com o `grupo` (o id) e o `_texto` onde a busca
+        procura. Os da pasta do pack no ar trazem `pack` e `desenho`, como na
+        P60: é o que o «Levar para o pack» grava no mapa dele.
         """
-        busca = (consulta.get("busca", [""])[0] or "").strip().lower()
-        limite = 60
-        # O PACK NO AR VEM PRIMEIRO, E COM O TETO DELE — 25/09/2026, P60
-        #   Primeiro porque é a arte do tema que está na tela: na ficha do
-        #   Chrome, o desenho do Dracula que ele veste abre a tira. O teto é
-        #   separado do do motor para a busca vazia continuar mostrando o traço
-        #   que sempre mostrou — com um só teto, os 60 primeiros seriam todos do
-        #   pack, e o acervo do projeto sumiria da tira.
-        #   Sem dedupe contra o motor, e é o ponto: o `google-chrome` do Dracula
-        #   e o do Arcticons são desenhos diferentes com o mesmo nome.
-        #   A MINIATURA VEM PELA CERCA DO `/previa`, que não conhece `packs/`: o
-        #   arquivo entra no `_ICONES_DECLARADOS`, a porta dos arquivos que o
-        #   próprio servidor mandou a página mostrar (P46), um a um.
-        do_pack, limitado = [], False
-        pack, desenhos, aviso = self._desenhos_do_pack_no_ar()
-        if pack and not aviso:
+        grupos, itens = [], []
+
+        def grupo(gid, acervo, nome, pasta, tipo, pack="", no_ar=False):
+            g = {"id": gid, "acervo": acervo, "nome": nome, "pack": pack,
+                 "no_ar": no_ar, "tipo": tipo, "pasta": pasta, "total": 0}
+            grupos.append(g)
+            return g
+
+        pack, desenhos, _aviso = self._desenhos_do_pack_no_ar()
+        if pack:
+            base = os.path.dirname(pack["mapa"])
+            por_pasta = {}
             for d in desenhos:
-                if busca and busca not in d["glifo"].lower():
-                    continue
-                if len(do_pack) >= limite:
-                    limitado = True
-                    break
-                _ICONES_DECLARADOS.add(os.path.normpath(d["caminho"]))
-                do_pack.append({"glifo": d["glifo"], "grupo": pack["nome"],
-                                "pack": pack["id"], "desenho": d["desenho"],
-                                "url": "/previa?tipo=arquivo&id=" + quote(d["caminho"], safe="")})
-        # A FICHA PERGUNTA POR APLICATIVO — 25/09/2026, P64. Duas respostas que
-        # a tira sozinha não dá: `pack`, o pack que a ficha pode oferecer — a
-        # ficha com trava do traço mostra a busca só com ele, e precisa saber
-        # antes de a busca achar alguma coisa —, e `escolha`, a do painel para
-        # ESTE aplicativo no mapa do pack, que é o que acende o «Desfazer a
-        # escolha no pack». A escolha vem mesmo com a camada desligada: tirá-la
-        # sempre vale (`_desfazer_do_pack`).
+                sub = d["desenho"].split("/", 1)[0]
+                g = por_pasta.get(sub) or por_pasta.setdefault(sub, grupo(
+                    "pack:%s:%s" % (pack["id"], sub), pack["nome"], sub,
+                    os.path.join(base, sub), "desenho", pack["id"], True))
+                g["total"] += 1
+                itens.append({"glifo": d["glifo"], "grupo": g["id"], "pack": pack["id"],
+                              "desenho": d["desenho"], "caminho": d["caminho"],
+                              "tipo": "desenho", "_texto": self._sem_acento(d["glifo"])})
+        for pasta, nome in (("arcticons-apps", "traço (Arcticons)"),
+                            ("autorais", "desenho nosso"),
+                            ("convertidos-apps", "convertido")):
+            raiz = os.path.join(RAIZ, "assets", "icones", pasta)
+            if not os.path.isdir(raiz):
+                continue
+            g = grupo("motor:" + pasta, "MeowSystem", nome, raiz, "traco")
+            for dirpath, dirs, nomes in os.walk(raiz):
+                dirs.sort()
+                for arq in sorted(nomes):
+                    if not arq.endswith(".svg"):
+                        continue
+                    g["total"] += 1
+                    itens.append({"glifo": arq[:-4], "grupo": g["id"], "tipo": "traco",
+                                  "caminho": os.path.join(dirpath, arq),
+                                  "_texto": self._sem_acento(arq[:-4])})
+        return grupos, itens
+
+    def _palpites_do_app(self, app):
+        """Os textos que fazem um desenho ser «sugerido» para `app`: o id, o
+        `Icon=` e o nome dele — inteiro e a 1ª palavra, o palpite que até a P73
+        era o filtro de abertura."""
+        if not app or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
+            return []
+        d = next((x for x in self._desktops() if x["id"] == app), None) or {"id": app}
+        nome = self._sem_acento(d.get("nome") or "")
+        palpites = {self._sem_acento(app), self._sem_acento(d.get("icone") or "")}
+        if nome:
+            palpites.add(nome)
+            primeira = nome.split()[0]
+            if len(primeira) >= 3:
+                palpites.add(primeira)
+        return [p for p in palpites if p and "/" not in p]
+
+    def _api_glifos(self, consulta):
+        """O acervo inteiro de desenhos que a ficha de ícone oferece, por pasta.
+
+        Ver o bloco "A FICHA MOSTRA O ACERVO INTEIRO, EM PASTAS", acima. A busca
+        filtra; sem busca, vem tudo. O `app` não filtra nada: ele marca os
+        `sugerido`, e traz a `escolha` do painel para ele (P64).
+        """
+        busca = self._sem_acento((consulta.get("busca", [""])[0] or "").strip())
         app = (consulta.get("app", [""])[0] or "").strip()
+        grupos, itens = self._acervo_da_ficha()
+        palpites = self._palpites_do_app(app)
+        achados = {}
+        glifos = []
+        for it in itens:
+            if busca and busca not in it["_texto"]:
+                continue
+            achados[it["grupo"]] = achados.get(it["grupo"], 0) + 1
+            # A MINIATURA DO PACK VEM PELA CERCA DO `/previa`, que não conhece
+            # `packs/`: o arquivo entra no `_ICONES_DECLARADOS`, a porta dos
+            # arquivos que o próprio servidor mandou a página mostrar (P46).
+            _ICONES_DECLARADOS.add(os.path.normpath(it["caminho"]))
+            saida = {k: v for k, v in it.items() if not k.startswith("_") and k != "caminho"}
+            saida["url"] = "/previa?tipo=arquivo&id=" + quote(it["caminho"], safe="")
+            saida["sugerido"] = any(p in it["_texto"] for p in palpites)
+            glifos.append(saida)
+        for g in grupos:
+            g["achados"] = achados.get(g["id"], 0)
+            g.pop("pasta", None)
+        pack, _desenhos, aviso = self._desenhos_do_pack_no_ar()
+        # A FICHA PERGUNTA POR APLICATIVO — 25/09/2026, P64. O `pack` é o pack
+        # que a ficha pode oferecer, e a `escolha` é a do painel para ESTE
+        # aplicativo no mapa do pack, que acende o «Desfazer a escolha no pack».
         extra = {"aviso": aviso,
                  "pack": {"id": pack["id"], "nome": pack["nome"]} if pack and not aviso else None,
                  "escolha": (self._escolha_no_pack(pack, app)
                              if pack and re.match(r"^[A-Za-z0-9._+-]{1,120}$", app) else None)}
-        fora, vistos = [], set()
-        # O `upstream/` NÃO É O ARCTICONS — e eu supus que era.
-        #   A validação mediu: "assets/icones/upstream/ contém papirus-folders,
-        #   não Arcticons: 21.844 SVGs dos quais 21.000 são folder-cat-*.svg".
-        #   Buscar "steam" devolvia um glifo do Steam e 56 PASTAS coloridas.
-        #   Oferecer pasta como ícone de aplicativo é pior que não oferecer
-        #   nada: ela escolheria uma, salvaria, e o lançador ficaria com uma
-        #   pasta no lugar do programa.
-        #   As fontes certas são os acervos de APLICATIVO do repositório, e é só
-        #   isso que esta rota mostra agora.
-        #
-        # O GRUPO «Catppuccin» SAIU DAQUI — 25/09/2026, P60. Ele era a pasta
-        #   `catppuccin-apps/`, oferecida com qualquer pack no ar, e é o que a
-        #   sprint proíbe: o acervo de um pack fora do ar não entra. Medido no
-        #   dia, ele também nunca mostrou nada: a pasta é o acervo local sem
-        #   licença (fora do git, ver o .gitignore), não existe no repositório,
-        #   e o acervo que ela recebe é de PNG (146, no registro do
-        #   docs/SPRINTS.md) — e esta rota só lê `.svg`. O que um pack tem para
-        #   oferecer vem agora do próprio pack, no grupo acima.
-        for pasta, grupo in (("arcticons-apps", "traço (Arcticons)"),
-                             ("autorais", "desenho nosso"),
-                             ("convertidos-apps", "convertido")):
-            raiz = os.path.join(RAIZ, "assets", "icones", pasta)
-            if not os.path.isdir(raiz):
-                continue
-            for dirpath, _, nomes in os.walk(raiz):
-                for nome in sorted(nomes):
-                    if not nome.endswith(".svg"):
-                        continue
-                    glifo = nome[:-4]
-                    if glifo in vistos:
-                        continue
-                    if busca and busca not in glifo.lower():
-                        continue
-                    vistos.add(glifo)
-                    caminho = os.path.join(dirpath, nome)
-                    fora.append({"glifo": glifo, "grupo": grupo,
-                                 "url": "/previa?tipo=arquivo&id=" + quote(caminho, safe="")})
-                    if len(fora) >= limite:
-                        return self._json(dict({"glifos": do_pack + fora, "limitado": True},
-                                               **extra))
-        return self._json(dict({"glifos": do_pack + fora, "limitado": limitado}, **extra))
+        # `limitado` fica, sempre falso: é o campo que dizia «a lista foi
+        # cortada», e nenhuma resposta corta mais.
+        return self._json(dict({"grupos": grupos, "glifos": glifos, "limitado": False}, **extra))
 
     def _api_app_icone(self, corpo):
         """Grava a escolha dela no mapa do repositório — e traz o glifo junto."""
