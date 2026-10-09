@@ -90,6 +90,25 @@ else
   falha "o pulado de rotina virou divergência (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
 fi
 
+# A RECUSA DELA NÃO É DIVERGÊNCIA — conferência da P75 (09/10/2026). O
+# «não quero o starship» fica gravado no estado, e o `prompt.sh` o dizia com
+# `!!`: com o pulado que avisa pesando no veredito, a escolha dela virava
+# «há divergências» todo dia. Aqui é o `chk_prompt` de verdade, sem starship no
+# PATH e com a recusa gravada na casa de brinquedo.
+cat > "$TMP/c2c" <<'FIM'
+VERIFICAVEIS=(prompt)
+FIM
+mkdir -p "$TMP/casa-recusa/.local/state/meowsystem"
+: > "$TMP/casa-recusa/.local/state/meowsystem/starship-recusado"
+sem_starship="$(printf '%s' "$PATH" | tr ':' '\n' | while IFS= read -r d; do
+  [ -n "$d" ] && [ ! -x "$d/starship" ] && printf '%s:' "$d"; done)"
+saida="$(PATH="${sem_starship%:}" CASA_CENARIO="$TMP/casa-recusa" cenario "$TMP/c2c")"; rc=$?
+if [ "$rc" = "0" ] && grep -qE '^ *-- +prompt ' <<< "$saida" && grep -q 'nada a consertar' <<< "$saida"; then
+  ok "o starship recusado sai em --, e o doctor sai 0"
+else
+  falha "a recusa do starship pesou como divergência (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
 # O `meow status` lê a mesma tabela pela mesma régua: o pulado de rotina e a
 # escolha dela (4) não são divergência, e ele não manda rodar um conserto que
 # responderia "nada a consertar" (D2 de 01-regressoes.md).

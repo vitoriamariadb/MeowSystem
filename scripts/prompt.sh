@@ -164,14 +164,21 @@ _prompt_toml_confere() {
 PROMPT_RECUSA="$MEOW_ESTADO/starship-recusado"
 
 _prompt_dizer_falta_starship() {
-  meow_aviso "o starship NÃO está instalado, e ele não está no apt do Pop!_OS"
-  meow_aviso "  (\`apt-cache policy starship\` devolve vazio nesta máquina)"
   if [ -f "$PROMPT_RECUSA" ]; then
     # Nem pendência: ela já respondeu. O `meow_info` fica porque o código de
     # saída (3) precisa de um porquê na tela, e este é o porquê.
-    meow_info "  você já disse que não quer instalá-lo — apague $PROMPT_RECUSA para reabrir"
+    #
+    # E SEM O `!!` — conferência da P75, 09/10/2026. Desde a P75 o pulado que
+    # avisa (`!!`) pesa no veredito do doctor (`pulado_com_aviso`, bin/meow), e
+    # com o `meow_aviso` aqui o «não quero» dela virava «há divergências» todo
+    # dia, e o auto-reparo das 5h terminava vermelho nomeando o `prompt`. A
+    # recusa é escolha dela: a linha é a do pulado de rotina.
+    meow_pula "o starship não está instalado, e você disse que não o quer"
+    meow_info "  apague $PROMPT_RECUSA para reabrir a pergunta"
     return 0
   fi
+  meow_aviso "o starship NÃO está instalado, e ele não está no apt do Pop!_OS"
+  meow_aviso "  (\`apt-cache policy starship\` devolve vazio nesta máquina)"
   # A RECEITA SAIU DA TELA E VIROU O VERBO ABAIXO. Ela continua existindo, em
   # `$PROMPT_INSTALAR`, mas agora como algo que este script EXECUTA — e não
   # como um parágrafo que manda a pessoa executar.
