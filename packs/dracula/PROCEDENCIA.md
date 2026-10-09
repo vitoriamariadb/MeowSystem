@@ -470,6 +470,7 @@ ficou com 367 linhas.
 | `icones/biblioteca/zeus.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/zeus.svg` |  | GPL-3.0 | 2026-09-23 | `34d021605abeee091c33cd292d65221838f7e05249ccf39a05b566060f5371c0` |
 | `icones/biblioteca/zombie-variant.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/zombie-variant.svg` |  | GPL-3.0 | 2026-09-23 | `b2f1c89ba3151eebf8667c0e7fe95dcd4385ba5c92d4067b59772d35a0ce24ce` |
 | `icones/biblioteca/zombie.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/zombie.svg` |  | GPL-3.0 | 2026-09-23 | `647264ce053bf02633e68856f2fb15520a919f378e037416bb47d1482924dc44` |
+| `apps/dracula.qbtheme` | `dracula/qbittorrent` (github.com/dracula/qbittorrent), commit `9020f6eb457087270179beb86d45914d434adb6b` (09/07/2026, «sync from v0.6.6») — `dracula.qbtheme`, binário Qt (`qres`), 5.055 bytes, copiado sem mudança (P74, 09/10/2026) |  | MIT | 2026-10-09 | `b4485f9f4ee6139b7c77bbfb72206b608bcfa748f34d49205c4c4b65e7976d37` |
 
 ### Onde cada origem foi reencontrada — e a diferença com o `CREDITOS.md`
 
