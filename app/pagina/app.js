@@ -3188,7 +3188,6 @@ function montarEscolhaDeIcone(app, recarregar) {
   const chaveDaTira = `${app.id}|${app.trava || ""}|${app.trava_pack || ""}`;
   const reaproveita = !GLIFOS.carregando && GLIFOS.tira && GLIFOS.chaveDaTira === chaveDaTira;
   const tiraGlifos = reaproveita ? GLIFOS.tira : elemento("div", { class: "tira-glifos" });
-  const notaDaCor = elemento("p", { class: "frase", hidden: true });
   const pintarGlifos = () => {
     for (const b of tiraGlifos.querySelectorAll("button[data-escolha]")) {
       b.setAttribute("aria-pressed", String(b.dataset.escolha === GLIFOS.escolhido));
@@ -3197,11 +3196,17 @@ function montarEscolhaDeIcone(app, recarregar) {
      * as cores que tem (o pack declara `recolorir: false`, e nenhum passo o
      * recolore). E a escolha mora no pack, não no mapa do traço — a frase do
      * fim diz onde ela vale. */
+    /* [A FRASE VIROU ESTADO — 09/10/2026, P73 (QA de uso). Era um parágrafo
+     * embaixo do rótulo «Cor» a cada desenho marcado, e desde a P73 todo
+     * desenho que não é traço o acendia (e a escolha dela, que agora abre
+     * marcada, o acendia ao abrir a ficha). A fileira de cores se apaga, e a
+     * frase fica na dica dela: sem texto na tela.] */
     const g = itemEscolhido();
-    notaDaCor.hidden = !(g && g.tipo !== "traco");
-    notaDaCor.textContent = g && g.tipo !== "traco"
-      ? `O desenho de «${nomeDoPack(g)}» entra com as cores dele: a cor abaixo vale só para o traço.`
-      : "";
+    const semCor = !!(g && g.tipo !== "traco");
+    cores.className = "cores-grade" + (semCor ? " sem-efeito" : "");
+    porBalao(cores, semCor
+      ? `O desenho de «${nomeDoPack(g)}» entra com as cores dele: a cor vale só para o traço.`
+      : "");
   };
   const botaoDe = (g) => elemento("button", {
     type: "button",
@@ -3310,7 +3315,6 @@ function montarEscolhaDeIcone(app, recarregar) {
     }));
   }
   painel.append(elemento("div", { class: "rotulo-mini", texto: "Cor" }));
-  painel.append(notaDaCor);
   painel.append(cores);
 
   const acoes = elemento("div", { class: "escolha-botoes" });
