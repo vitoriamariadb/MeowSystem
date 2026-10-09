@@ -44,3 +44,10 @@ nunca validado como texto (regex, `startswith`, `split('/')`) e usado por outro 
 tar, shell). Nome de camada/pasta de destino só de um conjunto fechado (`[A-Za-z0-9._-]`, sem
 `..`). Teste com um pack malicioso (`"origem": {"caminho": "a/../../../../etc"}`, nome com `/`,
 symlink no checkout pinado) provando que nada é lido nem escrito fora da raiz.
+
+**Segundo alerta (18:50, commit c0b89b0, `scripts/icones_apps_dracula.sh`): path traversal.** As
+duas colunas de cada linha de `apps.map` (do pack, de pack importado e das escolhas do painel no
+estado do usuário) são dado não confiável: o nome do ícone de destino só de `[A-Za-z0-9._+-]`
+sem `/` nem `..`; o desenho de origem resolvido com `realpath` e aceito só dentro da raiz do pack
+(ou de `assets/icones/`). Linha que falha é pulada e contada no log, sem abortar o resto. Mesmo
+teste do pack malicioso, agora com `../../../../etc/passwd : x` e `x : ../../../.ssh/id_ed25519`.
