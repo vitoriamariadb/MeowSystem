@@ -622,8 +622,13 @@ cmd_vigiar() {
   som="$SOM_TEMA_DIR/stereo/notification/message-new-instant.oga"
   [ -f "$som" ] || som="$SOM_TEMA_DIR/stereo/notification/message.oga"
   [ -f "$som" ] || { meow_pula "sem tema de som do pack instalado — nada a tocar"; return "$MEOW_OK"; }
+  # O PRAZO SÓ CORRE COM UM BLOCO ABERTO (conferência da P74): sem nada
+  #   pendente, a leitura espera sem prazo. Com o `-t 0.3` sempre ligado, a
+  #   unidade acordava três vezes por segundo a sessão inteira, para nada.
+  local prazo
   while :; do
-    if IFS= read -r -t 0.3 linha; then
+    prazo=(); [ -n "$bloco" ] && prazo=(-t 0.3)
+    if IFS= read -r ${prazo[@]+"${prazo[@]}"} linha; then
       case "$linha" in
         "method call "*"member=Notify"*)
           [ -n "$bloco" ] && _som_vigiar_tocar "$bloco" "$som"
