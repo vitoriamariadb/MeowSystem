@@ -764,9 +764,18 @@ cmd_conferir() {
     #   E OS DOIS PASSOS DO MEIO VIRARAM UM VERBO SÓ EM 24/09/2026 (P39): o
     #   `meow compositor` baixa o fonte, aplica, compila e instala. O "é passo
     #   seu — cargo e um install" saiu, porque deixou de ser verdade.
-    meow_info "o conserto é recompilar o compositor com a série de patches/ (~4 min, sudo só no fim):"
+    #
+    #   E O CONSELHO ACOMPANHA O SHIM — conferência da P76. O `meow compositor`
+    #   deixou de instalar em `/usr/bin`: o build vai para `~/.local/libexec`, e
+    #   só vale com o shim ligado. Sem esta linha, depois do próximo apt o
+    #   doctor mandaria rodar `meow compositor`, o build sairia certo, e o doctor
+    #   seguinte acusaria o mesmo `/usr/bin` de fábrica — um conselho que não
+    #   converge nunca.
+    meow_info "o conserto é recompilar o compositor com a série de patches/ (~4 min, sem sudo):"
     meow_info "  meow compositor --seco   diz o que faria, sem baixar nem escrever"
-    meow_info "  meow compositor          baixa o fonte da versão instalada, compila e instala"
+    meow_info "  meow compositor          baixa o fonte da versão instalada, compila e guarda o build"
+    _cp_shim_ativo || \
+      meow_info "  meow compositor ativar   liga o shim: o build vale a partir do próximo login"
     meow_info "  meow compositor reverter diz como voltar ao binário do pacote"
     meow_info "o doctor não compila, não usa sudo e não escreve — ele só mede e conta"
   else
