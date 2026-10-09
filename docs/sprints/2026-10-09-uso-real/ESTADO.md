@@ -27,7 +27,7 @@ reaproveita os agentes concluídos.
 ## Próximo passo
 
 1. Ler `03-integracao-onda-1.md` na worktree de integração.
-2. Varredura de segurança dedicada (pack como dado não confiável) sobre a integração: 4 alertas automáticos em P73/P74 (pack.py ×2, icones_apps_dracula.sh, som.sh, servidor.py servindo SVG); nada entra no dev antes.
+2. Varredura de segurança dedicada (pack como dado não confiável) sobre a integração: 4 alertas automáticos em P73/P74 (pack.py ×2, icones_apps_dracula.sh, som.sh, servidor.py servindo SVG) e um quinto em `bin/meow` (caminho de busca não confiável / execução de código; candidatos: P74 24e2b3b/71c95ea/c0b89b0, P75 0ea5fad/18c1d88/2733c4b, P76 — conferir todos os `source`, `python3` e `bash` sobre caminho de pack, cwd, PATH ou HOME). Pergunta de fundo: um pack importado pode trazer `manifesto.sh` executável? Se sim, importar pack = rodar código de terceiro; nada entra no dev antes.
 3. Lançar a onda 2: P77 interface (hallmark + QA de uso real) a partir da integração.
 4. Uso real final como usuário no navegador, sobre a integração; só então dev recebe tudo.
 5. Pendentes de quem usa: senha em arquivo (decisão 5), aplicar a GPU (decisão 6), a frase cortada.
