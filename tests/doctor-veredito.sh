@@ -61,7 +61,7 @@ cenario() {   # $1 = arquivo com as definições · resto = argumentos do doctor
     bash -c '
       source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow")
       source "$1"; shift
-      cmd_doctor "$@"' _ "$defs" "$@" 2>&1
+      "${CMD_CENARIO:-cmd_doctor}" "$@"' _ "$defs" "$@" 2>&1
 }
 
 printf '\n--- 1. o veredito sem conserto ---\n'
@@ -88,6 +88,23 @@ if [ "$rc" = "0" ] && grep -q 'nada a consertar' <<< "$saida"; then
   ok "o pulado de rotina (--) não é divergência"
 else
   falha "o pulado de rotina virou divergência (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
+# O `meow status` lê a mesma tabela pela mesma régua: o pulado de rotina e a
+# escolha dela (4) não são divergência, e ele não manda rodar um conserto que
+# responderia "nada a consertar" (D2 de 01-regressoes.md).
+cat > "$TMP/c2b" <<'FIM'
+VERIFICAVEIS=(a b c)
+chk_a() { echo "tudo certo"; return 0; }
+chk_b() { meow_pula "o Heroic não está instalado — nada a fazer"; return 3; }
+chk_c() { meow_pula "o applet desligou o 'Agendar' — o degrau é o que você arrastou"; return 4; }
+FIM
+saida="$(CMD_CENARIO=cmd_status cenario "$TMP/c2b")"; rc=$?
+if [ "$rc" = "0" ] && grep -q 'nada divergente' <<< "$saida" \
+   && ! grep -q 'meow doctor --consertar' <<< "$saida"; then
+  ok "o status não chama de divergência o pulado nem a escolha dela"
+else
+  falha "o status chamou de divergência o que foi pulado (rc=$rc)"; sed -n '/Divergências/,$p' <<< "$saida" | sed 's/^/       /' >&2
 fi
 
 printf '\n--- 2. o --consertar termina pelo depois ---\n'

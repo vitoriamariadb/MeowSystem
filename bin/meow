@@ -301,14 +301,25 @@ capturas() {
 # O `--conferir` do aplicar_tema.sh já normaliza o alpha que a Aurora reescreve,
 # então "confere" aqui quer dizer o que ela entende por confere — não uma
 # segunda regra que discordaria da primeira em silêncio.
+#
+# O ALVO É PERGUNTADO PRIMEIRO — P75, 09/10/2026 (D2 de 01-regressoes.md)
+#   Duas capturas podem conferir com o mesmo disco: o `alucard-mauve` e o
+#   `dracula-mauve` são o mesmo tema dos dois lados do interruptor claro/escuro
+#   (docs/COSMIC-THEMING.md §2b), e os 189 arquivos que o `--conferir` olha são
+#   os mesmos. Esta função devolvia a PRIMEIRA da lista, em ordem alfabética, e
+#   o `meow status` dizia `ativo alucard-mauve (o alvo é dracula-mauve)` na
+#   mesma máquina em que o doctor dizia `tema 'dracula-mauve' já aplicado`. O
+#   doctor confere o alvo; quando o alvo confere, é ele que está no ar, e as
+#   outras só são perguntadas quando ele não confere.
 tema_ativo() {
-  local n
+  local n alvo; alvo="$(alvo_tema)"
   while IFS= read -r n; do
     [ -n "$n" ] || continue
     if MEOW_DRY_RUN=0 "$RAIZ/scripts/aplicar_tema.sh" "$n" --conferir >/dev/null 2>&1; then
       printf '%s' "$n"; return 0
     fi
-  done < <(capturas)
+  done < <(capturas | awk -v a="$alvo" '$0 == a { print; next } { resto[++n] = $0 }
+                                       END { for (i = 1; i <= n; i++) print resto[i] }')
   return 1
 }
 
@@ -2432,11 +2443,17 @@ cmd_status() {
              WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
              "$RAIZ/scripts/wallpaper.sh" estado 2>/dev/null)
 
+  # SÓ O QUE ESTÁ FORA É DIVERGÊNCIA — P75, 09/10/2026 (D2, P70 item 3)
+  #   Esta lista mostrava toda linha que não fosse 0: o pulado de rotina (o
+  #   Heroic que ela não usa), a escolha dela (4), e a espera do próximo login.
+  #   E fechava mandando rodar o `--consertar`, que respondia "nada a
+  #   consertar" — o status e o doctor discordando sobre a mesma tabela. A
+  #   régua agora é a do veredito, o `fora_do_lugar`, que é a mesma dos dois.
   meow_passo "Divergências"
   rodar_checks
   local i qtd=0
   for i in "${!CHK_NOME[@]}"; do
-    [ "${CHK_RC[$i]}" = "0" ] && continue
+    fora_do_lugar "$i" || continue
     imprimir_check "$i" 0
     qtd=$((qtd+1))
   done
