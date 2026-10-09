@@ -54,6 +54,48 @@ com o mesmo ambiente: `portabilidade.sh` (o `/home/<nome>` na linha 198 da pesqu
 `doctor-so-le.sh` (a conferência "com o HOME da sessão" não acha o painel com HOME de
 brinquedo). Os da máquina (Playwright) não rodaram.
 
+### Conferência (09/10/2026, conferente que corrige)
+
+Cada prova da tabela refeita à mão, com HOME de brinquedo e `sudo` falso:
+
+- 1: o patch novo no `cosmic-files` 1.10 puro (`ac5cef7`, tirado do `.tar.xz` de novo):
+  `-F0` rc 0; o do 1.9 rc 1. A árvore do build é byte a byte o fonte puro mais o patch
+  do commit, e o `cosmic-files-applet` dela tem o marcador (`grep -a -c` = 1).
+- 4: a escada contra o `41497b4`, com os alvos tirados de novo do `.tar.xz` do `0fbd457`
+  puro (iguais aos do implementador): raio e blur no degrau 1; workspace-vazio,
+  menu-clique-curto e modo de leitura no degrau 2. O seco não escreveu na árvore.
+- 3: `cosmic_prever.sh --debs <1.10> --fontes <1.10>` reproduz o veredito da tabela.
+- 5: `limpar` em seco diz que guardaria o `0fbd457` e não escreve nada.
+- 6: as 15 chaves do contrato presentes nos binários instalados (`grep -a -c`, zero ausente).
+- 7: os quatro JSON de `tests/oraculo/` são a saída dos binários do oráculo compilados
+  contra `d77e99f` e `5a8bd94` (o `Cargo.lock` de cada build pina a revisão), e a
+  `d77e99f` é a que o `Cargo.lock` do cosmic-settings 1.9 instalado pina.
+- 9: o `escala.sh` **não** dava saída byte a byte igual: o `cosmic-randr` entrega as
+  saídas em ordem variável (corrigido abaixo). `meow cosmic icones` acusa o `CosmicViewer`.
+
+Corrigido na conferência, um commit cada:
+
+| Commit | O que estava errado | Prova |
+|---|---|---|
+| a648c19 | Com o shim ligado e o `req` no degrau 4, o doctor dizia verde ("ainda não tem build") — o degrau que pede gente não acendia nada | `tests/compositor-shim.sh`: sem build e sem degrau 4 rc 0; com o degrau 4 na matriz rc 1 (falha sem a cura) |
+| 52db55f | A razão do `patches` no `SEM_CONSERTO` dizia "instala com sudo", e o build saiu do sudo | leitura |
+| 92881a6 | O `cosmic-randr` (o `--kdl` e a tela de humano) entrega as saídas em ordem que muda de chamada para chamada (medido: seis seguidas); a linha do doctor mudaria sozinha | `saidas()` 5 vezes seguidas: sempre `eDP-1 HDMI-A-1`; `tests/escala-kdl.sh` com o HDMI antes no KDL (falha sem a cura) |
+| d94c185 | Uma troca mecânica pôs `$(meow_cosmic_v …)` dentro de um comentário medido do `vidro.sh` | leitura |
+| e01f096 | O PATH do systemd do usuário não tem `~/.cargo/bin` (`systemctl --user show-environment`); o pós-apt, que roda por ele, cairia em "falta o cargo" em todo build, inclusive nos applets do doctor do fim | `tests/pos-apt.sh` com PATH sem cargo: o passo acha o `~/.cargo/bin/cargo` do HOME (falha sem a cura) |
+| 6ff438e | `tests/cosmic-prever.sh` falhava com HOME de brinquedo (o proxy `rustc` não achava toolchain) sem a sonda ter errado | verde com HOME de brinquedo e com o de verdade; sem rustc, pula |
+| 058aa50 | Sem o shim, depois do próximo apt o doctor mandaria rodar `meow compositor`, que agora só guarda o build em `~/.local/libexec` — o conselho nunca convergiria; e prometia "sudo só no fim" | `conferir` com um `/usr/bin` de fábrica simulado: a linha `meow compositor ativar` aparece |
+| 58c15a7 | O seco do `meow compositor` dizia que o fonte iria para o cache | leitura |
+| 91e48ee | O `dpkg-source -x` recusa alvo existente ("alvo do desempacotamento existe"): uma extração interrompida travaria todo build seguinte da versão | `tests/volta-do-cosmic.sh` com árvore pela metade no cache (falha sem a cura) |
+
+Ficou aberto, e por quê:
+
+- **Tarefa 7, o oráculo refazendo o produto no `aplicar_tema.sh`**: é a montagem do tema,
+  território da P74 nesta leva.
+- **Tarefa 8, o coredump retirando a sombra**: pede decidir a janela ("depois do apt" é
+  desde quando? o pós-apt não grava a hora) e a volta (quem devolve a sombra quando o
+  build seguinte der certo); e o 1.10 não está instalado, então não há o que medir.
+- **O login com o shim** e o primeiro `full-upgrade`: só à mão (lista abaixo).
+
 ### O que se confere com a mão (depois de ligar o shim e do primeiro `full-upgrade`)
 
 - `meow compositor` e `meow compositor ativar`; no login seguinte,
@@ -84,3 +126,23 @@ brinquedo). Os da máquina (Playwright) não rodaram.
   o `.pacote` antigos ficam sem uso (o `conferir` os ignora no modo shim); apagá-los é sudo.
 - A doutrina "nunca `apt upgrade`" (`docs/COSMIC-THEMING.md` §6) não foi tocada: é a
   tarefa 10 da pesquisa, decisão de gente depois do login com o shim.
+- (conferência) Com o shim ligado e sem build da versão instalada, o `conferir` sai 0 com
+  um `!!` na mesma saída: segue o princípio D da pesquisa (degradar e voltar sozinho não
+  acende nada), mas bate com o princípio 1 dela ("nunca TUDO CONFERE com algo fora").
+  A saída limpa é o doctor compilar (um `fix_patches` com o shim ligado, como os applets);
+  é decisão do doctor (P75).
+- (conferência) O `meow-doctor.service` também roda sem `~/.cargo/bin` no PATH: o
+  `fix_leiturabin`/`fix_midiabin` só compila pelo doctor do pós-apt (que agora acha o
+  cargo) ou pelo terminal; o das 5h cai em "sem cargo". O lugar da cura é a unidade do
+  doctor (P75).
+- (conferência) A base do pino dos applets só nasce numa passagem que aplica (o
+  `install.sh`): se o instalador rodar depois de um apt que mudou o painel, a base nasce
+  com o painel novo e o applet fica no pino até o painel mudar de novo.
+- (conferência) O `compilar` deixa `~/.local/state/meowsystem/cosmic-comp/alvos.novo` para
+  trás quando o binário sai igual, e troca os `alvos` por uma cópia parcial quando a
+  árvore do cache já estava patchada (os arquivos com marcador são pulados). Os dois só
+  tornam o degrau 1 mais raro (arquivo faltando conta como "mudou"), nunca o contrário.
+- (conferência) `tests/contrato-cosmic.sh` cobre cinco dos oito escritores; `areas.sh`,
+  `wallpaper.sh` e a fronteira do `aplicar_tema.sh` ficaram sem caso.
+- (conferência) `docs/pesquisas/2026-10-09-cosmic-vivo.md:198` faz o
+  `tests/portabilidade.sh` falhar (vem do dev, f24868c).
