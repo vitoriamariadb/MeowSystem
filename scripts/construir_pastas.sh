@@ -426,14 +426,20 @@ cedido() { [ -n "${CEDIDOS[${1%.svg}]:-}" ]; }
 
 ler_cedidos
 
+# AS DUAS FALTAS DIZEM O QUE FALTA E ONDE, E NÃO O COMANDO — P75, 09/10/2026
+#   Eram `instale com: sudo apt install papirus-icon-theme` e `rode:
+#   scripts/baixar_upstream.sh`: o conserto conhecido devolvido como tarefa,
+#   e a primeira ainda ERRADA no dia — o Papirus estava instalado, e o que não
+#   existia era o `/usr/share/icons/MeowSystem-Icons-Base` que o valor do
+#   meow.conf montava. Quem põe as duas dependências no lugar é o doctor, na
+#   mesma passada e antes desta etapa (`pacotes` e `upstream` abrem a lista).
+#   O `!!` é o que faz o 3 pesar no veredito (`pulado_com_aviso`, bin/meow).
 if [ ! -d "$BASE_DIR" ]; then
-  meow_aviso "$BASE não está instalado — pastas coloridas puladas"
-  meow_info "instale com: sudo apt install papirus-icon-theme"
+  meow_aviso "a base '$BASE' não está em $BASE_DIR — pastas coloridas puladas"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 if [ ! -d "$FONTE/src" ]; then
-  meow_aviso "falta o upstream em $FONTE"
-  meow_info "rode: scripts/baixar_upstream.sh"
+  meow_aviso "falta o upstream papirus-folders em $FONTE — pastas coloridas puladas"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 

@@ -81,6 +81,7 @@ PORTATIL=(
   jogos-heroic.sh        # HOME de brinquedo com biblioteca falsa do Heroic
   um-cartao-por-jogo.sh  # HOME de brinquedo com manifesto falso da Steam
   doctor-so-le.sh        # o doctor inteiro num HOME de brinquedo, sudo/pkill/kill falsos (~15s)
+  doctor-veredito.sh     # o runner do doctor com conferências de mentira, ponte e sudo falsos; o doctor inteiro num HOME de brinquedo (P75, ~20s)
   fzf-da-paleta.sh       # paleta inventada e os dois packs daqui num HOME de brinquedo; bash e python3
   acento.sh              # COSMIC, pack e HOME de brinquedo; as etapas gerar e tema do install.sh; bash e python3
   vidro-do-cosmic.sh     # COSMIC, packs, HOME e TMPDIR de brinquedo; o alpha_map de 17/09 vai escrito no teste

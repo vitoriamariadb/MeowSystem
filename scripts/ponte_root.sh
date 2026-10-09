@@ -51,8 +51,10 @@
 #     ponte que pudesse regravar a si mesma seria uma ponte que qualquer coisa
 #     rodando como ela reescreve para fazer outra coisa;
 #   · não recebe caminho de origem. Todo destino é literal neste arquivo;
-#   · não instala pacote, não chama `apt install`, não roda `.deb`. O
-#     `atualizar` é `full-upgrade` dos repositórios já configurados;
+#   · não instala pacote por nome livre e não roda `.deb`. O `atualizar` é
+#     `full-upgrade` dos repositórios já configurados, e o `pacotes` (P75,
+#     09/10/2026) instala só nomes de uma lista LITERAL aqui dentro — ver o
+#     bloco dele;
 #   · não apaga nada fora dos dois caminhos do hook de apt e do da completion
 #     do zsh (este desde a P47, 24/09/2026).
 #
@@ -272,6 +274,42 @@ atualizar)
   apt full-upgrade -y -o Dpkg::Options::=--force-confold || exit 2
   ;;
 
+# --- os pacotes de que o projeto depende — P75, 09/10/2026 -----------------
+# POR QUE ESTE VERBO NASCEU
+#   Ela, 21/09/2026, três vezes: «nenhuma feature pode mandar o usuário
+#   consertar à mão». O `meow doctor` sabia que faltava o Papirus, sabia o
+#   pacote, e imprimia `sudo apt install papirus-icon-theme` para ela copiar —
+#   o conserto conhecido devolvido como tarefa. O `tests/sem-receita-no-log.sh`
+#   isentava a frase com a promessa "o dia em que a ponte ganhar um verbo de
+#   pacote, estas viram botão". É hoje.
+#
+# POR QUE ISTO NÃO É `apt install` LIVRE
+#   O nome entra por STDIN, um por linha, e só passa o que estiver na lista
+#   LITERAL abaixo — que mora neste arquivo, instalado como root, e não no
+#   clone, que é gravável por quem chama. Um nome fora dela derruba o verbo
+#   inteiro antes de qualquer `apt`: nada se instala pela metade. Os nomes são
+#   os do `etapa_pacotes` do install.sh (o array `NECESSARIOS` mais os dois que
+#   moram fora dele), e o `tests/doctor-veredito.sh` cobra que as duas listas
+#   sejam a mesma: uma cópia que envelhece calada é a armadilha nº 3.
+#
+# O QUE ELE CUSTA: quem rodar como a dona da máquina instala, sem senha, um
+#   destes nove pacotes dos repositórios já configurados. Nada além deles.
+pacotes)
+  PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy "
+  pedidos=()
+  while IFS= read -r nome || [ -n "${nome:-}" ]; do
+    [ -n "$nome" ] || continue
+    case "$PERMITIDOS" in
+      *" $nome "*) pedidos+=("$nome") ;;
+      *) morrer "pacote fora da lista desta ponte: $nome" ;;
+    esac
+  done
+  [ "${#pedidos[@]}" -gt 0 ] || morrer "stdin vazio"
+  export DEBIAN_FRONTEND=noninteractive
+  anotar "pacotes ${pedidos[*]}"
+  apt-get install -y --no-install-recommends "${pedidos[@]}" || exit 2
+  ;;
+
 limpar)
   export DEBIAN_FRONTEND=noninteractive
   anotar "limpar"
@@ -338,6 +376,7 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE completion-instalar, \\
     $PONTE completion-remover, \\
     $PONTE atualizar, \\
+    $PONTE pacotes, \\
     $PONTE limpar, \\
     $PONTE estado
 
@@ -349,7 +388,8 @@ REGRA_FIM
   sed -n '2,60p' "$0"
   printf '\nverbos: desktop · desktop-banco · greeter-ver · greeter-aplicar ·\n'
   printf '        apt-hook-instalar · apt-hook-remover · completion-instalar ·\n'
-  printf '        completion-remover · atualizar · limpar · estado · regra-sudo\n'
+  printf '        completion-remover · atualizar · pacotes · limpar · estado ·\n'
+  printf '        regra-sudo\n'
   ;;
 
 *) morrer "verbo desconhecido: $verbo" ;;

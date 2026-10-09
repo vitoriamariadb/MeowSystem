@@ -683,7 +683,9 @@ meow_app_instalado() { [ "$(_bb_presentes)" != "0" ]; }
 meow_app_detectar() {
   local bat_bin
   if ! meow_app_instalado; then
-    meow_pula "btop e bat não estão instalados (sudo apt install btop bat)"
+    # Sem a receita do `apt` desde a P75 (09/10/2026): os dois são do
+    # `etapa_pacotes`, e o `pacotes` do doctor os instala pela ponte root.
+    meow_pula "btop e bat não estão instalados"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if bat_bin="$(_bb_bat_bin)"; then meow_info "bat encontrado como '$bat_bin'"; fi
