@@ -59,6 +59,26 @@ Notas para a integração:
 - Arquivos de outros blocos tocados no mínimo: `scripts/completar_icones.sh` e `scripts/construir_pastas.sh` (só as linhas da mensagem e o código de saída; as linhas 107/149 do leitor são da P74), `scripts/files_menu.sh` (1 linha, ~199; P76), `scripts/escala.sh` (bloco do `--conferir`; a P76 mexe no `saidas()`), `app/servidor.py` (o `ICONES_BASE` ~1456 e o `finally` do `main`; P73/P77), `tests/app.sh` (isenção das aposentadas, lida do `migrar_conf.py`), `tests/sem-dracula-os-theme.sh`.
 - `meow doctor` sem `--consertar` continua só lendo (contrato da P44 e o «Conferir a máquina», que promete não escrever): quem corrige é o `--consertar` — o botão «Consertar» e o auto-reparo das 5h. O veredito dos dois agora é o mesmo.
 
+## Conferência (09/10/2026, conferente que corrige)
+
+Refeitas as provas das oito tarefas; as oito se sustentam, com quatro furos corrigidos:
+
+| commit | o que estava errado | prova |
+|---|---|---|
+| `0ea5fad` | (a) o `fix_conf` roda no subshell da captura, e a `ICONES_BASE` que ele tirava do arquivo seguia no ambiente do doctor: numa casa de brinquedo com uma cópia do meow.conf dela, a 1ª passada terminava vermelha nomeando `completar` e `pastas`. (b) a segunda tabela só reconferia o que estava fora antes: a 2ª passada fechava em «conferido de novo, tudo no lugar» com o `icones` desarrumado pelo `completar` (a 3ª achava `~~ icones`). | mesma casa, `conf pacotes upstream icones completar pastas`: antes 1ª rc=2 nomeando `completar, pastas`; depois 1ª rc=2 nomeando só `icones` (P74 item 5), 2ª rc=1 «consertado», 3ª e 4ª rc=0. Casos novos em `chaves-aposentadas.sh` (§5) e `doctor-veredito.sh` (c5b), vermelhos sem o conserto e verdes com ele. |
+| `36c0c87` | a linha `conf` saía com parêntese dentro de parêntese | `migrar_conf.py --conferir` numa cópia do conf |
+| `9246c36` | o «não quero o starship» dela (`starship-recusado`) saía com `!!`, e o pulado que avisa passou a pesar no veredito: o doctor diria «há divergências» todo dia | caso novo em `doctor-veredito.sh`: antes rc=1 com `!! prompt`, depois rc=0 com `-- prompt` |
+| `0c87759` | o `git-limpo.sh` §4 comparava só a linha do `git status`: com o `apps.map` já sujo (o estado do dev de 09/10), o painel gravava de novo e a seção dizia «idêntico» | worktree com o mapa sujo à mão: antes `ok … idêntico` com a linha do painel no arquivo; depois `NÃO` com os dois hashes e o arquivo reposto byte a byte como estava antes do teste |
+
+Suíte depois da conferência (`./tests/todos.sh --portatil`): 29 verdes, 0 pulados, 2 vermelhos
+(`git-limpo.sh`, o I3 até a P73; `portabilidade.sh`, anterior). `previa-cerca.sh` e
+`pastas-do-pack.sh` verdes. A passada inteira (`VERIFICAVEIS` todos) três vezes numa casa nova, com
+`sudo`, `systemctl`, `gsettings`, `dconf`, `busctl` falsos: a 2ª e a 3ª nomeiam o mesmo resto (só o que
+a casa de brinquedo não deixa: ponte, systemd, cargo, starship, sudo do greeter) e a 3ª não escreve nada
+(`mexeu=0`). Nenhum arquivo mudou em `~/.config/meow`, `~/.local/share/icons`, `~/.local/bin`,
+`~/.config/systemd/user`, `~/.config/cosmic`, `/usr/local/lib/meowsystem` nem `/etc/sudoers.d` (só o
+`wallpaper.log` do carrossel, que roda sozinho); o checkout principal ficou como estava.
+
 ## Achados para a próxima leva
 
 - `meow-doctor.service`: com o veredito honesto, «ficou fora» sai 2 e a unidade fica `failed` sem notificação (o `ExecStopPost` só avisa no 1). Decidir se o 2 também avisa.
@@ -67,3 +87,9 @@ Notas para a integração:
 - `docs/FRONTEIRA.md` ainda conta «oito verbos fechados»; a ponte tem o `pacotes` agora.
 - `pack.py:ICONES_BASE_DO_EXEMPLO` e os leitores `${ICONES_BASE:-…}` (install.sh, construir_icones.sh, bin/meow) ficam sem razão quando a P74 item 1 os trocar pela pergunta ao pack; aí a isenção das aposentadas no `tests/app.sh` deixa de casar sozinha.
 - `tests/portabilidade.sh` falha no dev desde `f24868c`: `docs/pesquisas/2026-10-09-cosmic-vivo.md:198` escreve a casa de uma pessoa.
+- A suíte (`tests/todos.sh`) só falsifica `sudo`, `pkexec` e `su`; `systemctl --user`, `gsettings`, `dconf` e o barramento de sessão seguem reais. A passada inteira do `doctor --consertar` numa casa de brinquedo chama `systemctl --user enable --now meow-*.timer/.path` e `gsettings set …cursor-theme` — na conferência só não chegaram à sessão porque o harness os falsificava. Hoje nenhum teste da suíte roda a passada inteira, mas a proteção é de cada teste, não do runner.
+- `prompt` sem starship e sem recusa termina `!!` com «resolve: ./scripts/prompt.sh instalar-starship»: a cura é conhecida, mas baixa sem pino (`curl | sh` do starship.rs) e é pendência com pergunta desde a P2. Decidir se o doctor a aplica.
+- `wallpaper` numa casa nova: «só 0 imagem(ns) … o carrossel precisa de 2 ou mais» em `!!` — o doctor recém-instalado termina vermelho até haver imagens.
+- `greeter-aplicar` (`ponte_root.sh`): a recusa de `..` roda num `while` de pipe e o `morrer` sai só do subshell (é código morto: o GNU tar já recusa `..`, e o `find` não devolve `..`); e o `cp -a` para o `.config/cosmic` do greeter segue link simbólico que já exista no destino. Os dois são anteriores à P75.
+- `iconesapps` ainda diz «o acervo Catppuccin de aplicativos não está em …» com o Dracula no ar (P70 item 3; cabe na T1/P74 item 7).
+- Depois da migração, o meow.conf dela guarda o bloco de comentário que o install.sh acrescentou com a `ICONES_BASE` (`# @ Tema de onde herdar`, ~25 linhas) sem chave embaixo: inerte (o painel lê o esquema do exemplo), mas é texto sobre uma chave que não existe mais.
