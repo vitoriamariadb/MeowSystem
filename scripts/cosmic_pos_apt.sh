@@ -55,6 +55,21 @@ PA_ORACULO="${PA_ORACULO:-$MEOW_RAIZ/scripts/oraculo_tema.sh}"
 # O veredito do pré-voo (`meow cosmic prever`), gravado antes do apt.
 PA_CANDIDATO="${PA_CANDIDATO:-$MEOW_ESTADO/cosmic-candidato.tsv}"
 
+# O CARGO DO RUSTUP ENTRA NO PATH AQUI — conferência da P76
+#   Quem chama este script é o `meow-pos-apt.service`, e o PATH do systemd do
+#   usuário não tem o `~/.cargo/bin` (medido em 09/10/2026 com
+#   `systemctl --user show-environment`: começa em `~/.local/bin` e segue pelo
+#   do sistema). O rustup põe o `cargo` e o `rustup` só ali, e quem os acha na
+#   sessão é o `~/.profile`, que o systemd não lê. Sem esta linha, todo passo
+#   de build daqui (o compositor, o menu, o oráculo, e os applets que o doctor
+#   do fim recompila) cairia em "falta o cargo" e o pós-apt seria um vigia que
+#   não refaz nada. Os filhos herdam o PATH; nada muda fora deste processo.
+PA_CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
+case ":$PATH:" in
+  *":$PA_CARGO_BIN:"*) ;;
+  *) [ -d "$PA_CARGO_BIN" ] && PATH="$PA_CARGO_BIN:$PATH" && export PATH ;;
+esac
+
 # pacote<TAB>versão dos `cosmic-*` instalados, ordenado.
 _pa_instalados() {
   dpkg-query -W -f='${Package}\t${Version}\t${db:Status-Status}\n' 'cosmic-*' 2>/dev/null |

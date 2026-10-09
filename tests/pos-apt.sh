@@ -136,6 +136,24 @@ h2="$(sha256sum < "$T/estado/cosmic-versoes")"
 igual "seco: nenhum passo rodou" "$(grep -v '^compositor guardar' "$T/log" | grep -c .)" 0
 igual "seco: o arquivo de versões não mudou" "$(sha256sum < "$T/estado/cosmic-versoes")" "$h2"
 
+echo "== o PATH do systemd não tem o ~/.cargo/bin: o pós-apt o põe (conferência da P76)"
+# O serviço roda com o PATH do systemd do usuário, sem o `~/.cargo/bin` do
+# rustup. O passo de build tem de achar o `cargo` do HOME mesmo assim.
+mkdir -p "$T/home/.cargo/bin"
+printf '#!/bin/sh\nexit 0\n' > "$T/home/.cargo/bin/cargo"; chmod 755 "$T/home/.cargo/bin/cargo"
+cat > "$T/files" <<FIM
+#!/bin/sh
+echo "files cargo=\$(command -v cargo)" >> "$T/log"
+exit 1
+FIM
+versoes cosmic-comp=0.1~e cosmic-files=1.10~f cosmic-panel=1.10~a
+: > "$T/log"
+HOME="$T/home" PATH="$T/bin:/usr/local/bin:/usr/bin:/bin" MEOW_ESTADO="$T/estado" MEOW_CONF="$T/nao-existe.conf" \
+  PA_CASA="$T/casa" PA_COMPOSITOR="$T/compositor" PA_FILES="$T/files" PA_DOCTOR="$T/doctor" \
+  PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" PA_ORACULO="$T/oraculo" \
+  "$RAIZ/scripts/cosmic_pos_apt.sh" >/dev/null 2>&1
+igual "o passo de build acha o cargo do HOME" "$(sed -n 's/^files cargo=//p' "$T/log")" "$T/home/.cargo/bin/cargo"
+
 echo
 if [ "$falhas" = 0 ]; then echo "pos-apt: tudo certo"; exit 0; fi
 echo "pos-apt: $falhas falha(s)"; exit 1
