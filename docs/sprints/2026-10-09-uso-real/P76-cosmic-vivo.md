@@ -48,8 +48,8 @@ Tudo medido nesta máquina; nada aplicado no HOME de verdade, nada com sudo.
 | 8 | feito, menos o coredump | 9fc905f | `tests/applet-pino.sh`: 16 ok (o build só quando o painel anda depois da base; volta ao pino quando falha; `--conferir` não escreve). `leiturabin` e `midiabin` saíram do `SEM_CONSERTO`, com `fix_` que recompila. Na máquina: painel 1.9 pina 23f5d63, os applets 1f6dc99; a regra adota a base sem recompilar, e o applet anda no próximo apt. **Não feito**: o coredump retirando a sombra |
 | 9 | feito | 67f5ecd, c1969d7, 872b913, e96ec04 | `escala.sh` pelo `--kdl`: saída igual byte a byte à do awk antigo nesta máquina; `tests/escala-kdl.sh`. Backoff sem medida vira `nao-medida` e o `reciclar` recusa: `tests/backoff-do-supervisor.sh`. `meow cosmic icones`: "sem desenho: com.system76.CosmicViewer"; no 1.10 nenhum `.desktop` entra ou sai. `meow cosmic prever` acusa "cosmic-applets instalado é o 82e7cd8; scripts/appid_dock.sh foi medido no 40248fb" |
 
-Testes (HOME temporário, `sudo` falso no PATH): `tests/todos.sh --portatil` — 36 de 38
-verdes depois dos ajustes (d1d62a0). Os dois vermelhos existem também no dev (f24868c),
+Testes (HOME temporário, `sudo` falso no PATH): `tests/todos.sh --portatil` — 35 verdes, 1
+pulado (`pack.sh`, que pula sozinho) e 2 vermelhos. Os dois existem também no dev (f24868c),
 com o mesmo ambiente: `portabilidade.sh` (o `/home/<nome>` na linha 198 da pesquisa) e
 `doctor-so-le.sh` (a conferência "com o HOME da sessão" não acha o painel com HOME de
 brinquedo). Os da máquina (Playwright) não rodaram.
