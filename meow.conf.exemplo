@@ -577,6 +577,13 @@ ICONES_LOGO_HEFESTO=""            # caminho de um .svg; vazio = o desenho gerado
 #   Escrever aqui uma cor fixa do Catppuccin "resolveria" o sintoma e quebraria
 #   a promessa da linha de cima — a de que trocar o flavor repinta as pastas
 #   sozinho. Por isso o valor continua escrito com as variáveis.
+#
+# E VOLTA A SER ESCRITO ASSIM — 10/10/2026, P79. O nome por extenso com o
+#   flavor do pack no ar (`cat-dracula-${ACCENT}` com o Dracula) ou com o de um
+#   flavor que o pack no ar não tem é resto de pack: o `meow doctor --consertar`
+#   e o install.sh (`scripts/migrar_conf.py`, `VESTIGIOS`) devolvem a linha à
+#   forma de cima, e a próxima troca de pack a leva junto. Outra cor do mesmo
+#   pack (`cat-frappe-blue` com o Catppuccin) é escolha, e fica.
 ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 
 # @ Variante dos ícones de arquivo
@@ -612,8 +619,15 @@ ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 #   Era o `ICONES_FLAVOR="dracula"` expandido, que não existe, e os ícones de
 #   arquivo não se vestiam. A regra mora num lugar só (`scripts/pack.py`, verbo
 #   `flavor-icones`), e é ela que os três scripts de ícone e o painel perguntam.
-#   Um nome escrito aqui à mão continua vencendo, exista ou não o acervo dele;
-#   vazio vale o mesmo que o de fábrica.
+#   Um nome escrito aqui à mão continua vencendo, exista ou não o acervo dele,
+#   desde que seja um flavor do pack no ar (abaixo); vazio vale o mesmo que o
+#   de fábrica.
+#
+# O FLAVOR DE OUTRO PACK VOLTA AO DE FÁBRICA — 10/10/2026, P79
+#   Um nome que o pack no ar NÃO tem (o `macchiato` com o Dracula no ar, resto
+#   de antes da P74) é vestígio de outro pack, e não escolha: o `meow doctor
+#   --consertar` e o install.sh (`scripts/migrar_conf.py`, `VESTIGIOS`) devolvem
+#   a linha a `"$FLAVOR"`. A divergência de propósito vale dentro do mesmo pack.
 ICONES_FLAVOR="$FLAVOR"
 
 # @ Cor pela marca do programa
