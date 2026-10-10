@@ -726,18 +726,22 @@ def acervo(categoria, arquivo="", motor=None, ref=None):
             #   realpath, e trocar a resposta por ele mudaria o caminho que o
             #   chamador imprime quando a raiz do pack passa por um link — um
             #   efeito que este conserto não precisa ter.
-            dentro = True
+            #   [P78, 09/10/2026: o `_dentro` deixou de ser só GUARDA. Validar
+            #   o realpath e devolver o `join` era validar uma forma e entregar
+            #   outra — a do kernel, que passa por symlink —, o defeito que a
+            #   "A REGRA ÚNICA" (junto do `_dentro`) descreve. O preço que o
+            #   parágrafo acima temia é só o caminho impresso mudar quando a
+            #   raiz do pack passa por um link; o que se abre é o mesmo arquivo.]
             try:
-                _dentro(dir_pack,
-                        os.path.join(declarado, arquivo) if arquivo else declarado,
-                        categoria)
+                alvo = _dentro(dir_pack,
+                               os.path.join(declarado, arquivo) if arquivo else declarado,
+                               categoria)
             except Recusa as e:
                 print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
-                dentro = False
-            alvo = os.path.join(dir_pack, declarado, arquivo) if arquivo \
-                else os.path.join(dir_pack, declarado)
-            if dentro and os.path.exists(alvo):
-                return alvo
+                alvo = None
+            if alvo and os.path.exists(alvo):
+                # A barra do fim de uma pasta declarada volta, como no `dir_acervo`.
+                return alvo + os.sep if not arquivo and declarado.endswith("/") else alvo
         # A HERANÇA DO BLOCO VENCE A DO PACK INTEIRO. O Dracula declara
         # `heranca: "catppuccin"` no topo E `icones.mimetypes.herda:
         # "catppuccin"` no bloco — a do bloco é a que fala daquela categoria, e
@@ -789,8 +793,11 @@ def dir_acervo(categoria, ref=None, padrao=None):
     # pack. Do lado da leitura o estrago é ler um mapa; do lado da escrita é
     # criar arquivo no disco de quem instalou. Aqui a recusa sobe — quem escreve
     # não tem uma "próxima camada da herança" para tentar.
-    _dentro(dir_pack, declarado, categoria)
-    return os.path.join(dir_pack, declarado)
+    # [P78: devolve a forma que o `_dentro` conferiu — ver "A REGRA ÚNICA". A
+    #   barra do fim volta quando o pack a escreveu: o `realpath` a come, e é
+    #   com ela que quem chama emenda o nome do arquivo.]
+    real = _dentro(dir_pack, declarado, categoria)
+    return real + os.sep if declarado.endswith("/") else real
 
 
 # O PREFIXO `motor:` — A DECISÃO SAI DE `assets/` SEM O ACERVO SAIR JUNTO
@@ -906,11 +913,12 @@ def resolver_alvo(valor, base):
     #   Reimplementar a comparação para trocar a frase seria a segunda definição
     #   de "está contido", e ela divergiria da primeira — então a conta continua
     #   sendo dele e só a mensagem é reescrita aqui.
+    #   [P78: e o que volta é o realpath que a conta conferiu, e não o `join`
+    #   — ver "A REGRA ÚNICA", junto do `_dentro`.]
     try:
-        _dentro(raiz, resto, "alvo")
+        return _dentro(raiz, resto, "alvo")
     except Recusa:
         raise Recusa(f"{valor!r} sai de {raiz}") from None
-    return os.path.join(raiz, resto)
 
 
 def cmd_alvo(base):
@@ -1081,14 +1089,20 @@ def _alvo_de_escolha(alvo):
     da raiz do MeowSystem ou de uma raiz de packs: o arquivo é da pessoa, mas o
     que ele aponta vai para o tema, e uma linha não pode puxar `/etc/` para lá.
     """
-    caminho = os.path.normpath(alvo if os.path.isabs(alvo) else os.path.join(RAIZ, alvo))
+    # [P78: era `normpath` para conferir o link e devolver, e `realpath` para
+    #   conferir a raiz — duas formas. O `normpath` corta `a/../b` no texto, e
+    #   o kernel, se `a` for symlink, sobe a partir do destino do link. Agora a
+    #   forma é uma só, a do `realpath`, e é ela que volta: ver "A REGRA ÚNICA".
+    #   O "não é link" continua no caminho como foi escrito, porque é o arquivo
+    #   da linha que não pode ser link.]
+    escrito = alvo if os.path.isabs(alvo) else os.path.join(RAIZ, alvo)
     reais = [os.path.realpath(r) for r in [RAIZ] + raizes()]
-    real = os.path.realpath(caminho)
+    real = os.path.realpath(escrito)
     _exigir(any(real.startswith(r + os.sep) for r in reais),
             f"{alvo!r} está fora do MeowSystem e das pastas de packs")
-    _exigir(caminho.endswith(".svg") and os.path.isfile(caminho) and not os.path.islink(caminho),
+    _exigir(real.endswith(".svg") and os.path.isfile(real) and not os.path.islink(escrito),
             f"{alvo!r} não é um .svg comum que exista")
-    return caminho
+    return real
 
 
 def escolhas_do_painel():
@@ -1103,6 +1117,11 @@ def escolhas_do_painel():
     saida = []
     for num, nome, alvo in linhas:
         try:
+            # O NOME TAMBÉM É DADO — P78. Ele vira `<nome>.svg` no tema, e uma
+            # linha `../../x : …` escrevia `~/.local/share/x.svg`, fora dele.
+            _exigir(nome_de_destino(nome),
+                    f"{nome!r}: o nome do ícone só tem letras, dígitos e . _ + -, "
+                    f"sem '/' nem '..'")
             saida.append((num, nome, _alvo_de_escolha(alvo)))
         except Recusa as e:
             print(f"  aviso {arquivo_de_escolhas()}:{num}: {e}", file=sys.stderr)
@@ -1641,11 +1660,10 @@ def _dir_capturas(ref, dir_pack):
     if not isinstance(rel, str):
         rel = CAPTURAS_NO_PACK
     try:
-        _dentro(dir_pack, rel, CATEGORIA_CAPTURA)
+        return _dentro(dir_pack, rel, CATEGORIA_CAPTURA)
     except Recusa as e:
         print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
         return None
-    return os.path.join(dir_pack, rel)
 
 
 def _ref_ativa(ref):
@@ -1662,10 +1680,24 @@ def captura(par, ref=None):
     Devolve None quando não existe em lugar nenhum — ausência é resposta, e quem
     chama decide se ela é erro.
     """
+    # O PAR É NOME, E A CAPTURA FICA DENTRO DA PASTA DE CAPTURAS — P78
+    #   O `aplicar_tema.sh` copia a captura inteira para ~/.config/cosmic: uma
+    #   `temas/capturados/<par>` que fosse symlink para fora levaria para lá o
+    #   que estivesse no destino do link. O par passa pela régua de nome, e a
+    #   pasta, pelo `_dentro` da pasta de capturas.
+    if not nome_de_destino(par):
+        return None
     for ident, dir_pack in _cadeia(_ref_ativa(ref)):
         base = _dir_capturas(ident, dir_pack)
-        if base and os.path.isdir(os.path.join(base, par)):
-            return os.path.join(base, par)
+        if not base:
+            continue
+        try:
+            alvo = _dentro(base, par, CATEGORIA_CAPTURA)
+        except Recusa as e:
+            print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
+            continue
+        if os.path.isdir(alvo):
+            return alvo
     alvo = os.path.join(RAIZ, CAPTURAS_DO_MOTOR, par)
     return alvo if os.path.isdir(alvo) else None
 
@@ -1683,6 +1715,9 @@ def captura_destino(par, ref=None):
     """
     if par == CAPTURA_DO_MOTOR:
         return os.path.join(RAIZ, CAPTURAS_DO_MOTOR, par)
+    # O par vira pasta dentro do pack: a régua de nome da "A REGRA ÚNICA" (P78).
+    if not nome_de_destino(par):
+        return None
     ref = _ref_ativa(ref)
     dir_pack = achar(ref)
     if not dir_pack:
@@ -1800,11 +1835,10 @@ def tema_de_app(categoria, ref=None):
                 return None, None
             if chave == ["arquivo"]:
                 try:
-                    _dentro(dir_pack, str(valor), categoria)
+                    cheio = _dentro(dir_pack, str(valor), categoria)
                 except Recusa as e:
                     print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
                     return None, None
-                cheio = os.path.join(dir_pack, str(valor))
                 return (quem, cheio) if os.path.exists(cheio) else (None, None)
             if isinstance(valor, str):
                 valor = valor.replace("<flavor>", flavor)
@@ -2412,8 +2446,40 @@ def _exigir(cond, msg):
         raise Recusa(msg)
 
 
+# A REGRA ÚNICA DO DADO DE PACK — P78, 09/10/2026
+#   Um pack pode vir de terceiros (`meow pack importar`, ou um `git clone` na
+#   raiz da pessoa, que traz symlink), e tudo o que vem dele — campo do
+#   pack.json, linha de mapa, arquivo de pasta de desenho — é dado não
+#   confiável. Seis alertas automáticos da onda 1 da leva G acharam o mesmo
+#   defeito em seis lugares: o caminho era CONFERIDO numa forma (o `realpath`
+#   aqui, um `normpath`, um `startswith` no texto) e USADO noutra (o `join`
+#   cru, que o kernel resolve passando por symlink). Validar uma forma e abrir
+#   outra é o "parser differential" do alerta.
+#
+#   Por isso as duas metades da regra moram aqui, e só aqui (a gêmea em shell é
+#   o `meow_dentro`/`meow_nome_seguro` do lib/comum.sh, com a mesma conta):
+#     1. `_dentro`: o caminho resolve com `realpath` — que segue todo symlink,
+#        do meio e do fim — e só vale se cair DENTRO da raiz permitida. O que
+#        volta é essa forma resolvida, e é ELA que quem chama abre ou copia:
+#        nunca o `join` que entrou.
+#     2. `nome_de_destino`: um nome que vira arquivo do lado de cá (`<nome>.svg`
+#        no tema) só de `[A-Za-z0-9._+-]`, sem `..`.
+#   Quem chama decide o que a recusa custa: o `validar` recusa o pack, o leitor
+#   de mapa pula a linha e conta.
+RE_NOME_DESTINO = re.compile(r"^[A-Za-z0-9._+-]+$")
+
+
+def nome_de_destino(nome):
+    """True quando `nome` serve de nome de arquivo do lado de cá: sem '/', sem '..'."""
+    return isinstance(nome, str) and bool(RE_NOME_DESTINO.match(nome)) \
+        and ".." not in nome and nome != "."
+
+
 def _dentro(base, alvo, campo):
-    """Todo caminho declarado resolve com realpath e cai dentro do pack."""
+    """Todo caminho declarado resolve com realpath e cai dentro do pack.
+
+    Devolve o realpath, e é ele que se usa daqui em diante — ver "A REGRA ÚNICA".
+    """
     cheio = os.path.realpath(os.path.join(base, alvo))
     if not cheio.startswith(os.path.realpath(base) + os.sep):
         raise Recusa(f"{campo}: {alvo!r} sai de dentro do pack")
@@ -4168,11 +4234,13 @@ def _arquivos_da_pasta(pasta, ext):
     except OSError:
         return []
     saida = []
+    dentro = os.path.realpath(pasta) + os.sep
     for nome in nomes:
         cheio = os.path.join(pasta, nome)
         if (nome.startswith(".") or not nome.lower().endswith(ext) or nome in FORA_DA_FICHA
                 or not RE_NOME_NA_FICHA.match(nome) or os.path.islink(cheio)
-                or not os.path.isfile(cheio)):
+                or not os.path.isfile(cheio)
+                or not os.path.realpath(cheio).startswith(dentro)):
             continue
         saida.append(cheio)
     return saida
@@ -4217,10 +4285,18 @@ def acervos_de_icone(no_ar=""):
                                    "desenho", ".svg"))
                 except Recusa:
                     pass
-            pastas.append(("biblioteca", "biblioteca", os.path.join(dir_pack, PASTA_BIBLIOTECA),
-                           "desenho", ".svg"))
-            pastas.append(("feitos-a-mao", "feitos à mão (PNG)",
-                           os.path.join(dir_pack, PASTA_FEITOS_A_MAO), "png", ".png"))
+            # A BIBLIOTECA E OS FEITOS À MÃO TAMBÉM PASSAM PELO `_dentro` — P78
+            #   As duas pastas são convenção, sem campo no pack.json, e por
+            #   isso entravam pelo `join` cru: uma `icones/biblioteca` que fosse
+            #   symlink para fora punha na ficha (e na `/previa`) o que estivesse
+            #   lá. Pasta que sai do pack fica de fora, calada como a declarada.
+            for chave, nome, rel, tipo, ext in (
+                    ("biblioteca", "biblioteca", PASTA_BIBLIOTECA, "desenho", ".svg"),
+                    ("feitos-a-mao", "feitos à mão (PNG)", PASTA_FEITOS_A_MAO, "png", ".png")):
+                try:
+                    pastas.append((chave, nome, _dentro(dir_pack, rel, chave), tipo, ext))
+                except Recusa:
+                    pass
             for chave, nome, pasta, tipo, ext in pastas:
                 grupo("pack:%s:%s" % (pid, chave), nome_pack, nome, pid, tipo, pasta,
                       _arquivos_da_pasta(pasta, ext))
