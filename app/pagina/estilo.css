@@ -2287,9 +2287,18 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 /* [P80, item 3: o cadeado desenhado em CSS (`.cadeado`) saiu; a pasta
  * travada leva o selo de trava da página — ver o `selo("trava")` no app.js.] */
 .pasta-acervo > summary .selo { align-self: center; }
+/* A COLUNA CABE A PALAVRA MAIS LONGA DO RÓTULO — QA de uso real da P80
+ * (10/10/2026). Com 76 px, o rótulo tinha 65 px de largura útil, e o nome
+ * amigável que a P80 pôs embaixo de cada desenho partia no meio da palavra:
+ * «Configuraçõe» numa linha e «s» na outra, «Siliconsneake» e «r». O
+ * navegador não hifeniza português aqui (medido: `hyphens: auto` não quebra
+ * «Configurações»), então quem resolve é a largura: com 88 px sobram 76 de
+ * rótulo, e a palavra mais longa da casa medida (`Spacestation14`, 72 px no
+ * corpo da legenda) cabe inteira. O `overflow-wrap: anywhere` do rótulo fica
+ * como último recurso, para o nome que nem assim caiba. */
 .grade-glifos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
   align-content: start;
   gap: .4rem;
   padding: .4rem;
@@ -4081,7 +4090,17 @@ a.folha:hover b { color: var(--text); }
  * (o nome vai no balão e no leitor de tela). Aberto, a grade de dentro é a
  * mesma das outras. */
 .ajustes-tecnicos { margin: .6rem 0 0; }
+/* O `position: relative` SEGURA O NOME DO LEITOR DE TELA — QA de uso real da
+ * P80 (10/10/2026). O `.so-leitor` de dentro é `position: absolute`, e sem
+ * ancestral posicionado o bloco dele era a janela, e não o `#principal`: o
+ * pedacinho de 1 px ficava lá embaixo, onde o «⋯» mora na página, e esticava
+ * a PÁGINA INTEIRA. Medido em sete páginas (Cor e tela, Logo, Painel e dock,
+ * Papel de parede, Modo de leitura, Lançadores, Manutenção): duas barras de
+ * rolagem na borda direita, a da página e a do `#principal`, e o topo
+ * deslocado 15 px; a 375 px eram 15 px a menos de largura. Preso ao
+ * `summary`, ele fica dentro de quem rola. */
 .ajustes-tecnicos > summary {
+  position: relative;
   display: inline-grid;
   place-items: center;
   width: 32px;
