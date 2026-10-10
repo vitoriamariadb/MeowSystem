@@ -18,7 +18,9 @@
 #      repositório fica sem grupo, fora as excluídas de propósito.
 #   2. Por sha256: os desenhos versionados menos os oferecíveis só deixam
 #      `pastas/`, `assets/gatos/`, os `logo.svg` e a folha de antes e depois
-#      dos resgatados (que é comparação, e não ícone).
+#      dos resgatados (que é comparação, e não ícone). Os papéis de parede do
+#      pack (`packs/<id>/wallpapers/`, P74 item 9) ficam fora da conta, como o
+#      `temas/`: são SVG versionados, e não são desenho de aplicativo.
 #   3. A busca acha pelo nome do app e pelo significado: «firefox» acha o
 #      `apps/net.waterfox.waterfox.svg`; «alienígena» acha o `alien.svg`.
 #   4. Abrir a ficha sem busca não corta nada (`limitado` falso) e o nome do
@@ -124,7 +126,10 @@ checa(soma == contados, "o total que cada pasta anuncia é o número de itens de
 # scripts/pack.py): pastas e mimetypes (não são ícone de app), o
 # `previa-arcticons/` (os mesmos bytes de outra pasta), o `upstream/`
 # (papirus-folders, fora do git) e o `tray-terceiros/` (originais de bandeja).
-FORA = {"pastas", "mimetypes", "previa-arcticons", "upstream", "tray-terceiros"}
+# [Integração da leva G, 09/10/2026: e o `wallpapers/` do pack, que a P74 item
+#   9 versionou em SVG no mesmo dia em que este teste nasceu na P73. Papel de
+#   parede não é ícone de aplicativo, e a ficha não o oferece de propósito.]
+FORA = {"pastas", "mimetypes", "previa-arcticons", "upstream", "tray-terceiros", "wallpapers"}
 versionados = subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icones"],
                              capture_output=True, text=True).stdout.split()
 sem_grupo = set()
@@ -143,7 +148,8 @@ oferecidos = {sha(caminho_de(it)) for it in itens}
 sobra = {}
 for rel in subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icones", "assets/gatos"],
                           capture_output=True, text=True).stdout.split():
-    if not rel.lower().endswith((".svg", ".png")) or "/mimetypes/" in rel or "/temas/" in rel:
+    if (not rel.lower().endswith((".svg", ".png")) or "/mimetypes/" in rel or "/temas/" in rel
+            or "/wallpapers/" in rel):
         continue
     h = sha(os.path.join(raiz, rel))
     if h not in oferecidos:
