@@ -7053,6 +7053,16 @@ def pendencias():
                 #   falha. Lendo só a tabela, a Home poria um "Resolver" que
                 #   dispararia um segundo build em cima do primeiro.
                 acao = ACAO_DA_PENDENCIA.get(ident, "") if comando else ""
+                # A PENDÊNCIA QUE A MÁQUINA JÁ RESOLVEU NÃO É MOSTRADA — QA de
+                #   uso real da P80. Quando o conserto dela se declara «já
+                #   feito» (o `feito` do `indisponivel`: «Criar a primeira área»
+                #   com área fixada), a linha ficou velha — a pessoa fixou a
+                #   área pelo COSMIC depois de o instalador anotar a falta — e
+                #   o «Resolver» só ouviria a recusa do servidor. O arquivo não
+                #   é reescrito aqui: quem tira a linha é o próprio verbo, ao
+                #   rodar (`meow_pendencia_resolvida`); a página só não a mostra.
+                if acao and (indisponivel(acao) or {}).get("feito"):
+                    continue
                 app = _app_da_pendencia(ident) if comando else ""
                 escolha = [{"acao": a, "argumento": app, "rotulo": r}
                            for a, r in ESCOLHA_TEMA_DE_TERCEIRO] if app else []
