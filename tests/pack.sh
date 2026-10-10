@@ -948,14 +948,18 @@ tema_do_conf() {
     "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$par" --conferir >/dev/null 2>&1; rc=$?
     printf "%s %s %s\n" "$(basename "$MEOW_PACK_DIR")" "$par" "$rc"'
 }
-sem_as_duas() { grep -vE '^(PACK|FLAVOR)=' "$1"; }
+# [P79, 10/10/2026, item 4: a troca leva junto o que o pack de antes escolhia
+#   — o ponteiro de fábrica, que é o do Catppuccin, vira o do Dracula (ver o
+#   `vestigios` do scripts/migrar_conf.py e o tests/casa-real.sh). Fora o
+#   CURSOR, nenhuma outra linha.]
+sem_as_duas() { grep -vE '^(PACK|FLAVOR|CURSOR)=' "$1"; }
 
 antes="$(sem_as_duas "$T/usar.conf")"
 saida="$(usar_amb "$RAIZ/bin/meow" pack usar dracula --sem-aplicar 2>&1)"; rc=$?
 if [ "$rc" = "0" ] && grep -qx 'PACK="dracula"' "$T/usar.conf" \
-   && grep -q '^FLAVOR="dracula"' "$T/usar.conf" \
+   && grep -q '^FLAVOR="dracula"' "$T/usar.conf" && grep -q '^CURSOR="Dracula-Cursor"' "$T/usar.conf" \
    && [ "$(sem_as_duas "$T/usar.conf")" = "$antes" ]; then
-  ok "meow pack usar grava PACK e FLAVOR, e nenhuma outra linha do conf"
+  ok "meow pack usar grava PACK e FLAVOR, leva o ponteiro do pack, e nenhuma outra linha do conf"
 else
   falha "meow pack usar dracula não gravou só as duas chaves (rc=$rc)" "$saida"
 fi
@@ -1021,7 +1025,7 @@ vest_caso() {   # $1 rótulo · $2 pack a usar · $3 a chave que o caso exige ("
   for k in $painel; do grep -qw -- "$k" <<< "$saida" || faltou="$faltou $k"; done
   if [ -n "$3" ] && ! grep -qw -- "$3" <<< "$painel"; then
     falha "$1: o caso deixou de montar o que mede (o painel marca '$painel', esperava $3)"
-  elif [ -z "$3" ] && { [ -n "$painel" ] || grep -q 'CURSOR' <<< "$saida"; }; then
+  elif [ -z "$3" ] && { [ -n "$painel" ] || grep -q 'continuam valendo.*CURSOR' <<< "$saida"; }; then
     falha "$1: o terminal ou o painel acusam um vestígio que não existe (painel: '$painel')" "$saida"
   elif [ -n "$faltou" ]; then
     falha "$1: o painel marca$faltou e o terminal não disse" "$saida"
@@ -1034,8 +1038,10 @@ vest_caso "Catppuccin -> Dracula: o CURSOR que o Dracula receita não é vestíg
 # [P75, 09/10/2026: o veículo deste caso era a `ICONES_BASE="Dracula-Icones"`,
 #   e a chave foi aposentada — saiu do exemplo e do painel. O que se mede é o
 #   mesmo com o ponteiro do Dracula, que o Catppuccin não receita.]
-vest_caso "Dracula -> Catppuccin: o CURSOR do Dracula é vestígio, e o terminal diz" \
-  catppuccin CURSOR 's/^PACK=.*/PACK="dracula"/; s/^FLAVOR=.*/FLAVOR="dracula"/; s/^CURSOR=.*/CURSOR="Dracula-Cursor"/'
+# [P79: o `Dracula-Cursor` é o ponteiro que o Dracula escolhe, e a troca o
+#   leva junto. O vestígio que fica é o que quem usa fixou citando o Dracula.]
+vest_caso "Dracula -> Catppuccin: o CURSOR fixado do Dracula é vestígio, e o terminal diz" \
+  catppuccin CURSOR 's/^PACK=.*/PACK="dracula"/; s/^FLAVOR=.*/FLAVOR="dracula"/; s/^CURSOR=.*/CURSOR="Dracula-Cursor-Branco"/'
 vest_caso "sabor sem PACK -> Dracula: o CURSOR do Latte é vestígio, e o terminal diz" \
   dracula CURSOR 's/^FLAVOR=.*/FLAVOR="latte"/; s/^CURSOR=.*/CURSOR="catppuccin-latte-dark"/'
 

@@ -104,6 +104,7 @@ PORTATIL=(
   escala-kdl.sh          # cosmic-randr falso com KDL fixo; só o saidas() do escala.sh (P76); só bash
   backoff-do-supervisor.sh # journalctl falso com as duas formas do log do cosmic-session (P76); só bash
   pack-malicioso.sh      # pack de terceiro com '..', absoluto, symlink e script; painel num HOME de brinquedo (P78); bash, python3 e curl
+  casa-real.sh           # o migrar_conf, o doctor e a troca de pack num HOME e COSMIC de brinquedo, sudo falso (P79); bash e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por

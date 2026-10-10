@@ -4584,6 +4584,21 @@ cmd_pack() {
       texto="$(meow_conf_texto_definir "$texto" FLAVOR "$novo_flavor")"
       printf '%s\n' "$texto" > "$copia/meow.conf"
 
+      # O PONTEIRO E AS PASTAS QUE O PACK DE ANTES ESCOLHIA VÃO JUNTO — P79
+      #   (10/10/2026, item 4). O QA da P77 achou o ensaio de trocar o Dracula
+      #   pelo Catppuccin avisando que `CURSOR` e `ICONES_PASTAS` continuavam
+      #   citando o Dracula: a troca saía pela metade numa casa que tinha o
+      #   ponteiro e as pastas que o pack escolhe. O pack decide; quem usa pode
+      #   fixar. A régua é a do `migrar_conf.py` (`vestigios`), a mesma do doctor:
+      #   o ponteiro igual ao que o pack de antes escolhe vira o do novo, e as
+      #   pastas com o flavor de outro pack voltam a acompanhar o pack. Roda na
+      #   CÓPIA primeiro — o ensaio e a lista de baixo leem a troca inteira — e
+      #   no conf de verdade depois de gravar PACK e FLAVOR.
+      local junto
+      junto="$(python3 "$RAIZ/scripts/migrar_conf.py" "$copia/meow.conf" "$CONF_PADRAO" \
+                 --so-vestigios --pack-de-antes "$agora_pack" "$agora_flavor" 2>/dev/null)" || junto=""
+      junto="${junto#*: }"
+
       # O QUE FICA DE OUTRO PACK, DITO ANTES DE APLICAR
       #   O verbo grava PACK e FLAVOR, e só: o meow.conf vence o pack
       #   (docs/PACKS.md, "Quem vence"), e um `ICONES_BASE="Dracula-Icones"`
@@ -4685,6 +4700,7 @@ PY
       if meow_seco; then
         local rc_ensaio
         meow_muda "gravaria PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\" em $CONF — ensaio: o arquivo não é tocado"
+        [ -z "$junto" ] || meow_muda "levaria junto, do pack de antes para o «$novo_pack»: $junto"
         if [ "$aplicar" = "1" ]; then
           meow_info "o tema '$par' e o ensaio do instalador olham a troca, e não o conf do disco"
           aplicar_tema_da_troca
@@ -4703,6 +4719,12 @@ PY
       if [ "$rc_pack" -ge 2 ] || [ "$rc_flavor" -ge 2 ]; then
         meow_erro "não consegui gravar em $CONF"
         return "$MEOW_ERRO"
+      fi
+      if [ -n "$junto" ]; then
+        junto="$(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" \
+                   --so-vestigios --pack-de-antes "$agora_pack" "$agora_flavor" 2>&1)" \
+          || { meow_erro "não consegui levar o ponteiro e as pastas junto: $junto"; return "$MEOW_ERRO"; }
+        [ -z "$junto" ] || meow_muda "levado junto, do pack de antes para o «$novo_pack»: ${junto#*: }"
       fi
       if [ "$rc_pack" = "0" ] && [ "$rc_flavor" = "0" ]; then
         meow_ok "o meow.conf já dizia PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\""
