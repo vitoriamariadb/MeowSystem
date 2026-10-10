@@ -195,7 +195,7 @@ Aplicação em sequência numa cópia do fonte do candidato, com `-F0`:
 4. **O compositor é escolhido pelo PATH, e isso é uma alavanca, não um risco.**
    - O `cosmic-comp` vivo é filho do `cosmic-session` (PPID 4525). Ele foi
      lançado pelo nome nu: o `cmdline` é `cosmic-comp`.
-   - O `PATH` do `cosmic-session` começa em `/home/andrefarias/.local/bin`.
+   - O `PATH` do `cosmic-session` começa em `~/.local/bin` (a casa de quem usa).
    - O greeter roda por `greetd` com outro usuário. O
      `cosmic-greeter-start` faz `exec cosmic-comp cosmic-greeter` com o PATH
      do sistema, que não inclui o `~/.local/bin` dela.
