@@ -109,6 +109,7 @@ mal-bom : apps/bom.svg
 ../../../../mal-evil-app : apps/bom.svg
 mal-evil/barra : apps/bom.svg
 M
+printf 'mal-evil\033]0;TITULO\007 : apps/bom.svg\n' >> "$MAL/icones/apps.map"
 cp "$MAL/icones/apps/bom.svg" "$MAL/icones/pastas/folder-bom.svg"
 ln -s "$FORA/arte.svg" "$MAL/icones/pastas/folder-elo.svg"
 cat > "$MAL/icones/pastas.map" <<'M'
@@ -155,6 +156,31 @@ cat > "$MAL_CAMPO/pack.json" <<'J'
  "origens": {"wallpapers": {"desenhos": "icones/elo/"}}}
 J
 
+# `mal-nulo` e `mal-esc` [conferência da P78]: texto de pack que não é caminho
+# nem nome de destino, mas que chega a lugares que não o esperam. O NUL num campo
+# de caminho é JSON válido e fazia o `realpath` levantar ValueError — com o pack
+# só INSTALADO, a `/api/glifos` fechava a conexão sem resposta. A sequência de
+# terminal no `nome` saía crua no `meow pack listar` (título, tela, área de
+# transferência de quem lista).
+MAL_NULO="$RAIZ_DELA/mal-nulo"
+mkdir -p "$MAL_NULO/icones/apps"
+cp "$RAIZ/packs/dracula/paleta.json" "$MAL_NULO/"
+cat > "$MAL_NULO/pack.json" <<'J'
+{"formato": 1, "id": "mal-nulo", "nome": "Mal nulo", "versao": "1.0.0", "autor": "x",
+ "licenca": "MIT", "heranca": "dracula",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"},
+ "icones": {"apps": {"mapa": "icones/apps.map\u0000x", "desenhos": "icones/apps/\u0000"}}}
+J
+MAL_ESC="$RAIZ_DELA/mal-esc"
+mkdir -p "$MAL_ESC"
+cp "$RAIZ/packs/dracula/paleta.json" "$MAL_ESC/"
+cat > "$MAL_ESC/pack.json" <<'J'
+{"formato": 1, "id": "mal-esc", "nome": "Esc\u001b]52;c;cHduZWQ=\u0007\u001b]0;TITULO\u0007",
+ "versao": "1.0.0", "autor": "x", "licenca": "MIT", "heranca": "dracula",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}}
+J
+ESC=$'\033'
+
 PERMITIDAS=("$RAIZ" "$RAIZ_DELA")
 fora_da_raiz() {   # as linhas de caminho da entrada que caem fora das raízes
   local l r
@@ -199,6 +225,22 @@ recusado="$(amb python3 "$RAIZ/scripts/pack.py" adocao mal "" 2>/dev/null | sed 
 [ -z "$recusado" ] && ok "o pack 'mal' valida — as sondas abaixo correm contra ele, e não contra o padrão" \
   || falha "o pack 'mal' não validou; as sondas de consumidor abaixo não provam nada"
 
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar mal-nulo 2>&1)"
+if printf '%s' "$saida" | grep -q 'Traceback\|ValueError'; then
+  falha "um NUL no pack.json derruba o validar com traceback" "$(printf '%s\n' "$saida" | tail -3)"
+else
+  ok "um NUL no pack.json é recusa, e não traceback"
+fi
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar mal-esc 2>&1; amb "$RAIZ/bin/meow" pack listar 2>&1)"
+if printf '%s' "$saida" | grep -q "$ESC"; then
+  falha "sequência de terminal do pack.json saiu crua no validar/listar"
+else
+  ok "o nome com sequência de terminal não sai cru no validar nem no meow pack listar"
+fi
+recusado="$(amb python3 "$RAIZ/scripts/pack.py" adocao mal-esc "" 2>/dev/null | sed -n 's/^recusado=//p')"
+[ "$recusado" = "mal-esc" ] && ok "o pack com caractere de controle no nome é recusado inteiro" \
+  || falha "o pack com caractere de controle no nome foi adotado (recusado='$recusado')"
+
 # --- 2. as escolhas do painel ----------------------------------------------------
 BOM_DRACULA="packs/dracula/icones/apps/$(ls "$RAIZ/packs/dracula/icones/apps" | grep '\.svg$' | head -1)"
 cat > "$CASA/.config/meow/icones-escolhidos.map" <<M
@@ -230,6 +272,8 @@ else
 fi
 grep -q 'pulad' "$T/apps.log" && ok "icones_apps_dracula.sh contou as linhas puladas no log" \
   || falha "icones_apps_dracula.sh pulou calado" "$(cat "$T/apps.log")"
+grep -q "$ESC" "$T/apps.log" && falha "icones_apps_dracula.sh repetiu crua a sequência de terminal do mapa" \
+  || ok "o aviso das linhas puladas não repete cru o que o mapa trouxe"
 
 amb PACK=mal FLAVOR=dracula PASTAS_XDG=sim ICONES_TEMA=MeowSystem-Icons \
     "$RAIZ/scripts/icones_pastas.sh" --aplicar > "$T/pastas.log" 2>&1; rc=$?
@@ -261,6 +305,11 @@ if [ -z "$url" ]; then
 else
   BASE="${url%%/\?t=*}"; TOK="${url##*t=}"
   glifos="$(curl -s -H "X-Meow-Token: $TOK" "$BASE/api/glifos")"
+  # A ficha tem de RESPONDER, e com o pack 'mal' dentro: com a rota caída (o NUL
+  # do `mal-nulo` fazia isso), o "não lista" logo abaixo passaria calado.
+  printf '%s' "$glifos" | grep -q 'apps/bom.svg' \
+    && ok "a ficha do painel responde com um pack de NUL instalado ao lado" \
+    || falha "a /api/glifos não respondeu (ou não trouxe o pack 'mal')" "$(tail -5 "$T/painel.log")"
   if printf '%s' "$glifos" | grep -q "biblioteca/folder.svg\|feitos-a-mao/folder.svg\|$FORA"; then
     falha "a ficha do painel lista desenho de pasta que é symlink para fora do pack"
   else
@@ -300,6 +349,24 @@ cp "$CWD/json.py" "$CWD/re.py"
 [ -e "$MARCA" ] && { falha "um json.py/re.py no diretório corrente rodou dentro do meow"; rm -f "$MARCA"; } \
   || ok "nenhum módulo plantado no diretório corrente rodou (meow pack listar, lib/comum.sh)"
 
+# --- 5b. o tema de aplicativo só leva cor ---------------------------------------
+#   O modelo de kitty e de GNOME Terminal vai inteiro para a configuração do
+#   aplicativo: `shell`/`map … launch`/`geninclude` no kitty e `custom-command`
+#   no perfil do GNOME Terminal são comando que roda a cada janela nova.
+filtrado() {   # <app> <modelo montado> — o texto que o módulo vai escrever
+  amb MEOW_PACKS="$T/vazio" bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
+    . "$MEOW_RAIZ/assets/temas-de-apps/$0/manifesto.sh" || exit 2
+    if [ "$0" = kitty ]; then _KITTY_DE=mal; _KITTY_DESEJADO="$1"; _kitty_so_cor; printf "%s\n" "$_KITTY_DESEJADO"
+    else _GT_DE=mal; _GT_DESEJADO="$1"; _gt_so_cor; printf "%s\n" "$_GT_DESEJADO"; fi' "$1" "$2" 2>/dev/null
+}
+k="$(filtrado kitty "$(printf 'foreground #ffffff\nshell sh -c "touch %s"\nmap ctrl+x launch sh\ngeninclude x.py\ninclude /etc/hosts\n' "$MARCA")")"
+g="$(filtrado gnome-terminal "$(printf "[/]\nbackground-color='#000000'\nuse-custom-command=true\ncustom-command='touch %s'\n[../fora]\nvisible-name='x'\n" "$MARCA")")"
+if [ "$k" = "foreground #ffffff" ] && [ "$g" = "$(printf "[/]\nbackground-color='#000000'")" ]; then
+  ok "o modelo de kitty e de GNOME Terminal de um pack só leva cor: comando, include e outra seção ficam de fora"
+else
+  falha "o modelo de app de um pack levou linha que não é cor" "kitty: $k"$'\n'"gnome-terminal: $g"
+fi
+
 # --- 6. o .meowpack com script ---------------------------------------------------
 if command -v zstd >/dev/null 2>&1; then
   MP="$T/mp"; mkdir -p "$MP/trazido"
@@ -336,6 +403,23 @@ if [ "$rc" = 2 ] && grep -q 'recusado' "$T/casa-real.log" && ! grep -q 'http://1
 else
   falha "o painel subiu para QA com o HOME da conta (rc=$rc)" "$(tail -3 "$T/casa-real.log")"
 fi
+
+#   [Conferência da P78] As outras portas para a mesma casa: o HOME vazio (o
+#   Python do painel cairia no `pwd`, a casa da conta) e, com um HOME de
+#   brinquedo, um `XDG_DATA_HOME` herdado que aponta para a casa da conta.
+#   O HOME vazio, e não ausente: se a guarda regredir, o vazio cai em `/.local`,
+#   que ninguém escreve, e não na casa de quem roda.
+for caso in vazio xdg; do
+  if [ "$caso" = vazio ]; then extra=(HOME=); else extra=(HOME="$T/outra" XDG_DATA_HOME="$CASA/.local/share"); fi
+  timeout 20 env -i PATH="$T/falso-getent:$T/falso:$PATH" USER="${USER:-t}" \
+    LANG="${LANG:-C.UTF-8}" MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/outra/meow.conf" \
+    MEOW_PONTE=/nao/existe "${extra[@]}" "$RAIZ/app/run.sh" --sem-abrir > "$T/casa-real-$caso.log" 2>&1; rc=$?
+  if [ "$rc" = 2 ] && ! grep -q 'http://127' "$T/casa-real-$caso.log"; then
+    ok "o run.sh --sem-abrir recusa também o caso '$caso' (HOME vazio / XDG herdado da casa da conta)"
+  else
+    falha "o painel subiu para QA no caso '$caso' (rc=$rc)" "$(tail -3 "$T/casa-real-$caso.log")"
+  fi
+done
 
 # --- 8. o desfecho, no disco inteiro do teste ---------------------------------------
 evil="$(find "$T" -name 'mal-evil*' 2>/dev/null)"
