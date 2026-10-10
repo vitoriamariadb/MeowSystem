@@ -1758,7 +1758,9 @@ class Percurso:
       const a = (ESQUEMA.acoes || []).find((x) => x.id === id);
       if (!a || !a.indisponivel) return null;
       const m = a.indisponivel;
-      const antes = m.antes ? (ESQUEMA.acoes.find((x) => x.id === m.antes) || {}).rotulo : null;
+      /* `feito` (QA da P80): a ação já feita aponta a seguinte pelo rótulo dela. */
+      const ref = m.antes || m.feito;
+      const antes = ref ? (ESQUEMA.acoes.find((x) => x.id === ref) || {}).rotulo : null;
       return { antes, chave: m.chave ? nomeVisivel(m.chave) : null,
                vale: m.vale ? rotuloDeValor(m.vale) : null,
                pede: m.pede ? rotuloDeValor(m.pede) : null };
@@ -3633,10 +3635,6 @@ INVENTARIO = {
     "Logo do sistema": _linhas("""
         aba · ?
         aba · Adicionar logo
-        aba · Claro
-        aba · Escuro
-        aba · Vidro claro
-        aba · Vidro escuro
         aba · abre «⋯ Ajustes técnicos»
         aba · abre «⋯ Ações técnicas»
         ajuste FASTFETCH_LOGO · ?
@@ -3677,10 +3675,6 @@ INVENTARIO = {
         aba · ?
         aba · abre «⋯ Ajustes técnicos»
         aba · Adicionar tema de ícones
-        aba · Claro
-        aba · Escuro
-        aba · Vidro claro
-        aba · Vidro escuro
         aba · filtro «Filtrar aplicativo»
         aba · âncora «Pular a lista de aplicativos»
         ajuste ICONES_COR_MARCA · ?
@@ -3786,15 +3780,11 @@ INVENTARIO = {
     "Papel de parede": _linhas("""
         aba · ?
         aba · Adicionar imagem
-        aba · Claro
         aba · Dia
-        aba · Escuro
         aba · Favoritos
         aba · No carrossel
         aba · Noite
         aba · Recusadas
-        aba · Vidro claro
-        aba · Vidro escuro
         aba · abre «⋯ Ajustes técnicos»
         aba · abre «⋯ Ações técnicas»
         aba · âncora «Pular a galeria»
@@ -3831,9 +3821,9 @@ INVENTARIO = {
     "Dia e noite": _linhas("""
         aba · ?
         ajuste MODO_AUTO_CLARO_ATE · ?
-        ajuste MODO_AUTO_CLARO_ATE · deslizante
+        ajuste MODO_AUTO_CLARO_ATE · hora
         ajuste MODO_AUTO_CLARO_DE · ?
-        ajuste MODO_AUTO_CLARO_DE · deslizante
+        ajuste MODO_AUTO_CLARO_DE · hora
         ajuste NOITE_FIM · ?
         ajuste NOITE_FIM · hora
         ajuste NOITE_INICIO · ?

@@ -719,6 +719,8 @@ mod onlyoffice reverter >/dev/null
 #   dois botões da decisão esperando na Início. O resumo do `aplicar_apps.sh`
 #   segue o tempo verbal do seco, e a frase da pendência cita o que o `--onde`
 #   do servidor diz dela — o nome dos botões não vem escrito aqui.
+#   [P80, item 8: com botão, a linha «resolve:» diz só o botão, e não mais o
+#   comando ao lado dele.]
 apps8() {  # <verbo> <apps> [VAR=valor ...] — o `aplicar_apps.sh` nesta casa
   local v="$1" a="$2"; shift 2
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
@@ -738,7 +740,8 @@ onde="$(env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" \
           python3 "$RAIZ/app/servidor.py" --onde onlyoffice-tema-de-terceiro 2>/dev/null)"
 saida="$(apps8 aplicar onlyoffice)"; rc=$?
 [ "$rc" = 0 ] && [ -n "$onde" ] \
-  && printf '%s' "$saida" | grep -qF "resolve: meow apps aplicar onlyoffice  (ou, no painel, $onde)" \
+  && printf '%s' "$saida" | grep -qF "resolve: no painel, $onde" \
+  && ! printf '%s' "$saida" | grep -qF "resolve: meow apps aplicar" \
   || faltam+=" a gaveta não aponta os botões da Início (rc=$rc, --onde «$onde»: $saida);"
 mod onlyoffice aplicar MEOW_TEMA_DE_TERCEIRO=trocar >/dev/null
 saida="$(apps8 reverter onlyoffice MEOW_DRY_RUN=1)"; rc=$?

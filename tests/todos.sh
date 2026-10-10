@@ -107,6 +107,8 @@ PORTATIL=(
   casa-real.sh           # o migrar_conf, o doctor e a troca de pack num HOME e COSMIC de brinquedo, sudo falso (P79); bash e python3
   nada-manda-digitar.sh  # grep nas mensagens versionadas e a tabela de pendências do painel (P79); bash e python3
   achados-tecnicos.sh    # mapa CRLF, BOM, vidro, modo do gato e favoritas num HOME, COSMIC e packs de brinquedo (P79); bash e python3
+  trabalho-vivo.sh       # o Trabalho do painel com a janela entre a morte e o desfecho aberta à força, HOME de brinquedo (P80); bash e python3
+  reler-uma-vez.sh       # a lib com getent, pgrep e painel.sh falsos numa raiz e HOME de brinquedo; um reler por passada, e o passo de traço de verdade (P80); bash e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por

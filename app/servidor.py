@@ -2412,6 +2412,14 @@ def ler_esquema():
             "faixa": _faixa_confere(_faixa(ajuda, inline), _valor_da_linha(linha)),
             # O QUE O VAZIO VALE, quando o arquivo o diz — ver `_vazio_vale`.
             "vazio_vale": _vazio_vale(inline),
+            # A HORA CHEIA — 10/10/2026, P80 (item 4). As duas horas do tema
+            #   claro são um número de 0 a 23 (o `modo_desejado` do `bin/meow`
+            #   compara horas inteiras), e a página as desenhava num deslizante
+            #   pontilhado ao lado das outras duas linhas de «Dia e noite», que
+            #   são seletor de hora. O arquivo declara «hora cheia» na linha, e a
+            #   página dá o mesmo seletor, sem minutos; o valor gravado continua
+            #   sendo o número.
+            "hora_cheia": bool(re.search(r"\bhora cheia\b", inline or "")),
             # A forma do número, quando há uma. Sai do VALOR DE FÁBRICA, que é
             # onde o arquivo já a declara sem precisar de uma palavra a mais —
             # ver `FORMAS_NUMERO`. É o que permite à página desenhar um campo
@@ -4131,6 +4139,9 @@ PROVEDORES = {
     # que o pack IMPORTADO no ar pede (decisão 9, P79). Pack do repositório dá
     # lista vazia, e com ela nenhum botão e nenhum argumento aceito.
     "extensoes_de_terceiro": lambda: _extensoes_de_terceiro(),
+    # O argumento do «Era escolha minha»: o caminho que o `wallpaper.sh` devolveu
+    # e deixou na pendência (P80, item 8). Ver `PENDENCIA_PAREDE`.
+    "fontes_revertidas": lambda: _fontes_revertidas(),
 }
 
 
@@ -4561,6 +4572,53 @@ def _areas_sem_alfinete():
     return {"antes": "areas_alfinetar_primeira",
             "porque": "nenhuma área está fixada, e é de uma fixada que as "
                       "outras herdam o monitor"}
+
+
+def comeca_como_svg(dados):
+    """O arquivo começa como XML de SVG? Lê só os primeiros 4 KB.
+
+    É o `.png` que na verdade é SVG (ver "O ARQUIVO DIZ O QUE ELE É", na rota
+    `/previa?tipo=arquivo`). LEITOR LINEAR, E NÃO EXPRESSÃO REGULAR — revisão
+    de segurança da P80: a primeira versão era uma regex com `.*?` dentro de
+    um grupo repetido, e um arquivo de acervo (de um pack importado) com 4 KB
+    de `<!--` sem fecho a fazia voltar atrás de forma explosiva, travando a
+    thread do servidor. Aqui cada passo pula um pedaço com `find` e anda para
+    a frente, nunca para trás; o laço tem teto."""
+    cabeca = dados[:4096]
+    if cabeca.startswith(b"\xef\xbb\xbf"):
+        cabeca = cabeca[3:]
+    i = 0
+    for _ in range(64):
+        while i < len(cabeca) and cabeca[i:i + 1].isspace():
+            i += 1
+        for abre, fecha in ((b"<?xml", b"?>"), (b"<!--", b"-->"), (b"<!DOCTYPE", b">")):
+            if cabeca.startswith(abre, i):
+                fim = cabeca.find(fecha, i + len(abre))
+                if fim < 0:
+                    return False
+                i = fim + len(fecha)
+                break
+        else:
+            seguinte = cabeca[i + 4:i + 5]
+            return cabeca.startswith(b"<svg", i) and (seguinte == b">" or seguinte.isspace())
+    return False
+
+
+def _areas_ja_alfinetadas():
+    """«Criar a primeira área» com área fixada: já está feito, e o passo
+    seguinte é «Gravar as áreas».
+
+    QA de uso real da P80 (10/10/2026), na casa copiada da pessoa: duas áreas
+    fixadas («Tirar uma área» oferecia as duas) e «Criar a primeira área» aceso
+    ao lado, na mesma aba. O verbo do `areas.sh` sai em 0 sem escrever nada
+    quando já há área (o bloco "E ELE NÃO ESCREVE POR CIMA DE ALFINETE
+    NENHUM", lá) — o botão só podia não fazer nada. É o espelho do
+    `_areas_sem_alfinete`: lá o «Gravar» espera o «Criar»; aqui o «Criar» já
+    foi, e aponta o «Gravar»."""
+    if not _areas_alfinetadas():
+        return None
+    return {"feito": "areas_aplicar",
+            "porque": "há área fixada nesta máquina"}
 
 
 def indisponivel(acao_id):
@@ -5035,6 +5093,17 @@ ACOES = {
     #   «Favoritos» e nenhuma imagem oferecia o gesto. `oculta` pelo motivo das
     #   outras desta ficha: o argumento é uma imagem, e quem a escolhe é a
     #   galeria. Sem pergunta: guardar uma cópia se desfaz com o outro botão.
+    # O «ERA ESCOLHA MINHA» DO PAPEL DE PAREDE DEVOLVIDO — P80 (item 8). Ver
+    #   `PENDENCIA_PAREDE`. `oculta` pelo motivo das de cima: o argumento é um
+    #   caminho, e quem o escolhe é a pendência.
+    "wallpaper_permitir": {
+        "rotulo": "Manter a imagem que eu pus",
+        "grupo": "Papel de parede",
+        "natureza": "gravar",
+        "argv": _meow("wallpaper", "permitir", "@ARG@"), "arg": "fontes_revertidas",
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Autoriza a imagem que você pôs: o carrossel para de devolvê-la.",
+    },
     "wallpaper_favoritar": {
         "rotulo": "Guardar nas favoritas",
         "grupo": "Papel de parede",
@@ -5128,6 +5197,7 @@ ACOES = {
         "natureza": "gravar",
         "argv": _meow("areas", "alfinetar-primeira"),
         "escreve": True, "sudo": False, "confirma": True,
+        "indisponivel": _areas_ja_alfinetadas,
         "ajuda": "Cria a primeira área fixada no monitor que está ligado agora, "
                  "com o primeiro nome da sua lista. Vale no próximo início de sessão.",
     },
@@ -6716,8 +6786,16 @@ class Trabalho:
         with self._lock:
             return list(self.linhas[n:]), len(self.linhas)
 
+    # VIVO É «AINDA SEM DESFECHO» — 10/10/2026, P80 (item 6). Era o
+    #   `proc.poll()`, e o `rc` e o `fim` só são gravados depois, pela thread
+    #   `_ler`. A página que perguntava nesse intervalo recebia `vivo: false`
+    #   com `rc: null`, e a gaveta de uma ação rápida terminava em «saiu null ·
+    #   0s» — o gate ficava intermitente (P79, integração da onda 2). Quem diz
+    #   que acabou é o desfecho gravado: o `fim` nasce depois do `rc`, então
+    #   `vivo()` falso traz sempre o código de saída. O `tests/trabalho-vivo.sh`
+    #   abre a janela de propósito.
     def vivo(self):
-        return self.proc.poll() is None
+        return self.fim is None
 
     def parar(self):
         if not self.vivo():
@@ -6818,6 +6896,22 @@ ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar pelo tema do pack"),
 #   saem do pack no ar, e só quando ele NÃO mora no `packs/` do repositório —
 #   a mesma régua do módulo, com os links resolvidos.
 PENDENCIA_EXTENSAO = "vscode-extensao-de-terceiro"
+
+# O PAPEL DE PAREDE DEVOLVIDO — 10/10/2026, P80 (item 8). O `wallpaper.sh`
+#   devolve ao carrossel a saída que aponta para fora dele, e terminava
+#   mandando digitar `meow wallpaper permitir "<caminho>"` se a imagem era
+#   escolha de quem usa. Virou esta pendência, com o comando na linha; o
+#   botão «Era escolha minha» roda o mesmo `permitir`, com o caminho que o
+#   servidor tira do comando — e só ele (`fontes_revertidas`).
+PENDENCIA_PAREDE = "wallpaper-fonte-revertida"
+PREFIXO_PERMITIR = "meow wallpaper permitir "
+
+
+def _fontes_revertidas():
+    """Os caminhos que as pendências do papel de parede devolvido pedem."""
+    return sorted({p["comando"][len(PREFIXO_PERMITIR):] for p in pendencias()
+                   if p["id"] == PENDENCIA_PAREDE and p["comando"].startswith(PREFIXO_PERMITIR)
+                   and len(p["comando"]) > len(PREFIXO_PERMITIR)})
 RE_EXTENSAO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*\.[A-Za-z0-9][A-Za-z0-9-]*$")
 
 
@@ -6913,6 +7007,8 @@ def onde_na_tela(ident):
                                   ABA_INICIO)
     if ident == PENDENCIA_EXTENSAO:
         return "«Instalar», na aba %s" % ABA_INICIO
+    if ident == PENDENCIA_PAREDE:
+        return "«Era escolha minha», na aba %s" % ABA_INICIO
     if ident == "inicio":
         return "na aba %s" % ABA_INICIO
     esquema = ler_esquema()
@@ -6957,6 +7053,16 @@ def pendencias():
                 #   falha. Lendo só a tabela, a Home poria um "Resolver" que
                 #   dispararia um segundo build em cima do primeiro.
                 acao = ACAO_DA_PENDENCIA.get(ident, "") if comando else ""
+                # A PENDÊNCIA QUE A MÁQUINA JÁ RESOLVEU NÃO É MOSTRADA — QA de
+                #   uso real da P80. Quando o conserto dela se declara «já
+                #   feito» (o `feito` do `indisponivel`: «Criar a primeira área»
+                #   com área fixada), a linha ficou velha — a pessoa fixou a
+                #   área pelo COSMIC depois de o instalador anotar a falta — e
+                #   o «Resolver» só ouviria a recusa do servidor. O arquivo não
+                #   é reescrito aqui: quem tira a linha é o próprio verbo, ao
+                #   rodar (`meow_pendencia_resolvida`); a página só não a mostra.
+                if acao and (indisponivel(acao) or {}).get("feito"):
+                    continue
                 app = _app_da_pendencia(ident) if comando else ""
                 escolha = [{"acao": a, "argumento": app, "rotulo": r}
                            for a, r in ESCOLHA_TEMA_DE_TERCEIRO] if app else []
@@ -6964,6 +7070,10 @@ def pendencias():
                 # Um botão por extensão que o pack importado pede (decisão 9,
                 # P79), com o selo de rede da ação; a lista vazia (o pack já é
                 # do repositório) não desenha botão nenhum.
+                if ident == PENDENCIA_PAREDE and comando.startswith(PREFIXO_PERMITIR):
+                    escolha = [{"acao": "wallpaper_permitir", "rotulo": "Era escolha minha",
+                                "argumento": comando[len(PREFIXO_PERMITIR):]}]
+                    nome = "Papel de parede devolvido"
                 if ident == PENDENCIA_EXTENSAO and comando:
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
                                 "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
@@ -7865,6 +7975,18 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._recusar(404, "não achei")
             tipo_mime = {".svg": "image/svg+xml", ".png": "image/png",
                          ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}[ext_arq]
+            # O ARQUIVO DIZ O QUE ELE É, E NÃO SÓ O NOME — QA de uso real da
+            #   P80, 10/10/2026. O `feitos-a-mao/obsidian.png` do pack Dracula é
+            #   um SVG com nome de PNG (veio assim do Dracula_OS-Theme, ver o
+            #   PROCEDENCIA.md), e a ficha de ícone o mostrava quebrado: o
+            #   navegador recebia `image/png` e não achava PNG nenhum. O tema
+            #   de ícones não tropeça nisso (o carregador do GTK lê o começo do
+            #   arquivo), então a página passa a fazer o mesmo: um `.png` ou
+            #   `.jpg` que começa como XML de SVG sai como SVG. A cerca acima
+            #   não muda (extensão de imagem nas duas pontas, pasta de arte), e
+            #   o SVG sai com a CSP de imagem do `_responder`, que não roda nada.
+            if ext_arq != ".svg" and comeca_como_svg(dados_arq):
+                tipo_mime = "image/svg+xml"
             # Pela porta única em vez de cinco send_header à mão. [2026-09-18]
             #   O `_responder` já põe Cache-Control: no-store, X-Content-Type-
             #   Options e X-Frame-Options; esta resposta artesanal punha só o
@@ -9652,26 +9774,44 @@ class Manipulador(BaseHTTPRequestHandler):
         # `_desenhos_do_pack_no_ar` diz (P60): é a lista do «Levar para o pack».
         pack, desenhos, _aviso = self._desenhos_do_pack_no_ar()
         do_mapa = {os.path.normpath(d["caminho"]): d for d in desenhos}
-        textos = self._textos_da_busca(mod)
+        textos, rotulos, do_nome = self._textos_da_busca(mod)
+        nomes_de_app = self._nomes_de_app()
+        # O MESMO DESENHO, O MESMO NOME — conferência da P80 (item 1). O
+        #   `org.telegram.desktop` era «Telegram» na pasta do pack, que tem a
+        #   linha do apps.map, e «Desktop» nas três do motor, onde só sobrava o
+        #   nome do arquivo sem o domínio (o último pedaço de um id invertido é
+        #   muitas vezes genérico: `Client`, `Desktop`, `Browser`). O nome de
+        #   app que a linha de um mapa dá vale para o arquivo de mesmo nome nas
+        #   outras pastas, antes do recurso ao nome do arquivo. Só o do mapa: a
+        #   descrição do catálogo diz o que AQUELE desenho é, e espalhada dava
+        #   «Rato» ao `mouse` de traço, que é o do computador.
         for g in mod.acervos_de_icone(_pack_adotado()):
             arquivos = g.pop("arquivos")
             g["total"] = len(arquivos)
             grupos.append(g)
             for caminho in arquivos:
                 nome = os.path.basename(caminho)
-                item = {"glifo": os.path.splitext(nome)[0], "grupo": g["id"], "tipo": g["tipo"],
+                glifo = os.path.splitext(nome)[0]
+                # O RÓTULO É O QUE A PESSOA LÊ — P80, item 1. Ver "O RÓTULO DA
+                # FICHA", logo abaixo: o catálogo, o mapa, o `.desktop` e, sem
+                # nenhum, o próprio nome sem número nem domínio.
+                rotulo = (rotulos.get(os.path.normpath(caminho))
+                          or nomes_de_app.get(glifo.lower()) or do_nome.get(glifo.lower())
+                          or self._rotulo_do_nome(glifo))
+                item = {"glifo": glifo, "rotulo": rotulo, "grupo": g["id"], "tipo": g["tipo"],
                         "caminho": caminho,
                         "_texto": self._sem_acento(" ".join(
-                            [os.path.splitext(nome)[0]]
-                            + textos.get(os.path.normpath(caminho), [])))}
+                            [glifo, rotulo] + textos.get(os.path.normpath(caminho), [])))}
                 # O PNG FEITO À MÃO APARECE, MAS AINDA NÃO SE ESCOLHE — P73. Raster
                 # não é fonte (o `meow_icones_derivados` do lib/icones.sh recusa:
                 # de um PNG não sai vetor, flavor nem tamanho maior), e a decisão
                 # 2 de 09/10 é que ele entre no pack agora e vire vetor num lote
                 # conferido por RMSE. Até lá ele é visto, com o porquê na dica.
+                # [P80, item 3: a frase passava do teto do balão e saía cortada,
+                #   com «decisão de 09/10» e «RMSE» no meio — conversa nossa, e
+                #   não o porquê de quem usa. O lote continua sendo o da decisão 2.]
                 if g["tipo"] == "png":
-                    item["trava"] = ("PNG feito à mão: entra no tema quando virar vetor "
-                                     "(o lote da decisão de 09/10, conferido por RMSE)")
+                    item["trava"] = "Feito à mão em PNG: vale no tema quando ganhar a versão em vetor"
                 no_mapa = do_mapa.get(os.path.normpath(caminho)) if pack else None
                 if no_mapa:
                     item.update(pack=pack["id"], desenho=no_mapa["desenho"])
@@ -9692,9 +9832,66 @@ class Manipulador(BaseHTTPRequestHandler):
     #     descrição em português e as etiquetas — o do Dracula_OS-Theme veio
     #     para a biblioteca do Dracula nesta sprint, com a linha no
     #     PROCEDENCIA.md.
+    # O RÓTULO DA FICHA — 10/10/2026, P80 (item 1)
+    #   Medido no uso real de 10/10 (prints 05 e 06 de `.playwright-mcp/
+    #   ux-final/`): embaixo de cada desenho vinha o nome do arquivo, cortado —
+    #   `net.waterfo…`, `org.gnome.…`, `005-potion`. É o nome de ícone em
+    #   inglês, e ele só ajuda quem já sabe a resposta. O rótulo passa a sair
+    #   das mesmas fontes que a busca já lia, nesta ordem:
+    #   · a DESCRIÇÃO pt-BR do `catalog.json` («alienígena»), para a biblioteca;
+    #   · o NOME DO APP no comentário da linha do mapa («Waterfox — o Firefox
+    #     do dracula-icons» dá «Waterfox»), sem as marcas entre colchetes;
+    #   · o nome do `.desktop` cujo ícone é o desenho (o traço `firefox` dá o
+    #     «Firefox» do lançador), ou o de quem a linha do mapa veste;
+    #   · e, sem nenhum dos três, o próprio nome sem o número da frente e sem o
+    #     domínio invertido (`005-potion` dá «Potion»).
+    #   O nome do arquivo e a pasta continuam na dica de cada desenho.
+    @staticmethod
+    def _rotulo_do_nome(glifo):
+        """O nome do arquivo sem número na frente nem domínio invertido."""
+        # O ATALHO DE APP DO NAVEGADOR — QA de uso real da P80. O ícone de um
+        #   app instalado pelo Chrome se chama `chrome-<id>-<perfil>`, com o id
+        #   de 32 letras da extensão, e a biblioteca do Dracula traz dois deles
+        #   sem descrição no catálogo: o rótulo saía «Chrome ieicmdpib…
+        #   Default». O id não diz nada a quem lê; o navegador diz.
+        app_web = re.match(r"^(chrome|chromium|brave|msedge)-[a-p]{32}-\w+$", glifo, re.I)
+        if app_web:
+            return "App do " + {"msedge": "Edge"}.get(app_web.group(1).lower(),
+                                                      app_web.group(1).capitalize())
+        nome = re.sub(r"^\d+[-_.]+", "", glifo) or glifo
+        partes = [p for p in nome.split(".") if p]
+        if len(partes) >= 3 and " " not in nome:
+            nome = partes[-1]
+        nome = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", nome)
+        nome = re.sub(r"[-_.]+", " ", nome).strip() or glifo
+        return nome[:1].upper() + nome[1:]
+
+    @staticmethod
+    def _rotulo_do_comentario(comentario):
+        """«Waterfox — o Firefox do dracula-icons (circle)» dá «Waterfox»."""
+        texto = re.sub(r"\[[^\]]*\]", "", comentario or "")
+        return re.split(r"\s[—–-]\s|\s\(", texto, maxsplit=1)[0].strip()
+
+    def _nomes_de_app(self):
+        """{nome de ícone ou id, em minúsculas: o nome do app no lançador}."""
+        nomes = {}
+        for d in self._desktops():
+            if not d.get("nome") or d["nome"] == d["id"]:
+                continue
+            for chave in (d.get("icone") or "", d["id"]):
+                if chave and "/" not in chave:
+                    nomes.setdefault(chave.lower(), d["nome"])
+        return nomes
+
     def _textos_da_busca(self, mod):
-        """{caminho normalizado: [textos]}: o que a busca casa além do nome do arquivo."""
+        """({caminho normalizado: [textos]}, {caminho normalizado: rótulo},
+        {nome do arquivo sem extensão, em minúsculas: nome do app}): o que a
+        busca casa além do nome do arquivo, o rótulo que a ficha mostra, e o
+        nome de app que as linhas dos mapas dão a cada nome de arquivo."""
         textos = {}
+        rotulos = {}
+        do_nome = {}
+        nomes_de_app = self._nomes_de_app()
 
         def junta(caminho, *partes):
             textos.setdefault(os.path.normpath(caminho), []).extend(p for p in partes if p)
@@ -9721,8 +9918,12 @@ class Manipulador(BaseHTTPRequestHandler):
                 for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
                     if isinstance(ficha, dict):
                         etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
-                        junta(os.path.join(bib, str(arq)), str(ficha.get("descricao") or ""),
+                        descricao = str(ficha.get("descricao") or "").strip()
+                        junta(os.path.join(bib, str(arq)), descricao,
                               *[str(t).replace("_", " ") for t in etiquetas])
+                        if descricao:
+                            rotulos[os.path.normpath(os.path.join(bib, str(arq)))] = (
+                                descricao[:1].upper() + descricao[1:])
         for mapa in sorted(mapas):
             try:
                 with open(mapa, encoding="utf-8") as fh:
@@ -9739,7 +9940,14 @@ class Manipulador(BaseHTTPRequestHandler):
                 except mod.Recusa:
                     continue
                 junta(caminho, nome.strip(), comentario.strip())
-        return textos
+                # O catálogo vence: a linha do mapa diz o app que o desenho
+                # veste, e o catálogo diz o que o desenho É (biblioteca).
+                rotulo = (self._rotulo_do_comentario(comentario)
+                          or nomes_de_app.get(nome.strip().lower(), ""))
+                if rotulo:
+                    rotulos.setdefault(os.path.normpath(caminho), rotulo)
+                    do_nome.setdefault(os.path.splitext(os.path.basename(caminho))[0].lower(), rotulo)
+        return textos, rotulos, do_nome
 
     def _palpites_do_app(self, app):
         """Os textos que fazem um desenho ser «sugerido» para `app`: o id, o

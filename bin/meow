@@ -2655,6 +2655,16 @@ cmd_doctor() {
   meow_travar || return "$MEOW_ERRO"
   meow_passo "Consertando o que falhou"
   local nome rc saida mexeu=0 falhou=0
+  # A TELA RELÊ UMA VEZ, NO FIM DO CONSERTO — conferência da P80 (item 7). O
+  #   `fix_arcticons`, o `fix_resgatados` e o `fix_dracula` pedem o reciclo do
+  #   painel cada um, como na instalação, e este laço é o do auto-reparo das 5h
+  #   e o do «Consertar» do painel. A mesma marca do install.sh (ver "UM RELER
+  #   POR PASSADA", no `meow_tela_reler` do lib/comum.sh): os pedidos se anotam,
+  #   e o `meow_tela_reler_no_fim` depois do laço relê uma vez.
+  if ! meow_seco; then
+    MEOW_RELER_NO_FIM="$(mktemp "${TMPDIR:-/tmp}/meow-reler.XXXXXX" 2>/dev/null)" \
+      && export MEOW_RELER_NO_FIM
+  fi
   for i in "${!CHK_NOME[@]}"; do
     nome="${CHK_NOME[$i]}"
     [ "${CHK_RC[$i]}" = "0" ] && continue
@@ -2705,6 +2715,7 @@ cmd_doctor() {
     # `recarregar_conf_migrado`).
     if [ "$nome" = "conf" ] && [ "$rc" = "1" ]; then recarregar_conf_migrado; fi
   done
+  meow_tela_reler_no_fim
 
   # O VEREDITO É O DEPOIS, E NÃO O ANTES — P75, 09/10/2026
   #   O fim desta função dizia "nada a consertar" sempre que nenhum conserto

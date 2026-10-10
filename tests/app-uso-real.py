@@ -20,6 +20,8 @@ O QUE REPROVA (e de onde cada regra vem)
   3. CONTROLE COBERTO (achado 6, U3): todo controle visível, centrado na
      janela, tem de ser o que está por cima no próprio centro. Um desenho
      grudado, um `?` ou um balão em cima dele é um botão que não se clica.
+     E a página inteira não rola por fora do `#principal` (a barra dupla do
+     QA de uso real da P80).
   4. BALÃO DO MENU EM CIMA DO VIZINHO (U3): o balão de cada item do menu
      lateral não pode encostar em outro item.
   5. PRÉVIA VAZIA (achado 18, direção §2.4): todo desenho da página (SVG de
@@ -38,6 +40,16 @@ O QUE REPROVA (e de onde cada regra vem)
        · hash de 40 caracteres ou caminho do PC de quem fez na tela (10, S2);
        · «dela» falando de quem usa (U4).
   7. ERRO NO CONSOLE, em qualquer página.
+  8. O ACABAMENTO DA P80 (10/10/2026), um caso por defeito do uso real final
+     (prints em `.playwright-mcp/ux-final/`), cada um com o gesto de quem usa:
+       · a ficha de ícone mostra o nome amigável, e o nome técnico só na dica;
+       · a paleta «Cor» da ficha só aparece com um traço marcado;
+       · a pasta travada (a dos PNG feitos à mão) leva o selo de trava da
+         página, com o porquê na dica;
+       · as três linhas de Dia e noite usam o seletor de hora, na ordem
+         começa | termina;
+       · a fileira «Fundo» mora só em Cor e tela;
+       · o «Usar este» de um pack mostra o selo «baixa da internet» (decisão 12).
 
 A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
   A decisão 8 de 02-decisoes.md manda o painel de QA subir SÓ com HOME
@@ -49,6 +61,10 @@ A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
 
 USO
   ~/.pyenv/versions/3.12.1/bin/python3 tests/app-uso-real.py [--raiz <árvore>] [--fotos <pasta>]
+                                                             [--so-acabamento]
+
+  `--so-acabamento` roda só o 8 (e o console): é o laço curto de quem conserta
+  um caso dele, e o gate de verdade é a corrida inteira.
 
   0 = passou · 1 = reprovou · 2 = erro deste teste
 """
@@ -68,6 +84,7 @@ from playwright.sync_api import sync_playwright  # noqa: E402  (o app-completo j
 
 RAIZ_OUTRA = casa._arg("--raiz")
 FOTOS = casa._arg("--fotos")
+SO_ACABAMENTO = "--so-acabamento" in sys.argv
 if RAIZ_OUTRA:
     # A cópia da árvore (`copiar_raiz`) e as leituras do `montar_casa` usam o
     # `RAIZ` do módulo: trocá-lo aqui faz o brinquedo nascer da outra árvore.
@@ -135,6 +152,13 @@ OLHAR_JS = r"""
     defeitos.push(`controle coberto em ${nome(el)}: «${limpo(el.textContent || el.getAttribute('aria-label') || el.value || el.tagName).slice(0, 30)}» está sob ${quem ? quem.tagName.toLowerCase() + '.' + [...quem.classList].join('.') : topo.tagName.toLowerCase()}`);
   }
   if (principal) principal.scrollTop = rolagem;
+
+  /* 3b. A PÁGINA ROLA POR FORA DO `#principal` (QA de uso real da P80): quem
+   * rola é o `#principal`; a página inteira rolando junto é a barra dupla na
+   * borda direita, e no celular são 15 px a menos de largura. */
+  const doc = document.documentElement;
+  if (doc.scrollHeight > doc.clientHeight + 1 || doc.scrollWidth > doc.clientWidth + 1)
+    defeitos.push(`a página inteira rola por fora do #principal (${doc.scrollWidth}×${doc.scrollHeight} numa janela de ${doc.clientWidth}×${doc.clientHeight}): barra dupla`);
 
   /* 5. PRÉVIA VAZIA */
   const TRACO = 'path, rect, circle, ellipse, line, polyline, polygon, text, image, use';
@@ -290,6 +314,267 @@ def gesto_do_descolado(pag):
     return defeitos
 
 
+# ---------------------------------------------------------------------------
+# 8. O ACABAMENTO DA P80 — um caso por defeito do uso real final (10/10/2026)
+# ---------------------------------------------------------------------------
+VISIVEL_JS = "(el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true })"
+
+
+def abrir_pagina(pag, grupo):
+    pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
+    pag.mouse.move(900, 5)
+    assentar(pag)
+
+
+def abrir_ficha(pag, busca):
+    """A ficha de ícone do programa de brinquedo da casa (o `PROGRAMA` do
+    app-completo, que nenhuma trava alcança), com `busca` no campo dela; volta
+    quando a resposta da busca está pintada."""
+    abrir_pagina(pag, "Ícones")
+    pag.locator(".busca-apps").fill(casa.PROGRAMA[1])
+    assentar(pag)
+    pag.locator(".grade-apps button.app").first.click()
+    pag.wait_for_selector(".escolha-icone input[type=search]", timeout=20000)
+    pag.locator(".escolha-icone input[type=search]").fill(busca)
+    pag.wait_for_function(
+        "(t) => typeof GLIFOS !== 'undefined' && GLIFOS.termo === t && !GLIFOS.carregando",
+        arg=busca, timeout=20000)
+    assentar(pag)
+
+
+# 8.1 — O RÓTULO DA FICHA (prints 05 e 06): `net.waterfo…`, `org.gnome.…`,
+#   `005-potion` cortados embaixo de cada desenho. O rótulo é o nome amigável,
+#   e o nome inteiro (com a pasta) vai para a dica.
+ROTULOS_JS = r"""
+() => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const TECNICO = /^\d{2,}[-_]|^[A-Za-z0-9-]+\.[A-Za-z0-9-]+\.[A-Za-z0-9.-]+$/;
+  const defeitos = [];
+  const botoes = [...document.querySelectorAll('.escolha-icone .tira-glifos button[data-glifo]')].filter(vis);
+  if (!botoes.length) return ['a ficha não mostrou desenho nenhum para «firefox»'];
+  for (const b of botoes) {
+    const rotulo = ((b.querySelector('span') || {}).textContent || '').trim();
+    if (!rotulo || TECNICO.test(rotulo)) defeitos.push(`rótulo técnico na ficha: «${rotulo}»`);
+    /* O desenho travado diz na dica o porquê (P80, item 3); o que vale diz o
+     * nome inteiro e de onde vem. */
+    if (b.getAttribute('aria-disabled') === 'true') {
+      if (!(b.dataset.balao || b.title)) defeitos.push(`«${rotulo}» travado sem o porquê na dica`);
+    } else if (!(b.dataset.balao || b.title || '').includes(b.dataset.glifo))
+      defeitos.push(`a dica de «${rotulo}» não traz o nome inteiro (${b.dataset.glifo}): «${b.dataset.balao || b.title || ''}»`);
+  }
+  const wf = botoes.find((b) => b.dataset.glifo === 'net.waterfox.waterfox');
+  const dele = wf ? wf.querySelector('span').textContent.trim() : null;
+  if (dele !== 'Waterfox') defeitos.push(`o desenho do Waterfox diz «${dele}», e não «Waterfox»`);
+  return defeitos;
+}
+"""
+
+
+# 8.2 — A PALETA «COR» SÓ COM TRAÇO (print 05): a fileira de cores aparecia
+#   sempre, e só vale para o desenho de traço. Ela nasce quando um traço está
+#   marcado, e some quando o marcado é um desenho que entra com as cores dele.
+PALETA_JS = r"""
+(passo) => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const ficha = document.querySelector('.escolha-icone');
+  const cores = ficha && ficha.querySelector(':scope > .cores-grade');
+  const rotulo = cores && cores.previousElementSibling;
+  const botoes = [...ficha.querySelectorAll('.tira-glifos button[data-escolha]')].filter(vis);
+  const traco = botoes.find((b) => !b.classList.contains('do-pack'));
+  const desenho = botoes.find((b) => b.classList.contains('do-pack'));
+  if (passo === 'traco') { if (!traco) return 'nenhum traço livre na ficha para marcar'; traco.click(); }
+  if (passo === 'desenho') { if (!desenho) return 'nenhum desenho livre na ficha para marcar'; desenho.click(); }
+  const marcado = ficha.querySelector('.tira-glifos button[aria-pressed="true"]');
+  const deTraco = !!marcado && !marcado.classList.contains('do-pack');
+  const aparece = vis(cores) || (vis(rotulo) && /cor/i.test(rotulo.textContent));
+  if (deTraco && !aparece) return `com o traço «${marcado.dataset.glifo}» marcado, a paleta «Cor» não aparece`;
+  if (!deTraco && aparece)
+    return marcado ? `com o desenho «${marcado.dataset.glifo}» marcado, a paleta «Cor» aparece`
+                   : 'sem nada marcado, a paleta «Cor» aparece';
+  return '';
+}
+"""
+
+
+# 8.3 — O PNG FEITO À MÃO E A TRAVA (print 06): o PNG aparecia apagado, com um
+#   selo que ninguém lia (um retângulo desenhado em CSS). A pasta travada leva
+#   o selo de trava de toda a página, com o porquê inteiro na dica — o mesmo
+#   em toda pasta —, e o desenho travado diz o porquê na dica dele.
+TRAVA_JS = r"""
+() => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const defeitos = [];
+  const ficha = document.querySelector('.escolha-icone');
+  for (const c of ficha.querySelectorAll('.pasta-acervo .cadeado'))
+    if (vis(c)) defeitos.push('a pasta travada usa o cadeado desenhado em CSS, e não o selo de trava');
+  const png = [...ficha.querySelectorAll('.pasta-acervo')].find((d) => /:feitos-a-mao$/.test(d.dataset.grupo || ''));
+  if (!png) return ['a busca «firefox» não abriu a pasta dos feitos à mão'];
+  const selo = png.querySelector('summary .selo[data-selo="trava"]');
+  if (!vis(selo)) defeitos.push('a pasta dos feitos à mão, travada, não leva o selo de trava');
+  else if (!selo.dataset.balao || selo.dataset.balaoAparado)
+    defeitos.push(`o selo de trava sem o porquê inteiro na dica: «${selo.dataset.balao || ''}»`);
+  for (const b of png.querySelectorAll('button[data-glifo]')) {
+    const travado = b.getAttribute('aria-disabled') === 'true';
+    if (travado && (!b.dataset.balao || b.dataset.balaoAparado))
+      defeitos.push(`o PNG «${b.dataset.glifo}» travado sem o porquê inteiro na dica`);
+    if (!travado && b.classList.contains('travado')) defeitos.push(`o PNG «${b.dataset.glifo}» vale e aparece apagado`);
+  }
+  return defeitos;
+}
+"""
+
+
+# 8.4 — DIA E NOITE (print 07): a linha do tema claro usava um deslizante
+#   pontilhado («como está: 18») ao lado de duas linhas com seletor de hora, e
+#   lia ao contrário (termina à esquerda). As três linhas: o mesmo seletor de
+#   hora, a mesma ordem — começa | termina.
+NOITE_JS = r"""
+() => {
+  const defeitos = [];
+  const m = document.querySelector('.decisao-relogio');
+  if (!m) return ['a página Dia e noite não desenhou a moldura do relógio'];
+  for (const r of m.querySelectorAll('input[type=range]'))
+    defeitos.push(`deslizante na moldura da noite, em ${(r.closest('[data-chave]') || {}).dataset?.chave}`);
+  for (const l of LINHAS_DA_NOITE) {
+    const cartoes = l.chaves.map((c) => m.querySelector(`[data-chave="${c}"]`));
+    if (cartoes.some((c) => !c)) { defeitos.push(`a linha «${l.nome}» não tem os dois cartões`); continue; }
+    const titulos = cartoes.map((c) => ((c.querySelector('.titulo-cartao') || {}).textContent || '').trim());
+    if (!/começa|a partir/i.test(titulos[0]) || !/termina|até/i.test(titulos[1]))
+      defeitos.push(`a linha «${l.nome}» não lê começa | termina: «${titulos.join(' | ')}»`);
+    for (const [i, c] of cartoes.entries()) {
+      const hora = c.querySelector('input[type=time]');
+      if (!hora) defeitos.push(`«${titulos[i]}» sem o seletor de hora`);
+      else if (!hora.value) defeitos.push(`«${titulos[i]}» com o seletor de hora vazio`);
+    }
+  }
+  return defeitos;
+}
+"""
+
+
+# 8.5 — A FILEIRA «FUNDO», UMA REGRA SÓ: ela aparecia em Ícones, Cor e tela,
+#   Logo e Papel de parede, e sumia nas outras. Mora numa página só, a de Cor
+#   e tela; o fundo escolhido lá vale para a página inteira.
+PAGINA_DO_FUNDO = "Cor e tela"
+
+
+def fundo_em_toda_pagina(pag):
+    defeitos = []
+    grupos = pag.evaluate("() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
+                          ".map((b) => b.dataset.grupo)")
+    for grupo in grupos:
+        abrir_pagina(pag, grupo)
+        tem = pag.evaluate("() => [...document.querySelectorAll('#conteudo .fundos')]"
+                           ".some((e) => e.checkVisibility && e.checkVisibility())")
+        if tem and grupo != PAGINA_DO_FUNDO:
+            defeitos.append(f"a fileira «Fundo» aparece em {grupo}, fora de {PAGINA_DO_FUNDO}")
+        if not tem and grupo == PAGINA_DO_FUNDO:
+            defeitos.append(f"a fileira «Fundo» não aparece em {PAGINA_DO_FUNDO}")
+    return defeitos
+
+
+# 8.10 — TROCAR DE PACK BAIXA, E DIZ (decisão 12): a troca leva o ponteiro do
+#   pack, e o do Dracula desce da rede. O «Usar este» de cada pack mostra o
+#   selo «baixa da internet» logo depois dele, como toda porta de ação que baixa.
+PACK_REDE_JS = r"""
+() => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const usar = [...document.querySelectorAll('#conteudo button')]
+    .filter((b) => vis(b) && b.textContent.trim() === 'Usar este');
+  if (!usar.length) return ['a Início não mostrou nenhum «Usar este» de pack'];
+  return usar.filter((b) => {
+    const s = b.nextElementSibling;
+    return !(s && s.matches('.selo[data-selo="rede"]') && vis(s) && /internet/i.test(s.dataset.balao || ''));
+  }).map((b) => `o «Usar este» de «${(b.closest('article, .pack') || {}).dataset?.pack || 'um pack'}» não mostra o selo «baixa da internet»`);
+}
+"""
+
+
+# 8.6 — O QA DE USO REAL DA P80 (10/10/2026), com a casa copiada da pessoa:
+#   · o rótulo da ficha partia a palavra no meio («Configuraçõe» numa linha,
+#     «s» na outra): a palavra inteira cabe na largura do desenho;
+#   · o `obsidian.png` do pack é um SVG com nome de PNG (veio assim do
+#     Dracula_OS-Theme), e a ficha o mostrava como imagem quebrada;
+#   · o rótulo de reserva (o nome do arquivo limpo) mostrava o identificador de
+#     32 letras dos atalhos do Chrome: «Chrome ieicmdpib… Default».
+PALAVRA_PARTIDA_JS = r"""
+() => {
+  const defeitos = [];
+  const ficha = document.querySelector('.escolha-icone');
+  for (const d of ficha.querySelectorAll('.pasta-acervo')) d.open = true;
+  for (const span of ficha.querySelectorAll('.tira-glifos button[data-glifo] > span')) {
+    const t = span.firstChild;
+    if (!t || t.nodeType !== 3) continue;
+    for (const m of t.textContent.matchAll(/[^\s-]+/g)) {
+      const r = document.createRange();
+      r.setStart(t, m.index);
+      r.setEnd(t, m.index + m[0].length);
+      const linhas = new Set([...r.getClientRects()].filter((x) => x.width > 0).map((x) => Math.round(x.top)));
+      if (linhas.size > 1) { defeitos.push(`o rótulo «${t.textContent}» parte a palavra «${m[0]}» em duas linhas`); break; }
+    }
+  }
+  return defeitos;
+}
+"""
+IMAGEM_QUEBRADA_JS = r"""
+async () => {
+  const ficha = document.querySelector('.escolha-icone');
+  for (const d of ficha.querySelectorAll('.pasta-acervo')) d.open = true;
+  const imgs = [...ficha.querySelectorAll('.tira-glifos button[data-glifo] img')];
+  if (!imgs.length) return ['a busca «obsidian» não mostrou desenho nenhum'];
+  for (const i of imgs) i.loading = 'eager';
+  await Promise.all(imgs.map((i) => i.decode().catch(() => null)));
+  return imgs.filter((i) => !i.naturalWidth)
+    .map((i) => `imagem quebrada na ficha: «${i.closest('button').dataset.glifo}»`);
+}
+"""
+IDENTIFICADOR_JS = r"""
+() => [...document.querySelectorAll('.escolha-icone .tira-glifos button[data-glifo] > span')]
+  .map((s) => s.textContent.trim())
+  .filter((t) => /\b[a-z0-9]{20,}\b/i.test(t))
+  .map((t) => `rótulo com identificador na ficha: «${t}»`)
+"""
+
+
+def acabamento(pag):
+    """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
+    reprovas = []
+    abrir_ficha(pag, "firefox")
+    reprovas += [("ficha de ícone", d) for d in pag.evaluate(ROTULOS_JS)]
+    if FOTOS:
+        pag.locator(".escolha-icone .tira-glifos").evaluate("(e) => e.scrollIntoView({ block: 'start' })")
+        pag.screenshot(path=os.path.join(FOTOS, "p80-ficha-firefox.png"))
+    reprovas += [("ficha de ícone", d) for d in pag.evaluate(TRAVA_JS)]
+    for passo in ("abrir", "traco", "desenho"):
+        d = pag.evaluate(PALETA_JS, passo)
+        pag.wait_for_timeout(200)
+        if d:
+            reprovas.append(("ficha de ícone", d))
+        if FOTOS and passo != "abrir":
+            pag.screenshot(path=os.path.join(FOTOS, f"p80-paleta-{passo}.png"))
+    # 8.6 — o QA de uso real da P80, na mesma ficha.
+    for busca, olhar in (("", PALAVRA_PARTIDA_JS), ("obsidian", IMAGEM_QUEBRADA_JS),
+                         ("chrome", IDENTIFICADOR_JS)):
+        pag.locator(".escolha-icone input[type=search]").fill(busca)
+        pag.wait_for_function(
+            "(t) => typeof GLIFOS !== 'undefined' && GLIFOS.termo === t && !GLIFOS.carregando",
+            arg=busca, timeout=20000)
+        assentar(pag)
+        reprovas += [("ficha de ícone", d) for d in pag.evaluate(olhar)]
+    abrir_pagina(pag, "Dia e noite")
+    reprovas += [("Dia e noite", d) for d in pag.evaluate(NOITE_JS)]
+    if FOTOS:
+        pag.screenshot(path=os.path.join(FOTOS, "p80-dia-e-noite.png"))
+    reprovas += [("cabeçalho", d) for d in fundo_em_toda_pagina(pag)]
+    abrir_pagina(pag, "Início")
+    reprovas += [("Início", d) for d in pag.evaluate(PACK_REDE_JS)]
+    if FOTOS:
+        pag.locator("#conteudo button", has_text="Usar este").first.evaluate(
+            "(e) => e.scrollIntoView({ block: 'center' })")
+        pag.screenshot(path=os.path.join(FOTOS, "p80-usar-pack.png"))
+    return reprovas
+
+
 def main():
     ambiente = casa.montar_casa()
     proc, url = casa.sobe_servidor(ambiente)
@@ -326,35 +611,46 @@ def main():
             print(f"  -- a página ficou pronta em {time.time() - inicio:.1f} s depois do primeiro quadro")
             assentar(pag)
 
-            # 2. O BALÃO DO MENU
-            print("\n2. O BALÃO DE CADA ITEM DO MENU")
-            for d in balao_do_menu(pag):
-                reprovas.append(("menu", d))
-            if not any(n == "menu" for n, _ in reprovas):
-                print("  ok nenhum balão do menu encosta em outro item")
+            grupos = []
+            if not SO_ACABAMENTO:
+                # 2. O BALÃO DO MENU
+                print("\n2. O BALÃO DE CADA ITEM DO MENU")
+                for d in balao_do_menu(pag):
+                    reprovas.append(("menu", d))
+                if not any(n == "menu" for n, _ in reprovas):
+                    print("  ok nenhum balão do menu encosta em outro item")
 
-            # 3. AS PÁGINAS
-            print("\n3. AS PÁGINAS, UMA A UMA")
-            grupos = pag.evaluate("() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
-                                  ".map((b) => b.dataset.grupo)")
-            for grupo in grupos:
-                pagina_atual["nome"] = grupo
-                pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
-                pag.mouse.move(900, 5)
-                assentar(pag)
-                defeitos = pag.evaluate(OLHAR_JS, TETO_PARAGRAFO)
-                vistos = []
-                for d in defeitos:
-                    if d not in vistos:
-                        vistos.append(d)
-                vistos += gesto_do_descolado(pag) if grupo == "Painel e dock" else []
-                for d in vistos:
-                    reprovas.append((grupo, d))
-                print(f"  {'ok' if not vistos else 'XX'} {grupo}: {len(vistos)} defeito(s)")
-                if FOTOS:
-                    os.makedirs(FOTOS, exist_ok=True)
-                    nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
-                    pag.screenshot(path=os.path.join(FOTOS, f"uso-real-{nome}.png"))
+                # 3. AS PÁGINAS
+                print("\n3. AS PÁGINAS, UMA A UMA")
+                grupos = pag.evaluate("() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
+                                      ".map((b) => b.dataset.grupo)")
+                for grupo in grupos:
+                    pagina_atual["nome"] = grupo
+                    pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
+                    pag.mouse.move(900, 5)
+                    assentar(pag)
+                    defeitos = pag.evaluate(OLHAR_JS, TETO_PARAGRAFO)
+                    vistos = []
+                    for d in defeitos:
+                        if d not in vistos:
+                            vistos.append(d)
+                    vistos += gesto_do_descolado(pag) if grupo == "Painel e dock" else []
+                    for d in vistos:
+                        reprovas.append((grupo, d))
+                    print(f"  {'ok' if not vistos else 'XX'} {grupo}: {len(vistos)} defeito(s)")
+                    if FOTOS:
+                        os.makedirs(FOTOS, exist_ok=True)
+                        nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
+                        pag.screenshot(path=os.path.join(FOTOS, f"uso-real-{nome}.png"))
+
+            # 4. O ACABAMENTO DA P80
+            print("\n4. O ACABAMENTO DA P80, UM CASO POR DEFEITO")
+            pagina_atual["nome"] = "acabamento"
+            if FOTOS:
+                os.makedirs(FOTOS, exist_ok=True)
+            achados = acabamento(pag)
+            reprovas += achados
+            print(f"  {'ok' if not achados else 'XX'} acabamento: {len(achados)} defeito(s)")
             nav.close()
     finally:
         proc.terminate()
@@ -372,8 +668,12 @@ def main():
         for onde, texto in reprovas:
             print(f"  - [{onde}] {texto}")
         return 1
+    if SO_ACABAMENTO:
+        print(f"\nok ({arvore}): os casos do acabamento da P80 passam, console limpo.")
+        return 0
     print(f"\nok ({arvore}): as {len(grupos)} páginas passam no olhar de quem usa — sem parágrafo,"
-          " sem controle coberto, sem prévia vazia, sem contradição conhecida, console limpo.")
+          " sem controle coberto, sem prévia vazia, sem contradição conhecida, console limpo —"
+          " e os casos do acabamento da P80 passam.")
     return 0
 
 

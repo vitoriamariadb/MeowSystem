@@ -817,6 +817,24 @@ else:
 conf_com()
 if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinetar_primeira":
     erros.append("sem área fixada, «Gravar as áreas» não manda antes a «Criar a primeira área»")
+# O `.png` que é SVG (QA de uso real da P80) sai como SVG, e o leitor do
+# começo do arquivo não volta atrás: 4 KB hostis respondem em menos de 50 ms
+# (o alerta de ReDoS da revisão de segurança da P80).
+import time as _t
+svg_png = open(os.path.join(raiz, "packs", "dracula", "icones", "feitos-a-mao",
+                            "obsidian.png"), "rb").read()
+casos = ((svg_png, True), (b"\x89PNG\r\n\x1a\n", False),
+         (b'\xef\xbb\xbf<?xml version="1.0"?>\n<!-- a -->\n<!DOCTYPE svg>\n<svg xmlns="x"/>', True),
+         (b"<svgx/>", False), (b"<!--" * 1000, False), (b"<!--a-->" * 500 + b"<x", False))
+for dados, quer in casos:
+    t0 = _t.monotonic()
+    deu = servidor.comeca_como_svg(dados)
+    if deu != quer or _t.monotonic() - t0 > 0.05:
+        erros.append("comeca_como_svg(%r…) deu %s em %.0f ms" % (dados[:24], deu, (_t.monotonic() - t0) * 1000))
+# O espelho (QA de uso real da P80): sem área, «Criar a primeira área» acende;
+# com área fixada, ela se apaga e aponta «Gravar as áreas».
+if servidor.indisponivel("areas_alfinetar_primeira"):
+    erros.append("sem área fixada, «Criar a primeira área» nasceu apagada")
 pinos = os.path.join(cosmic, "com.system76.CosmicComp", "v1")
 os.makedirs(pinos)
 with open(os.path.join(pinos, "pinned_workspaces"), "w", encoding="utf-8") as fh:
@@ -825,6 +843,20 @@ with open(os.path.join(pinos, "pinned_workspaces"), "w", encoding="utf-8") as fh
              '        name: Some("Brinquedo"),\n    ),\n]\n')
 if servidor.indisponivel("areas_aplicar"):
     erros.append("com uma área fixada, «Gravar as áreas» continua apagado")
+if (servidor.indisponivel("areas_alfinetar_primeira") or {}).get("feito") != "areas_aplicar":
+    erros.append("com uma área fixada, «Criar a primeira área» segue acesa, e só podia não fazer nada")
+# E a pendência velha da falta de área some da lista (o «Resolver» dela só
+# ouviria a recusa); a outra pendência, de conserto que ainda vale, fica.
+os.makedirs(os.path.dirname(servidor.PENDENCIAS), exist_ok=True)
+with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
+    fh.write("areas-sem-alfinete\tareas\tSem área fixada\tmeow areas alfinetar-primeira\t2026-10-10T00:00:00-03:00\n"
+             "starship-ausente\tprompt\tSem starship\tmeow prompt starship\t2026-10-10T00:00:00-03:00\n")
+vistas = [p["id"] for p in servidor.pendencias()]
+if "areas-sem-alfinete" in vistas:
+    erros.append("com área fixada, a pendência «areas-sem-alfinete» continua na lista: %r" % vistas)
+if "starship-ausente" not in vistas:
+    erros.append("a pendência que ainda vale sumiu junto: %r" % vistas)
+os.remove(servidor.PENDENCIAS)
 
 # 12d. o teto do raio
 dock = os.path.join(cosmic, "com.system76.CosmicPanel.Dock", "v1")

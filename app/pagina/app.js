@@ -1811,6 +1811,38 @@ function montarControle(item, cartao) {
     return caixa;
   }
 
+  /* 2b. hora cheia -> o mesmo <input type="time"> do horário, sem minutos —
+   * 10/10/2026, P80 (item 4). «O tema escuro começa às» é um número de 0 a 23
+   * (o `modo_desejado` do bin/meow compara horas inteiras), e era um deslizante
+   * pontilhado («como está: 18») entre duas linhas de seletor de hora. Agora o
+   * campo mostra `18:00`, e o que se grava continua sendo o número. Vazio
+   * mostra a hora que o arquivo diz que o vazio vale (`vazio_vale`), apagada
+   * como a hora herdada do gato. */
+  if (item.hora_cheia) {
+    const caixa = elemento("div", { class: "controle" });
+    const emHora = (v) => (/^\d{1,2}$/.test(String(v ?? "")) ? `${String(v).padStart(2, "0")}:00` : "");
+    const herdada = valor === "" ? emHora(item.vazio_vale) : "";
+    const campo = elemento("input", {
+      type: "time", step: "3600", value: emHora(valor) || herdada,
+      class: herdada ? "hora-herdada" : null,
+      "aria-label": rotuloAcessivel(item),
+      "aria-description": herdada ? `Padrão: ${herdada}` : null,
+    });
+    campo.addEventListener("change", () => {
+      const hora = /^(\d{1,2}):/.exec(campo.value);
+      if (!hora) return;
+      /* Os minutos não existem nesta chave: o campo volta à hora cheia. */
+      campo.value = `${hora[1].padStart(2, "0")}:00`;
+      aplica(String(Number(hora[1])));
+    });
+    caixa.append(campo);
+    if (temOQueRestaurar(item, valor)) {
+      caixa.append(elemento("div", { class: "faixa-estados" }, [
+        botaoVazio(item, (v) => { campo.value = emHora(v) || emHora(item.vazio_vale); }, aplica)]));
+    }
+    return caixa;
+  }
+
   /* 3. faixa numérica -> deslizante + número, os dois amarrados */
   if (item.faixa) {
     const [lo, hi, passo] = item.faixa;
@@ -1877,7 +1909,8 @@ function montarControle(item, cartao) {
      * o número que a máquina já tem (`valendo_agora`); a alça para nele, e não
      * no piso da régua, que desenhava 0 onde a dock dela tem 24. */
     /* Sem número da máquina, o que o vazio vale pelo arquivo (`vazio_vale`):
-     * «O tema claro começa às» vazio é 7, e a alça para no 7 (P77). */
+     * «O tema escuro termina às» vazio é 7, e a alça para no 7 (P77). [Desde a
+     * P80 essa chave tem o seletor de hora, e não este deslizante.] */
     const agora = item.valendo_agora ?? (vazio ? item.vazio_vale : null);
     const agoraNaRegua = agora != null && /^-?\d+(\.\d+)?$/.test(String(agora));
     /* O NÚMERO DE PARTIDA TEM DE CAIR NA RÉGUA — 07/09/2026
@@ -2282,6 +2315,9 @@ const FUNDOS = [
   { id: "claro", rotulo: "Claro", varr: "--fundo-claro" },
 ];
 let FUNDO = FUNDOS[0];
+/* A página que mostra a fileira (P80, item 5): a do nome da seção do
+ * meow.conf.exemplo, «Cor e tela». */
+const PAGINA_DO_FUNDO = "Cor e tela";
 
 function aplicarFundo() {
   document.documentElement.style.setProperty("--fundo-teste", `var(${FUNDO.varr})`);
@@ -4001,7 +4037,6 @@ function montarEscolhaDeIcone(app, recarregar) {
     GLIFOS.escolhido = daMinha ? chaveDe(daMinha) : vestido ? chaveDe(vestido) : null;
   }
   const grupoDe = (id) => (GLIFOS.grupos || []).find((x) => x.id === id) || { id, acervo: "", nome: id };
-  const nomeDoPack = (g) => grupoDe(g.grupo).acervo;
   const itemEscolhido = () => itens.find((g) => chaveDe(g) === GLIFOS.escolhido) || null;
   /* A TIRA SOBREVIVE À REPINTURA — 09/10/2026, P73. A página se repinta a cada
    * clique (uma cor, a oficina), e o `/previa` responde `no-store`: uma tira
@@ -4025,19 +4060,30 @@ function montarEscolhaDeIcone(app, recarregar) {
      * desenho que não é traço o acendia (e a escolha dela, que agora abre
      * marcada, o acendia ao abrir a ficha). A fileira de cores se apaga, e a
      * frase fica na dica dela: sem texto na tela.] */
+    /* [A PALETA NASCE COM O TRAÇO — 10/10/2026, P80 (item 2). Apagada, ela
+     * continuava na tela para todo desenho, e só vale para o traço: «show,
+     * don't tell». A fileira e o rótulo «Cor» aparecem quando o marcado é um
+     * traço, e somem com um desenho que entra com as cores dele ou com nada
+     * marcado. A cor escolhida fica guardada (`corEscolhida`) e volta junto.] */
     const g = itemEscolhido();
-    const semCor = !!(g && g.tipo !== "traco");
-    cores.className = "cores-grade" + (semCor ? " sem-efeito" : "");
-    porBalao(cores, semCor
-      ? `O desenho de «${nomeDoPack(g)}» entra com as cores dele: a cor vale só para o traço.`
-      : "");
+    const comCor = !!(g && g.tipo === "traco");
+    cores.hidden = !comCor;
+    rotuloDaCor.hidden = !comCor;
   };
+  /* O RÓTULO É O NOME AMIGÁVEL, E O NOME INTEIRO VAI PARA A DICA — 10/10/2026,
+   * P80 (item 1). Embaixo de cada desenho vinha o nome do arquivo, cortado:
+   * `net.waterfo…`, `org.gnome.…`, `005-potion`. O servidor manda o `rotulo`
+   * (o nome do app, ou a descrição do catálogo; ver "O RÓTULO DA FICHA", no
+   * servidor.py), e o nome do arquivo com o acervo e a pasta fica na dica.
+   * No desenho que não vale neste app, a dica é o porquê: as duas frases
+   * juntas passariam do teto do balão, e a trava é o que se lê para decidir. */
+  const origemDe = (g) => `${g.glifo} — ${grupoDe(g.grupo).acervo} · ${grupoDe(g.grupo).nome}`;
   const botaoDe = (g) => elemento("button", {
     type: "button",
     class: (g.tipo === "traco" ? "" : "do-pack") + (travaDe(g) ? " travado" : ""),
     "data-glifo": g.glifo, "data-escolha": travaDe(g) ? null : chaveDe(g),
     "aria-disabled": travaDe(g) ? "true" : null,
-    title: travaDe(g) || `${g.glifo} — ${grupoDe(g.grupo).acervo} · ${grupoDe(g.grupo).nome}`,
+    title: travaDe(g) || origemDe(g),
     "aria-pressed": String(chaveDe(g) === GLIFOS.escolhido),
     onclick: () => {
       if (travaDe(g)) return;
@@ -4046,7 +4092,7 @@ function montarEscolhaDeIcone(app, recarregar) {
     },
   }, [
     elemento("img", { src: g.url, alt: "", loading: "lazy" }),
-    elemento("span", { texto: g.glifo }),
+    elemento("span", { texto: g.rotulo || g.glifo }),
   ]);
   /* UMA PASTA POR ACERVO — 09/10/2026, P73 (T1). «Era pra aparecerem todos os
    * Drácula feitos e todos os do MeowSystem feitos, numa pasta cada.» Cada
@@ -4092,10 +4138,13 @@ function montarEscolhaDeIcone(app, recarregar) {
     tiraGlifos.append(pasta(gr.id,
       [elemento("span", { class: "dono", texto: gr.acervo }),
        elemento("span", { class: "nome-pasta", texto: gr.nome }),
-       /* O cadeado é desenho (CSS), e não palavra: a pasta inteira apagada
-        * diz «não vale aqui», e a dica diz por quê. */
-       travaDaPasta ? elemento("span", { class: "cadeado", role: "img", "aria-label": "travado",
-                                         title: travaDaPasta }) : null],
+       /* O cadeado é desenho, e não palavra: a pasta inteira apagada diz
+        * «não vale aqui», e a dica diz por quê.
+        * [P80, item 3: era um retângulo desenhado em CSS, que no print 06 não
+        * se lia como cadeado. Virou o selo de trava da página (o cadeado do
+        * cartão de ação), o mesmo em toda pasta travada, com o porquê no
+        * balão.] */
+       travaDaPasta ? selo("trava", { balao: travaDaPasta }) : null],
       /* Com busca, a conta é a do que casou; sem busca, o total da pasta. */
       String(GLIFOS.termo ? gr.achados : gr.total),
       deles.map(botaoDe),
@@ -4138,7 +4187,8 @@ function montarEscolhaDeIcone(app, recarregar) {
       },
     }));
   }
-  painel.append(elemento("div", { class: "rotulo-mini", texto: "Cor" }));
+  const rotuloDaCor = elemento("div", { class: "rotulo-mini", texto: "Cor" });
+  painel.append(rotuloDaCor);
   painel.append(cores);
 
   const acoes = elemento("div", { class: "escolha-botoes" });
@@ -6687,6 +6737,9 @@ function gatilhoDeDica(idDica, rotulo, filhos) {
  * pelo `role="img"` com `aria-label`, que leva o nome do estado e o valor. */
 const SELO_ICONES = {
   sudo: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>',
+  /* O desenho que não vale aqui (a pasta travada da ficha de ícone, P80): o
+   * mesmo cadeado do sudo, com outro nome, porque o porquê é outro. */
+  trava: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>',
   ponte: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 4.9-.7"/>',
   rede: '<path d="M8 2.5v7.5M4.8 7 8 10.2 11.2 7M3 13.5h10"/>',
   desfaz: '<path d="M5.5 4 2.5 7l3 3"/><path d="M2.5 7h7a3.5 3.5 0 0 1 0 7H7"/>',
@@ -6903,6 +6956,13 @@ function fraseIndisponivel(motivo) {
   if (motivo.antes) {
     const antes = (ESQUEMA.acoes || []).find((a) => a.id === motivo.antes);
     return `Antes, «${antes ? antes.rotulo : motivo.antes}»: ${motivo.porque}.`;
+  }
+  /* O QUE JÁ FOI FEITO APONTA O PASSO SEGUINTE — QA de uso real da P80
+   * (`_areas_ja_alfinetadas`, no servidor.py): «Criar a primeira área» com
+   * área fixada. */
+  if (motivo.feito) {
+    const depois = (ESQUEMA.acoes || []).find((a) => a.id === motivo.feito);
+    return `Já feito: ${motivo.porque}. O passo seguinte é «${depois ? depois.rotulo : motivo.feito}».`;
   }
   return `Sem efeito com «${nomeVisivel(motivo.chave)}» em `
     + `«${rotuloDeValor(motivo.vale)}». Mude para «${rotuloDeValor(motivo.pede)}» `
@@ -9543,9 +9603,12 @@ function render() {
 
   /* As quatro pílulas de fundo só aparecem onde há imagem para pôr sobre elas —
    * numa aba de texto puro seriam quatro botões que não fazem nada visível. */
-  const temImagem = grupos.some((g) => g.tipo === "galeria" || g.nome === GRUPO_ICONES
-    || (g.itens || []).some((i) => i.previa === "gato" || i.previa === "cursor"));
-  if (temImagem) alvo.append(barraDeFundos());
+  /* [UMA PÁGINA SÓ — 10/10/2026, P80 (item 5). A regra de cima punha a fileira
+   * em Ícones, Cor e tela, Logo e Papel de parede, e a tirava das outras: o
+   * cabeçalho mudava de página para página sem razão que se visse. O fundo é
+   * uma escolha de como a tela se vê, lembrada para a página inteira (`FUNDO`),
+   * então ele mora na página de Cor e tela e vale em todas.] */
+  if (grupos.some((g) => g.nome === PAGINA_DO_FUNDO)) alvo.append(barraDeFundos());
   let ultimoAssunto = null;
   let barraDesenhada = false;   // o par painel+dock sai uma vez por página
 
@@ -10699,6 +10762,13 @@ function cartaoDePack(p) {
       title: `Veste a máquina inteira com o ${p.nome}`,
       onclick: () => usarPack(p),
     }));
+    /* A TROCA BAIXA, E A PORTA DIZ — 10/10/2026, P80 (item 10, decisão 12).
+     * Trocar de pack leva o ponteiro do pack (o do Dracula desce da rede), e o
+     * instalador que a troca roda baixa e compila. O selo «baixa da internet»
+     * vem logo depois do botão, como em toda porta de ação que baixa; sai do
+     * `rede` da ação `pack_usar`, e não de uma segunda marca aqui. */
+    const troca = (ESQUEMA.acoes || []).find((a) => a.id === "pack_usar");
+    if (troca && troca.rede) botoes.push(selo("rede", { balao: "Baixa da internet" }));
   }
   if (botoes.length) corpo.append(elemento("div", { class: "pack-acoes" }, botoes));
   /* O corpo vem antes do detalhe no documento: é a ordem de leitura (o nome,

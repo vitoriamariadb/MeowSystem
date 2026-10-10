@@ -49,6 +49,39 @@ exit 1
 FIM
 chmod 755 "$FALSO/sudo"
 
+# O `systemctl` FALSO, PELA MESMA RAZÃO DO `sudo` — 10/10/2026, P80 (item 9)
+#   Na integração da P79 este teste ficou vermelho por um falso de quem rodava
+#   a suíte: o `systemctl` dele respondia 0 ao `enable`, enquanto o
+#   `is-enabled`, sem barramento, dizia «não». As etapas dos serviços se viam
+#   divergentes e «consertadas» a cada passagem, e o `mexeu:` não sumia nunca —
+#   um vermelho do ambiente, e não do instalador. Medido de novo hoje com um
+#   falso assim à frente do PATH: `painel leitura logo wallpaper assets
+#   vigia_flatpak vigia_qt vigia_apt autoreparo` em todas as passagens.
+#
+#   O teste não pode depender do falso de quem o roda. Este fica à frente de
+#   todos: a pergunta (`is-enabled`, `show`, `status`…) segue para o próximo
+#   `systemctl` do PATH, e a escrita RECUSA (rc=1), como o `sudo` acima — que
+#   é o que um `systemctl --user` sem sessão faz de verdade. O próximo é
+#   achado PULANDO este diretório, e não cortando o começo do PATH (o laço
+#   infinito que o `tests/doctor-so-le.sh` mediu em 24/09/2026).
+cat > "$FALSO/systemctl" <<FIM
+#!/bin/bash
+case " \$* " in
+  *" is-active "*|*" is-enabled "*|*" is-failed "*|*" show "*|*" status "*|*" cat "*\
+  |*" list-units "*|*" list-unit-files "*|*" list-timers "*|*" show-environment "*\
+  |*" get-default "*|*" --version "*)
+    IFS=: read -ra _dirs <<< "\$PATH"
+    for _d in "\${_dirs[@]}"; do
+      [ "\$_d" = "$FALSO" ] && continue
+      [ -x "\$_d/systemctl" ] && exec "\$_d/systemctl" "\$@"
+    done
+    exit 1 ;;
+esac
+printf 'systemctl: recusado pelo tests/convergencia.sh (%s)\n' "\$*" >&2
+exit 1
+FIM
+chmod 755 "$FALSO/systemctl"
+
 PASSAGENS="${PASSAGENS:-3}"
 
 correr() {

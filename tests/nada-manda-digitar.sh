@@ -23,6 +23,9 @@
 #      «Instalar tudo», e `leitura-applet` o «Consertar o que estiver fora».
 #   3. Os dois scripts de ícone relêem a tela pela porta única, e não dizem
 #      `pkill`.
+#   5 a 7. (P80, item 8) A linha «resolve:» de uma pendência diz o botão, e
+#      não o comando; o papel de parede devolvido vira pendência com o botão
+#      que autoriza aquela imagem; e sem cargo o conserto instala o rust.
 #
 # PORTÁTIL: grep e python3.
 #   0 = passou · 1 = falhou · 2 = erro deste teste
@@ -88,6 +91,66 @@ if grep -qx 'leitura-applet' <<< "$com" && ! grep -qx 'leitura-applet' <<< "$sem
   ok "sem compilar, a pendência leitura-applet nasce; com LEITURA_APPLET=nao, ela sai"
 else
   falha "a pendência do applet não nasce ou não sai" "com: $com / sem: $sem"
+fi
+
+# --- P80, item 8: os três que sobraram da P79 -----------------------------------
+#   (docs/sprints/2026-10-09-uso-real/04-integracao-onda-2.md, «Aberto», item 3)
+
+printf '\n--- 5. a pendência aponta o botão que resolve, e não o comando ---\n'
+saida="$(env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_pendencia_acionavel starship-ausente "O starship falta" "./scripts/prompt.sh instalar-starship"' 2>&1)"
+if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Instalar o starship»' <<< "$saida"; then
+  ok "a linha «resolve:» diz o botão («Instalar o starship»), sem o comando"
+else
+  falha "a pendência ainda manda digitar o comando" "$saida"
+fi
+
+printf '\n--- 6. o papel de parede devolvido vira botão, e não «meow wallpaper permitir» ---\n'
+achados="$(grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*meow wallpaper permitir' "$RAIZ/scripts/wallpaper.sh")"
+[ -z "$achados" ] && ok "o wallpaper.sh não manda digitar «meow wallpaper permitir»" \
+  || falha "o wallpaper.sh manda digitar «meow wallpaper permitir»" "$achados"
+mkdir -p "$CASA/.local/state/meowsystem"
+printf 'wallpaper-fonte-revertida\twallpaper.sh\tA imagem de fundo apontava para %s/Imagens/minha.png\tmeow wallpaper permitir %s/Imagens/minha.png\t2026-10-10T00:00:00-03:00\n' \
+  "$CASA" "$CASA" >> "$CASA/.local/state/meowsystem/pendencias.tsv"
+saida="$(env -i PATH="$PATH" HOME="$CASA" python3 - "$RAIZ/app" "$CASA/Imagens/minha.png" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+p = next((x for x in servidor.pendencias() if x["id"] == "wallpaper-fonte-revertida"), {})
+for e in p.get("escolha") or []:
+    print("escolha=%s|%s" % (e["acao"], e["argumento"]))
+acao = servidor.ACOES.get("wallpaper_permitir") or {}
+print("argv=%s" % " ".join(acao.get("argv") or []))
+print("cerca=%s" % (sys.argv[2] in servidor.PROVEDORES[acao.get("arg", "")]() if acao.get("arg") in servidor.PROVEDORES else False))
+PY
+)"
+if grep -qx "escolha=wallpaper_permitir|$CASA/Imagens/minha.png" <<< "$saida" \
+   && grep -q '^argv=.*wallpaper permitir @ARG@$' <<< "$saida" && grep -qx 'cerca=True' <<< "$saida"; then
+  ok "a pendência do papel de parede devolvido tem o botão que autoriza aquela imagem"
+else
+  falha "a pendência do papel de parede devolvido não tem o botão que autoriza" "$saida"
+fi
+
+printf '\n--- 7. sem cargo, o conserto instala o rust (e não manda instalar) ---\n'
+achados="$(grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*instale com rustup' "$RAIZ/scripts/leitura_build.sh")"
+[ -z "$achados" ] && ok "o leitura_build.sh não manda «instale com rustup»" \
+  || falha "o leitura_build.sh manda instalar o rust à mão" "$achados"
+# Os falsos de cima, menos o `cargo` (é a falta dele que este caso monta), e um
+# `curl` que anota e recusa: a rede não sai do teste.
+SEM_CARGO="$CASA/sem-cargo"; mkdir -p "$SEM_CARGO"
+cp -a "$FALSO"/. "$SEM_CARGO"/ && rm -f "$SEM_CARGO/cargo"
+REDE="$CASA/rede.log"; : > "$REDE"
+printf '#!/bin/sh\necho "curl $*" >> "%s"\nexit 1\n' "$REDE" > "$SEM_CARGO/curl"; chmod 755 "$SEM_CARGO/curl"
+rm -f "$TSV"
+saida="$(env -i PATH="$SEM_CARGO:/usr/bin:/bin" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 LEITURA_APPLET=sim \
+  LEITURA_COMPILAR=1 "$RAIZ/scripts/leitura_build.sh" --aplicar 2>&1)"
+if PATH=/usr/bin:/bin command -v cargo >/dev/null 2>&1; then
+  printf '  --   o /usr/bin desta máquina tem cargo: o caso «sem cargo» não se monta aqui\n'
+elif grep -q 'rustup' "$REDE" && grep -qx 'leitura-applet' <<< "$(cut -f1 "$TSV" 2>/dev/null)"; then
+  ok "sem cargo, o conserto vai buscar o rust pelo rustup; sem rede, a pendência do botão fica"
+else
+  falha "sem cargo, o conserto não tentou instalar o rust, ou não deixou a pendência" \
+        "rede: $(cat "$REDE") / pendências: $(cut -f1 "$TSV" 2>/dev/null) / saída: $(tail -3 <<< "$saida")"
 fi
 
 printf '\n'

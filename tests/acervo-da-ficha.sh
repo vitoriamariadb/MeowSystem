@@ -188,6 +188,41 @@ checa(ordem and ordem[0].startswith("pack:dracula:")
       "o pack no ar vem primeiro, e os outros packs e o motor vêm depois, cada um na sua pasta",
       repr(ordem))
 
+# --- 5. o rótulo é amigável, e o nome técnico vai para a dica — P80, item 1 ------
+#   Medido no uso real de 10/10 (prints 05 e 06): `net.waterfo…`, `org.gnome.…`,
+#   `005-potion` cortados embaixo de cada desenho. O rótulo sai do nome do app
+#   (o comentário do `apps.map`, ou o `.desktop`) e da descrição pt-BR do
+#   `catalog.json`; sem nenhum dos dois, do próprio nome, sem número nem domínio.
+por_arquivo = {os.path.relpath(caminho_de(it), raiz): it for it in itens}
+esperados = {
+    "packs/dracula/icones/apps/net.waterfox.waterfox.svg": "Waterfox",   # o comentário do apps.map
+    "packs/dracula/icones/biblioteca/alien.svg": "Alienígena",           # a descrição do catalog.json
+    "packs/dracula/icones/biblioteca/005-potion.svg": "Potion",          # o nome, sem o número
+}
+for rel, rotulo in esperados.items():
+    it = por_arquivo.get(rel) or {}
+    checa(it.get("rotulo") == rotulo, "%s ganha o rótulo «%s»" % (os.path.basename(rel), rotulo),
+          "veio %r" % it.get("rotulo"))
+traco = [it for rel, it in por_arquivo.items()
+         if it["tipo"] == "traco" and it["glifo"] == "firefox"]
+checa(traco and all(it.get("rotulo") == "Firefox" for it in traco),
+      "o traço «firefox» ganha o nome do .desktop que o veste (Firefox)",
+      repr([it.get("rotulo") for it in traco]))
+import re  # noqa: E402
+TECNICO = re.compile(r"^\d{2,}[-_]|^[A-Za-z0-9-]+\.[A-Za-z0-9-]+\.[A-Za-z0-9.-]+$")
+tecnicos = sorted({it.get("rotulo") or "" for it in itens if TECNICO.search(it.get("rotulo") or "")
+                   or not it.get("rotulo")})
+checa(not tecnicos, "nenhum rótulo é nome técnico (número na frente, domínio invertido) nem vazio",
+      repr(tecnicos[:8]))
+# O MESMO DESENHO, O MESMO NOME (conferência da P80): o `org.telegram.desktop`
+#   era «Telegram» na pasta do pack (comentário do apps.map) e «Desktop» nas do
+#   motor, onde só sobrava o nome do arquivo sem domínio; o `com.spotify.Client`,
+#   «Spotify» e «Client».
+for glifo, rotulo in (("org.telegram.desktop", "Telegram"), ("com.spotify.Client", "Spotify")):
+    deles = sorted({(it["grupo"], it.get("rotulo")) for it in itens if it["glifo"] == glifo})
+    checa(len(deles) > 1 and all(r == rotulo for _g, r in deles),
+          "«%s» se chama «%s» em toda pasta" % (glifo, rotulo), repr(deles))
+
 if falhas:
     print("FALHOU: o acervo da ficha de ícone:", file=sys.stderr)
     for linha in falhas:

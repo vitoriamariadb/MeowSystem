@@ -1142,12 +1142,20 @@ fi
 #   Ele sabe sanear o ambiente, sabe se o cosmic-session ainda socorre (o
 #   backoff dele não tem teto e nunca zera), e recusa matar quando ninguém vai
 #   repor — inclusive quando este script roda num HOME de teste.
-if pgrep -x cosmic-panel >/dev/null 2>&1; then
-  "$RAIZ/scripts/painel.sh" reciclar || {
-    meow_erro "não consegui reciclar o painel — os ícones novos aparecem no próximo login"
-    meow_info "  diagnóstico: meow painel estado"
-    exit "$MEOW_ERRO"
-  }
+#
+# [E A PORTA ÚNICA É O `meow_tela_reler` — conferência da P80 (item 7). Este
+#   bloco chamava o `painel.sh reciclar` direto, e uma instalação inteira
+#   reciclava o painel aqui, no `logo.sh` e no fim da passada — a marca de
+#   «relê uma vez, no fim» (ver "UM RELER POR PASSADA", lib/comum.sh) não o
+#   alcançava. O `meow_tela_reler` faz o mesmo reciclo, com o lançador junto,
+#   ou só anota o pedido quando o install.sh ou o doctor relê no fim (4). O 1 é
+#   a recusa do painel, que antes caía no mesmo erro.]
+_ci_reler=0
+meow_tela_reler || _ci_reler=$?
+if [ "$_ci_reler" = 1 ]; then
+  meow_erro "não consegui reciclar o painel — os ícones novos aparecem no próximo login"
+  meow_info "  diagnóstico: meow painel estado"
+  exit "$MEOW_ERRO"
 fi
 
 meow_ok "tema '$TEMA_NOME' instalado e ativo"

@@ -3695,6 +3695,16 @@ main() {
 
   local passagem=0 ainda=0 parar_conf=0 oscilou=0
   local assinatura="" assinatura_anterior=""
+
+  # A TELA RELÊ UMA VEZ, NO FIM — 10/10/2026, P80 (item 7). Três etapas de
+  #   ícone pediam o reciclo do painel cada uma (ver "UM RELER POR PASSADA", no
+  #   `meow_tela_reler` do lib/comum.sh). A marca nasce aqui, antes da primeira
+  #   passagem, e o `meow_tela_reler_no_fim` logo depois do laço relê uma vez.
+  #   Sem a marca (o `mktemp` falhou), cada pedido relê na hora, como antes.
+  if ! meow_seco; then
+    MEOW_RELER_NO_FIM="$(mktemp "${TMPDIR:-/tmp}/meow-reler.XXXXXX" 2>/dev/null)" \
+      && export MEOW_RELER_NO_FIM
+  fi
   while :; do
     passagem=$((passagem + 1))
 
@@ -3821,6 +3831,7 @@ main() {
     if [ "$assinatura" = "$assinatura_anterior" ]; then oscilou=1; break; fi
     assinatura_anterior="$assinatura"
   done
+  meow_tela_reler_no_fim
 
   # AS DUAS GUARDAS FALAM ANTES DO BLOCO DAS FALHAS, e a ordem custou uma
   # medição: na primeira versão o `falhou:` devolvia 2 primeiro, e num HOME de
