@@ -578,12 +578,12 @@ ICONES_LOGO_HEFESTO=""            # caminho de um .svg; vazio = o desenho gerado
 #   a promessa da linha de cima — a de que trocar o flavor repinta as pastas
 #   sozinho. Por isso o valor continua escrito com as variáveis.
 #
-# E VOLTA A SER ESCRITO ASSIM — 10/10/2026, P79. O nome por extenso com o
-#   flavor do pack no ar (`cat-dracula-${ACCENT}` com o Dracula) ou com o de um
-#   flavor que o pack no ar não tem é resto de pack: o `meow doctor --consertar`
-#   e o install.sh (`scripts/migrar_conf.py`, `VESTIGIOS`) devolvem a linha à
-#   forma de cima, e a próxima troca de pack a leva junto. Outra cor do mesmo
-#   pack (`cat-frappe-blue` com o Catppuccin) é escolha, e fica.
+# E VOLTA A SER ESCRITO ASSIM — 10/10/2026, P79. Um nome com um flavor que o
+#   pack no ar não tem (`cat-dracula-${ACCENT}` com o Catppuccin no ar) é resto
+#   de pack: o `meow doctor --consertar`, o install.sh e a troca de pack
+#   (`scripts/migrar_conf.py`, `VESTIGIOS`) devolvem a linha à forma de cima.
+#   Uma variante do pack no ar (`cat-frappe-blue` com o Catppuccin,
+#   `cat-dracula-${ACCENT}` com o Dracula) é escolha, e fica.
 ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 
 # @ Variante dos ícones de arquivo

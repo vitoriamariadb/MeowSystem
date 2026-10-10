@@ -15,11 +15,10 @@
 # O QUE ESTE TESTE COBRA
 #   1. O `migrar_conf.py` (a migração do doctor e do install.sh) devolve ao de
 #      fábrica o `ICONES_FLAVOR` que nomeia um flavor que o pack no ar não tem,
-#      e escreve na forma que acompanha o pack (`cat-${FLAVOR}-${ACCENT}`) o
-#      `ICONES_PASTAS` que é a escolha do pack escrita por extenso. O que quem
-#      usa fixou (um flavor do próprio pack, uma cor de pasta que o pack não
-#      escolhe) fica.
-#   2. O doctor acusa os dois no `conf` e o `--consertar` corrige.
+#      e devolve à forma que acompanha o pack (`cat-${FLAVOR}-${ACCENT}`) o
+#      `ICONES_PASTAS` com um flavor que o pack no ar não tem. O que quem usa
+#      fixou (um flavor do próprio pack, nas duas chaves) fica.
+#   2. O doctor acusa o `ICONES_FLAVOR` no `conf` e o `--consertar` corrige.
 #   3. O `meow pack usar` leva junto o `CURSOR` que é o ponteiro do pack de
 #      antes (vira o do pack novo) e as pastas; o `CURSOR` que quem usa fixou
 #      fica. O ensaio da troca já não lista os dois como vestígio. E o painel
@@ -71,14 +70,24 @@ conf_com "$TMP/c1" 'PACK="dracula"' 'FLAVOR="dracula"' 'ICONES_FLAVOR="macchiato
 migrar "$TMP/c1" "$EXEMPLO" --conferir > "$TMP/s1" 2>&1; rc_c=$?
 migrar "$TMP/c1" "$EXEMPLO" > "$TMP/s1b" 2>&1; rc=$?
 migrar "$TMP/c1" "$EXEMPLO" --conferir > /dev/null 2>&1; rc_d=$?
-if [ "$rc_c" = 1 ] && grep -q 'ICONES_FLAVOR' "$TMP/s1" && grep -q 'ICONES_PASTAS' "$TMP/s1" \
+# [Conferência da P79: a variante do PRÓPRIO pack nas pastas (`cat-dracula-…`
+#  com o Dracula no ar) é o que o painel grava quando quem usa a escolhe, e
+#  fica; ela só é resto quando o pack no ar não tem o flavor — logo abaixo.]
+if [ "$rc_c" = 1 ] && grep -q 'ICONES_FLAVOR' "$TMP/s1" && ! grep -q 'ICONES_PASTAS' "$TMP/s1" \
    && [ "$rc" = 0 ] && [ "$rc_d" = 0 ] \
    && [ "$(linha_de "$TMP/c1" ICONES_FLAVOR)" = 'ICONES_FLAVOR="$FLAVOR"' ] \
-   && [ "$(linha_de "$TMP/c1" ICONES_PASTAS | sed 's/ *#.*//')" = 'ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"' ]; then
-  ok "com o Dracula no ar, o macchiato volta a \$FLAVOR e as pastas voltam a seguir o pack"
+   && [ "$(linha_de "$TMP/c1" ICONES_PASTAS | sed 's/ *#.*//')" = 'ICONES_PASTAS="cat-dracula-${ACCENT}"' ]; then
+  ok "com o Dracula no ar, o macchiato volta a \$FLAVOR, e a variante Drácula das pastas fica"
 else
   falha "o migrar não devolveu os vestígios (conferir=$rc_c, migrar=$rc, depois=$rc_d)" \
     "$(cat "$TMP/s1" "$TMP/s1b"; linha_de "$TMP/c1" ICONES_FLAVOR; linha_de "$TMP/c1" ICONES_PASTAS)"
+fi
+conf_com "$TMP/c1c" 'PACK="catppuccin"' 'FLAVOR="mocha"' 'ICONES_PASTAS="cat-dracula-${ACCENT}"'
+migrar "$TMP/c1c" "$EXEMPLO" > "$TMP/s1c" 2>&1; rc=$?
+if [ "$rc" = 0 ] && [ "$(linha_de "$TMP/c1c" ICONES_PASTAS | sed 's/ *#.*//')" = 'ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"' ]; then
+  ok "com o Catppuccin no ar, as pastas cat-dracula voltam a seguir o pack"
+else
+  falha "o migrar deixou as pastas do Dracula com o Catppuccin no ar (rc=$rc)" "$(cat "$TMP/s1c"; linha_de "$TMP/c1c" ICONES_PASTAS)"
 fi
 conf_com "$TMP/c2" 'PACK="catppuccin"' 'FLAVOR="mocha"' 'ICONES_FLAVOR="macchiato"' 'ICONES_PASTAS="cat-frappe-blue"'
 cp "$TMP/c2" "$TMP/c2.antes"
@@ -102,10 +111,10 @@ doctor() {  # <casa> <verificadores> [--consertar]
 antes="$(doctor "$CASA" conf)"; rc_a=$?
 doctor "$CASA" conf --consertar > "$TMP/s3" 2>&1; rc_c=$?
 depois="$(doctor "$CASA" conf)"; rc_d=$?
-if [ "$rc_a" = 1 ] && grep -qE '^ *~~ +conf .*ICONES_FLAVOR' <<< "$antes" && grep -q 'ICONES_PASTAS' <<< "$antes" \
+if [ "$rc_a" = 1 ] && grep -qE '^ *~~ +conf .*ICONES_FLAVOR' <<< "$antes" \
    && [ "$rc_c" = 1 ] && [ "$rc_d" = 0 ] \
    && [ "$(linha_de "$CASA/.config/meow/meow.conf" ICONES_FLAVOR)" = 'ICONES_FLAVOR="$FLAVOR"' ]; then
-  ok "o doctor acusa ICONES_FLAVOR e ICONES_PASTAS no conf, e o --consertar os corrige"
+  ok "o doctor acusa ICONES_FLAVOR no conf, e o --consertar o corrige"
 else
   falha "o doctor não corrigiu os vestígios (antes=$rc_a, consertar=$rc_c, depois=$rc_d)" "$antes
 ---

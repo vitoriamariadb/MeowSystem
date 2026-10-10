@@ -114,11 +114,15 @@ APOSENTADAS = {
 #   A REGRA, E ELA É A MESMA NAS DUAS CHAVES: o nome de um flavor que o pack no
 #   ar NÃO tem é resto de outro pack, e a chave volta à forma de fábrica, que
 #   acompanha o pack (`"$FLAVOR"`, `"cat-${FLAVOR}-${ACCENT}"`, as duas lidas do
-#   exemplo, e não escritas aqui). E a forma de fábrica escrita por extenso (o
-#   `cat-dracula-${ACCENT}` com o Dracula no ar) volta a ser a forma que
-#   acompanha: o resultado de hoje é o mesmo, e a próxima troca a leva junto.
-#   O que quem usa fixou com um flavor DO PRÓPRIO pack (ícones em macchiato
-#   com a interface em mocha, o pedido de 21/09) fica. «O doctor não avisa,
+#   exemplo, e não escritas aqui). O que quem usa fixou com um flavor DO
+#   PRÓPRIO pack (ícones em macchiato com a interface em mocha, o pedido de
+#   21/09; a variante «Drácula» das pastas escolhida no painel) fica.
+#   [Conferência da P79: a forma de fábrica escrita por extenso — o
+#   `cat-dracula-${ACCENT}` com o Dracula no ar — também voltava ao molde, «com
+#   o mesmo resultado de hoje». Não era o mesmo: é o que o painel grava quando
+#   quem usa escolhe a variante do pack em vez de «Acompanha o tema», e o molde
+#   a faria mudar na próxima troca de flavor DENTRO do pack. A troca de pack já
+#   a leva pela regra de cima: com o Catppuccin no ar, `dracula` não é flavor.] «O doctor não avisa,
 #   corrige» (09/10): é a única linha que já existia e muda de VALOR aqui.
 #
 #   O PONTEIRO SÓ NA TROCA (`--pack-de-antes`): um `CURSOR` igual ao ponteiro
@@ -188,8 +192,7 @@ def vestigios(texto: str, exemplo: str, antes: tuple[str, str] | None = None) ->
             vestigio = "$" not in atual and atual not in flavors
         else:
             m = re.match(r"^cat-([a-z0-9]+)-", _expandir(atual, nomes))
-            vestigio = (_expandir(atual, nomes) == _expandir(fabrica, nomes)
-                        or bool(m and m.group(1) not in flavors))
+            vestigio = bool(m and m.group(1) not in flavors)
         if vestigio:
             texto = _trocar_valor(texto, chave, fabrica)
             feitas.append(f"{chave} ({atual} -> {fabrica})")
