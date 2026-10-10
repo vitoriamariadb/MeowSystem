@@ -6957,6 +6957,13 @@ function fraseIndisponivel(motivo) {
     const antes = (ESQUEMA.acoes || []).find((a) => a.id === motivo.antes);
     return `Antes, «${antes ? antes.rotulo : motivo.antes}»: ${motivo.porque}.`;
   }
+  /* O QUE JÁ FOI FEITO APONTA O PASSO SEGUINTE — QA de uso real da P80
+   * (`_areas_ja_alfinetadas`, no servidor.py): «Criar a primeira área» com
+   * área fixada. */
+  if (motivo.feito) {
+    const depois = (ESQUEMA.acoes || []).find((a) => a.id === motivo.feito);
+    return `Já feito: ${motivo.porque}. O passo seguinte é «${depois ? depois.rotulo : motivo.feito}».`;
+  }
   return `Sem efeito com «${nomeVisivel(motivo.chave)}» em `
     + `«${rotuloDeValor(motivo.vale)}». Mude para «${rotuloDeValor(motivo.pede)}» `
     + "para usar este botão.";

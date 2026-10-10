@@ -4574,6 +4574,23 @@ def _areas_sem_alfinete():
                       "outras herdam o monitor"}
 
 
+def _areas_ja_alfinetadas():
+    """«Criar a primeira área» com área fixada: já está feito, e o passo
+    seguinte é «Gravar as áreas».
+
+    QA de uso real da P80 (10/10/2026), na casa copiada da pessoa: duas áreas
+    fixadas («Tirar uma área» oferecia as duas) e «Criar a primeira área» aceso
+    ao lado, na mesma aba. O verbo do `areas.sh` sai em 0 sem escrever nada
+    quando já há área (o bloco "E ELE NÃO ESCREVE POR CIMA DE ALFINETE
+    NENHUM", lá) — o botão só podia não fazer nada. É o espelho do
+    `_areas_sem_alfinete`: lá o «Gravar» espera o «Criar»; aqui o «Criar» já
+    foi, e aponta o «Gravar»."""
+    if not _areas_alfinetadas():
+        return None
+    return {"feito": "areas_aplicar",
+            "porque": "há área fixada nesta máquina"}
+
+
 def indisponivel(acao_id):
     """O motivo de a ação não ter efeito agora (um dicionário), ou None."""
     medir = ACOES[acao_id].get("indisponivel")
@@ -5150,6 +5167,7 @@ ACOES = {
         "natureza": "gravar",
         "argv": _meow("areas", "alfinetar-primeira"),
         "escreve": True, "sudo": False, "confirma": True,
+        "indisponivel": _areas_ja_alfinetadas,
         "ajuda": "Cria a primeira área fixada no monitor que está ligado agora, "
                  "com o primeiro nome da sua lista. Vale no próximo início de sessão.",
     },
