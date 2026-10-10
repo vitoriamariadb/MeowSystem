@@ -528,8 +528,12 @@ main() {
     if [ -f "$SOMBRA" ] || [ -x "$BINARIO" ]; then
       meow_muda "LEITURA_APPLET=\"$LEITURA_APPLET\" no meow.conf, mas o applet continua instalado"
       [ "$CONFERIR" = 1 ] && return "$MEOW_DIVERGENTE"
+      meow_pendencia_resolvida leitura-applet
       _reverter; return $?
     fi
+    # [Conferência da P79: sem applet pedido, a pendência `leitura-applet` de
+    #  uma passagem anterior não tem mais o que pedir, e sai da Início.]
+    [ "$CONFERIR" = 1 ] || meow_pendencia_resolvida leitura-applet
     meow_pula "LEITURA_APPLET=\"$LEITURA_APPLET\" no meow.conf — sem applet do modo de leitura"
     return "$MEOW_SEM_DEPENDENCIA"
   fi

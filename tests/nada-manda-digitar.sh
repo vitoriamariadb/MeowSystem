@@ -68,6 +68,28 @@ else
   falha "sem a porta única da tela:$faltam"
 fi
 
+printf '\n--- 4. a pendência do applet nasce sem compilar e sai sem applet pedido ---\n'
+#   [Conferência da P79: com `LEITURA_APPLET="nao"` a pendência de uma passagem
+#    anterior ficava na Início para sempre, pedindo um applet que ninguém quer.]
+CASA="$(mktemp -d)" || exit 2
+trap 'rm -rf "$CASA"' EXIT
+FALSO="$CASA/falso"; mkdir -p "$FALSO"
+for c in sudo pkexec su pkill killall notify-send systemd-run loginctl apt apt-get cargo; do
+  printf '#!/bin/sh\nexit 1\n' > "$FALSO/$c"; chmod 755 "$FALSO/$c"
+done
+applet() {  # <sim|nao>
+  env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 LEITURA_APPLET="$1" \
+    "$RAIZ/scripts/leitura_build.sh" --aplicar > /dev/null 2>&1
+}
+TSV="$CASA/.local/state/meowsystem/pendencias.tsv"
+applet sim; com="$(cut -f1 "$TSV" 2>/dev/null)"
+applet nao; sem="$(cut -f1 "$TSV" 2>/dev/null)"
+if grep -qx 'leitura-applet' <<< "$com" && ! grep -qx 'leitura-applet' <<< "$sem"; then
+  ok "sem compilar, a pendência leitura-applet nasce; com LEITURA_APPLET=nao, ela sai"
+else
+  falha "a pendência do applet não nasce ou não sai" "com: $com / sem: $sem"
+fi
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: nada manda digitar\n'
