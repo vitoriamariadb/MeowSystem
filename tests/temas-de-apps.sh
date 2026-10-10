@@ -227,11 +227,20 @@ else
   falha "pack: 'app dracula apps.spotify.spicetify_tema' não respondeu pelo dracula" "$saida"
 fi
 
+# O qBittorrent do Dracula deixou de ser herdado em 09/10/2026 (P74 item 9): o
+# pack traz o tema oficial dele. A herança segue provada pelo `vscode-icones`,
+# que o Dracula não declara de propósito (`_nota_vscode_icones`).
 saida="$(python3 "$RAIZ/scripts/pack.py" app dracula apps.qbittorrent.arquivo 2>&1)"
-if printf '%s' "$saida" | grep -qx 'pack=catppuccin'; then
-  ok "pack: o qBittorrent do Dracula é herdado, e o log diz de quem"
+if printf '%s' "$saida" | grep -qx 'pack=dracula'; then
+  ok "pack: o Dracula responde pelo próprio qBittorrent (P74)"
 else
-  falha "pack: a herança de apps.qbittorrent não apontou para o catppuccin" "$saida"
+  falha "pack: 'app dracula apps.qbittorrent.arquivo' não respondeu pelo dracula" "$saida"
+fi
+saida="$(python3 "$RAIZ/scripts/pack.py" app dracula apps.vscode-icones.esquema 2>&1)"
+if printf '%s' "$saida" | grep -qx 'pack=catppuccin'; then
+  ok "pack: o vscode-icones do Dracula é herdado, e o log diz de quem"
+else
+  falha "pack: a herança de apps.vscode-icones não apontou para o catppuccin" "$saida"
 fi
 
 # A HERANÇA É POR APLICATIVO, E NÃO POR CHAVE. Um pack que declara o bloco
@@ -490,7 +499,9 @@ saida="$(mod discord aplicar)"; rc=$?
 # usuário no disco: a coluna lia o código do `detectar`, e ele sai 3 pelo cliente
 # que falta, ou pelo tema que já está no ar. É esta casa, este Discord e um
 # qBittorrent sem o escritor do conf: instalados (0) e pendentes (3), na MESMA
-# linha do TSV que a CLI pinta.
+# linha do TSV que a CLI pinta. [P74, 09/10/2026: o qBittorrent ganhou escritor
+# próprio do conf, e sem tema no app ele é divergente (1), que é o «aplica»; a
+# coluna «instalado» é o que esta seção cobra, e continua 0.]
 tabela() {
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
       XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
@@ -502,7 +513,7 @@ implantar "$CASA/.local/share/flatpak" org.qbittorrent.qBittorrent
 # As quatro primeiras colunas: a quinta, o motivo do 3, entrou na P62 e é
 # cobrada na seção da P55, lá embaixo.
 saida="$(tabela discord,qbittorrent | cut -f1-4)"
-[ "$saida" = "$(printf 'discord\tdiscord\t0\t3\nqbittorrent\tqbittorrent\t0\t3')" ] \
+[ "$saida" = "$(printf 'discord\tdiscord\t0\t3\nqbittorrent\tqbittorrent\t0\t1')" ] \
   && ok "meow apps: Discord e qBittorrent instalados e pendentes saem «instalado» na tabela" \
   || falha "meow apps: a coluna «instalado» ainda não é a do programa no disco" "$saida"
 rm -rf "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
@@ -558,9 +569,36 @@ saida="$(mod discord aplicar)"; rc=$?
   || falha "discord: o tema não chegou à pasta do Vencord (rc=$rc)" "$saida"
 saida="$(mod discord conferir)"; rc=$?
 [ "$rc" = 0 ] && ok "discord: depois de aplicar, o conferir dá 0" || falha "discord: conferir devolveu $rc" "$saida"
+# LIGADO NO CLIENTE, E NÃO SÓ NA PASTA — 09/10/2026, P74 item 9 (T6). O tema
+#   vai para a lista `enabledThemes` do `settings/settings.json` do Vencord, e
+#   o que já estava lá fica; o desfazer o tira da lista junto com o arquivo.
+VS="$CASA/.config/Vencord/settings/settings.json"
+ligado() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(" ".join(d.get("enabledThemes",[])), d.get("outra","-"))' "$VS" 2>&1; }
+[ "$(ligado)" = "MeowSystem.theme.css -" ] \
+  && ok "discord: o tema do pack sai ligado no Vencord (enabledThemes)" \
+  || falha "discord: o tema não foi ligado no settings.json do Vencord" "$(ligado)"
+python3 -c 'import json,sys;json.dump({"enabledThemes":["dela.css"],"outra":"fica"},open(sys.argv[1],"w"))' "$VS"
+# COM O VESKTOP DO FLATPAK ABERTO, NADA SE ESCREVE (conferência da P74): o
+#   processo dele é `vesktop.bin`, e um `pgrep` que só conhece esse nome tem de
+#   segurar a escrita — senão ele desfaz a lista na próxima gravação dele.
+printf '#!/bin/sh\n[ "$1" = "-x" ] && [ "$2" = "vesktop.bin" ] && exit 0\nexit 1\n' > "$BIN/pgrep"; chmod +x "$BIN/pgrep"
+antes_vs="$(cat "$VS")"
+saida="$(mod discord aplicar)"; rc_v=$?
+falso pgrep 1
+[ "$rc_v" = 3 ] && [ "$(cat "$VS")" = "$antes_vs" ] \
+  && ok "discord: com o Vesktop do flatpak aberto (vesktop.bin), a lista do cliente não é escrita" \
+  || falha "discord: o Vesktop aberto não segurou a escrita do settings.json (rc=$rc_v)" "$saida"
+saida="$(mod discord conferir)"; rc_c=$?
+saida="$saida$(mod discord aplicar)"; rc_a=$?
+[ "$rc_c" = 1 ] && [ "$rc_a" = 1 ] && [ "$(ligado)" = "dela.css MeowSystem.theme.css fica" ] \
+  && ok "discord: desligado, o conferir acusa e o aplicar liga, sem tocar no tema e na chave dela" \
+  || falha "discord: o tema desligado não foi religado, ou o resto do settings.json mudou (rc $rc_c/$rc_a)" "$(ligado)
+$saida"
 saida="$(mod discord reverter)"; rc=$?
-[ "$rc" = 1 ] && [ ! -e "$DC/MeowSystem.theme.css" ] && ok "discord: desfazer tira o tema da pasta" \
-  || falha "discord: desfazer não tirou o tema (rc=$rc)" "$saida"
+[ "$rc" = 1 ] && [ ! -e "$DC/MeowSystem.theme.css" ] && [ "$(ligado)" = "dela.css fica" ] \
+  && ok "discord: desfazer tira o tema da pasta e da lista do cliente" \
+  || falha "discord: desfazer não tirou o tema (rc=$rc)" "$saida
+$(ligado)"
 
 # --- OnlyOffice ----------------------------------------------------------
 #   O conf é de mentira mas tem a forma do de verdade: `appdata` é um JSON em
@@ -712,28 +750,44 @@ mod onlyoffice reverter >/dev/null
   && ok "P62: o ensaio do OnlyOffice diz «aplicaria» e «desfaria», e a gaveta cita os botões que o --onde dá" \
   || falha "P62: o ensaio ou a gaveta do OnlyOffice:$faltam"
 
-# --- qBittorrent: VESTIDO POR ELA, NÃO HÁ O QUE ESPERAR — P53 (achado 3) ---
-#   Sem escritor do conf (o caso de toda máquina que não é a da Vitória, e o
-#   desta: o script do Aurora não existe), a Home mostrava «não há comando meu
-#   que resolva» com o qBittorrent vestido pelo tema que ela escolheu. Vestido,
-#   a linha sai; sem tema nenhum, ela continua, porque aí falta alguma coisa.
+# --- qBittorrent: SEM O AURORA, O CONF É ESCRITO AQUI — P74 item 9 (T4) -----
+#   Até a P74, sem o script do Aurora (o caso de toda máquina, e o desta) o
+#   módulo parava em 3 com a pendência «escrever o qBittorrent.conf não é
+#   escopo deste módulo». Agora ele é o escritor: sem tema no app, o tema do
+#   pack entra e as duas chaves do conf apontam para ele, e o resto do conf
+#   fica; com o app aberto, nada se escreve (ele reescreve o conf ao sair); e
+#   vestido por ela (P53, achado 3), o conf dela fica, e a linha diz o fato.
 falso flatpak
 implantar "$CASA/.local/share/flatpak" org.qbittorrent.qBittorrent
 QB="$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent"
 mkdir -p "$QB"
-printf '[Preferences]\nGeneral\\UseCustomUITheme=false\n' > "$QB/qBittorrent.conf"
-saida="$(mod qbittorrent aplicar)"; rc1=$?
+printf '[BitTorrent]\nSession\\Port=6881\n\n[Preferences]\nGeneral\\Locale=pt_BR\nGeneral\\UseCustomUITheme=false\n' > "$QB/qBittorrent.conf"
+falso pgrep 0
+saida="$(mod qbittorrent aplicar)"; rc0=$?
+aberto="$(cat "$QB/qBittorrent.conf")"
+falso pgrep 1
+saida="$saida$(mod qbittorrent aplicar)"; rc1=$?
 tinha="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/pendencias.tsv" 2>/dev/null)"
+alvo_qb="$QB/themes/dracula.qbtheme"
+escrito_ok=0
+grep -qxF 'General\UseCustomUITheme=true' "$QB/qBittorrent.conf" \
+  && grep -qxF "General\\CustomUIThemePath=$alvo_qb" "$QB/qBittorrent.conf" \
+  && grep -qxF 'General\Locale=pt_BR' "$QB/qBittorrent.conf" && grep -qxF 'Session\Port=6881' "$QB/qBittorrent.conf" \
+  && cmp -s "$alvo_qb" "$RAIZ/packs/dracula/apps/dracula.qbtheme" && escrito_ok=1
+saida="$saida$(mod qbittorrent aplicar)"; rc1b=$?
 printf '[Preferences]\nGeneral\\CustomUIThemePath=%s/.themes/dela.qbtheme\nGeneral\\UseCustomUITheme=true\n' \
   "$CASA" > "$QB/qBittorrent.conf"
 antes="$(cat "$QB/qBittorrent.conf")"
 saida="$saida$(mod qbittorrent aplicar)"; rc2=$?
 ficou="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/pendencias.tsv" 2>/dev/null)"
-[ "$rc1" = 3 ] && [ -n "$tinha" ] && [ "$rc2" = 3 ] && [ -z "$ficou" ] \
+[ "$rc0" = 3 ] && [[ "$aberto" == *"UseCustomUITheme=false"* ]] \
+  && [ "$rc1" = 1 ] && [ "$escrito_ok" = 1 ] && [ -z "$tinha" ] && [ "$rc1b" = 0 ] \
+  && [ "$rc2" = 3 ] && [ -z "$ficou" ] \
   && [ "$(cat "$QB/qBittorrent.conf")" = "$antes" ] && printf '%s' "$saida" | grep -q 'já está vestido' \
-  && ok "qbittorrent: vestido por ela e sem escritor, a pendência sai e o conf fica; sem tema, ela fica" \
-  || falha "qbittorrent: a pendência sem saída sobre um app vestido (sem tema: rc=$rc1, vestido: rc=$rc2)" \
+  && ok "qbittorrent: sem o Aurora o conf é escrito aqui (com o app fechado, só as duas chaves), a 2ª passada é 0, e o vestido por ela fica" \
+  || falha "qbittorrent: o escritor próprio do conf (aberto: rc=$rc0, sem tema: rc=$rc1 escrito=$escrito_ok, 2ª: rc=$rc1b, vestido: rc=$rc2)" \
            "$saida
+conf: $(cat "$QB/qBittorrent.conf")
 pendência antes: $tinha
 pendência depois: $ficou"
 # «NÃO VESTE» SÓ COM O MOTIVO EMBAIXO — 25/09/2026, revisão da P62

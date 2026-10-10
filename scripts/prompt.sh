@@ -143,9 +143,52 @@ _prompt_tem_starship() { _prompt_onde_starship >/dev/null; }
 #   termina) acusaria divergência para SEMPRE, num arquivo perfeito — é o mesmo
 #   defeito que o `chk_mimetypes` do `bin/meow` já documenta. As duas
 #   substituições de comando abaixo aparam a nova linha final dos dois lados.
+# A PALETA DO PROMPT É A DO PACK NO AR — 09/10/2026, P74 item 7 (T1)
+#   O preset traz uma paleta só, a `catppuccin_mocha`, e este script copiava o
+#   arquivo como estava: com o Dracula no ar o `~/.config/starship.toml` dizia
+#   `palette = 'catppuccin_mocha'`, e o prompt era o único pedaço da tela em
+#   Catppuccin (01-regressoes.md, T1, ×5). O desenho do preset fala por PAPEL
+#   (`bg:mauve`, `fg:crust`), então trocar o bloco `[palettes.*]` pelos 26
+#   slots da paleta do pack, no flavor da máquina, veste o prompt inteiro sem
+#   tocar no desenho. O nome da paleta é `<pack>_<flavor>`: com o Catppuccin
+#   Mocha no ar ele é `catppuccin_mocha`, e o arquivo sai IGUAL ao preset,
+#   byte a byte (os hex em minúsculas, como lá) — o `tests/pack-dracula-
+#   completo.sh` cobra isso.
+_PROMPT_PACK="$(meow_pack_dir)"
+[ -n "$_PROMPT_PACK" ] || _PROMPT_PACK="$(meow_pack_padrao_dir 2>/dev/null || true)"
+_PROMPT_PACK="$(basename "${_PROMPT_PACK:-catppuccin}")"
+
+_prompt_desejado() {
+  python3 -I - "$PROMPT_FONTE" "$(meow_paleta)" "$(meow_flavor)" "$_PROMPT_PACK" <<'PY'
+import json, re, sys
+fonte, paleta, flavor, pack = sys.argv[1:5]
+with open(fonte, encoding="utf-8") as fh:
+    texto = fh.read()
+with open(paleta, encoding="utf-8") as fh:
+    dados = json.load(fh)
+cores = dados["flavors"][flavor]
+nome = re.sub(r"[^a-z0-9_]", "_", f"{pack}_{flavor}".lower())
+# A PALETA É DADO NÃO CONFIÁVEL, E O DESTINO É CÓDIGO — conferência da P74
+#   (alerta de segurança de 09/10/2026). O `validar` confere o hex dos 26
+#   slots e mais nada: um pack importado pode pôr na `ordem_canonica` um slot a
+#   mais cujo valor fecha a aspa e abre um `[custom.x]` com `command = ...` —
+#   e o starship roda esse comando a cada prompt. Só entra linha cujo nome é
+#   uma palavra simples e cujo valor é `#RRGGBB`.
+hexa = re.compile(r"^#[0-9A-Fa-f]{6}$")
+bloco = f"[palettes.{nome}]\n" + "".join(
+    f'{s} = "{cores[s].lower()}"\n' for s in (dados.get("ordem_canonica") or list(cores))
+    if isinstance(s, str) and re.fullmatch(r"[a-z0-9]+", s)
+    and isinstance(cores.get(s), str) and hexa.match(cores[s]))
+texto = re.sub(r"^palette = '[^']*'$", f"palette = '{nome}'", texto, count=1, flags=re.M)
+texto = re.sub(r'^\[palettes\.[^\]]+\]\n(?:[a-z0-9]+ = "#[0-9a-fA-F]{6}"\n)+', lambda _m: bloco,
+               texto, count=1, flags=re.M)
+sys.stdout.write(texto)
+PY
+}
+
 _prompt_toml_confere() {
   [ -f "$PROMPT_ALVO" ] || return 1
-  [ "$(cat "$PROMPT_FONTE")" = "$(cat "$PROMPT_ALVO")" ]
+  [ "$(_prompt_desejado)" = "$(cat "$PROMPT_ALVO")" ]
 }
 
 # O `_prompt_avisar_trava` saiu com o `env.zsh`, em 24/09/2026: ele perguntava
@@ -229,7 +272,7 @@ cmd_conferir() {
     return "$MEOW_DIVERGENTE"
   fi
 
-  meow_ok "prompt conforme (starship, preset catppuccin-powerline, accent mauve)"
+  meow_ok "prompt conforme (starship, na paleta do pack $_PROMPT_PACK, flavor $(meow_flavor))"
   return "$MEOW_OK"
 }
 
@@ -252,12 +295,12 @@ cmd_aplicar() {
   fi
 
   local rc
-  meow_escrever "$PROMPT_ALVO" "$(cat "$PROMPT_FONTE")" 644; rc=$?
+  meow_escrever "$PROMPT_ALVO" "$(_prompt_desejado)" 644; rc=$?
   case "$rc" in
     "$MEOW_ERRO") meow_erro "não consegui escrever $PROMPT_ALVO"; return "$MEOW_ERRO" ;;
     "$MEOW_OK")   meow_ok "$PROMPT_ALVO já estava conforme" ;;
     *)  if meow_seco; then meow_muda "instalaria o preset em $PROMPT_ALVO"
-        else meow_muda "preset catppuccin-powerline instalado em $PROMPT_ALVO"
+        else meow_muda "prompt na paleta do pack $_PROMPT_PACK ($(meow_flavor)) instalado em $PROMPT_ALVO"
              meow_info "vale no PRÓXIMO prompt — o starship relê o arquivo a cada desenho"
         fi ;;
   esac

@@ -514,21 +514,20 @@ ICONES_RESGATADOS="sim"           # sim | nao
 # já da paleta Dracula —, ao contrário do Arcticons, que é traço monocromático
 # pintado por nós. Aqui não se recolore nada: a cópia é byte a byte.
 #
-# LIGAR ISTO TROCA ARTE QUE JÁ ESTÁ NA TELA, e por isso nasce em "nao"
-#   Onze dos dezoito nomes já vestem Arcticons: Krita, Telegram, qBittorrent,
-#   Obsidian, ONLYOFFICE, Chrome, Calculator, Warehouse, Upscaler, Steam e
-#   input-keyboard. O `scalable/apps` VENCE o `48x48/apps` no resolvedor (strace
-#   de 08/08/2026, no cabeçalho do `completar_icones.sh`), então ligar troca os
-#   onze de uma vez. Os outros sete estavam de fábrica e só ganham.
-#
-#   "Dracula vence tudo" foi escolhido em 16/09/2026, com os dois lados na mesa.
-#   O padrão continua "nao" porque o padrão é o que vale numa máquina que não
-#   participou dessa decisão — a sua, ou uma recém-formatada.
+# ESCOLHER O PACK LIGA OS DESENHOS DELE, e por isso nasce em "sim" — P74, 09/10/2026
+#   Até aqui nascia em "nao", para não trocar de fábrica os onze nomes que já
+#   vestiam Arcticons. Medido em 09/10/2026: com `PACK="dracula"` e o resto de
+#   fábrica, o tema saía com 28 ícones de aplicativo contra 230 com a camada
+#   ligada — escolher o Dracula entregava metade dele. "Dracula vence tudo" foi
+#   escolhido em 16/09/2026. A camada põe no tema o mapa do PACK NO AR, e um
+#   pack sem mapa não põe nada: "sim" é "o pack decide", e a chave só serve
+#   para desligar. O `scalable/apps` VENCE o `48x48/apps` no resolvedor (strace
+#   de 08/08/2026), então desligar devolve o Arcticons a esses onze.
 #
 # DESLIGAR DESLIGA, E NÃO CUSTA NADA: "nao" apaga só o que este projeto pôs, por
 # nome e conferindo o conteúdo byte a byte (arquivo editado à mão fica). O
 # Arcticons nunca saiu do `48x48` — ele reaparece sozinho na passagem seguinte.
-ICONES_DRACULA="nao"              # sim | nao
+ICONES_DRACULA="sim"              # sim | nao
 
 # @ Logo própria do Hefesto
 # > Um SVG seu para o ícone do Hefesto. Vazio = o desenho gerado do pack.
@@ -1483,7 +1482,7 @@ LEITURA_APPLET="sim"              # sim | nao
 TERMINAL_ESQUEMA="sim"      # sim | nao
 
 # @ Cor do cursor
-# > A cor de destaque, ou a que o Catppuccin escolheu.
+# > A cor de destaque, ou a do esquema de origem do terminal.
 # ONDE O ACCENT ENTRA, E É A ÚNICA DECISÃO DE GOSTO DESTE MÓDULO.
 # O port oficial pinta o cursor de `rosewater` e não usa `mauve` em lugar nenhum
 # (o magenta do ANSI no Catppuccin é o `pink`, #F5C2E7, não o mauve). "accent"
@@ -1492,9 +1491,11 @@ TERMINAL_ESQUEMA="sim"      # sim | nao
 TERMINAL_CURSOR="accent"    # accent | port
 
 # @ Prompt do zsh
-# > O prompt do starship que vem com o MeowSystem, o mesmo com qualquer pack.
-# O prompt do zsh, pelo starship, com o preset OFICIAL catppuccin-powerline no
-# flavor mocha e accent mauve.
+# > O prompt do starship que vem com o MeowSystem, nas cores do pack no ar.
+# O prompt do zsh, pelo starship. O DESENHO é o do preset oficial
+# catppuccin-powerline; as CORES são as da paleta do pack no ar, no flavor da
+# máquina (P74, 09/10/2026: até aqui o arquivo saía com a paleta do Mocha
+# fosse qual fosse o pack, e com o Dracula no ar o prompt era Catppuccin).
 #
 #   ESTA CHAVE MANDA EM METADE DA COISA, E É DE PROPÓSITO. O preset é nosso e vai
 #   para ~/.config/starship.toml. A linha que LIGA o starship mora no arquivo de
@@ -1798,6 +1799,10 @@ LANCADOR_SISTEMA="nao"
 #
 #   Programa que não está instalado é pulado em silêncio: sobra na lista sem
 #   custo nenhum, e o placar do doctor diz quantos foram.
+#
+#   O PACK NO AR SOMA A LISTA DELE (P74, 09/10/2026): o Dracula esconde o que o
+#   tema Dracula de antes escondia (`lancador.ocultar` no pack.json). Para
+#   manter um deles à vista, escreva o nome aqui com `-` na frente (`-mpv`).
 LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,info,im-config,ibus-setup,org.freedesktop.IBus.Setup,org.gnome.font-viewer,gnome-language-selector,system-config-printer,org.gnome.eog,org.gnome.Evince,org.gnome.baobab,org.gnome.PowerStats,org.gnome.seahorse.Application,org.gnome.DiskUtility,simple-scan,yelp,gucharmap,nm-connection-editor,repoman,com.system76.Popsicle,gparted,nvidia-settings,syncthing-start,syncthing-ui,google-chrome,steam,github-desktop"
 
 # @ Programas bloqueados no início

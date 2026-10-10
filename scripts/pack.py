@@ -38,9 +38,9 @@ VERBOS
     fontes  [id]                 cada nome de ícone de `scalable/apps` e o
                                  arquivo de onde ele sai, um por linha:
                                  `nome<TAB>fonte<TAB>camada`. Para o mesmo
-                                 nome, o pack no ar vence o resgate do motor
-                                 com `ICONES_DRACULA="sim"` no ambiente, e perde
-                                 sem ele; duas linhas de um nome é empate. Ver
+                                 nome, o pack no ar vence o resgate do motor,
+                                 e perde com `ICONES_DRACULA="nao"` no
+                                 ambiente; duas linhas de um nome é empate. Ver
                                  `fontes`.
     fonte   <nome> [id]          as linhas de `fontes` daquele nome. 0 = uma
                                  fonte só; 1 = nenhuma, ou mais de uma. O lado
@@ -96,8 +96,20 @@ VERBOS
                                      tema=<o que herdar, quando não é o pack>
                                      pack=, url=, sha256=, pasta=
                                  (a origem que a cadeia declara, vazias sem
-                                 ela). Ver `base_que_vale`.
-    novo    <id> [--de-csv <arquivo.csv>] [--seco]
+                                 ela), e uma `atras=<url> <sha256> <pasta>`
+                                 por camada de trás. Ver `base_que_vale`.
+    tema-icones [id] [flavor]    o nome e o comentário do tema de ícones montado
+                                 para o pack nesse flavor: `nome=` e
+                                 `comentario=`. Ver `tema_de_icones`.
+    ocultar [id]                 os ids de `.desktop` que o pack esconde do
+                                 lançador (`lancador.ocultar`), um por linha.
+                                 Ver `ocultar_do_pack`.
+    base-apelidos                o tema de onde as pastas e os apelidos de
+                                 utilitário copiam desenho (o `ICONES_BASE`
+                                 escolhido à mão, ou o Papirus-Dark), e onde
+                                 ele está: `tema=` e `dir=` (vazio fora do
+                                 disco). Ver `base_dos_apelidos`.
+    novo   <id> [--de-csv <arquivo.csv>] [--seco]
                                  cria o pack <id> a partir do que está no ar: a
                                  paleta, o timbre, um logo gerado e os créditos,
                                  herdando o resto do pack ativo. Em $MEOW_PACKS
@@ -312,6 +324,19 @@ CAMPOS_COM_LEITOR = {
     # baixar). O `icones.base.herda` já cabe na máscara `*.*.herda`.
     "icones.base.origem.*",
     "origens.cursores.origem.*",
+    # As camadas de trás da base (P74 item 2): o `base_de_icones` as lê, e o
+    # `construir_icones.sh` as baixa pelo verbo `base-icones` (linhas `atras=`).
+    "icones.base.por_tras",
+    # Os ícones de arquivo derivados da paleta (P74 item 6): o `construir` lê.
+    "icones.mimetypes.derivar.*",
+    # Os papéis de parede do pack (P74 item 9): o `wallpaper.sh` os semeia pelo
+    # `acervo`, rasterizando o SVG.
+    "origens.wallpapers.desenhos",
+    # O que o pack esconde do lançador (P74 item 9): o `ocultar_apps.sh` pergunta
+    # pelo verbo `ocultar`.
+    "lancador.ocultar",
+    # O tema de som do pack (P74 item 9): o `som.sh` o instala pelo `acervo`.
+    "som.tema",
 }
 
 
@@ -1059,7 +1084,9 @@ def fontes_e_atras(ref=None):
                 if len(campos) >= 3 and nome:
                     do_motor.append(
                         (nome, os.path.join(ACERVO_RESGATADOS, nome + ".svg"), "resgatados"))
-    ligada = (os.environ.get("ICONES_DRACULA") or "nao") == "sim"
+    # O padrão é ligada (P74 item 3, 09/10/2026): só o "nao" escrito desliga,
+    # a mesma régua do `icones_apps_dracula.sh`.
+    ligada = (os.environ.get("ICONES_DRACULA") or "sim") != "nao"
     vence = {nome for nome, _fonte, _camada in (do_pack if ligada else do_motor)}
     atras = [linha for linha in (do_motor if ligada else do_pack) if linha[0] in vence]
     return [linha for linha in do_pack + do_motor if linha not in atras], atras
@@ -1083,7 +1110,7 @@ def cmd_fonte(nome, ref):
     # para o stdout continuar sendo uma linha por fonte que vale — o formato
     # que o `meow icones fonte` lê. O valor do interruptor sai do ambiente, e
     # não escrito aqui: é o que a pessoa tem no meow.conf.
-    chave = os.environ.get("ICONES_DRACULA") or "nao"
+    chave = os.environ.get("ICONES_DRACULA") or "sim"
     for _n, fonte, camada in (a for a in atras if a[0] == nome):
         if camada == "resgatados":
             porque = (f"com ICONES_DRACULA=\"{chave}\" o pack no ar vence o motor para este "
@@ -2093,7 +2120,11 @@ def _base_escolhida(pedido):
     """
     pedido = (pedido or "").strip()
     nossa = (os.environ.get("NOME_TEMA_ICONES") or "").strip() or "MeowSystem-Icons"
-    return "" if pedido in ("", ICONES_BASE_DO_EXEMPLO, nossa + "-Base") else pedido
+    # As camadas de trás da base (P74 item 2) moram em `<nossa>-Base-<n>`, e
+    # escolher uma delas pelo nome também é pedir a base do pack.
+    if re.fullmatch(re.escape(nossa) + r"-Base(-[0-9]+)?", pedido):
+        return ""
+    return "" if pedido in ("", ICONES_BASE_DO_EXEMPLO) else pedido
 
 
 def base_de_icones(ref=None):
@@ -2112,7 +2143,13 @@ def base_de_icones(ref=None):
         bloco = campo(ref, CATEGORIA_BASE)
         if isinstance(bloco, dict) and not bloco.get("herda") and "origem" in bloco:
             quem = campo(ref, "id") or os.path.basename(dir_pack)
-            return dict(origem_pinada(bloco["origem"], CATEGORIA_BASE + ".origem"), pack=quem)
+            # `por_tras` (P74 item 2): as camadas que ficam atrás da frente, na
+            # ordem do `Inherits=`. Vazia num pack que traz uma base só.
+            atras = [origem_pinada(c.get("origem") if isinstance(c, dict) else None,
+                                   f"{CATEGORIA_BASE}.por_tras[{i}].origem")
+                     for i, c in enumerate(bloco.get("por_tras") or [])]
+            return dict(origem_pinada(bloco["origem"], CATEGORIA_BASE + ".origem"),
+                        pack=quem, por_tras=atras)
         prox = bloco.get("herda") if isinstance(bloco, dict) else None
         ref = prox or campo(ref, "heranca")
     return None
@@ -2135,6 +2172,120 @@ def base_que_vale(ref, pedido):
     if declarada:
         return "pack", "", declarada
     return "motor", ICONES_BASE_DO_EXEMPLO, None
+
+
+# --- A ÁRVORE DOS APELIDOS — 09/10/2026, P74 item 1 (I1/I2) ------------------
+#
+# O DEFEITO, MEDIDO
+#   O `construir_pastas.sh` e o `completar_icones.sh` liam a chave crua e
+#   montavam `/usr/share/icons/$ICONES_BASE`. Com o conf dizendo
+#   `ICONES_BASE="MeowSystem-Icons-Base"` (a base do pack, que mora em
+#   `~/.local/share/icons`), os dois diziam "não está instalado" e as pastas
+#   coloridas sumiram por sete passadas do doctor (01-regressoes.md, I1/I2).
+#   A regra de quem vence já morava no `_base_escolhida`, e só dois leitores a
+#   perguntavam.
+#
+# POR QUE NÃO É A MESMA RESPOSTA DO `base_que_vale`
+#   Esses dois não herdam a base: eles COPIAM dela desenhos com nome de
+#   Papirus — os links `folder-blue-*` que o papirus-folders recolore, a
+#   lixeira cinza, o `64x64/apps/cs-sources.svg`. A base de um pack (a do
+#   Dracula é a m4thewz, com `scalable/places` e sem `folder-blue`) não tem
+#   essa árvore, e nem é o papel dela. Então a regra é a mesma, e o que muda é
+#   o que "ceder" quer dizer: o `ICONES_BASE` escolhido à mão vence (é o tema
+#   que a pessoa pôs e é dele que ela quer as pastas), e o que cede — fábrica,
+#   vazio, o nome da nossa própria base — cai no Papirus-Dark de fábrica, o
+#   companheiro do papirus-folders que o `install.sh` instala como
+#   pré-requisito da etapa de pastas.
+#
+# ONDE O TEMA ESTÁ É PERGUNTA AO DISCO, NOS LUGARES DA ESPECIFICAÇÃO
+#   `$XDG_DATA_HOME/icons`, `~/.icons` e `<XDG_DATA_DIRS>/icons`, nessa ordem —
+#   a do resolvedor. O `/usr/share/icons/` cravado era o segundo meio do
+#   defeito: um tema escolhido à mão em `~/.local/share/icons` nunca era achado.
+def dir_de_tema_de_icones(nome):
+    """O diretório do tema de ícones `nome` no disco, ou "" se ele não está."""
+    if not nome or "/" in nome or nome in (".", ".."):
+        return ""
+    casa = os.path.expanduser("~")
+    lugares = [os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.join(casa, ".local/share"), "icons"),
+               os.path.join(casa, ".icons")]
+    for d in (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":"):
+        if d:
+            lugares.append(os.path.join(d, "icons"))
+    for lugar in lugares:
+        cand = os.path.join(lugar, nome)
+        if os.path.isfile(os.path.join(cand, "index.theme")):
+            return cand
+    return ""
+
+
+# --- O NOME E O COMENTÁRIO DO TEMA MONTADO — 09/10/2026, P74 item 4 (T7) -----
+#
+# O DEFEITO, MEDIDO
+#   O `index.theme` do tema montado dizia `Comment=Catppuccin $FLAVOR para o
+#   COSMIC` com qualquer pack no ar (`construir_icones.sh`), e o tema se chama
+#   `MeowSystem-Icons` em qualquer pack: um tema exportado do Dracula chegaria
+#   à outra máquina dizendo Catppuccin, e dois exportados (o escuro e o claro)
+#   cairiam no mesmo diretório.
+#
+# O NOME É DO PACK E DO FLAVOR, E SÓ O EXPORTADO O USA
+#   `MeowSystem-<Nome>-<Flavor>-Icons`, com o flavor omitido quando ele é o
+#   próprio pack (o `dracula` do Dracula): `MeowSystem-Dracula-Icons`,
+#   `MeowSystem-Dracula-Alucard-Icons`, `MeowSystem-Catppuccin-Mocha-Icons`.
+#   O tema instalado nesta máquina continua `NOME_TEMA_ICONES` (o COSMIC, o
+#   painel e o doctor o leem por esse nome); trocá-lo é outra decisão.
+#
+# O COMENTÁRIO É O DO PACK: o nome, o flavor e a frase curta da vitrine.
+def _so_letras(texto):
+    return re.sub(r"[^A-Za-z0-9]+", "", str(texto or ""))
+
+
+def tema_de_icones(ref=None, flavor=""):
+    """(nome, comentario) do tema de ícones montado para o pack `ref` no `flavor`."""
+    ref = _ref_ativa(ref)
+    dir_pack = achar(ref)
+    ident = (campo(ref, "id") or os.path.basename(dir_pack or "") or "pack") if dir_pack else str(ref)
+    nome = str(campo(ref, "nome", ident) or ident) if dir_pack else ident
+    flavor = (flavor or (campo(ref, "paleta.flavor_padrao", "") if dir_pack else "") or "").strip()
+    partes = ["MeowSystem", _so_letras(nome) or _so_letras(ident) or "Pack"]
+    if flavor and flavor.lower() != ident.lower() and _so_letras(flavor):
+        partes.append(_so_letras(flavor)[:1].upper() + _so_letras(flavor)[1:])
+    frase = str(campo(ref, "vitrine.descricao_curta", "") or "").strip() if dir_pack else ""
+    comentario = f"{nome} ({flavor})" if flavor else nome
+    comentario += f" — {frase}" if frase else " — gerado pelo MeowSystem"
+    return "-".join(partes + ["Icons"]), comentario.replace("\n", " ")
+
+
+# --- O QUE O PACK ESCONDE DO LANÇADOR — 09/10/2026, P74 item 9 (T5) ----------
+#   Os 30 overrides de `.desktop` que o tema Dracula de antes trazia (a pasta
+#   `overrides/` do Dracula_OS-Theme), medidos na P37: 3 mostram e já são
+#   feitos por outros módulos (o `appid.map`, o do zapzap, o
+#   `icones_absolutos.sh`); 27 escondem do menu. A decisão de 24/09 foi
+#   «migrar para o pack», e a P42 a devolveu sem cumprir («esconder é gosto de
+#   uma casa»). O pack declara a lista em `lancador.ocultar`, e o
+#   `ocultar_apps.sh` a soma à do conf. A herança é a do pack inteiro: o
+#   primeiro da cadeia que declara a lista responde.
+RE_DESKTOP_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$")
+
+
+def ocultar_do_pack(ref=None):
+    """Os ids de `.desktop` que o pack esconde do lançador, na ordem dele."""
+    ref = _ref_ativa(ref)
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        if not achar(ref):
+            break
+        lista = campo(ref, "lancador.ocultar")
+        if isinstance(lista, list):
+            return [n for n in lista if isinstance(n, str) and RE_DESKTOP_ID.match(n)]
+        ref = campo(ref, "heranca")
+    return []
+
+
+def base_dos_apelidos(pedido):
+    """(tema, dir): o tema de onde pastas e apelidos copiam desenho, e onde ele está."""
+    tema = _base_escolhida(pedido) or ICONES_BASE_DO_EXEMPLO
+    return tema, dir_de_tema_de_icones(tema)
 
 
 def _rgb(hexcor):
@@ -3390,6 +3541,24 @@ def validar(ref, silencioso=False):
                 alvo = _dentro(dir_pack, bloco[chave], f"icones.{cat}.{chave}")
                 _exigir(os.path.exists(alvo),
                         f"icones.{cat}.{chave}: {bloco[chave]!r} não existe no pack")
+    # A LISTA DO LANÇADOR (P74 item 9): ids de `.desktop`, e só eles — eles
+    #   viram nome de arquivo em /usr/share/applications, pela ponte root.
+    oc = (p.get("lancador") or {}).get("ocultar") if isinstance(p.get("lancador"), dict) else None
+    if p.get("lancador") is not None:
+        _exigir(isinstance(p.get("lancador"), dict) and isinstance(oc, list)
+                and all(isinstance(n, str) and RE_DESKTOP_ID.match(n) for n in oc),
+                "lancador.ocultar: uma lista de ids de `.desktop` (letras, dígitos, '.', '_' e '-'),\n"
+                "    sem '/' e sem a extensão — viram nome de arquivo do sistema.")
+    # OS ÍCONES DE ARQUIVO DERIVADOS (P74 item 6): de qual pack e de qual pasta
+    #   do acervo dele. A pasta é um nome só, pela régua das pastas de pacote, e
+    #   o `derivar` precisa dos `desenhos` ao lado — é onde a derivação escreve.
+    der = (ic.get("mimetypes") or {}).get("derivar")
+    if der is not None:
+        _exigir(isinstance(der, dict) and isinstance(der.get("de"), str) and der.get("de")
+                and isinstance(der.get("pasta"), str) and RE_PASTA_PACOTE.match(der["pasta"])
+                and "/" not in der["pasta"] and (ic.get("mimetypes") or {}).get("desenhos"),
+                "icones.mimetypes.derivar: {\"de\": \"<id do pack>\", \"pasta\": \"<pasta do acervo dele>\"},\n"
+                "    ao lado de `desenhos`, que é onde a derivação escreve.")
 
     # AS LINHAS DO MAPA DE APLICATIVOS — regras 1 e 4 da P28, 23/09/2026
     #   Até aqui o `validar` conferia que o MAPA existe, e não o que ele diz. Um
@@ -3594,6 +3763,20 @@ def validar(ref, silencioso=False):
                 "    herda a de outro — as duas juntas não dizem qual.")
         if "origem" in base:
             origem_pinada(base["origem"], CATEGORIA_BASE + ".origem")
+        # AS CAMADAS DE TRÁS (P74 item 2, 09/10/2026): cada uma é uma origem
+        #   pinada como a da frente, e só existem atrás de uma frente — sem a
+        #   `origem`, "por trás" de quê?
+        if "por_tras" in base:
+            atras = base["por_tras"]
+            _exigir("origem" in base and isinstance(atras, list) and atras,
+                    "icones.base.por_tras: uma lista não vazia, e só ao lado de uma `origem` —\n"
+                    "    são as camadas que ficam ATRÁS da base que o pack traz.")
+            for i, camada in enumerate(atras):
+                trilha = f"{CATEGORIA_BASE}.por_tras[{i}]"
+                _exigir(isinstance(camada, dict)
+                        and {k for k in camada if not str(k).startswith("_")} == {"origem"},
+                        f"{trilha}: um objeto com a `origem` e só ela — {{\"origem\": {{…}}}}")
+                origem_pinada(camada["origem"], trilha + ".origem")
 
     fo = p.get(CATEGORIA_FONTES)
     if fo is not None:
@@ -3621,6 +3804,13 @@ def validar(ref, silencioso=False):
     }
     for chave, valor in som.items():
         if chave.startswith("_"):
+            continue
+        # O TEMA DE SOM (P74 item 9) não é timbre: é o diretório de um tema de
+        #   som freedesktop dentro do pack, com o `index.theme` dele.
+        if chave == "tema":
+            alvo = _dentro(dir_pack, valor if isinstance(valor, str) else "", "som.tema")
+            _exigir(os.path.isfile(os.path.join(alvo, "index.theme")),
+                    f"pack.json: som.tema = {valor!r} precisa ser uma pasta do pack com um index.theme")
             continue
         _exigir(chave in LIMITES,
                 f"pack.json: som.{chave} não é uma chave conhecida.\n"
@@ -3933,6 +4123,29 @@ NOTA_DA_CATEGORIA = {
 }
 
 
+def _cadeia_declara(ref, cat):
+    """Algum pack da cadeia a partir de `ref` declara `cat`? (P74 item 7)
+
+    A mesma régua da tabela do `origens`: o `mapa` do COSMIC só conta escrito
+    (o `null` é o do motor), ponteiro, fontes e base só com `proprio`,
+    `origem` ou `herda`, e o resto com qualquer bloco."""
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        if not achar(ref):
+            return False
+        caminho = {"cosmic.mapa": "cosmic.mapa", "cursores": "origens.cursores",
+                   "wallpapers": "origens.wallpapers"}.get(cat, cat)
+        bloco = campo(ref, caminho)
+        if cat in ("cursores", CATEGORIA_FONTES, CATEGORIA_BASE):
+            if isinstance(bloco, dict) and ("proprio" in bloco or "origem" in bloco or bloco.get("herda")):
+                return True
+        elif bloco is not None:
+            return True
+        ref = campo(ref, "heranca")
+    return False
+
+
 def origens(p):
     """[(categoria, tipo, de_quem)] na ordem da tabela do `info`.
 
@@ -3942,6 +4155,7 @@ def origens(p):
     ic = p.get("icones") or {}
     org = p.get("origens") or {}
     saida = []
+    dir_pack_info = achar(p["id"]) if p.get("id") else None
     for cat, bloco in [("paleta", p.get("paleta")), ("cosmic.mapa", (p.get("cosmic") or {}).get("mapa")),
                        ("icones.apps", ic.get("apps")), ("icones.pastas", ic.get("pastas")),
                        ("icones.mimetypes", ic.get("mimetypes")), ("icones.autorais", ic.get("autorais")),
@@ -3991,8 +4205,16 @@ def origens(p):
         #   onde a imagem sai. Os campos seguem no aviso de campo morto, que conta
         #   que declará-los não faz nada; no dia em que o `wallpaper.sh`
         #   ler o bloco do pack, este sai e a categoria volta à regra geral.
+        #   [P74 item 7, 09/10/2026: o dia chegou para o `desenhos`. O
+        #   `wallpaper.sh` passou a semear, pelo `acervo`, os papéis de parede
+        #   que o pack traz em `origens.wallpapers.desenhos` (os SVG do Dracula,
+        #   rasterizados em 4K). Com a pasta declarada e no disco, PRÓPRIO; o
+        #   resto do bloco continua sem leitor, e continua do motor.]
         if cat == "wallpapers":
-            saida.append((cat, "motor", ""))
+            desenhos = bloco.get("desenhos") if isinstance(bloco, dict) else None
+            proprio = isinstance(desenhos, str) and dir_pack_info and \
+                os.path.isdir(os.path.join(dir_pack_info, desenhos))
+            saida.append((cat, "próprio" if proprio else "motor", ""))
             continue
         # PONTEIRO E FONTES SÃO PRÓPRIOS SÓ COM `proprio`. Um bloco com só o
         # `tema` do ponteiro (o nome que a chave CURSOR recebe) não traz tema
@@ -4014,6 +4236,18 @@ def origens(p):
             #   não existe para aquele pack. O `acervo()` já resolve assim; era
             #   só a tela que discordava dele.
             tipo, quem = ("herdado", p["heranca"]) if p.get("heranca") else ("motor", "")
+            # A HERANÇA QUE NÃO TRAZ NADA É O MOTOR — 09/10/2026, P74 item 7.
+            #   O Dracula dizia «HERDADO de catppuccin» no mapa do COSMIC e nas
+            #   fontes, e o Catppuccin não declara nenhum dos dois: o mapa é o
+            #   `assets/paleta/cosmic-map.json` do motor e a fonte é a Nerd Font
+            #   do motor. «Herdado do Catppuccin» com o Dracula no ar era a
+            #   frase do achado 9 de 09/10, sobre coisa que não é dele.
+            #   Só nessas duas: nas outras, «herdado de» é o nome da porta por
+            #   onde o valor chega (o ponteiro do pack de CSV vem do CURSOR que
+            #   o Catppuccin nomeia), e o `tests/pack.sh` o cobra.
+            if tipo == "herdado" and cat in ("cosmic.mapa", CATEGORIA_FONTES) \
+                    and not _cadeia_declara(p["heranca"], cat):
+                tipo, quem = "motor", ""
         elif isinstance(bloco, dict) and bloco.get("herda"):
             tipo, quem = "herdado", bloco["herda"]
         else:
@@ -4156,6 +4390,8 @@ def cmd_info(ref):
             else:
                 if b:
                     conta = f"{_url_curta(b['url'])}, sha256 {b['sha256'][:12]}…, do pack {b['pack']}"
+                    if b.get("por_tras"):
+                        conta += f", +{len(b['por_tras'])} por trás"
                 elif a_mao:
                     conta = f"a cadeia não traz base — vale o ICONES_BASE=\"{a_mao}\" do meow.conf"
                 else:
@@ -4204,6 +4440,11 @@ def cmd_info(ref):
         # "OS PAPÉIS DE PAREDE SÃO DO MOTOR", no `origens`.
         elif cat == "wallpapers":
             conta = "scripts/wallpaper.sh — segue o pack do flavor, sem ler este bloco"
+            # Com os desenhos no pack (P74), a linha conta os SVG que ele traz.
+            if tipo == "próprio":
+                pasta = acervo("origens.wallpapers.desenhos", ref=ref) or ""
+                n = sum(1 for _r, _d, fs in os.walk(pasta) for a in fs if a.lower().endswith(".svg"))
+                conta = f"{n} desenho(s) SVG, rasterizados em PNG 4K ao semear (scripts/wallpaper.sh)"
         elif cat in FIXAS_NO_MOTOR:
             conta = FIXAS_NO_MOTOR[cat]
         if cat in NOTA_DA_CATEGORIA:
@@ -4562,8 +4803,16 @@ def cmd_construir(ref, seco=False):
     ident = p.get("id", os.path.basename(dir_pack))
 
     gerar = ((p.get("icones") or {}).get("autorais") or {}).get("gerar")
-    if not gerar:
+    derivar = ((p.get("icones") or {}).get("mimetypes") or {}).get("derivar")
+    if not gerar and not derivar:
         print(f"  --   {ident}: não declara nada derivado — nada a construir")
+        return OK
+    # Os ícones de arquivo derivados (P74 item 6) vêm antes dos autorais: não
+    # dependem de gerador de fora, e um pack pode declarar só eles.
+    if derivar:
+        derivar_mimetypes(ident, seco=seco)
+    if not gerar:
+        print(f"  ok   {ident}: construído")
         return OK
 
     # `_dentro` com o caminho que VAMOS ESCREVER: se um dia a saída vier do
@@ -4590,6 +4839,118 @@ def cmd_construir(ref, seco=False):
         raise Recusa(f"o gerador de ícones autorais saiu {r.returncode}")
     print(f"  ok   {ident}: construído")
     return OK
+
+
+# --- OS ÍCONES DE ARQUIVO DERIVADOS DA PALETA — 09/10/2026, P74 item 6 (T9) ---
+#
+# O BURACO, MEDIDO
+#   O Dracula herdava os 656 ícones de arquivo do Catppuccin no flavor
+#   `macchiato`: com o Dracula no ar, o cosmic-files abria uma pasta e os tipos
+#   de arquivo saíam no lilás e no azul do Catppuccin, e o doctor dizia «123
+#   tipos de arquivo já vestidos de Catppuccin macchiato». O `pack.json` dizia
+#   «não existe acervo de mimetype Dracula» — e não existia mesmo.
+#
+# A CURA É O ACERVO DE ORIGEM, NÃO UM RECOLORIDO
+#   O upstream do Catppuccin (catppuccin/vscode-icons, MIT) publica, ao lado
+#   dos quatro flavors, o `css-variables/`: os MESMOS 656 desenhos com cada cor
+#   escrita por papel (`var(--vscode-ctp-mauve)`). Medido em 09/10/2026: trocar
+#   cada `var(--vscode-ctp-<papel>)` pelo hex do papel na paleta do Mocha dá os
+#   656 arquivos do `mocha/` byte a byte (com o hex em minúsculas, como lá).
+#   Então o pack que declara `icones.mimetypes.derivar` ganha um diretório por
+#   flavor DA PALETA DELE, pela mesma conta: o papel é o da paleta, o hex é o do
+#   pack. Os 16 papéis usados existem em toda paleta que o `validar` aceita (os
+#   26 slots são obrigatórios).
+#
+# QUEM ESCREVE É O `construir`, DENTRO DO PACK, E A SAÍDA É VERSIONADA
+#   Como o acervo do Catppuccin, e ao contrário dos autorais (ver a dívida no
+#   `cmd_construir`): aqui não há segunda cópia em lugar nenhum, e a máquina de
+#   quem instala não precisa construir nada. O `LICENSE` da origem vai junto,
+#   porque o desenho é dela. Idempotente: arquivo igual não é reescrito, e o
+#   que saiu da origem sai do flavor.
+RE_VAR_CTP = re.compile(r"var\(--vscode-ctp-([a-z0-9]+)\)")
+
+
+def derivar_mimetypes(ref, seco=False):
+    """Escreve `<desenhos>/<flavor>/` para cada flavor da paleta do pack. Levanta Recusa."""
+    import tempfile
+    p, dados, dir_pack = validar(ref, silencioso=True)
+    ident = p.get("id", os.path.basename(dir_pack))
+    bloco = (p.get("icones") or {}).get("mimetypes") or {}
+    der = bloco.get("derivar") or {}
+    origem = acervo("icones.mimetypes.desenhos", der.get("pasta", ""), ref=der.get("de"))
+    if not origem or not os.path.isdir(origem):
+        raise Recusa(f"icones.mimetypes.derivar: o pack {der.get('de')!r} não tem "
+                     f"{der.get('pasta')!r} no acervo de mimetype dele")
+    # SÓ ARQUIVO COMUM DE DENTRO DA ORIGEM — conferência da P74 (alerta de
+    #   segurança de 09/10/2026). O pack de onde se deriva pode ser importado, e
+    #   um `.svg` que é link para fora (`~/.ssh/id_ed25519`) seria lido e escrito
+    #   dentro deste pack. O link, ou o que resolve fora da pasta, fica de fora.
+    dentro_origem = os.path.realpath(origem) + os.sep
+    desenhos = sorted(f for f in os.listdir(origem) if f.endswith(".svg")
+                      and not os.path.islink(os.path.join(origem, f))
+                      and os.path.isfile(os.path.join(origem, f))
+                      and os.path.realpath(os.path.join(origem, f)).startswith(dentro_origem))
+    destino_base = _dentro(dir_pack, bloco["desenhos"], "icones.mimetypes.desenhos")
+    escritos = removidos = 0
+    for flavor, cores in dados["flavors"].items():
+        # O nome do flavor vira diretório: só de um conjunto fechado (o mesmo
+        # do conf), para `../` numa paleta importada não escrever fora do pack.
+        if not RE_FLAVOR_CONF.match(str(flavor)):
+            raise Recusa(f"icones.mimetypes.derivar: o flavor {flavor!r} não é um nome de "
+                         f"diretório aceito (só minúsculas, dígitos e '_')")
+        destino = os.path.join(destino_base, flavor)
+        if not seco:
+            os.makedirs(destino, exist_ok=True)
+        for nome in desenhos:
+            with open(os.path.join(origem, nome), encoding="utf-8") as fh:
+                texto = fh.read()
+            faltou = sorted({m for m in RE_VAR_CTP.findall(texto) if m not in cores})
+            if faltou:
+                raise Recusa(f"{nome}: a paleta {flavor!r} não tem {', '.join(faltou)}")
+            novo = RE_VAR_CTP.sub(lambda m: cores[m.group(1)].lower(), texto)
+            alvo = os.path.join(destino, nome)
+            # UM LINK NO DESTINO NÃO É ATRAVESSADO (conferência da P74): o
+            #   `open(alvo, "w")` escreveria no alvo dele, fora do pack. O link
+            #   conta como diferente e é trocado por um arquivo comum, pelo
+            #   temporário + `os.replace`, que substitui o link sem segui-lo.
+            if not os.path.islink(alvo):
+                try:
+                    with open(alvo, encoding="utf-8") as fh:
+                        if fh.read() == novo:
+                            continue
+                except OSError:
+                    pass
+            escritos += 1
+            if not seco:
+                fd, tmp = tempfile.mkstemp(dir=destino, prefix=".meow-")
+                with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                    fh.write(novo)
+                os.chmod(tmp, 0o644)
+                os.replace(tmp, alvo)
+        if os.path.isdir(destino):
+            for nome in sorted(os.listdir(destino)):
+                if nome.endswith(".svg") and nome not in desenhos:
+                    removidos += 1
+                    if not seco:
+                        os.remove(os.path.join(destino, nome))
+    licenca = os.path.join(os.path.dirname(origem.rstrip("/")), "LICENSE")
+    # A licença pela mesma régua dos desenhos: link não é lido nem atravessado.
+    if os.path.isfile(licenca) and not os.path.islink(licenca) and not seco:
+        alvo = os.path.join(destino_base, "LICENSE")
+        with open(licenca, encoding="utf-8") as fh:
+            texto = fh.read()
+        if os.path.islink(alvo) or not os.path.isfile(alvo) \
+                or open(alvo, encoding="utf-8").read() != texto:
+            fd, tmp = tempfile.mkstemp(dir=destino_base, prefix=".meow-")
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(texto)
+            os.chmod(tmp, 0o644)
+            os.replace(tmp, alvo)
+    verbo = "escreveria" if seco else "escreveu"
+    print(f"  {'~~' if escritos or removidos else 'ok'}   {ident}: ícones de arquivo de "
+          f"{der.get('de')}/{der.get('pasta')}, {len(desenhos)} por flavor × "
+          f"{len(dados['flavors'])} — {verbo} {escritos}, tirou {removidos}")
+    return escritos + removidos
 
 
 # --- O PACK QUE VIAJA: novo, exportar, importar — 23/09/2026, sprint P11 -----
@@ -5582,7 +5943,10 @@ def montar_novo(ident, csv=None):
             raise Recusa(f"a paleta no ar ({arq_paleta}) não serve de ponto de partida: {e}")
         flavor, accent = _flavor_e_accent(pf, paleta)
 
-        som = {k: v for k, v in (pf.get("som") or {}).items() if not str(k).startswith("_")}
+        # Só o timbre: o `tema` (P74) é uma pasta DO pack de onde se parte, e o
+        # novo a alcança pela herança, sem copiá-la.
+        som = {k: v for k, v in (pf.get("som") or {}).items()
+               if not str(k).startswith("_") and k != "tema"}
         for chave, var in SOM_NO_CONF.items():
             bruto = (os.environ.get(var) or "").strip()
             if bruto:
@@ -5877,6 +6241,32 @@ def main(argv):
             print(f"tema={tema}")
             for chave in ("pack", "url", "sha256", "pasta"):
                 print(f"{chave}={(decl or {}).get(chave, '')}")
+            # Uma linha por camada de trás (P74 item 2), na ordem do
+            # `Inherits=`: `atras=<url><TAB><sha256><TAB><pasta>`. Nenhuma
+            # quando o pack traz uma base só, ou quando o conf vence.
+            for c in (decl or {}).get("por_tras", []):
+                print(f"atras={c['url']}\t{c['sha256']}\t{c['pasta']}")
+            return OK
+        if verbo == "tema-icones" and len(argv) in (2, 3, 4):
+            # `nome=` e `comentario=`, para o shell ler com `sed`. Ver
+            # `tema_de_icones` (P74 item 4).
+            nome, comentario = tema_de_icones((argv[2] if len(argv) >= 3 else "") or None,
+                                              argv[3] if len(argv) == 4 else "")
+            print(f"nome={nome}")
+            print(f"comentario={comentario}")
+            return OK
+        if verbo == "ocultar" and len(argv) in (2, 3):
+            # Um id por linha; nenhuma quando o pack não esconde nada.
+            for nome in ocultar_do_pack((argv[2] if len(argv) == 3 else "") or None):
+                print(nome)
+            return OK
+        if verbo == "base-apelidos" and len(argv) == 2:
+            # A mesma porta do `base-icones`: o `ICONES_BASE` vem do ambiente,
+            # e as duas linhas saem sempre (o `dir=` vazio é "não está no
+            # disco"), para o shell ler com `sed`. Ver `base_dos_apelidos`.
+            tema, onde = base_dos_apelidos(os.environ.get("ICONES_BASE"))
+            print(f"tema={tema}")
+            print(f"dir={onde}")
             return OK
         if verbo == "info" and len(argv) == 3:
             return cmd_info(argv[2])

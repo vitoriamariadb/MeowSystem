@@ -103,7 +103,8 @@
 #   som.sh conferir   0 = igual · 1 = divergente · 3 = falta dependência
 #   som.sh estado     diz qual arquivo o COSMIC vai tocar, e se o gatilho vive
 #   som.sh ouvir      toca o que ESTÁ instalado, baixinho, sem mexer no volume
-#   som.sh remover    volta ao som de fábrica do sistema
+#   som.sh remover    volta ao som de fábrica do sistema (e tira o tema do pack)
+#   som.sh vigiar     o tocador das notificações (quem o roda é o meow-som.service)
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -176,6 +177,31 @@ _som_do_pack
 # FUNDAMENTAL e HARMÔNICO: as duas senoides que formam o sino.
 #   880 Hz é o lá da quinta oitava; 1320 é a quinta justa acima dele. A quinta
 #   soa "resolvida" e não alarmante — foi escolhida por isso.
+# --- O TEMA DE SOM DO PACK, E QUEM O TOCA — 09/10/2026, P74 item 9 (T3) -------
+#   O pack Dracula trouxe de volta os 25 efeitos do tema de som de antes
+#   (`som.tema` no pack.json, CC0). Eles ficaram fora em 16/09 pelo motivo do
+#   cabeçalho deste arquivo: o COSMIC toca UM som de evento, o de volume. O
+#   motivo vira cura em duas partes:
+#     1. o tema é instalado como tema de som freedesktop, em
+#        `~/.local/share/sounds/MeowSystem-Sons` (um nome nosso: a pasta é de
+#        dono único, e a troca de pack a leva junto);
+#     2. o `meow-som.service` (systemd/) roda o `som.sh vigiar`, que escuta as
+#        chamadas `Notify` do barramento da sessão e toca o som de notificação
+#        do tema, com o `pw-play` — o mesmo tocador do `cosmic-osd`. Uma
+#        notificação que pede silêncio (`suppress-sound`) fica em silêncio, e
+#        duas seguidas dentro de 0,8 s tocam uma vez (a armadilha 3 lá de cima:
+#        sons que se sobrepõem empilham).
+#   O som de VOLUME não muda: continua o sino do pack, porque os efeitos do
+#   tema têm de 0,24 s a 0,95 s e empilhariam na tecla segurada.
+_som_ref="$(meow_pack_dir)"
+[ -n "$_som_ref" ] || _som_ref="$(meow_pack_padrao_dir 2>/dev/null || true)"
+SOM_TEMA_PACK="$(python3 "$MEOW_RAIZ/scripts/pack.py" acervo "$_som_ref" som.tema 2>/dev/null)" || SOM_TEMA_PACK=""
+SOM_TEMA_PACK="${SOM_TEMA_PACK%/}"
+unset _som_ref
+SOM_TEMA_DIR="$SOM_RAIZ/MeowSystem-Sons"
+SOM_UNIDADE="$HOME/.config/systemd/user/meow-som.service"
+SOM_UNIDADE_FONTE="$MEOW_RAIZ/systemd/meow-som.service"
+
 SOM_FUNDAMENTAL="${SOM_FUNDAMENTAL:-880.0}"
 SOM_HARMONICO="${SOM_HARMONICO:-1320.0}"
 # Os PESOS de cada senoide na mistura. Somados devem ficar abaixo de 1.0, senão
@@ -311,6 +337,123 @@ _som_avisar_ambiente() {
   fi
 }
 
+# O tema do pack no disco: conferir | aplicar | tirar.
+# 0 = já está · 1 = divergente / escreveu · 2 = erro.
+_som_tema() {
+  local modo="$1"
+  if [ "$modo" = "tirar" ]; then
+    [ -d "$SOM_TEMA_DIR" ] || return "$MEOW_OK"
+    meow_seco && { meow_muda "tiraria o tema de som de $SOM_TEMA_DIR"; return "$MEOW_DIVERGENTE"; }
+    rm -rf -- "$SOM_TEMA_DIR" || return "$MEOW_ERRO"
+    meow_muda "o tema de som saiu de $SOM_TEMA_DIR"
+    return "$MEOW_DIVERGENTE"
+  fi
+  [ "$modo" = "conferir" ] || meow_seco || meow_destino_permitido "$SOM_TEMA_DIR" || return "$MEOW_ERRO"
+  MEOW_PY_SECO="$( { [ "$modo" = "conferir" ] || meow_seco; } && echo 1 || echo 0)" \
+  python3 -I - "$SOM_TEMA_PACK" "$SOM_TEMA_DIR" <<'PY'
+import filecmp, os, shutil, sys
+origem, destino = sys.argv[1], sys.argv[2]
+so_ler = os.environ.get("MEOW_PY_SECO") == "1"
+# O QUE VEM DO PACK É DADO NÃO CONFIÁVEL — conferência da P74 (alerta de
+#   segurança de 09/10/2026): um pack importado pode trazer em `sons/` um link
+#   para `~/.ssh/id_ed25519`, e o `copyfile` o seguiria. Só entra arquivo
+#   comum, que não é link e cujo `realpath` cai dentro da pasta do tema; o
+#   `os.walk` já não desce por diretório que é link. O resto é pulado e dito.
+dentro = os.path.realpath(origem) + os.sep
+quer, recusados = set(), []
+for raiz, _d, arqs in os.walk(origem):
+    for a in arqs:
+        cheio = os.path.join(raiz, a)
+        if os.path.islink(cheio) or not os.path.isfile(cheio) \
+                or not os.path.realpath(cheio).startswith(dentro):
+            recusados.append(os.path.relpath(cheio, origem))
+            continue
+        quer.add(os.path.relpath(cheio, origem))
+if recusados:
+    sys.stderr.write("  !!   %d arquivo(s) do tema de som do pack são link ou saem dele, e ficaram de fora: %s\n"
+                     % (len(recusados), " ".join(sorted(recusados)[:3])))
+tem = set()
+for raiz, _d, arqs in os.walk(destino):
+    for a in arqs:
+        tem.add(os.path.relpath(os.path.join(raiz, a), destino))
+mudar = sorted(r for r in quer
+               if r not in tem or not filecmp.cmp(os.path.join(origem, r), os.path.join(destino, r), shallow=False))
+sobra = sorted(tem - quer)
+if not mudar and not sobra:
+    sys.exit(0)
+if so_ler:
+    sys.exit(1)
+for r in mudar:
+    alvo = os.path.join(destino, r)
+    os.makedirs(os.path.dirname(alvo), exist_ok=True)
+    tmp = alvo + ".meow-novo"
+    shutil.copyfile(os.path.join(origem, r), tmp)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, alvo)
+for r in sobra:
+    os.remove(os.path.join(destino, r))
+sys.exit(1)
+PY
+}
+
+# O systemd do usuário só é chamado quando este HOME é o da sessão: num HOME de
+# teste, `systemctl --user` mexeria na unidade da sessão de verdade (a mesma
+# recusa do `construir_icones.sh`, `_ci_home_e_da_sessao`).
+_som_da_sessao() {
+  local dono
+  dono="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
+  [ -n "$dono" ] && [ "$HOME" = "$dono" ] && meow_tem systemctl && [ -d "/run/user/$(id -u)/systemd" ]
+}
+
+# A unidade que toca: conferir | aplicar | tirar. Mesmos códigos.
+_som_unidade() {
+  local modo="$1" rc
+  case "$modo" in
+    conferir)
+      [ -f "$SOM_UNIDADE" ] && [ "$(cat "$SOM_UNIDADE")" = "$(cat "$SOM_UNIDADE_FONTE")" ] \
+        && return "$MEOW_OK"
+      return "$MEOW_DIVERGENTE" ;;
+    aplicar)
+      meow_escrever "$SOM_UNIDADE" "$(cat "$SOM_UNIDADE_FONTE")" 644; rc=$?
+      [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+      if ! meow_seco && _som_da_sessao; then
+        systemctl --user daemon-reload >/dev/null 2>&1
+        # `enable --now` não reinicia a que já está de pé; um arquivo novo pede
+        # o `restart`, para a sessão tocar o tema que acabou de entrar.
+        systemctl --user enable --now meow-som.service >/dev/null 2>&1
+        [ "$rc" = "$MEOW_DIVERGENTE" ] && systemctl --user restart meow-som.service >/dev/null 2>&1
+      fi
+      return "$rc" ;;
+    tirar)
+      [ -f "$SOM_UNIDADE" ] || return "$MEOW_OK"
+      meow_seco && { meow_muda "desligaria o meow-som.service"; return "$MEOW_DIVERGENTE"; }
+      _som_da_sessao && systemctl --user disable --now meow-som.service >/dev/null 2>&1
+      rm -f -- "$SOM_UNIDADE" || return "$MEOW_ERRO"
+      _som_da_sessao && systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "o meow-som.service saiu"
+      return "$MEOW_DIVERGENTE" ;;
+  esac
+}
+
+# Conferir e aplicar o tema e a unidade juntos, pelo pack no ar: com tema, os
+# dois entram; sem ele (o Catppuccin não traz tema de som), os dois saem.
+_som_tema_e_unidade() {   # $1 = conferir | aplicar
+  local rc_t rc_u
+  if [ -n "$SOM_TEMA_PACK" ] && [ -f "$SOM_TEMA_PACK/index.theme" ]; then
+    _som_tema "$1"; rc_t=$?
+    _som_unidade "$1"; rc_u=$?
+  elif [ "$1" = "conferir" ]; then
+    rc_t="$MEOW_OK"; rc_u="$MEOW_OK"
+    [ -d "$SOM_TEMA_DIR" ] && rc_t="$MEOW_DIVERGENTE"
+    [ -f "$SOM_UNIDADE" ] && rc_u="$MEOW_DIVERGENTE"
+  else
+    _som_tema tirar; rc_t=$?
+    _som_unidade tirar; rc_u=$?
+  fi
+  [ "$rc_t" -gt "$rc_u" ] && return "$rc_t"
+  return "$rc_u"
+}
+
 cmd_aplicar() {
   # A CHAVE `SOM` decide, e "não" REMOVE em vez de só não instalar. [2026-09-17]
   #   Não instalar e remover são coisas diferentes para quem já tinha o som: sem
@@ -331,9 +474,23 @@ cmd_aplicar() {
   [ "$rcl" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
   [ "$rcl" = "$MEOW_DIVERGENTE" ] && rc="$MEOW_DIVERGENTE"
 
-  if [ "$rc" = "$MEOW_DIVERGENTE" ] && meow_seco; then
+  # O tema de som do pack e quem o toca (P74 item 9).
+  #   [Conferência da P74: o `rc` do volume fica separado do `rc` final. Com
+  #   só o tema mudando, a frase abaixo dizia «som de volume do MeowSystem
+  #   instalado» sobre um arquivo que não foi tocado — a tela que mente.]
+  local rct rcv="$rc"; _som_tema_e_unidade aplicar; rct=$?
+  [ "$rct" = "$MEOW_ERRO" ] && { meow_erro "não consegui pôr o tema de som do pack"; return "$MEOW_ERRO"; }
+  if [ "$rct" = "$MEOW_DIVERGENTE" ]; then
+    rc="$MEOW_DIVERGENTE"
+    if [ -n "$SOM_TEMA_PACK" ]; then
+      if meow_seco; then meow_muda "poria o tema de som do pack em $SOM_TEMA_DIR, tocado nas notificações"
+      else meow_muda "tema de som do pack em $SOM_TEMA_DIR, tocado nas notificações"; fi
+    fi
+  fi
+
+  if [ "$rcv" = "$MEOW_DIVERGENTE" ] && meow_seco; then
     meow_muda "instalaria o som de volume do MeowSystem em $SOM_ALVO"
-  elif [ "$rc" = "$MEOW_DIVERGENTE" ]; then
+  elif [ "$rcv" = "$MEOW_DIVERGENTE" ]; then
     meow_muda "som de volume do MeowSystem instalado em $SOM_ALVO"
     meow_info "licenças registradas em $SOM_LICENCAS"
     meow_info "vale na próxima mudança de volume — nada a reiniciar"
@@ -357,12 +514,17 @@ cmd_conferir() {
   #   acusando divergência todo dia às 05:00, para sempre, sobre uma escolha
   #   deliberada. É a armadilha do laço não convergente, de novo.
   if [ "${SOM:-sim}" != "sim" ]; then
-    if [ -f "$SOM_ALVO" ]; then
+    if [ -f "$SOM_ALVO" ] || [ -d "$SOM_TEMA_DIR" ] || [ -f "$SOM_UNIDADE" ]; then
       meow_muda "SOM=\"nao\" e o nosso som ainda está instalado"
       return "$MEOW_DIVERGENTE"
     fi
     meow_ok "som de volume de fábrica, como pedido (SOM=\"nao\")"
     return "$MEOW_OK"
+  fi
+  # O tema de som do pack e a unidade que o toca (P74 item 9).
+  if ! _som_tema_e_unidade conferir; then
+    meow_muda "o tema de som do pack, ou quem o toca nas notificações, não está como o pack pede"
+    return "$MEOW_DIVERGENTE"
   fi
   if [ ! -f "$SOM_ALVO" ]; then
     meow_muda "som de volume ausente (o COSMIC usa o de fábrica)"; _som_avisar_ambiente
@@ -428,7 +590,15 @@ cmd_ouvir() {
 }
 
 cmd_remover() {
-  if [ ! -f "$SOM_ALVO" ]; then meow_pula "nada a remover"; return "$MEOW_OK"; fi
+  # O tema do pack e a unidade saem primeiro (P74 item 9), e sozinhos se o
+  # som de volume já não estava.
+  local rct=0
+  _som_unidade tirar >/dev/null; [ $? = "$MEOW_DIVERGENTE" ] && rct=1
+  _som_tema tirar >/dev/null; [ $? = "$MEOW_DIVERGENTE" ] && rct=1
+  if [ ! -f "$SOM_ALVO" ]; then
+    [ "$rct" = 1 ] && { meow_muda "tema de som do pack e o tocador das notificações tirados"; return "$MEOW_DIVERGENTE"; }
+    meow_pula "nada a remover"; return "$MEOW_OK"
+  fi
   meow_seco && { meow_muda "removeria $SOM_ALVO"; return "$MEOW_DIVERGENTE"; }
   rm -f "$SOM_ALVO" "$SOM_LICENCAS"
   # rmdir só apaga diretório vazio: se ela puser outros sons ali, ficam.
@@ -441,11 +611,66 @@ cmd_remover() {
   return "$MEOW_DIVERGENTE"
 }
 
+# `vigiar` — O TOCADOR DAS NOTIFICAÇÕES (P74 item 9; quem o roda é o
+#   `meow-som.service`). O `dbus-monitor` imprime cada chamada `Notify` em um
+#   bloco: a linha do cabeçalho e os argumentos, indentados. O bloco termina
+#   no próximo cabeçalho, ou quando 0,3 s passam sem linha nova — sem esse
+#   prazo, uma notificação só tocaria quando chegasse a seguinte.
+SOM_VIGIA_ULTIMO=0
+_som_vigiar_tocar() {   # $1 = o bloco de um Notify · $2 = o arquivo a tocar
+  local agora
+  # Quem pede silêncio, tem silêncio: o Telegram e o Discord tocam o deles.
+  if grep -A1 -F 'string "suppress-sound"' <<< "$1" | grep -q 'boolean true'; then
+    return 0
+  fi
+  agora="$(date +%s%3N)"
+  [ $((agora - SOM_VIGIA_ULTIMO)) -lt 800 ] && return 0
+  SOM_VIGIA_ULTIMO="$agora"
+  pw-play --media-role Notification "$2" >/dev/null 2>&1 &
+}
+
+cmd_vigiar() {
+  local som linha bloco="" rc
+  meow_tem dbus-monitor || { meow_erro "falta dbus-monitor"; return "$MEOW_SEM_DEPENDENCIA"; }
+  meow_tem pw-play || { meow_erro "falta pw-play (pipewire-bin)"; return "$MEOW_SEM_DEPENDENCIA"; }
+  som="$SOM_TEMA_DIR/stereo/notification/message-new-instant.oga"
+  [ -f "$som" ] || som="$SOM_TEMA_DIR/stereo/notification/message.oga"
+  [ -f "$som" ] || { meow_pula "sem tema de som do pack instalado — nada a tocar"; return "$MEOW_OK"; }
+  # O PRAZO SÓ CORRE COM UM BLOCO ABERTO (conferência da P74): sem nada
+  #   pendente, a leitura espera sem prazo. Com o `-t 0.3` sempre ligado, a
+  #   unidade acordava três vezes por segundo a sessão inteira, para nada.
+  local prazo
+  while :; do
+    prazo=(); [ -n "$bloco" ] && prazo=(-t 0.3)
+    if IFS= read -r ${prazo[@]+"${prazo[@]}"} linha; then
+      case "$linha" in
+        "method call "*"member=Notify"*)
+          [ -n "$bloco" ] && _som_vigiar_tocar "$bloco" "$som"
+          bloco="$linha" ;;
+        " "*|"	"*)
+          [ -n "$bloco" ] && bloco="$bloco"$'\n'"$linha" ;;
+        *)
+          [ -n "$bloco" ] && _som_vigiar_tocar "$bloco" "$som"
+          bloco="" ;;
+      esac
+    else
+      rc=$?
+      [ -n "$bloco" ] && { _som_vigiar_tocar "$bloco" "$som"; bloco=""; }
+      # Acima de 128 é o prazo; abaixo, o `dbus-monitor` acabou — e acabar é
+      # falha, para o systemd o pôr de pé de novo (`Restart=on-failure`).
+      [ "$rc" -gt 128 ] || break
+    fi
+  done < <(dbus-monitor --session "type='method_call',interface='org.freedesktop.Notifications',member='Notify'" 2>/dev/null)
+  wait
+  return "$MEOW_ERRO"
+}
+
 case "${1:-aplicar}" in
   aplicar)  cmd_aplicar ;;
+  vigiar)   cmd_vigiar ;;
   conferir) cmd_conferir ;;
   estado)   cmd_estado ;;
   ouvir)    cmd_ouvir ;;
   remover)  cmd_remover ;;
-  *) meow_erro "uso: som.sh {aplicar|conferir|estado|ouvir|remover}"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: som.sh {aplicar|conferir|estado|ouvir|remover|vigiar}"; exit "$MEOW_ERRO" ;;
 esac

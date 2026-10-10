@@ -1006,6 +1006,22 @@ def _pack_no_ar():
     return mod.PACK_PADRAO if mod else ""
 
 
+def _flavor_do_conf(valores):
+    """O FLAVOR do conf, e vazio vale o `flavor_padrao` do pack no ar.
+
+    O FLAVOR VAZIO NÃO É O MOCHA — 09/10/2026, P74 item 7 (T1). Quatro rotas da
+    página (a marca, o `/paleta.css`, a página exportada e o acento) caíam em
+    `or "mocha"`: com o Dracula no ar e `FLAVOR=""` (vazio vale o padrão do pack,
+    a regra do `meow_flavor` do lib/comum.sh), a página se vestia de Catppuccin.
+    O `mocha` fica só como a última reserva, sem `scripts/pack.py` nenhum."""
+    flavor = valores.get("FLAVOR") or ""
+    if flavor:
+        return flavor
+    mod = modulo_pack()
+    no_ar = _pack_no_ar()
+    return str((mod.campo(no_ar, "paleta.flavor_padrao") if mod and no_ar else "") or "mocha")
+
+
 def vocabulario_do_pack():
     """O `vocabulario` do pack no ar (scripts/pack.py), ou None. [P10]
 
@@ -3847,7 +3863,7 @@ def _acento_da_pagina(flavor, valores):
       O pink é a metade da variante que não aplicou, e a página não se veste
       dela nem pela metade. O `tests/variante.sh` (seção 8) pergunta à rota."""
     accent = valores.get("ACCENT") or "mauve"
-    if not _variante_sem_tema(valores.get("FLAVOR") or "mocha", accent):
+    if not _variante_sem_tema(_flavor_do_conf(valores), accent):
         return accent
     return _acento_na_tela(flavor) or "mauve"
 
@@ -7219,7 +7235,7 @@ class Manipulador(BaseHTTPRequestHandler):
     # --- rotas ---------------------------------------------------------------
     def _logo_do_painel(self):
         valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
-        flavor = valores.get("FLAVOR") or "mocha"
+        flavor = _flavor_do_conf(valores)
         flavor = _flavor_da_pagina(flavor, valores)
         return logo_do_painel(flavor, _acento_da_pagina(flavor, valores))
 
@@ -7495,7 +7511,7 @@ class Manipulador(BaseHTTPRequestHandler):
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
             valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
-            flavor = valores.get("FLAVOR") or "mocha"
+            flavor = _flavor_do_conf(valores)
             # MODO="claro" veste a página de Latte mesmo com FLAVOR escuro: o que
             # ela vê na tela é o tema CLARO, e um painel escuro no meio disso
             # seria a única janela fora do lugar.
@@ -8829,11 +8845,11 @@ class Manipulador(BaseHTTPRequestHandler):
                 desenhos.append({"glifo": arq[:-len(fim)], "desenho": desenho,
                                  "caminho": caminho})
         aviso = ""
-        # O PADRÃO DA CHAVE É O DESLIGADO, como no script e no instalador: só o
-        # "sim" põe o mapa no tema. O título é o que o cartão tem na tela (o
+        # O PADRÃO DA CHAVE É O LIGADO desde a P74 (09/10/2026), como no script
+        # e no instalador: só o "nao" tira o mapa do tema. O título é o que o cartão tem na tela (o
         # `_com_o_vocabulario_do_pack` o reescreve), e o tests/seletor-do-pack.sh
         # confere que os dois não se separam.
-        if (vals.get("ICONES_DRACULA") or "") != "sim":
+        if (vals.get("ICONES_DRACULA") or "sim") == "nao":
             aviso = ("Os desenhos do pack «%s» aparecem nesta busca com «Ícones do pack "
                      "nos aplicativos» ligado." % pack["nome"])
         return pack, desenhos, aviso
@@ -9142,7 +9158,7 @@ class Manipulador(BaseHTTPRequestHandler):
         d = next((x for x in self._desktops() if x["id"] == app), None) or {}
         mod = modulo_pack()
         ident = _pack_adotado() if mod else ""
-        if ident and (valores_efetivos(["ICONES_DRACULA"]).get("ICONES_DRACULA") or "") == "sim":
+        if ident and (valores_efetivos(["ICONES_DRACULA"]).get("ICONES_DRACULA") or "sim") != "nao":
             mapa = mod.acervo("icones.apps.mapa", ref=ident) or ""
             nome = self._nome_do_icone(app)
             for _num, n, alvo in (mod.ler_mapa(mapa) if os.path.isfile(mapa) else ()):
@@ -10885,7 +10901,7 @@ class Manipulador(BaseHTTPRequestHandler):
         imagens, gasto = self._imagens_da_amostra(esquema, apps, jogos)
 
         valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
-        flavor = valores.get("FLAVOR") or "mocha"
+        flavor = _flavor_do_conf(valores)
         flavor = _flavor_da_pagina(flavor, valores)
         paleta = paleta_css(flavor, _acento_da_pagina(flavor, valores))
 

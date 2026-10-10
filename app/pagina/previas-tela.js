@@ -1745,10 +1745,10 @@
     },
 
     legenda: function (m) {
-      /* O PROMPT NÃO É DO PACK, E A FRASE NÃO FINGE — P51. O `starship.toml`
-       * é do motor (o preset catppuccin-powerline, o mesmo com qualquer pack;
-       * a `_nota_heranca` do pack Dracula diz isso), então ele não ganha o
-       * nome do pack no ar: ganha o de onde de fato vem. */
+      /* O PROMPT VESTE O PACK NO AR — P74, 09/10/2026. O desenho é o do
+       * preset do motor (catppuccin-powerline), e as cores, desde a P74, são
+       * as da paleta do pack no ar (`scripts/prompt.sh`). A frase da P51
+       * dizia «o mesmo com qualquer pack», e era verdade até ali. */
       return (m.esquema
         ? "as dezesseis cores do terminal vêm da paleta do pack " + nomeDoPack("no ar")
         : "o terminal fica com a paleta de fábrica do cosmic-term")
@@ -1756,7 +1756,7 @@
         + (m.cursor === "port" ? "na cor que o tema " + nomeDoPack("do pack") + " escolhe"
           : "na cor de destaque")
         + ", e o prompt do zsh "
-        + (m.starship ? "é o do starship que vem com o MeowSystem, o mesmo com qualquer pack"
+        + (m.starship ? "é o do starship que vem com o MeowSystem, nas cores do pack " + nomeDoPack("no ar")
           : "é o simples, sem starship")
         + "." + m.fecho;
     },

@@ -149,13 +149,31 @@ _dracula_pares() {
   #   mapa continuava partindo a linha. `substr` a partir do primeiro `:` não
   #   conta campos: ele diz "nome é o que vem antes, caminho é o resto", que é o
   #   formato escrito em docs/PACKS.md.
+  #
+  # O NOME É DADO NÃO CONFIÁVEL — conferência da P74 (alerta de segurança de
+  #   09/10/2026, path traversal). O nome da coluna 1 vira o arquivo
+  #   `scalable/apps/<nome>.svg` no tema, e um mapa de pack importado podia
+  #   dizer `../../../../.config/autostart/x : apps/y.svg` e escrever fora do
+  #   tema. Agora o nome só passa num conjunto fechado (`[A-Za-z0-9._+-]`, sem
+  #   `..`); a linha que falha sai marcada com `!` (que o conjunto não tem),
+  #   é contada no aviso e pulada, e as outras seguem. O desenho de origem já
+  #   era conferido do outro lado: o `pack.py alvo` o resolve com `realpath` e
+  #   recusa o que cai fora da raiz do pack ou do motor (o `_dentro`).
   cru="$(sed -e 's/#.*//' "$MAPA" | awk -F: '
     NF>=2 {
       nome=$1; caminho=substr($0, index($0, ":") + 1)
       gsub(/^[ \t]+|[ \t]+$/, "", nome)
       gsub(/^[ \t]+|[ \t]+$/, "", caminho)
-      if (nome != "" && caminho != "") print nome "\t" caminho
+      if (nome == "" || caminho == "") next
+      if (nome !~ /^[A-Za-z0-9._+-]+$/ || index(nome, "..")) { print "!\t" nome; next }
+      print nome "\t" caminho
     }')"
+  local recusados
+  recusados="$(printf '%s\n' "$cru" | grep -c $'^!\t')"
+  if [ "$recusados" -gt 0 ]; then
+    meow_aviso "$MAPA: $recusados linha(s) com nome fora de [A-Za-z0-9._+-] (ou com '..') puladas: $(printf '%s\n' "$cru" | sed -n $'s/^!\t//p' | head -3 | paste -sd' ')"
+    cru="$(printf '%s\n' "$cru" | grep -v $'^!\t')"
+  fi
   [ -n "$cru" ] || return 0
   paste <(printf '%s\n' "$cru" | cut -f1) \
         <(printf '%s\n' "$cru" | cut -f2 \
@@ -506,11 +524,16 @@ _dracula_estado() {
 }
 
 # --- ponto de entrada ---------------------------------------------------------
-# O PADRÃO É `nao`, E O PADRÃO É A CURADORIA
-#   Onze dos dezoito nomes já vestem arte aprovada no artifact de 12-15/09.
-#   Ligar isto de fábrica trocaria aquele trabalho pela arte do pack na primeira
-#   rodada do instalador em QUALQUER máquina — inclusive na dela, que não
-#   participou da decisão. Quem liga é o meow.conf, e a chave está no painel.
+# O PADRÃO É `sim`: ESCOLHER O PACK LIGA OS DESENHOS DELE — 09/10/2026, P74 item 3
+#   Até aqui o padrão era `nao`, para não trocar de fábrica os onze desenhos
+#   do Arcticons aprovados em 12-15/09. Medido em 09/10/2026 numa casa de
+#   brinquedo com `PACK="dracula"` e o resto de fábrica: 28 ícones em
+#   `scalable/apps`, contra 230 com a camada ligada — escolher o Dracula
+#   entregava um Dracula pela metade, e o `pack usar` precisava de um segundo
+#   passo que ninguém dizia (T6 da paridade de 09/10). "Dracula vence tudo" já
+#   era a decisão de 16/09. Agora o padrão vem do pack: a camada põe no tema o
+#   mapa do pack no ar, e um pack sem mapa não põe nada — então `sim` de
+#   fábrica é "o pack decide", e a chave só serve para DESLIGAR (`nao`).
 _dracula_aplicar() {
   # O que um pack fora do ar deixou sai ANTES, ligado ou desligado: é o que
   # a troca de pack deixa para trás, e a chave não muda isso (P60). E o nome
@@ -518,7 +541,7 @@ _dracula_aplicar() {
   # painel, ninguém mais o pede, com a camada ligada ou não.
   local rc_fora rc
   _dracula_sobras; rc_fora=$?
-  if [ "${ICONES_DRACULA:-nao}" = "sim" ]; then _dracula_instalar
+  if [ "${ICONES_DRACULA:-sim}" != "nao" ]; then _dracula_instalar
   else _dracula_remover; fi
   rc=$?
   if [ "$rc" = "2" ] || [ "$rc_fora" = "2" ]; then return 2; fi

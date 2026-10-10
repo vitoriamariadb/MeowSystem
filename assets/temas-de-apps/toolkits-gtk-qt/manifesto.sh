@@ -637,7 +637,13 @@ meow_app_aplicar() {
 #                            EXISTE na máquina. Deixar `MeowSystem-Icons` seria
 #                            apontar para a árvore que o passo 5/6 do
 #                            desinstalador remove — apps Qt sem ícone nenhum.
-_MEOW_TK_ICONES_FABRICA="${ICONES_BASE:-Papirus-Dark}"
+#     O nome sai do `pack.py base-apelidos` (P74 item 1, 09/10/2026), e não
+#     da chave crua: `ICONES_BASE="MeowSystem-Icons-Base"` é a base do pack,
+#     que a regra lê como "de fábrica", e devolver o Qt para ela seria apontar
+#     para um tema que só existe enquanto o pack está no ar.
+_MEOW_TK_ICONES_FABRICA="$(ICONES_BASE="${ICONES_BASE:-}" \
+  python3 "$MEOW_RAIZ/scripts/pack.py" base-apelidos 2>/dev/null | sed -n 's/^tema=//p')"
+_MEOW_TK_ICONES_FABRICA="${_MEOW_TK_ICONES_FABRICA:-Papirus-Dark}"
 
 meow_app_reverter() {
   meow_app_detectar || {

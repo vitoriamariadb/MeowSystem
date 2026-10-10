@@ -2314,6 +2314,20 @@ _semente_do_flavor() {
       #   versionado. Sem ele configurado, o flavor cai no acervo comum em vez
       #   de quebrar: quem instala o tema sem ter um acervo próprio continua
       #   tendo papel de parede.
+      #   O PACK TRAZ OS VETORES — 09/10/2026, P74 item 9 (T7). Sem o repositório
+      #   no conf (o caso de toda instalação nova: o exemplo vem vazio, e o
+      #   `dono/repo` não pode morar no código), o Dracula caía no acervo do
+      #   CATPPUCCIN — «ao resetar o PC terei tudo conforme o tema dracula?»
+      #   (26/09), e não teria. Os treze SVG do tulip-orchid moram agora em
+      #   `packs/dracula/wallpapers/` (445 KB, MIT, a procedência no
+      #   PROCEDENCIA.md do pack), e o `_semear_de_pasta` os rasteriza em PNG
+      #   4K, o formato que o `cosmic-bg` lê. Medido no dia: o PNG que sai do
+      #   `rsvg-convert -w 3840 -h 2160` é o do repositório pixel a pixel (RMSE
+      #   0 contra o `tulip-catedral-agulhas.png` desta máquina), e com o mesmo
+      #   nome — a casa que já os tem não ganha cópia nenhuma. O repositório no
+      #   conf continua vencendo: é a escolha de quem o pôs lá.
+      local do_pack=""
+      do_pack="$(python3 "$RAIZ/scripts/pack.py" acervo "$dono" origens.wallpapers.desenhos 2>/dev/null)" || do_pack=""
       if [ -n "${WALLPAPER_DRACULA_REPO:-}" ]; then
         SEMENTE_REPO_PADRAO="$WALLPAPER_DRACULA_REPO"
         SEMENTE_COMMIT_PADRAO="${WALLPAPER_DRACULA_COMMIT:-}"
@@ -2322,6 +2336,11 @@ _semente_do_flavor() {
         if [ -z "$SEMENTE_COMMIT_PADRAO" ] && ! _semente_e_pasta "$SEMENTE_REPO_PADRAO"; then
           meow_aviso "WALLPAPER_DRACULA_REPO sem WALLPAPER_DRACULA_COMMIT — sem pino não há receita"
         fi
+      elif [ -n "$do_pack" ] && [ -d "$do_pack" ]; then
+        SEMENTE_REPO_PADRAO="${do_pack%/}"
+        SEMENTE_COMMIT_PADRAO=""
+        SEMENTE_IGNORAR_PADRAO=""
+        SEMENTE_PREFIXO_PADRAO="${WALLPAPER_DRACULA_PREFIXO:-tulip}"
       else
         SEMENTE_REPO_PADRAO="zhichaoh/catppuccin-wallpapers"
         SEMENTE_COMMIT_PADRAO="1023077979591cdeca76aae94e0359da1707a60e"
@@ -2471,24 +2490,43 @@ _semear_de_pasta() {
     return "$MEOW_ERRO"
   fi
 
-  local n=0 ignorados=0 arq rel nome destino
+  local n=0 ignorados=0 svg_sem=0 arq rel nome destino vetor
   while IFS= read -r arq; do
     [ -n "$arq" ] || continue
     rel="${arq#"$origem"/}"
+    # O SVG ENTRA RASTERIZADO EM 4K — 09/10/2026, P74 item 9 (T7). O
+    # `cosmic-bg` não lê vetor; o `rsvg-convert` (pré-requisito do instalador,
+    # o `librsvg2-bin`) o desenha em 3840x2160, e o arquivo no acervo é o PNG,
+    # com o nome do SVG. Sem ele, o SVG continua sendo o ignorado de antes.
+    vetor=0
     case "${rel##*.}" in
       png|PNG|jpg|JPG|jpeg|JPEG|webp|WEBP|avif|AVIF|gif|GIF|tif|tiff|TIF|TIFF) ;;
+      svg|SVG) if meow_tem rsvg-convert; then vetor=1; else svg_sem=$((svg_sem + 1)); continue; fi ;;
+      # O LICENSE de um acervo (o do pack, ao lado dos SVG) não é imagem.
+      LICENSE|md|txt) continue ;;
       *) ignorados=$((ignorados + 1)); continue ;;
     esac
     nome="${SEMENTE_PREFIXO}-${rel//\//-}"
+    [ "$vetor" = 1 ] && nome="${nome%.*}.png"
     destino="$ATIVOS/$nome"
     [ -e "$destino" ] && continue
     esta_banida "$nome" && continue
     if meow_seco; then
-      meow_muda "copiaria $nome"; n=$((n + 1)); continue
+      if [ "$vetor" = 1 ]; then meow_muda "rasterizaria $nome em 4K"; else meow_muda "copiaria $nome"; fi
+      n=$((n + 1)); continue
     fi
     # Temporário no MESMO diretório e rename depois, pelo motivo do ramo que
     # baixa: uma imagem pela metade entra na rotação e aparece cortada.
     local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
+    if [ "$vetor" = 1 ]; then
+      if rsvg-convert -w 3840 -h 2160 -f png -o "$tmp" -- "$arq" 2>/dev/null && [ -s "$tmp" ]; then
+        mv -f "$tmp" "$destino"; n=$((n + 1))
+      else
+        rm -f "$tmp"
+        meow_aviso "não consegui rasterizar $rel"
+      fi
+      continue
+    fi
     if cp -- "$arq" "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
       mv -f "$tmp" "$destino"; n=$((n + 1))
     else
@@ -2498,7 +2536,12 @@ _semear_de_pasta() {
   done < <(find "$origem" -type f 2>/dev/null | LC_ALL=C sort)
 
   if [ "$ignorados" -gt 0 ]; then
-    meow_info "$ignorados arquivo(s) de formato que o cosmic-bg não lê foram ignorados (SVG entre eles — exporte PNG)"
+    meow_info "$ignorados arquivo(s) de formato que o cosmic-bg não lê foram ignorados"
+  fi
+  # Sem o rasterizador o SVG não vira PNG, e isso é falta de pacote, que o
+  # instalador põe (o `librsvg2-bin`, na etapa de pacotes).
+  if [ "$svg_sem" -gt 0 ]; then
+    meow_aviso "$svg_sem SVG ficaram de fora: sem o rsvg-convert não há como rasterizá-los"
   fi
 
   semear_da_curadoria

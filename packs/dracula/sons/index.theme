@@ -1,0 +1,17 @@
+[Sound Theme]
+Name=Dracula
+Comment=Tema de som sci-fi/cyberpunk sutil do Dracula_OS-Theme
+Inherits=freedesktop
+Directories=stereo/alert stereo/action stereo/notification
+
+[stereo/alert]
+Context=Alert
+OutputProfile=stereo
+
+[stereo/action]
+Context=Action
+OutputProfile=stereo
+
+[stereo/notification]
+Context=Notification
+OutputProfile=stereo

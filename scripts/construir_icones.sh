@@ -63,6 +63,17 @@ BASE_DIR="$HOME/.local/share/icons/$TEMA_BASE"
 # O que o `Inherits=` escreve. Começa como sempre foi, e a `_ci_base` o troca
 # pela base do pack quando ela vale e está no disco.
 HERDA="$ICONES_BASE"
+# As camadas que ficam ATRÁS da base (P74 item 2, 09/10/2026): `,<nome>` por
+# camada que está no disco, na ordem do `icones.base.por_tras` do pack. Moram
+# em `$TEMA_BASE-2`, `-3`…, ao lado da frente, com a mesma régua dela.
+HERDA_ATRAS=""
+# O `Comment=` do índice é o do PACK NO AR, no flavor da máquina (P74 item 4,
+# 09/10/2026). Era `Catppuccin $FLAVOR para o COSMIC` com qualquer pack — o
+# Dracula instalado se descrevia como Catppuccin. Quem compõe a frase é o
+# `tema_de_icones` do `pack.py`, o mesmo que dá o nome ao tema exportado.
+COMENTARIO_TEMA="$(python3 "$RAIZ/scripts/pack.py" tema-icones "$(meow_pack_dir)" "$FLAVOR" 2>/dev/null \
+                     | sed -n 's/^comentario=//p')"
+[ -n "$COMENTARIO_TEMA" ] || COMENTARIO_TEMA="MeowSystem $FLAVOR para o COSMIC"
 
 # ---------------------------------------------------------------------------
 # `adicionar <pasta-ou-zip>` e `remover <nome>` — um acervo de ícones de fora
@@ -111,7 +122,7 @@ _ci_nome_seguro() {
 _ci_nome_recusado() {
   case "$1" in
     "$TEMA_NOME") meow_erro "'$1' é o tema que este script constrói — recusado"; return 0 ;;
-    "$TEMA_BASE") meow_erro "'$1' é a base que o pack traz, e quem a põe e a tira é o 'construir_icones.sh base' — recusado"; return 0 ;;
+    "$TEMA_BASE"|"$TEMA_BASE"-[0-9]*) meow_erro "'$1' é a base que o pack traz, e quem a põe e a tira é o 'construir_icones.sh base' — recusado"; return 0 ;;
     hicolor)      meow_erro "'hicolor' é a hierarquia de reserva do sistema, não um tema — recusado"; return 0 ;;
     default)      meow_erro "'default' é o tema de ponteiro do compositor — recusado"; return 0 ;;
   esac
@@ -397,6 +408,28 @@ _ci_base_baixar() {
     return "$MEOW_ERRO"
   fi
   src="$palco/x/$pasta"
+  # A PASTA É CONFERIDA PELA FORMA QUE VAI SER USADA — conferência da P74
+  #   (alerta de segurança de 09/10/2026). O `pack.py` valida o texto da
+  #   `pasta` (sem `..`, sem barra na frente), mas quem a usa é o disco: um
+  #   pacote pinado por um pack importado pode trazer a pasta, ou um diretório
+  #   do caminho dela, como LINK para fora do palco — e aí o `.meow-origem` e o
+  #   manifesto abaixo seriam escritos dentro do alvo do link, e o `mv` poria o
+  #   link no lugar da base. Então: nenhum componente do caminho é link, e o
+  #   `realpath` dele cai dentro do que o `tar` abriu.
+  local dentro resolvido parcial comp
+  dentro="$(realpath -e -- "$palco/x")"
+  resolvido="$(realpath -e -- "$src" 2>/dev/null)" || resolvido=""
+  parcial="$palco/x"
+  for comp in ${pasta//\// }; do
+    parcial="$parcial/$comp"
+    if [ -L "$parcial" ]; then resolvido=""; break; fi
+  done
+  case "$resolvido" in
+    "$dentro"/*) : ;;
+    *) rm -rf "$palco"
+       meow_erro "a pasta '$pasta' do pacote da base do pack $pack é link, ou sai do pacote — nada instalado"
+       return "$MEOW_ERRO" ;;
+  esac
   if ! _ci_e_tema_de_icones "$src"; then
     rm -rf "$palco"
     meow_erro "o pacote não tem '$pasta' com um index.theme de tema de ícones — nada instalado"
@@ -449,11 +482,71 @@ _ci_base_baixar() {
   return "$MEOW_DIVERGENTE"
 }
 
+# AS CAMADAS DE TRÁS — 09/10/2026, P74 item 2 (T10 e a decisão 1)
+#   A base do Dracula é o `circle` do m4thewz; o `Dracula-Icones` de antes
+#   herdava o `circle` e, ATRÁS dele, o `main`, e é do `main` que vinham 458
+#   nomes `*-symbolic` que a cadeia nova perdeu em 24/09 (medido contra o
+#   backup congelado). O pack declara as camadas em `icones.base.por_tras`, e
+#   cada uma passa pela mesma régua da frente — o mesmo `_ci_base_baixar`, o
+#   mesmo `_ci_base_confere`, o mesmo `_ci_base_tirar` —, com o `BASE_DIR`
+#   local apontando para o diretório dela: as três funções leem o `BASE_DIR`
+#   do escopo de quem chama, e uma régua só é o que impede duas verdades sobre
+#   o que é "uma base inteira".
+
+# Tira as camadas `$TEMA_BASE-<n>` com n >= $1 (as que o pack no ar não usa).
+_ci_base_tirar_atras() {
+  local desde="$1" porque="$2" d n rc pior="$MEOW_OK" BASE_DIR
+  for d in "$HOME/.local/share/icons/$TEMA_BASE"-[0-9]*; do
+    [ -d "$d" ] || continue
+    n="${d##*-}"
+    case "$n" in ''|*[!0-9]*) continue ;; esac
+    [ "$n" -ge "$desde" ] || continue
+    BASE_DIR="$d"
+    _ci_base_tirar "$porque"; rc=$?
+    [ "$rc" -gt "$pior" ] && pior="$rc"
+  done
+  return "$pior"
+}
+
+# Põe ou confere cada camada de trás, das linhas `atras=` do verbo (em $1), e
+# escreve o `HERDA_ATRAS`. 0 = nada mudou · 1 = mudou · 2 = erro
+_ci_base_camadas() {
+  local linhas="$1" pack="$2" url sha pasta n=1 rc pior="$MEOW_OK" BASE_DIR
+  HERDA_ATRAS=""
+  while IFS=$'\t' read -r url sha pasta; do
+    [ -n "$url" ] || continue
+    n=$((n + 1))
+    BASE_DIR="$HOME/.local/share/icons/$TEMA_BASE-$n"
+    if _ci_base_confere "$sha"; then
+      HERDA_ATRAS="$HERDA_ATRAS,$TEMA_BASE-$n"
+      continue
+    fi
+    if meow_seco; then
+      meow_muda "baixaria a camada $n da base de ícones do pack $pack e a instalaria em $BASE_DIR"
+      HERDA_ATRAS="$HERDA_ATRAS,$TEMA_BASE-$n"; pior="$MEOW_DIVERGENTE"
+      continue
+    fi
+    _ci_base_baixar "$url" "$sha" "$pasta" "$pack"; rc=$?
+    case "$rc" in
+      1) HERDA_ATRAS="$HERDA_ATRAS,$TEMA_BASE-$n"; pior="$MEOW_DIVERGENTE" ;;
+      3) # Sem rede: a camada de antes, se houver, segue valendo, como na frente.
+         if [ -f "$BASE_DIR/.meow-origem" ] && _ci_e_tema_de_icones "$BASE_DIR"; then
+           HERDA_ATRAS="$HERDA_ATRAS,$TEMA_BASE-$n"
+         fi ;;
+      *) return "$MEOW_ERRO" ;;
+    esac
+  done < <(printf '%s\n' "$linhas" | sed -n 's/^atras=//p')
+  _ci_base_tirar_atras "$((n + 1))" "o pack $pack traz $((n - 1)) camada(s) por trás"; rc=$?
+  [ "$rc" -gt "$pior" ] && pior="$rc"
+  return "$pior"
+}
+
 # Decide o `$HERDA` e põe (ou tira) a base no disco.
 # 0 = nada mudou · 1 = mudou, ou mudaria no seco · 2 = erro
 _ci_base() {
-  local saida quem tema pack url sha pasta rc
+  local saida quem tema pack url sha pasta rc rc_atras
   HERDA="$ICONES_BASE"
+  HERDA_ATRAS=""
   meow_tem python3 || return "$MEOW_OK"
   # `"$(meow_pack_dir)"` vazio é o pack padrão, a mesma porta do `cursor.sh` e
   # do `instalar_fontes.sh`. Recusado (o pack declara uma origem torta) quer
@@ -483,14 +576,21 @@ _ci_base() {
     # `ICONES_BASE="Dracula-Icones"`, e o Dracula agora traz a própria base.
     [ "$quem" = "conf" ] && [ -n "$pack" ] && \
       meow_info "o pack $pack traz uma base de ícones; vale o ICONES_BASE=\"$tema\" do meow.conf"
-    _ci_base_tirar "o '$TEMA_NOME' herda de '$HERDA'"
-    return $?
+    _ci_base_tirar "o '$TEMA_NOME' herda de '$HERDA'"; rc=$?
+    _ci_base_tirar_atras 2 "o '$TEMA_NOME' herda de '$HERDA'"; rc_atras=$?
+    [ "$rc_atras" -gt "$rc" ] && rc="$rc_atras"
+    return "$rc"
   fi
+
+  # As camadas de trás antes da frente: elas não decidem nada da frente, e
+  # assim os três retornos de baixo (confere, seco, baixou) levam o delas junto.
+  _ci_base_camadas "$saida" "$pack"; rc_atras=$?
+  [ "$rc_atras" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
 
   if _ci_base_confere "$sha"; then
     meow_ok "a base de ícones do pack $pack está em $BASE_DIR e confere"
     HERDA="$TEMA_BASE"
-    return "$MEOW_OK"
+    return "$rc_atras"
   fi
   # No seco não se baixa: baixar é gastar a rede dela para ensaiar, e abrir o
   # pacote é escrever. O `Inherits=` do ensaio é o que a execução deixaria.
@@ -510,7 +610,7 @@ _ci_base() {
        else
          meow_info "  até lá o '$TEMA_NOME' herda de '$ICONES_BASE'"
        fi
-       return "$MEOW_OK" ;;
+       return "$rc_atras" ;;
     *) return "$MEOW_ERRO" ;;
   esac
 }
@@ -518,7 +618,61 @@ _ci_base() {
 _ci_base_cmd() {
   local rc
   _ci_base; rc=$?
-  meow_info "o '$TEMA_NOME' herda de '$HERDA'"
+  meow_info "o '$TEMA_NOME' herda de '$HERDA$HERDA_ATRAS'"
+  return "$rc"
+}
+
+# O RESTO DA CADEIA, DEPOIS DA BASE. Uma constante, porque são dois a escrever
+# a linha `Inherits=`: a construção e o `indice` (que a relê do disco).
+CAUDA_HERANCA="breeze-dark,Cosmic,Adwaita,hicolor"
+
+# `indice` — O ÍNDICE NO FIM, DE UMA VEZ — 09/10/2026, P74 item 5 (T8)
+#   O DEFEITO, MEDIDO numa casa de brinquedo com o Dracula: uma passada das
+#   etapas de ícone deixava o `Directories=` sem `48x48/apps`,
+#   `scalable/mimetypes` e os dois `status`. O índice é escrito no passo 1
+#   desta construção, ANTES das etapas que criam esses diretórios; só o laço
+#   de até cinco passagens do `install.sh` escondia isso, porque na segunda o
+#   disco já tinha tudo. Uma máquina que rodasse uma passagem só (o doctor, o
+#   `--uma-passagem`) ficava com mimetypes e status que ninguém acha.
+#
+#   A CURA é uma etapa única, a última que escreve no tema: esta. Ela recalcula
+#   o `Directories=` do disco com as mesmas funções da construção (uma verdade
+#   só sobre o que é um diretório do tema), e mantém a herança que a construção
+#   decidiu no passo 0 — ela é lida do índice, e não decidida de novo, porque
+#   decidir é o trabalho do `_ci_base`, que pode baixar. Sem índice no disco o
+#   tema ainda não foi construído, e não há o que indexar.
+#
+#   E A CACHE VAI JUNTO: o `gtk-update-icon-cache` indexa o que o
+#   `Directories=` declara, e a cache que existir e for mais velha que algum
+#   arquivo do tema esconde o arquivo dos aplicativos GTK (o cabeçalho do
+#   `completar_icones.sh` conta a medição). Como lá, a cache só é reindexada se
+#   já existir: criá-la seria escolher pela máquina um regime que ela não pediu.
+_ci_indice_cmd() {
+  local rc=0 cache="$TEMA_DIR/icon-theme.cache" herda
+  if [ ! -f "$TEMA_DIR/index.theme" ]; then
+    meow_pula "o tema '$TEMA_NOME' ainda não tem índice — quem o escreve primeiro é a construção"
+    return "$MEOW_OK"
+  fi
+  herda="$(sed -n 's/^Inherits=//p' "$TEMA_DIR/index.theme" | head -1)"
+  HERDA="${herda%",$CAUDA_HERANCA"}"; HERDA_ATRAS=""
+  [ -n "$HERDA" ] || HERDA="$ICONES_BASE"
+  meow_escrever "$TEMA_DIR/index.theme" "$(indice)" 644
+  case $? in
+    1) rc="$MEOW_DIVERGENTE" ;;
+    2) meow_erro "não consegui escrever o index.theme"; return "$MEOW_ERRO" ;;
+  esac
+  if [ -f "$cache" ] && [ -n "$(find "$TEMA_DIR" -newer "$cache" -print -quit 2>/dev/null)" ]; then
+    if meow_seco; then
+      meow_muda "reindexaria a cache do tema (ela é mais velha que algum arquivo dele)"
+      rc="$MEOW_DIVERGENTE"
+    elif meow_tem gtk-update-icon-cache && gtk-update-icon-cache -q -f "$TEMA_DIR" 2>/dev/null; then
+      rc="$MEOW_DIVERGENTE"
+    else
+      meow_aviso "não consegui reindexar $cache — apague-a se algum ícone não aparecer"
+    fi
+  fi
+  [ "$rc" = "$MEOW_OK" ] && meow_ok "índice do '$TEMA_NOME' descreve o disco"
+  [ "$rc" = "$MEOW_DIVERGENTE" ] && ! meow_seco && meow_muda "índice do '$TEMA_NOME' refeito do disco"
   return "$rc"
 }
 
@@ -539,9 +693,10 @@ case "${1:-}" in
   adicionar) _ci_adicionar "${2:-}"; exit $? ;;
   remover)   _ci_remover   "${2:-}"; exit $? ;;
   base)      _ci_base_cmd;           exit $? ;;
+  indice)    : ;;   # despachado depois do `indice()`, que ele usa (P74 item 5)
   *)
     meow_erro "argumento desconhecido: $1"
-    meow_info "  uso: construir_icones.sh [adicionar <pasta-ou-zip> | remover <nome> | base]"
+    meow_info "  uso: construir_icones.sh [adicionar <pasta-ou-zip> | remover <nome> | base | indice]"
     meow_info "  sem argumento, ele constrói o tema '$TEMA_NOME'"
     exit "$MEOW_ERRO" ;;
 esac
@@ -657,8 +812,8 @@ indice() {
   cat <<FIM
 [Icon Theme]
 Name=$TEMA_NOME
-Comment=Catppuccin $FLAVOR para o COSMIC — gerado pelo MeowSystem-Theme
-Inherits=$HERDA,breeze-dark,Cosmic,Adwaita,hicolor
+Comment=$COMENTARIO_TEMA
+Inherits=$HERDA$HERDA_ATRAS,$CAUDA_HERANCA
 Directories=$dirs
 
 [scalable/apps]
@@ -752,6 +907,13 @@ FIM
     fi
   done < <(places_no_disco)
 }
+
+# O `indice` usa o `indice()` e as funções de disco logo acima, e por isso é
+# despachado aqui, e não no `case` do topo.
+if [ "${1:-}" = "indice" ]; then
+  _ci_indice_cmd
+  exit $?
+fi
 
 mudou=0
 

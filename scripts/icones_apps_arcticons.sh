@@ -125,7 +125,9 @@ BASE="$HOME/.local/share/icons/$TEMA"
 #   `meow_flavor` que roda sob `set -e`, e o 1 de «sem resposta do pack.py»
 #   matava o script na própria atribuição. A tela ficava com o aviso do
 #   `meow_flavor` e mais nada: nem quem parou, nem o que ficou por fazer.
-FLAVOR="$(meow_flavor)" || {
+# O DO LADO QUE A TELA VESTE (P74 item 10): com `MODO="claro"` o traço sai da
+#   paleta do claro do pack, e não do escuro que o FLAVOR nomeia.
+FLAVOR="$(meow_flavor_vestido)" || {
   meow_erro "aplicativos em traço: sem o flavor não há cor para o traço — nada foi tocado"
   exit "$MEOW_ERRO"
 }

@@ -92,7 +92,8 @@ meow_desinstalar() {
       meow-leitura.timer meow-leitura.service \
       meow-gato.timer meow-gato.service meow-ativos.path \
       meow-heroic.path meow-heroic.service \
-      meow-painel.service meow-painel-raio.path meow-painel-raio.service 2>/dev/null || true
+      meow-painel.service meow-painel-raio.path meow-painel-raio.service \
+      meow-som.service 2>/dev/null || true
     # A LISTA NOMEADA ACIMA NÃO É REDUNDANTE COM ESTE `find`, e quem acrescentar
     # unidade nova precisa saber: o `find` APAGA o arquivo, o `disable --now` é
     # que PARA a unidade viva e tira os links. Apagar o arquivo de uma unidade
